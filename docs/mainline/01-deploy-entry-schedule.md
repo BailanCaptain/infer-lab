@@ -63,7 +63,7 @@
 3. **引擎进程**：`DPEngineCoreProc.__init__` `vllm@0fc695fc:vllm/v1/engine/core.py#L1701-L1748`；
    `_init_data_parallel` 建立跨机的 **CPU（gloo）DP 进程组** `#L1750-L1764`，这条组只用来同步“还有没有活”，与卡上的 HCCL DP 组是两回事。
 4. **执行器**：`MultiprocExecutor._init_executor` `vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L110-L247`。
-   `world_size = tp × pp × pcp = 8`（`#L118-L119`、`#L249-L260`），据此 fork 8 个 `WorkerProc`（`#L176-L211`），并建立一条共享内存广播队列 `rpc_broadcast_mq`（`#L151-L157`）。
+   `world_size = tp × pp × pcp = 8`（`#L118-L119`、`#L249-L260`），据此创建 8 个 `WorkerProc` 子进程（`#L176-L211`），并建立一条共享内存广播队列 `rpc_broadcast_mq`（`#L151-L157`）。启动方法不能由教程未设变量推出 fork：固定 vLLM 的 CLI 在环境未预设时写 spawn，库 getter 默认才是 fork；来源与覆盖顺序统一见 [engine-processes「怎么开」](../../wiki/concepts/engine-processes.md#怎么开)。
 5. **worker 起卡**：`NPUWorker.init_device` → `_init_device` → `_init_worker_distributed_environment`
    `vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L505-L525`、`#L975-L988`。
    后者按 `hccl` 建全局通信域，再 `ensure_model_parallel_initialized(tp=8, pp=1, pcp=1, dcp=1)` 与 `init_ascend_model_parallel`（建 MC2 组）。
@@ -786,7 +786,7 @@ attn_state               = 含 prefill
 
 ### 在我们部署下的具体数字（R1 收尾）
 
-- 一条 decode 步最多回 4 个 token（1 个已验证 + 最多 3 个被接受的 MTP 草稿），所以流式输出的一个 chunk 可能一次带出 1–4 个 token。`[D]`
+- 一条 decode 步最多回 4 个 token（1 个已验证 + 最多 3 个被接受的 MTP 草稿）；这是单步产出范围。前端及时取走时可逐步输出，跟不上时 `RequestOutputCollector` 合并多个 delta，单个流式 chunk 不受 4 个 token 上限约束。`vllm@0fc695fc:vllm/v1/engine/output_processor.py#L45-L100`，详见 [流式输出](../../wiki/concepts/streaming-output.md#前端跟不上时几步的文字并成一段)。`[C]+[D]`
 - 结束时归还 R1 占的块：起步 15 块，此后是 `ceil((c+7)/640) + 12 + 尾状态组 3~4` 块（`c` 为最后一次调度时的已算位置，尾状态组算法见 §A2.2）。R1 若生成 200 个 token，最后一步开始前已输出 196–199 个，`c = 199~202`，full 组 `ceil(≤209/640) = 1`，尾状态组 `c mod 4 = 2` 时 4 块、其余 3 块 → **`1 + 12 + 3~4 = 16~17` 块**，一次性还回；落在哪个数取决于 MTP 候选接受了几个。尾状态组这一生共借过 52–53 个块号，其中 49 个在途中已还。`[D]`（2026-09-28 由「15 块」改正）
 - 归还顺序是逆序（尾块先还），这样启用前缀缓存时尾块最先被淘汰；本部署前缀缓存关闭，顺序只影响空闲队列的排列。`[C]` `kv_cache_manager.py#L438-L442`
 - DP 视角：这条请求结束后 DP0 的 `running` 计数减 1，下一次 `_maybe_publish_request_counts` 会把新分数推给前端，影响后续路由（见 A1）。`[C]`

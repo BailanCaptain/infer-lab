@@ -1,0 +1,36 @@
+layout: figure
+id: kv-pool-flow
+caption: 固定 GLM 镜像的非逐层同步池路径。图中沿池有额外命中、本地分配成功的分支往下走；查询命中只是计划，失败报告仍受单组/多组限制。旧镜像在本步末等发送队列排空，后续版本的等待点见版本表。
+size: [900, 640]
+frames:
+  - { label: 主线第 2 站：调度与分配, at: [20, 35], size: [550, 180] }
+  - { label: 主线第 3–4 站：准备输入与逐层前向, at: [20, 235], size: [550, 370] }
+items:
+  - { at: [45, 65], size: [500, 52], text: 查询本地与外部池，计算额外命中, sub: 角色与段长检查通过后才查询, tone: control, style: plain }
+  - { at: [45, 145], size: [500, 52], text: 借本地块，记录哪些位置要从池里搬, tone: kv, style: solid }
+  - { at: [45, 265], size: [500, 52], text: 将块表换为地址与长度，调用后端加载, sub: 同步路径等待 get 返回, tone: kv, style: solid }
+  - { at: [45, 350], size: [500, 52], text: 前向读取历史，并写入本步的新状态, tone: token, style: solid }
+  - { at: [45, 435], size: [500, 52], text: 记录 NPU 事件，把可保存的段交给发送线程, sub: 后台 put 前先等计算事件, tone: kv, style: solid }
+  - { at: [45, 520], size: [500, 52], text: 本步末等待发送队列排空, sub: 固定镜像的 wait_for_save, tone: control, style: plain }
+  - { at: [610, 260], size: [270, 88], text: 加载失败另行处理, sub: 单组上报无效块；多组只记错, tone: control, style: plain }
+links:
+  - { from: [295, 117], to: [295, 141], tone: control }
+  - { from: [295, 197], to: [295, 261], tone: control }
+  - { from: [295, 317], to: [295, 346], tone: control }
+  - { from: [295, 402], to: [295, 431], tone: control }
+  - { from: [295, 487], to: [295, 516], tone: control }
+  - { from: [545, 291], to: [606, 291], tone: control, dashed: true }
+texts:
+  - { at: [610, 375], text: 查到不代表已经搬到, strong: true }
+  - { at: [610, 400], text: 多组不能保证按默认 fail 终止, note: true }
+  - { at: [610, 425], text: 混合模型禁止 recompute 策略, note: true }
+  - { at: [30, 625], text: 未命中与分配不足回到调度决策；异步、逐层模式走各自的加载与等待分支。, note: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L491-L591
+    symbols: [get_num_new_matched_tokens]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L722-L790
+    symbols: [start_load_kv]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L838-L874
+    symbols: [_invalid_block_ids]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1432-L1450
+    symbols: [wait_for_save]

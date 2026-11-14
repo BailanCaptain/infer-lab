@@ -1,0 +1,35 @@
+layout: figure
+id: swa-replay-flow
+caption: 第 3–5 站的教学截断对照，只画输入尾段 5–9。窗口长 3、回放从 7 开始，观察位置 8：off 的 SWA 可读 6/7/8，mask 和 compact 都只能读 7/8；后两者输入行数不同，但保留区间语义应相同。全局 KV 读取没有画入此图。
+size: [850, 396]
+grids:
+  - at: [150, 104]
+    rows: 3
+    cols: 5
+    cell: [48, 58]
+    tone: token
+    style: solid
+    colLabels: ['5', '6', '7', '8', '9']
+    rowLabels: ['off', 'mask', 'compact']
+    cells:
+      - { at: [2, 0], style: ghost }
+      - { at: [2, 1], style: ghost }
+  - at: [574, 104]
+    rows: 3
+    cols: 3
+    cell: [58, 58]
+    tone: kv
+    style: solid
+    colLabels: ['6', '7', '8']
+    cells:
+      - { at: [1, 0], style: ghost }
+      - { at: [2, 0], style: ghost }
+links:
+  - { from: [394, 133], to: [570, 133], tone: kv }
+  - { from: [394, 191], to: [570, 191], tone: kv }
+  - { from: [394, 249], to: [570, 249], tone: kv }
+texts:
+  - { at: [150, 38], text: 后半实际处理的输入位置, size: 16, strong: true }
+  - { at: [574, 38], text: 位置 8 可见的 SWA key, size: 16, strong: true }
+  - { at: [150, 320], text: mask 留着所有输入行；compact 移除前部行, size: 14 }
+  - { at: [150, 352], text: 先比较 mask/compact 的位置、槽位和数值，再与 off 比较截断影响, size: 14 }

@@ -1,10 +1,10 @@
 layout: figure
 id: hccl-buffer-flow
-caption: 固定源码里的建组路径：按组名分四条挑缓冲值，四条都构造 Options 并写入组名，mc2 那条只是不写缓冲字段；随后注册表按成员、后端、配置和复用域判断能不能复用一个已经建好的组。
+caption: 固定 db701c1f 的建组路径：按组名分四条挑缓冲值，dp 为公式值与 50 MiB 的较大者；四条都构造 Options 并写入组名，mc2 只是不写缓冲字段。组名还决定复用域，注册表结合成员、后端和配置判断能否复用。
 size: [900, 436]
 items:
   - { at: [24, 170], size: [190, 72], text: 建一个通信组, sub: 按组名取配置, tone: control }
-  - { at: [268, 42], size: [240, 52], text: 名字正好是 dp, sub: 缓冲 50, tone: comm }
+  - { at: [268, 42], size: [240, 52], text: 名字正好是 dp, sub: 缓冲至少 50 MiB, tone: comm }
   - { at: [268, 110], size: [240, 52], text: 名字正好是 dynamic_eplb, sub: 缓冲 100, tone: comm }
   - { at: [268, 178], size: [240, 52], text: 其他名字, sub: 缓冲 200, tone: comm }
   - { at: [268, 246], size: [240, 52], text: 名字里含 mc2, sub: 不写缓冲字段, tone: weight }
@@ -23,8 +23,12 @@ links:
   - { from: [692, 264], to: [623, 302], via: [[623, 282]], tone: control }
   - { from: [692, 264], to: [761, 302], via: [[761, 282]], tone: control }
 texts:
-  - { at: [450, 24], text: 组名只决定留多大，复用与否由注册表判断, anchor: middle, strong: true }
-  - { at: [24, 152], text: 启动阶段做一次, note: true }
+  - { at: [450, 24], text: 组名影响配置与复用域，注册表判断是否复用, anchor: middle, strong: true }
+  - { at: [24, 152], text: 启动或重建时执行, note: true }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_distributed.py#L39-L77
-    symbols: [_resolve_reuse_domain, _acquire_hccl_group, _init_device_groups]
+    symbols: [_resolve_reuse_domain, _acquire_hccl_group]
+  - source: vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_distributed.py#L152-L166
+    symbols: [_init_device_groups]
+  - source: vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_distributed.py#L238-L246
+    symbols: [restore_hccl]

@@ -1,13 +1,13 @@
 layout: figure
 id: quantization-flow
-caption: 加载时按层决定精度：读模型目录里的量化描述文件，标成 FLOAT 的层换成不量化实现，其余按「精度名称、层类型」这一对键找到方法类。每次前向由选中的方法执行：激活现算系数压成 INT8，整数乘加，最后乘回两份系数输出 BF16。上排的分支只在加载时走一次，虚线表示它决定下排用哪套算子。
+caption: 上排只画接量化配置的 Linear/MoE：命中 FLOAT 跳过条件时选不量化实现，否则读取精度并按「精度名称、层类型」查注册表；缺必要条目或实现会报错。Embedding 缺量化条目时允许回退浮点，不在这条分支内。下排画普通动态 Linear 的 BF16 输入路径：量化为 INT8，整数乘加，再乘回两份系数输出 BF16；预量化与专家融合路径的实际调用次数不同。
 size: [880, 400]
 dividers:
   - { from: [24, 214], to: [856, 214], sides: [加载时走一次, 每次前向都走] }
 items:
   - { at: [24, 74], size: [136, 56], text: 启动指定 ascend, sub: 或从模型文件探测, tone: control, style: plain }
   - { at: [176, 74], size: [140, 56], text: 读量化描述文件, sub: 模型目录里的 JSON, tone: control, style: plain }
-  - { at: [340, 74], size: [120, 56], text: 逐层查这一层, sub: 权重标的是什么, tone: control, style: plain }
+  - { at: [340, 74], size: [120, 56], text: Linear / MoE, sub: 查权重精度, tone: control, style: plain }
   - { at: [484, 22], size: [176, 50], text: "标 FLOAT：不量化实现", tone: ink, style: plain }
   - { at: [484, 100], size: [176, 50], text: 其他：查方法注册表, tone: control, style: plain }
   - { at: [684, 86], size: [172, 76], text: W8A8 动态量化方法, sub: linear 与 moe 各一个, tone: weight, style: plain }
@@ -36,12 +36,14 @@ links:
   - { from: [660, 289], to: [684, 289] }
   - { from: [770, 162], to: [246, 258], via: [[770, 186], [246, 186]], tone: weight, dashed: true }
 texts:
-  - { at: [484, 14], text: 描述文件要覆盖每一层：查不到条目会直接报错，不按浮点兜底, size: 13, note: true }
+  - { at: [484, 14], text: 此处只画 Linear/MoE；Embedding 缺条目可回退浮点, size: 13, note: true }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L60-L70
     symbols: [MODELSLIM_CONFIG_FILENAME]
   - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L709-L736
     symbols: [is_layer_skipped_ascend]
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L662-L707
+    symbols: [get_quant_method, UnquantizedEmbeddingMethod]
   - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L364-L398
     symbols: [get_linear_quant_type]
   - source: vllm-ascend@db701c1f:vllm_ascend/quantization/methods/registry.py#L19-L62

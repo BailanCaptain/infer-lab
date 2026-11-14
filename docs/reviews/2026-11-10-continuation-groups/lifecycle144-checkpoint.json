@@ -1,0 +1,34 @@
+{
+  "status": "accepted_for_frozen_revision",
+  "recorded_at": "2026-11-10T13:50:52.010751+00:00",
+  "new_source_occurrences": 144,
+  "groups": {
+    "reasoning": 50,
+    "graph_metadata": 8,
+    "transfer_lifecycle": 86
+  },
+  "old_recounted": 0,
+  "remaining_active_old": 0,
+  "independent": [
+    "reasoning-checkpoint.json",
+    "graph-metadata-acceptance.json",
+    "transfer-lifecycle-final-acceptance.json"
+  ],
+  "verification": "lifecycle144-verification.json",
+  "files": {
+    "wiki/concepts/api-server-entry.md": "6c8d61985a9d14073f16f418c5625acc37fe5c5a0c62124b9a44cb502e23564b",
+    "wiki/concepts/streaming-output.md": "485254831eeddf2d6784c5634837c64eff9d8232f57c71b6b2fef29e9086ae60",
+    "wiki/concepts/sampling.md": "a7d6a09f412f8419fcce9b8cb16564e78abc20dea5eb552f7bdc283713b2d9f1",
+    "wiki/concepts/structured-output.md": "aee7bfb9c68fe3039857cbbe6769acf76d715e16f8284f725d0e1b5c830e7ffb",
+    "wiki/concepts/acl-graph.md": "d1529ff09b753ce89344c513ab0ca2ce9626326ecebf70f7badab4d1bdd5dc49",
+    "wiki/concepts/mooncake-connector.md": "e056c4fba4c6ae3b9c0b2c4ae0298a237633babc21bf04eaf6d618d778e2b140",
+    "wiki/concepts/kv-cache-layerwise-offload.md": "b439ec4ef3c174aab9e55e40c8f8a960fb6fb3128754fc2a05693ce8edd79324",
+    "wiki/concepts/pd-disaggregation.md": "c490e510f61b747aab3d37a235ce23504f1a0b323fe0d862fe76933f417d77c5"
+  },
+  "root_visual_read": {
+    "report": ".tmp\\continuation-groups-2026-11-10\\lifecycle-root-browser\\report.json",
+    "actual_viewed_screens": 10,
+    "links_clicked": 1
+  },
+  "boundary": "Frozen revisions only; renderer/beam/model loading changes require separate acceptance. No whole-site or NPU completion claim."
+}

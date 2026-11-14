@@ -1,6 +1,6 @@
 layout: figure
 id: dyntra-lb-bubble
-caption: 数为示意，一格是一段时间，画的是一个 MoE 层；一步 decode 里每个 MoE 层都把这一段重复一遍。两组先各自算本组请求的注意力（只读自己的 KV），在 dispatch 处会合；各卡算完自己持有的专家，再在 combine 处会合。前一处的等待来自两组历史长短不同，后一处来自专家冷热不同。
+caption: 数为示意，一格是一段时间，用分阶段执行的一个 MoE 层说明两处可能的等待。图中假设两组历史处理负载不同，导致 dispatch 前的等待；专家冷热不同导致 combine 前的等待。实际耗时不由 KV 块数直接换算，各层和各步也不一定相同，通信与计算可能重叠。
 size: [880, 236]
 timelines:
   - at: [24, 56]
@@ -15,14 +15,14 @@ timelines:
     lanes:
       - label: DP0
         spans:
-          - { from: 0, to: 5, text: 注意力 · 读 131 块, tone: kv }
+          - { from: 0, to: 5, text: 注意力 · 估计 131 块, tone: kv }
           - { from: 5, to: 6, text: dispatch, tone: comm, style: faded }
           - { from: 6, to: 7, text: 专家, tone: weight }
           - { from: 7, to: 9, text: 等, tone: control, style: hatch }
           - { from: 9, to: 10, text: combine, tone: comm, style: faded }
       - label: DP1
         spans:
-          - { from: 0, to: 1, text: 读 4 块, tone: kv }
+          - { from: 0, to: 1, text: 估计 4 块, tone: kv }
           - { from: 1, to: 5, text: 等, tone: control, style: hatch }
           - { from: 5, to: 6, text: dispatch, tone: comm, style: faded }
           - { from: 6, to: 9, text: 专家 · 热门的在这边, tone: weight }

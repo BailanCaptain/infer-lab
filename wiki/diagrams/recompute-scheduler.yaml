@@ -1,6 +1,6 @@
 layout: figure
 id: recompute-scheduler
-caption: D 节点续块失败时，本调度器改动的核心是「被让出的那条怎么处置」：连接器能把它的 KV 存走，就存走、之后搬回接着 decode；存不走，就还掉它的全部块、结束它，由代理把「原问题 + 已生成的内容」重新发给一对 P/D，重算落在 P 上，不占 D 的步子
+caption: 固定旧版在D续块失败时询问连接器是否接受保存，接受则排回队首等待保存与恢复；不接受则还KV块、发recomputed结束帧，由代理重投P/D。保存接单不等于拷贝完成；旧GLM镜像发客户端结束帧也没有完整清理引擎请求。rc2细粒度TP失败可直接中止，见版本表。
 size: [900, 600]
 frames:
   - { at: [12, 50], size: [476, 536], label: D 节点（只做 decode） }
@@ -11,11 +11,11 @@ items:
   - { at: [36, 186], size: [428, 58], text: ② 从 running 里取一条让出块, sub: 默认取最晚排进来的那条, tone: control }
   - { at: [36, 282], size: [428, 58], text: ③ 问连接器：它的 KV 能存走吗？, style: plain }
   - { at: [36, 392], size: [206, 92], text: 能：存到主机内存, sub: 排回队首，稍后搬回来, tone: kv }
-  - { at: [258, 392], size: [206, 92], text: 不能：还回全部块, sub: 结束它，标 recomputed, tone: danger }
-  - { at: [36, 512], size: [428, 52], text: 通用做法：在 D 本机从头重算, sub: 开了本调度器的 D 节点不走这条, style: faded }
+  - { at: [258, 392], size: [206, 92], text: 不能：还回KV块, sub: 发结束帧，标 recomputed, tone: danger }
+  - { at: [36, 512], size: [428, 52], text: 通用调度器：排回D再查缓存, sub: 无可用副本时在本地重算, style: faded }
   - { at: [528, 92], size: [340, 72], text: ④ 认出 recomputed 标记, sub: 已生成的接到原问题后，上限扣掉已生成的, tone: comm }
   - { at: [528, 200], size: [340, 58], text: ⑤ 重新挑一对 P、D 发出去, tone: comm }
-  - { at: [528, 356], size: [340, 72], text: ⑥ 把「原问题 + 已生成」整段 prefill, sub: 已生成的越长，这一遍越贵, tone: token }
+  - { at: [528, 356], size: [340, 72], text: ⑥ 处理「原问题 + 已生成」, sub: 无可复用前缀时重算全段, tone: token }
   - { at: [528, 470], size: [340, 72], text: ⑦ KV 交给选中的 D，接着 decode, sub: 通过代理的客户端看到输出接着往下走, tone: kv }
 links:
   - { from: [250, 148], to: [250, 186] }

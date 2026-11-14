@@ -1,0 +1,40 @@
+{
+  "reviewer": "review_first_pages",
+  "status": "accepted-after-corrections",
+  "scope": "Full incremental diff plus relevant context and actual fixed primary ranges in companion MD; not all historical citations",
+  "files": [
+    {
+      "path": "wiki/params/kvpp-config-0445bd352140.md",
+      "sha256": "672b653c0d835f0392d333ebc5d964023239463141641fcf4d2b2fd2ead8a4d2"
+    },
+    {
+      "path": "wiki/params/size-40a1c2ca47b8.md",
+      "sha256": "19396bf34d19483e87d1aa4e77b5b66df07ddf4c18d1c012c1b50c45a1f89a08"
+    },
+    {
+      "path": "wiki/params/use-layerwise-b475778cd352.md",
+      "sha256": "efcd224373f45e960e77628495fd6e888e7a6c1aafba5832b03f28f2d0b011de"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "P2",
+      "path": "wiki/params/use-layerwise-b475778cd352.md",
+      "line": 168,
+      "issue": "Layerwise does not require one remote object per layer",
+      "status": "closed-after-author-correction-and-recheck"
+    },
+    {
+      "severity": "P3",
+      "path": "wiki/params/use-layerwise-b475778cd352.md",
+      "line": 182,
+      "issue": "Enforce eager later overrides graph mode",
+      "status": "closed-after-author-correction-and-recheck"
+    }
+  ],
+  "limitations": [
+    "No UI",
+    "No NPU",
+    "No deployment test"
+  ]
+}

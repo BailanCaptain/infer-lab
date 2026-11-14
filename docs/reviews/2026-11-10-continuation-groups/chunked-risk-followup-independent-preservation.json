@@ -1,0 +1,19 @@
+{
+  "page": "chunked-prefill",
+  "before_sha256": "338a7418b17b67b614ec97319f65550d8faa423a305fde27f53a74d29e551ce8",
+  "after_sha256": "54c0fce9a21c9de8cd99865da3ded8df39d8a1345bb63690d0a4afd33d94ce19",
+  "old_sources_retained_prefix": true,
+  "old_source_count": 39,
+  "new_source_count": 51,
+  "other_frontmatter_identical": true,
+  "diagram_blocks_identical": true,
+  "calc_blocks_identical": true,
+  "scene_blocks_identical": true,
+  "links_identical": false,
+  "semantic_preservation": "只修异步丢弃时点、补DP门控条件、缩窄版本表一行的证明范围；旧示意数、缓存演算、图/交互和全部链接保持。",
+  "full_document_read_credit": 0,
+  "old_links_retained": true,
+  "added_links": [
+    "[Prefill 版本对照](prefill.md#版本差异)"
+  ]
+}

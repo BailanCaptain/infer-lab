@@ -1,0 +1,149 @@
+{
+  "path": "wiki\\raw\\sha256-684654386952329a556fc6feab7fbc11dc918d6820a88738367952291841b497.md",
+  "blocks": [
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L162-L163",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L216-L228",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L272-L280",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/device_allocator/sleep_mem_optimized.py#L47-L64",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/device_allocator/sleep_mem_optimized.py#L116-L128",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/device_allocator/sleep_mem_optimized.py#L172-L186",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L82-L82",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sleep_mode.md#L48-L58",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L261-L292",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L252-L255",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L291-L294",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1613-L1671",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L245-L245",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L292-L299",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/sleep_mode.md#L53-L63",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:tests/ut/worker/test_worker_v1.py#L610-L613",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L102-L116",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L163",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:tests/ut/test_ascend_config.py#L99-L107",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/device_allocator/sleep_mem_optimized.py#L47-L64",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/device_allocator/sleep_mem_optimized.py#L116-L128",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/device_allocator/sleep_mem_optimized.py#L146-L186",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L280-L294",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L175-L175",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L228-L230",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2ed6cbba:docs/source/user_guide/release_notes.md#L120-L120",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_distributed.py#L190-L245",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/device_allocator/sleep_mem_optimized.py#L78-L101",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L329-L370",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L78-L78",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/v1/engine/core.py#L739-L745",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L162-L163",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L50-L57",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L989-L996",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/device_allocator/camem.py#L141-L156",
+      "exact_trim_match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L772-L790",
+      "exact_trim_match": true
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 665" width="860" height="665" role="img" aria-label="两组输入共五条的离线调用示意。默认后台引擎在接到请求后就可计算；进程内模式由调用方等待循环推进。两者最后都收齐最终结果，按提交编号返回。箭头表示调用与交接，不表示五条必须同时进入一个设备批次。">
+  <title>两组输入共五条的离线调用示意。默认后台引擎在接到请求后就可计算；进程内模式由调用方等待循环推进。两者最后都收齐最终结果，按提交编号返回。箭头表示调用与交接，不表示五条必须同时进入一个设备批次。</title>
+  <defs><marker id="request-offline-queue-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M215 175 L215 245" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-offline-queue-ah-ink)"/>
+  <path d="M645 175 L645 245" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-offline-queue-ah-ink)"/>
+  <path d="M215 320 L215 390" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-offline-queue-ah-ink)"/>
+  <path d="M645 320 L645 390" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-offline-queue-ah-ink)"/>
+  <path d="M215 465 L215 515 L430 515 L430 565" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-offline-queue-ah-ink)"/>
+  <path d="M645 465 L645 515 L430 515" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-offline-queue-ah-ink)"/>
+  <rect x="30" y="20" width="370" height="45" rx="8" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="47.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">默认：引擎在后台进程</text>
+  <rect x="460" y="20" width="370" height="45" rx="8" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="47.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">进程内：由调用方推进</text>
+  <rect x="30" y="100" width="370" height="75" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="133.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">提交前三条，取得编号 0、1、2</text>
+  <text x="215" y="152.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求立即发送到后台引擎</text>
+  <rect x="460" y="100" width="370" height="75" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="133.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">提交前三条，取得编号 0、1、2</text>
+  <text x="645" y="152.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">登记在本进程引擎中</text>
+  <rect x="30" y="245" width="370" height="75" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="278.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后台引擎已经可以计算</text>
+  <text x="215" y="297.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调用方此时仍可提交后两条</text>
+  <rect x="460" y="245" width="370" height="75" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="278.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调用方再提交后两条</text>
+  <text x="645" y="297.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">工作仍留在本进程引擎中</text>
+  <rect x="30" y="390" width="370" height="75" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="423.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调用方等待，接收最终输出</text>
+  <text x="215" y="442.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后台继续计算；等全部完成</text>
+  <rect x="460" y="390" width="370" height="75" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="423.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调用方等待，逐步驱动引擎</text>
+  <text x="645" y="442.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每步推进计算，再收结果</text>
+  <rect x="205" y="565" width="450" height="75" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="598.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按提交编号返回 0、1、2、3、4</text>
+  <text x="430" y="617.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">假设完成顺序是 2 → 0 → 4 → 1 → 3</text>
+</svg>

@@ -1,0 +1,68 @@
+{
+  "recorded_at": "2026-11-10T10:42:37.457859+00:00",
+  "items": [
+    {
+      "commit": "0fc695fc",
+      "path": "vllm/entrypoints/openai/completion/protocol.py",
+      "section": "completion-sampling-params",
+      "start": 73,
+      "end": 94,
+      "full_file_sha256": "93c720549f2a9ef217d7c2a60710225c862032517520dd9ba693d4820f55365c",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official/embedded/completion-sampling-params.txt",
+      "reading_scope": "Entire declared embedded range actually read by root in request expansion; not whole source-file credit"
+    },
+    {
+      "commit": "0fc695fc",
+      "path": "vllm/entrypoints/openai/completion/protocol.py",
+      "section": "completion-extra-params",
+      "start": 98,
+      "end": 199,
+      "full_file_sha256": "93c720549f2a9ef217d7c2a60710225c862032517520dd9ba693d4820f55365c",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official/embedded/completion-extra-params.txt",
+      "reading_scope": "Entire declared embedded range actually read by root in request expansion; not whole source-file credit"
+    },
+    {
+      "commit": "0fc695fc",
+      "path": "vllm/entrypoints/openai/chat_completion/protocol.py",
+      "section": "chat-completion-sampling-params",
+      "start": 239,
+      "end": 261,
+      "full_file_sha256": "c4bfefd3ae9898b77fbe075fe1719d33b4d4f57a14ab75aff818b05b64d8c9ac",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official/embedded/chat-completion-sampling-params.txt",
+      "reading_scope": "Entire declared embedded range actually read by root in request expansion; not whole source-file credit"
+    },
+    {
+      "commit": "0fc695fc",
+      "path": "vllm/entrypoints/openai/chat_completion/protocol.py",
+      "section": "chat-completion-extra-params",
+      "start": 265,
+      "end": 422,
+      "full_file_sha256": "c4bfefd3ae9898b77fbe075fe1719d33b4d4f57a14ab75aff818b05b64d8c9ac",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official/embedded/chat-completion-extra-params.txt",
+      "reading_scope": "Entire declared embedded range actually read by root in request expansion; not whole source-file credit"
+    },
+    {
+      "commit": "0fc695fc",
+      "path": "vllm/entrypoints/openai/responses/protocol.py",
+      "section": "responses-extra-params",
+      "start": 206,
+      "end": 285,
+      "full_file_sha256": "7411841ba4210d00d42d473b843af1bc9597e35a48e05e090fd22d80006d7182",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official/embedded/responses-extra-params.txt",
+      "reading_scope": "Entire declared embedded range actually read by root in request expansion; not whole source-file credit"
+    },
+    {
+      "commit": "0fc695fc",
+      "path": "vllm/entrypoints/openai/responses/protocol.py",
+      "section": "responses-response-extra-params",
+      "start": 655,
+      "end": 669,
+      "full_file_sha256": "7411841ba4210d00d42d473b843af1bc9597e35a48e05e090fd22d80006d7182",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official/embedded/responses-response-extra-params.txt",
+      "reading_scope": "Entire declared embedded range actually read by root in request expansion; not whole source-file credit"
+    }
+  ],
+  "count": 6,
+  "unit": "embedded protocol ranges",
+  "whole_source_file_credit": 0
+}

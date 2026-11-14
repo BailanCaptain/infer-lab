@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 410" width="900" height="410" role="img" aria-label="量化验收沿加载、前向与服务三段进行。产物或数值异常先定位，再检查质量；质量达标后测系统收益，每次改变一个因素并复测。">
+  <title>量化验收沿加载、前向与服务三段进行。产物或数值异常先定位，再检查质量；质量达标后测系统收益，每次改变一个因素并复测。</title>
+  <defs><marker id="quantization-evaluation-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M255 72 L340 72" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-evaluation-flow-ah-ink)"/>
+  <path d="M560 72 L645 72" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-evaluation-flow-ah-ink)"/>
+  <path d="M755 105 L755 205" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-evaluation-flow-ah-ink)"/>
+  <path d="M645 90 L605 90 L605 155 L450 155 L450 205" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#quantization-evaluation-flow-ah-ink)"/>
+  <path d="M645 237 L560 237" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#quantization-evaluation-flow-ah-ink)"/>
+  <path d="M340 237 L255 237" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-evaluation-flow-ah-ink)"/>
+  <path d="M145 205 L145 105" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#quantization-evaluation-flow-ah-ink)"/>
+  <rect x="35" y="40" width="220" height="65" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="145" y="68.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">加载：核对产物与布局</text>
+  <text x="145" y="87.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">版本、权重、系数、ND / NZ</text>
+  <rect x="340" y="40" width="220" height="65" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="68.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">第 4 站：对照前向</text>
+  <text x="450" y="87.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">查首个失真的中间值</text>
+  <rect x="645" y="40" width="220" height="65" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="755" y="68.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">独立样本评估质量</text>
+  <text x="755" y="87.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">任务、语言、长度分别报告</text>
+  <rect x="645" y="205" width="220" height="65" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="755" y="233.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">质量达标：测服务收益</text>
+  <text x="755" y="252.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">容量、延迟与达标吞吐</text>
+  <rect x="340" y="205" width="220" height="65" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="233.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">失败：定位并调整</text>
+  <text x="450" y="252.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">校准、敏感层或执行瓶颈</text>
+  <rect x="35" y="205" width="220" height="65" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="145" y="233.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">改一个因素，重新对照</text>
+  <text x="145" y="252.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">保留前后产物与结果</text>
+  <text x="450" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">独立记录：数值捕获 / 性能测试 · 冷启动 / 稳态</text>
+</svg>

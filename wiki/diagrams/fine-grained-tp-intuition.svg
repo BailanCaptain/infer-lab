@@ -77,5 +77,5 @@
   <text x="20" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">稠密 MLP · 2 卡一组</text>
   <text x="20" y="347" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">路由专家 · EP</text>
   <text x="20" y="417" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">lm_head · 4 卡一组</text>
-  <text x="450" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">普通 TP 只有一种切法：每一行都按同一组卡、同样份数切</text>
+  <text x="450" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">按模块另设分组；普通 TP 中也有复制分量，并非所有权重一律均分</text>
 </svg>

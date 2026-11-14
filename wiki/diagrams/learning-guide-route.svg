@@ -1,65 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="从本页进入，按 1 到 5 读完主线。目录第一组收录本页与模型、单请求、多请求三页；部署页在「分布式推理与部署」，代码路径页在「vLLM 与 Ascend 架构」。图中各列表示后续阅读方向，底排三组按需查阅。">
-  <title>从本页进入，按 1 到 5 读完主线。目录第一组收录本页与模型、单请求、多请求三页；部署页在「分布式推理与部署」，代码路径页在「vLLM 与 Ascend 架构」。图中各列表示后续阅读方向，底排三组按需查阅。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 610 680" width="610" height="680" role="img" aria-label="从上往下读完左列五步。右列是每一步可继续查的主题；底部三组随时按需查阅。部署页在「分布式推理与部署」，代码路径页在「vLLM 与 Ascend 架构」。">
+  <title>从上往下读完左列五步。右列是每一步可继续查的主题；底部三组随时按需查阅。部署页在「分布式推理与部署」，代码路径页在「vLLM 与 Ascend 架构」。</title>
   <defs><marker id="learning-guide-route-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
-  <path d="M104 108 L104 140" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <path d="M182 172 L200 172" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <path d="M356 172 L374 172" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <path d="M530 172 L548 172" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <path d="M704 172 L722 172" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <path d="M104 204 L104 250" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <path d="M278 204 L278 250" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <path d="M452 204 L452 250" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <path d="M626 204 L626 250" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <path d="M800 204 L800 250" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-ink)"/>
-  <rect x="26" y="52" width="156" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="104" y="76" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本页：阅读指南</text>
-  <text x="104" y="95" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">从这里开始</text>
-  <rect x="26" y="140" width="156" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="104" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1 认识模型</text>
-  <text x="104" y="187" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">GLM-5.3-Flash</text>
-  <rect x="200" y="140" width="156" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="278" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2 我们的部署</text>
-  <text x="278" y="187" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">16 张卡怎么放</text>
-  <rect x="374" y="140" width="156" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="452" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3 一条请求</text>
-  <text x="452" y="187" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">走完七站</text>
-  <rect x="548" y="140" width="156" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="626" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4 多个请求</text>
-  <text x="626" y="187" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">一步装下多条</text>
-  <rect x="722" y="140" width="156" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="800" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">5 代码路径</text>
-  <text x="800" y="187" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">停在哪一站</text>
-  <rect x="26" y="250" width="156" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="104" y="278" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">模型结构与计算</text>
-  <text x="104" y="297" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">层与 attention</text>
-  <rect x="200" y="250" width="156" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="278" y="278" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">分布式推理与部署</text>
-  <text x="278" y="297" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">展开：16 卡怎么分</text>
-  <rect x="200" y="330" width="156" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="278" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Ascend 硬件与软件栈</text>
-  <text x="278" y="377" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">展开：卡与显存</text>
-  <rect x="374" y="250" width="156" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="452" y="278" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">推理过程</text>
-  <text x="452" y="297" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">展开：调度与 decode</text>
-  <rect x="374" y="330" width="156" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="452" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">服务能力</text>
-  <text x="452" y="377" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">展开：输出的约束</text>
-  <rect x="548" y="250" width="156" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="626" y="278" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">性能与工程优化</text>
-  <text x="626" y="297" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">展开：图尺寸与耗时</text>
-  <rect x="722" y="250" width="156" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="800" y="278" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">vLLM 与 Ascend 架构</text>
-  <text x="800" y="297" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">展开：谁在执行</text>
-  <rect x="26" y="452" width="156" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <text x="104" y="480" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">RFork 工作版</text>
-  <text x="104" y="499" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">只动加载权重那步</text>
-  <rect x="200" y="452" width="156" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <text x="278" y="480" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">参数参考</text>
-  <text x="278" y="499" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">查定义与默认值</text>
-  <rect x="374" y="452" width="156" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <text x="452" y="480" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">来源与更新记录</text>
-  <text x="452" y="499" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">核对一手依据</text>
-  <text x="450" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">从入口到五页主线，再按需要展开各分组</text>
-  <text x="26" y="424" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">虚线下面的每一列，接着它上面那一页读</text>
-  <text x="26" y="536" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">这三组不跟主线的某一步走，需要时随时查</text>
+  <path d="M140 108 L140 145" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#learning-guide-route-ah-ink)"/>
+  <path d="M140 221 L140 260" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#learning-guide-route-ah-ink)"/>
+  <path d="M140 336 L140 375" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#learning-guide-route-ah-ink)"/>
+  <path d="M140 439 L140 480" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#learning-guide-route-ah-ink)"/>
+  <path d="M260 80 L310 80" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-ink)"/>
+  <path d="M260 183 L310 183" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-ink)"/>
+  <path d="M260 298 L310 298" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-ink)"/>
+  <path d="M260 407 L310 407" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-ink)"/>
+  <path d="M260 512 L310 512" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#learning-guide-route-ah-ink)"/>
+  <rect x="20" y="52" width="240" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="140" y="76" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1 认识模型</text>
+  <text x="140" y="95" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">GLM-5.3-Flash</text>
+  <rect x="20" y="145" width="240" height="76" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="140" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2 我们的部署</text>
+  <text x="140" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">16 张卡怎么放</text>
+  <rect x="20" y="260" width="240" height="76" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="140" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3 一条请求</text>
+  <text x="140" y="313" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">走完七站</text>
+  <rect x="20" y="375" width="240" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="140" y="403" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4 多个请求</text>
+  <text x="140" y="422" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">一步装下多条</text>
+  <rect x="20" y="480" width="240" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="140" y="508" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">5 代码路径</text>
+  <text x="140" y="527" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">停在哪一站</text>
+  <rect x="310" y="52" width="280" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="76" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">模型结构与计算</text>
+  <text x="450" y="95" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">层与 attention</text>
+  <rect x="310" y="145" width="280" height="76" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">分布式推理与部署</text>
+  <text x="450" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">Ascend 硬件与软件栈</text>
+  <rect x="310" y="260" width="280" height="76" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">推理过程：调度与 decode</text>
+  <text x="450" y="313" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">服务能力：输出的约束</text>
+  <rect x="310" y="375" width="280" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="403" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">性能与工程优化</text>
+  <text x="450" y="422" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">图尺寸、耗时与问题分析</text>
+  <rect x="310" y="480" width="280" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="508" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">vLLM 与 Ascend 架构</text>
+  <text x="450" y="527" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">谁在执行，怎样接力</text>
+  <rect x="20" y="598" width="180" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="110" y="624" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">RFork 工作版</text>
+  <text x="110" y="643" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">只动加载权重那步</text>
+  <rect x="215" y="598" width="180" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="305" y="624" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">参数参考</text>
+  <text x="305" y="643" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">查定义与默认值</text>
+  <rect x="410" y="598" width="180" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="500" y="624" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">来源与更新记录</text>
+  <text x="500" y="643" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">核对一手依据</text>
+  <text x="305" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本页是入口：先沿左列向下读，再按虚线展开</text>
+  <text x="305" y="580" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">以下三组随时按需查阅</text>
 </svg>

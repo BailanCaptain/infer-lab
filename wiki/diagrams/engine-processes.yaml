@@ -1,13 +1,13 @@
 layout: figure
 id: engine-processes
-caption: API server、EngineCore、Worker 三类进程各占一个框（Worker 画了两个），各有各的内存，框之间只能发消息。请求消息每条请求只发一次；清单每一步发一次，所有 Worker 收到同一份；没配 KV connector、也没开 PP 时，本步结果只由本组 TP 编号为 0 的 Worker 回传。两个 Worker 之间的虚线是卡与卡交换张量。多个 DP 组之间的对齐和 DP coordinator 的消息没有画，见正文。左下是整个服务只用一张卡的情形：Worker 不另起进程，成了 EngineCore 进程里的一个对象
+caption: 主图展示异步客户端与多进程执行器的布局：API server、EngineCore、Worker 各占独立进程（Worker 画了两个），各有各的内存，框之间发消息。请求消息每条请求只发一次；清单每一步发一次，所有 Worker 收到同一份；本图未开 prefill 上下文并行（PCP=1），也没配 KV connector 或开启流水线并行（PP）时，本步结果只由本组 TP 编号为 0 的 Worker 回传。两个 Worker 之间的虚线是卡与卡交换张量。多个 DP 组之间的对齐和 DP coordinator 的消息没有画，见正文。左下改用单进程执行器：Worker 不另起进程，成为执行器所在进程里的对象；API server 与 EngineCore 是否同进程仍由客户端模式决定
 size: [900, 560]
 frames:
   - { at: [24, 64], size: [300, 196], label: API server 进程 }
   - { at: [420, 64], size: [456, 196], label: EngineCore 进程 }
   - { at: [420, 360], size: [216, 150], label: Worker 0 进程 }
   - { at: [660, 360], size: [216, 150], label: Worker 1 进程 }
-  - { at: [24, 360], size: [300, 150], label: 只有一张卡时：EngineCore 进程 }
+  - { at: [24, 360], size: [300, 150], label: 使用 uni：执行器所在进程 }
 items:
   - { at: [44, 100], size: [260, 56], text: 收请求、分词, sub: 文字 → token id, tone: token }
   - { at: [44, 184], size: [260, 56], text: 反分词、流式返回, sub: token id → 文字, tone: token }

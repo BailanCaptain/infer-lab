@@ -1,0 +1,747 @@
+{
+  "reviewer": "/root",
+  "recordedAt": "2026-11-02T19:47:43.141Z",
+  "baseUrl": "http://127.0.0.1:5193/#/wiki/",
+  "method": "Actual IAB navigation, displayed screenshots of the opening two screens, TOC version/lineage clicks and accessibility reading; screenshots were displayed in the tool transcript, not saved as PNG artifacts.",
+  "scope": "106 concept pages + 33 formal parameter pages + one new baseline source page. Five drafts have no published route.",
+  "crossPageChecks": [
+    {
+      "from": "context-parallel",
+      "to": "v030rc2-baseline",
+      "result": "clicked and arrived"
+    },
+    {
+      "from": "absolute-balance-threshold-71578a0c428d",
+      "to": "stair-config-cca9e594a052",
+      "result": "clicked and read rc2 activation conditions"
+    },
+    {
+      "from": "kv-cache-memory-profiling",
+      "to": "gap-a5164fe10fa9184412f8#配置值怎样折算成容量参考",
+      "result": "clicked visible wrapped link text; target heading and calc shown. Locator-center click fell between wrapped lines; native click on text succeeded."
+    }
+  ],
+  "diagramCheck": {
+    "page": "kvpp",
+    "diagram": "kvpp-flow",
+    "result": "Actual figure displayed; narrowed DP/PP grouping label fits its node, arrows and caption readable."
+  },
+  "pages": [
+    {
+      "id": "context-parallel",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "v030rc2-baseline",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "baseline page arrived via cross-page link"
+    },
+    {
+      "id": "npu-model-runner",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "npu-platform",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "glm-5-3-flash",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "glm-5-3-flash-two-node",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "attention-backend-family",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "acl-graph",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "ai-core",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "ai-qos",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "api-server-entry",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "ascend-config-system",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "ascend-patch-system",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "async-scheduling",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "attention-cost",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "attention-qkv",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "balance-scheduling",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "batch-invariance",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "batch-job-aware-scheduler",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "block-table",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "cann-hccl",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "chunked-prefill",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "collective-communication",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "concurrent-requests",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "cpu-binding",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "data-parallel",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "device-memory",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "dp-request-routing",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "dynamic-chunked-pp",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "dyntra-lb",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "embedding",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "engine-processes",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "eplb",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "expert-parallel",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "fine-grained-tp",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "gap-a5164fe10fa9184412f8",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "gqa",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "graph-mode-layer",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "hardware-devices",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "inference-benchmarking",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "inference-correctness-troubleshooting",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "inference-performance-analysis",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "inference-performance-troubleshooting",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "inference-performance-walkthrough",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "inference-troubleshooting",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "kv-cache-cpu-offload",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "kv-cache-layerwise-offload",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "kv-cache-memory-profiling",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "kv-cache-quantization",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "kv-cache-sparse-offload",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "kv-cache-spec",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "kv-cache",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "kv-pool",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "kvpp",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "large-scale-ep",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "layers-and-hidden",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "linear-attention",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "lm-head",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "lmcache",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "lora",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "low-precision-formats",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "matmul-and-weights",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "mla",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "mlp-residual-norm",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "moe",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read",
+      "concurrentEditRecheck": {
+        "recordedAt": "2026-11-02T19:48:00.081Z",
+        "result": "Reopened after concurrent file change; opening two screens displayed, TOC version anchor clicked, rc2 shared-expert and grouped-topk paragraphs displayed and read. No task prose edit needed."
+      }
+    },
+    {
+      "id": "mooncake-connector",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "netloader-guide",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "npu-worker-lifecycle",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "npugraph-ex",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "one-request",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "op-to-ai-core",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "ops-and-kernels",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "pd-disaggregation",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "pipeline-parallel",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "platform-plugin-registration",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "prefill",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "prefix-caching",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "prepare-inputs-flow",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "quantization-evaluation",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "quantization-methods",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "quantization",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "reading-vllm-ascend",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "recompute-cpu-offload",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "recompute-scheduler",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "request-call-chain",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "request-teardown",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "rope",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "sampling",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "sequence-parallel",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "short-request-first",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "sleep-mode",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "sparse-attention",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "speculative-decoding",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "streaming-output",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "structured-output",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "tensor-layout",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "tensor-parallel",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "token",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "ucm",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "vllm-ascend-for-rl",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "vllm-ascend-overview",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "vllm-ascend-repo-map",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "vllm-engine-core",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "vllm-kv-block-allocation",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "vllm-platform-interface",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "vllm-scheduler",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "vllm-v1-shape",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "absolute-balance-threshold-71578a0c428d",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "block-table-no-commit-optimize-8328d0d2d00d",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "c8-enable-reshape-optim-8bd7e5f82c6c",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read",
+      "finalWording": "revisited after narrow corrections; paragraph or fact table displayed"
+    },
+    {
+      "id": "combine-quant-mode-2a3f7cd47997",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "cross-node-transfer-limit-06ee92260b7a",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read",
+      "finalWording": "revisited after narrow corrections; paragraph or fact table displayed"
+    },
+    {
+      "id": "enable-async-exponential",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "enable-force-eplb-b7ec3661121f",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "enable-matmul-allreduce",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read",
+      "finalWording": "revisited after narrow corrections; paragraph or fact table displayed"
+    },
+    {
+      "id": "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "enable-sleep-mode-extra-cleanup",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "enable-super-kernel-ce990e186bfa",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read",
+      "finalWording": "revisited after narrow corrections; paragraph or fact table displayed"
+    },
+    {
+      "id": "fuse-allreduce-rms",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "fused-op-type-fc0f5fcd7be0",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read",
+      "finalWording": "revisited after narrow corrections; paragraph or fact table displayed"
+    },
+    {
+      "id": "kvpp-config-0445bd352140",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "layer-sharding",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "load-risk-quantile-d89a080ba048",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read",
+      "finalWording": "revisited after narrow corrections; paragraph or fact table displayed"
+    },
+    {
+      "id": "load-window-bins-cc21068b082d",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read",
+      "finalWording": "revisited after narrow corrections; paragraph or fact table displayed"
+    },
+    {
+      "id": "multistream-overlap-gate",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "placement-search-backtrack-limit-82b03cef98b0",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read",
+      "finalWording": "revisited after narrow corrections; paragraph or fact table displayed"
+    },
+    {
+      "id": "prefetch-ratio",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "profiling-chunk-config",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "rank-transfer-limit-99529b37d91d",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "relative-balance-threshold-bcbc40e7dc87",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "replica-search-beam-size-6556d1650a62",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "replica-search-num-stages-e4b10925ff97",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "replica-search-radius-cd3118b5aae5",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "size-40a1c2ca47b8",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "stair-config-cca9e594a052",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "use-fused-overlap-75a180fff6ab",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "use-layerwise-b475778cd352",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    },
+    {
+      "id": "weight-prefetch-config",
+      "openingTwoScreens": "displayed and visually read",
+      "versionNavigation": "TOC version/lineage anchor operated and target read"
+    }
+  ],
+  "limitations": [
+    "No new or changed teaching 3D in this task; no claim of complete 3D playback acceptance.",
+    "Browser reading does not prove NPU functionality, precision or performance."
+  ]
+}

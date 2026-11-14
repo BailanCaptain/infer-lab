@@ -1,6 +1,6 @@
 layout: figure
 id: dp-request-routing
-caption: 数为示意。上面一条路：请求 A 的请求头写了组号 0，前端不打分，直接派给 DP0。下面一条路：请求 B 没写组号，前端拿手里的计数表给每组打分（waiting × 4 + running），派给分数小的 DP1，再在本地给 DP1 的 waiting 记一笔。右边两组里，实心格是正在算的请求（running），淡格是刚派进来、还没开始算的请求（waiting）。计数表括号里的两个数，先 waiting 后 running。
+caption: 数为示意，采用 v0.23 的单前端普通文本生成路径。上面一条路：请求 A 的请求头写了组号 0，前端不打分，直接派给 DP0。下面一条路：请求 B 没写组号，前端拿手里的计数表给每组打分（waiting × 4 + running），派给分数小的 DP1，再在本地给 DP1 的 waiting 记一笔。右边两组里，实心格是正在算的请求（running），淡格表示请求最终进入引擎 waiting 后的状态；派出与实际入队之间还有消息传递和引擎收队列。计数表括号里的两个数，先 waiting 后 running。
 size: [900, 476]
 frames:
   - { at: [650, 56], size: [232, 176], label: DP0, inside: true }

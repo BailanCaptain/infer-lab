@@ -1,0 +1,29 @@
+--- before/wiki\concepts\inference-correctness-troubleshooting.md
++++ wiki\concepts\inference-correctness-troubleshooting.md
+@@ -63,7 +63,7 @@
+   - 'vllm-ascend@7d825229:vllm_ascend/batch_invariant.py#L166-L189'
+   - >-
+     vllm-ascend@7d825229:docs/source/user_guide/feature_guide/batch_invariance.md#L25-L41
+-  - 'vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L974-L990'
++  - 'vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L913-L992'
+   - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L909-L933'
+   - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L549-L565'
+   - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1844-L1912'
+@@ -307,7 +307,7 @@
+ 
+ 本页 Runtime Guard 示例另钉 921ccc52，不是 rc2 配置。rc2 缺少 runtime_config、runtime_config_path、runtime_config_hot_reload，普通 Ascend 严格解析会拒收这些键，Omni 特例也只告警过滤；该示例不能直接复制到 rc2 启用热更新。
+ 
+-**v0.30.0rc2 的首个分歧排查仍要固定输入与采样，还应记录实际实现是否启用。** batch-invariant 只有运行时开关为 1 且 Triton 或 AscendC 扩展可用时才注册，缺依赖会 warning 后跳过；混合 prefill/decode 的 FIA 路径会分开计算。官方指南明确预编译 wheel 不带 csrc，安装 wheel 时设开关不会自动编译扩展，须按相同源码准备 AscendC 包与 wheel。因此“变量已设”不证明全模型逐位一致。主 KV 与 indexer 精度、KPool/LightningIndexer、MRV1/MRV2 也须分别记录，避免把切换执行分支误判为同一路径的随机误差。
++**v0.30.0rc2 的首个分歧排查仍要固定输入与采样，还应记录实际实现是否启用。** batch-invariant 只有运行时开关为 1 且 Triton 或 AscendC 扩展可用时才注册，缺依赖会 warning 后跳过。在普通 attention_v1 的 FIA 分支中，无 attention sinks、采用因果注意力且未启用滑动窗口时，批不变开关会让混合 prefill/decode 分开计算；其他后端与分支须分别检查。官方指南明确预编译 wheel 不带 csrc，安装 wheel 时设开关不会自动编译扩展；已安装包也可从匹配源码依次安装 AscendC 算子包和配套 wheel。因此“变量已设”不证明全模型逐位一致。主 KV 与 indexer 精度、KPool/LightningIndexer、MRV1/MRV2 也须分别记录，避免把切换执行分支误判为同一路径的随机误差。
+ 
+ Runtime Guard 新增说明固定到官方 `921ccc52`，与下表的旧 GLM 基线分别成立。未据字段名存在推断 v0.23、v0.26、v0.30.0rc2 或旧 main 全部具备相同接线；部署时按实际 runner 与对应版本核对。此处提供文档取证步骤，没有本站异常触发或硬件转储实测。[S16][S17]
+ 
+@@ -323,7 +323,7 @@
+ 
+ - Runtime Guard 的检测阶段、V2 接线、报告与 KV 转储范围见 [S16]；启动 overlay、热更新、水位、配额、日志及有限性同步语义见 [S17]。它是收集证据的入口，不作为已定位根因的证明。
+ 
+-- “传输完成但内容不对”的公开个案见 vLLM issue #64048（2026-10-30 阅读）[S7]：报告环境为 GH200、vLLM 0.31.0、NIXL 1.5.0，作者用分层分块校验继续定位。它说明为什么应比较交接内容，不构成本站 A2/GLM 遇到同一问题的证据；通用取证顺序为本站分析。
++- “传输完成但内容不对”的公开个案见来源 7 的 vLLM issue #64048：作者报告环境为 GH200、vLLM 0.31.0、NIXL 1.5.0，用分层分块校验继续定位。它提供比较交接内容的个案线索；本站 A2/GLM 是否遇到相同问题，还需自身传输数据与运行环境证据。通用取证顺序为本站分析。
+ 
+ - greedy 与随机采样的选择路径 [C1]；约束、惩罚及停止行为由采样与结构化输出页展开。
+ - 增量解码、字符片段和停止字符串处理入口 [C2]；聊天模板到输入的路径 [C3]。

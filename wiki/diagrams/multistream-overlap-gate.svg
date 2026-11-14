@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 684" width="900" height="684" role="img" aria-label="门控做的是把共享专家和路由整体搬到副流，塞进 prepare 期那段等通信的时间里（vllm-ascend v0.23 维护分支）">
-  <title>门控做的是把共享专家和路由整体搬到副流，塞进 prepare 期那段等通信的时间里（vllm-ascend v0.23 维护分支）</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 684" width="900" height="684" role="img" aria-label="v0.23 的 SP + AllGather 路径：共享专家与选专家提前提交到 gate_stream；当前流先量化，quant_stream 再收集隐藏态，量化尺度另在当前流收集。实际重叠与收益须测量。">
+  <title>v0.23 的 SP + AllGather 路径：共享专家与选专家提前提交到 gate_stream；当前流先量化，quant_stream 再收集隐藏态，量化尺度另在当前流收集。实际重叠与收益须测量。</title>
   <rect width="900" height="684" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="26" width="860" height="494" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
   <rect x="36" y="40" width="275.8" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">开着门控时，这一层 MoE 的 prepare 期</text>
@@ -29,7 +29,7 @@
   <text x="264" y="317" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">shared_experts</text>
   <rect x="410" y="252" width="230" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
   <text x="426" y="282" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">路由 + 写回 context</text>
-  <text x="426" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">select_experts 出 topk_ids</text>
+  <text x="426" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">AllGather 路径还收集路由结果</text>
   <text x="426" y="317" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">set_flash_common3_context</text>
   <rect x="340" y="376" width="300" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
   <text x="356" y="406" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">副流上做 EP All-Gather</text>
@@ -54,5 +54,5 @@
   <text x="36" y="120" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">默认流</text>
   <text x="36" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">gate_stream（类级单例）</text>
   <text x="36" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">quant_stream（类级单例）</text>
-  <text x="20" y="656" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">main（baa023ad）上整套 FlashComm3 都没了：FlashCommon3Context、fc3_quant_x 通信组、两条副流和这个键一并删除，留着它启动就失败。</text>
+  <text x="20" y="656" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">main / rc2 已删除此键和旧路径：通常拒收未知键；发现 vLLM-Omni 时告警过滤。配置日志不证明实际重叠成功。</text>
 </svg>

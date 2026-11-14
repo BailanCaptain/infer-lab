@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 370" width="880" height="370" role="img" aria-label="三种慢请求的阶段划分，条长只用于示意哪一段占主要等待，不是实测比例。灰色为等调度，黄色为设备执行，绿色为执行后的返回；先查最长的一段，再验证相应实验。">
+  <title>三种慢请求的阶段划分，条长只用于示意哪一段占主要等待，不是实测比例。灰色为等调度，黄色为设备执行，绿色为执行后的返回；先查最长的一段，再验证相应实验。</title>
+  <defs><marker id="inference-performance-choice-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M100 40 L560 40" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#inference-performance-choice-ah-ink)"/>
+  <path d="M578 96 L620 96" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#inference-performance-choice-ah-ink)"/>
+  <path d="M578 186 L620 186" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#inference-performance-choice-ah-ink)"/>
+  <path d="M578 276 L620 276" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#inference-performance-choice-ah-ink)"/>
+  <rect x="100" y="74" width="300" height="44" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="250" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">等调度</text>
+  <rect x="400" y="74" width="80" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">执行</text>
+  <rect x="480" y="74" width="80" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="520" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">返回</text>
+  <rect x="100" y="164" width="80" height="44" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="140" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">等调度</text>
+  <rect x="180" y="164" width="300" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="330" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">执行：计算、读取、等其他卡</text>
+  <rect x="480" y="164" width="80" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="520" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">返回</text>
+  <rect x="100" y="254" width="80" height="44" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="140" y="281" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">等调度</text>
+  <rect x="180" y="254" width="80" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="281" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">执行</text>
+  <rect x="260" y="254" width="300" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="410" y="281" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">返回：处理、发送、接收</text>
+  <text x="100" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">从请求进入到客户端收到</text>
+  <text x="28" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">请求甲</text>
+  <text x="28" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">请求乙</text>
+  <text x="28" y="281" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">请求丙</text>
+  <text x="636" y="91" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">先查到达量与分配</text>
+  <text x="636" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">谁还没有轮到执行？</text>
+  <text x="636" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">先查这一步的工作</text>
+  <text x="636" y="203" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">算什么、搬什么、等谁？</text>
+  <text x="636" y="271" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">先追结果经过的环节</text>
+  <text x="636" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">哪一处把结果留住了？</text>
+  <text x="440" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">同样是首字慢，改动应作用于不同阶段；验收仍看整体交付和代价</text>
+</svg>

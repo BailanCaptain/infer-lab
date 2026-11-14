@@ -1,0 +1,17 @@
+[
+  {
+    "page": "wiki/sources/rfork-official-guide.md",
+    "direct_external_links": [
+      {"url":"https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/rfork.md","verdict":"支持","claim":"新社区指南已有fingerprint、rank、role、结构摘要及新版参数，与旧指南/工作版需固定版本对照。","read_ranges":["vllm-ascend@921ccc52:docs/source/user_guide/feature_guide/rfork.md1–239","vllm-ascend@baa023ad:同路径1–155","rfork@3284850b:同路径1–385"],"evidence":"三份固定全文实际分批读；GitHub固定页和latest正文也实际打开读，不以页面可达替代阅读。旧模型表来源改为baa并经root独立读表接受。"},
+      {"url":"https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/images/rfork_flowchart.jpg","verdict":"部分支持","claim":"官方图画Planner、两端引擎、NPU/NIC/RoCE，但省略租约和清理细节。","read_ranges":["tools/repos/vllm-ascend/docs/source/user_guide/feature_guide/images/rfork_flowchart.jpg（实际本地图片查看）"],"evidence":"本地JPG sha256=8f5da7d7d28c63b21961d9e0ce6b0f7767466792d155731bb918d63ce4ebc8d5，与baa及921固定git图像字节一致，实际查看支持图结构说明。远端移动图片web打开失败，不能证明当前线上图片仍与固定图片相同；不将历史目视比较当本轮验证。"}
+    ]
+  },
+  {
+    "page":"wiki/concepts/rfork-troubleshooting.md",
+    "diagrams":[{"id":"rfork-troubleshooting","path":"wiki/diagrams/rfork-troubleshooting.yaml","reviewed":true,"visual_review":false,"review_scope":"全文YAML、固定源码和修订diff；定向生成与figureProblems=[]，未视觉验收。","verdict":"支持","claim":"四步失败同一汇总与直接异常分开；清理通过才默认加载，不通过保活并报错。","read_ranges":["rfork@3284850b:session.py108–136","rfork@3284850b:rfork_loader.py622–710"],"evidence":"原图无条件回退与667–671安全门矛盾，已手工改caption/末框并扩pin至693；仅源码语义接受待root独立复核。"}]
+  },
+  {
+    "page":"wiki/concepts/rfork-transfer.md",
+    "diagrams":[{"id":"rfork-transfer","path":"wiki/diagrams/rfork-transfer.yaml","reviewed":true,"visual_review":false,"review_scope":"全文YAML和固定pin；定向生成与figureProblems=[]，未视觉验收。","verdict":"支持","claim":"登记、HTTP、整份清单校验与按批读；失败后清理通过才回退。","read_ranges":["rfork@3284850b:session.py103–148","rfork@3284850b:manifest.py164–252","rfork@3284850b:transfer_backend.py121–152,732–793","rfork@3284850b:rfork_loader.py645–710"],"evidence":"0.6+0.3与0.8GiB两批假设成立；本轮补清理安全门后关闭原部分支持的缺口，仍不声称native读取内容与视觉验收通过。"}]
+  }
+]

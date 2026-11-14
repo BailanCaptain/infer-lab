@@ -1,0 +1,20 @@
+layout: figure
+id: quantization-evaluation-intuition
+caption: 同样的输入分别经过高精度基线和量化候选；对比产物、中间值、任务质量以及系统收益。四项回答不同问题，能够运行不代表后面三项已经达标。
+size: [900, 330]
+items:
+  - {at: [35, 85], size: [160, 65], text: 相同输入与处理, sub: 模板、分词器、采样, tone: token}
+  - {at: [240, 35], size: [190, 65], text: 高精度基线, sub: 保存参考输出, tone: weight, style: faded}
+  - {at: [240, 155], size: [190, 65], text: 量化候选, sub: 保存编码与系数, tone: weight}
+  - {at: [480, 85], size: [130, 65], text: 逐项对照, sub: 同一评价口径, tone: control, style: plain}
+  - {at: [665, 35], size: [210, 65], text: 产物与中间值, sub: 编码、分组与误差, tone: control, style: plain}
+  - {at: [665, 155], size: [210, 65], text: 任务质量与系统收益, sub: 正确率、容量、延迟、吞吐, tone: token}
+links:
+  - {from: [195, 105], to: [240, 67], via: [[215, 105], [215, 67]]}
+  - {from: [195, 130], to: [240, 187], via: [[215, 130], [215, 187]]}
+  - {from: [430, 67], to: [480, 105], via: [[455, 67], [455, 105]]}
+  - {from: [430, 187], to: [480, 130], via: [[455, 187], [455, 130]]}
+  - {from: [610, 105], to: [665, 67], via: [[638, 105], [638, 67]]}
+  - {from: [610, 130], to: [665, 187], via: [[638, 130], [638, 187]]}
+texts:
+  - {at: [450, 284], text: "同一条件 · 四项对照 · 预先约定阈值", anchor: middle}

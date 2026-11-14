@@ -1,0 +1,18 @@
+[
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L90-L138",
+    "trim_match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L324-L350",
+    "trim_match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L448-L478",
+    "trim_match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/models/glm5next/model.py#L108-L123",
+    "trim_match": true
+  }
+]

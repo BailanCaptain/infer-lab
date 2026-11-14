@@ -1,0 +1,21 @@
+{
+  "status": "independent_content_review_passed",
+  "archive": ".tmp\\continuation-groups-2026-11-10\\moe-contract-independent-evidence.zip",
+  "members": 196,
+  "sha256": "94d598cd9ecaee37c945ddcc5c4066f41390ea1341c61da71259e20e0a5645b2",
+  "pages": {
+    "ops-and-kernels": "0afb2bf85ff3a9fe72887fd6bbffc9dc56b13e1f5069d94beeafc88a6da5a28d",
+    "moe": "e17c9044409975fab5d9f3c4e520a1d09b4d72cc414fd2de02d735d6573fa9f8",
+    "expert-parallel": "4a9b1bfd1bedfbb86769a0ad90c518756c73f4cc8d42bcdb4c03555436874e72"
+  },
+  "citations": {
+    "initial": 39,
+    "version_addendum": 79,
+    "total": 118,
+    "new_full_credit": 0
+  },
+  "png_count": 96,
+  "body_and_ui_png": 92,
+  "open_p1_p2": 0,
+  "global_engineering_checks": "owned by root; not certified by this report"
+}

@@ -69,5 +69,5 @@ texts:
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1018-L1040
     symbols: [query_start_loc]
-  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1817-L1864
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L425-L475
     symbols: [has_initial_state]

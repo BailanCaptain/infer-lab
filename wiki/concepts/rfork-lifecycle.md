@@ -3,8 +3,8 @@ id: rfork-lifecycle
 title: RFork 生命周期：传完权重、交出模型、当上 seed、接请求各是一步
 type: feature
 summary: >-
-  B 的一个 Worker 借完权重后，传完、交出模型、还上租约当 seed、整个实例接请求是四个时刻。讲会话七个状态、还租约的三种结果与
-  400/404 各说明什么、发布 seed 的已启动/延期/失败、回退前的清理结果、关停留下什么，以及为什么没有续租。
+  B 的一个 Worker 借完权重后，传完、交出模型、还上租约当 seed、整个实例接请求是四个时刻。讲会话七个状态、还租约的三种结果与 400/404
+  各说明什么、发布 seed 的已启动/延期/失败、回退前的清理结果、关停留下什么，以及为什么没有续租。
 aliases:
   - RFork 生命周期
   - RForkSession
@@ -39,11 +39,21 @@ sources:
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/config.py#L11-L15'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L83-L110'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L621-L710'
-  - 'rfork@3284850b:docs/source/developer_guide/Design_Documents/rfork_lease_lifecycle.md#L1-L160'
-  - 'vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_worker.py#L102-L108'
-  - 'vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/seed_protocol.py#L157-L187'
-  - 'vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/rfork_loader.py#L393-L405'
+  - >-
+    rfork@3284850b:docs/source/developer_guide/Design_Documents/rfork_lease_lifecycle.md#L1-L160
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_worker.py#L102-L108
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/seed_protocol.py#L157-L187
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/rfork_loader.py#L393-L405
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L38-L62'
+  - >-
+    raw:sha256-cf79cda8c5def129ae408d6c21bc35fa1f20df5d244b4aa3485fb569d08ba6ed.md#L1-L1300
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/planner_client.py#L117-L245'
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L149-L188'
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L261-L364'
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L495-L504'
 verified:
   - 'rfork:main'
 evidence: C
@@ -58,7 +68,7 @@ relations:
     kind: builds-on
     note: 回退怎么拆模型、从存储重读在启动页；这页只讲清理结果怎样决定能不能回退、回退后还能不能当 seed
 contradicts: []
-updated: '2026-10-02'
+updated: '2026-10-28'
 rawSources:
   - >-
     raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md
@@ -70,6 +80,8 @@ rawSources:
     raw/sha256-629e6f8b0215485342250f376eedf494ef1b55f5de26f189da5f5a615659eba1.md
   - >-
     raw/sha256-7c1cf46ed24557ae509144bda485106fc93a596c0e8a111ed26f83c3491c0981.md
+  - >-
+    raw/sha256-cf79cda8c5def129ae408d6c21bc35fa1f20df5d244b4aa3485fb569d08ba6ed.md
 ---
 
 ## B 的权重传完了，它算「起来了」吗
@@ -385,6 +397,10 @@ seed 服务个数 = 16 张卡 × 2（主模型、草稿） = 32 个
 - 社区版 v0.23（2c59ff10，和 db701c1f 这几处一致）、v0.26（2ed6cbba）、main（baa023ad）是另一套：传完以后启动线程同步发一次 `/put_seed`，只认 200，失败只记日志，然后把租约丢掉、照常起 seed 服务；没有重试，没有「没了结」状态，也没有延期。三个版本在这一处的写法相同。[C17][C18][C19]
 - 工作版内部也改过：设计文档记的早先做法，是启动线程同步还租约（最多 3 次 HTTP），之后的后台重试没有总次数、还在会话锁里发请求；现在改成每张租约一条后台线程、锁外发请求、有次数上限。文档注明 NPU 和现场 Planner 上的联调还要验证。[S16]
 
+**社区 v0.30.0rc2（7d825229）已经实现续期，不能套用上面的工作版“没有续租”。** get_seed 的200响应必须带有限正数 LEASE_TTL_SEC；缺失或不合法会使申请失败。拿到租约后，会话启动线程，先等待 TTL/3 秒（限制在0.1–30秒），再调用 /renew_seed_lease；每次调用结束后重新等待。比如 TTL=60秒时等待20秒，两次请求起始时刻的间隔还包含续期调用耗时。这不保证 Planner 成功延长；续期失败会记录警告，现有分支也不因此自动证明 native 读取已被停止。
+
+归还也变了：默认三次是快速尝试次数；暂态失败之后，按 max(配置间隔,60秒) 继续尝试，直到成功、永久拒绝或停止条件成立。RELEASED 才清租约并推进延期发布；REJECTED 会停止并压制发布。读取完成后仍由后台归还，因此“读完”“租约已归还”“成为新 seed”继续是三个事件。实现见 planner_client.py 117–245、session.py 149–188、261–364、495–504，固定来源在[总览](rfork.md#版本差异)。工作版的三次总上限、旧日志与示例 Planner 仍只按工作版解释。
+
 ### 源码位置
 
 - 状态、结果与清理结果类型：`types.py`。
@@ -404,3 +420,5 @@ seed 服务个数 = 16 张卡 × 2（主模型、草稿） = 32 个
 1. 现场 Planner 对 `/put_seed` 的 400、404 各对应哪些情况，租约 TTL 和心跳摘除时限各是多少；缺现场 Planner 的处理函数源码和一次带响应体的失败日志。
 2. GLM 双机从借到到当上 seed、从交出模型到 API 可服务各要多久；缺一次实机的「lease acquired」「transfer stages」「lease release outcome」「seed service started」日志和 API 就绪时间。
 3. 后台还租约在 NPU 实机和现场 Planner 上的表现；设计文档注明只做过 CPU 上的事件控制测试。
+
+工作版在调用显存登记前就进入 CLEANUP_REQUIRED，登记、元数据或读取任一步失败都要清理，三步成功后才转成 TRANSFERRED（来源2，session.py 113–137）。延期返回仍须先通过关停、状态、登记和租约检查（来源4，303–345）；模型可服务与清理、发布结果分别验收。

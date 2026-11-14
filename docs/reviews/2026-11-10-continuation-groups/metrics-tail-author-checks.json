@@ -1,0 +1,87 @@
+{
+  "status": "accepted_at_frozen_revision_author_independent_and_engineering",
+  "scope": "2 teaching pages, 1 new diagram YAML/SVG; no unrelated edits; no full-site completion",
+  "counts": {
+    "baseline": 52,
+    "new": 57,
+    "after": 109,
+    "pages": [
+      {
+        "id": "inference-benchmarking",
+        "baseline": 15,
+        "new": 11,
+        "after": 26
+      },
+      {
+        "id": "inference-performance-analysis",
+        "baseline": 37,
+        "new": 46,
+        "after": 83
+      }
+    ]
+  },
+  "final_files": {
+    "wiki/concepts/inference-benchmarking.md": "8c505f8ab816a99de4a85cd2540803b82b57ddba1695713e3d5d93f2d722bc1b",
+    "wiki/concepts/inference-performance-analysis.md": "71f9bd3324e785bbf9215a91361ec780606e9782846f27d5f4ed08b6fe138260",
+    "wiki/diagrams/inference-benchmarking-intuition.yaml": "ed85b346704a1750579db6d164a06f2c4d6e95759d349f0ea3db077fe3765c9e",
+    "wiki/diagrams/inference-benchmarking-intuition.svg": "e6b092a535672a380dbdbcccec88f499b8e87dd48664414f4f7b31ac3971348d",
+    "wiki/diagrams/inference-benchmarking-flow.yaml": "92dc7f33aacf006d4ed00bcd6d4d516fce3fb954f3bf862924c2140d27fcca78",
+    "wiki/diagrams/inference-benchmarking-flow.svg": "a133880a084b8c1008a128a29be5d57c978581902c648221ba83cf176030dd32",
+    "wiki/diagrams/inference-analysis-intuition.yaml": "563ed3f451f0475d259183a1975e7d941c86fcdd0276bf85f68909721f1bdd1d",
+    "wiki/diagrams/inference-analysis-intuition.svg": "fd0446554f5aeb4f4be7611cf4718aee053c40d95b6ae2f4c3c2f764c3584e34",
+    "wiki/diagrams/inference-analysis-critical-path.yaml": "b89b1e5f0fa7b7f963e68ca58951da9a63f6d91ea28d016e55a928e13943392b",
+    "wiki/diagrams/inference-analysis-critical-path.svg": "96427b3d4a4588d43ae4feb6b983a61cbd44012353a77342b2814aebb88b6d58",
+    "wiki/diagrams/inference-metrics-events.yaml": "8725f21aea47ebf405ba74bf4ce4f7e65504de21b722332002fb44e6b908861b",
+    "wiki/diagrams/inference-metrics-events.svg": "9d4f2a22cd615e94701c04120c033d9154d176e897656ff304cac83834b4c957"
+  },
+  "browser_report": ".tmp\\continuation-groups-2026-11-10\\metrics-tail\\author-browser\\report.json",
+  "actual_visual_review": "first 2 screens both; all 11 diagram/calc figures; all 12 tables; new sections and PromQL; fixed arrow no longer crosses frame title; actual3links arrive ~108px",
+  "diagram_generation": "pnpm exec tsx .tmp/continuation-groups-2026-11-10/generate-metrics-events.ts exit0; only new SVG rendered; figureProblems empty",
+  "engineering": {
+    "by": "root",
+    "verification": "docs/reviews/2026-11-10-continuation-groups/io-metrics-prompt131-verification.json",
+    "checks": [
+      {
+        "command": "pnpm check:content",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/io-metrics-prompt-current-content.log"
+      },
+      {
+        "command": "pnpm wiki:lint",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/io-metrics-prompt-current-lint.log"
+      },
+      {
+        "command": "pnpm wiki:audit",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/io-metrics-prompt-current-audit.log"
+      },
+      {
+        "command": "pnpm wiki:diagrams --check",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/io-metrics-prompt-current-diagrams.log"
+      },
+      {
+        "command": "pnpm build",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/io-metrics-prompt-current-build.log"
+      }
+    ],
+    "current_4_hashes_rechecked": true,
+    "scope": "metrics57 only; excludes later offline metrics/RPC and unread imgur images"
+  },
+  "sources": "57 actual new frontmatter occurrences; source ranges validated against fixed content; readscope24 version identities separate",
+  "not_tested": [
+    "Live vLLM engine/NPU",
+    "Live Prometheus/Grafana/Jaeger/OTLP collector",
+    "unknown external images",
+    "all recursive links"
+  ],
+  "independent_p2_fix": {
+    "issue": "OTLP基础依赖随vLLM提供，不应要求正常安装重复安装",
+    "correction": "先确认，缺失才按配套版本补齐；source80不变",
+    "evidence": "author-browser/otel-prerequisite-fixed.png; author and root browser stable/errors0/overflow0; unified131 fivechecks0",
+    "sha256": "71f9bd3324e785bbf9215a91361ec780606e9782846f27d5f4ed08b6fe138260"
+  },
+  "independent_review": "docs/reviews/2026-11-10-continuation-groups/metrics-tail-independent-review.md"
+}

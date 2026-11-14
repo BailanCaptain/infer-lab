@@ -1,0 +1,73 @@
+source_number	verdict	note
+1	repair_pending_review	两项动机支持独立调优及避免混部TPOT干扰；原正文“拆开不用挑chunk”过强，已保留P端chunk预算调优。
+2	supported	Pull与逐层Push流程分开；不能把V1的P先接请求套给Layerwise。引用图片须另行视觉读取。
+3	supported	A2/A3、MLA/GQA及非对称TP规格支持所列限制，不扩展到GLM混合状态实测支持。
+4	supported	main矩阵GLM-5.3-Flash模型实验性支持，PD勾选；仅是该版本支持宣告。
+5	supported	固定GLM双机模板TP8/DP2、次节点headless、MTP3，没有KV传输配置；支持主线混部。
+6	supported	代理P请求非流式，max_tokens=min_tokens=1，含远端decode参数；限定的是交接请求。
+7	supported	仅在P返回非空kv_transfer_params时复制给D，缺失时D按原提示词处理。
+8	supported	交接要求参数、远端decode和FINISHED_LENGTH_CAPPED；仅非空待传块延迟回收，payload有last_token_id。
+9	supported	组内最后compress_ratio进入tokens_per_block；Mamba不按prompt裁剪，SWA按尾窗。与45/46支持旧GLM局部少传分析。
+10	supported	截断N>1且只一次；D匹配数扣本地命中，分配后关闭远端标记，支持单token边界和抢占不能重复远端拉取。
+11	supported	异步加载时挂WAITING_FOR_REMOTE_KVS并分块、记录已算数，不将本请求排入计算。
+12	repair_pending_review	旧范围漏external_launcher且DP>1的dummy前向；扩展到2027–2057并区分本请求等待、全步零token与DP陪跑。
+13	supported	按P阶段、缓存组、层与地址拼批读；Mamba选len-spec-1槽而非全部槽；读失败抛错并暂存待reformat。
+14	supported	P线程回应元数据、接收DONE_RECVING并计数ACK；握手端口含PP/PCP/TP设备偏移，数据本身由D读取。
+15	supported	读失败及reformat失败登记坏块；finally无论成功失败都发远端完成信号，避免P泄漏。
+16	supported	任务追踪按结束集合回报，延迟释放超时取env并打强制回收错误日志。
+17	supported	VLLM_MOONCAKE_ABORT_REQUEST_TIMEOUT缺省480秒；仅超时阈值来源，配16解释回收。
+18	supported	远端完毕才cache；整prompt命中退回一token；失败路径保留有效部分或释放零有效块。
+19	supported	finished_recving入集合等待调度；finished_sending调用_free_blocks，支持结束与回收分离。
+20	supported	加载失败策略fail为默认，recompute是可选策略；GLM混合模型的平台禁用另见已收尾的73项。
+21	context_only	通用KVRole类型包含kv_both，不证明V1实现支持；结合22明确负例。
+22	supported	V1按角色字符串创建收发线程和填完成集合；kv_both进接收却不回报finished_recving，不能按通用类型判可用。
+23	supported	main V2基类拒绝consumer与producer布尔相等，明确kv_both不能作为捷径。
+24	repair_pending_review	初始化校验P_TP>=D_TP、PP/PCP互斥、D_PP=1及默认PP1。正文原配置表漏PP条件且只称角色端口不同，已补条件和PP回链。
+25	supported	Mamba传输要求远端TP不小于本地且整数倍，不能由一般TP配置推断所有形状兼容。
+26	supported	min_tokens尚未满足时用负无穷屏蔽all_stop_token_ids，生成达到最少值才移除屏蔽。
+27	supported	主EOS加入all_stop_token_ids，额外generation EOS也并入；配26支持示例首步不会抽到停止token。
+28	supported	固定旧版注册V1、Hybrid、Layerwise、AscendStore别名、UCM、LMCache等；SimpleCPU条件注册，不等同各模型可用。
+29	supported	官方规定AscendDirectTransport随机端口区间，8/16设备推荐28000/36000起；不是所有传输版本的永恒范围。
+30	supported	旧平台不分PD角色，发现max_num_partial_prefills非1即重置；正常入口更早拒绝需合63/64。
+31	supported	v0.23文档显式列非默认partial-prefills限制，删除文字不代表代码放开。
+32	context_only	Mamba层返回MambaSpec的类型入口，不能单独证明全部KDA状态布局；状态组成回链KV页。
+33	context_only	EPD概念及独立扩容动机；官方“降低TTFT”等是设计目标，本文保留传输与排队代价不作实测承诺。
+34	supported	EPD可E+PD或E+P+D；ECConnector独立，Layerwise按D先接/反向触发P路径，与V1区分。
+35	supported	EC producer只执行MM encoder后返回空编码输出，支持执行流程；不等于没有加载语言权重。
+36	supported	EC producer缓存规格返回空，支持E不分语言KV；不证明权重为零。
+37	supported	ExampleConnector自称调试磁盘实现，shared_storage_path默认/tmp，路径同名不证明跨节点共享。
+38	supported	EC载入safetensors到平台设备，保存CPU张量，按媒体hash查找；不是按request_id唯一身份。
+39	supported	文件为shared_path/mm_hash/encoder_cache.safetensors，支持共享路径和媒体hash解释。
+40	supported	外部EC命中安排加载并跳过本地编码预算分支，支持缓存命中可免重跑编码器。
+41	supported	mm_encoder_only下已标记language_model组件以StageMissingLayer替代，支持按接入情况跳过语言初始化。
+42	supported	GLM多模态模型分别标记visual与language_model，配41支持该模型组件分工，不等同所列旧脚本已启用encoder-only。
+43	supported	E脚本ec_producer、PD脚本ec_consumer，未显式mm-encoder-only；不能把仅执行编码说成未加载语言权重。
+44	supported	非流式示例有媒体先编码、再P、再D；纯文本绕过编码，与另一个Layerwise反向触发方案区分。
+45	supported	GLM main/indexer共用full逻辑块，主缓存排第一；indexer state窗口等于压缩比，支持组构成与旧算法缺陷推导。
+46	supported	D先检查remote_block_size/kernel整除，扩块、跳过前缀后截为短侧；支持可能提前断言，不能称实测静默错。
+47	context_only	KVCacheSpec.block_size单位是tokens/block，结合混合组专用实现解释逻辑粒度，不推断物理字节布局。
+48	supplemented_pending_acceptance	已完整核AscendSampler类46–125及128下一类边界，AST方法列表无forward或__call__覆盖；继承上游采样链与停止token屏蔽成立，见pd-independent。
+49	supported	无投机metadata的采样分支调用self.sampler；需与完整AscendSampler继承及50/26合证停止token屏蔽。
+50	supported	上游Sampler.forward在采样前apply_logits_processors，支持停止token屏蔽链的这一环。
+51	supported	EngineCore把cache_config.block_size取组最小值，支持GLM调度侧4的来源；不能凭它推断worker副本也被同样更新。
+52	supported	main仍以main/indexer交错且主cache先列，支持旧V1算法与main分组的对应关系。
+53	supported	main V2注册到mooncake.connector.MooncakeConnector，合54确定别名。
+54	supported	MooncakeConnector是Pull别名；同文件Push仍NotImplementedError，不表示Layerwise没有独立Push实现。
+55	supported	V2 request_finished按实际prompt长度取传输块，非空块才延期释放；完整触发谓词不由此短段单独证明。
+56	repair_pending_review	V2按逻辑block_size与CP乘积裁块，Mamba去草稿尾；N−1算式必须限定N>1且PCP=DCP=1，正文已补。
+57	archive_integrity_only	raw归档56段与固定Git原文逐段一致；完整性证据，不是额外56项主张认证。
+58	duplicate_support	与3末段相同固定提交，重复支持非异构硬件/非对称TP限制；完整SHA不代表新增版本。
+59	duplicate_support	与8同函数重叠，支持长度上限触发及非空块押留，无新增独立结论。
+60	supported	v0.23平台存在非默认partial-prefills重置，与入口更早拒绝分开。
+61	supported	v0.26范围与60逐字一致，复用已读内容，版本出现项单独判断。
+62	supported	main平台仍getattr默认1再条件重置，不能称上游已删字段仍无条件动态补回。
+63	supported	正常create_engine_config先调用_check_feature_supported，为更早拒绝分支提供调用链。
+64	supported	旧上游非默认max_num_partial_prefills或max_long_partial_prefills即_raise_unsupported_error。
+65	supported	v0.26对应分支与64逐字一致，复用阅读支持该版本入口先拒绝。
+66	context_only	main SchedulerConfig声明部分已无旧partial-prefills字段；单段不足以单独证明全仓删除，本文回链Scheduler的完整版本核验。
+67	supported	rc2 GLM A3 P_DP2/TP8 D_DP16/TP1，A2两P两D、P_DP2/TP8 D_DP8/TP2；MRV1、实验SFA_CP且PCP/DCP保持1。
+68	supported	rc2连接器注册表保留V1/V2等并适配native offload worker、PreemptOffload，不能推断所有组合兼容。
+69	context_only	rc2 V2基类读取PCP/DCP和组规格，支持配置参与元数据组织；“metadata包含PCP”还需实际metadata类型/消费者补证。
+70	supported	完整ECCPU指南支持单主机mmap、MRV2、CANN API、内核>5.10、ec_both、容量字节及显式失败；不支持跨节点。
+71	supported	完整Score指南支持类选择无enabled、slots单位及五项默认值；不能将slots与connector字节预算等同。
+72	duplicate_support	与67完全相同固定原文，仅引用表示不同；不重复算全文阅读。

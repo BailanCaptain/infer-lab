@@ -1,0 +1,90 @@
+{
+  "path": "wiki\\raw\\sha256-aff81f9c6042e3957465a5c11de61e00df90aaeb7fb0374c9e78093ed5f01635.md",
+  "sha256": "aff81f9c6042e3957465a5c11de61e00df90aaeb7fb0374c9e78093ed5f01635",
+  "segments": [
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2129-L2169",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768",
+      "match": true
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/model_executor/custom_op.py#L110-L207",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L409-L467",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L19-L108",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.cpp#L23-L71",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L167-L208",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/add_rms_norm_bias_torch_adpt.h#L21-L50",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L208-L222",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L373-L411",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L126",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L220",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L88",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ops/layernorm.py#L63-L86",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/ops/layernorm.py#L64-L84",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L467",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L401-L459",
+      "match": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/utils.py#L521-L579",
+      "match": true
+    }
+  ]
+}

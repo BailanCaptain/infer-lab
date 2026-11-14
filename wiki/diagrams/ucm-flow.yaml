@@ -1,21 +1,23 @@
 layout: figure
 id: ucm-flow
-caption: 一条请求经过 UCM 的先后。上半在调度器里：先数本机显存命中了几个位置，再问 UCM 还能多供几个；UCM 答不上来就下一步再问，要求异步加载就先挂起。下半在每张卡的 worker 里：前向开始前发起加载，每层 attention 前等这一层到齐，算完这一层交出去存，整趟前向结束前等保存完成。查找、淘汰、持久化都在右边的外部包里，vllm-ascend 只负责把这些调用转过去。
-size: [900, 620]
+caption: 主线调度与模型执行中的 UCM。上半保留 vLLM 接口的未定与异步分支，当前普通 UCM 默认同步调度。下半示意普通逐层加载；普通整块则在前向入口等加载、在收尾提交保存。收尾返回不代表普通路径的全部保存完成，请求结束或抢占时还要保护源块。混合 HLA 路径另有收尾等待，见正文。
+size: [900, 746]
 frames:
   - { label: 排队时 · 调度器, at: [20, 40], size: [600, 270] }
-  - { label: 执行时 · 每张卡的 worker, at: [20, 342], size: [600, 258] }
-  - { label: UCM 外部包, at: [650, 40], size: [230, 560] }
+  - { label: 模型执行 · 每张卡的 worker, at: [20, 342], size: [600, 374] }
+  - { label: UCM 外部包, at: [650, 40], size: [230, 676] }
 items:
   - { at: [40, 72], size: [260, 56], text: 数本地命中, sub: prefix caching 查本机显存, tone: kv }
   - { at: [40, 160], size: [260, 56], text: 问 UCM 还能再供几个, sub: 只问还没开始算的请求, tone: control }
-  - { at: [340, 160], size: [260, 56], text: UCM 答「还没定」, sub: 这一步跳过，下一步再问, tone: control, style: faded }
-  - { at: [40, 240], size: [260, 56], text: 借块，回告块号, sub: 已算 = 本地 + UCM 供的, tone: kv }
-  - { at: [340, 240], size: [260, 56], text: UCM 要异步加载, sub: 请求先挂起，数据到齐再排, tone: control, style: faded }
+  - { at: [340, 160], size: [260, 56], text: 接口允许暂不回答, sub: 这一步跳过，下一步再问, tone: control, style: faded }
+  - { at: [40, 240], size: [260, 56], text: 借块，生成搬运映射, sub: 已算 = 本地 + 外部可供, tone: kv }
+  - { at: [340, 240], size: [260, 56], text: 请求级异步分支, sub: 普通整块需显式开启, tone: control, style: faded }
   - { at: [40, 362], size: [260, 56], text: 前向开始前：发起加载, tone: kv }
   - { at: [40, 446], size: [260, 56], text: 每层 attention 前, sub: 等这一层到齐, tone: kv }
   - { at: [340, 446], size: [260, 56], text: 这一层算完, sub: 交出去存，接着算下一层, tone: kv }
-  - { at: [40, 530], size: [260, 56], text: 前向结束前：等保存完, sub: 之后这些块才能被覆盖, tone: control }
+  - { at: [40, 530], size: [260, 56], text: 前向收尾：轮询保存, sub: 普通路径允许任务继续在途, tone: control }
+  - { at: [40, 630], size: [260, 56], text: 请求结束或将被抢占, sub: 等相关保存任务结束, tone: control }
+  - { at: [340, 630], size: [260, 56], text: 源块结束搬运占用, sub: 成功保存还须检查任务结果, tone: kv }
 hardware:
   - { kind: memory, at: [670, 200], size: [190, 60], label: 本机内存（快取） }
   - { kind: memory, at: [670, 400], size: [190, 60], label: 共享存储 / SSD }
@@ -27,7 +29,9 @@ links:
   - { from: [252, 296], to: [252, 360] }
   - { from: [170, 418], to: [170, 444] }
   - { from: [300, 474], to: [338, 474] }
-  - { from: [170, 502], to: [170, 528] }
+  - { from: [470, 502], to: [302, 558], via: [[470, 558]] }
+  - { from: [170, 586], to: [170, 628] }
+  - { from: [300, 658], to: [338, 658] }
   - { from: [300, 176], to: [668, 110], via: [[320, 176], [320, 110]], tone: control }
   - { from: [668, 216], to: [302, 390], via: [[628, 216], [628, 390]], tone: kv }
   - { from: [602, 460], to: [668, 244], via: [[644, 460], [644, 244]], tone: kv }
@@ -37,7 +41,13 @@ texts:
   - { at: [484, 382], text: 搬进显存, anchor: middle, tone: kv }
   - { at: [765, 120], text: 查找、淘汰、持久化, anchor: middle }
   - { at: [777, 332], text: 两段搬运, note: true }
+  - { at: [480, 539], text: 本轮各层算完后, note: true }
+  - { at: [765, 570], text: 提交 ≠ 保存完成, anchor: middle, tone: control }
+  - { at: [765, 604], text: 设备事件只约束读源时机, anchor: middle, note: true }
 pins:
+  # 以下 pins 核包装层接口名；图中等待/回收语义来自 ucm 页来源 41–43 的外部实现。
+  # https://github.com/ModelEngine-Group/unified-cache-management/blob/4b9acbc8dede919ae17b14c3a23903e89623d5e8/ucm/integration/vllm/ucm_connector.py#L2472-L2745
+  # 同文件 L2804-L2883（结束）、L3029-L3198（逐层）。当前 pin 审计仅支持已登记的本地 repo 引用。
   - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L194-L218
     symbols: [get_num_new_matched_tokens, update_state_after_alloc]
   - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L100-L159

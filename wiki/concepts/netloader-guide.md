@@ -1,36 +1,109 @@
 ---
 id: netloader-guide
-title: "Netloader Guide：新实例怎样从已有 NPU 接过权重"
+title: Netloader Guide：新实例怎样从已有 NPU 接过权重
 type: feature
-summary: Netloader 在启动时从已有实例的 NPU 接收同一分片的权重，省去重复读取权重文件。解释握手、逐张量传输、量化缓存、失败回退，以及 GLM 双机未启用的事实和 main 的布局传输变化。
-aliases: [Netloader, NetLoader, netloader, Netloader Guide, 网络权重加载, 网络加载器, ModelNetLoaderElastic, INT8_CACHE]
-chapters: ["19"]
+summary: >-
+  Netloader 在启动时从已有实例的 NPU 接收同一分片的权重，省去重复读取权重文件。解释握手、逐张量传输、量化缓存、失败回退，以及 GLM
+  双机未启用的事实和 main 的布局传输变化。
+aliases:
+  - Netloader
+  - NetLoader
+  - netloader
+  - Netloader Guide
+  - 网络权重加载
+  - 网络加载器
+  - ModelNetLoaderElastic
+  - INT8_CACHE
+chapters:
+  - '19'
 order: 35
 sources:
-  - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/netloader.md#L7-L97
-  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/netloader.md#L34-L98
-  - https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md#L237-L341
-  - vllm-ascend@db701c1f:vllm_ascend/model_loader/netloader/netloader.py#L58-L437
-  - vllm-ascend@db701c1f:vllm_ascend/model_loader/netloader/interaction/elastic.py#L61-L422
-  - vllm-ascend@db701c1f:vllm_ascend/model_loader/netloader/executor/elastic_load.py#L50-L161
-  - vllm-ascend@db701c1f:vllm_ascend/model_loader/netloader/load.py#L25-L77
-  - vllm@0fc695fc:vllm/config/load.py#L25-L34
-  - vllm-ascend@2c59ff10:vllm_ascend/model_loader/netloader/netloader.py#L58-L437
-  - vllm-ascend@2ed6cbba:vllm_ascend/model_loader/netloader/netloader.py#L58-L437
-  - vllm-ascend@baa023ad:vllm_ascend/model_loader/netloader/netloader.py#L118-L771
-  - vllm-ascend@baa023ad:vllm_ascend/model_loader/netloader/interaction/elastic.py#L450-L521
-  - vllm-ascend@baa023ad:vllm_ascend/model_loader/netloader/executor/elastic_load.py#L93-L500
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/netloader.md#L7-L97
+  - >-
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/netloader.md#L34-L98
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md#L237-L341
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/model_loader/netloader/netloader.py#L58-L437
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/model_loader/netloader/interaction/elastic.py#L61-L422
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/model_loader/netloader/executor/elastic_load.py#L50-L161
+  - 'vllm-ascend@db701c1f:vllm_ascend/model_loader/netloader/load.py#L25-L77'
+  - 'vllm@0fc695fc:vllm/config/load.py#L25-L34'
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/model_loader/netloader/netloader.py#L58-L437
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/model_loader/netloader/netloader.py#L58-L437
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/model_loader/netloader/netloader.py#L118-L771
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/model_loader/netloader/interaction/elastic.py#L450-L521
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/model_loader/netloader/executor/elastic_load.py#L33-L646
+  - >-
+    raw:sha256-7bd72802edac08cf070a7be6ccb1aab69ab073de980d079ede56d74241d8f788.md#L1-L3002
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/netloader/utils.py#L24-L46'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/model_loader/netloader/netloader.py#L741-L765
+  - 'https://github.com/vllm-project/vllm/pull/16226'
+  - >-
+    https://github.com/vllm-project/vllm/commit/6f0dd93801163a6418695c6dc0b43c516261f55a
+  - >-
+    vllm@0fc695fc:vllm/distributed/device_communicators/shm_broadcast.py#L103-L215
+  - >-
+    vllm@0fc695fc:vllm/distributed/device_communicators/shm_broadcast.py#L665-L717
+  - >-
+    https://www.hiascend.com/doc_center/source/zh/canncommercial/900/API/hcclug/hcclenvref_07_0005.html
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0rc2
+  - main
 evidence: C
 relations:
-  - {to: glm-5-3-flash-two-node, kind: builds-on, note: 挂靠启动时加载权重这一站，固定双机部署仍走存储加载}
-  - {to: quantization, kind: builds-on, note: 理解原始 int8 权重为何需要保留，以及加载后处理会改变什么}
-  - {to: tensor-parallel, kind: builds-on, note: Netloader 搬已有分片，分片怎样产生由 TP 页解释}
-  - {to: rfork, kind: alternative-to, note: 对比显式来源地址与 RFork 的 seed 发现和租约机制}
-  - {to: platform-plugin-registration, kind: builds-on, note: 区分加载器注册可用与启动时实际选中加载器}
+  - to: glm-5-3-flash-two-node
+    kind: builds-on
+    note: 挂靠启动时加载权重这一站，固定双机部署仍走存储加载
+  - to: quantization
+    kind: builds-on
+    note: 理解原始 int8 权重为何需要保留，以及加载后处理会改变什么
+  - to: tensor-parallel
+    kind: builds-on
+    note: Netloader 搬已有分片，分片怎样产生由 TP 页解释
+  - to: rfork
+    kind: alternative-to
+    note: 对比显式来源地址与 RFork 的 seed 发现和租约机制
+  - to: platform-plugin-registration
+    kind: builds-on
+    note: 区分加载器注册可用与启动时实际选中加载器
+  - to: rfork-config
+    kind: alternative-to
+    note: 两页分别说明启动时复用已有实例权重的两种加载方案：Netloader 显式配置候选来源，RFork 通过 Planner 撮合来源并管理租约。
+  - to: rfork-transfer
+    kind: alternative-to
+    note: >-
+      两页描述启动时从已有实例复制权重的不同传输方案：Netloader 建立临时 HCCL 通信组逐参数收发；RFork
+      接收端登记内存、核验清单后按地址分批读取。
+  - to: rfork-startup
+    kind: alternative-to
+    note: >-
+      两者都是启动阶段复用已有实例权重的加载方案：Netloader 按配置连接供方并传输权重，RFork 先准备本地模型，再向 Planner 申请
+      seed 租约并读取权重；失败时均可回退到普通存储加载。
+  - to: rfork-lifecycle
+    kind: alternative-to
+    note: >-
+      两页涉及启动时从已有实例复用权重的不同方案：Netloader 显式配置来源并建立临时 HCCL 通信组；RFork 先向 Planner
+      领取租约，传输后后台归还，确认归还后才能发布为 seed。
 contradicts: []
-updated: "2026-10-04"
-origin: direct
+updated: '2026-11-03'
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-2acbcbacef9fb5d918586a7117773ea6ff7a1b1456031c15164a1c3eaaaf9a1b.md
+  - >-
+    raw/sha256-7bd72802edac08cf070a7be6ccb1aab69ab073de980d079ede56d74241d8f788.md
 ---
 
 ## 已有一张卡装好了模型，新实例还要从文件重读吗？
@@ -51,7 +124,7 @@ file: netloader-guide-intuition
 
 这条路径实际为一对供方、接收方建立一个 **2 进程的临时通信组**，用 HCCL（昇腾卡间通信库）发送和接收张量。张量就是带形状的一组数。源码允许供方在后台线程里发送，同时继续推理；据此推断，两者可能争用显存带宽和通信资源，影响幅度留待实机测量。
 
-它不是每层前向都加一次通信。通信集中在启动加载阶段：先建立连接，再按参数顺序搬运；旧版每发或收一个参数都等待该次操作完成，最后还做一次 barrier（组内两端都到达后才继续的同步）。接收方要等这些权重齐备，才能沿启动流程继续走。官方指南还提示建 HCCL 连接需预留额外片上内存，并用约 **200 MB** 描述其默认缓冲量级；这不是本页实测，也不是所有环境的固定总开销。
+它不是每层前向都加一次通信。通信集中在启动加载阶段：先建立连接，再按参数顺序搬运；旧版每发或收一个参数都等待该次操作完成，最后还做一次 barrier（组内两端都到达后才继续的同步）。接收方要等这些权重齐备，才能沿启动流程继续走。建 HCCL 连接还需预留额外片上内存。Netloader 指南提到的 **200 MB** 是缓冲配置的默认量级，不能当成一个进程的总开销；CANN 9.0 的对应条目将每通信域的收、发缓冲合计描述为该配置值的两倍，实际还要考虑通信域数量与覆盖设置。
 
 相邻机制处理的对象不同：默认加载器从模型文件取权重；Netloader 从已有卡取权重；[KV Pool](kv-pool.md) 复用的是请求历史缓存；[RFork](rfork.md) 同样复用已有权重，但它有自己的来源发现和租约流程。启用其中一个，并不会自动启用另一个。
 
@@ -62,6 +135,8 @@ file: netloader-guide-intuition
 以两个同构实例为例，新实例的 rank 0 应向旧实例中负责同一分片的 rank 0 取权重，其他 rank 也各找各的来源。新实例先按自己的模型配置创建参数空位，然后通过 TCP（普通网络连接）告诉供方自己的 rank、模型路径以及 TP、PP 大小。TP 把矩阵分给多卡，PP 把模型层分给不同阶段，具体划分见 [TP](tensor-parallel.md) 和 [PP](pipeline-parallel.md)。
 
 供方逐项比较这四项；相同才回复同意，双方随后建立临时 HCCL 通信组。**这是身份和分片配置的检查，不是权重内容校验。** 旧版握手没有模型文件哈希、量化配方、EP 配置或完整张量清单。两边路径相同而文件内容不同，不能靠这一关发现；换了并行划分，也没有重新切片功能帮它适配。
+
+模型路径比较的是路径字符串。因此，即使两端模型文件内容相同，只要路径字符串不同，也不能通过这一项检查。
 
 ```wiki-diagram
 file: netloader-guide-flow
@@ -116,7 +191,7 @@ title: 同一分片按张量顺序搬运的有效载荷（教学示意）
 
 用 `--load-format netloader` 选加载器，配置放在 `--model-loader-extra-config` 的 JSON 对象里，不属于 additional_config。先按官方指南的单卡例子理解两端：供方不配 SOURCE，读文件后开监听；接收方配置供方日志里公布的 Netloader 地址。`--port` 是推理 API 端口，LISTEN_PORT 才是权重服务的基础端口。
 
-以下是 Linux/NPU 环境的配置示例，未在设备上执行。假定两个进程各有一张独立 NPU、同一模型路径可访问，示例使用未量化模型且不开草稿模型；IP 换成供方实际地址。官方原例还设置了 `VLLM_SLEEP_WHEN_IDLE=1` 来改善连接或传输；固定两仓源码中未检出这个变量的读取项，因此下面只列已核到的加载器入口，该变量的适用版本留在页末待核。
+以下是 Linux/NPU 环境的配置示例，未在设备上执行。假定两个进程各有一张独立 NPU、同一模型路径可访问，示例使用未量化模型且不开草稿模型；IP 换成供方实际地址。官方原例还设置了 `VLLM_SLEEP_WHEN_IDLE=1`；这是曾用于减少空闲 CPU 忙等的旧开关，固定 vLLM 已删除它，当前等待路径见后文，因此下面不再加入该变量。
 
 ```bash
 # 供方：当前机器的物理卡 0；不配 SOURCE，先从文件加载
@@ -144,6 +219,8 @@ vllm serve /models/example --tensor-parallel-size 1 --enforce-eager \
 
 上述是实现口径。官方表格将 MODEL 写成一致性检查名称、将文件优先级描述成 SOURCE 覆盖；具体行为应看 `netloader.py:77–125、275–283、361–372`。额外配置以及配置文件都应填写 JSON 对象；字段校验不足以兜住所有畸形嵌套值。
 
+固定提交的来源筛选还要求匹配本进程的条目提供 sources 列表；即使 device_id 匹配，空列表也没有可用地址。缺少 sources 字段时，条件表达式会直接读取不存在的字段，不能把它当作会安全忽略的无效条目。
+
 端口也要按实现读：旧版先检查基础值是否属于 `range(1024, 65535)`，即 1024 到 65534，再加 rank 和 draft 偏移，没有对加完的结果二次校验。为带 draft 的部署预留完整的“基础端口 + 最大 rank + 10000”范围。官方 main 指南提示基础端口低于 55535 并计入 rank；main 增加了最终端口越界检查，但不能据此认为旧版也会提前挡住。
 
 ### 会报什么错
@@ -169,9 +246,15 @@ vllm serve /models/example --tensor-parallel-size 1 --enforce-eager \
 
 供方开启 hbm 缓存后，要额外容纳被选中 int8 参数的副本；复制失败时旧版会尝试降为 DRAM。dram 模式减少该副本的显存常驻量，却增加发送前的主机到设备搬运。即便不缓存，也还有通信组、临时连续化和运行时状态的代价；显存预算应重新测量，入口见[双机显存预算](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)。
 
+通信缓冲变量的正确拼写是 HCCL_BUFFSIZE。CANN 9.0 文档规定其取正整数、默认 200、单位 MB；每通信域收发缓冲合计按两倍配置值计，若通过 HcclCommConfig 指定域级缓冲，则域级设置优先。Netloader 指南写成 HCCL_BUFFERSIZE；不能照抄这个拼写。GLM 固定教程实际设置 HCCL_BUFFSIZE=1024，因此也不能把默认 200 当作该教程的配置值。这里引用的是文档口径，设备上最终分配与额外通信域仍须计入实测。
+
 没有同构供方、文件加载已经很快、供方推理对带宽干扰敏感，或者量化路径尚未通过一致性验证时，维持默认加载更合适。旧版每个监听线程串行处理连接和发送；多个新实例同时找同一个 rank，会遇到供方排队。接收端开始推理后，Netloader 监听仍可能为下一批实例服务，所以供方代价不只发生在自身启动时。
 
 ### 版本差异
+
+**v0.30.0rc2 延续固定 main 的后处理布局传输与 manifest 握手，另修正磁盘回退配置。** 当网络加载失败或种子从磁盘加载时，不再清空全部 model_loader_extra_config，而是保留 enable_multithread_load、num_threads、enable_weights_track 三项默认 loader 认识的设置，剔除 SOURCE、LISTEN_PORT 等 Netloader 专用键。这样回退不会静默丢掉用户的并行加载设置，也不会让默认 loader 因未知网络键失败。
+
+此变化不使旧版的原始权重传输协议自动兼容新版。供方与接收方仍应匹配 Netloader 协议、缓存模式和实际权重布局；本页 main 所述 no/hbm/dram 区别继续适用于 rc2。
 
 下表的 v0.23 指维护分支，不拿它冒充含 GLM 代码的固定镜像。四个提交中前三个的 **Netloader 源码目录树和官方指南文件完全相同**；整个仓库与 GLM 模型支持范围并不因此相同。
 
@@ -185,11 +268,14 @@ vllm serve /models/example --tensor-parallel-size 1 --enforce-eager \
 main 的变化要分四处看：
 
 1. **no 路径变了。** 接收端先做加载后处理以准备最终布局，供方也在后处理后登记 transfer manifest（传输张量清单）。清单收集参数、buffer（模型注册的非参数张量）及部分模块属性上的运行时张量，并按数据地址去重。收完后不再重复执行那次后处理。hbm、dram 仍走原始 int8 缓存路径。
-2. **握手变了。** 新客户端发送缓存模式，服务端核对它；no 路径回复张量形状清单。有非空清单时，接收端在 HCCL 前检查各待收张量的名称与元素数量；清单为空时该检查直接放行。这仍不是模型权重内容哈希。
+2. **握手变了。** 新客户端发送缓存模式；服务端先核 rank、模型路径、TP、PP，再在客户端字段非 None 时比较缓存模式，省略该字段不会触发这项拒绝。no 路径回复张量形状清单。有非空清单时，接收端在 HCCL 前检查各待收张量的名称与元素数量；清单为空时该检查直接放行。这仍不是模型权重内容哈希。
+
 3. **回退变了。** 失败时按初始化前的快照清理新增注册和模型引用，并尝试回收显存；同一 rank 的主模型网络加载已经失败回退后，draft 跳过另一次网络尝试。旧版只清理静态前向上下文等较少状态。
 4. **同步与端口变了。** 主模型到 draft 的等待改为按本地进程组；本地大小无效时回到全局组口径。增加 draft 来源端口和最终监听端口越界检查、随机端口重试。
 
 main 指南还新增已测模型列表：DeepSeek-V3.1-w8a8-mtp、Deepseekv4-flash-w8a8-mtp、DeepSeek-V4-Pro-w4a8、GLM-5.1-w4a8、GLM-5.1-w8a8。这里没有 GLM-5.3-Flash；列表中的 GLM-5.1 不能替代本部署的验证。
+
+**指南中的空闲等待开关已过时。** vLLM PR #16226 在 2025 年引入 VLLM_SLEEP_WHEN_IDLE，让共享内存消息队列的读端在长时间无活动时降低轮询频率；它处理的是 CPU 忙等，不是 Netloader 传输协议。后续 PR #28053 删除该开关，并将空闲读端改为等待 ZeroMQ（进程间消息通信库）的通知。GLM 固定 vLLM 已包含此更改：读端先短暂轮询，空闲后等待通知，取消或超时也可以结束等待。继续设置旧变量不会重新选择一条 Netloader 路径，也不能从旧 PR 推出本部署的 HCCL 建链收益。
 
 ### 源码位置
 
@@ -206,5 +292,12 @@ main 指南还新增已测模型列表：DeepSeek-V3.1-w8a8-mtp、Deepseekv4-fla
 - [C9] v0.23 netloader.py:58–437 与固定提交相同；[C10] v0.26 同范围也相同，配置和回退行为一致。
 - [C11] main netloader.py:206–240 本地同步；463–617 新加载和回退路径；626–724 端口检查、监听、后处理与同步。
 - [C12] main interaction/elastic.py:459–483 缓存模式核对及形状清单；[C13] main executor/elastic_load.py:93–155 收集和缓存推理张量，435–445 在建 HCCL 前检查清单。
+- [C15] rc2 utils.py:24–46 定义磁盘回退允许保留的三项配置；[C16] rc2 netloader.py:753–759 是实际调用位置。两固定版本的 Netloader 目录差异仅涉及该辅助函数与调用，布局传输行为保持一致。
+- [S17] PR #16226 的最终补丁引入旧空闲开关；[S18] 提交 6f0dd938 删除它及旧计时器，该提交是固定 vLLM 的祖先。[C19] 固定共享内存消息队列的 SpinCondition 定义；[C20] 实际读循环调用其等待方法。原始 issue #16660 反映旧版本空闲 CPU 占用，不提供当前 Netloader 性能数据。
+- [S21] CANN 9.0 HCCL_BUFFSIZE 全文给出拼写、默认值、收发缓冲与域级覆盖规则；来源 3 的双机命令给出实际教程设置。这不证明所有 CANN 版本或模型进程只有同样的总分配量。
 
-**待核：** 缺固定 GLM 双机在 Netloader 下主模型及 MTP 的实机输出一致性、逐阶段加载耗时和显存峰值；缺供方同时推理与服务多个接收实例时的干扰测量。官方指南把缓冲变量拼作 HCCL_BUFFERSIZE，而部署教程使用 HCCL_BUFFSIZE，本文只保留指南的约 200 MB 量级提示；实际生效变量及默认值需按目标 CANN/HCCL 版本文档核定。指南另建议 VLLM_SLEEP_WHEN_IDLE，但对 vLLM 0fc695fc 的 vllm/ 和 Ascend db701c1f 的 vllm_ascend/ 执行 git grep 均无匹配，缺这个历史建议在目标镜像中的实际消费者与生效版本证据。
+**待核：** 缺固定 GLM 双机在 Netloader 下主模型及 MTP 的实机输出一致性、逐阶段加载耗时和显存峰值；缺供方同时推理与服务多个接收实例时的干扰测量，以及目标镜像的通信域数量、域级覆盖与实际缓冲分配。
+
+**配置和传输边界的定位。** 路径比较是字符串相等（来源 5）；缺少 sources 字段的读取位于异常捕获之外（来源 7），不能保证回退；配置不逐键合并及 draft 非 no 缓存改为 hbm 见来源 4、11。
+
+main 的后处理布局发送要求先登记清单，缺少时抛出 `Processed-layout P2P send requires registered transfer items.`（来源 13，262–274 行）。同文件 231–259 行检查名称及元素数量；数量相同仍可能在后续 view 调整失败（173–228 行），因此这些检查都不等于权重内容校验。缓存模式字段省略的放行条件见来源 12 的 457–483 行，只适用于该固定 main 握手协议。

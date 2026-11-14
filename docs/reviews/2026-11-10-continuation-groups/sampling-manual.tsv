@@ -1,0 +1,181 @@
+source_number	verdict	claim_note
+1	supported_scoped	联网读取固定HF generation_config全12行，T1、top_p0.95、三EOS且没有top_k和penalty；配置不替代HTTP合并链。
+2	supported_scoped	已读论文摘要、3.1–3.3及实验设置/结果相关正文：nucleus取最小累计质量集合再归一，研究对象是开放生成GPT2；不能推成GLM质量实测。图和其余正文阅读另记。 最终补齐全文/附录与全部13图：HTML8图、PDF缺5图；详见官方阅读账。
+3	supplemented	类注释支持基本处理链，但实际同文件还在penalty后应用thinking budget；当前“顺序固定”教学遗漏此已有处理，需补条件及承接。 最终复核：最终处理链已加入罚分后思考结束串；新预算机制和四版本执行边界有实际consumer支持。
+4	supported_scoped	整批all_greedy才提前返回；混合批继续缩放/不改argmax处理/截断，再按行温度选结果。纯greedy processed记录仍是分布/分数而非所选概率1。
+5	supported_scoped	升序排序先按第k大阈值屏蔽严格低分，再累计低端概率屏蔽<=1-p且保留最大项；支持并列可能>k和先k后p，范围限定PyTorch路径。
+6	supported_scoped	指数噪声按全局批量生成后覆盖逐请求generator行，probs/q取argmax；不证明所有其他后端都用该算法。
+7	supported_scoped	min_p以当前最高概率乘门槛屏蔽严格小者，等值保留；在temperature之后由4确定。
+8	supported_scoped	提示词仅出现mask、输出有count与mask，repetition后frequency后presence；支持六词手算及统计边界。
+9	supported_scoped	基础对象默认T1/p1/k0/minp0/seedNone/max16/min0；stop/eos说明须结合HTTP和停止链，现页已区分。
+10	supported_scoped	greedy初始化把p/k/minp归1/0/0；小正数先抬0.01由43/123确认，因此不能把阈值本身当所有小正温度greedy。
+11	supported_scoped	基线温度仅非负，p(0,1]、k整数>=-1、minp[0,1]；错误字符串与原文对应。
+12	supported_scoped	ignore_eos决定EOS判停字段和自动并入stop，all_stop集合仍保留模型EOS供min_tokens；手工停止条件非一并取消。
+13	revised_scoped	seed默认0及TP一致性目的直接有据；它只证明初始化要求，不支持正文无同算法/同随机流取数条件的“必然相同”。 最终复核：最终正文、误区及流程图统一要求同分数、同实现、同随机流与取数顺序；种子仅起点。
+14	supported_scoped	generation_config默认auto，vllm跳过模型采样默认、自定义路径和max_new_tokens全服务上限描述成立。
+15	supported_scoped	覆盖字典先update，再仅提取六项非None值，max_new_tokens改名max_tokens；不含seed/presence/frequency，警告有src条件。
+16	supported_scoped	普通Chat各项None先服务默认再中性值；beam分支不能当普通采样入口，现页对应普通to_sampling_params。
+17	supported_scoped	输出预算为模型剩余、请求/生成默认、override及平台上限最小值；超输入抛错；正文回链统一预算出处。
+18	supported_scoped	基线先min保护，再EOS/stop编号/长度检查，finish stop与length区分有据；只限旧版本。
+19	supported_scoped	返回rank=worldsize-TP×PCP，PP末段首TPworker；固定PP1/TP8/PCP1代入0成立。
+20	supported_scoped	无draft_probs时q=1，按p/q>=u判断，首拒后不再采后续候选，全接受追加bonus；恢复分布还需补读recovery实现。
+21	supported_scoped	固定Ascend指数噪声改写避免multinomial同步，明确先全局填再逐请求覆盖且等待流；没有NPU延迟实测。
+22	supported_scoped	完整词表非reduce路径支持processed logits/logprobs并有async分支；batch_invariant回上游，不能笼统说A2所有模式都用融合算子。
+23	supported_scoped	reduce路径本地topk后all_gather分数和编号；普通A2/A3融合截断，无k/p不处理；旧部署关闭reduce条件保留。
+24	supported_scoped	async_exponential默认False，且batch_invariant时强制关闭，当前普通部署未给配置不启用。
+25	supported_scoped	reduce_sample默认False，来源是additional_config。
+26	supported_scoped	无spec metadata进普通sampler，有则Ascend rejection并传draft_probs=None；支持GLM的deterministic draft概率1分支。
+27	supported_scoped	bonus先单独采，目标行转fp32、复制raw保护，再processor/constraints/拒绝采样；仅max_num_logprobs非None时拼记录。固定MTP指定编号限制成立。
+28	supported_scoped	greedy目标argmax在非all_random时计算，reduce才有额外全局求最大路径；普通完整词表本地argmax。
+29	supported_scoped	固定Ascend Triton标准拒绝分支同p/q>=u，None草拟概率1；替代判据默认关闭由额外配置链核。
+30	supported_scoped	MTP草拟直接logits.argmax，不应用请求T/p；候选只是提议，与目标验证随机分布分开。
+31	revised_scoped	worker调用set_random_seed证明启动初始化，不能独立保证随机流后续消耗一致；与13同一措辞问题。 最终复核：保留worker全局初始化证据，已删掉种子单独保证每步一致的推论。
+32	supported_scoped	社区v23的A2/A3分派和NPU截断与固定GLM一致；只核所列默认分支。
+33	supported_scoped	v26非reduce改为PyTorch排序；5–28ms/~1ms是源码注释中的比较，非本部署实测。reduce分支未因此改写。
+34	supported_scoped	main非reduce无k/p直返，否则排序；与v26相同基本行为。
+35	supported_scoped	v26温度先有限性/非负/<=2，错误准确；本范围不证明所有其他参数一致。
+36	supported_scoped	raw记录在转fp32和processor前取得，原logits为fp32时raw_logits需clone；格式mask在sampler前已生效不被撤销。
+37	supported_scoped	每请求num_draft+1行，bonus为累计尾，target排除bonus；R1无候选1/有3候选4形状成立，实际截短另保留。
+38	supported_scoped	四模式默认raw_logprobs、raw/processed语义来自配置；实际执行还须普通与MTP分别核。
+39	supported_scoped	固定HF tokenizer_config全文33行读取且本轮resolve联网下载；EOS文本为endoftext。三停止编号需与generation配置及引擎集合链共同核，不由此文件单独推出ID。
+40	supported_scoped	bad_words逐禁串看输出后缀，匹配时仅屏蔽最后编号，单token无前缀；未声称字符串/同义词过滤。
+41	supported_scoped	repetition取prompt|output并集，正分除系数非正乘系数；0保持0，次数不叠乘。
+42	supported_scoped	所引教程两端seed1024，MTP3、maxseq32、maxlen133120及TP8/DP2/EP开关成立；片段未覆盖完整命令全部配置，需要复用同固定全文的部署记录。
+43	supported_scoped	0<T<0.01抬到0.01并警告，0不除法；上界常量另由初始化完整范围确认。
+44	supported_scoped	所引复现指南6行及另行全文已读：默认不保证复现，在线仅batch invariance；同硬件同版本仍是必要边界。
+45	supported_scoped	固定Ascend FAQ明确greedy及确定性环境项；引用到L202是片段，不能当整个FAQ已读或保证NPU实测。
+46	supported_scoped	raw哈希与文件名一致，42段逐一与本轮已读固定源码/文档范围字节比对全部相同；它是摘录集合，不算独立官方全文，继承各段所注明范围。
+47	supported_scoped	presence/frequency闭区间[-2,2]，repetition仅<=0拒绝；旧版本漏非有限检查不等于支持非有限输入。
+48	supported_scoped	Ascend Triton按prompt|output缩放，再frequency count再presence mask；与六词演算一致。
+49	supported_scoped	from_optional的None归0/0/1，区别于直接构造对象及HTTP repetition继承。
+50	supplemented	Chat字段支持penalty/seed/int64/min_tokens且thinking_token_budget已经存在；当前已写字段语义有据，但已有thinking入口漏讲。 最终复核：现已补thinking字段入口、普通总预算对照与版本执行门。
+51	supported_scoped	Chat把presence/frequency原值与已合并repetition传给SamplingParams.from_optional。
+52	supported_scoped	Completion max_tokens默认16，presence/frequency0、repetitionNone，min_tokens0/seed int64成立。
+53	supported_scoped	Completion repetition为None时先服务生成默认再中性1。
+54	supported_scoped	Completion三penalty实际传给from_optional，非只声明字段。
+55	supported_scoped	v26三penalty对象默认0/0/1，前两项输出、第三项提示词加输出。
+56	supported_scoped	v26 repetition新增有限性检查后才正数检查，presence/frequency范围不变。
+57	supported_scoped	main三penalty对象字段与v26一致。
+58	supported_scoped	main范围与v26一致，错误改统一VLLMValidationError。
+59	supported_scoped	Ascend普通采样无Triton回上游，no_penalties跳过；有Triton用设备罚分，未把这个fallback直接套MTP维度。
+60	supported_scoped	MTP对prompt/三penalty按repeat_indices展开后调用Ascend算子；输出历史由91和61共同决定。
+61	supplemented	上游MTP按候选位置扩展历史、先penalty再mask/min处理成立；同范围还含thinking holder，当前遗漏其作用且Ascend覆写版本未等同支持。 最终复核：投机候选历史与bonus原解释保留；新增预算holder消费与旧Ascend空状态区别。
+62	supported_scoped	v23 Ascend penalty同prompt/output并集缩放、count/mask两次扣分，与48同语义。
+63	supported_scoped	v26 Ascend penalty完整范围逐项重核，数学顺序和统计范围不变。
+64	supported_scoped	main Ascend penalty完整范围逐项重核，行号移动但同算法。
+65	supported_scoped	基线BatchChat温度0.7/p1/minp0/repetition1显式数值默认，不能套普通Chat的None继承。
+66	supported_scoped	v26 BatchChat这些字段改None，另有指定编号字段；转换时排None后才继承服务默认。
+67	supported_scoped	main BatchChat同v26的None默认，普通接口和批量字段集仍需分开。
+68	supported_scoped	get_default_sampling_params通过模型差异默认构造新对象，否则SamplingParams中性默认。
+69	supported_scoped	LLM.generate仅sampling_params为None时自动读取默认；显式SamplingParams()不再替合并模型默认。
+70	supported_scoped	输出列表先CPU补齐、搬设备再将-1改vocab占位，说明罚分数据准备成本；非延迟实测。
+71	supported_scoped	v26 Chat repetition缺省服务字典→中性1。
+72	supported_scoped	v26 Completion repetition缺省服务字典→中性1。
+73	supported_scoped	main Chat repetition继承链保持。
+74	supported_scoped	main Completion repetition继承链保持。
+75	supported_scoped	基线BatchChat转换只exclude_none保留数值默认，故1.0等覆盖服务。
+76	supported_scoped	v26转换同逻辑，但字段改None后被排除；不能只看转换相同便判断缺省相同。
+77	supported_scoped	main同v26，字段和转换联合支持当前版本差异。
+78	supported_scoped	字段和from_optional支持bias键转整数/截断、allowed及bad默认；本范围还含thinking预算及传递，新增教学需承接。
+79	supported_scoped	去首空白并尝试两编码，保留同长且首ID不同的空格变体；旧版无空token保护；EOS配置合并也在范围。
+80	supported_scoped	验证logprobs上限、128指定编号与长度匹配，allowed空列表和tokenizer边界、spec对min_p/bias的冲突均明确。
+81	supported_scoped	bias处理器在批状态变动建立索引，每步加值，可改变argmax；不是硬屏蔽。
+82	supplemented	实际顺序为白名单、禁串、非argmax处理器、penalties、thinking holder；原页漏最后一环，交根补正。 最终复核：实际顺序的最后thinking处理已在机制链和新章节说明。
+83	supported_scoped	禁串只比较输出后缀，投机展开每个候选位置的历史；不是提示词内容过滤。
+84	supported_scoped	Chat allowed可None，bad_words默认空列表并非可null字段。
+85	supplemented	Chat明确传bias/bad/allowed及thinking预算；logprobs按开关转数量，原页漏预算入口。 最终复核：现页补预算顶层字段与实际转换；不把接口接收当设备有效。
+86	supplemented	基线Completion有bias/allowed而无bad_words，默认max16；已有thinking预算字段与转发，应补说明。 最终复核：Completion预算字段/转换与Chat分开说明，原bad_words基线缺失仍保留。
+87	supported_scoped	v26仍旧式bad分词/allowed按tokenizer，指定logprobs校验及spec冲突与所述一致。
+88	supported_scoped	main新增空分词和条数校验、allowed按模型词表、停止编号检查；trace兼容限制不能外推至普通路径。
+89	supplemented	v26 Completion已有bad_words和指定logprobs列表，列表使普通数量None；thinking入口需纳入新增教学。 最终复核：v26 Completion扩展与预算存在已解释，旧GPU V2和Ascend holder门未被新版本覆盖。
+90	supplemented	main Completion延续列表优先、bad_words接入及温度默认链；thinking字段需补覆盖。 最终复核：main Completion预算入口补齐，并以main实际NPU创建/更新/消费支持适用范围。
+91	supported_scoped	旧Ascend验证自行展开掩码/罚分/禁串并应用min_tokens，无thinking holder应用；不能由上游支持推为旧NPU支持。
+92	supplemented	process开始验证参数，合并生成配置后给bad_words分词；旧预算要求reasoning配置启用且拒绝V2，原页漏执行门。 最终复核：预算reasoning配置门与旧V2拒绝明确进入四版本表，新版不再沿用旧V2限制。
+93	supported_scoped	白名单按max请求数乘词表大小创建布尔掩码，选中编号False；不减少lm_head计算。
+94	range_extended	引用24–153结束在TokenizeResponse之前；已读相邻159–163确认tokens/count/max_model_len，应将引用延至163。 最终复核：原24–153扩至24–163，已读新增响应定义，包含tokens/count/max_model_len；保留原编号。
+95	supported_scoped	main两个独立容量环境默认128条与1024总token；后者只用于对应V2状态路径。
+96	supported_scoped	GPU V2按每请求条数和扁平总token数检查并写暂存数组，不能套旧Ascend。
+97	supported_scoped	v26字段及from_optional对非法bias键集中报错、数值截断、seed=-1归None、badNone转[]。
+98	supported_scoped	main同类默认及校验支持正文；thinking验证已存在需新增承接，不能当作最近才有字段。
+99	supported_scoped	基线初始化确将bad_words None变空列表。
+100	supported_scoped	v26 Chat存在allowed和bad字段。
+101	supplemented	v26 Chat同时传bias/bad/allowed/thinking，原页预算遗漏交根处理。 最终复核：v26 Chat预算传递现有对应教学与版本门。
+102	supported_scoped	main Chat存在allowed和bad字段。
+103	supplemented	main Chat同时传bias/bad/allowed/thinking，原页预算遗漏交根处理。 最终复核：main Chat预算传递现有对应教学及实际输入/consumer链。
+104	supported_scoped	仅top-k有优化，无须全词表排序；严格小于阈值屏蔽保留并列，不保证恰好k。
+105	supported_scoped	完整commit重复38，四模式及默认raw_logprobs一致；重复引文不算新全文。
+106	supported_scoped	基线A2/A3普通融合截断和reduce候选聚合分支明确，不能统一称排序。
+107	supported_scoped	v26 reduce仍可用NPU融合，非reduce改pytorch；源码注释延迟不是本项目实测。
+108	supported_scoped	max>=1、min>=0且max非None时min<=max；字段整数契约不等于此片段作完整运行时类型校验。
+109	supported_scoped	与12重叠，EOS集合合并及ignore_eos停止编号处理支持正文。
+110	supported_scoped	min处理器持有已有输出列表，达到门槛移除；投机行按位置屏蔽，bonus普通处理仍用步前状态。
+111	supported_scoped	反分词只在输出数量严格大于min时查stop，并更新偏移；跳过可见文本的token仍占输出长度。
+112	supported_scoped	v26 scheduler先查min再查EOS/stop/length/repetition，与main存在顺序变化。
+113	supported_scoped	main先EOS/stop/length后min，min仅继续保护重复检测；采样前屏蔽仍是主要最少数保障。
+114	supported_scoped	v26最少数处理与基线一致，普通与spec门槛按已有输出计数。
+115	revised_scoped	main新增结构化输出全-inf时恢复有限停止编号，原版本表未说明可早于min结束；范围295也未覆盖spec函数后部，已补读至371并通知根。 最终复核：结构化输出全空恢复原有限停止分数的例外已同步到机制、入口提示和四版表；原167–295扩至167–371，完整spec处理已核。
+116	supported_scoped	main min/max检查同义，改统一VLLMValidationError。
+117	supported_scoped	上游bonus独立logits复制后普通sampler，override请求processed/raw logits；与110状态链支持保守min例子。
+118	supported_scoped	Ascend bonus同普通sampler入口，无法把当轮新候选提前计入min状态。
+119	supported_scoped	生成配置auto/vllm读取模型revision，显式目录独立读取，缺失返回空；采样默认名单另由15确定。
+120	supported_scoped	找不到generation_config后尝试模型config；GGUF提前跳过；不是每decode步读文件。
+121	supported_scoped	v26按覆盖字典更新后只取六项并重命名max_new_tokens，vllm模式仍接受覆盖。
+122	supported_scoped	main同六项合并，增加code_revision传递不改变所述采样默认。
+123	supported_scoped	小正温度先抬升，seed=-1转None、先verify后greedy关截断；thinking验证已存在。
+124	supported_scoped	v26有限温度/重复罚分检查及上限2、范围和先校验后greedy符合正文。
+125	supported_scoped	main参数边界延续，更多统一异常；新增去重/stream_interval不改变被审主张。
+126	revised_scoped	全局初始化Python/NumPy/Torch/设备种子支持入口，不能单独证明不同rank每步输出必然一致；根补随机取数顺序条件。 最终复核：全局初始化仍作为入口证据，当前主张增加同分布/算法和取数顺序条件，不再当充分保证。
+127	supported_scoped	generation_config默认auto及覆盖{}与显式目录/vllm语义明确。
+128	supported_scoped	--seed由ModelConfig kwargs接入CLI。
+129	supported_scoped	两个generation配置项直接接入CLI，非additional_config。
+130	supported_scoped	v26普通Chat先服务字典再中性默认，seed直接传入；指定logprob列表优先、stop集合合并属独立规则。
+131	supported_scoped	main普通Chat同默认链，新增watermarking/stream字段不改变已有参数继承。
+132	supported_scoped	仅RANDOM_SEED建立逐请求torch.Generator并manual_seed；None不建独立流。
+133	supported_scoped	固定Ascend_update_states回调父类，因此132生成器创建链实际适用；不能仅凭父类存在猜测。
+134	supported_scoped	0<k<vocab才记topk，否则把k设vocab；支持过大值等同不裁剪。
+135	supported_scoped	NumPy官方legacy正文完整读取：全局random.seed操作传统单例，整数范围0..2^32-1；同种子还需固定方法调用序列和参数，非任意执行条件可复现。
+136	supported_scoped	v26四项默认1/1/0/0及请求seedNone明确。
+137	supported_scoped	main对应默认相同，watermarking插入不影响五项值。
+138	revised_scoped	v26全局seed默认0与TP一致目的明确，但目的注释不是充分条件；统一补同分布/同取数顺序。 最终复核：v26默认与TP目的保留，结果一致条件现完整。
+139	revised_scoped	main同默认和设计目的，不能外推跨批次硬件版本可复现。 最终复核：main默认与TP目的保留，没有跨批次/硬件/版本逐字复现承诺。
+140	supported_scoped	v26 HTTP seed有符号64位、温度top-p None、thinking预算存在。
+141	supported_scoped	main对应HTTP字段/seed边界相同；reasoning_effort不是thinking数值预算。
+142	supported_scoped	v26 generation配置字段和默认auto/{}明确。
+143	supported_scoped	main generation配置字段同义，最大生成数来自配置说明。
+144	supported_scoped	logprobs None/0/k/-1，指定编号另附实际token，flat默认False；容器本身不启动记录。
+145	supported_scoped	指定列表最多128、ID模型vocab内、显式logprobs需等于列表长；单独列表不受普通max20分支。
+146	supported_scoped	服务max20、-1无上限及四模式raw默认明确；logits非概率。
+147	supported_scoped	模式与max-logprobs均CLI模型参数，非逐请求additional_config。
+148	supported_scoped	FlatLogprobs数组与半开区间、位置访问字典、普通字典重复ID合并；快append可保留底层重复。
+149	supported_scoped	请求有记录才初始化累计值，逐token累加首项数值；logits模式累计值不能称对数概率。
+150	supported_scoped	raw值处理前记录，float32再处理采样；指定ID另取。forward未把override继续传sample，支持bonus processed边界。
+151	supported_scoped	基线Chat top>=正数或-1须logprobs true，top0不用；stream提示词记录另有限制。
+152	supported_scoped	Chat逐token及候选响应包含token/logprob/bytes，低值夹-9999；实际token bytes来自decoded文本。
+153	supported_scoped	基线Completion拒绝所有负logprobs含-1，0接受，错误文字positive不代表0非法。
+154	supported_scoped	Completion四并行列表/字符位置及字符串键映射，低值夹-9999，token_id展示可保留ID身份。
+155	supported_scoped	v26 Chat非空指定列表使普通数量None，不能套Python两项相等限制。
+156	supported_scoped	v26 Chat指定列表需true并拒绝beam，top数量与bool检查独立保留。
+157	supported_scoped	v26 Completion指定列表优先；echo无生成时内部max1不表示实际生成可用。
+158	supported_scoped	v26 Completion列表需非null数量且禁beam/echo零生成；仍拒绝-1。
+159	supported_scoped	main Completion协议接受-1，增加原始非数输入校验，不等于返回器完整全词表可用。
+160	supported_scoped	main返回器列表选择或num>=i；未指定列表且num=-1时候选映射为空，支持明确限制。
+161	supported_scoped	MTP把目标/bonus logits按位置拼接，按数量gather，无指定ID入口；占位token随后parse过滤。
+162	supported_scoped	固定Ascend仅max_num_logprobs非None才拼接，继承上述方法；raw克隆与processed取处理后目标矩阵区分。
+163	supported_scoped	社区v23有NaN/inf清理额外处理，但max数量拼接、无指定ID贯通及bonus模式链保持。
+164	supported_scoped	v26 Ascend同拼接边界；synthetic参数存在不能误当本部署启用。
+165	supported_scoped	main Ascend同数量拼接且继承上游gather；没有指定ID处理不代表普通采样不支持。
+166	supported_scoped	固定Ascend普通完整词表路径有processed logits和log_softmax分支；reduce单独候选索引不在保证内。
+167	supported_scoped	社区v23与固定旧路径的processed和异步指数分支相同。
+168	supported_scoped	v26普通完整词表保留processed模式，已无旧async分支；reduce索引仍不同。
+169	supported_scoped	main普通processed模式保留；不能因TODO断言全模式不支持。
+170	supported_scoped	v26数量上限、列表128/模型范围/相等条件与145同义。
+171	supported_scoped	main同logprob规则，stop_token_ids验证新增不影响此结论。
+172	supported_scoped	v26上游MTP拼接仅数量gather，无指定列表通路。
+173	supported_scoped	main上游MTP同拼接边界；rc2相应方法已补读并新增对应证据。
+174	supported_scoped	v26 max默认20并Field ge=-1，四模式默认raw；比基线新增下界。
+175	supported_scoped	main同max下界与模式默认。
+176	supported_scoped	rc2 forward与main整blob相同，override不续传sample的限制仍存在；不能外推HTTP和Ascend整文件相同。
+177	supported_scoped	rc2普通all_greedy提前返回/混合批最终逐行选择，温度后处理及topk/p调用同main。
+178	supported_scoped	rc2 BeamSearchParams新增skip_special_tokens默认true；只涉及beam输出解码。
+179	supported_scoped	rc2 Chat beam明确转发skip_special_tokens；补充查到Completion也转发。
+180	supported_scoped	rc2 Ascend移除reduce分支，greedy直接argmax；完整词表processed模式仍在。

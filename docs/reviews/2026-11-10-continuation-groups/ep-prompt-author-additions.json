@@ -1,0 +1,125 @@
+{
+  "status": "independent_content_and_browser_pass_engineering_pending",
+  "page": "wiki/concepts/pd-disaggregation.md",
+  "before_sha256": "c490e510f61b747aab3d37a235ce23504f1a0b323fe0d862fe76933f417d77c5",
+  "after_sha256": "7ca01c3c3925918f486da0264fe6d07791c0138fdd128c038cbd145217b1b41b",
+  "new_sources": [
+    {
+      "source_number": 111,
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py#L356-L432",
+      "local": ".tmp/continuation-groups-2026-11-10/moe-spec-followthrough/fixed/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py",
+      "source_sha256": "21554432c209590b1588d63bd2120c4bdbeeb8cb2c81d5361e059f40b0e3f48f",
+      "excerpt_sha256": "08b7605215cd5589ae48493c810e286fafd7ce986c84d6571bafd554e2b76978",
+      "judgment": "author_supported_pending_independent_review",
+      "read_basis": "actual complete method / baseline plus all displayed nonempty differences",
+      "claim": "D-side prompt length remains required; fully matched prompt leaves final position to compute"
+    },
+    {
+      "source_number": 112,
+      "ref": "vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py#L34-L110",
+      "local": ".tmp/continuation-groups-2026-11-10/moe-spec-followthrough/fixed/568afb3a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py",
+      "source_sha256": "428d1a5bffdca7f4b5c87055efd753b22d3d56e8470def844d0f13d477b0059f",
+      "excerpt_sha256": "86c5f368b5c62135fbcddfa275722745a96d447d6305cb3337b27d5be20aea62",
+      "judgment": "author_supported_pending_independent_review",
+      "read_basis": "actual complete method / baseline plus all displayed nonempty differences",
+      "claim": "D-side prompt length remains required; fully matched prompt leaves final position to compute"
+    },
+    {
+      "source_number": 113,
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py#L34-L107",
+      "local": ".tmp/continuation-groups-2026-11-10/moe-spec-followthrough/fixed/ced6857a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py",
+      "source_sha256": "ac3daf8e2246581fec84ab28f2133569421b62c32a120be4923e2f4d0f2f9de9",
+      "excerpt_sha256": "13e82d62b3e01491b8d6282accf36decb13452db3f26717983e94d4f4f9817bd",
+      "judgment": "author_supported_pending_independent_review",
+      "read_basis": "actual complete method / baseline plus all displayed nonempty differences",
+      "claim": "D-side prompt length remains required; fully matched prompt leaves final position to compute"
+    },
+    {
+      "source_number": 114,
+      "ref": "vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py#L34-L107",
+      "local": ".tmp/continuation-groups-2026-11-10/moe-spec-followthrough/fixed/84030bbe/vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py",
+      "source_sha256": "5caa8b4b6f080e1c8b1eadb893c20c9a478dd625149477649641967e4b677b3e",
+      "excerpt_sha256": "13e82d62b3e01491b8d6282accf36decb13452db3f26717983e94d4f4f9817bd",
+      "judgment": "author_supported_pending_independent_review",
+      "read_basis": "actual complete method / baseline plus all displayed nonempty differences",
+      "claim": "D-side prompt length remains required; fully matched prompt leaves final position to compute"
+    },
+    {
+      "source_number": 115,
+      "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L2543-L2584",
+      "local": ".tmp/continuation-groups-2026-11-10/moe-spec-followthrough/fixed/568afb3a/vllm/v1/core/sched/scheduler.py",
+      "source_sha256": "2ed2a550b6558b2495eda845a97ae38bcf0225027b9e25fbf00fc3880c1d3941",
+      "excerpt_sha256": "a30bea15bfb6a063d8efab0727f554cb8562a6a3f88c94e9c4c583a0707e4116",
+      "judgment": "author_supported_pending_independent_review",
+      "read_basis": "actual complete method / baseline plus all displayed nonempty differences",
+      "claim": "D-side prompt length remains required; fully matched prompt leaves final position to compute"
+    },
+    {
+      "source_number": 116,
+      "ref": "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2919-L2960",
+      "local": ".tmp/continuation-groups-2026-11-10/moe-spec-followthrough/fixed/ced6857a/vllm/v1/core/sched/scheduler.py",
+      "source_sha256": "c1db45f3bbad3a875dd8638331b8870c4380ac1ab4734265ba5c863833a82884",
+      "excerpt_sha256": "a30bea15bfb6a063d8efab0727f554cb8562a6a3f88c94e9c4c583a0707e4116",
+      "judgment": "author_supported_pending_independent_review",
+      "read_basis": "actual complete method / baseline plus all displayed nonempty differences",
+      "claim": "D-side prompt length remains required; fully matched prompt leaves final position to compute"
+    },
+    {
+      "source_number": 117,
+      "ref": "vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L2927-L2968",
+      "local": ".tmp/continuation-groups-2026-11-10/moe-spec-followthrough/fixed/84030bbe/vllm/v1/core/sched/scheduler.py",
+      "source_sha256": "c6dfb6d9af504d28341c45a3bb8acacc55817812a49bae2cbb47fa88325c8688",
+      "excerpt_sha256": "a30bea15bfb6a063d8efab0727f554cb8562a6a3f88c94e9c4c583a0707e4116",
+      "judgment": "author_supported_pending_independent_review",
+      "read_basis": "actual complete method / baseline plus all displayed nonempty differences",
+      "claim": "D-side prompt length remains required; fully matched prompt leaves final position to compute"
+    },
+    {
+      "source_number": 118,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1216-L1236",
+      "local": ".tmp/continuation-groups-2026-11-10/moe-spec-followthrough/fixed/0fc695fc/vllm/v1/worker/gpu_model_runner.py",
+      "source_sha256": "6250ca0670c4593aa2f7c4567c9c71d6cb3d8182624a985d4d4e33d5bf054666",
+      "excerpt_sha256": "8891e1d13c5c1a9f4b0378c3d70100e9d2f99e76abbbf7c2a25051c354bd3800",
+      "judgment": "author_supported_pending_independent_review",
+      "read_basis": "actual exact range read",
+      "claim": "D prompt enters input batch and next-position token input"
+    },
+    {
+      "source_number": 119,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_input_batch.py#L346-L375",
+      "local": ".tmp/continuation-groups-2026-11-10/moe-spec-followthrough/fixed/0fc695fc/vllm/v1/worker/gpu_input_batch.py",
+      "source_sha256": "caeeb20f5010d74663c45f9419237191e3c0a149f4c7aa25bc1b73b1112d67ae",
+      "excerpt_sha256": "f8e1b0b7272c30689b062d2b699f2de5ccb3860dda3e23074fd744631d073b29",
+      "judgment": "author_supported_pending_independent_review",
+      "read_basis": "actual exact range read",
+      "claim": "D prompt enters input batch and next-position token input"
+    },
+    {
+      "source_number": 120,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1901-L1947",
+      "local": ".tmp/continuation-groups-2026-11-10/moe-spec-followthrough/fixed/0fc695fc/vllm/v1/worker/gpu_model_runner.py",
+      "source_sha256": "6250ca0670c4593aa2f7c4567c9c71d6cb3d8182624a985d4d4e33d5bf054666",
+      "excerpt_sha256": "ed28a8992be34724aed22bff3c9281e45551f0df6c3a1b0e4fe137236678818e",
+      "judgment": "author_supported_pending_independent_review",
+      "read_basis": "actual exact range read",
+      "claim": "D prompt enters input batch and next-position token input"
+    }
+  ],
+  "existing_sources_reused": [
+    18,
+    90,
+    100,
+    104,
+    107
+  ],
+  "new_official_full_credit": 0,
+  "scope": "NIXL pull ordinary text path in four pinned upstream comparisons; not Ascend Mooncake or NIXL Push",
+  "reproduction": ".tmp/continuation-groups-2026-11-10/moe-spec-followthrough/repro-nixl-prompt.json",
+  "no_device_claim": true,
+  "author_before_root_layout_sha256": "d174cc801d3c8c709625faa2092fb34ce592916857f2de982d0079823c907a8d",
+  "root_layout_delta": {
+    "diff": ".tmp/continuation-groups-2026-11-10/moe-spec-followthrough/pd-prompt-root-layout.diff",
+    "manual_author_review": "All long fields/aliases preserved in immediately following prose; four-version boundaries unchanged. Actually viewed root final table screenshot; complete rightmost column readable.",
+    "root_review": "docs/reviews/2026-11-10-continuation-groups/ep-prompt-independent-review.md"
+  }
+}

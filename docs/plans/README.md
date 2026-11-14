@@ -8,6 +8,8 @@
 
 | 文件 | 是什么 |
 |---|---|
+| [2026-11-14-progressive-restructure-and-fix-plan.md](2026-11-14-progressive-restructure-and-fix-plan.md) | 全站循序渐进重构、流水线解耦与全栈缺陷根治计划：讨论背景、6 大乱文根因、防分类器中断规程与四阶段 Red-to-Green 实施步骤 |
+| [2026-11-10-wiki-continuation-plan.md](2026-11-10-wiki-continuation-plan.md) | 接续全站教学整改与 OpenCode 成果：官方覆盖、逐项核验、分组整改、学习路径验收及下一批 500 项的计量边界 |
 | [wiki-overall-review-2026-10-08.md](wiki-overall-review-2026-10-08.md) | F001–F005 整体独立审查：1 P1 + 4 P2 的实际复现、覆盖矩阵、修复复审与正式待审状态 |
 | [wiki-final-acceptance.md](wiki-final-acceptance.md) | 10-08 最终证据：多版本导入、确认参数全量骨架、独立来源审查、GitHub 十题门槛、连续维护及四页纠错发布确认；历史记录单列 |
 | [wiki-qknorm-multiversion-acceptance.md](wiki-qknorm-multiversion-acceptance.md) | Q/K Norm 来源与独立审查、章节引用与检索修正、六例固定版本真实问答证据 |
@@ -19,6 +21,7 @@
 | [github-corpus-plan.md](github-corpus-plan.md) | F003 实施计划 |
 | [knowledge-loop-plan.md](knowledge-loop-plan.md) | F004 实施计划 |
 | [wiki-drop-plan.md](wiki-drop-plan.md) | F005 Drop 资料收录与知识整合；产品决策统一在 feature |
+| [wiki-drop-discovery-plan.md](wiki-drop-discovery-plan.md) | Drop 发现与整合优化；上下文去重、按需读取、原文覆盖及跨页复核一并验收 |
 | [wiki-drop-acceptance.md](wiki-drop-acceptance.md) | F005 工程验证、真实模型前后测与适用限制 |
 | [wiki-answer-quality-acceptance.md](wiki-answer-quality-acceptance.md) | F004 AC3 独立回答评判、缺口与复测接入及验证边界 |
 | [wiki-terms-gap-audit.md](wiki-terms-gap-audit.md) | 课程入口匹配、历史关单对账和仍缺证据的事项 |

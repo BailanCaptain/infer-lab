@@ -1,0 +1,27 @@
+source_number	verdict	note
+1	repaired_pending_acceptance	保存计划先算允许位置/整段，筛null和不可达滑窗，manager再滤已存/阈值/容量；不是每凑满必搬。
+2	supported	旧Ascend段数必填、单组断言、旧K/V handler入口成立；不当作新版接口。
+3	supported	旧handler分D2H/H2D两流；新版改复用流池另补证。
+4	repaired_pending_acceptance	D2H等当前计算流，同向等前笔，事件计时；补源页复用等待，事件速率不含端到端排队。
+5	repaired_pending_acceptance	旧CPU spec按配置world_size乘每worker规划量，容量向下取整；所有worker限定执行组并补新版布局。
+6	supplemented_pending_acceptance	外部命中可返回None需等/异步；补真正完成登记与新部分尾状态条件。
+7	supported	显式token段长要求组存在、相同设备token块长及整除；offload_prompt_only默认true与hash校验成立。
+8	repaired_pending_acceptance	已算0先本地再外部，抢占后可能复用仍在的本地前缀，删除一抢占就必全重算的泛化。
+9	supported	异步加载先分配后WAITING_FOR_REMOTE_KVS，不把已设计算计数当数据已到达。
+10	supported	APC或connector任一存在即建请求哈希，不要求普通APC总开关。
+11	supplemented_pending_acceptance	请求结束仍有store登记pending块，补后续复用触发flush及所有worker结果汇总。
+12	supported	旧缓冲假定每层K/V两张量、按stride字节复制；GLM旧镜像布局不适配。
+13	supported	旧模块导入路径实际不存在于固定配套上游；git ls-tree及c42981d034删除路径核实，非NPU实跑。
+14	supported	名字不同的CPUOffloadingConnector在APC关闭时不建两侧；保留区别。
+15	repaired_pending_acceptance	108行全文；指南用途/配置成立，但显存满才拷的简述不代表实际提前保存时序，保留代码解释。
+16	supported	与2字节相同，固定v23Ascend旧单组spec，配套上游缺旧导入。
+17	supported	与2字节相同，固定v26Ascend仍旧单组spec，不因上游新接口就视为可运行。
+18	supplemented_pending_acceptance	main CPU-only采用私有锁页路径且禁用replicated布局；补mmap tiering及去重条件。
+19	supported	main注册替换CPU/Tiering两种上游名，管理器留上游、worker换Ascend。
+20	supported	旧CPU manager不收block_size，支持LRU/ARC；仅作旧接口不兼容证据，不证明GLM运行。
+21	archive_integrity_only	810行raw逐段固定源码一致；仅归档完整性，主张判断见具体来源项。
+22	supplemented_pending_acceptance	rc2指南起始区区分CPU-only锁页、多层mmap；全文139行另读并补正文主机共享与磁盘限制。
+23	supplemented_pending_acceptance	rc2字节预算/正段倍数/二选一成立；补实际构造和world_size口径。
+24	supported	rc2两spec注册确实覆盖NPU实现，不能只据注册宣称GLM验证。
+25	duplicate_reading	固定官方URL与22同段字节一致；浏览器取官方页成功，语义判断同22，不计新全文。
+26	duplicate_reading	固定官方URL与23同段字节一致；语义判断同23，不计新全文。

@@ -1,7 +1,7 @@
 # 别的 agent 怎么用这个知识库
 
 `wiki/` 是一个 vLLM / vLLM-Ascend / 昇腾推理的知识库，每条结论钉在上游某个 commit 的某几行上。
-涉及这两个项目的机制、参数、默认值、版本差异（v0.23 / v0.26 / main）的问题，**先查它，再回答**。
+涉及这两个项目的机制、参数、默认值、版本差异（v0.23 / v0.26 / v0.30.0rc2 / main）的问题，**先查它，再回答**。
 
 这一页不依赖任何具体工具，Claude Code、Codex、脚本都能照着做（Claude Code 另有 `.claude/skills/llm-wiki/SKILL.md`，内容与此一致）。
 知识库的写作规则在 [HANDBOOK.md](HANDBOOK.md)，那是写页的人看的，不是查页的人看的。
@@ -39,7 +39,7 @@ pnpm wiki:mcp     # stdio 上的 JSON-RPC，三个工具：wiki_search / wiki_ge
 - `sources` 是钉住 commit 的来源，形如 `vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472`。
 - 正文里 `[C3]` / `[S1]` 指 `sources` 的第 3 / 第 1 条（从 1 数起）：`C` 源码，`S` 官方文档或论文。
 - 不带编号的 `[D]` 推导、`[I]` 推断、`[A]` 教学假设、`[!]` 矛盾或会踩的坑——**这四种最该警惕，转述时把等级带上**。
-- `verified` 是有人逐条对过的版本；社区页用 `releases/v0.23.0`、`releases/v0.26.0rc`、`main`，独立工作版使用下述 `rfork:main`，完整规则见 HANDBOOK 的「版本」。
+- `verified` 是有人逐条对过的版本；社区页用 `releases/v0.23.0`、`releases/v0.26.0rc`、`releases/v0.30.0rc2`、`main`，独立工作版使用下述 `rfork:main`，完整规则见 HANDBOOK 的「版本」。
   **没列出的版本 = 没人对过，不等于在那个版本上不成立。**
 - 版本之间真有差异时，页内有一张差异表，末列写「这对使用者意味着什么」。版本相关的问题先看它。
 - `--neighbors` 给出的每条边都带理由，回答里说明几页之间的关系时照它写，不要自己编。

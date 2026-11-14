@@ -1,0 +1,56 @@
+--- trial-before/npu-model-runner.md
++++ wiki/concepts/npu-model-runner.md
+@@ -53,7 +53,7 @@
+   - 'vllm@0fc695fc:vllm/v1/engine/core.py#L508-L597'
+   - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L326'
+   - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L495-L509'
+-  - 'vllm@0fc695fc:vllm/model_executor/layers/logits_processor.py#L75-L87'
++  - 'vllm@0fc695fc:vllm/model_executor/layers/logits_processor.py#L45-L87'
+   - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L496-L499'
+   - 'vllm@0fc695fc:vllm/model_executor/layers/mamba/abstract.py#L44-L60'
+   - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L4462-L4486'
+@@ -76,6 +76,9 @@
+   - >-
+     vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L43
+   - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L969-L995'
++  - 'vllm@0fc695fc:vllm/platforms/interface.py#L858-L862'
++  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L128-L140'
++  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L160-L175'
+ verified:
+   - releases/v0.23.0
+   - releases/v0.26.0rc
+@@ -98,7 +101,7 @@
+     kind: builds-on
+     note: Runner 调用的是已构建的 GLM 模型，各层计算由模型实现组织
+ contradicts: []
+-updated: '2026-11-03'
++updated: 2026-11-10T00:00:00.000Z
+ origin: gap
+ rawSources:
+   - >-
+@@ -265,7 +268,7 @@
+ 
+ **第二步（第一个 decode 步，在已有历史上继续往后生成）。** 计划是「R1 算 4 个」：y₀ 加 3 个候选，位置 4 到 7。第一步没有草稿，这一步对账不用补乐观账；从第三步起，runner 才要按「上一步 3 个候选全被接受」先记、事后修正。这一批只有 R1 一条请求、本步 4 个 token，满足纯 decode 的整齐条件，runner 定下回放 4 个 token 的那张图。4 行都要验证，选行是全部 4 行，拼齐后每卡的词表分数是 [4, 154880]。
+ 
+-第二次调用走拒绝采样器，前 3 行逐位验证 3 个候选，第 4 行在候选全对时多给一个 token，所以这一步交回 1 到 4 个 token。GLM 的 45 层主干里有 34 层 KDA，属于线性注意力，模型类又声明了自己是混合模型，所以 runner 采样完还要数出 R1 接受了几个，写进接受数表，第三步 KDA 从对应的那份候选状态接着算。最后再草拟下一轮 3 个候选。
++第二次调用走拒绝采样器，前 3 行逐位验证 3 个候选，第 4 行在候选全对时多给一个 token，所以这一步交回 1 到 4 个 token。runner 随后整理采样结果，并草拟下一轮 3 个候选，再更新接受数。GLM 的 45 层主干里有 34 层 KDA，属于线性注意力，模型类又声明了自己是混合模型，所以还要数出 R1 接受了几个、写进接受数表，第三步 KDA 从对应的那份候选状态接着算。
+ 
+ 这一步执行状态里最大的几样，每张卡：
+ 
+@@ -324,6 +327,7 @@
+ - **套允许词表。** 昇腾 V1 在 CPU 上做：整张 logits 拷到 CPU、转 fp32、改完拷回 [C11]。行数越多来回越重，满载 decode 一步 128 行时的字节数见[结构化输出](structured-output.md)。
+ - **只让选中行过输出头。** 省的是「(本步行数 − 选中行数) × 词表宽度」的投影，前向本身省不掉；R1 第一步 4 行只投 1 行 [D]。
+ - **接受数在另一条流上数。** 采样后记一个事件，在全局流上等这个事件再更新接受数，不挡主流上的后续工作 [C13]。
++- **词表分数如何汇总。** LogitsProcessor 从当前平台读取 use_all_gather，再决定 Gather 或 All-Gather。本页固定 NPUPlatform 继承平台基类，未重写该方法；基类返回 true，因此本部署走 All-Gather。选择分支、平台基类与 NPU 继承关系分别见来源 29、48、49。
+ - **计时校准。** `profiling_chunk_config.need_timing` 为真时，第一次调用开头和第二次调用结尾各做一次设备同步来计时；校准结束的标志 `disable_profiling_timing` 挂在调度计划上跨进程传给 Worker，因为在调度器进程里改配置对象影响不到 Worker 进程 [C3]。同步会打断异步流水，只在校准期间发生。
+ - **读代码时可以先跳过的分支。** 流水线并行、上下文并行（PCP、DCP）、KV 传输、多模态编码、pooling、ngram 草稿，本部署都不走 [A]。
+ 
+@@ -345,7 +349,7 @@
+ | 判断要不要数接受数 | 扫注意力分组找 `MambaSpec` | 同左 | 同左 | 直接读 `has_mamba_layers` |
+ | 文件行数 / `execute_model` 起始行 | 5251 / L1950 | 5480 / L1917 | 5314 / L1799 | 6242 / L2183 |
+ 
+-main 改读 `has_mamba_layers`，注释说新的打包布局把递推状态规格放进统一类型的组里，旧的「看每组第一个规格」认不出来 [C38]；v0.26 的 `init_device` 已没有 0.23.0 的退回分支 [C37]；PCP 那段在 db701c1f 里仍在：父类初始化前把批 token 上限加上「PCP 大小 × 2 × 最大并发请求数」，初始化完再减回去，本部署是 8192 临时加 1 × 2 × 32 = 64 [C33]。表中其余各行是在四个 commit 上逐项检索同名方法和字符串得到的 [D]。
++main 改读 `has_mamba_layers`，注释说新的打包布局把递推状态规格放进统一类型的组里，旧的「看每组第一个规格」认不出来 [C38]；v0.26 的 Worker 构造器已没有 0.23.0 的退回分支，`init_device` 按最终开关选类（来源 37、50）；PCP 那段在 db701c1f 里仍在：父类初始化前把批 token 上限加上「PCP 大小 × 2 × 最大并发请求数」，初始化完再减回去，本部署是 8192 临时加 1 × 2 × 32 = 64 [C33]。表中其余各行是在四个 commit 上逐项检索同名方法和字符串得到的 [D]。
+ 
+ 和上游 GPUModelRunner 比，昇腾 V1 有两处行为不同：上游在设备上原地套允许词表，昇腾在 CPU 上做；上游用设备上的采样结果草拟时不等整理结果，先草拟再整理 [C32]，昇腾先整理再草拟。本页的 GLM 算例基于 db701c1f 的执行代码；上游安装、有效默认值和设备实测，以[来源基线](../sources/glm-5-3-flash-baseline.md)的核实范围为准。
+ 

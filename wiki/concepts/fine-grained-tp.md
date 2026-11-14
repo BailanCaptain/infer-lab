@@ -2,72 +2,99 @@
 id: fine-grained-tp
 title: 细粒度 TP：为特定模块选择分片组
 type: feature
-summary: 细粒度 TP 让词表嵌入、lm_head、attention 输出投影、稠密 MLP 各自单独设分片组：沿 DP 方向把服务不同请求的几张卡编成一组，合存一份权重；代价是进出这一层要收集输入、送回结果。GLM 双机没有开启。
+summary: >-
+  细粒度 TP 让词表嵌入、lm_head、attention 输出投影、稠密 MLP 各自单独设分片组：沿 DP
+  方向把服务不同请求的几张卡编成一组，合存一份权重；代价是进出这一层要收集输入、送回结果。GLM 双机没有开启。
 aliases:
-  [
-    Fine-Grained Tensor Parallelism,
-    Fine-grained TP,
-    细粒度 TP,
-    细粒度张量并行,
-    模块级张量并行,
-    FinegrainedTPConfig,
-    finegrained_tp_config,
-    oproj_tensor_parallel_size,
-    lmhead_tensor_parallel_size,
-    embedding_tensor_parallel_size,
-    mlp_tensor_parallel_size,
-    olora_tensor_parallel_size,
-    OProjRowParallelOp,
-    get_otp_group,
-    lmheadtp,
-  ]
-chapters: ["13"]
+  - Fine-Grained Tensor Parallelism
+  - Fine-grained TP
+  - 细粒度 TP
+  - 细粒度张量并行
+  - 模块级张量并行
+  - FinegrainedTPConfig
+  - finegrained_tp_config
+  - oproj_tensor_parallel_size
+  - lmhead_tensor_parallel_size
+  - embedding_tensor_parallel_size
+  - mlp_tensor_parallel_size
+  - olora_tensor_parallel_size
+  - OProjRowParallelOp
+  - get_otp_group
+  - lmheadtp
+chapters:
+  - '13'
 order: 20
 sources:
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/parallel_state.py#L110-L149
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L505-L577
-  - vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L164-L227
-  - vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L285-L321
-  - vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L183-L222
-  - vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L258-L299
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L143-L161
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L680-L700
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L877-L894
-  - vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L52-L73
-  - vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L673-L790
-  - vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L801-L820
-  - vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L88-L170
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1320-L1322
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2975-L2984
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L1349-L1352
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L1-L109
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L524-L594
-  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L516-L586
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1140-L1220
-  - vllm-ascend@baa023ad:vllm_ascend/ops/vocab_parallel_embedding.py#L330-L404
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2454-L2460
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1416-L1431
-  - vllm-ascend@db701c1f:vllm_ascend/attention/dsa_v1.py#L1580-L1650
-  - vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1848
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3604-L3611
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L806-L817
+  - 'vllm-ascend@db701c1f:vllm_ascend/distributed/parallel_state.py#L110-L149'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L505-L577'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L164-L227'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L285-L321'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L183-L222'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L258-L299'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L143-L161'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L680-L700'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L877-L894'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L52-L73'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L673-L790'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L801-L820'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L88-L170'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1320-L1322'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2975-L2984'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L1327-L1352'
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L1-L109
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L524-L595'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L516-L587'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1140-L1220'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/vocab_parallel_embedding.py#L330-L426'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2454-L2460'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1416-L1431'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/dsa_v1.py#L1580-L1650'
+  - 'vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1848'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3604-L3646'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L806-L817'
+  - >-
+    raw:sha256-51db7d1760c773e59d975a43ab6da61932765363169112c9f38604e667010453.md#L1-L1231
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1326-L1354'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1362-L1413'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1423-L1438'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L822-L830'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1140-L1151'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1918-L1940'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2018-L2050'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L54-L114'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L521-L578'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L683-L693'
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - {to: tensor-parallel, kind: builds-on, note: 理解矩阵分片与输出拼接或求和}
-  - {to: data-parallel, kind: builds-on, note: 区分请求副本与并行通信组}
-  - {to: expert-parallel, kind: builds-on, note: 理解 MoE 专家与非专家权重的不同布局}
-  - {to: collective-communication, kind: builds-on, note: 理解收集与归约分片的输入输出}
+  - to: tensor-parallel
+    kind: builds-on
+    note: 理解矩阵分片与输出拼接或求和
+  - to: data-parallel
+    kind: builds-on
+    note: 区分请求副本与并行通信组
+  - to: expert-parallel
+    kind: builds-on
+    note: 理解 MoE 专家与非专家权重的不同布局
+  - to: collective-communication
+    kind: builds-on
+    note: 理解收集与归约分片的输入输出
 contradicts: []
-updated: "2026-09-29"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-0ffb3feb6e1a9db47775d4122d25d681a736421321b869980b1aed646005633c.md
+  - >-
+    raw/sha256-51db7d1760c773e59d975a43ab6da61932765363169112c9f38604e667010453.md
 ---
 
 ## 细粒度 TP 是什么？
 
-先用两句话回顾两个前置概念。[TP](tensor-parallel.md)（tensor parallel，张量并行）把一层里的权重矩阵切给几张卡，每张卡只存一片、只算一片，再用集合通信把各卡的结果合起来；[DP](data-parallel.md)（data parallel，数据并行）把整份模型复制几份，每一份各自服务一批不同的请求。
+先用两句话回顾两个前置概念。[TP](tensor-parallel.md)（tensor parallel，张量并行）让几张卡合作计算一层，可切分的矩阵各存、各算一片，再按算子的需要拼接或求和；部分分量仍可复制。[DP](data-parallel.md)（data parallel，数据并行）让不同执行组各自调度一批请求；没有跨组专家切分时，每组可以持有完整模型，开启跨 DP 的 EP 后则不能这样计数。
 
-普通 TP 有一个特点：**整个模型只有一种切法**。开了 TP4，就是同一组 4 张卡，把词表嵌入（把 token 编号换成向量的那张表，见 [embedding](embedding.md)）、attention、MLP、lm_head（把最后的隐藏向量变成词表里每个词的分数的那一层，见 [lm_head](lm-head.md)）统统切成 4 份。
+普通 TP 提供一套合作计算的卡组，**具体模块怎样切仍由实现决定**。TP4 可以让词表嵌入（把 token 编号换成向量的表，见 [embedding](embedding.md)）、attention、MLP、lm_head（把最后的隐藏向量变成词分数的层，见 [lm_head](lm-head.md)）使用这组 4 张卡；但不能据此断言所有权重都除以 4。例如 GLM 的部分低秩输入矩阵仍在每卡复制。
 
 **Fine-grained TP（细粒度张量并行）让每个模块单独选自己的分组大小：有的模块几张卡合存一份、每卡存一片，有的模块照旧每卡一整份。** 这是 vllm-ascend（让 vLLM 推理框架跑在昇腾 NPU 上的插件）提供的特性，可以单独设置的模块是词表嵌入、lm_head、attention 的输出投影（attention 最后那个把各头结果合回隐藏维度的矩阵）和稠密 MLP；另有第五项只对特定模型的低秩式输出投影生效，放在后文讲。
 
@@ -85,34 +112,34 @@ file: fine-grained-tp-intuition
 - **路由专家照常按 [EP](expert-parallel.md) 分**（expert parallel，专家并行）：每张卡存一部分完整的专家。
 - **lm_head 4 张卡一组**：4 张卡合存一份，各存四分之一。
 
-图上每一行的切法都不一样，这就是「细粒度」的意思；普通 TP 下每一行都是同一组卡、同样份数。右栏写的是进出这一层要做的事：分了组的模块，组里几张卡服务的是**不同的请求**，这一点是它和普通 TP 最大的区别，下一节展开。
+图上选中的模块各有自己的分组，这就是「细粒度」的意思。右栏写的是进出这一层要做的事：沿 DP 分组后，组里几张卡服务的是**不同的请求**，所以进入模块前要收集输入，结果再送回原请求所在的卡，下一节展开。
 
 ## 为什么需要它：DP 让同一份权重存了好几遍？
 
-DP 每多一份副本，就多存一份权重。MoE 模型（大部分参数在专家里的模型，见 [MoE](moe.md)）配上 EP 以后，专家被分到各张卡，每卡只存一部分；可非专家的部分，也就是词表嵌入、attention、稠密 MLP、lm_head，仍是每个 DP 副本各存一整份。N 个副本就存 N 份一模一样的数。
+DP 每多一个请求执行组，通常就多一份该组的非专家权重。MoE 模型（大部分参数在专家里的模型，见 [MoE](moe.md)）配上 EP 以后，专家可以跨 DP 组分布，每卡只存一部分；非专家部分仍按各 DP 组原有的 TP 布局保存。上图 TP1 的示意里，N 个 DP 组就在 N 张卡上各存一份相同的非专家权重。
 
 这会让两样东西变贵：
 
 1. **显存**：同样的数存 N 遍，挤掉了本可以留给 [KV cache](kv-cache.md)（保存历史 token 中间结果的缓存）的空间。
-2. **每一步读权重的时间**：decode（逐个生成新 token 的阶段）每一步只算很少几行，时间主要花在把权重从显存读出来，见 lm_head 页的[「算得少、读得多」](lm-head.md#为什么这一步算得少读得多)。对 lm_head、稠密 MLP、attention 输出投影这类要做矩阵乘的模块，每卡存一整份，每一步就要把整份读一遍；k 张卡合存、每卡一片，每卡每步只读 1/k。词表嵌入是查表，每步只读用到的那几行，分组省下的主要是显存。
+2. **矩阵权重的读取预算**：decode（继续生成 token 的阶段）每步通常只算少量行，读取权重可能成为主要成本，见 lm_head 页的[「算得少、读得多」](lm-head.md#为什么这一步算得少读得多)。对选中的 lm_head、稠密 MLP、attention 输出投影，若按相同工作量、每个权重理想读取一次估算，k 张卡合存使每卡承担的矩阵字节降到 1/k；这表示分摊读取和复用的机会，不是每步实际 HBM 访存或耗时的比例。缓存命中、重复读取、批次变化和额外通信都要结合实现与实测。词表嵌入则是查表，只访问选中行；其分组首先减少常驻容量，不能套用整矩阵读取预算。
 
-那为什么不直接把普通 TP 开大？因为普通 TP 一动就是整个模型一起动：每一层都要多一轮卡间归约，attention 的头数也要能被 TP 整除（其他限制见 [TP 的代价](tensor-parallel.md#切开以后要付的代价)）。细粒度 TP 只挑「省得多、通信少」的模块下手，其余模块保持原样。
+那为什么不直接把普通 TP 开大？因为这会改变多类算子的分片与通信规模：各层的归约可能跨更多卡，attention 头数等维度还须满足整除约束（其他限制见 [TP 的代价](tensor-parallel.md#切开以后要付的代价)）。细粒度 TP 可以只调整选中的模块，其余模块保留原来的分组。
 
-代价出在「组里的卡服务不同请求」这一点上。普通 TP 组的几张卡手里是**同一批 token**：输入本来就一样，各算一片以后，一次 [All-Reduce](collective-communication.md#all-reduce)（各卡的结果按位置相加，每张卡都拿到整份）就收尾了。沿 DP 组队的卡手里是**各自请求的 token**，于是要多做两件事：
+代价出在「组里的卡服务不同请求」这一点上。以关闭 SP、采用先列切再行切的稠密 MLP 为例，普通 TP 组的几张卡手里是**同一批 token**：输入本来就一样，各算一片以后，一次 [All-Reduce](collective-communication.md#all-reduce)（各卡的结果按位置相加，每张卡都拿到整份）就收尾了。沿 DP 组队的卡手里是**各自请求的 token**，于是要多做两件事：
 
 - 进这一层前，用 [All-Gather](collective-communication.md#all-gather)（每张卡交出自己那段、收回所有卡的段）让组里每张卡都拿到全组的输入；
 - 算完以后，结果只该回到 token 所属的那张卡：各卡结果要相加的，用 [Reduce-Scatter](collective-communication.md#reduce-scatter)（按位置相加，每张卡只拿走属于自己的那一段）；不用相加、只是分段的，用 [All-to-All](collective-communication.md#all-to-all)（每张卡把要给别人的部分分别发过去）。
 
-| | 普通 TP 组 | 细粒度 TP 组（沿 DP 组队） |
+| | 普通 TP 组（上述稠密 MLP 例子） | 细粒度 TP 组（沿 DP 组队） |
 |---|---|---|
 | 组里的卡手里是 | 同一批 token | 各自请求的 token |
 | 进这一层前 | 不用交换 | 收集全组的输入 |
 | 算完以后 | All-Reduce，每卡拿整份 | Reduce-Scatter 或 All-to-All，每卡只拿回自己的 |
-| 切的范围 | 整个模型每一层 | 只有选中的模块 |
+| 配置作用范围 | 各层支持普通 TP 的算子；部分分量仍复制 | 为选中的模块另设分组 |
 
 除了这两次通信，还有三样看不见的代价：
 
-- **形状要一样**：集合通信要求组里每张卡交出的数据形状相同，而不同请求这一步的 token 数不一样，只能补齐到同一行数。补出来的空行也要传、也要算。
+- **形状要匹配**：本页这些集合通信路径要求组内输入满足等宽约定，不同请求这一步的 token 数不一样时，需要调度或模块先补齐。补出来的空行也要传、也要算；配置能解析不等于每一种模块和执行模式都自动完成了对齐，具体边界见页末。
 - **步调绑在一起**：组里一张卡慢了，其他卡都得等；某个 DP 副本这一步正好没有请求，也要陪着跑完这一层的通信，和 MoE 层要求空闲组[陪跑](data-parallel.md#空闲的组由谁叫起来陪跑陪跑时算什么)是同一个道理。
 - **只是借卡，不改请求**：它只在某一层里临时借组内别的卡算自己那一片，不会把几个请求拼成一条序列，也不改变 MoE 给 token 选专家的规则。
 
@@ -137,6 +164,8 @@ title: Reduce-Scatter 按位置相加（示意）
 ```
 
 每一行只有一张卡查到了真值，另一张卡贡献的是 0，所以相加恰好还原出整行，不会多加。A 要的第 6 行是卡 1 替它查的，B 要的第 1 行是卡 0 替它查的。
+
+上例两张卡各处理一个 token，已满足等量输入的条件；如果 A 本轮处理两个、B 只处理一个，就要先按前节的对齐规则处理，不能把未对齐的两批输入直接套进这个示意。
 
 这和[普通 TP 下的词表嵌入](embedding.md#多张卡分着存一张表每张卡查一段再加起来)是同一个道理，差别在两头。普通 TP 组的卡手里是同一批 token，各查一段以后做一次 All-Reduce，每张卡都拿到全部 token 的向量；这里两张卡手里是不同请求的 token，所以入口多一次 All-Gather，出口的 All-Reduce 换成只把各自那一行送回的 Reduce-Scatter。
 
@@ -210,14 +239,14 @@ title: 组大小为 4 时，每张卡省下多少、多传多少（示意）
 入口 All-Gather 每卡收到 = (4 − 1) × 8 × 4096 × 2 B = 196,608 B
 出口 Reduce-Scatter 每卡发出 = (4 − 1) × 8 × 4096 × 2 B = 196,608 B
 > 按 ring 走法，每卡发出整份结果的 (k − 1)/k，整份是 4 × 8 行
-每卡每轮多传 = 196,608 B + 196,608 B = 393,216 B = 384 KiB
+每卡每轮 AG + RS 单向合计 = 196,608 B + 196,608 B = 393,216 B = 384 KiB
 ```
 
-只看字节数，这笔买卖很划算：decode 每一步每卡少读 0.75 GiB 权重，只多传 384 KiB。可字节数不是全部，加上第二节讲过的补齐（空行照样算、照样传），还要看三件事：
+这份示意里，常驻矩阵每卡少 0.75 GiB；若再假设相同工作量下每份矩阵理想读取一次，权重读取预算也少 0.75 GiB。384 KiB 是所列 ring 通信的单方向字节账，不能和容量差直接比较出收益，更不保证实际 HBM 少读这么多。加上第二节讲过的补齐（空行照样算、照样传），还要看三件事：
 
 - **一次前向做几轮**：一轮指「收集一次、送回一次」。词表嵌入和 lm_head 一次前向各只做一轮；稠密 MLP 和 attention 输出投影是每层一轮，有这种层的层数越多轮数越多。
 - **每轮的固定开销**：每次集合通信都有启动开销，组里所有卡还要互相等齐才能继续。批量小的时候，这部分往往比传那几百 KiB 更花时间。
-- **跨不跨机**：组里的卡不在同一台机器上时，这些通信都走机间链路，比机内慢。
+- **跨不跨机**：组里的卡不在同一台机器上时，这些通信就包含机间链路；等待取决于实际拓扑、有效带宽、传输大小和拥塞，不能只凭“跨机”给出固定快慢结论。
 
 vllm-ascend 的特性文档给过一组实测数：DeepSeek-R1 W8A8（权重和激活都量化成 8 位整数），32 张 Atlas A2（每卡 64 GB），PD 分离（prefill 和 decode 交给两组机器，见 [PD 分离](pd-disaggregation.md)）里的 decode 实例，DP32 + EP32，四个模块的组大小都是 8，batch 为 24。
 
@@ -228,7 +257,9 @@ vllm-ascend 的特性文档给过一组实测数：DeepSeek-R1 W8A8（权重和�
 | 稠密 MLP | 0.9 GB | 快了 1.0 ms |
 | 词表嵌入 | 1.51 GB | 快了 1.0 ms |
 
-四项合计每卡省下 9.72 GB。省得最多的输出投影反而变慢，多半是因为它每一层都要多一轮 All-to-All 和一轮 Reduce-Scatter；稠密 MLP 虽然也按层算，但 DeepSeek-R1 只有前 3 层是稠密层，一次前向只多 3 轮；lm_head 和词表嵌入一次前向只各多一轮。词表嵌入是查表、每步本来只读用到的几行，表里也快了 1.0 ms，文档没有给分项原因。这组数只对那个模型、那套 32 卡部署成立，不能搬到别的部署当结论。省下的显存也不能直接折算成吞吐：能不能变快，要看批量、链路、精度、计算效率，以及通信能不能被计算盖住。
+四项合计每卡省下 9.72 GB。省得最多的输出投影反而变慢；它每层多出的 All-to-All 和 Reduce-Scatter 是值得检查的成本，但文档没有用分项测量证明这就是退化原因。稠密 MLP 虽然也按层算，但 DeepSeek-R1 只有前 3 层是稠密层，一次前向只多 3 轮；lm_head 和词表嵌入一次前向只各多一轮。词表嵌入是查表、每步本来只读用到的几行，表里也快了 1.0 ms，文档没有给分项原因。这组数只对那个模型、那套 32 卡部署成立，不能搬到别的部署当结论。省下的显存也不能直接折算成吞吐：能不能变快，要看批量、链路、精度、计算效率，以及通信能不能被计算盖住。
+
+文档没有报告四项配置同时启用后的总 TPOT；不能把表中的单项时延变化直接相加，作为组合配置的实测收益。组合后的整体时延仍需另行测量。
 
 ## 放到 GLM 双机：这套部署开了细粒度 TP 吗？
 
@@ -257,7 +288,7 @@ title: GLM 双机的 lm_head，每张卡存多少（BF16）
 
 - **attention 输出投影**：要求普通 TP 为 1，TP8 在加载配置时就报错；它还要求 graph mode（把算子序列录下来回放的执行方式），并且只能跑在 PD 分离的 D 节点（负责 decode 的那一组机器）上。
 - **词表嵌入**：要求同时打开 [recompute 调度器](recompute-scheduler.md)（D 节点显存不够时把请求退回 prefill 一侧重算的调度器），源码注释给的理由是只有它能保证各 DP 组每步的 token 数一致；而这个调度器只能开在 PD 分离的 D 节点上。这套部署是 prefill、decode 混在同一组卡上跑，打开会在启动时报错。
-- **低秩输出投影**：只在 DeepSeek-V4 压缩式 attention 的实现里被读到；GLM 用的 DSA（DeepSeek Sparse Attention）式稀疏 MLA 走的是另一条代码路，不读这个字段。它同样要求 graph mode 和 D 节点。
+- **低秩输出投影**：本页核对的分支位于 DeepSeek-V4 压缩式 attention 实现；GLM 的稀疏 MLA 则显式构造 Indexer KPool MLA 后端，复用 SFA 的部分实现，并不经过上述两段式投影分支。这一配置同样要求 graph mode 和 D 节点。
 
 所以这个特性瞄准的是另一种部署：PD 分离以后的 decode 实例常用纯 DP（普通 TP 为 1），每张卡各存一整份非专家权重，组队才有东西可省，官方文档推荐的也是这个场景。固定双机已经用 TP8 在机内把这些模块切成了 8 段，再沿 DP 组队只会把切分变粗、把通信搬到机间。
 
@@ -277,8 +308,8 @@ title: GLM 双机的 lm_head，每张卡存多少（BF16）
 
 - 开关在 `--additional-config` 的 `finegrained_tp_config` 里。钉住版本有五个字段：`embedding_tensor_parallel_size`、`lmhead_tensor_parallel_size`、`oproj_tensor_parallel_size`、`mlp_tensor_parallel_size`、`olora_tensor_parallel_size`，默认都是 0。前四项大于 0 就启用，`olora_tensor_parallel_size` 要大于 1 才启用（`utils.py` 的五个 `*_tp_enable()`）。
 - 例：`--additional-config '{"finegrained_tp_config": {"lmhead_tensor_parallel_size": 8, "mlp_tensor_parallel_size": 8}}'`，要求 `data_parallel_size` 能被 8 整除。官方文档的 DeepSeek-R1 示例还带了 `"embedding_tensor_parallel_size": 8`；这一项要同时写 `"recompute_scheduler_enable": true`，并且只能在 D 节点上跑。
-- 前提（都在加载 Ascend 配置时检查）：`model_config.is_moe` 为真；每个非零大小整除 `data_parallel_size`。输出投影一项另要 `tensor_parallel_size == 1`、不能 `enforce_eager`、`kv_transfer_config` 是 KV consumer；低秩输出投影一项要求不 eager、是 KV consumer；词表嵌入和输出投影两项要求 `recompute_scheduler_enable=true`，而平台层只在 `kv_role='kv_consumer'` 时接受这个调度器。
-- 确认生效：启动日志有一行 info `finegrained_tp_config enabled: lmhead_tensor_parallel_size=8, ...`；线性层被替换时有 debug 日志 `get_parallel_op: prefix=..., direct=... -> MLPColumnParallelOp (tp_rank=..., tp_size=...)`，某一层没出现这行就说明它没换。
+- 前提（都在加载 Ascend 配置时检查）：`model_config.is_moe` 为真；每个正的分组大小整除 `data_parallel_size`。输出投影一项另要 `tensor_parallel_size == 1`、不能 `enforce_eager`、`kv_transfer_config` 是 KV consumer；低秩输出投影一项要求不 eager、是 KV consumer；词表嵌入和输出投影两项要求 `recompute_scheduler_enable=true`，而平台层只在 `kv_role='kv_consumer'` 时接受这个调度器。
+- 确认生效：启动 info `finegrained_tp_config enabled: lmhead_tensor_parallel_size=8, ...` 表示配置项开启；线性层被替换时会提交 debug 日志 `get_parallel_op: prefix=..., direct=... -> MLPColumnParallelOp (tp_rank=..., tp_size=...)`。只有 debug 日志被采集时，才能用它核对具体层；没看到这行不能独自证明未替换，还要检查构造出的模块与通信组。
 
 ### 会报什么错
 
@@ -299,15 +330,21 @@ title: GLM 双机的 lm_head，每张卡存多少（BF16）
 
 ### 开销和什么时候别开
 
-- **普通 TP 已经切过这些模块时别开**：新组替换原来的 TP 组，不是叠加。TP8 配组大小 2，每卡存得更多，同机的卡还在重复计算，见 GLM 一节。
+- **新组比原 TP 组小时要谨慎**：新组替换原来的 TP 组，不是叠加。TP8 配组大小 2，每卡存得更多，同机的卡还在重复计算，见 GLM 一节；其他组大小仍须分别比较容量、输入规模和通信成本，不能仅因普通 TP 大于 1 就一律排除。
 - **DP 小时收益有限**：组大小不能超过 DP 数，DP 为 2 最多两张卡合存。
 - **组跨机时**：组内所有收集、送回都走机间链路。GLM 双机的 DP 组就是跨机的 {i, i+8}。
 - **每层都做的模块要谨慎**：输出投影和稠密 MLP 每层多一轮通信；官方实测里输出投影省了 5.8 GB，却慢了 1.5 ms。
-- **补齐**：词表嵌入和输出投影用固定大小的静态缓冲区（大小取可能出现的最大 token 数，graph mode 回放要求地址不变），这两项还会让各 DP 组每步补到同样的 token 数；lm_head 的打分行数固定补到「最多请求数 × 每请求 decode token 数」。
+- **补齐**：词表嵌入和 DeepSeek-V4 attention 内的输出投影路径使用固定大小的静态缓冲区，大小取可能出现的最大 token 数，graph mode 回放要求地址不变；runner 也将这两项列为允许 DP 对齐的条件。普通输出投影算子和稠密 MLP 不在自己的入口自动补任意不等长输入，后者直接收集传入张量，须由调用侧保证形状约定。lm_head 的打分行数固定补到「最多请求数 × 每请求 decode token 数」。rc2 对 oproj/mlp 另加的图模式与步宽门槛见下节。
 - **空闲组也要陪跑**：开了 lm_head 分组以后，某个 DP 组这一步没有请求，也要按补齐后的行数跑一遍假的打分，让组内通信凑齐。
 - **适合的场景**：官方建议用在 PD 分离的 decode 实例上，那里常用纯 DP，每卡各存一整份非专家权重。
 
 ### 版本差异
+
+recompute scheduler 的绑定对象也从固定 main 的 oproj/embedding 改为 rc2 的 oproj/mlp；embedding 不再受原先这条绑定要求，仍须满足自身的分组与互斥校验。
+
+rc2 的 oproj/mlp 组大小>1 还必须配置 PreemptOffloadConnector（可经 MultiConnector）；缺少它会在平台后置检查中直接 AssertionError。原因是这类分片请求抢占后不能依赖回 P 重算来保持相同精度，这项门槛与下面的 recompute scheduler、图模式条件必须同时满足。
+
+**v0.30.0rc2 保留四个默认 0 的字段，增加了 oproj/mlp 真正分片的前提。** 字段仍须非负、用于 MoE 且能整除 DP；当 oproj 或 mlp 组大小>1 时，还要求 TP=1、非 NONE 图模式、D 侧 KV consumer、PCP=1。图捕获最大档覆盖不了最大可能步宽时会告警并把这两项置 0，所以“参数能解析”不表示实际生效。另一道派生校验在 oproj/mlp 任一>0 时要求 recompute_scheduler_enable=true，不能仅靠开启图或传入字典满足全部条件。
 
 v0.23 列是维护分支 2c59ff10，不含 GLM 代码；固定镜像 db701c1f 另列。vLLM 上游没有这个特性，只在 vllm-ascend 里。
 
@@ -315,6 +352,7 @@ v0.23 列是维护分支 2c59ff10，不含 GLM 代码；固定镜像 db701c1f �
 |---|---|---|---|---|
 | 字段 | 五项，含低秩输出投影 | 同 v0.23 | 同 v0.23 | 四项，低秩输出投影一项已移除；输出投影作用于 DeepSeek-V4 两段式投影的写法仍在 |
 | 默认值 | 全 0，不分组 | 同 | 同 | 同 |
+| 负数校验 | 这些配置检查只处理正值，负值不会启用对应路径 | 同 | 同 | 显式拒绝负值；应始终用 0 表示关闭 |
 | 前提检查（MoE、整除 DP、输出投影三条） | 有 | 同 | 同 | 同，挪进单独的前提检查方法；另拒绝负数 |
 | 词表嵌入、输出投影绑定 recompute 调度器 | 有 | 同 | 同 | 同 |
 | 建组方式（沿 DP、固定 PP 与 TP 坐标） | 有 | 同 | 同 | 同 |
@@ -331,7 +369,7 @@ file: fine-grained-tp-flow
 - **词表嵌入与 lm_head**：`ops/vocab_parallel_embedding.py` 的 `AscendVocabParallelEmbedding.__init__`（按层名换成 `get_embed_tp_group()` 或 `get_lmhead_tp_group()`，词表按新组大小切）、`_forward_embed_tp`（静态缓冲区、`all_gather_into_tensor`、掩码查表、`reduce_scatter_tensor`）、`AscendLogitsProcessor._get_logits_lmheadtp`（收集隐藏向量、打分、`all_to_all`，`enable_reduce_sample` 时跳过）。
 - **线性层**：`ops/linear_op.py` 的 `_get_column_parallel_op` / `_get_row_parallel_op` 按层名挑算子（`gate_up_proj`、`down_proj` 且非 MoE 层 → `MLPColumnParallelOp` / `MLPRowParallelOp`；`o_proj` → `OProjRowParallelOp`；`wo_a` / `wo_b` → DSV4 的两个算子），`is_moe_layer` 按 `first_k_dense_replace` 等判定 MoE 层；`CustomLinearOp` 的通信组同时决定权重切几份。
 - **补齐与陪跑**：`worker/model_runner_v1.py` 里开 lm_head 分组时把 `logits_indices` 补到 `max_num_reqs × uniform_decode_query_len`，空跑时照样算假的打分；输出投影或词表嵌入分组时允许 DP 补齐。
-- **GLM 的层名**：`models/glm5_next.py` 的 `lm_head`、稠密 MLP 的 `gate_up_proj` / `down_proj`；输出投影与低秩输出投影在 DeepSeek-V4 压缩式 attention 里的分组写在 `attention/dsa_v1.py`（平台的后端表里它是带 compress 的那一路），GLM 的 DSA 式稀疏 MLA 走 `sfa_v1`，不读这里。
+- **GLM 的层名与后端**：`models/glm5_next.py` 的 `lm_head`、稠密 MLP 的 `gate_up_proj` / `down_proj`；DeepSeek-V4 压缩式 attention 的两段式输出投影分组写在 `attention/dsa_v1.py`。GLM 则由模型显式构造 `AscendIndexerKPoolMLAAttention`，再选择 `AscendIndexerKPoolMLABackend`；实现继承 SFA，但不能仅凭平台后端映射表把它认成普通 SFA 路径。
 
 正文结论的出处：
 
@@ -340,9 +378,10 @@ file: fine-grained-tp-flow
 - 词表嵌入、输出投影绑定 recompute 调度器，调度器只许 D 节点 [C7][C8]；lm_head 打分行数补齐、DP 补齐与陪跑 [C14][C15][C26]。
 - 官方实测表和部署建议 [C17]。
 - 入口收集加出口归约的通信量与 k × b 行上的一次 All-Reduce 相当，由 ring 通信量公式推得 [D]；示意账里的 1 GiB、k = 4、b = 8 是示意取值 [A]，字节数按同一公式算出 [D]。
-- 「每轮固定开销在小批量时占大头」是一般经验，没有在本系统上测过 [I]；官方表里输出投影变慢归因于每层多一轮通信，是推断 [I]。
-- GLM 双机没开：默认值为 0 [C9]，GLM 的层名 [C23]，DP 组为 {i, i+8} [C25]；打开后的每卡权重与跨机通信量，按上述源码规则和底稿数字推算，未实测 [D]；同机 8 张卡重复计算，由同一 TP 组的卡输入相同推得 [D]；输出投影与低秩输出投影在 DeepSeek-V4 压缩式 attention 里的写法 [C24]；该实现与 GLM 走的 sfa_v1 在平台后端表里分属两路 [C27]。
+- 「每轮固定开销在小批量时占大头」是一般经验，没有在本系统上测过 [I]；官方表里没有给出输出投影退化的分项原因。
+- GLM 双机没开：默认值为 0 [C2]，GLM 的层名 [C23]，DP 组为 {i, i+8} [C25]；打开后的每卡权重与跨机通信量，按上述源码规则和底稿数字推算，未实测 [D]；同机 8 张卡重复计算，由同一 TP 组的卡输入相同推得 [D]；DeepSeek-V4 两段式输出投影的写法见来源 24；来源 27 只是平台默认映射表，GLM 实际显式构造链见新增来源 35–37。
 - 版本差异：配置类在 v0.23 [C18]、v0.26 [C19] 与固定镜像逐行相同，main 的变化 [C20][C21]。
+- 来源 38 是 main 对 oproj/embedding 的 recompute 绑定；rc2 的字段、步宽、recompute 与 PreemptOffload 条件分别对应来源 29–33。来源 16 包含 FlashComm2 正值入口守卫，互斥判断不适用于该功能关闭时。
 
 待核：
 
@@ -350,3 +389,7 @@ file: fine-grained-tp-flow
 - GLM 双机打开 lm_head 或稠密 MLP 分组后的真实显存和时延没有实测；缺一次带这项配置的启动日志和 profiling。
 - 拆成 PD 分离以后，D 节点的 TP、DP 取值决定这个特性有没有东西可省；GLM 的 PD 分离配方没有核。
 - 低秩输出投影一项在 v0.23、v0.26 上作用于哪些模型，只读了按层名挑算子的规则，没有跑过。
+
+等量输入算例对应固定 db701c1f 的前提：词表嵌入与输出投影的跨 DP 通信绑定 recompute 调度器，以保证输入 token 数一致（来源 7）。词表嵌入还使用静态输入缓冲、补齐后通信并裁剪输出（来源 3）；GLM 双机开启后的端到端行为仍缺实测。
+
+官方实验（来源 17）的总计行只有显存 9.72 GB，TPOT 栏为破折号；各模块结果不能相加成组合配置的总时延，也不能作为 GLM 双机的收益预测。

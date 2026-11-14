@@ -1,0 +1,17 @@
+layout: figure
+id: ascend-950-observe
+caption: 第 4 站的取证路线。硬件规格只能提出候选，实际算子与 kernel 说明有没有采用它，执行记录才能说明该路径是否少花时间。图中的两条结果分支分别通向正确性定位或端到端性能验收。
+size: [820, 540]
+items:
+  - { at: [65, 20], size: [690, 64], text: 确认产品与软件：具体型号、驱动、CANN、框架、模型, sub: 记录输入形状与精度，保持对照条件一致, tone: control, style: faded }
+  - { at: [65, 126], size: [690, 64], text: 第 4 站：实际算子 → kernel → 分块与数据通路, sub: 只有规格支持，还不能说明走了 CV 或 NDDMA, tone: weight, style: faded }
+  - { at: [65, 232], size: [690, 64], text: 对照同一块：数值、搬运、计算与同步等待, sub: 同时看有效数据与真实事务，保存首次分歧, tone: control, style: faded }
+  - { at: [20, 365], size: [360, 78], text: 结果不同, sub: 先查坐标、格式与缓冲使用次序, tone: danger, style: faded }
+  - { at: [440, 365], size: [360, 78], text: 结果一致，设备时间下降, sub: 再看它是否减少请求关键路径等待, tone: token, style: solid }
+links:
+  - { from: [410, 84], to: [410, 122] }
+  - { from: [410, 190], to: [410, 228] }
+  - { from: [245, 296], to: [200, 361], via: [[245, 329], [200, 329]], tone: danger }
+  - { from: [575, 296], to: [620, 361], via: [[575, 329], [620, 329]], tone: token }
+texts:
+  - { at: [20, 493], text: 单算子变快而请求不变：继续找其他等待，不把核内收益直接当成服务收益。, size: 15 }

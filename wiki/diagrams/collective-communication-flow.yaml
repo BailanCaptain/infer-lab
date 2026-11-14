@@ -1,6 +1,6 @@
 layout: figure
 id: collective-communication-flow
-caption: A0 先建通信组，A4 沿模型执行到 MoE 再按容量分流。左右分支互斥，均有四个通信边界；本地专家计算不另计通信。
+caption: SP、共享专家 DP 与归约替换未启用时的结果依赖。两路互斥，各四个通信边界；开启共享专家多流时，共享计算可与路由工作重叠。
 size: [880, 850]
 items:
   - { at: [200, 20], size: [480, 58], text: A0 · 启动建立 TP8 / DP2 / EP16, sub: 先确定谁和谁通信, tone: control }

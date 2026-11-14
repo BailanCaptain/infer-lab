@@ -1,0 +1,897 @@
+{
+  "status": "passed_for_frozen_revision",
+  "checks": {
+    "before": {
+      "wiki/concepts/api-server-entry.md": "b220e4ce0dd028823aa654e641dd69fbf2e91e497738644729a280129dc0f109",
+      "wiki/concepts/platform-plugin-registration.md": "346324acad53eb18f7c9478415e8a759accc3a99db1ec74aadc0f913ae297aad",
+      "wiki/concepts/pd-disaggregation.md": "7ca01c3c3925918f486da0264fe6d07791c0138fdd128c038cbd145217b1b41b",
+      "wiki/concepts/inference-benchmarking.md": "8c505f8ab816a99de4a85cd2540803b82b57ddba1695713e3d5d93f2d722bc1b",
+      "wiki/concepts/inference-performance-analysis.md": "71f9bd3324e785bbf9215a91361ec780606e9782846f27d5f4ed08b6fe138260",
+      "wiki/diagrams/plugin-io-processing.yaml": "8d9bf85fc8417aef66c3febc56b1ffa4971a7d399d1566ef0852ea6d63060c25",
+      "wiki/diagrams/plugin-io-processing.svg": "55feaaa146df3ab5a40338f56238632e41effef0bba951db2a72441c5ef4affa",
+      "wiki/diagrams/inference-metrics-events.yaml": "8725f21aea47ebf405ba74bf4ce4f7e65504de21b722332002fb44e6b908861b",
+      "wiki/diagrams/inference-metrics-events.svg": "9d4f2a22cd615e94701c04120c033d9154d176e897656ff304cac83834b4c957",
+      "scripts/wiki/sources.ts": "a929772ceac0c31e6bbf4be51366a18fb94b1d179c676edc0c683429e081b46a",
+      "scripts/wiki/sources.test.ts": "6c0635a793473498edb1663449b0942abd774614f5161351b6a7c6f12b499af5",
+      "wiki/HANDBOOK.md": "e369db163e2c366543b4ad0cc7a34744aedb0dad4a8c315e08ab8ade10041440"
+    },
+    "after": {
+      "wiki/concepts/api-server-entry.md": "b220e4ce0dd028823aa654e641dd69fbf2e91e497738644729a280129dc0f109",
+      "wiki/concepts/platform-plugin-registration.md": "346324acad53eb18f7c9478415e8a759accc3a99db1ec74aadc0f913ae297aad",
+      "wiki/concepts/pd-disaggregation.md": "7ca01c3c3925918f486da0264fe6d07791c0138fdd128c038cbd145217b1b41b",
+      "wiki/concepts/inference-benchmarking.md": "8c505f8ab816a99de4a85cd2540803b82b57ddba1695713e3d5d93f2d722bc1b",
+      "wiki/concepts/inference-performance-analysis.md": "71f9bd3324e785bbf9215a91361ec780606e9782846f27d5f4ed08b6fe138260",
+      "wiki/diagrams/plugin-io-processing.yaml": "8d9bf85fc8417aef66c3febc56b1ffa4971a7d399d1566ef0852ea6d63060c25",
+      "wiki/diagrams/plugin-io-processing.svg": "55feaaa146df3ab5a40338f56238632e41effef0bba951db2a72441c5ef4affa",
+      "wiki/diagrams/inference-metrics-events.yaml": "8725f21aea47ebf405ba74bf4ce4f7e65504de21b722332002fb44e6b908861b",
+      "wiki/diagrams/inference-metrics-events.svg": "9d4f2a22cd615e94701c04120c033d9154d176e897656ff304cac83834b4c957",
+      "scripts/wiki/sources.ts": "a929772ceac0c31e6bbf4be51366a18fb94b1d179c676edc0c683429e081b46a",
+      "scripts/wiki/sources.test.ts": "6c0635a793473498edb1663449b0942abd774614f5161351b6a7c6f12b499af5",
+      "wiki/HANDBOOK.md": "e369db163e2c366543b4ad0cc7a34744aedb0dad4a8c315e08ab8ade10041440"
+    },
+    "stable": true,
+    "checks": [
+      {
+        "command": "pnpm check:content",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/io-metrics-prompt-current-content.log",
+        "sha256": "d82a6ecbb6e8b94d64d790401b2004a5bffd24533d2656c5ac60cd1aed82e469",
+        "started_at": "2026-11-10T15:09:01.476994+00:00",
+        "finished_at": "2026-11-10T15:09:02.185589+00:00"
+      },
+      {
+        "command": "pnpm wiki:lint",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/io-metrics-prompt-current-lint.log",
+        "sha256": "12a38ca2de3576d77e66c68b575c0d7ef28bf24e5f458d866ee253fc6385891d",
+        "started_at": "2026-11-10T15:09:02.185589+00:00",
+        "finished_at": "2026-11-10T15:09:20.773765+00:00"
+      },
+      {
+        "command": "pnpm wiki:audit",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/io-metrics-prompt-current-audit.log",
+        "sha256": "553b17e4d8768ca675ed51cde6b9b403b6535fbe7274f6291c322159e9184350",
+        "started_at": "2026-11-10T15:09:20.773765+00:00",
+        "finished_at": "2026-11-10T15:09:44.005317+00:00"
+      },
+      {
+        "command": "pnpm wiki:diagrams --check",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/io-metrics-prompt-current-diagrams.log",
+        "sha256": "3bd07a32bd1da109b683c55e8fbd19d579115a4bc2ab188889fc83ff2a13899d",
+        "started_at": "2026-11-10T15:09:44.005317+00:00",
+        "finished_at": "2026-11-10T15:09:45.775801+00:00"
+      },
+      {
+        "command": "pnpm build",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/io-metrics-prompt-current-build.log",
+        "sha256": "55bdaaf5a4e35d96bcece4f2fcf1aa863b5e34dd658c612169f7fc176c2eaba2",
+        "started_at": "2026-11-10T15:09:45.775801+00:00",
+        "finished_at": "2026-11-10T15:10:04.153068+00:00"
+      }
+    ]
+  },
+  "source_mapping": [
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 46,
+      "ref": "vllm@0fc695fc:docs/design/io_processor_plugins.md#L1-L94"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 47,
+      "ref": "vllm@0fc695fc:docs/design/plugin_system.md#L1-L158"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 48,
+      "ref": "vllm@0fc695fc:vllm/plugins/io_processors/__init__.py#L15-L88"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 49,
+      "ref": "vllm@0fc695fc:vllm/plugins/io_processors/interface.py#L17-L124"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 50,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/pooling/io_processor.py#L27-L158"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 51,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/base/serving.py#L62-L201"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 52,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/factories.py#L38-L101"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 53,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/pooling/serving.py#L54-L101"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 54,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/offline.py#L51-L136"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 55,
+      "ref": "vllm@568afb3a:vllm/plugins/io_processors/__init__.py#L15-L88"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 56,
+      "ref": "vllm@568afb3a:vllm/plugins/io_processors/interface.py#L17-L124"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 57,
+      "ref": "vllm@568afb3a:vllm/entrypoints/pooling/pooling/io_processor.py#L27-L181"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 58,
+      "ref": "vllm@568afb3a:vllm/entrypoints/pooling/base/serving.py#L63-L202"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 59,
+      "ref": "vllm@568afb3a:vllm/entrypoints/pooling/factories.py#L38-L101"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 60,
+      "ref": "vllm@568afb3a:vllm/entrypoints/pooling/pooling/serving.py#L54-L101"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 61,
+      "ref": "vllm@568afb3a:vllm/entrypoints/pooling/offline.py#L62-L134"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 62,
+      "ref": "vllm@568afb3a:vllm/entrypoints/pooling/offline.py#L395-L475"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 63,
+      "ref": "vllm@ced6857a:vllm/plugins/io_processors/__init__.py#L15-L88"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 64,
+      "ref": "vllm@ced6857a:vllm/plugins/io_processors/interface.py#L17-L80"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 65,
+      "ref": "vllm@ced6857a:vllm/entrypoints/pooling/pooling/io_processor.py#L27-L206"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 66,
+      "ref": "vllm@ced6857a:vllm/entrypoints/pooling/base/serving.py#L64-L207"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 67,
+      "ref": "vllm@ced6857a:vllm/entrypoints/pooling/factories.py#L38-L107"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 68,
+      "ref": "vllm@ced6857a:vllm/entrypoints/pooling/pooling/serving.py#L54-L109"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 69,
+      "ref": "vllm@ced6857a:vllm/entrypoints/pooling/offline.py#L62-L134"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 70,
+      "ref": "vllm@ced6857a:vllm/entrypoints/pooling/offline.py#L395-L478"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 71,
+      "ref": "vllm@84030bbe:vllm/plugins/io_processors/__init__.py#L15-L88"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 72,
+      "ref": "vllm@84030bbe:vllm/plugins/io_processors/interface.py#L17-L80"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 73,
+      "ref": "vllm@84030bbe:vllm/entrypoints/pooling/pooling/io_processor.py#L27-L206"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 74,
+      "ref": "vllm@84030bbe:vllm/entrypoints/pooling/base/serving.py#L64-L207"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 75,
+      "ref": "vllm@84030bbe:vllm/entrypoints/pooling/factories.py#L38-L107"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 76,
+      "ref": "vllm@84030bbe:vllm/entrypoints/pooling/pooling/serving.py#L54-L109"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 77,
+      "ref": "vllm@84030bbe:vllm/entrypoints/pooling/offline.py#L62-L134"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 78,
+      "ref": "vllm@84030bbe:vllm/entrypoints/pooling/offline.py#L395-L478"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 79,
+      "ref": "vllm@0fc695fc:vllm/config/model.py#L321-L322"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 80,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L862-L864"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 81,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1624-L1626"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 82,
+      "ref": "vllm@568afb3a:vllm/config/model.py#L335-L336"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 83,
+      "ref": "vllm@568afb3a:vllm/engine/arg_utils.py#L887-L889"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 84,
+      "ref": "vllm@568afb3a:vllm/engine/arg_utils.py#L1700-L1702"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 85,
+      "ref": "vllm@ced6857a:vllm/config/model.py#L373-L374"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 86,
+      "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L965-L967"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 87,
+      "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L1887-L1889"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 88,
+      "ref": "vllm@84030bbe:vllm/config/model.py#L373-L374"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 89,
+      "ref": "vllm@84030bbe:vllm/engine/arg_utils.py#L956-L958"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 90,
+      "ref": "vllm@84030bbe:vllm/engine/arg_utils.py#L1869-L1871"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 91,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/pooling/protocol.py#L63-L97"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 92,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/pooling/api_router.py#L20-L39"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 93,
+      "ref": "vllm@0fc695fc:examples/pooling/plugin/prithvi_geospatial_mae_online.py#L1-L54"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 94,
+      "ref": "vllm@0fc695fc:examples/pooling/plugin/prithvi_geospatial_mae_io_processor.py#L1-L60"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 95,
+      "ref": "vllm@0fc695fc:vllm/v1/metrics/loggers.py#L44-L88"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 96,
+      "ref": "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L120-L132"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 97,
+      "ref": "vllm@568afb3a:vllm/v1/metrics/loggers.py#L44-L88"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 98,
+      "ref": "vllm@568afb3a:vllm/v1/engine/async_llm.py#L120-L132"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 99,
+      "ref": "vllm@ced6857a:vllm/v1/metrics/loggers.py#L45-L89"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 100,
+      "ref": "vllm@ced6857a:vllm/v1/engine/async_llm.py#L131-L143"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 101,
+      "ref": "vllm@84030bbe:vllm/v1/metrics/loggers.py#L44-L88"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 102,
+      "ref": "vllm@84030bbe:vllm/v1/engine/async_llm.py#L130-L142"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 103,
+      "ref": "https://github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/pyproject.toml#L78-L83"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 104,
+      "ref": "https://github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/terratorch/vllm/plugins/segmentation/__init__.py#L1-L7"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 105,
+      "ref": "https://github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/terratorch/vllm/plugins/segmentation/segmentation_io_processor.py#L286-L431"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 106,
+      "ref": "https://github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/terratorch/vllm/plugins/segmentation/segmentation_io_processor.py#L433-L501"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 107,
+      "ref": "https://github.com/vllm-project/bart-plugin/blob/77673541bd7ebdb67a83fa72fd8f72c6aafea17c/README.md#L1-L250"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 108,
+      "ref": "https://github.com/vllm-project/bart-plugin/blob/77673541bd7ebdb67a83fa72fd8f72c6aafea17c/pyproject.toml#L27-L48"
+    },
+    {
+      "group": "io",
+      "page": "platform-plugin-registration",
+      "source_number": 109,
+      "ref": "https://github.com/vllm-project/bart-plugin/blob/77673541bd7ebdb67a83fa72fd8f72c6aafea17c/vllm_bart_plugin/__init__.py#L21-L57"
+    },
+    {
+      "group": "pd_prompt",
+      "page": "pd-disaggregation",
+      "source_number": 111,
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py#L356-L432"
+    },
+    {
+      "group": "pd_prompt",
+      "page": "pd-disaggregation",
+      "source_number": 112,
+      "ref": "vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py#L34-L110"
+    },
+    {
+      "group": "pd_prompt",
+      "page": "pd-disaggregation",
+      "source_number": 113,
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py#L34-L107"
+    },
+    {
+      "group": "pd_prompt",
+      "page": "pd-disaggregation",
+      "source_number": 114,
+      "ref": "vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py#L34-L107"
+    },
+    {
+      "group": "pd_prompt",
+      "page": "pd-disaggregation",
+      "source_number": 115,
+      "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L2543-L2584"
+    },
+    {
+      "group": "pd_prompt",
+      "page": "pd-disaggregation",
+      "source_number": 116,
+      "ref": "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2919-L2960"
+    },
+    {
+      "group": "pd_prompt",
+      "page": "pd-disaggregation",
+      "source_number": 117,
+      "ref": "vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L2927-L2968"
+    },
+    {
+      "group": "pd_prompt",
+      "page": "pd-disaggregation",
+      "source_number": 118,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1216-L1236"
+    },
+    {
+      "group": "pd_prompt",
+      "page": "pd-disaggregation",
+      "source_number": 119,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_input_batch.py#L346-L375"
+    },
+    {
+      "group": "pd_prompt",
+      "page": "pd-disaggregation",
+      "source_number": 120,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1901-L1947"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-benchmarking",
+      "source_number": 16,
+      "ref": "vllm@0fc695fc:vllm/v1/metrics/stats.py#L328-L480"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-benchmarking",
+      "source_number": 17,
+      "ref": "vllm@568afb3a:vllm/v1/metrics/stats.py#L352-L504"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-benchmarking",
+      "source_number": 18,
+      "ref": "vllm@ced6857a:vllm/v1/metrics/stats.py#L430-L584"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-benchmarking",
+      "source_number": 19,
+      "ref": "vllm@84030bbe:vllm/v1/metrics/stats.py#L430-L584"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-benchmarking",
+      "source_number": 20,
+      "ref": "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L573-L688"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-benchmarking",
+      "source_number": 21,
+      "ref": "vllm@0fc695fc:vllm/v1/engine/__init__.py#L143-L247"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-benchmarking",
+      "source_number": 22,
+      "ref": "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L626-L733"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-benchmarking",
+      "source_number": 23,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L826-L836"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-benchmarking",
+      "source_number": 24,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1801-L1823"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-benchmarking",
+      "source_number": 25,
+      "ref": "vllm@ced6857a:vllm/v1/metrics/loggers.py#L891-L900"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-benchmarking",
+      "source_number": 26,
+      "ref": "vllm@84030bbe:vllm/v1/metrics/loggers.py#L962-L971"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 38,
+      "ref": "vllm@0fc695fc:vllm/v1/metrics/loggers.py#L412-L618"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 39,
+      "ref": "vllm@0fc695fc:vllm/v1/metrics/loggers.py#L620-L753"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 40,
+      "ref": "vllm@0fc695fc:vllm/v1/metrics/loggers.py#L754-L1006"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 41,
+      "ref": "vllm@0fc695fc:vllm/v1/metrics/loggers.py#L1058-L1217"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 42,
+      "ref": "vllm@568afb3a:vllm/v1/metrics/loggers.py#L1100-L1259"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 43,
+      "ref": "vllm@ced6857a:vllm/v1/metrics/loggers.py#L1017-L1179"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 44,
+      "ref": "vllm@84030bbe:vllm/v1/metrics/loggers.py#L1110-L1272"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 45,
+      "ref": "vllm@0fc695fc:vllm/config/observability.py#L36-L55"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 46,
+      "ref": "vllm@568afb3a:vllm/config/observability.py#L36-L55"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 47,
+      "ref": "vllm@ced6857a:vllm/config/observability.py#L36-L67"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 48,
+      "ref": "vllm@84030bbe:vllm/config/observability.py#L36-L67"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 49,
+      "ref": "vllm@0fc695fc:vllm/config/observability.py#L113-L152"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 50,
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_metrics.py#L16-L96"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 51,
+      "ref": "vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L400"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 52,
+      "ref": "vllm@568afb3a:vllm/v1/core/block_pool.py#L647-L700"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 53,
+      "ref": "vllm@ced6857a:vllm/v1/core/block_pool.py#L664-L747"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 54,
+      "ref": "vllm@84030bbe:vllm/v1/core/block_pool.py#L658-L711"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 55,
+      "ref": "vllm@0fc695fc:vllm/v1/core/block_pool.py#L402-L441"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 56,
+      "ref": "vllm@568afb3a:vllm/v1/core/block_pool.py#L702-L740"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 57,
+      "ref": "vllm@ced6857a:vllm/v1/core/block_pool.py#L749-L800"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 58,
+      "ref": "vllm@84030bbe:vllm/v1/core/block_pool.py#L713-L758"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 59,
+      "ref": "vllm@0fc695fc:vllm/v1/core/block_pool.py#L505-L517"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 60,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L83-L91"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 61,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L232-L244"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 62,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2013-L2098"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 63,
+      "ref": "vllm@0fc695fc:vllm/v1/metrics/stats.py#L19-L144"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 64,
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L181-L248"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 65,
+      "ref": "vllm@0fc695fc:vllm/v1/engine/__init__.py#L42-L64"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 66,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/serve/instrumentator/metrics.py#L1-L45"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 67,
+      "ref": "vllm@0fc695fc:vllm/v1/metrics/prometheus.py#L1-L82"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 68,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L246-L280"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 69,
+      "ref": "vllm@0fc695fc:vllm/tracing/otel.py#L58-L141"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 70,
+      "ref": "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L712-L772"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 71,
+      "ref": "vllm@568afb3a:vllm/v1/engine/output_processor.py#L727-L787"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 72,
+      "ref": "vllm@ced6857a:vllm/v1/engine/output_processor.py#L782-L842"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 73,
+      "ref": "vllm@84030bbe:vllm/v1/engine/output_processor.py#L770-L830"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 74,
+      "ref": "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L110-L154"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 75,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1310-L1340"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 76,
+      "ref": "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L668-L688"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 77,
+      "ref": "https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/examples/observability/prometheus_grafana/README.md"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 78,
+      "ref": "https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/examples/observability/prometheus_grafana/prometheus.yaml"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 79,
+      "ref": "https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/examples/observability/prometheus_grafana/grafana.json"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 80,
+      "ref": "https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/examples/observability/opentelemetry/README.md"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 81,
+      "ref": "https://github.com/prometheus/prometheus/blob/997549d4479dbc52382c83679dd998cd1c8eff27/docs/querying/functions.md"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 82,
+      "ref": "https://github.com/prometheus/client_python/blob/e2f2bf9dcb49b8e8c0bc7fc089ff550edd9d286d/docs/content/multiprocess/_index.md"
+    },
+    {
+      "group": "metrics",
+      "page": "inference-performance-analysis",
+      "source_number": 83,
+      "ref": "https://github.com/prometheus/docs/blob/cc0672badce86173b9afaa95a59904576bcd6d6a/docs/practices/histograms.md"
+    }
+  ],
+  "source_prefix_preservation": [
+    {
+      "page": "platform-plugin-registration",
+      "old_sources_preserved": 45
+    },
+    {
+      "page": "pd-disaggregation",
+      "old_sources_preserved": 110
+    },
+    {
+      "page": "inference-benchmarking",
+      "old_sources_preserved": 15
+    },
+    {
+      "page": "inference-performance-analysis",
+      "old_sources_preserved": 37
+    }
+  ],
+  "independent_reviews": [
+    "io-plugin-independent-review.md",
+    "ep-prompt-independent-review.md",
+    "metrics-tail-independent-review.md",
+    "api-io-link-review.md",
+    "io-metrics-source-code-review.md"
+  ],
+  "root_browser_reports": [
+    "io-root-browser/report.json",
+    "pd-prompt-root-browser-final/report.json",
+    "metrics-root-browser/report.json"
+  ],
+  "code_validation": "6 new cases failed before registration; 116 sources/lint tests passed after; targeted Biome passed; independent source57 and Biome passed",
+  "hardware_validation": false,
+  "boundary": "131 selected additions, not queue47, later offline metrics/RPC, all directory followthrough or whole-site acceptance"
+}

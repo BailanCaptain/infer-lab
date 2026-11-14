@@ -1,0 +1,10 @@
+{
+  "status": "author_followup_closed_after_fresh_independent_review",
+  "page_sha256": "633592c213054313dc8552196fe7285577f43800522f873da543b3e787d58a09",
+  "archive": "C:\\Users\\-\\Desktop\\infra-view-new\\.tmp\\continuation-groups-2026-11-10\\lora-minicpm-scope\\author-accepted-cost-followup.zip",
+  "archive_sha256": "697aecf3206e091ff15ae8036fcdcd86da1863ec7928e9204b3e724f03376fb0",
+  "members": 14,
+  "prior_archives_preserved": true,
+  "independent_review": "docs\\reviews\\2026-11-10-continuation-groups\\lora-tail-independent-archive.json",
+  "global_full_read_count_delta": 0
+}

@@ -1,53 +1,92 @@
 ---
 id: linear-attention
-title: "KDA：用一个固定大小的状态代替逐位置历史"
+title: KDA：用一个固定大小的状态代替逐位置历史
 type: concept
-summary: linear attention 去掉逐位置的 softmax，让历史先合成一个形状固定的状态矩阵；KDA 在此之上加按 key 通道的衰减和 delta 规则的纠错写入。本页先讲机制，再落到 GLM-5.3-Flash 的 34 层 KDA：每卡状态多大、为什么固定占 12 个块号、prefill 与 decode 两条执行路径差在哪。
-aliases: [线性注意力, Linear Attention, KDA, Kimi Delta Attention, Gated DeltaNet, DeltaNet, 递推状态, recurrent state, 矩阵状态, chunked 计算]
-chapters: ["04"]
+summary: >-
+  linear attention 去掉逐位置的 softmax，让历史先合成一个形状固定的状态矩阵；KDA 在此之上加按 key 通道的衰减和 delta
+  规则的纠错写入。本页先讲机制，再落到 GLM-5.3-Flash 的 34 层 KDA：每卡状态多大、为什么固定占 12 个块号、prefill 与
+  decode 两条执行路径差在哪。
+aliases:
+  - 线性注意力
+  - Linear Attention
+  - KDA
+  - Kimi Delta Attention
+  - Gated DeltaNet
+  - DeltaNet
+  - 递推状态
+  - recurrent state
+  - 矩阵状态
+  - chunked 计算
+chapters:
+  - '04'
 order: 35
 sources:
-  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
-  - https://arxiv.org/html/2510.26692v1
-  - https://arxiv.org/abs/2006.16236
-  - https://arxiv.org/abs/2102.11174
-  - https://arxiv.org/html/2406.06484v3
-  - https://arxiv.org/html/2412.06464v3
-  - vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L102-L231
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2072-L2105
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L169-L242
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L294-L331
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L343-L388
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L390-L474
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L477-L494
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L528-L560
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L586-L659
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda_state.py#L9-L32
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2489-L2509
-  - vllm@0fc695fc:vllm/model_executor/layers/mamba/mamba_utils.py#L119-L125
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L44-L56
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L191-L228
-  - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L627-L636
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3332-L3344
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/triton/kda/kda.py#L1287-L1331
-  - vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L725-L734
-  - vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda_state.py#L28-L49
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L103-L160
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L348-L395
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/ops/kda.py#L1-L60
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
+  - 'https://arxiv.org/html/2510.26692v1'
+  - 'https://arxiv.org/abs/2006.16236'
+  - 'https://arxiv.org/abs/2102.11174'
+  - 'https://arxiv.org/html/2406.06484v3'
+  - 'https://arxiv.org/html/2412.06464v3'
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L102-L231
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2072-L2105'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L169-L242'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L294-L331'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L343-L388'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L390-L474'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L477-L494'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L528-L560'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L586-L659'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda_state.py#L9-L32'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2489-L2509'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/mamba/mamba_utils.py#L119-L125'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L44-L56
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L191-L228
+  - 'vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L627-L636'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3332-L3344'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/triton/kda/kda.py#L1287-L1331'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L725-L734'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda_state.py#L28-L49'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L103-L160'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L348-L395'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/ops/kda.py#L1-L60'
+  - >-
+    raw:sha256-f1eb696b50d5560664ed320075d8c1a7bbd054b35e5f158fbd2b78fc2047b335.md#L1-L1026
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/kda.py#L108-L187'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
-  - { to: attention-qkv, kind: builds-on, note: 那页讲标准 attention 的 q/k/v 与逐位置 softmax，并列出 GLM 两类 attention；本页是其中 KDA 的详细页 }
-  - { to: glm-5-3-flash, kind: builds-on, note: 34 层 KDA、64 个头 128 维、短卷积核长 4 这些模型形状以那页为准 }
-  - { to: glm-5-3-flash-two-node, kind: builds-on, note: 逻辑块 640、一个块号 7.969 MiB、短请求 15 块的推导唯一出处在那页 }
-  - { to: speculative-decoding, kind: builds-on, note: 状态为什么要为 3 个草稿位置多留格子 }
-  - { to: mla, kind: alternative-to, note: 每 4 层里那 1 层用另一条路线，保留按位置访问的历史 }
+  - to: attention-qkv
+    kind: builds-on
+    note: 那页讲标准 attention 的 q/k/v 与逐位置 softmax，并列出 GLM 两类 attention；本页是其中 KDA 的详细页
+  - to: glm-5-3-flash
+    kind: builds-on
+    note: 34 层 KDA、64 个头 128 维、短卷积核长 4 这些模型形状以那页为准
+  - to: glm-5-3-flash-two-node
+    kind: builds-on
+    note: 逻辑块 640、一个块号 7.969 MiB、短请求 15 块的推导唯一出处在那页
+  - to: speculative-decoding
+    kind: builds-on
+    note: 状态为什么要为 3 个草稿位置多留格子
+  - to: mla
+    kind: alternative-to
+    note: 每 4 层里那 1 层用另一条路线，保留按位置访问的历史
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: '2026-11-03'
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-6a6dff10afedce0b969fbfd878381c2a124f841ffc5b71a163eb02405f1ae2fc.md
+  - >-
+    raw/sha256-f1eb696b50d5560664ed320075d8c1a7bbd054b35e5f158fbd2b78fc2047b335.md
 ---
 
 ## KDA 是什么，历史怎样装进一个固定大小的状态？
@@ -151,6 +190,8 @@ title: 一次更新的二维教学算例
 
 每步改写的是这条请求的状态，投影权重始终不变。所以同一份权重服务很多请求，各请求的状态互不相干；而状态一旦被覆盖，就没有别处能把它算回来，这也是抢占（把请求的缓存收回、以后重算）在这类层上代价更高的原因。
 
+想把这一步放回完整模型，可以打开[模型探索：KDA 状态更新与读出](#/model?view=play&segment=14)。该段保留状态矩阵与 Q/K/V 的位置关系；前一段展示衰减门和写入强度如何产生。
+
 ## 放到 GLM 双机：34 层 KDA 的状态有多大
 
 **GLM-5.3-Flash 的 45 层主干里有 34 层 KDA、11 层稀疏 MLA，排法是 3 层 KDA 接 1 层 MLA；KDA 层不按位置存 K、V，一条请求在一层里只占一份大小固定的状态。** 层号名单和各层维度以[模型总览](glm-5-3-flash.md#45-层怎样排)为准，请求走到这里就是[主线第 4 站的 34 层 KDA](one-request.md#34-层-kda)。本页之后的数字都用[官方双机部署](glm-5-3-flash-two-node.md#部署前提)：两台 Atlas 800 A2、每台 8 卡，机内 TP8。
@@ -166,12 +207,14 @@ title: 一次更新的二维教学算例
 
 两份加起来，每层每卡 561,152 B，34 层约 18.2 MiB；逐项的分片字节账在 [tensor parallel 的 KDA 状态一节](tensor-parallel.md#kda状态跟着头一起切)，本页不重算。
 
-**但 KDA 在每张卡上为一条请求实际写进的是 85 MiB，不是 18.2 MiB。** 中间有两步放大，都不是 KDA 的数学要求，而是缓存怎么分配：
+**为一条请求保留投机状态并补齐页面后，KDA 对应的页容量是 85 MiB，不是 18.2 MiB。** 中间有两步放大，来自状态份数和分配对齐，不能当成每步实际写入量：
 
 1. **一份状态被补齐到和一个 MLA 页一样大。** GLM 是 hybrid 模型，KDA 的固定状态和 MLA 的按位置历史要共用同一批物理槽，页大小取两者的较大值 655,360 B，放进 561,152 B 的状态后，页里约 14.4% 是填充。655,360 和逻辑块 640 个 token 的由来见[部署页](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。
+
+   这里取较大值的是单页容量，不是把 KDA 各层与 MLA 各层的总缓存取较大值；物理槽位采用相同容量，也不表示两类层共享同一份历史内容。
 2. **投机解码再要 3 页。** 一轮验证会算出 3 个候选位置各自的状态，每个候选存一页；下一步按实际接受了几个，从对应那页接着算。于是每层每请求是 1 + 3 = 4 页，每页 655,360 B。
 
-34 层各 4 页，合起来就是 85 MiB，逐项算式见 [tensor parallel 的源码位置一节](tensor-parallel.md#源码位置)；按并发上限 32 条算，每卡要为 KDA 状态本身留约 2.66 GiB。这两个数算的都是 KDA 真正写进去的字节；按块池的块号记账还要再多一些，见下一节。
+34 层各 4 页，合起来就是 85 MiB，逐项算式见 [tensor parallel 的源码位置一节](tensor-parallel.md#源码位置)；按并发上限 32 条算，每卡对应约 2.66 GiB 页容量。这两个数包含页内填充；内核是否写到这些填充位置、每步读写几份状态须另查执行。按块池的块号记账还要更多，见下一节。
 
 这 85 MiB 与请求多长无关：4 个 token 的请求和 13 万 token 的请求付一样多。MLA 那一侧相反，每个 token 每张卡要 13,056 B，越长越多（见[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)）。所以 KDA 层的状态不增长，并不等于这个模型的缓存不增长：每 4 层里那 1 层稀疏 MLA 仍然按位置保留可回看的历史。因此短请求里 KDA 状态反而是大头，长请求里它的比重越来越小；两类状态的分类和折算见 [KV cache](kv-cache.md#混合模型到底要保留哪几类状态)。
 
@@ -179,11 +222,11 @@ title: 一次更新的二维教学算例
 
 **34 层 KDA 在块池里分成 3 个缓存组，每组每请求 4 块，所以 KDA 固定占 12 个块号。** 分组按层号步长 3，得到 12、11、11 层三组；同组各层存储格式相同，共用一张块号清单。每组那 4 块就是上面的 1 页当前状态加 3 页草稿状态。块号怎么申请，见 [KV cache](kv-cache.md#混合模型到底要保留哪几类状态)；一条提示词只有 4 个 token 的短请求（加上 3 个草稿位置共 7 格）为什么合计占 15 块，见[短请求也占 15 个块](glm-5-3-flash-two-node.md#为什么短请求也占-15-个块)。
 
-**12 个块号折成显存约 95.6 MiB，比上一节的 85 MiB 多，因为两个数算的东西不同。** 85 MiB 只数 KDA 真正写进去的页。块池却按整个块号记账：一个块号在每张卡上对应 12 个 655,360 B 的主槽和 12 个 40,960 B 的索引器小槽，合 7.969 MiB；同一时刻一个块号只归一个组，所以哪个组拿到它，这 7.969 MiB 就整份算被占住，推导见[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)。KDA 组拿到块号后用不满：12 层那组正好填满 12 个主槽，11 层的两组各空一个；索引器小槽是给稀疏 MLA 的索引器存压缩 cache 用的，KDA 组一个都不用。
+**12 个块号折成显存约 95.6 MiB，比上一节的 85 MiB 多，因为两个数算的东西不同。** 85 MiB 只计 34 层对应的已补齐页面。块池却按整个块号记账：一个块号在每张卡上对应 12 个 655,360 B 的主槽和 12 个 40,960 B 的索引器小槽，合 7.969 MiB；同一时刻一个块号只归一个组，所以哪个组拿到它，这 7.969 MiB 就整份算被占住，推导见[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)。KDA 组拿到块号后用不满：12 层那组占用 12 个主槽，11 层的两组各空一个；索引器小槽给稀疏 MLA 使用，KDA 组不用。
 
 ```calc
 title: 一条请求的 KDA 状态，两种口径
-KDA 实际写入 = 89,128,960 B = 85.0 MiB，34 层 × 4 页 × 655,360 B
+KDA 对应页容量（含页内填充） = 89,128,960 B = 85.0 MiB，34 层 × 4 页 × 655,360 B
 按块号记账 = 12 × 8,355,840 B = 100,270,080 B ≈ 95.6 MiB
 差额 = 100,270,080 B − 89,128,960 B = 11,141,120 B ≈ 10.6 MiB
 
@@ -191,7 +234,7 @@ KDA 实际写入 = 89,128,960 B = 85.0 MiB，34 层 × 4 页 × 655,360 B
 KDA 用不上的索引器小槽 = 12 块 × 12 × 40,960 B = 5,898,240 B ≈ 5.6 MiB
 ```
 
-问「KDA 状态本身有多大」看 85 MiB；估算块池还能再放多少请求，要按 12 个块号、约 95.6 MiB 算，部署页短请求的「15 块约 119.5 MiB」用的也是块号口径。
+问单份有效状态看前面的 561,152 B/层；含投机份数和页内填充的页面容量看 85 MiB；估算块池还能放多少请求，则按 12 个块号、约 95.6 MiB。部署页短请求的「15 块约 119.5 MiB」也是块号口径。这三者都不直接给出每步访存流量。
 
 **这里的「块大小」和逻辑块不是一个数。** KDA 组的块大小被设成最大请求长度 133,120，意思是「一条请求的状态一页装得下，和它多长无关」；KV 池和 MLA 用的逻辑块是 640 个 token，稀疏注意力算子按 128 个 token 一块读取；调度器的对齐单位是各组块大小的最小公倍数，也等于 133,120。block_size 这个词在这套部署里一共有五种含义，对照表和换算见 [KV cache 规格](kv-cache-spec.md#block_size-到底指哪一个五种含义)。
 
@@ -221,17 +264,20 @@ file: linear-attention-flow
 
 **一步里多条请求的行拼成同一个张量做矩阵乘，读写状态时各归各的。** 每条请求在每个缓存组有自己的槽位号，KDA 按槽位号取自己那份状态；这一步新来的请求先把状态清零再开始。批次怎么拼见[多请求的第 3 站](concurrent-requests.md#第-3-站-准备输入13-条请求拼成一个-6048-行的张量)。
 
-**空闲的 DP 组也要陪跑，KDA 层照样走一遍。** 两台机器是两个独立调度的执行组，前向却必须同步，所以本地没有请求的那一步也要拿填充行走一次前向，34 层 KDA 的投影和短卷积照做，用的是补出来的行，不碰任何真实请求的状态。空批次要不要建 attention 元数据（告诉算子每行属于哪条请求、状态在哪个槽位的那张表），取决于这一步是不是整张回放图。本部署给纯 decode 步录了图，也就是启动时把一整步的算子顺序录下来，之后整张回放，省掉逐个下发算子的开销，见 [ACL Graph](acl-graph.md)。陪跑步回放 decode 图时建元数据；这一步只能 eager 执行时（不走图、算子逐个下发，比如对端正在跑含 prefill 的混合步）就不建，启动时量显存的那次试跑也不建。不建时这一层的状态更新整段跳过，只剩投影。陪跑的代价见[空闲的 DP 组为什么还要陪跑](concurrent-requests.md#空闲的-dp-组为什么还要陪跑变体-m)。
+**空闲的 DP 组也要陪跑，KDA 的外层计算仍会执行。** 两台机器是两个独立调度的执行组，前向却必须同步，所以本地没有请求的那一步也要拿填充行走一次前向。34 层 KDA 的输入投影、输出归一化与门控、输出投影仍会执行；短卷积和递推是否执行，则取决于有没有 attention 元数据（告诉算子每行属于哪条请求、状态在哪个槽位的那张表）。陪跑用的是补出来的行，不属于任何真实请求。
+
+本部署给纯 decode 步录了图，也就是启动时把一整步的算子顺序录下来，之后整张回放，省掉逐个下发算子的开销，见 [ACL Graph](acl-graph.md)。陪跑步回放 decode 图时建元数据；这一步只能 eager 执行时（不走图、算子逐个下发，比如对端正在跑含 prefill 的混合步）就不建，启动时量显存的那次试跑也不建。没有元数据时，KDA 在进入短卷积前就返回，同时跳过短卷积和递推状态更新，外层计算继续执行。陪跑的代价见[空闲的 DP 组为什么还要陪跑](concurrent-requests.md#空闲的-dp-组为什么还要陪跑变体-m)。
 
 **抢占会把状态一起收走。** KDA 那 12 个块号被回收后，34 层的状态没有别处能恢复，只能把整条提示词重扫一遍重建，代价见[多请求的 KV 块一节](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)。
 
 ## 常见误解
 
 - **「KDA 只是把 softmax attention 改写了一下，结果一样。」** 换掉 softmax 就换了相似度的形式，输出不等价。能靠结合律换顺序的是去掉 softmax 之后的式子；固定容量的状态也装不下任意多的历史细节。
-- **「状态大小固定，所以 KDA 层几乎不占显存。」** 每条请求在每张卡上固定写入 85 MiB 状态、占住 12 个块号（按块号记账约 95.6 MiB），短请求里它是大头。
+- **「状态大小固定，所以 KDA 层几乎不占显存。」** 每条请求在每张卡上的 KDA 页面容量为 85 MiB、占住 12 个块号（约 95.6 MiB），短请求里它是大头；固定容量不等于每步写入量。
 - **「KDA 层没有 KV cache，所以不进 KV cache 管理。」** 引擎把它当作一类缓存规格统一声明、统一分块，和 MLA 的历史共用同一个池子，见 [KV cache spec](kv-cache-spec.md)。
 - **「prefill 分段并行，算出来和逐个递推不同。」** 段间仍按顺序传状态，两者数学上等价，差别只在浮点累加顺序。
 - **「递推状态和卷积状态是一回事。」** 两份不同的东西：一份是汇总全部历史的矩阵，一份是短卷积要回看的最近几个位置，精度、形状、用途都不同。
+
 - **「后端类名里带 GDN，所以这个模型跑的是 Gated DeltaNet。」** 昇腾的 KDA 实现沿用了 GDN 后端的接口名，实际调用的是 KDA 算子；类名不能证明算法，见[后端家族](attention-backend-family.md#放到-glm-双机一个-token-走过-45-层要问-45-次)。
 
 ## 对照源码
@@ -255,22 +301,26 @@ file: linear-attention-flow
 | 缺 prefill 算子 | 逐个检查 `kda_gate_cumsum`、`chunk_kda_fwd` 是否注册，缺一个就抛错 |
 | prefill 遇到 PCP 并行 | `Kimi KDA prefill does not yet support PCP.` |
 | prefill 元数据行数对不上 | `Kimi KDA prefill metadata is inconsistent: …` |
-| main 分支的构造期检查 | 要求每头 128 维、BF16 激活、投机 token 数不超过 7、卷积核宽在 2 到 4 之间、开 MTP 时核宽必须是 4、门下界落在 −5 到 0 之间 |
+| 已钉 main 与 rc2 的构造期检查 | 要求每头 128 维、BF16 激活、投机 token 数不超过 7、卷积核宽在 2 到 4 之间、开 MTP 时核宽必须是 4、门下界落在 −5 到 0 之间 |
 
-以上都是源码里的检查点，没有在设备上故意触发。头数断言在上游层的构造函数里，[C7] 布局检查与三处 prefill 报错在昇腾实现里，[C12][C14] 构造期的那批限制只在 main。[C28]
+以上都是源码里的检查点，没有在设备上故意触发。头数断言在上游层的构造函数里，[C7] 布局检查与三处 prefill 报错在昇腾实现里，[C12][C14] 构造期限制的 main 实现见来源 28；rc2 同样保留这些检查，详见下方版本差异。[C28]
 
 ### 开销和什么时候别开
 
 KDA 不能关：去掉它，模型就不是这个模型。它省掉的是随长度增长的那部分开销，代价有四笔：
 
-- 每条请求每张卡固定 85 MiB 状态、12 个块号，短请求也照付；
+- 每条请求每张卡固定 85 MiB 的 KDA 页容量、12 个块号，短请求也照付；
 - 分段计算段内并行、段间串行，段长 64 决定这条串行链有多长；
-- 投机解码要多留 3 页，物理占用是有效数据的 4 倍；
+- 投机解码把状态份数从 1 份增加到 4 份，再叠加页内填充，得到上面的 85 MiB 页容量；
 - 固定容量限制了能记住的历史细节，这也是模型每 4 层留 1 层稀疏 MLA 的原因。
 
 两个 KDA 算子的实测耗时与算术强度本页没有，只读了接口。
 
 ### 版本差异
+
+**v0.30.0rc2 沿用 GLM 自带的 KDA 实现，并明确了构造限制与 TP 投影布局。** Glm5NextLinearAttention 继承 GatedDeltaNetAttention，状态形状交给上游 kda_state_shape，并传入 num_spec 为投机保留卷积状态空间；激活须 BF16、head_dim=128，卷积宽度在 2–4，投机数不超过 7，开启投机时卷积宽度须为 4，门的下界在 [-5,0)。
+
+与本页旧镜像分别构造投影的路径相比，rc2 将 q、k、v、b、f_a、g_a 合并成一次投影；其中 f_a、g_a 的分片在 TP rank 间复制，其余按相应输出分片加载。递推公式、历史状态的含义没有因这次合并而改变，但旧的 GEMM 次数与逐参数存储布局不能直接用于 rc2 的性能或显存账。KDA 构造通过也不解除同一模型 KPool 对 CP 的限制。
 
 三个分支按知识库钉住的提交读：v0.23 维护分支 Ascend `2c59ff10`、v0.26 的 rc 快照 `2ed6cbba`、main `baa023ad`。**本页 GLM 的数字取自专用镜像 `db701c1f`（控制流仍按 vLLM `0fc695fc`），它和 v0.23 维护分支不是同一提交。**
 
@@ -308,6 +358,10 @@ KDA 不能关：去掉它，模型就不是这个模型。它省掉的是随长�
 | 每请求页数等于 1 加投机块数 | `vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L627-L636` |
 | 空批次要不要建 attention 元数据 | `vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3332-L3344` |
 
+没有 attention 元数据时在短卷积前返回，见来源 15；外层投影、输出归一化与门控、输出投影仍继续执行，见来源 11。4 份状态与补齐后的页面容量，分别由来源 23、21–22 确定。
+
 机制来源分开记：linear attention 把复杂度从平方降到线性的原始论述来自 Katharopoulos 等人；[S3] delta 规则的写入形式来自 Schlag 等人的快速权重工作[S4]和 Yang 等人的并行化形式；[S5] 每头一个遗忘门的组合来自 Gated DeltaNet；[S6] 按 key 通道衰减的 Diag(α)、64 的段长和 3 层 KDA 配 1 层全注意力的比例来自 Kimi Linear 论文。[S2] 教学算例的数字是按上面五步手算的，只用来检查递推。[A] 85 MiB 与 18.2 MiB 的逐项字节都在 tensor parallel 页，2.66 GiB 是 32 条并发的乘积；按块号记账的 95.6 MiB 由部署页每个块号 7.969 MiB 乘 12 得到，差额按块号的主槽、小槽构成拆开。[D]
+
+状态口径按固定源码核对：来源 18 第 27–32 行分别给出短卷积形状与按本地头组织的递推矩阵，来源 21 第 44–56 行对 GLM 取两类单页容量的较大值，来源 22 负责页补齐，来源 23 还按缓存模式和投机块数计算总占用。因此，单页补齐不等于两类层共享历史，固定状态接口也不证明与密集注意力等价或整个混合模型不保存逐位置历史；这些边界保持为分析结论，没有设备实测。[I]
 
 **待核。** 以下几项本页没有一手证据：两个 KDA 算子的实测耗时与算术强度；投机接受数在卷积状态里回退的确切语义（回退逻辑在 AscendC 算子内部，只读到了参数）；前 3 层 KDA 与其余 31 层是否有任何差别（从配置和代码看没有）；最终运行镜像里实际安装的 vLLM 与 vllm-ascend 组合。

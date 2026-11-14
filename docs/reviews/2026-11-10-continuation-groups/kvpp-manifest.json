@@ -1,0 +1,347 @@
+{
+  "items": [
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 1,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L52-L100",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 2,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1490-L1502",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 3,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/parallel_state.py#L60-L89",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 4,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L18-L56",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 5,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L107-L178",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 6,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L540-L546",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 7,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1096-L1103",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 8,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/kvpp_cache.py#L30-L57",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 9,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kvpp.py#L9-L36",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 10,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/v2/kvpp.py#L23-L64",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 11,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/v2/kvpp.py#L87-L114",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 12,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/v2/model_states/default.py#L74-L85",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 13,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L2486-L2487",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 14,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4177-L4177",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 15,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4772-L4774",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 16,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L2057-L2061",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 17,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/attention/sfa_v1.py#L1716-L1719",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 18,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L935-L940",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 19,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L214-L246",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 20,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L839-L839",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 21,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L922-L928",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 22,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2437-L2439",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 23,
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L1-L56",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 24,
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L57-L137",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 25,
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L138-L197",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 26,
+      "ref": "vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/kvpp.md#L1-L64",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 27,
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L333-L344",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 28,
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/support_matrix/feature_matrix.md#L37-L37",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 29,
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L2072-L2085",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 30,
+      "ref": "vllm@0fc695fc:vllm/config/speculative.py#L550-L554",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 31,
+      "ref": "raw:sha256-fe4847400202f87006599b0a2cdadf77abfa6f29726ceade8f56f86925417038.md#L1-L803",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 32,
+      "ref": "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:docs/source/user_guide/feature_guide/kvpp.md#L19-L28",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 33,
+      "ref": "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:docs/source/user_guide/feature_guide/kvpp.md#L36-L48",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 34,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L63-L90",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 35,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L92-L111",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 36,
+      "ref": "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/kvpp.md#L57-L65",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 37,
+      "ref": "https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/kvpp.md#L57-L65",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    },
+    {
+      "page_id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "source_number": 38,
+      "ref": "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/kvpp.md#L23-L151",
+      "state": "baseline_remaining",
+      "page_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+    }
+  ],
+  "current_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da"
+}

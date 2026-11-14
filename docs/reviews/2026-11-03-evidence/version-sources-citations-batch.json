@@ -1,0 +1,196 @@
+{
+  "reviewer": "review_publication_fix",
+  "pages": [
+    {
+      "id": "glm-mlp-version-source",
+      "judgments": [
+        [
+          1,
+          "支持",
+          "main稠密MLP激活检查/投影维度/TP参数",
+          "90–138逐行读；hidden_act只silu，gate_up双宽和down、bias、clamp选择、forward顺序均在范围内。"
+        ],
+        [
+          2,
+          "支持",
+          "main按层型选MoE或稠密模块",
+          "324–350逐行读，越界沿用最后项/空列表sparse、SP参数实际传入，不推模型层数。"
+        ],
+        [
+          3,
+          "支持",
+          "main外层SP在attention前AG/后RS",
+          "448–478逐行读，保留mHC+norm调用边界，不单凭调用者证明通信字节数。"
+        ],
+        [
+          4,
+          "支持",
+          "三个原始区间归档",
+          "raw1–115的3块逐字trim匹配本轮已读源码，见sha256-fb671972d0774-dedup.json。"
+        ],
+        [
+          5,
+          "支持",
+          "相同完整main pin的线性构造参数",
+          "108–123重复区间已读，不额外证明最终权重布局。"
+        ],
+        [
+          6,
+          "支持",
+          "四个区间归档",
+          "raw1–134的4块逐字trim匹配已读源，见sha256-f67ddc529e2a3-dedup.json。"
+        ],
+        [
+          7,
+          "支持",
+          "固定模型45层、3dense42sparse、swiglu_limit10",
+          "本轮web原raw URL失败；读取已存原文.tmp/evidence-2026-11-03/groups-01-02/glm-config-690b7052.json，SHA bb8f01c42cb92a52ca72e65afb4d5bd8d11aef083cd210e8de25dfb904f23e9f。text_config完整读并解析；不冒称后续1800行量化模块名单全部人工读取。"
+        ],
+        [
+          8,
+          "支持",
+          "旧db稠密类按swiglu_limit选组件",
+          "1403–1442全读；此类无main的hidden_act显式报错，因此不把main限制套回旧版。"
+        ],
+        [
+          9,
+          "支持",
+          "旧db按mlp层型决定dense/MoE",
+          "2105–2131全读，缺列表时另用first_k_dense_replace；稠密调用未传main的SP参数，不混版。"
+        ],
+        [
+          10,
+          "支持",
+          "clamp数学定义",
+          "154–184全读：gate仅上界，up上下界，再silu×up；不证明安装环境dispatch。"
+        ],
+        [
+          11,
+          "支持",
+          "Ascend OOT clamp实现",
+          "46–56全读，同clamp后cat再npu_swiglu，含prefetch前后调用。"
+        ],
+        [
+          12,
+          "支持",
+          "rc2稠密类与main一致",
+          "90–138与已读baa逐字一致；整个model.py blob两pin均a2a384184b0b2fe8bfabb195a9e1f021f289b4aa，diff为空。"
+        ],
+        [
+          13,
+          "支持",
+          "rc2类型选择和SP参数同main",
+          "324–350与已读baa逐字一致；三摘录合并SHA6a7d421eac5b59ec21bac8ba7c8862b421ba56a288db406ebf6c7b7d818d1d48。"
+        ],
+        [
+          14,
+          "支持",
+          "rc2外层SP调用同main",
+          "448–478与已读baa逐字一致，不能推出外围配置/硬件支持全同。"
+        ]
+      ]
+    },
+    {
+      "id": "v030rc2-baseline",
+      "judgments": [
+        [
+          1,
+          "支持",
+          "Ascend rc2/rc1发布声明与上游配套",
+          "release_notes1–18全读；本站固定ced。远端标签与本地标签观测不同，正文按2026-11-03 06:56UTC实际ls-remote记录区分。"
+        ],
+        [
+          2,
+          "支持",
+          "设计文档仍写PCP不支持",
+          "1–20全读；明确作为与实际V2实现不一致的旧说明，不当作当前全局支持结论。"
+        ],
+        [
+          3,
+          "支持",
+          "未用V2时PCP被平台拒绝及其他CP约束",
+          "1641–1700全读，不能将错误文案本身泛化到V2。"
+        ],
+        [
+          4,
+          "支持",
+          "V2 PCP具体功能/图限制",
+          "230–261全读，encoderdecoder/MM/LoRA/投机方法/图组合检查，不等于全模型可运行。"
+        ],
+        [
+          5,
+          "支持",
+          "rc2 GLM教程要求V1及实验DSACP布局",
+          "17–33全读，KV池复制和PCP=DCP=1原文明确；保留实验范围。"
+        ],
+        [
+          6,
+          "支持",
+          "KPool backend拒绝PCP/DCP",
+          "437–476全读，451–452实际throw；支持与教程条件一致。"
+        ],
+        [
+          7,
+          "支持",
+          "上游原use_v2属性选择逻辑",
+          "675–724全读，明确Ascend补丁替换此逻辑，不能用上游默认决定Ascend最终值。"
+        ],
+        [
+          8,
+          "支持",
+          "固定全文URL中的本页rc2发布段",
+          "网页尝试能开壳但正文未直接返回；实际git同完整pin原文1–18已读，仅用于本页配套/CANN主张，不冒称该链接整个历史release_notes已由我读完。"
+        ],
+        [
+          9,
+          "支持",
+          "同固定release_notes的锚点重复引用",
+          "git7d原文1–18实际读取，与1/8同源；不是三份独立证据。"
+        ],
+        [
+          10,
+          "支持",
+          "同固定CP设计说明的重复URL",
+          "原文1–20实际git读取；web页面已请求，不以HTTP成功代替原文核查。"
+        ],
+        [
+          11,
+          "支持",
+          "同固定GLM教程17–33重复URL",
+          "实际git原文读，网页请求过但不把1554行页面算全文阅读。"
+        ],
+        [
+          12,
+          "支持",
+          "Ascend覆盖属性只读env/默认false",
+          "18–43全读，直接property赋值；导入生效路径补15。"
+        ],
+        [
+          13,
+          "支持",
+          "Worker初始化选择runner",
+          "491–506全读，use_v2选择NPUModelRunnerV2，否则V1。"
+        ],
+        [
+          14,
+          "支持",
+          "Worker保存最终属性",
+          "192–193实读，不宣称运行时动态切换runner。"
+        ],
+        [
+          15,
+          "支持",
+          "平台补丁导入路径",
+          "20–27全读，27明确导入patch_use_v2_model_runner。"
+        ],
+        [
+          16,
+          "支持",
+          "ced与tag后续差异只CPU Dockerfile兜底",
+          "141–151全读，git show ced完整patch仅6新增且父9ed。2026-11-03T06:56:47Z实际ls-remote origin tag/branch均ced，本地rev-parse tag=9ed；记录 .tmp/wiki-evidence-2026-11-03/v030-remote-ref-observation.txt。不以Dockerfile证明tag归属。"
+        ]
+      ],
+      "sha256": "f3635465da0de1262e029ae55a7bbf84f504c02de8638c91e620aa054926ba3d"
+    }
+  ]
+}

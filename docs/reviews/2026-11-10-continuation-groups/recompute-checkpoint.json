@@ -1,0 +1,80 @@
+{
+  "recorded_at": "2026-11-10T09:41:16.698820+00:00",
+  "frozen_old_closed": 71,
+  "new_sources_closed": 16,
+  "remaining_active_old_queue_after_this_batch": 893,
+  "files": [
+    {
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "sha256": "f52d567d4e0ccb0b543ab4ea9a26297f85ef06f464f8eaebec704939ef449344"
+    },
+    {
+      "path": "wiki/diagrams/recompute-cpu-offload.svg",
+      "sha256": "fdbd69c711172b06c0da9555e6af29961bc12239a56d60f945cf80347d76e22b"
+    },
+    {
+      "path": "wiki/diagrams/recompute-cpu-offload.yaml",
+      "sha256": "933a2721f1a48c93200507628a1800bafce2d6ecbd75e76b7c8bbc3a53ff86de"
+    },
+    {
+      "path": "wiki/diagrams/recompute-offload-flow.svg",
+      "sha256": "c5eaae84d55b317b86c824fb0ee556a3df7d62c36f88f9253658820f8cffe285"
+    },
+    {
+      "path": "wiki/diagrams/recompute-offload-flow.yaml",
+      "sha256": "bbd2c758e669e4bd39247dfea457bc8fdb5d2a13a6340502280e54a136bf16c4"
+    },
+    {
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "path": "wiki/diagrams/recompute-scheduler.svg",
+      "sha256": "df629c424a4263d03daba5265920debcba83edf4d6186ea0795413e28a360dbf"
+    },
+    {
+      "path": "wiki/diagrams/recompute-scheduler.yaml",
+      "sha256": "5395b762ead92cf229477f134ad608804a48a55a6e3305ac2e2fb1c9e4c5eaf3"
+    },
+    {
+      "path": "wiki/diagrams/recompute-scheduler-flow.svg",
+      "sha256": "80fc1913556ec413e890c81a58f0c17264a798d34073394a4e16af9082f921ab"
+    },
+    {
+      "path": "wiki/diagrams/recompute-scheduler-flow.yaml",
+      "sha256": "51ac14fb338adb0cbbe545b858cb27d12498c6802b58a02d7a5fbdfa011c0b13"
+    },
+    {
+      "path": "wiki/concepts/swa-bounded-replay.md",
+      "sha256": "15a40826c9c320d1e260f1a6ee2a1e89c08b1231e7eae4afddce12509da758fa"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-state.svg",
+      "sha256": "41f948a3070c6e78d335ffa90b9710545f176a543542afa72398650a0dba2b4b"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-state.yaml",
+      "sha256": "2235e2b9976cdd1a684a669af5e0743eee970ab16dca107990732e54911b401f"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-intuition.svg",
+      "sha256": "52b0dd2273cf50c389df159fada99f5edfaa701da8046d3db75c39ca35f111f1"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-intuition.yaml",
+      "sha256": "1b13bd60e099b9d7fb1c928c5e7b9ff28b0141e19aa92db305a0a32fe2bb3e62"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-flow.svg",
+      "sha256": "d830b09a93f77bc5489a94c3b7103d6af77e1f82202c15c588a45ffaf5531b2f"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-flow.yaml",
+      "sha256": "7eeea46f1bdc38e04c58a282cc8adb7134c0aa338540af88a3b9effe778cb72a"
+    }
+  ],
+  "snapshot": ".tmp/continuation-groups-2026-11-10/recompute-reviewed-final.zip",
+  "snapshot_sha256": "7d0e46a757134501eef9841618ad5d7f5d8f528843ef761647df4f89a7960ae1",
+  "verification": "supplement-closeout-verification.json",
+  "scope": "three pages seven diagrams; full site not complete"
+}

@@ -1,6 +1,6 @@
 layout: figure
 id: platform-surface
-caption: 一份配置交给平台，出来时已经不是原样：先按组合校验，不支持的当场报错；通过的就地改写，Worker 类名与缓存精度在这一步定下，块大小在这一步补齐或改回 128（GLM 这类混合模型保留补丁更早写入的 640）；之后组件按拿到的类名去创建，而 GLM 的两类注意力层自带后端绑定，不经过平台这张表
+caption: 一份配置交给平台，先经过前置校验再就地改写；后面仍有图模式与 PD 角色检查，后续报错时前面的改写已经发生。Worker 类名、缓存精度与块大小在相应条件下写入，GLM 混合模型保留补丁更早写入的 640；之后组件按类名创建，GLM 两类注意力层自带后端绑定
 size: [900, 500]
 items:
   - { at: [24, 70], size: [250, 62], text: 汇总配置进来, sub: 命令行与模型配置, tone: control }
@@ -24,7 +24,7 @@ links:
 texts:
   - { at: [24, 36], text: 平台在启动时做的三件事, strong: true }
   - { at: [24, 440], text: 写进命令的值和最后生效的值可以不是一回事, note: true, width: 340 }
-  - { at: [400, 440], text: 改写在启动时发生，答名字在组件创建时才发生, note: true, width: 476 }
+  - { at: [400, 440], text: 启动时校验与改写交错；注意力后端在建层时选择, note: true, width: 476 }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L480
     symbols: [check_and_update_config]
@@ -34,3 +34,5 @@ pins:
     symbols: [get_attn_backend_cls]
   - source: vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L74-L84
     symbols: [AscendIndexerKPoolMLABackend]
+  - source: vllm-ascend@db701c1f:vllm_ascend/platform.py#L636-L700
+    symbols: [enable_balance_scheduling, check_and_update_config]

@@ -1,0 +1,79 @@
+{
+  "recorded_at": "2026-11-10T05:51:30.860790+00:00",
+  "unit": "source occurrence",
+  "count": 6,
+  "items": [
+    {
+      "page_id": "cann-hccl",
+      "path": "wiki/concepts/cann-hccl.md",
+      "source_number": 51,
+      "ref": "vllm-ascend@921ccc52:docs/source/getting_started/installation.md#L171-L292",
+      "verdict": "supported_scoped",
+      "claim_note": "支持检查顺序、hccn_tool来源、UP/Success与配置查询的不同判据、远端NPU地址、双向设备对探测、950DT文件/D2D要求；没有推断实际设备部署成功。",
+      "page_sha256": "ece999293b901fb8827c78e7b57c0b9433eeec89de27b29248f971763836bd69",
+      "review": "network-review.md",
+      "acceptance": "network-acceptance.md",
+      "scope": "new network preflight additions; no whole-page or NPU certification"
+    },
+    {
+      "page_id": "cann-hccl",
+      "path": "wiki/concepts/cann-hccl.md",
+      "source_number": 52,
+      "ref": "vllm-ascend@2c59ff10:docs/source/installation.md#L501-L624",
+      "verdict": "supported_scoped",
+      "claim_note": "v0.23安装指南已有A2 0–7、A3 0–15及设备IP/ping检查；950系列拓扑配置前置项存在。旧笼统success措辞由51明确，不照抄。",
+      "page_sha256": "ece999293b901fb8827c78e7b57c0b9433eeec89de27b29248f971763836bd69",
+      "review": "network-review.md",
+      "acceptance": "network-acceptance.md",
+      "scope": "new network preflight additions; no whole-page or NPU certification"
+    },
+    {
+      "page_id": "cann-hccl",
+      "path": "wiki/concepts/cann-hccl.md",
+      "source_number": 53,
+      "ref": "vllm-ascend@2ed6cbba:docs/source/installation.md#L514-L615",
+      "verdict": "supported_scoped",
+      "claim_note": "v0.26安装指南同样已有网络命令及950前置项，命令本身不构成新版本能力。",
+      "page_sha256": "ece999293b901fb8827c78e7b57c0b9433eeec89de27b29248f971763836bd69",
+      "review": "network-review.md",
+      "acceptance": "network-acceptance.md",
+      "scope": "new network preflight additions; no whole-page or NPU certification"
+    },
+    {
+      "page_id": "cann-hccl",
+      "path": "wiki/concepts/cann-hccl.md",
+      "source_number": 54,
+      "ref": "vllm-ascend@7d825229:docs/source/getting_started/installation.md#L158-L263",
+      "verdict": "supported_scoped",
+      "claim_note": "rc2安装指南明确950DT；A2/A3编号和连通性步骤支持版本段。",
+      "page_sha256": "ece999293b901fb8827c78e7b57c0b9433eeec89de27b29248f971763836bd69",
+      "review": "network-review.md",
+      "acceptance": "network-acceptance.md",
+      "scope": "new network preflight additions; no whole-page or NPU certification"
+    },
+    {
+      "page_id": "cann-hccl",
+      "path": "wiki/concepts/cann-hccl.md",
+      "source_number": 55,
+      "ref": "vllm-ascend@baa023ad:docs/source/getting_started/installation.md#L158-L263",
+      "verdict": "supported_scoped",
+      "claim_note": "main网络段与rc2字节相同，复用阅读；独立对应该页main结论，不新增全文阅读计数。",
+      "page_sha256": "ece999293b901fb8827c78e7b57c0b9433eeec89de27b29248f971763836bd69",
+      "review": "network-review.md",
+      "acceptance": "network-acceptance.md",
+      "scope": "new network preflight additions; no whole-page or NPU certification"
+    },
+    {
+      "page_id": "cann-hccl",
+      "path": "wiki/concepts/cann-hccl.md",
+      "source_number": 56,
+      "ref": "vllm-ascend@921ccc52:docs/source/tutorials/models/GLM5.3-Flash.md#L427-L432",
+      "verdict": "supported_scoped",
+      "claim_note": "GLM5.3-Flash PD教程要求启动各角色前核主机IP/接口、DP RPC/API/HCCL socket/Mooncake握手控制/传输引擎端口；代理端口不足；不将PD要求套回混部资源算例。",
+      "page_sha256": "ece999293b901fb8827c78e7b57c0b9433eeec89de27b29248f971763836bd69",
+      "review": "network-review.md",
+      "acceptance": "network-acceptance.md",
+      "scope": "new network preflight additions; no whole-page or NPU certification"
+    }
+  ]
+}

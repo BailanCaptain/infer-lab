@@ -1,0 +1,97 @@
+{
+  "scope": "Linked technical follow-through of vLLM99 entries23/50; separate from62 accepted source occurrences",
+  "examples": [
+    {
+      "ref": "vllm@0fc695fc:examples/generate/multimodal/openai_chat_completion_client_for_multimodal.py",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/examples/generate/multimodal/openai_chat_completion_client_for_multimodal.py",
+      "sha256": "73ac7e4a70ab006b238789e56c5423be119b842779253ed70896470fe0a8a4e0",
+      "lines": 415,
+      "read_scope": "full file actually read, every model function and main execution paths; not model execution",
+      "status": "actually_full_read",
+      "manual_note": "Online URL/base64/local path, multi-image ordering, audio input_audio/audio_url and video_url shapes; examples not executed.",
+      "same_hash_record_candidates": [],
+      "global_new_full_credit": 0
+    },
+    {
+      "ref": "vllm@0fc695fc:examples/generate/multimodal/audio_language_offline.py",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/examples/generate/multimodal/audio_language_offline.py",
+      "sha256": "b9c51b8deec98358c56b97079c2549a8bdf07d5c0b0255a6863341d95b7fc8fd",
+      "lines": 718,
+      "read_scope": "full file actually read, every model function and main execution paths; not model execution",
+      "status": "actually_full_read",
+      "manual_note": "18 model-specific prompts/stops/limits/LoRA; sample rates remain part of input contract. Whisper/Cohere one-audio limits, model-specific LoRA ranks not universal configuration.",
+      "same_hash_record_candidates": [],
+      "global_new_full_credit": 0
+    },
+    {
+      "ref": "vllm@0fc695fc:examples/generate/multimodal/vision_language_multi_image_offline.py",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/examples/generate/multimodal/vision_language_multi_image_offline.py",
+      "sha256": "8740a72d7747ad52ae3c68fd79416f996edf7a4b626460124adaa7e9014cdcee",
+      "lines": 1725,
+      "read_scope": "full file actually read, every model function and main execution paths; not model execution",
+      "status": "actually_full_read",
+      "manual_note": "45 model cases with crop/resize/limits/stops. Older LLaVA single-image training caveat. DeepSeekOCR custom sampling carried by run_chat but run_generate ignores req_data.sampling_params: example function presence does not prove both execution modes support it.",
+      "same_hash_record_candidates": [],
+      "global_new_full_credit": 0
+    },
+    {
+      "ref": "vllm@0fc695fc:examples/generate/multimodal/vision_language_offline.py",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/examples/generate/multimodal/vision_language_offline.py",
+      "sha256": "6b128515a432bdbc55d64066cbdd6f6b133ca7a5e04b77a5e3c47ca010c95b7e",
+      "lines": 2952,
+      "read_scope": "full file actually read, every model function and main execution paths; not model execution",
+      "status": "actually_full_read",
+      "manual_note": "Single-image/video/mixed modalities, model layouts and pre-extracted metadata. UUID-only second request tests cached images and catches failures; unique request UUIDs mean image-repeat probability is not measured content-hash cache hit rate. CUDA encoder-graph list is not Ascend support matrix.",
+      "same_hash_record_candidates": [],
+      "global_new_full_credit": 0
+    }
+  ],
+  "model_guides": {
+    "retrieved_at": "2026-11-10T12:00:28.276829+00:00",
+    "guides": [
+      {
+        "url": "https://raw.githubusercontent.com/huggingface/transformers/863d2620210d72fc0a9a03fdfe200bc9699154f6/docs/source/en/model_doc/qwen2_vl.md",
+        "commit": "863d2620210d72fc0a9a03fdfe200bc9699154f6",
+        "path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-guides/qwen2_vl.md",
+        "sha256": "56e35f4621a376febe0a38fba0ef416d30a892ac8cebdcfc40943fde9751522f",
+        "lines": 324,
+        "status": "mother_markdown_full_read",
+        "rendered_api_doc": "https://huggingface.co/docs/transformers/en/model_doc/qwen2_vl",
+        "read_scope": "Full fixed Markdown including all usage examples. Rendered generated API inputs read separately; not blanket superclass API validation."
+      },
+      {
+        "url": "https://raw.githubusercontent.com/huggingface/transformers/863d2620210d72fc0a9a03fdfe200bc9699154f6/docs/source/en/model_doc/qwen3_vl.md",
+        "commit": "863d2620210d72fc0a9a03fdfe200bc9699154f6",
+        "path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-guides/qwen3_vl.md",
+        "sha256": "da2efa99fc6e51411c24b1666a37094d323d2f26a705c1ef0bfc805b5c69c281",
+        "lines": 128,
+        "status": "mother_markdown_full_read",
+        "rendered_api_doc": "https://huggingface.co/docs/transformers/en/model_doc/qwen3_vl",
+        "read_scope": "Full fixed Markdown including all usage examples. Rendered generated API inputs read separately; not blanket superclass API validation."
+      },
+      {
+        "url": "https://huggingface.co/openbmb/MiniCPM-V-2_6/raw/main/README.md",
+        "status": "retrieval_failed",
+        "error": "HTTP Error 401: Unauthorized"
+      }
+    ],
+    "public_model_card": {
+      "url": "https://huggingface.co/openbmb/MiniCPM-V-2_6",
+      "scope": "All publicly rendered model-card text actually read; current HTML line240–479 is authored card, surrounding platform sections also inspected. Raw README remains401; no gated artifacts downloaded.",
+      "status": "public_rendered_card_full_read",
+      "commit": null,
+      "note": "SigLip/Qwen architecture, dynamic images/multi-image/video, CUDA Transformers examples, video max64frames/use_image_idFalse/max_slice_nums2; tutorial numbers not GLM/NPU measurement. Benchmark/promotional images not used as mechanism evidence."
+    }
+  },
+  "generated_api_actual_scope": {
+    "Qwen2VL": "Rendered config classes, processor kwargs/preprocess and video metadata inputs inspected. Not full inherited APIs.",
+    "Qwen3VL": "Rendered config, deepstack indices, processor/sample_frames, text model deepstack_visual_embeds and model/LM modality fields inspected; current generated API not a pin of old vLLM runtime."
+  },
+  "notes": [
+    "Qwen2 raw usage ties 28px to temporal patch2, but generated config distinguishes spatial_merge_size2; teach fixed vLLM grid merge consumer, not copy ambiguous prose.",
+    "Qwen3 guide paper link2502.13923 is suspect for model attribution; not used for site claim, fixed vLLM deepstack implementation is evidence.",
+    "Four example files have not been executed; no model weights downloaded."
+  ],
+  "recorded_at": "2026-11-10T12:16:24.714005+00:00",
+  "global_new_full_credit": 0
+}

@@ -1,11 +1,11 @@
 layout: scene
 id: prefetch-ratio
-caption: 五个比例各管一条路，走的却是同一个算式：ratio × 单卡权重字节数；之后 mlp 在 Python 侧截到 18 MiB，attn / moe 的后端上限待核（vllm-ascend v0.23 维护分支）
+caption: 满足开关与调用条件后，比例乘本地权重字节数；MLP 正请求尺寸在 Python 截到 18 MiB，零尺寸在公共封装改为整块。attn / moe 后端上限待核（v0.23 维护分支）
 size: [900, 786]
 
 regions:
   - label: 三组比例，四个各自的入口
-    note: mlp 与 moe 按模型类型互斥，一次运行最多有一组生效；attn 那一组还要模型是 W8A8 静态量化
+    note: mlp 与 moe 按模型类型互斥；attn 要求当前层走静态 W8A8 且输入不是 int8
     at: [20, 44]
     size: [860, 300]
     tone: ascend
@@ -55,7 +55,7 @@ boxes:
   - at: [320, 466]
     size: [258, 96]
     title: ② 看要不要截
-    sub: mlp 截到 18 MiB；其余待核
+    sub: MLP 正值截到 18 MiB
     fn: MAX_PREFETCH_WEIGHT_SIZE
     tone: neutral
     icon: gear
@@ -69,8 +69,8 @@ boxes:
 
   - at: [40, 630]
     size: [820, 84]
-    title: "漏写一项不是「不预取」，是 100% 预取"
-    sub: 比例取不到按 0 算，而 max_size ≤ 0 会被改写成整块权重——方向正好反了
+    title: "组仍启用且走到调用时，单项零值会请求整块"
+    sub: 缺项按 0 算；公共封装把非正尺寸改为整块请求，不代表实际缓存驻留或收益
     fn: maybe_npu_prefetch
     tone: accent
     icon: bolt
@@ -85,18 +85,22 @@ brackets:
 
 notes:
   - at: [20, 744]
-    text: "想关掉一组，唯一正确的写法是把该组每一项都写成 0——全 0 时这一组的 enable 被置 False；写成空 dict 或整组不写，都会回退到内建默认值。"
+    text: "整组全零会关闭该组；过滤后无有效非零项也会关闭。空 dict 或整组省略则回填默认；父开关关闭时均不发预取。"
     size: 12.5
     width: 860
   - at: [20, 770]
-    text: "越界值（1.2、-0.5）在构造阶段被静默丢出字典，随后就落进上面那条「按 0 算」的分支。"
+    text: "越界值（1.2、-0.5）在构造时丢弃；剩余同组仍有非零项且实际进入调用，缺项才会按零尺寸处理。"
     size: 12.5
     width: 860
     strong: true
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L13-L34
-    symbols: [MAX_PREFETCH_WEIGHT_SIZE, prefetch_ratio, maybe_npu_prefetch, npu_prefetch, AscendW8A8LinearMethod]
+    symbols: [MAX_PREFETCH_WEIGHT_SIZE, prefetch_ratio]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L230-L238
+    symbols: [maybe_npu_prefetch, npu_prefetch]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L74-L89
+    symbols: [AscendW8A8LinearMethod]
   - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L71-L74
     symbols: [select_experts]
   - source: vllm-ascend@2c59ff10:vllm_ascend/ops/activation.py#L37-L43

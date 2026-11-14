@@ -2,60 +2,112 @@
 id: dynamic-chunked-pp
 title: 动态分块流水线：按预计耗时切 prefill 块
 type: feature
-summary: 开了 PP 时，长提示词按「已经算了多少、这一块预计要多久」反推每块切多大，让各块耗时相近、后一段少空等；讲清等长块为什么越来越慢、23 格变 17 格的账、二次曲线反解、开机试跑与时间账，以及 GLM 双机 PP=1 开不了的边界。
-aliases: [动态分块流水线并行, ProfilingChunkScheduler, ChunkSizePredictor, ProfilingChunkManager, profile_prefill_latency, 动态分块 PP, 等耗时切块]
-chapters: ["13"]
+summary: >-
+  开了 PP 时，长提示词按「已经算了多少、这一块预计要多久」反推每块切多大，让各块耗时相近、后一段少空等；讲清等长块为什么越来越慢、23 格变 17
+  格的账、二次曲线反解、开机试跑与时间账，以及 GLM 双机 PP=1 开不了的边界。
+aliases:
+  - 动态分块流水线并行
+  - ProfilingChunkScheduler
+  - ChunkSizePredictor
+  - ProfilingChunkManager
+  - profile_prefill_latency
+  - 动态分块 PP
+  - 等耗时切块
+chapters:
+  - '13'
 order: 50
 sources:
-  - vllm-ascend@db701c1f:vllm_ascend/core/profiling_chunk_predictor.py#L212-L271
-  - vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L313-L349
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L55-L94
-  - vllm-ascend@db701c1f:vllm_ascend/core/profiling_chunk_predictor.py#L273-L320
-  - vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L249-L270
-  - vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L399-L408
-  - vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L178-L220
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L795-L855
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L704-L742
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L702-L715
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_profiling_chunk.py#L47-L126
-  - vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L108-L200
-  - vllm-ascend@db701c1f:vllm_ascend/core/profiling_chunk_predictor.py#L121-L199
-  - vllm-ascend@db701c1f:vllm_ascend/core/profiling_chunk_predictor.py#L339-L420
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3583-L3601
-  - vllm@0fc695fc:vllm/config/parallel.py#L776-L780
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L65-L80
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L141-L146
-  - vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L78-L84
-  - vllm-ascend@db701c1f:docs/source/tutorials/features/dynamic_chunked_pipeline_parallel.md#L86-L115
-  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L652-L725
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L954-L1012
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1256-L1280
-  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L995-L1026
-  - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L9-L20
-  - vllm-ascend@baa023ad:docs/source/tutorials/features/dynamic_chunked_pipeline_parallel.md#L80-L131
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1924-L1936
-  - vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L17-L20
-  - vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L542-L564
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L18-L22
-  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L196-L204
-  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L228-L235
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/profiling_chunk_predictor.py#L212-L271'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L313-L349'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L55-L94'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/profiling_chunk_predictor.py#L273-L337'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L249-L270'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L399-L408'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L178-L229'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L795-L855'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L704-L742'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L702-L715'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_profiling_chunk.py#L47-L234
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L108-L200'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/profiling_chunk_predictor.py#L121-L199'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/profiling_chunk_predictor.py#L339-L420'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3583-L3646'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L776-L780'
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L65-L80
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L141-L146
+  - >-
+    vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L78-L84
+  - >-
+    vllm-ascend@db701c1f:docs/source/tutorials/features/dynamic_chunked_pipeline_parallel.md#L86-L115
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L652-L725'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L954-L1012'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1256-L1280'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L995-L1026'
+  - >-
+    vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L9-L20
+  - >-
+    vllm-ascend@baa023ad:docs/source/tutorials/features/dynamic_chunked_pipeline_parallel.md#L80-L131
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1924-L1936'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L17-L20'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/scheduler_profiling_chunk.py#L542-L564'
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L18-L22
+  - >-
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L196-L204
+  - >-
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L228-L235
+  - >-
+    raw:sha256-34bb1b96919a8e72d3ee9650e12a85bb9a4d699c303d2dd6c98e2abc5307ded7.md#L1-L1202
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1067-L1075'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1377-L1387'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1377-L1398'
+  - 'vllm-ascend@7d825229:vllm_ascend/core/profiling_chunk_predictor.py#L166-L205'
+  - 'vllm-ascend@7d825229:vllm_ascend/core/profiling_chunk_predictor.py#L245-L255'
+  - 'vllm-ascend@7d825229:vllm_ascend/core/profiling_chunk_predictor.py#L350-L362'
+  - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_profiling_chunk.py#L35-L140'
+  - 'vllm-ascend@7d825229:vllm_ascend/core/scheduler_profiling_chunk.py#L132-L225'
+  - 'vllm-ascend@7d825229:vllm_ascend/core/profiling_chunk_predictor.py#L39-L78'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2498-L2512'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3380-L3424'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L50-L96'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L82-L123'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L573-L598'
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - {to: attention-qkv, kind: builds-on, note: 理解因果注意力的历史访问范围}
-  - {to: chunked-prefill, kind: builds-on, note: 理解 token 预算与前缀进度}
-  - {to: pipeline-parallel, kind: builds-on, note: 理解分段执行和流水线空闲}
-  - {to: profiling-chunk-config, kind: builds-on, note: 查阅字段及各版本定义}
+  - to: attention-qkv
+    kind: builds-on
+    note: 理解因果注意力的历史访问范围
+  - to: chunked-prefill
+    kind: builds-on
+    note: 理解 token 预算与前缀进度
+  - to: pipeline-parallel
+    kind: builds-on
+    note: 理解分段执行和流水线空闲
+  - to: profiling-chunk-config
+    kind: builds-on
+    note: 查阅字段及各版本定义
+  - to: chunked-prefill
+    kind: variant-of
+    note: 动态分块流水线是用于 PP 部署的 prefill 分块变体，在普通 token 预算约束内，按已算进度和预计耗时进一步缩小块大小。
 contradicts: []
-updated: "2026-09-29"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-1caeb038508c752da55dc4d9dbac02fd9337783598baa477a76feb174db372ee.md
+  - >-
+    raw/sha256-34bb1b96919a8e72d3ee9650e12a85bb9a4d699c303d2dd6c98e2abc5307ded7.md
 ---
 
 ## 长提示词切块送进流水线，每块该切多大？
 
-**动态分块流水线（Dynamic Chunked Pipeline Parallel，官方简称 CPP）是 vLLM-Ascend 给开了 PP 的部署准备的 prefill 切块办法：长提示词照样分几步算完，但每一步给它切多少个 token 不再是一个固定的数，而是按「前面已经算了多少、这一块预计要花多久」反推出来，让各块耗时尽量相等，流水线的后一段就不必一次次空等前一段。**
+**动态分块流水线（Dynamic Chunked Pipeline Parallel，官方简称 CPP）是 vLLM-Ascend 给开了 PP 的部署准备的 prefill 切块办法：长提示词照样分几步算完，在普通 token 预算约束内，再按「前面已经算了多少、这一块预计要花多久」反推块长，让各块耗时尽量相等，减少流水线后一段等待前一段的机会。**
 
-它建立在两件事上，各用一句话交代：[PP（流水线并行）](pipeline-parallel.md)把模型的层分成几段、每段放在不同的卡上，一批 token 先在第 0 段算完前半层，再把隐藏向量交给第 1 段算后半层；[chunked prefill](chunked-prefill.md)把一条很长的提示词切成几段、分几步算完，每段接着上一段存下的历史往下算。两件事凑到一起，切出来的几块就排着队进流水线：第 0 段算第 2 块的时候，第 1 段正好在算第 1 块——前提是两块花的时间差不多。
+它建立在两件事上，各用一句话交代：[PP（流水线并行）](pipeline-parallel.md)把模型的层分成几段、每段放在不同的卡上，一批 token 先在第 0 段算完前半层，再把下一段所需的中间状态交给第 1 段算后半层，具体状态由模型决定；[chunked prefill](chunked-prefill.md)把一条很长的提示词切成几段、分几步算完，每段接着上一段存下的历史往下算。两件事凑到一起，切出来的几块就有机会错开进入流水线：第 0 段算第 2 块的时候，第 1 段可以在算第 1 块；能否这样重叠、少空等，还取决于块耗时和实际调度时序。
 
 下面用一个示意例子感受一下：一条提示词有 400 个位置，走两段流水线，每一步最多给它 100 个位置。
 
@@ -87,12 +139,12 @@ title: 长 8 的序列每次算 2 个位置（示意，普通因果注意力）
 
 块再长一些，块内三角形那一项占比变小，四块的比例就趋近 1 : 3 : 5 : 7。原因是第 k 块从 (k − 1)·s 开始算 s 个位置，组合数约为 s² × (k − 1) + s² ÷ 2 = s² × (2k − 1) ÷ 2，随 k 按 1、3、5、7 增长。上图固定切法的四块耗时，用的就是这个比例。
 
-没有这个功能时，chunked prefill 每一步按 token 预算切，块与块一样长（最后一块可能短些），耗时却一块比一块长。在一张卡上，这只是「后面几步慢一些」；放进流水线，后一段每算完一块就得等前一段把下一块送来，每次等的正好是相邻两块的耗时之差（例子里 3 − 1、5 − 3、7 − 5，每次 2 格）。这些等待加起来就是[流水线的气泡](pipeline-parallel.md#多个请求错开进入时各卡忙闲怎样)，块越多、耗时差越大，累计空等越多。
+没有这个功能时，chunked prefill 每一步按 token 预算切。在图中一条请求独占固定预算的条件下，块与块一样长（最后一块可能短些），耗时却一块比一块长；多请求共享预算时，普通分块也可以长短不同。在一张卡上，图中变化只是「后面几步慢一些」；放进这条理想流水线，后一段每算完一块就得等前一段把下一块送来，每次等的正好是相邻两块的耗时之差（例子里 3 − 1、5 − 3、7 − 5，每次 2 格）。这些等待加起来就是[流水线的气泡](pipeline-parallel.md#多个请求错开进入时各卡忙闲怎样)；在这个模型里，块越多、耗时差越大，累计空等越多。
 
 读这个例子时有两点别读过头：
 
-- **组合数不等于耗时。** 一层里还有投影、MLP 和通信，这些只和本块多长有关，和历史多长无关；算子还要按自己的粒度分片执行、读写显存。所以 1 : 3 : 5 : 7 是「只剩注意力」时最极端的情况，真实模型会温和得多。
-- **不是每种层都回头读全部历史。** [线性注意力](linear-attention.md)把历史压成一份固定大小的状态，算一块的时间只看这一块多长；[稀疏注意力](sparse-attention.md)只从历史里挑一部分候选来细读。混了这类层的模型，越往后越慢的程度更小，具体多少只能在目标机器上实测。
+- **组合数不等于耗时。** 如果只在理想注意力模型上叠加每块相同的固定开销或与块长成正比的开销，四个等长块的时间比会比 1 : 3 : 5 : 7 平缓。真实执行还受算子分片、显存访问、通信与调度影响，不能据此保证设备上的耗时比更小。
+- **不是每种层都回头读全部历史。** [线性注意力](linear-attention.md)把历史压成一份固定大小的状态，因此递推计算不用逐位置重读全部历史；[稀疏注意力](sparse-attention.md)只从历史里挑一部分候选来细读。这些结构改变了随历史增长的计算量，不能直接套用上图比例；真实块耗时及变化程度仍需在目标机器上实测。
 
 ## 按耗时切，流水线能快多少？
 
@@ -113,7 +165,7 @@ title: 固定切法四块的完成时刻（单位：格）
 比一比：
 
 - **同样的活，从 23 格缩到 17 格。** 每段都是 16 格的活，少掉的 6 格约占 26%。
-- **这是理想上限。** 块从 4 个变成 16 个，每一步都有一笔和块大小无关的固定开销：调度器排一次、段间交接一次、卡上启动一遍算子。块越多，这笔账付的次数越多；两段实际快慢不一、块大小还要凑整，也会把一部分空等带回来。官方在别的模型上实测到的收益比这个理想值低，数字见[动态切块配置](../params/profiling-chunk-config.md#收益有多少)。
+- **这是图中 16 块的理想结果。** 块从 4 个变成 16 个，每一步都有一笔与块长不成正比的固定开销：调度器排一次、段间交接一次、卡上启动一遍算子。块越多，这笔账付的次数越多；两段实际快慢不一、块大小还要凑整，也会把一部分空等带回来。官方在别的模型上实测到的收益比这个理想例子低，数字见[动态切块配置](../params/profiling-chunk-config.md#收益有多少)。
 - **总计算量一格没少。** 按耗时切不是省计算，而是让两段的忙闲对上。
 
 ## 下一块切多大：从已经算了多少反推
@@ -163,35 +215,35 @@ base 该设多大，官方文档的说法是：首 token 延迟对它很敏感�
 
 有两处要看清：
 
-- **有效点少于 8 个就放弃。** 只打一条告警，功能不生效，之后一直按原来的等长切走，不报错。
-- **试跑时各段各算各的。** 后段拿一份预先备好的空中间结果当输入，不等前段真的交接；调度器取回的是编号为 (PP − 1) × TP × 上下文并行数 的那张卡的计时，按常规排法正是最后一段的第一张卡。所以开机曲线量的是最后一段自己那几层的耗时，不含段间交接。
+- **有效点少于 8 个就放弃。** 只打一条告警，功能不生效，之后按原来的 token 预算分块，不报错。
+- **试跑时各段各算各的。** 后段拿一份预先备好的空中间结果当输入，不等前段真的交接。执行器接口支持 `unique_reply_rank` 时，调度器选择编号为 (PP − 1) × TP × prefill 上下文并行数 的那张卡，按常规排法正是最后一段的第一张卡；接口不支持时，列表返回值取首项。开机曲线因此是所选 rank 所在阶段的试跑计时，不是含段间交接的端到端时间。
 
 开了它，启动会明显变慢：官方文档说试跑大约多出 64 次前向，几十秒。这不是故障。
 
 ### 边跑边校准
 
-服务起来以后，默认还会一边跑一边校准（开关 need_timing 默认跟着功能一起开）。校准期间每一步，卡上都会先同步一次再计时，把这一步真实花了多久报回调度器：
+服务起来以后，默认还会一边跑一边校准（开关 need_timing 默认跟着功能一起开）。校准期间每一步，卡上在计时开始前和结束前各同步一次，把这一步真实花了多久报回调度器：
 
 1. **先定目标耗时。** 校准期间每条请求的第一块故意不截，按原来的预算整块算。整批都是「从零开始」的步，量到的耗时直接拿来当 τ；这样的步攒满 3 次，τ 就定下来。
 2. **再拟一条带历史的曲线。** 每一步都记成一个样本，按 T = a·x·(x + H) + b·(x + H) + c 的形状拟合：x 是这一步给某条请求的新位置数，H 是它已经算过的位置数；一步里每条请求（decode 也算）各出一项，加起来对应这一步的实测耗时。攒到 5 个点开始拟合，之后预测就改用这条曲线。
-3. **攒满就停。** 样本到 max_fit_chunk（默认 30）个以后不再重拟；τ 和这条曲线都定下来后，卡上也不再每步同步计时，省掉这笔开销。
+3. **超过样本上限后标记结束。** 默认前 30 个样本可参与拟合，第 31 个样本到来时才把历史模型标为拟合结束，不再重拟。τ 和历史模型都定下来后，后续输出处理会通知 worker 关闭同步计时，省掉这笔开销；不能按“第 30 步必然关闭”安排校准。
 
-校准不是可有可无的步骤。官方建议上线前先用真实数据把校准跑一遍；main 的用户指南还专门提醒：校准默认开着，就一定要按标准流程走完，否则性能会严重变差。也可以一开始就关掉 need_timing，只用开机曲线、省掉校准期的同步，但官方的说法是这样结果不一定最优。怎样跑校准见[动态切块配置](../params/profiling-chunk-config.md#在线校准是默认开的而且不做会更慢)。
+官方建议上线前先用真实数据完成校准；main 的用户指南警告，在线校准默认开着却未按流程完成，可能出现严重性能劣化。这是使用风险提示，不是所有负载都会变慢相同比例的保证。也可以一开始就关掉 need_timing，只用开机曲线、省掉校准期的同步，但结果不一定最优，仍须比较目标负载。怎样跑校准见[动态切块配置](../params/profiling-chunk-config.md#在线校准默认随功能打开满足条件后自动停止)。
 
 ### 一步里有好几条请求：时间账
 
 token 预算管「这一步最多排多少个位置」，这个功能又加了一本时间账：每一步开头，时间预算等于 τ（曲线还没好时是无穷大）。排队的两个循环——先续在跑的请求、再接新请求——除了要求 token 预算没用完，还要求时间预算大于 0。
 
-- **预测时用的是剩下的时间。** 每给一条还在 prefill 的请求切块，传给预测器的目标是「还剩多少时间预算」，不是 τ。所以同一步里越靠后的请求，分到的块越薄。
+- **预测时用的是剩下的时间。** 每给一条还在 prefill 的请求切块，传给预测器的目标是「还剩多少时间预算」，不是 τ。后排请求可用的时间预算变少；实际块长还取决于它自己的历史长度、下限和对齐，不能只按排队次序比较。
 - **排进来就扣账。** 每排进一条还在 prefill 的请求，就按曲线扣掉它这一块的预计耗时。
-- **decode 不扣。** 已经在生成回答的请求每步只算极少几个位置，扣它们的时间只会把 prefill 挤掉，所以不记账。
+- **decode 不扣这本时间账。** 代码只对 prefill 分支扣预计耗时；decode 仍占 token 预算并消耗执行时间，不能把不扣账理解为没有代价。
 
 示意：τ = 10000，a = 1，其余为 0，先只看预测器给的理想值。这一步先排到请求 A，它已算 300 个位置：x = √(300² + 10000) − 300 ≈ 16，扣掉 316² − 300² = 9856，只剩 144。再排到请求 B，它已算 100 个位置：x = √(100² + 144) − 100 ≈ 0.7。这么小的块在真实实现里会被下限和凑整抬高，按抬高后的块扣账，预算就成了负数，这一步不再接新的 prefill。
 
 曲线还没好时，整段截块逻辑直接跳过，请求按原来的数走。曲线好了，预测器也会给不出数：拟合出的 a 为 0、方程无解或根不是正数。这时分三种情况：
 
 - **还在校准期：** 打一条「在线校准阶段」的日志，这条请求按原来的数走。
-- **这一步的时间预算还没动过：** 打一次「Profiling Failed. Degenerated to a fixed chunk size」告警，按原来的数走，也就是退回等长切。
+- **这一步的时间预算还没动过：** 打一次「Profiling Failed. Degenerated to a fixed chunk size」告警，按原来的 token 预算分块。
 - **时间预算已经扣过一部分：** 这一步到此为止，不再往里排。
 
 所以「预测失败就照常切」只说对了一半：预算已经用过时，它是停下来，不是继续往里塞。
@@ -210,28 +262,30 @@ token 预算管「这一步最多排多少个位置」，这个功能又加了�
 
 主线每步的 token 预算是 8192。12 条请求在 decode、每条每步占 4 个位置（1 个真 token 加 3 个草稿，见[投机解码](speculative-decoding.md)）时，一条 20,000 个 token 的提示词分三步算完：8144、8144、3712，推导见 [chunked prefill 的 GLM 一节](chunked-prefill.md#放到-glm-双机20000-个-token-的提示词分三步)。
 
-前两块一样长，第 2 块却要多读第 1 块留下的历史，这就是本页说的「等长不等时」。只是 PP = 1 时一步里整个模型在同一组卡上算完，不存在后一段等前一段，所以它只让第 2 步比第 1 步慢一些，不产生流水线气泡；慢多少没有实测数。
+前两块一样长，第 2 块的稀疏索引等计算却要考虑第 1 块留下的历史，这体现了「等长不必等时」。PP = 1 表示没有按层拆开的前后阶段，因此不会产生这里讨论的段间流水线气泡；它不限制专家计算只能在同一组卡上完成，主线的 EP16 仍跨两个 DP 调度组分布专家。第 2 步实际比第 1 步慢多少，不能只由块长和历史长度断定，当前没有实测数。
 
 ### 变体：GLM 开 PP = 2 时，这个功能会怎样
 
+下面会用到的 PD 分离，是把处理提示词的 prefill 执行组和持续生成的 decode 执行组分开，并在两者之间传递已经算好的历史状态。负责前者的称 P（Prefiller）节点，负责后者的称 D（Decoder）节点。
+
 假设把 GLM 的 45 层按源码的分法分成两段（第 0–22 层和第 23–44 层，见 [PP 的 GLM 变体](pipeline-parallel.md#变体glm-的-45-层分成-2-段)），段内仍是 TP8。这套组合没有部署验证过，下面只是按机制和源码推导：
 
-1. **越往后越慢的程度会小得多。** GLM 的 45 层里，34 层是 KDA 线性注意力，历史压在固定大小的状态里，算一块只看这一块多长（见[线性注意力的 GLM 一节](linear-attention.md#放到-glm-双机34-层-kda-的状态有多大)）。另外 11 层是稀疏 MLA：索引器要给全部历史打分，但先把每 4 个位置压成一组再打；真正的注意力只读挑出来的 2048 个位置，外加最多 3 个还没凑满一组的尾巴（见[稀疏注意力的 GLM 一节](sparse-attention.md#放到-glm-双机一个查询在一层稀疏-mla-里怎样挑怎样读)）。所以历史超过 2048 个位置以后，随历史增长的主要只剩索引器打分这一小部分，拟合出来的 a 相对 b 会很小，离 1 : 3 : 5 : 7 很远，能拉平的空等也就少。具体收益要等 GLM 的试跑曲线。
+1. **历史计算结构不同，不能沿用 1 : 3 : 5 : 7。** GLM 的 45 层里，34 层是 KDA 线性注意力，历史压在固定大小的状态里，不用逐位置重读全部历史（见[线性注意力的 GLM 一节](linear-attention.md#放到-glm-双机34-层-kda-的状态有多大)）。另外 11 层是稀疏 MLA：索引器要给全部历史打分，但先把每 4 个位置压成一组再打；真正的注意力最多细读挑出来的 2048 个位置，外加最多 3 个还没凑满一组的尾巴（见[稀疏注意力的 GLM 一节](sparse-attention.md#放到-glm-双机一个查询在一层稀疏-mla-里怎样挑怎样读)）。这些结构限制了部分计算随历史增长的方式，但层数比例不能推出索引器的实际耗时占比、拟合系数 a 与 b 的大小或可消除多少空等。曲线和收益都要用 GLM 的目标部署测量。
 2. **能调的范围很窄。** base 就是每步预算 8192；min_chunk 默认 4096。凑整粒度按块大小算：主线的逻辑块是 640 个位置，它由每张卡每层的 KDA 状态和 MLA 页决定，PP 只改一张卡负责哪几层、不改每层在卡上的形状，所以按推理 PP = 2、TP = 8 时仍是 640。4096 向上凑成 640 的倍数是 4480（4096 ÷ 640 = 6.4，凑成 7 块）。再算上 12 条 decode 先占掉 48 个位置、原本只能给这条提示词 8144，动态块就只能在 4480 到 8144 之间取值（提示词的最后一块剩多少算多少，可以比 4480 小）。这个区间是沿用主线 base = 8192 算出来的。main 的用户指南建议先按固定块调出最好的预算，开动态分块时再把 base 设成它的 2 到 4 倍，并给 128k 输入推荐 32768；base 调大，区间就放宽，但同一步里跟着跑的 decode 也要等得更久。
 3. **decode 不挤时间账。** 投机解码下每条 decode 每步 4 个位置，占 token 预算，但不扣时间预算。
 4. **不用再额外对齐。** 主线的混合模型缓存模式是 none，切点不必对齐到 KDA 状态的边界；这一条和 PP 无关，变体里照旧。
 5. **前提要一起满足。** chunked prefill 在主线本来就开着；负载均衡调度不能同开；v0.26 起官方只把这个功能定位在 [PD 分离](pd-disaggregation.md)的 prefill 节点上，而主线是 prefill、decode 混跑。
 
-变体还要付 PP 本身的账：一份模型副本从 8 张卡变成 16 张，两台机器只剩一份副本（卡数算术见 [PP 页「主线为什么没开」](pipeline-parallel.md#主线为什么没开)）。
+变体还要付 PP 本身的账：同一 DP 请求执行组所用设备从 8 张变成 16 张，固定 16 卡预算下，DP 组数从 2 变成 1（卡数算术见 [PP 页「主线为什么没开」](pipeline-parallel.md#主线为什么没开)）。原主线的路由专家跨 DP 组按 EP16 分布，两组并不是两份完整模型；改变 PP/DP 后还须重核专家分布、内存和通信支持，不能只做卡数乘法。
 
 ## 常见误解
 
 - **「它是个调优开关，打开试试就行。」** 不是。它要求 PP 大于 1，打开就把整个调度器换成一份副本，还要先跑完开机那一轮试算才开始服务；启动明显变慢不是故障。
-- **「切得更细，每步更快，所以总时间一定更短。」** 总计算量不变，快的只是后一段不用空等；块数变多，每步的固定开销也多付几次。开头的例子里 23 格变 17 格是理想上限。
+- **「切得更细，每步更快，所以总时间一定更短。」** 开头算例的理想注意力工作量不变，23 格变 17 格来自少空等；真实块数变多，每步的固定开销也多付几次，执行形状还会影响效率，不能照搬理想收益。
 - **「动态块会比固定块切得更大。」** 不会。它只把原来的数往小里截，每步 token 上限还是天花板；第一块最多就是满预算。
-- **「一开机预测就生效。」** 开机试跑的有效点不够 8 个就一直按等长切，而且只告警不报错；在线校准期间，每条请求的第一块也不截。
-- **「预测失败时就照常切，不影响别的请求。」** 只有这一步时间预算还没动过时才照常切；预算已经扣过一部分时，这一步到此为止，后面的请求等下一步。
-- **「1 : 3 : 5 : 7 就是真实的耗时比。」** 那是只算注意力时的极端情况。投影、MLP 和通信不随历史增长；GLM 这样以 KDA 和稀疏 MLA 为主的模型，差距要小得多。
+- **「一开机预测就生效。」** 开机试跑的有效点不够 8 个就继续按原 token 预算分块，而且只告警不报错；在线校准期间，每条请求的第一块也不截。
+- **「预测失败时就照常切，不影响别的请求。」** 进入动态分支后，校准期间或本步时间预算还没动过时保留原 token 预算；校准已结束且时间预算扣过一部分时，停止继续装入相应请求队列，后面的请求等下一步。
+- **「1 : 3 : 5 : 7 就是真实的耗时比。」** 那是固定块长、只计稠密因果注意力随历史增长项的理想近似。它没有计入投影、MLP、通信和运行时开销，也不适用于直接预测 GLM 的 KDA 与稀疏 MLA 混合模型的耗时比例。
 - **「GLM 双机用了动态分块。」** 没有。主线 PP = 1，这个功能开不了；8144、8144、3712 是普通 chunked prefill 按 token 预算切出来的。
 
 ## 对照源码
@@ -253,9 +307,9 @@ token 预算管「这一步最多排多少个位置」，这个功能又加了�
 | PP = 1 | 启动 `ValueError`：profiling_chunk_config requires pipeline parallelism (pp > 1) | `ascend_config.py` [C3] |
 | 与 `enable_balance_scheduling` 同开 | 启动 `ValueError`，四个提交一致 | 同上 |
 | `smooth_factor`、`min_chunk`、`max_fit_chunk` 越界 | `ValueError` | `ProfilingChunkConfig._validate` |
-| 没开 chunked prefill | 文档列为硬约束，代码里没有对应的检查 [!] | 用户指南 Constraints |
+| 没开 chunked prefill | 文档列为硬约束；本页引用的 CPP 配置校验未检查这一项，不能据此忽略文档前提 | 用户指南 Constraints |
 | 与 SLO 动态批（`SLO_limits_for_dynamic_batch`）同开 | 不报错：动态批先设 `scheduler_cls`，本功能后设，动态批被静默盖掉 | `platform.py` [C10] |
-| 开机试跑有效点少于 8 | 告警「Profiling failed: only N/8 samples collected」，功能一直不生效，按等长切 | `run_profiling_chunk_init` [C12] |
+| 开机试跑有效点少于 8 | 告警「Profiling failed: only N/8 samples collected」，功能一直不生效，按原 token 预算分块 | `run_profiling_chunk_init` [C12] |
 | 运行中预测为空 | 校准期打 info「Online calibration stage」；本步预算未动时 `warning_once`「Profiling Failed. Degenerated to a fixed chunk size」；否则本步 `break` | RUNNING、WAITING 两侧各一处 [C2] |
 
 v0.26 与 main 上还有几条和其他调度器变体的关系（批作业感知调度、ShortRequestFirst、DyntraLB），见版本差异。
@@ -267,10 +321,14 @@ v0.26 与 main 上还有几条和其他调度器变体的关系（批作业感�
 - **步数变多**：理想例子里 4 块变 16 块，调度、段间交接、算子启动的固定开销多付 12 次 [D]；官方实测收益见配置页。
 - **凑整粒度粗时拉不平**：粒度是 `max(page_size, 64)`，向上凑 [C1]；设计文档把这一步写成向下取整，以代码为准 [!]。
 - **维护**：`schedule()` 是整段副本，文件头写着对应 vLLM v0.15.x、上游重构后要跟着改。
-- **试跑计时口径**：`_build_rpc_kwargs` 把 `unique_reply_rank` 设为 `world_size − tp × pcp` [C7]，而 `world_size = pp × tp × pcp` [C16]，取回的是最后一段第一张卡的计时；试跑时非首段用预先分配的空中间张量 [C15]，这份计时只含本段。worker 里的注释却说「只用首段的计时」，两处说法不一致 [!]。
-- **别开的场景**：PP = 1（开不了）；输入短、一步就算完；不是跑长提示词 prefill 的节点；要用负载均衡调度的部署；main 教程还建议 PP 的 P 节点不开异步调度 [S26]，本功能也没有异步版本的调度器类。
+- **试跑计时口径**：执行器接口支持时，`_build_rpc_kwargs` 把 `unique_reply_rank` 设为 `world_size − tp × pcp` [C7]；结合 `world_size = pp × tp × pcp` [C16]，得到最后一段第一张卡。不支持该参数时则按返回形式提取计时，列表取首项。非首段用预先分配的空中间张量试跑 [C15]，计时不是 PP 端到端耗时。worker 注释笼统写「只用首段」，不能覆盖上述接口分支。
+- **别开的场景**：PP = 1（开不了）；输入短、一步就算完；不是跑长提示词 prefill 的节点；要用负载均衡调度的部署。本页旧 main 教程建议 PP 的 P 节点不开异步调度 [S26]，该钉点没有异步版本的调度器类；rc2 的异步变体见下节。
 
 ### 版本差异
+
+**v0.30.0rc2 的 CPP 已提供异步调度变体。** 平台按 async_scheduling 选择 ProfilingChunkAsyncScheduler 或 ProfilingChunkScheduler，只拒绝 MRV1+async，因此旧 main 的同步限定须保留版本范围。BatchJobAware 选类仍发生在 CPP 之后，会覆盖 scheduler_cls；同时写两个配置不意味着两个调度器串联。启动校准及 PP 等原有前提仍需满足，新增类本身不证明某种吞吐提升。
+
+rc2 的耗时拟合也变了：本页旧基线用 a·C·(C+H)+b·(C+H)+c，rc2 改为 **a·C·(C+H)+b·C+c**，其中 C 是当前块长、H 是已处理历史长度。系数按非负最小二乘拟合，求目标耗时对应的 C 时常数项为 c−目标耗时；不能把旧式中随历史增长的 b 项套回 rc2。启动仍是一次热身加 64 次试跑；三次 H=0 测量发生在服务运行中的在线校准，用来确定目标耗时。计时结果附在模型输出上回传给调度器，MRV2 的异步输出也保留这个字段；这不代表任何模型都能得到等时块或固定收益。
 
 | 项 | v0.23（`2c59ff10`、`db701c1f`） | v0.26 | main |
 |---|---|---|---|
@@ -295,7 +353,13 @@ v0.26 与 main 上还有几条和其他调度器变体的关系（批作业感�
 | 试跑入口、每步同步计时 | `vllm_ascend/worker/worker.py` 的 `profile_prefill_latency`；`vllm_ascend/worker/model_runner_v1.py` |
 | 设计文档 / 用户指南 / 教程 | `docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md`、`docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md`、`docs/source/tutorials/features/dynamic_chunked_pipeline_parallel.md` |
 
+**适用范围。** 旧 main 教程的“只在 P 开启”针对该教程的 PD 部署，不能由此判定其他部署的支持状态。ShortRequestFirst、DyntraLB 组合检查分别位于平台中各自的启用分支；依据为来源 22、26，版本区别见上表。
+
+**计时口径。** 数十秒是固定指南的启动参考（来源 18）；一次热身和试跑循环见调度器（来源 12），与运行时在线校准的同步开销分开。目标机器的启动时间、块耗时均衡程度及收益仍需实测。
+
+**实现边界。** 来源 41、42 对应 rc2 的启动循环和计时回传；来源 40 的三次无历史测量属于运行中校准。来源 43 补充旧基线执行后的同步，来源 44 给出启动试跑的一条请求和 eager 条件。来源 45–47 对照其他固定版本的 PP 与负载均衡互斥检查。
+
 **待核。**
 
-1. 试跑计时到底该取首段还是末段：代码取末段首卡、只含本段，worker 注释说用首段；缺作者说明或实机日志。
+1. 目标部署所用执行器的 RPC 返回路径，以及所选阶段的计时能否代表整条流水线瓶颈，需要结合执行器和各段实测判断；不能只凭 worker 的首段注释选择计时口径。
 2. GLM 在 PP = 2 下的试跑曲线、块大小是否仍为 640、动态分块的收益：没有部署，也没有实测数。

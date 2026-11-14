@@ -1,6 +1,6 @@
 layout: figure
 id: layers-stack
-caption: 主线第 4 站里 hidden 的先后与分支：embedding 交来一条，第 0 层入口复制成四条，每层两段各做一次入口混合和出口写回，第 44 层结束时求平均回到一条，再经最终 RMSNorm 和输出投影交给采样
+caption: 固定 db701c1f、普通 TP8 且 SP 关闭时，主线第 4 站里 hidden 的先后与分支：embedding 交来一条，第 0 层入口复制成四条，每层两段各做一次入口混合和出口写回，第 44 层结束时求平均回到一条，再经最终 RMSNorm 和输出投影交给采样。主模型输出还可继续供 MTP 草拟使用；图示没有展开这条后续用途。
 size: [900, 860]
 frames:
   - { at: [150, 340], size: [380, 230], label: 每一层（第 0–44 层） }

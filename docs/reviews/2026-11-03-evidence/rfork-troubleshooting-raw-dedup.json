@@ -1,0 +1,132 @@
+{
+  "path": "wiki\\raw\\sha256-3a82c2b420a34567fe8f4c358cea81e2e5df56395a32bdde4c1378a3b6729ffc.md",
+  "sha256": "3a82c2b420a34567fe8f4c358cea81e2e5df56395a32bdde4c1378a3b6729ffc",
+  "line_count": 1692,
+  "blocks": [
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L155",
+      "raw_line": 1,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L207-L461",
+      "raw_line": 91,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L463-L614",
+      "raw_line": 349,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L633-L793",
+      "raw_line": 504,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/seed_client.py#L89-L153",
+      "raw_line": 668,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L150-L253",
+      "raw_line": 736,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L335-L501",
+      "raw_line": 843,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L563-L710",
+      "raw_line": 1013,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/manifest.py#L164-L252",
+      "raw_line": 1164,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L18-L25",
+      "raw_line": 1256,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:examples/rfork/rfork_planner.py#L215-L229",
+      "raw_line": 1267,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:examples/rfork/rfork_planner.py#L251-L286",
+      "raw_line": 1285,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:examples/rfork/rfork_planner.py#L379-L418",
+      "raw_line": 1324,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:examples/rfork/rfork_planner.py#L468-L484",
+      "raw_line": 1367,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:tests/ut/model_loader/rfork/test_rfork_planner.py#L103-L120",
+      "raw_line": 1387,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L69-L149",
+      "raw_line": 1408,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L536-L548",
+      "raw_line": 1492,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L73-L108",
+      "raw_line": 1508,
+      "equal": true
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/envs.py#L796",
+      "raw_line": 1547,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/config.py#L11-L15",
+      "raw_line": 1551,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:examples/rfork/rfork_planner.py#L231-L246",
+      "raw_line": 1559,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/seed_client.py#L25-L54",
+      "raw_line": 1578,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L143-L152",
+      "raw_line": 1611,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L121-L176",
+      "raw_line": 1624,
+      "equal": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L55-L63",
+      "raw_line": 1683,
+      "equal": true
+    }
+  ]
+}

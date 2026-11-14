@@ -1,0 +1,28 @@
+{
+  "files": {
+    "vllm_ascend/patch/worker/_hccl_pg_registry.py": {
+      "db701c1f": "a30ece7f18625c51b87a05e0c24a8ca416ebe421aaeee80f35424232e3df35ce",
+      "2c59ff10": "a30ece7f18625c51b87a05e0c24a8ca416ebe421aaeee80f35424232e3df35ce",
+      "2ed6cbba": "a30ece7f18625c51b87a05e0c24a8ca416ebe421aaeee80f35424232e3df35ce",
+      "baa023ad": "a30ece7f18625c51b87a05e0c24a8ca416ebe421aaeee80f35424232e3df35ce",
+      "7d825229": "a30ece7f18625c51b87a05e0c24a8ca416ebe421aaeee80f35424232e3df35ce"
+    },
+    "vllm_ascend/patch/worker/patch_distributed.py": {
+      "db701c1f": "0fcc178ed9497705df47bdab59649ae59dc452f99121f95b43cd10cdc3efc411",
+      "2c59ff10": "0fcc178ed9497705df47bdab59649ae59dc452f99121f95b43cd10cdc3efc411",
+      "2ed6cbba": "0fcc178ed9497705df47bdab59649ae59dc452f99121f95b43cd10cdc3efc411",
+      "baa023ad": "7ea4353f2dd0fa7cd222e47617b03074b678225dd6d7595a0c3e3d85e3c38943",
+      "7d825229": "7ea4353f2dd0fa7cd222e47617b03074b678225dd6d7595a0c3e3d85e3c38943"
+    },
+    "csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp": {
+      "db701c1f": "77d93e50bd9295193246babb1b38c7df3152c3cc3ec647b6213ea6aea3c4c69a",
+      "2c59ff10": "77d93e50bd9295193246babb1b38c7df3152c3cc3ec647b6213ea6aea3c4c69a",
+      "2ed6cbba": "77d93e50bd9295193246babb1b38c7df3152c3cc3ec647b6213ea6aea3c4c69a",
+      "baa023ad": "77d93e50bd9295193246babb1b38c7df3152c3cc3ec647b6213ea6aea3c4c69a",
+      "7d825229": "783f76d7869371df949fc5ee80e33dfca8cf81231a65da410fcfea40df89b6f8"
+    }
+  },
+  "official_url": "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_BUFFSIZE.md",
+  "official_sha256": "abb4280f4aa811705e56c9c4891d813b8f04881f4ac911afe0488d7f75278149",
+  "official_read": "全文含产品列表，原始官方URL HTTP200"
+}

@@ -1,14 +1,14 @@
 layout: figure
 id: kvpp-flow
-caption: vllm-ascend main 上 KVPP 的代码走向。上两排在启动时走一次：开关打开、组大小大于 1 才做启动检查，不满足任何一条就报错退出；随后建通信组、把层分给常驻卡、按「常驻 + MTP + 2 个最大层」算块数，再换回逻辑字节报给引擎，最后按块数分配并给每个attention 层挂上等待点。下排是每步前向：本批没有任何带历史的请求（全新 prefill、启动试跑、测显存）就整步不广播；否则开头先发第 0 层，每层在投影之后等本层到位，随即发下一层。
-size: [900, 470]
+caption: 固定 main 上 KVPP 的代码走向。上两排在启动时走一次：开关打开、组大小大于1才做检查；随后建组、分常驻层、按常驻与MTP及两暂存区算有效缓存块数，再换回逻辑字节报给引擎，分配时另有对齐余量。下排按MLA路径示意：本批没有历史、试跑或测显存时不广播；否则开头先发第0层，在首次访问缓存前等本层到位，随即发下一层。SFA融合路径在融合预处理前等待。
+size: [900, 495]
 dividers:
   - { from: [24, 262], to: [876, 262], sides: [启动时走一次, 每步前向都走] }
 items:
   - { at: [24, 40], size: [150, 60], text: 读开关, sub: 默认关, tone: control, style: plain }
   - { at: [194, 40], size: [150, 60], text: 定组大小, sub: TP × PCP, tone: control, style: plain }
   - { at: [364, 40], size: [150, 60], text: 启动检查, sub: 模型与组合, tone: control, style: plain }
-  - { at: [534, 40], size: [170, 60], text: 建 kvpp 通信组, sub: 按 DP 副本、PP 段分组, tone: comm, style: plain }
+  - { at: [534, 40], size: [170, 60], text: 建 kvpp 通信组, sub: 按 DP执行组、PP段分组, tone: comm, style: plain }
   - { at: [724, 40], size: [152, 60], text: 层分给常驻卡, sub: 连续均分，MTP 除外, tone: kv, style: plain }
   - { at: [194, 118], size: [150, 36], text: 组大小 1：不启用, tone: ink, style: faded }
   - { at: [364, 118], size: [150, 36], text: 不满足：报错退出, tone: danger, style: faded }
@@ -42,6 +42,7 @@ links:
   - { from: [810, 350], to: [784, 414], via: [[810, 414]] }
   - { from: [584, 414], to: [484, 350], via: [[484, 414]], dashed: true }
 texts:
+  - { at: [24, 475], text: "主线位置：模型执行；调度器已给出本步批次与块表", note: true }
   - { at: [206, 312], text: 有 }
   - { at: [118, 378], text: 没有 }
   - { at: [494, 404], text: 下一层 }

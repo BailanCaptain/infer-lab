@@ -3,7 +3,9 @@ id: rfork-troubleshooting
 title: RFork 排错：从第一条异常还原版本、阶段与资源状态
 type: feature
 summary: >-
-  RFork 出错时从哪查起：四步检查失败共用同一句汇总、要往前找具体异常，直接抛的异常则写在汇总里；再看模型、租约和显存各停在哪一步。按借不到来源、清单对不上、显存登记或清理出错、读数据失败、还租约被拒、看起来卡住六类现象，列出能确定的事、候选原因、该补的证据和不该做的事；示例 Planner 的 400 只来自请求头解析失败，到期回 404。
+  RFork
+  出错时从哪查起：四步检查失败共用同一句汇总、要往前找具体异常，直接抛的异常则写在汇总里；再看模型、租约和显存各停在哪一步。按借不到来源、清单对不上、显存登记或清理出错、读数据失败、还租约被拒、看起来卡住六类现象，列出能确定的事、候选原因、该补的证据和不该做的事；示例
+  Planner 的 400 只来自请求头解析失败，到期回 404。
 aliases:
   - RFork 排错
   - RFork 报错
@@ -43,6 +45,12 @@ sources:
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L143-L152'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L121-L176'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L55-L63'
+  - >-
+    raw:sha256-3a82c2b420a34567fe8f4c358cea81e2e5df56395a32bdde4c1378a3b6729ffc.md#L1-L1692
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/planner_client.py#L117-L245'
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L261-L364'
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/transfer_backend.py#L224-L269'
+  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L38-L49'
 verified:
   - 'rfork:main'
 evidence: C
@@ -57,7 +65,7 @@ relations:
     kind: builds-on
     note: 多数定位需要同时拿到两端参数、端口与 Planner 配置，不能只看 receiver
 contradicts: []
-updated: '2026-10-02'
+updated: '2026-10-25'
 rawSources:
   - >-
     raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md
@@ -65,6 +73,8 @@ rawSources:
     raw/sha256-08e247f5a691a563c2eff1e3b7b7835da4aa7a60b5f12a5627edb5077776702d.md
   - >-
     raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md
+  - >-
+    raw/sha256-3a82c2b420a34567fe8f4c358cea81e2e5df56395a32bdde4c1378a3b6729ffc.md
   - >-
     raw/sha256-59591a4419847f7e688d941665e517ceeff58268f61c79d46d5e2398c4b5e7ce.md
   - >-
@@ -96,6 +106,8 @@ file: rfork-troubleshooting.yaml
 只看汇总，至少会把三类完全不同的情况混在一起：
 
 - **借到了，但中途失败**：就是图里那四步。B 已经登记过显存；坏在读数据那一步时，前面几批权重已经写进了 B 的显存。所以回退前要先把这些撤干净，撤不干净，回退会被安全门挡下，拒绝再分配第二份模型。
+
+  清理失败时，旧权重仍被保活，阻止第二份模型分配是为了避免在旧资源尚未安全释放时继续加载。因此，看到回退被挡下，还不能据此认定已经发生显存不足；需要结合更早的具体异常判断。
 - **根本没借到**：Planner 说没有可用来源，或者申请来源这个请求本身出了错。B 直接走默认加载，不打那句汇总。正常的第一次冷启动也走这条路。
 - **借成了，只是没当成来源**：权重读完了，后台还租约被拒或次数用完，B 照常推理，只是不把自己登记为来源。这一类连回退都没有，模型加载是成功的。
 
@@ -141,6 +153,8 @@ B 借权重的过程大致按下表从上往下走。拿到日志后，先找最
 | 「当来源」延后 | 本机已经准备好，等借来的租约确认还上再登记；模型可以继续启动 | [生命周期 · 发布 seed](rfork-lifecycle.md#发布-seed已启动延期失败) |
 | 回退被安全门挡下 | 旧的模型或登记过的显存没能安全清掉，拒绝再分配第二份模型 | [传输 · 任何一步失败](rfork-transfer.md#任何一步失败先撤销再回退) |
 
+表中「向来源要元数据出错」还需区分具体请求：主响应没有独立形状字段时，接收端才另外请求 shape（张量形状）元数据。若这次请求抛出请求异常，而已有权重清单包含足够的 shape 和 dtype（元素数据类型），可以使用主清单继续；信息不足时，取元数据函数会记录错误并返回未取得元数据。这个继续条件只说明元数据足以供后续使用，不能证明权重字节已经传输成功。
+
 每一步对应的日志原文见下半「对照源码 · 会报什么错」。
 
 举一个示意的例子，演一遍怎么读。某个 Worker 的日志按时间顺序是这四条（用中文转述）：
@@ -154,7 +168,7 @@ B 借权重的过程大致按下表从上往下走。拿到日志后，先找最
 
 ## 明明有来源却没借到：先查配对键和容量，再查网络
 
-客户端会把三种情况都折算成「没借到」：Planner 明确回「没有来源」（只记 DEBUG）；请求出错、或者状态码既不是成功也不是「没有来源」；Planner 发回的租约信息不全，或端口、rank 不合法（后两种记一条「申请来源失败」警告）。所以看到「没有可用来源」，要往前找有没有「申请来源失败」，而不是一律当成正常冷启动。
+客户端会把三种情况都折算成「没借到」：Planner 明确回「没有来源」（只记 DEBUG）；请求出错、或者状态码既不是成功也不是「没有来源」；Planner 发回的租约信息不全，或端口、rank 不能转为整数，或端口 ≤0、rank <0（后两种记一条「申请来源失败」警告）。端口大于 65535 会先通过这一关，随后在构造来源 URL 时失败，走「传输失败」分支。所以看到「没有可用来源」，要往前找有没有「申请来源失败」，而不是一律当成正常冷启动。
 
 **候选原因**（都要拿证据筛，不能从「没有可用来源」几个字直接判定）：两端配置算出来的指纹不同；rank 或角色不同；来源登记失败；来源的心跳失效了；同一个配对键下名额已经用完；或者申请请求落到了一个没有同一份状态的 Planner 副本上。配对键由哪些量算出来，见[身份 · 部署指纹里写了什么](rfork-identity.md#部署指纹里写了什么)。
 
@@ -164,7 +178,7 @@ B 借权重的过程大致按下表从上往下走。拿到日志后，先找最
 
 ## 元数据或清单报错：先把两端清单摆在一起比
 
-先看[会影响排错的官网与工作版差异](../sources/rfork-official-guide.md#会影响排错的官网与工作版差异)：不要拿官网的键格式、旧的成功日志或「随机端口」这类概括直接诊断本版。如果本机检查来源服务健康是好的、但远端取元数据失败，接着查对外公布的地址、实际监听的网卡和跨节点能不能访问——本机回环的健康检查覆盖不到这些，四类端口各由什么决定见[配置](rfork-config.md#四类端口谁监听谁来连由什么决定)。
+先看[官方指南与工作版对照](../sources/rfork-official-guide.md)：区分指南日期和实际实现，不拿旧键格式、成功日志或“随机端口”的概括直接诊断。如果本机健康检查通过、远端却取不到元数据，再查公布地址、监听网卡和跨节点连通性；本机回环检查覆盖不到这些。四类端口的含义见[配置](rfork-config.md#四类端口谁监听谁来连由什么决定)。
 
 清单要过哪几道门、每一项记了哪五个量，见[传输 · 第三步](rfork-transfer.md#第三步第一个字节写进来之前整份清单要过五道门)。对应到现象：
 
@@ -267,8 +281,8 @@ title: 一个 404 是不是租约到期（示意数）
 
 - **每张卡借两次，一共 32 份租约**：主模型和草稿模型各开一套会话、各一个配对键，16 个 rank 各借各的，只能借来源实例里同号的那个 Worker。一次热启动就是 32 次申请、32 份租约，还租约的结果日志也按这 32 份分别记，用日志里租约那一栏的哈希和 global rank 对号。谁向谁借见[总览页](rfork.md#谁向谁借16-个-worker-各借各的主模型和草稿模型各一套)。
 - **INFO 级别下只有 rank 0 和 rank 8 打「没借到」**：这条只在 TP 序号为 0 的 Worker 上按 INFO 打；TP8 下 rank r 的 TP 序号是 r mod 8，16 个 rank 里只有 0 和 8 满足。其余 14 个 rank 要开 DEBUG 才看得到。
-- **读失败那条日志里的总批数**：主模型那套每卡约 20,572 MiB，每批不超过 1 GiB，至少 21 批；草稿那套约 844 MiB，不到 1 GiB，张量条数不超过 512 时只有 1 批。字节怎么来的见[每张卡读多少](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)。
-- **默认 60 秒的租约对读速有要求**：主模型那份要在到期前读完，每卡平均读速至少约 0.33 GiB/s，推导见[配置 · 默认 60 秒的租约够不够](rfork-config.md#默认-60-秒的租约够不够)。读得更慢时，示例 Planner 会先把租约收回，B 还的时候拿到 404、记成「已归还」——正是上一节说的「404 不证明按时」。
+- **读失败那条日志里的总批数**：主模型所列语言张量的读取子账约为每卡 20,572 MiB，每批不超过 1 GiB，所以仅这部分就至少 21 批。草稿子账约 844 MiB，不能据此保证完整草稿只需一批：还必须确认包括表外项的实际清单不超过 1 GiB、切段数不超过 512。字节范围和未计项目见[每张卡读多少](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)。
+- **工作版默认 60 秒的租约对读速有要求**：主模型语言子账本身就要求平均读速至少约 0.33 GiB/s；表外字节、登记、元数据与归还耗时还要另计，因此高于它不能证明按时归还。推导见[配置 · 默认 60 秒的租约够不够](rfork-config.md#默认-60-秒的租约够不够)。租约到期后，示例 Planner 的下一次清扫或借还请求会收回它；B 归还时收到 404、记成「已归还」，正是前面说的「404 不证明按时」。rc2 的续租行为另见版本差异。
 - **这套部署现在第一次启动必然借不到**：只有一个实例，没有来源，日志里「没有可用来源」是正常的，见[这套部署现在能不能受益](rfork.md#这套部署现在能不能受益)。
 - **以后开了动态 EPLB**：RFork 被整体绕开，只留一条「RFork 被禁用、改用默认加载」的警告，日志里根本不会出现借权重的各步。
 
@@ -322,7 +336,7 @@ title: 一个 404 是不是租约到期（示意数）
 - **检查没通过、返回 `False`**：登记、要元数据、核清单、分批读的检查不过时，`transfer_from_seed` 返回 `False`（`session.py#L108-L136`），loader 随即 `raise RuntimeError("transfer failed.")`（`rfork_loader.py#L623-L624`），汇总一律是 `RFork transfer failed: transfer failed., clean up and fall back to default loader`。这些返回 `False` 的点之前都先记一条 error 级的具体日志（登记 `transfer_backend.py#L359-L456`，要元数据 `seed_client.py#L89-L153` 连自身异常也在 #L151-L153 接住，核清单与读 `transfer_backend.py#L633-L775`），这就是图里的第二排。
 - **直接抛异常**：`transfer_from_seed` 里没有 `try`，`session.py#L114-L116` 的注释也写明传输调用会 raise 而不只返回 `False`。抛出的异常由 `rfork_loader.py#L652-L655` 接住，只把 `str(e)` 填进汇总（注释说明不留 traceback），前面没有单独的具体日志。已知的抛出点：要元数据前拼来源地址的 `build_seed_url`（`session.py#L123` 调用，在 `fetch_seed_transfer_info` 的 `try` 之外）在端口超出 1..65535、地址不合法、带凭据或端口冲突时抛 `ValueError`（`seed_client.py#L25-L54`，例如 `RFork seed port must be in 1..65535, got 70000`；客户端拿租约时只查端口 >0）；登记时取不到存储所有者抛 `RuntimeError("RFork could not retain the original storage owner for a registered tensor")`（`transfer_backend.py#L338` → `#L175`）；采集张量遇到同名不同形的条目抛 `ValueError`（`tensor_layout.py#L149-L152`，登记 `transfer_backend.py#L309` 与读前 `#L643` 都会调）；分批时 `iter_transfer_chunks`（`#L748`）在 `#L128`、`#L132` 抛 `ValueError`；读取调用 `batch_transfer_sync_read`（`#L760`）外面没有 `try`，引擎没初始化时 `_engine` 抛 `RuntimeError("TransferEngine is not initialized.")`（`#L238-L241`）。建后端、造模型时的异常（上表前两行），以及建会话、算部署指纹（`rfork_loader.py#L441-L476`）和读完之后跑后处理（非量化模型，`#L631-L633`）时的异常，都在 `#L563` 起的 `try` 里，走的也是这条。
 
-`acquire_seed` 把 404、其他非 200、租约头不全（`planner returned incomplete seed lease headers`）、端口 / rank 不是整数或越界都折成 `None`（`planner_client.py#L69-L109`），loader 抛 `_RForkSeedUnavailable` 进「没有可用来源」分支，不打汇总（`rfork_loader.py#L619-L620`、`#L645-L651`）。[C1]
+`acquire_seed` 把 404、其他非 200、租约头不全（`planner returned incomplete seed lease headers`）、端口 / rank 不能转为整数、端口 ≤0 或 rank <0 都折成 `None`（`planner_client.py#L69-L109`），loader 抛 `_RForkSeedUnavailable` 进「没有可用来源」分支，不打汇总（`rfork_loader.py#L619-L620`、`#L645-L651`）。端口大于 65535 不在这里被拒绝，而是在上面的 `build_seed_url` 分支抛异常并进入传输失败汇总。[C1]
 
 清单类报错的原文（拒绝点在 `validate_weight_manifest` 和 `read_weights_from_seed`，完整清单见[传输页 · 会报什么错](rfork-transfer.md#会报什么错)）：
 
@@ -391,7 +405,9 @@ title: 一个 404 是不是租约到期（示意数）
 
 ### 版本差异
 
-本页只讲用户确认的 RFork 工作版（`rfork@3284850b`）。上面的日志文本、Session、Planner 客户端和示例 Planner 都来自工作版补丁；社区版 `vllm-ascend@db701c1f` 的 RFork 目录只有 6 个文件，没有 Planner 客户端和 Session，还租约的分类与日志都不存在。社区 v0.23 / v0.26 / main 的代码对不上，逐补丁对照见[总览页](rfork.md)与[版本维护](rfork-maintenance.md)；官网写法与工作版的差异见[官网与工作版差异](../sources/rfork-official-guide.md)。
+前面的日志和示例 Planner 按工作版 `rfork@3284850b`。旧社区 GLM `db701c1f`、v0.23 `2c59ff10`、v0.26 `2ed6cbba`、main `baa023ad` 仍是六文件结构，没有本页这套 Session 与归还分类；完整对照见[总览](rfork.md#版本差异)。
+
+**rc2 的排错先增加三项检查。** 7d825229 已有 Session 和 Planner 客户端：申请失败先看成功响应是否有合法 LEASE_TTL_SEC，运行中再看 /renew_seed_lease 是否得到成功响应；持续归还日志可能是三次快重试后的慢重试，不等于总次数开关失效；初始化失败还要核 TransferEngine 是否提供 get_rpc_port。新清单与结构摘要也可能拒绝旧 seed，不能通过删除身份或格式校验强行借用。主草 seed HTTP 端口和数据端口分别检查，具体条件见[配置](rfork-config.md#版本差异)、[传输](rfork-transfer.md#版本差异)和[生命周期](rfork-lifecycle.md#版本差异)。
 
 ### 源码位置
 
@@ -412,3 +428,7 @@ title: 一个 404 是不是租约到期（示意数）
 - 示例 Planner 单元测试：`tests/ut/model_loader/rfork/test_rfork_planner.py#L103-L120`
 - 还租约默认值：`vllm_ascend/model_loader/rfork/config.py#L11-L15`
 - 日志级别：`vllm@0fc695fc:vllm/envs.py#L796`
+
+工作版的回退安全门在调用默认加载器之前检查清理结果：结果为 RForkFallbackCleanupResult 且 can_schedule_seed 为假，就保留张量持有者并拒绝再次分配模型（来源8，657–693）。看到这条错误只能说明清理未满足条件，是否已经显存不足还要查更早异常和资源记录。
+
+工作版仅在主响应缺 shape 字段时另发请求；补要遇到 Requests 异常，再检查主清单是否足够。信息不足最终记录错误并返回 None，而不是把原请求异常直接抛出函数（来源5，116–153）。取得元数据与完成权重读取仍是两个阶段。

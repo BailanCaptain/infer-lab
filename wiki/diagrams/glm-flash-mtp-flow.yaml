@@ -1,10 +1,10 @@
 layout: figure
 id: glm-flash-mtp-flow
-caption: MTP 先拼接 embedding 与隐藏向量，再经过一个预测层。下一遍接收的是 RMSNorm 后的隐藏向量和本遍选出的 token；候选数量由部署配置决定。
+caption: MTP 将两路输入分别处理后拼接，再经过一个预测层。启用 is_rot_used 时，隐藏输入先经 rot 再做 hnorm；这里两个固定 W8A8 配方都启用它。下一遍接收的是预测层后 RMSNorm 的隐藏向量和本遍选出的 token；候选数量由部署配置决定。
 size: [880, 570]
 items:
   - { at: [30, 66], size: [260, 74], text: 下一 token 的 embedding, sub: enorm：归一化, tone: token }
-  - { at: [30, 208], size: [260, 74], text: 上一位置的隐藏向量, sub: hnorm：归一化, tone: token }
+  - { at: [30, 208], size: [260, 74], text: 上一位置的隐藏向量, sub: 可选 rot → hnorm, tone: token }
   - { at: [350, 136], size: [260, 74], text: 拼接 → eh_proj, sub: embedding 在前，8192 → 4096, tone: weight }
   - { at: [350, 252], size: [260, 70], text: 预测层：稀疏 MLA → MoE, sub: 单条 residual 流，随后 TP 合并, tone: weight }
   - { at: [350, 364], size: [260, 58], text: RMSNorm, sub: 此处的隐藏向量供下一遍使用, tone: weight }

@@ -1,0 +1,23 @@
+layout: figure
+id: context-parallel-paths
+size: [880, 510]
+caption: 固定 Ascend 实现中的 attention 路径。前向准备好本轮输入与缓存元数据后，按 prefill/decode 和后端选择交换对象。普通 PCP prefill 收本层 K/V；MLA 分块 prefill 收上下文 K/V；GQA 分块 prefill 与 decode 的局部历史路径合并 O/LSE。
+items:
+  - { at: [160, 35], size: [560, 56], text: '请求逐层前向 → CP attention 后端', sub: '输入 Q/K/V 与缓存位置元数据', tone: control }
+  - { at: [30, 160], size: [240, 70], text: 'PCP 普通 prefill', sub: '非分块路径', tone: control }
+  - { at: [320, 160], size: [240, 70], text: 'MLA 分块 prefill', sub: '稀疏时只收选中块', tone: control }
+  - { at: [610, 160], size: [240, 70], text: 'GQA 分块 / decode', sub: 'decode 指局部历史路径', tone: control }
+  - { at: [30, 290], size: [240, 70], text: '收本层 K/V', sub: '本卡 Q 计算；缓冲用后释放', tone: kv }
+  - { at: [320, 290], size: [240, 70], text: '收上下文 K/V', sub: '收到后直接计算', tone: kv }
+  - { at: [610, 290], size: [240, 70], text: '收 Q → 本地历史计算', sub: '交换 O/LSE，更新完整输出', tone: comm }
+  - { at: [160, 425], size: [560, 55], text: 'attention 输出 → 后续投影与残差', tone: token }
+links:
+  - { from: [240, 91], to: [150, 160], via: [[240, 120], [150, 120]], tone: control }
+  - { from: [440, 91], to: [440, 160], tone: control }
+  - { from: [640, 91], to: [730, 160], via: [[640, 120], [730, 120]], tone: control }
+  - { from: [150, 230], to: [150, 290], tone: kv }
+  - { from: [440, 230], to: [440, 290], tone: kv }
+  - { from: [730, 230], to: [730, 290], tone: comm }
+  - { from: [150, 360], to: [240, 425], via: [[150, 395], [240, 395]], tone: token }
+  - { from: [440, 360], to: [440, 425], tone: token }
+  - { from: [730, 360], to: [640, 425], via: [[730, 395], [640, 395]], tone: token }

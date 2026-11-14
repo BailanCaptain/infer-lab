@@ -1,0 +1,99 @@
+{
+  "recorded_at": "2026-11-10T09:30:30.333088+00:00",
+  "materials": [
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/recompute/guide-2c59ff10.md",
+      "sha256": "8219591b3b9cb378ab637c94300efd00004787bfe6ba386d9d801dbe9f93d995",
+      "lines": 312,
+      "scope": "full body read; same-byte versions reused and v26 diff fully read; excludes issue comments and linked entire repos"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/recompute/guide-2ed6cbba.md",
+      "sha256": "5275ef8fc551911e20f29be82737ca77a62f8b192ea55ee2dd139bdbbd158968",
+      "lines": 312,
+      "scope": "full body read; same-byte versions reused and v26 diff fully read; excludes issue comments and linked entire repos"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/recompute/guide-7d825229.md",
+      "sha256": "8860d0478844797cb8296ccd56bbe666e8b4d82cbd123dbbec14c1fba8fa4056",
+      "lines": 322,
+      "scope": "full body read; same-byte versions reused and v26 diff fully read; excludes issue comments and linked entire repos"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/recompute/guide-921ccc52.md",
+      "sha256": "8860d0478844797cb8296ccd56bbe666e8b4d82cbd123dbbec14c1fba8fa4056",
+      "lines": 322,
+      "scope": "full body read; same-byte versions reused and v26 diff fully read; excludes issue comments and linked entire repos"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/recompute/guide-baa023ad.md",
+      "sha256": "8860d0478844797cb8296ccd56bbe666e8b4d82cbd123dbbec14c1fba8fa4056",
+      "lines": 322,
+      "scope": "full body read; same-byte versions reused and v26 diff fully read; excludes issue comments and linked entire repos"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/recompute/guide-db701c1f.md",
+      "sha256": "8219591b3b9cb378ab637c94300efd00004787bfe6ba386d9d801dbe9f93d995",
+      "lines": 312,
+      "scope": "full body read; same-byte versions reused and v26 diff fully read; excludes issue comments and linked entire repos"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/recompute/github-10742.md",
+      "sha256": "0baa65687e1a0b19edfc7088406875cef0b2d465cc120d8bd11899608ee76f10",
+      "lines": 239,
+      "scope": "full body read; same-byte versions reused and v26 diff fully read; excludes issue comments and linked entire repos"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/recompute/github-10820.md",
+      "sha256": "065cecd913bbcad5e9d743aabe561d84835c0b6378b3e24636a4058739c43be8",
+      "lines": 559,
+      "scope": "full body read; same-byte versions reused and v26 diff fully read; excludes issue comments and linked entire repos"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/recompute/github-16510.md",
+      "sha256": "d3af79d9c0cbc4a2deae7dd62d1b252f45f5b8d3425e80cd401298ddb2336a37",
+      "lines": 24,
+      "scope": "full body read; same-byte versions reused and v26 diff fully read; excludes issue comments and linked entire repos"
+    }
+  ],
+  "raw_archive": "recompute-raw-integrity.json",
+  "coverage": [
+    "four-version directory expansion: recompute/preempt guide, long-context tutorial and configuration; shared prior official inventory reused",
+    "guide old/db701/v23 same; v26 diff scheduler config and image marker; rc2/main/921 same",
+    "RFC lifecycle, budget, SWA/MTP, timing, test table and future work distinguished from actual code",
+    "MultiConnector request restore precedence and per-host memory budgets added; logs only preparation, completion and outputs separately checked"
+  ],
+  "not_claimed": [
+    "all upstream official docs read",
+    "issue/PR full comments reviewed",
+    "NPU runs or reported benchmark reproduced",
+    "planned async boundary/dedicated copy backend implemented"
+  ],
+  "additional_code_reading": [
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/recompute/7d825229-manager.py",
+      "scope": "L295–345 and L442–540 read; main/rc2 changed recovery branches compared, not whole manager full reading",
+      "sha256": "1adbc6290e31068c80dbec1e4cde3d02389ca540e182cb91be91ce683a0c40ef"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/recompute/7d825229-worker.py",
+      "scope": "L73–238, L252–292, L325–451 read; Mamba binding, events and convolution correction, not whole worker full reading",
+      "sha256": "19532826e0222b35faf1c61ed62f326263660fcf13daad2fbd8e28a48b7f110a"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/recompute/7d825229-metadata.py",
+      "scope": "full metadata file read",
+      "sha256": "ef3c26e92cbba0129b2f85a0646f48a0d558eaa6ba9aeb91230e9191ee369145"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/recompute/baa023ad-manager.py",
+      "scope": "L153–185 ratio derivation and rc2 diff read; not whole manager full reading",
+      "sha256": "d2f1641e531a3d0f43c0adc856f865405e3dacd2434f522855ff8fbb62baf332"
+    },
+    {
+      "source": "vllm-ascend@7d825229:vllm_ascend/core/kv_cache_interface.py",
+      "scope": "L1–160 read; ring helper and related definitions, not entire file"
+    }
+  ],
+  "closure": "2026-11-10T09:41:16.698820+00:00"
+}

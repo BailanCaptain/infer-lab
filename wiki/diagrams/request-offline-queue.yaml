@@ -1,0 +1,30 @@
+layout: figure
+id: request-offline-queue
+caption: 两组输入共五条的离线调用示意。默认后台引擎在接到请求后就可计算；进程内模式由调用方等待循环推进。两者最后都收齐最终结果，按提交编号返回。箭头表示调用与交接，不表示五条必须同时进入一个设备批次。
+size: [860, 665]
+items:
+  - { at: [30, 20], size: [370, 45], text: 默认：引擎在后台进程, tone: ink }
+  - { at: [460, 20], size: [370, 45], text: 进程内：由调用方推进, tone: ink }
+  - { at: [30, 100], size: [370, 75], text: 提交前三条，取得编号 0、1、2, sub: 请求立即发送到后台引擎, tone: token }
+  - { at: [460, 100], size: [370, 75], text: 提交前三条，取得编号 0、1、2, sub: 登记在本进程引擎中, tone: token }
+  - { at: [30, 245], size: [370, 75], text: 后台引擎已经可以计算, sub: 调用方此时仍可提交后两条, tone: weight }
+  - { at: [460, 245], size: [370, 75], text: 调用方再提交后两条, sub: 工作仍留在本进程引擎中, tone: control }
+  - { at: [30, 390], size: [370, 75], text: 调用方等待，接收最终输出, sub: 后台继续计算；等全部完成, tone: token }
+  - { at: [460, 390], size: [370, 75], text: 调用方等待，逐步驱动引擎, sub: 每步推进计算，再收结果, tone: token }
+  - { at: [205, 565], size: [450, 75], text: 按提交编号返回 0、1、2、3、4, sub: 假设完成顺序是 2 → 0 → 4 → 1 → 3, tone: token }
+links:
+  - { from: [215, 175], to: [215, 245] }
+  - { from: [645, 175], to: [645, 245] }
+  - { from: [215, 320], to: [215, 390] }
+  - { from: [645, 320], to: [645, 390] }
+  - { from: [215, 465], via: [[215, 515], [430, 515]], to: [430, 565] }
+  - { from: [645, 465], via: [[645, 515]], to: [430, 515] }
+pins:
+  - source: vllm@0fc695fc:vllm/entrypoints/llm.py#L487-L569
+    symbols: [enqueue, wait_for_completion]
+  - source: vllm@0fc695fc:vllm/entrypoints/offline_utils.py#L523-L626
+    symbols: [_render_and_add_requests, _run_engine]
+  - source: vllm@0fc695fc:vllm/v1/engine/core_client.py#L288-L298
+    symbols: [get_output, add_request]
+  - source: vllm@0fc695fc:vllm/v1/engine/core_client.py#L834-L874
+    symbols: [get_output, _send_input, add_request]

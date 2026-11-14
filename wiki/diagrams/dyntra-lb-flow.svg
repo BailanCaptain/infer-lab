@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 630" width="900" height="630" role="img" aria-label="左边是每组引擎每步转的一圈（主线里空闲组陪跑、隔若干步跨组同步的那一站，本部署每 32 步一次），右边是全局还有活时 DyntraLB 在这一步末尾多做的事；虚线表示计划要到下一步开头才执行。">
-  <title>左边是每组引擎每步转的一圈（主线里空闲组陪跑、隔若干步跨组同步的那一站，本部署每 32 步一次），右边是全局还有活时 DyntraLB 在这一步末尾多做的事；虚线表示计划要到下一步开头才执行。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 630" width="900" height="630" role="img" aria-label="左边是每组引擎每步转的一圈，右边是全局还有活时 DyntraLB 在这一步末尾多做的事；虚线表示计划要到下一步开头才执行。这里的 main 与 rc2 上游在第 1 步及之后每 16 步（默认可配）同步，旧部署的 32 步不能直接套入；候选被选中仍须通过后续调度检查。">
+  <title>左边是每组引擎每步转的一圈，右边是全局还有活时 DyntraLB 在这一步末尾多做的事；虚线表示计划要到下一步开头才执行。这里的 main 与 rc2 上游在第 1 步及之后每 16 步（默认可配）同步，旧部署的 32 步不能直接套入；候选被选中仍须通过后续调度检查。</title>
   <defs><marker id="dyntra-lb-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="dyntra-lb-flow-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
   <rect x="20" y="60" width="400" height="500" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="36" y="84" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">每组的 EngineCore · 每步一圈</text>
@@ -25,14 +25,14 @@
   <text x="220" y="316" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">全局还有没有活</text>
   <text x="220" y="335" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">隔若干步才真跨组同步一次</text>
   <rect x="50" y="388" width="340" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="220" y="416" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">没活了：这一波结束</text>
+  <text x="220" y="416" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">自然空闲：这一波结束</text>
   <text x="220" y="435" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">计划作废，步数归零，等新请求</text>
   <rect x="500" y="100" width="350" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="675" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这一步生效吗？</text>
   <text x="675" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">dynamic 未激活时先互报长请求标志</text>
   <rect x="500" y="196" width="350" height="56" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="675" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">准备候选</text>
-  <text x="675" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">从 P 拉 KV，没到齐的不当候选</text>
+  <text x="675" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">尝试预取 KV，排除暂未就绪者</text>
   <rect x="500" y="292" width="350" height="56" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="675" y="316" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">All-Gather 互报块数</text>
   <text x="675" y="335" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">running、候选、条数、长请求标志</text>

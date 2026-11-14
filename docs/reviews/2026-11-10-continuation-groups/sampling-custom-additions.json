@@ -1,0 +1,510 @@
+{
+  "status": "authored_pending_independent_review",
+  "new_count": 31,
+  "old_source_prefix": 247,
+  "items": [
+    {
+      "id": 1,
+      "page_id": "sampling",
+      "ref": "vllm@0fc695fc:vllm/v1/sample/logits_processor/__init__.py#L36-L155",
+      "claim": "正常非投机V1由entrypoint group发现插件；显式类/字符串走类型检查，字符串为module:Class，不是module.Class。不要把显式列表的子类检查概括为插件加载也有同一检查。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/0fc695fc/vllm/v1/sample/logits_processor/__init__.py",
+      "source_sha256": "46f02fa4e7f8dbe9fbc482e3612de9c004a8354442a689658341ef443224b017",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/root-loader-and-errors.txt",
+      "excerpt_sha256": "0526125aeb212ce805cc37aac90b457445ed56323d5ffdffd2abfa1378ffba3a",
+      "source_number": 248,
+      "scope_lines": [
+        36,
+        155
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 2,
+      "page_id": "sampling",
+      "ref": "vllm@0fc695fc:vllm/v1/sample/logits_processor/__init__.py#L158-L231",
+      "claim": "正常V1加载插件加显式配置；pooling拒绝显式非空custom；spec显式非空custom启动硬拒，显式空时仅MinTokens且不装插件；请求校验仍独立加载插件并调用class.validate_params。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/0fc695fc/vllm/v1/sample/logits_processor/__init__.py",
+      "source_sha256": "46f02fa4e7f8dbe9fbc482e3612de9c004a8354442a689658341ef443224b017",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-002.txt",
+      "excerpt_sha256": "6c4a54d600e5d731d0c3d5477070d865f595b5ee7c41402fb75346e93c942a65",
+      "source_number": 249,
+      "scope_lines": [
+        158,
+        231
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 3,
+      "page_id": "sampling",
+      "ref": "vllm@568afb3a:vllm/v1/sample/logits_processor/__init__.py#L158-L231",
+      "claim": "v0.26构建/拒绝规则与0fc相同。",
+      "read_basis": "whole_file_sha_equal_to_fully_read_0fc",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/568afb3a/vllm/v1/sample/logits_processor/__init__.py",
+      "source_sha256": "46f02fa4e7f8dbe9fbc482e3612de9c004a8354442a689658341ef443224b017",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-003.txt",
+      "excerpt_sha256": "6c4a54d600e5d731d0c3d5477070d865f595b5ee7c41402fb75346e93c942a65",
+      "source_number": 250,
+      "scope_lines": [
+        158,
+        231
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 4,
+      "page_id": "sampling",
+      "ref": "vllm@ced6857a:vllm/v1/sample/logits_processor/__init__.py#L159-L237",
+      "claim": "rc2保留相同spec硬拒与插件提前返回；请求validate_params ValueError包装为VLLMValidationError。",
+      "read_basis": "full_0fc_read_plus_exact_diff_and_new_validation_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/ced6857a/vllm/v1/sample/logits_processor/__init__.py",
+      "source_sha256": "1f9b02dae8cf6d44484638037123d3a2dec6b7b9a2bcc9afceef1a9bf3eaedec",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-004.txt",
+      "excerpt_sha256": "5d124c35a4018c071f9329267ed441900c5b218e415e7617fba51e4ae1457def",
+      "source_number": 251,
+      "scope_lines": [
+        159,
+        237
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 5,
+      "page_id": "sampling",
+      "ref": "vllm@84030bbe:vllm/v1/sample/logits_processor/__init__.py#L159-L237",
+      "claim": "main与rc2该文件逐字节同一SHA，spec硬拒与validation包装相同。",
+      "read_basis": "whole_file_sha_equal_to_read_ced_diff",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/84030bbe/vllm/v1/sample/logits_processor/__init__.py",
+      "source_sha256": "1f9b02dae8cf6d44484638037123d3a2dec6b7b9a2bcc9afceef1a9bf3eaedec",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-005.txt",
+      "excerpt_sha256": "5d124c35a4018c071f9329267ed441900c5b218e415e7617fba51e4ae1457def",
+      "source_number": 252,
+      "scope_lines": [
+        159,
+        237
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 6,
+      "page_id": "sampling",
+      "ref": "vllm@0fc695fc:vllm/v1/sample/logits_processor/interface.py#L17-L106",
+      "claim": "BatchUpdate removed→added→moved；输出历史列表为引用；None仅表示成员位置未变；apply批处理；argmax_invariant是不能改变贪心最大项的承诺；validate_params由自定义类承担。",
+      "read_basis": "whole_file_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/0fc695fc/vllm/v1/sample/logits_processor/interface.py",
+      "source_sha256": "b768670c5ff45571fd0f4673675bf7280b5e26c94fb3a7d9c817ba5f103a8086",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-006.txt",
+      "excerpt_sha256": "f791ad8bd0f03886aceeeee40e7d7769799f7c624f1a97bf4f220903cfd73a0b",
+      "source_number": 253,
+      "scope_lines": [
+        17,
+        106
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 7,
+      "page_id": "sampling",
+      "ref": "vllm@0fc695fc:vllm/v1/sample/logits_processor/state.py#L119-L165",
+      "claim": "无成员变化get_and_reset返回None；处理器按argmax_invariant分类，不能把注册顺序说成一个统一执行顺序。",
+      "read_basis": "whole_file_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/0fc695fc/vllm/v1/sample/logits_processor/state.py",
+      "source_sha256": "a96411f14362c45f839e181dcb3ac01d5b880812bccb3552fc17863b219f44ac",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-007.txt",
+      "excerpt_sha256": "19d6d8643b637798472e6e5ac74cd9bf39170b37b041ff3365522e155bd8250b",
+      "source_number": 254,
+      "scope_lines": [
+        119,
+        165
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 8,
+      "page_id": "sampling",
+      "ref": "vllm@0fc695fc:vllm/v1/sample/logits_processor/__init__.py#L234-L357",
+      "claim": "Adapter把单请求处理器包成批处理接口，按请求建状态/逐行apply；三参数旧函数需要prompt ids；该适配器不使spec组合变为支持。",
+      "read_basis": "whole_file_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/0fc695fc/vllm/v1/sample/logits_processor/__init__.py",
+      "source_sha256": "46f02fa4e7f8dbe9fbc482e3612de9c004a8354442a689658341ef443224b017",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-008.txt",
+      "excerpt_sha256": "937dbc9d3ca2c15ad6ec59b117372b6fb07a01114f266463b6180bed0ad13903",
+      "source_number": 255,
+      "scope_lines": [
+        234,
+        357
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 9,
+      "page_id": "sampling",
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_input_batch.py#L811-L829",
+      "claim": "普通生成refresh_metadata无条件逐处理器update_state(batch_update)，None时仍调用；batch有变才重建SamplingMetadata。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/0fc695fc/vllm/v1/worker/gpu_input_batch.py",
+      "source_sha256": "caeeb20f5010d74663c45f9419237191e3c0a149f4c7aa25bc1b73b1112d67ae",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-009.txt",
+      "excerpt_sha256": "5112ee18250c132994cfdf3668e3a0296c132a4881f7e7b45eb46053b44afc08",
+      "source_number": 256,
+      "scope_lines": [
+        811,
+        829
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 21,
+      "page_id": "sampling",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L567-L585",
+      "claim": "Ascend实际NPUInputBatch构造把model_config.logits_processors交给上游build_logitsprocs，故explicit custom+MTP的V1拒绝真实生效。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm-ascend/db701c1f/vllm_ascend/worker/model_runner_v1.py",
+      "source_sha256": "316acf1239813c42452a4a9602f05f8b22f41a317fbc8d0b91ab1587b54fa1dd",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-021.txt",
+      "excerpt_sha256": "769a6cf7bea06afaf0252f6ab7b1a11ec3c2e4292705286429cc5e8976bec771",
+      "source_number": 257,
+      "scope_lines": [
+        567,
+        585
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 22,
+      "page_id": "sampling",
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L546-L564",
+      "claim": "Ascend实际NPUInputBatch构造把model_config.logits_processors交给上游build_logitsprocs，故explicit custom+MTP的V1拒绝真实生效。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm-ascend/2ed6cbba/vllm_ascend/worker/model_runner_v1.py",
+      "source_sha256": "ea1e0298219833e366df9bc1340e4c3037c733e068cb155e408b76819974c20a",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-022.txt",
+      "excerpt_sha256": "150c5a782cf51c18703cb6befae266a4ad45896abea8a100bbea05aad6b5d01d",
+      "source_number": 258,
+      "scope_lines": [
+        546,
+        564
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 29,
+      "page_id": "sampling",
+      "ref": "vllm@0fc695fc:vllm/config/vllm.py#L2031-L2044",
+      "claim": "V2 unsupported检测显式配置或者已安装entrypoint插件；仅清空显式列表不规避插件检测。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/0fc695fc/vllm/config/vllm.py",
+      "source_sha256": "ba062ec38d075937b73d953059cf1d0e1b96f1474990bc6d45ed45e20ba6a336",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-029.txt",
+      "excerpt_sha256": "88a120655aec98f8e0518ab39ae3dfe7d4e6f81bc8ea4f3a104196c0a52aef99",
+      "source_number": 259,
+      "scope_lines": [
+        2031,
+        2044
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 30,
+      "page_id": "sampling",
+      "ref": "vllm@0fc695fc:vllm/config/vllm.py#L2062-L2071",
+      "claim": "实际选择V2时验证不支持项并抛ValueError，不应承诺V2支持V1自定义处理器。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/0fc695fc/vllm/config/vllm.py",
+      "source_sha256": "ba062ec38d075937b73d953059cf1d0e1b96f1474990bc6d45ed45e20ba6a336",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-030.txt",
+      "excerpt_sha256": "ebc5ccb09ae5150c8de6a43ac3d21f70fb41da5a240aaa3ba9d76b2178ced25c",
+      "source_number": 260,
+      "scope_lines": [
+        2062,
+        2071
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 31,
+      "page_id": "sampling",
+      "ref": "vllm@568afb3a:vllm/config/vllm.py#L2192-L2205",
+      "claim": "V2 unsupported检测显式配置或者已安装entrypoint插件；仅清空显式列表不规避插件检测。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/568afb3a/vllm/config/vllm.py",
+      "source_sha256": "d4c31282c664c91bee81267a2134a9609d16c33e88cc40e0f020256346510a87",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-031.txt",
+      "excerpt_sha256": "0adb38f8e05d7c54aa053f1d4c5667fee5853d4763bee636eca8ad85d9d171fd",
+      "source_number": 261,
+      "scope_lines": [
+        2192,
+        2205
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 32,
+      "page_id": "sampling",
+      "ref": "vllm@568afb3a:vllm/config/vllm.py#L2216-L2225",
+      "claim": "实际选择V2时验证不支持项并抛ValueError，不应承诺V2支持V1自定义处理器。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/568afb3a/vllm/config/vllm.py",
+      "source_sha256": "d4c31282c664c91bee81267a2134a9609d16c33e88cc40e0f020256346510a87",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-032.txt",
+      "excerpt_sha256": "06972eece3fcbc7d28129b6cd10f0c12d38111aef91f3693dd05d05c51f46f8f",
+      "source_number": 262,
+      "scope_lines": [
+        2216,
+        2225
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 33,
+      "page_id": "sampling",
+      "ref": "vllm@ced6857a:vllm/config/vllm.py#L2867-L2881",
+      "claim": "V2 unsupported检测显式配置或者已安装entrypoint插件；仅清空显式列表不规避插件检测。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/ced6857a/vllm/config/vllm.py",
+      "source_sha256": "956b812e5a719bcbfa3a3958801361b38b9c928c96b8c073311bbb96376dfb7a",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-033.txt",
+      "excerpt_sha256": "3a1943643fabb1a3bfab0af390457a52b74c7ec2195df63818a1081b76cedba6",
+      "source_number": 263,
+      "scope_lines": [
+        2867,
+        2881
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 34,
+      "page_id": "sampling",
+      "ref": "vllm@ced6857a:vllm/config/vllm.py#L3079-L3088",
+      "claim": "实际选择V2时验证不支持项并抛ValueError，不应承诺V2支持V1自定义处理器。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/ced6857a/vllm/config/vllm.py",
+      "source_sha256": "956b812e5a719bcbfa3a3958801361b38b9c928c96b8c073311bbb96376dfb7a",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-034.txt",
+      "excerpt_sha256": "118af5c5b4b4bcac8d3f3617bb17544e7f2351b0101fa6ade7241605ec440cf1",
+      "source_number": 264,
+      "scope_lines": [
+        3079,
+        3088
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 35,
+      "page_id": "sampling",
+      "ref": "vllm@84030bbe:vllm/config/vllm.py#L2661-L2670",
+      "claim": "V2 unsupported检测显式配置或者已安装entrypoint插件；仅清空显式列表不规避插件检测。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/84030bbe/vllm/config/vllm.py",
+      "source_sha256": "6e05985270e6aefc71cd397a19f0c0f4803d9ca35c9f72fff76cf31a5db05222",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-035.txt",
+      "excerpt_sha256": "f0ce21e707457904ed057ebff0f885b23aaf9cd5b9288ee688dc662d20e70c8e",
+      "source_number": 265,
+      "scope_lines": [
+        2661,
+        2670
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 36,
+      "page_id": "sampling",
+      "ref": "vllm@84030bbe:vllm/config/vllm.py#L2835-L2844",
+      "claim": "实际选择V2时验证不支持项并抛ValueError，不应承诺V2支持V1自定义处理器。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm/84030bbe/vllm/config/vllm.py",
+      "source_sha256": "6e05985270e6aefc71cd397a19f0c0f4803d9ca35c9f72fff76cf31a5db05222",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-036.txt",
+      "excerpt_sha256": "6e230182d009aeca6bc3ea9eb54b03ca23ca006d3c1da77fd234e81bc23f9625",
+      "source_number": 266,
+      "scope_lines": [
+        2835,
+        2844
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 37,
+      "page_id": "sampling",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L20",
+      "claim": "Ascend V2 env默认False；旧两版只patch选择，rc2/main在STANDARD_WORKER_PATCHES硬件保留上游校验，不能把310P跳过分支泛化A2/A3。",
+      "read_basis": "whole_file_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm-ascend/db701c1f/vllm_ascend/patch/platform/patch_use_v2_model_runner.py",
+      "source_sha256": "e0021ba98a46ceb024d4859be4969cdac1c53967915a38dbf843aa8d1b65468a",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-037.txt",
+      "excerpt_sha256": "d4acfcf56bb12133f9a9cf59533aea0bb406bb9f493488ec3a252e3a9341b3e9",
+      "source_number": 267,
+      "scope_lines": [
+        1,
+        20
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 38,
+      "page_id": "sampling",
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L20",
+      "claim": "Ascend V2 env默认False；旧两版只patch选择，rc2/main在STANDARD_WORKER_PATCHES硬件保留上游校验，不能把310P跳过分支泛化A2/A3。",
+      "read_basis": "whole_file_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm-ascend/2ed6cbba/vllm_ascend/patch/platform/patch_use_v2_model_runner.py",
+      "source_sha256": "e0021ba98a46ceb024d4859be4969cdac1c53967915a38dbf843aa8d1b65468a",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-038.txt",
+      "excerpt_sha256": "d4acfcf56bb12133f9a9cf59533aea0bb406bb9f493488ec3a252e3a9341b3e9",
+      "source_number": 268,
+      "scope_lines": [
+        1,
+        20
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 39,
+      "page_id": "sampling",
+      "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L52",
+      "claim": "Ascend V2 env默认False；旧两版只patch选择，rc2/main在STANDARD_WORKER_PATCHES硬件保留上游校验，不能把310P跳过分支泛化A2/A3。",
+      "read_basis": "actual_range_read_plus_rest_file_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm-ascend/7d825229/vllm_ascend/patch/platform/patch_use_v2_model_runner.py",
+      "source_sha256": "22a732a3dd62ed6f070c4802955f43c9c1e48c5a2117b09353aa1d26992d5265",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-039.txt",
+      "excerpt_sha256": "cadb051639a26fda4fbb933ecdbe61d3a464c7b0da7a67f4a12dfe6379927204",
+      "source_number": 269,
+      "scope_lines": [
+        18,
+        52
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 40,
+      "page_id": "sampling",
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L26-L60",
+      "claim": "Ascend V2 env默认False；旧两版只patch选择，rc2/main在STANDARD_WORKER_PATCHES硬件保留上游校验，不能把310P跳过分支泛化A2/A3。",
+      "read_basis": "actual_range_read_plus_rest_file_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm-ascend/baa023ad/vllm_ascend/patch/platform/patch_use_v2_model_runner.py",
+      "source_sha256": "cb092bbcea27f56edb3fc137e40257fb1dc48a59927bacdbddcda7333898db47",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-040.txt",
+      "excerpt_sha256": "95be56fffb39726d8f6d55f3f8edaf4a13a4e73367c05bfd1ed157c4c25eaa72",
+      "source_number": 270,
+      "scope_lines": [
+        26,
+        60
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 41,
+      "page_id": "sampling",
+      "ref": "vllm-ascend@7d825229:vllm_ascend/device/hardware_profile.py#L258-L336",
+      "claim": "A2/A3具有STANDARD_WORKER_PATCHES，310P能力集合不具有；本文A2/A3不能用310P的跳过校验分支宣称custom支持。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm-ascend/7d825229/vllm_ascend/device/hardware_profile.py",
+      "source_sha256": "efc6d0f3856be400c62b20c6a39229ccc1a2771ec4351a03328ec535824691f5",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-041.txt",
+      "excerpt_sha256": "51a39e55f84d34e716a615a4bdca0545a8f1a3957e88812d12783e315509e568",
+      "source_number": 271,
+      "scope_lines": [
+        258,
+        336
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 47,
+      "page_id": "sampling",
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L550-L565",
+      "claim": "v0.23维护分支也把配置交给上游build_logitsprocs，与GLM本次范围语义相同。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm-ascend/2c59ff10/vllm_ascend/worker/model_runner_v1.py",
+      "source_sha256": "60b10f97333df49c4bb2a6b5673d13d2d3b964056564c50681984b16fd84d049",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-047.txt",
+      "excerpt_sha256": "6bda368e0409b62e26c2cfc6d2125c777e57bf819028751ad3722c949a7fbc18",
+      "source_number": 272,
+      "scope_lines": [
+        550,
+        565
+      ],
+      "new_occurrence": true
+    },
+    {
+      "id": 48,
+      "page_id": "sampling",
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L231-L308",
+      "claim": "main A2/A3保留STANDARD_WORKER_PATCHES；310P未有，不能把跳过校验分支泛化本文硬件。",
+      "read_basis": "actual_range_read",
+      "full_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/fixed/vllm-ascend/baa023ad/vllm_ascend/device/hardware_profile.py",
+      "source_sha256": "22c3955c2b4a858d51072cf66831e914b6f34227acc8fcb42b1ba0035a10bcc4",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-candidate-048.txt",
+      "excerpt_sha256": "bdeed77626daee7f4f82a47a8314109cc1b10547253d0c25956b5481b3df023c",
+      "source_number": 273,
+      "scope_lines": [
+        231,
+        308
+      ],
+      "new_occurrence": true
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/features/custom_logitsprocs.md#L1-L468",
+      "claim": "Official integration guide fully read; batched lifecycle/loading/adapter",
+      "page_id": "sampling",
+      "source_number": 274,
+      "source_sha256": "f6a8e87ade51aaf489eca1aa7e6f714946821cab5e518c9ff7074624dd32afb9",
+      "scope_lines": [
+        1,
+        468
+      ],
+      "new_occurrence": true
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/features/custom_arguments.md#L1-L49",
+      "claim": "Official custom parameter transfer fully read",
+      "page_id": "sampling",
+      "source_number": 275,
+      "source_sha256": "a42d402b98104f3c61ad1a2162b51135395c811c7b8597d734d6e17d3c4997a3",
+      "scope_lines": [
+        1,
+        49
+      ],
+      "new_occurrence": true
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/design/logits_processors.md#L1-L571",
+      "claim": "Official batch state design fully read",
+      "page_id": "sampling",
+      "source_number": 276,
+      "source_sha256": "4d55b77d8fd25b750c9d0ada2a280e91ddbd07dbf226ddbadedf0cd89c0a6b2c",
+      "scope_lines": [
+        1,
+        571
+      ],
+      "new_occurrence": true
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L859-L861",
+      "claim": "Actual CLI hyphenated name",
+      "page_id": "sampling",
+      "source_number": 277,
+      "source_sha256": "3ade2488897d08b5c1fd4ddb815eb5743169907d59741a47867185caab7f250d",
+      "scope_lines": [
+        859,
+        861
+      ],
+      "new_occurrence": true
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/protocol.py#L613-L616",
+      "claim": "vllm_xargs into extra_args; existing85 supplies SamplingParams consumer",
+      "page_id": "sampling",
+      "source_number": 278,
+      "source_sha256": "c4bfefd3ae9898b77fbe075fe1719d33b4d4f57a14ab75aff818b05b64d8c9ac",
+      "scope_lines": [
+        613,
+        616
+      ],
+      "new_occurrence": true
+    }
+  ],
+  "consumer_readscope": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-source-recommendation.json"
+}

@@ -1,0 +1,65 @@
+{
+  "before": {
+    "wiki/concepts/api-server-entry.md": "6c8d61985a9d14073f16f418c5625acc37fe5c5a0c62124b9a44cb502e23564b",
+    "wiki/concepts/streaming-output.md": "485254831eeddf2d6784c5634837c64eff9d8232f57c71b6b2fef29e9086ae60",
+    "wiki/concepts/sampling.md": "a7d6a09f412f8419fcce9b8cb16564e78abc20dea5eb552f7bdc283713b2d9f1",
+    "wiki/concepts/structured-output.md": "aee7bfb9c68fe3039857cbbe6769acf76d715e16f8284f725d0e1b5c830e7ffb",
+    "wiki/concepts/acl-graph.md": "d1529ff09b753ce89344c513ab0ca2ce9626326ecebf70f7badab4d1bdd5dc49",
+    "wiki/concepts/mooncake-connector.md": "e056c4fba4c6ae3b9c0b2c4ae0298a237633babc21bf04eaf6d618d778e2b140",
+    "wiki/concepts/kv-cache-layerwise-offload.md": "b439ec4ef3c174aab9e55e40c8f8a960fb6fb3128754fc2a05693ce8edd79324",
+    "wiki/concepts/pd-disaggregation.md": "c490e510f61b747aab3d37a235ce23504f1a0b323fe0d862fe76933f417d77c5"
+  },
+  "after": {
+    "wiki/concepts/api-server-entry.md": "6c8d61985a9d14073f16f418c5625acc37fe5c5a0c62124b9a44cb502e23564b",
+    "wiki/concepts/streaming-output.md": "485254831eeddf2d6784c5634837c64eff9d8232f57c71b6b2fef29e9086ae60",
+    "wiki/concepts/sampling.md": "a7d6a09f412f8419fcce9b8cb16564e78abc20dea5eb552f7bdc283713b2d9f1",
+    "wiki/concepts/structured-output.md": "aee7bfb9c68fe3039857cbbe6769acf76d715e16f8284f725d0e1b5c830e7ffb",
+    "wiki/concepts/acl-graph.md": "d1529ff09b753ce89344c513ab0ca2ce9626326ecebf70f7badab4d1bdd5dc49",
+    "wiki/concepts/mooncake-connector.md": "e056c4fba4c6ae3b9c0b2c4ae0298a237633babc21bf04eaf6d618d778e2b140",
+    "wiki/concepts/kv-cache-layerwise-offload.md": "b439ec4ef3c174aab9e55e40c8f8a960fb6fb3128754fc2a05693ce8edd79324",
+    "wiki/concepts/pd-disaggregation.md": "c490e510f61b747aab3d37a235ce23504f1a0b323fe0d862fe76933f417d77c5"
+  },
+  "stable": true,
+  "checks": [
+    {
+      "command": "pnpm check:content",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/lifecycle-current-content.log",
+      "sha256": "d82a6ecbb6e8b94d64d790401b2004a5bffd24533d2656c5ac60cd1aed82e469",
+      "started_at": "2026-11-10T13:36:54.079345+00:00",
+      "finished_at": "2026-11-10T13:36:54.719655+00:00"
+    },
+    {
+      "command": "pnpm wiki:lint",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/lifecycle-current-lint.log",
+      "sha256": "12a38ca2de3576d77e66c68b575c0d7ef28bf24e5f458d866ee253fc6385891d",
+      "started_at": "2026-11-10T13:36:54.719655+00:00",
+      "finished_at": "2026-11-10T13:37:13.904170+00:00"
+    },
+    {
+      "command": "pnpm wiki:audit",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/lifecycle-current-audit.log",
+      "sha256": "6cbbd3b5ac31c09faa5dff241e2e2aa715fe4d61b9cfac20b477423a3e6c4109",
+      "started_at": "2026-11-10T13:37:13.904170+00:00",
+      "finished_at": "2026-11-10T13:37:36.358622+00:00"
+    },
+    {
+      "command": "pnpm wiki:diagrams --check",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/lifecycle-current-diagrams.log",
+      "sha256": "d889a13f3eec99f4f1dcde11114b91f17c198d013afdaaff96a32ce0daaff498",
+      "started_at": "2026-11-10T13:37:36.358622+00:00",
+      "finished_at": "2026-11-10T13:37:38.211322+00:00"
+    },
+    {
+      "command": "pnpm build",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/lifecycle-current-build.log",
+      "sha256": "4fbdef71de435f84f8762472305e3f0c4301ff436fceaa173a0c7401b3c8cabd",
+      "started_at": "2026-11-10T13:37:38.211322+00:00",
+      "finished_at": "2026-11-10T13:37:56.228038+00:00"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+layout: figure
+id: context-parallel-ulysses
+size: [880, 680]
+caption: Ulysses 的位置/头布局交换。每个格表示“4 个位置 × 1 个头”的数据块，行标签是位置范围，列标签是头编号。实色是本卡持有，虚线是本卡没有；从位置分工换成头分工，attention 后再恢复位置分工。
+frames:
+  - { at: [20, 70], size: [840, 120], label: '① Q/K/V 投影后：每卡 4 个位置 × 全部 4 头' }
+  - { at: [20, 290], size: [840, 120], label: '② All-to-All 后：每卡全部 8 个位置 × 2 头' }
+  - { at: [20, 510], size: [840, 120], label: '③ attention 后反向交换：输出恢复位置分片' }
+grids:
+  - at: [125, 108]
+    rows: 2
+    cols: 4
+    cell: [48, 28]
+    tone: token
+    rowLabels: ['位置0～3', '位置4～7']
+    colLabels: ['头0', '头1', '头2', '头3']
+    cells: [{ at: [1, 0], style: ghost }, { at: [1, 1], style: ghost }, { at: [1, 2], style: ghost }, { at: [1, 3], style: ghost }]
+  - at: [555, 108]
+    rows: 2
+    cols: 4
+    cell: [48, 28]
+    tone: token
+    rowLabels: ['位置0～3', '位置4～7']
+    colLabels: ['头0', '头1', '头2', '头3']
+    cells: [{ at: [0, 0], style: ghost }, { at: [0, 1], style: ghost }, { at: [0, 2], style: ghost }, { at: [0, 3], style: ghost }]
+  - at: [125, 328]
+    rows: 2
+    cols: 4
+    cell: [48, 28]
+    tone: token
+    rowLabels: ['位置0～3', '位置4～7']
+    colLabels: ['头0', '头1', '头2', '头3']
+    cells: [{ at: [0, 2], style: ghost }, { at: [0, 3], style: ghost }, { at: [1, 2], style: ghost }, { at: [1, 3], style: ghost }]
+  - at: [555, 328]
+    rows: 2
+    cols: 4
+    cell: [48, 28]
+    tone: token
+    rowLabels: ['位置0～3', '位置4～7']
+    colLabels: ['头0', '头1', '头2', '头3']
+    cells: [{ at: [0, 0], style: ghost }, { at: [0, 1], style: ghost }, { at: [1, 0], style: ghost }, { at: [1, 1], style: ghost }]
+  - at: [125, 548]
+    rows: 2
+    cols: 4
+    cell: [48, 28]
+    tone: token
+    rowLabels: ['位置0～3', '位置4～7']
+    colLabels: ['头0', '头1', '头2', '头3']
+    cells: [{ at: [1, 0], style: ghost }, { at: [1, 1], style: ghost }, { at: [1, 2], style: ghost }, { at: [1, 3], style: ghost }]
+  - at: [555, 548]
+    rows: 2
+    cols: 4
+    cell: [48, 28]
+    tone: token
+    rowLabels: ['位置0～3', '位置4～7']
+    colLabels: ['头0', '头1', '头2', '头3']
+    cells: [{ at: [0, 0], style: ghost }, { at: [0, 1], style: ghost }, { at: [0, 2], style: ghost }, { at: [0, 3], style: ghost }]
+texts:
+  - { at: [220, 28], text: '卡 0', anchor: middle, strong: true }
+  - { at: [650, 28], text: '卡 1', anchor: middle, strong: true }
+  - { at: [440, 223], text: '卡 0 把位置 0～3 的头 2、3 发给卡 1', anchor: middle, tone: comm }
+  - { at: [440, 248], text: '卡 1 把位置 4～7 的头 0、1 发给卡 0', anchor: middle, tone: comm }
+  - { at: [440, 443], text: '各卡完成自己两个头的 attention，再把输出按位置发回', anchor: middle, tone: comm }
+  - { at: [440, 468], text: '位置编号与因果掩码保持一致，头数没有增加', anchor: middle, note: true }
+  - { at: [440, 662], text: '[4, 4, d] → [8, 2, d] → [4, 4, d]；d 为每个头的通道数', anchor: middle, note: true }
+links:
+  - { from: [840, 190], to: [840, 290], tone: comm }
+  - { from: [840, 410], to: [840, 510], tone: comm }

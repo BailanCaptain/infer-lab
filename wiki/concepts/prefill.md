@@ -1,52 +1,115 @@
 ---
 id: prefill
-title: "Prefill 与 Decode：提示词怎样一步算完，回答怎样接着往下写"
+title: Prefill 与 Decode：提示词怎样处理，回答怎样接着往下写
 type: concept
-summary: Prefill 是一条请求的第一步，把提示词里已知的全部位置一次送进模型，为每个位置留下历史，并用最后一个位置选出回答的第一个 token；之后每一步是 decode，在已有历史上接着往后写。两者用同一套权重，区别在送进来的是什么、有没有历史可读、调度与执行分支怎样走。
-aliases: [Prefill, Decode, 预填充, 解码, 首 token 阶段, prompt 阶段, prefill 阶段, P 阶段, D 阶段, TTFT, TPOT, 首 token 延迟]
-chapters: ["05"]
+summary: >-
+  Prefill 处理提示词中尚未计算的位置并建立历史，可以一轮完成，也可以跨多轮；处理完成后，用最后一个位置选出回答的第一个 token。随后 decode
+  在已有历史上接着生成。两者用同一套权重，区别在输入位置的用途、已有历史以及调度与执行分支。
+aliases:
+  - Prefill
+  - Decode
+  - 预填充
+  - 解码
+  - 首 token 阶段
+  - prompt 阶段
+  - prefill 阶段
+  - P 阶段
+  - D 阶段
+  - 首 token 延迟
+  - prompt_logprobs
+  - prompt logprobs
+  - 提示词概率
+  - 提示词对数概率
+chapters:
+  - '05'
 sources:
-  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json
-  - https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L400-L416
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L680-L700
-  - vllm@0fc695fc:vllm/config/scheduler.py#L70-L84
-  - vllm@0fc695fc:vllm/config/scheduler.py#L259-L271
-  - vllm@0fc695fc:vllm/v1/engine/input_processor.py#L395-L432
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L838-L856
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1444-L1471
-  - vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L147-L152
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2915-L2941
-  - vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L306-L327
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L590-L644
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1262-L1307
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2326-L2327
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1075-L1099
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2632-L2686
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2738-L2742
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472
-  - vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L428-L436
-  - vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L566-L574
-  - vllm@84030bbe:vllm/config/scheduler.py#L70-L72
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1477-L1505
-  - vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1327-L1355
-  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L1662-L1690
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L434-L515
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L400-L416'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L680-L700'
+  - 'vllm@0fc695fc:vllm/config/scheduler.py#L70-L84'
+  - 'vllm@0fc695fc:vllm/config/scheduler.py#L259-L271'
+  - 'vllm@0fc695fc:vllm/v1/engine/input_processor.py#L395-L432'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L838-L856'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1444-L1471'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L147-L152'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2915-L2941'
+  - 'vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L306-L327'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L590-L644'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1262-L1307'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2326-L2327'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1075-L1099'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2632-L2686'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2738-L2742'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472'
+  - 'vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L428-L436'
+  - 'vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L566-L574'
+  - 'vllm@84030bbe:vllm/config/scheduler.py#L70-L72'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1477-L1505'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1327-L1355'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L1662-L1690'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L434-L515'
+  - >-
+    raw:sha256-08c5c80fd562026f77c85a102ffd4cedae609ed7d2c5faa5498ec73d556ed625.md#L1-L700
+  - 'vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L525-L590'
+  - 'vllm@0fc695fc:vllm/sampling_params.py#L262-L288'
+  - 'vllm@0fc695fc:vllm/sampling_params.py#L478-L484'
+  - 'vllm@0fc695fc:vllm/sampling_params.py#L713-L773'
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L5399-L5509'
+  - 'vllm@568afb3a:vllm/v1/worker/gpu_model_runner.py#L5562-L5679'
+  - 'vllm@84030bbe:vllm/v1/worker/gpu_model_runner.py#L5608-L5725'
+  - 'vllm@0fc695fc:vllm/v1/engine/logprobs.py#L121-L206'
+  - 'vllm@0fc695fc:vllm/logprobs.py#L100-L206'
+  - 'vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/protocol.py#L110-L155'
+  - 'vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/protocol.py#L577-L630'
+  - 'vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/protocol.py#L693-L723'
+  - 'vllm@0fc695fc:vllm/entrypoints/openai/completion/protocol.py#L275-L333'
+  - 'vllm@0fc695fc:vllm/entrypoints/openai/completion/protocol.py#L409-L437'
+  - 'vllm@0fc695fc:vllm/entrypoints/openai/completion/protocol.py#L476-L540'
+  - 'vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L475-L487'
+  - 'vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L217'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2769-L2773'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L2712-L2716'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L3131-L3135'
+  - 'vllm@ced6857a:vllm/engine/arg_utils.py#L2794-L2834'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L1308-L1324'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L2370-L2385'
+  - 'vllm@568afb3a:vllm/engine/arg_utils.py#L2514-L2531'
+  - 'vllm@84030bbe:vllm/engine/arg_utils.py#L2773-L2788'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
-  - { to: one-request, kind: builds-on, note: R1 的 prefill 与 decode 两圈、每卡形状、块号和通信都只在那一页推导，本页只引结论 }
-  - { to: attention-qkv, kind: builds-on, note: 因果掩码决定一次送进去的多个位置各能看到哪些历史 }
-  - { to: glm-5-3-flash-two-node, kind: builds-on, note: 每步 8192 个位置、32 条请求、MTP 3 个候选等部署取值的出处 }
+  - to: one-request
+    kind: builds-on
+    note: R1 的 prefill 与 decode 两圈、每卡形状、块号和通信都只在那一页推导，本页只引结论
+  - to: attention-qkv
+    kind: builds-on
+    note: 因果掩码决定一次送进去的多个位置各能看到哪些历史
+  - to: glm-5-3-flash-two-node
+    kind: builds-on
+    note: 每步 8192 个位置、32 条请求、MTP 3 个候选等部署取值的出处
+  - to: token
+    kind: builds-on
+    note: Prefill 与 decode 按 token 所占的序列位置组织计算，依赖 token 页定义的分词、编号与位置概念。
 contradicts: []
-updated: "2026-09-29"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-08c5c80fd562026f77c85a102ffd4cedae609ed7d2c5faa5498ec73d556ed625.md
+  - >-
+    raw/sha256-25219c3037f780c50966b146e2d9ae82e574fdca65a6362f6dec23d8d7a1bfea.md
 ---
 
 ## 回答的第一个字出来之前，模型在算什么？
 
-**prefill（预填充）是一条请求的第一步：把整段提示词一次送进模型算完，给提示词里每个 token 留下后面还要读的中间结果，并用最后一个 token 的输出选出回答的第一个 token。之后的每一步叫 decode（解码）：只送进上一步刚选出的那个 token，在已经留下的结果上接着往后写。**
+**prefill（预填充）是处理请求的提示词、建立后续计算所需历史状态的阶段。一轮可以处理多个尚未计算的位置，提示词也可以分多轮处理；处理完成后，用最后一个提示词位置的输出选出第一个生成 token。随后进入 decode（解码）阶段：在普通自回归路径中，通常每轮把上一步刚选出的 token 送进模型，在已有历史状态上计算它所在的位置，再选出下一个输出 token。**
 
 先说清两个词。token 是分词器（把文字切成小段的程序）切出的最小单位，一段提示词被切成若干个 token，每个 token 占一个**位置**。**历史**是模型为每个已经算过的位置留在显存里的中间结果，后面的位置要反复读它。模型每一层都有一步 [attention](attention-qkv.md)（注意力：每个位置按相关程度去读自己和前面各位置的信息），普通模型为此给每个位置存下 K、V 两个向量，供后面的位置来查、来读，这份存储叫 [KV cache](kv-cache.md)；GLM 有两类层：一类按位置往后追加这类历史，另一类每条请求只存一份固定大小的状态、原地更新，两类各是哪些层到 GLM 一节再点名。下文把两类统称为历史。
 
@@ -54,7 +117,7 @@ origin: direct
 file: prefill
 ```
 
-图按时间从左往右走，画的是最普通的情况：不分块、不复用别的请求的开头、不猜候选。
+图按时间从左往右走，画的是最普通的生成情况：不分块、不复用别的请求的开头、不猜候选，也没有要求额外的提示词概率记录。
 
 - **第 1 步，4 个位置一起进去。** 提示词的 4 个 token 早就知道了，可以并排送进同一次前向（从输入 token 算到输出分数的一次完整计算），一起走完所有层。一起进去不等于互相乱看：attention 里的 **causal mask**（因果掩码，挡住每个位置后面的位置）让位置 i 只能看到 0 到 i，位置 0 只看自己，位置 3 看全部 4 个，规则见 [causal mask](attention-qkv.md#因果掩码限定每个位置能访问的历史)。
 - **只有最后一个位置拿去选词。** 位置 3 已经读过整段提示词，它的输出用来预测提示词之后的第一个 token：先做词表投影（把这个位置走完最后一层得到的那排数，叫隐藏向量，变成词表里每个词的分数），再按请求的采样设置选出一个，得到 y₀。前 3 个位置的输出不用来选词，它们这一步真正留下的是写进历史的那几份结果。
@@ -70,6 +133,8 @@ file: prefill
 
 一步里的开销分两类。一类跟送进几个位置走：送进几个位置，就要做几份乘加。另一类每步都要付一遍，跟送进几个位置无关：每一步都要把模型的所有层从头到尾走一遍，走一层，这一层的权重就要从设备内存（卡上的显存）读进计算单元；调度器要先定下这一步算谁，再把一长串算子（矩阵乘、加法这类一个个的计算操作）逐个交给做计算的卡；模型切在多张卡上时，每层还要在卡间交换数据。拿一条提示词 6000 个 token、要回答 200 个 token 的请求来数（数为示意）：
 
+下面比较逐个位置处理与将全部提示词安排在一轮处理的两种示意方式。若预算使这条提示词实际分成多块，就需要跨多轮提示词计算才能走到第一个输出；这种按预算分轮处理的机制叫 chunked prefill。分块情况下不能直接套用下面“一步处理全部 6000 个位置”的计数；每轮处理多少位置，要按实际调度安排计算。
+
 ```calc
 title: 提示词 6000 个 token、回答 200 个 token：各走几步，一步送进几个位置（示意）
 一个一个喂，走到回答的第 1 个 token = 6000 步
@@ -78,17 +143,17 @@ title: 提示词 6000 个 token、回答 200 个 token：各走几步，一步�
 > 这一步送进全部 6000 个位置
 每片权重要和几个提示词位置相乘 = 6000 个
 > 两种喂法一样多：逐个喂是 6000 步 × 每步 1 个，prefill 是 1 步 × 6000 个
-逐个喂，每片权重从显存读进来 = 6000 遍
-> 按每步读一遍算；算子下发、卡间交换也各是 6000 遍
-合成一步 prefill，每片权重从显存读进来 = 1 遍
-> 算子下发、卡间交换也各只要 1 遍
+逐个喂，理想每轮读一次所参与权重 = 6000 轮
+> 这是权重复用模型；每轮重复组织前向及对应通信
+合成一步，理想批内充分复用 = 1 轮
+> 不表示每个算子只有一次下发或一次物理通信
 之后的 decode = 200 − 1 = 199 步
 > 每步只送进上一步选出的 1 个 token
 prefill 一步 ÷ decode 一步 = 6000 ÷ 1 = 6000 倍
 > 按一步送进的位置数比
 ```
 
-所以合成一步省的不是计算量：6000 个位置该做的乘加一份也没少，attention 里每个位置该读的前文也一样多。省下的是按步付的那几笔：权重读进来的遍数、算子下发的遍数、卡间交换的遍数，都从 6000 遍变成 1 遍。
+合成一步保留了这些位置所需的数学计算，也增加了批内复用权重、分摊调用开销的机会。上面的 6000 轮与 1 轮是调度与理想复用的对照，不能等同为真实 HBM 读取次数或物理通信次数；各层可采用不同分块、缓存和融合实现。
 
 prefill 和 decode 要分开讲，就是因为这两种步子宽窄差得这么远：一个一步送进几千个位置，一个一步只送进 1 个。宽窄不同，代价落在哪里、卡在哪里也不同。先看 prefill 这一头，代价落在三处：
 
@@ -109,9 +174,9 @@ title: 每步预算 2048 个位置时，6000 个位置的提示词分几步算�
 
 分块以后，那 12 条 decode 请求每一步都照常拿到下一个 token，同一步最多只陪 2036 个提示词位置一起算；代价是新请求的首 token 要等第 3 段算完。
 
-decode 的处境正好相反。每步只有几个新位置，矩阵很小，但所有层和每步的固定开销一次也省不了，一步只出 1 个 token 很不划算。常见的对策是把很多条请求攒进同一步，像上面那 12 条一样一起走；或者用 [speculative decoding](speculative-decoding.md)（投机解码：先用便宜的办法草拟几个候选 token，下一步由主模型一次验证，猜对几个就多出几个）。衡量 decode 的指标是 TPOT（time per output token，相邻两个输出 token 的间隔），它受同一步里有多少请求、有没有混进别人的 prefill 影响。
+decode 的处境正好相反。每步只有几个新位置，矩阵很小，但所有层和每步的固定开销一次也省不了，一步只出 1 个 token 很不划算。常见的对策是把很多条请求攒进同一步，像上面那 12 条一样一起走；或者用 [speculative decoding](speculative-decoding.md)（投机解码：先用便宜的办法草拟几个候选 token，下一步由主模型一次验证，猜对几个就多出几个）。衡量输出推进时，要区分 ITL（相邻两个输出 token 的间隔）与请求级 TPOT（首个输出之后的平均每 token 时间）；它们都受同批请求与混入的 prefill 影响。统一的计时事件、平均权重和片段合并口径见[推理测量](inference-benchmarking.md#先把一个请求的几种等待分开)。
 
-两种步子还卡在不同的地方。上面说合成一步省的是读权重的遍数，换个角度看：一片权重读进计算单元一遍以后，要和这一步送进来的每一行（一个位置一行）各做一遍乘加，行数越多，每读 1 字节权重配的运算越多。[矩阵乘页](matmul-and-weights.md#同一片权重为什么能处理多行输入)演过这个口径：权重每个数占 1 字节时，每字节配 2 × 行数 次运算；再拿它和设备自己的「每秒运算数 ÷ 每秒可读字节数」比，低于这个比值，乘加早早做完、在等权重送到，叫带宽受限；高于它，权重来得及、乘加做不完，叫算力受限。沿用那里的示意比值 100 次/B：
+两种步子的形状也会改变潜在瓶颈。按权重理想只读一遍且在批内复用的模型，行数越多，每字节权重对应的乘加越多。[矩阵乘页](matmul-and-weights.md#同一片权重为什么能处理多行输入)演过这个口径：权重每个数占 1 字节时，每字节配 2 × 行数 次运算。与设备“每秒运算数 ÷ 每秒可读字节数”的比值比较，可以判断这个简化模型更受带宽还是算力上限约束；它没有计入实际输入输出流量、缓存与通信，不能单独判定真实瓶颈。沿用示意比值 100 次/B：
 
 ```calc
 title: 同一片权重，每读 1 字节配几次运算（示意：按每步只读一遍权重算，设备比值取 100 次/B）
@@ -125,7 +190,7 @@ decode 一步 = 2 × 1 = 2 次/B
 > 12 行，是单条的 12 倍，仍低于 100
 ```
 
-这里只算了权重的字节；行一多，输入和输出本身也要搬，真实比值会比表里低，要按真实形状去算（见矩阵乘页）。但真实模型的权重每片有几千乘几千个数，几千行的 prefill 仍远在设备比值之上，偏算力受限的方向不变。所以 prefill 容易形成大矩阵乘，常常受算力限制；decode 每步算得少，却要读权重和历史，更容易受访存和每步固定开销限制。这是按两种步子的形状推出来的倾向，具体卡在哪里还取决于批大小、模型结构、量化和设备，要实测才能定。
+这里只算了理想权重流量。输入、输出和历史也要搬，权重还可能被重复加载或命中缓存，因此真实算术强度要按实际流量重算。较宽的 prefill 更容易形成大矩阵乘；decode 每条请求新位置少，更容易受访存和每步固定开销影响。这只是形状给出的倾向，具体瓶颈还取决于批大小、模型结构、量化、内核和设备，须实测确认。
 
 模型里有 [MoE](moe.md) 层（mixture of experts，混合专家：普通层里每个位置都要过同一段前馈计算，叫 MLP；MoE 层把它换成很多份并排的 MLP，叫专家，每个 token 只挑其中几个来算）时还要多想一步。decode 每步读的是这一步被选中的那些专家的权重：批小时只占全部专家的一小部分，批一大、token 一多，几乎每个专家都会被选中，读的也就接近全部。所以不能笼统地说 decode 每步都读全部专家，也不能说它总是只读一小部分。prefill 这头也不能把上面的 6000 行直接套到专家权重上：每个专家只分到路由给它的那些行。比如共 64 个专家、每个 token 挑 2 个（示意），6000 个 token 平均每个专家分到 6000 × 2 ÷ 64 ≈ 188 行，比整步的 6000 行少得多，但仍远多于 decode 的几行。
 
@@ -137,6 +202,27 @@ decode 一步 = 2 × 1 = 2 次/B
 | chunked prefill | 同一条请求的 prefill 分几步做，只有最后一段产出首 token |
 | prefix caching | 开头和之前请求相同的一段直接复用历史，prefill 只算剩下的，见 [prefix caching](prefix-caching.md) |
 | PD 分离 | prefill 和 decode 放在不同执行组（各用一组卡），中间传历史，见 [PD 分离](pd-disaggregation.md) |
+
+这里的前缀复用以已有历史状态兼容为条件，相同的开头文本本身不足以说明可以复用。复用减少了需要重新计算的提示词位置；剩余位置仍属于提示词处理，不会因此变成生成输出。
+
+## 提示词已经给定，为什么还要算它的概率？
+
+**提示词概率是在每个已有位置旁边补一份评分：给定前面的内容，模型原本有多可能接出当前这枚 token。** 例如比较两种提示词写法时，除了看最终回答，也可能想观察模型在哪个位置觉得接下来的词不常见。它不重新生成或改写提示词，也不是回答正确率；概率与自然对数的换算统一见[采样页](sampling.md#对数概率怎样读为什么不是置信度百分比)。
+
+沿用前图的四个已知 token，位置 i 的隐藏向量只能用于预测 i+1，不能用已经看过 xᵢ 的向量给 xᵢ 自己评分。开启记录后，会额外拿前三个隐藏向量做词表投影，再从各排分布中取出实际下一枚提示词 token 的值；最后一个隐藏向量仍用来预测回答的第一个 token。
+
+| 要记录的位置 | 用哪一排分数 | 实际取哪个编号 |
+|---|---|---|
+| x₀ | 本次输入内没有前一个位置 | 普通返回列表首项为空，没有这项条件概率 |
+| x₁ | h₀ 投影出的分布 | x₁ 的编号 |
+| x₂ | h₁ 投影出的分布 | x₂ 的编号 |
+| x₃ | h₂ 投影出的分布 | x₃ 的编号 |
+
+例如 h₀ 对应前文六词示意的原始分布，而 x₁ 恰是“你”，就取“你”的约 0.233，存它的自然对数约 −1.457；不会因为“猫”分数更高就把已知 x₁ 改成“猫”。请求前几名时，还会附上该位置的候选记录；数量为 0 仍保留实际提示词 token 的评分。这里的首项指分词及模板处理之后真正进入模型的第一枚 token，可能是特殊 token，不一定是用户输入的第一个汉字。
+
+这项记录增加的是词表投影、整词表归一化和结果搬回，而非再做一遍全部模型层。提示词很长时，额外投影的行数很多，即使只返回实际 token 的值，也不能省去产生这排分布的计算。分块处理会逐段收集，直到提示词完成才交出整份记录；不是每个小块都作为一条独立的提示词响应。
+
+已有 KV cache 只保留后续前向要用的历史，不保存每个位置的完整词表分布。因此按默认派生规则，请求提示词概率时会跳过已有前缀缓存的读取，包括数量为 0 的请求；这不等于全局关闭缓存，也不等于禁止写入缓存。共享与命中机制继续见 [prefix caching](prefix-caching.md#哪些块能被共享)。
 
 ## 落到 GLM 双机：R1 的第一步怎样成了 prefill
 
@@ -152,7 +238,7 @@ decode 一步 = 2 × 1 = 2 次/B
 
 首屏说 GLM 有两类层，这里点名：模型主体的 45 层里，34 层是 KDA（Kimi Delta Attention，一种 [linear attention](linear-attention.md)：每条请求只存一份固定大小的状态，每来一个位置就原地更新），11 层是稀疏 MLA（MLA 把 K、V 压成一条较短的向量，按位置往后追加着存；「稀疏」指每个 query 只挑一部分历史位置来读，挑哪些由一个便宜的打分网络 indexer（索引器）决定，见 [sparse attention](sparse-attention.md)）。
 
-上一节那几笔账换成本部署的数是这样。每一步都要把模型的 45 层走一遍；卡与卡之间交换数据靠 [collective communication](collective-communication.md)（集合通信：一组卡一起参与的数据交换，比如 All-Reduce 把各卡的部分结果加起来，让每张卡都拿到总和），哪怕 R1 只有 4 个 token，它的一步也要让每张卡做 218 次，账见[一次前向的通信账](one-request.md#一次前向的通信账)。一条 6000 个 token 的提示词要是一个一个喂，这 45 层和 218 次通信要付 6000 遍；prefill 把 6000 个位置放进同一步，只付一遍。decode 这头同样省不掉 45 层和 218 次通信，本部署的对策是 MTP：decode 每步每条请求送进 1 个确定的 token 加 3 个候选，共 1 + 3 个位置。上一节表里那几个相邻概念，本部署默认开启 chunked prefill，默认关闭 prefix caching，也没有用 PD 分离；后两者只作变体了解。
+上一节那几笔账换成本部署的数是这样。每一步都要把模型的 45 层走一遍；卡与卡之间交换数据靠 [collective communication](collective-communication.md)（集合通信：一组卡一起参与的数据交换，比如 All-Reduce 把各卡的部分结果加起来，让每张卡都拿到总和），哪怕 R1 只有 4 个 token，它的一步也要让每张卡做 218 次，账见[一次前向的通信账](one-request.md#一次前向的通信账)。一条 6000 个 token 的提示词如果逐位置执行，就需要推进 6000 轮模型计算。prefill 可以在一轮安排多个尚未计算的位置，减少逐位置执行时反复走模型和发起通信的轮数；但它不保证把整条提示词放进同一步。采用 chunked prefill 时，尚未完成的提示词会分配到多轮调度，每轮处理其中一部分位置，并更新请求的计算进度。因此，不能直接把 R1 一次前向的 218 次通信当作这条提示词完整 prefill 的总通信次数；这笔总账还取决于实际分成多少轮，以及各轮采用的执行路径。decode 这头同样省不掉 45 层和 218 次通信，本部署的对策是 MTP：decode 每步每条请求送进 1 个确定的 token 加 3 个候选，共 1 + 3 个位置。上一节表里那几个相邻概念，本部署默认开启 chunked prefill，默认关闭 prefix caching，也没有用 PD 分离；后两者只作变体了解。
 
 一步之内，「这是 prefill」这件事在几个地方分别被认出来，下图按请求主线的站号（[一条请求](one-request.md)页把一次请求拆成的 7 站）排好先后：
 
@@ -188,6 +274,8 @@ R1 第 2 步 = 应算 (5 + 3) − 已算 4 = 4
 
 第四个标签 PrefillCacheHit 只在关掉 chunked prefill 时才会被选到，本部署不出现。这几个标签是昇腾后端自己的分类；上游调度器仍然只有上面那一条规则。runner 还顺带记下一个「这一步含不含 prefill」的判断：只要标签不是纯 decode 的那两种，就算含 prefill。
 
+单次只处理一个提示词位置时，这个位置仍属于 prefill；输入宽度与请求语义阶段是两个判断。注意力状态标签描述整批的执行方式。在未启用 MTP 的变体中，整批不满足“每条请求都还没算过任何位置”，且每条请求本轮都只安排一个位置时，会进入纯单位置执行分支；其中仍可包含正在处理最后一个提示词位置的请求。本部署启用了 MTP，同样的输入条件会选用前述投机解码标签。
+
 除了贴标签，runner 还要给每个位置算好位置号和写历史的格号（slot）。按位置存的历史（稀疏 MLA 和它的 indexer 那一类）按格号写：prefill 一次给 4 个位置各算一格，decode 同样给本步的 4 个位置各算一格，两种步用的是同一套办法，差别在后面怎样读。KDA 的状态不按位置格号写，而是按请求的状态槽原地更新。这些张量的具体取值见[第 3 站](one-request.md#第-3-站-准备输入一份计划发给-8-个-worker)。
 
 ### ④ 前向：同一套 45 层，执行方式和读写历史的方式不同
@@ -205,7 +293,7 @@ R1 第 2 步 = 应算 (5 + 3) − 已算 4 = 4
 
 runner 按每条请求在这一批里的结束位置减 1 找到这一行。R1 在本批里从第 0 行排到第 3 行，所以取第 3 行；位置 3 已经读过 p₀ 到 p₃，这一行的分数每张卡只算了词表的一片，经 TP8 All-Gather（各卡把自己那一片发给其他卡，每张卡都拼出完整的一份）拼成完整的 154880 个词，采样选出 y₀，这就是首 token。紧接着 MTP 拿这一步的隐藏向量和 y₀ 草拟出 3 个候选，留给下一步验证，见[第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)。decode 步要验 3 个候选，所以每条请求取 1 + 3 行。
 
-请求要 prompt logprobs（返回提示词每个位置的概率）时，runner 会另拿提示词各位置的隐藏向量去算分数，这是普通生成路径之外的额外计算。
+请求要 prompt logprobs 时，runner 会另取提示词位置的隐藏向量做词表投影，按上节的错位关系给已知 token 评分，这是图中生成采样行之外的额外计算。R1 的 4 枚提示词对应 3 个有评分的目标位置，首项为空；不能把本节普通生成的“最后 1 行”当成开启记录后的全部投影工作。本部署默认关闭 prefix caching，提示词记录的跳过读取规则不会额外损失既有命中收益；投影与返回开销仍然存在。
 
 ### 和第一个 decode 步比：宽度一样，差在哪？
 
@@ -256,6 +344,8 @@ N 的整段提示词 = 6000 个位置
 - **单条 prefill 每步的额外上限。** 有一个参数能把一条长提示词每步分到的量压得比剩余预算还低；本部署没有设置，默认值 0 表示不另设上限。
 - **Ascend 的可选调度器。** 本部署钉住的 vllm-ascend 代码里另带几种调度器，比如按性能剖析动态决定分块大小、按时延目标动态调整每步预算，本部署都没有启用，见[调度器](vllm-scheduler.md)；让短请求先走的[短请求优先](short-request-first.md)从 v0.26 起才有。
 
+每步预算限制一轮安排多少位置，模型长度上限限制请求允许的长度。启用 chunked prefill 可以让提示词跨轮计算，但不会因此放宽模型长度上限。
+
 ## 常见误解
 
 - **「prefill 是预处理，不算真正的推理。」** 它完整走一遍 45 层，并产出回答的第 1 个 token；提示词一长，它往往是这条请求单步计算量最大的一步。
@@ -282,32 +372,82 @@ prefill 不用开，每条请求的第一步都是它。能改变它形态的是
 | `--enable-prefix-caching` | 相同开头复用历史 | 未写；GLM 这类混合模型默认关闭 |
 | `--speculative-config` | MTP 每步草拟几个候选，决定 decode 每步多宽 | 草拟 3 个 |
 
+**请求提示词概率。** `prompt_logprobs` 是 Python SamplingParams、Chat 和 Completion 的逐请求整数或 None/null 字段，三者默认均为 None/null；它不从生成配置文件继承，不是启动 CLI 或 Ascend additional_config。省略/null 通常关闭，echo 派生是下面单列的例外。
+
+| 取值 | 含义 | 返回与前提 |
+|---|---|---|
+| None / null | 不显式请求 | echo=false 时关闭 |
+| 0 | 只记录实际提示词 token | 仍做额外投影，仍按默认规则跳过前缀缓存读取 |
+| 正整数 k | 前 k 名加实际 token | 同编号合并后每位置至多 k+1 项 |
+| −1 | 请求全词表 | 必须让服务 max_logprobs 覆盖词表；默认 20 不允许 |
+
+Python 的 result.prompt_logprobs 在请求结果顶层，不是 outputs[i].logprobs；普通形式为按提示词位置排列的列表，第一项 None，后续为 token ID → Logprob 字典。字段 logprob 是数值、rank 是名次、decoded_token 是可解码文字。flat_logprobs=true 改用[采样页所述扁平容器](sampling.md#记录的是处理前还是处理后怎样装进返回值)；其首位置为空区间，按位置索引得到空字典 {}，不是普通列表的 None。两者都表示首项没有评分，不能当概率为 0。
+
+**HTTP 示例。** 向已有 glm 服务的 `/v1/completions` 发下面的顶层 JSON，Content-Type 为 application/json；stream=false 让提示词记录随完整响应返回。Chat 可把 prompt 换成 messages，仍把 prompt_logprobs 放请求体顶层；标准兼容 SDK 若没有声明此扩展，使用客户端额外请求体功能，线上不要保留 extra_body 包装。
+
+```json
+{
+  "model": "glm",
+  "prompt": "请解释 KV cache：",
+  "max_tokens": 16,
+  "prompt_logprobs": 0,
+  "stream": false
+}
+```
+
+完整 HTTP 响应中，Completion 在 choices[i].prompt_logprobs 返回同样按位置排列的结构，Chat 则在响应顶层的 prompt_logprobs 返回；JSON 对象键表现为编号字符串。Chat 包括 chat template 和特殊 token，不能按原始 messages 字数对齐。生成端的 logprobs 可以同时请求，也可关闭，两者独立。Python 可把 `SamplingParams(max_tokens=16, prompt_logprobs=0)` 交给已有 llm.generate，再读返回请求结果的 prompt_logprobs。
+
+**流式与 echo 的精确边界。** 三版普通 HTTP 的请求校验都拒绝显式 stream=true 且 prompt_logprobs>0 或 =−1；0 可过这个校验，但流式响应 schema 没有独立 prompt_logprobs 字段，不能据此承诺会在 SSE 里收到完整提示词记录。引擎自己的 DELTA 输出则在 prefill 结束聚合交出一次，这与 HTTP 是否序列化是两层规则。需要独立记录时使用上面的非流式请求。
+
+echo=true 且 prompt_logprobs 为 null/省略时，Completion 从请求 logprobs 派生提示词数量，Chat 从 top_logprobs 派生（默认 0，即使没有开启生成 logprobs）。这个派生发生在显式字段的流式校验之后；它不构成所有 HTTP 流式提示词记录都支持的承诺。Completion 的 echo 还可把提示词位置并入原有 logprobs 展示，首 token 无评分；Chat 的 echo 文本不能按同样方式推断。想关闭这份额外工作时，别同时用会派生记录的 echo 配置。
+
+服务上限沿用[采样页的 max_logprobs](sampling.md#怎么开)：默认 20，服务 −1 放到词表大小，请求 −1 仍须通过上限检查。skip_reading_prefix_cache 默认 None 时，由 prompt_logprobs 是否为 None 派生；显式 False 可以覆盖派生，但复用的缓存没有所跳过位置的分布，不能用这个覆盖承诺完整记录。本页示例保留默认派生，不手动恢复缓存读取。
+
 ### 会报什么错
+
 
 - **提示词比长度上限长**：输入处理阶段直接拒绝，报 `The decoder prompt (length …) is longer than the maximum model length of …`；本部署上限是 133120。提示词正好等于上限也会被拒，因为至少还要生成 1 个 token。
 - **空提示词**：报 `The decoder prompt cannot be empty`。
 - **变体：关掉 chunked prefill**：按本部署的其他参数，启动时报 `max_num_batched_tokens (8192) is smaller than max_model_len (133120)`，因为不分块时一条序列最长只能是一步的预算。
 - prefill 本身没有专门的运行时报错。分块中间段的采样被丢弃是正常行为，不是错误。
+- `prompt_logprobs must be non-negative or -1`：Python 给了小于 −1 的值；HTTP 对应提示为 must be a positive value or -1，但实际允许 0。数量超过服务预算会报 `Requested prompt logprobs … greater than max allowed`；默认上限 20 下直接请求全词表同样被拒绝。
+- `prompt_logprobs are not available when stream=True`：显式正数或 −1 与流式请求冲突，改为非流式获取完整提示词记录。直接 prompt embeddings 没有可取值的提示词 token 编号，runner 会跳过这条记录路径，不能把无结果当成正常 token 评分。
 
 ### 开销和什么时候别开
 
 prefill 关不掉，能调的是每步多宽：
 
-- 调大每步预算，长提示词分的段更少、首 token 更早，但混合步更宽，同一步里 decode 请求的输出间隔更长；调小则反过来。
+- 调大预算可能让长提示词少分几段，也可能扩大混合步并改变排队、图模式和通信；首 token 与 decode 间隔是否改善要按负载测量，不能只从段数推断。
 - 混进 prefill 的步走 eager、MoE 改走 AllGather，代价账见[并发页](concurrent-requests.md)；只有纯 decode 步才能回放图。
-- 想让长提示词完全不拖累 decode，需要把两个阶段放到不同执行组，也就是 [PD 分离](pd-disaggregation.md)；本部署没有用。
+- [PD 分离](pd-disaggregation.md)把两个阶段放到不同执行组，减少长 prefill 对同批 decode 的计算干扰，但还会引入 KV 传输、排队和共享资源竞争；本部署没有用。
+
+提示词概率默认关闭，只在确实需要逐位置评分时开启。数量 0 省的是候选返回量，不能省整排词表计算；−1 则连词表规模的结果都要保存、搬回与序列化。长提示词还可能失去前缀复用的收益；本部署 APC 默认已关，主要新增的是投影和记录开销。实际额外 TTFT、内存峰值与 MTP 并用的设备代价仍需测量。
 
 ### 版本差异
+
+**v0.30.0rc2 配套上游仍由模型支持能力推导 chunked prefill 与 APC 的默认值。** 没有显式开关时，不能仅按版本名断言它们全部开启或关闭；MRV1 也仍在准备输入时按有效 token 数构造 attention state。本文 GLM 的提示词长度、KDA 状态和显存演算继续采用固定旧镜像，新增版本并不把这些演算变成 rc2 的实测数据。
 
 | 内容 | v0.23 | v0.26 | main |
 |---|---|---|---|
 | 调度器「不分阶段」的注释与进度差规则 | 有（vLLM `0fc695fc`） | 同（vLLM `568afb3a`） | 同（vLLM `84030bbe`） |
-| chunked prefill 默认开、单条长提示词上限默认 0 | 是 | 是 | 是；另外去掉了「同时切分几条提示词」那组选项 |
+| 未显式设置 chunked prefill 时的有效默认值 | 由模型的分块支持能力推导 | 同左 | 同左 |
+| 单条长提示词上限默认 0 | 是 | 是 | 是；另外去掉了「同时切分几条提示词」那组选项 |
 | runner 注意力状态标签的判断顺序 | 维护分支 `2c59ff10` 与含 GLM 的 `db701c1f` 一致 | `2ed6cbba` 一致 | `baa023ad` 一致 |
 | 只取最后一行、中间段丢弃采样 | 一致 | 一致 | 一致 |
 | GLM 的 KDA 按行分 prefill、decode 两路 | 维护分支没有 GLM 代码；`db701c1f` 在 KDA 算子里分路 | 没有 GLM 代码 | 在 glm5next 的 KDA 层里，同样分两路 |
 
 本页 KDA 层与 GLM 草稿层相关的执行细节只适用于含 GLM 代码的 `db701c1f` 和 main；调度规则与 runner 的通用分支三版一致。
+
+| 提示词记录 | v0.23 | v0.26 rc | main |
+|---|---|---|---|
+| 字段与数量 | 默认 None；0/正数/−1；受 max_logprobs 限制 | 相同 | 相同 |
+| 对齐与聚合 | 首项无评分；hᵢ 评 xᵢ₊₁；分块聚合 | 相同 | 相同 |
+| 模式 | 直接 log-softmax，忽略四模式选择 | raw_logits / processed_logits 返回未归一化的原始分数，其余返回原始对数概率 | 同 rc |
+| 采样处理 | 不应用生成端的温度、罚分和截断 | 同；名字含 processed 也不加入这些处理 | 同 |
+| HTTP 边界 | 显式流式正数/−1 被拒；0 放行但无独立 SSE 字段；echo 可派生 | 相同 | 相同 |
+| 缓存与容器 | 默认派生跳过前缀读取；flat 默认 false | 相同 | 相同 |
+
+Ascend 的 GLM db701c1f、社区维护 2c59ff10、rc 2ed6cbba 与 main baa023ad 均调用继承的提示词记录函数；实际行为还取决于所配套的上游版本，不能只看插件版本就承诺模式语义。固定 GLM 基线无论服务选哪种模式，提示词仍按原始对数概率路径计算；rc/main 中的 processed_logits 名字不意味着它应用了生成罚分。HTTP 的提示词数值处理仅将负无穷换成 −9999，有限的更小值仍保留，与生成端的下界夹断不同。
 
 ### 源码位置
 
@@ -333,13 +473,21 @@ prefill 关不掉，能调的是每步多宽：
 | 三版的标签判断 | `vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1477-L1505`；`vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1327-L1355`；`vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L1662-L1690` |
 | main 的 KDA 分路 | `vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L434-L515` |
 
-**正文证据归档。** 45 层主干与 154880 的词表取自模型配置 [S1]；每步 8192 个位置、32 条请求、MTP 草拟 3 个取自官方教程 [S2]。调度器不分阶段与进度差规则见注释和 running 分支 [C3][C4]，新请求的切分与关分块时停止接纳见 waiting 分支 [C5]；分块默认开、单条上限默认 0 且只有同时切分多条时才会被自动设值 [C6]，所以本部署不另设上限 [D]。关分块时的启动报错 [C7]、提示词长度报错 [C8] 的数值按本部署参数代入 [D]。
+**正文证据归档。** 45 层主干与 154880 的词表取自模型配置 [S1]；每步 8192 个位置、32 条请求、MTP 草拟 3 个取自官方教程 [S2]。调度器不分阶段与进度差规则见注释和 running 分支 [C3][C4]，新请求的切分与关分块时停止接纳见 waiting 分支 [C5]。SchedulerConfig 的分块字段静态兜底是 True，但实际启动在未显式设置时按模型能力推导；v0.23、v0.26、main 的解析见来源 51–53，rc2 见来源 49，本部署按模型支持条件开启。单条上限默认 0，只有同时切分多条时才会被自动设值 [C6]，本部署不另设上限 [D]。关分块时的启动报错 [C7]、提示词长度报错 [C8] 的数值按本部署参数代入 [D]。
 
 注意力状态标签的判断顺序与「含不含 prefill」[C10][C9]，标签枚举 [C11]；开了投机解码时要求提示词都算完才当 decode 批 [C12]，不整齐的批找不到图键就不用图 [C13]。R1 两步都是 4 个位置、场景 M 第 2 步贴 ChunkedPrefill，是把这些分支代入示例得到的 [D]。KDA 按行分两路 [C14]；只取最后一行与按行取隐藏向量 [C15][C16]；中间段的丢弃与随机数回拨 [C17][C18]；prompt logprobs [C19]。三版对照见 [C21][C22][C23][C26][C27]。
 
 decode 最少 50 步、最多 199 步是按每步产出 1 到 4 个 token 推出的范围 [D]。「prefill 多受算力限制、decode 多受访存和固定开销限制」以及调大、调小每步预算的影响方向，是按步子形状和调度规则推出的倾向 [I]；TTFT 的构成是按请求路径列出的 [I]。
 
+提示词记录证据：来源 30–32 给类型、缓存默认派生和上限；33–35 给三版按隐藏行与目标编号错位取值、模式差异及分块聚合；36–37 给 CPU 记录容器与首项。38–43 对照两种 HTTP 的响应位置、echo 派生、显式流式校验及返回 schema；44 给提示词负无穷替换，45 给缓存读取门槛，既有 19 和新增 46–48 给四个 Ascend 快照的继承调用。评分例中的 0.233 与 −1.457 是采样页六词分布的近似换算，不是硬件测量。
+
 **待核。**
 
 - 缺本部署的实测：TTFT、场景 M 那种混合步的实际耗时、同批 decode 请求的输出间隔，以及每步预算取不同值时这几项怎样变化。
 - 缺 MTP 的真实接受率，因此只能给出 decode 步数的范围，给不出典型值；需要本部署的 benchmark 输出里的投机解码统计。
+
+调度进度和每步预算决定一个提示词要分几轮；关闭分块时还有预算与长度校验，generate 入口也必须为至少一个输出位置留下容量（来源 3–5、7–8）。因此，6000 个位置一次处理的示意不能套到任意请求，R1 单次前向的 218 次通信也不等于任意长提示词的总账；总次数取决于轮数和执行路径。
+
+attn_state 的判断先看整批是否从零开始，再看每条是否只安排一个位置；后一分支可能记为 DecodeOnly，遇到 MTP 则改记 SpecDecoding。投机图调度还会另行区分单位置提示词尾块和已完成提示词的请求。因此执行状态名不能代替请求进度检查；分支位置见来源 10、12、24–26。
+
+前缀身份条件依据已核的来源 29：`generate_block_hash_extra_keys` 汇入 LoRA、多模态、cache salt 和直接输入 embedding 的身份信息，`hash_block_tokens` 再组合前块指纹、本块 token 编号与附加信息。因此，仅有相同的显示文本不足以保证复用；这些源码条件不改变本页固定部署默认关闭 prefix caching 的前提，也不构成本部署的缓存命中率测量。

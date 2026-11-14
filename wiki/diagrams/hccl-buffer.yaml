@@ -1,17 +1,17 @@
 layout: figure
 id: hccl-buffer
-caption: 一张卡的设备内存：权重之外，本卡参加的每个通信组在建组时各预留一块 HCCL buffer，图里用三个组示意；KV cache 只能用剩下的部分。卡数和组数只讲原理，不是具体部署。
+caption: 示意：本卡参加三个独立的底层通信域，每个色块代表该域的整套缓冲（含收发），不是单向容量。逻辑组可能复用底层域，不能用逻辑组数推实际占用；KV cache 使用剩余预算。卡数和组数不是具体部署。
 size: [900, 432]
 frames:
   - { at: [24, 54], size: [250, 340], label: 一张卡的设备内存 }
-  - { at: [470, 54], size: [406, 92], label: 组 1 · 机内 4 张卡 }
-  - { at: [470, 178], size: [406, 92], label: 组 2 · 跨机 2 张卡 }
-  - { at: [470, 302], size: [406, 92], label: 组 3 · 全部 8 张卡 }
+  - { at: [470, 54], size: [406, 92], label: 域 1 · 机内 4 张卡 }
+  - { at: [470, 178], size: [406, 92], label: 域 2 · 跨机 2 张卡 }
+  - { at: [470, 302], size: [406, 92], label: 域 3 · 全部 8 张卡 }
 items:
   - { at: [42, 78], size: [214, 56], text: 权重, sub: 一直住在这里, tone: weight }
-  - { at: [42, 146], size: [214, 34], text: 组 1 的缓冲, tone: comm }
-  - { at: [42, 186], size: [214, 34], text: 组 2 的缓冲, tone: comm }
-  - { at: [42, 226], size: [214, 34], text: 组 3 的缓冲, tone: comm }
+  - { at: [42, 146], size: [214, 34], text: 域 1 的整套缓冲, tone: comm }
+  - { at: [42, 186], size: [214, 34], text: 域 2 的整套缓冲, tone: comm }
+  - { at: [42, 226], size: [214, 34], text: 域 3 的整套缓冲, tone: comm }
   - { at: [42, 274], size: [214, 104], text: KV cache, sub: 只能用剩下的, tone: kv }
   - { at: [486, 80], size: [86, 44], text: 本卡, tone: comm }
   - { at: [582, 80], size: [86, 44], text: 卡 2, tone: ink, style: plain }
@@ -27,7 +27,7 @@ links:
   - { from: [470, 224], to: [278, 203], via: [[416, 224], [416, 203]], tone: comm }
   - { from: [470, 348], to: [278, 243], via: [[392, 348], [392, 243]], tone: comm }
 texts:
-  - { at: [450, 26], text: 本卡参加三个组，就在本卡上预留三块缓冲, anchor: middle, strong: true }
+  - { at: [450, 26], text: 示意：三个独立底层通信域，各画出整套缓冲, anchor: middle, strong: true }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/utils.py#L1118-L1149
     symbols: [create_hccl_pg_options, get_hccl_config_for_pg_options]

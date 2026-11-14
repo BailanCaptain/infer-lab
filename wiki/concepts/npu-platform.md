@@ -2,80 +2,137 @@
 id: npu-platform
 title: NPUPlatform：配置校验与设备实现选择
 type: feature
-summary: 昇腾插件交给 vLLM 的平台实现。启动时它按组合校验整份配置、就地改写，再答出 Worker 类、注意力后端与图包装的类名；也是「查不到设备显存以后默认 token 预算怎么定」的唯一推导处。
-aliases: [NPUPlatform, platform.py, 平台类, 昇腾平台类, PlatformEnum.OOT, check_and_update_config, get_device_total_memory, get_attn_backend_cls, worker_cls, 默认 token 预算, 回退档, refresh_block_size]
-chapters: ["10"]
+summary: >-
+  昇腾插件交给 vLLM 的平台实现。启动时它按组合校验整份配置、就地改写，再答出 Worker 类、注意力后端与图包装的类名；也是「查不到设备显存以后默认
+  token 预算怎么定」的唯一推导处。
+aliases:
+  - NPUPlatform
+  - platform.py
+  - 平台类
+  - 昇腾平台类
+  - PlatformEnum.OOT
+  - check_and_update_config
+  - get_device_total_memory
+  - get_attn_backend_cls
+  - worker_cls
+  - 默认 token 预算
+  - 回退档
+  - refresh_block_size
+chapters:
+  - '10'
 order: 60
 sources:
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L128-L206
-  - vllm@0fc695fc:vllm/config/vllm.py#L1330-L1340
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L2010-L2020
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L275-L331
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L338-L372
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L430-L448
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L480
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L500-L528
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L529-L634
-  - vllm@0fc695fc:vllm/config/vllm.py#L1054-L1060
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L636-L700
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L805-L886
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L1396-L1446
-  - vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L74-L84
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L228-L234
-  - vllm-ascend@db701c1f:vllm_ascend/transformers_utils/configs/glm5_next.py#L186-L192
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L2300-L2335
-  - vllm@0fc695fc:vllm/config/scheduler.py#L38-L64
-  - vllm@0fc695fc:vllm/config/parallel.py#L642-L652
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L2484-L2566
-  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L274-L426
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L225-L238
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L457-L495
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1491-L1502
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1239-L1248
-  - https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
-  - vllm@0fc695fc:vllm/config/vllm.py#L850-L860
-  - vllm@0fc695fc:vllm/config/vllm.py#L1880-L1905
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L150-L160
-  - vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1255-L1260
-  - vllm@f7e62e3d:vllm/envs.py#L1143-L1148
-  - vllm@0fc695fc:vllm/config/parallel.py#L175-L180
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L2372-L2377
-  - vllm@0fc695fc:vllm/transformers_utils/model_arch_config_convertor.py#L252-L308
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_config.py#L14-L30
-  - vllm@0fc695fc:vllm/config/cache.py#L46
-  - vllm@0fc695fc:vllm/config/cache.py#L231-L239
-  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L480
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L128-L206'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L1330-L1340'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L2010-L2051'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L275-L331'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L338-L428'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L430-L448'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L500'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L500-L528'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L529-L634'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L1054-L1060'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L636-L700'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L805-L886'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L1396-L1446'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L74-L84'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L228-L234'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/transformers_utils/configs/glm5_next.py#L186-L192
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L2300-L2335'
+  - 'vllm@0fc695fc:vllm/config/scheduler.py#L38-L64'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L642-L652'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L2484-L2566'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L274-L426'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L225-L238'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L457-L495'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1491-L1502'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1232-L1248'
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L850-L860'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L1880-L1905'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L150-L160
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1255-L1260'
+  - 'vllm@f7e62e3d:vllm/envs.py#L1143-L1148'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L175-L180'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L2372-L2377'
+  - >-
+    vllm@0fc695fc:vllm/transformers_utils/model_arch_config_convertor.py#L252-L308
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_config.py#L14-L30
+  - 'vllm@0fc695fc:vllm/config/cache.py#L46'
+  - 'vllm@0fc695fc:vllm/config/cache.py#L231-L239'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L480'
+  - >-
+    raw:sha256-1dc31584af8351da9ceeef16c9e41373f5abd84c2501b7f0f7b4f67dd4866b6d.md#L1-L1290
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1625-L1711'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1714-L1783'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L893-L900'
+  - 'vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L255-L268'
+  - >-
+    https://www.modelscope.cn/api/v1/models/Eco-Tech/GLM-5.3-Flash-w8a8/repo?Revision=9e55cbc8e2b19e20c63b08b916d2582f25a22504&FilePath=config.json
+  - 'vllm-ascend@db701c1f:vllm_ascend/transformers_utils/configs/glm5_next.py#L335-L424'
+  - 'vllm@0fc695fc:vllm/config/model.py#L1768-L1811'
+  - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_speculative_config.py#L120-L154'
+  - 'vllm@0fc695fc:vllm/config/model.py#L751-L758'
+  - 'vllm@0fc695fc:vllm/config/model.py#L1646-L1648'
+  - 'vllm@0fc695fc:vllm/transformers_utils/model_arch_config_convertor.py#L345-L363'
+  - 'vllm@0fc695fc:vllm/transformers_utils/model_arch_config_convertor.py#L581-L613'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L478-L504'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L621-L633'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L372-L377'
+  - 'vllm@0fc695fc:vllm/config/speculative.py#L674-L694'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L230-L244'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
-  - {to: vllm-platform-interface, kind: builds-on, note: 先理解平台契约：谁在问、当前平台怎么选出来}
-  - {to: ascend-config-system, kind: builds-on, note: 配置的三路输入与优先级，本页只讲平台这一道校验与改写}
-  - {to: attention-backend-family, kind: builds-on, note: 区分通用选择接口与 GLM 两类层的专用后端}
-  - {to: npu-worker-lifecycle, kind: builds-on, note: 选出的 Worker 类接着做起卡、量显存、切块}
+  - to: vllm-platform-interface
+    kind: builds-on
+    note: 先理解平台契约：谁在问、当前平台怎么选出来
+  - to: ascend-config-system
+    kind: builds-on
+    note: 配置的三路输入与优先级，本页只讲平台这一道校验与改写
+  - to: attention-backend-family
+    kind: builds-on
+    note: 区分通用选择接口与 GLM 两类层的专用后端
+  - to: npu-worker-lifecycle
+    kind: builds-on
+    note: 选出的 Worker 类接着做起卡、量显存、切块
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: '2026-11-03'
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-1dc31584af8351da9ceeef16c9e41373f5abd84c2501b7f0f7b4f67dd4866b6d.md
+  - >-
+    raw/sha256-deeaac288e4901b0b767fc1a62fe08407cceb4040cf308ba9e3e8654a4244bce.md
 ---
 
 ## 你写在命令里的配置，为什么不是最后生效的那一份
 
 **NPUPlatform 是昇腾插件交给 vLLM 的那份平台实现：启动时它把整份汇总配置过一遍——不支持的组合当场报错，该改的就地改掉——再在被问到时答出 Worker（管一张卡、执行前向的进程实现）、注意力后端、图包装这些「用哪个实现」的类名。** [Platform 契约](vllm-platform-interface.md)规定上游怎么问、当前平台怎么选出来；本页只讲昇腾这一侧答了什么、改了什么。
 
+
 ```wiki-diagram
 file: platform-surface
 ```
 
-图分三段，对应两个时刻。**校验和改写发生在启动时的同一次调用里**：上游把汇总配置（模型、并行、缓存等选项合成的那一个对象）交过来，平台先看几组组合能不能跑，不能就抛错、启动到此结束；能跑就直接修改这个对象——Worker 类名写进并行配置，缓存精度写进缓存配置，块大小按通用规则补齐或改回 128（混合模型保留更早写入的值）。**答名字发生在稍后**：Worker 起卡、模型建层的时候，才有人拿着「这层是不是 MLA、是不是稀疏」来问该用哪个注意力后端。图右下角那条虚线是例外：GLM 的两类注意力层在自己的算子实现里写死了后端，不查平台这张表。
+图分三段，对应两个时刻。**校验和改写发生在启动时的同一次调用里，而且相互穿插**：上游把汇总配置（模型、并行、缓存等选项合成的那一个对象）交过来，平台先做前置检查，再直接修改这个对象——Worker 类名写进并行配置，缓存精度写进缓存配置，块大小按通用规则补齐或改回 128（混合模型保留更早写入的值）。后面还会检查图模式和 PD 角色；这些检查失败时，前面的改写已经发生，启动仍会停止。**注意力后端的答名字发生在稍后**：Worker 起卡、模型建层的时候，才有人拿着「这层是不是 MLA、是不是稀疏」来问该用哪个注意力后端。图右下角是例外：GLM 的两类注意力层在自己的算子实现里写死了后端，不查平台这张表。
 
 ## 为什么这层非要能改配置，代价在哪
 
-先看一个真实的数：官方双机命令里只有通用参数——显存预算比例、每步 token 预算、每步请求数上限、单请求长度上限这些，没有 `--block-size`。而本部署实际用的逻辑块是 640 个 token。这个值不是平台这一步写的，而是由更早一步的[补丁](ascend-patch-system.md)写入：上游构造汇总配置时，先跑混合模型（一部分层用全注意力、一部分层用[线性注意力](linear-attention.md)）的配置检查，昇腾换进去的那一版把块大小写成 640；平台在更晚的时候才被调用，它负责的是**不把 640 改回 128**——通用规则里「块大小不是 128 就改回 128」那一条，遇到混合模型会跳过。算法与 640 的来历见[部署页那一节](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。如果平台只能「报属性」，这类值就得用户自己对着源码配，一处配错就是启动失败或性能异常。
+先看一个真实的数：官方双机命令写了显存预算比例、每步 token 预算、每步请求数上限、单请求长度上限这些参数，没有 `--block-size`。而本部署的逻辑块推导值是 640 个 token。这个值不是平台这一步写的，而是由更早一步的[补丁](ascend-patch-system.md)写入：上游构造汇总配置时，先跑混合模型（这里混合稀疏 MLA 与[线性注意力](linear-attention.md)）的配置检查，昇腾换进去的那一版把块大小写成 640；平台在更晚的时候才被调用，它负责的是**不把 640 改回 128**——通用规则里「块大小不是 128 就改回 128」那一条，遇到混合模型会跳过。算法与 640 的来历见[部署页那一节](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。如果平台只能「报属性」，这类适配就得在其他配置阶段完成；用户不能只看命令是否显式填写就判断最终块大小。
 
 代价是三条，后面三节各讲一条：
 
 1. **输入值和生效值分家。** 排查「我配了怎么没效果」要多看一层：先确认平台这一步有没有把它改掉，再去看消费者。配置本身的三路输入和优先级在[昇腾配置体系](ascend-config-system.md#解析完还会被改写生效值不是你写的值)。
-2. **校验是跟着版本走的。** 建配置之前的校验数量三个版本分别是四个、两个、三个（main 上是一个类方法加两个模块级函数），所以同一个键会在一个版本上被拦下、到另一个版本上压根不存在：层切分那个键在 v0.23 上有专门的校验，到 v0.26 已经删掉（对照见[那一页的版本差异](ascend-config-system.md#版本差异)）。拿一个版本的报错去另一个版本搜函数名会搜不到。
-3. **「拒答」也是一种行为。** 设备总显存这个查询接口，昇腾故意不实现；一个不回答的问题改变了上游默认调度预算的档位，这是本页专门要讲清的一条链。
+2. **校验是跟着版本走的。** 建配置之前的校验数量三个版本分别是四个、两个、三个（main 上是一个类方法加两个模块级函数），所以同一个键会在一个版本上被拦下、到另一个版本上压根不存在：层切分那个键在 v0.23 上有专门的校验，到 v0.26 rc 已经删掉（对照见[那一页的版本差异](ascend-config-system.md#版本差异)）。拿一个版本的报错去另一个版本搜函数名会搜不到。
+3. **「拒答」也是一种行为。** 固定镜像的设备总显存接口主动抛不支持；一个不回答的问题改变了上游默认调度预算的档位，这是本页专门要讲清的一条链。main 与 rc2 在设备初始化后允许查询，不能套用旧版的一律拒绝。
 
 ## 校验与改写怎样影响执行
 
@@ -102,6 +159,8 @@ file: platform-check-order
 
 **定编译与图模式。** 这一段按是否走 xlite 执行模式、是否要求纯 eager、请求的图模式档位来定最终的编译与图捕获方式。这一段会在四种情况下把图整段关掉：开了 xlite 全图模式却没开投机解码（同时改成纯 eager）；编译档位不是昇腾支持的那两种；请求的图模式档位既不是分段图也不含整图；编码器-解码器模型请求了整图、又没走 vLLM 编译。要求纯 eager 时，上游在这之前已经把图关了。本部署里还有一条与模型有关的改写：模型配置带 indexer 的 top-k 字段时，缓存精度被改写成模型自身的 dtype。GLM 的文本配置正好有这个字段，所以这条对本部署生效。图模式本身见[图模式层](graph-mode-layer.md)。
 
+这条配置路径关闭 Inductor（一种编译后端），图模式却由单独的配置控制：图模式关闭时，编译模式也关闭，并关闭对应的 NPU 图执行扩展；图模式要求分段编译时，则必须选择 vLLM 编译模式。因此，不能仅凭 Inductor 关闭就判断图模式也已关闭。
+
 **选 Worker 类。** 只有当并行配置里的 Worker 类写着「自动」时才选，三条分支互斥：310P 设备走 310P 专用 Worker；开了 xlite 执行模式走 xlite Worker；其余走常规的 NPUWorker。
 
 **定块大小。** 通用规则有两条：块大小空着就先填 128（上游构造缓存配置 `CacheConfig` 时，它的 after 校验器已把空着的块大小填成类常量 `DEFAULT_BLOCK_SIZE = 16`，所以这条是兜底）；已设的值不是 128、且开了前缀缓存或 chunked prefill，就强制改回 128。混合模型只跳过后一条，连同 xlite 模式下「不超过 128」的限制——所以补丁更早写进的 640 能留下来。同一个词在这套部署里有五种含义，逻辑块、kernel 块、各缓存组的块和调度器的块都不是一个数，消歧表在[缓存规格](kv-cache-spec.md)。
@@ -114,13 +173,13 @@ file: platform-check-order
 
 **第一段：平台被问显存，选择不答。** 上游在把各项选项汇总成配置对象之前，先把这个默认值定下来。定的时候它调平台的「这块设备总共多少字节显存」，昇腾的固定实现一律抛不支持，注释写明理由：实现它会顺带把设备运行库提前拉起来，而这个库在一个进程里只许初始化一次，提前拉起来会让后面正式初始化出错。上游把异常吞掉，按 0 字节继续往下算。
 
-**第二段：按容量选档，另有一条批式 DP 入口。** 容量不小于 70 GiB 且设备名里没有 a100，选大档：库调用方式 16384、API 服务方式 8192；否则选小档：8192 与 2048。昇腾因为查不到容量，永远落在小档——**原因是这个查询被拒绝，不是卡的显存不够**。对照一下：同一条命令放到 H100 上（显存不小于 70 GiB、设备名不含 a100，上游源码注释点名 H100 和 MI300x 走大档），API 服务方式默认 8192；昇腾因为拒答，落到 2048。
+**第二段：按容量选档，另有一条批式 DP 入口。** 容量不小于 70 GiB 且设备名里没有 a100，选大档：库调用方式 16384、API 服务方式 8192；否则选小档：8192 与 2048。这个固定镜像的容量查询失败后落在小档，原因是查询被拒绝。对照一下：同一条命令放到 H100 上（显存不小于 70 GiB、设备名不含 a100，上游源码注释点名 H100 和 MI300x 走大档），API 服务方式默认 8192；固定镜像因查询失败，这一步落到 2048。
 
-另外有一条不看档位的入口：当专家分发后端是低时延 DeepEP 或 NIXL EP 这两种之一、开了专家并行、且数据并行大于 1 时，上游判定为「批式 DP MoE」，预算直接取 256 这个常量；它和档位表是两条互斥的路。256 的出处在上游代码里：同一个常量也是 MoE 层配置里「一步最多派发多少 token」的缺省值；它是在上游删掉旧的「MoE DP 分块」时引入的，旧分块参数的缺省值正是 256，注释写明在数据并行 + 专家并行 + 批式 all-to-all 分发下，每个数据并行组以 256 个 token 为单位派发。所以预算取 256，是让一步的 token 数不超过批式分发一次装得下的量——这是把这几处代码合起来得出的推论，上游没有直接写出理由。
+另外有一条不看档位的入口：当专家分发后端是低时延 DeepEP 或 NIXL EP 这两种之一、开了专家并行、且数据并行大于 1 时，上游判定为「批式 DP MoE」，预算起点取 256 这个常量；它和档位表是两条互斥的路。同一个常量也是 MoE 层配置中最大 token 数字段的缺省值。旧版的「MoE DP 分块」参数也默认 256，注释说明它是每个 DP rank 批式派发的工作单位。但这些缺省值不能证明现行通信内核每次最多装 256：后面的吞吐模式仍能把未显式设置的预算翻倍，模型长度等条件还会继续调整它。
 
-**第三段：选出的档还会被加减四次。** 吞吐模式把预算和请求数上限各翻一倍；没开 chunked prefill（把长提示词拆成几步送）时，预算被抬到至少等于单请求长度上限；多模态模型另有自己的最小值；最后按「请求数上限 × 单请求长度上限」收窄，请求数上限再按预算收窄。缺省常量本身也有三个：预算 2048、批式 DP 的 256、请求数上限 128。
+**第三段：默认值还要按条件调整。** 吞吐模式分别把未显式设置的 token 预算和请求数上限翻一倍。对未显式设置的 token 预算，没开 chunked prefill（把长提示词拆成几步送）时抬到至少等于单请求长度上限；多模态 prefix-LM 还要容纳单个媒体项的最小 token 数；最后按「请求数上限 × 单请求长度上限」收窄。请求数上限若未显式设置，再按 token 预算收窄。缺省常量本身也有三个：预算 2048、批式 DP 的 256、请求数上限 128。
 
-**整条链上有一道闸门，但它不在链的入口。** 问显存、拒答、选档每次启动都照常发生，不管用户写没写这个参数；闸门挡的是后面：只有用户没显式写时，选出的档才被写进去，翻倍、抬升、收窄也同样被这道闸门挡住。显式写了，选出的档就被丢弃，用户写的值原样生效。
+**token 预算与请求数上限各有一道独立闸门。** 进入这个默认值函数后，问显存和选档仍照常发生，不管用户写没写参数；只有用户没显式写的那一项才被默认值填充并接受相应调整。显式 token 预算在这个函数内保持原值，却不会阻止未显式设置的请求数上限被翻倍或收窄。最终生效值还要继续经过配置验证与后续消费者。
 
 所以三件事不能混着说：
 
@@ -143,7 +202,11 @@ file: platform-check-order
 
 **注意力后端那一行要展开讲，否则容易记错。** 通用接口的查表键是三个标志：是不是 MLA、是不是稀疏、是不是压缩，四个组合各对一个昇腾后端类；命令行指定 FlashAttention 且额外条件成立时另走 FA3 后端；310P 设备有自己的一张表。但 GLM 的稀疏 MLA 层在自己的算子实现里直接写死了配套的后端类，KDA 层由算子返回专用的 GDN 后端。所以「在通用表里挑一个名字」不能代表 GLM 这两类层的实际实现，完整对应关系见[注意力后端](attention-backend-family.md)。
 
-**预算那一行反过来：平台的拒答在本部署里不产生后果。** 官方命令显式写了每步 8192 个 token（同时写了每步请求数上限 32、显存预算比例 0.85）。上一节的问显存、拒答、选小档照样发生，但选出的档被丢弃，不翻倍、不抬升、不收窄，生效的就是 8192。拒答只有在把这个参数从命令里删掉时才显出后果，按源码可以推一遍：命令没设专家分发后端，用的是默认的 allgather/reducescatter，不进批式 DP 那条路；API 服务方式在小档上起点是 2048；默认是均衡模式，不翻倍；chunked prefill 命令没写、按模型能力默认开着，不抬升；最后收窄取 min(32 × 133,120, 2048) = 2048。所以删掉之后大约是 **2048**，不是 8192。没核死的只有多模态 prefix-LM 那道下限：它要求模型既按多模态架构加载、又被判成 prefix-LM；按上游名单和 GLM 的配置类，GLM 不算 prefix-LM，这道下限不触发。例外是模型自带的配置文件里另写了这个开关字段并设为真，上游会优先读它；配置文件里有没有这个字段，列在页末清单里。[平台契约页](vllm-platform-interface.md#主机内存设备显存和-token-预算怎样分账)给的是同一个结论，完整链条只在本页推导。
+FA3 验证还限制了配置组合：请求 FlashAttention 后端、进入该验证且启用用于训练与推理一致性场景的批次不变选项时，MLA 或稀疏注意力组合会报错；未启用该选项时，验证不通过并转用插件后端。这是该验证路径的组合限制，不能据此判断所有 MLA 配置都无法选择注意力后端。
+
+**预算那一行反过来：平台的拒答不改变本部署的显式预算。** 官方命令写了每步 8192 个 token，同时写了请求数上限 32 和显存预算比例 0.85；两项预算都显式给出，所以这个默认值函数保留 8192 和 32。把 token 预算参数删掉、保留其余条件，可以推一遍：在这个阶段，专家分发后端尚为默认的 allgather/reducescatter，不进批式 DP 路径；API 服务方式的小档起点是 2048；均衡模式不翻倍；生成模型默认支持 chunked prefill，不触发长度抬升；最后取 min(32 × 133,120, 2048) = **2048**。稍后的平台还能改写分发后端，不能拿那个后写值倒推本函数当时的分支。
+
+这份推导还要求模型不启用多模态 prefix-LM。固定公开 W8A8 配置的架构是多模态的 `Glm5NextForConditionalGeneration`，配置中没有 `is_mm_prefix_lm`，GLM 也不在上游默认名单中，因此按这份配置不触发该下限。若现场配置或覆盖项把它设为真，就要重新计算媒体项下限；公开配置不能代替容器内最终配置和启动日志。[平台契约页](vllm-platform-interface.md#主机内存设备显存和-token-预算怎样分账)给的是同一个结论，完整链条只在本页推导。
 
 **并行那条校验对本部署是硬约束。** 这里 DP 是 2，所以 prefill 侧上下文并行只能是 1；想开它就得先放弃 DP，而 DP2 是这套双机部署分派请求的方式。
 
@@ -152,7 +215,7 @@ file: platform-check-order
 ## 常见误解
 
 - **「平台只是一张属性表，读一读就知道硬件能干什么」**——它同时会拒绝组合、就地改写配置。命令里写的值和最终生效的值可以不同，排查要先确认这一层改过什么。
-- **「查不到设备显存是个 bug」**——是故意不实现的：实现它会让设备运行库提前初始化，而它一个进程只许初始化一次。开发主线上运行库起来之后已经能答，但定默认预算的那一刻它还没起来，三个版本的档位结果一样。
+- **「查不到设备显存是个 bug」**——固定镜像主动拒绝这个查询，注释解释它会导致设备运行库过早初始化。main 与 rc2 增加守卫：未初始化时拒绝，初始化后可答；是否落到回退档取决于查询时的实际状态。
 - **「昇腾默认每步只收 2048 个 token」**——2048 只是 API 服务方式在小档上的起点，后面还有翻倍、抬升、收窄四道加减；并且选档照常发生，选出的值只在没显式写这个参数时才生效，本部署显式写了 8192。
 - **「注意力后端在通用映射里挑一个名字就是 GLM 的实现」**——GLM 的稀疏 MLA 层与 KDA 层都在自己的算子实现里绑定专用后端，不查那张表。
 - **「平台把 PyTorch 的编译关了，说明昇腾不支持 graph mode」**——关掉的只是上游那条默认编译路，昇腾自己的编译器类和图包装类是平台另外两个回答给出的。
@@ -160,13 +223,17 @@ file: platform-check-order
 
 ## 对照源码
 
+**配置分支的来源范围。** 已核专用镜像 `db701c1f`：来源 11 的 `platform.py` 第 650–660 行仅在 `parallel_config` 存在且 `worker_cls == "auto"` 时，按 310P、Xlite、普通 `NPUWorker` 的顺序选择，把完整类路径写回 `parallel_config.worker_cls`。来源 9 第 592–603 行对应 `use_inductor=False`、图模式 `NONE` 时关闭编译与 `npugraph_ex`、分段编译要求 `VLLM_COMPILE`；来源 12 第 805–858 行对应 `FLASH_ATTN` 的验证入口和 `use_batch_invariant`、MLA/稀疏组合门槛，后续还有依赖包及接口检查。这些条件不能替代设备执行验证，也不推广到其他版本或所有后端组合。
+
 ### 怎么开
 
 - **不需要开。** 装上 vllm-ascend 之后，vLLM 通过插件机制加载这个类，`_enum = PlatformEnum.OOT`（仓库外平台）；发现与激活过程见[插件注册](platform-plugin-registration.md)。身份字段都在类体顶部：`device_name` / `device_type` 为 `"npu"`，`ray_device_key = "NPU"`，`device_control_env_var = "ASCEND_RT_VISIBLE_DEVICES"`，`dispatch_key = "PrivateUse1"`，`simple_compile_backend = "eager"`（注释写的是 `# Disable torch.compile()`）。
 - **配置前的准备：** `pre_register_and_update` 调 `adapt_patch(is_global_patch=True)` 装全局补丁，把 `ASCEND_QUANTIZATION_METHOD` 追加进 `--quantization` 的候选（所以 `--quantization ascend` 不是上游自带取值），再按 `is_310p()` 导入对应的量化配置类。GLM 的配置类型与模型实现不在这里登记：前者由[补丁](ascend-patch-system.md)模块补进上游的配置表，后者走通用的[模型插件登记](platform-plugin-registration.md)。注册一个量化名只表示后面解析配置时认得它，不表示模型能按这套量化跑起来——那还要求权重格式、模型实现、算子与硬件互相对得上。
 - **调用时机：** `VllmConfig.__post_init__` 在构造末尾调 `current_platform.check_and_update_config(self)`；而默认调度预算在这之前、`EngineArgs` 里由 `_set_default_max_num_seqs_and_batched_tokens_args` 定好。两件事不在同一刻，是本页「拒答改变默认档」那条链的前提。
-- **`check_and_update_config` 内部顺序**（`db701c1f` 第 450 行起）：两道早退 → `maybe_auto_detect_quantization` → 四个 `_validate_*` → `_fix_incompatible_config` → `init_ascend_config` → 日志与 KV 传输 id → 编译与 `cudagraph_mode` → `custom_ops = ["all"]`（非 310P）→ `worker_cls` 三选一 → `refresh_block_size` → 均衡调度、KV 载入失败策略、重算调度三条角色检查。
-- **块大小的通用规则：** `refresh_block_size` 在 `block_size is None` 时填 128，`deepseek_v4` 另有 32 / 64 / 128 的限制，`model_config.is_hybrid` 为真就直接返回，交给模型专属算法。另有 `update_block_size_for_backend`：`mamba_cache_mode == "align"` 时把 mamba 块对齐到逻辑块，并断言前者是后者的整数倍。
+- **`check_and_update_config` 内部顺序**（`db701c1f` 第 450 行起）：两道早退 → `maybe_auto_detect_quantization` → 四个 `_validate_*` → `_fix_incompatible_config` → `init_ascend_config` → 日志与 KV 传输 id → 编译与 `cudagraph_mode` → `worker_cls` 三选一 → `refresh_block_size` → `custom_ops = ["all"]`（非 310P）→ 均衡调度、KV 载入失败策略、重算调度三条角色检查。
+
+  两道早退见来源 7 第 453–463 行：存在 `device_config` 且其有效设备类型不是 `npu`，或缺少 `model_config`，都会直接返回，不执行后续昇腾配置更新；缺少模型配置时还会记录警告。设备配置若没有 `device_type` 属性，这里用平台自身的设备类型作为默认值。
+- **块大小的通用规则：** `refresh_block_size` 在 `block_size is None` 时填 128，`deepseek_v4` 另有 32 / 64 / 128 的限制，`model_config.is_hybrid` 为真就直接返回，交给模型专属算法。另有 `update_block_size_for_backend`：仅当前缀缓存关闭、混合 KV 管理器启用、配置了 KV 传输且 `mamba_cache_mode == "align"` 时处理 Mamba 块；原值为空或等于最大模型长度就改成逻辑块大小，其他值则断言它是逻辑块大小的整数倍。
 - **要更大的每步预算就显式写 `--max-num-batched-tokens`。** 官方 GLM 双机命令写的是 8192。
 - **通用后端选择：** `get_attn_backend_cls` 以 `(use_mla, use_sparse, use_compress)` 查 `backend_map`：`(False, False, False)` 得 `AscendAttentionBackend`，`(True, False, False)` 得 `AscendMLABackend`，`(True, True, False)` 得 `AscendSFABackend`，`(True, False, True)` 得 `AscendDSABackend`；选定 `FLASH_ATTN` 且 `_validate_fa3_backend` 通过时返回 `AscendFABackend`；310P 走 `backend_map_310`。GLM 侧的直接绑定：`IndexerKPoolMLACacheLayer` 把 `self.attn_backend` 设成 `AscendIndexerKPoolMLABackend`；`AscendKimiGatedDeltaNetAttention.get_attn_backend` 返回 `AscendGDNAttentionBackend`。
 - **其他「答名字」的接口：** `get_compile_backend` 返回 `AscendCompiler`（被写进 `compilation_config.oot_compiler`），`get_static_graph_wrapper_cls` 返回 `ACLGraphWrapper`，`get_device_communicator_cls` 返回 `NPUCommunicator`。
@@ -178,34 +245,39 @@ file: platform-check-order
 | `additional_config.layer_sharding can only be enabled in PD-disaggregated's P node.` | 配了层切分而 `kv_role` 不是 `kv_producer`（只在 v0.23） |
 | `PCP (Prefill Context Parallelism) and DP (Data Parallelism) cannot be enabled simultaneously...` | `data_parallel_size > 1` 且 `prefill_context_parallel_size > 1` |
 | `PP+MTP is only supported on PD-disaggregated P nodes (kv_role='kv_producer').` | MTP + `pipeline_parallel_size > 1`，且不在 producer 一侧 |
-| `enable_balance_scheduling only supports PD-mixed mode...` | 开了均衡调度而 `kv_role` 不是 `kv_both` |
+| `enable_balance_scheduling only supports PD-mixed mode...` | 开了均衡调度、存在 KV 传输配置，且 `kv_role` 不是 `kv_both` |
 | `Hybrid models do not support recompute mode kv load failure policy now.` | `kv_load_failure_policy=recompute` 且模型是混合模型（断言） |
 | `recompute_scheduler_enable can only be enabled on PD-disaggregated D nodes...` | 开了重算调度而角色不是 consumer；在 producer 上只警告并重置为关 |
 | `ACL graph is incompatible with ASCEND_LAUNCH_BLOCKING=1.` | 图模式没关而环境里设了这个调试变量 |
 | `Invalid draft model parallel config for speculative decoding: ...` | `decode_context_parallel_size > 1` 且草稿模型不是 MLA 时，三条头数约束任一不满足（草稿 TP 大于 KV 头数；DCP ≤ 草稿 TP ÷ KV 头数；每个 KV 头对应的 Q 头数能被 DCP 整除） |
 
-设备总显存那条路上的 `NotImplementedError` 不会冒到用户面前：上游用 `except Exception` 吞掉，把容量当成 0。
+在默认预算查询这条路径中，`NotImplementedError` 被 `except Exception` 捕获，容量占位值改为 0；其他调用点若没有相同的异常处理，仍会把异常向外传播。
 
 ### 开销和什么时候别开
 
-平台这一层本身的开销可以忽略：每个进程一次校验与改写，之后只是几个返回类名的调用。要权衡的是它带来的间接后果。
+本页没有平台钩子的耗时测量，不能据“启动时调用”就认定开销可忽略；配置对象也能被多次构造。排查时应区分注册、配置检查、硬件查询及后续所选组件的耗时。下面关注配置变化带来的后果。
 
 - **不要靠删校验来验证组合。** 被拦的组合往往在更下游没有实现，删掉检查只会把报错推迟到运行时。
 - **别把一个版本的报错当通用知识。** 校验数量与函数名三个版本都不同，见下表。
 - **显式写了每步预算，就不要再按「默认值」推断行为**，反之也一样：删掉这个参数不会回到 8192。
 - **310P 与 xlite 是另外两条 Worker 分支**，它们的行为不能套到常规 A2 路径上；本部署走的是常规分支。
+
 - **缓存精度那条改写是跟着模型配置走的**，换模型要重新看，不能当成昇腾的全局默认。
 
 ### 版本差异
 
-按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26 列是 2ed6cbba，main 列是 baa023ad。**本部署跑的专用镜像 db701c1f 是另一个 orphan commit，不算进 v0.23 列：GLM 的模型代码与配置 patch 只在镜像里，2c59ff10 上只有两个 GLM 工具调用 patch。**下表 v0.23 列按 2c59ff10 写；平台文件在两者之间只差第 596 行之后几处编译开关复位和一处重算调度复位，下表各行（含起始行 450、四个校验的顺序）在镜像上完全相同。
+**v0.30.0rc2 增加了组合条件，不能只沿用旧表的“支持 PCP/DCP”。** 平台继续在 MRV1 上拒绝 PCP；MRV2 另走后端与 PCP 管理器校验。SFA 复制索引允许 DCP 等于 PCP 或 TP×PCP，但 C8 还必须具备相应硬件能力；GQA/MQA 同时启用 PCP、DCP 时两者必须相等。主模型和独立草稿模型分别校验，不能用主模型通过启动证明草稿拓扑合法。
 
-| 项 | v0.23 | v0.26 | main | 意味着什么 |
+rc2 还在入口拒绝 MRV1 的 routed-experts 返回请求，要求改用 V2；KVPP 大于 1 时交给 KVPPConfig 校验。DCP 大于 1 时，非空的 `num_speculative_tokens_per_batch_size` 会在检查草稿是否 MLA 之前被拒绝，MLA 草稿也不能绕过这项限制。平台仍负责把用户配置变成可执行配置，具体规则已扩展，排错应读取最终配置与实际后端。[CP 页](context-parallel.md#版本差异)列出这一批核对的模型边界。
+
+按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26 rc 列是 2ed6cbba，main 列是 baa023ad。**GLM 专用镜像 db701c1f 单独作为教学基线，不算进 v0.23 列；GLM 模型文件与配置补丁的差异见[源码阅读页](reading-vllm-ascend.md#版本差异)。**下表 v0.23 列按 2c59ff10 写；两份平台文件的差异是编译开关复位和重算调度复位，表中四个前置校验的顺序、查询拒绝和 Worker 分支一致，不能据此称整份实现相同。
+
+| 项 | v0.23 | v0.26 rc | main | 意味着什么 |
 |---|---|---|---|---|
 | 建配置前的校验 | 四个类方法：层切分 → 投机 + DCP → 并行 → PD+PP+MTP | 两个：投机 + DCP → 并行 | 三个：一个类方法（索引器与流水线并行）加两个模块级函数（投机 + DCP、并行） | 拿一个版本的报错去另一个版本搜函数名会扑空 |
 | 层切分这个键 | 有，只许在 producer 一侧 | 平台这一侧已无此校验 | 同样已无 | 同一个键，一个版本被拦、另一个版本压根不存在 |
-| 设备总显存查询 | 无条件抛不支持 | 无条件抛不支持 | 运行库已初始化就返回真实容量，否则照抛 | 定默认预算那一刻运行库还没起来，三版都落小档 |
-| 并行那条校验拦什么 | 数据并行大于 1 且 prefill 侧上下文并行大于 1 才抛 | 只要没开 v2 model runner，prefill 侧上下文并行大于 1 就抛 | 条件同 v0.26，另加一条 KVPP 检查 | 同一个参数在新版本上更早被拦，和 DP 开不开无关 |
+| 设备总显存查询 | 无条件抛不支持 | 无条件抛不支持 | 运行库已初始化就返回真实容量，否则照抛 | main 在未初始化的启动路径中回退；不能推广到已初始化的调用方 |
+| 并行那条校验拦什么 | 数据并行大于 1 且 prefill 侧上下文并行大于 1 才抛 | 只要没开 v2 model runner，prefill 侧上下文并行大于 1 就抛 | 条件同 v0.26 rc，另加一条 KVPP 检查 | 同一个参数在新版本上更早被拦，和 DP 开不开无关 |
 | 自动选 Worker | 三条分支写在方法里：310P / xlite / NPUWorker | 同左结构 | 常规分支改由硬件画像给出默认 Worker 类，xlite 仍是单独分支 | main 上「常规选哪个 Worker」要先看硬件画像 |
 | `check_and_update_config` 的起始行 | 450 | 408 | 457 | 行号三版都不同，所以本页来源一律写成「仓库@commit:路径#行号区间」 |
 
@@ -226,8 +298,18 @@ file: platform-check-order
 | 补丁写 640 为什么早于平台 | 同上，`__post_init__` 先调 `try_verify_and_update_config`（混合模型配置检查），后调 `check_and_update_config` |
 | 批式 DP 的 256 从哪来 | 上游 `vllm/model_executor/layers/fused_moe/config.py` 的 `max_num_tokens` 缺省值；删掉前的 `VLLM_MOE_DP_CHUNK_SIZE`（`vllm/envs.py`） |
 
-**本页的推论。** 以下结论由源码条件与本部署参数合成，不是某一行源码的直接引用：本部署既不是 310P、也没开 xlite，所以自动选 Worker 时落在常规分支 [D]；这里 DP 是 2，所以 prefill 侧上下文并行只能留在 1 [D]；本部署没开 PD 分离，所以层切分校验与三条角色检查都不触发 [D]；GLM 的文本配置带 indexer 的 top-k 字段，所以缓存精度那条改写对本部署生效 [D]；官方命令显式写了每步预算，所以选出的小档被丢弃、三道加减不发生，8192 原样生效 [D]；把这个参数从命令里删掉，按默认分发后端、均衡模式、chunked prefill 默认开、请求数上限 32、单请求长度上限 133,120 推，得到 min(32 × 133,120, 2048) = 2048 [D]（未实测，见待核）；GLM 的 MTP 草稿会不会被判成 MLA 不影响本部署（DCP 是 1），但决定了开 DCP 时投机 + DCP 那条会不会拦，见待核。
+**本页的条件性推导。** 将固定源码与部署参数合起来：常规 A2、未开 xlite 且 Worker 自动选择时，得到 NPUWorker；DP2 要求 PCP1；未配层切分、KV 传输和重算调度时，不触发相应角色限制；GLM 文本配置的 indexer top-k 字段触发缓存精度改写。官方命令显式写了 token 预算 8192 与请求数上限 32，默认值函数保留两者。只删掉 token 预算后，在前文列出的默认值和模型配置条件下，得到 min(32 × 133,120, 2048) = 2048。[D] 这份演算保留全部前提，不代替现场启动日志。
 
-**正文证据归档。** 身份字段、编译后端与配置前的准备：[C1]；上游在配置构造末尾调用平台：[C2]，默认预算在这之前就定好：[C3]；设备总显存拒答与注释理由、按后端对齐 mamba 块的断言：[C4]；层切分、并行、投机加上下文并行这三个校验的条件：[C5]，PD 加流水线并行加 MTP 那一个：[C6]；校验与改写的顺序、两道早退、量化识别、建昇腾配置：[C7]；编译与图模式、缓存精度改写：[C8]，GLM 配置里的 indexer top-k 字段：[C14]；调试变量冲突、Worker 三选一、块大小调用、自定义算子与三条角色检查：[C9]，通用块大小规则与混合模型跳过：[C11]；通用后端映射、FA3 与 310P 分流、图包装类与通信器类：[C10]，GLM 两类层的后端绑定：[C12][C13]。档位门槛与两档取值：[C15]；三个缺省常量：[C16]；批式 DP MoE 的判定条件：[C17]；选档无条件发生、赋值与四道加减被「未显式设置」闸住：[C18]，H100 与 MI300x 走大档的注释在来源 15。补丁先于平台把块大小写成 640：来源 25–27；批式 DP 的 256 的出处：来源 28–29；删掉预算参数后的推导用到的默认分发后端、chunked prefill 默认值与 prefix-LM 判定：来源 30–32；插件只为 GLM 主模型登记 MLA 判定：来源 33。三版设备显存查询、v0.26 的校验数量与并行那条的条件：[C19][C20]；main 上校验的函数形态：[C21]，它的并行校验条件：[C22]；main 改由硬件画像给出常规 Worker 类：[C23]。官方双机命令显式写的每步预算、请求数上限与显存比例：[S24]，命令全文见[来源基线](../sources/glm-5-3-flash-baseline.md)。
+**来源与结论的对应。** 以下编号均指页头 sources：
 
-**待核：** 缺这套硬件上的实测——删掉 `--max-num-batched-tokens` 之后启动日志里的实际预算值，以及 main 分支上硬件画像给出的常规 Worker 类在 A2 上的取值；两条都只按源码推导，没有在 NPU 上跑过。删掉预算参数后得 2048 这个推导，还缺一项：模型自带的配置文件里有没有 `is_mm_prefix_lm` 字段（有且为真，多模态下限可能把预算抬高；上游读法见 `vllm@0fc695fc:vllm/transformers_utils/model_arch_config_convertor.py#L293-L296`）。这道下限同时要求按多模态架构加载（`vllm@0fc695fc:vllm/engine/arg_utils.py#L2530-L2544`），插件对 GLM 同时登记了纯文本的 `Glm5NextForCausalLM` 和多模态的 `Glm5NextForConditionalGeneration`（`vllm-ascend@db701c1f:vllm_ascend/models/__init__.py#L12-L16`），走哪个由配置文件的 `architectures` 字段决定，也要一并查。另一项：GLM 的 MTP 草稿会不会被判成 MLA——静态看，草稿的模型类型被改成 `glm5_next_mtp`，它既不在上游的 MLA 名单里，插件也只给 `glm5_next` 和 `glm5_next_text` 登记了 MLA 判定，按这个读法草稿不算 MLA，开 DCP 时会被投机 + DCP 那条按头数检查；没有实跑确认。
+- 身份字段、编译器和准备钩子见来源 1；平台调用与更早的预算构造见 2–3；设备总显存拒答及 Mamba 块更新的完整条件见 4。
+- 前置校验见 5–7；缓存精度、编译与图模式见 8–10；Worker、块大小调用、算子开关和角色检查见 11，KV 载入失败策略的实际断言另见 42。
+- 通用后端、FA3 检查及包装类见 12；块大小规则见 13；GLM 专用后端与 indexer top-k 配置分别见 14–16。
+- 默认档位见 17；常量见 18；批式 DP 条件见 19；token 与请求数的两套独立调整条件见 20，均衡模式默认值见 54。MoE 缺省 token 数和旧分块参数分别见 30–31，不能从缺省值推出通信内核容量上限。
+- 640 的写入时序见 27–29；默认分发后端与 chunked prefill 开关见 32–33，模型的 chunked prefill 能力判定见 46；多模态 prefix-LM 判定见 34，GLM 配置与元数据见 44–45；默认块大小 16 及其填充见 36–37。
+- v0.23 的四项前置校验见 38；v0.26 rc 的两项校验与 Worker 分支见 21、53；main 的查询守卫、配置调用、并行限制、Worker 选择和 A2 默认类见 22–25、43；rc2 的主模型与草稿限制及实际入口调用见 40–41、52，初始化后容量查询见来源 56。
+- 官方双机的 8192、32、0.85 等参数见来源 26，命令全文与镜像边界见[来源基线](../sources/glm-5-3-flash-baseline.md)。
+
+**怎样确认现场值。** 公开配置已经给出了多模态架构和 prefix-LM 字段的情况，main 的 A2 硬件画像也明确写着常规 NPUWorker；但本页没有容器最终配置、删去预算参数后的启动日志或 NPU 实测。因此，2048 是上述条件下的代码推导，Worker 的类路径也不是该设备组合已成功运行的证明。
+
+草稿的 MLA 判定要跟完整链，不能只看主模型名字：来源 55 构造草稿配置时传入覆盖函数，来源 47 的覆盖把草稿顶层类型改成 `glm5_next_mtp`；来源 48 按顶层类型选转换器，来源 35 只为 `glm5_next` / `glm5_next_text` 注册专用转换器，上游映射见 51。落到基类时，来源 34 的 MLA 名单也没有这些 GLM 类型；转换结果写入结构字段（来源 50），再由 `use_mla` 读取并叠加环境开关（来源 49）。按这组固定注册和构造路径，草稿不走 MLA 放行分支；本部署 DCP1 会在此判断之前返回，改成 DCP 大于 1 才需要继续核草稿头数约束。这仍是固定代码路径的判断，不是 DCP 部署通过记录。

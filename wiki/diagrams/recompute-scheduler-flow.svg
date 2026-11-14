@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 370" width="880" height="370" role="img" aria-label="固定旧版的退回分支发生在第2站，名单到第6站才转成recomputed输出；代理随后从入口重投P/D。该请求本轮没有再参与前向。保存分支只登记任务，实际保存和恢复由连接器执行；发帧也不等于旧引擎完整收尾。">
+  <title>固定旧版的退回分支发生在第2站，名单到第6站才转成recomputed输出；代理随后从入口重投P/D。该请求本轮没有再参与前向。保存分支只登记任务，实际保存和恢复由连接器执行；发帧也不等于旧引擎完整收尾。</title>
+  <defs><marker id="recompute-scheduler-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="recompute-scheduler-flow-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker><marker id="recompute-scheduler-flow-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <path d="M244 86 L330 86" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#recompute-scheduler-flow-ah-ink)"/>
+  <path d="M550 86 L636 86" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#recompute-scheduler-flow-ah-ink)"/>
+  <path d="M134 117 L134 217" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#recompute-scheduler-flow-ah-danger)"/>
+  <path d="M244 248 L330 248" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#recompute-scheduler-flow-ah-danger)"/>
+  <path d="M550 248 L636 248" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#recompute-scheduler-flow-ah-comm)"/>
+  <rect x="24" y="55" width="220" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="134" y="82" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">第2站：续块失败并选请求</text>
+  <text x="134" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">询问连接器是否接受保存</text>
+  <rect x="330" y="55" width="220" height="62" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="82" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">接受：登记保存与抢占</text>
+  <text x="440" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">清零进度、排回等待队首</text>
+  <rect x="636" y="55" width="220" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="746" y="82" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">连接器负责保存和恢复</text>
+  <text x="746" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">以后调度再尝试继续执行</text>
+  <rect x="24" y="217" width="220" height="62" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="134" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">不接受：还块、记退回名单</text>
+  <text x="134" y="263" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本步不再接纳新请求</text>
+  <rect x="330" y="217" width="220" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">第6站：生成结束输出</text>
+  <text x="440" y="263" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">STOP、空token、recomputed</text>
+  <rect x="636" y="217" width="220" height="62" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="746" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">第7站到代理：重投入口</text>
+  <text x="746" y="263" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">续接输入、扣额度、再选P/D</text>
+  <text x="24" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">调度的分支与输出的时刻不同，退回不经过本轮前向</text>
+  <text x="24" y="332" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">范围：固定旧版；rc2细粒度TP中止例外见正文</text>
+</svg>

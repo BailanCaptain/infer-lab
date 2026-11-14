@@ -1,0 +1,31 @@
+layout: figure
+id: kv-cache-cpu-offload-flow
+caption: 常规整段路径：第2站先排保存计划，第4站计算写完后设备到主机传输才能开始；全部参与worker完成后主机副本才可用。后来的请求在第2站查本地与主机，借好设备页并等待加载完成，再进入前向。容量不足、查找未定或依赖未就绪时继续等待。
+size: [880, 350]
+items:
+  - { at: [24, 55], size: [180, 62], text: 第2站：筛选保存段, sub: 边界、策略与主机容量, tone: control }
+  - { at: [242, 55], size: [180, 62], text: 第4站：计算写完, sub: 传输流等待计算完成, tone: token }
+  - { at: [460, 55], size: [180, 62], text: 设备 → 主机, sub: 传输完成才报告成功, tone: comm }
+  - { at: [678, 55], size: [178, 62], text: 主机副本可用, sub: 汇总参与worker结果, tone: kv }
+  - { at: [24, 218], size: [180, 62], text: 第2站：另一请求查找, sub: 先本地，再问外部命中, tone: control }
+  - { at: [242, 218], size: [180, 62], text: 借设备页并挂起, sub: 容量与状态满足条件, tone: kv }
+  - { at: [460, 218], size: [180, 62], text: 主机 → 设备, sub: 请求等待完成通知, tone: comm }
+  - { at: [678, 218], size: [178, 62], text: 恢复前向, sub: 从实际命中边界继续, tone: token }
+links:
+  - { from: [204, 86], to: [242, 86] }
+  - { from: [422, 86], to: [460, 86] }
+  - { from: [640, 86], to: [678, 86] }
+  - { from: [204, 249], to: [242, 249] }
+  - { from: [422, 249], to: [460, 249] }
+  - { from: [640, 249], to: [678, 249] }
+  - { from: [767, 117], to: [114, 218], via: [[767, 162], [114, 162]], tone: kv, dashed: true }
+texts:
+  - { at: [24, 26], text: 保存与加载的两条路径：计划存在 ≠ 字节已经到达, size: 14, strong: true }
+  - { at: [24, 321], text: 保存未完成就复用源页时，还须等待相关保存任务，避免覆盖数据。, size: 12 }
+pins:
+  - source: vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L721-L806
+    symbols: [prepare_store]
+  - source: vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L943-L974
+    symbols: [complete_store, complete_load]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L800-L812
+    symbols: [WAITING_FOR_REMOTE_KVS]

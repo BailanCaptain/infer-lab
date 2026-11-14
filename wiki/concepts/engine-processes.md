@@ -2,63 +2,221 @@
 id: engine-processes
 title: 引擎有哪几个进程：API server、EngineCore 与 Worker
 type: concept
-summary: vLLM 把推理服务拆成三类进程——API server 收发请求、EngineCore 每步调度、Worker 每卡一个执行模型，彼此只发消息，请求状态、补丁和 Ascend 配置缓存各归各的进程；GLM 双机按角色计 20 个进程，executor（执行器）决定 Worker 是否独立成进程。
-aliases: [EngineCore, Main 进程, Worker 进程, 进程边界, V1 引擎进程, 引擎的三类角色, patch 注入点, uni 执行器, 多进程执行器, API server 进程, 前端进程, 进程账, 20 个进程, DP 协调器, headless, 进程与执行器, 进程与执行器：前端、EngineCore 和 Worker 如何协作, 引擎有哪几个进程]
-chapters: ["10"]
+summary: >-
+  vLLM 用三类角色协作——API server 收发请求、EngineCore 每步调度、Worker
+  执行设备上的模型；客户端模式与执行器决定角色如何分布到进程，请求状态、补丁和 Ascend 配置缓存按进程管理；GLM 双机按角色计 20
+  个进程，executor（执行器）决定 Worker 是否独立成进程。
+aliases:
+  - EngineCore
+  - Main 进程
+  - Worker 进程
+  - 进程边界
+  - V1 引擎进程
+  - 引擎的三类角色
+  - patch 注入点
+  - uni 执行器
+  - 多进程执行器
+  - API server 进程
+  - 前端进程
+  - 进程账
+  - 20 个进程
+  - DP 协调器
+  - headless
+  - 进程与执行器
+  - 进程与执行器：前端、EngineCore 和 Worker 如何协作
+  - 引擎有哪几个进程
+  - distributed_executor_backend
+  - distributed-executor-backend
+  - api_server_count
+  - api-server-count
+  - data_parallel_address
+  - data-parallel-address
+  - data_parallel_rank
+  - data-parallel-rank
+  - data_parallel_rpc_port
+  - data-parallel-rpc-port
+  - data_parallel_start_rank
+  - data-parallel-start-rank
+  - ASCEND_RT_VISIBLE_DEVICES
+  - VLLM_HOST_IP
+  - VLLM_PORT
+  - VLLM_ENABLE_V1_MULTIPROCESSING
+  - VLLM_WORKER_MULTIPROC_METHOD
+  - GLOO_SOCKET_IFNAME
+  - HCCL_SOCKET_IFNAME
+  - HCCL_IF_IP
+  - HCCL_OP_EXPANSION_MODE
+  - TP_SOCKET_IFNAME
+chapters:
+  - '10'
 order: 80
 sources:
-  - https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
-  - vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L138-L148
-  - vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L173-L253
-  - vllm@0fc695fc:vllm/v1/engine/utils.py#L1084-L1100
-  - vllm@0fc695fc:vllm/v1/engine/utils.py#L121-L170
-  - vllm@0fc695fc:vllm/v1/engine/core_client.py#L70-L131
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L100-L109
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L860-L965
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1118-L1137
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L132-L192
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L495-L509
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L686-L696
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L997-L1031
-  - vllm@0fc695fc:vllm/v1/executor/uniproc_executor.py#L45-L63
-  - vllm@0fc695fc:vllm/config/parallel.py#L776-L780
-  - vllm@0fc695fc:vllm/config/parallel.py#L845-L890
-  - vllm@0fc695fc:vllm/config/parallel.py#L501-L504
-  - vllm@0fc695fc:vllm/utils/system_utils.py#L126-L198
-  - vllm@0fc695fc:vllm/envs.py#L892-L894
-  - vllm@0fc695fc:vllm/plugins/__init__.py#L69-L80
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L2578-L2598
-  - vllm@0fc695fc:vllm/v1/worker/worker_base.py#L238-L247
-  - vllm@0fc695fc:vllm/v1/core/sched/output.py#L181-L212
-  - vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1125-L1168
-  - vllm@0fc695fc:vllm/v1/engine/async_llm.py#L340-L412
-  - vllm@0fc695fc:vllm/config/scheduler.py#L168-L188
-  - vllm@0fc695fc:vllm/v1/engine/coordinator.py#L80-L157
-  - vllm-ascend@db701c1f:vllm_ascend/__init__.py#L18-L69
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L184-L188
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L475
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L89-L120
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L563-L567
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L866-L925
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/__init__.py#L47-L50
-  - vllm-ascend@db701c1f:vllm_ascend/patch/__init__.py#L57-L66
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_multiproc_executor.py#L161-L200
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L718
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L530-L544
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L748-L763
-  - vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/patch.md#L1-L40
-  - vllm-ascend@db701c1f:vllm_ascend/eplb/core/eplb_worker.py#L403-L410
-  - vllm-ascend@2ed6cbba:vllm_ascend/__init__.py#L18-L69
-  - vllm-ascend@baa023ad:vllm_ascend/__init__.py#L52-L103
-  - vllm@568afb3a:vllm/config/parallel.py#L883-L928
-  - vllm@0fc695fc:vllm/v1/engine/llm_engine.py#L140-L176
-  - vllm@0fc695fc:vllm/config/vllm.py#L561-L580
-  - vllm@0fc695fc:vllm/v1/executor/abstract.py#L48-L82
-  - vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L108-L130
-  - vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L127-L149
-  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L745
-verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
-evidence: "C"
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
+  - 'vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L138-L148'
+  - 'vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L173-L253'
+  - 'vllm@0fc695fc:vllm/v1/engine/utils.py#L1084-L1100'
+  - 'vllm@0fc695fc:vllm/v1/engine/utils.py#L121-L170'
+  - 'vllm@0fc695fc:vllm/v1/engine/core_client.py#L70-L131'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L100-L109'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L860-L965'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1118-L1137'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L132-L192'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L495-L509'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L686-L696'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L997-L1031'
+  - 'vllm@0fc695fc:vllm/v1/executor/uniproc_executor.py#L45-L63'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L776-L780'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L845-L890'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L501-L504'
+  - 'vllm@0fc695fc:vllm/utils/system_utils.py#L126-L198'
+  - 'vllm@0fc695fc:vllm/envs.py#L892-L894'
+  - 'vllm@0fc695fc:vllm/plugins/__init__.py#L69-L80'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L2578-L2598'
+  - 'vllm@0fc695fc:vllm/v1/worker/worker_base.py#L238-L247'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/output.py#L181-L212'
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1125-L1168'
+  - 'vllm@0fc695fc:vllm/v1/engine/async_llm.py#L340-L412'
+  - 'vllm@0fc695fc:vllm/config/scheduler.py#L168-L188'
+  - 'vllm@0fc695fc:vllm/v1/engine/coordinator.py#L80-L157'
+  - 'vllm-ascend@db701c1f:vllm_ascend/__init__.py#L18-L69'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L184-L188'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L475'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L89-L120'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L563-L567'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L866-L925'
+  - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/__init__.py#L47-L50'
+  - 'vllm-ascend@db701c1f:vllm_ascend/patch/__init__.py#L57-L66'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_multiproc_executor.py#L161-L200
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L718
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L530-L544'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L748-L763'
+  - >-
+    vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/patch.md#L1-L40
+  - 'vllm-ascend@db701c1f:vllm_ascend/eplb/core/eplb_worker.py#L403-L410'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/__init__.py#L18-L69'
+  - 'vllm-ascend@baa023ad:vllm_ascend/__init__.py#L52-L103'
+  - 'vllm@568afb3a:vllm/config/parallel.py#L883-L928'
+  - 'vllm@0fc695fc:vllm/v1/engine/llm_engine.py#L140-L176'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L561-L580'
+  - 'vllm@0fc695fc:vllm/v1/executor/abstract.py#L37-L87'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L108-L130'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L127-L149'
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L745
+  - >-
+    raw:sha256-0b04f1f659a97723f3e5a81f307519311a661816e67b32672229cb8d523f468b.md#L1-L1810
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/core_client.py#L81-L104
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/executor/uniproc_executor.py#L46-L62
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/executor/multiproc_executor.py#L1-L1062
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L472-L476'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L1817-L1956'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L125-L134'
+  - 'vllm@0fc695fc:vllm/entrypoints/openai/cli_args.py#L353-L367'
+  - 'vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L61-L148'
+  - 'vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L173-L191'
+  - 'vllm@0fc695fc:vllm/utils/network_utils.py#L33-L72'
+  - 'vllm@0fc695fc:vllm/utils/network_utils.py#L152-L222'
+  - 'vllm@0fc695fc:vllm/envs.py#L488-L514'
+  - 'vllm@0fc695fc:vllm/envs.py#L663-L671'
+  - 'vllm@0fc695fc:vllm/envs.py#L1248-L1250'
+  - 'vllm@0fc695fc:vllm/entrypoints/serve/utils/api_utils.py#L149-L167'
+  - 'vllm@0fc695fc:vllm/entrypoints/cli/main.py#L34-L39'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L130-L136'
+  - 'vllm@0fc695fc:vllm/platforms/interface.py#L234-L247'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L937-L956'
+  - 'vllm@568afb3a:vllm/engine/arg_utils.py#L1964-L2102'
+  - 'vllm@84030bbe:vllm/engine/arg_utils.py#L2145-L2318'
+  - 'vllm@568afb3a:vllm/entrypoints/cli/serve.py#L61-L150'
+  - 'vllm@84030bbe:vllm/entrypoints/cli/serve.py#L62-L153'
+  - 'vllm@568afb3a:vllm/entrypoints/serve/utils/api_utils.py#L149-L167'
+  - 'vllm@84030bbe:vllm/entrypoints/serve/utils/api_utils.py#L149-L166'
+  - 'vllm@568afb3a:vllm/envs.py#L479-L505'
+  - 'vllm@568afb3a:vllm/envs.py#L687-L692'
+  - 'vllm@568afb3a:vllm/envs.py#L913-L915'
+  - 'vllm@568afb3a:vllm/envs.py#L1327-L1329'
+  - 'vllm@84030bbe:vllm/envs.py#L520-L546'
+  - 'vllm@84030bbe:vllm/envs.py#L718-L723'
+  - 'vllm@84030bbe:vllm/envs.py#L943-L945'
+  - 'vllm@84030bbe:vllm/envs.py#L1411-L1413'
+  - 'vllm@84030bbe:vllm/config/parallel.py#L136-L145'
+  - 'vllm@84030bbe:vllm/config/parallel.py#L950-L995'
+  - 'vllm@568afb3a:vllm/platforms/interface.py#L285-L312'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L116-L126'
+  - 'vllm@84030bbe:vllm/utils/network_utils.py#L166-L211'
+  - 'vllm@84030bbe:vllm/entrypoints/launchers/cli_args.py#L396-L410'
+  - 'vllm@568afb3a:vllm/utils/network_utils.py#L152-L187'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L841-L843'
+  - 'vllm@568afb3a:vllm/config/parallel.py#L879-L881'
+  - 'vllm@84030bbe:vllm/config/parallel.py#L946-L948'
+  - 'vllm@0fc695fc:vllm/distributed/parallel_state.py#L417-L425'
+  - >-
+    https://docs.pytorch.org/docs/2.10/distributed.html#choosing-the-network-interface-to-use
+  - >-
+    https://github.com/pytorch/pytorch/blob/449b1768410104d3ed79d3bcfe4ba1d65c7f22c0/torch/csrc/distributed/c10d/ProcessGroupGloo.cpp#L493-L567
+  - >-
+    https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_SOCKET_IFNAME.md
+  - >-
+    https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_IF_IP.md
+  - >-
+    https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_OP_EXPANSION_MODE.md
+  - 'vllm-ascend@db701c1f:requirements.txt#L16-L17'
+  - 'vllm-ascend@db701c1f:Dockerfile.a2#L16-L20'
+  - >-
+    https://github.com/pytorch/pytorch/blob/449b1768410104d3ed79d3bcfe4ba1d65c7f22c0/torch/csrc/distributed/rpc/tensorpipe_agent.cpp#L163-L185
+  - >-
+    https://github.com/Ascend/pytorch/blob/8751b36d5d6959e499e6bf6530c1928060ced030/torch_npu/csrc/distributed/rpc/tensorpipe_agent.cpp#L155-L180
+  - >-
+    https://github.com/Ascend/pytorch/blob/8751b36d5d6959e499e6bf6530c1928060ced030/torch_npu/distributed/rpc/backend_registry.py#L216-L298
+  - >-
+    https://github.com/pytorch/gloo/blob/54cbae0d3a67fa890b4c3d9ee162b7860315e341/gloo/transport/tcp/device.cc#L30-L84
+  - 'vllm@ced6857a:vllm/v1/engine/admission_control.py#L13-L52'
+  - 'vllm@ced6857a:vllm/v1/engine/async_llm.py#L148-L162'
+  - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_engine_core.py#L45-L56'
+  - 'vllm@ced6857a:vllm/v1/engine/async_llm.py#L297-L349'
+  - 'vllm@ced6857a:vllm/v1/engine/output_processor.py#L760-L777'
+  - 'vllm@ced6857a:vllm/entrypoints/cli/serve.py#L179-L263'
+  - 'vllm@ced6857a:vllm/config/parallel.py#L962-L1011'
+  - 'vllm@ced6857a:vllm/entrypoints/cli/serve.py#L63-L154'
+  - 'vllm@ced6857a:vllm/entrypoints/launchers/cli_args.py#L403-L417'
+  - 'vllm@ced6857a:vllm/engine/arg_utils.py#L2163-L2336'
+  - 'vllm@ced6857a:vllm/config/parallel.py#L136-L145'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L90-L95'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L123-L134'
+  - 'vllm@ced6857a:vllm/envs.py#L507-L533'
+  - 'vllm@ced6857a:vllm/utils/network_utils.py#L34-L73'
+  - 'vllm@ced6857a:vllm/utils/network_utils.py#L166-L211'
+  - 'vllm@ced6857a:vllm/envs.py#L1382-L1384'
+  - 'vllm@ced6857a:vllm/config/parallel.py#L962-L964'
+  - 'vllm@ced6857a:vllm/envs.py#L930-L932'
+  - 'vllm@ced6857a:vllm/entrypoints/serve/utils/api_utils.py#L149-L166'
+  - 'vllm@ced6857a:vllm/utils/system_utils.py#L125-L181'
+  - 'vllm-ascend@7d825229:vllm_ascend/__init__.py#L52-L111'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L307-L320'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L514-L527'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L140-L157'
+  - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/__init__.py#L38-L44'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L966-L1009'
+  - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_balance_schedule.py#L892-L899'
+  - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_engine_core.py#L31-L72'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L900-L978'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1005-L1038'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L1325-L1340'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L465-L480'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L894-L910'
+  - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L33-L46'
+  - "vllm@0fc695fc:docs/configuration/env_vars.md#L1-L12"
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0rc2
+  - main
+evidence: C
 relations:
   - to: glm-5-3-flash-two-node
     kind: builds-on
@@ -82,13 +240,20 @@ relations:
     kind: builds-on
     note: 本页用示例请求 R1 说明清单只发差量；R1 每一站的数字和块号怎么来，在那一页
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: 2026-11-10T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-0b04f1f659a97723f3e5a81f307519311a661816e67b32672229cb8d523f468b.md
+  - >-
+    raw/sha256-3071e0e23a87ae7750dd02a7250c396941869f41b29049f513d3ffda38aa97cb.md
 ---
 
 ## 一个推理服务为什么是好几个进程
 
-**vLLM 把一个推理服务拆成三类进程：API server 接住用户请求、把文字切成 token，最后把结果还给用户；EngineCore 每一步决定这一步算哪些请求；Worker 每张卡一个，守着那张卡执行模型。三类进程互不共享内存，只靠发消息交接。**
+**vLLM 的推理服务中有三类职责：API server 接住用户请求、把文字切成 token，最后把结果还给用户；EngineCore 每一步决定这一步算哪些请求；Worker 负责设备上的模型执行。这三类职责如何分布到进程中，要分别看客户端模式与执行器，不能直接把三类职责数成三类独立进程。**
+
+客户端模式决定如何接入 EngineCore；执行器决定如何组织 Worker。多进程执行器会创建独立的 Worker 进程，单进程执行器则在当前进程内直接调用 Worker 方法。因此，Worker 是执行角色，是否对应独立进程取决于执行器；仅凭使用单进程执行器，也不能判断 API server 与 EngineCore 是否位于同一进程。
 
 **进程**是操作系统里一份独立运行的程序，有自己的一块内存：一个进程里的变量、对象、被替换过的函数，另一个进程都看不到。两个进程要交换数据，只能经过某种通道，比如网络消息，或者一块专门划出来、几个进程都能读写的共享内存。
 
@@ -100,13 +265,13 @@ file: engine-processes
 
 - **请求消息，每条请求发一次。** API server 把文字切成 token id，连同采样参数打包，发给 EngineCore。这条请求之后每一步怎么算，都不再由 API server 决定。
 - **清单，每一步发一次。** EngineCore 里有两个部件经手这份清单。scheduler（调度器）定下这一步算哪些请求、各算几个 token、这些 token 的 K、V 写进 [KV cache](kv-cache.md) 的哪些块（KV cache 按固定大小的块分配，每块有一个块号）。executor（执行器）是 EngineCore 里专管和 Worker 打交道的对象：把清单交给所有 Worker，再收回结果，[后文](#executor-决定-worker-是不是独立进程)单独讲它。每个 Worker 收到的是同一份清单，各算自己那张卡上的一份。「清单」是本页的叫法，在 vLLM 里它叫 SchedulerOutput；严格说，executor 每一步要对 Worker 发两次调用，一次算到词表分数，一次采样出新 token，见[一步之内](request-call-chain.md#一步之内enginecore-给-worker-发两次调用)。
-- **本步结果，通常只由一个 Worker 回传。** 同一组卡最后得到的新 token 相同，所以在没配 KV connector、也没开 PP 的部署里，executor 只读本组 TP 编号为 0 的那个 Worker 的回信（TP 即[张量并行](tensor-parallel.md)，一组卡合算同一份模型，每层各算一部分；node1 那组的 0 号就是全局 8 号），不收 N 份。有两种例外：配了 KV connector（在实例之间搬 KV cache 的组件，比如 [PD 分离](pd-disaggregation.md)要用它）时，每个 Worker 都回传，由 executor 汇总；开了 [PP](pipeline-parallel.md)（流水线并行）时，回传的是最后一段流水线里 TP 编号为 0 的 Worker。这条回程走哪条通道，见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)。
+- **本步结果，通常只由一个 Worker 回传。** 同一组卡最后得到的新 token 相同，PCP 是 prefill 上下文并行，把提示词计算分给多卡；本部署未启用，即 PCP=1。因此在本页没配 KV connector、也没开 PP 的部署里，executor 只读本组 TP 编号为 0 的那个 Worker 的回信（TP 即[张量并行](tensor-parallel.md)，一组卡合算同一份模型，每层各算一部分；node1 那组的 0 号就是全局 8 号），不收 N 份。有两种例外：配了 KV connector（在实例之间搬 KV cache 的组件，比如 [PD 分离](pd-disaggregation.md)要用它）时，每个 Worker 都回传，由 executor 汇总；开了 [PP](pipeline-parallel.md)（流水线并行）时，回传的是最后一段流水线里 TP 与 PCP 编号均为 0 的 Worker。这条回程走哪条通道，见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)。
 - **新 token，每一步发一次。** EngineCore 记完账，把新 token 发回 API server，由它还原成文字，一段一段推给用户。
 - **卡间通信（虚线）。** Worker 在计算中途互相交换张量，比如把各卡的部分结果加起来，见[集合通信](collective-communication.md)。这条路只连着 Worker，不经过 EngineCore。
 
 图上没画的还有几路，都出在开了[数据并行](data-parallel.md)的部署里（DP：把卡分成几组，每组叫一个 DP 组，各自接一部分请求、各自调度）。这时在线服务通常还多一个 DP coordinator（DP 协调器）进程，和 API server、各 EngineCore 互发消息，汇总各组忙闲。模型又是 MoE 时（GLM 就是），几个 DP 组还得步调一致：coordinator 通知各组一起开工；两个 EngineCore 之间每 32 步对一次「还有没有请求」，两边都没有了才一起停下；不同 DP 组的 Worker 每一步开算前也要对齐一次这一步算多宽。coordinator 为什么单独占一个进程，见[下文](#双机部署里一共有哪些进程)；这些消息各走哪条通道，见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)。
 
-左下角是另一种摆法：**整个服务只用一张卡时，Worker 不另起进程**，而是 EngineCore 进程里的一个对象，清单直接用函数调用递过去，内容和多卡时一样。所以「Worker」首先是一个角色，它是不是独立的进程，由 [executor 的种类](#executor-决定-worker-是不是独立进程)决定。
+左下角是另一种摆法：**使用单进程执行器时，Worker 不另起进程**，执行器在当前进程内创建 Worker 的包装对象，并直接调用 Worker 方法。这里的判断条件是执行器的种类，不能只按整个服务使用几张卡来判断。所以「Worker」首先是一个角色，它是不是独立的进程，由 [executor 的种类](#executor-决定-worker-是不是独立进程)决定。
 
 ## 拆成几个进程，换来什么、付出什么
 
@@ -114,7 +279,7 @@ file: engine-processes
 
 代价有三样。
 
-**交接必须打包成消息。** 跨进程递不了对象，只能把内容编码后发过去，所以清单里几乎全是整数，而且只发差量。一条请求第一次被调度时，整份 prompt 随清单发给 Worker，Worker 把这条请求的资料缓存在自己的进程里；之后每一步只发新增的部分：这一步算几个 token、新分到哪些块号、上一步猜出的候选 token。拿示例请求 R1（prompt 为 4 个 token 的那条请求，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)）来说，第一步正是它第一次被调度，所以清单里带着它的 4 个 prompt token id 和采样参数，外加「R1 算 4 个 token」和新分到的 15 个块号；块数怎么来的见[第 2 站](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)。从第二步起，清单里只剩这一步算几个 token（带 3 个候选时是 4 个）、有没有新分到的块号，以及上一步猜出的候选 token，见[第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。
+**交接必须打包成消息。** 跨进程递不了对象，只能把内容编码后发过去，所以清单里几乎全是整数，而且只发差量。一条请求第一次被调度时，整份 prompt 随清单发给 Worker，Worker 把这条请求的资料缓存在自己的进程里；之后每一步只发新增的部分：这一步算几个 token、新分到哪些块号、候选位置（同步时传实际编号，异步时可传占位，实际候选留在 Worker）。拿示例请求 R1（prompt 为 4 个 token 的那条请求，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)）来说，第一步正是它第一次被调度，所以清单里带着它的 4 个 prompt token id 和采样参数，外加「R1 算 4 个 token」和新分到的 15 个块号；块数怎么来的见[第 2 站](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)。从第二步起，清单里只剩这一步算几个 token（带 3 个候选时是 4 个）、有没有新分到的块号，以及候选位置；本部署异步调度时实际候选由 Worker 留存，见[第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。
 
 **同一条请求的状态分几处存。** EngineCore 记着账本，Worker 存着资料的缓存，API server 存着输出队列。请求结束时，EngineCore 要在下一份清单里带上结束名单，Worker 才删掉自己那份缓存。
 
@@ -162,28 +327,28 @@ file: engine-processes
 
 **一条请求的状态分存在三类进程里，各存各的一份，每份都跨步留着，直到请求结束。** 一条请求怎样依次穿过这些进程、每一站进哪个函数，见[七站分在三种进程里](request-call-chain.md#七站分在三种进程里)；进程之间的消息各走哪条通道，见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)。这里只看每个进程里留下了什么。
 
-| 进程 | 跨步一直留着的 | 每一步新产生、用完就丢的 |
+| 进程 | 跨步一直留着的 | 每步更新的内容或产生的结果 |
 |---|---|---|
 | API server | 分词器；每条请求的反分词进度和输出队列 | 刚到的请求；这一步要推给用户的那段文字 |
 | EngineCore | 等待队列与运行队列；每条请求算到了哪、占了哪些块号 | 这一步的清单；对本步结果的处理 |
-| Worker | 本卡的权重分片和 KV cache；每条请求的资料缓存和持久批次 | 本步的输入张量、注意力元数据、中间激活和输出 |
+| Worker | 本卡的权重分片和 KV cache；请求资料、持久批次及输入缓冲 | 本步填入的输入内容、注意力元数据、中间激活和输出 |
 
 **API server 不是把请求交出去就没事了。** 请求交给 EngineCore 之前，API server 先在自己进程里登记这条请求：给它建一个反分词器和一个输出队列。此后每一步的新 token 都回到这里，反分词成文字再推给用户。请求结束前，这份登记一直在。为什么要先登记再发出，见[API server 入口的第 ⑤ 到 ⑦ 步](api-server-entry.md#怎么做包成引擎请求先登记回程再发出⑤-到-⑦)。
 
-**EngineCore 存的是账本，不是数据。** scheduler 里的请求记录从进来到结束一直在，模型每走一步，它就被调度一次；它占了 KV cache 的哪几个块，也记在这里。块里真正的 K、V 数值不在 EngineCore，而在各张卡的显存里，归各个 Worker。
+**EngineCore 存的是账本，不是数据。** scheduler 里的请求记录从进来到结束一直在，调度器按预算决定它本步是否上场；它占了 KV cache 的哪几个块，也记在这里。块里真正的 K、V 数值不在 EngineCore，而在各张卡的显存里，归各个 Worker。
 
-**Worker 也记着每条请求。** 因为清单只发差量，Worker 必须自己记住每条请求的 token、已经算到的位置和块表，下一步才能接着拼出输入。这份资料缓存加上一个跨步复用的「持久批次」，就是 Worker 里除权重和 KV cache 之外，跨步留下来的东西。真正每一步用完就丢的，是按这些资料现拼出来的输入张量和中间激活。
+**Worker 也记着每条请求。** 因为清单只发差量，Worker 必须自己记住每条请求的 token、已经算到的位置和块表，下一步才能接着拼出输入。这份资料缓存加上一个跨步复用的「持久批次」，就是 Worker 里除权重和 KV cache 之外，跨步留下来的东西。输入缓冲也会跨步复用：每步重新填入本轮内容，并产生本轮中间激活和结果。不能把内容换了理解成底层缓冲也销毁了。
 
 ## executor 决定 Worker 是不是独立进程
 
-**executor（执行器）是 EngineCore 进程里负责「把清单交给 Worker、收回结果」的对象，它的种类决定了 Worker 落在哪里。** 不手动指定时，vLLM 按下面的规则挑：
+**executor（执行器）是 EngineCore 进程里负责「把清单交给 Worker、收回结果」的对象，它的种类决定了 Worker 落在哪里。** 不手动指定时，普通 Ascend 部署可先按下面的规则理解；TPU SPMD、CUDA 多节点与卡数检查等完整分支见[怎么开](#怎么开)：
 
 - **整个服务只有 1 张卡：单进程 executor（uni）。** Worker 就在 EngineCore 进程里当场创建，由它初始化设备、加载模型。清单用函数调用递过去，不跨进程。
 - **多于 1 张卡：多进程 executor（mp）。** 按本机的卡数，每张卡起一个 Worker 子进程，再建一条共享内存广播队列：每一步清单写进去一次，各 Worker 各读一次。
-- **在 Ray 里运行：Ray executor。** 已处在 Ray 的资源组里，或者指定用 Ray 做 DP 后端时，默认改用 Ray。Ray 是一个分布式计算框架。
+- **在 Ray 里运行：Ray executor。** 已安装 Ray 并显式提供或处在 Ray 资源组里，或者指定用 Ray 做 DP 后端时，普通 Ascend 路径默认改用 Ray。Ray 是一个分布式计算框架。
 - **手动指定了 executor：** 按指定的来，上面几条都不适用。
 
-这里的「整个服务的卡数」要把所有 DP 组算在一起，不是一个 EngineCore 管几张卡。所以 DP2 × TP1 这种每组只有一张卡的部署，也还是给每个 EngineCore 起一个 Worker 子进程；只有整个服务就一张卡，才会用单进程 executor。
+这里的「整个服务的卡数」要把所有 DP 组算在一起，不是一个 EngineCore 管几张卡。按上述默认选择规则，DP2 × TP1 这种每组只有一张卡的部署，也还是给每个 EngineCore 起一个 Worker 子进程；只有整个服务就一张卡，才默认用单进程 executor。显式指定执行器时，则按所选执行器判断。
 
 官方双机部署落在第二条：
 
@@ -199,7 +364,7 @@ PP 是流水线并行，PCP 是 prefill 阶段的上下文并行，这套部署�
 反过来，进程最少的几种情形是：
 
 - **单卡 vllm serve：2 个进程。** API server 一个；EngineCore 一个，Worker 住在它里面。
-- **离线调用：可以只有 1 个进程。** 用 vLLM 的离线接口在脚本里直接生成时，EngineCore 默认也放在单独的进程里；关掉 V1 多进程这个环境变量开关后，EngineCore 就直接在调用者的进程里运行，单卡时全部只剩 1 个进程。API server 用的异步引擎不支持这种关法，一定是独立的 EngineCore 进程。
+- **离线调用：可以只有 1 个进程。** 用 vLLM 的离线接口在脚本里直接生成时，EngineCore 默认也放在单独的进程里；在常规离线调用中，关掉 V1 多进程环境开关、且调用方没有显式强制 enable_multiprocessing=True 时，EngineCore 直接在调用者进程里运行；再使用单进程 executor 时，可以只剩 1 个进程。API server 用的异步引擎不支持这种关法，一定是独立的 EngineCore 进程。
 
 ## 补丁和配置为什么要每个进程各做一遍
 
@@ -209,12 +374,12 @@ vllm-ascend 不改 vLLM 的源码，而是在程序运行起来以后，把上�
 
 Ascend 的配置也一样。vllm-ascend 把自己的一组开关（从启动参数的附加配置里读出来）整理成一个配置对象，缓存在模块级的变量里，之后各处代码都来这里取。这个缓存同样是进程里的一个变量：API server 在建总配置时建一份，每个 Worker 在初始化时按传进来的总配置再建一份。某个进程里改了它，别的进程看不到；某个进程里没建就去取，会直接报错。
 
-**子进程出生时带不带父进程的东西，取决于启动方法。** vLLM 起 EngineCore 和 Worker 用的是同一套启动方法，由环境变量 VLLM_WORKER_MULTIPROC_METHOD 决定，默认 fork：
+**子进程出生时带不带父进程的东西，取决于启动方法。** vLLM 起 EngineCore 和 Worker 用的是同一套启动方法，由环境变量 VLLM_WORKER_MULTIPROC_METHOD 决定。库里读取变量时默认 fork；命令行入口在变量没有预设时先填 spawn，两层默认要分开：
 
 - **fork**：子进程是父进程内存的一份拷贝。出生那一刻，父进程里已经换好的名字、已经建好的配置对象都原样带过去；出生以后两边各改各的，互不影响。
 - **spawn**：子进程从一个全新的 Python 解释器开始，模块重新导入，父进程里换过的名字一个都不在。已经在当前进程里初始化过 CUDA、运行在 Ray 里、开了 NUMA 绑定等情况下，vLLM 会强制改用 spawn；用户也可以用这个环境变量直接指定。
 
-官方 GLM 教程没有设置这个环境变量，按默认走 fork，主线底稿记的也是 fork。
+官方 GLM 教程没有设置这个环境变量。若镜像或启动环境也没有预设，vllm serve 的命令行初始化会选择 spawn；若环境已有值，则先保留它，随后还要经过强制 spawn 条件检查。实际镜像有没有预设仍须查运行环境，不能只从教程未写变量推出 fork。
 
 **所以 vllm-ascend 在每类进程里都留了一个入口，不管用哪种启动方法，每个进程最后都打齐了补丁：**
 
@@ -228,13 +393,13 @@ Ascend 的配置也一样。vllm-ascend 把自己的一组开关（从启动参�
 
 **EngineCore 里被换掉的，是调度相关的代码。** 全局补丁里均衡调度的那个补丁同时换掉了两样东西：把上游 scheduler 类换成 BalanceScheduler，把 EngineCore 进程的入口函数换成昇腾的版本；入口函数只在打开均衡调度时才走昇腾的循环，否则转回上游原版。官方 GLM 部署没有打开均衡调度，见 [Balance Scheduling](balance-scheduling.md)。最后实例化哪个 scheduler 类，还取决于异步调度开没开，见[异步调度](async-scheduling.md)。所以「EngineCore 里跑的全是上游原样的代码」这个说法不成立。
 
-**Worker 补丁跟着 Worker 走，不挑进程。** 整个服务只有一张卡时，Worker 在 EngineCore 进程里被创建，Worker 补丁也就打在 EngineCore 进程里；多卡时每个 Worker 进程各打一遍，官方双机部署一共打 16 遍。
+**Worker 补丁跟着 Worker 走，不挑进程。** 使用 uni 时，Worker 在执行器所在进程里创建，补丁也打在该进程；使用 mp 时，每个 Worker 子进程各打一遍，官方双机部署一共打 16 遍。
 
 ```wiki-diagram
 file: engine-processes-startup
 ```
 
-图从上往下看：启动进程先打全局补丁、建 Ascend 配置；拉起 EngineCore 时按启动方法分两路，汇合到 EngineCore 自己的入口再确认一遍；然后按卡数分两路，两路都会走到 Worker 的构造函数，在那里打 Worker 补丁、建本进程的配置。由此得出排查的原则：**补丁或配置「没生效」，要到出问题的那个进程里去查，看 API server 的状态说明不了 Worker。**
+图从上往下看：启动进程先打全局补丁、建 Ascend 配置；拉起 EngineCore 时按启动方法分两路，汇合到 EngineCore 自己的入口再确认一遍；然后按执行器分两路，两路都会走到 Worker 的构造函数，在那里打 Worker 补丁、建本进程的配置。由此得出排查的原则：**补丁或配置「没生效」，要到出问题的那个进程里去查，看 API server 的状态说明不了 Worker。**
 
 ## 进程怎么摆，直接决定要打哪些补丁
 
@@ -242,10 +407,14 @@ file: engine-processes-startup
 
 问题出在上游起 Worker 的方式。上游把 Worker 设成 daemon 进程（父进程退出时会被自动结束的一种子进程），而 Python 不允许 daemon 进程再创建子进程。所以 vllm-ascend 有一个补丁，换掉多进程 executor 里起 Worker 的那段代码，把 daemon 改成否。
 
+这个修改只针对 Worker 的创建路径，并不把后续所有子进程都改成非 daemon：在所给 Ascend 固定快照中，EPLB 创建并启动的进程仍采用 daemon 模式，具体创建入口见页末。
+
 这个补丁有两个特点，都由进程模型决定：
 
 - **它归在全局补丁里，不归在 Worker 补丁里。** 起 Worker 的代码在 EngineCore 进程里运行，而且在任何 Worker 出生之前就要跑；等 Worker 补丁生效时，Worker 早已按上游方式起好了。官方的补丁设计文档也是按「这段代码在哪个进程里运行」来决定补丁放进哪个目录的。
 - **它由环境变量打开，不由配置打开。** 全局补丁在解析参数时就导入，比 Ascend 配置被读出来还早，所以只能看环境变量：设了 DYNAMIC_EPLB 或 EXPERT_MAP_RECORD 才导入。只在配置里打开动态 EPLB、不设环境变量，配置检查会直接报错。
+
+这里的「设了」还有取值限制：固定快照对动态 EPLB 与专家映射记录分别检查认可的真值，前者接受大小写转换后的文字真值或数字真值，后者要求精确的小写文字真值；具体字符串见页末。并非任意非空字符串都能触发该补丁的导入。
 
 官方 GLM 双机部署没有打开 EPLB，Worker 仍按上游方式起，也没有这些额外的进程。
 
@@ -255,7 +424,7 @@ file: engine-processes-startup
 
 - **参数检查阶段报错**（比如某种并行组合不合法）：出在 API server 或 node1 的启动进程，看昇腾平台的那组检查，见 [NPU 平台](npu-platform.md)。
 - **调用栈里有 scheduler、KV 块管理、清单的构造**：出在 EngineCore 进程。这部分主体是上游代码，昇腾只通过全局补丁插手。
-- **调用栈里有模型前向、注意力、昇腾算子**：出在 Worker。多卡时是某个 Worker 进程，单卡时在 EngineCore 进程里；这部分大多是昇腾自己的代码。
+- **调用栈里有模型前向、注意力、昇腾算子**：出在 Worker。使用多进程执行器时，Worker 有独立进程；使用单进程执行器时，Worker 方法在执行器所在进程内直接运行，不能只根据卡数判断进程归属。这部分大多是昇腾自己的代码。
 
 日志前缀和进程名告诉你代码**在哪里执行**；出错那一帧的文件路径告诉你代码**是谁写的**。「日志来自 Worker」和「代码属于 vllm-ascend」是两件事，两样都要记下。再加上进程号、全局 rank、卡号和 executor 种类，才能把 API server、EngineCore、Worker 三处的日志对上。按日志前缀认出请求停在哪一站，见[出问题时判断它停在哪一站](request-call-chain.md#出问题时判断它停在哪一站)；具体的报错字符串见下半「会报什么错」。
 
@@ -263,7 +432,7 @@ file: engine-processes-startup
 
 - **「补丁在 API server 里打一次，就全局生效了」**：用 fork 时，只有子进程出生那一刻已经打好的补丁会被带过去；用 spawn 时什么都不带。子进程出生以后，父进程再改什么都传不过去。vllm-ascend 正因为这样才在每类进程里各留一个入口。
 - **「Worker 一定是单独的进程」**：整个服务只有一张卡、又没有手动指定 executor 时，它是 EngineCore 进程里的一个对象。
-- **「一个 EngineCore 只管一张卡，就会用单进程 executor」**：看的是整个服务的卡数，DP2 × TP1 仍然每组起一个 Worker 进程。
+- **「一个 EngineCore 只管一张卡，就会用单进程 executor」**：默认选择看的是整个服务的卡数；没有显式指定执行器时，DP2 × TP1 仍然每组起一个 Worker 进程。
 - **「进程列表里数出来不是 20 个，部署就错了」**：20 是按角色计的；node1 的启动进程、各种辅助进程和特性另起的进程都不在账内。
 - **「API server 把请求交出去就没它的事了」**：每一步的新 token 都回到它这里反分词、推给用户，请求结束前它一直登记着这条请求。
 - **「Worker 每一步收到的都是完整的请求，算完就全丢」**：只有第一次调度发整份，之后只发差量；Worker 自己缓存着每条请求的资料，直到清单里的结束名单通知它删除。
@@ -274,14 +443,93 @@ file: engine-processes-startup
 
 ### 怎么开
 
+**先分清要连的是哪一层。** 用户请求进 HTTP 前端；前端通过 DP 地址与 RPC 端口找到远端 EngineCore；Worker 另有设备与内部通信配置。HTTP 的 host/port、DP 主地址/握手端口、VLLM_HOST_IP/VLLM_PORT 不是同一对设置。DP 总数和本地数的定义在 [DP 参数参考](data-parallel.md#怎么开)，TP 和 EP 的约束分别在 [TP](tensor-parallel.md#怎么开)、[EP](expert-parallel.md#怎么开)，这里讲进程与启动连接。
+
+**headless 只决定不提供 HTTP 接口，后面仍有两种不同的启动路径。** 先看卡是合成同一个 DP 执行组，还是分属多个 DP 组，再决定怎样编号和会合：
+
+| 要连接的布局 | 远端启动什么 | 配置与学习入口 |
+|---|---|---|
+| 一个 DP 执行组跨多节点做 PP/TP | 组内非首节点直接创建多进程 Executor 和本地 Worker；不为该节点另建一个 DP EngineCore | nnodes、node-rank 与 master 地址端口组织这一组；各节点启动匹配命令，见[两机 PP 示例](pipeline-parallel.md#怎么开) |
+| 多个 DP 组分在不同节点 | 远端创建自己的 EngineCore，由它管理本组 Worker，并向提供前端的节点握手 | 全局/本地 DP 数、start-rank 与 DP 地址/RPC 端口，见下面的固定 GLM 组合及[DP 解释](data-parallel.md) |
+
+本站 GLM 是后一种：PP1、每组 TP8、DP2，EP16 让两组在专家层协作。它不是把单个 TP8/PP2 执行组分到两台；不能只因命令有 headless 或两台机器，就把两种布局的节点编号与 DP 编号互换。固定入口按组内节点编号选择上述路径，前面的 20 个角色进程账只对应本站 GLM 配方。
+
+| DP 启动参数 | CLI 短名 / Python 同名入口 | 输入缺省与实际处理 |
+|---|---|---|
+| data_parallel_address | --data-parallel-address / -dpa；EngineArgs、LLM | str 或 None，默认 None。显式地址优先；普通 mp 未给时取 master_addr，否则回退 127.0.0.1；Ray 分支取 get_ip。远端必须能访问主节点地址，回环地址不能代表另一台机器 |
+| data_parallel_rpc_port | --data-parallel-rpc-port / -dpp；EngineArgs、LLM | int 或 None，输入默认 None，配置缺省 29550；有远端引擎时用于握手，纯本地可用 IPC。本站两端显式 12321；不是由 VLLM_PORT 替代 |
+| data_parallel_rank | --data-parallel-rank / -dpn；EngineArgs、LLM | int 或 None，输入默认 None，派生后配置 rank 默认 0 且 ≥0、应小于 DP 总数。显式给值会选择外部负载均衡模式；不应拿来替换本站的 start_rank |
+| data_parallel_start_rank | --data-parallel-start-rank / -dpr；EngineArgs、LLM | int 或 None，输入默认 None。本机连续多个 DP 组从哪个全局编号起步；本站两端为 0/1。基线在 local 已给且非零 start_rank、非 headless 时推断 hybrid；local=1 又切为外部模式 |
+
+这些字段的输入默认与派生见来源 55–57。显式 rank 分支要求 local 为 1 或 None；hybrid 表示“本机前端在本机多个组内分配请求”，需要本地组数。本站 node1 的 headless 分支避免把 start_rank=1 推成这种前端模式。注意 CLI 在决定前端数时，检查的是 start_rank 是否为 None，0 也算已给；基线 EngineArgs 的上述推断却检查是否非零。这两步不同，升级差异见下表。
+
+**HTTP 前端是否存在，由 serve 入口决定。** headless 与 api_server_count 是 CLI 前端项，不是 EngineArgs / 离线 LLM 的同名配置字段（来源 58–60）。
+
+| 参数 | 类型与输入默认 | 行为及联合条件 |
+|---|---|---|
+| --headless | store_true，默认 False；省略表示不主动选 headless | True 时把 API 数设成 0；若同时显式给正 api_server_count，立即拒绝。本站 node1 使用，node0 不用 |
+| --api-server-count / -asc | int，默认 None | 不是固定默认 1。普通内部 LB 取全局 DP 数；外部 LB、多端口模式、旧版 Rust 前端取 1；hybrid 取 local 或 1。显式 1 使用当前启动进程；大于 1 建多个前端进程；小于 1 走 headless 路径 |
+
+负的 API 数在本固定入口也落入“小于 1”，并没有单独的非负字段校验；使用清楚的 headless 或 0 表达无前端。Rust 前端将大于 1 的显式值改为 1，弹性 EP 也会把多前端上限压到 1；这些是条件覆盖，不能将 api_server_count 当成无条件兑现的进程数。headless 还要求 local>0，拒绝 hybrid。前端数量改变时，前面“20 个”的官方配置账不能直接沿用。
+
+**把本站两端组合起来看。** 以下只摘启动拓扑；模型、量化、MTP、图、显存和网络环境仍完整采用[部署页命令](glm-5-3-flash-two-node.md#怎么开)。两端可见设备都列本机 0–7，共同使用 TP8、DP2、local1、EP；node0_ip 为两机都能访问的 node0 地址。
+
+```bash
+# 两端共同的拓扑部分
+export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+# vllm serve <模型路径> ... 两端都带：
+# --tensor-parallel-size 8 --data-parallel-size 2
+# --data-parallel-size-local 1 --enable-expert-parallel
+
+# node0 的差异项
+# --data-parallel-start-rank 0 --data-parallel-address "$node0_ip"
+# --data-parallel-rpc-port 12321 --api-server-count 1
+# node1 的差异项
+# --data-parallel-start-rank 1 --data-parallel-address "$node0_ip"
+# --data-parallel-rpc-port 12321 --headless
+```
+
+node1 的本机可见设备仍写 0–7；8–15 是全局 Worker 编号，不能填成 node1 的本机卡号。两端的 DP 主地址与 RPC 端口相同，起始 DP 编号不同；VLLM_HOST_IP 若显式设置，则各填本机通信地址。上述参数组合只解释源码与教程，不替代真实双机连通性和镜像检查。
+
+| 环境变量 | 缺省、格式与实际作用 | 特殊值与相互作用 |
+|---|---|---|
+| ASCEND_RT_VISIBLE_DEVICES | Ascend 选用的设备控制变量，逗号分隔的本机设备列表；教程明确给 0–7，不是框架默认八卡 | 基线的编号映射按列表顺序取元素并转 int；逻辑 0 对应列表首项。未设/空串时该映射辅助函数直接返回原编号，不能据此推断 CANN 的空串可见性或隐藏全部卡；设备实际是否可见仍由运行时决定 |
+| VLLM_HOST_IP | str，库读取缺省空串；非空时 get_ip 直接采用，否则先探测 IPv4、再 IPv6，失败告警并回退 0.0.0.0 | 使用本机内部通信地址，不是 HTTP --host 或 DP 主地址的别名。旧 HOST_IP 在未设本变量时被警告并忽略，不能靠它代填 |
+| VLLM_PORT | 未设为 None；设置时按十进制整数解析，作为内部动态端口选择的起点 | 未设走系统分配空闲端口；设定后端口占用则向上找，分配多端口时逐个推进。它不保证只使用一个端口，也不设置 HTTP --port 或固定 DP RPC 端口；空串/非整数拒绝，URI 值另提示服务发现变量冲突 |
+| VLLM_ENABLE_V1_MULTIPROCESSING | bool(int(环境字符串))，默认字符串 1；通常用 1 开、0 关 | 不是解析 true/false 的布尔字典：文字 true/false 会整数转换失败，其他非零整数为真。主要决定离线 EngineCore 客户端是否跨进程，不决定 mp 执行器是否另起 Worker；异步在线客户端不支持关闭后改用进程内模式 |
+| VLLM_WORKER_MULTIPROC_METHOD | 合法字符串 fork / spawn；库 getter 默认 fork，CLI 未预设时填 spawn | 显式值先保留；Ray actor、NUMA 绑定、已初始化 CUDA/XPU、WSL 等强制条件仍可改成 spawn。库脚本用 spawn 时要把启动调用放在主入口保护内，避免子解释器再次启动引擎 |
+
+环境解析与通信辅助函数见来源 61–69；启动方法库默认另见来源 19。这里没有把空字符串当成统一的“自动”语法：每个变量都有自己的读取规则。内部端口还需落在操作系统允许绑定的范围且可用；VLLM_PORT 本身的解析器只有整数检查，main 对 DP RPC 字段增加的范围约束不能倒灌到这个环境变量。
+
+**Kubernetes 的服务发现变量可能与内部端口重名。** 若先创建名为 vllm 的 Service，再在同一命名空间创建启用服务环境变量注入的 Pod，容器可能得到形如 `VLLM_PORT=tcp://10.0.0.20:8000` 的值。vLLM 读取这个变量时要求整数，因而在端口解析阶段就报错；修改 HTTP 的 --port 不会消除环境中的 URI。排查时查看容器实际继承的 VLLM_PORT 及其来源，避免使用会生成同名变量的 Service 名称，并按需要显式设置内部端口的整数起点。修改部署后重新创建相应进程，再核对环境；服务发现地址、HTTP 监听端口与内部通信端口仍是三件事。
+
+**双机通信先选对本机接口，再选算子执行方式。** Gloo 是 CPU 侧集合通信后端，vLLM 建设备组时还会建一个 Gloo CPU 组；HCCL 是设备集合通信库。它们各自选网卡，设置了其中一个不会自动替另一个选好。下表 HCCL 规则按 CANN 9.1.X 的 A2 条目解释；固定 A2 Dockerfile 使用 9.1.0，实际安装版本需与镜像核对。
+
+| 环境变量 | 格式、缺省和作用 | 本部署与覆盖关系 |
+|---|---|---|
+| GLOO_SOCKET_IFNAME | 本机接口名称字符串，精确匹配；逗号可列多接口。未给时按 hostname 找本地地址，失败告警并回退 loopback，不保证选到跨机接口 | 两端各填 local_ip 所在接口；多接口会轮转使用，各进程须给相同数量。PyTorch 2.10 源码只在字符串长度大于 1 时走显式列表，空串/单字符走默认分支 |
+| HCCL_SOCKET_IFNAME | 本机 Host 网卡的匹配列表，用于初始化时联系 root；eth 是前缀，=eth0 是精确名，^eth 排除前缀，^=eth0 排除精确名；逗号多项取首个匹配，不按 Gloo 的规则轮转 | 未设优先按名称排序选非 docker/lo 接口，再回退 docker、lo；教程给 nic_name。精确选择可写 export HCCL_SOCKET_IFNAME="=eth0" |
+| HCCL_IF_IP | 单个本机 Host IPv4/IPv6 地址，直接指定初始化使用的地址；不是设备侧 NPU IP，无固定默认地址 | 优先于 HCCL_SOCKET_IFNAME；教程各填自己的 local_ip，不能两端都填 node0_ip。未设时才由接口选择路径决定 |
+| HCCL_OP_EXPANSION_MODE | A2 的算子展开模式字符串：HOST（默认）、HOST_TS、AI_CPU、AIV；不支持的值回默认。AIV 把通信算子展开与执行放到 Vector Core | 教程显式 AIV；通信域 HcclCommConfig.hcclOpExpansionMode 可优先覆盖环境值。它不选择网卡，也不替代 EP 开关 |
+
+例如 node0 的本机接口是 eth0、node1 是 enp1s0，两边可分别填写自己的名字；关键是对应地址能互通，不是字符串必须相同。启动前两端都继承这些 export，拓扑与完整命令仍以[部署页](glm-5-3-flash-two-node.md#怎么开)为唯一出处。改当前 shell 的环境不会重新配置已经创建的通信组，需要重启服务后核对日志。
+
+AIV 只支持文档列出的对称组网推理路径，不支持多个 AIV 通信域并行执行；算子、数据类型和图模式也各有限制。不能由一个全局 AIV 值推断每条 EP/MC2 通信都使用相同路径。尤其执行等待上限随模式变化，见[通信与 Worker 超时](request-call-chain.md#怎么开)；缓冲大小见[HCCL buffer](gap-a5164fe10fa9184412f8.md#怎么开)。
+
+其他枚举也不是同义词：HOST 与 HOST_TS 都在 Host CPU 展开，前者自动选调度器，后者明确交给设备 task scheduler；AI_CPU 则在设备 AI CPU 展开，A2 下只覆盖 AllGather、AlltoAll、AlltoAllV、AlltoAllVC，Ascend IR/aclgraph 同卡并发图不超过 6。A2 的 AIV 也有双机场景边界：AlltoAllV/AlltoAllVC 仅单机，图模式的 AlltoAll/AllGather/ReduceScatter 也仅单机，不能把普通 HCCL 算子支持表直接套给 MC2 自有算子。若另设 HCCL_DETERMINISTIC=true 或 strict，确定性要求优先，某些情况下 AIV 不生效；排障时须确认实际路径而非只看 export。
+
+**教程中的 TP_SOCKET_IFNAME 要单独识别。** 这里的 TP 指 TensorPipe，即 PyTorch 的另一套跨进程 RPC 后端，不是张量并行 TP8。固定 torch 2.10.0 与 torch_npu 2.10.0.post2 都在 TensorPipe agent 中读取它；torch_npu 导入时注册后端不等于创建 agent。所查固定 vLLM/Ascend 运行包没有启动该 RPC 后端，当前 mp/Gloo/HCCL 主路径不消费这个配置。保留教程原文供对照即可，不能用它替代 GLOO_SOCKET_IFNAME；另外引入 TensorPipe 的扩展需另核其初始化路径。
+
 **executor** 由 `--distributed-executor-backend`（配置项 `distributed_executor_backend`）指定，取值 `mp`、`uni`、`ray`、`external_launcher`，或一个自定义 executor 类的路径。不指定时：
 
 - `world_size = pipeline_parallel_size × tensor_parallel_size × prefill_context_parallel_size`；`world_size_across_dp = world_size × data_parallel_size`。
-- `world_size_across_dp > 1` 时默认 `mp`；`data_parallel_backend == "ray"`，或装了 Ray 且已处在 placement group 里时改为 `ray`；TPU 开 SPMD 时为 `uni`；CUDA 上本机卡数少于 `world_size` 时直接报错。最后，若仍未指定且 `world_size == 1`，定为 `uni` [C16]。
+- `world_size_across_dp > 1` 时先以 `mp` 为候选，随后按顺序择一：TPU 开 SPMD 选 `uni`；CUDA 且 `nnodes > 1` 保留 `mp`；其余 CUDA 配置若本机卡数少于 `world_size` 则报错；之后才检查 DP 后端为 Ray，或已安装 Ray 且显式提供/当前处在 placement group，此时选 `ray`。最后，若仍未指定且 `world_size == 1`，定为 `uni` [C16]。
 - `UniProcExecutor._init_executor()` 在当前进程里 `WorkerWrapperBase(rpc_rank=0)` → `init_worker` → `init_device`，随后加载模型 [C14]。`MultiprocExecutor._init_executor()` 建 `rpc_broadcast_mq`，再按 `local_rank in range(local_world_size)` 逐个 `WorkerProc.make_worker_process(..., input_shm_handle=scheduler_output_handle)` [C10]；上游子进程是 `daemon=True`，名字 `VllmWorker-{rank}`。
 - 官方双机：TP8、DP2，`world_size = 8`、`world_size_across_dp = 16`，未指定 executor，所以两台都用 `mp` [D]。
 
-**启动方法**由 `VLLM_WORKER_MULTIPROC_METHOD` 决定，默认 `fork` [C19]。`get_mp_context()` 先调 `_maybe_force_spawn()`：环境变量已是 `spawn`、在 Ray actor 里、命令行带 `--numa-bind`、CUDA 或 XPU 已初始化、运行在 WSL，都会改用 `spawn` 并打一条警告 [C18]。官方 GLM 教程的两台启动命令都没有设置它 [S1]。
+该字段输入默认 None；EngineArgs 和离线 LLM 使用同名参数。自定义入口可传类或完整类路径，但解析后必须是 Executor 子类（来源 47）。external_launcher 表示进程由外部启动器组织，还会把 V1 多进程环境项改为 0（来源 92–94），不能把它当作 mp 的另一个名字。显式 uni 只在当前执行器里创建一个 Worker，不能用它替代本站 TP8 所需的八个 Worker；默认选择 uni 的条件，也不能反过来证明所有显式 uni 组合只允许整个服务一张卡。
+
+**启动方法的两层默认。** 库读取变量时默认 fork [C19]；CLI 调用 cli_env_setup，在环境未定义时写 spawn（来源 66、67）。get_mp_context 先检查强制条件；已是 spawn 时直接返回，不因此额外告警。只有需要覆盖非 spawn 值时，才改写并记录原因 [C18]。官方 GLM 教程两端均未设置该变量 [S1]，因此环境也未预设时，走 CLI 的 spawn 默认。
 
 **两台机器各起什么**：
 
@@ -305,17 +553,35 @@ file: engine-processes-startup
 
 **Ascend 配置缓存**：模块变量 `_ASCEND_CONFIG`；`init_ascend_config` 在 `NPUPlatform.check_and_update_config` 里调用（由 `VllmConfig.__post_init__` 触发，发生在建总配置的进程里），也在 `NPUWorker.__init__` 里调用；同一个 `vllm_config` 对象、没有 `refresh` 时复用缓存 [C33]。
 
+固定 GLM 的 EngineCore 还有一次进程内初始化：正常退出启动握手的上下文后，重新执行配置的 post_init，经平台检查建立或刷新本进程的 Ascend 配置。它发生在 EngineCore、Scheduler 和收发线程构造之后，不能说这些对象构造前已经完成，更不是 spawn 继承了父进程缓存。旧 Balance 入口在更早读取不到缓存时，会回退读取 additional_config 与环境；rc2 的初始化位置则提前到 EngineCore 入口包装函数中，见下面的版本表。
+
 **EngineCore 里换掉的调度代码**：`patch/platform/__init__.py` 无条件导入 `patch_balance_schedule` [C34]；它在模块末尾 `EngineCoreProc.run_engine_core = run_engine_core`、`vllm.v1.core.sched.scheduler.Scheduler = BalanceScheduler`，新入口在 `_balance_scheduling_enabled` 为假时调回原版 [C37]。`get_scheduler_cls` 在调用时刻才 `from vllm.v1.core.sched.scheduler import Scheduler`，未开异步调度时拿到的是替换后的类；开了异步调度返回 `AsyncScheduler`。
 
 **EPLB 的 Worker 启动补丁**：`patch_multiproc_executor` 只在 `DYNAMIC_EPLB` 为 `true`/`1` 或 `EXPERT_MAP_RECORD` 为 `true` 时导入；`AscendWorkerProc.make_worker_process` 用 `daemon=False`；补丁清单写明原因是 EPLB 要再起进程，而 `daemon=True` 不允许。动态 EPLB 时，`NPUModelRunner.__init__` 里先 `Manager()`，再 `EplbProcess._launch_process()`。
 
 ### 会报什么错
 
+**网卡和模式先看配置是否落到正确层。** Gloo 显式接口不存在时会在创建 TCP device 时找不到地址；hostname 回退到 loopback 的警告也不能当作双机已连通。HCCL 若同时设地址与接口，先核优先的 HCCL_IF_IP 是否是本机地址；选错接口、路由不通或对端未启动可能最终表现为建链等待超时，具体等待设置见[调用链](request-call-chain.md#会报什么错)。A2 不支持的展开模式会回默认，不能只因没有参数错误就认定 AIV 已启用。
+
+| 输入或组合 | 检查结果与处理 |
+|---|---|
+| headless 同时给正 API 数 | serve 立即报告 cannot be used with --headless；node1 移除前端数量，node0 不用 headless |
+| headless 的 local≤0，或 hybrid 同开 | headless 入口拒绝；本机要有引擎，且不承担混合负载均衡前端 |
+| data_parallel_rank 非 None，又给 local>1 | EngineArgs 的组合检查拒绝；显式 rank 对应单本地组的外部模式，不是本机连续组的起始编号 |
+| 派生 rank 超出 [0,DP) | ParallelConfig 报编号越界；核对总组数和两端起始编号，不用全局 Worker 编号代替 DP 编号 |
+| 同时启用多个 LB 模式 | serve 报 Cannot use more than one data parallel load balancing mode；显式 rank/start_rank 也参与模式判断 |
+| V1 多进程写成 true/false | int 转换失败；使用 1/0。在线异步客户端不能靠 0 改成进程内引擎 |
+| VLLM_PORT 不是整数或是 URI | 分别提示 must be a valid integer 或 appears to be a URI；后者应检查是否被服务发现环境变量覆盖 |
+| Worker 启动方法不在 fork/spawn 中 | 环境选项校验拒绝；显式 fork 仍可能因运行条件被覆盖为 spawn |
+| 自定义 executor 路径解析不到类，或不是 Executor 子类 | 类加载或类型检查失败；使用可导入的完整类路径，不将任意字符串当后端名 |
+
+RPC 地址相同不代表通信已畅通；端口不可绑定、两端地址不可达、重复 rank 或设备列表不能满足本地 Worker 数，仍可能在建进程、握手或设备初始化阶段失败。上述检查来自固定版本的配置和控制流；设备侧实际报错还需对应环境的运行日志。
+
 按栈里的名字认进程 [A]：
 
 - 参数校验阶段（`NPUPlatform` 的 `_validate_*` 系列，并行组合不合法等）：API server，或 node1 的启动进程。
 - 栈里有 `Scheduler`、`BalanceScheduler`、`AsyncScheduler`、`KVCacheManager`，或正在构造 `SchedulerOutput`：EngineCore 进程，昇腾只经全局补丁介入。
-- 栈里有 `NPUWorker`、`NPUModelRunner`、attention 后端、`torch_npu` 调用：Worker；多卡时是 Worker 子进程，`uni` 时在 EngineCore 进程里。
+- 栈里有 `NPUWorker`、`NPUModelRunner`、attention 后端、`torch_npu` 调用：Worker 执行路径；使用多进程执行器时，Worker 在独立子进程中运行；使用单进程执行器时，直接在当前进程内调用 Worker 方法。判断进程归属需要确认执行器，不能仅凭卡数判断，也不能据此确定 API server 与 EngineCore 是否在同一进程。
 
 与进程归属直接相关的几条：
 
@@ -326,44 +592,85 @@ file: engine-processes-startup
 
 ### 开销和什么时候别开
 
-- spawn 起的子进程要从头导入 vLLM、vllm-ascend 和 torch_npu，启动比 fork 慢；fork 快，但要求父进程在 fork 之前没有初始化设备运行时，vLLM 检测到 CUDA 已初始化就改用 spawn，正是为此[D]。没有这类原因时，不必把启动方法改成 spawn。
-- 单进程 executor 省掉 Worker 进程和共享内存队列，但只适用于整个服务一张卡；多卡部署没法靠换成 `uni` 来简化调试 [D]。
+网卡变量主要改变连接走向，不会增加模型算力；Gloo 多接口会改变分派，HCCL 的多项匹配只在选接口。AIV 会使用 Vector Core，可能与计算争用资源；更换展开模式后要重新核算子支持和超时含义，再用同一负载测性能，不能把配方的 AIV 解释为所有网络与模型的最优值。
+
+- spawn 起的子进程要从头导入 vLLM、vllm-ascend 和 torch_npu，启动比 fork 慢；fork 快，但要求父进程在 fork 之前没有初始化设备运行时，vLLM 检测到 CUDA 已初始化就改用 spawn，正是为此[D]。选择应遵循所用入口的默认和运行时约束，不应只为缩短启动时间把 CLI 的 spawn 改回 fork。
+- 单进程 executor 省掉 Worker 子进程和共享内存队列，但每个执行器只创建一个 Worker。显式 uni 与 DP 多组的组合要分别看各组如何启动，不能把“默认只有全局单卡才选 uni”写成绝对支持限制；本站 TP8 也不能靠换 uni 省掉必须协作的七张卡 [D]。
 - 动态 EPLB 让每个 Worker 多两个子进程，Worker 也改成非 daemon。Python 在父进程退出时会直接结束 daemon 子进程，对非 daemon 子进程则是等它退出，所以关服务更依赖 executor 自己的关闭流程 [D]。官方 GLM 双机没有开 [S1]。
 
 ### 版本差异
 
-按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26rc 列是 2ed6cbba，main 列是 baa023ad。**本页正文读的是本部署专用镜像 db701c1f，它是另一个 orphan commit，不算进 v0.23 列：GLM 的模型代码与配置 patch 只在镜像里，2c59ff10 上只有两个 GLM 工具调用 patch。**下表 v0.23 列的行号读自 2c59ff10；镜像上除 scheduler 类替换在 `:718` 外，其余行号与 2c59ff10 相同。
+**v0.30.0rc2 配套上游增加前端间共享的准入统计，进程职责没有合并。** 多 API 进程各写一个间隔 64 字节的槽位，读时汇总在途请求数；它只是共享负载信息，API、EngineCore 与 Worker 仍各司其职。请求数上限据此做近似全局检查，token 阈值仍读取当前 AsyncLLM 的计数，不能把两类预算都当成跨前端共享；具体拒绝条件与并发边界见[API 准入解释](api-server-entry.md#版本差异)。Ascend 的 EngineCore 子进程继续通过平台补丁重新初始化 AscendConfig，再按配置接入 profiling_chunk、DyntraLB 或 Balance；主进程已有配置不能省略子进程初始化。正文通信库环境变量的有效性仍取决于实际 Gloo/HCCL 等依赖版本。
 
-| 项 | v0.23 | v0.26rc | main |
-|---|---|---|---|
-| `_ensure_global_patch` 定义 / 三个调用点 | `__init__.py:21` / `:45`、`:55`、`:65` | 同左 | `:55` / `:79`、`:89`、`:99` |
-| 平台入口 `adapt_patch(is_global_patch=True)` | `platform.py:188` | `platform.py:187` | `platform.py:304` |
-| 平台里的 `init_ascend_config` | `platform.py:475` | `platform.py:431` | `platform.py:492` |
-| Worker 入口 `adapt_patch()` / `init_ascend_config` | `worker/worker.py:110` / `:120` | `:119` / `:129` | `:138` / `:148` |
-| EPLB 启动补丁的导入条件 | `patch/platform/__init__.py:47-48` | `:45-46`，条件相同 | `:39-40`，条件相同 |
-| scheduler 类替换 | `patch_balance_schedule.py:745`，写法 `vllm.v1.core.sched.scheduler.Scheduler = BalanceScheduler` | `:936`，写法改为 `_sched_mod.Scheduler = BalanceScheduler`，效果相同 | `:911`，同 v0.26rc |
+通信变量的默认与语法由依赖决定：固定部署的 torch 2.10.0 / torch_npu 2.10.0.post2 和 CANN 9.1.X A2 文档支持上表；vLLM v0.23（0fc695fc）、v0.26（568afb3a）、Ascend rc2 配套上游（ced6857a）、main（84030bbe）及 Ascend 对应分支名称，不能单独证明安装了同一通信运行时。四版都应按所安装的 Gloo/HCCL 版本核这些外部变量，不能把 A2 的 HOST 默认套到 A3/950，也不能由 main 文档倒推固定镜像。TP_SOCKET_IFNAME 的“不参与主路径”结论仅对本页固定包及教程成立。
 
-三条入口的结构在三个版本里一致，变的只是行号；`daemon=False` 三个版本都在 `patch_multiproc_executor.py:199`。
+下表十二个启动参数与环境入口对照上面的四个 vLLM 快照；Ascend 设备入口按 db701c1f / 2ed6cbba / 7d825229 / baa023ad 区分。main 的上游快照用于代码比较，不表示已确认它与 Ascend main 镜像的实际配套关系。表中只比较列出的选路、默认值和检查条件。
 
-上游 vLLM：v0.23.0（`0fc695fc`）与 v0.26.0（`568afb3a`）的 executor 默认规则同构，v0.26 在 `parallel.py:883-928` [C44]；启动方法默认仍是 `fork`；`EngineCore.__init__` 仍加载通用插件；单 API server 仍在启动进程里运行，headless 仍留启动进程监视引擎；没配 KV connector、PP 为 1 时，executor 仍只读 TP 0 号 Worker 的结果；Worker 进程标题的拼法相同。vllm-ascend main 配套的上游 vLLM 没有检出，main 侧的 executor 默认值和启动方法按 v0.23 配套上游的结论写，所以 `verified` 只列两个发布分支。
+| 参数或规则 | v0.23 基线 | v0.26 rc | v0.30.0rc2 | 固定 main |
+|---|---|---|---|---|
+| distributed_executor_backend | None 后派生；mp/uni/ray/external_launcher/自定义 Executor 子类 | 默认选择规则同构 | 所列默认选路同构 | 所列默认选路同构 |
+| headless / api_server_count | False / None；普通 Python 前端按 LB 派生，headless 拒正数并取 0 | 相同 | 同样派生；定义迁到 launchers/cli_args.py，Rust 还须显式环境开关 | 与 rc2 所列规则相同 |
+| data_parallel_address | 输入 None；mp 取 master_addr 或 127.0.0.1，Ray 取 get_ip | 相同 | 相同 | 相同 |
+| data_parallel_rpc_port | 输入 None→29550；int 字段没有额外上下界 | 相同 | 仍默认 29550，字段增加 1–65535 约束 | 与 rc2 相同 |
+| data_parallel_rank | 输入 None；显式值选择外部 LB，本地数限 1/None，最终编号须在范围内 | 相同 | 核心语义相同；多项组合 assert 改成 ValueError | 与 rc2 相同 |
+| data_parallel_start_rank | local 已给、非零值且非 headless 才推断 hybrid；rank 回填使用 or | 相同 | 改为 is not None，显式 0 也参与 hybrid 推断且回填保留 0；多节点推断计入 PCP | 与 rc2 相同 |
+| ASCEND_RT_VISIBLE_DEVICES | 平台选作设备控制变量；基线辅助映射按非空列表位置取编号 | 上游映射增加已分配物理设备列表优先 | Ascend 用 CANN 算子将可见编号转物理编号 | 与 rc2 所列映射相同 |
+| VLLM_HOST_IP | 空串后探测；非空显式值优先，旧 HOST_IP 忽略 | 相同 | 相同 | 相同 |
+| VLLM_PORT | None/整数起点；多个动态端口向上找。显式起点的多端口列表没有避开 DP 保留区 | 相同 | 解析与起点相同；单端口、多端口统一跳过 DP 保留区 | 与 rc2 相同 |
+| Kubernetes 注入同名服务变量 | VLLM_PORT 收到 tcp:// URI 会拒绝，并提示服务发现变量冲突 | 相同 | 相同 | 相同 |
+| VLLM_ENABLE_V1_MULTIPROCESSING | 默认 1，经 bool(int)；离线客户端开关，external_launcher 会写 0 | 相同 | 相同 | 相同 |
+| VLLM_WORKER_MULTIPROC_METHOD | 库默认 fork；CLI 未设时写 spawn，强制条件可覆盖 | 相同 | 相同 | 相同 |
+
+rc2/main 表中的 Rust 开关是 VLLM_USE_RUST_FRONTEND；没有开启时不能按 Rust 的前端数量规则推算 Python 服务。新设备映射通过运行时查询，不能继续只用旧版本的可见设备字符串位置推断物理卡号。rc2 还有弹性 EP 等其他配置变化，表中的“同构”不代表整个 ParallelConfig 实现逐字相同。
+
+新版本证据：来源 71、72 核 DP 派生，73、74、90 核前端入口，75–84 核 CLI 与环境读取，85、86 核 main RPC 范围及执行器选择，87、88 核设备映射变化，89、91 核端口保留区。表中的默认一致不表示模型、设备支持或整个进程实现完全相同。
+
+按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26rc 列是 2ed6cbba，v0.30.0rc2 列是 7d825229，main 列是 baa023ad。**本页正文读的是本部署专用镜像 db701c1f，它是另一个 orphan commit，不算进 v0.23 列：该镜像包含 GLM 模型代码与配置 patch，2c59ff10 上只有两个 GLM 工具调用 patch。**下表 v0.23 列的行号读自 2c59ff10；镜像上除 scheduler 类替换在 `:718` 外，其余行号与 2c59ff10 相同。
+
+| 项 | v0.23 | v0.26rc | v0.30.0rc2 | main |
+|---|---|---|---|---|
+| 全局 patch 定义 / 三处调用 | 21 / 45、55、65 | 同左 | 55 / 79、89、99 | 同 rc2 |
+| 平台打全局 patch | 188 | 187 | 311 | 304 |
+| 平台初始化 Ascend 配置 | 475 | 431 | 520 | 492 |
+| Worker 打 patch / 初始化配置 | 110 / 120 | 119 / 129 | 143 / 153 | 138 / 148 |
+| EPLB 启动补丁导入 | 47–48 | 45–46，条件相同 | 40–41，导入条件相同；MRV2 另拒旧环境开关 | 39–40，导入条件相同 |
+| scheduler 类替换 | 745 | 936 | 897 | 911 |
+
+表中数字是各固定版本的行号：全局 patch 在包根的 \_\_init\_\_.py，平台两行在 platform.py，Worker 在 worker/worker.py，EPLB 导入在 patch/platform/\_\_init\_\_.py，调度器替换在 patch/platform/patch_balance_schedule.py。对应入口分别是 _ensure_global_patch、adapt_patch(is_global_patch=True)、init_ascend_config，以及 Worker 的 adapt_patch / init_ascend_config。调度器赋值从 v0.23 的 vllm.v1.core.sched.scheduler.Scheduler = BalanceScheduler，改为其余三版的 _sched_mod.Scheduler = BalanceScheduler；改变的是模块引用写法，替换的目标相同。
+
+三类进程仍分别拥有补丁入口；表中位置变化不等于全部启动行为不变。rc2 将 EngineCore 入口包装移到 patch_engine_core.py，先初始化 AscendConfig，再按配置接入 profiling、DyntraLB 或 Balance，最后调用原入口。rc2 的 MRV2 还会拒绝 DYNAMIC_EPLB / EXPERT_MAP_RECORD，要求使用 --enable-eplb；旧补丁的导入条件与新 runner 允许的配置是两层检查。旧 v0.23、v0.26rc 和 main 的 daemon=False 位置均为 patch_multiproc_executor.py:199；不能用这一行推断所有 EPLB 路径都按旧方式另起子进程。
+
+上游 vLLM 的 v0.23.0（0fc695fc）与 v0.26 rc（568afb3a）仍由 EngineCore 初始化加载通用插件；单 API server 仍在启动进程里运行，headless 仍留启动进程监视引擎；没配 KV connector、PP 为 1 时，executor 仍只读 TP 0 号 Worker 的结果，Worker 进程标题拼法相同。executor 默认规则同构，rc 位置见来源 44 [C44]。固定 main 的参数与 CLI 默认以 84030bbe 为准，见上表；这部分比较的范围是配置入口，main 其余进程通信、补丁与状态行为见页末待核。
 
 ### 源码位置
 
-- 两台机器各起什么：`vllm/entrypoints/cli/serve.py:138-148`（单 API server 就是本进程）、`:173-253`（headless）；`vllm/v1/engine/utils.py:121-170`（`CoreEngineProcManager`）、`:1084-1100`（是否建 DP coordinator）；`vllm/v1/engine/coordinator.py:80-157`。
-- 进程标题：EngineCore 在 `vllm/v1/engine/core.py:1118-1137`，Worker 在 `vllm/v1/executor/multiproc_executor.py:997-1031`（依次拼上 `_DP`、`_PP`、`_PCP`、`_TP`、`_DCP`、`_EP`），标题前缀 `VLLM` 与 `setproctitle` 的使用在 `vllm/utils/system_utils.py:184-198`。
-- EngineCore 的收发线程：`vllm/v1/engine/core.py:860-965`，注释说明开线程是为了让序列化和前向计算重叠；API server 与 EngineCore 之间的通道细节见[请求代码路径页](request-call-chain.md#进程之间的四条通道)。
-- executor：默认值 `vllm/config/parallel.py:776-780`、`:845-890`；`vllm/v1/executor/uniproc_executor.py:45-63`；`vllm/v1/executor/multiproc_executor.py:132-192`（广播队列与起 Worker）、`:495-509`（只读 TP 0 号的结果；PP > 1 时是最后一段 PP 的 TP 0 号）、`:361-365`（配了 KV connector 时不再只读一个，所有 Worker 回传后汇总）、`:686-696`（`daemon=True`）。
-- 清单只发差量：`vllm/v1/core/sched/output.py:181-212`，注释写明请求资料缓存在每个 Worker 进程里、之后只发差量，结束名单用来通知 Worker 释放缓存 [C23]。Worker 侧的 `_update_states` 在 `vllm/v1/worker/gpu_model_runner.py:1125-1168`；昇腾版 `vllm_ascend/worker/model_runner_v1.py:748-763` 在异步调度下先做一次回退检查，再交给上游。
-- 补丁入口：`vllm_ascend/__init__.py:18-69`、`vllm_ascend/platform.py:184-188`、`vllm_ascend/worker/worker.py:89-120`、`vllm_ascend/utils.py:563-567`；上游侧 `vllm/engine/arg_utils.py:2578-2598`、`vllm/v1/engine/core.py:100-109`、`vllm/v1/worker/worker_base.py:238-247`、`vllm/plugins/__init__.py:69-80`。
-- 配置缓存：`vllm_ascend/ascend_config.py:866-925`、`vllm_ascend/platform.py:450-475`。
-- scheduler 与引擎入口被换：`vllm_ascend/patch/platform/__init__.py:50`、`patch_balance_schedule.py:661-718`；`vllm/config/scheduler.py:168-188`。
-- EPLB：`vllm_ascend/patch/platform/__init__.py:47-48`、`patch/__init__.py:57-66`、`patch/platform/patch_multiproc_executor.py:161-200`、`worker/model_runner_v1.py:530-544`、`eplb/core/eplb_worker.py:403-410`。
-- 官方补丁设计文档：`docs/source/developer_guide/Design_Documents/patch.md`。
+Kubernetes Service 命名与环境冲突的官方说明见来源 142；四版 VLLM_PORT 的 URI 拒绝分支分别复用来源 63、77、120、81。这里只核服务变量注入与 vLLM 内部端口解析，不将它当成整套 Kubernetes 部署验收。
+
+通信参数的来源 95–97 连接 vLLM 的 Gloo 建组入口、PyTorch 2.10 文档与实际 getter；106 核接口精确匹配。98–100 是 CANN 9.1.X 三个环境变量的官方说明，101–102 锚定固定依赖与 A2 构建版本。103–105 对照 TensorPipe 两套消费者与后端注册/实例化的区别；固定两运行包的完整文本检索未发现 TensorPipe 初始化，不能把这种有范围的负向结论扩张到用户另装的插件。
+
+rc2 补证：107–111 连接共享准入计数的建立、检查和请求结束扣减；112–117 支持两种 headless 分支及 CLI、DP 参数派生；118–127 对照设备与环境入口；128–135 对照各进程补丁、MRV2 的 EPLB 校验和 EngineCore 提前初始化。固定 GLM 的配置缓存顺序见 136–140，旧 Balance 的早期回退见 141。
+
+- 两台机器各起什么：vllm/entrypoints/cli/serve.py:138-148（单 API server 就是本进程）、:173-253（headless）；vllm/v1/engine/utils.py:121-170（CoreEngineProcManager）、:1084-1100（是否建 DP coordinator）；vllm/v1/engine/coordinator.py:80-157。
+- 进程标题：EngineCore 在 vllm/v1/engine/core.py:1118-1137，Worker 在 vllm/v1/executor/multiproc_executor.py:997-1031（依次拼上 _DP、_PP、_PCP、_TP、_DCP、_EP），标题前缀 VLLM 与 setproctitle 的使用在 vllm/utils/system_utils.py:184-198。
+- EngineCore 的收发线程：vllm/v1/engine/core.py:860-965，注释说明开线程是为了让序列化和前向计算重叠；API server 与 EngineCore 之间的通道细节见[请求代码路径页](request-call-chain.md#进程之间的四条通道)。
+- executor：默认值 vllm/config/parallel.py:776-780、:845-890；vllm/v1/executor/uniproc_executor.py:45-63；vllm/v1/executor/multiproc_executor.py:132-192（广播队列与起 Worker）、:495-509（只读 TP 0 号的结果；PP > 1 时是最后一段 PP 的 TP 0 号）、:361-365（配了 KV connector 时不再只读一个，所有 Worker 回传后汇总）、:686-696（daemon=True）。
+- 清单只发差量：vllm/v1/core/sched/output.py:181-212，注释写明请求资料缓存在每个 Worker 进程里、之后只发差量，结束名单用来通知 Worker 释放缓存 [C23]。Worker 侧的 _update_states 在 vllm/v1/worker/gpu_model_runner.py:1125-1168；昇腾版 vllm_ascend/worker/model_runner_v1.py:748-763 在异步调度下先做一次回退检查，再交给上游。
+- 补丁入口：vllm_ascend/\_\_init\_\_.py:18-69、vllm_ascend/platform.py:184-188、vllm_ascend/worker/worker.py:89-120、vllm_ascend/utils.py:563-567；上游侧 vllm/engine/arg_utils.py:2578-2598、vllm/v1/engine/core.py:100-109、vllm/v1/worker/worker_base.py:238-247、vllm/plugins/\_\_init\_\_.py:69-80。
+- 配置缓存：vllm_ascend/ascend_config.py:866-925、vllm_ascend/platform.py:450-475。
+- scheduler 与引擎入口被换：vllm_ascend/patch/platform/\_\_init\_\_.py:50、patch_balance_schedule.py:661-718；vllm/config/scheduler.py:168-188。
+- EPLB：vllm_ascend/patch/platform/\_\_init\_\_.py:47-48、patch/\_\_init\_\_.py:57-66、patch/platform/patch_multiproc_executor.py:161-200、worker/model_runner_v1.py:530-544、eplb/core/eplb_worker.py:403-410。
+- 官方补丁设计文档：docs/source/developer_guide/Design_Documents/patch.md。
+
+- 进程与开关边界：EPLB 的 `_launch_process` 设置 `daemon=True` 后调用 `proc.start()`，不受只改变 Worker 创建路径的结论覆盖。[C41] `DYNAMIC_EPLB` 转小写后须为 `"true"` / `"1"`，`EXPERT_MAP_RECORD` 须精确为 `"true"`，才能按对应条件触发补丁导入。[C34]
 - 进程账与启动步骤的数字取自主线底稿 01 §A0 第 1–4 步与 §A0.1，请求入口取自 §A1 [A]。
 
-待核：
+实际部署还需记录：
 
 1. 官方镜像的环境里是否另设了 `VLLM_WORKER_MULTIPROC_METHOD`。教程命令没有设，镜像环境没有查。
 2. 本部署在进程列表里实际还有哪些辅助进程、各几个，缺实机的进程列表。
-3. spawn 启动时，EngineCore 进程里的 Ascend 配置缓存由哪一步建立；fork 时它继承自父进程。
-4. vllm-ascend main 配套的上游 vLLM 没有检出，main 侧 executor 默认值与启动方法未核。
+3. 实际镜像是否走本文钉住的启动与初始化路径，需安装提交和启动日志；固定源码中握手收尾建立配置缓存的调用顺序已在上文列明。
+4. 固定 main 已核本文列出的参数、进程入口与 Worker 分派；表外 Ray / external_launcher 的内部执行、弹性 EP 进程生命周期和全部 MRV2/PP 组合未做完整链路验证。真实安装配套与现场进程数仍需分别记录。
+
+- 来源 52：vllm@0fc695fc，vllm/v1/engine/core_client.py，L81–L104。
+- 来源 53：vllm@0fc695fc，vllm/v1/executor/uniproc_executor.py，L46–L62。
+- 来源 54：vllm@0fc695fc，vllm/v1/executor/multiproc_executor.py，L1–L1062。

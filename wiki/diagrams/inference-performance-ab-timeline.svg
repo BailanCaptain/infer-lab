@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 610 550" width="610" height="550" role="img" aria-label="正文 A/B 实验的局部时间线，单位 ms、同一比例。条形只画处理 N 输入的设备步骤；A 后续完成 D 的小步未画出。圆点是客户端收到输出，D 的前两个输出在图外。所有数值为教学示意。">
+  <title>正文 A/B 实验的局部时间线，单位 ms、同一比例。条形只画处理 N 输入的设备步骤；A 后续完成 D 的小步未画出。圆点是客户端收到输出，D 的前两个输出在图外。所有数值为教学示意。</title>
+  <defs><marker id="inference-performance-ab-timeline-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M80 48 L530 48" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#inference-performance-ab-timeline-ah-ink)"/>
+  <path d="M101 166 L449 166" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+  <path d="M80 288 L530 288" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#inference-performance-ab-timeline-ah-ink)"/>
+  <path d="M101 406 L269 406" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+  <rect x="125" y="80" width="285" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="267.5" y="109" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A：D + N 的 1200 个位置</text>
+  <rect x="89" y="160" width="12" height="12" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="449" y="160" width="12" height="12" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="524" y="160" width="12" height="12" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="449" y="222" width="12" height="12" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="125" y="320" width="105" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="177.5" y="349" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D + N400</text>
+  <rect x="245" y="320" width="105" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="297.5" y="349" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D + N400</text>
+  <rect x="365" y="320" width="105" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="417.5" y="349" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">仅 N400</text>
+  <rect x="89" y="400" width="12" height="12" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="269" y="400" width="12" height="12" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="389" y="400" width="12" height="12" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="509" y="462" width="12" height="12" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="80" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">400</text>
+  <text x="230" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">500</text>
+  <text x="380" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">600</text>
+  <text x="530" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">700 ms</text>
+  <text x="20" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">设置 A</text>
+  <text x="20" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">D 输出</text>
+  <text x="95" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">410</text>
+  <text x="455" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">650</text>
+  <text x="530" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">700</text>
+  <text x="270" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">这次等了 240 ms</text>
+  <text x="20" y="234" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">N 首字</text>
+  <text x="483" y="234" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">650</text>
+  <text x="80" y="270" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">400</text>
+  <text x="230" y="270" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">500</text>
+  <text x="380" y="270" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">600</text>
+  <text x="530" y="270" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">700 ms</text>
+  <text x="20" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">设置 B</text>
+  <text x="20" y="412" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">D 输出</text>
+  <text x="95" y="436" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">410</text>
+  <text x="275" y="436" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">530</text>
+  <text x="395" y="436" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">610</text>
+  <text x="185" y="395" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">120 ms</text>
+  <text x="20" y="474" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">N 首字</text>
+  <text x="543" y="474" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">690</text>
+  <text x="305" y="526" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">分块让 D 更早接到结果，但 N 要等三段输入全部处理完</text>
+</svg>

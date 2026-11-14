@@ -2,44 +2,93 @@
 id: op-to-ai-core
 title: 从算子到 AI Core：分工、融合与分块
 type: concept
-summary: 在 A4 逐层前向中，算子怎样分成矩阵与向量执行段，Host 怎样划分工作，设备怎样搬入、计算、写回；以 GLM 实际 RMSNorm 路径和可选残差融合分支对照说明。
-aliases: [算子链路, AscendRMSNorm, AscendGemmaRMSNorm, npu_add_rms_norm_bias, AscendC, op_kernel, op_host, tiling, tiling key, UB, 算子四层]
-chapters: ["16"]
+summary: >-
+  在 A4 逐层前向中，算子怎样分成矩阵与向量执行段，Host 怎样划分工作，设备怎样搬入、计算、写回；以 GLM 实际 RMSNorm
+  路径和可选残差融合分支对照说明。
+aliases:
+  - 算子链路
+  - AscendRMSNorm
+  - AscendGemmaRMSNorm
+  - npu_add_rms_norm_bias
+  - AscendC
+  - op_kernel
+  - op_host
+  - tiling
+  - tiling key
+  - UB
+  - 算子四层
+chapters:
+  - '16'
 order: 20
 sources:
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2129-L2169
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768
-  - vllm@0fc695fc:vllm/model_executor/custom_op.py#L110-L207
-  - vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L409-L467
-  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L19-L108
-  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.cpp#L23-L71
-  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155
-  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L167-L208
-  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/add_rms_norm_bias_torch_adpt.h#L21-L50
-  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L208-L222
-  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L373-L411
-  - https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html
-  - https://arxiv.org/abs/1910.07467
-  - vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L126
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L220
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L88
-  - vllm-ascend@2ed6cbba:vllm_ascend/ops/layernorm.py#L63-L86
-  - vllm-ascend@baa023ad:vllm_ascend/ops/layernorm.py#L64-L84
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L467
-  - vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L401-L459
-  - vllm-ascend@baa023ad:vllm_ascend/utils.py#L521-L579
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2129-L2169'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768'
+  - 'vllm@0fc695fc:vllm/model_executor/custom_op.py#L110-L207'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L409-L467'
+  - >-
+    vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L19-L108
+  - >-
+    vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.cpp#L23-L71
+  - >-
+    vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155
+  - >-
+    vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L167-L208
+  - >-
+    vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/add_rms_norm_bias_torch_adpt.h#L21-L50
+  - >-
+    vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L208-L222
+  - >-
+    vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L373-L411
+  - >-
+    https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html
+  - 'https://arxiv.org/abs/1910.07467'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L126
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L113-L220'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L88'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ops/layernorm.py#L63-L86'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/layernorm.py#L64-L84'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L467'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L401-L459'
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L521-L579'
+  - >-
+    raw:sha256-aff81f9c6042e3957465a5c11de61e00df90aaeb7fb0374c9e78093ed5f01635.md#L1-L1057
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/layernorm.py#L83-L103'
+  - 'vllm-ascend@7d825229:vllm_ascend/utils.py#L544-L588'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L94-L134
+  - >-
+    vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L225-L349
+  - >-
+    vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L29-L107
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - {to: ops-and-kernels, kind: builds-on, note: 先区分算子接口与设备核函数}
-  - {to: mlp-residual-norm, kind: builds-on, note: RMSNorm 的数学定义与残差结构}
-  - {to: one-request, kind: builds-on, note: 回到 A4 逐层前向核对真实形状与通信}
-  - {to: prepare-inputs-flow, kind: builds-on, note: 往前追踪 A3 的块表、槽位和注意力元数据}
+  - to: ops-and-kernels
+    kind: builds-on
+    note: 先区分算子接口与设备核函数
+  - to: mlp-residual-norm
+    kind: builds-on
+    note: RMSNorm 的数学定义与残差结构
+  - to: one-request
+    kind: builds-on
+    note: 回到 A4 逐层前向核对真实形状与通信
+  - to: prepare-inputs-flow
+    kind: builds-on
+    note: 往前追踪 A3 的块表、槽位和注意力元数据
+  - to: ai-core
+    kind: builds-on
+    note: 算子执行段的分工、分块与交接建立在 AI Core 的计算单元和存储搬运机制之上。
 contradicts: []
-updated: "2026-10-02"
-origin: direct
+updated: 2026-11-10T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-9cd315276f36a94063a7beec730fc38d97d240379e7e59507b5df5afb6850116.md
+  - >-
+    raw/sha256-aff81f9c6042e3957465a5c11de61e00df90aaeb7fb0374c9e78093ed5f01635.md
 ---
 
 ## 一次算子调用，卡里究竟谁在干活？
@@ -101,6 +150,19 @@ title: 融合残差归一化仍要交付两份结果（示意）
 
 这个扩展读取可用向量核数与 **UB（Unified Buffer）** 容量；UB 是向量计算使用的片上缓冲区。再根据行数、行宽、FP16/FP32/BF16 数据精度以及有没有 bias，选择普通处理、沿宽度拆分、合并多行等模板，并生成每核处理范围与临时空间参数。分块阈值随精度与偏置条件改变，因此即使元素数量相同，也要重新按这些条件选择模板。
 
+资源信息有两种取得方式：没有编译信息对象时查询平台，已有编译信息时读取其中记录的资源。取得 UB 容量后，还要扣除预留空间，剩余部分才用于本次分块规划。因此，平台提供的容量不能直接当作当前数据块可用的空间。
+
+先看行如何分给核。该实现先将“总行数 ÷ 可用向量核数”向上取整，作为普通核的行配额，再按这个配额求实际使用核数；最后一个核处理剩余行。假设有 10 行、4 个可用向量核，宽度与精度满足后续模板条件：
+
+```calc
+title: 行任务先分给核，最后一个核处理尾部（示意）
+普通核配额 = ceil(10 ÷ 4) = 3 行
+实际使用核数 = ceil(10 ÷ 3) = 4
+尾核行数 = 10 − 3 × (4 − 1) = 1 行
+```
+
+因此四个核依次处理第 0–2、3–5、6–8、9 行。行数少时也不必用满所有核：2 行分给 4 个可用核，普通配额为 1，实际只使用 2 个核。**每核分到几行，与每轮搬入几行是两次划分。** 后者还要看行宽、精度、偏置与 UB 可用空间；普通设备模板按自己的行范围循环，最后一轮只处理余下的行。
+
 设备入口读取 **tiling key**，也就是主机给出的模板选择编码，再按对应精度与分块方式执行。源码中的阈值是这个实现的空间安排，不能当成整颗 NPU 的固定内存容量；读 key 时应找到对应模板，而不是记住编码数字。
 
 还要分清另一种“块”：A3 准备输入时产生的 block table（记录请求历史放在哪些缓存块的表）与 slot mapping（新位置写入哪个槽位的映射），用于注意力读写 KV cache。KV cache 是留给后续步骤复用的历史数据。它们怎样生成，统一见[准备输入](prepare-inputs-flow.md)；本节的 tiling 只分配当前算子的计算工作，不重新分配这些缓存块。
@@ -153,6 +215,8 @@ title: 一行 BF16 中间结果的逻辑读写量
 
 16 KiB 的统计范围仅为这一份中间张量的逻辑读写；其他输入输出另计，总线访问还受缓存命中和访问合并影响。只有相应的写出与重读都被消除，这笔逻辑流量才会省下；残差融合扩展仍须写回更新后的残差。R1 整批的形状、字节和通信次数仍以 [A4 主线](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)为唯一出处。
 
+同样的“中间结果是否写出再读”问题也用于比较[昇腾 950 的计算与搬运](ascend-950-architecture.md)。先用本页辨认实际 kernel 和中间张量，再查目标硬件能提供哪种交接路径；有硬件路径不代表当前算子已经采用。
+
 ## 常见误解
 
 - **运行在 NPU 就一定用 Cube？** RMSNorm 的主体是向量归约和缩放；矩阵乘与激活融合才涉及矩阵、向量两类执行段。判断分工要看运算和具体模板。
@@ -167,6 +231,8 @@ title: 一行 BF16 中间结果的逻辑读写量
 
 本页没有一个“使用 AI Core”的总开关。vllm-ascend 注册 `RMSNorm → AscendRMSNorm`，上游 CustomOp 根据启用状态选择设备方法 `forward_oot` 或本地实现；本页流程图以进入设备方法为前提。固定 GLM 调用 `input_layernorm(layer_input)` 与 `post_attention_layernorm(layer_input)`，均不传 residual。
 
+这里还要区分实现类与执行方法。创建组件对象时，CustomOp 查询 OOT 注册表；OOT 指框架主仓之外提供的平台实现。注册表中存在对应名字，就使用登记的实现类，否则仍使用原来的类。对象初始化时，就根据启用状态和平台选好并保存执行方法；随后每次前向直接调用已保存的方法，不在这一层重新做动态选择。因此，登记了平台实现类，并不等于初始化时一定选择设备方法。
+
 固定执行提交 `db701c1f` 的 `enable_custom_op()` 是延迟初始化判断：`VLLM_BATCH_INVARIANT` 开启或设备为 A5 时返回 false，其余条件下尝试加载扩展。A2 不命中该设备禁用条件，最终仍取决于扩展能否加载；无 residual 的 RMSNorm 不需要进入这一残差融合选择。Python 的 CustomOp 设备分派与 C++ 扩展能否加载是两层不同判断。
 
 ### 会报什么错
@@ -180,6 +246,10 @@ title: 一行 BF16 中间结果的逻辑读写量
 C++ 适配层通过 `EXEC_NPU_CMD(aclnnAddRmsNormBias, ...)` 交给运行库。由此只能定位执行入口；没有设备轨迹时，不给出具体 kernel 数量、占用率或加速比例。
 
 ### 版本差异
+
+下述 RMSNorm residual 行为与固定 main 完整文件相同，版本差别针对旧 GLM 的 fallback；rc2 新增的预量化输入复用应另看 [共享专家的调用时点](moe.md#版本差异)。
+
+**v0.30.0rc2 的 AscendRMSNorm 残差分支不能再按旧 fallback 推演。** 无 residual 时仍调用 torch_npu.npu_rms_norm，再加已加载的 bias；有 residual 时直接导入 vllm_ascend_C 并调用 npu_add_rms_norm_bias，没有旧 enable_custom_op 返回 false 后的回退。通用扩展加载函数仍受批不变和硬件能力门控，但不能拿这个布尔函数代替该分支的真实调用条件。W8A8 动态线性已迁入 w8a8 子目录并支持 PreparedLinearInput；本文旧 Host tiling/kernel 走读仍限 db701c1f，实际 kernel、流量和延迟需要设备 trace。
 
 下表逐项比较 AscendRMSNorm 的无 residual 路径、残差融合条件和回退；“尝试启用”都以实际环境加载成功为条件。
 
@@ -202,10 +272,15 @@ C++ 适配层通过 `EXEC_NPU_CMD(aclnnAddRmsNormBias, ...)` 交给运行库。�
 | 矩阵/向量分工、AIC/AIV 分离架构、典型内存路径 | 来源 14：[CANN 基本架构](https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html)。[S14] |
 | RMSNorm 均方缩放语义 | 来源 15：[RMSNorm 原论文](https://arxiv.org/abs/1910.07467)；融合残差与 bias 是本页另核的实现组合。[S15] |
 | GLM 的两个单参数调用、注册与分派、残差/bias 分支 | 来源 1–5：glm5_next.py 2129–2169、2212–2235；utils.py 735–768；上游 custom_op.py 110–207；layernorm.py 63–88。[C5] |
-| Host 按精度、UB、核数与形状选择模板，key 分派 | 来源 7、8、12、13：op_host/add_rms_norm_bias_tiling.cpp 19–108、208–222、373–411；op_kernel/add_rms_norm_bias.cpp 23–71。[C7] |
+| Host 按精度、UB、核数与形状选择模板，key 分派 | 来源 7、8、12、13、28：op_host/add_rms_norm_bias_tiling.cpp 的常量、资源读取、行分配与模式选择；op_kernel/add_rms_norm_bias.cpp 23–71。[C7] |
+| 普通核行配额、尾核行数与设备循环 | 来源 28 的 CalculateBlockParameters、DetermineModeParameters；来源 29 的 Init、Process 和 SubProcess。10 行与 2 行算例按这些公式推导，非设备实测。[D] |
 | 三份输出、搬入时残差写回、归约与缩放顺序 | 来源 9–11：add_rms_norm_bias.h 96–155、167–208；add_rms_norm_bias_torch_adpt.h 21–50。[C9] |
 | W8A8 线性层动态量化与矩阵乘分支 | 来源 16：quantization/methods/w8a8_dynamic.py 75–126。[C16] |
-| MC2 专家路径：已有量化结果复用、融合/拆分、第二组矩阵乘 | 来源 17：ops/fused_moe/moe_mlp.py 133–220。[C17] |
+| MC2 专家路径：已有量化结果复用、融合/拆分、第二组矩阵乘 | 来源 17：ops/fused_moe/moe_mlp.py 113–220。[C17] |
 | 三版本残差分支与预取钩子、扩展门控/失败处理 | 来源 18–23，分别对应三版 layernorm.py 与 utils.py；固定提交加载失败的完整逻辑在来源 6 的 utils.py 409–467。[C20] |
 
-**待核：** 底稿 02 §3.4 仍把“稠密 MLP 实际命中哪个 apply 分支、是否采用激活融合”列为待核。本轮核实了 W8A8 线性方法本身，未取得固定镜像的运行轨迹；MoE 在所列条件下的融合/拆分源码路径已核，但具体命中哪条、设备 kernel 数量、实际流量和加速幅度仍缺 NPU profiling。CANN 架构文档用于核对单元职责，不提供本部署的核数、缓冲容量或性能实测。
+**待核：** 固定镜像中稠密 MLP 实际命中的 apply 分支、是否采用激活融合，以及 MoE 的实际融合/拆分路径、设备 kernel 数量、流量和加速幅度，仍缺 NPU profiling。CANN 架构文档说明单元职责，不提供本部署的核数、缓冲容量或性能实测。
+
+Host 资源取得与预留空间见来源 12（db701c1f，add_rms_norm_bias_tiling.cpp 208–222），分配调用与 BlockDim 设置见来源 13（373–411），预留量常量见来源 7。来源 28 的 250–258 行给出普通核配额、实际核数和尾核行数，315–322 行按每轮行数继续划分循环与尾部；来源 29 展示普通设备模板怎样按核号偏移地址并消费这些参数。这里追踪的是带 residual 的扩展示例；GLM 实际子层入口仍走前文不带 residual 的路径。
+
+实现类与执行方法是两次选择（来源 4）：`__new__` 查 OOT 注册表选类，`__init__` 调用 `dispatch_forward` 保存 `_forward_method`，`forward` 再调用已保存的方法。启用条件还包含 `enforce_enable`；未启用时选本地实现，启用且平台为 OOT 时选 `forward_oot`。是否最终进入设备实现取决于子类覆盖；基类该入口默认仍调用 `forward_native`。运行时命中情况须结合 trace。

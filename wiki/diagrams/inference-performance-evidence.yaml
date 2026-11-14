@@ -1,0 +1,28 @@
+layout: figure
+id: inference-performance-evidence
+caption: 沿同一条请求查客户端、调度、设备和返回。左支说明尚未获调度；右支继续追已调度请求的结果。站点编号对应一条请求主线。
+size: [610, 684]
+items:
+  - { at: [30, 20], size: [550, 64], text: 客户端：请求 D 的两次输出, sub: 先找到这次停顿的起点与终点, tone: token, style: solid }
+  - { at: [30, 124], size: [550, 74], text: 第 1–2 站：入口 → Scheduler.schedule, sub: 用请求 D 找到它所在的计算步骤, tone: control, style: faded }
+  - { at: [20, 252], size: [210, 92], text: 尚未安排, sub: 查排队、缓存和抢占, tone: danger, style: faded }
+  - { at: [260, 252], size: [330, 92], text: 第 3–5 站：执行这一步, sub: ModelRunner / worker 的开始和结束, tone: weight, style: solid }
+  - { at: [260, 394], size: [330, 74], text: 第 6–7 站：处理与发送, sub: 继续追同一步交出的 D 的结果, tone: control, style: faded }
+  - { at: [260, 508], size: [330, 64], text: 客户端收到 D 的下一次输出, sub: 对回最初记录的停顿终点, tone: token, style: solid }
+  - { at: [20, 612], size: [570, 56], text: 选能区分原因的实验，再验收速度、代价和质量, style: plain }
+links:
+  - { from: [305, 84], to: [305, 124], tone: token }
+  - { from: [125, 198], to: [125, 252] }
+  - { from: [425, 198], to: [425, 252], tone: weight }
+  - { from: [425, 344], to: [425, 394], tone: token }
+  - { from: [425, 468], to: [425, 508], tone: token }
+  - { from: [425, 572], to: [425, 612] }
+  - { from: [125, 344], to: [125, 612] }
+texts:
+  - { at: [147, 232], text: 未安排, size: 14 }
+  - { at: [447, 232], text: 已安排, size: 14 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L416
+    symbols: [schedule]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996
+    symbols: [cudagraph_mode]

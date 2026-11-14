@@ -2,47 +2,89 @@
 id: reading-vllm-ascend
 title: 怎样读 vllm-ascend 源码：先抓请求主线，再带着问题追到实现
 type: concept
-summary: vllm-ascend 是装在 vLLM 上的昇腾平台插件，靠入口点、patch、custom op 等扩展点接进请求路径，所以一条请求跑的是两个仓库拼起来的代码。先沿七站读通主线，再按数据、配置、实现三条路线带着问题追；遇到异常或版本变化时先划清证据边界，区分源码推断和运行证据。
-aliases: [源码阅读方法, 怎么读源码, 定位方法, 查代码, 版本对照, 读源码, 从报错找代码, 按符号对照]
-chapters: ["20"]
+summary: >-
+  vllm-ascend 是装在 vLLM 上的昇腾平台插件，靠入口点、patch、custom op
+  等扩展点接进请求路径，所以一条请求跑的是两个仓库拼起来的代码。先沿七站读通主线，再按数据、配置、实现三条路线带着问题追；遇到异常或版本变化时先划清证据边界，区分源码推断和运行证据。
+aliases:
+  - 源码阅读方法
+  - 怎么读源码
+  - 定位方法
+  - 查代码
+  - 版本对照
+  - 读源码
+  - 从报错找代码
+  - 按符号对照
+chapters:
+  - '20'
 order: 20
 sources:
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L76-L89
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L335-L346
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L668-L700
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2287-L2427
-  - vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L234-L258
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/__init__.py#L17-L57
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L836-L868
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L951-L962
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1270-L1277
-  - vllm-ascend@db701c1f:setup.py#L543-L551
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1556-L1562
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L604-L624
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L267-L267
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2053-L2053
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1616-L1629
-  - vllm-ascend@db701c1f:vllm_ascend/__init__.py#L38-L75
-  - vllm@0fc695fc:vllm/v1/executor/abstract.py#L37-L92
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L89-L96
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L287-L310
-  - vllm-ascend@db701c1f:vllm_ascend/envs.py#L75-L75
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L76-L89'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L335-L346'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L668-L700'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2287-L2427'
+  - 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L234-L258'
+  - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/__init__.py#L17-L57'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L836-L868'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L951-L962'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1270-L1277'
+  - 'vllm-ascend@db701c1f:setup.py#L543-L551'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1556-L1562'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L604-L624'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L267-L267'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2053-L2053'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1616-L1685'
+  - 'vllm-ascend@db701c1f:vllm_ascend/__init__.py#L38-L75'
+  - 'vllm@0fc695fc:vllm/v1/executor/abstract.py#L37-L92'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L89-L96'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L287-L310'
+  - 'vllm-ascend@db701c1f:vllm_ascend/envs.py#L75-L75'
+  - >-
+    raw:sha256-a319a8e811d379832d7afc360f3115c6143c7cb0961012943e875d4c5e0da129.md#L1-L622
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L752-L820'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/__init__.py#L78-L88'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/layernorm.py#L83-L103'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L42
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L608-L679'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L931'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L354-L365'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L370-L381'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L736-L818'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L707-L780'
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L841-L926'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1793-L1933'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L84-L89'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L109-L114'
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - {to: vllm-ascend-overview, kind: builds-on, note: 先知道插件从哪几处接进 vLLM，才能判断读到的文件会不会被执行}
-  - {to: vllm-ascend-repo-map, kind: builds-on, note: 用职责地图确定起始文件}
-  - {to: ascend-patch-system, kind: builds-on, note: 理解直接绑定和注册分派如何改变实现}
+  - to: vllm-ascend-overview
+    kind: builds-on
+    note: 先知道插件从哪几处接进 vLLM，才能判断读到的文件会不会被执行
+  - to: vllm-ascend-repo-map
+    kind: builds-on
+    note: 用职责地图确定起始文件
+  - to: ascend-patch-system
+    kind: builds-on
+    note: 理解直接绑定和注册分派如何改变实现
+  - to: ascend-config-system
+    kind: builds-on
+    note: 源码阅读方法中的配置追踪路线，以配置系统的输入合并、校验改写和最终消费条件为基础。
 contradicts: []
-updated: "2026-09-29"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-a319a8e811d379832d7afc360f3115c6143c7cb0961012943e875d4c5e0da129.md
+  - >-
+    raw/sha256-e0f950d1ccf5d480b9a409090ad90dbf226c8fc6eb3a14c60b462a609e4dfe4e.md
 ---
 
 ## 读 vllm-ascend 的源码之前：它是什么，怎样接进 vLLM
 
-vllm-ascend 是 vLLM 的昇腾平台插件：一个单独安装的 Python 包，自己不起进程，而是借 vLLM 预留的扩展点，把「这一步在昇腾 NPU 上怎么算」换成自己的实现；「这一步算哪些请求、各算几个 token」仍由 vLLM 决定。
+vllm-ascend 是 vLLM 的昇腾平台插件：一个单独安装的 Python 包，借 vLLM 的启动框架和扩展点，把「这一步在昇腾 NPU 上怎么算」接到自己的实现。请求接入、引擎循环和调度沿用 vLLM 的框架；插件也会调整调度配置或替换部分实现，因此不能只凭文件属于哪个仓库判断最终行为。
 
 ```wiki-diagram
 file: ascend-vs-upstream
@@ -90,9 +132,13 @@ file: locate-routes
 
 每道边界只往里展开一层，就能把新读到的代码放回整体架构。看到 NPU 算子调用时，再按问题决定要不要进设备实现；不必为了解释一次采样，通读整个算子目录。
 
+沿数据追踪时，还要记录张量所在的设备和数据类型。例如，生成结果必须符合指定语法时，采样前要用一张“哪些 token 可以选”的掩码修改词表分数。固定执行侧的这段路径只在有语法处理信息时执行：先记住分数原来的数据类型，再移到 CPU 并转成单精度浮点数，应用掩码后移回目标设备，最后恢复原来的数据类型。只记“分数经过了掩码处理”，就会漏掉设备迁移与类型转换。
+
 ## 路线二：沿配置找到真正消费它的代码
 
 以 FlashComm1 的开关为例。FlashComm1 是 vllm-ascend 对[序列并行](sequence-parallel.md)的实现，开关键名是 `enable_flashcomm1`。第一步在钉住版本里搜这个键名，找到昇腾配置对象读取它的位置，以及旧环境变量的兼容映射。第二步读合并规则：启动参数的 JSON 里显式写了这个键就用它；没写就用环境变量读到的值，环境变量也没设时是读取器给的默认值。到这里，只弄清了字段的值怎样产生。
+
+这里区分的是“有没有写这个键”，而不是“这个值是否为真”。例如，启动参数的 JSON 显式把这个开关设为 false，即使环境变量读取值为 true，按这段合并规则得到的字段值仍为 false；只有 JSON 中没有这个键时，才回退到环境变量读取值。
 
 第三步搜这个字段的消费者，看它是否还受模型、设备、并行规模或运行模式限制。平台启动时还会继续检查、改写别的配置，例如重算调度器的开关：在 PD 分离的 prefill 节点上会被改回关闭并打警告；只有 decode 节点允许打开，没开 PD 分离或其他角色打开它会直接报错。所以完整路线是「输入 → 合并 → 校验或改写 → 消费条件 → 执行分支」，三路来源怎样合并、解析后又怎样被改写，见[配置系统](ascend-config-system.md#解析完还会被改写生效值不是你写的值)。
 
@@ -110,7 +156,7 @@ file: locate-routes
 
 Python 的 traceback 从外层调用一路列到异常发生的位置。先找到最初的那个异常和它的上下文，判断它属于输入处理、调度、模型执行、通信还是设备运行时。多个进程的日志会交错在一起；之后出现的进程退出、通信中断，常常只是连带结果。
 
-离异常最近的那一帧如果在 vllm-ascend 里，它是调查的入口，但单凭它不能证明根因就在这个文件；反过来，栈里一帧 vllm-ascend 都没有，也不能证明昇腾的配置、状态或设备任务与问题无关。NPU 上的任务是异步提交的，错误在哪里被看到，取决于哪里做了同步。固定图的回放路径里就有这样的同步点：整图模式下，回放前先等当前流上已提交的任务全部做完，之前提交的任务出的错，要到这里才被报出来。所以报错的位置不一定是出错的位置。
+离异常最近的那一帧如果在 vllm-ascend 里，它是调查的入口，但单凭它不能证明根因就在这个文件；反过来，栈里一帧 vllm-ascend 都没有，也不能证明昇腾的配置、状态或设备任务与问题无关。NPU 上的任务是异步提交的，错误在哪里被看到，取决于哪里做了同步。固定图的回放路径里就有这样的同步点：满足特定分支条件的整图回放，会先等当前流上已提交的任务完成，再执行回放；采用 EAGLE 来先草拟候选的路径，以及由模型执行对象另行安排更新与回放顺序的路径，会跳过这里的等待。精确条件见页末源码说明。此前异步提交的任务若发生错误，可能在这个同步点才被报告；跳过此处等待也不能推出整条路径没有其他同步点。所以报错的位置不一定是出错的位置。
 
 记录实际版本、完整的首个异常、触发条件和最后成功的阶段，再设计能缩小范围的复现。没有设备、只读代码，能解释断言和调用条件，但不能把一个候选原因升级成已复现的根因。
 
@@ -130,17 +176,19 @@ file: ref-diff
 
 [R1](one-request.md#示例请求-r1-与官方双机部署) 是为了手算设的示例请求，提示词 4 个 token；它从入口走到返回，每一站的入口文件和函数在[一条请求的代码路径](request-call-chain.md#源码位置)已经按阅读顺序列好。在官方双机部署上照上面三条路线读，会先碰到下面几件事。
 
-- **先定版本。** 控制流按 vLLM v0.23.0 读，执行侧按 GLM 专用镜像对应的那个固定提交读，这个提交不在社区的 v0.23、v0.26、main 任何一条线上。vllm-ascend 的 v0.23 维护分支和 v0.26 里都没有 GLM 模型代码，main 又把它拆成了一个目录，拿错版本就找不到文件。部署条件见[部署前提](glm-5-3-flash-two-node.md#部署前提)，基线提交见[来源基线](../sources/glm-5-3-flash-baseline.md)。
+- **先定版本。** 控制流按 vLLM v0.23.0 读，执行侧按 GLM 专用镜像对应的固定提交读，它与社区版本表列出的快照不同。固定 v0.23 维护版和 v0.26 rc 的模型目录里没有本页 GLM-5.3-Flash 的实现；main 和 v0.30.0rc2 则把它放在 glm5next 目录，拿错版本就找不到同名文件。部署条件见[部署前提](glm-5-3-flash-two-node.md#部署前提)，基线提交见[来源基线](../sources/glm-5-3-flash-baseline.md)。
 - **路线一。** R1 被分到 DP0，第 3 站由 node0 的 8 个 worker 各拼一份一模一样的输入，因为 TP8 下它们算的是同一批 token，只是各持一部分权重；逐卡走读见[输入准备在双机上](prepare-inputs-flow.md#放到-glm-双机r1-这一步每张卡拼出什么)。
-- **路线二。** 官方启动命令没传昇腾的 JSON 配置，也没设对应的环境变量，所以 FlashComm1 取默认值，是关的，判断序列并行是否启用的函数返回假。读到任何开关，都先回到[这份默认基线](ascend-config-system.md#落到-glm-双机一个-json-键都没传)对齐。
+- **路线二。** 官方命令没有传 FlashComm1 的 JSON 键；若环境中也未设置对应变量，这个配置字段默认关闭。但判断 SP 的函数在首次初始化或刷新时，还可能因共享专家 DP 的调用条件把结果改成开启。本页沿用[教学基线](../sources/glm-5-3-flash-baseline.md#双机示例与教学视图)的 SP 关闭假设，不能仅凭命令缺少开关就认定实际部署也关闭。读到任何开关，都要继续追[字段合并后的覆盖条件](ascend-config-system.md#解析完还会被改写生效值不是你写的值)。
 - **路线三。** GLM 的解码层在 vllm-ascend 自己的模型文件里，RMSNorm 经 custom op 登记换成昇腾实现。GLM 的稀疏 MLA 却不查平台那张「按注意力类型选后端」的表，由层自己给出后端；照「先查平台表」的习惯读，读到的就不是 GLM 实际用的后端，见[六个口子](request-call-chain.md#vllm-ascend-从六个口子接进-vllm)第 3 条。
 - **异常。** node1 没接到 R1，也要陪着跑 MoE 通信；集合通信要组内成员到齐才结束，一张卡卡住会让别的卡一起超时，所以报错的那张卡不一定是根因。认日志前缀、判断超时的方法见[出问题时判断它停在哪一站](request-call-chain.md#出问题时判断它停在哪一站)。
 
 ## 常见误解
 
-- **「vllm-ascend 是一份改过的 vLLM，读它一个仓库就够了」**——它是装在 vLLM 上的插件，不单独起进程；引擎循环、调度器、HTTP 前端都是 vLLM 的代码，只是其中一部分被 patch 换过。
+- **「vllm-ascend 是一份改过的 vLLM，读它一个仓库就够了」**——它是装在 vLLM 上的插件，服务通过 vLLM 的框架启动；引擎循环、调度器、HTTP 前端以 vLLM 为基础，部分行为会被配置、patch 或派生类调整。
 - **「从目录树开头往下读最系统」**——目录按职责分，不按执行顺序；先沿一条请求读通主线，再按职责补读。
 - **「代码里读到了这个字段，开关就生效了」**——还要看合并、平台改写和消费者的条件；有的消费者遇到某个条件就直接退出。
+
+  校验也可能直接拒绝启动。例如，[Balance Scheduling（均衡调度）](balance-scheduling.md)让多个执行组共同决定是否接纳新请求；它不搬请求。固定执行侧开启这个功能时，如果存在 KV 传输配置（描述历史状态怎样在执行组之间传递），而传输角色不是同时承担生产与消费，配置检查就抛出异常。因此，“读到了开启值”连配置有效都不能保证。
 - **「patch 目录里搜不到，就一定是上游的行为」**——模型注册、派生类、后端绑定和 custom op 都能换掉实现；patch 文件本身也有导入条件。
 - **「栈里离异常最近的 vllm-ascend 帧就是根因」**——它只是入口；异步执行让错误在同步点才被看到，多进程下它还常常只是连带结果。
 - **「两个版本同一个文件、行号差不多，行为就一样」**——要按职责和符号对齐后，比输入、分支和状态更新；GLM 的模型文件在 main 上连位置和类名都变了。
@@ -149,7 +197,7 @@ file: ref-diff
 
 ### 怎么开
 
-vllm-ascend 装上即生效，没有开关：装包时登记的入口点让 vLLM 的前端、引擎和 worker 进程在启动时找到它 [C12]。读代码要「打开」的是钉住的那几份提交：控制流读 vLLM 的 `0fc695fc`（v0.23.0），执行侧读 vllm-ascend 的 `db701c1f`。工作树检出的往往不是这份提交，所以一律按提交号读，命令见[源码位置](#源码位置)。
+安装 vllm-ascend 会登记可供 vLLM 发现的入口；入口还须被允许加载、导入并调用成功，才能在对应进程生效。[C12] `VLLM_PLUGINS` 可以过滤入口，设备是否可用还要另查运行环境，见[插件注册](platform-plugin-registration.md)。读代码要「打开」的是钉住的那几份提交：控制流读 vLLM 的 `0fc695fc`（v0.23.0），执行侧读 vllm-ascend 的 `db701c1f`。工作树检出的往往不是这份提交，所以一律按提交号读，命令见[源码位置](#源码位置)。
 
 ### 会报什么错
 
@@ -168,31 +216,36 @@ vllm-ascend 装上即生效，没有开关：装包时登记的入口点让 vLLM
 
 沿主线读，时间主要花在对齐版本和追分派上，换来的是只读实际会执行的分支。以下情况不能只靠主线：
 
-- 要看的开关在本部署没开，例如 FlashComm1、重算调度器，主线根本走不到那条分支，要从该特性页的「怎么开」读起。
+- 要看的开关在本页教学假设下没开，例如 FlashComm1、重算调度器，主线不会展开那条分支，要从该特性页的「怎么开」读起，再核实际部署的覆盖条件。
 - 要看 PD 分离或别的模型，七站的入口仍然可用，但每一站选中的实现要沿路线二、三重新确认。
 - 要下根因结论，只读代码不够，还要实际运行的日志或能复现的步骤。
 
 ### 版本差异
 
+固定 main 的 FlashComm1 消费链本来就有效；rc2 移除旧工厂的弃用告警，而非重新实现开关。阅读版本差异时，应把“出现告警”和“运行时是否使用这个值”分别核对。
+
+**v0.30.0rc2 更能说明为什么要追到同一提交的消费者。** FlashComm1 的 JSON 开启值与环境 1/true 是“或”，DSA-CP 还会自动开启；旧 GLM 的“JSON 存在就覆盖环境”和旧 main 的“弃用”均不能套用。之后还要追到 use_sequence_parallel_moe 与 PCP×TP 补齐，区分输入、派生配置、实际执行。GLM 入口移到 glm5next 目录，RMSNorm residual 分支直接导入扩展且没有旧 false 回退；runner 又由 Ascend 补丁显式选择、默认 V1。本文阅读方法继续有效，旧例子的具体行为仍保留原钉点。
+
 GLM 基线的完整版本表（entry point、patch 文件数等）见[vllm-ascend 如何接入 vLLM](vllm-ascend-overview.md#版本差异)。和上面三条路线直接相关的是下面三项：
 
-| 项 | v0.23 维护 `2c59ff10` | GLM 基线 `db701c1f` | v0.26 `2ed6cbba` | main `baa023ad` |
+| 项 | v0.23 维护 `2c59ff10` | GLM 基线 `db701c1f` | v0.26 rc `2ed6cbba` | main `baa023ad` |
 |---|---|---|---|---|
-| GLM 模型代码（路线一、三的落点） | 无 | `models/glm5_next.py` 等三个文件，解码层类 `AscendGlm5NextDecoderLayer` [C16] | 无 | 目录 `models/glm5next/`，解码层类 `Glm5NextDecoderLayer` 在 `model.py` [C15] |
-| 配置合并（路线二） | 与基线相同 | `AscendConfig._get_config_value`：JSON 键优先，否则取环境读取值 | 与基线相同 | 没有这个函数；`enable_flashcomm1` 已标弃用，写了会打警告 [C13]，进严格校验前被从 JSON 里剔除 [C17]；派生校验阶段仍另读这个键和环境变量，判断 FlashComm 是否生效 [C14] |
-| 算子登记（路线三） | 与基线相同 | `REGISTERED_ASCEND_OPS` 把 `RMSNorm` 映射到 `AscendRMSNorm` | 与基线相同 | 与基线相同 |
+| GLM-5.3-Flash 模型代码（路线一、三的落点） | 模型目录无此实现 | `models/glm5_next.py` 中的解码层类 `AscendGlm5NextDecoderLayer` [C16] | 模型目录无此实现 | 目录 `models/glm5next/`，解码层类 `Glm5NextDecoderLayer` 在 `model.py` [C15] |
+| FlashComm1 字段合并（路线二） | 与基线相同，显式 false 也优先于环境 | `AscendConfig._get_config_value`：JSON 键优先，否则取环境读取值 | 与基线相同，显式 false 也优先于环境 | 不再经旧合并函数；`enable_flashcomm1` 已标弃用，写了会打警告 [C13]，构造配置对象前从传入的键中剔除 [C17]；原始 JSON 仍保留它，派生校验读取它与环境变量，判断是否开启 [C14] |
+| 标准 RMSNorm 登记（路线三） | 与基线相同 | `REGISTERED_ASCEND_OPS` 把 `RMSNorm` 映射到 `AscendRMSNorm` | 与基线相同 | 与基线相同 |
 
-「与基线相同」是逐提交搜函数名、键名和登记表核对的 [D]；「无」是列 models 目录核对的 [D]。所以同一条路线在 main 上仍然成立，只是按名字搜到的第一站变了：这个开关的读取点从配置对象的构造挪到了派生校验里，GLM 的类名也去掉了 Ascend 前缀 [D]。
+上表只比较 FlashComm1 这个字段的合并与标准 RMSNorm 登记，不表示所有配置或算子在各版都相同。v0.23 与 v0.26 rc 的调用点及合并函数见来源 30、31、36、37；三版标准登记及硬件兼容实现的覆盖分支见来源 32–34。main 把开关的读取点从旧构造流程移到派生校验，GLM 的类名也去掉了 Ascend 前缀；rc2 的工厂入口见来源 35。模型目录的版本差异统一见[目录地图](vllm-ascend-repo-map.md#版本差异)。
 
 ### 源码位置
 
 均为 GLM 基线 `db701c1f`，另注的除外。三条路线和七站编号是阅读上的划分，源码里没有叫这个名字的东西 [A]；A、C 两条请求是输入准备页为手算设的示意 [A]。
 
-- 插件入口：`setup.py` 的 entry point 两组 [C12]。
-- 路线一：`vllm_ascend/worker/model_runner_v1.py` 的 `_prepare_inputs` 中造位置、token 与采样行的几段 [C9][C10][C11]；`execute_model` 收尾到 `sample_tokens` 一段 [C6]。
-- 路线二：`vllm_ascend/ascend_config.py` 里读 `enable_flashcomm1` 与环境变量兼容映射 [C1]、合并函数 `_get_config_value` [C2]；`vllm_ascend/platform.py` 里平台对重算调度开关的检查与改写 [C3]。环境读取器给这个开关的默认值是 0，即关闭 [C22]；本部署 FlashComm1 关闭，是「命令没传 JSON、没设环境变量」加上合并规则和这个默认值推出来的 [D]。
-- 路线三：`vllm_ascend/models/glm5_next.py` 解码层对输入调用 `input_layernorm` [C5]；`vllm_ascend/utils.py` 的 `REGISTERED_ASCEND_OPS` 登记表 [C4]；`vllm_ascend/patch/platform/__init__.py` 按设备型号与 vLLM 版本条件导入 [C8]。
-- 异常一节：`vllm_ascend/compilation/acl_graph.py` 里 `ACLGraphWrapper.__call__` 回放前的同步 [C7]。
+- 插件入口：`setup.py` 的 entry point 两组 [来源 12](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/setup.py#L543-L551)。
+- 路线一：`vllm_ascend/worker/model_runner_v1.py` 的 `_prepare_inputs` 中造位置、token 与采样行的几段 [来源 9](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/worker/model_runner_v1.py#L836-L868)、[来源 10](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/worker/model_runner_v1.py#L951-L962)、[来源 11](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/worker/model_runner_v1.py#L1270-L1277)；`execute_model` 收尾到 `sample_tokens` 一段 [来源 6](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/worker/model_runner_v1.py#L2287-L2427)。
+- 路线二：`vllm_ascend/ascend_config.py` 里读 `enable_flashcomm1` 与环境变量兼容映射 [来源 1](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/ascend_config.py#L76-L89)、合并函数 `_get_config_value` [来源 2](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/ascend_config.py#L335-L346)；`vllm_ascend/platform.py` 里平台对重算调度开关的检查与改写 [来源 3](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/platform.py#L668-L700)。环境读取器默认 0 [来源 22](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/envs.py#L75-L75)，只支持推导输入字段默认关闭；最终 `enable_sp` 的初始化、缓存刷新和共享专家 DP 覆盖见来源 29，实际调用条件须另核。
+- 路线三：`vllm_ascend/models/glm5_next.py` 解码层对输入调用 `input_layernorm` [来源 5](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/models/glm5_next.py#L2212-L2235)；`vllm_ascend/utils.py` 的 `REGISTERED_ASCEND_OPS` 登记表 [来源 4](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/utils.py#L735-L768)；`vllm_ascend/patch/platform/__init__.py` 按设备型号与 vLLM 版本条件导入 [来源 8](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/patch/platform/__init__.py#L17-L57)。
+
+- 异常一节：`vllm_ascend/compilation/acl_graph.py` 里 `ACLGraphWrapper.__call__` 回放前的同步 [来源 7](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/compilation/acl_graph.py#L234-L258)。
 
 以下命令在 vllm-ascend 仓库里运行。已检出目标版本的工作树可以直接用 rg 搜文本；工作树不是目标版本时，改用固定提交查询，避免混进另一分支的结果：
 
@@ -201,3 +254,12 @@ git grep -n enable_flashcomm1 db701c1f -- vllm_ascend
 git show db701c1f:vllm_ascend/ascend_config.py
 git diff db701c1f baa023ad -- vllm_ascend/ascend_config.py
 ```
+
+阅读固定 db701c1f 实现时，以下条件决定同一个名字是否真的触发所述行为：
+
+- **数据往返。** 仅 grammar_output 非空时移到 CPU 转 float、施加掩码，再以 FP32 移回设备后恢复原 dtype；这不是所有采样路径都会发生的往返，见来源 6。
+- **配置优先级与有效性。** 按键是否存在选择值，因此显式 false 仍覆盖环境读取值。Balance 开启且传输角色不是 kv_both 时会拒绝；重算开启而角色是 kv_producer 时则警告并关闭重算。字段合并后还要经过这些有效性判断，不能把它当成 main 的迁移规则，见来源 1–3。
+- **回放等待。** 所列等待分支要求 FULL 图、不是 EAGLE 草稿模型路径、且未启用 enpu 三者同时成立；enpu 的更新与回放顺序由 model runner 安排。不能由此认定其他路径没有同步，也不能据一处等待直接判定异常根因，见来源 7。
+- **登记条件的范围。** 来源 4 中的版本条件只控制追加的 FusedMoE 与 KimiGatedDeltaNetAttention，不控制已包含 RMSNorm 的主体登记表；后续还可能按硬件选择兼容实现。登记也不等于实际选中并调用。
+
+以上为静态读源范围；没有采集设备迁移耗时、部署日志或设备运行结果，也没有据此新增社区版本的 verified 记录。具体调用链仍须核对同一版本的调用位置和分派条件，阅读方法本身不构成运行证明。

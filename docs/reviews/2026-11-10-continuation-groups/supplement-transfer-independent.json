@@ -1,0 +1,1371 @@
+{
+  "recorded_at": "2026-11-10T10:05:25.608321+00:00",
+  "unit": "source occurrence",
+  "scope_state": "new_or_changed_outside_frozen500",
+  "count": 49,
+  "unique_version_files": 33,
+  "cited_range_lines_with_overlap": 1450,
+  "first_time_official_full_read_increment": 0,
+  "full_file_read_claims": 0,
+  "baseline_frozen500_credit": 0,
+  "previous_acceptance_reused_for": "preservation/history only; not an automatic semantic verdict",
+  "author_ledger": {
+    "path": "docs/reviews/2026-11-10-continuation-groups/supplement-transfer-judgments.json",
+    "sha256": "f7d3a078d89a5eddab64a926c5812718037a560fa7fabe93f0533caafd76536a",
+    "same_item_keys_refs": true,
+    "verdict_label_differences": [
+      {
+        "page_id": "kv-pool",
+        "source_number": 67,
+        "author_label": "duplicate_same_version",
+        "independent_label": "supported_scoped"
+      }
+    ],
+    "semantic_verdict_disagreements": 0,
+    "review_note": "Pool67 uses a different commit from66 but has equal cited content. Each version claim is judged independently here; no duplicate full-read credit. Author notified of label distinction."
+  },
+  "findings": [
+    {
+      "id": "transfer-P2-1",
+      "severity": "P2",
+      "status": "closed_after_author_fix_and_independent_recheck",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "line": 417,
+      "problem": "Cross-page KV Pool summary omitted the prompt-length boundary, overgeneralizing no query to every prompt.",
+      "correction": "State 133120-token segment and restrict no-query claim to prompt shorter than that segment.",
+      "evidence": [
+        "db701c1f pool_scheduler.py491–536",
+        "db701c1f patch_mamba_config.py205–226",
+        "wiki/concepts/kv-pool.md309–320",
+        "browser mooncake-condition.png and clicked destination heading"
+      ],
+      "author": "/root",
+      "reviewer_did_not_modify_teaching_page": true
+    }
+  ],
+  "items": [
+    {
+      "page_id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "group": "04-cache-state",
+      "source_number": 47,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L109-L118",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "7a00b9381122b18056f5bebd605c5d44276e113cce2155c1766a0120006df7a1",
+      "current_page_sha256": "fa3c8ae61dd4e6aecbed87b62eec7490c48e392810f6ab04b1c77c669e76c74d",
+      "source_sha256": "bea4e410f797557e29cedbb495024147606e74b0e056d725194760ca69296eba",
+      "read_start": 109,
+      "read_end": 118,
+      "excerpt_sha256": "834262c3072c4f3c2c14410b9e05bf76032dd3fa0080509fd8eb60baab50c60f",
+      "source_file_lines": 1789,
+      "excerpt_lines": 10,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 普通注意力默认块内位置在头前；LBHNC/HND 时头轴在位置前。"
+      ],
+      "evidence": [
+        "109–118 的条件直接返回两种五维 shape，只交换两轴而不改变元素总数；正文未把普通 K/V 布局套到 GLM 专用缓存。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "group": "04-cache-state",
+      "source_number": 48,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L1170-L1204",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "7a00b9381122b18056f5bebd605c5d44276e113cce2155c1766a0120006df7a1",
+      "current_page_sha256": "fa3c8ae61dd4e6aecbed87b62eec7490c48e392810f6ab04b1c77c669e76c74d",
+      "source_sha256": "bea4e410f797557e29cedbb495024147606e74b0e056d725194760ca69296eba",
+      "read_start": 1170,
+      "read_end": 1204,
+      "excerpt_sha256": "e739dc650e4a900c1fac3abf748fdb0b4499f5fc3783c1b4b701237cafe23684",
+      "source_file_lines": 1789,
+      "excerpt_lines": 35,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 共享层跳过普通缓存写入；producer 分支先记录事件。"
+      ],
+      "evidence": [
+        "1170–1204 检查 kv_sharing_target_layer_name 后直接返回，producer 仅 record_reshape_cache_event；非共享路径按实际 token 数截取并调用 DeviceOperator，cross attention 保留独立处理。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "group": "04-cache-state",
+      "source_number": 49,
+      "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L2794-L2834",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "7a00b9381122b18056f5bebd605c5d44276e113cce2155c1766a0120006df7a1",
+      "current_page_sha256": "fa3c8ae61dd4e6aecbed87b62eec7490c48e392810f6ab04b1c77c669e76c74d",
+      "source_sha256": "ead004ca266419cd25f54a7aefc0e20e1eb046f363b7f5cc977e14f52ee44bb1",
+      "read_start": 2794,
+      "read_end": 2834,
+      "excerpt_sha256": "8896709059bfbd485858f5dfb802f6334e3d04e33c751e1a77bab43c18c665b8",
+      "source_file_lines": 3030,
+      "excerpt_lines": 41,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 上游只有未显式指定 prefix caching 时采用模型能力作为默认值。"
+      ],
+      "evidence": [
+        "2797–2798 读取能力，2828–2829 仅在 None 时赋值；因此正文说未显式设置时默认开，未声称覆盖用户值或 Ascend 补丁。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "group": "04-cache-state",
+      "source_number": 50,
+      "ref": "vllm@ced6857a:vllm/config/model.py#L2135-L2151",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "7a00b9381122b18056f5bebd605c5d44276e113cce2155c1766a0120006df7a1",
+      "current_page_sha256": "fa3c8ae61dd4e6aecbed87b62eec7490c48e392810f6ab04b1c77c669e76c74d",
+      "source_sha256": "f4168b67cc93ce72ff2a6d4c66974223e32fd0f1fab4c05e44bd68a275e18d69",
+      "read_start": 2135,
+      "read_end": 2151,
+      "excerpt_sha256": "0d913a10a95cc28d910e7fca5c4ace4a7992ef1a2d7eb9c06840d7f337b9bf4e",
+      "source_file_lines": 2544,
+      "excerpt_lines": 17,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 hybrid 生成模型的前缀缓存能力返回真。"
+      ],
+      "evidence": [
+        "2135–2151 生成模型分支中 hybrid 为 True，而 attention-free/encoder-decoder 各有不同分支；正文限定生成模型和上游默认。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "group": "04-cache-state",
+      "source_number": 51,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/models/glm5next/cache_config.py#L90-L190",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "7a00b9381122b18056f5bebd605c5d44276e113cce2155c1766a0120006df7a1",
+      "current_page_sha256": "fa3c8ae61dd4e6aecbed87b62eec7490c48e392810f6ab04b1c77c669e76c74d",
+      "source_sha256": "00559085edd75a1719254b3f52dedbcd4fb0ce93c511b17c06ab3d975ed2e1e4",
+      "read_start": 90,
+      "read_end": 190,
+      "excerpt_sha256": "52805c1ba2b42ff9c78a86ec67221f3a84df7c58d630ec5008f87ab52aca85f0",
+      "source_file_lines": 454,
+      "excerpt_lines": 101,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 GLM 按大、小两档物理页分组，主历史和 indexer 共用块号，尾状态独立。"
+      ],
+      "evidence": [
+        "90–190 分别收集 main/indexer/state roles，校验角色数、逻辑块长和压缩比，交错主历史及索引后建立 full 组、另建 state 组；未由此搬用旧镜像 15 块或字节账。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "group": "04-cache-state",
+      "source_number": 52,
+      "ref": "vllm@0fc695fc:vllm/v1/attention/backend.py#L55-L66",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "7a00b9381122b18056f5bebd605c5d44276e113cce2155c1766a0120006df7a1",
+      "current_page_sha256": "fa3c8ae61dd4e6aecbed87b62eec7490c48e392810f6ab04b1c77c669e76c74d",
+      "source_sha256": "01e2068470081d2dcf3b676d454ed73d4728798fced35e76ebfa8f0fe4e5dad7",
+      "read_start": 55,
+      "read_end": 66,
+      "excerpt_sha256": "bd8f60a82d1af3c44574195f08545321ba363ceefabe1cc52540908753fe5e13",
+      "source_file_lines": 1044,
+      "excerpt_lines": 12,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "普通 AttentionBackend 的 forward 包含缓存更新，不能因独立写入口存在断言普通前向重复写。"
+      ],
+      "evidence": [
+        "55–66 将 forward_includes_kv_cache_update 默认置 True；该项与 source53 的继承关系共同支持正文，单独不能证明 Ascend 未覆盖。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "group": "04-cache-state",
+      "source_number": 53,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L77-L79",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "7a00b9381122b18056f5bebd605c5d44276e113cce2155c1766a0120006df7a1",
+      "current_page_sha256": "fa3c8ae61dd4e6aecbed87b62eec7490c48e392810f6ab04b1c77c669e76c74d",
+      "source_sha256": "80005aba42bcf61247cc0d91502a0f1338194a4b38dd82bc521f6d3c84958390",
+      "read_start": 77,
+      "read_end": 79,
+      "excerpt_sha256": "bdde004000c81fcd1146f39c57d08f971b7a905b64e3427c4fe46f06b918179c",
+      "source_file_lines": 1984,
+      "excerpt_lines": 3,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "v0.23 Ascend 普通后端继承上游默认的 forward 内更新标志。"
+      ],
+      "evidence": [
+        "77–79 明确继承 AttentionBackend；本次另读整个该类 77–145，未覆盖 forward_includes_kv_cache_update，结合 source52 才能判断默认实际继承。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "group": "04-cache-state",
+      "source_number": 54,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L38-L40",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "7a00b9381122b18056f5bebd605c5d44276e113cce2155c1766a0120006df7a1",
+      "current_page_sha256": "fa3c8ae61dd4e6aecbed87b62eec7490c48e392810f6ab04b1c77c669e76c74d",
+      "source_sha256": "f300e4995d01347529a685f82433fb04ef9b7bae38c64b3be19749463e1e15ba",
+      "read_start": 38,
+      "read_end": 40,
+      "excerpt_sha256": "c6af1ce098c30776510aed35bb6b9aac27e218aceb20fed3eb09d45f777f8be3",
+      "source_file_lines": 1134,
+      "excerpt_lines": 3,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "旧 GLM 的 SFA kernel 块长为 128。"
+      ],
+      "evidence": [
+        "38–40 直接声明 GLM5_SFA_KERNEL_BLOCK_SIZE=128；正文将它与逻辑块 640 分开，未把旁边 1024/16 当逻辑块。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "group": "04-cache-state",
+      "source_number": 55,
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L354-L435",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "7a00b9381122b18056f5bebd605c5d44276e113cce2155c1766a0120006df7a1",
+      "current_page_sha256": "fa3c8ae61dd4e6aecbed87b62eec7490c48e392810f6ab04b1c77c669e76c74d",
+      "source_sha256": "a69aa08062714b40b149648bbec031a42d22e422fbf9543cd10fbd12d2496edb",
+      "read_start": 354,
+      "read_end": 435,
+      "excerpt_sha256": "93b4dd924b97bf12b837657184347b25529a57bcf59db09e5ff518552e5114dd",
+      "source_file_lines": 579,
+      "excerpt_lines": 82,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "分配要考虑新位置和候选预留，空间不足返回 None，缓存提交不包含未经接受的草稿。"
+      ],
+      "evidence": [
+        "354–435 包含 full_sequence_must_fit 检查、new/lookahead 上限、remove_skipped_blocks、free/reserved 比较、attach 和 allocate；提交上限取 request.num_tokens，与正文分配和候选边界一致。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "group": "04-cache-state",
+      "source_number": 56,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L1319-L1335",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "7a00b9381122b18056f5bebd605c5d44276e113cce2155c1766a0120006df7a1",
+      "current_page_sha256": "fa3c8ae61dd4e6aecbed87b62eec7490c48e392810f6ab04b1c77c669e76c74d",
+      "source_sha256": "bea4e410f797557e29cedbb495024147606e74b0e056d725194760ca69296eba",
+      "read_start": 1319,
+      "read_end": 1335,
+      "excerpt_sha256": "29384dcdb60389847ba079119c00e61f2d0d652f7f98b72ea2e9ecc6036e568f",
+      "source_file_lines": 1789,
+      "excerpt_lines": 17,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 普通后端在有 K/V 时写缓存，PCP 与非 PCP 的输入整理不同。"
+      ],
+      "evidence": [
+        "1319–1335 明确 key/value 非空门槛，pcp_size>1 走 reshape_and_cache_cp 否则普通 reshape，之后进入 attention；正文没声称所有前向无条件写。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "group": "04-cache-state",
+      "source_number": 57,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_qwen3_dflash.py#L45-L59",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "7a00b9381122b18056f5bebd605c5d44276e113cce2155c1766a0120006df7a1",
+      "current_page_sha256": "fa3c8ae61dd4e6aecbed87b62eec7490c48e392810f6ab04b1c77c669e76c74d",
+      "source_sha256": "18328c054b2d57af8768fce4922906ac8560e3b8bb75d0c316d995ad6018edb3",
+      "read_start": 45,
+      "read_end": 59,
+      "excerpt_sha256": "c1b0526043b80f22cd942ebc5cbddfc49611323c3fb97587d442a0d1a9e6e052",
+      "source_file_lines": 62,
+      "excerpt_lines": 15,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "Qwen3 DFlash 提供独立 do_kv_cache_update 的实际调用例。"
+      ],
+      "evidence": [
+        "45–59 context_slot_mapping 为空就返回，非空逐层取 K/V 并按 mapping 调更新；只支持这个已命名的独立入口，正文未泛化为所有模型路径。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "group": "04-cache-state",
+      "source_number": 58,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L664-L698",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "7a00b9381122b18056f5bebd605c5d44276e113cce2155c1766a0120006df7a1",
+      "current_page_sha256": "fa3c8ae61dd4e6aecbed87b62eec7490c48e392810f6ab04b1c77c669e76c74d",
+      "source_sha256": "a681090d2c3ca7c6c1bf6612a93e684e827f2cc1d6694267c48737b06c83a1b5",
+      "read_start": 664,
+      "read_end": 698,
+      "excerpt_sha256": "14affaa0a5596b024f4725e7965b076d81168d567cc3f8da3363840ea7903d16",
+      "source_file_lines": 831,
+      "excerpt_lines": 35,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "85 MiB 是实际映射到 KDA 的状态页子账，不是所有借用块号的完整物理占用。"
+      ],
+      "evidence": [
+        "664–698 每块收费为 large slots×large page + small slots×small page；两档缓冲区含 main/Mamba 与 indexer/state，因此 KDA 借块还包含未映射到其层的其他槽位。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "source_number": 58,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L892-L900",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "current_page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "source_sha256": "1e77e26845b0dab80ac3e97207c48f58b7ea3f0616f6683e35dd3bedbfbece5c",
+      "read_start": 892,
+      "read_end": 900,
+      "excerpt_sha256": "518192ec35c8bb67d9127586c73c025ed401b449c7b13f340467e7a82e3c37cf",
+      "source_file_lines": 1285,
+      "excerpt_lines": 9,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "混合模型不能把加载失败策略直接切为 recompute。"
+      ],
+      "evidence": [
+        "892–900 无 KV 配置时返回；有配置且 policy=recompute 时 assert not is_hybrid。正文将此作为配置约束，并未声称 fail 等于硬件成功。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "source_number": 59,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L89-L164",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "current_page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "source_sha256": "32930f236b360f90d202610faa44699757fca669347ff5efa386adb9ddc4d156",
+      "read_start": 89,
+      "read_end": 164,
+      "excerpt_sha256": "2eff1765ae68a180bf9146f32d5d808e43827455b946c16a21fadfed48f82eb3",
+      "source_file_lines": 1363,
+      "excerpt_lines": 76,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 普通键没有 PCP 前缀；跨 TP 子键仅在非 MLA、非 hybrid 且头数满足整除条件时启用。"
+      ],
+      "evidence": [
+        "89–164 读取两端 TP，检查 TP 不同、非 MLA/hybrid、头数不少于较大 TP 且可整除，再算本地/effective 头与子键；PoolKey.to_string 从 @dcp 开始。PP 可在上文层命名空间中，不以字符串漏 PP 推断没有隔离。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "source_number": 60,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L20-L21",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "current_page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "source_sha256": "32930f236b360f90d202610faa44699757fca669347ff5efa386adb9ddc4d156",
+      "read_start": 20,
+      "read_end": 21,
+      "excerpt_sha256": "19bd7239ec37853e2f682f7de1e2881ac5538f80a9416dac918a9e249a177dbf",
+      "source_file_lines": 1363,
+      "excerpt_lines": 2,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "保存角色允许 producer/both，consumer 受 consumer_is_to_put 控制。"
+      ],
+      "evidence": [
+        "20–21 is_kv_save_role 返回角色 membership 或 consumer_is_to_put；这只证明角色门槛，不证明模型、后端组合获部署支持，正文已有该限制。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "source_number": 61,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L288-L298",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "current_page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "source_sha256": "fb7cf7a296a0f405e999d8b95493b7af21712c6825dc13b4ed2801fde423dbc4",
+      "read_start": 288,
+      "read_end": 298,
+      "excerpt_sha256": "9568e383f2d054159af5f050fe5af7dab0aaaa6500a6c19f2a462427cdbe33fc",
+      "source_file_lines": 511,
+      "excerpt_lines": 11,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 handle_preemptions 传递即将复用块的请求集合，不再一律等上一整批。"
+      ],
+      "evidence": [
+        "288–298 从 metadata 取 released_req_ids 并调用 worker；另读 pool_scheduler.py1043–1052 确认集合是 preempted 与 finished 并集，避免仅凭函数名推断只含抢占。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "source_number": 62,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2912-L2954",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "current_page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "source_sha256": "3d39b85efa8afb750abc179a030a82d2309fd7b0770eb9fcc0da073af0c141ff",
+      "read_start": 2912,
+      "read_end": 2954,
+      "excerpt_sha256": "a28641046010ac903ab6f6cecf9cd8ae41bec300cafe38e39cbe272612b9673f",
+      "source_file_lines": 3703,
+      "excerpt_lines": 43,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 按释放请求等待相关保存完成，普通 wait_for_save 登记 batch 后返回。"
+      ],
+      "evidence": [
+        "2912–2954 在 KVCacheStoreSendingThread 上 wait_for_requests_saved；普通保存收集 can_save 请求和设备事件后 add_save_batch，无 join。另读 kv_transfer.py940–959 的 pending 请求循环与错误检查核实栅栏。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "source_number": 63,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_mamba_config.py#L155-L176",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "current_page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "source_sha256": "65ab1b1d7f634c57060161b61f60b0c2e1675de586c305055e7979cf52671442",
+      "read_start": 155,
+      "read_end": 176,
+      "excerpt_sha256": "ea131d3678d46146807b5635f8654340f5c18fa6ca35bc3b5be01f72df91f5b3",
+      "source_file_lines": 179,
+      "excerpt_lines": 22,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 hybrid+KVStore 条件下自动 align，保留 extract_hidden_states 例外；不开 APC 时 Mamba 块长仍取 max_model_len。"
+      ],
+      "evidence": [
+        "155–176 区分例外、none→align 和已有模式断言；另读 49–72 确认 AscendStore（含 MultiConnector 子项）与混合管理器门槛。正文未泛化到所有 KV connector。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "source_number": 64,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L377-L398",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "current_page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "source_sha256": "fb7cf7a296a0f405e999d8b95493b7af21712c6825dc13b4ed2801fde423dbc4",
+      "read_start": 377,
+      "read_end": 398,
+      "excerpt_sha256": "92c9cdd026eea87d2a99306b4e3cdfe02f64bc0ec1984bce6c6734e4239e617a",
+      "source_file_lines": 511,
+      "excerpt_lines": 22,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "逐层保存受角色门槛控制；逐层 wait_for_save wrapper 自己直接返回。"
+      ],
+      "evidence": [
+        "377–398 save_kv_layer 同时检查 use_layerwise 与 save_role；wait_for_save 先过滤角色，layerwise 分支返回，非逐层才调用 worker。与实际保存同步点分开解释。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "source_number": 65,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1776-L1794",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "current_page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "source_sha256": "091a37591b089364e2c7f734417dab961ae51480b8e3a95ec29a6f19686aa59f",
+      "read_start": 1776,
+      "read_end": 1794,
+      "excerpt_sha256": "b930e4721d327f06e67ff9df041ba08a45e06aeb03db994dce32b3df7b9e3d86",
+      "source_file_lines": 2526,
+      "excerpt_lines": 19,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "v0.26 非逐层写回在本步末尾等发送队列排空。"
+      ],
+      "evidence": [
+        "1776–1794 记录一个设备事件、为 can_save 请求入队，有实际保存才 request_queue.join；正文将其与 main/rc2 的等待位置区别开。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "source_number": 66,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1385-L1399",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "current_page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "source_sha256": "918487a9f0514537b78e1a37d1399ac5e27d33dde2905a6632472ad7440edcc3",
+      "read_start": 1385,
+      "read_end": 1399,
+      "excerpt_sha256": "d17a24f543ea5f36e74c3b623bafd916f0e409b623b023ad2c26de83cb81d773",
+      "source_file_lines": 2047,
+      "excerpt_lines": 15,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "db701c1f 逐层加载只等 10 秒，超时日志后继续返回。"
+      ],
+      "evidence": [
+        "1385–1399 event.wait(timeout=10) 结果只控制日志，随后 clear，无循环或错误 raise；正文已明确返回不保证数据到齐。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "source_number": 67,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1385-L1399",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "current_page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "source_sha256": "918487a9f0514537b78e1a37d1399ac5e27d33dde2905a6632472ad7440edcc3",
+      "read_start": 1385,
+      "read_end": 1399,
+      "excerpt_sha256": "51446c82f64363c3f29f0cbf644a0526b445608c32ad43b1a511527e3a5f0160",
+      "source_file_lines": 2047,
+      "excerpt_lines": 15,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "v0.23 的逐层加载同样可能超时后返回。"
+      ],
+      "evidence": [
+        "2c59ff10 的1385–1399与独立 GLM 提交相同控制流；本项独立核版本而非把 db701c1f 当 v0.23 分支。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "source_number": 68,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1722-L1739",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "current_page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "source_sha256": "091a37591b089364e2c7f734417dab961ae51480b8e3a95ec29a6f19686aa59f",
+      "read_start": 1722,
+      "read_end": 1739,
+      "excerpt_sha256": "257f9186f1670d00bf5fea93c10cca0cbae872c3954c8467e85f4adf9f8d0ae5",
+      "source_file_lines": 2526,
+      "excerpt_lines": 18,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "v0.26 逐层加载改为循环等待，并在每次超时检查后台失败。"
+      ],
+      "evidence": [
+        "1722–1739 先 raise_if_failed；while not event.wait(timeout=10) 内再检查并记 keep waiting。无任务分支仍可能等待 external slot 释放，不是无条件只等本层任务。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "source_number": 69,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2487-L2528",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "current_page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "source_sha256": "26fdc8f0a165f1a0de94748b6a18eb03f07be501f0b9dcd935450a0b34b80fed",
+      "read_start": 2487,
+      "read_end": 2528,
+      "excerpt_sha256": "0ae06c3a4c3c2fb9c25e3a2d00ab725c43fee7b5180a9584bb4ad680882247bc",
+      "source_file_lines": 3388,
+      "excerpt_lines": 42,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "main 逐层加载等待完成后再次检查错误，异常时清理并重抛。"
+      ],
+      "evidence": [
+        "2487–2528 循环前后检查接收线程，检查 hybrid 错误；except 设置 aborted、取消 gate、排空传输/结束 session 后 raise，支持正文相对 v0.26 的差异。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "source_number": 70,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2775-L2819",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "current_page_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+      "source_sha256": "3d39b85efa8afb750abc179a030a82d2309fd7b0770eb9fcc0da073af0c141ff",
+      "read_start": 2775,
+      "read_end": 2819,
+      "excerpt_sha256": "32f39b486735442e61b18c74027166b8df6195cdf503cddb70530bf99cf0d9c6",
+      "source_file_lines": 3703,
+      "excerpt_lines": 45,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 保留 main 的循环等待、失败检查和异常清理原则。"
+      ],
+      "evidence": [
+        "2775–2819 保留上述控制流，额外对 recurrent 层不设置 attention-save on_start；正文只说相同原则，未声称函数逐字相同或硬件安全已验证。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "source_number": 65,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/utils.py#L14-L14",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+      "current_page_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+      "source_sha256": "24bdb6432c236281a924ad435c21a412511d9a92b4c26eaa5e9140007696fd4b",
+      "read_start": 14,
+      "read_end": 14,
+      "excerpt_sha256": "60300497c3c9286407e31eb0f8acdeb553398ec53db5303de7490080bc5382a1",
+      "source_file_lines": 445,
+      "excerpt_lines": 1,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "固定传输封装的注册区间上限常量为 256。"
+      ],
+      "evidence": [
+        "utils.py14 MAX_HCCL_REGISTER_REGIONS=256；这补足区间上限检查的常量，不是所有 Mooncake 引擎及版本的通用硬件上限。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "source_number": 66,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L45-L89",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+      "current_page_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+      "source_sha256": "0246650661223ecbaaad13ab4d2fa908c5fd47a59bdfd0b405f4efda6a14db5f",
+      "read_start": 45,
+      "read_end": 89,
+      "excerpt_sha256": "1cef806faa2b92203700e5a222d86bb6e7b7b297d5ed6cf90587e6f134f26bd2",
+      "source_file_lines": 135,
+      "excerpt_lines": 45,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 注册 V1、D2RH V1、V2/Pull、Hybrid、AscendStore 与 Layerwise。"
+      ],
+      "evidence": [
+        "45–89 的注册表逐个映射类和模块；只能说明入口存在，正文另列角色、版本及组合约束，未从注册表推定端到端已通过。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "source_number": 67,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L131-L135",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+      "current_page_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+      "source_sha256": "0246650661223ecbaaad13ab4d2fa908c5fd47a59bdfd0b405f4efda6a14db5f",
+      "read_start": 131,
+      "read_end": 135,
+      "excerpt_sha256": "c4404e9791fc74a715b0c5c013fe6b581baa95af5eb6e7131c1ce68d1373fbb2",
+      "source_file_lines": 135,
+      "excerpt_lines": 5,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 仍注册 SfaRemoteD2HConnector。"
+      ],
+      "evidence": [
+        "131–135 的 register_connector 名称、模块与类一致；与 D2RH V1 分别列出而不混作同一实现。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "source_number": 68,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2007-L2054",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+      "current_page_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+      "source_sha256": "4e476a50afb5a7f13c274c071efc909ee823577383843b04e952bbdad21d1453",
+      "read_start": 2007,
+      "read_end": 2054,
+      "excerpt_sha256": "4d16809d07e577d13e6807d8f2869625cffa1fbf746743fa283502d4542a1c78",
+      "source_file_lines": 4295,
+      "excerpt_lines": 48,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 V1 为远端 prefill 在准入前被拒绝安排空接收，以进入通知 P 放块路径。"
+      ],
+      "evidence": [
+        "2007–2054 params.do_remote_prefill 分支建立空 BlockIds、加入 _reqs_need_recv、清标志并返回；正常远端 decode 分支继续按 prompt 裁剪并押块。此项是调度入口证据，正文不把空接收说成数据传输成功。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "source_number": 69,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2710-L2767",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+      "current_page_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+      "source_sha256": "4e476a50afb5a7f13c274c071efc909ee823577383843b04e952bbdad21d1453",
+      "read_start": 2710,
+      "read_end": 2767,
+      "excerpt_sha256": "9baaea110c8fce56727029b65ec556bc3c3a23fb733e7522234590eaa7c69667",
+      "source_file_lines": 4295,
+      "excerpt_lines": 58,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 V1 仍按角色字符串启动线程、读取完成集合，不能以 kv_both 作为同时收发。"
+      ],
+      "evidence": [
+        "2710–2767 producer 起发送线程，否则接收；完成集合分别只认 producer/consumer。源码另有线程就绪与超时检查；正文未将 kv_both 配置视为有效双向工作。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "source_number": 70,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1327-L1345",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+      "current_page_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+      "source_sha256": "295ec806e3fef635fc2b20f7e43cc8a2b3e94278d814e8b65ec63acef92d8aa5",
+      "read_start": 1327,
+      "read_end": 1345,
+      "excerpt_sha256": "0c57597756616376b40bbc07185646b4e44404098284bd58d94f14d14dc2aa2a",
+      "source_file_lines": 2262,
+      "excerpt_lines": 19,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 Hybrid 调度侧要求 DCP=1，握手基址包含 PCP 因子。"
+      ],
+      "evidence": [
+        "1327–1345 显式 assert dcp_size==1，base=kv_port+dp_rank×tp×pp×pcp；仅这一范围不能证明 consumer PCP 限制，下一项补齐。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "source_number": 71,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1662-L1683",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+      "current_page_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+      "source_sha256": "295ec806e3fef635fc2b20f7e43cc8a2b3e94278d814e8b65ec63acef92d8aa5",
+      "read_start": 1662,
+      "read_end": 1683,
+      "excerpt_sha256": "c41562718f48623c31ebe2e6a58a6f511472ce5f8b9cc29bcc44932c57a867a5",
+      "source_file_lines": 2262,
+      "excerpt_lines": 22,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 Hybrid worker 禁止 PP 与 PCP 同时大于 1，并拒绝 consumer 的 PCP>1。"
+      ],
+      "evidence": [
+        "1662–1683 分别设置 PP/PCP/DCP，assert DCP=1 与 PP/PCP 组合，consumer PCP>1 抛 ValueError；生产端能力不能外推消费端。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "source_number": 72,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1723-L1732",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+      "current_page_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+      "source_sha256": "295ec806e3fef635fc2b20f7e43cc8a2b3e94278d814e8b65ec63acef92d8aa5",
+      "read_start": 1723,
+      "read_end": 1732,
+      "excerpt_sha256": "458b7bb92397d544bc11431402dba64c43df0a81eaa4bac760171c0bbb29aeca",
+      "source_file_lines": 2262,
+      "excerpt_lines": 10,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 Hybrid 每卡握手端口偏移明确包含 PP、PCP 与 TP rank。"
+      ],
+      "evidence": [
+        "1723–1732 基址按 DP×TP×PP×PCP，device_index=(pp_rank×pcp_size+pcp_rank)×tp_size+tp_rank，再相加；与版本表匹配。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "source_number": 73,
+      "ref": "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L1-L17",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+      "current_page_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+      "source_sha256": "9eb579ccb32781e814c0327124cff7a09699d067ac531547f0e43625f69d48c1",
+      "read_start": 1,
+      "read_end": 17,
+      "excerpt_sha256": "81c6e0d42982f44ef08ef60173e2248873519d4865fd61acb79399ced1d4776d",
+      "source_file_lines": 283,
+      "excerpt_lines": 17,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "固定 rc2 指南明确逐层池适配尚未完成真实 NPU、Master/Metadata、多 TP 端到端验证。"
+      ],
+      "evidence": [
+        "1–17 写明个人分支适配背景、CPU mock/static 通过与设备验证缺口；正文归因于固定指南，不写成官方正式生产支持或本轮硬件实测。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "source_number": 74,
+      "ref": "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L166-L202",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+      "current_page_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+      "source_sha256": "9eb579ccb32781e814c0327124cff7a09699d067ac531547f0e43625f69d48c1",
+      "read_start": 166,
+      "read_end": 202,
+      "excerpt_sha256": "d06c354f3f4b1cbd1f461f11ab12061a522aa770c800b712b1eccc00b7115309",
+      "source_file_lines": 283,
+      "excerpt_lines": 37,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "固定指南的 Mooncake 逐层池示例用 AscendStore、backend=mooncake、use_layerwise，要求 range/session 客户端接口。"
+      ],
+      "evidence": [
+        "166–202 列出七个接口及 wheel 缺失时源码构建条件，示例包含三个关键配置；这是池路径，不是点对点 MooncakeLayerwiseConnector，正文明确区分。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "source_number": 75,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1190-L1194",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+      "current_page_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+      "source_sha256": "4a8e124243236961cd7108b430ca2abcc0f74f5045a8a73bfdc7b8a9d30ea70d",
+      "read_start": 1190,
+      "read_end": 1194,
+      "excerpt_sha256": "bd6e5df40f79dc13deaaa33e7df1a908ffe740eeecbe0ca998c9d7f1c675a155",
+      "source_file_lines": 2090,
+      "excerpt_lines": 5,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "Layerwise 依据实际 pd_head_ratio 或量化条件创建重排 stream。"
+      ],
+      "evidence": [
+        "1190–1194 从 AscendConfig 读 head ratio/replica，ratio>1 或两种量化才建 Stream；没有以裸 TP 数比替代实际头数比，完整比率依据沿用原相关来源。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "source_number": 76,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2111-L2118",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+      "current_page_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+      "source_sha256": "9ae1491f57a6294e32416b93ef2ea68107fa0d65c3a4d7f745f1261012f735e9",
+      "read_start": 2111,
+      "read_end": 2118,
+      "excerpt_sha256": "d765c9fe3efdb4065aad635b6a2d31d77a6cdb0ec2977ca98b715f423792b574",
+      "source_file_lines": 2422,
+      "excerpt_lines": 8,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "上游交给 connector 块表前会移除窗口外前缀块。"
+      ],
+      "evidence": [
+        "2111–2118 先 remove_skipped_blocks，参数为当前 computed tokens，再 get_block_ids；支持 SWA 块表范围说明，不能由此断言所有占用块都在运行队列可抢占。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "source_number": 77,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py#L87-L122",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+      "current_page_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+      "source_sha256": "ae0b9b4322625d193466b5b2e8b956037ef3949ce346003ab94bb0087eabb063",
+      "read_start": 87,
+      "read_end": 122,
+      "excerpt_sha256": "8a44cc912019337d108e7d56742759f584bc1c1371aa6d47c86ddf19760b15bc",
+      "source_file_lines": 182,
+      "excerpt_lines": 36,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 V2 地址簿按 PP→PCP→TP 分层，包含各层布局与各并行维度。"
+      ],
+      "evidence": [
+        "87–122 PCP 的 TP 字典、PP 的块/层/stride/shape/scale 和 PCP 字典、最外层 PP/PCP/DCP/TP 参数都实际存在；端口算法另由现有来源支持。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "group": "04-cache-state",
+      "source_number": 74,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py#L88-L122",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "db1e3c4bb875a37407bd764061b4b6826302cab1372d309f263cd51d34b26b11",
+      "current_page_sha256": "5c0327f1a78ee73cd10edf55c02fa32a12d93021e85403e808269e21c6322236",
+      "source_sha256": "ae0b9b4322625d193466b5b2e8b956037ef3949ce346003ab94bb0087eabb063",
+      "read_start": 88,
+      "read_end": 122,
+      "excerpt_sha256": "06a6130e22151a66d17d95c7864c5ed0fa5d1ffa5d09ee133395f4bdb4f62c53",
+      "source_file_lines": 182,
+      "excerpt_lines": 35,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 V2 runtime 元数据可表达 PP、PCP、TP 及每层块布局。"
+      ],
+      "evidence": [
+        "88–122 与 Mooncake77 重叠但按本页主张独立判断：内层 TP 地址、中层 PCP/PP 元数据及外层各维度，不等于任意模型部署组合都受支持。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "group": "04-cache-state",
+      "source_number": 75,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L58-L95",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "db1e3c4bb875a37407bd764061b4b6826302cab1372d309f263cd51d34b26b11",
+      "current_page_sha256": "5c0327f1a78ee73cd10edf55c02fa32a12d93021e85403e808269e21c6322236",
+      "source_sha256": "984878c2d8d41a702640f77d466079f9c42147fd626e21f89d58894c05dc812e",
+      "read_start": 58,
+      "read_end": 95,
+      "excerpt_sha256": "c6ec1b5c12b4b3f92f2175920bb7ec066ca8afca5ff3a8a1e179b69571e389f2",
+      "source_file_lines": 714,
+      "excerpt_lines": 38,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "V2 调度端编码分层握手元数据；KVPP 与 DCP 不等于 1 的组合被拒绝。"
+      ],
+      "evidence": [
+        "58–95 保存各维度、先验证 use_kv_pp 与 dcp，再 merge_metadata_by_pp_rank 并编码；正文的运行时匹配不能简化为仅比较 TP 数。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "group": "04-cache-state",
+      "source_number": 76,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py#L249-L284",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "db1e3c4bb875a37407bd764061b4b6826302cab1372d309f263cd51d34b26b11",
+      "current_page_sha256": "5c0327f1a78ee73cd10edf55c02fa32a12d93021e85403e808269e21c6322236",
+      "source_sha256": "107b0da0ffa228773441631d610bcad5366114c734776dcba3285e90536a67eb",
+      "read_start": 249,
+      "read_end": 284,
+      "excerpt_sha256": "daaaaa4e76fae068f525cd3b4c5adc2ae98ed8ffd7fb757857df326532c65d8b",
+      "source_file_lines": 1611,
+      "excerpt_lines": 36,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "V2 worker 按层名匹配远端层，并在 KVPP 下建立 TP/PCP 拥有者集合。"
+      ],
+      "evidence": [
+        "249–284 遍历远端 PP，按 layer_names 建索引、构造 owner worker ranks，再以本地 spec 和远端 PCP/TP/DCP 选 rank groups；只核恢复映射的这一段，不推断完整 GLM 链路正确。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "group": "04-cache-state",
+      "source_number": 77,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1788-L1905",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "db1e3c4bb875a37407bd764061b4b6826302cab1372d309f263cd51d34b26b11",
+      "current_page_sha256": "5c0327f1a78ee73cd10edf55c02fa32a12d93021e85403e808269e21c6322236",
+      "source_sha256": "4e476a50afb5a7f13c274c071efc909ee823577383843b04e952bbdad21d1453",
+      "read_start": 1788,
+      "read_end": 1905,
+      "excerpt_sha256": "66340c49486cb6daadf641f09fcfc51c5691a80a173df56f80e89ae94b8c5dc4",
+      "source_file_lines": 4295,
+      "excerpt_lines": 118,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 V1 仍有按压缩比计算跨度的 full 组行为；align Mamba 选最终 prompt 状态块；N>1 截断且只做一次。"
+      ],
+      "evidence": [
+        "1788–1905 遍历组时记录压缩比，tokens_per_block=block×ratio；align 状态取 ceil(prompt/tokens_per_block)-1 且不乘 DCP；普通组裁剪乘 DCP；SWA 尾部另裁；截断检查 _p_side_truncated 和 N>1。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "group": "04-cache-state",
+      "source_number": 78,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2007-L2069",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "db1e3c4bb875a37407bd764061b4b6826302cab1372d309f263cd51d34b26b11",
+      "current_page_sha256": "5c0327f1a78ee73cd10edf55c02fa32a12d93021e85403e808269e21c6322236",
+      "source_sha256": "4e476a50afb5a7f13c274c071efc909ee823577383843b04e952bbdad21d1453",
+      "read_start": 2007,
+      "read_end": 2069,
+      "excerpt_sha256": "4c47ef77c6f008ae9c04cd7c42f7c66d307b864e438c95fe4038bff64e5bdf57",
+      "source_file_lines": 4295,
+      "excerpt_lines": 63,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 V1 保留正常请求押块交棒，新增 D 准入前拒绝的空接收清理入口。"
+      ],
+      "evidence": [
+        "2007–2069 远端 prefill 分支安排空块接收，正常 decode length-capped 分支按 prompt/状态组裁剪并返回远端地址、块号、维度与 last_token；不把其中 last_token 等同 D 可直接跳过末位计算。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "group": "04-cache-state",
+      "source_number": 79,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2711-L2769",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "db1e3c4bb875a37407bd764061b4b6826302cab1372d309f263cd51d34b26b11",
+      "current_page_sha256": "5c0327f1a78ee73cd10edf55c02fa32a12d93021e85403e808269e21c6322236",
+      "source_sha256": "4e476a50afb5a7f13c274c071efc909ee823577383843b04e952bbdad21d1453",
+      "read_start": 2711,
+      "read_end": 2769,
+      "excerpt_sha256": "1801eec416c8b5d3f5d0d203f2b46d7bbf5184190d10f53473ad0f1b25998879",
+      "source_file_lines": 4295,
+      "excerpt_lines": 59,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 V1 的 kv_both 仍不能作为同时收发捷径。"
+      ],
+      "evidence": [
+        "2711–2769 producer/else 分线程，而完成集合分别只认 producer/consumer；与本页表中按字符串选线程、不同于 V2 初始化拒绝的区分相符。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "group": "04-cache-state",
+      "source_number": 80,
+      "ref": "vllm-ascend@7d825229:docs/source/user_guide/support_matrix/supported_models.md#L27-L45",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "db1e3c4bb875a37407bd764061b4b6826302cab1372d309f263cd51d34b26b11",
+      "current_page_sha256": "5c0327f1a78ee73cd10edf55c02fa32a12d93021e85403e808269e21c6322236",
+      "source_sha256": "89128f03b5a822fe0082ac0f1baa7b25860932bce57524ead1897d22a5afd977",
+      "read_start": 27,
+      "read_end": 45,
+      "excerpt_sha256": "ec1dfd148b560b455f01671b14e5b4babcd5952678405abff2f34732b71678cd",
+      "source_file_lines": 193,
+      "excerpt_lines": 19,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 GLM-5.3-Flash 支持矩阵为实验性模型标注，PD 列勾选；仍要服从具体教程配方。"
+      ],
+      "evidence": [
+        "27–45 表头对齐到行45，Support 为蓝圆、PD 为勾选；不是将相邻 GLM-5.3 行的实验性 PD 标志混入 Flash 行，也不以一个勾勾消除 connector/runner 约束。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "group": "04-cache-state",
+      "source_number": 81,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L778-L783",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "db1e3c4bb875a37407bd764061b4b6826302cab1372d309f263cd51d34b26b11",
+      "current_page_sha256": "5c0327f1a78ee73cd10edf55c02fa32a12d93021e85403e808269e21c6322236",
+      "source_sha256": "0f4e619517058f36b700a521e93c449d78b269c1d29ed1a18cbc312f2d67b082",
+      "read_start": 778,
+      "read_end": 783,
+      "excerpt_sha256": "d9efd92b1ed355bcec2caf175cc86866e2c0e283efab34fbcf2dd4793708fc7c",
+      "source_file_lines": 1783,
+      "excerpt_lines": 6,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 平台仍把非 1 的 max_num_partial_prefills 重置为 1，与角色无关。"
+      ],
+      "evidence": [
+        "778–783 getattr 缺省1，只有!=1才告警并写回；正文没有声称字段缺失也强制创建，其他版本入口行为由原来源和 Scheduler 页承接。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "group": "04-cache-state",
+      "source_number": 82,
+      "ref": "vllm@ced6857a:vllm/config/kv_transfer.py#L103-L107",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "db1e3c4bb875a37407bd764061b4b6826302cab1372d309f263cd51d34b26b11",
+      "current_page_sha256": "5c0327f1a78ee73cd10edf55c02fa32a12d93021e85403e808269e21c6322236",
+      "source_sha256": "506fae7a9d7f32cb3646156cf9249a856f6317dff6c4c85db70efd34418c429b",
+      "read_start": 103,
+      "read_end": 107,
+      "excerpt_sha256": "9da880da2dd56e7063500c55d9d28d73f892e234f9066a69c121249c6f8b7900",
+      "source_file_lines": 164,
+      "excerpt_lines": 5,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "rc2 上游 kv_load_failure_policy 默认 fail。"
+      ],
+      "evidence": [
+        "103–107 的 Literal 和默认 fail 明确区分 recompute/fail；此项不能证明混合模型允许 recompute，正文保留 Ascend 模型限制。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "group": "04-cache-state",
+      "source_number": 83,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/core/kv_cache_interface.py#L27-L50",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "db1e3c4bb875a37407bd764061b4b6826302cab1372d309f263cd51d34b26b11",
+      "current_page_sha256": "5c0327f1a78ee73cd10edf55c02fa32a12d93021e85403e808269e21c6322236",
+      "source_sha256": "1aa7860304500ce9a3d5586ba63ae4f3202907ed5faa1f0ec64b47839c0bfba7",
+      "read_start": 27,
+      "read_end": 50,
+      "excerpt_sha256": "a6547f8b5ddef42a09d73c39e372e8f77737c605cd4e9ef2fbcd68dae137359d",
+      "source_file_lines": 370,
+      "excerpt_lines": 24,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "旧 GLM indexer 只有压缩池最后一个位置映射到完成池槽；此前位置映射为 -1。"
+      ],
+      "evidence": [
+        "27–50 valid 要求原slot>=0且(position+1)%ratio==0；压缩slot按块和块内偏移向下整除。因此ratio4的0/1/2都不发布完成池，3才第一条。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "group": "04-cache-state",
+      "source_number": 84,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L175-L200",
+      "state": "new_or_changed_outside_frozen500",
+      "page_sha256": "db1e3c4bb875a37407bd764061b4b6826302cab1372d309f263cd51d34b26b11",
+      "current_page_sha256": "5c0327f1a78ee73cd10edf55c02fa32a12d93021e85403e808269e21c6322236",
+      "source_sha256": "f300e4995d01347529a685f82433fb04ef9b7bae38c64b3be19749463e1e15ba",
+      "read_start": 175,
+      "read_end": 200,
+      "excerpt_sha256": "5c9d6334e62c9bc3954984e5c705fff3185a224f46b519f05ce7c0319eccb7c5",
+      "source_file_lines": 1134,
+      "excerpt_lines": 26,
+      "git_object_bytes_verified": true,
+      "claims": [
+        "旧 GLM 已完成 indexer 池长度为 seq_len 按压缩比向下整除；不能把未完成尾部算为完成池。"
+      ],
+      "evidence": [
+        "175–200 实际 builder 调用 source83 映射并 torch.div(seq_lens,compress_ratio,rounding_mode=floor)；R1 在截到3位置时完成池长度0，尚需尾状态恢复，未由完整元数据推定正确传输。"
+      ],
+      "verdict": "supported_scoped",
+      "reviewer": "/root/groups_ucm_review",
+      "judgment_method": "manual semantic judgment after cited range and current page reading; hash/ref checks validate identity only",
+      "reading_scope": "fixed cited range read in full; supplemental adjacent code context recorded separately; no new full-file reading credit"
+    }
+  ]
+}

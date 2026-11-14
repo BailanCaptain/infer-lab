@@ -1,0 +1,99 @@
+{
+  "date": "2026-11-01",
+  "checks": {
+    "all989AssignedOnce": true,
+    "originalDefinitionsAndRecordIdsPreserved": true,
+    "baselineDefinitionPresent": true,
+    "scenarioAndPriorityCountsConserved": true,
+    "sevenMergesWithinSameScenarioAndPage": true,
+    "canonicalIdsRetainedAndIdempotent": true,
+    "canonicalCount982": true,
+    "firstBatch20OneExistingPage": true,
+    "P0EqualsNextBatch": true,
+    "allTargetsExistOrExplicitlyProposed": true,
+    "expectedFourProposedPages": true,
+    "csv989Rows": true,
+    "COnlyNoABOrDReclassification": true,
+    "allSevenMergesProvenByDirectSourceAssignment": true,
+    "nineSourceHashesVerified": true,
+    "publishedPagesDiagramsIndexRegistryUnchanged": true,
+    "reportLocalLinksExist": true,
+    "reportSeventeenEntriesAndTwentyOriginalUnits": true,
+    "reportScenarioRowsSum989": true
+  },
+  "passed": true,
+  "counts": {
+    "historicalCUnits": 989,
+    "canonicalUnitsAfterVerifiedMerges": 982,
+    "verifiedIdentityReductions": 7,
+    "nextBatchOldUnits": 20,
+    "byScenario": {
+      "S14": 219,
+      "S08": 49,
+      "S03": 83,
+      "S09": 8,
+      "S10": 18,
+      "S11": 16,
+      "S22": 47,
+      "S13": 33,
+      "S12": 63,
+      "S21": 37,
+      "S20": 65,
+      "S19": 35,
+      "S07": 70,
+      "S01": 24,
+      "S06": 25,
+      "S05": 35,
+      "S16": 28,
+      "S18": 47,
+      "S02": 30,
+      "S04": 34,
+      "S15": 18,
+      "S17": 5
+    },
+    "byPriority": {
+      "P3": 317,
+      "P2": 261,
+      "P1": 207,
+      "P4": 184,
+      "P0": 20
+    },
+    "nextBatchCoverage": {
+      "incomplete-reference": 14,
+      "missing-explanation": 6
+    },
+    "reuseCandidates": 17
+  },
+  "proposedPages": [
+    "wiki/concepts/beam-search.md",
+    "wiki/concepts/compatible-api-parameters.md",
+    "wiki/concepts/multimodal-input.md",
+    "wiki/concepts/pooling-api.md"
+  ],
+  "wikiSnapshotFiles": 37077,
+  "sourceDownloads": 9,
+  "notRun": [
+    "NPU inference",
+    "frontend build",
+    "UI review",
+    "independent content review"
+  ],
+  "scope": "Planning validation only; no wiki completion credit.",
+  "backgroundTreeObservation": {
+    "changed": 11,
+    "added": 365,
+    "removed": 0,
+    "evidence": "tools\\wiki-runtime\\c-scenario-plan-20261101\\full-tree-observation.json",
+    "note": "Full-tree equality failed because _jobs and _drafts changed during the task. These were not edited by this task; preserve them. Published-content checks below are separate."
+  },
+  "checkedReportLocalLinks": 77,
+  "publicationSnapshotFiles": 832,
+  "changedPublishedFiles": [],
+  "removedPublishedFiles": [],
+  "addedPublishedFiles": [],
+  "planningArtifacts": {
+    "docs\\reports\\parameter-inventory-2026-10-30\\c-scenario-plan.md": "b8960fc1a25a906798dc64af1125c567f58da2afb43a0a478fb12928294781b6",
+    "docs\\reports\\parameter-inventory-2026-10-30\\c-scenario-ledger.csv": "c58d76ebb246a3ea67bf9ebc994d53e241ecf207e314ca0989a747c9feda63a3",
+    "docs\\reports\\parameter-inventory-2026-10-30\\c-scenario-ledger.json": "4c059414230df39057e93939af08b51a849c801e8a2507ab89c421f91b76ce99"
+  }
+}

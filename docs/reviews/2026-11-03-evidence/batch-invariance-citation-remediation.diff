@@ -1,0 +1,395 @@
+--- before/wiki\concepts\batch-invariance.md
++++ wiki\concepts\batch-invariance.md
+@@ -32,7 +32,7 @@
+     vllm-ascend@db701c1f:vllm_ascend/ops/triton/batch_invariant/matmul.py#L25-L98
+   - >-
+     vllm-ascend@db701c1f:vllm_ascend/ops/triton/batch_invariant/softmax.py#L22-L29
+-  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L408-L441'
++  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L408-L468'
+   - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2147-L2169'
+   - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2217-L2235'
+   - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L978'
+@@ -45,24 +45,34 @@
+   - >-
+     vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/batch_invariance.md#L111-L134
+   - >-
+-    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L184-L188
++    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L184-L200
+   - >-
+     vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L24-L30
+   - 'vllm-ascend@baa023ad:vllm_ascend/batch_invariant.py#L65-L84'
+   - 'vllm-ascend@baa023ad:vllm_ascend/batch_invariant.py#L120-L140'
+   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L262-L292'
+-  - 'vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L930-L945'
++  - 'vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L850-L947'
+   - 'vllm-ascend@2ed6cbba:vllm_ascend/batch_invariant.py#L76-L92'
+   - 'vllm@0fc695fc:vllm/envs.py#L596-L598'
+-  - 'vllm@0fc695fc:vllm/model_executor/layers/batch_invariant.py#L914-L919'
++  - 'vllm@0fc695fc:vllm/model_executor/layers/batch_invariant.py#L897-L950'
+   - 'vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L1121-L1121'
+   - >-
+-    vllm-ascend@2ed6cbba:tests/e2e/pull_request/one_card/test_batch_invariant.py#L149-L200
++    vllm-ascend@2ed6cbba:tests/e2e/pull_request/one_card/test_batch_invariant.py#L93-L210
+   - 'vllm-ascend@7d825229:vllm_ascend/batch_invariant.py#L65-L99'
++  - 'vllm-ascend@db701c1f:vllm_ascend/ops/triton/batch_invariant/matmul.py#L179-L350'
++  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L28-L82'
++  - 'vllm-ascend@baa023ad:csrc/build_batch_invariant_ops.sh#L14-L103'
++  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L1316-L1377'
++  - 'vllm-ascend@2ed6cbba:tests/e2e/pull_request/one_card/test_batch_invariant.py#L78-L91'
++  - 'vllm-ascend@2ed6cbba:tests/e2e/pull_request/one_card/test_batch_invariant.py#L213-L410'
++  - 'vllm-ascend@db701c1f:vllm_ascend/ops/triton/batch_invariant/matmul.py#L353-L441'
++  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
++  - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64'
+ verified:
+   - releases/v0.23.0
+   - releases/v0.26.0rc
+   - main
++  - releases/v0.30.0rc2
+ evidence: C
+ relations:
+   - to: matmul-and-weights
+@@ -80,8 +90,7 @@
+   - to: acl-graph
+     kind: conflicts-with
+     note: >-
+-      在 v0.23 / v0.26 的文档约束下，批不变性要求分段捕获，与 GLM 双机部署采用的整趟 decode 图配置冲突；这不是批不变性与所有
+-      ACL Graph 模式互斥，且正文说明代码没有对应校验。
++      v0.23 / v0.26 指南明确不支持 FULL 与 FULL_DECODE_ONLY，并用分段捕获举例；这与 GLM 双机的整趟 decode 图配置冲突，不能外推为与所有 ACL Graph 模式互斥。
+   - to: op-to-ai-core
+     kind: builds-on
+     note: 批不变矩阵乘通过固定分块和 K 方向的累加顺序消除批形状影响；算子的分块规划与设备工作划分为理解这种约束提供基础。
+@@ -94,9 +103,9 @@
+ 
+ 排查线上问题时常有这么一幕：一条回答看着不对，把同样的问题、同样的参数单独拿出来重跑一遍想复现，结果跑到中途就和线上那条分叉了，后面整段对不上。温度已经设成 0，每一步都挑分数最高的那个词，随机从哪来？
+ 
+-差别不在参数，在**同伴**。线上那条请求是和几十条别人的请求拼在一个批里算的，单独重跑时批里只有它自己（多条请求怎样拼成一批，见[并发请求](concurrent-requests.md)）。默认实现下，这一批有多大会改变计算结果的**末位**；末位一变，两个候选词分数咬得很近的那一步就会选出另一个词，后面整条回答跟着走岔。
+-
+-**batch invariance（批不变性）**治的就是这件事。它要保证的是：同一条请求，不管单独跑还是混在上百条里跑，输出逐位相同，与批大小、批内顺序都无关。手段不是「算得更准」，而是把矩阵乘、求和、softmax、attention 换成**加法顺序与批形状无关**的实现。
++需要排查的一类差别在**同伴**：线上请求和别人的请求拼在一个批里，单独重跑时批里只有它自己（见[并发请求](concurrent-requests.md)）。若实现按批形状选择不同计算策略，且由此产生的数值差异翻转了两个候选 token 的排序，后面的回答就会分叉。排错时仍须先排除输入、模板、权重和采样设置变化，不能仅凭输出不同就认定是批形状造成的。
++
++**batch invariance（批不变性）**针对的是同一输入因批大小、批内顺序而发生的数值变化。目标是在其余条件相同、受支持的执行路径上，单独跑和混批跑得到相同的结果。固定算子的分块与归约方式是其中一种手段；启用开关不等于所有模型和所有路径都已获得逐位一致保证。后文分别说明实现覆盖、调度限制与怎样验证。
+ 
+ ```wiki-diagram
+ file: batch-invariance
+@@ -104,9 +113,9 @@
+ 
+ ## 为什么末位会跟着批变：同一个和，分几份来加
+ 
+-模型里最多的计算是矩阵乘，而矩阵乘的每个输出数，都是一长串乘积加在一起（见[矩阵乘与权重](matmul-and-weights.md)）。实数加法满足结合律，浮点加法却要在每一步之后把结果舍回可表示的数，于是**分组方式一换，结果的末位就跟着变**。
+-
+-拿 float32 举一个能手算的例子，舍入规则是通常的「就近舍入，恰好居中时取偶数」。float32 在 16,777,216（2²⁴）以上相邻两个可表示数相差 2，所以 16,777,216 + 1 这个真实值卡在两个可表示数中间，被舍回 16,777,216，那个 1 就这么丢了：
++矩阵乘的每个输出数是一串乘积之和（见[矩阵乘与权重](matmul-and-weights.md)）。实数加法满足结合律，浮点计算却要舍入到可表示的数，因此**改变分组可能改变结果**。
++
++拿 float32 举一个能手算的例子，舍入规则是通常的「就近舍入，恰好居中时取偶数」。float32 在 [2²⁴, 2²⁵) 这段正数范围内，相邻可表示数相差 2。16,777,216 + 1 恰好居中，被舍回 16,777,216，那个 1 就这么丢了：
+ 
+ ```calc
+ title: 同样三个数，换个加法分组，float32 的结果就不同（a = 16,777,216，b = 1，c = −16,777,216）
+@@ -117,34 +126,34 @@
+ > 同样三个数，一个得 0，一个得 1。不是谁算错了，是舍入的必然结果。
+ ```
+ 
+-再把这件事放回矩阵乘。假设一个输出数背后是 512 个乘积相加，高性能矩阵乘会**按这一批有多少 token 去挑策略**：token 少，算力闲着，就把这 512 项拆成几段并行地加，最后再把几段的小计合起来；token 多，机器本来就忙，就一路从头加到尾。于是同一条请求换一批同伴，加法的分组换了，末位就变了。
+-
+-误差本身极小，通常落在最后一两位。但模型要过几十层，每层都有成千上万个这样的和，末位的差异会被一层层带下去；到最后一步算词表分数时，只要前两名的差小于这点误差，选出来的词就换了人。**固定随机种子挡不住这件事**：种子管的是「从同一张分数表里怎么抽」，批不变管的是「同一条输入能不能算出同一张分数表」。
++再把这件事放回矩阵乘。假设一个输出数是 512 个乘积之和，一种策略把 K 方向拆成几段并行计算，再合并小计；另一种让一个输出块沿 K 方向依次累加。如果库随批形状在这两种策略间切换，同一条请求换批时就改变了加法分组。图用小批与大批演示这组条件；实际硬件各形状选择的策略须查对应实现与运行记录。
++
++误差的大小取决于数值范围、抵消和后续运算：有的只影响末位，有的会放大，不能统一限定为最后一两位。若最终两个最高候选的排序翻转，即使采用贪心采样也会选到不同 token。**固定随机种子不能修复分数表本身的变化**；即使分数表相同，随机采样还要固定随机数流、采样实现和消费顺序等条件。
+ 
+ ## 怎么做：把每条加法链钉死
+ 
+ 思路很直接——不让批的大小决定加法怎么分组，而是**写死**它。
+ 
+-换上来的矩阵乘用固定的分块（tiling）。设这一步的矩阵乘是 `[M, K] × [K, N]`：M 是批里的行数（有多少 token），K 是每个输出数要加的项数。关键只有一条：**沿 K 方向从第一段一路加到最后一段，中间不换人，也不把 K 切给别的计算单元并行**——每个输出块自己开一个 fp32 累加器。`mm`、`matmul`、`bmm`、`addmm` 共用的那个实现把三个方向的分块都写死成 `128 × 128 × 64`；`linear` 那条只把 K 方向的分块钉死，M、N 方向仍按形状和核数挑；这不影响批不变，因为加法只沿 K 方向累加，M、N 怎么切都不改变每个输出数的加法顺序。
+-
+-值得对照的是上游在 GPU 上的做法：那边确认批间差异的唯一来源是把 K 切开并行（split-K），所以钉死一项库配置就够了。昇腾这边没有这条捷径，只能把一整批算子换成批不变的实现——这就是下面那张表要讲的事。
++先看固定 db701c1f 中的 **Triton 回退矩阵乘**，不要把它的分块套到 AscendC 库。设矩阵乘是 `[M, K] × [K, N]`：M 是行数，K 是每个输出数对应的归约长度。该回退让每个输出块保有 fp32 累加器，沿 K 分块循环，不把同一个输出块的 K 段分给多个 Triton program 再合并。`mm`、`matmul`、`bmm`、`addmm` 复用的实现固定为 `128 × 128 × 64`。`linear` 另走一个核：非空矩阵的 K 块通常为 256，float32 为 128；M、N 仍按形状与核数选择。固定 K 循环是其设计手段，源码本身不是所有设备、编译器和输入下逐位一致的实验报告。
++
++上游 GPU 实现也按硬件与算子分别处理。固定 0fc695fc 的注释在 Hopper／Blackwell 矩阵乘分支把 split-K 作为要抑制的差异来源，该分支设置了两个 cuBLAS 环境项；Ampere 则注册 Triton 矩阵乘。后面还统一替换 softmax、mean、bmm 等算子。因此，不能把这段注释扩写成「GPU 的全部批间差异只有 split-K、改一个配置就够了」。
+ 
+ ```calc
+-title: 钉死之后，加法顺序只由 K 决定（示意 K = 512）
++title: 固定 K 分块的设计示意（K = 512，且只画一个 N 方向输出块）
+ K 方向切成几段 = 512 ÷ 64 = 8
+ 一个输出数的加法链 = 段 1 → 段 2 → … → 段 8 = 固定 8 步
+ 批里 1 行时铺开几个块 = ceil(1 / 128) = 1
+ 批里 300 行时铺开几个块 = ceil(300 / 128) = 3
+-> 批从 1 行涨到 300 行，铺开的输出块从 1 个变成 3 个，但每个块里每条加法链仍是「段 1 → 段 8」这 8 步。块的个数由批决定，链内的顺序不由批决定——这就是批不变。
++> 固定这一份回退实现后，M 方向的输出块从 1 个变成 3 个，各块仍按段 1 → 段 8 累加。这说明如何避免批大小改变 K 段合并方式；不替代整模型一致性测试。
+ ```
+ 
+ 其余几步照同一个思路办：
+ 
+-- softmax 不用融合实现，拆成求最大、减、取指数、求和、除五小步，步步确定；
+-- attention 整个换成批不变版的实现，求和也换成固定顺序的版本；
+-- 带残差的归一化从一个融合算子拆成「先加残差、再归一化」两步。
+-
+-多卡还有跨卡的一笔账：张量并行下每张卡只算一个和当中的一截，再跨卡相加（见[张量并行](tensor-parallel.md)），这条跨卡加法的顺序同样得钉死。开关打开时会把 HCCL / LCCL 的确定性选项一并设好，让 [All-Reduce](collective-communication.md#all-reduce) 每次按同样的次序合并。
++- softmax 回退按求最大、减、取指数、求和、除五个运算表达，实际归约仍依赖所调用实现；
++- AscendC 库可用时，替换指定的融合 attention 与求和入口，不覆盖所有 attention 后端；
++- 同样在 AscendC 分支中，把指定的带残差归一化入口改为先加残差、再调用归一化。
++
++多卡还要处理跨卡归约（见[张量并行](tensor-parallel.md)）。至少一套回退库可用、初始化分支执行时，会设置 HCCL／LCCL 确定性选项并启用 PyTorch 确定性模式，后者使用 `warn_only=True`。这些设置表达确定性要求，不单独证明任意通信拓扑、算子或整个模型都满足逐位一致。
+ 
+ 换实现不是「把所有矩阵乘统一换成同一个 kernel」，而是看手边有哪套批不变算子可用，按条件挂：
+ 
+@@ -153,75 +162,78 @@
+ | AscendC 批不变库可用 | 优先替换 `mm` / `matmul` / `sum`，以及 attention、带残差的归一化两处 |
+ | 没有 AscendC 库，但 Triton 可用 | `mm` / `matmul` / `linear` 用 Triton 回退实现 |
+ | 只要 Triton 可用（与上两行叠加） | 再替换 `addmm` / `bmm` / `softmax` 等路径——AscendC 没做这几个，它在场也照样用 Triton 版 |
+-| 两套都不可用 | 打一条警告，跳过注册——开关设了但没生效 |
+-
+-另外，AscendC 在场时反而**不**注册 `linear`：`linear` 内部会去调 `matmul`，走 AscendC 那条更快。还有三处派发表拦不到（`torch_npu` 的融合 attention 与带残差归一化两个普通函数、Python 层的 `torch.sum`），靠直接给这三个名字赋上新实现。
+-
+-## 代价：加速算子整层下线
+-
+-批不变不是白拿的。它要求每一步都用「顺序确定」的实现，而仓库里有一部分 Ascend 自定义算子没做批不变，于是开关一开，这层自己编译的加速算子**整体不参与**，模型掉回通用实现（这层算子是什么，见[算子与核函数](ops-and-kernels.md)）。能看出来的代价有四处：
++| 两套都不可用 | 打警告并跳过该初始化，连环境覆盖也不执行；其他位置仍会读取环境开关，不能据此断言整个服务必然启动或完全不受影响 |
++
++另外，AscendC 在场时反而**不**注册 `linear`：让它内部的 `matmul` 使用 AscendC 注册入口。还有三处派发表拦不到（`torch_npu` 的融合 attention 与带残差归一化两个普通函数、Python 层的 `torch.sum`），靠直接给这三个名字赋上新实现。
++
++## 代价：部分加速路径被限制
++
++批不变会改变可选实现。固定 db 快照的 `enable_custom_op()` 在首次计算门禁、环境开关已开启时返回 False，关闭依赖这道门禁的自定义算子选择；直接调用扩展的路径未必经过它，也不保证每个模型都有完整通用回退（见[算子与核函数](ops-and-kernels.md)）。源码中可见的变化有四处：
+ 
+ - 矩阵乘沿 K 方向的分块被钉死，`mm` / `matmul` 那条连 M、N 方向也不再按形状调优；
+ - 带残差的归一化从一个融合步拆成两步；
+ - 采样退回上游的通用实现；
+-- 跨卡通信被迫走确定性路径。
+-
+-官方文档对这笔开销只给了一句定性说明：这是为可复现性有意付的性能代价。它没有给倍数，也没有给基准，本页不替它编一个。
+-
+-还有几件事它管不了，得自己动手关：官方文档在 main 上写明 chunked prefill、prefix caching、抢占都不支持，而且**不会自动关**——不关也不报错，只是悄悄失去可复现性。v0.23 与 v0.26 的文档还要求图捕获只用分段模式（各取值的含义见 [ACLGraph](acl-graph.md)）。
++- 初始化成功进入覆盖分支时，设置跨卡通信确定性选项。
++
++本页引用的固定指南只定性提示性能代价，具体收益与开销取决于选中的实现和负载；指南及本项目均未提供该部署的开关对照实测倍数。
++
++main／rc2 固定指南把 chunked prefill、prefix caching 和抢占列为不支持项，说明它们**不会自动关闭**。要显式禁用前两项，并通过容量规划和负载限制降低抢占机会；不是给抢占加一个不存在的关闭开关。未做专门配置拒绝，不代表运行必然成功，也不能判定每个请求都必然产生差异。v0.23／v0.26 指南用 PIECEWISE 举例，并明确不支持 FULL、FULL_DECODE_ONLY（见 [ACLGraph](acl-graph.md)）。
+ 
+ ## 怎么验证：文本一样不等于逐位一样
+ 
+ 要判断「批不变到底成立没有」，先得说清在比什么：
+ 
+-- **比生成的文本**，只能判断这次测试条件下 token 序列是否相同。文本相同只说明没有哪一步把分数的排序比翻，不代表中间计算逐位一致。
+-- **比 logits 张量**，才能检查对应位置的数值误差，或者逐位是否一致。
+-
+-两者要分别记录，不能互相替代。测的时候还要把模型、权重、输入、采样设置与软件版本全部固定，只改变同批的请求与批形状，差异才归因得到批上。
+-
+-上游的端到端测试就是这么设计的：先把一条「大海捞针」问题单独跑一遍存成基线，再把同一条问题塞进 72～144 条随机长度问题中间的随机位置，连跑 5 轮，要求每一轮生成的文本与基线一字不差，随机种子固定。这套办法测的是文本一致，不是逐位一致。
+-
+-官方明确验过的模型只有四个 Qwen3（两个稠密、两个 MoE），功能本身还标着 beta。换一个模型，就要照上面的办法自己测。
++- **比生成文本**，只能确认文本相同；解码映射并非一一对应，不同 token ID 序列也能得到相同文本，不能反推 token 或内部数值一致。
++- **比 token ID 与返回的 logprob**，能检查这些已返回结果，仍不代表完整词表分数都相同。
++- **比完整 logits 或指定中间张量**，才能在对应位置检查数值误差；若要求原始位模式相同，还要明确 dtype、布局与逐位比较方式。
++
++这些比较要分别记录，不能互相替代。测的时候还要固定模型、权重、输入、采样设置与软件版本，只改变同批请求与批形状，并排除其他随机或并发因素，才能判断差异是否与批变化有关。
++
++固定 v0.26 测试把短提示词 `There once was a ` 当作 needle，先单独生成，再放入**总请求数**默认 72～144 的列表随机位置，重复默认 5 轮并比较生成文本。它不是长上下文“大海捞针”准确率测试；这些数可被环境变量覆盖，提交列表长度也不等于每一步实际执行批大小。采样默认温度为 0，设置 seed=20240919。若任一轮文本不同，末尾调用 `pytest.fail`。
++
++同文件还用另一组测试比较 token ID 和已选 token 的逐步 logprob，通过 `torch.equal` 检查返回数值。这比单纯文本比较更细，但没有比较完整 logits，也没有覆盖所有中间张量。
++
++本页固定指南列出四个已验证 Qwen3（两个稠密、两个 MoE），功能仍标 beta；测试文件还含 Qwen3-0.6B 用例。列表和用例都不能当作其他模型的保证，换模型需要单独验证。
+ 
+ ## 放到 GLM 双机：这套部署没有开它
+ 
+-[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)的启动命令里没有设这个开关，环境变量默认是关的，所以主线上的每一个数字都是**默认实现**跑出来的。本页讲的是机制，没有这套部署上的数值误差实测值。
+-
+-不过这套部署恰好把「批会变」这件事放大得很清楚。调度器每一步只有一个 token 预算表：在跑的请求各拿 4 个 token，剩下的预算留给新请求做 prefill（底稿 01 §B2）。于是同一条请求这一步的同伴，和下一步的同伴可以差出两个数量级：
++[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)的启动命令里没有设这个开关，环境变量默认是关的；主线按**默认实现**分析，后面的批形状数字也是在指定条件下推导的算例。本页没有这套部署上的数值误差实测值。
++
++这套部署的[并发请求示例](concurrent-requests.md)可以说明批形状变化：在该算例条件下，在跑的请求各拿 4 个 token，剩下预算用于新请求 prefill。下表两种批组成中，目标 decode 请求参与的总 token 数相差两个数量级：
+ 
+ | 这一步批里有什么 | 本步 token 数 | 这一步的计算长什么样 |
+ |---|---|---|
+ | 12 条 decode | 48 | 纯 decode，本组补到图尺寸 64，另一组（7 条 decode、28 token）补到 32 后再按两组最大值对齐到 64 |
+ | 12 条 decode ＋ 1 条 6000 token 的 prefill | 6,048 | 形状差了两个数量级，MoE 还整体翻到 ALLGATHER 路径 |
+ 
+-两行的数取自底稿 01 §B2 与 02 §8，推导见[并发请求](concurrent-requests.md#第-2-站-调度一步-8192-个-token-怎样分给-13-条请求)与[数据并行](data-parallel.md)。同一条 decode 请求在这两步里的计算环境完全不同——这正是批不变性想要抹平的东西。
++两行的假设与推导见[并发请求](concurrent-requests.md#第-2-站-调度一步-8192-个-token-怎样分给-13-条请求)与[数据并行](data-parallel.md)。同一条 decode 请求在这两步里的计算环境不同；批不变性试图避免这种变化影响它的数值结果。
+ 
+ 真要在这套部署上打开它，先得知道有三处是冲着它来的：
+ 
+ - **chunked prefill 默认开着。** 一条长提示词会被切成几步算完（[分块预填充](chunked-prefill.md)），而官方文档把它列进不支持的名单，还要求自己显式关掉。
+-- **图捕获是整段 decode 图。** 部署用的是 `FULL_DECODE_ONLY`，而 v0.23 / v0.26 的文档要求批不变只用分段捕获（main 删掉了这条 note，但三个版本的代码都不校验）。
+-- **prefix caching 本来就是关的**（模型是混合 attention，vLLM 对这类模型默认不开，见底稿 01 §A2.3），这一条反而不用动。
++- **图捕获是整段 decode 图。** 部署用 `FULL_DECODE_ONLY`，在 v0.23／v0.26 指南明确不支持的名单中。main 删掉了这条 note，但仅凭删除说明不能推断整套部署已通过验证。
++- **prefix caching 在该部署中关闭。** 具体版本与配置边界见[部署前提](glm-5-3-flash-two-node.md#部署前提)，不能推广成所有混合 attention 模型都默认关闭。
+ 
+ 把这三项调好之后，还有三处**覆盖缺口**，都是这个模型特有的：
+ 
+ - **线性 attention 那些层不在替换名单里。** 这个模型 45 层里有 34 层用 KDA 线性 attention（见[线性注意力](linear-attention.md)），走的是它自己那套 Triton 核；上面那份换实现的名单管得住矩阵乘、归一化、softmax、求和以及全 attention 用的那个 attention 函数，管不到它。上一节那份官方验过的模型名单里也没有混合 attention 模型。
+-- **直接调扩展算子的路径绕过了门禁。** 「自定义算子整层下线」靠的是一道统一门禁，但 GLM 实现里有些地方直接调用扩展算子、不经过这道门禁，例如 mHC 的前后处理和稀疏 MLA 的索引器。不能因为门禁关了就断定它们全被换掉了。
+-- **这道门禁同时是扩展的加载入口。** 它返回否的时候，自编译扩展根本不会被导入，而全仓生产代码里只有这一个导入点。照源码推下去：在这套部署上打开批不变，GLM 每层都要用的那几个扩展算子就拿不到了。**这一步是推的，没有设备验证**，见本页末的待核清单。
++- **直接调扩展算子的路径绕过了门禁。** GLM 的 mHC 前后处理直接调用扩展，没有在这里检查 `enable_custom_op()`。不能因为门禁关闭，就断定这些调用都被替换了。
++- **门禁还控制本包的扩展加载。** 固定 db 的生产 Python 代码中，显式导入 `vllm_ascend_C` 的两条语句都在这个函数里。若环境开关在首次门禁检查前已开启，它会返回 False 并跳过导入；而 GLM 随后仍直接调用 mHC 扩展，存在未注册的风险。实际注册状态还取决于门禁已有的缓存结果、外部提前加载与启动顺序，应同时记录这些条件和首次调用结果；这里没有该部署的启动失败实测。
+ 
+ 所以在这套部署上，「开了开关就一定逐位可复现」是没有依据的：缺哪些证据，列在常见误解之后。
+ 
+ ## 常见误解
+ 
+-- **「固定随机种子就能复现。」** 两件事。种子保证同样的分数表抽出同样的词；批不变保证同样的输入在不同批里算出同样的分数表。官方那组测试两件都做了：种子固定，仍然要靠批不变才能让同一条问题在 1 条和 144 条的批里输出一致。
++- **「固定随机种子就能复现。」** 种子不能消除分数表的数值变化，也不能单独固定全部随机数消费顺序。固定测试同时设置开关、种子与其他条件；测试代码的存在不等于所有负载上都测得同样结果。
+ - **「输出文本一样，说明中间每一步都逐 bit 相同。」** 反推不成立，理由见[怎么验证](#怎么验证文本一样不等于逐位一样)。
+-- **「这是模型算错了，或者是精度 bug。」** 都不是。前面 a、b、c 那个例子说明，即使每一步都严格按规则舍入，换个加法分组结果也会不同。批不变要做的是固定分组，不是提高精度。
++- **「批次改变结果，一定是模型算错了。」** 不一定。浮点分组变化本身可以造成差异；但实际排错也不能据此排除实现错误，要定位首次分歧。
+ - **「它是 Flash Attention 3 的一部分。」** 反了。v0.23 / v0.26 上是 Flash Attention 3 把批不变当作前提去校验；批不变自己不依赖它，它换 attention 的办法是把默认的融合 attention 函数整个替掉。
+ 
+-**待核**（本页没能核实的三件事）：
++**这套部署尚缺的验证证据：**
+ 
+ - 这套部署上没有跑过官方那组端到端验证，也就没有数值误差的实测值；
+-- 开关前后的吞吐与时延对照，官方与本部署都没有数；
+-- 「门禁一关，自编译扩展就拿不到」这一步只推到源码为止，要实机确认打开批不变之后服务还起不起得来。
++- 本页引用的固定指南没有该部署的开关前后吞吐、时延对照，本项目也未测量；
++- 门禁和扩展注册的相互作用只有源码分析，缺该部署的实际启动与首次前向证据。
+ 
+ ## 对照源码
+ 
+@@ -229,63 +241,67 @@
+ 
+ ### 怎么开
+ 
+-设环境变量后启动服务，图捕获用分段模式：
++先安装与版本、硬件匹配的算子。下面合并旧指南的 PIECEWISE 示例与 main 指南明确列出的调度限制，只作启动配置示意；不是 GLM 双机已验收命令：
+ 
+ ```bash
+ VLLM_BATCH_INVARIANT=1 vllm serve <model> \
+- --compilation-config '{"cudagraph_mode": "PIECEWISE"}'
++ --compilation-config '{"cudagraph_mode": "PIECEWISE"}' \
++ --no-enable-chunked-prefill \
++ --no-enable-prefix-caching \
++ --block-size 128
+ ```
+ 
+-- 默认值是 `0`，读的是 vLLM 上游 `envs.py` 里那一条。[C3]
+-- main 的示例改成 `--no-enable-chunked-prefill --no-enable-prefix-caching --block-size 128`：前两个是文档写明的不支持项，`--block-size 128` 不多余，因为块大小只有在开了 prefix caching 或 chunked prefill 时才会被顶成 128，两个都关掉就得自己给。[S18]
+-- 安装是硬性前提：AscendC 的 `batch_invariant_ops` 不随普通 wheel 发布，要在**编译 vllm-ascend 之前**就设好 `VLLM_BATCH_INVARIANT=1`，让安装过程把这套算子装进去；装完的 wheel 事后设是补不回来的。[S16]
++- 默认值是 `0`，由上游 `envs.py` 读取。[C25]
++- main 指南要求禁用 chunked prefill 时同时明确设置 `--block-size 128`。[S18] 这不能解释成“只有开前缀缓存或分块预填充才能得到 128”：main 的通用配置代码在块大小未指定时也填 128，还存在模型专用与 Xlite 分支。显式参数用于遵循该功能示例，不代替模型兼容性检查。
++- 安装分两层：设备端算子包与 PyTorch 扩展 wheel。源码安装时可用 `COMPILE_CUSTOM_KERNELS=1 VLLM_BATCH_INVARIANT=1` 一起构建；已有预编译 wheel，单独补设变量不会重建算子，但 main 指南允许取得**匹配版本的源码**后执行 `csrc/build_batch_invariant_ops.sh` 补装，A2／A3／950 分别传 `ascend910b`／`ascend910_93`／`ascend950`。仅 Triton 在场时还有表中部分回退，不等于完整 AscendC 覆盖。
+ - 硬件：v0.23 与 v0.26 写 Atlas A2 / A3；main 加上 950PR 与 950DT。[S19] 上游 `envs.py` 那条注释里的「compute capability ≥ 9.0」是给 CUDA 侧写的，昇腾不看这一条。[C25]
+-- 跨卡与权重格式由 `init_batch_invariance()` 自动钉死，不用自己设：`HCCL_DETERMINISTIC=strict`、`LCCL_DETERMINISTIC=1`、`torch.use_deterministic_algorithms(True, warn_only=True)`，并把 `weight_nz_mode` 压成 0，不让权重走 NZ 格式。
+-- 验证办法照上游的端到端测试（用的模型是 Qwen3-0.6B）：needle prompt 单独跑存基线，再塞进 72～144 条随机 prompt 的随机位置，连跑 5 轮要求逐字相同，种子固定 `20240919`。[C28]
++- 当 `init_batch_invariance()` 进入覆盖分支时，会设 `HCCL_DETERMINISTIC=strict`、`LCCL_DETERMINISTIC=1`、`torch.use_deterministic_algorithms(True, warn_only=True)`，并把 `weight_nz_mode` 设为 0。检查实际初始化路径，不能仅凭环境变量已设置就假定这一步执行了。
++- Qwen3-0.6B 的 needle 测试比较的是短提示词单独生成与混入总数默认 72～144 的请求列表后的文本，默认 5 轮；实际批形状仍由调度器决定，详见上文验证范围。[C28]
+ - main 另有一条路：`rl_config.enable_batch_invariant` 为真时由 `RlConfig.apply()` 去设同一个环境变量，但要 `rl_config.enabled` 同时为真才生效。环境变量这条路 main 上照样有，`rl_config` 只是把它和别的 RL 默认值打包。[C22]
+ 
+ ### 会报什么错
+ 
+-最要紧的恰恰是**不报错**的三处：
+-
+-- Triton 与 AscendC 两条供应链都不在场时，`init_batch_invariance()` 只打一条 warning 就跳过，服务照常起来——开关设了但没生效。
+-- 图捕获配成整图模式：文档说批不变的 attention 算子不支持它，但代码里没有一处去校验。配错了不报错，只是不可复现。
+-- `enable_async_exponential` 只有在批不变关闭时才为真，开了批不变它被静默置回 `False`，一条日志都没有，见 [enable_async_exponential](../params/enable-async-exponential.md)。[C13]
++先区分未执行、配置拒绝与运行时错误：
++
++- 两套算子库都不在场时，`init_batch_invariance()` 打 warning 并返回；后续服务是否成功还取决于模型和其他读取该环境开关的路径。
++- FULL／FULL_DECODE_ONLY 在旧指南中不受支持，初始化函数没有针对图模式的拒绝检查。不能从这里没抛错推断后续一定能运行，或只会出现数值不一致。
++- 固定 db 构造器只在批不变关闭时允许 `enable_async_exponential` 为真；对应赋值不打印日志。其他版本的配置去向见 [enable_async_exponential](../params/enable-async-exponential.md)。[C13]
+ 
+ 真会报错的一处在 v0.23 / v0.26：`reduce_sum` 的适用条件太宽（NPU 张量且 `dim` 不是 `None` 就走批不变实现），而算子本身只支持最后一维，别的维会报 `AclNN_Parameter_Error`；main 把条件收紧了。[C20]
+ 
+ ### 开销和什么时候别开
+ 
+-- 文档对开销只给一句定性说明：以性能换可复现性，没有倍数、没有基准。[S17]
+-- 定性的开销有四处：`mm` / `matmul` 的 Triton 回退用固定 `128 × 128 × 64` 分块，不按形状调优，`linear` 那条也钉死了 K 方向 [C5]；自定义算子整层下线 [C8]；带残差的归一化从一个融合算子拆成两步；采样退回上游通用实现 [C12]。
+-- 互斥与不支持：chunked prefill、prefix caching、抢占（main 文档明说且不会自动关）；v0.23 / v0.26 的文档要求只用分段捕获；`enable_matmul_allreduce` 在 v0.23 由代码强制置 `False`，v0.26 起这一行删了、保护没了，见 [enable_matmul_allreduce](../params/enable-matmul-allreduce.md)。[C24]
+-- 什么时候别开：追吞吐的线上服务不要开。它的用处是排查——要拿到可复现的文本、要做严格的数值对照、或者要做[强化学习的 rollout](vllm-ascend-for-rl.md#为什么-rl-需要推理端配合代价花在哪里) 时才开。
+-- 混合 attention 模型要格外当心：线性 attention 走的是另一套专用核，不在替换名单里，官方测过的模型名单里也没有混合 attention 模型，逐位相同对这类模型没有官方背书。
++- 固定指南仅定性说明可能影响性能，没有该部署的开关对照倍数。[S17]
++- 实现变化包括 Triton 固定分块、受门禁控制的算子选择减少、指定残差归一化被拆开，以及 top-k／top-p 采样回到上游实现。它们说明可能的代价来源，不能直接相加得出固定性能损失。[C5][C8][C12]
++- 调度与图限制见上文。v0.23 初始化会强制关闭 `enable_matmul_allreduce`；v0.26 删除这行时，该旧融合功能也已移除，并非留下一个需要手工关闭的可用开关。具体迁移规则见 [enable_matmul_allreduce](../params/enable-matmul-allreduce.md)。
++- 以吞吐为主要目标时，要测量开启后的实际收益与代价。需要确定性排错、数值对照、[强化学习 rollout](vllm-ascend-for-rl.md#为什么-rl-需要推理端配合代价花在哪里) 或线上一致性时，都可能有启用需求，不能统一规定只在排障时用。
++- 混合 attention 模型还需核对专用核。本页引用指南的已测列表没有 GLM 这种混合模型，现有替换名单与那份列表不能证明它逐位相同。
+ 
+ ### 版本差异
+ 
+-**v0.30.0rc2 补全了批不变 reduce_sum 的调用接口。** 新增 axis 别名与 dtype 参数，axis 和 dim 同时给会 TypeError；显式指定 dtype 时回退 torch.sum，以保留调用者要求的输出类型。只有未指定 dtype、输入在 NPU、归约最后一维且类型为 fp16/fp32/bf16 时才走批不变求和算子。这修复的是接口兼容，不能据此推断分块、前缀缓存或抢占组合已获得整体批不变保证。
+-
+-这个特性最早在框架的 v0.13.0 上落地（PR #5517）。[S27]三个在册版本上 `vllm_ascend/batch_invariant.py` 与官方特性文档都在，差异集中在下表。v0.23 一列看的是维护分支 `2c59ff10`（不含 GLM 代码）；含 GLM 代码的 `db701c1f` 是 orphan commit，这个文件与 v0.23 逐字一致。
++**v0.30.0rc2 扩展了批不变 reduce_sum 的调用接口。** 新增 axis 别名与 dtype 参数；axis 与 dim 都非 None 时抛 TypeError，dtype 非 None 时回退保存的 torch.sum，以保留调用者指定的输出类型。只有 dtype 为 None、输入在 NPU、归约最后一维且类型为 fp16/fp32/bf16 时才走批不变求和算子。这是接口修正，不能推断分块、前缀缓存或抢占组合已获得整体批不变保证。
++
++v0.13.0 发布说明记录了基础框架与 PR #5517。[S27]下表对照三个固定版本；rc2 的求和接口补充见上文。v0.23 列使用维护分支 `2c59ff10`，GLM 独立快照 `db701c1f` 的 batch_invariant.py 与其逐字一致，不把模型文件也视为相同。
+ 
+ | 项 | v0.23（`2c59ff10`）| v0.26（`2ed6cbba`）| main（`baa023ad`）| 意味着什么 |
+ |---|---|---|---|---|
+-| `enable_matmul_allreduce` | 批不变模式下强制置 `False` | 这一行删了 | 同 v0.26 | v0.23 上两者互斥由代码保证，之后这层保护没了，要自己确认没开 |
++| `enable_matmul_allreduce` | 初始化覆盖分支强制置 `False` | 禁用赋值与旧融合功能均已删除 | 同 v0.26 | 删除赋值不是恢复兼容；旧键在不同版本的未知键处理见参数页 |
+ | `reduce_sum` 适用范围 | NPU 张量且 `dim` 不是 `None` 就走批不变实现 | 同 v0.23 | 收紧成只处理最后一维、且 dtype 是 fp16 / fp32 / bf16，其余退回原生实现 | 旧条件真会撞上 `AclNN_Parameter_Error`，main 修掉了 |
+ | `aten::sum` | 注册成 AscendC 的批不变求和 | 同 v0.23 | 注销，改成给 `torch.sum` 与 `torch.Tensor.sum` 直接赋值 [C21] | 走 aten 派发过来的 `sum`（例如被编译捕获进图的那些）在 main 上不再被换掉 |
+-| 调度限制 | 文档整篇不提 | 同 v0.23 | 多出一节，写明 chunked prefill、prefix caching、抢占都不支持且不会自动关 | 照 v0.23 那篇文档配出来的服务其实不可复现，坑到 main 才写明 |
+-| 图捕获 | 文档要求分段模式，不支持整图 [S17] | 同 v0.23 | 这条 note 连同改进计划里对应那条一起删了 | 三个版本的代码里都没有对应校验，删掉不等于支持了 |
+-| 混合批的 attention | 不特判 | 同 v0.23 | 批不变模式下一批里同时有 prefill 和 decode 就拆成两次算 [C23] | 与「抢占后重算会让两类 token 混在一起」这条限制对应 |
++| 调度限制 | 指南未列这一节 | 同 v0.23 | 明确列出 chunked prefill、prefix caching、抢占不受支持且不自动关闭 | 新指南补充了边界，不能反推所有旧配置都必然产生差异 |
++| 图捕获 | 示例用 PIECEWISE，明确不支持 FULL／FULL_DECODE_ONLY [S17] | 同 v0.23 | 删除该 note 与对应改进计划 | 初始化函数没有图模式检查；删除说明也不等于任意整图组合已验证 |
++| 混合批的 attention | 没有 main 新增的这项开关判断 | 同 v0.23 | attention_v1 的常规 FIA 路径中，无 sink、因果且非滑窗时，有 prefill 和 decode 可按阶段拆分 [C23] | 这是特定分支的处理，不覆盖所有后端，也不取消抢占限制 |
+ | 开关入口 | 只有环境变量 | 同 v0.23 | 多一条 `rl_config` 的路 | 环境变量这条路 main 上照样有，`rl_config` 只是打包 |
+ 
+ ### 源码位置
+ 
+-- 入口与时机：`init_batch_invariance()` 在 worker 初始化分布式环境的第一行调用，比通信域建起来还早，每个 rank 各跑一次；覆盖是进程级的，过了这一步，本进程后续每一次前向用的都是换过的实现。[C11]
+-- 环境覆盖：`override_envs_for_invariance()` 负责压 `weight_nz_mode`、设 HCCL / LCCL 确定性变量、开 PyTorch 确定性算法（`warn_only=True`，遇到限制只警告不中止）。
++- 入口与时机：固定 worker 的 `_init_worker_distributed_environment()` 先调用 `init_batch_invariance()`，再建立分布式环境。替换是进程级的，但只有注册成功且之后经过这些入口的调用才使用替换实现。[C11]
++- 环境覆盖：`override_envs_for_invariance()` 设置 `weight_nz_mode`、HCCL／LCCL 变量与 PyTorch 确定性选项。`warn_only=True` 只描述该确定性检查的处理方式，不保证其他算子或配置错误都只警告。
+ - 派发表：`enable_batch_invariant_mode()` 建一个 `aten` 的实现库，往 NPU 派发键上挂实现，挂什么取决于 AscendC 的 `batch_invariant_ops` 与 Triton 两条供应链谁在场：两条都在场时 `mm` / `matmul` / `sum` 用 AscendC，`addmm` / `bmm` / `softmax` 仍用 Triton，`linear` 不挂；两套都缺席就只打一条 warning。派发表拦不到的三处靠直接赋值覆盖：`torch_npu.npu_fused_infer_attention_score`、`torch_npu.npu_add_rms_norm`，以及 Python 层的 `torch.sum`。[C1]
+-- Triton 回退核：`vllm_ascend/ops/triton/batch_invariant/matmul.py`，四个矩阵乘入口最后都落到同一个 persistent kernel，区别只是先怎么把张量拍成二维；它的分块参数写死，沿 K 方向单调累加，`tl.dot` 的 `allow_tf32` 也关掉 [C5]。`linear` 那条是另一个 kernel，只钉死 K 方向。softmax 的五小步在同目录下 [C7]。
+-- 连锁下线：`vllm_ascend/utils.py` 的 `enable_custom_op()` 在批不变模式下直接返回 `False`，注释给的理由就是有一部分自定义算子没做批不变；这个函数同时是自编译扩展的唯一导入点。[C8]
++- Triton 回退核：四个矩阵乘包装复用固定分块核，但维度处理不同，bmm 会逐个批成员调用，matmul 仅支持源码列出的组合，不是所有形状都通用展平。该核设 `allow_tf32=False`；linear 另有实现，不能把这一设置或 64 的 K 块套过去。来源 30、36 补全实际核与包装，softmax 见来源 7。
++- 门禁与加载：固定 db 的 `enable_custom_op()` 先检查缓存结果；首次检查批不变环境时返回 False，随后两处扩展导入均不会执行。这个结论有启动顺序前提，来源 8 已包括正常导入与异常回退两处。[C8]
+ - 绕过门禁的例子：`vllm_ascend/models/glm5_next.py` 里 mHC 的前后处理，以及每层前向对它的调用，都直接走扩展算子，不经过上面那道门禁。[C9][C10]
+ - KDA 的核：同一个文件从 `vllm_ascend/ops/triton/kda/` 导入线性 attention 用的 kernel。[C15]
+ - Flash Attention 3 那道闸：v0.23 / v0.26 上后端选择读的是「批不变是否已启用」，方向是 FA3 依赖批不变。[C14]
+-- 上游对照：上游在自己那份实现的注释里写明，在 Hopper 与 Blackwell 上批间差异的唯一来源就是 split-K，钉死 cuBLAS 的 workspace 配置即可；昇腾没有这条捷径，才要整批换实现。[C26]
++- 上游对照：来源 26 包含完整的硬件分支及后续 softmax／mean／bmm 注册，避免把局部 split-K 注释泛化为整个 GPU 计算栈。
++- 来源 31–33 补安装后手动补装的固定指南、实际脚本和块大小配置；34–35 补测试究竟提取、比较什么数值。测试代码是验证方法，不是本项目已执行通过的结果。
+--- before/wiki\diagrams\batch-invariance.svg
++++ wiki\diagrams\batch-invariance.svg
+@@ -1,5 +1,5 @@
+-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430" width="900" height="430" role="img" aria-label="同一条请求的同一个输出数，在小批和大批里被切成不同的段数：加法顺序一变，末位就可能不同。数为示意。">
+-  <title>同一条请求的同一个输出数，在小批和大批里被切成不同的段数：加法顺序一变，末位就可能不同。数为示意。</title>
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430" width="900" height="430" role="img" aria-label="一种可能的分组变化：同一输出数的 K 段在两种策略中分别计算再合并，或依次累加，因此结果可能不同。小批与大批这里只作示意，不断言所有硬件都按这一规则选核；数值与末位也不是实测。">
++  <title>一种可能的分组变化：同一输出数的 K 段在两种策略中分别计算再合并，或依次累加，因此结果可能不同。小批与大批这里只作示意，不断言所有硬件都按这一规则选核；数值与末位也不是实测。</title>
+   <defs><marker id="batch-invariance-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="batch-invariance-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+   <rect x="28" y="58" width="396" height="300" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+   <text x="44" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">批里只有这一条请求</text>
+@@ -55,8 +55,8 @@
+   <text x="46" y="86" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">一个输出数 = 512 个乘积相加</text>
+   <text x="476" y="86" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">同一个输出数，还是这 512 个乘积</text>
+   <text x="30" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">输入、权重都没变，变的只是同批的伙伴</text>
+-  <rect x="46" y="104" width="193" height="24" rx="12" fill="var(--color-control, #66716d)"/>
+-  <text x="142.5" y="121" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算力有富余：拆成两段并行加</text>
+-  <rect x="476" y="104" width="180" height="24" rx="12" fill="var(--color-control, #66716d)"/>
+-  <text x="566" y="121" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">机器本来就忙：一路加到底</text>
++  <rect x="46" y="104" width="192.5" height="24" rx="12" fill="var(--color-control, #66716d)"/>
++  <text x="142.2" y="121" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">示意：K 拆两段，再合并小计</text>
++  <rect x="476" y="104" width="166.5" height="24" rx="12" fill="var(--color-control, #66716d)"/>
++  <text x="559.2" y="121" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">示意：K 按固定次序累加</text>
+ </svg>
+--- before/wiki\diagrams\batch-invariance.yaml
++++ wiki\diagrams\batch-invariance.yaml
+@@ -1,7 +1,7 @@
+ {
+   "layout": "figure",
+   "id": "batch-invariance",
+-  "caption": "同一条请求的同一个输出数，在小批和大批里被切成不同的段数：加法顺序一变，末位就可能不同。数为示意。",
++  "caption": "一种可能的分组变化：同一输出数的 K 段在两种策略中分别计算再合并，或依次累加，因此结果可能不同。小批与大批这里只作示意，不断言所有硬件都按这一规则选核；数值与末位也不是实测。",
+   "size": [
+     900,
+     430
+@@ -60,7 +60,7 @@
+         46,
+         104
+       ],
+-      "text": "算力有富余：拆成两段并行加",
++      "text": "示意：K 拆两段，再合并小计",
+       "tone": "control"
+     },
+     {
+@@ -68,7 +68,7 @@
+         476,
+         104
+       ],
+-      "text": "机器本来就忙：一路加到底",
++      "text": "示意：K 按固定次序累加",
+       "tone": "control"
+     }
+   ],

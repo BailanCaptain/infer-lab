@@ -1,0 +1,182 @@
+[
+  {
+    "repo": "vllm",
+    "version": "v0.23",
+    "file": "vllm/benchmarks/sweep/plot.py",
+    "line": 535,
+    "expression": "parser.add_argument('EXPERIMENT_DIR', type=str, help='The directory containing the sweep results to plot.')",
+    "id": "D01",
+    "status": "未收录工具说明",
+    "reason": "基准结果绘图工具的输入目录位置参数，与推理请求参数分开。"
+  },
+  {
+    "repo": "vllm",
+    "version": "v0.23",
+    "file": "vllm/benchmarks/sweep/plot_pareto.py",
+    "line": 346,
+    "expression": "parser.add_argument('EXPERIMENT_DIR', type=str, help='The directory containing the sweep results to plot.')",
+    "id": "D02",
+    "status": "未收录工具说明",
+    "reason": "基准结果绘图工具的输入目录位置参数，与推理请求参数分开。"
+  },
+  {
+    "repo": "vllm",
+    "version": "v0.23",
+    "file": "vllm/entrypoints/openai/cli_args.py",
+    "line": 347,
+    "expression": "parser.add_argument('model_tag', type=str, nargs='?', help='The model tag to serve (optional if specified in config)')",
+    "id": "D03",
+    "status": "没讲全",
+    "reason": "模型位置参数；已有模型启动示例，缺与 config/model 选项优先级的专门说明。"
+  },
+  {
+    "repo": "vllm",
+    "version": "v0.23",
+    "file": "vllm/entrypoints/openai/cli_args.py",
+    "line": 217,
+    "expression": "frontend_group.add_argument(*extra_flags, f\"--{key.replace('_', '-')}\", **value)",
+    "id": "D04",
+    "status": "对应已盘点字段",
+    "reason": "get_kwargs(cls) 获取 Frontend 字段，以 key 下划线转连字符生成长选项；额外短标记是别名。"
+  },
+  {
+    "repo": "vllm",
+    "version": "v0.23",
+    "file": "vllm/utils/argparse_utils.py",
+    "line": 151,
+    "expression": "super().add_argument(*args, **kwargs)",
+    "id": "D05",
+    "status": "不计新增参数",
+    "reason": "解析器转发包装：登记 deprecated 并转给 argparse；参数来自调用处。"
+  },
+  {
+    "repo": "vllm",
+    "version": "v0.23",
+    "file": "vllm/utils/argparse_utils.py",
+    "line": 159,
+    "expression": "super().add_argument(*args, **kwargs)",
+    "id": "D06",
+    "status": "不计新增参数",
+    "reason": "解析器转发包装：登记 deprecated 并转给 argparse；参数来自调用处。"
+  },
+  {
+    "repo": "vllm",
+    "version": "v0.26",
+    "file": "vllm/benchmarks/sweep/plot.py",
+    "line": 538,
+    "expression": "parser.add_argument('EXPERIMENT_DIR', type=str, help='The directory containing the sweep results to plot.')",
+    "id": "D07",
+    "status": "未收录工具说明",
+    "reason": "基准结果绘图工具的输入目录位置参数，与推理请求参数分开。"
+  },
+  {
+    "repo": "vllm",
+    "version": "v0.26",
+    "file": "vllm/benchmarks/sweep/plot_pareto.py",
+    "line": 347,
+    "expression": "parser.add_argument('EXPERIMENT_DIR', type=str, help='The directory containing the sweep results to plot.')",
+    "id": "D08",
+    "status": "未收录工具说明",
+    "reason": "基准结果绘图工具的输入目录位置参数，与推理请求参数分开。"
+  },
+  {
+    "repo": "vllm",
+    "version": "v0.26",
+    "file": "vllm/entrypoints/openai/cli_args.py",
+    "line": 346,
+    "expression": "parser.add_argument('model_tag', type=str, nargs='?', help='The model tag to serve (optional if specified in config)')",
+    "id": "D09",
+    "status": "没讲全",
+    "reason": "模型位置参数；已有模型启动示例，缺与 config/model 选项优先级的专门说明。"
+  },
+  {
+    "repo": "vllm",
+    "version": "v0.26",
+    "file": "vllm/entrypoints/openai/cli_args.py",
+    "line": 216,
+    "expression": "frontend_group.add_argument(*extra_flags, f\"--{key.replace('_', '-')}\", **value)",
+    "id": "D10",
+    "status": "对应已盘点字段",
+    "reason": "get_kwargs(cls) 获取 Frontend 字段，以 key 下划线转连字符生成长选项；额外短标记是别名。"
+  },
+  {
+    "repo": "vllm",
+    "version": "v0.26",
+    "file": "vllm/utils/argparse_utils.py",
+    "line": 151,
+    "expression": "super().add_argument(*args, **kwargs)",
+    "id": "D11",
+    "status": "不计新增参数",
+    "reason": "解析器转发包装：登记 deprecated 并转给 argparse；参数来自调用处。"
+  },
+  {
+    "repo": "vllm",
+    "version": "v0.26",
+    "file": "vllm/utils/argparse_utils.py",
+    "line": 159,
+    "expression": "super().add_argument(*args, **kwargs)",
+    "id": "D12",
+    "status": "不计新增参数",
+    "reason": "解析器转发包装：登记 deprecated 并转给 argparse；参数来自调用处。"
+  },
+  {
+    "repo": "vllm",
+    "version": "main",
+    "file": "vllm/benchmarks/sweep/plot.py",
+    "line": 538,
+    "expression": "parser.add_argument('EXPERIMENT_DIR', type=str, help='The directory containing the sweep results to plot.')",
+    "id": "D13",
+    "status": "未收录工具说明",
+    "reason": "基准结果绘图工具的输入目录位置参数，与推理请求参数分开。"
+  },
+  {
+    "repo": "vllm",
+    "version": "main",
+    "file": "vllm/benchmarks/sweep/plot_pareto.py",
+    "line": 347,
+    "expression": "parser.add_argument('EXPERIMENT_DIR', type=str, help='The directory containing the sweep results to plot.')",
+    "id": "D14",
+    "status": "未收录工具说明",
+    "reason": "基准结果绘图工具的输入目录位置参数，与推理请求参数分开。"
+  },
+  {
+    "repo": "vllm",
+    "version": "main",
+    "file": "vllm/entrypoints/launchers/cli_args.py",
+    "line": 390,
+    "expression": "parser.add_argument('model_tag', type=str, nargs='?', help='The model tag to serve (optional if specified in config)')",
+    "id": "D15",
+    "status": "没讲全",
+    "reason": "模型位置参数；已有模型启动示例，缺与 config/model 选项优先级的专门说明。"
+  },
+  {
+    "repo": "vllm",
+    "version": "main",
+    "file": "vllm/entrypoints/launchers/cli_args.py",
+    "line": 242,
+    "expression": "frontend_group.add_argument(*extra_flags, f\"--{key.replace('_', '-')}\", **value)",
+    "id": "D16",
+    "status": "对应已盘点字段",
+    "reason": "get_kwargs(cls) 获取 Frontend 字段，以 key 下划线转连字符生成长选项；额外短标记是别名。"
+  },
+  {
+    "repo": "vllm",
+    "version": "main",
+    "file": "vllm/utils/argparse_utils.py",
+    "line": 167,
+    "expression": "super().add_argument(*args, **kwargs)",
+    "id": "D17",
+    "status": "不计新增参数",
+    "reason": "解析器转发包装：登记 deprecated 并转给 argparse；参数来自调用处。"
+  },
+  {
+    "repo": "vllm",
+    "version": "main",
+    "file": "vllm/utils/argparse_utils.py",
+    "line": 175,
+    "expression": "super().add_argument(*args, **kwargs)",
+    "id": "D18",
+    "status": "不计新增参数",
+    "reason": "解析器转发包装：登记 deprecated 并转给 argparse；参数来自调用处。"
+  }
+]

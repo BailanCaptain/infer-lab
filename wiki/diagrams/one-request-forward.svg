@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="R1 第一步在 node0 每张卡上的前向（T = 4）。实线框是计算，标签是这一段的集合通信及次数，MLP 下的 ×3 + ×42 是 3 个稠密层加 42 个共享专家；除 MoE 的派发与组合走 16 张卡的 EP 组外，其余都在机内 8 张卡的 TP 组里">
-  <title>R1 第一步在 node0 每张卡上的前向（T = 4）。实线框是计算，标签是这一段的集合通信及次数，MLP 下的 ×3 + ×42 是 3 个稠密层加 42 个共享专家；除 MoE 的派发与组合走 16 张卡的 EP 组外，其余都在机内 8 张卡的 TP 组里</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="R1 第一步在 node0 每张卡上的前向（T = 4），采用正文的 SP 关闭、共享专家 TP8 和完整词表路径。实线框是计算，标签是所列通信操作及次数，MLP 下的 ×3 + ×42 是 3 个稠密层加 42 个共享专家；派发与组合走 EP16，其余所列操作在 TP8 内。不含 MTP 和每步 DP 元数据通信">
+  <title>R1 第一步在 node0 每张卡上的前向（T = 4），采用正文的 SP 关闭、共享专家 TP8 和完整词表路径。实线框是计算，标签是所列通信操作及次数，MLP 下的 ×3 + ×42 是 3 个稠密层加 42 个共享专家；派发与组合走 EP16，其余所列操作在 TP8 内。不含 MTP 和每步 DP 元数据通信</title>
   <defs><marker id="one-request-forward-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
   <rect x="410" y="64" width="462" height="230" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="426" y="52" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">每一层，共 45 层</text>
@@ -30,7 +30,7 @@
   <rect x="214" y="330" width="160" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="294" y="354" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">采样</text>
   <text x="294" y="373" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">选出 y₀</text>
-  <text x="24" y="470" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">每卡每步 218 次集合通信，数据量不超过 7.3 MiB</text>
+  <text x="24" y="470" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">主干所列通信操作共 218 次；逻辑载荷不等于链路流量</text>
   <rect x="40" y="180" width="112.4" height="24" rx="12" fill="var(--color-comm, #9a4b86)"/>
   <text x="96.2" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">All-Reduce ×1</text>
   <rect x="446" y="180" width="119.7" height="24" rx="12" fill="var(--color-comm, #9a4b86)"/>

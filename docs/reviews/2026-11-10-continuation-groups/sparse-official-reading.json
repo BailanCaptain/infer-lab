@@ -1,0 +1,323 @@
+{
+  "recorded_at": "2026-11-10T06:33:05.614603+00:00",
+  "documents": [
+    {
+      "commit": "2ed6cbba",
+      "path": "docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md",
+      "lines": 258,
+      "sha256": "e300fdff0e23e0fcded42ddbfa02f8baa39f449f765b5a775350ce41f56a2036",
+      "scope": "full text read",
+      "same_as": null,
+      "topic": "P/D deployment, dependencies, role ownership, supported limits, sparse buffer and versions",
+      "global_new_count": "not inferred; reconcile old official inventory separately"
+    },
+    {
+      "commit": "baa023ad",
+      "path": "docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md",
+      "lines": 282,
+      "sha256": "f28395308d483e996de445e4f782b767ee50e4f2c951169e5c31aa28d3a76cee",
+      "scope": "full text read",
+      "same_as": null,
+      "topic": "P/D deployment, dependencies, role ownership, supported limits, sparse buffer and versions",
+      "global_new_count": "not inferred; reconcile old official inventory separately"
+    },
+    {
+      "commit": "baa023ad",
+      "path": "docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md",
+      "lines": 282,
+      "sha256": "0e21834629641ed36ec7bfeb3ff58f1201d91bfeca15ab12d317acc4a2dd8cd7",
+      "scope": "full text read",
+      "same_as": null,
+      "topic": "P/D deployment, dependencies, role ownership, supported limits, sparse buffer and versions",
+      "global_new_count": "not inferred; reconcile old official inventory separately"
+    },
+    {
+      "commit": "7d825229",
+      "path": "docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md",
+      "lines": 469,
+      "sha256": "49cee15712ca2cb5fc843a041e79356b98f83796d13be5b6e964c1ea29a3685f",
+      "scope": "full text read",
+      "same_as": null,
+      "topic": "P/D deployment, dependencies, role ownership, supported limits, sparse buffer and versions",
+      "global_new_count": "not inferred; reconcile old official inventory separately"
+    },
+    {
+      "commit": "7d825229",
+      "path": "docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md",
+      "lines": 282,
+      "sha256": "0e21834629641ed36ec7bfeb3ff58f1201d91bfeca15ab12d317acc4a2dd8cd7",
+      "scope": "same bytes; reuse full reading",
+      "same_as": "baa023ad",
+      "topic": "P/D deployment, dependencies, role ownership, supported limits, sparse buffer and versions",
+      "global_new_count": "not inferred; reconcile old official inventory separately"
+    },
+    {
+      "commit": "921ccc52",
+      "path": "docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md",
+      "lines": 181,
+      "sha256": "88dee19526d9b7eaebd8e67921f8c4eabb59828c3d6e317a994d86e1ecd9e18f",
+      "scope": "full text read",
+      "same_as": null,
+      "topic": "P/D deployment, dependencies, role ownership, supported limits, sparse buffer and versions",
+      "global_new_count": "not inferred; reconcile old official inventory separately"
+    },
+    {
+      "commit": "921ccc52",
+      "path": "docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md",
+      "lines": 320,
+      "sha256": "eff59889874d2cdfe1425883a9bfd74e4ba5934bcd4144b212480d4a95648ce8",
+      "scope": "full text read",
+      "same_as": null,
+      "topic": "P/D deployment, dependencies, role ownership, supported limits, sparse buffer and versions",
+      "global_new_count": "not inferred; reconcile old official inventory separately"
+    },
+    {
+      "commit": "2ed6cbba",
+      "path": "docs/source/developer_guide/Design_Documents/sfa_remote_d2h_connector.md",
+      "lines": 248,
+      "sha256": "d9870a312f90f7175793aced624eafd358c571287e4f27324111d64ac44ce42d",
+      "scope": "full text read",
+      "topic": "physical-storage gate vs request terminal state, unequal TP contributor groups, zero-work acknowledgments, no data-read retry, global DP ports",
+      "global_new_count": "not inferred"
+    }
+  ],
+  "rfcs": [
+    {
+      "url": "https://github.com/vllm-project/vllm/issues/48203",
+      "title": "[RFC]: Layerwise and Sparse KV cache offloading to support longer sequence length",
+      "body_sha256": "b8352135e91c87de2c82378804a7c7910b004158da2929dcf69a78045f6a06da",
+      "body_chars": 8875,
+      "comments_read": 12,
+      "scope": "entire captured issue body and all captured comments; body/comment image attachments viewed",
+      "limits": "proposal and contributor reports; not automatically merged vLLM/Ascend support or reproduced performance"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/issues/33398",
+      "title": "[RFC]: Layerwise KV cache offloading to support longer sequence length",
+      "body_sha256": "4cf841f57f0978e418666acef449ca4456fb090a3800573e21fcc80a20d78ec2",
+      "body_chars": 11382,
+      "comments_read": 12,
+      "scope": "entire captured issue body and all captured comments; body/comment image attachments viewed",
+      "limits": "proposal and contributor reports; not automatically merged vLLM/Ascend support or reproduced performance"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/issues/33980",
+      "title": "[RFC]: Sparse attention KV cache offloading to support longer sequence length",
+      "body_sha256": "fc350ac302eb2c94edc668c00341aaff3608248b7fa91709999812333241ee34",
+      "body_chars": 7184,
+      "comments_read": 6,
+      "scope": "entire captured issue body and all captured comments; body/comment image attachments viewed",
+      "limits": "proposal and contributor reports; not automatically merged vLLM/Ascend support or reproduced performance"
+    }
+  ],
+  "figures": [
+    {
+      "url": "https://github.com/user-attachments/assets/383b55ba-b6fe-457b-88b2-f73d0c1408c9",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc48203-figure-0.png",
+      "sha256": "fc87f2bd34282ec38867683237809dafb525d74947d1dd84c6eb6c7752aaf787",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "url": "https://github.com/user-attachments/assets/6d91ff35-ea79-469d-b75b-1fa18d4b5261",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc48203-figure-1.png",
+      "sha256": "d204fe28ae4c9549a40a06d38546a2750b460b79d411af92355af194f1f0688d",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "url": "https://github.com/user-attachments/assets/5164db29-4e17-4902-89f3-caee8556fba1",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc48203-figure-2.png",
+      "sha256": "eb9ba5da73743aee3ef63c1de51b0f690e701ba21fef7029c057d455e1527a50",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "url": "https://github.com/user-attachments/assets/e719bc30-1fef-4b85-81e5-ea5c6a88577b",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc48203-figure-3.png",
+      "sha256": "d674aa6726e606977f17196645511dc105dbb9ad146a2b3ce4dab1c758f19ec5",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "url": "https://github.com/user-attachments/assets/2485c81e-3d62-4974-a51e-996156cee72a",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc48203-figure-4.png",
+      "sha256": "9909671304131180ae24ffc274ac1cf4162d2c98b71da3c7c1bf1d3b0ee0c257",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "issue": 33398,
+      "url": "https://github.com/user-attachments/assets/6745ac17-62ef-42d0-9abf-7e3120bed2f4",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc33398-figure-0.png",
+      "sha256": "3e0f0ffb870d9d098c40d0be147aebfab1da6b7bc66bbaf9cddc1aa7fa22ec80",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "issue": 33398,
+      "url": "https://github.com/user-attachments/assets/5cb4753d-8973-487f-8d84-2893993c461f",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc33398-figure-1.png",
+      "sha256": "0a72efaa8bd4700b0b057433731b555e3774b1c9885d99fc52c450a8821ebb0d",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "issue": 33398,
+      "url": "https://github.com/user-attachments/assets/ccbd4c3a-f19d-4e2d-9b2b-ce447e3de628",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc33398-figure-2.png",
+      "sha256": "ef3f85f6285371315fb4fec9fb0566212a959166d3adc65c6bfb26db0aa27959",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "issue": 33398,
+      "url": "https://github.com/user-attachments/assets/eedeb79e-1ac9-430d-a5eb-46d445cf8afb",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc33398-figure-3.png",
+      "sha256": "a91de7c4bee428c0395508902a95d94f0a90961ed59c3ac3a8cdc0700efe6c34",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "issue": 33398,
+      "url": "https://github.com/user-attachments/assets/a41acfbd-28a0-4626-b4c6-a9751fafd12b",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc33398-figure-4.png",
+      "sha256": "2e0c47fdbce85c82f6c3dbe74b63d0a19817ddb00c42d5b959017679076043e2",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "issue": 33398,
+      "url": "https://github.com/user-attachments/assets/3c36ea7e-ab22-43c2-bceb-36759aea32e4",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc33398-figure-5.png",
+      "sha256": "522352326e271cce7c8d02429b064f1fbcf2f26531f4184aed2445ea075e5fde",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "issue": 33980,
+      "url": "https://github.com/user-attachments/assets/28ecef71-7b8f-4c46-bacc-2761bc8e6882",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc33980-figure-0.png",
+      "sha256": "dd0391f2124663807d003cdf177d1f158bb69ab4efcc5abfa50b8bf8b71432d3",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "issue": 33980,
+      "url": "https://github.com/user-attachments/assets/b95bacdc-647f-4cb6-9898-b9a0a127e285",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc33980-figure-1.png",
+      "sha256": "82b45b89a270c679d7904747dbbef594e91d94a1b048eda623ef4386290475b2",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "issue": 33398,
+      "comment": 4,
+      "url": "https://github.com/user-attachments/assets/5585c4bf-f64e-4311-b97f-853fdb5299b6",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc33398-comment-4-figure-0.png",
+      "sha256": "6a545a5d68a3f33ae93063fcb24ea9da65bdb885e7b7ec968f6bb5f2f34c6701",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "issue": 33398,
+      "comment": 4,
+      "url": "https://github.com/user-attachments/assets/54dbefcb-75bc-46fc-b5c0-5f937f75a4a6",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc33398-comment-4-figure-1.png",
+      "sha256": "ae10413eb8d168149cdf0fd8a077a94ef3cba5ce16d4c10ac8dd1447c3e033c2",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "issue": 33398,
+      "comment": 5,
+      "url": "https://github.com/user-attachments/assets/c99b0c91-24b0-4c1b-b7da-83ea5fdd372f",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc33398-comment-5-figure-0.png",
+      "sha256": "8b5d491096827e9a2aa893d9fbf92ac5adcec667710e6a8d9cc7fad4d4d8bfc0",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    },
+    {
+      "issue": 33980,
+      "comment": 5,
+      "url": "https://github.com/user-attachments/assets/98817daf-85b7-40a3-a444-8c6d571299ec",
+      "path": ".tmp/continuation-groups-2026-11-10/rfc33980-comment-5-figure-0.png",
+      "sha256": "87458202120a01ac99e979d6339e3787a42c68d1f343a6b622a8e4dc710e7822",
+      "viewed": true,
+      "scope": "actual image inspection; transparent figures rendered on white using browser"
+    }
+  ],
+  "mermaid": [
+    {
+      "rev": "2ed6cbba",
+      "type": "user",
+      "path": "docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md",
+      "index": 0,
+      "hash": "44290a0d6bb810fa8d53848250c882680ff2fb925a207431aed6267ba27f804a",
+      "screenshot": ".tmp/continuation-groups-2026-11-10/browser/mermaid-2ed6cbba-user-0.png",
+      "viewed": true
+    },
+    {
+      "rev": "baa023ad",
+      "type": "design",
+      "path": "docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md",
+      "index": 0,
+      "hash": "f7816c2f79b75d4cc4cb042fc72c8b146f3ddcae7dac27a1d516736393abbd7a",
+      "screenshot": ".tmp/continuation-groups-2026-11-10/browser/mermaid-baa023ad-design-0.png",
+      "viewed": true
+    },
+    {
+      "rev": "7d825229",
+      "type": "design",
+      "path": "docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md",
+      "index": 0,
+      "hash": "f7816c2f79b75d4cc4cb042fc72c8b146f3ddcae7dac27a1d516736393abbd7a",
+      "reuses": ".tmp/continuation-groups-2026-11-10/browser/mermaid-baa023ad-design-0.png",
+      "viewed": true
+    },
+    {
+      "rev": "921ccc52",
+      "type": "design",
+      "path": "docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md",
+      "index": 0,
+      "hash": "f7816c2f79b75d4cc4cb042fc72c8b146f3ddcae7dac27a1d516736393abbd7a",
+      "reuses": ".tmp/continuation-groups-2026-11-10/browser/mermaid-baa023ad-design-0.png",
+      "viewed": true
+    }
+  ],
+  "related_partial": [
+    {
+      "commit": "921ccc52",
+      "path": "docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md",
+      "read_lines": [
+        651,
+        736
+      ],
+      "note": "this refresh only; earlier 500 full reading retained"
+    }
+  ],
+  "topic_outcomes": [
+    "Dependency and host-memory/port gaps corrected on sparse page",
+    "Main 950 guide claim kept distinct from A3-only guard",
+    "Prefill overlap is conditional, not guaranteed; no RFC speedup imported",
+    "RD2H ownership and completion gates continue into layerwise review"
+  ],
+  "remaining_or_excluded": [
+    {
+      "target": "PR16640 fixed revision and mem_scan implementation",
+      "state": "guideline requirements read; implementation/deployment not validated here; carry to component coverage"
+    },
+    {
+      "target": "SparseServe 2509.24626 and FreeKV 2505.13109 linked by historical RFC",
+      "state": "linked research candidates; not counted as read; compare existing paper inventory during layerwise coverage"
+    },
+    {
+      "target": "RFC comment CUDA VMM alternative and Fathom paper 2609.17652",
+      "state": "excluded from this Ascend implementation judgment; unmerged/comment research alternative, not used to justify current teaching claims"
+    },
+    {
+      "target": "NPU performance/registration/precision",
+      "state": "not measured"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 650" width="880" height="650" role="img" aria-label="同样读取卡 1 的 [10,20]，URMA 通过队列异步提交工作，UB Memory 按地址直接发出读取。紫色线表示跨卡访问或数据，灰色虚线表示提交/完成关系。图只画路径与依赖，线长不代表延迟；具体完成与可见性遵守接口约定。">
+  <title>同样读取卡 1 的 [10,20]，URMA 通过队列异步提交工作，UB Memory 按地址直接发出读取。紫色线表示跨卡访问或数据，灰色虚线表示提交/完成关系。图只画路径与依赖，线长不代表延迟；具体完成与可见性遵守接口约定。</title>
+  <defs><marker id="ascend-950-remote-access-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="ascend-950-remote-access-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="24" y="52" width="832" height="254" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">URMA：先提交工作，之后取得完成依据</text>
+  <rect x="24" y="370" width="832" height="254" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">UB Memory：发出远端读取，依赖它的计算等待返回</text>
+  <path d="M140 136 L174 136" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-950-remote-access-ah-control)"/>
+  <path d="M288 136 L352 136" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-950-remote-access-ah-control)"/>
+  <path d="M470 136 L536 136" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ascend-950-remote-access-ah-comm)"/>
+  <path d="M660 136 L708 136" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ascend-950-remote-access-ah-comm)"/>
+  <path d="M758 160 L758 214 L240 214 L240 255 L172 255" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ascend-950-remote-access-ah-comm)"/>
+  <path d="M412 160 L412 238" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-950-remote-access-ah-control)"/>
+  <path d="M140 454 L188 454" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ascend-950-remote-access-ah-comm)"/>
+  <path d="M470 454 L536 454" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ascend-950-remote-access-ah-comm)"/>
+  <path d="M660 454 L708 454" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ascend-950-remote-access-ah-comm)"/>
+  <path d="M758 478 L758 532 L240 532 L240 573 L172 573" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ascend-950-remote-access-ah-comm)"/>
+  <rect x="176" y="95" width="112" height="34" fill="var(--color-control, #66716d)"/>
+  <text x="232" y="116.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">读卡 1 的数据</text>
+  <rect x="176" y="129" width="112" height="34" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="232" y="150.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">…</text>
+  <rect x="176" y="163" width="112" height="34" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="232" y="184.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">…</text>
+  <path d="M176 129h112M176 163h112" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="176" y="95" width="112" height="102" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="710" y="122" width="48" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="734" y="145.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">10</text>
+  <rect x="758" y="122" width="48" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="782" y="145.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">20</text>
+  <path d="M758 122v38" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="710" y="122" width="96" height="38" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="710" y="440" width="48" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="734" y="463.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">10</text>
+  <rect x="758" y="440" width="48" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="782" y="463.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">20</text>
+  <path d="M758 440v38" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="710" y="440" width="96" height="38" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="74" y="236" width="48" height="38" fill="var(--color-token, #087f73)"/>
+  <text x="98" y="259.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">10</text>
+  <rect x="122" y="236" width="48" height="38" fill="var(--color-token, #087f73)"/>
+  <text x="146" y="259.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">20</text>
+  <path d="M122 236v38" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="74" y="236" width="96" height="38" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="74" y="554" width="48" height="38" fill="var(--color-token, #087f73)"/>
+  <text x="98" y="577.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">10</text>
+  <rect x="122" y="554" width="48" height="38" fill="var(--color-token, #087f73)"/>
+  <text x="146" y="577.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">20</text>
+  <path d="M122 554v38" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="74" y="554" width="96" height="38" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="52" y="112" width="88" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="96" y="132" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">卡 0</text>
+  <text x="96" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">发起方</text>
+  <rect x="354" y="112" width="116" height="48" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="412" y="132" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">URMA</text>
+  <text x="412" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">与端口</text>
+  <rect x="538" y="112" width="122" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="599" y="132" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">卡 1</text>
+  <text x="599" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">地址与权限</text>
+  <rect x="310" y="240" width="250" height="34" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="435" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">完成依据 → 允许后续使用</text>
+  <rect x="52" y="430" width="88" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="96" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">卡 0</text>
+  <text x="96" y="469" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">发起方</text>
+  <rect x="190" y="430" width="280" height="48" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="330" y="459" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">按地址解码目的节点 → 端口</text>
+  <rect x="538" y="430" width="122" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="599" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">卡 1</text>
+  <text x="599" y="469" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">地址与权限</text>
+  <text x="232" y="84" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">Jetty 工作队列</text>
+  <text x="321" y="102" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">通知</text>
+  <text x="758" y="103" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">远端内存</text>
+  <text x="758" y="421" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">远端内存</text>
+  <text x="122" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">收到的数据</text>
+  <text x="122" y="543" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">返回的数据</text>
+  <text x="553" y="591" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">远端地址可访问，仍不等于本地访存延迟</text>
+</svg>

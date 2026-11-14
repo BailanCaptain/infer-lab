@@ -1,0 +1,28 @@
+layout: figure
+id: lora-resolver-loading
+caption: 前端先检查请求名；只有未知名且允许运行时更新时才查找。resolver 交出的是候选目录，引擎加载成功后才登记并继续请求。图中省略配置损坏、下载异常等退出分支，见正文错误说明。
+size: [860, 690]
+items:
+  - { at: [250, 25], size: [360, 60], text: 请求选择一个模型或适配器名, sub: 先检查基座和已登记名字, tone: token }
+  - { at: [30, 135], size: [320, 75], text: 基座或已登记的适配器, sub: 直接按已有记录继续请求, tone: token }
+  - { at: [510, 135], size: [320, 75], text: 尚未登记的名字, sub: 允许运行时更新才继续查找, tone: control }
+  - { at: [510, 285], size: [320, 75], text: resolver 定位并检查配置, sub: 本地目录，或允许的 Hub 仓库, tone: control }
+  - { at: [30, 285], size: [320, 75], text: 没有匹配候选, sub: 尝试下一项；全部没有则 404, tone: control, style: faded }
+  - { at: [510, 435], size: [320, 75], text: 引擎真正加载适配器, sub: 此时才读权重并检查兼容性, tone: weight }
+  - { at: [30, 435], size: [320, 75], text: 候选加载失败, sub: 可尝试下一项；全部失败则 400, tone: control, style: faded }
+  - { at: [510, 585], size: [320, 75], text: 登记成功，再继续这条请求, sub: 后续同名前端请求复用已有记录, tone: token }
+links:
+  - { from: [340, 85], via: [[340, 110], [190, 110]], to: [190, 135] }
+  - { from: [520, 85], via: [[520, 110], [670, 110]], to: [670, 135] }
+  - { from: [670, 210], to: [670, 285] }
+  - { from: [510, 322], to: [350, 322] }
+  - { from: [670, 360], to: [670, 435] }
+  - { from: [510, 472], to: [350, 472] }
+  - { from: [670, 510], to: [670, 585] }
+pins:
+  - source: vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L211-L239
+    symbols: [_check_model]
+  - source: vllm@0fc695fc:vllm/entrypoints/openai/models/serving.py#L275-L337
+    symbols: [resolve_lora]
+  - source: vllm@0fc695fc:vllm/plugins/lora_resolvers/filesystem_resolver.py#L1-L62
+    symbols: [resolve_lora]

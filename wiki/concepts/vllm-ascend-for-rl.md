@@ -1,47 +1,137 @@
 ---
 id: vllm-ascend-for-rl
-title: "vLLM-Ascend for RL：生成样本后，怎样安全换上新权重"
+title: vLLM-Ascend for RL：生成样本后，怎样安全换上新权重
 type: feature
-summary: RL 训练框架用 vLLM-Ascend 生成样本，再把新权重交回推理端。本页串起暂停、同卡与跨卡权重传输、训练数据返回和数值一致性，并区分 main 的统一配置与 GLM 固定版本。
-aliases: [RL, Reinforcement Learning, 强化学习, RLHF, rollout, rl_config, 权重同步, 训推协同, Router Replay, R3, tokens-only]
-chapters: ["19"]
+summary: >-
+  RL 训练框架用 vLLM-Ascend 生成样本，再把新权重交回推理端。本页串起暂停、同卡与跨卡权重传输、训练数据返回和数值一致性，并区分 main
+  的统一配置与 GLM 固定版本。
+aliases:
+  - RL
+  - Reinforcement Learning
+  - 强化学习
+  - RLHF
+  - rollout
+  - rl_config
+  - 权重同步
+  - 训推协同
+  - Router Replay
+  - R3
+  - tokens-only
+chapters:
+  - '19'
 order: 60
 sources:
-  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L1-L60
-  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L62-L197
-  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L199-L240
-  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L242-L367
-  - vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L236-L299
-  - vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L248-L341
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L262-L292
-  - vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L296-L358
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/hccl_engine.py#L30-L209
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L153-L222
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1340-L1382
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L282-L374
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L681-L694
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L282-L374
-  - vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L268-L364
-  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_weight_transfer_engine.py#L18-L73
-  - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_weight_transfer_engine.py#L18-L73
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/__init__.py#L24-L40
-  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L1-L59
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L150-L165
-  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L165-L177
-  - vllm@84030bbe:vllm/entrypoints/serve/dev/rlhf/api_router.py#L29-L80
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L1-L60'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L62-L197'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L199-L240'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L242-L367'
+  - >-
+    vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L236-L299
+  - 'vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L248-L341'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L262-L292'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L296-L358'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/hccl_engine.py#L30-L209
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L153-L222
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1340-L1382'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L282-L374'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L681-L694'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L282-L374'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L268-L364'
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_weight_transfer_engine.py#L18-L73
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_weight_transfer_engine.py#L18-L73
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/__init__.py#L24-L40
+  - >-
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L1-L59
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L150-L165'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L165-L177'
+  - 'vllm@84030bbe:vllm/entrypoints/serve/dev/rlhf/api_router.py#L29-L80'
+  - >-
+    raw:sha256-1820e1d48b11998ebd3a38a24f92aa6c878edf3647c118e64d82fc085b3bfc7e.md#L1-L1540
+  - >-
+    vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/worker/worker.py#L352-L357
+  - >-
+    vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/entrypoints/serve/dev/rlhf/api_router.py#L29-L45
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L365-L395'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L314-L363'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L850-L858'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/__init__.py#L24-L40
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L246-L299'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/device_allocator/sleep_mem_optimized.py#L63-L71
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/device_allocator/sleep_mem_optimized.py#L154-L242
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/device_allocator/sleep_mem_optimized.py#L257-L302
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L159-L170
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/hccl_engine.py#L147-L152
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/hccl_engine.py#L213-L217
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L318-L358'
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/rl.md
+  - 'https://docs.vllm.ai/en/latest/training/weight_transfer/nccl/#sparse-nccl'
+  - 'vllm@84030bbe:vllm/distributed/weight_transfer/factory.py#L84-L119'
+  - 'vllm@84030bbe:vllm/distributed/weight_transfer/factory.py#L218-L230'
+  - 'vllm-ascend@baa023ad:vllm_ascend/__init__.py#L77-L85'
+  - 'vllm-ascend@baa023ad:examples/rl/rlhf_http_npu_ipc.py#L1-L217'
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L261-L290'
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/packed_tensor.py#L271-L325'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L172-L228'
+  - 'vllm@84030bbe:vllm/distributed/weight_transfer/base.py#L493-L504'
+  - 'vllm@84030bbe:vllm/entrypoints/scale_out/factories.py#L66-L102'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L240-L257'
+  - 'https://github.com/vllm-project/vllm-ascend/blob/182ea0448550a970e4f0ae3624fe35e38b37bc80/examples/rl/rlhf_sparse_hccl.py'
+  - 'vllm-ascend@baa023ad:examples/rl/rlhf_http_hccl.py#L1-L302'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L837-L860'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L301-L363'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L245-L255'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1475-L1500'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L488-L508'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1627-L1639'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0rc2
+  - main
+evidence: C
 relations:
-  - {to: sleep-mode, kind: builds-on, note: 同卡训练与生成交替时，先理解显存释放、分阶段唤醒与权重恢复的顺序}
-  - {to: one-request, kind: builds-on, note: RL 沿用生成请求的七站；本页补充两轮生成之间的权重更新}
-  - {to: glm-5-3-flash-two-node, kind: builds-on, note: 固定双机是在线推理部署，未配置训练端和权重传输}
-  - {to: batch-invariance, kind: builds-on, note: 需要稳定 rollout 时继续核对批不变的算子与调度限制}
-  - {to: attention-backend-family, kind: builds-on, note: 训推一致选项走 FA3，适用模型与后端拒绝条件见该页}
-  - {to: expert-parallel, kind: builds-on, note: 先理解专家选择与执行，再区分 Router Replay 返回的是哪些记录}
-  - {to: ascend-patch-system, kind: builds-on, note: 旧版本通过工厂 patch 将 nccl 和 ipc 名称映射到 Ascend 后端}
+  - to: sleep-mode
+    kind: builds-on
+    note: 同卡训练与生成交替时，先理解显存释放、分阶段唤醒与权重恢复的顺序
+  - to: one-request
+    kind: builds-on
+    note: RL 沿用生成请求的七站；本页补充两轮生成之间的权重更新
+  - to: glm-5-3-flash-two-node
+    kind: builds-on
+    note: 固定双机是在线推理部署，未配置训练端和权重传输
+  - to: batch-invariance
+    kind: builds-on
+    note: 需要稳定 rollout 时继续核对批不变的算子与调度限制
+  - to: attention-backend-family
+    kind: builds-on
+    note: 训推一致选项走 FA3，适用模型与后端拒绝条件见该页
+  - to: expert-parallel
+    kind: builds-on
+    note: 先理解专家选择与执行，再区分 Router Replay 返回的是哪些记录
+  - to: ascend-patch-system
+    kind: builds-on
+    note: 旧版本通过工厂 patch 将 nccl 和 ipc 名称映射到 Ascend 后端
 contradicts: []
-updated: "2026-10-04"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-1820e1d48b11998ebd3a38a24f92aa6c878edf3647c118e64d82fc085b3bfc7e.md
+  - >-
+    raw/sha256-5ab006317879ae50dc82cf112a5be69423c448f9a4c3ce01fdf493366bed8b0d.md
 ---
 
 ## 模型生成一批回答后，怎样用它继续学习？
@@ -91,7 +181,10 @@ title: HCCL 权重更新通信组的参与者（教学示意）
 第二个接收编号 = 1 + 1 = 2
 ```
 
-传输的数据还包括参数名称、数据类型和形状。HCCL 的普通路径逐个接收权重、调用模型装载，再释放临时张量；packed 路径把多个张量打包，减少通信调用，打包参数（缓冲大小与缓冲个数）随更新信息由发送端下发，接收端直接取用。NPU IPC 按物理设备标识查找句柄，然后装入目标模型；“同机”不能代替“同卡”这一前提。
+传输的数据还包括参数名称、数据类型和形状。HCCL 的普通路径逐个接收权重、调用模型装载，再释放临时张量；本页 main 的 packed 路径把多个张量打包，减少通信调用，打包参数（缓冲大小与缓冲个数）随更新信息由发送端下发，接收端直接取用。NPU IPC 按物理设备标识查找句柄，再由模型装载；“同机”不能代替“同卡”这一前提。本页 main 的普通 IPC 路径有装载调用，packed 路径却缺少这一步，不能把传输返回成功当作模型已更新；rc2 的对应路径已补齐，具体版本条件见页末。
+
+
+固定镜像接收并加载权重后会等待相关 NPU 工作完成：HCCL 广播和 packed 传输可异步提交，这里的同步保证该更新流程返回前设备工作已完成。在途请求怎样暂停、何时恢复生成，仍由外层训练与服务流程协调。
 
 ## 除了回答文本，训练端还需要什么？
 
@@ -107,11 +200,19 @@ title: HCCL 权重更新通信组的参与者（教学示意）
 
 ## 为什么“训推一致”和“批不变”要分开选择？
 
-**两者解决不同来源的数值差异，统一 RL 开关不会自动把它们都打开。** 训推一致选项让支持的模型使用 FA3 attention backend，以配合训练侧 attention 的计算方式；这里的 FA3 是特定注意力实现，适用范围见[attention backend](attention-backend-family.md)。它需要额外软件包，不能把不支持的 MLA 或稀疏 attention 也切过去。
+**两者解决不同来源的数值差异，统一 RL 开关不会自动把它们都打开。** 训推一致选项在未使用 prefill context parallel（将长输入分给多卡处理）时，让支持的模型使用 FA3 attention backend，以配合训练侧 attention 的计算方式；这里的 FA3 是特定注意力实现，适用范围见[attention backend](attention-backend-family.md)。它需要总开关与一致性子开关同时开启，还要有额外软件包；不能把不支持的 MLA 或稀疏 attention 也切过去。
 
 batch invariance（批不变）则减少同一请求因批大小、批内伙伴或顺序变化产生的数值差异；其算子、图模式和调度限制见[批不变页](batch-invariance.md)。开了 FA3 不等于开了批不变，反过来也一样。统一配置里的批不变字段关闭时，已有的批不变环境变量设置仍保留。
 
 这些选项以更严格的计算路径换取数值一致性，代价包括吞吐损失或额外初始化工作。RL 的需要是让生成端和训练端拿到可解释、可比较的数据，实际选择仍由训练算法、模型结构与部署方式决定。
+
+## 新版怎样只更新部分权重，或重放指定 token？
+
+**下面两项来自 2026-11-02 的 921ccc52 官方指南，与前面的旧 main 配置分开。** Sparse HCCL 用于跨 NPU 更新选定的权重元素。补丁按 checkpoint 的参数名、完整形状和扁平索引描述，值是替换值；接收端再由模型加载器映射到本地 TP/EP 分片。训练端和推理端必须从同一 checkpoint 起步，否则未被替换的部分就不同。少传元素节省的是通信载荷，装载与临时空间不保证按同一比例减少。
+
+该指南要求未量化的 ND 权重、固定专家放置且关闭 EPLB；不支持 PP、FRACTAL_NZ、融合 MC2 专家权重列表、草稿模型和 packed sparse 更新。原地更新失败后保持生成暂停，恢复共同基线或重启引擎，不能拿只更新一部分的模型继续生成。因此这不是固定 GLM W8A8 部署的直接替换方案。
+
+**Trace Replay 则固定生成路径，用于记录这条路径上的真实概率。** 请求给出一串预定 token，执行时按它们推进，仍用模型原始 logits 分布计算这些 token 的 logprobs。它与前文 Router Replay 的“返回专家选择供训练重放”不同，也不等于模型自行采样时会生成同一串文字。指南仅支持 Model Runner V2，服务端和请求端都要配置，不能只传 token 列表。
 
 ## GLM 双机的一条请求会走进 RL 更新吗？
 
@@ -121,7 +222,7 @@ batch invariance（批不变）则减少同一请求因批大小、批内伙伴�
 
 若要把这套服务改成 RL rollout，首先要补上训练端、参数映射和更新调度，并在更新边界让所有相关 worker 一起切换版本。固定执行代码支持旧的更新接口，但没有 main 的统一配置。仅把 main 的 RL 字段复制到旧启动命令里，不能获得相同默认行为。
 
-即使换成支持统一配置的 main，打开总开关也会改变权重布局与内存分配配置。再打开训推一致选项时，GLM 使用的 MLA / 稀疏 attention 不符合 FA3 分支条件，会被拒绝；混合 attention 模型的批不变支持还须按专页核对。W8A8 权重更新所需的量化元数据、各分片映射与真实训练框架的联调也要单独验证。因此这里能确定的是“现有部署未启用”，不能把小模型传输示例当成 GLM RL 验收结果。
+即使换成支持统一配置的 main，打开总开关也会改变权重布局与内存分配配置。在未启用 prefill context parallel 的条件下，再打开训推一致选项，GLM 使用的 MLA / 稀疏 attention 不符合 FA3 分支条件，会被拒绝；启用这种上下文并行会绕过该 FA3 选择分支，并不表示得到 FA3 的训推一致能力。混合 attention 模型的批不变支持还须按专页核对。W8A8 权重更新所需的量化元数据、各分片映射与真实训练框架的联调也要单独验证。因此这里能确定的是“现有部署未启用”，不能把小模型传输示例当成 GLM RL 验收结果。
 
 ## 哪些理解最容易出错？
 
@@ -146,15 +247,20 @@ vllm serve Qwen/Qwen3-0.6B \
 
 `RlConfig.apply()` 只在 enabled 为真时应用三项默认行为：强制 `weight_nz_mode=0`，关闭 FRACTAL_NZ（为矩阵计算重排的权重布局）；启用开发端点；从 NPU 分配器配置中移除 expandable_segments。三个可选字段都默认 false：sleep_mode_extra_cleanup、enable_training_consistency、enable_batch_invariant。总开关不会自行配置传输引擎，也不会隐式启用 sleep。
 
-同卡方案改用 `backend="ipc"`；如需 sleep，再加 `--enable-sleep-mode` 并使用 `VLLM_WORKER_MULTIPROC_METHOD=spawn`。HTTP NPU IPC 示例需要 `VLLM_ALLOW_INSECURE_SERIALIZATION=1` 来序列化句柄，只适用于可信环境；开发端点也只能提供给受控的训练系统。level 2 的顺序是 sleep → wake weights → 权重更新 → wake kv_cache → resume，sleep 的 level 与 wake 的 tags 都放在查询参数里。
+同卡方案改用 `backend="npu_ipc"`；这是本页 main 与 rc2 实际注册的 Ascend 后端名，同版本指南中的 ipc 写法没有跟上注册实现。如需 sleep，再加 `--enable-sleep-mode` 并使用 `VLLM_WORKER_MULTIPROC_METHOD=spawn`。HTTP NPU IPC 示例需要 `VLLM_ALLOW_INSECURE_SERIALIZATION=1` 来序列化句柄，只适用于可信环境；开发端点也只能提供给受控的训练系统。level 2 的顺序是 sleep → wake weights → 权重更新 → wake kv_cache → resume，sleep 的 level 与 wake 的 tags 都放在查询参数里。
 
 ```wiki-diagram
 file: vllm-ascend-for-rl-update
 ```
 
-图中初始化握手发生在第一次传输前；每轮先等待暂停成功，再调用 start、一次或多次 update、finish，全部成功才 resume。HCCL 后端的 start / finish 分别准备和完成逐层重载；NPU IPC 后端的这两个方法为空操作，但 worker 仍检查更新状态。传输失败后须调查并恢复完整权重，不能拿可能只装了一部分的模型继续生成。
+图中初始化握手发生在第一次传输前；每轮先等待暂停成功，再调用 start、一次或多次 update、finish，全部成功才 resume。HCCL 后端的 start / finish 分别准备和完成逐层重载；本页 main 的 NPU IPC 后端这两个方法为空操作，但 worker 仍检查更新状态，rc2 则增加了逐层重载的准备与收尾。传输失败后须调查并恢复完整权重，不能拿可能只装了一部分的模型继续生成。
 
-控制请求示例：`POST /pause?mode=wait&clear_cache=true`，更新完成后 `POST /resume`。main 的 clear_cache 已弃用且对 keep 无效；完整收发双方代码见钉住的 [HCCL 示例](https://github.com/vllm-project/vllm-ascend/blob/baa023ad/examples/rl/rlhf_http_hccl.py)与 [NPU IPC 示例](https://github.com/vllm-project/vllm-ascend/blob/baa023ad/examples/rl/rlhf_http_npu_ipc.py)。HCCL 发送和接收要协调进行，不能等一个需要对端参加的阻塞通信完成后才启动对端。
+控制请求示例：`POST /pause?mode=wait&clear_cache=true`，更新完成后 `POST /resume`。main 的 clear_cache 已弃用且对 keep 无效；收发双方结构可对照钉住的 [HCCL 示例](https://github.com/vllm-project/vllm-ascend/blob/baa023ad/examples/rl/rlhf_http_hccl.py)与 [NPU IPC 示例](https://github.com/vllm-project/vllm-ascend/blob/baa023ad/examples/rl/rlhf_http_npu_ipc.py)。HCCL 发送和接收要协调进行，不能等一个需要对端参加的阻塞通信完成后才启动对端；示例用线程执行 HTTP 接收请求，实际客户端还需把线程中的失败传回主控制流程，线程结束本身不证明请求成功。
+
+**使用 NPU IPC trainer 工厂时，由发送方法包办一轮 start / update / finish。** trainer_init 已负责向 worker 发送初始化信息；每轮暂停成功后调用 send_weights，成功后再恢复生成，外层不要重复调用 start / finish。上述同卡示例在 send_weights 外又手动包了一次 start / finish，按本页 main 状态机会在第二次 start 报错，应按这一顺序修正。该快照先使用 packed=false；packed=true 的装载缺口与 rc2 修正见版本差异。
+
+后续上游暂停接口将 wait_for_inflight_requests 标为弃用；需要等待在途请求完成时，使用 wait 模式。迁移这一接口时应核对实际配套版本，不能直接把后续上游签名当成旧镜像接口。
+
 
 其余能力独立配置：
 
@@ -162,13 +268,25 @@ file: vllm-ascend-for-rl-update
 |---|---|
 | 返回概率 | completions 请求中按需设 `logprobs`、`prompt_logprobs`；后者用非流式请求 |
 | 返回专家记录 | 服务端 `--enable-return-routed-experts`；非流式响应解码 `choices[].routed_experts` |
-| 直接收发编号 | `--tokens-only`，请求 `/inference/v1/generate`，提供 `token_ids` 与 `sampling_params` |
+| 直接收发编号 | `--tokens-only`，请求 `/inference/v1/generate`，提供 `token_ids` 与 `sampling_params`；显式将 `VLLM_ENABLE_SCALE_OUT_ENDPOINTS` 设为 0 会冲突。普通服务保留其他 API 时，可改设该变量为 1 来注册编号端点 |
 | 工具交互 | `--enable-auto-tool-choice` 与模型匹配的 `--tool-call-parser`；外部环境执行工具 |
 | 指定 DP 组 | 请求头 `X-data-parallel-rank`；配置已有 DP 服务与外部路由器，没有 `vllm serve router` 或 `--dp-routing-config` |
-| 训推 attention 一致 | RL 配置的 `enable_training_consistency=true`；安装 `flash_attn_npu_v3` 并满足 FA3 条件 |
+| 训推 attention 一致 | RL 总开关和 `enable_training_consistency=true` 同开；未使用 prefill context parallel，安装 `flash_attn_npu_v3` 并满足 FA3 条件 |
 | 批不变 | RL 配置的 `enable_batch_invariant=true`；匹配的源码构建时设 `COMPILE_CUSTOM_KERNELS=1 VLLM_BATCH_INVARIANT=1`，安装配套算子 |
 
 批不变构建条件取专门指南：预编译 wheel 不包含算子源码，仅在安装 wheel 时设置环境变量不会重建算子。RL 指南给的运行例子采用 PIECEWISE 图模式，其他调度限制继续按批不变页核对。
+
+**rc2 的 Router Replay 还要求 V2 runner。** 配置校验会拒绝 MRV1 的专家记录捕获，因此除了返回开关，还须显式设置 VLLM_USE_V2_MODEL_RUNNER=1，并满足模型与其他功能的 V2 兼容条件。开返回开关或 RL 总开关都不会自动切换 runner；这条 rc2 条件也不能倒推旧 main 的实现范围。
+
+**921ccc52 的两个新增入口。** Sparse HCCL 将 weight-transfer-config.backend 设为 sparse_hccl，并启用 rl_config.enabled。指南的传输组包含一个训练发送进程与 TP×DP 个推理参与者，不再额外乘 EP；发送端序列见该指南所链的 [182ea044 稀疏示例](https://github.com/vllm-project/vllm-ascend/blob/182ea0448550a970e4f0ae3624fe35e38b37bc80/examples/rl/rlhf_sparse_hccl.py)，不能直接使用普通整权重广播的数据协议。示例为 Qwen3 MoE 的首末层、两个专家交换 gate projection 的前两行；训练端须放得下完整 BF16 模型，不能把少传元素理解成训练端只需容纳这些元素。
+
+Trace Replay 在启动前设 VLLM_USE_V2_MODEL_RUNNER=1、VLLM_ENABLE_SCALE_OUT_ENDPOINTS=1，并给 serve 添加 enable-trace-replay。前者选择必需的 runner，后者在普通服务注册 token-in/token-out 端点。向 /inference/v1/generate 发请求，例如：
+
+```json
+{"request_id":"replay-01","token_ids":[151644,8948,198],"sampling_params":{"trace_decode_token_ids":[15,284,1026,374],"logprobs":1}}
+```
+
+编号须来自现场模型的分词器。验收同时核返回的 token 顺序和对应 logprobs，而非只看回答文本；该示例解释 API 结构，没有验证本站 GLM 模型的 MRV2 兼容性。
 
 ### 会报什么错
 
@@ -180,7 +298,7 @@ file: vllm-ascend-for-rl-update
 | 尚未 start 就发送权重 | `start_weight_update must be called before update_weights.` | 同文件 `339–340` |
 | 上一轮未 finish 又 start | `start_weight_update called while a weight update is already active. Call finish_weight_update first.` | 同文件 `322–325` |
 | HCCL 接收前没有建立通信组 | `HCCL weight transfer not initialized. Call init_transfer_engine() first.` | `baa023ad`，`vllm_ascend/distributed/weight_transfer/hccl_engine.py:184–185` |
-| FA3 分支遇到 MLA / SFA | `FA3 backend does not support MLA and SFA.` | `baa023ad`，`vllm_ascend/platform.py:1365–1366` |
+| 未用 prefill context parallel，开启 RL 总开关与训推一致后，FA3 分支遇到 MLA / SFA | `FA3 backend does not support MLA and SFA.` | `baa023ad`，`vllm_ascend/platform.py:247、1365–1366` |
 
 main 开始更新时若最终 NZ 配置仍非零，会抛出：
 
@@ -204,17 +322,27 @@ FRACTAL_NZ mode is enabled. This may cause model parameter precision issues in t
 
 ### 版本差异
 
+下面 Worker 权重更新状态机在固定 main 已存在；rc2 的变化在引擎内部：NPU IPC 的 start/finish 从空操作改为 initialize/finalize_layerwise_reload，HCCL 引擎重建前 shutdown 旧组并关闭 communicator。睡眠的额外清理也增加 [HCCL 生命周期锚点](sleep-mode.md#版本差异)，这些都不替代训练端的全 Worker 协调。
+
+**NPU IPC packed 装载也存在版本差异。** main `baa023ad` 的 packed 消费者只返回解包后的张量列表；receive_weights 把 model.load_weights 放在非 packed 的 else 分支，packed=true 不会调用模型加载器，上游外层同步也不会补做装载。rc2 `7d825229` 把这一调用移到分支之后，两条路径都会执行。这个源码差异影响是否真正更换了权重，不能只用 HTTP 成功或设备同步完成来验收。
+
+**v0.30.0rc2 的 RL 总开关与各项能力仍分别控制。** RlConfig 的 enabled、额外 sleep 清理、training consistency、batch invariant 默认都为 false；总开关开启会将 weight_nz_mode 清零、删除 expandable_segments 并开启 SERVER_DEV_MODE，但 batch invariant 仍须单独启用。额外睡眠清理也仍要求总开关与子开关同时为真。
+
+权重更新入口已有明确状态机：start_weight_update 不接收 is_checkpoint_format，先检查引擎、重复 start 与 NZ，成功才标 active；update 要求 active、异常会清除，但不回滚已经写入的权重。finish 要求 active，结束传输和重置 LoRA 都成功后才清除标记；这两步抛异常时，标记仍保留。仅配置 weight_transfer_config 才创建引擎，Ascend 登记 hccl/npu_ipc worker 引擎及 npu_ipc trainer 工厂，不能直接沿用旧 nccl/ipc 名称。这个 Worker 状态机不代替训练端对所有 Worker 和请求边界的协调。
+
 v0.23 列专指维护分支 `2c59ff10`，v0.26 指 `2ed6cbba`，main 指 `baa023ad`，均为钉住的源码快照。GLM 用的是含模型代码的独立提交 `db701c1f`，不属于 v0.23 维护分支；本页核对的 worker 更新逻辑与 v0.23 一致。
 
-| 项目 | v0.23 | v0.26 | main | 对使用者意味着什么 |
+| 项目 | v0.23 | v0.26 | rc2（7d825229） | main |
 |---|---|---|---|---|
-| RL 总览与统一配置 | 没有 rl 特性页、没有 RlConfig | 同 v0.23 | 有；enabled 默认 false，其余三个字段也默认 false | 旧分支已有分散能力，不代表支持新的一键入口 |
-| 权重更新与默认启用 | 有，提供传输配置才创建引擎 | 同 v0.23 | 同样按传输配置创建 | 普通服务不自动同步权重 |
-| 跨卡 / 同卡入口 | 示例使用 nccl / ipc，工厂 patch 映射成 HCCL / NPU IPC | 同样保留该 patch | 指南使用 hccl / ipc，注册 Ascend 后端并增加 NPU IPC trainer 工厂 | 旧 nccl 名称不表示在 NPU 上运行 NCCL；命令按版本选 |
-| NZ 校验 | start 检查环境变量 | 同 v0.23 | RL 总开关强制布局模式为零；start 检查生效配置 | 新版覆盖布局设置并给 warning，旧版要手动保持配置一致 |
-| 更新 API | start 带 is_checkpoint_format，默认 true；worker 负责逐层重载或直接复制 | 同 v0.23 | start 不再有该参数，重载职责交给后端 | 旧训练客户端不能原样假定新版签名 |
-| sleep 额外清理 | top-level enable_sleep_mode_extra_cleanup，默认 false | 同 v0.23 | 移至 rl_config.sleep_mode_extra_cleanup，默认 false，总开关须开启 | 迁移要改配置层级；是否使用 sleep 仍单独配置 |
-| 批不变与训推一致入口 | 分散设置，见对应专题 | 同样没有统一 RL 配置 | 增加统一配置字段；两项不互相隐式启用 | 本表不把 main 的数据 API 与模型支持倒推到旧版本 |
+| RL 总览与统一配置 | 无 rl 特性页、无 RlConfig | 同 v0.23 | 有，四个布尔字段默认 false | 同 rc2 所列字段默认 |
+| 权重更新与默认启用 | 提供传输配置才创建引擎 | 同 v0.23 | 同样须提供配置 | 同样须提供配置 |
+| 跨卡 / 同卡入口 | nccl / ipc 经工厂 patch 映射 | 保留该 patch | 注册 hccl / npu_ipc | 同样注册；指南 ipc 名称不符实现 |
+| NZ 校验 | start 检查环境变量 | 同 v0.23 | 总开关清零布局模式；start 查生效配置 | 同 rc2 所列规则 |
+| 更新 API | start 带 is_checkpoint_format，默认 true；worker 负责重载或复制 | 同 v0.23 | start 无该参数；后端负责重载 | 同一职责拆分；IPC 内部差异见上文 |
+| sleep 额外清理 | top-level 字段，默认 false | 同 v0.23 | 移至 rl_config 子字段，默认 false，且须总开关 | 同 rc2 所列配置条件 |
+| 批不变与训推一致 | 分散设置 | 无统一 RL 配置 | 独立子开关，FA3 有无 PCP 与模型条件 | 同样独立启用，不互相隐式开启 |
+
+旧分支已有分散能力，不代表支持新的统一入口；四版的普通服务都不会自动同步权重。main/rc2 应使用 npu_ipc，上游 ipc 不会自动映射为 NPU IPC。升级时要同时迁移配置层级和更新接口，旧训练客户端不能原样假定新版签名；是否使用 sleep 仍单独配置。新版总开关会覆盖布局设置并给 warning，旧版则要手动保持环境与配置一致。表中的统一配置也不证明旧版已有 main 的数据 API 或模型支持。
 
 ### 源码位置
 
@@ -222,4 +350,10 @@ v0.23 列专指维护分支 `2c59ff10`，v0.26 指 `2ed6cbba`，main 指 `baa023
 
 **实现对应。** 总开关应用见 [C7]；更新状态机与 NZ 校验见 [C8]；HCCL 通信组、参数校验、普通与打包传输及逐层重载见 [C9]；NPU IPC 的句柄匹配与装载见 [C10]；分配器清理和 FA3 拒绝条件见 [C11]。固定 GLM 更新方法和创建条件见 [C12][C13]。两条维护分支的 worker 见 [C14][C15]，旧后端名称映射见 [C16][C17]，main 的后端注册见 [C18]，旧额外清理默认值见 [C20][C21]。暂停查询参数还与上游 main `84030bbe` 的端点定义核对，见 [C22]；GLM 控制流基线仍是 `0fc695fc`，未混用。
 
-**待核：** 缺少真实 NPU 上的完整训练循环、换权重耗时与显存曲线；缺少 GLM W8A8 参数分片、量化元数据与训练框架的同步验收，不能认定该组合已支持。上述小拓扑计数是教学推演，不是部署测量。外部网页未完成联网可达性验证，本文依据本地钉住的官方文档与源码。
+**容易受版本影响的调用链。** 后端名按配置直接查工厂、上游 ipc 注册和 Ascend 插件注册见来源 40–42，不能仅照抄指南名称。NPU IPC 示例与 trainer 生命周期见来源 43–44；packed 消费者、rc2 装载位置和外层同步见来源 45–47，与来源 10 对照。编号端点注册条件见来源 48，FA3 的无 PCP 前提见来源 49。来源 50 是新版指南所链的稀疏示例全文；来源 51 是整权重 HCCL HTTP 示例全文，其线程 join 没有把线程内异常传回主线程。来源 26–37 对应 rc2 配置、状态机、睡眠与重载，以及 main 原有状态机；睡眠完整调用顺序以[睡眠页](sleep-mode.md)为准。
+
+**实测边界：** 缺少真实 NPU 上的完整训练循环、换权重耗时与显存曲线；缺少 GLM W8A8 参数分片、量化元数据与训练框架的同步验收，不能认定该组合已支持。上述小拓扑计数是教学推演。新增 Sparse HCCL 与 Trace Replay 的入口、限制来自 921ccc52 官方 RL 指南；稀疏补丁坐标与替换语义另对照它所链的上游 Sparse NCCL 文档，通信后端按 Ascend 指南选择。
+
+- 来源 24：vllm-ascend@db701c1f，vllm_ascend/worker/worker.py，L352–L357。
+- 来源 25：vllm@84030bbe，vllm/entrypoints/serve/dev/rlhf/api_router.py，L29–L45。
+- 来源 52–53：rc2 传输引擎的创建条件和更新状态机；来源 54–55：无 PCP 前提下的 FA3 选择、软件包及模型限制；来源 56–57：平台实际调用 Router Replay 校验，以及 MRV1 的拒绝条件。

@@ -2,68 +2,215 @@
 id: request-call-chain
 title: 一条请求的代码路径：七站各在哪个进程、经过哪些函数
 type: concept
-summary: 沿用单请求那一页的七站，在官方双机部署上标出每一站在哪个进程里执行（API server、每个 DP 组的 EngineCore、每张卡的 worker）、经过哪些类和函数、进程之间走 ZMQ、共享内存队列还是 HCCL，哪些代码属于 vLLM、哪些属于 vllm-ascend；再讲怎样凭日志前缀和 traceback 判断请求停在哪一站，以及读源码从哪几个入口开始。
-aliases: [调用链, call chain, 请求路径, 请求调用链, 一次请求的调用链, 请求调用链：从调度计划到模型输出, execute_model 链路,
-  代码路径, 按 traceback 认站, 请求停在哪一站]
-chapters: ["09"]
+summary: >-
+  沿用单请求那一页的七站，在官方双机部署上标出每一站在哪个进程里执行（API server、每个 DP 组的 EngineCore、每张卡的
+  worker）、经过哪些类和函数、进程之间走 ZMQ、共享内存队列还是 HCCL，哪些代码属于 vLLM、哪些属于
+  vllm-ascend；再讲怎样凭日志前缀和 traceback 判断请求停在哪一站，以及读源码从哪几个入口开始。
+aliases:
+  - 调用链
+  - call chain
+  - 请求路径
+  - 请求调用链
+  - 一次请求的调用链
+  - 请求调用链：从调度计划到模型输出
+  - execute_model 链路
+  - 代码路径
+  - 按 traceback 认站
+  - 请求停在哪一站
+  - VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS
+  - VLLM_RPC_TIMEOUT
+  - HCCL_CONNECT_TIMEOUT
+  - HCCL_EXEC_TIMEOUT
+  - LLM.enqueue
+  - LLM.enqueue_chat
+  - wait_for_completion
+  - LLM.collective_rpc
+  - LLM.apply_model
+chapters:
+  - 09
 order: 10
 sources:
-  - vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/serving.py#L219-L356
-  - vllm@0fc695fc:vllm/v1/engine/async_llm.py#L280-L415
-  - vllm@0fc695fc:vllm/v1/engine/core_client.py#L1344-L1426
-  - vllm@0fc695fc:vllm/v1/engine/core_client.py#L515-L559
-  - vllm@0fc695fc:vllm/v1/engine/utils.py#L1000-L1045
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1118-L1164
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1273
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L484-L598
-  - vllm@0fc695fc:vllm/config/vllm.py#L497-L507
-  - vllm@0fc695fc:vllm/config/vllm.py#L957-L1002
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L967
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L400
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L969-L1031
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L495-L509
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L666
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1917-L2370
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2373-L2582
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2803-L2839
-  - vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L138-L259
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2053-L2123
-  - vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L135-L184
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L169-L260
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L420-L557
-  - vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L1173-L1454
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1329-L1650
-  - vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L660
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L692-L740
-  - vllm-ascend@db701c1f:vllm_ascend/__init__.py#L21-L41
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L660
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L805-L831
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L690-L823
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L718
-  - vllm-ascend@db701c1f:vllm_ascend/models/__init__.py#L10-L24
-  - vllm@0fc695fc:vllm/utils/system_utils.py#L201-L253
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L386-L400
-  - vllm@0fc695fc:vllm/logging_utils/dump_input.py#L56-L81
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1193-L1198
-  - vllm@0fc695fc:vllm/v1/engine/exceptions.py#L9-L18
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L270-L290
-  - vllm@0fc695fc:vllm/envs.py#L1647-L1648
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L636-L648
-  - vllm-ascend@baa023ad:vllm_ascend/models/__init__.py#L82-L91
-  - vllm@0fc695fc:vllm/config/scheduler.py#L168-L173
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_multimodal.py#L643-L692
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_mamba_scheduler.py#L7-L60
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L259-L263
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_coordinator.py#L461-L531
-  - vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L12-L67
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L106-L136
-  - vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L227-L236
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996
-  - vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L74-L82
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L521-L527
-verified: []
-evidence: "C"
+  - 'vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/serving.py#L219-L356'
+  - 'vllm@0fc695fc:vllm/v1/engine/async_llm.py#L280-L415'
+  - 'vllm@0fc695fc:vllm/v1/engine/core_client.py#L1344-L1426'
+  - 'vllm@0fc695fc:vllm/v1/engine/core_client.py#L515-L559'
+  - 'vllm@0fc695fc:vllm/v1/engine/utils.py#L1000-L1045'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1118-L1164'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1273'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L484-L598'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L497-L507'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L957-L1002'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L967'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L400'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L969-L1031'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L495-L509'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L666'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1917-L2370'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2373-L2582'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2803-L2839'
+  - 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L138-L259'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2053-L2123'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L135-L184'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L169-L260'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L420-L557'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L1173-L1454
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1329-L1650'
+  - 'vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L675'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L692-L740'
+  - 'vllm-ascend@db701c1f:vllm_ascend/__init__.py#L21-L41'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L660'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L805-L831'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L690-L823'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L718
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/__init__.py#L10-L24'
+  - 'vllm@0fc695fc:vllm/utils/system_utils.py#L201-L253'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L386-L400'
+  - 'vllm@0fc695fc:vllm/logging_utils/dump_input.py#L56-L81'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1193-L1198'
+  - 'vllm@0fc695fc:vllm/v1/engine/exceptions.py#L9-L18'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L270-L295'
+  - 'vllm@0fc695fc:vllm/envs.py#L1647-L1648'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L636-L648'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/__init__.py#L82-L91'
+  - 'vllm@0fc695fc:vllm/config/scheduler.py#L168-L173'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_multimodal.py#L643-L692'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_mamba_scheduler.py#L7-L60
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L259-L263'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_coordinator.py#L461-L531
+  - 'vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L12-L67'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L106-L136'
+  - 'vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L227-L236'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L74-L82'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L521-L527'
+  - >-
+    raw:sha256-8c7c025d5824f3b45a76b291c2cfc08bd855e9ee845cae77e5e2aa329e66c270.md#L1-L4556
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/async_llm.py#L408-L412
+  - >-
+    vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/worker/model_runner_v1.py#L2027-L2057
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L1264-L1272'
+  - >-
+    https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_CONNECT_TIMEOUT.md
+  - >-
+    https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_EXEC_TIMEOUT.md
+  - 'vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L232-L312'
+  - 'vllm@0fc695fc:vllm/envs.py#L2082-L2088'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L1708-L1718'
+  - 'vllm@568afb3a:vllm/envs.py#L1675-L1676'
+  - 'vllm@84030bbe:vllm/envs.py#L1791-L1792'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1274-L1282'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L1056-L1087'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L863-L871'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L710-L714'
+  - 'vllm@ced6857a:vllm/entrypoints/openai/chat_completion/api_router.py#L21-L24'
+  - 'vllm@ced6857a:vllm/v1/engine/core.py#L600-L617'
+  - 'vllm-ascend@7d825229:vllm_ascend/spec_decode/__init__.py#L41-L69'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L839-L853'
+  - 'vllm-ascend@7d825229:vllm_ascend/spec_decode/multi_kv_cache_group_proposer.py#L18-L48'
+  - 'vllm@ced6857a:vllm/v1/engine/core.py#L589-L628'
+  - 'vllm@84030bbe:vllm/v1/engine/core.py#L589-L628'
+  - 'vllm@ced6857a:vllm/envs.py#L1762-L1764'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L941-L948'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_multimodal.py#L643-L648'
+  - 'vllm@0fc695fc:vllm/config/model.py#L1623-L1632'
+  - 'vllm@0fc695fc:vllm/config/model.py#L1749-L1765'
+  - 'vllm@0fc695fc:vllm/config/model.py#L1848-L1857'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L2370-L2410'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L120-L134'
+  - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L53-L54'
+  - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L517-L548'
+  - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_coordinator.py#L42-L60'
+  - 'vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L689-L741'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L443-L473'
+  - 'vllm@568afb3a:vllm/v1/engine/core.py#L576-L606'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/__init__.py#L81-L94'
+  - 'vllm-ascend@baa023ad:vllm_ascend/spec_decode/__init__.py#L41-L69'
+  - 'vllm-ascend@baa023ad:vllm_ascend/spec_decode/multi_kv_cache_group_proposer.py#L18-L44'
+  - "vllm@0fc695fc:docs/serving/offline_inference.md#L1-L114"
+  - "vllm@0fc695fc:vllm/entrypoints/llm.py#L487-L569"
+  - "vllm@0fc695fc:vllm/entrypoints/llm.py#L710-L785"
+  - "vllm@0fc695fc:vllm/entrypoints/offline_utils.py#L523-L626"
+  - "vllm@0fc695fc:vllm/v1/engine/llm_engine.py#L152-L177"
+  - "vllm@0fc695fc:vllm/v1/engine/core_client.py#L82-L104"
+  - "vllm@0fc695fc:vllm/v1/engine/core_client.py#L288-L298"
+  - "vllm@0fc695fc:vllm/v1/engine/core_client.py#L834-L874"
+  - "vllm@0fc695fc:vllm/envs.py#L1248-L1250"
+  - "vllm@0fc695fc:vllm/entrypoints/llm.py#L807-L845"
+  - "vllm@0fc695fc:vllm/v1/engine/core.py#L727-L779"
+  - "vllm@0fc695fc:vllm/v1/engine/core.py#L1621-L1668"
+  - "vllm@568afb3a:vllm/entrypoints/llm.py#L476-L558"
+  - "vllm@568afb3a:vllm/entrypoints/llm.py#L699-L774"
+  - "vllm@568afb3a:vllm/entrypoints/offline_utils.py#L523-L626"
+  - "vllm@568afb3a:vllm/v1/engine/llm_engine.py#L161-L186"
+  - "vllm@568afb3a:vllm/v1/engine/core_client.py#L83-L105"
+  - "vllm@568afb3a:vllm/v1/engine/core_client.py#L289-L299"
+  - "vllm@568afb3a:vllm/v1/engine/core_client.py#L849-L889"
+  - "vllm@568afb3a:vllm/v1/engine/core.py#L1358-L1416"
+  - "vllm@568afb3a:vllm/envs.py#L1327-L1329"
+  - "vllm@568afb3a:vllm/v1/engine/core.py#L860-L914"
+  - "vllm@568afb3a:vllm/v1/engine/core.py#L1764-L1811"
+  - "vllm@ced6857a:vllm/entrypoints/llm.py#L483-L565"
+  - "vllm@ced6857a:vllm/entrypoints/llm.py#L706-L781"
+  - "vllm@ced6857a:vllm/entrypoints/offline_utils.py#L531-L634"
+  - "vllm@ced6857a:vllm/v1/engine/llm_engine.py#L166-L191"
+  - "vllm@ced6857a:vllm/v1/engine/core_client.py#L91-L129"
+  - "vllm@ced6857a:vllm/v1/engine/core_client.py#L361-L371"
+  - "vllm@ced6857a:vllm/v1/engine/core_client.py#L944-L979"
+  - "vllm@ced6857a:vllm/v1/engine/core.py#L1403-L1477"
+  - "vllm@ced6857a:vllm/envs.py#L1382-L1384"
+  - "vllm@ced6857a:vllm/v1/engine/core.py#L879-L933"
+  - "vllm@ced6857a:vllm/v1/engine/core.py#L1918-L1963"
+  - "vllm@ced6857a:vllm/v1/engine/core.py#L834-L839"
+  - "vllm@84030bbe:vllm/entrypoints/llm.py#L483-L565"
+  - "vllm@84030bbe:vllm/entrypoints/llm.py#L706-L781"
+  - "vllm@84030bbe:vllm/entrypoints/offline_utils.py#L531-L634"
+  - "vllm@84030bbe:vllm/v1/engine/llm_engine.py#L166-L191"
+  - "vllm@84030bbe:vllm/v1/engine/core_client.py#L91-L129"
+  - "vllm@84030bbe:vllm/v1/engine/core_client.py#L361-L371"
+  - "vllm@84030bbe:vllm/v1/engine/core_client.py#L944-L979"
+  - "vllm@84030bbe:vllm/v1/engine/core.py#L1403-L1477"
+  - "vllm@84030bbe:vllm/envs.py#L1411-L1413"
+  - "vllm@84030bbe:vllm/v1/engine/core.py#L879-L933"
+  - "vllm@84030bbe:vllm/v1/engine/core.py#L1918-L1963"
+  - "vllm@84030bbe:vllm/v1/engine/core.py#L834-L839"
+  - 'vllm@0fc695fc:vllm/entrypoints/llm.py#L571-L614'
+  - 'vllm@568afb3a:vllm/entrypoints/llm.py#L560-L603'
+  - 'vllm@ced6857a:vllm/entrypoints/llm.py#L567-L610'
+  - 'vllm@84030bbe:vllm/entrypoints/llm.py#L567-L610'
+  - 'vllm@0fc695fc:vllm/v1/engine/llm_engine.py#L410-L420'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L810-L817'
+  - 'vllm@0fc695fc:vllm/v1/engine/core_client.py#L920-L927'
+  - 'vllm@0fc695fc:vllm/v1/engine/core_client.py#L355-L362'
+  - 'vllm@0fc695fc:vllm/v1/executor/uniproc_executor.py#L79-L104'
+  - 'vllm@568afb3a:vllm/v1/executor/uniproc_executor.py#L79-L106'
+  - 'vllm@ced6857a:vllm/v1/executor/uniproc_executor.py#L90-L117'
+  - 'vllm@84030bbe:vllm/v1/executor/uniproc_executor.py#L90-L117'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L340-L404'
+  - 'vllm@568afb3a:vllm/v1/executor/multiproc_executor.py#L343-L405'
+  - 'vllm@ced6857a:vllm/v1/executor/multiproc_executor.py#L375-L448'
+  - 'vllm@84030bbe:vllm/v1/executor/multiproc_executor.py#L375-L448'
+  - 'vllm@0fc695fc:vllm/v1/worker/worker_base.py#L125-L130'
+  - 'vllm@0fc695fc:vllm/v1/worker/worker_base.py#L327-L328'
+  - 'vllm@0fc695fc:vllm/v1/serial_utils.py#L486-L510'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L605-L619'
+  - 'vllm@0fc695fc:vllm/v1/executor/uniproc_executor.py#L46-L69'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L791-L792'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L742-L746'
+  - 'vllm@568afb3a:vllm/v1/executor/multiproc_executor.py#L986-L1011'
+  - 'vllm@ced6857a:vllm/v1/executor/multiproc_executor.py#L1035-L1059'
+  - 'vllm@84030bbe:vllm/v1/executor/multiproc_executor.py#L1035-L1059'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0rc2
+  - main
+evidence: C
 relations:
   - to: learning-guide
     kind: builds-on
@@ -84,13 +231,16 @@ relations:
     kind: builds-on
     note: 本页给出一条请求沿途的入口函数，那一页讲整个仓库的目录怎么分工
 contradicts: []
-updated: "2026-09-27"
+updated: 2026-11-03T00:00:00.000Z
 origin: direct
 ---
 
 [调用链](#七站分在三种进程里)是一串函数的调用关系：A 调 B，B 再调 C。本页沿[一条请求](one-request.md)的七站，跟着提示词为 4 token 的示例请求 R1，看代码在哪个进程里跑、跨进程怎样交接，以及报错时该打开哪个文件；形状、通信字节与 [KV block](kv-cache.md)（保存历史的显存块）用量见前页。
 
 Python 报错时打印的 traceback 列出出错那一刻的调用链；跨进程交接则需要把几份日志连起来读。
+
+提交侧先在本进程的 OutputProcessor 注册请求，再异步提交给独立的 EngineCore。排查请求停在哪里时，应把本地注册与跨进程提交分成两步检查。
+
 
 ## 七站分在三种进程里
 
@@ -128,7 +278,7 @@ R1 被分到了 DP0，所以它的第 2 到第 6 站都在 node0 上。node1 的
 
 **ZMQ：API server 和每个 EngineCore 之间。** ZMQ 是一个在进程之间收发消息的库，同一台机器上和跨机器都能用。API server 开两个口子，一个专门往外发请求，一个专门收结果，两个 EngineCore 都连进来。两组引擎分在两台机器上，所以地址是 node0 上的 TCP 端口，而不是本机的临时文件。消息用 msgpack（一种紧凑的二进制编码格式）打包。EngineCore 进程里另有两个后台**线程**（同一个进程里同时执行的几条执行流，共享这个进程的内存）专管收发：收线程把解码后的请求放进一个进程内队列，发线程从另一个队列取出结果发回去；主线程只跑一个不停转圈的**忙循环**：取新请求，跑一步，放结果。
 
-**共享内存队列：EngineCore 和本机 8 个 worker 之间。** 共享内存是同一台机器上几个进程都能读写的一块内存，传数据不经过网络。EngineCore 进程里有一个 `MultiprocExecutor` 对象，负责管理本机的 8 个 worker。它把「要执行的函数名和参数」写进一个广播队列一次，8 个 worker 各自读到同一条消息。回程每个 worker 各有一条自己的响应队列，但 `MultiprocExecutor` 只读第 0 号 worker（TP 组里编号为 0 的那张卡）的那一条。
+**共享内存队列：EngineCore 和本机 8 个 worker 之间。** 共享内存是同一台机器上几个进程都能读写的一块内存，传数据不经过网络。EngineCore 进程里有一个 `MultiprocExecutor` 对象，负责管理本机的 8 个 worker。它把「要执行的函数名和参数」写进一个广播队列一次，8 个 worker 各自读到同一条消息。回程每个 worker 各有一条自己的响应队列；本页生成内部调用指定第 0 号 worker（TP 组里编号为 0 的那张卡）回复，所以执行器只读它的那一条。后文的公开 Python RPC 默认收各 Worker 的结果，收集范围由具体调用决定。
 
 **HCCL：worker 和 worker 之间，搬张量。** HCCL（昇腾集合通信库）负责卡与卡之间的数据交换。机内 8 张卡在每层的张量并行里合并结果，16 张卡在 MoE 层里互相派发 token。这些通信各发生几次、每次多少字节，见[一条请求](one-request.md)第 4 站的「一次前向的通信账」。
 
@@ -145,6 +295,9 @@ R1 被分到了 DP0，所以它的第 2 到第 6 站都在 node0 上。node1 的
 
 拆成两次以后，EngineCore 可以趁 worker 做前向的时候算一张结构化输出要用的表（结构化输出限定模型只能生成合法 JSON 这类格式，这张表写明下一个 token 允许是哪些），随第二次调用一起送过去，见[结构化输出](structured-output.md)。
 
+
+进入模型执行入口，只能证明 worker 收到了这次调用。若本请求没有排到 token，先检查整批是否还有别的请求要算；若整批都没有 token，再区分返回空输出与 KV connector（两端交接历史状态的连接器）的协作路径。部分 DP 执行配置还会先做 dummy run，也就是为配合其他组而执行的空批次；具体触发条件见页末源码。因而“本请求没有前向”和“设备没有任何工作”是两种不同的结论。
+
 ```wiki-diagram
 file: request-call-chain-step
 ```
@@ -153,9 +306,9 @@ file: request-call-chain-step
 
 图中 future 是「结果以后才会到」的占位对象。普通文本请求发出两次 RPC 后将 future 入队；队列未满且仍能推进时，沿左侧回环优先安排下一批。队列已满或没有后续请求可调度时，沿向下分支等待最老一批，再做第 6 站。结构化输出依赖前批 token 时，第二次 RPC 会延后到前批更新之后。
 
-所以 worker 可能正在算第 N 步，EngineCore 已经把第 N+1 步排好发出去了。读 traceback 时，第 6 站正在处理的清单属于上一步，不能与刚发出的清单混为一谈。实际是否启用，以启动日志为准，日志格式见页末。
+在这种重叠执行中，worker 尚未完成第 N 步时，EngineCore 就能先发出第 N+1 步的清单。读 traceback 时，应按批次或执行步骤编号，将第 6 站的结果更新与它所属的旧清单配对，再看新清单；仅按日志相邻位置拼接，会把两步混成一步。实际是否启用异步调度，以启动日志为准，日志格式见页末。
 
-异步调度还换用 AsyncScheduler，主要增加候选占位和结果更新的记账。因此第 2、6 站的 traceback 可能同时经过普通调度器与异步调度器；具体方法和继承关系的待核项见页末[源码位置](#源码位置)。
+异步调度还换用 AsyncScheduler：调度主体继续复用父类，候选占位和结果更新则有自己的记账方法。因此，要按栈中的具体方法判断第 2、6 站做到了哪一步，不能只凭类名认站。页末[源码位置](#源码位置)列出已核的方法及继承关系的验证办法；本部署运行时的继承链仍缺实际打印记录。
 
 ## vllm-ascend 从六个口子接进 vLLM
 
@@ -208,6 +361,38 @@ file: request-call-chain-branches
 
 **node1 每一步在做什么。** R1 在 DP0 上，node1 的调度器一直是空的。`DPEngineCoreProc.run_busy_loop` 发现这一圈没有可跑的请求，但另一组还在忙，就改走 `execute_dummy_batch` → `MultiprocExecutor.execute_dummy_batch` → `NPUWorker.execute_dummy_batch` → `NPUModelRunner._dummy_run`，也就是执行一次空批次。空批次同样经过 `_sync_metadata_across_dp`，宽度和图模式跟 node0 对齐，然后完整跑一遍 45 层，连草稿层也陪跑一次，这样 node0 的 MoE 通信才凑得齐 16 张卡。所以排查时在 node1 worker 的报错栈或性能剖析里看到 `_dummy_run`，那是正常的陪跑，node1 并没有收到请求。
 
+## 离线脚本能先提交几组请求，再一起取结果吗？
+
+**可以。离线队列把“提交输入”和“等生成结束”分成两次调用。** 离线是由 Python 脚本直接调用已有的 LLM 对象，省去 HTTP 前端；模板、分词、调度、模型计算和结果整理仍然要做。提交时先取得每条请求的编号，脚本可以接着提交另一组，再一起等结果。这种分工适合分批准备输入，但提交阶段仍花前处理时间，所有在途请求和最终输出也仍占内存。
+
+默认情况下，引擎在独立的后台进程中运行：**第一组发过去以后就可以开始算，不必等脚本调用等待方法。** 若改成进程内引擎，则由调用方在等待循环里逐步推进计算；模式的选择见[进程布局](engine-processes.md#executor-决定-worker-是不是独立进程)。两种入口最终都交给前面的调度、Worker 和结果更新环节，但收结果的一端变成脚本。
+
+```wiki-diagram
+file: request-offline-queue
+```
+
+用一个普通生成示意：已有引擎尚未提交过请求，每个输入只要一个答案。先交题目 A、B、C，取得编号 0、1、2；再交 D、E，取得编号 3、4。
+
+```calc
+title: 分两次提交，最后一起收齐（示意）
+提交的请求 = 3 条 + 2 条 = 5 条
+完整返回的结果 = 5 条请求 × 1 份结果/请求 = 5 份结果
+```
+
+假设实际完成顺序是 2、0、4、1、3，等待结束返回的列表仍按编号 0、1、2、3、4 排列，方便与 A 到 E 对回去。**等待的是当前引擎里全部未完成的请求，不能只传第一组的编号、要求单独等这三条。** 编号方便识别结果，本接口没有按编号选择等待子集的参数。
+
+“提交一组”也不表示整组同时入队：实现会逐条准备和加入。若后面一条失败，会取消这次调用已经加入的请求，再抛出异常；前面几条在默认后台模式下已来得及做的计算不会因此倒流。若确实需要全部先入队再开算，可以在一个原本清醒、尚无已有工作的引擎上先暂停调度，提交两组后恢复，再等待；具体 level 0 调用及其对已有请求的处理见页末。这里讲的是离线提交方式，前面 GLM 双机的 HTTP 配方仍沿用原七站路径。
+
+### 脚本能直接检查各个 Worker 吗？
+
+**公开 RPC 让脚本把一个小操作交给当前执行器管理的各个 Worker，再收回结果列表。** 例如检查每个 Worker 装入了什么模型类，可以分别在各进程读取类名，只传回短字符串；不用创建一条生成请求，也不经过 HTTP 模板和采样流程。跨进程仍要编码、传输和等待，因此它更适合控制信息，回传整份权重或大张量会增加拷贝、传输及对象保留成本。
+
+两个入口的区别在于函数收到谁：collective_rpc 接收 Worker 方法名，或以 Worker 侧对象为首参的函数；apply_model 则把各 Worker 已加载的模型对象交给函数。前者可能收到一个转发属性的包装对象，不能直接当成模型。后者看到的是本 Worker 的模型；使用 TP/PP 时，分片不会因为调用这个接口就拼回完整模型。
+
+用两个 Worker 的**示意**说明返回范围：两边回调分别返回字符串 A、B，脚本拿到两项结果列表；这是两次回调的返回值，不是两枚生成 token。这里的“各 Worker”限定当前执行器管理的组，不自动扩展为部署中所有 DP 组。公开调用没有指定生成路径的单一回复 rank，因此也不能照搬前文“只收第 0 号回复”的规则。
+
+指定超时也要先看执行器。MP 共享一个截止时间等待响应；等待超时会报错，但不会撤销远端已经完成的动作。四版 UniProc 的同步公共分支直接运行方法，没有按 timeout 计时中断。实际调用片段与版本差异见[怎么开](#怎么开)和[版本差异](#版本差异)。
+
 ## 出问题时，判断它停在哪一站
 
 服务出问题时，先定位「停在哪个进程」，再定位「停在哪一站」。手上一般有两样东西：日志，和报错时打印的调用链。
@@ -218,7 +403,7 @@ file: request-call-chain-log-route
 
 图的上半部先沿异常回传方向找到原始日志，下半部再认进程和站点。日志前缀格式是 `(名字 pid=进程号)`；worker 名字依次带 DP、TP、EP 编号，例如 node1 本机编号 3 的卡是 `Worker_DP1_TP3_EP11`。进程把范围缩到几站，最内层 traceback 再把范围缩到具体函数。
 
-**第二步看报错链。** Python 打印的调用链是从外往里排的，最下面一行是最里层，也就是真正出错的地方。按最里层那一帧的文件路径判断：
+**第二步看报错链。** Python 打印的调用链从外往里排，最内层的栈帧指出异常在哪里被发现或抛出。先用它定位站点，再结合原始日志找原因；跨进程转报和异步设备错误还要追到更早的执行记录。按最里层那一帧的文件路径判断：
 
 | 最里层在哪 | 是哪一站 | 先看什么 |
 |---|---|---|
@@ -234,7 +419,7 @@ file: request-call-chain-log-route
 
 **用原始日志补齐图上的线索。** worker 异常要看它自己的日志；EngineCore 异常前会 dump 本步输入与调度清单；进程直接退出则查看监视线程日志及退出原因。可搜索的完整报错串见页末[会报什么错](#会报什么错)。
 
-**卡住不动怎么判断。** 两次 RPC 默认各等 300 秒；超时表示 worker 没及时回话，可能是前向很慢，也可能是在集合通信里等别的卡。通信要组内成员到齐才结束：机内是 8 张，MoE 是全部 16 张。一张卡故障会让其余卡一起等，因此要将 16 个 worker 的日志按时间对齐，并核对两机时钟；超时设置与报错格式见页末。
+**卡住不动怎么判断。** 本页 GLM 配方给两次 RPC 各设 3000 秒等待预算；超时只说明 worker 没在限时内回话。先查同一步各卡最后完成了什么：若仍在计算，继续查前向耗时；若部分卡已进入集合通信，另一些还未到达，就沿未到达的卡往前查。通信要组内成员到齐才结束：机内是 8 张，MoE 是全部 16 张。一张卡故障会让其余卡一起等，因此要将 16 个 worker 的日志按时间对齐，并核对两机时钟；缺少某张卡的记录时先补齐，不能把最后报超时的卡当根因。上游定义默认、Ascend 改写与通信库等待的区别见页末。
 
 **图模式下怎样定位算子。** 先看 plog（CANN 的运行日志）；若要用同步调试，让每个算子提交后立刻等待完成，就须先关闭 ACL Graph，此时第 4 站改走 eager。开关和日志目录见页末。
 
@@ -248,35 +433,137 @@ file: request-call-chain-log-route
 
 ## 对照源码
 
+把调用链用于排障时，先对齐同一请求、同一执行步骤和各 rank 的记录；函数已经提交任务，不代表设备已经就绪。按最后成功的交接继续查，具体证据与实验见[推理排障入口](inference-troubleshooting.md)，时间线的判别见[性能分析](inference-performance-analysis.md)。
+
 ### 怎么开
 
 部署参数统一见[部署前提](glm-5-3-flash-two-node.md#部署前提)。启动命令未显式传 `--async-scheduling`；vLLM 在 MTP 方法与执行器都支持时自动启用，运行状态用 `Asynchronous scheduling is enabled.` / `... disabled.` 日志确认。两次 RPC 与批次队列的代码入口见下文。
 
+**离线队列沿用已经创建好的 llm。** `enqueue` 接收普通生成输入，`enqueue_chat` 接收对话并先套模板；两者都返回请求 ID 列表，限生成模型。未传 sampling_params 时使用模型默认采样参数。下面只示意调用顺序，不重新加载一份模型：
+
+```python
+first_ids = llm.enqueue(["题目 A", "题目 B", "题目 C"], use_tqdm=False)
+second_ids = llm.enqueue(["题目 D", "题目 E"], use_tqdm=False)
+outputs = llm.wait_for_completion(use_tqdm=False)
+```
+
+若需要先收齐输入再调度，在上述第一行前调用 `llm.sleep(level=0)`，两次提交后、等待前调用 `llm.wake_up(tags=["scheduling"])`。这个局部例子从清醒且无已有工作的引擎开始；默认 mode="abort" 会终止已有请求。level 0 只停调度并继续收请求，不卸载模型权重，也不主动清除 prefix cache；level 1/2 的内存休眠是另一种操作。仅取消进程间运行时，还要核对 VLLM_ENABLE_V1_MULTIPROCESSING 及显式强制条件，见[进程开关](engine-processes.md#怎么开)。
+
+wait_for_completion 默认接受 RequestOutput 或 PoolingRequestOutput。显式传 output_type 是检查返回类型，不是过滤器；共享循环仅收最终输出，再按数字请求 ID 排序。调用时没有未完成请求，返回空列表。这里的“提交与等待分开”也不同于[异步调度](async-scheduling.md)：后者讨论 EngineCore 怎样把调度与设备执行重叠，不能仅凭用了 enqueue 判断它是否启用。
+
+**公开 RPC 沿用同一个 llm。** 以下只取类名，返回的是列表中的短字符串；第一项检查 Worker 侧对象类型，第二项检查局部模型类型。先完成当前实验的生成工作，便于把检查结果对应到明确状态：
+
+```python
+worker_types = llm.collective_rpc(lambda worker: type(worker).__name__)
+model_types = llm.apply_model(lambda model: type(model).__name__)
+print(worker_types)
+print(model_types)
+```
+
+collective_rpc 的默认 timeout=None；显式 timeout 以秒计，args 默认空元组，kwargs 默认 None。它们传给当前执行器处理，不能用这里的参数替代生成内部两次 RPC 的环境变量。apply_model 没有公开 timeout 参数。固定 GLM 的 get_model 会去掉 ACLGraphWrapper 外壳再返回局部模型，但不会跨卡汇总参数；上面的类名只能识别入口对象，不能单独证明权重完整、数值正确或设备空闲。
+
+**三个超时分别等什么。** 建链是在通信成员之间建立连接，执行同步是已连上的成员等彼此完成通信，Worker RPC 则是 EngineCore 等 Worker 回应一次方法调用。三者覆盖的阶段不同；HTTP 空闲连接保活另见[API 入口](api-server-entry.md#怎么开)，都不能直接当成一条生成请求的总时限。
+
+| 环境变量 | 输入、定义默认与生效边界 | 固定 GLM 配方 |
+|---|---|---|
+| VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS | 整数字符串，秒；上游默认 300。固定 Ascend 的配置检查把小于 1836 的模块属性值改为 3000，等于或大于 1836 保留；不是读取 HCCL 配置动态联动 | 显式 3000；execute_model 和 sample_tokens 各调用一次 collective_rpc，各有自己的截止时间 |
+| HCCL_CONNECT_TIMEOUT | CANN 9.1.X：整数秒，范围 120–7200，默认 120；通知各节点初始化失败原因另加 20 秒，文档建链等待为设置值加 20 | 显式 1200，对应文档口径 1220 秒；不是每次 decode 都预留这段时间 |
+| HCCL_EXEC_TIMEOUT | A2 HOST/HOST_TS：整数秒，0–2147483647，默认 1836，0 表示不设限。AIV：0–1091 秒，默认 1091，可按 10 ms 精度输入；0 或超上限按 1091，最终还按硬件时间间隔量化 | 教程同时给 3600 与 AIV；按对应 AIV 规则不能视作实际 3600 秒。通信域 hcclExecTimeOut 可优先于环境值，核现场时还要看实际模式与通信域配置 |
+
+三个变量都在两端启动服务前设置并由子进程继承。教程原样片段如下；它展示配方输入，表中的覆盖与范围仍决定解释方式。
+
+```bash
+export VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=3000
+export HCCL_CONNECT_TIMEOUT=1200
+export HCCL_EXEC_TIMEOUT=3600
+```
+
+Worker 的截止时间在发起 collective_rpc 时由单调时钟计算，读响应队列时用剩余预算；non_block 返回 future 也沿用这个截止时间，不是在调用 future.result 时重新开始计时。例如示意的 3000 秒预算已用掉 80 秒，之后等待只剩约 2920 秒。它限制这次 Worker 调用，不会把 100 次 decode 合并成一份 3000 秒预算；execute_dummy_batch 等没有传此参数的调用也不能一概套用。
+
+上游 getter 只做 int 转换，没有把 0、负数或 None 字符串定义为“无限”；固定 Ascend 又会改写小于阈值的值，因此不能靠填 0 关闭这项等待。HCCL 两种模式对 0 的含义不同，不能复制 HOST 的关闭方式到 AIV。延长等待只推迟发现停滞，不会让选错的网卡恢复连通。
+
+**VLLM_RPC_TIMEOUT 在这个版本不再是有效调节入口。** 固定教程仍 export 3600000，但所查固定 vLLM 的环境注册表与整个运行包没有该变量的定义或消费者，Ascend 运行包也不消费它；它不是上表 Worker 超时的别名。不能把这串数字换算成本部署实际等待时间。默认环境校验会对未知 VLLM_ 变量告警；启用 fail_on_environ_validation 才会直接拒绝。教程残留与当前有效参数应分开识别，排查 Worker 等待使用上表第一项。
+
 ### 会报什么错
+
+离线 enqueue / enqueue_chat 用于非生成模型时，会报只支持 generative models 的 ValueError；用等待方法的 output_type 指定了与实际结果不匹配的类型，会触发类型断言。逐条加入过程中出错时，已加入的本次请求会被取消，原异常继续抛出；调用方应按这次失败处理，不能把这次半组输入当作成功完成。
+
+公开 RPC 的方法名不存在、回调自身失败或结果无法传回，沿执行器异常路径报告。MP 普通公共调用读取各响应队列，不能用“生成只收一个 rank”的现象推断它会忽略其余 Worker 的错误。MP 超时表示等待没有按时结束，远端操作可能已发生；含修改的调用不能把超时当成可无条件重试的依据。UniProc 的同步分支没有同样的超时保障。
 
 - worker 的 `WorkerProc hit an exception.` 是原始异常；EngineCore 会转报 `Worker failed with error '...'`。进程死亡则是 `Worker proc ... died unexpectedly, shutting down executor.` [C40]。
 - EngineCore 先以 `Dumping input data for V1 LLM engine` 开头 dump 本步清单（`vllm@0fc695fc:vllm/logging_utils/dump_input.py#L56-L81`），再报 `EngineCore encountered a fatal error.`；前端的 `EngineDeadError` 用于指路。
-- RPC 默认等 300 秒，由 `VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS` 设置；超时报 `RPC call to {method} timed out.`，例如 `RPC call to execute_model timed out.` [C12]。
+- RPC 等待由上表的定义默认、平台改写和显式配置共同决定；本 GLM 配方为 3000 秒。超时报 `RPC call to {method} timed out.`，例如 `RPC call to execute_model timed out.` [C12]。
 - `ASCEND_LAUNCH_BLOCKING=1` 让每个算子提交后同步等待，与 ACL Graph 互斥；同时打开会在启动时报错并提示看 plog [C42]。plog 默认目录是 `$HOME/ascend/log/debug`；使用同步调试前关闭图模式，第 4 站改走 eager。
 
-待核：非 0 号 worker 抛异常时，EngineCore 收到超时还是转达的异常，尚缺本基线的实证。
+待核：生成内部仅收第 0 号回复的路径中，非 0 号 worker 抛异常时，EngineCore 收到超时还是转达的异常，尚缺本基线的实证。
+
+Worker 超时变量为空或不是整数时，int 转换会报 ValueError。旧变量可能触发 `Unknown vLLM environment variable detected`，不代表它已生效。HCCL 建链与执行超时的具体日志随 CANN 路径而异：前者先查地址、路由、端口与对端是否启动；后者先把各 rank 同一步最后完成的操作对齐，再判断是否有某张卡提前失败。不要通过不断增大超时掩盖缺失成员。
 
 ### 开销和什么时候别开
 
 异步调度用最多两批的队列重叠调度和执行，EngineCore 最多领先 worker 一步；排错时需将清单与对应批次配对。通信还要求所有成员到齐，一张卡卡住可能让同组其余卡一起超时，报错卡不一定是根因 [D]。同步调试用于定位算子，但关闭图模式后不再代表原来的图回放性能。
 
+超时预算本身不会增加吞吐。调大后，故障请求及其占用的 KV/进程资源可能保留更久，故障反馈也更晚；调小则可能把仍正常运行的长步骤误判失败。需要长等待时先证实正常步骤耗时，并核 HCCL 模式上限；三层等待开始时间不同，不能简单比较数值后认定必然由哪一层先报错。
+
+离线队列等待会积攒所有请求的最终结果，再返回整个列表；一次放入很多长输入、长输出时，应同时规划主机内存与设备缓存。普通 generate / chat 已经能处理一组输入，仅为“一次生成多条”不必拆成提交和等待两步；确实需要分别准备输入、统一收尾时再采用这组接口。
+
 ### 版本差异
 
-本页的控制流依据 `vllm@0fc695fc`（对应 vLLM v0.23.0），执行侧依据 `vllm-ascend@db701c1f`。和 vllm-ascend 的 main 分支（`baa023ad`）相比，请求路径上有两处改名。七站的划分和每一站的职责不变，变的是「按文件名和类名认站」这件事：
+离线队列按固定上游比较点核对，main 是独立固定对照，不据此推定与 Ascend main 精确配套：
+
+| 离线调用行为 | v0.23（0fc695fc） | v0.26 rc（568afb3a） | v0.30.0rc2（ced6857a） | 固定 main（84030bbe） |
+|---|---|---|---|---|
+| 提交／等待入口 | enqueue、enqueue_chat、wait_for_completion；等待全部并按编号排序 | 相同 | 相同 | 相同 |
+| 默认进程模式 | 环境默认 1；后台可在等待前计算 | 相同 | 相同 | 相同 |
+| 进程内模式 | get_output 直接推进 step；由调用方驱动 | 相同 | 相同 | 相同 |
+| level 0 与唤醒 | 只暂停调度；wake 恢复调度 | wake 还检查执行器内存已完全唤醒 | 同前列；完成暂停另同步设备 | 同 rc2 |
+| 公开 RPC 与模型回调 | 两入口都有；默认收执行器各 Worker 结果，回调对象分别是 Worker 侧对象／模型 | 相同 | 相同 | 相同 |
+| 公开 timeout | 默认 None；MP 共享截止时间；UniProc 同步分支不执行计时中断 | 相同 | MP 将剩余负时间钳为 0；UniProc 同前 | 同 rc2 |
+
+上表公开 RPC 只核对 UniProc/MP 的默认同步调用，Ray 与自定义执行器按其实现检查。v0.26 起 UniProc 会取出 AsyncModelRunnerOutput 的实际输出；MP 把输出处理纳入异常捕获。rc2/main 又增加内部 EC 输出聚合并拆出单条 Worker 调用函数。这些内部变化不改变上述短字符串示例的结果列表契约，也不能据此说整套 RPC 实现完全相同。
+
+因此，在从未卸载内存的清醒引擎上，先 level 0 暂停、后只恢复 scheduling 的示例适用于所列四版；若此前做过内存休眠，必须先恢复所需内存，不能把这个示例替代完整唤醒流程。这些是固定代码的调用边界，GLM 双机的 DP 协同暂停未在本次做设备实测。
+
+**v0.30.0rc2 需要更新按文件名认栈的路径。** HTTP 的 SSE 辅助入口已在 entrypoints/serve/utils，EngineCore 的 execute/sample/update 次序保留；MTP proposer 改由统一 get_spec_decode_method 分派。在 MTP 分支中，草稿配置的 model_type 为 glm5_next_mtp，或 architectures 含 Glm5NextMTPModel 时，才由相应白名单选到 AscendMultiKVCacheGroupMTPProposer；不是运行时只要发现多个 KV 组就自动选择。排错时应看 models/glm5next 与 multi_kv_cache_group_proposer，不能只找旧 AscendEagleProposer。七站教学图和旧日志例子仍指原固定部署，实际调用栈还要区分 MRV1/MRV2。
+
+本页七站图的控制流依据 `vllm@0fc695fc`，执行侧依据 GLM 专用镜像 `vllm-ascend@db701c1f`。和固定 main（`baa023ad`）相比，请求路径上有两处改名。按日志定位时，先确认实际安装的代码，再使用下面的文件名：
 
 | 项 | `db701c1f`（本页） | main（`baa023ad`） | 意味着什么 |
 |---|---|---|---|
 | GLM 实现放在哪 | 单文件 `vllm_ascend/models/glm5_next.py`，类名带 `Ascend` 前缀 [C34] | 目录 `vllm_ascend/models/glm5next/`，拆成 `model.py`、`kda.py`、`attention.py`、`mtp.py` 等，类名去掉前缀 [C43] | [!] 第 4 站报错栈里的文件名和类名两边都不一样，按本页的名字去 main 上搜会搜不到 |
 | MoE 走哪个文件 | vLLM 是 0.23.0 时用 `ops/fused_moe/fused_moe_0_23_0.py` [C23] | 同一目录下另一套实现（`fused_moe.py` 里 `vllm_version_is("0.23.0")` 不成立的那一支） | [!] 同一个类名 `AscendFusedMoE` 在两边指向不同的文件，贴行号前先确认读的是哪一支 |
 
-两个发布分支 `releases/v0.23.0` 与 `releases/v0.26.0rc` 上这条链路的差异本轮没有核，所以 `verified` 留空。
+公共引擎的职责能跨版本对照，GLM 专用模型栈却不能直接移植到所有发布分支：
+
+| 对照项 | v0.23 | v0.26 rc | v0.30.0rc2 | 固定 main |
+|---|---|---|---|---|
+| 上游普通文本 step | 0fc695fc：调度、执行；无直接结果时采样；处理取消后更新 | 568afb3a：次序保留，调度增加 prefill 节流输入 | ced6857a：同样次序和节流入口 | 84030bbe：所列入口同 rc2 |
+| Ascend 的 GLM 模型位置 | 2c59ff10 不含本页同名模型；db701c1f 专用镜像另提供旧单文件 | 2ed6cbba 不含本页同名模型 | 7d825229：models/glm5next/ | baa023ad：同名目录，具体实现需按该提交读取 |
+| GLM MTP 入口 | db 专用镜像使用本文旧 proposer；不推给 2c 发布分支 | 没有本文同名 GLM 模型链 | 统一分派后按草稿类型/架构白名单选多缓存组 proposer | 同样入口和白名单；图支持等内部实现不据此视为相同 |
+
+后版的 prefill 节流还会影响已开始的分块计算，条件见[调度器](vllm-scheduler.md)；这里仅用它辨认调用入口。V1 引擎与 MRV1/MRV2 是不同层次，Worker/Runner 的选择见[V1 架构版本表](vllm-v1-shape.md#版本差异)。本表核对的是列出的控制流、命名与选类，七站的 GLM 层数、三候选和图模式仍采用 db 专用配方；实际对象的继承关系与所有 MRV2/PP 组合不能由这张表推定。
+
+超时参数按四个固定快照比较，作用阶段与本页前面的解释一致：
+
+| 超时核对项 | v0.23 | v0.26 rc | v0.30.0rc2 | 固定 main |
+|---|---|---|---|---|
+| 上游 VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS 定义 | 0fc695fc：int，默认 300 秒 | 568afb3a：相同 | ced6857a：相同 | 84030bbe：相同 |
+| Ascend 小值改写 | 2c59ff10 与 GLM db701c1f 都将 <1836 改为 3000 | 2ed6cbba：运行包没有这条改写，不代表上游变量消失 | 7d825229：仍将 <1836 改为 3000 | baa023ad：同 rc2 |
+| HCCL 两个超时 | 由安装的 CANN 版本与硬件/展开模式决定 | 同样需独立核运行时 | 同样需独立核运行时 | 同样需独立核运行时 |
+
+本页 HCCL 数值限定 CANN 9.1.X 文档的 A2 条目，不根据 Ascend 插件分支推定运行时相同；实际 AIV 等待还需设备日志与硬件量化结果。旧 VLLM_RPC_TIMEOUT 的不适用结论限定固定 GLM 代码，没有将历史单位或其他版本行为移植过来。
 
 ### 源码位置
+
+超时证据：来源 41 是上游定义默认，12 是两次 RPC 的参数传递、截止时间与队列等待；58 是固定 Ascend 改写，59–60 是 CANN 9.1.X 范围与覆盖规则，61 是配方输入。62–63 对照未知环境变量检查，69 补充严格检查默认关闭；64–68 对照上游三版默认和 Ascend 分支差异。v0.26 rc 的无改写结论还核过整个固定运行包文本，而非仅搜索一个函数。
+
+rc2/main 的入口与分派对应来源 70–76；77–78 补齐 rc2 的超时默认和平台改写。GLM 缓存协调器的静态选择由 79–83 的模型识别与默认、84–86 的缓存标记及分组、87 的 DeepSeek 特判、48 的 Ascend 工厂和 88 的上游工厂共同支撑；不能只凭其中一个函数名推断最终对象。
+
+来源 89–90 对照旧两版的普通 step（包括取消处理），91–93 支持 main 的 GLM 注册、MTP 分派和草稿白名单。发布分支缺少本文同名 GLM 模型的结论，限定于固定 2c59ff10 / 2ed6cbba 的 models 目录树及文本检索，不扩张为所有外部插件都不能支持该模型。
+
+离线队列的官方入口见来源 94；95–97 对应提交、对话模板入口、逐条加入时的异常处理，以及等待全部、仅收最终结果、按编号排序。98–102 与原来源 7 对应默认多进程、立即发送及后台循环和进程内直接 step，103–105 对应暂停与唤醒。106–116、117–128、129–140 依次对照 v0.26 rc、v0.30.0rc2 与固定 main 的相同调用入口和实际消费者；128、140 是新版完成暂停时的设备同步。LLM.enqueue 注释中“不开始处理”的一句话须结合客户端模式阅读，默认后台模式的结论来自实际发送与忙循环，不能只引用这句注释。
+
+公开 RPC：141–144 是四版 Python 签名与用途；145–148 将入口追到当前 EngineCore/执行器，149–152 是四版 UniProc，153–156 是四版 MP 的默认结果收集与截止时间。157–161 区分模型回调、Worker 包装器和方法分派；162–163 接到固定 GLM 的实际 get_model。原来源 13 与新增 164–166 对照 Worker 异常及输出处理边界。这里的两项 A/B 是控制返回示意，没有在 NPU 上执行回调。
 
 **读源码的顺序。** 先确认版本，GLM 的文件名和类名变化见上表；模型文件可能仍写上游类名，运行时对象已被替换，搜索时要追到注册入口。
 
@@ -301,7 +588,7 @@ file: request-call-chain-log-route
 |---|---|
 | API server ↔ EngineCore | `MPClient` 建一个 ROUTER 口发、一个 PULL 口收；本部署两组引擎跨机器，地址取 node0 的 TCP 端口而不是本机 IPC 路径 [C5] |
 | EngineCore → 8 个 worker | `collective_rpc` 把 `(方法名, args, kwargs, output_rank)` 写进 `rpc_broadcast_mq`，`non_block=True` 时返回 future |
-| worker → EngineCore | `worker_busy_loop` 取出消息、`getattr(self.worker, method)` 调用，再把结果写回自己的响应队列；执行器只读 `output_rank` 那一路，它等于 `world_size − tp × pcp`（pcp 是 prefill 上下文并行的组大小，本部署为 1），算出来是 0 [C14] |
+| worker → EngineCore | `worker_busy_loop` 取出消息、`getattr(self.worker, method)` 调用，再把结果写回自己的响应队列；本页生成调用指定只读 `output_rank` 那一路，它等于 `world_size − tp × pcp`（pcp 是 prefill 上下文并行的组大小，本部署为 1），算出来是 0 [C14] |
 | 每一步的 DP 对齐 | `_sync_metadata_across_dp` 把 `[num_tokens, cudagraph_mode]` 拼成 `2 × dp_size` 的 int32 张量做一次 All-Reduce，默认走 DP 组的 CPU（gloo）组，`dp_allreduce_on_npu` 打开才走 NPU 组 [C28] |
 | 两个 EngineCore 之间 | `DPEngineCoreProc.run_busy_loop` 里没活可跑就 `execute_dummy_batch`，每 32 步用 `_has_global_unfinished_reqs` 做一次 All-Reduce [C27] |
 
@@ -312,10 +599,12 @@ file: request-call-chain-log-route
 | 被换的东西 | 换成什么、什么时候生效 |
 |---|---|
 | `get_kv_cache_groups` | 按 GLM 的布局把各层分成缓存组，见 `vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L517-L548` |
-| `get_kv_cache_coordinator` | 换成 vllm-ascend 的工厂函数，某些缓存布局下返回 `AscendHybridKVCacheCoordinator`，其余情况回落到原函数 [C48]；GLM 落在哪一支待核 |
+| `get_kv_cache_coordinator` | 换成 Ascend 工厂；固定 GLM 配方默认关闭 prefix caching，回上游得到 `KVCacheCoordinatorNoPrefixCache`；显式开启且保留多个缓存组时才走 `AscendHybridKVCacheCoordinator` [C48] |
 | `MambaManager` | 换成 `AscendMambaManager`，改的是前缀命中与外部 KV 的分支（`vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_manager.py#L18-L84`） |
 | `Scheduler._mamba_block_aligned_split` | 换成对 GLM 按状态存档点对齐切 token 的版本 [C46]；`schedule` 只在 `mamba_cache_mode == "align"` 时调用它（`vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L259-L263`），官方部署为 `none`，R1 的路径上不执行 |
 | `Scheduler` 这个名字与 `EngineCoreProc.run_engine_core` | 指向 `BalanceScheduler` 与补丁版启动函数；`enable_balance_scheduling` 关着时两者都直接转给原来的实现 [C33]，见 [Balance Scheduling](balance-scheduling.md) |
+
+这里的缓存协调器选择由有效配置决定。固定 GLM 同时有不同类型的注意力状态，上游将它识别为 hybrid 模型，生成任务默认关闭 prefix caching，官方配方也未覆盖这一项。它的缓存标记是 glm5_next，不满足工厂中优先的 deepseek_v4 特判；关闭前缀缓存后，即使有多个缓存组，也回到上游的无前缀复用协调器。改成显式开启时再结合组数选择，不能仅凭“混合模型”推断一定使用 AscendHybrid。该结论来自固定源码与配方，实际安装和最终配置仍以启动信息为准。
 
 **七站的函数**
 
@@ -329,9 +618,9 @@ file: request-call-chain-log-route
 | 6 | `update_from_output`（`Scheduler` 上定义） | `AsyncScheduler._update_request_with_output` → `_free_request` → `KVCacheManager.free` |
 | 7 | `OutputProcessor.process_outputs` | `detokenizer.update` → `RequestOutputCollector` → `chat_completion_stream_generator` |
 
-- 第 3 站这一步没有 token 名额时，`execute_model` 在 `_prepare_inputs` 之前就返回空结果；第 4 站算完 `compute_logits` 把结果存进 `ExecuteModelState` 并返回空值，第 5 站从那里取 [C16]。
+- 第 3 站整批没有 token 时，`execute_model` 在 `_prepare_inputs` 之前分流：没有 KV 传输组就返回空结果，否则调用 `kv_connector_no_forward`；外部启动器 `external_launcher` 与 DP 同开时，这一分支还先执行 `_dummy_run(1)`，以免组间协调失步（来源 16、57）。本页固定部署不使用外部启动器，它的空闲组陪跑走前述 `execute_dummy_batch` 路径。第 4 站算完 `compute_logits` 把结果存进 `ExecuteModelState` 并返回空值，第 5 站从那里取 [C16]。
 - 第 4 站的 `set_ascend_forward_context` 保存宽度和 MoE 通信方式；第 6 站 `_free_request` 后，`finished_req_ids` 随下一份清单通知 worker，`EngineCoreOutputs` 经 ZMQ 回前端。
-- `NPUWorker.execute_model` 在这套部署下只记显存统计、按 msmonitor 配置计步，然后转交；流水线并行的收发分支因为只有一个 stage 不执行。
+- `NPUWorker.execute_model` 在这套部署下按 msmonitor 配置计步，已建立 profiler 时也推进剖析步数，然后转交 runner；流水线并行的收发分支因为只有一个 stage 不执行。
 - 草拟总走 eager：草稿器初始化时 `_is_glm_model` 为真就把 `use_cuda_graph` 置回 False [C51]；`GLM series models with speculative decoding currently do not support graph mode` 这条警告只在草稿原本要录图（草稿配置没写 `enforce_eager: true`）时才打，官方双机命令写了，所以这套部署不打，见[投机解码的 GLM 双机一节](speculative-decoding.md#落到-glm-双机每步-1--3-个位置mtp-层连跑-3-遍)。
 
 **vllm-ascend 的六个接入点**
@@ -346,3 +635,6 @@ file: request-call-chain-log-route
 | 模型注册 | `Glm5NextForConditionalGeneration` → `AscendGlm5NextForConditionalGeneration`，它内部再按 `Glm5NextForCausalLM` 建文本模型 |
 
 进程名兼日志前缀：EngineCore 进程是 `EngineCore_DP{rank}`，worker 按并行配置拼成 `Worker_DP{}_TP{}_EP{}` [C13]，整体格式是 `(名字 pid=N) `；异常字符串统一见上方「会报什么错」。
+
+- 来源 56：vllm@0fc695fc，vllm/v1/engine/async_llm.py，L408–L412。
+- 来源 57：vllm-ascend@db701c1f，vllm_ascend/worker/model_runner_v1.py，L2027–L2057。

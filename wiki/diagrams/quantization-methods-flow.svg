@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430" width="900" height="430" role="img" aria-label="从量化方法到运行还要经过产物和算子契约。PTQ 从已训练模型生成参数，QAT 在训练中模拟误差后导出；加载器读取配套数据，逐层匹配实现并准备布局，才能进入请求前向。">
+  <title>从量化方法到运行还要经过产物和算子契约。PTQ 从已训练模型生成参数，QAT 在训练中模拟误差后导出；加载器读取配套数据，逐层匹配实现并准备布局，才能进入请求前向。</title>
+  <defs><marker id="quantization-methods-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="quantization-methods-flow-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
+  <path d="M195 85 L232 85 L232 55 L270 55" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-methods-flow-ah-ink)"/>
+  <path d="M195 105 L232 105 L232 160 L270 160" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-methods-flow-ah-ink)"/>
+  <path d="M500 55 L545 55 L545 85 L595 85" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-methods-flow-ah-ink)"/>
+  <path d="M500 160 L545 160 L545 115 L595 115" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-methods-flow-ah-ink)"/>
+  <path d="M730 135 L730 235 L115 235 L115 300" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#quantization-methods-flow-ah-weight)"/>
+  <path d="M195 332 L270 332" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-methods-flow-ah-ink)"/>
+  <path d="M500 332 L595 332" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-methods-flow-ah-ink)"/>
+  <rect x="35" y="65" width="160" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="115" y="100" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">原始浮点模型</text>
+  <rect x="270" y="25" width="230" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="385" y="51" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">PTQ：统计、搜索或重构</text>
+  <text x="385" y="70" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">可使用代表性校准样本</text>
+  <rect x="270" y="130" width="230" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="385" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">QAT：训练中模拟误差</text>
+  <text x="385" y="175" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">训练后转换与导出</text>
+  <rect x="595" y="65" width="270" height="70" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="730" y="96" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">量化模型产物</text>
+  <text x="730" y="115" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">权重、系数、分组和逐层精度</text>
+  <rect x="35" y="300" width="160" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="115" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">加载器读取产物</text>
+  <text x="115" y="347" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">检查元数据</text>
+  <rect x="270" y="300" width="230" height="64" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="385" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">匹配层实现与准备布局</text>
+  <text x="385" y="347" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">转置、打包或 NZ 后处理</text>
+  <rect x="595" y="300" width="270" height="64" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="730" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求第 4 站：逐层前向</text>
+  <text x="730" y="347" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后端算子执行，再做质量验收</text>
+</svg>

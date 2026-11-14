@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="以 R1 的 4 个提示词 token 为例看交接点。上面是 GLM 这类带递推状态的混合模型：P 故意少算最后 1 个位置，交出「处理完 3 个位置」的状态 S₃，D 只算 p₃。下面是纯注意力模型：P 算满 4 个位置，D 收到 4 格 K/V 后退回 1 格，重算 p₃ 才能采样。两种情形都由 D 算出首 token。">
-  <title>以 R1 的 4 个提示词 token 为例看交接点。上面是 GLM 这类带递推状态的混合模型：P 故意少算最后 1 个位置，交出「处理完 3 个位置」的状态 S₃，D 只算 p₃。下面是纯注意力模型：P 算满 4 个位置，D 收到 4 格 K/V 后退回 1 格，重算 p₃ 才能采样。两种情形都由 D 算出首 token。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="以 R1 的 4 个提示词 token 为例看交接点。上面是 GLM 这类带递推状态的混合模型：P 故意少算最后 1 个位置，交出「处理完 3 个位置」的状态 S₃，D 只算 p₃。S₃ 包含 MLA 历史、indexer 的未满池尾状态及 KDA 状态；此时还没凑满 4 个位置，没有完成的 indexer 池。下面是纯注意力模型：P 算满 4 个位置，D 收到 4 格 K/V 后退回 1 格，重算 p₃ 才能采样。两种情形都由 D 算出首 token。">
+  <title>以 R1 的 4 个提示词 token 为例看交接点。上面是 GLM 这类带递推状态的混合模型：P 故意少算最后 1 个位置，交出「处理完 3 个位置」的状态 S₃，D 只算 p₃。S₃ 包含 MLA 历史、indexer 的未满池尾状态及 KDA 状态；此时还没凑满 4 个位置，没有完成的 indexer 池。下面是纯注意力模型：P 算满 4 个位置，D 收到 4 格 K/V 后退回 1 格，重算 p₃ 才能采样。两种情形都由 D 算出首 token。</title>
   <defs><marker id="pd-state-boundary-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="pd-state-boundary-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
   <rect x="20" y="50" width="860" height="200" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="36" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">带递推状态的混合模型（GLM）：P 少算最后 1 个位置</text>
@@ -42,8 +42,8 @@
   <text x="145" y="188" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">P 前向</text>
   <text x="145" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只算 p₀–p₂，也采样 1 个</text>
   <rect x="276" y="102" width="222" height="52" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="387" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按位置的历史 3 格</text>
-  <text x="387" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MLA 潜向量、indexer 缓存</text>
+  <text x="387" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MLA 的前 3 格历史</text>
+  <text x="387" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">另带 indexer 未满池尾状态</text>
   <rect x="276" y="166" width="222" height="56" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="387" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">KDA 递推与卷积状态</text>
   <text x="387" y="209" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">处理完 3 个位置的一份</text>

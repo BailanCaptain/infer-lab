@@ -1,0 +1,66 @@
+layout: figure
+id: inference-capacity-intuition
+caption: 工作去向示意，不表示每秒吞吐。左侧三套完整实例能分别接走工作；右侧 C 故障，工作只能交给 A、B。若到达量持续超过它们的能力，未接走的工作会留在队列里。每套可含多张卡，三个实例之间必须独立。
+size: [820, 490]
+frames:
+  - { at: [20, 50], size: [370, 290], label: 故障前：三套实例分担工作 }
+  - { at: [430, 50], size: [370, 290], label: 故障后：只能交给 A、B }
+grids:
+  - at: [80, 105]
+    rows: 1
+    cols: 3
+    cell: [80, 38]
+    tone: token
+    style: solid
+    cells: [{ at: [0, 0], text: 请求 }, { at: [0, 1], text: 请求 }, { at: [0, 2], text: 请求 }]
+  - at: [80, 225]
+    rows: 1
+    cols: 3
+    cell: [80, 44]
+    tone: weight
+    style: solid
+    cells: [{ at: [0, 0], text: A }, { at: [0, 1], text: B }, { at: [0, 2], text: C }]
+  - at: [490, 105]
+    rows: 1
+    cols: 3
+    cell: [80, 38]
+    tone: token
+    style: solid
+    cells: [{ at: [0, 0], text: 请求 }, { at: [0, 1], text: 请求 }, { at: [0, 2], text: 待处理, style: faded }]
+  - at: [490, 225]
+    rows: 1
+    cols: 3
+    cell: [80, 44]
+    tone: weight
+    style: solid
+    cells: [{ at: [0, 0], text: A }, { at: [0, 1], text: B }, { at: [0, 2], text: 'C ×', tone: danger, style: ghost }]
+  - at: [180, 410]
+    rows: 1
+    cols: 2
+    cell: [55, 36]
+    tone: token
+    style: faded
+    cells: [{ at: [0, 0], text: 待 }, { at: [0, 1], text: 待 }]
+  - at: [490, 410]
+    rows: 1
+    cols: 4
+    cell: [55, 36]
+    tone: token
+    style: faded
+    cells: [{ at: [0, 0], text: 待 }, { at: [0, 1], text: 待 }, { at: [0, 2], text: 待, style: solid }, { at: [0, 3], text: 待, style: solid }]
+links:
+  - { from: [120, 143], to: [120, 225], tone: token }
+  - { from: [200, 143], to: [200, 225], tone: token }
+  - { from: [280, 143], to: [280, 225], tone: token }
+  - { from: [530, 143], to: [530, 225], tone: token }
+  - { from: [610, 143], to: [610, 225], tone: token }
+  - { from: [310, 428], to: [470, 428], tone: control }
+texts:
+  - { at: [200, 86], text: 到达的工作, anchor: middle, size: 14 }
+  - { at: [610, 86], text: 到达的工作, anchor: middle, size: 14 }
+  - { at: [200, 305], text: A、B、C 都能独立完成请求, anchor: middle, size: 14 }
+  - { at: [690, 190], text: 只能等 A / B, anchor: middle, size: 13 }
+  - { at: [610, 305], text: C 的整套能力从可用容量中扣除, anchor: middle, size: 14 }
+  - { at: [410, 380], text: 若新工作来得比处理得快：等待队列越来越长, anchor: middle, size: 16, strong: true }
+  - { at: [390, 415], text: 时间继续走, anchor: middle, size: 13 }
+  - { at: [410, 477], text: 格子表示待处理工作量；具体每秒能接多少，要用下一节的目标与负载测出来, anchor: middle, size: 13 }

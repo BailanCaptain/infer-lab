@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 376" width="820" height="376" role="img" aria-label="保存对象示意。格内 7/8/9 是历史位置，不是 token ID；回放会取回这些位置的 token 输入。全局历史命中后仍可读取，缺少的是各层近期窗口。重新计算得到近似窗口，随后处理新输入或继续生成。">
+  <title>保存对象示意。格内 7/8/9 是历史位置，不是 token ID；回放会取回这些位置的 token 输入。全局历史命中后仍可读取，缺少的是各层近期窗口。重新计算得到近似窗口，随后处理新输入或继续生成。</title>
+  <defs><marker id="swa-replay-state-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="swa-replay-state-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <rect x="20" y="42" width="780" height="136" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">追问到来：全局历史在，逐层窗口已回收</text>
+  <rect x="20" y="218" width="780" height="138" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="206" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">恢复：从末尾几个位置重新算出窗口</text>
+  <path d="M218 282 L294 282" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#swa-replay-state-ah-token)"/>
+  <path d="M476 282 L556 282" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#swa-replay-state-ah-kv)"/>
+  <rect x="70" y="80" width="38" height="32" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="108" y="80" width="38" height="32" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="146" y="80" width="38" height="32" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="184" y="80" width="38" height="32" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="222" y="80" width="38" height="32" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="260" y="80" width="38" height="32" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="298" y="80" width="38" height="32" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="336" y="80" width="38" height="32" fill="var(--color-kv, #4c65b6)"/>
+  <path d="M108 80v32M146 80v32M184 80v32M222 80v32M260 80v32M298 80v32M336 80v32" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="70" y="80" width="304" height="32" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="222" y="134" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">已保存的 block KV</text>
+  <rect x="560" y="80" width="48" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="608" y="80" width="48" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="656" y="80" width="48" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="560" y="110" width="48" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="608" y="110" width="48" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="656" y="110" width="48" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <path d="M608 80v60M656 80v60M560 110h144" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="560" y="80" width="144" height="60" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="550" y="99.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 1</text>
+  <text x="550" y="129.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 2</text>
+  <rect x="70" y="266" width="48" height="32" fill="var(--color-token, #087f73)"/>
+  <text x="94" y="286.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">7</text>
+  <rect x="118" y="266" width="48" height="32" fill="var(--color-token, #087f73)"/>
+  <text x="142" y="286.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">8</text>
+  <rect x="166" y="266" width="48" height="32" fill="var(--color-token, #087f73)"/>
+  <text x="190" y="286.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">9</text>
+  <path d="M118 266v32M166 266v32" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="70" y="266" width="144" height="32" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="142" y="320" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">历史位置：取回各位置的输入</text>
+  <rect x="560" y="256" width="48" height="30" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="608" y="256" width="48" height="30" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="656" y="256" width="48" height="30" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="560" y="286" width="48" height="30" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="608" y="286" width="48" height="30" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="656" y="286" width="48" height="30" fill="var(--color-kv-soft, #e8edff)"/>
+  <path d="M608 256v60M656 256v60M560 286h144" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="560" y="256" width="144" height="60" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="550" y="275.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 1</text>
+  <text x="550" y="305.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 2</text>
+  <rect x="298" y="256" width="174" height="60" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="385" y="282" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">重新逐层计算</text>
+  <text x="385" y="301" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">仍可读已有全局 KV</text>
+  <text x="560" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">窗口缺失，不能直接续算</text>
+  <text x="560" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">近似窗口：下一节算出差别</text>
+</svg>

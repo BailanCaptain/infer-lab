@@ -1,0 +1,208 @@
+{
+  "items": [
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/installation.md",
+      "sha256": "8fbc7f6b6e4b0733ffee228c508476a01610fb452c1aac3d5c8c75d6e737816d",
+      "lines": 292,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/installation/supported_hardware.inc.md",
+      "sha256": "e423803ba43b6e01e07532e85d9ea9522b2621024b4d0f102a9a3582f91a8ea6",
+      "lines": 6,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/installation/base_environment.inc.md",
+      "sha256": "b5679a2dfd09325097bacfb81779e0f90d3590769030ac66841c5c1fcfdf3193",
+      "lines": 50,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/installation/prebuilt_image.inc.md",
+      "sha256": "0ea7596633d0b42110deee3913fa17d8a67de5acc309d6d8673964890d74eb13",
+      "lines": 132,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/installation/existing_cann_environment.inc.md",
+      "sha256": "2d6bb3a408891f68f02e8d8d1100a508aadb17acd3206a8398e76e14b2192380",
+      "lines": 54,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/installation/install_vllm_ascend.inc.md",
+      "sha256": "bd8718273ab76c3330f0b5423aad7ddbc364ba914ccb3bb5d252dbaa18af1910",
+      "lines": 205,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/installation/cann_image/atlas-a2.inc.md",
+      "sha256": "8e6827d27976e382a7cad68abfa384d093d770971886e01f71bc776989a8e8d7",
+      "lines": 71,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/installation/cann_image/atlas-a3.inc.md",
+      "sha256": "e5cf56cce3de0b3c0bf86b3e53971e7efa4d14311368599e3f936fe367114916",
+      "lines": 77,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/installation/cann_image/atlas-300i-duo.inc.md",
+      "sha256": "ea57075f803c644870a8852c7686905a563f7801a15f2380531f3f1364f4f730",
+      "lines": 69,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/installation/cann_image/atlas-200i-pro.inc.md",
+      "sha256": "1486bb10184659f6b526942127c298a1c1dae15073f1d6b2bff7a462b3243a8d",
+      "lines": 90,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/installation/cann_image/atlas-950dt.inc.md",
+      "sha256": "3b5d2818935dfb481bb81f0b3827a746ffa10329b59103831c09194e1b6546ad",
+      "lines": 71,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/quick_start/ascend_image/atlas-a2.inc.md",
+      "sha256": "fd6fb7d98cb50fdbf759de945e755480fee91c9b079880f093a1c97ffff55794",
+      "lines": 77,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/quick_start/ascend_image/atlas-a3.inc.md",
+      "sha256": "411c49264125b6de27f63b8997031687ff6c0b4218448036e339bdf19fae7248",
+      "lines": 83,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/quick_start/ascend_image/atlas-300i-duo.inc.md",
+      "sha256": "cb387b70ede975a24904add6f0c2e28a04f41672d3d97380e370ffc992765230",
+      "lines": 77,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/quick_start/ascend_image/atlas-200i-pro.inc.md",
+      "sha256": "c64d54207380073eb3c725f5d236ebee7944e3eb9c57ed6ab4ba706c47e9f351",
+      "lines": 96,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/quick_start/ascend_image/atlas-950dt.inc.md",
+      "sha256": "9b470a9b3718f4854ebfef1a89e16e2b038c4b34c6d2d2361c12bce54afdc6f1",
+      "lines": 77,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/quick_start/ascend_image/verify_container.inc.md",
+      "sha256": "d3404a31d4c0b5a3be27af5e8fbae1a77bf8ed9fc7951e5b81dc8b55dbfcb1e1",
+      "lines": 17,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commit": "921ccc52",
+      "path": "docs/source/getting_started/quick_start/ascend_image/image_download_mirror.inc.md",
+      "sha256": "1b2d82bcf6a6ded3d2131a391a9e1c3024b3e1c8216aeda515430d9254a2030d",
+      "lines": 22,
+      "read_scope": "full source text including command examples; child includes separately listed",
+      "new_global_full_read_count": false,
+      "note": "refresh of prior190 inventory or its included files; no global count increment inferred"
+    }
+  ],
+  "unread_external_dependencies": [],
+  "figures": [
+    {
+      "path": "docs/source/assets/hardware-software-stack-overview.png",
+      "commit": "921ccc52",
+      "status": "visually viewed",
+      "sha256": "93aaa6b8449b9c3d723940a2e59dbf6b8d32ad9445eebec5d1bccb3a443a73d6"
+    }
+  ],
+  "resolved_external_dependencies": {
+    "CANN container image OVERVIEW": "installation-modelslim-reading.json",
+    "Triton Ascend FAQ": "installation-modelslim-reading.json",
+    "HiXLEP LocalCommRes configuration wiki": "hixl-followthrough-independent-review.md",
+    "CANN installation resources / hardware compatibility portal": "external-final-followup.json"
+  },
+  "historical_unread_external_dependencies": [
+    "HiXLEP LocalCommRes configuration wiki",
+    "CANN installation resources / hardware compatibility portal"
+  ],
+  "scope_limits": [
+    "CANN portal license-gated installation section not unlocked; actual installation explanation backed by fixed repository guide/includes",
+    "Hardware compatibility portal selected Atlas800IA2 18 OS rows and notes only, not entire combinations matrix",
+    "No NPU installation or network configuration executed"
+  ]
+}

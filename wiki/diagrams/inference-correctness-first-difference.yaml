@@ -1,0 +1,70 @@
+layout: figure
+id: inference-correctness-first-difference
+caption: 第 3–5 站的选择示意。相同输入和前三个输出 [41,52,60] 下，两套服务的最高候选分数发生翻转。浅绿格是共同历史，实色格是本次选中编号，虚线格是尚不该混入比较的后续。分数是假设，不代表实际硬件误差。
+size: [820, 490]
+frames:
+  - { at: [20, 155], size: [780, 120], label: A：选择处理后分数最高的候选 }
+  - { at: [20, 325], size: [780, 120], label: B：同样的选择规则，最高候选变了 }
+grids:
+  - at: [310, 65]
+    rows: 1
+    cols: 3
+    cell: [65, 36]
+    tone: token
+    style: faded
+    cells: [{ at: [0, 0], text: '41' }, { at: [0, 1], text: '52' }, { at: [0, 2], text: '60' }]
+  - at: [140, 180]
+    rows: 2
+    cols: 1
+    cell: [100, 34]
+    tone: token
+    style: faded
+    rowLabels: ['候选 41', '候选 52']
+    cells: [{ at: [0, 0], text: '8.0001', style: solid }, { at: [1, 0], text: '8.0000' }]
+  - at: [420, 200]
+    rows: 1
+    cols: 5
+    cell: [62, 36]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: '41' }
+      - { at: [0, 1], text: '52' }
+      - { at: [0, 2], text: '60' }
+      - { at: [0, 3], text: '41', style: solid }
+      - { at: [0, 4], text: '…', style: ghost }
+  - at: [140, 350]
+    rows: 2
+    cols: 1
+    cell: [100, 34]
+    tone: token
+    style: faded
+    rowLabels: ['候选 41', '候选 52']
+    cells: [{ at: [0, 0], text: '8.0000' }, { at: [1, 0], text: '8.0001', style: solid }]
+  - at: [420, 370]
+    rows: 1
+    cols: 5
+    cell: [62, 36]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: '41' }
+      - { at: [0, 1], text: '52' }
+      - { at: [0, 2], text: '60' }
+      - { at: [0, 3], text: '52', style: solid }
+      - { at: [0, 4], text: '…', style: ghost }
+links:
+  - { from: [250, 218], to: [410, 218], tone: token }
+  - { from: [250, 388], to: [410, 388], tone: token }
+texts:
+  - { at: [410, 30], text: 两边都固定相同输入，以及已经生成的前三个编号, anchor: middle, size: 16, strong: true }
+  - { at: [410, 125], text: 比较的对象：选第四个编号之前的分数与状态, anchor: middle, size: 14 }
+  - { at: [330, 204], text: 选中 41, anchor: middle, size: 14 }
+  - { at: [330, 374], text: 选中 52, anchor: middle, size: 14 }
+  - { at: [513, 189], text: 相同的前三个, anchor: middle, size: 13 }
+  - { at: [637, 189], text: 第四个, anchor: middle, size: 13 }
+  - { at: [699, 189], text: 后续, anchor: middle, size: 13 }
+  - { at: [513, 359], text: 相同的前三个, anchor: middle, size: 13 }
+  - { at: [637, 359], text: 第四个, anchor: middle, size: 13 }
+  - { at: [699, 359], text: 后续, anchor: middle, size: 13 }
+  - { at: [410, 477], text: 第四个不同以后，后续计算使用的历史也不同，先不要拿来定位初始差异, anchor: middle, size: 14 }

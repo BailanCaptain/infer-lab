@@ -1,0 +1,126 @@
+{
+  "sha256": "fe4847400202f87006599b0a2cdadf77abfa6f29726ceade8f56f86925417038",
+  "count": 30,
+  "checks": [
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L52-L100",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1490-L1502",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/parallel_state.py#L60-L89",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L18-L56",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L107-L178",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L540-L546",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1096-L1103",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/kvpp_cache.py#L30-L57",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kvpp.py#L9-L36",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/v2/kvpp.py#L23-L64",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/v2/kvpp.py#L87-L114",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/v2/model_states/default.py#L74-L85",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L2486-L2487",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4177-L4177",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4772-L4774",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L2057-L2061",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/attention/sfa_v1.py#L1716-L1719",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L935-L940",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L214-L246",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L839-L839",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L922-L928",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2437-L2439",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L1-L56",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L57-L137",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L138-L197",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/kvpp.md#L1-L64",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L333-L344",
+      "exact": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:docs/source/user_guide/support_matrix/feature_matrix.md#L37-L37",
+      "exact": true
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L2072-L2085",
+      "exact": true
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/config/speculative.py#L550-L554",
+      "exact": true
+    }
+  ]
+}

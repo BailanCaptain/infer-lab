@@ -1,6 +1,6 @@
 layout: figure
 id: token-split
-caption: GLM 模型仓库自带的 chat template 处理一条消息：前后插入特殊标记，正文照常切块，每块查词表得到一个编号。特殊标记的编号取自模型仓库的 tokenizer 文件；正文的切法和 4 个编号是示意，与前面的例子相同。
+caption: GLM 模型仓库自带的 chat template 处理默认单用户消息：前后插入 6 个独立标记，每个占一个编号，其中 <think> 未被 tokenizer 标为 special，其余 5 个标为 special。标记编号取自固定模型文件；正文的 4 个编号保留教学示意，与前面的例子相同。
 size: [900, 250]
 items:
   - { at: [480, 40], size: [196, 44], text: 用户消息：推理引擎怎么工作, tone: token, style: plain }

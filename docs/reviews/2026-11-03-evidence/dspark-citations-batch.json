@@ -1,0 +1,107 @@
+{
+  "reviewer": "review_publication_fix",
+  "pages": [
+    {
+      "id": "dspark",
+      "judgments": [
+        [
+          1,
+          "支持",
+          "半自回归、置信累乘、预算公式、异步历史信息与因果限制",
+          "arXiv2607.05147v1原HTML已下载，正文/表格/图注/附录A提取289行分批全文读；Algorithm1另从HTML完整读取。参考文献条目与图像未读。§3.1区分Markov与RNN变体，§3.2给sum(1+prefix survival)、吞吐目标和early-stop；§5.2历史N−2预算适应硬件曲线，附录反例不支持任意事后选长均保持分布。未移植论文性能百分比。"
+        ],
+        [
+          2,
+          "支持",
+          "V4.1的DSpark三块主干、五位置、Markov和confidence头",
+          "实际读取固定2609.19969v1的完整§2.4.3原HTML文本；明确三Transformer、window128、并行5位置、轻Markov、条件概率和硬件曲线。其他章节由01/02账覆盖，本项不冒称整论文全部图表阅读。"
+        ],
+        [
+          3,
+          "支持",
+          "草稿模块结构、串行Markov修正与置信头、模型头检查",
+          "固定dflash.py完整392行读。46–79置信头，92–110实际类型/层数检查，155–186可选Markov与置信，230–269并行主干，279–345逐候选修正/预测/采样。文件叫DFlash不证明缺少DSpark结构。未运行GPU/NPU。"
+        ],
+        [
+          4,
+          "支持",
+          "CPU预算与不同轮次置信、图尺寸/采样反馈成本",
+          "固定mtp_varlen.hpp全275行读。19–131中位数反馈；150–267实际scheduler，N−2预算与N−1分配/异步滞后，空曲线直接保留全部draft，runtime耗时baseline+slope×graph+sampler。页面教学10/20ms不是该函数实测。"
+        ],
+        [
+          5,
+          "支持",
+          "设备累乘、全局排名、请求映射和并列优先级",
+          "CUDA文件完整83行，remap=-1置0、cumprod、flat index tie、extra_budget和1+分配均核；另实读公共wrapper完整166行及Ascend实现完整121行，算法目标对应，NPU wrapper另有32KiB rates门槛。设备调用者与回写新增15；不把静态代码当吞吐或采样分布实测。"
+        ],
+        [
+          6,
+          "支持",
+          "离线decode报告为满接受换算并剔除flush",
+          "benchmark.py完整588行读。397–408以SPS×requests×(1+nextn)/CP换算；385/399过滤flushed；539注释提醒varlen口径。不是以实际接受token总量计算的在线服务吞吐。"
+        ],
+        [
+          7,
+          "支持",
+          "DeepInfer变长开关与NVIDIA确定性支持边界",
+          "README完整107行读。24显式varlen+最大draft，27–28确定性需batch-invariant/关闭varlen/seq_seed且NVIDIA only。README性能图片未视觉检查；本文没有引用图上性能值。"
+        ],
+        [
+          8,
+          "支持",
+          "最大草稿默认5、varlen默认False及环境解析",
+          "environ.py全221行读。12–17解析、31–57首次访问缓存、128–143draft定义，197batch-invariant。实际消费已由3/4/15核，不只字段名。"
+        ],
+        [
+          9,
+          "支持",
+          "Ascend三种动态入口、V1/V2支持边界及草稿窗口配置",
+          "921官方指南实际读取458–636及785–935完整相关章节：V2 adaptive限制/默认关，V1 Qwen/DSpark与DFlash代理、按batch K限制、窗口MRV1/MTP边界。未以这两段冒称1135行全读；其余指南由根official全文账覆盖。"
+        ],
+        [
+          10,
+          "支持",
+          "草稿窗口读取范围、块对齐、完整写槽位与V1接点",
+          "921设计文档完整118行读。windowed_len计算、future_offset族区别、块表克隆与slot_mapping保持均核；新增16实际adapter补执行证据。文档max_window_blocks用了W//b+1，而实际源码ceil(W/b)+1，不将该细节误抄到正文。"
+        ],
+        [
+          11,
+          "支持",
+          "main dynamic_spec_config的method与参数默认",
+          "baa1112–1136全读，methodNone关闭、dspark/dflash限制、method_params空字典；定义不证明所有runner部署成功，正文保留该范围。"
+        ],
+        [
+          12,
+          "支持",
+          "rc2相同置信配置定义",
+          "7d1298–1322全读，与main定义语义相同；当前指南runner限制单独引用921，不套成旧rc2全部实现证明。"
+        ],
+        [
+          13,
+          "支持",
+          "draft_window_size的None默认及null关闭形式",
+          "921579–593完整读，字段int|None=None；原文仅省略才关闭过强，补null并结合14消费分支。"
+        ],
+        [
+          14,
+          "支持",
+          "非None且非MTP才创建草稿窗口",
+          "921416–453完整读，MTP仅warning并不创建adapter，DSpark/DeepSeekV4有warning，future_offset按族选择。None不会启用窗口。"
+        ],
+        [
+          15,
+          "支持",
+          "异步设备长度修正调用及D2H回写前提",
+          "固定DeepInfer worker.py191–258全读，并读170–189时序：无prev/placeholder/无请求重叠直接return；varlen启用才调设备分配并nonblocking回写/record event。修正文不把所有批次都视为该路径。"
+        ],
+        [
+          16,
+          "支持",
+          "窗口adapter更改读表/各长度而不改变slot mapping",
+          "921utils26–112完整读，实际clamp/floor起点、gather克隆、device与CPU mirrors更新；原始full_block_table保留且无slot_mapping改写。示例10K/2048/5是分清长度轴，不是收益实验。"
+        ]
+      ],
+      "sha256": "5c0429de9ca5f2645720a414caba83d0d65648ca5c18a0b6fcaf25ec4f5a3d9a"
+    }
+  ]
+}

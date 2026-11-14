@@ -1,0 +1,157 @@
+{
+  "recorded_at": "2026-11-10T07:14:12.417360+00:00",
+  "documents": [
+    {
+      "commit": "baa023ad",
+      "path": "docs/source/user_guide/feature_guide/kvpp.md",
+      "lines": 197,
+      "sha256": "2813e6cd65fd8333f591f39df7182e0b7bf3d63c8c9909e845fe83551601e4f1",
+      "scope": "full text read",
+      "same_as": null,
+      "prior_190_matches": [],
+      "note": "rc2 user guide differs from main only in pool guide link; full diff read; tables and ASCII diagrams included"
+    },
+    {
+      "commit": "baa023ad",
+      "path": "docs/source/developer_guide/Design_Documents/kvpp.md",
+      "lines": 76,
+      "sha256": "e2dc7a9580cc200ad3c780298ae6065858617f8a00e73ea3c6c20958787e27e2",
+      "scope": "full text read",
+      "same_as": null,
+      "prior_190_matches": [],
+      "note": "rc2 user guide differs from main only in pool guide link; full diff read; tables and ASCII diagrams included"
+    },
+    {
+      "commit": "7d825229",
+      "path": "docs/source/user_guide/feature_guide/kvpp.md",
+      "lines": 197,
+      "sha256": "d2a8dd449d6981a68d9f9c135cdfbf96e34ca853ae0adfea51a4000069afff54",
+      "scope": "full text read",
+      "same_as": null,
+      "prior_190_matches": [],
+      "note": "rc2 user guide differs from main only in pool guide link; full diff read; tables and ASCII diagrams included"
+    },
+    {
+      "commit": "7d825229",
+      "path": "docs/source/developer_guide/Design_Documents/kvpp.md",
+      "lines": 76,
+      "sha256": "e2dc7a9580cc200ad3c780298ae6065858617f8a00e73ea3c6c20958787e27e2",
+      "scope": "same bytes reuse",
+      "same_as": "baa023ad:docs/source/developer_guide/Design_Documents/kvpp.md",
+      "prior_190_matches": [],
+      "note": "rc2 user guide differs from main only in pool guide link; full diff read; tables and ASCII diagrams included"
+    },
+    {
+      "commit": "921ccc52",
+      "path": "docs/source/user_guide/feature_guide/kvpp.md",
+      "lines": 235,
+      "sha256": "0fb3de46c0985eb1c46c10d501129a42336a004e2cab749a7d62554cdaa65eae",
+      "scope": "full text read",
+      "same_as": null,
+      "prior_190_matches": [
+        "user_guide/feature_guide/kvpp.md"
+      ],
+      "note": "rc2 user guide differs from main only in pool guide link; full diff read; tables and ASCII diagrams included"
+    },
+    {
+      "commit": "921ccc52",
+      "path": "docs/source/developer_guide/Design_Documents/kvpp.md",
+      "lines": 80,
+      "sha256": "7c737810763262e727d77847784eba603a2a3452e1dc24e8f188cf9c891ce56b",
+      "scope": "full text read",
+      "same_as": null,
+      "prior_190_matches": [
+        "developer_guide/Design_Documents/kvpp.md"
+      ],
+      "note": "rc2 user guide differs from main only in pool guide link; full diff read; tables and ASCII diagrams included"
+    },
+    {
+      "commit": "921ccc52",
+      "path": "docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md",
+      "lines": 287,
+      "sha256": "80e41ac38216dcbc3a7c6f5344a6232e4ceac67369caf30d228979607db74b17",
+      "scope": "full text read including ASCII diagrams and tables",
+      "prior_190_matches": [
+        "user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md"
+      ]
+    },
+    {
+      "commit": "921ccc52",
+      "path": "docs/source/user_guide/feature_guide/mooncake_hybrid_attention.md",
+      "lines": 206,
+      "sha256": "7bd446dfd2f92bb23054eab337bca7707b1d73a09c05bcc250bfb0b43a5434e2",
+      "scope": "full text read including ASCII diagrams and tables",
+      "prior_190_matches": [
+        "user_guide/feature_guide/mooncake_hybrid_attention.md"
+      ]
+    }
+  ],
+  "external": [
+    {
+      "url": "https://z.ai/blog/scaling-pain",
+      "title": "Scaling Pain of Coding Agent Serving: Lessons from Debugging GLM-5 at Scale",
+      "date": "2026-04-30",
+      "scope": "full rendered body read; five technical figures individually viewed",
+      "body_sha256": "946d5651dc0c45ad17b6b32f1217a5844746ae7aa6d4e26dc30137045de89b5c",
+      "figures": [
+        {
+          "url": "https://z-cdn-media.chatglm.cn/prompts-rich-media-resources/scaling-pain-blog/HyN3gRk0Zg.png",
+          "file": ".tmp/continuation-groups-2026-11-10/kvpp-zai-figure-1.png",
+          "sha256": "8863127ad336faae8d8c07dabf4932c6a0d97e73f888d57d89ff84e18310fddf",
+          "viewed": true
+        },
+        {
+          "url": "https://z-cdn-media.chatglm.cn/prompts-rich-media-resources/scaling-pain-blog/BkevbCk0Wx.png",
+          "file": ".tmp/continuation-groups-2026-11-10/kvpp-zai-figure-2.png",
+          "sha256": "3a9365c5a7010815b9947d4fc92b2c1c62bf262056da3b1b461b3bc449ddab30",
+          "viewed": true
+        },
+        {
+          "url": "https://z-cdn-media.chatglm.cn/prompts-rich-media-resources/scaling-pain-blog/HyaPZ0yAWe.png",
+          "file": ".tmp/continuation-groups-2026-11-10/kvpp-zai-figure-3.png",
+          "sha256": "ba6f1cc81b60e13de7e6bfd9b36dce3f6b3637514712accbec3d920f5cf6c238",
+          "viewed": true
+        },
+        {
+          "url": "https://z-cdn-media.chatglm.cn/prompts-rich-media-resources/scaling-pain-blog/S1dOZAJC-x.png",
+          "file": ".tmp/continuation-groups-2026-11-10/kvpp-zai-figure-4.png",
+          "sha256": "e78ab26546ff8349cbf7784a1b3b02b2e52da9efcbc777eee6386e8a52322d0f",
+          "viewed": true
+        },
+        {
+          "url": "https://z-cdn-media.chatglm.cn/prompts-rich-media-resources/scaling-pain-blog/Bk1tZCJ0-e.png",
+          "file": ".tmp/continuation-groups-2026-11-10/kvpp-zai-figure-5.png",
+          "sha256": "db97f2f9a8b43f382a2b6fa7543e0f11545aaf7bae18b637d6fa987c5b349c24",
+          "viewed": true
+        }
+      ],
+      "limitations": "SGLang GLM-5/5.1 production analysis, not Ascend deployment/test evidence; 90% hit-rate improvement not transferred to KVPP"
+    }
+  ],
+  "global_new_count": "not assumed; old190/28 and all earlier inventories must be reconciled",
+  "coverage_outcomes": [
+    "Memcache composite config omitted conditions fixed",
+    "Allocation padding and small-layer counterexample correct resource counting",
+    "SFA fused wait differs from native/MLA; flow captions corrected",
+    "Later Mooncake client prerequisite linked and explained",
+    "LayerSplit separated from Ascend performance and incident claims"
+  ],
+  "remaining_or_excluded": [
+    {
+      "target": "Mooncake PR2881 and Ascend PR12418/16004/issue12234",
+      "state": "guide context and required APIs read; implementation/version lineage not fully read; carry component coverage"
+    },
+    {
+      "target": "SGLang PR22811 linked from Z.ai",
+      "state": "out of this Ascend implementation audit; blog historical fix context only, no claim that Ascend contains same issue or fix"
+    },
+    {
+      "target": "PD abort versus safe reuse and all source/D request termination branches",
+      "state": "existing PD/Mooncake teaching already describes completion; root still carries full main pull_worker chain into source coverage; Z.ai RDMA-write incident not substituted"
+    },
+    {
+      "target": "NPU equality, ABI compatibility, performance",
+      "state": "not measured"
+    }
+  ]
+}

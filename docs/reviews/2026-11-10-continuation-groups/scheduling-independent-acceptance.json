@@ -1,0 +1,142 @@
+{
+  "status": "accepted_for_documentation_scope",
+  "recorded_at": "2026-11-10T11:26:48.242111+00:00",
+  "scope": {
+    "old_occurrences": 106,
+    "old_fixed_ranges": 104,
+    "raw_archives_integrity_only": 2,
+    "historical_background_not_actual_consumer": 2,
+    "new_source_occurrences": 74,
+    "range_migrations": 2,
+    "reused_new_candidate_count": 1,
+    "official_texts_read_this_review": 5,
+    "official_first_read_count": "requires_global_deduplication",
+    "static_diagrams": 10,
+    "calculation_figures": 7,
+    "browser_tables": 20,
+    "cross_page_delta": "KV allocation294 only, not whole page acceptance"
+  },
+  "pages": {
+    "vllm-scheduler": {
+      "path": "wiki/concepts/vllm-scheduler.md",
+      "sha256": "b596727a62dca488c5a89e338ba8bdbe2a163edc9af32cbcfcc5914a1c0d543d",
+      "source_count": 105
+    },
+    "concurrent-requests": {
+      "path": "wiki/concepts/concurrent-requests.md",
+      "sha256": "1921a9cc2c5370bd7e042efe75555b42169e6f330fbeb07688f3167e454a5c69",
+      "source_count": 75
+    }
+  },
+  "files": [
+    {
+      "path": "wiki/concepts/vllm-scheduler.md",
+      "sha256": "b596727a62dca488c5a89e338ba8bdbe2a163edc9af32cbcfcc5914a1c0d543d"
+    },
+    {
+      "path": "wiki/diagrams/token-budget.yaml",
+      "sha256": "e2eebe32fc2358def4fad9a294e0e82214d09570a96bbcf43ec9e2ad3bc7d73a"
+    },
+    {
+      "path": "wiki/diagrams/token-budget.svg",
+      "sha256": "0e477a408bc1651255f9a7dc44f9bac3406de3aeaa20dde867b0b462b22f3f5f"
+    },
+    {
+      "path": "wiki/diagrams/vllm-scheduler-flow.yaml",
+      "sha256": "2995c19f00f5cdc8ea8a9b11e352e76a4e73739819b00b056e08b5e90a3738f8"
+    },
+    {
+      "path": "wiki/diagrams/vllm-scheduler-flow.svg",
+      "sha256": "684bf35cde0ed147c4560afceb86dd3197ec22a4d2b914eb680131b59be4ff7c"
+    },
+    {
+      "path": "wiki/concepts/concurrent-requests.md",
+      "sha256": "1921a9cc2c5370bd7e042efe75555b42169e6f330fbeb07688f3167e454a5c69"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-batching.yaml",
+      "sha256": "4fe4110adf419bef0a233a1a96538c6a03b847a3d65d856ff48d6f666a21699e"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-batching.svg",
+      "sha256": "7b8c36485b4f46f9a0b5fe23854a2f1f8de5858faa33020976bb462931a3b611"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-schedule.yaml",
+      "sha256": "1e5cf43ceb8f7585d9b65981c378827098125cb4481ab52c525c8bf73c50a909"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-schedule.svg",
+      "sha256": "a651c2b342816e26a13729b80e81f823a07449f55f64b77f2b13aafb2fd7871f"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-rounds.yaml",
+      "sha256": "ea82bac09cab20c42e90628771184ecbf0f206fe9185211610efc90a7800769d"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-rounds.svg",
+      "sha256": "ffb1cc76733a2de090d4fa5cc4ee42a1e1ae0a2ab32396d54d8d7ce8709d8994"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-inputs.yaml",
+      "sha256": "1dbb27c44e7b0a9dad542319ef012c883e269b3a9ada662df424d0a1ef980c0f"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-inputs.svg",
+      "sha256": "7ae686610c10ae9100b9c7ce1ee1db4cae7b95bab1cbc08b80b973add9555f15"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-preempt.yaml",
+      "sha256": "b9df4a8590bf2f77a40eba3673402565df2d220b0b82d926fa2a850e9c334072"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-preempt.svg",
+      "sha256": "9a126fa50de213e873d079844b94bb7099911ae2fc98ba85b1a8f98bcfc66ef4"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-graph-decision.yaml",
+      "sha256": "e3ebc0c62c9679d43729f141624b4c93ad615d15940e44b7bf3480cc38746464"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-graph-decision.svg",
+      "sha256": "770c7a95562d93f94c8be5be7f64b9ebf5f9037f317335f115fc0099533240c2"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-dp-align.yaml",
+      "sha256": "fba29425e382813ad3c8f0331cfc5c2d32c375c84593db9f1c49094e1b70dd1e"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-dp-align.svg",
+      "sha256": "23ad4389c8313b7fb3d37408172ffc4983af0b7600396369873a7cfd10186f7c"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-moe-switch.yaml",
+      "sha256": "0837ed12db248868e1705cf02ece056795a280a4898b90b1f86b6be2e222a003"
+    },
+    {
+      "path": "wiki/diagrams/concurrent-request-moe-switch.svg",
+      "sha256": "1b217ac3c89d45a5acc32878be885c460c5718626433fe3ecccdee00760ad6ca"
+    },
+    {
+      "path": "wiki/concepts/vllm-kv-block-allocation.md",
+      "sha256": "c7bb05442aef306df2bf499576db31f3cc32ce6dd1a182aa5f0b3db645bb7652"
+    }
+  ],
+  "snapshot": ".tmp/continuation-groups-2026-11-10/scheduling/review-final.zip",
+  "snapshot_sha256": "5812faf51b69482ac2ac5b6f86ee012a21e16bc48057696381ee8c543396b3de",
+  "initial_snapshot_sha256": "523ff1b3f31e957a02ed7c75412d77544eee6400791d49f9c9bd0e82fcedec31",
+  "browser_full": ".tmp/continuation-groups-2026-11-10/scheduling/review-browser-final/report.json",
+  "browser_targeted": ".tmp/continuation-groups-2026-11-10/scheduling/review-browser-close/report.json",
+  "engineering": {
+    "receipt": "docs/reviews/2026-11-10-continuation-groups/scheduling-engineering-receipt.json",
+    "five_commands_passed": true,
+    "lint_nonblocking_notes": 10,
+    "snapshot_unchanged": true
+  },
+  "remaining_p1_p2": [],
+  "limits": [
+    "No full-site completion claim",
+    "No NPU execution/throughput/latency/fault-timeout certification",
+    "No ownership or validation of other-session teaching3D changes"
+  ]
+}

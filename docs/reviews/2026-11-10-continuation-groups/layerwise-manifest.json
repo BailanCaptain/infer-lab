@@ -1,0 +1,311 @@
+{
+  "items": [
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 1,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L85-L108",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 2,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L229-L253",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 3,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L429-L473",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 4,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L128-L192",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 5,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L210-L294",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 6,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L297-L381",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 7,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1356-L1430",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 8,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L277-L290",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 9,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/memcache_comm_fence.py#L24-L91",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 10,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L250-L258",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 11,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L565-L591",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 12,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L1066-L1077",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 13,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L77-L83",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 14,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L77-L84",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 15,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L176-L182",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 16,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn.py#L130-L140",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 17,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/ops/kimi_kda.py#L505-L520",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 18,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L505-L556",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 19,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2495-L2518",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 20,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L55-L76",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 21,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L409-L430",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 22,
+      "ref": "vllm@0fc695fc:vllm/model_executor/layers/attention/kv_transfer_utils.py#L15-L60",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 23,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/config.py#L350-L365",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 24,
+      "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L14-L33",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 25,
+      "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L200-L240",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 26,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1728-L1768",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 27,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L870-L900",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 28,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L620-L632",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 29,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L205-L226",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 30,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L152-L200",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 31,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L334-L365",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 32,
+      "ref": "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L12-L27",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 33,
+      "ref": "https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L12-L27",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    },
+    {
+      "page_id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "source_number": 34,
+      "ref": "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md",
+      "state": "baseline_remaining",
+      "page_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+    }
+  ],
+  "current_sha256": "878e7d0bc43416ff9017e56050fb53f983aabf04fa08e2ede071f48107b40c8d"
+}

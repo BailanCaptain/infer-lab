@@ -1,0 +1,52 @@
+--- .tmp\wiki-evidence-2026-11-03\quantization-methods-before.md
++++ wiki\concepts\quantization-methods.md
+@@ -48,7 +48,7 @@
+   - 'https://arxiv.org/html/2211.10438v6'
+   - 'https://arxiv.org/html/2306.00978v4'
+   - 'https://arxiv.org/html/2210.17323v2'
+-  - 'https://arxiv.org/abs/2305.14314'
++  - 'https://arxiv.org/html/2305.14314v1'
+   - >-
+     vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/quantization.md#L13-L19
+   - >-
+@@ -59,11 +59,11 @@
+     vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/quantization.md#L105-L125
+   - >-
+     vllm-ascend@7d825229:docs/source/user_guide/feature_guide/quantization.md#L105-L125
+-  - 'vllm-ascend@7d825229:vllm_ascend/quantization/configs/fp8_config.py#L26-L59'
+-  - >-
+-    vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L209-L239
+-  - >-
+-    vllm-ascend@7d825229:vllm_ascend/quantization/configs/modelslim_config.py#L797-L837
++  - 'vllm-ascend@7d825229:vllm_ascend/quantization/configs/fp8_config.py#L26-L111'
++  - >-
++    vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L124-L239
++  - >-
++    vllm-ascend@7d825229:vllm_ascend/quantization/configs/modelslim_config.py#L801-L835
+   - >-
+     https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/quantization.md#L105-L125
+ relations:
+@@ -174,7 +174,7 @@
+ 
+ 模型产物至少要把低位权重、系数、零点或其他元数据，以及哪些层保留浮点说明清楚。若文件方向或打包方式与算子要求不同，加载后还要转置、[打包或转 NZ](tensor-layout.md)。仅修改模型配置中的精度名字不会产生相应权重数据，也不能把任意算法产物变成另一个加载器接受的格式。
+ 
+-本站 [GLM 双机前提](glm-5-3-flash-two-node.md#部署前提)使用配套 W8A8 包，主线位置是加载阶段准备权重、[第 4 站](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)使用量化算子。实际每层方案由描述文件决定。量化包的离线校准配方与完整逐层描述未在本机取得，因此不能从“W8A8”推断它采用了 AWQ、GPTQ 或某一种平滑算法。
++本站 [GLM 双机前提](glm-5-3-flash-two-node.md#部署前提)使用配套 W8A8 包，主线位置是加载阶段准备权重、[第 4 站](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)使用量化算子。实际每层方案由描述文件决定。已取得并核对两份固定快照的逐层描述，二者的 MLA 投影精度存在差异，详见 [GLM 的逐层量化范围](quantization.md#哪些矩阵是-8-位哪些保持-bf16)。这些文件说明每层采用的精度，尚不能还原离线校准数据与工具配方，因此不能从“W8A8”推断它采用了 AWQ、GPTQ 或某一种平滑算法。
+ 
+ 混合精度允许敏感层保留更高精度，以较小容量代价换取质量。这里的“回退”是重新生成或加载具有相应高精度权重的层；已经舍入丢失的信息不会因改回浮点 dtype 自动恢复。选好候选后，还需做[精度、容量与性能验收](quantization-evaluation.md)。
+ 
+@@ -202,7 +202,7 @@
+ 
+ ### 版本差异
+ 
+-**v0.30.0rc2 继续区分量化算法、存储格式和实际执行 scheme。** 官方量化指南与已钉 main 相同，原生 FP8 loader 仍只接受 block-wise、dynamic activation_scheme，跳过层走普通方法；950 按层形状重组 MXFP8，其他情形可回退 model dtype。这不能作为 AWQ/GPTQ 等算法自动获得支持的证据。
++**v0.30.0rc2 继续区分量化算法、存储格式和实际执行 scheme。** 官方量化指南与已钉 main 相同，原生 FP8 loader 仍只接受 block-wise、dynamic activation_scheme，跳过层走普通方法。950 上满足分组条件的线性层可重组为 MXFP8；被 attention 吸收的 kv_b_proj、分组不匹配的层和其他硬件走 model dtype。这不能作为 AWQ/GPTQ 等算法自动获得支持的证据。
+ 
+ ModelSlim 新增 C8-MXFP attention scheme，只有显式 kv-cache-dtype=mxfp8 才开启；checkpoint 的模型级 kv_cache_type 或逐层 self_attn.quant_type 只说明 scale recipe。它面向标准 full Attention，不把 GDN/Mamba/encoder 状态套成同一种 KV 方法；具体 PCP/DCP、PD 和缓存张量限制见 [量化版本对照](quantization.md#版本差异)。
+ 
+@@ -219,4 +219,5 @@
+ - 校准和量化粒度的基础见 PyTorch 实践说明 [S1]；QAT 的伪量化、导出与训练成本见 PyTorch QAT 说明 [S2]。
+ - SmoothQuant 的等价缩放见论文 §4 [S3]；AWQ 的激活统计、通道缩放和 weight-only 范围见 §3 [S4]；GPTQ 的目标与分块补偿见 §3–4 [S5]；QLoRA 的冻结基座和适配器训练见原论文 [S6]。
+ - 工具与加载入口对应来源表第 7–9 项；main 的原生 FP8 增量对应第 10 项。三版文档内容对照记录在本次写作记录中。
++- rc2 的 FP8 配置校验、跳过层与线性层实际转换分支见 [C12][C13]；C8-MXFP 的启用开关与 recipe 区别见 [C14]。逐层精度以 [GLM 的量化描述](quantization.md#哪些矩阵是-8-位哪些保持-bf16)所列固定文件为准。
+ - 0.01 的误差传播、256 项分组账和通道缩放小例子采用教学数据 [A]，相应算术为推导 [D]；没有本站各算法的 NPU 对比实测。

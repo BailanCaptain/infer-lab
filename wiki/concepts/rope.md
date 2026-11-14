@@ -1,52 +1,113 @@
 ---
 id: rope
-title: "RoPE：把位置变成旋转，让注意力分数只看相隔多远"
+title: RoPE：把位置变成旋转，让注意力分数只看相隔多远
 type: concept
-summary: RoPE 在 q、k 点积之前按各自的位置编号旋转它们的二维分量对，点积里只剩两者的位置差；频率基数和 YaRN 等缩放决定能覆盖多长。固定部署的 GLM-5.3-Flash 把 RoPE 维数设为 0：稀疏 MLA 与索引器都不旋转，KDA 层本来就不用 RoPE。
-aliases: [旋转位置编码, 旋转位置嵌入, Rotary Position Embedding, rotary embedding, 位置编码, partial rotary, 部分旋转, rope_theta, 旋转基数, 频率基数, YaRN, NoPE, qk_rope_head_dim, 位置插值, position]
-chapters: ["04"]
+summary: >-
+  RoPE 在 q、k 点积之前按各自的位置编号旋转它们的二维分量对，点积里只剩两者的位置差；频率基数和 YaRN 等缩放决定能覆盖多长。固定部署的
+  GLM-5.3-Flash 把 RoPE 维数设为 0：稀疏 MLA 与索引器都不旋转，KDA 层本来就不用 RoPE。
+aliases:
+  - 旋转位置编码
+  - 旋转位置嵌入
+  - Rotary Position Embedding
+  - rotary embedding
+  - 位置编码
+  - partial rotary
+  - 部分旋转
+  - rope_theta
+  - 旋转基数
+  - 频率基数
+  - YaRN
+  - NoPE
+  - qk_rope_head_dim
+  - 位置插值
+  - position
+chapters:
+  - '04'
 order: 10
 sources:
-  - https://arxiv.org/html/2104.09864v5
-  - https://arxiv.org/html/2309.00071v2
-  - vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/base.py#L80-L103
-  - vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/base.py#L160-L201
-  - vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/common.py#L143-L183
-  - vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/__init__.py#L63-L72
-  - vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/__init__.py#L243-L288
-  - vllm@0fc695fc:vllm/config/model.py#L2178-L2248
-  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
-  - vllm-ascend@db701c1f:vllm_ascend/transformers_utils/configs/glm5_next.py#L102-L105
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1965-L2000
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2089-L2103
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1256-L1269
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1357-L1383
-  - vllm-ascend@db701c1f:vllm_ascend/ops/glm5_next_kpool_state_compress.py#L200-L202
-  - vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L70-L71
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L641-L646
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L251
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L863-L868
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L755
-  - vllm-ascend@db701c1f:vllm_ascend/ops/rotary_embedding.py#L216-L250
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L231-L266
-  - vllm-ascend@baa023ad:vllm_ascend/attention/indexer_kpool.py#L308-L313
-  - vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L288-L294
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L236-L251
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L841
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L880-L887
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'https://arxiv.org/html/2104.09864v5'
+  - 'https://arxiv.org/html/2309.00071v2'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/base.py#L80-L103'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/base.py#L160-L201'
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/common.py#L143-L183
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/__init__.py#L63-L72
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/__init__.py#L243-L384
+  - 'vllm@0fc695fc:vllm/config/model.py#L2178-L2248'
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/transformers_utils/configs/glm5_next.py#L102-L105
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1965-L2000'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2089-L2103'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1256-L1269'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1357-L1383'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/ops/glm5_next_kpool_state_compress.py#L200-L202
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L70-L71'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L641-L646'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L251'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L863-L868'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L755'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/rotary_embedding.py#L216-L250'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L231-L266'
+  - 'vllm-ascend@baa023ad:vllm_ascend/attention/indexer_kpool.py#L308-L313'
+  - 'vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L288-L294'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L236-L258'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L841'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/triton/glm5_next_lightning_indexer.py#L75-L105'
+  - >-
+    raw:sha256-28929cb7b2a4745396c1f36957c5aaac5593597043f254cf6da2540d943f4ae9.md#L1-L556
+  - >-
+    vllm@ced6857a:vllm/model_executor/layers/rotary_embedding/__init__.py#L32-L71
+  - >-
+    vllm@ced6857a:vllm/model_executor/layers/rotary_embedding/__init__.py#L240-L279
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/rotary_embedding.py#L141-L171'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/rotary_embedding.py#L331-L357'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/rotary_embedding.py#L383-L426'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/rotary_embedding.py#L708-L743'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L230-L266'
+  - >-
+    vllm@84030bbe:vllm/model_executor/layers/rotary_embedding/__init__.py#L349-L378
+  - >-
+    vllm@ced6857a:vllm/model_executor/layers/rotary_embedding/__init__.py#L345-L346
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
-  - {to: attention-qkv, kind: builds-on, note: RoPE 改的是 q、k 点积打分这一步；打分、softmax、因果掩码本身在那一页}
-  - {to: one-request, kind: builds-on, note: 挂靠第 4 站逐层前向；位置编号在第 3 站准备输入时算好}
-  - {to: mla, kind: builds-on, note: MLA 为什么要把 RoPE 段和潜向量分开存；GLM 这一段是 0 维}
-  - {to: linear-attention, kind: builds-on, note: KDA 不用 RoPE，顺序靠短卷积和逐位置递推}
-  - {to: glm-5-3-flash, kind: builds-on, note: 这套模型没有位置编码时，顺序信息从哪三处来}
-  - {to: sparse-attention, kind: builds-on, note: 索引器压池时的池内偏置与 RoPE 缓存视图的检查}
-  - {to: block-table, kind: builds-on, note: 位置编号决定旋转角度，块表只决定缓存存在哪一格}
+  - to: attention-qkv
+    kind: builds-on
+    note: RoPE 改的是 q、k 点积打分这一步；打分、softmax、因果掩码本身在那一页
+  - to: one-request
+    kind: builds-on
+    note: 挂靠第 4 站逐层前向；位置编号在第 3 站准备输入时算好
+  - to: mla
+    kind: builds-on
+    note: MLA 为什么要把 RoPE 段和潜向量分开存；GLM 这一段是 0 维
+  - to: linear-attention
+    kind: builds-on
+    note: KDA 不用 RoPE，顺序靠短卷积和逐位置递推
+  - to: glm-5-3-flash
+    kind: builds-on
+    note: 这套模型没有位置编码时，顺序信息从哪三处来
+  - to: sparse-attention
+    kind: builds-on
+    note: 索引器压池时的池内偏置与 RoPE 缓存视图的检查
+  - to: block-table
+    kind: builds-on
+    note: 位置编号决定旋转角度，块表只决定缓存存在哪一格
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-0eb270a31420ce82b08585d1565715149aeb5be0c7246312b0fc3c1e45e24ac8.md
+  - >-
+    raw/sha256-28929cb7b2a4745396c1f36957c5aaac5593597043f254cf6da2540d943f4ae9.md
 ---
 
 ## 注意力怎样知道两个 token 相隔多远？
@@ -54,6 +115,8 @@ origin: direct
 [attention](attention-qkv.md#attention-怎么算跟着一个位置走一遍)（注意力：每个位置回头看前面的位置，按相关程度把信息取过来）用两条向量给历史打分：当前位置算出的 q（query，查询），和每个历史位置算出的 k（key，键）；两者做点积（dot product：两条一样长的向量对应位置的数相乘，再全部加起来），得到“该从那个位置读多少”的分数。q、k 由各自位置的隐藏向量（每个位置在模型里一层层被改写的那条向量，见[层与隐藏表示](layers-and-hidden.md)）算出，里面没有位置编号，点积里也就没有“谁在前、隔多远”这一项：只要两个 token 的向量不变，挨着还是隔开一百个位置，分数都一样。这为什么是个问题，下一节细说。
 
 **RoPE（Rotary Position Embedding，旋转位置编码）在做点积之前，按各自的位置编号把 q 和 k 各转一个角度；两者一乘，转角相减，分数里只留下“相隔几个位置”。**
+
+这里“只留下”指位置对点积的影响可以写成位置差，成立条件是 q 和 k 使用相同的旋转频率与分量配对约定。内容向量仍参与点积，因此相同的位置差可以得到不同分数。这一性质描述的是旋转后的打分表达式；整个模型还受可访问的历史范围、内容表示和后续计算影响，不能据此推出模型输出只由距离决定。
 
 ```wiki-diagram
 file: rope
@@ -69,13 +132,13 @@ file: rope
 
 **attention 的打分公式里没有“位置”这一项。** 把历史里两个 token 对调，只要它们的向量不变，各自拿到的分数就不变，按分数加权得到的输出也不变。RoFormer 论文开篇就指出，自注意力结构本身对位置是无感的，必须另外把位置信息放进去。[因果掩码](attention-qkv.md#因果掩码限定每个位置能访问的历史)只规定一个位置能看哪些位置（自己和之前的），不告诉模型隔了多远；“我打你”和“你打我”用的是同一组词，意思却相反，靠的就是先后。
 
-早期做法是**绝对位置编码**：给每个位置准备一条位置向量，加到词向量上再送进模型。RoPE 换了一种做法：不加向量，而是**乘上一个旋转**。每条 q、k 按自己的绝对位置编号转，点积里却只剩两者的位置差，所以它同时带有绝对位置和相对位置的性质。论文还证明了一个“远程衰减”性质：在默认频率下，q·k 能取到的上界随相对距离增大而下降，离得越远的 token，潜在的相互作用越弱。这是一个上界，并不保证远处的分数一定小。
+早期做法是**绝对位置编码**：给每个位置准备一条位置向量，加到词向量上再送进模型。RoPE 换了一种做法：不加向量，而是**乘上一个旋转**。每条 q、k 按自己的绝对位置编号转，点积里却只剩两者的位置差，所以它同时带有绝对位置和相对位置的性质。论文还分析了“远程衰减”：把点积上界拆成内容因子和频率求和因子，后者在默认频率下呈现长距离衰减趋势。这个因子仍会振荡，不能理解为距离每增加一步，上界就必然下降；实际注意力分数更不保证远处一定小。
 
 代价分三处：
 
 - **计算。** 每层给 q、k 中参与旋转的分量各做一次逐元素的乘加，没有要学习的权重。
-- **显存。** 一张按位置预先算好的 cos、sin 表；K 以转好的值写进 [KV cache](kv-cache.md)（把历史位置算好的 k、v 存起来，后面的 token 直接读，不再重算），以后不必再转。
-- **长度。** 训练时没见过的位置会转出没见过的角度，模型未必会用；想跑更长，要配合下文的频率缩放和续训。
+- **显存。** 一张按位置预先算好的 cos、sin 表；频率固定时，K 以转好的值写进 [KV cache](kv-cache.md)（把历史位置算好的 k、v 存起来，后面的 token 直接读，不再重算），以后不必再转。若扩展方法会随长度改变频率，历史 K 的缓存处理也须与之配套，不能直接复用旧角度。
+- **长度。** 训练时没见过的位置可能转出没见过的角度，模型未必会用；想跑更长，需要评估下文的频率缩放、是否续训以及实际长文本质量。
 
 对 MLA（Multi-head Latent Attention：缓存里不存各头完整的 K、V，只存一条压缩过的潜向量，用时再解压）还有一笔额外代价：旋转矩阵随位置变化，夹在 q 的投影和 k 的解压矩阵之间，两者无法提前合并。所以 DeepSeek 式 MLA 让 RoPE 只作用在单独留出的一小段 q/k 上，这段 k 与潜向量并排存进缓存，详见 [MLA](mla.md#rope-为什么要另存一段)。有的模型干脆把这一段设为 0 维，就完全不转，见后文[放到 GLM 双机](#放到-glm-双机哪里本该转为什么没转)。
 
@@ -157,6 +220,8 @@ k 在 103、q 在 105 = 0.174 × 0.985 + (−0.985) × (−0.174) = 0.171 + 0.17
 
 旋转前分数是 0.866；按位置转过之后变成 0.342，因为 q 比 k 多走 2 个位置、多转 40°，夹角从 30° 拉开到 70°。两个位置一起挪 100，两对数全变了，点积仍是 0.342。三行结果都等于“长度 1 × 长度 1 × 夹角的余弦”。这不是巧合，下面说明为什么总是这样。
 
+这个同移位置的比较固定了旋转前的 q、k 内容向量，只改变位置编号；频率与分量配对仍沿用首节的共同约定。
+
 用 R(p) 表示“在位置 p 把每一对分量各转 p·ω_i”的整个旋转。旋转有两个性质：转回去等于反着转，R(p) 的转置就是 R(−p)；连着转两次，角度相加。于是 q 在位置 p、k 在位置 r 时：
 
 ```text
@@ -173,14 +238,14 @@ k 在 103、q 在 105 = 0.174 × 0.985 + (−0.985) × (−0.174) = 0.171 + 0.17
 
 ## 频率基数与长上下文：YaRN 这类方法改的是什么？
 
-模型训练时只见过一定长度以内的位置。超过这个长度，慢的那几对分量（转一圈要走的位置数比训练长度还多）会转到训练中从未出现的角度，模型不知道怎样解读，质量通常明显下降。长上下文扩展的办法，都是在改“位置 → 角度”这张对照关系，让长序列的角度落回模型熟悉的范围，再配合少量续训。YaRN 论文按先后梳理了几种：
+模型训练时只见过一定长度以内的位置。超过这个长度，慢的那几对分量（转一圈要走的位置数比训练长度还多）可能转到训练中从未出现的角度，质量可能下降。这里讨论的 RoPE 扩展方法会改“位置 → 角度”这张对照关系，减少直接外推带来的问题；是否续训取决于方法和目标质量。YaRN 论文既讨论配合续训的 PI，也报告 NTK-aware、Dynamic NTK 和 YaRN 在不续训条件下的扩展结果，不能把续训当成所有方法的前提。几种方法的区别是：
 
 | 方法 | 改了什么 |
 |---|---|
 | Position Interpolation（PI，位置插值） | 把位置编号按比例 s 压缩，长序列整体挤回训练长度 |
 | NTK-aware | 不压位置，改旋转基数，把压缩分摊到各对分量 |
 | NTK-by-parts | 一圈远短于训练长度的快对不动，一圈超过训练长度的慢对插值，中间平滑过渡 |
-| YaRN | NTK-by-parts 再加注意力温度：q、k 同乘系数 0.1·ln(s) + 1 |
+| YaRN | NTK-by-parts 再加注意力温度；论文对 LLaMA/Llama 2 推荐 q、k 同乘系数 0.1·ln(s) + 1 |
 
 沿用上文 d_r = 8、基数 10000 的示意配置算一次：设模型训练时最长见过 4,096 个位置，现在想把长度翻倍（s = 2），让相隔 6,000 个位置的两个 token 也能正常打分。
 
@@ -206,17 +271,17 @@ NTK-aware 的新基数 = 10000 × 2^(8/6) ≈ 25,198
 YaRN 的温度系数（s = 2） = 0.1 × ln 2 + 1 ≈ 1.07
 ```
 
-PI 把所有分量对一起压：慢对落回见过的范围，快对分辨相邻位置的本事也跟着减半。NTK-aware 改基数，最快的一对不动，最慢的一对正好慢 s 倍，中间几对少压一些。NTK-by-parts 再细分：第 0、1 对一圈只要约 6.3、63 个位置，远短于 4,096，完全不动；第 3 对一圈约 6,283 个位置，超过训练长度，照 PI 插值；第 2 对一圈约 628 个位置，介于两者之间，平滑过渡。
+PI 把所有分量对一起压：慢对落回见过的范围，快对分辨相邻位置的本事也跟着减半。NTK-aware 改基数，最快的一对不动，最慢的一对正好慢 s 倍，中间几对少压一些。NTK-by-parts 再细分；按论文示例阈值 α=1、β=32，第 0、1 对一圈只要约 6.3、63 个位置，远短于 4,096，完全不动；第 3 对一圈约 6,283 个位置，超过训练长度，照 PI 插值；第 2 对一圈约 628 个位置，介于两者之间，平滑过渡。
 
 YaRN 的温度也通过缩放 cos、sin 表实现，不必改 attention 的代码。论文报告，它比此前方法少用约 10 倍的续训 token 和 2.5 倍的训练步数。
 
-在 vLLM 里，这些都写在模型配置的 RoPE 参数里：基数、缩放类型、缩放倍数、原始训练长度，以及上面说的旋转比例。vLLM 按缩放类型构造对应的旋转模块；类型写错会直接报错。它还会用配置推出允许的最大长度：用 YaRN 时是原始训练长度乘以缩放倍数。部署时指定的最大长度超过推出值就会报错，强行放开要设环境变量，vLLM 的提示写明，超出这个长度的 RoPE 位置会算出 NaN。
+在 vLLM 里，这些都写在模型配置的 RoPE 参数里：基数、缩放类型、缩放倍数、原始训练长度，以及上面说的旋转比例。vLLM 按缩放类型构造对应的旋转模块；类型写错会直接报错。它还会用配置推出允许的最大长度：通常 YaRN 按原始训练长度乘以缩放倍数计算。部署时指定值超过推导上限，而且没有配置中的独立 `model_max_length` 放行时，才进入超限报错；环境变量可以放宽这项校验，但提示会警告 RoPE 超限可能产生 NaN，不能把放行当作质量或数值有效性的保证。
 
-所以**基数、缩放方式和旋转维数都是模型训练时定下的计算约定。**公式能为任意大的位置算出角度，不等于模型在那个长度上有可靠质量，也不等于设备放得下对应的 KV；只改一个最大长度字段，不能算完成了长上下文扩展。
+所以**检查点给出了默认的旋转约定；有依据的上下文扩展方法可以调整频率或缩放，但要遵守该方法的适用条件并检验效果。**公式能为任意大的位置算出角度，不等于模型在那个长度上有可靠质量，也不等于设备放得下对应的 KV；只改一个最大长度字段，不能算完成了长上下文扩展。
 
 ## 在推理引擎里，旋转发生在哪一步？
 
-对一个使用 RoPE 的普通 attention 层，一步前向里的顺序是：
+对一个使用固定频率 RoPE 的普通 attention 层，一步前向里的顺序是：
 
 1. **位置编号在进层之前就算好。** [主线第 3 站](one-request.md#第-3-站-准备输入一份计划发给-8-个-worker)准备输入时，model runner（vLLM 在每张卡上负责准备本步输入、调用模型前向的那一层）给每个 token 算出位置编号：本请求已经算过的 token 数，加上它在本步里的序号。R1（主线跟踪的示例请求，提示词 4 个 token）第一步的位置编号是 0、1、2、3。
 2. **投影出 q、k、v 之后旋转 q 和 k。** 按位置编号取出 cos、sin 表的对应行，只转参与旋转的那部分维度，v 不动。
@@ -268,8 +333,9 @@ title: RoPE 维数为 0 时，稀疏 MLA 的两处宽度
 
 - **“RoPE 是把一条位置向量加到 q、k 上。”** 加法是绝对位置编码的做法。RoPE 是乘上一个旋转，不增加向量，也不改变每对分量的长度。
 - **“RoPE 只编码相对位置，模型不知道绝对位置。”** 每条 q、k 都按自己的绝对位置转；只是两者做点积时，结果只依赖位置差。
+
 - **“v 也要旋转。”** 只转 q 和 k；v 是被读走的内容，不参与打分，也不转。
-- **“把最大位置字段或服务的最大长度调大，就能处理更长文本。”** 公式能算出任意位置的角度，但模型没在那些角度上训练过；扩展要配合 YaRN 这类缩放和续训，还要显存放得下对应的 KV。vLLM 也会拒绝超过推导上限的最大长度。
+- **“把最大位置字段或服务的最大长度调大，就能处理更长文本。”** 公式能算出任意位置的角度，但长文本质量仍要检验；采用 YaRN 等扩展方法时，应按方法评估是否需要续训，还要显存放得下对应的 KV。vLLM 的长度校验可能由配置中的 `model_max_length` 或环境变量放行，放行本身不保证效果。
 - **“GLM 的稀疏 MLA 把 RoPE 用在 q、k 的 RoPE 部分。”** 一般的 MLA 确实只转那一部分；本配置这一部分是 0 维，主注意力和索引器都没有建旋转模块。
 - **“配置里有索引器用相邻配对的开关，说明索引器在做 RoPE。”** 这个开关只在有旋转时选择配对布局；RoPE 维数为 0 时不起作用。
 - **“GLM 没有 RoPE，所以模型不知道词序。”** 顺序信息来自 KDA 的短卷积与逐位置递推、索引器压池时的池内偏置，以及因果范围。
@@ -285,7 +351,7 @@ title: RoPE 维数为 0 时，稀疏 MLA 的两处宽度
 RoPE 不是服务端开关，而是模型结构的一部分，由 Hugging Face 配置决定：
 
 - `rope_parameters` 里的 `rope_theta`（基数）、`rope_type`（`default`、`linear`、`dynamic`、`yarn`、`llama3`、`longrope`、`deepseek_yarn` 等）、`factor`、`original_max_position_embeddings`，以及 `partial_rotary_factor` 或 `rope_dim`（参与旋转的比例或维数）。vLLM 的 `get_rope` 读取它们；字段缺省时基数按 10000、类型按 `default`、比例按 1.0 处理。
-- 服务时如需覆盖配置字段，vLLM 提供 `--hf-overrides`；只有模型训练时确实采用了相应缩放，这样改才有意义。
+- 服务时如需覆盖配置字段，vLLM 提供 `--hf-overrides`；应采用与模型和扩展方法相符的参数。某些方法支持不续训地调整缩放，某些需要续训，二者都须验证目标长度上的效果。
 - 最大长度由 `--max-model-len` 给定，vLLM 会拿它与配置推导出的上限比较。
 
 GLM-5.3-Flash 没有可开的项：检查点写的是 `qk_rope_head_dim: 0`、`qk_nope_head_dim: 256`、`mla_use_nope: true`、`indexer_rope_interleave: true`、`max_position_embeddings: 1048576`，没有 `rope_theta` 和缩放字段。专用配置类把 `mla_use_nope` 映射为 `mla_nope`，`rope_parameters` 缺省为空。把 RoPE 维数改成非 0 不等于“打开 RoPE”：检查点里没有这段权重，镜像的加载函数只会补零，main 的 KPool 索引器会直接拒绝。
@@ -296,7 +362,7 @@ GLM-5.3-Flash 没有可开的项：检查点写的是 `qk_rope_head_dim: 0`、`q
 |---|---|---|
 | `ValueError: partial_rotary_factor=... must be between 0.0 and 1.0` | vLLM 构造旋转模块 | 参与旋转的比例不在 (0, 1] |
 | `ValueError: Unknown RoPE scaling type ...` | vLLM 构造旋转模块 | `rope_type` 不在支持列表里 |
-| `User-specified max_model_len (...) is greater than the derived max_model_len (...)` | 引擎读取模型配置 | 最大长度超过配置推导的上限；设 `VLLM_ALLOW_LONG_MAX_MODEL_LEN=1` 可放行，提示写明 RoPE 模型超出位置会得到 NaN |
+| `User-specified max_model_len (...) is greater than the derived max_model_len (...)` | 引擎读取模型配置 | 最大长度超过推导上限，且独立 `model_max_length` 也未放行；设 `VLLM_ALLOW_LONG_MAX_MODEL_LEN=1` 可放宽校验，提示警告 RoPE 超限的 NaN 风险 |
 | `GLM-5 Indexer requires rope_parameters when qk_rope_head_dim is non-zero.` | 镜像 GLM 专用实现构造 MLA | RoPE 维数非 0 却没有 RoPE 参数 |
 | `GLM-5 Indexer requires rotary embedding when qk_rope_head_dim is non-zero.` | 镜像索引器前向 | RoPE 维数非 0 却没有传入旋转模块 |
 | `GLM-Next KPool indexing supports NoPE queries only, got qk_rope_head_dim=...` | main 的 KPool 索引器构造 | main 只支持 RoPE 维数为 0 |
@@ -311,6 +377,12 @@ GLM-5.3-Flash 没有可开的项：检查点写的是 `qk_rope_head_dim: 0`、`q
 
 ### 版本差异
 
+配套 vLLM 0.30 还删除了固定 main 的 telechat3-yarn 分派，继续传这个 rope_type 会落到 Unknown RoPE scaling type。旧配置需要依据实际模型迁移，不能将相似的 YaRN 名称直接当成兼容别名。
+
+**v0.30.0rc2 保留旋转数学，更新了 YaRN 参数与缓存归属。** 配套上游继续从 rope_parameters 读取 rope_theta（默认 10000）、rope_type 和 partial_rotary_factor，后者须在 (0,1]；YaRN 改为透传 mscale、mscale_all_dim、attention_factor、truncate 等参数，旧调用签名不能直接搬用。Ascend 适配新版 YaRN，并用 Gemma4 专门子类保留非旋转频率零填充的缓存构造；相邻配对按硬件 FUSED_ROTARY_MUL_INTERLEAVE 能力选择实现，不能拿 NeoX 半区配对套到 GPT-J/Kimi。
+
+MLA/SFA 派生 cos/sin 现登记为 owner 的非持久 buffer，使 sleep level 2 备份能看到它们，并保留张量地址与图引用。这里有源码修复依据但没有本次睡眠唤醒实测；固定 GLM 主干 NoPE 也不会因此新增旋转。
+
 按知识库固定快照核对：v0.23 为 Ascend `2c59ff10` / vLLM `0fc695fc`；v0.26 为 Ascend `2ed6cbba` / vLLM `568afb3a`；main 为 Ascend `baa023ad` / vLLM `84030bbe`。执行侧镜像为 Ascend `db701c1f`。
 
 | 检查项 | v0.23 | v0.26 | main |
@@ -319,24 +391,29 @@ GLM-5.3-Flash 没有可开的项：检查点写的是 `qk_rope_head_dim: 0`、`q
 | vllm-ascend 替换 `RotaryEmbedding`、`YaRNScalingRotaryEmbedding`、`DeepseekScalingRotaryEmbedding` | 有 | 有 | 有 |
 | GLM 专用实现 | 维护快照没有；镜像 `db701c1f` 的 `models/glm5_next.py` 有：主注意力需三项同时满足才建旋转，索引器维数大于 0 才建 | 维护快照没有 | `models/glm5next/`：主注意力只看 `skip_rope`（即 `mla_nope`）；稀疏配置下索引器总会调用 `get_rope` 并传入维数 0；KPool 索引器要求维数为 0；MLA 后端为 NoPE 模型准备全零的 RoPE 操作数 |
 
-三版在固定配置下的结论一致：GLM 主干不做 RoPE 旋转。GLM 配置与专用源码的钉点见[专用配置与源码基线](../sources/glm-5-3-flash-baseline.md)。
+固定镜像、main 和 rc2 中已有的 GLM 实现在这份配置下都不做主干 RoPE 旋转；表中没有 GLM 专用实现的维护快照不能据此宣称支持该模型。GLM 配置与专用源码的钉点见[专用配置与源码基线](../sources/glm-5-3-flash-baseline.md)。
 
 ### 源码位置
 
 | 位置 | 看什么 |
 |---|---|
-| vLLM `rotary_embedding/__init__.py` 63–72、243–288 行 | `get_rope` 的缺省值、旋转维数、`yarn` 与 `deepseek_yarn` 分支 |
+| vLLM `rotary_embedding/__init__.py` 63–72、243–384 行 | `get_rope` 的缺省值、旋转维数、`yarn` 与 `deepseek_yarn` 分支、未知类型报错 |
 | vLLM `rotary_embedding/base.py` 80–103、160–201 行 | 频率 `inv_freq`、`cos_sin_cache`；按 `positions` 取行，前 `rotary_dim` 维旋转后与其余维拼接 |
 | vLLM `rotary_embedding/common.py` 143–183 行 | `is_neox_style` 为真时前后半区配对，为假时相邻配对 |
 | vLLM `config/model.py` 2178–2248 行 | 用缩放倍数推导最大长度，超限报错 |
 | Ascend `worker/model_runner_v1.py` 863–868 行 | 位置编号 = 已算 token 数 + 本步序号 |
 | Ascend `utils.py` 735–755 行、`ops/rotary_embedding.py` 216–250 行 | 通用旋转模块替换为 Ascend 版本，调用 NPU 旋转算子 |
 | Ascend `models/glm5_next.py` 1965–2000、2089–2103 行 | MLA 与索引器的旋转模块在什么条件下建立；`skip_rope` 取自 `mla_nope` |
-| Ascend `models/glm5_next.py` 1256–1269、1357–1383、880–887 行 | 索引器的 RoPE 维数、配对布局、池内偏置参数、旋转分支、按位置算因果 pool 数 |
+| Ascend `models/glm5_next.py` 1256–1269、1357–1383 行 | 索引器的 RoPE 维数、配对布局、池内偏置参数与旋转分支 |
+| Ascend `ops/triton/glm5_next_lightning_indexer.py` 75–105 行 | 生产 Triton 路径按位置算因果 pool 数，并限制为已经写入的 pool 范围 |
 | Ascend `ops/glm5_next_kpool_state_compress.py` 200–202 行 | 门控分数加池内偏置，在 4 个槽位间 softmax 后压成一个键 |
 | Ascend `ops/indexer_kpool_mla.py` 70–71 行、`attention/indexer_kpool_mla_v1.py` 641–646 行 | 主缓存宽度 = 潜向量 + RoPE 段；NoPE 时只写潜向量 |
 | Ascend `ops/kimi_kda.py` 244–251 行 | KDA 前向丢弃位置编号 |
 
+索引器还有一处与数值类型有关的处理，见来源 14 的固定镜像 `glm5_next.py` 第 1357–1383 行：仅在 `rope_dim > 0` 时进入，并要求 `rotary_emb` 非空，否则报错。参与旋转的键分量 `k_pe` 先转为 BF16（一种低精度浮点格式），旋转后用 `.float()` 转回 FP32，再与保留 FP32 的 `k_nope` 拼接。第 1370–1374 行注释把这一步归因于旋转算子对 FP32 输入产生的差异超出普通舍入差异；这是该路径的源码解释，没有独立数值实验，不能推广为所有 RoPE 算子的行为。[I]
+
 **来源索引。** RoPE 的定义、旋转公式、频率取值、相对位置等式、远程衰减、与线性注意力的结合、逐元素实现，以及“自注意力对位置无感”的动机，见 [S1]。PI、NTK-aware、NTK-by-parts、YaRN 的温度公式与续训开销，见 [S2]。vLLM 的频率与 cos/sin 表、按位置取行与部分旋转在 base.py [C4]，两种配对布局在 common.py [C5]；缺省基数、旋转比例与缩放类型分支在 get_rope [C7]，最大长度推导与报错在 model.py [C8]。GLM 固定配置字段 [S9]。MLA 与索引器的旋转构造条件 [C11][C12]；索引器的维数、配对布局、池内偏置参数与按位置限定因果 pool [C13][C27]，偏置参与压缩 [C15]；主缓存宽度与 NoPE 时只写潜向量 [C17]；KDA 丢弃位置编号 [C18]；位置编号的计算 [C19]；Ascend 替换旋转模块 [C20]；main 的 NoPE 限制 [C23]。首图每个位置转 20° 与 d_r = 8 的转速表是示意取值 [A]；256 + 0 与 512 + 0 两处宽度由配置字段相加得出 [D]。其余来源是上表各行的原始位置。
 
 **待核。** 设备上 RoPE 算子的耗时未实测；本页不涉及长文本效果，也未实测；main 以 0 维构造的索引器旋转模块在前向中是否执行未核；池内偏置只核对了 PyTorch 写法的那条路径，融合算子内部未逐行核对。
+
+**相对位置条件的推导范围。** 来源 4 的固定 `base.py` 第 160–201 行与来源 5 的 `common.py` 第 143–183 行中，q/k 共用 cos/sin 与分量配对方式，二维公式据此给出 `R(p)ᵀR(r) = R(r−p)`，与 RoFormer 论文的相对位置推导一致。同移位置时还须固定内容向量；这是数学表达式的推导，不保证有限精度计算逐位相同，也不保证所有位置缩放变体满足前提。[D] 设备数值行为仍需实测。

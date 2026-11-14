@@ -1,61 +1,174 @@
 ---
 id: moe
-title: "MoE：一层里放很多专家，每个 token 只用几个"
+title: MoE：一层里放很多专家，每个 token 只用几个
 type: concept
-summary: "MoE 把一层的前馈网络换成一池专家，router 给每个 token 打分，只交给其中 k 个去算，输出按组合权重相加：参数随专家数涨，每个 token 的计算只随 k 涨。本页先讲它是什么、为什么需要，再用 6 选 2 的示意数演一遍打分、偏置选人、归一化与加权相加，讲清分组选择、共享专家和负载不均，最后落到 GLM 的 288 选 8。"
+summary: >-
+  MoE 把一层的前馈网络换成一池专家，router 给每个 token 打分，只交给其中 k 个去算，输出按组合权重相加：参数随专家数涨，每个 token
+  的计算只随 k 涨。本页先讲它是什么、为什么需要，再用 6 选 2
+  的示意数演一遍打分、偏置选人、归一化与加权相加，讲清分组选择、共享专家和负载不均，最后落到 GLM 的 288 选 8。
 aliases:
-  [
-    MoE,
-    混合专家,
-    Mixture of Experts,
-    专家,
-    expert,
-    路由器,
-    router,
-    门控,
-    gate,
-    路由结果,
-    routed expert,
-    共享专家,
-    shared expert,
-    top-k,
-    top-8,
-    稀疏激活,
-    组合权重,
-    负载不均,
-    aux loss,
-    辅助损失,
-    e_score_correction_bias,
-    noaux_tc,
-    routed_scaling_factor,
-  ]
-chapters: ["06"]
+  - MoE
+  - 混合专家
+  - Mixture of Experts
+  - 专家
+  - expert
+  - 路由器
+  - router
+  - 门控
+  - gate
+  - 路由结果
+  - routed expert
+  - 共享专家
+  - shared expert
+  - top-k
+  - top-8
+  - 稀疏激活
+  - 组合权重
+  - 负载不均
+  - aux loss
+  - 辅助损失
+  - e_score_correction_bias
+  - noaux_tc
+  - routed_scaling_factor
+chapters:
+  - '06'
 order: 80
 sources:
-  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
-  - https://arxiv.org/abs/1701.06538
-  - https://arxiv.org/abs/2412.19437
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1445-L1538
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1442
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L30-L120
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L139-L232
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L286-L312
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L340-L395
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L671
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L672-L719
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L215
-  - vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L127-L162
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L139-L177
-  - vllm@0fc695fc:vllm/model_executor/layers/fused_moe/runner/moe_runner.py#L650-L680
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L726-L800
-  - vllm-ascend@2ed6cbba:vllm_ascend/ops/fused_moe/experts_selector.py#L205-L230
-  - vllm-ascend@2ed6cbba:vllm_ascend/ops/fused_moe/fused_moe.py#L824-L900
-  - vllm-ascend@baa023ad:vllm_ascend/ops/fused_moe/router/grouped_topk_router.py#L80-L126
-  - vllm-ascend@baa023ad:vllm_ascend/ops/fused_moe/shared_experts.py#L43-L60
-  - vllm-ascend@baa023ad:vllm_ascend/ops/fused_moe/shared_experts.py#L340-L560
-  - vllm-ascend@db701c1f:csrc/moe/moe_gating_top_k/op_host/moe_gating_top_k_proto.h#L40-L56
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
+  - 'https://arxiv.org/html/1701.06538v1'
+  - 'https://arxiv.org/html/2412.19437v2'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1445-L1538'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1442'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L30-L120'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L139-L232'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L286-L312'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L340-L395'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L671'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L672-L719'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L229'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L127-L162
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L139-L177'
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/fused_moe/runner/moe_runner.py#L650-L680
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L726-L800'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ops/fused_moe/experts_selector.py#L205-L230'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ops/fused_moe/fused_moe.py#L824-L914'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/ops/fused_moe/router/grouped_topk_router.py#L80-L126
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/fused_moe/shared_experts.py#L43-L60'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/fused_moe/shared_experts.py#L340-L560'
+  - >-
+    vllm-ascend@db701c1f:csrc/moe/moe_gating_top_k/op_host/moe_gating_top_k_proto.h#L40-L56
+  - >-
+    raw:sha256-f07c72006321564656641044ce1a4d548cefade8a2cddd9b5a9c7eb0366901eb.md#L1-L1289
+  - >-
+    vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/models/glm5_next.py#L1503-L1511
+  - >-
+    vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/ops/fused_moe/experts_selector.py#L222-L231
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/router/grouped_topk_router.py#L80-L128
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/shared_experts.py#L93-L126'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/shared_experts.py#L390-L502'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/shared_experts.py#L504-L630'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L100-L118'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L351-L393'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ops/fused_moe/experts_selector.py#L95-L113'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ops/fused_moe/experts_selector.py#L346-L388'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/fused_moe.py#L425-L540'
+  - 'vllm-ascend@db701c1f:csrc/moe/moe_gating_top_k/op_kernel/moe_gating_top_k_without_group.h#L190-L259'
+  - 'vllm@0fc695fc:docs/design/fused_moe_modular_kernel.md#L1-L245'
+  - 'vllm@0fc695fc:docs/design/moe_kernel_features.md#L1-L112'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/modular_kernel.py#L83-L157'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/modular_kernel.py#L199-L246'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/modular_kernel.py#L263-L418'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/modular_kernel.py#L471-L581'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/modular_kernel.py#L815-L860'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1031-L1092'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1106-L1192'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1275-L1341'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1491-L1561'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/experts/fused_batched_moe.py#L296-L325'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/experts/fused_batched_moe.py#L717-L833'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ht.py#L71-L85'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ht.py#L222-L308'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ll.py#L139-L153'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ll.py#L229-L342'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ll.py#L372-L410'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/topk_weight_and_reduce.py#L11-L121'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/oracle/unquantized.py#L153-L298'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/oracle/unquantized.py#L329-L370'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/unquantized_fused_moe_method.py#L53-L88'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L290-L294'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L479-L545'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L84-L93'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L97-L115'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L473-L502'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L537-L582'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1051-L1112'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1127-L1229'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1312-L1378'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1539-L1571'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ht.py#L87-L88'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ht.py#L194-L264'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ht.py#L269-L322'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ll.py#L146-L147'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ll.py#L229-L326'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ll.py#L372-L410'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/experts/fused_batched_moe.py#L817-L837'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/unquantized_fused_moe_method.py#L78-L86'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/unquantized_fused_moe_method.py#L155-L199'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/oracle/unquantized.py#L193-L309'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/topk_weight_and_reduce.py#L11-L41'
+  - 'vllm@568afb3a:vllm/model_executor/layers/fused_moe/topk_weight_and_reduce.py#L44-L77'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L86-L95'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L99-L121'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L481-L513'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L548-L593'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1117-L1196'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1211-L1298'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1384-L1450'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1616-L1648'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ht.py#L87-L88'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ht.py#L194-L264'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ht.py#L269-L322'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ll.py#L146-L147'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ll.py#L229-L326'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ll.py#L372-L410'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/experts/fused_batched_moe.py#L865-L885'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/unquantized_fused_moe_method.py#L132-L171'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/unquantized_fused_moe_method.py#L173-L184'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/oracle/unquantized.py#L208-L326'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/topk_weight_and_reduce.py#L11-L41'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/topk_weight_and_reduce.py#L44-L77'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/modular_kernel.py#L86-L95'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/modular_kernel.py#L99-L121'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/modular_kernel.py#L488-L520'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/modular_kernel.py#L555-L600'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1124-L1203'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1218-L1305'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1391-L1457'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1623-L1655'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ht.py#L87-L88'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ht.py#L194-L264'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ht.py#L269-L322'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ll.py#L146-L147'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ll.py#L229-L326'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/prepare_finalize/deepep_ll.py#L372-L410'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/experts/fused_batched_moe.py#L865-L885'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/unquantized_fused_moe_method.py#L132-L171'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/unquantized_fused_moe_method.py#L173-L184'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/oracle/unquantized.py#L208-L326'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/topk_weight_and_reduce.py#L11-L41'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/topk_weight_and_reduce.py#L44-L77'
+  - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/oracle/unquantized.py#L48-L163'
+  - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/oracle/unquantized.py#L48-L163'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
   - to: mlp-residual-norm
     kind: builds-on
@@ -64,17 +177,22 @@ relations:
     kind: builds-on
     note: 288 选 8、共享专家、每层维度和全模型参数量的出处
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: 2026-11-11T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-99129f27842731203229eb685a78a5daf03fbe6927129ff81f1c2002ab080cf1.md
+  - >-
+    raw/sha256-f07c72006321564656641044ce1a4d548cefade8a2cddd9b5a9c7eb0366901eb.md
 ---
 
 ## MoE 是什么？
 
-**MoE（mixture of experts，混合专家）把一层里的前馈网络换成许多个并排的小前馈网络，每个叫一个 expert（专家）；每个 token 只交给其中几个专家去算，再把它们的结果按权重合起来。**
+**MoE（mixture of experts，混合专家）用多个 expert（专家，各自执行前馈变换的网络）和选择专家的路由机制组织前馈计算。本页讲的稀疏 MoE 为每个 token 选择其中一部分路由专家计算，再把选中专家的输出按权重合起来。**
 
 先看它换掉的是什么。模型由几十层堆成，每个 [token](token.md)（文本切出的一个小片段）在每一层都有一条**隐藏向量**：一排数，记着这个位置到目前为止知道的信息，在层与层之间传递，见[层与隐藏表示](layers-and-hidden.md)。一层里对它做两件事：先用 [attention](attention-qkv.md) 让各位置互相读信息，再过一个**前馈网络**（FFN，也叫 MLP），对每个位置单独做一次变换：用几次[矩阵乘](matmul-and-weights.md)把这排数先变宽、再变回原来的宽度，见[前馈网络](mlp-residual-norm.md#前馈网络怎样变换一个位置的特征)。普通的「稠密」模型每层只有一个前馈网络，每个 token 都要把它整个算一遍。
 
-MoE 把这一个前馈网络换成一池专家，每个专家本身也是一个前馈网络，只是小一些。每层再配一个 **router（路由器）**：一个小小的打分网络，给当前 token 对每个专家打一个分，只把这个 token 交给分最高的几个专家。选几个是模型结构定死的，这个数叫 **top-k**。这有点像医院分诊：每个病人只挂最对口的一两个科室，不必把全院医生都看一遍。不同的是，专家各管什么不是人分配的，是训练中自己形成的，不一定对得上人能叫出名字的科目。
+MoE 把这一个前馈网络换成一池专家，每个专家本身也是一个前馈网络；GLM 这类细粒度设计把单个专家做得比稠密前馈网络窄，但专家较小不是 MoE 的定义。每层再配一个 **router（路由器）**：一个打分网络，给当前 token 对每个专家打一个分，再按模型的选择规则交给其中几个。本文的 top-k 路由每次选固定的 k 个；偏置和分组也可能参与选择，后文会展开。这有点像医院分诊：每个病人只挂最对口的一两个科室，不必把全院医生都看一遍。不同的是，专家各管什么不是人分配的，是训练中自己形成的，不一定对得上人能叫出名字的科目。
 
 举一个示意的例子：一层有 6 个专家，k = 2。「我吃了苹果」切成「我」「吃」「了」「苹果」4 个 token（为了好读，一个词算一个），每个 token 在这一层各选各的：「苹果」交给专家 2 和 4，「吃」交给专家 2 和 5。下图跟着「苹果」走一遍：
 
@@ -82,7 +200,7 @@ MoE 把这一个前馈网络换成一池专家，每个专家本身也是一个�
 file: moe-intuition
 ```
 
-图里有三件事值得记住。第一，发给专家的是这个 token 的隐藏向量，专家的权重是训练好的矩阵，一直留在原地不动。第二，没被选中的专家这一轮完全不参与计算，但它们的参数仍然占着显存。第三，出口把几个专家的输出**按权重相加**，所以这一层的输出宽度和输入一样，后面的层看不出这里换成了多个网络。
+图里有三件事值得记住。第一，本页采用权重常驻的部署：发给专家的是这个 token 的隐藏向量，专家权重留在所在设备上。第二，没被这个 token 选中的专家不为它计算，但仍可能服务同批的其他 token，参数也仍占着显存。第三，出口把几个专家的输出**按权重相加**，这一层保持相同的隐藏宽度，后续层无需因专家数改变输入形状。
 
 同一个 token 进到下一个 MoE 层，那一层有自己的 router 和自己的一池专家，要重新选。
 
@@ -90,9 +208,9 @@ file: moe-intuition
 
 ## 为什么需要 MoE，代价在哪？
 
-**想让模型装下更多知识，就要更多参数；可在稠密模型里，每个 token 都要把每层的参数乘一遍，参数翻倍，计算也跟着翻倍。MoE 让参数跟着专家个数涨，每个 token 的计算只跟着选中的 k 个涨。** 一层里放得下很多参数，而一个 token 只碰其中一小块，这叫**稀疏激活**。
+**MoE 用条件计算扩大参数容量：单个专家结构不变时，增加专家数会增加总参数，而每个 token 的专家矩阵乘仍只涉及选中的 k 个。** 这不表示知识量由参数数目单独决定，也不表示 router 的打分与通信没有成本。一层里放得下很多专家参数，而一个 token 只计算其中一部分专家，这叫**稀疏激活**。
 
-用示意数算一下。设每个专家是一个「4 → 8 → 4」的小前馈网络，由三片各 32 个数的权重矩阵组成：两片 4 × 8（叫 gate 和 up）把 4 个数扩到 8 个，一片 8 × 4（叫 down）再缩回 4 个，为什么这样分见[前馈网络](mlp-residual-norm.md#门控-mlpswiglu)，一个专家有 3 × 4 × 8 = 96 个参数；每个 token 选 2 个专家。一个 token 每用到一个参数，就要做一次乘加，所以它乘到的参数个数就是它在这一层的计算量：
+用示意数算一下。设每个专家是一个「4 → 8 → 4」的小前馈网络，由三片各 32 个数的权重矩阵组成：两片 4 × 8（叫 gate 和 up）把 4 个数扩到 8 个，一片 8 × 4（叫 down）再缩回 4 个，为什么这样分见[前馈网络](mlp-residual-norm.md#门控-mlpswiglu)，一个专家有 3 × 4 × 8 = 96 个参数；每个 token 选 2 个专家。这里只比较专家矩阵乘：每用到一个矩阵元素，约对应一次乘加；按乘和加各计一次 FLOP，运算数约是这些元素数的两倍，未计激活、router 等工作：
 
 | 这一层的做法 | 这一层的参数 | 一个 token 乘到的参数 | 占比 |
 | --- | --- | --- | --- |
@@ -104,13 +222,18 @@ file: moe-intuition
 
 省下计算不等于免费，代价有三样：
 
-1. **参数还是得全放着。** 下一个 token 会选哪几个专家，事先不知道，所以一层所有专家的权重都得常驻显存（加速卡上的内存）。一张卡放不下，就把专家分到多张卡上，每张卡只放一部分专家，token 选中的专家在哪张卡，就把它送到哪张卡去算，这叫**专家并行**（expert parallel，EP），见[专家并行](expert-parallel.md)，本页不展开。
+1. **总权重容量没有随激活比例缩小。** 本页的常驻部署会把所有专家权重放在加速卡内存里；这是部署方式，不是所有 MoE 必须遵守的存放位置。一张卡放不下，就把专家分到多张卡上，每张卡只放一部分专家，token 选中的专家在哪张卡，就把它送到哪张卡去算，这叫**专家并行**（expert parallel，EP），见[专家并行](expert-parallel.md)，本页不展开。
 2. **多了一步 router，还多了一次搬运。** 打分本身很小，但选中的专家要是在别的卡上，就得把隐藏向量发过去、把结果收回来。发和收怎么做、每层几次通信，见[专家并行](expert-parallel.md#放到-glm-双机一个-token-走过一层-moe)。
-3. **负载不均。** 选谁由数据决定，热门专家会分到更多 token，一层的耗时由最慢的那张卡决定。机制在[后面那一节](#一批-token-怎样落到专家上负载为什么会不均)。
+
+3. **负载不均。** 选谁由数据决定，热门专家会分到更多 token；当各卡需要等待这些专家结果时，较慢的计算或通信会拖长这一层的关键路径。机制在[后面那一节](#一批-token-怎样落到专家上负载为什么会不均)。
+
+路由器为输入选择专家，专家并行则安排专家所在的设备和输入、输出的传输。因此，专家数量分得一样多，并不代表每张卡实际收到的计算任务一样多；上表的专家矩阵乘计算量比例也不能直接当作端到端加速比例，还要计入路由、通信、临时张量和负载不均的影响。
 
 ## MoE 怎么算？跟着一个 token 走一遍
 
-**router 给每个专家打一个分，把分数压到 0 到 1 之间，加上偏置后排序选出前 k 个；再用这 k 个专家没加偏置的分数算出组合权重，把它们的输出按权重加起来。** router 的分数有两个去处，一定要分开看：一个**决定选谁**，一个**决定选中的几个专家的输出按什么比例相加**，后者叫**组合权重**。从打分到组合权重之间有四个可调的环节：打分函数、选择用的校正偏置、归一化、整体缩放。
+**下面演示 GLM 所用的一类路由规则：router 给每个专家打分，经 sigmoid 压到 0 到 1 之间，加偏置后选出前 k 个；再用选中专家没加偏置的分数算出组合权重，把输出按权重相加。** router 的分数有两个去处，一定要分开看：一个**决定选谁**，一个**决定选中的几个专家的输出按什么比例相加**，后者叫**组合权重**。从打分到组合权重之间有四个环节：打分函数、选择用的校正偏置、归一化、整体缩放；实际取值由模型规定。
+
+这里及下文手算中的“偏置只用于选择、组合权重取原始分数”，限定于把两种分数分开处理的路由规则。另有不分组的实现，直接对加偏置后的分数选前 k 个，后续也不恢复原始分数；因此，不能把本页手算的偏置用途推广到所有路由路径，具体实现对应关系在页末。
 
 下面接着「苹果」的例子，把每一步的数算出来：一层 6 个专家，k = 2，隐藏向量只有 4 个数（真实模型有几千个）。数都是为演示编的，算法和真实模型相同。图里上半张表是选人，下面两排是算组合权重和加权相加：
 
@@ -124,7 +247,7 @@ file: moe-router-calc
 
 **③ 加校正偏置，只用来选人。** 每个专家还有一个自己的**校正偏置** b，是训练时为了让各专家被选中的次数更均匀而调出来的一组数：训练中哪个专家被选得太多，它的偏置就调低一点，选得太少就调高一点，来历见[负载一节](#一批-token-怎样落到专家上负载为什么会不均)。这里设专家 3 的偏置是 −0.2、专家 4 的是 +0.1，其余是 0。选人时比较的是 s + b = [0.27, 0.88, 0.62, 0.83, 0.12, 0.62]，前 2 名是专家 2 和专家 4。要是不加偏置、只看 s，前 2 名会是专家 2 和专家 3：偏置把专家 3 换成了专家 4。
 
-**④ 归一化：用原始分数，不用加了偏置的分数。** 选定专家 2 和 4 之后，组合权重回到**没加偏置的 s** 去取数：0.88 和 0.73。两个数各除以它们的和 1.61，得到 0.547 和 0.453，加起来为 1。要是误用加了偏置的 0.88 和 0.83，会得到 0.515 和 0.485，模型不是这样算的。所以偏置只改变「选谁」，不直接改变「按什么比例相加」：训练时为了均衡负载去调偏置，不会直接扭曲这一层的输出。
+**④ 归一化：用原始分数，不用加了偏置的分数。** 选定专家 2 和 4 之后，组合权重回到**没加偏置的 s** 去取数：0.88 和 0.73。两个数各除以它们的和 1.61，得到 0.547 和 0.453，加起来为 1。要是误用加了偏置的 0.88 和 0.83，会得到 0.515 和 0.485，本例规则不是这样算的。偏置不直接加进组合权重，但它改变入选集合后，参加归一化的分数和最终输出仍会改变。
 
 **⑤ 整体缩放。** 再乘一个模型规定的缩放系数 r，这里设 r = 2，组合权重变成 1.09 和 0.91。缩放之后两个权重的和是 2，不再是 1，所以**不能把最终的组合权重当成「和为 1 的选择概率」**。
 
@@ -170,11 +293,13 @@ S  = 取 sⱼ + bⱼ 最大的 k 个专家
 
 ## 共享专家：每个 token 都要过的那一个
 
-**共享专家不经过 router，每个 token 都要过它；路由专家要打分，每个 token 只选其中 k 个。** 两者结构相同，都是一个门控前馈网络；差别只在「要不要被挑」。层出口把路由分支的加权和与共享专家的输出**直接相加**，共享专家不参与那次归一化，也不带组合权重。
+**共享专家不参加路由专家的 top-k 竞争，每个 token 都要过它。** 本页的 GLM 和示意结构里，两者都是门控前馈网络；层出口把路由分支的加权和与共享专家的输出**直接相加**，共享专家不参与那次路由归一化，也不带该组合权重。其他模型是否另有共享分支门控，要按模型确认。
 
 接着「苹果」的例子：设这一层还有 1 个共享专家，它拿同一条 x 算出（示意）[0.2, −0.1, 0.3, 0]。它不打分、不乘组合权重，直接加到前面算出的路由分支输出上：[1.09, 1.82, 3.09, −0.18] + [0.2, −0.1, 0.3, 0] = [1.29, 1.72, 3.39, −0.18]，这才是这一层 MoE 交给后面的输出。
 
 这样安排的用意是分工：所有 token 都需要的那部分共性计算交给共享专家，路由专家就可以各自专门化，不必每个都重复学一遍共性。共享专家越多，固定要算的部分就越多，稀疏省下的计算越少。
+
+共享专家并非所有 MoE 的必备部分：没有共享专家时，存在直接返回路由专家输出的实现分支。是否设置共享专家、包含多少个模块以及怎样并行，取决于具体模型与实现；上面的相加算例以存在共享专家为前提。
 
 还有一处同名不同事要区分：共享专家和路由专家的**内部**都有 gate 和 up 两条分支，gate 过一个非线性后与 up 逐元素相乘。那是**逐通道**（通道就是向量里的一个位置）的强弱开关，作用在一个专家里面；选专家是在**一层的专家之间**做选择。两件事都叫「门控」，但不是一回事，内部那一层见[前馈网络](mlp-residual-norm.md#门控-mlpswiglu)。
 
@@ -200,24 +325,57 @@ S  = 取 sⱼ + bⱼ 最大的 k 个专家
 | 了 | 2、3 |
 | 苹果 | 2、4 |
 
-这 4 个 token 产生 4 × 2 = 8 个 token–专家配对，涉及 5 个不同的专家：专家 2 收到 4 个 token，专家 1、3、4、5 各收到 1 个，专家 6 一个也没收到。执行时按专家把输入行归拢在一起：专家 2 把 4 个 token 的隐藏向量叠成一个 4 行的矩阵，做一次矩阵乘，算完再把每一行送回原来的 token，乘上那个 token 给它的组合权重。**所以「每个 token 选 k 个」绝不等于「一批只用 k 个专家」**，批次越大，一层里几乎所有专家都会被用到。
+这 4 个 token 产生 4 × 2 = 8 个 token–专家配对，涉及 5 个不同的专家：专家 2 收到 4 个 token，专家 1、3、4、5 各收到 1 个，专家 6 一个也没收到。执行时按专家把输入行归拢在一起：专家 2 把 4 个 token 的隐藏向量叠成一个 4 行的矩阵，批量执行专家内的 gate、up、down 投影和激活，算完再把各行按原 token 的组合权重合并。**所以「每个 token 选 k 个」绝不等于「一批只用 k 个专家」**；批次增大可覆盖更多专家，但若路由一直集中，也不保证用遍全部专家。
 
 ```wiki-diagram
 file: moe-batch-load
 ```
 
-**负载不均就是这么来的：** 选谁由每个 token 自己的隐藏向量决定，没有任何机制保证每个专家被选到的次数一样多。设专家 1–3 放在卡 A、专家 4–6 放在卡 B，这一批里卡 A 要算 1 + 4 + 1 = 6 行，卡 B 只算 1 + 1 + 0 = 2 行。分到行数多的专家算得久，而 MoE 一层结束前有回收和归约这样的同步点：各卡要等彼此的结果到齐才能往下走，**整层的耗时由最慢的那张卡决定**，卡 B 早早算完也得等卡 A。粗略地说（不算通信和固定开销），某张卡上的专家被选得多一倍，这一层就慢一倍。
+**负载不均就是这么来的：** 本页的逐 token 路由不保证每个专家收到同样多的行。设专家 1–3 放在卡 A、专家 4–6 放在卡 B，这一批里卡 A 要算 1 + 4 + 1 = 6 行，卡 B 只算 1 + 1 + 0 = 2 行。MoE 层有回收和归约这样的同步点，关键路径上的慢卡会让其他参与者等待。若假设每行成本相同且线性、忽略通信和固定开销，这个例子中卡 B 早算完就要等卡 A；实际矩阵利用率、通信与重叠会改变耗时，不能由行数翻倍直接推出整层时间翻倍。
 
 训练侧有两类办法把负载压平：
 
 - **辅助损失（aux loss）**：在训练目标里额外加一项，惩罚「专家被选到的次数分布太不均」，让模型自己学着摊平。这是稀疏门控 MoE 最早的做法。代价是这一项和语言建模目标在拔河，压得太狠会掉效果。
-- **校正偏置**：不动训练目标，改为给每个专家一个偏置，训练中看谁被选得多就把它的偏置调低一点、选得少就调高一点，也就是前面第 ③ 步里的 b。偏置只加在选择用的分数上，不进组合权重（第 ④ 步），所以均衡压力不会直接扭曲输出。
+- **校正偏置**：这项均衡机制通过调整选择偏置工作，不靠它自身增加损失项。DeepSeek-V3 论文描述为：训练时监测负载，过载专家的偏置调低，欠载的调高。偏置不直接进入组合权重的数值公式，但换了入选专家仍会改变输出。该论文还保留很小的序列级辅助损失，因此“用偏置均衡”不等于整个训练完全没有辅助损失。
+
 
 要注意的是：**推理时这个偏置是固定不变的权重，只能提供统计上的大致均衡**，不会根据当前批次实时调整。真实批次照样会偏，上面这一批里专家 2 就被每个 token 都选中了。按实测负载搬动或复制专家的做法叫 [EPLB](eplb.md)（Expert Parallelism Load Balancer，专家并行负载均衡）。
 
+## 通信和专家计算之间，交接的行怎样排列？
+
+**同一组“token 去找专家”的任务，可以用不同形状交接；发送端与计算端必须按同一份约定读这些行。** 上游把这份分工叫模块化 MoE：prepare 准备输入与派发，experts 做专家矩阵乘和激活，finalize 收回结果并完成需要的合并。准备与收尾成对出现，因为收尾还要使用这次派发留下的映射或句柄；只换掉矩阵乘实现，也必须满足前后两端的数据约定。
+
+这里先看固定上游的两种输入布局。K 是隐藏向量宽度，E 是本卡专家数；M 表示当前交给专家实现的 token 行数，T 是每个专家预留的最大行数。
+
+| 交接布局 | 张量形状 | 计算端还要知道什么 |
+|---|---|---|
+| Standard：二维 token 行 | [M, K] | 每行选中的专家编号、组合权重、全局到本地的专家映射；实现可再把行复制、重排成 token–专家配对 |
+| BatchedExperts：按专家预留行 | [E, T, K] | 每个专家这一步实际有多少有效行；T 是容量，不是本轮负载 |
+
+接着上一节的示意，卡 A 持有专家 1–3，实际收到的配对行数是 [1, 4, 1]。再设有 2 个派发端，每端最多提交 4 个 token，于是一个专家最多可能接到 8 行；用按专家预留的形式时，卡 A 的输入容量可写成 [3, 8, 4]。每个专家只读自己的有效行，空余位置不能算成新增请求，也不要求它们代表零向量。
+
+```calc
+title: 按专家预留的容量与实际工作（示意）
+每专家行容量 = 2 个派发端 × 每端最多 4 行 = 8 行
+本卡预留输入 = 3 个专家 × 8 行 = 24 行
+本轮有效配对 = 1 + 4 + 1 = 6 行
+BF16 输入区 = 3 × 8 × 4 × 2 B = 192 B
+> 隐藏宽度 4 是教学缩小数；这里只算输入区，不含权重、缩放、输出或临时工作区
+```
+
+因此，把专家负载的 6 行直接拿去估算一个固定容量缓冲，会少算预留空间。反过来，看到预留 24 行也不能说这一步算了 24 个真实配对。专家实现还会申请矩阵乘和激活的临时工作区；有些中间结果寿命不重叠，可以复用同一块存储。**容量、有效工作量、同时存活的缓冲大小是三笔账。**
+
+上游 DeepEP 高吞吐实现交给专家的是 Standard 布局，低延迟实现交的是 BatchedExperts；这里的 batched 指按专家组织张量，并不是“只有它才能处理多个请求”。通信后端与专家 kernel 能否组合，还要匹配设备、量化格式与缩放粒度、激活函数、并行布局、路由方式和输入形状。都标着 FP8，或者都能做矩阵乘，仍不足以证明接口兼容。
+
+交接还要说清两件事。**第一，谁量化输入。** 可以在派发前量化、在接收后量化，也可以由专家实现自行量化；最后一种要两端都支持延后量化。固定上游 DeepEP 高吞吐路径有这项处理，低延迟路径则明确拒绝该选项，不能把“模块化”理解成任意组合。**第二，谁乘组合权重并相加。** 专家实现若已经完成，收尾阶段就跳过；若把它委托给 combine，就由回收算子完成，不能再乘一次。模型要求在输入上加权时也要遵守对应接口；前面的输出加权公式不能任意改成先缩放输入，因为专家内部有非线性。
+
+有的准备与收尾可以先发起通信，返回一个“等待接收完成”的回调，让这段时间与其他计算重叠。调用这个异步入口并不表示结果已经可读，必须按接口执行完成回调。是否能与共享专家或另一微批重叠，还看后端支持与实际调度；它不能消除通信载荷，也不能单凭配置推断节省了多少时间。
+
+这一节讲上游接口如何约束组合。GLM 双机用的是 Ascend 自己的 prepare、量化方法和 finalize 链，MC2 与 AllGather 的实际张量、切片和合并见 [EP 的两条搬法](expert-parallel.md#mc2-还是-allgather)。不要把上游 GPU 后端表中的类名直接替换进昇腾命令。
+
 ## 落到 GLM 双机：45 层里 42 层是 MoE
 
-**GLM-5.3-Flash 的 45 层文本主干里，前 3 层用稠密前馈网络，第 3–44 层这 42 层用 MoE；每个 MoE 层有 288 个路由专家、每个 token 选 8 个，另有 1 个共享专家。** 请求在[一条请求的第 4 站](one-request.md#42-层-moe每卡-18-个专家)走到这里，前提是[官方双机配置](glm-5-3-flash-two-node.md#部署前提)：两台 Atlas 800 A2、每台 8 卡、TP8/DP2/EP16、W8A8。TP8 是机内 8 张卡分工算同一层的矩阵，DP2 是两台机器各是一个执行组、各自处理不同的请求，EP16 是 288 个路由专家摊到全部 16 张卡上；W8A8 是权重和激活都按 8 位整数算，见[量化](quantization.md)。
+**GLM-5.3-Flash 的 45 层文本主干里，前 3 层用稠密前馈网络，第 3–44 层这 42 层用 MoE；每个 MoE 层有 288 个路由专家、每个 token 选 8 个，另有 1 个共享专家。** 请求在[一条请求的第 4 站](one-request.md#42-层-moe每卡-18-个专家)走到这里，前提是[官方双机配置](glm-5-3-flash-two-node.md#部署前提)：两台 Atlas 800 A2、每台 8 卡、TP8/DP2/EP16、W8A8。TP8 分切采用 TP 的矩阵；DP2 让请求调度和历史状态各归一个执行组，路由专家计算则可跨两个组；EP16 把 288 个路由专家摊到全部 16 张卡。W8A8 只概括所量化层的权重与激活，router 等层保留浮点，见[量化](quantization.md)。
 
 ### 一层 MoE 的形状：288 选 8，外加 1 个共享专家
 
@@ -225,7 +383,7 @@ file: moe-batch-load
 file: glm-flash-moe
 ```
 
-一个专家是 4096 → 2048 → 4096 的 gate、up、down 三个投影，三个都不带偏置项；中间宽度只有 2048，比前 3 层稠密前馈网络的 12288 窄得多：GLM 走的是「专家切得细、数量多」这条路。共享专家只配 1 个，形状和一个路由专家相同。前 3 层为什么不用 MoE，官方没有给出公开的权衡说明；这三层的稠密前馈网络见[前馈网络](mlp-residual-norm.md)。
+一个专家是 4096 → 2048 → 4096 的 gate、up、down 三个投影，三个都不带偏置项；中间宽度只有 2048，比前 3 层稠密前馈网络的 12288 窄得多：GLM 走的是「专家切得细、数量多」这条路。共享专家只配 1 个，形状和一个路由专家相同。所引配置和推理实现没有解释前 3 层采用稠密结构的训练权衡；这三层的计算见[前馈网络](mlp-residual-norm.md)。
 
 ### 一个 token 用上多少专家参数
 
@@ -244,17 +402,17 @@ title: 一层 MoE 里，一个 token 用上多少专家参数
 
 ### router：sigmoid、只选人的偏置、归一化后乘 2.5
 
-前面「怎么算」一节的四个环节，GLM 全都用上了，和「苹果」的例子是同一套算法，只是 6 选 2 换成 288 选 8、缩放系数从示意的 2 换成 2.5。router 侧的固定配置是：打分用 sigmoid；每层有一份 288 个数的校正偏置，只参与选人；选中的 8 个分数先归一到和为 1，再整体乘 **2.5**；分组的两个值都是 1，也就是分组选择一节说的退化情形：直接在 288 个里选 8 个。所以一个 token 的 8 个组合权重加起来是 2.5，不是 1。
+前面「怎么算」一节的四个环节，GLM 的正常融合路径全都用上了，只是 6 选 2 换成 288 选 8、缩放系数从示意的 2 换成 2.5。固定配置用 sigmoid、每层 288 个校正偏置；选中的原始分数归一化后乘 **2.5**；分组两个值都为 1，不再筛掉其他组。因此数学示意中的权重和为 2.5；实际融合算子还在分母加极小的 eps，并有浮点舍入。原生回退的版本差异见页末，不能沿用这个系数和。
 
 ```wiki-diagram
 file: moe-pick
 ```
 
-打分这一步按 **FP32**（每个数 32 位浮点）计算，这是全模型少数几处不降精度的地方之一，原因见[量化的 FP32 链](quantization.md)。以示例请求 R1（prompt 为 4 个 token，见[一条请求](one-request.md)）为例，这一层 router 的形状是 `[4, 4096] × [4096, 288] → [4, 288]`，然后每行取 8 个。
+打分这一步按 **FP32**（每个数 32 位浮点）计算，这是全模型少数几处不降精度的地方之一，原因见[量化的 FP32 链](quantization.md)。以 R1 的 4 个提示词 token 为例，按完整 token 轴表示，router 的逻辑形状是 `[4, 4096] × [4096, 288] → [4, 288]`，每行取 8 个；这不代表经过切片或补齐后每张卡的实际调用都恰有 4 行。
 
 ### 共享专家：按 TP8 切，走融合算子
 
-路由专家整份整份地分到 16 张卡上；共享专家在本部署里不参与专家并行，它的矩阵按机内 TP8 合切，分片形状与每卡字节见[张量并行的共享专家小节](tensor-parallel.md#稠密-mlp-与共享专家每卡各留一段通道)。
+路由专家整份整份地分到 16 张卡上；共享专家在本页采用的 SP 关闭、未启用共享专家复制条件下，矩阵按机内 TP8 合切。这些是[共同教学基线](../sources/glm-5-3-flash-baseline.md#双机示例与教学视图)的附加条件，不能仅凭启动命令省略参数就断言运行时一定成立。分片形状与每卡字节见[张量并行的共享专家小节](tensor-parallel.md#稠密-mlp-与共享专家每卡各留一段通道)。
 
 **在这套 W8A8 部署里，共享专家不走它自己那个前馈模块的激活函数，而是走一条把反量化、限幅 SwiGLU 与再量化合在一起的融合算子。** 这一点和前 3 层的稠密前馈网络不同：稠密那边的限幅激活因为注册名对不上，退回了逐元素的写法（见[前馈网络](mlp-residual-norm.md#对照源码)）；共享专家不受这件事影响，因为这条路径根本没有调用那个模块的前向，而是直接取它的两份权重和缩放系数去调算子。
 
@@ -262,7 +420,7 @@ file: moe-pick
 file: moe-branches
 ```
 
-四步依次是：把隐藏向量按 token 动态量化成 8 位整数；用量化矩阵乘算出 gate 和 up；把这两半反量化、按上限夹住、做 SwiGLU、再量化成 8 位整数（这三件事在一个融合算子里）；最后再做一次量化矩阵乘降回隐藏宽度。成立条件是两个投影都带着量化缩放系数、且量化方式是 W8A8 或 W4A8；权重没有量化时才退回模块自己的两段调用。
+四步依次是：把隐藏向量按 token 动态量化成 8 位整数；用量化矩阵乘算出 gate 和 up；把这两半反量化、按上限夹住、做 SwiGLU、再量化成 8 位整数（这三件事在一个融合算子里）；最后再做一次量化矩阵乘降回隐藏宽度。固定镜像这条整数分支要求两个投影都有量化缩放系数，且量化类型为 W8A8 或 W4A8；另有 W4A8MXFP 分支，其余情况走模块包装。不能把“走包装”统一解释为没有量化。
 
 这条路径还有两点值得知道：
 
@@ -271,56 +429,86 @@ file: moe-branches
 
 ### 负载：42 层逐层累加，偏置固定，EPLB 默认关
 
-GLM 用的是负载一节说的第二类办法：配置里的选法正是「不用辅助损失、改用校正偏置」，配置名见[对照源码](#怎么开)。这份偏置在推理时固定不变，所以真实批次照样会偏；一个 token 要依次走过 42 个 MoE 层，每层都要等最慢的那张卡，负载不均的代价 42 层逐层累加。整批的配对数、每专家和每卡的理想行数，见[多请求同时在跑](concurrent-requests.md#第-4-站-moe-通信6048-个-token-把两台机器一起推过-128-的门槛)。按实测负载搬动或复制专家的 [EPLB](eplb.md) 在本部署默认关闭。
+GLM 的推理实现采用带校正偏置的选择规则，配置名见[对照源码](#怎么开)。这不能单凭名称证明训练时没有辅助损失，也不能还原偏置的训练更新过程。推理路径把偏置作为已加载参数使用，没有按当前批次更新它；真实批次仍可偏斜。一个 token 依次经过 42 个 MoE 层，各层关键路径上的等待会累积。整批配对数、每专家和每卡理想行数见[多请求同时在跑](concurrent-requests.md#第-4-站-moe-通信6048-个-token-把两台机器一起推过-128-的门槛)；[EPLB](eplb.md) 在本部署默认关闭。
 
 ## 常见误解
 
-- **「每个 token 选 8 个，所以一层只用 8 个专家。」** 只对单个 token 成立。一批里不同 token 各选各的：前面「我吃了苹果」4 个 token 各选 2 个，就已经用到 5 个专家；批次一大，一层里几乎所有专家都会被用到。
+- **「每个 token 选 8 个，所以一层只用 8 个专家。」** 只对单个 token 成立。一批里不同 token 各选各的：前面 4 个 token 各选 2 个，已经用到 5 个专家；实际覆盖多少仍由路由决定。
 - **「路由专家就是被选中的专家。」** 路由专家指整个可供 router 挑选的集合（GLM 每层 288 个）；被选中的 8 个是它的子集。共享专家不在这个集合里。
-- **「组合权重是一组和为 1 的概率。」** 归一化之后还有一次整体缩放，GLM 的 8 个系数和是 2.5。sigmoid 打分本身也不构成概率分布。
-- **「加了偏置，组合权重也跟着变。」** 偏置只参与排序选人；选定之后，组合权重回到没加偏置的分数去算。前面的例子里，偏置把专家 3 换成了专家 4，但专家 4 进归一化的是 s = 0.73，不是 s + b = 0.83。
-- **「共享专家也要先打分才轮到它。」** 它不经过 router，所有 token 都过；它的输出是直接加上去的，不带组合权重。
+- **「组合权重是一组和为 1 的概率。」** 归一化之后还有整体缩放；按本页数学示意与 GLM 正常融合路径，8 个系数的和约为 2.5，具体数值还受归一化中的小常数和浮点舍入影响。旧版原生回退的额外缩放见下方版本差异。sigmoid 打分本身也不构成概率分布。
+- **「校正偏置直接加进组合权重。」** 本页规则中，偏置只参与排序选人；选定之后，组合权重回到没加偏置的分数去算。前面的例子里，偏置把专家 3 换成了专家 4，入选集合的变化仍会间接改变归一化和输出，但专家 4 进归一化的是 s = 0.73，不是 s + b = 0.83。
+
+- **「共享专家也要在 top-k 中胜出才轮到它。」** 它不参加路由专家的竞争；本页 GLM 的共享输出直接相加，不带路由组合权重。
 - **「专家没被选中就等于没占资源。」** 没被选中省的只是这一次的矩阵乘；权重照样常驻显存，这正是要做专家并行的原因。
 - **「把不常被选中的专家删掉，是一种部署优化。」** 改专家数或 k 都会改变模型的计算，输出随之改变，那是换了一个模型，不是同一个模型跑得更快。
-- **「总参数乘 8/288 就是每个 token 的计算量。」** 稀疏只发生在路由专家这一块；注意力、共享专家、embedding 等每个 token 都要全算。
+- **「总参数乘 8/288 就是每个 token 的计算量。」** 这个比例只描述所列路由专家矩阵；注意力、共享专家、router 等另算，embedding 则按 token 编号取行，不能把整张表当每 token 的矩阵乘。
 
 ## 对照源码
+
+**路由边界的来源范围。** 已核来源 7 的镜像 `experts_selector.py` 第 203–232 行及来源 19 的固定 main `grouped_topk_router.py` 第 97–126 行：有校正偏置时，分组路径保存原分数，并按选中编号从原分数取组合权重；来源 19 的非分组路径则直接对加偏置分数取 top-k，再归一化和缩放。来源 11 的镜像 `fused_moe_0_23_0.py` 第 700–701 行在没有共享专家时直接返回路由输出。这些指定路径不代表所有路由变体；专家均分不等于任务均衡、计算量比例不等于端到端收益，是职责与开销口径的推断，没有设备加速实测，也不据此扩大发布分支验证范围。
 
 ### 怎么开
 
 MoE 没有开关：一层是稠密前馈网络还是 MoE、288 选 8、共享专家有几个，全由模型配置决定，改不了。配置里对应的字段是 `n_routed_experts=288`、`num_experts_per_tok=8`、`n_shared_experts=1`、`moe_intermediate_size=2048`，router 侧是 `scoring_func=sigmoid`、`topk_method=noaux_tc`、`norm_topk_prob=true`、`routed_scaling_factor=2.5`、`n_group=1`、`topk_group=1`。[S1][C4]
 
-`topk_method` 的取值 `noaux_tc` 意思就是「不用辅助损失、改用校正偏置」：只有这个取值下，模型才会建出那份 288 个数的偏置参数。
+固定 GLM 实现只有在 `topk_method=noaux_tc` 时才创建那份 288 个数的校正偏置参数。这个推理侧条件证明如何路由，不足以证明完整训练目标中是否含辅助损失。
 
 能开关的是部署侧的三处，都不改数学：专家怎么分卡（`enable_expert_parallel`，见[专家并行的怎么开](expert-parallel.md#怎么开)）、要不要按真实负载搬专家（`enable_eplb`，见 [EPLB](eplb.md)）、共享分支要不要切到另一条流与路由分支重叠（`multistream_overlap_shared_expert`、`multistream_overlap_gate`，两个默认都是 `False`，本部署没开）。
 
+上游通信后端的入口、硬件适用范围与 Ascend 的区别见 [EP 的后端选择](expert-parallel.md#怎么开)。模块化 MoE 本身不是另一个统一的启动开关；具体量化方法负责创建通信与专家实现。固定上游未量化路径由 oracle（实现选择器）筛选候选，显式指定时检查该候选，自动模式按顺序找支持的实现；CPU、TPU、OOT 等还有独立分支。类替换与算子方法开关也不同，见 [CustomOp 与整层替换](ops-and-kernels.md#换了-python-类就一定经过同一种前向分派吗)。
+
 ### 会报什么错
+
+在上述固定上游模块化路径中，通信端与专家端的 activation format 不一致会触发配对检查；BatchedExperts 缺 max_num_tokens 或 num_dispatchers 时会报 ValueError。未量化选择器对显式不支持的候选报 ValueError，自动模式全部候选都不支持时才报 NotImplementedError。DeepEP 低延迟 prepare 收到 defer_input_quant=True 会明确拒绝。遇到这些问题先核对两端的形状、类型与能力，不能通过把有效行数改成容量、跳过量化或重复套加权来“凑合跑通”。
 
 选专家这一步有两条硬边界。第一，打分函数只认三种：softmax、sigmoid 和 sqrtsoftplus，改成别的值会在选专家时抛 `Unsupported scoring function`。[C9] 第二，分组选择要求组数和选组数自洽（选组数不能超过组数），否则走不进融合算子。
 
-融合算子走不通时不会报错，而是**静默回退**到逐步骤的 Python 实现：自定义路由函数、sigmoid 打分但关掉归一化、以及分组参数不满足条件，都会让那个检查返回 false，转去走等价的原生实现。[C6][C7] 两条路径的数学一致，但耗时和数值细节不同——排查性能时要先确认走的是哪条。这个检查里判断「专家够不够多」用的是隐藏宽度 4096 而不是专家数 288，GLM 下两者都够大，所以结论不受影响。
+融合入口的条件不满足时，会转到逐步骤的原生路由实现：自定义路由函数、sigmoid 打分但关闭归一化、以及分组参数不满足要求，都会影响选择。[C6][C7] **不能统一称两条路径数学等价**：原生分组代表分取最大值，融合设置 group_select_mode=1 取 top-2 之和；此外，固定 db701c1f 的原生 grouped 和普通 top-k 分支已乘一次 routed_scaling_factor，返回外层后又乘一次。无自定义路由、归一化成立且 r=2.5 时，原生结果的系数和因此为 6.25，而非本页融合路径的约 2.5。单组只能消除选组差异，不能消除重复缩放。固定 GLM 满足融合门槛，前文正常路径算例保留；换配置导致回退时须重新核验输出。检查中的维度门槛读取隐藏宽度而非专家数，也不能推广为所有配置的等价校验。
 
 ### 开销和什么时候别开
 
-MoE 本身的额外开销有三块，都比专家的矩阵乘小得多，但在小批次下占比会变高：router 的一次窄矩阵乘加排序；按专家归拢输入行、算完再散回原 token 的重排；以及跨卡时的派发与回收。[C12] 每层的通信次数和字节数在[专家并行](expert-parallel.md#放到-glm-双机一个-token-走过一层-moe)。
+MoE 在专家矩阵乘之外还有三类开销：router 的窄矩阵乘与选择；按专家归拢输入行、算完再散回原 token 的重排；以及跨卡时的派发与回收。[C12] 它们占多少时间取决于批次、专家负载、链路与重叠程度，不能统一断言远小于专家计算。每层的通信次数和逻辑字节数见[专家并行](expert-parallel.md#放到-glm-双机一个-token-走过一层-moe)。
 
-不值得追求更大的 k 或更多共享专家：k 每加 1，这一层的专家矩阵乘和要搬的行数都按比例涨；共享专家是所有 token 都要付的固定成本。反过来，专家数和 k 都是训练定下来的结构，推理侧不能拿来当调优旋钮。
+专家数与 k 是训练定下来的结构，推理侧不能拿来当调优旋钮。其他条件相同时，增大 k 会增加选中专家的计算工作量与 token–expert 对数量；实际搬运量还取决于目的卡和实现中的复用。共享专家则是每个 token 都经过的额外计算。
 
-小批次下真正的浪费不在 MoE 的算法，而在并行安排：单条请求时一层 MoE 里有一半的卡拿不到真 token，全靠补位走空，见[专家并行的 router 那一步](expert-parallel.md#1-router-打分选出-top-8)。这笔账怎么随批次变化，见[多请求同时在跑](concurrent-requests.md)。
+R1 的 4 个源 token 在 TP8 内切片后，rank 4–7 只有补位；这些卡和另一台机器仍可能接收命中本地专家的真实工作。小批次的代价要区分源行补齐、专家实际负载与同步等待，见[专家并行的 router 那一步](expert-parallel.md#1-router-打分选出-top-8)。批次变化如何影响这些成本，见[多请求同时在跑](concurrent-requests.md)。
 
 ### 版本差异
 
-三个分支的路由数学一致，位置不同。
+模块化交接按四个上游固定钉点分别核对：v0.23 为 0fc695fc，v0.26 为 568afb3a，rc2 为 ced6857a，main 为 84030bbe。它没有统一的“开了就默认用某一专家 kernel”的开关；具体组合仍由量化方法、后端选择和支持条件决定。
+
+| 交接约定 | v0.23 | v0.26 | v0.30.0rc2 | 固定 main |
+|---|---|---|---|---|
+| 输入布局与容量 | Standard / BatchedExperts 都存在；后者必须给每端容量与派发端数，有效行元数据单列 | 相同 | 基础约定相同，元数据字段有扩展 | 同 rc2 |
+| 计算端配对检查 | 检查设备、量化、激活、并行、路由、形状和布局；两端单体/模块化类型也要一致 | 相同 | 相同 | 相同 |
+| 工作区与预留形状 | 输入容量与有效行分开；BatchedTriton 采用派发端数×每端容量；部分输出与中间区可复用存储 | 相同 | 这些约定保留；CPU 分支直接分配所需张量，其他平台仍向工作区管理器取空间 | 同 rc2 |
+| DeepEP 两种布局与量化 | 高吞吐 Standard、支持延后输入量化；低延迟 BatchedExperts、拒绝延后量化；两者该参数默认 false | 相同 | 相同 | 相同 |
+| 加权与异步完成 | 已加权归约则跳过，委托 combine 则由回收完成；异步 prepare/finalize 需要完成回调 | 相同 | 相同；NoOP 已有输出与目标为同一对象时省自拷贝 | 同 rc2 |
+| 未量化初始化 | 由选择器筛候选，再组装通信与专家；本类旧 select_gemm_impl 直接报错 | 相同；内核设置保留权重更新时的存储地址 | 设置步骤拆出 _init_moe_kernel；本类不再声明旧 select_gemm_impl；CPU 也进入候选选择 | 同 rc2 |
+
+这里的“相同”限定表内契约，不表示所有实现文件相同。例如 v0.26 的 prepare 包装另有按补位标记屏蔽专家编号的条件分支，rc2/main 的同一包装不含该分支；每次真实处理的行仍须以所用 runner 和后端为准。旧设计文字的工厂名不能越过量化方法的实际初始化直接套用。下面原有 GLM/Ascend 分支与算例继续使用各自注明的版本。
+
+rc2 共享专家增加了真正移动执行时点的重叠路径：量化输入准备可提前到 router 之前；Gate-Up 则等待 router_output 事件后提交，与后续 top-k/dispatch 重叠。两者的启动时点不同，仅有实现入口不等于所有模型都会命中，仍受多流配置、LoRA 和量化方法能力等条件控制。正文旧 GLM 关闭多流的图与通信账单保留原范围。
+
+**v0.30.0rc2 的 grouped-topk 仍把选专家分数与输出权重分开。** AscendGroupedTopKRouter 在带 correction bias 的 grouped 分支用加偏置的分数选专家，再从 original_weights 取路由权重，按需归一化并乘 routed_scaling_factor；打分函数还支持 sqrtsoftplus。这个“偏置只影响选择”的结论有 grouped-topk 前提，无 grouped 的分支会直接修改 topk_weights。共享专家由 AscendSharedExperts 执行，是否复制权重由 enable_shared_expert_dp 单独决定，不能仅依据 SP 状态推断。
+
+各版本都可表达本页“偏置选人、原分数算权重”的 grouped 路由规则，但分支选择、缩放次数和执行条件必须分别核对。上述旧原生回退重复缩放在 2c59ff10、2ed6cbba 也存在，不能由单组配置推出所有分支结果相同。
 
 | 分支 | router 打分与选择 | 共享专家的 W8A8 路径 |
 | --- | --- | --- |
-| v0.23（本站钉住 `db701c1f`；维护分支 `2c59ff10`） | `experts_selector.py`：偏置只用于选人、原始分数归一化后乘缩放系数 [C7] | `_forward_shared_experts` 里的量化分支，用融合的反量化-SwiGLU-量化算子 [C10][C16] |
-| v0.26（`2ed6cbba`） | 同上，逻辑逐行相同，行号不同 [C17] | 同上，同一段逻辑搬到了 `fused_moe.py` 的后面 [C18] |
-| main（`baa023ad`） | 重构成 `router/` 目录下的 `AscendGroupedTopKRouter`，语义不变 [C19] | 重构成 `AscendSharedExperts`，把这条路径显式命名为 `A8_INT_FUSED`（注释写明是「显式 A8 量化 + 融合激活量化」），未量化时才走 `LINEAR_WRAPPER` [C20][C21] |
+| v0.23（本站钉住 `db701c1f`；维护分支 `2c59ff10`） | `experts_selector.py`：偏置只用于选人、原始分数归一化后乘缩放系数 [来源 7](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/ops/fused_moe/experts_selector.py#L139-L232) | `_forward_shared_experts` 里的量化分支，用融合的反量化-SwiGLU-量化算子 [来源 10](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L671)、[来源 16](https://github.com/vllm-project/vllm-ascend/blob/2c59ff10/vllm_ascend/ops/fused_moe/fused_moe.py#L726-L800) |
+| v0.26 rc（`2ed6cbba`） | grouped 分支仍取原始分数，外层回退缩放问题另见上文 [C17] | 保留整数融合路径，并增加共享输入就绪事件与 SiTU 激活分支；并非只移动行号 [C18] |
+| main（`baa023ad`） | 重构成 `AscendGroupedTopKRouter`，该类按需归一化后乘一次缩放 [C19] | W8A8/W4A8 且有 scale、无活跃 LoRA 时走 `A8_INT_FUSED`；W4A8MXFP 有独立路径，其他量化方案或活跃 LoRA 也可能走 `LINEAR_WRAPPER` [C20][C21] |
 
-main 里这个枚举名反过来印证了上一节的结论：上游自己把「显式量化 + 融合激活」和「走 Linear 包装」分成了两条命名不同的路径，前者才是量化部署走的那条。GLM 这个模型的入口在三个分支里的状态（v0.23 维护分支与 v0.26 都没有模型文件，main 在 `models/glm5next/` 有）见[模型总览的版本差异](glm-5-3-flash.md#版本差异)。
+main 的路径选择由 scale、具体量化类型和 LoRA 条件共同决定；枚举名称本身不能证明某次部署命中哪条路径。GLM 入口在各分支的状态见[模型总览的版本差异](glm-5-3-flash.md#版本差异)，也不能把其他模型的 SiTU 或 MXFP 分支推回旧镜像的 GLM W8A8 算例。
 
 ### 源码位置
+
+四版模块化布局/容量、配对检查、缓冲、延后量化、完成回调、加权跳过和未量化初始化见来源 60–121；每一列使用各自固定快照，仅比较版本表列出的契约。
+
+**模块化交接的范围。** 设计与能力表母文见来源 36–37；其中示意图用于解释分工，具体接口按当前代码核对。Standard/BatchedExperts 与有效行元数据见 38，容量、索引类型和异步能力接口见 39–40；设备、量化、激活、并行、路由、形状与布局筛选见 41。工作区接口与实际复用见 42–43；prepare 的延后量化消费、接收回调及 finalize 的完成等待见 44–45；两端类型和布局配对见 46。
+
+有效行数确实进入 batched Triton 的边界判断，见来源 47；[E, 派发端数×每端容量, K] 的输出与工作区形状来自 48。前文 3 个专家、2 个派发端、4 行上限与 4 维输入是教学代入，不是 DeepEP 支持尺寸或设备运行记录；其有效行数沿用旧“我吃了苹果”示例。高吞吐的布局与量化位置见 49–50，低延迟的布局、拒绝延后量化、有效计数与合并加权见 51–53；跳过或委托加权的对象见 54。未量化候选选择、实际组装及旧入口报错分别见 55–57。固定 GLM 的兼容文件入口和 Ascend 自己的调用链见 58–59。以上没有新增 GPU/NPU 数值、性能或网络实测。
 
 按「谁打分 → 谁选人 → 谁算 → 两支怎么合」读，能把本页机制对回实现。
 
@@ -330,19 +518,24 @@ main 里这个枚举名反过来印证了上一节的结论：上游自己把「
 | --- | --- |
 | 288 选 8、共享专家、router 建成 FP32、偏置只在 `noaux_tc` 下创建 | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1445-L1538` |
 | 专家内部就是一个门控前馈网络（共享专家用的同一个类） | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1442` |
-| 选专家的入口、融合与原生两条路的分岔、原生路径最后乘缩放系数 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L30-L120` |
+| 选专家的入口、融合与原生分岔、原生返回后外层再次乘缩放 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L30-L120` |
 | 偏置只用于排序、归一化、分组选择（原生取组内最高分） | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L139-L232` |
 | 融合算子的参数：k、组数、组代表分取法、归一化、sigmoid、缩放、偏置 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L286-L312` |
 | 融合算子组代表分的两种取法（0 取最高分，1 取前 2 名之和） | `vllm-ascend@db701c1f:csrc/moe/moe_gating_top_k/op_host/moe_gating_top_k_proto.h#L40-L56` |
 | 原生实现的打分函数分支与不支持时的报错 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L340-L395` |
 | 共享专家的四步计算、串行与多流开关、单独归约 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L671` |
 | 路由分支与共享分支怎么进来、两份结果怎么返回 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L672-L719`；`vllm@0fc695fc:vllm/model_executor/layers/fused_moe/runner/moe_runner.py#L650-L680` |
-| 路由专家的分组矩阵乘与 SwiGLU 融合 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L215` |
+| 路由专家的分组矩阵乘与 SwiGLU 融合 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L229` |
 | 共享专家的两个投影确实带着量化缩放系数；该方案的量化类型登记为 W8A8 | `vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L127-L162` |
 | 多流重叠开关的默认值 | `vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L139-L177` |
 
-**正文证据索引。** 模型的 288 选 8、共享专家个数、专家宽度、sigmoid 与 2.5 见 [S1][C4]；专家内部结构见 [C5]。原生路径最后才乘缩放系数见 [C6]；偏置只用于选人、先归一化、原生分组取组内最高分见 [C7]；融合算子的同一组参数（分组时固定取组内前 2 名之和）见 [C8]，这种取法的定义见 [C22]。原生实现的报错与路由专家的分组矩阵乘，已在「会报什么错」「开销和什么时候别开」两节就地标注。共享专家的四步融合路径、串行与单独归约见 [C10]，这条路径要求的 W8A8 量化类型见 [C13]，两支结果的合并见 [C11][C15]，多流开关默认值见 [C14]。稀疏门控 MoE 与辅助损失的原始做法见 [S2]；用每个专家一个偏置代替辅助损失的做法见 [S3]（与本模型 `noaux_tc` 同名同做法）。这两份论文只用来说明训练侧两类办法的分工，页面未联网核对原文；推理侧的结论全部来自钉住 commit 的源码。
+**正文证据索引。** 模型参数和 router 配置见来源 1、4，专家结构见来源 5。原生内外两次缩放分别见来源 9、6；分组取最大值和原分数归一化见来源 7；融合参数与组代表分定义见来源 8、22，单组内核的 eps、归一化和缩放见来源 35。共享整数融合、两支合并与多流默认值见来源 10、11、13–15，分组矩阵乘见来源 12。v0.23、v0.26 rc 的重复缩放对应来源 30–33；main 的包装选择见来源 21 的 532–549 行；rc2 提前提交的实际调用链见来源 34，方法实现见来源 28、29。
+
+训练方法的原始说明见稀疏 MoE 论文 §2–4、附录 A（来源 2）和 DeepSeek-V3 §2.1.2（来源 3）：前者区分 importance 与 load 辅助损失，后者说明偏置更新、节点受限路由及仍存在的序列级辅助损失。它们支持方法解释，不证明 GLM 的训练配方与论文完全相同。
 
 正文算式的推导口径：一层路由专家的参数量与一个 token 用到的比例按「三片矩阵 × 专家个数」静态相乘，不含共享专家、router、注意力，也不是量化后的字节数。[D] 「苹果」的 router 分数、偏置、专家输出，以及「我吃了苹果」4 个 token 在 6 个专家里各选 2 个的例子，都是为说明机制而编的示意数，不是某次真实路由的记录；sigmoid、归一化与加权求和按真实公式算。[A]
 
-**待核。** 一是前 3 层用稠密前馈网络、42 层用 MoE 的具体权衡，缺 GLM 官方技术报告；二是校正偏置在训练中如何调整，缺官方训练说明；三是共享专家的融合算子在图编译后与路由分支的实际时间关系，缺 profiling；四是专用镜像里最终装的算子组合，缺部署权重的量化配方清单，精度假设的影响见[模型权重精度](glm-5-3-flash.md#权重精度文件里怎么存加载后变成什么)。本页没有设备实测。
+**适用边界。** 所引 GLM 配置与推理源码没有说明稠密层数量的训练权衡，也不能还原校正偏置的训练更新过程。两个公开量化描述已经取得，具体层精度见[模型权重精度](glm-5-3-flash.md#权重精度文件里怎么存加载后变成什么)；它们仍不能证明现场目录、算子安装或编译后的时间关系。共享分支实际是否与路由重叠，需要部署记录与 profiling，本页没有设备实测。
+
+- 来源 24：vllm-ascend@db701c1f，vllm_ascend/models/glm5_next.py，L1503–L1511。
+- 来源 25：vllm-ascend@db701c1f，vllm_ascend/ops/fused_moe/experts_selector.py，L222–L231。

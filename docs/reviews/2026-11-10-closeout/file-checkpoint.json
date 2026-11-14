@@ -1,0 +1,372 @@
+{
+  "scope": "files explicitly backed up during this closeout; not full git diff; sync-cli original snapshot missing as noted in independent report",
+  "files": [
+    {
+      "path": "docs/mainline/01-deploy-entry-schedule.md",
+      "before_sha256": "13344dcc0a5e83a2f63e73202bafcfb2d804636a9f868171d6e85b060c1f1a55",
+      "after_sha256": "c10e91a7d31e45630bb8842735cbcf5b8da52a51c8c4e629b9a6f11371211ff0",
+      "changed": true
+    },
+    {
+      "path": "scripts/wiki-build-param-pages.ts",
+      "before_sha256": "aad8bfceca0920eaa677ab8941a80c48d12542dc056592b34f99e5c3e7223ff6",
+      "after_sha256": "011af33228014066b8fbfdd55420557c107f3c5fb470d7e4934139ac3a86f743",
+      "changed": true
+    },
+    {
+      "path": "scripts/wiki-lineage.ts",
+      "before_sha256": "a89fd27ed76ef943875c956347603f3f8ef7fe276db653d2e942c6fd940e8db4",
+      "after_sha256": "109200152811322fa92619b00f6e2880c0639e69e66f065ec17858e173170250",
+      "changed": true
+    },
+    {
+      "path": "scripts/wiki/lineage-cli.test.ts",
+      "before_sha256": "59331e848518ac1033f9db1127d61dd2206687a1fd3f0202129f6522577fe0b6",
+      "after_sha256": "5f79c6b7b546fdfdad5ef616758c5778962a13a7a53769945925beb1d1e3f5f1",
+      "changed": true
+    },
+    {
+      "path": "scripts/wiki/sync.ts",
+      "before_sha256": "18433d4c34b3841c39893be2b06f1fd005ea6a19a43c5e616632526bb097c00f",
+      "after_sha256": "39d993b452b8afabf41de01b50c91bee83ff273b5f46b23baf18a3614a2bde4e",
+      "changed": true
+    },
+    {
+      "path": "scripts/wiki/params/cli.test.ts",
+      "before_sha256": "98982a9dca03b674fc76571c779b2474c312130447d5341af697ee155d3c0553",
+      "after_sha256": "b9d899e089a9c4ee32ff6b83a18202c47332abbd201a5df3e091c993963c9029",
+      "changed": true
+    },
+    {
+      "path": "scripts/wiki/params/pages.test.ts",
+      "before_sha256": "395ed5529a157f19c901746c3b3c8bf8cbe36c4806ec68d8a5e870318d09c83c",
+      "after_sha256": "e1f39385d97e4a6de46d574e8f6ce41b8b653bb60c95c2f36c1c8e920af5ecd9",
+      "changed": true
+    },
+    {
+      "path": "scripts/wiki/params/pages.ts",
+      "before_sha256": "8fbf52cca924e4e6914ddf375e80311fd58b9f9fbaf472782ab4d41244fe9b24",
+      "after_sha256": "11155b28ac8b19c935d66b940e1fa00ec1c506c7f7aaa8bdf22fadbd8d948977",
+      "changed": true
+    },
+    {
+      "path": "scripts/wiki/params/publish-sync.test.ts",
+      "before_sha256": "595c2c0177e893ef1cdfc57205d7ef0e39ea38b67483cd4210e3d40371ae8a68",
+      "after_sha256": "a8766f847142109e2253b64163c6d70f73cc75cc2ffd0bcfa16a6be491a0662b",
+      "changed": true
+    },
+    {
+      "path": "scripts/wiki/params/publish-sync.ts",
+      "before_sha256": "06a8bd42a373f75a1b7b4abad1961791d5ea39429aadb2d3827d541bd3ec0cba",
+      "after_sha256": "a258d1e09dc6edfebb95df0cd4e2f45400384f3c2dd25a0bcc5dcaba7d6c3985",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/api-server-entry.md",
+      "before_sha256": "16209ae45d71b61589bbd649698edc7cdbf6f0ce12f94ec3c894804bac25dbde",
+      "after_sha256": "38dfad8a827ee8d15383c24e8585cc90682abc665472e9bb48b8def82fbf630b",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/ascend-patch-system.md",
+      "before_sha256": "d25587a41518ab16828aba217c6b9c309cf57f8515018b7745e71c5f546669f9",
+      "after_sha256": "0e650c14b7f5f35d9247f649ed4ffb4f2e2cae4872e2a74fd59c7af18fbd358e",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/engine-processes.md",
+      "before_sha256": "f89b755a885b8926a05cf32ba0e094d7fbe0268b2609059854cde6064718d0e4",
+      "after_sha256": "3bdc1b264b1e60c8a98f66a8e24586ac709c4930be2b1203568f530c9027ddbe",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/graph-mode-layer.md",
+      "before_sha256": "41102aec6090a4400ef72290b04f671db0eef0dd3f2bb153e336351962efae20",
+      "after_sha256": "3b488fde3ece32b9dfcfd154c8e39e23e3a6b439cf55ece3bc26a25990887175",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/kv-cache-memory-profiling.md",
+      "before_sha256": "fb81acbdece034e499e167ebe8be3b71288d55fa39275659cd542137a75fc315",
+      "after_sha256": "a301c9befd5e3c599c3da2197663c1112002ce5d5c0fc44793779f9b87287f9b",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/kv-pool.md",
+      "before_sha256": "4a06f92a540bf264c254e0d74af8824e0b944d5620a4674a8c6821179ebde5f2",
+      "after_sha256": "8843cfcddc1153456fbbbdfdca39a446d7bc143ca1155ec5985fe50e872f5f95",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/kvpp.md",
+      "before_sha256": "70009a4200b73cbee3d1b4132a37dcab234030fd453b34b815af4e0d331f228b",
+      "after_sha256": "85abbb7eb877e86bd02e68677656800e63261fd4e2142371cdae38c4c5be48da",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/large-scale-ep.md",
+      "before_sha256": "d4509399fc14e8e43ec1715016f74968d21b14434f7904ce88fdb7b7535e5ae9",
+      "after_sha256": "07d84f6fc16aae9d23e44e58c5d868c1894e2c48277f8eed0de81e78cd5c43f0",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/npu-model-runner.md",
+      "before_sha256": "80cd0c303b92cda4ceddf9fa292ff54d6c9c0dbe38ebf38124538233186fc4be",
+      "after_sha256": "5afaae66de7b925f3f17132cc87435a65bec92b927b242f4a0a989612ae13736",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/npu-worker-lifecycle.md",
+      "before_sha256": "8f8cd9454806bec041a418f100327bc50059bbe1e3b88083cd73f0f1f1ba9b35",
+      "after_sha256": "db39650de1eaafdcd4d41eacf0195d0e8d81380c10f363caa8e5129b9c0c4703",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/ops-and-kernels.md",
+      "before_sha256": "29b2bb2adca14f343fbd6b01c3431efcb22395d3698f64331b34d524e6c87804",
+      "after_sha256": "a71ea78feb748c4c7dec30fb308ef4ebfe7c93d2bcc102073719140bbd29a56a",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "before_sha256": "6146e1e1959c58f0dbf0a000f01dbc88cdb650e498d418fb7f90165c2a530823",
+      "after_sha256": "5a0afef6ed5690c77a84e5119c339a0f9612f3abf68ddd5bef998bc38430e76a",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/prefix-caching.md",
+      "before_sha256": "04ba03a1f3772879575b72db79e5a935082b694230abcbb2fcab4e7ca8a98f64",
+      "after_sha256": "0c25fc2ca72f197aac053c156e957df4569aa07f616894bdf8174244a2df3644",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/prepare-inputs-flow.md",
+      "before_sha256": "f81d47b98b2ab9af8c9dd970ad9d886c22d2952277b1a9a420827cae4ea08ad3",
+      "after_sha256": "55255131b4a4479d8bf559995e2e8bb9575289503313eed590611dacd4cc6c6d",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "before_sha256": "f68e4738127477f2f0efbdefd0957cbf9d903ea42412088498fa50bb07309c13",
+      "after_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "before_sha256": "fe4629408c050c85459f97f5e1eb7ea0c28a6b957f78d5e4c3a8f4859345c1de",
+      "after_sha256": "65fdca2e2b5b7cc9b726f7cbb6e9db99f07c12a7e902e5f2709ce36395eca913",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/request-call-chain.md",
+      "before_sha256": "3017755e3f651eae45fdda90b5726abb1e136e305b0cad8841e4bf080a8d100a",
+      "after_sha256": "7b61ff7141d026fd961a4f1cb73124ba720eef5d11785a71f4e09d657b0353b4",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/speculative-decoding.md",
+      "before_sha256": "ecdace991262fd39d9649ce982873fa4ab0d6bb12c082d2acc754789cd94d2f0",
+      "after_sha256": "181ba7649e578e399c51a7556a51f36d65fe97fc270d3611fb225444c1c02561",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/streaming-output.md",
+      "before_sha256": "469fe3e2c95f7f659db9ac1a4899017cf6cb7d2aaa251495a207f4df35b9e78e",
+      "after_sha256": "24cb9f732f2f50488ad37fffc312e6ed475cd6c45b6a2e80507c62b6c435b433",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/structured-output.md",
+      "before_sha256": "22f81405c5edac783f63aa2bccff41d49193584b11721b97857d57fa1af700e4",
+      "after_sha256": "0cf588416a57c5bfe98fd92d7641721948b7a866e2d04690bb7e9a22ddfbf9c1",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/ucm.md",
+      "before_sha256": "1a19353ef4f7fc074b0912664dc5b95437dc310e22d23d4c51416302e033beeb",
+      "after_sha256": "a747a9327b1b35edb93f861486549e6337ef16e6ff219dd7dbf5d5da3abc6cbc",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/vllm-ascend-for-rl.md",
+      "before_sha256": "ca6272256766ef0e64e22f98dc64c4a93ff112b9e4d7ae23e43c0e49a9075ac8",
+      "after_sha256": "cdf29287c1535bf367a2f8cf2e6e1018d71ba05e5081306b514fa3cb1200363f",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/vllm-engine-core.md",
+      "before_sha256": "af9825b4c28a4e835bb5597f4094adf84cbbe5d79222934b273a4cc0fa224267",
+      "after_sha256": "91c5ad5538c57aa1a69d9d820213846cf83c1fd6c31a6444b2dd867d54b89da1",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/vllm-kv-block-allocation.md",
+      "before_sha256": "b81f3f5ab969dbaba7686a3720aaa8d4de0b8652ccca6a7316c501aab0ee24c2",
+      "after_sha256": "885a07448e4228b90749a32222d7ccd578b005d50e927b23c621ec39cab0a925",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/vllm-v1-shape.md",
+      "before_sha256": "5e46926212029256a097b9c557a277ad602eada00e632ae55d8da498f10356bf",
+      "after_sha256": "d06fee16266cb782d571c59cd385f295b59a2aecc214aff7b4d17bc1ebada142",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/block-allocation-flow.yaml",
+      "before_sha256": "9d9d10b25f46058bf289aba1c7f99d31b37e22417bdd997310d64e34a88bff54",
+      "after_sha256": "e13c2e662172603e98f13a17815cf60a8e36c3ce6abecd319cfee64d51bd70ae",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/npu-model-runner-code-flow.svg",
+      "before_sha256": "2f180ae84946e43c91d1355c5e2819b2279f86ff3d11b1f6bc83e2e368427b78",
+      "after_sha256": "4c28a7014b821b68b5a92c5add857d8e54bfa5c1a771aa528eaa12032ee5f283",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/npu-model-runner-code-flow.yaml",
+      "before_sha256": "4f7f2d132011d11f3a131b9871b8f487c7684272ab75aeba1215b527ebff540e",
+      "after_sha256": "53d28d15dc36a0ffbfd7776aabb88b8b22c8640e637c8b1dc58e97984e3535c2",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/pd-disaggregation.yaml",
+      "before_sha256": "205974744bda6212207ee47dfb06f5c3319f4a8c72980b1b160a38fcc86947ba",
+      "after_sha256": "c1cdb8c2da05df3c76114c251866957e161c13852b9e55e47c8e8704b57d42b8",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/prefix-caching.yaml",
+      "before_sha256": "e28a58f9298a38513102ddc4ed0e246e88f03010945ca5828e919f3cf2e668cc",
+      "after_sha256": "e33b55eff0739bcfa67c5c16c0e2f620e4a7e5cec5c8e8566cde5202e20c4251",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/recompute-cpu-offload.yaml",
+      "before_sha256": "9b51c32afb4d21f5e3268ace35864db4abe768667ec05ae0a6d1cce7554da8d2",
+      "after_sha256": "26d485ec14493b85698969500e84a4980e0c36b7ff112329644901dadbb0540e",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/absolute-balance-threshold-71578a0c428d.md",
+      "before_sha256": "5fb4d94e790a37f1a9b981c65d938908ff6b82df46ef593dccf2c5558a70939b",
+      "after_sha256": "5c583ce67b44f9e9d2b5ada9f53d261af4e97b010966f43b7705401e5cf90af1",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/combine-quant-mode-2a3f7cd47997.md",
+      "before_sha256": "ef646d188e425dd06cf861522bb5e29dd69cacbcff74aab75290612c59328332",
+      "after_sha256": "4d3ded89a91feb2affe349ced9d53a485133a6ed916d8d653c9b5ab73aa9d17c",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/cross-node-transfer-limit-06ee92260b7a.md",
+      "before_sha256": "7e9b0f28492715dbf4a31e4167b11de4add0cebc1d96eca28ad8483490cfac6e",
+      "after_sha256": "aed4a4cfcc6108973f4d52638f73b4cf5609009eb2863c49b2e909def5d063b0",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/enable-force-eplb-b7ec3661121f.md",
+      "before_sha256": "42d6abf5a89985dae80dcacf81d065e254205d2901a36345222e6d4d86319a67",
+      "after_sha256": "4ebdfaafa8d86206b07c46f927dc27d135439e403660a4965d790c174458f785",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9.md",
+      "before_sha256": "cf325165a16ca450b71fb307b46fc3fb222668db00978bddfbd44edf41f5aafd",
+      "after_sha256": "581b35f9cfe9736af3f126bf408fc95e0957270f930a8b27db0af647c1fda4d0",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md",
+      "before_sha256": "f1de148fbb84f07163781f9af85b85a24ba7949eac50bb2dd9972670a4f5ba81",
+      "after_sha256": "cb96ce58bfc203e5bb607f6de3dc66c54473990d3c973219a46ad685ba48a9d3",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/enable-super-kernel-ce990e186bfa.md",
+      "before_sha256": "0b4ca6015d922d74da5101334fd81d5828fc8ed36f4b98510711add997e6aac6",
+      "after_sha256": "055442a36af2cba3e84761660b294807acc8d44358b7faf1da9f4298fae6c684",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/kvpp-config-0445bd352140.md",
+      "before_sha256": "91ec68f0c352659c0ddf66121f5d9727d1fa10b2da7b4b2068d7670193a742dc",
+      "after_sha256": "9f08e59162bbdd4b94d76e683c9c025d1aa18dcfa7b87919b017355ec7b50ec9",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/load-risk-quantile-d89a080ba048.md",
+      "before_sha256": "e11f76fa296e7ff5f2c5a96344e7f28dc79106b14364ebeec30c32ce8081a69c",
+      "after_sha256": "ae4bb716a85d2e597f192188358d9ed999b4979e4037bb0ec33fe8d5c680aeee",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/load-window-bins-cc21068b082d.md",
+      "before_sha256": "5dbe06b064dd6605e27d7f771da6860daf0b46c473862ea53d8e109fbb6cfa12",
+      "after_sha256": "a5a514f64489edbc01a7fb9ed9a1df71cf581e93419ff0e46b3265ad4cd94d92",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/placement-search-backtrack-limit-82b03cef98b0.md",
+      "before_sha256": "a3e7631e4ed2ec5483998fa14f4cf1e9931993bf23c3010df17d89a37a6544dd",
+      "after_sha256": "ca620e223073908459e05c80bd0ba0fc7c9118b291a6c711f465ca9abd031fb3",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/rank-transfer-limit-99529b37d91d.md",
+      "before_sha256": "eaccc402de5c1249734ccf10b29d5b9625d5d61cca072565a9a2b0b2a6f86ad7",
+      "after_sha256": "b53af050f7fd1d9b0893faaf4466cc5af23e2057246ba61576007b141244baa3",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/relative-balance-threshold-bcbc40e7dc87.md",
+      "before_sha256": "a34e7ff5aff8170c39b36d76df0ab9b9b1baeeeb3e1224075440fb2009054414",
+      "after_sha256": "072ac33b77aa80ace63fdc90b1078466706ac7f0cac74c282ae9617c044b0a46",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/replica-search-beam-size-6556d1650a62.md",
+      "before_sha256": "0168c1ec11f9a71c70022889de5826aba33ab99e20f7b4264854a4b532df8fcf",
+      "after_sha256": "cc9f1480b9c0a2ca16dce9cece1e1ea5624e18323b0ad1751986b24b538cae6d",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/replica-search-num-stages-e4b10925ff97.md",
+      "before_sha256": "8eb719c786144b49eb8f22016e610fc063b15251ad4ca0502edaf87df644bb6c",
+      "after_sha256": "b56276638ec2354b5ff46045a2fd94ae1b443a6c1bbb788f5de98f387986132a",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/replica-search-radius-cd3118b5aae5.md",
+      "before_sha256": "3a618846b45defc25970b359bba3c2af29cb865a431613eff44b2d6b1363f7f5",
+      "after_sha256": "f15b9b1e40271db520448dd21bc254c8122562f037566bc462b5618c43a268f2",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md",
+      "before_sha256": "10fd196a7ebd4ad7b0bfca2ee475b6b0ef62832fd964bc8c4bb460ba0c3f1dee",
+      "after_sha256": "c9fb55d093ffcdc96fe601dce25611e276f293f334641aef74135f99d6155f46",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/size-40a1c2ca47b8.md",
+      "before_sha256": "76dc00321ace4892cdf7aba31f453995e95acfbd6b94d9b8ca7aff5baef9a831",
+      "after_sha256": "b375f406188dde56584c3c915b7780bbd6e49e4f5b96079fe2457c689788f553",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/stair-config-cca9e594a052.md",
+      "before_sha256": "67d98d435181aeb71551a82d75aafb85e404d1c0f30d93fef2d6df9827d226e1",
+      "after_sha256": "2374ba3bd2b50ddcdd379f6c8d46c0cb5ad4743413d9a2f27362548e226536f9",
+      "changed": true
+    },
+    {
+      "path": "wiki/params/use-fused-overlap-75a180fff6ab.md",
+      "before_sha256": "55ec572051bf4646db82f31ede24499ef7bd44efdb4bd6e3c28048246a6ec679",
+      "after_sha256": "fdc648257eb9ce4fe5102e397be83e785cb09b70c5c97e7917a9b24ef8a52aa9",
+      "changed": true
+    }
+  ],
+  "sealed_at": "2026-11-09T19:16:59.116766+00:00"
+}

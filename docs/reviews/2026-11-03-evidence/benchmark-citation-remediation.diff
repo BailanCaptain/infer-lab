@@ -1,0 +1,31 @@
+--- before/inference-benchmarking.md
++++ after/inference-benchmarking.md
+@@ -42,7 +42,7 @@
+   - 'vllm@ced6857a:vllm/benchmarks/serve.py#L593-L632'
+   - 'vllm@ced6857a:vllm/benchmarks/serve.py#L744-L769'
+   - 'vllm@ced6857a:vllm/benchmarks/lib/endpoint_request_func.py#L402-L434'
+-  - 'vllm@ced6857a:vllm/benchmarks/lib/endpoint_request_func.py#L532-L560'
++  - 'vllm@ced6857a:vllm/benchmarks/lib/endpoint_request_func.py#L526-L561'
+   - 'vllm@ced6857a:vllm/benchmarks/lib/endpoint_request_func.py#L606-L639'
+ relations:
+   - to: inference-performance-walkthrough
+@@ -217,7 +217,9 @@
+ 
+ ### 版本差异
+ 
+-**v0.30.0rc2 配套压测客户端改变了部分计时边界，横向比较必须记录客户端版本。** ChatCompletion 和 audio 流只在 token/content 块推进结束时间，尾部 usage 块不再延长 latency；pooling/embedding 则读完整个响应 body 才记结束，bytes/bytes_only 也会消费完整流。它们可能改变 E2EL/TPOT 的数值，却不是服务端变快的证据。
++**v0.30.0rc2 配套压测客户端改变了部分计时和成功判定边界，横向比较必须记录客户端版本。** ChatCompletion 和 audio 流只在非空 `choices` 数组的片段到达时推进结束时间，尾部只有 usage 的片段不再延长 latency。这里检查的是 `choices`，并不要求其中的 `content` 非空；角色、结束信息等空内容片段也可能参与计时，不能把它直接叫作“可见文字到达”。这两个流式函数还要求至少收到一个这样的片段才判成功；HTTP 200 后正常结束但一直没有 `choices`，也会记为失败。[C13][C14]
++
++pooling/embedding 则读完整个响应 body 才记结束，bytes/bytes_only 也会消费完整流。[C15] 这些客户端变化可能影响 E2EL、TPOT 或成功样本数，却不是服务端变快的证据。
+ 
+ 主要生成统计仍只纳入成功请求，普通 TPOT 样本仍要求输出长度>1，短输出在 goodput 判断取 0，分位数仍由 NumPy 计算。SSE 内容块可包含多个 token，块间隔不能直接当成逐 token ITL；这项测量口径和正文的实验控制要求都继续保留。
+ 
+@@ -232,7 +234,7 @@
+ ### 源码位置
+ 
+ - 成功样本、输出长度回退、TPOT、goodput 和分位数：固定版 `calculate_metrics` [C1]。该文件是程序统计口径，不代表所有客户端采用相同计时事件。
+-- completions 的片段接收与最后内容片段计时见固定版请求函数 [C2]；chat 函数会在首个 delta（不要求 content 非空）记录 TTFT，后续 usage 也会推进结束计时 [C5]。两个 backend 的事件不能只按指标名字视为相同；返回层机制见流式输出页。
++- v0.23 completions 在带非空 `choices` 的片段上计时，其中的 `text` 可以为空 [C2]；chat 函数同样会在首个带 `choices` 的 delta（不要求 content 非空）记录 TTFT，但后续 usage 也会推进结束计时，且 HTTP 200 的流正常结束后未检查是否收到过这种片段就判成功 [C5]。这与上面 rc2 的成功条件不同。两个 backend、不同客户端版本的事件不能只按指标名字视为相同；返回层机制见流式输出页。
+ - v0.26 与 main 的上述四项统计口径分别核对固定版聚合函数 [C6][C7]，未据此声明所有 CLI 或接口行为相同。
+ - 工具入口、负载和在线监控的当前说明：[官方基准测试指南](https://docs.vllm.ai/en/latest/benchmarking/cli/) [S3]、[官方指标说明](https://docs.vllm.ai/en/latest/usage/metrics/) [S4]。滚动文档不作为旧镜像默认值证据。
+ - 24 条请求与 10 秒窗口是教学假设 [A]；算式是指定统计口径下的推导 [D]。实验记录结构与问题划分是本站方法 [I]。

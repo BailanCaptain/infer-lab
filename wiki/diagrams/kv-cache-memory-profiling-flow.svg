@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 510" width="900" height="510" role="img" aria-label="固定部署里一张卡的量测顺序：先拍快照、建通信组、加载权重，再看是否指定了显式 KV 预算；指定了就照样试跑一次、直接采用指定值，没指定就做两次 profile run，用预算减去三项。EngineCore 收齐各卡结果，先按每块字节各自算出块数，再取最小值给各卡分配 KV 池，最后才录 decode 图；只有没指定显式预算时，日志里才给出建议预算。对应双机部署启动的第五到第七步。">
-  <title>固定部署里一张卡的量测顺序：先拍快照、建通信组、加载权重，再看是否指定了显式 KV 预算；指定了就照样试跑一次、直接采用指定值，没指定就做两次 profile run，用预算减去三项。EngineCore 收齐各卡结果，先按每块字节各自算出块数，再取最小值给各卡分配 KV 池，最后才录 decode 图；只有没指定显式预算时，日志里才给出建议预算。对应双机部署启动的第五到第七步。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 510" width="900" height="510" role="img" aria-label="固定部署里一张卡的量测顺序：先拍快照、建通信组、加载权重，再看是否指定了显式 KV 预算。本图按省略显式预算或设置正字节数概括，零值等边界见参数说明。两条路径都会执行 GLM 的试跑流程，先 128 个 token，再 8192 个；指定了预算就直接采用指定值，没指定则用预算减去量到的三项。EngineCore 收齐各卡结果，先按每块字节分别算出块数，再取最小值给各卡分配 KV 池，最后才录 decode 图；只有没指定显式预算时，日志里才给出建议预算。对应双机部署启动的第五到第七步。">
+  <title>固定部署里一张卡的量测顺序：先拍快照、建通信组、加载权重，再看是否指定了显式 KV 预算。本图按省略显式预算或设置正字节数概括，零值等边界见参数说明。两条路径都会执行 GLM 的试跑流程，先 128 个 token，再 8192 个；指定了预算就直接采用指定值，没指定则用预算减去量到的三项。EngineCore 收齐各卡结果，先按每块字节分别算出块数，再取最小值给各卡分配 KV 池，最后才录 decode 图；只有没指定显式预算时，日志里才给出建议预算。对应双机部署启动的第五到第七步。</title>
   <defs><marker id="kv-cache-memory-profiling-flow-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="kv-cache-memory-profiling-flow-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
   <path d="M149 112 L149 140" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kv-cache-memory-profiling-flow-ah-control)"/>
   <path d="M149 192 L149 220" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kv-cache-memory-profiling-flow-ah-control)"/>
@@ -25,7 +25,7 @@
   <text x="149" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">指定了显式 KV 预算？</text>
   <text x="149" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">看启动参数</text>
   <rect x="24" y="400" width="250" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <text x="149" y="422" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">照样试跑一次</text>
+  <text x="149" y="422" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">照样执行试跑</text>
   <text x="149" y="441" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">直接用指定值，跳过扣减</text>
   <rect x="330" y="300" width="260" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="460" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">profile run</text>
@@ -34,7 +34,7 @@
   <text x="460" y="422" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">预算 − 三项 = 可用 KV</text>
   <text x="460" y="441" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">权重 + 激活峰值 + 非 torch 增量</text>
   <rect x="640" y="140" width="236" height="52" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="758" y="162" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">各卡算块数</text>
+  <text x="758" y="162" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">引擎按各卡预算算块数</text>
   <text x="758" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">可用 KV ÷ 每块字节，向下取整</text>
   <rect x="640" y="220" width="236" height="52" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="758" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">取最小块数，分配 KV 池</text>

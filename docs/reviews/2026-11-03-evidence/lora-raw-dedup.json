@@ -1,0 +1,234 @@
+[
+  {
+    "ref": "vllm@0fc695fc:vllm/lora/model_manager.py#L273-L308",
+    "raw_lines": [
+      1,
+      39
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm@0fc695fc:vllm/lora/punica_wrapper/utils.py#L15-L49",
+    "raw_lines": [
+      40,
+      77
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm@0fc695fc:vllm/lora/punica_wrapper/utils.py#L54-L115",
+    "raw_lines": [
+      78,
+      142
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm@0fc695fc:vllm/lora/layers/base_linear.py#L99-L145",
+    "raw_lines": [
+      143,
+      192
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L589-L602",
+    "raw_lines": [
+      193,
+      209
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L861-L862",
+    "raw_lines": [
+      210,
+      214
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@db701c1f:vllm_ascend/lora/punica_npu.py#L21-L104",
+    "raw_lines": [
+      215,
+      301
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@db701c1f:vllm_ascend/lora/punica_npu.py#L324-L410",
+    "raw_lines": [
+      302,
+      391
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@db701c1f:vllm_ascend/lora/utils.py#L74-L88",
+    "raw_lines": [
+      392,
+      409
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2945-L2964",
+    "raw_lines": [
+      410,
+      432
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/lora.md#L9-L30",
+    "raw_lines": [
+      433,
+      457
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm@0fc695fc:vllm/config/lora.py#L31-L46",
+    "raw_lines": [
+      458,
+      476
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/lora.md#L28-L30",
+    "raw_lines": [
+      477,
+      482
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@2ed6cbba:vllm_ascend/lora/punica_npu.py#L26-L29",
+    "raw_lines": [
+      483,
+      489
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/lora.md#L30-L37",
+    "raw_lines": [
+      490,
+      500
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/lora/punica_npu.py#L31-L34",
+    "raw_lines": [
+      501,
+      507
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@2ed6cbba:vllm_ascend/lora/punica_npu.py#L52-L68",
+    "raw_lines": [
+      508,
+      527
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@2ed6cbba:vllm_ascend/lora/punica_npu.py#L369-L413",
+    "raw_lines": [
+      528,
+      575
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/lora/lora_ops.py#L460-L500",
+    "raw_lines": [
+      576,
+      619
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L293-L300",
+    "raw_lines": [
+      620,
+      630
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L329-L352",
+    "raw_lines": [
+      631,
+      657
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/compilation/acl_graph.py#L361-L368",
+    "raw_lines": [
+      658,
+      668
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L487-L496",
+    "raw_lines": [
+      669,
+      681
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L396-L405",
+    "raw_lines": [
+      682,
+      694
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm-ascend@db701c1f:docs/source/user_guide/support_matrix/supported_features.md#L10-L14",
+    "raw_lines": [
+      695,
+      702
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm@0fc695fc:vllm/v1/worker/lora_model_runner_mixin.py#L52-L68",
+    "raw_lines": [
+      703,
+      722
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm@0fc695fc:vllm/forward_context.py#L45-L60",
+    "raw_lines": [
+      723,
+      741
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm@0fc695fc:vllm/lora/lora_weights.py#L28-L44",
+    "raw_lines": [
+      742,
+      761
+    ],
+    "identical": true
+  },
+  {
+    "ref": "vllm@0fc695fc:vllm/lora/worker_manager.py#L285-L299",
+    "raw_lines": [
+      762,
+      778
+    ],
+    "identical": true
+  }
+]

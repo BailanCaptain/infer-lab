@@ -1,0 +1,34 @@
+{
+  "reviewer": "review_publication_fix",
+  "scope": "Increment only, not all50 citations",
+  "accepted": true,
+  "files": {
+    "wiki/concepts/dyntra-lb.md": "8edb7c1720024eb742f1764d58bf9ceca1a3a64dbf13dac7ea2b2e6f0d8df6df",
+    "wiki/diagrams/dyntra-lb.yaml": "e144d9ab030ae99edc85237cc9df6308771887e21e336b5d9e9417b20ae5500d",
+    "wiki/diagrams/dyntra-lb.svg": "18eee7ed14f7fe1918d558302168777d6682cff3317430781f5cc9065c54c5e1",
+    "wiki/diagrams/dyntra-lb-bubble.yaml": "641ef3b91fdac9fa09215b90cb4863a9a2cba943f338c43032116ffcf4f28ca2",
+    "wiki/diagrams/dyntra-lb-bubble.svg": "e7e66036630c8f5e91615e907400a09f562188bf369e33d982209547cb5770b0",
+    "wiki/diagrams/dyntra-lb-flow.yaml": "f889380d9c678d3dc2d255fa0e4117dcf4a271651c9d7e8d51d9c27417e97c20",
+    "wiki/diagrams/dyntra-lb-flow.svg": "8354a42a47595b895dab4e5f0278cfeca75883915e09fe3a3994ebed5a73ca49"
+  },
+  "cpu_plans": [
+    {
+      "out_blk": [],
+      "in_blk": [],
+      "freeze": true
+    },
+    {
+      "out_blk": [
+        1
+      ],
+      "in_blk": [
+        64
+      ],
+      "freeze": false
+    }
+  ],
+  "cpu_threshold_equal": "swap1to11",
+  "cpu_below1000": "drop200from249",
+  "ui": false,
+  "npu": false
+}

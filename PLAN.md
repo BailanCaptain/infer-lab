@@ -1,5 +1,34 @@
 # infer-lab 总体计划（大模型推理交互式教学平台 · vLLM-Ascend 主线）
 
+## 2026-10-21 推理分析与工程实践补全
+
+在现有知识库与“性能与工程优化”分组内补齐分析和实践能力，保留学习者与从业者两种入口，复用已有机制页。四级顺序为：测量与诊断基础 → 生产系统 → 新模型与推理策略 → 昇腾 950 架构映射。具体页面职责、复用范围、学习路线、任务和验收统一记录在[知识补全计划](docs/superpowers/plans/2026-10-21-inference-knowledge-completion.md)，本处不复制任务清单。
+
+本轮先保存计划并交付第一优先级的一个贯穿样例，后续任务不视为已经完成或全部授权。
+
+## 2026-10-14 重启：知识库就是主章节（当前决定）
+
+用户明确推翻旧方案，并选择「知识库就是主章节：按主题目录直接阅读完整内容」。主站以 `wiki/` 的完整正文和 `src/content/wiki/toc.ts` 的主题编排为唯一内容入口，不再另写 22 章课程正文。阅读页保留完整解释、图、算例、版本与来源；搜索与问答沿用同一份知识内容。同日首页要求再次明确为「只有一个按钮，进入整合后的网页」：根路径和 `/#/home` 使用城市开场页，只保留一个「开始阅读」按钮进入 `/#/wiki`；首页不再显示目录、全站导航或环游控制。主题、模型和硬件入口在主站中提供。
+
+本决定取代下方的旧课程边界、先做第 03 章、课程与 Wiki 分离、固定母版和逐章 3D 要求。主站重新设计导航、阅读页面与图文层级；3D 只作为独立辅助探索。旧课程和资产留作历史材料及旧链接兼容，不作为新站的设计或内容验收标准。
+
+验收以首页只有一个阅读入口、按钮进入知识主题、首页与正文往返可用、正文完整、目录搜索与跨页链接可用、桌面和手机实际阅读、来源与问答不受损为准。首页场景加载与失败不能阻止进入主站。视觉实现待用户实际评价，自动检查不代表审美认可。
+
+## 2026-10-11 模型计算层的章节边界（本轮优先）
+
+用户确认：先完成第 03 章，再推广到整个模型计算层。主章节讲通用基础，母版提供可拆装的矩阵、材质和计算部件，知识库作为编写依据与独立查询入口。保留用户认可的 RMS 外观与交互；本轮不改其余五章正文。
+
+| 章节 | 本章要让读者走通的过程 | 接收与交付 | 留给后续的细节 |
+| --- | --- | --- | --- |
+| 01 Token、Embedding 与向量 | 文字分为编号，编号查表取出位置向量 | 从文字到隐藏矩阵 X | 向量怎样参与运算交给 02 |
+| 02 矩阵乘法与张量形状 | 一个点积扩成矩阵投影，读懂输入、权重与输出形状 | 能解释 XW 的逐项计算与维度约束 | 完整层的组织交给 03；芯片搬运在 07 展开 |
+| 03 一层 Transformer 怎样更新表示 | 保留 X → RMSNorm → 注意力 → 第一次相加 → RMSNorm → 基础前馈 → 第二次相加 | 同一份 X 逐步变成 X′、Y；确认稳定的层间接口 | 注意力内部交给 04，专家选择交给 06；GLM 特有连接只作折叠延伸 |
+| 04 Attention 深入 | 从 Q/K 匹配、因果遮罩、位置到 V 汇总和输出投影 | 接收 03 的归一化支路输入，交回同形状的 ΔA | 先讲通普通注意力，再有依据地比较多头、缓存与其他结构 |
+| 05 Prefill 与 Decode | 同一请求先处理输入，再逐步生成，区分本轮 hidden 与历史状态 | 把一趟模型前向展开为多轮请求时间线 | 缓存管理、调度与设备分工交给框架和硬件章节 |
+| 06 MoE | 把 03 的前馈区域放大为路由、专家计算与加权合并 | 输入仍是前馈支路表示，输出仍是可写回的 ΔF | 专家放置与跨卡派发交给并行章节 |
+
+03 的九段顺序固定为：输入表示、整层路线、分出残差旁路、RMS、注意力汇总、第一次相加、第二次归一化与前馈、第二次相加、返回整层。动画在正文就地播放和旋转，数值沿同一条计算链传递；各章不可随意改换例子却假称同一次前向。教学层的权重与简化条件必须明确，不能把普通 softmax 注意力冒称 GLM 的 KDA，把单条残差冒称 mHC。
+
 **Goal:** 让学习者沿一条固定路径，从 Token 与矩阵看到 Transformer 的计算，看到请求在 CPU/NPU/HBM/互联/机柜间的流动，理解 vLLM / vLLM-Ascend 的调度、KV Cache、并行与执行机制，最终能读源码并分析 PR 对特性、数据流与指标的影响。
 
 **Acceptance Criteria（全站，逐条覆盖）:**
@@ -14,7 +43,11 @@
 
 **Tech Stack:** Vite 8 + React 19 + TypeScript + Tailwind v4 + zustand + MDX + Web Worker，Biome + vitest + Playwright，GitHub Pages 静态部署。
 
-**状态（2026-09-06）:** 地基完成，表现层为零。所有 3D 代码已按用户要求删除，见本文件第四节。**表现层技术选型与画面纪律尚未确定**，是当前唯一的阻塞项。
+**当前方向（2026-10-08）:** 用户确认恢复 00–21 共 22 章，开始接通首页、课程、GLM 母版、硬件 3D 与独立 Wiki 入口。课程正文不出现 Wiki 链接、词条卡片、侧栏或问答入口；Wiki 可作为编写课程时的内部事实依据。第一轮为站点骨架，完整章节编排与计算/硬件逐步联动分别验收。下方 2026-09-06 的地基与表现层删除记录是历史背景，不代表当前 GLM 母版和硬件资产状态。
+
+**最新用户反馈：当前课程整合方向被否定。** 以下“同日进展”只说明文件与功能存在，不表示正文、布局或整合体验获认可。详细正文的要求不变；需要恢复同一请求/同一模型贯穿的讲解、前置概念与逐步观察，而不是重复独立文章加独立演示入口。助手自行新增的版式不属于已定愿景。用户认可的模型母版 A1–A3 及本计划 §1.3 是重新核对的依据；先审视一章的完整学习过程，再推广到其余章节。
+
+**同日进展:** 用户否定基础正文的讲解深度后，22 章已围绕具体数值、缓存与请求状态、硬件搬运和源码路径重写，内容位于 `src/content/course/`。第 03 章按当前 GLM 的四路残差、mHC、KDA、SwiGLU 和两次写回讲解，不再套用历史 Qwen 样板层；原始母版仍使用教学权重。段落内可以直接播放对应母版步骤或打开硬件部件，放大与切换视图保留章节及步骤。表格、算例和多题自测已接入，Wiki 仍为独立入口。此状态不等同于逐步同步硬件执行、逐章专属动画或模型工作台的全站终态验收；细节见 [站点接入记录](docs/plans/site-shell-integration.md)。
 
 ---
 
@@ -64,13 +97,13 @@
 
 **Part 3 · vLLM / vLLM-Ascend 机制**
 - `10` 引擎架构与插件机制：vLLM V1 EngineCore/Scheduler/Worker/ModelRunner；`vllm_ascend/platform.py` 插件入口与 patch 机制。
-- `11` KV Cache 内存系统：PagedAttention、block table、prefix caching、KV Pool、CPU offload、layerwise/sparse offload。
-- `12` 调度：continuous batching、chunked prefill、抢占、short request first、batch-job-aware scheduler、async scheduling。
+- `11` KV cache 内存系统：PagedAttention、block table、prefix caching、KV Pool、CPU offload、layerwise/sparse offload。
+- `12` Scheduler 与调度策略：continuous batching、chunked prefill、抢占、short request first、batch-job-aware scheduler、async scheduling。
 - `13` 并行 I：TP / PP / DP（rank 网格、Column/Row parallel、AllReduce、PP bubble）。
 - `14` 并行 II：EP / DPA / EPLB / large-scale EP。
 - `15` 并行 III：SP / CP / PCP / DCP 与 64K 长序列两条路径（含 current 禁配审计）。
-- `16` 图模式与算子：ACL Graph（piecewise/full）、torch.compile、自定义 aclnn 算子。
-- `17` 量化与投机解码：W8A8、MTP / speculative decoding。
+- `16` Graph mode 与 kernel：ACL Graph（piecewise/full）、torch.compile、自定义 aclnn 算子。
+- `17` 量化与 speculative decoding：W8A8、MTP / speculative decoding。
 - `18` PD / EPD 分离与 KV 传输：Mooncake、xPyD、layerwise transfer、KV 传输成本。
 
 **Part 4 · 工程与源码**
@@ -108,7 +141,7 @@
 - 知识库已合入本仓库 `main`（`wiki/concepts|params/*.md`；交接见 `HANDOFF-LLM-WIKI.md`）。其中教学式长页（如 `tensor-parallel`、`pipeline-parallel`、`chunked-prefill`、`vllm-v1-shape`）与章节主题重叠，且已逐句对过钉住 commit 的源码、带行号。
 - 写某一章时，**先查知识库里 frontmatter `chapters` 挂了该章号的页，以它们为底稿扩写**；章节开头记一行「基于哪几页知识库页」，这些页因上游变化被改时回头看本章。
 - 写章节时发现知识库缺了或错了，先补知识库再扩写——知识库始终是事实的底。
-- **待定**：知识库页的 `chapters` 用的是 §1.1 的 22 章编号，而当前首页（`src/app/intro/world.json`）展示的是十章目录（01 基础概念 … 10 社区与开源）；两套章节划分哪套为准尚未与用户对齐，定下来后知识库的章号要跟着改。
+- **2026-10-08 已定**：恢复 §1.1 的 22 章，首页与课程导航统一读取 `src/content/chapters.ts`；知识库保留原 22 章编号。`world.json` 的十境数据仅供历史山境资产使用，不再定义站点课程。Wiki 只作为独立入口，课程正文不显示上述内部写作关联。
 
 ### 1.4 证据与事实系统
 

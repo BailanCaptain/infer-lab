@@ -1,0 +1,42 @@
+{
+  "reviewer": "/root/review_first_pages",
+  "status": "accepted_increment_only",
+  "visual_validation": false,
+  "hardware_validation": false,
+  "files": [
+    {
+      "path": "wiki/concepts/rfork.md",
+      "sha256": "8bd58d56d4a661f0f01696527b61dbe5b1ff1ee8bff27b2af17090884ba536fc"
+    },
+    {
+      "path": "wiki/diagrams/rfork-two-paths.yaml",
+      "sha256": "c22ba3a3bd5446dcf3d7f7737b13dd352138c78692b610125559271565fd1da5"
+    },
+    {
+      "path": "wiki/diagrams/rfork-two-paths.svg",
+      "sha256": "d577426ba757be62d2347b134340f55e645cb050ba5a5e94d2691966630e7220"
+    },
+    {
+      "path": "wiki/concepts/rfork-transfer.md",
+      "sha256": "9aee8a41e165ef91536b810f7780f7ce6c18e8379467a45fdeae5df88e5ef800"
+    },
+    {
+      "path": "wiki/concepts/rfork-troubleshooting.md",
+      "sha256": "c9ff0986c772b0a1e549cf7155a46c7d60180fedae6205f147356177decf6977"
+    }
+  ],
+  "actual_reads": [
+    "2c59ff10 transfer_backend.py:31-100,298-459",
+    "2ed6cbba transfer_backend.py:298-315,421-459",
+    "baa023ad transfer_backend.py:149-246,529-592",
+    "7d825229 session.py:40-51,495-525; previously read495-554",
+    "7d825229 seed_server.py:141-167",
+    "rfork3284850b rfork_loader.py:350-425,521-710; reused441-465",
+    "rfork3284850b session.py:321-420; reused251-317",
+    "rfork3284850b types.py:38-49 reused actual read"
+  ],
+  "diffs": [
+    "rfork-overview-remediation.diff",
+    "rfork-overview-diagram-remediation.diff"
+  ]
+}

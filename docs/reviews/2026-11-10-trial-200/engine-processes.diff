@@ -1,0 +1,80 @@
+--- trial-before/engine-processes.md
++++ wiki/concepts/engine-processes.md
+@@ -205,7 +205,7 @@
+     kind: builds-on
+     note: 本页用示例请求 R1 说明清单只发差量；R1 每一站的数字和块号怎么来，在那一页
+ contradicts: []
+-updated: 2026-11-03T00:00:00.000Z
++updated: 2026-11-10T00:00:00.000Z
+ origin: gap
+ rawSources:
+   - >-
+@@ -230,7 +230,7 @@
+ 
+ - **请求消息，每条请求发一次。** API server 把文字切成 token id，连同采样参数打包，发给 EngineCore。这条请求之后每一步怎么算，都不再由 API server 决定。
+ - **清单，每一步发一次。** EngineCore 里有两个部件经手这份清单。scheduler（调度器）定下这一步算哪些请求、各算几个 token、这些 token 的 K、V 写进 [KV cache](kv-cache.md) 的哪些块（KV cache 按固定大小的块分配，每块有一个块号）。executor（执行器）是 EngineCore 里专管和 Worker 打交道的对象：把清单交给所有 Worker，再收回结果，[后文](#executor-决定-worker-是不是独立进程)单独讲它。每个 Worker 收到的是同一份清单，各算自己那张卡上的一份。「清单」是本页的叫法，在 vLLM 里它叫 SchedulerOutput；严格说，executor 每一步要对 Worker 发两次调用，一次算到词表分数，一次采样出新 token，见[一步之内](request-call-chain.md#一步之内enginecore-给-worker-发两次调用)。
+-- **本步结果，通常只由一个 Worker 回传。** 同一组卡最后得到的新 token 相同，所以在没配 KV connector、也没开 PP 的部署里，executor 只读本组 TP 编号为 0 的那个 Worker 的回信（TP 即[张量并行](tensor-parallel.md)，一组卡合算同一份模型，每层各算一部分；node1 那组的 0 号就是全局 8 号），不收 N 份。有两种例外：配了 KV connector（在实例之间搬 KV cache 的组件，比如 [PD 分离](pd-disaggregation.md)要用它）时，每个 Worker 都回传，由 executor 汇总；开了 [PP](pipeline-parallel.md)（流水线并行）时，回传的是最后一段流水线里 TP 编号为 0 的 Worker。这条回程走哪条通道，见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)。
++- **本步结果，通常只由一个 Worker 回传。** 同一组卡最后得到的新 token 相同，PCP 是 prefill 上下文并行，把提示词计算分给多卡；本部署未启用，即 PCP=1。因此在本页没配 KV connector、也没开 PP 的部署里，executor 只读本组 TP 编号为 0 的那个 Worker 的回信（TP 即[张量并行](tensor-parallel.md)，一组卡合算同一份模型，每层各算一部分；node1 那组的 0 号就是全局 8 号），不收 N 份。有两种例外：配了 KV connector（在实例之间搬 KV cache 的组件，比如 [PD 分离](pd-disaggregation.md)要用它）时，每个 Worker 都回传，由 executor 汇总；开了 [PP](pipeline-parallel.md)（流水线并行）时，回传的是最后一段流水线里 TP 与 PCP 编号均为 0 的 Worker。这条回程走哪条通道，见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)。
+ - **新 token，每一步发一次。** EngineCore 记完账，把新 token 发回 API server，由它还原成文字，一段一段推给用户。
+ - **卡间通信（虚线）。** Worker 在计算中途互相交换张量，比如把各卡的部分结果加起来，见[集合通信](collective-communication.md)。这条路只连着 Worker，不经过 EngineCore。
+ 
+@@ -244,7 +244,7 @@
+ 
+ 代价有三样。
+ 
+-**交接必须打包成消息。** 跨进程递不了对象，只能把内容编码后发过去，所以清单里几乎全是整数，而且只发差量。一条请求第一次被调度时，整份 prompt 随清单发给 Worker，Worker 把这条请求的资料缓存在自己的进程里；之后每一步只发新增的部分：这一步算几个 token、新分到哪些块号、上一步猜出的候选 token。拿示例请求 R1（prompt 为 4 个 token 的那条请求，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)）来说，第一步正是它第一次被调度，所以清单里带着它的 4 个 prompt token id 和采样参数，外加「R1 算 4 个 token」和新分到的 15 个块号；块数怎么来的见[第 2 站](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)。从第二步起，清单里只剩这一步算几个 token（带 3 个候选时是 4 个）、有没有新分到的块号，以及上一步猜出的候选 token，见[第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。
++**交接必须打包成消息。** 跨进程递不了对象，只能把内容编码后发过去，所以清单里几乎全是整数，而且只发差量。一条请求第一次被调度时，整份 prompt 随清单发给 Worker，Worker 把这条请求的资料缓存在自己的进程里；之后每一步只发新增的部分：这一步算几个 token、新分到哪些块号、候选位置（同步时传实际编号，异步时可传占位，实际候选留在 Worker）。拿示例请求 R1（prompt 为 4 个 token 的那条请求，见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)）来说，第一步正是它第一次被调度，所以清单里带着它的 4 个 prompt token id 和采样参数，外加「R1 算 4 个 token」和新分到的 15 个块号；块数怎么来的见[第 2 站](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)。从第二步起，清单里只剩这一步算几个 token（带 3 个候选时是 4 个）、有没有新分到的块号，以及候选位置；本部署异步调度时实际候选由 Worker 留存，见[第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。
+ 
+ **同一条请求的状态分几处存。** EngineCore 记着账本，Worker 存着资料的缓存，API server 存着输出队列。请求结束时，EngineCore 要在下一份清单里带上结束名单，Worker 才删掉自己那份缓存。
+ 
+@@ -292,25 +292,25 @@
+ 
+ **一条请求的状态分存在三类进程里，各存各的一份，每份都跨步留着，直到请求结束。** 一条请求怎样依次穿过这些进程、每一站进哪个函数，见[七站分在三种进程里](request-call-chain.md#七站分在三种进程里)；进程之间的消息各走哪条通道，见[进程之间的四条通道](request-call-chain.md#进程之间的四条通道)。这里只看每个进程里留下了什么。
+ 
+-| 进程 | 跨步一直留着的 | 每一步新产生、用完就丢的 |
++| 进程 | 跨步一直留着的 | 每步更新的内容或产生的结果 |
+ |---|---|---|
+ | API server | 分词器；每条请求的反分词进度和输出队列 | 刚到的请求；这一步要推给用户的那段文字 |
+ | EngineCore | 等待队列与运行队列；每条请求算到了哪、占了哪些块号 | 这一步的清单；对本步结果的处理 |
+-| Worker | 本卡的权重分片和 KV cache；每条请求的资料缓存和持久批次 | 本步的输入张量、注意力元数据、中间激活和输出 |
++| Worker | 本卡的权重分片和 KV cache；请求资料、持久批次及输入缓冲 | 本步填入的输入内容、注意力元数据、中间激活和输出 |
+ 
+ **API server 不是把请求交出去就没事了。** 请求交给 EngineCore 之前，API server 先在自己进程里登记这条请求：给它建一个反分词器和一个输出队列。此后每一步的新 token 都回到这里，反分词成文字再推给用户。请求结束前，这份登记一直在。为什么要先登记再发出，见[API server 入口的第 ⑤ 到 ⑦ 步](api-server-entry.md#怎么做包成引擎请求先登记回程再发出⑤-到-⑦)。
+ 
+-**EngineCore 存的是账本，不是数据。** scheduler 里的请求记录从进来到结束一直在，模型每走一步，它就被调度一次；它占了 KV cache 的哪几个块，也记在这里。块里真正的 K、V 数值不在 EngineCore，而在各张卡的显存里，归各个 Worker。
+-
+-**Worker 也记着每条请求。** 因为清单只发差量，Worker 必须自己记住每条请求的 token、已经算到的位置和块表，下一步才能接着拼出输入。这份资料缓存加上一个跨步复用的「持久批次」，就是 Worker 里除权重和 KV cache 之外，跨步留下来的东西。真正每一步用完就丢的，是按这些资料现拼出来的输入张量和中间激活。
++**EngineCore 存的是账本，不是数据。** scheduler 里的请求记录从进来到结束一直在，调度器按预算决定它本步是否上场；它占了 KV cache 的哪几个块，也记在这里。块里真正的 K、V 数值不在 EngineCore，而在各张卡的显存里，归各个 Worker。
++
++**Worker 也记着每条请求。** 因为清单只发差量，Worker 必须自己记住每条请求的 token、已经算到的位置和块表，下一步才能接着拼出输入。这份资料缓存加上一个跨步复用的「持久批次」，就是 Worker 里除权重和 KV cache 之外，跨步留下来的东西。输入缓冲也会跨步复用：每步重新填入本轮内容，并产生本轮中间激活和结果。不能把内容换了理解成底层缓冲也销毁了。
+ 
+ ## executor 决定 Worker 是不是独立进程
+ 
+-**executor（执行器）是 EngineCore 进程里负责「把清单交给 Worker、收回结果」的对象，它的种类决定了 Worker 落在哪里。** 不手动指定时，vLLM 按下面的规则挑：
++**executor（执行器）是 EngineCore 进程里负责「把清单交给 Worker、收回结果」的对象，它的种类决定了 Worker 落在哪里。** 不手动指定时，普通 Ascend 部署可先按下面的规则理解；TPU SPMD、CUDA 多节点与卡数检查等完整分支见[怎么开](#怎么开)：
+ 
+ - **整个服务只有 1 张卡：单进程 executor（uni）。** Worker 就在 EngineCore 进程里当场创建，由它初始化设备、加载模型。清单用函数调用递过去，不跨进程。
+ - **多于 1 张卡：多进程 executor（mp）。** 按本机的卡数，每张卡起一个 Worker 子进程，再建一条共享内存广播队列：每一步清单写进去一次，各 Worker 各读一次。
+-- **在 Ray 里运行：Ray executor。** 已处在 Ray 的资源组里，或者指定用 Ray 做 DP 后端时，默认改用 Ray。Ray 是一个分布式计算框架。
++- **在 Ray 里运行：Ray executor。** 已安装 Ray 并显式提供或处在 Ray 资源组里，或者指定用 Ray 做 DP 后端时，普通 Ascend 路径默认改用 Ray。Ray 是一个分布式计算框架。
+ - **手动指定了 executor：** 按指定的来，上面几条都不适用。
+ 
+ 这里的「整个服务的卡数」要把所有 DP 组算在一起，不是一个 EngineCore 管几张卡。按上述默认选择规则，DP2 × TP1 这种每组只有一张卡的部署，也还是给每个 EngineCore 起一个 Worker 子进程；只有整个服务就一张卡，才默认用单进程 executor。显式指定执行器时，则按所选执行器判断。
+@@ -329,7 +329,7 @@
+ 反过来，进程最少的几种情形是：
+ 
+ - **单卡 vllm serve：2 个进程。** API server 一个；EngineCore 一个，Worker 住在它里面。
+-- **离线调用：可以只有 1 个进程。** 用 vLLM 的离线接口在脚本里直接生成时，EngineCore 默认也放在单独的进程里；关掉 V1 多进程这个环境变量开关后，EngineCore 就直接在调用者的进程里运行，单卡时全部只剩 1 个进程。API server 用的异步引擎不支持这种关法，一定是独立的 EngineCore 进程。
++- **离线调用：可以只有 1 个进程。** 用 vLLM 的离线接口在脚本里直接生成时，EngineCore 默认也放在单独的进程里；在常规离线调用中，关掉 V1 多进程环境开关、且调用方没有显式强制 enable_multiprocessing=True 时，EngineCore 直接在调用者进程里运行；再使用单进程 executor 时，可以只剩 1 个进程。API server 用的异步引擎不支持这种关法，一定是独立的 EngineCore 进程。
+ 
+ ## 补丁和配置为什么要每个进程各做一遍
+ 
+@@ -477,7 +477,7 @@
+ **executor** 由 `--distributed-executor-backend`（配置项 `distributed_executor_backend`）指定，取值 `mp`、`uni`、`ray`、`external_launcher`，或一个自定义 executor 类的路径。不指定时：
+ 
+ - `world_size = pipeline_parallel_size × tensor_parallel_size × prefill_context_parallel_size`；`world_size_across_dp = world_size × data_parallel_size`。
+-- `world_size_across_dp > 1` 时默认 `mp`；`data_parallel_backend == "ray"`，或装了 Ray 且已处在 placement group 里时改为 `ray`；TPU 开 SPMD 时为 `uni`；CUDA 上本机卡数少于 `world_size` 时直接报错。最后，若仍未指定且 `world_size == 1`，定为 `uni` [C16]。
++- `world_size_across_dp > 1` 时先以 `mp` 为候选，随后按顺序择一：TPU 开 SPMD 选 `uni`；CUDA 且 `nnodes > 1` 保留 `mp`；其余 CUDA 配置若本机卡数少于 `world_size` 则报错；之后才检查 DP 后端为 Ray，或已安装 Ray 且显式提供/当前处在 placement group，此时选 `ray`。最后，若仍未指定且 `world_size == 1`，定为 `uni` [C16]。
+ - `UniProcExecutor._init_executor()` 在当前进程里 `WorkerWrapperBase(rpc_rank=0)` → `init_worker` → `init_device`，随后加载模型 [C14]。`MultiprocExecutor._init_executor()` 建 `rpc_broadcast_mq`，再按 `local_rank in range(local_world_size)` 逐个 `WorkerProc.make_worker_process(..., input_shm_handle=scheduler_output_handle)` [C10]；上游子进程是 `daemon=True`，名字 `VllmWorker-{rank}`。
+ - 官方双机：TP8、DP2，`world_size = 8`、`world_size_across_dp = 16`，未指定 executor，所以两台都用 `mp` [D]。
+ 

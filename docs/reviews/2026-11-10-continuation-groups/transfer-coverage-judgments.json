@@ -1,0 +1,1466 @@
+{
+  "reviewer": "/root/groups_replay_review",
+  "status": "accepted",
+  "unit": "72 source appearances, not 72 pages/full documents",
+  "manual_basis": "transfer-coverage-manual.tsv: every row written after independent claim/source review; metadata/hash binding only automated here",
+  "counts": {
+    "pd-disaggregation": 26,
+    "kv-pool": 39,
+    "mooncake-connector": 7,
+    "total": 72
+  },
+  "items": [
+    {
+      "ref": "vllm@0fc695fc:docs/design/nixl_kv_cache_lease.md#L17-L43",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "d4dcaced1eb0f4f802e17a0620eee1f3e25aeddfa71173061c04eb142178cfa8",
+      "read_scope": [
+        17,
+        43
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/request-official-coverage/docs/design/nixl_kv_cache_lease.md",
+      "reuse": "Already full-read in official-99; current claims rechecked; zero new full-document credit",
+      "page_id": "pd-disaggregation",
+      "source_number": 85,
+      "claim_group": "nixl-lease-ownership",
+      "claim": "NixlConnector 的 P 在完成预填充后为请求保留 KV；默认初始租约 30 秒。D 在请求进入 waiting 队列时即跟踪心跳，调度步按 duration // 6 节流；默认约 5 秒。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "官方租约设计给出30秒初租、waiting即续约、执行循环节奏；精确max公式另由92支持，不能承诺墙钟SLA。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1815-L1823",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "9ae1491f57a6294e32416b93ef2ea68107fa0d65c3a4d7f745f1261012f735e9",
+      "read_scope": [
+        1815,
+        1823
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/v1/core/sched/scheduler.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 86,
+      "claim_group": "nixl-lease-ownership",
+      "claim": "NixlConnector 的 P 在完成预填充后为请求保留 KV；默认初始租约 30 秒。D 在请求进入 waiting 队列时即跟踪心跳，调度步按 duration // 6 节流；默认约 5 秒。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "普通新请求加入waiting后调用connector.on_new_request；支持入队而非获准前向才跟踪。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py#L70-L76",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "21554432c209590b1588d63bd2120c4bdbeeb8cb2c81d5361e059f40b0e3f48f",
+      "read_scope": [
+        70,
+        76
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 87,
+      "claim_group": "nixl-lease-ownership",
+      "claim": "NixlConnector 的 P 在完成预填充后为请求保留 KV；默认初始租约 30 秒。D 在请求进入 waiting 队列时即跟踪心跳，调度步按 duration // 6 节流；默认约 5 秒。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "kv_lease_duration缺省30、heartbeat_interval为duration//6；默认例算5秒成立。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py#L175-L217",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "21554432c209590b1588d63bd2120c4bdbeeb8cb2c81d5361e059f40b0e3f48f",
+      "read_scope": [
+        175,
+        217
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 88,
+      "claim_group": "nixl-lease-ownership",
+      "claim": "NixlConnector 的 P 在完成预填充后为请求保留 KV；默认初始租约 30 秒。D 在请求进入 waiting 队列时即跟踪心跳，调度步按 duration // 6 节流；默认约 5 秒。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "只跟踪do_remote_prefill且远端标识齐全的请求，按远端engine分组；正文保留完整定位条件。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py#L560-L578",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "21554432c209590b1588d63bd2120c4bdbeeb8cb2c81d5361e059f40b0e3f48f",
+      "read_scope": [
+        560,
+        578
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 89,
+      "claim_group": "nixl-lease-ownership",
+      "claim": "NixlConnector 的 P 在完成预填充后为请求保留 KV；默认初始租约 30 秒。D 在请求进入 waiting 队列时即跟踪心跳，调度步按 duration // 6 节流；默认约 5 秒。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "调度步节流打包heartbeat并清理不再需读的请求；不推成独立后台定时器。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py#L638-L674",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "21554432c209590b1588d63bd2120c4bdbeeb8cb2c81d5361e059f40b0e3f48f",
+      "read_scope": [
+        638,
+        674
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 90,
+      "claim_group": "nixl-lease-ownership",
+      "claim": "NixlConnector 的 P 在完成预填充后为请求保留 KV；默认初始租约 30 秒。D 在请求进入 waiting 队列时即跟踪心跳，调度步按 duration // 6 节流；默认约 5 秒。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "P30秒、双向D固定480秒分支和返回remote_num_tokens；旧版无expiry字段通过完整返回dict核实。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/nixl/worker.py#L219-L223",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "846b761638b3f06e0c4325cbc148ae7f1ec867c9dca67854955a1187a1a9b2a9",
+      "read_scope": [
+        219,
+        223
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/nixl/worker.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 91,
+      "claim_group": "nixl-lease-renewal",
+      "claim": "心跳将每个请求的到期时刻设为 max(旧到期时刻, 当前时刻 + duration * 2 // 3)，默认增量窗口约 20 秒；不是每次在旧到期时刻累加 20 秒。完成通知满足消费者计数后释放；失联后由执行循环检查到期回收。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "worker延长窗口为duration*2//3，30推导20；不等于old_expiry累加。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/nixl/worker.py#L1771-L1865",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "846b761638b3f06e0c4325cbc148ae7f1ec867c9dca67854955a1187a1a9b2a9",
+      "read_scope": [
+        1771,
+        1865
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/nixl/worker.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 92,
+      "claim_group": "nixl-lease-renewal",
+      "claim": "心跳将每个请求的到期时刻设为 max(旧到期时刻, 当前时刻 + duration * 2 // 3)，默认增量窗口约 20 秒；不是每次在旧到期时刻累加 20 秒。完成通知满足消费者计数后释放；失联后由执行循环检查到期回收。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "读取通知计数释放、执行循环到期检查与max(old,now+window)都在范围内；不声称严格20秒回收。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/nixl/worker.py#L1933-L2025",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "846b761638b3f06e0c4325cbc148ae7f1ec867c9dca67854955a1187a1a9b2a9",
+      "read_scope": [
+        1933,
+        2025
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/nixl/worker.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 93,
+      "claim_group": "nixl-lease-renewal",
+      "claim": "心跳将每个请求的到期时刻设为 max(旧到期时刻, 当前时刻 + duration * 2 // 3)，默认增量窗口约 20 秒；不是每次在旧到期时刻累加 20 秒。完成通知满足消费者计数后释放；失联后由执行循环检查到期回收。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "worker在start_load_kv读元数据、发心跳；未握手时先异步握手，心跳后续步才发。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/features/nixl_connector_usage.md#L129-L242",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "c02387fb9fefdbc41f6aed9695a7a2036dadd7d3b30ad09b8a08b056269bd129",
+      "read_scope": [
+        129,
+        242
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/request-official-coverage/docs/features/nixl_connector_usage.md",
+      "reuse": "Already full-read in official-99; current claims rechecked; zero new full-document credit",
+      "page_id": "pd-disaggregation",
+      "source_number": 94,
+      "claim_group": "nixl-multiturn",
+      "claim": "双向复用默认关闭；启用后 D 保留上一轮已算的块，下一轮 P 可读回，然后 D 再读取 P 算出的新块。D 固定 TTL 默认 480 秒、不用 P 的心跳续约。默认 64 阈值只针对本轮还需从 D 读回的 token，不是所有 P→D 传输的门槛。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "官方双向流程、两端启用、角色与默认TTL/64阈值齐全；硬件限制另引110。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py#L149-L158",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "21554432c209590b1588d63bd2120c4bdbeeb8cb2c81d5361e059f40b0e3f48f",
+      "read_scope": [
+        149,
+        158
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 95,
+      "claim_group": "nixl-multiturn",
+      "claim": "双向复用默认关闭；启用后 D 保留上一轮已算的块，下一轮 P 可读回，然后 D 再读取 P 算出的新块。D 固定 TTL 默认 480 秒、不用 P 的心跳续约。默认 64 阈值只针对本轮还需从 D 读回的 token，不是所有 P→D 传输的门槛。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "bidirectional默认false、decoder TTL480、recompute阈值64直接读取；不改成默认开启。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py#L393-L429",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "21554432c209590b1588d63bd2120c4bdbeeb8cb2c81d5361e059f40b0e3f48f",
+      "read_scope": [
+        393,
+        429
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/nixl/scheduler.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 96,
+      "claim_group": "nixl-multiturn",
+      "claim": "双向复用默认关闭；启用后 D 保留上一轮已算的块，下一轮 P 可读回，然后 D 再读取 P 算出的新块。D 固定 TTL 默认 480 秒、不用 P 的心跳续约。默认 64 阈值只针对本轮还需从 D 读回的 token，不是所有 P→D 传输的门槛。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "D→P缺口由min(remote_num_tokens,promptlen)减本地已算；0<缺口<64才被该门槛拒绝，64本身不拒绝。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:examples/disaggregated/disaggregated_serving/disagg_proxy_multiturn.py#L54-L155",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "648250c845baa34f6f456cc5cdcb711a25689859b40ac53086d5b22bf7c75670",
+      "read_scope": [
+        54,
+        155
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/examples/disaggregated/disaggregated_serving/disagg_proxy_multiturn.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 97,
+      "claim_group": "nixl-proxy-state",
+      "claim": "官方示例代理用 conversation_id 存上一轮 D 的 kv_transfer_params；实际全局实例缓存 TTL 450 秒，读取时 pop 为一次性取用。代理存的是定位信息，不持有设备 KV。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "类默认600与实际全局450明确区分；get取出pop并做记录TTL检查，保留的是定位字典。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:examples/disaggregated/disaggregated_serving/disagg_proxy_multiturn.py#L255-L301",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "648250c845baa34f6f456cc5cdcb711a25689859b40ac53086d5b22bf7c75670",
+      "read_scope": [
+        255,
+        301
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/examples/disaggregated/disaggregated_serving/disagg_proxy_multiturn.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 98,
+      "claim_group": "nixl-proxy-state",
+      "claim": "官方示例代理用 conversation_id 存上一轮 D 的 kv_transfer_params；实际全局实例缓存 TTL 450 秒，读取时 pop 为一次性取用。代理存的是定位信息，不持有设备 KV。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "流式D响应末段提取并保存kv_transfer_params；没有把代理当KV数据所有者。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:examples/disaggregated/disaggregated_serving/disagg_proxy_multiturn.py#L369-L425",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "648250c845baa34f6f456cc5cdcb711a25689859b40ac53086d5b22bf7c75670",
+      "read_scope": [
+        369,
+        425
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/examples/disaggregated/disaggregated_serving/disagg_proxy_multiturn.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 99,
+      "claim_group": "nixl-proxy-state",
+      "claim": "官方示例代理用 conversation_id 存上一轮 D 的 kv_transfer_params；实际全局实例缓存 TTL 450 秒，读取时 pop 为一次性取用。代理存的是定位信息，不持有设备 KV。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "conversation_id先pop，旧D参数传P、P参数再传D；无逐token前缀验证，正文把责任交路由层。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py#L237-L280",
+      "commit": "568afb3a13806beb53bb2e6bd518269357b237c0",
+      "file_sha256": "428d1a5bffdca7f4b5c87055efd753b22d3d56e8470def844d0f13d477b0059f",
+      "read_scope": [
+        237,
+        280
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/568afb3a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 100,
+      "claim_group": "nixl-v26-deadline",
+      "claim": "568afb3a 的 D 结束时导出 remote_blocks_expiry_time；P 读回前转换远端时钟，并用 5 秒安全边界拒绝临近到期的读回。0fc695fc 没有此字段和检查。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "v0.26完成时为D导出blocks_expiry_time，P初租和D固定TTL继续分开。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_worker.py#L28-L30",
+      "commit": "568afb3a13806beb53bb2e6bd518269357b237c0",
+      "file_sha256": "ba16c48417f3648ef3441cb60fea5f01efcb3ee5eaac8b4afa57a19871cc5ed5",
+      "read_scope": [
+        28,
+        30
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/568afb3a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_worker.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 101,
+      "claim_group": "nixl-v26-deadline",
+      "claim": "568afb3a 的 D 结束时导出 remote_blocks_expiry_time；P 读回前转换远端时钟，并用 5 秒安全边界拒绝临近到期的读回。0fc695fc 没有此字段和检查。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "固定5.0秒安全边界常量；不误作5秒新租约。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_worker.py#L105-L131",
+      "commit": "568afb3a13806beb53bb2e6bd518269357b237c0",
+      "file_sha256": "ba16c48417f3648ef3441cb60fea5f01efcb3ee5eaac8b4afa57a19871cc5ed5",
+      "read_scope": [
+        105,
+        131
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/568afb3a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_worker.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 102,
+      "claim_group": "nixl-v26-deadline",
+      "claim": "568afb3a 的 D 结束时导出 remote_blocks_expiry_time；P 读回前转换远端时钟，并用 5 秒安全边界拒绝临近到期的读回。0fc695fc 没有此字段和检查。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "转换远端时钟再比较临近过期，字段缺失继续原读，拒绝走failed_transfer；不承诺必定重算。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_scheduler.py#L471-L497",
+      "commit": "84030bbe3d74d99bad477a3d2e37a973ccd8865c",
+      "file_sha256": "4ea650aa7e0b1af17e77e8bc00c357c3bc3efd4086ad1c5909f55917a175d12c",
+      "read_scope": [
+        471,
+        497
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/84030bbe/vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_scheduler.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 103,
+      "claim_group": "nixl-main-rc2-clock",
+      "claim": "84030bbe 与 ced6857a 保留 D 到期导出和读回 5 秒保护；调度元数据增加 scheduler_clock，worker 用剩余 TTL 重定位到自己的 perf_counter，避免跨进程/节点时钟基点直接比较。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "main元数据带scheduler_clock及心跳节流；只比较固定main点，不认作任意Ascend安装组合。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py#L247-L291",
+      "commit": "84030bbe3d74d99bad477a3d2e37a973ccd8865c",
+      "file_sha256": "5caa8b4b6f080e1c8b1eadb893c20c9a478dd625149477649641967e4b677b3e",
+      "read_scope": [
+        247,
+        291
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/84030bbe/vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 104,
+      "claim_group": "nixl-main-rc2-clock",
+      "claim": "84030bbe 与 ced6857a 保留 D 到期导出和读回 5 秒保护；调度元数据增加 scheduler_clock，worker 用剩余 TTL 重定位到自己的 perf_counter，避免跨进程/节点时钟基点直接比较。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "main继续导出D到期时间、block_ids和并行布局；表中保留成立。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_worker.py#L106-L153",
+      "commit": "84030bbe3d74d99bad477a3d2e37a973ccd8865c",
+      "file_sha256": "29b107f9126881703b084ba8f6b48ba2c62444a40b0e81f9d0801e9485544bd5",
+      "read_scope": [
+        106,
+        153
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/84030bbe/vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_worker.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 105,
+      "claim_group": "nixl-main-rc2-clock",
+      "claim": "84030bbe 与 ced6857a 保留 D 到期导出和读回 5 秒保护；调度元数据增加 scheduler_clock，worker 用剩余 TTL 重定位到自己的 perf_counter，避免跨进程/节点时钟基点直接比较。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "main将剩余TTL重定位worker本地时钟，保留5秒读回保护；非前缀内容检查。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_scheduler.py#L470-L506",
+      "commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+      "file_sha256": "7a1db8c54e4cd846bdac747344f2aea2c2fcf507817928796063225223b7e169",
+      "read_scope": [
+        470,
+        506
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/ced6857a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_scheduler.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 106,
+      "claim_group": "nixl-main-rc2-clock",
+      "claim": "84030bbe 与 ced6857a 保留 D 到期导出和读回 5 秒保护；调度元数据增加 scheduler_clock，worker 用剩余 TTL 重定位到自己的 perf_counter，避免跨进程/节点时钟基点直接比较。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "rc2继续传scheduler_clock与心跳；已读本版，不只用main文件名推断。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py#L250-L294",
+      "commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+      "file_sha256": "ac3daf8e2246581fec84ab28f2133569421b62c32a120be4923e2f4d0f2f9de9",
+      "read_scope": [
+        250,
+        294
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/ced6857a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_scheduler.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 107,
+      "claim_group": "nixl-main-rc2-clock",
+      "claim": "84030bbe 与 ced6857a 保留 D 到期导出和读回 5 秒保护；调度元数据增加 scheduler_clock，worker 用剩余 TTL 重定位到自己的 perf_counter，避免跨进程/节点时钟基点直接比较。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "rc2结束返回D到期、布局和转移模式；保留本版条件。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_worker.py#L104-L165",
+      "commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+      "file_sha256": "e5060c9b6cf022de35ca3d1da7a369cd6a6a2dea26219af9f7633aaf78af8a76",
+      "read_scope": [
+        104,
+        165
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/ced6857a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_worker.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 108,
+      "claim_group": "nixl-main-rc2-clock",
+      "claim": "84030bbe 与 ced6857a 保留 D 到期导出和读回 5 秒保护；调度元数据增加 scheduler_clock，worker 用剩余 TTL 重定位到自己的 perf_counter，避免跨进程/节点时钟基点直接比较。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "rc2worker本地TTL重定位、远端expiry检查及失败分支实际核对，5秒常量通过同函数/同字节链复用。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/nixl/connector.py#L339-L408",
+      "commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+      "file_sha256": "b6a0dc916d052f344be72ecfcb111509c13580102c11a860fa726cf0888949a9",
+      "read_scope": [
+        339,
+        408
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/ced6857a/vllm/distributed/kv_transfer/kv_connector/v1/nixl/connector.py",
+      "page_id": "pd-disaggregation",
+      "source_number": 109,
+      "claim_group": "nixl-main-rc2-clock",
+      "claim": "84030bbe 与 ced6857a 保留 D 到期导出和读回 5 秒保护；调度元数据增加 scheduler_clock，worker 用剩余 TTL 重定位到自己的 perf_counter，避免跨进程/节点时钟基点直接比较。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "rc2 NixlConnector确为NixlPullConnector别名，Push另实现；正文明确不外推Push。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/features/nixl_connector_usage.md#L244-L312",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "c02387fb9fefdbc41f6aed9695a7a2036dadd7d3b30ad09b8a08b056269bd129",
+      "read_scope": [
+        244,
+        312
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/request-official-coverage/docs/features/nixl_connector_usage.md",
+      "reuse": "Already full-read in official-99; current claims rechecked; zero new full-document credit",
+      "page_id": "pd-disaggregation",
+      "source_number": 110,
+      "claim_group": "nixl-proxy-and-cuda-prefix-boundary",
+      "claim": "多轮代理入口、conversation_id 与 CUDA/device-buffer 及 stripped thinking 限制",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "官方代理入口、conversation_id扩展消费、CUDA设备缓存限制、删thinking导致错位警告完整读；新段适用边界正确。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c"
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/features/mooncake_store_connector_usage.md#L37-L66",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "c717f6fc6e8e8c386e2764929704fe04a8a6b4b72ae99a72760812dc14b2db60",
+      "read_scope": [
+        37,
+        66
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/request-official-coverage/docs/features/mooncake_store_connector_usage.md",
+      "reuse": "Already full-read in official-99; current claims rechecked; zero new full-document credit",
+      "page_id": "kv-pool",
+      "source_number": 71,
+      "claim_group": "store-two-modes",
+      "claim": "上游 MooncakeStoreConnector 的 embedded 默认让每个 vLLM rank 贡献 global_segment_size 的主机池；standalone-store 让 vLLM rank 的 global_segment_size=0，由外部 mooncake_client 持有池。local_buffer_size 是每 rank 的私有操作缓冲，两个模式都需要。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "母文定义embedded/standalone-store、每GPU池与私有buffer；只取定义，DirectIO分配措辞由实际源码收窄。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L73-L150",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "3de6b4f0e714f7d5e221086ab8c3385d6ed14f0fc16f5652178350b7fae8da1e",
+      "read_scope": [
+        73,
+        150
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 72,
+      "claim_group": "store-two-modes",
+      "claim": "上游 MooncakeStoreConnector 的 embedded 默认让每个 vLLM rank 贡献 global_segment_size 的主机池；standalone-store 让 vLLM rank 的 global_segment_size=0，由外部 mooncake_client 持有池。local_buffer_size 是每 rank 的私有操作缓冲，两个模式都需要。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "旧配置类校验mode、embedded非零、standalone为0、local正值；教学正容量是官方有效用法。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L985-L1007",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "3de6b4f0e714f7d5e221086ab8c3385d6ed14f0fc16f5652178350b7fae8da1e",
+      "read_scope": [
+        985,
+        1007
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 73,
+      "claim_group": "store-two-modes",
+      "claim": "上游 MooncakeStoreConnector 的 embedded 默认让每个 vLLM rank 贡献 global_segment_size 的主机池；standalone-store 让 vLLM rank 的 global_segment_size=0，由外部 mooncake_client 持有池。local_buffer_size 是每 rank 的私有操作缓冲，两个模式都需要。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "普通store.setup接收global/local/protocol等，没有enable_ssd_offload；standalone不是setup_dummy。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L98-L152",
+      "commit": "568afb3a13806beb53bb2e6bd518269357b237c0",
+      "file_sha256": "f84a2b305356bc2e34223263f6e695db7650106c1f6821571a6c330011c92e69",
+      "read_scope": [
+        98,
+        152
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/568afb3a/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 74,
+      "claim_group": "store-two-modes",
+      "claim": "上游 MooncakeStoreConnector 的 embedded 默认让每个 vLLM rank 贡献 global_segment_size 的主机池；standalone-store 让 vLLM rank 的 global_segment_size=0，由外部 mooncake_client 持有池。local_buffer_size 是每 rank 的私有操作缓冲，两个模式都需要。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "v0.26配置类相对基线仅加载方法改名，容量和mode语义一致；完整函数diff已读。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L152-L208",
+      "commit": "84030bbe3d74d99bad477a3d2e37a973ccd8865c",
+      "file_sha256": "9d618bd7e2f57b0f9c811ae7e86ad8b7d8726edc1f9aa7229e59a3505afb44da",
+      "read_scope": [
+        152,
+        208
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/84030bbe/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 75,
+      "claim_group": "store-two-modes",
+      "claim": "上游 MooncakeStoreConnector 的 embedded 默认让每个 vLLM rank 贡献 global_segment_size 的主机池；standalone-store 让 vLLM rank 的 global_segment_size=0，由外部 mooncake_client 持有池。local_buffer_size 是每 rank 的私有操作缓冲，两个模式都需要。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "main新增tenant字段和归一化而mode/容量约束保留；不能由这些一致声称整个connector无变化。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L139-L209",
+      "commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+      "file_sha256": "55f1682dfd1ed7af689166421337126a0e1d08afa4774a242e098d79e0c1e95b",
+      "read_scope": [
+        139,
+        209
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/ced6857a/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 76,
+      "claim_group": "store-two-modes",
+      "claim": "上游 MooncakeStoreConnector 的 embedded 默认让每个 vLLM rank 贡献 global_segment_size 的主机池；standalone-store 让 vLLM rank 的 global_segment_size=0，由外部 mooncake_client 持有池。local_buffer_size 是每 rank 的私有操作缓冲，两个模式都需要。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "rc2实际配置类同样保留mode/容量分工，已读本版范围。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/features/mooncake_store_connector_usage.md#L140-L174",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "c717f6fc6e8e8c386e2764929704fe04a8a6b4b72ae99a72760812dc14b2db60",
+      "read_scope": [
+        140,
+        174
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/request-official-coverage/docs/features/mooncake_store_connector_usage.md",
+      "reuse": "Already full-read in official-99; current claims rechecked; zero new full-document credit",
+      "page_id": "kv-pool",
+      "source_number": 77,
+      "claim_group": "store-ssd-three-consumers",
+      "claim": "上游 standalone-store SSD 路径需要 master 的 enable_offload、外部 owner client 的 enable_offload 与目录，以及 vLLM JSON 的 enable_offload 配合。vLLM 侧 enable_offload 在这四版设置 1280 MiB staging 预算，用来分批读取；它不会单独启用存储端 SSD。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "母文SSD端到端要求master、owner和vLLM开关配合；不是仅调推理端JSON。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L985-L1053",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "3de6b4f0e714f7d5e221086ab8c3385d6ed14f0fc16f5652178350b7fae8da1e",
+      "read_scope": [
+        985,
+        1053
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 78,
+      "claim_group": "store-ssd-three-consumers",
+      "claim": "上游 standalone-store SSD 路径需要 master 的 enable_offload、外部 owner client 的 enable_offload 与目录，以及 vLLM JSON 的 enable_offload 配合。vLLM 侧 enable_offload 在这四版设置 1280 MiB staging 预算，用来分批读取；它不会单独启用存储端 SSD。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "旧setup与enable_offload选择1280MiB预算在同范围；预算值不是此分支真的分配暂存区。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L1023-L1095",
+      "commit": "568afb3a13806beb53bb2e6bd518269357b237c0",
+      "file_sha256": "f84a2b305356bc2e34223263f6e695db7650106c1f6821571a6c330011c92e69",
+      "read_scope": [
+        1023,
+        1095
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/568afb3a/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 79,
+      "claim_group": "store-ssd-three-consumers",
+      "claim": "上游 standalone-store SSD 路径需要 master 的 enable_offload、外部 owner client 的 enable_offload 与目录，以及 vLLM JSON 的 enable_offload 配合。vLLM 侧 enable_offload 在这四版设置 1280 MiB staging 预算，用来分批读取；它不会单独启用存储端 SSD。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "v0.26实际setup和预算分支同义；没有把>=依赖范围当安装锁定版本。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L1537-L1637",
+      "commit": "84030bbe3d74d99bad477a3d2e37a973ccd8865c",
+      "file_sha256": "9d618bd7e2f57b0f9c811ae7e86ad8b7d8726edc1f9aa7229e59a3505afb44da",
+      "read_scope": [
+        1537,
+        1637
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/84030bbe/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 80,
+      "claim_group": "store-ssd-three-consumers",
+      "claim": "上游 standalone-store SSD 路径需要 master 的 enable_offload、外部 owner client 的 enable_offload 与目录，以及 vLLM JSON 的 enable_offload 配合。vLLM 侧 enable_offload 在这四版设置 1280 MiB staging 预算，用来分批读取；它不会单独启用存储端 SSD。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "main真实setup/tenant和预算分支；owner开关没有由vLLM enable_offload传入。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L1517-L1670",
+      "commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+      "file_sha256": "55f1682dfd1ed7af689166421337126a0e1d08afa4774a242e098d79e0c1e95b",
+      "read_scope": [
+        1517,
+        1670
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/ced6857a/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 81,
+      "claim_group": "store-ssd-three-consumers",
+      "claim": "上游 standalone-store SSD 路径需要 master 的 enable_offload、外部 owner client 的 enable_offload 与目录，以及 vLLM JSON 的 enable_offload 配合。vLLM 侧 enable_offload 在这四版设置 1280 MiB staging 预算，用来分批读取；它不会单独启用存储端 SSD。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "rc2setup、preferred segment、预算和线程条件已读；保持库版本及owner管理边界。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L192-L250",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "3de6b4f0e714f7d5e221086ab8c3385d6ed14f0fc16f5652178350b7fae8da1e",
+      "read_scope": [
+        192,
+        250
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 82,
+      "claim_group": "store-staging-not-private",
+      "claim": "SSD 分批按每 key 对齐后的字节及元数据开销估计；预算乘可用比例后决定批大小。单 key 超过完整 staging 预算会拒绝本轮加载，不能靠分批把一个 key 再拆小。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "按对象对齐+额外空间估暂存、比例预算分批；单key超过总预算不会拆成更小key。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L708-L855",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "3de6b4f0e714f7d5e221086ab8c3385d6ed14f0fc16f5652178350b7fae8da1e",
+      "read_scope": [
+        708,
+        855
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 83,
+      "claim_group": "store-staging-not-private",
+      "claim": "SSD 分批按每 key 对齐后的字节及元数据开销估计；预算乘可用比例后决定批大小。单 key 超过完整 staging 预算会拒绝本轮加载，不能靠分批把一个 key 再拆小。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "批加载实际调用与超预算拒绝、登记错误块可见；不把调local_buffer说成修复owner暂存。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/scheduler.py#L57-L117",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "e7077b8cfcc47792da77b42b8c409d671b77ba58a0e5efff289c15c4c826fcad",
+      "read_scope": [
+        57,
+        117
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/scheduler.py",
+      "page_id": "kv-pool",
+      "source_number": 84,
+      "claim_group": "store-async-role-boundary",
+      "claim": "这四版实际传输执行路径断言 load_async=True，不能把 False 当成已支持的同步加载选项：旧两版断言在 get_finished，新两版在 start_load_kv。0fc 的加载查询没有 kv_producer 早退，不能将角色表中的 producer 简化成绝对只写不读。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "旧scheduler默认load_async true、查池无producer角色早退；不能用角色名推绝对不读。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/scheduler.py#L151-L170",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "e7077b8cfcc47792da77b42b8c409d671b77ba58a0e5efff289c15c4c826fcad",
+      "read_scope": [
+        151,
+        170
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/scheduler.py",
+      "page_id": "kv-pool",
+      "source_number": 85,
+      "claim_group": "store-async-role-boundary",
+      "claim": "这四版实际传输执行路径断言 load_async=True，不能把 False 当成已支持的同步加载选项：旧两版断言在 get_finished，新两版在 start_load_kv。0fc 的加载查询没有 kv_producer 早退，不能将角色表中的 producer 简化成绝对只写不读。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "保存计划对consumer角色单独早退，和读路径不同；正文未扩大成所有版本所有角色规则。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L1224-L1298",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "3de6b4f0e714f7d5e221086ab8c3385d6ed14f0fc16f5652178350b7fae8da1e",
+      "read_scope": [
+        1224,
+        1298
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 86,
+      "claim_group": "store-async-role-boundary",
+      "claim": "这四版实际传输执行路径断言 load_async=True，不能把 False 当成已支持的同步加载选项：旧两版断言在 get_finished，新两版在 start_load_kv。0fc 的加载查询没有 kv_producer 早退，不能将角色表中的 producer 简化成绝对只写不读。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "旧get_finished是I/O提交点并断言load_async true；不是worker构造阶段报错。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L1341-L1367",
+      "commit": "568afb3a13806beb53bb2e6bd518269357b237c0",
+      "file_sha256": "f84a2b305356bc2e34223263f6e695db7650106c1f6821571a6c330011c92e69",
+      "read_scope": [
+        1341,
+        1367
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/568afb3a/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 87,
+      "claim_group": "store-async-role-boundary",
+      "claim": "这四版实际传输执行路径断言 load_async=True，不能把 False 当成已支持的同步加载选项：旧两版断言在 get_finished，新两版在 start_load_kv。0fc 的加载查询没有 kv_producer 早退，不能将角色表中的 producer 简化成绝对只写不读。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "v0.26 get_finished保留加载入队/异步断言；不称load_async false已有同步部署支持。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L1999-L2047",
+      "commit": "84030bbe3d74d99bad477a3d2e37a973ccd8865c",
+      "file_sha256": "9d618bd7e2f57b0f9c811ae7e86ad8b7d8726edc1f9aa7229e59a3505afb44da",
+      "read_scope": [
+        1999,
+        2047
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/84030bbe/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 88,
+      "claim_group": "store-async-role-boundary",
+      "claim": "这四版实际传输执行路径断言 load_async=True，不能把 False 当成已支持的同步加载选项：旧两版断言在 get_finished，新两版在 start_load_kv。0fc 的加载查询没有 kv_producer 早退，不能将角色表中的 producer 简化成绝对只写不读。",
+      "status": "accepted_after_independent_semantic_review",
+      "note": "Independent review expanded range to include actual save submission and get_finished contract; root read full expanded range",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "main start_load_kv加载、wait_for_save实际add_request及get_finished回收说明；须保留扩展到1999–2047，旧2037截在真正提交前。",
+      "original_handwritten_status": "supported_after_range_extension",
+      "range_extension_rechecked": true,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L2110-L2160",
+      "commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+      "file_sha256": "55f1682dfd1ed7af689166421337126a0e1d08afa4774a242e098d79e0c1e95b",
+      "read_scope": [
+        2110,
+        2160
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/ced6857a/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 89,
+      "claim_group": "store-async-role-boundary",
+      "claim": "这四版实际传输执行路径断言 load_async=True，不能把 False 当成已支持的同步加载选项：旧两版断言在 get_finished，新两版在 start_load_kv。0fc 的加载查询没有 kv_producer 早退，不能将角色表中的 producer 简化成绝对只写不读。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "rc2 start_load_kv与wait_for_save实际提交均在范围内；capacity_only可在断言前早退。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/connector.py#L99-L126",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "1b42b7cece55793ca9188cad886bf0b744c6adb3d1ca96e002a755d92d7085e0",
+      "read_scope": [
+        99,
+        126
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/connector.py",
+      "page_id": "kv-pool",
+      "source_number": 90,
+      "claim_group": "store-validation",
+      "claim": "上游 Store connector 对缓存组、Mamba 对齐、上下文并行仍有实际限制；不能仅凭共享池架构就认定任意模型 KV 都兼容。rc2 要有可前缀缓存的组，拒绝 CrossAttention，不支持的 Mamba 模式和多组 PCP 组合会报错。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "旧connector拒绝CrossAttention、非匹配Mamba块和多组PCP×DCP>1；正文没有推广到新版全部组合。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/connector.py#L129-L190",
+      "commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+      "file_sha256": "17a350bdb89e17e415d6c52a48684dc15c35a804378daf03e1f3bee1b1b123a3",
+      "read_scope": [
+        129,
+        190
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/ced6857a/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/connector.py",
+      "page_id": "kv-pool",
+      "source_number": 91,
+      "claim_group": "store-validation",
+      "claim": "上游 Store connector 对缓存组、Mamba 对齐、上下文并行仍有实际限制；不能仅凭共享池架构就认定任意模型 KV 都兼容。rc2 要有可前缀缓存的组，拒绝 CrossAttention，不支持的 Mamba 模式和多组 PCP 组合会报错。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "rc2仅实际读写模式校验前缀可缓存组、CrossAttention/Mamba align、多组PCP；capacity_only另行早退。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/scheduler.py#L118-L173",
+      "commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+      "file_sha256": "283849ff581ec206444cdf5621622377f1c925e8d7e05cb9294af2f3a5094e79",
+      "read_scope": [
+        118,
+        173
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/ced6857a/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/scheduler.py",
+      "page_id": "kv-pool",
+      "source_number": 92,
+      "claim_group": "store-validation",
+      "claim": "上游 Store connector 对缓存组、Mamba 对齐、上下文并行仍有实际限制；不能仅凭共享池架构就认定任意模型 KV 都兼容。rc2 要有可前缀缓存的组，拒绝 CrossAttention，不支持的 Mamba 模式和多组 PCP 组合会报错。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "rc2scheduler查询围绕prefix-cacheable组，配合91说明不同模型仍需条件；不证明任意GLM可运行。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L61-L92",
+      "commit": "7d825229c77025cfb185a010c25819c1214b9450",
+      "file_sha256": "d9be6bcf4df0da095e8c5614452bcd510356a1ce4c7cbf2ca824f82208f1bf2c",
+      "read_scope": [
+        61,
+        92
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm-ascend/7d825229/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py",
+      "page_id": "kv-pool",
+      "source_number": 93,
+      "claim_group": "store-ascend-ssd-consumer",
+      "claim": "Ascend rc2 的后端检测 SDK setup 的 SSD 参数能力，只有贡献内存的 worker 才传 SSD 配置；其路径使用 NPU 当前设备和 ascend 协议约束，scheduler 是不贡献池内存的客户端。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "Ascend rc2检测SDK setup参数/doc能力，缺SSD支持时报版本要求；没有追认旧版。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L184-L214",
+      "commit": "7d825229c77025cfb185a010c25819c1214b9450",
+      "file_sha256": "d9be6bcf4df0da095e8c5614452bcd510356a1ce4c7cbf2ca824f82208f1bf2c",
+      "read_scope": [
+        184,
+        214
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm-ascend/7d825229/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py",
+      "page_id": "kv-pool",
+      "source_number": 94,
+      "claim_group": "store-ascend-ssd-consumer",
+      "claim": "Ascend rc2 的后端检测 SDK setup 的 SSD 参数能力，只有贡献内存的 worker 才传 SSD 配置；其路径使用 NPU 当前设备和 ascend 协议约束，scheduler 是不贡献池内存的客户端。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "Ascend rc2使用当前NPU设备、要求ascend协议；与上游预算路径分开。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L228-L309",
+      "commit": "7d825229c77025cfb185a010c25819c1214b9450",
+      "file_sha256": "d9be6bcf4df0da095e8c5614452bcd510356a1ce4c7cbf2ca824f82208f1bf2c",
+      "read_scope": [
+        228,
+        309
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm-ascend/7d825229/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py",
+      "page_id": "kv-pool",
+      "source_number": 95,
+      "claim_group": "store-ascend-ssd-consumer",
+      "claim": "Ascend rc2 的后端检测 SDK setup 的 SSD 参数能力，只有贡献内存的 worker 才传 SSD 配置；其路径使用 NPU 当前设备和 ascend 协议约束，scheduler 是不贡献池内存的客户端。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "Ascend贡献内存worker传SSD参数、rank目录，scheduler不贡献；所述是rc2消费者而非实机结果。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L90-L119",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "b89f9afa7f95fcc30412ae2031d5370a23e95f35d068fa14e5824dce1c900ee5",
+      "read_scope": [
+        90,
+        119
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/v1/core/kv_cache_utils.py",
+      "page_id": "kv-pool",
+      "source_number": 96,
+      "claim_group": "hashseed-version-correction",
+      "claim": "0fc695fc/568afb3a 未设 PYTHONHASHSEED 时用随机 NONE_HASH 起点；84030bbe/ced6857a 新增 resolve_none_hash_seed：显式环境值优先；未设时 xxhash/xxhash_cbor 仍随机，其他路径采用固定 vllm-none-hash。原文“未设置就每进程随机、跨实例永远不命中”必须限定旧版和算法。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "0fc未设seed随机NONE_HASH、CBOR才警告；已修旧版限定。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/v1/core/kv_cache_utils.py#L91-L120",
+      "commit": "568afb3a13806beb53bb2e6bd518269357b237c0",
+      "file_sha256": "6add6f1d60634b0819833675d86be4adf00c13fe5d0a1605074353b55d3e2d39",
+      "read_scope": [
+        91,
+        120
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/568afb3a/vllm/v1/core/kv_cache_utils.py",
+      "page_id": "kv-pool",
+      "source_number": 97,
+      "claim_group": "hashseed-version-correction",
+      "claim": "0fc695fc/568afb3a 未设 PYTHONHASHSEED 时用随机 NONE_HASH 起点；84030bbe/ced6857a 新增 resolve_none_hash_seed：显式环境值优先；未设时 xxhash/xxhash_cbor 仍随机，其他路径采用固定 vllm-none-hash。原文“未设置就每进程随机、跨实例永远不命中”必须限定旧版和算法。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "568函数同字节且本轮实际读91–120，旧版随机/警告条件不变。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@84030bbe:vllm/v1/core/kv_cache_utils.py#L85-L161",
+      "commit": "84030bbe3d74d99bad477a3d2e37a973ccd8865c",
+      "file_sha256": "70e289eb278f96bd4a49f63f7d96d533ec2f2728fbefb734ce6eb2a244c2569f",
+      "read_scope": [
+        85,
+        161
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/84030bbe/vllm/v1/core/kv_cache_utils.py",
+      "page_id": "kv-pool",
+      "source_number": 98,
+      "claim_group": "hashseed-version-correction",
+      "claim": "0fc695fc/568afb3a 未设 PYTHONHASHSEED 时用随机 NONE_HASH 起点；84030bbe/ced6857a 新增 resolve_none_hash_seed：显式环境值优先；未设时 xxhash/xxhash_cbor 仍随机，其他路径采用固定 vllm-none-hash。原文“未设置就每进程随机、跨实例永远不命中”必须限定旧版和算法。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "main resolve_none_hash_seed显式值优先，xxhash随机、其余固定；匹配新版表。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L97-L173",
+      "commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+      "file_sha256": "2666c9f113584e52e7521058efd2c0d9598544559dc942d3a3da87001a3fedf2",
+      "read_scope": [
+        97,
+        173
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/ced6857a/vllm/v1/core/kv_cache_utils.py",
+      "page_id": "kv-pool",
+      "source_number": 99,
+      "claim_group": "hashseed-version-correction",
+      "claim": "0fc695fc/568afb3a 未设 PYTHONHASHSEED 时用随机 NONE_HASH 起点；84030bbe/ced6857a 新增 resolve_none_hash_seed：显式环境值优先；未设时 xxhash/xxhash_cbor 仍随机，其他路径采用固定 vllm-none-hash。原文“未设置就每进程随机、跨实例永远不命中”必须限定旧版和算法。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "rc2实际seed resolver和init已读，固定默认不替代权重布局cache_salt兼容性。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/data.py#L58-L67",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "68ec4d1ba0afa023683435ba67ec1f1035872aba349778bf9c017c67d233601d",
+      "read_scope": [
+        58,
+        67
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/data.py",
+      "page_id": "kv-pool",
+      "source_number": 100,
+      "claim_group": "store-hash-consumer",
+      "claim": "上游 Store 的跨实例键把请求 block_hashes 转成十六进制并组成 pool key；这里的键身份来自缓存链。Python 对 PoolKey 对象的 __hash__ 不等同于存储跨实例 key 的生成。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "PoolKey存储key字符串组成可见，Python __hash__只是进程内对象散列，未混为远端身份。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/data.py#L119-L149",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "68ec4d1ba0afa023683435ba67ec1f1035872aba349778bf9c017c67d233601d",
+      "read_scope": [
+        119,
+        149
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/data.py",
+      "page_id": "kv-pool",
+      "source_number": 101,
+      "claim_group": "store-hash-consumer",
+      "claim": "上游 Store 的跨实例键把请求 block_hashes 转成十六进制并组成 pool key；这里的键身份来自缓存链。Python 对 PoolKey 对象的 __hash__ 不等同于存储跨实例 key 的生成。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "request block_hashes转hex进入key生产链，支撑根指纹→块指纹→池键解释。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L977-L983",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "3de6b4f0e714f7d5e221086ab8c3385d6ed14f0fc16f5652178350b7fae8da1e",
+      "read_scope": [
+        977,
+        983
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "kv-pool",
+      "source_number": 102,
+      "claim_group": "store-hash-consumer",
+      "claim": "上游 Store 的跨实例键把请求 block_hashes 转成十六进制并组成 pool key；这里的键身份来自缓存链。Python 对 PoolKey 对象的 __hash__ 不等同于存储跨实例 key 的生成。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "模型缓存键只用模型路径basename；当前段没有认作完整权重身份验证。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm@0fc695fc:requirements/kv_connectors.txt#L1-L6",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "9c9fa2ffae6ae00749eb956fe499d4eea639d21c9651447c9449f7fbf038dfb0",
+      "read_scope": [
+        1,
+        6
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/requirements/kv_connectors.txt",
+      "page_id": "kv-pool",
+      "source_number": 103,
+      "claim_group": "sdk-standalone-distinction",
+      "claim": "Mooncake 新目录中的 SDK SSD 两种模式与 vLLM 的 embedded/standalone-store 不是同一套枚举。SDK 独立模式的业务客户端 setup_dummy 创建 DummyClient；vLLM standalone-store 仍调用普通 setup，只令 global_segment_size=0。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "旧依赖为最低版本范围而非精确锁定4da33e5b；不将后续SDK资料套回旧安装。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "https://github.com/kvcache-ai/Mooncake/blob/4da33e5b44c28aec262dff63458c0bdb1c9bc8b0/docs/source/deployment/ssd/ssd-offload.md#L1-L61",
+      "commit": "4da33e5b44c28aec262dff63458c0bdb1c9bc8b0",
+      "file_sha256": "d80753bac3cf4928b973a83deaaace3b72516d7191387290ea3f2402f9829003",
+      "read_scope": [
+        1,
+        61
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/external/mooncake/docs/source/deployment/ssd/ssd-offload.md",
+      "boundary": "Separate Mooncake directory snapshot; not evidence of the package installed by any of the four vLLM revisions",
+      "page_id": "kv-pool",
+      "source_number": 104,
+      "claim_group": "sdk-standalone-distinction",
+      "claim": "Mooncake 新目录中的 SDK SSD 两种模式与 vLLM 的 embedded/standalone-store 不是同一套枚举。SDK 独立模式的业务客户端 setup_dummy 创建 DummyClient；vLLM standalone-store 仍调用普通 setup，只令 global_segment_size=0。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "新SDK SSD母文两类Real/Dummy部署完整读；与vLLM mode概念分开。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "https://github.com/kvcache-ai/Mooncake/blob/4da33e5b44c28aec262dff63458c0bdb1c9bc8b0/mooncake-integration/store/store_py.cpp#L2465-L2594",
+      "commit": "4da33e5b44c28aec262dff63458c0bdb1c9bc8b0",
+      "file_sha256": "1c5550d0b07b763e7181737dc9a9b18972e97c7eeed956e4101a0a9cb2df5b33",
+      "read_scope": [
+        2465,
+        2594
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/external/mooncake/mooncake-integration/store/store_py.cpp",
+      "boundary": "Separate Mooncake directory snapshot; not evidence of the package installed by any of the four vLLM revisions",
+      "page_id": "kv-pool",
+      "source_number": 105,
+      "claim_group": "sdk-standalone-distinction",
+      "claim": "Mooncake 新目录中的 SDK SSD 两种模式与 vLLM 的 embedded/standalone-store 不是同一套枚举。SDK 独立模式的业务客户端 setup_dummy 创建 DummyClient；vLLM standalone-store 仍调用普通 setup，只令 global_segment_size=0。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "setup创建RealClient、setup_dummy另创建DummyClient；两调用消费者直接核对。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "https://github.com/kvcache-ai/Mooncake/blob/4da33e5b44c28aec262dff63458c0bdb1c9bc8b0/mooncake-integration/store/store_py.cpp#L2465-L2500",
+      "commit": "4da33e5b44c28aec262dff63458c0bdb1c9bc8b0",
+      "file_sha256": "1c5550d0b07b763e7181737dc9a9b18972e97c7eeed956e4101a0a9cb2df5b33",
+      "read_scope": [
+        2465,
+        2500
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/external/mooncake/mooncake-integration/store/store_py.cpp",
+      "boundary": "Separate Mooncake directory snapshot; not evidence of the package installed by any of the four vLLM revisions",
+      "page_id": "kv-pool",
+      "source_number": 106,
+      "claim_group": "sdk-real-ssd-consumer",
+      "claim": "Mooncake 固定源码中普通 setup 创建 RealClient，并将 enable_ssd_offload 传给 setup_internal；RealClient 按 SSD/KVCS 开关创建 FileStorage，设置路径后初始化。master 另有 enable_offload 配置。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "普通setup的enable_ssd_offload传setup_internal；SDK开关和vLLM预算字段不同。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "https://github.com/kvcache-ai/Mooncake/blob/4da33e5b44c28aec262dff63458c0bdb1c9bc8b0/mooncake-store/src/real_client.cpp#L1585-L1645",
+      "commit": "4da33e5b44c28aec262dff63458c0bdb1c9bc8b0",
+      "file_sha256": "0dc0ff183fa712423307cea055545cbb4135bc731ac572aed06bc4460c026f29",
+      "read_scope": [
+        1585,
+        1645
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/external/mooncake/mooncake-store/src/real_client.cpp",
+      "boundary": "Separate Mooncake directory snapshot; not evidence of the package installed by any of the four vLLM revisions",
+      "page_id": "kv-pool",
+      "source_number": 107,
+      "claim_group": "sdk-real-ssd-consumer",
+      "claim": "Mooncake 固定源码中普通 setup 创建 RealClient，并将 enable_ssd_offload 传给 setup_internal；RealClient 按 SSD/KVCS 开关创建 FileStorage，设置路径后初始化。master 另有 enable_offload 配置。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "RealClient在SSD/KVCS条件创建FileStorage、设路径并初始化；仅此调用链，不声称全SDK验证。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "https://github.com/kvcache-ai/Mooncake/blob/4da33e5b44c28aec262dff63458c0bdb1c9bc8b0/mooncake-store/src/master.cpp#L234-L245",
+      "commit": "4da33e5b44c28aec262dff63458c0bdb1c9bc8b0",
+      "file_sha256": "7b71fc4e73fc9f4f8d7b32a4ea593ed511832dec140c38af633cc3ebf8859b4f",
+      "read_scope": [
+        234,
+        245
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/external/mooncake/mooncake-store/src/master.cpp",
+      "boundary": "Separate Mooncake directory snapshot; not evidence of the package installed by any of the four vLLM revisions",
+      "page_id": "kv-pool",
+      "source_number": 108,
+      "claim_group": "sdk-real-ssd-consumer",
+      "claim": "Mooncake 固定源码中普通 setup 创建 RealClient，并将 enable_ssd_offload 传给 setup_internal；RealClient 按 SSD/KVCS 开关创建 FileStorage，设置路径后初始化。master 另有 enable_offload 配置。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "Master侧enable_offload独立gflag，缺省false；不由客户端字段自动启用。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "https://github.com/kvcache-ai/Mooncake/blob/4da33e5b44c28aec262dff63458c0bdb1c9bc8b0/mooncake-store/src/master.cpp#L938-L948",
+      "commit": "4da33e5b44c28aec262dff63458c0bdb1c9bc8b0",
+      "file_sha256": "7b71fc4e73fc9f4f8d7b32a4ea593ed511832dec140c38af633cc3ebf8859b4f",
+      "read_scope": [
+        938,
+        948
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/external/mooncake/mooncake-store/src/master.cpp",
+      "boundary": "Separate Mooncake directory snapshot; not evidence of the package installed by any of the four vLLM revisions",
+      "page_id": "kv-pool",
+      "source_number": 109,
+      "claim_group": "sdk-real-ssd-consumer",
+      "claim": "Mooncake 固定源码中普通 setup 创建 RealClient，并将 enable_ssd_offload 传给 setup_internal；RealClient 按 SSD/KVCS 开关创建 FileStorage，设置路径后初始化。master 另有 enable_offload 配置。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "Master gflag真实写入master_service_config，证实配置消费而不只字段存在。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628"
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L17-L87",
+      "commit": "db701c1fd31de40ab028628ee2580ae68c7fd3c0",
+      "file_sha256": "8d6fd27460a0288a3b2dea9043431e3a3fe5c6abee82d721aa2154aaef5fec99",
+      "read_scope": [
+        17,
+        87
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm-ascend/db701c1f/vllm_ascend/distributed/kv_transfer/__init__.py",
+      "page_id": "mooncake-connector",
+      "source_number": 78,
+      "claim_group": "store-ascend-identity",
+      "claim": "Ascend 注册中的 MooncakeConnectorStoreV1 是 AscendStoreConnector 的历史别名；不是上游 MooncakeStoreConnector。Ascend 后端的 preferred_segment 是布尔量、SSD 开关为 enable_ssd_offload，而上游 store 的 preferred_segment 是 owner host:port、开关为 enable_offload。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "固定Ascend注册将旧MooncakeConnectorStoreV1名指到AscendStore；不等同上游类。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "888b0ae8aa84bdc1a12dc5e091b7c519ab2fa75ce2c5d334bc9dba2c00374cc6"
+    },
+    {
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L17-L93",
+      "commit": "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f",
+      "file_sha256": "d0552143a24053256ffb3079154d73dde8036ee31f51779171ed0ac6ffaf75b4",
+      "read_scope": [
+        17,
+        93
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm-ascend/2ed6cbba/vllm_ascend/distributed/kv_transfer/__init__.py",
+      "page_id": "mooncake-connector",
+      "source_number": 79,
+      "claim_group": "store-ascend-identity",
+      "claim": "Ascend 注册中的 MooncakeConnectorStoreV1 是 AscendStoreConnector 的历史别名；不是上游 MooncakeStoreConnector。Ascend 后端的 preferred_segment 是布尔量、SSD 开关为 enable_ssd_offload，而上游 store 的 preferred_segment 是 owner host:port、开关为 enable_offload。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "v0.26注册别名仍在，源码路径事实已读。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "888b0ae8aa84bdc1a12dc5e091b7c519ab2fa75ce2c5d334bc9dba2c00374cc6"
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L17-L129",
+      "commit": "baa023ada41a5b889cac6249845a688aab130892",
+      "file_sha256": "31669912185e0fa506a2e7ee3f4d2b85dba33d2a2b5e4fde512bcb72132b942d",
+      "read_scope": [
+        17,
+        129
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm-ascend/baa023ad/vllm_ascend/distributed/kv_transfer/__init__.py",
+      "page_id": "mooncake-connector",
+      "source_number": 80,
+      "claim_group": "store-ascend-identity",
+      "claim": "Ascend 注册中的 MooncakeConnectorStoreV1 是 AscendStoreConnector 的历史别名；不是上游 MooncakeStoreConnector。Ascend 后端的 preferred_segment 是布尔量、SSD 开关为 enable_ssd_offload，而上游 store 的 preferred_segment 是 owner host:port、开关为 enable_offload。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "main注册别名及其他连接器分开；不能由缺NIXL override推断全平台不能用NIXL。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "888b0ae8aa84bdc1a12dc5e091b7c519ab2fa75ce2c5d334bc9dba2c00374cc6"
+    },
+    {
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L1-L135",
+      "commit": "7d825229c77025cfb185a010c25819c1214b9450",
+      "file_sha256": "0246650661223ecbaaad13ab4d2fa908c5fd47a59bdfd0b405f4efda6a14db5f",
+      "read_scope": [
+        1,
+        135
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm-ascend/7d825229/vllm_ascend/distributed/kv_transfer/__init__.py",
+      "page_id": "mooncake-connector",
+      "source_number": 81,
+      "claim_group": "store-ascend-identity",
+      "claim": "Ascend 注册中的 MooncakeConnectorStoreV1 是 AscendStoreConnector 的历史别名；不是上游 MooncakeStoreConnector。Ascend 后端的 preferred_segment 是布尔量、SSD 开关为 enable_ssd_offload，而上游 store 的 preferred_segment 是 owner host:port、开关为 enable_offload。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "rc2完整注册文件已读，别名关系保留。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "888b0ae8aa84bdc1a12dc5e091b7c519ab2fa75ce2c5d334bc9dba2c00374cc6"
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L277-L329",
+      "commit": "db701c1fd31de40ab028628ee2580ae68c7fd3c0",
+      "file_sha256": "01a1a1307d6ce1bf5e2f6c171cce1651c8f1cff44c93b85a5e4456e2846965aa",
+      "read_scope": [
+        277,
+        329
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm-ascend/db701c1f/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py",
+      "page_id": "mooncake-connector",
+      "source_number": 82,
+      "claim_group": "store-ascend-identity",
+      "claim": "Ascend 注册中的 MooncakeConnectorStoreV1 是 AscendStoreConnector 的历史别名；不是上游 MooncakeStoreConnector。Ascend 后端的 preferred_segment 是布尔量、SSD 开关为 enable_ssd_offload，而上游 store 的 preferred_segment 是 owner host:port、开关为 enable_offload。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "旧Ascend配置preferred_segment是bool、enable_ssd_offload为独立字段，与上游格式不可互换。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "888b0ae8aa84bdc1a12dc5e091b7c519ab2fa75ce2c5d334bc9dba2c00374cc6"
+    },
+    {
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L516-L582",
+      "commit": "7d825229c77025cfb185a010c25819c1214b9450",
+      "file_sha256": "d9be6bcf4df0da095e8c5614452bcd510356a1ce4c7cbf2ca824f82208f1bf2c",
+      "read_scope": [
+        516,
+        582
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm-ascend/7d825229/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py",
+      "page_id": "mooncake-connector",
+      "source_number": 83,
+      "claim_group": "store-ascend-identity",
+      "claim": "Ascend 注册中的 MooncakeConnectorStoreV1 是 AscendStoreConnector 的历史别名；不是上游 MooncakeStoreConnector。Ascend 后端的 preferred_segment 是布尔量、SSD 开关为 enable_ssd_offload，而上游 store 的 preferred_segment 是 owner host:port、开关为 enable_offload。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "rc2配置入口及SSD字段仍独立，正文没有混淆SDK与连接器的mode枚举。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "888b0ae8aa84bdc1a12dc5e091b7c519ab2fa75ce2c5d334bc9dba2c00374cc6"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L96-L150",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "file_sha256": "3de6b4f0e714f7d5e221086ab8c3385d6ed14f0fc16f5652178350b7fae8da1e",
+      "read_scope": [
+        96,
+        150
+      ],
+      "local": ".tmp/continuation-groups-2026-11-10/transfer-coverage/fixed/vllm/0fc695fc/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py",
+      "page_id": "mooncake-connector",
+      "source_number": 84,
+      "claim_group": "store-ascend-identity",
+      "claim": "Ascend 注册中的 MooncakeConnectorStoreV1 是 AscendStoreConnector 的历史别名；不是上游 MooncakeStoreConnector。Ascend 后端的 preferred_segment 是布尔量、SSD 开关为 enable_ssd_offload，而上游 store 的 preferred_segment 是 owner host:port、开关为 enable_offload。",
+      "status": "accepted_after_independent_semantic_review",
+      "reviewer": "/root/groups_replay_review",
+      "manual_judgment": "上游自己MooncakeStoreConfig读取JSON，mode/enable_offload有别；owner定位在相邻真实消费者已核并回链KVPool。",
+      "original_handwritten_status": "supported",
+      "range_extension_rechecked": false,
+      "page_sha256": "888b0ae8aa84bdc1a12dc5e091b7c519ab2fa75ce2c5d334bc9dba2c00374cc6"
+    }
+  ]
+}

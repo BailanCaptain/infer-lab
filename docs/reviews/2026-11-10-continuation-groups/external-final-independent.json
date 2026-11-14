@@ -1,0 +1,216 @@
+{
+  "reviewer": "child_sources_review",
+  "date_utc": "2026-11-10T18:11:15.043225+00:00",
+  "status": "public selected scope supported; explicit access and reading boundaries remain",
+  "root_report_sha256": "941a0a5e8e8cfb7369503976938124c8ed2b8e2aa06d2834ca0cba4e6bfe1d57",
+  "root_manifest_sha256": "5446c9a15d467140e14c5b9ca07537dc82f9be56ecdbce4c70b83908558dbe81",
+  "root_manifest_file_hashes_checked": 42,
+  "interaction_operator": "root",
+  "independent_interaction_performed": false,
+  "interaction_boundary": "This reviewer previously attempted the documented CUA channel: no enabled browser, Chrome remained minimized with no documented activation path. Root performed public UI interactions; this review independently reads saved DOM/text and actual screenshots, not a second UI run.",
+  "images_actually_viewed": [
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/cann-9.1.0-A2.png",
+      "sha256": "504937be47d8142dd0cdf821d4cecdc3bfbf88fe6e04f9cca1d89d85782e4285"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/cann-9.2.0-A2.png",
+      "sha256": "711bc7cff69816598fde75d59a290770e85103f64e643a56a32450afce6bff3b"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/compatibility-A2.png",
+      "sha256": "573234253b721fe981a216c086b608c769fac0f600efb85d76be591cc4b0cbda"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/compatibility-A2-page2.png",
+      "sha256": "5ac643c8c27803db09cb3890e202070a1543c08f4bc8112af22dfcce3d6c968c"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/note-Note75.png",
+      "sha256": "edbf0ed480baccf207e19db009b5792bd08e443803ac4e184a8fc4bb35c1a026"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/note-Note125.png",
+      "sha256": "6e354f2a5fca4618d05a4377c931716cf2f7bc97761faebaa6ad3ff4a69b0866"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/note-Note127.png",
+      "sha256": "619ebe488b5d520101b546f22c36014aa13e79eecd9345d73cab3da30604a41f"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/note-Note128.png",
+      "sha256": "e2d7739bfac9930007fc98a26ebcbfed3c28847430e2f3cc4120e983df4fd671"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/note-Note129.png",
+      "sha256": "7f891e823078b6cfd8e4cf0c9b3dd9207a8bb1c940453fd1da580298cfc81f89"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/note-Note133.png",
+      "sha256": "8493617a28363796c2499fb070e4783b831461ae7b4986e1943506fe0a18d429"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/cann-options.png",
+      "sha256": "2258ac4f9adce7a2e0ac52e149d749d1ac2e7b2662fbcc1a2e38f1ddcd291913"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/compatibility-options.png",
+      "sha256": "5cb8bcd47f35cfb07cf1d744e7d1af813a3299ccb4231d834ecef7e0979eae41"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/wechat.png",
+      "sha256": "281f7068af3dcdeed2fc5133582f3016db7fbedbfe8e6285484add860f5a637c"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/zhihu.png",
+      "sha256": "0c21959458a8edba2922fe54587045f84565966da395336ea99841da743fd559"
+    }
+  ],
+  "image_byte_identity_reuse": [
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/note-Note76.png",
+      "same_as": "note-Note75.png"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/note-Note87.png",
+      "same_as": "note-Note75.png"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/note-Note92.png",
+      "same_as": "note-Note75.png"
+    }
+  ],
+  "texts_read": [
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/cann-9.1.0-A2.txt",
+      "sha256": "f54f8d7e932792bdbde2ddb0e0437b6eee581e3503e82dfe10ac0f618d753087"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/cann-9.2.0-A2.txt",
+      "sha256": "9884a48404b9105ea47c5e423d96a3f32138576e87bc020a1fafd6b9a61655e7"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/compatibility-A2.txt",
+      "sha256": "311af25ce9559a71379d657dd427616070521168fd783301d536a32337245d38"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/compatibility-A2-page2.txt",
+      "sha256": "60e14644c53e125798b2de34f9b60c055836bdff28b08dfc7b3b16ba2c714881"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/compatibility-selected-values.json",
+      "sha256": "5e2ae63180c4634b0837ad9e93602f3f4a8c902f2e2ac925509f0e25d9d76cef"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/cann-selected-urls.json",
+      "sha256": "1abe6f01458042ce2ec5f150f96a7c1e00d0cc588acfcecc15e9cce6c3483991"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/report.json",
+      "sha256": "3d93f5bc7e28e9ddc487b334cfa17d2e12fd17114647bcd572093e09744cabec"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/wechat.txt",
+      "sha256": "3330eca5cef0787d8b8ccfe486ae81280c0ef397ad7c824ba842c0bd3886ac31"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/external-final/zhihu.txt",
+      "sha256": "d704f4366cde93e610e7f4bd511c30682d55cabe8954f12dcb612a4d37d49abb"
+    }
+  ],
+  "footnotes_read": {
+    "path": ".tmp/continuation-groups-2026-11-10/external-final/compatibility-notes.json",
+    "sha256": "ef160d443397f519837deff1bb58690f80ec8ef919769ad36db782c9cec2b61a",
+    "method": "Full unique note text after repeated page body; duplicate note contexts not new reading credit.",
+    "notes": [
+      {
+        "id": "Note75",
+        "text": "Note75.RAID卡下的硬盘安装系统时请选择直接安装方式安装;\nNote76.RAID卡下的硬盘安装系统时请选择加载RAID卡驱动方式安装;\nNote87.默认不支持virt-manager管理;\nNote92.SOC SAS控制器下的SAS/SATA硬盘安装系统时请选择直接安装方式安装,请在操作系统兼容性添加RAID控制卡型号查询RAID控制卡与OS的兼容性;"
+      },
+      {
+        "id": "Note76",
+        "text": "Note75.RAID卡下的硬盘安装系统时请选择直接安装方式安装;\nNote76.RAID卡下的硬盘安装系统时请选择加载RAID卡驱动方式安装;\nNote87.默认不支持virt-manager管理;\nNote92.SOC SAS控制器下的SAS/SATA硬盘安装系统时请选择直接安装方式安装,请在操作系统兼容性添加RAID控制卡型号查询RAID控制卡与OS的兼容性;"
+      },
+      {
+        "id": "Note87",
+        "text": "Note75.RAID卡下的硬盘安装系统时请选择直接安装方式安装;\nNote76.RAID卡下的硬盘安装系统时请选择加载RAID卡驱动方式安装;\nNote87.默认不支持virt-manager管理;\nNote92.SOC SAS控制器下的SAS/SATA硬盘安装系统时请选择直接安装方式安装,请在操作系统兼容性添加RAID控制卡型号查询RAID控制卡与OS的兼容性;"
+      },
+      {
+        "id": "Note92",
+        "text": "Note75.RAID卡下的硬盘安装系统时请选择直接安装方式安装;\nNote76.RAID卡下的硬盘安装系统时请选择加载RAID卡驱动方式安装;\nNote87.默认不支持virt-manager管理;\nNote92.SOC SAS控制器下的SAS/SATA硬盘安装系统时请选择直接安装方式安装,请在操作系统兼容性添加RAID控制卡型号查询RAID控制卡与OS的兼容性;"
+      },
+      {
+        "id": "Note133",
+        "text": "Note75.RAID卡下的硬盘安装系统时请选择直接安装方式安装;\nNote76.RAID卡下的硬盘安装系统时请选择加载RAID卡驱动方式安装;\nNote92.SOC SAS控制器下的SAS/SATA硬盘安装系统时请选择直接安装方式安装,请在操作系统兼容性添加RAID控制卡型号查询RAID控制卡与OS的兼容性;\nNote133.BMC为1710芯片，版本格式为“X.XX”的服务器不支持KVM挂载镜像安装OS，仅支持PXE安装。"
+      },
+      {
+        "id": "Note127",
+        "text": "Note75.RAID卡下的硬盘安装系统时请选择直接安装方式安装;\nNote76.RAID卡下的硬盘安装系统时请选择加载RAID卡驱动方式安装;\nNote92.SOC SAS控制器下的SAS/SATA硬盘安装系统时请选择直接安装方式安装,请在操作系统兼容性添加RAID控制卡型号查询RAID控制卡与OS的兼容性;\nNote127.仅兼容内核版本4.19.90-24.4;"
+      },
+      {
+        "id": "Note128",
+        "text": "Note75.RAID卡下的硬盘安装系统时请选择直接安装方式安装;\nNote76.RAID卡下的硬盘安装系统时请选择加载RAID卡驱动方式安装;\nNote92.SOC SAS控制器下的SAS/SATA硬盘安装系统时请选择直接安装方式安装,请在操作系统兼容性添加RAID控制卡型号查询RAID控制卡与OS的兼容性;\nNote128.仅兼容内核版本4.19.90-52.22;"
+      },
+      {
+        "id": "Note129",
+        "text": "Note75.RAID卡下的硬盘安装系统时请选择直接安装方式安装;\nNote76.RAID卡下的硬盘安装系统时请选择加载RAID卡驱动方式安装;\nNote92.SOC SAS控制器下的SAS/SATA硬盘安装系统时请选择直接安装方式安装,请在操作系统兼容性添加RAID控制卡型号查询RAID控制卡与OS的兼容性;\nNote129.仅兼容内核版本4.19.90-2107.6.0.0098.oe1.bclinux.aarch64。"
+      },
+      {
+        "id": "Note125",
+        "text": "Note75.RAID卡下的硬盘安装系统时请选择直接安装方式安装;\nNote76.RAID卡下的硬盘安装系统时请选择加载RAID卡驱动方式安装;\nNote92.SOC SAS控制器下的SAS/SATA硬盘安装系统时请选择直接安装方式安装,请在操作系统兼容性添加RAID控制卡型号查询RAID控制卡与OS的兼容性;\nNote125.推荐使用kernel-5.10.0-60.70.0.94.oe2203.aarch64及以上的内核版本;"
+      }
+    ]
+  },
+  "cann": {
+    "accepted_versions": [
+      "9.1.0",
+      "9.2.0"
+    ],
+    "selected_urls": {
+      "first": "https://www.hiascend.com/cann/download?versionId=796&ids=d802%2Ch0501%2Ch0601%2Ch0702&currentTab=0",
+      "second": "https://www.hiascend.com/cann/download?versionId=810&ids=d802%2Ch0501%2Ch0601%2Ch0702&currentTab=0"
+    },
+    "visible_dates": [
+      "2026/07/31",
+      "2026/10/17"
+    ],
+    "selected_hardware": "A2",
+    "cpu": "AArch64",
+    "os": "openEuler",
+    "installation_method": "Yum",
+    "original_url_735_redirect": "818 / 9.2.1, not evidence of the two later version selections",
+    "license_gate": "unchecked; blurred installation directions not read or extracted",
+    "scope": "Public selectors and links only; no package installation, driver/firmware pairing certification, or device execution."
+  },
+  "compatibility": {
+    "product": "Atlas 800I A2",
+    "selected_category": "Atlas series",
+    "table_rows_read": 18,
+    "pages": [
+      10,
+      8
+    ],
+    "component_filters": "CPU/Mezz/PCIe/RAID unselected",
+    "limits": "One concrete public query, not all matrix combinations. First page cookie banner and second page sticky header overlap are supplemented by full DOM text; not pristine screenshot-only acceptance. Notes75/76 require component context and cannot both be promoted to a universal installation rule."
+  },
+  "deepseek": {
+    "announcement_text_read": true,
+    "announcement_is_production_report": false,
+    "zhihu_status": 403,
+    "production_original_images_still_missing": 3,
+    "previous_user_text_reading_not_reset": true,
+    "no_access_gate_bypass": true
+  },
+  "remaining": [
+    "CANN license-gated installation directions not read.",
+    "Other hardware/component/filter combinations not enumerated.",
+    "DeepSeek production report three original technical images still unavailable.",
+    "MiniCPM four GIFs sampled only, not continuously played; restricted raw and recursive model links not certified."
+  ],
+  "findings": {
+    "open_P1": 0,
+    "open_P2": 0
+  },
+  "new_global_full_read_credit": 0,
+  "teaching_changes": false
+}

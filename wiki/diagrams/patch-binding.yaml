@@ -1,10 +1,10 @@
 layout: figure
 id: patch-binding
-caption: 进程一启动，上游模块里的名字指向上游实现。请求到来之前，这些名字被改指两次：① 平台注册时打 global patch，改的是前端和 EngineCore 在 Worker 出生前就要用的名字；② Worker 启动时打 worker patch，改的是只在 Worker 里用到的名字。之后凡是按名字去模块里取实现的代码，拿到的都是昇腾版本。每个进程各有一份名字，各改各的。左边的 BalanceScheduler 在本部署开关关着，名字换了，调度仍交回上游
+caption: 固定旧 GLM 的两组常规入口：① 平台准备钩子或通用插件加载 global patch；② Worker 构造加载 worker patch。替换影响之后按该绑定查找的代码，早先复制的引用与子类父类不会自动变化。图中两组换的是不同名字；fork 可继承已有绑定，spawn 的新解释器重新加载。左侧均衡开关关闭时，BalanceScheduler.schedule 转调上游主体；实际导入与内部条件仍须分别核对。
 size: [900, 432]
 items:
-  - { at: [20, 52], size: [190, 50], text: 进程启动, sub: 导入上游模块, tone: control, style: plain }
-  - { at: [250, 52], size: [190, 50], text: ① 平台注册时, sub: 打 global patch, tone: control }
+  - { at: [20, 52], size: [190, 50], text: 新解释器初始化, sub: 导入所需模块, tone: control, style: plain }
+  - { at: [250, 52], size: [190, 50], text: ① 平台钩子/插件, sub: 加载 global patch, tone: control }
   - { at: [480, 52], size: [190, 50], text: ② Worker 启动时, sub: 打 worker patch, tone: weight }
   - { at: [710, 52], size: [170, 50], text: 请求到来, sub: 按名字取实现, tone: token, style: plain }
   - { at: [45, 168], size: [370, 50], text: vLLM 调度模块里的 Scheduler, sub: 一个名字, tone: ink, style: plain }
@@ -32,7 +32,7 @@ texts:
   - { at: [45, 362], text: 同类：配置校验、KV 分组、调度器、引擎入口 }
   - { at: [45, 388], text: 在前端、EngineCore 里打，Worker 进程里也有, note: true }
   - { at: [485, 362], text: 同类：通信组、权重后处理、图尺寸、采样函数 }
-  - { at: [485, 388], text: 在每个 Worker 进程里各打一遍, note: true }
+  - { at: [485, 388], text: Worker 构造调用，成功导入后复用缓存, note: true }
 pins:
   - { source: 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L718', symbols: [BalanceScheduler] }
   - { source: 'vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_distributed.py#L268-L268', symbols: [GroupCoordinatorPatch] }

@@ -1,6 +1,6 @@
 layout: figure
 id: worker-lifecycle
-caption: 每张卡一个 Worker，各自按同一顺序准备：换补丁、选卡并建通信组、装本卡那份权重、试跑量出预算。各卡把预算报给 EngineCore，它按最紧的那张卡定块数，把同一份缓存配置发回；每张卡再建缓存池，最后预热并录 decode 图，之后才接请求。
+caption: 每张卡一个 Worker，各自按同一顺序准备：换补丁、选卡并建通信组、装本卡那份权重、试跑量出预算。各卡把预算报给 EngineCore，它按最紧的那张卡定块数，把各卡对应的缓存配置发回；每张卡再建缓存池，最后预热并录 decode 图，之后才接请求。
 size: [900, 630]
 items:
   - { at: [30, 72], size: [240, 52], text: 换补丁, sub: 替换上游代码，注册昇腾算子, tone: control }
@@ -15,7 +15,7 @@ items:
   - { at: [30, 306], size: [240, 52], text: 试跑，量预算, sub: 报出还能给 KV cache 多少, tone: kv }
   - { at: [300, 306], size: [240, 52], text: 试跑，量预算, sub: 报出还能给 KV cache 多少, tone: kv }
   - { at: [630, 306], size: [240, 52], text: 试跑，量预算, sub: 报出还能给 KV cache 多少, tone: kv }
-  - { at: [30, 390], size: [840, 56], text: EngineCore 汇总, sub: 按最紧的那张卡定块数，同一份缓存配置发回每个 Worker, tone: kv, style: faded }
+  - { at: [30, 390], size: [840, 56], text: EngineCore 汇总, sub: 统一可调度块数，各卡收到对应缓存配置, tone: kv, style: faded }
   - { at: [30, 480], size: [240, 52], text: 建缓存池, sub: 一次分配全部 KV 块, tone: kv }
   - { at: [300, 480], size: [240, 52], text: 建缓存池, sub: 一次分配全部 KV 块, tone: kv }
   - { at: [630, 480], size: [240, 52], text: 建缓存池, sub: 一次分配全部 KV 块, tone: kv }

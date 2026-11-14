@@ -1,0 +1,168 @@
+{
+  "date": "2026-11-03",
+  "reviewer": "/root/review_groups_03_04",
+  "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+  "scope": [
+    "user_guide/feature_guide/",
+    "developer_guide/Design_Documents/"
+  ],
+  "initial_pending_documents": 15,
+  "initial_pending_characters": 197546,
+  "previous_full_read_records": "../2026-11-03-wiki/official-reading-coverage.json; 本文件不重复冒记原有全文阅读",
+  "complete": true,
+  "records": [
+    {
+      "path": "developer_guide/Design_Documents/index.md",
+      "sha256": "cf568febc5e50fbde2b5af84658862ec7ecb4557b386e10d718618edc5b87a59",
+      "range": "L1–6全文",
+      "characters": 450,
+      "status": "full-text-read",
+      "findings": "设计文档导航明确列出KVPP与persistent csrc build cache；无运行能力新承诺。",
+      "outbound_links": "kvpp.md已在前轮完整读取；persistent_csrc_build_cache.md列入本轮待读。"
+    },
+    {
+      "path": "developer_guide/Design_Documents/add_custom_aclnn_op.md",
+      "sha256": "e7d8ea6c43b2341706f8069366a63cabccee25fc929209f9d01c4a8178f995c3",
+      "range": "L1–33全文",
+      "characters": 1686,
+      "status": "full-text-read",
+      "findings": "自定义aclnn构建安装在cann_ops_custom并绑定torch.ops._C_ascend；新增op需host/kernel/SOC选项/torch绑定/meta；缓存构建新增身份契约，改变输入或命令须同步更新identity参数。",
+      "outbound_links": "persistent_csrc_build_cache.md#cmake-integration-contract列入本轮待读。"
+    },
+    {
+      "path": "user_guide/feature_guide/index.md",
+      "sha256": "ddb6c84f9013a18674dfb7583c0d55625cea38bcabfc95923fd37cad01cdabd0",
+      "range": "L1–3全文",
+      "characters": 87,
+      "status": "full-text-read",
+      "findings": "仅Feature Guide导航说明，无配置或支持范围事实。",
+      "outbound_links": "无"
+    },
+    {
+      "path": "user_guide/feature_guide/lmcache_ascend_deployment.md",
+      "sha256": "46cdd401ac2b99a57e0dee7ed8d0e1ef98b3b17c8073b643717322a710cd3de2",
+      "range": "L1–72全文，含全部Docker/安装命令",
+      "characters": 2256,
+      "status": "full-text-read",
+      "findings": "保留0.3.12/旧vLLM镜像示例，末节明确LMCacheAscendConnector不再由vllm-ascend注册，应使用LMCache-Ascend自身注册与配置；不能把历史Docker版本当现main通用配套。",
+      "outbound_links": "LMCache/LMCache-Ascend README待本组lmcache页引文核验时实际读取，尚不计为已读。"
+    },
+    {
+      "path": "user_guide/feature_guide/flash_attention.md",
+      "sha256": "6ad8abdc3dcd7cfb65367d328e9db0903fad6f6e3adf0f830438836b0fde81f7",
+      "range": "L1–171全文，含在线/离线命令",
+      "characters": 6784,
+      "status": "full-text-read",
+      "findings": "FA3 beta仅A2/A3，training-consistency与batch-invariant独立；PIECEWISE因attention不能ACL图捕获；不支持SWA/ALiBi/softcap/FP8 attention/MLA/SFA，kernel无RoPE但有PyTorch fallback；测试列表仅所列Qwen3模型。末尾future仍写open-source与开篇已开源不一致，属于官方自身表述冲突，不能转为项目事实。",
+      "outbound_links": "flash-attention-npu trainInferConsist README为安装细节扩展入口，尚未读，不能声称安装已验证。"
+    },
+    {
+      "path": "developer_guide/Design_Documents/cpu_binding.md",
+      "sha256": "3ac58ad28e2c672102a41ce549517b9f466ace1e7cb01f9dd4c9b2a448adc6b2",
+      "range": "L1–281全文",
+      "characters": 12919,
+      "lines": 281,
+      "status": "full-text-read",
+      "findings": "ARM默认启用；global_slice含隐藏设备保分配一致；A2拓扑池交集；950按NUMA/SMT cluster分配、无需ACL/IRQ独立绑定，UVB发现需pidhost；migratepages缺失不停止亲和性但可能影响性能。",
+      "outbound_links": "实现与测试路径待cpu-binding逐引文对照；additional_config由root全文读。"
+    },
+    {
+      "path": "developer_guide/Design_Documents/ModelRunner_prepare_inputs.md",
+      "sha256": "2ebf64bd790a97f08479df6f36bf051b763d05ce0289ae0827a51fd90f4416a4",
+      "range": "L1–286全文",
+      "characters": 12493,
+      "lines": 286,
+      "status": "full-text-read",
+      "findings": "读取完整10token/3请求/块长2两步算例；slot_mapping是KV写位置，原文说store TokenIDs以及T2/T3混用为原文错误；不能把简化attention mask当所有后端物理实现。",
+      "outbound_links": "无新增外部URL。"
+    },
+    {
+      "path": "developer_guide/Design_Documents/ACL_Graph.md",
+      "sha256": "609d1db654c74ad05c579f64edb096096c49503c39dd1e583ed30cbb3b400bb6",
+      "range": "全文L1–末",
+      "characters": 10151,
+      "lines": 119,
+      "status": "full-text-read",
+      "findings": "区分通用dispatch与Ascend wrapper；图大小过滤、资源失败、encoder-decoder等模式归一化；full graph需attention update hooks及流/事件顺序，capture不证明replay状态正确。",
+      "outbound_links": "upstream CUDA graphs、PyTorch CUDA graphs是外部扩展入口，尚未本轮打开；graph_mode前轮已读，中文同页导航。"
+    },
+    {
+      "path": "developer_guide/Design_Documents/model_runner_v1_eplb.md",
+      "sha256": "ebc12429b17d0fbd6317725fe141dc72defa6d74ff9f997ba64646f53d3d75b9",
+      "range": "全文L1–末",
+      "characters": 11727,
+      "lines": 210,
+      "status": "full-text-read",
+      "findings": "旧MRv1 Swift及factory不适用于MRv2；热度阶段筛选、gather子进程算法、逐层异步更新；logical专家基本一份加异rank冗余，placement校验失败回滚；子进程失败本进程终身停止优化。",
+      "outbound_links": "MRv2设计及EPLB指南已在前轮全文读；图未打开。"
+    },
+    {
+      "path": "developer_guide/Design_Documents/non_contiguous_kv_cache.md",
+      "sha256": "8206e5eb6fe7dae47e5be8424ae74f4e08331fe360de07190461a43922297cc0",
+      "range": "全文L1–末",
+      "characters": 10661,
+      "lines": 274,
+      "status": "full-text-read",
+      "findings": "MRv1 hybrid/pureGQA视图保持逻辑block IDs，用stride避padding而非整页复制；Mamba gather/scatter保持原分配；connector/PD/graph/sparse/offload须各自布局验证，不能从模型类型推定。",
+      "outbound_links": "无外部URL；代码文件与测试为后续引文核验入口。"
+    },
+    {
+      "path": "developer_guide/Design_Documents/persistent_csrc_build_cache.md",
+      "sha256": "73665965b688dff4acc5d0d3882c6056139e80f88b16c61cd549cdacee0a9faf",
+      "range": "全文L1–250、L251–末",
+      "characters": 20397,
+      "lines": 470,
+      "status": "full-text-read",
+      "findings": "L0整产物与L1 action缓存边界；三身份及schema4；缓存不可读/运输失败多为miss/降级，顶层非对象JSON仍raise；锁/ownership冲突fail；local只保两版本非字节上限，prune无并发锁须独占目录；仅central producer写远程，Docker尚无L1。",
+      "outbound_links": "无外部URL；实现映射未逐源码核验，不冒称cache正确性审计。"
+    },
+    {
+      "path": "user_guide/feature_guide/Fine_grained_TP.md",
+      "sha256": "d0f702f39d3d381822b64484d2e3e9f53228ba2953c75a5c366362177e6d1e88",
+      "range": "全文L1–末（18,841字符）",
+      "characters": 18841,
+      "lines": 263,
+      "status": "full-text-read",
+      "findings": "两族：embedding/lmhead固定容量交换，可eager/prefill/标准TP；o_proj/MLP仅D/recompute/PreemptOffload/graph/TP1/PCP1且capture覆盖不足自动禁。四项禁PP；embedding/lmhead与PCP自有分片互斥；lmhead限制promptlogprobs/DFlash2/probabilistic等。9.72GB为32A2 DP32EP32 FG8固定测量。",
+      "outbound_links": "PreemptOffload指南前轮已读；不把921条件套回旧pin。"
+    },
+    {
+      "path": "user_guide/feature_guide/short_request_first.md",
+      "sha256": "b80b4e118022c5c4ff68494b490f6377cf96c48df3d5ed232bab952c6963d2e7",
+      "range": "全文L1–末",
+      "characters": 6305,
+      "lines": 118,
+      "status": "full-text-read",
+      "findings": "FCFS sync/async普通/P/mixed，无需recompute；不支持D和batchjob；三lane immediate>agedlong>short>long；0禁长请求晋升；阈值按分布、wait按long尾延迟，CPP要关balance；三连晋升warning，5秒stats。",
+      "outbound_links": "无外部URL。"
+    },
+    {
+      "path": "user_guide/feature_guide/speculative_decoding.md",
+      "sha256": "c00fd4ce14e05b67134911e9de1cc2eb41c70876fa9653ef3a66f5daef28784b",
+      "range": "全文L1–215、216–515、516–815、816–1115、1116–末",
+      "characters": 52279,
+      "lines": 1135,
+      "status": "full-text-read",
+      "findings": "全文含所有命令/表；MRv2 upstream block保分布与MRv1 blockverify有精度取舍区分；entropy两runner但MRv2禁block共用；draft_window仅MRv1且MTP禁；DSpark adaptive MRv2与dynamic_spec MRv1分开；LiLiCorr/DFlash2需专用checkpoint及eagerdraft等；KDA RecoverSSM实验仅A3/A5 MRv2禁PP/PCP/DCP，PD需匹配设置。MTP开篇绝对加速/无损与后文>1不保证冲突，不照抄。",
+      "outbound_links": "外部EAGLE/suffix论文、HF、PR4893/49811/51718、upstream adaptive/CLI/cache链接尚未本轮读取；需要相关主题代理映射，不能冒记全文。"
+    },
+    {
+      "path": "user_guide/feature_guide/ucm_deployment.md",
+      "sha256": "7a9579b14e151330e7b3c2909df206ae4be61c2a1d33dd12f8be605ceb18c5da",
+      "range": "全文L1–240、241–540、541–840、841–末",
+      "characters": 30510,
+      "lines": 885,
+      "status": "full-text-read",
+      "findings": "三层存储、centralPD与MooncakeP2P+Pprefix不同；central跨节点共享存储；8A2 GLM5.1性能仅128请求/80%预播，HBM因路由错配命中少。开篇KVPool仅DRAM无持久化与同pin KVPool SSD描述冲突，通用3–10倍不受单表支撑，不能照抄。",
+      "outbound_links": "UCM support-matrix/quick_start/pipeline三外部入口与Mooncake仓库/upstream DP文档待相关页逐引文实际读取。"
+    }
+  ],
+  "limitations": [
+    "只读Markdown全文，不声称实际查看所有关联图片",
+    "无UI操作和NPU运行",
+    "未读的外部仓库README明确单列，不自动归入覆盖"
+  ],
+  "new_full_read_documents": 15,
+  "new_full_read_characters": 197546,
+  "complete_scope": "15份已分配pending官方Markdown全文；不包括尚未读的外部跳转或图片"
+}

@@ -1,40 +1,84 @@
 ---
 id: glm-5-3-flash
-title: "认识 GLM-5.3-Flash：模型长什么样，每种层从哪里来"
+title: 认识 GLM-5.3-Flash：模型长什么样，每种层从哪里来
 type: concept
-origin: direct
-summary: GLM-5.3-Flash 模型形状的唯一出处：45 层里 34 层 KDA、11 层稀疏 MLA，四条 residual 流，前 3 层稠密 MLP、其余 42 层 288 选 8 的 MoE，外加 1 个 MTP 层；每种层先讲它从哪个基础机制演变来，再给 GLM 的具体维度、参数量与权重精度。
-aliases: [GLM 模型总览, GLM-5.3-Flash 模型结构, 模型计算全景, GLM 层型表, GLM-5.3-Flash 配置, GLM 参数量, 模型维度, 路由专家, 四路残差, 词表分数, 索引器, kpool, DSA, DeepSeek Sparse Attention, lightning indexer]
-chapters: ["00"]
+origin: gap
+summary: >-
+  GLM-5.3-Flash 模型形状的唯一出处：45 层里 34 层 KDA、11 层稀疏 MLA，四条 residual 流，前 3 层稠密 MLP、其余
+  42 层 288 选 8 的 MoE，外加 1 个 MTP 层；每种层先讲它从哪个基础机制演变来，再给 GLM 的具体维度、参数量与权重精度。
+aliases:
+  - GLM 模型总览
+  - GLM-5.3-Flash 模型结构
+  - 模型计算全景
+  - GLM 层型表
+  - GLM-5.3-Flash 配置
+  - GLM 参数量
+  - 模型维度
+  - 路由专家
+  - 四路残差
+  - 词表分数
+  - 索引器
+  - kpool
+  - DSA
+  - DeepSeek Sparse Attention
+  - lightning indexer
+chapters:
+  - '00'
 order: 5
 sources:
-  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
-  - https://huggingface.co/zai-org/GLM-5.3-Flash
-  - https://www.modelscope.cn/api/v1/models/Eco-Tech/GLM-5.3-Flash-w8a8/repo?Revision=9e55cbc8e2b19e20c63b08b916d2582f25a22504&FilePath=config.json
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2053-L2242
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2245-L2319
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2437-L2517
-  - vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L102-L385
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L353
-  - vllm-ascend@db701c1f:vllm_ascend/ops/triton/kda/kda.py#L1276-L1288
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1881-L2050
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1235-L1400
-  - vllm-ascend@db701c1f:vllm_ascend/ops/glm5_next_kpool_state_compress.py#L139-L293
-  - vllm-ascend@db701c1f:vllm_ascend/ops/triton/glm5_next_lightning_indexer.py#L23-L237
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1539
-  - vllm@0fc695fc:vllm/model_executor/layers/fused_moe/cpu_fused_moe.py#L63-L117
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L292-L309
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L39-L125
-  - vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L589-L596
-  - vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L632-L736
-  - vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L55-L100
-  - https://arxiv.org/html/2512.02556v1
-  - https://arxiv.org/html/2405.04434v5
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L94-L191
-  - vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L1173-L1454
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1140-L1232
-  - vllm-ascend@db701c1f:vllm_ascend/ops/glm5_next_lightning_indexer.py#L166-L504
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
+  - 'https://huggingface.co/zai-org/GLM-5.3-Flash'
+  - >-
+    https://www.modelscope.cn/api/v1/models/Eco-Tech/GLM-5.3-Flash-w8a8/repo?Revision=9e55cbc8e2b19e20c63b08b916d2582f25a22504&FilePath=config.json
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2053-L2242'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2245-L2319'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2437-L2517'
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L102-L385
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L353'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/triton/kda/kda.py#L1276-L1288'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1881-L2050'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1235-L1400'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/ops/glm5_next_kpool_state_compress.py#L139-L293
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/ops/triton/glm5_next_lightning_indexer.py#L23-L237
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1539'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/cpu_fused_moe.py#L63-L117'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L292-L309'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L39-L125'
+  - 'vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L489-L596'
+  - 'vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L632-L736'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L55-L100
+  - 'https://arxiv.org/html/2512.02556v1'
+  - 'https://arxiv.org/html/2405.04434v5'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L94-L191'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L1173-L1454
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1140-L1232'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/ops/glm5_next_lightning_indexer.py#L166-L504
+  - >-
+    raw:sha256-a8adad8cb834fac4c89fe9f8175c501254f418b7a8fe8975ca54df642b753303.md#L1-L2798
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/kda.py#L108-L187'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L96-L137'
+  - 'vllm-ascend@7d825229:docs/source/tutorials/models/GLM5.3-Flash.md#L17-L43'
+  - 'vllm-ascend@7d825229:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L9'
+  - 'vllm-ascend@7d825229:vllm_ascend/attention/indexer_kpool.py#L437-L476'
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/tutorials/models/GLM5.3-Flash.md#L17-L43
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/tutorials/models/GLM5.3-Flash.md#L1-L9
+  - >-
+    https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/9e55cbc8e2b19e20c63b08b916d2582f25a22504/quant_model_description.json
+  - >-
+    https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/3121f187149ef2defa15f2b28adad10e272681d9/quant_model_description.json
+  - >-
+    https://huggingface.co/api/models/zai-org/GLM-5.3-Flash/revision/690b705278a3a58e538fcb37c2ca8b5f9511213c
+  - 'vllm@0fc695fc:vllm/model_executor/models/deepseek_mtp.py#L43-L60'
 relations:
   - to: learning-guide
     kind: builds-on
@@ -42,10 +86,21 @@ relations:
   - to: token
     kind: builds-on
     note: 模型输入是分词后的编号；不熟悉 token 时先了解文本如何被切分
+  - to: kv-cache
+    kind: builds-on
+    note: 模型页对跨轮次状态及引擎职责的说明，依赖 KV cache 对不同历史状态的统一管理。
+  - to: lm-head
+    kind: builds-on
+    note: 模型页的最终词表打分步骤建立在 lm_head 输出投影机制上，并给出 GLM 的具体权重形状和词表大小。
 verified: []
 evidence: C
 contradicts: []
-updated: "2026-09-27"
+updated: '2026-11-03'
+rawSources:
+  - >-
+    raw/sha256-a8adad8cb834fac4c89fe9f8175c501254f418b7a8fe8975ca54df642b753303.md
+  - >-
+    raw/sha256-c8fdb2ea48313e1846c2fd534f5fc31911123b5a235758f64b667774c8ac9c13.md
 ---
 
 ## 先认识引擎要执行的模型
@@ -71,7 +126,7 @@ file: glm-flash-overview
 
 图右侧是 45 层 attention 的排法：K 是 KDA 层，S 是稀疏 MLA 层。「K K K S」这组顺序重复 11 次，一共 44 层，最后再接一个 K，所以最后的第 44 层也是 KDA。
 
-第一次处理提示词叫 **prefill**：提示词的所有位置一起算，同时建立后面要用的历史状态，最后一个位置的 logits 选出第一个生成的 token。之后的每一轮叫 **decode**：对这条请求只送进上一轮选出的那 1 个 token，历史状态接着用。多条请求同时在跑时，引擎把它们这一轮要算的 token 拼成一批，一起走一次前向。官方部署还开了 speculative decoding（投机解码：先猜出后面几个候选 token，再让主模型一次验证），候选由模型自带的 MTP 层（Multi-Token Prediction）来猜，decode 一轮会多送几个候选 token，见后文「MTP」一节。
+处理提示词、建立后续历史状态的阶段叫 **prefill**，可以一次完成，也可以按预算分多轮；完成最后一个提示词位置后，其 logits 用来选出第一个生成的 token。之后的生成阶段叫 **decode**：普通逐 token 路径只送进上一轮选出的那 1 个 token，历史状态接着用。多条请求同时在跑时，引擎把它们这一轮要算的 token 拼成一批，一起走一次前向。官方部署还开了 speculative decoding（投机解码：先猜出后面几个候选 token，再让主模型一次验证），候选由模型自带的 MTP 层（Multi-Token Prediction）来猜，decode 一轮会多送几个候选 token，见后文「MTP」一节。
 
 ## 一层有两段计算，四条 residual 流贯穿两段
 
@@ -86,6 +141,18 @@ file: glm-flash-layer
 图中左右两框是同一层的两段。青色旁路是原来的四条流，它们绕过子层直接到出口；虚线是入口处算出的混合系数，送到出口去用。attention 段出口的四条流就是 MLP 段入口的四条流。
 
 MTP 层（第 45 层）不用 mHC，只有一条普通 residual 流，见后文「MTP」一节。
+
+下面用每路 **4 个通道**的完整向量观察入口混合。四行是同一个 token 的四路 residual，不是四个 token；横向 c0–c3 才是向量的通道。每路乘自己的 pre 系数，再把同一列的四份贡献相加，得到 `[2,4,4,8]`；随后整行做 RMSNorm，得到 `[0.4,0.8,0.8,1.6]`。系数和数值仅为教学示意，取 γ=1、忽略 ε，真实每路宽 4096。
+
+```wiki-scene
+model-compute:0
+```
+
+出口处再单独观察四路如何接回子层输出：四路旧值经 comb 混合，示意子层输出 `[2,−2,4,−4]` 经各路 post 系数缩放，两支在同一通道上相加。输出仍是四行、每行四个通道；这四条完整向量一起交给后续子层。这里的子层输出是另给的示意值，不是省略的 attention 运算结果。
+
+```wiki-scene
+model-compute:3
+```
 
 ## 45 层怎样排
 
@@ -141,6 +208,12 @@ o = Sᵀ q
 
 一个请求在一个 KDA 层里要保存的只有两样：64 个 128 × 128 的状态矩阵，和短卷积要用的最近 3 个 token 的 Q、K、V。两样都和请求已经多长无关。prefill 时一整段提示词切成块并行算，数学上等价于逐个递推；decode 时逐个 token 递推。状态占多少显存、每张卡存哪几个头，见[我们的部署](glm-5-3-flash-two-node.md)。
 
+投影里一个数怎样产生，可以把矩阵缩小，逐列算完下面的示意例子。实际 Q / K / V 分别使用自己的投影权重。
+
+```wiki-scene
+model-compute:1
+```
+
 ## 稀疏 MLA：先把历史压短，再挑着读
 
 **起点：多头 attention 每个头都要存 K 和 V。** 标准多头 attention 里，每个历史 token 在每一层要为每个头各存一份 K 和一份 V。按 GLM 这 11 层的头数算（64 个头，每头 K、V 各 256 维），每个 token 每层要存 64 × (256 + 256) = 32768 个数。
@@ -162,6 +235,8 @@ GLM 的潜向量宽 512，是 32768 的 1/64；解压形状为 512 → 64 × (25
 5. **主 attention 读内容。** 按这些位置取出 MLA 潜向量，完成精细打分、汇合和输出投影。
 
 落到 GLM：每 4 个相邻位置压成一池，2048 个 token 的预算对应 512 个池。例如选中位置 0–3 所在的池，就读取这四条潜向量；未满下一池的最新位置作为尾部另加。原版 DSA 的预算也是 2048，但逐个位置选择。
+
+选池前还要限定哪些完整池可见：所示实现先将当前位置加 1，再除以池大小并向下取整，得到因果范围内已经形成的完整池数；随后与请求实际拥有的池数取较小值。因此，512 个池是选择预算，不代表每个位置都有这么多完整池可选。
 
 ```wiki-diagram
 file: glm-flash-indexer-flow
@@ -241,9 +316,11 @@ file: glm-flash-mtp-flow
 
 两路输入相差一个位置，是因为预测第 t + 2 个 token 时，既要利用第 t 个位置已经汇总的上下文，也要知道刚确定的第 t + 1 个 token。位置 0 的 embedding 输入先置零。反馈的隐藏向量取自预测层后的 RMSNorm，词表投影从它另行算出 logits。
 
-中间的 `mtp_block` 有自己的稀疏 MLA、索引器和 MoE 专家，使用单条 residual 流；两端的 embedding 与 `lm_head` 则共享主模型权重。每遍取 logits 最大值生成候选，达到配置数量后交给主模型验证，接受与回退的算例见[一条请求](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。
+中间的 `mtp_block` 有自己的稀疏 MLA、索引器和 MoE 专家，使用单条 residual 流；本基线 PP=1、没有压缩模型标记 `compress_ratios`，embedding 与 `lm_head` 共享主模型权重。共享 embedding 的代码另有 PP 与压缩模型条件，不能推到所有 MTP 部署。每遍取 logits 最大值生成候选，达到配置数量后交给主模型验证，接受与回退的算例见[一条请求](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。
 
 一轮要猜几个候选，由部署参数决定，同一个 MTP 层可以接连跑几次；配置见[部署前提](glm-5-3-flash-two-node.md#部署前提)，每遍索引器是否重算、实际宽度与通信见[一条请求的草拟过程](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)。
+
+后续草拟步骤还要区分缓冲区行数与本轮实际查询行数：逐步即时执行（eager）时，缓冲区可能仍保留首轮长度。所示实现会在实际 token 数与位置数组长度之间取较小值，避免多出的填充行参与缓存与索引器寻址；完整计算图（FULL）路径则保留捕获时的固定形状。这个区别针对这里的实现，不代表所有 MTP 实现。
 
 ## 全模型形状总表
 
@@ -302,6 +379,8 @@ file: glm-flash-mtp-flow
 
 **显存要按加载后的类型算。** vLLM 按代码指定的类型创建参数，再把文件里的数转换进去。例如 router 与 mHC 的混合矩阵在 HF 文件里是 BF16，加载后是 FP32；indexer 还会另建 FP32 副本。每卡字节账见[我们的部署 · 每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)。
 
+想比较另一种“历史怎样少存、少算”的设计，可读 [DeepSeek-V4.1-Flash](deepseek-v4-1-flash.md)。沿着“谁生产状态、谁复用、生成时还要保留什么”比较两者；GLM 的 KDA、稀疏 MLA 与部署形状仍以本页为准。
+
 ## 接下来把模型放进推理引擎
 
 模型执行一次前向，需要本轮的输入 token、位置和各层的历史状态。推理引擎负责把这些准备好：scheduler 决定本轮算哪些请求、每条算几个 token；KV cache 管理器分配并维护历史状态的存储；模型执行器组织计算；昇腾后端在 NPU（昇腾的计算设备）上执行具体算子。接着读：
@@ -331,13 +410,14 @@ file: glm-flash-mtp-flow
 |---|---|---|
 | 8 位数的格式 | 浮点（e4m3）：刻度随数值变大而变疏，小数值附近更密 | 整数：刻度均匀 |
 | 权重的缩放粒度 | 每 128 × 128 一块一个系数 | 每个输出通道一个系数（vllm-ascend 的 W8A8 实现） |
-| 哪些部分是 8 位 | MLP 通路和 MLA 的四个大投影 | 按上游配方推断是同一批；实现里 Q 和 KV 的两个压缩投影合并成一个，所以数成三个。待核：缺量化仓库里逐层标精度的 `quant_model_description.json` |
+| 哪些部分是 8 位 | MLP 通路和 MLA 的四个大投影 | 取决于权重 revision：`9e55cbc8` 只量化 MLP 通路，MLA 四个大投影标为 `FLOAT`；`3121f187` 才把这四个投影改为 `W8A8_DYNAMIC`。实现合并 Q、KV 两个压缩投影，所以运行时数成三个 |
 
-两个仓库的 `text_config` 完全一致。文件类型与加载后类型的对应如下；部署页按后一列算字节。
+两个仓库的 `text_config` 完全一致，不能据此认为量化配方也相同。上述两个 W8A8 revision 的量化描述均明确保留 KDA、KV 解压投影、索引器、router 和视觉塔为 `FLOAT`；具体加载类型还由实现决定。文件类型与加载后类型的对应如下；[部署账](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)分别列出权重版本和子账之外的项目。
 
 | 部件 | HF 文件里 | 加载后 | 为什么 |
 |---|---|---|---|
-| MLP 通路、MLA 四个大投影 | FP8，每块配 FP32 缩放 | 部署仓库是 INT8，每通道配缩放 | 见上表 |
+| MLP 通路 | FP8，每块配 FP32 缩放 | 两个 W8A8 revision 均为 INT8，每通道配缩放 | 量化描述与 W8A8 实现 |
+| MLA 四个大投影 | FP8，每块配 FP32 缩放 | `9e55cbc8` 按模型类型加载为 BF16；`3121f187` 是 INT8，每通道配缩放 | 配置形状不变，量化描述发生变化 |
 | embedding、`lm_head`、各处 RMSNorm、KDA 的 Q/K/V/输出投影与两个门、MLA 的 KV 解压投影、索引器的 Q 投影 | BF16 | BF16 | 按模型默认精度建参数 |
 | 索引器的 K 投影与压池打分投影 | BF16 | BF16，前向第一次运行时另存一份 FP32 副本 | 索引器的 K 和池内得分整条链在 FP32 里算，压好的池 K 写进缓存时才转成 BF16 |
 | router 的权重 | BF16 | **FP32** | `config.json` 写着 `moe_router_dtype=float32`；router 的打分也强制用 FP32 算 |
@@ -350,9 +430,15 @@ file: glm-flash-mtp-flow
 
 ### 版本差异
 
+**v0.30.0rc2 已有社区 GLM-5.3-Flash 实现，但不改变本文固定模型配置和旧部署账。** 模型实现位于 models/glm5next；KDA 由模型自己的 Glm5NextLinearAttention 构造，要求 BF16 激活、head_dim=128、卷积宽度 2–4，投机数最多 7，启用投机时卷积宽度须为 4。完成的 KPool 索引缓存用 BF16，未完成池的 K/gate 环形尾状态用 FP32；这与旧镜像中缓存对象的组织不同，显存预算须重新按 rc2 的 spec 计算。
+
+rc2 的模型教程仍标为实验性并要求 Model Runner V1；KPool 后端直接拒绝 PCP/DCP。模型文件存在、通用 CP 支持、某个官方部署配方可运行是三种不同证据，不能相互替代。本页按固定权重配置计算的参数形状保留；rc2 的加载布局、缓存组和运行峰值见各专题新增的版本对照。
+
+教程另提供实验性的 SFA-only DSA-CP：只在 TP 组内分担稀疏 attention 的查询位置，主 KV、索引池和尾缓存继续复制，KDA 仍走 TP，PCP/DCP 两个大小保持 1。它与“按位置分存 KV”的 DCP 是不同路径。
+
 - 模型形状按 `zai-org/GLM-5.3-Flash` 在 revision `690b705278a3a58e538fcb37c2ca8b5f9511213c` 的 `config.json` [S1]，`moe_router_dtype=float32` 也在这份配置里。[来源基线](../sources/glm-5-3-flash-baseline.md)固定的是后来的 revision `eb9eb208`，并把两个 revision 的配置和 glm-flow 母版的副本比对过，三者一致，所以两处引用可以互换。
-- 模型卡标称总参数 320B、激活参数 18B [S2]。本页的 3133 亿、174 亿、3213 亿按配置里的形状逐项相乘得出，与权重文件头里各张量的形状核对过 [D]。18B 对应「主干 173.77 亿 + MTP 3.86 亿 = 177.63 亿」是按数字反推的口径 [I]；换成主干加视觉编码器（173.77 + 5.64 = 179.41 亿）也约等于 18B。模型卡用的是哪种，待核：缺模型卡的口径说明。
-- 部署用的量化仓库 `Eco-Tech/GLM-5.3-Flash-w8a8`（master 在 `9e55cbc8`）的 `text_config` 与原模型一致 [S3]。哪些部分是 INT8 没有随配置给出，本页按上游 FP8 配方的排除清单推断 [I]。「加载后」那一列由代码里建参数时指定的类型决定，见上方精度表。
+- 模型卡标称总参数 320B、激活参数 18B [S2]。本页的 3133 亿、174 亿、3213 亿按配置里的形状逐项相乘得出 [D]；HF 固定快照的参数总数是 321323031390，约 3213 亿，不包含量化缩放数组（来源 38）。18B 对应「主干 173.77 亿 + MTP 3.86 亿 = 177.63 亿」是按数字反推的口径 [I]；换成主干加视觉编码器（173.77 + 5.64 = 179.41 亿）也约等于 18B。模型卡用的是哪种，待核：缺模型卡的口径说明。
+- 量化仓库 `Eco-Tech/GLM-5.3-Flash-w8a8` 在 `9e55cbc8` 的 `text_config` 与原模型一致 [S3]。逐层精度以固定量化描述为准：来源 36 是 `9e55cbc8`，来源 37 是 `3121f187`，两版 12 个稀疏层（含 MTP）的 Q 压缩、KV 压缩、Q 展开和输出投影由 `FLOAT` 改为 `W8A8_DYNAMIC`。`FLOAT` 表示不走该量化方法，不等于一律 FP32；具体类型见构造代码和上表。
 - 执行侧按 `vllm-ascend@db701c1f` 读，控制流按 `vllm@0fc695fc` 读，后者就是 v0.23.0。KDA 层在模型里构造的是上游 vLLM 的 `KimiGatedDeltaNetAttention`，vLLM 为 0.23.0 时被替换成 vllm-ascend 的 `AscendKimiGatedDeltaNetAttention` [C10]，所以本基线执行的是昇腾版。同一个 `glm5_next.py` 里还有一个 `AscendGlm5NextLinearAttention` 类，它不在这条执行路径上，核对 KDA 时读 `kimi_kda.py`。
 - mHC 的 Sinkhorn 迭代、入口权重（sigmoid）、写回权重（2 × sigmoid，Python 侧只看得到系数 2.0）和入口那次不带增益的 RMSNorm，都在融合算子 `npu_hc_pre_v2` 里完成，Python 侧只看得到迭代轮数 20 等参数被传进去。本页按这些运算的定义讲 [I]；待核：该算子的 AscendC 源码。
 - 「每个通道至少保留 e⁻⁵ ≈ 0.7%」由遗忘门公式 `−5 · sigmoid(·)` 的取值范围 (−5, 0) 推出 [D]。
@@ -381,7 +467,7 @@ MTP = 74.33 亿 − 72.48 亿（它的全部路由专家） + 2.01 亿（其中 
 
 indexer 的池分数是 `Σⱼ wⱼ × (qⱼ · 池 K)`；实现先合成 `q̄ = Σⱼ wⱼqⱼ`，再点乘池 K。原版 DSA 在各头点积后先做 ReLU（负值置零），本基线直接加权。压池、选位置分属两个算子；选池、展开和补尾由后一个算子一起完成，调用位置见下表。
 
-MTP 的量化描述启用旋转时，隐藏输入在 `hnorm` 前经过 `rot`。
+MTP 的量化描述启用旋转时，隐藏输入在 `hnorm` 前经过 `rot`。这里两个 W8A8 revision 都设置了 `is_rot_used=true`，因此该步骤实际纳入它们的代码路径；旋转矩阵的容量在部署账中单列。预测层后的 `SharedHead.forward` 只做 RMSNorm，词表投影由 `compute_logits` 另行调用（来源 24、39）。
 
 | 想核对的结构 | 读哪里 |
 |---|---|
@@ -400,6 +486,8 @@ MTP 的量化描述启用旋转时，隐藏输入在 `hnorm` 前经过 `rot`。
 | 稠密 MLP、共享专家与 MoE 的构造，router 建成 FP32，各专家都传入 `swiglu_limit` | `AscendGlm5NextMLP`、`AscendGlm5NextMoE` [C15] |
 | sigmoid 打分、偏置只用于挑选、归一后乘 2.5 | 上游参考实现 `grouped_topk` [C16]；昇腾融合算子的调用 [C17] |
 | MTP 层的两路输入与单层结构 | `vllm_ascend/models/glm5_next_mtp.py` [C18] |
-| MTP 的输出头换成主模型的 `lm_head` | `vllm_ascend/spec_decode/llm_base_proposer.py` [C19] |
+| MTP 的 embedding 共享条件，以及输出头换成主模型的 `lm_head` | `vllm_ascend/spec_decode/llm_base_proposer.py` [C19] |
 | 部署时逐层判断走不走量化实现 | `vllm_ascend/quantization/modelslim_config.py` [C20] |
 | W8A8 的 INT8 权重、每通道缩放、激活量化 | `vllm_ascend/quantization/methods/w8a8_dynamic.py` [C21] |
+
+补充核对：上表来源 27 中，可见完整池数的计算在固定执行侧 `ops/glm5_next_lightning_indexer.py` 244–250 行；此处描述该文件所示路径，不把它推广到全部后端。上表来源 26 中，草拟步骤中实际查询行数与固定缓冲形状的区分在 `models/glm5_next.py` 1191–1199 行：非 FULL 路径取 `min(attn_metadata.num_actual_tokens, positions.shape[0])`，FULL 路径保留捕获形状。

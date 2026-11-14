@@ -1,0 +1,17 @@
+layout: figure
+id: dspark-flow
+caption: 异步路径的依赖示意，箭头不是等比例时间线。CPU 的预算准备可与设备执行重叠；总预算和更新的置信信息都就绪后，设备才能分配下一轮各请求长度。
+size: [610, 470]
+items:
+  - { at: [20, 40], size: [275, 80], text: CPU：旧置信信息 + 耗时曲线, sub: 先决定总预算：如 3 个额外位置, tone: control, style: faded }
+  - { at: [315, 40], size: [275, 80], text: 设备：当前批执行与草稿预测, sub: 产生 A、B 各自更新的置信信息, tone: weight, style: faded }
+  - { at: [30, 185], size: [550, 82], text: 设备：按请求映射取数，再累乘、排序, sub: 在 3 个额外位置内分配：例如 A 取 2，B 取 1, tone: control, style: solid }
+  - { at: [30, 320], size: [550, 64], text: 第 3–5 站：两条请求共 5 行进入下一次验证, sub: 结果才能告诉我们，实际留下几个候选, tone: token, style: faded }
+links:
+  - { from: [155, 120], to: [155, 185], tone: control }
+  - { from: [450, 120], to: [450, 185], tone: weight }
+  - { from: [305, 267], to: [305, 320], tone: token }
+texts:
+  - { at: [174, 159], text: 总预算 + 请求映射, anchor: start, size: 14 }
+  - { at: [470, 159], text: 新置信信息, anchor: start, size: 14 }
+  - { at: [305, 432], text: 记录三个量：提出多少、验证多少、最终接受多少, anchor: middle, size: 14 }

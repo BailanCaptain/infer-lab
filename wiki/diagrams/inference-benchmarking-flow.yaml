@@ -1,0 +1,25 @@
+layout: figure
+id: inference-benchmarking-flow
+caption: 同一请求从计划发送走到首个输出。TTFT 从实际发送起算；生成器迟发的等待另记。箭头表示顺序，不按耗时比例；跨机器的绝对时刻须先对时。各站沿一条请求主线编号。
+size: [880, 420]
+frames:
+  - { at: [24, 44], size: [832, 130], label: 客户端记录 }
+  - { at: [218, 246], size: [638, 108], label: 服务记录：第 1–7 站 }
+items:
+  - { at: [52, 84], size: [130, 42], text: 计划发送, tone: control, style: faded }
+  - { at: [246, 84], size: [130, 42], text: 实际发送, tone: token, style: solid }
+  - { at: [686, 84], size: [140, 42], text: 收到首个输出, tone: token, style: solid }
+  - { at: [246, 282], size: [132, 44], text: 入口 → 调度, tone: control, style: faded }
+  - { at: [444, 282], size: [154, 44], text: 模型执行, tone: weight, style: solid }
+  - { at: [664, 282], size: [162, 44], text: 处理 → 发送, tone: token, style: faded }
+links:
+  - { from: [182, 105], to: [246, 105] }
+  - { from: [311, 126], to: [246, 304], via: [[311, 200], [200, 200], [200, 304]], tone: token }
+  - { from: [378, 304], to: [444, 304] }
+  - { from: [598, 304], to: [664, 304], tone: token }
+  - { from: [756, 282], to: [756, 126], tone: token }
+  - { from: [311, 208], to: [756, 208], ends: none, dashed: true }
+texts:
+  - { at: [214, 151], text: 迟发另记, anchor: middle, size: 13 }
+  - { at: [534, 199], text: TTFT：实际发送 → 首个输出, anchor: middle, strong: true, size: 14 }
+  - { at: [440, 389], text: 后续每个有效片段、正常结束、错误也要保留，不能只留一个平均值, anchor: middle, size: 14 }

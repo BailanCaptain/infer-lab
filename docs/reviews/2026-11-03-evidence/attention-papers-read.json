@@ -1,0 +1,18 @@
+[
+  {
+    "url": "https://arxiv.org/html/2205.14135",
+    "observed_version": "v2",
+    "html_sha256": "18ab07d5d1c8689aac7ea8863fbab6514fc16a4bbcfdf3b726ac952b5b9d2f6a",
+    "read": "all extracted body blocks 1-322, appendices, tables, captions; complete algorithm listings separately; FA3 SASS listing separately",
+    "not_read": "bibliographic entries, actual figure pixels",
+    "use": "algorithm and hardware scope; performance figures not transferred to Ascend"
+  },
+  {
+    "url": "https://arxiv.org/html/2407.08608",
+    "observed_version": "v2",
+    "html_sha256": "f2afce1eaab6542b8562f675c512800102bb1308ae4fe2a4fa6aa1ab17181093",
+    "read": "all extracted body blocks 1-152, appendices, tables, captions; complete algorithm listings separately; FA3 SASS listing separately",
+    "not_read": "bibliographic entries, actual figure pixels",
+    "use": "algorithm and hardware scope; performance figures not transferred to Ascend"
+  }
+]

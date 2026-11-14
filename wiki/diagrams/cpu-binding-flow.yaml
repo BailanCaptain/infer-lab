@@ -1,6 +1,6 @@
 layout: figure
 id: cpu-binding-flow
-caption: 每个 Worker 在启动收尾处走一遍这条路：先看开关和 CPU 架构，再建这颗 NPU 的 CPU 池、给池里的核分角色，最后才动线程、页和中断。第 ③ 步的池是「亲和核 ∩ cpuset」，这些核全在一个节点里时还会补上编号下一个节点里允许的核，所以池通常横跨两个节点；几颗卡拿到同一个池时按卡序平分。左边一列是四个分支：开关关着、不是 ARM、拿不到拓扑、核数不够，各自的去向不同。右边两个分支只影响其中一步。
+caption: A2 的每个 Worker 在启动收尾处走一遍这条路：先看开关和 CPU 架构，再建这颗 NPU 的 CPU 池、给池里的核分角色，最后才动线程、页和中断。第 ③ 步的池是「亲和核 ∩ cpuset」，这些核全在一个节点里时还会补上编号下一个节点里允许的核，所以池通常横跨两个节点；几颗卡拿到同一个池时按卡序平分。左边一列是四个分支：开关关着、不是 ARM、拿不到拓扑、核数不够，各自的去向不同。右边两个分支只影响其中一步；中途失败不会回滚已经生效的设置。A5 使用独立 cluster 路径，不套用图中的五核与拓扑回退分支。
 size: [900, 396]
 items:
   - { at: [250, 60], size: [190, 52], text: ① 开关开着吗, sub: 默认开, tone: control }
@@ -32,7 +32,7 @@ links:
   - { from: [660, 154], to: [680, 154], tone: kv, dashed: true }
   - { from: [660, 222], to: [680, 222], tone: comm, dashed: true }
 texts:
-  - { at: [450, 22], text: 绑核的七步与六个分支, anchor: middle, strong: true }
+  - { at: [450, 22], text: A2 绑核的七步与六个分支, anchor: middle, strong: true }
   - { at: [24, 340], text: 位置在启动收尾：图捕获之后、开始收请求之前, size: 12, note: true }
   - { at: [24, 362], text: ③ 几颗卡共用一个池时按卡序平分, size: 12, note: true }
 pins:

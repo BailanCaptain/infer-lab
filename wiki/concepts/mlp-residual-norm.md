@@ -52,9 +52,9 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/activation.py#L46-L56'
   - 'vllm@0fc695fc:vllm/model_executor/layers/activation.py#L154-L184'
   - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L756'
-  - 'vllm@0fc695fc:vllm/model_executor/custom_op.py#L109-L127'
+  - 'vllm@0fc695fc:vllm/model_executor/custom_op.py#L109-L207'
   - 'vllm@0fc695fc:vllm/model_executor/layers/layernorm.py#L36-L102'
-  - 'vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L28-L82'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L28-L88'
   - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L90-L138'
   - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L324-L350'
   - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L736-L752'
@@ -67,11 +67,21 @@ sources:
   - 'vllm@0fc695fc:vllm/model_executor/custom_op.py#L332-L337'
   - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L104-L123'
   - 'vllm@0fc695fc:vllm/model_executor/models/deepseek_mtp.py#L44-L60'
-  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L619'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L670'
   - >-
     https://github.com/huggingface/transformers/blob/5f4ecf2d9f867a1255131d2461d75793c0cf1db2/src/transformers/models/qwen3/modeling_qwen3.py#L62-L222
   - 'vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242'
   - 'vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197'
+  - >-
+    raw:sha256-4ab7e73c387e02fa495bfbe220b05cd5f6cc95516c5ddbc1ec4aa358c22ff820.md#L1-L859
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L90-L138'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L324-L349'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L499-L514'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/shared_experts.py#L437-L453'
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L841-L866'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L345-L358'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L535-L613'
+  - 'vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L48-L153'
 verified: []
 evidence: C
 relations:
@@ -86,16 +96,20 @@ relations:
     note: gate、up、down 三个投影怎样做矩阵乘、为什么没有偏置、W8A8 权重怎样转置存放
   - to: tensor-parallel
     kind: builds-on
-    note: TP8 下稠密 MLP 先列切 gate 与 up、再行切 down，末尾一次 All-Reduce
+    note: 普通 TP8 基线下稠密 MLP 先列切 gate 与 up、再行切 down，末尾一次 All-Reduce；序列并行另核
   - to: expert-parallel
     kind: builds-on
     note: 路由专家怎样按 EP16 分到 16 张卡、token 怎样派发与收回
 contradicts: []
-updated: '2026-10-08'
+updated: 2026-11-03T00:00:00.000Z
 origin: gap
 rawSources:
   - >-
     raw/sha256-453fdb48c994a96c6b4491804bc60fc5843f28e98d22cbbc3104e5f675b3ed30.md
+  - >-
+    raw/sha256-4ab7e73c387e02fa495bfbe220b05cd5f6cc95516c5ddbc1ec4aa358c22ff820.md
+  - >-
+    raw/sha256-893cf753fd3eee39fe5fdc4f2aa6b2c8c385f9f6fa98ce035b2ce514a432809d.md
 ---
 
 ## 一个子层怎样更新 hidden，又不丢掉原来的输入？
@@ -134,7 +148,7 @@ MLP 对每个位置各算一遍，所有位置共用同一套权重，位置之�
 
 ### RMSNorm 怎样调整向量尺度
 
-**RMSNorm 把一个位置的 H 维向量除以它的均方根，再逐维乘可学习的增益 γ；它和 LayerNorm 的区别只在于不先减均值。**
+**RMSNorm 按一个位置的 H 维向量的均方根缩放，再逐维乘可学习的增益 γ；与 LayerNorm 的核心区别是不用均值做中心化。** 下面采用没有偏移项的 RMSNorm 公式；是否另带偏移由具体模型与实现决定。
 
 层层把改变量加到 residual 上，这条向量的数值大小会随层数漂移；归一化让每个子层拿到的输入落在可控的尺度上。LayerNorm 对同一位置的各维先减去均值、再除以标准差，然后乘 γ、加偏移；RMSNorm 的论文认为起作用的主要是「按大小缩放」而不是「减均值」，于是去掉了减均值这一步，只按均方根缩放。论文在多种模型上报告，效果与 LayerNorm 相当，运行时间更短。
 
@@ -148,7 +162,7 @@ yᵢ = γᵢ × xᵢ / r
 ε 是一个很小的常数，防止分母过小。这个运算只在同一个位置的 H 维之间求平方均值，不在不同 token（模型输入的一个个单位，每个 token 占一个输入位置）之间求平均，输出宽度不变。它也不会把各维变得一样大：除以同一个 r 保留了各维之间的比例，γ 又是每维各学一个。拿两维的小例子对照两种归一化：
 
 ```calc
-title: x = [3, 4] 分别过 RMSNorm 与 LayerNorm（γ 取 1，ε 取 0）
+title: x = [3, 4] 分别过 RMSNorm 与 LayerNorm（γ 取 1，偏移与 ε 取 0）
 RMSNorm 均方根 = sqrt((3² + 4²) ÷ 2) = sqrt(12.5) ≈ 3.536
 RMSNorm 输出第 0 维 = 3 ÷ 3.536 ≈ 0.849
 RMSNorm 输出第 1 维 = 4 ÷ 3.536 ≈ 1.131
@@ -164,7 +178,7 @@ RMSNorm 的输出仍是 3 : 4，方向没变，只是长度被缩放到均方根
 
 **pre-norm 只归一化支路的输入，旁路从头到尾保持恒等；原始 Transformer 则把归一化放在相加之后，叫 post-norm。**
 
-原始 Transformer 的子层是 Norm(x + F(x))：先相加，再对和做归一化。后来的分析发现，post-norm 在训练初期靠近输出的几层梯度偏大，必须先用很小的学习率「预热」一段（学习率是每一步训练改动权重的幅度，预热指训练开头先用很小的幅度、再逐步调大）；换成 pre-norm，即 x + F(Norm(x))，梯度更平稳，可以去掉预热。pre-norm 规定的是归一化的位置，不规定用 RMSNorm 还是 LayerNorm。下面比较单条残差的两种排法；最终归一化一行列的是常见模型设计。
+原始 Transformer 的子层是 Norm(x + F(x))：先相加，再对和做归一化。pre-norm 分析论文在其初始化假设下发现，post-norm 靠近输出的几层梯度偏大，直接用大学习率可能不稳定；学习率「预热」是训练开头先小步更新、再逐步加大幅度。论文在所测翻译与 BERT 设置中，改用 pre-norm，即 x + F(Norm(x))，可以去掉预热并稳定训练；但它也报告 RAdam 能在一个 post-norm 翻译实验中不预热训练，不能把预热说成由归一化位置决定的必要条件。pre-norm 规定的是归一化的位置，不规定用 RMSNorm 还是 LayerNorm。下面比较单条残差的两种排法；最终归一化一行列的是常见模型设计。
 
 | | post-norm | pre-norm |
 |---|---|---|
@@ -194,7 +208,7 @@ GLM 主线里也有注意力内部的 RMSNorm，但处理的是低秩向量，�
 
 ### MLP 为什么值得占一半子层
 
-注意力按权重汇总其他位置的信息，但每个位置内部各维怎样组合、怎样非线性地变换，要靠 MLP 来做。稠密模型的大部分参数和矩阵乘都在 MLP 里，下一节展开它的结构；它的代价就是 gate、up、down 三次矩阵乘，在张量并行（TP，把一个矩阵切到多张卡上一起算）下还要在末尾合一次数值（见[TP 页的稠密 MLP 一节](tensor-parallel.md#再过稠密-mlp本地升维和门控降维后再合齐)）。
+注意力按权重汇总其他位置的信息，MLP 再对每个位置内部的各维做非线性变换。它通常占稠密 Transformer 的很大一部分参数和矩阵乘；具体占比取决于中间宽度、注意力结构和词表大小。这里的 SwiGLU 有 gate、up、down 三个逻辑投影；本页实现把 gate/up 合并，所以前向有两次投影调用。普通张量并行（TP，把一个矩阵切到多张卡上一起算）基线还在末尾合一次数值；序列并行可能改成 Reduce-Scatter，见[TP 页的稠密 MLP 一节](tensor-parallel.md#再过稠密-mlp本地升维和门控降维后再合齐)。
 
 ## 前馈网络怎样变换一个位置的特征
 
@@ -249,6 +263,14 @@ y = x + Δ = [3 + 0.92, 4 + 0.81] = [3.92, 4.81]
 四列对照着看：内容最大的是第 1 维（1.98），但它的 g 是 −4.24，门只有 −0.06，这一维几乎被关掉，只剩 −0.12；第 0 维的门是 1.74，内容 1.13 被放大到 1.97；第 2 维的 g 接近 0，门 0.16 把 −1.70 压到 −0.27；第 3 维的门 0.85，把 −1.41 略缩成 −1.20。放大、关掉还是压小，都是同一个输入 n 经 gate 投影算出来的，这就是「由输入自己决定中间每一维放大多少」。第 1 维的门略小于 0，是因为 SiLU 在负半轴会给出很小的负数，乘出来的符号也跟着翻了，但量已经很小。
 
 SiLU 是连续的函数：g 越大越接近 g 本身（g = 1.98 时已是 1.74），g 很负时接近 0（g = −4.24 时只有 −0.06）。所以门控分支给出的是一组连续的缩放系数，由输入决定 u 的每一维被放大、缩小还是压到接近零，并不是一组离散的开或关。SwiGLU 改变的是中间计算的结构，三组权重要按这个结构训练出来；它不是运行时可以给普通两投影 MLP 随手打开的开关。
+
+下面的 3D 改用一组 **4 → 6 → 4 的独立示意算例**，让完整向量和权重矩阵的行列更容易辨认；它与上面的 2 → 4 → 2 手算例子使用不同数值，计算规则相同。输入 n 为 `[0.85,1.13,0.5,−0.75]`，两组 4×6 权重分别生成六通道的 gate 和 up；所有权重格保留在图中，当前计算列突出显示。图中展开当前列的四项乘加，结果写回对应的输出格；其他列按同样规则得到，可切换通道检查。
+
+完整前馈结构始终保留，放大的计算完成后写回原位。门控将六个通道按列对齐：上排原值，中排系数，下排结果，同一列相乘，不跨列相加。空心轮廓保留原值，实体深度对照放大、压小和变号，得到 `[3.73,−0.07,−0.06,0.01,−0.99,−0.29]`。最后读取全部六个通道，乘 6×4 的 down 权重，分别求出四列的和 `[3.44,−1.13,4.38,−4.49]`。数值按图中精度逐步取舍；可切换中间通道和 down 输出，检查每个结果对应哪一列。
+
+```wiki-scene
+model-compute:2
+```
 
 ### 限幅：gate 只限上界，up 两边都限
 
@@ -321,8 +343,9 @@ TP8 下，这对矩阵按「先列后行」切：每卡持有 gate 和 up 各 15
 
 - **第 0 层入口。** 词嵌入给出的是一条 [4, 4096]，进第 0 层时先复制成四条，之后才有「四条混成一条」。
 - **第 44 层出口。** MLP 段写回之后，四条流直接求平均回到一条。然后在层外做一次最终 RMSNorm，也就是 pre-norm 表里「最后一层之后还要补一次」的那一次，结果交给输出投影算每个词的分数。
+  这里平均的是同一 token 位置的四条残差流，保留 token 位置和 hidden 宽度；与子层入口按系数混合不同，末尾的均值把多路表示收拢成一路。
 - **MTP 层。** 模型附带的第 45 层，用来给投机解码草拟候选，不属于 45 层主干。它不走 mHC，是本页首图的单条 pre-norm 写法：暂存 x、RMSNorm、稀疏 MLA、相加，再暂存、RMSNorm、MLP、相加。它的 MLP 是 MoE：配置里逐层标注 MLP 类型的列表只覆盖 45 层主干，编号 45 超出列表，代码取最后一项，也就是 MoE。MTP 层的用途和两路输入见[模型总览的 MTP 一节](glm-5-3-flash.md#mtp主干之外的第-45-层)。除了块内两个子层前各 1 次，块外还有 3 次 RMSNorm，公式和子层前那次相同，各有一组 4096 个数的 γ：
-  - **进块前 2 次。** MTP 层有两路输入：下一个 token 的词嵌入，和主干传来的 hidden。两路来源不同，各做一次 RMSNorm（词嵌入这一路叫 enorm，hidden 这一路叫 hnorm），先各自调到均方根为 1、再乘各自的 γ，拼接时两半的尺度就由各自的 γ 决定，不取决于来源。然后拼成 8192 维，由一个 8192 → 4096 的无偏置投影压回一条，才送进上面的单条 pre-norm 块。
+  - **进块前 2 次。** MTP 层有两路输入：下一个 token 的词嵌入，和主干传来的 hidden。词嵌入这一路做 enorm；hidden 在量化配方启用旋转矩阵时先过 rot，再做 hnorm。两次 RMSNorm 各自缩放并乘各自的 γ，然后拼成 8192 维，由一个 8192 → 4096 的无偏置投影压回一条，才送进单条 pre-norm 块。它们减少两路尺度差异，但不保证输出均方根恰为 1：ε 和 γ 都会影响结果；位置为 0 的词嵌入还会先清零，不能把零向量变成单位尺度。旋转配方的版本条件见[模型总览的 MTP 一节](glm-5-3-flash.md#mtp主干之外的第-45-层)。
   - **出块后 1 次。** 块内旁路一路累加、没有归一化，和主干最后一层之后的情况相同，所以交给词表投影算每个词的分数之前，也要补一次 RMSNorm。
 - **稀疏 MLA 内部。** 11 层稀疏 MLA 在注意力内部还对 Q 的 1536 维低秩向量和 KV 的 512 维低秩向量各做一次 RMSNorm。它们属于注意力的计算，不在子层入口，细节见 [MLA](mla.md)。
 
@@ -369,23 +392,25 @@ ValueError: Unsupported activation: <hidden_act>. Only silu is supported for now
 
 三件东西都不能关，只能了解代价落在哪里：
 
-- **RMSNorm。** 每个位置读一遍 H 个数、做一次平方和归约，算量很小。Ascend 版调用 NPU 的 RMSNorm 算子；调用时带上 residual，就换成「加法 + RMSNorm」融合算子。GLM 主干的相加发生在 mHC 写回里，子层前 RMSNorm 不带 residual，走单独的 RMSNorm 算子。
+- **RMSNorm。** 每个位置对 H 个分量求平方和并缩放，逻辑工作量随 H 线性增长；实际访存和耗时取决于内核实现。Ascend 版调用 NPU 的 RMSNorm 算子；调用时带上 residual，就换成「加法 + RMSNorm」融合算子。GLM 主干的相加发生在 mHC 写回里，子层前 RMSNorm 不带 residual，走单独的 RMSNorm 算子。
 - **residual。** 单条时每个子层一次逐元素加法。GLM 四条流每层要多做两次小矩阵乘和两次 20 轮的 Sinkhorn 迭代，这部分见[层与 hidden 的代价一节](layers-and-hidden.md#为什么要四条流sinkhorn-又管什么代价在哪)。
-- **MLP。** 三次矩阵乘，TP8 下末尾一次 All-Reduce；算量和通信见[矩阵乘和权重](matmul-and-weights.md)与 [TP](tensor-parallel.md)。
-- **限幅。** 按静态读码，GLM 的稠密 MLP 实际走的是上游 vLLM 的 PyTorch 写法：两次截断、一次 SiLU、一次相乘，共 4 个逐元素算子，不调用 NPU 的 SwiGLU 融合算子；比不限幅的写法多两次截断。Ascend 另写了一个「截断后拼回两半、再调 NPU SwiGLU 融合算子」的版本，但注册键和类名对不上，这个版本没有生效；图编译会不会把这 4 个逐元素算子再合并，也没有 profiling 确认，见页末待核。shared expert 不是这种写法：本部署是 W8A8，fused MoE 直接取它的两份权重和缩放系数，走「动态量化 → 量化矩阵乘 → 反量化 + 限幅 SwiGLU + 再量化 → 量化矩阵乘」这条融合链，上限作为参数传进融合算子，不调用 shared expert 模块自己的前向，见[共享专家：按 TP8 切，走融合算子](moe.md#共享专家按-tp8-切走融合算子)。routed experts 走 fused MoE 自己的限幅参数，也不受影响。
+- **MLP。** 三个逻辑投影，本页 gate/up 合并为一次、down 一次。按[双机教学基线](../sources/glm-5-3-flash-baseline.md#双机示例与教学视图)的普通 TP8 路径，末尾一次 All-Reduce；启用序列并行时另核归约与形状，见[矩阵乘和权重](matmul-and-weights.md)与 [TP](tensor-parallel.md)。
+- **限幅。** 按固定注册链，稠密 MLP 选择上游 PyTorch 写法：两次截断、一次 SiLU、一次相乘，是 4 个逻辑逐元素操作；这不能直接当作编译后的设备 kernel 数。Ascend 另有截断后调用 NPU SwiGLU 的实现，但所引注册键与实例化类名不一致。shared expert 只有在两组投影均带 weight_scale、且 fused MoE 量化类型为 W8A8/W4A8 时，才走「动态量化 → 量化矩阵乘 → 反量化 + 限幅 SwiGLU + 再量化 → 量化矩阵乘」融合链；普通后备路径仍会调用模块的 act_fn。具体分支与通信条件见[共享专家](moe.md#共享专家按-tp8-切走融合算子)，源码分派与尚缺的运行证据见下文。
 
 ### 版本差异
+
+**v0.30.0rc2 的 GLM model.py 与已钉 main 相同，MLP 分支条件仍需保留。** gate/up 合并列切，接 SiluAndMul 或带 swiglu_limit 的裁剪，再由 down 行切，bias 均为 false；hidden_act 非 silu 仍报错。SP 路径的输入输出已经按 token 切，稠密 MLP 权重复制且关闭 reduce_results，不能把普通 TP 的层尾 All-Reduce 无条件套上去。dense/MoE 仍由 mlp_layer_types 决定，MTP 越界取最后项。rc2 共享专家可预量化输入以便多流重叠，但这不改变残差/RMSNorm 数学；mHC 入口仍可能另调 RMSNorm，函数合并不等于单 kernel。
 
 GLM 双机的行为固定在执行侧 `db701c1f`。两个发布分支都没有 GLM-5.3-Flash 的模型代码（对 `vllm_ascend/models/` 做 `git ls-tree`，没有任何 glm 文件），通用的限幅激活与 RMSNorm 替换三版都有。
 
 | 核对项 | v0.23：2c59ff10 | v0.26：2ed6cbba | main：baa023ad |
 |---|---|---|---|
-| GLM 稠密 MLP 类 | 没有 | 没有 | `Glm5NextMLP`：gate/up 合并列切、down 行切、无偏置，与固定版本相同[C13] |
-| 激活函数检查 | — | — | `hidden_act` 不是 silu 就抛错[C13] |
-| 按层选稠密 MLP 或 MoE | — | — | 只读 `mlp_layer_types`，不再回退到 `first_k_dense_replace`；超出列表的 MTP 层取最后一项[C14] |
-| 稠密 MLP 与序列并行 | — | — | 打开序列并行时 MLP 不切、不归约[C14] |
-| Ascend 限幅激活的注册键 | `SiluAndMulClamp`[C15] | `SiluAndMulClamp`[C16] | `SiluAndMulClamp` |
-| Ascend RMSNorm 替换 | 注册为 `RMSNorm`[C15] | 注册为 `RMSNorm`[C16] | 注册为 `RMSNorm` |
+| GLM 稠密 MLP 类 | 没有 | 没有 | `Glm5NextMLP`：gate/up 合并列切、down 行切、无偏置，与固定版本相同 |
+| 激活函数检查 | — | — | `hidden_act` 不是 silu 就抛错 |
+| 按层选稠密 MLP 或 MoE | — | — | 只读 `mlp_layer_types`，不再回退到 `first_k_dense_replace`；超出列表的 MTP 层取最后一项 |
+| 稠密 MLP 与序列并行 | — | — | 打开序列并行时 MLP 不切、不归约 |
+| Ascend 限幅激活的注册键 | `SiluAndMulClamp` | `SiluAndMulClamp` | `SiluAndMulClamp` |
+| Ascend RMSNorm 替换 | 注册为 `RMSNorm` | 注册为 `RMSNorm` | 注册为 `RMSNorm` |
 
 main 对子层前 RMSNorm 与 mHC 的改动（RMSNorm 挪进入口混合的同一个函数）只影响调用方式，不改数学，见[层与 hidden 的版本差异](layers-and-hidden.md#版本差异)。
 
@@ -393,7 +418,11 @@ main 对子层前 RMSNorm 与 mHC 的改动（RMSNorm 挪进入口混合的同�
 
 阅读顺序：先看 `glm5_next.py` 的 `AscendGlm5NextMLP`（1403–1442 行）：`gate_up_proj` 是合并的列切投影，`act_fn` 按 `swiglu_limit` 选带限幅的激活，`down_proj` 是行切投影，三者都 `bias=False`。[C2] 再看 `AscendGlm5NextDecoderLayer.__init__` 按层号选 MLP、建两个子层前 RMSNorm，[C3] 和 `forward` 里的两条路径：`not self.mhc or self.is_mtp_layer` 为真时走单条 residual，否则走 `hc_pre` → RMSNorm → 子层 → `hc_post`，第 0 层先复制成四条、第 44 层求平均。[C4] 最终 RMSNorm 在模型的 `forward` 末尾。[C5] MoE 的 routed experts 和 shared expert 同样传入限幅，shared expert 宽度为 `moe_intermediate_size × n_shared_experts`。[C6]
 
-激活与归一化的实现：Ascend 限幅激活先把前一半夹到不超过上限、后一半夹到正负上限之间，再调用 `npu_swiglu`，但按下面待核第一条，这个版本实际没有生效；[C7] 上游 vLLM 的同名数学为 `silu(clamp(gate)) * clamp(up)`，GLM 实际跑的是这个写法。[C8] vLLM 的 RMSNorm 定义为 x → w · x / sqrt(E[x²] + eps)，[C11] Ascend 版不带 residual 时调用 `npu_rms_norm`，带 residual 时调用 `npu_add_rms_norm`。[C12] MTP 层块外的三次 RMSNorm：`glm5_next_mtp.py` 先对词嵌入做 enorm、对主干 hidden 做 hnorm，拼接后过 eh_proj 再进块，出块后交给 shared_head；[C23] shared_head 的 forward 就是一次 RMSNorm，词表投影另在 logits 计算时调用。[C24]
+激活与归一化的实现：Ascend 限幅激活先把前一半夹到不超过上限、后一半夹到正负上限之间，再调用 `npu_swiglu`；[C7] 上游 vLLM 的数学为 `silu(clamp(gate)) * clamp(up)`，固定注册链选择该写法。[C8] vLLM 的 RMSNorm 定义为 x → w · x / sqrt(E[x²] + eps)；[C11] Ascend 版不带 residual 时调用 `npu_rms_norm`，带 residual 时按自定义算子开关选 `npu_add_rms_norm_bias` 或 `npu_add_rms_norm`，量化配方带来的偏移另按加载状态处理。[C12] MTP 块外先把位置 0 的词嵌入清零再做 enorm；hidden 按 is_rot_used 条件过 rot，再做 hnorm，拼接后过 eh_proj 进入块，出块后先做 TP All-Reduce 再交给 shared_head。[C23] shared_head 的 forward 是一次 RMSNorm，词表投影另在 logits 计算时调用。[C24]
+
+版本表的来源按结论分组：开发快照的稠密 MLP 投影、无偏置、激活检查和序列并行构造开关对应来源 13 的 90–138 行。[C13] 按层选择及超出列表时取末项、向稠密 MLP 传递序列并行和归约开关对应来源 14 的 324–350 行。[C14] v0.23 的限幅激活注册键与 RMSNorm 替换分别见来源 15 的 738、751 行，[C15] v0.26 对应来源 16 的 709、722 行。[C16]
+
+来源 4 的 2195、2237–2241 行限定了末层均值的分支：mHC 启用且不是 MTP 层时，在最后一个基础层把 hidden 重排为“位置 × 残差流 × hidden 宽度”，只沿残差流维取均值，返回的 residual 为 None。来源 2 的 1403–1442 行没有激活类型检查，构造时仍选择 SiLU 类；来源 13 的 125–126 行显式拒绝非 silu。检查缺失不能证明其他激活受支持；这些结论来自固定源码，不代表设备运行或安装包组合已验证。
 
 来源与结论的对应：
 
@@ -402,155 +431,16 @@ main 对子层前 RMSNorm 与 mHC 的改动（RMSNorm 挪进入口混合的同�
 - Qwen3 的逐头归一化范围、共享增益及投影 → RMSNorm → RoPE 顺序：Transformers v4.51.3 固定提交 `5f4ecf2d`。`Qwen3RMSNorm` 沿最后一维求均值，`Qwen3Attention` 为 Q、K 各建立一份长度为 head_dim 的权重，forward 先归一化再旋转。[C26] 该来源只支持上文 Qwen3 小节，不替代“版本差异”一节的 vLLM-Ascend 三版本 GLM 对照。
 - 深网络不加旁路会训练退化、恒等旁路不加参数：ResNet 原论文。[S17]
 - 原始 Transformer 的 post-norm 写法、MLP 取 F = 4H 与 ReLU：Transformer 原论文。[S18]
-- post-norm 需要学习率预热、pre-norm 梯度更平稳：pre-norm 分析论文。[S19]
+- 初始化下的梯度分析、指定训练设置的 warm-up 试验及 RAdam 反例：pre-norm 分析论文 §3–4。[S19]
 - RMSNorm 去掉减均值、只按均方根缩放，效果与 LayerNorm 相当且更快：RMSNorm 原论文。[S20]
 - SwiGLU 的三投影结构、为等参数把 F 缩到 2/3：GLU 变体论文。[S21]
 - GLM 的 45 层、H、两种中间宽度、逐层 MLP 类型、限幅、ε、四条流：模型配置 `690b7052`。[S1] 该配置与旧 revision 及母版配置一致性的核对见[GLM-5.3-Flash 固定配置](../sources/glm-5-3-flash-baseline.md)。
-- 部署数字（每卡 3072 / 1536 列、32,768 B）取自主线底稿「逐层前向」的稠密 MLP 与四路残差两节，本页只引结论，推导在[一条请求](one-request.md#前-3-层的稠密-mlp)。
+- 部署数字（每卡 3072 / 1536 列、32,768 B）按普通 TP8、4 个位置和 BF16 的教学条件计算，完整推导在[一条请求](one-request.md#前-3-层的稠密-mlp)。
 
-待核：
+固定分派与验证边界：
 
-- **限幅激活实际走哪个实现。** Ascend 把 `AscendSiluAndMulWithClamp` 以 `SiluAndMulClamp` 为键注册，[C9] 而 vLLM 登记时用给定的名字作键、[C22] 实例化自定义算子时却按类名 `SiluAndMulWithClamp` 查替换表，[C10] 两个名字不同，三个版本一样。静态读码推断：GLM 实例化的是上游类，在 NPU 上走默认的 PyTorch 写法（先截断、再 SiLU、再相乘），不调用 `npu_swiglu`。影响范围只有前 3 层稠密 MLP。42 层的 shared expert 不受影响：W8A8 下 `_forward_shared_experts` 直接取 gate_up 与 down 的权重和缩放系数，走 `npu_dynamic_quant` → `npu_quant_matmul` → `npu_dequant_swiglu_quant`（上限经 `clamp_limit` 传入）→ `npu_quant_matmul`，不调用模块的 forward，[C25] 见 [MoE](moe.md#共享专家按-tp8-切走融合算子)；routed experts 走 fused MoE 自己的限幅参数，也不受影响。连带后果：Ascend 版里为 down 投影预取权重的两个钩子也不会触发。两种写法数学相同，差别只在算子和性能；缺运行日志或 profiling 确认。
-- 稠密 MLP 的 W8A8 具体命中哪个计算分支、是否把反量化与 SwiGLU 融合，没有逐行跟到底，见[量化](quantization.md)。
+- **限幅激活的静态选择。** Ascend 以 `SiluAndMulClamp` 为键注册，[C9] vLLM 登记时使用给定键、[C22] 实例化却按类名 `SiluAndMulWithClamp` 查表，[C10] 因而所引固定代码选择上游类和原生 PyTorch 路径。main 的同名注册见来源 34。共享专家的 W8A8/W4A8 融合分支要求两个投影都有 weight_scale；不满足时可进入调用 act_fn 的后备路径，不能把影响范围无条件限于前 3 层。[C25] 后备路径实际调用见来源 35 的 345–358 行。routed experts 的限幅由 fused MoE 参数传入；运行包是否与固定代码完全相同、编译后多少 kernel 及性能如何，仍缺运行日志或 profiling。
+- **稠密 W8A8 的计算边界。** 固定方法在投影内动态量化，再调用量化矩阵乘并返回输入 dtype；稠密 MLP 的 act_fn 位于 gate/up 与 down 两次投影调用之间。这个路径与共享专家直接调用 dequant-swiglu-quant 的分支不同，见来源 37 的 48–153 行及[量化](quantization.md)。编译器是否进一步融合仍需实际图或 profiling。
 - NPU 的 RMSNorm 算子与公式的数值等价没有实测，也没有这三件东西的内核耗时数据；专用镜像内最终安装的包组合未核。
 
-## 已废弃的说法
-
-### 2026-10-08 · 修订 4b20640b5af690d5
-
-旧说法（历史记录，已废弃）：
-
-```text
-**Transformer 的每个子层都由三件东西拼成：一条把输入原样送到出口的 residual（残差连接）旁路；一条先做 RMSNorm、再做 MLP 或注意力的支路；最后把支路算出的改变量加回输入。**
-```
-
-替代结论：
-
-```text
-**本页先用「单条 residual（残差连接）、先归一化再计算」的子层作例子：一条旁路把输入原样送到出口，另一条支路先做 RMSNorm、再做 MLP 或注意力，最后把支路算出的改变量加回输入。** 这是本页选用的结构；归一化还可以选 LayerNorm，也可以放在两路相加之后。下文分别解释这些选择，GLM 的四条残差流在部署一节展开。
-```
-
-废弃依据（来源是否支持结论仍须人审）：
-
-- `vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242`
-
-- `vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197`
-
-旧说法（历史记录，已废弃）：
-
-```text
-一层 Transformer 由两个这样的子层串成：先注意力子层，再 MLP 子层，两段都套着同一种「旁路 + 归一化支路 + 相加」的结构。
-```
-
-替代结论：
-
-```text
-在这个示例里，一层由两个这样的子层串成：先注意力子层，再 MLP 子层，两段都套着同一种「旁路 + 归一化支路 + 相加」的结构。
-```
-
-废弃依据（来源是否支持结论仍须人审）：
-
-- `vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242`
-
-- `vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197`
-
-旧说法（历史记录，已废弃）：
-
-```text
-单条 residual 的子层写成 **Y = X + F(Norm(X))**：F 是注意力或 MLP，Norm 是 RMSNorm，X 同时沿旁路直接参与最后的相加。
-```
-
-替代结论：
-
-```text
-单条 residual 的 pre-norm 子层写成 **Y = X + F(Norm(X))**：F 是注意力或 MLP，Norm 是所选的归一化，本页示例取 RMSNorm，GPT-2 则取 LayerNorm；X 同时沿旁路直接参与最后的相加。
-```
-
-废弃依据（来源是否支持结论仍须人审）：
-
-- `vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242`
-
-- `vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197`
-
-旧说法（历史记录，已废弃）：
-
-```text
-现在的大模型基本都用 pre-norm。
-```
-
-替代结论：
-
-```text
-pre-norm 规定的是归一化的位置，不规定用 RMSNorm 还是 LayerNorm。下面比较单条残差的两种排法；最终归一化一行列的是常见模型设计。
-```
-
-废弃依据（来源是否支持结论仍须人审）：
-
-- `vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242`
-
-- `vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197`
-
-旧说法（历史记录，已废弃）：
-
-```text
-| 最后一层之后 | 输出已经归一化 | 还要补一次最终归一化，再做输出投影 |
-```
-
-替代结论：
-
-```text
-| 最后一层之后（常见设计） | 子层输出已经过归一化 | 通常另设最终归一化，再做输出投影 |
-```
-
-废弃依据（来源是否支持结论仍须人审）：
-
-- `vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242`
-
-- `vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197`
-
-旧说法（历史记录，已废弃）：
-
-```text
-表的最后一行是 pre-norm 的直接后果：旁路上的数值一路累加却从不归一化，所以最后一层之后必须再做一次 RMSNorm，才能交给输出投影算每个词的分数。
-```
-
-替代结论：
-
-```text
-pre-norm 的旁路保留累加后的数值，因此模型常在整叠层之后另设最终归一化，调整送入输出投影的尺度；是否设置、采用哪种归一化仍由模型结构决定。固定源码中的 GPT-2 末尾用 LayerNorm，本页 GLM 末尾用 RMSNorm，不能仅凭 pre-norm 这个排法推出末尾必须是 RMSNorm。
-```
-
-废弃依据（来源是否支持结论仍须人审）：
-
-- `vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242`
-
-- `vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197`
-
-旧文的来源编号（仅解释上方历史原文）：
-
-1. `https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json`
-2. `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1442`
-3. `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2105-L2131`
-4. `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2189-L2241`
-5. `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2285-L2318`
-6. `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1460-L1525`
-7. `vllm-ascend@db701c1f:vllm_ascend/ops/activation.py#L46-L56`
-8. `vllm@0fc695fc:vllm/model_executor/layers/activation.py#L154-L184`
-9. `vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L756`
-10. `vllm@0fc695fc:vllm/model_executor/custom_op.py#L109-L127`
-11. `vllm@0fc695fc:vllm/model_executor/layers/layernorm.py#L36-L102`
-12. `vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L28-L82`
-13. `vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L90-L138`
-14. `vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L324-L350`
-15. `vllm-ascend@2c59ff10:vllm_ascend/utils.py#L736-L752`
-16. `vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L707-L723`
-17. `https://arxiv.org/abs/1512.03385`
-18. `https://arxiv.org/abs/1706.03762`
-19. `https://arxiv.org/abs/2002.04745`
-20. `https://arxiv.org/abs/1910.07467`
-21. `https://arxiv.org/abs/2002.05202`
-22. `vllm@0fc695fc:vllm/model_executor/custom_op.py#L332-L337`
-23. `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L104-L123`
-24. `vllm@0fc695fc:vllm/model_executor/models/deepseek_mtp.py#L44-L60`
-25. `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L619`
-26. `https://github.com/huggingface/transformers/blob/5f4ecf2d9f867a1255131d2461d75793c0cf1db2/src/transformers/models/qwen3/modeling_qwen3.py#L62-L222`
+来源 36 的 535–613 行区分本步未启用 FlashComm1 时的 All-Reduce 与启用后可选的 Reduce-Scatter，支撑本页 TP 算例的适用条件。

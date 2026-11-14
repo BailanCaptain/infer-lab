@@ -1,0 +1,374 @@
+[
+  {
+    "path": "wiki\\raw\\sha256-4a29a1b7c97c7a3eb8fadfdd1f9a86abf633d860943cd506702d276512a1f764.md",
+    "sha256": "4a29a1b7c97c7a3eb8fadfdd1f9a86abf633d860943cd506702d276512a1f764",
+    "blocks": [
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L518",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L518",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L60-L77",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L79-L100",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1629-L1634",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1678",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1500-L1502",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/parallel_state.py#L76-L89",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1096-L1103",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4772-L4774",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L215-L219",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L135-L159",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L97-L104",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L50",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L532",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@bea70ab8fa233a06a7483337f42a1e3f2c8a117c:vllm_ascend/ascend_config.py#L546",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L629",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L627",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@ac1b7bceb370265e8f794f38d32a88041b0c51c9:vllm_ascend/ascend_config.py#L636",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@9f9da5562089280a7f01c3d03e855b258e372807:vllm_ascend/ascend_config.py#L623",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@8194eceae4a86366bea75309baa22fea4993da8a:vllm_ascend/ascend_config.py#L627",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@75bfb762267c86fbec4cf3458ce08a094c0a4c72:vllm_ascend/ascend_config.py#L636",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2581a69bcc16ee6af56e72985a15799bb5f61808:vllm_ascend/ascend_config.py#L637",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@ee29cc6fc24d20d47948776764059f05601170a6:vllm_ascend/ascend_config.py#L639",
+        "exact_after_edge_whitespace": true
+      }
+    ]
+  },
+  {
+    "path": "wiki\\raw\\sha256-15a9b303e86b0392bb0297e5c23f48c54bc6295e56e8f6d26c7ee99021a94e77.md",
+    "sha256": "15a9b303e86b0392bb0297e5c23f48c54bc6295e56e8f6d26c7ee99021a94e77",
+    "blocks": [
+      {
+        "ref": "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L64",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L60-L77",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/parallel_state.py#L76-L89",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L128-L159",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1096-L1103",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L19-L44",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1500-L1502",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4772-L4774",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L97-L104",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1629-L1634",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L66",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@75bfb762267c86fbec4cf3458ce08a094c0a4c72:vllm_ascend/ascend_config.py#L67",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2581a69bcc16ee6af56e72985a15799bb5f61808:vllm_ascend/ascend_config.py#L68",
+        "exact_after_edge_whitespace": true
+      }
+    ]
+  },
+  {
+    "path": "wiki\\raw\\sha256-441664d27d5f3034774f1bb5c29ddb42b87c829349dc5e8c5ba85c6a74670d91.md",
+    "sha256": "441664d27d5f3034774f1bb5c29ddb42b87c829349dc5e8c5ba85c6a74670d91",
+    "blocks": [
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L104-L115",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L95-L102",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L22-L56",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L52-L68",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L26-L49",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/memcache_backend.py#L80-L93",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L672-L693",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L69",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kv_pool.md#L33",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kv_pool.md#L1215",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/context_parallel.md#L113",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L83-L92",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L570-L591",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L75-L78",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L229-L236",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L92-L101",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L69",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L195",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L26",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L78-L89",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm@0fc695fc:vllm/config/vllm.py#L1244-L1269",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L596-L623",
+        "exact_after_edge_whitespace": true
+      }
+    ]
+  },
+  {
+    "path": "wiki\\raw\\sha256-7b68ea8fb443cb28419a824d276dc34b8e7ccafcb58d5c6afa1205692a51cce6.md",
+    "sha256": "7b68ea8fb443cb28419a824d276dc34b8e7ccafcb58d5c6afa1205692a51cce6",
+    "blocks": [
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L104-L115",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L95-L102",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L22-L56",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L52-L68",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L26-L49",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/memcache_backend.py#L80-L93",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L672-L693",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L69",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kv_pool.md#L33",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kv_pool.md#L1215",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/context_parallel.md#L113",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L83-L92",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L570-L591",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L75-L78",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L229-L236",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L92-L101",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L69",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L195",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L26",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L78-L89",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm@0fc695fc:vllm/config/vllm.py#L1244-L1269",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L596-L623",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L606-L627",
+        "exact_after_edge_whitespace": true
+      }
+    ]
+  }
+]

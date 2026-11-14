@@ -1,0 +1,245 @@
+{
+  "method": "Manually compared full prose diffs and meaning; equality of source prefix/calc/diagram hashes is supporting evidence only.",
+  "pages": [
+    {
+      "path": "wiki/concepts/mooncake-connector.md",
+      "before": ".tmp/continuation-groups-2026-11-10/transfer-lifecycle/mooncake-connector-before.md",
+      "before_sha256": "888b0ae8aa84bdc1a12dc5e091b7c519ab2fa75ce2c5d334bc9dba2c00374cc6",
+      "sha256": "e056c4fba4c6ae3b9c0b2c4ae0298a237633babc21bf04eaf6d618d778e2b140",
+      "sources_before": 84,
+      "sources_final": 147,
+      "source_prefix_unchanged": true,
+      "calc_blocks_unchanged": 4,
+      "whole_page_not_recertified_all_versions": true
+    },
+    {
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "before": ".tmp/continuation-groups-2026-11-10/transfer-lifecycle/kv-cache-layerwise-offload-before.md",
+      "before_sha256": "dbab31375f7c1db30b8da4b18e14f3c8a7faa4bd3c9483c7a3ae4789280418fa",
+      "sha256": "b439ec4ef3c174aab9e55e40c8f8a960fb6fb3128754fc2a05693ce8edd79324",
+      "sources_before": 53,
+      "sources_final": 76,
+      "source_prefix_unchanged": true,
+      "calc_blocks_unchanged": 4,
+      "whole_page_not_recertified_all_versions": true
+    },
+    {
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "before": ".tmp/continuation-groups-2026-11-10/transfer-lifecycle/pd-disaggregation-before.md",
+      "before_sha256": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c",
+      "sha256": "c490e510f61b747aab3d37a235ce23504f1a0b323fe0d862fe76933f417d77c5",
+      "sources_before": 110,
+      "sources_final": 110,
+      "source_prefix_unchanged": true,
+      "calc_blocks_unchanged": 2,
+      "whole_page_not_recertified_all_versions": true
+    }
+  ],
+  "diagrams": [
+    {
+      "path": "wiki/diagrams/mooncake-connector.yaml",
+      "sha256": "6d37ade229480da96ff6b475f47ffcfe7ba5c1756e654ab5873c6e8693436a80",
+      "compared_with": "transfer-coverage-final-acceptance.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/mooncake-connector.svg",
+      "sha256": "3691f662e482fdecb331e080efac629c7851c8ce477138992a31250c65e1d2ee",
+      "compared_with": "transfer-coverage-final-acceptance.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/mooncake-connector-hooks.yaml",
+      "sha256": "1d8cf2888b677848906817fdec5d7f64df624d37d5b0c4ebfeb20e6c13b47241",
+      "compared_with": "transfer-coverage-final-acceptance.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/mooncake-connector-hooks.svg",
+      "sha256": "d9ff1d6cac9cafc9577de398b40a97fc8dbf7bf084a8799bf1f3a9d4531fa963",
+      "compared_with": "transfer-coverage-final-acceptance.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/mooncake-layerwise.yaml",
+      "sha256": "42f6754d93e49c891d4aa6e6872a6fc8b31d22d6e36e466953d093bb40f991cc",
+      "compared_with": "transfer-coverage-final-acceptance.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/mooncake-layerwise.svg",
+      "sha256": "1a58e996a70a88c58918f950a123b1ee4d262ac97cbbd915eb55a24662233feb",
+      "compared_with": "transfer-coverage-final-acceptance.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload-overlap.yaml",
+      "sha256": "f41be5cd6938c0bebdc87bde0fa7208cb3dd77ea7128401d3a2cdb5a793e3774",
+      "compared_with": "layerwise-checkpoint.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload-overlap.svg",
+      "sha256": "1a6c9c8551ef7913731bbf47a1711894dee6f341e2f0c05a708721215d859c33",
+      "compared_with": "layerwise-checkpoint.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload-flow.yaml",
+      "sha256": "4299f0956ad28f53a5b47e1347d472de591008fb18bde058a839005ae5933457",
+      "compared_with": "layerwise-checkpoint.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload-flow.svg",
+      "sha256": "7955d59c659c55844b9523469850a3b5b2f2d4e1f47092f24161e5759037597f",
+      "compared_with": "layerwise-checkpoint.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload.yaml",
+      "sha256": "861c76fb7354c649487f94b33bc8600df062738543bd9aa074da4bf4d26c921e",
+      "compared_with": "layerwise-checkpoint.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload.svg",
+      "sha256": "3d921f7a77eaeea2157b89e2a31fa3f9db514611343f6327acfd90f3621e8058",
+      "compared_with": "layerwise-checkpoint.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/pd-disaggregation-intuition.yaml",
+      "sha256": "25dcbc723bf81fe8648c5984ca87a7005f2148f81f19f63e5b769a311f24288f",
+      "compared_with": "transfer-coverage-final-acceptance.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/pd-disaggregation-intuition.svg",
+      "sha256": "4a6df523812c1d073edd41358d88b83e0a7e462e5fd8cff9bf94d1ea07bb5911",
+      "compared_with": "transfer-coverage-final-acceptance.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/pd-disaggregation.yaml",
+      "sha256": "c1cdb8c2da05df3c76114c251866957e161c13852b9e55e47c8e8704b57d42b8",
+      "compared_with": "transfer-coverage-final-acceptance.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/pd-disaggregation.svg",
+      "sha256": "55087906ff9dd666f402ce11e0dd1e1e028b8181bf60a5ddf0e647eefdfa08b7",
+      "compared_with": "transfer-coverage-final-acceptance.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/pd-state-boundary.yaml",
+      "sha256": "d061875164c9e4f11640e1311622b88d8c944821a3862f58a07a33162fb32ea3",
+      "compared_with": "transfer-coverage-final-acceptance.json",
+      "unchanged": true
+    },
+    {
+      "path": "wiki/diagrams/pd-state-boundary.svg",
+      "sha256": "bfb8982d2b7610e08048177052d2d3af43b7a31add0f6aad6590b334172d3a29",
+      "compared_with": "transfer-coverage-final-acceptance.json",
+      "unchanged": true
+    }
+  ],
+  "items": [
+    {
+      "page": "mooncake-connector",
+      "item": "定义、P/D 两块池、按层搬运、三组钩子与角色",
+      "result": "保留首屏与原代码流程图，新增 V2 不覆盖旧 V1/Layerwise 差异"
+    },
+    {
+      "page": "mooncake-connector",
+      "item": "5,448/1,192 KiB 地址、64 KiB、6 段及连续块合并条件",
+      "result": "原 calc 与周围条件逐字保留，浏览器实际查看"
+    },
+    {
+      "page": "mooncake-connector",
+      "item": "TP4→TP2、8 头、每 D 读两 P 卡、32 KiB 分片",
+      "result": "calc 与 MLA/Hybrid 边界保留"
+    },
+    {
+      "page": "mooncake-connector",
+      "item": "480 秒押块、约 33 秒单次传输、抢占不能收押块",
+      "result": "原 V1 数值和两种超时责任保留；新增 V2 独立说明"
+    },
+    {
+      "page": "mooncake-connector",
+      "item": "逐层 4.5→3.5 示例、最后层仍等待",
+      "result": "原图/calc 不变；图未承诺 P 块已受网络同步保护"
+    },
+    {
+      "page": "mooncake-connector",
+      "item": "旧 Layerwise 释放链",
+      "result": "由未核同步改为显式缺失链，保留设备竞态、副本寿命未测，不删不确定性"
+    },
+    {
+      "page": "mooncake-connector",
+      "item": "三类连接器、Store 与点对点、D2RH 两跳",
+      "result": "原解释与配置/能力边界完整保留"
+    },
+    {
+      "page": "mooncake-connector",
+      "item": "GLM 5组、8,355,840 B、561,152 B、19,079,168 B与预留容量区别",
+      "result": "原推导与单一出处回链保留，新增24段仅据现有布局计算"
+    },
+    {
+      "page": "mooncake-connector",
+      "item": "GLM KDA 实现/逐层名称门",
+      "result": "修正导入名误判；明确实际 OOT 缺 hook 及同层三名称拒绝，不能删断言便认支持"
+    },
+    {
+      "page": "mooncake-connector",
+      "item": "256段未核、GLM端到端未测",
+      "result": "24段数量可静态关闭；地址/2MiB对齐/注册与端到端实测边界保留"
+    },
+    {
+      "page": "kv-cache-layerwise-offload",
+      "item": "2/3/2 ms、28/16、21/36/22与32层224/100的示例及带宽条件",
+      "result": "原演算和反例段保留，无用改版本删除推导"
+    },
+    {
+      "page": "kv-cache-layerwise-offload",
+      "item": "4 KiB、16 MiB、0.98/0.24 ms与共享槽8P→3P/37.5%",
+      "result": "原calc与3静态图不变，实际看图确认"
+    },
+    {
+      "page": "kv-cache-layerwise-offload",
+      "item": "旧10秒/错误返回与事件完成不同、末层无任务不能证明整队列空",
+      "result": "原边界保留，新组合保护未反套旧版"
+    },
+    {
+      "page": "kv-cache-layerwise-offload",
+      "item": "RD2H 联合保护",
+      "result": "原远端读完条件保留；新增点对点推送组合单独说明方向和启用门"
+    },
+    {
+      "page": "kv-cache-layerwise-offload",
+      "item": "KDA 四版/rc2 hook",
+      "result": "纠正历史无wait，保留旧类缺hook与新Kimi K3直接构造差异；不推导旧GLM可用"
+    },
+    {
+      "page": "kv-cache-layerwise-offload",
+      "item": "GLM预留页≠实传流量、align/APC、eager/Memcache等条件",
+      "result": "原数字、配置条件、带宽与设备不确定性保留"
+    },
+    {
+      "page": "pd-disaggregation",
+      "item": "失败策略、抢占后找缓存、V1成功部分复用、GLM旧版禁重算",
+      "result": "原解释加V1范围；V2失败独立回链，不合并两套恢复语义"
+    },
+    {
+      "page": "pd-disaggregation",
+      "item": "NIXL租约、EPD、实例资源、4/1块反例与截尾公式",
+      "result": "全部原正文与calc保留；V2局部块数修复未冒充端到端成功"
+    },
+    {
+      "page": "all",
+      "item": "其他会话3D",
+      "result": "PD scene字面保持，未操作/播放、不纳入本审验收；捕获的loader截图仅记录排除范围"
+    }
+  ]
+}

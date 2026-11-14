@@ -1,0 +1,346 @@
+{
+  "scope": "Generative scoring official→implementation→current-teaching coverage candidate; no teaching edits",
+  "status": "evidence_ready_for_author",
+  "items": [
+    {
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/entrypoints/generate/generative_scoring/serving.py#L50-L103",
+      "claim": "请求字段：model可选；query文本/编号，items同类列表，label编号必填；softmax默认true,item_first默认false,add_special_tokens默认true；rc2/main优先级加int64范围",
+      "source_sha256": "31337f0160d360b594a97ce4b97f1311647cdb86ae51cc078e1878ffe52949b4",
+      "read_scope": "L50–103",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/entrypoints/generate/generative_scoring/serving.py#L172-L379",
+      "claim": "检查模型/引擎/tokenizer/标签范围与非空items；每item独立max_tokens1/n1并要指定label记录；按原item次序收集，只返回首标签分数，统计实际token数；rc2/main按items数check_admission",
+      "source_sha256": "31337f0160d360b594a97ce4b97f1311647cdb86ae51cc078e1878ffe52949b4",
+      "read_scope": "L172–379",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/entrypoints/generate/generative_scoring/serving.py#L381-L437",
+      "claim": "query与item分别分词，query可加特殊token，item不加；拼编号不插空格或chat模板；item_first交换顺序；超长保留前max_model_len−1",
+      "source_sha256": "31337f0160d360b594a97ce4b97f1311647cdb86ae51cc078e1878ffe52949b4",
+      "read_scope": "L381–437",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/entrypoints/generate/generative_scoring/serving.py#L439-L477",
+      "claim": "True对去重后的标签dict做稳定subset softmax；False逐项exp；返回调用方首标签；有限单标签True为1，不是答案正确率",
+      "source_sha256": "31337f0160d360b594a97ce4b97f1311647cdb86ae51cc078e1878ffe52949b4",
+      "read_scope": "L439–477",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/entrypoints/generate/generative_scoring/api_router.py#L25-L64",
+      "claim": "POST /generative_scoring解析独立协议；使用JSON校验、取消与load-aware封装，不是/v1/chat/completions extra_body模式",
+      "source_sha256": "03d4480335121d676383f7e6ba1b7c01bd3901f7bdea220af764ff7f9fc7b745",
+      "read_scope": "entire64-line file; baseline/v026 identical, rc2/main only ErrorResponse import path differs",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/sample/sampler.py#L72-L149",
+      "claim": "普通V1 forward按实际logprobs_mode构造记录；指定编号优先于topK；服务未覆盖mode，False指数还原仅在对数概率语义下成立",
+      "source_sha256": "9ca3253163a1698764c599386c68e71962d2654427d0c50bc5c519384347b465",
+      "read_scope": "L72–149; four forward texts exactly equal",
+      "verdict": "supported_for_stated_scope",
+      "reuse_note": "sampling existing150/211及相关四版已验收，跨页优先回链，不必重复添源"
+    },
+    {
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/entrypoints/generate/generative_scoring/serving.py#L50-L103",
+      "claim": "请求字段：model可选；query文本/编号，items同类列表，label编号必填；softmax默认true,item_first默认false,add_special_tokens默认true；rc2/main优先级加int64范围",
+      "source_sha256": "7794408e435f5b72be0ce9cb6a5f77d0dca14984eb1e0d904f274d46f1e0e839",
+      "read_scope": "L50–103",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/entrypoints/generate/generative_scoring/serving.py#L174-L381",
+      "claim": "检查模型/引擎/tokenizer/标签范围与非空items；每item独立max_tokens1/n1并要指定label记录；按原item次序收集，只返回首标签分数，统计实际token数；rc2/main按items数check_admission",
+      "source_sha256": "7794408e435f5b72be0ce9cb6a5f77d0dca14984eb1e0d904f274d46f1e0e839",
+      "read_scope": "L174–381",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/entrypoints/generate/generative_scoring/serving.py#L383-L439",
+      "claim": "query与item分别分词，query可加特殊token，item不加；拼编号不插空格或chat模板；item_first交换顺序；超长保留前max_model_len−1",
+      "source_sha256": "7794408e435f5b72be0ce9cb6a5f77d0dca14984eb1e0d904f274d46f1e0e839",
+      "read_scope": "L383–439",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/entrypoints/generate/generative_scoring/serving.py#L441-L479",
+      "claim": "True对去重后的标签dict做稳定subset softmax；False逐项exp；返回调用方首标签；有限单标签True为1，不是答案正确率",
+      "source_sha256": "7794408e435f5b72be0ce9cb6a5f77d0dca14984eb1e0d904f274d46f1e0e839",
+      "read_scope": "L441–479",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/entrypoints/generate/generative_scoring/api_router.py#L25-L64",
+      "claim": "POST /generative_scoring解析独立协议；使用JSON校验、取消与load-aware封装，不是/v1/chat/completions extra_body模式",
+      "source_sha256": "03d4480335121d676383f7e6ba1b7c01bd3901f7bdea220af764ff7f9fc7b745",
+      "read_scope": "entire64-line file; baseline/v026 identical, rc2/main only ErrorResponse import path differs",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/v1/sample/sampler.py#L72-L149",
+      "claim": "普通V1 forward按实际logprobs_mode构造记录；指定编号优先于topK；服务未覆盖mode，False指数还原仅在对数概率语义下成立",
+      "source_sha256": "315af950ef4c35fced53dc3a5df49a80af20b47e417e8f12bf315f535769bab2",
+      "read_scope": "L72–149; four forward texts exactly equal",
+      "verdict": "supported_for_stated_scope",
+      "reuse_note": "sampling existing150/211及相关四版已验收，跨页优先回链，不必重复添源"
+    },
+    {
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/entrypoints/generate/generative_scoring/serving.py#L50-L105",
+      "claim": "请求字段：model可选；query文本/编号，items同类列表，label编号必填；softmax默认true,item_first默认false,add_special_tokens默认true；rc2/main优先级加int64范围",
+      "source_sha256": "117de8c541d6d9f3f49325d0bb9078305dc74e28af74d6dea6075d3f7f36b7a2",
+      "read_scope": "L50–105",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/entrypoints/generate/generative_scoring/serving.py#L176-L384",
+      "claim": "检查模型/引擎/tokenizer/标签范围与非空items；每item独立max_tokens1/n1并要指定label记录；按原item次序收集，只返回首标签分数，统计实际token数；rc2/main按items数check_admission",
+      "source_sha256": "117de8c541d6d9f3f49325d0bb9078305dc74e28af74d6dea6075d3f7f36b7a2",
+      "read_scope": "L176–384",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/entrypoints/generate/generative_scoring/serving.py#L386-L442",
+      "claim": "query与item分别分词，query可加特殊token，item不加；拼编号不插空格或chat模板；item_first交换顺序；超长保留前max_model_len−1",
+      "source_sha256": "117de8c541d6d9f3f49325d0bb9078305dc74e28af74d6dea6075d3f7f36b7a2",
+      "read_scope": "L386–442",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/entrypoints/generate/generative_scoring/serving.py#L444-L482",
+      "claim": "True对去重后的标签dict做稳定subset softmax；False逐项exp；返回调用方首标签；有限单标签True为1，不是答案正确率",
+      "source_sha256": "117de8c541d6d9f3f49325d0bb9078305dc74e28af74d6dea6075d3f7f36b7a2",
+      "read_scope": "L444–482",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/entrypoints/generate/generative_scoring/api_router.py#L25-L64",
+      "claim": "POST /generative_scoring解析独立协议；使用JSON校验、取消与load-aware封装，不是/v1/chat/completions extra_body模式",
+      "source_sha256": "dd9d959609fc5c81ccc78bdf708bc32b5b0b9fe89a3086ad2dea02312dc67ca3",
+      "read_scope": "entire64-line file; baseline/v026 identical, rc2/main only ErrorResponse import path differs",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/v1/sample/sampler.py#L73-L150",
+      "claim": "普通V1 forward按实际logprobs_mode构造记录；指定编号优先于topK；服务未覆盖mode，False指数还原仅在对数概率语义下成立",
+      "source_sha256": "f95805b2c6d06218c724826aa5f881a606e8d0a534a566aee7c85948520dd216",
+      "read_scope": "L73–150; four forward texts exactly equal",
+      "verdict": "supported_for_stated_scope",
+      "reuse_note": "sampling existing150/211及相关四版已验收，跨页优先回链，不必重复添源"
+    },
+    {
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/entrypoints/generate/generative_scoring/serving.py#L50-L105",
+      "claim": "请求字段：model可选；query文本/编号，items同类列表，label编号必填；softmax默认true,item_first默认false,add_special_tokens默认true；rc2/main优先级加int64范围",
+      "source_sha256": "117de8c541d6d9f3f49325d0bb9078305dc74e28af74d6dea6075d3f7f36b7a2",
+      "read_scope": "L50–105",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/entrypoints/generate/generative_scoring/serving.py#L176-L384",
+      "claim": "检查模型/引擎/tokenizer/标签范围与非空items；每item独立max_tokens1/n1并要指定label记录；按原item次序收集，只返回首标签分数，统计实际token数；rc2/main按items数check_admission",
+      "source_sha256": "117de8c541d6d9f3f49325d0bb9078305dc74e28af74d6dea6075d3f7f36b7a2",
+      "read_scope": "L176–384",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/entrypoints/generate/generative_scoring/serving.py#L386-L442",
+      "claim": "query与item分别分词，query可加特殊token，item不加；拼编号不插空格或chat模板；item_first交换顺序；超长保留前max_model_len−1",
+      "source_sha256": "117de8c541d6d9f3f49325d0bb9078305dc74e28af74d6dea6075d3f7f36b7a2",
+      "read_scope": "L386–442",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/entrypoints/generate/generative_scoring/serving.py#L444-L482",
+      "claim": "True对去重后的标签dict做稳定subset softmax；False逐项exp；返回调用方首标签；有限单标签True为1，不是答案正确率",
+      "source_sha256": "117de8c541d6d9f3f49325d0bb9078305dc74e28af74d6dea6075d3f7f36b7a2",
+      "read_scope": "L444–482",
+      "read_method": "baseline full491 actual read; v026 all40-line diff actual read; rc2 all39-line diff actual read; main same full blob as rc2; no line-number-only judgment",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/entrypoints/generate/generative_scoring/api_router.py#L25-L64",
+      "claim": "POST /generative_scoring解析独立协议；使用JSON校验、取消与load-aware封装，不是/v1/chat/completions extra_body模式",
+      "source_sha256": "dd9d959609fc5c81ccc78bdf708bc32b5b0b9fe89a3086ad2dea02312dc67ca3",
+      "read_scope": "entire64-line file; baseline/v026 identical, rc2/main only ErrorResponse import path differs",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/v1/sample/sampler.py#L73-L150",
+      "claim": "普通V1 forward按实际logprobs_mode构造记录；指定编号优先于topK；服务未覆盖mode，False指数还原仅在对数概率语义下成立",
+      "source_sha256": "f95805b2c6d06218c724826aa5f881a606e8d0a534a566aee7c85948520dd216",
+      "read_scope": "L73–150; four forward texts exactly equal",
+      "verdict": "supported_for_stated_scope",
+      "reuse_note": "sampling existing150/211及相关四版已验收，跨页优先回链，不必重复添源"
+    },
+    {
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/entrypoints/openai/api_server.py#L202-L207",
+      "claim": "服务能力包含generate才注册生成接口；路由可用不证明特定Ascend/MTP可完整返回任意标签记录",
+      "source_sha256": "6d8df133280618a1afffa9d03e4655af011f2f94ced0f90c15f7fc8b0afc538f",
+      "read_scope": "L202–207 actual selected read",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/entrypoints/openai/api_server.py#L242-L247",
+      "claim": "服务能力包含generate才注册生成接口；路由可用不证明特定Ascend/MTP可完整返回任意标签记录",
+      "source_sha256": "cce85dec645515eb38e7b4eb7711eb6a265731b9e1d3bd958ac8a1b1e87ac207",
+      "read_scope": "L242–247 actual selected read",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/entrypoints/launchers/api_server/routers.py#L39-L44",
+      "claim": "服务能力包含generate才注册生成接口；路由可用不证明特定Ascend/MTP可完整返回任意标签记录",
+      "source_sha256": "c2f1bb2708f44f0fe24f3d8ab8f884c7262e551c6557ebc606263abc4d7b1db1",
+      "read_scope": "L39–44 actual selected read",
+      "verdict": "supported_for_stated_scope"
+    },
+    {
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/entrypoints/launchers/api_server/routers.py#L39-L44",
+      "claim": "服务能力包含generate才注册生成接口；路由可用不证明特定Ascend/MTP可完整返回任意标签记录",
+      "source_sha256": "c2f1bb2708f44f0fe24f3d8ab8f884c7262e551c6557ebc606263abc4d7b1db1",
+      "read_scope": "L39–44 actual selected read",
+      "verdict": "supported_for_stated_scope"
+    }
+  ],
+  "count_precise_ranges": 28,
+  "claims": [
+    {
+      "topic": "接口用途",
+      "judgment": "本站尚无生成式评分解释，不由普通logprobs页覆盖；建议sampling新增短节为主，API入口仅回链",
+      "learner_example": "词表中标签11概率0.1、22概率0.3，True返回首标签0.25，False在raw_logprobs模式下为0.1；有限单标签True为1。不是正确率或全文概率。"
+    },
+    {
+      "topic": "输入构造",
+      "judgment": "母文query+item示意省略tokenization边界；源码实际分别tokenize后concat，无自动分隔符/Chat模板；应主动在输入中设计边界，核单token标签，不能仅tokenizer.encode(...)[0]截首子词。"
+    },
+    {
+      "topic": "费用与截断",
+      "judgment": "每item发一个请求且最多一输出token；计费/容量仍有多份prefill与一次输出；query前缀可能复用需APC条件，不承诺批次一次forward。超长从右端裁掉，不自动报超长；可能丢item尾部/答案引导。"
+    },
+    {
+      "topic": "兼容条件",
+      "judgment": "固定GLM开启MTP的候选记录未贯通任意指定编号，可能缺label报错；不可把现有原配方curl改endpoint宣称可用。普通路径也应选raw_logprobs口径，选择apply_softmax=false并不强制改全局记录模式（该请求字段默认true）。"
+    },
+    {
+      "topic": "对照",
+      "judgment": "pooling /score采用交叉编码分类、双编码余弦或lateinteraction；原始母页462行全文及三支图实际读，所有支持模型、生成include和外链未由此验收。"
+    }
+  ],
+  "accepted_existing_evidence_reuse": [
+    {
+      "source_number": 59,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/sample/sampler.py#L46-L71",
+      "reason": "复用已独审的普通采样/指定编号或MTP限制；本次只实际重读db sampler1–145、db rejection226–247、0fc rejection199–246，未冒称其他版本再次全文读"
+    },
+    {
+      "source_number": 150,
+      "ref": "vllm@0fc695fc:vllm/v1/sample/sampler.py#L72-L225",
+      "reason": "复用已独审的普通采样/指定编号或MTP限制；本次只实际重读db sampler1–145、db rejection226–247、0fc rejection199–246，未冒称其他版本再次全文读"
+    },
+    {
+      "source_number": 161,
+      "ref": "vllm@0fc695fc:vllm/v1/sample/rejection_sampler.py#L199-L246",
+      "reason": "复用已独审的普通采样/指定编号或MTP限制；本次只实际重读db sampler1–145、db rejection226–247、0fc rejection199–246，未冒称其他版本再次全文读"
+    },
+    {
+      "source_number": 162,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/sample/rejection_sampler.py#L190-L245",
+      "reason": "复用已独审的普通采样/指定编号或MTP限制；本次只实际重读db sampler1–145、db rejection226–247、0fc rejection199–246，未冒称其他版本再次全文读"
+    },
+    {
+      "source_number": 163,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/sample/rejection_sampler.py#L185-L260",
+      "reason": "复用已独审的普通采样/指定编号或MTP限制；本次只实际重读db sampler1–145、db rejection226–247、0fc rejection199–246，未冒称其他版本再次全文读"
+    },
+    {
+      "source_number": 164,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/sample/rejection_sampler.py#L194-L256",
+      "reason": "复用已独审的普通采样/指定编号或MTP限制；本次只实际重读db sampler1–145、db rejection226–247、0fc rejection199–246，未冒称其他版本再次全文读"
+    },
+    {
+      "source_number": 165,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/sample/rejection_sampler.py#L200-L262",
+      "reason": "复用已独审的普通采样/指定编号或MTP限制；本次只实际重读db sampler1–145、db rejection226–247、0fc rejection199–246，未冒称其他版本再次全文读"
+    },
+    {
+      "source_number": 172,
+      "ref": "vllm@568afb3a:vllm/v1/sample/rejection_sampler.py#L205-L252",
+      "reason": "复用已独审的普通采样/指定编号或MTP限制；本次只实际重读db sampler1–145、db rejection226–247、0fc rejection199–246，未冒称其他版本再次全文读"
+    },
+    {
+      "source_number": 173,
+      "ref": "vllm@84030bbe:vllm/v1/sample/rejection_sampler.py#L203-L250",
+      "reason": "复用已独审的普通采样/指定编号或MTP限制；本次只实际重读db sampler1–145、db rejection226–247、0fc rejection199–246，未冒称其他版本再次全文读"
+    },
+    {
+      "source_number": 211,
+      "ref": "vllm@ced6857a:vllm/v1/sample/sampler.py#L73-L150",
+      "reason": "复用已独审的普通采样/指定编号或MTP限制；本次只实际重读db sampler1–145、db rejection226–247、0fc rejection199–246，未冒称其他版本再次全文读"
+    },
+    {
+      "source_number": 212,
+      "ref": "vllm@ced6857a:vllm/v1/sample/rejection_sampler.py#L201-L269",
+      "reason": "复用已独审的普通采样/指定编号或MTP限制；本次只实际重读db sampler1–145、db rejection226–247、0fc rejection199–246，未冒称其他版本再次全文读"
+    },
+    {
+      "source_number": 213,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/sample/rejection_sampler.py#L190-L252",
+      "reason": "复用已独审的普通采样/指定编号或MTP限制；本次只实际重读db sampler1–145、db rejection226–247、0fc rejection199–246，未冒称其他版本再次全文读"
+    },
+    {
+      "source_number": 214,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/sample/sampler.py#L1-L167",
+      "reason": "复用已独审的普通采样/指定编号或MTP限制；本次只实际重读db sampler1–145、db rejection226–247、0fc rejection199–246，未冒称其他版本再次全文读"
+    }
+  ],
+  "four_version_changes": "v026 changes serving superclass/renderer setup; rc2/main protocol import,priority int64 bound,check_admission(items); core build/normalization same; rc2/main entire serving identical",
+  "numerical_repro": ".tmp/continuation-groups-2026-11-10/request-official-coverage/scoring/review-probability-repro.json",
+  "no_model_or_NPU_execution": true,
+  "global_new_full_credit": 0,
+  "recorded_at": "2026-11-10T12:36:21.661595+00:00"
+}

@@ -1,0 +1,35 @@
+layout: figure
+id: kv-cache-layerwise-offload-flow
+caption: 模型执行中的逐层池存取：本层加载完成才能读，新 KV 写完才能存，任务提交不等于存好。共享槽覆盖还须等前一使用者保存完成；联合 RD2H 时额外等远端 D 读完。图示正常完成顺序，固定旧版的超时后返回和错误完成事件须按正文另核。
+size: [880, 690]
+frames:
+  - {label: 模型执行：每层 attention 入口 → 计算 → 出口, at: [20, 44], size: [840, 620]}
+items:
+  - {at: [240, 75], size: [400, 50], text: "① 提交本层与预取层加载", sub: "后续层受当前 attention 开始事件约束", tone: control}
+  - {at: [240, 155], size: [400, 50], text: "② 等本层历史到齐", sub: "本层读取前的等待点", tone: comm}
+  - {at: [240, 235], size: [400, 50], text: "③ attention 读历史、写新 KV", sub: "新数据仍在设备缓存里", tone: token}
+  - {at: [240, 315], size: [400, 50], text: "④ 记录写完事件，提交存出任务", sub: "提交后可继续下一层计算", tone: kv}
+  - {at: [240, 395], size: [400, 50], text: "⑤ 后台等事件，再把本层存入池", sub: "返回码与完成事件分别检查", tone: comm}
+  - {at: [240, 475], size: [400, 60], text: "⑥ 共享槽可覆盖了吗？", sub: "池保存完成；联合 RD2H 时还须 D 读完", tone: weight}
+  - {at: [240, 580], size: [400, 50], text: "⑦ 后续层才可覆盖该共享槽", sub: "整次前向末尾还按版本等待存出", tone: kv}
+links:
+  - {from: [440, 125], to: [440, 155]}
+  - {from: [440, 205], to: [440, 235]}
+  - {from: [440, 285], to: [440, 315]}
+  - {from: [440, 365], to: [440, 395]}
+  - {from: [440, 445], to: [440, 475]}
+  - {from: [440, 535], to: [440, 580]}
+texts:
+  - {at: [45, 182], text: 主机等待, note: true}
+  - {at: [45, 262], text: 设备计算, note: true}
+  - {at: [45, 422], text: 后台传输, note: true}
+  - {at: [458, 560], text: 成功且全部完成, size: 12, note: true}
+  - {at: [667, 505], text: 未完成 → 继续等, size: 12, note: true}
+  - {at: [667, 528], text: 失败 → 按路径报错, size: 12, note: true}
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1356-L1430
+    symbols: [wait_for_layer_load, save_kv_layer]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1320-L1398
+    symbols: [_handle_request]
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/worker.py#L829-L882
+    symbols: [wait_for_layer_send]

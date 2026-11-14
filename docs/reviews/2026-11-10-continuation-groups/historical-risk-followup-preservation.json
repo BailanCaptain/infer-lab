@@ -1,0 +1,93 @@
+[
+  {
+    "page": "chunked-prefill",
+    "path": "wiki/concepts/chunked-prefill.md",
+    "before_sha256": "338a7418b17b67b614ec97319f65550d8faa423a305fde27f53a74d29e551ce8",
+    "after_sha256": "54c0fce9a21c9de8cd99865da3ded8df39d8a1345bb63690d0a4afd33d94ce19",
+    "original_sources": 39,
+    "current_sources": 51,
+    "original_source_prefix_preserved": true,
+    "frontmatter_except_sources_equal": true,
+    "diagram_calc_scene_blocks_equal": true,
+    "preserved_block_count": 4,
+    "diff": ".tmp/continuation-groups-2026-11-10/historical-risk-fixes/chunked-prefill.diff"
+  },
+  {
+    "page": "rfork-identity",
+    "path": "wiki/concepts/rfork-identity.md",
+    "before_sha256": "9f609555fd4353e4b753ece42b8a4fea64ac8ab7b37de323133ab515c53acb6d",
+    "after_sha256": "2cb1351c8f7935256c124725f094388fc65398b00bec14d2794fb17017ac38f4",
+    "original_sources": 37,
+    "current_sources": 37,
+    "original_source_prefix_preserved": true,
+    "frontmatter_except_sources_equal": true,
+    "diagram_calc_scene_blocks_equal": true,
+    "preserved_block_count": 2,
+    "diff": ".tmp/continuation-groups-2026-11-10/historical-risk-fixes/rfork-identity.diff"
+  },
+  {
+    "page": "rfork-startup",
+    "path": "wiki/concepts/rfork-startup.md",
+    "before_sha256": "1e7e566678af795598946fad2df7cc84f07f11d5fc6f946c33a7230e2f810817",
+    "after_sha256": "138a38b57f6ccfdaef66e3195f46d2012bbceb6f951081f99fc918ca28e4f136",
+    "original_sources": 25,
+    "current_sources": 25,
+    "original_source_prefix_preserved": true,
+    "frontmatter_except_sources_equal": true,
+    "diagram_calc_scene_blocks_equal": true,
+    "preserved_block_count": 0,
+    "diff": ".tmp/continuation-groups-2026-11-10/historical-risk-fixes/rfork-startup.diff"
+  },
+  {
+    "page": "rfork-troubleshooting",
+    "path": "wiki/concepts/rfork-troubleshooting.md",
+    "before_sha256": "c9ff0986c772b0a1e549cf7155a46c7d60180fedae6205f147356177decf6977",
+    "after_sha256": "9e16544fbb52eb58dc208ff2087de324bab0497638a2b1cf1c8fbd877f32e589",
+    "original_sources": 30,
+    "current_sources": 30,
+    "original_source_prefix_preserved": true,
+    "frontmatter_except_sources_equal": true,
+    "diagram_calc_scene_blocks_equal": true,
+    "preserved_block_count": 1,
+    "diff": ".tmp/continuation-groups-2026-11-10/historical-risk-fixes/rfork-troubleshooting.diff"
+  },
+  {
+    "page": "prefill",
+    "path": "wiki/concepts/prefill.md",
+    "before_sha256": "261b1c691958df3ec41a51bf5dc76db7f479669cafc9bbf93d1c6f7b75794e6c",
+    "after_sha256": "d0fee6562672fb0e56c4790193d71f7693f6930fa891e375dfaec15f3cba09c7",
+    "original_sources": 50,
+    "current_sources": 53,
+    "original_source_prefix_preserved": true,
+    "frontmatter_except_sources_equal": true,
+    "diagram_calc_scene_blocks_equal": true,
+    "preserved_block_count": 5,
+    "diff": ".tmp/continuation-groups-2026-11-10/historical-risk-fixes/prefill.diff"
+  },
+  {
+    "page": "stair-config-cca9e594a052",
+    "path": "wiki/params/stair-config-cca9e594a052.md",
+    "before_sha256": "2374ba3bd2b50ddcdd379f6c8d46c0cb5ad4743413d9a2f27362548e226536f9",
+    "after_sha256": "0e1ab4826a62468796f0f2b31e00527b17af9d3d7563017ac5e1a8cf33bb8e4b",
+    "original_sources": 30,
+    "current_sources": 30,
+    "original_source_prefix_preserved": true,
+    "frontmatter_except_sources_equal": true,
+    "diagram_calc_scene_blocks_equal": true,
+    "preserved_block_count": 0,
+    "diff": ".tmp/continuation-groups-2026-11-10/historical-risk-fixes/stair-config-cca9e594a052.diff"
+  },
+  {
+    "page": "request-teardown",
+    "path": "wiki/concepts/request-teardown.md",
+    "before_sha256": "070f709f68e7b3e1e4776b4097f5a92a049aa2eb7b96575eb1cc308cd9b4194b",
+    "after_sha256": "b72dfc67fd2f1fed8a7fd84ffad2878c8b901c429f3257acde56517227cc3c0c",
+    "original_sources": 108,
+    "current_sources": 114,
+    "original_source_prefix_preserved": true,
+    "frontmatter_except_sources_equal": true,
+    "diagram_calc_scene_blocks_equal": true,
+    "preserved_block_count": 1,
+    "diff": ".tmp/continuation-groups-2026-11-10/historical-risk-fixes/request-teardown.diff"
+  }
+]

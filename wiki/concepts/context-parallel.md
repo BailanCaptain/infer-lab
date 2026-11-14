@@ -1,87 +1,149 @@
 ---
 id: context-parallel
-title: 上下文并行（CP）：位置分工与注意力结果合并
+title: 上下文并行（CP）：怎样分位置，又怎样算完整 attention
 type: feature
-summary: 从密集因果注意力的跨位置依赖解释 PCP 与 DCP，推导局部 softmax 输出的合并，并明确 GLM 混合注意力的支持边界。
-aliases: [Context Parallel, 上下文并行, CP, PCP, DCP, Prefill Context Parallel, Decode Context Parallel, 前缀上下文并行, 解码上下文并行, prefill_context_parallel_size, decode_context_parallel_size, cp_kv_cache_interleave_size, enable_cp, enable_dcp, enable_pcp, AscendAttentionCPImpl, AscendMlaCPImpl, AscendAttentionDCPImpl]
-chapters: ["15"]
+summary: >-
+  长序列怎样分给多张卡，为什么会头尾配对；用同一组位置追踪 All-Gather、Ring Attention 和 Ulysses，演算局部结果怎样恢复完整
+  attention，再对照 Ascend PCP/DCP 与 GLM 的支持边界。
+aliases:
+  - Context Parallel
+  - 上下文并行
+  - CP
+  - PCP
+  - DCP
+  - Prefill Context Parallel
+  - Decode Context Parallel
+  - 前缀上下文并行
+  - 解码上下文并行
+  - prefill_context_parallel_size
+  - decode_context_parallel_size
+  - cp_kv_cache_interleave_size
+  - enable_cp
+  - enable_dcp
+  - enable_pcp
+  - AscendAttentionCPImpl
+  - AscendMlaCPImpl
+  - AscendAttentionDCPImpl
+  - Ring Attention
+  - Ulysses
+  - zigzag
+  - 头尾配对
+chapters:
+  - '15'
 order: 20
 sources:
-  - vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/context_parallel.md#L9-L50
-  - vllm-ascend@db701c1f:vllm_ascend/worker/pcp_utils.py#L663-L721
-  - vllm-ascend@db701c1f:vllm_ascend/worker/pcp_utils.py#L751-L780
-  - vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L231-L282
-  - vllm-ascend@db701c1f:vllm_ascend/attention/context_parallel/common_cp.py#L111-L130
-  - vllm-ascend@db701c1f:vllm_ascend/attention/context_parallel/common_cp.py#L186-L197
-  - vllm@0fc695fc:vllm/distributed/parallel_state.py#L1774-L1794
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L390-L403
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L114-L136
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L717-L752
-  - vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L508-L509
-  - vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L702-L729
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/context_parallel.md#L66-L103
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L348-L356
-  - vllm@0fc695fc:vllm/config/parallel.py#L110-L120
-  - vllm@0fc695fc:vllm/config/parallel.py#L320-L346
-  - vllm@0fc695fc:vllm/config/parallel.py#L774-L782
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/utils.py#L120-L128
-  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L336-L344
-  - vllm-ascend@baa023ad:vllm_ascend/attention/utils.py#L195-L206
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1490-L1500
-  - vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/context_parallel.md#L51-L77
-  - vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/context_parallel.md#L78-L123
-  - vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/context_parallel.md#L124-L172
-  - vllm-ascend@baa023ad:vllm_ascend/attention/indexer_kpool.py#L310-L320
-  - vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L125-L131
-  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L726-L762
-  - vllm-ascend@baa023ad:vllm_ascend/utils.py#L204-L210
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1513-L1525
-  - vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda.py#L448-L453
+  - >-
+    vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/context_parallel.md#L9-L50
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/pcp_utils.py#L663-L721'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/pcp_utils.py#L751-L780'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L231-L282'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/attention/context_parallel/common_cp.py#L111-L130
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/attention/context_parallel/common_cp.py#L186-L197
+  - 'vllm@0fc695fc:vllm/distributed/parallel_state.py#L1774-L1794'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L390-L403'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L114-L136'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L717-L752'
+  - 'vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L508-L509'
+  - 'vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L702-L729'
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/context_parallel.md#L66-L103
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L348-L356'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L110-L120'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L320-L346'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L774-L782'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/attention/utils.py#L120-L128'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L336-L344'
+  - 'vllm-ascend@baa023ad:vllm_ascend/attention/utils.py#L195-L206'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1490-L1500'
+  - >-
+    vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/context_parallel.md#L51-L77
+  - >-
+    vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/context_parallel.md#L78-L123
+  - >-
+    vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/context_parallel.md#L124-L172
+  - 'vllm-ascend@baa023ad:vllm_ascend/attention/indexer_kpool.py#L310-L320'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L125-L131'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L726-L762'
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L204-L210'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1513-L1525'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda.py#L448-L453'
+  - >-
+    https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/features/context_parallel.html
+  - 'https://arxiv.org/abs/2310.01889'
+  - 'https://arxiv.org/abs/2309.14509'
+  - >-
+    https://docs.nvidia.com/nemo/megatron-bridge/nightly/training/hierarchical-context-parallel.html
+  - >-
+    raw:sha256-d05316afd5f863583efbb497ab7e97f2e4720e590792b0b2c6a475111ba97982.md#L1-L765
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1641-L1700'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/v2/pcp_manager.py#L230-L261'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/block_table.py#L251-L300'
+  - 'vllm-ascend@7d825229:vllm_ascend/attention/indexer_kpool.py#L437-L476'
+  - >-
+    vllm-ascend@7d825229:docs/source/developer_guide/Design_Documents/context_parallel.md#L1-L41
+  - 'vllm-ascend@7d825229:docs/source/tutorials/models/GLM5.3-Flash.md#L17-L33'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/attention/context_parallel/common_cp.py#L109-L175
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/attention/context_parallel/sfa_cp.py#L866-L879
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/developer_guide/Design_Documents/context_parallel.md#L1-L41
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/tutorials/models/GLM5.3-Flash.md#L17-L33
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L521-L571'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L135-L177'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1617-L1635'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L114-L136'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L727-L761'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L1541-L1562'
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - {to: attention-qkv, kind: builds-on, note: 先理解完整的评分、softmax 与 V 汇合}
-  - {to: collective-communication, kind: builds-on, note: 理解交换、收集与归约}
-  - {to: block-table, kind: builds-on, note: 理解逻辑位置与物理存储槽位}
-  - {to: sequence-parallel, kind: builds-on, note: 区分局部激活分片与跨位置注意力}
+  - to: attention-qkv
+    kind: builds-on
+    note: 先理解完整的评分、softmax 与 V 汇合
+  - to: collective-communication
+    kind: builds-on
+    note: 理解交换、收集与归约
+  - to: block-table
+    kind: builds-on
+    note: 理解逻辑位置与物理存储槽位
+  - to: attention-backend-family
+    kind: builds-on
+    note: >-
+      上下文并行的数据交换和结果合并方式取决于注意力后端：decode 可合并局部输出与 LSE，MLA 的分块 prefill 则收集
+      KV；理解这些分路需要先理解后端对状态布局和执行方式的约束。
 contradicts: []
-updated: "2026-09-29"
+updated: '2026-11-03'
 origin: direct
 ---
 
 ## 上下文并行是什么？
 
-推理时，每个新位置都要回头看它前面所有位置留下的 K 和 V（key 供匹配、value 是要取回的内容，见 [attention](attention-qkv.md)），这份存下来的历史叫 [KV cache](kv-cache.md)。位置越靠后，要看的历史越长：一份 12 万 token 的长文档，光是这一条请求的历史，每张卡上就要实打实占一块显存（GLM 这套部署下的具体数字见[后面一节](#放到-glm-双机这套部署开了-cp-吗)），第一步把整篇算一遍也要等很久。
+**context parallelism（CP，上下文并行）让多张卡分担同一条长序列的不同位置，并通过通信完成这些位置之间的 attention。** attention 是让一个位置按相关程度读取其他位置的信息。文本会切成 token，一个 token 对应模型中的一行向量；计算途中产生的这些向量称为激活。按位置分工，可以减少每张加速卡负责的 token 数及相应存储。
 
-**context parallel（CP，上下文并行）把同一条请求的历史位置分给几张卡：每张卡只存、只算其中一部分，再把各自算出的局部结果合并成一份完整答案。** 名字里的「上下文」指的就是一条请求的位置这一维。
-
-举个例子（示意）：一条请求已经攒了 8 个位置的历史，两张卡。卡 0 拿位置 0、2、4、6，卡 1 拿 1、3、5、7。新来的查询在两张卡上各算一次：卡 0 只用自己这 4 个位置算出一个局部结果，卡 1 也是；最后把两个局部结果按各自占的分量合起来，得到的答案和一张卡看完 8 个位置算出来的一样。
+例如一篇输入分成 8 个 token，编号 0～7（示意）。先把前 4 个位置交给卡 0，后 4 个交给卡 1。向量乘权重矩阵叫线性投影，调整自身数值尺度叫归一化，多次投影与逐元素的非线性变换组成前馈网络（MLP）；这些都可以用本位置的数据计算。到了 attention，卡 1 上的位置 7 还需要读取卡 0 的位置 0～3，通信就发生在这里。
 
 ```wiki-diagram
-file: context-parallel-intuition
+file: context-parallel-overview
 ```
 
-CP 是两条路线共用的名字，它们切的东西不同：
+attention 中，每个位置先得到三个向量：Q（query，当前查询）、K（key，供查询匹配）和 V（value，被取回的内容）。查询与允许访问的 K 打分，经 softmax 转成总和为 1 的权重，再对 V 加权相加。普通因果自注意力规定位置 i 只能读位置 0～i，包括自己。切到不同卡以后，这个规则和计算目标保持不变。
 
-| | 切什么 | 卡数 | 想解决的问题 |
-|---|---|---|---|
-| PCP（prefill context parallel） | prefill（把输入一次性算完的那一步）里的查询位置和它们的计算，写下来的 KV 也跟着按位置分存 | 另外加卡，参与的总卡数变大 | 第一个字出来得太慢 |
-| DCP（decode context parallel） | 已经写进 KV cache 的历史位置 | 不加卡，借 TP 那一组卡 | 每张卡重复存了同一份 KV |
+这里分的是同一条请求的位置；[DP](data-parallel.md)主要把不同请求或样本分给不同执行组，[TP](tensor-parallel.md)主要分权重的通道。CP 可以和 TP 组合；单独使用 CP 的教学图中，各位置仍经过同一个模型的各层，权重没有因位置分片而少一部分。
 
-这是 vllm-ascend 这套实现的分法：PCP 扩执行设备的维度，DCP 复用 TP 的设备减少重复存储。别的 CP 算法不一定这么分。
-
-同样在位置这一维上动刀的还有[序列并行（SP）](sequence-parallel.md)，两者不是一回事：SP 切的是一层里逐 token 独立那几步的中间结果，算完马上拼回全长，不碰历史；CP 切的是历史本身，以及读它的那次 attention。
+在[一条请求的逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)里，prefill 是计算输入 prompt 的位置，decode 是继续生成新位置。训练或 prefill 可以分摊一批查询；普通逐 token decode 每条请求通常只有一个新查询，主要需要分摊它要读取的长历史。后文分别解释通用算法与 Ascend 的 PCP/DCP，避免把某个推理实现当成所有 CP 的定义。
 
 ## 为什么需要它，代价是什么？
 
-长请求同时带来两种压力：
+长序列增加了计算量和存储量。对于长度 T 的普通密集因果 attention，合法的查询—键组合有 T(T+1)/2 对，T 加倍时这部分工作量约增至四倍。线性投影、MLP 的位置数也增加，但它们按 T 线性增长。首次回答要等待这些前向步骤完成，瓶颈随模型和长度变化。
 
-- **第一步算得久。** 因果注意力里，位置 i 要和 0 到 i 的每个历史位置配一次，长度翻倍，prefill 要算的组合数大约翻四倍，第一个字的等待时间几乎全花在这里。往后每吐一个字只新算一个位置，计算量不大，可它仍要把那条长历史整个读一遍。
-- **历史存不下，还可能存了好几份。** 历史随长度线性增长；更麻烦的是张量并行（TP）在有些层切不开 KV——[MLA](mla.md) 只有一个 KV 头，TP 组里每张卡只能各存一份完全相同的历史。长请求把这份重复乘上了长度。
+每层的激活要存放，推理还要把算好的 K/V 留作后续生成使用，这叫 [KV cache](kv-cache.md)。有些 TP 布局还会复制相同 KV，例如 [MLA](mla.md) 把 K/V 压缩后缓存，采用逐卡复制布局时，这份历史就在各 TP 卡上重复保存。CP 可以分摊位置对应的计算和存储；单张卡不必长期持有整条序列的全部位置数据。
 
-CP 对着这两件事各出一招：PCP 加卡一起分算 prefill，DCP 不加卡、把重复的那几份拆成互不重叠的几段。
-
-代价也有两处，后面几节会具体看到：**卡之间要多传东西**（交换查询、交换局部结果，或者逐层把 KV 收集齐），以及**布局要对齐**（长度要补齐、每个位置要按规则落到某张卡、恢复原顺序还要另记一份下标）。请求不长、批不大时，这些固定开销可能比省下来的还多。
+代价是每层 attention 要取得远端位置的信息。可以收集 K/V、分块轮换 K/V，或先移动查询再合并局部输出；对应的峰值缓冲、通信次数和等待方式不同。使用等长分块时，长度不能整除就要补齐；重排位置还要保存恢复下标。短序列、小批次尤其要比较通信开销与节省的计算时间，才能判断收益。
 
 ## prefill 的位置怎么分才公平？
 
@@ -96,61 +158,191 @@ title: 长度 8 的因果序列，两种切法各分到多少
 头尾配对 · 卡 1（位置 2、3、4、5） = 3 + 4 + 5 + 6 = 18 对
 ```
 
+下面的 PCP 图先用等权算例看位置分工：每个能读到的位置都占 1 份。位置 7 读取 8 行，第 0 通道为 1、3、5、7、9、11、13、15，加起来是 64，再除以 8 份，得到平均值 8。权重不等时为什么也要除以权重总和，放在 Ring 之前单独讲；Ring、DCP 图使用那里两块权重不等的算例。
+
+```wiki-scene
+parallel-mechanism:2
+```
+
 ```wiki-diagram
 file: context-parallel-prefill
 ```
 
-PCP 用的就是后一种切法：先把这条请求的长度补齐到 2 × PCP 的整数倍，切成 2 × PCP 段，第一段配最后一段、第二段配倒数第二段，依此类推，每张卡拿到一头一尾两段，工作量就接近相等了。补齐了多少、怎么恢复原来的顺序，另外记一份下标，收集结果时按它还原。
+连续分配仍是正确算法。头尾配对改变的是负载分布：较早的查询需要读取的位置少，较晚的查询需要读取的位置多，两者放在一张卡上可以平衡这部分工作。上面的 18/18 统计的是合法组合数，实际内核还受分块、补齐、访存和通信影响，不意味着耗时严格相等。
 
-**分到哪些查询，不等于只读那一段历史。** 位置 7 仍然要看 0–6 的 K 和 V。切分改变的是「谁来算」，不是「能看见什么」；本地缺的历史靠卡间交换补上，因果掩码一个位置都没放宽。
+若同样 8 个位置分给 **4 张卡**，就得到“卡 0 为什么负责位置 7”的情形：卡 0 负责 0、7，卡 1 负责 1、6，卡 2 负责 2、5，卡 3 负责 3、4，每卡都是 9 对合法组合。连续分成 0～1、2～3、4～5、6～7 时，则分别是 3、7、11、15 对。卡号只是执行归属，序列位置仍保留原编号。
 
-## 历史位置怎么分着存？
+在 prefill 中，输入 prompt 的 token 已经全部给出，同一层各位置的 Q/K/V 可以从该层输入计算。位置 7 不需要等待位置 0 的本层 attention 输出；它需要的是本层位置 0～7 的 K/V。**位置 7 放在卡 0，仍然读取 0～7，不会读取未来位置。**通信提供远端 K/V，位置编号用于应用正确的因果掩码。
 
-写 KV cache 时不是「卡 0 存前半段、卡 1 存后半段」，而是按位置轮流放：第 0 个位置给第 0 张卡，第 1 个给第 1 张，轮完再回到第 0 张。轮换的粒度默认是 1 个位置。
+固定 Ascend 的 PCP 使用这种头尾分段：长度先补齐到 2 × PCP 的整数倍，分成 2 × PCP 段，第一段配最后一段，依此类推；收集时按恢复下标还原顺序。这个配对方式可以与不同的 attention 通信算法结合，CP 本身不要求所有实现都使用它。
 
-```wiki-diagram
-file: context-parallel
-```
+## 分开以后，attention 怎样拿到远端 K/V？
 
-这件事 PCP 和 DCP 一视同仁：参与分存的卡数是 PCP × DCP，两条路一起开时按这个乘积轮换。每张卡跑的是同一份[块表](block-table.md)、同一段代码，区别只在于一个位置该落在谁手里——这是算出来的：先把这几张卡的块拼成一个「虚拟块」（大小 = 块大小 × PCP × DCP），看这个位置落在虚拟块里的第几格，就知道它归谁、在本地的哪一格。不归本卡的位置，槽位号填 −1，这一步就跳过不写。
+仍用上面的两卡头尾布局：卡 0 负责查询 0、1、6、7，卡 1 负责查询 2、3、4、5，并先从本卡输入计算对应的 Q/K/V。以卡 0 的 Q₇ 为例，本地已有 K/V₀、₁、₆、₇，缺少 K/V₂、₃、₄、₅。
 
-粒度可以改粗，改成一次轮一整块。要把 KV 整块传给别的机器时（[PD 分离](pd-disaggregation.md)、KV 池），必须这么设，否则接收方对不上；GLM 这类稀疏模型的 CP 路径也要求粒度等于块大小。
+一种直接做法是 **[All-Gather](collective-communication.md#all-gather) K/V**：两卡交换自己的 K/V，按原始位置拼成完整集合，再分别计算本卡 Q 对允许位置的 attention。Q₇ 此时能够读取 0～7；Q₁ 虽然也拿到了后面的 K/V，因果掩码仍只允许它读取 0、1。算完后，卡 0 持有输出 0、1、6、7，卡 1 持有输出 2、3、4、5，输出继续交给这些位置的后续投影和 MLP。
 
-## 每张卡只有一段历史，结果怎么合成一份？
+这里完整 K/V 可以只是本层计算期间的临时缓冲，输出仍按位置分工。它容易理解，代价是通信完成前的等待和收齐 K/V 的峰值空间。另一种做法是分块到达、分块计算：Ring Attention 就采用这个思路。分块以后每次只读到一部分历史，所以先弄清一个问题：读回的内容为什么还要除以权重总和。
 
-每张卡照样能为同一个查询算出一个结果，只不过那是「只看本地这一段历史」的答案。问题在于：**这些局部结果不能直接相加，也不能直接平均。** attention 的 softmax 要除以所有参与位置的指数和，而各卡的分母里只有自己那一段，分量天然对不齐。
+## 为什么取回的内容还要除以权重总和？
 
-办法是每张卡交出局部结果时，顺带交出一个记录「我这一段占了多大分量」的数：把本地各位置的评分取指数加起来记作 Z，局部输出 O 就是按 Z 归一化后的加权和。为了数值稳定，实际保存的是 log Z，叫 log-sum-exp（LSE）。合并时先把各段的 LSE 并成全局的 L = log(Σ exp(Lᵣ))，也就是 log(Z₀ + Z₁)——不是把几个 L 相加；再用 exp(Lᵣ − L) 作权重，把各段的 O 加权相加。把指数展开就能看出，这个权重正好等于 Zᵣ ÷ (Z₀ + Z₁)：
+**attention 要得到的是“按相关程度混合后的一份内容”。** V 是历史位置提供的内容向量，Q 与 K 的匹配决定各行 V 在结果里占多大比例。输出仍是一行向量，随后进入本层输出投影、残差和后续层，更新当前 token 的表示；它不是把历史文字直接拼成一段回答。
 
-```calc
-title: 两段历史的局部结果怎么合成一份（数为示意，公式是真的）
-分区 0 的指数和 Z₀ = 2
-分区 1 的指数和 Z₁ = 6
-全局分母 = Z₀ + Z₁ = 2 + 6 = 8
-分区 0 的权重 exp(L₀ − L) = 2 ÷ 8 = ¼
-分区 1 的权重 exp(L₁ − L) = 6 ÷ 8 = ¾
-合并结果 O = ¼ × 10 + ¾ × 30 = 2.5 + 22.5 = 25
-> 两段的局部输出分别是 O₀ = 10、O₁ = 30。直接相加得 40、直接平均得 20，都不对。输出是向量时，每个分量用同一组权重
-```
+先只看一个通道：同一个查询读历史块 A，得到局部结果 **10**，权重合计 **2**；读历史块 B，得到局部结果 **30**，权重合计 **6**。这里的权重还没换成占比，B 应占 A 的三倍。下面把每个权重单位画成一格，看看除法前后有什么不同。
 
 ```wiki-diagram
 file: context-parallel-merge
 ```
 
-合并成立是有前提的：各段说的必须是同一个查询、同一个头，评分和掩码的定义一致，而且几段合起来正好覆盖这个查询该看的全部历史，不重不漏。实现上，各卡把局部输出和 LSE 拼成一份一起发：DCP 这一轴用 [All-to-All](collective-communication.md#all-to-all) 交换，PCP 这一轴再做一次 [All-Gather](collective-communication.md#all-gather)，然后按上面的公式更新。
+**除以 8，就是把“2 份 A 加 6 份 B”变成“¼ 份 A 加 ¾ 份 B”。** 图中 200 是带着全部权重累积的内容；25 才是按占比混合后的一份输出。两块各有 4 个位置，却不各占一半：决定占比的是权重，而不是位置数。这里权重和恰好为 8，换一组匹配评分就可能是别的数。
 
-上面这套「各算各的、再合并」说的是 **decode**（一次吐一个字）那一步：先在组内把查询的各个头收齐，各卡拿本地历史算出局部结果和 LSE，交换后合并，完整的 KV 自始至终没有在任何一张卡上出现过。
+直接算 **10 + 30 = 40**，等于两块各取一整份；直接平均 **(10 + 30) ÷ 2 = 20**，等于两块各取一半。两种做法都丢掉了图中的 **2∶6**。正确结果 **25** 更靠近权重较大的 B。
 
-**prefill 那一步，MLA 这一类后端（GLM 的稀疏 MLA 也在内）反过来，搬的是 KV 本身：**
+### 图中的 10、30 和权重 2、6 从哪里来？
 
-- PCP 的普通 prefill（不分块）各后端一样：逐层把这一层的 KV 收齐再算，用完立刻扔掉，不留着占显存；到了分块 prefill 才分路，MLA 后端收 KV，GQA 后端改成收查询；
-- DCP 碰上[分块 prefill](chunked-prefill.md) 时，MLA 后端先把上下文的 KV 收齐（稀疏那条路只收稀疏索引点到的那些块），收完直接算，既不收查询，也不做上面这套 LSE 合并；GQA 后端仍旧收查询、各算各的再合并，和 decode 那条路一样。
+匹配评分取指数后，得到大于零的**未归一化权重**；每个权重除以所有合法位置的权重总和，才得到总和为 1 的**占比**。这个“取指数，再除以总和”的过程就是 softmax。上图先把同一历史块的贡献合在一起，下面展开到每个位置。
 
-所以「CP 搬的是结果还是 KV」既要看这一步是 decode 还是 prefill，也要看用的是哪种 attention 后端，一句话概括不了。
+下面贯穿同一个两块历史的算例。只看位置 7 的查询 Q₇、一个 attention 头（独立的一套查询匹配与 V 汇合）、V 的一个通道；真实 V 有多个通道，对每个通道使用相同的占比。Q₇ 能读取全部 8 个位置。所有数字都是教学示意，不是词语的真实相关程度。
+
+| 历史块 | 原始位置 | 每个位置的未归一化权重 | V 的这个通道 |
+|---|---|---|---|
+| A | 0、1、6、7 | 0.5 | 4、8、12、16 |
+| B | 2、3、4、5 | 1.5 | 24、28、32、36 |
+
+**A 的四行各带 0.5，合计权重 2；B 的四行各带 1.5，合计权重 6。** 后面 3D 的“权重总份额”指这个权重和；“份”不是 token 数或通道数。
+
+可以先把各行 V 乘未归一化权重，再把它们加起来，最后统一除以总权重。这和先算每行占比再乘 V 完全等价，因为每一项的分母相同。图里的“内容总和”就是这个**还没除以总权重的加权和**：它是中间量，不是要交出去的上下文。
+
+```calc
+title: 从两块历史得到一份上下文：先加权，再除以全部权重（示意）
+A 的权重和 Z₀ = 4 × 0.5 = 2
+A 的加权内容 U₀ = 0.5 × (4 + 8 + 12 + 16) = 20
+A 单独读完的局部输出 O₀ = 20 ÷ 2 = 10
+B 的权重和 Z₁ = 4 × 1.5 = 6
+B 的加权内容 U₁ = 1.5 × (24 + 28 + 32 + 36) = 180
+B 单独读完的局部输出 O₁ = 180 ÷ 6 = 30
+完整输出 O = (20 + 180) ÷ (2 + 6) = 25
+按两块占比混合 O = ¼ × 10 + ¾ × 30 = 25
+> U 记加权内容之和，Z 记未归一化权重之和，O 记除法之后的输出；图中用中文表示同一组量
+```
+
+**为什么不能直接交出 200？** 它包含了 8 份权重的内容，除以 8 才得到按比例混合的一份。一个检验办法是把所有未归一化权重同时乘 2：两块的相对重要程度仍是 1∶3，加权内容却从 200 变成 400，总权重从 8 变成 16；400÷16 仍是 25。省掉除法，输出会仅因权重的共同尺度改变而翻倍。这里说的是把取指数后的权重一起缩放，不是把 QK 评分乘 2。
+
+表里的 0.5 和 1.5 就是匹配评分取指数后的值；示意故意取成好算的数，任何评分都按同样的方式变成权重。
+
+这也解释了 CP 为什么不能只保存一个局部平均值：只看到 10，不知道它对应多少权重，就无法决定新块到来后它还应占多少。逐块读取时要保留加权内容与权重和；跨卡合并局部输出时还要交换相应的归一化统计。下面看 Ring 怎样随通信逐块更新这两个量。
+
+想先看清这些量从哪里来，可以播放 [Attention 的逐行贡献与跨卡合并](attention-qkv.md#scene-inference-mechanism-0)：先算完整的八行，再把偶数、奇数位置分给两卡，核对仍得到同一行输出。该演示使用后文 DCP 的位置排列；这里 A、B 两块的加权平均关系相同。
+
+## Ring Attention 每一轮在交换和计算什么？
+
+```wiki-scene
+parallel-mechanism:4
+```
+
+**Ring Attention 让本卡 Q 留在原地，把不同位置的 K/V 块沿逻辑环传给相邻卡。** 每轮计算当前收到的一块，同时尽量发送本块并接收下一块；各块的计算贡献逐步合并。逻辑环是通信顺序，物理机器不必真的连成一个圆。
+
+```wiki-diagram
+file: context-parallel-ring
+```
+
+图中 A 是位置 0、1、6、7 的 K/V，B 是位置 2、3、4、5 的 K/V；块名不改变其中 token 的原始位置。两卡的完整前向可按三步理解：
+
+1. **先算本块。** 卡 0 的 Q 与 A 配对，卡 1 的 Q 与 B 配对；每个查询分别应用因果掩码，只累计合法位置的贡献。比如 Q₇ 在本轮只算了四个位置，还不是完整答案。
+2. **交换 K/V，再算另一块。** 卡 0 收到 B，卡 1 收到 A。Q 不换卡，已有累计值也留在本卡；新增贡献并入同一个查询的累计结果。Q₀ 对 B 没有任何合法位置，这个空贡献应跳过或按零权重处理。
+3. **全部合法位置覆盖后输出。** Q₇ 已读过 A 和 B，得到与完整 K/V 一次计算相同的 attention 结果；Q₀ 仍只取位置 0。输出保持在负责该查询的卡上，交给后续计算。
+
+一般 N 卡的概念流程是本地块加 N−1 个远端块，经历 N 轮块计算；若某个块中的位置全部在查询的未来，因果掩码会将该块完全遮住，实现可以跳过这部分无效计算。头尾配对负责平衡查询负载，Ring 负责组织 K/V 的传输与分块计算，两者是可以组合的不同选择。
+
+**累计时要同时维护归一化统计。** 后来的块会改变 softmax 的总分母，已经得到的局部输出也要随之重新加权。下一节把前面 Q₇ 的算例对应到两轮通信。Ring 不需要把完整 K/V 或整张注意力分数矩阵一次性存到每张卡，但会传输远端 K/V；只有块计算足够长、传输能够与其重叠时，通信等待才可能被大幅隐藏。它与使用 ring 拓扑实现的 All-Gather 也不等同：关键区别是边收到块边完成 attention、维护累计结果，而非仅把完整数据收齐。
+
+## 每张卡只有一段历史，结果怎么合成一份？
+
+沿用[为什么要除以权重总和](#为什么取回的内容还要除以权重总和)里的 Q₇ 算例：A 的局部输出为 10、权重和为 2，B 的局部输出为 30、权重和为 6。完整结果为 25。下面把同一计算放回两张卡的通信过程；多个 attention 头分别完成各自的合并。
+
+在 Ring 的两轮中，Q₇ 先看 A 时累计 U=20、Z=2，暂时输出为 10；B 到来后累计 U=200、Z=8，完整输出变成 25。若让两张卡各自计算一个块，也可以把各自的局部输出与归一化统计送到一起，按同样数学关系合并。前者移动 K/V，后者移动局部结果，通信对象不同。
+
+实际评分可能很大，直接计算 exp 会溢出。常用两种等价的稳定表示：
+
+- **在线累计最大值、分母、分子。** 维护已处理评分的最大值 m、按 exp(s−m) 缩放的分母 ℓ 和分子 u。新块使最大值变成 m′ 时，旧 ℓ、u 都先乘 exp(m−m′)，再加入新块按 m′ 缩放的贡献，最终输出 u/ℓ。旧贡献因此与新贡献保持同一尺度。
+- **局部输出加 LSE。** LSE 是 log-sum-exp，即 Lᵣ=log Zᵣ。先算全局 L=log(Σ exp(Lᵣ))，再用 exp(Lᵣ−L) 给局部输出 Oᵣ 加权。例子中 L₀=log2、L₁=log6，权重就是 1/4、3/4；LSE 本身不能直接相加。
+
+合并的前提是同一个查询、同一个头、同样的评分和掩码，所有分区覆盖它应读取的全部位置且不重不漏。完全被掩码挡住的块贡献为零；并行实现可能改变浮点相加顺序，数学等价不要求浮点结果逐位相同。
+
+## Ulysses 怎样把位置分工换成头分工？
+
+多个 attention 头分别计算，最后把输出通道拼在一起。**Ulysses 用 [All-to-All](collective-communication.md#all-to-all) 交换“由谁负责哪些位置、哪些头”**，让每张卡在 attention 内部拥有完整序列的一部分头，算完再恢复位置分片。All-to-All 表示每卡把不同的数据块分别发给它们对应的目标卡。
+
+为看清交换维度，回到 8 个位置连续分半的布局，并设 4 个普通多头 attention 头、每头 d 个数（示意）。卡 0 最初持有位置 0～3 的全部 4 个头，卡 1 持有位置 4～7 的全部 4 个头，各卡 Q/K/V 的形状都是 [4, 4, d]，三维依次为位置、头、头内通道。
+
+```wiki-diagram
+file: context-parallel-ulysses
+```
+
+交换时，卡 0 把本地位置的头 2、3 发给卡 1，卡 1 把本地位置的头 0、1 发给卡 0，本来就归自己负责的头留在本卡。交换后，卡 0 有全部 8 个位置的头 0、1，卡 1 有全部 8 个位置的头 2、3：每卡形状变成 [8, 2, d]，数据量没有因交换翻倍。
+
+现在每卡能独立完成自己两个头的完整 attention，并按原始位置应用因果掩码。输出再做一次反向的 All-to-All：卡 0 收回位置 0～3 的头 2、3，卡 1 收回位置 4～7 的头 0、1，恢复 [4, 4, d] 的位置分片，继续本卡这些位置的后续计算。交换的是激活，不需要在这里移动模型权重。
+
+基本的均分方案要求头数能被并行度整除；GQA 的多个 Q 头共享较少的 KV 头，实际实现还可能受到 KV 头数约束。Ring 按 K/V 位置块轮换，Ulysses 按头重排，两者也能在不同子组组合；Megatron 的层次 CP 就提供组内 All-to-All、组间 Ring 的方式。具体约束取决于后端及 TP 分片，不能只看序列长度选卡数。
+
+## CP、SP 和 chunked prefill 分别改变什么？
+
+同样出现“分成几段”，对应的执行含义不同：
+
+| 机制 | 分工发生在哪里 | attention 如何保持完整 |
+|---|---|---|
+| Megatron SP | TP 组内归一化、残差等区域按 token 行分工 | 在对应 TP 投影前恢复组内行集合；可另外叠加 CP |
+| CP | 同一序列的位置计算或历史存储分给不同设备 | 交换 K/V、重排头/位置，或合并带归一化统计的结果 |
+| chunked prefill | 调度器把 prompt 拆到多次执行迭代 | 后续块仍读取前面块已经留下的 KV cache |
+
+[chunked prefill](chunked-prefill.md)主要改变“这一轮处理多少输入”，不自动增加参与同一请求的卡数；CP 改变多张卡如何合作处理位置。两者可以组合：调度器先选本轮要算的 prompt 块，执行时再做 CP 分工，并处理之前轮次留下的历史。SP 与 CP 的组内/组间布局例子见 [SP 页](sequence-parallel.md#spcpulysses-是什么关系)。
+
+## Ascend 的 PCP 与 DCP 分别走哪条计算路径？
+
+以下落到本库固定的旧 GLM 执行侧实现。PCP（prefill context parallel）增加执行设备的一个并行维度，分担 prefill 查询；该实现的 DCP（decode context parallel）复用 TP 组已有设备，把重复的 KV 历史分存，供 decode 等路径联合读取。后续版本的 DCP 还可包含 PCP 维度，下文单独比较；不要把这一段的 TP 内分组规则套到所有版本。
+
+| 这一轮在做什么 | 主要交换什么 | 后续怎么计算 |
+|---|---|---|
+| PCP 普通、非分块 prefill | 本层 K/V 的 All-Gather | 本卡 Q 读取收齐的 K/V；临时缓冲用完释放 |
+| 分块 prefill，GQA 后端 | 按头收齐 Q；交换局部输出与 LSE | 各卡读取本地历史，按全局归一化合并 |
+| 分块 prefill，MLA 后端 | 上下文 K/V；稀疏路径只取所选块 | 收到 K/V 后计算，不走本表的 Q 收集与 O/LSE 合并路径 |
+| decode 的局部历史路径 | 按头收齐 Q；交换局部输出与 LSE | 本地历史算部分 attention，再合并同一查询/头的结果 |
+
+MLA 是把 K/V 压缩后缓存的 attention 形式，见 [MLA](mla.md)；GQA 是多个 Q 头共享一组 K/V 头，见 [GQA](gqa.md)。同样叫 CP，搬动 K/V 还是局部结果，取决于执行阶段和后端。
+
+```wiki-diagram
+file: context-parallel-paths
+```
+
+走局部结果路径时，固定实现把 O 和 LSE 拼在一起：DCP 轴做 All-to-All，PCP 轴再按需 All-Gather，然后按[局部结果合并公式](#每张卡只有一段历史结果怎么合成一份)更新。下面的 3D 对应这个“查询读取分存历史、合并输出”的路径，图里的局部结果和 LSE 应一起理解。
+
+下面另取一组**两卡交错分存的四通道示意数据**，沿用前例的首通道局部结果 10、30 和归一化量 2、6。偶数位置 0、2、4、6 的 V 首通道为 4、8、12、16，奇数位置 1、3、5、7 为 24、28、32、36；它与前面 Ring 的位置分组及位置对应数值不同。若首通道为 v，整行 V 取 `[v,40−v,v/2,20−v/2]`。同一个 Q=`[2,0,0,0]` 读取两卡的 K：偶数行取 `[ln(0.5),0,1,−1]`，奇数行取 `[ln(1.5),0,1,−1]`，因此 Q·K/√4 的指数分别为 0.5、1.5，四行累计得到 Z₀=2、Z₁=6。
+
+图中 K 第一通道近似显示为 −0.69、0.41，计算仍使用 ln(0.5)、ln(1.5) 的精确值。本例刻意令 Q 后三项为 0，所以评分只由 K 第一通道决定；K 中的 0、1、−1 是另外三个通道的示意值，不是位置编号。卡 0、卡 1 的局部 O 分别为 `[10,30,5,15]`、`[30,10,15,5]`。四列共用分区权重 ¼、¾，逐列合并得到 `[25,15,12.5,7.5]`。图中 O 后面单独一格的 Z 是 exp(LSE)，用于看清归一化量，不是第五个输出通道；实际交换的是 O 与 LSE。
+
+```wiki-scene
+parallel-mechanism:3
+```
+
+该固定 Ascend 设计选择了收集/交换与合并方案，评估后没有采用 Ring Attention；文档给出的理由是开发复杂度与预期重叠收益。这是该实现的取舍，不能据此断言 Ring 对其他模型、硬件或长序列训练无效。
+
+## 历史位置怎么分着存？
+
+**输入位置由谁计算，与计算出的 K/V 最终存到哪里，是两套布局。** 前面的头尾配对分配 prefill 的查询；固定 Ascend 的 CP 缓存按位置交错存放，轮换粒度默认是 1。以下只展示 DCP=2、粒度=1 的教学布局：卡 0 存位置 0、2、4、6，卡 1 存 1、3、5、7。
+
+```wiki-diagram
+file: context-parallel
+```
+
+在上述固定旧实现中，PCP 与 DCP 一起开时，参与分存的组大小为 PCP × DCP。实现使用[块表](block-table.md)将逻辑位置映射到本地槽位：把这些卡的本地块视为一个“虚拟块”，大小为本地块大小 × PCP × DCP，再根据轮换粒度确定持有者和本地偏移。不归本卡的位置，槽位填 −1，本卡跳过写入；此前取得 K/V 的计算路径要保证持有者能写入自己的部分。
+
+**升级后的关键变化是：DCP 的组大小可能已经包含 PCP，不能再乘一次。** 例如下面版本差异中的 rc2 支持特定稀疏后端取 TP2、PCP2、DCP4；设备总数为 2×2=4，DCP 使用这 4 个已有设备。假设每个本地块装 16 个位置（示意），虚拟块是 16×4=64 个位置；再乘 PCP2 得到 128 就重复计数了。究竟哪些 rank 属于同一个缓存组，应读该版本实际建组与块表，不能从两个参数的名字推断。
+
+粒度也可以增大为一整块。需要整块传输 KV 的场景，如 [PD 分离](pd-disaggregation.md)和 KV 池，要按相应传输要求设置；固定版本的稀疏 CP 路径也要求粒度等于块大小。实际 [GLM 部署的 CP 开关与支持条件](#放到-glm-双机这套部署开了-cp-吗)与本图的教学布局分别说明。
 
 ## 复用 TP 的卡，为什么还要建通信组？
 
-DCP 借的是 TP 已有的卡，参与的总卡数不变，但仍然要照常建一个通信组：一个 TP 组被拆成若干个 DCP 组，交换局部结果走的就是这个组。所以「复用 TP 的卡」不等于「不用建通信组」。TP 里的第几张卡、DCP 里的第几张卡、物理上的第几张卡，也是三个不同的下标，读日志和配置时不能混着看。
+旧实现的 DCP 借的是 TP 已有的卡，参与的总卡数不变，但仍然要照常建一个通信组：一个 TP 组被拆成若干个 DCP 组，交换局部结果走的就是这个组。新版跨 PCP/TP 建组也同理：复用设备不等于省掉通信组。TP 里的第几张卡、DCP 里的第几张卡、物理上的第几张卡，也是三个不同的下标，读日志和配置时不能混着看。
 
 还有一点常被想当然：**不能把一张卡上的所有缓存统一除以 DCP 的卡数。** 按位置切的只是那部分随长度增长的历史；稀疏路径的索引状态、别的 attention 形式的状态（比如 [KDA](linear-attention.md) 那种固定大小的递推状态）以及临时缓冲，各有各的复制或分片方式，有的反而是每张卡各留一整份。
 
@@ -176,34 +368,37 @@ title: 照「主 KV 分片、索引复制」的布局把 DCP 开到 8 能省多�
 在固定版本上真要开 CP，会先撞上三道门：
 
 - **PCP 这条路对 GLM 是关着的。** 34 层 KDA 的 prefill 在 PCP 大于 1 时直接抛 NotImplementedError。别的模型能用 PCP，不等于这个混合模型能用。
-- **DCP 这条路，平台层放行了，模型这一层还没实现。** 平台校验按配置认出这是稀疏模型（有 index_topk、没有 compress_ratios），在 PCP = 1、DCP > 1 时切到「主 KV 分片、索引复制」的布局，要求 DCP 等于 TP、轮换粒度等于块大小（粒度配错会被就地改成块大小，只留一条 warning）。但那套布局是给另一族稀疏 attention 后端写的；GLM 用的 kpool 索引器（把相邻位置的索引键压成一条再挑，见[稀疏 attention](sparse-attention.md)）在固定版本的模型、attention 后端、算子三处实现里都没有出现 PCP/DCP 的处理，main 上更是直接抛 NotImplementedError，信息写明 KPool 索引不支持 PCP 或 DCP。
+- **DCP 这条路，平台层放行不等于模型接上了实现。** 平台校验按配置认出这是稀疏模型（有 index_topk、没有 compress_ratios），在 PCP = 1、DCP > 1 时要求 DCP 等于 TP、轮换粒度等于块大小（粒度配错会被就地改成块大小，只留一条 warning）。普通 SFA 后端会据此选择「主 KV 分片、索引复制」的 DCP builder 和实现；GLM 用的 KPool 后端却固定选择自己的普通 builder 和实现，绕过这次选择。它继承的 DCP 查询／KV 收集钩子是空操作，稀疏 attention 调用也设 `return_lse=False`，没有接上前文所述的局部输出与 LSE 合并路径。这里的 KPool 把相邻位置的索引键压成一条再挑，见[稀疏 attention](sparse-attention.md)。main 上则直接抛 NotImplementedError，明确拒绝 KPool 的 PCP 或 DCP；不能只满足平台参数就把旧路径当作可用的 DCP。
 - **开着[前缀缓存](prefix-caching.md)时，上游还有一道。** KV cache 分成多组（GLM 正是稀疏 MLA 与 KDA 两类）时用的那个协调器，要求 DCP、PCP 都是 1。
 
 所以 GLM 的双机主线继续用[官方的 TP/DP 配置](../sources/glm-5-3-flash-baseline.md)，本库不把没验证过的 CP 组合写进部署命令；真要开，上面三条得逐条核过。
 
 ## 常见误解
 
-- **「CP 就是 SP，换个说法而已。」** SP 切的是一层里逐 token 独立那几步的中间结果，算完立刻拼回全长；CP 切的是历史本身和读它的那次 attention，每张卡长期只持有一部分。
+- **「所有叫 SP 的方法都和 CP 相同。」** Megatron SP 的重点是 TP 组内部分激活的分片；Ulysses 也使用 SP 名称，却重排整个 attention 的位置/头布局。判断时要看具体方法；Megatron SP 可以与 CP 组合。
 - **「开了 DCP，attention 每一步都要先把 KV 凑齐。」** decode 那一步不用，凑的是局部结果和 LSE；但 MLA 后端的分块 prefill 确实要把上下文的 KV 收齐（稀疏那条路只收被挑中的块）。反过来记成「DCP 永远不搬 KV」同样不对。
 - **「局部结果加起来或者平均一下就行。」** 各段的 softmax 分母不同，必须按 LSE 换算权重；上面那个例子的答案是 25，不是 40 也不是 20。
 - **「DCP 复用 TP 的卡，所以不用建通信组。」** 组照建，只是不新增卡；TP rank、DCP rank 和物理卡号是三个下标。
 - **「开了 DCP，每张卡的显存就除以 DCP。」** 只有按位置切的那部分历史会除；索引状态、递推状态和临时缓冲各有各的算法，有的每张卡各留一整份。
 - **「分到哪些查询，就只读哪一段历史。」** 位置越靠后要看的历史越多，本地缺的靠交换补齐，可见范围和不切时一模一样。
+- **「卡 0 必须处理最前面一段，才能让后面的卡开始算。」** prefill 的 token 输入已知，各卡从本层输入计算 Q/K/V；attention 依赖远端 K/V，不要求按物理卡顺序依次完成本层输出。头尾配对是分配负载，原始位置与因果掩码保持不变。
+- **「CP 就是 Ring，或者必须头尾配对。」** 分配位置与传输数据是两个选择；连续分配、头尾配对都可成立，Ring、All-Gather、All-to-All 等也有不同适用条件。
+- **「chunked prefill 就是把序列分给多张卡。」** 它先改变调度轮次内的输入量；设备如何合作由 TP、CP 等执行机制决定。
 
 ## 对照源码
 
 ### 怎么开
 
-两个开关分别管两条路：`--prefill-context-parallel-size`（PCP）和 `--decode-context-parallel-size`（DCP），上游默认都是 1 [C15][C16]；轮换粒度是 `--cp-kv-cache-interleave-size`，默认同样是 1。PCP 要额外的卡：参与的总卡数按 pipeline × tensor × pcp 算 [C17]。DCP 不改总卡数，只把一个 TP 组拆成 tp ÷ dcp 个 DCP 组，所以 dcp 不能超过 tp，而且要能整除 [C7]。
+两个开关分别管两条路：`--prefill-context-parallel-size`（PCP）和 `--decode-context-parallel-size`（DCP），上游默认都是 1 [C15][C16]；轮换粒度是 `--cp-kv-cache-interleave-size`，默认同样是 1。PCP 要额外的卡：一个 DP 执行组的设备数按 pipeline × tensor × pcp 算 [C17]。以下两段是固定旧实现的配置约束：DCP 不改总卡数，只把一个 TP 组拆成 tp ÷ dcp 个 DCP 组，所以 dcp 不能超过 tp，而且要能整除 [C7]；rc2 的组合约束按下方「版本差异」选择，不能同时套用。
 
-DCP 的上限按 attention 形式分 [S13]：MLA 类要求 tp ≥ dcp 且 tp % dcp == 0；GQA 类把 tp 换成 tp ÷ kv 头数，再套同样两条。稀疏路径另有一套：dcp == tp，而且轮换粒度要等于块大小 [S23]。要做 KV 传输（PD 分离、KV 池）时，粒度同样必须等于块大小。
+DCP 的上限按 attention 形式分：MLA 类要求 tp ≥ dcp 且 tp % dcp == 0；GQA 类把 tp 换成 tp ÷ kv 头数，再套同样两条，依据是下文官方 CP 用户指南的约束与实测说明。稀疏路径另有一套：dcp == tp，而且轮换粒度要等于块大小 [S23]。要做 KV 传输（PD 分离、KV 池）时，粒度同样必须等于块大小。
 
 ### 会报什么错
 
 - **PCP 与 DP 同开**：固定版本在 dp > 1 且 pcp > 1 时抛错，信息写明 PCP 和 DP 不能一起用 [C14]。
 - **GLM 的 KDA prefill 遇上 PCP**：抛 NotImplementedError，信息是 `Kimi KDA prefill does not yet support PCP.`。
-- **稀疏路径的 DCP 不等于 TP**：抛 ValueError，信息写明只支持 dcp_size 等于 tp_size [C10]。
-- **轮换粒度和块大小不一致**：稀疏路径下不报错，只打一条 warning，随后把粒度就地改成块大小 `[!]`——不翻日志就看不出配置被换过。
+- **稀疏路径的 DCP 不等于 TP**：抛 AssertionError，信息写明只支持 dcp_size 等于 tp_size [C10]。
+- **轮换粒度和块大小不一致**：稀疏路径下不报错，只打一条 warning，随后把粒度就地改成块大小；日志可用来核对最终生效的配置。
 - **开着前缀缓存的混合模型**：上游协调器里有 `assert dcp_world_size == 1, "DCP not support hybrid attn now."`，PCP 同样一条；这个协调器只在开前缀缓存、且 KV cache 分成多组时才用 [C11][C12]。
 - **main 上给 GLM 开 CP**：KPool 索引直接抛 `NotImplementedError("GLM-Next KPool indexing does not support PCP or DCP.")` [C25]。
 - **投机解码的草稿模型加 DCP**：另有一组按草稿模型的 TP 和 KV 头数算出的上限，见 [Ascend 平台校验](npu-platform.md)。
@@ -211,23 +406,38 @@ DCP 的上限按 attention 形式分 [S13]：MLA 类要求 tp ≥ dcp 且 tp % d
 ### 开销和什么时候别开
 
 - **短请求别开。** [示例请求 R1](one-request.md) 一步只有 4 个 token，历史才十几个块，切开省不下什么，补齐和交换的固定开销反而更显眼。
-- **PCP 的代价是加卡和逐层收集。** 非分块 prefill 每层做一次 KV 的 All-Gather，用完即扔；[分块 prefill](chunked-prefill.md) 在 GQA 后端改成收集 Q，在 MLA 后端收集 KV 并分段处理，以免峰值显存过高 [S24]。
-- **收益主要在第一个字。** 官方在 DeepSeek-R1-W8A8、64 卡 PD 分离环境下测过 128K 输入：PCP2 + DCP8 把 TTFT 从 73.2 秒降到 46.0 秒，每字时延 82 毫秒对 83 毫秒，基本没变 [S13]。这是官方在别的模型上的数，不是本部署的结果。
+- **PCP 的代价是加卡和逐层收集。** 非分块 prefill 每层做一次 KV 的 All-Gather，用完即扔；[分块 prefill](chunked-prefill.md) 在 GQA 后端改成收集 Q，在 MLA 后端收集 KV 并分段处理，以免峰值显存过高。该分路与下文 Ring 的取舍均来自同一份固定 Ascend 设计说明。
+- **官方这组实验改的是 Prefill 端。** 在 DeepSeek-R1-W8A8、64 卡 A3、PD 分离和 128K 输入条件下，P 端从 `(DP2/TP8/EP16)×2` 改成 `(PCP2/TP8/DCP8/EP16)×2`，D 端均为 `(DP32/EP32)×1`。TTFT 从 73.2 秒降到 46.0 秒，每字时延为 82 毫秒和 83 毫秒 [S13]。这说明该配置对照主要改善首字时间；它既不是本部署的实测，也不能证明改变 D 端 DCP 后每字时延仍不变。
 - **DCP 的代价是交换和合并，prefill 那一侧还要收 KV。** decode 路上先按头维收集 Q，各卡用本地历史算出局部输出和 LSE，再交换、合并 [C6]；分块 prefill 上，MLA 后端改为收齐上下文 KV，稀疏路径只把稀疏块表点到的块收过来，不收 Q、也不做 LSE 合并，GQA 后端则仍走收 Q 那条 [S22]。省的是重复的 KV，付的是每步多几次通信和一次合并。
-- **Ring Attention 没有采用。** 设计文档写明是评估后的取舍：开发复杂度高、重叠收益有限 [S24]。
+- **固定 Ascend 设计没有采用 Ring Attention。** 设计文档说明这是开发复杂度与预期重叠收益的取舍；不代表所有 CP 后端都如此 [S24]。
 
 ### 版本差异
+
+**v0.30.0rc2：先区分执行器、后端与模型。** 以下采用[固定 rc2 基线](../sources/v030rc2-baseline.md)。rc2 设计文档写着“PCP 不支持”，但同一提交的平台代码只在没有启用 Model Runner V2 时拒绝 PCP；V2 已有 PCP 管理器。它仍拒绝 encoder-decoder、多模态输入和 LoRA，投机方法限 MTP、Eagle3、DSpark；PCP 配 DP 或稀疏 MLA 时只允许 eager 或 FULL_DECODE_ONLY。故这份设计说明不能作为“rc2 所有执行器都不支持 PCP”的证据。
+
+| 对照项 | v0.30.0rc2 的行为 | 对使用者意味着什么 |
+|---|---|---|
+| PCP 与 DCP 的组合 | SFA 复制索引路径允许 DCP=PCP 或 DCP=TP×PCP；GQA/MQA 同时开启两者时要求 PCP=DCP | 旧版本只在 TP 内拆 DCP 的拓扑说明不能覆盖 rc2 的全部组合 |
+| 缓存交错布局 | 虚拟块按 block_size×DCP 计，不再把 PCP 额外乘入；轮换粒度须整除块大小 | PCP 的计算分工和 DCP 的缓存持有者要分别追踪，不能照抄前文固定实现的 PCP×DCP 槽位公式 |
+| 后端结构 | DCP 的公共 metadata/通信能力通过 mixin 复用 V1 后端；GQA、MLA、SFA 只覆盖有差异的阶段 | 同时查普通后端与 DCP 专用实现，不能只读 context_parallel 目录 |
+| SFA 与硬件 | 复制索引保留完整索引缓存，主 SFA KV 分片；C8 组合还检查硬件能力 | 索引缓存、主 KV 和临时通信缓冲不能统一除以 DCP 大小 |
+| GLM-5.3-Flash KPool | KPool 后端仍明确拒绝 PCP>1 或 DCP>1 | 通用 PCP/DCP 能力不等于本站 GLM 模型可以开 CP；旧双机算例继续按 PCP=DCP=1 解释 |
+| GLM 的实验性 DSA-CP | 只分担 SFA 查询位置；主 KV、索引池和尾缓存仍复制，KDA 沿用 TP，并保持 PCP=DCP=1 | 这是独立的 SFA-only 路径，不能把它写成 PCP 或 DCP 已支持 GLM，也不能用它宣称 KV 按 DCP 缩小 |
+
+以上分别核对 rc2 的 platform.py、V2 pcp_manager.py、block_table.py、common_cp.py 和 indexer_kpool.py。旧版与固定 GLM 镜像的行为继续见下表；rc2 不替换它们的来源与实测条件。
 
 | 项 | v0.23 维护分支 | 固定版本（含 GLM 代码） | v0.26 | main |
 |---|---|---|---|---|
 | 开关函数 | `enable_cp()`，一个管两件事 [C18] | 同 v0.23 | 只剩 `enable_dcp()` | `enable_dcp()` 与 `enable_pcp()` 分开 [C20] |
-| PCP 什么时候被拦 | dp > 1 时才拦 | 同 v0.23 | 不在 V2 模型执行器上就抛错，信息写死「not supported by vLLM Ascend」[C19] `[!]` | 同一条判定还在 [C21] |
+| PCP 什么时候被拦 | dp > 1 时才拦 | 同 v0.23 | 不在 V2 模型执行器上就抛错，信息写死「not supported by vLLM Ascend」[C19] | 同一条判定还在 [C21] |
 | KDA prefill 遇上 PCP | 分支里没有 GLM 代码 | 抛 NotImplementedError [C8] | 同左 | 这条检查已经不在，PCP 改由 kpool 索引和平台层拦下 |
-| 稀疏路径的 DCP 怎么判定 | 无 | 稀疏、DCP > 1 且 PCP = 1 [C9] | 去掉 PCP = 1 这一条，只看「稀疏且 DCP > 1」[C26] | 同 v0.26 [C28] |
-| 稀疏路径的 DCP 能取哪些值 | 无 | dcp == tp | 同左；走复制索引时不再强制粒度 = 块大小 [C27] | dcp 可取 pcp，或 tp × pcp [C29] |
-| GLM 的 kpool 索引器 | 无 | 模型、后端、算子三处都没有 CP 处理 | 分支里没有 GLM 代码 | 直接拒绝 PCP 与 DCP |
+| 稀疏路径的 DCP 怎么判定 | 稀疏、DCP > 1 且 PCP = 1 [C50] | 同 v0.23 [C9] | 去掉 PCP = 1 这一条，只看「稀疏且 DCP > 1」[C26] | 同 v0.26 [C28] |
+| 稀疏路径的 DCP 能取哪些值 | dcp == tp，并要求粒度 = 块大小 [C51] | 同 v0.23 | 同左；走复制索引时不再强制粒度 = 块大小 [C27] | dcp 可取 pcp，或 tp × pcp [C29] |
+| GLM 的 kpool 索引器 | 无 | 专用后端固定选普通实现，没有接入 SFA 的 PCP/DCP 后端选择；独立 DSA-CP 功能则被显式拒绝 | 分支里没有 GLM 代码 | 直接拒绝 PCP 与 DCP |
 
-照着一个版本的文档去配另一个版本，大概率出错：同一条命令在 v0.23 上能跑，到 v0.26 得先切到 V2 模型执行器。
+表中的 main 指 sources 钉住的提交，不代表持续变化的分支最新状态。跨版本配置需要同时核对执行器、模型和 attention 后端；满足一条平台条件，不等于整个组合已经受支持。
+
+固定版本的 `enable_dsa_cp` 是独立的 `additional_config` 开关，并要求 SP；它不是由 PCP/DCP 的大小自动开启。旧 KPool 构造函数对该功能抛错，不能把这条错误当成普通 DCP 参数的直接校验。rc2 的 GLM 实验性 DSA-CP 是后续另一条实现路径，条件见上表。
 
 ### 源码位置
 
@@ -242,13 +452,22 @@ DCP 的上限按 attention 形式分 [S13]：MLA 类要求 tp ≥ dcp 且 tp % d
 | 参数默认值与总卡数公式 | 上游 `vllm/config/parallel.py` |
 | GLM 稀疏路径的 DCP 判定与平台校验 | `vllm_ascend/utils.py`、`vllm_ascend/platform.py` |
 | KDA prefill 拒绝 PCP | `vllm_ascend/ops/kimi_kda.py` |
-| GLM kpool 索引器与 CP | 固定版本的 `models/glm5_next.py`、`attention/indexer_kpool_mla_v1.py`、`ops/indexer_kpool_mla.py` 里没有 CP 处理；main 的 `attention/indexer_kpool.py` 明确拒绝 |
+| GLM KPool 索引器与 CP | 固定版本 `indexer_kpool_mla_v1.py` 的后端选择和稀疏调用，对照 `sfa_v1.py` 的 CP 分派及空收集钩子；main 的 `indexer_kpool.py` 明确拒绝 |
 | 混合 KV cache 协调器的限制 | 上游 `vllm/v1/core/kv_cache_coordinator.py` |
 | 三个版本的开关函数 | `vllm_ascend/attention/utils.py` |
+| 通用 CP 与 Megatron SP 的边界、组合方式 | Megatron Core 的 Context Parallel 说明 |
+| Ring 的本地 Q、K/V 轮换、在线累计与重叠条件 | Ring Attention 论文 §3、图 2 和算法附录 |
+| Ulysses 的位置/头 All-to-All、逆向交换 | Ulysses 论文图 2 及方法节 |
 
 正文里几条不是直接读一处源码得到的，出处如下：
 
+- 通用 CP 定义与 SP/TP 组合来自 Megatron Core 官方说明（来源 31）；Ring 和 Ulysses 分别依据原论文的算法与图（来源 32、33），层次组合依据 Megatron Bridge 文档（来源 34）。
+- 两卡 10/26 对比 18/18、四卡 3/7/11/15 对比 9/9/9/9，按普通密集因果掩码数合法查询—键组合；Q₇ 的小数值例子、U/Z 与 LSE 关系是数学推导，不是模型实测。
+- 位置分工、K/V 缓存布局、分块 attention 的通信对象是不同层次；固定 Ascend 的头尾位置与恢复下标见 `pcp_utils.py`，缓存持有者见 `block_table.py`，局部 O/LSE 合并见 `common_cp.py`。各版本能力按上表固定提交区分，不能由单个类存在推断整套组合已验证。
+- 固定 KPool 后端没有接入普通 SFA 的 CP 分派，依据后端选择、继承的空 DCP 收集钩子和 `return_lse=False` 的稀疏调用，见来源 46–49。
 - 本部署 PCP = DCP = 1：启动命令没有传这两个参数，上游默认值为 1，起卡时按 pcp=1、dcp=1 建组，总卡数等于 TP 的 8 张 [D]。
 - 每 token 每卡 13,056 B、满长请求 1.619 GiB：取自 [KV cache](kv-cache.md) 与[部署页](glm-5-3-flash-two-node.md)已经推导过的账，本页只引用。
 - 「DCP 开到 8」那一段的字节数：按「主 KV 按位置分片、索引每卡各留一份」的布局从 13,056 B 推出，本模型没有这份实现，也没有实测 [D]。
 - 待核：kpool 尾状态、KDA 递推状态在 DCP 下怎么放，钉住版本里没有对应代码可核；本部署没有 CP 的时延与吞吐实测数。
+
+固定 Ascend CP 设计说明（来源 1，db701c1f 的第 13–20 行）还明确了阶段边界：PCP 按位置分开保存 KV cache，因此也影响 decode；DCP 除 decode 外，也影响分块 prefill 和复用已有缓存的 prefill。PCP、DCP 的名字表示各自的主要目标，不表示只在名字对应的阶段生效。

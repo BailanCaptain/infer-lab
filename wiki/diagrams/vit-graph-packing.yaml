@@ -1,0 +1,26 @@
+layout: figure
+id: vit-graph-packing
+caption: 单路径视觉编码的容量示意。已录128、256、512三档，每个子批最多两项；先按输出位置数分组，再选能容纳该组的最小档。输出复制后恢复原输入顺序，排序不改变图片与文字的对应关系。数值不是GLM实测。
+size: [860, 610]
+texts:
+  - { at: [30, 28], text: 原输入顺序：A → B → C, strong: true, size: 16 }
+  - { at: [30, 562], text: 单项超过512档 → eager直接执行；帧元数据容量另查, note: true }
+items:
+  - { at: [30, 50], size: [250, 65], text: 图片 A, sub: 输出192个位置, tone: token }
+  - { at: [305, 50], size: [250, 65], text: 图片 B, sub: 输出96个位置, tone: token }
+  - { at: [580, 50], size: [250, 65], text: 图片 C, sub: 输出160个位置, tone: token }
+  - { at: [180, 160], size: [500, 65], text: 从小到大：B → C → A, sub: 同时检查总token容量与每批最多两项, tone: control }
+  - { at: [60, 280], size: [340, 85], text: 子批 B + C → 256档, sub: 96 + 160 = 256个有效位置, tone: weight }
+  - { at: [460, 280], size: [340, 85], text: 子批 A → 256档, sub: 192个有效位置，余量64, tone: weight }
+  - { at: [180, 415], size: [500, 65], text: 拆出有效结果并复制，再恢复A → B → C, sub: 交到语言模型对应的媒体位置, tone: kv }
+links:
+  - { from: [155, 115], via: [[155, 138], [300, 138]], to: [300, 160] }
+  - { from: [430, 115], to: [430, 160] }
+  - { from: [705, 115], via: [[705, 138], [560, 138]], to: [560, 160] }
+  - { from: [300, 225], via: [[300, 250], [230, 250]], to: [230, 280] }
+  - { from: [560, 225], via: [[560, 250], [630, 250]], to: [630, 280] }
+  - { from: [230, 365], via: [[230, 392], [300, 392]], to: [300, 415] }
+  - { from: [630, 365], via: [[630, 392], [560, 392]], to: [560, 415] }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/worker/encoder_cudagraph.py#L320-L442
+    symbols: [_execute_local]

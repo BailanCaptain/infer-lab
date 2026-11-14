@@ -1,6 +1,6 @@
 layout: scene
 id: enable-matmul-allreduce
-caption: 行并行线性的实现是按顺序挑的，第一个为真的分支直接 return——这个开关站在第五位，踩它的人大多输在位置上（v0.23 维护分支）
+caption: v0.23 维护分支按顺序选择行并行实现，第一个满足条件的分支返回。本开关排第五，影响未被前四条认领的层；进入该类后还要满足 reduce_results 且 TP>1，才调用融合算子。
 size: [900, 610]
 
 regions:
@@ -24,7 +24,7 @@ bands:
     size: [728, 42]
     tone: upstream
   - label: 细粒度 MLP TP
-    sub: "\"down_proj\" in prefix and mlp_tp_enable()"
+    sub: down_proj 且开启 MLP TP，且不是 MoE 层
     fn: MLPRowParallelOp
     at: [136, 180]
     size: [728, 42]
@@ -36,7 +36,7 @@ bands:
     size: [728, 42]
     tone: upstream
   - label: 本页的开关就在这一条
-    sub: matmul_allreduce_enable()，没有 prefix 过滤，行并行线性通吃
+    sub: matmul_allreduce_enable()，认领剩余行并行层
     fn: MatmulAllreduceRowParallelOp
     at: [136, 272]
     size: [728, 42]
@@ -66,7 +66,7 @@ brackets:
 
 notes:
   - at: [40, 476]
-    text: "开了它，下面三条就永远到不了：FlashComm2 的 o_proj 路径、SP 的全部行并行路径，以及默认实现。代码里没有任何互斥检查或告警——配了 flashcomm2_parallel_size 却发现毫无效果，多半就是踩到这里。"
+    text: "被此分支认领的层不再判断后面的 FlashComm2、SP 与默认分支；这不等于关闭这些特性的全部模块。该类内仍会根据 reduce_results 和 TP 大小选择融合或普通调用。"
     size: 12.5
     width: 820
   - at: [40, 530]
@@ -74,7 +74,7 @@ notes:
     size: 12.5
     width: 820
   - at: [40, 576]
-    text: "被换掉的是「matmul 算完再 AllReduce」这一对，换成 npu_mm_all_reduce_base 一个算子，在算子内部按块把通信藏进计算。搬运的字节数没变，省的是干等的时间。"
+    text: "融合调用争取重叠计算与通信；该 Python 包装层未给出内部切块策略或通信字节数，实际等待是否缩短需要测量。"
     size: 12.5
     width: 820
     strong: true

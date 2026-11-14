@@ -1,0 +1,23 @@
+layout: figure
+id: deepseek-serving-code-boundary
+caption: 左侧彩色块是固定 DeepInfer 快照中可沿文件阅读的引擎部分；右侧虚线块是还要单独装配、核实的在线系统。箭头仅表示阅读顺序，不表示这些函数严格串行运行。
+size: [860, 530]
+frames:
+  - { at: [20, 50], size: [400, 445], label: 公开的离线引擎：可以追到代码 }
+  - { at: [450, 50], size: [390, 445], label: 完整在线服务：仍需单独装配 }
+items:
+  - { at: [50, 80], size: [340, 65], text: offline_inference.py, sub: 创建引擎，准备样例，再生成, tone: control, style: faded }
+  - { at: [50, 185], size: [340, 65], text: LLMEngine / EngineType, sub: 配置、请求进入与 P/D 类型, tone: token, style: faded }
+  - { at: [50, 290], size: [340, 65], text: LLMEngine.step, sub: 调度、执行、结果处理, tone: weight, style: faded }
+  - { at: [50, 395], size: [340, 65], text: cache_engine.py, sub: 设备内缓存分配与状态布局, tone: kv, style: faded }
+grids:
+  - { at: [480, 80], rows: 1, cols: 1, cell: [330, 65], tone: control, style: empty, cells: [{ at: [0, 0], text: 在线入口与跨实例分流, style: ghost }] }
+  - { at: [480, 185], rows: 1, cols: 1, cell: [330, 65], tone: control, style: empty, cells: [{ at: [0, 0], text: E/P/D 部署编排, style: ghost }] }
+  - { at: [480, 290], rows: 1, cols: 1, cell: [330, 65], tone: control, style: empty, cells: [{ at: [0, 0], text: 完整 KV 存储系统, style: ghost }] }
+  - { at: [480, 395], rows: 1, cols: 1, cell: [330, 65], tone: control, style: empty, cells: [{ at: [0, 0], text: 伸缩、迁移与恢复控制, style: ghost }] }
+links:
+  - { from: [220, 145], to: [220, 185] }
+  - { from: [220, 250], to: [220, 290] }
+  - { from: [220, 355], to: [220, 395] }
+texts:
+  - { at: [430, 520], text: 引擎支持某种类型，只证明有这段能力；还要核对跨实例的数据与控制协议, anchor: middle, size: 14 }

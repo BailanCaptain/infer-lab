@@ -1,0 +1,20 @@
+--- accepted/super
++++ current/super
+@@ -103,7 +103,7 @@
+ 
+ **v0.30.0rc2 对照：** ascend_compilation_config 中字段静态默认仍为 False；若输入含 enable_static_kernel 而省略本键，before validator 会令本键跟随前者。super kernel 要求 static kernel，static kernel 要求 npugraph_ex；硬件画像不支持 NPUGRAPH_EX 时三者均告警关闭。只抄静态默认值会漏掉这条实际生效链。
+ 
+-`ascend_compilation_config` 里的第三级开关：有效配置开启后，编译期给 npugraph_ex 传入 `super_kernel_optimize=True`，ACL Graph 捕获时用名为 `full_model` 的 scope 包住 wrapper 所执行的 runnable，录完再请求 `aclgraph.super_kernel_optimize()`。scope 给出优化范围，不保证整网最终只剩一个 kernel [C4][C6][C20]。**它是跟随式的**——省略这个键而设置 `enable_static_kernel` 时，它跟随后者；硬件降级处理之后，仍开启 super kernel 就必须同时开启 static kernel，否则依赖断言失败 [C3]。kernel 指一个算子在设备上运行的程序；与 static kernel 的区别见 [npugraph_ex](../concepts/npugraph-ex.md)。
++`ascend_compilation_config` 里的第三级开关：有效配置开启后，编译期给 npugraph_ex 传入 `super_kernel_optimize=True`，ACL Graph 捕获时用名为 `full_model` 的 scope 包住 wrapper 所执行的 runnable，录完再请求 `aclgraph.super_kernel_optimize()`。scope 给出优化范围，不保证整网最终只剩一个 kernel。**它是跟随式的**——省略这个键而设置 `enable_static_kernel` 时，它跟随后者；硬件降级处理之后，仍开启 super kernel 就必须同时开启 static kernel，否则依赖断言失败 [C3]。kernel 指一个算子在设备上运行的程序；与 static kernel 的区别见 [npugraph_ex](../concepts/npugraph-ex.md)。
+ 
+ **存在范围必须区分维护分支和发布标签。** 固定 v0.23 维护快照与 GLM 镜像没有这个配置及消费入口 [C17][C23]。固定 v0.26 维护快照 `2ed6cbba` 已包含 PR #15074，main 后由 PR #15059 引入；但最初的 `v0.26.0rc1` 标签 `f2f74a16` 尚无该键，`v0.27.1rc1` 标签 `3b318862` 也没有，`v0.28.0.rc1` 中才可见主线这套实现。不能只按“版本号不小于 v0.26”判断支持 [C31][C32]。
+ 
+@@ -119,7 +119,7 @@
+ | 值写成字符串 `"false"` | — | 真（无类型转换，非空串即真）[D] | 假（pydantic 宽松转换） | 同一份 JSON 在两个版本上结论相反，v0.26 上还会连带触发 `assert` [!] |
+ | 硬件不支持时 | — | 判 `is_310p()` | 查 `HardwareCapability.NPUGRAPH_EX`，310P 不具备该能力 [C10] | 对请求开启的项分别告警并关闭；须看最终配置与捕获日志 |
+ | `cudagraph_mode` 为 `NONE` 或需要 piecewise 编译 | — | 平台层关闭三级开关 | 同 | `FULL_AND_PIECEWISE` 属于被关闭的情形；显式图模式及其他配置会改变最终路径 |
+-| 进不进编译缓存 hash | — | 进 | 进 [C8] | 改变对应缓存键；不等于删除其他键的缓存，也不保证每次切换都完整重编 |
++| 进不进编译缓存 hash | — | 进 | 进 | 改变对应缓存键；不等于删除其他键的缓存，也不保证每次切换都完整重编 |
+ 
+ ## 为什么存在
+ 

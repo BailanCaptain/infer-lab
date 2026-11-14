@@ -1,0 +1,266 @@
+{
+  "reviewer": "/root/groups_replay_review",
+  "actual_viewed_images": [
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/pd-disaggregation-screen0.png",
+      "sha256": "4d87a584dbd1caf1fda031473a971513500fc9ddb97e3927be4bf3554fa2e9d4",
+      "bytes": 346986,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/pd-disaggregation-screen1.png",
+      "sha256": "11d8abc1e089e47adf5c6cc844bb2684158c96fbd2f40ab9353ae5e586365687",
+      "bytes": 348372,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/pd-disaggregation-focus0.png",
+      "sha256": "c1d453af29baa66606d87fbf6b327930da1443e1cdb1a665437ab531f091f4dc",
+      "bytes": 514162,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/pd-disaggregation-focus1.png",
+      "sha256": "dde2170a86746a376a86fc4cedad5ed6e6860ae1bba4bc8ce2c5a9378c081ae8",
+      "bytes": 636700,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/pd-disaggregation-table6.png",
+      "sha256": "18888efe5b9d4f0fd2ba0974cab8d1c694f5dd20b7480e885a94ed2dadc7e1c0",
+      "bytes": 69143,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/pd-disaggregation-figure1.png",
+      "sha256": "50d787d4ba14fd91ca55c55a6772c4ade58fb631d0b13fdb9ae842530e2efe81",
+      "bytes": 123401,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/pd-disaggregation-figure3.png",
+      "sha256": "6b0ba3c5609db7f7dffa5cc39728bde16783241873216235239310cdf700f70d",
+      "bytes": 126457,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/kv-pool-screen0.png",
+      "sha256": "e605c6aa212e23bd2578b79233f8c49c675d40ac239632c6852fd61b14fd2cac",
+      "bytes": 337732,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/kv-pool-screen1.png",
+      "sha256": "588fa6cd96d815629d21a823d634e4dd6168f18bda677ebb9024a9685c9e7e9b",
+      "bytes": 355297,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/kv-pool-focus0.png",
+      "sha256": "2f393d1d3663433de7767cc7434bc695daf19921dafbf12857d736ad06f5e916",
+      "bytes": 458480,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/kv-pool-focus1.png",
+      "sha256": "25a3c6b1de0940c27f3a8f367357c7403865c8f948f680573034350a4cad9091",
+      "bytes": 602281,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/kv-pool-table4.png",
+      "sha256": "99ba6c43280de3dcfa80596d146aa992537bfa4fd0966c2bce90dba45d1db3f7",
+      "bytes": 60677,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/kv-pool-table5.png",
+      "sha256": "ed335763195b73d07ed433b05f0f21754240e2b66aa918755535c178b923edef",
+      "bytes": 66406,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/kv-pool-figure0.png",
+      "sha256": "390cb34778719f9812c74aac70e9f4240f024795e28b980ff706db2284f5e348",
+      "bytes": 96081,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/kv-pool-figure2.png",
+      "sha256": "03c061ddbd4f6d1a016e8f1032feaa948d89dda3645bf1028151dbe0be608f9e",
+      "bytes": 56922,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/kv-pool-figure3.png",
+      "sha256": "52c56a0699ecb62ec004f8d61ca6cc7ee26ce9c10d8d97668e799134ef461280",
+      "bytes": 123766,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/kv-pool-figure6.png",
+      "sha256": "b97742d98e609827a8073eb193cdf9d0a84ddde876e32d1041c38d57afcf5988",
+      "bytes": 90469,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/mooncake-connector-screen0.png",
+      "sha256": "f0690c5abb62fcf1458c930f5da95c9385f614f344685996a8cb735373351e6e",
+      "bytes": 361872,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/mooncake-connector-screen1.png",
+      "sha256": "2641108cfb62543568582135a2827dcb348ec0ffab5d4a99e4d1a64fee817732",
+      "bytes": 291210,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/mooncake-connector-focus0.png",
+      "sha256": "c1f3f04695e0871d297816b1c1463de2829ea857f68e3954ea83a7e98c8b0444",
+      "bytes": 529823,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/mooncake-connector-figure1.png",
+      "sha256": "ae8e52f20a391d0ef5095f93f7b1fb09dff0c230f3a4032e028ebe239a925ee3",
+      "bytes": 174043,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/mooncake-connector-figure4.png",
+      "sha256": "92f3e7fc897d93256c68f06dd63e1ce28edb1f35f590625ccfa2bdcad738a63f",
+      "bytes": 87582,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-final-browser/ucm-seed-delta.png",
+      "sha256": "9ff517ac1c54e197360acd877c5a61c60703a4ff4c0d8c91b79dc1d344e025e3",
+      "bytes": 698326,
+      "actual_view": true,
+      "note": "Image opened and visually inspected, not inferred from capture"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-closed-browser/pd-disaggregation-focus0.png",
+      "sha256": "1b02c75ae2375ad802878f6cf2cc3ddf21c8b23093cf2f127ef25648eae27994",
+      "bytes": 485290,
+      "actual_view": true,
+      "note": "Final correction or final table edge actually viewed"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-closed-browser/kv-pool-focus0.png",
+      "sha256": "2f393d1d3663433de7767cc7434bc695daf19921dafbf12857d736ad06f5e916",
+      "bytes": 458480,
+      "actual_view": true,
+      "note": "Final correction or final table edge actually viewed"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-closed-browser/pd-version-table-right-edge.png",
+      "sha256": "3005324c9efcae4a0a8e2d690b1c647988e164b0eb7ccd9a8c18410836dbc647",
+      "bytes": 469889,
+      "actual_view": true,
+      "note": "Final correction or final table edge actually viewed"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-closed-browser/mooncake-final-source-boundary.png",
+      "sha256": "1936be3844b41eee52949f920bee0340a09aaf6d35ce05005112d718d746a1e9",
+      "bytes": 654097,
+      "actual_view": true,
+      "note": "Final correction or final table edge actually viewed"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-closed-browser/mooncake-final-boundary-link.png",
+      "sha256": "2f393d1d3663433de7767cc7434bc695daf19921dafbf12857d736ad06f5e916",
+      "bytes": 458480,
+      "actual_view": true,
+      "note": "Final correction or final table edge actually viewed"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-calc-delta/pd-disaggregation-calc.png",
+      "sha256": "f730f4ced4d25a4cb63e681cc807efa9105c12164aec8779722f399425dfb4ec",
+      "bytes": 50098,
+      "actual_view": true,
+      "note": "Final calc-only delta: actual max arithmetic / no unattached >; independently viewed"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-calc-delta/kv-pool-calc.png",
+      "sha256": "a4b5f48ac3386d27491149e6eb0d87203c536358c86f580ed99640fc842bf2a1",
+      "bytes": 54240,
+      "actual_view": true,
+      "note": "Final calc-only delta: actual max arithmetic / no unattached >; independently viewed"
+    }
+  ],
+  "final_browser_report": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-closed-browser/report.json",
+  "actual_clicks": [
+    {
+      "from": "mooncake-connector",
+      "label": "KV Pool 的两种 Store 部署",
+      "href": "#/wiki/kv-pool#%E4%B8%8A%E6%B8%B8-mooncakestore%E6%B1%A0%E8%B7%9F%E7%9D%80%E6%8E%A8%E7%90%86%E8%BF%9B%E7%A8%8B%E8%BF%98%E6%98%AF%E7%8B%AC%E7%AB%8B%E6%8C%81%E6%9C%89",
+      "url": "http://127.0.0.1:5201/#/wiki/kv-pool#%E4%B8%8A%E6%B8%B8-mooncakestore%E6%B1%A0%E8%B7%9F%E7%9D%80%E6%8E%A8%E7%90%86%E8%BF%9B%E7%A8%8B%E8%BF%98%E6%98%AF%E7%8B%AC%E7%AB%8B%E6%8C%81%E6%9C%89",
+      "heading": "上游 MooncakeStore：池跟着推理进程，还是独立持有？",
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-closed-browser/click-0.png"
+    },
+    {
+      "from": "mooncake-connector",
+      "label": "租约与跨轮复用",
+      "href": "#/wiki/pd-disaggregation#d-%E8%BF%98%E5%9C%A8%E6%8E%92%E9%98%9Fp-%E7%9A%84%E5%9D%97%E8%83%BD%E4%BF%9D%E7%95%99%E5%A4%9A%E4%B9%85nixl-%E7%A7%9F%E7%BA%A6",
+      "url": "http://127.0.0.1:5201/#/wiki/pd-disaggregation#d-%E8%BF%98%E5%9C%A8%E6%8E%92%E9%98%9Fp-%E7%9A%84%E5%9D%97%E8%83%BD%E4%BF%9D%E7%95%99%E5%A4%9A%E4%B9%85nixl-%E7%A7%9F%E7%BA%A6",
+      "heading": "D 还在排队，P 的块能保留多久：NIXL 租约",
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-closed-browser/click-1.png"
+    },
+    {
+      "from": "kv-pool",
+      "label": "Mooncake 连接器",
+      "href": "#/wiki/mooncake-connector#kv-%E6%B1%A0%E9%87%8C%E4%B9%9F%E7%94%A8-mooncake%E6%8C%89%E5%90%8D%E5%AD%97%E5%AD%98%E5%8F%96%E4%B8%8D%E5%92%8C%E6%9F%90%E4%B8%AA%E5%AF%B9%E7%AB%AF%E9%85%8D%E5%AF%B9",
+      "url": "http://127.0.0.1:5201/#/wiki/mooncake-connector#kv-%E6%B1%A0%E9%87%8C%E4%B9%9F%E7%94%A8-mooncake%E6%8C%89%E5%90%8D%E5%AD%97%E5%AD%98%E5%8F%96%E4%B8%8D%E5%92%8C%E6%9F%90%E4%B8%AA%E5%AF%B9%E7%AB%AF%E9%85%8D%E5%AF%B9",
+      "heading": "KV 池里也用 Mooncake：按名字存取，不和某个对端配对",
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-closed-browser/click-2.png"
+    },
+    {
+      "from": "ucm",
+      "label": "KV Pool 的版本差异",
+      "href": "#/wiki/kv-pool#%E7%89%88%E6%9C%AC%E5%B7%AE%E5%BC%82",
+      "url": "http://127.0.0.1:5201/#/wiki/kv-pool#%E7%89%88%E6%9C%AC%E5%B7%AE%E5%BC%82",
+      "heading": "版本差异",
+      "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/review-replay-closed-browser/click-3.png"
+    }
+  ],
+  "table_edge": {
+    "parents": [
+      {
+        "tag": "DIV",
+        "cls": "wiki-table-scroll",
+        "width": 1076,
+        "scrollWidth": 1106,
+        "overflowX": "auto"
+      }
+    ],
+    "scrolled": true,
+    "scrollLeft": 30,
+    "max": 30,
+    "text": "NIXL 条件\tv0.23（0fc695fc）\tv0.26（568afb3a）\tmain 比较点（84030bbe）\trc2 配套（ced6857a）\nD 返回跨轮块的到期时刻\t未导出该字段\t导出 remote_blocks_expiry_time\t保留\t保留\nP 开始读回前检查寿命\t没有这道到期保护\t转换远端时钟后，预留 5 秒；即将到期则拒绝读回\t保留\t保留\n调度侧到 worker 的租约时钟\t直接传到期时刻\t同类路径\t另传 scheduler_clock，用剩余 TTL 换算到 worker 自己的时钟\t同 main 比较点\n本表所说的连接器\tNixlConnector 的拉取实现\t拉取实现\t拉取实现\tNixlConnector 是 NixlPullConnector 的别名；不外推到 Push"
+  },
+  "boundary": "Capture count is not reading count. Some unchanged old calculators only captured; their complete source blocks remained byte-identical. All ten static diagrams were actually seen in individual figure images or first-screen captures. PD figure2 shared 3D loader is excluded."
+}

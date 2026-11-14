@@ -1,53 +1,107 @@
 ---
 id: concurrent-requests
-title: "多条请求：在官方双机部署上一步怎样装下它们"
+title: 多条请求：在官方双机部署上一步怎样装下它们
 type: concept
-origin: direct
-summary: 沿场景 M（DP0 上 12 条请求在 decode 时来了一条 6000 token 的新请求，DP1 上 7 条在 decode）和 DP1 空闲的变体 M′，在官方双机部署上看多条请求时每一站多出来的事：选组、分预算、拼输入、抢占、图尺寸补齐与两组对齐、MoE 从 MC2 翻到 AllGather、空闲组陪跑。
-aliases: [多请求推理, 并发请求, 连续批处理, continuous batching, 混合批次, 请求边界, 场景 M, 变体 M′, 空闲组陪跑, 图尺寸补齐, 两组对齐]
-chapters: ["00"]
+origin: gap
+summary: >-
+  沿场景 M（DP0 上 12 条请求在 decode 时来了一条 6000 token 的新请求，DP1 上 7 条在 decode）和 DP1 空闲的变体
+  M′，在官方双机部署上看多条请求时每一站多出来的事：选组、分预算、拼输入、抢占、图尺寸补齐与两组对齐、MoE 从 MC2 翻到
+  AllGather、空闲组陪跑。
+aliases:
+  - 多请求推理
+  - 并发请求
+  - 连续批处理
+  - continuous batching
+  - 混合批次
+  - 请求边界
+  - 场景 M
+  - 变体 M′
+  - 空闲组陪跑
+  - 图尺寸补齐
+  - 两组对齐
+chapters:
+  - '00'
 order: 15
 sources:
-  - vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L398-L411
-  - vllm@0fc695fc:vllm/v1/engine/input_processor.py#L259-L267
-  - vllm@0fc695fc:vllm/v1/engine/core_client.py#L1398-L1426
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L342-L351
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L403-L416
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L562-L570
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L684-L700
-  - vllm@0fc695fc:vllm/config/scheduler.py#L70-L86
-  - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L238-L398
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L459-L509
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L761-L781
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L830-L868
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1018-L1040
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1726-L1785
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1817-L1864
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1201-L1232
-  - vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L76-L96
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L692-L740
-  - vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L895-L906
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L90-L101
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L200-L282
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L495
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L543-L560
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L972-L973
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3405-L3452
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3640-L3652
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1262-L1306
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1080-L1099
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1695-L1711
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1888-L1910
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L160-L166
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L315-L317
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L652-L656
-  - vllm-ascend@db701c1f:vllm_ascend/envs.py#L103-L105
-  - vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L217-L236
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L967
-  - vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L239-L300
+  - 'vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L398-L411'
+  - 'vllm@0fc695fc:vllm/v1/engine/input_processor.py#L259-L267'
+  - 'vllm@0fc695fc:vllm/v1/engine/core_client.py#L1398-L1426'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L342-L351'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L403-L416'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L562-L570'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L684-L700'
+  - 'vllm@0fc695fc:vllm/config/scheduler.py#L70-L86'
+  - 'vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L238-L398'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L459-L509'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L761-L781'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L830-L868'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1018-L1040'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1726-L1785'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1817-L1864'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1201-L1232'
+  - 'vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L76-L96'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L692-L740'
+  - 'vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L895-L906'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L90-L101'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L200-L282'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L495'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L543-L560'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L972-L973'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3405-L3452'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3640-L3652'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1262-L1306'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1080-L1099'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1695-L1711'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1888-L1910'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L160-L166'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L315-L317'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L652-L656'
+  - 'vllm-ascend@db701c1f:vllm_ascend/envs.py#L103-L105'
+  - 'vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L217-L236'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L967'
+  - 'vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L239-L300'
+  - >-
+    raw:sha256-56268c111dba253cd766d8dc74f21b8235b22793d8f0848939f1a93a5969ae1f.md#L1-L2018
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/core/sched/scheduler.py#L562-L570
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/core/sched/scheduler.py#L689-L699
+  - 'vllm@ced6857a:vllm/v1/engine/core_client.py#L1546-L1596'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L30
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2079-L2091'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L425-L475'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L529-L559'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L69-L101'
+  - 'vllm@568afb3a:vllm/v1/engine/core_client.py#L1413-L1447'
+  - 'vllm@84030bbe:vllm/v1/engine/core_client.py#L1546-L1597'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L709-L747'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L796-L834'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L825-L885'
+  - 'vllm-ascend@7d825229:vllm_ascend/spec_decode/llm_base_proposer.py#L239-L258'
+  - 'vllm-ascend@7d825229:vllm_ascend/spec_decode/multi_kv_cache_group_proposer.py#L39-L49'
+  - 'vllm@568afb3a:vllm/v1/engine/core.py#L2089-L2107'
+  - 'vllm@ced6857a:vllm/v1/engine/core.py#L2264-L2282'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L290-L298'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L275-L290'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/fused_moe/runner/moe_runner.py#L644-L680'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L159-L167'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L271-L277'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L477-L504'
+  - 'vllm@ced6857a:vllm/config/parallel.py#L143-L146'
+  - 'vllm@ced6857a:vllm/engine/arg_utils.py#L1221-L1225'
+  - 'vllm@ced6857a:vllm/engine/arg_utils.py#L2365-L2375'
+  - 'vllm@84030bbe:vllm/config/parallel.py#L136-L153'
+  - 'vllm@84030bbe:vllm/engine/arg_utils.py#L1208-L1212'
+  - 'vllm@84030bbe:vllm/engine/arg_utils.py#L2347-L2356'
+  - 'vllm@84030bbe:vllm/v1/engine/core.py#L2264-L2282'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/spec_decode/llm_base_proposer.py#L202-L219'
+  - 'vllm-ascend@baa023ad:vllm_ascend/spec_decode/llm_base_proposer.py#L243-L260'
+  - 'vllm-ascend@7d825229:vllm_ascend/spec_decode/__init__.py#L43-L65'
 relations:
   - to: learning-guide
     kind: builds-on
@@ -58,15 +112,36 @@ relations:
   - to: glm-5-3-flash-two-node
     kind: builds-on
     note: 先知道两台机器怎样分成两个 DP 组、16 张卡怎样组成 EP 组，再看请求怎样分到两组、两组为什么每步都要对齐
-verified: []
+  - to: collective-communication
+    kind: builds-on
+    note: 多请求下的通信载荷与 MoE 路径选择，建立在集合通信操作及两条通信路线的基础上。
+  - to: glm-5-3-flash
+    kind: builds-on
+    note: 多请求页以模型总览给出的层结构和批量前向机制为基础，展开各请求共用权重、拼接本轮输入而分别维护历史的执行方式。
+  - to: prefill
+    kind: builds-on
+    note: 多请求页对长提示词按剩余预算分轮处理、与 decode 混合执行的讨论，建立在 prefill 页对提示词跨轮计算及统一调度规则的解释之上。
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0rc2
+  - main
 evidence: C
 contradicts: []
-updated: "2026-09-28"
+updated: 2026-11-03T00:00:00.000Z
+rawSources:
+  - >-
+    raw/sha256-56268c111dba253cd766d8dc74f21b8235b22793d8f0848939f1a93a5969ae1f.md
+  - >-
+    raw/sha256-a4a8bd4475bad23eecaaac04f3b80630bb8b6808ff71c94e6bf1f30c667203e9.md
 ---
 
 ## 多条请求时，七站里哪些地方变了
 
 **continuous batching**（连续批处理）让引擎每一步重新挑选请求、分配计算量：新请求随时加入，结束的请求及时退出，空出的名额和显存随即复用。代价是批次成员、token 数和输入形状每步都可能变化。
+
+接纳等待请求还要求调度未暂停；分到执行组不等于获准进入本轮计算。
+
 
 [一条请求](one-request.md)跟着提示词为 4 token 的示例请求 R1 走完了七站。现在同一时刻，有的请求刚到、要算提示词（prefill），有的在逐个生成输出（decode），有的即将结束。它们共用权重、16 张卡和引擎的同一步；提示词、输出、保存历史状态的 KV 块和停止条件仍各自独立。
 
@@ -81,7 +156,7 @@ file: concurrent-request-batching
 | 1 入口 | 进 node0 的引擎 | 先在两台机器（两个执行组）之间挑一个，挑定以后不再换 |
 | 2 调度 | R1 独占每步 8192 个 token 的预算 | 在跑的请求先各拿 4 个，剩下的才给新请求；KV 块不够时要有请求让位 |
 | 3 准备输入 | 一段 4 个 token | 十几段首尾相接拼成一个张量，另附每段的起止位置 |
-| 4 逐层前向 | 只看自己这一组 | 两组每步都要对齐宽度；token 一多，专家层的跨机通信换一条更贵的路 |
+| 4 逐层前向 | 只看自己这一组 | 两组交换宽度与执行方式，再按条件补齐；token 一多，专家层的跨机通信换路，载荷也变大 |
 | 5 采样与草拟 | 取最后 1 行词表分数 | 每条请求按自己的边界取行 |
 | 6 decode 与结果更新 | 自己接受几个候选 | 每条请求各自接受、各自回退 |
 | 7 返回与收尾 | 归还 16–17 个块（首步借 15 个，途中尾状态组边借边还） | 归还的块下一步就能分给别的请求 |
@@ -133,6 +208,11 @@ file: concurrent-request-schedule
 ```
 
 图的左支先安排 running，右支用剩余预算接纳 waiting；分块成功以后才扣预算。提示词只算了一部分的请求也属于 running，下一轮从剩余位置继续。场景 M 里 N 在第 1 步调度结束后到达，进入 waiting；第 2 步沿右支加入，DP0 的账如下：
+
+这里的 running 是队列身份，不保证本步一定获得计算：队列中的部分请求可能本步没有被调度。因此，运行队列中的请求数与本步实际调度的请求数需要分开看。
+
+按剩余预算先算一部分提示词，需要该路径允许分块。关闭分块时，若新请求所需的位置数超过剩余预算，调度器会停止这一轮的等待队列接纳。下方例子中，N 的 6000 个位置未超过剩余的 8144 个预算，不涉及这种不足情形。
+
 
 ```calc
 title: 一步预算怎样分给已有请求和新请求
@@ -237,17 +317,17 @@ KDA 与稀疏 MLA 怎样用这些状态，见[线性注意力](linear-attention.
 
 各组使用池子里统一大小的块号，每占一个块号就是每卡 7.969 MiB。decode 时上述后两项合计 15–16 块，与请求长度无关；只有 full 组随历史增长。令 L 为已算位置数、n 为本步新算位置数，块数公式是：
 
-**块号数 = ceil((L + n + 3) / 640) + 3 × 4 + 尾状态组**，尾状态组 decode 时 3~4 块，从 0 开始一步 prefill n 个位置时是 ceil((n + 3) / 4) 块。
+**块号数 = ceil((L + n + 3) / 640) + 3 × 4 + 尾状态组**，尾状态组 decode 时 3–4 块，从 0 开始一步 prefill n 个位置时是 ceil((n + 3) / 4) 块。
 
 ceil 表示向上取整，不满 640 个位置也要占一整块。下面只有两个设定：第一行仍是场景 M；从第二行起改看“DP0 跑满 32 条请求”的压力情形。decode 时 n = 4（1 个确定 token 加 3 个草稿），所以 L + n + 3 = L + 7；67,000 是池子用光时各条的平均位置数。
 
-decode 历史每增长 640 个位置，才多要 1 块。满载例中，各条走到约 60,000 + 6,700~7,340 ≈ 67,000 个位置时，就会有 running 请求续块失败，触发 **preemption**（抢占）：收回队尾请求的块，争取让当前请求继续。
+decode 历史每增长 640 个位置，才多要 1 块。满载例中，各条走到约 60,000 + (6,700–7,340) ≈ 67,000 个位置时，就会有 running 请求续块失败，触发 **preemption**（抢占）：收回队尾请求的块，争取让当前请求继续。
 
 | 设定与要回答的问题 | 块数或步数怎么算 | 得到什么 |
 |---|---|---|
-| **场景 M：约 20,000 个位置**，12 条 decode 加 N | 每条 D：ceil(20007 / 640) + 15~16 = 32 + 15~16 = 47~48 块，12 条共 564~576 块；N 第一步：ceil(6003 / 640) + 12 + ceil(6003 / 4) = 10 + 12 + 1,501 = 1,523 块 | 剩 3,855 − (564~576) − 1,523 = **1,756~1,768 块**，装得下；N 下一步还掉 1,499 块，回到 25 块 |
-| **压力情形①满载：60,000 个位置**，32 条都在 decode | 每条：ceil(60007 / 640) + 15~16 = 94 + 15~16 = 109~110 块；共 3,488~3,520 块，剩 335~367 块 | 平均每条还能走约 (335~367) ÷ 32 × 640 ≈ **6,700~7,340 个位置** |
-| **压力情形②接近耗尽：约 67,000 个位置**，看一条被抢占的请求 | ceil(67007 / 640) + 15~16 = 105 + 15~16 = **120~121 块**；× 7.969 MiB ≈ **956~964 MiB** | 收回后够其余请求再存 (120~121) × 640 ≈ **77,000 个位置** |
+| **场景 M：约 20,000 个位置**，12 条 decode 加 N | 每条 D：ceil(20007 / 640) + (15–16) = 32 + (15–16) = 47–48 块，12 条共 564–576 块；N 第一步：ceil(6003 / 640) + 12 + ceil(6003 / 4) = 10 + 12 + 1,501 = 1,523 块 | 剩 3,855 − (564–576) − 1,523 = **1,756–1,768 块**，装得下；N 下一完整 decode 步先还 1,499 块、再借 1 块，净释放 1,498 块，回到 25 块 |
+| **压力情形①满载：60,000 个位置**，32 条都在 decode | 每条：ceil(60007 / 640) + (15–16) = 94 + (15–16) = 109–110 块；共 3,488–3,520 块，剩 335–367 块 | 平均每条还能走约 (335–367) ÷ 32 × 640 ≈ **6,700–7,340 个位置** |
+| **压力情形②接近耗尽：约 67,000 个位置**，看一条被抢占的请求 | ceil(67007 / 640) + (15–16) = 105 + (15–16) = **120–121 块**；× 7.969 MiB ≈ **956–964 MiB** | 收回后够其余请求再存 (120–121) × 640 ≈ **77,000 个位置** |
 | **压力情形③被抢占后：约 67,000 个位置要重算**，另有 31 条 decode | 其他请求每步占 31 × 4 = 124 个 token，留给它 8192 − 124 = 8068 个；ceil(67000 / 8068) = **9 步**；第一步尾状态组要借 ceil(8071 / 4) = 2,018 块 | 这 9 步都是 prefill 与 decode 混合的大步；排回来之前，准入检查要先有 105 + 12 + 2,050 = **2,167 块**空闲 |
 
 ```wiki-diagram
@@ -256,11 +336,11 @@ file: concurrent-request-preempt
 
 图中的回环表示可以连续回收多条。默认先来先服务时，被抢占者从 running 队尾退回 waiting 队首，已算位置清零；若回收的就是当前请求，本轮停止遍历 running。waiting 新请求拿不到块时则留待下一轮，不进入抢占循环。
 
-这套部署中，抢占后重算没有 prefix caching 可复用，34 层 KDA 的递推状态也随块收回，只能把约 67,000 个位置从头扫一遍重建。这就是表中“释放约 956~964 MiB，却要重算 9 步”的代价。还有一层：被抢占的请求只还了 120 块左右，排回来却要先凑出约 2,167 块，大头是尾状态组为 prefill 临时借的块；waiting 侧借不到就停，它和排在后面的新请求都要等池子空出这么多才进得来。
+这套部署中，抢占后重算没有 prefix caching 可复用，34 层 KDA 的递推状态也随块收回，只能把约 67,000 个位置从头扫一遍重建。这就是表中“释放约 956–964 MiB，却要重算 9 步”的代价。还有一层：被抢占的请求只还了 120 块左右，排回来却要先凑出约 2,167 块，大头是尾状态组为 prefill 临时借的块；waiting 侧借不到就停，它和排在后面的新请求都要等池子空出这么多才进得来。
 
 ## 进入第 4 站之前：宽度先按自己补，再按对面补
 
-每一步真正送进 45 层的行数要经过两次补齐：先按自己这组能用的图尺寸补，再和另一组对齐。两次补齐的原因不同，分开看。
+每一步主干调用的输入宽度要先经过两层判断：先按自己这组能用的图尺寸补，再和另一组交换信息，决定是否进一步补齐。两次补齐的原因不同，分开看；这是调用的输入宽度，各算子仍可按真实 token 数裁剪工作。
 
 ### 先补到自己这组的图尺寸
 
@@ -314,7 +394,7 @@ DP1 在这三步里先后出现四个宽度，来历各不相同：
 file: concurrent-request-dp-align
 ```
 
-第 2 步最能说明问题：DP1 自己只有 28 个 token，本来能回放 32 的图；因为 DP0 那边混进了 N 的提示词，它既用不上图，又被拉到 6048 行宽，比自己的真实需要大 216 倍，45 层主干和三遍草拟都按这个宽度跑。**两组每一步的宽度和执行方式都由更忙的那组决定。**
+第 2 步最能说明问题：DP1 自己只有 28 个 token，本来能回放 32 的图；因为 DP0 那边混进了 N 的提示词，它既用不上图，又被拉到 6048 行宽，比自己的真实需要大 216 倍，主干及三遍草拟调用采用这个输入宽度。它不表示每层每个算子都计算 6048 行真实历史：固定 KDA 会按实际 token 数裁剪输入，没有注意力元数据时还会提前返回。**场景 M 这三步中，DP1 的实际宽度与执行方式都受 DP0 约束。** 其他批次仍按前面的条件判断：原本就 eager 的组可以保留本地宽度，MoE 内部再补齐，不能把这个三步算例推广为所有组始终采用相同主干宽度。
 
 ## 第 4 站 MoE 通信：6048 个 token 把两台机器一起推过 128 的门槛
 
@@ -334,9 +414,9 @@ GLM 的 42 个 MoE 层各有 288 个路由专家，每个 token 选其中 8 个�
 
 门槛看的是 token 数，不是「有没有 prefill」。场景 M 的 DP0 若来的不是 6000 token 的 N，而是一条 80 token 的短提示词，这一步是 `48 + 80 = 128`，仍走 MC2（只是混合步用不上图）；提示词多 1 个 token，`129 > 128`，两台机器一起翻到 AllGather。满载的纯 decode 步 `32 × 4 = 128` 正好压在线上。
 
-**第 2 步在 AllGather 路径上每张卡每层搬多少。** 以 DP1 的任意一张卡为例，它本地只有 28 行真实数据：
+**第 2 步在 AllGather 路径上的张量载荷。** 以 DP1 的任意一张卡为例，它本地只有 28 行真实数据。下表按张量元素计数，不把集合操作的张量大小直接当作物理链路流量：
 
-| 动作 | 张量 | 每卡每层的量 |
+| 动作 | 张量 | 每卡每层的张量量级 |
 |---|---|---|
 | 补齐 | 本地 `[28, 4096]` 补到两组最大值 `[6048, 4096]` | 6020 行填充 |
 | 两组之间的 All-Gather：隐藏向量 | 收对端 `[6048, 4096]` BF16，本地变成 `[12096, 4096]` | 收 47.25 MiB，缓冲 94.5 MiB |
@@ -345,28 +425,28 @@ GLM 的 42 个 MoE 层各有 288 个路由专家，每个 token 选其中 8 个�
 | 两组之间的 Reduce-Scatter | `[12096, 4096]` → `[6048, 4096]` BF16 | 47.25 MiB |
 | TP8 All-Reduce | `[6048, 4096]` BF16 | 47.25 MiB |
 
-一层约 `47.25 + 6.64 + 47.25 + 47.25 = 148.4 MiB`，42 层是每卡每步 **6.09 GiB**。其中两组之间的那几次通信是跨机的：`42 × (47.25 + 6.64 + 47.25) MiB = 4.15 GiB`，按每张卡收到的量算，node0 的 8 张卡一步从 node1 收约 `8 × 4.15 = 33.2 GiB`，反方向也一样，两台机器之间的链路一步合计约 **66 GiB**。
+按表中各操作的载荷口径相加，一层约 `47.25 + 6.64 + 47.25 + 47.25 = 148.4 MiB`，42 层约 **6.09 GiB/卡/步**。其中跨 DP 两卡操作的载荷合计为 `42 × (47.25 + 6.64 + 47.25) MiB = 4.15 GiB`。这些数用来比较张量规模；All-Reduce 的输入大小、Reduce-Scatter 的输出大小与网卡实际收发字节不是统一口径，不能再乘卡数当作实测跨机流量。物理流量还取决于集合算法、拓扑和协议开销。
 
 **第 1 步走 MC2 时是多少。** 两组都回放 64 的图，MoE 里按 TP8 沿 token 维切开，每卡最多 `64 ÷ 8 = 8` 行：
 
 ```calc
-title: 一个 decode 步的 MoE 通信量有多大
+title: 一个 decode 步的 MoE 逻辑载荷上界
 dispatch = 8 行 × 8 个专家 × 4,100 B = 262,400 B
 combine = 8 行 × 8 个专家 × 8,192 B = 524,288 B
 TP8 把 8 份切片拼回完整张量 = 8 行 × 8,192 B = 65,536 B
 共享专家的 TP8 all-reduce = 64 行 × 8,192 B = 524,288 B
 每层合计 = 1,376,512 B ≈ 1.31 MiB
 42 层（约） = 55.1 MiB
-> 其中跨 EP16 的 dispatch 与 combine 约 31.5 MiB
+> 其中 EP16 范围的 dispatch 与 combine 逻辑载荷约 31.5 MiB，包含同机或本卡的专家去向，不能全算成跨机流量
 ```
 
-这是按每卡 8 行都发出去算的上界；MC2 另用一张掩码标出哪些行是真实的，DP0 的 48 行和 DP1 的 28 行都不满 64。两步对比，真实 token 从 `48 + 28 = 76` 涨到 `6048 + 28 = 6076`，是 80 倍；每卡每步的 MoE 通信从约 55.1 MiB 涨到 6.09 GiB，约 113 倍，跨机部分从约 31.5 MiB 涨到 4.15 GiB，约 135 倍。多出来的部分来自两件事：DP1 被补到 6048 行；All-Gather 把完整的 BF16 隐藏向量在两台机器之间整份搬来搬去，而 MC2 只搬被选中的 int8 副本。
+这是按每卡 8 行都参与派发算的逻辑上界；MC2 另用掩码标出真实行，DP0 的 48 行和 DP1 的 28 行都不满 64。两步的真实 token 从 `48 + 28 = 76` 涨到 `6048 + 28 = 6076`，约 80 倍。两条路径的载荷结构也变了：DP1 被补到 6048 行，All-Gather 交换完整 BF16 隐藏向量，而 MC2 按选中的专家传递 int8 副本。由于载荷、填充行和专家去向的口径不同，不能把上面的合计数相除后称作实际跨机通信或耗时的增长倍数；应在相同负载下采集通信与链路 profile。
 
 ```wiki-diagram
 file: concurrent-request-moe-switch
 ```
 
-**专家负载。** 第 2 步 16 张卡一共要处理 `12,096 × 8 = 96,768` 个（token，专家）配对，理想均分时每个专家 336 行、每卡 6,048 行。一层 MoE 的耗时由最慢的那张卡决定，某张卡上的专家被选得多一倍，这一层就慢一倍，42 层累加。GLM 的路由在训练时用一个偏置把专家负载压平，推理时这个偏置固定不变，只能保证统计上大致均衡；按真实负载搬专家的 [EPLB](eplb.md) 在本部署默认关着。
+**专家负载。** 第 2 步的补齐张量共有 `12,096 × 8 = 96,768` 个（token，专家）配对位置，按理想均分估算，每个专家 336 行、每卡 6,048 行；真实有效行与填充行应分开统计。一层 MoE 要等参与卡完成，更不均的专家分配可能增加最慢卡耗时，但选中行数翻倍不保证整层时间翻倍，比例还取决于算子吞吐、通信和固定开销。GLM 在训练时用偏置改善专家负载分布，推理时偏置固定，不保证每批均衡；按真实负载搬专家的 [EPLB](eplb.md) 在本部署默认关着。
 
 ## 空闲的 DP 组为什么还要陪跑：变体 M′
 
@@ -376,14 +456,14 @@ M′ 里 DP1 一条请求都没有。它的调度器每一步都排不出东西�
 
 | DP0 这一步 | DP1 的空批次：本地 → 对齐后 | 执行方式 | DP1 这一步做了什么 |
 |---|---|---|---|
-| 12 条 decode，48 → 64 | 4，能用 4 的图 → 64 | 两组都回放 64 的图，MC2 | 45 层主干，草拟模型也陪跑一次，64 行全是填充 |
-| 12 条 decode + N 的 6000 个提示词，6048 | 4 → 6048 | 两组都 eager，AllGather | 45 层主干，草拟模型也陪跑一次，6048 行全是填充；MoE 按 6048 行做 All-Gather 和 Reduce-Scatter |
+| 12 条 decode，48 → 64 | 4，能用 4 的图 → 64 | 两组都回放 64 的图，MC2 | 调用主干及草拟陪跑；本组 64 个输入位置均无真实请求，各层可另有简化 |
+| 12 条 decode + N 的 6000 个提示词，6048 | 4 → 6048 | 两组都 eager，AllGather | 主干调用宽度 6048，草拟也陪跑；本组输入均无真实请求，MoE 按 6048 行做 All-Gather 和 Reduce-Scatter |
 
-按已读代码路径，M′ 里 DP1 的 MoE 通信量和场景 M 基本一样，区别只在于它算出来的东西全部丢掉；层内简化路径的核实范围见页末。**空闲组的开销不看它自己有多少活，只看另一组有多忙。**
+按相同的补齐与通信路径推导，M′ 里 DP1 的 MoE 张量载荷与场景 M 接近；其本地假请求的最终输出会丢弃，但替 DP0 真实 token 计算的专家结果仍要送回，不能把 DP1 的全部计算当作无用。空闲组的工作还受对端宽度与专家路由影响；各层是否采用简化路径以及实际开销需另核，见页末。
 
 两组什么时候一起停下来：它们每 32 步做一次 All-Reduce，交换「本地还有没有没做完的请求」，两边都说没有，才一起暂停，等下一条请求到来时由 DP 协调器把两组一起叫醒。这个检查只在第 32、64、96……步做，所以最后一条请求结束以后，两组最多还会一起空跑 31 步。
 
-这也回答了 DP2 部署的一个基本取舍：两组的调度是分开的，前向却必须同步。请求量长期只够喂一组时，另一组的 8 张卡一直在陪跑，这一半算力没有产出。
+这也回答了 DP2 部署的一个基本取舍：两组的调度是分开的，前向却必须同步。请求量长期只够喂一组时，另一组没有自己的请求输出，仍承担真实的远端专家计算；额外代价来自填充行和为同步继续执行的工作，不能把另一台全部算力算作没有产出。
 
 ## 第 5–7 站 采样、验证与收尾：结果按请求拆回去
 
@@ -402,6 +482,8 @@ N = 1 行，第 6047 行
 这 49 行以后就按请求各走各的：Dₖ 用自己的 4 行按[一条请求](one-request.md)第 6 站的办法验证草稿，这一步接受几个、退回几个，12 条各不相同，已算到的位置数也各自回退；N 从第 6047 行采样出第一个输出 token，随后 MTP 层也给它猜 3 个草稿，所以第 3 步它和别人一样送 4 个 token。
 
 每条请求追加完新 token 后各自检查停止条件。哪条请求这一步结束了，它的块号就还给池子，running 队列少一条；下一步调度时，多出来的块和名额就能给 waiting 队列里的请求。这就是 continuous batching 在收尾一侧的样子：批次成员在每一步的边界上换，不等整批结束。一条请求结束时前端、引擎和 worker 各删什么，被中止时又怎样走，见[请求收尾](request-teardown.md)。
+
+统计时也要沿用这个区别：运行队列中的请求数不能替代本步调度请求数与输入位置数。
 
 ## 常见误解
 
@@ -433,11 +515,26 @@ N = 1 行，第 6047 行
 
 ### 开销和什么时候别开
 
-- **陪跑、对齐与补齐。** 代价分别见[变体 M′](#空闲的-dp-组为什么还要陪跑变体-m)、[两组对齐](#再补到两组的最大值)和[图尺寸](#先补到自己这组的图尺寸)；请求量长期只够喂一组时，DP2 的另一半算力没有产出 [D]。
+- **陪跑、对齐与补齐。** 代价分别见[变体 M′](#空闲的-dp-组为什么还要陪跑变体-m)、[两组对齐](#再补到两组的最大值)和[图尺寸](#先补到自己这组的图尺寸)；空闲组仍承担真实的远端专家计算，需要把这些工作与填充、同步开销分开 [D]。
 - **抢占。** [KV 表](#kv-块一组的请求共用一个池子不够时最后进来的让位)的释放空间与重算代价按 3,855 块的算例推导 [D][A]，真实块数定下来后按同一公式重算。
 - **什么时候别让长提示词和 decode 混在一起。** 一条长提示词混进来，两组所有 decode 请求这一步都要 eager、都走 AllGather；按门槛倒推，12 条 decode 在跑时，每步的 prefill 要压到 80 个 token 以内才能留在 MC2 上；想靠调小 `--max-num-batched-tokens` 保住 MC2，就得把它压到 128，一条 6000 token 的提示词要切成 6000 ÷ 80 = 75 步。对 decode 延迟敏感的服务，可以考虑把 prefill 与 decode 分到不同实例，见 [PD 分离](pd-disaggregation.md) [I]。
 
 ### 版本差异
+
+**v0.30.0rc2 配套上游改变了前端选 DP 组的评分。** 基础分取“API 进程数×本前端在途数”与 waiting+running 的较大值，KV 使用率超过 50% 后还会增加 waiting 的权重，同分时旋转扫描起点。正文 running+4×waiting 是原固定部署的算法，不能直接用于 rc2。这个分数决定新请求进入哪个组，不是每组 Scheduler 的 token 预算；组内执行仍需看实际 runner，Ascend rc2 默认仍选 MRV1。
+
+下表按上游 0fc695fc / 568afb3a / ced6857a / 84030bbe 与 Ascend 2c59ff10 / 2ed6cbba / 7d825229 / baa023ad 比较列出的规则。GLM 专用 db701c1f 另列在旧版格内；固定上游 main 仅作比较，不推定是某个 Ascend 镜像的实际安装版本。
+
+| 机制 | v0.23 / GLM 旧基线 | v0.26 rc | rc2 | 固定 main |
+|---|---|---|---|---|
+| 前端选组 | waiting×4+running；同分按既有扫描起点 | 分数不变，但派发后旋转同分扫描起点 | 加入在途下限与 KV 压力，仍旋转起点 | 与 rc2 所列评分相同 |
+| MRV1 的 DP 输入补齐 | db：调用方允许补齐或在草拟时统一宽度，否则保留本地宽度 | 所列条件相同 | 按同步后的图模式、通信方式及细粒度 TP 等条件判断 | 仍是旧 allow_dp_padding / 草拟条件，与 rc2 有差异 |
+| 组间结束共识 | 每 32 步，旧算例末尾最多额外 31 步 | 仍每 32 步 | 每轮工作首步及配置间隔；默认 16 | 与 rc2 所列节奏相同 |
+| GLM 模型与草拟 | 2c 无本页模型；db 专用模型，草拟强制 eager | 无本页同名 GLM 模型链；通用 GLM 判断仍强制草拟 eager | 专用多缓存组 proposer 可支持草拟图，仍尊重显式 eager | 通用 GLM 判断仍强制草拟 eager，没有 rc2 的该例外 |
+
+rc2 的补齐不再使用 allow_dp_padding 入参。正常进行 DP 同步后，只要同步后的图模式不是 NONE、正在草拟、通信选中 MC2/AllGather、选中且使用 CANN MegaMoE 的 FUSED_MC2，或输出投影/词表/嵌入/MLP 任一细粒度 TP 大于 1，就统一 runner 输入宽度。否则保留各组本地宽度；另有明确跳过同步的特定路径。这里比较的是 MRV1，不用这段代码推断 MRV2。固定 main 仍保留旧条件，不能按分支名字认定它已经包含 rc2 的每一项改变。
+
+新的结束共识参数为 `--dp-sync-interval`（ParallelConfig 的 dp_sync_interval），整数 ≥1，默认 16，所有 DP rank 必须使用相同值；后续间隔之间至多多等 15 步，但每轮工作的首步还会检查。调小会更频繁地做全局集合通信，调大则可能增加尾部陪跑。它检查是否全局结束，与[调度器的 prefill 间隔](vllm-scheduler.md#多个-dp-组怎样对齐-prefill-的节奏)是两件事；正文“每 32 步、最多 31 步”只对应固定旧配方。
 
 - 调度、选组、陪跑循环按 `vllm@0fc695fc` 读；输入准备、DP 对齐、MoE 通信按 `vllm-ascend@db701c1f` 读，这是官方镜像里跑 GLM 的那一版。
 - 每步两组对齐走的是 vllm-ascend 自己的 `_sync_metadata_across_dp`，一次 All-Reduce 同时带上 token 数和执行方式；上游 vLLM 的 GPU 路径另有一套对齐函数，在昇腾的 model runner 上不走。
@@ -460,7 +557,7 @@ N = 1 行，第 6047 行
 | 续块失败就从 running 末尾抢占一条 | `scheduler.py` 459–509 行 [C10] |
 | 抢占：收回块号、已算位置清零、退回 waiting 最前面 | `scheduler.py` 974–995 行 [C11] |
 | positions 与 query_start_loc 怎样拼 | `vllm_ascend/worker/model_runner_v1.py` 830–868、1018–1040 行 [C14] |
-| KDA 按槽位号读写各请求的状态，新请求的状态先清零 | `vllm_ascend/models/glm5_next.py` 1726–1785、1817–1864 行 [C16] |
+| KDA 按槽位号读写各请求的状态，新请求的状态先清零 | 模型层构造 `KimiGatedDeltaNetAttention`，v0.23 custom op 注册后落到 `vllm_ascend/ops/kimi_kda.py` 的实际 prefill/recurrent 分支；旧模型文件中的同类逻辑不能代替这条调用链 |
 | 稀疏 MLA 按块表和槽位映射读写各请求的历史 | `glm5_next.py` 1201–1232 行 |
 | token 数往上补到最近一档图尺寸；按条件选择图模式 | `vllm/v1/cudagraph_dispatcher.py` 的 `_compute_bs_to_padded_graph_size`（76–96 行）、`dispatch`（239–300 行） |
 | 能不能用图的五条判据，两组对齐后重挑图尺寸 | `model_runner_v1.py` 2898–2996 行 [C19] |
@@ -469,7 +566,7 @@ N = 1 行，第 6047 行
 | 草拟模型一律补到两组最大值 | `llm_base_proposer.py` 895–906 行 |
 | MoE 通信按两组 token 数的最大值选 | `vllm_ascend/ascend_forward_context.py` 90–101 行 [C22] |
 | 容量 128 的算法与 A2 上的三个条件 | `ascend_forward_context.py` 200–252 行 |
-| AllGather 路径的补齐、交换与 Reduce-Scatter | `vllm_ascend/ops/fused_moe/prepare_finalize.py` 440–495、543–560 行 [C24] |
+| AllGather 路径的补齐、交换与 Reduce-Scatter | `vllm_ascend/ops/fused_moe/prepare_finalize.py` 440–495、543–560 行 [C24]；之后的 TP All-Reduce 在 v0.23 专用文件 `fused_moe_0_23_0.py` 的 `AscendMoERunner._maybe_reduce_final_output`，不能只用 prepare/finalize 证明它 |
 | 本地没活但全局有活时执行空批次，每 32 步查一次全局 | `vllm/v1/engine/core.py` 1869–1945 行 [C26] |
 | 空批次只准备一条 decode 请求的 1 + 3 = 4 个 token | `vllm_ascend/worker/worker.py` 972–973 行，`model_runner_v1.py` 652–656 行 |
 | 空批次同样经过两组对齐，草拟模型也陪跑 | `model_runner_v1.py` 3405–3452、3640–3652 行 [C28] |
@@ -477,10 +574,19 @@ N = 1 行，第 6047 行
 | 提示词没算完的请求，这一步采样出的 token 被丢掉 | `model_runner_v1.py` 1080–1099 行 |
 | 每条请求各自检查停止条件，结束后归还块号 | `scheduler.py` 1695–1711、1888–1910 行 |
 
-**推导对应与待核范围**
+**推导对应与实测范围**
+
+运行队列与本步调度集合的区别，对照固定上游 `scheduler.py` 876–881 行：注释明确部分 running 请求可能未被调度，断言检查本步调度请求数不超过运行队列长度。这是源码依据，不是硬件实测。[C39]
 
 图尺寸表与三步对齐表是按给定请求数推导的执行宽度；MoE 两条路径的字节数按每卡、每层载荷累计，MC2 数字为含填充行的上界 [D]。空闲组的通信量由相同对齐路径推得，尚非实机测量 [D]。
 
 - KV 算例里索引器状态组 decode 时 3–4 块、prefill 一步约 n ÷ 4 块，是按滑动窗口管理器的源码推出的，没有实跑确认；推导与出处见 [KV 块分配](vllm-kv-block-allocation.md#开销和什么时候别开)。
 - 专家负载：真实流量下最忙的卡比平均多出多少行，缺一次实测的专家负载分布。
 - 空批次：`_dummy_run` 的层内分支尚未逐行核对，个别层是否走简化路径仍待核；上文 MoE 通信量相近的判断来自已读代码路径。
+
+- 来源 42、43：vllm@0fc695fc，vllm/v1/core/sched/scheduler.py，L562–L570、L689–L699。
+- 来源 46–49、65：模型构造、v0.23 custom op 注册以及实际 KDA prefill、投机递推与真实 token 截取。来源 15–16 的模型文件中同类代码仅作背景，不能替代实际消费者。
+- 来源 50、60–64：v0.23 专用 MoE runner 的选择、构造、输出合并与实际 TP 归约操作；来源 24–25 负责 DP prepare/finalize。
+- 来源 51–55：v0.26 与固定 main 的路由及补齐规则，以及 rc2 不同的 MRV1 补齐条件。
+- 来源 56–57、73–75：rc2 专用 proposer 的选择与草拟图例外，v0.26/main 的 GLM 强制 eager 条件。
+- 来源 58–59、66–72：旧版的 32 步结束检查和 rc2/main 的可配置间隔、CLI、传递与执行条件。

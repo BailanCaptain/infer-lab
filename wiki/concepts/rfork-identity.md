@@ -2,7 +2,10 @@
 id: rfork-identity
 title: RFork 身份匹配：同模型、同布局，还要同一份分片
 type: feature
-summary: B 的每张卡凭一把 seed key 向 Planner 找 seed：先把版本、数值类型、量化、并行大小和昇腾排布算成部署指纹，再加上 TP / PP / EP 编号和主 / 草稿角色做一次 SHA256。本页讲钥匙里有什么、没有什么，为什么同一个模型也可能借不到，钥匙对上为什么不代表内容一样，以及 GLM 双机上 32 把钥匙各写什么编号。
+summary: >-
+  B 的每张卡凭一把 seed key 向 Planner 找 seed：先把版本、数值类型、量化、并行大小和昇腾排布算成部署指纹，再加上 TP / PP /
+  EP 编号和主 / 草稿角色做一次 SHA256。本页讲钥匙里有什么、没有什么，为什么同一个模型也可能借不到，钥匙对上为什么不代表内容一样，以及 GLM
+  双机上 32 把钥匙各写什么编号。
 aliases:
   - RFork fingerprint
   - RFork seed key
@@ -50,20 +53,33 @@ sources:
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L386-L419'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L45-L49'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L96-L110'
+  - >-
+    raw:sha256-79ca37c7a3b1178b525522ff58d26020480d15d150e5e780e3c5f5922ac561fa.md#L1-L865
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/identity.py#L219-L339'
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/tensor_layout.py#L42-L61'
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/rfork_loader.py#L498-L524'
 verified:
   - 'rfork:main'
 evidence: C
 relations:
-  - {to: rfork, kind: builds-on, note: 先知道 seed、Planner 和借一次权重的几步，再看两边凭什么配对}
-  - {to: tensor-parallel, kind: builds-on, note: 钥匙里的 TP 编号对应的就是 TP 把矩阵切成的那一份}
-  - {to: expert-parallel, kind: builds-on, note: EP 编号区分每张卡放的是哪几个专家}
+  - to: rfork
+    kind: builds-on
+    note: 先知道 seed、Planner 和借一次权重的几步，再看两边凭什么配对
+  - to: tensor-parallel
+    kind: builds-on
+    note: 钥匙里的 TP 编号对应的就是 TP 把矩阵切成的那一份
+  - to: expert-parallel
+    kind: builds-on
+    note: EP 编号区分每张卡放的是哪几个专家
 contradicts: []
-updated: '2026-10-02'
+updated: '2026-10-25'
 rawSources:
   - >-
     raw/sha256-59591a4419847f7e688d941665e517ceeff58268f61c79d46d5e2398c4b5e7ce.md
   - >-
     raw/sha256-5bad70ef874cd30dbb1c42ecd2370b814b3bafa2c63fceb2ab55f1da7f506deb.md
+  - >-
+    raw/sha256-79ca37c7a3b1178b525522ff58d26020480d15d150e5e780e3c5f5922ac561fa.md
   - >-
     raw/sha256-b497eef4c4973a8d3ffb141a76c2caf3aa52fc165c864cd90016ccf7555c796c.md
   - >-
@@ -275,7 +291,7 @@ PP 编号 = 空（PP 大小为 1）
 | 接住上面几类 | warning `RFork transfer failed: %s, clean up and fall back to default loader` | 算钥匙时的报错在这里被接住：会话还没建起来，直接走默认加载，启动不会停下，回退后不登记成 seed。借到以后传输出错也打这一句，但那时会话已建，要先清理，清理失败就中止，见下一行 |
 | 回退前清理失败 | `RuntimeError: RFork fallback aborted because seed service or registered memory cleanup failed; tensor owners remain retained. Refusing to allocate a second model while old weights are pinned.` | 会话已建时，回退前的清理最多试 2 次，仍没停掉 seed 服务或没清掉已登记的内存，就拒绝再建一份模型，启动停下；详见[启动页](rfork-startup.md) |
 | 问 Planner | debug `RFork planner has no available seed for seed_key=...` | `GET /get_seed` 回 404：这把钥匙下没有可用 seed，返回空 |
-| 问 Planner | warning `RFork planner seed acquisition failed: ...` | 状态码不是 200、`SEED_IP` / `SEED_PORT` / `USER_ID` / `SEED_RANK` 缺项、端口或编号不是整数或越界，统一捕获后返回空 |
+| 问 Planner | warning `RFork planner seed acquisition failed: ...` | 状态码既不是 200 也不是 404、`SEED_IP` / `SEED_PORT` / `USER_ID` / `SEED_RANK` 缺项、端口或 rank 不能转为整数、端口 ≤0 或 rank <0，统一捕获后返回空；端口大于 65535 在后续构造来源 URL 时才失败，走[传输失败分支](rfork-troubleshooting.md#会报什么错) |
 | 拿到空以后 | 内部异常 `planner returned no compatible seed`，随后 `RFork has no available %s seed; loading locally and registering this worker as a seed.` | TP 编号为 0 的 Worker 打 info，其余打 debug；改从本地加载 |
 | seed 一侧，首次登记 | warning `RFork seed service startup failed for global_rank=%s: planner rejected the initial seed advertisement`，随后 `RFork %s model loaded from %s is ready, but seed service startup failed; inference can continue.` | 起 seed 服务后第一次向 Planner 登记就没成功：这张卡照常推理，但不当 seed，心跳线程也不会起 |
 | seed 一侧，之后的心跳 | warning `RFork heartbeat failed for seed_key=...` | 首次登记成功、心跳线程起来以后，某一次心跳没成功；示例 Planner 超过 60 秒没收到心跳就清掉这个 seed |
@@ -296,9 +312,10 @@ PP 编号 = 空（PP 大小为 1）
 - **v0.23**（社区维护分支 2c59ff10；含 GLM 代码的固定镜像 db701c1f 的 RFork 目录与它相同）：没有部署指纹。seed key 是把模型地址、策略名、PD 角色、节点编号、PP / TP / EP 编号和草稿标记直接拼成的明文，含节点编号，不含数值类型、量化方式和并行大小。
 - **v0.26**（2ed6cbba）：与 v0.23 相同。
 - **main**（baa023ad）：与 v0.23 相同。社区 main 只合进了工作版的前三个补丁，带身份指纹的那个补丁没有合。
+- **v0.30.0rc2**（7d825229）：已有独立 identity 模块。配置指纹含协议、解析后的模型 revision、量化摘要、架构、RoPE、KV 角色与 mix placement 等信息；模型准备后再加入可传张量的名字、shape、dtype、NPU format 组成的结构摘要，最后结合 TP/PP/EP 编号、主草角色及必要的 DP 分片编号生成 key。结构摘要不读取权重内容，因此仍不能充当逐字节校验和。
 - **RFork 工作版**（rfork@3284850b，Dockerfile 配 vLLM v0.26.0）：本页讲的两次 SHA256，不含节点编号。`is_draft_worker` 字段名为兼容旧钥匙而保留，改名会让新旧实例算出的钥匙对不上。
 
-逐个补丁、逐项行为的对照只在[总览的版本差异](rfork.md#版本差异)一处维护，本页不另列表。
+rc2 中 fine-grained TP，或 DP>1 且模型为 MoE（无法确定是否 MoE 时也按需隔离），会将 DP rank 记入 sharded_dp_rank；普通复制 DP 保持空。例子中两张卡虽然都是 TP rank 0，若分属持有不同专家的 DP rank 0/1，新增字段就防止把两份不同分片放进同一候选池。因此“DP 只复制、从不进 key”不能作为 rc2 的通则。判定在 identity.py 257–293，loader 514–522 实际传入该值；配置与结构摘要的固定源码链接见[总览对照](rfork.md#版本差异)。
 
 ### 源码位置
 

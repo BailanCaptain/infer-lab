@@ -1,0 +1,25 @@
+{
+  "recorded_at": "2026-11-10T06:33:05.614603+00:00",
+  "files": [
+    {
+      "path": "wiki/concepts/kv-cache-sparse-offload.md",
+      "sha256": "2a63f5f74f73325bbd5d64f9f256c80f787c6a5ccd51f52920d97a25161076dc"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-sparse-offload.yaml",
+      "sha256": "d2ec364ffe74b5fa9697c98044a0066c1e7f760e67db972aad1f7d7cdaed421c"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-sparse-offload.svg",
+      "sha256": "6ad2ef98f1513943ec478bc32255cf7c5ef24696b5d164601656cee17cf5aa2c"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-sparse-offload-step.yaml",
+      "sha256": "03c40eb9913de1ed270df300081e1ba73d877be3c232df97117d2de878249755"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-sparse-offload-step.svg",
+      "sha256": "687035e467003f41b4ccee1599f43f811d4b989ae769311efb4af5d9207d7209"
+    }
+  ]
+}

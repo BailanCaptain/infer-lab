@@ -1,0 +1,83 @@
+{
+  "reviewer": "/root/groups_recompute_review",
+  "status": "accepted",
+  "before_snapshot": ".tmp/continuation-groups-2026-11-10/vit-graph/review-before.zip",
+  "before_files": {
+    "wiki/concepts/acl-graph.md": "9fde14cfcb0a8654049b1a79ca13b639fd9809f8b2640d1bb71e151cde4dc7cf",
+    "wiki/diagrams/acl-graph-buffers.svg": "a5e16d14514ec6daa820b989f810bc34b1a0323541609d1c0d3e985d337a3411",
+    "wiki/diagrams/acl-graph-buffers.yaml": "c0e0e52bb3a995ed7c00c37e04daecaf2a2fe7fee38d71e74087a3853faef647",
+    "wiki/diagrams/acl-graph.svg": "de1dacb9b4d011c2ebb783aac197326685275e7c544db7f6c116f19226db4a4f",
+    "wiki/diagrams/acl-graph.yaml": "24e1ee4a1b4117655d8534534c024391fe189187b8a142b8cc8bb3fa9aa3b478"
+  },
+  "final_files": {
+    "wiki/concepts/acl-graph.md": "1b999e41e3305ee2270de567a24c4a7f1e87ee86c90ace0e3071d3918bc5462d",
+    "wiki/diagrams/acl-graph.yaml": "24e1ee4a1b4117655d8534534c024391fe189187b8a142b8cc8bb3fa9aa3b478",
+    "wiki/diagrams/acl-graph.svg": "de1dacb9b4d011c2ebb783aac197326685275e7c544db7f6c116f19226db4a4f",
+    "wiki/diagrams/acl-graph-buffers.yaml": "c0e0e52bb3a995ed7c00c37e04daecaf2a2fe7fee38d71e74087a3853faef647",
+    "wiki/diagrams/acl-graph-buffers.svg": "a5e16d14514ec6daa820b989f810bc34b1a0323541609d1c0d3e985d337a3411",
+    "wiki/diagrams/vit-graph-packing.yaml": "0ae9611fff3ea01fb12b03cd8364e096bef456ad15cb067e7085501f336f5519",
+    "wiki/diagrams/vit-graph-packing.svg": "e26f431f3c916886fb550c68e7739147cf585d719691480945a1c38877e24107"
+  },
+  "old_sources_preserved": 36,
+  "old_body_deleted_or_replaced_lines": [],
+  "original_diagram_files_unchanged": true,
+  "semantic_items": [
+    {
+      "item": "首屏定义与主线位置",
+      "status": "preserved",
+      "judgment": "一步前向任务/地址录图，Host 下发瓶颈与长历史/通信瓶颈区分均保留；补成本段未删原解释。"
+    },
+    {
+      "item": "原时间线与算例",
+      "status": "preserved",
+      "judgment": "6 个任务，Host 每个 2 格、设备每个 1.5 格，13.5/10/9 三数和非实测限定原样保留。"
+    },
+    {
+      "item": "固定缓冲与输出",
+      "status": "preserved",
+      "judgment": "输入地址稳定而内容更新，当前活跃请求行复制而非整缓冲重写、输出位置与 DEBUG 检查均保留。"
+    },
+    {
+      "item": "图外操作与捕获条件",
+      "status": "preserved",
+      "judgment": "CPU 操作、动态形状、算子支持等级及服务期不得补录四项完整保留。"
+    },
+    {
+      "item": "固定 GLM 七档",
+      "status": "preserved",
+      "judgment": "4/8/16/32/64/96/128，单请求 4 位置与 MTP3、对应请求数、唯一账页回链保留。新增视觉图不改变旧语言图适用条件。"
+    },
+    {
+      "item": "两句误解与部署问答",
+      "status": "preserved",
+      "judgment": "原常见误解、开关、默认派生、投机/SP、A5 与后端降级条件原文保留。"
+    },
+    {
+      "item": "错误与成本",
+      "status": "preserved",
+      "judgment": "旧五行错误表、额外设备资源、补齐唯一出处、eager 同时关闭两层的限制完整保留。"
+    },
+    {
+      "item": "四版已有比较",
+      "status": "preserved",
+      "judgment": "旧三列表与 rc2 独立条件段、main 不再含 launch blocking 拒绝、ENPU/draft 更新时序均未删改。"
+    },
+    {
+      "item": "真实待核",
+      "status": "preserved",
+      "judgment": "GLM 稀疏 MLA/KDA 元数据更新链以及 NPU 捕获开销/性能未测项仍在页末，verified 仍为空。"
+    },
+    {
+      "item": "来源/别名/链接/图",
+      "status": "preserved",
+      "judgment": "原36来源顺序内容、原别名/relations、旧2图YAML/SVG原字节保留；增加82来源、1图、1calc及2关键回链。"
+    }
+  ],
+  "new_example": {
+    "sequence": "A192,B96,C160 → B,C,A → [B,C]256 + [A]192 → graph256 twice → original A,B,C",
+    "effective_tokens": 448,
+    "captured_capacity": 512,
+    "capacity_spare": 64,
+    "not_latency_percentage": true
+  }
+}

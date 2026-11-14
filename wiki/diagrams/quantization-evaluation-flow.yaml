@@ -1,0 +1,21 @@
+layout: figure
+id: quantization-evaluation-flow
+caption: 量化验收沿加载、前向与服务三段进行。产物或数值异常先定位，再检查质量；质量达标后测系统收益，每次改变一个因素并复测。
+size: [900, 410]
+items:
+  - {at: [35, 40], size: [220, 65], text: 加载：核对产物与布局, sub: 版本、权重、系数、ND / NZ, tone: weight}
+  - {at: [340, 40], size: [220, 65], text: 第 4 站：对照前向, sub: 查首个失真的中间值, tone: token}
+  - {at: [645, 40], size: [220, 65], text: 独立样本评估质量, sub: 任务、语言、长度分别报告, tone: control, style: plain}
+  - {at: [645, 205], size: [220, 65], text: 质量达标：测服务收益, sub: 容量、延迟与达标吞吐, tone: kv}
+  - {at: [340, 205], size: [220, 65], text: 失败：定位并调整, sub: 校准、敏感层或执行瓶颈, tone: control, style: plain}
+  - {at: [35, 205], size: [220, 65], text: 改一个因素，重新对照, sub: 保留前后产物与结果, tone: control, style: plain}
+links:
+  - {from: [255, 72], to: [340, 72]}
+  - {from: [560, 72], to: [645, 72]}
+  - {from: [755, 105], to: [755, 205]}
+  - {from: [645, 90], to: [450, 205], via: [[605, 90], [605, 155], [450, 155]], dashed: true}
+  - {from: [645, 237], to: [560, 237], dashed: true}
+  - {from: [340, 237], to: [255, 237]}
+  - {from: [145, 205], to: [145, 105], dashed: true}
+texts:
+  - {at: [450, 341], text: "独立记录：数值捕获 / 性能测试 · 冷启动 / 稳态", anchor: middle}

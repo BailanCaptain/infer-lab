@@ -1,0 +1,1510 @@
+{
+  "scope": "Additional sources of the 11 batch pages; all were used for repairs but final individual ledger remains separate. DP site-tail additional six sources are in its independent review.",
+  "items": [
+    {
+      "page_id": "large-scale-ep",
+      "source_number": 45,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L31-L50",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "large-scale-ep-independent.md"
+    },
+    {
+      "page_id": "large-scale-ep",
+      "source_number": 46,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1893-L1912",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "large-scale-ep-independent.md"
+    },
+    {
+      "page_id": "large-scale-ep",
+      "source_number": 47,
+      "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L2220-L2258",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "large-scale-ep-independent.md"
+    },
+    {
+      "page_id": "large-scale-ep",
+      "source_number": 48,
+      "ref": "vllm@ced6857a:vllm/config/parallel.py#L515-L518",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "large-scale-ep-independent.md"
+    },
+    {
+      "page_id": "large-scale-ep",
+      "source_number": 49,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2184-L2193",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "large-scale-ep-independent.md"
+    },
+    {
+      "page_id": "large-scale-ep",
+      "source_number": 50,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L45-L59",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "large-scale-ep-independent.md"
+    },
+    {
+      "page_id": "large-scale-ep",
+      "source_number": 51,
+      "ref": "vllm-ascend@7d825229:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L234-L240",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "large-scale-ep-independent.md"
+    },
+    {
+      "page_id": "large-scale-ep",
+      "source_number": 52,
+      "ref": "vllm-ascend@7d825229:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L305-L328",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "large-scale-ep-independent.md"
+    },
+    {
+      "page_id": "large-scale-ep",
+      "source_number": 53,
+      "ref": "vllm@ced6857a:vllm/entrypoints/cli/serve.py#L105-L154",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "large-scale-ep-independent.md"
+    },
+    {
+      "page_id": "large-scale-ep",
+      "source_number": 54,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L659-L677",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "large-scale-ep-independent.md"
+    },
+    {
+      "page_id": "large-scale-ep",
+      "source_number": 55,
+      "ref": "vllm@0fc695fc:vllm/config/parallel.py#L447-L450",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "large-scale-ep-independent.md"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "source_number": 74,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py#L88-L122",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "pd-independent.md"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "source_number": 75,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L58-L95",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "pd-independent.md"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "source_number": 76,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py#L249-L284",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "pd-independent.md"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "source_number": 77,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1788-L1905",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "pd-independent.md"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "source_number": 78,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2007-L2069",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "pd-independent.md"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "source_number": 79,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2711-L2769",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "pd-independent.md"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "source_number": 80,
+      "ref": "vllm-ascend@7d825229:docs/source/user_guide/support_matrix/supported_models.md#L27-L45",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "pd-independent.md"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "source_number": 81,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L778-L783",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "pd-independent.md"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "source_number": 82,
+      "ref": "vllm@ced6857a:vllm/config/kv_transfer.py#L103-L107",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "pd-independent.md"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "source_number": 83,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/core/kv_cache_interface.py#L27-L50",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "pd-independent.md"
+    },
+    {
+      "page_id": "pd-disaggregation",
+      "source_number": 84,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L175-L200",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "pd-independent.md"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "source_number": 65,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/utils.py#L14-L14",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "mooncake-independent.md"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "source_number": 66,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L45-L89",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "mooncake-independent.md"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "source_number": 67,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L131-L135",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "mooncake-independent.md"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "source_number": 68,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2007-L2054",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "mooncake-independent.md"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "source_number": 69,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2710-L2767",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "mooncake-independent.md"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "source_number": 70,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1327-L1345",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "mooncake-independent.md"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "source_number": 71,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1662-L1683",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "mooncake-independent.md"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "source_number": 72,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1723-L1732",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "mooncake-independent.md"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "source_number": 73,
+      "ref": "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L1-L17",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "mooncake-independent.md"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "source_number": 74,
+      "ref": "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L166-L202",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "mooncake-independent.md"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "source_number": 75,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1190-L1194",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "mooncake-independent.md"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "source_number": 76,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2111-L2118",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "mooncake-independent.md"
+    },
+    {
+      "page_id": "mooncake-connector",
+      "source_number": 77,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py#L87-L122",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "mooncake-independent.md"
+    },
+    {
+      "page_id": "kv-pool",
+      "source_number": 58,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L892-L900",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-pool-preservation.md"
+    },
+    {
+      "page_id": "kv-pool",
+      "source_number": 59,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L89-L164",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-pool-preservation.md"
+    },
+    {
+      "page_id": "kv-pool",
+      "source_number": 60,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L20-L21",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-pool-preservation.md"
+    },
+    {
+      "page_id": "kv-pool",
+      "source_number": 61,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L288-L298",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-pool-preservation.md"
+    },
+    {
+      "page_id": "kv-pool",
+      "source_number": 62,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2912-L2954",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-pool-preservation.md"
+    },
+    {
+      "page_id": "kv-pool",
+      "source_number": 63,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_mamba_config.py#L155-L176",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-pool-preservation.md"
+    },
+    {
+      "page_id": "kv-pool",
+      "source_number": 64,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L377-L398",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-pool-preservation.md"
+    },
+    {
+      "page_id": "kv-pool",
+      "source_number": 65,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1776-L1794",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-pool-preservation.md"
+    },
+    {
+      "page_id": "kv-pool",
+      "source_number": 66,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1385-L1399",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-pool-preservation.md"
+    },
+    {
+      "page_id": "kv-pool",
+      "source_number": 67,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1385-L1399",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-pool-preservation.md"
+    },
+    {
+      "page_id": "kv-pool",
+      "source_number": 68,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1722-L1739",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-pool-preservation.md"
+    },
+    {
+      "page_id": "kv-pool",
+      "source_number": 69,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2487-L2528",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-pool-preservation.md"
+    },
+    {
+      "page_id": "kv-pool",
+      "source_number": 70,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2775-L2819",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-pool-preservation.md"
+    },
+    {
+      "page_id": "kv-cache",
+      "source_number": 47,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L109-L118",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-preservation.md"
+    },
+    {
+      "page_id": "kv-cache",
+      "source_number": 48,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L1170-L1204",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-preservation.md"
+    },
+    {
+      "page_id": "kv-cache",
+      "source_number": 49,
+      "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L2794-L2834",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-preservation.md"
+    },
+    {
+      "page_id": "kv-cache",
+      "source_number": 50,
+      "ref": "vllm@ced6857a:vllm/config/model.py#L2135-L2151",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-preservation.md"
+    },
+    {
+      "page_id": "kv-cache",
+      "source_number": 51,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/models/glm5next/cache_config.py#L90-L190",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-preservation.md"
+    },
+    {
+      "page_id": "kv-cache",
+      "source_number": 52,
+      "ref": "vllm@0fc695fc:vllm/v1/attention/backend.py#L55-L66",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-preservation.md"
+    },
+    {
+      "page_id": "kv-cache",
+      "source_number": 53,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L77-L79",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-preservation.md"
+    },
+    {
+      "page_id": "kv-cache",
+      "source_number": 54,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L38-L40",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-preservation.md"
+    },
+    {
+      "page_id": "kv-cache",
+      "source_number": 55,
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L354-L435",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-preservation.md"
+    },
+    {
+      "page_id": "kv-cache",
+      "source_number": 56,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L1319-L1335",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-preservation.md"
+    },
+    {
+      "page_id": "kv-cache",
+      "source_number": 57,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_qwen3_dflash.py#L45-L59",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-preservation.md"
+    },
+    {
+      "page_id": "kv-cache",
+      "source_number": 58,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L664-L698",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 65,
+      "ref": "vllm-ascend@7d825229:docs/source/developer_guide/Design_Documents/non_contiguous_kv_cache.md#L1-L274",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 66,
+      "ref": "vllm@0fc695fc:vllm/config/vllm.py#L1880-L1903",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 67,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L26-L41",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 68,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_mamba_config.py#L91-L143",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 69,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L84-L140",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 70,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/models/glm5next/cache_config.py#L90-L190",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 71,
+      "ref": "vllm@ced6857a:vllm/v1/kv_cache_interface.py#L646-L665",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 72,
+      "ref": "vllm@ced6857a:vllm/v1/kv_cache_interface.py#L970-L989",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 73,
+      "ref": "vllm@ced6857a:vllm/config/cache.py#L39-L82",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 74,
+      "ref": "vllm@ced6857a:vllm/config/cache.py#L166-L186",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 75,
+      "ref": "vllm@ced6857a:vllm/model_executor/models/config.py#L609-L657",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 76,
+      "ref": "vllm@ced6857a:vllm/config/scheduler.py#L164-L170",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 77,
+      "ref": "vllm@ced6857a:vllm/v1/engine/core.py#L332-L350",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 78,
+      "ref": "vllm@84030bbe:vllm/v1/engine/core.py#L332-L350",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 79,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4222-L4242",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 80,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L4297-L4325",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 81,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5030-L5080",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 82,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L5253-L5290",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 83,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 84,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L1001-L1012",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 85,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4577-L4586",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 86,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L4758-L4767",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 87,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/core/kv_cache_interface.py#L28-L85",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 88,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/kv_cache_interface.py#L19-L41",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 89,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/kv_cache_interface.py#L104-L129",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 90,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_interface.py#L96-L136",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 91,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/core/kv_cache_interface.py#L93-L129",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 92,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5288-L5324",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 93,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L5551-L5581",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 94,
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L634-L656",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 95,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L4003-L4024",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 96,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L285-L345",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 97,
+      "ref": "vllm@568afb3a:vllm/v1/engine/core.py#L308-L324",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 98,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/models/glm5next/cache_config.py#L286-L366",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 99,
+      "ref": "vllm@84030bbe:vllm/v1/kv_cache_interface.py#L554-L603",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 100,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4683-L4716",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 101,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L4706-L4739",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 102,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5552-L5598",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 103,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L5895-L5930",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 104,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L5720-L5762",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 105,
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L554-L579",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 106,
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L648-L660",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-spec",
+      "source_number": 107,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L293-L338",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-spec-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 45,
+      "ref": "vllm@0fc695fc:vllm/utils/mem_utils.py#L48-L67",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 46,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L809-L817",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 47,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L511-L574",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 48,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L504-L615",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 49,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L787-L819",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 50,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L888-L920",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 51,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L658-L743",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 52,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L890-L933",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 53,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L4336-L4352",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 54,
+      "ref": "vllm@ced6857a:vllm/config/cache.py#L103-L126",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 55,
+      "ref": "vllm@ced6857a:vllm/config/cache.py#L228-L235",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 56,
+      "ref": "vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L2693-L2742",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 57,
+      "ref": "vllm@0fc695fc:docs/configuration/conserving_memory.md#L1-L185",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 58,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/utils.py#L97-L101",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 59,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/utils.py#L177-L184",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 60,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/utils.py#L1751-L1760",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 61,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L352-L372",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 62,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L448-L451",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 63,
+      "ref": "vllm@84030bbe:vllm/config/cache.py#L89-L99",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 64,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 65,
+      "ref": "vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L233-L268",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 66,
+      "ref": "vllm@568afb3a:docs/configuration/conserving_memory.md#L78-L185",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 67,
+      "ref": "vllm@ced6857a:docs/configuration/conserving_memory.md#L78-L185",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-memory-profiling",
+      "source_number": 68,
+      "ref": "vllm@84030bbe:docs/configuration/conserving_memory.md#L78-L185",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-memory-profiling-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 42,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L1205-L1221",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 43,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_mamba_manager.py#L53-L90",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 44,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L998-L1019",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 45,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1414-L1431",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 46,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L19-L67",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 47,
+      "ref": "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L1121-L1132",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 48,
+      "ref": "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L228-L258",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 49,
+      "ref": "vllm@84030bbe:vllm/v1/core/single_type_kv_cache_manager.py#L1947-L2063",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 50,
+      "ref": "vllm@ced6857a:vllm/v1/core/single_type_kv_cache_manager.py#L840-L885",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 51,
+      "ref": "vllm@ced6857a:vllm/v1/core/single_type_kv_cache_manager.py#L1989-L2127",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 52,
+      "ref": "vllm@0fc695fc:docs/design/hybrid_kv_cache_manager.md#L1-L245",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 53,
+      "ref": "vllm@0fc695fc:docs/design/prefix_caching.md#L1-L236",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 54,
+      "ref": "vllm@568afb3a:vllm/v1/core/single_type_kv_cache_manager.py#L775-L793",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 55,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_mamba_manager.py#L51-L84",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 56,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_mamba_manager.py#L53-L91",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 57,
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L330-L354",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 58,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L731-L739",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "vllm-kv-block-allocation",
+      "source_number": 59,
+      "ref": "vllm@568afb3a:vllm/v1/core/single_type_kv_cache_manager.py#L1620-L1684",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "vllm-kv-block-allocation-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 32,
+      "ref": "vllm@0fc695fc:docs/design/prefix_caching.md#L1-L236",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 33,
+      "ref": "vllm@0fc695fc:docs/features/automatic_prefix_caching.md#L1-L25",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 34,
+      "ref": "vllm@0fc695fc:examples/features/automatic_prefix_caching/automatic_prefix_caching_offline.py#L1-L103",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 35,
+      "ref": "vllm@0fc695fc:vllm/config/cache.py#L92-L109",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 36,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1133-L1142",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 37,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/protocol.py#L388-L398",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 38,
+      "ref": "vllm@0fc695fc:vllm/v1/core/block_pool.py#L34-L91",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 39,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/interfaces.py#L950-L975",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 40,
+      "ref": "vllm@84030bbe:vllm/model_executor/models/config.py#L609-L657",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 41,
+      "ref": "vllm@568afb3a:vllm/model_executor/models/config.py#L551-L595",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 42,
+      "ref": "vllm@568afb3a:vllm/engine/arg_utils.py#L1172-L1204",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 43,
+      "ref": "vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L717-L809",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 44,
+      "ref": "vllm@84030bbe:vllm/v1/core/kv_cache_utils.py#L701-L793",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 45,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L84-L140",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 46,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L137-L138",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 47,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_mamba_config.py#L155-L188",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 48,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_mamba_config.py#L110-L177",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 49,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/cache_config.py#L90-L190",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 50,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_interface.py#L302-L332",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 51,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L835-L845",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 52,
+      "ref": "vllm@ced6857a:vllm/config/model.py#L2135-L2141",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 53,
+      "ref": "vllm@ced6857a:vllm/config/cache.py#L130-L154",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 54,
+      "ref": "vllm@84030bbe:vllm/config/cache.py#L139-L156",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 55,
+      "ref": "vllm@568afb3a:vllm/config/cache.py#L56-L67",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 56,
+      "ref": "vllm@568afb3a:vllm/config/cache.py#L93-L110",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 57,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_mamba_config.py#L100-L135",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "prefix-caching",
+      "source_number": 58,
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L413-L434",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "prefix-caching-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 27,
+      "ref": "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L1-L139",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 28,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L1-L102",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 29,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L41-L97",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 30,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L65-L232",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 31,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L275-L344",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 32,
+      "ref": "vllm@ced6857a:vllm/v1/kv_offload/cpu/spec.py#L94-L165",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 33,
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/config.py#L75-L176",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 34,
+      "ref": "vllm@ced6857a:vllm/config/parallel.py#L874-L884",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 35,
+      "ref": "vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/config.py#L59-L88",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 36,
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L905-L979",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 37,
+      "ref": "vllm@0fc695fc:vllm/v1/kv_offload/cpu/manager.py#L137-L180",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 38,
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L270-L307",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 39,
+      "ref": "vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L266-L303",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 40,
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L951-L1002",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 41,
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L1464-L1560",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 42,
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/config.py#L250-L274",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 43,
+      "ref": "vllm@ced6857a:vllm/v1/kv_offload/base.py#L590-L607",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 44,
+      "ref": "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L1314-L1389",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 45,
+      "ref": "vllm@84030bbe:vllm/v1/kv_offload/cpu/spec.py#L94-L165",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 46,
+      "ref": "vllm@0fc695fc:vllm/v1/kv_offload/cpu/spec.py#L73-L98",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 47,
+      "ref": "vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/offloading/config.py#L94-L135",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 48,
+      "ref": "vllm@568afb3a:vllm/v1/kv_offload/base.py#L504-L513",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 49,
+      "ref": "vllm@84030bbe:vllm/v1/kv_offload/base.py#L596-L604",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 50,
+      "ref": "https://github.com/vllm-project/vllm-ascend/pull/13389",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 51,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L233-L264",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 52,
+      "ref": "vllm@84030bbe:vllm/v1/kv_offload/factory.py#L30-L58",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "kv-cache-cpu-offload",
+      "source_number": 53,
+      "ref": "vllm@0fc695fc:vllm/v1/kv_offload/cpu/spec.py#L24-L28",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "kv-cache-cpu-offload-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 44,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L165-L178",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 45,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1109-L1151",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 46,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L638-L662",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 47,
+      "ref": "vllm-ascend@7d825229:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1170-L1193",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 48,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L322-L346",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 49,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1175-L1197",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 50,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/utils.py#L1304-L1361",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 51,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/utils.py#L1250-L1307",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 52,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1164-L1227",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 53,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L822-L830",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 54,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L1045-L1057",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 55,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1570-L1581",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 56,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L610-L627",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 57,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1645-L1680",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 58,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1371-L1398",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "source_number": 59,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L101-L126",
+      "state": "repair_supplement_read; per-item final judgment ledger separate from frozen500",
+      "context": "recompute-scheduler-preservation.md"
+    }
+  ]
+}

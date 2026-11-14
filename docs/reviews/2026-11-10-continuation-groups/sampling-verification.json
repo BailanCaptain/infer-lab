@@ -1,0 +1,80 @@
+{
+  "recorded_at": "2026-11-10T10:37:43.180533+00:00",
+  "reviewer": "/root/groups_replay_review",
+  "status": "accepted_for_documentation_scope",
+  "unit": "source occurrences, not full documents",
+  "globally_new_full_documents_claimed": 0,
+  "open_p1_p2": 0,
+  "final_page_sha256": "8472b303f1b3af11296bf47aeee0f4005911163d4b2ea97884cbfb07d168cfff",
+  "source_identity_checks": {
+    "old_fixed_git_ranges": 175,
+    "new_fixed_git_ranges": 67,
+    "all_hashes_stable": true,
+    "invalid_ranges": 0
+  },
+  "manual_counts": {
+    "baseline": 180,
+    "new": 67,
+    "missing": 0,
+    "duplicate": 0
+  },
+  "browser": {
+    "report": ".tmp/continuation-groups-2026-11-10/sampling/final-browser/report.json",
+    "stable": true,
+    "errors": [],
+    "overflow": false,
+    "tables_captured": 19,
+    "figures_captured": 9,
+    "final_screens_actually_viewed": [
+      "screen-0",
+      "screen-1",
+      "figure-0",
+      "figure-7",
+      "table-1",
+      "table-12",
+      "table-13",
+      "table-14",
+      "table-15",
+      "table-16",
+      "table-17",
+      "table-18",
+      "thinking",
+      "thinking-entry"
+    ],
+    "unchanged_layout_evidence": "Initial review actually viewed all 17 old tables and all 9 figures. Final changed tables/diagrams and new thinking sections were visually rechecked; seven calc blocks stayed identical.",
+    "clicked": [
+      {
+        "name": "lm_head",
+        "url": "http://127.0.0.1:5201/#/wiki/lm-head"
+      },
+      {
+        "name": "请求收尾参数表",
+        "url": "http://127.0.0.1:5201/#/wiki/request-teardown#%E6%80%8E%E4%B9%88%E5%BC%80"
+      },
+      {
+        "name": "流式输出页",
+        "url": "http://127.0.0.1:5201/#/wiki/streaming-output"
+      }
+    ]
+  },
+  "engineering_checks": {
+    "executor": "/root",
+    "record": "docs/reviews/2026-11-10-continuation-groups/request-verification.json",
+    "commands": [
+      "pnpm check:content",
+      "pnpm wiki:lint",
+      "pnpm wiki:audit",
+      "pnpm wiki:diagrams --check",
+      "pnpm build"
+    ],
+    "reported_exit_codes": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "not_executed_by_this_reviewer": true
+  },
+  "hardware_tests": "none"
+}

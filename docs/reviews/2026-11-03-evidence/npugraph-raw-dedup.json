@@ -1,0 +1,234 @@
+[
+  {
+    "path": "wiki\\raw\\sha256-47f830dd90bb5d33379d0c67407ff01fee36bfbbcdd6d9c9b0e99f5d7a5bd3a7.md",
+    "sha256": "47f830dd90bb5d33379d0c67407ff01fee36bfbbcdd6d9c9b0e99f5d7a5bd3a7",
+    "blocks": [
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L278-L301",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/base_pattern.py#L41-L63",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/graph_fusion_pass_manager.py#L36-L79",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L192-L230",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L71-L146",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L149-L223",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L586-L641",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L589-L645",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L49-L91",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/muls_add_pass.py#L29-L105",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L134-L159",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L470-L496",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L158-L173",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm@0fc695fc:vllm/compilation/backends.py#L940-L966",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L320-L324",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2078-L2092",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L1-L40",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L607-L659",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L599-L661",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L103-L160",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/compilation/graph_fusion_pass_manager.py#L50-L73",
+        "exact_after_edge_whitespace": true
+      }
+    ]
+  },
+  {
+    "path": "wiki\\raw\\sha256-9e54d59f6deb57e8785aab24c4142fa6daf432c67a81c0cc2fdba221f5407ea8.md",
+    "sha256": "9e54d59f6deb57e8785aab24c4142fa6daf432c67a81c0cc2fdba221f5407ea8",
+    "blocks": [
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L278-L301",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/base_pattern.py#L41-L63",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/graph_fusion_pass_manager.py#L36-L79",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L192-L230",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L71-L146",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L149-L223",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L586-L641",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L589-L645",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L49-L91",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/muls_add_pass.py#L29-L105",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L134-L159",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L470-L496",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L158-L173",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm@0fc695fc:vllm/compilation/backends.py#L940-L966",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L320-L324",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2078-L2092",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L1-L40",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L607-L659",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L599-L661",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L103-L160",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/compilation/graph_fusion_pass_manager.py#L50-L73",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L28-L29",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L27-L43",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L657-L738",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L79",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L74",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L28-L50",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L365-L393",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm@0fc695fc:vllm/config/compilation.py#L106-L122",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm@568afb3a:vllm/config/compilation.py#L106-L122",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm@84030bbe:vllm/config/compilation.py#L106-L122",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm@0fc695fc:vllm/entrypoints/llm.py#L305-L344",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm@568afb3a:vllm/entrypoints/llm.py#L294-L333",
+        "exact_after_edge_whitespace": true
+      },
+      {
+        "ref": "vllm@84030bbe:vllm/entrypoints/llm.py#L298-L338",
+        "exact_after_edge_whitespace": true
+      }
+    ]
+  }
+]

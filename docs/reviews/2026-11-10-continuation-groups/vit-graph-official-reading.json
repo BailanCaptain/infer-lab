@@ -1,0 +1,688 @@
+{
+  "recorded_at": "2026-11-10T13:06:57.806620+00:00",
+  "reviewer": "/root/groups_recompute_review",
+  "official_docs": [
+    {
+      "ref": "vllm@0fc695fc:docs/design/cuda_graphs_multimodal.md",
+      "sha256": "b382166ea0b816219499d3566a2c811ec810a724945c36038e26c996a0d716a9",
+      "lines": 229,
+      "path": ".tmp/continuation-groups-2026-11-10/vit-graph/0fc695fc-cuda_graphs_multimodal.md",
+      "status": "full_read",
+      "method": "0fc full text; later complete common text plus all changes, truncated compatibility table subsequently separately read; rc2/main identical bytes count one content"
+    },
+    {
+      "ref": "vllm@568afb3a:docs/design/cuda_graphs_multimodal.md",
+      "sha256": "84a4091a76a8fd78f747354c941f587998c138694749e7d909b14c92bfe972a8",
+      "lines": 289,
+      "path": ".tmp/continuation-groups-2026-11-10/vit-graph/568afb3a-cuda_graphs_multimodal.md",
+      "status": "full_read",
+      "method": "0fc full text; later complete common text plus all changes, truncated compatibility table subsequently separately read; rc2/main identical bytes count one content"
+    },
+    {
+      "ref": "vllm@ced6857a:docs/design/cuda_graphs_multimodal.md",
+      "sha256": "8a272411e58e24878703caec3895dcf0e1f4547e488a69e8947dfb84123f7e3c",
+      "lines": 315,
+      "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ced6857a-cuda_graphs_multimodal.md",
+      "status": "full_read",
+      "method": "0fc full text; later complete common text plus all changes, truncated compatibility table subsequently separately read; rc2/main identical bytes count one content"
+    },
+    {
+      "ref": "vllm@84030bbe:docs/design/cuda_graphs_multimodal.md",
+      "sha256": "8a272411e58e24878703caec3895dcf0e1f4547e488a69e8947dfb84123f7e3c",
+      "lines": 315,
+      "path": ".tmp/continuation-groups-2026-11-10/vit-graph/84030bbe-cuda_graphs_multimodal.md",
+      "status": "full_read",
+      "method": "0fc full text; later complete common text plus all changes, truncated compatibility table subsequently separately read; rc2/main identical bytes count one content"
+    }
+  ],
+  "pr_descriptions": [
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/35963",
+      "merge_commit_sha": "f85e479e66167532feddc9aafd56562402def9d9",
+      "updated_at": "2026-03-27T07:29:00Z",
+      "scope": "complete PR description body only; not all conversation/patch/tests",
+      "body_sha256": "b68a121f3a061965eddc3e288ad6ec7580be668abc0fd342f68a240b82547e87",
+      "lines": 101,
+      "path": ".tmp/continuation-groups-2026-11-10/vit-graph/pr-35963-body.md",
+      "status": "body_full_read",
+      "newline_correction": {
+        "previous_cache_sha256": "6b918d43afb216d658bedb5cf74fb18b29b01711c00f8e88cfc523188a8b542d",
+        "reason": "Saved exact API body bytes to avoid Windows CRCRLF doubling; reading scope unchanged"
+      }
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/38061",
+      "merge_commit_sha": "80118853f42a728805e6a861ffb50f3b876a9939",
+      "updated_at": "2026-04-14T08:49:32Z",
+      "scope": "complete PR description body only; not all conversation/patch/tests",
+      "body_sha256": "ff11515967a98002da819e68fc110dd66b0686a226643947ead61e21bdd63e14",
+      "lines": 144,
+      "path": ".tmp/continuation-groups-2026-11-10/vit-graph/pr-38061-body.md",
+      "status": "body_full_read",
+      "newline_correction": {
+        "previous_cache_sha256": "64cb00e0a01b3edb10879ad084ea9da10ebeb088bcebdeb60040c958d5d7af34",
+        "reason": "Saved exact API body bytes to avoid Windows CRCRLF doubling; reading scope unchanged"
+      }
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/43586",
+      "merge_commit_sha": "ad32608e24c91b5a21a22eeaa7b94dc3882b3854",
+      "updated_at": "2026-06-16T11:35:21Z",
+      "scope": "complete PR description body only; not all conversation/patch/tests",
+      "body_sha256": "30eec116859c6dc77a6e797ac232f73cc9f42f935360d649d7fc73f9b1188dee",
+      "lines": 89,
+      "path": ".tmp/continuation-groups-2026-11-10/vit-graph/pr-43586-body.md",
+      "status": "body_full_read",
+      "newline_correction": {
+        "previous_cache_sha256": "5e1004b55255f5238e338df7464b48c2fed091b48878adc96977f6615e5bfa9d",
+        "reason": "Saved exact API body bytes to avoid Windows CRCRLF doubling; reading scope unchanged"
+      }
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/41234",
+      "merge_commit_sha": "f0feb15e7fc521544d23c2d23de0e327a509876b",
+      "updated_at": "2026-06-03T06:50:41Z",
+      "scope": "complete PR description body only, not all discussion or patch",
+      "body_sha256": "b83fa02220a8440c17b361871749b7386cfef74060625686f5a5fc3c4769cdfb",
+      "lines": 29,
+      "path": ".tmp/continuation-groups-2026-11-10/vit-graph/pr-41234-body.md",
+      "status": "body_full_read"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/42288",
+      "merge_commit_sha": "dfe8ba7c80606d0d4230d752d0235c487fe0e8b5",
+      "updated_at": "2026-05-29T04:55:27Z",
+      "scope": "complete PR description body only, not all discussion or patch",
+      "body_sha256": "3dc229b740b64d0673b19685c70a94275dfcebaaf8aea22392f2d62fb3056a6c",
+      "lines": 84,
+      "path": ".tmp/continuation-groups-2026-11-10/vit-graph/pr-42288-body.md",
+      "status": "body_full_read"
+    }
+  ],
+  "counts": {
+    "official_versioned_docs": 4,
+    "unique_full_doc_contents": 3,
+    "full_PR_bodies": 5,
+    "whole_PR_conversations": 0,
+    "source_candidates": 92,
+    "citation_occurrences_accepted": 0,
+    "full_papers": 1,
+    "paper_pages": 22,
+    "full_issue_bodies": 2
+  },
+  "linked_followthrough_pending": [
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/37914",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/38040",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/38116",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/40355",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/40445",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/40576",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/40580",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/40660",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/40780",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/40830",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/41714",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/41736",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/41759",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/41992",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/42151",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/42224",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/42785",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/42796",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/43082",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/43321",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/43591",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/44388",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/44394",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/44484",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/44720",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/45254",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/45654",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/46005",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/46034",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/46837",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/49934",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/50929",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/51461",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/52256",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/56277",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/56625",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/56820",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/57379",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/58925",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/60519",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/63074",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/63374",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/64311",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/65084",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/65351",
+      "from": "https://github.com/vllm-project/vllm/issues/38175",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/5051",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/7885",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/8033",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/8230",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/8365",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/8453",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/5210",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/5627",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/5720",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/5840",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/5854",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/6657",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/7013",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/7110",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/7221",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/7496",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/7922",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/8155",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/8807",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/8895",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/8922",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/issues/23446",
+      "from": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "scope": "tracker child not read by this increment; root global ledger may already cover it"
+    }
+  ],
+  "limits": [
+    "No GPU/NPU execution or benchmark",
+    "The source scope count is not full documents/pages",
+    "Parent must global-deduplicate official documents and PR bodies",
+    "GPU compatibility and published benchmark gains do not certify NPU or fixed GLM deployment"
+  ],
+  "papers": [
+    {
+      "url": "https://arxiv.org/pdf/2510.18234v1",
+      "version": "v1 submitted 2025-10-21",
+      "path": ".tmp/continuation-groups-2026-11-10/vit-graph/deepseek-ocr-2510.18234v1.pdf",
+      "sha256": "a7297788968f8ad9ed21bcd273110814e4889efbbc99bfea86dca12205797a90",
+      "pages": 22,
+      "status": "full_text_and_all_pages_visually_read",
+      "figures": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "tables": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "screenshots": {
+        "1": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-01.png",
+          "sha256": "009d06c3cdafc50afb167d563ebca785b3721c9309a3aaa6d0c2470eed2017ff"
+        },
+        "2": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-02.png",
+          "sha256": "ab2428e05453cd7b0d96dc3cd945ac920e47e857c60405e0b3659dd36a7b1eca"
+        },
+        "3": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-03.png",
+          "sha256": "fe750b98fbf4351d40d8c0009276c5c0958eb14f67969ea3dc45b5f65a115ac6"
+        },
+        "4": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-04.png",
+          "sha256": "cd9313e9c97542b30968fadbb91047c1f05ab5fa304bc2641cf9754aa1362ae7"
+        },
+        "5": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-05.png",
+          "sha256": "151cfd88a069bb6b197f45b52e830eb18d4be75eb3366719f8e61edb7163353d"
+        },
+        "6": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-06.png",
+          "sha256": "fc446898d0eab7b629a5ca7eab60e688ebe2c02722ade5e3072c79aac61b75ec"
+        },
+        "7": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-07.png",
+          "sha256": "7787f7d420a41f02b85ee71f0febf92e9721631546fdd785ac563ab17ff18547"
+        },
+        "8": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-08.png",
+          "sha256": "d1c906d3a04af1eb87267b15c6a1ac1408e672822598b4af99f262873404357b"
+        },
+        "9": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-09.png",
+          "sha256": "f85a3c77e875d9828370b100488583f1e54b0c428d821b54e5107750d0e09ba1"
+        },
+        "10": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-10.png",
+          "sha256": "e4c61baa56032e3d903aec2647d415f03fc50b297fab4995f92f3f77eb71a754"
+        },
+        "11": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-11.png",
+          "sha256": "0f3763c6004d46665a360cb914cece235202b799c0580a1a3bf7d3087eda2e1d"
+        },
+        "12": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-12.png",
+          "sha256": "8bf1f26e8ec7db048438cb89e0bb6a9d61798809848f2d905a52ca1fc00470de"
+        },
+        "13": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-13.png",
+          "sha256": "401ae9fd3a9122c33dcde8a9e053e2f44130664eb2688baff0350b4cb59a33f8"
+        },
+        "14": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-14.png",
+          "sha256": "5c01cba1e2e37145b95931a15c5bac8e9ac5342edb3392c2ef04b870f411ff6d"
+        },
+        "15": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-15.png",
+          "sha256": "0b4a641ab816fdebc1b194ccf0a73df3b5fed7cc99a878b6fe0ac219f4b99ebc"
+        },
+        "16": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-16.png",
+          "sha256": "d74e07e1525ea15e8a9ccd0523f2f60422e86c7a7ab5e26653c8138691d121dc"
+        },
+        "17": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-17.png",
+          "sha256": "8727ab55553645b0ead192f87c373dc07c26a17e6f1c70175aa7387be14aa5b6"
+        },
+        "18": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-18.png",
+          "sha256": "cf4af75630f7d3402149c629de64f75398d1dd59397d8b06ba86870e6bd16be2"
+        },
+        "19": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-19.png",
+          "sha256": "b9eb354a4f6b681f1ef6fda40bbd6df1250e17d063060c5ae1c113993f0ea98f"
+        },
+        "20": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-20.png",
+          "sha256": "c0ffe9cd3544cca4390b379742ca5dacc41084869ae3f6f643f298ae75ed3ee1"
+        },
+        "21": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-21.png",
+          "sha256": "707e761ba794a17653765a74acc5ac404b32dcbe73a993808e2daa45fd6b2da5"
+        },
+        "22": {
+          "path": ".tmp/continuation-groups-2026-11-10/vit-graph/ocr-page-22.png",
+          "sha256": "84c4cb8959e22b270a549c031bcde4e5c8847cf1200c12b8c9d958164c64c544"
+        }
+      },
+      "text_method": "Web PDF extraction complete855lines plus every locally rendered page. Local pdftotext unavailable; fitz/pypdf unavailable; no successful local text extraction claimed. Poppler rendering succeeded with Symbol/ArialUnicode font notices, all output pages actually inspected.",
+      "scope_notes": {
+        "1-4": "Abstract, contents, introduction and encoder/OCR related work; Fig1–2",
+        "5-7": "Architecture and resolution methods; Fig3–4 and Table1; vision counts distinct from implementation separator tokens",
+        "8-10": "Training data, stages, training PP/DP and Fox study; Fig5–6 and Table2",
+        "11-12": "OmniDocBench comparison and per-category differences; Table3–4, metrics and evaluation limits",
+        "13-18": "Qualitative examples; Fig7–12, not a device graph benchmark",
+        "19": "Fig13 proposed memory decay, discussion and limitations; OCR alone is not complete long-context validation",
+        "20-22": "References1–42 read as bibliography; linked works not automatically read"
+      },
+      "applicability": "Architecture/background only for graph dual input paths; paper performance and training deployment do not establish NPU inference behavior."
+    }
+  ],
+  "issue_descriptions": [
+    {
+      "url": "https://github.com/vllm-project/vllm/issues/38175",
+      "title": "[RFC]: Support ViT Full CUDA Graph (Tracker)",
+      "updated_at": "2026-11-08T02:33:28Z",
+      "scope": "full issue description only; not conversation or children",
+      "lines": 90,
+      "sha256": "5df03c209def1670d63ac5a232e7001d89a13e6316b07a218e937610393b137c",
+      "path": ".tmp/continuation-groups-2026-11-10/vit-graph/issue-38175-body.md",
+      "status": "body_full_read",
+      "outgoing_links": [
+        "https://github.com/vllm-project/vllm/pull/35963",
+        "https://github.com/vllm-project/vllm/pull/37914",
+        "https://github.com/vllm-project/vllm/pull/38040",
+        "https://github.com/vllm-project/vllm/pull/38061",
+        "https://github.com/vllm-project/vllm/pull/38116",
+        "https://github.com/vllm-project/vllm/pull/40355",
+        "https://github.com/vllm-project/vllm/pull/40445",
+        "https://github.com/vllm-project/vllm/pull/40576",
+        "https://github.com/vllm-project/vllm/pull/40580",
+        "https://github.com/vllm-project/vllm/pull/40660",
+        "https://github.com/vllm-project/vllm/pull/40780",
+        "https://github.com/vllm-project/vllm/pull/40830",
+        "https://github.com/vllm-project/vllm/pull/41234",
+        "https://github.com/vllm-project/vllm/pull/41714",
+        "https://github.com/vllm-project/vllm/pull/41736",
+        "https://github.com/vllm-project/vllm/pull/41759",
+        "https://github.com/vllm-project/vllm/pull/41992",
+        "https://github.com/vllm-project/vllm/pull/42151",
+        "https://github.com/vllm-project/vllm/pull/42224",
+        "https://github.com/vllm-project/vllm/pull/42288",
+        "https://github.com/vllm-project/vllm/pull/42785",
+        "https://github.com/vllm-project/vllm/pull/42796",
+        "https://github.com/vllm-project/vllm/pull/43082",
+        "https://github.com/vllm-project/vllm/pull/43321",
+        "https://github.com/vllm-project/vllm/pull/43586",
+        "https://github.com/vllm-project/vllm/pull/43591",
+        "https://github.com/vllm-project/vllm/pull/44388",
+        "https://github.com/vllm-project/vllm/pull/44394",
+        "https://github.com/vllm-project/vllm/pull/44484",
+        "https://github.com/vllm-project/vllm/pull/44720",
+        "https://github.com/vllm-project/vllm/pull/45254",
+        "https://github.com/vllm-project/vllm/pull/45654",
+        "https://github.com/vllm-project/vllm/pull/46005",
+        "https://github.com/vllm-project/vllm/pull/46034",
+        "https://github.com/vllm-project/vllm/pull/46837",
+        "https://github.com/vllm-project/vllm/pull/49934",
+        "https://github.com/vllm-project/vllm/pull/50929",
+        "https://github.com/vllm-project/vllm/pull/51461",
+        "https://github.com/vllm-project/vllm/pull/52256",
+        "https://github.com/vllm-project/vllm/pull/56277",
+        "https://github.com/vllm-project/vllm/pull/56625",
+        "https://github.com/vllm-project/vllm/pull/56820",
+        "https://github.com/vllm-project/vllm/pull/57379",
+        "https://github.com/vllm-project/vllm/pull/58925",
+        "https://github.com/vllm-project/vllm/pull/60519",
+        "https://github.com/vllm-project/vllm/pull/63074",
+        "https://github.com/vllm-project/vllm/pull/63374",
+        "https://github.com/vllm-project/vllm/pull/64311",
+        "https://github.com/vllm-project/vllm/pull/65084",
+        "https://github.com/vllm-project/vllm/pull/65351"
+      ],
+      "classification_correction": "38175 is an issue, /pull/38175 redirects and pulls API returned404"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/5208",
+      "title": "[RFC]: Model Runner V2",
+      "updated_at": "2026-06-30T07:44:57Z",
+      "scope": "full issue description only; not conversation or children",
+      "lines": 43,
+      "sha256": "16fcd3208b6c8583d5f29335a38ad1b42dc05a5288ce536c90c5df3ddfff2de3",
+      "path": ".tmp/continuation-groups-2026-11-10/vit-graph/issue-5208-body.md",
+      "status": "body_full_read",
+      "outgoing_links": [
+        "https://github.com/vllm-project/vllm-ascend/issues/5051",
+        "https://github.com/vllm-project/vllm-ascend/issues/7885",
+        "https://github.com/vllm-project/vllm-ascend/issues/8033",
+        "https://github.com/vllm-project/vllm-ascend/issues/8230",
+        "https://github.com/vllm-project/vllm-ascend/issues/8365",
+        "https://github.com/vllm-project/vllm-ascend/issues/8453",
+        "https://github.com/vllm-project/vllm-ascend/pull/5210",
+        "https://github.com/vllm-project/vllm-ascend/pull/5627",
+        "https://github.com/vllm-project/vllm-ascend/pull/5720",
+        "https://github.com/vllm-project/vllm-ascend/pull/5840",
+        "https://github.com/vllm-project/vllm-ascend/pull/5854",
+        "https://github.com/vllm-project/vllm-ascend/pull/6657",
+        "https://github.com/vllm-project/vllm-ascend/pull/7013",
+        "https://github.com/vllm-project/vllm-ascend/pull/7110",
+        "https://github.com/vllm-project/vllm-ascend/pull/7221",
+        "https://github.com/vllm-project/vllm-ascend/pull/7496",
+        "https://github.com/vllm-project/vllm-ascend/pull/7922",
+        "https://github.com/vllm-project/vllm-ascend/pull/8155",
+        "https://github.com/vllm-project/vllm-ascend/pull/8807",
+        "https://github.com/vllm-project/vllm-ascend/pull/8895",
+        "https://github.com/vllm-project/vllm-ascend/pull/8922",
+        "https://github.com/vllm-project/vllm/issues/23446"
+      ],
+      "classification_correction": null
+    }
+  ]
+}

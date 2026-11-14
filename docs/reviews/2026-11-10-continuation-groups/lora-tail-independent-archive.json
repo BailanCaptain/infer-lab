@@ -1,0 +1,353 @@
+{
+  "status": "independent_pass_for_frozen_lora_and_scoped_minicpm",
+  "page": "wiki/concepts/lora.md",
+  "sha256": "633592c213054313dc8552196fe7285577f43800522f873da543b3e787d58a09",
+  "new_sources_judged": 28,
+  "mini_ranges_judged": 12,
+  "actual_images_viewed": 19,
+  "open_P1_P2": 0,
+  "closed_findings": {
+    "P1": 1,
+    "P3": 3
+  },
+  "archive": ".tmp\\continuation-groups-2026-11-10\\lora-tail-independent-evidence.zip",
+  "archive_sha256": "ea9551a7607a3ba8efc116b02c14c63c9ab36a895c35f936e9d69670f338541c",
+  "members": 83,
+  "global_full_read_count_delta": 0,
+  "hardware_inference": false,
+  "all_external_read": false,
+  "files": [
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\api-link.png",
+      "sha256": "af91c9d0182b5707d3704bc566f6e90ad66eb0e8391a7a0a206166cc7649de7b"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\example.png",
+      "sha256": "14e57a870c97325e39a4e02e5e1270f27a9fe60abedf221798d3e51224a4ffb5"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\figure-0.png",
+      "sha256": "445c736f09e5831c73ad9481849d4b06105932fe8e1f3819dc95b2f5f490d48a"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\figure-1.png",
+      "sha256": "9f18485b0c854a1744d8d07f5de726f2d6391e60ddb086be3e4f2b0c7def0f94"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\first.png",
+      "sha256": "64c6d193f15071a3602a700203265601f23f56e5d7ea2ec59f657b0f98884ca5"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\last.png",
+      "sha256": "a1cef54865a7baa3f3c21d812b0f2c8c813600cea7663571d0667964df24677d"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\mixed.png",
+      "sha256": "fe515da50de7b838edd26240b4925d71137f113624ec1460316f48e17c51c114"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\multimodal.png",
+      "sha256": "9f4f981a73e0351ffb8dec1c92fbe0e888daaa977fe5201297ccf5ec379b8ee5"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\parameters.png",
+      "sha256": "ec2fb026ea0e119f7759b1d6c6abf732a4f77a61affd3b4706343a10f2852b24"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\report.json",
+      "sha256": "f1de5e11060a4e3a2f514587697956b1dbba9575fca325989b964be447901649"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\second.png",
+      "sha256": "2e0b6fb9ab9ae117205f793f8527ec271b2a94bb4618fcc36e1e5636c756ccac"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\source.png",
+      "sha256": "e0ad0f6b41d9f83b82d239d95706b2126f39c8fd79ac60b92545d3f9f8713c74"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\table-0.png",
+      "sha256": "a1e5e05b269beb8bd2d8cab58c3f79eff2653f4972c1c4ffda6718c775a79f12"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\table-1.png",
+      "sha256": "b4f1232ebdaac21f9400365ae414ddef5d28e01e4227518c5667d65127913e13"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\table-2.png",
+      "sha256": "6b06eef04d13df448a2f42365cc9d89b9ec8f37c23dd39b7b4d1771e8df49988"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\table-3.png",
+      "sha256": "5eab7edd68e282bf4880f13b6da1119ccbb822406061faa888d407ff77be5f34"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\browser\\table-4.png",
+      "sha256": "6fe38e036e34f3e8a4660950b77789b981902d775cd5fbf5fc137004b77e2ebd"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\cost-0.txt",
+      "sha256": "c59b7873e6d2cecbb0b7541a1cd6afd7cfa8df0cb1cab60b4fc510e2047da2fe"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\cost-1.txt",
+      "sha256": "07a8c34219722d6d052bab8704b4a64fda5830b38b04b30f96ebccc60d7ebc0e"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\external-scopes.json",
+      "sha256": "e6730131f3d6bebaa85907e75809795b417499180a3290e79fd65b0a9121e043"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\final-browser\\first-figure.png",
+      "sha256": "a8ddc99f4fcb2aa9fb34c325528fe8c0f7287f6cd1b2a0774bf87213bb0446fc"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\final-browser\\first.png",
+      "sha256": "30a69397a0bbcd9e2d5690a4286d52b831c16990ee80c22d490524f2e65b24e5"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\final-browser\\report.json",
+      "sha256": "b4e056be1b2d713be9ead86cb9442ec37fdf78b4a216266b01c1c5a2577fe242"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\final-browser\\second.png",
+      "sha256": "75493598a7615114f0c0df23a8b380434edc22c64d147bbd62aa3375e432be6f"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\final-page.md",
+      "sha256": "633592c213054313dc8552196fe7285577f43800522f873da543b3e787d58a09"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\final.diff",
+      "sha256": "47a1a4774eecaa65449d6d5d86640ee9ef7cc3b8047de5fec9f31db9e174737c"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\identity.json",
+      "sha256": "782e603f7a1908d19de84f352a994facff12c68f64525b9078157c1e2c3935b3"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\mini-1.txt",
+      "sha256": "ae4a2cb5a4da9ca7e4e0a9eb7d6550342e7e010f98712f6a5032bea634f4dc1d"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\mini-2.txt",
+      "sha256": "081914f91e636666534bc850ac79b8f0a10dd8a8bee4f9627c31872536012e3b"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\mini-3.txt",
+      "sha256": "866c96bbacb4afed85e5aaaf8878841062014b196c02c88ab08dab4da1e6a8e5"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\mini-6.txt",
+      "sha256": "9220fae87d1ea106d89cc33cb58ed6a2ed2735b490b7efbcbaccf13b07790e06"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\mini-7.txt",
+      "sha256": "f7f174f03d2cfd32d582e7d30f8f3aaeb7ebdddf40fbab4270c4bf3bea02fe6a"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\mini-identity.json",
+      "sha256": "79f26ed0c698c2b3c10ffc5c2aa5a002a14830ec91420d55d083ffff0d103fb1"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\minicpm-public-text.txt",
+      "sha256": "4897a88a142a43672eb1f4450d5f4be7b0ec14c45684c251209e4bda485de6f1"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\mother-identity.json",
+      "sha256": "143c70617bc16ecb05f0037a403fb37289c81468622acc5a27b87edaa230d64c"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\mother.txt",
+      "sha256": "a20e1a61aca0419725dafcb93340271b6211788a58daa04db0fd4d754adb465c"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\preservation.json",
+      "sha256": "34a41f0683cd1283e534d300a6f63fe4fee955fe0a93ec952ee39f0536d76dd3"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\probe-functions-identity.json",
+      "sha256": "81c972ee3e19acd15d451aa07d9bb25ed9559895f44630d3b825a6c64d80fdc5"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\screenshots-viewed.json",
+      "sha256": "f53a9d50b3da221ba7ab609456ea5a0952b83723b33c1b6385a833bcee78ef92"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\selection-probe-independent-rerun.json",
+      "sha256": "76b6691496c3a46b7453194656545346ce32034f25fc63246bceaf8f44f1bdb3"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-100.txt",
+      "sha256": "00ae1f6733e2d61e92c7faacb4027307cdb61f49051f13e1cdbaae064428398e"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-101.txt",
+      "sha256": "425272c54f3f3a54e32a4acd8047b5a8fadcbd39b1c930acb648c541d0d65a1a"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-102.txt",
+      "sha256": "a4c548ceb978cf646bcc2c4f961303d9747a18eae3d36bca50c9557558a0429d"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-105.txt",
+      "sha256": "2a0843967b2d13d6b8155d923b44e2ab33c1e43094846a27bb96cb801c68953d"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-107.txt",
+      "sha256": "808af73580a2409b0e78c1115c03d12f158dff9ffad00bc2df077dfe5272ccf7"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-109.txt",
+      "sha256": "49e60bf5fadbf37ec8a71c6245f0ee5fbc2fc155eb5ea6bd117650388af9c9c0"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-110.txt",
+      "sha256": "510e9fe37a9f43fb843df058d045fafb9a5363e20617dfdb422a637b679c84c9"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-111.txt",
+      "sha256": "abdb27def3508c96e712d6a737872201262f5beeda847b5099795f0e55012bdd"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-112.txt",
+      "sha256": "1eca2c946faec351e5e6007b8f4e3fca7f52c0217b3ff2be2390909a71bf154f"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-113.txt",
+      "sha256": "15ad40c1bcb4297e0888db79a1afab833fc32812024f55137dde1edc2253ef2b"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-114.txt",
+      "sha256": "167731768e63a093a3d967d90045f1aebe53943213e2d44bc0dad6a351be61bb"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-87.txt",
+      "sha256": "a0c3d795e4833fd4bf35fa11ec843a5aa0d9d1ca2de2b3dbc99c1e89eaec9d6a"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-88.txt",
+      "sha256": "83a370ecfa824609ef4edca193b184e980d8c6d99e09cdf3c0f897dfee9b0837"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-89.txt",
+      "sha256": "3e72cd5a472ff0b3ed44590d31b82ac2af28c89111ee07d909635b5004e0a847"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-93.txt",
+      "sha256": "f7fe61c420e38c490b55541f8f19921e41b8db8595781a1db2ee778cd0cf39fe"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-94.txt",
+      "sha256": "c236c010bf75af8c3f68c4ddce6c10c19f84903d883411eec8e8260a53537d94"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-97.txt",
+      "sha256": "b2b7510fbf48c112e7e447b416977a7b70acb25a255def87ec18312778f016d7"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-98.txt",
+      "sha256": "f45f94363a5e049723aea31b88bdd93fab487bf36defce648b12095851b0e9ef"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\source-99.txt",
+      "sha256": "1a411747f0a253d430caf3e4161ddfe426b6e58902864e7dfa763068e5ea54a4"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent\\standard-check.json",
+      "sha256": "044ab2fef85d92d51c72090e3dd58281127cd0c163bf3128fd020f673c238f79"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent-browser.mjs",
+      "sha256": "ea68efdae40f5d05d79dbf5c9a7eb55e72a49c41a0e75653b2e053ae6df7a06c"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent-final-browser.mjs",
+      "sha256": "9b03899ef96f255e23f7eba0b5e2a1128ec3c9e22073a02241db3b3c201229dd"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent-freeze.py",
+      "sha256": "16bf70e3d4584e6ee6a8041a81151bda11fe4a2760f339ab49ea1fd6a2f9aa8d"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent-judgments.py",
+      "sha256": "0699c7ceaeb33f1cfa21e7ea1dfa7ec6f3791d4003a120d3814a5fabb9046e1f"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent-retrieve.py",
+      "sha256": "55b98ac0aa4d54cf0384322e213732f0c1f21008f1ed0ee596f43c797c42d1c4"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent-standard.ts",
+      "sha256": "1ea3a77832a7d0dff1b0185ff65b62ec8691157d6e25f71024bdab46414e469e"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-independent-verify.py",
+      "sha256": "0cd79dffbafafffffd22cd29141f23fd1d082ec1aeeb0ee0bc500e8d85325604"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-minicpm-scope\\external\\lora-tower-issue.json",
+      "sha256": "d805362b5e10cf5d2e71e34fd0945efd100658f5986ab72ae49febf3c1dd80f9"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-minicpm-scope\\external\\lora-tower-pr.json",
+      "sha256": "9476f0ad1c86e8561ba14e16ea05d8978e4bc0bcc84bd25a55f1e9866ebaedd6"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-minicpm-scope\\external\\minicpm-public-card.html",
+      "sha256": "b91b6694257d942ffb15522a90efece19effd0eddb6e77a9a32d7e6292693ea7"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-minicpm-scope\\lora-before-first-screen-cost.md",
+      "sha256": "631197a4dbb5b640fd9d46220a39304fe6d77074d7feba75ec4e00cd7722be76"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-minicpm-scope\\lora-before-independent-followup.md",
+      "sha256": "2d1fd47880e0a9bc8bfb2d967b724dcc97f16e110656cc884f69f370b4e1d10f"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-minicpm-scope\\lora-before.md",
+      "sha256": "47bcdb780f37fe1d9aeb4177434bece7288e17dcc53b6dcff1b3c0a27bf301c8"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-minicpm-scope\\methods.json",
+      "sha256": "514ed7eaa1838f8191a62e771960549b9bd4af9cecb0656843fc9961ab45f489"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\lora-minicpm-scope\\selection-probe.py",
+      "sha256": "e2c7d62eb309bca533315cf75f87f12f24ebbe2c074403a19a1ce62be34bbae7"
+    },
+    {
+      "path": "docs\\reviews\\2026-11-10-continuation-groups\\lora-minicpm-independent-judgments.json",
+      "sha256": "32744196568cb4e570a4155c7d8e4aebb30033c6b491916a0eb3e5462fed1ffd"
+    },
+    {
+      "path": "docs\\reviews\\2026-11-10-continuation-groups\\lora-tail-independent-judgments.json",
+      "sha256": "5fad6767e5a8cf6e84e0ec94096df9aa08f28c9e8ac7bb4904af773dd260825a"
+    },
+    {
+      "path": "docs\\reviews\\2026-11-10-continuation-groups\\lora-tail-independent-preservation.json",
+      "sha256": "8c1dbab775107238a23b32340aeb6f0ff75eb0ffef3696f19b966a677420e599"
+    },
+    {
+      "path": "docs\\reviews\\2026-11-10-continuation-groups\\lora-tail-independent-review.md",
+      "sha256": "ce5ec2a9c6d0883a5d3631c3908db2fdb0a0870d83f4e3d9c43d88ea6ec10840"
+    },
+    {
+      "path": "wiki\\diagrams\\lora-resolver-loading.svg",
+      "sha256": "07d1de20d6f5b8a236ab55e72916610a1603046441ce0d395c13567a8a551118"
+    },
+    {
+      "path": "wiki\\diagrams\\lora-resolver-loading.yaml",
+      "sha256": "29c10df92d90311d04dd350ede9c1a6cd2f2ef7d1f4a05a7f2eaaa0441c00a85"
+    },
+    {
+      "path": "wiki\\diagrams\\lora.svg",
+      "sha256": "d7feaa4854085b0393e1c3a2725897ca46c9127d4a8b3175af696cc12dc1ade0"
+    },
+    {
+      "path": "wiki\\diagrams\\lora.yaml",
+      "sha256": "0b791a823507e9f21214537954bdfd9842766a4fbd102e61a61c6bcb36efd594"
+    }
+  ]
+}

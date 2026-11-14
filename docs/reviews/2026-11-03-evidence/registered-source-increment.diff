@@ -1,0 +1,97 @@
+--- before/scripts/wiki/sources.ts
++++ after/scripts/wiki/sources.ts
+@@ -73,6 +73,11 @@
+   { domain: "github.com", prefix: "/vllm-project/", kind: "official" },
+   {
+     domain: "github.com",
++    path: "/Ascend/op-plugin/blob/aed3889c79923863fc9bfb36105cd6f577508cde/docs/zh/custom_APIs/torch_npu/torch_npu-npu_moe_distribute_combine_v2.md",
++    kind: "official",
++  },
++  {
++    domain: "github.com",
+     path: "/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/python/xgrammar/structural_tag.py",
+     kind: "ecosystem",
+   },
+@@ -82,6 +87,21 @@
+     kind: "ecosystem",
+   },
+   { domain: "github.com", prefix: "/huggingface/transformers/blob/", kind: "ecosystem" },
++  {
++    domain: "github.com",
++    path: "/huggingface/tokenizers/blob/afaae088837b277c19f90604a1111a272838857b/tokenizers/src/models/bpe/model.rs",
++    kind: "ecosystem",
++  },
++  {
++    domain: "github.com",
++    path: "/huggingface/tokenizers/blob/afaae088837b277c19f90604a1111a272838857b/tokenizers/src/tokenizer/mod.rs",
++    kind: "ecosystem",
++  },
++  {
++    domain: "github.com",
++    path: "/huggingface/tokenizers/blob/afaae088837b277c19f90604a1111a272838857b/tokenizers/src/tokenizer/added_vocabulary.rs",
++    kind: "ecosystem",
++  },
+   { domain: "github.com", prefix: "/deepseek-ai/DeepInfer/blob/", kind: "ecosystem" },
+   { domain: "github.com", prefix: "/deepseek-ai/deepseek-recipe/blob/", kind: "ecosystem" },
+   { domain: "gitee.com", prefix: "/ascend/", kind: "official" },
+--- before/scripts/wiki/sources.test.ts
++++ after/scripts/wiki/sources.test.ts
+@@ -4,9 +4,41 @@
+ import { CITABLE_DOMAINS, classifySource, handbookDomains, supportsOfficialEvidence } from "./sources";
+ 
+ describe("classifySource", () => {
++  it.each(["models/bpe/model.rs", "tokenizer/mod.rs", "tokenizer/added_vocabulary.rs"])(
++    "Tokenizers 仅登记已核读提交的文件：%s",
++    (file) => {
++      const path = `huggingface/tokenizers/blob/afaae088837b277c19f90604a1111a272838857b/tokenizers/src/${file}`;
++      const kind = classifySource(`https://github.com/${path}#L1-L10`);
++      expect(kind).toBe("ecosystem");
++      expect(supportsOfficialEvidence(kind)).toBe(false);
++      for (const ref of [
++        `https://github.com.evil.com/${path}`,
++        `https://github.com/${path}.bak`,
++        `https://github.com/${path.replace("afaae088837b277c19f90604a1111a272838857b", "main")}`,
++        `https://github.com/${path.replace(file, "other.rs")}`,
++        `https://github.com/${path.replace("huggingface/", "someone/")}`,
++        `https://github.com/${path.replace("tokenizers/blob/", "tokenizers-fork/blob/")}`,
++        "https://github.com/huggingface/tokenizers/issues/1",
++      ])
++        expect(classifySource(ref), ref).toBe("unlisted");
++    },
++  );
++  it("op-plugin 官方算子文档仅放行已核读的固定文件", () => {
++    const path =
++      "Ascend/op-plugin/blob/aed3889c79923863fc9bfb36105cd6f577508cde/docs/zh/custom_APIs/torch_npu/torch_npu-npu_moe_distribute_combine_v2.md";
++    expect(classifySource(`https://github.com/${path}#L257-L279`)).toBe("official");
++    for (const ref of [
++      `https://github.com.evil.com/${path}`,
++      `https://github.com/${path}.bak`,
++      `https://github.com/${path.replace("aed3889c79923863fc9bfb36105cd6f577508cde", "main")}`,
++      `https://github.com/${path.replace("combine_v2.md", "dispatch_v2.md")}`,
++      "https://github.com/Ascend/op-plugin/issues/1",
++    ])
++      expect(classifySource(ref), ref).toBe("unlisted");
++  });
+   it.each([
+     "https://uvicorn.dev/settings/",
+-    ...CITABLE_DOMAINS.filter((entry) => entry.path && /^\/(pytorch|Ascend)\//.test(entry.path)).map(
++    ...CITABLE_DOMAINS.filter((entry) => entry.path && /^\/(pytorch|Ascend\/pytorch)\//.test(entry.path)).map(
+       (entry) => `https://${entry.domain}${entry.path}`,
+     ),
+   ])("通信依赖仅放行登记的完整路径：%s", (ref) => {
+--- before/wiki/HANDBOOK.md
++++ after/wiki/HANDBOOK.md
+@@ -351,9 +351,13 @@
+ | `blog.vllm.ai` | vLLM 官方博客 | 官方 |
+ | `discuss.vllm.ai` | 用户论坛，讨论内容不自动成为官方结论 | 社区 |
+ | `github.com/vllm-project/` | 上游仓库、issue、PR、release | 官方 |
++| `github.com/Ascend/op-plugin/blob/aed3889c79923863fc9bfb36105cd6f577508cde/docs/zh/custom_APIs/torch_npu/torch_npu-npu_moe_distribute_combine_v2.md` | 已核读的昇腾通信算子接口与产品约束；仅此固定文件，不证明旧容器已支持全部模式 | 官方 |
+ | `github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/python/xgrammar/structural_tag.py` | 已核读 XGrammar v0.2.0 的标签格式定义；仅此固定文件，不证明现场依赖版本或 NPU 编译通过 | 生态 |
+ | `github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/python/xgrammar/compiler.py` | 同一固定版本的编译接口和空白分隔符语义；不扩展到其他文件、提交或讨论 | 生态 |
+ | `github.com/huggingface/transformers/blob/` | Transformers 原仓源码，钉定提交 | 生态 |
++| `github.com/huggingface/tokenizers/blob/afaae088837b277c19f90604a1111a272838857b/tokenizers/src/models/bpe/model.rs` | 已核读的 Tokenizers BPE 模型编码路径；仅此固定文件 | 生态 |
++| `github.com/huggingface/tokenizers/blob/afaae088837b277c19f90604a1111a272838857b/tokenizers/src/tokenizer/mod.rs` | 同一固定版本的解码与特殊 token 过滤；仅此文件 | 生态 |
++| `github.com/huggingface/tokenizers/blob/afaae088837b277c19f90604a1111a272838857b/tokenizers/src/tokenizer/added_vocabulary.rs` | 同一固定版本的新增词表 ID 分配；不扩展到其他文件、提交或讨论 | 生态 |
+ | `github.com/deepseek-ai/DeepInfer/blob/` | DeepInfer 原仓源码与文档，钉定提交；不证明完整生产系统已开源 | 生态 |
+ | `github.com/deepseek-ai/deepseek-recipe/blob/` | DeepSeek 协议转换库，钉定提交；不证明推理后端接入或约束执行 | 生态 |
+ | `gitee.com/ascend/` | 昇腾一手仓库（ATB 算子库等） | 官方 |

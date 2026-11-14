@@ -2,7 +2,8 @@
 id: rfork-official-guide
 title: RFork 官网核读：原图、全部章节与工作版差异
 type: source
-summary: 拿英文 latest 版 RFork 官网指南逐节对照工作版代码：读懂官方架构图，列出官方测试范围，标出申请时机、seed key、端口、日志、依赖上官网和工作版自带指南与代码对不上的地方，以及仍需现场验收的内容。
+summary: >-
+  对照固定官方指南、社区 rc2 与独立 RFork 工作版，说明身份、端口、租约和布局协议的差异；保留旧指南的模型记录及适用日期，避免把移动的 latest 当成工作版支持证明。
 aliases:
   - RFork 官网
   - RFork 官方文档
@@ -29,6 +30,17 @@ sources:
   - 'rfork@3284850b:docs/source/user_guide/feature_guide/rfork.md#L320-L325'
   - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rfork.md#L1-L155'
   - 'rfork@3284850b:docs/source/user_guide/feature_guide/rfork.md#L102-L381'
+  - >-
+    raw:sha256-db4449dd5c07c9dbfaf635f095d0deff9791e40dee4d701ce688eb87fbed4733.md#L1-L1315
+  - >-
+    rfork@3284850b42f94934dfe6909ed6f1c4c145a7f69c:docs/source/user_guide/feature_guide/rfork.md#L222-L228
+  - >-
+    rfork@3284850b42f94934dfe6909ed6f1c4c145a7f69c:docs/source/user_guide/feature_guide/rfork.md#L254-L262
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/rfork.md
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/rfork_loader.py#L630-L704'
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/planner_client.py#L117-L245'
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L261-L364'
 relations:
   - to: rfork
     kind: builds-on
@@ -39,11 +51,14 @@ relations:
   - to: rfork-maintenance
     kind: builds-on
     note: 官网 latest 会变化，不能因此自动升级用户工作版
+  - to: rfork-layout
+    kind: builds-on
+    note: 官网核读页对量化派生权重和最终张量状态的说明，依赖布局页展开的布局准备与张量采集机制。
 verified:
   - 'rfork:main'
 evidence: C
 contradicts: []
-updated: '2026-10-02'
+updated: '2026-10-30'
 rawSources:
   - >-
     raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md
@@ -63,19 +78,31 @@ rawSources:
     raw/sha256-b497eef4c4973a8d3ffb141a76c2caf3aa52fc165c864cd90016ccf7555c796c.md
   - >-
     raw/sha256-be7651d21c2f6c44f19cb939989ef0d4119a8cdfdaf2f59003e14ee2166cd069.md
+  - >-
+    raw/sha256-db4449dd5c07c9dbfaf635f095d0deff9791e40dee4d701ce688eb87fbed4733.md
 ---
 
-## 一句话
+## 用哪份指南对照哪份实现？
 
 **官网指南帮你理解 RFork 想做什么、怎么用；这套代码实际怎样执行，以工作版源码为准。两者对不上的地方，本页逐条并列写出。** RFork 本身是什么——新实例按地址从一个身份相同、正在服务的实例那里读权重，借不到再退回磁盘加载——见[总览](../concepts/rfork.md)，这里不重讲。
 
-本页对照的是[英文 latest 版 RFork Guide](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/rfork.html)，核读日期 2026-09-22，中文版和其他发布版没有拿来替代它。[S1] 读的范围是这一页的全部正文、小节、命令、占位符、模型表和唯一一张 Flowchart 原图；同时对照了工作版自带的那份指南和租约（lease）设计文档。
+本页分两层：下面先介绍固定 `921ccc52` 官方指南与社区 rc2 的变化；之后“旧官网”各节保留 2026-09-22 英文指南与工作版 `3284850b` 的对照。旧阅读记录包括全文、命令、模型表与 Flowchart 原图，也对照了工作版指南和租约设计文档；不能把当时的模型表或五项参数表称为当前 latest 的全部内容。
 
-`latest` 是会移动的网站地址，本页记的是当日读到的内容，没有据此推断网站由哪个提交构建。本页标的「已核」只指工作版代码核过，不代表社区分支已验收，也不代表在真实设备上跑过。社区仓库里另存着与网页各节对应的固定提交版指南，可以离线对照，但同样不能证明官网由那个提交构建。[S16]
+`latest` 是会移动的网站地址。下面引用官方源码中的固定指南，不据此断言线上网站正由哪个提交构建；工作版、社区 rc2 和更晚的文档快照分别标注，设备效果仍需真实部署验证。
 
-社区 v0.23、v0.26、main 各自带的 RFork 和工作版差在哪些补丁，全章只在总览的[版本差异](../concepts/rfork.md#版本差异)列一次。本页只比「官网 latest 指南」和「工作版代码」这两样，不再逐版本对照。
+## 新官方指南补充了什么，rc2 要怎样部署？
 
-## 官网每一节在本章哪里展开
+[921ccc52 官方指南](https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/rfork.md)已经列出十一项配置、配置指纹加张量结构摘要的匹配、主草 seed HTTP 端口分槽、TransferEngine 动态绑定、后台慢重试，以及布局诊断和逻辑载荷边界。它不再使用旧指南的分隔符 key 和逐型号已测表；“主流 DeepSeek/Qwen/GLM”这类系列描述仍不能替代具体模型、量化和硬件验收。
+
+该指南的 Overview 仍把“先问 Planner、再搭模型”简写成流程，Caveats 也仍有“端口随机”的概括。rc2 的实际 loader 是先准备模型和布局、登记目的内存并绑定结构摘要，最后才申请；非零 base 则按主草分槽尝试固定 HTTP 端口。遇到这类不一致，应按[启动](../concepts/rfork-startup.md#版本差异)与[配置](../concepts/rfork-config.md#版本差异)的固定消费者判断，而不是把概览当完整时序。
+
+**Planner 还有一个命令示例看不出来的要求：** rc2 的 get_seed 必须返回有限正数 LEASE_TTL_SEC，客户端随后调用 /renew_seed_lease。只实现旧的借、还、心跳接口并不足够。三次归还也只是快速重试阶段，暂态错误后仍继续慢重试，详见[生命周期](../concepts/rfork-lifecycle.md#版本差异)。工作版没有这套续期协议，迁移时应隔离 seed 池并同时核 Planner。
+
+新指南还把三类网络端口分开：seed HTTP、TransferEngine RPC、HIXL 数据端点。RPC 范围环境变量和 HIXL 默认范围属于指南所述的配套 YuanRong 版本约定，不能仅由 rc2 Python 调用推定任意已安装包都支持；rc2 能直接证明的是传入 port=0 并读取 get_rpc_port。防火墙应按实际依赖和绑定结果配置。
+
+布局说明也有明确边界：张量允许在连续、不重叠的存储上调整 shape；传输长度按 numel×element_size，分配器容量、描述符 padding 和相邻 storage 不会自动一起搬。新格式若要依赖这段范围之外的数据，须扩协议并核 NPU 输出；诊断摘要不同本身不是逐字节内容校验。完整版本矩阵统一在[RFork 总览](../concepts/rfork.md#版本差异)。
+
+## 旧官网每一节在本章哪里展开
 
 | 官网小节 | 对应解释 | 核读后必须保留的边界 |
 |---|---|---|
@@ -108,7 +135,7 @@ rawSources:
 
 图省略了 Seed HTTP 的 manifest 请求、租约释放、注册回滚和默认加载。这些由[总览](../concepts/rfork.md)、[传输](../concepts/rfork-transfer.md)及生命周期图展开。工作版 Python 向 TransferEngine 传入 `ascend` 类型、设备名和地址，**不能仅由这张图证明任何环境都完全绕过 CPU 暂存，也不能推导每张 NPU 必须独占一张 NIC**；物理链路和 native 实现需现场确认。[C5][I]
 
-## 会影响排错的官网与工作版差异
+## 旧官网与工作版有哪些排错差异？
 
 | 主题 | 官网当日说明 | 工作版实际行为与影响 |
 |---|---|---|
@@ -120,11 +147,16 @@ rawSources:
 | 成功日志 | 让人搜 `transfer weights starts` 与 `transfer weights time` | 起始那条本版**照样在打** `transfer weights starts`；换掉的是结束那条，现在是 `RFork weight transfer completed: weights=…, chunks=…, bytes=… GiB, elapsed=…s, throughput=… GiB/s`，官网让人找的耗时就在这一行的 elapsed 字段里。所以搜不到 `transfer weights time` 不等于没传，搜得到 `transfer weights starts` 也不等于版本不对。[C12] |
 | 依赖安装 | 指向 `openyuanrong-transfer-engine` | 本版实际导入 `yr.datasystem`，并调用 Ex 注册和 finalize API。包名、能 import、native 行为相容是三层验证。[C5][C6][C7] |
 
+seed 心跳与租约是两套状态：心跳报告 seed 健康，不续租。示例 planner 的租约可能在传输期间到期，而客户端释放时把 404 当作已释放处理。因此，实例启动成功本身不能证明租约覆盖了整段传输；应按初始化后注册、元数据获取、传输及异步释放所需时间配置租约。
+
+
 工作版自己也带一份指南，它和官网又不完全一样。安装命令写的是 `openyuanrong-datasystem`。[S15] 这是两份指南的差异记录，不能据此断言两个发行包任意版本都可互换；先用[配置页](../concepts/rfork-config.md)的只读检查确认实际模块和 API，再核部署配套版本。
 
 这份自带指南在申请时机、哈希式 key、租约未还时延期发布这三点上和工作版代码一致，**但有两处没跟上代码**：成功日志仍写开始、结束两条旧日志，而代码的结束行已换成上表那条 completed；端口仍写「随机分配」，配置表里也没有按 rank 偏移的端口基数，而代码已支持基数加 global rank。[S17] 所以排错时，日志和端口两件事连工作版自带指南也不能当准，以代码为准。
 
-上述官网列是当日说明的摘要，不是对社区所有分支代码行为的证明。[S1] 官网当前 Caveats 写的是动态 EPLB；不要把其他版本文档中的 `layer_sharding` 限制直接冒充这页原文。工作版显式绕过动态 EPLB，又会拒绝已物化的混合 CPU/NPU 参数；没有单独的 `layer_sharding` 禁用分支，也**不能反推该组合已实测支持**。[C10][C13][I]
+工作版端口偏移使用全局进程编号，不是 TP、PP 或 EP 组内编号（来源9，session.py 364–378）。同一进程的主草角色仍共用这个编号，因此固定 base 下可能撞号；rc2 的双槽公式解决的是这个区别，实际可达性仍须分别核 HTTP 与数据端点。
+
+上述官网列只代表当日说明。该旧指南的 Caveats 写动态 EPLB，不能拿别处的 layer_sharding 限制替换；工作版显式绕过动态 EPLB，并拒绝已物化的混合 CPU/NPU 参数。没有单独的 layer_sharding 禁用分支，也不能反推该组合已经支持。[C10][C13][I]
 
 ## 量化一节的派生权重不是 KV Cache
 
@@ -143,7 +175,7 @@ rawSources:
 | GLM5-W4A8 | W4A8 | A2 |
 | Kimi2.5-W4A8 | W4A8 | A2 |
 
-这是官网当日报告的测试覆盖，并非本轮复现。[S1] **BF16** 是 bfloat16 浮点格式；**W8A8 / W4A8** 分别表示权重 8/4 bit、激活 8 bit 的量化方案名称，不代表模型里每一个张量都用相同位宽，系数（scale）怎么来见[量化](../concepts/quantization.md)。模型名里的 **MTP** 指模型自带的草稿层，用来做[投机解码](../concepts/speculative-decoding.md)。
+这是旧指南报告的测试覆盖，固定在 `baa023ad` 的模型表，并非本轮复现，也不是当前 latest 的逐型号支持表。[S16] **BF16** 是 bfloat16 浮点格式；**W8A8 / W4A8** 分别表示权重 8/4 bit、激活 8 bit 的量化方案名称，不代表模型里每一个张量都用相同位宽，系数（scale）怎么来见[量化](../concepts/quantization.md)。模型名里的 **MTP** 指模型自带的草稿层，用来做[投机解码](../concepts/speculative-decoding.md)。
 
 放到我们的部署上：表里有 GLM5-W4A8，没有我们跑的 GLM-5.3-Flash W8A8；官方 GLM-5.3-Flash 部署教程（社区仓库 0576b647 版）的命令里没有用 RFork 加载；工作版代码树里也没有 GLM-5.3-Flash 的模型实现。所以这张表对我们的部署只是参考，每张卡借多少、这套部署现在能不能受益，见总览的[GLM 双机推演](../concepts/rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)。
 
@@ -164,4 +196,8 @@ rawSources:
 - 待核：Ex 注册实际覆盖的内存范围——缺 YuanRong native 实现或真机登记记录。
 - 待核：native finalize 遇到还在读的对端时怎么处理——缺 native 契约说明或真机复现。
 - 待核：量化模型和 MTP 草稿传过去以后输出是否与默认加载一致、能省多少启动时间——缺真机对比运行。
-- 待核：官网 latest 在 2026-09-22 之后是否改过——缺下一次核读；改了要重新对照上面的差异表。
+- latest 会继续变化；复用本文时应确认所用指南的固定提交。本文的新旧差异分别对应 `921ccc52` 与 `baa023ad`，不据移动网址自动扩大工作版的适用范围。
+
+## 对照源码
+
+- 来源 19、20：rfork@3284850b，docs/source/user_guide/feature_guide/rfork.md，L222–L228、L254–L262。

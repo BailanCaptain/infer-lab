@@ -1,46 +1,94 @@
 ---
 id: collective-communication
-title: "通信基础：rank 之间怎样交换和归约张量"
+title: 通信基础：rank 之间怎样交换和归约张量
 type: concept
-summary: 集合通信规定一组参与者怎样交换数据，以及结束后每张卡持有什么。用 4 张卡逐步演示 Broadcast、Scatter、Gather、All-Gather、Reduce、Reduce-Scatter、All-Reduce、All-to-All 和 ring All-Reduce，区分逻辑载荷和传输量，再沿 GLM 双机解释 HCCL 与 MC2。
-aliases: [集合通信, Collective Communication, All-Gather, All-Reduce, Reduce-Scatter, All-to-All, Broadcast, 全归约, 全收集, 归约分散, 全互换, 广播, Send, Recv, rank, 通信组, Scatter, Gather, Reduce, ring All-Reduce]
-chapters: ["12"]
+summary: >-
+  集合通信规定一组参与者怎样交换数据，以及结束后每张卡持有什么。用 4 张卡逐步演示
+  Broadcast、Scatter、Gather、All-Gather、Reduce、Reduce-Scatter、All-Reduce、All-to-All
+  和 ring All-Reduce，区分逻辑载荷和传输量，再沿 GLM 双机解释 HCCL 与 MC2。
+aliases:
+  - 集合通信
+  - Collective Communication
+  - All-Gather
+  - All-Reduce
+  - Reduce-Scatter
+  - All-to-All
+  - Broadcast
+  - 全归约
+  - 全收集
+  - 归约分散
+  - 全互换
+  - 广播
+  - Send
+  - Recv
+  - rank
+  - 通信组
+  - Scatter
+  - Gather
+  - Reduce
+  - ring All-Reduce
+chapters:
+  - '12'
 sources:
-  - https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/850/commlib/hcclug/hcclug_000009.html
-  - https://docs.pytorch.org/docs/2.14/distributed.html
-  - vllm@0fc695fc:vllm/distributed/parallel_state.py#L607-L681
-  - vllm@0fc695fc:vllm/distributed/device_communicators/base_device_communicator.py#L180-L248
-  - vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/device_communicators/npu_communicator.py#L23-L68
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/comm_utils.py#L26-L60
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/device_communicators/pyhccl.py#L98-L171
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L202-L252
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L193-L227
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L469
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L543-L560
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L150-L339
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_comm_method.py#L122-L172
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L239-L252
-  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L324-L497
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L296-L425
-  - vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L256-L269
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L165-L165
-  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L177-L177
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L460-L460
-  - https://www.hiascend.com/document/detail/zh/canncommercial/82RC1/opdevg/ascendcbestP/atlas_ascendc_best_practices_10_0043.html
-  - vllm@0fc695fc:vllm/distributed/parallel_state.py#L926-L1013
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L663-L719
-  - vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L157-L167
-  - vllm@0fc695fc:vllm/config/parallel.py#L683-L707
+  - >-
+    https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/850/commlib/hcclug/hcclug_000009.html
+  - 'https://docs.pytorch.org/docs/2.14/distributed.html'
+  - 'vllm@0fc695fc:vllm/distributed/parallel_state.py#L607-L681'
+  - >-
+    vllm@0fc695fc:vllm/distributed/device_communicators/base_device_communicator.py#L180-L248
+  - 'vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/device_communicators/npu_communicator.py#L23-L68
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/comm_utils.py#L26-L60'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/device_communicators/pyhccl.py#L98-L171
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L80-L252'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L193-L227'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L469'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L543-L560'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L150-L339'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_comm_method.py#L122-L172'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L239-L252'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L324-L497'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L296-L425'
+  - 'vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L256-L269'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L165-L165'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L177-L177'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L460-L460'
+  - >-
+    https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/82RC1alpha001/opdevg/ascendcbestP/CANN%E7%A4%BE%E5%8C%BA%E7%89%88%208.2.RC1.alpha001%20Ascend%20C%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5%2001.pdf
+  - 'vllm@0fc695fc:vllm/distributed/parallel_state.py#L926-L1013'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L719'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L157-L167'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L683-L707'
+  - >-
+    raw:sha256-64347e263d97d468f772950b4cba293bf8e7d038833b130b1ace241fdf164bd3.md#L1-L1301
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_forward_context.py#L297-L315'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_forward_context.py#L391-L414'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/moe_comm_method.py#L62-L75'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L102-L141'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L228-L373'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L931'
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - { to: one-request, kind: builds-on, note: A4 的逐层通信次数和 R1 字节账统一引用请求主线 }
-  - { to: matmul-and-weights, kind: builds-on, note: 分清独立输出分片与部分和是选择通信操作的前提 }
-  - { to: hardware-devices, kind: builds-on, note: 通信组的逻辑参与者运行在具体设备上 }
+  - to: one-request
+    kind: builds-on
+    note: A4 的逐层通信次数和 R1 字节账统一引用请求主线
+  - to: matmul-and-weights
+    kind: builds-on
+    note: 分清独立输出分片与部分和是选择通信操作的前提
+  - to: hardware-devices
+    kind: builds-on
+    note: 通信组的逻辑参与者运行在具体设备上
 contradicts: []
-updated: "2026-09-29"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-0cf9c30845c054dfd27aba2a44b05dac82bc0225367eb1ff61d8f59c959eec1e.md
+  - >-
+    raw/sha256-64347e263d97d468f772950b4cba293bf8e7d038833b130b1ace241fdf164bd3.md
 ---
 
 ## 两张卡交换以后，各自手里多了什么？
@@ -63,6 +111,8 @@ file: collective-communication
 交换后两张卡都是 [11, 22]，每个数都加进了两张卡的贡献。这就是后文的 All-Reduce。全页的图用同一套画法：每张图分成「发之前 → 发 → 发之后」几格，从上往下看；**浅青色是发之前各卡原有的数，深青色是通信后得到的结果**；中间那格里每列是一张收数据的卡，块上方写着它来自哪张卡，**紫色箭头是经过通信送来的块，灰色虚线是本卡自己的块，不用发**；空白的格子只是占位，表示这张卡手里没有这一块。
 
 如果把 W 改成**按列**切，情况就不一样：卡 0 拿第 1 列 [1, 5]，算出 1 × 1 + 2 × 5 = 11；卡 1 拿第 2 列 [2, 10]，算出 1 × 2 + 2 × 10 = 22。每张卡得到的已经是完整结果里的一个数，两份只要拼起来，不用相加，这对应后文的 All-Gather。切法决定了算完以后是「加」还是「拼」。
+
+判断时还要看数据的含义，不能只看形状：即使两张卡拿着同形状的张量，它们也可能是同一结果的部分和，需要按位置相加；也可能分别对应完整结果的不同片段，需要保留各片段原来的数值再拼接。
 
 交换有好几种约定，用三个问题就能分开：数据是一张卡拿出来，还是每张卡都拿出来；到了对方手里是原样放下（收集），还是按位置相加（归约）；结果只给一张卡，还是每张卡拿到同样的一整份，还是每张卡拿到各不相同的一份。后面八种操作正好各占一种组合，下一节开头有一张对照表。归约示意均使用 SUM，也就是对应位置求和。输出归属不等于把发送方的输入删掉，输入缓冲是否复用由接口决定。
 
@@ -96,6 +146,12 @@ file: collective-communication
 | All-to-All | 每张卡 | 原样放下 | 每张卡各不相同的一份 |
 
 只差一格的两种最容易混：Broadcast 和 Scatter 只差整份还是各一份；All-Gather 和 All-to-All 都不相加，差在每张卡收到的一样还是不一样；Reduce-Scatter 和 All-Reduce 都相加，差在每张卡留一片还是拿整份。
+
+下面的交互图沿用这组数值。选择一种操作后，看上方保留的输入怎样到达下方接收位置；归约会先显示收到的数，再更新同位置的和。每条路线表示逻辑收发关系，逐条播放便于追踪，不规定通信库的真实包顺序。选择 Ring All-Reduce 可看四张卡每轮同时各发一块，依次完成三轮归约和三轮收集。
+
+```wiki-scene
+collective-communication
+```
 
 ### Broadcast
 
@@ -151,7 +207,7 @@ file: collective-communication-reduce
 
 这 4 张卡的数可以看成 4 份部分和：像开头那样把一层权重按行切给 4 张卡，每张卡算出的都是同一个结果的一部分。通信前四张卡各有 4 块；三张卡把 4 块都发给根卡 0，根卡按位置相加，得到 [1111, 2222, 3333, 4444]，每块的个、十、百、千位都是 1，说明四张卡的数都加进来了。其余卡手里没有结果。直接发送时，根卡要收下其余 N−1 张卡的整份输入。
 
-Scatter、Gather、Reduce 都只有一张根卡发出或收下。推理中下一步往往每张卡都要接着算，所以后文 GLM 走读里出现的是后面几种：All-Gather、Reduce-Scatter、All-Reduce，以及按目的地交换的 All-to-All。前三种可以拆成「根操作 + 一次分发」来理解：All-Gather 的结果等于 Gather 后再 Broadcast，Reduce-Scatter 等于 Reduce 后再 Scatter，All-Reduce 等于 Reduce 后再 Broadcast。这里只说结果相同；通信库不会先把数据集中到一张卡再发出去，那样根卡的链路会成为瓶颈。
+Scatter、Gather、Reduce 都只有一张根卡发出或收下。推理中下一步往往每张卡都要接着算，所以后文 GLM 走读里出现的是后面几种：All-Gather、Reduce-Scatter、All-Reduce，以及按目的地交换的 All-to-All。前三种可以拆成「根操作 + 一次分发」来理解：All-Gather 的结果等于 Gather 后再 Broadcast，Reduce-Scatter 等于 Reduce 后再 Scatter，All-Reduce 等于 Reduce 后再 Broadcast。这里只说结果相同；下面的 ring 算法无需先集中到一张卡，实际通信库仍会按消息规模与拓扑选择实现。
 
 ### Reduce-Scatter
 
@@ -168,6 +224,8 @@ file: collective-communication-reduce-scatter
 ### All-Reduce
 
 **All-Reduce 把所有卡的同位置元素按指定运算归约，并让每张卡都得到完整结果。** 从结果看，它等于 Reduce 后再 Broadcast，也等于 Reduce-Scatter 后再 All-Gather；下图按后一种拆成两步。
+
+这里以 SUM 为例：各成员输入是同形状的部分和，且 Reduce-Scatter 与后续 All-Gather 使用一致的分片规则时，两步组合才得到与 SUM All-Reduce 相同的逻辑结果。浮点数加法的先后顺序可能不同，因此逻辑结果等价不保证计算结果逐位相同。
 
 ```wiki-diagram
 file: collective-communication-all-reduce
@@ -245,7 +303,9 @@ All-Gather 阶段 = (4 − 1) 步 × M ÷ 4 = 0.75 M
 
 **A0 启动时建立通信组，A4 前向时反复使用这些组。** [双机部署的 16 卡分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)给出具体成员：两套机内 TP8 分别合算本机矩阵；八个跨机 DP2 组连接对应卡；EP16 覆盖全部卡以共享完整专家集合。HCCL 是昇腾的集合通信库，HCCS 是机内高速互联；通信库与物理链路分属两层。CPU 状态同步还会用 Gloo 这一 CPU 通信后端，不能全算作 HCCL 流量。
 
-在我们的 GLM 双机部署中，主干一次前向有 **218 个通信调用边界**，也就是前面说的交接点：稠密层的两处合齐，加上 MoE 层专家的分发、返回与合并。完整次数账见[一条请求的通信汇总](one-request.md#一次前向的通信账)。一次调用的传输轮数由算法决定，218 不是网络包数，也不表示每次都执行全局屏障。
+以下沿用[条件性基线](../sources/glm-5-3-flash-baseline.md)：SP（把 token 行分给组内成员的序列并行）关闭，共享专家 DP 与归约替换也未启用。因此嵌入与投影保留完整 token 行，MoE 使用下文的补齐、切分和收尾路径。环境变量默认关闭不足以证明这些运行条件，配置与共享专家初始化还可能改变最终状态。
+
+在这组条件下，GLM 双机主干一次前向有 **218 个通信调用边界**，也就是前面说的交接点：稠密层的两处合齐，加上 MoE 层专家的分发、返回与合并。完整次数账见[一条请求的通信汇总](one-request.md#一次前向的通信账)。一次调用的传输轮数由算法决定，218 不是网络包数，也不表示每次都执行全局屏障。
 
 CPU 的 DP 状态同步拿出“是否还有工作、是否请求暂停”两个 32 位整数，输入载荷共 **8 B**，做一次 SUM All-Reduce 后各参与者获得两项计数，再据此判断是否继续运行。这是小型控制消息；下文的设备张量和 218 次主干通信账不包含它。
 
@@ -279,11 +339,13 @@ MoE finalize 用一次 TP8 All-Gather：每卡贡献 **8,192 B**，收齐后先�
 
 在本页的 MoE 路径里，**dispatch** 按选中的专家把输入派发给持有卡，**combine** 把专家结果送回源 token 所在卡并按路由权重组合。这在数据流上属于按目的地交换，但还涉及量化、重排、路由权重和有效行标记，不能把一次 MC2 调用直接替换成一次等长 All-to-All，也不能假定它内部必然调用 HcclAlltoAll。
 
+一个 token 交给多个专家，需要上层路由建立多份 token–expert 对应关系，再把输入送往相应设备。这里的多份对应关系来自专家选择；All-to-All 本身只按目的地交换交给它的数据，不自动为 token 增加专家副本。
+
 R1 中每个有效 token 选 8 个专家。按源 token 归属记账，一次 dispatch 的单专家副本是 **4,100 B**，8 份合计至多 **32,800 B**；combine 的单专家结果是 **8,192 B**，8 份返回至多 **65,536 B**。42 层各有一轮 dispatch 和 combine。这些是有效行的逻辑副本上界：本地命中无需跨卡，补位不贡献真实 token，专家热门程度还会改变目的卡接收量。单卡持有一行并不意味着所有卡都持有一行真实请求。推导与形状见[请求主线的 MoE 小节](one-request.md#42-层-moe每卡-18-个专家)。
 
 本部署的 A2、EP16、每卡 18 个专家条件下，两组最大执行宽度在 **128** 容量内选 MC2，超出则选 **AllGather 路径**。AllGather 是整条 MoE 实现路线的名字，All-Gather 是前面定义的单个集合操作；两条路线都会用到 All-Gather。容量推导见[请求主线](one-request.md#42-层-moe每卡-18-个专家)，两组共用选择见[并发请求的 MoE 通信](concurrent-requests.md#第-4-站-moe-通信6048-个-token-把两台机器一起推过-128-的门槛)。满足这些条件的短 prefill 也走 MC2，不能只凭 prefill/decode 标签判定。
 
-下面沿 A0 到 A4 画出执行分支。MC2 中专家计算仍在 dispatch 与 combine 之间调用；通算协同不代表整层只有一个融合 kernel（设备上执行的计算程序）。图中的“本地专家”指本卡持有的那些专家。
+下面沿 A0 到 A4 画出执行分支。MC2 中专家计算仍在 dispatch 与 combine 之间调用；通算协同不代表整层只有一个融合 kernel（设备上执行的计算程序）。图中的“本地专家”指本卡持有的那些专家。图按结果合并的依赖展开；启用共享专家多流时，共享计算可按事件与路由工作重叠，不能把主机调用先后当成设备上完全串行的时间线。
 
 ```wiki-diagram
 file: collective-communication-flow
@@ -316,6 +378,7 @@ file: collective-communication-flow
 - **“所有通信都跨机，或者所有 DP 组互不通信。”** TP8 在机内；DP2 与 EP16 跨机。没有梯度同步不代表没有状态和专家通信。
 - **“R1 的 ≤7.3 MiB 就是每卡网卡收发量。”** 该主干账混合归约输入、收集贡献切片和专家副本上界；decode 与 prefill 的词表行数也不同。它不含第 5 站的三遍 MTP 草拟通信，更不能推出实测时延。
 - **“All-Reduce 就是 ring。”** ring 只是完成 All-Reduce 的一种算法，用来理解成本；All-Reduce 只规定结果，实际 HCCL 可以用别的算法。
+- **“All-Reduce 总会分配一块新输出。”** 操作的数学含义不决定存储是否复用。实现可以在输入原有的存储位置写回归约结果，也可以分配独立输出；具体行为需要沿实际执行分支确认。
 
 ## 对照源码
 
@@ -335,11 +398,13 @@ file: collective-communication-flow
 
 普通设备路径由 torch.distributed 经 torch_npu 的 HCCL 后端承接。固定代码中 NPUCommunicator 继承上游设备通信器；**存在 PyHcclCommunicator 不等于主干全部经过这个类**，初始化处还保留未整合到 NPUCommunicator 的说明。上表对照 API 语义，不承诺一次上层调用与一次底层 C API 一一对应。
 
-MC2 的可追踪边界是 `MoECommType.MC2` → `token_dispatch` → `npu_moe_distribute_dispatch_v2` → 专家矩阵计算 → `npu_moe_distribute_combine_v2` → finalize。固定 A2 选择器依据卡数、专家数与容量选择 MC2/ALLGATHER；不应用其他设备的 ALLTOALL 分支解释它。融合矩阵乘与 All-Reduce 等其他 MC2 用法也不改变 All-Reduce 的输入输出语义。
+MC2 的可追踪边界是 `MoECommType.MC2` → `token_dispatch` → 派发算子 → 专家矩阵计算 → 返回算子 → finalize。初始化检测到 torch_npu 提供 dispatch v2 时，派发和返回调用 `npu_moe_distribute_dispatch_v2` 与 `npu_moe_distribute_combine_v2`；否则调用无 v2 后缀的接口，启用层次通信却缺少 v2 时还会报版本错误。固定 A2 选择器依据卡数、专家数与容量选择 MC2/ALLGATHER；不应用其他设备的 ALLTOALL 分支解释它。融合矩阵乘与 All-Reduce 等其他 MC2 用法也不改变 All-Reduce 的输入输出语义。
 
 ### 会报什么错
 
 同组参与者必须按兼容顺序调用操作，并满足形状、类型、根和分片计数约定；否则可能报错、超时或互相等待。All-to-AllV 要逐对匹配发送与接收计数，不能只核全组字节总和。组通信器缺失会抛出 `No device communicator found`；Reduce-Scatter 检查切分维长度能否整除组大小。异步接口的返回值和事件负责建立数据就绪条件，不能绕过等待直接消费结果。
+
+输入所在设备也有约束：材料摘录中的 PyHccl All-Reduce 路径要求输入位于创建通信器时指定的设备，代码注释提示设备不匹配可能导致非法内存访问。这一要求对应所摘录的实现路径，不能据此认定所有后端都会以相同方式检查或报错。
 
 ### 开销和什么时候别开
 
@@ -348,6 +413,8 @@ MC2 的可追踪边界是 `MoECommType.MC2` → `token_dispatch` → `npu_moe_di
 ring 公式只是有效传输模型；延迟还受启动次数、拓扑、拥塞、同步和计算重叠影响。MC2 收益依赖通信与计算能否重叠，不应从调用次数或字节上界直接推出加速比。HCCL 缓冲容量是资源预留，也不是每轮实际传输量，见 [HCCL 缓冲页](gap-a5164fe10fa9184412f8.md)。
 
 ### 版本差异
+
+**v0.30.0rc2 不改变集合通信的输入输出数学关系，变化在调用哪条路径。** A2 的 MoE 仍按专家密度和容量选择 MC2/ALLGATHER，LoRA+EP 有优先 ALLTOALL 分支；普通 ALLTOALL 与融合 MC2 也不是同一个执行实现。本文 All-Reduce 等原语的分格演算继续成立，固定 GLM 的 128 容量门槛则须留在旧部署范围，不能从数学原语不变推断通信选择条件不变。
 
 五个集合通信名定义的是输入输出关系，不随 vLLM 版本重新定义，也没有“默认开/关”值；具体后端和 MoE 分支才随版本变化。以下核对社区钉点及固定执行钉点，不把社区 main 当成固定镜像。
 
@@ -367,10 +434,25 @@ ring 公式只是有效传输模型；延迟还受启动次数、拓扑、拥塞
 - 昇腾普通 All-to-All、变长异步 split sizes、PyHccl 握手广播和设备张量包装；后者存在不证明它是主干默认入口。[C6][C7][C8]
 - 固定 A2 选择器、MC2 finalize 收集后去补位、AllGather 路径两次收集与 DP Reduce-Scatter，支撑流程图。[C9][C10][C11][C12]
 - MC2 dispatch/combine 与其间的专家计算，支撑定向派发与等分 All-to-All 的区别；通算重叠原理参照昇腾 MC2 性能说明。[C13][C14][S22]
-- 共享专家在路由分支收尾后执行、MC2 单独归约与 AllGather 合并后归约：共享专家实现和外层归约补丁。[C24][C25]
+- 主机侧先调用路由分支，再取得或计算共享结果；多流分支通过事件允许设备工作重叠。MC2 共享结果单独归约，AllGather 合并后归约：共享专家实现和外层归约补丁。[C24][C25]
 - “开销”小节所述重叠收益取决于计算与通信时长的匹配，依据 MC2 官方性能调优说明；不同于前述接口语义。[S22]
+- 来源 22 为 CANN 社区版 8.2.RC1.alpha001《Ascend C 最佳实践》§6.4（印刷页 85–90）：分块可带来通算重叠，但小块效率、调度开销和存储访问竞争也可能抵消收益；该案例不证明本部署的实测收益。
 - 三版容量分流、main A2 硬件映射及 prefill MC2 默认值，支撑版本表；更完整比较见[EP 页](expert-parallel.md#版本差异)。[C15][C16][C17][C18][C19][C20][C21]
 - 点对点张量字典与可选组内重组，说明流水线交接可组合多种通信。[C23]
+
+张量字典的切片发送与组内重组优化还要求待传张量在参与重组的组内完全复制，即各成员持有相同的完整数据；元素数能被组规模整除只保证分片长度合适。如果各成员持有的是不同位置的数据，例如 sequence parallel 中按序列位置分配的某些 residual 张量，从每个成员各取一片再拼接，可能无法恢复原本要发送的张量。
 - CPU DP 运行状态的两个 int32、SUM 归约及暂停共识判断，支撑 8 B 控制载荷的对照。[C26]
 
 **待核：** 缺少固定镜像中 HCCL/CANN 实际算法选择与通信 trace，尚不能给出网卡收发实测、MC2 同目的卡副本合并策略或通信耗时；底稿未列启动 Broadcast 的具体调用清单、张量长度和后端，因此不提供其每次部署字节数。HCCL 文档用于接口语义，不代表已核实镜像安装的库版本。
+
+相同形状不足以决定拼接还是求部分和。两步等价关系限定于 SUM、同形状部分和及一致分片规则，浮点加法顺序仍可能造成舍入差异 [D]。这是结果语义，不表示固定部署的 HCCL 实际按这两步执行，也不能据此推算实测通信时间。
+
+路由依据选中专家编号与权重建立 token–expert 对应关系（来源 13）。多专家派发需要多份逻辑对应关系，但不由此确定 MC2 内部是否调用 All-to-All、是否物理复制输入，以及实际跨卡字节数。
+
+输出存储随后端而异：基础设备通信器可原地归约并返回输入（来源 4），PyHCCL 路径分配独立输出（来源 8），单成员组直接返回输入（来源 3）。All-Reduce 的结果语义不保证是否复用输入存储，调用者须按实际后端处理。
+
+固定 PyHCCL 要求输入位于 communicator 绑定的设备（来源 8）；该处注释提示错误设备可能导致非法内存访问。此约束按具体后端核对，不用它推断其他后端的错误表现。
+
+来源 31 给出 MC2 的 v2 检测与旧接口回退；来源 32 给出 MC2 补齐切分及 AllGather 的 DP/EP 路径选择；来源 33 给出 SP 配置优先级与共享专家条件。结合来源 10、24、25，正文的 218 次、91 次 All-Reduce 和两条 MoE 路线各四个调用边界，均限定于前述优化未启用的条件，不是任意相同启动命令下的通信 trace。
+
+PP 的切片发送/组内重组优化要求对应张量在组内完整复制；sequence parallel 的分片 residual 不能仅因元素数可整除就启用此优化。逐键覆盖与发送实现见来源 23，这不是所有点对点发送都必须满足的条件。

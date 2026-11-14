@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 370" width="900" height="370" role="img" aria-label="权重、激活和 KV cache 分别选择量化方案。W、A、C 标记压的对象；缩放系数与编码一起解释数值，任何一个对象降精度都不会自动改变另外两个。">
+  <title>权重、激活和 KV cache 分别选择量化方案。W、A、C 标记压的对象；缩放系数与编码一起解释数值，任何一个对象降精度都不会自动改变另外两个。</title>
+  <defs><marker id="quantization-methods-intuition-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker><marker id="quantization-methods-intuition-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="quantization-methods-intuition-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <path d="M210 77 L300 77" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#quantization-methods-intuition-ah-weight)"/>
+  <path d="M510 77 L600 77" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#quantization-methods-intuition-ah-weight)"/>
+  <path d="M210 182 L300 182" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#quantization-methods-intuition-ah-token)"/>
+  <path d="M510 182 L600 182" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#quantization-methods-intuition-ah-token)"/>
+  <path d="M210 287 L300 287" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#quantization-methods-intuition-ah-kv)"/>
+  <path d="M510 287 L600 287" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#quantization-methods-intuition-ah-kv)"/>
+  <rect x="30" y="45" width="180" height="64" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="120" y="73" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">W：模型权重</text>
+  <text x="120" y="92" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">长期复用的参数</text>
+  <rect x="300" y="45" width="210" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="405" y="73" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">离线量化或加载时转换</text>
+  <text x="405" y="92" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">方法决定误差怎样分配</text>
+  <rect x="600" y="45" width="260" height="64" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="730" y="73" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">权重编码 ＋ scale</text>
+  <text x="730" y="92" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">还需约定分组与打包</text>
+  <rect x="30" y="150" width="180" height="64" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="120" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A：本次激活</text>
+  <text x="120" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">这一批输入的中间值</text>
+  <rect x="300" y="150" width="210" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="405" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">前向中产生低位编码</text>
+  <text x="405" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">系数可静态保存或动态计算</text>
+  <rect x="600" y="150" width="260" height="64" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="730" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">参与矩阵乘的操作数</text>
+  <text x="730" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">累加与输出类型另定</text>
+  <rect x="30" y="255" width="180" height="64" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="120" y="283" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">C：KV cache</text>
+  <text x="120" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后续生成要读的历史</text>
+  <rect x="300" y="255" width="210" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="405" y="283" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">写入时量化</text>
+  <text x="405" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">读取时解释近似值</text>
+  <rect x="600" y="255" width="260" height="64" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="730" y="283" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">历史编码 ＋ scale</text>
+  <text x="730" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">与权重量化分别验证</text>
+</svg>

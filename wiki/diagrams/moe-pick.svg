@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="GLM 的专家选择与组合权重：实线传递分数，虚线传递选中的编号；校正偏置参与选择，组合系数由所选专家的原始分数计算">
-  <title>GLM 的专家选择与组合权重：实线传递分数，虚线传递选中的编号；校正偏置参与选择，组合系数由所选专家的原始分数计算</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="GLM 正常融合路径的专家选择与组合权重：实线传递分数，虚线传递编号；偏置参与选择，组合系数取所选专家的原始分数。图为数学关系，内核还含 eps 和浮点舍入；旧版原生回退存在重复缩放，边界见正文。">
+  <title>GLM 正常融合路径的专家选择与组合权重：实线传递分数，虚线传递编号；偏置参与选择，组合系数取所选专家的原始分数。图为数学关系，内核还含 eps 和浮点舍入；旧版原生回退存在重复缩放，边界见正文。</title>
   <defs><marker id="moe-pick-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="moe-pick-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
   <path d="M450 65 L450 105" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#moe-pick-ah-ink)"/>
   <path d="M450 155 L450 205" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#moe-pick-ah-ink)"/>

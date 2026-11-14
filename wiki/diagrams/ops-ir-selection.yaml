@@ -1,0 +1,24 @@
+layout: figure
+id: ops-ir-selection
+caption: 类替换先决定执行方法；进入 IR 的操作再按平台与参数选择实现。固定 GLM 的正常 RMSNorm 方法走左路。
+size: [880, 490]
+items:
+  - { at: [245, 25], size: [390, 55], text: 模型调用归一化模块, sub: 先确认实际执行的方法, tone: control }
+  - { at: [35, 135], size: [330, 70], text: 昇腾方法直接调用 NPU 算子, sub: 没有经过右侧的 IR 选择, tone: weight }
+  - { at: [490, 135], size: [350, 70], text: 方法进入 IR 归一化操作, sub: 保留输入输出的语义约定, tone: token }
+  - { at: [490, 250], size: [350, 70], text: 按顺序检查候选实现, sub: 先过滤平台，再检查实际参数, tone: control }
+  - { at: [490, 365], size: [350, 70], text: 使用第一个适用的实现, sub: 编译时用形状类型，eager 用真实参数, tone: token }
+  - { at: [35, 365], size: [330, 70], text: 设备执行所选程序, sub: 数值与耗时仍按实际执行验证, tone: weight }
+links:
+  - { from: [320, 80], to: [200, 135], via: [[320, 105], [200, 105]] }
+  - { from: [560, 80], to: [665, 135], via: [[560, 105], [665, 105]] }
+  - { from: [200, 205], to: [200, 365] }
+  - { from: [665, 205], to: [665, 250] }
+  - { from: [665, 320], to: [665, 365] }
+  - { from: [490, 400], to: [365, 400] }
+texts:
+  - { at: [440, 470], text: 程序优化准备在启动期；请求到逐层前向时使用实际选定的路径, anchor: middle, size: 14 }
+pins:
+  - { source: 'vllm@0fc695fc:vllm/ir/op.py#L327-L366', symbols: [dispatch, supports_args] }
+  - { source: 'vllm@0fc695fc:vllm/compilation/passes/ir/lowering_pass.py#L43-L69', symbols: [fake_args, dispatch] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88', symbols: [forward_oot, npu_rms_norm] }

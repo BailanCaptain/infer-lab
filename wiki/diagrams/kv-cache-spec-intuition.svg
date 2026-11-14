@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 350" width="860" height="350" role="img" aria-label="规格先说明每层要保存什么，再换成页的大小，最后按兼容的管理方式分组。图只画通用顺序；页是否补齐、分几组、哪些层共用显存，由实际模型布局决定。同组共用块号，各层的数据仍放在自己的页中。">
+  <title>规格先说明每层要保存什么，再换成页的大小，最后按兼容的管理方式分组。图只画通用顺序；页是否补齐、分几组、哪些层共用显存，由实际模型布局决定。同组共用块号，各层的数据仍放在自己的页中。</title>
+  <defs><marker id="kv-cache-spec-intuition-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="kv-cache-spec-intuition-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <path d="M215 115 L215 155" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-spec-intuition-ah-kv)"/>
+  <path d="M645 115 L645 155" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-spec-intuition-ah-kv)"/>
+  <path d="M215 215 L215 244 L340 244 L340 270" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kv-cache-spec-intuition-ah-control)"/>
+  <path d="M645 215 L645 244 L520 244 L520 270" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kv-cache-spec-intuition-ah-control)"/>
+  <rect x="35" y="50" width="360" height="65" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="78.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">随位置增加的历史</text>
+  <text x="215" y="97.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每个位置有一份数据</text>
+  <rect x="465" y="50" width="360" height="65" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="78.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每条请求的固定状态</text>
+  <text x="645" y="97.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">更新同一份状态继续计算</text>
+  <rect x="35" y="155" width="360" height="60" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按一块覆盖的位置算页</text>
+  <text x="215" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">位置数 × 每个位置的字节数</text>
+  <rect x="465" y="155" width="360" height="60" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">页要容纳整份状态</text>
+  <text x="645" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">必要时补上空白以对齐槽位</text>
+  <rect x="190" y="270" width="480" height="60" rx="8" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="296" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按管理规则编成缓存组</text>
+  <text x="430" y="315" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">同组共用块号清单，各层各存自己的数据</text>
+  <text x="430" y="25" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">每层的空间说明 → 页的单价 → 分组管理</text>
+</svg>

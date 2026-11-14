@@ -1,41 +1,104 @@
 ---
 id: attention-qkv
-title: "Attention 与 Q/K/V：当前位置怎样从历史里取信息"
+title: Attention 与 Q/K/V：当前位置怎样从历史里取信息
 type: concept
-summary: "attention 让每个位置按相关程度，从自己和前面的位置取信息，模型靠它把上下文用起来。本页先讲它是什么、为什么需要，再用一个 3 个位置的小例子一步步演示 Q/K/V 打分、softmax 和加权汇合，讲清为什么除以 √d、causal mask 和多头，最后看 GLM 的稀疏 MLA 与 KDA 各改了哪一步。"
-aliases: [注意力, attention, 自注意力, self-attention, "Q、K、V", QKV, Query/Key/Value, 查询, 键, 值, 注意力分数, attention score, softmax, 归一化指数, 缩放点积注意力, scaled dot-product attention, attention head, 因果掩码, causal mask, 头维度, head dim, head_size, attention scale, attention-scores, attention-weights, causal-mask, context-vector, dot-product, head-dim, query, key, value, output-projection, multi-head]
-chapters: ["04"]
+summary: >-
+  attention 让每个位置按相关程度，从自己和前面的位置取信息，模型靠它把上下文用起来。本页先讲它是什么、为什么需要，再用一个 3
+  个位置的小例子一步步演示 Q/K/V 打分、softmax 和加权汇合，讲清为什么除以 √d、causal mask 和多头，最后看 GLM 的稀疏 MLA
+  与 KDA 各改了哪一步。
+aliases:
+  - 注意力
+  - attention
+  - 自注意力
+  - self-attention
+  - Q、K、V
+  - QKV
+  - Query/Key/Value
+  - 查询
+  - 键
+  - 值
+  - 注意力分数
+  - attention score
+  - softmax
+  - 归一化指数
+  - 缩放点积注意力
+  - scaled dot-product attention
+  - attention head
+  - 因果掩码
+  - causal mask
+  - 头维度
+  - head dim
+  - head_size
+  - attention scale
+  - attention-scores
+  - attention-weights
+  - causal-mask
+  - context-vector
+  - dot-product
+  - head-dim
+  - query
+  - key
+  - value
+  - output-projection
+  - multi-head
+chapters:
+  - '04'
 order: 60
 sources:
-  - https://arxiv.org/html/1706.03762v7
-  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
-  - vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L177-L210
-  - vllm@0fc695fc:vllm/v1/attention/backend.py#L32-L44
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2075-L2105
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1881-L2030
-  - vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L39-L182
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L366-L472
-  - vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793
-  - vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028
-  - vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L111-L117
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L140-L175
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L292-L306
-  - vllm@568afb3a:vllm/model_executor/layers/attention/attention.py#L223-L256
-  - vllm@84030bbe:vllm/model_executor/layers/attention/attention.py#L225-L258
-  - vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L576-L592
-  - vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L836-L836
-  - vllm-ascend@db701c1f:vllm_ascend/attention/context_parallel/sfa_cp.py#L1303-L1307
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'https://arxiv.org/html/1706.03762v7'
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
+  - 'vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L177-L210'
+  - 'vllm@0fc695fc:vllm/v1/attention/backend.py#L32-L44'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2075-L2105'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1881-L2030'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L39-L182'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L366-L472'
+  - 'vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028'
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L111-L117
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L140-L175'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L292-L306'
+  - 'vllm@568afb3a:vllm/model_executor/layers/attention/attention.py#L223-L256'
+  - 'vllm@84030bbe:vllm/model_executor/layers/attention/attention.py#L225-L258'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L576-L592'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L836-L836'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/attention/context_parallel/sfa_cp.py#L1303-L1307
+  - >-
+    raw:sha256-7d2c441832b6dfd0350ca61862c6d7bd0be162c67d8d213eafe23d8cd5a0483d.md#L1-L845
+  - 'vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L236-L254'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L160-L175'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L230-L254'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L291-L310'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/kda.py#L169-L187'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L713-L729'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
-  - {to: layers-and-hidden, kind: builds-on, note: 隐藏向量是 attention 的输入，本页展开位置之间怎样交换信息}
-  - {to: matmul-and-weights, kind: builds-on, note: Q/K/V 投影、点积打分和输出投影都是矩阵乘}
-  - {to: one-request, kind: builds-on, note: 本页的计算发生在主线第 4 站逐层前向，R1 每站形状在主线页}
+  - to: layers-and-hidden
+    kind: builds-on
+    note: 隐藏向量是 attention 的输入，本页展开位置之间怎样交换信息
+  - to: matmul-and-weights
+    kind: builds-on
+    note: Q/K/V 投影、点积打分和输出投影都是矩阵乘
+  - to: one-request
+    kind: builds-on
+    note: 本页的计算发生在主线第 4 站逐层前向，R1 每站形状在主线页
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-3d6d4a9ab058b825bb78d7cab17c0079b051acbb2a61e64fc6a9648dc9758460.md
+  - >-
+    raw/sha256-7d2c441832b6dfd0350ca61862c6d7bd0be162c67d8d213eafe23d8cd5a0483d.md
 ---
 
 ## attention 是什么？
@@ -135,6 +198,14 @@ m_ij 是掩码项：允许访问的位置取 0，被屏蔽的位置取负无穷�
 | MLP | 对每个位置单独变换，不跨位置 |
 | 采样前的 softmax | 在词表上把 logits（模型给每个词打的原始分）换成下一个 token 的概率，作用对象是词，不是位置 |
 
+下面换用 [DCP](context-parallel.md) 的八位置、四通道教学算例，连续观察“匹配分数 → 原始份数 → 占比 → V 的贡献”。前四段演示不切分的数学结果，后两段对照同一计算的两卡布局，检查合并后仍得到同一个输出。切分动画只说明归属，实际历史原本按卡持有，不是先集中计算再切分。这里的“内容和”是尚未除以总份数的加权向量；“总份数”就是归一化的分母。
+
+```wiki-scene
+inference-mechanism:0
+```
+
+模型内部的完整路径可继续看[注意力打分与 softmax](#/model?view=play&segment=31)，再接[取回 V、合头与投影](#/model?view=play&segment=32)。这两段使用 GLM 稀疏 MLA 的模型结构，与上面的通用小算例分开阅读。
+
 ## Q、K、V 从哪里来，各管什么
 
 **Q、K、V 不是输入里现成的三份数据，而是同一份隐藏向量乘三个不同权重矩阵的结果。** 把一层的输入写成矩阵 X，每行是一个位置的隐藏向量，例子里 X 是 3 行 4 列：
@@ -194,6 +265,8 @@ title: 位置 1 这一行，遮与不遮
 ```
 
 不遮的话，位置 1 会从还没出现的位置 2 读走 16% 的内容；遮住之后这份权重变成 0，由位置 0、1 平分。矩阵图里权重表右上角的几个 0 都是这样来的。
+
+核对实现时，要区分因果可见性规则和某个算子的裁剪开关。在所核对的上下文并行路径中，索引器已经限制了查询能看到的位置；位置重映射后，局部 KV 与全局查询的坐标不同，所以后续算子关闭了二次因果裁剪。关闭这一步裁剪不等于允许查询访问未来位置。
 
 它不只用在逐个生成的阶段。提示词一次性整段送进模型时，位置 1 也不能偷看位置 2，否则同一个位置在「整段送入」和「逐个生成」时会算出不同的结果。沿用例子：如果位置 3 也在同一批里，位置 2 给它的分数就是 −∞，分数变成 [2, 1, 0, −∞]，权重仍是 [0.67, 0.24, 0.09, 0]。
 
@@ -276,6 +349,8 @@ title: 稀疏 MLA 的缩放系数
 
 这里有两处在 TP8 下不切：512 维潜向量在每张卡上各存完整一份，供本卡 8 个头共用；索引器在每张卡上各算一遍。头投影和输出投影则按头切开，末尾一次 All-Reduce。切法见 [tensor parallel 的稀疏 MLA 一节](tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)，缓存字节见 [KV cache](kv-cache.md#混合模型到底要保留哪几类状态)。
 
+所核对的 GLM 专用缓存路径还把完整 MLA KV cache 保持为 BF16，供 A5 上直接使用共享 KV 的算子读取。这是该路径的存储约束，不能推广为所有模型、设备或量化配置的缓存类型。
+
 ### KDA：保留 q、k、v，去掉逐位置的 softmax
 
 **KDA（Kimi Delta Attention）同样从隐藏向量投影出 q、k、v，但不给每个历史位置打分，而是把历史累积进每头一个 128 × 128 的状态矩阵，再用 q 去读它。** 它属于 [linear attention](linear-attention.md)（线性注意力）：用固定大小的递推状态汇总历史的一类方法。
@@ -339,6 +414,8 @@ attention 不能关：去掉它，模型就不再是同一个模型。能改变�
 
 ### 版本差异
 
+**v0.30.0rc2 不改变 QK 打分、因果可见范围与加权汇合的数学关系。** 通用 Attention 仍由模型传入 scale，默认 decoder；GLM MLA 仍按 NoPE 与 RoPE 的 QK 维度之和取负二分之一次幂，带 RoPE 的模型还可受 YaRN 系数修正。实现上，GLM 继续按 is_kda_layer 选 KDA/MLA，KDA 的 q/k/v/b/f_a/g_a 六投影合成一次 GEMM，加载映射也合并 MLA 的低秩 Q/KV 投影。数学投影有几份和实际算子调用几次因此不能混用，固定 GLM NoPE 的裸缩放也不能推广到所有 MLA。
+
 **attention 的数学定义没有版本开关；变化在框架类的位置和 GLM 专用实现的文件组织。** 下表按知识库固定快照核对：v0.23 为 Ascend 2c59ff10 / vLLM 0fc695fc，v0.26 为 Ascend 2ed6cbba / vLLM 568afb3a，main 为 Ascend baa023ad / vLLM 84030bbe；本页 GLM 行为按专用镜像 Ascend db701c1f 解释。
 
 | 检查项 | v0.23 | v0.26 | main |
@@ -363,12 +440,14 @@ attention 不能关：去掉它，模型就不再是同一个模型。能改变�
 
 **来源与结论对应：**
 
+- 上下文并行路径在索引器已施加因果限制后传入 `sparse_mode=0`，关闭算子二次裁剪，见固定执行侧 `attention/context_parallel/sfa_cp.py` 1303–1307 行。[C20] GLM 专用缓存层设置 `self.kv_cache_dtype = "bfloat16"`，相邻注释说明 A5 shared-KV 的用途，见 `ops/indexer_kpool_mla.py` 74–76 行。[C7]
 - 缩放点积公式、除以 √d_k 的方差论证、多头公式与 h = 8、d_k = 64、解码器用 −∞ 屏蔽非法连接、self-attention 的 Q/K/V 都来自上一层输出，均对照原论文 3.1、3.2 节。[S1]
 - 64 个 attention 头、每头 q·k 256 维与 v 256 维、RoPE 维数 0、潜向量 512 维、64 个 KV 头、KDA 64 头 × 128 维与短卷积宽度 4、MLA 所在层号，来自固定模型配置；配置版本与一致性记录见[来源基线](../sources/glm-5-3-flash-baseline.md)。[S2]
 - 通用 attention 层的构造参数、类说明与默认类型，对照来源 3、4、16、17。[C3][C4][C16][C17]
 - 按层选型、KDA 运行时替换、MLA 包装类不走通用层，对照来源 5、13、7。[C5][C13][C7]
 - MLA 缩放 256^-0.5 = 0.0625、RoPE 分支不执行与头数整除断言，对照来源 6；稀疏 attention 只支持 sparse_mode=3 的检查在来源 10，3 即右下对齐的因果掩码，对照来源 19、20；缩放传到稀疏 attention 内核、挑中位置作为稀疏索引传入、其后的 V 解压与输出投影，对照来源 7、18、10、11。[C6][C7][C18][C10][C19][C20][C11]
 - KDA 的 q/k/v 投影、归一化与 1/√128 缩放，对照来源 8、9；KDA 头数整除断言对照来源 12。[C8][C9][C12]
+- rc2 的加载映射把 MLA 的 `q_a_proj` 与 `kv_a_proj_with_mqa` 装入 `fused_qkv_a_proj`，并登记 KDA 六投影的合并映射，见来源 27 的 `model.py` 713–729 行。
 - 各版本文件是否存在，由 git ls-tree 列出对应 commit 的全部文件后检索得出。[D]
 - 手算例的分数与 v 是教学假设；e¹⁶ ≈ 8,886,111、1/√128 ≈ 0.0884 为本页推导。32,768 个数、2,051 个位置、133,120 个 token 与 R1 的 32,768 B 引用正文链接的主线与专页。[A][D]
 

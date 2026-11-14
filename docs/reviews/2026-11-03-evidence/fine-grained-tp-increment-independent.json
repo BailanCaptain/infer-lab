@@ -1,0 +1,19 @@
+{
+  "reviewer": "review_publication_fix",
+  "scope": "Complete supplied increment and connected original ranges; not all38citations or visual/NPU validation",
+  "status": "accepted",
+  "files": [
+    {
+      "path": "wiki/concepts/fine-grained-tp.md",
+      "sha256": "339e40471a56608c58e3ffc192695473bee0fa558ccc79163ab41c53bf2a42a9"
+    },
+    {
+      "path": "wiki/diagrams/fine-grained-tp-flow.yaml",
+      "sha256": "84c0066659e02c8b8e40d16f4fafbeb71a1ed0b29c150c4a7c55640c04cdad90"
+    },
+    {
+      "path": "wiki/diagrams/fine-grained-tp-flow.svg",
+      "sha256": "de3f26b1cf3cdf37b6bdba89bf9be2ba6d4bce1432a91db63608193027036600"
+    }
+  ]
+}

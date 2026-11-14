@@ -1,67 +1,135 @@
 ---
 id: npu-model-runner
-title: "NPUModelRunner：每张卡上把一步计划跑成 token 的执行者"
+title: NPUModelRunner：每张卡上把一步计划跑成 token 的执行者
 type: concept
-summary: model runner 是每张卡的 Worker 里执行一步的对象：按调度计划对账跨步保留的请求记录，拼输入、定执行方式、跑前向，只把每条请求要预测的那几行变成词表分数，暂存进执行状态；引擎第二次调用时再取出来采样、草拟候选，按请求交回 token。前向和采样拆成两次调用，中间靠执行状态交接。
-aliases: [NPUModelRunner, model runner, ModelRunner, GPUModelRunner, execute_model, sample_tokens, logits_indices, ExecuteModelState, 执行状态, 两次调用, 前向与采样交接, need_accepted_tokens, 接受数]
-chapters: ["09"]
+summary: >-
+  model runner 是每张卡的 Worker
+  里执行一步的对象：按调度计划对账跨步保留的请求记录，拼输入、定执行方式、跑前向，只把每条请求要预测的那几行变成词表分数，暂存进执行状态；引擎第二次调用时再取出来采样、草拟候选，按请求交回
+  token。前向和采样拆成两次调用，中间靠执行状态交接。
+aliases:
+  - NPUModelRunner
+  - model runner
+  - ModelRunner
+  - GPUModelRunner
+  - execute_model
+  - sample_tokens
+  - logits_indices
+  - ExecuteModelState
+  - 执行状态
+  - 两次调用
+  - 前向与采样交接
+  - need_accepted_tokens
+  - 接受数
+chapters:
+  - 09
 order: 40
 sources:
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L269-L285
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L748-L763
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1917-L1937
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1991-L2067
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2082-L2096
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2127-L2176
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2198-L2211
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2259-L2291
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2306-L2327
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2349-L2371
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2373-L2427
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2455-L2510
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2517-L2582
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2990
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3842-L3862
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5041-L5063
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L505-L521
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L667
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L159-L163
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L20
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2437-L2439
-  - vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1495-L1513
-  - vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1304-L1316
-  - vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1461-L1494
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L443-L463
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L508-L597
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L326
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L495-L509
-  - vllm@0fc695fc:vllm/model_executor/layers/logits_processor.py#L75-L87
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L496-L499
-  - vllm@0fc695fc:vllm/model_executor/layers/mamba/abstract.py#L44-L60
-  - vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L4462-L4486
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L288-L346
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1950-L1970
-  - vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1799-L1819
-  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L2183-L2195
-  - vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L489-L504
-  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4480-L4482
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L159-L163
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L269-L285'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L748-L763'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1917-L1937'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1991-L2067'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2082-L2096'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2127-L2176'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2198-L2211'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2259-L2291'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2306-L2347'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2349-L2371'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2373-L2427'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2455-L2510'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2517-L2582'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2990'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3842-L3862'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5041-L5063'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L505-L521'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L667'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L159-L163'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L20
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2437-L2439'
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1495-L1513'
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1304-L1316'
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1461-L1494'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L443-L463'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L508-L597'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L326'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L495-L509'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/logits_processor.py#L45-L87'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L496-L499'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/mamba/abstract.py#L44-L60'
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L4462-L4486'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L288-L346'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1950-L1970'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1799-L1819'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L2183-L2195'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L489-L504'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4480-L4482'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L159-L163'
+  - >-
+    raw:sha256-08b2629ad53c5d2df4de57ac7458ea4a818913d4a5f5922312985de50f6fed55.md#L1-L1241
+  - >-
+    vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/worker/model_runner_v1.py#L2914-L2940
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L491-L506'
+  - 'vllm@ced6857a:vllm/config/vllm.py#L675-L724'
+  - 'vllm-ascend@7d825229:docs/source/tutorials/models/GLM5.3-Flash.md#L17-L33'
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/tutorials/models/GLM5.3-Flash.md#L17-L33
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L43
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L969-L995'
+  - 'vllm@0fc695fc:vllm/platforms/interface.py#L858-L862'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L128-L140'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L160-L175'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L346-L361'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L2229-L2241'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L2657-L2678'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L2764-L2814'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L961-L976'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L2288-L2311'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L178-L198'
+  - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L63'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L370-L380'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L4604-L4616'
+  - 'vllm@ced6857a:docs/design/model_runner_v2.md#L1-L206'
+  - 'vllm@0fc695fc:vllm/sampling_params.py#L424-L480'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0rc2
+  - main
+evidence: C
 relations:
-  - {to: prepare-inputs-flow, kind: builds-on, note: 对账之后怎样拼出 token id、位置、槽位和选行，逐行算法在那一页}
-  - {to: one-request, kind: builds-on, note: R1 在第 3–5 站的形状、词表分数的字节数和 MTP 草拟三遍}
-  - {to: concurrent-requests, kind: builds-on, note: 场景 M 一步 49 行词表分数怎样拆回 13 条请求，以及补齐与两组对齐的账}
-  - {to: npu-worker-lifecycle, kind: builds-on, note: runner 在启动时何时建好、装权重、建缓存池、录图}
-  - {to: glm-5-3-flash, kind: builds-on, note: Runner 调用的是已构建的 GLM 模型，各层计算由模型实现组织}
+  - to: prepare-inputs-flow
+    kind: builds-on
+    note: 对账之后怎样拼出 token id、位置、槽位和选行，逐行算法在那一页
+  - to: one-request
+    kind: builds-on
+    note: R1 在第 3–5 站的形状、词表分数的字节数和 MTP 草拟三遍
+  - to: concurrent-requests
+    kind: builds-on
+    note: 场景 M 一步 49 行词表分数怎样拆回 13 条请求，以及补齐与两组对齐的账
+  - to: npu-worker-lifecycle
+    kind: builds-on
+    note: runner 在启动时何时建好、装权重、建缓存池、录图
+  - to: glm-5-3-flash
+    kind: builds-on
+    note: Runner 调用的是已构建的 GLM 模型，各层计算由模型实现组织
 contradicts: []
-updated: "2026-09-29"
-origin: direct
+updated: 2026-11-10T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-08b2629ad53c5d2df4de57ac7458ea4a818913d4a5f5922312985de50f6fed55.md
+  - >-
+    raw/sha256-685c3b63ded8756226cf666453ca6d9b98befd8d2d8fac481f3340f589f43953.md
+  - >-
+    raw/sha256-a547875ecafc880d24081e0098a918b75e51c650b206006073998e5a2a2e317c.md
 ---
 
 ## 每张卡上，是谁把「这一步算谁」跑成「这一步出了哪些 token」？
 
-**model runner（昇腾实现叫 NPUModelRunner）是每张卡的 Worker 里执行一步的对象：它接过调度器这一步的计划，对照自己跨步记着的请求记录，把计划拼成模型的输入、跑一遍模型，只把每条请求要预测下一个 token 的那一行变成词表分数（词表里每个词一个分数，越高越可能是下一个 token）；等引擎第二次调用时再采样，把新 token 按请求交回去。**
+**model runner（昇腾实现叫 NPUModelRunner）是每张卡的 Worker 里执行一步的对象：它接过调度器这一步的计划，对照自己跨步记着的请求记录，把计划拼成模型的输入、跑一遍模型，只把要预测的行变成词表分数（词表里每个词一个分数，越高越可能是下一个 token）；等引擎第二次调用时再采样，把新 token 按请求交回去。**
+
+它让连续多步复用请求记录，也省去不需要的输出头计算；代价是每步前向之前要在 CPU 上整理输入和状态，两次调用之间还得保留张量，直到采样、草拟用完。批次越复杂，记账与传输越可能挤占设备等待的时间。
 
 先把几个词说清楚。[调度器](vllm-scheduler.md)每一步决定这一步算哪些请求、每条算几个 token，交出一份计划；它住在引擎进程 [EngineCore](vllm-engine-core.md) 里，只和请求打交道，不碰模型。**Worker** 是每张卡上的执行进程，负责这张卡的设备、通信和启动顺序，见 [Worker 生命周期](npu-worker-lifecycle.md)；它手里有一个 model runner，每一步的活都交给它。模型本身只认识张量：一行一个 token，一层一层往下算，不知道哪几行属于哪条请求。
 
@@ -97,7 +165,7 @@ file: model-runner-layout
 
 | 角色 | 管什么 | 不管什么 |
 |---|---|---|
-| 调度器 | 这一步算哪些请求、各算几个、借哪些块 | 不碰张量和模型 |
+| 调度器 | 这一步算哪些请求、各算几个、借哪些块 | 不执行模型前向或张量计算 |
 | Worker | 一张卡的设备、通信组、启动顺序；把两次调用转给 runner | 不拼输入 |
 | model runner | 每一步的对账、拼输入、定执行方式、前向、选行、采样交接 | 不决定算谁 |
 | 模型与注意力后端 | 各层怎么算、每层的注意力算子要什么格式 | 不认识请求 |
@@ -106,7 +174,7 @@ file: model-runner-layout
 
 ## 一步怎么走：A、C 这一步，runner 手里的数怎么变？
 
-**第一次调用做到「每条请求一行分数」为止，第二次调用才把分数变成 token。** 用 A、C 这一步把中间的数走一遍。词表按 5 个词示意（真实模型有十几万个）；采样用最简单的一种：温度接近 0 时直接取分数最大的词，叫 greedy。
+**第一次调用做到「每条请求一行分数」为止，第二次调用才把分数变成 token。** 用 A、C 这一步把中间的数走一遍。词表按 5 个词示意（真实模型有十几万个）；采样设温度为 0，直接取分数最大的词，叫 greedy。很小的正温度仍属于随机采样，不能用“接近 0”代替这个条件；配置与采样规则见[采样](sampling.md)。
 
 1. 对账后，持久批次里记着：A 已算 5 个位置；C 是新请求，已算 0 个，排在 A 后面。
 2. 准备输入按这份记录拼出 4 行，同时算好**选行**：每条请求本步最后一行的行号，这里是 [0, 3]，推导见[准备输入](prepare-inputs-flow.md#哪几行送去输出头)。
@@ -145,14 +213,17 @@ file: npu-model-runner-code-flow
 
 - **先查执行状态已被取走。** 这是两次调用严格交替的那道闸。
 - **对账前多两处防护。** 开着[异步调度](async-scheduling.md)（调度器不等上一步的结果回到 CPU，就先排下一步）又开着投机解码时，runner 按「上一步的草稿全被接受」乐观地记账，事后再补。昇腾在交给上游对账之前，先把两类请求的「上一步草稿数」清零：上一步采样后被丢弃、已经不在上一步结果里的请求，以及因 KV 加载失败要重算、进度往回退了的请求。不清零的话，补账时要么找不到对应的行，要么补错数。
-- **本步没有 token 就提前返回。** 对完账发现计划里一个 token 都没有，直接返回空结果，不拼输入、不跑模型，引擎也不再发第二次调用。
+- **本步没有 token 就走提前返回分支。** 普通情况对完账就返回空结果，不进入后面的输入准备与正常模型前向。外部启动器配合多组 DP 时，会先跑一次 dummy 计算保持组间协调；有 KV 传输组时，还要走不做正常前向的 connector 协作路径。空计划不等于所有配置下设备都没有工作。
 - **定执行方式。** 这一步是回放预先录好的计算图（graph mode：把整次前向录成一张图，到时整张回放），还是一个算子一个算子地下发（eager）；张量要补到多宽；两个 DP 组（数据并行的两组卡）之间还要对齐宽度和模式。规则见 [ACL Graph](acl-graph.md)，补多宽的账见[多条请求](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)。runner 在这里的职责只是每步问一次，把答案带进前向。
+
+固定镜像在启用投机解码时，以已计算位置数不小于提示词长度判断每条请求是否已进入 decode，再据此检查批次是否整齐；仅仅已经算过一些位置还不够。单 token 的 PD 交接块、或宽度恰好为候选数加一的尾部提示词块，都可能仍在 prefill。非投机分支的局部检查不同，最终图模式仍由后续分派决定。
+
 - **在前向上下文里跑模型。** runner 把本步宽度、两组各自的 token 数、图模式、注意力元数据放进一个前向上下文，各层在里面自己取，不靠函数参数一层层往下传。
 - **发出前向之后才补上一步的账。** 异步调度下，上一步到底接受了几个草稿，要等上一步的采样结果拷回 CPU 才知道。runner 先按乐观的数把本步前向发出去，存完执行状态、返回之前再回头修正已算位置数，等结果的时间就不挡在前向前面。这是 GLM 这种配置下的顺序；模型开着按块边界搬线性注意力状态（align 模式）或带压缩配置时，修正会提前到前向之前。
 
 准备输入的最后一段是建注意力元数据：公共底稿按缓存组、按每类注意力后端各整理一份；层在建缓存时就按「后端是谁 + 缓存规格是什么」归拢成组，所以同一批请求的公共信息能一次换成各后端要的格式，见[准备输入](prepare-inputs-flow.md#注意力元数据一份底稿按缓存组换上各自的块表和槽位)和[注意力后端](attention-backend-family.md#runner-怎样把层归拢成组)。
 
-前向之后有两个出口不走选行。[流水线并行](pipeline-parallel.md)（PP，把层按段分到不同卡上）的非末段只算了前几层，把中间张量交给下一段就返回；pooling 模型（只要整段输入的向量表示、不生成 token 的模型）直接交出池化结果，引擎不再发第二次调用。这两种情况都不存执行状态：PP 非末段在第二次调用里没有东西可取，返回空。所以接口并不是「一次调用必返回一个 token」。
+前向之后有两个常见出口不走选行。[流水线并行](pipeline-parallel.md)（PP，把层按段分到不同卡上）未启用输出广播时，非末段把中间张量交给下一段就返回；pooling 模型（只要整段输入的向量表示、不生成 token 的模型）直接交出池化结果，引擎不再发采样调用。这些分支不存执行状态，但 PP 的无状态采样入口仍可能接收末段广播的采样编号、传回 KV connector 的进度，处理完才返回；具体条件见页末源码位置。启用 PP 输出广播时，非末段则接收末段的 logits 后继续保存执行状态。所以接口并不是「一次调用必返回一个 token」。
 
 右列按顺序：
 
@@ -188,7 +259,7 @@ file: npu-model-runner-code-flow
 
 ## 哪些东西跨步留着，哪些每步重来？
 
-**runner 手里的东西按寿命分三层：启动时建好、之后不动的；跨步保留、每步改一点的；只活一步、甚至只活两次调用之间的。** 分清这三层，读代码和排查问题时就知道某个值该不该在这一步变。
+**在本页不做运行期权重更新的普通推理中，runner 手里的东西按寿命分三层：启动时建好并跨步复用的；跨步保留、每步改一点的；只活一步、甚至只活两次调用之间的。** 分清这三层，读代码和排查问题时就知道某个值该不该在这一步变。训练后换权重、sleep/wake 或重新录图属于额外的生命周期操作，见[训推联动](vllm-ascend-for-rl.md)。
 
 | 寿命 | 有哪些 | 什么时候建、什么时候变 |
 |---|---|---|
@@ -200,6 +271,18 @@ file: npu-model-runner-code-flow
 
 这一层划分也是读 runner 源码的钥匙。那个五千多行的文件里混着四类代码：启动时只跑一次的（建对象、装权重、量显存、建缓存池、录图）；每步都走的（两次调用和它们往下调的方法）；拿假批次试跑的路径（启动时量显存、录图用它，空闲的 DP 组陪跑也用它）；以及本部署不走的分支（流水线并行、上下文并行、KV 传输、多模态、pooling）。读的时候先想清楚要看的是哪一类、哪一步，再从两次调用的入口顺着调用往下跟。
 
+## Model Runner V2 为什么要重新组织状态？
+
+MRV2 改的是每步执行器怎样保存状态、准备输入和组织设备工作。上游设计把“请求长期占哪一行”与“这一步模型输入按什么顺序排列”分开：请求活着时有固定状态行，每一步再按实际批次顺序收集输入。比如示意中 A 的状态在第 7 行，C 在第 2 行，本步顺序为 C、A，就按 [2, 7] 取出两行；不用为了本步排序而搬动长期状态。被抢占的请求按结束处理，恢复时重新登记。
+
+这样也更容易处理异步拷贝。若 CPU 在设备还读取上一份缓冲时原地改写它，两步就会串数据。上游 V2 的一种办法是保留普通 CPU 状态，再为本次传输生成临时的 pinned 快照——pinned 是可供异步设备传输使用的固定主机内存。示意状态从 5 改成 6 时，设备仍可读本步快照中的 5；新的 6 留给下一步。代价是快照的空间与复制，收益是减少为了保护同一块共享缓冲而等待。
+
+大块表则不必每步全拷：StagedWriteTensor 把设备上的基表保留下来，在 CPU 收集变更，打包传过去，再用一次设备计算写入。例如只改第 2 行的三个块号，就传这三个值和它们的位置；仍要付出打包、传输和应用变更的开销。输入编号、位置、边界等还可以在设备侧准备，减少 Python 逐项操作。
+
+上游设计也把采样、图管理和试跑职责拆开。采样用独立的设备实现管理随机数与概率；试跑委托正常执行入口，录图有单独路径。将多次草拟合在一张图里时，注意力后端还必须正确更新随位置变化的派生元数据；更新函数的 Python 部分在捕获时执行，回放依靠录下来的设备操作，不能假定每次回放都会重新执行 Python。
+
+这段解释对应固定上游 MRV2 设计。Ascend 另有自己的 V2 适配与限制；上述 GPU、UVA 或 Triton 路径不能仅因开启环境变量就当作 NPU 已支持。本站 GLM 旧配方仍用 V1，后面的执行状态与两次调用算例保持该前提；迁移时先看[版本差异](#版本差异)，再核实际 runner 的输入、图和模型限制。
+
 ## 放到 GLM 双机：16 个 runner，R1 的两步各做了什么？
 
 部署是官方双机：2 台 Atlas 800 A2，每台 8 张卡，TP8、DP2、EP16，W8A8，详见[部署前提](glm-5-3-flash-two-node.md#部署前提)。模型是 GLM-5.3-Flash（下文简称 GLM）。R1 是全库一路跟踪的[示例请求](one-request.md#示例请求-r1-与官方双机部署)，提示词只有 4 个 token（教学设定），落在 DP0，也就是第一台机器。
@@ -208,11 +291,11 @@ file: npu-model-runner-code-flow
 
 **第一步（prefill，把提示词一次算完）。** 对账时 R1 是新请求，坐进持久批次第 0 行；准备输入拼出 4 行、位置 0 到 3，选行只有第 3 行。这一步带 prefill，拿不到只为纯 decode 录的图，runner 定下按 eager 跑，并和 DP1 对齐宽度。建注意力元数据时，稀疏 MLA 和 KDA 两类层各拿到自己那份：稀疏 MLA 要按位置换算出的块表和槽位，KDA 不算槽位、直接拿块号当自己那份固定大小状态的编号，逐项见[准备输入的 GLM 一节](prepare-inputs-flow.md#放到-glm-双机r1-这一步每张卡拼出什么)。前向走完 45 层（层内的四路残差见[一条请求](one-request.md#词嵌入与四路残差)），最后一层输出 [4, 4096]，第 3 行的隐藏向量过输出头：输出头按词表切成 8 份，每卡先算出本卡那 19,360 个词的分数，再经 TP 组内一次 [All-Gather](collective-communication.md#all-gather) 拼成完整的 154,880 个，每张卡都拿到一份（切法见[张量并行的词表一节](tensor-parallel.md#词表入口求和出口拼接)）。分数存进执行状态，第一次调用返回空。
 
-第二次调用：R1 没有结构化输出，不套允许词表；本步没有草稿，走普通采样器。8 个 runner 用同一个随机种子各自采样，得到同一个 y₀，这就是首 token。接着 MTP 草稿层用执行状态里的隐藏向量连跑三遍，猜出 d₁、d₂、d₃；GLM 加投机解码时草拟被强制走 eager，三遍的输入怎样错位见[一条请求的第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)。8 个 runner 都交回结果，引擎只收 0 号卡那份。本部署按自动判定会打开异步调度，y₀ 和 3 个候选留在 NPU 上，下一步直接拿来拼输入。
+第二次调用：R1 没有结构化输出，不套允许词表；本步没有草稿，走普通采样器。8 个 runner 各自采样；在实际词表分数、采样实现、随机流及调用顺序一致的前提下，得到相同的 y₀，这就是首 token。同一个 seed 只是其中的初始化条件，详见[采样的复现条件](sampling.md)。接着 MTP 草稿层用执行状态里的隐藏向量连跑三遍，猜出 d₁、d₂、d₃；GLM 加投机解码时草拟被强制走 eager，三遍的输入怎样错位见[一条请求的第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)。8 个 runner 都执行，只有指定的 0 号卡把这份结果发回引擎，其余卡不发送。本部署按自动判定会打开异步调度，y₀ 和 3 个候选留在 NPU 上，下一步直接拿来拼输入。
 
 **第二步（第一个 decode 步，在已有历史上继续往后生成）。** 计划是「R1 算 4 个」：y₀ 加 3 个候选，位置 4 到 7。第一步没有草稿，这一步对账不用补乐观账；从第三步起，runner 才要按「上一步 3 个候选全被接受」先记、事后修正。这一批只有 R1 一条请求、本步 4 个 token，满足纯 decode 的整齐条件，runner 定下回放 4 个 token 的那张图。4 行都要验证，选行是全部 4 行，拼齐后每卡的词表分数是 [4, 154880]。
 
-第二次调用走拒绝采样器，前 3 行逐位验证 3 个候选，第 4 行在候选全对时多给一个 token，所以这一步交回 1 到 4 个 token。GLM 的 45 层主干里有 34 层 KDA，属于线性注意力，模型类又声明了自己是混合模型，所以 runner 采样完还要数出 R1 接受了几个，写进接受数表，第三步 KDA 从对应的那份候选状态接着算。最后再草拟下一轮 3 个候选。
+第二次调用走拒绝采样器，前 3 行逐位验证 3 个候选，第 4 行在候选全对时多给一个 token，所以这一步交回 1 到 4 个 token。runner 随后整理采样结果，并草拟下一轮 3 个候选，再更新接受数。GLM 的 45 层主干里有 34 层 KDA，属于线性注意力，模型类又声明了自己是混合模型，所以还要数出 R1 接受了几个、写进接受数表，第三步 KDA 从对应的那份候选状态接着算。
 
 这一步执行状态里最大的几样，每张卡：
 
@@ -226,19 +309,19 @@ title: R1 第二步，每张卡的执行状态里最大的几样
 合计 = 1,239,040 B + 32,768 B + 32,768 B = 1,304,576 B ≈ 1.24 MiB
 ```
 
-这点暂存放在每卡几十 GiB 的显存里微不足道。拆成两次调用的代价不在显存，而在前面说的顺序约束：这 1.24 MiB 要一直留到第二次调用用完，下一次前向才能开始。词表分数那一项的推导在[一条请求的第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。
+这个单请求算例的暂存较小，仍必须留到第二次调用用完，下一次前向才能开始；批次扩大时暂存量也随之改变。这里首先要理解的是这道顺序约束。词表分数那一项的推导在[一条请求的第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。
 
 多条请求一起跑时，一步要交接的行数随请求变：[场景 M](concurrent-requests.md#示例场景-m-与变体-m) 里 DP0 一步有 13 条请求，runner 要把 49 行词表分数拆回 13 条，账在[多条请求的第 5–7 站](concurrent-requests.md#第-57-站-采样验证与收尾结果按请求拆回去)。
 
 ## 常见误解
 
-- **「runner 决定这一步算谁。」** 算谁、各算几个、借哪些块都由调度器定；runner 只执行计划，连一个 token 都没有的计划也照样收到，对完账直接返回空。
+- **「runner 决定这一步算谁。」** 算谁、各算几个、借哪些块都由调度器定；runner 只执行计划。零 token 计划也照样收到，随后按配置处理必要的组间或 KV 传输协作，再提前返回。
 - **「第一次调用就交回 token。」** 第一次调用在前向之后返回空，词表分数暂存在执行状态里；token 由第二次调用交回。
 - **「两次调用各跑一遍模型。」** 主模型的全部层只在第一次调用里跑一遍。第二次调用做采样；开着投机解码时还会跑草稿层（GLM 是 1 层 MTP 连跑三遍），但不重跑主模型。
 - **「每一行输出都要算词表分数。」** 只有选中的行过输出头；其余行的价值在前向中已经兑现，就是给各层留下历史。
 - **「把 A、C 这一步放到 GLM 上，两行词表分数有 2 × 154880 = 309,760 个数，显存和乘法量都按这个数算。」** 309,760 只是逻辑上的分数个数。输出头按 TP 切开时，每卡先只算自己那 1/8 的词，拼齐前每卡一行只有 19,360 个；乘法量还要乘上隐藏维度 4096；实际显存峰值还取决于实现路径。这三样都不能拿逻辑个数直接代替。
-- **「runner 每一步从头建一遍所有状态。」** 权重、KV cache 缓存池、录好的图从不重建；持久批次只改有变化的请求；只有输入缓冲、中间结果和执行状态每步更新。
-- **「只有 0 号卡的 runner 在采样。」** TP 组里 8 个 runner 都拿到完整的词表分数、各自采样，用同一个随机种子，所以结果一致；只是引擎只收 0 号卡那份。
+- **「runner 每一步从头建一遍所有状态。」** 普通推理跨步复用权重、KV 池和已录好的图；持久批次只改有变化的请求；输入缓冲、中间结果和执行状态每步更新。换权重或重建图另有生命周期流程。
+- **「只有 0 号卡的 runner 在采样。」** TP 组里 8 个 runner 都拿到完整词表分数并各自采样，引擎只收 0 号卡那份。结果一致还依赖实际分数、实现、随机流与调用顺序一致，不能单由相同 seed 保证。
 - **「DP1 没有请求，它的 runner 就闲着。」** DP1 的 runner 每步跑一次空批次陪 DP0，MoE 通信才凑得齐 16 张卡。
 - **「一次调用必返回一个 token。」** 流水线非末段交出中间张量，pooling 模型交出池化结果；投机解码一步可以交回 1 到 4 个 token；提示词没算完的请求，这一步采到的结果不交出去。
 - **「按函数在文件里的先后读，就是运行顺序。」** 同一个文件里混着启动时只跑一次的建池、录图代码和每步都跑的代码，要从两次调用的入口顺着调用往下读。
@@ -249,7 +332,8 @@ title: R1 第二步，每张卡的执行状态里最大的几样
 
 model runner 没有开关：每个 Worker 在 `init_device` 选好卡之后一定建一个。决定它走哪条路的是这几样：
 
-- **v1 还是 v2。** `use_v2_model_runner` 为真时建 `vllm_ascend/worker/v2/model_runner.py` 里的实验性实现，否则建 `vllm_ascend/worker/model_runner_v1.py` 的 `NPUModelRunner`，它继承上游 `GPUModelRunner` [C17]。昇腾补丁让这个开关只看环境变量 `VLLM_USE_V2_MODEL_RUNNER`，不设就是 v1 [C20]。本页讲的都是 v1。
+- **v1 还是 v2。** `use_v2_model_runner` 为真时建 `vllm_ascend/worker/v2/model_runner.py` 里的实现，否则建 `vllm_ascend/worker/model_runner_v1.py` 的 `NPUModelRunner`，它继承上游 `GPUModelRunner` [C17]。昇腾补丁让这个开关只看环境变量 `VLLM_USE_V2_MODEL_RUNNER`，不设就是 v1 [C20]。本页 GLM 执行走读是 v1；V2 的状态组织另见前文，实际支持条件按下表区分版本。
+
 - **投机解码。** 配了 `speculative_config` 时，`sample_tokens` 在 `_bookkeeping_sync` 之后调 `propose_draft_token_ids` 草拟 [C12]。异步调度下，上游 `_update_states` 按「上一步草稿全接受」先记账，返回一个修正函数；`execute_model` 存完 `ExecuteModelState`、返回之前才调用它 [C24]。
 - **混合模型的接受数。** `need_accepted_tokens` 在 `initialize_kv_cache` 里按「注意力分组里有没有 `MambaSpec`」定 [C15]；上游 `_update_states_after_model_execute` 只在开了投机解码且 `model_config.is_hybrid` 时才数接受数 [C22]。GLM 的 KDA 层类继承 `MambaBase`，报出的是 `MambaSpec`，模型类 `AscendGlm5NextForCausalLM` 声明了 `IsHybrid`，所以 GLM 双机每步采样后都会数 [D]。
 - **结构化输出。** 第二次调用带了 `grammar_output` 才走 `apply_grammar_bitmask`，昇腾在这里把 logits 拷到 CPU 转 fp32 再拷回。
@@ -266,32 +350,39 @@ model runner 没有开关：每个 Worker 在 `init_device` 选好卡之后一�
 
 - runner 本身不能关，能选的是它的分支。
 - **前向前的主机端工作。** 对账、准备输入、定执行方式、建元数据每步都在前向前做完；异步调度让它和上一步的设备计算重叠，图模式则省掉逐个下发算子的开销，见[异步调度](async-scheduling.md)与 [ACL Graph](acl-graph.md)。
-- **执行状态。** 只存引用；R1 第二步每卡最大的几样合计约 1.24 MiB [D]。代价是顺序约束，不是显存。
+- **执行状态。** 只存引用；R1 第二步每卡最大的几样合计约 1.24 MiB [D]。引用延长张量寿命，两次调用还必须满足前述顺序约束。
 - **套允许词表。** 昇腾 V1 在 CPU 上做：整张 logits 拷到 CPU、转 fp32、改完拷回 [C11]。行数越多来回越重，满载 decode 一步 128 行时的字节数见[结构化输出](structured-output.md)。
 - **只让选中行过输出头。** 省的是「(本步行数 − 选中行数) × 词表宽度」的投影，前向本身省不掉；R1 第一步 4 行只投 1 行 [D]。
 - **接受数在另一条流上数。** 采样后记一个事件，在全局流上等这个事件再更新接受数，不挡主流上的后续工作 [C13]。
-- **计时校准。** `profiling_chunk_config.need_timing` 为真时，第一次调用开头和第二次调用结尾各做一次设备同步来计时；校准结束的标志 `disable_profiling_timing` 挂在调度计划上跨进程传给 Worker，因为在调度器进程里改配置对象影响不到 Worker 进程 [C3]。同步会打断异步流水，只在校准期间发生。
+- **词表分数如何汇总。** LogitsProcessor 从当前平台读取 use_all_gather，再决定 Gather 或 All-Gather。本页固定 NPUPlatform 继承平台基类，未重写该方法；基类返回 true，因此本部署走 All-Gather。选择分支、平台基类与 NPU 继承关系分别见来源 29、48、49。
+- **计时校准。** `profiling_chunk_config.need_timing` 为真时，第一次调用开头和第二次调用结尾各做一次设备同步来计时；校准结束的标志 `disable_profiling_timing` 挂在调度计划上跨进程传给 Worker，因为在调度器进程里改配置对象影响不到 Worker 进程 [来源 3](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/worker/model_runner_v1.py#L1917-L1937)。同步会打断异步流水，只在校准期间发生。
 - **读代码时可以先跳过的分支。** 流水线并行、上下文并行（PCP、DCP）、KV 传输、多模态编码、pooling、ngram 草稿，本部署都不走 [A]。
 
 ### 版本差异
 
+**v0.30.0rc2 的 V1 与 V2 必须分开读。** Worker 按最终 use_v2_model_runner 选择原 NPUModelRunner 或 worker/v2/model_runner.py 的实现。配套上游快照的原属性会结合平台和功能条件决定 runner；Ascend 的平台补丁替换了该属性，只读 VLLM_USE_V2_MODEL_RUNNER，未设置时返回 false、使用 V1。模型兼容性随后交给 NPU runner 校验，不能用文件名里有 v2 推断现场已启用它。rc2 的 GLM-5.3-Flash 教程明确要求 V1。本文的旧 V1 执行状态、两次调用和逐行行号不作为 V2 的内部状态表。
+
+V2 已接入 PCP 管理器、独立的 model_states 与投机处理；相应组合限制由 V2 的校验决定。V1 中仍保留执行与采样的分工，但旧表的文件长度和函数起始行只能定位旧提交。迁移时先核 Worker 实际创建的类，再按该实现追输入准备、前向和采样；rc2 的 PCP 与 GLM 边界见 [CP 版本差异](context-parallel.md#版本差异)。
+
 按知识库固定快照核对：v0.23 维护分支 Ascend 2c59ff10（配 vLLM 0fc695fc，没有 GLM 代码）；GLM 专用镜像 Ascend db701c1f 单列；v0.26 rc 分支 Ascend 2ed6cbba（没有 GLM 代码）；main 为 Ascend baa023ad（GLM 在 `models/glm5next/`）。
 
-| 项 | v0.23（2c59ff10） | GLM 镜像（db701c1f） | v0.26（2ed6cbba） | main（baa023ad） |
+| 项 | v0.23 / GLM 镜像 | v0.26 | rc2（7d825229） | 固定 main |
 |---|---|---|---|---|
-| 两次调用、12 项执行状态、State error | 有 | 有 | 有 | 有，内容相同 |
-| logits 拷到 CPU 套允许词表 | 有 | 有 | 有 | 有 |
-| 异步调度下的两处防护 | 有 | 有 | 有 | 有 |
-| 在 vLLM 0.23.0 上设 v2 开关 | 警告并退回 v1 | 同左 | 这段退回已删，按开关走 | 同 v0.26 |
-| `super().__init__()` 前为 PCP 临时加大批 token 上限（标 TODO） | 有 | 有 | 已删 | 已删 |
-| 判断要不要数接受数 | 扫注意力分组找 `MambaSpec` | 同左 | 同左 | 直接读 `has_mamba_layers` |
-| 文件行数 / `execute_model` 起始行 | 5251 / L1950 | 5480 / L1917 | 5314 / L1799 | 6242 / L2183 |
+| V1 两次调用、12 项状态、State error | 两者都有 | 有 | 有，采样取出并清空状态 | 有，所列状态内容相同 |
+| V1 logits 拷到 CPU 套允许词表 | 两者都有 | 有 | 有 | 有 |
+| V1 异步调度下的两处防护 | 两者都有 | 有 | 有 | 有 |
+| 在 vLLM 0.23.0 上设 v2 开关 | 两者均警告并退回 v1 | 退回已删，按开关走 | 同 v0.26；默认仍 V1 | 同 v0.26 |
+| 父类初始化前为 PCP 临时加大批 token 上限 | 两者都有 | 已删 | 已删，V1 还拒绝 PCP >1 | 已删 |
+| 判断要不要数接受数 | 扫注意力分组找 MambaSpec | 同左 | 直接读 has_mamba_layers | 同 rc2 所列判断 |
+| 文件行数 / execute_model 起始行 | 维护版 5251 / L1950；镜像 5480 / L1917 | 5314 / L1799 | 6594 / L2229 | 6242 / L2183 |
 
-main 改读 `has_mamba_layers`，注释说新的打包布局把递推状态规格放进统一类型的组里，旧的「看每组第一个规格」认不出来 [C38]；v0.26 的 `init_device` 已没有 0.23.0 的退回分支 [C37]；PCP 那段在 db701c1f 里仍在：父类初始化前把批 token 上限加上「PCP 大小 × 2 × 最大并发请求数」，初始化完再减回去，本部署是 8192 临时加 1 × 2 × 32 = 64 [C33]。表中其余各行是在四个 commit 上逐项检索同名方法和字符串得到的 [D]。
+rc2/main 改读 `has_mamba_layers`，main 注释说明新的打包布局把递推状态规格放进统一类型的组里，旧的「看每组第一个规格」认不出来 [C38]；v0.26 的 Worker 构造器已没有 0.23.0 的退回分支，`init_device` 按最终开关选类（来源 37、50）。PCP 那段在 db701c1f 里仍在：父类初始化前把批 token 上限加上「PCP 大小 × 2 × 最大并发请求数」，初始化完再减回去，本部署是 8192 临时加 1 × 2 × 32 = 64 [C33]。rc2 的列只比较 V1 所列分支，不说明与 main 整个文件相同；两份 runner 的内容不同。
 
 和上游 GPUModelRunner 比，昇腾 V1 有两处行为不同：上游在设备上原地套允许词表，昇腾在 CPU 上做；上游用设备上的采样结果草拟时不等整理结果，先草拟再整理 [C32]，昇腾先整理再草拟。本页的 GLM 算例基于 db701c1f 的执行代码；上游安装、有效默认值和设备实测，以[来源基线](../sources/glm-5-3-flash-baseline.md)的核实范围为准。
 
 ### 源码位置
+
+无执行状态时，异步调度、PP 段数大于 1 且不是 PP 的 KV producer 才接收上轮采样广播；随后按有无 connector 输出决定返回空值、空结果或传输进度，见来源 11。前向的非末段提前返回受 `broadcast_pp_output` 关闭条件控制，见来源 9。来源 47 是 Worker 发送响应前检查 `output_rank` 的分支，与来源 28 的输出卡选择公式合起来说明本部署仅 0 号卡回传。
 
 读法：先定要看两次调用里的哪一段，再从入口顺着调用往下跟 [A]。下表行号都是 `vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py`，另注的除外。
 
@@ -314,4 +405,12 @@ main 改读 `has_mamba_layers`，注释说新的打包布局把递推状态规�
 | 引擎怎样发两次调用、只收一份 | `vllm@0fc695fc` `engine/core.py` 的 `step` 与批次队列；`multiproc_executor.py` 的 RPC 与输出卡号 | L443–L463、L508–L597 [C25]；L307–L326、L495–L509 |
 | 8 张卡同一个随机种子 | `worker.py` 初始化 | L496–L499 |
 
-**待核：** R1 第二步执行状态里的隐藏向量按 BF16 计，依据是一条请求页里 [4, 4096] 取 32,768 B 的口径，未在设备上实测张量的 dtype；异步调度是否真的打开，要看启动日志里 `Asynchronous scheduling is` 那一行。
+**实测边界：** R1 第二步执行状态里的隐藏向量按 BF16 计，依据是一条请求页里 [4, 4096] 取 32,768 B 的口径，未在设备上实测张量的 dtype；异步调度是否真的打开，要看启动日志里 `Asynchronous scheduling is` 那一行。
+
+**版本判断的边界。** 固定 db701c1f 的 0.23.0 是 Worker 回退分支的版本匹配值；配置补丁另按环境值控制 V2 Runner，未设置时返回 False。这些分支不能证明其他版本完整支持 V2，实际选路与设备行为还须按安装版本验证。[来源 19](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/worker/worker.py#L159-L163)、[来源 20](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L20)
+
+- 来源 41：vllm-ascend@db701c1f，vllm_ascend/worker/model_runner_v1.py，L2914–L2940。
+- 来源 51–56：rc2 V1 的 12 项执行状态、两次调用和异步防护；CPU 语法处理也在来源 54。
+- 来源 57–60：rc2 Worker 与环境开关、V1 初始化和接受数判断；PCP 的启动拒绝条件回到[输入准备版本表](prepare-inputs-flow.md#版本差异)。
+- 来源 61：固定上游 MRV2 设计全文，支撑固定请求状态、本步 gather、pinned 快照、StagedWriteTensor 和捕获/回放边界；其中设备实现不能直接推广成 NPU 能力。
+- 来源 62：小正数温度的下限修正及 temperature=0 的贪心判定。

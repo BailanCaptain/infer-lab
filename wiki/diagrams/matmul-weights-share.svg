@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 430" width="860" height="430" role="img" aria-label="同一片权重服务不同的行数（数为示意）：上面这一轮送进 4 行，下面这一轮只送进 1 行，中间那片权重一个数都没变；行数越多，一次读进来的权重被用得越久">
-  <title>同一片权重服务不同的行数（数为示意）：上面这一轮送进 4 行，下面这一轮只送进 1 行，中间那片权重一个数都没变；行数越多，一次读进来的权重被用得越久</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 430" width="860" height="430" role="img" aria-label="同一片权重服务不同的行数（数为示意）：上面这一轮送进 4 行，下面这一轮只送进 1 行，中间那片权重一个数都没变；行数增加了逻辑复用机会。图中次/B按INT8权重主体只读一次估算，未计输入输出和其他读写，实际访存取决于分块与缓存。">
+  <title>同一片权重服务不同的行数（数为示意）：上面这一轮送进 4 行，下面这一轮只送进 1 行，中间那片权重一个数都没变；行数增加了逻辑复用机会。图中次/B按INT8权重主体只读一次估算，未计输入输出和其他读写，实际访存取决于分块与缓存。</title>
   <defs><marker id="matmul-weights-share-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="matmul-weights-share-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
   <path d="M230 122 L388 122" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#matmul-weights-share-ah-token)"/>
   <path d="M432 122 L516 122" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#matmul-weights-share-ah-token)"/>

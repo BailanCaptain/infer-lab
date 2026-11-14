@@ -36,7 +36,7 @@ grids:
     cell: [56, 34]
     tone: token
     style: faded
-    label: 每个词一个分数（logits），只比大小，还不是概率
+    label: 每个词一个分数（logits），未归一化，还不是概率
     cells:
       - { at: [0, 0], text: '−0.4' }
       - { at: [0, 1], text: '−0.5' }

@@ -1,0 +1,63 @@
+layout: figure
+id: inference-benchmarking-intuition
+caption: 四条请求都在逐步生成，示意每条被选中的请求本步输出一个 token。左侧本步选两条，右侧选四条；本步产出更多是否值得，还要结合步长、未入选请求的等待和服务目标测量。
+size: [880, 430]
+frames:
+  - { at: [24, 40], size: [394, 340], label: 较小批次：本步选两条 }
+  - { at: [452, 40], size: [404, 340], label: 较大批次：本步选四条 }
+grids:
+  - at: [82, 80]
+    rows: 1
+    cols: 4
+    cell: [66, 42]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: D₁, style: solid }
+      - { at: [0, 1], text: D₂, style: solid }
+      - { at: [0, 2], text: D₃ }
+      - { at: [0, 3], text: D₄ }
+  - at: [512, 80]
+    rows: 1
+    cols: 4
+    cell: [66, 42]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: D₁ }
+      - { at: [0, 1], text: D₂ }
+      - { at: [0, 2], text: D₃ }
+      - { at: [0, 3], text: D₄ }
+  - at: [82, 288]
+    rows: 1
+    cols: 2
+    cell: [66, 42]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: D₁ }
+      - { at: [0, 1], text: D₂ }
+    label: 本步新增 2 个 token
+  - at: [512, 288]
+    rows: 1
+    cols: 4
+    cell: [66, 42]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: D₁ }
+      - { at: [0, 1], text: D₂ }
+      - { at: [0, 2], text: D₃ }
+      - { at: [0, 3], text: D₄ }
+    label: 本步新增 4 个 token
+items:
+  - { at: [72, 182], size: [174, 54], text: 处理两条请求, tone: weight, style: solid }
+  - { at: [512, 182], size: [264, 54], text: 处理四条请求, tone: weight, style: solid }
+links:
+  - { from: [148, 122], to: [148, 182], tone: token }
+  - { from: [644, 122], to: [644, 182], tone: token }
+  - { from: [148, 236], to: [148, 288], tone: token }
+  - { from: [644, 236], to: [644, 288], tone: token }
+texts:
+  - { at: [280, 160], text: D₃、D₄ 本步等候, anchor: middle, size: 13 }
+  - { at: [440, 411], text: 数整体产出，也量每个人等多久；不能只看一轮交出了几个 token, anchor: middle, size: 14 }

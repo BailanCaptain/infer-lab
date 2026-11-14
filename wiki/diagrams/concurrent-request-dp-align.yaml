@@ -1,6 +1,6 @@
 layout: figure
 id: concurrent-request-dp-align
-caption: 两组每步对齐到同一个宽度：实色是真实 token，斜纹是空跑的填充。上半第 1 步按每 token 9 px 画，下半第 2 步按每 token 0.095 px 画，两半比例不同；M′ 的 DP1 没有请求，只有 4 个空批次 token
+caption: 场景 M 中两组对齐后的宽度：实色是真实 token，斜纹是填充。上半第 1 步按每 token 9 px，下半第 2 步按每 token 0.095 px，两半比例不同；M′ 的 DP1 没有请求，只有 4 个空批次 token。其他批次仍按图模式与草拟条件决定是否统一主干宽度，原本 eager 的组可保留本地宽度，MoE 内部另补齐。
 size: [900, 526]
 bars:
   - at: [180, 80]

@@ -1,66 +1,111 @@
 ---
 id: tensor-parallel
-title: "Tensor Parallel：一台机器的 8 张卡怎样合算一层"
+title: Tensor Parallel：一台机器的 8 张卡怎样合算一层
 type: feature
 summary: 把同一层的矩阵分给多张卡：先列切，各卡算出完整数值的几列；本地激活后接行切，最后一次求和合齐结果。沿 GLM 双机的一次前向，核对通信和显存代价。
-aliases: [张量并行, Tensor Parallel, TP, tensor_parallel_size, --tensor-parallel-size, ColumnParallelLinear, RowParallelLinear, 列并行, 行并行]
-chapters: ["13"]
+aliases:
+  - 张量并行
+  - Tensor Parallel
+  - TP
+  - tensor_parallel_size
+  - '--tensor-parallel-size'
+  - tensor-parallel-size
+  - ColumnParallelLinear
+  - RowParallelLinear
+  - 列并行
+  - 行并行
+chapters:
+  - '13'
 order: 10
 sources:
-  - https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
-  - vllm@0fc695fc:vllm/distributed/parallel_state.py#L1749-L1772
-  - vllm@0fc695fc:vllm/model_executor/layers/linear.py#L407-L454
-  - vllm@0fc695fc:vllm/model_executor/layers/linear.py#L575-L589
-  - vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1389-L1444
-  - vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1537-L1558
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1478
-  - vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L229-L248
-  - vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L323-L341
-  - vllm@0fc695fc:vllm/model_executor/layers/logits_processor.py#L75-L87
-  - vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L102-L226
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda_state.py#L9-L31
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1905-L1963
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1277-L1313
-  - vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L67-L134
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L663-L670
-  - vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L159-L167
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L208-L290
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L448-L469
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L543-L555
-  - vllm@0fc695fc:vllm/config/model.py#L1184-L1195
-  - vllm@0fc695fc:vllm/config/parallel.py#L110-L117
-  - vllm@568afb3a:vllm/config/parallel.py#L118-L125
-  - vllm@84030bbe:vllm/config/parallel.py#L120-L131
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L700-L739
-  - vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L497-L521
-  - vllm-ascend@baa023ad:vllm_ascend/ops/linear_op.py#L311-L318
-  - vllm-ascend@db701c1f:vllm_ascend/ops/linear.py#L272-L371
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L155-L189
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L182-L229
-  - vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L84-L95
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L202-L252
-  - vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L320-L320
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1349-L1352
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L505-L577
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/parallel_state.py#L117-L149
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L653
-  - vllm@0fc695fc:vllm/config/parallel.py#L625-L641
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
+  - 'vllm@0fc695fc:vllm/distributed/parallel_state.py#L1749-L1772'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/linear.py#L407-L454'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/linear.py#L575-L589'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1389-L1444'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1537-L1558'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1478'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L229-L248'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L323-L341'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/logits_processor.py#L75-L87'
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L102-L226
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda_state.py#L9-L31'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1905-L1963'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1277-L1313'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L67-L134'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L663-L670'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L159-L167'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L208-L290'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L448-L469'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L543-L555'
+  - 'vllm@0fc695fc:vllm/config/model.py#L1184-L1195'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L110-L117'
+  - 'vllm@568afb3a:vllm/config/parallel.py#L118-L125'
+  - 'vllm@84030bbe:vllm/config/parallel.py#L120-L131'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L700-L739'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L497-L521'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/linear_op.py#L311-L318'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/linear.py#L272-L371'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L155-L189'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L182-L229'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L84-L95'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L202-L252'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L320-L320'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1349-L1352'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L505-L577'
+  - 'vllm-ascend@db701c1f:vllm_ascend/distributed/parallel_state.py#L117-L149'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L653'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L625-L641'
+  - >-
+    raw:sha256-196c004bd490c7f7e4c9c4e9d53b98c099e30b563845639542017f81ec8ad131.md#L1-L1466
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L465-L474'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L970-L976'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L487-L492'
+  - 'vllm@568afb3a:vllm/engine/arg_utils.py#L1013-L1015'
+  - 'vllm@84030bbe:vllm/engine/arg_utils.py#L1085-L1087'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/linear_op.py#L410-L455'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/linear_op.py#L156-L264'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/kimi_k3.py#L534-L554'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
-  - {to: one-request, kind: builds-on, note: 本页展开第 4 站的矩阵切分与 TP 通信，七站总账留在主线页}
-  - {to: concurrent-requests, kind: builds-on, note: 场景 M 的 token 数与图尺寸对齐决定 TP 载荷}
-  - {to: matmul-and-weights, kind: builds-on, note: column 和 row 分别切矩阵乘的输出维和输入维}
-  - {to: collective-communication, kind: builds-on, note: All-Reduce 求和与 All-Gather 拼接决定分片怎样合并}
-  - {to: mla, kind: builds-on, note: MLA 的共享潜向量解释了为什么 KV cache 在 TP 内复制}
-  - {to: linear-attention, kind: builds-on, note: KDA 各头的递归状态随头切分，更新规则见该页}
-  - {to: ops-and-kernels, kind: builds-on, note: Ascend 通过算子注册替换上游 Linear 类}
+  - to: one-request
+    kind: builds-on
+    note: 本页展开第 4 站的矩阵切分与 TP 通信，七站总账留在主线页
+  - to: concurrent-requests
+    kind: builds-on
+    note: 场景 M 的 token 数与图尺寸对齐决定 TP 载荷
+  - to: matmul-and-weights
+    kind: builds-on
+    note: column 和 row 分别切矩阵乘的输出维和输入维
+  - to: collective-communication
+    kind: builds-on
+    note: All-Reduce 求和与 All-Gather 拼接决定分片怎样合并
+  - to: mla
+    kind: builds-on
+    note: MLA 的共享潜向量解释了为什么 KV cache 在 TP 内复制
+  - to: linear-attention
+    kind: builds-on
+    note: KDA 各头的递归状态随头切分，更新规则见该页
+  - to: ops-and-kernels
+    kind: builds-on
+    note: Ascend 通过算子注册替换上游 Linear 类
 contradicts: []
-updated: "2026-09-27"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-196c004bd490c7f7e4c9c4e9d53b98c099e30b563845639542017f81ec8ad131.md
+  - >-
+    raw/sha256-d152d676c26ebc16ca54680c89192812c8f7b302108fa408d8ae747b866d5309.md
 ---
 
 
@@ -77,7 +122,7 @@ origin: direct
 
 两种分工都让每张卡只存一半权重、只做一半乘法，区别在算完以后是拼还是加。模型里这两种切法成对使用：先按列切，再按行切，中间的激活函数（夹在两次矩阵乘之间、对每个数单独做的一次变换，后面细讲）留在本卡算，一对矩阵只在末尾通信一次。下面先用具体的数把两种切法各算一遍，再看为什么要这样配对。
 
-**为什么要切？一是放不下，二是算得慢。** 推理时，权重要一直放在计算卡自带的显存里。示意：一张卡的显存是 32 GB，模型权重一共 48 GB，一张卡装不下；切给两张卡，每张只存 24 GB，还能腾出地方放计算的中间结果和历史缓存。就算装得下，每生成一个新 token，每一层的权重都要从显存完整读一遍；一次只算几行时，时间主要花在读权重上，而不是乘法本身（见[矩阵乘和权重](matmul-and-weights.md#同一片权重为什么能处理多行输入)）。两张卡各读一半、同时进行，这一层的读和算都大约减半，同一个请求出结果更快。
+**为什么要切？一是放不下，二是希望分摊计算和读权重的工作。** 在权重常驻设备显存的示意中，一张卡的显存是 32 GB，模型权重一共 48 GB，一张卡装不下；若所画权重都可均分，切给两张卡，每张只存 24 GB，还能腾出地方放计算的中间结果和历史缓存。对选中的稠密矩阵，在相同输入工作量、权重各读取一次的理想预算下，每卡负责的权重字节和矩阵乘工作量都减半；一次只算几行时，这提供了分摊权重读取的机会（见[矩阵乘和权重](matmul-and-weights.md#同一片权重为什么能处理多行输入)）。实际 HBM 读取量还取决于缓存命中、分块复用和重复读取，整层耗时还包含通信与等待；容量减半不能直接推出读写时间减半或请求一定更快。
 
 **切开的只是能切的部分。** 只有被切开的矩阵才缩到每卡 1/N（N 是一起切的卡数）；有些小矩阵每张卡仍各留一整份，这叫 replicated（复制），不会因为 TP 变小。所以 TP8（8 张卡一起切）不等于每张卡的显存用量除以 8；GLM 上哪些切、哪些复制，见后面的[显存账](#先区分哪些权重归-tp哪些已经由-ep-分走)。
 
@@ -107,6 +152,8 @@ title: 同一个 x·W₁，两种切法交给两张卡（数为示意）
 ```
 
 **一张卡手里的结果能不能直接往下用，就看这两条。** 按列切的数每个都对，只是不全，后面的计算只要用得上这几个数，就能直接接着算，不必等别人。按行切的数形状齐全，却每个都还差别的卡那一份，不能直接用，也不能拿本卡的数乘卡数来凑：卡 0 的第 1 个数是 1，乘 2 得 2，真值却是 5。
+
+**如果输出还带偏置，偏置也只能计入一次。** 偏置是矩阵乘之后额外加在输出上的一条向量。两张卡的部分和记作 P₀、P₁，正确输出是 P₀ + P₁ + b；若两张卡各自在部分和里加上完整偏置 b，再做求和，就会得到 P₀ + P₁ + 2b，多加了一份偏置。
 
 按列切叫 **column parallel**，按行切叫 **row parallel**。前者分的是输出通道，后者分的是输入通道；通道就是向量里的一段维度，比如上面 4 个输出数里的第 1、2 个。真实模型里 X 不止 1 行，而是这一步的一批 token；TP 切的是权重，不是 token 行，所以每张卡都要处理全部行，每一行只算自己那片权重负责的部分。
 
@@ -199,7 +246,7 @@ TP 分的是**同一次矩阵计算**；[DP（data parallel）](data-parallel.md
 
 [官方部署](glm-5-3-flash-two-node.md#部署前提)是 **2 台 Atlas 800 A2，每台 8 卡，TP8 / DP2 / EP16，W8A8**：每台的 8 张卡合算同一批输入，两台各有一个 DP 执行组，全部 16 张卡共同持有路由专家。W8A8 用 8 位整数表示可量化层的权重和激活，中间结果按需要恢复精度；NPU 是昇腾的计算设备。
 
-前面两张卡的小例子，在这里换成 8 张卡和真实宽度。**TP8 把每层稠密 MLP 的大矩阵分到 8 张卡，每卡只存、读取和计算其中的八分之一，权重主体为 18 MiB。** TP 管的是 attention 头投影、稠密 MLP、共享专家和词表；约 **290.25 GiB 的路由专家权重则交给 EP 分配**。分工与完整容量账见[部署页](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)，本页后面保留算式。
+前面两张卡的小例子，在这里换成 8 张卡和真实宽度。**TP8 把每层稠密 MLP 的大矩阵分到 8 张卡，每卡保存其中的八分之一，并承担对应的矩阵乘工作量，权重主体为 18 MiB。** 这里的比例描述分片容量与逻辑工作量，实际 HBM 读取字节仍受算子实现和缓存复用影响。TP 管的是 attention 头投影、稠密 MLP、共享专家和词表；约 **290.25 GiB 的路由专家权重则交给 EP 分配**。分工与完整容量账见[部署页](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)，本页后面保留算式。
 
 这发生在[一条请求的第 4 站：逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)。请求已被调度，8 个 worker（每卡一个执行进程）已拿到同一批 token（分词后的整数编号）。跟着其中一个 token 看，它先查表得到 hidden，也就是在层与层之间传递的隐藏向量，再依次经过 attention 和 MLP。
 
@@ -219,6 +266,8 @@ GLM 用 **mHC 四路残差连接**传递层间信息：子层前把 4 条隐藏�
 
 随后做 **SwiGLU**：gate 先过 SiLU 非线性函数，再与 up 逐项相乘；GLM 这版还会限制数值幅度。这些操作只用本地对应通道。降维投影接住本卡的 1536 维结果，算出的每个数只加了这 1536 项；把全部 12288 项加齐，才得到完整答案。
 
+若行并行降维还带输出偏置，完整偏置只能计入一次：八卡各自在部分和中加入同一份完整偏置，再做求和，会把偏置累计八次。这是行并行求和的数学约束，不表示本部署启用了偏置。
+
 下图中 rank 表示通信组成员的编号，r 是本组的卡编号。
 
 ```wiki-diagram
@@ -236,6 +285,12 @@ title: 一层 MLP 在各卡上怎样接起来
 本卡降维 = Uᵣ[T,1536] × downᵣ[1536,4096] = Pᵣ[T,4096]
 完整输出 = P₀ + P₁ + P₂ + P₃ + P₄ + P₅ + P₆ + P₇ = Y[T,4096]
 > ⊙ 表示对应元素相乘；GLM 的幅度限制省略在符号里，通信位置不变
+```
+
+下图用 4 张卡示意同一次 down 投影（本部署每台机器是 8 张）：先沿输入通道把 X 的列和 W 的同号行切开落卡，各卡算出形状完整、数值不全的部分和，再用一次 All-Reduce 合齐，每卡都拿到完整结果。切分是布局说明，推理期间权重不随请求搬动。
+
+```wiki-scene
+parallel-mechanism:5
 ```
 
 ### 到 MoE 层：共享专家仍合一次，路由专家另走派发
@@ -365,7 +420,7 @@ finalize 本地分片 = (64 ÷ 8) × 4096 × 2 B = 65,536 B = 64 KiB
 
 ### 先区分：哪些权重归 TP，哪些已经由 EP 分走
 
-仅路由专家的 int8 权重，连同 MTP，就约 **290.25 GiB**，超过教程标称的单卡 **64GB**；TP 和 EP 分工后，每卡全部加载权重约 **20.58 GiB**。完整分布及单机/双机比较见[部署页](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)。
+仅路由专家的 int8 权重，连同 MTP，就约 **290.25 GiB**，超过教程标称的单卡 **64GB**；TP 和 EP 分工后，所列主要语言权重的每卡子账约 **20.58 GiB**，还需另计视觉塔、MTP 旋转矩阵和量化辅助张量等。统计范围及单机/双机比较见[部署页](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)。
 
 **这笔容量下界说明需要多卡；路由专家由 EP 分配，TP 继续分摊稠密 MLP、头投影、共享专家和词表。**
 
@@ -390,10 +445,10 @@ KDA 有效状态和物理占用的差额来自两步：先把每层的 **561,152
 
 **TP8 把逐层同步留在机内。** 机内走 HCCS（昇腾卡间高速互连），跨机走 RoCE（以太网上的远程直接内存访问网络），HCCL 使用这些链路组织通信。TP8 正好占满一台机器，R1 的 91 次 hidden 归约与其余 TP 汇总留在本机；TP16 必须跨两台，让每层等待路径包含跨机网络，收益要能覆盖增加的同步成本。
 
-从 TP8 改为 TP4，每卡只有 TP 切分部分的权重加倍。固定 16 卡、保持 EP16 时，需把执行组改成 DP4；路由专家和 replicated 权重的每卡用量保持原有数额。**三档加载权重分别约 22.32、20.58、19.72 GiB；可被 TP 缩放的部分只有 1,774.5 MiB。** 下列保留可分性与权重主体的静态估算。
+从 TP8 改为 TP4，每卡只有 TP 切分部分的权重加倍。固定 16 卡、保持 EP16 时，需把执行组改成 DP4；路由专家和 replicated 权重的每卡用量保持原有数额。**所列语言模块的三档子账分别约 22.32、20.58、19.72 GiB；其中可被 TP 缩放的部分为 1,774.5 MiB。** 下列按部署页的 3121f187 量化配方保留静态估算，未计视觉塔、MTP 旋转矩阵和量化辅助张量等；视觉矩阵也会随 TP 改变，完整占用须另算。
 
 ```calc
-title: 固定 16 卡和 EP16：三档 TP 的可分性与权重
+title: 固定 16 卡和 EP16：三档 TP 的可分性与语言权重子账
 TP4 头数 / 稠密通道 / 共享通道 / 词表行 = [64, 12288, 2048, 154880] ÷ 4 = [16, 3072, 512, 38720]
 TP8 头数 / 稠密通道 / 共享通道 / 词表行 = [64, 12288, 2048, 154880] ÷ 8 = [8, 1536, 256, 19360]
 TP16 头数 / 稠密通道 / 共享通道 / 词表行 = [64, 12288, 2048, 154880] ÷ 16 = [4, 768, 128, 9680]
@@ -401,7 +456,7 @@ TP16 头数 / 稠密通道 / 共享通道 / 词表行 = [64, 12288, 2048, 154880
 TP8 路由专家 = 43 × 432 MiB = 18,576 MiB
 TP8 其余权重 = 21,078 − 18,576 = 2,502 MiB
 复制部分 = 193.5 + 135 + 267 + 68 + 64 = 727.5 MiB
-> 依次为 router、mHC、MLA 低秩与索引器、KDA 低秩门、MTP 输入投影；沿用加载权重账，不含运行时 FP32 副本，忽略 KiB 级小项
+> 依次为 router、mHC、MLA 低秩与索引器、KDA 低秩门、MTP 输入投影；沿用所列语言权重子账，不含视觉塔、旋转矩阵、量化辅助张量和运行时 FP32 副本，忽略 KiB 级小项
 TP8 可切部分 = 2,502 − 727.5 = 1,774.5 MiB
 TP4 / DP4 / EP16 = 18,576 + 727.5 + 1,774.5 × (8 ÷ 4) = 22,852.5 MiB ≈ 22.32 GiB
 TP8 / DP2 / EP16 = 18,576 + 727.5 + 1,774.5 = 21,078 MiB ≈ 20.58 GiB
@@ -412,7 +467,7 @@ TP16 / DP1 / EP16 = 18,576 + 727.5 + 1,774.5 × (8 ÷ 16) = 20,190.75 MiB ≈ 19
 
 **索引器 FP32 副本约 54 MiB/卡，第一次前向时创建，不计入 KV 预算。** 索引器把 K 投影和压池门控各转一份 FP32 常驻副本；量 KV 预算的 profile run 跳过索引器，副本要到录图或真实请求时才出现。创建位置在页末来源，预算时序见[部署页](glm-5-3-flash-two-node.md#启动时发生了什么)。
 
-**加上这份副本，TP4、TP8、TP16 分别约 22.37、20.64、19.77 GiB。** 加载权重原有分类和数额不变，可切权重仍是 1,774.5 MiB，54 MiB 是每卡另加的运行时分配。
+**给上述子账加上这份副本，TP4、TP8、TP16 分别约 22.37、20.64、19.77 GiB。** 所列语言权重原有分类和数额不变，其中可切部分仍是 1,774.5 MiB，54 MiB 是每卡另加的运行时分配。
 
 ```calc
 title: 加载权重之外的运行时副本
@@ -420,22 +475,22 @@ title: 加载权重之外的运行时副本
 TP4 权重加副本 = 22,852.5 + 54 = 22,906.5 MiB ≈ 22.37 GiB
 TP8 权重加副本 = 21,078 + 54 = 21,132 MiB ≈ 20.64 GiB
 TP16 权重加副本 = 20,190.75 + 54 = 20,244.75 MiB ≈ 19.77 GiB
-> 只合计加载权重与这份运行时副本；KV、KDA 状态、激活及图内存仍另计
+> 只合计所列语言权重与这份运行时副本；视觉塔、旋转矩阵、量化辅助张量、KV、KDA 状态、激活及图内存仍另计
 ```
 
-两套口径都表明：TP4 比 TP8 多约 1.73 GiB，TP16 比 TP8 少约 0.87 GiB。由此能推断，TP16 对权重的节省有限，因为占大头的路由专家已由 EP16 分完，MLA cache 仍逐卡复制。TP4 会增加每卡 attention/MLP 工作量与有效 KDA 状态，还要改每台机器的执行组布局。
+在所列语言模块中，两套口径都得到：TP4 比 TP8 多约 1.73 GiB，TP16 比 TP8 少约 0.87 GiB。由此能看出，TP16 对这部分权重的节省有限，因为占大头的路由专家已由 EP16 分完，MLA cache 仍逐卡复制。完整节省量还需计入视觉模块等表外项。TP4 会增加每卡 attention/MLP 工作量与有效 KDA 状态，还要改每台机器的执行组布局。
 
 **TP4 仍是容量评估的候选，官方 TP8 是本页部署基线；各负载下的最快配置须由实测确定。** 如果只改 TP4、仍留 DP2，则只用 8 张卡且 EP 变为 8，专家权重也会增加；如果 TP16 仍配 DP2，则需要 32 张卡。比较时应先固定硬件总量与 EP 规模，再判断 TP 的收益。
 
 ## 常见误解
 
-- **“TP 是把不同的层分给不同的卡。”** 那是 [pipeline parallel](pipeline-parallel.md)（流水线并行）的分法。TP 把每一层都切开，8 张卡同时算同一层的同一次矩阵乘，每层都要合并；GLM 的 45 层在每张卡上都有，只是每层只存一片。
+- **“TP 是把不同的层分给不同的卡。”** 那是 [pipeline parallel](pipeline-parallel.md)（流水线并行）的分法。TP 组共同参与各层的计算，可切分的矩阵各存一片、按算子需要合并结果；GLM 的 45 层在每张卡上都有，但每层既可能有分片，也可能有复制分量，不能说整层所有权重都只存八分之一。
 - **“TP8 会把所有权重和 cache 都除以 8。”** 稠密 MLP 和大部分头投影会切；KDA 低秩门、MLA 低秩输入与索引器仍复制。KDA 有效状态按头切，MLA KV 每卡保存完整的 512 维潜向量。
 - **“row parallel 的输出宽度完整，就能进入下一层。”** 完整的是形状；数值只累加了本卡的输入贡献，需要求和，所以不能用本卡结果乘 8 代替求和。
 - **“column parallel 后必须 All-Gather。”** MLP 门控和 attention 头计算能消费本地分片，直到 row 投影后才归约；lm_head 的分片需要拼成完整词表来采样。
 - **“W8A8 下 TP 通信每数只占 1 B。”** 这里的 hidden 归约与 logits 汇总按 BF16 算，每数 2 B。专家 dispatch 的量化数据有另一套账；存储精度与通信精度分别确认。
 - **“218 次都是 TP。”** R1 中 TP 是 134 次，其余属于 EP；场景 M 中 TP 是 92 次，其余属于 DP。MoE 路径改变，通信组别也改变。
-- **“TP 的通信量跟模型大小成正比。”** 一次 hidden All-Reduce 搬的是本步 token 的隐藏向量，载荷由行数、hidden 宽度与精度决定，整步还要乘归约次数。同一模型、同一份约 20.58 GiB/卡的加载权重，R1 一次只归约 32 KiB，场景 M 却是 47.25 MiB；通信字节应按本步激活形状和集合操作计算，参数总量描述的是权重规模。
+- **“TP 的通信量跟模型大小成正比。”** 一次 hidden All-Reduce 搬的是本步 token 的隐藏向量，载荷由行数、hidden 宽度与精度决定，整步还要乘归约次数。同一模型、同一份约 20.58 GiB/卡的语言权重子账，R1 一次只归约 32 KiB，场景 M 却是 47.25 MiB；通信字节应按本步激活形状和集合操作计算，参数总量描述的是权重规模。
 - **“细粒度 TP 就是给某一层单独加大普通 TP。”** 它沿 DP 维建组；固定镜像的 OProj（attention 输出投影）模块要求普通 TP=1，所有细粒度模块都要求 MoE 模型。模块各有限制，具体条件见 [fine-grained TP](fine-grained-tp.md)。
 - **“TP 越大越快，开图就没有通信了。”** 更多卡分摊部分计算，也增加通信参与者。graph mode（图模式）预先录下满足条件的设备算子序列再回放，节省逐次下发开销，仍执行归约；小批次还有卡只处理补齐行。
 
@@ -448,6 +503,10 @@ TP16 权重加副本 = 20,190.75 + 54 = 20,244.75 MiB ≈ 19.77 GiB
 官方 TP 参数是 **`--tensor-parallel-size 8`**，配合 `--data-parallel-size 2`、`--data-parallel-size-local 1`、`--enable-expert-parallel` 和 `--quantization ascend`。两端地址、rank 及环境变量按[官方教程](https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md)配置，这些开关共同决定布局。
 
 标准 TP 默认值是 1，即本层不分片到多卡。本文通信账还使用以下默认条件：FlashComm1（会改变激活布局的通信优化）关闭、`enable_reduce_sample=False`、共享专家独立 stream（设备独立执行队列）重叠关闭。打开 [sequence parallel](sequence-parallel.md) 这类按 token 位置分布激活的优化后，要按新路径重新计数。
+
+**标准 TP 参数怎样传。** CLI 使用 --tensor-parallel-size 或短名 -tp；EngineArgs、离线 LLM 的同名参数是 tensor_parallel_size。类型为整数，ParallelConfig 定义默认 1、下界 1，0 和负数不是“自动选卡”。三版字段定义见来源 22–24，入口见来源 43、44、46、47。它选择每个 TP 组的规模，不决定本机可见哪几张设备，也不表示整个服务只用这么多卡；可见设备及执行器见[启动参数参考](engine-processes.md#怎么开)，总 DP 组数见 [DP 参数参考](data-parallel.md#怎么开)。
+
+本站两端均给 TP8、DP2、本地 DP1 并开 EP。每组按 TP8 合作的具体形状沿用本页算例，不再另列一份矩阵账。改 TP 时要同时满足模型 attention 头数、KDA/MLA 各自头数、列切输出维与行切输入维的整除要求；还要有足够的可见设备和兼容的量化布局。若另开 decode context parallel（将 decode 的上下文分摊给组内卡），TP 必须能被其规模整除（来源 45）。因此“字段能接受正整数”不等于该模型能按任何正整数启动；TP1 只关闭标准 TP 分片，不同时关闭 DP 或 EP。
 
 Ascend 用 `REGISTERED_ASCEND_OPS` 替换 Linear 类，替换过程见[算子层](ops-and-kernels.md)。`AscendRowParallelLinear` 先通过 `get_parallel_op` 选择通信实现；有专门实现就调用它，没有就落回上游 forward 的归约。[C28]
 
@@ -468,17 +527,21 @@ Ascend 用 `REGISTERED_ASCEND_OPS` 替换 Linear 类，替换过程见[算子层
 | 条件 | 报错或检查点 | 本模型上怎样判断 |
 | --- | --- | --- |
 | 总 attention 头数不能被 TP 整除 | `ValueError: Total number of attention heads (...) must be divisible by tensor parallel size (...).` | 上游 `ModelConfig.verify_with_parallel_config` 检查；64 头允许 TP4/8/16 |
+| TP 为 0 或负数 | ParallelConfig 的 ge=1 字段约束拒绝 | 默认 1；不能用 0 表示自动 |
+| TP 不能被 decode context parallel 规模整除 | parallel 配置检查报不能整除 | 本站该规模为 1；改动时与 TP 一起核对 |
 | KDA 头数不能整除 | `assert self.num_heads % self.tp_size == 0` | 检查 KDA 自己的头数 |
 | MLA 头数不能整除 | `assert num_heads % tp_size == 0` | GLM 的 attention 构造处 |
 | column 输出维或 row 输入维不能整除 | `divide` 的断言：`... is not divisible by ...` | 头数合法后，还要满足投影维度与量化布局约束 |
 
 以上是源码检查点，未在 NPU 上故意触发。通信组成员、形状或执行次序不一致，还可能表现为集合通信等待；待核：缺这套硬件对应的 HCCL 错误日志与超时复现。[C21]
 
+镜像 `db701c1f` 的行并行初始化还有一项偏置约束：`reduce_results=False`、`bias=True` 且 `skip_bias_add=False` 时会抛出 `ValueError`，见来源 28 的 `ops/linear.py` 第 345–346 行。本节 GLM 稠密 MLP 的 gate/up 和 down 投影都设置 `bias=False`（来源 7），因此不触发这一组合条件。[C28]
+
 ### 开销和什么时候别开
 
 TP 降低可切权重与本卡矩阵乘工作量，成本是逐层集合通信、同步及 replicated 部分的重复计算。R1 单次 hidden 载荷只有 32 KiB，反复启动与等待值得优先测；场景 M 达到 47.25 MiB，链路带宽与通信重叠更值得测。瓶颈比例待 profile（记录算子耗时和等待）确认。
 
-本模型单卡放不下，TP 应与 EP 一起规划；扩大 TP 时先核对是否跨机、能省多少权重、哪些 cache 仍复制。上文三档比较为静态估算。待核：W8A8 仓库的 `quant_model_description.json` 缺失，MLA 投影精度及整卡 20.58–20.81 GiB 的区间沿用[部署页](glm-5-3-flash-two-node.md#启动时发生了什么)；64GB 的单位、量化缩放与设备格式额外开销以驱动和加载日志定案。
+本模型单卡放不下，TP 应与 EP 一起规划；扩大 TP 时先核对是否跨机、能省多少权重、哪些 cache 仍复制。上文三档比较只含所列语言模块。两份固定量化描述已区分 MLA 四组投影的 INT8 / FLOAT 配方；20.58 / 20.81 GiB 是对应子账，不是完整占用区间，视觉塔、旋转矩阵等见[部署页](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)。64GB 的单位、完整量化辅助张量与设备格式开销仍以驱动和加载日志核定。
 
 **权重分项核对：路由专家由 EP 分，稠密 MLP、共享专家与词表由 TP 分。** 以下把同一张容量账的分项集中在一个算式块中，形状明确按源码存储的 [输出维, 输入维] 列出；r 是组内 rank。矩阵切法的数学方向仍以开篇为准，存储转置见“源码位置”。
 
@@ -515,13 +578,17 @@ rank r 的词表区间 = [r × 19360, (r + 1) × 19360)
 
 ### 版本差异
 
+rc2 另有绕过普通分派、由 Kimi 模型直接安装的 O projection MM+ReduceScatter 融合：要求 SP、attention residual、对应硬件能力、无 LoRA、非 NZ mode 2、BF16 无 bias 和受支持 TP。只在合适的纯 prefill 批融合，其他分支仍返回相同 SP token shard。这是模型特定路径，不能套到固定 GLM 的 row-parallel 演算。
+
+**v0.30.0rc2 保留普通列切、行切的数学关系，但自定义层要按模型分派。** row 侧依次识别 DSV4 wo_b、非 MoE down_proj、o_proj；column 侧先识别 DSA-CP 的 q_b_proj/kv_b_proj，再判断 DSV4 wo_a 和非 MoE gate_up_proj。共享专家是否复制已与 SP 解耦：只有 enable_shared_expert_dp 才返回 TP size=1，不能从“开启 SP”推导共享专家权重必然完整复制。正文固定 GLM 的切法和账单仍按旧部署解释。
+
 按知识库固定快照核对：v0.23 维护分支为 Ascend 2c59ff10 / vLLM 0fc695fc；v0.26 指 2026-09-17 的 rc 分支快照 Ascend 2ed6cbba / vLLM 568afb3a；main 为 Ascend baa023ad，其 `.github/vllm-main-verified.commit` 指向 vLLM 84030bbe。**本文 GLM 算例用专用镜像的 Ascend db701c1f，与 v0.23 维护快照分别核对。**
 
 表中的 DSV4 是 DeepSeek-V4 专用输出投影路径，SP 指 sequence parallel，DSA-CP 是稀疏 attention 的上下文分片路径，matmul-allreduce 是矩阵乘与归约融合，FlashComm2 是另一种通信优化。
 
 | 检查项 | v0.23 | v0.26 | main |
 | --- | --- | --- | --- |
-| 标准 TP 与默认规模 | 有，1 | 有，1 | 有，1 |
+| 标准 TP 参数 | int、默认 1、ge=1；CLI 长名与 -tp，EngineArgs/LLM 同名 | 相同 | 相同 |
 | column / row 默认合并 | column 不 gather；row 归约 | 相同 | 相同 |
 | Ascend row 通信分派入口 | 依次检查 DSV4、DSA-CP、MLP、o 投影、matmul-allreduce、FlashComm2、SP | 检查 DSV4、MLP、o 投影、SP；多模态编码器可跳过 SP | 该入口检查 DSV4、MLP、o 投影 |
 | GLM 专用实现 | 维护快照未包含 `models/glm5_next.py`；镜像包含 | 维护快照未包含该专用实现 | 包含 `models/glm5next/`，已拆文件 |
@@ -626,13 +693,15 @@ MLA cache：各卡保留完整潜向量，不能再除以 TP8
 | 三版 row 分派链 | `vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L700-L739`；`vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L497-L521`；`vllm-ascend@baa023ad:vllm_ascend/ops/linear_op.py#L311-L318` |
 | main 的 GLM 投影 | `vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L155-L189`；`vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L182-L229` |
 
-**正文证据归档。** 部署布局见官方教程；稠密 MLP、本地 SwiGLU 与幅度限制见模型实现；embedding 的非本卡词表行置零见词表算子。[S1][C7][C8]
+**来源对应。** 部署布局见官方教程；稠密 MLP、本地 SwiGLU 与幅度限制见模型实现；embedding 的非本卡词表行置零见词表算子。[S1][C7][C8]
 
 R1 的 MC2 补齐、切行、finalize 拼回输入布局见 prepare/finalize 实现。[C18] 配对示意图及矩阵、状态、词表、R1 与场景 M 的字节和次数，均由所列形状与精度推导；表内统计集合操作的逻辑输入，不是 HCCL 链路实测。[D]
 
 TP4/8/16 权重比较是固定 16 卡、EP16 和现有量化口径的静态估算；“TP16 节省有限、TP4 仍可评估”是在这些条件下的容量推断。[I] 索引器的运行时 FP32 副本创建位置见来源 37；profile run 与 KV 预算时序见[部署页](glm-5-3-flash-two-node.md#启动时发生了什么)。[C37]
 
 KDA 的有效状态、补页及投机状态副本采用不同统计口径；MLA 的 cache 按各卡完整潜向量计数，不能随 Q 头数再除以 TP8。[D]
+
+偏置只计入一次是正文相加算例的推导：两份部分和各加完整偏置后归约会得到两份偏置，八份则得到八份；这一数学条件不证明固定部署的线性层启用了偏置。[D]
 
 **待核与实测边界（从正文集中到此）。**
 

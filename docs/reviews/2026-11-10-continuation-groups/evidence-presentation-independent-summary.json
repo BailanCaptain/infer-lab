@@ -1,0 +1,101 @@
+{
+  "reviewer": "root",
+  "status": "accepted",
+  "scope": "ten-page presentation diff and preservation; no new 639-item semantic reread claim",
+  "pages": [
+    {
+      "path": "wiki/concepts/ascend-patch-system.md",
+      "sha256": "0ebc44923f4af0629c8165e6b2c0bf193266b41ed955ab2f29b22d8100fb76bf",
+      "sources": 92,
+      "source_list_identity": "independent diff read; author preservation assertions and hashes checked",
+      "diagram_assets_checked": 4
+    },
+    {
+      "path": "wiki/concepts/moe.md",
+      "sha256": "d79bb9caee27c84ed3d635794aa40e96c718cdc5174f5aed53f6b4eada3b84cd",
+      "sources": 121,
+      "source_list_identity": "independent diff read; author preservation assertions and hashes checked",
+      "diagram_assets_checked": 12
+    },
+    {
+      "path": "wiki/concepts/npu-model-runner.md",
+      "sha256": "d3d5e3bd6af0f0d75696deb915db65a4670392b8a3644efbf28901909a040b51",
+      "sources": 62,
+      "source_list_identity": "independent diff read; author preservation assertions and hashes checked",
+      "diagram_assets_checked": 4
+    },
+    {
+      "path": "wiki/concepts/platform-plugin-registration.md",
+      "sha256": "a2110a411caa75864329a7c060e8d22acbe4e1aefd29792ddbec5e1d740b31c8",
+      "sources": 109,
+      "source_list_identity": "independent diff read; author preservation assertions and hashes checked",
+      "diagram_assets_checked": 6
+    },
+    {
+      "path": "wiki/concepts/quantization.md",
+      "sha256": "3cd91ecca9ef96cc88b7c21a04e849c18aa30b47385218392745c4b80af6d8ae",
+      "sources": 55,
+      "source_list_identity": "independent diff read; author preservation assertions and hashes checked",
+      "diagram_assets_checked": 8
+    },
+    {
+      "path": "wiki/concepts/reading-vllm-ascend.md",
+      "sha256": "aa115bccec27b96d46070d5f0e4bc4f81a817383cae6203c2a56a7ce3aadea58",
+      "sources": 37,
+      "source_list_identity": "independent diff read; author preservation assertions and hashes checked",
+      "diagram_assets_checked": 6
+    },
+    {
+      "path": "wiki/concepts/vllm-ascend-overview.md",
+      "sha256": "1ae7a5d3888874a2bb50ab4f0175a0af8bcb0e1aa681d733a5a0e59cb2ecc080",
+      "sources": 52,
+      "source_list_identity": "independent diff read; author preservation assertions and hashes checked",
+      "diagram_assets_checked": 2
+    },
+    {
+      "path": "wiki/params/enable-force-eplb-b7ec3661121f.md",
+      "sha256": "6b8cd86d867827f3dbeaa40706174bac38f7df0ec5d1f40433159dfafd3bba39",
+      "sources": 41,
+      "source_list_identity": "independent diff read; author preservation assertions and hashes checked",
+      "diagram_assets_checked": 0
+    },
+    {
+      "path": "wiki/params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md",
+      "sha256": "d52b66821b71347feaca939f96d2c04b65d3acbbce2379379854aa346ff26fc4",
+      "sources": 44,
+      "source_list_identity": "independent diff read; author preservation assertions and hashes checked",
+      "diagram_assets_checked": 0
+    },
+    {
+      "path": "wiki/sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md",
+      "sha256": "b7d10894bf802252428d780d1039dc2e57d12818e7d85337f1692e722a059eb2",
+      "sources": 26,
+      "source_list_identity": "independent diff read; author preservation assertions and hashes checked",
+      "diagram_assets_checked": 0
+    }
+  ],
+  "source_occurrences_preserved": 639,
+  "new_sources": 0,
+  "reviewed_base_screenshots": 45,
+  "presentation_base_screenshots": 33,
+  "semantic_fix_base_screenshots": 12,
+  "reviewed_extra_screenshots": 5,
+  "presentation_extra_screenshots": 3,
+  "semantic_fix_extra_screenshots": 2,
+  "root_reviewed_each_screenshot": true,
+  "cross_page_clicks": 10,
+  "extra_prefill_crosslink": true,
+  "browser_reports": [
+    ".tmp/continuation-groups-2026-11-10/final-local-followup-browser/report.json",
+    ".tmp/continuation-groups-2026-11-10/final-extra-browser/report.json"
+  ],
+  "closed_P3": [
+    "45 migrated lines had leftover punctuation/cell whitespace",
+    "archived Block Table answer referred to removed inline badges instead of the new end-of-page index"
+  ],
+  "open_P1_P2": 0,
+  "limits": [
+    "Presentation and navigation acceptance only; original semantic judgments remain version-scoped",
+    "No device execution; no new global full-document credit"
+  ]
+}

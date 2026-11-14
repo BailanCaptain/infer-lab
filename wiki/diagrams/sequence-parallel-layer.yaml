@@ -1,0 +1,31 @@
+layout: figure
+id: sequence-parallel-layer
+size: [880, 600]
+caption: 常规子层的前向边界。SP 区域保留完整的 token 行；All-Gather 后由 TP 权重分片计算各自通道，行切投影的部分和经 Reduce-Scatter 合并并重新分行。相同边界在 attention 和 MLP 后各出现一次。
+frames:
+  - { at: [20, 55], size: [840, 120], label: '① 子层入口：残差与 RMSNorm，按 token 行分工' }
+  - { at: [20, 240], size: [840, 120], label: '② TP 区域：列切投影 → attention 或逐通道激活 → 行切投影' }
+  - { at: [20, 425], size: [840, 120], label: '③ 下一子层入口：收到完整行，继续本地计算' }
+grids:
+  - { at: [70, 95], rows: 2, cols: 3, cell: [26, 22], tone: token, label: '卡 0 · token 0、1' }
+  - { at: [505, 95], rows: 2, cols: 3, cell: [26, 22], tone: token, label: '卡 1 · token 2、3' }
+  - { at: [70, 280], rows: 2, cols: 3, cell: [26, 22], tone: weight, label: '卡 0 · 权重分片 0' }
+  - { at: [505, 280], rows: 2, cols: 3, cell: [26, 22], tone: weight, label: '卡 1 · 权重分片 1' }
+  - { at: [70, 465], rows: 2, cols: 3, cell: [26, 22], tone: token, label: '卡 0 · token 0、1' }
+  - { at: [505, 465], rows: 2, cols: 3, cell: [26, 22], tone: token, label: '卡 1 · token 2、3' }
+texts:
+  - { at: [25, 14], text: '请求的逐层前向 · 同一组 TP2 设备', strong: true }
+  - { at: [200, 113], text: '2 行 × 完整 H 维' }
+  - { at: [635, 113], text: '2 行 × 完整 H 维' }
+  - { at: [440, 209], text: 'All-Gather：两卡都取得 4 行输入', anchor: middle, tone: comm, strong: true }
+  - { at: [200, 295], text: '处理全部 4 行' }
+  - { at: [200, 319], text: '出口得到 H 维部分和', note: true }
+  - { at: [635, 295], text: '处理全部 4 行' }
+  - { at: [635, 319], text: '出口得到 H 维部分和', note: true }
+  - { at: [440, 394], text: 'Reduce-Scatter：贡献相加，再把结果分成两份行', anchor: middle, tone: comm, strong: true }
+  - { at: [200, 483], text: '本卡行的数值已加齐' }
+  - { at: [635, 483], text: '本卡行的数值已加齐' }
+  - { at: [440, 577], text: '图中网格仅表示归属；矩阵维度与完整计算见正文', anchor: middle, note: true }
+links:
+  - { from: [840, 175], to: [840, 240], tone: comm }
+  - { from: [840, 360], to: [840, 425], tone: comm }

@@ -1,55 +1,160 @@
 ---
 id: kv-cache-layerwise-offload
-title: "Layerwise KV offload：KV cache 一层一层搬，边算边搬"
+title: Layerwise KV offload：KV cache 一层一层搬，边算边搬
 type: feature
-summary: 把 KV cache 在显存和外部存储之间的搬运，从「整趟前向搬一次」拆成「每层搬一次」：算第 L 层时，下一层的历史在搬进来，上一层刚写好的缓存在存出去。讲清为什么能按层拆、能省多少等待（示意数）、每层什么时候要等、共享槽怎样省显存，以及 GLM 双机主线为什么没开。
-aliases: [Layerwise KV Offload, Layerwise KV Pool, 逐层 KV 卸载, 逐层缓存传输, use_layerwise, layerwise_prefetch_layers, layerwise_num_shared_buffers, shared buffer, layerwise_cache_layout]
-chapters: ["11", "18"]
+summary: >-
+  把 KV cache 在显存和外部存储之间的搬运，从「整趟前向搬一次」拆成「每层搬一次」，通过提前加载让不同层的搬运与计算重叠。
+  讲清重叠条件、能省多少等待（示意数）、每层什么时候要等、共享槽怎样省显存，以及 GLM
+  双机主线为什么没开。
+aliases:
+  - Layerwise KV Offload
+  - Layerwise KV Pool
+  - 逐层 KV 卸载
+  - 逐层缓存传输
+  - use_layerwise
+  - layerwise_prefetch_layers
+  - layerwise_num_shared_buffers
+  - shared buffer
+  - layerwise_cache_layout
+chapters:
+  - '11'
+  - '18'
 sources:
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L85-L108
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L229-L253
-  - vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L429-L473
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L128-L192
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L210-L294
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L297-L381
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1356-L1430
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L277-L290
-  - vllm-ascend@db701c1f:vllm_ascend/memcache_comm_fence.py#L24-L91
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L250-L258
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L565-L591
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L1066-L1077
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L77-L83
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L77-L84
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L176-L182
-  - vllm-ascend@db701c1f:vllm_ascend/ops/gdn.py#L130-L140
-  - vllm-ascend@baa023ad:vllm_ascend/ops/kimi_kda.py#L505-L520
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L505-L556
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2495-L2518
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L55-L76
-  - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L409-L430
-  - vllm@0fc695fc:vllm/model_executor/layers/attention/kv_transfer_utils.py#L15-L60
-  - vllm@0fc695fc:vllm/model_executor/models/config.py#L350-L365
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L14-L33
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L200-L240
-  - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1728-L1768
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L870-L900
-  - vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L620-L632
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L205-L226
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L85-L108
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L229-L253
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L429-L473'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L128-L192
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L210-L294
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L297-L381
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1356-L1430
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L277-L290
+  - 'vllm-ascend@db701c1f:vllm_ascend/memcache_comm_fence.py#L24-L91'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L250-L258
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L565-L591
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L1066-L1077
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L77-L83
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L77-L84
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L176-L182
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/gdn.py#L130-L140'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/kimi_kda.py#L505-L520'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L505-L556
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2495-L2518
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L55-L76
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L409-L430
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/attention/kv_transfer_utils.py#L15-L60
+  - 'vllm@0fc695fc:vllm/model_executor/models/config.py#L350-L365'
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L14-L33
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L200-L240
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1728-L1768
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L870-L900
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L620-L632'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L205-L226
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L152-L200
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L334-L365
+  - >-
+    vllm-ascend@7d825229:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L12-L27
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L12-L27
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md
+  - 'vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L34-L83'
+  - 'vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L115-L198'
+  - 'vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/kv_pool.md#L33-L43'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/kimi_kda.py#L675-L706'
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L22-L25'
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L119-L126'
+  - 'vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1320-L1398'
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2528-L2593'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L249-L258'
+  - 'vllm-ascend@2ed6cbba:docs/source/developer_guide/Design_Documents/sfa_remote_d2h_connector.md#L25-L248'
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/worker.py#L829-L882'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L128-L192'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L145-L162'
+  - 'vllm-ascend@7d825229:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L174-L193'
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L794-L926'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L625-L650'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2795-L2808'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2874-L2906'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/kimi_kda.py#L714-L741'
+  - "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L280-L316"
+  - "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1282-L1333"
+  - "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1991-L2006"
+  - "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/ascend_multi_connector.py#L31-L95"
+  - "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L215-L219"
+  - "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1722-L1739"
+  - "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1550-L1636"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L230-L242"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L612-L627"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2487-L2514"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L2011-L2038"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L2153-L2166"
+  - "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L722-L737"
+  - "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L2043-L2072"
+  - "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L2185-L2198"
+  - "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L821"
+  - "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L665-L740"
+  - "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L779-L783"
+  - "vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda.py#L250-L713"
+  - "vllm-ascend@baa023ad:vllm_ascend/models/kimi_k3.py#L392-L442"
+  - "vllm-ascend@baa023ad:vllm_ascend/ops/kimi_kda.py#L500-L529"
+  - "vllm-ascend@7d825229:vllm_ascend/models/kimi_k3.py#L412-L462"
+  - "vllm-ascend@7d825229:vllm_ascend/ops/kimi_kda.py#L530-L563"
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
-  - {to: kv-cache-cpu-offload, kind: builds-on, note: 同样把 KV cache 放到显存之外；本页按层拆开搬，并和计算重叠}
-  - {to: kv-pool, kind: builds-on, note: 在外部缓存生命周期中细化每层的传输时机}
-  - {to: kv-cache-spec, kind: builds-on, note: 缓存规格决定哪些层可以共享物理缓冲区}
-  - {to: pd-disaggregation, kind: builds-on, note: P和D消费历史状态的时间不同}
+  - to: kv-cache-cpu-offload
+    kind: builds-on
+    note: 同样把 KV cache 放到显存之外；本页按层拆开搬，并和计算重叠
+  - to: kv-pool
+    kind: builds-on
+    note: 在外部缓存生命周期中细化每层的传输时机
+  - to: kv-cache-spec
+    kind: builds-on
+    note: 缓存规格决定哪些层可以共享物理缓冲区
+  - to: pd-disaggregation
+    kind: builds-on
+    note: P和D消费历史状态的时间不同
+  - to: prefix-caching
+    kind: builds-on
+    note: >-
+      本页固定 GLM 配置接入外部池进行逐层搬运时，align 状态留档还要求开启 prefix caching，使状态段长落到
+      640；前缀缓存页解释了这一配置下按 640 边界留档的机制。
 contradicts: []
-updated: "2026-09-29"
+updated: '2026-11-10'
 origin: direct
 ---
 
 ## Layerwise KV offload 是什么？
 
-**Layerwise KV offload 把 KV cache 在显存和外部存储之间的搬运，从「整趟前向搬一次」拆成「每层搬一次」：算第 L 层的时候，第 L+1 层要用的历史正在搬进来，第 L−1 层刚写好的缓存正在存出去。**
+**Layerwise KV offload 把 KV cache 在显存和外部存储之间的搬运，从「整趟前向搬一次」拆成「每层搬一次」，让不同层的搬运有机会与计算重叠。** 例如，提前发起下一层加载、带宽也够时，算第 L 层的同时可以搬入第 L+1 层的历史、存出第 L−1 层刚写好的缓存。
 
 先用三句话接上前置概念：
 
@@ -66,7 +171,7 @@ origin: direct
 file: kv-cache-layerwise-offload-overlap
 ```
 
-两条时间轴搬的字节一样多。逐层搬没有让搬运变快，它把搬运挪到了计算的同时去做，计算只在头尾各等一层。
+图中两条时间轴搬的字节一样多。这是提前加载已启用、双向传输能并行且没有争用的理想排法：逐层搬没有让搬运变快，而是与计算同时做，只在头尾各等一层。实际每层也可能等，下面分别算。
 
 ## 为什么能按层拆，又为什么要拆？
 
@@ -81,7 +186,7 @@ file: kv-cache-layerwise-offload-overlap
 - **每层多一个等待点。** 本层的历史没到齐，本层就开不了算。每层搬得比算得慢时，等待不再只在头尾，而是在每一层都出现一次（下一节算）。
 - **搬的次数变多、每次变小。** 原来一次搬完的数据拆成每层一份，每份都有发起和同步的固定开销。
 - **本地已有也要再搬。** 开了逐层以后，只要外部池里有这一段，哪怕显存里还留着，也从第 0 块起按层重新加载一遍。按层搬时，显存里不一定留着每一层的数据（后面讲的共享槽就是这样），实现干脆统一重搬。
-- **整张计算图录不下来。** 每层中间要停下来等主机那边的搬运线程，整趟前向没法录成一张图一次回放，开逐层时要退回分段录图，见 [ACL Graph](acl-graph.md)。
+- **图模式受限制。** 固定旧连接器声明逐层路径要求分段录图；后续共享槽 prefill 指南进一步要求 eager，也就是不用图回放。只开逐层和复用共享槽的部署条件分别检查，见 [ACL Graph](acl-graph.md)。
 - **搬运和计算同时抢带宽。** 叠在一起做，前提是搬运线路和计算用的内存带宽都还有余量。受支持的 A3 网络上还能按流量类别安排谁先走，见 [AI QoS](ai-qos.md)。
 
 ## 能省多少时间？用示意数算一遍
@@ -99,7 +204,7 @@ title: 4 层模型一次前向：整趟搬和逐层搬（示意数）
 > 层数越多，头尾那两份越不显眼：32 层时整趟 64 + 96 + 64 = 224 ms，逐层 2 + 96 + 2 = 100 ms
 ```
 
-这个公式有一个前提：**每层的搬入不比每层的计算慢**。把每层搬入改成 4 ms、计算仍是 3 ms，算第 L 层的 3 ms 里只能搬完第 L+1 层的四分之三，从第 1 层起每层都要多等 1 ms：一次前向 = 4（第 0 层搬入）+ 4 × 3 + 3 × 1 + 2（第 3 层存出）= 21 ms。仍比整趟的 16 + 12 + 8 = 36 ms 快，但等待散到了每一层。
+这个公式采用理想流水线：**每层搬入和存出都不比可用于重叠的计算慢，两个传输方向可并行，也没有额外带宽争用和同步开销。** 这里把每层 3 ms 都视为可重叠窗口；实际预取门在 attention 开始时打开，不能把此前的所有层计算时间都算作窗口。把每层搬入改成 4 ms、可重叠计算仍是 3 ms，算第 L 层的 3 ms 里只能搬完第 L+1 层的四分之三，从第 1 层起每层都要多等 1 ms：一次前向 = 4（第 0 层搬入）+ 4 × 3 + 3 × 1 + 2（第 3 层存出）= 21 ms。仍比整趟的 16 + 12 + 8 = 36 ms 快，但等待散到了每一层。
 
 还有一个前提是搬入真的提前发起了：图里画的是「算第 L 层时就在搬第 L+1 层」。如果走到第 L 层才发起第 L 层的搬入，搬入就遮不住，这个例子会变成 4 × (2 + 3) + 2 = 22 ms。提前几层发起由一个参数决定：钉住的 GLM 快照默认值为 1，等于不提前，就是这里 22 ms 的情形；要得到 16 ms 的排法，至少要设为 2。其他版本的默认值见对照源码。
 
@@ -127,19 +232,27 @@ title: 一层的搬入和一层的计算（示意数）
 
 **搬入以「第 L 层 attention 开算之前到齐」为界，存出以「传输真正完成」为界；交出存出任务不等于这块显存已经可以给别人用。**
 
+请求走到[模型执行](npu-model-runner.md)后，每层的 attention 入口和出口负责交接这些任务。下图表示正常完成的顺序；旧快照等到超时就返回的例外在后面单独说明。
+
+```wiki-diagram
+file: kv-cache-layerwise-offload-flow
+```
+
 搬入方向：
 
 1. 这一步开始前，调度侧已经给要搬的位置借好了本地块，和整趟搬一样（借块和命中的规则见 [KV Pool](kv-pool.md)）。
 2. 执行侧走到第 L 层的 attention 之前，先把该发起的搬入交给后台接收线程：第 0 层时一次发起若干层，之后每走一层补发一层，保持同时在搬的层数不变。
-3. 提前发起的那几层不会立刻动手，要等计算流真的走到本层 attention 才开始搬。主机下发命令比 NPU 执行跑得快，这道门让搬运跟着 NPU 的实际进度走，不去和前面还没执行完的计算、通信抢线路。
+3. 提前提交的后续层任务，共用提交时的当前层 attention 开始事件：例如在 L 层提交 L+1 的搬入，等计算流到达 L 层 attention 就可开始搬，不是等 L+1 自己开算。主机下发命令比 NPU 执行跑得快，这道门让搬运跟着设备实际进度走。
 4. 第 L 层 attention 开算之前，等第 L 层的搬入完成。
 
 存出方向：
 
 1. 第 L 层 attention 把本层新位置写进显存后，在计算流上记一个事件，再把本层的存出任务交给后台发送线程。
 2. 发送线程先等这个事件完成，确认数据真的写好了，才去读这块显存往外写。
-3. 传输完成之前，这块显存不能被覆盖；否则外部存储可能收到新旧混在一起的数据。每层各有自己空间时不存在这个问题；多层共用一块显存时，下一位使用者必须等上一位存完（见[共享槽](#更进一步显存里只留几层的槽)）。
-4. 最后一层交出存出任务后，前向当场等最后一层存完；发送线程按顺序处理，最后一层完了就是全部完了。请求结束时，它的块也立刻归还，不像整趟搬那样延后释放。代码注释给的理由是：逐层模式不登记发送完成事件，延后释放的块等不到释放信号，会一直占着。
+3. 传输完成之前，这块显存不能被覆盖；否则外部存储可能收到新旧混在一起的数据。各层独占空间可以避免同一次前向内的跨层覆盖，但下一步或别的请求复用仍要守住完成条件。多层共用一块显存时，下一位使用者必须等上一位存完（见[共享槽](#更进一步显存里只留几层的槽)）。
+4. 最后一层走到存出入口时，会等它的完成事件。各层都有存出任务且后台顺序处理时，末层完成表示前面的任务也处理完了；末层没有任务时，事件会直接置位，不能把它当作整条队列已排空的通用证明。固定旧快照还只等 10 秒，超时记日志后继续，传输返回错误也不能当作保存成功。后续版本循环等待并检查后台异常，见[版本差异](#版本差异)。
+
+请求结束时，固定旧逐层路径立即归还块；代码注释的理由是它不登记供延迟释放使用的发送完成事件，延后释放会等不到信号。这是旧实现的资源回收行为，不能反过来证明每层数据已经成功存入池。非逐层路径各版本等待的位置也有变化，统一见 [KV Pool](kv-pool.md#版本差异)。
 
 ## 和整趟搬、CPU offload 比：搬什么、按多大搬、什么时候能用
 
@@ -147,11 +260,11 @@ title: 一层的搬入和一层的计算（示意数）
 
 | | 整趟搬（KV Pool 默认） | 逐层搬（本页） | [CPU offload](kv-cache-cpu-offload.md) |
 |---|---|---|---|
-| 搬的对象 | 池里按内容指纹命中的前缀块 | 同一批前缀块 | 本机主机内存里的完整段 |
-| 一次搬多大 | 一段 × 全部层，一起搬 | 一层 × 这些块，一层一批 | 一段（若干页）× 全部层 |
+| 搬的对象 | 池里按内容指纹命中的前缀块 | 同一批前缀块 | 本机主机内存里的可复用状态；普通完整段与新版部分尾状态分开 |
+| 一次搬多大 | 一段 × 全部层，一起搬 | 一层 × 这些块，一层一批 | 普通路径按段；支持部分块时按有效范围 |
 | 存储里的一条记录 | 一块覆盖这张卡的所有层 | memcache 后端（KV Pool 可选的一种存储后端）下按层分开登记 | 主机缓冲里的一段 |
 | 取回的历史什么时候能用 | 这一步前向开始前全部搬完 | 第 L 层开算前，第 L 层到齐即可 | 搬完以后的某一步；搬的期间请求挂起 |
-| 新缓存什么时候算存好 | 这一步末尾等发送队列排空 | 每层交出即走，前向末尾等最后一层 | 后台拷贝完成时 |
+| 新缓存什么时候算存好 | 固定旧快照在这一步末尾等发送队列排空；后续见 KV Pool 版本表 | 后台处理本层任务后置完成事件；末层等待与旧超时边界见上文 | 后台拷贝完成时 |
 | 本地已有时 | 只搬本地缺的 | 池里有就从第 0 块起按层重搬 | 本地有就不搬 |
 | 显存占用 | 每层各有自己的块 | 默认同左；可配成只留几层的槽 | 缓存池大小不变 |
 
@@ -161,7 +274,7 @@ PD 分离里还有一个同样按层搬的 MooncakeLayerwiseConnector，但对�
 
 **按层搬以后，一层的数据只在「搬入开始」到「存出完成」这段时间里需要占显存；不同层的这段时间大多不重叠，就可以让几层轮流用同一块显存。** 这是和逐层搬分开的另一个能力：逐层搬改的是时间安排，共享槽改的是显存怎么分。
 
-v0.26 分支和 main 的 memcache 后端实现了这种布局：指定几层独占自己的空间（默认只有第 0 层），其余各层按顺序轮流用 N 个共享槽，第 k 个参与轮换的层用第 k mod N 个槽。下面假设 8 个缓存规格完全相同的层，每层的缓存占 P 字节，配两个共享槽：
+v0.26、rc2 和固定 main 的 memcache 路径实现了这种布局：指定几层独占自己的空间（默认只有第 0 层），其余各层按顺序轮流用 N 个共享槽，第 k 个参与轮换的层用第 k mod N 个槽。下面假设 8 个缓存规格完全相同的层，每层的缓存占 P 字节，配两个共享槽：
 
 ```wiki-diagram
 file: kv-cache-layerwise-offload
@@ -187,6 +300,22 @@ P = 16 MiB（接上一节的一层）时 = 8 × 16 MiB = 128 MiB → 3 × 16 MiB
 
 **不同规格要分开算。** 实际布局先按每层的主缓存规格分桶，每桶各自分共享槽；合并时还检查同槽各层的规格和字节数完全一致。缓存的数据类型、头数、维度、附加的索引状态、层的类型，任何一项不同都是不同规格。8 层分成两种规格时，每种规格各要自己的槽，不能再用「总共 3 槽」去算。另外，只要真的发生了共用，而模型里又有不是 attention 类的缓存（例如线性 attention 的递推状态），构造时直接报不支持。
 
+搬回已有状态与重建缺失状态是两种工作。某类窗口没有保存时，仅提高搬运速度无法补齐它；[SWA 回放](swa-bounded-replay.md)解释需要重算哪些位置、什么时候会引入近似。分层搬运的依赖与重叠仍按本页核对。
+
+## 同一块 P 端缓冲还要给 D 读，什么时候才能换层？
+
+**联合部署有两道独立的完成条件：存入外部池完成，远端 D 也读完。** 后续的 SFA Remote D2H 连接器让 D 主动从 P 读取：P 通知某层数据就绪，D 将主 KV 拉到自己的主机池、将 indexer 拉到自己的设备，然后回复这一层成功或失败。P 不能仅凭“已经通知 D”就覆盖共享槽。
+
+沿用两个共享槽的示意：L1 用过 S0 后，L3 想搬入同一槽，即使 L1 已存入 Memcache，只要 D 还在读 L1，L3 仍须等待。实现按实际内存地址对应的物理槽等待读取完成，主 KV 与 indexer 的槽分别管理。收到失败回复时会释放等待并抛错，避免无限等；失败不代表数据可用于后续 attention。
+
+这还不同于“整个请求可以在 D 开始 decode”。后者要等映射到该 D rank 的全部 P 贡献者报告最后一层完成，并汇合所有 D TP rank 的终态；全部成功才能消费这批拉取的 KV，失败会标记无效目标块并进入错误处理。P、D 的 TP 数不相等时，有的贡献者可能本层没有块，也仍须回复，不能用“没搬数据”省掉完成消息。连接器的数据读取失败不自动重试。
+
+组合连接器按 RD2H 完成保护先于 AscendStore 复用的顺序执行。它保护的是共享物理缓冲；普通逐层池存取、P/D 点对点交接和 D 侧稀疏热缓存仍是三件事。D 侧主机共享与端口计数见[稀疏卸载的部署配置](kv-cache-sparse-offload.md#怎么开)。
+
+**点对点 Layerwise 推送与池组合时，也需要这道保护，但完成的方向不同。** 后续实现按底层地址为各层归并物理槽：发送任务发布前关闭对应槽的完成事件，发送线程处理完后释放事件，失败则保留错误。组合连接器把这个等待函数交给 AscendStore；有加载任务时先等再覆盖槽，没有加载任务时，也在本层入口等待。这样即使本层只准备重新计算，也不能提前覆盖仍在发送的同一块内存。
+
+这组保护从 v0.26 起存在于指定组合，旧 GLM 快照没有。v0.26 由池连接器的 GVA 逐层条件接入，main 与 rc2 改由实际 worker 的逐层传输条件接入。保存入口会先处理负责关闭槽事件的连接器，再处理可能允许复用的池连接器；“本层已写好”的早期通知只是记录计算事件，不能代替这次关闭。这里解释的是物理槽的轮换，单独 Layerwise 的请求结束是否延迟还块仍看[连接器生命周期](mooncake-connector.md#完成通知块什么时候放请求什么时候算)。
+
 ## 放到 GLM 双机：主线没开，开了一层要搬多少？
 
 **[官方双机部署](glm-5-3-flash-two-node.md#部署前提)没有开：启动参数里没有 KV 传输配置，连外部池都没接，逐层搬无从谈起。** 下面只按底稿的形状算「要是开了，每层要搬多少」，不给时间数字。
@@ -194,35 +323,33 @@ P = 16 MiB（接上一节的一层）时 = 8 × 16 MiB = 128 MiB → 3 × 16 MiB
 GLM 的层很不均匀（见[模型结构](glm-5-3-flash.md)）：
 
 - 主干 45 层里，只有 11 层稀疏 [MLA](mla.md) 按位置存历史，位于第 3、7、11……43 层，每 4 层一层；MTP 的第 45 层也是 MLA，一共 12 层。
-- 另外 34 层是 [KDA](linear-attention.md)，每条请求每层存一份固定大小的递推状态，和开头多长无关；一份占 4 页、每页 640 KiB，来历见[线性 attention 页](linear-attention.md#放到-glm-双机34-层-kda-的状态有多大)。
+- 另外 34 层是 [KDA](linear-attention.md)，基线每条请求每层预留 4 页、每页 640 KiB，包含当前状态、3 份草稿状态和页内填充。这是预留页容量，不能当作单份有效状态或每次搬运量，三种口径见[线性 attention 页](linear-attention.md#放到-glm-双机34-层-kda-的状态有多大)。
 - 一层 MLA 每个位置在每张卡上存 1,088 B（压缩表示 1,024 B + 索引器 64 B，TP 各卡存同一份）。一个块号 640 个位置，12 层合起来 8,355,840 B ≈ 7.969 MiB，推导见[部署页的块大小](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)。
 
-借[多条请求页](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)里被抢占的那条请求来感受规模：它约 67,000 个位置，按位置存的那一组占 105 个块。假如它的历史在外部池里、回来时按层取回：
+借[多条请求页](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)里被抢占的那条请求来感受规模：它约 67,000 个位置，按位置存的那一组占 105 个块。以下 MLA 按 105 个整块全部取回估算；KDA 另列基线预留页容量，不能与 MLA 相加当作实传流量。
 
 ```calc
-title: 被抢占的那条要是按层取回，每层搬多少（每张卡）
+title: MLA 整块取回估算与 KDA 基线页容量（每张卡）
 一层 MLA 一块 = 640 位置 × 1,088 B = 696,320 B = 680 KiB
 一层 MLA = 105 块 × 680 KiB ≈ 69.7 MiB
 12 层 MLA 合计 = 105 块 × 7.969 MiB ≈ 836.7 MiB
-一层 KDA（一条请求） = 4 页 × 640 KiB = 2.5 MiB
-> 大头集中在 12 层 MLA；其余 34 层每层只有 2.5 MiB 固定状态
+一层 KDA 的基线预留页容量（一条请求） = 4 页 × 640 KiB = 2.5 MiB
+> KDA 含草稿页和填充；接池后实际搬哪些状态、多少块，须按 align 布局与传输任务另算
 ```
 
-这个形状对逐层搬有两面：搬运量很不均匀，每 4 层才来一个 69.7 MiB 的大块；两层 MLA 之间隔着 3 层 KDA 的计算，如果能提前 4 层发起，一层 MLA 的搬入可以摊在前面几层的计算里。实现能不能这样排，取决于它怎样给 KDA 层计数，下面第 1 处卡点就是这个问题。
+在这个全量取回的假设里，每 4 层有一层 MLA 要读约 69.7 MiB。两层 MLA 之间隔着 3 层 KDA 的计算，如果能提前 4 层发起，就有机会用前面几层的计算覆盖这次搬入。KDA 的 2.5 MiB 只描述未接池基线的页容量；改成 align 留档后，实际任务的状态块数和传输布局要另核。实现能不能正确排层，还取决于下面的入口与层计数条件。
 
 先说一件不是卡点的事：AscendStore 要求 KDA 这类线性 attention 状态用 align 缓存模式（按块的边界留档，而不是只留最新一份），而 vllm-ascend 在检测到接的是 AscendStore、模型又是混合模型时，会把默认的 none 自动改成 align，所以这里不会报错。它带来的连带要求（GLM 上还要同时开 prefix caching，段长才落到 640）和成本见 [KV Pool 的 GLM 一节](kv-pool.md#放到-glm-双机这套部署没有开-kv-pool)，本页不重讲。
 
 就算要开，钉住的 GLM 快照上还卡在两处（均按代码，未实跑）：
 
-1. **KDA 层不经过逐层入口。** 逐层的「等本层到齐」「交出本层存出」挂在 attention 层上；GLM 快照里 34 层 KDA 的实现没有调用这两个入口，而逐层的层计数只在存出入口加一，MLA 层的计数和实际层号对不上。main 上的 KDA 实现补上了这两个入口。
+1. **KDA 层不经过逐层入口。** 逐层的「等本层到齐」「交出本层存出」挂在 attention 层上；GLM 快照里 34 层 KDA 的实现没有调用这两个入口，而逐层的层计数只在存出入口加一，MLA 层的计数和实际层号对不上。固定 main 的 KDA 文件补上了这两个入口，但该快照的算子注册表已没有旧 KDA 替换项，不能把“文件里有 hook”当作 GLM 实际会走它；注册与执行的区别见[算子页](ops-and-kernels.md#版本差异)。
 2. **换到 main 也还有两道限制。** Mooncake 后端的逐层遇到带递推状态的混合模型直接报错；memcache 后端一旦配了共享槽，模型里又有 KDA 这类非 attention 状态，也会报不支持。memcache 不配共享槽时能否走通，没有核到。
-
-待核：外部池到 NPU 的有效带宽和每层实际计算时间（决定每层能不能遮住）；main 上 memcache 后端不配共享槽时 GLM 能否走通；01 §B3 场景下被抢占请求的历史是否真的在池里。
 
 ## 常见误解
 
 - **「逐层搬让搬运变快了」**——没有。搬的字节一样多，本地已有时还要重搬；省的是等待，把搬运藏进计算里。每层搬得比算得慢时，照样每层都等。
-- **「开了逐层，显存就省了」**——只开逐层不省：默认共享槽数等于层数，每层照样有自己的空间。要省显存得另配共享槽，而且只有 v0.26 和 main 的 memcache 后端有这套布局。
+- **「开了逐层，显存就省了」**——只开逐层不省：默认共享槽数等于层数，每层照样有自己的空间。要省显存得另配共享槽；本页 v0.26、rc2 和固定 main 的 memcache 路径有这套布局，旧 GLM 快照没有。
 - **「配了共享槽，只是省显存」**——还多了搬运：每一步都要把参与轮换各层的全部历史重新搬进来。省下的显存换成了更多块，代价是每步的搬运量。
 - **「交出存出任务，这块显存就能给别人用了」**——不能。存出是后台线程在做，交出只是排上了队；要等传输完成，下一位才能用这块显存。
 - **「开头越长，逐层越划算」**——不一定。开头越长每层要搬的越多，而能遮它的是这一步新算的位置；长开头后面只追问一句时，每层的计算太短，搬入遮不住。
@@ -233,6 +360,8 @@ title: 被抢占的那条要是按层取回，每层搬多少（每张卡）
 
 ### 怎么开
 
+先让外部池可用，再开逐层。固定旧指南要求安装并配置 Memcache、启动 MetaService、加载 Memcache/MemFabric 环境，节点间统一 PYTHONHASHSEED；设备传输还要求足够的大页。大页数量须按本机页大小和预算计算，不能把指南里的 200000 页当作所有机器的通用值。后端与内存准备从 [KV Pool 的配置入口](kv-pool.md#怎么开)进入，设备连通性见[网络预检](cann-hccl.md#启动多机前先检查哪一层网络)。
+
 ```bash
 # GLM 快照 / v0.23 维护分支：逐层只支持 memcache 后端
 --kv-transfer-config '{"kv_connector":"AscendStoreConnector","kv_role":"kv_both",
@@ -242,11 +371,19 @@ title: 被抢占的那条要是按层取回，每层搬多少（每张卡）
 #   "layerwise_num_shared_buffers":2, "layerwise_independent_layers":[0]
 ```
 
-- `use_layerwise` 是总开关，默认 false，写在 `kv_connector_extra_config` 里 [C1]。PD 分离时 `kv_role` 改成 `kv_producer` / `kv_consumer`，并换用官方的逐层代理；`kv_consumer` 在逐层存出入口直接返回，不往池里存 [C2]。
+- `use_layerwise` 是总开关，默认 false，写在 `kv_connector_extra_config` 里 [C1]。producer 负责向池存出，consumer 负责取回，both 兼具两者；具体可用角色还受版本和模型限制。固定旧 consumer 在逐层存出入口直接返回，不往池里存 [C2]；v0.26 起另看 consumer_is_to_put，完整差异见 [KV Pool](kv-pool.md#版本差异)。
 - `layerwise_prefetch_layers`：按代码，它是第 0 层时一次发起的层数，含本层，之后每层补一层 [C7]；所以值为 1 时只在走到某层才发起该层，值为 2 才是「算本层、搬下一层」。官方指南把它写成「提前几层」，和代码差一层 [!]。
 - 预取门：非本层的搬入要等 attention 开算的事件 [C9]；attention 开算前等本层、attention 写完缓存后交出本层存出。
 - 调度侧：开逐层后从第 0 块起查池；池里有就强制加载，且关掉异步加载 [C11]；请求结束时块立即释放。
 - GLM 双机主线没有 `--kv-transfer-config`，见[部署页](glm-5-3-flash-two-node.md#怎么开)。
+
+**旧文档的 D 端支持说明存在冲突。** 同一 GLM 快照的逐层专门指南给了 producer/consumer 和逐层代理示例，KV Pool 总指南却把 use_layerwise 限定在 P 端；旧 consumer 又不进入推进层计数的保存函数。因此不能只把上述配置的角色改成 consumer 就认定旧 D 路径受支持。固定 GLM 混合模型的入口缺口也仍成立。
+
+旧专门指南使用带 `/v1/metaserver` 的逐层代理，普通代理没有这个交接端点。其 host 参数要填 D 能连回的地址，不能填通配地址 0.0.0.0；示例的回环地址仅用于同机。后续 RD2H 联合部署按对应指南的代理与协议配置，不直接套用旧池示例。
+
+同一旧指南还给出三个调节入口：layerwise_max_transfer_blocks 和 layerwise_max_transfer_bytes 分别限制一批传输的块数与字节数，默认 0 表示不设上限；h2d_stagger_us 默认 0，可让 TP rank 错开发起 H2D，减少同时争用。这些调节会改变批量和时序，是否改善耗时需要测量，不能代替前面的预取深度与共享槽限制。
+
+**共享槽 prefill 要按另一组前提部署。** 固定 main、rc2 及后续指南要求 producer、Memcache 和 eager；main/rc2 还列出 MLA、SFA、DSA attention 后端。启动时按指南加 `--enforce-eager`，不能只依据旧连接器的 PIECEWISE 声明判断共享槽支持图回放。与稀疏 D 组合时采用 SFA Remote D2H，P TP 不小于 D TP 且能整除；P/D 都是各自的资源预算，完整配置见[稀疏卸载](kv-cache-sparse-offload.md#怎么开)。
 
 ### 会报什么错
 
@@ -255,13 +392,13 @@ title: 被抢占的那条要是按层取回，每层搬多少（每张卡）
 - **共享槽参数不合法**：`layerwise_num_shared_buffers`、`layerwise_prefetch_layers` 小于 1，或独立层号越界 → `ValueError`；传了布尔值 → `TypeError` [C4]。
 - **main 上 Mooncake 后端**：PP、PCP、DCP 任一大于 1 → `ValueError`（只支持纯 TP）；混合模型带递推状态 → `ValueError` [C20]。
 - **GLM 快照上等太久不报错**：本层搬入或最后一层存出等 10 秒没等到，只打一行 `Layerwise %d load wait timed out` 日志就往下走 [C7]；v0.26、main 改成一直等、后台线程出错时抛出 [C19]。
-- **KDA 层计数对不上**（GLM 快照）：Qwen3.5 那类线性 attention 层用空参数调一次存出入口来推进层计数 [C16]，GLM 快照的 KDA 没有这一步，main 补上了 [C17]；GLM 快照上的表现未实跑 [I]。
+- **KDA 层计数对不上**（GLM 快照）：Qwen3.5 那类线性 attention 层用空参数调一次存出入口来推进层计数 [C16]，GLM 快照的 KDA 没有这一步；main 的等待和存出入口分别见来源17、38。GLM 快照上的表现未实跑 [I]。
 - 官方指南说混合 KV cache 会 `NotImplementedError`，GLM 快照的逐层代码里没有这道检查 [!]，改为把各层映射到各自的缓存组；实际能否跑通见上一条。
 
 ### 开销和什么时候别开
 
 - **每层一个同步点**：本层没到齐就阻塞主机线程；搬入慢于计算时，每层都等（见[示意数](#能省多少时间用示意数算一遍)）。
-- **图模式退到分段**：连接器声明开了逐层就要 PIECEWISE [C13]，整图回放的收益没了。
+- **图模式限制**：旧连接器声明开了逐层就要 PIECEWISE [C13]；后续共享槽 prefill 指南要求 eager，不能用前一条声明替代后一条部署条件。
 - **重搬本地已有的前缀**，多付一份搬入；配了共享槽时更重，每一步都要重搬参与轮换各层的全部历史、每步都存出新位置 [C27]。
 - **适合开**：开头长、这一步新算的位置也多（长开头后接一大段新内容）、外部带宽实测足够；或想配共享槽省显存。
 - **别开**：多是长开头 + 短追问；模型有线性 attention 等非 attention 状态而又想用共享槽；GLM 这类混合模型停在钉住快照上。
@@ -269,16 +406,30 @@ title: 被抢占的那条要是按层取回，每层搬多少（每张卡）
 
 ### 版本差异
 
+后续官方快照 `921ccc52` 将逐层 prefill 与 sparse decode 联合部署放在同一指南，但两侧支持范围仍要分开：P 侧逐层缓冲与 D 侧热缓存不是同一机制；该快照的 sparse decode 暂不支持 950PR/950DT，并与 PreemptOffloadConnector 互斥。D 侧的默认 Copy-SFA 路径、热缓冲约束和主机预算统一见[稀疏卸载版本差异](kv-cache-sparse-offload.md#版本差异)，不能从传输协议的硬件支持反推整个联合方案可用。
+
+**v0.30.0rc2 区分逐层池存取、P 侧缓冲复用和 D 侧稀疏卸载。** AscendStore 的逐层路径按后端协议分流；Mooncake 的 block-key 路径已能处理 TP/PP 和混合缓存组，但仍拒绝 CP 与 P/D 两端 TP 不一致，PP 每个阶段还必须覆盖各缓存组。递推状态的拷贝必须等该层加载完成后才执行，不能先复制尚未到齐的状态。
+
+rc2 的 memcache 预取数取自共享槽布局，非 GVA 路径默认 2。加载按 10 秒间隔循环等待并检查后台异常；前向末尾等待保存完成时，先等后台 PUT 队列排空，再等末层完成事件，避免“末层没有任务，前层却还在拷贝”时提前复用缓冲。block-key 路径还会收齐前层保存事件。rc2 和 main 的 Kimi K3 KDA 都在读取卷积与递推状态前调用等待入口，在正常与空工作出口调用空参数保存入口。这些动作放在不被编译跟踪的执行区间内，并有 Kimi K3 decoder 的实际构造入口；它们不证明旧 GLM 也走这套实现。
+
+与稀疏 decode 卸载组合的官方指南只列 GLM-5.1、GLM-5.2、DeepSeek-V3.2，并按 A3 与 950 系列分别配置依赖和传输协议；未验证其他稀疏模型。本站 A2 的 GLM-5.3-Flash 旧算例不能从这个列表自动获得组合支持。具体拓扑与 connector 见 [KV Pool](kv-pool.md#版本差异)。
+
 | 项 | v0.23 维护分支 2c59ff10 / GLM 快照 db701c1f | v0.26 分支 2ed6cbba | main baa023ad | 意味着什么 |
 |---|---|---|---|---|
-| 逐层代码 | 两者逐字相同 | 新增共享槽布局，等待改为一直等 | 再按后端协议分成两种数据面 | GLM 快照的行为就是 v0.23 的行为 |
+| 池的逐层数据面 | 两者逐字相同；模型计算入口另核 | 新增共享槽布局，等待改为一直等 | 再按后端协议分成两种数据面 | 数据面相同不保证两个模型都调用了所需 hook |
 | 支持的后端 | 只有 memcache（官方指南） | 同左 | memcache（全局地址）和 Mooncake（按块的键）两种 | main 起 Mooncake 也能逐层 |
 | 提前层数默认 | 1 | memcache 取 min(槽数, 8)，槽数默认等于层数；其余 1 | memcache 同左；其余 2 | 同一份配置换版本，重叠程度会变 |
-| 共享槽 | 无 | 有（memcache） | 有（memcache） | 省显存只在后两版可配 |
+| 共享槽 | 无 | 有（memcache） | 有（memcache） | rc2 也保留该布局；共享槽 prefill 按指南用 eager |
 | 等超时 | 等 10 秒后照常往下走 | 一直等，出错抛出 | 一直等，出错抛出 | 旧版超时后可能读到没搬完的数据（按代码推断）[I] |
-| KDA 层接入逐层入口 | 无 | 无 | 有 | GLM 在 main 上才有可能对上层号 |
+| KDA 文件里的逐层入口 | 2c 无该 Ascend Kimi 文件与注册项；db 实际替换为 Ascend 旧 Kimi 实现，但无 wait/save | 仍注册旧 Kimi 实现，无 wait/save | Kimi K3 decoder 直接构造新类，有 wait/save；rc2 相同 | 按实际模型构造判断，不能沿用旧注册名推断新类，也不能反推旧 GLM 获得支持 |
+
+表中“等待改为一直等”描述事件等待与后台异常检查，不把完成事件等同于每次后端写入均成功。固定旧后台即使收到非零拷贝返回码也会记录错误并置完成事件；使用时须一起检查错误日志。main 的只加载角色在等待入口推进层号，和旧版依靠保存入口推进层号不同。
 
 ### 源码位置
+
+Layerwise 推送的槽完成事件、发送前关闭和发送后释放见来源 54–56；MultiConnector 的等待传递和保存顺序见 57，v0.26 的池接入及实际覆盖前等待见 58–60。main 的 worker 条件、无加载等待、range 与 H2D 等待见 61–65，rc2 对应条件和覆盖前等待见 66–68，并复用已有 51 的层入口。
+
+旧 2c 注册函数、v0.26 旧 Kimi 注册与计算路径见 69–72；main/rc2 Kimi K3 的实际 decoder 构造与状态读取前等待见 73–76，保存入口复用 38、53。这些来源纠正的是模型和版本边界，原 GLM 状态容量与搬运算例不变。
 
 | 看什么 | 在哪 |
 |---|---|
@@ -295,3 +446,13 @@ title: 被抢占的那条要是按层取回，每层搬多少（每张卡）
 | 按层数 ÷ 格数放大 KV 预算 | `vllm_ascend/worker/worker.py`（main L620–L632） |
 | main 的提前层数与等待 | `.../ascend_store/pool_worker.py`（main L505–L556、L2495–L2518） |
 | main 的 Mooncake 逐层限制 | `.../ascend_store/backend/mooncake_layerwise.py`（main L55–L76） |
+
+新增部署依赖、旧代理回连地址及角色冲突分别见来源35–37；main KDA 保存入口见38，默认上限与整数解析见39–40。旧后台处理与完成事件见41，main 只加载角色计数及末层等待见42，v0.26 保存角色门槛见43。联合部署的物理槽、请求终态和失败边界见44，main 实际槽等待与报错见45；两种完成条件不能互相代替。
+
+rc2 共享槽默认与分配见来源46；main/rc2 的 eager、角色和后端要求见47–48，后续指南见34。
+
+来源49是 main 的完整算子注册函数，未登记旧 KimiGatedDeltaNetAttention；新版 Kimi K3 由 decoder 直接构造，不依赖这个旧替换项。固定 GLM 的真实旧注册和缺少逐层调用，统一见[Mooncake 的 GLM 条件](mooncake-connector.md#放到-glm-双机这套部署没有开-mooncake-连接器)。
+
+rc2 的默认预取、加载等待、末层队列排空与 KDA 空参数保存分别见来源50–53；其 KDA 等待入口在同一文件的 549 行，位于状态读取前，不能只从文件末尾的保存调用判断完整时序。
+
+待核：外部池到 NPU 的有效带宽和每层实际计算时间（决定每层能不能遮住）；main 上 memcache 后端不配共享槽时 GLM 能否走通；01 §B3 场景下被抢占请求的历史是否真的在池里；GLM 改为 align 后每层 KDA 实际传输的有效状态、块数与填充范围。

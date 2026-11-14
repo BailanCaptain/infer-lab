@@ -1,0 +1,1092 @@
+{
+  "reviewer": "/root/rc2_review_params",
+  "reviewStage": "independent-final-closure-after-actual-author-corrections",
+  "target": {
+    "ascend": "7d825229c77025cfb185a010c25819c1214b9450",
+    "vllm": "ced6857afa0ea7b2e3f0846a62e1394e90f15607"
+  },
+  "reviewedAt": "2026-11-02T19:05:04.100Z",
+  "findings": [
+    {
+      "id": "P01",
+      "priority": "P2",
+      "status": "closed",
+      "evidence": "Summary now explicitly says rc2 还与 fused_copy_sfa 互斥. The existence statement still covers fixed main and rc2, while the added mutex is correctly scoped to rc2. Compared with rc2 ascend_config.py L1693-L1716 and previously read fixed-main six-field definition.",
+      "previousPartialReview": "All 17 reported summaries reread. Transfer limits now distinguish declared -1 from automatic Gloo unset-only clamp to 1; STAIR rc2 consumption and PCP/KVPP/SFA existence are included. One rc2-only mutex boundary remains in use_fused_overlap summary.",
+      "location": {
+        "file": "wiki/params/use-fused-overlap-75a180fff6ab.md",
+        "line": 7
+      }
+    },
+    {
+      "id": "P02",
+      "priority": "P2",
+      "status": "closed",
+      "evidence": "Fact-table row now identifies current definition as rc2 7d825229, old scan as 8d4409d6 and algorithm walkthrough as 4d1412d1; all are explicitly separated from fixed main baa023ad. Current generated row at L90 names the fixed rc2 hash.",
+      "previousPartialReview": "Reported definition/lineage references reread against regenerated sections. All now identify fixed rc2 and fixed main separately except the one old num-stages fact-table row.",
+      "location": {
+        "file": "wiki/params/replica-search-num-stages-e4b10925ff97.md",
+        "line": 114
+      }
+    },
+    {
+      "id": "P03",
+      "priority": "P2",
+      "status": "closed",
+      "evidence": "stair-config L86, absolute-balance-threshold L85 and placement-search-backtrack-limit L77 now state enable EPLB plus final policy=stair, patched default stair, and explicit default selecting the other strategy. Compared with patch_eplb.py L283-L314 and worker/v2/eplb.py L38-L66."
+    },
+    {
+      "id": "P04",
+      "priority": "P2",
+      "status": "closed",
+      "evidence": "Manual text now explains that the unchanged generated C8 field comment lags the same-commit implementation; actual _lim_select and rc2 guide support LI C8 int8. Historical condition table and later algorithm explanation are scoped to the old main scan. Re-read rc2 ascend_config.py L1699-L1700 and sfa_kv_offload.py L719-L747 confirms the comment/consumer discrepancy.",
+      "previousPartialReview": "fused-op-type L100 now states Q_max 1-14, 256 alignment/max32512, independent tail blocks and kernel limit32640; MRV2 DSpark remote prompt and LI int8 (not fp8)/main BF16 are explicit. Compared with sfa_kv_offload.py L66-L95/L719-L747, ascend_config.py L1757-L1764 and official guide L160-L166/L320-L342. Old prose is scoped as historical.",
+      "location": {
+        "file": "wiki/params/fused-op-type-fc0f5fcd7be0.md",
+        "line": 137
+      }
+    },
+    {
+      "id": "P05",
+      "priority": "P2",
+      "status": "closed",
+      "evidence": "The failure condition now says MoE 拆卸准备失败, matching prepare_moe_hccl_teardown L260-L275 and its skip-cycle caller L218-L227; it no longer implies all business-group destroy exceptions are caught.",
+      "previousPartialReview": "Sleep-cleanup L107/L109 now includes valid nested entry, both RL guards, anchor barrier, single-rank skip, restore-before-release and weights-only retention; old no-try/except passage is explicitly historical. Compared with sleep_mem_optimized.py L61-L70/L154-L248/L260-L301.",
+      "location": {
+        "file": "wiki/params/enable-sleep-mode-extra-cleanup.md",
+        "line": 109
+      }
+    },
+    {
+      "id": "P06",
+      "priority": "P2",
+      "status": "closed",
+      "evidence": "fuse-allreduce-rms L78 now gives the original nested ascend_compilation_config child, strict nested rejection and Omni top-level-only filtering. New own config_utils.py L31-L50 source proves extra=forbid; AscendCompilationConfig L114-L175 and factory L1893-L1912 support the complete path."
+    },
+    {
+      "id": "P07",
+      "priority": "P3",
+      "status": "closed",
+      "evidence": "stair-config L86, rank-transfer-limit L86 and cross-node-transfer-limit L81 now explicitly state communicator selection bypasses automatic selection/clamping. Compared with early return in patch_eplb.py L204-L239."
+    }
+  ],
+  "pages": [
+    {
+      "id": "absolute-balance-threshold-71578a0c428d",
+      "file": "wiki/params/absolute-balance-threshold-71578a0c428d.md",
+      "published": true,
+      "sha256": "31703c426cc460311d4e08ed00cbce56469acd3f55502d0e46aa27d2f4b4e103",
+      "rc2Line": 85,
+      "originalFindings": [
+        "P01",
+        "P02",
+        "P03"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"eplb_config\"][\"stair_config\"][\"absolute_balance_threshold\"]` |",
+        "| 类型 | `float` |",
+        "| 默认表达式 | `0.9` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:221` [C24] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（2 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Threshold0.90, zero/nonzero load, absent commit anchor and absolute-or-relative condition correctly stated. Runtime consumption is real. Summary, old lineage pointers and default policy condition need P01/P02/P03 fixes.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "block-table-no-commit-optimize-8328d0d2d00d",
+      "file": "wiki/params/block-table-no-commit-optimize-8328d0d2d00d.md",
+      "published": true,
+      "sha256": "970899e4467a6982877dc5edea42b9a05545f6bcf22d593bebdadda4b32468ce",
+      "rc2Line": 57,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | main · 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"block_table_no_commit_optimize\"]` |",
+        "| 类型 | `Literal[0, 1]` |",
+        "| 默认表达式 | `0` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:514` [C1] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 无 |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Absent-key paragraph matches factory unknown-key handling and current MRV1 copy_to_gpu consumer. Historical0/1 rollback behavior is explicitly dated. Historical definition preserved; rc2 lineage now says absent. No additional finding.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "c8-enable-reshape-optim-8bd7e5f82c6c",
+      "file": "wiki/params/c8-enable-reshape-optim-8bd7e5f82c6c.md",
+      "published": true,
+      "sha256": "c9226afc06bf9ce7280bc647549b385bd68caa4b1c3de7210654d52a9668c83d",
+      "rc2Line": 111,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"c8_enable_reshape_optim\"]` |",
+        "| 类型 | `bool` |",
+        "| 默认表达式 | `True` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:646` [C34] |"
+      ],
+      "lineage": [
+        "| main | 有（1 个文件） |",
+        "| releases/v0.23.0 | 有（2 个文件） |",
+        "| releases/v0.26.0rc | 有（2 个文件） |",
+        "| releases/v0.30.0rc2 | 有（1 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read defaultTrue versus oldFalse, derived LI C8/sparse-model/producer conditions and StoreKVBlock metadata consumer. New paragraph does not conflate true declaration with mixed/decode activation and keeps db701c1f GLM failure scoped. Generated True matches646. No additional finding.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "combine-quant-mode-2a3f7cd47997",
+      "file": "wiki/params/combine-quant-mode-2a3f7cd47997.md",
+      "published": true,
+      "sha256": "b7f04b19cbf1a62d49ad393b7947d7a8931ed8c1a9aaa3a49264bf87f8883316",
+      "rc2Line": 134,
+      "originalFindings": [
+        "P01"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"combine_quant_mode\"]` |",
+        "| 类型 | `Literal[0, 2, 3, 4]` |",
+        "| 默认表达式 | `0` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:591` [C33] |"
+      ],
+      "lineage": [
+        "| main | 有（2 个文件） |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（2 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read literal0/2/3/4 and priority user nonzero -> quant.comm_quant_mode -> W8A8MXFP4 ->0. Correctly says0 does not force off communication quantization. Existing main-only summary/body presence claim conflicts with rc2: P01/P02 scope cleanup.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "cross-node-transfer-limit-06ee92260b7a",
+      "file": "wiki/params/cross-node-transfer-limit-06ee92260b7a.md",
+      "published": true,
+      "sha256": "5fee9599763bc5bef4e068dfd1edf7798fdc8736fbff2dd7a2604de8a547f6a2",
+      "rc2Line": 73,
+      "originalFindings": [
+        "P01",
+        "P02",
+        "P07"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"eplb_config\"][\"stair_config\"][\"cross_node_transfer_limit\"]` |",
+        "| 类型 | `int` |",
+        "| 默认表达式 | `-1` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:223` [C24] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（3 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "New declaration-1, legal0 and per-node send/receive constraints correct. Automatic fallback clamps unset fields and preserves explicit0. Old summary/default1 and lineage pointers need P01/P02; explicit communicator bypass P07.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "enable-async-exponential",
+      "file": "wiki/params/enable-async-exponential.md",
+      "published": true,
+      "sha256": "147a2d934c48a9115d7b25c0066de317d10e79c5ded6b25f214cd5922b0dea21",
+      "rc2Line": 73,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"enable_async_exponential\"]` |",
+        "| 类型 | `unknown` |",
+        "| 默认表达式 | `False` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:262` [C13] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 有（3 个文件） |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 无 |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Read removal paragraph with absent field/consumer and factory exclusions, keeping old q/stream/MTP-shape analysis in v0.23 scope. No claim that rc2 has no asynchronous sampling in general. Historical definition kept. No additional finding.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "enable-force-eplb-b7ec3661121f",
+      "file": "wiki/params/enable-force-eplb-b7ec3661121f.md",
+      "published": true,
+      "sha256": "31faffbd3369f99c69a6fe4787242988223be7bc6471a89319e62bfceb7aca79",
+      "rc2Line": 135,
+      "originalFindings": [
+        "P01"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"enable_force_eplb\"]` |",
+        "| 类型 | `bool` |",
+        "| 默认表达式 | `False` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:583` [C38] |"
+      ],
+      "lineage": [
+        "| main | 有（3 个文件） |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（3 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read False default, routed-expert topk_ids replacement while weights remain, dynamic_eplb incompatibility. Correctly not described as semantics-preserving load balancing. Main-only summary/body presence requires P01/P02 scope cleanup.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "enable-matmul-allreduce",
+      "file": "wiki/params/enable-matmul-allreduce.md",
+      "published": true,
+      "sha256": "9b976949227ac0253fb1ac950fcbf76b6172a8911232702f01ca5068f7dcbad8",
+      "rc2Line": 86,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"enable_matmul_allreduce\"]` |",
+        "| 类型 | `unknown` |",
+        "| 默认表达式 | `ascend_envs.VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:167` [C21] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 有（3 个文件） |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 无 |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Absent top-level key and current unknown-key behavior correctly separated from continued existence of matmul/communication fusion. Old environment-variable and GLM W8A8 discussion remains legacy-scoped. Summary's unconditional main failure is historical and should use the already documented Omni exception if otherwise edited.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9",
+      "file": "wiki/params/enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9.md",
+      "published": true,
+      "sha256": "b625ed2ba52a578c7ca4d1354bf6f323c3818b8bdd3ba6b62101e37e449a4a44",
+      "rc2Line": 117,
+      "originalFindings": [
+        "P01",
+        "P02"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"enable_pcp_embedding_lmhead_weight_sharding\"]` |",
+        "| 类型 | `bool` |",
+        "| 默认表达式 | `True` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:585` [C28] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（3 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read defaultTrue and PCP>1/module eligibility, disable_tp priority and finegrained mutex. Existing communication explanation matches AG IDs -> lookup -> PCP RS -> TP AR; LMHead vocabulary gathers separately. Generated rc2 default is correct; summary and paragraph claiming generated table is oldmain4d1412d1 need P01/P02.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
+      "file": "wiki/params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md",
+      "published": true,
+      "sha256": "8b5ca92811d9e900262f60c585edd3d4bbfe9b1ad054a604ddaf31cf5438659b",
+      "rc2Line": 138,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"enable_pcp_o_proj_weight_sharding\"]` |",
+        "| 类型 | `bool` |",
+        "| 默认表达式 | `True` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:584` [C38] |"
+      ],
+      "lineage": [
+        "| main | 有（3 个文件） |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（6 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read False->True and distinction DSA-PCP versus enable_dsa_cp DSA-CP. New paragraph includes SFA input-width and DSA local-group/method guards with warning fallback. Existing old hard RuntimeError discussion is explicitly based on baa023ad and must remain so. GeneratedTrue and old scoped summary can coexist. No additional finding.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "enable-sleep-mode-extra-cleanup",
+      "file": "wiki/params/enable-sleep-mode-extra-cleanup.md",
+      "published": true,
+      "sha256": "393d5e7224b7d2386c9562261a6a226205789d10562d19d117e24afca8b0674f",
+      "rc2Line": 107,
+      "originalFindings": [
+        "P05"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"enable_sleep_mode_extra_cleanup\"]` |",
+        "| 类型 | `unknown` |",
+        "| 默认表达式 | `False` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:163` [C18] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 有（2 个文件） |",
+        "| releases/v0.26.0rc | 有（2 个文件） |",
+        "| releases/v0.30.0rc2 | 无 |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Effective nested rl_config guards are correct; old top-level removal does not remove cleanup. Actual main-to-rc2 sleep_mem_optimized diff introduces lifecycle anchor/failure skip/staged-wake release missing from paragraph. P05 applies.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "enable-super-kernel-ce990e186bfa",
+      "file": "wiki/params/enable-super-kernel-ce990e186bfa.md",
+      "published": true,
+      "sha256": "e0be18fbd6028dff9804a0ad3bb01784d0aa13940e7090cfc40731052b98a8df",
+      "rc2Line": 98,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"ascend_compilation_config\"][\"enable_super_kernel\"]` |",
+        "| 类型 | `bool` |",
+        "| 默认表达式 | `False` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:126` [C30] |"
+      ],
+      "lineage": [
+        "| main | 有（5 个文件） |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 有（4 个文件） |",
+        "| releases/v0.30.0rc2 | 有（5 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read staticFalse, before-validator inheritance only when enable_static_kernel present and super key absent, hierarchy super->static->npugraph_ex and unsupported-hardware downgrade. Generated staticFalse is accurately qualified by manual behavior. No additional finding.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "fuse-allreduce-rms",
+      "file": "wiki/params/fuse-allreduce-rms.md",
+      "published": true,
+      "sha256": "a22aa267b14c4c96a7d17b4980682885fbe0988ed57cef76babfea2bccd3fa7b",
+      "rc2Line": 78,
+      "originalFindings": [
+        "P06"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |",
+      "definitionFields": [
+        "| 标识 | `vllm_config.additional_config.get('ascend_compilation_config', {})[\"fuse_allreduce_rms\"]` |",
+        "| 类型 | `unknown` |",
+        "| 默认表达式 | `True` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:508` [C17] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 有（2 个文件） |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 无 |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Old registered path is nested ascend_compilation_config, confirmed by page and historical generated identifier. New paragraph wrongly treats it as top-level with Omni bypass. Actual strict nested class rejects the old child. P06 applies; broader RMSNorm fusion absence is correctly not claimed.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "fused-op-type-fc0f5fcd7be0",
+      "file": "wiki/params/fused-op-type-fc0f5fcd7be0.md",
+      "published": true,
+      "sha256": "fe159838a16dce253ab0abf84aeca567512ed4000b0658d978a048a3f8e94ffb",
+      "rc2Line": 100,
+      "originalFindings": [
+        "P01",
+        "P04"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"sparse_kv_offload_config\"][\"fused_op_type\"]` |",
+        "| 类型 | `str` |",
+        "| 默认表达式 | `'none'` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:1701` [C27] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（1 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read defaultnone/enum/mutex and actual validator/operator consumer. rc2 selected C8 kernel, widened query/hot budget and MRV2 DSpark support contradict old unqualified reference restrictions. P04 applies, plus P01 summary. Static generated comment comes from stale source comment and requires manual clarification.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "kv-pool-range-debug-83e8b165addd",
+      "file": "wiki/_drafts/kv-pool-range-debug-83e8b165addd.md",
+      "published": false,
+      "sha256": "dbef948c95d29943dbcbf2df7e0bac52be79829b5c9c4f734300343676cd2b50",
+      "rc2Line": 28,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "none",
+      "definitionFields": [],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 无 |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Draft remains under_drafts. New rc2 absent-field/consumer/unknown-key paragraph correct. Old declaration-only material is identified as other main snapshots; no formal-page promotion or rc2 runtime capability assertion. No blocking finding for draft.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "kvpp-config-0445bd352140",
+      "file": "wiki/params/kvpp-config-0445bd352140.md",
+      "published": true,
+      "sha256": "031fefe56b52490ef62722f6e52a21fee5a11824e114d4a5044615980c0d40c0",
+      "rc2Line": 122,
+      "originalFindings": [
+        "P01"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"kvpp_config\"]` |",
+        "| 类型 | `KVPPConfig` |",
+        "| 默认表达式 | `dataclasses.field(default_factory=KVPPConfig, kw_only=True)` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:636` [C33] |"
+      ],
+      "lineage": [
+        "| main | 有（6 个文件） |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（7 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read frozen internal config, derive enable_kvpp and TP*PCP, factory strips user object, validate only size>1. New paragraph correctly extends eager/PIECEWISE and fixed MTP/DSpark while retaining nonhybrid MLA/DCP1. Old facts describe older main; main-only summary presence requires P01.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "layer-sharding",
+      "file": "wiki/params/layer-sharding.md",
+      "published": true,
+      "sha256": "679eb72f96bc7298d4ab4cb8eab436fd7fd06af636fc52aed695232636ac7f18",
+      "rc2Line": 92,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"layer_sharding\"]` |",
+        "| 类型 | `unknown` |",
+        "| 默认表达式 | `None` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:105` [C24] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 有（8 个文件） |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 无 |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Read rc2 absence plus factory rejection and distinction from PCP splitting the same layer. New SFA/DSA-PCP sharding is not represented as the old round-robin whole-layer broadcast. Historical definition and db701c1f producer restriction remain old-scope. No additional finding.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "load-risk-quantile-d89a080ba048",
+      "file": "wiki/params/load-risk-quantile-d89a080ba048.md",
+      "published": true,
+      "sha256": "49efb8d9500652d866b8890e4f6e9fa363f72b758a7fb6172d6130005e1ca027",
+      "rc2Line": 90,
+      "originalFindings": [
+        "P01",
+        "P02"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"eplb_config\"][\"stair_config\"][\"load_risk_quantile\"]` |",
+        "| 类型 | `float` |",
+        "| 默认表达式 | `0.75` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:219` [C26] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（1 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read0.75/(0.5,1), finite validation and z-score/covariance consumer in actual MRV2 planner. New use is accurate; old summary/main-only and generated lineage interpretation need P01/P02.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "load-window-bins-cc21068b082d",
+      "file": "wiki/params/load-window-bins-cc21068b082d.md",
+      "published": true,
+      "sha256": "eec470f813977e94262f0ba97be8043f1986e1cbc1df68e7433ea8f239a45d5a",
+      "rc2Line": 78,
+      "originalFindings": [
+        "P02"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"eplb_config\"][\"stair_config\"][\"load_window_bins\"]` |",
+        "| 类型 | `int` |",
+        "| 默认表达式 | `64` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:218` [C22] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（2 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read64/2..256, weighted time bins rather than sample picking and runtime controller input. Old summary expressly says behavior based on4d1412d1, not an absolute current absence, but old lineage pointer is now false: P02.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "multistream-engram-overlap-29113aa3f8fc",
+      "file": "wiki/_drafts/multistream-engram-overlap-29113aa3f8fc.md",
+      "published": false,
+      "sha256": "eb43c89110824d691ec5d2f950eac178a3463033e0a1fbd4e96884b2f9ce284f",
+      "rc2Line": 27,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "none",
+      "definitionFields": [],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（2 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Draft remains under_drafts. New default conditioned on FP8_OPTIMIZED hardware, explicit override, model Engram hash/lookup/DP-TP streams and no GLM extrapolation match source. Old declaration-only limitations remain draft historical material, not proof of rc2 absence. No promotion.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "multistream-overlap-gate",
+      "file": "wiki/params/multistream-overlap-gate.md",
+      "published": true,
+      "sha256": "22694b255a47de3d766e5a89021cfed2c21d44b95fc9dae27ad95f52a0b4a5bc",
+      "rc2Line": 82,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"multistream_overlap_gate\"]` |",
+        "| 类型 | `unknown` |",
+        "| 默认表达式 | `False` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:140` [C20] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 有（9 个文件） |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 无 |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Read old FlashComm3 key absence and replacement-is-not-alias warning for shared-expert overlap false/fused-MC2 disable. Factory's Omni exception is described in summary; new normal-Ascend rejection is not contradictory. Old stream walkthrough remainsv0.23. No additional finding.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "placement-search-backtrack-limit-82b03cef98b0",
+      "file": "wiki/params/placement-search-backtrack-limit-82b03cef98b0.md",
+      "published": true,
+      "sha256": "210648cee59d78a465a28dcc4a6a4e6f557ef3c48eeb6a751c050366b1718fde",
+      "rc2Line": 77,
+      "originalFindings": [
+        "P02",
+        "P03"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"eplb_config\"][\"stair_config\"][\"placement_search_backtrack_limit\"]` |",
+        "| 类型 | `int` |",
+        "| 默认表达式 | `32` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:227` [C21] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（2 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read32/0..64 and distinction accepted alternative feasible branch versus initial placement/failure checking. Runtime planner input accurate. Old lineage pointer and apparent mandatory explicit policy choice needP02/P03.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "prefetch-ratio",
+      "file": "wiki/params/prefetch-ratio.md",
+      "published": true,
+      "sha256": "0e3115fc80c7bacac390f3306c258e899d7e057a908c724fd007c442f85d174c",
+      "rc2Line": 91,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"prefetch_ratio\"]` |",
+        "| 类型 | `dict` |",
+        "| 默认表达式 | `{'attn': {'qkv': 1.0, 'o': 1.0}, 'moe': {'gate_up': 0.8}, 'mlp': {'gate_up': 1.0, 'down': 1.0}}` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:709` [C20] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 有（2 个文件） |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 无 |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Read parent weight_prefetch_config absent and unknown top-level flow; moving ratio to top-level does not restore feature. Old L2 ratio scope preserved and not conflated with KV prefetch. Generated old scanner identifier does not replace the public parent path identified in prose. No additional finding.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "profiling-chunk-config",
+      "file": "wiki/params/profiling-chunk-config.md",
+      "published": true,
+      "sha256": "35c1629ad14f8a59e0f9db14013ef852afb781de32abee362accfc73ef56a7ca",
+      "rc2Line": 115,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "none",
+      "definitionFields": [],
+      "lineage": [
+        "| main | 有（8 个文件） |",
+        "| releases/v0.23.0 | 有（5 个文件） |",
+        "| releases/v0.26.0rc | 有（5 个文件） |",
+        "| releases/v0.30.0rc2 | 有（9 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Read new nested scheduler_config entry, legacy warning/precedence, enabledfalse/smooth1/min4096/maxfit30, need_timing followsenabled and >5 validation. MRV2 async path and PP/chunked-pre/balance constraints correct; fixedGLM PP1 unchanged. This page has manual version content rather than a fabricated generated rc2 definition.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "rank-transfer-limit-99529b37d91d",
+      "file": "wiki/params/rank-transfer-limit-99529b37d91d.md",
+      "published": true,
+      "sha256": "4d9071c73d34b54cdfe0a0e8a14952c36c37f9e2ae20b8f4b2c13aef34ceeca0",
+      "rc2Line": 80,
+      "originalFindings": [
+        "P01",
+        "P02",
+        "P07"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"eplb_config\"][\"stair_config\"][\"rank_transfer_limit\"]` |",
+        "| 类型 | `int` |",
+        "| 默认表达式 | `-1` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:222` [C21] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（3 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read-1 versus historical1, legal-1orpositive, separate send/receive limits and finite step cap. Automatic fallback keeps explicit values; summary and now-stale generated pointers needP01/P02; explicit communicator bypassP07.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "relative-balance-threshold-bcbc40e7dc87",
+      "file": "wiki/params/relative-balance-threshold-bcbc40e7dc87.md",
+      "published": true,
+      "sha256": "c23c9d35777be8f118b49eb06db05256d7d1e953b8cfe5d07c37313527287606",
+      "rc2Line": 75,
+      "originalFindings": [
+        "P01",
+        "P02"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"eplb_config\"][\"stair_config\"][\"relative_balance_threshold\"]` |",
+        "| 类型 | `float` |",
+        "| 默认表达式 | `0.95` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:220` [C19] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（2 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read0.95/(0,1], last actually committed predicted-balance denominator, ORabsolute threshold, no-anchor and zero-load cases. New runtime reading correct; summary andmain-lineage pointer needP01/P02.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "replica-search-beam-size-6556d1650a62",
+      "file": "wiki/params/replica-search-beam-size-6556d1650a62.md",
+      "published": true,
+      "sha256": "0ff04054a6887a8d432b7859d4943787107562bb50b1435ad5594683af1f8e9f",
+      "rc2Line": 70,
+      "originalFindings": [
+        "P01",
+        "P02"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"eplb_config\"][\"stair_config\"][\"replica_search_beam_size\"]` |",
+        "| 类型 | `int` |",
+        "| 默认表达式 | `64` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:226` [C17] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（2 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read64/1..128, forced-current-count candidate and beam1 effect. Correctly does not infer physical placement cannot change from unchanged replica counts. Summary/default-table source andmain-lineage pointers needP01/P02.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "replica-search-num-stages-e4b10925ff97",
+      "file": "wiki/params/replica-search-num-stages-e4b10925ff97.md",
+      "published": true,
+      "sha256": "c6deca885a609a6d66e5e91d7507845194994fa0fc5757f44c8867071512dc83",
+      "rc2Line": 72,
+      "originalFindings": [
+        "P01",
+        "P02"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"eplb_config\"][\"stair_config\"][\"replica_search_num_stages\"]` |",
+        "| 类型 | `int` |",
+        "| 默认表达式 | `4` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:224` [C18] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（2 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read4/1..8, risk-ranked expert grouping, actualgroups=min(config,expertcount), last greedy fill andstages1 behavior. Does not conflate with layers/PP. Summary andgenerated-table pointers needP01/P02.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "replica-search-radius-cd3118b5aae5",
+      "file": "wiki/params/replica-search-radius-cd3118b5aae5.md",
+      "published": true,
+      "sha256": "291a4eb4c652969a6ccfc0d06917830e4f2963adbba2486e4975d47b27346450",
+      "rc2Line": 72,
+      "originalFindings": [
+        "P01",
+        "P02"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"eplb_config\"][\"stair_config\"][\"replica_search_radius\"]` |",
+        "| 类型 | `int` |",
+        "| 默认表达式 | `8` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:225` [C16] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（2 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read8/0..32, feasibleclipping about greedy budget and0doesnotdisableEPLB. Actual runtime planner connection accurate; summary andgenerated-source pointers needP01/P02.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "runtime-config-abb228bbf148",
+      "file": "wiki/_drafts/runtime-config-abb228bbf148.md",
+      "published": false,
+      "sha256": "6ec94e5e891ca6967baebc3f58ff9ecfc7d2615e13915eb0a47ce4132770abf1",
+      "rc2Line": 27,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "none",
+      "definitionFields": [],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 无 |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Draft remains under_drafts. New rc2 absence/consumer check and refresh being factory control rather than replacement API are accurate; factory unknown top-level behavior is explicit. Historical AnyNone excerpt is not claimed rc2-supported. No promotion.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "runtime-config-hot-reload-9c9ab794933a",
+      "file": "wiki/_drafts/runtime-config-hot-reload-9c9ab794933a.md",
+      "published": false,
+      "sha256": "82087a8ca3a001b93298b4cd3fbc48a352533c068a487cc1316711b5835d43cb",
+      "rc2Line": 29,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "none",
+      "definitionFields": [],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 无 |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Draft remains under_drafts. New paragraph accurately says rc2 has no field/consumer/compatibility key; Omni removal does not enable hot reload and other runtime mechanisms are not declared absent. Old material-only defaultFalse records remain scoped. No promotion.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "runtime-config-path-e23e596c2a2e",
+      "file": "wiki/_drafts/runtime-config-path-e23e596c2a2e.md",
+      "published": false,
+      "sha256": "9fbdabc04bf1e180cb4f4b65348d002948a2c53b0fb5766a94f122482335cec0",
+      "rc2Line": 28,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "none",
+      "definitionFields": [],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 无 |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Draft remains under_drafts. New rc2 nofile-reading path statement is backed by field/consumer/factory review; dump_config_path export is correctly distinguished. No invented fallbackpath. No promotion.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
+      "file": "wiki/params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md",
+      "published": true,
+      "sha256": "4b716e6dd6c1307fe4ead8ff2585c27c0ddaf47b20bda1517feb38935614ba5b",
+      "rc2Line": 141,
+      "originalFindings": [
+        "P01"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"sfa_dcp_force_tmajor_restore\"]` |",
+        "| 类型 | `bool` |",
+        "| 默认表达式 | `False` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:582` [C40] |"
+      ],
+      "lineage": [
+        "| main | 有（3 个文件） |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（3 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read false->keep_view true inversion afterquerygather, true materializes contiguous tmajor, not DCPenable. Correct source semantics and staticFalse; main-only summary/body presence claim needsP01/P02 scope cleanup.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "size-40a1c2ca47b8",
+      "file": "wiki/params/size-40a1c2ca47b8.md",
+      "published": true,
+      "sha256": "f55025cf74c803e1f83e02963c46ad8a6eba85cf934ef121a75a82e2ea19d77e",
+      "rc2Line": 75,
+      "originalFindings": [
+        "P01"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"kvpp_config\"][\"size\"]` |",
+        "| 类型 | `int` |",
+        "| 默认表达式 | `1` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:66` [C19] |"
+      ],
+      "lineage": [
+        "| main | 有（404 个文件） |",
+        "| releases/v0.23.0 | 有（267 个文件） |",
+        "| releases/v0.26.0rc | 有（304 个文件） |",
+        "| releases/v0.30.0rc2 | 有（469 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read internal frozen KVPPConfig size1, TP*PCP derive, stripped userconfig andDCP1/nonhybridMLA constraints. Generated identifier is a static path not user-entry authorization, qualified by new paragraph. Main-only summaryP01; broad textual size lineage cannot prove KVPP behavior.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "stair-config-cca9e594a052",
+      "file": "wiki/params/stair-config-cca9e594a052.md",
+      "published": true,
+      "sha256": "31fdb5239581286157093530ef51ce6394a05b0181905225e9709f39aef46ad2",
+      "rc2Line": 86,
+      "originalFindings": [
+        "P01",
+        "P03",
+        "P07"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"eplb_config\"][\"stair_config\"]` |",
+        "| 类型 | `StairConfig` |",
+        "| 默认表达式 | `dataclasses.field(default_factory=StairConfig)` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:300` [C27] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 有（5 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read allten rc2 fields, eight unchangeddefaults andtwotransferdefaultchanges, actualcontrollerfactory andautofallback. Final patchedpolicy defaultstair omittedP03; summary andoldscanning-table framingP01/P02; explicitcommunicatorbypassP07.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "use-fused-overlap-75a180fff6ab",
+      "file": "wiki/params/use-fused-overlap-75a180fff6ab.md",
+      "published": true,
+      "sha256": "de2e5a13cfd42ccf37b00261833fc7d6cf5be091dde3b807743801d51014c312",
+      "rc2Line": 163,
+      "originalFindings": [
+        "P01",
+        "P02"
+      ],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | main · 921ccc52c6d8c9864190b981792318a489aeadf4 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"sparse_kv_offload_config\"][\"use_fused_overlap\"]` |",
+        "| 类型 | `bool` |",
+        "| 默认表达式 | `False` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:1667` [C48] |"
+      ],
+      "lineage": [
+        "| releases/v0.13.0 | 无 |",
+        "| releases/v0.18.0 | 无 |",
+        "| releases/v0.20.2rc | 无 |",
+        "| releases/v0.21.0rc | 无 |",
+        "| releases/v0.22.1rc | 无 |",
+        "| releases/v0.23.0 | 无 |",
+        "| releases/v0.24.0rc | 无 |",
+        "| releases/v0.25.1rc | 无 |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.27.1rc | 无 |",
+        "| releases/v0.28.0rc | 有（3 个文件） |",
+        "| releases/v0.29.0rc | 有（3 个文件） |",
+        "| releases/v0.30.0 | 有（3 个文件） |",
+        "| releases/v0.30.0rc2 | 有（3 个文件） |",
+        "| releases/v0.31.0rc | 有（3 个文件） |",
+        "| releases/v0.32.0rc | 有（3 个文件） |",
+        "| main | 有（3 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read defaultfalse andcopy-SFA mutex, decode-onlybranch andmixedprefill devicecache obligation. Correctly not wholeforward fusedkernel. Old presence claims, no-release-tag statement andgeneratedb64b4d71 pointers directly conflict withcurrenttablesP01/P02.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "use-layerwise-b475778cd352",
+      "file": "wiki/params/use-layerwise-b475778cd352.md",
+      "published": true,
+      "sha256": "0eed239ef884cdc9e70b2366397f9569351dfc47710a16c8bbe1678630762d20",
+      "rc2Line": 109,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |",
+      "definitionFields": [
+        "| 标识 | `YuanrongConfig[\"use_layerwise\"]` |",
+        "| 类型 | `bool` |",
+        "| 默认表达式 | `False` |",
+        "| 定义 | `vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py:20` [C33] |"
+      ],
+      "lineage": [
+        "| main | 有（9 个文件） |",
+        "| releases/v0.23.0 | 有（3 个文件） |",
+        "| releases/v0.26.0rc | 有（7 个文件） |",
+        "| releases/v0.30.0rc2 | 有（9 个文件） |"
+      ],
+      "remainingLineageReceiptMatched": null,
+      "originalSemanticReview": "Read realpublic connector-extra use_layerwise=false, AscendStore PIECEWISE requirement andbackend-specific protocol/topology checks including hybridstatecopy ordering. New paragraph explicitly prevents YuanrongConfig static scan from replacing publicentry. No additional finding.",
+      "originalFindingsClosed": true
+    },
+    {
+      "id": "weight-prefetch-config",
+      "file": "wiki/params/weight-prefetch-config.md",
+      "published": true,
+      "sha256": "1d5c6825ab9a57fafa3d118dbfd4e5f8bb5f9633e95fba90ffd6a9f300c42591",
+      "rc2Line": 124,
+      "originalFindings": [],
+      "closureStatus": "closed-or-no-finding",
+      "generatedDefinition": "| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |",
+      "definitionFields": [
+        "| 标识 | `additional_config[\"weight_prefetch_config\"]` |",
+        "| 类型 | `unknown` |",
+        "| 默认表达式 | `{}` |",
+        "| 定义 | `vllm_ascend/ascend_config.py:52` [C26] |"
+      ],
+      "lineage": [
+        "| main | 无 |",
+        "| releases/v0.23.0 | 有（5 个文件） |",
+        "| releases/v0.26.0rc | 无 |",
+        "| releases/v0.30.0rc2 | 无 |"
+      ],
+      "remainingLineageReceiptMatched": true,
+      "originalSemanticReview": "Read rc2 nofield/consumer/compatibility key andunknown-top-level distinction. Old HBM->L2pipeline andGLMfailure analysis retainv0.23/db701c1f scope; kernel/NZ warmup andKVcacheprefetch not presented as replacement. No additional finding.",
+      "originalFindingsClosed": true
+    }
+  ],
+  "checks": {
+    "pages": 38,
+    "published": 33,
+    "drafts": 5,
+    "rc2GeneratedDefinitions": 23,
+    "rc2DefinitionsComparedToFixedSourceAndScan": 23,
+    "remainingLineagesComparedToActualRowsAndReceipt": 15,
+    "findingsSemantics": "Source consumers and control flow reread; scan matches are not treated as runtime support evidence."
+  },
+  "result": "All P01-P07 findings closed after actual-page and fixed-source reread. No outstanding P1/P2/P3 in this parameter rc2 review. Browser and hardware acceptance remain outside this reviewer scope.",
+  "limitations": [
+    "No browser or NPU acceptance by this reviewer; root owns browser validation.",
+    "No wiki prose or generated sections changed by this reviewer.",
+    "No generation, ingest or pin changes performed."
+  ],
+  "counts": {
+    "pages": 38,
+    "published": 33,
+    "drafts": 5,
+    "findingsClosed": 7,
+    "open": 0,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  }
+}

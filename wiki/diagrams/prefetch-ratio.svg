@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 786" width="900" height="786" role="img" aria-label="五个比例各管一条路，走的却是同一个算式：ratio × 单卡权重字节数；之后 mlp 在 Python 侧截到 18 MiB，attn / moe 的后端上限待核（vllm-ascend v0.23 维护分支）">
-  <title>五个比例各管一条路，走的却是同一个算式：ratio × 单卡权重字节数；之后 mlp 在 Python 侧截到 18 MiB，attn / moe 的后端上限待核（vllm-ascend v0.23 维护分支）</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 786" width="900" height="786" role="img" aria-label="满足开关与调用条件后，比例乘本地权重字节数；MLP 正请求尺寸在 Python 截到 18 MiB，零尺寸在公共封装改为整块。attn / moe 后端上限待核（v0.23 维护分支）">
+  <title>满足开关与调用条件后，比例乘本地权重字节数；MLP 正请求尺寸在 Python 截到 18 MiB，零尺寸在公共封装改为整块。attn / moe 后端上限待核（v0.23 维护分支）</title>
   <rect width="900" height="786" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="44" width="860" height="300" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
   <rect x="36" y="58" width="184" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">三组比例，四个各自的入口</text>
-  <text x="38" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">mlp 与 moe 按模型类型互斥，一次运行最多有一组生效；attn 那一组还要模型是 W8A8 静态量化</text>
+  <text x="38" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">mlp 与 moe 按模型类型互斥；attn 要求当前层走静态 W8A8 且输入不是 int8</text>
   <rect x="20" y="372" width="860" height="208" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
   <rect x="36" y="386" width="224.5" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="404.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">写进去的小数怎么变成搬运字节数</text>
   <text x="38" y="429" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">三组共用这条算式，差别在于截不截、由谁来截</text>
@@ -35,7 +35,7 @@
   <rect x="320" y="466" width="258" height="96" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
   <rect x="332" y="498" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(338.4 504.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>
   <text x="372" y="502" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">② 看要不要截</text>
-  <text x="372" y="520" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">mlp 截到 18 MiB；其余待核</text>
+  <text x="372" y="520" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">MLP 正值截到 18 MiB</text>
   <text x="372" y="537" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)">MAX_PREFETCH_WEIGHT_SIZE</text>
   <rect x="600" y="466" width="258" height="96" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
   <rect x="612" y="498" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(618.4 504.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
@@ -44,8 +44,8 @@
   <text x="652" y="537" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">npu_prefetch</text>
   <rect x="40" y="630" width="820" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
   <rect x="52" y="656" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(58.4 662.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
-  <text x="92" y="660" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">漏写一项不是「不预取」，是 100% 预取</text>
-  <text x="92" y="678" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">比例取不到按 0 算，而 max_size ≤ 0 会被改写成整块权重——方向正好反了</text>
+  <text x="92" y="660" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">组仍启用且走到调用时，单项零值会请求整块</text>
+  <text x="92" y="678" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">缺项按 0 算；公共封装把非正尺寸改为整块请求，不代表实际缓存驻留或收益</text>
   <text x="92" y="695" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">maybe_npu_prefetch</text>
   <path d="M298 514 L318 514" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.8"/>
   <path d="M318 514 l-11 -5.5 l0 11 z" fill="var(--color-kv, #4c65b6)"/>
@@ -55,6 +55,6 @@
   <path d="M445 370 l-5.5 -11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
   <path d="M320 588 l0 9 L578 597 l0 -9" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.4" opacity="0.75"/>
   <text x="449" y="615" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-accent, #e85b32)" text-anchor="middle">mlp 这一侧超过 18 MiB 就被截平，0.8 与 1.0 可能等价；attn / moe 要等后端上限核实</text>
-  <text x="20" y="744" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">想关掉一组，唯一正确的写法是把该组每一项都写成 0——全 0 时这一组的 enable 被置 False；写成空 dict 或整组不写，都会回退到内建默认值。</text>
-  <text x="20" y="770" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">越界值（1.2、-0.5）在构造阶段被静默丢出字典，随后就落进上面那条「按 0 算」的分支。</text>
+  <text x="20" y="744" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">整组全零会关闭该组；过滤后无有效非零项也会关闭。空 dict 或整组省略则回填默认；父开关关闭时均不发预取。</text>
+  <text x="20" y="770" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">越界值（1.2、-0.5）在构造时丢弃；剩余同组仍有非零项且实际进入调用，缺项才会按零尺寸处理。</text>
 </svg>

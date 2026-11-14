@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 290" width="860" height="290" role="img" aria-label="示意：每块有效状态40B，物理页64B。块号不变，块0从0B开始、块1从64B开始；每页尾部24B不属于逻辑状态。FP16视图沿块维前进一步跳32个元素，不能按20个有效元素前进。">
+  <title>示意：每块有效状态40B，物理页64B。块号不变，块0从0B开始、块1从64B开始；每页尾部24B不属于逻辑状态。FP16视图沿块维前进一步跳32个元素，不能按20个有效元素前进。</title>
+  <defs><marker id="kv-cache-spec-stride-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><pattern id="kv-cache-spec-stride-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-surface-sunken, #ece9df)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
+  <rect x="30" y="42" width="800" height="200" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="46" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">同一底层分配 · 两个物理页</text>
+  <path d="M100 163 L430 163" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kv-cache-spec-stride-ah-control)"/>
+  <rect x="100" y="90" width="160" height="46" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="116" y="118" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">块 0 · 有效 40B</text>
+  <rect x="260" y="90" width="96" height="46" rx="4" fill="url(#kv-cache-spec-stride-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <text x="276" y="118" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">空白 24B</text>
+  <rect x="430" y="90" width="160" height="46" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="446" y="118" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">块 1 · 有效 40B</text>
+  <rect x="590" y="90" width="96" height="46" rx="4" fill="url(#kv-cache-spec-stride-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <text x="606" y="118" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">空白 24B</text>
+  <text x="100" y="76" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">起点 0B</text>
+  <text x="430" y="76" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">起点 64B</text>
+  <text x="265" y="193" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">前进一个物理页：64B</text>
+  <text x="430" y="270" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">视图跳过空白；原有块号与分配保持不变</text>
+</svg>

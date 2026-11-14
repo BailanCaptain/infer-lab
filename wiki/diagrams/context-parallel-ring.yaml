@@ -1,0 +1,53 @@
+layout: figure
+id: context-parallel-ring
+size: [880, 650]
+caption: 两卡 Ring Attention 示意。Q 始终留在原卡；A/B 是带有原始位置的 K/V 块，交换后继续更新同一查询的累计结果。Q₇ 在读完两块后才得到完整结果，其他查询各自使用因果掩码。
+frames:
+  - { at: [20, 70], size: [380, 160], label: '第 1 轮 · 卡 0 读取本地 A' }
+  - { at: [480, 70], size: [380, 160], label: '第 1 轮 · 卡 1 读取本地 B' }
+  - { at: [20, 390], size: [380, 160], label: '第 2 轮 · 卡 0 收到 B' }
+  - { at: [480, 390], size: [380, 160], label: '第 2 轮 · 卡 1 收到 A' }
+items:
+  - { at: [60, 90], size: [300, 44], text: 'Q：0、1、6、7', tone: token }
+  - { at: [520, 90], size: [300, 44], text: 'Q：2、3、4、5', tone: token }
+  - { at: [60, 410], size: [300, 44], text: 'Q：0、1、6、7 · 保持原位', tone: token }
+  - { at: [520, 410], size: [300, 44], text: 'Q：2、3、4、5 · 保持原位', tone: token }
+grids:
+  - at: [100, 177]
+    rows: 1
+    cols: 4
+    cell: [52, 28]
+    label: 'K/V 块 A'
+    tone: kv
+    cells: [{ at: [0, 0], text: '0' }, { at: [0, 1], text: '1' }, { at: [0, 2], text: '6' }, { at: [0, 3], text: '7' }]
+  - at: [560, 177]
+    rows: 1
+    cols: 4
+    cell: [52, 28]
+    label: 'K/V 块 B'
+    tone: weight
+    cells: [{ at: [0, 0], text: '2' }, { at: [0, 1], text: '3' }, { at: [0, 2], text: '4' }, { at: [0, 3], text: '5' }]
+  - at: [100, 497]
+    rows: 1
+    cols: 4
+    cell: [52, 28]
+    label: '收到同一块 B'
+    tone: weight
+    cells: [{ at: [0, 0], text: '2' }, { at: [0, 1], text: '3' }, { at: [0, 2], text: '4' }, { at: [0, 3], text: '5' }]
+  - at: [560, 497]
+    rows: 1
+    cols: 4
+    cell: [52, 28]
+    label: '收到同一块 A'
+    tone: kv
+    cells: [{ at: [0, 0], text: '0' }, { at: [0, 1], text: '1' }, { at: [0, 2], text: '6' }, { at: [0, 3], text: '7' }]
+links:
+  - { from: [210, 265], to: [670, 265], tone: kv }
+  - { from: [670, 320], to: [210, 320], tone: weight }
+texts:
+  - { at: [25, 25], text: '本地 Q 不换卡，远端 K/V 分块到达', strong: true }
+  - { at: [440, 252], text: 'A：卡 0 → 卡 1', anchor: middle, tone: kv }
+  - { at: [440, 307], text: 'B：卡 1 → 卡 0', anchor: middle, tone: weight }
+  - { at: [440, 353], text: '发送副本、接收远端块；累计状态留在 Q 所在卡', anchor: middle, note: true }
+  - { at: [440, 585], text: 'Q₇：先读 A 得到局部累计，再读 B 更新分母与分子', anchor: middle, strong: true }
+  - { at: [440, 620], text: '不能把各块已经归一化的输出直接相加；下一节逐数计算', anchor: middle, note: true }

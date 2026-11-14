@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 624" width="900" height="624" role="img" aria-label="左：启动时给出自己的 DP rank 编号，这个进程就进入外置负载均衡模式，只管本机这一个 rank；稠密模型在这一步报错。它仍要到 DP 主节点握手，和全组一起走每层 MoE。右：vllm-ascend 示例 proxy 处理一条请求的先后；KV 由连接器在 P、D 之间直接传，proxy 只转交传输参数。">
-  <title>左：启动时给出自己的 DP rank 编号，这个进程就进入外置负载均衡模式，只管本机这一个 rank；稠密模型在这一步报错。它仍要到 DP 主节点握手，和全组一起走每层 MoE。右：vllm-ascend 示例 proxy 处理一条请求的先后；KV 由连接器在 P、D 之间直接传，proxy 只转交传输参数。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 624" width="900" height="624" role="img" aria-label="左：多 rank 示例取 DP 大于 1。启动时给出自己的 DP rank 编号，进入外置负载均衡模式，只管本机这一个 rank；在这些条件下稠密模型报错。MoE 服务仍要到 DP 主节点握手，和全组一起走每层 MoE；前端数量取默认值 1。右：vllm-ascend 示例 proxy 处理一条请求的先后；KV 由连接器在 P、D 之间直接传，proxy 只转交传输参数。">
+  <title>左：多 rank 示例取 DP 大于 1。启动时给出自己的 DP rank 编号，进入外置负载均衡模式，只管本机这一个 rank；在这些条件下稠密模型报错。MoE 服务仍要到 DP 主节点握手，和全组一起走每层 MoE；前端数量取默认值 1。右：vllm-ascend 示例 proxy 处理一条请求的先后；KV 由连接器在 P、D 之间直接传，proxy 只转交传输参数。</title>
   <defs><marker id="large-scale-ep-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="large-scale-ep-flow-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker><marker id="large-scale-ep-flow-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="large-scale-ep-flow-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
   <rect x="18" y="44" width="416" height="564" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="34" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">启动：一个 vllm serve 进程成为一个 rank</text>
@@ -17,8 +17,8 @@
   <path d="M674 406 L674 440" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#large-scale-ep-flow-ah-kv)"/>
   <path d="M674 498 L674 532" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#large-scale-ep-flow-ah-ink)"/>
   <rect x="38" y="72" width="376" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="226" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">启动时给出自己的 DP rank 编号</text>
-  <text x="226" y="116" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">同时给 DP 总数、主节点地址和 RPC 端口</text>
+  <text x="226" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">DP&gt;1，给出自己的 DP rank 编号</text>
+  <text x="226" y="116" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">同时给主节点地址和 RPC 端口</text>
   <rect x="38" y="164" width="250" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="163" y="189" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模型是 MoE 吗？</text>
   <text x="163" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">外置分派只对 MoE 开放</text>
@@ -29,7 +29,7 @@
   <text x="226" y="281" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本机只管这 1 个 rank</text>
   <text x="226" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本地 DP 个数只能是 1 或不写</text>
   <rect x="38" y="348" width="376" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="226" y="373" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只起 1 个 API server</text>
+  <text x="226" y="373" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">默认起 1 个 API server</text>
   <text x="226" y="392" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">分派交给外部路由</text>
   <rect x="38" y="440" width="376" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="226" y="465" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">客户端只连本机的 EngineCore</text>

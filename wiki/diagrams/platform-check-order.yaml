@@ -3,7 +3,7 @@ id: platform-check-order
 caption: 校验与改写在同一个函数里按固定先后跑：两道早退之后先认量化，再跑四个校验（任一不通过就报错退出），然后修不兼容组合并建昇腾配置，接着定编译与图模式、选 Worker 类、定块大小，最后三条按 PD 角色的检查。四个校验里管着本部署的是并行那一条，因为这里 DP 是 2
 size: [900, 650]
 items:
-  - { at: [24, 70], size: [250, 56], text: 两道早退, sub: 不是 npu 就返回, tone: control }
+  - { at: [24, 70], size: [250, 56], text: 两道早退, sub: 设备类型不符或没有模型配置, tone: control }
   - { at: [24, 152], size: [250, 56], text: 认出量化方式, sub: 决定后面识别哪套, tone: control }
   - { at: [24, 234], size: [250, 56], text: 四个校验, sub: 不支持就当场报错, tone: danger }
   - { at: [24, 316], size: [250, 56], text: 修组合、建昇腾配置, sub: 之后按角色再改, tone: control }
@@ -17,7 +17,7 @@ layers:
     gap: 6
     bands:
       - { text: 层切分只许 P 节点, tone: danger, style: faded }
-      - { text: 投机 + DCP：非 MLA 草稿查头数, tone: danger, style: faded }
+      - { text: 投机且 DCP>1：非 MLA 查头数, tone: danger, style: faded }
       - { text: DP 与 prefill 上下文并行, tone: danger, style: solid }
       - { text: MTP 且 PP>1：只许 P 节点, tone: danger, style: faded }
   - at: [330, 462]

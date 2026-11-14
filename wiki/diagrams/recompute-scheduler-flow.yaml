@@ -1,0 +1,29 @@
+layout: figure
+id: recompute-scheduler-flow
+caption: 固定旧版的退回分支发生在第2站，名单到第6站才转成recomputed输出；代理随后从入口重投P/D。该请求本轮没有再参与前向。保存分支只登记任务，实际保存和恢复由连接器执行；发帧也不等于旧引擎完整收尾。
+size: [880, 370]
+items:
+  - { at: [24, 55], size: [220, 62], text: 第2站：续块失败并选请求, sub: 询问连接器是否接受保存, tone: control }
+  - { at: [330, 55], size: [220, 62], text: 接受：登记保存与抢占, sub: 清零进度、排回等待队首, tone: kv }
+  - { at: [636, 55], size: [220, 62], text: 连接器负责保存和恢复, sub: 以后调度再尝试继续执行, tone: comm }
+  - { at: [24, 217], size: [220, 62], text: 不接受：还块、记退回名单, sub: 本步不再接纳新请求, tone: danger }
+  - { at: [330, 217], size: [220, 62], text: 第6站：生成结束输出, sub: STOP、空token、recomputed, tone: control }
+  - { at: [636, 217], size: [220, 62], text: 第7站到代理：重投入口, sub: 续接输入、扣额度、再选P/D, tone: token }
+links:
+  - { from: [244, 86], to: [330, 86] }
+  - { from: [550, 86], to: [636, 86] }
+  - { from: [134, 117], to: [134, 217], tone: danger }
+  - { from: [244, 248], to: [330, 248], tone: danger }
+  - { from: [550, 248], to: [636, 248], tone: comm }
+texts:
+  - { at: [24, 26], text: 调度的分支与输出的时刻不同，退回不经过本轮前向, size: 14, strong: true }
+  - { at: [24, 332], text: 范围：固定旧版；rc2细粒度TP中止例外见正文, size: 12 }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L280-L345
+    symbols: [PreemptedRequestData, RecomputeReqInfo]
+  - source: vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L436-L440
+    symbols: [recomputed_reqs]
+  - source: vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L869-L880
+    symbols: [EngineCoreOutput]
+  - source: vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L970-L1056
+    symbols: [reassign_instances]

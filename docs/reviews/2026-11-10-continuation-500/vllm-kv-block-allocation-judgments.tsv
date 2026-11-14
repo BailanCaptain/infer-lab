@@ -1,0 +1,41 @@
+source_number	verdict	note
+1	supported	池建固定对象、空闲队列、哈希表并取0为null；普通可借数须扣保留块。
+2	supported	从队头借、旧hash驱逐、计数0到1；不足抛错由上层预检避免。
+3	repaired_pending_acceptance	普通touch/free与null例外成立；借块不等于立刻覆盖数据，图改成后续写入。
+4	repaired_pending_acceptance	旧GLM所有组共用一池；限定版本避免推广到rc2 host pool。
+5	supported	关闭或skip_read直接空；num_tokens减1并对齐，整块回退限定固定路径。
+6	repaired_pending_acceptance	位置需求含lookahead且封顶max_model_len；先归还窗口外再总量判断，224只作完整decode步静态容量上界，非请求全程峰值。
+7	repaired_pending_acceptance	running需求变小只返回0不缩列表；补实际L/Z关系，不能总用ceil新需求当实占。
+8	repaired_pending_acceptance	普通基类只登记完整块，实际借块走列表补齐；限定旧路径避免和部分尾块矛盾。
+9	supported	请求倒序free，缺请求默认空列表；删除缓存计数。
+10	repaired_pending_acceptance	窗口外已有块换null且分类归还；说明Z不能因计数回退自动减少。
+11	repaired_pending_acceptance	滑窗窗口外为max(0,c-window+1)；n=4及未封顶才有正文3–4块推导。
+12	supplemented_pending_acceptance	需求检查包含spec块与本步状态依赖；实际借块补来源47，不能只凭需求函数断言实际分配。
+13	supported	none不做align状态索引清理，最终super.free；get_num_skipped为c减1，固定最大块下不中途归还。
+14	supported	running不足时按policy抢占并重试，自身被抢占则退出；priority与FCFS分开。
+15	supported	waiting不足不抢占；async加载扣在途预留，整段准入由参数控制。
+16	supported	抢占清KV与encoder、清已算/候选、记录次数并放waiting头，非用户报错。
+17	supported_reuse	与本批kv-cache来源13字节一致，旧混合模型默认前缀支持False，未推广四版默认。
+18	supplemented_pending_acceptance	真实super需求后额外加1；补运行空命中与外部实际分配分支，四版条件另读。
+19	supported	GLM未开前缀和connector时调度与hash均取LCM，133120限旧部署。
+20	supported	只在needs_zeroing时取新块清单；下发清单不证明worker执行清零。
+21	supported	旧上游needs_zeroing由has_mamba_layers决定。
+22	supported	v0.26归还无hash前插、有hash尾插；没有旧prepend参数。
+23	supplemented_pending_acceptance	full部分尾块函数原范围只到早退条件，补54实际cache_partial_block调用。
+24	supported	main无hash或APC关时前插，其余尾插；不能按旧全排尾描述。
+25	supplemented_pending_acceptance	此范围只是full组入口，不能证明Mamba；补49、51、59各版递推分支。
+26	supported	混合模型在refresh早返不强改128；DeepSeek V4独立分支不能泛写所有纯注意力。
+27	supported	固定Ascend清零器要求needs且接口存在且eagle3与投机数大于1；MTP不触发。
+28	supported	实际zero只在存在_kv_block_zeroer时执行，清单本身不清显存。
+29	supported	固定GLM尾状态window与block均等compress_ratio。
+30	supported	尾状态规格注册SlidingWindowManager，支持中途归还与基类借块推导。
+31	repaired_pending_acceptance	chunked prefill窗口加新token且封顶，2050为准入上限；decode实际截短须另算。
+32	supported	整段准入先于窗口外归还；初检查超过空闲立即None，图注保留这条先后。
+33	supported	上游GPU needs且有接口即建zeroer，平台差异成立。
+34	supported	v0.23清零条件与旧镜像相同，需完整eagle3+大于1条件。
+35	supported_reuse	与34字节一致，v0.26同旧V1条件。
+36	repaired_pending_acceptance	main多V2入口，统一版本表且旧误解段不再笼统说Ascend只eagle3。
+37	archive_integrity_only	36段固定归档逐段一致；只计原文完整性，不代替主张支持。
+38	supported	rc2归还先按block.pool转交再做当前池计数和队列处理。
+39	supported	HiSparse源管理器独立CPU pool、自有null，host容量best effort；未认证Ascend任意组合。
+40	supported	协调器reset对manager池去重逐一重置；支持多池抽象但不是设备容量共享。

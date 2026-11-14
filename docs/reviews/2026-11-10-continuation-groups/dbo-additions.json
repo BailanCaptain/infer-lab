@@ -1,0 +1,455 @@
+{
+  "status": "authored_pending_independent_review",
+  "old_source_prefix": 79,
+  "new_count": 28,
+  "items": [
+    {
+      "id": 1,
+      "ref": "vllm@0fc695fc:docs/design/dbo.md#L1-L88",
+      "claim": "Official mother full text, upstream DP+EP use and thread explanation; actual code qualifies graph statement",
+      "action": "add_new",
+      "source_sha256": "0f293ff4351197f3757a9171bd46b75ded39d5b83afe3f63a14aa1e6fed94df2",
+      "scope_sha256": "7a6909286d1801eb0f1e9704159943454eed0866bf8bd48daa8415d23200f5a5",
+      "lines": [
+        1,
+        88
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/01-0fc695fc-dbo.md.txt",
+      "page_id": "async-scheduling",
+      "source_number": 80,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 2,
+      "ref": "vllm@0fc695fc:vllm/config/parallel.py#L200-L215",
+      "claim": "DBO false and thresholds32/512, nonnegative fields",
+      "action": "add_new",
+      "source_sha256": "0f507a228e67dcca2d9841f52ff5eb617342c4e1864af527b34c999f932f4d6a",
+      "scope_sha256": "1d87145c6d00e04885797d87da56220062b0e346d63b6ae65d6e8f82132b0637",
+      "lines": [
+        200,
+        215
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/02-0fc695fc-parallel.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 81,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 3,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/ubatch_utils.py#L38-L46",
+      "claim": "Runtime threshold uses >= and uniform_decode",
+      "action": "add_new",
+      "source_sha256": "0b727aaa1c7072152e25f684ddc2fc9790c430eddd862e610c97a8e3e9febdc4",
+      "scope_sha256": "69c2faede4ea885f1865641ade0a2c98efc5a86a487fafaef42bfa18d05d17fd",
+      "lines": [
+        38,
+        46
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/03-0fc695fc-ubatch_utils.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 82,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 4,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/dp_utils.py#L57-L74",
+      "claim": "All ranks agree; padding can leave second batch empty",
+      "action": "add_new",
+      "source_sha256": "2ba84bbf92a25e756576918bfb215c1fb387b006899885d811bdb2f774e843a9",
+      "scope_sha256": "c4995aba4d5e7eec2181ee0e4e7f361053d457c0aa7f3c482daf3c0aeb089341",
+      "lines": [
+        57,
+        74
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/04-0fc695fc-dp_utils.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 83,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 6,
+      "ref": "vllm@568afb3a:vllm/config/parallel.py#L209-L224",
+      "claim": "DBO false and thresholds32/512, nonnegative fields",
+      "action": "add_new",
+      "source_sha256": "a6581c267ab265e24905d2f5caa514482c28359f71380c6f894ceab25aa22541",
+      "scope_sha256": "1d87145c6d00e04885797d87da56220062b0e346d63b6ae65d6e8f82132b0637",
+      "lines": [
+        209,
+        224
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/06-568afb3a-parallel.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 84,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 7,
+      "ref": "vllm@568afb3a:vllm/v1/worker/ubatch_utils.py#L38-L46",
+      "claim": "Runtime threshold uses >= and uniform_decode",
+      "action": "add_new",
+      "source_sha256": "0b727aaa1c7072152e25f684ddc2fc9790c430eddd862e610c97a8e3e9febdc4",
+      "scope_sha256": "69c2faede4ea885f1865641ade0a2c98efc5a86a487fafaef42bfa18d05d17fd",
+      "lines": [
+        38,
+        46
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/07-568afb3a-ubatch_utils.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 85,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 8,
+      "ref": "vllm@568afb3a:vllm/v1/worker/dp_utils.py#L57-L74",
+      "claim": "All ranks agree; padding can leave second batch empty",
+      "action": "add_new",
+      "source_sha256": "2ba84bbf92a25e756576918bfb215c1fb387b006899885d811bdb2f774e843a9",
+      "scope_sha256": "c4995aba4d5e7eec2181ee0e4e7f361053d457c0aa7f3c482daf3c0aeb089341",
+      "lines": [
+        57,
+        74
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/08-568afb3a-dp_utils.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 86,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 10,
+      "ref": "vllm@ced6857a:vllm/config/parallel.py#L222-L237",
+      "claim": "DBO false and thresholds32/512, nonnegative fields",
+      "action": "add_new",
+      "source_sha256": "f012ace89e3fb730a467f729f602679bc145c49f0d10721811c9d818570e7b2b",
+      "scope_sha256": "1d87145c6d00e04885797d87da56220062b0e346d63b6ae65d6e8f82132b0637",
+      "lines": [
+        222,
+        237
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/10-ced6857a-parallel.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 87,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 11,
+      "ref": "vllm@ced6857a:vllm/v1/worker/ubatch_utils.py#L141-L149",
+      "claim": "Runtime threshold uses >= and uniform_decode",
+      "action": "add_new",
+      "source_sha256": "b34dce551b5195c414e6a3a997c75961cc7a17f24c7c980487fe3d3e2ba7a798",
+      "scope_sha256": "69c2faede4ea885f1865641ade0a2c98efc5a86a487fafaef42bfa18d05d17fd",
+      "lines": [
+        141,
+        149
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/11-ced6857a-ubatch_utils.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 88,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 12,
+      "ref": "vllm@ced6857a:vllm/v1/worker/dp_utils.py#L79-L96",
+      "claim": "All ranks agree; padding can leave second batch empty",
+      "action": "add_new",
+      "source_sha256": "8cd19f1bfbc5c4f6ec60df89aea7c8a19b400ebc264f372b103014152e92158c",
+      "scope_sha256": "c4995aba4d5e7eec2181ee0e4e7f361053d457c0aa7f3c482daf3c0aeb089341",
+      "lines": [
+        79,
+        96
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/12-ced6857a-dp_utils.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 89,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 14,
+      "ref": "vllm@84030bbe:vllm/config/parallel.py#L220-L235",
+      "claim": "DBO false and thresholds32/512, nonnegative fields",
+      "action": "add_new",
+      "source_sha256": "aa13758810c2002bfdc20d89b2d38d095a837888b5be0b1cdc2bca5127cea55a",
+      "scope_sha256": "1d87145c6d00e04885797d87da56220062b0e346d63b6ae65d6e8f82132b0637",
+      "lines": [
+        220,
+        235
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/14-84030bbe-parallel.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 90,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 15,
+      "ref": "vllm@84030bbe:vllm/v1/worker/ubatch_utils.py#L141-L149",
+      "claim": "Runtime threshold uses >= and uniform_decode",
+      "action": "add_new",
+      "source_sha256": "208adb98d9616e05ee72218ee4ba38cc0daf10ba93154dd8eda97e85f73adb07",
+      "scope_sha256": "69c2faede4ea885f1865641ade0a2c98efc5a86a487fafaef42bfa18d05d17fd",
+      "lines": [
+        141,
+        149
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/15-84030bbe-ubatch_utils.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 91,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 16,
+      "ref": "vllm@84030bbe:vllm/v1/worker/dp_utils.py#L62-L79",
+      "claim": "All ranks agree; padding can leave second batch empty",
+      "action": "add_new",
+      "source_sha256": "2059b0db9b76397e39ef7e44fcde0334f823f11f154650ad10e405fc52b38ea1",
+      "scope_sha256": "c4995aba4d5e7eec2181ee0e4e7f361053d457c0aa7f3c482daf3c0aeb089341",
+      "lines": [
+        62,
+        79
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/16-84030bbe-dp_utils.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 92,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 17,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1250-L1263",
+      "claim": "Ascend resets DBO false and explicit microbatch size0",
+      "action": "add_new",
+      "source_sha256": "30c75952f784c4d047d7202dd7f68c8fc7c22bb975853a5048fb51ffcbe1f2a8",
+      "scope_sha256": "85c360b4a38af431713c9331b6c00f12af5ea90a75e9ff6398bb228532869778",
+      "lines": [
+        1250,
+        1263
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/17-2c59ff10-platform.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 93,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 18,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L1240-L1253",
+      "claim": "Ascend resets DBO false and explicit microbatch size0",
+      "action": "add_new",
+      "source_sha256": "1e77e26845b0dab80ac3e97207c48f58b7ea3f0616f6683e35dd3bedbfbece5c",
+      "scope_sha256": "85c360b4a38af431713c9331b6c00f12af5ea90a75e9ff6398bb228532869778",
+      "lines": [
+        1240,
+        1253
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/18-db701c1f-platform.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 94,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 19,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L1250-L1263",
+      "claim": "Ascend resets DBO false and explicit microbatch size0",
+      "action": "add_new",
+      "source_sha256": "c711042261d5283be5aa644c3a5a00fcb34f70c0156f4b866700f38a927a1276",
+      "scope_sha256": "85c360b4a38af431713c9331b6c00f12af5ea90a75e9ff6398bb228532869778",
+      "lines": [
+        1250,
+        1263
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/19-2ed6cbba-platform.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 95,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 20,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L918-L930",
+      "claim": "Ascend resets DBO false and explicit microbatch size0",
+      "action": "add_new",
+      "source_sha256": "0f4e619517058f36b700a521e93c449d78b269c1d29ed1a18cbc312f2d67b082",
+      "scope_sha256": "14267797788055e30c3c7b67c1725c7c7844b88f12137cc4888ef7ea83aa1855",
+      "lines": [
+        918,
+        930
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/20-7d825229-platform.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 96,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 21,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L840-L852",
+      "claim": "Ascend resets DBO false and explicit microbatch size0",
+      "action": "add_new",
+      "source_sha256": "5acb2901b4950d70251222497ffff47532d1b2065e29d117d3ae0e058ceca468",
+      "scope_sha256": "14267797788055e30c3c7b67c1725c7c7844b88f12137cc4888ef7ea83aa1855",
+      "lines": [
+        840,
+        852
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/21-baa023ad-platform.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 97,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 22,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L3751-L3769",
+      "claim": "Uniform decode actual predicate",
+      "action": "add_new",
+      "source_sha256": "6250ca0670c4593aa2f7c4567c9c71d6cb3d8182624a985d4d4e33d5bf054666",
+      "scope_sha256": "18a709fb9692217006b9500f578ab3a73b7647d49333e9d300115d3361f62efe",
+      "lines": [
+        3751,
+        3769
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/22-0fc695fc-gpu_model_runner.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 98,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 23,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/dp_utils.py#L101-L161",
+      "claim": "DP sizes and graph agreement",
+      "action": "add_new",
+      "source_sha256": "2ba84bbf92a25e756576918bfb215c1fb387b006899885d811bdb2f774e843a9",
+      "scope_sha256": "c79fbbe1b65e287925f556b0536605c7f035c670155704e8ad58ebd5d85e845e",
+      "lines": [
+        101,
+        161
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/23-0fc695fc-dp_utils.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 99,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 24,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/ubatch_utils.py#L63-L114",
+      "claim": "Split tokens and metadata, requests can straddle boundary",
+      "action": "add_new",
+      "source_sha256": "0b727aaa1c7072152e25f684ddc2fc9790c430eddd862e610c97a8e3e9febdc4",
+      "scope_sha256": "52bac31fa2d96040cdfff0bd6a472f101c56b987917558f7d21f9db57e4818e1",
+      "lines": [
+        63,
+        114
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/24-0fc695fc-ubatch_utils.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 100,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 25,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/ubatching.py#L94-L105",
+      "claim": "Cooperative CPU threads; stream/event dependencies",
+      "action": "add_new",
+      "source_sha256": "40391241c564feb5f16c77898ae6ae152ed6e71a4682e2a406387785d8de02d7",
+      "scope_sha256": "4c2baf584045e580823d836908d438564d93da97348e0e9c5e0b42d7c3d314fa",
+      "lines": [
+        94,
+        105
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/25-0fc695fc-ubatching.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 101,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 26,
+      "ref": "vllm@0fc695fc:vllm/config/vllm.py#L1412-L1427",
+      "claim": "Only two DeepEP backends; disables cascade",
+      "action": "add_new",
+      "source_sha256": "ba062ec38d075937b73d953059cf1d0e1b96f1474990bc6d45ed45e20ba6a336",
+      "scope_sha256": "720a4f1862754dccd6a69293c4474d6a069dee9b417f78753470757631d99425",
+      "lines": [
+        1412,
+        1427
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/26-0fc695fc-vllm.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 102,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 27,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L5252-L5261",
+      "claim": "UBatch wrapper permits FULL or NONE",
+      "action": "add_new",
+      "source_sha256": "6250ca0670c4593aa2f7c4567c9c71d6cb3d8182624a985d4d4e33d5bf054666",
+      "scope_sha256": "c9c08e2dd355c07fdc4df8442da81d37185f3c8d28d1c5d52b977dc146ec8535",
+      "lines": [
+        5252,
+        5261
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/27-0fc695fc-gpu_model_runner.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 103,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 28,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_ubatch_wrapper.py#L295-L331",
+      "claim": "Eager two-thread execution",
+      "action": "add_new",
+      "source_sha256": "eaf264dfc3a07f65210979609c892d5268f9354a24b7bd7ff40750d77f35e99d",
+      "scope_sha256": "8884d762b897b1bad4dae641263c0d0ed917402eb47f17e1483a7f9484357265",
+      "lines": [
+        295,
+        331
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/28-0fc695fc-gpu_ubatch_wrapper.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 104,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 29,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_ubatch_wrapper.py#L431-L527",
+      "claim": "Select capture, replay or eager, and no-ubatch fallback",
+      "action": "add_new",
+      "source_sha256": "eaf264dfc3a07f65210979609c892d5268f9354a24b7bd7ff40750d77f35e99d",
+      "scope_sha256": "20d85733fd520e9412382291e385ba777d708740e53af847ef3498d981ee9943",
+      "lines": [
+        431,
+        527
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/29-0fc695fc-gpu_ubatch_wrapper.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 105,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 30,
+      "ref": "vllm@0fc695fc:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1124-L1186",
+      "claim": "Dispatch async receiver hook and cooperative yield",
+      "action": "add_new",
+      "source_sha256": "b1e73b77322363d686c524d01e482c7eabb50f46fa8d9796eebcb7976acb8aa1",
+      "scope_sha256": "01f65773e59d501268e01a7657f2a68e36d337cd4a8566f6f17ec0dd9f26f7ff",
+      "lines": [
+        1124,
+        1186
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/30-0fc695fc-modular_kernel.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 106,
+      "status": "authored_pending_independent_review"
+    },
+    {
+      "id": 31,
+      "ref": "vllm@0fc695fc:vllm/config/parallel.py#L506-L512",
+      "claim": "DBO implies two microbatches",
+      "action": "add_new",
+      "source_sha256": "0f507a228e67dcca2d9841f52ff5eb617342c4e1864af527b34c999f932f4d6a",
+      "scope_sha256": "c3b93bd5f10db76424cb799c956714c130c00e0b3d6d22223f271032eec5ce95",
+      "lines": [
+        506,
+        512
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/dbo/31-0fc695fc-parallel.py.txt",
+      "page_id": "async-scheduling",
+      "source_number": 107,
+      "status": "authored_pending_independent_review"
+    }
+  ]
+}

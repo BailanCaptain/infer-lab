@@ -3,7 +3,7 @@ id: rfork-layout
 title: RFork 张量布局：先对齐算子要的形状，再决定搬什么
 type: feature
 summary: >-
-  新实例从老实例读权重前，要先弄清权重此刻是什么样子：开了量化或 NZ 格式，就在读之前先把自己的布局转好；否则按原形状读完再处理。
+  新实例从老实例读权重前，要先弄清权重此刻是什么样子：开了量化或 NZ 格式，就在读之前先把自己的布局转好；否则先读取，再执行适用的后处理。
   要搬的张量不只在参数表里，同名的必须一致，本机自己的工作区不搬。
 aliases:
   - RFork 张量布局
@@ -25,6 +25,12 @@ sources:
   - >-
     rfork@3284850b:tests/ut/model_loader/rfork/test_tensor_safety_isolated.py#L143-L170
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L317-L345'
+  - >-
+    raw:sha256-1e7bc5a59579149471bf29de22fff5348fb9d62ebae4d3fe51971e2abf41bcdd.md#L1-L422
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/tensor_layout.py#L42-L61'
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/manifest.py#L164-L214'
+  - 'rfork@3284850b:vllm_ascend/ops/fused_moe/fused_moe.py#L132-L161'
+  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L715-L746'
 verified:
   - 'rfork:main'
 evidence: C
@@ -36,8 +42,10 @@ relations:
     kind: builds-on
     note: dtype、量化与 NZ 策略先进入兼容性指纹，再对齐具体张量清单
 contradicts: []
-updated: '2026-10-02'
+updated: '2026-10-28'
 rawSources:
+  - >-
+    raw/sha256-1e7bc5a59579149471bf29de22fff5348fb9d62ebae4d3fe51971e2abf41bcdd.md
   - >-
     raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md
   - >-
@@ -55,22 +63,22 @@ rawSources:
 问题是：A 显存里的权重，往往已经不是 checkpoint 文件里那个样子了。看一个示意的例子：
 
 - checkpoint 里有一块专家权重，6 行 × 4 列，int8，共 24 个数、24 个字节。
-- A 加载完以后会做一步**加载后处理**：先把它转置成 4 × 6，再转成 NZ 格式（把矩阵切成小块、按块连续存放的设备内部排布，昇腾的融合矩阵乘只认它，见[算子与内核](ops-and-kernels.md)）；另外还把它的缩放系数另存了一份 FP32 副本，这个张量 checkpoint 里根本没有。
+- A 加载完以后会做一步**加载后处理**：先把它转置成 4 × 6，再转成 [NZ 分块格式](tensor-layout.md)；固定 W8A8 专家的分组矩阵乘与 SwiGLU 融合路径要求这种排布，不能推广成所有昇腾矩阵乘都只认 NZ。另外还把它的缩放系数另存了一份 FP32 副本，这个张量 checkpoint 里根本没有。
 - 后处理直接换掉了原来那份数据，所以 A 显存里只剩处理后的这一版。
 
-B 要是照 checkpoint 开一个 6 × 4 的空位来接，24 个字节一个不少都能收到，可它们的先后顺序已经是转置、分块之后的，按 6 × 4 去解释就全错了；那份 FP32 副本，B 上连放的地方都没有。
+B 要是照 checkpoint 开一个 6 × 4 的空位来接，连“字节数相同”都不足以保证读对。先只看转置并连续化、暂不叠加 NZ：载荷仍为 24 字节，顺序已经改变，按原形状解释会把元素放错；那份 FP32 副本，B 上还缺相应位置。
 
-只看转置这一步就能看出错在哪。checkpoint 按行存，第 2 行第 1 个数排在第 5 个字节；转置成 4 × 6 以后，它落到第 1 行第 2 个位置，变成第 2 个字节。B 按 6 × 4 去读第 2 个字节，以为拿到的是第 1 行第 2 个数，实际拿到的是原来第 2 行第 1 个数。再叠上 NZ 分块，顺序还要再打乱一次。
+只看转置并连续化就能看出错在哪。checkpoint 按行存，第 2 行第 1 个数排在第 5 个字节；转置成 4 × 6 以后，它落到第 1 行第 2 个位置，变成第 2 个字节。B 按 6 × 4 去读第 2 个字节，以为拿到的是第 1 行第 2 个数，实际拿到的是原来第 2 行第 1 个数。再叠加 NZ，既要核对分块顺序，还要核对补齐和实际存储大小，不能继续按 24 字节估算物理载荷。
 
 所以 RFork 搬的是模型**此刻实际在用**的张量。**量化打包、NZ 格式转换会改张量：有的换形状，有的换底层存储，有的还会多出新张量**；B 必须先具备和 A 一样的布局，不能把 checkpoint 里的原始形状当成永远成立。
 
 ## 为什么不能先收下，再自己转
 
-直觉上，B 也可以先按 checkpoint 的样子收下字节，再自己跑一遍后处理。A 的后处理没动过布局时，确实可以这样做，后面的「按原形状搬」就是这条路。可一旦 A 的后处理像开头例子那样改过布局，就行不通了，原因在 A 那边：A 显存里已经没有 checkpoint 版的字节可给，只有处理后的那一版。
+直觉上，B 也可以先按 checkpoint 的样子收下字节，再自己跑一遍后处理。问题是，A 显存里提供的是当前张量，可能早已转置、转换格式或增加了派生张量。接收端必须按这份实际布局解释字节；不能把 A 的最终结果当成原始权重，再无差别地处理一次。
 
-这时 B 只能反过来做：先对还空着的模型跑同样的后处理，造出名字、形状、类型、格式都和 A 一样的空位，再用 A 的真实数据把这些空位覆盖掉。空壳上算出来的派生值也会被一并覆盖，前提是这些派生张量都被列进了要搬的清单，后面专门讲怎么找全。
+开头的量化例子采用「转好布局再搬」：B 先对还空着的模型跑同样的后处理，造出名字、形状、类型、格式都和 A 一样的空位，再用 A 的真实数据把这些空位覆盖掉。空壳上算出来的派生值也会被一并覆盖，前提是这些派生张量都被列进了要搬的清单，后面专门讲怎么找全。
 
-把两种顺序并排放着看：上一行是这种先转布局、再从 A 读的做法；下一行是 A 没动过布局时，先读、再后处理的做法。
+把两种顺序并排放着看：上一行先做全面的布局准备，再从 A 读；下一行不先跑这一步，核对清单并读取之后，再执行适用的后处理。下一行并不保证 A 的布局没有变过，未量化 MoE 就有下面要讲的例外。
 
 ```wiki-diagram
 file: rfork-layout
@@ -85,21 +93,23 @@ file: rfork-layout
 决定走哪条路的是 B 的启动配置，不是请求里有多少 token。三个条件任一成立，B 就走「转好布局再搬」（processed layout）这条路：
 
 - 模型开了量化；
-- 权重 NZ 模式配成 2。这个配置取 0 表示一律不转 NZ，取 1（默认）时量化权重转、BF16 / FP16 权重不转，取 2 连 BF16 / FP16 权重也转；
+- 权重 NZ 模式配成 2。在普通权重格式选择函数中，0 关闭可选转换，1（默认）允许符合条件的量化权重转换，2 还允许 BF16 / FP16；硬件强制策略和专家方法里直接调用的转换需要另查，0 不是全局禁用所有 NZ；
 - 当前硬件的策略要求权重必须是 NZ 格式。
+
+这里的判断有两个具体边界：量化项只区分是否未设置，不把所有假值都视作未设置；NZ 模式则先排除布尔值，再看转换得到的整数是否为 2。读配置时，需要按这两个条件判断路线。
 
 可以这样理解第二条为什么只认 2：取 1 时要转 NZ 的是量化权重，而开了量化，第一条已经成立；取 2 时，不量化的模型也会被换掉底层格式，所以也得先转好再搬。
 
-都不成立，就走「按原形状搬」（checkpoint layout）：张量此刻还是 checkpoint 里的样子，可以先读再做后处理。实际排查时不要凭印象推定，先读两端配置，再看启动日志里有没有「用加载后布局传输」那一行，再确定下面哪条路适用。
+都不成立，就走「先读后处理」（代码称 checkpoint layout）：B 不先跑全面的加载后处理，而是在核对清单、读取后执行适用的后处理。这个路径名不保证 seed 上的张量仍是 checkpoint 形状。实际排查时先读两端配置，再看启动日志里有没有「用加载后布局传输」那一行，并核对实际清单。
 
 ## 两条路，后处理放的位置不同
 
-先说清两个容易误读的词。**「读」指的是通过传输引擎从 A 的 NPU 把字节读回来**，不是从磁盘读 checkpoint 文件；**「按原形状」说的是「张量此刻还保持 checkpoint 里的形状」**，不是「收到的是磁盘文件」。两条路都靠远端 NPU 读取拿数据。先后顺序见前面的图，逐个阶段对比如下：
+先说清两个容易误读的词。**「读」指的是通过传输引擎从 A 的 NPU 把字节读回来**，不是从磁盘读 checkpoint 文件；**checkpoint layout 是接收端执行路径的名字**，不是来源字节保持原始形状的承诺。两条路都靠远端 NPU 读取拿数据。先后顺序见前面的图，逐个阶段对比如下：
 
 | 路径 | 从 A 读之前 | 从 A 读之后 | B 自己成为 seed 之前 |
 |---|---|---|---|
 | 转好布局再搬 | 搭好模型 → 做完加载后处理 → 等 NPU 同步 | 不再重复一般后处理，直接进入推理模式和发布判断 | 登记的已经是处理后的最终缓冲区 |
-| 按原形状搬 | 搭好模型后直接申请租约 | 执行后处理，但临时跳过未量化 MoE 的特定一步 | 一律重新刷新内存登记，防后处理换掉了底层存储 |
+| 先读后处理 | 搭好模型后直接申请租约；核对清单时按需要调整视图形状 | 执行后处理，但临时跳过未量化 MoE 的特定一步 | 一律重新刷新内存登记，防后处理换掉了底层存储 |
 
 「转好布局再搬」这条路，是先对还空着的目标模型做布局准备，再用 A 的真实数据覆盖对应缓冲区。NPU 上的格式转换是异步执行的，所以登记、读取之前必须先同步；不同步，转换和远端写入就有同时碰到同一批目标字节的风险。
 
@@ -107,13 +117,15 @@ file: rfork-layout
 
 **转好布局再搬**：如果打开了共享专家的多流重叠（multistream overlap shared expert，默认关），每个带共享专家的 MoE 层会给自己量化方法的后处理外面再包一层校验：后处理做完，拿「共享专家拆成两段算」和「合起来算」的结果对比。读之前做布局准备时，真实权重还没装进来，对着空壳做这个对比没有意义，所以临时换回被包装的原函数；离开这一步时，不管成功还是出异常，都换回来。没打开这个开关，就没有这层包装，这一步什么也不换。
 
-**按原形状搬**：读完之后做后处理时，只把「未量化的融合 MoE」那一种方法的后处理临时变成什么都不做；dense 层照常后处理，结束时同样恢复。
+**先读后处理**：读完之后做后处理时，只把「未量化的融合 MoE」那一种方法的后处理临时变成什么都不做；dense 层照常后处理，结束时同样恢复。
+
+原因可以直接用一个未量化 MoE 张量说明。即使没有量化、NZ 模式为默认1且硬件没有强制 NZ，来源端的未量化 MoE 后处理也会转置专家权重。取不需要补齐的示意张量 `(1,6,4)`：A 转置并连续化后是 `(1,4,6)`，仍有24个元素。B 最初的空位可以是 `(1,6,4)`；工作版读清单后，在元素个数相同且 `view` 可行时将它改成 `(1,4,6)`，再读入 A 已转置的字节。此时再跑一次相同的 MoE 转置会把布局改回去，所以读取后跳过这一特定方法。若补齐导致元素个数不同，或无法建立所需视图，就不能靠这一步接收，仍要失败回退；改视图也不等于转换 ND/NZ 格式。
 
 这两处作用在不同阶段、不同方法范围。调试时要先说清「哪条布局路径、哪一种量化方法」，不能一句「RFork 不做后处理」概括。
 
 ## 要搬的张量，不只在参数表里
 
-| 到哪里找 | 按原形状搬 | 转好布局再搬 |
+| 到哪里找 | 先读后处理 | 转好布局再搬 |
 |---|---|---|
 | 模型参数 | 扫 | 扫 |
 | 模型 buffer | 扫 | 扫 |
@@ -167,7 +179,7 @@ title: 测试里两份工作区差多少
 ### MoE 那两道临时处理，这套部署都用不上
 
 - 读之前那一道，只在打开共享专家多流重叠时才有东西可换。教程命令没开这个开关，默认是关，所以这一步遍历一遍、什么也不换。
-- 读之后那一道只在「按原形状搬」时出现，而且只管未量化的融合 MoE。GLM 走的是另一条路，专家也全是 int8 的。
+- 读之后那一道只在「先读后处理」时出现，而且只管未量化的融合 MoE。GLM 走的是另一条路，专家也全是 int8 的。
 
 ### top-k 下标缓冲：正是排除名单要防的情况
 
@@ -193,7 +205,7 @@ MTP 一份 = 8192 × 2176 × 4 B ≈ 68.0 MiB
 - **「形状一样，布局就一样」**——量化打包、数据类型、底层存储和算子策略也影响字节怎么解释。
 - **「转好布局再搬，是收到数据后才转换」**——正好相反：B 先转换并同步，再读入 A 已经处理好的张量。
 - **「排除工作区那个修复解决了所有形状不匹配」**——它只解决特定本机工作区被误传的问题；权重本身不匹配仍然应该拒绝。
-- **「GLM 是 MoE 量化模型，MoE 那两道临时处理都会起作用」**——一道要开共享专家多流重叠才有东西可换，一道只在按原形状搬时出现，这套部署两道都用不上。
+- **「GLM 是 MoE 量化模型，MoE 那两道临时处理都会起作用」**——一道要开共享专家多流重叠才有东西可换，一道只在先读后处理时出现，这套部署两道都用不上。
 - **「扫描里的 impl 就是量化方法」**——impl 是模块挂着的算子实现对象，最常见的是注意力后端；量化方法另外挂着，量化产生的派生张量多半挂在层自己身上。
 
 ## 对照源码
@@ -201,11 +213,12 @@ MTP 一份 = 8192 × 2176 × 4 B ≈ 68.0 MiB
 ### 怎么开
 
 - 走 processed layout 的判断在 `_requires_processed_layout_transfer`：`model_config.quantization` 非空；或 `get_ascend_config().weight_nz_mode == 2`；或 `get_current_hardware_profile().weight_layout_policy` 为 `FORCE_NZ`。AscendConfig 在早期或纯 CPU 检查时取不到会被忽略，硬件策略取不到时返回 False。[C1]
-- `weight_nz_mode` 来自 `--additional-config` 的同名键或环境变量 `VLLM_ASCEND_ENABLE_NZ`：0 不转，1（默认）BF16 / FP16 不转、量化权重转，2 连 BF16 / FP16 也转。
+- 本页快照的 `weight_nz_mode` 来自 `--additional-config` 的同名键或环境变量 `VLLM_ASCEND_ENABLE_NZ`。0/1/2 控制普通选择函数里的可选转换，不覆盖所有硬件与专家路径；完整边界见 [ND/NZ](tensor-layout.md)。
 - 选中 processed 时打印 `RFork %s model uses post-load tensor layout transfer.`，之后有一行 `RFork %s model layout processing took %.2f seconds` 记布局准备耗时。[C3]
 - 读前那道 MoE 处理要有包装可换：只有 `multistream_overlap_shared_expert` 为真（默认 False；与 fused MC2 同开时会被强制关掉）且该层 `shared_experts is not None` 时，MoE 层才给 `process_weights_after_loading` 包上 `_validate_shared_expert_consistency`。
 - processed：构建模型 → `process_weights_after_loading` → `torch.npu.synchronize`，之后再申请租约和读取；checkpoint：构建后直接申请租约，读完再做后处理。
 - checkpoint 路径成为 seed 前，启动 seed 服务的入口会重新 `register_memory_region`，因为后处理可能替换 storage。[C8]
+- 未量化 MoE 的来源权重同样会转置；接收端先按清单核对并调整视图，再读取最终字节，随后跳过这类 MoE 的重复后处理。视图调整不改变元素个数，也不能完成格式转换。[C12][C13][C4][C2]
 
 ### 会报什么错
 
@@ -225,8 +238,9 @@ MTP 一份 = 8192 × 2176 × 4 B ≈ 68.0 MiB
 本页按 RFork 工作版（`rfork@3284850b`）写。社区各版本的 `rfork_loader.py` 也有 processed / checkpoint 两条路，但细节不同：
 
 - **v0.23（`2c59ff10`）、v0.26（`2ed6cbba`）、带 GLM 代码的 `db701c1f`**：`_requires_processed_layout_transfer` 只看 `quantization` 是否非空，不看 NZ 模式和硬件策略；日志是 `RFork uses post-load tensor layout transfer for quantized model.`；后处理完直接进传输，没有 `torch.npu.synchronize`，也没有两道 MoE 临时处理。
-- **main（`baa023ad`）**：判断条件仍只有量化；补上了同步、读前换回 `__wrapped__` 和按原形状路径跳过 `AscendUnquantizedFusedMoEMethod` 后处理这两道 MoE 处理。
-- **四个社区版本共同**：张量采集写在 `transfer_backend.py` 里，没有 `tensor_layout.py`；按 `data_ptr` 去重、同一起始地址只留第一个名字，没有同名冲突报错；没有运行时排除名单，`topk_indices_buffer` 会照常进清单。
+- **main（`baa023ad`）**：判断条件仍只有量化；补上了同步、读前换回 `__wrapped__` 和 checkpoint 路径跳过 `AscendUnquantizedFusedMoEMethod` 后处理这两道 MoE 处理。
+- **上述四个旧快照共同**：张量采集写在 `transfer_backend.py` 里，没有 `tensor_layout.py`；按 `data_ptr` 去重、同一起始地址只留第一个名字，没有同名冲突报错；没有运行时排除名单，`topk_indices_buffer` 会照常进清单。
+- **v0.30.0rc2（7d825229）**：已有独立 tensor_layout 模块，收集后的张量名字、shape、dtype、NPU format 参与结构摘要，再绑定到 seed 身份。传输清单还逐项核格式，不能把“元素数相同”理解成 ND/NZ 可以直接互读；这仍没有检查权重内容。源码与身份、清单的关系见[总览对照](rfork.md#版本差异)和[传输页](rfork-transfer.md#版本差异)。
 
 逐补丁对照见[总览](rfork.md)的「版本差异」。
 
@@ -235,7 +249,7 @@ MTP 一份 = 8192 × 2176 × 4 B ≈ 68.0 MiB
 以下均为工作版 `rfork@3284850b`，路径前缀 `vllm_ascend/model_loader/rfork/`（测试除外）：
 
 - `rfork_loader.py#L503-L519`：`_requires_processed_layout_transfer`，量化 / `weight_nz_mode == 2` / `FORCE_NZ` 三个条件。
-- `rfork_loader.py#L335-L411`：`_rfork_pre_transfer_weight_processing`（L354 起，把特定 MoE quant method 的包装后处理临时换成 `__wrapped__`，跳过 shared-expert 包装校验）与 `_rfork_skip_unquantized_moe_post_load_processing`（L386 起，只把 `AscendUnquantizedFusedMoEMethod` 的后处理置为 no-op）；两者都在退出时恢复原方法。
+- `rfork_loader.py#L335-L411`：`_rfork_pre_transfer_weight_processing`（L354 起，把特定 MoE quant method 的包装后处理临时换成 `__wrapped__`，跳过 shared-expert 包装校验）与 `_rfork_skip_unquantized_moe_post_load_processing`（L386 起，先读后处理路径中只把 `AscendUnquantizedFusedMoEMethod` 的后处理置为 no-op）；两者都在退出时恢复原方法。
 - `rfork_loader.py#L584-L644`：两条路径的分叉与先后顺序，processed 路径的 `process_weights_after_loading` 与 `torch.npu.synchronize`。
 - `tensor_layout.py#L18-L55`：`_RUNTIME_ONLY_TENSOR_NAMES = frozenset({"topk_indices_buffer"})`，`_is_runtime_only_tensor` 按 `rsplit(".", 1)[-1]` 比对；`reshape_tensor_to_seed_shape`；`is_transferable_tensor` 排除 meta、空张量和非 NPU 张量。
 - `tensor_layout.py#L58-L152`：对象扫描与 `_try_collect`（L118 起），循环引用防护、不扫函数 / 方法 / 类，排除运行时张量，同名冲突检查。
@@ -251,3 +265,5 @@ GLM 一节另用固定镜像 `vllm-ascend@db701c1f`：
 - `vllm_ascend/models/glm5_next.py#L2252-L2259`：`topk_indices_buffer` 形状为 `(max_num_batched_tokens, index_topk + index_kpool - 1)`、int32；`#L1260`、`#L402`：索引器把它存成普通属性。
 - `vllm_ascend/models/glm5_next_mtp.py#L64-L77`：MTP 层另开一份，宽度取到 128 的倍数。
 - 社区版对照：`2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L219-L220`、`#L275-L277`；`baa023ad:…/rfork_loader.py#L175`、`#L202-L206`、`#L330-L331`、`#L390`；`baa023ad:…/transfer_backend.py#L149-L164`（按 `data_ptr` 去重）。
+
+工作版路线选择的精确条件见来源 1：quantization 以是否为 None 判断，NZ 模式则要求不是 bool 且转换后的整数等于2；“未设置”不能替换成一般真值判断。异常与硬件策略继续按“怎么开”的分支执行，实际布局兼容性仍须核对张量与设备结果。

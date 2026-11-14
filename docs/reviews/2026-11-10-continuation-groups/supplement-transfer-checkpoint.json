@@ -1,0 +1,459 @@
+{
+  "recorded_at": "2026-11-10T10:05:25.608321+00:00",
+  "reviewer": "/root/groups_ucm_review",
+  "status": "accepted_with_one_P2_fixed_and_rechecked",
+  "scope": {
+    "kv-cache": {
+      "source_numbers": "47–58",
+      "count": 12
+    },
+    "kv-pool": {
+      "source_numbers": "58–70",
+      "count": 13
+    },
+    "mooncake-connector": {
+      "source_numbers": "65–77",
+      "count": 13
+    },
+    "pd-disaggregation": {
+      "source_numbers": "74–84",
+      "count": 11
+    }
+  },
+  "count": 49,
+  "verdict_counts": {
+    "supported_scoped": 49
+  },
+  "open_findings": {
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "closed_findings": [
+    {
+      "id": "transfer-P2-1",
+      "severity": "P2",
+      "status": "closed_after_author_fix_and_independent_recheck",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "line": 417,
+      "problem": "Cross-page KV Pool summary omitted the prompt-length boundary, overgeneralizing no query to every prompt.",
+      "correction": "State 133120-token segment and restrict no-query claim to prompt shorter than that segment.",
+      "evidence": [
+        "db701c1f pool_scheduler.py491–536",
+        "db701c1f patch_mamba_config.py205–226",
+        "wiki/concepts/kv-pool.md309–320",
+        "browser mooncake-condition.png and clicked destination heading"
+      ],
+      "author": "/root",
+      "reviewer_did_not_modify_teaching_page": true
+    }
+  ],
+  "unique_version_files": 33,
+  "cited_range_lines_with_overlap": 1450,
+  "all_fixed_git_bytes_and_current_numbered_refs_verified": true,
+  "first_time_official_full_read_increment": 0,
+  "preservation": {
+    "prior_checkpoint": "docs/reviews/2026-11-10-continuation-500/file-checkpoint.json",
+    "method": "For each changed page, remove only the recorded addition or substitute only the P2 sentence back; resulting raw bytes exactly match prior500 after_sha256. No teaching files written by reviewer.",
+    "files": [
+      {
+        "path": "wiki/concepts/kv-cache.md",
+        "current_sha256": "fa3c8ae61dd4e6aecbed87b62eec7490c48e392810f6ab04b1c77c669e76c74d",
+        "prior_500_after_sha256": "7a00b9381122b18056f5bebd605c5d44276e113cce2155c1766a0120006df7a1",
+        "matches_prior_500": false,
+        "only_documented_changes_hash_proof": {
+          "as-is": true,
+          "lf": true,
+          "crlf": false
+        },
+        "documented_changes": [
+          "想看“新 K/V 写到哪里、前缀共享是否复制数据、结束后谁还能继续使用”，可以播放[块表中的缓存生命周期](block-table.md#scene-inference-mechanism-1)。图中块号、槽位编号和缓存数值分别标注，避免把地址当成内容。\n\n"
+        ]
+      },
+      {
+        "path": "wiki/diagrams/kv-cache.yaml",
+        "current_sha256": "4d8b785368ee1844f041ae79bb580fe213840a0f8db277e44cb962239f14f3ee",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "4d8b785368ee1844f041ae79bb580fe213840a0f8db277e44cb962239f14f3ee",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/kv-cache.svg",
+        "current_sha256": "b1ef22d666ed9e29f5f8dc5bef7eb2138d21e38dfea2a83fbae234eefedd670d",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "b1ef22d666ed9e29f5f8dc5bef7eb2138d21e38dfea2a83fbae234eefedd670d",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/kv-cache-recompute.yaml",
+        "current_sha256": "1fa50dde0cee49956e3a2254af0b0eb625e468e42870bd40c0ed80e9fc08b171",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "1fa50dde0cee49956e3a2254af0b0eb625e468e42870bd40c0ed80e9fc08b171",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/kv-cache-recompute.svg",
+        "current_sha256": "78765fc46fc91da4eeaa3363512b078e3a73e833937fdced76ffbfac5b679953",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "78765fc46fc91da4eeaa3363512b078e3a73e833937fdced76ffbfac5b679953",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/kv-cache-size.yaml",
+        "current_sha256": "f4955afbad059d89301cd9287ebdaaecacaddc5d1b81cb3634d876be61b384cb",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "f4955afbad059d89301cd9287ebdaaecacaddc5d1b81cb3634d876be61b384cb",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/kv-cache-size.svg",
+        "current_sha256": "d746b539abfa8c3b8dea54dba850cf1c34b49511712aaa392d0dc625d870b894",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "d746b539abfa8c3b8dea54dba850cf1c34b49511712aaa392d0dc625d870b894",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/block-table.yaml",
+        "current_sha256": "5822067d06344e1ec82ddbd8c5d3adbb6e9522bc3446b97d9f7ca68ced2105e2",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "5822067d06344e1ec82ddbd8c5d3adbb6e9522bc3446b97d9f7ca68ced2105e2",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/block-table.svg",
+        "current_sha256": "d90e4f42316fd646b7738e1db0c25b8d78b1f1241356733b0af54c68c859b910",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "d90e4f42316fd646b7738e1db0c25b8d78b1f1241356733b0af54c68c859b910",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/kv-cache-lifecycle.yaml",
+        "current_sha256": "c8440e9c2e52b74a2855b5dbb849e1465d1399402c057b68919769a57162f04c",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "c8440e9c2e52b74a2855b5dbb849e1465d1399402c057b68919769a57162f04c",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/kv-cache-lifecycle.svg",
+        "current_sha256": "281272fc23b3d563983de02c8bf8bf3b5ba44db368e3de0a08a53526da3e735b",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "281272fc23b3d563983de02c8bf8bf3b5ba44db368e3de0a08a53526da3e735b",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/concepts/kv-pool.md",
+        "current_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+        "prior_500_after_sha256": "b3f05698e4f3250968ffd51c10ce47c8b77841f82f02fc0616b98a4d093bfbc4",
+        "matches_prior_500": true,
+        "only_documented_changes_hash_proof": {
+          "as-is": true,
+          "lf": false,
+          "crlf": true
+        },
+        "documented_changes": []
+      },
+      {
+        "path": "wiki/diagrams/kv-pool-intuition.yaml",
+        "current_sha256": "3059a1a6952bab7af8035eb7b2b191091fc85c32a4e3752bb11643f86027358d",
+        "prior_500_after_sha256": "3059a1a6952bab7af8035eb7b2b191091fc85c32a4e3752bb11643f86027358d",
+        "matches_prior_500": true
+      },
+      {
+        "path": "wiki/diagrams/kv-pool-intuition.svg",
+        "current_sha256": "ff8ac2978e93f34c2037f091e8ed74f055698799f6836e36356b0d3fbf0ab018",
+        "prior_500_after_sha256": "ff8ac2978e93f34c2037f091e8ed74f055698799f6836e36356b0d3fbf0ab018",
+        "matches_prior_500": true
+      },
+      {
+        "path": "wiki/diagrams/kv-pool.yaml",
+        "current_sha256": "f16729805aa64a6f8c3a9c16d92c8c56a7d1c904caa886720e167479f6911d68",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "f16729805aa64a6f8c3a9c16d92c8c56a7d1c904caa886720e167479f6911d68",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/kv-pool.svg",
+        "current_sha256": "9b044a71df27da67ea3aebd6f4d640af535737bb8add3bdbb232b88b7e956b06",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "9b044a71df27da67ea3aebd6f4d640af535737bb8add3bdbb232b88b7e956b06",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/kv-pool-flow.yaml",
+        "current_sha256": "36fd13f21e239f7abc2961eeee5a29d71a2170a67152b98ca987532c9c4514ec",
+        "prior_500_after_sha256": "36fd13f21e239f7abc2961eeee5a29d71a2170a67152b98ca987532c9c4514ec",
+        "matches_prior_500": true
+      },
+      {
+        "path": "wiki/diagrams/kv-pool-flow.svg",
+        "current_sha256": "91a5537069774684ee263ff49223fe9a18b2dea1428e6689b6eb362dc3e445cd",
+        "prior_500_after_sha256": "91a5537069774684ee263ff49223fe9a18b2dea1428e6689b6eb362dc3e445cd",
+        "matches_prior_500": true
+      },
+      {
+        "path": "wiki/diagrams/kv-pool-glm-cards.yaml",
+        "current_sha256": "8884b4b35fcb2df66424eb12429320a08f142eb4898cf4b3594cb8371e6b1723",
+        "prior_500_after_sha256": "8884b4b35fcb2df66424eb12429320a08f142eb4898cf4b3594cb8371e6b1723",
+        "matches_prior_500": true
+      },
+      {
+        "path": "wiki/diagrams/kv-pool-glm-cards.svg",
+        "current_sha256": "8b0cd7969b6e63366441eadecf9ffac94ed30fdfdc9e751a15be28a31e2cda0c",
+        "prior_500_after_sha256": "8b0cd7969b6e63366441eadecf9ffac94ed30fdfdc9e751a15be28a31e2cda0c",
+        "matches_prior_500": true
+      },
+      {
+        "path": "wiki/concepts/mooncake-connector.md",
+        "current_sha256": "361d2790694396837de25c6a4ac4ec97568fa33c9876bb3df0c4b89d2ecd1ea1",
+        "prior_500_after_sha256": "291cf24d9c2d7397e6df6e03e3ff71bf167d580bb9a35b2423a38c5ce007bee5",
+        "matches_prior_500": false,
+        "only_documented_changes_hash_proof": {
+          "as-is": true,
+          "lf": true,
+          "crlf": false
+        },
+        "documented_changes": [
+          {
+            "current": "只加 KV Pool、不开 prefix caching 时，段长等于最长长度 133,120；短于该长度的 prompt 向下取整为 0，不会发出查询。",
+            "prior": "只加 KV Pool、不开 prefix caching，一次查询都不会发出。"
+          }
+        ]
+      },
+      {
+        "path": "wiki/diagrams/mooncake-connector.yaml",
+        "current_sha256": "6d37ade229480da96ff6b475f47ffcfe7ba5c1756e654ab5873c6e8693436a80",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "6d37ade229480da96ff6b475f47ffcfe7ba5c1756e654ab5873c6e8693436a80",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/mooncake-connector.svg",
+        "current_sha256": "3691f662e482fdecb331e080efac629c7851c8ce477138992a31250c65e1d2ee",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "3691f662e482fdecb331e080efac629c7851c8ce477138992a31250c65e1d2ee",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/mooncake-connector-hooks.yaml",
+        "current_sha256": "1d8cf2888b677848906817fdec5d7f64df624d37d5b0c4ebfeb20e6c13b47241",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "1d8cf2888b677848906817fdec5d7f64df624d37d5b0c4ebfeb20e6c13b47241",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/mooncake-connector-hooks.svg",
+        "current_sha256": "d9ff1d6cac9cafc9577de398b40a97fc8dbf7bf084a8799bf1f3a9d4531fa963",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "d9ff1d6cac9cafc9577de398b40a97fc8dbf7bf084a8799bf1f3a9d4531fa963",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/mooncake-layerwise.yaml",
+        "current_sha256": "42f6754d93e49c891d4aa6e6872a6fc8b31d22d6e36e466953d093bb40f991cc",
+        "prior_500_after_sha256": "42f6754d93e49c891d4aa6e6872a6fc8b31d22d6e36e466953d093bb40f991cc",
+        "matches_prior_500": true
+      },
+      {
+        "path": "wiki/diagrams/mooncake-layerwise.svg",
+        "current_sha256": "1a58e996a70a88c58918f950a123b1ee4d262ac97cbbd915eb55a24662233feb",
+        "prior_500_after_sha256": "1a58e996a70a88c58918f950a123b1ee4d262ac97cbbd915eb55a24662233feb",
+        "matches_prior_500": true
+      },
+      {
+        "path": "wiki/concepts/pd-disaggregation.md",
+        "current_sha256": "5c0327f1a78ee73cd10edf55c02fa32a12d93021e85403e808269e21c6322236",
+        "prior_500_after_sha256": "db1e3c4bb875a37407bd764061b4b6826302cab1372d309f263cd51d34b26b11",
+        "matches_prior_500": false,
+        "only_documented_changes_hash_proof": {
+          "as-is": true,
+          "lf": false,
+          "crlf": true
+        },
+        "documented_changes": [
+          "下面把表中的 P#7 → D#3、P#12 → D#5 放回两组实例的显存里。每块保存两个位置，K、V 各用两个示意通道；按块依次播放便于追踪，不表示真实网络逐包串行传输。最后观察完成信号何时允许 P 释放源块。\r\n\r\n```wiki-scene\r\ninference-mechanism:2\r\n```\r\n\r\n"
+        ]
+      },
+      {
+        "path": "wiki/diagrams/pd-disaggregation-intuition.yaml",
+        "current_sha256": "25dcbc723bf81fe8648c5984ca87a7005f2148f81f19f63e5b769a311f24288f",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "25dcbc723bf81fe8648c5984ca87a7005f2148f81f19f63e5b769a311f24288f",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/pd-disaggregation-intuition.svg",
+        "current_sha256": "4a6df523812c1d073edd41358d88b83e0a7e462e5fd8cff9bf94d1ea07bb5911",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "4a6df523812c1d073edd41358d88b83e0a7e462e5fd8cff9bf94d1ea07bb5911",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/pd-disaggregation.yaml",
+        "current_sha256": "c1cdb8c2da05df3c76114c251866957e161c13852b9e55e47c8e8704b57d42b8",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "c1cdb8c2da05df3c76114c251866957e161c13852b9e55e47c8e8704b57d42b8",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/pd-disaggregation.svg",
+        "current_sha256": "55087906ff9dd666f402ce11e0dd1e1e028b8181bf60a5ddf0e647eefdfa08b7",
+        "prior_500_after_sha256": null,
+        "matches_prior_500": null,
+        "prior500_before_sha256": "55087906ff9dd666f402ce11e0dd1e1e028b8181bf60a5ddf0e647eefdfa08b7",
+        "matches_prior500_before": true
+      },
+      {
+        "path": "wiki/diagrams/pd-state-boundary.yaml",
+        "current_sha256": "d061875164c9e4f11640e1311622b88d8c944821a3862f58a07a33162fb32ea3",
+        "prior_500_after_sha256": "d061875164c9e4f11640e1311622b88d8c944821a3862f58a07a33162fb32ea3",
+        "matches_prior_500": true
+      },
+      {
+        "path": "wiki/diagrams/pd-state-boundary.svg",
+        "current_sha256": "bfb8982d2b7610e08048177052d2d3af43b7a31add0f6aad6590b334172d3a29",
+        "prior_500_after_sha256": "bfb8982d2b7610e08048177052d2d3af43b7a31add0f6aad6590b334172d3a29",
+        "matches_prior_500": true
+      }
+    ],
+    "other_thread_3d_scope": "KV page lifecycle link and PD scene paragraph/fence remain unchanged. No 3D playback/code/physics acceptance claimed."
+  },
+  "additional_context": [
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L77-L145",
+      "source_sha256": "80005aba42bcf61247cc0d91502a0f1338194a4b38dd82bc521f6d3c84958390",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/supplement-transfer/review-extra-1.txt",
+      "excerpt_sha256": "a95d5af6abb14ef232c3d594fd74ceed15082129800c364868064acd89f11e13",
+      "purpose": "Parent-class inheritance: full AscendAttentionBackend class inspected; no override of update flag.",
+      "line_count": 69
+    },
+    {
+      "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_mamba_config.py#L49-L72",
+      "source_sha256": "65ab1b1d7f634c57060161b61f60b0c2e1675de586c305055e7979cf52671442",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/supplement-transfer/review-extra-2.txt",
+      "excerpt_sha256": "81084879dab6aee41ad9761928bcbb84829023c568c031acd35172c5cc8d00e5",
+      "purpose": "AscendStore/MultiConnector and hybrid-manager gate, not all connectors.",
+      "line_count": 24
+    },
+    {
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L1043-L1052",
+      "source_sha256": "b57b77725787f04cf47916e520c58f31fb1ef6ce3addb8a8855d81cbe0026984",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/supplement-transfer/review-extra-3.txt",
+      "excerpt_sha256": "84eb161b5be8d1af165440644665f7c3c4cc744ff6549099b1f89c2149e4b901",
+      "purpose": "Released save IDs contain finished and preempted requests.",
+      "line_count": 10
+    },
+    {
+      "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L940-L959",
+      "source_sha256": "c7af0a052e1cbada0b300b6872585ffeafe159fb355b73547c0ccc34755fe67b",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/supplement-transfer/review-extra-4.txt",
+      "excerpt_sha256": "9359178bbd2b35ffb46190636b101010e14e0cd19c61526084e6e853c41d9e9f",
+      "purpose": "Actual pending-request save fence and background failure loop.",
+      "line_count": 20
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L491-L536",
+      "source_sha256": "b8e013583016c5e58cf1cc87aabbd7ed919e5d5852382304d0423eb44f14465d",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/supplement-transfer/review-extra-5.txt",
+      "excerpt_sha256": "76edb49e681f70b9aa5999b7209480fdce63657f17eea2d24408f32ac6cf4924",
+      "purpose": "P2: floor to granularity / below-one-segment no-query gate.",
+      "line_count": 46
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L205-L226",
+      "source_sha256": "e813b1ed7d3664ccb811cefdf462d91ade50a491fd5ef4e162b588ef91cdd170",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/supplement-transfer/review-extra-6.txt",
+      "excerpt_sha256": "1fb27dad72aa79862881570afa0e64cb6719365aee078f9a1d991f2de1c4939d",
+      "purpose": "P2: no APC means Mamba block size is max_model_len under the scoped deployment.",
+      "line_count": 22
+    }
+  ],
+  "browser": {
+    "report": ".tmp/continuation-groups-2026-11-10/review-supplement-transfer-browser/report.json",
+    "report_sha256": "b43b026d9514c81e1731ba598aa073c3a3cb065f97ad9384a3b998ac8bf1cc92",
+    "pages_opened": 4,
+    "first_two_screens_inspected": 4,
+    "version_tables_inspected": 4,
+    "wide_tables_scrolled_right": [
+      "mooncake-connector",
+      "pd-disaggregation"
+    ],
+    "P2_paragraph_inspected": true,
+    "P2_backlink_clicked": true,
+    "pageerrors": [],
+    "document_horizontal_overflow": false,
+    "limits": "Targeted current supplemental-source surfaces and one changed summary; no new all-diagram or 3D playback acceptance."
+  },
+  "source_reading_accounting": {
+    "code_and_doc_ranges_freshly_read": 49,
+    "official_doc_ranges": [
+      {
+        "page_id": "mooncake-connector",
+        "source_numbers": [
+          73,
+          74
+        ],
+        "scope": "L1–17 and L166–202 only"
+      },
+      {
+        "page_id": "pd-disaggregation",
+        "source_numbers": [
+          80
+        ],
+        "scope": "L27–45 support table only"
+      }
+    ],
+    "previous_full_text_records_reused": true,
+    "new_full_read_count": 0
+  },
+  "verification_limits": [
+    "No NPU execution, deployment, model accuracy, network throughput, or latency measurements.",
+    "No all-site completion or all-official-docs-read claim.",
+    "No product-code changes; no new project-wide test/build claim from this independent task.",
+    "Other thread 3D renderer and scene verification explicitly excluded."
+  ],
+  "artifacts": [
+    {
+      "path": "docs/reviews/2026-11-10-continuation-groups/supplement-transfer-independent.json",
+      "sha256": "0aded3e0501f52df71b64745d5b4f465554b75bf912eb2cecedc2bccb7530403"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/supplement-transfer/manifest.json",
+      "sha256": "faa59e623bfcd0a1ef05440cee56a9458d4aa79c9b82ac51c8d0f637d26f4d94"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/supplement-transfer/review-manual-judgments.tsv",
+      "sha256": "d1ad040bce333c936717169026167ffb51dd858a3d4639466d7ce258b14d71b3"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/supplement-transfer/review-verification.json",
+      "sha256": "d8d614a51396887a35276e724f60d7964d759c9b9649fcca2e1c65ed37007253"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/supplement-transfer/review-extra-context.json",
+      "sha256": "c26a808558e4362aebdd484206b94f23342c7d5c79d394bc6b34167bdfef2479"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/review-supplement-transfer-browser/report.json",
+      "sha256": "b43b026d9514c81e1731ba598aa073c3a3cb065f97ad9384a3b998ac8bf1cc92"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 layout: scene
 id: multistream-overlap-gate
-caption: 门控做的是把共享专家和路由整体搬到副流，塞进 prepare 期那段等通信的时间里（vllm-ascend v0.23 维护分支）
+caption: v0.23 的 SP + AllGather 路径：共享专家与选专家提前提交到 gate_stream；当前流先量化，quant_stream 再收集隐藏态，量化尺度另在当前流收集。实际重叠与收益须测量。
 size: [900, 684]
 
 regions:
@@ -54,7 +54,7 @@ boxes:
   - at: [410, 252]
     size: [230, 84]
     title: 路由 + 写回 context
-    sub: select_experts 出 topk_ids
+    sub: AllGather 路径还收集路由结果
     fn: set_flash_common3_context
     tone: accent
 
@@ -87,7 +87,7 @@ notes:
     text: quant_stream（类级单例）
     size: 12.5
   - at: [20, 656]
-    text: main（baa023ad）上整套 FlashComm3 都没了：FlashCommon3Context、fc3_quant_x 通信组、两条副流和这个键一并删除，留着它启动就失败。
+    text: main / rc2 已删除此键和旧路径：通常拒收未知键；发现 vLLM-Omni 时告警过滤。配置日志不证明实际重叠成功。
     size: 12.5
     width: 860
     strong: true
@@ -104,7 +104,7 @@ pins:
       - gate_stream
       - AscendMoERunner
       - _quant_method.apply
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L363-L399
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L351-L399
     symbols:
       - npu_dynamic_quant
       - fc3_all_gather_and_maybe_unpad_impl

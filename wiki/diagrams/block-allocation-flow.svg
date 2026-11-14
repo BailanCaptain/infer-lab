@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 336" width="900" height="336" role="img" aria-label="调度器向池子要块的判断顺序，以及还块走的路。第 2 站，调度器每一步为每条要算的请求走一遍上排：先查前缀命中（本部署前缀缓存关，直接空手返回），再把尾状态组窗口外的块先还掉，然后 5 个缓存组各算还差几块、加起来和空闲块数比一次。够就一起借出；不够就一块都不借，由调度器处理：还在跑的请求去抢占 running 队尾那条，再算一次；等待中的新请求不抢占，留到下一步。第 7 站请求结束时，或者一条请求被抢占时，都走下排：每个组把自己的块倒序交回，计数减到 0 的块回队列，数据不擦。">
-  <title>调度器向池子要块的判断顺序，以及还块走的路。第 2 站，调度器每一步为每条要算的请求走一遍上排：先查前缀命中（本部署前缀缓存关，直接空手返回），再把尾状态组窗口外的块先还掉，然后 5 个缓存组各算还差几块、加起来和空闲块数比一次。够就一起借出；不够就一块都不借，由调度器处理：还在跑的请求去抢占 running 队尾那条，再算一次；等待中的新请求不抢占，留到下一步。第 7 站请求结束时，或者一条请求被抢占时，都走下排：每个组把自己的块倒序交回，计数减到 0 的块回队列，数据不擦。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 336" width="900" height="336" role="img" aria-label="调度器向池子要块的判断顺序，以及还块走的路。第 2 站，上排简化画出进入分配前后的主要步骤。只有 waiting 中已算数为 0 的请求先查前缀（本部署关闭前缀缓存，返回空）；running 不重复查。启用 full_sequence_must_fit 的准入还会先检查整段是否能容纳，通过后才归还窗口外的块。随后， 5 个缓存组各算还差几块、加起来和空闲块数比一次。够就一起借出；不够就一块都不借，由调度器处理：还在跑的请求去抢占 running 队尾那条，再算一次；等待中的新请求不抢占，留到下一步。第 7 站请求结束时，或者一条请求被抢占时，都走下排：每个组把自己的块倒序交回，计数减到 0 的块回队列，数据不擦。">
+  <title>调度器向池子要块的判断顺序，以及还块走的路。第 2 站，上排简化画出进入分配前后的主要步骤。只有 waiting 中已算数为 0 的请求先查前缀（本部署关闭前缀缓存，返回空）；running 不重复查。启用 full_sequence_must_fit 的准入还会先检查整段是否能容纳，通过后才归还窗口外的块。随后， 5 个缓存组各算还差几块、加起来和空闲块数比一次。够就一起借出；不够就一块都不借，由调度器处理：还在跑的请求去抢占 running 队尾那条，再算一次；等待中的新请求不抢占，留到下一步。第 7 站请求结束时，或者一条请求被抢占时，都走下排：每个组把自己的块倒序交回，计数减到 0 的块回队列，数据不擦。</title>
   <defs><marker id="block-allocation-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="block-allocation-flow-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="block-allocation-flow-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker></defs>
   <path d="M214 64 L240 64" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#block-allocation-flow-ah-ink)"/>
   <path d="M430 64 L456 64" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#block-allocation-flow-ah-ink)"/>
@@ -12,8 +12,8 @@
   <path d="M274 290 L306 290" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#block-allocation-flow-ah-ink)"/>
   <path d="M576 290 L608 290" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#block-allocation-flow-ah-ink)"/>
   <rect x="24" y="36" width="190" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="119" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">查前缀命中</text>
-  <text x="119" y="79" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">前缀缓存关：空手返回</text>
+  <text x="119" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">waiting 首次查前缀</text>
+  <text x="119" y="79" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">已算为 0；running 跳过</text>
   <rect x="240" y="36" width="190" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="335" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">先还窗口外的块</text>
   <text x="335" y="79" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">只有尾状态组会有</text>
@@ -40,8 +40,8 @@
   <text x="441" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">到 0 且不是占位块，才回队列</text>
   <rect x="608" y="262" width="268" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="742" y="286" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">数据留在原处</text>
-  <text x="742" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">下次被借走时才被覆盖</text>
-  <text x="24" y="22" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">第 2 站 调度：每一步、每条要算的请求都走一遍</text>
+  <text x="742" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">后续写入时才被覆盖</text>
+  <text x="24" y="22" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">第 2 站 调度：简化路径，整段准入检查见图注</text>
   <text x="24" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">第 7 站 收尾，或被抢占时</text>
   <text x="562" y="122" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">不够</text>
   <text x="320" y="132" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">再算一次</text>

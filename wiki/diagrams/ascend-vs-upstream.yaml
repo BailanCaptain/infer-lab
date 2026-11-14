@@ -1,6 +1,6 @@
 layout: figure
 id: ascend-vs-upstream
-caption: 上游 vLLM 决定每一步算什么；计划越过平台边界后，由 vllm-ascend 的 Worker、Runner 和 GLM 模型在 NPU 上执行。左侧的插件入口、平台、配置、patch 和模型注册在启动时就把这条路径定好
+caption: vLLM 引擎组织每步调度和执行；Ascend 也可调整调度配置或实现。计划由 Ascend Worker、Runner 和 GLM 模型在 NPU 上执行；左侧表示启动时登记、选择和替换的主要入口
 size: [900, 510]
 items:
   - { at: [32, 32], size: [180, 58], text: 请求接入, sub: HTTP、分词、选 DP 组, tone: control }
@@ -27,7 +27,7 @@ links:
   - { from: [358, 176], to: [358, 90], dashed: true }
   - { from: [448, 417], to: [504, 417], dashed: true }
 dividers:
-  - { from: [16, 132], to: [884, 132], sides: [上游 vLLM：与硬件无关, 平台边界以下：vllm-ascend 提供的实现] }
+  - { from: [16, 132], to: [884, 132], sides: [vLLM 的请求与引擎框架, 平台边界以下：vllm-ascend 提供的实现] }
 texts:
   - { at: [744, 252], text: 本步输出, note: true }
   - { at: [744, 272], text: 交回引擎, note: true }

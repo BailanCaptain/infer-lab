@@ -2,54 +2,106 @@
 id: dp-request-routing
 title: DP 请求路由：新请求派给哪一个 DP 组
 type: concept
-summary: 开了 DP 以后，前端给每条新请求挑一个 DP 组：请求头写了组号就直接去，否则按 waiting × 4 + running 取分数最小的组，并在本地先记一笔。讲清计数从哪来、为什么会过时、挑偏的代价（排队、KV 池、每步对齐、前缀缓存），几种部署方式与各版本打分差异，以及 GLM 双机上怎样选。
-aliases: ["DP 请求路由","DP routing","DP 负载均衡","DP load balancing","选 DP 组","前端路由","get_core_engine_for_request","X-data-parallel-rank","data_parallel_rank","data_parallel_hybrid_lb","external LB","hybrid LB","internal LB","DPAsyncMPClient","DPLBAsyncMPClient","lb_engines","engine_inflight"]
-chapters: ["13"]
+summary: >-
+  开了 DP 以后，前端给每条新请求挑一个 DP 组：请求头写了组号就直接去，否则按 waiting × 4 + running
+  取分数最小的组，并在本地先记一笔。讲清计数从哪来、为什么会过时、挑偏的代价（排队、KV 池、每步对齐、前缀缓存），几种部署方式与各版本打分差异，以及 GLM
+  双机上怎样选。
+aliases:
+  - DP 请求路由
+  - DP routing
+  - DP 负载均衡
+  - DP load balancing
+  - 选 DP 组
+  - 前端路由
+  - get_core_engine_for_request
+  - X-data-parallel-rank
+  - data_parallel_hybrid_lb
+  - external LB
+  - hybrid LB
+  - internal LB
+  - DPAsyncMPClient
+  - DPLBAsyncMPClient
+  - lb_engines
+  - engine_inflight
+chapters:
+  - '13'
 order: 35
 sources:
-  - vllm@0fc695fc:vllm/v1/engine/core_client.py#L1365-L1426
-  - vllm@0fc695fc:vllm/v1/engine/core_client.py#L1314-L1357
-  - vllm@0fc695fc:vllm/v1/engine/core_client.py#L108-L131
-  - vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/serving.py#L267-L270
-  - vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L397-L410
-  - vllm@0fc695fc:vllm/v1/engine/input_processor.py#L259-L267
-  - vllm@0fc695fc:vllm/v1/engine/coordinator.py#L22-L56
-  - vllm@0fc695fc:vllm/v1/engine/coordinator.py#L254-L278
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1856-L1888
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1233-L1262
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L913-L919
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1797-L1799
-  - vllm@0fc695fc:vllm/v1/pool/late_interaction.py#L15-L36
-  - vllm@0fc695fc:vllm/config/parallel.py#L138-L150
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L1818-L1899
-  - vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L71-L121
-  - vllm@0fc695fc:vllm/config/parallel.py#L794-L799
-  - vllm@568afb3a:vllm/v1/engine/core_client.py#L1413-L1442
-  - vllm@98dff2a8:vllm/v1/engine/core_client.py#L1472-L1543
-  - vllm-ascend@2c59ff10:Dockerfile#L42-L42
-  - vllm-ascend@2ed6cbba:Dockerfile#L54-L54
-  - vllm-ascend@baa023ad:Dockerfile#L46-L46
+  - 'vllm@0fc695fc:vllm/v1/engine/core_client.py#L1365-L1426'
+  - 'vllm@0fc695fc:vllm/v1/engine/core_client.py#L1314-L1357'
+  - 'vllm@0fc695fc:vllm/v1/engine/core_client.py#L108-L131'
+  - 'vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/serving.py#L267-L270'
+  - 'vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L397-L411'
+  - 'vllm@0fc695fc:vllm/v1/engine/input_processor.py#L259-L267'
+  - 'vllm@0fc695fc:vllm/v1/engine/coordinator.py#L22-L56'
+  - 'vllm@0fc695fc:vllm/v1/engine/coordinator.py#L254-L278'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1856-L1888'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1233-L1262'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L913-L919'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1797-L1799'
+  - 'vllm@0fc695fc:vllm/v1/pool/late_interaction.py#L15-L36'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L138-L150'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L1818-L1899'
+  - 'vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L71-L121'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L794-L799'
+  - 'vllm@568afb3a:vllm/v1/engine/core_client.py#L1413-L1442'
+  - 'vllm@98dff2a8:vllm/v1/engine/core_client.py#L1472-L1543'
+  - 'vllm-ascend@2c59ff10:Dockerfile#L42-L42'
+  - 'vllm-ascend@2ed6cbba:Dockerfile#L54-L54'
+  - 'vllm-ascend@baa023ad:Dockerfile#L46-L46'
+  - >-
+    raw:sha256-850b15e05cc827d85bb154b23212d7f0fac2b240d834cf186185da0298198e4e.md#L1-L634
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/core_client.py#L1398-L1425
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/pool/late_interaction.py#L22-L36
+  - >-
+    raw:sha256-a4ccb3d8c7f7604aa6a75574a211cd9f29b631c70177921e2cfa4563f9e48a3c.md#L1-L683
+  - 'vllm@ced6857a:vllm/v1/engine/core_client.py#L1546-L1596'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1078-L1106'
+  - 'vllm-ascend@7d825229:vllm_ascend/core/dyntra_lb_scheduler.py#L40-L51'
+  - 'vllm@0fc695fc:vllm/v1/engine/coordinator.py#L145-L173'
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - {to: data-parallel, kind: builds-on, note: DP 组是什么、各组各有 scheduler 与 KV 池、waiting 为什么按 4 倍算、请求派定不迁移}
-  - {to: request-call-chain, kind: builds-on, note: 前端、协调器、EngineCore 各在哪个进程，请求和计数走哪条通道}
-  - {to: vllm-engine-core, kind: builds-on, note: 引擎一圈的顺序决定计数什么时候报、新请求什么时候进 waiting}
-  - {to: concurrent-requests, kind: builds-on, note: 场景 M 的两组打分，以及两组每步按最宽的一组对齐}
-  - {to: balance-scheduling, kind: builds-on, note: 路由只数条数、计数会过时留下的缺口，由它在各组准入时补}
-  - {to: prefix-caching, kind: builds-on, note: 前缀缓存只在一组自己的池子里命中，派到别组要重算}
+  - to: data-parallel
+    kind: builds-on
+    note: DP 组是什么、各组各有 scheduler 与 KV 池、waiting 为什么按 4 倍算、请求派定不迁移
+  - to: request-call-chain
+    kind: builds-on
+    note: 前端、协调器、EngineCore 各在哪个进程，请求和计数走哪条通道
+  - to: vllm-engine-core
+    kind: builds-on
+    note: 引擎一圈的顺序决定计数什么时候报、新请求什么时候进 waiting
+  - to: concurrent-requests
+    kind: builds-on
+    note: 场景 M 的两组打分，以及两组每步按最宽的一组对齐
+  - to: balance-scheduling
+    kind: builds-on
+    note: 路由只数条数、计数会过时留下的缺口，由它在各组准入时补
+  - to: prefix-caching
+    kind: builds-on
+    note: 前缀缓存只在一组自己的池子里命中，派到别组要重算
 contradicts: []
-updated: "2026-09-29"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-9f7cd45d992b94fb7125f49cafe3777601bf80636f83f480111ed0d66d8a0a30.md
+  - >-
+    raw/sha256-a4ccb3d8c7f7604aa6a75574a211cd9f29b631c70177921e2cfa4563f9e48a3c.md
 ---
 
 ## 一条新请求进来，派给哪一个 DP 组？
 
 **DP 请求路由，是开了 DP 以后前端给每条新请求挑一个 DP 组的那一步。对生成文字的请求，vLLM 默认的前端有两条路：请求头里写明了组号，就直接派给那组；没写，就按每组排队和在算的请求条数打一个分，派给分数最小的那组。派定以后，这条请求一直留在那组。**
 
-先把几个词说清。[DP（data parallel，数据并行）](data-parallel.md)把请求分给几组卡去算，每组叫一个 DP 组：稠密模型每组各放一份完整权重；[MoE](moe.md)（mixture of experts，混合专家）模型把一部分层换成许多并排的「专家」小网络，专家只放一份、摊在所有组的卡上，几组合起来才是一份完整模型。每组各有一个 EngineCore（这一组的引擎进程）和它里面的 scheduler（调度器，每一步决定这组算哪些请求）。scheduler 手里有两个队列：**running** 放已经开始算的请求，**waiting** 放已经到了、还没开始算的请求。**前端**是接 HTTP、做分词的 API server 进程，所有请求都先到它这里，再由它交给某一组的引擎（各进程怎样分布，见[七站分在三种进程里](request-call-chain.md#七站分在三种进程里)）。选组之前，前端已经做完检查、套模板、分词和定采样参数，见[API server 入口](api-server-entry.md)。
+先把几个词说清。[DP（data parallel，数据并行）](data-parallel.md)把请求分给几组卡去算，每组叫一个 DP 组：稠密模型每组各放一份完整权重；[MoE](moe.md)（mixture of experts，混合专家）模型把一部分层换成许多并排的「专家」小网络。本页 GLM 部署还开了跨 DP 组的 EP（expert parallel，专家并行），把专家分放在所有组的卡上，几组合起来才是一份完整模型；单独打开 DP 不等于采用这种专家切分。每组各有一个 EngineCore（这一组的引擎进程）和它里面的 scheduler（调度器，每一步决定这组算哪些请求）。scheduler 手里有两个队列：**running** 放已经开始算的请求，**waiting** 放已经到了、还没开始算的请求。**前端**是接 HTTP、做分词的 API server 进程，所有请求都先到它这里，再由它交给某一组的引擎（各进程怎样分布，见[七站分在三种进程里](request-call-chain.md#七站分在三种进程里)）。选组之前，前端已经做完检查、套模板、分词和定采样参数，见[API server 入口](api-server-entry.md)。
 
 看一个例子（数为示意）：两组 DP0、DP1，此刻 DP0 有 6 条请求在算，DP1 有 3 条，两组都没有排队的。
+
+例子只有一个前端，派出 B 后本地 waiting 补记 1。一般情况下，这条负载选择路径补记的是前端数量，用来补偿统计更新间隔；它修改本地选组估计，不表示请求已经进入目标引擎的真实 waiting 队列。
+
 
 - 请求 A 的请求头里写着组号 0。前端不做任何比较，直接派给 DP0。上游如果有自己的路由器，想把某些请求固定送到某一组，走的就是这条路。
 - 请求 B 什么都没写。前端看自己手里的计数表，给两组各打一个分：分数 = waiting 条数 × 4 + running 条数。DP0 得 6，DP1 得 3，B 派给分数小的 DP1。派出以后，前端先在本地给 DP1 的 waiting 记上 1 条，免得下一条请求还拿旧数去比。
@@ -58,7 +110,7 @@ origin: direct
 file: dp-request-routing
 ```
 
-两条路只在一处分叉：请求头里有没有组号。有组号的请求不参与打分，前端的计数表也不记它；没组号的请求才看计数表，选完还要在表上记一笔。两条路的终点相同：请求经进程间消息送进那一组引擎的输入队列，再进那组的 waiting。
+上面生成文字的例子按请求头里有没有组号分成两条路：有组号的请求跳过负载打分与本地 waiting 补记；没有组号的普通生成请求才按计数表选组，选完再记一笔。查询与文档匹配评分的 late interaction 请求另有后文所述的固定键选组路径，不能把这两条路概括为所有请求的完整规则。它们最终都经进程间消息进入选定引擎的输入队列，再进该组的 waiting。
 
 **派定以后不换组。** 请求的 KV cache（存放它已经算过的上下文）从那组的池子里分，它的每一步都由那组的 scheduler 安排；组与组之间没有搬请求的机制，所以这一次选择决定了这条请求从头到尾在哪组算。
 
@@ -67,6 +119,9 @@ file: dp-request-routing
 **DP 多出来的吞吐，来自几组同时各算各的请求；请求分得越匀，每组排队越少，各组手上的活也越接近。前端挑偏了，代价落在四处：排队、KV 池、MoE 的每步对齐，以及前缀缓存。**
 
 如果不挑、所有请求都进 DP0，DP1 那组卡和它上面的权重就闲着，能同时服务的请求数退回一组的水平。在 MoE 模型里更糟：DP1 没有请求也得每一步陪着跑（原因见[MoE 模型里，两组为什么不能各跑各的](data-parallel.md#moe-模型里两组为什么不能各跑各的)），卡在转，却不产出。轮流派（第一条给 DP0、第二条给 DP1……）也不够：请求的长短差得很远，一组可能被几条长请求占住，轮到它时它并不空。所以默认前端看的是每组此刻的队列长度；waiting 为什么按 4 倍算，见[请求怎样派进某一组](data-parallel.md#请求怎样派进某一组)。
+
+在没有显式指定 DP rank 时，late interaction 的 CACHE_QUERY 或 SCORE_DOC 请求还可以按非空 query_key 固定选组：对键的 UTF-8 字节计算 CRC32，再对候选引擎数取余。这样，同一查询的表示可留在同一个引擎内供文档评分复用。这条规则先于队列负载比较，不是普通生成请求的共同前缀路由规则。
+
 
 但分数只数条数，不知道每条请求要算多久；手里的数又会过时（后面两节细讲），所以总有挑偏的时候。挑偏的代价有四种：
 
@@ -93,7 +148,7 @@ Q 派到另一组时要算的 token = 2,148 个 token
 
 1. **看请求头。** 前端从请求头 `X-data-parallel-rank` 里取组号。值能读成整数，就直接用它，后面的打分和记账都跳过；读不成整数（比如写了个字母），当作没写；是整数但不在 0 到「组数 − 1」之间，请求在入口就被拒掉（报错原文见[会报什么错](#会报什么错)）。
 2. **逐组算分。** 分数 = waiting 条数 × 4 + running 条数。从「起点」那组开始依次往后比，只有分数**严格小于**目前的最小值才换成它，所以两组分数相同时，先比到的那组胜出。只有一个前端时，起点就是 DP0：两组都空着时，新请求落在 DP0。
-3. **本地记一笔。** 给选中那组的 waiting 加上前端的个数（只有一个前端时加 1），相当于这组的分数立刻涨 4 分。协调器推来新数之前，后面的请求都拿这张记过账的表来比。
+3. **本地记一笔。** 给选中那组的 waiting 加上前端的个数 N，所以本地负载分数增加 4N；只有一个前端时才是加 1 条、涨 4 分。这是前端计数表的估计，不代表目标引擎真实队列立即多了 N 条。协调器推来新数之前，后面的请求都拿这张记过账的表来比。
 4. **登记归属，发出去。** 前端记下请求去了哪组，以后取消时按这份记录找到那组；然后经 ZMQ（一个进程间消息库）把请求送进那组引擎的输入队列。要是此刻各组都停着，前端还顺带通知协调器，把各组一起叫醒（见[什么时候停，怎样再叫醒](data-parallel.md#什么时候停怎样再叫醒)）。
 
 接着开头的例子，看一串请求在两次推送之间连着到来时，前端怎样逐条挑组（数为示意）。刚收到的推送是 DP0 有 0 条 waiting、6 条 running，DP1 有 0 条 waiting、3 条 running；随后 100 ms 内依次来了 A、B、C、D 四条，只有 A 的请求头写了组号 0。
@@ -126,7 +181,7 @@ file: dp-request-routing-flow
 ```
 
 1. **引擎报数。** 每个 DP 组的 EngineCore 一圈一圈地转（见[一圈按什么顺序走](vllm-engine-core.md#一圈按什么顺序走一条示意请求转两圈)）：先把输入队列里新到的请求收进 waiting，报一次两个条数；算完这一步，再报一次。条数没变就不报。waiting 这个数还包括因为条件暂时不满足、被放在另一条等待队列里的请求。
-2. **协调器推送。** DP 协调器是 node0 上汇总各组负载的小进程。它收到新数后，离上次推送满 100 ms 就推给前端；各组的数一直没变时，每 5 s 推一次。
+2. **协调器推送。** DP 协调器是 node0 上汇总各组负载的小进程。普通统计更新的最小间隔默认 100 ms；它通过轮询超时触发推送，还会为收齐当前步统计至少等待 50 ms，因此不是满 100 ms 必定立即推送。各组的数一直没变时，使用 5 s 的重发间隔。
 3. **前端换表。** 前端收到推送，把整张计数表换成推来的数，本地记的那几笔随之清掉，由引擎报上来的真实条数接替。
 4. **请求进引擎。** 前端派出的请求先停在那组引擎的输入队列里。引擎正在算一步时不收新请求，要等这一步算完、下一圈开头才把它们收进 waiting，这时报出的数里才有它们。
 
@@ -163,7 +218,7 @@ E 看 DP1 = 2 × 4 + 1 = 9
 
 external 方式下，引擎不再向协调器报条数，协调器只转发各组的启停状态；它还有一个变体，由一个监管进程给本机每组各起一个前端、各占一个端口。hybrid 方式下引擎照常报数，每个前端从推来的整张表里只取本机那几组。外部负载均衡器按什么规则分（看不看前缀、要不要同一会话落在同一组），由它自己决定，不在 vLLM 里。另外，推断成 hybrid 的机器上本机只有 1 组时，会自动改成 external 并打一条 warning（原文见[会报什么错](#会报什么错)）。
 
-**派出去以后的补救。** 路由只在请求进门时决定一次，派偏以后 vLLM 不搬请求。vllm-ascend 另有两种在各组内部调节的机制：[Balance Scheduling](balance-scheduling.md) 在某一组顶满时让所有组暂停接纳 waiting；[DyntraLB](dyntra-lb.md) 只在 main 上、PD 分离的 decode 端按各组的 KV 块数暂停或接纳请求。两者都不改变请求派到哪组。
+**派出去以后的补救。** 路由只在请求进门时决定一次，派偏以后 vLLM 不搬请求。vllm-ascend 另有两种在各组内部调节的机制：[Balance Scheduling](balance-scheduling.md) 在某一组顶满时让所有组暂停接纳 waiting；[DyntraLB](dyntra-lb.md) 在已钉 main 与 rc2 中、PD 分离的 decode 端按各组的 KV 块数暂停或接纳请求。两者都不改变请求派到哪组。
 
 ## 放到 GLM 双机：node0 上一个前端给两台机器派活
 
@@ -190,6 +245,8 @@ N 在 DP1 时下一步 = max(12 × 4 → 64, 8 × 4 → 32) = 64 个 token
 
 这一步只差 20 行，下一步一样宽：本部署两组每步按最宽的一组对齐，一条长提示词落在哪组，它自己就定下了这一步两组的宽度。但宽度一样不等于代价一样。一头是时长：N 落进哪组，那组之后每一步都要多读一段 6000 token 的历史，这一步走多久由更重的那组决定，另一组在通信点上等它——N 进 DP0 是 13 对 7，本来就重的那组更重；N 进 DP1 是 12 对 8，两组接近。另一头是额度：每组最多同时算 32 条请求、每步最多 8192 个 token（见[关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)），KV 块也是每组一池，先顶满的那组要让新请求排队、或让已有请求让位，另一组的余量帮不上。如果上游用请求头把请求全钉在 DP0，DP1 就只剩每步陪跑（见[空闲的 DP 组为什么还要陪跑](concurrent-requests.md#空闲的-dp-组为什么还要陪跑变体-m)）。
 
+另一种生产取舍见 [DeepSeek 案例](deepseek-serving-case.md#分流看什么决定了哪些卡会一起等)：不同阶段按各自的工作量分流，共享缓存也会改变前缀亲和的必要性。
+
 ## 常见误解
 
 - **「DP 路由和 MoE 的 router 是一回事。」** MoE 的 router 在每一层里给每个 token 挑专家，挑中的专家可能在另一组的卡上；DP 路由在请求进门时给整条请求挑一个组，只挑一次。一个管 token 在层内去哪算，一个管请求在哪组排队。
@@ -208,8 +265,8 @@ N 在 DP1 时下一步 = max(12 × 4 → 64, 8 × 4 → 32) = 64 个 token
 - **指定组号。** 在 chat、completion 等 OpenAI 兼容接口的请求头里写 `X-data-parallel-rank: 1`，前端就不再打分。
 - **前端个数。** `--api-server-count N`；internal 方式下不写时默认等于数据并行组数，external 与多端口方式默认 1，hybrid 默认等于本机组数。
 - **hybrid。** `--data-parallel-hybrid-lb`（`-dph`），或者没用 `--headless` 的机器写了非 0 的 `--data-parallel-start-rank`，自动推断成 hybrid。
-- **external。** `--data-parallel-external-lb`（`-dpe`），或者启动时写了 `--data-parallel-rank`（`-dpn`）；多端口变体是 `--data-parallel-multi-port-external-lb`。
-- **GLM 双机。** node0 普通启动、`--api-server-count 1`；node1 带 `--headless` 和 `--data-parallel-start-rank 1`，所以整体是 internal 方式 [A]。
+- **external。** `--data-parallel-external-lb`（`-dpe`），或者启动时写了 `--data-parallel-rank`（`-dpn`）；多端口变体是 `--data-parallel-multi-port-external-lb`。启动 rank 的默认、取值与组合约束统一见[进程页参数参考](engine-processes.md#怎么开)；它与指定单条请求去向的请求头分属两个入口。
+- **GLM 双机。** node0 普通启动、`--api-server-count 1`；node1 带 `--headless` 和 `--data-parallel-start-rank 1`，所以整体是 internal 方式；这是按固定教程命令和选类条件推导的部署形态 [D]。
 
 ### 会报什么错
 
@@ -230,6 +287,8 @@ N 在 DP1 时下一步 = max(12 × 4 → 64, 8 × 4 → 32) = 64 个 token
 - GLM 双机只有两组、一个前端，默认 internal 方式就够；选组的计算开销可以忽略，要留意的是计数滞后和请求头指定造成的偏斜。
 
 ### 版本差异
+
+**v0.30.0rc2 配套上游沿用已钉 main 的选组公式。** 分数为 max(API进程数×本前端在途数, waiting+running) + waiting×6×max(0,KV使用率−0.5)，同分时旋转扫描起点；显式 data_parallel_rank 仍绕过自动评分。waiting、running 统计的是请求数，所以这是一种负载估计，不保证各组的 token 工作量相等，也不替代组内 Scheduler 的逐步预算。
 
 | | v0.23 | v0.26 | main |
 |---|---|---|---|
@@ -252,7 +311,7 @@ N 在 DP1 时下一步 = max(12 × 4 → 64, 8 × 4 → 32) = 64 个 token
 | 选组：请求头 → late interaction → 打分 → 本地记账 → 登记归属；前端个数与起点 | `vllm@0fc695fc:vllm/v1/engine/core_client.py#L1365-L1426` |
 | 收推送、整张换表；发送请求、叫醒各组 | `vllm@0fc695fc:vllm/v1/engine/core_client.py#L1314-L1357` |
 | 按部署方式选引擎客户端 | `vllm@0fc695fc:vllm/v1/engine/core_client.py#L108-L131` |
-| 请求头取组号、组号范围检查 | `vllm/entrypoints/openai/engine/serving.py#L397-L410`、`vllm/v1/engine/input_processor.py#L259-L267` |
+| 请求头取组号、组号范围检查 | `vllm/entrypoints/openai/engine/serving.py#L397-L411`、`vllm/v1/engine/input_processor.py#L259-L267` |
 | 协调器的职责与推送节奏 | `vllm/v1/engine/coordinator.py#L22-L56`、`#L254-L278` |
 | 引擎每步前后报数、只在 internal / hybrid 报 | `vllm/v1/engine/core.py#L1856-L1888`、`#L913-L919` |
 | 一步中间到达的请求停在输入队列 | `vllm/v1/engine/core.py#L1233-L1262` |
@@ -261,9 +320,16 @@ N 在 DP1 时下一步 = max(12 × 4 → 64, 8 × 4 → 32) = 64 个 token
 | 部署方式的参数、推断与默认前端个数 | `vllm/config/parallel.py#L138-L150`、`vllm/engine/arg_utils.py#L1818-L1899`、`vllm/entrypoints/cli/serve.py#L71-L121` |
 | v0.26 / main 配套版本的选组 | `vllm@568afb3a:vllm/v1/engine/core_client.py#L1413-L1442`、`vllm@98dff2a8:vllm/v1/engine/core_client.py#L1472-L1543` |
 
-**证据索引。** 选组四步、平分规则、前端个数与起点见 [C1]；换表与发送见 [C2]；部署方式与客户端见 [C3][C14][C15][C16]；请求头与越界见 [C4][C5][C6]；计数的报、推、口径与输入队列见 [C7][C8][C9][C10][C11][C12]；late interaction 见 [C13]；elastic EP 的限制见 [C17]；版本差异见 [C18][C19]，配套关系见 [C20][C21][C22]。「计数落后一步再加 100 ms 量级」和「推送的旧数会清掉本地账」是按源码时序推出来的 [D]，GLM 两种落点的宽度按底稿 01 的对齐规则推算 [D]；GLM 启动参数取自底稿 01 的进程账，本页没有直接读教程命令 [A]。
+**证据索引。** 选组四步、平分规则、前端个数与起点见 [C1]；换表与发送见 [C2]；部署方式与客户端见 [C3][C14][C15][C16]；请求头与越界见 [C4][C5][C6]；计数的报、推、口径与输入队列见 [C7][C8][C9][C10][C11][C12]；late interaction 见 [C13]；elastic EP 的限制见 [C17]；版本差异见 [C18][C19]，配套关系见 [C20][C21][C22]。「计数落后一步再加 100 ms 量级」和「推送的旧数会清掉本地账」是按源码时序推出来的 [D]，GLM 两种落点的宽度按底稿 01 的对齐规则推算 [D]；GLM 启动拓扑统一以[部署页](glm-5-3-flash-two-node.md)和[来源基线](../sources/glm-5-3-flash-baseline.md)为准。
 
 **待核。**
 - 计数滞后在实机上的量级（一步多长、推送实际间隔）：缺实测日志。
 - vllm-ascend main 实际部署时可能配别的上游 commit（例如 2026-09-21 的 vLLM main 6b858751，这段逻辑与 v0.29.0 相同）：缺部署侧的版本钉点。
 - 多前端时 late interaction 与在途计数的交互：本页未展开。
+
+- 来源 24：vllm@0fc695fc，vllm/v1/engine/core_client.py，L1398–L1425。
+- 来源 25：vllm@0fc695fc，vllm/v1/pool/late_interaction.py，L22–L36。
+
+来源 24 的固定 vLLM `0fc695fc`、`core_client.py` L1398–L1425 先判断显式组号，再判断 late interaction 固定选组，最后才进入负载打分与 waiting 补记；该分支执行 `waiting += client_count`，结合 `waiting × 4 + running` 得到分数增量 4N。这是本地记账的代数结果，不是实际排队条数或性能测量。
+
+统计最小推送间隔的默认 100 ms 由来源 30 的协调器构造参数给出；来源 8 的轮询分支还包含 50 ms 聚合等待，实际到达时间需要日志验证。

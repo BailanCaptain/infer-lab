@@ -1,0 +1,932 @@
+{
+  "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+  "pages": [
+    {
+      "path": "getting_started/installation/base_environment.inc.md",
+      "sha256": "b5679a2dfd09325097bacfb81779e0f90d3590769030ac66841c5c1fcfdf3193",
+      "range": "L1-L50",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/installation/cann_image/atlas-200i-pro.inc.md",
+      "sha256": "1486bb10184659f6b526942127c298a1c1dae15073f1d6b2bff7a462b3243a8d",
+      "range": "L1-L90",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/installation/cann_image/atlas-300i-duo.inc.md",
+      "sha256": "ea57075f803c644870a8852c7686905a563f7801a15f2380531f3f1364f4f730",
+      "range": "L1-L69",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/installation/cann_image/atlas-950dt.inc.md",
+      "sha256": "3b5d2818935dfb481bb81f0b3827a746ffa10329b59103831c09194e1b6546ad",
+      "range": "L1-L71",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/installation/cann_image/atlas-a2.inc.md",
+      "sha256": "8e6827d27976e382a7cad68abfa384d093d770971886e01f71bc776989a8e8d7",
+      "range": "L1-L71",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/installation/cann_image/atlas-a3.inc.md",
+      "sha256": "e5cf56cce3de0b3c0bf86b3e53971e7efa4d14311368599e3f936fe367114916",
+      "range": "L1-L77",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/installation/existing_cann_environment.inc.md",
+      "sha256": "2d6bb3a408891f68f02e8d8d1100a508aadb17acd3206a8398e76e14b2192380",
+      "range": "L1-L54",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/installation/install_vllm_ascend.inc.md",
+      "sha256": "bd8718273ab76c3330f0b5423aad7ddbc364ba914ccb3bb5d252dbaa18af1910",
+      "range": "L1-L205",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/installation/prebuilt_image.inc.md",
+      "sha256": "0ea7596633d0b42110deee3913fa17d8a67de5acc309d6d8673964890d74eb13",
+      "range": "L1-L132",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/installation/supported_hardware.inc.md",
+      "sha256": "e423803ba43b6e01e07532e85d9ea9522b2621024b4d0f102a9a3582f91a8ea6",
+      "range": "L1-L6",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/installation.md",
+      "sha256": "8fbc7f6b6e4b0733ffee228c508476a01610fb452c1aac3d5c8c75d6e737816d",
+      "range": "L1-L292",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/overview.md",
+      "sha256": "2a86487b36c9f36df181aaec90cd36db8972261d31edabe31298426e4d834296",
+      "range": "L1-L11",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/quick_start/ascend_image/atlas-200i-pro.inc.md",
+      "sha256": "c64d54207380073eb3c725f5d236ebee7944e3eb9c57ed6ab4ba706c47e9f351",
+      "range": "L1-L96",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/quick_start/ascend_image/atlas-300i-duo.inc.md",
+      "sha256": "cb387b70ede975a24904add6f0c2e28a04f41672d3d97380e370ffc992765230",
+      "range": "L1-L77",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/quick_start/ascend_image/atlas-950dt.inc.md",
+      "sha256": "9b470a9b3718f4854ebfef1a89e16e2b038c4b34c6d2d2361c12bce54afdc6f1",
+      "range": "L1-L77",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/quick_start/ascend_image/atlas-a2.inc.md",
+      "sha256": "fd6fb7d98cb50fdbf759de945e755480fee91c9b079880f093a1c97ffff55794",
+      "range": "L1-L77",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/quick_start/ascend_image/atlas-a3.inc.md",
+      "sha256": "411c49264125b6de27f63b8997031687ff6c0b4218448036e339bdf19fae7248",
+      "range": "L1-L83",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/quick_start/ascend_image/image_download_mirror.inc.md",
+      "sha256": "1b2d82bcf6a6ded3d2131a391a9e1c3024b3e1c8216aeda515430d9254a2030d",
+      "range": "L1-L22",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/quick_start/ascend_image/verify_container.inc.md",
+      "sha256": "d3404a31d4c0b5a3be27af5e8fbae1a77bf8ed9fc7951e5b81dc8b55dbfcb1e1",
+      "range": "L1-L17",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/quick_start/offline/qwen3-0.6b-310p.inc.md",
+      "sha256": "01794df928a1cde81f172fa20d0cd44869ddceebb8b586e880bb4637823c52e7",
+      "range": "L1-L82",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/quick_start/offline/qwen3-0.6b.inc.md",
+      "sha256": "760cd94b1e6bd921c93979112f74839924417ab6515d86c707ae1905727f81db",
+      "range": "L1-L60",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/quick_start/online/qwen3-0.6b-310p.inc.md",
+      "sha256": "a57babe905099375302a9157698199292aaabb94d249a7be5f4426d3c36131c1",
+      "range": "L1-L76",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/quick_start/online/qwen3-0.6b.inc.md",
+      "sha256": "b5d69d60903451e973c06312252f21b7dfbea863e125f2e1b065815548f292b4",
+      "range": "L1-L66",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "getting_started/quick_start.md",
+      "sha256": "b22356547fff7631ff3e77656027ecabffff196e5d6e87ce601e8e33e9a5c2f1",
+      "range": "L1-L103",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "index.md",
+      "sha256": "6941a594d451aac3a91fc9bd755968e18c0b6da7a91b57ae06970f7349887859",
+      "range": "L1-L30",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "tutorials/models/index.md",
+      "sha256": "149bad3508e379807a92320fbd7581177f078de4e98d3e804eefb7d9c042f00c",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "full body in tool output, including all quickstart and installation Markdown includes",
+      "notes": "Hardware-specific commands retain device/stack prerequisites; package build, device import and model inference are separate validation steps. Quickstart release macros read with pinned mkdocs.yml extra and macro hook."
+    },
+    {
+      "path": "tutorials/models/Cohere-Transcribe.md",
+      "sha256": "b4d9e5882316e178a1bda6d9a6b213a438978dde13bbead45169dfb89fb9079c",
+      "range": "L1-L253",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "ASR A2 BF16 TP1, block >=128, eager, audio metrics require real audio workload. Internal WER report is not independently reproduced; v0.23 performance stack differs from current image macro."
+    },
+    {
+      "path": "tutorials/models/DeepSeek-R1.md",
+      "sha256": "60c241a5bb853552f86eaf2ee5bef7ee17aad1d3ceb2f136b36e5bb958efc601",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/DeepSeek-V3.1.md",
+      "sha256": "2b543e4c041bdc8d2ee8fc6280dfdcbe2d8ba94b6865a6c6f046ed87dd4f9130",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/DeepSeek-V3.2.md",
+      "sha256": "4b26779bc8009ed3f2c763297a839c57c0f5ef84f94cbeaf4838541090863d15",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/DeepSeekOCR2.md",
+      "sha256": "b908aded3c1b54a14143d307d3edfb4e00727725fed7e5a1c9ab3fb7f33f7274",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Dots3-Note.md",
+      "sha256": "906321f023f3f3843dd8039a14b33df9ecc65af37d0ba1cc59aac65c660849b1",
+      "range": "L1-L559",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "v0.22.1rc1 A3 TP16, modality-specific KV/seq limits and MTP vision restriction. Text/audio/image configs and evaluation scopes read separately; fixed image memory numbers not generic defaults. Opening all-later-stable claim exceeds later validation caveat."
+    },
+    {
+      "path": "tutorials/models/Gemma4.md",
+      "sha256": "8fe7bff660a7e14f2346688180615165213280232692cc2f5fb89f0bcf7b5971",
+      "range": "L1-L372",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Dense/MoE and BF16/MXFP4 distinct; MXFP4 950 TP4DP2 with quantization ascend. Eager, FULL_DECODE_ONLY, PIECEWISE; real image request distinct from text smoke check."
+    },
+    {
+      "path": "tutorials/models/GLM4.x.md",
+      "sha256": "d6a8974b1651293b5ca8b7f3de4348e0242ad2280dbe9ebd50882331a105e66f",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/gpt-oss-120b.md",
+      "sha256": "031c23b3011a9fab6f7c7b5c25109f631c7ca28b9fa73405949cd182bd35f6ae",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Hunyuan-A13B-Instruct.md",
+      "sha256": "846f904f3c2ca3d230a8947b543b465389bd3477ad50ea19e902ff328ff0bea3",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Hy3-preview.md",
+      "sha256": "e324a41a0f0cc6333836f6bba1fc04a32ada7751d058528de2cc46184baf2507",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Hy4-preview.md",
+      "sha256": "e152068cbd1a18a5c18d8afa60b1f4ff663a2a4117696efcf315ce5ede1c811e",
+      "range": "L1-L322",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Image-only hy4-a3; source not merged, only A3, early reliability. TP16 DP2 headless and EP; stated 96k not generic DP context capability. Shared-expert EP wording needs implementation before reuse."
+    },
+    {
+      "path": "tutorials/models/InternVL3.5.md",
+      "sha256": "3215ef17c4d5c4ff9f42514bd4c1343c43db622f350ff016ec30ce9d1ba4cddc",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Kimi-K2-Thinking.md",
+      "sha256": "b0d8ababd77c40dc3ba298c57b58467bf0521706f010f9cfd3349a2acdf3df71",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Kimi-K2.5.md",
+      "sha256": "0af91c8f402d7c831ff850914edc72124d34051bbec6d8d93b4997322678bb85",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/LLaVA-OneVision-Qwen2-0.5B-OV.md",
+      "sha256": "459d60e543099e7dc957abc6f48e7380eeb36ce2755e359c8b14be00f23267f1",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/MiniMax-M2.md",
+      "sha256": "d6d4853ccc34dcd6b9d4955ced14122aad90013fc5c832b2c7dc0e7fd0ba8a5d",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Minitron-8B-Base.md",
+      "sha256": "b7705e8aa0533a73658843386b3ce06bc471dacf0133c17701cc00e86ee30af5",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Mixtral-8x7B-Instruct-v0.1.md",
+      "sha256": "739191ebcb65e7b84de84a91105e6d72b2541c703293c54b3a04c711fdc81a29",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/PaddleOCR-VL.md",
+      "sha256": "a6d4a2adfa5c8d548b7a518630d98044a171350f7b006947c6f18982cf716c0e",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Qwen2.5-Math-RM-72B.md",
+      "sha256": "72fe1b6a02ad3ddaae6d98b7dd7807d4026c9652379fc73524d47a63bf09eb4e",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Qwen3-235B-A22B.md",
+      "sha256": "236bd40fc3ca0bf8bad1044e22fc595c8ca5572cba351d91f042183f047072e0",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Qwen3-ASR-1.7B.md",
+      "sha256": "94213ebf406b83601b0d9d2f8fa08e66dbbda7465fb4283c5be3ed09b5b31cbb",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Qwen3-Coder-30B-A3B.md",
+      "sha256": "6a14ecd866c3df237ee39a1f8ba0d62161a9a8ecacd1bf445c95ae73deeebca4",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Qwen3-Embedding.md",
+      "sha256": "638b03931b31dbe342e17cb7cb5620f25ec065e31b32dc4cce3f5f5011cc68f4",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Qwen3-Next.md",
+      "sha256": "41b1cdafa8c305eed1c45467f2fb156355606470723137ced6c569e9b1c6c386",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Qwen3-Omni-30B-A3B-Thinking.md",
+      "sha256": "20a93b62caae416680f4a5f845abe31130acec8fa6e8a2e52eb2d8fa52466c1d",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Qwen3-Reranker.md",
+      "sha256": "e9361b5907b279f4d5c68cd418a16dab4a02afcb9726badf0b416bd258987dbb",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Qwen3-VL-235B-A22B-Instruct.md",
+      "sha256": "56eb15765ffd1d665da8248695098c33a29bb92b4766bab5e95c79a19538860b",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Qwen3-VL-Embedding.md",
+      "sha256": "8ef270810bfe03ade7972d1869d34768beb50820c4dac53da6786b941b1fa6d9",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Qwen3-VL-Reranker.md",
+      "sha256": "942563a0e686d85a7bda2faec6a259ed09531c0771e5fd5ca4f719e4a8908136",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Current page is retirement notice only, since v0.30.0; linked v0.23.0 tutorial inventoried separately and not counted read."
+    },
+    {
+      "path": "tutorials/models/Qwen3.8-Flash-Next.md",
+      "sha256": "d539a06e4d77e355818bfa8e1db00eb1d4e09d5b7015fff8cbf1bd97b70b2796",
+      "range": "L1-L388",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Experimental APC requires align for GDN+PLE; TP8 DP1 W8A8 MTP3 eager draft; function calling caller executes tool. V2 optimistic CPU lengths only audited consumers; exact device states, fallback and reinitialization conditions preserved."
+    },
+    {
+      "path": "tutorials/models/Step-5-Preview.md",
+      "sha256": "a16913cb7aa3ff2c6186361ed5982a29ae9b8841a62f94ac35468d06931fdb98",
+      "range": "L1-L272",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output",
+      "notes": "Image-only 950DT experimental, DP4 TP4 local2 with headless start-rank2. MTP3 and shared-expert overlap. Model advertises vision/1M; commands/measurements limited deployment evidence."
+    },
+    {
+      "path": "tutorials/features/index.md",
+      "sha256": "7ea04c5ae193d2ebd1da3fac8d9efe039194947488d1a374bb83a6ca1b54f35c",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in consecutive tool outputs",
+      "notes": "Navigation introduction only."
+    },
+    {
+      "path": "tutorials/features/pd_colocated_mooncake_multi_instance.md",
+      "sha256": "14df8ba022e33c2e73a135f0a4564fb0a8490dd4c8d55523ae78a0b286a5e6af",
+      "range": "L1-L339",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in consecutive tool outputs",
+      "notes": "Two A2 TP4 colocated instances share Mooncake StoreV1 kv_both with registered buffer; master metadata not model server. Cold/local DRAM/remote DRAM TTFT test requires verified HBM eviction; random-B alone does not demonstrate eviction. Segment107374182400=100GiB despite GB label."
+    },
+    {
+      "path": "tutorials/features/pd_disaggregation_mooncake_multi_node.md",
+      "sha256": "84fd3de17dba36764496350c4ff0573649686adf7f1d82359e36acbad201de02",
+      "range": "L1-L1363",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in consecutive tool outputs",
+      "notes": "Full body read in three chunks. A3 2 independent P DP2TP8 groups, D DP32TP1 spanning2hosts. Layerwise D-first vs ordinary P-first proxies. HIXL>=9.1 UB auto, HostRoCE physicalID endpoints manual, outer MultiConnector path vs child QoS; QoS initiator semantics. D2RH850E-only validated, D host mirrors KV+alignment; ready!=H2D done; distinct port ranges."
+    },
+    {
+      "path": "tutorials/features/pd_disaggregation_mooncake_single_node.md",
+      "sha256": "ca22b23edd922500cbf9b32a191715f005de77784ee650ae925d81e59c8bb343",
+      "range": "L1-L274",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in consecutive tool outputs",
+      "notes": "Qwen2.5VL TP1 on devices0/1, V1 roles/ports, producer timeout renamed; longer failure retention affects HBM. Proxy+image functional request. Crossnode check is template, example is singlehost."
+    },
+    {
+      "path": "tutorials/features/suffix_speculative_decoding.md",
+      "sha256": "402f1da8ecd441a5821b3aa0346925571138aaef596d04d28502887ebd033696",
+      "range": "L1-L176",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in consecutive tool outputs",
+      "notes": "CPU suffix proposer requires arctic-inference; target verification still device computation. A2 Qwen32B TP4 suffix3 trial, datasets and 100/327 prompts, TPOT SLO and concurrency-specific results. TPOT Gain denominates optimized TPOT, not baseline reduction."
+    },
+    {
+      "path": "tutorials/models/GLM5.md",
+      "sha256": "7fae0801bbe2e6e1124e6cc418a2ed49da72abfa654600451c4886825be3b245",
+      "range": "L1-L1562",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in consecutive tool outputs",
+      "notes": "Full 1562 lines read as three consecutive chunks. GLM5 retired redirect; GLM5.1 remains. 950 TP1PCP8 vs A3 TP16 and A2 TP8. A3 PD PP2TP1PCP16 partition41,37/V2 vs D DP8TP4; 950 P2 independent PCP8 endpoints vs D DP16. Source inconsistencies recorded separately."
+    },
+    {
+      "path": "tutorials/models/Qwen3.5-Dense.md",
+      "sha256": "e9465b8c96d729f9a2c837ecbc3ca9b9076fef9577096643269c614170587241",
+      "range": "L1-L399",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in consecutive tool outputs",
+      "notes": "300I DUO/200I Pro FP16 and SSM FP16, TP1/2, graph event capture constraints, NPUGraphEx off, MTP1. Image/container/source install separated. Evaluation textvqa differs from text-only examples."
+    },
+    {
+      "path": "_templates/feature_template.md",
+      "sha256": "54992c9f6e2a9d5d39f42046b652f42b08efb329dbd7cd3c51f3d3aff6653ff4",
+      "range": "L1-L324",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "Complete English/Chinese template body read; instructions/examples are documentation guidance, not actual model/feature support evidence. Numeric example configurations and generic future-version support wording must not be imported as verified claims."
+    },
+    {
+      "path": "_templates/feature_template_zh.md",
+      "sha256": "30c2b5b0223f7e443aed45988f968b3df267d97157b4bab5f27eba38b1c02156",
+      "range": "L1-L324",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "Complete English/Chinese template body read; instructions/examples are documentation guidance, not actual model/feature support evidence. Numeric example configurations and generic future-version support wording must not be imported as verified claims."
+    },
+    {
+      "path": "_templates/Model-Deployment-Tutorial-Template.md",
+      "sha256": "035aac08e871a1b05d933dbcb059232f34b0e94cc5636e47fec7f3b801937798",
+      "range": "L1-L293",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "Complete English/Chinese template body read; instructions/examples are documentation guidance, not actual model/feature support evidence. Numeric example configurations and generic future-version support wording must not be imported as verified claims."
+    },
+    {
+      "path": "_templates/Model-Deployment-Tutorial-Template.zh.md",
+      "sha256": "b57f074cbee75b15fee23c4fdec767ba8d1d46bf9c587b8a9b8693273393acc8",
+      "range": "L1-L293",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "Complete English/Chinese template body read; instructions/examples are documentation guidance, not actual model/feature support evidence. Numeric example configurations and generic future-version support wording must not be imported as verified claims."
+    },
+    {
+      "path": "_templates/template-supplement.md",
+      "sha256": "4b2a7d7abdb08cd567879f1862d290365ad811b539cd9e47fd06fc2e9edb9f45",
+      "range": "L1-L336",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "Complete English/Chinese template body read; instructions/examples are documentation guidance, not actual model/feature support evidence. Numeric example configurations and generic future-version support wording must not be imported as verified claims."
+    },
+    {
+      "path": "_templates/template-supplement.zh.md",
+      "sha256": "4599ae13e70ba58a38d93f55078093ecd2d3ef21d938c88449778f98ac939acb",
+      "range": "L1-L332",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "Complete English/Chinese template body read; instructions/examples are documentation guidance, not actual model/feature support evidence. Numeric example configurations and generic future-version support wording must not be imported as verified claims."
+    },
+    {
+      "path": "developer_guide/deepseek_v41_qli_candidate.md",
+      "sha256": "c0c9f87fbd6e3d0aa1546af87f6d2574d64eee79530bf4e801d685443e9abc5e",
+      "range": "L1-L144",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "QLIV2 INT8 paged index, actual strides, modes1/2/3 candidate8compressed-position block IDs not KV/positiontopk. A3 fixed quant golden, limited fullmodel checks no Engram/DSpark; operator coverage deferred. Architecture template pruning not A5 support or runtime speedup."
+    },
+    {
+      "path": "developer_guide/index.md",
+      "sha256": "45186e0e9bf516191fc73cb7b5c2e88f6b3fce1b353a1d52af280fa5d920902d",
+      "range": "L1-L30",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "Contribution/design/evaluation/performance navigation."
+    },
+    {
+      "path": "developer_guide/performance_and_debug/index.md",
+      "sha256": "529aaa421f95cd3838633ce3d99eafff126dd87f852ac4c209b2031ba8beca31",
+      "range": "L1-L8",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "Navigation benchmark/tuning/profiling/msprobe."
+    },
+    {
+      "path": "faqs.md",
+      "sha256": "43a7895c13c8e4134744c1187d9cb67493a477368db5b502a01d0efa3829180f",
+      "range": "L1-L321",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "All25 FAQs read. Several stale broad statements: device ONLY list omits950/200I Pro despite current install docs; main every-commit compatibility overstates paired verified commit; lower maxlen does not always shrink profiled pool; fullKV usage metric not exact trigger; greedy+env not universal determinism; four64GB for32B not minimum."
+    },
+    {
+      "path": "user_guide/configuration/additional_config.md",
+      "sha256": "c14d027039947637945ccdf3e05d51c862421e177b1bbc585cde3a0b1c636df0",
+      "range": "L1-L390",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "Read all schemas and examples: MRV1/MRV2 EPLB disjoint; nested scheduler overrides legacy; recompute D-only; DyntraLB thresholds, runtime overlay rewrite, RL precedence, entropy relaxed sampling, KVPP TP*PCP and supported connectors. Intro legacy-env migration caveat contradicts removed fields; MLAPO expansion incorrect; final example combines verify switches unlike V2 exclusion."
+    },
+    {
+      "path": "user_guide/configuration/env_vars.md",
+      "sha256": "1ecdbf9e917b30b2cb91b124af2fbf971674c003346a936166e9415c72eca973",
+      "range": "L1-L7",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "Full body plus entire included vllm_ascend/envs.py at921ccc52 read. Lazy lambdas primarily build options; legacy runtime envs absent. Intro migration statement cannot establish support for a specific variable."
+    },
+    {
+      "path": "user_guide/configuration/index.md",
+      "sha256": "b2ea5c34fe80f4cf2c2c6908562ee84b7abefb15c60c377c4755c54a8d41a109",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "Navigation only."
+    },
+    {
+      "path": "user_guide/index.md",
+      "sha256": "f4ac4ef9a9ed83f342c7c940664f7b2a8e439013555973c800056f69eb0d6998",
+      "range": "L1-L32",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "Deployment/support/configuration/features/release navigation."
+    },
+    {
+      "path": "user_guide/ms_service_metric.md",
+      "sha256": "791c88e2b96a82a953a9f8840adfb5c5422a2efc602a386b40a614043dbc4eb9",
+      "range": "L1-L67",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "complete original body in tool output; env_vars includes whole pinned envs.py",
+      "notes": "Separate optional metrics package; perinstance multiprocess dir; first-level sorted YAML; restart metric config vs process restart Python handler; missing metric symbol isolation. External complete README linked remains separate source."
+    },
+    {
+      "path": "user_guide/release_notes.md",
+      "sha256": "f11fccd952a24b009af6e793a3111f73c1c939b1b538c2e73ee010846b9adc8d",
+      "range": "L1-L2617",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Full body read in tool output",
+      "notes": "All 2617 lines read in consecutive output chunks, truncated L106-L190 reread. PR/issue URL prefixes abbreviated losslessly only in latter chunks. Release claims retained as dated release statements, not independent proof every linked PR or combination works. Historical PP/V1, PCP/DCP, MTP/graph, quantization, env deprecation, model-runner and hardware changes require pinned source verification. v0.13 text misexpands EPLB as Elastic Prefill Load Balancing. Release ordering includes maintenance releases alongside later RCs; neither chronology nor feature continuity can be inferred from heading order. Benchmarks/known issues remain model/stack/scenario scoped; no deployment commands executed."
+    },
+    {
+      "path": "user_guide/deployment_guide/index.md",
+      "sha256": "3174f66f90775259dbd830f9b91b0a245169a6e3c3a1f019a5f01819545cdfcc",
+      "range": "L1-L1",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Full body read in tool output",
+      "notes": "One-line section navigation, no deployment claims."
+    },
+    {
+      "path": "user_guide/support_matrix/index.md",
+      "sha256": "f55bad5a0d44200639cb141d20c448f5d4ba960c9fcd91e0fcb5561f1241859f",
+      "range": "L1-L3",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Full body read in tool output",
+      "notes": "Three-line support-matrix navigation, no standalone support evidence."
+    },
+    {
+      "path": "tutorials/models/Qwen-VL-Dense.md",
+      "sha256": "dccbe381b47f3555b35019e8f4eecff49a16c285273bc86726b9e012f8208cf7",
+      "range": "L1-L449",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Entire file body output; long file split into contiguous chunks",
+      "notes": "Full 449 lines. Legacy v0.11.0rc3 demo coexists with current macros; 310p requires >=0.18, 950 >=0.23rc1. Official 310p command duplicates float16/bfloat16 and max_model_len 16384/32768, conflicting with FP16-only note; A2/A3 Docker exposes only device0 despite variable TP; 950 quantized example uses unquantized model ID; curl model differs served alias qwen3vl. Tuning table has MTP3 absent deployment, total1 despite TP2 advice. Accuracy MMMU .5389 is 0.11rc3, 310 TextVQA80.57 is0.23rc1, cannot transfer to latest guarantee."
+    },
+    {
+      "path": "tutorials/models/Qwen3-Dense.md",
+      "sha256": "c29f23a18efb93571d65cddb5cd203cfd25224143ed023e12e68dd21b60c22b2",
+      "range": "L1-L605",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Entire file body output; long file split into contiguous chunks",
+      "notes": "Full 605 lines. BF16 and W8A8/W4A4 A2/A3 differ from 310p W8A8SC sharded_state TP1 (8/14B),TP4(32B),FP16,graphExoff. A3 dual-die explicitly distinguishes8physical/16logical. Demonstrated 0.21 claimed all later stable without evidence; recipes TP4 throughput/135000context and TP8 latency are scoped examples with Eagle3. AISBench text says models selects abbr despite filename examples, conflicts other tutorial; not treat as authoritative CLI. Container port8080/host127 and service publication need actual networking alignment. No benchmark or startup executed."
+    },
+    {
+      "path": "tutorials/models/SigLIP2.md",
+      "sha256": "1ef3c55623ce0220d6107b8b7cd9f025e0197ff08d3c6cfd4923c2831307c745",
+      "range": "L1-L583",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Entire file body output; long file split into contiguous chunks",
+      "notes": "Full 583 lines including complete offline eval and HTTP benchmark scripts. Pooling separate text/image requests, no generative decode/PD/MTP/TP; 310p single logicaldevice FP16,64text length,224image,graph capture[64,32]. Dated main2026-09-03 support assertion not exact commit. ImageNet ~69% reference requires matching class-ID mapping and normalized dot products, not this-run result. Online template_basic.jinja required but contents not supplied here; offline LLM example omits FP16/graphEx knobs fromonline config. Benchmark measures successfulHTTP requests only, prebuildsimages, separate text/image runs, clients queued outside percalltimer; cannot assumefull userqueue-inclusive latency orprecision."
+    },
+    {
+      "path": "tutorials/models/Qwen3-30B-A3B.md",
+      "sha256": "0373ca6adcee1b45c1e7d3b006cbf8c505f3c579611d1325507a9b23d9d7f76b",
+      "range": "L1-L631",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Entire file body output; long file split into contiguous chunks",
+      "notes": "Full631lines. 30.5Btotal3.3Bactive; hybrid BF16embedding/norm/gate,staticW8A8attention,dynamicMoE. A2/A3 TP4EP Eagle3 vs TP1EPoff throughput; opening EP required contradicts latter and310pTP2 noEP. 310p container maps onlydevice0 whilecommanduses0,1; config enable_npu_graph_ex spelling differs standard enable_npugraph_ex; maxseq32 commandvs16prose; MTPtip not corroborated by Eagle3 recipe. A3cards/chips clarified in tuningbuttableTP1A2count2 ambiguous. 0.22.1rc A3accuracy values are referenceonly; all laterstable notestablished. AISBench models filename vsabbr contradictory betweenaccuracy/perf paragraphs."
+    },
+    {
+      "path": "tutorials/models/Qwen3.8-2.4T-A95B.md",
+      "sha256": "3ca0df41f5752f4659e4419fede8e32367659d9c3b728e6b1f88c6c1765b3b61",
+      "range": "L1-L719",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Entire file body output; long file split into contiguous chunks",
+      "notes": "Full719lines in1-360 and361-719. Text-only thinking MoE2400B/95B,weights4.45/2.33/1.21TiB;4A3 W8A8 DP4TP16EP64 vs8A2 W4A8 DP8TP8EP64. oneDP/node means model experts crossnodes; headless workers noAPI,rank/IPconsistent,lazySafetensors reducesNFScheckpointprefetch. A3seq8/token16384/131072 vsA2seq8/token4096/262144 balancesactivationKV;perf A3different250000/8192/.95. PDcommands explicitly futureplaceholder, cannotclaimvalidatedPD fromheading or intro. Queue waiting assertion includesTPOT too broadly; throughput/advice needsmeasurement. GPQA91.92/93.75reference notrerun; xhigh/medium/low documentedwiththinkingalwayson."
+    },
+    {
+      "path": "tutorials/models/Qwen3.6-35B-A3B.md",
+      "sha256": "d732eb603395d8d84371a427aa33d67c5559c61284371756a7cb5b3579ff88cd",
+      "range": "L1-L500",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Full body output in consecutive chunks",
+      "notes": "All500lines read in1-290/291-500. 35B3B hybridMoE.0.30examples:950TP1W8A8MXFP8,C8optionalexplicitmxfp8,MRV2MTP3/statictrue/superfalse;A2A3TP2EPFP16MRV2MTP3fullandpiecewise+overlap;310pTP2FP16noAPCgraphExoffcapture[1,8],optionalMTP1onlylowconcurrency. Distinguishspecconfig recommendation fromexample; tunedtable262144 differs135168recipe. Startuphealth200 notprecision; MMMU/GPQA83.3reference. QueueTPOTassertion andunconditionalreduceKVforOOM advice overgeneral. PDintroonly,notactualPDrecipe; nohost sysctl executed."
+    },
+    {
+      "path": "tutorials/models/Qwen3.5-27B-Qwen3.6-27B.md",
+      "sha256": "21f06255e0adb620c01b1a1de18522ac79b8d574102250d5c3bc6055dc6530bf",
+      "range": "L1-L661",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Full body output in consecutive chunks",
+      "notes": "All661lines read1-335/336-661. DensehybridGDN/fullattentionwithsharedMTPhead; minmodelversions.17/.18,310p950.23rc1. A2A3TP2BF16MTP3/133120/32seq,950TP1MXFP8C8blockmultiple512 QFAfullattentionnotGDNcache;310pTP2or4 FP16SSMFP16MTP1eventlimited<=2captures. 310p quantizedcommands omitquantization despiteprose requiring; two-size limit examplemapsfour sizes needschoose subset. Fineprefixmatchunit16 dividesallgroups,COW/hash/extrasplitcost; mmshm vsLRUcache semanticsnotuniformcopies. DefaultCPU/graph/APC claims version-specific. DPfirstthroughputtablesnotminimumcardsnorproof256kallpaths,performance notrerun; TTFT/TPOTwaiting conflation and blanket largerbatchlowerlatency notgeneral."
+    },
+    {
+      "path": "tutorials/models/Qwen3.8-27B.md",
+      "sha256": "74490d7960cdd0cfd2ae4d9ef10c1899314be8b14fa4ffc72ab2dd482eea2752",
+      "range": "L1-L625",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Full body output in consecutive chunks",
+      "notes": "All625linesread1-320/321-625. 64layers=16fullgatedattention+48GDNconstantstate,262144native,MTP. 950DT96GiBexampleC8TP1mxfp8blockmultiple512;950PR128usesW8A8currently whiletuningtable recommendsC8family broadly,conditions differ. A2A3TP2BF16MTP3;310pTP4FP16SSMFP16MTP1twoeventcaptures. 310pDocker hasno hostnetworknorportpublish; commandsomitquantflag despitequantizedweightsprose. Modelthinkingdefaultcanbedisabledunlike2.4T. Prefixmatchpartialpagecosts andCPUdefaultlimits asotherdenseguide. Tuningexplicitlynotfullyvalidated; GPQA90.40/89.90/89.39referenceonly. Defaults sectionFULL_DECODEexplicitflag vsclaimedunconditional, APCdefault vsrequiresenablingcontradiction. TPOT/queue andgeneralbatchlatency claims notuniversal."
+    },
+    {
+      "path": "tutorials/models/Kimi-K2.6.md",
+      "sha256": "1fde9c51aaef4ec90b3744db93a2bbe5d3b49d4086ab3df4ea27ec773b264b88",
+      "range": "L1-L802",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Entire body output in consecutive chunks",
+      "notes": "Full802lines read1-415/416-802. A3W4A8single DP4TP4EP16 DFlash15(2.5draft),separateEagle3K2.6draft forPD3. 2P1Dmeans4A3hosts:PgroupsDP4TP4each independentmaster,oneDgroupDP8TP4local4 across2hosts; proxy8P8DHTTPendpoints. Not equalenginecount/nodecount;33kaccuracy vs15kperf. Official PDintro notproduction vsbody productionrecommended; recompute P+D true conflicts newerconfigDonly; prefillsaid entirecontextatonce contradictschunkinggeneral. Dshared-overlap conditionTP1/explicitsharedDP notconfiguredDP8TP4example; tablesdifferentTPand16kinputvs15kmax notinterchangeable. >=.20transformersversiontoolcalllimit<=4.57.6 onlyoldreleases. JSONsamplefinish_reason nestedinside message is illustrativeinvalidschema;noendtoend run."
+    },
+    {
+      "path": "tutorials/models/Qwen3.5-397B-A17B.md",
+      "sha256": "d95939a6b89b8e3d1a0c8aae15207707581cafa853df1f60183a6494624d05f8",
+      "range": "L1-L1432",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Entire body output in consecutive chunks",
+      "notes": "Full1432lines read1-390/391-780/781-1120/1121-end.0.30MRV1baseline. SingleA3TP16W8A8or950TP8W4A4;A2mixed2hostsDP2TP8EP16headless. A3W4A8singlehost1P1Ddevices0-7 PTP8DP1 vs8-15 DTP4DP2 EP8each;950W4A8C8twohostsP8D8 sameTP8to4,Dlocal2,connectorV2Pull;A2W4A8twohostsP/DTP8DP1V1Pull. HTTP/RPC/KVports andgroup/DPengine distinctions explicit. C8 requires scale metadata/checkpoint/tokenizer一致+14c6c3f43 #19017 officialreleasefix; cannot silentlyapply to7drc2. MTPpairedP/D,APC/asyncspecificcase,health!=transfer!=precision. MC2A3PD2 vs950PD0/prefillfalse specificstack;singlemode1. Includesmanualhosttuningnotexecuted,64Gshm/memlockspecificguidance notuniversalminimum; blanketcontainer sysctl return0claimnotverified. Table W4A8requires2A2 contrastsactual1A2perPDrole(lowercontext/etc),notminimumproof. librarymountclobberwarningpertainscontainerdependencies. Longformtoolcallclientexecute,benchmarktokenizeraliasdistinction preserved; noNPUvalidation."
+    },
+    {
+      "path": "tutorials/models/MiniMax-M3.1-Flash.md",
+      "sha256": "0a85b179fbd48acf0992fea0ad1febd18c56116082b6c0a8b0ebf5dffb738b99",
+      "range": "L1-L1409",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Entire body output in consecutive chunks1-420/421-820/821-1180/1181-end",
+      "notes": "428B/23B sparseMMMoE; officialNVFP4routedweightsnotdirectAscend, specialimages unmergedcode/sourceinstallunsupported. A3singleDP4TP4EP16MRV2DSpark7;950DP2TP4EP8MXFP8draftBF16;A2twohostmixedDP4TP4local2headless despitePDcolocationtable. A3 1P2Dmeans3hosts: P PP4TP4DP1 partition15x4, oneD DP8TP4 across2hosts external8endpoints;950 P PP2TP4DP1,oneD DP4TP4across2hosts local2headlessD2. Official950proxy incorrectlycopiesA3ports19100/19200-7 versusactual31050/31060andincludesheadlesshost. Language-model-onlyPDcannotverifyimage/video withoutmodechange. SpecialDSparkPPunmergedimage notgeneral921DSparksupportoverride. Model1Mnot133000/263000recipecapacity. AIME93.33referenceonly;perfport8009mismatch; noNPUexecution."
+    },
+    {
+      "path": "tutorials/models/DeepSeek-V4-Flash.md",
+      "sha256": "c469593492e32059002cfa940b0746145ee0d52b8f29e44887504996ed34d54c",
+      "range": "L1-L2478",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Entire body consecutive chunks1-410/411-820/821-1161/1162-1501/1502-1841/1842-2161/2162-end",
+      "notes": ".26featurecomplete/.30validated but rc2A3/950 and A2nightly specialmeasurementbuild vary. DSpark0731checkpointdiffersMTP;TurboQuant4bit_ncCompress4only,nopd. 950singlehost P4PCP4 D4DP4 V2Pull;A3twohosts P2DPxPCP8 D16DP1perdie Hybrid; A2fourhosts externalP2PCP8 D16local8. A2measurement explicit runtimechangesnotdelivered, PP>1+PCP>1rejected andDseq*(1+draft)<=256 versionlimited. A2prosescriptsclaimdraft4/mns51 butactualD1/128 inplainandbothpooling recipes; endtoendcontextboundedbyP150000 despiteD508576. Pool950embeddedmemcache40GBperlocalservice/worldsize256notNPUcount;A3standalone20GB plusoptionalSSD50GBbudget,force_new_diskinvalidatescache,notexecuted;A2mooncake0.3.13SSDmeasured vsMemcacheRDMAembeddedDRAMonlyintegration noequalthroughput. Parent/childroles,Dconsumer_is_to_loadexplicitonA2pool;APCandpoolhitsnotidentical,HTTP200notcacheproof. A2lookupbaseglobalrank+2 unlikeA3zero+internalDPrank;requiresimplementationcheck forcollisioninterpretation. launchersdifferexitpropagation. W4A4MXFP4experts,W8MXFP8attention/shared,routercompressor/indexer/MTPunquantized,C8runtimeFP8notweightquant;64elementlatenttileE8M0scaleRoPEBF16,indexerHadamardper-tokenE4M3/FP32. Exactaccuracyandthroughputreferencesnotrerun;queueTPOT/generalprefillallatonceoverclaims."
+    },
+    {
+      "path": "tutorials/models/DeepSeek-V4-Pro.md",
+      "sha256": "f4541c0643b93d2d0adefed86e7bb3d0d5bb3a4d2db3c583044382941124ccee",
+      "range": "L1-L2679",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Entire body consecutive chunks1-350/351-750/751-1170/1171-1540/1541-1930/1931-2320/2321-end",
+      "notes": ".30stack;previewMTPvs0813DSpark distinctweights;950nativeMXFP8attentionMXFP4W4A8experts notW4A4localquant. Mixed950twohostsDP2TP1PCP8MRV2/1M;A3twohostsDP2TP16MRV1/135k;A2fourhostsDP4TP8MTP1/135k. A2Node1-3templatehardcodesstartrank1 althoughprosesaysunique;queueTPOTclaiminvalid. PD9508hosts:2Pinstances each2hostsPP2TP1PCP8DP1partition32,29;oneD32DPacross4hosts;V2requiredPP. A3fourhosts:onePPP2TP2PCP8across2 andoneDDP16TP2across2,150k;A3workeruniqueKVport30200 instructiondiffers950sameinstanceport andA3partitionmissingconnectorpp_layer_partition,needsimplementationcrosscheck. A2eighthosts4PDP4TP8+4DDP4TP8Hybrid,noPCP,DSpark7vsA3/9505. Commonlaunchercheckschildexitcodes. RecomputeDonlynestedkey; allrankscheckpoint/draftmatch. 950poolmemcacheembedded40GBperLocalService;A3separated120GBDRAM+600GBUBSIOeachhostnotdiskcapacity,SSDforce_new_diskinvalidatescache;A2mooncake>=.3.11DRAM24GB,Hybridthreshold.85+Storeasync_bypassdifferentlayerwise/storagemechanisms. Tuning950EPofftablecontradictsenableEPcommands;A31MreferenceDP2TP16not150kPPtopology. Modelsmaxlenpromptplusoutput,performancereferencenotvalidated;FAQmixedC8tile/indexerschemeasFlash. NoNPUexecution."
+    },
+    {
+      "path": "tutorials/models/MiniMax-M3.md",
+      "sha256": "5a91e354c2baff2b4b606f0eca73ff782f79943a0b149efccf50d3a4f5e5f21d",
+      "range": "L1-L2952",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Entire body consecutive chunks1-320/321-710/711-1120/1121-1500/1501-1910/1911-2270/2271-2620/2621-end",
+      "notes": "Fullmainbranchguide. BF16singleA3DP2TP8possiblebutdiscouraged;table2A3andmultinodesectionnotrecommendedconflict. W8singleDP4TP4vs950MXFP8DP2TP4,C8runtime,draftBF16. Multiheadstart-rank0withheadlessotherspossiblehybridLBconflictneedsfixedenginecheck. Sub1M133000 A3PDP1TP4PP4split16,15,15,14 plusoneDDP8TP4across2hosts;950PDP2TP4/D DP2TP4(twohosts)orDDP4TP4across2hosts(three),notP/Dhostcount. V1supportslistedmodelPPcannotgeneralizeDSV4V2requirement. Launcherjoinschildrenwithoutexitcodecheck. Incorrectgraphcaptureexample divides max-num-seqs256byDP2,conflatingper-ranklimitwithtotalclientCC;default512version-specific. PoolA3mooncake15GB/worker,95064GB/worker;SSDlimits2keysboth10GiBsamebudgetnot20,1GBIOextra,notDP-onlybudget;lookup37000+rankinternallyrankneedscheck. 1MnoEagle/APC/async:singleA3PP4TP4split15x4 len1049600;950TP8orTP4PP2len1048576skipKVfp8layers0-2vendorpkg. A3PD3hostsPDP1TP8PP2split30,30;oneDDP4TP8across2hosts,seq1/budget8,eager,explicit47620449894BKVperworker overridesGMU. Singlehistorical1Mrequest33outputat7672a5b50 not4concurrent/perfvalidation;normalizedscriptsunrerunandcontainerstateunaudited. MMViTDPoptionalmoremem,language-onlydistinct0limits,32framesdefaultversionbound;VideoMMEonlychunks1/2. Thinkingadaptivevsparserdefaultplainnotesneedscheck;accuracytableGPQA263000contradunified133000prose. Officialperf1807.9to1840.7specific232req128k/1kCC58,notrerun."
+    },
+    {
+      "path": "tutorials/models/Kimi-K3.md",
+      "sha256": "7ad05797bf73c188fef9d63879a6873ac1563e6b5a2865febc42178d87bfc4d1",
+      "range": "L1-L2397",
+      "status": "full-text-read",
+      "reader": "root",
+      "method": "Entire body consecutive chunks1-350/351-750/751-1150/1151-1520/1521-1890/1891-2240/2241-end",
+      "notes": "MRV2onlyKDA+periodicgatedMLAStableLatentMoE/MoonViTimagebutnotvideo. W4A8mixed9504hostsDP4TP8EP32;A34hostsDP4TP16EP64;A28hostsDP8TP8EP64languageonly262144baseline. A2said.23unchangedyetMRV2exportomittedandmasterstartrank0withheadlessotherspotentialLBmismatch;do notcopyasfullycurrent. DSparkseparateplatformdraft950Block5/A3MLANPU,seven-draftgreedyTPmatches8/16. PD8hostsoneP PP4DP1fourhosts+oneDDP4fourhosts;950split24,24,24,21 vsA325,25,24,19=93. 950CCUboth/A3AICPUP,AIVD;Dblockinterleave768/384. Long>65536recommendDCP8/16with1Mmaxbothsame8hosts,notnewcardmultiplier;mixed1Mrequires8hostsreference. PP/DSpark/DCPguidecombinationmustnotoverridegeneralspecdocrestrictionswithoutversionmatching. P MegaMoE sharedDP overlapoff;DMLAPO/recomputeonly;950partitiononlyenv,A3connectorpartitionalso. Poolmemcache600GBstandaloneperhost,worldsize256notDPrankcount;commondevice_sdma configapplied950conflictsbackendhardwareguidance(device_urma/uboe) andA3-onlyseparatedlimitation. lookup0P/Drank+4 IPCidentifiersnotTCPports. Accuracy9501hosttablecontrad4hostminimum;performanceminimal128k+1krequiresheadroomover131072. Protocol/MMlimits/publichealthnotNPUproof. Fullscriptread,noexecution."
+    }
+  ],
+  "source_caveats": [
+    {
+      "path": "getting_started/quick_start/ascend_image/image_download_mirror.inc.md",
+      "issue": "Mirror suffix prose says -950dt; actual Atlas 950DT image include uses -a5. Do not derive an image tag from that prose."
+    },
+    {
+      "path": "tutorials/models/GLM5.md",
+      "issue": "w4a8 hardware prerequisite table says 2 A2 but single-node section uses1; fusedMC2/MTP conflict prose versus enabled scripts;950 P maxseq8 script vs20 table;950198K heading vs135000 actual. Require implementation/actual run evidence before accepting broad statements."
+    },
+    {
+      "path": "tutorials/features/pd_colocated_mooncake_multi_instance.md",
+      "issue": "Dataset described as random A/B but final AISBench command points to GSM8K; no demonstrated B eviction sizing. Do not label reported TTFT as independently verified."
+    }
+  ],
+  "supplemental_read": [
+    {
+      "path": "docs/hooks/macros_main.py",
+      "scope": "full file"
+    },
+    {
+      "path": "mkdocs.yml",
+      "scope": "extra version variables block only"
+    },
+    {
+      "path": ".github/vllm-main-verified.commit",
+      "value": "544f182d9f0c9bfe8bd7645525951d5e3692a542"
+    },
+    {
+      "path": ".github/vllm-release-tag.commit",
+      "value": "v0.32.0"
+    },
+    {
+      "path": "vllm_ascend/envs.py",
+      "scope": "full file at921ccc52, including documentation include markers"
+    }
+  ]
+}

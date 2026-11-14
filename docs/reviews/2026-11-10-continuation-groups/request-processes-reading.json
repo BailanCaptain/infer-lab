@@ -1,0 +1,470 @@
+{
+  "old148_source_occurrences": 148,
+  "git_excerpt_occurrences": 134,
+  "raw_occurrences": 2,
+  "external_or_fixed_url_occurrences": 12,
+  "raw_unique_uncovered_code_lines": 1478,
+  "raw_files_new_full_credit": 0,
+  "first_time_full_credit": 0,
+  "credit_policy": "旧148与新增62为来源出现项；独审复读、补证片段及已读同hash复用均不自动增加官方全文累计。官方全文证据单列供根账本去重。",
+  "base_official_full_reads": [
+    {
+      "repo": "vllm",
+      "commit": "0fc695fc",
+      "path": "docs/design/arch_overview.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/arch_overview.md",
+      "sha256": "6f6d01a2967b3ec5355c8f2c935f4e4e2377724a6ba43848166a276b9b203e61",
+      "lines": 314,
+      "text_read": "full text independently read this review",
+      "first_time_full_read_credit": "pending deduplication with root ledger",
+      "images": [
+        {
+          "path": "docs/assets/design/arch_overview/entrypoints.excalidraw.png",
+          "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/entrypoints.excalidraw.png",
+          "sha256": "68e7d23745a616072d1e203add608d07534aaa68adfe0e43e9e943d33497402a",
+          "visually_inspected": true
+        },
+        {
+          "path": "docs/assets/design/arch_overview/v1_process_architecture_tp4.png",
+          "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/v1_process_architecture_tp4.png",
+          "sha256": "8602fecbabf3b5fb4ceeb831f608dc178d14ec4a686e2f2cff58b1af78f8951d",
+          "visually_inspected": true
+        },
+        {
+          "path": "docs/assets/design/arch_overview/v1_process_architecture_tp2_dp4.png",
+          "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/v1_process_architecture_tp2_dp4.png",
+          "sha256": "5c79b2b2ce38b6b2f1737a1b5c5fe8d3acd0cbf0d1f6ed542fd4d85c28f8c46b",
+          "visually_inspected": true
+        },
+        {
+          "path": "docs/assets/design/arch_overview/llm_engine.excalidraw.png",
+          "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/llm_engine.excalidraw.png",
+          "sha256": "bf641ddd64c294e72fdd50243603ca15e8d19827104add4a71c77cb93dc2d73b",
+          "visually_inspected": true
+        },
+        {
+          "path": "docs/assets/design/hierarchy.png",
+          "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/hierarchy.png",
+          "sha256": "d9891b5d6cae099b9e0245adba0b6fa0dde2b7e17b19276f948a843a569e0fa7",
+          "visually_inspected": true
+        }
+      ]
+    },
+    {
+      "repo": "vllm",
+      "commit": "0fc695fc",
+      "path": "docs/design/multiprocessing.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/multiprocessing.md",
+      "sha256": "1959cb563a5decf9b99186069e6b1d6a724b895ff1fd9c84fa1d382ed3a84d8f",
+      "lines": 191,
+      "text_read": "full text independently read this review",
+      "first_time_full_read_credit": "pending deduplication with root ledger",
+      "images": []
+    },
+    {
+      "repo": "vllm",
+      "commit": "0fc695fc",
+      "path": "docs/design/model_runner_v2.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/model_runner_v2.md",
+      "sha256": "1ef00c68fcc82b5d43093283052cc85282337a8eba5717fbca1066d2be2ddbec",
+      "lines": 198,
+      "text_read": "full text independently read this review",
+      "first_time_full_read_credit": "pending deduplication with root ledger",
+      "images": [
+        {
+          "path": "docs/assets/design/model_runner_v2/persistent_batch_v1.png",
+          "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/persistent_batch_v1.png",
+          "sha256": "0aceba5e9bdedfb763403b63a3910d68f97d9171d9f5578cbd6f6309dd036166",
+          "visually_inspected": true
+        },
+        {
+          "path": "docs/assets/design/model_runner_v2/persistent_batch_mrv2.png",
+          "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/persistent_batch_mrv2.png",
+          "sha256": "79a42dbaa622098371b2179b5dda0595580a14603d2b19fb9c7f8d86b3ba7292",
+          "visually_inspected": true
+        },
+        {
+          "path": "docs/assets/design/model_runner_v2/async_sched.png",
+          "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/async_sched.png",
+          "sha256": "4a95db845bf8a2d294fbb447a3e29e806b69cc0fe5031e2af7a1dea2afdb3d96",
+          "visually_inspected": true
+        },
+        {
+          "path": "docs/assets/design/model_runner_v2/async_race_condition.png",
+          "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/async_race_condition.png",
+          "sha256": "77dda4f1075c2c63a1d57af81f4bff382fa0fe9379db5b8f3fd24b40d96503fb",
+          "visually_inspected": true
+        },
+        {
+          "path": "docs/assets/design/model_runner_v2/async_no_race_condition.png",
+          "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/async_no_race_condition.png",
+          "sha256": "2e6abf3ad671f24896ed87c67aa872cad0d75ae32fd105fee7c5fe45fe952a8a",
+          "visually_inspected": true
+        }
+      ]
+    },
+    {
+      "repo": "vllm",
+      "commit": "0fc695fc",
+      "path": "docs/configuration/optimization.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/optimization.md",
+      "sha256": "402b5bcc8fdc56c33ed051ec1dd542149939a1f41a72a370af1c579513a1f7a0",
+      "lines": 462,
+      "text_read": "full text independently read this review",
+      "first_time_full_read_credit": "pending deduplication with root ledger",
+      "images": []
+    }
+  ],
+  "four_version_docs": [
+    {
+      "commit": "0fc695fc",
+      "path": "docs/serving/parallelism_scaling.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/0fc695fc-parallelism_scaling.md",
+      "sha256": "edd3998246b0060e3183bc3e8e782ed38ac780e8cd6b76c7e80d213a8d2ab153",
+      "lines": 226
+    },
+    {
+      "commit": "568afb3a",
+      "path": "docs/serving/parallelism_scaling.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/568afb3a-parallelism_scaling.md",
+      "sha256": "edd3998246b0060e3183bc3e8e782ed38ac780e8cd6b76c7e80d213a8d2ab153",
+      "lines": 226
+    },
+    {
+      "commit": "ced6857a",
+      "path": "docs/serving/parallelism_scaling.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/ced6857a-parallelism_scaling.md",
+      "sha256": "edd3998246b0060e3183bc3e8e782ed38ac780e8cd6b76c7e80d213a8d2ab153",
+      "lines": 226
+    },
+    {
+      "commit": "84030bbe",
+      "path": "docs/serving/parallelism_scaling.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/84030bbe-parallelism_scaling.md",
+      "sha256": "edd3998246b0060e3183bc3e8e782ed38ac780e8cd6b76c7e80d213a8d2ab153",
+      "lines": 226
+    },
+    {
+      "commit": "0fc695fc",
+      "path": "docs/serving/data_parallel_deployment.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/0fc695fc-data_parallel_deployment.md",
+      "sha256": "bb4f301d950b3f19127be7c93dcbe2033cc75859a998586782dd1ca0ee52749c",
+      "lines": 133
+    },
+    {
+      "commit": "568afb3a",
+      "path": "docs/serving/data_parallel_deployment.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/568afb3a-data_parallel_deployment.md",
+      "sha256": "bb4f301d950b3f19127be7c93dcbe2033cc75859a998586782dd1ca0ee52749c",
+      "lines": 133
+    },
+    {
+      "commit": "ced6857a",
+      "path": "docs/serving/data_parallel_deployment.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/ced6857a-data_parallel_deployment.md",
+      "sha256": "cc6d58e4452bc0b59d376d9bbe98f7f99c90971da8c9f91c7881dce30a7c9c86",
+      "lines": 135
+    },
+    {
+      "commit": "84030bbe",
+      "path": "docs/serving/data_parallel_deployment.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/84030bbe-data_parallel_deployment.md",
+      "sha256": "cc6d58e4452bc0b59d376d9bbe98f7f99c90971da8c9f91c7881dce30a7c9c86",
+      "lines": 135
+    },
+    {
+      "commit": "0fc695fc",
+      "path": "docs/serving/distributed_troubleshooting.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/0fc695fc-distributed_troubleshooting.md",
+      "sha256": "256bdc415e85948172092735acf6267f7c40b651a7b702e463149af6b9fbe628",
+      "lines": 16
+    },
+    {
+      "commit": "568afb3a",
+      "path": "docs/serving/distributed_troubleshooting.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/568afb3a-distributed_troubleshooting.md",
+      "sha256": "256bdc415e85948172092735acf6267f7c40b651a7b702e463149af6b9fbe628",
+      "lines": 16
+    },
+    {
+      "commit": "ced6857a",
+      "path": "docs/serving/distributed_troubleshooting.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/ced6857a-distributed_troubleshooting.md",
+      "sha256": "256bdc415e85948172092735acf6267f7c40b651a7b702e463149af6b9fbe628",
+      "lines": 16
+    },
+    {
+      "commit": "84030bbe",
+      "path": "docs/serving/distributed_troubleshooting.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/84030bbe-distributed_troubleshooting.md",
+      "sha256": "256bdc415e85948172092735acf6267f7c40b651a7b702e463149af6b9fbe628",
+      "lines": 16
+    },
+    {
+      "commit": "0fc695fc",
+      "path": "docs/design/arch_overview.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/0fc695fc-arch_overview.md",
+      "sha256": "6f6d01a2967b3ec5355c8f2c935f4e4e2377724a6ba43848166a276b9b203e61",
+      "lines": 314
+    },
+    {
+      "commit": "568afb3a",
+      "path": "docs/design/arch_overview.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/568afb3a-arch_overview.md",
+      "sha256": "d710d381f4b3e024df6ea39bf17cc14a2f6adc13f1a8822af865c59a30595dd8",
+      "lines": 314
+    },
+    {
+      "commit": "ced6857a",
+      "path": "docs/design/arch_overview.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/ced6857a-arch_overview.md",
+      "sha256": "75e2f3d93bd28aaec56da4663536e3f65561c29d5a2940dc9e6cbe29fe95f21e",
+      "lines": 300
+    },
+    {
+      "commit": "84030bbe",
+      "path": "docs/design/arch_overview.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/84030bbe-arch_overview.md",
+      "sha256": "75e2f3d93bd28aaec56da4663536e3f65561c29d5a2940dc9e6cbe29fe95f21e",
+      "lines": 300
+    },
+    {
+      "commit": "0fc695fc",
+      "path": "docs/design/multiprocessing.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/0fc695fc-multiprocessing.md",
+      "sha256": "1959cb563a5decf9b99186069e6b1d6a724b895ff1fd9c84fa1d382ed3a84d8f",
+      "lines": 191
+    },
+    {
+      "commit": "568afb3a",
+      "path": "docs/design/multiprocessing.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/568afb3a-multiprocessing.md",
+      "sha256": "1959cb563a5decf9b99186069e6b1d6a724b895ff1fd9c84fa1d382ed3a84d8f",
+      "lines": 191
+    },
+    {
+      "commit": "ced6857a",
+      "path": "docs/design/multiprocessing.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/ced6857a-multiprocessing.md",
+      "sha256": "1959cb563a5decf9b99186069e6b1d6a724b895ff1fd9c84fa1d382ed3a84d8f",
+      "lines": 191
+    },
+    {
+      "commit": "84030bbe",
+      "path": "docs/design/multiprocessing.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/84030bbe-multiprocessing.md",
+      "sha256": "1959cb563a5decf9b99186069e6b1d6a724b895ff1fd9c84fa1d382ed3a84d8f",
+      "lines": 191
+    },
+    {
+      "commit": "0fc695fc",
+      "path": "docs/design/model_runner_v2.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/0fc695fc-model_runner_v2.md",
+      "sha256": "1ef00c68fcc82b5d43093283052cc85282337a8eba5717fbca1066d2be2ddbec",
+      "lines": 198
+    },
+    {
+      "commit": "568afb3a",
+      "path": "docs/design/model_runner_v2.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/568afb3a-model_runner_v2.md",
+      "sha256": "1ef00c68fcc82b5d43093283052cc85282337a8eba5717fbca1066d2be2ddbec",
+      "lines": 198
+    },
+    {
+      "commit": "ced6857a",
+      "path": "docs/design/model_runner_v2.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/ced6857a-model_runner_v2.md",
+      "sha256": "5bb3b26d87976d32c90fbf1d297e8a2e4364e60c2f438475922072ed7fb2628e",
+      "lines": 206
+    },
+    {
+      "commit": "84030bbe",
+      "path": "docs/design/model_runner_v2.md",
+      "saved": ".tmp/continuation-groups-2026-11-10/request-processes/review-official/84030bbe-model_runner_v2.md",
+      "sha256": "5bb3b26d87976d32c90fbf1d297e8a2e4364e60c2f438475922072ed7fb2628e",
+      "lines": 206
+    }
+  ],
+  "four_version_read_method": "6 docs×4 commits=24 versions/10 unique textual contents; three new base docs full read, earlier three base full reads reused, four changed variants read by full old text plus complete actual diff; optimization one extra full base doc. Equal-hash versions reused, not separately counted as new full reads.",
+  "external_scope": [
+    {
+      "page_id": "engine-processes",
+      "source_number": 1,
+      "ref": "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
+      "full_content_sha256": "1d07e0198ee72408a27584183df494a79e398176e6d3374b1a0d78b367925721",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/engine-processes-1.txt",
+      "excerpt_sha256": "5b9dc2a709ed81d252b6939b0946862dc0fc8e4c4eff85376603868db870cfcc",
+      "lines": 430,
+      "retrieved": true,
+      "read": true,
+      "scope": "full document text read this review; reuse/no automatic first-read credit"
+    },
+    {
+      "page_id": "engine-processes",
+      "source_number": 51,
+      "ref": "raw:sha256-0b04f1f659a97723f3e5a81f307519311a661816e67b32672229cb8d523f468b.md#L1-L1810",
+      "full_content_sha256": "0b04f1f659a97723f3e5a81f307519311a661816e67b32672229cb8d523f468b",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/engine-processes-51.txt",
+      "excerpt_sha256": "2af5c5efbf44f76b39a5131757e993968d20b537d5c4c8655c4c429484667a0f",
+      "lines": 1810,
+      "retrieved": true,
+      "read": true,
+      "scope": "103 segments reconciled; overlapping fixed excerpts reused from this review; all 1478 otherwise uncovered code lines read; two blank-line-only differences retained in raw map"
+    },
+    {
+      "page_id": "engine-processes",
+      "source_number": 96,
+      "ref": "https://docs.pytorch.org/docs/2.10/distributed.html#choosing-the-network-interface-to-use",
+      "full_content_sha256": "bd7d6ec185ab4869373d36bd037042f0307a1fda9bb37e0d34bb2b148879d382",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/engine-processes-96.txt",
+      "excerpt_sha256": "2c9ef76927080e3712132c1bce91d333bff29c2bbb52c4fbc424eb0eb61048eb",
+      "lines": 10508,
+      "retrieved": true,
+      "read": true,
+      "scope": "PyTorch2.10 Choosing the network interface section and adjacent text read; full 10508-line page NOT read"
+    },
+    {
+      "page_id": "engine-processes",
+      "source_number": 97,
+      "ref": "https://github.com/pytorch/pytorch/blob/449b1768410104d3ed79d3bcfe4ba1d65c7f22c0/torch/csrc/distributed/c10d/ProcessGroupGloo.cpp#L493-L567",
+      "full_content_sha256": "677c8a0f1db5a196d02992c21cccb8b51a9f52079cc1b437717ede7d160fb9cf",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/engine-processes-97.txt",
+      "excerpt_sha256": "3d340b63968a430f926ae1c30911500ad8190b3d26718215d7bf358500c88327",
+      "lines": 75,
+      "retrieved": true,
+      "read": true,
+      "scope": "specified fixed C++ range fully read; not complete file"
+    },
+    {
+      "page_id": "engine-processes",
+      "source_number": 98,
+      "ref": "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_SOCKET_IFNAME.md",
+      "full_content_sha256": "8928a62b5174415ecab1b5ad1d716491cf8cf69a54e10a12fc1a66ee34d04e4f",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/engine-processes-98.txt",
+      "excerpt_sha256": "b5902da81aa508b2272dd3fcb108201d694a5b38ce9fb0f157622122960dca0c",
+      "lines": 86,
+      "retrieved": true,
+      "read": true,
+      "scope": "full document text read this review; reuse/no automatic first-read credit"
+    },
+    {
+      "page_id": "engine-processes",
+      "source_number": 99,
+      "ref": "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_IF_IP.md",
+      "full_content_sha256": "e98ce2761c7339fa553dcf9fbf36c92210e53a9c7b4f704520aff9c2b40becd3",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/engine-processes-99.txt",
+      "excerpt_sha256": "6a4466ae72fabc9e95faf37a9166f7fde5d2a32a5256e9d4c1d5ea14f00154e3",
+      "lines": 59,
+      "retrieved": true,
+      "read": true,
+      "scope": "full document text read this review; reuse/no automatic first-read credit"
+    },
+    {
+      "page_id": "engine-processes",
+      "source_number": 100,
+      "ref": "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_OP_EXPANSION_MODE.md",
+      "full_content_sha256": "ece9b2b45ff2d67405b29dbafa8adc048f7ff1d30195e286244d230d2391eb45",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/engine-processes-100.txt",
+      "excerpt_sha256": "f1dab1cc607eaeb8058c3df4cc8e645eb102505b6ca71ab3013415c709326987",
+      "lines": 169,
+      "retrieved": true,
+      "read": true,
+      "scope": "full document text read this review; reuse/no automatic first-read credit"
+    },
+    {
+      "page_id": "engine-processes",
+      "source_number": 103,
+      "ref": "https://github.com/pytorch/pytorch/blob/449b1768410104d3ed79d3bcfe4ba1d65c7f22c0/torch/csrc/distributed/rpc/tensorpipe_agent.cpp#L163-L185",
+      "full_content_sha256": "f9ae58c0de17f556be17de55f47b9782bd057c513cdb87a4124226f75033cf26",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/engine-processes-103.txt",
+      "excerpt_sha256": "6e9e5df4158000f0269e4b843144ff05f290429d15b238961b129677c59e030b",
+      "lines": 23,
+      "retrieved": true,
+      "read": true,
+      "scope": "specified fixed C++ range fully read; not complete file"
+    },
+    {
+      "page_id": "engine-processes",
+      "source_number": 104,
+      "ref": "https://github.com/Ascend/pytorch/blob/8751b36d5d6959e499e6bf6530c1928060ced030/torch_npu/csrc/distributed/rpc/tensorpipe_agent.cpp#L155-L180",
+      "full_content_sha256": "59acdb3bf28f14216a3c2b5b23a01f3f7bcef2d1a6678f0092c718ec2444fbe7",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/engine-processes-104.txt",
+      "excerpt_sha256": "c003002e237eade4206ea3e90d301913133a9bae07bea1e8bd3f99949f105eac",
+      "lines": 26,
+      "retrieved": true,
+      "read": true,
+      "scope": "specified fixed C++ range fully read; not complete file"
+    },
+    {
+      "page_id": "engine-processes",
+      "source_number": 105,
+      "ref": "https://github.com/Ascend/pytorch/blob/8751b36d5d6959e499e6bf6530c1928060ced030/torch_npu/distributed/rpc/backend_registry.py#L216-L298",
+      "full_content_sha256": "015dd20e6a3b22b51e58cdd828e1e39837cbe63c435fd0beb2cd561e68809da0",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/engine-processes-105.txt",
+      "excerpt_sha256": "790f0674488abc9179c539fab1a9eee1fd7a3d5fa3af607e2e68ac6b737f3c9d",
+      "lines": 83,
+      "retrieved": true,
+      "read": true,
+      "scope": "specified fixed C++ range fully read; not complete file"
+    },
+    {
+      "page_id": "engine-processes",
+      "source_number": 106,
+      "ref": "https://github.com/pytorch/gloo/blob/54cbae0d3a67fa890b4c3d9ee162b7860315e341/gloo/transport/tcp/device.cc#L30-L84",
+      "full_content_sha256": "d8f74b42fffd8c3ce9712f71c8a705d8d3054aa2ccbae338b7f54527196184eb",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/engine-processes-106.txt",
+      "excerpt_sha256": "818afb1e81d88a2fdc3c35566ec5058541702925a3ac4d89978286eea30d3a35",
+      "lines": 55,
+      "retrieved": true,
+      "read": true,
+      "scope": "specified fixed C++ range fully read; not complete file"
+    },
+    {
+      "page_id": "request-call-chain",
+      "source_number": 55,
+      "ref": "raw:sha256-8c7c025d5824f3b45a76b291c2cfc08bd855e9ee845cae77e5e2aa329e66c270.md#L1-L4556",
+      "full_content_sha256": "8c7c025d5824f3b45a76b291c2cfc08bd855e9ee845cae77e5e2aa329e66c270",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/request-call-chain-55.txt",
+      "excerpt_sha256": "7e77255980740a573468d81370c815d9a02063b7a29c24fe26aa5fd551851248",
+      "lines": 4556,
+      "retrieved": true,
+      "read": true,
+      "scope": "103 segments reconciled; overlapping fixed excerpts reused from this review; all 1478 otherwise uncovered code lines read; two blank-line-only differences retained in raw map"
+    },
+    {
+      "page_id": "request-call-chain",
+      "source_number": 59,
+      "ref": "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_CONNECT_TIMEOUT.md",
+      "full_content_sha256": "45a6005a02b0cb6ce1c78fc5e1bb4b21406f155a9bfa177f3765ec6112310c2b",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/request-call-chain-59.txt",
+      "excerpt_sha256": "483df0a1cc357a2265b009058e9949462fdd17ecc0fc7d8ee0a6b840b1c8d484",
+      "lines": 57,
+      "retrieved": true,
+      "read": true,
+      "scope": "full document text read this review; reuse/no automatic first-read credit"
+    },
+    {
+      "page_id": "request-call-chain",
+      "source_number": 60,
+      "ref": "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/commlib/hcclug/docs/en/user_guide/hccl_env/HCCL_EXEC_TIMEOUT.md",
+      "full_content_sha256": "ea9ad31a62fb8dbb7fceb744674383cc997ecc3d271010a58b934c57e80b5453",
+      "excerpt": ".tmp/continuation-groups-2026-11-10/request-processes/request-call-chain-60.txt",
+      "excerpt_sha256": "a903f0c559f7099d4241736a7d966d1c5444b7300cf18eb225c355fa3b6cfaba",
+      "lines": 97,
+      "retrieved": true,
+      "read": true,
+      "scope": "full document text read this review; reuse/no automatic first-read credit"
+    }
+  ],
+  "official_images": "all 10 arch/MRV2 images and both DP images actually inspected with view_image; 12 total",
+  "prior_context": [
+    "docs/reviews/2026-11-10-trial-200/report.md",
+    "docs/reviews/2026-11-10-trial-200/independent-review.md",
+    "docs/reviews/2026-11-10-trial-200/engine-processes.diff",
+    "docs/reviews/2026-11-10-trial-200/vllm-v1-shape.diff"
+  ],
+  "prior_judgments_reused_as_current_verdict": false,
+  "new_supplement_occurrences": 62,
+  "new_supplement_ledger": "request-processes-new-independent.json",
+  "existing_range_extensions": "request-processes-range-adjustments.json"
+}

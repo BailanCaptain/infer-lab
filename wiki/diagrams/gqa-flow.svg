@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="同一套 vLLM 流程里，每层按自己的注意力类型走三支之一。左支是普通注意力：加载模型时按 TP 定本卡几个 KV 头（够分就切，不够就每卡 1 个并复制），启动时按本卡 KV 头数定每块字节，第 4 站把查询头数和 KV 头数一起交给算子。中、右两支是 GLM 的两类层：稀疏 MLA 的潜向量不按头切，缓存规格写成 1 个 KV 头；KDA 的 q、k、v 头数相同，按头切到各卡，不存逐位置的 K、V。">
-  <title>同一套 vLLM 流程里，每层按自己的注意力类型走三支之一。左支是普通注意力：加载模型时按 TP 定本卡几个 KV 头（够分就切，不够就每卡 1 个并复制），启动时按本卡 KV 头数定每块字节，第 4 站把查询头数和 KV 头数一起交给算子。中、右两支是 GLM 的两类层：稀疏 MLA 的潜向量不按头切，缓存规格写成 1 个 KV 头；KDA 的 q、k、v 头数相同，按头切到各卡，不存逐位置的 K、V。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="同一套 vLLM 流程里，每层按自己的注意力类型走三支之一。左支是普通注意力：加载模型时按 TP 定本卡几个 KV 头（够分就切，不够就每卡 1 个并复制），启动时先算每块元素数，再乘每个元素的字节数得到块容量，第 4 站把查询头数和 KV 头数一起交给算子。中、右两支是 GLM 的两类层：稀疏 MLA 的潜向量不按头切，缓存规格写成 1 个 KV 头；KDA 的 q、k、v 头数相同，按头切到各卡，不存逐位置的 K、V。">
+  <title>同一套 vLLM 流程里，每层按自己的注意力类型走三支之一。左支是普通注意力：加载模型时按 TP 定本卡几个 KV 头（够分就切，不够就每卡 1 个并复制），启动时先算每块元素数，再乘每个元素的字节数得到块容量，第 4 站把查询头数和 KV 头数一起交给算子。中、右两支是 GLM 的两类层：稀疏 MLA 的潜向量不按头切，缓存规格写成 1 个 KV 头；KDA 的 q、k、v 头数相同，按头切到各卡，不存逐位置的 K、V。</title>
   <defs><marker id="gqa-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="gqa-flow-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
   <path d="M154 166 L154 196" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#gqa-flow-ah-ink)"/>
   <path d="M154 256 L154 286" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#gqa-flow-ah-ink)"/>
@@ -34,7 +34,7 @@
   <text x="746" y="222" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">q、k、v 头数相同</text>
   <text x="746" y="241" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">按 TP8 切，每卡 8 个头</text>
   <rect x="24" y="286" width="260" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="154" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">每块字节随本卡 KV 头数</text>
+  <text x="154" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">每块元素数随本卡 KV 头数</text>
   <text x="154" y="331" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">K、V 两份 × token 数 × 头数 × 头宽</text>
   <rect x="320" y="286" width="260" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="450" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">规格写 1 个 KV 头</text>

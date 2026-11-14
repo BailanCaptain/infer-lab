@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 600" width="860" height="600" role="img" aria-label="调用方按 1→2→3 提交与接回结果，服务之间没有自动转发的箭头。第 2 步才执行模型；第 3 步是 v0.26 起具备的完整结果后处理，旧 GLM 基线没有该路由。编号和输入计数为示意。">
+  <title>调用方按 1→2→3 提交与接回结果，服务之间没有自动转发的箭头。第 2 步才执行模型；第 3 步是 v0.26 起具备的完整结果后处理，旧 GLM 基线没有该路由。编号和输入计数为示意。</title>
+  <defs><marker id="api-renderer-services-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="api-renderer-services-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="api-renderer-services-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <rect x="20" y="35" width="360" height="540" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="23" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">调用方：保存原请求并串接三步</text>
+  <rect x="480" y="35" width="360" height="140" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="496" y="23" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">CPU 预处理服务</text>
+  <rect x="480" y="235" width="360" height="140" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="496" y="223" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">设备生成服务</text>
+  <rect x="480" y="435" width="360" height="140" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="496" y="423" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">CPU 后处理服务</text>
+  <path d="M360 90 L500 90" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#api-renderer-services-ah-comm)"/>
+  <path d="M500 130 L360 130" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#api-renderer-services-ah-token)"/>
+  <path d="M200 150 L200 265" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-renderer-services-ah-ink)"/>
+  <path d="M360 290 L500 290" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#api-renderer-services-ah-comm)"/>
+  <path d="M500 330 L360 330" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#api-renderer-services-ah-token)"/>
+  <path d="M200 350 L200 465" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-renderer-services-ah-ink)"/>
+  <path d="M360 490 L500 490" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#api-renderer-services-ah-comm)"/>
+  <path d="M500 530 L360 530" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#api-renderer-services-ah-token)"/>
+  <rect x="40" y="65" width="320" height="85" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="200" y="103.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">① 提交消息，接回生成请求</text>
+  <text x="200" y="122.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">保存编号 [7, 31, 1052, 9] 和参数</text>
+  <rect x="40" y="265" width="320" height="85" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="200" y="303.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">② 转交生成请求，接回输出</text>
+  <text x="200" y="322.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">保存生成的 token 编号</text>
+  <rect x="40" y="465" width="320" height="85" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="200" y="503.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">③ 交回输出、原请求与计数</text>
+  <text x="200" y="522.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">取得整理好的文本和用量</text>
+  <rect x="500" y="65" width="320" height="85" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="660" y="103.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">render：套模板、分词等</text>
+  <text x="660" y="122.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只准备输入，不计算模型前向</text>
+  <rect x="500" y="265" width="320" height="85" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="660" y="303.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">token-in / token-out</text>
+  <text x="660" y="322.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">引擎排队、计算并返回编号</text>
+  <rect x="500" y="465" width="320" height="85" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="660" y="503.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">derender：编号还原文字</text>
+  <text x="660" y="522.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按原请求解析；输入计数示意为 4</text>
+</svg>

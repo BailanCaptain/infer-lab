@@ -1,0 +1,541 @@
+{
+  "status": "independently_read_static_chain_candidates_not_teaching_acceptance",
+  "reviewer": "/root/groups_recompute_review",
+  "scope": "fixed GLM db701c1f / vllm0fc, A2 baseline only; static producer→consumer closure, no NPU correctness test",
+  "items": [
+    {
+      "id": 1,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2183-L2212",
+      "claim": "本轮先完成补齐与 _build_attention_metadata，再进入后面的模型前向；此处是更新调用时机。",
+      "action": "add_minimal",
+      "already_cited_in": null,
+      "read_scope": [
+        2183,
+        2212
+      ],
+      "source_sha256": "316acf1239813c42452a4a9602f05f8b22f41a317fbc8d0b91ab1587b54fa1dd",
+      "scope_sha256": "67c86ef936444542bd70ae0dc5a93bcfd21132574baab7b614e63eba4bb8fa5c",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-01.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 2,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2262-L2291",
+      "claim": "set_ascend_forward_context 接本轮 attn_metadata，然后才执行 _model_forward；与构建调用先后连起来。",
+      "action": "add_minimal",
+      "already_cited_in": null,
+      "read_scope": [
+        2262,
+        2291
+      ],
+      "source_sha256": "316acf1239813c42452a4a9602f05f8b22f41a317fbc8d0b91ab1587b54fa1dd",
+      "scope_sha256": "9bb08dce3883438dd216fc73911936b69e1f50e288bad4f9557bae28e693780f",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-02.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 3,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L830-L837",
+      "claim": "活跃请求块表先提交到持久设备缓冲；不是替换地址。",
+      "action": "reuse_existing",
+      "already_cited_in": "acl-graph source34; graph-mode-layer source83",
+      "read_scope": [
+        830,
+        837
+      ],
+      "source_sha256": "316acf1239813c42452a4a9602f05f8b22f41a317fbc8d0b91ab1587b54fa1dd",
+      "scope_sha256": "2385cd1479e1c22e2d219b231b5e015086afc89d1182d6965fe454dbe8eb951a",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-03.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 4,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L284-L288",
+      "claim": "commit_block_table 为 GPU 表活跃行执行 copy_，CPU快照 pin 后异步复制。",
+      "action": "reuse_existing",
+      "already_cited_in": "acl-graph source32; graph-mode-layer source84",
+      "read_scope": [
+        284,
+        288
+      ],
+      "source_sha256": "de27951648670913382ba5957cbf55894cb8c1850c239c349122c0379e17ab1f",
+      "scope_sha256": "69d2132b0d1901b40f069f434a3ed50c42493e4b3957f578384a9b24820c3aef",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-04.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 5,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1018-L1045",
+      "claim": "query_start_loc 和 GDN 专用起点更新 CPU 内容并复制回固定 GPU buffer；未用请求行填末终点。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        1018,
+        1045
+      ],
+      "source_sha256": "316acf1239813c42452a4a9602f05f8b22f41a317fbc8d0b91ab1587b54fa1dd",
+      "scope_sha256": "461e7d1b9788bac326d40875023b6ab21a401d3886136d6bef63f9ead7d18a93",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-05.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 6,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/utils.py#L15-L18",
+      "claim": "copy_snapshot_to_gpu 克隆/锁页的是 CPU 快照，目的 GPU buffer 用 copy_ 保持原地址。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        15,
+        18
+      ],
+      "source_sha256": "e75651c8742650f1bac7dddb5f39b9a636f289b4785864c984837ec12dcdae75",
+      "scope_sha256": "659154a1be706cd393f83203d5478fbddb3ec55a9350142ba6ace08659efc522",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-06.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 7,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1216-L1254",
+      "claim": "positions、seq_lens 原地赋值并清补齐行，非 CP 分支更新 slot_mapping；CPU乐观长度在异步条件下修正。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        1216,
+        1254
+      ],
+      "source_sha256": "316acf1239813c42452a4a9602f05f8b22f41a317fbc8d0b91ab1587b54fa1dd",
+      "scope_sha256": "dd0ad238593f57016ce4eb91d98125a5914f1ec7caad0069d6650587ca372ab9",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-07.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 8,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3105-L3170",
+      "claim": "公共 metadata 持有各组设备块表/slot切片、固定query起点和seq_lens切片；不是每步新分配这些设备表。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        3105,
+        3170
+      ],
+      "source_sha256": "316acf1239813c42452a4a9602f05f8b22f41a317fbc8d0b91ab1587b54fa1dd",
+      "scope_sha256": "fa37cb84ca85c0aacc6cf7d7095c7b763e6e4aecb5f15545394f0afdad10c22b",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-08.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 9,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3183-L3245",
+      "claim": "取实际builder、加入GDN接受数、运行build并按layer_name登记；Runner另将FULL投机dummy state行置0。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        3183,
+        3245
+      ],
+      "source_sha256": "316acf1239813c42452a4a9602f05f8b22f41a317fbc8d0b91ab1587b54fa1dd",
+      "scope_sha256": "f51c165107d2cdf8fb094643e504adc7f20f9675a0ac17cccbe522656402292f",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-09.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 10,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3252-L3307",
+      "claim": "逐KV组替换块表/slot；GDN专用query起点被接入实际common_metadata，随后按组调用builder。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        3252,
+        3307
+      ],
+      "source_sha256": "316acf1239813c42452a4a9602f05f8b22f41a317fbc8d0b91ab1587b54fa1dd",
+      "scope_sha256": "c077e96f56baaac494e04333dd63cd64f5853c33fb9f60af78763346beaefa83",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-10.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 11,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L365-L390",
+      "claim": "主SFA构建器引用公共块表、slot、query累计终点、长度切片；旧页已有准确producer。",
+      "action": "reuse_existing",
+      "already_cited_in": "graph-mode-layer source82",
+      "read_scope": [
+        365,
+        390
+      ],
+      "source_sha256": "05e183e8a3bd0870237006a5edfab74a774da0def707e78707b40e04596db0cf",
+      "scope_sha256": "3a7242580dd2be22d2354ef60310f153f0111015a9228fb4f1c22d77dcf8febc",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-11.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 12,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L459-L464",
+      "claim": "固定GLM主MLA builder调用SFA父_build；A2非sharedkv路径直接返回，证明此前producer是实际被调用的父实现。",
+      "action": "add_minimal",
+      "already_cited_in": null,
+      "read_scope": [
+        459,
+        464
+      ],
+      "source_sha256": "f300e4995d01347529a685f82433fb04ef9b7bae38c64b3be19749463e1e15ba",
+      "scope_sha256": "194b31da4d82a09cffcb7f5256cec1c8c4834895cf2b3aa5b410977ddd039f62",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-12.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 13,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1668-L1687",
+      "claim": "主SFA forward 从当前 metadata 取 slot_mapping、cum_query_lens、seq_lens（非CP）。",
+      "action": "add_minimal",
+      "already_cited_in": null,
+      "read_scope": [
+        1668,
+        1687
+      ],
+      "source_sha256": "05e183e8a3bd0870237006a5edfab74a774da0def707e78707b40e04596db0cf",
+      "scope_sha256": "4b6cace1ff3678b0ac3bf6c6ffdcaadca843700b5dacb50d04fb14d341b169f7",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-13.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 14,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2002",
+      "claim": "父forward将上述两个长度Tensor与metadata传给子类重写的实际稀疏attention方法。",
+      "action": "add_minimal",
+      "already_cited_in": null,
+      "read_scope": [
+        1994,
+        2002
+      ],
+      "source_sha256": "05e183e8a3bd0870237006a5edfab74a774da0def707e78707b40e04596db0cf",
+      "scope_sha256": "9349648dbff9fce1edc83d7a5fa5126d329ee0da041f0cf4bb57fa5d81eb883d",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-14.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 15,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104",
+      "claim": "GLM子类把 metadata.block_table 与长度Tensor转给 DeviceOperator，而非测试用PyTorch方法。",
+      "action": "reuse_existing",
+      "already_cited_in": "sparse-attention; attention-backend-family",
+      "read_scope": [
+        1065,
+        1104
+      ],
+      "source_sha256": "f300e4995d01347529a685f82433fb04ef9b7bae38c64b3be19749463e1e15ba",
+      "scope_sha256": "8e9881aba13ee61ae3bdfd0db73a3b05020a1e8bb9afc92f1646ba91920eef2a",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-15.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 16,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L786",
+      "claim": "真实 npu_sparse_flash_attention 消费block_table、actual_seq_lengths_query/kv；静态生产到消费闭合，不替代NPU依赖/精度测试。",
+      "action": "add_minimal",
+      "already_cited_in": null,
+      "read_scope": [
+        719,
+        786
+      ],
+      "source_sha256": "8b9a7f367962130fbd6ea40a42901874885cbdc555d7c13ff9cf20bba8e47151",
+      "scope_sha256": "3e7a2cfd496c7509b3505e39a9934e98263bd6d2f5729938fa483dfa41354a83",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-16.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 17,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L910-L913",
+      "claim": "基础适配器的 sharedkv 返回False；A5另一分支不能套固定A2。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        910,
+        913
+      ],
+      "source_sha256": "8b9a7f367962130fbd6ea40a42901874885cbdc555d7c13ff9cf20bba8e47151",
+      "scope_sha256": "702c366b51eb8a5c0ccab41b6d1bf4c51344a38c7f18e9cbf17363a0fa6394f8",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-17.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 18,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L2317-L2326",
+      "claim": "A5与310P单列，其他设备返回BaseDeviceAdaptor，实际DeviceOperator取该选择。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        2317,
+        2326
+      ],
+      "source_sha256": "8b9a7f367962130fbd6ea40a42901874885cbdc555d7c13ff9cf20bba8e47151",
+      "scope_sha256": "1dc4b9784a9c563faf48d0ce732b619b90b822e7b0ebec8ff0f08b5ad7130019",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-18.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 19,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L150-L267",
+      "claim": "压缩索引器预分配slot/seq_lens/table三套buffer，build以copy_/out=刷新并返回其切片。",
+      "action": "reuse_existing",
+      "already_cited_in": "graph-mode-layer source80",
+      "read_scope": [
+        150,
+        267
+      ],
+      "source_sha256": "f300e4995d01347529a685f82433fb04ef9b7bae38c64b3be19749463e1e15ba",
+      "scope_sha256": "69cb387541d44264e3522067b6728ff12a155774be8e07572e6b998efa58833b",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-19.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 20,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L342-L356",
+      "claim": "压缩尾状态builder同样引用该状态组公共块表和slot切片，避免漏掉第三种cache角色。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        342,
+        356
+      ],
+      "source_sha256": "f300e4995d01347529a685f82433fb04ef9b7bae38c64b3be19749463e1e15ba",
+      "scope_sha256": "5a0f7df050f10a616699c0acc8c34eb42d4421e3fa0a406abbe51ed733a20241",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-20.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 21,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1180-L1230",
+      "claim": "实际索引器从forward context取三种metadata；压缩写cache消费主长度、state表/slot，lightning索引器消费压缩长度/表。",
+      "action": "add_minimal",
+      "already_cited_in": null,
+      "read_scope": [
+        1180,
+        1230
+      ],
+      "source_sha256": "b5411aabedb032f19733d374d9d3441c881b631a35c4532ea1ea4ed10e2d7b8d",
+      "scope_sha256": "adf26cad58f23d211683eb15d7491b71d8b4447b479c07a58846c53b1824cf08",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-21.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 22,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768",
+      "claim": "仅v0.23分支实际注册KimiGatedDeltaNetAttention到AscendKimi实现；不要误用glm5_next.py旧参考类。",
+      "action": "reuse_existing",
+      "already_cited_in": "linear-attention source8",
+      "read_scope": [
+        763,
+        768
+      ],
+      "source_sha256": "45b19d7ec472515755d396dc264a46973de6f3300e8047221f5de4b661275545",
+      "scope_sha256": "7ea2ffb9c664638a496d6c758cf7234b6d9c45610b055b13b966910b6e4d796e",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-22.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 23,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2072-L2105",
+      "claim": "实际KDA层构造KimiGatedDeltaNetAttention，下一步经注册走kimi_kda.py。",
+      "action": "reuse_existing",
+      "already_cited_in": "linear-attention source9",
+      "read_scope": [
+        2072,
+        2105
+      ],
+      "source_sha256": "b5411aabedb032f19733d374d9d3441c881b631a35c4532ea1ea4ed10e2d7b8d",
+      "scope_sha256": "a7926108864cb7bceb16fb6653ad1beba5baadf862566a32672dc8c35421d270",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-23.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 24,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L223-L288",
+      "claim": "Ascend GDN builder继承上游persistent buffers，另持久分配mask/序列索引/长度；实际声明UNIFORM_BATCH。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        223,
+        288
+      ],
+      "source_sha256": "b08fc40f010bb8052e9f37fd69fb2dd7dd0213f3de211a01fc72a90be6e00e16",
+      "scope_sha256": "ea0a1bcc8d440b884a29634ae35bae7f280ba7ca3d0e57c830bbd4b22cd6cf2c",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-24.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 25,
+      "page_id": "acl-graph",
+      "ref": "vllm@0fc695fc:vllm/v1/attention/backends/gdn_attn.py#L108-L165",
+      "claim": "上游GDN构造一次分配状态索引、token索引、query起点和接受数Tensor；Ascend继承此分配。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        108,
+        165
+      ],
+      "source_sha256": "27f5561c4b191f2be5a4a91820a6c64a38b755477b3f037178fb02bbc3bc1caf",
+      "scope_sha256": "6ffb16aca46c818120d5d87c6e13ffe6d6e100ff6476c958f0c2b6edfc65ea03",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-25.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 26,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L731-L786",
+      "claim": "整齐投机decode条件下将状态索引、mask、token索引、query起点和接受数复制到持久Tensor，按请求数补空行。",
+      "action": "reuse_existing",
+      "already_cited_in": "graph-mode-layer source81",
+      "read_scope": [
+        731,
+        786
+      ],
+      "source_sha256": "b08fc40f010bb8052e9f37fd69fb2dd7dd0213f3de211a01fc72a90be6e00e16",
+      "scope_sha256": "ab03de4470aac36ddf51ad6a0134370172742800da8ce7c9b6e9ef61af8fbd60",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-26.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 27,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L416-L450",
+      "claim": "spec_decode_metadata直接包装上述query/cache/accepted切片，固定长度缓冲通过out=更新；接通卷积消费者。",
+      "action": "add_minimal",
+      "already_cited_in": null,
+      "read_scope": [
+        416,
+        450
+      ],
+      "source_sha256": "b08fc40f010bb8052e9f37fd69fb2dd7dd0213f3de211a01fc72a90be6e00e16",
+      "scope_sha256": "e267cba058e1cd257c3a3c5320340f3137f096250fba3590327ee2203398ef74",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-27.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 28,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L528-L560",
+      "claim": "实际KDA投机分支给短卷积与recurrent传这些metadata张量；两类算子同样读取最新query/state/accepted。",
+      "action": "reuse_existing",
+      "already_cited_in": "linear-attention source16",
+      "read_scope": [
+        528,
+        560
+      ],
+      "source_sha256": "f2469e8864a4f4fd878ce752ac4d6e595a331365b90346f1c6f55b22c7235e29",
+      "scope_sha256": "aaa1eed09993ebfc350a50d7ea59b164d6000e2c60b97779be3089f3810ce3ed",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-28.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 29,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L294-L331",
+      "claim": "真实 npu_causal_conv1d_custom 消费query_start/cache_indices/num_accepted_tokens；卷积状态有padding staging，不声称所有中间量地址都不变。",
+      "action": "reuse_existing",
+      "already_cited_in": "linear-attention source12",
+      "read_scope": [
+        294,
+        331
+      ],
+      "source_sha256": "f2469e8864a4f4fd878ce752ac4d6e595a331365b90346f1c6f55b22c7235e29",
+      "scope_sha256": "5ef7190250b08f2b9d0c27d6d311b8cd76500ba9ba1dafa64fbed05a1d8de276",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-29.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 30,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L356-L388",
+      "claim": "真实 recurrent_kda 接受cu_seqlens、state_indices、accepted；沿实际Ascend consumer而非旧参考Triton实现。",
+      "action": "reuse_existing",
+      "already_cited_in": "linear-attention source13 contains",
+      "read_scope": [
+        356,
+        388
+      ],
+      "source_sha256": "f2469e8864a4f4fd878ce752ac4d6e595a331365b90346f1c6f55b22c7235e29",
+      "scope_sha256": "a94f549a495b4199c1639065315d969438c7434372a9335f372bd36f32e8e605",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-30.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 31,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L327-L378",
+      "claim": "普通decode刷新固定query/state；MTP捕获图被无spec批次复用时清spec状态输入，避免复用捕获时旧状态。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        327,
+        378
+      ],
+      "source_sha256": "b08fc40f010bb8052e9f37fd69fb2dd7dd0213f3de211a01fc72a90be6e00e16",
+      "scope_sha256": "5dd28ed180b855bbe2991c8c0da312abdf20506590d51e35248d2c3f69297463",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-31.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 32,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L788-L842",
+      "claim": "无spec decode条件调用清spec/普通固定缓冲刷新，然后将张量放进返回metadata；不是只存在未被调用的helper。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        788,
+        842
+      ],
+      "source_sha256": "b08fc40f010bb8052e9f37fd69fb2dd7dd0213f3de211a01fc72a90be6e00e16",
+      "scope_sha256": "04f206fbb5c9ef4a8a8735f753c1dd83ee2b76eeb987af54e848c9b9ae97fd0f",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-32.txt",
+      "full_file_read": false
+    },
+    {
+      "id": 33,
+      "page_id": "acl-graph",
+      "ref": "vllm@0fc695fc:vllm/v1/attention/backends/gdn_attn.py#L509-L532",
+      "claim": "捕获元数据也调用self.build，MTP接受数和draft数从query长度派生；解释捕获和后续回放可读同套持久输入。",
+      "action": "readscope_only",
+      "already_cited_in": null,
+      "read_scope": [
+        509,
+        532
+      ],
+      "source_sha256": "27f5561c4b191f2be5a4a91820a6c64a38b755477b3f037178fb02bbc3bc1caf",
+      "scope_sha256": "70f5b30d074aef1a140ace2eda4ed0d27b72f25bf429e3e66070928706fd114e",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/graph-metadata/review-scope-33.txt",
+      "full_file_read": false
+    }
+  ],
+  "recommendation": "ACL两处旧笼统待核改为已核固定缓冲机制并回链graph-mode-layer；唯一解释留原页。精确来源按实际新增句选择，readscope不自动全入sources。",
+  "remaining": [
+    "NPU图回放实际执行依赖/精度对照",
+    "七档捕获资源/耗时/加速比硬件测量"
+  ],
+  "pitfall": "glm5_next.py:1541–1878旧线性注意力类不是此固定v0.23实际Kimi custom-op路径，已经明确排除。"
+}

@@ -1,6 +1,6 @@
 layout: figure
 id: expert-parallel
-caption: 第 4 站的两条 MoE 执行路径，分别从上往下读。MC2 先分源 token，combine 合齐专家贡献后再拼回 token；AllGather 先收齐输入，本地算专家，再跨两级组归约。共享分支始终使用本组完整输入。
+caption: 固定 GLM 配置的两条 MoE 路径，限定 SP、共享专家 DP 与混合放置关闭，分别从上往下读。MC2 先分源 token，combine 合齐专家贡献后再拼回；AllGather 先收齐输入，本地算专家，再跨两级组归约。共享分支使用本组完整输入。左列 Nᵣ 计 mask 后有效路由对，右列 Nᵣ 可含补齐行。
 size: [900, 850]
 frames:
   - { at: [18, 42], size: [416, 750], label: 'MC2 · R1 · 本组 4 行' }

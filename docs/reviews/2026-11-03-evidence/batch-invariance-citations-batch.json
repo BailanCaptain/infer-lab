@@ -1,0 +1,240 @@
+{
+  "reviewer": "review_publication_fix",
+  "pages": [
+    {
+      "id": "batch-invariance",
+      "judgments": [
+        [
+          1,
+          "supported",
+          "Historical dispatch registration and direct function monkeypatches",
+          "Read complete db batch_invariant.py1-163, including99-138; actual registration depends on available libraries, not every operator globally replaced."
+        ],
+        [
+          2,
+          "supported",
+          "Environment override sets NZ0 and disables old matmul fusion",
+          "Read76-95; executes only after init checks library availability. Settings express deterministic requirements, not measured model guarantee."
+        ],
+        [
+          3,
+          "supported",
+          "Init conditional and warning when both libraries missing",
+          "Read140-163; both missing returns without overrides, while other code still reads env flag. Corrected guaranteed-service-start and no-effect claims."
+        ],
+        [
+          4,
+          "supported",
+          "Residual norm split and historical broad reduce_sum predicate",
+          "Read50-74. These are selected entry points, not all normalization or all attention implementations."
+        ],
+        [
+          5,
+          "supported",
+          "Triton generic matmul fixes128x128x64 blocks",
+          "Read entire441-line matmul file;101-177 is the launcher. Does not describe AscendC library internals or prove all-device bit equality."
+        ],
+        [
+          6,
+          "supported",
+          "Each output block accumulates ordered K segments in fp32",
+          "Read25-98; mathematical toy preserved with one N output block assumption. Scalar float32 example independently reproduced using struct rounding, results0 and1."
+        ],
+        [
+          7,
+          "supported",
+          "Softmax is five expressed operations",
+          "Read entire29-line file; actual torch.sum implementation depends on registration. Five expressions alone are not a determinism proof."
+        ],
+        [
+          8,
+          "supported",
+          "Custom-op gate checks cached result before env and contains both explicit production imports",
+          "Read408-468, expanded original441 cutoff to include retry import449. Fixed production-tree import search found both inside same function; startup order caveat preserved."
+        ],
+        [
+          9,
+          "supported",
+          "GLM mHC calls extension operators directly",
+          "Read2147-2169; this call site has no custom-op guard. Does not by itself prove universal startup failure."
+        ],
+        [
+          10,
+          "supported",
+          "GLM layer executes mHC before and after attention and MLP",
+          "Read2217-2235; modeled missing-registration risk is conditional static inference, not hardware run."
+        ],
+        [
+          11,
+          "supported",
+          "Worker initializes batch mode before distributed environment",
+          "Read975-978. Only registered entry points are affected later; corrected all-future-forward claim."
+        ],
+        [
+          12,
+          "supported",
+          "Selected sampler native forward delegates to upstream under env flag",
+          "Read146-156; narrow top-k/top-p path, not all sampling necessarily replaced."
+        ],
+        [
+          13,
+          "supported",
+          "Historical config suppresses async exponential when flag active",
+          "Read258-263; scope made db-specific instead of all releases. Assignment has no logging call."
+        ],
+        [
+          14,
+          "supported",
+          "FA3 selector rejects absent batch-invariant mode",
+          "Read809-840; direction is FA3 selector requiring flag, not feature requiring FA3. Rejection means alternative backend, not necessarily exception."
+        ],
+        [
+          15,
+          "supported",
+          "GLM imports separate KDA kernels",
+          "Read95-100 plus registration list; those names are not replaced in that module. No claim of device-verified nondeterminism for KDA."
+        ],
+        [
+          16,
+          "supported",
+          "Old guide describes beta, A2/A3 and source-build environment flag",
+          "Read full db guide1-147. Replaced exclusive before-install requirement with current manual-install alternative from new sources."
+        ],
+        [
+          17,
+          "supported",
+          "Old guide tested-model list, graph exclusions and qualitative performance cost",
+          "Read full111-147 with all guide; FULL/FULL_DECODE_ONLY excluded, PIECEWISE is example rather than proof that eager is forbidden."
+        ],
+        [
+          18,
+          "supported",
+          "Main guide scheduling exclusions and explicit block128 pairing",
+          "Read complete main guide1-228; source expanded184-200. Checked rc2 full guide identical by empty diff. No unsupported-combination guaranteed failure or success claim."
+        ],
+        [
+          19,
+          "supported",
+          "Main guide lists A2/A3/950PR/950DT",
+          "Read24-30 as part complete guide. This is stated hardware scope, not a deployment test performed here."
+        ],
+        [
+          20,
+          "supported",
+          "Main reduce_sum guards last dimension and supported dtypes",
+          "Read db full plus complete main diff;65-84 narrows dispatch and documents error text, no local NPU reproduction claimed."
+        ],
+        [
+          21,
+          "supported",
+          "Main stops aten sum registration and patches Tensor.sum too",
+          "Read full db-to-main diff with base complete. It does not prove all graph sum nodes are identical or different."
+        ],
+        [
+          22,
+          "supported",
+          "RL enabled and enable_batch_invariant jointly set same environment variable",
+          "Read262-292; branch does not establish every startup consumer's ordering. Env entry remains separate."
+        ],
+        [
+          23,
+          "supported",
+          "Main separates phases only in applicable regular causal non-sliding no-sink FIA path",
+          "Read850-961 surrounding calls; source expanded850-947 to retain outer gates and completed call. Original930-945 omitted these boundaries."
+        ],
+        [
+          24,
+          "supported",
+          "v0.26 drops old matmul disable assignment while keeping other overrides",
+          "Read complete db-to2ed diff and76-92. Combined with source38 and full-tree absence check, function deletion is not merely lost protection."
+        ],
+        [
+          25,
+          "supported",
+          "Environment default0; CUDA capability note belongs upstream scope",
+          "Read596-598; corrected wrong default citation C3 toC25."
+        ],
+        [
+          26,
+          "supported",
+          "CUDA matmul branch differs by architecture and additional overrides still follow",
+          "Read897-950 fully plus953-961. Source expanded914-919; removed claim all GPU variance is only split-K or one variable enough."
+        ],
+        [
+          27,
+          "partially_supported",
+          "Release notes record basic framework PR5517",
+          "Read1121 plus release header1088. Single cited line does not prove earliest-ever introduction; text narrowed to recorded v0.13 release note."
+        ],
+        [
+          28,
+          "supported",
+          "Needle text test compares standalone and mixed submitted request lists",
+          "Read1-210 fully; expanded93-210 includes model defaults and final pytest.fail. Total list72-144 is not filler count or guaranteed scheduled batch; short prompt not long-context retrieval benchmark."
+        ],
+        [
+          29,
+          "supported",
+          "rc2 adds axis/dtype compatibility and native fallback",
+          "Read full baa-to7d diff65-99. Both aliases non-None cause TypeError; explicit non-None dtype falls back. Does not validate all scheduling combinations."
+        ],
+        [
+          30,
+          "supported",
+          "Separate linear kernel K policy and M/N tile heuristic",
+          "Read complete179-350. K256 orfloat32128 for nonempty shape; source has empty-shape special branch. No universal bit-equality proof inferred from K loop alone."
+        ],
+        [
+          31,
+          "supported",
+          "Current guide permits matched-source manual operator installation after package already installed",
+          "Read28-82 as part full1-228. Source-build env and regular/editable commands, A2/A3/950 arguments preserved; ordinary wheel installation does not rebuild automatically."
+        ],
+        [
+          32,
+          "supported",
+          "Actual installer orders run package then extension build",
+          "Read entire103-line shell script. Supported SOC mapping and actual download/build stages seen; neither downloaded artifact nor NPU installation executed."
+        ],
+        [
+          33,
+          "supported",
+          "Block128 has more than prefix/chunk override route",
+          "Read1316-1377; None gets128, hybrid and DeepSeek have separate paths, Xlite mayclamp. Corrected only-if-prefix/chunk explanation."
+        ],
+        [
+          34,
+          "supported",
+          "Logprob extractor takes selected-token entries and builds float32 vector",
+          "Read78-91 fully with source35 callers. It does not return full vocabulary logits."
+        ],
+        [
+          35,
+          "supported",
+          "Second test compares token IDs and selected logprob values",
+          "Read213-410 fully in bounded spans; torch.equal and final pytest.fail explicit. No claim all intermediates or raw bit representations compared; test not executed here."
+        ],
+        [
+          36,
+          "supported",
+          "Generic matmul wrappers have explicit dimensional limits; bmm loops members",
+          "Read353-441 with full file. Corrected oversimplification that all are merely flattened before onecall."
+        ],
+        [
+          37,
+          "partially_supported",
+          "v0.26 getter-based constructor differs from current strict config",
+          "Read56-73 plus prior constructor audit. This local span alone is not entire removed-feature proof; full-package grep and release note support removal separately."
+        ],
+        [
+          38,
+          "supported",
+          "Release notes explicitly remove matmul-allreduce fusion",
+          "Read56-64; v0.26 package grep returned no enable_matmul_allreduce. Deletion of batch guard is explained with feature deletion, parameter page remains unique migration reference."
+        ]
+      ],
+      "sha256": "a4f7f83ca058aebbc617a90c21256a53cc960183ce5180ecc7dc066b54b3f230"
+    }
+  ],
+  "sha256": "81c3f72b597d277b2bfe77025f57b21ebc60036cdfbf58ad44cd232ae55e965b"
+}

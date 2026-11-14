@@ -1,0 +1,78 @@
+layout: figure
+id: deepseek-model-intuition
+caption: 四层、六个输入位置的教学缩小模型。绿色格表示该位置经过该层完整计算，蓝色格表示保存的历史。CED 的后半共享前半输出投影出的全局 KV，另让末尾两个位置经过后半准备近似 SWA；空格表示省去完整前向，不表示删除全局历史。新 token 仍经过全部层。
+size: [880, 650]
+frames:
+  - { at: [20, 42], size: [840, 222], label: 普通逐层模型：每层从自己的输入生成历史 }
+  - { at: [20, 312], size: [840, 318], label: CED + 有界回放：长历史改由前半输出准备 }
+grids:
+  - at: [120, 78]
+    rows: 4
+    cols: 6
+    cell: [48, 32]
+    tone: token
+    style: solid
+    rowLabels: ['第 1 层', '第 2 层', '第 3 层', '第 4 层']
+    colLabels: ['位置1', '2', '3', '4', '5', '6']
+  - at: [540, 78]
+    rows: 4
+    cols: 6
+    cell: [44, 32]
+    tone: kv
+    style: solid
+    colLabels: ['位置1', '2', '3', '4', '5', '6']
+  - at: [120, 354]
+    rows: 4
+    cols: 6
+    cell: [48, 32]
+    tone: token
+    style: solid
+    rowLabels: ['前半 1', '前半 2', '后半 1', '后半 2']
+    colLabels: ['位置1', '2', '3', '4', '5', '6']
+    cells:
+      - { at: [2, 0], style: ghost }
+      - { at: [2, 1], style: ghost }
+      - { at: [2, 2], style: ghost }
+      - { at: [2, 3], style: ghost }
+      - { at: [3, 0], style: ghost }
+      - { at: [3, 1], style: ghost }
+      - { at: [3, 2], style: ghost }
+      - { at: [3, 3], style: ghost }
+  - at: [540, 428]
+    rows: 1
+    cols: 6
+    cell: [44, 32]
+    tone: kv
+    style: solid
+    label: 后半共享的全局 KV：六个位置都在
+  - at: [312, 548]
+    rows: 2
+    cols: 2
+    cell: [48, 28]
+    tone: kv
+    style: faded
+    rowLabels: ['后半 1 的窗口', '后半 2 的窗口']
+    cells:
+      - { at: [0, 0], text: '5' }
+      - { at: [0, 1], text: '6' }
+      - { at: [1, 0], text: '5' }
+      - { at: [1, 1], text: '6' }
+items:
+  - { at: [540, 342], size: [264, 54], text: 前半末输出 × 投影权重, tone: weight, style: faded }
+links:
+  - { from: [412, 94], to: [536, 94], tone: kv }
+  - { from: [412, 126], to: [536, 126], tone: kv }
+  - { from: [412, 158], to: [536, 158], tone: kv }
+  - { from: [412, 190], to: [536, 190], tone: kv }
+  - { from: [412, 402], to: [536, 369], via: [[476, 402], [476, 369]], tone: token }
+  - { from: [672, 396], to: [672, 424], tone: kv }
+  - { from: [536, 440], to: [412, 434], via: [[476, 440], [476, 434]], tone: kv }
+  - { from: [536, 450], to: [412, 466], via: [[496, 450], [496, 466]], tone: kv }
+  - { from: [360, 486], to: [360, 544], tone: kv }
+texts:
+  - { at: [120, 240], text: 每层计算全部位置, size: 14, tone: token }
+  - { at: [540, 240], text: 各层保存自己的 KV, size: 14, tone: kv }
+  - { at: [120, 514], text: 空白处不做完整后半前向, size: 14 }
+  - { at: [540, 526], text: 后半每层用自己的查询读取共享历史, size: 14 }
+  - { at: [540, 566], text: 末尾仍逐层计算，另备近期窗口, size: 14 }
+  - { at: [540, 592], text: 两类历史齐备后，继续生成新 token, size: 14 }

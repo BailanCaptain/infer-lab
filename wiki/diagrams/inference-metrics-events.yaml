@@ -1,0 +1,28 @@
+layout: figure
+id: inference-metrics-events
+caption: 第 2–6 站的引擎事件示意。同一请求首次输出后被抢占，再恢复，最后交回 3 个 token。首次调度只记一次；箭头表达顺序，不按时间比例。阶段时间包含其中等待，不能当成设备 kernel 耗时。
+size: [880, 448]
+frames:
+  - { at: [20, 40], size: [840, 140], label: 首次入队 → 首次调度 → 首次输出 }
+  - { at: [20, 222], size: [840, 140], label: 首次输出以后 }
+items:
+  - { at: [44, 88], size: [196, 48], text: 入队：0 ms, tone: control, style: faded }
+  - { at: [340, 88], size: [196, 48], text: 首次调度：20 ms, tone: control, style: solid }
+  - { at: [636, 88], size: [196, 48], text: 首次输出：100 ms, tone: token, style: solid }
+  - { at: [44, 270], size: [196, 48], text: 抢占：120 ms, tone: control, style: faded }
+  - { at: [340, 270], size: [196, 48], text: 恢复：180 ms, tone: control, style: solid }
+  - { at: [636, 270], size: [196, 48], text: 末次输出：200 ms, tone: token, style: solid }
+links:
+  - { from: [240, 112], to: [340, 112] }
+  - { from: [536, 112], to: [636, 112], tone: token }
+  - { from: [832, 112], to: [142, 270], via: [[850, 112], [850, 188], [142, 188]] }
+  - { from: [240, 294], to: [340, 294] }
+  - { from: [536, 294], to: [636, 294], tone: token }
+texts:
+  - { at: [290, 157], text: 排队 20 ms, anchor: middle, size: 14 }
+  - { at: [586, 157], text: prefill 80 ms, anchor: middle, size: 14 }
+  - { at: [734, 166], text: 1 token, anchor: middle, size: 13 }
+  - { at: [438, 342], text: 恢复不会重置首次调度时间, anchor: middle, size: 14 }
+  - { at: [734, 342], text: 3 token, anchor: middle, size: 13 }
+  - { at: [440, 395], text: decode：100 → 200 ms，包含抢占后的等待, anchor: middle, strong: true, size: 15 }
+  - { at: [440, 425], text: inference：20 → 200 ms，包含 prefill 与 decode 两段, anchor: middle, size: 14 }

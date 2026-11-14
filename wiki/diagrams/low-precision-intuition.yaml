@@ -1,0 +1,67 @@
+layout: figure
+id: low-precision-intuition
+caption: 与正文相同的三个教学数值。保存一行四位编码及对应系数；这里为便于阅读，格内显示编码代表的数。读回值不再等于原值，且载荷与系数必须成套解释。
+size: [820, 480]
+grids:
+  - at: [200, 40]
+    rows: 1
+    cols: 3
+    cell: [90, 38]
+    tone: token
+    style: solid
+    rowLabels: ['原值']
+    cells:
+      - { at: [0, 0], text: '0.3' }
+      - { at: [0, 1], text: '1.2' }
+      - { at: [0, 2], text: '2.8' }
+  - at: [200, 148]
+    rows: 1
+    cols: 3
+    cell: [90, 38]
+    tone: token
+    style: faded
+    rowLabels: ['除以系数后']
+    cells:
+      - { at: [0, 0], text: '0.6' }
+      - { at: [0, 1], text: '2.4' }
+      - { at: [0, 2], text: '5.6' }
+  - at: [200, 264]
+    rows: 1
+    cols: 3
+    cell: [90, 38]
+    tone: kv
+    style: solid
+    rowLabels: ['保存的 FP4 值']
+    cells:
+      - { at: [0, 0], text: '0.5' }
+      - { at: [0, 1], text: '2' }
+      - { at: [0, 2], text: '6' }
+  - at: [200, 390]
+    rows: 1
+    cols: 3
+    cell: [90, 38]
+    tone: token
+    style: faded
+    rowLabels: ['读回值']
+    cells:
+      - { at: [0, 0], text: '0.25' }
+      - { at: [0, 1], text: '1' }
+      - { at: [0, 2], text: '3' }
+  - at: [616, 264]
+    rows: 1
+    cols: 1
+    cell: [80, 38]
+    tone: weight
+    style: solid
+    cells: [{ at: [0, 0], text: '0.5' }]
+    label: 同组的 scale
+links:
+  - { from: [335, 82], to: [335, 144], tone: token }
+  - { from: [335, 190], to: [335, 260], tone: kv }
+  - { from: [335, 306], to: [335, 386], tone: token }
+  - { from: [700, 283], to: [474, 409], via: [[746, 283], [746, 409]], tone: weight }
+texts:
+  - { at: [370, 118], text: ÷ 0.5, size: 14 }
+  - { at: [370, 228], text: 舍入到可表示值, size: 14 }
+  - { at: [370, 352], text: × 对应 scale, size: 14 }
+  - { at: [200, 462], text: 例如 2.8 → 3：省了字节，也引入了误差, size: 14 }

@@ -1,0 +1,82 @@
+[
+  {
+    "ref": "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L480",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ops/vocab_parallel_embedding.py#L95-L125",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L329-L354",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L820-L845",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/utils.py#L1493-L1498",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/utils.py#L195-L198",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:docs/source/user_guide/configuration/additional_config.md#L80-L80",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:docs/source/user_guide/feature_guide/context_parallel.md#L67-L67",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@bea70ab8fa233a06a7483337f42a1e3f2c8a117c:vllm_ascend/ascend_config.py#L495",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L578",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ops/vocab_parallel_embedding.py#L536-L568",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ops/vocab_parallel_embedding.py#L299-L398",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L576",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@ac1b7bceb370265e8f794f38d32a88041b0c51c9:vllm_ascend/ascend_config.py#L585",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@9f9da5562089280a7f01c3d03e855b258e372807:vllm_ascend/ascend_config.py#L572",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@75bfb762267c86fbec4cf3458ce08a094c0a4c72:vllm_ascend/ascend_config.py#L581",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@2581a69bcc16ee6af56e72985a15799bb5f61808:vllm_ascend/ascend_config.py#L582",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@ee29cc6fc24d20d47948776764059f05601170a6:vllm_ascend/ascend_config.py#L584",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@25e376b3c7821ddf894e2a05a4e29ef019db94ad:vllm_ascend/ascend_config.py#L584",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@30ce5af06cb89f941e98c5a6a5b56c30d9938006:vllm_ascend/ascend_config.py#L585",
+    "match": true
+  }
+]

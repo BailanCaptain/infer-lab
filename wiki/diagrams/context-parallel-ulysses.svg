@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 680" width="880" height="680" role="img" aria-label="Ulysses 的位置/头布局交换。每个格表示“4 个位置 × 1 个头”的数据块，行标签是位置范围，列标签是头编号。实色是本卡持有，虚线是本卡没有；从位置分工换成头分工，attention 后再恢复位置分工。">
+  <title>Ulysses 的位置/头布局交换。每个格表示“4 个位置 × 1 个头”的数据块，行标签是位置范围，列标签是头编号。实色是本卡持有，虚线是本卡没有；从位置分工换成头分工，attention 后再恢复位置分工。</title>
+  <defs><marker id="context-parallel-ulysses-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="20" y="70" width="840" height="120" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">① Q/K/V 投影后：每卡 4 个位置 × 全部 4 头</text>
+  <rect x="20" y="290" width="840" height="120" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="278" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">② All-to-All 后：每卡全部 8 个位置 × 2 头</text>
+  <rect x="20" y="510" width="840" height="120" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="498" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">③ attention 后反向交换：输出恢复位置分片</text>
+  <path d="M840 190 L840 290" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#context-parallel-ulysses-ah-comm)"/>
+  <path d="M840 410 L840 510" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#context-parallel-ulysses-ah-comm)"/>
+  <rect x="125" y="108" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="173" y="108" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="221" y="108" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="269" y="108" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="125" y="136" width="48" height="28" fill="none"/>
+  <rect x="128" y="139" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="173" y="136" width="48" height="28" fill="none"/>
+  <rect x="176" y="139" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="221" y="136" width="48" height="28" fill="none"/>
+  <rect x="224" y="139" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="269" y="136" width="48" height="28" fill="none"/>
+  <rect x="272" y="139" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <path d="M173 108v56M221 108v56M269 108v56M125 136h192" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="125" y="108" width="192" height="56" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="115" y="126.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置0～3</text>
+  <text x="115" y="154.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置4～7</text>
+  <text x="149" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头0</text>
+  <text x="197" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头1</text>
+  <text x="245" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头2</text>
+  <text x="293" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头3</text>
+  <rect x="555" y="108" width="48" height="28" fill="none"/>
+  <rect x="558" y="111" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="603" y="108" width="48" height="28" fill="none"/>
+  <rect x="606" y="111" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="651" y="108" width="48" height="28" fill="none"/>
+  <rect x="654" y="111" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="699" y="108" width="48" height="28" fill="none"/>
+  <rect x="702" y="111" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="555" y="136" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="603" y="136" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="651" y="136" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="699" y="136" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <path d="M603 108v56M651 108v56M699 108v56M555 136h192" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="555" y="108" width="192" height="56" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="545" y="126.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置0～3</text>
+  <text x="545" y="154.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置4～7</text>
+  <text x="579" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头0</text>
+  <text x="627" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头1</text>
+  <text x="675" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头2</text>
+  <text x="723" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头3</text>
+  <rect x="125" y="328" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="173" y="328" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="221" y="328" width="48" height="28" fill="none"/>
+  <rect x="224" y="331" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="269" y="328" width="48" height="28" fill="none"/>
+  <rect x="272" y="331" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="125" y="356" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="173" y="356" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="221" y="356" width="48" height="28" fill="none"/>
+  <rect x="224" y="359" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="269" y="356" width="48" height="28" fill="none"/>
+  <rect x="272" y="359" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <path d="M173 328v56M221 328v56M269 328v56M125 356h192" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="125" y="328" width="192" height="56" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="115" y="346.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置0～3</text>
+  <text x="115" y="374.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置4～7</text>
+  <text x="149" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头0</text>
+  <text x="197" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头1</text>
+  <text x="245" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头2</text>
+  <text x="293" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头3</text>
+  <rect x="555" y="328" width="48" height="28" fill="none"/>
+  <rect x="558" y="331" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="603" y="328" width="48" height="28" fill="none"/>
+  <rect x="606" y="331" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="651" y="328" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="699" y="328" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="555" y="356" width="48" height="28" fill="none"/>
+  <rect x="558" y="359" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="603" y="356" width="48" height="28" fill="none"/>
+  <rect x="606" y="359" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="651" y="356" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="699" y="356" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <path d="M603 328v56M651 328v56M699 328v56M555 356h192" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="555" y="328" width="192" height="56" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="545" y="346.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置0～3</text>
+  <text x="545" y="374.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置4～7</text>
+  <text x="579" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头0</text>
+  <text x="627" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头1</text>
+  <text x="675" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头2</text>
+  <text x="723" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头3</text>
+  <rect x="125" y="548" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="173" y="548" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="221" y="548" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="269" y="548" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="125" y="576" width="48" height="28" fill="none"/>
+  <rect x="128" y="579" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="173" y="576" width="48" height="28" fill="none"/>
+  <rect x="176" y="579" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="221" y="576" width="48" height="28" fill="none"/>
+  <rect x="224" y="579" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="269" y="576" width="48" height="28" fill="none"/>
+  <rect x="272" y="579" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <path d="M173 548v56M221 548v56M269 548v56M125 576h192" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="125" y="548" width="192" height="56" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="115" y="566.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置0～3</text>
+  <text x="115" y="594.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置4～7</text>
+  <text x="149" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头0</text>
+  <text x="197" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头1</text>
+  <text x="245" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头2</text>
+  <text x="293" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头3</text>
+  <rect x="555" y="548" width="48" height="28" fill="none"/>
+  <rect x="558" y="551" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="603" y="548" width="48" height="28" fill="none"/>
+  <rect x="606" y="551" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="651" y="548" width="48" height="28" fill="none"/>
+  <rect x="654" y="551" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="699" y="548" width="48" height="28" fill="none"/>
+  <rect x="702" y="551" width="42" height="22" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="555" y="576" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="603" y="576" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="651" y="576" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="699" y="576" width="48" height="28" fill="var(--color-surface, #fbfaf6)"/>
+  <path d="M603 548v56M651 548v56M699 548v56M555 576h192" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="555" y="548" width="192" height="56" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="545" y="566.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置0～3</text>
+  <text x="545" y="594.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置4～7</text>
+  <text x="579" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头0</text>
+  <text x="627" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头1</text>
+  <text x="675" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头2</text>
+  <text x="723" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">头3</text>
+  <text x="220" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">卡 0</text>
+  <text x="650" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">卡 1</text>
+  <text x="440" y="223" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">卡 0 把位置 0～3 的头 2、3 发给卡 1</text>
+  <text x="440" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">卡 1 把位置 4～7 的头 0、1 发给卡 0</text>
+  <text x="440" y="443" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">各卡完成自己两个头的 attention，再把输出按位置发回</text>
+  <text x="440" y="468" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">位置编号与因果掩码保持一致，头数没有增加</text>
+  <text x="440" y="662" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[4, 4, d] → [8, 2, d] → [4, 4, d]；d 为每个头的通道数</text>
+</svg>

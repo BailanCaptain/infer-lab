@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 490" width="880" height="490" role="img" aria-label="类替换先决定执行方法；进入 IR 的操作再按平台与参数选择实现。固定 GLM 的正常 RMSNorm 方法走左路。">
+  <title>类替换先决定执行方法；进入 IR 的操作再按平台与参数选择实现。固定 GLM 的正常 RMSNorm 方法走左路。</title>
+  <defs><marker id="ops-ir-selection-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M320 80 L320 105 L200 105 L200 135" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ops-ir-selection-ah-ink)"/>
+  <path d="M560 80 L560 105 L665 105 L665 135" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ops-ir-selection-ah-ink)"/>
+  <path d="M200 205 L200 365" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ops-ir-selection-ah-ink)"/>
+  <path d="M665 205 L665 250" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ops-ir-selection-ah-ink)"/>
+  <path d="M665 320 L665 365" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ops-ir-selection-ah-ink)"/>
+  <path d="M490 400 L365 400" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ops-ir-selection-ah-ink)"/>
+  <rect x="245" y="25" width="390" height="55" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="48.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模型调用归一化模块</text>
+  <text x="440" y="67.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">先确认实际执行的方法</text>
+  <rect x="35" y="135" width="330" height="70" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="200" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">昇腾方法直接调用 NPU 算子</text>
+  <text x="200" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">没有经过右侧的 IR 选择</text>
+  <rect x="490" y="135" width="350" height="70" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">方法进入 IR 归一化操作</text>
+  <text x="665" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">保留输入输出的语义约定</text>
+  <rect x="490" y="250" width="350" height="70" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="281" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按顺序检查候选实现</text>
+  <text x="665" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">先过滤平台，再检查实际参数</text>
+  <rect x="490" y="365" width="350" height="70" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="396" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">使用第一个适用的实现</text>
+  <text x="665" y="415" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">编译时用形状类型，eager 用真实参数</text>
+  <rect x="35" y="365" width="330" height="70" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="200" y="396" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">设备执行所选程序</text>
+  <text x="200" y="415" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">数值与耗时仍按实际执行验证</text>
+  <text x="440" y="470" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">程序优化准备在启动期；请求到逐层前向时使用实际选定的路径</text>
+</svg>

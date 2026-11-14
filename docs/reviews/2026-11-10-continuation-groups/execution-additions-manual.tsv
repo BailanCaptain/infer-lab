@@ -1,0 +1,45 @@
+page_id	source_number	verdict	manual_claim_judgment
+npu-model-runner	51	supported_scoped	rc2 ExecuteModelState仍列12字段，支持V1暂存表；该NamedTuple不代表V2内部状态。
+npu-model-runner	52	supported_scoped	execute_model入口检查上次state未清并报State error；与创建/消费范围合读。
+npu-model-runner	53	supported_scoped	前向末尾保存12字段并返回None，支持两次调用交接和剩余CPU correction时机。
+npu-model-runner	54	supported_scoped	sample_tokens取出并清空state，CPU float应用语法mask后回设备；无state还有PP及空结果分支。
+npu-model-runner	55	supported_scoped	异步时已计算数倒退会清前次草稿长度，并记录num_computed_tokens_cpu；条件不能省略。
+npu-model-runner	56	supported_scoped	异步mamba align/compress分支在需要CPU状态前执行并清deferred corrections，不是所有请求都提前做。
+npu-model-runner	57	supported_scoped	rc2 Worker初始化没有旧0.23.0警告回退代码；结合完整构造和init_device及选择补丁判断，未据单一片段推断功能支持。
+npu-model-runner	58	supported_scoped	已全文核补丁：环境变量默认False；V2仍有硬件/模型校验。原L64越界一行已修为L63并复核。
+npu-model-runner	59	supported_scoped	父类初始化直接调用，周围没有旧PCP临时加大max_num_batched_tokens；平台PCP拒绝另由prepare来源45/46支撑。
+npu-model-runner	60	supported_scoped	need_accepted_tokens取kv_cache_config.has_mamba_layers，支持rc2该行而非整个runner与main相同。
+npu-model-runner	61	supported_scoped	MRV2全文206行与5图支持固定状态行/本步gather、pinned临时快照、StagedWriteTensor、设备输入、独立采样和图管理；多步草拟元数据须由设备操作更新。GPU/UVA/Triton设计不等于Ascend实测支持。
+npu-model-runner	62	supported_scoped	小正温度先被钳到_MAX_TEMP，随后零温度贪心分支；与已审采样页的常量定义相合，正确修正接近0即greedy。
+npu-worker-lifecycle	56	supported_scoped	LoadConfig默认auto、safetensors策略None与四枚举、模型格式定义支持表行；实际注册必须另查来源68。
+npu-worker-lifecycle	57	supported_scoped	普通safetensors iterator对None/lazy/eager/prefetch/torchao分流；自动预读仅指定网络文件系统且checkpoint不超可用RAM90%，显式prefetch超阈值仍继续。
+npu-worker-lifecycle	58	supported_scoped	ModelConfig trust_remote_code默认False；不是官方某个GLM命令True的默认推广。
+npu-worker-lifecycle	59	supported_scoped	get_config传trust_remote_code、revision和code_revision；支持当前配置读取表行。
+npu-worker-lifecycle	60	supported_scoped	generation_config加载传model/revision/code_revision/trust_remote_code，auto按模型配置来源判定，非所有入口无条件加载。
+npu-worker-lifecycle	61	supported_scoped	预算先应用startup plan，显式字节预算仍试跑，再按分组、复用/offload/KVPP条件修正；旧GLM预算示意不能换成这版实测。
+npu-worker-lifecycle	62	supported_scoped	load_model按weight_transfer配置创建引擎；compile/warmup入口位于capture判断之前并有计时与可选预热条件，支持六阶段和表行。
+npu-worker-lifecycle	63	supported_scoped	GLM MultiHeadLatentAttentionWrapper持有实际attention子层；不能解释成上游按wrapper名称识别。
+npu-worker-lifecycle	64	supported_scoped	后处理遍历model.named_modules，调用is_attention_layer再处理，并另调用model级处理；与来源65合读实际识别条件。
+npu-worker-lifecycle	65	supported_scoped	is_attention_layer以AttentionLayerBase和callable(process_weights_after_loading)共同判断，支持子模块识别边界。
+npu-worker-lifecycle	66	supported_scoped	kernel_warmup全文53行：HAS_TRITON门控，拒绝采样/惩罚/RMS/indexer四类，不能说enforce_eager必然阻止这一步。
+npu-worker-lifecycle	67	supported_scoped	初始化KV时按DSpark连接条件先登记loader持有的草稿缓存层名，sleep allocator只包真实分配；持久元数据与条件式清零元数据在池外，不混同旧整函数池范围。
+npu-worker-lifecycle	68	supported_scoped	实际注册表含modelexpress/ipc_cache，无gguf/bitsandbytes；字段枚举不是运行支持证明。
+npu-worker-lifecycle	69	supported_scoped	auto先Mistral再HF；显式safetensors禁PT回退，下载远端索引还要求多权重文件；多线程互斥须另读来源73。
+npu-worker-lifecycle	70	supported_scoped	普通WorkerProc先构造包装、init_device、再load_model；elastic EP扩容分支另行处理，正文保留此边界。
+npu-worker-lifecycle	71	supported_scoped	EngineCore在有KV的条件下量可用内存、配置worker和scheduler缓存、调用executor初始化；无KV条件及hybrid组布局不得省略成统一字节预算。
+npu-worker-lifecycle	72	supported_scoped	executor先集体initialize_from_config再compile_or_warm_up_model，支持初始化缓存与预热阶段的真实调用顺序。
+npu-worker-lifecycle	73	supported_scoped	enable_multithread_load为真仅接受None/lazy；其它策略报ValueError。普通iterator自动预读条件不能搬到多线程分支。
+prepare-inputs-flow	39	supported_scoped	rc2形态判断先prefill/no-cache，再decode和spec；非MTP时函数返回与self.attn_state写值须分开，正文已保留。
+prepare-inputs-flow	40	supported_scoped	非spec用query_start_loc[1:]-1选行；此段没有旧GLM的CP选行分支，不据此宣称新版V1支持PCP。
+prepare-inputs-flow	41	supported_scoped	构造专用gdn_query_start_loc缓冲用于不含假请求的边界，和实际写入来源42合读。
+prepare-inputs-flow	42	supported_scoped	GDN拷真实query边界后将尾部填为最后边界，支持假请求不进入线性注意力区间。
+prepare-inputs-flow	43	supported_scoped	Worker按最终use_v2_model_runner选择Ascend V2或V1类；选择存在不证明特定模型已兼容。
+prepare-inputs-flow	44	supported_scoped	完整平台补丁支持默认V1及V2能力校验；原L64范围已修为实际L63并复核，不能只凭目录有V2认定已启用。
+prepare-inputs-flow	45	supported_scoped	check_and_update_config真实调用router replay与parallel配置校验，和来源46组成可达拒绝链。
+prepare-inputs-flow	46	supported_scoped	平台明确拒绝use_v2_model_runner=False且PCP>1，支持rc2 V1限制并阻止沿用旧CP分支说明。
+vllm-ascend-for-rl	52	supported_scoped	加载完模型后仅weight_transfer_config非空才创建传输引擎，普通服务不会自行同步权重。
+vllm-ascend-for-rl	53	supported_scoped	rc2 start/update/finish状态机检查有效NZ配置、更新标志及后端调用；start已无is_checkpoint_format参数，装载职责转后端。
+vllm-ascend-for-rl	54	supported_scoped	get_attn_backend_cls仅PCP等于1时进入FA3验证；有PCP先进入context parallel后端选择。
+vllm-ascend-for-rl	55	supported_scoped	FA3须RL总开关及训推一致子开关、flash_attn包，MLA/SFA模型会拒绝；配置字段存在不是FA3已实测。
+vllm-ascend-for-rl	56	supported_scoped	平台配置实际调用_router_replay_config_check，支持来源57拒绝分支并非不可达辅助函数。
+vllm-ascend-for-rl	57	supported_scoped	专家路由捕获开启但MRV1时直接ValueError，rc2必须明确选V2且满足其它模型条件，RL总开关不自动选runner。

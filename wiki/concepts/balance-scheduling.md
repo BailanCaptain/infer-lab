@@ -2,57 +2,115 @@
 id: balance-scheduling
 title: Balance Scheduling：一组顶满，各组一起停收新请求
 type: feature
-summary: MoE 模型的多个 DP 组每步互报 running 条数，最满的一组顶到上限时所有组暂停接纳 waiting；讲清为什么需要、闸门与互报放在哪、只数条数的局限，以及 GLM 双机未启用时的对照。
-aliases: ["Balance Scheduling","均衡调度","BalanceScheduler","enable_balance_scheduling","balance_gather","BalanceDPEngineCoreProc","VLLM_ASCEND_BALANCE_SCHEDULING"]
-chapters: ["12"]
+summary: >-
+  MoE 模型的多个 DP 组每步互报 running 条数，最满的一组顶到上限时所有组暂停接纳
+  waiting；讲清为什么需要、闸门与互报放在哪、只数条数的局限，以及 GLM 双机未启用时的对照。
+aliases:
+  - Balance Scheduling
+  - 均衡调度
+  - BalanceScheduler
+  - enable_balance_scheduling
+  - balance_gather
+  - BalanceDPEngineCoreProc
+  - VLLM_ASCEND_BALANCE_SCHEDULING
+chapters:
+  - '12'
 order: 60
 sources:
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L65-L88
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L289-L305
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L616-L658
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L34-L49
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L668-L675
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L718
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L78-L94
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L562-L572
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L102-L106
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1152-L1162
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1713-L1718
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945
-  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L688-L745
-  - vllm-ascend@2c59ff10:vllm_ascend/envs.py#L103-L105
-  - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L81-L101
-  - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L882-L959
-  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1003-L1039
-  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_balance_schedule.py#L84-L104
-  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_engine_core.py#L21-L46
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1446-L1456
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L941-L995
-  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L26-L45
-  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L176-L240
-  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L328-L348
-  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L484-L490
-  - vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L353
-  - vllm-ascend@baa023ad:docs/source/tutorials/models/GLM5.3.md#L180-L210
-  - vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L17-L20
-  - vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L147-L150
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L65-L88
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L289-L305
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L616-L658
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L34-L49
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L668-L675'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L718
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L78-L94'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L562-L572'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L102-L106'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1152-L1162'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1713-L1718'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945'
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L688-L745
+  - 'vllm-ascend@2c59ff10:vllm_ascend/envs.py#L103-L105'
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L81-L101
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L882-L959
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1003-L1039'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_balance_schedule.py#L84-L104
+  - 'vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_engine_core.py#L21-L46'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1446-L1456'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L941-L995'
+  - >-
+    vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L26-L45
+  - >-
+    vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L176-L240
+  - >-
+    vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L328-L348
+  - >-
+    vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L484-L490
+  - 'vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L353'
+  - 'vllm-ascend@baa023ad:docs/source/tutorials/models/GLM5.3.md#L180-L210'
+  - >-
+    vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L17-L20
+  - >-
+    vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L147-L150
+  - >-
+    raw:sha256-c8158192e740899aa15fdbe9c30781e389538032e62fd46b87784686beb0fab6.md#L1-L958
+  - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_engine_core.py#L32-L42'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1078-L1088'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L590-L604'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L971-L985'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L319-L330'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L412-L423'
+  - 'vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_balance_schedule.py#L397-L408'
+  - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_balance_schedule.py#L396-L407'
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - {to: data-parallel, kind: builds-on, note: 各组怎样分请求、为什么每一步要同步推进、空闲组怎样陪跑}
-  - {to: vllm-scheduler, kind: builds-on, note: running 与 waiting、请求数上限，以及接纳 waiting 时原有的几道检查}
-  - {to: concurrent-requests, kind: builds-on, note: 场景 M 的宽度对齐浪费，用来对照闸门管得到什么、管不到什么}
-  - {to: dyntra-lb, kind: alternative-to, note: 用 KV 块数而不是请求条数估计负载，main 上与本特性二选一}
+  - to: data-parallel
+    kind: builds-on
+    note: 各组怎样分请求、为什么每一步要同步推进、空闲组怎样陪跑
+  - to: vllm-scheduler
+    kind: builds-on
+    note: running 与 waiting、请求数上限，以及接纳 waiting 时原有的几道检查
+  - to: concurrent-requests
+    kind: builds-on
+    note: 场景 M 的宽度对齐浪费，用来对照闸门管得到什么、管不到什么
+  - to: dyntra-lb
+    kind: alternative-to
+    note: 用 KV 块数而不是请求条数估计负载，main 上与本特性二选一
+  - to: recompute-scheduler
+    kind: conflicts-with
+    note: >-
+      两种调度器的生效部署条件互斥：Balance Scheduling 只支持 PD 混部，RecomputeScheduler 只允许在 PD 分离的
+      D 节点启用，不能同时生效。
+  - to: profiling-chunk-config
+    kind: conflicts-with
+    note: >-
+      固定 db701c1f 中，Balance Scheduling 与动态切块配置不能同时启用；同开会在配置校验时报
+      ValueError。具体配置入口及环境变量兜底仍按两页的版本条件核对。
 contradicts: []
-updated: "2026-09-29"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-c8158192e740899aa15fdbe9c30781e389538032e62fd46b87784686beb0fab6.md
+  - >-
+    raw/sha256-dd8e18dfcf5021b060243fde9d44f724d06569029c45be7972b6d538abb2dfa5.md
 ---
 
 ## Balance Scheduling 是什么？
 
 **Balance Scheduling（均衡调度）是 vllm-ascend 给「MoE 模型开了多个 DP 组」这种部署加的一道共同闸门：每一步末尾，各组互报自己正在跑几条请求；只要有一组已经顶到请求数上限，下一步所有组都暂停接纳排队中的请求，已经在跑的请求照常往前算。它不搬请求，也不改变新请求派到哪一组。**
 
-先把几个词说清。[DP（data parallel，数据并行）](data-parallel.md)把模型复制成几组卡，每组叫一个 DP 组，各有一个调度器（scheduler），每一步决定这组算哪些请求。调度器手里有两个队列：**running** 放已经开始算的请求，**waiting** 放已经到了、还没开始算的请求。每组能同时跑的请求条数有上限，running 满了就不再从 waiting 往里放（见[请求数上限](vllm-scheduler.md#为什么按-token-设预算还要另设请求数上限)）。
+先把几个词说清。[DP（data parallel，数据并行）](data-parallel.md)把请求分给几组卡，每组叫一个 DP 组，各有一个调度器（scheduler），每一步决定这组算哪些请求。稠密模型每组放完整权重；本页 GLM 还开了跨组 EP，把专家分放在不同组的卡上，因此一个 DP 组并非完整模型副本。调度器手里有两个队列：**running** 放已经开始算的请求，**waiting** 放已经到了、还没开始算的请求。每组能同时跑的请求条数有上限，running 满了就不再从 waiting 往里放（见[请求数上限](vllm-scheduler.md#为什么按-token-设预算还要另设请求数上限)）。
 
 看一个具体例子（数为示意）：两个 DP 组，每组最多同时跑 4 条。某一步结束时，DP0 正跑着 A、B、C、D 四条，已经满了，waiting 里还有 E、F；DP1 只跑着 G、H 两条，有两个空位，waiting 里有 I、J。
 
@@ -67,7 +125,7 @@ file: balance-scheduling
 
 **MoE 模型开了 DP 以后，各组每一步都要一起进出专家通信，这一步谁最重，谁就定下这一步的时长；Balance Scheduling 要防的，是负载已经不均时，其余组继续接新请求，把差距越拉越大。**
 
-[MoE](moe.md)（mixture of experts，混合专家）模型的专家只放一份，摊在所有组的卡上，任何一组算 MoE 层，都要别的组同时到场；每一步前向之前，各组还要先对齐一次这一步的 token 数，通常按最宽的那组一起跑。所以各组不是各跑各的，而是一步一步同步推进（见[MoE 模型里，两组为什么不能各跑各的](data-parallel.md#moe-模型里两组为什么不能各跑各的)）。
+[MoE](moe.md)（mixture of experts，混合专家）在本页采用跨组 EP 的部署中，把专家分放在所有组的卡上，任何一组算 MoE 层，都要别的组同时到场；每一步前向之前，各组还要先对齐一次这一步的 token 数，通常按最宽的那组一起跑。所以各组不是各跑各的，而是一步一步同步推进（见[MoE 模型里，两组为什么不能各跑各的](data-parallel.md#moe-模型里两组为什么不能各跑各的)）。
 
 另一方面，请求一旦派进某一组，就一直留在那组，它的 KV cache（存放这条请求已经算过的上下文）也在那组（见[请求怎样派进某一组](data-parallel.md#请求怎样派进某一组)）。于是负载会不均：请求扎堆在某一组，那组的 running 顶满，同一步里既有请求在处理提示词（prefill），又有请求在逐个生成 token（decode），越来越慢；其余组还有空位，照样接新请求。新请求一进来先做 prefill，而这一步的宽度要按最宽的那组对齐（见[宽度先按自己补，再按对面补](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)），顶满那组也跟着慢下来，手上的请求迟迟算不完，差距继续拉大。
 
@@ -102,7 +160,9 @@ title: 一组顶满时，其余三组空着多少名额（示意）
 
 有两点要看清。第一，比的是**最大值**：只要有一组顶满就落闸，其余三组空位再多也一起停；不开时，那三组这一步会照常往 14 个空位里接请求。此刻四组合计 8 + 3 + 5 + 2 = 18 条在跑；闸门落着的时候，这个数只会随请求算完而减少，不会增加。第二，只有真顶满才落闸：最大值是 7 时，差一条也不落。running 的条数本来就不会超过上限，所以「等于上限」和「达到上限」是一回事。
 
-闸门抬起以后，空位也不是一下子被填满：每组照常走自己原有的准入检查，这一步的 token 预算还剩多少、本组 running 满没满、KV cache 的块够不够（见[预算先给 decode，余量给提示词](vllm-scheduler.md#多条请求时预算先给-decode余量给提示词)）。Balance Scheduling 在这些检查之外多加一道，不替换它们。
+闸门抬起以后，空位也不是一下子被填满：每组照常走自己原有的准入检查，这一步的 token 预算还剩多少、本组 running 满没满、KV cache 的块够不够（见[已有请求都在 decode 时的余量](vllm-scheduler.md#多条请求时已有请求都在-decode余量怎样给新提示词)）。Balance Scheduling 在这些检查之外多加一道，不替换它们。
+
+接纳等待请求还要满足两项条件：调度器没有暂停，本轮没有发生抢占。抢占是暂时让正在运行的请求退出执行、留待后续恢复。因此，即使共同闸门放行且本组还有空位，下一条等待请求也未必能在这一步进入运行队列。
 
 ## 闸门插在哪一步，互报为什么不放进调度器
 
@@ -150,6 +210,8 @@ title: 场景 M 下闸门会不会落
 
 最大值 12 离上限 32 还远，闸门不落，N 照常被 DP0 接纳，这一步和不开时完全一样。场景 M 里真正的浪费，是 DP1 的 28 个 token 先补到 32，再按对面补到 6048 宽、改走 eager（逐个下发算子，不回放录好的计算图）（见[宽度先按自己补，再按对面补](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)）。那是每一步宽度对齐的浪费，按 token 数算；Balance Scheduling 只数条数、只在顶满时起作用，管不到它。
 
+这里沿用上面的本地准入条件；计数表中的 12 和 7 只说明共同闸门放行，N 能否进入运行队列还取决于这些条件是否满足。
+
 反过来，闸门一旦落下，两组都不接新的提示词：接下来几步里，不会再有新来的 prefill 把两组一起拉宽、退回 eager；已经在分块做 prefill 的请求照常继续。这样省下的时间能不能抵过空着的名额，要看负载，这套部署还没有开启它的实测数据（见页末「待核」）。
 
 ## 常见误解
@@ -170,7 +232,7 @@ title: 场景 M 下闸门会不会落
 - 生效前提：`--data-parallel-size` 大于 1；模型是 MoE；PD 混部（不配 `kv_transfer_config`，或 `kv_role` 为 `kv_both`）。
 - 闸门比的 `max_num_running_reqs` 就是 `--max-num-seqs`，调它会同时改变单组并发和全局落闸的触发点。GLM-5.3-Flash 双机教程取 32，没有写 additional-config。
 - 显式指定了调度器类（`scheduler_cls`，如重算调度、动态批、分块性能采集用的那几种）的部署不经过 BalanceScheduler。
-- 参照：main 分支 GLM-5.3（不是 Flash）的多机教程在 additional-config 里打开了它，DP8、DP4 几套配置都开。
+- 参照：所列 main 分支 GLM-5.3（不是 Flash）的 DP8 多机教程片段在 additional-config 里打开了它。
 
 ### 会报什么错
 
@@ -188,6 +250,8 @@ title: 场景 M 下闸门会不会落
 - **别开的场景。** DP=1（不起作用）；dense 模型（v0.23 和 db701c1f 起不来，之后不生效）；PD 分离的 prefill 或 decode 实例（直接报错）；负载不均主要来自请求长短而不是条数时，它帮不上。
 
 ### 版本差异
+
+**v0.30.0rc2 保留已钉 main 的条件式接线。** 只有 Ascend scheduler_config 启用相应配置，才把 DPEngineCoreProc 换成 BalanceDPEngineCoreProc；DyntraLB 的优先分支及两者互斥检查仍在。默认 Scheduler 正常排批不等于开启这套 Balance 调度，历史文档里的环境变量也不能自动当成 rc2 的有效配置入口。
 
 闸门语义在四个快照上一致：读上一步末尾的计数表，最大值等于上限就停收。差异都在外围。v0.23 列是维护分支 2c59ff10，db701c1f 是本部署镜像（另一个 orphan commit），v0.26 列是 2ed6cbba，main 列是 baa023ad。
 
@@ -230,3 +294,7 @@ title: 场景 M 下闸门会不会落
 - 本部署打开它以后的实测：多久落一次闸、空着的名额和步长缩短哪个影响大，缺实机数据。
 - 跨机 gloo All-Gather 一次的耗时，缺实测。
 - 开了 async scheduling 时，引擎实例化的 AsyncScheduler 的父类是否已经是替换后的 BalanceScheduler：按导入顺序推断是，尚未实跑确认，和 [vLLM 调度器](vllm-scheduler.md#昇腾上跑的是哪个调度器)页是同一条待核。
+
+固定 db701c1f 的共同闸门只是准入检查之一：调度暂停、本轮发生抢占或本地名额不足时，仍不能接纳等待请求。这些条件不表示本页 GLM 双机配方已启用均衡调度，其他分支按版本表判断。等待队列循环见来源 2。
+
+CPU DP 通信组明确使用 gloo（来源 33）；v0.26 的环境变量值由配置构造传入通用回退函数（来源 34）。v0.23、v0.26、main、rc2 的实际准入分支分别见来源 35–38，均比较上一轮计数的最大值与本组上限是否相等。

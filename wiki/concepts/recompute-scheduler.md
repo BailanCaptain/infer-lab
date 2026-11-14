@@ -1,71 +1,128 @@
 ---
 id: recompute-scheduler
-title: "RecomputeScheduler：D 节点块不够时，被让出的请求退回 P 重算"
+title: RecomputeScheduler：D 节点块不够时，被让出的请求退回 P 重算
 type: feature
-summary: vllm-ascend 给 PD 分离 D 节点用的调度器。续块失败、要让出一条正在生成的请求时，先问连接器能否把它的 KV 存走：存得走就排回队首、稍后搬回；存不走就还掉全部块，以 stop_reason="recomputed" 结束，由代理把原问题接上已生成的内容重新发给一对 P/D，重算落在 P 上。GLM 双机主线不拆 P/D，不启用它，抢占走上游的本机重算。
-aliases: [RecomputeScheduler, AsyncRecomputeScheduler, 重计算调度, recompute_scheduler_enable, recomputed, stop_reason recomputed, 退回 P 重算, D 节点抢占, update_state_before_preempt, RecomputeReqInfo]
-chapters: ["12"]
+summary: >-
+  PD分离的D节点续块失败时，优先尝试保存被抢占请求的状态，稍后恢复；旧版不能保存时发recomputed结束帧，由代理重投P做prefill。客户端结束、引擎收尾和状态保存是不同步骤；rc2细粒度TP还可能直接中止。GLM双机主线不拆PD，不启用此调度器。
+aliases:
+  - RecomputeScheduler
+  - AsyncRecomputeScheduler
+  - 重计算调度
+  - recompute_scheduler_enable
+  - recomputed
+  - stop_reason recomputed
+  - 退回 P 重算
+  - D 节点抢占
+  - update_state_before_preempt
+  - RecomputeReqInfo
+chapters:
+  - '12'
 order: 50
 sources:
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L680-L700
-  - vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L280-L345
-  - vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L869-L880
-  - vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L970-L1056
-  - vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L138-L169
-  - vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L436-L440
-  - vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L55-L93
-  - vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L98-L134
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L142-L161
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L702-L716
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L892-L900
-  - vllm-ascend@db701c1f:docs/source/user_guide/configuration/additional_config.md#L81
-  - vllm-ascend@db701c1f:docs/source/tutorials/features/long_sequence_context_parallel_multi_node.md#L312
-  - vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L295-L345
-  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L689-L725
-  - vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L128-L146
-  - vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L576-L612
-  - vllm-ascend@2ed6cbba:vllm_ascend/patch/recompute_proxy.py#L33-L105
-  - vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L144-L149
-  - vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L85-L166
-  - vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L352-L370
-  - vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L1024-L1036
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1014-L1044
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2154-L2186
-  - vllm-ascend@baa023ad:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1165-L1180
-  - vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L295-L345
-  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L682-L723
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1254-L1280
-  - vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L484-L500
-  - vllm-ascend@db701c1f:vllm_ascend/patch/__init__.py#L424-L440
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L1175-L1181
-  - vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L381-L384
-  - vllm-ascend@db701c1f:vllm_ascend/worker/pcp_utils.py#L304-L310
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L1255-L1302
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L129-L133
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L708-L710
-  - vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L689-L729
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_coordinator.py#L491-L505
-  - https://github.com/vllm-project/vllm-ascend/pull/10742
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L680-L700'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L280-L345'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L869-L880'
+  - >-
+    vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L970-L1056
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L138-L169'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L436-L440'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L55-L93'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L98-L134'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L142-L161'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L702-L716'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L892-L900'
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/configuration/additional_config.md#L81
+  - >-
+    vllm-ascend@db701c1f:docs/source/tutorials/features/long_sequence_context_parallel_multi_node.md#L312
+  - 'vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L295-L345'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L689-L725'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L128-L146'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L576-L612'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/patch/recompute_proxy.py#L33-L105'
+  - >-
+    vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L144-L149
+  - 'vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L85-L166'
+  - 'vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L352-L370'
+  - 'vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L1024-L1036'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1014-L1044'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2154-L2186'
+  - >-
+    vllm-ascend@baa023ad:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1165-L1180
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L295-L345'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L682-L723'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1254-L1280'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L484-L500'
+  - 'vllm-ascend@db701c1f:vllm_ascend/patch/__init__.py#L424-L440'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L1175-L1181'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L381-L384'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/pcp_utils.py#L304-L310'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L1255-L1302'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L129-L133'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L708-L710'
+  - 'vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L689-L729'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_coordinator.py#L491-L505
+  - 'https://github.com/vllm-project/vllm-ascend/pull/10742'
+  - >-
+    raw:sha256-57612b2ec822e3076037e0ac4337f65f295e6e8d1c99f1dc325c6add4171929b.md#L1-L1184
+  - 'vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L118-L155'
+  - 'vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L348-L370'
+  - 'vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L165-L178'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1109-L1151'
+  - 'vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L638-L662'
+  - 'vllm-ascend@7d825229:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1170-L1193'
+  - 'vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L322-L346'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L1175-L1197'
+  - 'vllm-ascend@7d825229:vllm_ascend/utils.py#L1304-L1361'
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L1250-L1307'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1164-L1227'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L822-L830'
+  - 'vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L1045-L1057'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1570-L1581'
+  - 'vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L610-L627'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1645-L1680'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1371-L1398'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L101-L126'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0rc2
+  - main
+evidence: C
 relations:
-  - { to: pd-disaggregation, kind: builds-on, note: P、D、代理和状态交接在那一页；本页只讲 D 上块不够时被让出的请求去哪 }
-  - { to: vllm-scheduler, kind: builds-on, note: 上游调度器怎样续块、抢占、本步禁新在那一页；本页只讲本调度器改了哪几处 }
-  - { to: vllm-kv-block-allocation, kind: builds-on, note: 「借不到块」怎么判定、抢占时块怎样还回池子 }
-  - { to: concurrent-requests, kind: builds-on, note: 主线满载时被抢占的一条还回多少块、本机重算几步，整批账在那一页 }
+  - to: pd-disaggregation
+    kind: builds-on
+    note: P、D、代理和状态交接在那一页；本页只讲 D 上块不够时被让出的请求去哪
+  - to: vllm-scheduler
+    kind: builds-on
+    note: 上游调度器怎样续块、抢占、本步禁新在那一页；本页只讲本调度器改了哪几处
+  - to: vllm-kv-block-allocation
+    kind: builds-on
+    note: 「借不到块」怎么判定、抢占时块怎样还回池子
+  - to: concurrent-requests
+    kind: builds-on
+    note: 主线满载时被抢占的一条还回多少块、本机重算几步，整批账在那一页
 contradicts: []
-updated: "2026-09-29"
-origin: direct
+updated: 2026-11-10T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-57612b2ec822e3076037e0ac4337f65f295e6e8d1c99f1dc325c6add4171929b.md
+  - >-
+    raw/sha256-8e4168544d26b0389243021ed8d239f503362b21667c412fd23f032438111bbf.md
 ---
 
 ## D 节点的块不够了，被让出的那条请求去哪？
 
-**RecomputeScheduler 是 vllm-ascend 给 PD 分离里 D 节点用的调度器。D 上 KV 块不够、必须从正在生成的请求里让出一条时，它先问负责搬 KV 的连接器能不能把这条的 KV 存走：能，就存走、稍后搬回来接着生成；不能，就把这条的块全部还掉、当场结束它，在结束回复里打一个 recomputed 标记，由最前面负责转发的代理把「原问题 + 已生成的内容」重新发给一对 P/D，重算落在 P 上。**
+**RecomputeScheduler让PD分离的D节点在块不足时选择保存状态或交回P重算。** P负责处理输入的prefill，D负责继续生成的decode。固定旧版在抢占时先问连接器能否接受保存；接受则排回队首等待恢复，否则还块并发送带recomputed标记的结束帧，由代理把“原问题 + 已生成内容”重投给P/D。
 
-[PD 分离](pd-disaggregation.md)把一条请求拆成两段：P 节点做 prefill，把整段提示词一次算完；D 节点做 decode，一个 token 一个 token 往下生成。KV 块是显存里一格格的存储，存每个位置算出的历史，见 [KV 块分配](vllm-kv-block-allocation.md)。连接器（KV connector）是 vLLM 里把 KV 搬进搬出的插件，代理（proxy）是 PD 部署最前面的转发服务。
+[PD 分离](pd-disaggregation.md)把一条请求拆成两段：P 节点做 prefill，提示词可以分多步处理；D 节点接过历史继续 decode，普通自回归逐个生成 token，投机解码还会处理候选。KV 块是显存里一格格的存储，保存历史状态，见 [KV 块分配](vllm-kv-block-allocation.md)。连接器（KV connector）是 vLLM 里把 KV 搬进搬出的插件，代理（proxy）是 PD 部署最前面的转发服务。
 
-场面是这样的：D 上同时在生成几十条回答，某条要借一块新块时池子空了，调度器只好从正在跑的请求（running 队列）里挑一条让出块，这叫抢占（preemption）。挑中的那条，问题 4 个 token，回答已经写出 2 个，它占的块要全部交出去。它接下来的去向：
+保存接口答应接单不等于字节已经搬完；客户端收到结束帧也不等于引擎完成全部收尾。旧GLM镜像的退回分支只还KV块并发帧，没有调用完整的请求结束流程，版本区别见文末。两条路线都要付代价：保存占主机内存和传输带宽，退回P增加排队、重算与交接。
+
+场面是这样的：D 上同时在生成几十条回答，某条要借一块新块时池子空了，调度器只好从正在跑的请求（running 队列）里挑一条让出块，这叫抢占（preemption）。挑中的那条，问题 4 个 token，回答已经写出 2 个，它占的块要全部交出去。下图按固定旧部署说明它的去向；rc2 的细粒度 TP 失败后直接中止例外见[版本差异](#版本差异)。
 
 ```wiki-diagram
 file: recompute-scheduler
@@ -73,17 +130,17 @@ file: recompute-scheduler
 
 被让出的请求有三种去向，图里都有：
 
-- **在 D 本机从头重算**（最下面淡色那格）：排回等待队列（waiting）队首，等有了块，把「问题 + 已生成的回答」整段重新 prefill。这是 vLLM 通用[调度器](vllm-scheduler.md)的做法，开了本调度器的 D 不走它。
+- **在D本机恢复计算**（最下面淡色那格）：通用[调度器](vllm-scheduler.md)清零进度、排回等待队首，再查可用缓存；没有可复用状态时，才重算“问题 + 已生成回答”。本页固定D退回路径把这份工作交给P。
 - **先存起来，等会儿搬回来**（③ 往左）：把它的 KV 搬到主机内存，重新排上时再搬回显存。这要另配一个能存 KV 的连接器，见 [Recompute CPU Offload](recompute-cpu-offload.md)。
-- **退回 P 节点**（③ 往右，接着走 ④–⑦）：当场结束这条请求，D 上什么都不重算；代理收到标记后，把问题连同已生成的回答重新发给一对 P/D，P 重做 prefill，再把 KV 交给一台 D 接着生成。
+- **退回P节点**（③往右，接着走④–⑦）：D发结束帧，不在本地重做这段prefill；代理收到标记后重投，P处理组合后的输入，再把状态交给D继续。该结束帧与旧引擎收尾缺口须分开看。
 
-本页的调度器在后两种里选：存得走就走第二种，存不走就走第三种。
+固定旧版在后两种里选：连接器接受保存就走第二种，否则走第三种。rc2的细粒度TP部署还可能直接中止请求。
 
 ## 为什么 D 节点不自己重算，退回 P 又要付什么？
 
-**D 每一步的 token 上限是照 decode 定的，很小；在 D 上重做一次整段 prefill，很容易把显存撑爆（OOM），性能也会大受影响。退回 P 把这份重算挪回 P，代价是整段重算加一次重新交接，已生成的越长越贵。**
+**D常按decode设置较小的每步token预算，重做长prefill可能挤占许多步；退回P让输入处理回到为prefill配置的节点。** 代价是重新排队、处理组合后的长输入，再交接状态。是否发生OOM还取决于模型、执行形状和内存配置，不能由预算小直接推断。
 
-不用本调度器时，D 上被抢占的请求清零已算位置、排回 waiting，回来时从头重算，抢占的几个步骤见 [Scheduler](vllm-scheduler.md)。PD 分离下，D 第一次为这条请求分好接收的块之后，就把「状态在 P 那边」这个标记关掉了，P 的块也早已放掉，所以这份重算只能在 D 上自己做，见 [PD 分离的抢占一节](pd-disaggregation.md#抢占失败和超时怎么处理)。
+通用调度器会清零已算位置并排回waiting，恢复时仍可能命中本地或外部缓存；没有可用副本才需重算，步骤见[Scheduler](vllm-scheduler.md)。首次PD交接完成后，不能假设P还为这条请求保留着原块或会自动重新prefill。再次交给P需要代理重投，见[PD分离的抢占处理](pd-disaggregation.md#抢占失败和超时怎么处理)。
 
 这套机制的设计说明把 D 不适合重算的理由写得很直接：D 的每步 token 上限通常设成「同时在跑的条数 ×（1 + 草稿数）」，刚好够每条 decode 请求走一步；在这样的 D 上重做 prefill，很容易 OOM，性能也会大受影响。上限有多紧，拿示意数算一下：
 
@@ -93,17 +150,17 @@ D 的每步 token 上限 = 16 条 × (1 + 3 个草稿) = 64
 其余 15 条 decode 先占 = 15 × (1 + 3) = 60
 留给重做 prefill 的 = 64 − 60 = 4
 重做 6,400 个位置要的步数 = 6,400 ÷ 4 = 1,600
-> 调度器每步先续正在跑的请求，剩下的才给排回来的这条；关掉 chunked prefill 时，整段放不进余量，它根本排不上
+> 假设这15条decode持续占60个位置，且无缓存命中；不是任意负载的实际耗时。关chunked prefill时，整段放不进余量就不能本步接纳
 ```
 
 退回 P 也不是免费的：
 
-- **P 要重算整段。** 原来 P 只算问题本身；退回之后要算「问题 + 已生成的回答」。已生成的越长，这一遍越贵。
-- **要再交接一次。** P 算完，要把这整段的 KV 再交给一台 D；第一次交接传过去的那份白传了。
+- **P处理的输入变长。** 原来只有问题，退回后包含已生成回答；没有可复用前缀时需重算全段，有命中时可省去相应部分。
+- **要再次交接。** P处理后重新向D交付所需状态；已有兼容缓存可减少具体传输量，不能把第一次交接说成从未有用。
 - **中间有停顿。** 这条请求要重新排进 P 的队列，再排进 D 的队列；客户端看到的是输出停一会儿再接着出。
 - **没有退回次数上限。** 示例代理不限重试次数，一条运气差的请求可以被一次又一次退回。退回得越频繁，吞吐越低，尾部延迟越长。
 
-所以长问题多、主机内存又够的 D，应当同时配上能存 KV 的连接器，让大部分被让出的请求走「先存起来」那条路；两条路怎么比，见 [Recompute CPU Offload 的成本一节](recompute-cpu-offload.md#搬运与重算之间的成本)。
+长输入多、主机内存足够时，可以评估保存路线；是否能让多数抢占通过保存恢复，还取决于模型支持、主机容量、传输速度与请求分布。比较方法见[Recompute CPU Offload的成本](recompute-cpu-offload.md#搬运与重算之间的成本)。
 
 ## 一次「退回 P」怎样走完？
 
@@ -111,10 +168,10 @@ D 的每步 token 上限 = 16 条 × (1 + 3 个草稿) = 64
 
 还用上一节那条请求：问题 4 个 token，记作 p₀ p₁ p₂ p₃；回答已经送出 y₀ y₁ 两个 token；用户要求最多生成 10 个 token，走流式输出，每出一个 token 就往回推一帧。
 
-1. **D 还块、结束。** 调度器发现这条的 KV 存不走，把它的块全部还回池子，记进一张「要退回」的名单。这一步收尾时，给它发一帧结束回复：结束原因写「停止」，没有新 token，只多一个 recomputed 标记。
+1. **D还块、发结束帧。** 调度器发现连接器不接受保存，还掉KV块并记入退回名单。本步收尾发出STOP、无新token、带recomputed的回复；固定旧镜像此时没有完整结束引擎请求。
 2. **代理续上问题。** 代理一直在累积这条请求已经收到的文字。认出标记后，它把问题改成「原问题 + 已收到的文字」，也就是 p₀ p₁ p₂ p₃ y₀ y₁ 对应的那段文字，生成上限改成还剩多少。
 3. **重新挑一对 P/D。** 改好的请求像一条新请求一样再走一遍 PD 流程：P 做 prefill，把 KV 交给 D，D 接着往下生成 y₂、y₃……
-4. **客户端接着收。** 通过代理的客户端看到的是同一条流继续往下出，中间停顿了一下。
+4. **客户端接着收。** 示例代理在重投成功时保持同一个外部流继续输出，中间有停顿；这不保证重投前后的分词、生成轨迹或计数完全等同于不中断运行。
 
 生成上限怎么扣，代码里多了一个加项：
 
@@ -140,22 +197,30 @@ title: 退回一次后，新的生成上限
 
 **岔路口。** 在上游抢占的同一个位置，本调度器先看自己是不是 D：配了 KV 传输、角色又不是 P。是的话：
 
-1. 从 running 队尾取一条。v0.23、v0.26 和 GLM 快照在这里写死取队尾，不看调度策略；main 改成先按上游策略挑。
+1. 从 running 队尾取一条。v0.23、v0.26 和 GLM 快照在这里写死取队尾，不看调度策略；rc2和main改成先按上游策略挑。
 2. 问连接器：这条能不能存走？把它的块号和已算位置数一起交过去。
 3. 连接器说能：记一条「被抢占、块号、已算位置」交给连接器去存，再照上游流程抢占，还块、清零、排回队首。怎么存、什么时候搬回，由连接器负责，见 [Recompute CPU Offload](recompute-cpu-offload.md)。
 4. 连接器说不能，或者根本没有这个接口：还掉它的全部块，把请求编号、已生成的 token 和它属于哪个前端记进退回名单；这一步收尾时，按名单逐条发出 recomputed 结束帧。
 
+这四步按固定旧部署展开。放回[一条请求的七站](one-request.md)，分支发生在第2站；退回名单要到第6站更新结果时才变成输出，最后由代理决定是否发起新请求。它不表示被退回的请求在这一轮又做了一次前向。
+
+```wiki-diagram
+file: recompute-scheduler-flow
+```
+
 **本步禁新。** 上游规定这一步只要抢占过，就不再从 waiting 接新请求；本调度器把「退回过」也算进来。刚腾出来的块不会马上被新请求占走，先留给 running 里的请求。
 
-**投机解码的形状补齐。** [投机解码](speculative-decoding.md)每步除了 1 个确定的 token，还带几个草稿 token 一起验证。D 想用预先录好的整图（full graph）跑 decode，就要每条请求每步的位置数固定为 1 + 草稿数。刚从 P 交接过来的请求第一步还没有草稿，形状对不上，就会掉回逐个算子执行的慢路径。v0.23 和 GLM 快照在请求进来时先塞满占位草稿，条件是请求长度加草稿数不超过模型允许的最大长度；v0.26 和 main 改成在排这一步时直接补成 1 + 草稿数。
+**投机解码的形状补齐。** [投机解码](speculative-decoding.md)每步除了1个确定的token，还带几个草稿token一起验证。D用预先录好的整图（full graph）跑统一宽度的decode时，需要匹配1+草稿数的形状。刚从P交接过来的请求还没有草稿，形状不匹配会影响该整图路径，具体回退方式由运行模式决定。v0.23和GLM快照在请求进来时先塞占位草稿，要求请求长度加草稿数不超过模型上限。
+
+v0.26改在调度时补齐：有静态草稿、需要采样、仅差1个位置且本步尚未排prefill时，尝试补成1+草稿数；补后超过长度或预算就暂不接纳。rc2/main还为采样位置留空间：长度不够时保留原来的1个位置继续往下排；长度够、但补齐后超过本请求预算，才停止本次接纳。开着投机解码也不表示所有请求都必然补齐。
 
 **远端 KV 收完后夹一下。** 请求的 KV 从 P 或主机内存收完后，要把「已算位置数」更新成收到的数。收回的位置数有可能超过请求的实际长度，本调度器直接取两者中较小的那个，再照上游规则处理：收满了就退回 1 格，留最后一个位置这一步重算，好采样出下一个 token，交接点停在哪见 [PD 分离](pd-disaggregation.md#交接点停在哪个位置)。v0.23 和 GLM 快照上，被抢占过、从主机内存搬回来的请求，这时再补一次占位草稿；v0.26 只留夹值、不补占位；main 不再塞占位草稿，这处改写整个去掉了。
 
 **混合模型的前缀命中按组算。** v0.23、GLM 快照和 v0.26 上，D 遇到带 Mamba 类层的混合模型（GLM 的 KDA 层属于这类），而且块管理器开着前缀缓存时，本地前缀命中改成按缓存组各算各的。上游的做法是各组命中长度取最小值：D 上 Mamba 类组本地没有可复用的状态，命中是 0，一取最小值，full attention 组已经缓存在 D 上的块也被算成没命中，只好再从 P 传一遍。按组算以后，这部分块不用重传。main 上没有这处改写。
 
-**开关还牵动 worker 端两处行为（四个钉点都有）。** 一是 KV 收完、已算位置停在「提示词长度 − 1」的那一步，worker 整理 attention 输入时按 decode 归类，不当成 prefill。二是 MoE 模型在只收 KV 的节点上，decode 要走 [MC2](expert-parallel.md#mc2-还是-allgather) 时，开了本调度器就跳过 DP 组之间对齐 token 数的那次 all-reduce（对齐是什么见[并发页](concurrent-requests.md#再补到两组的最大值)），各组按自己的 token 数跑，MC2 改按全局上限配置。
+**固定旧镜像的开关还牵动worker两处行为。** 收到KV、已算位置停在“提示词长度−1”时，若已有历史且本步查询量在decode阈值内，可按decode整理attention输入。另一处涉及MoE的[MC2通信](expert-parallel.md#mc2-还是-allgather)：仅收KV的节点、decode选MC2或融合MC2且未启用分层通信时，本开关可让它跳过DP组之间对齐token数的all-reduce，各组按自己的数运行，MC2按全局上限配置，见[并发页](concurrent-requests.md#再补到两组的最大值)。较新版还有MegaMoe等额外排除条件，不能只凭开关为真认定省掉通信。
 
-**只有 D 节点能开。** 在 P 上开会被就地关掉，在不拆 P/D 的部署上开会报错起不来，开了[异步调度](async-scheduling.md)就用它的异步版本；[细粒度 TP](fine-grained-tp.md) 的 attention 输出投影、词表嵌入两项反过来要求必须开它。具体检查和报错见文末「会报什么错」。
+**只有D节点能开。** 在P上开会被就地关掉，在不拆P/D的部署上开会报错，开了[异步调度](async-scheduling.md)就用它的异步版本。[细粒度TP](fine-grained-tp.md)把特定模块另分并行组：旧GLM镜像的attention输出投影、词表嵌入配置值大于0时反过来要求开它；rc2检查的对象改为attention输出投影与MLP投影，仍是大于0要求开关，实际并行尺寸大于1时再要求保存连接器。具体检查和报错见文末。
 
 ## 放到 GLM 双机：主线不启用它
 
@@ -167,17 +232,17 @@ title: 退回一次后，新的生成上限
 
 如果把这两台机器拆成一 P 一 D，[PD 分离页](pd-disaggregation.md#把这两台机器拆成一-p-一-d)按同一组显存假设算过：每个实例只剩 8 张卡，D 每卡的块数不到主线的一半，池子更小，抢占会来得更早。这时在 D 上开本调度器：
 
-- 被让出的那条照样一次还掉全部块，KDA 状态也一起还；区别是 D 不再做那几步 prefill，而是结束请求、交给代理，由 P 重算「问题 + 已生成」整段，再交接一次。
+- 被抢占的那条仍要让出全部设备块，包括 KDA 状态占用的块；区别在于能否另存一份历史。连接器接受保存时，调度器记录要保存的块和进度，再按抢占流程清零已算进度、排回 D 的等待队首，保存和搬回由连接器负责。连接器没有提供保存接口或回答不能保存时，才记录退回请求，向客户端发出带 recomputed 标记的结束回复，由代理交给 P 处理「问题 + 已生成」的输入，再交接一次；没有可复用缓存才重算全段。这里的客户端结束不等于所有版本都已在引擎请求表中正式收尾，区别见页末版本表。
 - GLM 用 MTP 给投机解码出草稿，D 上的占位草稿、收完 KV 那一步按 decode 归类，这两处都对它生效。
 - 跳过 DP 组间 all-reduce 那一条不触发：按 PD 分离页的结论，拆开后每个实例只有 EP8，MoE 用不上 MC2。
-- 拆开以后抢占在多长时触发、P 重算要几步、重新交接传多少字节，底稿没有这套部署形状的数。待核：1P1D 的块池大小与交接字节。
+- 拆开后的抢占长度、P重算步数与交接字节，要重新按P、D各自的块池和状态布局计算，不能直接套双机合用的容量账。
 
 ## 常见误解
 
-- **「它自己会在 D 上重算 prefill」**——不会。它在 D 上一个位置都不重算，只负责还块、结束请求、打标记；重算发生在 P 上，前提是前面挂着认这个标记的代理。名字里的「重算」说的是 P 要做的事。
+- **「它自己会在 D 上重算 prefill」**——本页的退回路径把整段 prefill 交给 P，前提是代理能识别 recomputed 标记。能另存历史的请求则排回 D 等待搬回，随后接着生成；不能把所有抢占都理解为退回 P，也不能把恢复已保存的历史说成在 D 上重算整段提示词。
 - **「开了它，被抢占的请求就不会丢 KV」**——反了。只开它、不配能存 KV 的连接器时，被让出的请求 KV 全部还掉；想不丢，要另配 [Recompute CPU Offload](recompute-cpu-offload.md)，连接器回答「能存」，才会走排回队首那条路。
 - **「在 P 上也写上它，会报错拦住」**——官方参数文档说在 P 上或混部时开它会启动失败；代码里 P 上只打一条警告、就地关掉，只有混部和没配 PD 才真的报错。文档和代码不一致，以代码为准。
-- **「退回后的输出和不中断时逐 token 一样」**——除 v0.26 分支外，示例代理拼的是文字，重投时要重新切 token，续写不保证逐 token 一致；带 tool calling / function call 的请求按文字重拼后用不了这些调用。
+- **「退回后的输出和不中断时逐token一样。」** 旧版及rc2/main示例按文字重拼，需要重新分词；v0.26虽按token历史续接，也不保证随机采样、执行顺序和所有结构化请求状态完全不变。工具调用要单独核对代理如何保存结构，不能只靠recomputed标记判断支持。
 - **「KV 传输失败时的『重算』策略就是它」**——不是一回事。KV 从 P 读失败时，vLLM 可以选「失败」或「重算」，后者是在 D 上补算没读成的位置，见 [PD 分离的失败处理](pd-disaggregation.md#抢占失败和超时怎么处理)；本页是块不够时把整条请求退回 P。昇腾上 GLM 这类混合模型还不许选那种「重算」策略，启动时断言拦下。
 
 ## 对照源码
@@ -189,11 +254,11 @@ title: 退回一次后，新的生成上限
 --kv-transfer-config '{"kv_connector":"MooncakeConnectorV1","kv_role":"kv_consumer", ...}'
 # v0.23 / GLM 快照：顶层键
 --additional-config '{"recompute_scheduler_enable": true}'
-# v0.26 / main：推荐写进 scheduler_config（顶层写法仍认，已标弃用）
+# v0.26 / rc2 / main：写进 scheduler_config（顶层写法仍认，已标弃用）
 --additional-config '{"scheduler_config": {"recompute_scheduler_enable": true}}'
 ```
 
-- 开关 `recompute_scheduler_enable` 默认 `false`；四个钉点上 `vllm_ascend/core/recompute_scheduler.py` 都在。GLM 快照在 `ascend_config.py` 读顶层键。官方教程（`long_sequence_context_parallel_multi_node.md` L312）对它的说明是：D 上 KV cache 不够时，请求送回 P 重算。引入存走路径的 PR #10742（commit 6329838c9，v0.23、v0.26、main 的历史里都有；db701c1f 是 orphan，内容相同）写明了 D 不宜自己重算的理由：D 的 `max_num_batched_tokens` 通常设成 `max_num_seqs × (1 + num_spec_tokens)`，在 D 上重做 prefill 很可能 OOM、性能大受影响；原来的退回做法重组 prompt 时用不了 tool calling / function call，也会带来精度问题 [C40]。
+- 开关 `recompute_scheduler_enable` 默认 `false`；四个钉点上 `vllm_ascend/core/recompute_scheduler.py` 都在。GLM 快照在 `ascend_config.py` 读顶层键。官方教程（`long_sequence_context_parallel_multi_node.md` L312）对它的说明是：D 上 KV cache 不够时，请求送回 P 重算。引入存走路径的 PR #10742（合并提交 6329838c9）由作者说明设计动机：D 的 `max_num_batched_tokens` 通常设成 `max_num_seqs × (1 + num_spec_tokens)`，在 D 上重做 prefill 很可能 OOM、性能大受影响；原来的退回做法重组 prompt 时用不了 tool calling / function call，也会带来精度问题 [S40]。这是 PR 作者对当时实现的说明，具体请求格式和现场版本仍要对照实际调用路径，不能据此断言所有工具调用都不可用。
 - 平台门 [C1]：只有 `kv_role == "kv_consumer"` 才把 `vllm_config.scheduler_config` 整个换成 `RecomputeSchedulerConfig`，由它按 `async_scheduling` 在 `RecomputeScheduler` / `AsyncRecomputeScheduler` 之间挑；P 上和不拆 PD 时怎样处理，以及细粒度 TP 的反向依赖，见下一节。
 - 岔路口 [C2]：`schedule()` 里 `allocate_slots` 返回 `None` 的 `while True`，条件是 `kv_transfer_config` 存在且 `not is_kv_producer`。钩子 `update_state_before_preempt(req, block_ids, num_computed_tokens)` 返回真 → 记 `PreemptedRequestData`，再走上游 `_preempt_request` [C24]；返回假或连接器没有这个钩子 → `kv_cache_manager.free()`，记 `RecomputeReqInfo(request_id, output_token_ids, client_index)`。
 - 为什么要整段复制上游的 `schedule()`：main 上 `RecomputeScheduler` 的类注释写明，保留本地副本只是为了给第一条 decode 请求补齐投机解码形状、让昇腾整图对得上；抢占的 KV 能卸就卸，卸不掉才送回 P 重做 prefill。
@@ -205,34 +270,45 @@ title: 退回一次后，新的生成上限
 
 ### 会报什么错
 
-- **启动报错**：没有 `kv_transfer_config`，或 `kv_role` 不是 `kv_consumer` → `ValueError: recompute_scheduler_enable can only be enabled on PD-disaggregated D nodes ...`。
-- **不报错、就地关掉**：P 节点上只打 warning「recompute_scheduler_enable is ignored on PD-disaggregated P nodes」。官方参数表写的是启动失败 [C12]，与代码不一致 [!]。
-- **启动断言**：`finegrained_tp_config` 的 `oproj_tensor_parallel_size` 或 `embedding_tensor_parallel_size` 大于 0 而没开本调度器 → `AssertionError`，信息说跨 DP 的 HCCL 集合通信需要各 DP rank 的 `num_tokens` 一致 [C9]。
+- **启动报错**：没有kv_transfer_config，或角色既非kv_producer也非kv_consumer，报`ValueError: recompute_scheduler_enable can only be enabled on PD-disaggregated D nodes ...`。producer先走下一条警告关闭分支，不落入这条报错。
+- **不报错、就地关掉**：P 节点上只打 warning「recompute_scheduler_enable is ignored on PD-disaggregated P nodes」。官方参数表写的是启动失败 [S12]，与代码不一致 [!]。
+- **旧GLM镜像的启动断言**：`finegrained_tp_config` 的 `oproj_tensor_parallel_size` 或 `embedding_tensor_parallel_size` 大于0而没开本调度器，触发AssertionError；信息说跨DP的HCCL集合通信需要各DP rank的num_tokens一致[C9]。rc2把依赖对象改为oproj/mlp，大于0要求本开关，大于1另有下述连接器要求。
 - **运行时只有日志**：退回 P 的那一路先打一条 info「Recompute preemption falls back without offload for request %s, computed_tokens=%d.」，收尾发帧时再打一条 warning「[RecomputeScheduler] Recompute triggered for request %s.」；存走的那一路打 info「Recompute preemption offload enabled ...」。客户端收到的是正常结束，没有错误码。
 - **名字相近、与本页无关**：混合模型把 `kv_load_failure_policy` 设成 `recompute` → `AssertionError: Hybrid models do not support recompute mode kv load failure policy now.` [C11]。
+- **rc2细粒度TP还有连接器要求**：oproj或mlp实际并行尺寸大于1时，启动配置还必须包含PreemptOffloadConnector；没有时断言失败。运行时保存失败则直接abort，不发recomputed供代理退P，不能用普通退回路径兜底（来源42、45、53）。
 
 ### 开销和什么时候别开
 
-- 代价：P 重新 prefill「问题 + 已生成」全长，外加一次完整的跨节点 KV 交接；已生成越长越贵 [D]。长问题多、主机内存够的 D，同时配 [Recompute CPU Offload](recompute-cpu-offload.md)，让大部分被让出的请求走存走那一路。
+- 代价：无可复用缓存时P重算“问题 + 已生成”全长，再交接所需状态；实际重算和传输量要扣可用命中。保存路线的模型支持、容量和速度见[Recompute CPU Offload](recompute-cpu-offload.md)，不由主机内存够用单独保证。
 - 必须挂一个认 `stop_reason="recomputed"` 的代理，官方示例是 `examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py`。直连 D 的调用方会把这一帧当成正常结束：输出截断，`finish_reason` 却是 `stop` [D]。
-- 聊天请求接在 `messages[0]` 后面；多轮或带 system 消息的请求接错位置 [D]。v0.26 分支改成按 token 编号续接 [C18]，其余钉点都是字符串拼接。
+- 旧示例聊天请求接在 `messages[0]` 后面，多轮或system场景会改错续接位置（来源4）。v0.26按token编号续接并检查历史（来源18）；rc2/main仍按文本拼接，列表content追加文本片段（来源26、47）。保存token历史也不是全部请求语义、采样结果一致性的保证。
 - 同时开别的调度器变体会让它悄悄失效 [C10]：GLM 快照的平台先按本开关换好 `scheduler_config`，紧接着 `SLO_limits_for_dynamic_batch != -1` 或 `profiling_chunk_config.enabled` 会直接改写 `scheduler_cls`，两者之间没有互斥校验，也没有 warning。v0.26 上 `profiling_chunk_config`、`batch_job_sched_config` 同样排在后面改写；main 上这两项在 `_setup_worker_and_scheduler` 里改写，DyntraLB 是例外，会和本调度器组合成专门的类 [C29]。
 - 不拆 P/D 的部署（包括 GLM 双机主线）不要开：启动直接 `ValueError`。
 
 ### 版本差异
 
-| 项 | v0.23 维护分支 2c59ff10 | GLM 快照 db701c1f | v0.26 分支 2ed6cbba | main baa023ad | 意味着什么 |
-|---|---|---|---|---|---|
-| 存不走之后怎么收尾 | 只调 `kv_cache_manager.free()`，不走结束流程，请求仍留在调度器的请求表里 [C14] | 同 v0.23 | `_finish_recomputed_request()` → `finish_requests(FINISHED_ABORTED)` [C16] | 同 v0.26 | 前两列上这条请求在引擎侧没有被正式结束，只有客户端那边结束了 [!] |
-| 钩子抛异常 | 没有 try/except | 同 v0.23 | 同 v0.23 | try/except 兜住，warning 后退回 P [C20] | 连接器出错时，前三列会让这一步直接抛异常 |
-| 让出哪一条 | D 分支写死 `self.running.pop()` | 同 v0.23 | 同 v0.23 | 先按上游策略挑（`PRIORITY` 下取 `max(priority, arrival_time)`），再决定存走还是退回 [C21] | 开了优先级调度的 D，前三列让出的不一定是最该让的那条 [I] |
-| 开关键写在哪 | 只认顶层 | 只认顶层 | 顶层与 `scheduler_config` 嵌套都认，嵌套优先，顶层标弃用 [C19] | 同 v0.26 | 嵌套写法抄到前两列上读不到，开关仍是 `false` |
-| P 上关掉后写回配置 | 写回 `additional_config` [C15] | 不写回 | 写回 | 写回 | GLM 快照上 worker 进程重建配置时读到的仍是 `true` [I]，影响未核 |
-| 投机解码形状补齐 | `add_request` 塞 `PLACEHOLDER_TOKEN_ID` | 同 v0.23 | `schedule()` 里 `pad_spec_decode` 补成 `1 + num_spec_tokens` [C17] | 同 v0.26 | 实现换了、目的没换：让 D 上 decode 步形状固定，整图才对得上 |
-| 远端 KV 收完后的改写 | 夹值，被抢占过的请求补占位 | 同 v0.23 | 只夹值，不补占位 | 不改写，用上游原样 | main 上这处改写和占位草稿一起去掉了 |
-| 混合模型前缀命中按组算 | 有 | 有 | 有 | 没有 | 只在 D 端、带 Mamba 类层、开着前缀缓存时才生效 |
-| 代理怎么续接 | 字符串拼到 `prompt` / `messages[0]["content"]` | 同 v0.23 | `prompt_token_ids + output_token_ids` 按 token 编号续接，历史对不上就报错 | 字符串拼接，`content` 为列表时追加一段文本 | 只有 v0.26 分支保证续接前后 token 历史一致 |
-| 装出来几个类 | 2 个 | 2 个 | 2 个 | 4 个，和 [DyntraLB](dyntra-lb.md) 交叉，由 `_get_recompute_scheduler_cls` 挑 [C22] | main 上 DyntraLB 可和本调度器同开；前三列没有 DyntraLB |
+本文“存不走就回 P”的流程图与首屏例子按固定旧部署绘制；rc2 下述细粒度 TP 的直接 abort 分支不在旧图范围内。
+
+**v0.30.0rc2 的卸载失败不再一律回 P 重算。** 当 finegrained_tp_config 中 oproj 或 mlp 的并行尺寸实际大于 1 时，KV offload 失败会直接置 FINISHED_ABORTED；尺寸为 1、没有真实分片时才保留原来的回 P 降级。分配失败后还会先检查 connector 的 pending frees 及候选块能否立即释放，拿不到即时可用块就停止本轮抢占，避免反复触发无收益的卸载/重算。
+
+| 项 | v0.23 / Ascend 2c59ff10 | v0.26 / 2ed6cbba | rc2 / 7d825229 | main / baa023ad |
+|---|---|---|---|---|
+| 不能保存的收尾 | 只free KV并发客户端帧，未正式结束引擎请求 | 先正式finish，再发recomputed帧 | 普通退回同左；细粒度TP大于1直接abort | 正式finish并发recomputed帧 |
+| 保存钩子抛异常 | 不捕获，异常可中断本步 | 同左 | 捕获后按上述失败分支处理 | 捕获、警告并退回P |
+| 选抢占请求 | D分支写死取running队尾 | 同左 | 按策略选择；pending frees或候选不能立即还块时停止本轮抢占 | 按策略选择；没有rc2这两项前置检查 |
+| 开关默认及位置 | false，只读顶层 | false，嵌套优先，顶层兼容但弃用 | 同v0.26 | 同v0.26 |
+| 在P误开 | 警告并关闭，写回additional_config | 关闭并写回嵌套配置 | 同左 | 同左 |
+| 首个decode补形状 | add_request塞占位草稿，受长度限制 | 满足静态草稿/采样/仅差1位/无prefill时补；预算或长度不足不接纳 | 同类条件；长度须容纳采样位，不足时保留1位继续；长度够而预算不足才停止接纳 | 同rc2 |
+| 接收KV后的本地重写 | 夹值，抢占过且无草稿时补占位 | 只夹值 | 无此重写，用上游 | 同rc2 |
+| 混合组本地命中特例 | 有 | 有 | 无旧特例 | 无旧特例 |
+| 示例代理续接 | 字符串拼prompt或首条message | token历史拼接并检查一致 | 文本拼接，列表content追加文本 | 同rc2 |
+| 同步/异步与DyntraLB | 2类 | 2类 | 4类，可与DyntraLB组合 | 同rc2 |
+
+固定GLM镜像db701c1f的上述主要行为沿用旧版，但在P上关闭开关后**没有写回additional_config**，worker重新构建配置仍可能读到true；实际后果缺运行证据。它的模型代码和部署不能归入v0.23发布分支。旧版两个概念也应分开：发出客户端结束帧是已实现的行为，完整引擎收尾则是该快照没有调用的步骤（来源1–3、14–16）。
+
+rc2/main在PRIORITY策略下用max(priority, arrival_time)选择被抢占请求，其他策略取队尾；旧D分支始终取队尾，因此不遵循所设PRIORITY顺序（来源43、48）。与[DyntraLB](dyntra-lb.md)组合时使用专门的同步或异步类，不能把它当作后续直接覆盖scheduler_cls的配置。
+
+新版四类选择与P配置回写见45、54–55、57；补形状条件见17、46、56；rc2文本续接见47，v0.26接收后的夹值见59。嵌套优先由配置解析决定，不是同时给两个开关叠加效果。实际scheduler_cls还可能被profiling或batch-job配置覆盖，rc2也有这一顺序（来源58）；启用后应检查最终调度类、保存/退回日志及客户端标记。
 
 ### 源码位置
 
@@ -251,3 +327,9 @@ title: 退回一次后，新的生成上限
 | 混合模型按组算前缀命中 | `recompute_scheduler.py` L484–L500；为什么这样改见 `vllm_ascend/patch/__init__.py` L424–L440；前缀缓存关着时用的是不带前缀缓存的块管理器：`vllm/v1/core/kv_cache_coordinator.py` L689–L729、昇腾 `patch/platform/patch_kv_cache_coordinator.py` L491–L505 |
 | 收完 KV 那一步按 decode 归类 | `vllm_ascend/utils.py` 的 `is_pd_decode_recompute_scheduler_enabled`（L1175–L1181）；用处在 `attention/utils.py` L381–L384、`worker/pcp_utils.py` L304–L310 |
 | 跳过 DP 组间 all-reduce | `vllm_ascend/utils.py` 的 `should_skip_allreduce_across_dp_group`（L1255–L1302）；用处在 `ops/fused_moe/token_dispatcher.py` L129–L133、`worker/model_runner_v1.py` L708–L710 |
+
+固定 db701c1f 在已配置 KV 传输且不是 P 的抢占分支中，若 `update_state_before_preempt` 返回真，就记录 `PreemptedRequestData` 后调用上游抢占；接口缺失或返回假时则调用 `free` 并记入重算名单（来源 2）。上游还块、清零进度并排回等待队首（来源 24）。返回真只表示选择保存路径，不是设备拷贝已完成，也不保证连接器支持 GLM 的全部状态类型。
+
+固定 db701c1f 返回的客户端帧是 STOP、空新 token，并带有 stop_reason="recomputed"；代理据此重投（来源 3、4）。该分支没有正式结束引擎请求的调用，也没有捕获保存接口异常；v0.26 与旧 main 增加了正式结束流程，旧 main 还捕获接口异常并退回 P（来源 16、20）。这些版本的端到端恢复行为与耗时仍须在对应部署上验证。
+
+待核：GLM改成1P1D后的块池大小、实际交接字节，以及对应连接器对全部状态的保存与恢复。本站没有这套改造的NPU运行证据。

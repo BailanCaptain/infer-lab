@@ -1,0 +1,168 @@
+{
+  "scope": "specific old structured-output tokenizer questions at fixed XGrammar 0.2.0 plus four upstream stop forwarding paths",
+  "count": 18,
+  "entries": [
+    {
+      "n": 1,
+      "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/python/xgrammar/tokenizer_info.py#L220-L274",
+      "claim": "HF fast分支构造模型vocab_size长空字符串表，填有定义的词；未显式stop_token_ids时仅使用tokenizer.eos_token_id，不读generation_config。",
+      "read_scope": "actual source L220–274 directly read; not native execution",
+      "source_sha256": "db838e26880b1a7988c884f2a5efe395c97ee73eee58d90bed2d2c59966ada10",
+      "excerpt_sha256": "262531f240835fbe08525fa68dfe59c4fb447a9e8af77f0aea21c108f95c26a4",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\xgrammar-tokenizer\\python\\xgrammar\\tokenizer_info.py"
+    },
+    {
+      "n": 2,
+      "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/tokenizer_info.cc#L264-L303",
+      "claim": "构造器把空字符串识别special；显式stop优先，其他非空词进普通排序表；尾部padding归special。",
+      "read_scope": "actual source L264–303 directly read; not native execution",
+      "source_sha256": "d87118120b7c34e1148c629ba5c035d021ddc4d0247a28c071100d8a51f55531",
+      "excerpt_sha256": "73c12cb6662f86e044ea394711a431447317a55ed86851cd9d757d8cd3be69cd",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\xgrammar-tokenizer\\cpp\\tokenizer_info.cc"
+    },
+    {
+      "n": 3,
+      "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/tokenizer_info_impl.h#L73-L105",
+      "claim": "special/stop内部类别不等于HF added_tokens.special；缺stop列表才按预定义词串自动检测。",
+      "read_scope": "actual source L73–105 directly read; not native execution",
+      "source_sha256": "5d726bf098589b6ec6216c6eec29bbb403b88d1b7681bd875279027d9bb6f838",
+      "excerpt_sha256": "b1a01e158c71d803b9529d341c82bd129fff0e70f397cc99e444d106bf988ea2",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\xgrammar-tokenizer\\cpp\\tokenizer_info_impl.h"
+    },
+    {
+      "n": 4,
+      "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/grammar_matcher.cc#L446-L464",
+      "claim": "matcher缺override使用TokenizerInfo停止列表；不是自动拿vLLM所有停止编号。",
+      "read_scope": "actual source L446–464 directly read; not native execution",
+      "source_sha256": "3bc513c22d9dd22e12c7da8130fa510ca7955f278b473598ba7ecd666178c621",
+      "excerpt_sha256": "22fe7d57f9344d3bbf54acf592443a42637aa25c9654a0c4f25f7f55f5cae9c4",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\xgrammar-tokenizer\\cpp\\grammar_matcher.cc"
+    },
+    {
+      "n": 5,
+      "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/grammar_matcher.cc#L609-L681",
+      "claim": "接受token时先查stop，再拒special，其他token走实际字节匹配；非空角色标记不因HF special字段一概拒绝。",
+      "read_scope": "actual source L609–681 directly read; not native execution",
+      "source_sha256": "3bc513c22d9dd22e12c7da8130fa510ca7955f278b473598ba7ecd666178c621",
+      "excerpt_sha256": "187fc3b9771f278d7beeab717b1cb0480e32f037d00d6a10c3aa8c3a7fe1f933",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\xgrammar-tokenizer\\cpp\\grammar_matcher.cc"
+    },
+    {
+      "n": 6,
+      "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/grammar_matcher.cc#L809-L961",
+      "claim": "实际填表按文法状态接受词元字节，调用SetTokenBitmask(...,false)禁用special放行。",
+      "read_scope": "actual source L809–961 directly read; not native execution",
+      "source_sha256": "3bc513c22d9dd22e12c7da8130fa510ca7955f278b473598ba7ecd666178c621",
+      "excerpt_sha256": "9285ac8cf0a86aa904d2618905e0bffe09cde55fb1a935e29594e3186b67bf47",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\xgrammar-tokenizer\\cpp\\grammar_matcher.cc"
+    },
+    {
+      "n": 7,
+      "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/grammar_matcher.cc#L1035-L1090",
+      "claim": "special位在正常掩码拒绝；stop位只有文法可结束时放行。",
+      "read_scope": "actual source L1035–1090 directly read; not native execution",
+      "source_sha256": "3bc513c22d9dd22e12c7da8130fa510ca7955f278b473598ba7ecd666178c621",
+      "excerpt_sha256": "783c16476528899e29327ebcbd1ca265cdc820d0a55fefa581f862e8eaed330a",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\xgrammar-tokenizer\\cpp\\grammar_matcher.cc"
+    },
+    {
+      "n": 8,
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/structured_output/backend_xgrammar.py#L58-L125",
+      "claim": "旧GLM基线HF构造不传停止列表，matcher也不override。可复用当前来源7。",
+      "read_scope": "selected actual source read",
+      "source_sha256": "e78109e76ea84a4464f5206e5ee4f26679367394ce6f31ef5304ce87fa785f21",
+      "excerpt_sha256": "2894a93592e6ef08c680b5c21e7f856aa8080bcf410fba3daf0c780d6ad4447b",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\structured-followthrough\\baseline\\vllm\\v1\\structured_output\\backend_xgrammar.py"
+    },
+    {
+      "n": 9,
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/v1/structured_output/backend_xgrammar.py#L119-L127",
+      "claim": "v026 matcher同样不override停止列表。",
+      "read_scope": "selected actual source read",
+      "source_sha256": "231f6b9d7dab5e8d68aba486fa5912db99f8bdd3f9d8842ee3e0bb12bdb7cb67",
+      "excerpt_sha256": "2e9829adfcbfeef044485d2174edb6c4fc1ce4c684952247a40adacc975126bd",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\structured-followthrough\\v026\\vllm\\v1\\structured_output\\backend_xgrammar.py"
+    },
+    {
+      "n": 10,
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/v1/structured_output/__init__.py#L178-L200",
+      "claim": "rc2把request.sampling_params.all_stop_token_ids送编译。",
+      "read_scope": "selected actual source read",
+      "source_sha256": "e33ed1786e5e60a2ef01313f52a67ba4b368477520ae43d453e8e960ac395b48",
+      "excerpt_sha256": "81f33f6209922e1f7ee4b71238a069567c38c94dee5a73b8872a1b394b1de8f9",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\structured-followthrough\\rc2\\vllm\\v1\\structured_output\\__init__.py"
+    },
+    {
+      "n": 11,
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/v1/structured_output/backend_xgrammar.py#L79-L130",
+      "claim": "rc2 xgrammar matcher用非空停止集合override。",
+      "read_scope": "selected actual source read",
+      "source_sha256": "a6041ddf35d7aebb8452697ed16274451af533042acfc46760860725d153f5cb",
+      "excerpt_sha256": "6487a3f817fe45732bc47c02b95cfe097f759b7203369521e99c0fec00282b02",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\structured-followthrough\\rc2\\vllm\\v1\\structured_output\\backend_xgrammar.py"
+    },
+    {
+      "n": 12,
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/v1/structured_output/__init__.py#L178-L200",
+      "claim": "main同样传全停止集合。",
+      "read_scope": "selected actual source read",
+      "source_sha256": "d18372b8062c2326718a43e06d5e81720880b9facd31db09f572778bd4bc09d2",
+      "excerpt_sha256": "81f33f6209922e1f7ee4b71238a069567c38c94dee5a73b8872a1b394b1de8f9",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\structured-followthrough\\main\\vllm\\v1\\structured_output\\__init__.py"
+    },
+    {
+      "n": 13,
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/v1/structured_output/backend_xgrammar.py#L79-L130",
+      "claim": "main同样在matcher非空override。",
+      "read_scope": "selected actual source read",
+      "source_sha256": "d5452b55e7dba4bb06e47d22ee9ac7cb2c478f65a303cc17b826601b812e0c22",
+      "excerpt_sha256": "6487a3f817fe45732bc47c02b95cfe097f759b7203369521e99c0fec00282b02",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\structured-followthrough\\main\\vllm\\v1\\structured_output\\backend_xgrammar.py"
+    },
+    {
+      "n": 14,
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/sampling_params.py#L590-L618",
+      "claim": "默认未ignore_eos时generation_config额外EOS加入stop_token_ids。",
+      "read_scope": "selected actual source read",
+      "source_sha256": "2e2d240bb8f3192e9a1551f3b2bef6e98ef0de5782422f182449d847767eb747",
+      "excerpt_sha256": "e7c08fe654b62fe9ae30369988acf943726962b9e8bb1ee34218cb2c4f18d9b2",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\structured-followthrough\\baseline\\vllm\\sampling_params.py"
+    },
+    {
+      "n": 15,
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/core/sched/utils.py#L94-L117",
+      "claim": "满足min_tokens后命中eos或stop_token_ids就结束，不要求JSON文法完整。",
+      "read_scope": "selected actual source read",
+      "source_sha256": "85e82eae555a03497ad2ac1540ed562a6c36fc26185aa6233725c914816aa1b3",
+      "excerpt_sha256": "20fa92aa0c8ef0d623761f0419f3efdcea7d3af97175ffcf417db617e51ba73e",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\xgrammar-tokenizer\\baseline\\vllm\\v1\\core\\sched\\utils.py"
+    },
+    {
+      "n": 16,
+      "ref": "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/tokenizer_config.json",
+      "claim": "固定GLM tokenizer eos_token仅endoftext；extra_special_tokens不被XGrammar当stop列表传入。",
+      "read_scope": "whole small config reread",
+      "source_sha256": "98b1271574f41abf89427ae2dda030d94dc9478f0edc5a8bd240db213c6fd5fc",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-entry\\tokenizer_config.json"
+    },
+    {
+      "n": 17,
+      "ref": "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/tokenizer.json",
+      "claim": "已验收固定JSON的词表/新增tokens复用：154820普通+36added，padding24；154820=endoftext，154827=user，154829=observation。",
+      "read_scope": "reuse accepted complete JSON identity, this review parses relevant vocab/added entries only",
+      "source_sha256": "19e773648cb4e65de8660ea6365e10acca112d42a854923df93db4a6f333a82d",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-entry\\tokenizer.json"
+    },
+    {
+      "n": 18,
+      "ref": "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/generation_config.json",
+      "claim": "固定生成配置EOS列表为154820/154827/154829。",
+      "read_scope": "whole small config reread",
+      "source_sha256": "230c30609ecbbb9e6583bedde8e7bdda0c6eb8fe5fad0eaeb3d1b293d751cb4f",
+      "local_path": ".tmp\\evidence-2026-11-03\\groups-01-02\\glm-generation_config.json"
+    }
+  ],
+  "native_execution": false,
+  "npu_execution": false,
+  "static_data_reproduction": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\xgrammar-tokenizer\\review-static-tokenizer-inputs.json"
+}

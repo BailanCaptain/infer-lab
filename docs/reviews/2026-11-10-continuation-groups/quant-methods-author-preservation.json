@@ -1,0 +1,22 @@
+{
+  "pages": [
+    {
+      "path": "wiki/concepts/quantization-methods.md",
+      "old_sources": 15,
+      "source_prefix_preserved": true,
+      "before_sha256": "8633a72a9463de03e8975a795c5cbc641cfe647538906b398cf58b82a0755bf5",
+      "after_sha256": "f9f9567dbecbaca3875afefd38e5168dbccdbb5849c1c4c6fcee7eac856d7696"
+    },
+    {
+      "path": "wiki/concepts/quantization.md",
+      "old_sources": 55,
+      "source_prefix_preserved": true,
+      "before_sha256": "96ce4d479640c5c182f4fa3827c09e3b5f78b53c5146855c56f71b20a87c50d3",
+      "after_sha256": "6947ffc3cd2b28da5100b7ce4ab573c2a045b67fc4960d92a0f5eab15bbe0b51"
+    }
+  ],
+  "old_diagram_files": 12,
+  "all_old_diagrams_identical": true,
+  "added_sources": 39,
+  "independent_review": "pending"
+}

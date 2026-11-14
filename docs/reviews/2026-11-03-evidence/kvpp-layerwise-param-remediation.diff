@@ -1,0 +1,271 @@
+--- .tmp\doc-gap-2026-11-03\evidence-kvpp-params-before\kvpp-config-0445bd352140.md
++++ wiki\params\kvpp-config-0445bd352140.md
+@@ -35,10 +35,10 @@
+   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1678'
+   - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1500-L1502'
+   - 'vllm-ascend@baa023ad:vllm_ascend/distributed/parallel_state.py#L76-L89'
+-  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1096-L1103'
++  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1096-L1106'
+   - 'vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4772-L4774'
+   - >-
+-    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L215-L219
++    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L209-L246
+   - 'vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L135-L159'
+   - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L97-L104'
+   - >-
+@@ -74,9 +74,13 @@
+   - >-
+     vllm-ascend@acbab0ef0722f0a1aab7e6a4ac90c6c93f888efe:vllm_ascend/ascend_config.py#L642
+   - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L62-L111'
+-  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1834-L1866'
++  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1834-L1912'
+   - >-
+     vllm-ascend@7d825229c77025cfb185a010c25819c1214b9450:vllm_ascend/ascend_config.py#L636
++  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1603-L1608'
++  - 'vllm-ascend@baa023ad:vllm_ascend/worker/v2/kvpp.py#L22-L42'
++  - 'vllm-ascend@baa023ad:vllm_ascend/worker/v2/attn_utils.py#L628-L637'
++  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L116-L126'
+ rawSources:
+   - >-
+     raw/sha256-1aa8655fe7ae8108619083e6d270af174771aee2760cba56fafd6c548c5514f8.md
+@@ -119,7 +123,7 @@
+ ---
+ ## 一句话
+ 
+-**v0.30.0rc2 对照：** KVPPConfig 已冻结，继续由 enable_kvpp 与 TP×PCP 派生；用户直接提交 kvpp_config 会被工厂剔除。支持边界已扩到 AscendStoreConnector 或非纯 D 角色的 MooncakeConnectorV2、eager/PIECEWISE、非 hybrid MLA，以及固定长度 MTP/DSpark；DCP 必须为 1，DSpark 自适应验证和动态投机长度仍被拒绝。不能只看到 size>1 就忽略这些前提。
++**v0.30.0rc2 对照：** KVPPConfig 已冻结，继续由 enable_kvpp 与 TP×PCP 派生；用户直接提交 kvpp_config 会被工厂剔除。支持边界已扩到 AscendStoreConnector 或非纯 D 角色的 MooncakeConnectorV2、eager/PIECEWISE、非 hybrid MLA，以及固定候选数的 MTP/DSpark；DCP 必须为 1。两种投机方法均拒绝按批大小改变候选数；DSpark 分支还拒绝自适应验证和设置了 method 的 dynamic_spec_config。不能只看到 size>1 就忽略这些前提。
+ 
+ `kvpp_config` 是 `AscendConfig` 上的一个 frozen 子配置对象，**里面只有 `size` 一个字段**，即 KVPP 那一组有几张卡。[KVPP](../concepts/kvpp.md#kvpp-是什么) 把一组卡里各存一份、内容相同的 MLA KV cache 按层分给组里的卡，每层只由一张常驻卡长期保存；层按几张卡来分，除的就是这个数。真正要记住的是：**它不是你能配的键**。工厂调 `KVPPConfig.from_vllm_config(vllm_config)` 算出它，读的是 `additional_config["enable_kvpp"]` 和 `tensor_parallel_size × prefill_context_parallel_size` [C3]，再作为关键字参数塞进 `AscendConfig`；`"kvpp_config"` 这个名字本身写在 `_NON_USER_INPUT_KEYS` 里，用户传进来的同名键在进 pydantic 之前就被丢掉了 [C5]。
+ 
+@@ -135,38 +139,38 @@
+ | 谁给它赋值 | `KVPPConfig.from_vllm_config(vllm_config)` | 值是**算出来**的不是读出来的；用户往 `additional_config["kvpp_config"]` 写这条路径不通，所以扫描器现在也不把它当用户参数 [!] |
+ | `enable_kvpp` 为假时 | `cls()`，即 `size = 1` | 默认路径上它恒等于 1，整套机制等于不存在 |
+ | `enable_kvpp` 为真时 | `size = tensor_parallel_size × prefill_context_parallel_size` [C3] | TP=1、PCP=1 的单卡上开了也还是 1，什么都不会发生 |
+-| 写进 `additional_config` | 被 `_NON_USER_INPUT_KEYS` 过滤，无日志 [C6] | main 上别的错键会被 `extra="forbid"` 拒收（装了 vLLM-Omni 时改成告警后丢弃），这个键不会——静默无效是唯一结局 |
+-| 生效阈值 | 全部消费点都写成 `size > 1` | 校验、建 `kvpp` 通信组、换 KV cache 分配路径，三件事挂的是同一个阈值 |
+-| 校验时机 | `size > 1` 才调 `validate()` | 那七条 `ValueError` 在 `size == 1` 时一条都不跑，单卡上配错了不会有任何提示 |
++| 写进 `additional_config` | 被 `_NON_USER_INPUT_KEYS` 过滤，没有针对该键的告警 [C6] | main 上其他未知键通常被 `extra="forbid"` 拒收；能发现 vllm_omni 模块时改为告警后丢弃。这个派生键先被过滤，不能覆盖计算结果 |
++| 生效阈值 | `size > 1`，部分入口以 `size <= 1` 提前返回表达同一条件 | 校验、建 `kvpp` 通信组、换 KV cache 分配路径，三件事挂的是同一个阈值 |
++| 校验时机 | `size > 1` 才调 `validate()` | main 的七条 KVPP `ValueError` 在 `size == 1` 时跳过；输入布尔校验与服务其他检查仍会执行 |
+ | 重复计算 | main `baa023ad` 上 7 处各自 `from_vllm_config` 一遍，另 3 处读单例 | 它必须是纯推导：配置工厂、platform 启动检查、worker、层划分等处各算一次，结果必须一样 |
+ | 覆盖版本 | 固定 main 与 rc2 有；此前 v0.28.0rc / v0.29.0rc 分支也包含 | v0.23 / v0.26 和 GLM `db701c1f` 没有 KVPP，rc2 的组合约束见本页开头 |
+ | GLM 双机（TP8、PCP1） | 钉住版本里没有；换到 main 写 `enable_kvpp: true`，算出 `size = 8` | 过不了启动检查，见下文「开了的代价」末段 |
+ 
+ ## 为什么存在
+ 
+-把它做成一个对象而不是 `AscendConfig` 上一个裸的 `int`，是因为**这个数在 `AscendConfig` 建好之前、或者在拿不到单例的地方就有人要用**。`parallel_state.py` 初始化 `kvpp` 通信组时读 `get_ascend_config().kvpp_config.size`，那时单例已经在了；但 `platform.py` 的启动校验跑在更早的位置，它拿不到单例，只能自己 `KVPPConfig.from_vllm_config(vllm_config)` 再算一遍 [C7]。`worker.py` 算 KV cache spec 时同理 [C9]，`map_kvpp_layers_to_owners` 在各个 worker 进程里划分层归属时也同理。main `baa023ad` 上调 `from_vllm_config` 的共 7 处：配置工厂首算 1 处，拿不到单例时自己重算 6 处；另有 3 处读单例。一个只吃 `vllm_config`、没有副作用的类方法，是让这些地方算出同一个数的最省事办法。
++**统一推导规则，能让配置工厂和运行组件使用同一个组大小。** 这个类方法只读取传入的 vllm_config，不要求调用者先取 AscendConfig 单例。main `baa023ad` 的配置工厂、platform 校验、worker 预算、层归属函数、KV 池 worker，以及新版 runner 的缓存分配和运行时构造共 7 处调用它；另有 3 处从 AscendConfig 读取已有结果。不能把这 7 处都解释成“拿不到单例”：worker 在同一函数后面就读取了 get_ascend_config。源码能确定的是这些入口复用同一推导规则，而不是每处调用的设计动机。
+ 
+ `size > 1` 这一个条件同时打开三件事。这里只说它们读这个数，各自怎么做在概念页：
+ 
+ - **建组**：建名为 `kvpp` 的通信组，并断言 `kvpp_size == global_pcp_size * global_tp_size`——这条断言等于把上面那条乘法又钉了一次 [C8]；组里的卡怎么排见概念页的[怎么开](../concepts/kvpp.md#怎么开)。
+ - **分层**：层按这个数分给组里的卡，除不尽时前几张卡各多拿一层 [C12]；怎么分、每卡留多少显存见[层怎么分](../concepts/kvpp.md#层怎么分每张卡要留多少显存)。
+-- **换分配路径**：model runner 改走 `allocate_kvpp_cache`，并把 `hybrid_with_attn_and_mamba` 置回 `False` [C10]；Mooncake 的 worker 也据此决定要不要把层-owner 映射发出去 [C11]。算到某层时历史怎样到位，见[概念页这一节](../concepts/kvpp.md#算到某一层时历史怎样到位)。
++- **换分配路径**：model runner 改走 `allocate_kvpp_cache`，并把 `hybrid_with_attn_and_mamba` 置回 `False` [C10]；Mooncake worker 则用层-owner 映射过滤要发布的缓存元数据，只保留本 rank 常驻的目标层和未参与分层的 MTP 缓存，避免发布其他层共用的暂存地址 [C11]。算到某层时历史怎样到位，见[概念页这一节](../concepts/kvpp.md#算到某一层时历史怎样到位)。
+ 
+ ## 开了的代价
+ 
+-**它没有「开」这个动作，真正的开关是 `enable_kvpp`。** 启动命令里该写的是 `--additional-config '{"enable_kvpp": true}'`，官方那张配置表里只有这一行加上 `--enforce-eager`，并且明写「不需要配广播粒度，也没有单独的 KVPP 并行大小」[S13]（[线上页](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html)）。
++**它没有「开」这个动作，真正的开关是 `enable_kvpp`。** 启动命令里该写的是 `--additional-config '{"enable_kvpp": true}'`。固定 main 指南配合 `--enforce-eager`，并说明不需要配置广播粒度或独立的 KVPP 并行大小 [S13]。[线上页](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html) 会继续更新，其新组合不能直接套到本页固定 main 或 rc2。
+ 
+ **配了 `kvpp_config` 的下场是「什么都不发生」，而且比报错更难查。** main 上的 `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型，写错一个键通常会让进程起不来；但 `kvpp_config` 在进 pydantic 之前就被过滤掉了 [C6]，所以
+ 
+ ```bash
+-# 这条命令能正常起来，KVPP 也确实开着，但 size=4 完全没有被采纳
++# 满足模型、硬件及其他启动条件时，KVPP 采用 size=8；传入的 size=4 被忽略
+ vllm serve <非混合的 MLA 模型> --tensor-parallel-size 8 --enforce-eager \
+     --additional-config '{"enable_kvpp": true, "kvpp_config": {"size": 4}}'
+ ```
+ 
+-跑出来的 `size` 是 8（TP × PCP），不是 4。日志里一个字都不会提这件事 [!]。
+-
+-**`size` 落在 1 上，代价是整条校验链都不跑。** `validate()` 的七条 `ValueError`（DCP 不为 1、连接器不对、decode 侧没关、没给 `--enforce-eager`、模型不是非混合 MLA、投机解码方法不是 `mtp`、MTP 步数不固定）全挂在 `size > 1` 之后 [C4][C7]，逐条的报错原文见概念页的[会报什么错](../concepts/kvpp.md#会报什么错)。也就是说单卡上写 `enable_kvpp: true` 不会被任何一条拦住，服务照常起来，KVPP 一点没生效——想知道是不是真开了，得去看有没有建出 `kvpp` 通信组。
++派生的 `size` 是 8（TP × PCP），不是 4；过滤这项输入的代码没有专门记录告警 [!]。
++
++**`size` 落在 1 上，KVPP 专属检查会被跳过。** 固定 main 的 `validate()` 中七条 `ValueError`（DCP 不为 1、连接器不对、decode 侧没关、没给 `--enforce-eager`、模型不是非混合 MLA、投机方法不是 `mtp`、候选数按批大小变化）全挂在 `size > 1` 之后 [C4][C7]，逐条原文见概念页的[会报什么错](../concepts/kvpp.md#会报什么错)。TP=1、PCP=1 时，即使开关为 true，也不会启用 KVPP 建组和缓存分配路径；但开关类型校验、模型和服务的其他启动检查仍在，不能因此保证服务能启动。确认实际启用情况时，应核对派生大小及通信组。
+ 
+ 这些检查还各有触发条件。在本页 main 快照中，只有存在 KV 传输配置且连接器不是 AscendStoreConnector 时，才检查连接器必须为 MooncakeConnectorV2，并检查角色不能为 kv_consumer；没有 KV 传输配置或使用 AscendStoreConnector 时，均跳过这两项检查。投机解码的两项检查则只在存在投机配置时执行，因此不要求必须开启 MTP；启用了按批大小变化的草拟数量时会被拒绝，这段校验没有规定固定数量应设为多少。
+ 
+--- .tmp\doc-gap-2026-11-03\evidence-kvpp-params-before\size-40a1c2ca47b8.md
++++ wiki\params\size-40a1c2ca47b8.md
+@@ -49,11 +49,14 @@
+   - >-
+     vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/core/kv_cache_placement.py#L135-L159
+   - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L62-L99'
+-  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1834-L1866'
++  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1834-L1912'
+   - >-
+     vllm-ascend@7d825229c77025cfb185a010c25819c1214b9450:vllm_ascend/ascend_config.py#L66
+   - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L1144-L1152'
+   - 'vllm-ascend@7d825229:vllm_ascend/worker/kvpp_cache.py#L30-L35'
++  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kvpp.py#L8-L35'
++  - 'vllm-ascend@baa023ad:vllm_ascend/worker/v2/kvpp.py#L46-L58'
++  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L193-L197'
+ rawSources:
+   - >-
+     raw/sha256-15a9b303e86b0392bb0297e5c23f48c54bc6295e56e8f6d26c7ee99021a94e77.md
+@@ -76,7 +79,7 @@
+ 
+ **v0.30.0rc2 对照。** rc2保留KVPPConfig.size，整数默认1，启用后由TP×PCP推导；配置对象冻结，直接传kvpp_config仍会被工厂剔除，不能手调size。它在TP×PCP复制域内划分层缓存，要求DCP=1、模型为非hybrid MLA，表示的不是DP数或PP阶段数。下文分别说明旧main与rc2的owner计算。
+ 
+-这个 `size` 是 `KVPPConfig` 里**唯一的字段**，也是 [KVPP](../concepts/kvpp.md) 那套机制里唯一的数：**一个 PP stage 上的层，要分成几份**。`int`、默认 `1`，而 `1` 就等于关——所有消费点写的都是 `size > 1`。开了 KVPP 之后它等于 `tensor_parallel_size × prefill_context_parallel_size` [C2]，你没法单独指定；能不能往 `additional_config` 里写、写了会怎样，见 [`kvpp_config`](kvpp-config-0445bd352140.md)。
++这个 `size` 是 `KVPPConfig` 里**唯一的字段**，表示 [KVPP](../concepts/kvpp.md) 将**一个 PP stage 上的层分给几张卡**。`int`、默认 `1`，只有大于 1 才进入 KVPP 执行路径。开了 KVPP 之后它等于 `tensor_parallel_size × prefill_context_parallel_size` [C2]，你没法单独指定；能不能往 `additional_config` 里写、写了会怎样，见 [`kvpp_config`](kvpp-config-0445bd352140.md)。
+ 
+ **存在范围。** 固定 main 与 rc2 有 KVPPConfig；此前核对的 v0.28.0rc、v0.29.0rc 分支也含同一段旧配置，而 v0.23.0 至 v0.27.1rc 没有。v0.23、v0.26 固定快照在代码和文档中检索 KVPP 均无结果，GLM 部署 `db701c1f` 同样没有 [D]。这一页讲 size 在运行时被谁除、除完影响什么；rc2 变化见开头。
+ 
+@@ -88,11 +91,11 @@
+ | 开了之后取什么值 | `TP × PCP` [C2] | 由实际 TP、PCP 拓扑推导，不是直接填一个 size；PCP=1时 TP8 才对应 size8 |
+ | 层怎么分 | `divmod(本 stage 的层数, size)`，前 `remainder` 个 rank 各多拿一层 [C4] | 层数不是 `size` 的整数倍时各卡不等量，显存预算按拿得最多的那张算 |
+ | 每块物理字节 | `自己那几层的 bundle + 2 × 最大的那一层` [C6] | 常数项 `2` 是写死的 `KVPP_SCRATCH_BUFFER_COUNT`，不随 `size` 变 |
+-| 压缩倍数 | `L / (ceil(L/size) + 2)`，`L` 是层数 [D] | 卡加得再多也压不过 `L / 3`——这是 KVPP 的天花板，和 TP 开多大无关 |
++| 简化容量比 | 等大层、无额外常驻缓存且相同可用预算时，为 `L / (ceil(L/size) + 2)` [D] | 这组算例的上限为 `L / 3`，不是所有模型的通用收益 |
+ | 建组断言 | `assert size == global_pcp_size * global_tp_size` [C3] | 复制域永远是 PCP × TP，不跨 DP 副本、不跨 PP stage |
+ | 本卡在组里的编号 | 旧 main 用 TP rank `% size`；rc2 建计划用 `PCP rank×TP + TP rank`，运行时取 KVPP 组内 rank | PCP=1时等于 TP 编号；PCP>1不能仅按 TP 编号找 owner |
+ | MTP 的 cache | 不参与划分，每张卡各留一份 [C4] | 开 MTP 时省下的比例比 `size` 暗示的小 |
+-| `size == 1` 时 | 建组、校验、换分配路径三件事全不发生 | 单卡上写 `enable_kvpp: true` 不报错也不生效 |
++| `size == 1` 时 | KVPP 建组、专属校验、换分配路径不发生 | TP1、PCP1 时开关为 true 也不启用 KVPP；服务其他检查仍会执行 |
+ | 覆盖版本 | 固定 main 与 rc2 有；此前 v0.28.0rc / v0.29.0rc 分支也包含 | v0.23 / v0.26 固定快照没有此字段与 KVPP |
+ 
+ ## 为什么存在
+@@ -124,11 +127,11 @@
+ 
+ **size 不是用户独立设定的旋钮。** 通过 enable_kvpp 启用，再由 TP×PCP 推导。旧 main 指南要求 enforce-eager；rc2 放宽为 eager 或 PIECEWISE，完整模型、MTP和连接器条件见[KVPP 配置页](kvpp-config-0445bd352140.md)。往 additional_config 塞 `{"kvpp_config":{"size":4}}` 会被工厂剔除，不能覆盖实际拓扑。
+ 
+-**`size` 跟着 TP 走，意味着调 TP 会连带改变 KV 的物理摆法。** 同一份模型从 TP8 改到 TP4，除了权重切法变了，每张卡常驻的层数也从 `L/8` 变成 `L/4`，每卡 KV 容量因此掉一截；反过来把 TP 加大，省的是 KV 但每层广播的字节数不变、次数不变。两件本该独立的事被这条乘法绑在了一起。
++**`size` 跟着 TP 走，调 TP 会同时改变常驻布局和通信预算。** 在 PCP=1、层数可整除且各层等大的例子里，从 TP8 改到 TP4，每卡常驻层数从 L/8 增至 L/4；若可用 KV 字节预算相同，可容纳的块数会减少。反过来增大 TP 可以少存常驻层，但广播仍发送整层已分配的逻辑块。只有固定逻辑块数、层布局及执行路径时，每次广播的有效载荷才不会因为 owner 增多而分薄；若用节余显存增加块数，整层广播字节也会增加。广播次数还取决于实际执行的层与是否需要历史，不能只从 size 推出延迟不变。
+ 
+ **层数除不尽时，亏的是拿得最多的那张卡。** `divmod` 给的是「前 `remainder` 个 rank 多一层」[C4]，而块数由 `get_num_blocks` 按本卡实际字节算 [C6]——各卡算出的块数会不一样，最终全局块数取的是最小的那个，等于让多拿一层的卡决定全局容量 [I]。每层先报什么规格、规格怎么变成缓存池里的一页，在[KV cache 规格](../concepts/kv-cache-spec.md#一层要存的状态怎样变成缓存池里的一页)那页讲过。层数刚好是 `size` 整数倍时没有这笔损失。
+ 
+-**`size == 1` 是最安静的失败态。** 单卡或 TP=1、PCP=1 的场景下它恒为 1，`validate()` 那七条硬校验一条都不跑 [C7]，服务照常起来，日志里没有任何一句说 KVPP 没生效。逐条的报错原文见概念页的[会报什么错](../concepts/kvpp.md#会报什么错)（那张表里还有一条 `enable_kvpp` 不是布尔值的检查，它不在 `validate()` 里，读开关时就查）。要确认它真的开了，只能看有没有建出 `kvpp` 通信组。
++**`size == 1` 不会启用 KVPP。** TP=1、PCP=1 时它为 1，固定 main 的 `validate()` 中七条专属校验被跳过 [C7]；但这不保证服务能启动，也不关闭其他参数检查。开关是否为布尔值就在推导 size 时单独检查。逐条报错见概念页的[会报什么错](../concepts/kvpp.md#会报什么错)；确认实际启用情况应核对派生大小和 KVPP 通信组。
+ 
+ **本站旧 GLM 镜像没有这个字段，不能把它说成 size 恒为1。** db701c1f 没有 KVPP，enable_kvpp 写进去会被忽略。换到支持版本后，TP8、PCP1 才会推导 size=8；旧 main 还会先受 eager 条件限制，rc2 虽可用 PIECEWISE，却仍要求非 hybrid MLA，不能把 GLM 的混合注意力直接搬进来。具体障碍见[GLM 一节](../concepts/kvpp.md#放到-glm-双机这套部署能开-kvpp-吗)。上面的倍数是算例容量比；尚缺该模型实际启用后的每卡容量与时延对照。
+ 
+@@ -168,3 +171,4 @@
+ 旧main baa023ad按本PP stage的层索引分配，MTP不进入层归属映射；无归属或本卡归属的缓存计入常驻部分，暂存取参与分配的最大层每块字节再乘2（来源4、6，kv_cache_placement.py 19–44、128–159）。正文容量比只用于每层等大、无额外常驻缓存、相同可用预算且忽略向下取整的算例；实际布局或MTP状态变化时要重新计算。
+ 
+ - 来源 16：vllm-ascend@baa023ad，vllm_ascend/core/kv_cache_placement.py，L135–L159。
++- 来源 22–24：广播使用整层 buffer，而该 buffer 按已分配 num_blocks 构造；增加容量可能增加广播量。
+--- .tmp\doc-gap-2026-11-03\evidence-kvpp-params-before\use-layerwise-b475778cd352.md
++++ wiki\params\use-layerwise-b475778cd352.md
+@@ -5,7 +5,7 @@
+ summary: >-
+   KV 池连接器的逐层开关：把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬一次」。它不在 additional_config 里，真正的入口是
+   --kv-transfer-config 的 kv_connector_extra_config；v0.23、v0.26、固定 main 与 rc2
+-  都有，默认 false。GLM 双机没开；开了会把图模式改成 PIECEWISE。
++  都有，默认 false。GLM 双机没开；连接器在含整图的配置下要求改用 PIECEWISE。
+ origin: seed
+ aliases:
+   - 逐层 KV 存取开关
+@@ -41,7 +41,7 @@
+   - >-
+     vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L52-L68
+   - >-
+-    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L26-L49
++    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L26-L115
+   - >-
+     vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/memcache_backend.py#L80-L93
+   - >-
+@@ -65,14 +65,14 @@
+   - >-
+     vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L69
+   - >-
+-    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L195
++    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L191-L199
+   - >-
+     vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20
+   - >-
+     vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L26
+   - >-
+     vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L78-L89
+-  - 'vllm@0fc695fc:vllm/config/vllm.py#L1244-L1269'
++  - 'vllm@0fc695fc:vllm/config/vllm.py#L1244-L1276'
+   - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L596-L623'
+   - >-
+     raw:sha256-441664d27d5f3034774f1bb5c29ddb42b87c829349dc5e8c5ba85c6a74670d91.md#L1-L332
+@@ -92,6 +92,15 @@
+     vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L52-L73
+   - >-
+     vllm-ascend@7d825229c77025cfb185a010c25819c1214b9450:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20
++  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L625-L762'
++  - 'vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L68-L85'
++  - 'vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L75-L92'
++  - 'vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L255-L305'
++  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L71-L75'
++  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L128-L141'
++  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L332-L366'
++  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L289-L309'
++  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L19-L59'
+ rawSources:
+   - >-
+     raw/sha256-23467f7f139db9a53e6ecbaf45be36cc9a098e0b3c74958d818cfcef293e03bb.md
+@@ -108,7 +117,7 @@
+ 
+ **v0.30.0rc2 对照。** 公共入口仍是 kv_transfer_config.kv_connector_extra_config.use_layerwise，默认 false；AscendStoreConnector 据此要求 PIECEWISE 图。rc2 按 backend 解析逐层协议与数据传输实现，并由所选协议校验拓扑，不能把一个后端的限制套给全部后端。对 hybrid Mamba 状态，它还要求在逐层加载完成之后复制状态。静态扫描发现的同名配置字段不替代这个连接器入口。
+ 
+-**`use_layerwise` 是 [Layerwise KV offload](../concepts/kv-cache-layerwise-offload.md) 的总开关。** 打开后，KV cache 在显存和外部存储之间的搬运从「整趟前向搬一次」拆成「每层搬一次」：算第 L 层时，第 L+1 层要用的历史在搬进来，第 L−1 层刚写好的缓存在存出去，搬运躲在计算后面。为什么能按层拆、能省多少等待、每层什么时候要等，都在那一页；本页只讲这个键本身——配在哪、默认是什么、开了会牵动什么。
++**`use_layerwise` 是 [Layerwise KV offload](../concepts/kv-cache-layerwise-offload.md) 的总开关。** 打开后，KV cache 在显存和外部存储之间按层加载、等待和存出。以提前预取一层的示意为例：算第 L 层时，可以搬入第 L+1 层的历史，并存出已完成层的缓存；能重叠多少取决于后端、预取距离和搬运速度。为什么能按层拆、能省多少等待、每层什么时候要等，都在那一页；本页只讲这个键本身——配在哪、默认是什么、开了会牵动什么。
+ 
+ **配置路径：这个键不在 `additional_config` 里**——三个版本的 `vllm_ascend/` 里都没有任何一处从 `additional_config` 读这个名字。绝大多数人要配的那一处，入口是 `--kv-transfer-config` 里的 `kv_connector_extra_config`：
+ 
+@@ -136,27 +145,27 @@
+ |---|---|---|---|---|
+ | 配置路径 | `kv_connector_extra_config["use_layerwise"]` | 同左 | 同左 | 这是第 1 处、绝大多数人要配的那一处；文末生成区钉的是第 3 处 Yuanrong JSON，别把两者混成一个键 [!] |
+ | 类型 / 默认 | `bool` / `false`，`.get()` 取原值 | 同左 | 同左 | 没有 pydantic 强转，JSON 里写 `"false"`（带引号）是真值 [D] |
+-| 后端特殊布局的判据 | `use_layerwise and backend == "memcache"`，叫 `use_gva_layerwise` | 同左 | 改由后端注册表查：`use_layerwise and layerwise_data_plane == "block_key"`，而 `mooncake` 的协议模块声明 `LAYERWISE_DATA_PLANE = "block_key"`、`memcache` 声明 `"gva"` [C4] | 同一份配置在 main 上走的是另一套数据面；`use_gva_layerwise` 和 `is_block_key_layerwise` 这两个名字在 main 上都已搜不到 [!] |
++| 后端特殊布局的判据 | `use_layerwise and backend == "memcache"`，叫 `use_gva_layerwise` | 同左 | 改由协议注册表区分：Mooncake 是 `block_key`，Memcache 是 `gva` [C4] | main 同时保留两条逐层实现；变量改名不代表 Memcache 被 Mooncake 替换 |
+ | 额外校验 | 无 | 无 | mooncake + layerwise 时 PP / PCP / DCP 任一 > 1 直接 `ValueError` | main 上多一道启动期闸门，只允许纯 TP 拓扑 |
+ | 对 `load_async` 的影响 | 返回的异步加载标志为 `self.load_async and not self.use_layerwise`，按层模式下为 false [C14] | 同左 | 同左 | 改变的是返回标志，不是配置值；也不能仅凭此标志判断底层搬运是否使用后台线程 |
+ | 对图模式的影响 | 连接器声明 `requires_piecewise_for_cudagraph` 返回本键的值 | 同左 | 同左 [C3] | 接上连接器、图模式又含整图时，vLLM 启动就把它改成 PIECEWISE，只打一条 warning [C23] |
+-| 官方文档口径 | 只支持 `memcache`，`mooncake` / `yuanrong` 不支持 [S15] | 同左 | 参数表仍写「requires the memcache backend」[S10]，同一版却另有一篇 mooncake layerwise 指南 | main 上文档自相矛盾，以代码为准：mooncake 才是被专门判定的那个 |
++| 官方文档口径 | 指南将支持范围列为 `memcache` [S15] | 旧限制须结合维护快照实现核对 | 参数表仍写只支持 Memcache [S10]，同一版却有 Mooncake 逐层指南 | 固定 main 的参数表未覆盖全部实现，不能据此排除 Mooncake，也不能反过来排除 Memcache |
+ | 与 CP 的关系 | 文档明写未集成 | 同左 | KV 池化 + PCP 只支持 `use_layerwise=false` [S12] | 开了 CP 就别想同时开它 |
+-| 混合 KV cache | 抛 `NotImplementedError` | 同左 | 未在文档复述 | MLA + 滑窗这类多 KV 组模型上开不了 |
+-| Yuanrong 那一处的作用 | — | — | 为真时调度器侧也 `store.init()` 一个仅元数据的客户端 [C6] | 配错会多起/少起一个客户端，症状是元数据查询失败而不是报错 |
++| 混合 KV cache | 旧指南称不支持；固定代码另对 Mamba 的 align 模式作检查 | 内存复用还有缓存类型和描述符条件 | Mooncake 分支拒绝带 recurrent Mamba 状态的 hybrid 组合 | 不能把所有多 KV 组一概判为拒绝或可用，按缓存类型、后端和版本核对 |
++| Yuanrong 那一处的作用 | — | — | 为真时调度器侧也初始化仅元数据的客户端 [C6] | 错配会改变初始化路径；查 key 的异常可记录 error 并按未命中返回，不能承诺没有报错 |
+ 
+ ## 为什么存在
+ 
+ 
+ 逐层模式下，即使本轮无需新增分配，也可能仍需加载池中数据。v0.23 维护快照以外部命中 token 数大于零触发这条强制加载路径；所列 v0.26 和 main 快照改为检查 store_skip_tokens 大于零。两者检查的是不同记录，升级排查时应对照对应版本。
+ 
+-不开这个键时，KV 池连接器按「整趟前向」的粒度工作：一次请求的 KV 全部算完再统一写出去，或者在调度阶段一次性把命中的前缀全部拉回来。粒度粗的好处是简单，坏处是搬运完全串行在计算前后——prefill 越长，等待越久。
++不开这个键时，连接器不在每层计算前后分别等待和提交该层 KV。它仍可用发送线程和可选的异步接收线程，不能说搬运必然完全串行，也不能只凭输入更长就保证等待更久。逐层模式新增的是每层的就绪事件与预取时机，让后续层数据有机会和当前层计算重叠。
+ 
+ 开了之后代码分叉的地方很多，但可以归成三类：
+ 
+ 1. **查询起点变了。** 调度侧算「从第几个块开始查外部命中」时，非逐层模式从 `num_computed_tokens // block_size` 起步，逐层模式直接从 0 起步。
+ 2. **返回的异步加载标志变为假。** `return need_to_allocate, self.load_async and not self.use_layerwise`——逐层模式下返回的第二项为假。这表示调度侧给出的标志，不能据此断言底层搬运不使用后台线程。
+-3. **后端要有按层寻址的能力。** 一个块的 KV 被拆成每层一份对象，所以 key 的构造方式也得换：v0.23 / v0.26 用 `use_gva_layerwise` 把这条路硬绑在 `memcache` 上；main 把这个判断挪进了后端协议注册表——`backend_map` 给每个后端登记一个 `layerwise_protocol` 模块，连接器拿 `get_layerwise_protocol` / `get_layerwise_data_plane` 查出数据面再判 `== "block_key"` [C4]。`mooncake` 的协议模块声明 `"block_key"` [C21]，`memcache` 声明 `"gva"` 并自己持有 `extract_layout_config` 那道 opt-in 闸门 [C7]，`yuanrong` 压根没登记 layerwise 协议。
++3. **后端要能分别定位每层的数据，但不要求每层都占一个远端对象。** 传统 per-layer key 路径把层号写进 key；main 的 Mooncake block-key 路径则把各层放在同一 block/rank 对象的不同字节范围，逐层写入该范围。远端对象数因此从块数×层数×存储 rank 数降到块数×存储 rank 数，KV 的总有效载荷没有因此减少。Memcache 的特殊布局在 v0.23/v0.26 由 `use_gva_layerwise` 选择；main 改由协议注册表查询：Mooncake 声明 `"block_key"`，Memcache 声明 `"gva"` 并保留自己的 opt-in 条件，Yuanrong 没有登记这两种协议。
+ 
+ main 上还多了一层保护，只是这一版已经不再由一个 mooncake 专用函数把关：连接器构造时调通用的 `validate_layerwise_topology`，它把 `parallel_config` 转交给后端协议自己的 `validate_topology`。mooncake 那一份检查 PP / PCP / DCP，任一大于 1 就抛 `ValueError("Mooncake block-key layerwise currently supports TP-only topology; ...")` [C5]。原因写在函数文档里——当前的 block key 里没有这几个维度的坐标，多机多维并行会让不同 rank 算出同一个 key。
+ 
+@@ -170,13 +179,15 @@
+ 
+ （出处：vLLM v0.23.0 的 `vllm/config/vllm.py` 第 1258–1269 行。）原因写在这句话里：逐层的等待与存出是异步操作，录不进整图，整图捕获那条路就用不了了。
+ 
++这还不是最终图模式的全部判断：同一配置函数随后检查 enforce_eager，若开启则将图模式置为 NONE，并将最大捕获宽度置为 0。应核对最终配置，不能把连接器提出 PIECEWISE 要求当作一定启用图的证明。
++
+ 放到 GLM 双机：这套部署配的是 `FULL_DECODE_ONLY`，纯 decode 步整步录成一张图（见 [ACL Graph 的 GLM 一节](../concepts/acl-graph.md#放到-glm-双机只给整齐的-decode-步录-7-张图)）。按代码，接上 AscendStore 再开逐层，图模式会被改成 PIECEWISE；昇腾平台随后在 PIECEWISE 分支里把 MLA 等 attention 算子切到图外、分段录图，并关掉 [npugraph_ex](../concepts/npugraph-ex.md) [C24]。decode 步不再是一整张图，图模式省下的 Host 下发时间要重新算。GLM 在 PIECEWISE 下能不能起来、decode 慢多少，待核：缺这套部署在 PIECEWISE 模式下的实跑记录。
+ 
+-**后端选错就等于没开，而文档在 main 上是错的。** 逐层需要后端支持按层寻址：v0.23 / v0.26 是 `memcache`，官方文档也明写 `mooncake` 和 `yuanrong` 不支持；到了 main，被专门判定为 block-key 逐层的变成了 `mooncake`，还专门出了一篇 mooncake layerwise 的指南 [S19]，可参数表那一行仍原封不动写着「requires the `memcache` backend」。这两句话在同一个 commit 里互相打架，以代码为准 [!]。
+-
+-**并行维度上限制很硬。** main 上 mooncake + 逐层只允许纯 TP；KV 池化配 PCP 时官方要求 `use_layerwise=false`；v0.23 的限制清单里还写着混合 KV cache 会抛 `NotImplementedError`、CP 注意力尚未集成逐层的 wait/save 调用 [S16]。**这些都不是性能建议，是会让服务起不来或行为不对的硬条件。**
+-
+-**三处同名配置没人帮你对齐。** Yuanrong 那份 JSON 里的 `use_layerwise` 必须与连接器 extra config 里的一致，但代码里没有任何一处做这个比对——两边写反了只会表现成调度器侧的元数据客户端起了或没起，排查起点离现象很远。而且这三处全在 `.get()` 兜底的路径上，不受 `AscendConfig` 那套 `extra="forbid"` 管——键名拼错既不报错也没有日志，只会安静地取默认值。
++**后端名称决定具体传输路径，参数表的旧限制不能代替执行代码。** 旧指南将逐层支持范围列为 Memcache；固定 main 的 Memcache 继续使用 gva 协议，同时增加 Mooncake 的 block-key 协议和专门指南 [S19]，但通用参数表仍只写 Memcache [S10]。Yuanrong 没有登记这两个协议，却仍可能进入通用按层 key 的线程路径，不能把“未登记协议”直接解释成开关被忽略；具体后端是否支持目标模型仍须核对相应实现和部署范围。
++
++**并行和缓存类型要分别核对。** 固定 main 的 Mooncake 逐层拓扑检查拒绝 PP、PCP、DCP 任一大于 1；官方 PCP 指南要求池化时关闭逐层。旧 v0.23 指南还记录 CP attention 未集成 wait/save，以及混合缓存不支持 [S16]，但这些文字不能替代维护快照的具体分支：v0.23/v0.26 调度器针对 Mamba 检查 align 模式；v0.26 的内存复用在存在复用关系时检查 AttentionSpec，并拒绝已共享或 packed 的描述符。main Mooncake 另拒绝带 recurrent Mamba 状态的 hybrid 组合和 P/D TP 不一致。这些检查既不证明所有混合模型均不可用，也不构成目标部署已经验证的承诺。
++
++**同名配置要按所属文件分别核对。** Yuanrong JSON 与连接器 extra config 的值应保持一致，所引解析路径没有自动比对；错配会改变调度器客户端初始化，查询异常还可能被记录并转换成未命中。连接器、SFA P2P 和 Yuanrong 的这些读取入口不经过 AscendConfig 的未知键校验，拼错的键会使该入口取默认值；后续服务是否报错仍取决于实际执行路径。UCM 文件则由外部包处理，不能套用这里的解析结论。
+ 
+ 返回标志与配置赋值是两回事：v0.23、v0.26和旧main的对应返回表达式相同，分别见来源14的pool_scheduler.py 570–591、来源26的606–627、来源8的672–693。该返回值说明调度是否要求异步处理，实际线程、通信和性能仍须按具体后端检查。
+ 
+@@ -224,3 +235,5 @@
+ - 来源 28：vllm-ascend@baa023ad，vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py，L669–L680。
+ - 来源 29：vllm-ascend@2c59ff10，vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py，L567–L578。
+ - 来源 30：vllm-ascend@2ed6cbba，vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py，L603–L614。
++- 来源 34：逐层与非逐层的线程构造分支；来源 35–38：混合缓存的实际条件；来源 39：Yuanrong 查询异常处理；来源 40：rc2 在逐层加载后复制 Mamba 状态；来源 41：逐层查找从块 0 开始。
++- 来源 42：Mooncake 把每层数据写入同一 block/rank 对象的不同字节范围，减少对象数而不减少 KV 有效载荷。

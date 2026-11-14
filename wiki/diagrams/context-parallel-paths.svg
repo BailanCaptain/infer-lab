@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 510" width="880" height="510" role="img" aria-label="固定 Ascend 实现中的 attention 路径。前向准备好本轮输入与缓存元数据后，按 prefill/decode 和后端选择交换对象。普通 PCP prefill 收本层 K/V；MLA 分块 prefill 收上下文 K/V；GQA 分块 prefill 与 decode 的局部历史路径合并 O/LSE。">
+  <title>固定 Ascend 实现中的 attention 路径。前向准备好本轮输入与缓存元数据后，按 prefill/decode 和后端选择交换对象。普通 PCP prefill 收本层 K/V；MLA 分块 prefill 收上下文 K/V；GQA 分块 prefill 与 decode 的局部历史路径合并 O/LSE。</title>
+  <defs><marker id="context-parallel-paths-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="context-parallel-paths-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="context-parallel-paths-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="context-parallel-paths-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <path d="M240 91 L240 120 L150 120 L150 160" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-control)"/>
+  <path d="M440 91 L440 160" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-control)"/>
+  <path d="M640 91 L640 120 L730 120 L730 160" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-control)"/>
+  <path d="M150 230 L150 290" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-kv)"/>
+  <path d="M440 230 L440 290" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-kv)"/>
+  <path d="M730 230 L730 290" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#context-parallel-paths-ah-comm)"/>
+  <path d="M150 360 L150 395 L240 395 L240 425" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-token)"/>
+  <path d="M440 360 L440 425" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-token)"/>
+  <path d="M730 360 L730 395 L640 395 L640 425" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#context-parallel-paths-ah-token)"/>
+  <rect x="160" y="35" width="560" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="59" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求逐层前向 → CP attention 后端</text>
+  <text x="440" y="78" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">输入 Q/K/V 与缓存位置元数据</text>
+  <rect x="30" y="160" width="240" height="70" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="150" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">PCP 普通 prefill</text>
+  <text x="150" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">非分块路径</text>
+  <rect x="320" y="160" width="240" height="70" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MLA 分块 prefill</text>
+  <text x="440" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">稀疏时只收选中块</text>
+  <rect x="610" y="160" width="240" height="70" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="730" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">GQA 分块 / decode</text>
+  <text x="730" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">decode 指局部历史路径</text>
+  <rect x="30" y="290" width="240" height="70" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="150" y="321" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收本层 K/V</text>
+  <text x="150" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本卡 Q 计算；缓冲用后释放</text>
+  <rect x="320" y="290" width="240" height="70" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="321" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收上下文 K/V</text>
+  <text x="440" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收到后直接计算</text>
+  <rect x="610" y="290" width="240" height="70" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="730" y="321" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收 Q → 本地历史计算</text>
+  <text x="730" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">交换 O/LSE，更新完整输出</text>
+  <rect x="160" y="425" width="560" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="457.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">attention 输出 → 后续投影与残差</text>
+</svg>

@@ -1,0 +1,45 @@
+{
+  "recorded_at": "2026-11-10T07:22:42.376808+00:00",
+  "files": [
+    {
+      "path": "wiki/concepts/kvpp.md",
+      "sha256": "7b29db698555b61f5240139fe23abbea51e9cedb6d8560b15d7ac2b6d332902e"
+    },
+    {
+      "path": "wiki/diagrams/kvpp-broadcast.svg",
+      "sha256": "8600825e0eee8c3990c8b688e89f9d365f692e7ff2b5b84352783a4f6b5110ab"
+    },
+    {
+      "path": "wiki/diagrams/kvpp-broadcast.yaml",
+      "sha256": "14f30f34a10022b498804ce02e5a187fa2701a0d3eb02b159b078695c919c6d8"
+    },
+    {
+      "path": "wiki/diagrams/kvpp-flow.svg",
+      "sha256": "01ee0e614aaf9ee4c465e210ab68f53b20bef3e2125f4925c3c127f8b1bc5bb3"
+    },
+    {
+      "path": "wiki/diagrams/kvpp-flow.yaml",
+      "sha256": "d06680af4e97216268e40f2272fb9cb45a2d0514cb942fb482e5e51352313ef1"
+    },
+    {
+      "path": "wiki/diagrams/kvpp.svg",
+      "sha256": "eae575a0a90c2294d91197d229bc4673bcbc81d3e7af6344f8065f3fa528366f"
+    },
+    {
+      "path": "wiki/diagrams/kvpp.yaml",
+      "sha256": "a260ddf3ce955bb0934b10947f0527248ab02bba4c2508de2f75c248a1b315b4"
+    },
+    {
+      "path": "scripts/wiki/sources.ts",
+      "sha256": "51ee048e393efc0230d0e0e9884c5d16198c33e5a065db7ddf235a5653753ed8"
+    },
+    {
+      "path": "scripts/wiki/sources.test.ts",
+      "sha256": "ad8bccd6d31146c529332dc68cdae0dcd1a4d3f1339f5778dcbb22aacb40ca2e"
+    },
+    {
+      "path": "wiki/HANDBOOK.md",
+      "sha256": "afa034f567e9b51da562fb6ef8ec06f2a5b20a53407f6ad9da254825aed4fb0c"
+    }
+  ]
+}

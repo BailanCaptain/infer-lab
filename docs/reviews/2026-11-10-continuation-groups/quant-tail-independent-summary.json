@@ -1,0 +1,1254 @@
+{
+  "reviewer": "/root/child_sources_review",
+  "author": "root",
+  "date": "2026-11-11",
+  "status": "accepted_scoped_teaching_and_exact_source_paths",
+  "unresolved_p1": 0,
+  "unresolved_p2": 0,
+  "global_full_read_credit": 0,
+  "all_recursive_sources_read": false,
+  "report": "docs\\reviews\\2026-11-10-continuation-groups\\quant-tail-independent-review.md",
+  "report_sha256": "b5352e40f873839ea30c50e918d4514c8823148d602fee990c74226179181c74",
+  "read_scope": {
+    "teaching_pages_full": [
+      "wiki/concepts/quantization-methods.md",
+      "wiki/concepts/quantization.md"
+    ],
+    "sources": [
+      {
+        "index": 16,
+        "source": "vllm@0fc695fc:docs/features/quantization/online.md#L1-L139",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "docs/features/quantization/online.md",
+        "start": 1,
+        "end": 139,
+        "source_sha256": "6b6be3046953610af056cf371931f52acabe25c2486a69332413417936352ff4",
+        "excerpt_sha256": "6b6be3046953610af056cf371931f52acabe25c2486a69332413417936352ff4",
+        "claim": "Online means load-time weight conversion, independent of request interface",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L139",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 17,
+        "source": "vllm@0fc695fc:docs/features/quantization/llm_compressor/fp8.md#L1-L139",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "docs/features/quantization/llm_compressor/fp8.md",
+        "start": 1,
+        "end": 139,
+        "source_sha256": "39d11b7504e65e503d2da70e42baf3494e1e32ae161c9729a62420bf06089b21",
+        "excerpt_sha256": "39d11b7504e65e503d2da70e42baf3494e1e32ae161c9729a62420bf06089b21",
+        "claim": "FP8_DYNAMIC RTN no calibration vs load-time FP8",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L139",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 18,
+        "source": "vllm@0fc695fc:docs/features/quantization/llm_compressor/int4.md#L83-L173",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "docs/features/quantization/llm_compressor/int4.md",
+        "start": 83,
+        "end": 173,
+        "source_sha256": "1dc7656c9b78b81b0a91e897513e2e1bc02dd7eea5ec1e3fabe2d29c8e6dc469",
+        "excerpt_sha256": "29bdfffb4ce979c0b4cb0f2faa5ef4eabe1e706d49c0ee5a1c77a4a0f1d6205a",
+        "claim": "GPTQ recipe saves compressed tensors; calibration and export",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L83-L173",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 19,
+        "source": "vllm@0fc695fc:docs/features/quantization/llm_compressor/int8_w4a8.md#L75-L173",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "docs/features/quantization/llm_compressor/int8_w4a8.md",
+        "start": 75,
+        "end": 173,
+        "source_sha256": "fe0b50a902e716ba617685e9e9785da82e116467842cd789b62a6f608ce4fd9c",
+        "excerpt_sha256": "eae314932bbee0f49a840582c14aedc33a865279661d0e485895f1b80f6cab7e",
+        "claim": "W4A8 group/channel schemes and Arm backend",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L75-L173",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 20,
+        "source": "vllm@0fc695fc:docs/features/quantization/llm_compressor/int8_w8a8.md#L86-L148",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "docs/features/quantization/llm_compressor/int8_w8a8.md",
+        "start": 86,
+        "end": 148,
+        "source_sha256": "bf046689c56e9710dcdbf1ce2e5f2a0bd4a96d2f3cc63c8823810be9c5300e5a",
+        "excerpt_sha256": "13a7ed2548daee48e125163c1d7ee352848992ac9cd0f56ebcc136de5e30d67e",
+        "claim": "SmoothQuant+GPTQ dynamic W8A8 still uses calibration",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L86-L148",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 21,
+        "source": "vllm@0fc695fc:docs/features/quantization/auto_awq.md#L1-L82",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "docs/features/quantization/auto_awq.md",
+        "start": 1,
+        "end": 82,
+        "source_sha256": "9ea26fa9f850731db227b88d7cd193dfef620d39b84c753ddc9e935b3e48237d",
+        "excerpt_sha256": "9ea26fa9f850731db227b88d7cd193dfef620d39b84c753ddc9e935b3e48237d",
+        "claim": "AWQ preparation and vLLM loading",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L82",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 22,
+        "source": "vllm@0fc695fc:docs/features/quantization/gptqmodel.md#L1-L99",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "docs/features/quantization/gptqmodel.md",
+        "start": 1,
+        "end": 99,
+        "source_sha256": "76378cc88ab9bd37d79aad7b22684f3f2c1d355b474d7728ef4cf35884fdbe17",
+        "excerpt_sha256": "76378cc88ab9bd37d79aad7b22684f3f2c1d355b474d7728ef4cf35884fdbe17",
+        "claim": "GPTQModel preparation and dynamic module overrides",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L99",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 23,
+        "source": "vllm@0fc695fc:docs/features/quantization/bnb.md#L1-L56",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "docs/features/quantization/bnb.md",
+        "start": 1,
+        "end": 56,
+        "source_sha256": "88001a41a119f1780deb38365fea426c1e9374a27aadb1acdba6f41a4f826bf2",
+        "excerpt_sha256": "88001a41a119f1780deb38365fea426c1e9374a27aadb1acdba6f41a4f826bf2",
+        "claim": "BnB prequantized/inflight split",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L56",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 24,
+        "source": "vllm@0fc695fc:docs/features/quantization/inc.md#L1-L89",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "docs/features/quantization/inc.md",
+        "start": 1,
+        "end": 89,
+        "source_sha256": "5953b791cd56b98155cd05c6fe52656428be99515851d3c63f46bb561dedd715",
+        "excerpt_sha256": "5953b791cd56b98155cd05c6fe52656428be99515851d3c63f46bb561dedd715",
+        "claim": "AutoRound scheme vs export format",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L89",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 25,
+        "source": "vllm@0fc695fc:docs/features/quantization/modelopt.md#L1-L114",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "docs/features/quantization/modelopt.md",
+        "start": 1,
+        "end": 114,
+        "source_sha256": "0dd98d206c17c81a9a394bb9e966928e85ade8b21e138fb936d729115d7b323a",
+        "excerpt_sha256": "0dd98d206c17c81a9a394bb9e966928e85ade8b21e138fb936d729115d7b323a",
+        "claim": "ModelOpt quant_algo/config/export",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L114",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 26,
+        "source": "vllm@0fc695fc:docs/features/quantization/quark.md#L1-L316",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "docs/features/quantization/quark.md",
+        "start": 1,
+        "end": 316,
+        "source_sha256": "12ccb5ba4f15aa2973818a431daa2d976de2b05df5aeba0d9ffcb5051bd89afe",
+        "excerpt_sha256": "12ccb5ba4f15aa2973818a431daa2d976de2b05df5aeba0d9ffcb5051bd89afe",
+        "claim": "Quark quantization/freeze/export/KV/runtime",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L316",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 27,
+        "source": "vllm@0fc695fc:docs/features/quantization/torchao.md#L1-L43",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "docs/features/quantization/torchao.md",
+        "start": 1,
+        "end": 43,
+        "source_sha256": "be37c7fed4937392d3bf9efb890a6ed32f9bd02f7cf12c439813626c2497cb5f",
+        "excerpt_sha256": "be37c7fed4937392d3bf9efb890a6ed32f9bd02f7cf12c439813626c2497cb5f",
+        "claim": "TorchAO exporter and version-sensitive save recipe",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L43",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 28,
+        "source": "vllm@0fc695fc:vllm/config/quantization.py#L77-L175",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "vllm/config/quantization.py",
+        "start": 77,
+        "end": 175,
+        "source_sha256": "61909466d6d95107dfe9a6791c857b96de70a70813a8a5b6e0e6b6e9d365cc86",
+        "excerpt_sha256": "77c7c5ce58f1583a68240b21c4c6241b7ea9b46b38431e92d8fd5a21b1bcbee4",
+        "claim": "Baseline config/default/whole-spec replacement/explicit-method restriction",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L77-L175",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 29,
+        "source": "vllm@568afb3a:vllm/config/quantization.py#L1-L189",
+        "repo": "vllm",
+        "commit": "568afb3a13806beb53bb2e6bd518269357b237c0",
+        "path": "vllm/config/quantization.py",
+        "start": 1,
+        "end": 189,
+        "source_sha256": "eed48be62047d8fee47603d34d55e25dd8ece6b4493681eedcc3fbc6df964447",
+        "excerpt_sha256": "eed48be62047d8fee47603d34d55e25dd8ece6b4493681eedcc3fbc6df964447",
+        "claim": "v0.26 added shorthands and existing restriction",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L189",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 30,
+        "source": "vllm@ced6857a:vllm/config/quantization.py#L71-L278",
+        "repo": "vllm",
+        "commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+        "path": "vllm/config/quantization.py",
+        "start": 71,
+        "end": 278,
+        "source_sha256": "acffc52f525b39a88efd656f1ed705ce3a1b758298bb0684fac7694776bc10b4",
+        "excerpt_sha256": "ef58f14edc495472d4b0f63e69491f3eb88fa65acb15fbae4cafc2cd3f260d74",
+        "claim": "rc2 targets/exclusivity/deferred/online composition",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L71-L278",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 31,
+        "source": "vllm@84030bbe:vllm/config/quantization.py#L71-L278",
+        "repo": "vllm",
+        "commit": "84030bbe3d74d99bad477a3d2e37a973ccd8865c",
+        "path": "vllm/config/quantization.py",
+        "start": 71,
+        "end": 278,
+        "source_sha256": "acffc52f525b39a88efd656f1ed705ce3a1b758298bb0684fac7694776bc10b4",
+        "excerpt_sha256": "ef58f14edc495472d4b0f63e69491f3eb88fa65acb15fbae4cafc2cd3f260d74",
+        "claim": "main config same as rc2 selected scope",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L71-L278",
+        "read_reuse_source_index": 30,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 32,
+        "source": "vllm@0fc695fc:vllm/model_executor/layers/quantization/online/base.py#L1-L165",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "vllm/model_executor/layers/quantization/online/base.py",
+        "start": 1,
+        "end": 165,
+        "source_sha256": "db1fd506550f95967aacdb7a6c316fffa9eee14af69835a7503290e660101aa2",
+        "excerpt_sha256": "db1fd506550f95967aacdb7a6c316fffa9eee14af69835a7503290e660101aa2",
+        "claim": "Baseline online dispatch and unsupported activation",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L165",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 33,
+        "source": "vllm@ced6857a:vllm/model_executor/layers/quantization/online/base.py#L1-L393",
+        "repo": "vllm",
+        "commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+        "path": "vllm/model_executor/layers/quantization/online/base.py",
+        "start": 1,
+        "end": 393,
+        "source_sha256": "9444ac8c6dbf4f961e7832317b74f68622600ee7d5860b7f0a633359e1c5b4f6",
+        "excerpt_sha256": "9444ac8c6dbf4f961e7832317b74f68622600ee7d5860b7f0a633359e1c5b4f6",
+        "claim": "rc2 online matching/composition/fused consistency",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L393",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 34,
+        "source": "vllm@0fc695fc:vllm/model_executor/model_loader/weight_utils.py#L263-L421",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "vllm/model_executor/model_loader/weight_utils.py",
+        "start": 263,
+        "end": 421,
+        "source_sha256": "49dcddfa0da0daba52c93007e1acbee2be2ae8f2c5f61287126c7b792c970c5c",
+        "excerpt_sha256": "02b5e7fdea98c41c0c309749f4ceb511ecbaa70c877de1ea9bbbc6096bb3be00",
+        "claim": "Baseline metadata/config factory",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L263-L421",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 35,
+        "source": "vllm@ced6857a:vllm/model_executor/model_loader/weight_utils.py#L240-L422",
+        "repo": "vllm",
+        "commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+        "path": "vllm/model_executor/model_loader/weight_utils.py",
+        "start": 240,
+        "end": 422,
+        "source_sha256": "7443e55184777dcc99f621b0d97d9149d52c2ea8b4304c6621eb4902e1c8ba5b",
+        "excerpt_sha256": "478803b19331b64339406beb459c9c698a726a472497ee441dd94e40cc2c3046",
+        "claim": "rc2 metadata/composition factory",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L240-L422",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 36,
+        "source": "vllm@0fc695fc:vllm/model_executor/layers/quantization/online/fp8.py#L58-L190",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "vllm/model_executor/layers/quantization/online/fp8.py",
+        "start": 58,
+        "end": 190,
+        "source_sha256": "39ae2ae1dc8347ecf2571ef2e2fb0555c940dc681b05383a7d677f67d403bdb2",
+        "excerpt_sha256": "21c1dabe283edc1f99ef9eb5c403c57d2185f37d79ad4391a3253da39e84ca1a",
+        "claim": "FP8 load-time weight conversion and dynamic execution",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L58-L190",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 37,
+        "source": "vllm@0fc695fc:vllm/model_executor/model_loader/bitsandbytes_loader.py#L521-L556",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "vllm/model_executor/model_loader/bitsandbytes_loader.py",
+        "start": 521,
+        "end": 556,
+        "source_sha256": "0498ebc652b0d269dd6f331a20c337f33e26d66a63192261546dd956f9d19922",
+        "excerpt_sha256": "fc63eb74592e5995453928a1740f0d314d20734a7d2db97ef0ac7cfca6c6887d",
+        "claim": "BnB prequantized TP rejection",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L521-L556",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 38,
+        "source": "vllm@0fc695fc:vllm/model_executor/layers/quantization/torchao.py#L172-L211",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "vllm/model_executor/layers/quantization/torchao.py",
+        "start": 172,
+        "end": 211,
+        "source_sha256": "a6526c570e461414210c8c1f018acb25a40827fcdeb54c75ea35e0b297214de8",
+        "excerpt_sha256": "fb0f998e04f7d86867ff0f008422d3d1d3d48b6514b0c90a337d900fd11ab930",
+        "claim": "TorchAO serialized config validation",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L172-L211",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 39,
+        "source": "vllm@0fc695fc:vllm/model_executor/layers/quantization/torchao.py#L369-L399",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "vllm/model_executor/layers/quantization/torchao.py",
+        "start": 369,
+        "end": 399,
+        "source_sha256": "a6526c570e461414210c8c1f018acb25a40827fcdeb54c75ea35e0b297214de8",
+        "excerpt_sha256": "6f10907750671bbd535b0c2f4ed42467e038b90ea90e692176708d8e787b9f97",
+        "claim": "TorchAO post-load quantize/repack",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L369-L399",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 40,
+        "source": "vllm@0fc695fc:docs/features/quantization/gguf.md#L1-L87",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "docs/features/quantization/gguf.md",
+        "start": 1,
+        "end": 87,
+        "source_sha256": "4b06e5f42184892b1233767051874a225e23ac58fac59bad8f9d90ae47da73a1",
+        "excerpt_sha256": "4b06e5f42184892b1233767051874a225e23ac58fac59bad8f9d90ae47da73a1",
+        "claim": "Baseline GGUF built-in usage",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L87",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 41,
+        "source": "vllm@568afb3a:docs/features/quantization/gguf.md#L1-L93",
+        "repo": "vllm",
+        "commit": "568afb3a13806beb53bb2e6bd518269357b237c0",
+        "path": "docs/features/quantization/gguf.md",
+        "start": 1,
+        "end": 93,
+        "source_sha256": "d2de9c92ead492098eb48abfb8d6a417241ccb602a135ff20b05a49b0e1a4463",
+        "excerpt_sha256": "d2de9c92ead492098eb48abfb8d6a417241ccb602a135ff20b05a49b0e1a4463",
+        "claim": "v0.26 independent GGUF plugin requirement",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L93",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 42,
+        "source": "https://github.com/vllm-project/vllm-gguf-plugin/blob/e454affe0ca23c9dc8754ec3033270cb30622ed5/README.md#L1-L103",
+        "repo": "vllm-project/vllm-gguf-plugin",
+        "commit": "e454affe0ca23c9dc8754ec3033270cb30622ed5",
+        "path": "README.md",
+        "start": 1,
+        "end": 103,
+        "source_sha256": "0394d081e2ad49976490de84747c02f620a2a99dd92791f8e3e4bd8873edcc2f",
+        "excerpt_sha256": "0394d081e2ad49976490de84747c02f620a2a99dd92791f8e3e4bd8873edcc2f",
+        "claim": "Plugin prerequisites and runtime capabilities",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L103",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 43,
+        "source": "https://github.com/vllm-project/vllm-gguf-plugin/blob/e454affe0ca23c9dc8754ec3033270cb30622ed5/vllm_gguf_plugin/plugin.py#L1-L148",
+        "repo": "vllm-project/vllm-gguf-plugin",
+        "commit": "e454affe0ca23c9dc8754ec3033270cb30622ed5",
+        "path": "vllm_gguf_plugin/plugin.py",
+        "start": 1,
+        "end": 148,
+        "source_sha256": "f414bfc427b5e9142408bb1be23a71d23fb451327ff9182142f1aa5f91f05f1a",
+        "excerpt_sha256": "f414bfc427b5e9142408bb1be23a71d23fb451327ff9182142f1aa5f91f05f1a",
+        "claim": "Plugin method/loader/parser registration",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L148",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 44,
+        "source": "https://github.com/huggingface/transformers/blob/6488cabb56d4bffe6d19ece65e8bd794c642ef93/docs/source/en/quantization/torchao.md#L540-L646",
+        "repo": "huggingface/transformers",
+        "commit": "6488cabb56d4bffe6d19ece65e8bd794c642ef93",
+        "path": "docs/source/en/quantization/torchao.md",
+        "start": 540,
+        "end": 646,
+        "source_sha256": "ce391ea01bd184eaf622ff228c40d2a4627ebe888fcad4f1dd400ada423024f8",
+        "excerpt_sha256": "fd77c661ec2f149a978d7127e37cb749cf2a3e2f60f2c6a95aed2c1eb04b2127",
+        "claim": "TorchAO serialization and device layout constraints",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L540-L646",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 45,
+        "source": "https://github.com/intel/auto-round/blob/a85997e19d97762172155c93c4dfc3fcc3976e71/docs/step_by_step.md#L492-L495",
+        "repo": "intel/auto-round",
+        "commit": "a85997e19d97762172155c93c4dfc3fcc3976e71",
+        "path": "docs/step_by_step.md",
+        "start": 492,
+        "end": 495,
+        "source_sha256": "4bb35bcafd959cc3bda9aaab8d3b250dce57a2137fc8417e3734e8cd9a8283ac",
+        "excerpt_sha256": "b57fc5929449dbf9c41b0ac5fdf0e70195374f54da02459de4d9106e703fb347",
+        "claim": "AutoRound algorithm separate from export format",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L492-L495",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 46,
+        "source": "https://github.com/ModelCloud/GPTQModel/blob/be3852bf9871785f5fb8f01f359105590a5928b2/README.md#L1132-L1186",
+        "repo": "ModelCloud/GPTQModel",
+        "commit": "be3852bf9871785f5fb8f01f359105590a5928b2",
+        "path": "README.md",
+        "start": 1132,
+        "end": 1186,
+        "source_sha256": "1f45929dc4066e9b6367d0c38504217d26f2a4a3bc96b42a81ed2efde6b23c1c",
+        "excerpt_sha256": "6c7bfa91f8ec0fbda80d8486a56e6f6bd31e0e1e678196cd10b9866ecdc12379",
+        "claim": "GPTQModel dynamic module config/fused boundary",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1132-L1186",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 47,
+        "source": "vllm-ascend@7d825229:vllm_ascend/quantization/configs/modelopt_mxfp8_config.py#L1-L88",
+        "repo": "vllm-ascend",
+        "commit": "7d825229c77025cfb185a010c25819c1214b9450",
+        "path": "vllm_ascend/quantization/configs/modelopt_mxfp8_config.py",
+        "start": 1,
+        "end": 88,
+        "source_sha256": "e5f01f452410bb540699b2dd88debcf2935b29809c03c2a1e97f1dbeb0a6e45e",
+        "excerpt_sha256": "e5f01f452410bb540699b2dd88debcf2935b29809c03c2a1e97f1dbeb0a6e45e",
+        "claim": "Ascend rc2 MXFP8 registration/dispatch",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L88",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 48,
+        "source": "vllm-ascend@baa023ad:vllm_ascend/quantization/configs/modelopt_mxfp8_config.py#L1-L88",
+        "repo": "vllm-ascend",
+        "commit": "baa023ada41a5b889cac6249845a688aab130892",
+        "path": "vllm_ascend/quantization/configs/modelopt_mxfp8_config.py",
+        "start": 1,
+        "end": 88,
+        "source_sha256": "e5f01f452410bb540699b2dd88debcf2935b29809c03c2a1e97f1dbeb0a6e45e",
+        "excerpt_sha256": "e5f01f452410bb540699b2dd88debcf2935b29809c03c2a1e97f1dbeb0a6e45e",
+        "claim": "Ascend main MXFP8 registration/dispatch",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L1-L88",
+        "read_reuse_source_index": 47,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 49,
+        "source": "vllm@0fc695fc:vllm/config/vllm.py#L606-L647",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "vllm/config/vllm.py",
+        "start": 606,
+        "end": 647,
+        "source_sha256": "ba062ec38d075937b73d953059cf1d0e1b96f1474990bc6d45ed45e20ba6a336",
+        "excerpt_sha256": "a17d212de9f121515316eb1133924a6fa03b4ee474e3229761c898fbd196c008",
+        "claim": "Quantization factory/platform capability/dtype check",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L606-L647",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 50,
+        "source": "vllm@0fc695fc:vllm/config/model.py#L996-L1096",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "vllm/config/model.py",
+        "start": 996,
+        "end": 1096,
+        "source_sha256": "cf5aeb9e16d6cac82426cf7e8d140741b35c503ae8b9e1fc9ba3dde53c585a62",
+        "excerpt_sha256": "3385810f22434a76c7110d3341fb3d7a8389fd9313354c91253baa2c5abd64ee",
+        "claim": "Method metadata detection and mismatch check",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L996-L1096",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 51,
+        "source": "vllm@0fc695fc:vllm/model_executor/layers/quantization/quark/quark.py#L145-L220",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "vllm/model_executor/layers/quantization/quark/quark.py",
+        "start": 145,
+        "end": 220,
+        "source_sha256": "20d9fced2a2f24e2c43287166b9116a2bf0cc76074edfe9fa3050082f2ce4fba",
+        "excerpt_sha256": "b2cf9f15140afbabbb418b214744aa7c1a654a03ba2721a020b44e0d09bdeaa1",
+        "claim": "Quark metadata export and KV consistency",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L145-L220",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 52,
+        "source": "vllm@0fc695fc:vllm/model_executor/layers/quantization/modelopt.py#L276-L361",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "vllm/model_executor/layers/quantization/modelopt.py",
+        "start": 276,
+        "end": 361,
+        "source_sha256": "1c58627e479e13aea2ad26c5da122a3a65a7335c3a06a812d4a7f5a20e94ef11",
+        "excerpt_sha256": "6ea39fa544691e970ae92a6508cb954e02dd301a600a3df12af1a5c86a23bbe4",
+        "claim": "ModelOpt legacy/new metadata parser",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L276-L361",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 53,
+        "source": "https://github.com/vllm-project/llm-compressor/blob/5dea0c4431bdc7e15d8d802edb250ea50ec2e78c/README.md#L185-L252",
+        "repo": "vllm-project/llm-compressor",
+        "commit": "5dea0c4431bdc7e15d8d802edb250ea50ec2e78c",
+        "path": "README.md",
+        "start": 185,
+        "end": 252,
+        "source_sha256": "63780ea82474a1b24e99f2658ad7c23b3ad27b30fd0a23bac93e404a7ecaba79",
+        "excerpt_sha256": "662a8c47374e00708b9a4d7bf77b3bed69600021ec6f684edc104a88b9e39002",
+        "claim": "LLMCompressor compressed tensors workflow",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L185-L252",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      },
+      {
+        "index": 54,
+        "source": "vllm@0fc695fc:vllm/model_executor/layers/quantization/__init__.py#L69-L192",
+        "repo": "vllm",
+        "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "path": "vllm/model_executor/layers/quantization/__init__.py",
+        "start": 69,
+        "end": 192,
+        "source_sha256": "f0bc01f075c4d0af6c4f311316fa968146d6638f32f380989b6d74cd8f4cd952",
+        "excerpt_sha256": "1d59c4be61bfa640cd5d8253e767b1c0e08190d6e684880605cf71842cf18eca",
+        "claim": "Custom method override registry",
+        "independent_semantic_verdict": "supports_scoped_current_teaching_claim",
+        "independent_actual_read_scope": "L69-L192",
+        "read_reuse_source_index": null,
+        "raw_and_excerpt_hash_verified": true
+      }
+    ],
+    "additional": [
+      "W4A8 L75-L78 and FP8 L181-L190 filled before updated citations",
+      "47-line baseline to v0.26 online/base diff",
+      "rc2/main whole config and online/base equality hashes; v0.26/rc2/main GGUF whole doc equality hashes"
+    ],
+    "not_claimed_full": [
+      "all Quark child docs independently",
+      "all AutoRound advanced recipes",
+      "GPTQModel full backend/news sections",
+      "all recursively linked sources"
+    ]
+  },
+  "closed_findings": [
+    {
+      "severity": "P2",
+      "id": "general_before_glm",
+      "status": "author_fixed_independently_verified"
+    },
+    {
+      "severity": "P2",
+      "id": "w4a8_range75",
+      "status": "author_fixed_independently_verified"
+    },
+    {
+      "severity": "P2",
+      "id": "fp8_apply_range190",
+      "status": "author_fixed_independently_verified"
+    },
+    {
+      "severity": "P2",
+      "id": "autoawq_deprecation",
+      "status": "author_fixed_independently_verified"
+    },
+    {
+      "severity": "P2",
+      "id": "gguf_old_single_file",
+      "status": "author_fixed_independently_verified"
+    }
+  ],
+  "preservation": [
+    {
+      "path": "wiki/concepts/quantization-methods.md",
+      "before_sha256": "8633a72a9463de03e8975a795c5cbc641cfe647538906b398cf58b82a0755bf5",
+      "after_sha256": "f9f9567dbecbaca3875afefd38e5168dbccdbb5849c1c4c6fcee7eac856d7696",
+      "byte_identical": false,
+      "old_source_count": 15,
+      "old_sources_identical_prefix": true
+    },
+    {
+      "path": "wiki/concepts/quantization.md",
+      "before_sha256": "96ce4d479640c5c182f4fa3827c09e3b5f78b53c5146855c56f71b20a87c50d3",
+      "after_sha256": "6947ffc3cd2b28da5100b7ce4ab573c2a045b67fc4960d92a0f5eab15bbe0b51",
+      "byte_identical": false,
+      "old_source_count": 55,
+      "old_sources_identical_prefix": true
+    },
+    {
+      "path": "wiki/diagrams/quantization-methods-intuition.yaml",
+      "before_sha256": "7e2627ba6c9d71192d6121bcef36d1300f4f3d2f7863020281a55ef1729abe49",
+      "after_sha256": "7e2627ba6c9d71192d6121bcef36d1300f4f3d2f7863020281a55ef1729abe49",
+      "byte_identical": true
+    },
+    {
+      "path": "wiki/diagrams/quantization-methods-intuition.svg",
+      "before_sha256": "26fecb3800eb24a5892e07842cba7a81af65221f4fa6ade977b478ea6577f633",
+      "after_sha256": "26fecb3800eb24a5892e07842cba7a81af65221f4fa6ade977b478ea6577f633",
+      "byte_identical": true
+    },
+    {
+      "path": "wiki/diagrams/quantization-methods-flow.yaml",
+      "before_sha256": "404ba1c340fda10bff6b8c409894da09b9f238b78d1c345ae84f859c9af44138",
+      "after_sha256": "404ba1c340fda10bff6b8c409894da09b9f238b78d1c345ae84f859c9af44138",
+      "byte_identical": true
+    },
+    {
+      "path": "wiki/diagrams/quantization-methods-flow.svg",
+      "before_sha256": "a8e01265167421a24978cde4138a22554c2bb663c7f4852528aaa54572be59b9",
+      "after_sha256": "a8e01265167421a24978cde4138a22554c2bb663c7f4852528aaa54572be59b9",
+      "byte_identical": true
+    },
+    {
+      "path": "wiki/diagrams/quantization.yaml",
+      "before_sha256": "1c05b2d7c68d3ad801e666dc4a3a9cf679629ac62593d82d04d1868bc0fcb7e0",
+      "after_sha256": "1c05b2d7c68d3ad801e666dc4a3a9cf679629ac62593d82d04d1868bc0fcb7e0",
+      "byte_identical": true
+    },
+    {
+      "path": "wiki/diagrams/quantization.svg",
+      "before_sha256": "56c2c97ea9b2ab33c956f36cc4400b78c8e049dd4e6a502c7b0d40a4c3cff255",
+      "after_sha256": "56c2c97ea9b2ab33c956f36cc4400b78c8e049dd4e6a502c7b0d40a4c3cff255",
+      "byte_identical": true
+    },
+    {
+      "path": "wiki/diagrams/quantization-intuition.yaml",
+      "before_sha256": "e67a3494e957b0f0cc9537095816e37e022e40996a565636d3c94140962e448d",
+      "after_sha256": "e67a3494e957b0f0cc9537095816e37e022e40996a565636d3c94140962e448d",
+      "byte_identical": true
+    },
+    {
+      "path": "wiki/diagrams/quantization-intuition.svg",
+      "before_sha256": "1def4a3114ad4757dd3e8e6486778cd5e214f21c0829914ee9fba48f91ddc953",
+      "after_sha256": "1def4a3114ad4757dd3e8e6486778cd5e214f21c0829914ee9fba48f91ddc953",
+      "byte_identical": true
+    },
+    {
+      "path": "wiki/diagrams/quantization-dot.yaml",
+      "before_sha256": "df1070a7b3cc94e9ffbf420f36c66e012b13b62e8a3c38bf8d1b370c76f3549b",
+      "after_sha256": "df1070a7b3cc94e9ffbf420f36c66e012b13b62e8a3c38bf8d1b370c76f3549b",
+      "byte_identical": true
+    },
+    {
+      "path": "wiki/diagrams/quantization-dot.svg",
+      "before_sha256": "876206099cac5886ad135221d8e260f36c08b5aa9ed6567abc1c481f06d2c017",
+      "after_sha256": "876206099cac5886ad135221d8e260f36c08b5aa9ed6567abc1c481f06d2c017",
+      "byte_identical": true
+    },
+    {
+      "path": "wiki/diagrams/quantization-flow.yaml",
+      "before_sha256": "301f1f55d94cf2fdcb11528bdb87983d1656db73f290979d87312a1f50878e53",
+      "after_sha256": "301f1f55d94cf2fdcb11528bdb87983d1656db73f290979d87312a1f50878e53",
+      "byte_identical": true
+    },
+    {
+      "path": "wiki/diagrams/quantization-flow.svg",
+      "before_sha256": "bd0680d3c8685cb40c46a95ed89f07757d23883b6a62c15c345b6550f19bee82",
+      "after_sha256": "bd0680d3c8685cb40c46a95ed89f07757d23883b6a62c15c345b6550f19bee82",
+      "byte_identical": true
+    }
+  ],
+  "auxiliary": {
+    "same_version_files": [
+      {
+        "path": "vllm/config/quantization.py",
+        "commits": [
+          "ced6857a",
+          "84030bbe"
+        ],
+        "identical": true,
+        "sha256": "acffc52f525b39a88efd656f1ed705ce3a1b758298bb0684fac7694776bc10b4"
+      },
+      {
+        "path": "vllm/model_executor/layers/quantization/online/base.py",
+        "commits": [
+          "ced6857a",
+          "84030bbe"
+        ],
+        "identical": true,
+        "sha256": "9444ac8c6dbf4f961e7832317b74f68622600ee7d5860b7f0a633359e1c5b4f6"
+      },
+      {
+        "path": "docs/features/quantization/gguf.md",
+        "commits": [
+          "568afb3a",
+          "ced6857a",
+          "84030bbe"
+        ],
+        "identical": true,
+        "sha256": "d2de9c92ead492098eb48abfb8d6a417241ccb602a135ff20b05a49b0e1a4463"
+      }
+    ],
+    "glm_section_identical": true,
+    "math": {
+      "int4_payload_bytes": 128,
+      "group128_total": 132,
+      "group32_total": 144,
+      "group32_bits_per_weight": 4.5,
+      "smooth_before": "3.0",
+      "smooth_after": "3",
+      "dot_int": 10438,
+      "dot_quantized": "2.0876",
+      "dot_original": "2.0888"
+    }
+  },
+  "browser": {
+    "report": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\report.json",
+    "report_sha256": "c72cb5d1fab917da1e101eb724ac437e9c8cda44e7a06fd7a836d0fe3c908ee1",
+    "pages": {
+      "quantization-methods": "f9f9567dbecbaca3875afefd38e5168dbccdbb5849c1c4c6fcee7eac856d7696",
+      "quantization": "6947ffc3cd2b28da5100b7ce4ab573c2a045b67fc4960d92a0f5eab15bbe0b51"
+    },
+    "zero_pageerrors": true,
+    "zero_page_overflow": true,
+    "crosslinks": [
+      {
+        "from": "quantization-methods",
+        "link": "插件入口",
+        "url": "http://127.0.0.1:5201/#/wiki/platform-plugin-registration"
+      },
+      {
+        "from": "quantization-methods",
+        "link": "Ascend 的逐层配置与算子选择",
+        "url": "http://127.0.0.1:5201/#/wiki/quantization#%E6%80%8E%E4%B9%88%E5%BC%80"
+      },
+      {
+        "from": "quantization",
+        "link": "量化发生在哪个环节",
+        "url": "http://127.0.0.1:5201/#/wiki/quantization-methods#%E6%96%87%E4%BB%B6%E5%B7%B2%E7%BB%8F%E9%87%8F%E5%8C%96%E5%8A%A0%E8%BD%BD%E6%97%B6%E9%87%8F%E5%8C%96%E6%AF%8F%E6%AD%A5%E9%87%8F%E5%8C%96%E5%90%84%E5%8F%91%E7%94%9F%E5%9C%A8%E4%BB%80%E4%B9%88%E6%97%B6%E5%80%99"
+      }
+    ],
+    "page_screenshots_actually_viewed": 38,
+    "old_scene_followup": {
+      "scope": "unchanged existing W8A8 scene playback regression only",
+      "errors": [],
+      "states": [
+        {
+          "i": 0,
+          "value": "0.3",
+          "text": "交互图解 · 数据与计算\n整数怎样算，缩放系数怎样乘回来？\n暂停\n0 / 63s\n0.5×\n1×\n2×\n放大观看\n激活 X · 1 token × 3 通道\n0.523\n-0.31\n1.27\n权重 W · 3 通道 × 1 输出\n0.4\n-2.54\n0.86\n激活 INT8\n权重 INT8\n逐通道乘积\n宽整数累加\n乘回系数后的值\nsₓ = 0.01\ns𝑤 = 0.02\nNPU 模组 · 显存中的 INT8 张量\n整数保留缩放关系 · 激活与权重各有一份系数\n上方看卡内数据与收发 · 下方展开同一份内容 · 可拖动旋转\n复位\n01\n原数与缩放\n02\n权重离线量化\n03\n激活逐行量化\n04\n三个整数乘积\n05\n用宽整数累加\n06\n乘回两份缩放\n07\n对照误差与载荷\nW8A8 · 1 / 7\n原数与缩放\n\n激活是一行三个通道，权重是一列三个通道。两者最大绝对值分别为 1.27、2.54，缩放系数分别取 0.01、0.02。\n\n每个结果都有对应的行、列系数\n激活行系数\n0.01\n权重列系数\n0.02\n宽整数累加\n尚未完成\n量化数学结果\n等待乘回系数\n原数直接点积\n2.0888\n绝对误差\n待比较\nBF16 元素 · 12 B\nINT8 元素 · 6 B\n\n缩放系数、宽整数累加区与工作区另计；这不是整个算子的显存占用。\n\n沿用正文三通道、零点为 0 的对称量化算例。显示数学上的反量化值；最终存成 BF16 还会产生该类型的舍入。只比较张量元素载荷，另有缩放系数与工作区。"
+        },
+        {
+          "i": 1,
+          "value": "14.65",
+          "text": "交互图解 · 数据与计算\n整数怎样算，缩放系数怎样乘回来？\n暂停\n14 / 63s\n0.5×\n1×\n2×\n放大观看\n激活 X · 1 token × 3 通道\n0.523\n-0.31\n1.27\n权重 W · 3 通道 × 1 输出\n0.4\n-2.54\n0.86\n激活 INT8\n权重 INT8\n逐通道乘积\n宽整数累加\n乘回系数后的值\nsₓ = 0.01\ns𝑤 = 0.02\nNPU 模组 · 显存中的 INT8 张量\n0.4\n-2.54\n0.86\n整数保留缩放关系 · 激活与权重各有一份系数\n上方看卡内数据与收发 · 下方展开同一份内容 · 可拖动旋转\n复位\n01\n原数与缩放\n02\n权重离线量化\n03\n激活逐行量化\n04\n三个整数乘积\n05\n用宽整数累加\n06\n乘回两份缩放\n07\n对照误差与载荷\nW8A8 · 2 / 7\n权重离线量化\n\n权重除以 0.02 再取整，得到 [20,−127,43]。权重量化在部署前离线完成，整数及系数留作后续复用。\n\n每个结果都有对应的行、列系数\n激活行系数\n0.01\n权重列系数\n0.02\n宽整数累加\n尚未完成\n量化数学结果\n等待乘回系数\n原数直接点积\n2.0888\n绝对误差\n待比较\nBF16 元素 · 12 B\nINT8 元素 · 6 B\n\n缩放系数、宽整数累加区与工作区另计；这不是整个算子的显存占用。\n\n沿用正文三通道、零点为 0 的对称量化算例。显示数学上的反量化值；最终存成 BF16 还会产生该类型的舍入。只比较张量元素载荷，另有缩放系数与工作区。"
+        },
+        {
+          "i": 2,
+          "value": "28.65",
+          "text": "交互图解 · 数据与计算\n整数怎样算，缩放系数怎样乘回来？\n暂停\n28 / 63s\n0.5×\n1×\n2×\n放大观看\n激活 X · 1 token × 3 通道\n0.523\n-0.31\n1.27\n权重 W · 3 通道 × 1 输出\n0.4\n-2.54\n0.86\n激活 INT8\n52\n-31\n127\n权重 INT8\n20\n-127\n43\n逐通道乘积\n宽整数累加\n乘回系数后的值\nsₓ = 0.01\ns𝑤 = 0.02\nNPU 模组 · 显存中的 INT8 张量\n52 × 20\n上方看卡内数据与收发 · 下方展开同一份内容 · 可拖动旋转\n复位\n01\n原数与缩放\n02\n权重离线量化\n03\n激活逐行量化\n04\n三个整数乘积\n05\n用宽整数累加\n06\n乘回两份缩放\n07\n对照误差与载荷\nW8A8 · 4 / 7\n三个整数乘积\n\n逐一对齐同通道的两个整数：52×20、(−31)×(−127)、127×43。每个乘积算出后留在对应格子。\n\n每个结果都有对应的行、列系数\n激活行系数\n0.01\n权重列系数\n0.02\n宽整数累加\n尚未完成\n量化数学结果\n等待乘回系数\n原数直接点积\n2.0888\n绝对误差\n待比较\nBF16 元素 · 12 B\nINT8 元素 · 6 B\n\n缩放系数、宽整数累加区与工作区另计；这不是整个算子的显存占用。\n\n沿用正文三通道、零点为 0 的对称量化算例。显示数学上的反量化值；最终存成 BF16 还会产生该类型的舍入。只比较张量元素载荷，另有缩放系数与工作区。"
+        },
+        {
+          "i": 3,
+          "value": "42.6",
+          "text": "交互图解 · 数据与计算\n整数怎样算，缩放系数怎样乘回来？\n暂停\n42 / 63s\n0.5×\n1×\n2×\n放大观看\n激活 X · 1 token × 3 通道\n0.523\n-0.31\n1.27\n权重 W · 3 通道 × 1 输出\n0.4\n-2.54\n0.86\n激活 INT8\n52\n-31\n127\n权重 INT8\n20\n-127\n43\n逐通道乘积\n1040\n3937\n5461\n宽整数累加\n10438\n乘回系数后的值\nsₓ = 0.01\ns𝑤 = 0.02\nNPU 模组 · 显存中的 INT8 张量\n1040 + 3937 + 5461 = 10438\n上方看卡内数据与收发 · 下方展开同一份内容 · 可拖动旋转\n复位\n01\n原数与缩放\n02\n权重离线量化\n03\n激活逐行量化\n04\n三个整数乘积\n05\n用宽整数累加\n06\n乘回两份缩放\n07\n对照误差与载荷\nW8A8 · 5 / 7\n用宽整数累加\n\n三个乘积相加得到 10438，明显超过 INT8 的范围。这里用宽整数记录累加结果，不能把累加器也当成 8 位。\n\n每个结果都有对应的行、列系数\n激活行系数\n0.01\n权重列系数\n0.02\n宽整数累加\n10438\n量化数学结果\n等待乘回系数\n原数直接点积\n2.0888\n绝对误差\n待比较\nBF16 元素 · 12 B\nINT8 元素 · 6 B\n\n缩放系数、宽整数累加区与工作区另计；这不是整个算子的显存占用。\n\n沿用正文三通道、零点为 0 的对称量化算例。显示数学上的反量化值；最终存成 BF16 还会产生该类型的舍入。只比较张量元素载荷，另有缩放系数与工作区。"
+        },
+        {
+          "i": 4,
+          "value": "56.8",
+          "text": "交互图解 · 数据与计算\n整数怎样算，缩放系数怎样乘回来？\n暂停\n56 / 63s\n0.5×\n1×\n2×\n放大观看\n激活 X · 1 token × 3 通道\n0.523\n-0.31\n1.27\n权重 W · 3 通道 × 1 输出\n0.4\n-2.54\n0.86\n激活 INT8\n52\n-31\n127\n权重 INT8\n20\n-127\n43\n逐通道乘积\n1040\n3937\n5461\n宽整数累加\n10438\n乘回系数后的值\n2.0876\nsₓ = 0.01\ns𝑤 = 0.02\nNPU 模组 · 显存中的 INT8 张量\n10438 × 0.01 × 0.02 = 2.0876\n上方看卡内数据与收发 · 下方展开同一份内容 · 可拖动旋转\n复位\n01\n原数与缩放\n02\n权重离线量化\n03\n激活逐行量化\n04\n三个整数乘积\n05\n用宽整数累加\n06\n乘回两份缩放\n07\n对照误差与载荷\nW8A8 · 7 / 7\n对照误差与载荷\n\n原数直接点积是 2.0888，量化数学结果是 2.0876，差 0.0012。六个 BF16 元素共 12 B，六个 INT8 元素共 6 B；系数和累加区另计。\n\n每个结果都有对应的行、列系数\n激活行系数\n0.01\n权重列系数\n0.02\n宽整数累加\n10438\n量化数学结果\n2.0876\n原数直接点积\n2.0888\n绝对误差\n0.0012\nBF16 元素 · 12 B\nINT8 元素 · 6 B\n\n缩放系数、宽整数累加区与工作区另计；这不是整个算子的显存占用。\n\n沿用正文三通道、零点为 0 的对称量化算例。显示数学上的反量化值；最终存成 BF16 还会产生该类型的舍入。只比较张量元素载荷，另有缩放系数与工作区。"
+        },
+        {
+          "i": 5,
+          "value": "63",
+          "text": "交互图解 · 数据与计算\n整数怎样算，缩放系数怎样乘回来？\n重新播放\n63 / 63s\n0.5×\n1×\n2×\n放大观看\n激活 X · 1 token × 3 通道\n0.523\n-0.31\n1.27\n权重 W · 3 通道 × 1 输出\n0.4\n-2.54\n0.86\n激活 INT8\n52\n-31\n127\n权重 INT8\n20\n-127\n43\n逐通道乘积\n1040\n3937\n5461\n宽整数累加\n10438\n乘回系数后的值\n2.0876\nsₓ = 0.01\ns𝑤 = 0.02\nNPU 模组 · 显存中的 INT8 张量\n10438 × 0.01 × 0.02 = 2.0876\n上方看卡内数据与收发 · 下方展开同一份内容 · 可拖动旋转\n复位\n01\n原数与缩放\n02\n权重离线量化\n03\n激活逐行量化\n04\n三个整数乘积\n05\n用宽整数累加\n06\n乘回两份缩放\n07\n对照误差与载荷\nW8A8 · 7 / 7\n对照误差与载荷\n\n原数直接点积是 2.0888，量化数学结果是 2.0876，差 0.0012。六个 BF16 元素共 12 B，六个 INT8 元素共 6 B；系数和累加区另计。\n\n每个结果都有对应的行、列系数\n激活行系数\n0.01\n权重列系数\n0.02\n宽整数累加\n10438\n量化数学结果\n2.0876\n原数直接点积\n2.0888\n绝对误差\n0.0012\nBF16 元素 · 12 B\nINT8 元素 · 6 B\n\n缩放系数、宽整数累加区与工作区另计；这不是整个算子的显存占用。\n\n沿用正文三通道、零点为 0 的对称量化算例。显示数学上的反量化值；最终存成 BF16 还会产生该类型的舍入。只比较张量元素载荷，另有缩放系数与工作区。"
+        }
+      ]
+    },
+    "old_scene_screenshots_actually_viewed": 7,
+    "source_image_actually_viewed": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\external\\compressor-flow.png",
+    "images": [
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\click1.png",
+        "sha256": "5316cc3b3f3b8ae209f877a214932326b1a91f477e3b39344d8dd4cb96f8e5db",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\click2.png",
+        "sha256": "fc7dbcb6d1e4dd36c85183ae8b6f666f9a2bba55089368a9fd1094e3c7e3bf2f",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\click3.png",
+        "sha256": "21b34805bbf0a20567b048bc52befba00bafa1a6159556410e9da1b517b9df91",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-figure0.png",
+        "sha256": "9918c15dcb33c215ad0973ade9053d64a62a4dcbe789ab3b2ac0d55900ff1a32",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-figure1.png",
+        "sha256": "9907690948cddf3d635ce8c0d1ff6f5f24ee76032f7ad1e274e7383f0dc37707",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-figure2.png",
+        "sha256": "8c68621155eb8b58355f7634f6f476b46c9eb22e24e2f9e95a35106e7f534b6e",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-figure3.png",
+        "sha256": "05ee8e559b40a6050b5a8c75b6b7e4f7e48ff55fb2e4a05e517aeadca7f91a9b",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-figure4.png",
+        "sha256": "6a3fb6a5f1be57bd69465ec629b35eecfa65dc14255df349457d598347b8f766",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-figure5.png",
+        "sha256": "33f5c234246d780d3cd8b5b007166be411c6b5b5bba2ee2956abef66bfe716cb",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-figure6.png",
+        "sha256": "1b32085f3ae973bf83386850910f5ed504567c9b71e3cf2e2745757598896d07",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-figure7.png",
+        "sha256": "ddb15d4bd6bfe85cb62a236b551fa52bc3f06ef747a822f4390a9565c9c8efe7",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-figure8.png",
+        "sha256": "b09924d645d729e6098e9816a6728dae0272826cc1f037ce2b00181ecb390b79",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-figure0.png",
+        "sha256": "d815e2b93f1317c56a76b8c551028aff40f46b73231760a9eccbb7f97614603d",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-figure1.png",
+        "sha256": "d7914333d1bac4f99f709a9be7040896dfb526e197afc2b06f8b756eecb37470",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-figure2.png",
+        "sha256": "8786530e6bb6b7306047a78808783c95a758a0e8a6da19e97e60eb842ff270f6",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-figure3.png",
+        "sha256": "542cb7710993cc2eaaebb11af6ec81bcfba6a593d87c903dc72807257e9d91f6",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-screen0.png",
+        "sha256": "ccd237c1b69f25b2138fbbf46b0f768a88289713a1da2bc0fe630ba60f620ae6",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-screen1.png",
+        "sha256": "0f6bcdd7be2d93d499dbe5ba13dec6d735a5704808a21687a32f28ad988b5a05",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-section0.png",
+        "sha256": "5cf61579b1902fafd09619c64dc66085e080926524a8fff832c763416da16d6e",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-section1.png",
+        "sha256": "dc253ec1e9ea95487f6eb08c0e8796597bb678ec45a23c8cedcd670edc46e1e7",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-section2.png",
+        "sha256": "d8835fd350cc6dc0074b1b47046553be065013efb7a765e586a8d7a3d3d252dd",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-section3.png",
+        "sha256": "3828a6cf08a717866c09791128696dda60fd728ead1628f6c075bf20f935cafa",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-section4.png",
+        "sha256": "f6fc6cdb510f6dd2073b8101a8b42ebe6a395b0fa51703854ebea1e841366b0b",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-section5.png",
+        "sha256": "15270166b6450d02c21357171caf1c9a67d1f91ce3fadb14d9c3d3d0d89cca99",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-table0.png",
+        "sha256": "c7b587aab01b810c2963d1650c6c3d13d6e32e82d310d20675262e7737fcf5a3",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-table1.png",
+        "sha256": "6bc9cfe226421126d3a522ec242083b92af2d8537c7c373fbca58f1a049729f1",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-table2.png",
+        "sha256": "290a6e572fef6aedb2a6ab84d09ce9daf7df79702acd9769770f26c71194258f",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-methods-table3.png",
+        "sha256": "85855a7e7102967a019aca5b3c7ce9f65c0031c641d3a48876e775b660f07bed",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-screen0.png",
+        "sha256": "81c6a86c7027a4c58bb3735d8814e23d78758aedbcca3fe97aef00b2dd117212",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-screen1.png",
+        "sha256": "fdae380028258cfed3aa31e2ebdd58d5368d908cf134dd171414341f31a5981f",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-section0.png",
+        "sha256": "c2ddf11af075c81aa142e62507623a3467eeabe61b32c91db263e278cd8c39b7",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-table0.png",
+        "sha256": "ef78febd04360b11954d73abecc41db11843675d06f8be33832d99d4539aa5f5",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-table1.png",
+        "sha256": "35f155e586a8cf7bb5f0556f6c4b487f188112abb65d181cf5f68d217f51e282",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-table2.png",
+        "sha256": "6727aec96c65d7361834dbfa2ff11a7730e4e396d467ff8567ff3cdbd97ad48a",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-table3.png",
+        "sha256": "94fcc8576853d25e6caad004d91489870aafc9821da0875af90f5a27c0229209",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-table4.png",
+        "sha256": "ebfec954277e0ccb6eb9795dc77991404e0be2de54af17c21abed49df291c80c",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-table5.png",
+        "sha256": "6d09ca3d96cdedb010954c3c6c2cc8c93ac6546749e63f4ba054ec832bfc2e24",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\quantization-table6.png",
+        "sha256": "a364c2f2dd75bd0452822fe6cddb23947683def3a07a3481e1d3f9a6e00c0ad1",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\scene-expanded.png",
+        "sha256": "757dd395169e899e8c0cb2849b9b1378ade1b0b4119a058ec3dd1874553fb387",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\scene-play-0.png",
+        "sha256": "b024a7ea4adfefaa4c9a1e5db86d54bb1caa4a5cda44d2276c2c5bd9fd93898a",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\scene-play-1.png",
+        "sha256": "c656b5b0950a9b944bbc429b7cbbfc8831209bc127fb92e8bacb1256b3915aa8",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\scene-play-2.png",
+        "sha256": "56f2fef65efb59e28ea8325b129ae7a1b48547a4c631df45e142b4924b627f7b",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\scene-play-3.png",
+        "sha256": "cc28129c41e21df65158720902c5260042b27153bad90eb1a4863e25a496cdde",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\scene-play-4.png",
+        "sha256": "e6717bbc15b956ce84c9b52b58e0fd4d0fb0e5b2b2eadc481d0d1b0ed57a0e5f",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\independent\\browser\\scene-play-5.png",
+        "sha256": "bcf724c6c25d803f307a76170119cecb5ef2b5cc0c9fe8bbf31f67fb01f7fe93",
+        "actually_viewed": true
+      },
+      {
+        "path": ".tmp\\continuation-groups-2026-11-10\\quant-tail\\external\\compressor-flow.png",
+        "sha256": "2606d8fdb24f0868b0c760021b92425e96120f17339d8a7e69b954c36ab1124b",
+        "actually_viewed": true
+      }
+    ]
+  },
+  "measure": [
+    {
+      "id": "quantization-methods",
+      "measure": {
+        "words": 4548,
+        "inlineCode": 14,
+        "codePerK": 3.0782761653474053,
+        "marks": 0,
+        "calc": 2,
+        "calcPerK": 0.4397537379067722,
+        "sentences": 125,
+        "hedged": 3,
+        "hedgeRatio": 0.024,
+        "sourceSections": null,
+        "stacked": [],
+        "diagramFirst": null,
+        "wideDiagrams": []
+      },
+      "firstDiagramBodyLine": 6,
+      "calcBeforeFirstDiagram": 0,
+      "numericTokensBeforeFirstDiagram": []
+    },
+    {
+      "id": "quantization",
+      "measure": {
+        "words": 5823,
+        "inlineCode": 6,
+        "codePerK": 1.0303967027305512,
+        "marks": 0,
+        "calc": 4,
+        "calcPerK": 0.6869311351537009,
+        "sentences": 157,
+        "hedged": 2,
+        "hedgeRatio": 0.012738853503184714,
+        "sourceSections": null,
+        "stacked": [],
+        "diagramFirst": null,
+        "wideDiagrams": []
+      },
+      "firstDiagramBodyLine": 10,
+      "calcBeforeFirstDiagram": 0,
+      "numericTokensBeforeFirstDiagram": [
+        "16",
+        "16",
+        "2",
+        "8",
+        "8",
+        "1",
+        "128",
+        "127",
+        "256",
+        "16",
+        "8",
+        "2",
+        "1",
+        "0.26",
+        "0.1",
+        "0.1",
+        "0.26",
+        "3",
+        "1.04",
+        "10",
+        "0.18",
+        "2",
+        "0.1",
+        "0.3",
+        "1.0",
+        "0.2",
+        "13",
+        "130",
+        "8",
+        "127",
+        "127",
+        "12.7"
+      ]
+    }
+  ],
+  "code_review": {
+    "scope": "8 exact file allowlist entries only; before accepted io131 checkpoint",
+    "files": [
+      {
+        "path": "scripts/wiki/sources.ts",
+        "before_sha256": "a929772ceac0c31e6bbf4be51366a18fb94b1d179c676edc0c683429e081b46a",
+        "after_sha256": "7d7857141c504ac85576e3e29d7e039b38e7e669332553d12215a31b16169b77"
+      },
+      {
+        "path": "scripts/wiki/sources.test.ts",
+        "before_sha256": "6c0635a793473498edb1663449b0942abd774614f5161351b6a7c6f12b499af5",
+        "after_sha256": "dae1fe9349d3cb2256aa2dd910b9c2e67d0c642569b7afa09ad757dfaadd1758"
+      },
+      {
+        "path": "wiki/HANDBOOK.md",
+        "before_sha256": "e369db163e2c366543b4ad0cc7a34744aedb0dad4a8c315e08ab8ade10041440",
+        "after_sha256": "47289053edea3aed95c35dddf68728bb5095d6a4af16eb349b8f1f943c3a485b"
+      }
+    ],
+    "classification": "ecosystem; not official evidence",
+    "reviewed_logic": [
+      "classifySource exact domain/path",
+      "supportsOfficialEvidence ecosystem false",
+      "source-kind and unlisted lint consumers",
+      "handbook table consistency",
+      "negative path/ref/host tests"
+    ],
+    "tests": [
+      {
+        "command": "pnpm exec vitest run scripts/wiki/sources.test.ts",
+        "passed": 65,
+        "failed": 0,
+        "exit_code": 0,
+        "independently_run": true
+      },
+      {
+        "command": "pnpm exec biome check scripts/wiki/sources.ts scripts/wiki/sources.test.ts",
+        "checked_files": 2,
+        "fixes": 0,
+        "exit_code": 0,
+        "independently_run": true
+      }
+    ],
+    "author_red_logs_read": [
+      "source-red.log",
+      "xgrammar-source-red.log"
+    ],
+    "author_combined_120_124_not_independently_run": true
+  },
+  "commands": [
+    "python -X utf8 .tmp/continuation-groups-2026-11-10/quant-tail/independent-verify.py",
+    "python -X utf8 .tmp/continuation-groups-2026-11-10/quant-tail/independent-aux.py",
+    "node .tmp/continuation-groups-2026-11-10/quant-tail/independent-browser.mjs",
+    "node .tmp/continuation-groups-2026-11-10/quant-tail/independent-scene.mjs",
+    "pnpm exec tsx .tmp/continuation-groups-2026-11-10/quant-tail/independent-measure.ts"
+  ],
+  "pending_owner_root": [
+    "unified engineering checks",
+    "final archive",
+    "global ledgers and evidence state update"
+  ],
+  "hardware_execution": false,
+  "reviewer_changes_to_teaching_or_code": []
+}

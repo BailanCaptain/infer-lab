@@ -3,7 +3,7 @@ id: collective-communication-all-reduce
 caption: All-Reduce（SUM）拆成两步：第 1 步同 Reduce-Scatter，每张卡的第 k 块都送到卡 k 加起来；第 2 步同 All-Gather，卡 k 把这块的和发给其余每张卡。中间两格每列是一张收数据的卡，紫色箭头是经过通信送来的块，灰色虚线是本卡自己的那块，不用发。
 size: [880, 730]
 frames:
-  - { label: 发之前：每张卡的部分和切成 4 块（一块 = 部分和张量的连续一段，真实 8 卡切 8 段）, at: [8, 30], size: [864, 90] }
+  - { label: 发之前：每张卡的部分和切成 4 块（一块 = 张量的连续一段；同一示意换成 8 卡则切 8 段）, at: [8, 30], size: [864, 90] }
   - { label: 第 1 步（同 Reduce-Scatter）：第 k 块都送到卡 k，在卡 k 上加起来, at: [8, 158], size: [864, 210] }
   - { label: 第 2 步（同 All-Gather）：卡 k 把第 k 块的和发给其余每张卡, at: [8, 406], size: [864, 188] }
   - { label: '发之后：每张卡都是 [1111, 2222, 3333, 4444]', at: [8, 632], size: [864, 90] }

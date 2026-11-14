@@ -1,0 +1,121 @@
+{
+  "recorded_at": "2026-11-10T12:52:53.209796+00:00",
+  "reviewer": "/root/groups_recompute_review",
+  "status": "accepted",
+  "new_source_occurrences": 38,
+  "old_source_occurrences_recounted": 0,
+  "prior24_preserved": true,
+  "closed_p1": 1,
+  "closed_p2": 2,
+  "open_p1_p2": 0,
+  "final_files": {
+    "wiki/concepts/sparse-attention.md": "eb83522c8a1e7ff23e1d776c21c2cda179b3787f3996f90df24c35bab7196dc1",
+    "wiki/diagrams/sparse-attention-intuition.yaml": "d58c89a461daf050dc46741bcc7976c51ba225b658bf131a95f1ff963e2ed402",
+    "wiki/diagrams/sparse-attention-intuition.svg": "9c2bc8b0524252d24c56ebf23f9894c2e43e4ee4ca97fca76366fa7867a49247",
+    "wiki/diagrams/dense-sparse-attention.yaml": "61f970edeba3b88d41ad590675232cb9f242263e9f2ec1232047e3ff92f935e4",
+    "wiki/diagrams/dense-sparse-attention.svg": "5f8c7f916dbb7d4caa450d8a58fef18b740d0ef4be3492089fe640778f33bebe",
+    "wiki/diagrams/sparse-attention-path.yaml": "236ba8ee5fc65d97c61f64e840ea137795cd42821d4f1c7d2ac41efa0898228a",
+    "wiki/diagrams/sparse-attention-path.svg": "5ce724835a0c9f438acd1c562f717de48b6ef2fad0c7a08384e35743627acac9"
+  },
+  "before_snapshot": ".tmp/continuation-groups-2026-11-10/indexcache/review-before.zip",
+  "final_snapshot": ".tmp/continuation-groups-2026-11-10/indexcache/review-final.zip",
+  "manual_judgments": "docs/reviews/2026-11-10-continuation-groups/indexcache-manual-judgments.json",
+  "preservation": "docs/reviews/2026-11-10-continuation-groups/indexcache-preservation.json",
+  "browser_report": ".tmp/continuation-groups-2026-11-10/indexcache/review-browser/report.json",
+  "browser": {
+    "stable": true,
+    "overflow": false,
+    "del_count": 0,
+    "errors": [],
+    "actual_viewed": [
+      "screen-0",
+      "screen-1",
+      "mechanism",
+      "mtp",
+      "config",
+      "errors",
+      "versions",
+      "table-0",
+      "table-1",
+      "table-2",
+      "table-3",
+      "table-4",
+      "table-5",
+      "table-6",
+      "figure-0",
+      "figure-1",
+      "figure-2",
+      "figure-3",
+      "figure-4",
+      "figure-5",
+      "figure-6",
+      "figure-7",
+      "figure-8",
+      "indexcache-anchor",
+      "mtp-backlink"
+    ],
+    "hashClick": {
+      "url": "http://127.0.0.1:5201/#/wiki/sparse-attention#%E7%9B%B8%E9%82%BB%E5%B1%82%E8%83%BD%E5%90%A6%E6%B2%BF%E7%94%A8%E5%90%8C%E4%B8%80%E4%BB%BD%E4%BD%8D%E7%BD%AE%E6%B8%85%E5%8D%95indexcache",
+      "target": {
+        "x": 302,
+        "y": 107.890625,
+        "width": 1076,
+        "height": 35.1875
+      }
+    },
+    "mtpClick": {
+      "url": "http://127.0.0.1:5201/#/wiki/speculative-decoding",
+      "heading": "Speculative decoding：先猜几个 token，再让主模型一次验完"
+    },
+    "note": "Only first-screen cost sentence changed at final pass. Re-ran all captures/hashes, viewed final first two screens. Other figures/tables unchanged from actual full viewing. versions.png supplies table top obscured by sticky header in the tall element screenshot. Late wording refinement rerun: both pages opened and links clicked after orphan workflow lock recovery; personally re-viewed sparse first two screens and IndexCache mechanism, DBO DP example/cost section. No source or figure changed."
+  },
+  "official_reading": {
+    "guide": "54 lines, all4pins byte-identical, global dedup by parent",
+    "paper": "v1 whole18pages,1document not18documents",
+    "HF_config": "ba658fb whole66lines,registration context only"
+  },
+  "engineering": {
+    "status": "accepted",
+    "commands": [
+      "pnpm check:content",
+      "pnpm wiki:lint",
+      "pnpm wiki:audit",
+      "pnpm wiki:diagrams --check",
+      "pnpm build"
+    ],
+    "exit_codes": {
+      "content": 0,
+      "lint": 0,
+      "audit": 0,
+      "diagrams": 0,
+      "build": 0
+    },
+    "logs": {
+      "content": ".tmp/continuation-groups-2026-11-10/index-dbo-final-content.log",
+      "lint": ".tmp/continuation-groups-2026-11-10/index-dbo-final-lint.log",
+      "audit": ".tmp/continuation-groups-2026-11-10/index-dbo-final-audit.log",
+      "diagrams": ".tmp/continuation-groups-2026-11-10/index-dbo-final-diagrams.log",
+      "build": ".tmp/continuation-groups-2026-11-10/index-dbo-final-build-unlocked.log"
+    },
+    "log_sha256": {
+      "content": "fcfc3ac2d6c64751ac518de1d9f1f3e817bb4d989716dc0212aefe1e8e628ec7",
+      "lint": "2e17d6485bd99412862b40d4da9f2c07a6ed0d217df142ccdec9209942d810d9",
+      "audit": "568e1d735370eb404beb8d5f4fe056c7aa473a76a841ff844e05edcddf80c375",
+      "diagrams": "61a57be323003c829a141958084759e08be006ff7197b0dd5b6f2a54e35858b2",
+      "build": "4e72e9393b40338cd34e6fccf9aa7662767713ee4735811a2b05e35704e316e1"
+    },
+    "verification": "Root executed checks and reported exit codes; independent reviewer read actual success summaries. Audit is mechanical only, semantic acceptance is separate. Initial build lock failure retained as history; unlocked rerun succeeded.",
+    "lint_notes": 10
+  },
+  "limits": [
+    "No NPU execution/performance/quality measurement",
+    "No arbitrary pattern/PP partition compatibility guarantee",
+    "Only audited standard Ascend implementation chain;CUDA/xlite not certified",
+    "Incremental acceptance does not close whole-site review"
+  ],
+  "late_delta": {
+    "snapshot": ".tmp/continuation-groups-2026-11-10/indexcache/review-before-hedge.zip",
+    "diff": ".tmp/continuation-groups-2026-11-10/indexcache/review-late-delta.patch",
+    "conclusion": "Explicit missing-position counterexample and preserved KV retention; DBO threshold does not ensure nonempty second batch and net gain requires saved communication to outweigh overhead. Limits preserved."
+  }
+}

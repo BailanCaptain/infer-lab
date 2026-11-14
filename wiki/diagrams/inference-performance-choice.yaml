@@ -1,0 +1,31 @@
+layout: figure
+id: inference-performance-choice
+caption: 三种慢请求的阶段划分，条长只用于示意哪一段占主要等待，不是实测比例。灰色为等调度，黄色为设备执行，绿色为执行后的返回；先查最长的一段，再验证相应实验。
+size: [880, 370]
+items:
+  - { at: [100, 74], size: [300, 44], text: 等调度, tone: control, style: solid }
+  - { at: [400, 74], size: [80, 44], text: 执行, tone: weight, style: solid }
+  - { at: [480, 74], size: [80, 44], text: 返回, tone: token, style: solid }
+  - { at: [100, 164], size: [80, 44], text: 等调度, tone: control, style: solid }
+  - { at: [180, 164], size: [300, 44], text: 执行：计算、读取、等其他卡, tone: weight, style: solid }
+  - { at: [480, 164], size: [80, 44], text: 返回, tone: token, style: solid }
+  - { at: [100, 254], size: [80, 44], text: 等调度, tone: control, style: solid }
+  - { at: [180, 254], size: [80, 44], text: 执行, tone: weight, style: solid }
+  - { at: [260, 254], size: [300, 44], text: 返回：处理、发送、接收, tone: token, style: solid }
+links:
+  - { from: [100, 40], to: [560, 40] }
+  - { from: [578, 96], to: [620, 96] }
+  - { from: [578, 186], to: [620, 186] }
+  - { from: [578, 276], to: [620, 276] }
+texts:
+  - { at: [100, 26], text: 从请求进入到客户端收到, size: 14 }
+  - { at: [28, 101], text: 请求甲, size: 14 }
+  - { at: [28, 191], text: 请求乙, size: 14 }
+  - { at: [28, 281], text: 请求丙, size: 14 }
+  - { at: [636, 91], text: 先查到达量与分配, strong: true, size: 14 }
+  - { at: [636, 113], text: 谁还没有轮到执行？, size: 13 }
+  - { at: [636, 181], text: 先查这一步的工作, strong: true, size: 14 }
+  - { at: [636, 203], text: 算什么、搬什么、等谁？, size: 13 }
+  - { at: [636, 271], text: 先追结果经过的环节, strong: true, size: 14 }
+  - { at: [636, 293], text: 哪一处把结果留住了？, size: 13 }
+  - { at: [440, 350], text: 同样是首字慢，改动应作用于不同阶段；验收仍看整体交付和代价, anchor: middle, size: 14 }

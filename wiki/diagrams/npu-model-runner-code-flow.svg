@@ -36,7 +36,7 @@
   <text x="143" y="165" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">删、改、加有变化的请求</text>
   <rect x="276" y="124" width="156" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
   <text x="354" y="146" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">本步 0 个 token</text>
-  <text x="354" y="165" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">返回空结果</text>
+  <text x="354" y="165" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">必要协作后提前返回</text>
   <rect x="28" y="192" width="230" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="143" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">准备输入</text>
   <text x="143" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">token id、位置、槽位、选行</text>
@@ -50,8 +50,8 @@
   <text x="143" y="418" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">前向</text>
   <text x="143" y="437" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">全部层在前向上下文里跑</text>
   <rect x="276" y="396" width="156" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <text x="354" y="418" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">流水线非末段</text>
-  <text x="354" y="437" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">交出中间张量就返回</text>
+  <text x="354" y="418" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">PP 未开输出广播</text>
+  <text x="354" y="437" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">非末段交中间张量返回</text>
   <rect x="28" y="464" width="230" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="143" y="486" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">选行 → 词表分数</text>
   <text x="143" y="505" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只算被选中的行</text>
@@ -63,7 +63,7 @@
   <text x="588" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">取出后立刻清空</text>
   <rect x="720" y="56" width="156" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
   <text x="798" y="78" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">没有执行状态</text>
-  <text x="798" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">返回空</text>
+  <text x="798" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">处理广播与传输协作</text>
   <rect x="470" y="124" width="236" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="588" y="146" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">套允许词表</text>
   <text x="588" y="165" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">只在有结构化输出时</text>
@@ -86,6 +86,6 @@
   <text x="588" y="554" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">交回引擎</text>
   <text x="588" y="573" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">异步调度时结果稍后拷回 CPU</text>
   <rect x="720" y="532" width="156" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <text x="798" y="554" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">8 张卡都交</text>
-  <text x="798" y="573" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">引擎只收 0 号卡那份</text>
+  <text x="798" y="554" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">GLM：8 卡都执行</text>
+  <text x="798" y="573" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">仅 0 号卡发回这份结果</text>
 </svg>

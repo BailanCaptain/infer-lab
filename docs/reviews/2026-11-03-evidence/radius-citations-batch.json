@@ -1,0 +1,22 @@
+{
+  "page": "replica-search-radius-cd3118b5aae5",
+  "body_read": true,
+  "citations": [
+    {"source_number":1,"claim":"历史扫描 8d4409d6 的 replica_search_radius 是 int、默认 8；与 4d1412d1 的对应定义一致。","verdict":"支持","evidence":"原引用第 225 行为 replica_search_radius: int = 8；另逐字读取两提交 ascend_config.py 191–262 的字段及验证区，相关定义一致。","additional_read_ranges":["vllm-ascend@8d4409d6:vllm_ascend/ascend_config.py#L191-L262","vllm-ascend@4d1412d1:vllm_ascend/ascend_config.py#L191-L262"]},
+    {"source_number":2,"claim":"半径控制每阶段围绕贪心额外副本预算探索的最大距离。","verdict":"支持","evidence":"属性注释明确 Maximum distance from the greedy extra-replica budget explored at each search stage。"},
+    {"source_number":3,"claim":"合法范围 0–32，越界抛出表内所示 ValueError。","verdict":"支持","evidence":"条件为 not 0 <= self.replica_search_radius <= 32，错误字符串与页面一致。"},
+    {"source_number":4,"claim":"候选按中心、中心±距离生成，只保留合法区间；即使已覆盖区间仍遍历所有距离。","verdict":"支持","evidence":"range(budget_radius + 1) 没有提前 break；distance=0 只列中心，其他距离列减/加两值，列表生成式检查 min_budget <= value <= max_budget。"},
+    {"source_number":5,"claim":"下限和上限由剩余槽、本组容量与后组容量计算；每个候选做本组分配和后组补齐。","verdict":"支持","evidence":"289–290 行 min/max 公式与表一致；292、297 行分别调用 _allocate_extra_replicas。中心从 baseline_completion 与当前 replica_counts 的本组差求和。"},
+    {"source_number":6,"claim":"布尔值 true 不能当 STAIR 数字输入。","verdict":"支持","evidence":"before field_validator 对 isinstance(value, bool) 抛出页面所引错误。"},
+    {"source_number":7,"claim":"候选去重并按风险及确定性字典序排序后截束宽，近远枚举顺序不决定相同候选的排名。","verdict":"支持","evidence":"unique_expansions 按 stage_counts 去重；screening_key 为最大每副本风险、completion 向量、stage_counts 向量；sorted 后 [:beam_size]。"},
+    {"source_number":8,"claim":null,"verdict":"仅存档无对应主张","evidence":"已读旧扫描提交的单行 int=8 定义；当前正文不陈述该 9f9da556 版本行为，自动表已改用 rc2，此条保留历史扫描来源。"},
+    {"source_number":9,"claim":null,"verdict":"仅存档无对应主张","evidence":"已读旧扫描提交的单行 int=8 定义；当前正文没有 75bfb762 的独立版本主张，自动表已改用 rc2。"},
+    {"source_number":10,"claim":null,"verdict":"仅存档无对应主张","evidence":"已读旧扫描提交的单行 int=8 定义；当前正文没有 2581a69b 的独立版本主张，自动表已改用 rc2。"},
+    {"source_number":11,"claim":null,"verdict":"仅存档无对应主张","evidence":"完整读取 raw 1–96 行，内容为来源 1–10 的历史摘录。正文机制分别核对原始 Git 源，不以这份归档新增独立事实支持。"},
+    {"source_number":12,"claim":"rc2 默认 8、允许 0–32、拒绝 bool。","verdict":"支持","evidence":"225 行默认 8；233–238 行 bool 拒绝；256–257 行范围与错误文本一致。其他字段约束不外推为本参数语义。"},
+    {"source_number":13,"claim":"rc2 仍围绕中心预算按近远顺序试值并裁剪到可行区间。","verdict":"支持","evidence":"461–468 的枚举函数与旧算法所引 254–262 具有同样条件与返回列表。"},
+    {"source_number":14,"claim":"rc2 逐层副本候选生成实际读取 replica_search_radius。","verdict":"支持","evidence":"1154–1162 调用 incremental_replica_candidates，budget_radius=config.replica_search_radius；同时传 stages 和 beam。此引用证明规划器消费字段，不单独证明服务入口。"},
+    {"source_number":15,"claim":"rc2 的 MRV2 控制器将 STAIR 子配置传给策略创建入口。","verdict":"支持","evidence":"AscendEPLBController 初始化时取 stair_config（启用 EPLB 则先通信器一致性解析），再调用 create_eplb_policy(policy, stair_config)。本段只支持控制器接线，未把它当 NPU 实测。"},
+    {"source_number":16,"claim":"当前自动参数定义在 rc2 固定提交第 225 行是 int、默认 8。","verdict":"支持","evidence":"直接读取完整 SHA 对应行，字段名、类型、默认与自动表一致。"}
+  ]
+}

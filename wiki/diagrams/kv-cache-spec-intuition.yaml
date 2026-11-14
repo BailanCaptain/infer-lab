@@ -1,0 +1,24 @@
+layout: figure
+id: kv-cache-spec-intuition
+caption: 规格先说明每层要保存什么，再换成页的大小，最后按兼容的管理方式分组。图只画通用顺序；页是否补齐、分几组、哪些层共用显存，由实际模型布局决定。同组共用块号，各层的数据仍放在自己的页中。
+size: [860, 350]
+items:
+  - { at: [35, 50], size: [360, 65], text: 随位置增加的历史, sub: 每个位置有一份数据, tone: kv }
+  - { at: [465, 50], size: [360, 65], text: 每条请求的固定状态, sub: 更新同一份状态继续计算, tone: kv }
+  - { at: [35, 155], size: [360, 60], text: 按一块覆盖的位置算页, sub: 位置数 × 每个位置的字节数, tone: control }
+  - { at: [465, 155], size: [360, 60], text: 页要容纳整份状态, sub: 必要时补上空白以对齐槽位, tone: control }
+  - { at: [190, 270], size: [480, 60], text: 按管理规则编成缓存组, sub: 同组共用块号清单，各层各存自己的数据, tone: ink }
+links:
+  - { from: [215, 115], to: [215, 155], tone: kv }
+  - { from: [645, 115], to: [645, 155], tone: kv }
+  - { from: [215, 215], to: [340, 270], via: [[215, 244], [340, 244]], tone: control }
+  - { from: [645, 215], to: [520, 270], via: [[645, 244], [520, 244]], tone: control }
+texts:
+  - { at: [430, 25], text: 每层的空间说明 → 页的单价 → 分组管理, anchor: middle, strong: true }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L96-L131
+    symbols: [KVCacheSpec, page_size_bytes]
+  - source: vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L607-L645
+    symbols: [MambaSpec]
+  - source: vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L829-L871
+    symbols: [KVCacheGroupSpec]

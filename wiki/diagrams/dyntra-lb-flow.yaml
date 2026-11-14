@@ -1,6 +1,6 @@
 layout: figure
 id: dyntra-lb-flow
-caption: 左边是每组引擎每步转的一圈（主线里空闲组陪跑、隔若干步跨组同步的那一站，本部署每 32 步一次），右边是全局还有活时 DyntraLB 在这一步末尾多做的事；虚线表示计划要到下一步开头才执行。
+caption: 左边是每组引擎每步转的一圈，右边是全局还有活时 DyntraLB 在这一步末尾多做的事；虚线表示计划要到下一步开头才执行。这里的 main 与 rc2 上游在第 1 步及之后每 16 步（默认可配）同步，旧部署的 32 步不能直接套入；候选被选中仍须通过后续调度检查。
 size: [900, 630]
 frames:
   - { at: [20, 60], size: [400, 500], label: 每组的 EngineCore · 每步一圈, inside: true }
@@ -9,9 +9,9 @@ items:
   - { at: [50, 100], size: [340, 56], text: 调度并执行一步, sub: 开头先执行上一步留下的计划, tone: weight }
   - { at: [50, 196], size: [340, 56], text: 本地没有请求可算？, sub: 是：全局还有活就陪跑一步, tone: control }
   - { at: [50, 292], size: [340, 56], text: 全局还有没有活, sub: 隔若干步才真跨组同步一次, style: plain }
-  - { at: [50, 388], size: [340, 64], text: 没活了：这一波结束, sub: 计划作废，步数归零，等新请求, style: plain }
+  - { at: [50, 388], size: [340, 64], text: 自然空闲：这一波结束, sub: 计划作废，步数归零，等新请求, style: plain }
   - { at: [500, 100], size: [350, 56], text: 这一步生效吗？, sub: dynamic 未激活时先互报长请求标志, style: plain }
-  - { at: [500, 196], size: [350, 56], text: 准备候选, sub: 从 P 拉 KV，没到齐的不当候选, tone: kv }
+  - { at: [500, 196], size: [350, 56], text: 准备候选, sub: 尝试预取 KV，排除暂未就绪者, tone: kv }
   - { at: [500, 292], size: [350, 56], text: All-Gather 互报块数, sub: running、候选、条数、长请求标志, tone: comm }
   - { at: [500, 388], size: [350, 56], text: 同一套算法出计划, sub: 补空位 → 换人 → 必要时停一条, tone: control }
   - { at: [500, 484], size: [350, 56], text: 计划留给下一步, sub: 不生效时计划为空，照常调度, style: plain }

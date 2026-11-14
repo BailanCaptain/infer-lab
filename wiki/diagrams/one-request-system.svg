@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" width="900" height="680" role="img" aria-label="一条请求的七站：上面三列分别在 node0 的前端进程、DP0 的引擎进程和 node0 每张卡的 worker 进程里；最下面是 node1，它的 8 个 worker 每步陪着跑空批次，只在 MoE 通信里和 node0 交换数据。框的个数不表示进程数">
-  <title>一条请求的七站：上面三列分别在 node0 的前端进程、DP0 的引擎进程和 node0 每张卡的 worker 进程里；最下面是 node1，它的 8 个 worker 每步陪着跑空批次，只在 MoE 通信里和 node0 交换数据。框的个数不表示进程数</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" width="900" height="680" role="img" aria-label="一条请求的七站：上面三列分别在 node0 的前端进程、DP0 的引擎进程和 node0 每张卡的 worker 进程里；最下面是 node1，它的 8 个 worker 每步陪跑，同时可能计算路由到本机专家的真实 token。两机还交换每步的 DP 元数据。框的个数不表示进程数">
+  <title>一条请求的七站：上面三列分别在 node0 的前端进程、DP0 的引擎进程和 node0 每张卡的 worker 进程里；最下面是 node1，它的 8 个 worker 每步陪跑，同时可能计算路由到本机专家的真实 token。两机还交换每步的 DP 元数据。框的个数不表示进程数</title>
   <defs><marker id="one-request-system-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="one-request-system-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
   <rect x="24" y="48" width="246" height="424" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="40" y="36" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">node0 前端进程</text>

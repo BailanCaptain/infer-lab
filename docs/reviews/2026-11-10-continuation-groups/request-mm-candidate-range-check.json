@@ -1,0 +1,21 @@
+{
+  "checked": 131,
+  "invalid_after_correction": 0,
+  "corrections": [
+    {
+      "file": "request-mm-frame-retry-candidates.json",
+      "item": 27,
+      "previous": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/multimodal/video_decoders/opencv.py#L282-L324",
+      "corrected": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/multimodal/video_decoders/opencv.py#L282-L316",
+      "reason": "End line exceeded actual fixed Git file; final method ended at316, not324. No source beyond EOF was read or supports a claim."
+    },
+    {
+      "file": "request-mm-frame-retry-candidates.json",
+      "item": 30,
+      "previous": "vllm@84030bbe:vllm/multimodal/video_decoders/opencv.py#L282-L324",
+      "corrected": "vllm@84030bbe:vllm/multimodal/video_decoders/opencv.py#L282-L316",
+      "reason": "End line exceeded actual fixed Git file; final method ended at316, not324. No source beyond EOF was read or supports a claim."
+    }
+  ],
+  "method": "git show each exact commit:path; assert1<=start<=end<=linecount; manual range meaning separate"
+}

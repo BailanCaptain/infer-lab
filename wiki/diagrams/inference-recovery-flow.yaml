@@ -1,0 +1,33 @@
+layout: figure
+id: inference-recovery-flow
+caption: 服务控制流程示意。计划下线能交接仍可读取的状态；突然故障先判断还有什么状态可用，两条路都要验收客户端结果。
+size: [820, 670]
+items:
+  - { at: [20, 20], size: [370, 60], text: 计划下线：仍能工作, tone: control, style: faded }
+  - { at: [430, 20], size: [370, 60], text: 突然故障：状态未必可读, tone: danger, style: faded }
+  - { at: [20, 125], size: [370, 70], text: 停接新单，等待已有请求, sub: 宽限期后检查剩余工作, tone: token, style: faded }
+  - { at: [430, 125], size: [370, 70], text: 隔离故障，核对可用状态, sub: 已保存历史与在途状态分开查, tone: token, style: faded }
+  - { at: [20, 245], size: [370, 60], text: 有余量且支持迁移？, tone: kv, style: faded }
+  - { at: [430, 245], size: [370, 60], text: 状态足够且支持续传？, tone: kv, style: faded }
+  - { at: [20, 350], size: [170, 80], text: 是：交接, sub: 等接收确认, tone: token, style: solid }
+  - { at: [220, 350], size: [170, 80], text: 否：按策略, sub: 等待或结束, tone: control, style: faded }
+  - { at: [430, 350], size: [170, 80], text: 是：接续, sub: 按协议恢复, tone: token, style: solid }
+  - { at: [630, 350], size: [170, 80], text: 否：新尝试, sub: 重算或报失败, tone: control, style: faded }
+  - { at: [20, 475], size: [370, 65], text: 确认接管或结束，再释放, tone: kv, style: faded }
+  - { at: [430, 475], size: [370, 65], text: 关联尝试，限制重试负载, tone: control, style: faded }
+  - { at: [20, 580], size: [780, 70], text: 验收：积压回落、目标恢复、输出正确、资源收尾, sub: 第 1–2 站重新安排 → 第 3–7 站执行与返回 → 请求结束, tone: control, style: faded }
+links:
+  - { from: [205, 80], to: [205, 125] }
+  - { from: [615, 80], to: [615, 125] }
+  - { from: [205, 195], to: [205, 245] }
+  - { from: [615, 195], to: [615, 245] }
+  - { from: [105, 305], to: [105, 350], tone: token }
+  - { from: [305, 305], to: [305, 350] }
+  - { from: [515, 305], to: [515, 350], tone: token }
+  - { from: [715, 305], to: [715, 350] }
+  - { from: [105, 430], to: [105, 475], tone: token }
+  - { from: [305, 430], to: [305, 475] }
+  - { from: [515, 430], to: [515, 475], tone: token }
+  - { from: [715, 430], to: [715, 475] }
+  - { from: [205, 540], to: [205, 580] }
+  - { from: [615, 540], to: [615, 580] }

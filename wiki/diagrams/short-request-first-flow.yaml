@@ -11,8 +11,8 @@ items:
   - { at: [32, 212], size: [168, 56], text: 被抢占的请求, sub: 退回等待，重新分车道, style: plain }
   - { at: [220, 216], size: [440, 48], text: 恢复车道有人吗？, style: plain }
   - { at: [684, 212], size: [184, 56], text: 有：取恢复车道, sub: 被抢占、算过一部分的, tone: token }
-  - { at: [220, 292], size: [440, 48], text: 长车道队头等够上限，且短车道有人吗？, style: plain }
-  - { at: [684, 288], size: [184, 56], text: 是：取长车道队头, sub: 等待上限默认 0，不触发, tone: token, style: faded }
+  - { at: [220, 292], size: [440, 48], text: 长车道队头等够门槛，且短车道有人吗？, style: plain }
+  - { at: [684, 288], size: [184, 56], text: 是：取长车道队头, sub: 等待门槛默认 0，不触发, tone: token, style: faded }
   - { at: [220, 368], size: [440, 48], text: 短车道有人吗？, style: plain }
   - { at: [684, 364], size: [184, 56], text: 有：取短车道, sub: 提示词 ≤ 门槛（默认 256）, tone: token }
   - { at: [32, 364], size: [168, 56], text: 没有：取长车道, sub: 提示词 > 门槛, tone: token, style: faded }

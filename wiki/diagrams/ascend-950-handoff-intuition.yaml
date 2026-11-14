@@ -1,0 +1,30 @@
+layout: figure
+id: ascend-950-handoff-intuition
+caption: 同一对部分结果从“各自算完”走到“各自拿到完整和”。通信必须取得两卡的贡献，随后才能交给下一段。数字复用集合通信页的教学例子，图中间只表示数据交换与求和，不指定具体通信算法。
+size: [880, 500]
+frames:
+  - { at: [32, 50], size: [816, 112], label: 本地计算完成：每卡只有自己的贡献 }
+  - { at: [32, 278], size: [816, 172], label: 交接完成：每卡都有完整的和 }
+grids:
+  - { at: [128, 90], rows: 1, cols: 2, cell: [62, 42], tone: token, style: faded, cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }] }
+  - { at: [624, 90], rows: 1, cols: 2, cell: [62, 42], tone: token, style: faded, cells: [{ at: [0, 0], text: '10' }, { at: [0, 1], text: '20' }] }
+  - { at: [128, 316], rows: 1, cols: 2, cell: [62, 42], tone: token, style: solid, cells: [{ at: [0, 0], text: '11' }, { at: [0, 1], text: '22' }] }
+  - { at: [624, 316], rows: 1, cols: 2, cell: [62, 42], tone: token, style: solid, cells: [{ at: [0, 0], text: '11' }, { at: [0, 1], text: '22' }] }
+items:
+  - { at: [394, 192], size: [88, 52], text: ＋, tone: comm, style: solid }
+  - { at: [105, 396], size: [170, 34], text: 下一段计算, tone: weight, style: faded }
+  - { at: [601, 396], size: [170, 34], text: 下一段计算, tone: weight, style: faded }
+links:
+  - { from: [190, 132], to: [394, 217], via: [[190, 217]], tone: comm }
+  - { from: [686, 132], to: [482, 217], via: [[686, 217]], tone: comm }
+  - { from: [414, 244], to: [190, 314], via: [[414, 288], [190, 288]], tone: comm }
+  - { from: [462, 244], to: [686, 314], via: [[462, 288], [686, 288]], tone: comm }
+  - { from: [190, 358], to: [190, 396], tone: token }
+  - { from: [686, 358], to: [686, 396], tone: token }
+texts:
+  - { at: [82, 116], text: 卡 0, size: 14 }
+  - { at: [578, 116], text: 卡 1, size: 14 }
+  - { at: [82, 342], text: 卡 0, size: 14 }
+  - { at: [578, 342], text: 卡 1, size: 14 }
+  - { at: [438, 180], text: 交换数据，按位置求和, anchor: middle, strong: true, size: 15 }
+  - { at: [440, 480], text: 任何一份贡献迟到，完整结果就要继续等, anchor: middle, size: 15 }

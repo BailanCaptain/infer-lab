@@ -1,14 +1,14 @@
 layout: figure
 id: config-flow
-caption: 配置在代码里的先后：解析参数后建 VllmConfig，平台先跑校验再建配置并按角色改写，每个 Worker 进程在构造函数里各建一份，之后各处取。建的那一步先问缓存能不能复用，不能才重新逐键解析，组合不合法就在这一步报错；未识别的键在多数组里静默走默认值，只有 EplbConfig 那一组会报错。
+caption: 固定旧 GLM 的配置顺序：平台先跑四个前置校验，再初始化 AscendConfig 并继续检查和改写；Worker 构造函数也调用初始化。已有缓存、绑定同一总配置、refresh 为假且两个必要属性存在时复用，否则重建。旧版顶层和多数子配置忽略未知键，EplbConfig 则拒收；rc2 的严格配置另看正文。
 size: [900, 520]
 items:
   - { at: [24, 64], size: [250, 58], text: 解析命令行参数, sub: 平台钩子补 --quantization, tone: control }
-  - { at: [24, 146], size: [250, 58], text: 建 VllmConfig, sub: 附带的 JSON 原样存下, tone: control }
+  - { at: [24, 146], size: [250, 58], text: 建 VllmConfig, sub: 解析后的 JSON 容器, tone: control }
   - { at: [24, 228], size: [250, 74], text: 平台校验与改写, sub: 四个校验在建配置之前, tone: danger }
-  - { at: [24, 326], size: [250, 58], text: 每个 Worker 进程, sub: 构造函数里各建一份, tone: token }
+  - { at: [24, 326], size: [250, 58], text: 每个 Worker 进程, sub: 构造时调用初始化, tone: token }
   - { at: [24, 408], size: [250, 58], text: 各处来取这一份, sub: 没建过就直接报错, tone: kv }
-  - { at: [350, 200], size: [230, 74], text: 缓存能复用吗, sub: 绑定同一个 VllmConfig, tone: control }
+  - { at: [350, 200], size: [230, 74], text: 缓存能复用吗, sub: 同一对象等四项条件, tone: control }
   - { at: [640, 150], size: [230, 62], text: 复用旧的那一份, tone: control }
   - { at: [640, 250], size: [230, 86], text: 新建 AscendConfig, sub: 逐键取，多数组静默, tone: token }
   - { at: [640, 366], size: [230, 62], text: 组合不合法就报错, sub: EplbConfig 还拒未识别键, tone: danger }
@@ -27,7 +27,7 @@ texts:
   - { at: [596, 198], text: 是, tone: control }
   - { at: [596, 272], text: 否, tone: token }
   - { at: [350, 452], text: 平台那一步和每个 Worker 进程走的是同一个建配置函数，缓存各在自己的进程里, size: 15, width: 520 }
-  - { at: [350, 492], text: 每个进程各建一份，改了自己那一份别的进程看不到, note: true, width: 520 }
+  - { at: [350, 492], text: 缓存按进程隔离；fork 可继承状态，后续修改不自动同步, note: true, width: 520 }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L894-L912
     symbols: [init_ascend_config, _is_ascend_config_initialized]

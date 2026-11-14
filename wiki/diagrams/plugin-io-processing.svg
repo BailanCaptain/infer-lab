@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 660" width="860" height="660" role="img" aria-label="IO 插件可以把一份应用数据展开成多个模型输入。在线服务按输入编号收齐结果后调用插件合并；图以方形影像切片示意，不表示四片必须同时计算，也不表示 GLM 使用此插件。">
+  <title>IO 插件可以把一份应用数据展开成多个模型输入。在线服务按输入编号收齐结果后调用插件合并；图以方形影像切片示意，不表示四片必须同时计算，也不表示 GLM 使用此插件。</title>
+  <defs><marker id="plugin-io-processing-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M430 80 L430 110 L130 110 L130 140" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M430 110 L330 110 L330 140" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M430 110 L530 110 L530 140" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M430 110 L730 110 L730 140" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M130 205 L130 235 L430 235 L430 270" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M330 205 L330 235" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M530 205 L530 235" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M730 205 L730 235 L430 235" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M430 335 L430 380 L130 380 L130 415" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M430 380 L330 380 L330 415" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M430 380 L530 380 L530 415" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M430 380 L730 380 L730 415" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M130 480 L130 525 L430 525 L430 570" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M330 480 L330 525" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M530 480 L530 525" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <path d="M730 480 L730 525 L430 525" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#plugin-io-processing-ah-ink)"/>
+  <rect x="230" y="20" width="400" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">应用提交一张完整图</text>
+  <text x="430" y="65" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">插件校验数据并切成四块（示意）</text>
+  <rect x="50" y="140" width="160" height="65" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="130" y="168.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A · 左上</text>
+  <text x="130" y="187.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模型输入 0</text>
+  <rect x="250" y="140" width="160" height="65" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="330" y="168.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">B · 右上</text>
+  <text x="330" y="187.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模型输入 1</text>
+  <rect x="450" y="140" width="160" height="65" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="530" y="168.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">C · 左下</text>
+  <text x="530" y="187.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模型输入 2</text>
+  <rect x="650" y="140" width="160" height="65" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="730" y="168.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D · 右下</text>
+  <text x="730" y="187.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模型输入 3</text>
+  <rect x="170" y="270" width="520" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="298.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">引擎计算每个子输入</text>
+  <text x="430" y="317.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">假设完成顺序是 C → A → D → B</text>
+  <rect x="50" y="415" width="160" height="65" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="130" y="443.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结果 A</text>
+  <text x="130" y="462.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">放回编号 0</text>
+  <rect x="250" y="415" width="160" height="65" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="330" y="443.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结果 B</text>
+  <text x="330" y="462.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">放回编号 1</text>
+  <rect x="450" y="415" width="160" height="65" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="530" y="443.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结果 C</text>
+  <text x="530" y="462.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">放回编号 2</text>
+  <rect x="650" y="415" width="160" height="65" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="730" y="443.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结果 D</text>
+  <text x="730" y="462.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">放回编号 3</text>
+  <rect x="230" y="570" width="400" height="65" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="598.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">全部收齐，再由插件拼回完整图</text>
+  <text x="430" y="617.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">应用收到一份自定义结果</text>
+</svg>

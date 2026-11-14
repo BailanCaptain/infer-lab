@@ -1,0 +1,105 @@
+{
+  "date": "2026-11-08",
+  "reviewer": "request-execution-author",
+  "complete": false,
+  "completion_scope": "用户因共享TPM限流要求在安全检查点暂停并交接。8页正文已通读；当前523项来源中509项的原始内容已阅读或经逐字等价去重阅读，14项原文阅读未闭合。仅19项作者语义判断在citations中正式落账，其余504项尚无逐项落账判断；不得将阅读量计为支持量。没有正式页面或图修订。",
+  "independent_review": {"status": "待主会话统一调度", "session_id": null, "report_path": null},
+  "source_count": 523,
+  "original_read_count": 509,
+  "original_read_open_count": 14,
+  "citation_verdict_count": 19,
+  "citation_verdict_open_count": 504,
+  "reading_artifacts": {
+    "directory": ".tmp/wiki-evidence-resume-2026-11-08/request-execution",
+    "completed": "read-01.txt至read-27.txt全部实际读完；read-06的867–885与read-18的838–1371在截断后另行续读。每个FILE头列出固定commit、路径及所有对应页面:来源编号，行首保留上游行号；抽取仅省略空行，没有生成语义判定。",
+    "git_source_occurrences": 498,
+    "git_files": 187,
+    "nonblank_extracted_lines_including_headers": 16925,
+    "raw_dedup": "8个raw来源的327段全部与各自固定commit原文逐字相同（仅比较时剥离段首尾空白）；所有非空源码行均在已读read-01至27范围内。raw是重复归档，不增加独立支持证据。",
+    "additional_read": ["extra-0.txt：weight_utils.py L801–852", "本轮shell定点续读：vllm@0fc695fc:vllm/model_executor/model_loader/weight_utils.py#L853-L892", "DeepSeek Recipe固定README全文（webfetch）", "Uvicorn settings全文（webfetch）"],
+    "prepared_but_not_read": ["extra-1.txt至extra-5.txt", "diagrams-0.txt至diagrams-2.txt", "external-*.txt全部10份"],
+    "note": "额外文件只是原文准备产物；下载、抽取、相同行号或既有账本均未自动成为支持判定。"
+  },
+  "pages": [
+    {
+      "id": "api-server-entry",
+      "path": "wiki/concepts/api-server-entry.md",
+      "sha256": "16209ae45d71b61589bbd649698edc7cdbf6f0ce12f94ec3c894804bac25dbde",
+      "body_read": true,
+      "source_count": 126,
+      "source_original_read_numbers": "1-126",
+      "unread_original_numbers": [],
+      "diagrams_read": ["api-server-entry-flow.yaml"],
+      "diagrams_open": ["api-server-entry.yaml", "全部图pins逐项语义落账与浏览器验收"],
+      "citations": [
+        {"source_number":6,"ref":"vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L387-L412","claim":"对外ID取X-Request-Id，否则随机生成。","read_ranges":["vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L387-L412","vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/serving.py#L192-L392"],"verdict":"部分支持","evidence":"_base_request_id优先请求头；无请求头时若default非None则使用default。调用方传request.request_id，正文省略了请求字段提供ID的分支。待修订，不应把无header写成必定随机。"},
+        {"source_number":15,"ref":"vllm@0fc695fc:vllm/renderers/params.py#L186-L192","claim":"输入预算等于总长度减输出长度。","read_ranges":["vllm@0fc695fc:vllm/renderers/params.py#L186-L192"],"verdict":"引用范围不足","evidence":"当前范围只覆盖property、max_total_tokens为None时返回None，未包含减法返回语句。extra-1.txt与extra-2.txt已抽取但未读；须读后精确扩展引用并核截断调用条件。"},
+        {"source_number":22,"ref":"vllm@0fc695fc:vllm/entrypoints/openai/engine/protocol.py#L25-L60","claim":"Completions多余的max_completion_tokens字段在日志记忽略警告。","read_ranges":["vllm@0fc695fc:vllm/entrypoints/openai/engine/protocol.py#L25-L60"],"verdict":"部分支持","evidence":"extra=allow且未消费字段的结论成立；L53使用logger.debug，不是warning。正文L356称警告会误导INFO级别排障，待修为DEBUG记录。"},
+        {"source_number":54,"ref":"https://github.com/deepseek-ai/deepseek-recipe/blob/935817c66f5d6e64838f419692545f06787e485f/README.md","claim":"Recipe负责协议转换、提示词渲染与输出解析；调用方提供推理、工具执行和HTTP传输，约束是否执行由后端决定。","read_ranges":["https://raw.githubusercontent.com/deepseek-ai/deepseek-recipe/935817c66f5d6e64838f419692545f06787e485f/README.md：全文"],"verdict":"支持","evidence":"README开头明确三项调用方职责；Supported scope的Structured output明确caller decides whether backend enforces constrained decoding。仅支持协议边界，不证明本站接入测试。"},
+        {"source_number":106,"ref":"https://uvicorn.dev/settings/#timeouts","claim":"HTTP keep-alive默认5秒，不能当成生成总时限。","read_ranges":["https://uvicorn.dev/settings/：全文，重点Timeouts与Resource Limits"],"verdict":"支持","evidence":"timeout-keep-alive关闭无新数据的Keep-Alive连接、单位秒、默认5；graceful shutdown和concurrency另列。固定vLLM getter与传参另有本页104、105的已读原文。在线文档不证明现场Uvicorn版本。"}
+      ]
+    },
+    {
+      "id":"engine-processes","path":"wiki/concepts/engine-processes.md","sha256":"f89b755a885b8926a05cf32ba0e094d7fbe0268b2609059854cde6064718d0e4","body_read":true,"source_count":109,
+      "source_original_read_numbers":"2-95,101-102,107-109",
+      "unread_original_numbers":[1,96,97,98,99,100,103,104,105,106],
+      "diagrams_read":[],"diagrams_open":["engine-processes.yaml","engine-processes-startup.yaml"],
+      "citations":[
+        {"source_number":47,"ref":"vllm@0fc695fc:vllm/v1/executor/abstract.py#L48-L82","claim":"自定义执行器必须是ExecutorBase子类。","read_ranges":["vllm@0fc695fc:vllm/v1/executor/abstract.py#L37-L130"],"verdict":"不支持原类名","evidence":"当前类声明为Executor，L54和L83都issubclass(..., Executor)，不是ExecutorBase。路径解析后的第二次检查还在引用L82之外。正文L484、528待纠正类名并将来源47扩到L87。"},
+        {"source_number":54,"ref":"vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/executor/multiproc_executor.py#L1-L1062","claim":"默认mp按卡建Worker，模型调用只由指定输出rank发回结果；调用方按该rank读响应。","read_ranges":["vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L1-L1062"],"verdict":"支持","evidence":"L176起逐local rank创建；execute/sample传unique_reply_rank；L994–995在Worker发送端也检查output_rank，不是全部发送后EngineCore只读取一个。KV aggregator使output_rank=None时才都回传。该证据要求同步修正runner正文及专用图的8张卡都交措辞。"}
+      ]
+    },
+    {
+      "id":"request-call-chain","path":"wiki/concepts/request-call-chain.md","sha256":"3017755e3f651eae45fdda90b5726abb1e136e305b0cad8841e4bf080a8d100a","body_read":true,"source_count":72,
+      "source_original_read_numbers":"1-58,61-72","unread_original_numbers":[59,60],"diagrams_read":[],"diagrams_open":["request-call-chain.yaml","request-call-chain-step.yaml","request-call-chain-functions.yaml","request-call-chain-branches.yaml","request-call-chain-log-route.yaml"],
+      "citations":[
+        {"source_number":15,"ref":"vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L666","claim":"固定部署NPUWorker.execute_model先记显存统计再转交Runner。","read_ranges":["vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L666","vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L611-L679"],"verdict":"部分支持","evidence":"db701c1f入口有msmonitor、PP pending send等待、可选profiler.step和Runner调用，没有log_memory_stats；2c59ff10 L615才有该调用。正文L426混入维护分支行为，待精确修订。"},
+        {"source_number":24,"ref":"vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L1173-L1454","claim":"GLM的三候选MTP按首步加后续两步草拟。","read_ranges":["vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L1173-L1454","vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L227-L236"],"verdict":"支持","evidence":"首轮调用model；剩余range(num_speculative_tokens-1)逐次加位置、回填输入并再算。PCP prefill与parallel_drafting有提前返回，本GLM PCP1不走；_is_glm_model将use_cuda_graph置False。"}
+      ]
+    },
+    {
+      "id":"vllm-v1-shape","path":"wiki/concepts/vllm-v1-shape.md","sha256":"5e46926212029256a097b9c557a277ad602eada00e632ae55d8da498f10356bf","body_read":true,"source_count":41,
+      "source_original_read_numbers":"1-35,37-41","unread_original_numbers":[36],"diagrams_read":[],"diagrams_open":["vllm-v1-shape.yaml","vllm-v1-shape-loop.yaml"],
+      "citations":[
+        {"source_number":3,"ref":"vllm@0fc695fc:vllm/v1/engine/__init__.py#L83-L239","claim":"EngineCore只认整数，代码里找不到任何张量。","read_ranges":["vllm@0fc695fc:vllm/v1/engine/__init__.py#L83-L239"],"verdict":"不支持通例","evidence":"EngineCoreRequest.prompt_embeds为torch.Tensor，输出pooling_output同样可为Tensor；只能说调度账本主要是编号和计数，模型权重/KV计算归Worker。正文L118的绝对说法与该消息定义矛盾，待修。"},
+        {"source_number":16,"ref":"vllm@0fc695fc:vllm/v1/core/sched/output.py#L31-L241","claim":"计划只含编号、整数和参数；新请求全量、旧请求差量。","read_ranges":["vllm@0fc695fc:vllm/v1/core/sched/output.py#L31-L241"],"verdict":"部分支持","evidence":"scheduled_new_reqs/cached_reqs确实区分全量与差量，但NewRequestData.prompt_embeds可为Tensor、mm_features亦非整数；CachedRequestData.resumed_req_ids中的块表替换而不是总追加。正文应限定本页纯文本编号路径。"}
+      ]
+    },
+    {
+      "id":"vllm-engine-core","path":"wiki/concepts/vllm-engine-core.md","sha256":"af9825b4c28a4e835bb5597f4094adf84cbbe5d79222934b273a4cc0fa224267","body_read":true,"source_count":40,
+      "source_original_read_numbers":"1-40","unread_original_numbers":[],"diagrams_read":[],"diagrams_open":["engine-core-loop.yaml","engine-core-rounds.yaml","engine-core-flow.yaml"],
+      "citations":[
+        {"source_number":30,"ref":"vllm@84030bbe:vllm/config/vllm.py#L1332-L1394","claim":"main异步默认判断与旧版相比仅增加ROCm DeepEP HT DBO闸门。","read_ranges":["vllm@84030bbe:vllm/config/vllm.py#L1332-L1394","vllm@0fc695fc:vllm/config/vllm.py#L931-L1002"],"verdict":"部分支持","evidence":"main L1348–1349还明确放行draft_model和dspark，旧自动路径L970–973只检查EagleModelTypes/NgramGPUTypes；应补上该差异，不能由显式开关分支接受draft_model推导旧自动默认也接受。"}
+      ]
+    },
+    {
+      "id":"npu-worker-lifecycle","path":"wiki/concepts/npu-worker-lifecycle.md","sha256":"8f8cd9454806bec041a418f100327bc50059bbe1e3b88083cd73f0f1f1ba9b35","body_read":true,"source_count":52,
+      "source_original_read_numbers":"2-52","unread_original_numbers":[1],"diagrams_read":[],"diagrams_open":["worker-lifecycle.yaml","worker-lifecycle-flow.yaml"],
+      "citations":[
+        {"source_number":16,"ref":"vllm@0fc695fc:vllm/model_executor/model_loader/weight_utils.py#L893-L1027","claim":"prefetch按rank划分文件，在后台预读页缓存，同时前台遍历张量。","read_ranges":["vllm@0fc695fc:vllm/model_executor/model_loader/weight_utils.py#L893-L1027","vllm@0fc695fc:vllm/model_executor/model_loader/weight_utils.py#L801-L892"],"verdict":"支持（补读调用体）","evidence":"L835按sorted_files[rank::world_size]划分；L890启动daemon线程后即返回。内部asyncio.gather仅在线程内等待，不阻塞前台迭代。因此并发预读正文成立，不能把内部await误读为调用方等待。当前引用893–1027未含关键线程创建，应补证801–890；不证明实际存储读取量。"},
+        {"source_number":35,"ref":"vllm@568afb3a:vllm/model_executor/model_loader/default_loader.py#L128-L242","claim":"三版auto和模型回退入口一致，显式safetensors仍可按模型配置回退pt。","read_ranges":["vllm@568afb3a:vllm/model_executor/model_loader/default_loader.py#L128-L242","vllm@0fc695fc:vllm/model_executor/model_loader/default_loader.py#L97-L209"],"verdict":"部分支持","evidence":"v0.26 L186–189增加fall_back_to_pt and not use_safetensors；v0.23 L155仅检查fall_back_to_pt。显式safetensors的pt回退确有版本差异，正文L269须限定基线，版本区补充差异。"},
+        {"source_number":38,"ref":"vllm@84030bbe:vllm/model_executor/model_loader/default_loader.py#L128-L242","claim":"main沿用加载候选与文件索引处理。","read_ranges":["vllm@84030bbe:vllm/model_executor/model_loader/default_loader.py#L128-L242","vllm@568afb3a:vllm/model_executor/model_loader/default_loader.py#L128-L242"],"verdict":"部分支持","evidence":"main同v0.26禁止显式safetensors追加pt回退；L223另加len(hf_weights_files)>1才下载远端safetensors索引。auto总体次序成立，不能写成细节全同。"}
+      ]
+    },
+    {
+      "id":"npu-model-runner","path":"wiki/concepts/npu-model-runner.md","sha256":"80cd0c303b92cda4ceddf9fa292ff54d6c9c0dbe38ebf38124538233186fc4be","body_read":true,"source_count":46,
+      "source_original_read_numbers":"1-46（45按同commit本地原文17–33去重，未验证网页可访问）","unread_original_numbers":[],"diagrams_read":["npu-model-runner-code-flow.yaml"],"diagrams_open":["model-runner-layout.yaml","专用流程图完整pins语义落账与浏览器验收"],
+      "citations":[
+        {"source_number":4,"ref":"vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1991-L2067","claim":"整批零token时直接空返回，不做设备工作。","read_ranges":["vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1991-L2067"],"verdict":"部分支持","evidence":"external_launcher且DP>1先_dummy_run(1)，有KV传输组时kv_connector_no_forward；只有相应普通分支才EMPTY_MODEL_RUNNER_OUTPUT。request-call-chain已保留这些条件，但本页L197及误解条目未带条件，图零token出口也未表达。"},
+        {"source_number":11,"ref":"vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2373-L2427","claim":"没有执行状态的PP非末段在sample_tokens里直接空返回。","read_ranges":["vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2373-L2427","vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2306-L2371"],"verdict":"部分支持","evidence":"无状态分支仍可接收异步PP采样广播，随后可回传KV connector输出；前向的非末段提前返回又受not broadcast_pp_output约束。正文L207和图无状态出口遗漏条件，待精确修订。"},
+        {"source_number":28,"ref":"vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L495-L509","claim":"8个Runner都把结果交回EngineCore，后者只收0号。","read_ranges":["vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L495-L509","vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L969-L995"],"verdict":"部分支持","evidence":"output_rank的公式支持本部署选0号；发送端L994也过滤，其他卡不向响应队列发送该结果。正文L263、图右下8张卡都交须改成8卡各执行、仅指定rank回传，并补发送端来源。"}
+      ]
+    },
+    {
+      "id":"prepare-inputs-flow","path":"wiki/concepts/prepare-inputs-flow.md","sha256":"f81d47b98b2ab9af8c9dd970ad9d886c22d2952277b1a9a420827cae4ea08ad3","body_read":true,"source_count":37,
+      "source_original_read_numbers":"1-37","unread_original_numbers":[],"diagrams_read":[],"diagrams_open":["prepare-inputs-flow.yaml","prepare-inputs-code-flow.yaml"],
+      "citations":[
+        {"source_number":21,"ref":"vllm@0fc695fc:vllm/v1/attention/backends/utils.py#L606-L640","claim":"重排先decode、再分块prefill、最后无历史的新请求。","read_ranges":["vllm@0fc695fc:vllm/v1/attention/backends/utils.py#L606-L640"],"verdict":"支持分类条件","evidence":"原文分decode/short_extend/long_extend/prefill四区；has_context>0、done_prefilling>=prompt_len与阈值共同判断。本文A/C的概念次序成立；具体交换实现不在此引用范围，尚未补读；手算和图仍待正式逐项验收。"}
+      ]
+    }
+  ],
+  "formal_content_changes": [],
+  "checks_run": ["当前8页sources计数与SHA256", "498条git来源按固定commit定点抽取，187个文件；没有扫描全库", "8份raw的327段与固定原文等价及已读范围覆盖检查：全部相同、未读非空原文行0"],
+  "checks_not_run": ["正文修订后的内容/链接/图检查", "类型检查、全量lint、构建（留主会话）", "浏览器验收", "独立复审"],
+  "handoff_report": "docs/reviews/2026-11-08-evidence/request-execution-citations.md"
+}

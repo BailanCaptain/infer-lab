@@ -1,0 +1,1138 @@
+{
+  "status": "authored_pending_independent_review",
+  "old_sources": 193,
+  "new_count": 62,
+  "items": [
+    {
+      "ref": "vllm@0fc695fc:vllm/config/multimodal.py#L97-L143",
+      "claim": "enable_mm_embeds and processor cache are distinct; processor cache default 4 GiB, lru, shm object cap128MiB. Formula in config comment needs topology condition from registry.",
+      "read_scope": "98–143 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "2ca78ef40f8bdae73ef26af648b6384c1ece4108d1fcfda27cd00e60c013ca14",
+      "range_sha256": "3a01b42bec1e66c735eb84093c48796fd772a029b063f966da3687177c1bc2e9",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/config/multimodal.py",
+      "page_id": "api-server-entry",
+      "source_number": 194,
+      "source_sha256": "2ca78ef40f8bdae73ef26af648b6384c1ece4108d1fcfda27cd00e60c013ca14",
+      "scope_lines": [
+        97,
+        143
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-194.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/processing/processor.py#L1214-L1334",
+      "claim": "Tokens/media separated; dummy text only in custom _call_hf_processor branch; default calls media-only helper. Cache-miss item without media raises ValueError.",
+      "read_scope": "1214–1334 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "range_sha256": "a3fac8005f25a65b2e2641ef66b8805ca62625ad2e8e7d18f573d09555143db0",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/multimodal/processing/processor.py",
+      "page_id": "api-server-entry",
+      "source_number": 195,
+      "source_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "scope_lines": [
+        1214,
+        1334
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-195.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/processing/processor.py#L1343-L1511",
+      "claim": "Process missing media, merge cached/missing kwargs and updates back in original item order; renumber item_idx. Passthrough_data bypasses processor cache.",
+      "read_scope": "1343–1511 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "range_sha256": "fab7ac9efa25c5261a52ad4d11716098a1fcf84573d17e045fd797fc79902485",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/multimodal/processing/processor.py",
+      "page_id": "api-server-entry",
+      "source_number": 196,
+      "source_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "scope_lines": [
+        1343,
+        1511
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-196.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/processing/processor.py#L1528-L1710",
+      "claim": "Placeholder token updates and ranges map media features to text sequence; existing HF updates are detected, otherwise applied after merge; validates item/update/placeholder counts.",
+      "read_scope": "1528–1710 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "range_sha256": "1b9feea354a3cea269e4f4dc4805b2a3264c1906908227b664669c0aece68f0a",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/multimodal/processing/processor.py",
+      "page_id": "api-server-entry",
+      "source_number": 197,
+      "source_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "scope_lines": [
+        1528,
+        1710
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-197.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/transformers_utils/processor.py#L569-L605",
+      "claim": "Default media-only helper invokes image/video/audio subprocessor, not synthetic text.",
+      "read_scope": "569–605 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "dda97a9b41e9e606546d3a155b8eab29de1014b6dae7b0a1a56e2cd277796ab2",
+      "range_sha256": "7d51b867c0a5350fb98a764fdf3f53ac03437103f9f0a88f2d6153c7fd36ab9c",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/transformers_utils/processor.py",
+      "page_id": "api-server-entry",
+      "source_number": 198,
+      "source_sha256": "dda97a9b41e9e606546d3a155b8eab29de1014b6dae7b0a1a56e2cd277796ab2",
+      "scope_lines": [
+        569,
+        605
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-198.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/renderers/base.py#L621-L724",
+      "claim": "UUID lengths/data validation; if both processor cache and APC disabled generates per-request IDs replacing user UUIDs; otherwise passes structured input to model processor.",
+      "read_scope": "621–724 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "7213ffb05a468340f18967dc17c3b07886936110c87ecf36a7cbfbb83e29eef7",
+      "range_sha256": "c529a447812c15b082fe14e72fffa32108aa445e92a6786e6292a9ae2b99d770",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/renderers/base.py",
+      "page_id": "api-server-entry",
+      "source_number": 199,
+      "source_sha256": "7213ffb05a468340f18967dc17c3b07886936110c87ecf36a7cbfbb83e29eef7",
+      "scope_lines": [
+        621,
+        724
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-199.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/processing/inputs.py#L1-L71",
+      "claim": "Default hashes model+media+processor kwargs; explicit UUID used directly only without processor kwargs, else UUID+kwargs hashed; None UUID uses content.",
+      "read_scope": "1–71 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "85de6ef9d6240d80bdac237a3fb1be5243963e57dbbcc33d7606dc731ff6ed33",
+      "range_sha256": "e336b89bc5608a7518dddee168ff43c23c55ef06d0e93149cf86779108b718ef",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/multimodal/processing/inputs.py",
+      "page_id": "api-server-entry",
+      "source_number": 200,
+      "source_sha256": "85de6ef9d6240d80bdac237a3fb1be5243963e57dbbcc33d7606dc731ff6ed33",
+      "scope_lines": [
+        1,
+        71
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-200.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/registry.py#L268-L354",
+      "claim": "IPC cache only with one API process and DP1 or external LB; otherwise processor_only. LRU receiver is EngineCore; shm receiver is Worker. Do not universalize API+DP memory formula.",
+      "read_scope": "268–354 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "d4627c89d3459ce35a729e0940a0c5be5b54793b40192c1c068416b57a0a82fd",
+      "range_sha256": "052d783f149d3699c850ffaea01945e3713bd19caf8b019fbfb5d16dfef17ddb",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/multimodal/registry.py",
+      "page_id": "api-server-entry",
+      "source_number": 201,
+      "source_sha256": "d4627c89d3459ce35a729e0940a0c5be5b54793b40192c1c068416b57a0a82fd",
+      "scope_lines": [
+        268,
+        354
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-201.txt"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/multimodal/processing/processor.py#L1214-L1334",
+      "claim": "Same actual source bytes as baseline processor (full file diff empty); same dummy-text condition and missing-data error.",
+      "read_scope": "1214–1334 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "range_sha256": "a3fac8005f25a65b2e2641ef66b8805ca62625ad2e8e7d18f573d09555143db0",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/568afb3a/vllm/multimodal/processing/processor.py",
+      "page_id": "api-server-entry",
+      "source_number": 202,
+      "source_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "scope_lines": [
+        1214,
+        1334
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-202.txt"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/multimodal/registry.py#L268-L354",
+      "claim": "Full file diff baseline empty; same cache-type topology.",
+      "read_scope": "268–354 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "d4627c89d3459ce35a729e0940a0c5be5b54793b40192c1c068416b57a0a82fd",
+      "range_sha256": "052d783f149d3699c850ffaea01945e3713bd19caf8b019fbfb5d16dfef17ddb",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/568afb3a/vllm/multimodal/registry.py",
+      "page_id": "api-server-entry",
+      "source_number": 203,
+      "source_sha256": "d4627c89d3459ce35a729e0940a0c5be5b54793b40192c1c068416b57a0a82fd",
+      "scope_lines": [
+        268,
+        354
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-203.txt"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/multimodal/processing/processor.py#L1167-L1307",
+      "claim": "New processing API expects token IDs, media processor normally no text; model override _get_hf_processor_text may supply dummy text; miss without data still errors.",
+      "read_scope": "1167–1307 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "0f1b2ad34bc9ff97e8bfe3fa7923fa7c60b305843c7077b761ff6a137fa1b334",
+      "range_sha256": "e7db6cdea8f8effbf7cefc1e3df09789a3d75334f13bdf49375d19ae7e7df267",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/multimodal/processing/processor.py",
+      "page_id": "api-server-entry",
+      "source_number": 204,
+      "source_sha256": "0f1b2ad34bc9ff97e8bfe3fa7923fa7c60b305843c7077b761ff6a137fa1b334",
+      "scope_lines": [
+        1167,
+        1307
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-204.txt"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/multimodal/processing/inputs.py#L1-L107",
+      "claim": "Hash now incorporates selected algorithm and modality-scoped media_io_kwargs plus processor kwargs; explicit UUID may still be raw if no additional factors.",
+      "read_scope": "1–107 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "cf128693ee6b0c78768b91a0be161457f8fd984a160534e32f75217751185f1f",
+      "range_sha256": "a2c81f5c85b47a7e3ff3670e23a6f9cc3acd6e3151bfc9056829eb4a041b1f43",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/multimodal/processing/inputs.py",
+      "page_id": "api-server-entry",
+      "source_number": 205,
+      "source_sha256": "cf128693ee6b0c78768b91a0be161457f8fd984a160534e32f75217751185f1f",
+      "scope_lines": [
+        1,
+        107
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-205.txt"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/multimodal/registry.py#L283-L369",
+      "claim": "Same IPC topology selection semantics as baseline; file relocations only for selected range.",
+      "read_scope": "283–369 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "265dfe93a97ee9a25851d21d59a22fa7364d126324842b0c669fe598117081bb",
+      "range_sha256": "ebed3de976a443237158a564f968a2464a1a4c401cc2293b7f5380f40c0f24ef",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/multimodal/registry.py",
+      "page_id": "api-server-entry",
+      "source_number": 206,
+      "source_sha256": "265dfe93a97ee9a25851d21d59a22fa7364d126324842b0c669fe598117081bb",
+      "scope_lines": [
+        283,
+        369
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-206.txt"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/renderers/base.py#L818-L850",
+      "claim": "Both caches disabled preserves explicit UUID for EC across instances and generates only missing IDs; differs from baseline and fixed main comparison.",
+      "read_scope": "818–850 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "4db44560f4d331bf0f184626ed7cac97b350355a5c64bce648bf1fa971b16d68",
+      "range_sha256": "ac02020a1331293ca2d127628368c6aa3d06987cca645edb602290ed22228db4",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/renderers/base.py",
+      "page_id": "api-server-entry",
+      "source_number": 207,
+      "source_sha256": "4db44560f4d331bf0f184626ed7cac97b350355a5c64bce648bf1fa971b16d68",
+      "scope_lines": [
+        818,
+        850
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-207.txt"
+    },
+    {
+      "ref": "vllm@84030bbe:vllm/renderers/base.py#L818-L848",
+      "claim": "Fixed main comparison replaces user UUID when both caches disabled; do not assume rc2 preservation behavior here. Exact paired Ascend-main provenance not asserted.",
+      "read_scope": "818–848 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "1ee6434cb5e691dff668b196b0d270d1254ed2f9f918ba05fec9a5aec09562b1",
+      "range_sha256": "de38dba9191e9d52f3b1c26a1e186a5ee1c94c174a46092a082cc5fc7008ff50",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/84030bbe/vllm/renderers/base.py",
+      "page_id": "api-server-entry",
+      "source_number": 208,
+      "source_sha256": "1ee6434cb5e691dff668b196b0d270d1254ed2f9f918ba05fec9a5aec09562b1",
+      "scope_lines": [
+        818,
+        848
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-208.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/design/mm_processing.md#L1-L63",
+      "claim": "Official design fully read; dummy-text wording qualified by actual consumers",
+      "page_id": "api-server-entry",
+      "source_number": 209,
+      "source_sha256": "2be6b62e473b6df3b894b36539e14b7a849369cf20ef6a47bb6c420d78b58197",
+      "scope_lines": [
+        1,
+        63
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-209.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/features/multimodal_inputs.md#L1-L1194",
+      "claim": "Official mother fully read; variants and linked examples accounted separately",
+      "page_id": "api-server-entry",
+      "source_number": 210,
+      "source_sha256": "33c3d27f3891cf38aa4e358c4074e82e74b19a77b340c555e29cb744d7de2208",
+      "scope_lines": [
+        1,
+        1194
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-210.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/interfaces.py#L374-L408",
+      "claim": "Text embedding and media embedding merge contract",
+      "page_id": "api-server-entry",
+      "source_number": 211,
+      "source_sha256": "62ae344c350b8445f364bded9cf5a0a3887caae062873d266487aedfd55e3dd7",
+      "scope_lines": [
+        374,
+        408
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-211.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/utils.py#L471-L506",
+      "claim": "Assign feature rows to placeholders; mismatch error",
+      "page_id": "api-server-entry",
+      "source_number": 212,
+      "source_sha256": "5c4b438be5dee3478b1a1445cb9ec2cfa6362992bd7290bde7113b43cb57e880",
+      "scope_lines": [
+        471,
+        506
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-212.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L3433-L3460",
+      "claim": "Decoder-only multimodal worker encoder/gather/embed consumer",
+      "page_id": "api-server-entry",
+      "source_number": 213,
+      "source_sha256": "6250ca0670c4593aa2f7c4567c9c71d6cb3d8182624a985d4d4e33d5bf054666",
+      "scope_lines": [
+        3433,
+        3460
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-213.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L3041-L3086",
+      "claim": "Encoder forward then per-hash cache",
+      "page_id": "api-server-entry",
+      "source_number": 214,
+      "source_sha256": "6250ca0670c4593aa2f7c4567c9c71d6cb3d8182624a985d4d4e33d5bf054666",
+      "scope_lines": [
+        3041,
+        3086
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-214.txt"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/config/multimodal.py#L97-L143",
+      "claim": "v0.26 configuration defaults",
+      "page_id": "api-server-entry",
+      "source_number": 215,
+      "source_sha256": "4df62382d49521afe0196cf18078f9d807939ea088c5442279235585ea3ce612",
+      "scope_lines": [
+        97,
+        143
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-215.txt"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/config/multimodal.py#L110-L163",
+      "claim": "rc2 configuration defaults",
+      "page_id": "api-server-entry",
+      "source_number": 216,
+      "source_sha256": "271911aee151f17f092228cecee82af0713e9a47340ffdf66834ca7638a50d22",
+      "scope_lines": [
+        110,
+        163
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-216.txt"
+    },
+    {
+      "ref": "vllm@84030bbe:vllm/config/multimodal.py#L119-L176",
+      "claim": "main configuration defaults",
+      "page_id": "api-server-entry",
+      "source_number": 217,
+      "source_sha256": "0975ecbb0cebd6dd3e7aa18af1459e4bd64be650cfa2a6ddda677a86668ba335",
+      "scope_lines": [
+        119,
+        176
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-217.txt"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/renderers/base.py#L699-L724",
+      "claim": "v0.26 both caches disabled replaces UUID",
+      "page_id": "api-server-entry",
+      "source_number": 218,
+      "source_sha256": "d3f748aafa3729fa0a27f29ed7e845e60460148a18c11c893ba02c638e9fd644",
+      "scope_lines": [
+        699,
+        724
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-218.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1212-L1233",
+      "claim": "Actual CLI entry names",
+      "page_id": "api-server-entry",
+      "source_number": 219,
+      "source_sha256": "3ade2488897d08b5c1fd4ddb815eb5743169907d59741a47867185caab7f250d",
+      "scope_lines": [
+        1212,
+        1233
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-219.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/envs.py#L909-L920",
+      "claim": "Image/video/audio initial fetch timeout defaults 5/30/10 seconds. Values are HTTP fetch settings, not the full media-processing or request deadline.",
+      "read_scope": "Selected range actually read; complete stored file is not a full-read claim",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/envs.py",
+      "full_file_sha256": "b776fb6b1bae4a4f1d6c53792e65e15bd6cde7e70d5c17ef08dfeec54cd59603",
+      "range_sha256": "7be42b224c3cffcd64516386712cb0b4693cff5938a839687d246a59023760d0",
+      "candidate_id": 1,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 220,
+      "source_sha256": "b776fb6b1bae4a4f1d6c53792e65e15bd6cde7e70d5c17ef08dfeec54cd59603",
+      "scope_lines": [
+        909,
+        920
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-220.txt"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/envs.py#L930-L941",
+      "claim": "Image/video/audio initial fetch timeout defaults 5/30/10 seconds. Values are HTTP fetch settings, not the full media-processing or request deadline.",
+      "read_scope": "Selected range actually read; complete stored file is not a full-read claim",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/568afb3a/vllm/envs.py",
+      "full_file_sha256": "e078b0acb8e658faa6a8144d13a9036e2a82af40b348f419489a2607247cd936",
+      "range_sha256": "7be42b224c3cffcd64516386712cb0b4693cff5938a839687d246a59023760d0",
+      "candidate_id": 2,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 221,
+      "source_sha256": "e078b0acb8e658faa6a8144d13a9036e2a82af40b348f419489a2607247cd936",
+      "scope_lines": [
+        930,
+        941
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-221.txt"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/envs.py#L947-L958",
+      "claim": "Image/video/audio initial fetch timeout defaults 5/30/10 seconds. Values are HTTP fetch settings, not the full media-processing or request deadline.",
+      "read_scope": "Selected range actually read; complete stored file is not a full-read claim",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/envs.py",
+      "full_file_sha256": "fbd370b2f56ff798d373e85705c9e044ccae893ef974f2800eec4ef6f2b4fb7f",
+      "range_sha256": "7be42b224c3cffcd64516386712cb0b4693cff5938a839687d246a59023760d0",
+      "candidate_id": 3,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 222,
+      "source_sha256": "fbd370b2f56ff798d373e85705c9e044ccae893ef974f2800eec4ef6f2b4fb7f",
+      "scope_lines": [
+        947,
+        958
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-222.txt"
+    },
+    {
+      "ref": "vllm@84030bbe:vllm/envs.py#L960-L971",
+      "claim": "Image/video/audio initial fetch timeout defaults 5/30/10 seconds. Values are HTTP fetch settings, not the full media-processing or request deadline.",
+      "read_scope": "Selected range actually read; complete stored file is not a full-read claim",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/84030bbe/vllm/envs.py",
+      "full_file_sha256": "f0810fdba3fc927a78058e77c7411aa82ddf6fd08cd9b4d245b4acef84554a96",
+      "range_sha256": "7be42b224c3cffcd64516386712cb0b4693cff5938a839687d246a59023760d0",
+      "candidate_id": 4,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 223,
+      "source_sha256": "f0810fdba3fc927a78058e77c7411aa82ddf6fd08cd9b4d245b4acef84554a96",
+      "scope_lines": [
+        960,
+        971
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-223.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen2_vl.py#L1202-L1277",
+      "claim": "Uses per-item offset and image/video grid; image T must equal1; spatial dimensions divide merge size, video scales temporal positions.",
+      "read_scope": "Combined adjacent ranges actually read; consumer claims and full selected evidence remain in candidate file",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/model_executor/models/qwen2_vl.py",
+      "full_file_sha256": "f2a6bc6de8d353558e4612ae512316c0fff801c27e4b24936a181d5e3fbb39d4",
+      "range_sha256": "b3665cd705c43f9eced2feaf2eb74a3c559c0c82003650ce8f06256711e719e8",
+      "ast_sha256": "1575166afd82732341ccf40394ff4fadb396b470811aef5c548bea3252666b36",
+      "ast_equal_previous": null,
+      "previous_commit": null,
+      "candidate_id": 7,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 224,
+      "source_sha256": "f2a6bc6de8d353558e4612ae512316c0fff801c27e4b24936a181d5e3fbb39d4",
+      "scope_lines": [
+        1202,
+        1277
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-224.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen3_vl.py#L2706-L2786",
+      "claim": "Splits last embedding dimension into visual_dim base and multiscale_dim deepstack; then merges deepstack into language sequence. Four implementations AST-identical.",
+      "read_scope": "Combined adjacent ranges actually read; consumer claims and full selected evidence remain in candidate file",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/model_executor/models/qwen3_vl.py",
+      "full_file_sha256": "2935e09be47a893f09176cddb1beb6ed2e73666459de2bfbb08aca50b3e08969",
+      "range_sha256": "c4ad5af192975be6feab2730cdeda917e4f42b5c78fac1f363e4d682695d5ccf",
+      "ast_sha256": "98fdff5c867cdc9f51d43d720d00ccf6ef47a241a3971162c658b5e774e12d44",
+      "ast_equal_previous": null,
+      "previous_commit": null,
+      "candidate_id": 9,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 225,
+      "source_sha256": "2935e09be47a893f09176cddb1beb6ed2e73666459de2bfbb08aca50b3e08969",
+      "scope_lines": [
+        2706,
+        2786
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-225.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/audio.py#L45-L161",
+      "claim": "Channel-shape normalization, not amplitude loudness normalization. Model target None passes through; mono reduction defaults arithmetic mean, dimensional errors/unsupported expansion raise. Four selected implementations AST-identical.",
+      "read_scope": "Baseline selected function read in full; later versions checked by AST equality or actual complete targeted diff. Scope is this function, not full file or device execution.",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/multimodal/audio.py",
+      "full_file_sha256": "01d7f05669dc6ea18e272cb9ccad785c0acd72bfdcaae05058d22bd0cbb101fe",
+      "range_sha256": "8aceb1a67db537154bce3e81fdc42180b38ab7d42e4ebe74b470b10d041ef456",
+      "ast_sha256": "26ad23ea2e20fe895a3463280af2a16862f088e634152f6bb20ca78c22fa024c",
+      "ast_equal_previous": null,
+      "previous_commit": null,
+      "candidate_id": 10,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 226,
+      "source_sha256": "01d7f05669dc6ea18e272cb9ccad785c0acd72bfdcaae05058d22bd0cbb101fe",
+      "scope_lines": [
+        45,
+        161
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-226.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/audio.py#L294-L404",
+      "claim": "ASR duration-driven split; quiet boundary search, output starts at exact prior split (not duplicated overlap). 568 adds forward-progress fallback; rc2/main explicitly reject multidimensional audio with ValueError.",
+      "read_scope": "Combined adjacent ranges actually read; consumer claims and full selected evidence remain in candidate file",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/multimodal/audio.py",
+      "full_file_sha256": "01d7f05669dc6ea18e272cb9ccad785c0acd72bfdcaae05058d22bd0cbb101fe",
+      "range_sha256": "6678f055b7f7b0a710333e528ea76518c2a7be01d4b3b556ce7db0752c64c331",
+      "ast_sha256": "f21a2f482835115c605a3ef24ff7010bb3bcd484becfd4c24510630d2c34f9fc",
+      "ast_equal_previous": null,
+      "previous_commit": null,
+      "candidate_id": 11,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 227,
+      "source_sha256": "01d7f05669dc6ea18e272cb9ccad785c0acd72bfdcaae05058d22bd0cbb101fe",
+      "scope_lines": [
+        294,
+        404
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-227.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/parse.py#L560-L597",
+      "claim": "Provided SR triggers resampling; model target_channels triggers channel normalization. 0fc/568 list item None is not accepted; rc2/main pass None to cached UUID path. Precomputed embedding branch is separate.",
+      "read_scope": "Baseline selected function read in full; later versions checked by AST equality or actual complete targeted diff. Scope is this function, not full file or device execution.",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/multimodal/parse.py",
+      "full_file_sha256": "2714a37e8340838f141813adb618df76cbeb96174f7e61a3578a765e67ae3540",
+      "range_sha256": "803e8d5d17473935f3020716ccecd81667c6902a9f98d58945b664ae371555cd",
+      "ast_sha256": "00c871d8dc2de2b78c15454671aa5684ee4cd9c564959a86113a756731dbd269",
+      "ast_equal_previous": null,
+      "previous_commit": null,
+      "candidate_id": 13,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 228,
+      "source_sha256": "2714a37e8340838f141813adb618df76cbeb96174f7e61a3578a765e67ae3540",
+      "scope_lines": [
+        560,
+        597
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-228.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/video.py#L223-L326",
+      "claim": "Forward scan to last requested target only; substitute valid later frame before next target if possible. No guarantee all target frames recover. 568 changes logs to debug; rc2/main moved code keeps same logic.",
+      "read_scope": "Baseline selected function read in full; later versions checked by AST equality or actual complete targeted diff. Scope is this function, not full file or device execution.",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/multimodal/video.py",
+      "full_file_sha256": "a5a0caafadd11c35476c6a23aef73b1d60946bd371dab97a4d7a10acd73a60d3",
+      "range_sha256": "55bbfd6782289ad42a71476b2b943f25d320bbfd9e96136e0d8c8ce37f956d39",
+      "ast_sha256": "af209ef0e5259ea4ef043df7d27fc568c919618fad5caf15b9de362fe442f229",
+      "ast_equal_previous": null,
+      "previous_commit": null,
+      "candidate_id": 14,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 229,
+      "source_sha256": "a5a0caafadd11c35476c6a23aef73b1d60946bd371dab97a4d7a10acd73a60d3",
+      "scope_lines": [
+        223,
+        326
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-229.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/media/connector.py#L371-L384",
+      "claim": "Media-specific timeout passed into URL loader; kwargs select media IO. This function is not a whole-request timeout.",
+      "read_scope": "Baseline selected function read in full; later versions checked by AST equality or actual complete targeted diff. Scope is this function, not full file or device execution.",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/multimodal/media/connector.py",
+      "full_file_sha256": "51cfb958324d633856c70e845965506201bdfc69a97f9fb059e2a6a7e7d44952",
+      "range_sha256": "66b1ba12c801507ebdcccafc46524ffea4ff6d749784b2fe4435fd0f537ca9ef",
+      "ast_sha256": "0cdb36c8059bada672f3cb14f7c8740454388a95cc6e523b2c9da58cbd2ca09a",
+      "ast_equal_previous": null,
+      "previous_commit": null,
+      "candidate_id": 17,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 230,
+      "source_sha256": "51cfb958324d633856c70e845965506201bdfc69a97f9fb059e2a6a7e7d44952",
+      "scope_lines": [
+        371,
+        384
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-230.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/media/connector.py#L401-L424",
+      "claim": "Media-specific timeout passed into URL loader; kwargs select media IO. This function is not a whole-request timeout.",
+      "read_scope": "Baseline selected function read in full; later versions checked by AST equality or actual complete targeted diff. Scope is this function, not full file or device execution.",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/multimodal/media/connector.py",
+      "full_file_sha256": "51cfb958324d633856c70e845965506201bdfc69a97f9fb059e2a6a7e7d44952",
+      "range_sha256": "63febf3e33f729ab9b28918a6f0d71689b20e730fa24a7b479cdd594348f68be",
+      "ast_sha256": "145f6ac9de647764206b0f3d966a4ccb58f89babd9b6a5ee56d420041f6ca4ef",
+      "ast_equal_previous": null,
+      "previous_commit": null,
+      "candidate_id": 18,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 231,
+      "source_sha256": "51cfb958324d633856c70e845965506201bdfc69a97f9fb059e2a6a7e7d44952",
+      "scope_lines": [
+        401,
+        424
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-231.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/media/connector.py#L451-L475",
+      "claim": "Media-specific timeout passed into URL loader; kwargs select media IO. This function is not a whole-request timeout.",
+      "read_scope": "Baseline selected function read in full; later versions checked by AST equality or actual complete targeted diff. Scope is this function, not full file or device execution.",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/multimodal/media/connector.py",
+      "full_file_sha256": "51cfb958324d633856c70e845965506201bdfc69a97f9fb059e2a6a7e7d44952",
+      "range_sha256": "77ca6c38406a7133081ea39148b9948d332b8994526e986be209e10406870b11",
+      "ast_sha256": "1b33a63f46840517eb93cbb6b34f529b032971d303de7d0e646cbbb13dbce70b",
+      "ast_equal_previous": null,
+      "previous_commit": null,
+      "candidate_id": 19,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 232,
+      "source_sha256": "51cfb958324d633856c70e845965506201bdfc69a97f9fb059e2a6a7e7d44952",
+      "scope_lines": [
+        451,
+        475
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-232.txt"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/multimodal/audio.py#L325-L440",
+      "claim": "ASR duration-driven split; quiet boundary search, output starts at exact prior split (not duplicated overlap). 568 adds forward-progress fallback; rc2/main explicitly reject multidimensional audio with ValueError.",
+      "read_scope": "Combined adjacent ranges actually read; consumer claims and full selected evidence remain in candidate file",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/568afb3a/vllm/multimodal/audio.py",
+      "full_file_sha256": "28d3cc0d8c7753965af8e13ef0d12da51906fae8169fe1a8666c63c3362da443",
+      "range_sha256": "7b36afb4d0b8d7aebb1b48d8437c46aa4cd2fa17a32365ce2be94364af8934a5",
+      "ast_sha256": "081f8c31e20c08b20d31d527357c3424bc627290b3dbed2b5d0a1385d6a700af",
+      "ast_equal_previous": false,
+      "previous_commit": "0fc695fc",
+      "candidate_id": 26,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 233,
+      "source_sha256": "28d3cc0d8c7753965af8e13ef0d12da51906fae8169fe1a8666c63c3362da443",
+      "scope_lines": [
+        325,
+        440
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-233.txt"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/multimodal/parse.py#L567-L604",
+      "claim": "Provided SR triggers resampling; model target_channels triggers channel normalization. 0fc/568 list item None is not accepted; rc2/main pass None to cached UUID path. Precomputed embedding branch is separate.",
+      "read_scope": "Baseline selected function read in full; later versions checked by AST equality or actual complete targeted diff. Scope is this function, not full file or device execution.",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/568afb3a/vllm/multimodal/parse.py",
+      "full_file_sha256": "5ab3bddcf8f0b92b12e6427f72d5903cf57be7d40b69cfef3d09c3e92589c8d5",
+      "range_sha256": "803e8d5d17473935f3020716ccecd81667c6902a9f98d58945b664ae371555cd",
+      "ast_sha256": "00c871d8dc2de2b78c15454671aa5684ee4cd9c564959a86113a756731dbd269",
+      "ast_equal_previous": true,
+      "previous_commit": "0fc695fc",
+      "candidate_id": 28,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 234,
+      "source_sha256": "5ab3bddcf8f0b92b12e6427f72d5903cf57be7d40b69cfef3d09c3e92589c8d5",
+      "scope_lines": [
+        567,
+        604
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-234.txt"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/multimodal/video.py#L314-L417",
+      "claim": "Forward scan to last requested target only; substitute valid later frame before next target if possible. No guarantee all target frames recover. 568 changes logs to debug; rc2/main moved code keeps same logic.",
+      "read_scope": "Baseline selected function read in full; later versions checked by AST equality or actual complete targeted diff. Scope is this function, not full file or device execution.",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/568afb3a/vllm/multimodal/video.py",
+      "full_file_sha256": "3a2987da066ed47e4db8377c06f99b49a4e0f30620c752514612ea50381fd7ad",
+      "range_sha256": "ecc6e87a2cd0c92b9807388aa6b56bc1ab638d5d765e60e73ec8fabca45d08cd",
+      "ast_sha256": "aff2712b279db7b77a4d6a3b010a387ddfddcccef7d5d220eccbc42e6a44bac0",
+      "ast_equal_previous": false,
+      "previous_commit": "0fc695fc",
+      "candidate_id": 29,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 235,
+      "source_sha256": "3a2987da066ed47e4db8377c06f99b49a4e0f30620c752514612ea50381fd7ad",
+      "scope_lines": [
+        314,
+        417
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-235.txt"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/multimodal/audio.py#L395-L517",
+      "claim": "ASR duration-driven split; quiet boundary search, output starts at exact prior split (not duplicated overlap). 568 adds forward-progress fallback; rc2/main explicitly reject multidimensional audio with ValueError.",
+      "read_scope": "Combined adjacent ranges actually read; consumer claims and full selected evidence remain in candidate file",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/multimodal/audio.py",
+      "full_file_sha256": "094b5b576a9f50abb74d2b38d9db243e314ce0f22d0d1ba08bd7820a7cf03433",
+      "range_sha256": "4032b09564a98e8cf2e5fb75b9a695d60366eb5eca602bc84410a20b964e76c4",
+      "ast_sha256": "9982c6166b236d809105b0b6438326549c4669cbfd40f2ab1bab84d62584ce23",
+      "ast_equal_previous": false,
+      "previous_commit": "568afb3a",
+      "candidate_id": 41,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 236,
+      "source_sha256": "094b5b576a9f50abb74d2b38d9db243e314ce0f22d0d1ba08bd7820a7cf03433",
+      "scope_lines": [
+        395,
+        517
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-236.txt"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/multimodal/parse.py#L673-L715",
+      "claim": "Provided SR triggers resampling; model target_channels triggers channel normalization. 0fc/568 list item None is not accepted; rc2/main pass None to cached UUID path. Precomputed embedding branch is separate.",
+      "read_scope": "Baseline selected function read in full; later versions checked by AST equality or actual complete targeted diff. Scope is this function, not full file or device execution.",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/multimodal/parse.py",
+      "full_file_sha256": "21166de024d624ea98ad25774b8d365215457b9ac5c3ab317b755be61f315564",
+      "range_sha256": "c56d410aa952def2c7ccb497d17bdeaf7393475cdb4a85bb20f581f7a775170c",
+      "ast_sha256": "3aa6d341a70f3cfcc00f1bc6443ccd5e0165e67ec7eed6f2b7408c4533709a24",
+      "ast_equal_previous": false,
+      "previous_commit": "568afb3a",
+      "candidate_id": 43,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 237,
+      "source_sha256": "21166de024d624ea98ad25774b8d365215457b9ac5c3ab317b755be61f315564",
+      "scope_lines": [
+        673,
+        715
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-237.txt"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/multimodal/video_decoders/opencv.py#L125-L228",
+      "claim": "Forward scan to last requested target only; substitute valid later frame before next target if possible. No guarantee all target frames recover. 568 changes logs to debug; rc2/main moved code keeps same logic.",
+      "read_scope": "Baseline selected function read in full; later versions checked by AST equality or actual complete targeted diff. Scope is this function, not full file or device execution.",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/multimodal/video_decoders/opencv.py",
+      "full_file_sha256": "dd276cdc0a3846e3b66ec2e8ab931f8759d2a80a737ebdb769520c1eb30fe5e9",
+      "range_sha256": "ecc6e87a2cd0c92b9807388aa6b56bc1ab638d5d765e60e73ec8fabca45d08cd",
+      "ast_sha256": "aff2712b279db7b77a4d6a3b010a387ddfddcccef7d5d220eccbc42e6a44bac0",
+      "ast_equal_previous": true,
+      "previous_commit": "568afb3a",
+      "candidate_id": 49,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 238,
+      "source_sha256": "dd276cdc0a3846e3b66ec2e8ab931f8759d2a80a737ebdb769520c1eb30fe5e9",
+      "scope_lines": [
+        125,
+        228
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-238.txt"
+    },
+    {
+      "ref": "vllm@84030bbe:vllm/multimodal/parse.py#L671-L713",
+      "claim": "Provided SR triggers resampling; model target_channels triggers channel normalization. 0fc/568 list item None is not accepted; rc2/main pass None to cached UUID path. Precomputed embedding branch is separate.",
+      "read_scope": "Baseline selected function read in full; later versions checked by AST equality or actual complete targeted diff. Scope is this function, not full file or device execution.",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/84030bbe/vllm/multimodal/parse.py",
+      "full_file_sha256": "8d7f1d361ddcfad3c26d221ddfbf64221f9cbb6b1a7aab9e41be9ed74294c50b",
+      "range_sha256": "c56d410aa952def2c7ccb497d17bdeaf7393475cdb4a85bb20f581f7a775170c",
+      "ast_sha256": "3aa6d341a70f3cfcc00f1bc6443ccd5e0165e67ec7eed6f2b7408c4533709a24",
+      "ast_equal_previous": true,
+      "previous_commit": "ced6857afa0ea7b2e3f0846a62e1394e90f15607",
+      "candidate_id": 58,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 239,
+      "source_sha256": "8d7f1d361ddcfad3c26d221ddfbf64221f9cbb6b1a7aab9e41be9ed74294c50b",
+      "scope_lines": [
+        671,
+        713
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-239.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/connections.py#L108-L194",
+      "claim": "Retry loops grow per-attempt timeout; first-attempt 5/30/10 is not a hard total elapsed deadline. Complete retry/response subset108–305 read; later versions not yet all checked.",
+      "read_scope": "Selected range actually read; complete stored file is not a full-read claim",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/connections.py",
+      "full_file_sha256": "955a687848fe8daafd13919a5af4cc0c3ec9550ecda6d5ff46501055a5234967",
+      "range_sha256": "9f2c71583f2ecd16ae40aa015d419e3671c06a2c1046cbf43eb0392948a44535",
+      "candidate_id": 65,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 240,
+      "source_sha256": "955a687848fe8daafd13919a5af4cc0c3ec9550ecda6d5ff46501055a5234967",
+      "scope_lines": [
+        108,
+        194
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-240.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/connections.py#L278-L305",
+      "claim": "get_bytes and async_get_bytes decorated by retry wrappers; status checking and payload read happen inside each attempt.",
+      "read_scope": "Selected range actually read; complete stored file is not a full-read claim",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/connections.py",
+      "full_file_sha256": "955a687848fe8daafd13919a5af4cc0c3ec9550ecda6d5ff46501055a5234967",
+      "range_sha256": "d5aff47c761ab158fc559d845fa1f815cfc5f1d28d3438ce721f029f501203f7",
+      "candidate_id": 66,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 241,
+      "source_sha256": "955a687848fe8daafd13919a5af4cc0c3ec9550ecda6d5ff46501055a5234967",
+      "scope_lines": [
+        278,
+        305
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-241.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/entrypoints/speech_to_text/base/serving.py#L190-L274",
+      "claim": "Only ASR path with allow_audio_chunking and duration exceeding configured maximum calls split_audio; each chunk becomes its own model prompt then engine input.",
+      "read_scope": "Selected range actually read; complete stored file is not a full-read claim",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/entrypoints/speech_to_text/base/serving.py",
+      "full_file_sha256": "7b1ad74523e73fb325ad46e2b27a9ca338fa3ec220eacae22c6bc66b3e9234af",
+      "range_sha256": "41f6bd01e66303421e4f9e5c8d331fab7eef0e088b0828bde9e7986c3b1183de",
+      "candidate_id": 67,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 242,
+      "source_sha256": "7b1ad74523e73fb325ad46e2b27a9ca338fa3ec220eacae22c6bc66b3e9234af",
+      "scope_lines": [
+        190,
+        274
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-242.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen2_vl.py#L774-L840",
+      "claim": "Embedding dict requires image_embeds plus image_grid_thw; grid determines flat field item lengths.",
+      "read_scope": "Selected range actually read; complete stored file is not a full-read claim",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/model_executor/models/qwen2_vl.py",
+      "full_file_sha256": "f2a6bc6de8d353558e4612ae512316c0fff801c27e4b24936a181d5e3fbb39d4",
+      "range_sha256": "78f3aa4fd5ba77df920345a2fbd70a60da5cae52f62a07e2df33a5b12441f022",
+      "candidate_id": 68,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 243,
+      "source_sha256": "f2a6bc6de8d353558e4612ae512316c0fff801c27e4b24936a181d5e3fbb39d4",
+      "scope_lines": [
+        774,
+        840
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-243.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen3_vl.py#L2040-L2113",
+      "claim": "Precomputed image embeddings bypass visual model call but use dtype conversion and grid-based item splitting.",
+      "read_scope": "Selected range actually read; complete stored file is not a full-read claim",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/model_executor/models/qwen3_vl.py",
+      "full_file_sha256": "2935e09be47a893f09176cddb1beb6ed2e73666459de2bfbb08aca50b3e08969",
+      "range_sha256": "4e63e4f3eef5d087bb1d0b330297299f1cf9bee859b2b8bf1c5e9d5dc963815e",
+      "candidate_id": 69,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 244,
+      "source_sha256": "2935e09be47a893f09176cddb1beb6ed2e73666459de2bfbb08aca50b3e08969",
+      "scope_lines": [
+        2040,
+        2113
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-244.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/minicpmv.py#L454-L486",
+      "claim": "MiniCPM image embedding parser requires image_embeds and image_sizes; sizes interpreted width,height.",
+      "read_scope": "Selected range actually read; complete stored file is not a full-read claim",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/model_executor/models/minicpmv.py",
+      "full_file_sha256": "499cb1b03deccf3d9d3e92643a8f2d378f7afef5a60cd711e76919794aed0331",
+      "range_sha256": "deb3440d5183d04416a028d472d83dd2b276e286329f33cc5d73a27573ddeb6e",
+      "candidate_id": 71,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 245,
+      "source_sha256": "499cb1b03deccf3d9d3e92643a8f2d378f7afef5a60cd711e76919794aed0331",
+      "scope_lines": [
+        454,
+        486
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-245.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/minicpmv.py#L584-L650",
+      "claim": "Image size forwarded to image processor slice placeholder construction; model version-specific logic, not universal tensor layout.",
+      "read_scope": "Selected range actually read; complete stored file is not a full-read claim",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/model_executor/models/minicpmv.py",
+      "full_file_sha256": "499cb1b03deccf3d9d3e92643a8f2d378f7afef5a60cd711e76919794aed0331",
+      "range_sha256": "ed968afdfd8d02a0624dd023caa80432f6ff5f2f9599065299207929297d0290",
+      "candidate_id": 72,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 246,
+      "source_sha256": "499cb1b03deccf3d9d3e92643a8f2d378f7afef5a60cd711e76919794aed0331",
+      "scope_lines": [
+        584,
+        650
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-246.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen2_audio.py#L163-L176",
+      "claim": "Qwen2Audio sets target SR from feature extractor and target channels1.",
+      "read_scope": "Selected range actually read; complete stored file is not a full-read claim",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/model_executor/models/qwen2_audio.py",
+      "full_file_sha256": "7e78c36d07433b6eaeb118f149e97fa711245a184e800b7b70b56cee9ae0c3f5",
+      "range_sha256": "7a35c1fde90d8e093a6b285df7728c531693a7594274b597f3b4d5ff9aa5164a",
+      "candidate_id": 73,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 247,
+      "source_sha256": "7e78c36d07433b6eaeb118f149e97fa711245a184e800b7b70b56cee9ae0c3f5",
+      "scope_lines": [
+        163,
+        176
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-247.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/whisper.py#L656-L678",
+      "claim": "Whisper supplies model sampling rate and get_target_channels to common parser; encoder prompt length handling separate.",
+      "read_scope": "Selected range actually read; complete stored file is not a full-read claim",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/model_executor/models/whisper.py",
+      "full_file_sha256": "be30e45b6327a5bd8ddb065a7c653133f53558aa1b74d90a17f9929ae8c21b22",
+      "range_sha256": "7928b41aa8075f34c45f25515783661650d3ea9beb1138b159200b2b16f14075",
+      "candidate_id": 74,
+      "candidate_file": "request-mm-extra-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 248,
+      "source_sha256": "be30e45b6327a5bd8ddb065a7c653133f53558aa1b74d90a17f9929ae8c21b22",
+      "scope_lines": [
+        656,
+        678
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-248.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/video.py#L531-L592",
+      "claim": "VideoBackend frame_recovery defaultFalse, OpenCV-only forward-scan option. rc2/main delegate to decoder dispatcher. Backend-specific kwargs are not all interchangeable.",
+      "read_scope": "Selected body/signature actually read",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/multimodal/video.py",
+      "full_file_sha256": "a5a0caafadd11c35476c6a23aef73b1d60946bd371dab97a4d7a10acd73a60d3",
+      "range_sha256": "2875e6c66bd8d427fa876bc9c6db1214431086f67a6cdda832cdbcb0124c87bb",
+      "candidate_id": 21,
+      "candidate_file": "request-mm-frame-retry-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 249,
+      "source_sha256": "a5a0caafadd11c35476c6a23aef73b1d60946bd371dab97a4d7a10acd73a60d3",
+      "scope_lines": [
+        531,
+        592
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-249.txt"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/multimodal/video.py#L989-L1100",
+      "claim": "VideoBackend frame_recovery defaultFalse, OpenCV-only forward-scan option. rc2/main delegate to decoder dispatcher. Backend-specific kwargs are not all interchangeable.",
+      "read_scope": "Selected body/signature actually read",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/568afb3a/vllm/multimodal/video.py",
+      "full_file_sha256": "3a2987da066ed47e4db8377c06f99b49a4e0f30620c752514612ea50381fd7ad",
+      "range_sha256": "6b1a715b7307ddefb389c2331c4fcee80921c17fa4f0a177016130280b4d2a02",
+      "candidate_id": 22,
+      "candidate_file": "request-mm-frame-retry-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 250,
+      "source_sha256": "3a2987da066ed47e4db8377c06f99b49a4e0f30620c752514612ea50381fd7ad",
+      "scope_lines": [
+        989,
+        1100
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-250.txt"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/multimodal/video.py#L240-L310",
+      "claim": "VideoBackend frame_recovery defaultFalse, OpenCV-only forward-scan option. rc2/main delegate to decoder dispatcher. Backend-specific kwargs are not all interchangeable.",
+      "read_scope": "Selected body/signature actually read",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/multimodal/video.py",
+      "full_file_sha256": "fcd4fd681e88e530514fc0a9db855fa9481e68f1e81d28ecd92f79b3fcd8a748",
+      "range_sha256": "e6eb7c6bdee749759f7754fa1dcced09508eaee9acf12ea4f21886abeecc31ec",
+      "candidate_id": 23,
+      "candidate_file": "request-mm-frame-retry-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 251,
+      "source_sha256": "fcd4fd681e88e530514fc0a9db855fa9481e68f1e81d28ecd92f79b3fcd8a748",
+      "scope_lines": [
+        240,
+        310
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-251.txt"
+    },
+    {
+      "ref": "vllm@84030bbe:vllm/multimodal/video.py#L232-L298",
+      "claim": "VideoBackend frame_recovery defaultFalse, OpenCV-only forward-scan option. rc2/main delegate to decoder dispatcher. Backend-specific kwargs are not all interchangeable.",
+      "read_scope": "Selected body/signature actually read",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/84030bbe/vllm/multimodal/video.py",
+      "full_file_sha256": "ee0d843fd4f2941e54a87768d7d7b49dd4d51ef5d83a389b611cefe5d020cf39",
+      "range_sha256": "4d6c1a1091b2f7da3d6a74f640ee968ee872364ae48ff07d86af96d967936baa",
+      "candidate_id": 24,
+      "candidate_file": "request-mm-frame-retry-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 252,
+      "source_sha256": "ee0d843fd4f2941e54a87768d7d7b49dd4d51ef5d83a389b611cefe5d020cf39",
+      "scope_lines": [
+        232,
+        298
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-252.txt"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/multimodal/video_decoders/__init__.py#L78-L107",
+      "claim": "Rejects frame_recovery for nonOpenCV; passes it through decoder_kwargs only for OpenCV. Main identical selected function; unrelated decoder-option changes remain separate.",
+      "read_scope": "rc2 function read and main complete file diff checked",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/multimodal/video_decoders/__init__.py",
+      "full_file_sha256": "a054dcec12e18ff88c61a4234d4084f0257d25cc831f4ba1802dae527835d82c",
+      "range_sha256": "f9faae02dae8965efb340eed98f02b78f5a409a0b294267221adc865b8300353",
+      "candidate_id": 25,
+      "candidate_file": "request-mm-frame-retry-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 253,
+      "source_sha256": "a054dcec12e18ff88c61a4234d4084f0257d25cc831f4ba1802dae527835d82c",
+      "scope_lines": [
+        78,
+        107
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-253.txt"
+    },
+    {
+      "ref": "vllm@ced6857a:vllm/multimodal/video_decoders/opencv.py#L282-L316",
+      "claim": "Actual recovery/no-recovery branch, defaultFalse, incomplete count warning.",
+      "read_scope": "rc2 range read; main full-file diff empty",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/multimodal/video_decoders/opencv.py",
+      "full_file_sha256": "dd276cdc0a3846e3b66ec2e8ab931f8759d2a80a737ebdb769520c1eb30fe5e9",
+      "range_sha256": "1f78cd9bc7e8a9ac4f70723efb6934ccd32bdb2a6320fd6b5e8aa79ea8467ff0",
+      "candidate_id": 27,
+      "candidate_file": "request-mm-frame-retry-candidates.json",
+      "correction": "Candidate ended at324 but fixed Git file ends at316; root caught before publication.",
+      "page_id": "api-server-entry",
+      "source_number": 254,
+      "source_sha256": "dd276cdc0a3846e3b66ec2e8ab931f8759d2a80a737ebdb769520c1eb30fe5e9",
+      "scope_lines": [
+        282,
+        316
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-254.txt"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/media/video.py#L42-L72",
+      "claim": "VideoMediaIO stores merged media kwargs and forwards num_frames plus kwargs to selected loader; frame_recovery reaches backend here.",
+      "read_scope": "Baseline file173 lines actually read; all three successive file diffs fully read; no later full-file credit",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-extra/0fc695fc/vllm/multimodal/media/video.py",
+      "full_file_sha256": "47f8aebae22678c35958f30b47599492ea071f1738362f5117eba7c725b28ffa",
+      "range_sha256": "625208f15c5f10d2db69bb62e0d4d8c1cb7b7db9ee2106bec862ba1d4e21d723",
+      "candidate_id": 31,
+      "candidate_file": "request-mm-frame-retry-candidates.json",
+      "page_id": "api-server-entry",
+      "source_number": 255,
+      "source_sha256": "47f8aebae22678c35958f30b47599492ea071f1738362f5117eba7c725b28ffa",
+      "scope_lines": [
+        42,
+        72
+      ],
+      "new_occurrence": true,
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-255.txt"
+    }
+  ]
+}

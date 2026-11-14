@@ -83,4 +83,4 @@ texts:
   - { at: [20, 277], text: 稠密 MLP · 2 卡一组, strong: true, size: 13 }
   - { at: [20, 347], text: 路由专家 · EP, strong: true, size: 13 }
   - { at: [20, 417], text: lm_head · 4 卡一组, strong: true, size: 13 }
-  - { at: [450, 478], text: 普通 TP 只有一种切法：每一行都按同一组卡、同样份数切, anchor: middle, note: true }
+  - { at: [450, 478], text: 按模块另设分组；普通 TP 中也有复制分量，并非所有权重一律均分, anchor: middle, note: true }

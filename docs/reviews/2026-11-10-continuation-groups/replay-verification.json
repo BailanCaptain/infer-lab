@@ -1,0 +1,14 @@
+{
+  "recorded_at": "2026-11-10T09:12:05.796210+00:00",
+  "page_sha256": "15a40826c9c320d1e260f1a6ee2a1e89c08b1231e7eae4afddce12509da758fa",
+  "archive": ".tmp/continuation-groups-2026-11-10/review-replay-final.zip",
+  "archive_sha256": "a6a70652c53798b70cfcc8a218cc72c4fa91b315893890a1f215734a11b08733",
+  "archive_files": 15,
+  "old_sources_preserved": 8,
+  "new_sources": 3,
+  "diagram_files_byte_identical": 6,
+  "judgments_validated": 11,
+  "reading_asset_hashes_verified": true,
+  "hardware_tests": "not run",
+  "scope": "independent teaching/source/browser review; batch engineering acceptance remains separate"
+}

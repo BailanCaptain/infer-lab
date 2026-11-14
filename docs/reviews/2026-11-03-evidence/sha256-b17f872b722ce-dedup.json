@@ -1,0 +1,114 @@
+[
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L468",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L468",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/utils.py#L1509-L1519",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L58-L91",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L93-L110",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L112-L158",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1575-L1590",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/weight_switch/linear.py#L259-L296",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/weight_switch/linear.py#L441-L456",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/weight_switch/o_proj.py#L28-L51",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/utils.py#L211-L215",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L77",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/utils.py#L1522-L1537",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:tests/ut/test_ascend_config.py#L1281-L1295",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L455",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L479",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@bea70ab8fa233a06a7483337f42a1e3f2c8a117c:vllm_ascend/ascend_config.py#L494",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L577",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L575",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@4e19cc765510abfa1dd485b2aa72ff83d0945cf8:vllm_ascend/ascend_config.py#L575",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@ac1b7bceb370265e8f794f38d32a88041b0c51c9:vllm_ascend/ascend_config.py#L584",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@9f9da5562089280a7f01c3d03e855b258e372807:vllm_ascend/ascend_config.py#L571",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@75bfb762267c86fbec4cf3458ce08a094c0a4c72:vllm_ascend/ascend_config.py#L580",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@2581a69bcc16ee6af56e72985a15799bb5f61808:vllm_ascend/ascend_config.py#L581",
+    "match": true
+  },
+  {
+    "ref": "vllm-ascend@ee29cc6fc24d20d47948776764059f05601170a6:vllm_ascend/ascend_config.py#L583",
+    "match": true
+  }
+]

@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 972" width="880" height="972" role="img" aria-label="本部署一步之内怎样认出 prefill：调度只按进度差排数量；runner 贴注意力状态标签，再判断能否回放 decode 图；前向按行分路；最后按请求取行算分数，提示词没算完的这次采样丢弃。圆圈编号对应请求主线的站。">
-  <title>本部署一步之内怎样认出 prefill：调度只按进度差排数量；runner 贴注意力状态标签，再判断能否回放 decode 图；前向按行分路；最后按请求取行算分数，提示词没算完的这次采样丢弃。圆圈编号对应请求主线的站。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 972" width="880" height="972" role="img" aria-label="本部署一步之内怎样认出 prefill：调度只按进度差排数量；runner 贴注意力状态标签，再判断能否回放 decode 图；前向按行分路；最后按请求取生成采样用行，提示词没算完的这次采样丢弃。额外要求提示词概率时另取行评分，不在图中生成行数里。圆圈编号对应请求主线的站。">
+  <title>本部署一步之内怎样认出 prefill：调度只按进度差排数量；runner 贴注意力状态标签，再判断能否回放 decode 图；前向按行分路；最后按请求取生成采样用行，提示词没算完的这次采样丢弃。额外要求提示词概率时另取行评分，不在图中生成行数里。圆圈编号对应请求主线的站。</title>
   <defs><marker id="prefill-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
   <path d="M440 78 L440 118" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
   <path d="M320 176 L320 198 L155 198 L155 220" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
@@ -44,7 +44,7 @@
   <text x="440" y="589" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">④ 前向：同一套 45 层权重</text>
   <text x="440" y="608" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">KDA 的 prefill 行分段算，decode 行逐位置递推</text>
   <rect x="200" y="674" width="480" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="440" y="701" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">⑤ 每条请求取哪几行算词表分数？</text>
+  <text x="440" y="701" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">⑤ 生成采样取哪几行算词表分数？</text>
   <text x="440" y="720" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">没有候选取最后 1 行；有候选取 1 + 候选数行</text>
   <rect x="200" y="786" width="480" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="440" y="820" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这条请求的提示词算完了吗？</text>

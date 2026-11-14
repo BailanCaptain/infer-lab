@@ -1,0 +1,28 @@
+--- before/inference-performance-analysis
++++ after/inference-performance-analysis
+@@ -66,7 +66,7 @@
+   - 'vllm@568afb3a:vllm/entrypoints/serve/utils/server_utils.py#L538-L571'
+   - 'vllm@84030bbe:vllm/entrypoints/launchers/utils/server_utils.py#L68-L101'
+   - 'vllm@ced6857a:vllm/envs.py#L828-L850'
+-  - 'vllm@ced6857a:vllm/logger.py#L175-L205'
++  - 'vllm@ced6857a:vllm/logger.py#L175-L218'
+   - 'vllm@ced6857a:vllm/engine/arg_utils.py#L566-L567'
+   - 'vllm@ced6857a:vllm/v1/engine/async_llm.py#L131-L141'
+   - 'vllm@ced6857a:vllm/v1/metrics/loggers.py#L1228-L1243'
+@@ -74,6 +74,8 @@
+   - 'vllm-ascend@7d825229:vllm_ascend/profiler/torch_npu_profiler.py#L29-L77'
+   - >-
+     https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/developer_guide/performance_and_debug/service_profiling_guide.md
++  - 'vllm@0fc695fc:vllm/entrypoints/serve/profile/api_router.py#L16-L46'
++  - 'vllm@0fc695fc:vllm/v1/engine/async_llm.py#L215-L253'
+ relations:
+   - to: inference-benchmarking
+     kind: builds-on
+@@ -299,6 +301,7 @@
+ ### 源码位置
+ 
+ - 来源 9–11 是三版环境 getter，12–14 是日志配置消费者，15–17 是两项引擎布尔默认，18–20 是 AsyncLLM 的统计创建条件。来源 21 给出合并公式，22–24 给出三版默认文字与 Prometheus logger 分工，25–27 给出实际周期任务；三版核对只覆盖上述六项，未据此扩大整页 verified。
++- 来源 28–34 给出 rc2 对应的日志配置、统计条件和 NPU profiler 入口。来源 36 是固定上游的 profile 路由注册条件，来源 37 补充 disable_log_stats 取反后传入 AsyncLLM 的调用位置。
+ 
+ - Roofline 的强度、计算/带宽约束和实际低于上界的原因，参见 [Berkeley Lab 原作者团队说明](https://amcr.lbl.gov/departments/computer-science-department/ppan/roofline-performance-model/) [S1]。
+ - 批次队列的调度、执行和结果交接见 `EngineCore` [C2]；执行图选择与尺寸协调见 GLM runner [C3]。这两处用于判断采集应覆盖哪些交接，不提供硬件耗时。

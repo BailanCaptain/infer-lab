@@ -1,56 +1,107 @@
 ---
 id: prepare-inputs-flow
-title: "准备输入：把一步的请求计划拼成模型能吃的几张表"
+title: 准备输入：把一步的请求计划拼成模型能吃的几张表
 type: concept
-summary: 调度器每步只说「哪些请求、各算几个 token、新借了哪些块」；worker 里的 model runner 把这些 token 首尾相接排成一排，逐个 token 配上 token id、位置和 KV 槽位，再按请求记下边界、长度和选行，按缓存组组装成注意力元数据交给各层后端。批次行号、位置、槽位是三套不同的编号。
-aliases: [prepare_inputs, _prepare_inputs, 输入准备, 准备输入, input_ids, positions, query_start_loc, seq_lens, slot_mapping, attn_state, 持久批次, persistent batch, 注意力元数据, attention metadata]
-chapters: ["09"]
+summary: >-
+  调度器每步只说「哪些请求、各算几个 token、新借了哪些块」；worker 里的 model runner 把这些 token 首尾相接排成一排，逐个
+  token 配上 token id、位置和 KV
+  槽位，再按请求记下边界、长度和选行，按缓存组组装成注意力元数据交给各层后端。批次行号、位置、槽位是三套不同的编号。
+aliases:
+  - prepare_inputs
+  - _prepare_inputs
+  - 输入准备
+  - 准备输入
+  - input_ids
+  - positions
+  - query_start_loc
+  - seq_lens
+  - slot_mapping
+  - attn_state
+  - 持久批次
+  - persistent batch
+  - 注意力元数据
+  - attention metadata
+chapters:
+  - 09
 order: 30
 sources:
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L748-L763
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L814-L868
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L945-L962
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1018-L1042
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1075-L1099
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1228-L1254
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1263-L1314
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1444-L1470
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1492-L1520
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L765-L813
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2014-L2064
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2287-L2327
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3141-L3170
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3254-L3280
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5101-L5125
-  - vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L283-L324
-  - vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L154-L185
-  - vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L284-L288
-  - vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1125-L1180
-  - vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1436-L1447
-  - vllm@0fc695fc:vllm/v1/attention/backends/utils.py#L606-L640
-  - vllm@0fc695fc:vllm/v1/attention/backend.py#L557-L581
-  - vllm@0fc695fc:vllm/v1/worker/block_table.py#L141-L164
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L318
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L5-L20
-  - vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L24-L64
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L885
-  - vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L890-L913
-  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L1228-L1251
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3347-L3360
-  - vllm@0fc695fc:vllm/v1/attention/backends/gdn_attn.py#L104-L111
-  - vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L283-L302
-  - vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1700-L1775
-  - vllm@0fc695fc:vllm/config/vllm.py#L957-L997
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L748-L763'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L814-L868'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L945-L962'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1018-L1042'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1075-L1099'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1228-L1254'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1263-L1314'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1444-L1470'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1492-L1520'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L765-L813'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2014-L2064'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2287-L2327'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3141-L3170'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3254-L3280'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5101-L5125'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L283-L324'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L154-L185'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L284-L288'
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1125-L1180'
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1436-L1447'
+  - 'vllm@0fc695fc:vllm/v1/attention/backends/utils.py#L606-L640'
+  - 'vllm@0fc695fc:vllm/v1/attention/backend.py#L557-L581'
+  - 'vllm@0fc695fc:vllm/v1/worker/block_table.py#L141-L164'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L318'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L5-L20
+  - >-
+    vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L24-L64
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L885'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L890-L913'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L1228-L1251'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3379-L3548'
+  - 'vllm@0fc695fc:vllm/v1/attention/backends/gdn_attn.py#L104-L111'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L283-L302'
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1700-L1775'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L957-L997'
+  - >-
+    raw:sha256-e4f12a5796104845dfab8da750fe0d133bc33ed94c5605efb19d30b92df51244.md#L1-L1129
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L1281-L1343'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L30
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1282-L1382'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L1708-L1735'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L1635-L1645'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L405-L415'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L1435-L1447'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L491-L506'
+  - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L63'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L488-L508'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1641-L1648'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0rc2
+  - main
+evidence: C
 relations:
-  - { to: vllm-scheduler, kind: builds-on, note: 调度器决定每步算哪些请求、各几个 token、借哪些块；本页从它交出的计划接着往下翻译 }
-  - { to: block-table, kind: builds-on, note: 位置怎样经块表换成槽位、GLM 的 5 张块表各怎样用，推导在块表页 }
-  - { to: attention-backend-family, kind: builds-on, note: 注意力元数据交给哪个后端、层怎样按后端和缓存规格分组 }
-  - { to: concurrent-requests, kind: builds-on, note: 13 条请求拼成 6048 行，以及补到图尺寸、两组对齐的账 }
+  - to: vllm-scheduler
+    kind: builds-on
+    note: 调度器决定每步算哪些请求、各几个 token、借哪些块；本页从它交出的计划接着往下翻译
+  - to: block-table
+    kind: builds-on
+    note: 位置怎样经块表换成槽位、GLM 的 5 张块表各怎样用，推导在块表页
+  - to: attention-backend-family
+    kind: builds-on
+    note: 注意力元数据交给哪个后端、层怎样按后端和缓存规格分组
+  - to: concurrent-requests
+    kind: builds-on
+    note: 13 条请求拼成 6048 行，以及补到图尺寸、两组对齐的账
 contradicts: []
-updated: "2026-09-29"
-origin: direct
+updated: 2026-11-10T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-53d3e72f2725fd66b66b7a4746cd771ba74b46fb5c5e86fa5678e6b07d42a7f8.md
+  - >-
+    raw/sha256-e4f12a5796104845dfab8da750fe0d133bc33ed94c5605efb19d30b92df51244.md
 ---
 
 ## 调度器只说「算谁、各算几个」，模型要的却是几张对齐的表：中间谁来翻译？
@@ -58,6 +109,8 @@ origin: direct
 **准备输入（prepare inputs）是每一步前向之前的翻译工作：把调度器这一步安排的所有 token 首尾相接排成一排，给每个 token 写明它是哪个词、在自己请求里排第几、算出的 KV 存进缓存池哪一格，再另记几张短表，标出每条请求占这一排的哪几列。** 模型只收这几张表，不认识「请求」。
 
 先把几个词说清楚。[调度器](vllm-scheduler.md)每一步决定这一步算哪些请求、每条算几个 token，并替需要新空间的请求借好 KV cache 的块（怎么借见 [KV 块分配](vllm-kv-block-allocation.md)），交出一份计划。**worker** 是每张卡上执行前向的进程；它里面的 **model runner** 负责把计划翻译成张量、调用模型、交出采样结果，准备输入就是它的活。[KV cache](kv-cache.md) 是每一层为算过的位置留下的状态，存在一个按块切好的缓存池里；[block table](block-table.md)（块表）记着每条请求的第几个块落在池里哪一块。
+
+把请求拼起来可以一起做矩阵计算，代价是每一步都要重新配齐这些身份表，并将需要的输入送到设备；前向必须等它们准备好。几张表的长度相同还不够，行与请求的对应也必须一致，否则会读写别人的历史。
 
 看一个小例子（数字是示意，一轮就是一步）。A 是一条提示词 4 个 token 的请求，已经跑了两轮：第一轮算完提示词的位置 0–3，生成了 a₄；第二轮算位置 4，生成了 a₅。现在是第三轮，A 已经算过 5 个位置，这一轮只算 a₅ 这 1 个 token；C 是刚进来的新请求，提示词 3 个 token，这一轮全算。调度器这一轮的计划只有这么几句：A 算 1 个，C 算 3 个，C 新借到块 9。准备输入要把它变成下图中间那张表：
 
@@ -79,9 +132,9 @@ A 的那个 token 行号 0、位置 5、槽位 9；C 的第一个 token 行号 1
 
 ## 为什么要拼成一排再配表？代价在哪？
 
-**因为模型的计算是整块的矩阵运算，一次喂得越整齐越省。** 一层里的线性层，是把「若干行 × 隐藏维」的输入乘上同一份权重。4 个 token 一起乘，权重只从显存读一遍；一条请求一条请求地调用，同一份权重就要读好几遍，每次的矩阵还小得喂不饱 NPU。所以同一步里不同请求的 token 应该在一次前向里一起算。
+**因为把多行输入合成矩阵，能增加权重复用的机会，并摊薄调用开销。** 一层里的线性层，是把「若干行 × 隐藏维」的输入乘上同一份权重。4 个 token 一起乘，共用同一张权重；逐条调用则重复组织小矩阵计算。理想情况下，并批可复用已读取的权重；实际 HBM 读量和速度取决于缓存、内核分块与输入形状，不能仅凭 4 行就认定只读一遍。
 
-一起算有两种排法。一种是每条请求占一行、按最长的补齐：A 只有 1 个 token 也要补到 3 个，一共 2 × 3 = 6 格，其中 2 格白算；请求越参差，白算的越多：一条在 decode（在已有历史上往后生成，一步通常只算 1 个 token），另一条在 prefill（把提示词一次算完，可能几千个 token），decode 那一行就要补上几千个空格。vLLM 用的是另一种：所有 token 首尾相接排成一排，4 个 token 就是 4 行，一格不补。
+一起算有两种排法。一种是每条请求占一行、按最长的补齐：A 只有 1 个 token 也要补到 3 个，一共 2 × 3 = 6 格，其中 2 格白算；请求越参差，白算的越多：一条在 decode（在已有历史上往后生成，一步通常只算 1 个 token），另一条在 prefill（处理提示词，本轮可能安排几千个位置），decode 那一行就要补上几千个空格。vLLM 在这里用另一种排法：所有 token 首尾相接，4 个 token 就是 4 行，不为逐请求等长而补齐；后面的图尺寸、并行通信仍可能要求另行补齐。
 
 排成一排的代价，是 token 丢了身份：光看第 2 行，模型不知道它属于谁、在自己请求里排第几、KV 该往哪写。准备输入配的那几张表，就是把身份补回来，每张回答一个问题：
 
@@ -97,6 +150,8 @@ A 的那个 token 行号 0、位置 5、槽位 9；C 的第一个 token 行号 1
 代价有三处。
 
 **第一，每一步都要做，而且挡在前向前面。** 这几张表每一步都不一样，前向要等它们备好才能开始。所以 model runner 尽量只动变化的部分：它在两步之间保留一份**持久批次**（persistent batch），记着哪些请求在跑、各坐第几行、各自的全部 token 和块表，每步只增删改有变化的请求；块表的拷贝也最先发起，和其余准备同时进行。
+
+异步调度能让部分工作重叠，却不保证省掉输入拷贝。有上一轮采样结果可复用时，程序先识别本轮仍能匹配上一轮位置的请求，分别数出可复用的采样 token 和这些请求本轮安排的投机候选（提前提出、留待模型验证的 token）。从本轮总输入数扣掉这些候选后，如果剩余数量仍多于可复用的采样 token，就先把本轮 CPU 输入复制到设备。因此不能只看“开了异步调度”，也不能用未经调整的本轮总数代替这项比较。
 
 **第二，几张表必须对着同一套行号。** 每张表各自形状都对，也不能说明它们对得上。只要其中一张还按旧的行序写，A 的 token 就会带上 C 的位置、写进 C 的槽位、读到 C 的历史。这种错不报异常，只表现为输出变怪。排查时要把同一步的请求 ID、本步 token 数、已算长度、位置、边界、块表和选行放在一起对。
 
@@ -150,12 +205,14 @@ file: prepare-inputs-code-flow
 拿到计划后，model runner 先把持久批次改成和这一步一致，顺序是：
 
 1. 删掉已经结束的请求，再删掉这一步没排上的请求（比如被抢占的），空出它们的行；
-2. 对继续跑的请求，更新已算数，把调度器新借的块号追加到它那一行块表的末尾；
+2. 对继续跑的请求，更新已算数，把调度器新借的块号追加到它那一行块表的末尾；从抢占中恢复的请求则用本次下发的块号替换旧块号，再重新进入持久批次；
 3. 把新请求和被抢占后恢复的请求放进空行，号小的空行先填；
 4. 把中间的空行压紧，最后一行整行搬进空位；
 5. 如果注意力后端（每一层真正去调注意力算子的那层代码）声明了一个 decode 阈值，就按阈值重排：本步 token 数不超过阈值、已经在 decode 的请求排最前面，本步从位置 0 开始的新请求排最后，还在分段算提示词的排中间。
 
-所以**一条请求坐第几行不是终身的**：别的请求结束、新请求加入、重排，都会让它换行。按请求找结果要靠持久批次里「请求 ID → 行号」的对照表，不能把行号记死。如果这一步的计划里一个 token 都没有，model runner 同步完持久批次就直接返回空结果，不进准备输入。
+所以**一条请求坐第几行不是终身的**：别的请求结束、新请求加入、重排，都会让它换行。按请求找结果要靠持久批次里「请求 ID → 行号」的对照表，不能把行号记死。如果这一步的计划里一个 token 都没有，就不进入本页这套常规输入准备；按配置仍可能先做 DP 陪跑或 KV 传输协作，再返回相应结果。
+
+这描述的是本页固定的 V1 runner。新版上游把请求的长期存储行与本步计算顺序进一步分开：用索引把本步需要的行取出来，避免为了每一步排列而搬动整份状态。固定行、异步快照与增量写入怎样配合，见 [Model Runner V2 的状态组织](npu-model-runner.md#model-runner-v2-为什么要重新组织状态)。
 
 ### 再给这一步贴一个形态标签
 
@@ -165,6 +222,8 @@ file: prepare-inputs-code-flow
 - 每条请求本步都只有 1 个 token：纯 decode（DecodeOnly；投机方法是 MTP 时记成 SpecDecoding，MTP 是 GLM 用的投机方法，后面细讲）；
 - 每条请求去掉草稿 token 后都只剩 1 个：投机验证（SpecDecoding；投机方法不是 MTP 时，交给后端的元数据里改记成 ChunkedPrefill）；
 - 其余情况：开了 [chunked prefill](chunked-prefill.md)（长提示词切成几段、分几步算）时是混合批（ChunkedPrefill），没开时是带历史的 prefill（PrefillCacheHit）。
+
+这些名字是执行形态标签，不足以单独判断请求阶段。例如带历史的一枚提示词尾块也可能满足“本步 1 个 token”；它仍在完成提示词，不能仅凭 DecodeOnly 名称认定请求早已进入生成阶段，见 [prefill](prefill.md)。
 
 A、C 那一步里 A 有历史、C 本步 3 个 token，前三条都不满足，落在最后一条。
 
@@ -229,14 +288,14 @@ title: R1 前两步的长度、选行和形态
 
 **重排阈值是 4。** GLM 开着 MTP，每步草拟 3 个候选。稀疏 MLA 的元数据构建器把 decode 阈值设为 1 + 3 = 4；KDA 的构建器按投机 token 数算，也是 4。两个阈值必须一样，不一样启动时就报错。于是多条请求混在一步里时，本步不超过 4 个 token 的 decode 请求排在前面，新请求排在最后。[场景 M](concurrent-requests.md#第-3-站-准备输入13-条请求拼成一个-6048-行的张量) 的那一步里，12 条 decode 请求各 4 个 token、1 条新请求 6000 个 token，拼成 6048 行，顺序正是 12 条 decode 在前、新请求在后；这 6048 行的位置和边界，以及补到图尺寸、两组对齐的账，都在那一页。
 
-**DP1 在陪跑，不走这套流程。** DP1 没有请求，但 EP16 下 MoE 的通信要 16 张卡一起参与，所以它每步让自己的 8 个 worker 跑一次 4 个 token 的空批次（dummy batch）。空批次由 model runner 直接造好输入和元数据，不经过调度计划，也不走本页的同步持久批次和填表。
+**DP1 在陪跑，不走这套流程。** DP1 没有请求，但 EP16 下 MoE 的通信要 16 张卡一起参与，所以在这里跟踪的 R1 前两步中，它让自己的 8 个 worker 各跑一次 4 个 token 的空批次（dummy batch），与活跃组对齐。空批次由 model runner 直接造好输入和元数据，不经过调度计划，也不走本页的同步持久批次和填表。
 
 ## 常见误解
 
 - **「批次第 k 行就是位置 k，KV 也写进第 k 格。」** 三个编号各管各的：A 的那个 token 行号 0、位置 5、槽位 9。
 - **「拼在一起算，请求之间就能互相看到。」** 拼的只是这一步的新 token；注意力按边界和长度只读本请求的历史，块表也是一条请求一行。
 - **「位置就是 token id。」** token id 是词表里的编号，决定取哪一行嵌入；位置是它在请求里的序号，给位置编码用。同一个词可以出现在很多位置上。
-- **「model runner 每步从头建一遍批次。」** 持久批次跨步保留，每步只删、改、加有变化的请求；块表只往后追加新块号。
+- **「model runner 每步从头建一遍批次。」** 持久批次跨步保留，每步只删、改、加有变化的请求；持续运行的请求追加新块号，从抢占中恢复的请求替换旧块号。
 - **「8 个 worker 分头准备不同请求的输入。」** TP8 的 8 张卡拿同一份计划、拼出同样的张量，差别只在各自持有的权重分片。
 - **「每条请求最后一行的预测都会交给用户。」** 提示词只算了一段时，最后一行不是提示词的结尾，这一步的采样结果会被丢弃。
 - **「张量的第一维就是这一步的 token 数。」** 补到图尺寸、两组对齐以后，第一维会比有效 token 数大；补的行槽位是 −1，也不算请求。
@@ -256,7 +315,7 @@ title: R1 前两步的长度、选行和形态
 
 ### 会报什么错
 
-- `assert total_num_scheduled_tokens > 0`、`assert num_reqs > 0`：在 `_prepare_inputs` 开头。正常路径上没有 token 时 `execute_model` 已经提前返回 `EMPTY_MODEL_RUNNER_OUTPUT`，撞上这两条说明持久批次和计划不同步。
+- `assert total_num_scheduled_tokens > 0`、`assert num_reqs > 0`：在 `_prepare_inputs` 开头。正常路径上没有 token 时，`execute_model` 会在必要的 DP 或 KV 协作后提前退出，不进入这里。撞上断言时要核对调用路径、持久批次和计划是否一致；不能把所有零 token 出口都当成 `EMPTY_MODEL_RUNNER_OUTPUT`。
 - `Attention backend reorders decodes with threshold ... but other backend uses threshold ...`：启动时 `initialize_attn_backend` 调 `calculate_reorder_batch_threshold`，发现两个后端的重排阈值不一样，抛 `ValueError`。
 - `decode_threshold exceeded`：SFA 构建器里 1 + 草稿数超过 16 时的断言。
 - `_pad_query_start_loc_for_fia` 的两条断言：全 decode 补齐时要求真实请求数不超过补齐后的请求数，混合批时要求两者相等。
@@ -266,21 +325,29 @@ title: R1 前两步的长度、选行和形态
 
 - **关不掉，量级随 token 数走。** CPU 侧是按 token 数的 numpy 操作（`np.repeat`、累加、加法）和一次 `torch.index_select` 抓 token id；块表拷贝在 `_prepare_inputs` 第一行就以非阻塞方式发起，和后面的 CPU 工作重叠；槽位在 NPU 上一个 kernel 算完，grid 是请求数 + 1，最后一路把用不到的尾部填成 −1。
 - **异步调度。** 开着时上一步采样出的 token 还在 NPU 上，model runner 用 `prev_positions` 等在 NPU 上把它补进 `input_ids`（`_prepare_input_ids`），长度也先按「草稿全被接受」乐观地算，再在需要时校正；见[异步调度](async-scheduling.md)。
-- **待核：** 准备输入每步的实际耗时，没有 profiling 数据。
+- **实际耗时：** 本部署没有逐步 profiling 数据，不能从表的尺寸直接换算准备输入所需时间。
 
 ### 版本差异
 
+**v0.30.0rc2 的 MRV1 仍按本文的行归属与位置规则展平输入。** _prepare_inputs 先提交 block table，再按每请求调度量 repeat 行归属、计算有效 token 和 attention state，最后把已计算位置与批内偏移相加。入口已移到 model_runner_v1.py 的 1281 行附近，旧 db701c1f 行号不能用于查 rc2。MRV2 由显式开关选择并使用另一套 runner，这一段输入走读只对应 MRV1。
+
 钉点：v0.23 为 Ascend `2c59ff10` / vLLM `0fc695fc`，v0.26 为 Ascend `2ed6cbba`，main 为 Ascend `baa023ad`。**本页 GLM 行为按专用镜像 Ascend `db701c1f`**；v0.23 与 v0.26 没有 GLM 的模型文件，下表这两列只比准备输入流程本身。
 
-| 项 | v0.23 | v0.26 | main | 意味着什么 |
+| 项 | v0.23 | v0.26 | rc2 | main |
 |---|---|---|---|---|
-| `_prepare_inputs` | L862 | L890 | L1228 | 镜像在 L814；四处都是先提交块表，再算行归属、形态、位置 |
-| 形态判断 `_build_attn_state` | L1477 | L1327 | L1662 | 判断顺序和分支相同；v0.26 与 main 只删了几行 PCP 注释 |
-| 无草稿时的选行 | L1310 | L1276 | L1599 | 同一式：边界去掉开头再减 1 |
-| KDA 专用边界缓冲 | 有 | 有 | 有 | 线性注意力一直拿不含假请求的边界 |
-| model runner 版本 | 默认 v1，v2 目录已在 | 同 v0.23 | 默认仍是 v1；补丁另加了 v2 能力校验 | 都只在设了环境变量时走 v2，v2 的准备输入另是一套 |
+| _prepare_inputs | L862 | L890 | L1281 | L1228 |
+| _build_attn_state | L1477 | L1327 | L1708 | L1662 |
+| 无草稿时的选行 | L1310 | L1276 | L1645 | L1599 |
+| KDA 专用边界缓冲 | 有 | 有 | 有 | 有 |
+| runner 默认与选择 | 默认 V1；已有 V2 目录，0.23.0 有回退门槛 | 默认 V1，环境开关选择 V2 | 默认 V1；V1 拒绝 PCP >1，V2 单独校验 | 默认 V1；补丁另有 V2 能力校验 |
+
+rc2 的执行侧为 Ascend 7d825229。GLM 镜像的输入入口是 L814；表中四个社区钉点均先提交块表，再算行归属、形态、位置。主要形态判断顺序保留，非 MTP 投机时，返回标签和写入 self.attn_state 的标签须分开看；v0.26/main 的旧比较还只删了几行 PCP 注释。无草稿选行都用“每个请求的结束边界减 1”，KDA 专用缓冲的尾部重复最后一个真实边界，不包含假请求。rc2 这段 V1 选行没有旧 GLM 的 CP 分支，且平台入口拒绝 V1 的 PCP >1；旧分支不能据此推广为新版本能力。V2 的输入准备另走一套实现。
 
 ### 源码位置
+
+来源 38 补充对账时的块号更新分支：`resumed_req_ids` 标出的恢复请求替换 `block_ids`，其余请求才追加新借块号；不能把持久批次的增量更新理解成块表永远只追加。
+
+来源 39–42 对应 rc2 的形态判断、无草稿选行及线性注意力专用边界；43–44 对应 Worker 的实际选类和环境开关；45–46 对应平台调用校验与 V1 的 PCP 拒绝条件。
 
 | 要找的 | 位置 |
 |---|---|
@@ -302,3 +369,5 @@ title: R1 前两步的长度、选行和形态
 | 官方设计文档 | `docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md` L24–L64 [S26] |
 
 **正文推导口径。** A、C 两条请求、token 表每行 8 格、块长 4、块表 [7, 2] 与 [9] 都是为手算设的示意数 [A]。R1 的 4 个 token、位置 0 到 3、边界 [0, 4]、第二步的位置 4 到 7 取自主线底稿 01 §A2.4、§A3 与底稿 03 §A6（第一步取位置 3 那一行、第二步取 4 行也与 03 §A6 一致）；长度和形态是把上面的源码规则代入这些数得出的，阈值 4 是 1 + MTP 的 3 个草稿 [D]。场景 M 的 12 条 decode 排在新请求之前，是按四段重排规则推出来的，没有实跑日志 [D]。每步耗时没有 profiling 数据 [!]。
+
+**异步输入仍可能从 CPU 复制。** 固定上游 0fc695fc 在上一轮采样缓存为空时直接复制输入；已有缓存时，先统计能匹配上一轮位置的采样与候选。如果 num_common_tokens 小于 total_num_scheduled_tokens − total_num_spec_tokens，仍复制本轮整段 CPU 输入；启用提示词嵌入时还复制对应嵌入和标记。因此，不能把异步输入一概算成零主机到设备搬运；设备复制耗时仍需测量。[C33]

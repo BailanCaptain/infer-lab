@@ -1,0 +1,20 @@
+layout: figure
+id: quantization-methods-flow
+caption: 从量化方法到运行还要经过产物和算子契约。PTQ 从已训练模型生成参数，QAT 在训练中模拟误差后导出；加载器读取配套数据，逐层匹配实现并准备布局，才能进入请求前向。
+size: [900, 430]
+items:
+  - {at: [35, 65], size: [160, 60], text: 原始浮点模型, tone: weight}
+  - {at: [270, 25], size: [230, 60], text: PTQ：统计、搜索或重构, sub: 可使用代表性校准样本, tone: control, style: plain}
+  - {at: [270, 130], size: [230, 60], text: QAT：训练中模拟误差, sub: 训练后转换与导出, tone: control, style: plain}
+  - {at: [595, 65], size: [270, 70], text: 量化模型产物, sub: 权重、系数、分组和逐层精度, tone: weight}
+  - {at: [35, 300], size: [160, 64], text: 加载器读取产物, sub: 检查元数据, tone: control, style: plain}
+  - {at: [270, 300], size: [230, 64], text: 匹配层实现与准备布局, sub: 转置、打包或 NZ 后处理, tone: weight}
+  - {at: [595, 300], size: [270, 64], text: 请求第 4 站：逐层前向, sub: 后端算子执行，再做质量验收, tone: token}
+links:
+  - {from: [195, 85], to: [270, 55], via: [[232, 85], [232, 55]]}
+  - {from: [195, 105], to: [270, 160], via: [[232, 105], [232, 160]]}
+  - {from: [500, 55], to: [595, 85], via: [[545, 55], [545, 85]]}
+  - {from: [500, 160], to: [595, 115], via: [[545, 160], [545, 115]]}
+  - {from: [730, 135], to: [115, 300], via: [[730, 235], [115, 235]], tone: weight}
+  - {from: [195, 332], to: [270, 332]}
+  - {from: [500, 332], to: [595, 332]}

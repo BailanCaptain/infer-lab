@@ -1,0 +1,32 @@
+source_number	verdict	note
+1	repaired_pending_acceptance	跳过读、num_tokens-1及整块重算成立；不把普通decode一token推成所有投机步形状。
+2	repaired_pending_acceptance	额外身份键包含LoRA、多模态、盐及embedding；不代表自动覆盖所有权重和运行配置。
+3	repaired_pending_acceptance	parent+tokens+extra的链式哈希识别累计前缀；相同哈希不是数学等价证明。
+4	supported	旧版单组及多组lcm/gcd与Mamba非对齐回退成立；GLM专用补丁另判。
+5	supported	is_hybrid由attn_type判定，不直接决定显式APC是否可启用。
+6	supported	旧版hybrid默认不支持，有实验性提示；对显式True不作禁用。
+7	repaired_pending_acceptance	与spec49字节一致复用已读；能力属性决定all/align，不以继承名作唯一判断。
+8	supported	生成模型参数None取支持判定，pooling另有强制关闭逻辑；本页GLM生成模型链成立。
+9	supported	混合组查命中缩短到共同固定点；一个组退让需复查前组。
+10	supported	MLA/full、滑窗、Mamba管理器注册映射对应正文各组。
+11	repaired_pending_acceptance	旧GLM镜像全部组lcm/gcd，关闭APC和connector则退回调度粒度；4是输入哈希不等于每4保存状态。
+12	supported	Ascend模型配置先调用上游模型检查，保持模式变化与后续对齐顺序。
+13	supported	旧镜像按kernel128对齐并覆盖KDA页导出GLM640；显式lcm(kernel,index_kpool×16)是新版路径，不混用。
+14	supported	APC且align时mamba_block_size跟随block_size，其他路径最大长度。
+15	supported	Ascend KDA逆序查精确边界档，以null补之前位置；不要求恢复所有历史档。
+16	repaired_pending_acceptance	只在最后可缓存位置前按分支对齐或截断，末尾余量可不对齐；删除每刀都对齐且每边界有档的泛化。
+17	supported	自动关APC条件依赖TRITON_MLA/FLASHINFER，不单独当作Ascend实际关APC证据。
+18	supported	实际后端名ASCEND_DSA或FLASH_ATTN，两分支均不满足17条件。
+19	supplemented_pending_acceptance	GLM类头仅提供类身份；补全文件属性检索与接口getattr以核all能力。
+20	supported	v26默认明确排除hybrid，即便模型支持判定为True也需显式开。
+21	repaired_pending_acceptance	main恢复支持即默认开；改默认开不等于有命中，避免无共同前缀也宣称命中。
+22	supported	main生成hybrid返回支持；和参数None分支共同证明默认。
+23	supplemented_pending_acceptance	筛非cacheable组成立；补最终回原函数、有效spec/块长/压缩对齐，关闭原未逐项核粒度。
+24	supplemented_pending_acceptance	main类头与全文件无支持属性检索；补main默认none直接align规则，避免沿用旧自动all规则。
+25	supported	touch已有ref增加、不在用则先从freequeue移除；不是复制数据。
+26	supported	rc2 DCP仅full/Mamba组合且PCP1；后端GLM仍可更严格拒绝CP。
+27	supported	rc2整除校验仅prefix_cacheable组，与private tail排除一致。
+28	supported	rc2生成模型参数未给时取支持判定；补rc2模型支持实际分支。
+29	supported	rc2 indexer KPool明确拒绝PCP/DCP，不能用上游hybrid放宽覆盖模型限制。
+30	supported	all/align/none定义支持留档时机；640仅必要边界，不代表每个边界必有档。
+31	supported	align的null占位、候选块复用、旧档回收、非null实际登记均支持正文。

@@ -1,52 +1,127 @@
 ---
 id: kv-cache-cpu-offload
-title: "KV cache CPU offload：缓存在主机内存多存一份，用到时搬回显存"
+title: KV cache CPU offload：缓存在主机内存多存一份，用到时搬回显存
 type: feature
-summary: 把算好的 KV cache 按完整段复制到主机内存；显存里那份被回收以后，同一段开头再被用到（另一条请求，或被抢占后排回来的同一条）时从主机搬回，不必重算。讲清为什么需要、搬回和重算各花多少（示意数）、按段存取与异步等待，以及 GLM 双机主线为什么没开、开了要搬多少。
-aliases: [KV Cache CPU Offload, CPU Offloading, KV cache CPU 卸载, OffloadingConnector, NPUOffloadingSpec, CPUOffloadingSpec, num_cpu_blocks, blocks_per_chunk, cpu_bytes_to_use, offload_prompt_only]
-chapters: ["11"]
+summary: >-
+  把可保存的KV状态复制到主机，后续命中时搬回设备以减少重算。用普通整段路径说明页、段、带宽和异步等待，再区分新版部分尾状态、私有锁页与共享mmap。GLM主线未开，释放的池容量也不能当成实际恢复字节。
+aliases:
+  - KV Cache CPU Offload
+  - CPU Offloading
+  - KV cache CPU 卸载
+  - OffloadingConnector
+  - NPUOffloadingSpec
+  - CPUOffloadingSpec
+  - num_cpu_blocks
+  - blocks_per_chunk
+  - cpu_bytes_to_use
+  - offload_prompt_only
+chapters:
+  - '11'
 sources:
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L721-L806
-  - vllm-ascend@db701c1f:vllm_ascend/kv_offload/npu.py#L16-L63
-  - vllm-ascend@db701c1f:vllm_ascend/kv_offload/cpu_npu.py#L63-L68
-  - vllm-ascend@db701c1f:vllm_ascend/kv_offload/cpu_npu.py#L180-L261
-  - vllm@0fc695fc:vllm/v1/kv_offload/cpu/spec.py#L30-L71
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L537-L567
-  - vllm@0fc695fc:vllm/v1/kv_offload/base.py#L378-L442
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L605-L630
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L800-L812
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L206-L215
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L1017-L1027
-  - vllm-ascend@db701c1f:vllm_ascend/kv_offload/cpu_npu.py#L77-L133
-  - vllm-ascend@db701c1f:vllm_ascend/kv_offload/npu.py#L1-L13
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/cpu_offload/cpu_offload_connector.py#L66-L78
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L1-L108
-  - vllm-ascend@2c59ff10:vllm_ascend/kv_offload/npu.py#L16-L63
-  - vllm-ascend@2ed6cbba:vllm_ascend/kv_offload/npu.py#L16-L63
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L42-L60
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L37
-  - vllm@0fc695fc:vllm/v1/kv_offload/cpu/manager.py#L39-L46
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - >-
+    vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L721-L806
+  - 'vllm-ascend@db701c1f:vllm_ascend/kv_offload/npu.py#L16-L63'
+  - 'vllm-ascend@db701c1f:vllm_ascend/kv_offload/cpu_npu.py#L63-L68'
+  - 'vllm-ascend@db701c1f:vllm_ascend/kv_offload/cpu_npu.py#L180-L261'
+  - 'vllm@0fc695fc:vllm/v1/kv_offload/cpu/spec.py#L30-L71'
+  - >-
+    vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L537-L567
+  - 'vllm@0fc695fc:vllm/v1/kv_offload/base.py#L378-L442'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L605-L630'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L800-L812'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L206-L215'
+  - >-
+    vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L1017-L1027
+  - 'vllm-ascend@db701c1f:vllm_ascend/kv_offload/cpu_npu.py#L77-L133'
+  - 'vllm-ascend@db701c1f:vllm_ascend/kv_offload/npu.py#L1-L13'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/cpu_offload/cpu_offload_connector.py#L66-L78
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L1-L108
+  - 'vllm-ascend@2c59ff10:vllm_ascend/kv_offload/npu.py#L16-L63'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/kv_offload/npu.py#L16-L63'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L42-L60
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L37'
+  - 'vllm@0fc695fc:vllm/v1/kv_offload/cpu/manager.py#L39-L46'
+  - >-
+    raw:sha256-780ecc1534f5818e25ca01abca8c7e7f85f4f5fa94425e785e489d71606c65f8.md#L1-L810
+  - >-
+    vllm-ascend@7d825229:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L1-L14
+  - >-
+    vllm-ascend@7d825229:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L83-L90
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L36'
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L1-L14
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L83-L90
+  - 'vllm-ascend@7d825229:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L1-L139'
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L1-L102'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L41-L97'
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L65-L232'
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L275-L344'
+  - 'vllm@ced6857a:vllm/v1/kv_offload/cpu/spec.py#L94-L165'
+  - 'vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/config.py#L75-L176'
+  - 'vllm@ced6857a:vllm/config/parallel.py#L874-L884'
+  - 'vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/config.py#L59-L88'
+  - 'vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L905-L979'
+  - 'vllm@0fc695fc:vllm/v1/kv_offload/cpu/manager.py#L137-L180'
+  - 'vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L270-L307'
+  - 'vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L266-L303'
+  - 'vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L951-L1002'
+  - 'vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L1464-L1560'
+  - 'vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/config.py#L250-L274'
+  - 'vllm@ced6857a:vllm/v1/kv_offload/base.py#L590-L607'
+  - 'vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L1314-L1389'
+  - 'vllm@84030bbe:vllm/v1/kv_offload/cpu/spec.py#L94-L165'
+  - 'vllm@0fc695fc:vllm/v1/kv_offload/cpu/spec.py#L73-L98'
+  - 'vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/offloading/config.py#L94-L135'
+  - 'vllm@568afb3a:vllm/v1/kv_offload/base.py#L504-L513'
+  - 'vllm@84030bbe:vllm/v1/kv_offload/base.py#L596-L604'
+  - 'https://github.com/vllm-project/vllm-ascend/pull/13389'
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L233-L264'
+  - 'vllm@84030bbe:vllm/v1/kv_offload/factory.py#L30-L58'
+  - 'vllm@0fc695fc:vllm/v1/kv_offload/cpu/spec.py#L24-L28'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0rc2
+  - main
+evidence: C
 relations:
-  - {to: prefix-caching, kind: builds-on, note: 扩展可复用前缀的存储位置}
-  - {to: kv-cache-spec, kind: builds-on, note: 根据实际页规格计算外存段容量}
-  - {to: kv-cache, kind: builds-on, note: 备份和搬回的对象}
-  - {to: recompute-cpu-offload, kind: alternative-to, note: 同样把 KV 存到主机，但在抢占那一刻只存被抢占的那条请求}
+  - to: prefix-caching
+    kind: builds-on
+    note: 扩展可复用前缀的存储位置
+  - to: kv-cache-spec
+    kind: builds-on
+    note: 根据实际页规格计算外存段容量
+  - to: kv-cache
+    kind: builds-on
+    note: 备份和搬回的对象
+  - to: recompute-cpu-offload
+    kind: alternative-to
+    note: 同样把 KV 存到主机，但在抢占那一刻只存被抢占的那条请求
 contradicts: []
-updated: "2026-09-29"
-origin: direct
+updated: '2026-11-10'
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-23cdfe3485b3222b99f83e701316efbad544025e95db1e688ba0a608fadbc520.md
+  - >-
+    raw/sha256-4e31c5bc68937e83233626f9aa12b0e71bdba9c997807603260a065d74d00fe9.md
+  - >-
+    raw/sha256-780ecc1534f5818e25ca01abca8c7e7f85f4f5fa94425e785e489d71606c65f8.md
 ---
 
 ## 显存放不下的 KV cache，能先存到 CPU 内存吗？
 
 **KV cache CPU offload（KV cache CPU 卸载）是在主机内存（CPU 一侧的内存）里给算好的 KV cache 多存一份：显存里那份被回收以后，只要主机那份还在，下次用到同一段开头时就把它搬回显存，不用重新算一遍。**
 
-[KV cache](kv-cache.md) 是每个已处理位置在每层留下的 K、V，后面的位置都要反复读它。它放在显存（NPU 自己的内存）里，显存用满了就要腾地方。看一个例子：
+[KV cache](kv-cache.md)保存后续计算需要的历史：普通注意力按位置存K、V，混合模型还可能包含递推状态和索引。先看普通注意力、整段存取的例子，缓存放在显存（NPU自己的内存）里，用满就要腾地方：
 
 1. 请求 A 算完了一段开头，这段 KV cache 在显存里占了两页。开着 CPU offload 时，vLLM 顺手把这两页复制一份到主机内存。
 2. 显存紧张，A 的这两页被收回，让给请求 C。显存里 A 的那份没了，主机里的还在。
-3. 请求 B 的开头和 A 一字不差（或者就是 A 自己，被抢占后又排了回来）。没有主机那份，这段开头只能从头重算；有主机那份，就在显存里分两页空的，把数据搬回来，从这段开头之后接着算。
+3. 请求B具有相同的前缀输入身份（或者就是A自己被抢占后排回来），所需主机副本仍然可用，就在显存分空页、搬回这段状态并继续算。身份要匹配token、LoRA、多模态内容等，不能只看显示的文字，见[前缀缓存](prefix-caching.md#哪些块能被共享)。
 
 ```wiki-diagram
 file: kv-cache-cpu-offload
@@ -56,16 +131,16 @@ file: kv-cache-cpu-offload
 
 ## 为什么需要它：显存不够时，本来只能重算
 
-**没有 CPU offload，显存里的缓存一旦被收回，要再用就只能重算。** 这种情况有两种来路：
+**没有其他外部副本时，本地缓存被淘汰后要再用就得重算。** 归还块号还不等于内容已经被淘汰，常见的两种来路是：
 
 - **前缀被挤掉。** [Prefix caching](prefix-caching.md) 让开头相同的请求共用已经算好的块，前提是这些块还在显存里。缓存池满了，暂时没人用的旧块会被新请求拿走，下一条同开头的请求只好重算。
-- **请求被抢占。** 池子不够时，调度器会收回一条正在跑的请求的全部块，这条请求排回来时已算位置清零，要从头重算。这笔账有多贵，GLM 双机的例子见[多条请求的 KV 块一节](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)。
+- **请求被抢占。** 调度器收回请求的块、清零已算位置；重新排入时还会查询可复用前缀。若本地和外部都没有可用副本，才从头重算。固定GLM关着前缀缓存也没有外部连接器，确实走全段重算，代价见[多条请求的KV块](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)。
 
 主机内存和显存是两块分开记账的内存（见[主机内存与显存](device-memory.md)）。把显存留不住的那部分放到主机，相当于给 KV cache 多加了一层存储。**这一层有用的前提是：从主机搬回来比重算快。**
 
 它也有代价：
 
-- **算完就存，不管将来用不用。** 每凑满一段就往主机复制一次，持续占用设备到主机方向的带宽。从来没人复用的段，这趟搬运就白付了。
+- **提前保存有传输成本。** 常规路径在可保存段形成时安排复制，不等显存满；已存在的段、被策略过滤的段或无法分配主机空间的段会跳过。真正保存却从未复用的段，这趟传输没有带来重算收益。
 - **主机内存要预先划出来。** 启动时就在主机开好一整块固定大小的缓冲，能锁页时用锁页内存（不会被操作系统换出，传输更快）。开得太大会把主机内存挤爆。
 - **搬回要等。** 搬回在后台进行，请求先挂起，搬完之后才能接着算；搬运还会和计算抢内存带宽。
 - **显存池不会变大。** 缓存池还是启动时切出来的那么多块，只是被收回的内容多了一个找回来的地方。
@@ -91,35 +166,49 @@ file: kv-cache-cpu-offload-cost
 
 持平带宽的算法值得记住：**每个位置的缓存字节 × 每秒能算的位置数**。有效带宽高于它，搬回划算；低于它，重算划算。这笔账还要补三处：
 
-- **长开头更偏向搬回。** 搬回的时间只和字节数成正比；重算时每个位置都要和前面全部位置打分，开头越长，后面每个位置算得越慢，每秒能算的位置数会往下掉，持平带宽也跟着降低。
-- **短开头更偏向重算。** 搬回至少要等一步：请求先挂起，调度器在后面某一步看到搬完了，才让它接着算。开头只有几十个位置时，重算往往顺手塞进本步就做完了，搬回反而多等一步。不满一段的尾巴根本不存（见[按多大的单位存](#按多大的单位存页和段)），只能重算。
+- **长开头可能更适合搬回。** 对全注意力，重算还包含随上下文增长的历史注意力计算，实际prefill速度可能下降，使持平带宽降低。稀疏或线性注意力的增长规律不同，须用模型在目标长度下的实测速度；不能把所有模型都当作全历史打分。
+- **短开头更偏向重算。** 搬回至少要等一步：请求先挂起，调度器在后面某一步看到搬完了，才让它接着算。开头只有几十个位置时，重算往往顺手塞进本步就做完了，搬回反而多等一步。本节普通整段路径不保存不足一段的尾巴，这部分只能重算；新版部分尾状态的条件见[页和段](#按多大的单位存页和段)。
 - **有效带宽要实测。** 搬运和计算、和其他请求的保存共用同一条链路与内存带宽，不能拿链路的标称值代入。
 
 实现本身不做这笔比较：主机里有整段能接上，就搬回。这笔账是用来决定开不开、段设多大的。
 
 ## 什么时候存，什么时候搬回？
 
-**算完一个完整段就存，和显存满不满无关；新请求或被抢占后排回来的请求进场时，先查显存、再查主机，主机里能接上多少就搬回多少。**
+**常规保存依据可用内容与策略，和显存是否已满无关；等待中的请求首次查缓存时，先查本地、再问外部还能接上多少。** 下面按固定旧上游的整段路径说明，较新的部分尾状态存取见[版本差异](#版本差异)。主机查找尚未结束、容量不足或状态未就绪时，请求仍需等待。
 
 这套机制在 vLLM 里叫 OffloadingConnector，是 KV connector（vLLM 在调度器和 worker 两侧留的一组接口，专门把 KV cache 搬进搬出）的一种，也分成两半：**调度侧**决定存哪些段、查主机里能接上多少，用的是上游 vLLM 的代码；**worker 侧**（worker 是每张卡上跑模型的进程）真正拷字节，昇腾换上了自己的实现：一个 spec（说明主机那边开多大、按什么单位存）加一个 handler（真正执行拷贝）。
 
 以请求 A 存、请求 B 取为例，一段缓存要走五步，第 1、3、4 步在调度侧，第 2、5 步的拷贝在 worker 侧：
 
-1. **排进保存计划。** 每一步排完，调度侧看 A 的「已算位置 + 本步要算的位置」能凑满几段，把还没存过的段列进保存计划。计划先于本步计算写好，但只算到已经确定的 token 为止；默认还只存提示词部分，decode 阶段新生成的位置不存。
+1. **排进保存计划。** 每一步排完，调度侧看A的“已算位置 + 本步要算的位置”能凑满几段，筛去无效占位和以后无法命中的滑窗段，再由主机管理器筛已存在内容、检查保存策略和容量。计划先于本步计算写好，只覆盖已确定的token；默认只存提示词部分，decode新生成的位置不存。
+
+   保存计划还有位置范围限制：先取本批计算完成后的进度与请求的位置数中较小的一个；如果请求还设置了最大卸载位置数，再用这个上限截住保存范围。得到允许保存的位置范围后，才判断其中能凑满多少段。
 2. **等算完再拷。** worker 在专门的传输流（stream：设备上按顺序执行的一条任务队列，计算和拷贝放在不同的流上才能同时进行）上先等本步计算把这些位置写完，再把字节从显存拷到主机。
 3. **登记为可用。** 拷完的段在主机一侧登记，靠「从开头到这一段为止的内容」算出的哈希来认，所以换一条请求、只要开头相同也能认出来。显存里的原页仍归显存的缓存管理器，照常被复用或回收。
 4. **进场时查找。** B 进场（已算位置为 0，新请求和被抢占后排回来的都算）时，调度器先看显存里能复用多少个位置，再问主机还能接着往后接上多少个。
 5. **分页、搬回、恢复。** 能接上，就先在显存给这些位置分好空页，B 挂起等待；worker 在另一条传输流上把主机数据拷进这些页，拷完报告完成，B 才恢复，从接上的位置往后算。
 
-所以一段缓存会经过「还没算完 → 可以存 → 正在拷 → 主机可用」几个状态。这里有两个不同的「好了」：**完整**指这段的内容都算出来了，决定能不能列进计划；**完成**指字节已经安全到了另一边，由传输完成的信号确认，决定能不能用。
+要分清三个时刻：**预计本步结束后达到保存边界**，调度侧就可以先列计划；**本步计算写完**，源数据就绪，传输才可读取；**字节已经拷到另一边**，由参与worker的完成信号确认，主机副本才可用。计划包含本步待计算的位置，不能把“列入计划”当成已经算完。
 
 拷贝进行时，两头的页都不能乱动：源页要保持有效，目标页要等拷完才能读。A 在保存拷完之前就结束了，它的页照样还回池子，但会被记上一笔：谁要复用这些页，得先等这笔保存拷完。
 
-判断「存不存」只看段有没有凑满，不看显存是不是快满了。好处是等到页真被回收时，主机那份早就在了，回收不用临时搬；代价是前面说过的，没人复用的段也照样搬一趟。
+若提前保存已在页回收前完成，就能省去临时保存的等待；判断依据是保存完成信号，仅有计划还不足以确认主机副本可用。
+
+```wiki-diagram
+file: kv-cache-cpu-offload-flow
+```
+
+图中的“等待”是请求暂不进入后续前向，调度器仍可推进其他请求。保存、加载的完成通知由参与传输的worker汇总；不能把其中一张卡先完成当作整个执行组已经可用。
+
+下面用一个缩小的完整段追踪两份副本：2 页，每页 2 个位置，K、V 各 2 通道。位置 p 的四个示意数取为 [p,p+1,p+2,p+3]。显存原页回收后，B 在新分配的页里接回相同内容，等待加载完成通知后继续。它演示可选 offload 机制，固定 GLM 双机主线没有启用。
+
+```wiki-scene
+inference-mechanism:6
+```
 
 ## 按多大的单位存：页和段
 
-**显存按页分配，主机按段存：一段由相邻的若干页拼成，存和命中都以整段为单位。** 页是显存缓存池分配空间的单位，也就是站内其他页说的 KV 块（vLLM 叫 block），见 [KV 缓存规格](kv-cache-spec.md)；段是主机一侧的管理单位，由配置决定一段含几页。
+**常规路径中，显存按页分配，主机按段存：一段覆盖序列上相邻的若干页，设备物理块号不必连续。** 页就是缓存池的KV块，见[KV缓存规格](kv-cache-spec.md)；段是主机管理单位，由配置决定包含几页。以下算例按整段命中，rc2/main的部分尾状态是带额外条件的另一条路径。
 
 继续用示意模型，设一页 16 个位置，每 4 页拼成一段：
 
@@ -132,11 +221,13 @@ title: 一段多大，1 GiB 主机内存能存多少（示意数）
 > 按单个 worker、忽略对齐和管理开销；剩下的 6 个位置凑不满一段，不存
 ```
 
+显式指定一段包含多少个位置时，本页固定的上游实现还要求：已经建立缓存组，各组的设备块覆盖的位置数一致，而且段的位置数必须是设备块位置数的整数倍。这里比较的是 token 数，不是页字节数。前面的示意中，每块 16 个位置、每段 64 个位置，满足这个整除条件；实际配置还须核对缓存组的布局，不能只按希望一次搬多少数据来决定段大小。
+
 段大小是一对取舍：
 
 - **段越大，管理项越少，一次拷得越多**，拷贝的固定开销摊得越薄。
 - **段越大，命中越粗。** 两条请求的开头只有 100 个位置相同时，按上面的设定只有第 1 段（前 64 个位置）能命中，后 36 个照样重算。开头要连着相同才行：第 1 段不同，后面的段即使内容相同也认不出来。
-- **不满一段的尾巴不存。** 上面 70 个位置里的最后 6 个，要等 A 再算 58 个位置、凑满第 2 段才会存。
+- **不满一段的尾巴不存。** 默认只存提示词时，70 个位置的 prompt 最后 6 个不会靠后续 decode 补成可保存的段；允许保存生成内容后，A 再算 58 个位置、凑满第 2 段，才可能把这一段存下。
 
 一页、一段的字节要把所有层、所有相关的缓存张量加起来。混合模型除了 K、V，还有 [linear attention](linear-attention.md) 的递推状态、稀疏 attention 的索引缓存，只算 K、V 会把段算小。
 
@@ -144,13 +235,30 @@ title: 一段多大，1 GiB 主机内存能存多少（示意数）
 
 ## 搬运在后台进行，计算什么时候要等？
 
-**存和取各走一条独立的传输流，和计算并行；只有两处必须等：存之前等计算写完，取完之前请求不能算。**
+**存和取分开排队，具备与计算重叠的机会；写入、读取和复用源页都需要同步。** 旧handler每个方向一条流，rc2/main会复用流池，但同方向仍按事件排序。
 
 - **存（设备到主机）。** 传输流先等计算流把本步的数据写完，才开始拷，否则拷走的是没写完的页。
 - **取（主机到设备）。** 不用等计算流，但那条请求一直挂着，直到这笔拷贝报告完成。
 - **同一方向排队。** 同一方向的后一笔拷贝要等前一笔的完成信号，再一次性提交这一批页的拷贝，并记下本笔的开始、结束信号。每一步按提交顺序逐笔查看，拷完的就报告给调度侧。
+- **覆盖仍在保存的源页前也要等。** 请求已经结束并不代表保存结束；页再次分配时，连接器会要求相关保存任务完成，防止新写入覆盖尚未拷走的内容。
 
 CPU 在拷贝期间可以接着处理别的事，设备也能让传输和计算重叠；但两者抢同一份内存带宽，传输越多，留给计算的带宽越少。每笔拷贝都记了字节数和用时，要实测有效带宽，就从这里取。
+
+## 新版主机副本放在哪里，谁共享？
+
+rc2/main的官方指南提供两种路径。只有CPU层时，worker各自申请主机张量，平台支持时使用锁页内存；要接文件系统等次级层时，则使用共享内存映射，让worker、调度侧和次级存储管理器访问同一块主机区域。共享映射叫mmap，它解决多个进程看到同一份字节的问题，不能据此推断设备传输速度与锁页张量相同。
+
+还有一种减少重复副本的特例。[MLA](mla.md)把注意力历史压缩成潜在状态；[TP](tensor-parallel.md)把同一层的计算分给多卡，而这里允许去重的纯MLA布局中，各卡保存相同的潜在状态字节。参与进程用rank编号，因此“多个rank共用一份”是共享这份相同数据，并非把本来不同的数据强行合并。
+
+| 路径 | 主机数据如何存放 | 容量与代价 |
+|---|---|---|
+| 只有CPU层 | 各worker私有的张量缓冲，能锁页时锁页 | 同一执行组各worker的主机副本合计占用预算，不能每个worker都按总预算各开一份 |
+| CPU加文件系统等次级层 | worker与调度侧连接同一主机映射区域，较冷的数据可再写入文件系统 | CPU预算之外还要磁盘容量与I/O；Ascend这条mmap路径的NPU传输带宽须独立测量 |
+| 多层路径满足纯MLA复用条件 | 同节点纯TP且各rank保存相同MLA字节时，可共用单份主机布局 | 只在实现通过条件检查时减少重复副本；混合GLM不能直接套用 |
+
+这里的“所有worker”指连接器配置里的执行组，不天然等于整台服务器或全部DP实例。[PP](pipeline-parallel.md)将模型层分成流水阶段，[DP](data-parallel.md)把请求分给多个执行组，[prefill上下文并行](context-parallel.md)再分担长输入。常规进程启动时，组大小为PP×TP×prefill上下文并行数；多个DP组分别建立实例时，主机预算还要按同机实例合计。外部启动器的world size包含DP时，须按该有效值计算，不能再次乘DP。它与[Engram主机共享](deepseek-v4-1-flash.md#engram-为什么把另一笔内存账放到主机上)属于不同数据和分配机制，不能互相替代配置。
+
+文件系统次级层还要考虑段大小与I/O线程：大段减少管理开销但使命中更粗，更多读写线程只在后端具备相应并行能力时有用。官方rc2指南注明该层淘汰策略仍在开发，因此不能把CPU层LRU当作磁盘也会自动限额淘汰的保证。
 
 ## 放到 GLM 双机：主线没开它，开了要搬多少？
 
@@ -158,18 +266,18 @@ CPU 在拷贝期间可以接着处理别的事，设备也能让传输和计算�
 
 部署前提（2×A2×8、TP8/DP2/EP16、W8A8）见[部署页](glm-5-3-flash-two-node.md#部署前提)。主线的 prefix caching 也关着：GLM 是混合模型，vLLM 默认判它不支持，原因见[前缀缓存页](prefix-caching.md#glm-双机上它开着吗)，后果见[部署页的后果清单](glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)。所以[前面那两种来路](#为什么需要它显存不够时本来只能重算)里，主线只会碰到「请求被抢占」。
 
-主线抢占的账在[多条请求的 KV 块一节](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)：DP 组 0 跑满 32 条、各走到约 67,000 个位置时，被抢占的那条每卡还回 120–121 块，排回来要在本机重算约 9 步。一个 DP 组的 8 张卡都在同一台机器上，各存各的块。假如有一套能用的 CPU offload，要搬回的量最多是这些：
+主线抢占的账在[多条请求的KV块](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)：DP0跑满32条、各走到约67,000个位置时，被抢占的那条每卡还回120–121块，排回来重算约9步。一个DP组8张卡在同一台机器，各有自己的显存。先保留这笔设备容量账，再区分它与实际传输量：
 
 ```calc
-title: 被抢占的那条：最多要搬多少，要重算几步
-每卡最多要搬 = 120~121 块 ≈ 956~964 MiB
-一个 DP 组 8 张卡 = 8 × (956~964) MiB ≈ 7.47~7.53 GiB
+title: 被抢占请求释放的容量与重算量
+每卡释放的池容量 = 120~121 块 ≈ 956~964 MiB
+一个 DP 组 8 张卡的容量合计 = 8 × (956~964) MiB ≈ 7.47~7.53 GiB
 重算 = 9 步
-搬回耗时 = (956~964) MiB ÷ 实测主机到设备带宽 = 待核
-> 块数、字节和 9 步的推导都在多条请求页；7.5 GiB 要由这台机器的主机内存出
+搬回耗时 = 实际需恢复的字节 ÷ 实测主机到设备带宽 = 待实测
+> 块数、池容量和9步的推导见多条请求页；释放容量不是实际拷贝字节
 ```
 
-说「最多」，是因为默认只存提示词部分：这些请求的历史若大半是 decode 阶段生成的，那部分根本不在主机里，排回来照样要重算。底稿既没有主机与 NPU 之间的带宽实测，也没有这 9 步每步多久，所以只能摆出「要搬多少字节」和「要重算几步」，谁更快待核。按[搬回和重算](#搬回和重算各花多少)一节的算法，持平带宽 = 每卡每个位置 13,056 B（随长度增长的那部分，见[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)）× 每秒能重算的位置数，后一个数同样待实测。
+实际传输只包含保存成功且本次恢复需要的状态，还受默认只存prompt、分组页布局和留档边界影响，不能把约7.5GiB池容量直接当主机副本大小。若历史大半来自decode，默认设置也不会保存那部分。部署算例的每位置13,056B是按池槽折算的容量口径，不能直接充当有效载荷；持平带宽应使用“实际搬运字节 ÷ 恢复位置数 × 每秒能重算的位置数”。设备有效带宽、实际恢复字节和9步耗时都需实测。
 
 在钉住的 GLM 快照上打开它，会一层层碰壁：
 
@@ -179,11 +287,11 @@ title: 被抢占的那条：最多要搬多少，要重算几步
 
 就算这些都解决了，每卡 3,855 块的缓存池也不会因此变多：主机缓冲、传输带宽都是额外的开销。想借它把显存池切小、多留给别的用途，要同时评估搬回的频率和延迟。
 
-待核：主机与 NPU 之间的有效带宽；主线单步耗时；两台机器能划给它的主机内存；场景里请求的提示词长度（决定默认设置下能存多少）；main 分支改用上游多组实现后，GLM 的混合缓存能否走通。
+新版已经改为按缓存组和页的字节视图搬运，旧版“一层两张量”的结构障碍不再原样适用；GLM状态边界和设备正确性仍需单独验收，见源码区。
 
 ## 常见误解
 
-- **「显存满了才往 CPU 搬」**——不是。按上游调度代码，凑满一段就存，和显存满不满无关；官方指南里「显存满了、要新块时把不活跃的块拷到 CPU」是简化说法。正因为提前存好了，页被回收时不用临时搬。
+- **「显存满了才往CPU搬。」** 保存计划按可保存边界和策略生成，不以显存已满为触发器；官方指南用“显存满时卸载”概述用途，实际时序须看连接器。此前保存已完成时，回收才无需临时再搬。
 - **「开了它，显存能多装请求」**——缓存池大小不变，它省的是重算，不是显存。官方指南说它让显存有限时能处理更长的上下文、更多并发，意思是缓存被挤掉、请求被抢占以后找回来更便宜，不是池子变大。要让缓存少占显存，看 [KV cache 量化](kv-cache-quantization.md)。
 - **「搬回一定比重算快」**——要看带宽、开头长度和计算速度。有效带宽低于持平带宽、开头很短、或者不满一段时，重算更划算，或者只能重算。
 - **「它就是抢占时把请求存到主机」**——不是一回事。本页是算完一段就存、按内容哈希给任何开头相同的请求用；[抢占卸载](recompute-cpu-offload.md)是在抢占那一刻把这条请求的状态存走、恢复时还给它。PD 分离的 D 节点上，[RecomputeScheduler](recompute-scheduler.md) 配上能存 KV 的连接器时走后一种；存不走，就把请求退回 P 重算。
@@ -194,23 +302,28 @@ title: 被抢占的那条：最多要搬多少，要重算几步
 
 ### 怎么开
 
+以下是两代配置入口。第一段保留旧官方指南写法，固定旧Ascend与所配vLLM存在下节列出的导入不兼容，不能直接当作已验证启动命令；GLM旧镜像还有多组和状态布局障碍。第二段用于rc2/main的新版入口，也需先确认模型支持。
+
 ```bash
 # v0.23 维护分支、GLM 快照、v0.26 分支：用昇腾自带的 spec，容量按主机段数给
 --kv-transfer-config '{"kv_connector":"OffloadingConnector","kv_role":"kv_both",
   "kv_connector_extra_config":{"num_cpu_blocks":1000,"block_size":128,
   "spec_name":"NPUOffloadingSpec","spec_module_path":"vllm_ascend.kv_offload.npu"}}'
-# main：昇腾把上游 CPUOffloadingSpec 换成自己的实现，容量按字节给
+# rc2/main：昇腾注册NPU实现，容量按执行组主机字节给
 --kv-transfer-config '{"kv_connector":"OffloadingConnector","kv_role":"kv_both",
-  "kv_connector_extra_config":{"cpu_bytes_to_use":8589934592,"blocks_per_chunk":8}}'
+  "kv_connector_extra_config":{"spec_name":"CPUOffloadingSpec","cpu_bytes_to_use":8589934592,"blocks_per_chunk":8}}'
 ```
 
 - 昇腾 `NPUOffloadingSpec` [C2]：`num_cpu_blocks` 是主机段数，必填；`block_size` 是一段的位置数，必须是设备块大小的整数倍，段倍数 = `block_size` ÷ 设备块大小。主机缓冲在 handler 初始化时一次开好：每层 K、V 各一块，第 0 维是 `num_cpu_blocks × 段倍数` 个设备块，能锁页就锁页。官方指南给的写法与上面第一段相同。
-- 上游 `CPUOffloadingSpec` [C5]：`cpu_bytes_to_use` 是所有 worker 合计的主机字节。每块字节（所有 worker 合计）= 本 worker 显存 KV 总字节 ÷ 块数 × worker 数，每段字节 = 它 × 段倍数，再按对齐取整（v0.23.0 的对齐值是 1）；段数 = `cpu_bytes_to_use` ÷ 每段字节。淘汰策略 `eviction_policy` 默认 `lru`，可选 `arc`。两种入口的单位不同（段数对字节），参数不能互抄。
+- 固定旧上游 `CPUOffloadingSpec` [C5]：`cpu_bytes_to_use` 是配置world size内worker合计的主机字节。合计每块字节 = 本worker的KV规划字节 ÷ 块数 × worker数，再乘段倍数并按对齐取整；容量向下取整为完整段数。两种入口的单位不同（段数对字节），参数不能互抄。rc2/main按实际缓存布局计算容量，满足单份复制布局时按一份计，普通布局仍按worker数计（来源32–34、42、45、47）。
 - `offload_prompt_only` 默认 `true`：保存计划把位置数夹到提示词长度，decode 阶段的位置永远不进计划 [C1]。
+- `eviction_policy` 默认lru，可选arc；`store_threshold` 达到2及以上时会过滤低频候选，默认不做这个过滤。已存在的内容也不会每次重新保存。因此“凑满就存”是未被策略过滤的常规路径（来源20、32、37、46）。
 - 保存计划：`num_computed_tokens + num_scheduled_tokens`，再夹到 `req.num_tokens` 和 `max_offload_tokens`；每组按 `位置数 // 段位置数` 取整段，跳过块号为 0 的滑窗、SSM 块，交给 `manager.prepare_store`。
 - 查找与挂起：调度器只对 `num_computed_tokens == 0` 的请求先查本地、再调 `connector.get_num_new_matched_tokens` [C8]；返回异步加载时请求改为 `WAITING_FOR_REMOTE_KVS`，放回等待队列。连接器存在时引擎就给请求算块哈希，不看 prefix caching 开关 [C10]。
 - 名字相近的另一条路：昇腾 `kv_pool/cpu_offload/` 下的 `CPUOffloadingConnector`，`enable_prefix_caching` 为假时调度侧、worker 侧都不建 [C14]。本页不展开。
 - GLM 双机主线的启动参数里没有 `--kv-transfer-config`，见[部署页](glm-5-3-flash-two-node.md#怎么开)。
+
+固定旧上游CPU spec的字节对齐值是1（来源53）；新版main的 `spec_name` 可省略，工厂默认选择CPUOffloadingSpec，再由Ascend注册映射到NPU实现（来源19、52）。示例显式写出该名，便于与TieringOffloadingSpec区分。
 
 ### 会报什么错
 
@@ -218,13 +331,15 @@ title: 被抢占的那条：最多要搬多少，要重算几步
 - **多个缓存组**：昇腾 spec 的 `get_manager` / `get_handlers` 里 `assert len(self.gpu_block_size) == 1`，`gpu_block_size` 每个缓存组一项。GLM 有 5 个组，这里 `AssertionError`（按代码推断，未实跑）[I]。
 - **段大小不合法**：给了 `block_size` 但各组块大小不同 → 上游断言「If 'block_size' is specified …, all groups must have the same block size」；`block_size` 不是设备块大小的整数倍 → 断言失败 [C7]。
 - **混合模型块大小对不齐**：设备块大小不能被哈希块大小整除 → 上游断言，信息提示混合模型需要 `--enable-prefix-caching` 来对齐块大小。
-- **两份钉住源码接口不配套**：v0.23 维护分支、GLM 快照、v0.26 分支的昇腾 spec 从 `vllm.v1.kv_offload.abstract`、`.spec`、`.mediums` 导入 [C13]，这几个模块在上游 v0.23.0 之前的重构（c42981d034）里已删除；它还给 `CPUOffloadingManager` 传 `block_size`，而 v0.23.0 的构造函数没有这个参数 [C20]。和 vLLM v0.23.0 装在一起时，按代码推断加载这个 spec 就会导入失败（未实跑）[I]。main 上的重构 PR #13389 也写明修了原生 offload 的兼容问题。
+- **两份钉住源码接口不配套**：旧Ascend spec从上游abstract、spec、mediums模块导入（来源13），这些模块已在重构c42981d034删除；所配v0.23、v0.26源码树均没有这些路径。旧spec还传入旧manager的block_size参数，固定v0.23构造函数已经不接收它（来源20）。因此按固定源码导入链推断，旧入口无法启动，未做设备运行。[I] 后续[重构PR #13389](https://github.com/vllm-project/vllm-ascend/pull/13389)也说明修复原生offload兼容性；其Qwen测试不能充当GLM验证。
 - **运行时只有日志**：主机放不下新段 → warning「Request %s: cannot store blocks」，本步跳过这条请求的保存；主机内存开得过大 → 主机 OOM，官方指南专门提醒按可用内存调 `num_cpu_blocks`。
 
 ### 开销和什么时候别开
 
-- **每个完整段都付一次设备到主机的拷贝**，不管将来有没有人用；和计算抢内存带宽。存的方向要等计算流写完 [C4]，所以不是完全不碍事的后台任务。
-- **主机锁页内存一次开满**：昇腾 spec 按 `num_cpu_blocks × 段倍数` 为每层 K、V 各开一块，上游按 `cpu_bytes_to_use` 换算段数。每台机器上的每个 worker 进程都各开一份自己的。
+- **被选中实际保存的段要付设备到主机拷贝成本**，即使以后没有人用；它与计算争用带宽，存之前还要等计算流写完（来源4、30）。
+
+拷贝的数据量不能直接算成腾出的显存：设备页仍归缓存管理器管理。
+- **主机缓冲按容量预分配**：旧Ascend按段数和K/V张量开缓冲；新版CPU-only使用各worker私有张量，多层路径使用共享mmap，容量口径按上文区分。
 - **搬回至少晚一步**：请求在 `WAITING_FOR_REMOTE_KVS` 里等到拷贝完成才重新参与排步。
 - **适合开**：开头重复多（多轮对话、长系统提示词、同一文档反复提问），主机内存富余，实测的有效带宽高于[持平带宽](#搬回和重算各花多少)。
 - **别开**：请求开头几乎不重复（只付存的开销，没有命中）；主机内存紧；模型有多个缓存组、又停在只接受单组的昇腾版本上（包括钉住的 GLM 快照）。
@@ -232,15 +347,29 @@ title: 被抢占的那条：最多要搬多少，要重算几步
 
 ### 版本差异
 
-| 项 | v0.23 维护分支 2c59ff10 | GLM 快照 db701c1f | v0.26 分支 2ed6cbba | main baa023ad | 意味着什么 |
-|---|---|---|---|---|---|
-| 昇腾实现在哪 | `vllm_ascend/kv_offload/npu.py`、`cpu_npu.py` | 同左，这个目录三处逐字相同 | 同左 | 挪到 `distributed/kv_transfer/kv_pool/kv_offload/native/`，继承上游 `CPUOffloadingSpec` [C18] | main 上不用写 `spec_name`：上游默认就用 `CPUOffloadingSpec`，昇腾注册时把它顶替成自己的实现 |
-| 容量怎么给 | `num_cpu_blocks`（段数） | 同左 | 同左 | `cpu_bytes_to_use`（全部 worker 合计字节）+ `blocks_per_chunk` | 单位不同，从旧写法换到 main 要重算 |
-| 缓存组 | 断言只有 1 个 | 同左 | 同左 | 走上游的多组逻辑 | GLM（5 个组）在 main 上能否走通待核 |
-| 和上游接口 | 导入的上游模块在 vLLM v0.23.0 已删 | 同左 | 同左 | 按上游新接口重写 worker | 前三列和同版上游装在一起起不来（按代码推断）[I] |
-| 主机之外的层级 | 只有 CPU | 同左 | 同左 | 另有 `NPUTieringOffloadingSpec`：CPU 主层之后再接更慢的层 | 主机放不下的冷数据还能往下放 |
+**v0.30.0rc2 的通用 CPU 卸载入口是 OffloadingConnector。** Ascend 将上游 CPUOffloadingSpec、TieringOffloadingSpec 注册为 NPU 实现，调度侧 manager 仍复用上游，worker 侧使用 NPU stream 与批量拷贝。CPU-only 与多层存储分别选择这两个 spec；后者可接文件系统等次级层。
+
+该路径要求 cpu_bytes_to_use，表示全部 worker 的 CPU 层预算；blocks_per_chunk 必须为正，也可在各 KV 组块大小一致时使用以 token 计的 block_size，两项互斥。它与抢占恢复用的 PreemptOffloadConnector 是不同入口，不能混用后者“主机块数按显存块数比例分配”的默认规则。
+
+四个配套上游钉点见[块分配版本表](vllm-kv-block-allocation.md#版本差异)，GLM专用镜像db701c1f沿用旧接口，单独保留上述限制。
+
+| 项 | v0.23 Ascend 2c59ff10 | v0.26 Ascend 2ed6cbba | rc2 Ascend 7d825229 | main Ascend baa023ad |
+|---|---|---|---|---|
+| 昇腾实现位置 | `kv_offload/npu.py`、`cpu_npu.py` | 同左 | `distributed/kv_transfer/kv_pool/kv_offload/native/` | 同rc2 |
+| 容量入口 | num_cpu_blocks，主机段数 | 同左 | cpu_bytes_to_use，配置执行组总预算 | 同rc2 |
+| 每段大小 | block_size，按token给 | 旧Ascend接口仍在；上游新增blocks_per_chunk | 默认1块，可给正blocks_per_chunk或block_size，两者互斥 | 同rc2 |
+| 张量与缓存组 | 单组、每层K/V两张量假定 | 同左 | 按组的规范字节视图与页尺寸搬运 | 同rc2；不能仅凭多组接口认定GLM已设备验收 |
+| 固定配套接口 | 引用已删除的上游模块，导入链不兼容 | 同左 | 按新接口重写 | 同rc2 |
+| 主机之外的层级 | 此Ascend spec只有CPU | 同左 | 另有TieringOffloadingSpec，CPU主层加次级层 | 同rc2 |
+| 只保存prompt的默认值 | true | true | true | true |
 
 上游 vLLM 这边：v0.23.0 的段大小由 `kv_connector_extra_config` 里的 `block_size`（位置数）给；v0.26 起多了 `blocks_per_chunk`（每段几页），和按位置数给的 `block_size` 二选一，两个都给会 `ValueError`。`offload_prompt_only` 默认 `true` 在两版上相同。
+
+rc2/main还有部分尾状态路径：每段必须只有1个物理块，各组逻辑块长相同，存在哈希粒度更细的align递推组，其他组满足非滑窗或专用状态条件，且没有EAGLE组、DCP为1。调度器提供边界状态后才可保存，查找还要求各组在同一边界都命中；不能把旧文“尾巴一概不存”推广到这些版本（来源38–40、44）。普通整段示意的64/70/100个位置算例仍按其已声明的路径成立。
+
+CPU-only与多层共享布局见27–32，实际worker按页字节搬运见30–31；rc2/main的纯MLA单份主机布局只在单组精确MLA规格、页面字节账吻合、TP大于1、PP/PCP/DCP均为1、单节点mp执行时成立（来源33、47）。GLM混合组不满足这些条件。源码支持这些接口与限制；GLM实际恢复字节、主机带宽、单步耗时、可用主机容量及恢复后的正确性尚缺NPU实测。[I]
+
+CPU-only与多层存储的官方指南及其文件系统调优、锁页/mmap差异见来源27；硬件带宽不能跨路径直接套用。[S27] 四版默认只存prompt的字段见7、43、48–49，新版事件计时见51；字节数除事件间隔测到传输段速率，不包含请求排队、CPU准备和全部恢复等待，应同时测端到端延迟。
 
 ### 源码位置
 
@@ -258,3 +387,9 @@ title: 被抢占的那条：最多要搬多少，要重算几步
 | 主机缓冲与 K、V 成对的假定 | 同文件 L77–L133 |
 | 等计算流、同向排队、完成检查 | 同文件 `transfer_async` / `get_finished`（L180–L261） |
 | main 上的昇腾实现与注册 | `vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py`（L42–L60）、`vllm_ascend/distributed/kv_transfer/__init__.py`（L21–L37） |
+
+固定旧上游的保存范围先受已确定位置数与可选最大卸载位置限制，再按默认prompt范围截断、取完整段（来源1）。主机管理器随后过滤已存在的段和未达阈值的候选，并检查可腾出的容量（来源37、46）。完成通知与源页复用前等待见36。
+
+显式段大小的约束见旧上游base.py L430–442（来源7），新版配置入口见33、35；检查各组设备块的token数及整除关系。字节容量换算见5、32、45。示意64是16的整数倍，512MiB/16GiB/s=31.25ms、4096/16384=250ms、持平2GiB/s均为可复算的示意值。[D]
+
+复制量不能充当显存回收量：保存任务可能在请求结束后仍未完成，调度器会登记待保存块以协调后续复用（offloading scheduler.py 1017–1027 行，来源 11）。实际何时释放、腾出多少容量，还取决于请求生命周期与保存完成时刻。

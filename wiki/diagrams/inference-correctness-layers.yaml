@@ -1,0 +1,42 @@
+layout: figure
+id: inference-correctness-layers
+caption: 输入边界的教学示例：同一份消息经过 A、B 两个模板，B 多插入了编号 9。格子按真实输入顺序排列；第三个位置已经不同，此时先查模板展开，不必先怀疑模型计算。编号为假设。
+size: [820, 430]
+frames:
+  - { at: [20, 145], size: [370, 210], label: 服务 A：第 1 站 }
+  - { at: [430, 145], size: [370, 210], label: 服务 B：第 1 站 }
+items:
+  - { at: [270, 20], size: [280, 60], text: 同一份完整消息, tone: token, style: solid }
+  - { at: [70, 175], size: [270, 55], text: A 的模板与分词, tone: control, style: faded }
+  - { at: [480, 175], size: [270, 55], text: B 的模板与分词, tone: control, style: faded }
+grids:
+  - at: [95, 285]
+    rows: 1
+    cols: 3
+    cell: [55, 38]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: '11' }
+      - { at: [0, 1], text: '23' }
+      - { at: [0, 2], text: '7' }
+  - at: [505, 285]
+    rows: 1
+    cols: 4
+    cell: [55, 38]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: '11' }
+      - { at: [0, 1], text: '23' }
+      - { at: [0, 2], text: '9', tone: danger, style: solid }
+      - { at: [0, 3], text: '7' }
+links:
+  - { from: [340, 80], to: [205, 175], via: [[340, 110], [205, 110]], tone: token }
+  - { from: [480, 80], to: [615, 175], via: [[480, 110], [615, 110]], tone: token }
+  - { from: [177, 230], to: [177, 285], tone: token }
+  - { from: [615, 230], to: [615, 285], tone: token }
+texts:
+  - { at: [210, 266], text: 实际输入编号, size: 13 }
+  - { at: [645, 266], text: 实际输入编号, size: 13 }
+  - { at: [410, 395], text: 先停在第一处差异：多出的 9 从哪里进入输入？, anchor: middle, size: 16, strong: true }

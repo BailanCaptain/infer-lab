@@ -1,0 +1,162 @@
+{
+  "scope": "MM coverage candidate source facts; no teaching page modified or hardware validation",
+  "sources": [
+    {
+      "ref": "vllm@0fc695fc:vllm/config/multimodal.py#L98-L143",
+      "claim": "enable_mm_embeds and processor cache are distinct; processor cache default 4 GiB, lru, shm object cap128MiB. Formula in config comment needs topology condition from registry.",
+      "read_scope": "98–143 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "2ca78ef40f8bdae73ef26af648b6384c1ece4108d1fcfda27cd00e60c013ca14",
+      "range_sha256": "3a01b42bec1e66c735eb84093c48796fd772a029b063f966da3687177c1bc2e9",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/config/multimodal.py"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/processing/processor.py#L1214-L1334",
+      "claim": "Tokens/media separated; dummy text only in custom _call_hf_processor branch; default calls media-only helper. Cache-miss item without media raises ValueError.",
+      "read_scope": "1214–1334 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "range_sha256": "a3fac8005f25a65b2e2641ef66b8805ca62625ad2e8e7d18f573d09555143db0",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/multimodal/processing/processor.py"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/processing/processor.py#L1343-L1511",
+      "claim": "Process missing media, merge cached/missing kwargs and updates back in original item order; renumber item_idx. Passthrough_data bypasses processor cache.",
+      "read_scope": "1343–1511 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "range_sha256": "fab7ac9efa25c5261a52ad4d11716098a1fcf84573d17e045fd797fc79902485",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/multimodal/processing/processor.py"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/processing/processor.py#L1528-L1710",
+      "claim": "Placeholder token updates and ranges map media features to text sequence; existing HF updates are detected, otherwise applied after merge; validates item/update/placeholder counts.",
+      "read_scope": "1528–1710 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "range_sha256": "1b9feea354a3cea269e4f4dc4805b2a3264c1906908227b664669c0aece68f0a",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/multimodal/processing/processor.py"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/transformers_utils/processor.py#L569-L605",
+      "claim": "Default media-only helper invokes image/video/audio subprocessor, not synthetic text.",
+      "read_scope": "569–605 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "dda97a9b41e9e606546d3a155b8eab29de1014b6dae7b0a1a56e2cd277796ab2",
+      "range_sha256": "7d51b867c0a5350fb98a764fdf3f53ac03437103f9f0a88f2d6153c7fd36ab9c",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/transformers_utils/processor.py"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/renderers/base.py#L621-L724",
+      "claim": "UUID lengths/data validation; if both processor cache and APC disabled generates per-request IDs replacing user UUIDs; otherwise passes structured input to model processor.",
+      "read_scope": "621–724 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "7213ffb05a468340f18967dc17c3b07886936110c87ecf36a7cbfbb83e29eef7",
+      "range_sha256": "c529a447812c15b082fe14e72fffa32108aa445e92a6786e6292a9ae2b99d770",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/renderers/base.py"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/processing/inputs.py#L1-L71",
+      "claim": "Default hashes model+media+processor kwargs; explicit UUID used directly only without processor kwargs, else UUID+kwargs hashed; None UUID uses content.",
+      "read_scope": "1–71 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "85de6ef9d6240d80bdac237a3fb1be5243963e57dbbcc33d7606dc731ff6ed33",
+      "range_sha256": "e336b89bc5608a7518dddee168ff43c23c55ef06d0e93149cf86779108b718ef",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/multimodal/processing/inputs.py"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/multimodal/registry.py#L268-L354",
+      "claim": "IPC cache only with one API process and DP1 or external LB; otherwise processor_only. LRU receiver is EngineCore; shm receiver is Worker. Do not universalize API+DP memory formula.",
+      "read_scope": "268–354 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "d4627c89d3459ce35a729e0940a0c5be5b54793b40192c1c068416b57a0a82fd",
+      "range_sha256": "052d783f149d3699c850ffaea01945e3713bd19caf8b019fbfb5d16dfef17ddb",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/0fc695fc/vllm/multimodal/registry.py"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/multimodal/processing/processor.py#L1214-L1334",
+      "claim": "Same actual source bytes as baseline processor (full file diff empty); same dummy-text condition and missing-data error.",
+      "read_scope": "1214–1334 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "range_sha256": "a3fac8005f25a65b2e2641ef66b8805ca62625ad2e8e7d18f573d09555143db0",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/568afb3a/vllm/multimodal/processing/processor.py"
+    },
+    {
+      "ref": "vllm@568afb3a:vllm/multimodal/registry.py#L268-L354",
+      "claim": "Full file diff baseline empty; same cache-type topology.",
+      "read_scope": "268–354 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "d4627c89d3459ce35a729e0940a0c5be5b54793b40192c1c068416b57a0a82fd",
+      "range_sha256": "052d783f149d3699c850ffaea01945e3713bd19caf8b019fbfb5d16dfef17ddb",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/568afb3a/vllm/multimodal/registry.py"
+    },
+    {
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/multimodal/processing/processor.py#L1167-L1307",
+      "claim": "New processing API expects token IDs, media processor normally no text; model override _get_hf_processor_text may supply dummy text; miss without data still errors.",
+      "read_scope": "1167–1307 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "0f1b2ad34bc9ff97e8bfe3fa7923fa7c60b305843c7077b761ff6a137fa1b334",
+      "range_sha256": "e7db6cdea8f8effbf7cefc1e3df09789a3d75334f13bdf49375d19ae7e7df267",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/multimodal/processing/processor.py"
+    },
+    {
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/multimodal/processing/inputs.py#L1-L107",
+      "claim": "Hash now incorporates selected algorithm and modality-scoped media_io_kwargs plus processor kwargs; explicit UUID may still be raw if no additional factors.",
+      "read_scope": "1–107 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "cf128693ee6b0c78768b91a0be161457f8fd984a160534e32f75217751185f1f",
+      "range_sha256": "a2c81f5c85b47a7e3ff3670e23a6f9cc3acd6e3151bfc9056829eb4a041b1f43",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/multimodal/processing/inputs.py"
+    },
+    {
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/multimodal/registry.py#L283-L369",
+      "claim": "Same IPC topology selection semantics as baseline; file relocations only for selected range.",
+      "read_scope": "283–369 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "265dfe93a97ee9a25851d21d59a22fa7364d126324842b0c669fe598117081bb",
+      "range_sha256": "ebed3de976a443237158a564f968a2464a1a4c401cc2293b7f5380f40c0f24ef",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/multimodal/registry.py"
+    },
+    {
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/renderers/base.py#L818-L850",
+      "claim": "Both caches disabled preserves explicit UUID for EC across instances and generates only missing IDs; differs from baseline and fixed main comparison.",
+      "read_scope": "818–850 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "4db44560f4d331bf0f184626ed7cac97b350355a5c64bce648bf1fa971b16d68",
+      "range_sha256": "ac02020a1331293ca2d127628368c6aa3d06987cca645edb602290ed22228db4",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/ced6857afa0ea7b2e3f0846a62e1394e90f15607/vllm/renderers/base.py"
+    },
+    {
+      "ref": "vllm@84030bbe:vllm/renderers/base.py#L818-L848",
+      "claim": "Fixed main comparison replaces user UUID when both caches disabled; do not assume rc2 preservation behavior here. Exact paired Ascend-main provenance not asserted.",
+      "read_scope": "818–848 actually read; saved complete source is not a claim of complete reading",
+      "full_file_sha256": "1ee6434cb5e691dff668b196b0d270d1254ed2f9f918ba05fec9a5aec09562b1",
+      "range_sha256": "de38dba9191e9d52f3b1c26a1e186a5ee1c94c174a46092a082cc5fc7008ff50",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/mm-code/84030bbe/vllm/renderers/base.py"
+    }
+  ],
+  "findings": [
+    {
+      "id": "MM1",
+      "severity": "P2 coverage gap",
+      "pages": [
+        "api-server-entry",
+        "kv-cache-memory-profiling",
+        "pd-disaggregation",
+        "ucm"
+      ],
+      "finding": "Current API explains text prompt embeds and only distinguishes media embeds; CPU HF preprocessing, placeholder mapping and processor-cache miss/merge are not taught. PD/UCM EC cache is encoder outputs, not this CPU processing cache.",
+      "proposal": "Add one API entry subsection: image enters -> CPU processor output and placeholder range -> encoder output -> language forward. Explain CPU preprocessing cache versus EC versus KV in a small table and link unique existing EC/KV teaching."
+    },
+    {
+      "id": "MM2",
+      "severity": "candidate source mismatch",
+      "finding": "Official design mm_processing says dummy text workaround generally; baseline implementation only uses it for model custom _call_hf_processor; newer token-only API makes helper explicit per model.",
+      "proposal": "Explain purpose and condition, not universal operation. Four version column must include newer token-only implementation."
+    },
+    {
+      "id": "MM3",
+      "severity": "candidate source mismatch",
+      "finding": "Config comment multiplies capacity by API+DP but registry falls back to processor_only in multi-API/internal-DP topology.",
+      "proposal": "State 4GiB is capacity setting; actual receiver duplication and shm vs lru depend on topology, not an unconditional physical-host allocation formula."
+    },
+    {
+      "id": "MM4",
+      "severity": "version boundary",
+      "finding": "UUID omission requires actual cached data; rc2 keeps explicit UUIDs with both caches off, but baseline and840 replace them. New hash inputs include media IO kwargs.",
+      "proposal": "Show valid same-media UUID reuse plus cache-miss failure; user IDs are a content identity contract, not automatic proof same media. Distinguish versions."
+    }
+  ],
+  "limits": [
+    "No NPU or full model invocation; no current GLM multimedia support validation.",
+    "Linked media example files not all read; mother1194 lines and design63 fully read.",
+    "No new global full-text credit; root deduplicates."
+  ]
+}

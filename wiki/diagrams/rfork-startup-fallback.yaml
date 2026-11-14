@@ -12,7 +12,7 @@ items:
   - { at: [220, 330], size: [320, 44], text: 回收半成品模型，清空 NPU 缓存, style: plain }
   - { at: [220, 392], size: [320, 44], text: 普通加载：加载方式改回自动, tone: weight }
   - { at: [220, 454], size: [320, 44], text: 会话在吗？, style: plain }
-  - { at: [220, 516], size: [320, 44], text: 交回模型，尝试发布成 seed, tone: control, style: plain }
+  - { at: [220, 516], size: [320, 44], text: 尝试发布成 seed，再交回模型, tone: control, style: plain }
   # 分支出口
   - { at: [20, 76], size: [160, 56], text: 会话没建起来, sub: 缺配置或没装传输引擎, style: plain }
   - { at: [620, 268], size: [260, 44], text: 报错终止，不分配第二份模型, tone: danger }

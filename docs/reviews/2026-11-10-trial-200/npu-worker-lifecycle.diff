@@ -1,0 +1,105 @@
+--- trial-before/npu-worker-lifecycle.md
++++ wiki/concepts/npu-worker-lifecycle.md
+@@ -67,7 +67,7 @@
+   - 'vllm@0fc695fc:vllm/config/load.py#L25-L85'
+   - 'vllm@0fc695fc:vllm/model_executor/model_loader/__init__.py#L34-L132'
+   - 'vllm@0fc695fc:vllm/model_executor/model_loader/default_loader.py#L97-L209'
+-  - 'vllm@568afb3a:vllm/config/load.py#L25-L85'
++  - 'vllm@568afb3a:vllm/config/load.py#L14-L85'
+   - 'vllm@568afb3a:vllm/model_executor/model_loader/__init__.py#L33-L66'
+   - 'vllm@568afb3a:vllm/model_executor/model_loader/default_loader.py#L128-L242'
+   - 'vllm@84030bbe:vllm/config/load.py#L25-L85'
+@@ -89,6 +89,8 @@
+   - 'vllm@ced6857a:vllm/model_executor/model_loader/weight_utils.py#L888-L939'
+   - 'vllm@ced6857a:vllm/model_executor/model_loader/__init__.py#L50-L66'
+   - 'vllm@ced6857a:vllm/model_executor/model_loader/default_loader.py#L186-L230'
++  - 'vllm@84030bbe:vllm/model_executor/model_loader/utils.py#L147-L155'
++  - 'vllm@84030bbe:vllm/model_executor/layers/attention/__init__.py#L26-L30'
+ verified: []
+ evidence: C
+ relations:
+@@ -108,7 +110,7 @@
+     kind: builds-on
+     note: 第六步录下的图，运行时怎样被选中和回放
+ contradicts: []
+-updated: 2026-11-03T00:00:00.000Z
++updated: 2026-11-10T00:00:00.000Z
+ origin: gap
+ rawSources:
+   - >-
+@@ -127,17 +129,17 @@
+ file: worker-lifecycle
+ ```
+ 
+-图里画三个 Worker，代表「每张卡一个」；有几张卡就有几个，各自走同一条路。横跨各列的汇总框是管这几张卡的那一个 EngineCore。每个 Worker 只有两处要等别人：
++图里画三个 Worker，代表「每张卡一个」；有几张卡就有几个，各自走同一条路。横跨各列的汇总框是管这几张卡的那一个 EngineCore。图中重点标出两处启动协调；试跑和录图中的集合通信也需要同组成员配合：
+ 
+ - **第②步，同组的 Worker 要到齐。** 通信组要所有成员都报到才建得成，一张卡没起来，别的卡就卡在这一步。
+-- **第④步之后，要等 EngineCore 汇总。** 每个 Worker 只报「我还能给 KV cache 多少显存」；EngineCore 收齐后按最紧的那张卡定块数，把同一份缓存配置发回，每张卡才开始第⑤步。
++- **第④步之后，要等 EngineCore 汇总。** 每个 Worker 只报「我还能给 KV cache 多少显存」；EngineCore 收齐后统一可调度的块数，把各卡对应的缓存配置发回，每张卡才开始第⑤步。本页同一张量并行组（TP：多卡合算同一批、各持部分权重）的布局相同；流水线并行（PP：按层分成多个执行阶段）中，各阶段负责的层不同时，各卡配置可以不同。
+ 
+ 六步各自留下什么：
+ 
+ 1. **换补丁。** 在本进程里把上游 vLLM 的一部分函数换成昇腾版，注册昇腾自己的算子（在 NPU 上真正执行的一小段计算），读入昇腾的配置。从这以后，本进程跑的都是换过的代码。补丁只对当前进程生效，所以每个 Worker 进程都要各换一遍，见[进程与补丁](engine-processes.md#补丁和配置为什么要每个进程各做一遍)。
+ 2. **选卡，建通信组。** Worker 绑定自己那张卡，先拍一张显存快照，记下这时还空着多少；再用 HCCL（昇腾的集合通信库，见 [CANN 与 HCCL](cann-hccl.md)）建通信组；最后建 [ModelRunner](npu-model-runner.md)，它负责组织每一步的输入、调用模型、管理 KV 张量。ModelRunner 要知道用哪张卡，所以只能在选卡之后建。
+ 
+-3. **装权重。** 从权重文件里读出本卡分到的那一份，拷进显存，再换成昇腾算子要的存储布局。权重从此常驻，整个服务期间不再变。
++3. **装权重。** 从权重文件里读出本卡分到的那一份，拷进显存，再换成昇腾算子要的存储布局。本部署未启用运行期权重更新，后续请求复用这些权重。
+ 4. **量预算。** 用假数据按一步的上限试跑一次前向，量出临时张量最多占多少；再拿「总显存 × 显存比例」减去权重、这个峰值和不经 PyTorch 分配的占用，剩下的就是 KV cache 的预算。每一项怎么扣，见 [KV cache 显存预算](kv-cache-memory-profiling.md)。
+ 
+ 5. **建缓存池。** 按 EngineCore 发回的缓存配置，把 KV cache 的张量一次分配出来。池里有多少块从这里起固定；哪条请求用哪几块，是请求来了之后才借的，见 [KV 块分配](vllm-kv-block-allocation.md)。
+@@ -241,7 +243,7 @@
+ 
+ - **「第②步只是选卡」。** 显存快照和 ModelRunner 都在这一步：快照拍在建通信组之前，ModelRunner 建在选卡之后，在那之前它根本不存在。
+ - **「KV cache 有多大，看启动参数就知道」。** 显存比例只定预算，实际字节数是第④步减出来的。手工指定显式预算时，试跑照样要跑，因为它顺带完成模型的首次编译；填一个很大的数也不会多出物理显存，第⑤步分配时照样放不下。
+-- **「每个 Worker 自己决定分多少块」。** Worker 只报可用字节；块数由 EngineCore 按本机最紧的那张卡统一定，所有卡按同一份配置分配。
++- **「每个 Worker 自己决定分多少块」。** Worker 只报可用字节；可调度块数由 EngineCore 汇总确定，各卡按分发给自己的配置分配；本页同构 TP 组受最紧的那张卡约束。
+ - **「启动时已经给请求分好了块」。** 第⑤步只建池子。R1 用的块是调度第一步才借的，请求结束就还回池里，见上文第⑤步。
+ - **「录了图，之后每一步都回放图」。** 本部署只录纯 decode 步；带 prefill 的混合批走逐算子执行，两个 DP 组里有一组不能用图，两组这一步都退回逐算子执行，见[双机部署的后果](glm-5-3-flash-two-node.md#这套部署给后面各章留下的后果)和 [ACL Graph](acl-graph.md)。一个请求一步也不止 1 个 token，MTP 下是 4 个。
+ - **「命令里写了不录图，主模型就不录」。** 那个开关只管草稿模型，见第⑥步。
+@@ -259,10 +261,10 @@
+ - **谁来调。** `NPUWorker` 继承上游 `WorkerBase`，平台通过 `worker_cls` 指定用它，见 [NPUPlatform](npu-platform.md)。执行器的 `WorkerProc` 构造时依次调 `init_device()` 和 `load_model()`[C10]；`EngineCore._initialize_kv_caches` 先广播 `get_kv_cache_spec` 与 `determine_available_memory`，自己用 `get_kv_cache_configs` 定块数，再调执行器的 `initialize_from_config`[C11]；执行器对每个 Worker 先广播 `initialize_from_config`，紧接着广播 `compile_or_warm_up_model`[C12]。
+ - **① 构造函数。** 先按 `COMPILE_CUSTOM_KERNELS` 决定要不要警告，然后 `adapt_patch()` 打 worker 层 patch，接着 `ops.register_dummy_fusion_op()`、非 A5 设备注册 ATB 扩展、`register_ascend_customop(vllm_config)`、`init_ascend_config(vllm_config)`、配置日志、`check_ascend_device_type()`，最后才 `super().__init__()`[C2]。
+ - **② `init_device`。** `_init_device` 里依次 `torch.npu.set_device`、`empty_cache`、建 `MemorySnapshot`、算 `requested_memory = total_memory × gpu_memory_utilization`、空闲不足就抛错，然后 `_init_worker_distributed_environment`，最后设随机种子[C3]。建组用 `init_distributed_environment(..., "hccl")`，再 `ensure_model_parallel_initialized` 和 `init_ascend_model_parallel`（建 MC2 等昇腾自己的组）[C5]；全局 rank 的偏移在上游 `parallel_state` 里。回到 `init_device`，先初始化 workspace 管理器，再按 `use_v2_model_runner` 在 `NPUModelRunnerV2` 与 `NPUModelRunner` 之间选，源码注释写明理由：「Init ModelRunner here, so that we have access to self.device」[C4]。
+-- **③ `load_model`。** `enable_sleep_mode` 开着就用 `CaMemAllocator` 的 `tag="weights"` 池，否则 `nullcontext()`；配了 `weight_transfer_config` 再建权重传输引擎[C6]。`NPUModelRunner.load_model` 整段包在 `DeviceMemoryProfiler` 里，结束时把显存增量记为 `model_memory_usage`，然后加载草稿模型[C13]。加载器由 `--load-format` 决定：默认 `auto` 对应 `DefaultModelLoader`，可读本地目录，也可先下载远端仓库文件；插件注册的 `rfork` 改为借别的实例的显存，见 [RFork 启动](rfork-startup.md)。本部署读 safetensors 走 `safetensors_weights_iterator`，`prefetch` 策略另起后台线程预读[C16]。后处理入口被 `patch_process_weights_after_loading` 换成 `ascend_process_weights_after_loading`，镜像版把 `AscendIndexerKPoolMLAAttention` 加进 `_ASCEND_ATTENTION_POST_LOAD_TYPES`[C14]；这个类就是 GLM 实际推理用的 MLA 模块，它的 `process_weights_after_loading` 转给 `mla_cache_layer`，再转给后端 `impl`[C15]。
++- **③ `load_model`。** `enable_sleep_mode` 开着就用 `CaMemAllocator` 的 `tag="weights"` 池，否则 `nullcontext()`；配了 `weight_transfer_config` 再建权重传输引擎[C6]。`NPUModelRunner.load_model` 在 `DeviceMemoryProfiler` 区间内加载主模型，并在配置了草稿模型时加载草稿模型；退出区间后才把显存增量记为 `model_memory_usage`，因此这笔统计包含草稿加载[C13]。加载器由 `--load-format` 决定：默认 `auto` 对应 `DefaultModelLoader`，可读本地目录，也可先下载远端仓库文件；插件注册的 `rfork` 改为借别的实例的显存，见 [RFork 启动](rfork-startup.md)。本部署读 safetensors 走 `safetensors_weights_iterator`，`prefetch` 策略另起后台线程预读[C16]。后处理入口被 `patch_process_weights_after_loading` 换成 `ascend_process_weights_after_loading`，镜像版把 `AscendIndexerKPoolMLAAttention` 加进 `_ASCEND_ATTENTION_POST_LOAD_TYPES`[C14]；这个类就是 GLM 实际推理用的 MLA 模块，它的 `process_weights_after_loading` 转给 `mla_cache_layer`，再转给后端 `impl`[C15]。
+ - **④ `determine_available_memory`。** `kv_cache_memory_bytes` 的配置值经 Python 真值判断为真时走快路径：照跑 `profile_run()`（注释写明是为了编译模型），然后原样返回；否则在 `memory_profiling` 区间里跑 `profile_run()`，得到 `available_kv_cache_memory_bytes = requested_memory − non_kv_cache_memory`[C7]。
+ - **⑤ `initialize_from_config(kv_cache_config)`。** 先 `ensure_kv_transfer_initialized`，sleep mode 开着时进 `tag="kv_cache"` 池，然后 `model_runner.initialize_kv_cache(kv_cache_config)` 真正分配张量[C8]。
+-- **⑥ `compile_or_warm_up_model`。** warmup 列表取 `compile_sizes` 的副本；非 `enforce_eager` 且 `cudagraph_mode` 不为 NONE 时，剔掉 `cudagraph_capture_sizes` 里已有的尺寸，再为没被覆盖的编译区间补上端点；从大到小逐个 `_dummy_run`。非 `enforce_eager` 才 `capture_model()`；没指定显式预算时打印四项用量和建议值（多留 150 MiB）；非 A5 设备调 `_warm_up_atb()`；`enable_cpu_binding` 为真时 `bind_cpus`，失败只告警；最后 `set_random_seed`[C9]。`enable_cpu_binding` 在昇腾配置里默认为真，见 `ascend_config.py` 第 162 行。
++- **⑥ `compile_or_warm_up_model`。** warmup 列表取 `compile_sizes` 的副本；非 `enforce_eager` 且 `cudagraph_mode` 不为 NONE 时，剔掉 `cudagraph_capture_sizes` 里已有的尺寸；只要非 `enforce_eager`，还会为没被覆盖的编译区间补端点，即使图模式为 NONE。最后按列表从大到小逐个 `_dummy_run`。非 `enforce_eager` 才 `capture_model()`；没指定显式预算时打印四项用量和建议值（多留 150 MiB）；非 A5 设备调 `_warm_up_atb()`；`enable_cpu_binding` 为真时 `bind_cpus`，失败只告警；最后 `set_random_seed`[C9]。`enable_cpu_binding` 在昇腾配置里默认为真，见 `ascend_config.py` 第 162 行。
+ - **本部署的参数。** 教程两机命令写了 `--gpu-memory-utilization 0.85`、`--compilation-config` 里的 `FULL_DECODE_ONLY` 和 7 个捕获尺寸、`--speculative-config` 里的 `"enforce_eager":true`、`--safetensors-load-strategy prefetch`；`--kv-cache-memory`、`--load-format`、sleep mode、KV 传输和 `additional-config` 都没有出现[S1]。`"enforce_eager":true` 写在草稿模型的配置里，只管草稿模型，主模型仍录 decode 图[I]。
+ 
+ **加载格式怎样选。** CLI 的 --load-format 对应 EngineArgs / LoadConfig 的 load_format，Python 离线引擎也用同名关键字；类型是字符串，定义默认 auto，加载时按注册表找类。它不接收权重路径：路径由 model 指定；也不决定 INT8 或 BF16，精度与量化入口见[量化页](quantization.md#怎么开)。例如在既有命令中追加 `--load-format safetensors`，表示选择该加载路径；离线对应 load_format="safetensors"。
+@@ -279,7 +281,7 @@
+ 
+ 自定义加载器可用 register_model_loader 注册；RFork 属于独立工作版/插件扩展，不是这里三版上游自带的格式。GLM 教程没有显式 --load-format，沿用 auto；它设置的 --safetensors-load-strategy prefetch 是**选中 safetensors 之后如何读文件**的策略，不能把 prefetch 填进 load_format。原理和内存账见本页第③步，避免把预读误认为换了模型精度。
+ 
+-**读盘策略与代码信任。** safetensors_load_strategy 的 CLI 名为 `--safetensors-load-strategy`，Python EngineArgs / LLM 使用同名下划线关键字。定义默认 None；它与显式 lazy 不同：None 在检测到 NFS、NFS4 或 Lustre，且整份 checkpoint 不超过可用主机内存的 90% 时自动预读；其他情况沿用映射读取。lazy 始终跳过自动预读，按需触及映射文件；eager 每次把一个完整文件读到主机内存再解析；prefetch 先把所有 checkpoint 读进操作系统页缓存，再用映射方式取张量。GLM 的显式 prefetch 会绕过自动选择条件，超过 90% 只告警，仍尝试预读。None 是省略/Python 空值，不是名为 None 的策略字符串。
++**读盘策略与代码信任。** safetensors_load_strategy 的 CLI 名为 `--safetensors-load-strategy`，Python EngineArgs / LLM 使用同名下划线关键字。定义默认 None；它与显式 lazy 不同：None 在检测到 NFS、NFS4 或 Lustre，且整份 checkpoint 不超过可用主机内存的 90% 时自动预读；其他情况沿用映射读取。lazy 始终跳过自动预读，按需触及映射文件；eager 每次把一个完整文件读到主机内存再解析；prefetch 在后台预读 checkpoint 到操作系统页缓存，前台仍用映射方式取张量；不要求先读完整份 checkpoint 才开始取张量。GLM 的显式 prefetch 会绕过自动选择条件，超过 90% 只告警，仍尝试预读。None 是省略/Python 空值，不是名为 None 的策略字符串。
+ 
+ `--trust-remote-code` 对应 trust_remote_code，布尔值默认 false；GLM 教程显式开启。它在加载模型配置、分词器及相关 HF 自定义实现时允许使用模型仓库中的代码，可能早于 Worker 装权重执行。开启并不强制改用 Transformers 模型后端，也不表示所有 safetensors 文件包含代码；固定原生 GLM 路径仍按本页六步执行。离线构造对应 trust_remote_code=True，服务请求不能逐条改变这个启动决定。请求可否改聊天模板是另一项，见 [API 模板信任](api-server-entry.md#怎么开)。
+ 
+@@ -317,7 +319,7 @@
+ 
+ ### 版本差异
+ 
+-**v0.30.0rc2 保留分阶段启动，阶段内部增加了状态归属处理。** init_device 按最终配置选 MRV1/MRV2；加载后可建 weight_transfer_engine。KV 初始化先登记 DSpark draft 缓存拥有者，再建 connector，discardable 池仅包缓存本体；MRV2 needs_kv_cache_zeroing 和 MRV1 的 Mamba+Eagle3 多 token 条件分别建立清零 metadata，并留在 sleep 池外。kernel_warmup 仍在 capture 条件前、无 Triton 则直接返回，但现在包含 rejection sampler、penalties、RMS、indexer 四项；early kernel/NZ warmup 另有配置且默认 false。
++**v0.30.0rc2 保留分阶段启动，阶段内部增加了状态归属处理。** init_device 按最终配置选 MRV1/MRV2；加载后可建 weight_transfer_engine。KV 初始化在 DSpark speculator 存在且启用对应 KV 传输或逐层复用时，先登记 draft 缓存拥有者，再建 connector；discardable 池仅包缓存本体。清零 metadata 的共同门槛是 needs_kv_cache_zeroing，且 runner 提供 _init_kv_zero_meta：MRV2 满足即可，MRV1 还须同时有 Mamba 层、使用 Eagle3 且草稿 token 数大于 1。metadata 留在 sleep 池外。kernel_warmup 仍在 capture 条件前、无 Triton 则直接返回，但现在包含 rejection sampler、penalties、RMS、indexer 四项；early kernel/NZ warmup 另有配置且默认 false。
+ 
+ 配套上游的 load_format=auto、safetensors_load_strategy=None、trust_remote_code=false 保留，NFS/NFS4/Lustre 与 90% RAM 的自动预读判断、显式 lazy 不预读的规则也在。rc2 的 pt 回退与远端索引条件和下述 main 相同：显式 safetensors 不追加 pt 候选，远端索引只在找到多个权重文件时下载，见来源 53。实际加载器注册含 modelexpress、ipc_cache，不含 gguf/bitsandbytes，不能只看 help 枚举认定可运行；新增注册也不证明每个 Ascend 模型都已测试该加载器。
+ 
+@@ -332,7 +334,7 @@
+ | 项目 | v0.23 | v0.26 | main |
+ |---|---|---|---|
+ | 调用顺序 | 六个方法、调用方和先后均存在 | 同 v0.23 | 同 v0.23 |
+-| 后处理识别类 | 只认 `DSAAttention`[C20]；镜像另加 GLM 的 `AscendIndexerKPoolMLAAttention` | 只认 `DSAAttention` | 补丁已退役；GLM 改用上游的 `MultiHeadLatentAttentionWrapper`，上游后处理本来就认它[C26] |
++| 后处理识别类 | 在上游类型之外另加 `DSAAttention`[C20]；镜像还加 GLM 的 `AscendIndexerKPoolMLAAttention` | 额外识别 `DSAAttention` | 旧补丁文件已移除；GLM 改用 `MultiHeadLatentAttentionWrapper`，它持有实际的 attention 子层。上游后处理遍历子模块，按 attention 基类与后处理方法筛选，不能解释成按 wrapper 类名识别 |
+ | 权重名字补丁 | `patch_weight_utils` 改 DeepSeek 权重里 kv scale 的名字映射[C21] | 已删 | 已删 |
+ | ⑥ 预热后 | 直接 `capture_model()` | 插一次 `kernel_warmup`，预热拒绝采样、惩罚项、RMS 三类 Triton 算子，`enforce_eager` 拦不住[C22] | 同 v0.26 |
+ | ④ 预算修正 | 无 | 见[显存预算页的版本差异](kv-cache-memory-profiling.md#版本差异) | 开头多调 `maybe_apply_startup_plan`；相减后按多缓存组布局缩放，另有几项可选特性的调整[C24] |
+@@ -379,4 +381,4 @@
+ - 这套部署的实机启动日志：`Compile and warming up model for size` 各行（预热列表到底补了哪几个尺寸）、`Checkpoint size` 与 `Available RAM`、`Loading weights took`，以及第⑥步那行四项用量。各步耗时、每卡 64 GiB 和 3.4 GiB 的假设都要靠它定下来。
+ - 打开 `enable_ep_weight_filter` 在昇腾上能否直接用，没有实测；昇腾侧只在 EPLB 打开时把它换成空函数。
+ - GLM 的 MLA 层交给注意力后端之后，具体生成哪些运行期张量，本页没有展开。
+-- main 上 GLM 的 MLA 包装层怎样走上游后处理，只核到类名，没有逐行跟到返回。
++- main 的包装层归属、上游后处理遍历及筛选已核到来源 26、54、55；具体 attention 后端如何改写权重和构造运行期布局，仍未在本页展开。

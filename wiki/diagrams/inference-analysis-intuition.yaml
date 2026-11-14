@@ -1,0 +1,66 @@
+layout: figure
+id: inference-analysis-intuition
+caption: 一次计算依赖两份数据的教学示意。本卡输入乘权重得到 [5, 2]，另一张卡独立准备 [3, 1]；两份都到齐以后才能相加得到 [8, 3]。不代表 GLM 的某个具体算子。
+size: [880, 470]
+frames:
+  - { at: [24, 40], size: [480, 260], label: 本卡：读输入和权重，做乘加 }
+  - { at: [540, 40], size: [316, 260], label: 其他卡：独立准备并传来数据 }
+grids:
+  - at: [64, 98]
+    rows: 1
+    cols: 2
+    cell: [42, 38]
+    tone: token
+    style: solid
+    label: 输入
+    cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }]
+  - at: [198, 78]
+    rows: 2
+    cols: 2
+    cell: [42, 38]
+    tone: weight
+    style: solid
+    label: 同一份权重
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '0' }
+      - { at: [1, 0], text: '2' }
+      - { at: [1, 1], text: '1' }
+  - at: [366, 98]
+    rows: 1
+    cols: 2
+    cell: [42, 38]
+    tone: token
+    style: solid
+    label: 本卡结果
+    cells: [{ at: [0, 0], text: '5' }, { at: [0, 1], text: '2' }]
+  - at: [650, 98]
+    rows: 1
+    cols: 2
+    cell: [42, 38]
+    tone: token
+    style: solid
+    label: 另一份结果
+    cells: [{ at: [0, 0], text: '3' }, { at: [0, 1], text: '1' }]
+  - at: [398, 370]
+    rows: 1
+    cols: 2
+    cell: [42, 38]
+    tone: token
+    style: solid
+    cells: [{ at: [0, 0], text: '8' }, { at: [0, 1], text: '3' }]
+    label: 下一段的输入
+items:
+  - { at: [604, 214], size: [180, 48], text: 跨卡传输, tone: comm, style: solid }
+  - { at: [334, 314], size: [212, 36], text: 都齐备后，按位置相加, tone: control, style: plain }
+links:
+  - { from: [294, 116], to: [354, 116], tone: weight }
+  - { from: [408, 170], to: [408, 314], tone: token }
+  - { from: [692, 170], to: [692, 214], tone: comm }
+  - { from: [692, 262], to: [546, 332], via: [[692, 332]], tone: comm }
+  - { from: [440, 350], to: [440, 370], tone: token }
+texts:
+  - { at: [173, 122], text: '×', anchor: middle, size: 24 }
+  - { at: [70, 218], text: 第一列：1 × 1 ＋ 2 × 2 ＝ 5, size: 14 }
+  - { at: [70, 246], text: 第二列：1 × 0 ＋ 2 × 1 ＝ 2, size: 14 }
+  - { at: [440, 453], text: 本卡即使更早算完，也必须等另一份数据到齐, anchor: middle, size: 14 }

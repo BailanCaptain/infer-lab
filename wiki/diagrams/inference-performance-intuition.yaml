@@ -1,0 +1,52 @@
+layout: figure
+id: inference-performance-intuition
+caption: 每个格子代表一个待计算位置，长输入只画出一小段。左侧本步只有 D；右侧把 D 和 N 的输入放进同一批。格子表示工作组成，箭头表示先后，不表示实测耗时。
+size: [880, 420]
+frames:
+  - { at: [24, 44], size: [394, 330], label: 原来：只继续回答 D }
+  - { at: [452, 44], size: [404, 330], label: 现在：N 的长提示词也进来 }
+grids:
+  - at: [174, 82]
+    rows: 1
+    cols: 1
+    cell: [58, 38]
+    tone: token
+    style: solid
+    cells: [{ at: [0, 0], text: D }]
+    label: D 待算的下一个位置
+  - at: [502, 82]
+    rows: 1
+    cols: 1
+    cell: [40, 38]
+    tone: token
+    style: solid
+    cells: [{ at: [0, 0], text: D }]
+  - at: [568, 82]
+    rows: 1
+    cols: 6
+    cell: [40, 38]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: N }
+      - { at: [0, 1], text: N }
+      - { at: [0, 2], text: N }
+      - { at: [0, 3], text: N }
+      - { at: [0, 4], text: N }
+      - { at: [0, 5], text: '…' }
+    label: N 的提示词位置
+items:
+  - { at: [108, 190], size: [224, 60], text: 同一步：续写 D, tone: weight, style: solid }
+  - { at: [488, 190], size: [332, 60], text: 同一步：续写 D ＋ 处理 N, tone: weight, style: solid }
+  - { at: [153, 302], size: [134, 42], text: D 的新输出, tone: token, style: solid }
+  - { at: [587, 302], size: [134, 42], text: D 的新输出, tone: token, style: solid }
+links:
+  - { from: [203, 148], to: [203, 190], tone: token }
+  - { from: [522, 120], to: [522, 190], tone: token }
+  - { from: [688, 148], to: [688, 190], tone: token }
+  - { from: [220, 250], to: [220, 302], tone: weight }
+  - { from: [654, 250], to: [654, 302], tone: weight }
+texts:
+  - { at: [220, 364], text: 等本步完成，才能交回输出, anchor: middle, size: 13 }
+  - { at: [654, 364], text: D 也要等包含 N 的这一步完成, anchor: middle, size: 13 }
+  - { at: [440, 403], text: D 的问题没变；本步的工作变多了。接着查：它是否真的变慢？, anchor: middle, size: 14 }

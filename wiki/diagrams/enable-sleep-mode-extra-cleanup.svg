@@ -1,16 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 624" width="900" height="624" role="img" aria-label="开关只在 sleep() 前面和 wake_up() 后面各插一段；分配器那一步本来就会做（vllm-ascend main 开发主线）">
-  <title>开关只在 sleep() 前面和 wake_up() 后面各插一段；分配器那一步本来就会做（vllm-ascend main 开发主线）</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 624" width="900" height="624" role="img" aria-label="固定 main baa023ad：额外清理位于分配器睡眠前，恢复位于分配器唤醒后；rc2 的 anchor 流程见正文">
+  <title>固定 main baa023ad：额外清理位于分配器睡眠前，恢复位于分配器唤醒后；rc2 的 anchor 流程见正文</title>
   <rect width="900" height="624" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="44" width="860" height="200" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
   <rect x="36" y="58" width="74.7" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">sleep()</text>
-  <text x="38" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">清理必须排在分配器换出之前——图和通信域都还在，才清得动</text>
+  <text x="38" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">先清理图和设备通信资源，再释放可睡眠分配</text>
   <rect x="20" y="306" width="860" height="200" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
   <rect x="36" y="320" width="91.4" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="338.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">wake_up()</text>
-  <text x="38" y="363" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">顺序整个反过来，睡时省下的显存要在这里连本带利还回去</text>
+  <text x="38" y="363" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">先恢复所选标签的内存，再恢复通信与所需的图</text>
   <rect x="40" y="138" width="256" height="92" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
   <rect x="52" y="168" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(58.4 174.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V9M12 19V5M19 19v-7M3 21h18"/></g>
   <text x="92" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">① 作废 ACL 图</text>
-  <text x="92" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">workspace 置空、图参数清零</text>
+  <text x="92" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">workspace 置空、列表清空</text>
   <text x="92" y="207" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">reset_all_graph_params</text>
   <rect x="318" y="138" width="256" height="92" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
   <rect x="330" y="168" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(336.4 174.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z M12 18v3"/></g>
@@ -25,7 +25,7 @@
   <rect x="40" y="400" width="256" height="92" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
   <rect x="52" y="430" width="32" height="32" rx="9" fill="var(--color-canvas, #f5f2ea)"/><g transform="translate(58.4 436.4) scale(0.8)" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z M3 7l9 5 9-5M12 12v10"/></g>
   <text x="92" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">① 分配器还原</text>
-  <text x="92" y="452" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">权重与 KV 先回到卡上</text>
+  <text x="92" y="452" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">重建空间，有备份才拷回</text>
   <text x="92" y="469" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-ink-faint, #8a928f)">CaMemAllocator</text>
   <rect x="318" y="400" width="256" height="92" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
   <rect x="330" y="430" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(336.4 436.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z M12 18v3"/></g>
@@ -34,8 +34,8 @@
   <text x="370" y="469" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">restore_hccl</text>
   <rect x="596" y="400" width="256" height="92" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
   <rect x="608" y="430" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(614.4 436.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V9M12 19V5M19 19v-7M3 21h18"/></g>
-  <text x="648" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">③ 重捕获整张图</text>
-  <text x="648" y="452" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">含 kv_cache 才做</text>
+  <text x="648" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">③ 重捕获图</text>
+  <text x="648" y="452" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">tags 为 None 或含 kv_cache</text>
   <text x="648" y="469" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">capture_model</text>
   <path d="M300 184 L314 184" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
   <path d="M314 184 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
@@ -48,7 +48,7 @@
   <path d="M40 256 l0 9 L574 265 l0 -9" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.4" opacity="0.75"/>
   <text x="307" y="283" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-accent, #e85b32)" text-anchor="middle">开关加出来的只有这两步</text>
   <path d="M318 518 l0 9 L852 527 l0 -9" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.4" opacity="0.75"/>
-  <text x="585" y="545" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-accent, #e85b32)" text-anchor="middle">唤醒变慢就慢在这两步上</text>
-  <text x="20" y="582" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">① 还受 model_runner.use_aclgraph 门控：eager 模式下这一格整个跳过，只省下 HCCL 那一半，唤醒也只需重建通信域。</text>
+  <text x="585" y="545" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-accent, #e85b32)" text-anchor="middle">额外清理带来的恢复工作</text>
+  <text x="20" y="582" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">图清理与重捕获还受 use_aclgraph 门控；HCCL 清理要求分布式已初始化。旧 KV 内容不随唤醒恢复。</text>
   <text x="20" y="606" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">两个键少写一个，四个彩色格子一个都不执行：cleanup_enabled = rl_config.enabled and rl_config.sleep_mode_extra_cleanup。</text>
 </svg>

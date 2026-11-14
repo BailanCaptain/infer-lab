@@ -1,0 +1,96 @@
+{
+  "status": "author_self_check_pending_root_independent_review",
+  "page": "wiki/concepts/npu-worker-lifecycle.md",
+  "before_sha256": "f86c281eeda5f93fe507e06f80fad8304fdffce73abe6bd40c05c4aaf807b53d",
+  "after_sha256": "8db9f4c35185535dea08c06247fff79683dce9792278ad10d9b30a973f7671f2",
+  "all_old_body_lines_preserved_in_order": true,
+  "old_source_prefix_unchanged": true,
+  "calc_count_unchanged": 1,
+  "old_diagrams": [
+    {
+      "id": "worker-lifecycle",
+      "yaml_sha256": "8691aa4520e9374c5a506b267d125fd5fe471ddcc232eabef76496357c118c37",
+      "svg_sha256": "cfb8c6e6191455660faa454f2dbeab38fe4a0f5affff7e7ebebec87abcfd962c",
+      "unchanged_yaml": true,
+      "svg_note": "generation log changed only new model-resolution-flow.svg"
+    },
+    {
+      "id": "worker-lifecycle-flow",
+      "yaml_sha256": "4d0ded4d4b8409f98542d941401570007ef05f402dc35225709d5ae0aa56957a",
+      "svg_sha256": "cb8af858ff069dc4a2d9a512c7e95b33579bed12cd208d164262eb22f556bfe2",
+      "unchanged_yaml": true,
+      "svg_note": "generation log changed only new model-resolution-flow.svg"
+    }
+  ],
+  "manual_preservation": [
+    {
+      "area": "six_steps",
+      "assessment": "All six original steps, outputs, dependencies and two coordination points kept verbatim.",
+      "result": "preserved"
+    },
+    {
+      "area": "hardware_layout",
+      "assessment": "GLM 2x8, TP8/DP2/EP16, 16 Workers/20 processes and no complete-model-per-DP inference preserved.",
+      "result": "preserved"
+    },
+    {
+      "area": "patch_and_load",
+      "assessment": "GLM MLA postload patch, main and MTP double weight traversal and prefetch behavior preserved.",
+      "result": "preserved"
+    },
+    {
+      "area": "budget",
+      "assessment": "0.85, 64 GiB/21 GiB/3.4 GiB assumptions, 3855 blocks/7.969 MiB and unique derivation links retained.",
+      "result": "preserved"
+    },
+    {
+      "area": "calc",
+      "assessment": "Entire original weight-read calc kept byte-for-byte; 304.8 GiB language-only assumptions and no measurement claim retained.",
+      "result": "preserved"
+    },
+    {
+      "area": "cache_and_warmup",
+      "assessment": "Five cache groups, request-time borrowing, empty warmup and eager conditional boundaries preserved.",
+      "result": "preserved"
+    },
+    {
+      "area": "graphs",
+      "assessment": "Seven capture token/request sizes, draft-only eager and no claimed NPU logs preserved.",
+      "result": "preserved"
+    },
+    {
+      "area": "errors",
+      "assessment": "All original errors, mitigations and misconceptions preserved.",
+      "result": "preserved"
+    },
+    {
+      "area": "versions",
+      "assessment": "Old four-version Worker and weight-loader tables retained; added model-resolution table is separate.",
+      "result": "preserved"
+    },
+    {
+      "area": "sources",
+      "assessment": "Old 73 sources keep positions/bytes; 44 appended without replacing prior evidence.",
+      "result": "preserved"
+    },
+    {
+      "area": "limits",
+      "assessment": "All four final hardware/weight-filter/backend gaps retained, no hardware acceptance inferred.",
+      "result": "preserved"
+    },
+    {
+      "area": "scope",
+      "assessment": "New main explanation only in Worker page; API backlink delegated to parent, other sessions untouched.",
+      "result": "preserved"
+    }
+  ],
+  "new_diagram": {
+    "yaml": "wiki/diagrams/model-resolution-flow.yaml",
+    "yaml_sha256": "834c9742d52499aaa43cb41a5f6f1dcba53cd0352580442ab0f44f2bd6043b83",
+    "svg_sha256": "5c6fd677e8a7c142ad7845ccf14a39b5aeec1f41b4a35d85f3d74a5596bbf230"
+  },
+  "browser": ".tmp\\continuation-groups-2026-11-10\\model-resolution-author\\review-replay-model-resolution-browser\\report.json",
+  "new_sources": 44,
+  "global_new_official_full_reads": 0,
+  "hardware_results": null
+}

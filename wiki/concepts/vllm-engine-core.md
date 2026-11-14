@@ -1,64 +1,114 @@
 ---
 id: vllm-engine-core
-title: "EngineCore：vLLM 里一圈一圈推着请求往前走的循环"
+title: EngineCore：vLLM 里一圈一圈推着请求往前走的循环
 type: concept
-summary: EngineCore 是 vLLM 里专门跑「收消息 → 调度 → 交出执行 → 按结果更新」循环的核心，所有请求共用这一个循环，转一圈叫一步；它单独占一个进程，让前端收发和后端计算互不阻塞。本页讲一圈的顺序、一圈交回几个 token、空闲与取消、批次队列，以及 GLM 双机上两个 EngineCore 怎样逐圈推进 R1。
-aliases: [busy loop, 忙循环, 引擎循环, 引擎核心, engine step, EngineCoreProc, run_busy_loop, step, step_with_batch_queue, batch queue, 批次队列]
-chapters: ["10"]
+summary: >-
+  EngineCore 是 vLLM 里专门跑「收消息 → 调度 → 交出执行 →
+  按结果更新」循环的核心，归属同一 EngineCore 的请求共用循环，转一圈叫一步；它默认单独占一个进程，让前端收发和后端计算互不阻塞。本页讲一圈的顺序、一圈交回几个
+  token、空闲与取消、批次队列，以及 GLM 双机上两个 EngineCore 怎样逐圈推进 R1。
+aliases:
+  - busy loop
+  - 忙循环
+  - 引擎循环
+  - 引擎核心
+  - engine step
+  - EngineCoreProc
+  - run_busy_loop
+  - step
+  - step_with_batch_queue
+  - batch queue
+  - 批次队列
+chapters:
+  - '10'
 order: 20
 sources:
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1262
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L443-L473
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L484-L598
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L188-L220
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1393-L1407
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1211-L1217
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1264-L1281
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1515-L1543
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L600-L608
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1900
-  - vllm@0fc695fc:vllm/config/vllm.py#L497-L507
-  - vllm@0fc695fc:vllm/config/vllm.py#L931-L1002
-  - vllm@0fc695fc:vllm/v1/core/sched/output.py#L112-L120
-  - vllm@0fc695fc:vllm/v1/core/sched/output.py#L181-L215
-  - vllm@0fc695fc:vllm/v1/engine/__init__.py#L83-L92
-  - vllm@0fc695fc:vllm/v1/engine/__init__.py#L170-L185
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L474-L482
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L1414-L1417
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L343-L345
-  - vllm@0fc695fc:vllm/config/scheduler.py#L146-L146
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L511-L513
-  - vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L19-L36
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L819-L841
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1984-L1990
-  - vllm@568afb3a:vllm/v1/engine/core.py#L576-L615
-  - vllm@568afb3a:vllm/v1/engine/core.py#L2015-L2022
-  - vllm@568afb3a:vllm/config/scheduler.py#L153-L153
-  - vllm@568afb3a:vllm/config/vllm.py#L1108-L1111
-  - vllm@84030bbe:vllm/v1/engine/core.py#L1403-L1413
-  - vllm@84030bbe:vllm/config/vllm.py#L1332-L1394
-  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L688-L692
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L666
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L69-L73
-  - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L950-L959
-  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_engine_core.py#L32-L73
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1262'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L443-L473'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L484-L598'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L188-L220'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1393-L1407'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1211-L1217'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1264-L1281'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1515-L1543'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L600-L608'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1900'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L497-L507'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L931-L1002'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/output.py#L112-L120'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/output.py#L181-L215'
+  - 'vllm@0fc695fc:vllm/v1/engine/__init__.py#L83-L92'
+  - 'vllm@0fc695fc:vllm/v1/engine/__init__.py#L170-L185'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L474-L482'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L1414-L1417'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L343-L345'
+  - 'vllm@0fc695fc:vllm/config/scheduler.py#L146-L146'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L511-L513'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L19-L36'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L819-L841'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1984-L1990'
+  - 'vllm@568afb3a:vllm/v1/engine/core.py#L576-L615'
+  - 'vllm@568afb3a:vllm/v1/engine/core.py#L2015-L2022'
+  - 'vllm@568afb3a:vllm/config/scheduler.py#L153-L153'
+  - 'vllm@568afb3a:vllm/config/vllm.py#L1108-L1111'
+  - 'vllm@84030bbe:vllm/v1/engine/core.py#L1403-L1413'
+  - 'vllm@84030bbe:vllm/config/vllm.py#L1332-L1394'
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L688-L692
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L666
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L69-L73'
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L950-L959
+  - 'vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_engine_core.py#L32-L73'
+  - >-
+    raw:sha256-3a52087c588e5a77b6d45b6cfdc4ea40ca0f179c50f352fa0a3ce4824042b3e2.md#L1-L848
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/core.py#L472-L472
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/core.py#L1264-L1279
+  - 'vllm@ced6857a:vllm/v1/engine/core.py#L584-L619'
+  - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_engine_core.py#L32-L56'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0rc2
+  - main
+evidence: C
 relations:
-  - {to: vllm-v1-shape, kind: builds-on, note: 组件分工和两道边界上每一圈交接什么在那一页，本页只展开 EngineCore 这个循环本身}
-  - {to: request-call-chain, kind: builds-on, note: 进程、类、函数调用链与每步两次 RPC 只在那一页展开，本页只讲循环的顺序和分支}
-  - {to: async-scheduling, kind: builds-on, note: 批次队列打开后占位怎样记账、时间上怎样叠}
-  - {to: concurrent-requests, kind: builds-on, note: 多条请求挤进同一圈、空闲的 DP 组陪跑}
+  - to: vllm-v1-shape
+    kind: builds-on
+    note: 组件分工和两道边界上每一圈交接什么在那一页，本页只展开 EngineCore 这个循环本身
+  - to: request-call-chain
+    kind: builds-on
+    note: 进程、类、函数调用链与每步两次 RPC 只在那一页展开，本页只讲循环的顺序和分支
+  - to: async-scheduling
+    kind: builds-on
+    note: 批次队列打开后占位怎样记账、时间上怎样叠
+  - to: concurrent-requests
+    kind: builds-on
+    note: 多条请求挤进同一圈、空闲的 DP 组陪跑
+  - to: ascend-config-version-source
+    kind: builds-on
+    note: >-
+      EngineCore 页对动态分块入口补丁适用条件的说明，以来源摘要核对的配置开启门槛为依据：动态分块要求 PP 大于
+      1，且不能与均衡调度同时开启。
 contradicts: []
-updated: "2026-09-29"
-origin: direct
+updated: 2026-11-10T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-3a52087c588e5a77b6d45b6cfdc4ea40ca0f179c50f352fa0a3ce4824042b3e2.md
+  - >-
+    raw/sha256-95d5af7e0acf264a6d2c150ad45f823fc21dad0e1f5cd55177169e3f73f7398e.md
 ---
 
 ## EngineCore 是什么：谁在一圈一圈地推着请求往前走？
 
-**EngineCore 是 vLLM 里专门跑一个循环的核心：每转一圈，先收下新到的请求，再让调度器排出这一步算什么，交给 Worker（每张卡一个的执行进程）在卡上算一次，最后按结果更新每条请求，然后接着转下一圈。转一圈叫一步（step）。所有正在生成的请求共用这一个循环；vLLM 默认让它单独占一个进程。**
+**EngineCore 是 vLLM 里专门跑一个循环的核心：每转一圈，先收下新到的请求，再让调度器排出这一步算什么，交给 Worker（每张卡一个的执行进程）在卡上算一次，最后按结果更新每条请求，然后接着转下一圈。转一圈叫一步（step）。归属同一个 EngineCore 的生成请求共用这一个循环；vLLM 默认让它单独占一个进程。**
 
 大模型写回答是一点一点往后写的：算一次模型，每条请求最多多出几个 token，再拿新写出的 token 接着算。一条回答要反复算很多次，而同一时刻往往有很多条请求都写到一半。总得有个东西不停地转：看看谁在等、谁还没写完，安排这一次算谁，算完把结果分回各条请求。EngineCore 就是这个转圈的东西。
+
+共用循环可以把多条请求凑在一起计算，也让前端收发与后端执行同时推进。代价是各处要通过消息交接、分别维护请求状态；新请求不能插进已经发出的计算，取消也要等这一批算完再丢弃结果。批次队列还能增加重叠，但需要给尚未返回的结果先记占位。
 
 ```wiki-diagram
 file: engine-core-loop
@@ -73,7 +123,7 @@ file: engine-core-loop
 
 举个例子。你问了一句很短的话，切成 3 个 token，这条请求记作 R；模型的回答是 2 个 token，第 2 个是结束记号。第 1 圈，调度器让 R 把 3 个位置一次算完，交回回答的第 1 个 token；第 2 圈只算 1 个位置，也就是上一圈刚交回的那个 token，交回结束记号，R 完成。循环为它转了 2 圈。
 
-第 1 圈一次算完整段提示词，叫 [prefill](prefill.md)；之后每圈接着往后写，叫 decode。循环本身不分这两种：每一圈走的是同样的四格，差别只在调度器这一圈给这条请求排了几个位置，见 [Scheduler](vllm-scheduler.md#一步要算哪些请求各算几个-token谁来定)。
+本例第 1 圈完成提示词处理，属于 [prefill](prefill.md) 阶段；更长的提示词可以分多圈完成。之后继续生成的阶段叫 decode。循环本身不分这两种：每一圈走的是同样的四格，差别只在调度器这一圈给这条请求排了几个位置，见 [Scheduler](vllm-scheduler.md#一步要算哪些请求各算几个-token谁来定)。
 
 如果 R 算到第 2 圈时又来了一条请求，它不会另开一个循环，而是在下一圈开头被收下，和前一条挤进同一圈，拼成一批一起算。所有请求共用一个循环，是理解 EngineCore 最要紧的一点。
 
@@ -81,7 +131,7 @@ file: engine-core-loop
 
 这是两个问题，分开回答。
 
-**为什么所有请求共用一个循环。** 算一次模型，有一部分开销和这次算几个 token 关系不大，最大的一笔是把整份权重从显存里读一遍。4 条请求各差 1 个位置时，分 4 次各算 1 个，权重要读 4 遍；放进同一圈一起算，读 1 遍就够。要是每条请求各有一个循环，就凑不成批。所以 vLLM 只留一个循环，每一圈由调度器把能一起算的请求凑成一批。这笔账的细节，以及为什么还要限制一圈最多几条请求，见 [Scheduler](vllm-scheduler.md#为什么按-token-设预算还要另设请求数上限)。
+**为什么请求共用一个循环。** 算一次模型有一些可以由多条请求分摊的成本，例如调用、算子下发与权重读取。4 条请求各差 1 个位置时，放进同一圈可让 4 行输入共用同一张权重，增加批内复用机会；分 4 次调用则重复组织计算。实际 HBM 读取次数取决于缓存与内核分块，MoE 还只涉及本轮选中的专家，不能按“整份模型每轮读一次”计实流量。vLLM 让同一 EngineCore 的调度器每圈把能一起算的请求凑成一批；为何还要限制一圈最多几条请求，见 [Scheduler](vllm-scheduler.md#为什么按-token-设预算还要另设请求数上限)。
 
 **为什么放进单独的进程。** 服务里除了算模型，还有很多 CPU 上的杂活：接 HTTP 连接、套聊天模板、分词、把新 token 还原成文字、一段一段推给用户。进程是操作系统里独立运行的一份程序，有自己的内存，也各自占用 CPU 时间。杂活放在前端进程里做，EngineCore 进程只转那个循环，两边就能同时干活：
 
@@ -132,6 +182,9 @@ title: 示意请求 R 转了几圈
 
 上面的例子里每圈正好交回 1 个 token，这只在最简单的情况下成立。一圈交回什么，取决于调度器这一圈给每条请求安排的是什么活：
 
+
+普通 step 还返回一个布尔值，按本轮调度的 token 总数是否大于零计算。安排了计算位置与产出了新 token 不同：这个标志不是逐请求的产出确认，也不是设备执行完成的独立测量。
+
 | 这一圈给这条请求安排的活 | 这一圈交回的新 token |
 |---|---|
 | 完整的 prefill：提示词剩下的位置一次算完 | 算到提示词末尾，交回回答的第 1 个 token |
@@ -156,7 +209,14 @@ file: engine-core-flow
 
 **没活的时候停下来等。** 「有活吗」看三样：调度器里还有没算完的请求；批次队列里还有发出去、没取结果的批；开了数据并行（DP：把卡分成几组，每组各接一部分请求，下面细说）时，别的组还在跑。三样都没有，循环就阻塞在输入队列上，把 CPU 让出来，来一条消息才醒。醒来先处理这条消息，再问一次有没有活；有了，就把队列里其余已到的消息一并收下，然后才跑这一圈。它不会为了「看看有没有新请求」而反复提交空计算。只有弹性 EP 扩缩容（运行中增减参与专家并行的卡）进行时，这里改成不阻塞地看一眼就走。
 
+调度器里还有请求，表示循环仍有工作需要推进，但不保证这一圈就能执行模型计算。例如，请求可能正在等待远端传来的 KV cache，也可能正在等待延迟的缓存释放；这些等待尚未结束时，请求仍在调度器中。
+
+主循环在本轮没有执行模型、但调度器仍有请求时，会短暂休眠 1 毫秒，让后台传输线程继续推进。这时仍有工作待完成，与完全空闲时阻塞等待新消息不同；1 毫秒只是该处让出执行机会的时长，不是请求总时延。
+
+
 **取消怎样插进来。** 收消息的后台线程收到取消时，把它同时放进两处：输入队列，保证它和新请求的先后顺序；另一个专门的取消队列，每圈在 ④ 更新之前清一次。更新时，调度器发现某条请求已经结束，就跳过它这一圈的结果。所以取消不会打断卡上正在算的这一批：被取消的请求这一圈照样算完，只是结果被丢掉，不会再推给用户。「设备算完了」和「服务把结果记上了」是两件事，中间隔着这一道。
+
+材料中的调度器中止操作具有幂等性：对同一个请求重复处理中止，效果与处理一次相同。因此，同一条取消消息经过两条队列被处理，不会让已经中止的请求再发生另一种状态变化。
 
 **新请求在哪里变成调度器认识的样子。** 前端发来的请求消息里是请求编号、提示词的 token 编号和采样参数。收消息的后台线程当场把它转换成调度器用的请求对象（需要结构化输出的请求，顺带开始准备语法），再放进输入队列；主线程收下它时，只是把它交给调度器，排进等待队列。
 
@@ -164,11 +224,13 @@ file: engine-core-flow
 
 ## 批次队列：下一圈的调度和这一圈的计算叠起来
 
-同步分支里，一圈之内 CPU 和卡是轮流干活的：调度、准备表、更新这些是 CPU 上的工作，这段时间卡空着；卡在算的时候，EngineCore 拿着回执干等。③ 里「交出执行后先拿回执」只让 EngineCore 能顺手准备一张表，它随后就等结果了，下一圈的调度并没有和这一圈的计算叠在一起。
+同步分支也能重叠一部分 CPU 与设备工作：③ 先发出前向、拿到回执，再准备结构化输出的允许词表，因此准备表可以与本轮前向同时进行。随后 EngineCore 等待本轮结果并更新请求，做完才调度下一圈。这里尚未重叠的是下一圈的调度与这一圈的计算；调度、更新及等待仍可能形成设备空档。
 
-要叠起来，得让 EngineCore 不等这一批的结果就去排下一批。最多允许同时有几批在途，由配置算出：只开异步调度（async scheduling：不等上一步的结果回来就先排下一步）、不开流水线并行时是 2；开了流水线并行（PP：把模型的层按顺序分给几组卡）时至少是 PP 的组数。这个数大于 1，EngineCore 就建一个批次队列，每圈只排并提交新一批、不等结果，队列满了才等最老的一批再更新，所以异步调度下 EngineCore 最多领先 Worker 一步；每圈在函数里怎样走、读报错栈时怎样把清单和批次对上，见[一步之内：EngineCore 给 worker 发两次调用](request-call-chain.md#一步之内enginecore-给-worker-发两次调用)。
+要叠起来，得让 EngineCore 不等这一批的结果就去排下一批。最多允许同时有几批在途，由配置算出：只开异步调度（async scheduling：不等上一步的结果回来就先排下一步）、不开流水线并行时是 2；开了流水线并行（PP：把模型的层按顺序分给几组卡）时至少是 PP 的组数。这个数大于 1，EngineCore 就建一个批次队列，优先排并提交新一批；如果这一批没有需要推迟的采样，入队后队列仍未满，且本步执行了模型或调度器里仍有请求，就先返回，不等结果。有在途批次而没有满足上述提前返回条件时，取出最老的一批，等结果再更新。因此，不开流水线并行时，异步调度下 EngineCore 最多领先 Worker 一步；每圈在函数里怎样走、读报错栈时怎样把清单和批次对上，见[一步之内：EngineCore 给 worker 发两次调用](request-call-chain.md#一步之内enginecore-给-worker-发两次调用)。
 
 代价在记账上：排下一批时，这一批的新 token 还没回来，调度器只能先记上占位，等结果回来再对上；需要前一批 token 才能准备的结构化输出表，也要推迟到前一批更新之后再发。占位怎样记、时间上怎样叠，见[异步调度](async-scheduling.md)。
+
+对流水线并行还要看执行模型的实现：当前固定上游代码明确提示，旧一代 model runner 对“异步调度与流水线并行同开”的支持不完整；不能只凭配置允许并发多少批，就推定这种组合已经跑通。不同实现的逐项并发条件见页末“怎么开”。
 
 走哪条分支由配置自动判定，实际以启动日志为准，判定条件和日志写法见页末[怎么开](#怎么开)与[会报什么错](#会报什么错)。
 
@@ -185,7 +247,7 @@ file: engine-core-flow
 1. **R1 到来之前。** 两个 EngineCore 都没活，停在输入队列上等。前端把 R1 派给 DP0，见[第 1 站](one-request.md#第-1-站-入口从-http-到-node0-的引擎)。
 2. **第 1 圈：发出第 1 步。** DP0 收下 R1，调度器排出第 1 步的计划：R1 算 4 个位置，新借一串块号，没有候选；R1 第一次上场，计划带着它的完整资料。借几块见[第 2 站](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)。计划发给 node0 的 8 个 Worker，回执入队。队列里只有 1 批、R1 还能继续推进，这一圈不等结果就结束了。
 3. **第 2 圈：发出第 2 步，收回第 1 步。** 第 1 步的结果还没回来，调度器已经给 R1 排好第 2 步：还不知道的那 1 个 token 记上占位，再加 3 个候选的占位，一共 4 个位置。发出去以后队列满了，EngineCore 这才等第 1 步的结果：回答的第 1 个 token y₀；MTP 草拟的 3 个候选留在 Worker 里，第 2 步直接用。y₀ 接到 R1 上，发回前端。
-4. **之后每一圈：发出第 k+1 步，收回第 k 步。** 每一步 R1 都算 4 个位置：上一步确定的 1 个 token 加 3 个候选，主模型一次验证，交回 1 到 4 个 token（接受了几个候选再加 1）。主线的例子假设第 2 步接受 1 个候选、第 3 步全部接受，三步分别交回 1、2、4 个 token，前三步一共 7 个；逐项账见[第二圈和第三圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。流式输出的一段因此一次会带出 1 到 4 个 token。
+4. **之后每一圈：发出第 k+1 步，收回第 k 步。** 每一步 R1 都算 4 个位置：上一步确定的 1 个 token 加 3 个候选，主模型一次验证，交回 1 到 4 个 token（接受了几个候选再加 1）。主线的例子假设第 2 步接受 1 个候选、第 3 步全部接受，三步分别交回 1、2、4 个 token，前三步一共 7 个；逐项账见[第二圈和第三圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。这是引擎单步的产出范围；前端可把多步增量合并成一个流式片段，片段没有 4 个 token 的上限，见[流式输出的合并](streaming-output.md#前端跟不上时几步的文字并成一段)。
 5. **R1 结束。** 某一步的结果里出现结束记号，更新时 R1 被标成完成，块号一次还回 DP0 的块池，还多少块见[第 7 站](one-request.md#第-7-站-返回与收尾)。R1 的编号记进结束名单，随 DP0 的下一份计划通知 8 个 Worker 删掉缓存；DP0 正在跑的请求数减 1，前端之后派新请求时会看到这个数。
 
 这个数每圈前后才报一次、经协调器推给前端，前端再拿它选组，见 [DP 请求路由](dp-request-routing.md#计数表从哪来为什么会过时)。
@@ -223,7 +285,7 @@ title: 一个 DP 组 32 条请求都在 decode 时，一步交回多少 token
 - **步函数在初始化时选定一次。** `batch_queue_size = vllm_config.max_concurrent_batches`，大于 1 才建 `batch_queue`；`step_fn` 在没有批次队列时是 `step`，有时是 `step_with_batch_queue`。
 - **最多并发批数。** `max_concurrent_batches`：开了异步调度时，V1 model runner 在 PP=1 时返回 2，V2 model runner 返回 `pp_size + 1`；其余情况返回 `pp_size`。所以批次队列既服务于异步调度，也服务于 PP。
 - **异步调度开关。** 命令行 `--async-scheduling` / `--no-async-scheduling`，对应 `SchedulerConfig.async_scheduling`，默认 `None`，交给配置阶段自动判定：pooling 模型、投机方法既不属于 EAGLE 类（含 MTP）也不属于 NGram GPU 类、`disable_padded_drafter_batch=True`、执行器不支持，四者撞上一个就置为 `False`，否则置为 `True`。GLM 双机用 `method="deepseek_mtp"`（配置阶段归一成 `mtp`）和 `MultiprocExecutor`，按这条规则推断为 `True`。
-- **同步与异步的一处分工差别。** 同步时每圈末尾 `post_step` 调 `take_draft_token_ids()` 把草拟的候选取回交给调度器；异步时候选留在 Worker 进程里，由 `AsyncScheduler` 在调度时记占位（`num_output_placeholders += 1 + 候选数`）。
+- **同步与异步的一处分工差别。** 同步模式下，启用投机解码且本轮执行了模型时，圈末的 `post_step` 才调 `take_draft_token_ids()` 把草拟的候选取回交给调度器；异步时候选留在 Worker 进程里，由 `AsyncScheduler` 在调度时记占位（`num_output_placeholders += 1 + 候选数`）。
 - **vllm-ascend 的入口补丁。** `vllm_ascend/patch/platform/patch_balance_schedule.py` 替换了 `EngineCoreProc.run_engine_core`，只有 `additional_config` 里 `enable_balance_scheduling` 为真时才换用 `BalanceDPEngineCoreProc`，否则直接调上游原函数；`patch_profiling_chunk.py` 只在 `profiling_chunk_config` 打开时生效，而它要求 PP 大于 1。本部署两者都没开。
 
 ### 会报什么错
@@ -239,15 +301,17 @@ title: 一个 DP 组 32 条请求都在 decode 时，一步交回多少 token
 
 ### 开销和什么时候别开
 
-- **同步分支的空档。** 每圈的调度、准备结构化输出的表、按结果更新都在 CPU 上做，这段时间卡是空的。decode 步本身短，这段空档占一圈的比例就更显眼；批次队列就是为填这段空档设的。本部署两条分支各自的吞吐与时延没有实测数。
+- **同步分支的空档。** 调度和按结果更新在 CPU 上进行，可能造成设备空档；结构化输出表可以在前向发出后准备，与本轮前向重叠，不能把所有 CPU 工作时间都算成设备空闲。同步分支仍须等本轮结果更新后才调度下一轮；decode 步较短时，这种等待更显眼，批次队列用来增加重叠机会。本部署两条分支各自的吞吐与时延没有实测数。
 - **批次队列的代价。** 调度器要为还没回来的 token 记占位，结构化输出请求在依赖前一批时要推迟第二次调用，排错时正在更新的清单属于上一批。定位调度或记账问题时，可以临时加 `--no-async-scheduling` 让每圈的结果当圈回来，但这时测到的吞吐和时延不代表原部署。
 - **空闲等待不占 CPU。** 空闲时阻塞在输入队列上，不空转，也不提交空计算；上游只在弹性 EP 扩缩容时才临时改成不阻塞地看一眼。
 
 ### 版本差异
 
+**v0.30.0rc2 的核心循环与已钉 main 一致。** 配套 vLLM 的 core.py 与 84030bbe 完整文件相同：普通 step 仍依次调度、执行、必要时采样，再先处理执行期间到达的 abort，最后按输出更新请求并附上迭代明细。Ascend 的 patch_engine_core.py 与 baa023ad 也相同，仍条件式选择 DyntraLB/Balance DP 引擎，并在 profiling_chunk 开启时安装子进程初始化补丁；其余情况返回原始入口。这是这些文件的版本一致性，不把固定 GLM 算例变成 rc2 实测。
+
 - **v0.23（`vllm@0fc695fc`）。** 本页的行为和行号都以它为准：`step()` 在 `core.py` 第 443–473 行，`step_with_batch_queue()` 在第 484–598 行，`run_busy_loop` 在第 1223–1231 行。vllm-ascend 的 v0.23 维护分支（`2c59ff10`）与含 GLM 代码的 `db701c1f` 都用同一套条件式入口补丁，均衡调度不开时走上游循环。各钉点与部署的对应关系见[来源基线](../sources/glm-5-3-flash-baseline.md)。
-- **v0.26（`vllm@568afb3a`，配 `vllm-ascend@2ed6cbba`）。** 骨架不变。两处小变化：`schedule()` 多传一个 `self._should_throttle_prefills()`，DP 引擎据此把新请求的 prefill 限定在每隔 `prefill_schedule_interval` 步的那一步才接纳，该值默认 1，即不限流；`step()` 用 `capture_iteration_details` / `_attach_iteration_details` 把每步的迭代明细挂到输出上。异步调度的 info 日志仍在。vllm-ascend 的补丁改成只在均衡调度打开时把 `DPEngineCoreProc` 换成 `BalanceDPEngineCoreProc`。
-- **main（`vllm@84030bbe`，配 `vllm-ascend@baa023ad`）。** `step()` 与 v0.26 相同；非 DP 的 `run_busy_loop` 也在每圈前后调用 `_maybe_publish_request_counts()`，没开 DP 负载统计时它直接返回。异步调度自动判定多了一道 ROCm DeepEP 高吞吐 DBO 的闸；`Asynchronous scheduling is %s.` 这行 info 日志被删掉了，DP 大于 1 的 MoE 模型打开异步调度时改打 `Disabling NCCL for DP synchronization when using async scheduling.`，可以当作旁证。vllm-ascend 把入口补丁集中到 `patch_engine_core.py`：DyntraLB 或均衡调度打开时才换 DP 引擎类，剖析分块打开时才包初始化，另给 `post_step` 包了一层 PP 与 MTP 同开时的特例，其余情况都调原函数。
+- **v0.26（`vllm@568afb3a`，配 `vllm-ascend@2ed6cbba`）。** 骨架不变。`schedule()` 多传一个 `self._should_throttle_prefills()`，DP 引擎按 prefill_schedule_interval 提供节拍，默认 1。实际是否推迟 prefill 还受容量与运行请求的条件限制，已经进入 running 的 prefill 也可能推迟，详见[DP prefill 节奏](vllm-scheduler.md#多个-dp-组怎样对齐-prefill-的节奏)。`step()` 另用 capture_iteration_details / _attach_iteration_details 把每步明细挂到输出上。异步调度的 info 日志仍在；Ascend 的补丁改成只在均衡调度打开时把 DPEngineCoreProc 换成 BalanceDPEngineCoreProc。
+- **main（上游比较点 `vllm@84030bbe`；Ascend 比较点 `vllm-ascend@baa023ad`）。** 这两份快照分别用于比较，不据此认定它们是精确配套的安装组合。`step()` 与 v0.26 相同；非 DP 的 `run_busy_loop` 也在每圈前后调用 `_maybe_publish_request_counts()`，没开 DP 负载统计时它直接返回。异步调度自动判定相比 v0.23 还放行 draft_model、dspark，并增加 ROCm DeepEP 高吞吐 DBO 的闸。旧版显式启用时允许 draft_model，不等于旧版自动默认也会放行它。`Asynchronous scheduling is %s.` 这行 info 日志被删掉了，DP 大于 1 的 MoE 模型打开异步调度时改打 `Disabling NCCL for DP synchronization when using async scheduling.`，可以当作旁证。vllm-ascend 把入口补丁集中到 `patch_engine_core.py`：DyntraLB 或均衡调度打开时才换 DP 引擎类，剖析分块打开时才包初始化，另给 `post_step` 包了一层 PP 与 MTP 同开时的特例，其余情况都调原函数。
 
 ### 源码位置
 
@@ -271,11 +335,17 @@ title: 一个 DP 组 32 条请求都在 decode 时，一步交回多少 token
 
 **正文证据归档。** 一圈先收完已到的消息、没活时阻塞在输入队列上 [C1]，「有活」看调度器、批次队列和 DP 运行状态三样 [C6]；只有弹性 EP 扩缩容时改为不阻塞 [C24]。一圈的顺序（调度、交出执行、准备结构化输出的表、等结果、先处理取消再更新）见 `step()` [C2]，结果进输出队列在 [C7]。取消同时进输入队列和取消队列 [C8]，更新时跳过已结束的请求 [C5]；「取消不打断卡上正在算的这一批」由这两处推出 [D]。新请求在收消息线程里转换成调度器的请求对象 [C23]；它最早排进到达之后那一圈的计划，由「先收消息、再调度」的顺序推出 [D]。
 
-第一次上场带完整资料、之后只发变化量、新 token 编号只在 PP 下随计划下发，见计划的字段注释 [C14]；前端与 EngineCore 之间传的是 token 编号 [C16]。批次队列的建立和分支选择 [C4]，最多并发批数 [C11]，带队列分支「未满且能推进就不等结果」 [C3]，异步调度的默认值、自动判定与日志 [C12]，占位 [C22]。DP 空闲组陪跑空批次 [C10]。
+第一次上场带完整资料、之后只发变化量、新 token 编号只在 PP 下随计划下发，见计划的字段注释 [C13][C14]；前端与 EngineCore 之间传的是 token 编号 [C16]。批次队列的建立和分支选择 [C4]，最多并发批数 [C11]，带队列分支「未满且能推进就不等结果」 [C3]，异步调度的默认值、自动判定与日志 [C12]，占位 [C22]。DP 空闲组陪跑空批次 [C10]。
 
 示意请求 R 转两圈、回答 n 个 token 转 n 圈，是在不分块、不复用前缀、不开投机解码的假设下由一圈的结构推出的 [D]。GLM 双机上 EngineCore 最多领先 Worker 一步，由批次队列长度 2 推出 [D]；R1 前三步交回 7 个 token、满载一步交回 32 到 128 个 token，由主线底稿「每步产出 1 到 4 个 token」推出 [D]。本部署异步调度打开，是按自动判定规则推出的，缺本部署的启动日志 [I]。前端与后端拆成两个进程后互不阻塞，是由进程分工推出的直觉说法，没有本部署的对照测量 [I]。
 
-**待核。**
+**实测边界。**
 
 - 缺本部署的启动日志，用来确认 `Asynchronous scheduling is enabled.` 与批次队列长度 2。
 - 缺同步分支与带批次队列分支在本部署上的吞吐、时延对照，以及每圈 CPU 调度与更新各占多少时间。
+
+远端 KV 等待或延迟释放可以让调度器仍有工作；这与当前轮是否执行模型是两件事。固定上游的中止操作具有幂等性，同一取消经两条队列处理不会要求请求释放两次。[C7][C8]
+
+固定上游的并发批次上限在异步 V2 下为 PP 大小加一，异步 V1 且 PP=1 时为二，其他情况为 PP 大小。这只是队列容量规则；异步 V1 对 PP 的支持还有实现限制，不能用容量公式证明某个模型和后端组合可用，实际条件见[流水线并行](pipeline-parallel.md)。[C3][C11]
+
+- 来源 37、38：vllm@0fc695fc，vllm/v1/engine/core.py，L472–L472、L1264–L1279。

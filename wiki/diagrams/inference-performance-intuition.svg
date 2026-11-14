@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 420" width="880" height="420" role="img" aria-label="每个格子代表一个待计算位置，长输入只画出一小段。左侧本步只有 D；右侧把 D 和 N 的输入放进同一批。格子表示工作组成，箭头表示先后，不表示实测耗时。">
+  <title>每个格子代表一个待计算位置，长输入只画出一小段。左侧本步只有 D；右侧把 D 和 N 的输入放进同一批。格子表示工作组成，箭头表示先后，不表示实测耗时。</title>
+  <defs><marker id="inference-performance-intuition-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="inference-performance-intuition-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
+  <rect x="24" y="44" width="394" height="330" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">原来：只继续回答 D</text>
+  <rect x="452" y="44" width="404" height="330" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="468" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">现在：N 的长提示词也进来</text>
+  <path d="M203 148 L203 190" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-performance-intuition-ah-token)"/>
+  <path d="M522 120 L522 190" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-performance-intuition-ah-token)"/>
+  <path d="M688 148 L688 190" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-performance-intuition-ah-token)"/>
+  <path d="M220 250 L220 302" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#inference-performance-intuition-ah-weight)"/>
+  <path d="M654 250 L654 302" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#inference-performance-intuition-ah-weight)"/>
+  <rect x="174" y="82" width="58" height="38" fill="var(--color-token, #087f73)"/>
+  <text x="203" y="105.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D</text>
+  <rect x="174" y="82" width="58" height="38" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="203" y="142" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">D 待算的下一个位置</text>
+  <rect x="502" y="82" width="40" height="38" fill="var(--color-token, #087f73)"/>
+  <text x="522" y="105.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D</text>
+  <rect x="502" y="82" width="40" height="38" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="568" y="82" width="40" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="588" y="105.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">N</text>
+  <rect x="608" y="82" width="40" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="628" y="105.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">N</text>
+  <rect x="648" y="82" width="40" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="668" y="105.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">N</text>
+  <rect x="688" y="82" width="40" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="708" y="105.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">N</text>
+  <rect x="728" y="82" width="40" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="748" y="105.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">N</text>
+  <rect x="768" y="82" width="40" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="788" y="105.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">…</text>
+  <path d="M608 82v38M648 82v38M688 82v38M728 82v38M768 82v38" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="568" y="82" width="240" height="38" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="688" y="142" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">N 的提示词位置</text>
+  <rect x="108" y="190" width="224" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">同一步：续写 D</text>
+  <rect x="488" y="190" width="332" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="654" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">同一步：续写 D ＋ 处理 N</text>
+  <rect x="153" y="302" width="134" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D 的新输出</text>
+  <rect x="587" y="302" width="134" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="654" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D 的新输出</text>
+  <text x="220" y="364" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">等本步完成，才能交回输出</text>
+  <text x="654" y="364" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">D 也要等包含 N 的这一步完成</text>
+  <text x="440" y="403" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">D 的问题没变；本步的工作变多了。接着查：它是否真的变慢？</text>
+</svg>

@@ -37,7 +37,8 @@ texts:
   - { at: [44, 243], text: 设备类型？ }
   - { at: [44, 291], text: 自动选哪个 Worker 类？ }
   - { at: [44, 339], text: 用哪个设备通信器类？ }
-  - { at: [24, 388], text: 通信后端名不在这一层, note: true }
+  - { at: [24, 388], text: 本例 hccl 后端名由 NPUWorker 给出, note: true }
 pins:
   - { source: 'vllm@0fc695fc:vllm/platforms/__init__.py#L203-L252', symbols: [current_platform, resolve_current_platform_cls_qualname] }
   - { source: 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L128-L204', symbols: [NPUPlatform] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L988', symbols: [init_distributed_environment] }

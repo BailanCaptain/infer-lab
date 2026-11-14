@@ -1,12 +1,12 @@
 layout: figure
 id: fine-grained-tp-flow
-caption: 细粒度 TP 在代码里走过的几步。配置先过一轮前提检查，不满足就在启动时报错；过了检查，按 DP 方向为每个非零的分组大小建一个通信组；构造模型时，词表嵌入和 lm_head 换用自己的组，线性层按层名挑出对应的分组算子；前向时各模块按自己的方式收集输入、送回结果。
+caption: 固定 db701c1f 基线中细粒度 TP 的代码走向。配置先过前提检查，相关断言失败会退出；P 侧的 recompute 开关另有告警关闭分支。通过后，按 DP 方向为正的分组大小建通信组；构造模型时，词表嵌入和 lm_head 换用自己的组，线性层按层名选分组算子；前向时各模块收集输入、送回结果。rc2 的模块前提及自动关闭分支不同，见正文版本差异。
 size: [900, 600]
 items:
   - { at: [250, 40], size: [400, 52], text: 读配置：每个模块一个分组大小, sub: 默认都是 0，表示不分组, style: plain }
   - { at: [250, 124], size: [400, 56], text: 加载配置时检查前提, sub: MoE 模型、能整除 DP 数；输出投影另要 TP 为 1, tone: control }
   - { at: [250, 212], size: [400, 56], text: 词表嵌入、输出投影还要 recompute 调度器, sub: 这个调度器只能开在 PD 分离的 D 节点, tone: control }
-  - { at: [700, 168], size: [180, 56], text: 启动时报错, sub: 不会悄悄关掉, tone: danger, style: faded }
+  - { at: [700, 168], size: [180, 56], text: 校验失败退出, sub: 图示相关断言分支, tone: danger, style: faded }
   - { at: [250, 300], size: [400, 56], text: 建通信组：沿 DP 方向每 k 张卡一组, sub: 只有 PP、TP 坐标相同的卡才组队, tone: comm }
   - { at: [250, 388], size: [400, 56], text: 构造模块时换组、按新组切权重, sub: 词表嵌入和 lm_head 换组；线性层按层名挑算子, tone: weight }
   - { at: [15, 490], size: [205, 56], text: 词表嵌入, sub: 收集编号 → 查表 → 归约送回, tone: token }
@@ -25,7 +25,7 @@ fans:
 texts:
   - { at: [450, 22], text: 从配置到前向：细粒度 TP 在代码里走过的几步, anchor: middle, strong: true }
   - { at: [790, 150], text: 不满足, anchor: middle, size: 13 }
-  - { at: [450, 580], text: 各模块前向时组内形状要一致，所以都会补齐, anchor: middle, note: true }
+  - { at: [450, 580], text: 进入集合操作前须满足组内形状约定；补齐位置依模块与执行模式, anchor: middle, note: true }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L505-L577
     symbols: [FinegrainedTPConfig]

@@ -55,7 +55,7 @@ texts:
   - { at: [46, 248], text: 扣激活峰值 }
   - { at: [46, 328], text: 扣非 torch 增量 }
   - { at: [412, 168], text: 装权重时量：加载前后的占用差 }
-  - { at: [434, 248], text: 激活峰值：试跑最大批量时的最高点 }
+  - { at: [434, 248], text: 激活峰值：试跑最高点 − 试跑前占用 }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597
     symbols: [determine_available_memory, memory_profiling]

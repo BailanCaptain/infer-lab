@@ -1,0 +1,58 @@
+{
+  "recorded_at": "2026-11-10T10:37:43.180533+00:00",
+  "reviewer": "/root/groups_replay_review",
+  "files": [
+    {
+      "path": "wiki/concepts/sampling.md",
+      "before_sha256": "cbeb11b77bb0e114f7c69b6a0fef836a5c4d2f78f07ce69d9860d4a00f62a048",
+      "after_sha256": "8472b303f1b3af11296bf47aeee0f4005911163d4b2ea97884cbfb07d168cfff",
+      "byte_identical": false
+    },
+    {
+      "path": "wiki/diagrams/sampling-intuition.yaml",
+      "before_sha256": "5e4f41931af90989b34d373b9a9d1b14a66bab55bc676ee0a48a312ca4884789",
+      "after_sha256": "5e4f41931af90989b34d373b9a9d1b14a66bab55bc676ee0a48a312ca4884789",
+      "byte_identical": true
+    },
+    {
+      "path": "wiki/diagrams/sampling-intuition.svg",
+      "before_sha256": "1d9274c5e58941126b90426bff9ea7b7514f11a66d419149ef5ca2b25b0965d4",
+      "after_sha256": "1d9274c5e58941126b90426bff9ea7b7514f11a66d419149ef5ca2b25b0965d4",
+      "byte_identical": true
+    },
+    {
+      "path": "wiki/diagrams/sampling-flow.yaml",
+      "before_sha256": "de22f979ad2e980c2be2a52de42ba5b6082490a197351bec4f234d3616b47a14",
+      "after_sha256": "8d2aeab3058c382beef3cfe6f936561535f0d9c96dc782fdeb5036ee17bc825f",
+      "byte_identical": false
+    },
+    {
+      "path": "wiki/diagrams/sampling-flow.svg",
+      "before_sha256": "bf50ca4efce17bc3101e4172c1c3d6a8c11954e945d85a01bb6d4cc9cc71f000",
+      "after_sha256": "55e1490d0ff909176ccb2bcc14ad9677bae0334d0629a1d275cccd999e1afb74",
+      "byte_identical": false
+    }
+  ],
+  "old_headings_retained": true,
+  "seven_calculation_blocks_byte_identical": true,
+  "source_migrations": [
+    {
+      "source_number": 94,
+      "before": "vllm@0fc695fc:vllm/entrypoints/serve/tokenize/protocol.py#L24-L153",
+      "after": "vllm@0fc695fc:vllm/entrypoints/serve/tokenize/protocol.py#L24-L163",
+      "kind": "range_extension_same_number_not_new_occurrence",
+      "original_source_sha256": "5cc5cb021b827ae34e5e3ce8fdd72ee0e07b6e6b95de74d3f075f3b3edb8ac21"
+    },
+    {
+      "source_number": 115,
+      "before": "vllm@84030bbe:vllm/v1/sample/logits_processor/builtin.py#L167-L295",
+      "after": "vllm@84030bbe:vllm/v1/sample/logits_processor/builtin.py#L167-L371",
+      "kind": "range_extension_same_number_not_new_occurrence",
+      "original_source_sha256": "6105816ece77e5b1dbee0d07abc90ce039d650bac2ddb85c93280c48b00f2ebe"
+    }
+  ],
+  "first_180_source_order_preserved": true,
+  "new_sources_appended": 67,
+  "manual_preservation_note": "Read full diff: four-version tables move former impact-column explanations into adjacent prose; original examples, defaults/merge logic, token counts, logprobs distinctions and fixed deployment conditions retained. Intuition YAML/SVG unchanged; flow only corrects seed/stream conditions. No 3D or unrelated page/code modifications by reviewer.",
+  "excluded": "Other-session 3D/app edits and global three production missing images are outside this review."
+}

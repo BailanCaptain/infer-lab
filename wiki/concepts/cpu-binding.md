@@ -2,65 +2,98 @@
 id: cpu-binding
 title: CPU 绑核：线程亲和性与 NUMA 局部性
 type: feature
-summary: 模型在 NPU 上算，主机侧的 Worker 仍要准备张量、下发算子；绑核从这颗卡的亲和节点出发，通常再补上编号下一个 NUMA 节点里允许的核组成一个池，共用一个池的卡按卡序平分，线程钉在分到的核上，已分配的内存页迁到其中编号最小的核所在的节点。本页讲它怎么挑核、默认开关、GLM 双机上 8 个 Worker 各绑在哪里，以及拿不到拓扑或核数不够时会怎样。
+summary: >-
+  模型在 NPU 上算，主机侧的 Worker 仍要准备张量、下发算子；绑核从这颗卡的亲和节点出发，通常再补上编号下一个 NUMA
+  节点里允许的核组成一个池，共用一个池的卡按卡序平分，线程钉在分到的核上，已分配的内存页迁到其中编号最小的核所在的节点。本页讲它怎么挑核、默认开关、GLM
+  双机上 8 个 Worker 各绑在哪里，以及拿不到拓扑或核数不够时会怎样。
 aliases:
-- CPU 绑核
-- CPU Binding
-- cpu_binding
-- enable_cpu_binding
-- bind_cpus
-- CpuAlloc
-- global_slice
-- topo_affinity
-- 核绑定
-- NPU 亲和性绑核
+  - CPU 绑核
+  - CPU Binding
+  - cpu_binding
+  - enable_cpu_binding
+  - bind_cpus
+  - CpuAlloc
+  - global_slice
+  - topo_affinity
+  - 核绑定
+  - NPU 亲和性绑核
 chapters:
-- '16'
+  - '16'
 order: 120
 sources:
-- vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L760-L773
-- vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L14-L33
-- vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L34-L46
-- vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L149-L182
-- vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L183-L204
-- vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L249-L258
-- vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L259-L298
-- vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L518-L555
-- vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L556-L593
-- vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L595-L623
-- vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L643-L700
-- vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L702-L790
-- vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L792-L806
-- vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L160-L164
-- vllm-ascend@db701c1f:vllm_ascend/platform.py#L1206-L1222
-- vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/cpu_binding.md#L1-L26
-- vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/cpu_binding.md#L66-L95
-- vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/cpu_binding.md#L212-L231
-- vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L25-L31
-- vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L160-L164
-- vllm-ascend@2ed6cbba:vllm_ascend/cpu_binding.py#L795-L802
-- vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L172-L176
-- vllm-ascend@baa023ad:vllm_ascend/cpu_binding.py#L515-L520
-- vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L256-L264
-- vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L926-L938
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L760-L773'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L14-L33'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L34-L46'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L149-L182'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L183-L204'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L249-L258'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L259-L298'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L518-L555'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L556-L593'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L595-L623'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L643-L700'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L702-L790'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L792-L806'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L160-L164'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L1206-L1222'
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/cpu_binding.md#L1-L26
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/cpu_binding.md#L66-L95
+  - >-
+    vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/cpu_binding.md#L212-L231
+  - 'vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L25-L31'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L160-L164'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/cpu_binding.py#L795-L802'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L172-L176'
+  - 'vllm-ascend@baa023ad:vllm_ascend/cpu_binding.py#L515-L520'
+  - 'vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L256-L264'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L926-L938'
+  - >-
+    raw:sha256-50b8c0905108e9ea033cbf7d6b2f1f82849f87c45f2fc7fc4bdc10599bd3a63e.md#L1-L645
+  - >-
+    vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/worker/worker.py#L760-L770
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/cpu_binding.md
+  - 'vllm-ascend@7d825229:vllm_ascend/cpu_binding.py#L21-L36'
+  - 'vllm-ascend@7d825229:vllm_ascend/cpu_binding.py#L784-L802'
+  - 'vllm-ascend@7d825229:vllm_ascend/device/hardware_profile.py#L284-L304'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L940-L954'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L299-L443'
+  - 'vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L444-L518'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L538-L547'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/cpu_binding.py#L539-L548'
+  - 'vllm-ascend@baa023ad:vllm_ascend/cpu_binding.py#L535-L544'
+  - 'vllm-ascend@7d825229:vllm_ascend/cpu_binding.py#L535-L544'
+  - 'vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L256-L334'
+  - 'vllm-ascend@7d825229:vllm_ascend/device/hardware_profile.py#L338-L361'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L452-L463'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
 evidence: C
 relations:
-- to: engine-processes
-  kind: builds-on
-  note: 先知道 Worker 是哪个进程、主机侧负责什么，再看它被钉在哪
-- to: hardware-devices
-  kind: builds-on
-  note: 分清 CPU、NPU、主机内存与服务器，硬件规格归那一页
-- to: device-memory
-  kind: builds-on
-  note: 绑核管的是主机内存的位置，和设备显存是两本账
-- to: acl-graph
-  kind: alternative-to
-  note: 另一条减少主机侧下发开销的路；两者管同一段主机时间，可以同时开
+  - to: engine-processes
+    kind: builds-on
+    note: 先知道 Worker 是哪个进程、主机侧负责什么，再看它被钉在哪
+  - to: hardware-devices
+    kind: builds-on
+    note: 分清 CPU、NPU、主机内存与服务器，硬件规格归那一页
+  - to: device-memory
+    kind: builds-on
+    note: 绑核管的是主机内存的位置，和设备显存是两本账
+  - to: acl-graph
+    kind: alternative-to
+    note: 另一条减少主机侧下发开销的路；两者管同一段主机时间，可以同时开
 contradicts: []
-updated: '2026-09-28'
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-50b8c0905108e9ea033cbf7d6b2f1f82849f87c45f2fc7fc4bdc10599bd3a63e.md
+  - >-
+    raw/sha256-c0fbe217bc1aaa80b021fd6619fcd2b5257c3d572b2f36f0421b84c75a487919.md
 ---
 
 ## 绑核把 Worker 钉在哪些核上？
@@ -85,6 +118,9 @@ file: cpu-binding
 
 这件事发生在启动的最后：权重加载完、显存量完、[decode 图也捕获完](glm-5-3-flash-two-node.md#启动时发生了什么)之后，服务开始收请求之前。绑核不改模型计算，也不改输出数值；它影响的只有时延和吞吐，不会影响答案。
 
+
+固定镜像在预热后才执行绑核，让热分配先在 worker 中形成，再进行页迁移与 CPU 亲和性设置。这个顺序说明迁移针对已有分配；它本身不保证后续所有新分配都落在同一 NUMA 节点。
+
 ## 为什么要限制运行范围，代价是什么？
 
 不绑的时候，操作系统可以随时把线程挪到任何允许的核上，多个进程也在抢同一批核。官方文档给这个特性写的三条动机，分别对应三种损耗：
@@ -100,13 +136,13 @@ file: cpu-binding
 - **可用范围变窄。** 亲和集合小了，Worker 自己的线程数又不止绑核认出来的这几条；范围过小时，一堆线程挤在几个核上，反而拖慢下发。
 - **迁页只搬已经分配的页。** 它是一次性动作，不是「以后新分配的页都落在本节点」的持久策略；迁页工具装不上就只跳过这一步，亲和性照旧生效。
 - **绑中断要有权限，还会动整机。** 把这颗 NPU 的中断绑到指定核上，需要能写中断亲和性；实现还会把正在跑的 irqbalance（Linux 上把中断轮流分到各个核的后台服务）停掉，这条影响的是整台机器，不只本进程。
-- **失败不拦启动。** Worker 捕获绑核过程里的异常后只记一条警告就继续跑，所以「服务起来了」不等于「绑上了」。
+- **失败不拦启动。** Worker 捕获绑核过程里的异常后只记一条警告就继续跑，所以「服务起来了」不等于「全部绑好了」。失败前已生效的线程亲和性不会自动回滚，要分别检查线程、页和中断的结果。
 
 **这套部署目前没有开绑核和关绑核的对照实测，所以本页不给任何加速比例。** 缺的证据列在页末。
 
 ## 放到 GLM 双机：8 个 Worker 各绑在哪里
 
-**固定部署是[两台 Atlas 800 A2、每台 8 卡](glm-5-3-flash-two-node.md#部署前提)，每台机器上有 8 个 Worker 进程，各自绑到从本机一颗 NPU 的亲和节点起手凑出来的那个池上；池可能横跨两个节点，共用同一个池的卡按卡序把池切开，各拿一段。** 两台一共 20 个进程、16 个 Worker，进程账见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)，进程之间的分工见[引擎进程](engine-processes.md#双机部署里一共有哪些进程)；本页不重复这本账。
+**固定部署是[两台 Atlas 800 A2、每台 8 卡](glm-5-3-flash-two-node.md#部署前提)，每台机器上有 8 个 Worker 进程，各自绑到从本机一颗 NPU 的亲和节点起手凑出来的那个池上；池可能横跨两个节点，共用同一个池的卡按卡序把池切开，各拿一段。** 两台的核心功能进程示意账合计 20 个，其中 16 个是 Worker；这不含启动器和运行时辅助进程。组成见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)，分工见[引擎进程](engine-processes.md#双机部署里一共有哪些进程)。
 
 每台机器的启动命令都把本机可见设备设成 0 到 7，所以两台机器的 Worker 都用本机编号 0–7 认卡。Worker 在通信组里的编号（rank）是 0–15，但绑核认卡用的是**本机编号**，node1 的 8 个 Worker 也从 0 数起。
 
@@ -160,13 +196,23 @@ release 线程 = 池里最后 1 核 = 1 核
 
 ## 拿不到拓扑、核太少、换了产品会怎样
 
-**拿不到拓扑亲和信息**时，实现退回到另一条路：按全局逻辑设备编号把允许的核平均切开，每颗卡拿一段。为什么要用全局逻辑设备编号而不是本进程看到的那几颗？因为几个进程各自只看到设备的一个子集，如果都从自己的第 0 颗开始数，就会从同一段核开始分，几个 Worker 互相重叠。用全局逻辑设备编号切，重叠就没了，代价是这条路不看硬件亲和，局部性只能靠核编号与 NUMA 布局碰巧对上。A3 默认走的就是这条路。
+**A2 拿不到拓扑亲和信息**时，实现退回到另一条路：按全局逻辑设备编号把允许的核平均切开，每颗卡拿一段。为什么要用全局逻辑设备编号而不是本进程看到的那几颗？因为几个进程各自只看到设备的一个子集，如果都从自己的第 0 颗开始数，就会从同一段核开始分。各进程使用同一份允许 CPU 列表、同一个设备总数和不同全局设备编号时，这种切法才得到互不重叠的分段；不同 cpuset 或设备识别结果不能靠全局编号自动消除重叠。代价是这条路不看硬件亲和，局部性还取决于核编号与 NUMA 布局。A3 默认走的就是这条路。
 
 **核不够分**时直接报错：留 2 个给中断、主线程至少 1 个、ACL 与 release 各 1 个，一颗卡至少要 5 个核。cpuset 给得太小就凑不齐，这个错会被 Worker 接住变成一条警告，服务照样起来，只是没绑上。
 
 **cpuset 不均衡**时收益会打折。官方文档建议把 cpuset 尽量均匀地分布在各 NUMA 节点上；歪在一侧时，有的卡挑不到自己节点的核。
 
 **换了产品，路径也不同。** 310P 和 A2 一样按拓扑亲和挑核；A3 默认按全局逻辑设备编号切；A5 是另一套：按 CPU cluster 分配、不预留中断核，还要把主机上的轮询线程绑到固定节点，在容器里得让容器能看见主机的进程才找得到那些线程。所以上面那张角色分配表只对 A2 这类产品成立，不要套到所有型号。
+
+固定执行侧的 A5 角色分配路径还把整个 CPU 池分给主角色，为 ACL 与 release 角色留下空列表。这表示没有为后两类角色单独分配 CPU 列表，不能据此认定这些运行时线程不存在。
+
+## 换到 Ascend 950，为什么不能沿用每卡五个核？
+
+前面的五核角色拆分属于固定 A2/A3 路径。950PR/950DT（A5）使用另一条路径：从 NPU 的亲和 NUMA 节点给每个 worker 选择**一个完整 CPU cluster**。固定镜像与四个社区钉点都已有这条分支，2026-11-02 官方说明也明确了该部署要求。cluster 是一组 CPU 逻辑处理器；每核单线程时一组 8 个逻辑 CPU，每核双线程时一组 16 个。比如两名 worker 各需一组，单线程的示意需求就是 2×8=16 个可用逻辑 CPU，不能用 2×5=10 估算，也不能只看 cpuset 总量而忽略组是否完整、是否在亲和节点上。
+
+这条路径另外寻找主机的 UVB 轮询线程，把它们绑定到 cpuset 允许的 NUMA0 CPU 上，并排除 CPU0；它不为 ACL/release 线程单独切核，也不做 IRQ 绑定，已有内存页仍可迁移。因而日志没有单独的 ACL/release 核列表，并不等于这些线程消失。
+
+容器能看见设备，不代表能看见主机线程。Docker 的主机 PID 命名空间用于发现这些线程；共享主机 IPC 则用于进程间内存共享，两者用途不同。前者关系到这里的轮询线程绑核，后者在 [Engram 本地共享](deepseek-v4-1-flash.md#engram-为什么把另一笔内存账放到主机上)中使用。
 
 ## 常见误解
 
@@ -186,15 +232,17 @@ release 线程 = 池里最后 1 核 = 1 核
 
 只有 ARM 架构真的会绑：入口先判断机器架构，`x86_64`、`amd64` 这类直接返回并记 `CPU binding skipped: non-ARM CPU detected.`；架构名认不出来时也关掉绑核并告警。
 
-上游 vLLM 的 `--numa-bind` 在昇腾上不支持（拿不到设备到 NUMA 的对应关系），平台层会把它转成 `enable_cpu_binding=true` 并打印一条提示；`--numa-bind-nodes`、`--numa-bind-cpus` 被忽略。
+上游 vLLM 的 `--numa-bind` 在昇腾上不支持其 GPU 到 NUMA 的检测路径，平台层会关闭这个上游开关，并在尚未显式设置时补上 `enable_cpu_binding=true`；已显式配置的 false 会保留。转换提示本身不证明最终开关为真。`--numa-bind-nodes`、`--numa-bind-cpus` 被忽略。
 
 主机侧要有这些工具：`taskset`（util-linux）、`migratepages`（numactl）、`ps`（procps）、`lscpu`、`npu-smi`。官方镜像自 v0.18.0rc1 起已包含 numactl；自建镜像缺了只丢迁页这一步。
+
+950PR/950DT 的上述新路径需要在创建 Docker 容器时加入 `--pid=host`，否则可能找不到主机 `uvb_poll_window_thread`。从 `lscpu` 的 `Thread(s) per core`、`npu-smi info -t topo` 和当前 cpuset 核对完整 cluster，再查看 `Ascend 950 NPU0: worker=[...]` 以及 UVB 的 `tids`、`cpus` 日志。PID 可见后仍须有设置线程亲和性的权限；修改已启动终端的变量不能替代重建容器。[S28]
 
 ### 会报什么错
 
 | 现象 | 文本 | 说明 |
 | --- | --- | --- |
-| 绑核整体失败 | `Bind cpus failed in rank%s: %s Skip binding cpu.` | Worker 捕获所有异常后记警告继续启动，下面几条错误最终都以这条形式出现 |
+| 绑核过程抛出异常 | `Bind cpus failed in rank%s: %s Skip binding cpu.` | Worker 捕获异常后记警告继续启动；已经生效的设置不会回滚，主动跳过某一步则可能只记该步骤自己的日志 |
 | 读不到允许列表 | `Can not found specific 'Cpus_allowed_list' in the '/proc/self/status' file.` | 进程状态文件里没有这一行 |
 | 拿不到在跑的卡 | `Can not get running npu info.` | 设备查询的进程区里没有可用设备，或与可见设备变量的交集为空 |
 | 亲和核与 cpuset 没有交集 | `CPUs available in 'Cpus_allowed_list' conflict with NUMA affinity.` | cpuset 与硬件亲和列表完全错开 |
@@ -214,6 +262,10 @@ release 线程 = 池里最后 1 核 = 1 核
 
 ### 版本差异
 
+**v0.30.0rc2 保留按硬件画像选绑定模式，内存迁移增加了例外。** A2 仍为 TOPO_AFFINITY，A3 为 GLOBAL_SLICE；普通角色拆分保留有 IRQ 时 5、无 IRQ 时 3 的常量，但 A5 提前进入完整 cluster 分支，不用三核门槛决定可用性。bind_cpus 新增 migrate_memory，默认 true；Worker 在 warmup/capture 后仍传物理设备号，但 Engram CPU offload 会传 false，跳过迁页，避免迁移已固定的 HOST_UVA 内存；线程与适用产品的 IRQ 绑定仍按原流程执行。因此不能把旧调用的“绑定并迁移页”套给全部 rc2 路径。
+
+**950PR/950DT 的官方说明固定到 `921ccc52`，并与下表各版的独立 cluster 分支一致。** 每 worker 需要一组 8/16 个逻辑 CPU；950 取不到拓扑时跳过 worker 绑核，其他使用 topo-affinity 的设备才回退 global_slice。上方五核错误与拓扑回退行描述的是 A2 这类路径，不能套到 A5。[S28]
+
 这里核对的是**默认开关、A2 走哪条挑核路径、绑核入口怎么拿到卡号**。三个分支都按知识库固定 commit 阅读；GLM 贯穿算例固定在专用镜像提交 `db701c1f`，它与社区维护分支不是同一提交。
 
 | 分支 | vllm-ascend commit |
@@ -230,12 +282,14 @@ release 线程 = 池里最后 1 核 = 1 核
 | A2 的挑核路径 | 按拓扑亲和 | 相同 | 相同，模式从常量表移到硬件档案表 |
 | A3 的挑核路径 | 按全局逻辑设备编号切 | 相同 | 相同 |
 | 绑核入口 | 只接本机 rank，按它在「在跑的卡」列表里取位置 | 另接一个卡号参数，由调用方传入 | 同 v0.26，Worker 传本机 rank 对应的物理设备号 |
-| 每卡最少核数 | 5（A5 路径为 3） | 相同 | 相同 |
+| 每卡 CPU 要求 | A2/A3 角色拆分至少 5 个；A5 为完整 8/16 个逻辑 CPU 的 cluster | 相同 | 相同，是否走 cluster 由硬件档案决定 |
 | 非 ARM | 记日志跳过 | 相同 | 相同 |
 
 固定执行侧 `db701c1f` 与 v0.23 在本页涉及的行为上一致：都按本机 rank 去「在跑的卡」列表里取卡号，而那个列表来自设备查询的进程区。v0.26 与 main 改成由 Worker 直接传设备号，少了一层「列表顺序要和 rank 对上」的假设。升级后若要复用本页结论，先核对入口签名和模式表的位置。
 
 ### 源码位置
+
+950 的完整 cluster、主机 PID、UVB、无单独 ACL/release/IRQ 绑定和不同 fallback，依据新增官方 CPU Binding 文档 [S28]；没有本站 950 机器实测。旧 A2 示例和固定源码仍按下表解读。
 
 按「谁决定要不要绑 → 谁挑核 → 谁分角色 → 谁动线程和页 → 谁绑中断」读，能把本页机制对回实现。
 
@@ -257,5 +311,12 @@ release 线程 = 池里最后 1 核 = 1 核
 | 官方文档的默认启用、收益与依赖工具 | `vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/cpu_binding.md#L1-L26`、`#L66-L95` |
 | 三版的开关默认值 | `vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L160-L164`、`vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L172-L176` |
 | 三版的模式表与入口签名 | `vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L25-L31`、`vllm-ascend@2ed6cbba:vllm_ascend/cpu_binding.py#L795-L802`、`vllm-ascend@baa023ad:vllm_ascend/cpu_binding.py#L515-L520`、`vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L256-L264`、`vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L926-L938` |
+| 完整 cluster 分支与 UVB 线程 | 固定镜像 `cpu_binding.py#L299-L443`；四版提前分支见来源 35–38，main/rc2 的 A5 硬件能力见来源 39–40 |
+| 全局分段的共同 cpuset 前提与分段公式 | 固定镜像 `cpu_binding.py#L444-L518` |
+| main 的开关默认值 | `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L452-L463` |
 
 **待核汇总。** 一是现场 NUMA 拓扑与每卡亲和核（缺列核与拓扑的命令输出）；二是绑核的实际收益（缺开关对照的两组 trace）；三是现场是否具备写中断亲和性的权限，以及停掉中断均衡服务对整机的影响。这三项补齐前，本页只讲机制与条件。
+
+950 的角色配置将 CPU 池赋给 `assign_main`，并把 `assign_acl`、`assign_rel` 初始化为空列表；空角色列表不表示运行时对应线程不存在。固定实现见 cpu_binding.py 的 595–604 行。[C10]
+
+- 来源 27：vllm-ascend@db701c1f，vllm_ascend/worker/worker.py，L760–L770。

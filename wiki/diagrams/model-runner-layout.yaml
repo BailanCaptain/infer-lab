@@ -9,7 +9,7 @@ frames:
 items:
   - { at: [40, 52], size: [240, 56], text: 请求记录（持久批次）, sub: 谁坐第几行、已算到第几、块表, tone: control, style: plain }
   - { at: [330, 52], size: [240, 56], text: KV cache, sub: 各层为算过的位置留下的历史, tone: kv, style: plain }
-  - { at: [620, 52], size: [240, 56], text: 权重, sub: 启动时装好，之后不动, tone: weight, style: plain }
+  - { at: [620, 52], size: [240, 56], text: 权重, sub: 普通推理跨步复用, tone: weight, style: plain }
   - { at: [28, 190], size: [150, 64], text: 调度计划, sub: A 算 1 个 · C 算 3 个, tone: control, style: faded }
   - { at: [198, 190], size: [150, 64], text: 对账, sub: A 已算 5 · C 新来, tone: control }
   - { at: [368, 190], size: [150, 64], text: 拼输入, sub: 4 行：a₅ c₀ c₁ c₂, tone: token }

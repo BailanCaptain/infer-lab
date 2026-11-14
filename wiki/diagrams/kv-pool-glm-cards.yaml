@@ -41,7 +41,7 @@ links:
 texts:
   - { at: [30, 280], text: full 组：潜向量与 indexer，8 卡相同, size: 13 }
   - { at: [30, 304], text: KDA 组：64 个头按卡切，每卡 8 个, size: 13 }
-  - { at: [30, 338], text: 名字里没有 DP 编号：两台机器可互取, note: true }
+  - { at: [30, 338], text: 名字里没有 DP 编号；两台机器仍须使用兼容的权重与缓存布局, note: true }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L174-L194
     symbols: [put_step, head_or_tp_rank]

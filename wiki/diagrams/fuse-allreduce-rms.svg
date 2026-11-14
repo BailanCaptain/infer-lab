@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" width="900" height="610" role="img" aria-label="两个 pass 盯着同一段子图，谁先改完谁算数——这就是「与 SP 冲突」的全部内容（v0.23 维护分支；main 上两条都已删）">
-  <title>两个 pass 盯着同一段子图，谁先改完谁算数——这就是「与 SP 冲突」的全部内容（v0.23 维护分支；main 上两条都已删）</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" width="900" height="610" role="img" aria-label="v0.23 中，融合 pass 命中的子图不能再交给后续 SP 改写；其余区间与子图仍须分别检查。main 已删除这两条旧改图入口。">
+  <title>v0.23 中，融合 pass 命中的子图不能再交给后续 SP 改写；其余区间与子图仍须分别检查。main 已删除这两条旧改图入口。</title>
   <rect width="900" height="610" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="26" width="860" height="254" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
   <rect x="36" y="40" width="227.7" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">torch.compile 拿到的原始子图</text>
-  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每层两处：attention 的 o_proj 接 post-attention norm、MLP 的 down_proj 接下一层 input norm。</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">普通残差模型中的候选形态；须实际形成完整 pattern，并满足编译区间门槛。</text>
   <rect x="150" y="96" width="714" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
   <rect x="150" y="96" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
   <g transform="translate(173.8 106.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
@@ -28,13 +28,13 @@
   <text x="876" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">一个 GraphFusionPassManager 按 self.passes 的列表顺序逐个改图</text>
   <rect x="36" y="336" width="408" height="96" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
   <rect x="48" y="368" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(54.4 374.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
-  <text x="88" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">融合 pass 先到，四步换一个算子</text>
-  <text x="88" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">内部 RS → norm → AG，按 512 一块流水</text>
+  <text x="88" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">完整匹配时，四步换一个算子</text>
+  <text x="88" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">分块归约 → 加残差与 norm → AG</text>
   <text x="88" y="407" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">matmul_allreduce_add_rmsnorm</text>
   <rect x="456" y="336" width="408" height="96" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
   <rect x="468" y="368" width="32" height="32" rx="9" fill="var(--color-canvas, #f5f2ea)"/><g transform="translate(474.4 374.4) scale(0.8)" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V9M12 19V5M19 19v-7M3 21h18"/></g>
-  <text x="508" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">SP pass 再来，已匹配不到</text>
-  <text x="508" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">all_reduce 节点没了，改图数为 0</text>
+  <text x="508" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">SP 不再匹配已被替换的这一处</text>
+  <text x="508" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">其余子图仍须检查，不代表全模型为 0</text>
   <text x="508" y="407" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-ink-faint, #8a928f)">MiddleAllReduceRMSNormPattern</text>
   <path d="M240 332 L240 306" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
   <path d="M240 306 l-5.5 11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
@@ -42,10 +42,10 @@
   <path d="M660 332 l-5.5 -11 l11 0 z" fill="var(--color-ink-faint, #8a928f)"/>
   <path d="M38 96 l-8 0 L30 276 l8 0" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.4" opacity="0.75"/>
   <text x="44" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-weight, #b87a00)">融合 pass</text>
-  <path d="M108 188 l-8 0 L100 276 l8 0" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" opacity="0.75"/>
-  <text x="114" y="237" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-kv, #4c65b6)">SP</text>
-  <rect x="297.6" y="452.5" width="304.8" height="27" rx="13.5" fill="var(--color-accent, #e85b32)"/><text x="308.6" y="471" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">两个都开 = 序列并行静默失效，无报错无告警</text>
-  <text x="40" y="516" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">SP 的 pattern 只认「all_reduce → npu_add_rms_norm_bias」这后半截，正是融合 pattern 的一部分。同一次 AllReduce 只能按一种方式拆</text>
-  <text x="40" y="534.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">：融合算子要在内部 AllGather 回全长，SP 要的恰恰是让 norm 及其下游停在 1/tp 长度上。二者不可叠加，上游让默认值站在 SP 这边。</text>
-  <text x="40" y="586" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">还有一道门槛：融合 pass 的 is_applicable_for_range 要求 compile_range.start &gt; 512，decode 的小 batch 一处都改不到。</text>
+  <path d="M108 142 l-8 0 L100 276 l8 0" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" opacity="0.75"/>
+  <text x="114" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-kv, #4c65b6)">SP 目标</text>
+  <rect x="313" y="452.5" width="274" height="27" rx="13.5" fill="var(--color-accent, #e85b32)"/><text x="324" y="471" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">注册顺序决定重叠节点先由哪条规则改写</text>
+  <text x="40" y="516" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两条规则都包含 All-Reduce 与残差归一化，不能重复改写同一批节点。所引 SP pattern 在分片上做 norm 后也立即 All-Gather；冲突来自重叠</text>
+  <text x="40" y="534.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">的改图目标，不能概括为通信目标相反。官方参数表因此建议默认关闭这条融合。</text>
+  <text x="40" y="586" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">融合 pass 仅适用于 compile_range.start &gt; 512；这是编译区间条件，不是按 prefill/decode 划分收益。</text>
 </svg>

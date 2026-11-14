@@ -1,0 +1,216 @@
+--- before/wiki/concepts/graph-mode-layer.md
++++ after/wiki/concepts/graph-mode-layer.md
+@@ -39,14 +39,14 @@
+   - 'vllm@0fc695fc:vllm/config/vllm.py#L1618-L1682'
+   - 'vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L76-L158'
+   - 'vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L209-L236'
+-  - 'vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L262-L312'
++  - 'vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L262-L328'
+   - 'vllm@0fc695fc:vllm/compilation/monitor.py#L88-L100'
+   - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L6525-L6588'
+   - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L130-L136'
+   - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L176-L181'
+   - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L880-L886'
+   - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L593-L632'
+-  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L633-L644'
++  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L633-L648'
+   - 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L26-L87'
+   - 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L138-L170'
+   - 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L216-L259'
+@@ -57,7 +57,7 @@
+   - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5330-L5340'
+   - 'vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L220-L236'
+   - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L661-L670'
+-  - 'vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L180-L235'
++  - 'vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L340'
+   - 'vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L138-L258'
+   - 'vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L150-L290'
+   - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L748-L778'
+@@ -65,7 +65,7 @@
+   - 'vllm@0fc695fc:vllm/config/vllm.py#L1050-L1062'
+   - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L586-L636'
+   - 'vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L155-L217'
+-  - 'vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L280-L297'
++  - 'vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L280-L301'
+   - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2240-L2250'
+   - 'vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L44-L69'
+   - >-
+@@ -115,6 +115,21 @@
+   - 'vllm-ascend@7d825229:vllm_ascend/compilation/acl_graph.py#L284-L319'
+   - >-
+     https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/graph_mode.md
++  - 'vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L82-L146'
++  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L150-L267'
++  - 'vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L731-L786'
++  - 'vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L365-L390'
++  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L830-L837'
++  - 'vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L284-L288'
++  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L1790-L1795'
++  - 'vllm-ascend@baa023ad:vllm_ascend/attention/sfa_v1.py#L277-L292'
++  - 'vllm-ascend@baa023ad:vllm_ascend/ops/gdn_attn_builder.py#L971-L974'
++  - 'vllm@84030bbe:vllm/v1/attention/backends/gdn_attn.py#L27-L38'
++  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L598-L659'
++  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L590-L661'
++  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L104-L160'
++  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L849-L879'
++  - 'vllm-ascend@baa023ad:vllm_ascend/compilation/acl_graph.py#L227-L244'
+ verified:
+   - releases/v0.23.0
+   - releases/v0.26.0rc
+@@ -147,7 +162,7 @@
+ 
+ ## 同一串任务，为什么要一轮一轮重复提交
+ 
+-模型结构定下来之后，真正跑起来的是一长串设备任务：每一层的矩阵乘、归一化、注意力、专家计算，都要由 Host 逐个交给 NPU，告诉它算什么、数据在哪。这种「交一个、算一个、再交下一个」的执行方式叫 **eager**（单算子执行）。
++模型结构定下来之后，真正跑起来的是一长串设备任务：每一层的矩阵乘、归一化、注意力、专家计算，都要由 Host 逐个交给 NPU，告诉它算什么、数据在哪。这种逐算子执行的方式叫 **eager**。逐个提交不等于每次都等设备算完：异步下发时，Host 可以继续排后面的任务，设备按依赖执行；图回放进一步减少的是这些重复下发动作。
+ 
+ 问题出在 decode（每轮只产出一小把 token 的阶段）。[那条请求](one-request.md)一轮只带 4 个 token 位进模型，每张卡却仍要走完 45 层；这样一次前向，每张卡有 218 次[集合通信](collective-communication.md)和几百个算子，而数据量只有几 MiB。这一轮的耗时更可能由这几百次提交和通信各自的固定开销决定，而不是由算了多少决定（次数与字节见[一次前向的通信账](one-request.md#一次前向的通信账)）。提交开销究竟占多少，随模型、批次大小和硬件而变，不是一个固定比例。
+ 
+@@ -174,7 +189,7 @@
+ 
+ | 动作 | 处理的对象 | 改变或保留什么 |
+ |---|---|---|
+-| 编译与图改写 | 运算表示、形状约束、算子之间怎么连 | 可以拆开或融合运算、换一个执行实现，改的是「算什么」 |
++| 编译与图改写 | 运算表示、形状约束、算子之间怎么连 | 在模型计算语义下拆开或融合运算、替换执行实现；数值精度仍需验证 |
+ | 捕获 | 一段受支持的设备任务序列及其依赖 | 只记录可复用的执行次序，不改算什么 |
+ | 回放 | 已录好的图 + 本轮准备好的数据 | 按记录重算，得到本轮的结果 |
+ 
+@@ -241,7 +256,7 @@
+ 4. 总 token 数没超过最大捕获尺寸 128 吗？
+ 5. 另一个 [DP 组](data-parallel.md)（各自调度、各有 KV 池的一台机器）这一轮也过了前四条吗？
+ 
+-第五条是双机部署特有的：两组每轮要先交换「我这边多宽、能不能用图」，模式取两边较低值——三档在枚举里就是按 NONE < PIECEWISE < FULL 排的数值，取小自然就退到最保守的那一档。一组混进 prefill，两组这一轮都退回 eager，本来能用图的那组也用不上。补齐到哪一档、两组怎么对齐、空闲组为什么还要陪跑，账在[多条请求](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)里，本页不重算。
++第五条来自跨 DP 的协调；本部署恰有两组：两组每轮要先交换「我这边多宽、能不能用图」，模式取两边较低值——三档在枚举里就是按 NONE < PIECEWISE < FULL 排的数值，取小自然就退到最保守的那一档。一组混进 prefill，两组这一轮都退回 eager，本来能用图的那组也用不上。补齐到哪一档、两组怎么对齐、空闲组为什么还要陪跑，账在[多条请求](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)里，本页不重算。
+ 
+ 描述符里不止有 token 数，还有补齐后的请求数、「是不是整齐的 decode」，以及有没有用 LoRA（本部署不用）。所以**两轮 token 总数相同，不足以说明它们回放的是同一张图**：两轮的 token 总数同样是 64，16 条整齐 decode 回放的是 64 那张图，而混进 prefill 的一轮在这一档配置下根本没有图，直接 eager，也不按图尺寸补齐。分派时看的还有 LoRA 状态和有没有强制 eager。
+ 
+@@ -259,11 +274,13 @@
+ 
+ ## 回放之前，必须先把数据写对
+ 
+-图记住的是次序和地址，不是内容。回放前得保证本轮的输入已经写进录制时用的那几块地址；这件事不归包装层管，它假定外部已经准备好，只在调试日志级别下检查一遍地址有没有变。
+-
+-每轮真正会变、又必须同步更新的有：每条请求的位置、已算长度、[block table](block-table.md)（记录这条请求的 KV 放在哪些块里的表），以及各注意力后端自己的元数据。它们如果还停在上一轮的值，回放出来的就是错的结果，而不是报错。
+-
+-Runner 里确实有一条「在侧流上刷新整图注意力参数」的路径，但**本模型走不到**：它要求既不用稀疏注意力也不用压缩，而 GLM-5.3-Flash 用的是[稀疏 MLA](sparse-attention.md)。这条路径的调用位置还分两种情况：默认（没开 ENPU 这个昇腾侧开关）时它发生在执行之后，开了 ENPU 才挪到执行之前。KDA（这个模型里那 34 层[线性注意力](linear-attention.md)）与稀疏 MLA 的元数据到底怎样进到固定地址里，属于本页的待核项，写在页末。
++图记住的是次序和地址，不是内容。回放前得保证本轮的输入已经写进录制时用的那几块地址；这件事不归包装层管，它假定外部已经准备好。DEBUG 日志级别下，它只比较直接放在位置参数中的 Tensor 地址，不递归检查嵌套结构，也不检查所有关键字参数。
++
++每轮真正会变、又必须同步更新的有：每条请求的位置、已算长度、[block table](block-table.md)（记录这条请求的 KV 放在哪些块里的表），以及各注意力后端自己的元数据。若任务读取了尚未刷新的位置，就会读到旧值；地址检查通过也不能证明内容正确。
++
++Runner 里有一条「在侧流上刷新整图注意力参数」的通用路径，但**本模型走不到**：它要求既不用稀疏注意力也不用压缩，而 GLM-5.3-Flash 用的是[稀疏 MLA](sparse-attention.md)。该通用调用在默认非 ENPU 路径中位于模型调用之后，ENPU 路径才移到之前；不能把这段调用顺序套给所有后端。
++
++固定 GLM 源码中，主稀疏 MLA 构建器直接引用本轮公共块表、slot mapping、查询起点和长度的切片；Runner 会先把活跃请求的块表复制到持久设备缓冲。压缩索引器另外预分配自己的 slot mapping、长度和块表，再通过 copy_ 或 out= 原地刷新。KDA 所用的 GDN 构建器在整齐投机 decode 分支中，也把状态索引、掩码、查询起点与已接受 token 数写回持久 Tensor，并填充空行。这样更新的是图所引用缓冲的内容，不能因为通用侧流入口未执行，就推断本轮元数据没有更新。各算子实际读取这些缓冲的次序仍须与图的执行依赖配合，以上源码路径不替代设备正确性测试。
+ 
+ ## 启动时录、运行时放
+ 
+@@ -271,14 +288,14 @@
+ 
+ 常被当成排查第一刀的**强制 eager**，关掉的不止录图：上游一见到它，就把编译模式和图档位一起设成 NONE，昇腾平台再顺手关掉自己的编译后端。也就是说，编译期的改写与录图**一起**没了；本部署又没有单独指定要编译的尺寸，所以热身那一段实际上没有尺寸可跑，录图这一步也整个跳过。
+ 
+-所以「打开强制 eager 问题就消失」只能说明问题出在编译或图这两层之一，不能直接断定是录图。要把两层分开，得逐个关掉那几个融合开关而保留图——只关 npugraph_ex 不够，它只是换个编译后端；只把图档位设成 NONE 也不够，昇腾在这种情况下同样会关掉编译。
++所以「打开强制 eager 问题就消失」只说明故障随这组执行路径变化而改变，还不能定位到某一层：编译、捕获、补齐和实际算子路径都可能随之变化。可在相同输入与配置下分别控制图档位、编译后端和适用的融合开关，再核对实际执行路径。只关 npugraph_ex 会换用另一条融合路径；只把图档位设成 NONE，昇腾也会关掉编译，均不是只改变一个行为的实验。
+ 
+ 最后区分三层证据，别混着说：配置里开了图模式、启动时录完了图、某一轮真的回放了，是三件不同的事。本库没有 NPU 实测，所以不把 GLM 的 decode 轮数直接写成同样次数的成功回放，也不给收益数字。
+ 
+ ## 旁边的另外两条路：一条默认开着，一条默认关着
+ 
+-- **编译期融合按固定源码是开着的**，而且和本页讲的回放叠在一起用。官方命令没有关它，这一档配置又不需要分段编译，模型也带着编译装饰器进来，于是编译走昇腾自己的后端。它改的是「算什么」（由一串 pass 改写计算图、替换算子实现），回放改的是「怎么提交」，两者互不替代。**npugraph_ex 只是这一层默认用的编译后端，不等于融合本身**：同一批登记好的融合规则（归一化与量化、qk 归一化与 RoPE、AllReduce 与 RMSNorm、乘加）默认由这个后端来应用；把它关掉，才轮到昇腾自己的 pass manager 来应用——同一批规则、换人应用。这几项各有自己的开关且默认全开。细节见 [npugraph-ex](npugraph-ex.md)。到底有多少改写真正匹配上，要看启动日志，本库没有实测。
+-- **torchair** 不是另开的一条路，而是融合这条路的兼容退路：只有 npugraph_ex 这个包导入失败时才落到它。
++- **编译期优化按固定源码是开着的**，而且和本页讲的回放叠在一起用。官方命令没有关它，这一档配置又不需要分段编译，模型也带着编译装饰器进来，于是编译走昇腾自己的后端。它改写运算表示和实现，回放减少重复提交，两者互不替代。npugraph_ex 与关闭该开关后使用的 Ascend pass manager 是两条不同路径，不能假定应用完全相同的规则或默认值；具体消费者和开关范围见 [npugraph-ex](npugraph-ex.md)。实际匹配的算子及收益要由编译记录和同负载测量确认。
++- **torchair** 是 npugraph_ex 编译路径的兼容退路：包导入、选项适配、后端构建或编译调用所在的 try 块抛出 ImportError 时进入它；其他异常不会因这条 except 自动回退。
+ - **xlite** 才是默认关着的那条：要在额外配置里单独打开；它的执行进程和模型运行器只是在昇腾原有的两个上薄薄包一层。打开后平台会把主模型的档位降到 `FULL_DECODE_ONLY`，或者干脆关掉图。
+ 
+ 本页的数字只针对回放这一层。xlite 没有启用、也没有实测数据，不能把这里的 GLM 数字当成它的效果。
+@@ -299,12 +316,12 @@
+ ## 常见误解
+ 
+ - **「开了图模式，整条请求都在回放图。」**——本部署只给整齐的 decode 轮录了图。prefill 那一轮、三遍草拟、任何混进 prefill 的轮次都是 eager。
+-- **「图模式省的是计算。」**——一次计算都没省，省的是把任务交给设备的次数；所以它在算得少、算子却一个不少的 decode 上才明显。
++- **「图模式省的是计算。」**——回放本身没有省掉模型运算，省的是重复提交；当提交开销成为瓶颈时才更有收益，补齐还可能增加实际计算。
+ - **「包装层自己决定这一轮用不用图。」**——它不决定，只照上游给的模式和描述符执行。
+ - **「录图是第一条请求来的时候才做的。」**——启动期就按尺寸全部录完；服务期遇到没录过的形状不会补录。
+ - **「两轮 token 数一样，就是同一张图。」**——描述符还含请求数和是否整齐，混合轮和 decode 轮凑出同样的 token 数也不共用图。
+ - **「平台配置里写着关掉编译，说明昇腾只能逐个提交。」**——关掉的只是上游默认的那条编译路径，昇腾换成了自己的编译后端和图包装，图模式照样有。
+-- **「图模式和编译期融合是一回事，关一个等于关另一个。」**——是两层：融合改「算什么」、回放改「怎么提交」。本部署两层都在用，而强制 eager 会把两层一起关掉。
++- **「图模式和编译期融合是一回事，关一个等于关另一个。」**——是两层：融合改写算子实现与组织，回放改变提交方式。本部署两条路径都启用，而强制 eager 会把两层一起关掉。
+ 
+ ## 对照源码
+ 
+@@ -341,17 +358,17 @@
+ 
+ 实际配置应使用正整数尺寸。源码的 list[int] 没有逐元素正数约束，不能宣称负数或 0 一定被入口立即拒绝；字段通过解析也不证明后续建表或设备捕获可用。关闭图应使用主 eager 或 NONE，而不是用空表或 0 上限充当关闭开关。
+ 
+-昇腾不走上游 `torch.compile` 的默认路径：平台类里 `simple_compile_backend` 就是 `"eager"`，同行注释写明禁用 `torch.compile()`。[C10] 图能力换成两个接入点：`get_compile_backend()` 返回自己的 `AscendCompiler`，`get_static_graph_wrapper_cls()` 返回 `ACLGraphWrapper`。[C11]
+-
+-档位与切分清单的对应也在平台里定：`NONE` 连编译模式一起关；需要分段时调用上游的 `set_splitting_ops_for_v1` 并追加 `vllm::mla_forward`、`vllm::dsa_forward`；`has_full_cudagraphs()` 为真（本部署这一支）时把 `splitting_ops` 清空。[C13] 上游那份默认清单就是 `_attention_ops` 里的各类 attention 算子。三档与两个组合档的定义、`decode_mode()` / `mixed_mode()` 的取值都在 `CUDAGraphMode` 上——名字沿用了 CUDA 的术语，昇腾路径照用同一个枚举，在昇腾仓库里是找不到另一套档位定义的。分工也按这条线划：档位定义、每轮选档、按批大小分档与补齐都归上游，昇腾只补平台接入点、录图的额外限制（例如 A5 设备在分段档上还要再裁一遍尺寸）和回放期让注意力参数正确的机制。
++昇腾不走上游 `torch.compile` 的默认路径：平台类里 `simple_compile_backend` 就是 `"eager"`，同行注释写明禁用 `torch.compile()`（来源 10）。图能力换成两个接入点：`get_compile_backend()` 返回自己的 `AscendCompiler`，`get_static_graph_wrapper_cls()` 返回 `ACLGraphWrapper`（来源 11、12）。
++
++档位与切分清单的对应也在平台里定：`NONE` 连编译模式一起关；需要分段时调用上游的 `set_splitting_ops_for_v1` 并追加 `vllm::mla_forward`、`vllm::dsa_forward`；不需要分段且 `has_full_cudagraphs()` 为真时才把 `splitting_ops` 清空，本部署属于后一支。[C13] 因而 FULL_AND_PIECEWISE 虽包含 FULL，仍先进入分段分支。上游那份默认清单是 `_attention_ops` 里的各类 attention 算子。三档与两个组合档的定义、`decode_mode()` / `mixed_mode()` 的取值都在上游 `CUDAGraphMode` 上，昇腾路径复用同一个枚举。上游提供分派器、补齐表和描述符；Ascend Runner 参与每轮整齐性判断、调用分派器与 DP 对齐，平台再处理自身的尺寸限制和编译接入。
+ 
+ 整个模型在权重加载后被包了一层 `ACLGraphWrapper(runtime_mode=FULL)`；建索引时按 `uniform_decode_query_len`（本部署 = 1 + 3 个草稿 = 4[D]）过滤尺寸，并为每档算出 `num_reqs`。[C6] 每轮的 `uniform_decode` 判定与本地补齐在 Runner 里，补齐表与描述符构造在分派器里。[C19] GLM 系列加投机解码时把草稿模型的 `use_cuda_graph` 强制置假，并打一条 warning 说明等价于给草稿配 `enforce_eager: true`。[C23] xlite 的开关是额外配置里的 `xlite_graph_config`，`enabled` 与 `full_mode` 默认都是假。
+ 
+-配置允许使用图，还要由分派器判断当前批次能否进入图路径。所核上游固定快照中，用于匹配图的键尚未初始化、图模式关闭、没有设置最大捕获大小、当前批次的 token 数超过上限，或调用方只允许不使用图时，都会返回不使用图的执行方式。完整的批次描述符匹配与图条目复用还须继续检查，不能把通过这几项前提直接当作必然回放。
+-
+-**编译期融合在这套命令下是开着的。** 昇腾编译配置里 `enable_npugraph_ex` 默认为真，只有 310P 会被强制关掉[C31]；平台只在图档位为 `NONE` 或需要分段编译时把它置假，`FULL_DECODE_ONLY` 走的是清空 `splitting_ops` 那一支，不动这个开关。默认优化档的编译模式是 `VLLM_COMPILE`，GLM 主模型带 `@support_torch_compile`[C34]，编译后端又是 `AscendCompiler`，所以开关为真时走 `npugraph_ex_compile`[C33]；只有 `import npugraph_ex` 失败才落到 torchair 后端。
+-
+-**关掉 `enable_npugraph_ex` 并不等于关掉融合。** 开关为假时 `AscendCompiler` 改走 `fusion_pass_compile`，改由编译配置里的 pass manager 把同一批规则作用到计算图上[C35]；这个 manager 默认挂着 `fuse_norm_quant`、`fuse_qknorm_rope`、`fuse_allreduce_rms`、`fuse_muls_add` 四个融合 pass，四个开关都在 `ascend_compilation_config` 里、默认都取真[C36]。要在保留图的前提下排除融合层，得把这几个开关逐个关掉；本库没有实测，只能按源码说到这一步。
++配置允许使用图，还要由分派器判断当前批次能否进入图路径。上游固定快照中，用于匹配图的键尚未初始化、图模式关闭、没有设置最大捕获大小、当前批次的 token 数超过上限，或调用方只允许不使用图时，都会返回不使用图的执行方式。通过前提后先匹配 FULL 描述符；允许 PIECEWISE 时再用放宽请求数和整齐标志的键匹配。均未命中时，只有允许 NONE 才返回普通执行，否则断言报错。因此通过前提不等于必然回放。
++
++**编译期优化在这套命令下是开着的。** 昇腾编译配置里 `enable_npugraph_ex` 默认为真，构造器对 310P 强制关闭[C31]；平台的 `NONE` 与分段编译分支也会将它置假。`FULL_DECODE_ONLY` 走清空 `splitting_ops` 那一支，不动这个开关。默认优化档的编译模式是 `VLLM_COMPILE`，GLM 主模型带 `@support_torch_compile`[C34]，编译后端又是 `AscendCompiler`，所以开关为真时走 `npugraph_ex_compile`[C33]。来源 32 的 try/except 覆盖 npugraph_ex 的导入、适配和编译调用，并非只检查包是否存在。
++
++**关掉 `enable_npugraph_ex` 并不等于关掉融合。** 开关为假时 `AscendCompiler` 改走 `fusion_pass_compile`，调用 Ascend 自己的 pass manager[C35]。该 manager 从 additional_config 原始字典读取 `fuse_norm_quant`、`fuse_qknorm_rope`、`fuse_allreduce_rms`、`fuse_muls_add`，缺键时各用 True，部分 pass 还排除 310P[C36]；但 AscendCompilationConfig 构造器的 `fuse_allreduce_rms` 默认是 False。npugraph_ex 的配置适配则设置 force_eager、输入输出复制与静态编译等选项，没有把这四个字段逐一转交给它。不能据此声称两条路径的四项规则全部默认开启，也不能把关闭四个键当成禁用 npugraph_ex 内部所有优化的保证。各开关应按 [npugraph-ex](npugraph-ex.md) 中的实际消费者使用。
+ 
+ **强制 eager（`--enforce-eager`）关的是两层。** 上游在配置阶段就把 `mode` 和 `cudagraph_mode` 一起设成 `NONE`，日志原话是等价于 `-cc.mode=none -cc.cudagraph_mode=none`[C30]；昇腾平台随后也把自己的编译模式关掉，并在图档位为 `NONE` 时置假 `enable_npugraph_ex`。`compile_sizes` 默认为空，所以热身循环这时没有尺寸可跑[I]，末尾的捕获也整个跳过[C18]。
+ 
+@@ -365,9 +382,9 @@
+ | 图档位拼错，或 CLI 容器传整数 | 图档位按枚举名查找失败；CLI JSON 对象验证不接受 LLM 的整数快捷形式 | 使用五个合法字符串之一与 JSON 对象；来源 39、46 |
+ | 整趟 decode 的 MTP 对齐后无有效档，或 q 与 TP 的较大值不能同时整除两者 | ValueError；对齐不会自动求最小公倍数 | 调整草稿数/尺寸或关闭 sequence parallel；来源 54 |
+ | 设成 `ASCEND_LAUNCH_BLOCKING=1` 又没关图 | 平台在配置阶段抛 `ValueError`，说明两者不兼容，并建议改看 plog | 调试用同步执行时先关图，或改用日志 [C14] |
+-| 捕获时设备 stream 资源不足（错误码 `207008` 等特征） | 包装层识别出这个特征，把原始错误重新包装，提示缩小捕获尺寸表、降低最大尺寸或改用 `FULL_DECODE_ONLY` | 按提示减尺寸；同时确认 HDK / CANN 版本 [C15] |
++| 捕获错误含 `Insufficient_Stream_Resources` 或 `Stream resources are insufficient`，或同时含 `207008` 与 `stream resource` 文本 | 包装层忽略大小写匹配这些特征并重新包装错误，提示缩小捕获尺寸表、降低最大尺寸或改用 `FULL_DECODE_ONLY`；仅有错误码不足以匹配 | 按提示减尺寸；同时确认 HDK / CANN 版本 [C15] |
+ | 启动窗口之外触发捕获 | 上游的捕获合法性检查抛 `RuntimeError`，说「在不合适的时机捕获」 | 正常路径不会遇到；遇到说明分派器交出了没录过的描述符 [C8] |
+-| 调试日志级别下回放，输入地址和录制时不同 | 包装层的断言直接失败，打印期望与实际地址 | 说明上游没把本轮数据写回固定地址 [C17] |
++| DEBUG 级别下回放，直接位置参数中的 Tensor 地址和录制时不同 | 包装层断言失败，打印期望与实际地址；不覆盖所有输入结构 | 检查调用方是否换了这些输入缓冲 [C17] |
+ 
+ 以上都是源码里的检查点，没有在 NPU 上故意触发过。[I]
+ 
+@@ -375,7 +392,7 @@
+ 
+ - **启动**：要录的每个尺寸都得跑一遍空批次；上游 `capture_model` 录完会打印耗时和占用的显存。本库缺这套部署的启动日志，7 张图具体多大、录多久，待核。
+ - **运行**：补齐会让一部分位置空跑，账在[多条请求](concurrent-requests.md#先补到自己这组的图尺寸)；混合轮完全用不上图，这一轮的收益为零。[D]
+-- **什么时候别开**：请求形状长期不整齐（prefill 占比高、并发抖动大）时，收益会被补齐和退回吃掉[I]。排查精度或 hang 问题时常用 `--enforce-eager`，但它同时关掉编译期融合和图，问题消失只能把范围缩到这两层；要分清是哪一层，得逐个关掉那四个 `fuse_*` 开关而保留图，只关 `enable_npugraph_ex` 换来的仍是同一批融合[D]。
++- **什么时候比较 eager**：对本部署的 FULL_DECODE_ONLY，prefill 占比高会减少图命中，并发变化还影响补齐开销；实际损益需测量，不能仅凭形状不整齐断言图一定更慢。排查精度或 hang 时可用 `--enforce-eager` 做对照，但它同时改变编译与图相关路径。故障消失后仍需逐项控制变量，并核对实际算子，不能把后端切换当成只关闭同一组融合的实验。
+ - 本页所有结论都来自配置与源码，没有 NPU 实测；任一档的实际快慢要用同一批次分别测启动成本、回放命中比例、补齐浪费和端到端时延。[D]
+ 
+ ### 版本差异
+@@ -407,9 +424,9 @@
+ | 热身与捕获之间 | 跑完空批次直接捕获 | 中间多一步 kernel warmup[C28] | 与 v0.26 同 |
+ | 回放路径 | 固定 `replay()` | 相同 | 某些注意力后端改走可更新图；回放日志文案也换了[C29] |
+ | GLM 系列草稿强制 eager 保护 | 社区分支有保护；本站 GLM5.3 专用路径另核 db701c1f | 有 | 有；三版保护不等于三版都能运行本站模型 |
+-| `enable_npugraph_ex` 默认值 | 真 | 真 | 真 |
+-
+-main 的可更新图分支只对特定注意力后端生效，GLM 用的稀疏 MLA 与 KDA 是否落进这一支，没在本轮核实。
++| `enable_npugraph_ex` 输入默认值 | 真，仍受硬件和图模式限制 | 真，仍受硬件和图模式限制 | 真，硬件 profile 与平台可再关闭 |
++
++固定 main 的 `use_updatable_graph` 明确要求传入后端是 AscendAttentionBackend 的子类。该快照的 AscendSFABackend 直接继承 AttentionBackend，AscendGDNAttentionBackend 经上游 GDNAttentionBackend 也继承 AttentionBackend；这两个类不满足该判据。升级时应检查实际传给包装器的后端类，不能从模型名或 FULL 模式推断一定使用可更新图。
+ 
+ ### 源码位置
+ 
+@@ -430,12 +447,11 @@
+ | 编译后端选融合还是 torchair | `vllm_ascend/compilation/compiler_interface.py` 的 `npugraph_ex_compile`、`fusion_pass_compile` |
+ | 四个融合 pass 与它们的开关 | `vllm_ascend/compilation/graph_fusion_pass_manager.py` 的 `configure` |
+ 
+-**待核。**
+-
+-- 稀疏 MLA 与 KDA 的注意力元数据在 FULL 图回放时怎样写进固定地址。Runner 那条整图参数更新路径已确认在本模型上不执行[C20]，剩下要追的是这两个后端各自的元数据构造过程。
+-- 7 张图占多少显存、录完用多久。上游捕获函数会打印这两项，需要一份本部署的启动日志才能填。
+-- main 上的可更新图分支是否覆盖 GLM 用的两种注意力后端。
+-- 任何加速比。本库没有 NPU 实测数据，本页不给回放与 eager 的耗时对比。
++**还需要的设备证据。** 7 张图的捕获耗时和显存占用需要本部署启动日志；回放与 eager 的性能比较需要相同输入负载的设备测量；后端持久缓冲的源码读写路径还应通过多轮、变并发和投机接受/拒绝用例验证。本页没有这些 NPU 实测结果。
++
++元数据与编译适配的补充来源：79 是 npugraph_ex/torchair 选项适配；80 是压缩索引器持久缓冲与原地刷新；81 是 GDN 整齐投机 decode 元数据复制与空行填充；82 是 SFA 引用公共元数据；83、84 是活跃请求块表提交。来源 85–88 依次给出 main 可更新图判据、SFA 类和 GDN 两层继承关系。它们分别支持上述具体路径，不代表所有模型、设备后端或图模式已做正确性验收。
++
++来源 89–91 补齐三个社区快照的编译配置默认与硬件限制；92 是 main 的热身到捕获顺序；93 是 main 的旧 HDK 与 stream 资源错误重包装。
+ 
+ 捕获范围与编译结构要分别判断。`0fc695fc` 的 `compilation.py` 1108–1130 行中，在 `VLLM_COMPILE` 模式、不走 attention 量化融合切分分支且 `splitting_ops is None` 时，默认保留分段 FX 图，在外层捕获整图（来源 2）。`db701c1f` 的 `platform.py` 593–627 行中，昇腾需要分段的路径会调用上游配置；另一条整图分支主动把 `splitting_ops` 设为空（来源 13）。这是两条具体实现路径，不能由 FULL 模式的名字统一推断切分方式。
+ 

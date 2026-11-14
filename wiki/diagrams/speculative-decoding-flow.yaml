@@ -1,6 +1,6 @@
 layout: figure
 id: speculative-decoding-flow
-caption: 开着 MTP（每轮猜 K 个）时，一个 decode 步在两个进程里怎么走。左边 EngineCore 进程：调度器给每条请求排 1 + K 个位置，预算不够先砍候选，KV 多留 K 格给草稿层（①）；结果回来后按被拒的个数把已算位置退回，存下新候选（⑤），新 token 发回前端（⑥），再排下一步。右边 Worker 进程：准备输入时把这一步的分数行分成 K 个验证行和 1 个 bonus 行（②）；整个批次都整齐时回放事先录好的 FULL 图，否则整步 eager；主模型前向后用 rejection sampling 逐位决定接受几个（③）；最后草稿层连跑 K 遍，猜出下一步的候选（④），GLM 上这一段固定 eager。站号对应一条请求走过的七站。
+caption: 本站固定 K 的 MTP 与 FULL_DECODE_ONLY 配方中，一个 decode 步在两个进程里怎么走。左边 EngineCore 进程：调度器给每条请求排 1 + K 个位置，预算不够先砍候选，KV 多留 K 格给草稿层（①）；结果回来后按被拒的个数把已算位置退回，存下新候选（⑤），新 token 发回前端（⑥），再排下一步。右边 Worker 进程：准备输入时把这一步的分数行分成 K 个验证行和 1 个 bonus 行（②）；整个批次整齐且满足图条件时回放已录的 FULL 图，否则 eager；主模型前向后用 rejection sampling 逐位决定接受几个（③）；最后草稿层连跑 K 遍，猜出下一步的候选（④），GLM 上这一段固定 eager。站号对应一条请求走过的七站。
 size: [900, 640]
 texts:
   - { at: [24, 24], text: EngineCore 进程（CPU）, strong: true }
@@ -16,7 +16,7 @@ items:
   - { at: [480, 126], size: [400, 72], text: 这一步整齐吗？, sub: 每条都是 1 + K 个、总数不超过最大图尺寸、另一组也整齐, style: plain }
   - { at: [480, 246], size: [190, 62], text: 回放 FULL 图, sub: 尺寸是 1 + K 的倍数, tone: kv }
   - { at: [690, 246], size: [190, 62], text: 整步 eager, sub: 例如混进了 prefill, tone: control }
-  - { at: [480, 332], size: [400, 72], text: ③ 第 4–5 站 · 主模型前向 + rejection sampling, sub: 逐位接受，第一个不符换成主模型的答案, tone: weight }
+  - { at: [480, 332], size: [400, 72], text: ③ 第 4–5 站 · 主模型前向 + rejection sampling, sub: 逐位接受；首个拒绝处补一个 token 后停止, tone: weight }
   - { at: [480, 428], size: [400, 72], text: ④ 第 5 站 · 草稿层连跑 K 遍, sub: 猜下一步的候选；GLM 上固定 eager, tone: weight, style: faded }
   - { at: [24, 428], size: [380, 72], text: ⑤ 第 6 站 · 已算位置退回被拒的个数, sub: 被拒位置的 KV 不擦，下一步原地覆盖；存下新候选, tone: token }
   - { at: [24, 530], size: [380, 62], text: ⑥ 第 7 站 · 新 token 发回前端, sub: 这一步交回 1 到 K + 1 个, tone: token }

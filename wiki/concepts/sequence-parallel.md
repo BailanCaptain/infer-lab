@@ -2,81 +2,129 @@
 id: sequence-parallel
 title: 序列并行（SP）：让局部激活按 token 分片
 type: feature
-summary: TP 之后，残差相加、RMSNorm 这类逐 token 的步骤在每张卡上重复做；序列并行把那次 All-Reduce 拆成 Reduce-Scatter 和 All-Gather，中间每张卡只算、只存自己那几个 token。通信量不变，代价是补齐和调用开销；GLM 双机没有开。
-aliases: [Sequence Parallel, 序列并行, SP, FlashComm1, FlashComm V1, enable_flashcomm1, enable_sp, sp_min_token_num, maybe_pad_and_reduce, SequenceRowParallelOp, use_sequence_parallel_moe]
-chapters: ["15"]
+summary: >-
+  Megatron SP 配合 TP，让归一化、残差等区域按 token 分工；沿同一组数看清部分和怎样归约、每卡怎样计算、何时收集并交给下一次投影，并区分
+  Ulysses、CP 与 Ascend FlashComm1。
+aliases:
+  - Sequence Parallel
+  - 序列并行
+  - SP
+  - FlashComm1
+  - FlashComm V1
+  - enable_flashcomm1
+  - enable_sp
+  - sp_min_token_num
+  - maybe_pad_and_reduce
+  - SequenceRowParallelOp
+  - use_sequence_parallel_moe
+chapters:
+  - '15'
 order: 10
 sources:
-  - https://arxiv.org/abs/2205.05198
-  - vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L458-L478
-  - vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L550-L611
-  - vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L23-L116
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L114-L144
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L164-L172
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2171-L2235
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L375-L407
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L936
-  - vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L672-L747
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L84-L137
-  - vllm-ascend@db701c1f:vllm_ascend/envs.py#L75
-  - vllm-ascend@db701c1f:vllm_ascend/compilation/passes/sequence_parallelism.py#L13-L135
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L291-L295
-  - vllm@0fc695fc:vllm/config/parallel.py#L625-L640
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L653
-  - vllm@0fc695fc:vllm/config/vllm.py#L96-L101
-  - vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L861-L888
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L608-L628
-  - vllm-ascend@baa023ad:vllm_ascend/utils.py#L945-L957
-  - vllm-ascend@baa023ad:vllm_ascend/ops/register_custom_ops.py#L88-L115
-  - vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L751-L756
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L605-L614
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L240-L252
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L333-L373
+  - 'https://arxiv.org/abs/2205.05198v1'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L458-L478'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L527-L611'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L23-L116'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L114-L144'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L164-L172'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2171-L2235'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L375-L407'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L936'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L672-L747'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L84-L137'
+  - 'vllm-ascend@db701c1f:vllm_ascend/envs.py#L75'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/compilation/passes/sequence_parallelism.py#L13-L234
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L291-L295'
+  - 'vllm@0fc695fc:vllm/config/parallel.py#L625-L640'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L653'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L96-L101'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L861-L888'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L608-L628'
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L945-L957'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/register_custom_ops.py#L88-L120'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L751-L757'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L605-L616'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L240-L252'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L333-L373'
+  - 'https://arxiv.org/abs/2309.14509v1'
+  - >-
+    https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/features/context_parallel.html
+  - >-
+    raw:sha256-e9a0b6e2c73cbc271e0491a87a633bc955cb058c36e22b899664e9fa891b1a25.md#L1-L863
+  - >-
+    vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/ascend_forward_context.py#L125-L137
+  - 'vllm-ascend@7d825229:vllm_ascend/utils.py#L997-L1009'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L752-L806'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L808-L820'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L608-L679'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/linear_op.py#L156-L264'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/kimi_k3.py#L534-L554'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L201-L277'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L1170-L1200'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L90-L138'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L282-L359'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L903-L934'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L84-L137'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L114-L144'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L165-L193'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L171-L207'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1557-L1563'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L228-L314'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L642-L648'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L726-L832'
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - {to: tensor-parallel, kind: builds-on, note: 先理解完整归约结果与部分和}
-  - {to: collective-communication, kind: builds-on, note: 掌握 Reduce-Scatter 和 All-Gather}
-  - {to: mlp-residual-norm, kind: builds-on, note: 理解逐 token 的归一化和残差}
+  - to: tensor-parallel
+    kind: builds-on
+    note: 先理解完整归约结果与部分和
+  - to: collective-communication
+    kind: builds-on
+    note: 掌握 Reduce-Scatter 和 All-Gather
+  - to: mlp-residual-norm
+    kind: builds-on
+    note: 理解逐 token 的归一化和残差
 contradicts: []
-updated: "2026-09-29"
+updated: 2026-11-03T00:00:00.000Z
 origin: direct
 ---
 
 ## 序列并行是什么？
 
-模型一次前向处理的是一批 token。[token](token.md) 是文本切分后的最小单位；每个 token 在模型里是一条长度为 H 的向量，叫 hidden（见[层与 hidden](layers-and-hidden.md)）。这一批 T 个 token 按顺序排好就是一个「序列」，叠在一起是一张 T 行 H 列的表，记作 [T, H]，**一行是一个 token**。
+**本页的 sequence parallelism（SP，序列并行）指 Megatron SP：在张量并行的一组卡里，把原本各卡重复保存、重复计算的归一化和残差区域，改成按 token 分工。** 张量并行（TP）把权重矩阵分给多张加速卡；SP 接着处理这些矩阵之间的数据布局，两者使用同一组卡。
 
-每一层对这张表做的事分两类：
+一个 token 是文本切分后的一个单位，在模型里用一行向量表示。T 个 token、每行 H 个数，排成 [T, H] 的矩阵；H 叫 hidden size，即向量宽度。SP 沿 T 这一维切行，每张卡拿到的行仍有完整的 H 个数。推理的一批 token 可以来自多条请求，行的分配保持请求身份；attention（按相关程度读取其他位置的信息）仍遵循各请求自己的可见范围。
 
-- **要看别的 token 的**：attention（注意力）让每个 token 去读前面 token 的信息，算第 3 行时要用到第 1、2 行。
-- **每个 token 各算各的**：比如 residual（残差）相加，把子层的输入原样加回输出；RMSNorm（均方根归一化），把一个 token 的向量按它自己的大小缩放到统一的尺度（两者见[残差、MLP 与归一化](mlp-residual-norm.md)）。算第 3 行只用第 3 行自己的数，别的行一个都不需要。
-
-**sequence parallelism（SP，序列并行）把第二类「各算各的」活沿 token 这一维分给几张卡：T 行分成几段，每张卡只存、只算自己那一段行。** 名字里的「序列」指的就是 token 这一维。
-
-举个例子（示意）：一句话切成 4 个 token「今天 / 天气 / 很 / 好」，两张卡（加速卡，每张有自己的显存和算力）一起跑。不用 SP 时，两张卡都要把这 4 个 token 各归一化一遍；用了 SP，卡 0 只管「今天、天气」两行，卡 1 只管「很、好」两行，谁也不碰对方的行。
-
-SP 不单独使用，它总和 [TP](tensor-parallel.md)（tensor parallel，张量并行）搭配，用的就是同一组 TP 卡。TP 把一层里的权重矩阵切给几张卡，每张卡只存一片权重，但每张卡仍要处理全部 T 行；SP 补的是 TP 没切到的那一段：不乘权重、逐 token 独立的那几步，改成按行切。这个做法出自 Megatron-LM 团队的论文 Korthikanti et al. 2022（*Reducing Activation Recomputation in Large Transformer Models*）。在 vllm-ascend（让 vLLM 推理框架跑在昇腾 NPU 上的插件）里，它的实现叫 FlashComm1，[后文](#vllm-ascend-里的-sp-是怎样接进去的)再讲。
-
-## 为什么需要它：TP 之后每张卡都在重复同一份活？
-
-先用一段话回顾 TP 怎么切（逐数演算见 [TP 页](tensor-parallel.md#两种切法各算一遍拼起来还是加起来)）。一层里的矩阵乘成对出现：第一个矩阵**按列切**，每张卡算出输出的一段；第二个矩阵**按行切**，每张卡只用自己那一段输入和对应的几行权重，算出的是一份**部分和**：形状和完整结果一样，但每个数只加了本卡那一份贡献，把各卡的部分和按位置相加才是真结果。所以普通 TP 在行切之后做一次 [All-Reduce](collective-communication.md#all-reduce)：各卡的部分和按位置相加，而且**每张卡都拿到一整份** [T, H] 结果。
-
-问题出在接下来那几步。行切之后紧跟着的是残差相加和下一个子层入口的 RMSNorm，它们不乘权重，每个 token 各算各的。可这时每张卡手里的 [T, H] 一模一样，于是：
-
-- **计算重复**：N 张卡（N 是一起做 TP 的卡数）各把同样的 T 行归一化一遍，结果完全相同，其中 N−1 份是白算的；
-- **存储重复**：这一段的中间结果（叫激活，activation）每张卡都存一整份，N 张卡存了 N 份一样的数。
+例如把「今天 / 天气 / 很 / 好」作为 4 个示意 token。归一化根据每一行自己的数调整尺度，RMSNorm 使用该行的均方根来缩放；残差相加则把子层输入加回输出。只用 TP 时，两张卡各做一遍这 4 行。加上 SP 后，卡 0 负责前两行、卡 1 负责后两行。到了下一次需要各卡处理全部行的 TP 投影，再交换各自的结果。
 
 ```wiki-diagram
 file: sequence-parallel
 ```
 
-上半幅是只用 TP：All-Reduce 之后两张卡的 4 行一样，各自把 4 行都算一遍。能不能像下半幅那样，每张卡只算 T/N 行？两个条件都满足：
+图中的 All-Reduce 表示“各卡的贡献相加，每卡得到整份”；Reduce-Scatter 表示“贡献相加后，每卡只拿结果的一部分”；All-Gather 表示“把各卡不同的部分收齐”。下半幅把中间的本地计算放在后两种通信之间。
+
+同名的 **DeepSpeed Ulysses** 也叫 sequence parallelism，它解决长序列 attention 的分布式计算，机制不同，见[与 CP、Ulysses 的关系](#spcpulysses-是什么关系)。本站讲 SP 时采用 Megatron 的含义；在固定版本的 vllm-ascend（vLLM 的昇腾执行插件）中，相关实现是 FlashComm1。
+
+在[一条请求的逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)中，这种布局变化发生在每层 attention、前馈网络与残差连接之间，不发生在客户端拆词或调度请求的阶段。
+
+## 为什么需要它：TP 之后每张卡都在重复同一份活？
+
+先用一段话回顾 TP 怎么切（逐数演算见 [TP 页](tensor-parallel.md#两种切法各算一遍拼起来还是加起来)）。一层里的矩阵乘成对出现：第一个矩阵**按列切**，每张卡算出输出的一段；第二个矩阵**按行切**，每张卡只用自己那一段输入和对应的几行权重，算出的是一份**部分和**：形状和完整结果一样，但每个数只加了本卡那一份贡献，把各卡的部分和按位置相加才是真结果。所以普通 TP 在行切之后做一次 [All-Reduce](collective-communication.md#all-reduce)：各卡的部分和按位置相加，而且**每张卡都拿到一整份** [T, H] 结果。
+
+问题出在接下来那几步。残差相加把子层输入加回输出；RMSNorm 根据每行的均方根缩放向量，再乘可学习的逐通道系数。它们都能逐行计算，无需读取别的 token。可这时每张卡手里的 [T, H] 一模一样，于是：
+
+- **计算重复**：N 张卡（N 是一起做 TP 的卡数）各把同样的 T 行归一化一遍，结果完全相同，其中 N−1 份是白算的；
+- **存储重复**：这一段的中间结果（叫激活，activation）每张卡都存一整份，N 张卡存了 N 份一样的数。
+
+第一张图的上半幅中，两张卡各自算了相同的 4 行；下半幅每张卡只算 T/N 行。这个转换有两个依据：
 
 1. 这几步逐 token 独立，卡 0 算 token 0、1 时用不到 token 2、3 的任何一个数；
 2. All-Reduce 本身就能拆成两半：先 [Reduce-Scatter](collective-communication.md#reduce-scatter)，按位置相加，但每张卡只拿走结果里属于自己的那一段；再 [All-Gather](collective-communication.md#all-gather)，每张卡把自己那段发给其他卡，拼回整份。两半合起来正好是一次 All-Reduce，集合通信页已经[逐块演过](collective-communication.md#all-reduce)。
 
 SP 就是把这两半拉开：行切之后只做 Reduce-Scatter，每张卡拿到 T/N 行的完整值，逐 token 的几步只算这几行；等下一对矩阵开始、它的列切要求每张卡都有全部 T 行输入时，再做 All-Gather 把行拼回来。**中间一直保持按 token 分片，到了需要完整行集合的投影之前才收集。**
+
+标准 attention + 稠密 MLP 的前向每层有两处这样的边界。MLP 是逐 token 的前馈网络，稠密表示每个 token 都经过这套网络；它通过权重投影和逐通道的非线性变换调整向量。两次 All-Reduce 换成两次 Reduce-Scatter 和两次 All-Gather；本地归一化要等本行贡献加齐，下一投影要等所需输入收齐。额外调用与补齐的等待，必须和省下的激活、重复计算一起衡量。
 
 论文提出 SP 的动机是训练：TP 之后，归一化等位置的激活在每张卡上重复保存，训练又要把它们留到反向传播，按序列维切开能明显减少激活显存。本页讲的是推理的前向布局，不把论文的训练收益搬过来当作本系统推理的结果。
 
@@ -92,6 +140,12 @@ SP 就是把这两半拉开：行切之后只做 Reduce-Scatter，每张卡拿�
 | token 3 | [8, 15] | [9, 16] | [17, 31] |
 
 每一行的真值都要两张卡的部分和相加才得到，只看一张卡，哪一行都不对。接下来要对每个 token 做 RMSNorm。为了只看 SP 本身，这里先不加残差，RMSNorm 的可学习系数 γ 取 1、防止分母过小的常数 ε 取 0（完整公式见 [RMSNorm 一节](mlp-residual-norm.md#rmsnorm-怎样调整向量尺度)）。下图从上往下一格一步：紫色箭头是两张卡之间发送的块，灰色虚线是本卡自己的那块，不用发。
+
+交互 3D 用**四通道的扩展示例**保留完整矩阵：把表中的每行 `[a,b]` 扩为 `[a,b,b,a]`，两卡的部分和都按这个规则扩展。例如“今天”先得到 `[1,3,3,1]+[0,4,4,0]=[1,7,7,1]`，RMS=5，归一化结果为 `[0.2,1.4,1.4,0.2]`。切分仍按行，每张卡暂时持有 2×4；All-Gather 后各持有完整 4×4。末段另用一个 4→2 的示意投影：两卡分别持有权重列 `[1,2,−1,1]` 和 `[3,1,1,−1]`，各读取全部四个输入通道。“今天”得到输出 1.8、3.2，合起来是两个不同的输出通道，不再相加。下方静态分格图和手算继续使用表中的两通道例子。
+
+```wiki-scene
+parallel-mechanism:1
+```
 
 ```wiki-diagram
 file: sequence-parallel-steps
@@ -113,32 +167,54 @@ token 0 的完整值 = [1, 3] + [0, 4] = [1, 7]
 
 **第 3 步 All-Gather：拼回完整的 4 行。** 卡 0 把算好的两行发给卡 1，卡 1 把它的两行发给卡 0，按 token 顺序放好。两张卡都得到 token 0 [0.2, 1.4]、token 1 [1.4, 0.2]、token 2 [1, 1]、token 3 [0.68, 1.24]。
 
-**结果和只用 TP 时逐数相同。** 只用 TP 时，All-Reduce 让两张卡都拿到 [1, 7]、[7, 1]、[5, 5]、[17, 31]，再各自把 4 行归一化，得到的正是上面这 4 行。原因是 RMSNorm 每一行只用这一行自己的数，先把行分开算、再拼起来，和整张表一起算没有区别。一般地说，只要中间的函数逐行独立，「先归约并分片 → 逐行计算 → 收集」与「先完整归约 → 逐行计算」结果一致。
+**这个数学算例与只用 TP 得到相同结果。** 只用 TP 时，All-Reduce 让两张卡都拿到 [1, 7]、[7, 1]、[5, 5]、[17, 31]，再各自把 4 行归一化，得到的正是上面这 4 行。原因是 RMSNorm 每一行只用这一行自己的数，先把行分开算、再拼起来，和整张表一起算没有区别。一般地说，只要中间的函数逐行独立且采用相同参数，两种布局表示同一个数学运算；真实浮点实现还可能改变归约顺序、融合和量化路径，不能据此保证逐 bit 相同。
 
-两种做法的工作量：
+只用 TP 时，每卡归一化 4 行，两卡合计做 8 行，其中 4 行重复；加上 SP，每卡做 2 行，合计 4 行。这段归一化激活也从每卡 8 个数减到 4 个数。归一化的数学规则没有改变，改变的是各行结果的持有者。
+
+**每行 H 个数保持完整，才能在本卡独立完成 RMSNorm。** 如果把 [1, 7] 的两列拆到两张卡，各卡还得交换平方和等统计量，才能得到共同的均方根 5。本页的 SP 沿 token 行切，正是为了让这一段不需要这种跨卡归一化。
+
+同一行的残差和位置标识也必须跟着走：卡 0 拿到 token 0、1 的子层结果，就要和 token 0、1 的残差相加，不能误接到其他行。
+
+## 下一次矩阵乘为什么又要收齐输入？
+
+沿用 token 0 的归一化结果 [0.2, 1.4]，看它交给下一次列切投影后发生什么。设这次完整权重为两列：第一列 [1, 2] 在卡 0，第二列 [3, 1] 在卡 1。每张卡要为全部 4 个 token 计算自己负责的输出列。
+
+All-Gather 之前，token 0 的这一行只在卡 0，卡 1 缺少计算第二列的输入；token 2、3 则相反。收集后，两卡都有全部 4 行，但仍各自只持有自己的权重列：
 
 ```calc
-title: 同一个例子里两种做法各做了多少（数为示意）
-只用 TP·每卡 RMSNorm = 4 行
-只用 TP·两卡合计 = 4 + 4 = 8 行，其中 4 行是重复的
-TP + SP·每卡 RMSNorm = 2 行
-TP + SP·两卡合计 = 2 + 2 = 4 行，没有重复
-只用 TP·每卡存的这段激活 = 4 行 × 2 个数 = 8 个数
-TP + SP·每卡存的这段激活 = 2 行 × 2 个数 = 4 个数
+title: token 0 接入下一次列切投影（示意）
+卡 0 的输出第 0 列 = 0.2 × 1 + 1.4 × 2 = 3.0
+卡 1 的输出第 1 列 = 0.2 × 3 + 1.4 × 1 = 2.0
+两卡共同表示的输出行 = [3.0, 2.0]
+> 每卡得到的是自己负责的完整输出列；此处无需把两列相加，也不必马上拼在同一张卡
 ```
 
-**切的是行，不是列。** RMSNorm 要用一个 token 的全部 H 个数求均方根：token 0 的 1 和 7 必须在同一张卡上。所以 SP 沿 token 维切，每张卡拿到的是完整的行，H 维保持完整；如果改成按列切，卡 0 只有 1、卡 1 只有 7，谁都算不出均方根 5。
+**收齐行，是这套 TP 权重分工的要求。** 单独看线性投影或 MLP，它们也可以逐 token 计算，并不需要读取别的 token；但这里各卡只存部分权重，需要用全部输入行计算自己的输出通道。换一种权重布局，可以选择不同的通信方式，后文共享专家复制权重就是实例。
 
-**哪些步骤能放进这一段。** 「逐 token 独立」只适用于残差相加、RMSNorm 这类运算。attention 要读其他位置，不能只拿自己的几行算，所以进入 attention 的投影之前必须先 All-Gather。同一段里一起参与计算的其他张量，比如残差、位置信息，也必须按同样的 token 归属切：卡 0 手里是 token 0、1 的子层输出，就得配 token 0、1 的残差，否则会把不同 token 的数加到一起。
+真正需要跨位置数据的是 attention 的评分与加权汇合：Q 是当前查询，K 供查询匹配，V 是被加权取回的内容；某个查询要和允许访问的 K/V 一起计算。Megatron SP 在 TP 投影之前恢复行集合，不另外把这个 attention 区域按查询位置分给 SP 卡。跨位置的分布式 attention 由 [CP](context-parallel.md) 等机制处理。
 
-**放回一层里。** 一层 Transformer 有两个子层（attention 和 MLP），每个子层末尾都是一次行切矩阵乘。用了 SP 以后，原来「attention 输出投影后一次 All-Reduce、MLP 降维后一次 All-Reduce」变成：
+## 放回完整一层，哪里按行分工、哪里按通道分工？
 
-1. attention 的输出投影（行切）→ Reduce-Scatter → 本卡几行做残差相加和 MLP 入口的 RMSNorm → All-Gather → MLP 的升维投影（列切）；
-2. MLP 的降维投影（行切）→ Reduce-Scatter → 本卡几行做残差相加和下一层入口的 RMSNorm → All-Gather → 下一层 attention 的 q、k、v 投影（列切）。
+以常规的“attention 子层 + 稠密 MLP 子层”为例。attention 的一个头是一套独立的查询匹配与加权汇合，不同头可以分工；MLP 则在列切升维后，各卡对本卡通道应用非线性函数，再用行切降维得到部分和。沿同一个 token 追踪一层，布局按以下顺序转换：
+
+| 走到哪里 | 每张卡持有什么 | 下一步如何衔接 |
+|---|---|---|
+| 子层入口的残差、RMSNorm | 部分 token，完整 H 维 | All-Gather 收齐 token 行 |
+| attention 的 Q/K/V 投影，或 MLP 升维 | 全部 token，本卡权重对应的头/通道 | 本地 attention 或逐通道激活 |
+| attention 输出投影，或 MLP 降维 | 全部 token 的 H 维部分和 | Reduce-Scatter 相加，再分配完整行 |
+| 下一子层的残差、RMSNorm | 部分 token，完整 H 维 | 继续保持行分片，到下一次投影才收集 |
+
+因此标准前向每层有两处这样的边界：attention 输出之后接 MLP 入口，MLP 输出之后接下一层 attention 入口。对应两次 Reduce-Scatter、两次 All-Gather，替换原来的两次 All-Reduce。表里的“全部 token”指当前这组 TP 参与计算的行集合；与 CP 组合时，它可以只是全序列的一部分。
+
+```wiki-diagram
+file: sequence-parallel-layer
+```
+
+图中沿纵向走完一个子层，再回到下一子层相同的布局。token 的身份不变，权重分片也没有在卡间来回搬；变化的是激活的行/通道归属。MoE 的专家派发以及 GLM 的多路残差有各自的入口处理，见后文实现节。
 
 ## 省下了什么，又要付出什么？
 
-**通信量没有变。** SP 没有新增通信，只是把原来那次 All-Reduce 的两半分开放。还用上面的例子数一数：卡数 N = 2，每张卡的完整张量 M = 4 行 × 2 = 8 个数（公式里的 N、M 怎么数，见[集合通信页](collective-communication.md#通信量里的-n-和-m-到底数什么)）。
+**在形状、数据类型相同且不额外补齐时，标准前向的理想通信载荷相同。** 还用上面的例子数一数：卡数 N = 2，每张卡的完整张量 M = 4 行 × 2 = 8 个数（公式口径见[集合通信页](collective-communication.md#通信量里的-n-和-m-到底数什么)）。这里只比较一次 TP 边界的发送载荷，不包括训练的重计算、其他通信或实现额外的缓冲与协议开销。
 
 ```calc
 title: 两种做法每张卡发出多少个数（N = 2，M = 8 个数，数为示意）
@@ -150,39 +226,43 @@ All-Reduce（ring） = 2 × (N − 1) × M ÷ N = 2 × 1 × 8 ÷ 2 = 8 个数
 
 All-Gather 传的是归一化后的结果而不是原始的和，但形状一样、数据类型一样，所以字节数也一样。
 
-**省下的是这一段的激活和重复计算。** 换成真实模型常见的尺寸（示意）：H = 4096，每个数用 BF16（一种 16 位浮点格式，每个数 2 字节），一个 token 的一行就是 8 KiB。
+**省下的是分片区域的激活和重复计算。** 以 H = 4096、BF16（每个数 2 字节）为示意，一行是 4096 × 2 B = 8,192 B，即 8 KiB；4 行占 32 KiB，分到两卡后每卡 2 行、16 KiB。这是一个激活张量的账，实际峰值还取决于同时活跃的张量和缓冲。
 
-```calc
-title: H = 4096、BF16 时，逐 token 这一段每张卡存多少（示意）
-一个 token 一行 = 4096 × 2 B = 8,192 B = 8 KiB
-只用 TP·每卡存 4 行 = 4 × 8 KiB = 32 KiB
-TP + SP（2 张卡）·每卡存 2 行 = 2 × 8 KiB = 16 KiB
-```
-
-省下的只是这一段逐 token 区域里的激活和重复的逐行计算，不是整个模型的全部运行内存：权重、KV cache（为后续生成缓存的历史 token 的 key 和 value，见 [KV cache](kv-cache.md)）、attention 和 MLP 内部的中间结果都不受影响。推理只做前向，激活不必为反向传播一直保留，论文里那笔最大的训练显存收益在这里要打折扣。
+标准 Megatron SP 保留 TP 的权重分片和内部通道分工；[KV cache](kv-cache.md)保存供后续计算复用的历史结果或状态，普通 attention 保存 K/V，GLM 还涉及压缩表示和递推状态。这些状态不因这里的归一化行分片而自动缩小。整个模型显存也不会统一除以卡数。训练要为反向传播保存激活，论文主要研究这部分收益；推理只做前向，收益需要按实际请求和实现测量。Ascend 的共享专家等变体还会改变权重复制方式，不能直接套用标准区域的显存账。
 
 **要付出的代价有三样。**
 
-- **调用次数变多，耗时不一定相同。** 语义上 All-Reduce 等于 Reduce-Scatter 加 All-Gather，但拆开后是两次调用，各有启动和同步开销，通信库对两者的实现也不同，不能保证任何后端上两种做法的线上字节和执行耗时完全一样。批很小时，这点固定开销可能比省下的计算还多：vllm-ascend 对稠密模型只在一步的 token 数超过 1000 时才走 SP，源码注释说这是经验值，低于它时切换通信方式可能反而变慢。
+- **调用次数变多，耗时不一定相同。** 语义上 All-Reduce 等于 Reduce-Scatter 加 All-Gather，但拆开后是两次调用，各有启动和同步开销，通信库对两者的实现也不同，不能保证任何后端上两种做法的线上字节和执行耗时完全一样。批很小时，这点固定开销可能比省下的计算还多：本页固定 Ascend 镜像的稠密主模型 FlashComm1 路径要求一步 token 数超过 1000，源码注释说这是经验值，低于它时切换通信方式可能反而变慢。
 - **行数不整除要补齐。** Reduce-Scatter 要把 T 行平分给 N 张卡，T 不能被 N 整除时，先在末尾补几行空行（padding）再通信，All-Gather 之后再把补的行去掉。比如 T = 5、N = 2：补 1 行到 6 行，每卡 3 行，卡 1 的第 3 行是空行。Ascend 的自定义算子正是在 Reduce-Scatter 前补齐、All-Gather 后去掉补齐；有多个 DP（data parallel，数据并行：几组卡各自处理不同的请求，见[数据并行](data-parallel.md)）组时，还要把各组的行数对齐：取各组 token 数的最大值，向上补到 N 的倍数。补的空行、临时缓冲、图模式（把一步的算子预先录成图、之后直接重放）只按几档固定尺寸录制带来的额外补齐，都会吃掉一部分收益。
 - **评估要分开量。** 比较开不开 SP 时，局部激活占用、通信输入的精度和形状、线上实际流量、端到端耗时这四样要分别报，任何一样都代替不了其余几样。
 
+## SP、CP、Ulysses 是什么关系？
+
+Megatron SP 解决 TP 组内部分激活重复的问题；[context parallelism（CP，上下文并行）](context-parallel.md)则让长序列的不同位置由不同设备计算，并处理 attention 对远端位置的依赖。两者可以组合，使用的通信组和负责的维度要分别标清。
+
+举一个 4 卡组合布局的示意：卡 0、1 组成一个 TP2 组，负责前 4 个位置；卡 2、3 组成另一个 TP2 组，负责后 4 个位置。SP 在每个 TP 组内运行：归一化时每卡 2 行，组内 All-Gather 后每卡得到本组的 4 行，再算本卡通道。CP 通信组连接持有对应 TP 分片的卡，即卡 0 与 2、卡 1 与 3，在 attention 中交换远端位置的 K/V。这里 SP 的 All-Gather 没有收齐全序列的 8 行。
+
+DeepSpeed Ulysses 的命名也属于 sequence parallelism。一个 attention 头是一套独立的查询匹配与加权汇合；Ulysses 通过 All-to-All，在“部分位置、全部头”和“全部位置、部分头”两种布局间转换，从而完成分布式 attention。它与 Megatron SP 的通信位置和作用不同；具体的前后形状及其与 Ring 的组合，统一见 [CP 页的 Ulysses 一节](context-parallel.md#ulysses-怎样把位置分工换成头分工)。
+
 ## vllm-ascend 里的 SP 是怎样接进去的？
 
-vllm-ascend 把 SP 叫 FlashComm1，开关是 `enable_flashcomm1`，也可以用环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1`，默认关。打开以后，每一步前向开始时先判断这一步走不走 SP，再按上一节的流程改三处：
+以下按本页固定镜像 `db701c1f` 解释 FlashComm1。它是 Ascend 的一条 SP 路径，开关是 `enable_flashcomm1`，也可以用环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1`，该开关默认关；共享专家配置还可能间接开启它，见[怎么开](#怎么开)。每一步前向开始时先判断这一步走不走 SP，再为选中的投影路径改三处。细粒度 TP、FlashComm2、视觉编码器和模型专用路径另有分支，不能把下面的入口出口替换套到所有线性层。
 
-1. **这一步走不走。** MoE 模型（前馈层由多个专家网络组成的模型，见 [MoE](moe.md)）只要开关打开，每一步都走；稠密模型（没有专家、每层就是普通 MLP 的模型）只在这一步 token 数超过 1000 时才走；稠密的草稿模型（投机解码里负责先猜几个 token 的小模型）一律不走。决定走 SP 时，同时算好要补几行：补齐行数 = (N − T mod N) mod N。
-2. **行切投影的出口换成 Reduce-Scatter。** attention 的输出投影、MLP 的降维投影这些按行切的矩阵，不再做 All-Reduce，而是先补齐、再 Reduce-Scatter。非 MoE 模型且 TP 不超过 8 时，还能把矩阵乘和 Reduce-Scatter 融合成一个算子；其中 W8A8 量化（权重和激活都用 8 位整数存、算，见[量化](quantization.md)）的融合路径把输出显式设成 BF16。开关没开时，这里仍是一次 All-Reduce。
-3. **列切投影的入口先 All-Gather。** attention 的 q、k、v 投影和 MLP 的升维投影这些按列切的矩阵，在矩阵乘之前先 All-Gather 输入、去掉补齐行，拿到全部行再算。
 
-共享专家（MoE 里每个 token 都会经过的那个专家）另有安排：SP 打开后它**不再按 TP 切**，每张卡存一整份共享专家权重，只算本卡那几行 token，输出也不做 TP 的 All-Reduce。这是 SP 里少见的「权重反而变多」的地方；好处是共享专家直接在本卡已有的 token 行上算，不用先 All-Gather。
+固定镜像的 MoE 上下文除了检查 SP 开关，还要求本次 token 数不为空；进入这条分支时会关闭单独的矩阵乘加 Reduce-Scatter 融合标志。这是该 MoE 分支的组合条件，不能只凭全局开关推断所有层的通信融合。
+
+1. **这一步走不走。** MoE 模型（前馈层由多个专家网络组成的模型，见 [MoE](moe.md)）要求开关打开且本次 `num_tokens` 不是 `None`，没有 1000 token 门槛；稠密模型（没有专家、每层就是普通 MLP 的模型）还要求这一步 token 数超过 1000；稠密的草稿模型（投机解码里负责先猜几个 token 的小模型）不走这条路径。决定走 SP 时，同时算好要补几行：补齐行数 = (N − T mod N) mod N。
+2. **行切投影的出口换成 Reduce-Scatter。** 进入 `SequenceRowParallelOp` 且需要 TP 归约的 attention 输出、MLP 降维等投影，不再做 All-Reduce，而是补齐后 Reduce-Scatter。非 MoE 模型且 TP 不超过 8 时，未量化或所支持的静态 W8A8 方法还能把矩阵乘与归约融合；动态 W8A8 等其他方法仍分开执行。静态 W8A8 融合输出显式设成 BF16（量化精度见[量化页](quantization.md)）。本次 FlashComm1 未生效时，这个归约分支仍执行 All-Reduce。
+3. **列切投影的入口先 All-Gather。** 选入 `SequenceColumnParallelOp` 的投影在矩阵乘之前收集输入、去掉补齐行，拿到该 TP 组的全部行再算；视觉语言模型首层 attention 已持有完整嵌入输入时会跳过这次收集。
+
+共享专家（MoE 里每个 token 都会经过的那个专家）另有安排：固定版本的 `shared_expert_dp_enabled()` 在共享专家 DP、FlashComm1 或图改写 SP 任一开启时为真；匹配共享专家前缀的线性层便**不再按 TP 切**。在本页正常 FlashComm1 前向中，每张卡存一整份共享专家权重，只算本卡那几行 token，输出也不再为共享权重切片做 TP All-Reduce。这是这种实现里「权重反而变多」的地方；共享专家直接在本卡已有的 token 行上算，不用先 All-Gather。其他模型的共享分支和新版实现仍需分别核对。
 
 残差也跟着切：attention 输出只剩本卡几行时，残差先补到同样的总行数，再按卡号取出自己那一段，两者 token 对齐后才相加。
 
-**MoE 层怎么接。** 这要看 MoE 层用哪种方式在卡之间搬 token。EP（expert parallel，专家并行）把 MoE 的专家分到不同卡上，每个 token 要被送到持有它所选专家的卡（见[专家并行](expert-parallel.md)）；搬法主要有两种：MC2（昇腾把派发、专家计算前后的通信融合在一起的实现，按目的地直接发）和 AllGather（先把所有卡的输入收齐，再只算本卡的专家），A2 上怎么选见 [EP 页](expert-parallel.md#mc2-还是-allgather)。
+**MoE 层怎么接。** 这要看 MoE 层用哪种方式在卡之间搬 token。EP（expert parallel，专家并行）把 MoE 的专家分到不同卡上，每个 token 要被送到持有它所选专家的卡（见[专家并行](expert-parallel.md)）。本页普通 A2 路径主要比较 MC2（按目的专家派发并汇合结果）与 AllGather（先收齐输入，再只算本卡专家）；MC2 的派发、汇合算子不等于把专家矩阵乘也全部融合成一个算子。A2 上怎么选见 [EP 页](expert-parallel.md#mc2-还是-allgather)。
 
-- **走 AllGather 时**（比如 token 数超过 MC2 的容量）：SP 打开后，MoE 层入口改在 EP 组里 All-Gather 各卡的 token 行，路由分数（决定每个 token 去哪几个专家的打分）也一起收集；走 W8A8 量化时，先把激活动态量化成 INT8（8 位整数，每个数 1 字节），再连同每个 token 的量化尺度一起收集。
-- **走 MC2 时**：不开 SP 时，MC2 入口会先把完整的 token 行按 TP 卡数分给各卡、每卡只派发自己那份；SP 打开后各卡手里本来就只有自己那几行，这一步直接跳过，也不做 EP 收集，本卡的行直接派发出去。
+- **走 AllGather 时**（比如 token 数超过 MC2 的容量）：在本页 DP2、FlashComm1 生效且门控多流关闭的分支，MoE 入口在 EP 组收集 token 行和路由分数（决定每个 token 去哪几个专家的打分）；走 W8A8 时先把激活动态量化成 INT8，再连同逐 token 的量化尺度一起收集。没有 DP metadata 时辅助函数使用 TP 组；门控多流开启时则另有收集激活与路由结果的顺序。
+- **走 MC2 时**：在共享专家 DP 和替代归约均关闭的普通路径，入口把完整 token 行按 TP 卡数分给各卡，每卡只派发自己那份。本次 FlashComm1 生效后，调用者将 `replace_allreduce` 置真：各卡已经持有各自的行，跳过这次补齐和切分，也不在入口额外做 EP All-Gather。
 
 同样多的元素，INT8 载荷只有 BF16 的一半，但这只是这一次收集的激活载荷变小，推不出整个 MoE 层、整层或整个网络的通信量减半。
 
@@ -192,17 +272,17 @@ vllm-ascend 把 SP 叫 FlashComm1，开关是 `enable_flashcomm1`，也可以用
 
 部署是两台 Atlas 800 A2、每台 8 卡，TP8、DP2、EP16，W8A8 量化，完整前提见[部署前提](glm-5-3-flash-two-node.md#部署前提)。
 
-**没有开，三条路都关着。**
+**在固定双机基线、没有额外配置覆盖时，三条路都关闭。** 这个结论包含共享专家 DP、图改写 SP、FlashComm2 和细粒度 TP 均关闭的前提；它不表示只要启动命令没写 FlashComm1，所有部署就必然关闭 SP。
 
-- **FlashComm1**：官方启动命令没有传 `--additional-config`，环境变量也保持默认的 0，所以判断 SP 是否启用的函数返回假，每一步都不走 SP（[Ascend 配置页](ascend-config-system.md)有同样结论）。
+- **FlashComm1**：官方启动命令没有传 `--additional-config`，环境变量保持默认 0，并且没有共享专家 DP 在初始化或刷新时将 SP 打开，因而这条基线的 `enable_sp()` 返回假（配置优先级和缓存见 [Ascend 配置页](ascend-config-system.md)）。
 - **图编译改写**：上游这个版本把编译配置里 `enable_sp` 的默认值定为关，默认档位中「是稠密模型才开」的条件目前恒为假；启动命令也没有另外打开。
 - **上游 `use_sequence_parallel_moe`**：Ascend 在编译配置没开 `enable_sp` 时，把 all2all 后端（MoE 层在卡之间派发 token 所用的通信实现）改成不在名单里的一种，专门让这个属性为假；所以共享专家照常按 TP8 切（见 [TP 页](tensor-parallel.md#稠密-mlp-与共享专家每卡各留一段通道)）。
 
-所以本部署每个 TP 出口都走普通 All-Reduce：词嵌入入口一次（见[词嵌入](embedding.md)），每层 attention 输出投影后、稠密 MLP 降维后各一次，次数和字节见[集合通信页的 GLM 走读](collective-communication.md#从嵌入到逐层投影)。每张卡在这些位置拿到的都是完整的 [T, H]。
+因此本基线的词嵌入归约，以及需要归约的普通 TP attention 输出、稠密 MLP 降维，采用 All-Reduce：词嵌入入口一次（见[词嵌入](embedding.md)），attention 输出投影后各一次，稠密 MLP 层降维后各一次。MoE 派发、共享专家与末尾归约按各自路径计，完整次数和字节见[集合通信页的 GLM 走读](collective-communication.md#从嵌入到逐层投影)。这里所列普通 TP 归约后的每卡结果是完整的 [T, H]。
 
 **假如打开（变体，本部署没有用）。** 下面按源码规则推一遍会变什么，都没有实测过。
 
-GLM 是 MoE 模型，没有 1000 token 的门槛，每一步都走 SP。示例请求 R1 的一步只有 T = 4 个 token（见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)），TP8 要补齐：
+GLM 是 MoE 模型，没有 1000 token 门槛；在本次 token 数已提供、FlashComm1 生效的前向中，示例请求 R1 的一步只有 T = 4 个 token（见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)），TP8 要补齐：
 
 ```calc
 title: 假如 GLM 双机打开 SP，R1 一步 T = 4 怎样补齐（按源码规则推算，未实测）
@@ -215,7 +295,7 @@ title: 假如 GLM 双机打开 SP，R1 一步 T = 4 怎样补齐（按源码规�
 
 - 融合的「矩阵乘 + Reduce-Scatter」算子只给非 MoE 模型用，GLM 会先做完矩阵乘、再单独 Reduce-Scatter。
 - 共享专家从 TP8 的切片变成每卡一整份权重，只算本卡的 token 行（见上一节）；[TP 页的显存账](tensor-parallel.md#稠密-mlp-与共享专家每卡各留一段通道)里共享专家那一项要重算。
-- 词嵌入入口的归约在 v0.23、v0.26 上会改走补齐加 Reduce-Scatter（见[词嵌入](embedding.md)）。
+- 词嵌入入口的归约在 v0.23、v0.26 rc 的适用分支会改走补齐加 Reduce-Scatter（见[词嵌入](embedding.md)）。
 - MoE 入口：R1 这样的小批走 MC2（GLM 每卡 288 ÷ 16 = 18 个专家、EP16，见 [EP 页](expert-parallel.md#mc2-还是-allgather)），入口不做 EP 收集，本卡的 token 行直接派发；大批改走 AllGather 时，才在 EP 组里收集 INT8 激活和尺度。
 
 各页已经算好的通信账都要按新路径重算。
@@ -224,28 +304,28 @@ title: 假如 GLM 双机打开 SP，R1 一步 T = 4 怎样补齐（按源码规�
 
 ## 常见误解
 
-- **「SP 多了一次通信，所以更慢。」** 通信的数据量没有变：Reduce-Scatter 和 All-Gather 正好是原来那次 All-Reduce 的两半，[上面的例子](#省下了什么又要付出什么)两边都是每卡 8 个数。真正的差别在调用次数、补齐行和小批时的固定开销。
-- **「SP 把 attention 也按 token 切开了。」** 没有。attention 要读其他位置，进 q、k、v 投影之前已经 All-Gather 拼回全部行。SP 只管局部的逐 token 激活；把 attention 本身和历史状态按序列分到几张卡上，是[上下文并行](context-parallel.md)的事，两者切分的目的和通信都不同，不能混用。
+- **「SP 多了一次通信，所以一定更慢。」** [标准示例](#省下了什么又要付出什么)中两边都是每卡发送 8 个数，但调用次数、补齐、融合与重叠不同，实际耗时要测。载荷相等不等于性能相等。
+- **「SP 把 attention 也按查询位置分给各卡了。」** 本页的 Megatron SP 在 TP 投影前恢复组内行集合；CP 或 Ulysses 才另外组织跨位置 attention。SP 与 CP 可以组合，不能仅凭 SP 这个缩写判断布局。
 - **「SP 要另外一组卡。」** 不要。SP 用的就是 TP 那组卡和那个通信组，只是改变了行切之后那一段数据归谁。
-- **「既然逐 token 独立，那也能按 H 维切。」** 不能。RMSNorm 要用一个 token 的全部 H 个数求均方根，SP 只切行、不切列。
-- **「开了 SP，每张卡的显存就除以 N。」** 只有逐 token 那一段的激活变成 1/N，KV cache、attention 和 MLP 内部的中间结果都不变；权重大多不变，MoE 模型的共享专家反而从 1/N 的切片变成每卡一整份。
+- **「把 RMSNorm 的 H 维切开，也能完全本地计算。」** 分列后需要跨卡合并平方和等统计；按 token 行切且保留完整 H 维，才可以逐卡独立完成本页的 RMSNorm。
+- **「开了 SP，每张卡的显存就除以 N。」** 标准区域的激活按行减少，KV cache、权重和其他缓冲要另算；固定 Ascend 的共享专家还会从 TP 切片变成每卡一整份权重。
 - **「W8A8 下 SP 的通信量减半。」** 只有 MoE 走 AllGather 时，入口那次收集的激活载荷从 BF16 变成 INT8（走 MC2 时入口根本不做这次收集）；路由分数和逐 token 尺度照样要传，行投影出口的 Reduce-Scatter 输出仍是 BF16。
-- **「凡是叫 sequence parallelism 的都是这一页讲的东西。」** 不是。这个名字在别的工作里（比如 DeepSpeed-Ulysses）指连 attention 一起按序列切到几张卡上，更接近本站的[上下文并行](context-parallel.md)；本页的 SP 是 Megatron-LM 那种、配合 TP 只切逐 token 区段的做法。读文档和论文时先看它切的是哪一段。
-- **「GLM 双机开了 FlashComm1。」** 没有，三条路都关着，见[上一节](#放到-glm-双机这套部署开了-sp-吗)。
+- **「只有残差和归一化能逐 token 计算。」** 线性投影、MLP 也逐 token 独立；本页在投影入口收集行，是为了配合各卡已有的 TP 权重分片。跨位置依赖出现在 attention 的评分和加权汇合。
+- **「GLM 双机开了 FlashComm1。」** 本页固定基线的三条路关闭；额外配置可能改变它，见[上一节](#放到-glm-双机这套部署开了-sp-吗)。
 
 ## 对照源码
 
 ### 怎么开
 
-- **FlashComm1**：`--additional-config '{"enable_flashcomm1": true}'`，或环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1=1`。`enable_sp()` 先看 `additional_config` 里有没有这个键，没有再读 `ascend_config.enable_flashcomm1`，后者默认取环境变量；结果缓存在模块变量里，`additional_config` 带 `refresh` 时才重算。[C9]
-- **被动打开**：固定版本和 v0.23 上，`enable_shared_expert_dp=True` 且开了 EP、TP > 1 时，配置阶段会强制 `enable_sp()` 为真；[C11] v0.26 起不再强制。[C18]
+- **FlashComm1**：`--additional-config '{"enable_flashcomm1": true}'`，或环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1=1`。固定版本的 `enable_sp()` 首次初始化缓存或 `additional_config.refresh` 为真时才重新解析：先读 JSON 中的该键，否则读 Ascend 配置，读取配置触发 RuntimeError 时回退到环境变量。没有重算时直接返回缓存；只带一个值为假的 `refresh` 键不会刷新。[C9]
+- **被动打开**：固定版本和 v0.23 上，`enable_shared_expert_dp=True` 且开了 EP、TP > 1 时，配置阶段调用 `enable_sp(..., enable_shared_expert_dp=True)`；在其初始化或刷新分支中，原为假的 SP 会被置真。若已有假缓存且未刷新，该次调用不会重算，配置中的断言会失败。[C11] v0.26 rc 不再用这个兼容参数强制开启 SP。[C18]
 - **上游 `use_sequence_parallel_moe`**：不是开关，而是 vLLM 根据配置算出的属性，要求 all2all 后端在指定名单里、开了 EP、TP > 1、DP > 1；上游用它决定 MoE 层是否按序列并行处理，比如共享专家是否跳过 TP 切分。[C15] main 上 `enable_sp()` 直接等于它（见版本差异）。
 - **图编译改写**：它把「All-Reduce → 残差相加 + RMSNorm」整段换成「Reduce-Scatter → 残差相加 + RMSNorm → All-Gather」，只在不强制 eager（逐算子直接执行）的图模式下生效。`--compilation-config '{"pass_config": {"enable_sp": true}}'`，并且模型不能 `enforce_eager`，这时 `enable_sp_by_pass` 为真。[C14] Ascend 把 `sp_min_token_num` 的默认值设成 MoE 模型 1、稠密模型 1000，编译范围的起点低于它时不改写。[C13]
 - **和 PCP 一起开**：prefill 上下文并行（PCP）大于 1 且 SP 打开时，`max_num_batched_tokens` 会被上调到 TP × PCP 的倍数。
 
 ### 会报什么错
 
-固定版本里 FlashComm1 没有专门的 `raise`；能看到的是下面这些日志：
+开启路径不仅要看日志，还要看派生结果。例如上面的共享专家 DP 断言失败时会阻止配置完成；以下列出与本页路径直接相关的提示，不是完整错误清单：
 
 | 情况 | 日志 | 版本 |
 |---|---|---|
@@ -257,21 +337,27 @@ title: 假如 GLM 双机打开 SP，R1 一步 T = 4 怎样补齐（按源码规�
 ### 开销和什么时候别开
 
 - **小批**：稠密模型的 1000 token 门槛是经验值，低于它时两次调用和切换通信方式的开销可能超过收益；MoE 模型没有这道门槛，T 比 TP 小时大半是补齐行（见 GLM 一节的推算）。
-- **融合算子的条件**：矩阵乘和 Reduce-Scatter 的融合只在 TP ≤ 8 时可用（源码注释：底层融合算子还不支持 TP ≥ 16），MoE 模型一律不用融合。
+- **融合算子的条件**：固定版本这条 `SequenceRowParallelOp` 融合要求本次 FlashComm1 生效、TP ≤ 8、非 MoE 上下文，并匹配未量化或受支持的静态 W8A8 方法；其他方法走单独矩阵乘和 Reduce-Scatter。这个限制不覆盖新版 Kimi 的另一套融合实现。
 - **多个 DP 组**：各组要补到同一行数，组间 token 数差得越多，补的空行越多。
 - 判断收益时按[代价一节](#省下了什么又要付出什么)的四样分别量。
 
 ### 版本差异
 
-| 项 | v0.23 | v0.26 | main |
+rc2 Kimi O projection 新增有条件的 MM+ReduceScatter 融合，只改变合适纯 prefill 的实现，其他路径仍返回同样的 SP token 片；完整硬件、残差、LoRA 和 dtype 门槛见 [TP 版本对照](tensor-parallel.md#版本差异)，不是 GLM 的通用默认。
+
+FlashComm1 在固定 main 的消费逻辑已经有效；rc2 的变化是移除工厂中的弃用告警，不是重新恢复一项曾被忽略的开关。下面比较开关时，以最终消费者和实际派生结果为准。
+
+**v0.30.0rc2 仍实际读取 FlashComm1 开关，不能沿用旧 main 的弃用说法。** enable_sp 最终读取上游 use_sequence_parallel_moe，但 AscendConfig 会将 JSON 的 enable_flashcomm1 与环境变量 VLLM_ASCEND_ENABLE_FLASHCOMM1 的 1/true 取或；DSA-CP 也会自动开启 FlashComm。两者均未开时会改写 all2all_backend 以禁用 SP MoE，若配置本身不支持 SP MoE 还会告警关闭 DSA-CP。PCP>1 且 SP 生效时，最大批 token 数向上补齐到 TP×PCP 的倍数；这是一项容量对齐，不是额外的真实 token。
+
+| 项 | v0.23 | v0.26 rc | main |
 |---|---|---|---|
-| 开关 | `enable_flashcomm1` / 环境变量，默认关 | 同 v0.23 | 标为 deprecated，提示改用上游配置[C19] |
+| 开关 | `enable_flashcomm1` / 环境变量，默认关 | 同 v0.23 | 工厂仍报 deprecated，但 JSON / 环境变量及 DSA-CP 会影响最终 SP MoE 配置，不能按“已忽略”处理[C19] |
 | `enable_shared_expert_dp` 强制打开 SP | 会 | 不再强制 | 只看上游属性 |
 | `enable_sp()` 的含义 | FlashComm1 是否打开 | 同 v0.23 | 等于上游 `use_sequence_parallel_moe`[C20] |
 | 稠密模型 1000 token 门槛 | 有 | 有 | 前向上下文里已没有这项判断 |
 | 打开后的行切投影出口 | `SequenceRowParallelOp`：补齐后 Reduce-Scatter 或融合算子 | 同 v0.23 | 该类已移除；`maybe_pad_and_reduce` 只剩 EP 通信一种用途[C21] |
 | 打开后的词嵌入入口 | 补齐后 Reduce-Scatter | 同 v0.23 | 始终 All-Reduce，见[词嵌入](embedding.md) |
-| 打开后的稠密 MLP | 升维入口 All-Gather、降维出口 Reduce-Scatter | 同 v0.23 | 不按 TP 切、不做末尾 All-Reduce，见[残差、MLP 与归一化](mlp-residual-norm.md) |
+| 打开后的 GLM 稠密 MLP | 选入普通 SP 线性路径时，升维入口 All-Gather、降维出口 Reduce-Scatter | 同 v0.23 | GLM 构造传入 `is_sequence_parallel=True` 时复制权重、关闭末尾归约；其他模型另核，见[残差、MLP 与归一化](mlp-residual-norm.md) |
 
 ### 源码位置
 
@@ -282,12 +368,24 @@ title: 假如 GLM 双机打开 SP，R1 一步 T = 4 怎样补齐（按源码规�
 - **补齐、Reduce-Scatter、All-Gather、残差切分**：`ops/register_custom_ops.py` 的 `maybe_pad_and_reduce`、`maybe_all_gather_and_maybe_unpad`、`maybe_chunk_residual`。[C4]
 - **MoE 入口**：A2 上 `_select_a2_moe_comm_method` 决定走 MC2 还是 AllGather；只有 `PrepareAndFinalizeWithAllGather.prepare` 在 SP 下走 `_prepare_with_ep_group`，W8A8 时先 `npu_dynamic_quant` 再连同逐 token 尺度一起 All-Gather。[C8]
 - **GLM 的 mHC 分片**：`models/glm5_next.py` 的 `_make_attention_output` 与 decoder 层 `forward`，残差、post、comb 都经 `maybe_chunk_residual`。[C7]
-- **GLM 双机为什么三条路都关**：启动命令没有 `--additional-config`、环境变量取默认（见 02 底稿）；上游 `IS_DENSE = False` 使编译配置的 `enable_sp` 默认关；[C17] Ascend 在它为假时把 all2all 后端设成 `flashinfer_all2allv`，让 `use_sequence_parallel_moe` 为假。[C16] 三条合起来得出「本部署没开」。[D]
+- **GLM 双机关闭的依据和前提**：固定部署没有额外覆盖共享专家 DP、FlashComm1 和图编译参数；`IS_DENSE = False` 与优化档位的 SP 默认值共同支持图改写未开。[C17] Ascend 在自动 worker 分支中把 all2all 后端改成 `flashinfer_all2allv`，让 `use_sequence_parallel_moe` 为假。[C16] 这是本页基线推导，修改启动配置后须重新核对。[D]
 - **图编译改写**：`compilation/passes/sequence_parallelism.py` 的 `MiddleAllReduceRMSNormPattern` 等。
 
 正文里几条不是直接读源码得到的结论，出处如下：
 
-- SP 与 TP 搭配、按序列维切开以减少训练激活显存，出自 Korthikanti et al. 2022。[S1]
-- 「先归约并分片 → 逐行计算 → 收集」与只用 TP 的结果逐数相同，由 RMSNorm 逐行独立推得；[D] 通信量不变，由 All-Reduce = Reduce-Scatter + All-Gather 与 ring 通信量公式推得。[D]
-- 推理只做前向、激活不必留到反向传播，所以论文的训练显存收益在推理里要打折扣，是推断，没有在本系统上测过。[I]
+- Megatron SP 的范围、完整层布局和前向通信边界：Korthikanti et al. 2022 的 §4.2.2、图 5/6；论文表 4 也区分通信载荷与实测耗时。[S1]
+- Ulysses 的序列/头布局互换见其论文图 2；Megatron SP 与 CP 的范围及可组合关系见官方 CP 说明。[S26][S27]
+- 四行归一化、下一次投影、SP+CP 组合布局均为教学推导；γ=1、ε=0、两卡与小矩阵是示意条件。[D]
+- 相同形状/精度、无额外补齐的标准前向边界中，Reduce-Scatter 与 All-Gather 的理想发送量之和等于 ring All-Reduce；不据此推断实际时延相同。[D]
+- 普通推理不为反向传播保存训练激活，因此不能直接复用论文的训练显存节省比例；推理收益须单独测量，本页未作实测。[I]
 - GLM 双机打开 SP 的变体（R1 一步 T = 4 补到 8 行、每卡 1 行，MoE 入口小批走 MC2），按上面的源码规则推算，未实测。[D]
+
+上述辅助函数的回退条件见来源 4（db701c1f）的第 51–95 行：读取前向上下文触发 AssertionError 时，maybe_all_gather_and_maybe_unpad 原样返回输入，maybe_pad_and_reduce 则执行 TP All-Reduce；这里捕获的是这一种异常。上下文存在时，收集须 label 为真，并且同时满足以下之一：FlashComm1 已启用；或图编译 SP 改写已启用且用于 EP 通信。归约端在这两种路径都未启用，或视觉语言模型的草稿分支且不是 EP 通信时，也回退到 TP All-Reduce。
+
+两版 enable_sp 的接口差异见来源 18、20：2ed6cbba 仍接受 enable_shared_expert_dp 参数，但它只为兼容调用保留，不再改变 FlashComm1 设置；baa023ad 不再接受该参数，返回上游 use_sequence_parallel_moe。后一版本未传配置时会读取当前配置；该读取触发 AssertionError 后仍无配置，就返回 False，不能把这一分支套到前一版本，也不能据此推断其他异常都会被吞掉。
+
+- 来源 29、42、43：固定镜像及 v0.23 / v0.26 rc 的 MoE、稠密和草稿前向分支；来源 44 对照 main 的上下文设置。
+- 来源 36、37：上游默认优化档位、异步 TP 对 SP 的依赖，以及 TP / 阈值校验；不能只凭 `IS_DENSE` 常量判断任意显式配置。
+- 来源 38、39：main 的 GLM 稠密 MLP 构造及其 `is_sequence_parallel` 调用条件；来源 40、41 是 v0.23 的缓存、共享专家 DP 与 PCP 配置。
+- 来源 45：main 工厂的弃用告警原文；告警与来源 19、33 的实际消费需一起读。
+- 来源 46、47：MC2 的补齐切分门控与调用者传入的 `replace_allreduce`；来源 23、48 分别支持门控多流和独立共享分支的输出归约条件。

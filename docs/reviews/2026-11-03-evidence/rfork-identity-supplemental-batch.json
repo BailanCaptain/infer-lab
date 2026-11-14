@@ -1,0 +1,10 @@
+{
+  "diagrams": [
+    {"id":"rfork-identity","path":"wiki/diagrams/rfork-identity.yaml","reviewed":true,"verdict":"支持","review_scope":"YAML全文与两固定pin；非视觉验收","claim":"同TP2分片/角色配对，量化变化使指纹不同","read_ranges":["rfork@3284850b:vllm_ascend/model_loader/rfork/identity.py#L196-L287","rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L441-L463"],"evidence":"配置描述量化/dtype在第一次hash，rank/角色在第二次，图的F/G和TP0/1是明确示意。Planner同key候选由已读example192–213补足，未把key匹配当内容校验。","visual_review":false},
+    {"id":"rfork-identity-flow","path":"wiki/diagrams/rfork-identity-flow.yaml","reviewed":true,"verdict":"支持","review_scope":"YAML全文与三固定pin；非视觉验收","claim":"先身份再空模型再Planner；错误/404/正常租约三分支与回退发布区别","read_ranges":["rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L563-L577","rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L109","rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L610-L710"],"evidence":"身份错误时session未赋值不发布；获取失败/无seed走专用异常后默认加载再尝试发布。图表示普通首次加载，正文另保留清理失败中止条件。","visual_review":false}
+  ],
+  "additional_body_evidence": [
+    {"page_line":312,"refs":["vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/seed_protocol.py#L28-L59"],"claim":"旧社区明文key含PD/node/分片/草稿，无配置hash","verdict":"支持","evidence":"实际读旧函数，并实际比较2ed6cbba/db701c1f/baa023ad该文件与2c整文件完全相同；补丁归属历史由maintenance页另核。"},
+    {"page_line":137,"artifact":"docs/reviews/2026-11-03-evidence/rfork-identity-hash-example.json","claim":"简化SHA256例子的六个前12字符","verdict":"支持","evidence":"按正文给定sorted JSON与完整第一轮digest实际重算，六项均一致。"}
+  ]
+}

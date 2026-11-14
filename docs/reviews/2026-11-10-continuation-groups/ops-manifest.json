@@ -1,0 +1,292 @@
+{
+  "items": [
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 1,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2129-L2169",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 2,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 3,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 4,
+      "ref": "vllm@0fc695fc:vllm/model_executor/custom_op.py#L110-L207",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 5,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 6,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L409-L467",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 7,
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L19-L108",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 8,
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.cpp#L23-L71",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 9,
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 10,
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L167-L208",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 11,
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/add_rms_norm_bias_torch_adpt.h#L21-L50",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 12,
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L208-L222",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 13,
+      "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L373-L411",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 14,
+      "ref": "https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 15,
+      "ref": "https://arxiv.org/abs/1910.07467",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 16,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L126",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 17,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L220",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 18,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L88",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 19,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ops/layernorm.py#L63-L86",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 20,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/ops/layernorm.py#L64-L84",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 21,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L467",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 22,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L401-L459",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 23,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/utils.py#L521-L579",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 24,
+      "ref": "raw:sha256-aff81f9c6042e3957465a5c11de61e00df90aaeb7fb0374c9e78093ed5f01635.md#L1-L1057",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 25,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/ops/layernorm.py#L83-L103",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 26,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/utils.py#L544-L588",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "source_number": 27,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L94-L134",
+      "state": "baseline_remaining",
+      "page_sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "page_id": "ops-and-kernels",
+      "path": "wiki/concepts/ops-and-kernels.md",
+      "group": "03-hardware-parallel",
+      "source_number": 28,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L821",
+      "state": "baseline_remaining",
+      "page_sha256": "a71ea78feb748c4c7dec30fb308ef4ebfe7c93d2bcc102073719140bbd29a56a"
+    },
+    {
+      "page_id": "ops-and-kernels",
+      "path": "wiki/concepts/ops-and-kernels.md",
+      "group": "03-hardware-parallel",
+      "source_number": 33,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/utils.py#L819-L955",
+      "state": "baseline_remaining",
+      "page_sha256": "a71ea78feb748c4c7dec30fb308ef4ebfe7c93d2bcc102073719140bbd29a56a"
+    },
+    {
+      "page_id": "ops-and-kernels",
+      "path": "wiki/concepts/ops-and-kernels.md",
+      "group": "03-hardware-parallel",
+      "source_number": 41,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L38-L38",
+      "state": "baseline_remaining",
+      "page_sha256": "a71ea78feb748c4c7dec30fb308ef4ebfe7c93d2bcc102073719140bbd29a56a"
+    },
+    {
+      "page_id": "ops-and-kernels",
+      "path": "wiki/concepts/ops-and-kernels.md",
+      "group": "03-hardware-parallel",
+      "source_number": 42,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L199-L213",
+      "state": "baseline_remaining",
+      "page_sha256": "a71ea78feb748c4c7dec30fb308ef4ebfe7c93d2bcc102073719140bbd29a56a"
+    },
+    {
+      "page_id": "ops-and-kernels",
+      "path": "wiki/concepts/ops-and-kernels.md",
+      "group": "03-hardware-parallel",
+      "source_number": 43,
+      "ref": "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json#L126-L132",
+      "state": "baseline_remaining",
+      "page_sha256": "a71ea78feb748c4c7dec30fb308ef4ebfe7c93d2bcc102073719140bbd29a56a"
+    }
+  ]
+}

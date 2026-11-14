@@ -4,68 +4,172 @@ title: LoRA：低秩更新与多适配器推理
 type: feature
 summary: LoRA 不改基座权重，只在旁边挂两个小矩阵；本页从一个输出数怎么算讲到一台服务怎么同时挂多个适配器，最后核实本部署没有启用。
 aliases:
-- LoRA
-- LoRA 适配器
-- 低秩适配
-- Low-Rank Adaptation
-- Multi-LoRA
-- 多 LoRA
-- 多租户适配器
-- PunicaWrapperNPU
-- punica
-- bgmv
-- sgmv
-- LoRARequest
-- enable-lora
-- lora-modules
+  - LoRA
+  - LoRA 适配器
+  - 低秩适配
+  - Low-Rank Adaptation
+  - Multi-LoRA
+  - 多 LoRA
+  - 多租户适配器
+  - PunicaWrapperNPU
+  - punica
+  - bgmv
+  - sgmv
+  - LoRARequest
+  - enable-lora
+  - lora-modules
+  - LoRA resolver
+  - lora_filesystem_resolver
+  - lora_hf_hub_resolver
+  - VLLM_LORA_RESOLVER_CACHE_DIR
+  - VLLM_LORA_RESOLVER_HF_REPO_LIST
+  - default_mm_loras
+  - default-mm-loras
+  - enable-mixed-moe-lora-format
+  - is_3d_lora_weight
+  - enable-tower-connector-lora
+  - lora-target-modules
 chapters:
-- '17'
+  - '17'
 sources:
-- https://arxiv.org/abs/2106.09685
-- vllm@0fc695fc:vllm/lora/model_manager.py#L273-L308
-- vllm@0fc695fc:vllm/lora/punica_wrapper/utils.py#L15-L49
-- vllm@0fc695fc:vllm/lora/punica_wrapper/utils.py#L54-L115
-- vllm@0fc695fc:vllm/lora/layers/base_linear.py#L99-L145
-- vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L589-L602
-- vllm-ascend@db701c1f:vllm_ascend/platform.py#L861-L862
-- vllm-ascend@db701c1f:vllm_ascend/lora/punica_npu.py#L21-L104
-- vllm-ascend@db701c1f:vllm_ascend/lora/punica_npu.py#L324-L410
-- vllm-ascend@db701c1f:vllm_ascend/lora/utils.py#L74-L88
-- vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2945-L2964
-- vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/lora.md#L9-L30
-- vllm@0fc695fc:vllm/config/lora.py#L31-L46
-- vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/lora.md#L28-L30
-- vllm-ascend@2ed6cbba:vllm_ascend/lora/punica_npu.py#L26-L29
-- vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/lora.md#L30-L37
-- vllm-ascend@baa023ad:vllm_ascend/lora/punica_npu.py#L31-L34
-- vllm-ascend@2ed6cbba:vllm_ascend/lora/punica_npu.py#L52-L68
-- vllm-ascend@2ed6cbba:vllm_ascend/lora/punica_npu.py#L369-L413
-- vllm-ascend@baa023ad:vllm_ascend/lora/lora_ops.py#L460-L500
-- vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L293-L300
-- vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L329-L352
-- vllm-ascend@baa023ad:vllm_ascend/compilation/acl_graph.py#L361-L368
-- vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L487-L496
-- vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L396-L405
-- vllm-ascend@db701c1f:docs/source/user_guide/support_matrix/supported_features.md#L10-L14
-- vllm@0fc695fc:vllm/v1/worker/lora_model_runner_mixin.py#L52-L68
-- vllm@0fc695fc:vllm/forward_context.py#L45-L60
-- vllm@0fc695fc:vllm/lora/lora_weights.py#L28-L44
-- vllm@0fc695fc:vllm/lora/worker_manager.py#L285-L299
+  - 'https://arxiv.org/abs/2106.09685'
+  - 'vllm@0fc695fc:vllm/lora/model_manager.py#L273-L308'
+  - 'vllm@0fc695fc:vllm/lora/punica_wrapper/utils.py#L15-L49'
+  - 'vllm@0fc695fc:vllm/lora/punica_wrapper/utils.py#L54-L115'
+  - 'vllm@0fc695fc:vllm/lora/layers/base_linear.py#L99-L145'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L589-L602'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L861-L862'
+  - 'vllm-ascend@db701c1f:vllm_ascend/lora/punica_npu.py#L21-L322'
+  - 'vllm-ascend@db701c1f:vllm_ascend/lora/punica_npu.py#L324-L451'
+  - 'vllm-ascend@db701c1f:vllm_ascend/lora/utils.py#L74-L88'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2945-L2964'
+  - 'vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/lora.md#L9-L30'
+  - 'vllm@0fc695fc:vllm/config/lora.py#L31-L46'
+  - 'vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/lora.md#L28-L30'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/lora/punica_npu.py#L26-L29'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/lora.md#L30-L37'
+  - 'vllm-ascend@baa023ad:vllm_ascend/lora/punica_npu.py#L31-L34'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/lora/punica_npu.py#L52-L68'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/lora/punica_npu.py#L369-L413'
+  - 'vllm-ascend@baa023ad:vllm_ascend/lora/lora_ops.py#L460-L500'
+  - 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L293-L300'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L329-L352'
+  - 'vllm-ascend@baa023ad:vllm_ascend/compilation/acl_graph.py#L361-L368'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L487-L496'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L396-L405'
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/support_matrix/supported_features.md#L10-L14
+  - 'vllm@0fc695fc:vllm/v1/worker/lora_model_runner_mixin.py#L52-L68'
+  - 'vllm@0fc695fc:vllm/forward_context.py#L45-L60'
+  - 'vllm@0fc695fc:vllm/lora/lora_weights.py#L28-L44'
+  - 'vllm@0fc695fc:vllm/lora/worker_manager.py#L285-L299'
+  - >-
+    raw:sha256-b766298e830c764aeee09248e6d421bf5a868e3d2b98d9a44de6321ecc6d4954.md#L1-L778
+  - 'vllm@0fc695fc:vllm/lora/worker_manager.py#L258-L307'
+  - 'vllm@0fc695fc:vllm/config/lora.py#L26-L26'
+  - 'vllm@0fc695fc:vllm/config/lora.py#L108-L116'
+  - 'vllm-ascend@7d825229:vllm_ascend/lora/punica_npu.py#L23-L75'
+  - 'vllm-ascend@7d825229:vllm_ascend/lora/punica_npu.py#L210-L219'
+  - 'vllm-ascend@7d825229:vllm_ascend/lora/punica_npu.py#L596-L648'
+  - 'vllm-ascend@7d825229:docs/source/user_guide/feature_guide/lora.md#L15-L21'
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/lora.md#L15-L21
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/lora.md
+  - 'vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L115-L134'
+  - 'vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L287-L328'
+  - 'vllm-ascend@921ccc52:vllm_ascend/lora/lora_ops.py#L136-L453'
+  - 'vllm-ascend@921ccc52:vllm_ascend/lora/lora_ops.py#L460-L501'
+  - 'vllm@0fc695fc:vllm/lora/model_manager.py#L750-L779'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1306-L1322'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3788-L3798'
+  - 'vllm-ascend@db701c1f:csrc/torch_binding.cpp#L2733-L2747'
+  - "vllm@0fc695fc:vllm/plugins/lora_resolvers/filesystem_resolver.py#L1-L62"
+  - "vllm@0fc695fc:vllm/plugins/lora_resolvers/hf_hub_resolver.py#L1-L145"
+  - "vllm@0fc695fc:vllm/lora/resolver.py#L1-L88"
+  - "vllm@0fc695fc:vllm/entrypoints/openai/models/serving.py#L275-L337"
+  - "vllm@0fc695fc:vllm/entrypoints/openai/models/serving.py#L106-L111"
+  - "vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L211-L239"
+  - "vllm@0fc695fc:vllm/plugins/__init__.py#L28-L66"
+  - "vllm@0fc695fc:vllm/envs.py#L1041-L1076"
+  - "vllm@568afb3a:vllm/plugins/lora_resolvers/filesystem_resolver.py#L1-L62"
+  - "vllm@568afb3a:vllm/plugins/lora_resolvers/hf_hub_resolver.py#L1-L145"
+  - "vllm@568afb3a:vllm/lora/resolver.py#L1-L88"
+  - "vllm@568afb3a:vllm/entrypoints/openai/models/serving.py#L282-L344"
+  - "vllm@568afb3a:vllm/entrypoints/openai/models/serving.py#L113-L118"
+  - "vllm@568afb3a:vllm/entrypoints/serve/engine/serving.py#L40-L68"
+  - "vllm@568afb3a:vllm/plugins/__init__.py#L36-L74"
+  - "vllm@568afb3a:vllm/envs.py#L1103-L1146"
+  - "vllm@ced6857a:vllm/plugins/lora_resolvers/filesystem_resolver.py#L1-L62"
+  - "vllm@ced6857a:vllm/plugins/lora_resolvers/hf_hub_resolver.py#L1-L145"
+  - "vllm@ced6857a:vllm/lora/resolver.py#L1-L88"
+  - "vllm@ced6857a:vllm/entrypoints/openai/models/serving.py#L282-L344"
+  - "vllm@ced6857a:vllm/entrypoints/openai/models/serving.py#L113-L118"
+  - "vllm@ced6857a:vllm/entrypoints/serve/engine/serving.py#L40-L68"
+  - "vllm@ced6857a:vllm/plugins/__init__.py#L36-L74"
+  - "vllm@ced6857a:vllm/envs.py#L1146-L1178"
+  - "vllm@84030bbe:vllm/plugins/lora_resolvers/filesystem_resolver.py#L1-L62"
+  - "vllm@84030bbe:vllm/plugins/lora_resolvers/hf_hub_resolver.py#L1-L145"
+  - "vllm@84030bbe:vllm/lora/resolver.py#L1-L88"
+  - "vllm@84030bbe:vllm/entrypoints/openai/models/serving.py#L282-L344"
+  - "vllm@84030bbe:vllm/entrypoints/openai/models/serving.py#L113-L118"
+  - "vllm@84030bbe:vllm/entrypoints/serve/engine/serving.py#L40-L68"
+  - "vllm@84030bbe:vllm/plugins/__init__.py#L36-L74"
+  - "vllm@84030bbe:vllm/envs.py#L1170-L1207"
+  - "vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L467-L472"
+  - "vllm@568afb3a:vllm/entrypoints/serve/engine/serving.py#L70-L76"
+  - "vllm@0fc695fc:pyproject.toml#L46-L48"
+  - "vllm@0fc695fc:vllm/lora/lora_model.py#L205-L296"
+  - "vllm@0fc695fc:docs/design/lora_resolver_plugins.md#L1-L219"
+  - "vllm@0fc695fc:docs/features/lora.md#L1-L240"
+  - "vllm@0fc695fc:docs/features/lora.md#L234-L456"
+  - "vllm@0fc695fc:vllm/config/lora.py#L48-L79"
+  - "vllm@0fc695fc:vllm/entrypoints/offline_utils.py#L57-L107"
+  - "vllm@568afb3a:vllm/entrypoints/offline_utils.py#L57-L107"
+  - "vllm@ced6857a:vllm/entrypoints/offline_utils.py#L58-L108"
+  - "vllm@84030bbe:vllm/entrypoints/offline_utils.py#L58-L108"
+  - "vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L241-L308"
+  - "vllm@568afb3a:vllm/entrypoints/serve/engine/serving.py#L128-L197"
+  - "vllm@ced6857a:vllm/entrypoints/serve/engine/serving.py#L128-L197"
+  - "vllm@84030bbe:vllm/entrypoints/serve/engine/serving.py#L128-L197"
+  - "vllm@0fc695fc:vllm/entrypoints/serve/utils/api_utils.py#L291-L309"
+  - "vllm@0fc695fc:vllm/entrypoints/openai/models/serving.py#L142-L188"
+  - "vllm@0fc695fc:vllm/lora/model_manager.py#L111-L127"
+  - "vllm@0fc695fc:vllm/lora/model_manager.py#L776-L789"
+  - "vllm@0fc695fc:vllm/lora/model_manager.py#L912-L1003"
+  - "vllm@568afb3a:vllm/lora/model_manager.py#L938-L1029"
+  - "vllm@ced6857a:vllm/lora/model_manager.py#L969-L1060"
+  - "vllm@84030bbe:vllm/lora/model_manager.py#L969-L1060"
+  - "vllm@0fc695fc:vllm/lora/model_manager.py#L164-L268"
+  - "vllm@568afb3a:vllm/lora/model_manager.py#L179-L283"
+  - "vllm@ced6857a:vllm/lora/model_manager.py#L179-L297"
+  - "vllm@84030bbe:vllm/lora/model_manager.py#L179-L297"
+  - "vllm@0fc695fc:vllm/lora/utils.py#L260-L299"
+  - "vllm@0fc695fc:vllm/lora/model_manager.py#L672-L691"
+  - "vllm@ced6857a:vllm/lora/model_manager.py#L416-L502"
+  - "vllm@0fc695fc:vllm/entrypoints/offline_utils.py#L523-L550"
+  - "vllm@568afb3a:vllm/config/lora.py#L49-L86"
+  - "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/serving.py#L258-L267"
 verified: []
 evidence: C
 relations:
-- to: matmul-and-weights
-  kind: builds-on
-  note: 先理解线性层输入、权重与输出形状。
-- to: concurrent-requests
-  kind: builds-on
-  note: 不同适配器的请求可以共同组成执行批。
-- to: acl-graph
-  kind: builds-on
-  note: 适配器状态参与捕获图分派。
+  - to: matmul-and-weights
+    kind: builds-on
+    note: 先理解线性层输入、权重与输出形状。
+  - to: concurrent-requests
+    kind: builds-on
+    note: 不同适配器的请求可以共同组成执行批。
+  - to: acl-graph
+    kind: builds-on
+    note: 适配器状态参与捕获图分派。
 contradicts: []
-updated: '2026-09-29'
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-b766298e830c764aeee09248e6d421bf5a868e3d2b98d9a44de6321ecc6d4954.md
+  - >-
+    raw/sha256-fb2709d94e04020f3db8b15c0611f0eed1fe5b225a09db2ed84e1a2903a38e43.md
 ---
 
 ## LoRA 是什么：基座一个数不动，旁边挂两个小矩阵
@@ -77,7 +181,9 @@ LoRA（Low-Rank Adaptation，低秩适配）换了个办法：**基座权重 W �
 - 原来那一路：输入 x 乘基座 W，和没挂之前完全一样；
 - 新挂的那一路：x 先乘 A 压窄、再乘 B 抬回来，乘一个固定比例 s 之后加上去。
 
-三个名字先说清楚：中间那个窄维度叫**秩**（rank）r，常见取 8、16、32；一次微调在所有被挑中的层上留下的那一包 A、B，合起来叫一个**适配器**（adapter）；加回去时乘的那个固定系数叫**缩放**（scaling）s，它不是随手定的，而是 `s = α / r`，α 是训练时定的超参，跟着适配器一起存下来。一个适配器通常覆盖好几类层的多对 A、B，不是整个模型只有两个小矩阵。
+三个名字先说清楚：中间那个窄维度叫**秩**（rank）r，常见取 8、16、32；一次微调在所有被挑中的层上留下的那一包 A、B，合起来叫一个**适配器**（adapter）；加回去时乘的那个固定系数叫**缩放**（scaling）s。在材料所示的权重处理实现中，没有显式提供缩放时采用 `s = α / r`，这里的 r 是适配器的实际秩，α 是训练时定的超参，跟着适配器一起存下来；显式提供缩放时则采用给定值。一个适配器通常覆盖好几类层的多对 A、B，不是整个模型只有两个小矩阵。
+
+服务保留这条计算旁路，以便按请求选择适配器；使用适配器时，要多算“压窄、抬回”两次乘法，并为适配器权重和中间结果留出存储空间。
 
 ```wiki-diagram
 file: lora
@@ -85,7 +191,7 @@ file: lora
 
 ## 为什么需要它：换个任务不必再存一份模型
 
-设想同一个基座模型要服务客服、法务、代码三类任务。按全参数微调，每类任务都要另存一整份权重：今天的大模型一份就是几十 GiB，装下它得占住一整套卡，再来一个任务就是再来一整份、再起一套服务。
+设想同一个基座模型要服务客服、法务、代码三类任务。按全参数微调，每类任务都要另存一整份权重：今天的大模型一份就是几十 GiB。如果三份都要同时常驻设备，就得为三份完整权重准备容量；也可以复用设备、按任务切换加载，但要付出搬运整份权重的代价。
 
 LoRA 要另存的只有 A、B。一层上是 `r × (d_in + d_out)` 个数，而完整更新是 `d_in × d_out` 个。举个示意尺寸：一个 1024 进、1024 出的线性层有 104.9 万个数，秩 8 的一对 A、B 只有 `8 × (1024 + 1024) = 16384` 个，约 1.6%。层越宽、秩越小，这个比例越小。
 
@@ -118,22 +224,61 @@ LoRA 要另存的只有 A、B。一层上是 `r × (d_in + d_out)` 个数，而�
 
 多个适配器要在同一批里混着算，靠的是**槽号**。注册适配器时，每个适配器拿到一个全局唯一的编号；设备上另有一张槽位表，长度等于「一步里最多同时出现几个不同适配器」这个名额，适配器被启用时塞进表里第一个空位，**那个空位的下标才是槽号**。
 
-每步前向之前，引擎把「这一行属于哪个请求、那个请求挂哪个适配器」翻成一条和这批行数一样长的槽号表，**没挂适配器的行填 −1**。比如某批四行是 `[0, 1, 0, −1]`：四行都要算基座那一路，第 1、3 行再加槽 0 的更新，第 2 行加槽 1 的更新，第 4 行什么都不加。同一适配器也不用在批里连成一段出现——例子里槽 0 就隔着一行出现了两次。两路不是二选一的岔路，同一批里混着挂和不挂的请求也不用分支判断。多条请求怎么拼进一批见[并发请求](concurrent-requests.md)。
+每步前向之前，引擎把「这一行属于哪个请求、那个请求挂哪个适配器」翻成一条和这批行数一样长的槽号表，**没挂适配器的行填 −1**。比如某批四行是 `[0, 1, 0, −1]`：四行都要算基座那一路，第 1、3 行再加槽 0 的更新，第 2 行加槽 1 的更新，第 4 行什么都不加。同一适配器也不用在批里连成一段出现——例子里槽 0 就隔着一行出现了两次。两路不是二选一的岔路；算子依据槽号跳过无适配器的行，或用掩码把其更新量置零，因此挂与不挂的请求可以放在同一批。多条请求怎么拼进一批见[并发请求](concurrent-requests.md)。
 
 几件容易记反的事：
 
 - 设备显存是**按名额预付**的：建层的时候就按「名额 × 最大秩 × 这一层在本卡上的分片形状」把位置全开好，实际加载了几个适配器不影响这块占用；最大秩写大而适配器实际秩小，多出来的行留着零也照样占地。
-- 名额占满不报错：调度器发现这一步已排进的适配器数到了上限、新来的请求要的又不在其中，就把它放回去等下一轮，不堵在队首（这道闸在[调度器](vllm-scheduler.md)里）。
+- 正常调度时，超出名额的请求会等待：调度器发现这一步已排进的适配器数到了上限、新来的请求要的又不在其中，就把它放进本步跳过队列，不堵在队首（这道闸在[调度器](vllm-scheduler.md)里）。底层仍会检查实际传入的适配器数和可用槽位，超限可报错。
+
+所以名额为 1 时，多条请求仍可共用同一个适配器进入当前批次；是否实际入批，还要满足其他调度条件。
 - 默认值很保守：名额默认 1，最大秩默认 16。想同时服务多个适配器，必须显式调大。
-- 代码里备着两套入口：按段乘（把相邻且同槽的行合成一段）和按行乘。但 V1 引擎建这张槽号表时恒把它标成 [prefill](prefill.md)，注释写明就是要让非 CUDA 平台一直用按段那套，所以昇腾上**实际一律按段走**；decode 步里每条请求的那一两行，本身就各自成段。
+
+- 旧部署的普通线性层旁路使用按段乘：把相邻且同槽的行合成一段。上游 V1 映射恒标为 [prefill](prefill.md)，所以这条路径在 decode 时也按段选择；相邻请求用了同一个适配器，还会合成同一段。MoE 和 logits 有直接按行乘的独立入口，新版本还有单槽快路与 310P 图捕获例外，不能把普通线性层的选择推广到全部 LoRA 运算。
+
+## 请求只写适配器名，服务怎样找到权重？
+
+**LoRA resolver 是按请求中的名字查找适配器目录的组件。** 前端先认出基座名或已注册的适配器；遇到尚未注册的名字，开启运行时更新后，才让 resolver 去找候选目录。找到目录以后，还要由引擎真正加载并检查权重；成功注册后，这条请求才能继续使用它。这个入口位于 [API server 的请求检查](api-server-entry.md)，设备上的槽号和低秩乘法仍按前文运行。
+
+这适合适配器数量多、希望首次使用时再装入的场景。代价是第一条请求要等待查目录、读取文件或远端下载，再等待引擎加载；后续设备计算与缓存容量也照样消耗资源。启动时注册、手动动态装卸和按名字自动查找，是三种触发加载的方式，不是三套 LoRA 算法。
+
+```wiki-diagram
+file: lora-resolver-loading
+```
+
+用 task-lora 作为适配器名做示意：本地根目录是 /models/lora，请求选择 task-lora 时，文件 resolver 检查 /models/lora/task-lora/adapter_config.json。配置必须声明这是 LoRA，并且训练基座字段与服务实际加载的模型标识或路径完全一致。这里比较的是加载基座所用的值，不是另起的对外服务别名；即使两个名字指向同一套权重，字符串不同也过不了这项匹配。
+
+配置匹配只说明“这里有一个候选”。哪怕目录里尚无权重文件，resolver 也能交出候选地址，缺失或不兼容的权重要到引擎加载时才暴露。引擎加载成功才登记这个名字；请求随后走正常的适配器选择、调度和执行。
+
+同一前端对象会用按名字的锁合并并发查找：第二条同名请求等第一条完成，再复用已登记对象。锁属于该前端对象，多个 API 进程各有自己的锁与登记状态。已经登记的名字不会每次请求都重新查目录，因此修改磁盘文件不会自动把正在使用的适配器刷新成新版本；更新要走明确的装卸流程。
+
+远端 Hub resolver 先检查允许的仓库和包含适配器配置的子目录，再下载相应文件，最后复用同样的基座匹配规则。它会缓存查到的子目录清单，也没有在下载调用中传入适配器 revision：基座的固定版本不会自动变成适配器的固定版本。需要固定材料时，可先把选定版本准备为本地目录，再按本地方式加载。官方的自定义存储示例展示了扩展接口，不能把示例里的 S3 resolver 当作已内置的第三种插件。
+
+## 带图片或音频时，怎样自动选适配器？
+
+有些多模态模型要求：请求带某种媒体时，就使用配套的适配器。**默认多模态 LoRA 把“媒体种类 → 适配器路径”交给引擎，让它按请求内容选择。** 它解决的是选哪一份适配器；前面的槽位名额仍管一批里能同时使用几份，二者不是同一个限制。
+
+例如注册“音频 → A、图片 → B”（示意）：只带音频的请求可自动选 A；只带图片的可选 B；同一请求同时命中这两个默认项时，不会把 A、B 两套更新叠加，而是跳过默认选择。固定实现每个 prompt 只选一个适配器。若调用者已经显式指定了适配器，仍优先保留那一份；“跳过默认项”不等于清除显式选择。
+
+入口也影响怎样识别媒体。离线路径看预处理后真正留下的媒体占位类型；HTTP chat 路径按消息 content 的 type 匹配，所列四版取第一个下划线之前的部分。例如 audio_url 匹配 audio，而 input_audio 得到 input，不能仅因二者都携带音频就认定自动选择相同。HTTP 实际匹配的是已登记的适配器名，手动登记为 audio 或 image 的同名适配器也会参与这种匹配。媒体输入本身怎样处理，见 [API 的多模态入口](api-server-entry.md#一张图片进来怎样和文字一起交给模型)。
+
+选中适配器，也不意味着它覆盖视觉编码器或连接层。**给语言模型挂 LoRA，与给媒体编码器、连接层挂 LoRA，是不同的启用范围。** 媒体编码器处理的行数、连接层处理的行数和最终进入语言模型的媒体 token 数可能不同；旁路必须为每个部件准备正确的行数与槽号映射，否则会把更新加到错误位置。因此 tower / connector 路径还要求模型实现相应计数接口，并单独准备计算包装与容量；不能看到模型支持普通 LoRA 就推断视觉部分也支持。
+
+## MoE 适配器的二维、三维格式为什么要声明？
+
+这里的二维、三维说的是**专家权重怎样组织**，不表示适配器有几份，也不是 LoRA 的秩。逐专家形式给每个专家分别保存投影的 A、B；融合形式把专家及部分投影组织进合并的张量，加载时要按专家和投影拆装，才能接到运行时的槽位。
+
+固定上游提供混合格式模式，让同一个引擎接受两类 MoE 适配器，并用统一的运行包装处理；声明为融合格式的适配器会先经过转换。代价是增加加载期的整理步骤，仍要满足模型、专家分片、权重名称和形状的契约。它没有重新训练适配器，也不会替调用者确定文件究竟是哪一种布局。
+
+尤其要检查声明：混合模式信任调用者给出的二维/三维标志，不先自动验证 checkpoint 格式。**声明错了可能在加载时不报错，却把权重放进错误的缓冲，得到错误输出。** 没开混合模式时，运行包装由基座的 MoE 布局决定，适配器必须与之匹配；非 MoE 模型也不使用这个格式标志。具体开关见下方“怎么开”，这里的上游格式能力不改变后面 Ascend 的组合限制。
 
 ## 昇腾上是谁在算这一路
 
 上游 vLLM 把「按槽号取小矩阵乘回去」这一段做成了可替换的插件位，平台启动时交出一个类名。昇腾交出自己的实现：槽号表、段的起点、是不是 prefill 这些元数据全用上游算好的，自己只重写乘法入口。真正做乘法的是昇腾用 AscendC（昇腾的算子编程语言，见[算子与核函数](ops-and-kernels.md)）写的四个核函数——按段压、按段抬、按行压、按行抬各一个，注册成 torch 算子后由 Python 侧一层薄包装调起，源文件与注册入口见「对照源码 › 源码位置」。层替换表里也插了昇腾自己的 LoRA 层类，这样昇腾自建的线性层同样换得上。模型运行器在加载期挂上适配器，每步刷新「这一步谁在用哪个」。
 
-两处要留意。一是 MoE 模型：适配器索引还要和专家索引组合起来，对展开后的专家输入行算更新、再结合路由权重，比普通线性层多一层索引关系（token 怎么分派到专家见 [MoE](moe.md)）。二是有静默降级：310P 上，或者最大秩设到 128 及以上时，整批换成上游的纯 PyTorch 实现，日志里不会提醒。
+两处要留意。一是 MoE 模型：适配器索引还要和专家索引组合起来，对展开后的专家输入行算更新、再结合路由权重，比普通线性层多一层索引关系（token 怎么分派到专家见 [MoE](moe.md)）。二是旧部署在 310P 上，或者最大秩设到 128 及以上时，会把 SGMV/BGMV 函数绑定到上游的纯 PyTorch 实现；这个选择分支没有专门提示日志。新版单槽路径还会另选 matmul 或融合实现。
 
-图执行也被牵动：一批要用哪张捕获好的图，是按「这一批带不带 LoRA」和「这一步有几个活跃适配器」一起挑的——带 LoRA 的批和不带的不共用同一张图，活跃适配器数不同也可能分到不同的图（图模式见 [ACL Graph](acl-graph.md)）。昇腾文档说明开着图模式也能跑 LoRA，并建议开着以获得更好的性能；同时这个特性在支持矩阵上标的是 Experimental，不是 Functional。
+图执行也被牵动：批描述符记录「这一批带不带 LoRA」和「这一步有几个活跃适配器」，但捕获哪些组合由配置决定。旧上游在启用 LoRA 图专化时分别准备带与不带适配器的图；进一步启用活跃数量专化后，才把适配器数映射到捕获的数量档位。未启用数量专化时，各个非零数量共用同一个数量键；找不到匹配图时，允许 NONE 模式才回到普通执行，否则断言报错（图模式见 [ACL Graph](acl-graph.md)）。旧昇腾指南推荐图模式，同时对应支持矩阵将 LoRA 标为 Experimental。
 
 ## 本部署有没有开
 
@@ -141,58 +286,141 @@ LoRA 要另存的只有 A、B。一层上是 `r × (d_in + d_out)` 个数，而�
 
 就算要开，本部署也正好踩在版本边界上：钉住版本的昇腾文档写明，MoE 模型挂 LoRA 时 **expert parallel 和量化都还不支持**，而本部署恰好是 EP16 加 W8A8（见 [Expert Parallel](expert-parallel.md)、[量化](quantization.md)）。
 
-main 开发主线上这两格已经放开：W8A8 动态量化配 All-to-All 那一格标的是支持，本部署正落在这一格里。但代价藏在通信上——一旦同时开着 LoRA 和 expert parallel，MoE 的通信方式会在按硬件挑之前就被强制换成 All-to-All，因为 MC2 那条路是一个融合成整块的算子，低秩旁路插不进去。而本部署在 A2 上平时只在 MC2 和 AllGather 之间二选一，从不用 All-to-All，所以开 LoRA 会连带换掉 MoE 的通信形态，开销要重新测（各通信方式的差别见 [Expert Parallel](expert-parallel.md)）。
+固定 main 的矩阵已放开 W8A8 动态量化配 All-to-All，但这只说明组合条件，不能据此证明 GLM-5.3-Flash 或具体适配器支持 LoRA。该版本同时启用 LoRA 与 expert parallel、且 EP 组大于 1 时，会在按硬件挑选之前将 MoE 通信强制换成 All-to-All，因为 MC2 融合路径不能插入低秩旁路。EP 组只有 1 时仍先选 AllGather。本部署的 EP16 原本在 A2 上使用 MC2 或 AllGather；即使模型兼容也会改变通信形态，开销需重新测（见 [Expert Parallel](expert-parallel.md)）。
 
-先算一下这套部署上适配器能省多少：本模型隐藏宽度 4096，一个 4096×4096 的线性层有 1677 万个数，秩 16 的一对 A、B 只有 13.1 万个，是前者的 0.78%；而每张卡上的基座权重是 20.58 GiB（见[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)），换个任务不必再复制这 16 份。
-
-本页不给 GLM 双机上的 LoRA 时延、吞吐或显存结论。**待核**：缺本模型开 LoRA 之后的实测数据（尤其是通信被换成 All-to-All 之后的开销），也缺官方对这一模型的 LoRA 支持声明。上面那个 0.78% 是按层宽推的参数量比例，不是实测效果。
+先算一下这套部署上适配器能省多少：本模型隐藏宽度 4096，一个 4096×4096 的线性层有 1677 万个数，秩 16 的一对 A、B 只有 13.1 万个，是前者的 0.78%。作为基座体量的参照，3121f187 量化快照下每卡所列语言权重子账约 20.58 GiB；它还没计视觉塔、MTP 旋转矩阵等表外项，完整边界见[部署页的量化版本与视觉塔](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)。多个任务共享基座，是为了避免每个任务另复制一整套基座；这个子账和单层比例都不能直接推出实际适配器显存。
 
 ## 常见误解
 
 - **「MLA 里的 `kv_lora_rank` 就是 LoRA。」**——只是撞了名字。那是 [MLA](mla.md) 把 KV 压成低秩隐向量时的宽度，写死在模型结构里，和外挂适配器没有关系。
-- **「挂 8 个适配器就比挂 1 个多占 8 倍显存。」**——设备上那份按名额预付，加载几个都一样；随加载数量涨的是 CPU 侧那份缓存。
-- **「名额就是能注册的适配器总数。」**——名额管的是**一步里能同时出现几个不同适配器**；CPU 侧那个上限管的是同时缓存几份，满了就按最久没用的换出去，下次要用再从盘上加载，并不是能注册的总数。一步里超额的请求排队等下一轮，不报错。
-- **「秩减半，开销就减半。」**——减半的是参数字节和两次小矩阵乘的乘加；压和抬两趟算子一趟都少不了，这部分不随秩缩小；压出来的低秩中间结果还要占一块「行数 × 最大秩」的 float32 缓冲，宽度跟配置的最大秩走，适配器实际的秩再小它也不缩。
-- **「论文说 A、B 可以并回 W、推理零额外开销，那服务上就不该有额外算子。」**——并回 W 的前提是这台服务只认一个适配器。要同时服务多个适配器、还要混在同一批里，就不能并回去，于是才有本页这套槽号、预付显存和两趟额外算子。
+- **「挂 8 个适配器就比挂 1 个多占 8 倍显存。」**——配置容量不变时，设备上预分配的 A、B 槽位占用不随实际加载数改变；CPU 缓存则随加载数量增长，直到触及缓存上限。若把配置名额从 1 调到 8，预分配槽位本身也会增加。
+- **「名额就是能注册的适配器总数。」**——名额管的是**一步里能同时出现几个不同适配器**；CPU 侧那个上限管的是同时缓存几份，满了就按最久没用的换出去，下次要用再从盘上加载，并不是能注册的总数。正常调度会推迟超额请求，底层容量校验仍然存在。
+
+只有请求的适配器 ID 尚未缓存，或明确要求用新权重替换同 ID 的旧对象时，才进入加载分支：先加载新适配器，成功后移除同 ID 的旧对象，再检查容量，必要时淘汰最旧的缓存适配器，最后加入新对象。普通缓存命中则只更新最近使用记录并激活已有对象。加载分支中，新对象完成加载时旧对象尚未移除，因此缓存份数上限不能直接保证加载过程的主机内存峰值。
+- **「秩减半，开销就减半。」**——按适配器实际形状计算，参数数目和理想乘加量与秩成正比；旧版设备路径却按配置的最大秩分配 A、B 和「行数 × 最大秩」的 float32 中间缓冲。只降低适配器实际秩、保持配置不变，不会让这些分配减半。即使连配置也调小，压和抬的启动开销仍在，时延也不能按比例推算；完全分片和新版融合路径需分别看其形状与执行方式。
+- **「论文说 A、B 可以并回 W、推理零额外开销，那服务上就不该有额外算子。」**——同一组请求都使用同一个适配器时，可以先把它的更新合并到 W；按任务切换时也可以撤回旧更新、再合入新更新。限制在于：同一份已经合并的 W 不能同时代表混批中各请求不同的适配器。要共享一份基座又在同批选择不同适配器，本页实现就保留槽号和低秩旁路。
 
 ## 对照源码
 
 ### 怎么开
 
 - 总开关 `--enable-lora`；`--lora-modules` 在启动时注册适配器，一个 JSON 一个 [S12]。
-- 三个参数：`--max-loras`（一步里的名额，默认 1）、`--max-lora-rank`（最大秩，默认 16，取值限定在 1/8/16/32/64/128/256/320/512）、`--max-cpu-loras`（CPU 侧缓存份数，不写就等于名额）[C13]。
+- 三个参数：`--max-loras`（一步里的名额，默认 1）、`--max-lora-rank`（最大秩，默认 16，取值限定在 1/8/16/32/64/128/256/320/512）、`--max-cpu-loras`（CPU 侧缓存份数，不写就等于名额）；字段声明见来源 13，最大秩的允许集合见来源 33，CPU 缓存份数的默认归一化见来源 34。[C13]
 - 本部署没开这个开关：双机教程的启动命令与[部署前提](glm-5-3-flash-two-node.md#部署前提)里都没有 LoRA 相关项。
+
+**注册名决定请求选谁。** 2026-11-02 官方指南用 name 注册适配器，path 指向包含 adapter_config.json 和权重的 PEFT 目录，base_model_name 填写要展示的基座关系。下面是合入兼容部署的启动片段，假设适配器秩为 8：
+
+```bash
+--enable-lora --max-loras 1 --max-lora-rank 8 \
+--lora-modules '{"name":"task-lora","path":"/models/task-lora","base_model_name":"Qwen/Qwen3.5-27B"}'
+```
+
+请求同一个 /v1/chat/completions 接口时，model 填 task-lora 选择这份适配器；填服务的基座名称且没有命中默认多模态适配器时，才只用基座。base_model_name 不是客户端选名，基座名称以 served-model-name 或服务实际公布的名称为准。例如请求体可写：
+
+```json
+{"model":"task-lora","messages":[{"role":"user","content":"用一句话解释 LoRA。"}],"max_tokens":64,"temperature":0}
+```
+
+`/v1/models` 返回的适配器卡中，id 是注册名，root 是适配器路径，parent 是已记录的基座名；未记录时回退到服务的第一个基座名。固定前端只在提供的 base_model_name 属于本服务基座列表时记录它。因此 parent 表达服务展示的关系，不是训练来源证明，也不能替代权重兼容检查。
+
+默认多模态适配器用 `--default-mm-loras '{"audio":"/models/audio-adapter"}'`，Python 对应 `default_mm_loras={"audio": "/models/audio-adapter"}`；默认未设置，仍需 enable-lora 与足够的最大秩。服务器将默认项按模态名注册进静态适配器列表；离线自动分配的 ID 按已配置模态名排序，从 1 开始，混用显式 LoRARequest 时要留意 ID。固定指南给出的入口是 generate 与 chat completions；本页示例按这两条入口解释，不据此保证其他任务或模型适用。
+
+混用 MoE 格式的开关是 `--enable-mixed-moe-lora-format`，默认 false；启用后，启动 lora-modules 的 JSON 或动态装载 JSON 用 `is_3d_lora_weight` 声明每份适配器：逐专家格式为 false，融合格式为 true。未开启混合模式、或模型不是 MoE 时，该字段不决定包装选择。不能把改一个布尔值当成文件格式转换。
+
+若适配器要覆盖媒体编码器和连接层，还需 `--enable-tower-connector-lora`，默认 false；模型声明、计数接口与实际后端必须支持。只想选择部分投影可用 `--lora-target-modules o_proj`，对应配置 target_modules，默认 None；匹配还会考虑模型的融合父子模块映射，因此配置名与运行时模块名未必逐字相同。该选项改变部署时应用的范围，既不生成缺失的适配器权重，也不保证任意层都能替换成功。
+
+需运行中装卸时，官方指南将生产使用限定在隔离且完全可信的环境；启动前设置 VLLM_ALLOW_RUNTIME_LORA_UPDATING=True，并保留 enable-lora。向 /v1/load_lora_adapter POST 包含 lora_name、lora_path 的 JSON；卸载向 /v1/unload_lora_adapter POST lora_name。检查装卸响应后，再用该名字发请求核对；卸载适配器不卸载基座。MoE 的融合三维权重还须匹配 is_3d_lora_weight 与实际文件布局，不能只改名字复用不兼容权重。
+
+**按名字自动查找还要启用 resolver。** 保留上述 LoRA 总开关和运行时更新开关；本地方式将 `VLLM_LORA_RESOLVER_CACHE_DIR=/models/lora` 设为已存在的目录，并把真实适配器放到 /models/lora/task-lora。请求仍用 model=task-lora，不必先为它写启动时的 lora-modules。前提是保留模型名校验；若关闭校验，使任意名字提前被视作基座支持，就不会走这个未知名查找入口。
+
+| 配置 | 默认与实际作用 |
+|---|---|
+| VLLM_ALLOW_RUNTIME_LORA_UPDATING | 默认 false；去首尾空白并转小写后，1 或 true 开启运行时更新 |
+| VLLM_LORA_RESOLVER_CACHE_DIR | 默认未设置；设置有效目录后，文件插件才登记 resolver |
+| VLLM_LORA_RESOLVER_HF_REPO_LIST | 默认未设置；Hub 允许仓库列表，如 org/adapters，逗号分隔；请求名可用 org/adapters/task-lora |
+| VLLM_PLUGINS | 未设置时通用加载器发现全部插件；显式设置时只保留列出的入口名，不重新排列执行顺序 |
+
+Hub 方式有额外门槛：除非仓库列表非空，且 VLLM_PLUGINS 显式包含 **lora_hf_hub_resolver**，它不会登记。文件插件入口名是 lora_filesystem_resolver；如果原来使用插件白名单，也要保留它。逗号列表不自动去每项空白，避免在逗号后加空格；空字符串也不等于“未设置”。白名单影响平台和通用插件，昇腾部署应保留既有平台入口，不能用只含 resolver 的值覆盖整个配置。
+
+基座匹配读取 adapter_config.json 中的 peft_type=LORA 与 base_model_name_or_path，后者对照 ModelConfig.model。它与手动注册里提供的 base_model_name、HTTP 对外别名不是同一个校验入口。未使用 Tensorizer 时，旧基线加载器优先读 adapter_model.safetensors，再尝试 adapter_model.bin 或 adapter_model.pt；官方示例里的 bin 不是唯一文件格式。文件存在、基座字符串匹配和秩/模块/设备兼容分别核对。
 
 ### 会报什么错
 
-- 这条路的特点是该挡的地方不报错：名额占满时，要新适配器的请求被移出等待队首、放进本步的跳过队列，下一轮再排 [C6]。
-- 310P 上或最大秩 ≥ 128 时，整批换成上游纯 PyTorch 实现，日志不提醒 [C8]。
-- `--max-cpu-loras` 写得比 `--max-loras` 小，启动时直接报错 [C13]。
+多模态默认项命中不唯一时，固定离线路径发出警告并保留显式适配器；没有显式项就不应用默认适配器。HTTP 默认选择则直接返回无默认项。混合 MoE 格式声明错误并不保证加载失败，必须先核实文件布局，再核对模型输出。旧 tower 路径在模型缺少所需接口时会提示并忽略该部分，连接层接口缺失也会单独提示；开关被解析不代表编码器已挂上 LoRA。
+
+自动查找要区分没有候选和候选加载失败：所有 resolver 都没有找到匹配项时返回 404；已经找到候选，但所有引擎加载尝试都失败时返回 400。引擎加载失败会继续尝试下一个已登记 resolver；resolver 自身读取配置或下载时抛出的异常位于这段加载捕获之外，不能一概期待自动换下一个。坏 JSON、配置缺少必需键要先修文件，基座不匹配则不会产生该候选。
+
+本地根目录不存在或不是目录，文件插件登记时会报 ValueError。成功找到配置也不表示权重已读入：缺少权重文件由实际加载层报错。先用基座请求确认服务可用，再用适配器名发请求并检查加载结果；不要用关闭模型名校验来绕过定位失败。
+
+- 正常调度发现新适配器会超过本步名额时，将请求放进跳过队列 [C6]。直接传给 worker 的适配器集合过多会抛出 `RuntimeError`（来源 32）；底层激活找不到空槽还会抛出 `No free lora slots`（来源 2）。
+- 旧部署在 310P 上或最大秩 ≥ 128 时，将 SGMV/BGMV 绑定到上游纯 PyTorch 函数，该分支没有提示日志 [C8]。
+- `--max-cpu-loras` 写得比 `--max-loras` 小，启动时直接报错；对应上方参数组的来源 34，在配置校验中抛出 `ValueError`。
 - 想确认哪个适配器进了哪个槽，看启用时打的 debug 日志，里面写了适配器编号与槽位下标 [C2]。
 - CPU 侧缓存满了也不报错：加载成功后发现超过容量，就按 LRU 换出最久没用的那一份 [C30]，下次再要它就重新从盘上加载。
 
 ### 开销和什么时候别开
 
+首次请求的查找、下载与加载时间都进入该请求的等待。多个 resolver 按实际登记顺序尝试，VLLM_PLUGINS 中的先后位置不构成优先级配置。Hub 子目录清单缓存在 resolver 对象内，新加远端子目录不会每次请求都重扫；已登记名字又有前端复用，两层状态要分开判断。若已有固定适配器集合且希望启动时暴露加载错误，启动注册更直接；本地目录的可见范围由文件系统与部署权限控制，缓存目录参数本身不提供路径隔离。
+
+内置 Hub resolver 明确声明不面向生产环境；正式部署可先将选定版本的适配器准备到受控本地目录，再使用固定集合注册或本地查找，避免把请求时自动远端下载当作生产部署配方。
+
 - 预付：建层时按「名额 × 最大秩」把 A、B 的位置全部开好，与实际加载数无关 [C5]；开启 `fully_sharded_loras` 时，列并行层上这一维还会按 TP 份数再切。
-- 每行多两趟算子（压、抬）。昇腾侧按段（SGMV）与按行（BGMV）两套入口都在 [C8]，但 V1 的 runner 建 `LoRAMapping` 时恒传 `is_prefill=True`，注释写明就是要让非 CUDA 平台一直用 SGMV [C27]，昇腾的 `NPUModelRunner` 继承这个 mixin 而未覆盖，所以 decode 步实际也走按段那套，BGMV 分支在 V1 上是死路径。
+- 旧版普通线性旁路分为压、抬两步，按段（SGMV）与按行（BGMV）入口都在；上游映射恒传 `is_prefill=True` [C27]，所以普通线性层的选择器在 decode 也走 SGMV。MoE 和 logits 直接调用 BGMV，不经过这个选择器，见来源 9；新版单槽路径另见版本表。
 - 不打算挂适配器就别开总开关：层被替换、槽位被预付，都是白花。
-- MoE 模型上，钉住版本里 EP 与量化这两个组合官方明说不支持，本部署两样都占；在放开了这两格的 main 上，开 LoRA 又会把 MoE 通信强制换成 All-to-All [C25]，而本部署在 A2 上平时只在 MC2 与 AllGather 之间二选一。
+- MoE 模型上，钉住版本里 EP 与量化这两个组合官方明说不支持，本部署两样都占；固定 main 开着 LoRA、EP 且 EP 组大于 1 时会强制 All-to-All [C25]，而本部署在 A2 上平时只在 MC2 与 AllGather 之间二选一。
 - 缩放系数在加载阶段就被乘进 B 并把 `scaling` 置 1 [C29]，所以运行时看不到单独的乘 s；`s = α / r` 的定义也在同一处。
-- 图执行按批描述符里的 `has_lora` 与 `num_active_loras` 分桶 [C28]，昇腾的 runner 每步据此填这两个字段 [C11]；该特性在支持矩阵上是 Experimental [S26]。
+- 图执行的两个描述符字段见来源 28，runner 传值见来源 11；真正的捕获组合和数量归一化分别见来源 41、42。旧版支持矩阵将特性标为 Experimental [S26]。
 
 ### 版本差异
+
+默认多模态选择、MoE 布局与目标层筛选按固定上游分别核对，不能用同一份用法文档代替实现对照：
+
+| 上游比较点 | 本节机制与变化 | 使用时的条件 |
+|---|---|---|
+| v0.23 / 0fc695fc | 默认项按模态选一个，显式项优先；混合格式默认关闭；tower 按编码器/连接层计数接口准备容量 | HTTP type 前缀匹配与离线占位类型匹配不同；格式标志由调用者保证正确 |
+| v0.26 / 568afb3a | 默认选择规则相同；公共 HTTP 入口迁移；MoE 转换改从包装对象取专家信息 | 新增的 shared-outer 专家布局开关是另一种权重契约，不等于混合格式开关 |
+| v0.30.0rc2 / ced6857a | 默认选择和所列 MoE 转换规则保持；tower 改看模型能力声明，并按模态取得编码器/连接层计数 | 显式目标层筛选与默认支持层筛选分开，最终仍须有可替换的层实现 |
+| main / 84030bbe | 本表所读选择、转换与 tower 消费者同 rc2 | 同文只覆盖这些消费者，不扩展为所有模型和设备支持相同 |
+
+四个固定点的 LoRA 用法母文相同，但 rc2 的 tower 能力与计数消费者已经变化。本站 GLM 双机未启用 LoRA，下面保留其原有硬件、EP、量化与图执行边界。
+
+自动查找链按固定上游 v0.23（0fc695fc）、v0.26（568afb3a）、rc2（ced6857a）与 main 比较点（84030bbe）核对。四版的两个内置 resolver 文件及注册表实现一致；它们说明前端如何找到并加载适配器，设备端是否支持具体模型仍按后面的 Ascend 条件判断。
+
+| Resolver 核对项 | v0.23 / GLM 基线上游 | v0.26 | rc2 | 固定 main |
+|---|---|---|---|---|
+| 未知名触发 | 运行时更新默认关闭；开启后，非基座且非已登记名字才查找 | 相同，公共入口迁到 serve/engine | 同 v0.26 | 同 v0.26 |
+| 本地匹配 | 配置类型与实际基座字符串匹配；找到候选后另调引擎加载 | 相同 | 相同 | 相同 |
+| Hub 登记与下载 | 仓库名单与显式插件名缺一不可；下载未传 revision | 相同 | 相同 | 相同 |
+| 并发与失败 | 单前端对象同名锁；加载成功才登记；引擎加载失败可试下一项 | 相同 | 相同 | 相同 |
+| 名字与清单复用 | 已登记名字直接复用；Hub 子目录清单缓存在 resolver 内 | 相同 | 相同 | 相同 |
+
+固定 main 是独立上游对照，未据此声明与 Ascend main 的精确配套关系。GLM 原教程没有启用 LoRA 或这套动态查找；前端规则相同不改变原配方的模型、EP 与量化限制。
+
+921ccc52 官方指南概括的单槽融合快路条件是：A2/A3、配置 max_loras=1、未完全分片、BF16、秩在 8/16/32/64 且本步不超过 128 个 token。代码还有进一步筛选：Triton 可用、处于图捕获上下文、输入/输出/A/B 都是连续的 BF16 张量；多个投影分片还要求已打包 A、B，且输出宽度与分片之和一致。Shrink 沿输入维分成 4 份计算，Expand 再归约部分和、应用掩码与缩放、乘 B 并加回基座输出。
+
+大输出宽度还有更严格的 token 门槛：输出宽度 ≥8192 时，秩 ≤16 最多 32 token，较大秩最多 64 token；输出宽度 ≥5120 且秩 ≥16 时也最多 64 token。这些条件不满足时，已经满足单槽与打包条件的请求退到 matmul；不满足单槽或打包条件才选一般 SGMV/BGMV 路径。图捕获会记录选中的计算，重放时执行已捕获的图。指南将最大秩选项限定为上述四档，而旧上游字段允许更大集合；旧字段能解析 128 不表示融合快路支持 128。这些新条件不适用于旧 GLM 镜像。
+
+rc2 wrapper 的兼容修复还包括：310P 图捕获时改走 BGMV；分类输出宽度小于 LoRA rank 时改用 matmul，非 fp16/bf16 输出先按权重 dtype 算 delta 再加回，以保留基础 fp32 logits。MoE 支持矩阵与固定 main 指南相同，仍须同时核对 EP、量化和 MC2 组合，不能只看单适配器快路条件。
+
+**v0.30.0rc2 保留按硬件与 rank 选择 LoRA 实现的条件。** LORA_CUSTOM_OPS 能力不满足或 max_lora_rank≥128 时走原生 torch 退路；单适配器快路仍要求 A2/A3、配置 max_loras=1 且未启用 fully_sharded_loras。这里检查的是配置容量，不是“当前批碰巧只有一个适配器”。EP、量化和 MC2 等组合还要同时满足 LoRA 指南条件，不能从 wrapper 存在推断所有模型都支持。
 
 | 项 | v0.23（含 GLM 代码的 db701c1f） | v0.26（2ed6cbba） | main（baa023ad） |
 |---|---|---|---|
 | MoE 挂 LoRA 时的 EP 与量化 | 都不支持 [S12] | 同 v0.23 [S14] | 非量化与 W8A8 动态量化 × AllGather 与 All-to-All 四格都标 Supported；其他量化方法、Fused MC2、动态 EPLB 仍不支持 [S16] |
 | 哪些卡退回 PyTorch 实现 | 写死判 310P，或最大秩 ≥ 128 [C8] | 同 v0.23 [C15] | 改成查硬件画像上的能力位，不再写死卡型 [C17] |
-| MoE + EP 时挑哪种通信 | 没有 LoRA 特判，照硬件挑 | 在按硬件挑之前插一条：开着 LoRA 又开 EP 就强制 All-to-All，理由写在注释里——MC2 / FusedMC2 是单个融合算子，低秩旁路补不进去 [C24] | 同 v0.26 [C25] |
+| MoE + EP 时挑哪种通信 | 没有 LoRA 特判，照硬件挑 | EP 组大于 1 时，开着 LoRA 又开 EP 就在硬件选择之前强制 All-to-All；EP 组为 1 先走 AllGather。注释解释 MC2 / FusedMC2 融合路径不能插入低秩旁路 [C24] | 同 v0.26 |
 | 只挂一个适配器时怎么算 | 没有快路，照走按段 / 按行那套 | A2、A3 上且名额为 1、又没开 `fully_sharded_loras` 时切成普通 matmul 加一条掩码 [C18][C19] | 条件同 v0.26，实现抽成一个自定义算子，并先试 Triton 版本 [C20] |
 | ACL Graph 的参数表 | 一份 `GraphParams` [C21] | 按 `has_lora` 拆成两份；只在 FULL 图模式下才按批描述符选带 LoRA 的那份，其他图模式一律取不带的 [C22] | 又并回一份，文件里不再出现 LoRA [C23] |
 
-表里对本部署最要紧的是「MoE 挂 LoRA 时的 EP 与量化」「MoE + EP 时挑哪种通信」这两行：只要开着 EP，v0.26 与 main 上一开 LoRA，MoE 通信就不再是本部署平时的 MC2 / AllGather。「只挂一个适配器时怎么算」一行说明这个最常见用法在新版本上走的是另一条更短的路。v0.23 维护分支 2c59ff10 上也有 `vllm_ascend/lora/`，但那条分支不含 GLM 代码，本页 v0.23 一列一律读 db701c1f；`max_loras == 1` 的快路与按 `has_lora` 拆参数表这两件事，在 2c59ff10 与 db701c1f 上都搜不到。
+表里对本部署最要紧的是「MoE 挂 LoRA 时的 EP 与量化」「MoE + EP 时挑哪种通信」这两行：本部署 EP16 满足组大于 1，v0.26 与 main 上一开 LoRA，MoE 通信就改为 All-to-All。「只挂一个适配器时怎么算」一行说明新版本会按条件选择不同执行路径。v0.23 维护分支 2c59ff10 上也有 `vllm_ascend/lora/`，但那条分支不含 GLM 代码，本页 v0.23 一列一律读 db701c1f；两份固定旧代码的 wrapper 与图参数文件都没有上述单槽快路和按 `has_lora` 拆参数表。
+
+表中的单适配器快路按配置选择：名额必须设为 1，当前批次恰好只用一个适配器不算满足这个条件。其余硬件和配置条件仍按表中所列；完全分片 LoRA 是进一步把适配器计算及权重分片到多个设备的执行方式。
 
 ### 源码位置
+
+默认多模态、格式声明、lineage 与目标模块的官方用法见来源 87，配置默认见 88。离线选择四版依次为 89–92；HTTP 匹配与显式优先四版为 93–96；默认项注册见 97，模型卡展示与记录基座名的条件见 98。混合模式选择与转换入口见 99–100，四版转换函数为 101–104。tower / connector 四版消费者为 105–108；目标模块及融合父子名匹配见 109–111。共享离线入队入口也调用默认选择（112），因此指南所列接口不等于所有内部调用者的枚举；shared-outer 新字段见 113，chat 显式开启默认选择见 114。这里只核对机制与固定版本，没有执行适配器训练、真实媒体模型或设备推理。
+
+自动查找的旧基线文件/Hub/注册表、真正加载与未知名入口见来源 49–54；插件过滤和环境默认见 55–56。v0.26、rc2、固定 main 的同组消费者依次见 57–64、65–72、73–80。关闭模型名校验的提前返回见 81–82；真实插件入口名见 83，旧基线权重格式和缺文件错误见 84；官方完整 resolver 设计与 LoRA 用法见 85–86。前端查找与加载机制按这些固定版本说明，设备支持与性能仍按对应模型和平台确认。
 
 | 看什么 | 在哪 |
 |---|---|
@@ -210,3 +438,7 @@ main 开发主线上这两格已经放开：W8A8 动态量化配 All-to-All 那�
 | 单适配器快路与图参数表 | `vllm_ascend/lora/punica_npu.py`、`lora/lora_ops.py`、`compilation/acl_graph.py` |
 | 官方 LoRA 特性文档与支持矩阵 | `docs/source/user_guide/feature_guide/lora.md`（三个版本各一份）、`support_matrix/supported_features.md` |
 | 方法本身 | LoRA 原论文 [S1] |
+
+缩放默认与乘入 B 见来源 29，模型管理器实际调用优化见来源 45；单批名额闸门见来源 6。缓存加载、淘汰与命中复用的完整外层条件见来源 32；加载时新旧对象可暂时共存，因此缓存份数不等于峰值内存保证。加载期和每步的 runner 挂钩分别见来源 47、46，四个原生算子注册见来源 48。v0.26 单槽快路条件见来源 18，进入前还要求 dtype 已解析。注册/请求选名与动态装卸见来源 40；新版融合实际门槛、split-K 与回退分别见来源 43、44。该指南的性能条件是概括，完整运行条件以这两个代码入口为准。GLM 模型兼容和设备性能仍缺对应官方声明与实测。
+
+本页不给 GLM 双机上的 LoRA 时延、吞吐或显存结论。**待核**：缺本模型开 LoRA 之后的实测数据（尤其是通信被换成 All-to-All 之后的开销），也缺官方对这一模型的 LoRA 支持声明。上面那个 0.78% 是按层宽推的参数量比例，不是实测效果。

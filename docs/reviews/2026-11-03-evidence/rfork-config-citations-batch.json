@@ -1,0 +1,23 @@
+{
+  "rfork-config": [
+    [1, "十一项设置的默认、JSON/环境优先级、别名和严格/宽松校验", "支持", "完整读 config.py 1–139；与正文表逐项比较：四项 JSON-only，超时接受可转浮点字符串，首个存在别名优先，非整数 port 先转0，bool随后拒绝。"],
+    [2, "身份串只作匹配；必填为空则会话建立失败并回退", "部分支持", "35–49只证明三项空值报错与对象创建；字符串用于key实际在 planner_client.py 35–62，默认加载和无会话不发布在 rfork_loader.py 563–710。本轮这两个文件全文已读，结论成立，原范围不能单独证明fallback和身份用途。"],
+    [3, "工作版 base+global_rank、越界动态端口、初次发布和心跳", "部分支持", "349–413支持公式、65535检查、服务启动和首次上报；绑定失败后的保留推理需415–425及loader83–109，已补读；main/draft同rank需loader441–490，已补读。"],
+    [4, "YuanRong所需API、随机数据端点及可选kNotFound", "支持", "207–233明确三项导入、get_ip/get_open_port、ascend设备初始化、kNotReady必需与getattr可选kNotFound。"],
+    [5, "混合设备的模型状态拒绝RFork", "部分支持", "289–295直接拒绝find_non_npu_state_tensors返回非空；只覆盖拒绝分支，正常加载fallback由已全文读的loader652–710补足。"],
+    [6, "三种动态EPLB开关的检测条件", "支持", "373–382检查parallel.enable_eplb，随后dynamic_eplb或expert_map_record_path真值；正文条件一致。"],
+    [7, "动态EPLB绕过RFork，直接使用默认加载器", "支持", "539–561设置bypass_reason并直接return get_model(fallback_load_config)，不建立RFork session；fallback配置174–178已补读。"],
+    [8, "示例Planner默认1223、两种TTL60、名额1、fifo/lru及环境设置", "支持", "39–75逐项默认及env读取成立；这是示例的Settings，不是生产Planner保证。租约到期回收行为另补读192–286，不能从Settings单独推导。"],
+    [9, "advertise未设时探测IP；心跳完成后再等待", "支持", "213–267 report_seed_once中seed_ip or get_ip；循环调用report后sleep/wait，间隔包含网络耗时。"],
+    [10, "注册接口检查、失败保留注销状态和finalize重试", "支持", "395–614实读；检查batch_register_memory_ex，记录attempted地址，kNotFound逐项确认，finalize只重试kNotReady。四参数注册构造在379–393补读，未把API可见当设备验收。"],
+    [11, "HTTP服务、本机健康地址、启动预算与失败清理", "支持", "127–377实读，socket实际地址与loopback替换，uvicorn无TLS配置；deadline与剩余预算，失败后独立stop预算。绑定函数105–124另补读。"],
+    [12, "RFork选择与额外配置入口、严格校验早于fallback", "支持", "414–419注册rfork加载器，__init__读取load_config.model_loader_extra_config；与已读load_model563–710比较，配置初始化先于内部try。"],
+    [13, "Requests超时不是总截止；页末又将此编号用于183–224参数说明", "部分支持", "原160–165明确connect/read inactivity非总时长；正文423所写参数表/重试说明实际183–228，本轮另读140–230确认，但不在此source范围。"],
+    [14, "Planner命令行及fifo/lru选项和环境默认", "支持", "542–582 argparse明确host/port/TTL/名额和alloc-policy choices；defaults=Settings.from_env，结合source8可复现。"],
+    [15, "历史固定源码摘录存档", "仅存档无对应主张", "raw全文1–933分三批实读，是来源1–14摘录拼接；与原代码阅读重合，没有独立新事实，不计为当前版本第二份证据。"],
+    [16, "rc2要求LEASE_TTL_SEC且使用renew_seed_lease；无TTL获取失败", "支持", "117–245读取必需TTL、float有限正值检查、异常返回None，renew_seed_once请求新端点；session129–188另补读，确认获取后启动续期。"],
+    [17, "rc2快速归还阶段后继续以至少60秒间隔重试", "部分支持", "261–364覆盖超过max_attempts后max(retry_interval,常量)且暂态不停止；常量60在42，不在原范围，本轮1–364已读。非暂态REJECTED仍停止，正文只说暂态失败，准确。"],
+    [18, "rc2端口base+2rank+角色槽及越界/占用回退", "部分支持", "527–554只有调用_resolve_seed_server_port及越界和fallback标志；公式在47–51，真正绑定回退在seed_server156–167，本轮均补读。仅EADDRINUSE回退，正文409宜把‘指定端口不能绑定’收紧为‘端口被占用’。"],
+    [19, "rc2 TransferEngine传0并用get_rpc_port获取真实数据端口", "支持", "224–269明确初始化endpoint host:0，检查get_rpc_port存在、调用结果范围并保存实际端点；这不是旧版get_open_port机制。"]
+  ]
+}

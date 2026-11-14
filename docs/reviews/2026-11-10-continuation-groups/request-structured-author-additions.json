@@ -1,0 +1,542 @@
+[
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 94,
+    "ref": "vllm@ced6857a:vllm/sampling_params.py#L88-L158"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 95,
+    "ref": "vllm@ced6857a:vllm/sampling_params.py#L1074-L1251"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 96,
+    "ref": "vllm@ced6857a:vllm/config/structured_outputs.py#L12-L74"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 97,
+    "ref": "vllm@ced6857a:vllm/entrypoints/generate/base/protocol.py#L91-L166"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 98,
+    "ref": "vllm@ced6857a:vllm/entrypoints/generate/base/protocol.py#L169-L238"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 99,
+    "ref": "vllm@84030bbe:vllm/entrypoints/generate/base/protocol.py#L169-L238"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 100,
+    "ref": "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/protocol.py#L665-L670"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 101,
+    "ref": "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/protocol.py#L766-L795"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 102,
+    "ref": "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/protocol.py#L870-L910"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 103,
+    "ref": "vllm@ced6857a:vllm/entrypoints/openai/completion/protocol.py#L427-L492"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 104,
+    "ref": "vllm@ced6857a:vllm/v1/structured_output/request.py#L76-L97"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 105,
+    "ref": "vllm@ced6857a:vllm/v1/structured_output/backend_xgrammar.py#L37-L137"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 106,
+    "ref": "vllm@ced6857a:vllm/v1/structured_output/backend_xgrammar.py#L329-L428"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 107,
+    "ref": "vllm@ced6857a:vllm/v1/structured_output/backend_guidance.py#L37-L139"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 108,
+    "ref": "vllm@ced6857a:vllm/v1/structured_output/backend_guidance.py#L228-L296"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 109,
+    "ref": "vllm@ced6857a:vllm/v1/structured_output/backend_outlines.py#L74-L101"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 110,
+    "ref": "vllm@ced6857a:vllm/v1/structured_output/backend_lm_format_enforcer.py#L102-L146"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 111,
+    "ref": "vllm@ced6857a:vllm/entrypoints/llm.py#L260-L279"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 112,
+    "ref": "vllm@ced6857a:vllm/envs.py#L1619-L1621"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 113,
+    "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L659-L663"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 114,
+    "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L1734-L1736"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 115,
+    "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L2585-L2592"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 116,
+    "ref": "vllm@ced6857a:vllm/v1/structured_output/__init__.py#L39-L218"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 117,
+    "ref": "vllm@ced6857a:vllm/v1/structured_output/__init__.py#L314-L374"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 118,
+    "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L2803-L2810"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 119,
+    "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L31"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 120,
+    "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_structured_output.py#L20-L163"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 121,
+    "ref": "vllm-ascend@7d825229:vllm_ascend/ops/triton/v2/apply_grammar_bitmask.py#L27-L127"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 122,
+    "ref": "vllm@0fc695fc:examples/features/structured_outputs/README.md#L1-L58"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 123,
+    "ref": "vllm@0fc695fc:examples/features/structured_outputs/structured_outputs_offline.py#L1-L113"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 124,
+    "ref": "vllm@0fc695fc:examples/features/structured_outputs/structured_outputs_client.py#L1-L268"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 125,
+    "ref": "vllm@0fc695fc:examples/features/structured_outputs/pyproject.toml#L1-L8"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 126,
+    "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/python/xgrammar/tokenizer_info.py#L220-L274"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 127,
+    "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/tokenizer_info.cc#L264-L303"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 128,
+    "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/tokenizer_info_impl.h#L73-L105"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 129,
+    "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/grammar_matcher.cc#L446-L464"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 130,
+    "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/grammar_matcher.cc#L609-L681"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 131,
+    "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/grammar_matcher.cc#L809-L961"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 132,
+    "ref": "https://github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/grammar_matcher.cc#L1035-L1090"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 133,
+    "ref": "vllm@568afb3a:vllm/v1/structured_output/backend_xgrammar.py#L119-L127"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 134,
+    "ref": "vllm@84030bbe:vllm/v1/structured_output/backend_xgrammar.py#L79-L130"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 135,
+    "ref": "vllm@0fc695fc:vllm/sampling_params.py#L590-L618"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 136,
+    "ref": "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/tokenizer_config.json"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 137,
+    "ref": "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/tokenizer.json"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 138,
+    "ref": "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/generation_config.json"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 139,
+    "ref": "vllm@0fc695fc:vllm/tool_parsers/__init__.py#L53-L60"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 140,
+    "ref": "vllm@0fc695fc:vllm/tool_parsers/glm47_moe_tool_parser.py#L1-L40"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 141,
+    "ref": "vllm@0fc695fc:vllm/tool_parsers/glm4_moe_tool_parser.py#L149-L178"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 142,
+    "ref": "vllm@0fc695fc:vllm/tool_parsers/abstract_tool_parser.py#L110-L173"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 143,
+    "ref": "vllm@0fc695fc:vllm/entrypoints/serve/render/serving.py#L578-L605"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 144,
+    "ref": "vllm@0fc695fc:vllm/envs.py#L1804-L1806"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 145,
+    "ref": "vllm@0fc695fc:vllm/entrypoints/openai/engine/protocol.py#L28-L57"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 146,
+    "ref": "vllm@0fc695fc:vllm/entrypoints/openai/engine/protocol.py#L241-L253"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 147,
+    "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm47_tool_call_parser.py#L1-L47"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 148,
+    "ref": "vllm@568afb3a:vllm/tool_parsers/__init__.py#L53-L60"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 149,
+    "ref": "vllm@568afb3a:vllm/tool_parsers/glm47_moe_tool_parser.py#L1-L11"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 150,
+    "ref": "vllm@568afb3a:vllm/envs.py#L1664-L1666"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 151,
+    "ref": "vllm@568afb3a:vllm/entrypoints/openai/engine/protocol.py#L289-L303"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 152,
+    "ref": "vllm@568afb3a:vllm/tool_parsers/abstract_tool_parser.py#L168-L185"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 153,
+    "ref": "vllm@568afb3a:vllm/parser/abstract_parser.py#L511-L558"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 154,
+    "ref": "vllm@568afb3a:vllm/tool_parsers/structural_tag_registry.py#L87-L136"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 155,
+    "ref": "vllm@ced6857a:vllm/tool_parsers/__init__.py#L61-L68"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 156,
+    "ref": "vllm@ced6857a:vllm/tool_parsers/glm47_moe_tool_parser.py#L1-L11"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 157,
+    "ref": "vllm@ced6857a:vllm/envs.py#L1751-L1753"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 158,
+    "ref": "vllm@ced6857a:vllm/entrypoints/generate/base/protocol.py#L246-L261"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 159,
+    "ref": "vllm@ced6857a:vllm/tool_parsers/abstract_tool_parser.py#L167-L184"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 160,
+    "ref": "vllm@ced6857a:vllm/parser/abstract_parser.py#L553-L600"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 161,
+    "ref": "vllm@ced6857a:vllm/tool_parsers/structural_tag_registry.py#L97-L154"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 162,
+    "ref": "vllm@84030bbe:vllm/tool_parsers/__init__.py#L61-L68"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 163,
+    "ref": "vllm@84030bbe:vllm/tool_parsers/glm47_moe_tool_parser.py#L1-L11"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 164,
+    "ref": "vllm@84030bbe:vllm/envs.py#L1780-L1782"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 165,
+    "ref": "vllm@84030bbe:vllm/entrypoints/generate/base/protocol.py#L246-L261"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 166,
+    "ref": "vllm@84030bbe:vllm/tool_parsers/abstract_tool_parser.py#L167-L184"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 167,
+    "ref": "vllm@84030bbe:vllm/parser/abstract_parser.py#L549-L596"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 168,
+    "ref": "vllm@84030bbe:vllm/tool_parsers/structural_tag_registry.py#L96-L153"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 169,
+    "ref": "vllm@ced6857a:vllm/parser/engine/adapters.py#L193-L198"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 170,
+    "ref": "vllm@ced6857a:vllm/renderers/online_renderer.py#L716-L746"
+  },
+  {
+    "page": "wiki\\concepts\\structured-output.md",
+    "source_number": 171,
+    "ref": "vllm@ced6857a:vllm/tool_parsers/abstract_tool_parser.py#L118-L149"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 322,
+    "ref": "vllm@0fc695fc:vllm/tool_parsers/abstract_tool_parser.py#L211-L366"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 323,
+    "ref": "vllm@0fc695fc:vllm/utils/import_utils.py#L85-L101"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 324,
+    "ref": "vllm@568afb3a:vllm/tool_parsers/abstract_tool_parser.py#L223-L378"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 325,
+    "ref": "vllm@568afb3a:vllm/utils/import_utils.py#L85-L101"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 326,
+    "ref": "vllm@ced6857a:vllm/tool_parsers/abstract_tool_parser.py#L222-L370"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 327,
+    "ref": "vllm@ced6857a:vllm/utils/import_utils.py#L106-L122"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 328,
+    "ref": "vllm@84030bbe:vllm/tool_parsers/abstract_tool_parser.py#L222-L370"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 329,
+    "ref": "vllm@84030bbe:vllm/utils/import_utils.py#L106-L122"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 330,
+    "ref": "vllm@ced6857a:vllm/utils/import_utils.py#L85-L103"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 331,
+    "ref": "vllm@84030bbe:vllm/utils/import_utils.py#L85-L103"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 332,
+    "ref": "vllm@0fc695fc:vllm/entrypoints/openai/cli_args.py#L108-L122"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 333,
+    "ref": "vllm@0fc695fc:vllm/entrypoints/openai/api_server.py#L499-L534"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 334,
+    "ref": "vllm@0fc695fc:vllm/entrypoints/openai/api_server.py#L668-L677"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 335,
+    "ref": "vllm@568afb3a:vllm/entrypoints/openai/api_server.py#L594-L628"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 336,
+    "ref": "vllm@568afb3a:vllm/entrypoints/openai/api_server.py#L762-L771"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 337,
+    "ref": "vllm@ced6857a:vllm/entrypoints/launchers/api_server/entry.py#L179-L188"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 338,
+    "ref": "vllm@ced6857a:vllm/entrypoints/launchers/launcher.py#L236-L269"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 339,
+    "ref": "vllm@84030bbe:vllm/entrypoints/launchers/api_server/entry.py#L179-L188"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 340,
+    "ref": "vllm@84030bbe:vllm/entrypoints/launchers/launcher.py#L236-L269"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 341,
+    "ref": "vllm@0fc695fc:docs/features/tool_calling.md#L1-L570"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 342,
+    "ref": "vllm@0fc695fc:examples/tool_chat_template_deepseekr1.jinja#L1-L92"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 343,
+    "ref": "vllm@0fc695fc:examples/tool_chat_template_deepseekv3.jinja#L1-L96"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 344,
+    "ref": "vllm@0fc695fc:examples/tool_chat_template_deepseekv31.jinja#L1-L91"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 345,
+    "ref": "vllm@0fc695fc:examples/tool_chat_template_functiongemma.jinja#L1-L54"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 346,
+    "ref": "vllm@0fc695fc:examples/tool_chat_template_llama3.1_json.jinja#L1-L120"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 347,
+    "ref": "vllm@0fc695fc:examples/tool_chat_template_llama3.2_json.jinja#L1-L133"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 348,
+    "ref": "vllm@0fc695fc:examples/tool_chat_template_llama3.2_pythonic.jinja#L1-L98"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 349,
+    "ref": "vllm@0fc695fc:examples/tool_chat_template_llama4_pythonic.jinja#L1-L111"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 350,
+    "ref": "vllm@0fc695fc:examples/tool_chat_template_mistral.jinja#L1-L86"
+  },
+  {
+    "page": "wiki\\concepts\\api-server-entry.md",
+    "source_number": 351,
+    "ref": "vllm@0fc695fc:examples/tool_chat_template_mistral_parallel.jinja#L1-L93"
+  }
+]

@@ -71,6 +71,14 @@
       "class": "WeightPrefetchConfig",
       "json_path": "additional_config[\"prefetch_ratio\"]",
       "pageId": "prefetch-ratio",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "WeightPrefetchConfig",
+      "json_path": "additional_config[\"weight_prefetch_config\"][\"prefetch_ratio\"]",
+      "pageId": "prefetch-ratio",
       "role": "definition"
     },
     {

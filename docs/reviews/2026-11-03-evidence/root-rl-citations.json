@@ -1,0 +1,582 @@
+{
+  "date": "2026-11-03",
+  "reviewer": "root",
+  "complete": true,
+  "completion_scope": "仅RL一页51项作者判断；独立复核待完成，不代表NPU/HTTP联调或全站验收",
+  "pages": [
+    {
+      "id": "vllm-ascend-for-rl",
+      "path": "wiki/concepts/vllm-ascend-for-rl.md",
+      "sha256": "000cc6256e8e2009fb5ab15f7df332a1f717f4409b55bedce0000009734d6a87",
+      "body_read": true,
+      "diagrams_read": [
+        "vllm-ascend-for-rl-cycle.yaml",
+        "vllm-ascend-for-rl-update.yaml"
+      ],
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L1-L60",
+          "claim": "官方RL角色、同卡/异卡用途已完整阅读；ipc名称与本版注册不符，按18/40–43修正。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L1-L60",
+            "官方RL角色、同卡/异卡用途已完整阅读；ipc名称与本版注册不符，按18/40–43修正。"
+          ],
+          "verdict": "部分支持",
+          "evidence": "官方RL角色、同卡/异卡用途已完整阅读；ipc名称与本版注册不符，按18/40–43修正。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L62-L197",
+          "claim": "完整读sleep、控制流程、pause和传输配置；ipc例子有过时名，生命周期要按实际trainer判断，不把示例当运行验收。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L62-L197",
+            "完整读sleep、控制流程、pause和传输配置；ipc例子有过时名，生命周期要按实际trainer判断，不把示例当运行验收。"
+          ],
+          "verdict": "部分支持",
+          "evidence": "完整读sleep、控制流程、pause和传输配置；ipc例子有过时名，生命周期要按实际trainer判断，不把示例当运行验收。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L199-L240",
+          "claim": "完整读概率与Router Replay；非流式、base64 NumPy形状、末token无路由及空值条件保留。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L199-L240",
+            "完整读概率与Router Replay；非流式、base64 NumPy形状、末token无路由及空值条件保留。"
+          ],
+          "verdict": "支持",
+          "evidence": "完整读概率与Router Replay；非流式、base64 NumPy形状、末token无路由及空值条件保留。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L242-L367",
+          "claim": "完整读token API、工具交互、DP路由及配置；编号端点再对照48，不外推所有模型。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L242-L367",
+            "完整读token API、工具交互、DP路由及配置；编号端点再对照48，不外推所有模型。"
+          ],
+          "verdict": "支持",
+          "evidence": "完整读token API、工具交互、DP路由及配置；编号端点再对照48，不外推所有模型。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L236-L299",
+          "claim": "完整读RL配置236–299；文档中的旧后端名称不能作为main执行命令依据。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L236-L299",
+            "完整读RL配置236–299；文档中的旧后端名称不能作为main执行命令依据。"
+          ],
+          "verdict": "部分支持",
+          "evidence": "完整读RL配置236–299；文档中的旧后端名称不能作为main执行命令依据。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L248-L341",
+          "claim": "GLM教程248–341实际全文读；启动未带RL/sleep/weight transfer，仅证明该配方未启用。",
+          "read_ranges": [
+            "vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L248-L341",
+            "GLM教程248–341实际全文读；启动未带RL/sleep/weight transfer，仅证明该配方未启用。"
+          ],
+          "verdict": "支持",
+          "evidence": "GLM教程248–341实际全文读；启动未带RL/sleep/weight transfer，仅证明该配方未启用。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L262-L292",
+          "claim": "RlConfig字段默认与apply实读，总开关只改变NZ、开发端点和分配器；子开关仍独立。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L262-L292",
+            "RlConfig字段默认与apply实读，总开关只改变NZ、开发端点和分配器；子开关仍独立。"
+          ],
+          "verdict": "支持",
+          "evidence": "RlConfig字段默认与apply实读，总开关只改变NZ、开发端点和分配器；子开关仍独立。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L296-L358",
+          "claim": "worker296–358完整读；active只在start成功置真；update异常清标不回滚；finish/reset失败仍active。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L296-L358",
+            "worker296–358完整读；active只在start成功置真；update异常清标不回滚；finish/reset失败仍active。"
+          ],
+          "verdict": "支持",
+          "evidence": "worker296–358完整读；active只在start成功置真；update异常清标不回滚；finish/reset失败仍active。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/hccl_engine.py#L30-L209",
+          "claim": "HCCL30–209完整读；单发送者组规模、DP偏移、普通/packed接收、每次update的打包字段，不套后续上游握手协议。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/hccl_engine.py#L30-L209",
+            "HCCL30–209完整读；单发送者组规模、DP偏移、普通/packed接收、每次update的打包字段，不套后续上游握手协议。"
+          ],
+          "verdict": "部分支持",
+          "evidence": "HCCL30–209完整读；单发送者组规模、DP偏移、普通/packed接收、每次update的打包字段，不套后续上游握手协议。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L153-L222",
+          "claim": "166–222控制流实读，packed没有调用model.load_weights；该来源不支持泛称两路径都装载，正文已限定。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L153-L222",
+            "166–222控制流实读，packed没有调用model.load_weights；该来源不支持泛称两路径都装载，正文已限定。"
+          ],
+          "verdict": "部分支持",
+          "evidence": "166–222控制流实读，packed没有调用model.load_weights；该来源不支持泛称两路径都装载，正文已限定。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1340-L1382",
+          "claim": "1340–1382完整读；分配器移除expandable_segments、双RL开关/包存在/能力拒绝；无PCP条件需49补充。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1340-L1382",
+            "1340–1382完整读；分配器移除expandable_segments、双RL开关/包存在/能力拒绝；无PCP条件需49补充。"
+          ],
+          "verdict": "部分支持",
+          "evidence": "1340–1382完整读；分配器移除expandable_segments、双RL开关/包存在/能力拒绝；无PCP条件需49补充。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L282-L374",
+          "claim": "GLM旧worker282–374完整读，is_checkpoint_format和重载职责；初次截断295–318已单独重读补全。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L282-L374",
+            "GLM旧worker282–374完整读，is_checkpoint_format和重载职责；初次截断295–318已单独重读补全。"
+          ],
+          "verdict": "支持",
+          "evidence": "GLM旧worker282–374完整读，is_checkpoint_format和重载职责；初次截断295–318已单独重读补全。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L681-L694",
+          "claim": "GLM681–694完整读，仅有transfer配置才创建引擎。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L681-L694",
+            "GLM681–694完整读，仅有transfer配置才创建引擎。"
+          ],
+          "verdict": "支持",
+          "evidence": "GLM681–694完整读，仅有transfer配置才创建引擎。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L282-L374",
+          "claim": "v023282–374完整读，旧接口和NZ环境校验。",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L282-L374",
+            "v023282–374完整读，旧接口和NZ环境校验。"
+          ],
+          "verdict": "支持",
+          "evidence": "v023282–374完整读，旧接口和NZ环境校验。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L268-L364",
+          "claim": "v026268–364完整读，同旧接口与环境校验；不从版本号推当前main行为。",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L268-L364",
+            "v026268–364完整读，同旧接口与环境校验；不从版本号推当前main行为。"
+          ],
+          "verdict": "支持",
+          "evidence": "v026268–364完整读，同旧接口与环境校验；不从版本号推当前main行为。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_weight_transfer_engine.py#L18-L73",
+          "claim": "v023工厂patch18–73完整读，旧nccl/ipc映射到Ascend两后端。",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_weight_transfer_engine.py#L18-L73",
+            "v023工厂patch18–73完整读，旧nccl/ipc映射到Ascend两后端。"
+          ],
+          "verdict": "支持",
+          "evidence": "v023工厂patch18–73完整读，旧nccl/ipc映射到Ascend两后端。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_weight_transfer_engine.py#L18-L73",
+          "claim": "v026相同patch18–73完整读，旧映射仍在。",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_weight_transfer_engine.py#L18-L73",
+            "v026相同patch18–73完整读，旧映射仍在。"
+          ],
+          "verdict": "支持",
+          "evidence": "v026相同patch18–73完整读，旧映射仍在。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/__init__.py#L24-L40",
+          "claim": "main注册24–40完整读，只登记hccl/npu_ipc及npu_ipc trainer；与文档ipc冲突已修。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/__init__.py#L24-L40",
+            "main注册24–40完整读，只登记hccl/npu_ipc及npu_ipc trainer；与文档ipc冲突已修。"
+          ],
+          "verdict": "支持",
+          "evidence": "main注册24–40完整读，只登记hccl/npu_ipc及npu_ipc trainer；与文档ipc冲突已修。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L1-L59",
+          "claim": "批不变官方1–59完整读，源码构建与wheel边界；专项限制回链唯一出处。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L1-L59",
+            "批不变官方1–59完整读，源码构建与wheel边界；专项限制回链唯一出处。"
+          ],
+          "verdict": "支持",
+          "evidence": "批不变官方1–59完整读，源码构建与wheel边界；专项限制回链唯一出处。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L150-L165",
+          "claim": "v023默认150–165完整读，额外清理为top-level且默认false。",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L150-L165",
+            "v023默认150–165完整读，额外清理为top-level且默认false。"
+          ],
+          "verdict": "支持",
+          "evidence": "v023默认150–165完整读，额外清理为top-level且默认false。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L165-L177",
+          "claim": "v026默认165–177完整读，旧额外清理默认false。",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L165-L177",
+            "v026默认165–177完整读，旧额外清理默认false。"
+          ],
+          "verdict": "支持",
+          "evidence": "v026默认165–177完整读，旧额外清理默认false。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm@84030bbe:vllm/entrypoints/serve/dev/rlhf/api_router.py#L29-L80",
+          "claim": "上游pause端点29–80完整读，查询参数keep/clear_cache与弃用；不倒推GLM旧接口。",
+          "read_ranges": [
+            "vllm@84030bbe:vllm/entrypoints/serve/dev/rlhf/api_router.py#L29-L80",
+            "上游pause端点29–80完整读，查询参数keep/clear_cache与弃用；不倒推GLM旧接口。"
+          ],
+          "verdict": "支持",
+          "evidence": "上游pause端点29–80完整读，查询参数keep/clear_cache与弃用；不倒推GLM旧接口。"
+        },
+        {
+          "source_number": 23,
+          "ref": "raw:sha256-1820e1d48b11998ebd3a38a24f92aa6c878edf3647c118e64d82fc085b3bfc7e.md#L1-L1540",
+          "claim": "raw含22个已实际读的源码/文档摘录；逐段与固定git行精确比较22/22相等，无额外内容。按去重核验记录，不声称另逐字阅读1540行。",
+          "read_ranges": [
+            "raw:sha256-1820e1d48b11998ebd3a38a24f92aa6c878edf3647c118e64d82fc085b3bfc7e.md#L1-L1540",
+            "raw含22个已实际读的源码/文档摘录；逐段与固定git行精确比较22/22相等，无额外内容。按去重核验记录，不声称另逐字阅读1540行。"
+          ],
+          "verdict": "仅存档无对应主张",
+          "evidence": "raw含22个已实际读的源码/文档摘录；逐段与固定git行精确比较22/22相等，无额外内容。按去重核验记录，不声称另逐字阅读1540行。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/worker/worker.py#L352-L357",
+          "claim": "GLM352–357完整读，update结束torch.npu.synchronize；不保证外层请求边界已协调。",
+          "read_ranges": [
+            "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/worker/worker.py#L352-L357",
+            "GLM352–357完整读，update结束torch.npu.synchronize；不保证外层请求边界已协调。"
+          ],
+          "verdict": "支持",
+          "evidence": "GLM352–357完整读，update结束torch.npu.synchronize；不保证外层请求边界已协调。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/entrypoints/serve/dev/rlhf/api_router.py#L29-L45",
+          "claim": "上游pause29–45与22重叠仍已读，POST控制参数。",
+          "read_ranges": [
+            "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/entrypoints/serve/dev/rlhf/api_router.py#L29-L45",
+            "上游pause29–45与22重叠仍已读，POST控制参数。"
+          ],
+          "verdict": "支持",
+          "evidence": "上游pause29–45与22重叠仍已读，POST控制参数。"
+        },
+        {
+          "source_number": 26,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L365-L395",
+          "claim": "rc2 RlConfig365–395完整读，默认false及apply，与正文组合条件一致。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L365-L395",
+            "rc2 RlConfig365–395完整读，默认false及apply，与正文组合条件一致。"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2 RlConfig365–395完整读，默认false及apply，与正文组合条件一致。"
+        },
+        {
+          "source_number": 27,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L314-L363",
+          "claim": "rc2 worker314–363完整读，状态机与main一致，finish成功后才清标。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L314-L363",
+            "rc2 worker314–363完整读，状态机与main一致，finish成功后才清标。"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2 worker314–363完整读，状态机与main一致，finish成功后才清标。"
+        },
+        {
+          "source_number": 28,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L850-L858",
+          "claim": "rc2 worker850–858完整读，传输引擎按配置创建。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L850-L858",
+            "rc2 worker850–858完整读，传输引擎按配置创建。"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2 worker850–858完整读，传输引擎按配置创建。"
+        },
+        {
+          "source_number": 29,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/__init__.py#L24-L40",
+          "claim": "rc2注册24–40完整读，hccl/npu_ipc名称与trainer。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/__init__.py#L24-L40",
+            "rc2注册24–40完整读，hccl/npu_ipc名称与trainer。"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2注册24–40完整读，hccl/npu_ipc名称与trainer。"
+        },
+        {
+          "source_number": 30,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L246-L299",
+          "claim": "rc2睡眠246–299完整读，实际条件与额外清理；完整机制回链sleep页。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L246-L299",
+            "rc2睡眠246–299完整读，实际条件与额外清理；完整机制回链sleep页。"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2睡眠246–299完整读，实际条件与额外清理；完整机制回链sleep页。"
+        },
+        {
+          "source_number": 31,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/device_allocator/sleep_mem_optimized.py#L63-L71",
+          "claim": "rc2优化分配器63–71完整读，额外清理总/子开关条件。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/device_allocator/sleep_mem_optimized.py#L63-L71",
+            "rc2优化分配器63–71完整读，额外清理总/子开关条件。"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2优化分配器63–71完整读，额外清理总/子开关条件。"
+        },
+        {
+          "source_number": 32,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/device_allocator/sleep_mem_optimized.py#L154-L242",
+          "claim": "rc2优化分配器154–242完整读，睡眠资源操作与恢复边界，不称实机验证。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/device_allocator/sleep_mem_optimized.py#L154-L242",
+            "rc2优化分配器154–242完整读，睡眠资源操作与恢复边界，不称实机验证。"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2优化分配器154–242完整读，睡眠资源操作与恢复边界，不称实机验证。"
+        },
+        {
+          "source_number": 33,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/device_allocator/sleep_mem_optimized.py#L257-L302",
+          "claim": "rc2优化分配器257–302完整读，唤醒/图捕获顺序细节归sleep页。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/device_allocator/sleep_mem_optimized.py#L257-L302",
+            "rc2优化分配器257–302完整读，唤醒/图捕获顺序细节归sleep页。"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2优化分配器257–302完整读，唤醒/图捕获顺序细节归sleep页。"
+        },
+        {
+          "source_number": 34,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L159-L170",
+          "claim": "rc2 IPC159–170完整读，start/finish增加逐层重载；装载位置另补46。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L159-L170",
+            "rc2 IPC159–170完整读，start/finish增加逐层重载；装载位置另补46。"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2 IPC159–170完整读，start/finish增加逐层重载；装载位置另补46。"
+        },
+        {
+          "source_number": 35,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/hccl_engine.py#L147-L152",
+          "claim": "rc2 HCCL147–152完整读，重建前关闭旧组。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/hccl_engine.py#L147-L152",
+            "rc2 HCCL147–152完整读，重建前关闭旧组。"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2 HCCL147–152完整读，重建前关闭旧组。"
+        },
+        {
+          "source_number": 36,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/hccl_engine.py#L213-L217",
+          "claim": "rc2 HCCL213–217完整读，shutdown关闭communicator。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/hccl_engine.py#L213-L217",
+            "rc2 HCCL213–217完整读，shutdown关闭communicator。"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2 HCCL213–217完整读，shutdown关闭communicator。"
+        },
+        {
+          "source_number": 37,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L318-L358",
+          "claim": "main318–358完整读，与8重叠，证明状态机不是rc2才新增。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L318-L358",
+            "main318–358完整读，与8重叠，证明状态机不是rc2才新增。"
+          ],
+          "verdict": "支持",
+          "evidence": "main318–358完整读，与8重叠，证明状态机不是rc2才新增。"
+        },
+        {
+          "source_number": 38,
+          "ref": "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/rl.md",
+          "claim": "921ccc52官方RL整篇按1–110/111–255/256–405/406–EOF分段完整实际读，含Sparse与Trace命令/限制；不外推到旧main。",
+          "read_ranges": [
+            "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/rl.md",
+            "921ccc52官方RL整篇按1–110/111–255/256–405/406–EOF分段完整实际读，含Sparse与Trace命令/限制；不外推到旧main。"
+          ],
+          "verdict": "支持",
+          "evidence": "921ccc52官方RL整篇按1–110/111–255/256–405/406–EOF分段完整实际读，含Sparse与Trace命令/限制；不外推到旧main。"
+        },
+        {
+          "source_number": 39,
+          "ref": "https://docs.vllm.ai/en/latest/training/weight_transfer/nccl/#sparse-nccl",
+          "claim": "本轮官方NCCL文章正文全文读完，缓存rl-upstream-nccl.txt；仅Sparse坐标、替换和O(N)staging用于本页，后续dense握手协议不套baa HCCL。",
+          "read_ranges": [
+            "https://docs.vllm.ai/en/latest/training/weight_transfer/nccl/#sparse-nccl",
+            "本轮官方NCCL文章正文全文读完，缓存rl-upstream-nccl.txt；仅Sparse坐标、替换和O(N)staging用于本页，后续dense握手协议不套baa HCCL。"
+          ],
+          "verdict": "支持",
+          "evidence": "本轮官方NCCL文章正文全文读完，缓存rl-upstream-nccl.txt；仅Sparse坐标、替换和O(N)staging用于本页，后续dense握手协议不套baa HCCL。"
+        },
+        {
+          "source_number": 40,
+          "ref": "vllm@84030bbe:vllm/distributed/weight_transfer/factory.py#L84-L119",
+          "claim": "工厂84–119实际读，按config.backend原样查注册表，没有ipc转npu_ipc。",
+          "read_ranges": [
+            "vllm@84030bbe:vllm/distributed/weight_transfer/factory.py#L84-L119",
+            "工厂84–119实际读，按config.backend原样查注册表，没有ipc转npu_ipc。"
+          ],
+          "verdict": "支持",
+          "evidence": "工厂84–119实际读，按config.backend原样查注册表，没有ipc转npu_ipc。"
+        },
+        {
+          "source_number": 41,
+          "ref": "vllm@84030bbe:vllm/distributed/weight_transfer/factory.py#L218-L230",
+          "claim": "工厂218–230实际读，上游ipc映射上游IPCWeightTransferEngine。",
+          "read_ranges": [
+            "vllm@84030bbe:vllm/distributed/weight_transfer/factory.py#L218-L230",
+            "工厂218–230实际读，上游ipc映射上游IPCWeightTransferEngine。"
+          ],
+          "verdict": "支持",
+          "evidence": "工厂218–230实际读，上游ipc映射上游IPCWeightTransferEngine。"
+        },
+        {
+          "source_number": 42,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/__init__.py#L77-L85",
+          "claim": "Ascend插件77–85实际读，register_connector触发register_engine。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/__init__.py#L77-L85",
+            "Ascend插件77–85实际读，register_connector触发register_engine。"
+          ],
+          "verdict": "支持",
+          "evidence": "Ascend插件77–85实际读，register_connector触发register_engine。"
+        },
+        {
+          "source_number": 43,
+          "ref": "vllm-ascend@baa023ad:examples/rl/rlhf_http_npu_ipc.py#L1-L217",
+          "claim": "NPU IPC HTTP示例全217行实读；npu_ipc命令与手动重复start/finish均确认；本地AST模拟实际状态机第二次start报错。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:examples/rl/rlhf_http_npu_ipc.py#L1-L217",
+            "NPU IPC HTTP示例全217行实读；npu_ipc命令与手动重复start/finish均确认；本地AST模拟实际状态机第二次start报错。"
+          ],
+          "verdict": "部分支持",
+          "evidence": "NPU IPC HTTP示例全217行实读；npu_ipc命令与手动重复start/finish均确认；本地AST模拟实际状态机第二次start报错。"
+        },
+        {
+          "source_number": 44,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L261-L290",
+          "claim": "trainer261–290实读，初始化传packed、send_weights自带start/finish；还全文追读223–EOF的多rank/packed/非packed实现。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L261-L290",
+            "trainer261–290实读，初始化传packed、send_weights自带start/finish；还全文追读223–EOF的多rank/packed/非packed实现。"
+          ],
+          "verdict": "支持",
+          "evidence": "trainer261–290实读，初始化传packed、send_weights自带start/finish；还全文追读223–EOF的多rank/packed/非packed实现。"
+        },
+        {
+          "source_number": 45,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/packed_tensor.py#L271-L326",
+          "claim": "packed consumer271–326实读，clone后返回列表，不调用model loader；重建缓存不是装载参数。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/weight_transfer/packed_tensor.py#L271-L326",
+            "packed consumer271–326实读，clone后返回列表，不调用model loader；重建缓存不是装载参数。"
+          ],
+          "verdict": "支持",
+          "evidence": "packed consumer271–326实读，clone后返回列表，不调用model loader；重建缓存不是装载参数。"
+        },
+        {
+          "source_number": 46,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L172-L228",
+          "claim": "rc2 receive172–228实读，model.load_weights移到if/else之后；同样CPU模拟packed时main0次/rc2一次装载。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L172-L228",
+            "rc2 receive172–228实读，model.load_weights移到if/else之后；同样CPU模拟packed时main0次/rc2一次装载。"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2 receive172–228实读，model.load_weights移到if/else之后；同样CPU模拟packed时main0次/rc2一次装载。"
+        },
+        {
+          "source_number": 47,
+          "ref": "vllm@84030bbe:vllm/distributed/weight_transfer/base.py#L493-L504",
+          "claim": "上游base493–504实读，仅parse/receive/synchronize，不补装载。",
+          "read_ranges": [
+            "vllm@84030bbe:vllm/distributed/weight_transfer/base.py#L493-L504",
+            "上游base493–504实读，仅parse/receive/synchronize，不补装载。"
+          ],
+          "verdict": "支持",
+          "evidence": "上游base493–504实读，仅parse/receive/synchronize，不补装载。"
+        },
+        {
+          "source_number": 48,
+          "ref": "vllm@84030bbe:vllm/entrypoints/scale_out/factories.py#L69-L106",
+          "claim": "scale-out factories69–106实读，tokens-only隐式启用但与显式0冲突；普通服务需显式1。",
+          "read_ranges": [
+            "vllm@84030bbe:vllm/entrypoints/scale_out/factories.py#L69-L106",
+            "scale-out factories69–106实读，tokens-only隐式启用但与显式0冲突；普通服务需显式1。"
+          ],
+          "verdict": "支持",
+          "evidence": "scale-out factories69–106实读，tokens-only隐式启用但与显式0冲突；普通服务需显式1。"
+        },
+        {
+          "source_number": 49,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L240-L257",
+          "claim": "main平台240–257实读，无PCP才进FA3检查，与11构成完整条件。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/platform.py#L240-L257",
+            "main平台240–257实读，无PCP才进FA3检查，与11构成完整条件。"
+          ],
+          "verdict": "支持",
+          "evidence": "main平台240–257实读，无PCP才进FA3检查，与11构成完整条件。"
+        },
+        {
+          "source_number": 50,
+          "ref": "https://github.com/vllm-project/vllm-ascend/blob/182ea0448550a970e4f0ae3624fe35e38b37bc80/examples/rl/rlhf_sparse_hccl.py",
+          "claim": "固定182ea044官方稀疏例全文124行读取，web到109后以requests原文补尾；Qwen3 MoE完整BF16/1+TP×DP/原地行交换与失败保持暂停。",
+          "read_ranges": [
+            "https://github.com/vllm-project/vllm-ascend/blob/182ea0448550a970e4f0ae3624fe35e38b37bc80/examples/rl/rlhf_sparse_hccl.py",
+            "固定182ea044官方稀疏例全文124行读取，web到109后以requests原文补尾；Qwen3 MoE完整BF16/1+TP×DP/原地行交换与失败保持暂停。"
+          ],
+          "verdict": "支持",
+          "evidence": "固定182ea044官方稀疏例全文124行读取，web到109后以requests原文补尾；Qwen3 MoE完整BF16/1+TP×DP/原地行交换与失败保持暂停。"
+        },
+        {
+          "source_number": 51,
+          "ref": "vllm-ascend@baa023ad:examples/rl/rlhf_http_hccl.py#L1-L302",
+          "claim": "main HCCL HTTP例全文302行分1–165/166–EOF读完；init/update异步线程与广播配对，但join不传播线程异常。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:examples/rl/rlhf_http_hccl.py#L1-L302",
+            "main HCCL HTTP例全文302行分1–165/166–EOF读完；init/update异步线程与广播配对，但join不传播线程异常。"
+          ],
+          "verdict": "部分支持",
+          "evidence": "main HCCL HTTP例全文302行分1–165/166–EOF读完；init/update异步线程与广播配对，但join不传播线程异常。"
+        }
+      ],
+      "independent_acceptance": "pending"
+    }
+  ]
+}

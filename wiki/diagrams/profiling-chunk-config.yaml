@@ -1,16 +1,16 @@
 layout: scene
 id: profiling-chunk-config
-caption: 开了之后，每个 prefill 步的 chunk 大小是当场解一个二次方程算出来的（vllm-ascend main 开发主线 baa023ad）
+caption: 固定 main baa023ad 的启动模型预测路径；历史模型拟合成功后改用带前缀特征的方程。只有满足动态分支条件的 prefill 请求才使用预测，失效处理见正文。
 size: [900, 700]
 
 regions:
   - label: 启动期 · 只做一次
-    note: 拟合的是「这台机器上，一段长 l 的 prefill 要多久」，不是预设公式——所以换硬件不用改参数。
+    note: 测量本机延迟后拟合；换硬件仍需重做测量，并比较基准块大小和实际负载。
     at: [20, 26]
     size: [860, 170]
     tone: upstream
   - label: 每个 prefill 步 · 算出这一步切多少
-    note: 目标是让每块耗时相等：前缀越长，注意力越贵，块就得切得越小，流水线才不空转。
+    note: 目标是让各块耗时接近，减少等待；实际切块仍受拟合误差、下限和调度预算限制。
     at: [20, 216]
     size: [860, 412]
     tone: ascend
@@ -18,8 +18,8 @@ regions:
 boxes:
   - at: [36, 112]
     size: [266, 70]
-    title: 采 64 个 chunk size
-    sub: 从 base_chunk_size 一路采到接近 0
+    title: 尝试采集 64 个有效点
+    sub: 另有一次预热；失败点跳过
     tone: upstream
   - at: [318, 112]
     size: [250, 70]
@@ -38,7 +38,7 @@ arrows:
 
 bands:
   - label: ① 定目标时间
-    sub: T = f(base_chunk_size) − f(0)，一块「应该」花多久
+    sub: 初始目标为 f(base_chunk_size) − f(0)；求根用本批剩余预算 T
     fn: target_latency
     icon: clock
     at: [52, 292]
@@ -66,7 +66,7 @@ bands:
     size: [828, 56]
     tone: ascend
   - label: ⑤ 截断
-    sub: num_new_tokens = min(predicted_chunk, num_new_tokens)；返回 None 就不截
+    sub: 有效预测与原 token 预算取较小值；失败按校准状态与剩余时间预算处理
     fn: predict_chunk_size
     icon: split
     at: [52, 548]
@@ -75,17 +75,17 @@ bands:
 
 notes:
   - at: [20, 646]
-    text: 关掉时这五步一步都不跑，一步切多少只受 max_num_batched_tokens 这个固定上限管。
+    text: 关闭动态切块后沿用普通调度约束：token 预算、剩余请求长度、缓存及其他资源限制。
     size: 12.5
     width: 860
     strong: true
   - at: [20, 670]
-    text: 开着的三个硬条件：PP > 1、开 chunked prefill、不能和 balance scheduling 同开；启动多付约 64 次 forward。
+    text: PP > 1，按指南启用 chunked prefill，与 balance scheduling 互斥；启动测量增加真实 forward。
     size: 12.5
     width: 860
 
 pins:
-  - source: vllm-ascend@baa023ad:vllm_ascend/core/profiling_chunk_predictor.py#L288-L315
+  - source: vllm-ascend@baa023ad:vllm_ascend/core/profiling_chunk_predictor.py#L281-L315
     symbols:
       - base_chunk_size
       - target_latency
@@ -94,7 +94,7 @@ pins:
       - smooth_factor
       - min_chunk
       - page_size
-  - source: vllm-ascend@baa023ad:vllm_ascend/core/scheduler_profiling_chunk.py#L339-L351
+  - source: vllm-ascend@baa023ad:vllm_ascend/core/scheduler_profiling_chunk.py#L301-L360
     symbols: [predict_chunk_size, predicted_chunk, num_new_tokens]
   - source: vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L573-L598
     symbols: [max_num_batched_tokens]

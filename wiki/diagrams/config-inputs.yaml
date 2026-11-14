@@ -1,16 +1,16 @@
 layout: figure
 id: config-inputs
-caption: 三路输入汇成一份生效配置：通用参数进 VllmConfig 自己的字段，additional_config 的键交给 AscendConfig 拆成几组子配置，环境变量有一部分作为兼容输入喂进同一个对象、其余由消费者直接读；平台还会在放行前校验和改写。
+caption: 固定旧 GLM 的三路输入：通用参数进 VllmConfig，additional_config 交给 AscendConfig 拆成子配置，部分环境值作为兼容输入、其余由消费者直接读。配置构造、平台准备与消费者都有各自的条件检查；表外也有直接读取环境的代码。
 size: [900, 450]
 frames:
   - { at: [18, 52], size: [232, 330], label: 启动时能写的三个地方 }
 items:
   - { at: [34, 82], size: [200, 62], text: 命令行通用参数, sub: --max-num-seqs 等, tone: control }
-  - { at: [34, 190], size: [200, 62], text: 附带的那段 JSON, sub: 键名归昇腾定义, tone: token }
+  - { at: [34, 190], size: [200, 62], text: 附带的那段 JSON, sub: 平台定义自己的键, tone: token }
   - { at: [34, 298], size: [200, 62], text: 环境变量, sub: 全大写的那些名字, tone: kv }
   - { at: [300, 70], size: [240, 62], text: VllmConfig 各字段, sub: 调度、并行、模型, tone: control }
   - { at: [300, 178], size: [240, 86], text: AscendConfig, sub: 按键拆成几组子配置, tone: token }
-  - { at: [300, 300], size: [240, 62], text: 消费者直接读环境, sub: 每次访问都重读, tone: kv }
+  - { at: [300, 300], size: [240, 62], text: 消费者直接读环境, sub: 后续是否缓存看消费者, tone: kv }
   - { at: [610, 100], size: [260, 86], text: 平台校验与改写, sub: 不合法报错，按角色重置, tone: danger }
   - { at: [610, 258], size: [260, 72], text: 执行时真正读到的值, sub: Worker、算子、调度器, tone: ink }
 links:
@@ -23,11 +23,15 @@ links:
   - { from: [540, 331], to: [610, 294], via: [[575, 331], [575, 294]], tone: kv }
   - { from: [740, 186], to: [740, 258], tone: ink }
 texts:
-  - { at: [450, 24], text: 三个地方能写，最后只有一份值在执行时被读到, anchor: middle, strong: true }
-  - { at: [34, 402], text: 其中 9 个名字两条路都认：键写了按键走，没写才用环境值, size: 15, width: 560 }
-  - { at: [34, 428], text: 只有直接读环境这一路绕过校验和改写, note: true }
+  - { at: [450, 24], text: 三个地方能写，沿各自路径找到最终生效值, anchor: middle, strong: true }
+  - { at: [34, 402], text: 9 对兼容输入：环境读取成功后，JSON 键在则优先，否则回退, size: 15, width: 560 }
+  - { at: [34, 428], text: 直接读环境不一定经过 AscendConfig，仍须核对消费者条件, note: true }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L27-L94
     symbols: [AscendConfig, additional_config]
   - source: vllm-ascend@db701c1f:vllm_ascend/envs.py#L112-L124
     symbols: [env_variables]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L333-L346
+    symbols: [_get_config_value]
+  - source: vllm-ascend@db701c1f:vllm_ascend/patch/platform/__init__.py#L17-L57
+    symbols: [DYNAMIC_EPLB, EXPERT_MAP_RECORD]

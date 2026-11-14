@@ -1,0 +1,37 @@
+layout: figure
+id: prefix-caching-flow
+caption: 第2站调度先查前缀。禁用或请求跳过读取时按零命中继续；混合模型寻找共同恢复边界。容量与依赖检查通过后借用命中块并补新块；启用APC且无需延迟登记时，按本步已确定的位置登记。随后第4站前向才写入新状态。登记不等于状态已经就绪。图按固定旧版路径说明。
+size: [880, 420]
+items:
+  - { at: [24, 54], size: [180, 60], text: 第2站：请求等待调度, sub: 输入身份与缓存配置, tone: token, style: plain }
+  - { at: [260, 54], size: [174, 60], text: 允许读取前缀吗, sub: 开关与请求跳过条件, tone: control }
+  - { at: [490, 54], size: [176, 60], text: 各组查指纹和状态, sub: 全组都能恢复才命中, tone: kv }
+  - { at: [490, 174], size: [176, 60], text: 缩短到共同边界, sub: 有组退让就重新检查, tone: control }
+  - { at: [260, 294], size: [174, 60], text: 检查容量与依赖, sub: 未就绪则本步等待, tone: control }
+  - { at: [490, 294], size: [176, 60], text: 借块与引用, sub: APC启用时登记位置, tone: kv }
+  - { at: [710, 294], size: [146, 60], text: 第4站前向, sub: 计算并写入新状态, tone: kv }
+links:
+  - { from: [204, 84], to: [260, 84] }
+  - { from: [434, 84], to: [490, 84] }
+  - { from: [347, 114], to: [347, 294], tone: ink, dashed: true }
+  - { from: [578, 114], to: [578, 174] }
+  - { from: [666, 204], to: [666, 84], via: [[690, 204], [690, 84]], dashed: true }
+  - { from: [490, 204], to: [347, 294], via: [[347, 204]] }
+  - { from: [434, 324], to: [490, 324] }
+  - { from: [666, 324], to: [710, 324] }
+texts:
+  - { at: [24, 25], text: 前缀命中 → 共同恢复边界 → 借块 → 继续计算, size: 14, strong: true }
+  - { at: [440, 68], text: 是, size: 12 }
+  - { at: [224, 174], text: 否：零命中, size: 12 }
+  - { at: [368, 252], text: 全组可接上, size: 12 }
+  - { at: [714, 144], text: 仍有组需退让, size: 12 }
+  - { at: [24, 392], text: 指纹更细不等于恢复更细；容量不足也不等于前缀没有命中。, size: 12 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L195-L235
+    symbols: [get_computed_blocks]
+  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L582-L683
+    symbols: [find_longest_cache_hit]
+  - source: vllm@0fc695fc:vllm/v1/core/block_pool.py#L402-L425
+    symbols: [touch]
+  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L413-L434
+    symbols: [cache_blocks]

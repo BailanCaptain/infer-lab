@@ -1,0 +1,459 @@
+{
+  "status": "content_and_browser_accepted_pending_engineering",
+  "reviewer": "root",
+  "page": "wiki/concepts/platform-plugin-registration.md",
+  "page_sha256": "346324acad53eb18f7c9478415e8a759accc3a99db1ec74aadc0f913ae297aad",
+  "new_source_count": 64,
+  "old_recounted": 0,
+  "report": "io-plugin-independent-review.md",
+  "items": [
+    {
+      "source_number": 46,
+      "ref": "vllm@0fc695fc:docs/design/io_processor_plugins.md#L1-L94",
+      "claim": "官方自定义pooling输入/输出契约与两个TerraTorch示例；异步接口描述需按实际调用者限定",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 47,
+      "ref": "vllm@0fc695fc:docs/design/plugin_system.md#L1-L158",
+      "claim": "四类官方插件入口与注册兼容保证；模型实现仍由插件负责版本兼容",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 48,
+      "ref": "vllm@0fc695fc:vllm/plugins/io_processors/__init__.py#L15-L88",
+      "claim": "非空显式IO插件名优先，未指定时查HF配置字段；按组发现并调用入口返回类路径，最终只实例化所选类；未安装/被过滤/入口失败可使所需插件不可用。四版文件逐字相同",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 49,
+      "ref": "vllm@0fc695fc:vllm/plugins/io_processors/interface.py#L17-L124",
+      "claim": "parse_data、pre_process、post_process与参数合并是插件契约；*_async是接口帮助方法，不能当作本次已核HTTP调用者；rc2/main移除旧parse_request/validate_or_generate_params兼容shim",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 50,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/pooling/io_processor.py#L27-L158",
+      "claim": "自定义data解析后展开模型prompt，在线调用同步pre_process，合并参数时不传HTTP参数；post_process收齐结果后返回自定义data。离线一次自定义输入汇总成单个PoolingRequestOutput；task=plugin也存在不使用IO插件的模型分支",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 51,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/base/serving.py#L62-L201",
+      "claim": "每个子输入调用encode，merge_async_iterators结果按输入索引放回固定列表、全部到齐后后处理。旧两版同步前后处理均用线程池包装；rc2/main factory同步执行于async前处理，然后并发await render_async，后处理仍线程池",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 52,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/factories.py#L38-L101",
+      "claim": "有IO插件配置才构造PluginWithIOProcessorPlugins；仅模型pooling_task=plugin时可走无IO插件类；rc2/main另有combined task守卫",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 53,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/pooling/serving.py#L54-L101",
+      "claim": "HTTP data对象被强制选为plugin task；无相应插件报错；此/pooling入口不支持dimensions。自定义响应优先以其model_dump作JSON",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 54,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/offline.py#L51-L136",
+      "claim": "离线encode显式选pooling_task=plugin；从data上下文走插件输入工厂并在引擎结果后处理。v026开始采用tiling driver，不能把在线wrapper直接套到离线",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 55,
+      "ref": "vllm@568afb3a:vllm/plugins/io_processors/__init__.py#L15-L88",
+      "claim": "非空显式IO插件名优先，未指定时查HF配置字段；按组发现并调用入口返回类路径，最终只实例化所选类；未安装/被过滤/入口失败可使所需插件不可用。四版文件逐字相同",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 56,
+      "ref": "vllm@568afb3a:vllm/plugins/io_processors/interface.py#L17-L124",
+      "claim": "parse_data、pre_process、post_process与参数合并是插件契约；*_async是接口帮助方法，不能当作本次已核HTTP调用者；rc2/main移除旧parse_request/validate_or_generate_params兼容shim",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 57,
+      "ref": "vllm@568afb3a:vllm/entrypoints/pooling/pooling/io_processor.py#L27-L181",
+      "claim": "自定义data解析后展开模型prompt，在线调用同步pre_process，合并参数时不传HTTP参数；post_process收齐结果后返回自定义data。离线一次自定义输入汇总成单个PoolingRequestOutput；task=plugin也存在不使用IO插件的模型分支",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 58,
+      "ref": "vllm@568afb3a:vllm/entrypoints/pooling/base/serving.py#L63-L202",
+      "claim": "每个子输入调用encode，merge_async_iterators结果按输入索引放回固定列表、全部到齐后后处理。旧两版同步前后处理均用线程池包装；rc2/main factory同步执行于async前处理，然后并发await render_async，后处理仍线程池",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 59,
+      "ref": "vllm@568afb3a:vllm/entrypoints/pooling/factories.py#L38-L101",
+      "claim": "有IO插件配置才构造PluginWithIOProcessorPlugins；仅模型pooling_task=plugin时可走无IO插件类；rc2/main另有combined task守卫",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 60,
+      "ref": "vllm@568afb3a:vllm/entrypoints/pooling/pooling/serving.py#L54-L101",
+      "claim": "HTTP data对象被强制选为plugin task；无相应插件报错；此/pooling入口不支持dimensions。自定义响应优先以其model_dump作JSON",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 61,
+      "ref": "vllm@568afb3a:vllm/entrypoints/pooling/offline.py#L62-L134",
+      "claim": "离线encode显式选pooling_task=plugin；从data上下文走插件输入工厂并在引擎结果后处理。v026开始采用tiling driver，不能把在线wrapper直接套到离线",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 62,
+      "ref": "vllm@568afb3a:vllm/entrypoints/pooling/offline.py#L395-L475",
+      "claim": "新版离线逐批装入引擎并按request id排序结果；在core中目标保留max_num_seqs×2，不是一次把所有切片同时提交。rc2/main显式拒绝0个prompt",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 63,
+      "ref": "vllm@ced6857a:vllm/plugins/io_processors/__init__.py#L15-L88",
+      "claim": "非空显式IO插件名优先，未指定时查HF配置字段；按组发现并调用入口返回类路径，最终只实例化所选类；未安装/被过滤/入口失败可使所需插件不可用。四版文件逐字相同",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 64,
+      "ref": "vllm@ced6857a:vllm/plugins/io_processors/interface.py#L17-L80",
+      "claim": "parse_data、pre_process、post_process与参数合并是插件契约；*_async是接口帮助方法，不能当作本次已核HTTP调用者；rc2/main移除旧parse_request/validate_or_generate_params兼容shim",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 65,
+      "ref": "vllm@ced6857a:vllm/entrypoints/pooling/pooling/io_processor.py#L27-L206",
+      "claim": "自定义data解析后展开模型prompt，在线调用同步pre_process，合并参数时不传HTTP参数；post_process收齐结果后返回自定义data。离线一次自定义输入汇总成单个PoolingRequestOutput；task=plugin也存在不使用IO插件的模型分支",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 66,
+      "ref": "vllm@ced6857a:vllm/entrypoints/pooling/base/serving.py#L64-L207",
+      "claim": "每个子输入调用encode，merge_async_iterators结果按输入索引放回固定列表、全部到齐后后处理。旧两版同步前后处理均用线程池包装；rc2/main factory同步执行于async前处理，然后并发await render_async，后处理仍线程池",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 67,
+      "ref": "vllm@ced6857a:vllm/entrypoints/pooling/factories.py#L38-L107",
+      "claim": "有IO插件配置才构造PluginWithIOProcessorPlugins；仅模型pooling_task=plugin时可走无IO插件类；rc2/main另有combined task守卫",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 68,
+      "ref": "vllm@ced6857a:vllm/entrypoints/pooling/pooling/serving.py#L54-L109",
+      "claim": "HTTP data对象被强制选为plugin task；无相应插件报错；此/pooling入口不支持dimensions。自定义响应优先以其model_dump作JSON",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 69,
+      "ref": "vllm@ced6857a:vllm/entrypoints/pooling/offline.py#L62-L134",
+      "claim": "离线encode显式选pooling_task=plugin；从data上下文走插件输入工厂并在引擎结果后处理。v026开始采用tiling driver，不能把在线wrapper直接套到离线",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 70,
+      "ref": "vllm@ced6857a:vllm/entrypoints/pooling/offline.py#L395-L478",
+      "claim": "新版离线逐批装入引擎并按request id排序结果；在core中目标保留max_num_seqs×2，不是一次把所有切片同时提交。rc2/main显式拒绝0个prompt",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 71,
+      "ref": "vllm@84030bbe:vllm/plugins/io_processors/__init__.py#L15-L88",
+      "claim": "非空显式IO插件名优先，未指定时查HF配置字段；按组发现并调用入口返回类路径，最终只实例化所选类；未安装/被过滤/入口失败可使所需插件不可用。四版文件逐字相同",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 72,
+      "ref": "vllm@84030bbe:vllm/plugins/io_processors/interface.py#L17-L80",
+      "claim": "parse_data、pre_process、post_process与参数合并是插件契约；*_async是接口帮助方法，不能当作本次已核HTTP调用者；rc2/main移除旧parse_request/validate_or_generate_params兼容shim",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 73,
+      "ref": "vllm@84030bbe:vllm/entrypoints/pooling/pooling/io_processor.py#L27-L206",
+      "claim": "自定义data解析后展开模型prompt，在线调用同步pre_process，合并参数时不传HTTP参数；post_process收齐结果后返回自定义data。离线一次自定义输入汇总成单个PoolingRequestOutput；task=plugin也存在不使用IO插件的模型分支",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 74,
+      "ref": "vllm@84030bbe:vllm/entrypoints/pooling/base/serving.py#L64-L207",
+      "claim": "每个子输入调用encode，merge_async_iterators结果按输入索引放回固定列表、全部到齐后后处理。旧两版同步前后处理均用线程池包装；rc2/main factory同步执行于async前处理，然后并发await render_async，后处理仍线程池",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 75,
+      "ref": "vllm@84030bbe:vllm/entrypoints/pooling/factories.py#L38-L107",
+      "claim": "有IO插件配置才构造PluginWithIOProcessorPlugins；仅模型pooling_task=plugin时可走无IO插件类；rc2/main另有combined task守卫",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 76,
+      "ref": "vllm@84030bbe:vllm/entrypoints/pooling/pooling/serving.py#L54-L109",
+      "claim": "HTTP data对象被强制选为plugin task；无相应插件报错；此/pooling入口不支持dimensions。自定义响应优先以其model_dump作JSON",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 77,
+      "ref": "vllm@84030bbe:vllm/entrypoints/pooling/offline.py#L62-L134",
+      "claim": "离线encode显式选pooling_task=plugin；从data上下文走插件输入工厂并在引擎结果后处理。v026开始采用tiling driver，不能把在线wrapper直接套到离线",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 78,
+      "ref": "vllm@84030bbe:vllm/entrypoints/pooling/offline.py#L395-L478",
+      "claim": "新版离线逐批装入引擎并按request id排序结果；在core中目标保留max_num_seqs×2，不是一次把所有切片同时提交。rc2/main显式拒绝0个prompt",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 79,
+      "ref": "vllm@0fc695fc:vllm/config/model.py#L321-L322",
+      "claim": "io_processor_plugin定义默认None；表示在模型启动时选择的插件名字",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 80,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L862-L864",
+      "claim": "CLI --io-processor-plugin读取同一模型字段定义",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 81,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1624-L1626",
+      "claim": "实际create_model_config把io_processor_plugin传入ModelConfig",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 82,
+      "ref": "vllm@568afb3a:vllm/config/model.py#L335-L336",
+      "claim": "io_processor_plugin定义默认None；表示在模型启动时选择的插件名字",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 83,
+      "ref": "vllm@568afb3a:vllm/engine/arg_utils.py#L887-L889",
+      "claim": "CLI --io-processor-plugin读取同一模型字段定义",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 84,
+      "ref": "vllm@568afb3a:vllm/engine/arg_utils.py#L1700-L1702",
+      "claim": "实际create_model_config把io_processor_plugin传入ModelConfig",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 85,
+      "ref": "vllm@ced6857a:vllm/config/model.py#L373-L374",
+      "claim": "io_processor_plugin定义默认None；表示在模型启动时选择的插件名字",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 86,
+      "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L965-L967",
+      "claim": "CLI --io-processor-plugin读取同一模型字段定义",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 87,
+      "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L1887-L1889",
+      "claim": "实际create_model_config把io_processor_plugin传入ModelConfig",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 88,
+      "ref": "vllm@84030bbe:vllm/config/model.py#L373-L374",
+      "claim": "io_processor_plugin定义默认None；表示在模型启动时选择的插件名字",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 89,
+      "ref": "vllm@84030bbe:vllm/engine/arg_utils.py#L956-L958",
+      "claim": "CLI --io-processor-plugin读取同一模型字段定义",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 90,
+      "ref": "vllm@84030bbe:vllm/engine/arg_utils.py#L1869-L1871",
+      "claim": "实际create_model_config把io_processor_plugin传入ModelConfig",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 91,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/pooling/protocol.py#L63-L97",
+      "claim": "自定义IO请求是data+task默认plugin；响应request_id/created_at/data，不是普通Chat消息或普通向量列表。HTTP外壳不定义插件data内部schema",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 92,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/pooling/pooling/api_router.py#L20-L39",
+      "claim": "非/v1的POST /pooling先获取服务handler；不是/v1/chat/completions；未支持pooling的服务拒绝此入口",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 93,
+      "ref": "vllm@0fc695fc:examples/pooling/plugin/prithvi_geospatial_mae_online.py#L1-L54",
+      "claim": "官方TerraTorch地理分割示例：启动指定插件并由data送入GeoTIFF；在线返回data里的图，离线encode data后读取outputs[0].outputs。仅是该模型示例，不证明GLM或Ascend配方支持",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 94,
+      "ref": "vllm@0fc695fc:examples/pooling/plugin/prithvi_geospatial_mae_io_processor.py#L1-L60",
+      "claim": "官方TerraTorch地理分割示例：启动指定插件并由data送入GeoTIFF；在线返回data里的图，离线encode data后读取outputs[0].outputs。仅是该模型示例，不证明GLM或Ascend配方支持",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 95,
+      "ref": "vllm@0fc695fc:vllm/v1/metrics/loggers.py#L44-L88",
+      "claim": "统计插件入口直接是StatLoggerBase子类，非返回类路径的注册函数；不合约者TypeError。统计对象类不是稳定接口",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 96,
+      "ref": "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L120-L132",
+      "claim": "AsyncLLM加入发现的统计插件；有自定义logger时即使log_stats=False仍启用统计路径。默认logger与自定义logger分开，主解释回链性能分析",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 97,
+      "ref": "vllm@568afb3a:vllm/v1/metrics/loggers.py#L44-L88",
+      "claim": "统计插件入口直接是StatLoggerBase子类，非返回类路径的注册函数；不合约者TypeError。统计对象类不是稳定接口",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 98,
+      "ref": "vllm@568afb3a:vllm/v1/engine/async_llm.py#L120-L132",
+      "claim": "AsyncLLM加入发现的统计插件；有自定义logger时即使log_stats=False仍启用统计路径。默认logger与自定义logger分开，主解释回链性能分析",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 99,
+      "ref": "vllm@ced6857a:vllm/v1/metrics/loggers.py#L45-L89",
+      "claim": "统计插件入口直接是StatLoggerBase子类，非返回类路径的注册函数；不合约者TypeError。统计对象类不是稳定接口",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 100,
+      "ref": "vllm@ced6857a:vllm/v1/engine/async_llm.py#L131-L143",
+      "claim": "AsyncLLM加入发现的统计插件；有自定义logger时即使log_stats=False仍启用统计路径。默认logger与自定义logger分开，主解释回链性能分析",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 101,
+      "ref": "vllm@84030bbe:vllm/v1/metrics/loggers.py#L44-L88",
+      "claim": "统计插件入口直接是StatLoggerBase子类，非返回类路径的注册函数；不合约者TypeError。统计对象类不是稳定接口",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 102,
+      "ref": "vllm@84030bbe:vllm/v1/engine/async_llm.py#L130-L142",
+      "claim": "AsyncLLM加入发现的统计插件；有自定义logger时即使log_stats=False仍启用统计路径。默认logger与自定义logger分开，主解释回链性能分析",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 103,
+      "ref": "https://github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/pyproject.toml#L78-L83",
+      "claim": "实际entry point名terratorch_segmentation与terratorch_tm_segmentation；general terratorch_fix是另一组",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 104,
+      "ref": "https://github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/terratorch/vllm/plugins/segmentation/__init__.py#L1-L7",
+      "claim": "IO入口函数返回SegmentationIOProcessor类路径，不直接返回对象",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 105,
+      "ref": "https://github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/terratorch/vllm/plugins/segmentation/segmentation_io_processor.py#L286-L431",
+      "claim": "具体地理示例把data校验、下载/读GeoTIFF、补齐并切片；返回每片一个含pixel_values的prompt，并保存request_id上下文。它自己的pre_process_async只是调用同步方法",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 106,
+      "ref": "https://github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/terratorch/vllm/plugins/segmentation/segmentation_io_processor.py#L433-L501",
+      "claim": "按输出列表次序拼分割切片，裁掉padding并输出GeoTIFF；删相应request缓存。此处无推理性能实测，不扩大通用并发安全声明",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 107,
+      "ref": "https://github.com/vllm-project/bart-plugin/blob/77673541bd7ebdb67a83fa72fd8f72c6aafea17c/README.md#L1-L250",
+      "claim": "官方母文外链的模型插件示例；固定外部版本要求vLLM>=0.24，MRV2。README中VLLM_PLUGINS=all不能照抄：四版上游只按真实名字过滤",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 108,
+      "ref": "https://github.com/vllm-project/bart-plugin/blob/77673541bd7ebdb67a83fa72fd8f72c6aafea17c/pyproject.toml#L27-L48",
+      "claim": "包依赖与general入口bart实际声明；插件安装和模型架构兼容分开",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    },
+    {
+      "source_number": 109,
+      "ref": "https://github.com/vllm-project/bart-plugin/blob/77673541bd7ebdb67a83fa72fd8f72c6aafea17c/vllm_bart_plugin/__init__.py#L21-L57",
+      "claim": "入口先登记配置hook和BART/Florence2懒实现，再安装HTTP提示词adapter；注册函数成功不等于权重与设备实测成功",
+      "verdict": "supported_for_stated_scope",
+      "validation": "fixed bytes/range verified; root direct or full-diff reading; same-range version bindings reused"
+    }
+  ]
+}

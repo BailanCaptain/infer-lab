@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 350" width="880" height="350" role="img" aria-label="常规整段路径：第2站先排保存计划，第4站计算写完后设备到主机传输才能开始；全部参与worker完成后主机副本才可用。后来的请求在第2站查本地与主机，借好设备页并等待加载完成，再进入前向。容量不足、查找未定或依赖未就绪时继续等待。">
+  <title>常规整段路径：第2站先排保存计划，第4站计算写完后设备到主机传输才能开始；全部参与worker完成后主机副本才可用。后来的请求在第2站查本地与主机，借好设备页并等待加载完成，再进入前向。容量不足、查找未定或依赖未就绪时继续等待。</title>
+  <defs><marker id="kv-cache-cpu-offload-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="kv-cache-cpu-offload-flow-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <path d="M204 86 L242 86" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-cpu-offload-flow-ah-ink)"/>
+  <path d="M422 86 L460 86" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-cpu-offload-flow-ah-ink)"/>
+  <path d="M640 86 L678 86" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-cpu-offload-flow-ah-ink)"/>
+  <path d="M204 249 L242 249" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-cpu-offload-flow-ah-ink)"/>
+  <path d="M422 249 L460 249" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-cpu-offload-flow-ah-ink)"/>
+  <path d="M640 249 L678 249" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-cpu-offload-flow-ah-ink)"/>
+  <path d="M767 117 L767 162 L114 162 L114 218" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#kv-cache-cpu-offload-flow-ah-kv)"/>
+  <rect x="24" y="55" width="180" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="114" y="82" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">第2站：筛选保存段</text>
+  <text x="114" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">边界、策略与主机容量</text>
+  <rect x="242" y="55" width="180" height="62" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="332" y="82" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">第4站：计算写完</text>
+  <text x="332" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">传输流等待计算完成</text>
+  <rect x="460" y="55" width="180" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="550" y="82" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">设备 → 主机</text>
+  <text x="550" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">传输完成才报告成功</text>
+  <rect x="678" y="55" width="178" height="62" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="767" y="82" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">主机副本可用</text>
+  <text x="767" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">汇总参与worker结果</text>
+  <rect x="24" y="218" width="180" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="114" y="245" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">第2站：另一请求查找</text>
+  <text x="114" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">先本地，再问外部命中</text>
+  <rect x="242" y="218" width="180" height="62" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="332" y="245" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">借设备页并挂起</text>
+  <text x="332" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">容量与状态满足条件</text>
+  <rect x="460" y="218" width="180" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="550" y="245" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">主机 → 设备</text>
+  <text x="550" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求等待完成通知</text>
+  <rect x="678" y="218" width="178" height="62" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="767" y="245" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">恢复前向</text>
+  <text x="767" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">从实际命中边界继续</text>
+  <text x="24" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">保存与加载的两条路径：计划存在 ≠ 字节已经到达</text>
+  <text x="24" y="321" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">保存未完成就复用源页时，还须等待相关保存任务，避免覆盖数据。</text>
+</svg>

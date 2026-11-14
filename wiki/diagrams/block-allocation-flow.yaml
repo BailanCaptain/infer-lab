@@ -1,9 +1,9 @@
 layout: figure
 id: block-allocation-flow
-caption: 调度器向池子要块的判断顺序，以及还块走的路。第 2 站，调度器每一步为每条要算的请求走一遍上排：先查前缀命中（本部署前缀缓存关，直接空手返回），再把尾状态组窗口外的块先还掉，然后 5 个缓存组各算还差几块、加起来和空闲块数比一次。够就一起借出；不够就一块都不借，由调度器处理：还在跑的请求去抢占 running 队尾那条，再算一次；等待中的新请求不抢占，留到下一步。第 7 站请求结束时，或者一条请求被抢占时，都走下排：每个组把自己的块倒序交回，计数减到 0 的块回队列，数据不擦。
+caption: 调度器向池子要块的判断顺序，以及还块走的路。第 2 站，上排简化画出进入分配前后的主要步骤。只有 waiting 中已算数为 0 的请求先查前缀（本部署关闭前缀缓存，返回空）；running 不重复查。启用 full_sequence_must_fit 的准入还会先检查整段是否能容纳，通过后才归还窗口外的块。随后， 5 个缓存组各算还差几块、加起来和空闲块数比一次。够就一起借出；不够就一块都不借，由调度器处理：还在跑的请求去抢占 running 队尾那条，再算一次；等待中的新请求不抢占，留到下一步。第 7 站请求结束时，或者一条请求被抢占时，都走下排：每个组把自己的块倒序交回，计数减到 0 的块回队列，数据不擦。
 size: [900, 336]
 items:
-  - { at: [24, 36], size: [190, 56], text: 查前缀命中, sub: 前缀缓存关：空手返回, tone: control, style: plain }
+  - { at: [24, 36], size: [190, 56], text: waiting 首次查前缀, sub: 已算为 0；running 跳过, tone: control, style: plain }
   - { at: [240, 36], size: [190, 56], text: 先还窗口外的块, sub: 只有尾状态组会有, tone: kv, style: plain }
   - { at: [456, 36], size: [194, 56], text: 5 组各算还差几块, sub: 加起来，和空闲块数比, tone: control, style: plain }
   - { at: [676, 36], size: [200, 56], text: 够：一起借出, sub: 从队头取，计数 0 → 1, tone: kv }
@@ -12,7 +12,7 @@ items:
   - { at: [676, 140], size: [200, 56], text: 新请求：下一步再试, sub: 不抢占，本步不再接纳, tone: control, style: plain }
   - { at: [24, 262], size: [250, 56], text: 每个组把块倒序交回, sub: 请求结束，或被抢占, tone: token, style: plain }
   - { at: [306, 262], size: [270, 56], text: 每块计数减 1, sub: 到 0 且不是占位块，才回队列, tone: kv, style: plain }
-  - { at: [608, 262], size: [268, 56], text: 数据留在原处, sub: 下次被借走时才被覆盖, tone: kv, style: plain }
+  - { at: [608, 262], size: [268, 56], text: 数据留在原处, sub: 后续写入时才被覆盖, tone: kv, style: plain }
 links:
   - { from: [214, 64], to: [240, 64] }
   - { from: [430, 64], to: [456, 64] }
@@ -25,14 +25,16 @@ links:
   - { from: [274, 290], to: [306, 290] }
   - { from: [576, 290], to: [608, 290] }
 texts:
-  - { at: [24, 22], text: 第 2 站 调度：每一步、每条要算的请求都走一遍, size: 13, strong: true }
+  - { at: [24, 22], text: 第 2 站 调度：简化路径，整段准入检查见图注, size: 13, strong: true }
   - { at: [24, 246], text: 第 7 站 收尾，或被抢占时, size: 13, strong: true }
   - { at: [562, 122], text: 不够, size: 12 }
   - { at: [320, 132], text: 再算一次, size: 12 }
 pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L562-L613
+    symbols: [get_computed_blocks]
   - source: vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L236
     symbols: [get_computed_blocks]
-  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L368-L446
+  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L354-L446
     symbols: [remove_skipped_blocks, get_num_blocks_to_allocate, allocate_new_blocks]
   - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L459-L509
     symbols: [allocate_slots, _preempt_request]

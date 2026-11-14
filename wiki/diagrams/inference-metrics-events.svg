@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 448" width="880" height="448" role="img" aria-label="第 2–6 站的引擎事件示意。同一请求首次输出后被抢占，再恢复，最后交回 3 个 token。首次调度只记一次；箭头表达顺序，不按时间比例。阶段时间包含其中等待，不能当成设备 kernel 耗时。">
+  <title>第 2–6 站的引擎事件示意。同一请求首次输出后被抢占，再恢复，最后交回 3 个 token。首次调度只记一次；箭头表达顺序，不按时间比例。阶段时间包含其中等待，不能当成设备 kernel 耗时。</title>
+  <defs><marker id="inference-metrics-events-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="inference-metrics-events-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <rect x="20" y="40" width="840" height="140" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">首次入队 → 首次调度 → 首次输出</text>
+  <rect x="20" y="222" width="840" height="140" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">首次输出以后</text>
+  <path d="M240 112 L340 112" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#inference-metrics-events-ah-ink)"/>
+  <path d="M536 112 L636 112" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-metrics-events-ah-token)"/>
+  <path d="M832 112 L850 112 L850 188 L142 188 L142 270" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#inference-metrics-events-ah-ink)"/>
+  <path d="M240 294 L340 294" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#inference-metrics-events-ah-ink)"/>
+  <path d="M536 294 L636 294" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-metrics-events-ah-token)"/>
+  <rect x="44" y="88" width="196" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="142" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">入队：0 ms</text>
+  <rect x="340" y="88" width="196" height="48" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="438" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">首次调度：20 ms</text>
+  <rect x="636" y="88" width="196" height="48" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="734" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">首次输出：100 ms</text>
+  <rect x="44" y="270" width="196" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="142" y="299" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">抢占：120 ms</text>
+  <rect x="340" y="270" width="196" height="48" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="438" y="299" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">恢复：180 ms</text>
+  <rect x="636" y="270" width="196" height="48" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="734" y="299" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">末次输出：200 ms</text>
+  <text x="290" y="157" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">排队 20 ms</text>
+  <text x="586" y="157" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">prefill 80 ms</text>
+  <text x="734" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">1 token</text>
+  <text x="438" y="342" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">恢复不会重置首次调度时间</text>
+  <text x="734" y="342" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">3 token</text>
+  <text x="440" y="395" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">decode：100 → 200 ms，包含抢占后的等待</text>
+  <text x="440" y="425" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">inference：20 → 200 ms，包含 prefill 与 decode 两段</text>
+</svg>

@@ -1,6 +1,6 @@
 layout: figure
 id: rfork-two-paths
-caption: 新实例 B 的权重有两条来路。① B 先建好空模型、开好放权重的空位，再向 Planner 借一个身份相同、正在服务的实例（这里是 A，叫 seed），拿到租约和 A 的位置；② B 按地址把 A 显存里的权重字节直接读进自己的空位，这一步不经过磁盘，Planner 也不经手权重；读完后 B 把租约还给 Planner，确认收回后自己也登记成 seed；③ 没借到，或中途任何一步出错，先清理已登记的内存和半成品模型，再走默认路径从存储读 checkpoint。A 当初就是走这条默认路径起来的。格子数是示意。
+caption: 新实例 B 的权重有两条来路。① B 先建好空模型、开好放权重的空位，再向 Planner 借一个身份相同、正在服务的实例（这里是 A，叫 seed），拿到租约和 A 的位置；② B 按地址把 A 显存里的权重字节直接读进自己的空位，这一步不经过磁盘，Planner 也不经手权重；读完后 B 在后台归还租约，确认收回后可尝试登记为 seed；③ 没借到或中途出错时，先停止本机 seed 服务、清理登记内存，条件满足才从存储默认加载；停服务或内存清理失败则保活旧存储并报错，租约暂未归还本身不阻止回退。A 在本例中由默认路径加载。格子数是示意。
 size: [900, 420]
 frames:
   - { label: 实例 A · 已在服务（seed）, at: [20, 80], size: [270, 240] }
@@ -39,9 +39,11 @@ texts:
   - { at: [325, 114], text: 登记, anchor: middle, size: 12 }
   - { at: [575, 114], text: ① 借, anchor: middle, size: 12, tone: control }
   - { at: [436, 214], text: ② 按地址直接读权重字节, anchor: middle, strong: true, tone: weight }
-  - { at: [745, 304], text: 传完、归还租约后也能当 seed, anchor: middle, note: true }
-  - { at: [600, 400], text: ③ 借不到或出错：清理后改从这里加载, tone: danger }
+  - { at: [745, 304], text: 传完、归还租约后可尝试当 seed, anchor: middle, note: true }
+  - { at: [600, 400], text: ③ 停服务、注销成功才回退, tone: danger }
   - { at: [300, 400], text: A 当初也是这样加载的, anchor: end, note: true }
 pins:
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L610-L655
-    symbols: [acquire_seed, transfer_from_seed]
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L610-L710
+    symbols: [acquire_seed, transfer_from_seed, prepare_for_fallback, can_schedule_seed]
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L38-L49
+    symbols: [RForkFallbackCleanupResult, service_stopped, memory_reset, can_schedule_seed]

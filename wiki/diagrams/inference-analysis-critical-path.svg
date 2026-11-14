@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 450" width="880" height="450" role="img" aria-label="第 3–5 站的示意时间线，两组使用同一比例。通信使用独立准备的数据，所以能与本次计算重叠。计算由 6 ms 缩短为 4 ms，下一段仍须等通信到 8 ms 结束。">
+  <title>第 3–5 站的示意时间线，两组使用同一比例。通信使用独立准备的数据，所以能与本次计算重叠。计算由 6 ms 缩短为 4 ms，下一段仍须等通信到 8 ms 结束。</title>
+  <defs><marker id="inference-analysis-critical-path-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="inference-analysis-critical-path-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <rect x="24" y="66" width="832" height="146" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="54" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">优化前</text>
+  <rect x="24" y="260" width="832" height="146" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">只加速本卡计算以后</text>
+  <path d="M150 36 L710 36" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#inference-analysis-critical-path-ah-ink)"/>
+  <path d="M710 50 L710 410" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M710 173 L764 173" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-analysis-critical-path-ah-token)"/>
+  <path d="M710 367 L764 367" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-analysis-critical-path-ah-token)"/>
+  <rect x="150" y="90" width="420" height="38" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="360" y="114" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本卡计算：0–6 ms</text>
+  <rect x="360" y="154" width="350" height="38" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="535" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">通信：3–8 ms</text>
+  <rect x="150" y="284" width="280" height="38" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="290" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本卡计算：0–4 ms</text>
+  <rect x="360" y="348" width="350" height="38" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="535" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">通信：3–8 ms</text>
+  <text x="150" y="23" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">0</text>
+  <text x="360" y="23" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">3</text>
+  <text x="430" y="23" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">4</text>
+  <text x="570" y="23" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <text x="710" y="23" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">8 ms</text>
+  <text x="45" y="114" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">计算</text>
+  <text x="45" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">通信</text>
+  <text x="45" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">计算</text>
+  <text x="45" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">通信</text>
+  <text x="798" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">下一段</text>
+  <text x="798" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">8 ms 才开始</text>
+  <text x="798" y="349" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">下一段</text>
+  <text x="798" y="388" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">仍在 8 ms</text>
+  <text x="440" y="438" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">不把重叠时间重复相加；先找最后满足的依赖</text>
+</svg>

@@ -27,7 +27,7 @@ links:
   - { from: [570, 267], to: [612, 335], via: [[612, 267]], tone: control }
   - { from: [545, 390], to: [475, 430], via: [[545, 410], [475, 410]], tone: control }
   - { from: [680, 390], to: [725, 425], via: [[680, 410], [725, 410]], tone: control }
-  - { from: [475, 475], to: [157, 585], via: [[475, 512], [157, 512]], tone: control }
+  - { from: [475, 475], to: [157, 585], via: [[475, 560], [157, 560]], tone: control }
   - { from: [270, 618], to: [330, 618], tone: control }
   - { from: [560, 618], to: [620, 618], tone: control }
   - { from: [727, 650], to: [157, 730], via: [[727, 688], [157, 688]], tone: control }

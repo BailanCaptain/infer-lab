@@ -4,7 +4,7 @@ updated: 2026-10-05
 ---
 # infer-lab Wiki Handbook
 
-这是 `wiki/` 的唯一规则文件。程序按下面六个 H2 切片，把「页面格式 + 提取」给提取 agent、「页面格式 + 整合」给整合 agent、「Lint」给 lint 脚本作对照。只读页、不写页的角色不拿整片「页面格式」，只拿其中两个 H3：问答 agent 拿「读页约定 + 可引来源 + 查询」，覆盖判定 agent 拿「读页约定 + 覆盖判定」（切法见 `scripts/wiki/handbook.ts`）。改规则只改这一个文件；给人看的运维说明在仓库根 `HANDOFF-LLM-WIKI.md`。
+这是 `wiki/` 的入库与阅读协议。程序按下面六个 H2 切片，把「页面格式 + 提取」给提取 agent、「页面格式 + 整合」给整合 agent、「Lint」给 lint 脚本作对照；写页角色同时收到 [正式写作标准](../docs/wiki-writing-standard.md) 全文，教学规范只在该标准维护。只读页、不写页的角色不拿整片「页面格式」，只拿其中两个 H3：问答 agent 拿「读页约定 + 可引来源 + 查询」，覆盖判定 agent 拿「读页约定 + 覆盖判定」（切法见 `scripts/wiki/handbook.ts`）。给人看的运维说明在仓库根 `HANDOFF-LLM-WIKI.md`。
 
 ## 页面格式
 
@@ -20,7 +20,7 @@ updated: 2026-10-05
 - **主模型的创新不能挤掉基础教学**：稀疏注意力须建立在讲清密集因果注意力的访问、评分与汇合之后；并行策略须建立在张量分片、rank/通信组以及相关通信原语的输入输出之后。不能只给一个外链或一句定义就进入 GLM 特例。通信图标出发送者、接收者、数据形状与结果归属；需要时间顺序时使用静态分格图，按 10-02 决定不再制作知识库动图。
 - 正式组件名、函数名、文件名或参数名在解释职责、接口、配置时可以直接出现；就地解释它是什么、为何此处需要它。源码按输入、输出、状态与协作关系讲，不写成函数名流水账。
 - 用连贯的技术叙述解释计算顺序、数据变化和因果关系。避免“初读只需记住”“不要误读”“不能想象成”等预设读者误解的口吻，也不以口诀替代解释。需要区分的概念直接说明各自的含义和使用范围；适用条件随结论交代，写作取舍与教学安排留在维护文档。
-- 数值、版本差异、反直觉结论的证据就近标注，读者可以直接核对。推导、假设、推断和限制也写在影响理解的位置，不藏到末尾才说明。标记的编号、密度与来源要求照旧。
+- 数值、版本差异、反直觉结论保留与来源的对应关系；教学页的角标位置遵守正式写作标准，不在教学正文插入证据角标。成立条件在影响理解的位置说明，来源索引和待核项按标准归入页末源码区。证据等级与编号的含义见「读页约定」。
 - 教学区使用问题式小节标题；`## 对照源码` 下按顺序写「怎么开」「会报什么错」「开销和什么时候别开」「版本差异」「源码位置」。不适用的项目解释原因；参数页与来源页继续使用各自格式。自动强制名单与阈值见 `scripts/wiki/standard-pages.json`，不在这里复制另一份数值。
 - 改写时保留必要事实、条件、版本与来源。对于 mHC 等模型特有或尚不普遍的机制，保留真实位置与连接，按推理教学需要分配篇幅；影响状态或资源计算的差异不能省略。
 - 参数页（`type: param`）继续使用「参数页与来源页」规定的四节和自动生成区，不套用教学页的自由分节。
@@ -64,12 +64,13 @@ frontmatter 的 `summary` 用白话写，给初学者看。检索按字段加权
 - 页级 `evidence` 是**整页主体结论**主要靠什么撑着，不是页里出现过的最高等级。
 - 句末的 `[C3]` 表示这句话的依据是本页 `sources` 第 3 条（从 1 数起），阅读页上点它就跳到那几行源码或那段文档。没有标记的叙述句，依据在页面的来源列表里。
 
-**版本。** 在册三个版本，叫法固定：
+**版本。** 在册四个社区版本，叫法固定：
 
 | 叫法 | seeds 里的 ref 名 | 是什么 |
 |---|---|---|
 | v0.23 维护分支 | `releases/v0.23.0` | 稳定分支，配套上游 vLLM v0.23.0 |
 | v0.26 分支 | `releases/v0.26.0rc` | 还在 rc 阶段，正文写明是哪一天的源码快照，配套 vLLM v0.26.0 |
+| v0.30.0rc2 分支 | `releases/v0.30.0rc2` | 用户指定 rc2 分支的 2026-11-03 核对快照，配套上游 vLLM v0.30.0；不代表 Ascend v0.30.0 正式版 |
 | main 开发主线 | `main` | 开发中，随时会变 |
 
 - 页头「已核对 …」来自 frontmatter 的 `verified`：有人对着那个版本的源码逐条核过，差异已写进正文。**没列出的版本是还没人核过，不等于行为相同。**
@@ -214,7 +215,7 @@ file: <id>
 
 **一页覆盖的是一组版本，不是一个 commit。** 任务会告诉你要对照哪几个 ref，每个 ref 一份只读工作树。
 
-**在册的是三个版本，2026-09-21 用户定：加版本，不是换版本。** 上游每半年放一个维护分支，用户手上的机器不会跟着一起升，所以旧分支不下架。三个版本的叫法与 ref 名见「读页约定」的版本表。
+**在册的是四个社区版本；2026-09-21 用户定：加版本，不是换版本，2026-11-03 新增 v0.30.0rc2。** 用户手上的机器不会跟着社区一起升级，所以旧分支不下架。版本叫法与 ref 名见「读页约定」的版本表，提交只在 seeds 中定义；独立 RFork 与 GLM 教学固定基线保持各自范围。
 
 规矩：
 
@@ -227,7 +228,7 @@ file: <id>
 
 #### `verified`：这页有人对过哪几个版本
 
-frontmatter 的 `verified` 是一个 ref 名数组，必须在 seeds 里登记。社区页面用 `"releases/v0.23.0"`、`"releases/v0.26.0rc"`、`"main"`，独立仓库使用下面的限定形式；写错了 lint 的 `unknown-verified-ref` 会拦。阅读页页头显示对应的版本名。
+frontmatter 的 `verified` 是一个 ref 名数组，必须在 seeds 里登记。社区页面用 `"releases/v0.23.0"`、`"releases/v0.26.0rc"`、`"releases/v0.30.0rc2"`、`"main"`，独立仓库使用下面的限定形式；写错了 lint 的 `unknown-verified-ref` 会拦。阅读页页头显示对应的版本名。只补了一个新版本的局部差异，不等于整页已完成该版本逐条核对，不能因此自动增加 verified。
 
 独立仓库可以写带仓库限定的 `repo:ref`，必须在 seeds 中真实存在。RFork 工作版用 `rfork:main`；这里的 `main` 只是克隆工具的默认键，表示钉住的用户工作版，绝不是社区 main。不要给工作版页补社区 `main` / `releases/...` 标记。`wiki:versions` 默认比较的是社区版本，不能用它的 `--mark main` 给 RFork 认证。
 
@@ -243,7 +244,7 @@ pnpm wiki:versions [--from <ref>] [--to <ref>] [--mark <id,id>] [--init] [--out 
 
 **为什么不自动记：所引的行没变，不等于这一页的每句话都成立。** 数出来的 `[D]` 结论——「442 个文件」「78 个方法」——不落在任何一条来源的行号里，脚本看不见它们。第一次跑就撞上了：目录地图页所引的行逐条原样，但它数的文件数、方法数在 v0.26 上显然不同。所以命令只提供「看完之后记一笔」，`--mark` 必须由核过的人敲。（`--init` 是一次性的迁移开关，按每页已经引用过的版本回填，之后不要再用。）
 
-**不要自己写「版本谱系」那一节。** 参数在哪些版本存在、哪个 PR 引入、哪个 PR 移除、影响面多大，由 `pnpm wiki:lineage` 从 git 算出来——agent 写会编 PR 号，脚本算的是事实，而且上游一更新重算即可。
+**不要手写自动生成的「版本谱系」。** 参数刷新从固定来源恢复定义身份；类字段按文件、类和字段名检查各版本是否定义，不把全仓同名文本计数当参数支持范围，也不推测精确引入/移除 PR。手动运行时用 `pnpm wiki:lineage <参数名> --page <页面路径>`；不带页面的文本检索结果只能作调查线索。`wiki:lineage:apply` 对缺少自动定义的人工参数页保留原文并报告跳过；固定定义损坏或身份不匹配则阻止整批写入。静态字段存在仍不等于运行时启用或组合可用。
 
 ### 条件
 
@@ -326,25 +327,77 @@ RFork 专章维护用户指定的独立代码，版本真相源为 `seeds/rfork.
 
 ### 可引来源
 
-**「读什么」不限，「引什么」才限。** 读得广理解才准——读一篇博客搞懂了某个机制，回源码核实后照常写进正文。但 `sources` 是「你可以去核对」的承诺，只能放下面这张表里的来源。
+**阅读不限，引用按来源分级。** `sources` 承诺读者可核对，等级与范围按下表及后面的规则。
 
 | 域名 | 是什么 | 档 |
 |---|---|---|
+| `zhuanlan.zhihu.com/p/2095560295930508953`（精确） | DeepSeek 的固定 DeepInfer 部署问答明确指向的自有文章；仅此文章，不开放知乎平台 | 官方 |
+| `z.ai/blog/scaling-pain`（精确） | Ascend KVPP 固定指南链接的 Z.ai LayerSplit 与生产状态一致性文章；仅此文章，其收益和事故限于原文系统 | 官方 |
+| `github.com/ModelEngine-Group/unified-cache-management/blob/4b9acbc8dede919ae17b14c3a23903e89623d5e8/` | Ascend 部署指南依赖的 UCM 官方仓库固定提交；源码与文档各按实际读取范围引用，新版能力不套回旧部署 | 官方 |
+| `github.com/kvcache-ai/Mooncake/blob/4da33e5b44c28aec262dff63458c0bdb1c9bc8b0/` | 上游 Store 指南链接的 Mooncake 官方仓库固定快照；只按实际核读范围引用，不将 SDK 新目录视为旧 vLLM 的安装锁定 | 官方 |
+| `amcr.lbl.gov/departments/computer-science-department/ppan/roofline-performance-model/`（精确） | Berkeley Lab 的 Roofline 模型介绍；仅此页面，不开放同目录或整个站点 | 官方 |
+| `www.kernel.org/doc/html/v6.12/admin-guide/cgroup-v2.html` | Linux 6.12 cgroup v2 接口与层级 | 官方 |
+| `docs.docker.com/engine/containers/resource_constraints/` | Docker 主机与容器资源约束 | 官方 |
+| `docs.docker.com/reference/cli/docker/container/ls/` | Docker 状态与退出信号；137 需结合事件判断 | 官方 |
+| `docs.docker.com/reference/cli/docker/container/kill/` | Docker kill 默认与指定信号 | 官方 |
+| `kubernetes.io/docs/concepts/configuration/manage-resources-containers/` | Kubernetes request、limit 与运行时约束 | 官方 |
+| `kubernetes.io/docs/tasks/configure-pod-container/assign-memory-resource/` | Kubernetes 内存限制与 OOMKilled 取证练习 | 官方 |
 | `docs.vllm.ai` | vLLM 与 vllm-ascend 官方文档 | 官方 |
 | `www.hiascend.com` | 昇腾 / CANN 官方文档 | 官方 |
 | `e.huawei.com` | 华为官方产品与规格文档 | 官方 |
+| `public-download.obs.cn-east-2.myhuaweicloud.com/ascend/昇腾950 NPU架构白皮书.pdf` | 已核白皮书原件，仅此文件，不信任整个 OBS 域 | 官方 |
+| `www.opencompute.org/documents/` | OCP 格式规范，如 MX | 官方 |
+| `docs.nvidia.com/deeplearning/` | NVIDIA 深度学习格式与产品行为 | 官方 |
+| `docs.nvidia.com/megatron-core/` | Megatron Core 的 SP/CP/TP 及组合 | 官方 |
+| `docs.nvidia.com/nemo/megatron-bridge/` | Megatron Bridge 并行配置与通信机制 | 官方 |
+| `developer.nvidia.com/blog/` | NVIDIA 格式与产品技术说明 | 官方 |
 | `blog.vllm.ai` | vLLM 官方博客 | 官方 |
 | `discuss.vllm.ai` | 用户论坛，讨论内容不自动成为官方结论 | 社区 |
 | `github.com/vllm-project/` | 上游仓库、issue、PR、release | 官方 |
-| `github.com/huggingface/transformers/blob/` | Transformers 原仓源码；引用固定提交，不包含 issue、PR、其他仓库或 fork，不据此证明 vLLM-Ascend 支持 | 生态 |
+| `github.com/Ascend/op-plugin/blob/aed3889c79923863fc9bfb36105cd6f577508cde/docs/zh/custom_APIs/torch_npu/torch_npu-npu_moe_distribute_combine_v2.md` | 已核读的昇腾通信算子接口与产品约束；仅此固定文件，不证明旧容器已支持全部模式 | 官方 |
+| `github.com/Ascend/msmodelslim/blob/3b3f5151521f0b2a0c1f29937fc735ba4938db43/example/Qwen3-MOE/README.md` | 已核读的 ModelSlim 26.0.0 分支 Qwen3-MoE 配方说明；模型、工具与推理环境分别核对 | 官方 |
+| `github.com/Ascend/msmodelslim/blob/3b3f5151521f0b2a0c1f29937fc735ba4938db43/example/Qwen3-MOE/quant_qwen_moe_w8a8.py` | 上述固定配方的样本读取、混合精度与导出消费者；只登记此文件 | 官方 |
+| `github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/python/xgrammar/structural_tag.py` | 已核读 XGrammar v0.2.0 的标签格式定义；仅此固定文件，不证明现场依赖版本或 NPU 编译通过 | 生态 |
+| `github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/python/xgrammar/compiler.py` | 同一固定版本的编译接口和空白分隔符语义；不扩展到其他文件、提交或讨论 | 生态 |
+| `github.com/huggingface/transformers/blob/` | Transformers 原仓源码，钉定提交 | 生态 |
+| `github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/python/xgrammar/tokenizer_info.py` | XGrammar 固定 tokenizer 元数据入口；仅此文件，按实际范围引用 | 生态 |
+| `github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/tokenizer_info.cc` | 同版词表补齐与结束编号处理；不扩展到其他文件或提交 | 生态 |
+| `github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/tokenizer_info_impl.h` | 同版 tokenizer 元数据内部字段；按实际范围引用 | 生态 |
+| `github.com/mlc-ai/xgrammar/blob/5433fdbea7003eea61cb863768a05fb8da3bf919/cpp/grammar_matcher.cc` | 同版语法接受、掩码与回滚消费者；仅已核范围，不代表全部库功能验收 | 生态 |
+| `github.com/snowflakedb/ArcticInference/blob/3145f23e4c54465f1f19c4592e6713f905ab29f1/arctic_inference/suffix_decoding/cache.py` | Suffix 解码的当前请求与历史缓存接口；仅此固定文件 | 生态 |
+| `github.com/snowflakedb/ArcticInference/blob/3145f23e4c54465f1f19c4592e6713f905ab29f1/csrc/suffix_decoding/suffix_tree.cc` | 同版后缀树搜索与草稿选择实现；按实际范围引用，不代表整文件核读 | 生态 |
+| `github.com/intel/auto-round/blob/a85997e19d97762172155c93c4dfc3fcc3976e71/docs/step_by_step.md` | AutoRound 的方案、算法与导出格式区分；仅已读相关小节，不扩展到其他提交或文件 | 生态 |
+| `github.com/ModelCloud/GPTQModel/blob/be3852bf9871785f5fb8f01f359105590a5928b2/README.md` | GPTQModel 量化与逐模块配置、融合层约束；按实际小节引用，不代表新闻和全部格式全文核读 | 生态 |
+| `github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/pyproject.toml` | vLLM IO 示例依赖的 TerraTorch 插件入口与依赖声明；仅此固定文件 | 生态 |
+| `github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/terratorch/vllm/plugins/segmentation/__init__.py` | 同版分割 IO 插件注册函数；仅此文件，不代表 NPU 部署验证 | 生态 |
+| `github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/terratorch/vllm/plugins/segmentation/segmentation_io_processor.py` | 同版解析、分片与结果合并实现；按实际范围引用，不扩展到其他插件 | 生态 |
+| `github.com/prometheus/prometheus/blob/997549d4479dbc52382c83679dd998cd1c8eff27/docs/querying/functions.md` | 已核读的 rate 与 histogram_quantile 查询规则；仅此固定文件，非全文阅读声明 | 生态 |
+| `github.com/prometheus/client_python/blob/e2f2bf9dcb49b8e8c0bc7fc089ff550edd9d286d/docs/content/multiprocess/_index.md` | Python 指标客户端的多进程目录与聚合约束；仅此固定说明 | 生态 |
+| `github.com/prometheus/docs/blob/cc0672badce86173b9afaa95a59904576bcd6d6a/docs/practices/histograms.md` | 直方图的均值、累积桶与分位数误差原始说明；仅此固定文件 | 生态 |
+| `github.com/meta-pytorch/tlparse/blob/98b8782b90f076f3d77a4a414316e3c8d0d127d4/README.md` | vLLM 编译调试指南承接的 PyTorch 日志解析工具；仅已核读的固定 README，不扩展到其他文件或讨论 | 生态 |
+| `github.com/huggingface/tokenizers/blob/afaae088837b277c19f90604a1111a272838857b/tokenizers/src/models/bpe/model.rs` | 已核读的 Tokenizers BPE 模型编码路径；仅此固定文件 | 生态 |
+| `github.com/huggingface/tokenizers/blob/afaae088837b277c19f90604a1111a272838857b/tokenizers/src/tokenizer/mod.rs` | 同一固定版本的解码与特殊 token 过滤；仅此文件 | 生态 |
+| `github.com/huggingface/tokenizers/blob/afaae088837b277c19f90604a1111a272838857b/tokenizers/src/tokenizer/added_vocabulary.rs` | 同一固定版本的新增词表 ID 分配；不扩展到其他文件、提交或讨论 | 生态 |
+| `github.com/deepseek-ai/DeepInfer/blob/` | DeepInfer 原仓源码与文档，钉定提交；不证明完整生产系统已开源 | 生态 |
+| `github.com/deepseek-ai/deepseek-recipe/blob/` | DeepSeek 协议转换库，钉定提交；不证明推理后端接入或约束执行 | 生态 |
 | `gitee.com/ascend/` | 昇腾一手仓库（ATB 算子库等） | 官方 |
 | `gitcode.com/Ascend/` | 昇腾一手仓库（msmodelslim 等） | 官方 |
 | `gitcode.com/cann/` | CANN 一手仓库（ops-transformer 等） | 官方 |
-| `quay.io/api/v1/repository/ascend/vllm-ascend/` | 官方部署教程指定镜像仓库的标签、清单等元数据；不据此证明部署已跑通 | 官方 |
-| `quay.io/v2/ascend/vllm-ascend/` | 同一镜像仓库的 OCI 清单与配置 blob；核对 digest 及 CPU 架构，不覆盖其他组织或仓库 | 官方 |
+| `quay.io/api/v1/repository/ascend/vllm-ascend/` | 部署教程指定镜像的标签与清单，不证明部署跑通 | 官方 |
+| `quay.io/v2/ascend/vllm-ascend/` | 同仓 OCI 清单与配置；核 digest 和 CPU 架构 | 官方 |
 | `arxiv.org` | 论文 | 论文 |
 | `pytorch.org` | PyTorch / torch_npu 文档 | 生态 |
 | `docs.pytorch.org` | PyTorch 官方 API 文档 | 生态 |
+| `uvicorn.dev/settings/` | Uvicorn 设置文档路径，HTTP keep-alive 语义 | 生态 |
+| `github.com/Ascend/pytorch/blob/8751b36d5d6959e499e6bf6530c1928060ced030/torch_npu/csrc/core/npu/NPUAllocatorConfig.h` | torch_npu 2.10.0.post2 分配器构造默认与环境读取；仅此文件 | 生态 |
+| `github.com/Ascend/pytorch/blob/8751b36d5d6959e499e6bf6530c1928060ced030/torch_npu/csrc/core/npu/NPUAllocatorConfig.cpp` | 同版分配器配置解析与互斥检查；仅此文件 | 生态 |
+| `github.com/Ascend/pytorch/blob/8751b36d5d6959e499e6bf6530c1928060ced030/torch_npu/csrc/core/npu/NPUCachingAllocator.cpp` | 同版可扩展段机制与实现；仅此文件 | 生态 |
+| `github.com/pytorch/pytorch/blob/449b1768410104d3ed79d3bcfe4ba1d65c7f22c0/torch/csrc/distributed/c10d/ProcessGroupGloo.cpp` | PyTorch 2.10 固定 Gloo 网卡选择；仅此文件 | 生态 |
+| `github.com/pytorch/pytorch/blob/449b1768410104d3ed79d3bcfe4ba1d65c7f22c0/torch/csrc/distributed/rpc/tensorpipe_agent.cpp` | 同版 TensorPipe 网卡消费者；不代表主配方启用 RPC | 生态 |
+| `github.com/Ascend/pytorch/blob/8751b36d5d6959e499e6bf6530c1928060ced030/torch_npu/csrc/distributed/rpc/tensorpipe_agent.cpp` | torch_npu 2.10.0.post2 对应 TensorPipe 消费者；仅此文件 | 生态 |
+| `github.com/Ascend/pytorch/blob/8751b36d5d6959e499e6bf6530c1928060ced030/torch_npu/distributed/rpc/backend_registry.py` | 同版后端注册与 agent 初始化的区别；仅此文件 | 生态 |
+| `github.com/pytorch/gloo/blob/54cbae0d3a67fa890b4c3d9ee162b7860315e341/gloo/transport/tcp/device.cc` | PyTorch 2.10 固定子模块的接口名精确匹配；仅此文件 | 生态 |
+| `numpy.org/doc/stable/reference/random/legacy.html` | NumPy 种子与状态规则，不证明 vLLM/Ascend 端到端复现 | 生态 |
 | `triton-lang.org` | Triton 文档 | 生态 |
 | `huggingface.co` | 模型卡 | 生态 |
 | `modelscope.cn` | 模型卡 | 生态 |
@@ -353,16 +406,11 @@ RFork 专章维护用户指定的独立代码，版本真相源为 `seeds/rfork.
 
 规则：
 
-- **`evidence: S` 要求至少一条「官方」或「论文」档的来源。** 生态站撑不起 S——引 PyTorch 文档说明 torch_npu 的行为是合理的，但那不是「vllm-ascend 官方直接支持」。
-- **表外的站点可以引，但撑不起高等级**。白名单管的是「什么配得上高等级证据」，不是「什么都不许引」——引一篇博客并诚实标成 `I`（推断）是有用的，它告诉读者你的理解从哪来、且没能从一手来源确认。具体分三档：
-  - 表外来源 + `evidence` 是 `S` 或 `C` → **报错**。拿博客冒充官方实证是真问题。
-  - 表外来源 + `evidence` 是 `D`/`I`/`A` → **只警告**，人审时扫一眼。
-  - 一页的来源**全部**在表外 → **报错**。这页没有任何可核对的一手依据，不该进知识库。
-- **镜像站不可引**（`hf-mirror.com`、`mirrors.tuna.tsinghua.edu.cn`、`mirrors.huaweicloud.com` 等）——内容是别处的副本，要引就引原站。
-- GitHub 官方组织下的 issue / PR / discussion 仍属于社区讨论；论坛内容同理。它们可引，但单靠域名不支持 S。对讨论里的说法保留 I / D；欲升级为源码事实，必须另给钉定源码依据。
-- **AI 生成的二手知识库不可引**，包括 vllm-ascend README 挂徽章的 `deepwiki.com`。
-- **本地优先**：本地仓库里能读到的就读本地（快、钉得住 commit、能给行号）。官网用于两种情况——渲染后才有的内容，以及本地没克隆的版本。
-- 这张表与 `scripts/wiki/sources.ts` 的 `CITABLE_DOMAINS` 必须逐条一致，有测试锁住。发现新的权威来源就两边一起加。
+- S 至少需一条官方或论文来源，生态来源不足以支持 S。表外来源配 S/C 报错，配 D/I/A 警告；一页全部来源在表外则报错。
+- 路径限定范围：文件只认该文件，目录只认该前缀；标注“（精确）”的页面即使以 `/` 结尾也只认完整路径，不扩展到子路径、其他版本、仓库、组织或 fork。上述 blob 路径不包含 issue/PR。格式规范及其他产品文档不证明 vLLM-Ascend 支持；结论保留原版本、硬件和配置条件，示例不代替现场验证。
+- 官方组织的 issue/PR/discussion 和论坛仍是社区材料，单靠域名不支持 S；其中说法保留 I/D，升级为源码事实须给钉定源码。
+- 引原站，镜像站和 AI 二手知识库不可引，包括 hf-mirror、清华/华为镜像与 deepwiki；README 推荐也不改变其性质。
+- 本地优先，引用实际核读的行；官网用于渲染内容或本地未克隆版本。表与 `scripts/wiki/sources.ts` 的 `CITABLE_DOMAINS` 逐条一致，新增权威来源同步两处。
 
 写行号必须是你实际打开并阅读过的行。
 
@@ -402,7 +450,7 @@ RFork 专章维护用户指定的独立代码，版本真相源为 `seeds/rfork.
 
 规则：
 - 读 `_drafts/` 里列出的草稿，以及**任务里列出的那些现有页**（程序已按 related 与章节交集挑好，通常几页到几十页）。**不要自己去扫 `concepts/` 全库**——放量后那是上百页、几十万 token，会撞上下文且每批重读一遍。任务说「没有相关的」就是真的没有，直接晋升。对这些页做七件事：
-  1. **同 id = 修订同一页**：草稿 id 与现有页 id 相同，说明这是同一页的重新提取，记为 promoted。在副本中整理成一份连贯正文；保留已有版本谱系、人工 `contradicts` 与别名。正文有变化时，必须在决策的 `revisions` 中逐页说明是补充、编辑还是推翻旧结论，包含理由；不能默认以新草稿覆盖事实。已有「已废弃的说法」由引擎保留，禁止 agent 伪造或改写。
+  1. **同 id = 修订同一页**：草稿 id 与现有页 id 相同，说明这是同一页的重新提取，记为 promoted。在副本中整理成一份连贯正文；保留已有版本谱系、人工 `contradicts` 与别名。正文有变化时，必须在决策的 `revisions` 中逐页说明是补充、编辑还是推翻旧结论，包含理由；不能默认以新草稿覆盖事实。修订历史保留在工作流记录中；候选正文须移除旧机器历史尾注。
   2. 判重与合并：id **不同**但讲同一个东西 → 把草稿的新增内容合进现有页，草稿记为 merged。
   3. 补 `relations`：草稿之间、草稿与现有页之间，凡是说得清关系的都连上，每条写明 kind 与 note。**只写单向**（写在依赖方那页），反向边由程序派生，不要手补。同时删掉说不出 `note` 的边——连不清楚的关系不如不连。
 
@@ -431,7 +479,8 @@ RFork 专章维护用户指定的独立代码，版本真相源为 `seeds/rfork.
   { "promoted": ["a"], "merged": [], "rejected": [], "contradictions": [], "revisions": [{ "id": "a", "kind": "supersede", "reason": "新证据推翻旧结论", "claims": [{ "old": "X 默认开启。", "replacement": "X 已被移除。", "sources": ["r@1234567:config.py#L1"] }] }] }
   ```
 - 修订分类：`supplement` 只能增加内容，旧正文的非空行必须按原顺序保留；`editorial` 用于改措辞、压缩重复或整理结构，必须说明为什么没有改变事实；`supersede` 表示事实被推翻，`claims` 的旧原文须唯一匹配旧正文，替代结论须存在于新正文，依据须列入新页 `sources`。程序不会把 `editorial` 当成事实正确的证明，审阅人仍要核对分类与完整 diff。只改 frontmatter 而未改正文时可省略修订分类。
-- 引擎在待审候选末尾生成「已废弃的说法」：保留原文、替代结论、引擎确定的日期与依据；历史原文用代码块保留，另列当时来源编号，避免把旧角标错误解释为新页来源。先前历史只追加不覆盖，新页现有来源编号保持不变。引擎会把这部分一并交给 lint、审计与人审；不接受 agent 自写的历史节。
+- 引擎校验修订决策中的旧原文、替代结论和依据；记录随任务、提案及审阅保留，不再追加到学习正文，也不把仅用于旧结论的来源重新添入新页。旧待审提案如果仍携带历史尾注，发布前必须重新整合。真正的版本差异应以适用条件讲清，不以机器修订日志代替解释。
+- 静态参数同步可以原位刷新已有完整参数页的自动生成区；新字段只能生成到 `_drafts/`。`wiki:build-param-pages` 同样遵守这一规则。扫描骨架须先补齐教学正文并审阅，不能因为字段可信就直接进入正式目录。
 - 检查证据等级有没有被高估：正文出现「通用」「任何模型」「一般来说」这类推广措辞，而所引代码带前提断言或只覆盖部分情形时，把该页 `evidence` 降到 `D`，并在 `contradicts` 之外的正文里补一句限制条件。这一条只降级不拒收。
 - 拒收条件：sources 为空、行号明显编造（文件不存在）、`param` 页缺那四节里的任何一节、正文连一个 `##` 小节都没有、summary 超过一句话。教学页有几节不是拒收依据——`missing-section` 只查 `param` 的必需 H2，教学页的节数由内容决定。
 - 检查跨页重复：删除从其他专题重复搬来的整段讲解，保留引出本页机制所需的基础、问题与对照，并链接完整专题；依赖关系用带 `note` 的 `relations` 表达。不设“一句话”上限，不因其他页讲得更全而删掉本页必需的推导。
@@ -441,23 +490,24 @@ RFork 专章维护用户指定的独立代码，版本真相源为 `seeds/rfork.
 
 ## 查询
 
-你是课程知识库的问答 agent，回答学习者关于大模型推理、vLLM、vLLM-Ascend 与昇腾硬件的问题。**读者多是初学者**，可能还不知道 token、KV Cache、decode、TP 这些词是什么。页面上的证据等级、版本和页型记号怎么读，见上面的「读页约定」。
+帮助初学者理解推理、vLLM、vLLM-Ascend、昇腾，帮助从业者分析现场问题。解释术语，给出可执行步骤；证据、版本、页型见「读页约定」。
 
-每轮只读本轮的知识快照：它由正式页、引用快照和本手册生成，索引与正文来自同一目录。Read / Grep / Glob 只在快照目录里用，不读活跃 wiki、草稿、任务记录或本地上游仓库。之前的问题只帮你理解指代，不是证据：重新读当前页核对，指代不清先澄清。
+每轮只读本轮快照的索引与正文，不读活跃 wiki、草稿、任务记录或上游仓库。历史用于理解指代，证据核当前正文；指代不清先澄清。
 
 规则：
-- **先直接回答所问的问题。** 程序给出的候选页与子图可能不相关；先确认同一配置标识、机制及源码版本，不能因词相似就替换概念。精确配置、数值和版本问题只回答所问范围；综合问题再沿相关关系解释依赖和用途。不机械套用“地基、核心、下游、边界”四段，不添加无关版本和实现细节。
-- **长度以讲清为准。** 先给一句话答案，再补读者理解它必需的步骤：不为了短省掉读者跟不上的那一步，也不堆和问题无关的细节。
-- **术语第一次出现时用一句白话解释。** 库里有这个词的页，就按那页 `summary` 的说法解释并给链接，例如「[KV Cache](concepts/kv-cache.md)：把已经算过的 token 的 K 与 V（MLA 模型是压缩后的 latent）留在显存里，decode 时不再重算」；没有的话用通用说法解释，不借解释夹带源码或版本结论。同一个词只解释一次。
-- 实际引用的页面必须**真的打开读**，不要只用摘要拼答案。综合问题可读地基与下游各一两页，不必读全。
-- 先看程序预检索的候选页；不够再按系统提示给的目录搜，再读正文，再回答。
-- 知识库没有时，本轮若给了 WebFetch / WebSearch，可查官方来源再答（什么算官方见「可引来源」）：写明「知识库未收录，以下来自官方来源」，给出实际访问的 URL，本库内容与临时联网所得分开写。没给联网工具时只用快照。查不到就说明缺哪条证据，不用模型记忆猜源码路径、版本行为、设计动机或性能结果。
-- 回答用中文，引用页面用相对链接 `[KV Cache](concepts/kv-cache.md)`，让前端能跳转。
-- 普通问答只用页面链接；源码角标留在知识页供读者追溯，回答中不复制或重编 `[C1]`、`[S2]` 等编号。正文确实支持这句话才引用。公式计算标 `[D]`、推断标 `[I]`，再附依据页链接。页面有材料时按其实际内容回答，不把 `I` 等级本身当作“库内没有资料”。
-- 只有用户明确要求定位具体出处时，才使用程序提供的、已绑定原页的完整编号链接；不得自编编号、改变等级或把别页同号来源混用。
-- 版本按页面明确的分支和快照说明核对，不能凭提交时间、记忆或别页对 main 的描述换标签。计算题先完成算式核算，再写开头结论；开头、算式与末尾数值必须一致，删去已纠正的错误草算。
-- 检查控制流时，逐分支区分「记录警告后继续」「修改值后继续」「抛错后停止」，不要概括成所有检查独立或不会短路；默认值、缺省值与显式输入分别核对。说明设计动机或因果关系必须有直接依据，否则删去或明确标为推断，不能把错误消息当成注释原文。发送前核对标题和一句话概括是否保留正文中的条件、警告和异常；不要用含义相反的词压缩结论。
-- 你只有读工具，不要尝试写文件。缺口记录、「存进 wiki」、保存和发布都由程序在回答之后处理，以页面返回的状态为准：回答里不要说已记录、已补写、已保存或已解决。回答末尾的隐藏覆盖状态照系统提示给的格式写（协议只定义在 `server/coverage.ts`）。
+- **直接回答，长度以讲清为准。** 先结论后步骤；核对候选正文的配置、机制和版本，不因词相似替换概念。精确题答所问，综合题再讲依赖与用途，不套固定章节。
+- **先回答本轮要决定的事。** 问“先查什么”时，只给区分首要候选的 1–3 项取证动作，写清来源与判读；尚未选中的分支只说明何时进入，不展开字段清单。用户提前给了恢复目标，本轮只确认沿用，不重列验收表。新证据选定分支后再给该分支细项；已排除的候选停查。明确沿用原负载或配置即沿用，不因没重复数值而判缺项。未知项给下一步，不猜修复。
+- **平台以现场为准。** 硬件、软件栈未知就标待核，用通用取证；专有命令、默认值注明条件，不跨平台套用或默认 GLM 基线。
+- **到实验或验收阶段再展开条件。** 已选定对照、准备采用修改或问能否收束时，按正文明确控制变量、对象、范围和统计口径，并核对原目标的质量、延迟/吞吐、成功/失败/未完成及资源；启动/执行图只核受影响的启动成功、准备耗时及峰值。单次确认与持续运行验收分开。沿用已证实结果，只补影响决定的缺项，不新增门槛；未达标只分流剩余问题。局部计算、概念题和已否定的改法不套验收清单。
+- **发送前核对。** 条件、动作、判读有正文依据，链接不能替代解释。门槛注明≤/≥；首尾、表格、时序一致，不颠倒计算与等待。条件补测不变成必做门槛；缺项明说。
+- **术语首次出现用白话解释。** 有页按其 `summary` 解释并链接；无页用通用解释，不夹带源码或版本结论，不重复释义。
+- 引用须核读候选正文，不拼摘要；不足再检索，综合题按需读上下游。
+- 库内缺知识且能联网时，查官方材料、链接已访问的 URL，标明「知识库未收录，以下来自官方来源」。无工具或查无依据则说明缺口，不凭记忆猜源码、版本、动机或性能。
+- 中文作答，用相对链接指向支持结论的正文。普通问答不抄或重编源码角标；计算标 `[D]`、推断标 `[I]` 并链接依据；I 级材料仍是知识。
+- 用户要求具体出处时才用程序提供的原页完整编号链接，不自编编号、改等级或混用别页同号来源。
+- 版本按原页分支和快照，不凭时间、记忆或别页 main 改标签。核现场 commit、加载路径、相关进程最终配置；commit 未知标待核，digest 须追溯代码。计算先核算，结论一致，不留错误草算。
+- 控制流区分警告继续、改值继续、抛错停止，核默认/缺省/显式值及短路关系。因果与动机无依据则删去或标推断，不把错误当注释；标题概括保留条件、警告和异常。
+- 只读不写。缺口记录、保存、发布以程序返回为准，不自称已记录、补写或解决。隐藏覆盖状态遵循系统提示与 `server/coverage.ts` 协议。
 
 ## 覆盖判定
 

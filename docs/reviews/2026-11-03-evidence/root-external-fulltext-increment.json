@@ -1,0 +1,121 @@
+{
+  "reviewer": "root",
+  "recorded_at": "2026-11-03T15:11:05.476162+08:00",
+  "read_records": [
+    {
+      "url": "https://arxiv.org/html/1905.12322v3",
+      "html_cache": ".tmp/wiki-evidence-2026-11-03/papers/1905.12322v3.html",
+      "html_sha256": "7d164727bd9d1062763d75bd676d63b321739612115e3e63dab8b1924a06e125",
+      "text_cache": ".tmp/wiki-evidence-2026-11-03/papers/1905.12322v3.txt",
+      "text_sha256": "c424743a9f6545a24460052a9e1c09e4b088388ac6d3a8271a4c4b5c4e1e3f1f",
+      "text_lines": 447,
+      "actually_read_ranges": [
+        [
+          1,
+          447
+        ]
+      ],
+      "full_text_read": true,
+      "figures_visual_review": false,
+      "includes": "body, tables, captions, references, appendices",
+      "not_claimed": "Linked references or all figure images read; local hardware results"
+    },
+    {
+      "url": "https://arxiv.org/html/2209.05433v2",
+      "html_cache": ".tmp/wiki-evidence-2026-11-03/papers/2209.05433v2.html",
+      "html_sha256": "8ea44109b02234b311817d8bbe880d6fe2288d6c1bc06f8da7208dfdd5d0bb14",
+      "text_cache": ".tmp/wiki-evidence-2026-11-03/papers/2209.05433v2.txt",
+      "text_sha256": "f34c160199177d985439d292a1dcd63e7d52541fff179cfe8cedc90897a2fd57",
+      "text_lines": 377,
+      "actually_read_ranges": [
+        [
+          1,
+          377
+        ]
+      ],
+      "full_text_read": true,
+      "figures_visual_review": false,
+      "includes": "body, tables, captions, references, appendices",
+      "not_claimed": "Linked references or all figure images read; local hardware results"
+    },
+    {
+      "url": "https://arxiv.org/html/2409.16626v2",
+      "html_cache": ".tmp/wiki-evidence-2026-11-03/papers/2409.16626v2.html",
+      "html_sha256": "f6f99a6c080a0a1cb9adc041992b8a6806624f6897de370247105b8bc6356155",
+      "text_cache": ".tmp/wiki-evidence-2026-11-03/papers/2409.16626v2.txt",
+      "text_sha256": "e06fa6d0489ca32b90b44bc677585dd2f0248ac7ac67248f070f7438aec265d1",
+      "text_lines": 1371,
+      "actually_read_ranges": [
+        [
+          1,
+          1371
+        ]
+      ],
+      "full_text_read": true,
+      "figures_visual_review": false,
+      "includes": "body, tables, captions, references, appendices",
+      "not_claimed": "Linked references or all figure images read; local hardware results"
+    },
+    {
+      "url": "https://arxiv.org/html/2609.19969v1",
+      "html_cache": ".tmp/wiki-evidence-2026-11-03/papers/2609.19969v1.html",
+      "html_sha256": "673159286782f296f5761e66153147f099a9970b9ca695781f3bf06b3f2d61f5",
+      "text_cache": ".tmp/wiki-evidence-2026-11-03/papers/2609.19969v1.txt",
+      "text_sha256": "80993a3661850fabfe32e3c561e0e744da16426e2f68030a9756017747fa4620",
+      "text_lines": 2249,
+      "actually_read_ranges": [
+        [
+          1,
+          2249
+        ]
+      ],
+      "full_text_read": true,
+      "figures_visual_review": false,
+      "includes": "body, tables, captions, references, appendices",
+      "not_claimed": "Linked references or all figure images read; local hardware results"
+    },
+    {
+      "url": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/worker/cache_engine.py",
+      "cache": ".tmp/wiki-evidence-2026-11-03/low-precision/source-7.original",
+      "sha256": "ca3d80120fe6bc50971b180278dd575d585e1a6c7a3c2174a8a6fd6213454161",
+      "lines": 978,
+      "actually_read_ranges": [
+        [
+          1,
+          978
+        ]
+      ],
+      "full_file_read": true,
+      "executed": false
+    },
+    {
+      "url": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/layers/tilelang_ops/asc/kv_quant.py",
+      "cache": ".tmp/wiki-evidence-2026-11-03/low-precision/source-8.original",
+      "sha256": "83c0f165834edb1c24d9fd0fe28cf3dca91f8d53d3d2e6b55e6ac6c70169c053",
+      "lines": 196,
+      "actually_read_ranges": [
+        [
+          1,
+          196
+        ]
+      ],
+      "full_file_read": true,
+      "executed": false
+    },
+    {
+      "url": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/hugging_face/config.py",
+      "cache": ".tmp/wiki-evidence-2026-11-03/low-precision/source-9.original",
+      "sha256": "978c863928ece0e7f81c3e619c02d1287ade442f9282d7eb67bc739411595e49",
+      "lines": 328,
+      "actually_read_ranges": [
+        [
+          1,
+          328
+        ]
+      ],
+      "full_file_read": true,
+      "executed": false
+    }
+  ],
+  "note": "Reading completed over successive tool outputs; this manifest records actual reads, not downloaded-equals-read."
+}

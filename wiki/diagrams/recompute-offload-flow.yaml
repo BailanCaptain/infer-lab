@@ -1,0 +1,40 @@
+layout: figure
+id: recompute-offload-flow
+caption: 保存与恢复跨越多次调度。按固定旧版展开，编号对应一条请求的七站；保存计划不是拷贝完成。D2H是设备到主机，H2D是主机到设备。worker先保存旧数据，再整理会复用块号的输入；之后等保存报告、恢复分配、搬回报告逐道满足，才能继续调度。失败分支按现场版本退回P或中止。
+size: [900, 580]
+items:
+  - { at: [20, 55], size: [240, 64], text: 第2站：询问能否保存, sub: update_state_before_preempt, tone: control }
+  - { at: [330, 55], size: [240, 64], text: 接受：登记映射并抢占, sub: 还块号、清进度、排回等待, tone: kv }
+  - { at: [640, 55], size: [240, 64], text: 第3站更新输入前：D2H, sub: handle_preemptions 同步存完, tone: comm }
+  - { at: [640, 212], size: [240, 64], text: 第6站：保存报告集齐, sub: 该实例全部worker报完才ready, tone: control }
+  - { at: [330, 212], size: [240, 64], text: 后续第2站：查恢复记录, sub: 未ready继续等待，不当零命中, tone: control }
+  - { at: [20, 212], size: [240, 64], text: 有可恢复位置且分块成功, sub: 登记H2D，本步不排新token, tone: kv }
+  - { at: [20, 369], size: [240, 64], text: 前向前：同步H2D, sub: start_load_kv 等搬回完成, tone: comm }
+  - { at: [330, 369], size: [240, 64], text: 第6站：恢复完成报告, sub: get_finished 回报已恢复, tone: control }
+  - { at: [640, 369], size: [240, 64], text: 后续第2站：继续调度, sub: 更新进度，再受预算与队列约束, tone: token }
+  - { at: [20, 504], size: [550, 56], text: 不接受保存：由调度器走退回P或中止分支, sub: 旧版与rc2细粒度TP的收尾差异见调度器页, tone: danger }
+links:
+  - { from: [260, 87], to: [330, 87] }
+  - { from: [570, 87], to: [640, 87] }
+  - { from: [760, 119], to: [760, 212] }
+  - { from: [640, 244], to: [570, 244] }
+  - { from: [330, 244], to: [260, 244] }
+  - { from: [140, 276], to: [140, 369] }
+  - { from: [260, 401], to: [330, 401] }
+  - { from: [570, 401], to: [640, 401] }
+  - { from: [20, 87], to: [20, 532], via: [[7, 87], [7, 532]], tone: danger }
+texts:
+  - { at: [20, 26], text: 先保存旧内容，再复用块；先收齐报告，再恢复执行, size: 14, strong: true }
+  - { at: [330, 160], text: 块号已可重分，旧内容尚不能被覆盖, size: 12 }
+  - { at: [640, 324], text: 默认不共享前缀的实际搬运路径, size: 12 }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L297-L345
+    symbols: [PreemptedRequestData, _preempt_request]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L134-L175
+    symbols: [handle_preemptions, start_load_kv]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L517-L553
+    symbols: [_expected_worker_count, _process_preempt_store_event]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L286-L305
+    symbols: [finished_recving]
+  - source: vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L125-L159
+    symbols: [FINISHED_ABORTED]

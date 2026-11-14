@@ -1,0 +1,73 @@
+page_id	source_number	judgment	manual_support_and_boundary
+pd-disaggregation	85	supported	官方租约设计给出30秒初租、waiting即续约、执行循环节奏；精确max公式另由92支持，不能承诺墙钟SLA。
+pd-disaggregation	86	supported	普通新请求加入waiting后调用connector.on_new_request；支持入队而非获准前向才跟踪。
+pd-disaggregation	87	supported	kv_lease_duration缺省30、heartbeat_interval为duration//6；默认例算5秒成立。
+pd-disaggregation	88	supported	只跟踪do_remote_prefill且远端标识齐全的请求，按远端engine分组；正文保留完整定位条件。
+pd-disaggregation	89	supported	调度步节流打包heartbeat并清理不再需读的请求；不推成独立后台定时器。
+pd-disaggregation	90	supported	P30秒、双向D固定480秒分支和返回remote_num_tokens；旧版无expiry字段通过完整返回dict核实。
+pd-disaggregation	91	supported	worker延长窗口为duration*2//3，30推导20；不等于old_expiry累加。
+pd-disaggregation	92	supported	读取通知计数释放、执行循环到期检查与max(old,now+window)都在范围内；不声称严格20秒回收。
+pd-disaggregation	93	supported	worker在start_load_kv读元数据、发心跳；未握手时先异步握手，心跳后续步才发。
+pd-disaggregation	94	supported	官方双向流程、两端启用、角色与默认TTL/64阈值齐全；硬件限制另引110。
+pd-disaggregation	95	supported	bidirectional默认false、decoder TTL480、recompute阈值64直接读取；不改成默认开启。
+pd-disaggregation	96	supported	D→P缺口由min(remote_num_tokens,promptlen)减本地已算；0<缺口<64才被该门槛拒绝，64本身不拒绝。
+pd-disaggregation	97	supported	类默认600与实际全局450明确区分；get取出pop并做记录TTL检查，保留的是定位字典。
+pd-disaggregation	98	supported	流式D响应末段提取并保存kv_transfer_params；没有把代理当KV数据所有者。
+pd-disaggregation	99	supported	conversation_id先pop，旧D参数传P、P参数再传D；无逐token前缀验证，正文把责任交路由层。
+pd-disaggregation	100	supported	v0.26完成时为D导出blocks_expiry_time，P初租和D固定TTL继续分开。
+pd-disaggregation	101	supported	固定5.0秒安全边界常量；不误作5秒新租约。
+pd-disaggregation	102	supported	转换远端时钟再比较临近过期，字段缺失继续原读，拒绝走failed_transfer；不承诺必定重算。
+pd-disaggregation	103	supported	main元数据带scheduler_clock及心跳节流；只比较固定main点，不认作任意Ascend安装组合。
+pd-disaggregation	104	supported	main继续导出D到期时间、block_ids和并行布局；表中保留成立。
+pd-disaggregation	105	supported	main将剩余TTL重定位worker本地时钟，保留5秒读回保护；非前缀内容检查。
+pd-disaggregation	106	supported	rc2继续传scheduler_clock与心跳；已读本版，不只用main文件名推断。
+pd-disaggregation	107	supported	rc2结束返回D到期、布局和转移模式；保留本版条件。
+pd-disaggregation	108	supported	rc2worker本地TTL重定位、远端expiry检查及失败分支实际核对，5秒常量通过同函数/同字节链复用。
+pd-disaggregation	109	supported	rc2 NixlConnector确为NixlPullConnector别名，Push另实现；正文明确不外推Push。
+pd-disaggregation	110	supported	官方代理入口、conversation_id扩展消费、CUDA设备缓存限制、删thinking导致错位警告完整读；新段适用边界正确。
+kv-pool	71	supported	母文定义embedded/standalone-store、每GPU池与私有buffer；只取定义，DirectIO分配措辞由实际源码收窄。
+kv-pool	72	supported	旧配置类校验mode、embedded非零、standalone为0、local正值；教学正容量是官方有效用法。
+kv-pool	73	supported	普通store.setup接收global/local/protocol等，没有enable_ssd_offload；standalone不是setup_dummy。
+kv-pool	74	supported	v0.26配置类相对基线仅加载方法改名，容量和mode语义一致；完整函数diff已读。
+kv-pool	75	supported	main新增tenant字段和归一化而mode/容量约束保留；不能由这些一致声称整个connector无变化。
+kv-pool	76	supported	rc2实际配置类同样保留mode/容量分工，已读本版范围。
+kv-pool	77	supported	母文SSD端到端要求master、owner和vLLM开关配合；不是仅调推理端JSON。
+kv-pool	78	supported	旧setup与enable_offload选择1280MiB预算在同范围；预算值不是此分支真的分配暂存区。
+kv-pool	79	supported	v0.26实际setup和预算分支同义；没有把>=依赖范围当安装锁定版本。
+kv-pool	80	supported	main真实setup/tenant和预算分支；owner开关没有由vLLM enable_offload传入。
+kv-pool	81	supported	rc2setup、preferred segment、预算和线程条件已读；保持库版本及owner管理边界。
+kv-pool	82	supported	按对象对齐+额外空间估暂存、比例预算分批；单key超过总预算不会拆成更小key。
+kv-pool	83	supported	批加载实际调用与超预算拒绝、登记错误块可见；不把调local_buffer说成修复owner暂存。
+kv-pool	84	supported	旧scheduler默认load_async true、查池无producer角色早退；不能用角色名推绝对不读。
+kv-pool	85	supported	保存计划对consumer角色单独早退，和读路径不同；正文未扩大成所有版本所有角色规则。
+kv-pool	86	supported	旧get_finished是I/O提交点并断言load_async true；不是worker构造阶段报错。
+kv-pool	87	supported	v0.26 get_finished保留加载入队/异步断言；不称load_async false已有同步部署支持。
+kv-pool	88	supported_after_range_extension	main start_load_kv加载、wait_for_save实际add_request及get_finished回收说明；须保留扩展到1999–2047，旧2037截在真正提交前。
+kv-pool	89	supported	rc2 start_load_kv与wait_for_save实际提交均在范围内；capacity_only可在断言前早退。
+kv-pool	90	supported	旧connector拒绝CrossAttention、非匹配Mamba块和多组PCP×DCP>1；正文没有推广到新版全部组合。
+kv-pool	91	supported	rc2仅实际读写模式校验前缀可缓存组、CrossAttention/Mamba align、多组PCP；capacity_only另行早退。
+kv-pool	92	supported	rc2scheduler查询围绕prefix-cacheable组，配合91说明不同模型仍需条件；不证明任意GLM可运行。
+kv-pool	93	supported	Ascend rc2检测SDK setup参数/doc能力，缺SSD支持时报版本要求；没有追认旧版。
+kv-pool	94	supported	Ascend rc2使用当前NPU设备、要求ascend协议；与上游预算路径分开。
+kv-pool	95	supported	Ascend贡献内存worker传SSD参数、rank目录，scheduler不贡献；所述是rc2消费者而非实机结果。
+kv-pool	96	supported	0fc未设seed随机NONE_HASH、CBOR才警告；已修旧版限定。
+kv-pool	97	supported	568函数同字节且本轮实际读91–120，旧版随机/警告条件不变。
+kv-pool	98	supported	main resolve_none_hash_seed显式值优先，xxhash随机、其余固定；匹配新版表。
+kv-pool	99	supported	rc2实际seed resolver和init已读，固定默认不替代权重布局cache_salt兼容性。
+kv-pool	100	supported	PoolKey存储key字符串组成可见，Python __hash__只是进程内对象散列，未混为远端身份。
+kv-pool	101	supported	request block_hashes转hex进入key生产链，支撑根指纹→块指纹→池键解释。
+kv-pool	102	supported	模型缓存键只用模型路径basename；当前段没有认作完整权重身份验证。
+kv-pool	103	supported	旧依赖为最低版本范围而非精确锁定4da33e5b；不将后续SDK资料套回旧安装。
+kv-pool	104	supported	新SDK SSD母文两类Real/Dummy部署完整读；与vLLM mode概念分开。
+kv-pool	105	supported	setup创建RealClient、setup_dummy另创建DummyClient；两调用消费者直接核对。
+kv-pool	106	supported	普通setup的enable_ssd_offload传setup_internal；SDK开关和vLLM预算字段不同。
+kv-pool	107	supported	RealClient在SSD/KVCS条件创建FileStorage、设路径并初始化；仅此调用链，不声称全SDK验证。
+kv-pool	108	supported	Master侧enable_offload独立gflag，缺省false；不由客户端字段自动启用。
+kv-pool	109	supported	Master gflag真实写入master_service_config，证实配置消费而不只字段存在。
+mooncake-connector	78	supported	固定Ascend注册将旧MooncakeConnectorStoreV1名指到AscendStore；不等同上游类。
+mooncake-connector	79	supported	v0.26注册别名仍在，源码路径事实已读。
+mooncake-connector	80	supported	main注册别名及其他连接器分开；不能由缺NIXL override推断全平台不能用NIXL。
+mooncake-connector	81	supported	rc2完整注册文件已读，别名关系保留。
+mooncake-connector	82	supported	旧Ascend配置preferred_segment是bool、enable_ssd_offload为独立字段，与上游格式不可互换。
+mooncake-connector	83	supported	rc2配置入口及SSD字段仍独立，正文没有混淆SDK与连接器的mode枚举。
+mooncake-connector	84	supported	上游自己MooncakeStoreConfig读取JSON，mode/enable_offload有别；owner定位在相邻真实消费者已核并回链KVPool。

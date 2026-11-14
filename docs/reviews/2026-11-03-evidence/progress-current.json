@@ -1,0 +1,2145 @@
+{
+  "timestamp": "2026-11-03T15:37:21.496603+08:00",
+  "scope": "163 inventoried formal pages; current source occurrence matched exactly by page id, source number and ref. Judgment records include partial/archive/unavailable and are NOT independent acceptance or universal truth.",
+  "official_current_fulltext": 190,
+  "official_redirected_historical_fulltext": 28,
+  "groups": [
+    {
+      "group": "01-02",
+      "pages": 48,
+      "current_sources": 2350,
+      "with_record": 961,
+      "pending": 1389,
+      "all_current_entries_have_record": 26
+    },
+    {
+      "group": "03-04",
+      "pages": 42,
+      "current_sources": 1616,
+      "with_record": 699,
+      "pending": 917,
+      "all_current_entries_have_record": 19
+    },
+    {
+      "group": "05-06",
+      "pages": 73,
+      "current_sources": 2330,
+      "with_record": 2069,
+      "pending": 261,
+      "all_current_entries_have_record": 68
+    }
+  ],
+  "pages": [
+    {
+      "id": "absolute-balance-threshold-71578a0c428d",
+      "path": "wiki/params/absolute-balance-threshold-71578a0c428d.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "5467e3b7c17fdf4a25e2299c7d5c83a9371d0386e1775868f68dde7401c14487",
+      "current_sources": 24,
+      "with_record": 24,
+      "pending": 0,
+      "statuses": {
+        "部分支持": 5,
+        "支持": 14,
+        "仅存档无对应主张": 5
+      }
+    },
+    {
+      "id": "acl-graph",
+      "path": "wiki/concepts/acl-graph.md",
+      "group": "05-performance-reliability",
+      "sha256": "9fde14cfcb0a8654049b1a79ca13b639fd9809f8b2640d1bb71e151cde4dc7cf",
+      "current_sources": 36,
+      "with_record": 36,
+      "pending": 0,
+      "statuses": {
+        "支持": 32,
+        "部分支持": 3,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "ai-core",
+      "path": "wiki/concepts/ai-core.md",
+      "group": "03-hardware-parallel",
+      "sha256": "8609a7e3b206ff7f83af65ed0b4e06a493d6389ea232f7374c3a5b0dcc9a298a",
+      "current_sources": 12,
+      "with_record": 12,
+      "pending": 0,
+      "statuses": {
+        "支持": 12
+      }
+    },
+    {
+      "id": "ai-qos",
+      "path": "wiki/concepts/ai-qos.md",
+      "group": "03-hardware-parallel",
+      "sha256": "4b437000b9b01cb0bdeb6ffbbd7ead254595c221e46252ff286c5d002195c7f1",
+      "current_sources": 18,
+      "with_record": 18,
+      "pending": 0,
+      "statuses": {
+        "支持": 18
+      }
+    },
+    {
+      "id": "answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad",
+      "path": "wiki/sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "7497d9087c551cb33c08b450ae2d4cc75d4a438951191c34d7280b9461654920",
+      "current_sources": 26,
+      "with_record": 26,
+      "pending": 0,
+      "statuses": {
+        "部分支持": 2,
+        "支持": 24
+      }
+    },
+    {
+      "id": "api-server-entry",
+      "path": "wiki/concepts/api-server-entry.md",
+      "group": "02-request-flow",
+      "sha256": "16209ae45d71b61589bbd649698edc7cdbf6f0ce12f94ec3c894804bac25dbde",
+      "current_sources": 126,
+      "with_record": 0,
+      "pending": 126,
+      "statuses": {
+        "pending": 126
+      }
+    },
+    {
+      "id": "ascend-950-architecture",
+      "path": "wiki/concepts/ascend-950-architecture.md",
+      "group": "03-hardware-parallel",
+      "sha256": "1d57fff0a12b40c738a03a9e1bc583997b6810c59bb3400929b70e5981dffca8",
+      "current_sources": 1,
+      "with_record": 1,
+      "pending": 0,
+      "statuses": {
+        "支持": 1
+      }
+    },
+    {
+      "id": "ascend-950-execution-interconnect",
+      "path": "wiki/concepts/ascend-950-execution-interconnect.md",
+      "group": "03-hardware-parallel",
+      "sha256": "38dc3190e2a22047dd8a3c0dc8fbcc359f1bc6b6afba8a2b41197540d793753a",
+      "current_sources": 2,
+      "with_record": 2,
+      "pending": 0,
+      "statuses": {
+        "支持": 2
+      }
+    },
+    {
+      "id": "ascend-config-system",
+      "path": "wiki/concepts/ascend-config-system.md",
+      "group": "02-request-flow",
+      "sha256": "a9a238e0ac95ca7f84f08f1e7ce1decf5314fb531362e1bc49d9c01e3ffa0a7a",
+      "current_sources": 55,
+      "with_record": 55,
+      "pending": 0,
+      "statuses": {
+        "supports": 54,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "ascend-config-version-source",
+      "path": "wiki/sources/ascend-config-version-source.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "52d889eb11f8b03c72be822168de8bd5b32cb83bb0dbe84e02dbd36524962991",
+      "current_sources": 35,
+      "with_record": 35,
+      "pending": 0,
+      "statuses": {
+        "支持": 34,
+        "部分支持": 1
+      }
+    },
+    {
+      "id": "ascend-patch-system",
+      "path": "wiki/concepts/ascend-patch-system.md",
+      "group": "02-request-flow",
+      "sha256": "f705bbcc1875d988ef8aa3d3e0d36f749e895c96ce069ba03dd80d4da66df653",
+      "current_sources": 88,
+      "with_record": 0,
+      "pending": 88,
+      "statuses": {
+        "pending": 88
+      }
+    },
+    {
+      "id": "async-scheduling",
+      "path": "wiki/concepts/async-scheduling.md",
+      "group": "02-request-flow",
+      "sha256": "5fdf14079170b1c8e84109cf055f937b47ae3fdd6786394516dbf7e7b36976c5",
+      "current_sources": 39,
+      "with_record": 0,
+      "pending": 39,
+      "statuses": {
+        "pending": 39
+      }
+    },
+    {
+      "id": "attention-backend-family",
+      "path": "wiki/concepts/attention-backend-family.md",
+      "group": "05-performance-reliability",
+      "sha256": "a9263f43583989731c0fe723ea362eca52905451f0ce0529e29a587e0ca8b745",
+      "current_sources": 62,
+      "with_record": 62,
+      "pending": 0,
+      "statuses": {
+        "supported": 61,
+        "partially_supported": 1
+      }
+    },
+    {
+      "id": "attention-cost",
+      "path": "wiki/concepts/attention-cost.md",
+      "group": "01-foundations",
+      "sha256": "54e837ac21cdcf4b82450483e5e1c260845e45770765c039a44f60e0807704c5",
+      "current_sources": 28,
+      "with_record": 28,
+      "pending": 0,
+      "statuses": {
+        "supports": 27,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "attention-qkv",
+      "path": "wiki/concepts/attention-qkv.md",
+      "group": "01-foundations",
+      "sha256": "bd563344762088b518bef659ee38271472e8f528b3d34313e9dbfb7dd5c5b9c3",
+      "current_sources": 27,
+      "with_record": 27,
+      "pending": 0,
+      "statuses": {
+        "supports": 26,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "balance-scheduling",
+      "path": "wiki/concepts/balance-scheduling.md",
+      "group": "02-request-flow",
+      "sha256": "21deb1e2c7a66c3aefdc303233724a6f980c035e5e541e7e026e114eab1a533b",
+      "current_sources": 32,
+      "with_record": 0,
+      "pending": 32,
+      "statuses": {
+        "pending": 32
+      }
+    },
+    {
+      "id": "batch-invariance",
+      "path": "wiki/concepts/batch-invariance.md",
+      "group": "05-performance-reliability",
+      "sha256": "81c3f72b597d277b2bfe77025f57b21ebc60036cdfbf58ad44cd232ae55e965b",
+      "current_sources": 38,
+      "with_record": 38,
+      "pending": 0,
+      "statuses": {
+        "supported": 36,
+        "partially_supported": 2
+      }
+    },
+    {
+      "id": "batch-job-aware-scheduler",
+      "path": "wiki/concepts/batch-job-aware-scheduler.md",
+      "group": "02-request-flow",
+      "sha256": "0996057369ee0eb2bda5a3de96e84e6ea639847eed20e634b54c7b0ca7a7b85c",
+      "current_sources": 40,
+      "with_record": 0,
+      "pending": 40,
+      "statuses": {
+        "pending": 40
+      }
+    },
+    {
+      "id": "block-table",
+      "path": "wiki/concepts/block-table.md",
+      "group": "04-cache-state",
+      "sha256": "2f6ed4bf49d0b17a864f1ff5f2479b4ef598b98e8937b00ec96906282ab0505e",
+      "current_sources": 46,
+      "with_record": 45,
+      "pending": 1,
+      "statuses": {
+        "支持": 41,
+        "部分支持": 4,
+        "pending": 1
+      }
+    },
+    {
+      "id": "block-table-no-commit-optimize-8328d0d2d00d",
+      "path": "wiki/params/block-table-no-commit-optimize-8328d0d2d00d.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "33e0dcc3859bc9373420d5e64d71681d949479a0d893d38103c0d9d5be4d6b4a",
+      "current_sources": 16,
+      "with_record": 16,
+      "pending": 0,
+      "statuses": {
+        "expanded_source_range": 2,
+        "supported": 12,
+        "scope_corrected": 2
+      }
+    },
+    {
+      "id": "c8-enable-reshape-optim-8bd7e5f82c6c",
+      "path": "wiki/params/c8-enable-reshape-optim-8bd7e5f82c6c.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "c26efd95d19c8a98bd968af5147152916c19823b7b32c27b8909bd6621a3c804",
+      "current_sources": 46,
+      "with_record": 46,
+      "pending": 0,
+      "statuses": {
+        "支持": 44,
+        "仅存档无对应主张": 2
+      }
+    },
+    {
+      "id": "cann-hccl",
+      "path": "wiki/concepts/cann-hccl.md",
+      "group": "03-hardware-parallel",
+      "sha256": "ff579aa5b85a2eb866df64511eb42cc315fc75e0666ba627ae1341cf7c574313",
+      "current_sources": 50,
+      "with_record": 50,
+      "pending": 0,
+      "statuses": {
+        "支持": 46,
+        "部分支持": 4
+      }
+    },
+    {
+      "id": "chunked-prefill",
+      "path": "wiki/concepts/chunked-prefill.md",
+      "group": "02-request-flow",
+      "sha256": "b061722e3798d3b426bb89ade1b4be25518f52f46e8bead90da071d2f97a9ddb",
+      "current_sources": 38,
+      "with_record": 0,
+      "pending": 38,
+      "statuses": {
+        "pending": 38
+      }
+    },
+    {
+      "id": "collective-communication",
+      "path": "wiki/concepts/collective-communication.md",
+      "group": "03-hardware-parallel",
+      "sha256": "2d7dfb552cae895d9819ce85955cc103dd33afcadb3001e279a741153882f4f0",
+      "current_sources": 33,
+      "with_record": 33,
+      "pending": 0,
+      "statuses": {
+        "支持": 32,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "combine-quant-mode-2a3f7cd47997",
+      "path": "wiki/params/combine-quant-mode-2a3f7cd47997.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "f79f1acca256876263d16d54a365c1979d48ee8ed7b9bc44d843b3d029ce9363",
+      "current_sources": 38,
+      "with_record": 38,
+      "pending": 0,
+      "statuses": {
+        "支持": 35,
+        "部分支持": 1,
+        "仅存档无对应主张": 2
+      }
+    },
+    {
+      "id": "concurrent-requests",
+      "path": "wiki/concepts/concurrent-requests.md",
+      "group": "02-request-flow",
+      "sha256": "07ecc563f601dc48a7465874f45718395e4745057922ddb4e191d42c7eba33a0",
+      "current_sources": 45,
+      "with_record": 0,
+      "pending": 45,
+      "statuses": {
+        "pending": 45
+      }
+    },
+    {
+      "id": "context-parallel",
+      "path": "wiki/concepts/context-parallel.md",
+      "group": "03-hardware-parallel",
+      "sha256": "9b8baac2b16616c9136c8db18c45064ea2f1139c9a583e15ff83e7c3a93f7063",
+      "current_sources": 52,
+      "with_record": 52,
+      "pending": 0,
+      "statuses": {
+        "支持": 49,
+        "仅存档无对应主张": 1,
+        "部分支持": 2
+      }
+    },
+    {
+      "id": "cpu-binding",
+      "path": "wiki/concepts/cpu-binding.md",
+      "group": "03-hardware-parallel",
+      "sha256": "f486a622d350a5f0ea200cf8c1f6de594999b735649e87126de09778371dac6a",
+      "current_sources": 41,
+      "with_record": 41,
+      "pending": 0,
+      "statuses": {
+        "支持": 41
+      }
+    },
+    {
+      "id": "cross-node-transfer-limit-06ee92260b7a",
+      "path": "wiki/params/cross-node-transfer-limit-06ee92260b7a.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "ca544c17196d1d5210d77933285f4316cde79627d5147f91eec6eac6cae6632b",
+      "current_sources": 24,
+      "with_record": 24,
+      "pending": 0,
+      "statuses": {
+        "支持": 16,
+        "部分支持": 3,
+        "仅存档无对应主张": 5
+      }
+    },
+    {
+      "id": "data-parallel",
+      "path": "wiki/concepts/data-parallel.md",
+      "group": "03-hardware-parallel",
+      "sha256": "1c362c5e6cd8e41d6c49f66edbbfa175d4818002ae8a345ef944eb4cb4aae445",
+      "current_sources": 50,
+      "with_record": 50,
+      "pending": 0,
+      "statuses": {
+        "支持": 48,
+        "部分支持": 1,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "deepseek-serving-case",
+      "path": "wiki/concepts/deepseek-serving-case.md",
+      "group": "04-cache-state",
+      "sha256": "94197f68c3af94a4a47b3517fed257b996e0dd4178cd3c2bbd70c33bdb7745e5",
+      "current_sources": 8,
+      "with_record": 8,
+      "pending": 0,
+      "statuses": {
+        "无法取得": 1,
+        "支持": 7
+      }
+    },
+    {
+      "id": "deepseek-v4-1-flash",
+      "path": "wiki/concepts/deepseek-v4-1-flash.md",
+      "group": "01-foundations",
+      "sha256": "968e06891d5bc32902f06cff862819380f2eddb3f54b17426d9f9f99ef348a21",
+      "current_sources": 9,
+      "with_record": 9,
+      "pending": 0,
+      "statuses": {
+        "supports": 9
+      }
+    },
+    {
+      "id": "device-memory",
+      "path": "wiki/concepts/device-memory.md",
+      "group": "03-hardware-parallel",
+      "sha256": "224dbefcbf111773d84458f17380a1f55a0a3dd8cbb96252a141a10e2d5da107",
+      "current_sources": 45,
+      "with_record": 45,
+      "pending": 0,
+      "statuses": {
+        "支持": 43,
+        "部分支持": 2
+      }
+    },
+    {
+      "id": "dp-request-routing",
+      "path": "wiki/concepts/dp-request-routing.md",
+      "group": "02-request-flow",
+      "sha256": "ab598ae8f4d5b9e1df795acc9f36d1f0327e8cf83d1ba85e5f7690a2c5ce3379",
+      "current_sources": 29,
+      "with_record": 0,
+      "pending": 29,
+      "statuses": {
+        "pending": 29
+      }
+    },
+    {
+      "id": "dspark",
+      "path": "wiki/concepts/dspark.md",
+      "group": "05-performance-reliability",
+      "sha256": "5c0429de9ca5f2645720a414caba83d0d65648ca5c18a0b6fcaf25ec4f5a3d9a",
+      "current_sources": 16,
+      "with_record": 16,
+      "pending": 0,
+      "statuses": {
+        "支持": 16
+      }
+    },
+    {
+      "id": "dynamic-chunked-pp",
+      "path": "wiki/concepts/dynamic-chunked-pp.md",
+      "group": "03-hardware-parallel",
+      "sha256": "c4bb7cebefb79ef095f1a779358a815862d9b739ee0a0155227c1ffef2f32c4c",
+      "current_sources": 47,
+      "with_record": 47,
+      "pending": 0,
+      "statuses": {
+        "支持": 45,
+        "部分支持": 1,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "dyntra-lb",
+      "path": "wiki/concepts/dyntra-lb.md",
+      "group": "03-hardware-parallel",
+      "sha256": "db4c07d71107fcbc1bdb91cc45cc23ad9457cce1cb18e2ec2948b1eabe99fc20",
+      "current_sources": 50,
+      "with_record": 50,
+      "pending": 0,
+      "statuses": {
+        "支持": 49,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "embedding",
+      "path": "wiki/concepts/embedding.md",
+      "group": "01-foundations",
+      "sha256": "47a949ff67aaae24c31538adf4a7d70c5c1fb9638d788d40a6cf13bf5f458f9f",
+      "current_sources": 36,
+      "with_record": 36,
+      "pending": 0,
+      "statuses": {
+        "supports": 35,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "enable-async-exponential",
+      "path": "wiki/params/enable-async-exponential.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "9171e11932fcba144e5575a007434250a711aa5f3c2effb7826f137c172bf91f",
+      "current_sources": 24,
+      "with_record": 24,
+      "pending": 0,
+      "statuses": {
+        "supported": 18,
+        "supported_after_scope_correction": 6
+      }
+    },
+    {
+      "id": "enable-force-eplb-b7ec3661121f",
+      "path": "wiki/params/enable-force-eplb-b7ec3661121f.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "d86479a45f417e83fd149b4ee083e8e303574b6d4b823257379579d8f0190f6c",
+      "current_sources": 40,
+      "with_record": 40,
+      "pending": 0,
+      "statuses": {
+        "支持": 23,
+        "部分支持": 5,
+        "仅存档无对应主张": 12
+      }
+    },
+    {
+      "id": "enable-matmul-allreduce",
+      "path": "wiki/params/enable-matmul-allreduce.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "7c67dec12a614d76918d7481b5a18b4b1d8481c9ff715bc927595b6724e57998",
+      "current_sources": 32,
+      "with_record": 32,
+      "pending": 0,
+      "statuses": {
+        "supported": 20,
+        "corrected_scope": 8,
+        "expanded_source_range": 3,
+        "verified_transcription": 1
+      }
+    },
+    {
+      "id": "enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9",
+      "path": "wiki/params/enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "5459d16c199287c60430a10a57dbb4785f840f0fea4a8ac1132635961b1a5fb4",
+      "current_sources": 34,
+      "with_record": 34,
+      "pending": 0,
+      "statuses": {
+        "支持": 21,
+        "部分支持": 1,
+        "仅存档无对应主张": 12
+      }
+    },
+    {
+      "id": "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
+      "path": "wiki/params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "577894425201ade7daccef2f473741d306f90bb9364bdbcb4c71d120ae23d141",
+      "current_sources": 43,
+      "with_record": 43,
+      "pending": 0,
+      "statuses": {
+        "支持": 28,
+        "部分支持": 3,
+        "仅存档无对应主张": 12
+      }
+    },
+    {
+      "id": "enable-sleep-mode-extra-cleanup",
+      "path": "wiki/params/enable-sleep-mode-extra-cleanup.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "138c2793a5b784af690a3275597c6888298ebfdd49750c970b985973a77456b1",
+      "current_sources": 52,
+      "with_record": 52,
+      "pending": 0,
+      "statuses": {
+        "支持": 46,
+        "部分支持": 5,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "enable-super-kernel-ce990e186bfa",
+      "path": "wiki/params/enable-super-kernel-ce990e186bfa.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "ac6685b60429e0257602ba593193f9c015406ee0af39ae6ca1941d4954713601",
+      "current_sources": 36,
+      "with_record": 36,
+      "pending": 0,
+      "statuses": {
+        "supported": 12,
+        "corrected_scope": 9,
+        "expanded_source_range": 1,
+        "supported_link_checked": 1,
+        "supported_static_only": 6,
+        "verified_transcription": 1,
+        "new_support": 6
+      }
+    },
+    {
+      "id": "engine-processes",
+      "path": "wiki/concepts/engine-processes.md",
+      "group": "02-request-flow",
+      "sha256": "f89b755a885b8926a05cf32ba0e094d7fbe0268b2609059854cde6064718d0e4",
+      "current_sources": 109,
+      "with_record": 0,
+      "pending": 109,
+      "statuses": {
+        "pending": 109
+      }
+    },
+    {
+      "id": "eplb",
+      "path": "wiki/concepts/eplb.md",
+      "group": "03-hardware-parallel",
+      "sha256": "a0b3567eb96d7f36cc8b0664fb65516cb7ee9421da21475cabbed91be0426238",
+      "current_sources": 76,
+      "with_record": 76,
+      "pending": 0,
+      "statuses": {
+        "支持": 71,
+        "部分支持": 3,
+        "仅存档无对应主张": 2
+      }
+    },
+    {
+      "id": "expert-parallel",
+      "path": "wiki/concepts/expert-parallel.md",
+      "group": "03-hardware-parallel",
+      "sha256": "f773fe110dd749a8658dfccda7d193368c4ca935af5f2b26a3b5eac989b5639a",
+      "current_sources": 75,
+      "with_record": 0,
+      "pending": 75,
+      "statuses": {
+        "pending": 75
+      }
+    },
+    {
+      "id": "fine-grained-tp",
+      "path": "wiki/concepts/fine-grained-tp.md",
+      "group": "03-hardware-parallel",
+      "sha256": "339e40471a56608c58e3ffc192695473bee0fa558ccc79163ab41c53bf2a42a9",
+      "current_sources": 38,
+      "with_record": 38,
+      "pending": 0,
+      "statuses": {
+        "支持": 35,
+        "部分支持": 2,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "fuse-allreduce-rms",
+      "path": "wiki/params/fuse-allreduce-rms.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "f0401153f54c47afae0445525a98a6d2ff8ad390ba6a0b56b93c12d05cec76ce",
+      "current_sources": 33,
+      "with_record": 33,
+      "pending": 0,
+      "statuses": {
+        "expanded_source_range": 2,
+        "corrected_scope": 6,
+        "supported": 18,
+        "verified_transcription": 1,
+        "new_support": 6
+      }
+    },
+    {
+      "id": "fused-op-type-fc0f5fcd7be0",
+      "path": "wiki/params/fused-op-type-fc0f5fcd7be0.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "9f0c727b9585d44c572f87877084308ab2de87fb3ba256db97793d82e9bd649c",
+      "current_sources": 36,
+      "with_record": 36,
+      "pending": 0,
+      "statuses": {
+        "支持": 30,
+        "部分支持": 3,
+        "仅存档无对应主张": 3
+      }
+    },
+    {
+      "id": "gap-a5164fe10fa9184412f8",
+      "path": "wiki/concepts/gap-a5164fe10fa9184412f8.md",
+      "group": "05-performance-reliability",
+      "sha256": "3ea65f77452890eea2ee6da47418f91b252d029d8ca5f5634d88675442419ef1",
+      "current_sources": 31,
+      "with_record": 0,
+      "pending": 31,
+      "statuses": {
+        "pending": 31
+      }
+    },
+    {
+      "id": "glm-5-3-flash",
+      "path": "wiki/concepts/glm-5-3-flash.md",
+      "group": "01-foundations",
+      "sha256": "b1c63b7ca672b43f5e599466474c7c880a80f00a3700b63ee72719556e5d3946",
+      "current_sources": 39,
+      "with_record": 39,
+      "pending": 0,
+      "statuses": {
+        "supports": 38,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "glm-5-3-flash-baseline",
+      "path": "wiki/sources/glm-5-3-flash-baseline.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "62ef6d7f0874120b319aa9918a0e6edef334fb7148f1c4ba3632a2b2c3e8c486",
+      "current_sources": 30,
+      "with_record": 30,
+      "pending": 0,
+      "statuses": {
+        "支持": 29,
+        "部分支持": 1
+      }
+    },
+    {
+      "id": "glm-5-3-flash-two-node",
+      "path": "wiki/concepts/glm-5-3-flash-two-node.md",
+      "group": "03-hardware-parallel",
+      "sha256": "16f3abb7851080b537cb5d5c0af1d7d20e188e685bab908cc4e4e6ef9d5f52e6",
+      "current_sources": 41,
+      "with_record": 41,
+      "pending": 0,
+      "statuses": {
+        "支持": 39,
+        "部分支持": 1,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "glm-mlp-version-source",
+      "path": "wiki/sources/glm-mlp-version-source.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "ca11937f768380a0c4234c1c67e937b48bad4e465fffdeea5e6796cc9f63bbdb",
+      "current_sources": 14,
+      "with_record": 14,
+      "pending": 0,
+      "statuses": {
+        "支持": 14
+      }
+    },
+    {
+      "id": "gqa",
+      "path": "wiki/concepts/gqa.md",
+      "group": "01-foundations",
+      "sha256": "5ca40cdbbd8f36b160c8a83d82c88d6cc8bfe74d36024ed3458963db17542fad",
+      "current_sources": 31,
+      "with_record": 31,
+      "pending": 0,
+      "statuses": {
+        "supports": 30,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "graph-mode-layer",
+      "path": "wiki/concepts/graph-mode-layer.md",
+      "group": "05-performance-reliability",
+      "sha256": "4b379f9d074a92b0db769627346e0a10740ed4b35eba4865abdb8900d3aa01b6",
+      "current_sources": 78,
+      "with_record": 0,
+      "pending": 78,
+      "statuses": {
+        "pending": 78
+      }
+    },
+    {
+      "id": "hardware-devices",
+      "path": "wiki/concepts/hardware-devices.md",
+      "group": "03-hardware-parallel",
+      "sha256": "df155deec708eb474b63f8b83378e662c81d93837796146a968899cd318183de",
+      "current_sources": 26,
+      "with_record": 26,
+      "pending": 0,
+      "statuses": {
+        "支持": 25,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "inference-benchmarking",
+      "path": "wiki/concepts/inference-benchmarking.md",
+      "group": "05-performance-reliability",
+      "sha256": "3072a87b7a0678da7759a1f21f98a1b0a4d325e8b5dbca3bc9455d0c8aee78f7",
+      "current_sources": 15,
+      "with_record": 15,
+      "pending": 0,
+      "statuses": {
+        "supports_with_stated_scope": 11,
+        "supports_after_scope_correction": 4
+      }
+    },
+    {
+      "id": "inference-capacity-and-reliability",
+      "path": "wiki/concepts/inference-capacity-and-reliability.md",
+      "group": "05-performance-reliability",
+      "sha256": "9f4d2f3ce2b57c4e16965511e9f0a8045083aba50380d9b124a4499b0d850a87",
+      "current_sources": 9,
+      "with_record": 9,
+      "pending": 0,
+      "statuses": {
+        "supports_with_stated_scope": 8,
+        "unavailable_full_text": 1
+      }
+    },
+    {
+      "id": "inference-correctness-troubleshooting",
+      "path": "wiki/concepts/inference-correctness-troubleshooting.md",
+      "group": "05-performance-reliability",
+      "sha256": "faecd9914493df757b60195e8a5d1012a73871579e424e8cd15ab3db1998ce16",
+      "current_sources": 26,
+      "with_record": 26,
+      "pending": 0,
+      "statuses": {
+        "supported": 26
+      }
+    },
+    {
+      "id": "inference-performance-analysis",
+      "path": "wiki/concepts/inference-performance-analysis.md",
+      "group": "05-performance-reliability",
+      "sha256": "42c441c39d10f428da187dc7ec64b4fd92d3ba55a93e087117b773902c74ff55",
+      "current_sources": 37,
+      "with_record": 37,
+      "pending": 0,
+      "statuses": {
+        "supports_with_stated_scope": 37
+      }
+    },
+    {
+      "id": "inference-performance-troubleshooting",
+      "path": "wiki/concepts/inference-performance-troubleshooting.md",
+      "group": "05-performance-reliability",
+      "sha256": "6966e5d765e4180304b7b4056b0cae7d310677bc186c72f4b437a555e461d9d2",
+      "current_sources": 11,
+      "with_record": 11,
+      "pending": 0,
+      "statuses": {
+        "supports_with_stated_scope": 11
+      }
+    },
+    {
+      "id": "inference-performance-walkthrough",
+      "path": "wiki/concepts/inference-performance-walkthrough.md",
+      "group": "05-performance-reliability",
+      "sha256": "f76797af2c1c3f1e45ddd84a0d1c476e8249566ef09cb191464c2c8f82cbca1d",
+      "current_sources": 14,
+      "with_record": 14,
+      "pending": 0,
+      "statuses": {
+        "supports_with_stated_scope": 12,
+        "supports_after_scope_correction": 2
+      }
+    },
+    {
+      "id": "inference-troubleshooting",
+      "path": "wiki/concepts/inference-troubleshooting.md",
+      "group": "05-performance-reliability",
+      "sha256": "7bc2f173d3691ba831b7102af493a18ecbd3a5f3ccdf23acda80fc9f3164bb7b",
+      "current_sources": 12,
+      "with_record": 12,
+      "pending": 0,
+      "statuses": {
+        "supports_with_stated_scope": 11,
+        "supports_after_scope_correction": 1
+      }
+    },
+    {
+      "id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "group": "04-cache-state",
+      "sha256": "9ee825fc707e2921384a9264416529bd8d87a16be4e33fa47166222b1a5d974f",
+      "current_sources": 46,
+      "with_record": 0,
+      "pending": 46,
+      "statuses": {
+        "pending": 46
+      }
+    },
+    {
+      "id": "kv-cache-cpu-offload",
+      "path": "wiki/concepts/kv-cache-cpu-offload.md",
+      "group": "04-cache-state",
+      "sha256": "6033cfb26543051100677c4772919ba3b14a7b760bc352131135ceae09560d02",
+      "current_sources": 26,
+      "with_record": 0,
+      "pending": 26,
+      "statuses": {
+        "pending": 26
+      }
+    },
+    {
+      "id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "group": "04-cache-state",
+      "sha256": "3a6d98430fd262b46f8d14fb14e87429459c42e9c95aacbce451073b043b8242",
+      "current_sources": 34,
+      "with_record": 0,
+      "pending": 34,
+      "statuses": {
+        "pending": 34
+      }
+    },
+    {
+      "id": "kv-cache-memory-profiling",
+      "path": "wiki/concepts/kv-cache-memory-profiling.md",
+      "group": "04-cache-state",
+      "sha256": "16d14b412428b55ebab4168cec7f67bd06285d93b391482882a99115b3118125",
+      "current_sources": 44,
+      "with_record": 0,
+      "pending": 44,
+      "statuses": {
+        "pending": 44
+      }
+    },
+    {
+      "id": "kv-cache-quantization",
+      "path": "wiki/concepts/kv-cache-quantization.md",
+      "group": "05-performance-reliability",
+      "sha256": "a209cd904c2655d83899983bb202e28e832741caa25ad16d744e7219a53a4407",
+      "current_sources": 48,
+      "with_record": 48,
+      "pending": 0,
+      "statuses": {
+        "supports_with_stated_scope": 48
+      }
+    },
+    {
+      "id": "kv-cache-sparse-offload",
+      "path": "wiki/concepts/kv-cache-sparse-offload.md",
+      "group": "04-cache-state",
+      "sha256": "99c084cbbd60649714b70283d3e11cc90d2ac808aebe92554c7ca99c858c8278",
+      "current_sources": 39,
+      "with_record": 0,
+      "pending": 39,
+      "statuses": {
+        "pending": 39
+      }
+    },
+    {
+      "id": "kv-cache-spec",
+      "path": "wiki/concepts/kv-cache-spec.md",
+      "group": "04-cache-state",
+      "sha256": "1db191d04da0da9bc481b59e375c757b855d8beb2fb5faf7291f8e6126caf01d",
+      "current_sources": 63,
+      "with_record": 0,
+      "pending": 63,
+      "statuses": {
+        "pending": 63
+      }
+    },
+    {
+      "id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "group": "04-cache-state",
+      "sha256": "4a06f92a540bf264c254e0d74af8824e0b944d5620a4674a8c6821179ebde5f2",
+      "current_sources": 57,
+      "with_record": 0,
+      "pending": 57,
+      "statuses": {
+        "pending": 57
+      }
+    },
+    {
+      "id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "group": "04-cache-state",
+      "sha256": "83dea6289d92a59399f7d75224259eed1c1f3eaa0382da07dd29020312cb9ef7",
+      "current_sources": 38,
+      "with_record": 0,
+      "pending": 38,
+      "statuses": {
+        "pending": 38
+      }
+    },
+    {
+      "id": "kvpp-config-0445bd352140",
+      "path": "wiki/params/kvpp-config-0445bd352140.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "672b653c0d835f0392d333ebc5d964023239463141641fcf4d2b2fd2ead8a4d2",
+      "current_sources": 37,
+      "with_record": 37,
+      "pending": 0,
+      "statuses": {
+        "支持": 19,
+        "部分支持": 4,
+        "仅存档无对应主张": 14
+      }
+    },
+    {
+      "id": "large-scale-ep",
+      "path": "wiki/concepts/large-scale-ep.md",
+      "group": "03-hardware-parallel",
+      "sha256": "d4509399fc14e8e43ec1715016f74968d21b14434f7904ce88fdb7b7535e5ae9",
+      "current_sources": 44,
+      "with_record": 0,
+      "pending": 44,
+      "statuses": {
+        "pending": 44
+      }
+    },
+    {
+      "id": "layer-sharding",
+      "path": "wiki/params/layer-sharding.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "853be984f9946095ad1426c896595086d5d1e51bfbc63f34e929d435bfbea47d",
+      "current_sources": 49,
+      "with_record": 49,
+      "pending": 0,
+      "statuses": {
+        "支持": 43,
+        "部分支持": 5,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "layers-and-hidden",
+      "path": "wiki/concepts/layers-and-hidden.md",
+      "group": "01-foundations",
+      "sha256": "d66f60eac3266ddcea3aa4574021cd83689c44f8b367e6459eccdfaca63c7340",
+      "current_sources": 32,
+      "with_record": 32,
+      "pending": 0,
+      "statuses": {
+        "supports": 31,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "learning-guide",
+      "path": "wiki/concepts/learning-guide.md",
+      "group": "01-foundations",
+      "sha256": "1734588c180e91bc4c0fb4afc4e20a73704791837c436808bab758de3a91a780",
+      "current_sources": 3,
+      "with_record": 3,
+      "pending": 0,
+      "statuses": {
+        "supports": 3
+      }
+    },
+    {
+      "id": "linear-attention",
+      "path": "wiki/concepts/linear-attention.md",
+      "group": "01-foundations",
+      "sha256": "bc9ece10707d5d701143b1de9cfb47a8f908fec971db317e48ca2cefac70c01f",
+      "current_sources": 32,
+      "with_record": 32,
+      "pending": 0,
+      "statuses": {
+        "supports": 31,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "lm-head",
+      "path": "wiki/concepts/lm-head.md",
+      "group": "01-foundations",
+      "sha256": "f156e4d63bf0d003b47399b6e4ec6117d11c0ffb183091cc1c2a05cbc1038493",
+      "current_sources": 47,
+      "with_record": 47,
+      "pending": 0,
+      "statuses": {
+        "supports": 45,
+        "archive_only_no_corresponding_claim": 2
+      }
+    },
+    {
+      "id": "lmcache",
+      "path": "wiki/concepts/lmcache.md",
+      "group": "04-cache-state",
+      "sha256": "197af058daa8a50da871fd319acdcb3d770f8f60b5ea155aab4853902b22b6b2",
+      "current_sources": 22,
+      "with_record": 0,
+      "pending": 22,
+      "statuses": {
+        "pending": 22
+      }
+    },
+    {
+      "id": "load-risk-quantile-d89a080ba048",
+      "path": "wiki/params/load-risk-quantile-d89a080ba048.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "90bcc528da1e495936bc1f70b865209d1b197bf9d3bba7d4a0c55469232b1ccb",
+      "current_sources": 26,
+      "with_record": 26,
+      "pending": 0,
+      "statuses": {
+        "支持": 16,
+        "部分支持": 5,
+        "仅存档无对应主张": 5
+      }
+    },
+    {
+      "id": "load-window-bins-cc21068b082d",
+      "path": "wiki/params/load-window-bins-cc21068b082d.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "f7352bdaeeb5d66a01f0e4ad1f08eb0a0486455a3e38d9e97c77bd8c9bac9a19",
+      "current_sources": 22,
+      "with_record": 22,
+      "pending": 0,
+      "statuses": {
+        "支持": 15,
+        "部分支持": 2,
+        "仅存档无对应主张": 5
+      }
+    },
+    {
+      "id": "lora",
+      "path": "wiki/concepts/lora.md",
+      "group": "05-performance-reliability",
+      "sha256": "3cae2c05b734a7c70474f23e5d2a98d064e4b0660327f960f02a1d874ac3c8b1",
+      "current_sources": 48,
+      "with_record": 48,
+      "pending": 0,
+      "statuses": {
+        "supported": 47,
+        "partially_supported": 1
+      }
+    },
+    {
+      "id": "low-precision-formats",
+      "path": "wiki/concepts/low-precision-formats.md",
+      "group": "05-performance-reliability",
+      "sha256": "a33c4c7d1f944535110f4ff86e1a4d7104eca7e7c70189000094ac69b9aac215",
+      "current_sources": 32,
+      "with_record": 32,
+      "pending": 0,
+      "statuses": {
+        "supports_with_stated_scope": 26,
+        "partial_support_with_code_qualification": 4,
+        "archive_only_duplicate": 2
+      }
+    },
+    {
+      "id": "matmul-and-weights",
+      "path": "wiki/concepts/matmul-and-weights.md",
+      "group": "01-foundations",
+      "sha256": "c82cf7d100745e5317fd6380100489fe60a1f1d3bddac3b869e9b572f11da0f4",
+      "current_sources": 37,
+      "with_record": 37,
+      "pending": 0,
+      "statuses": {
+        "supports": 36,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "mla",
+      "path": "wiki/concepts/mla.md",
+      "group": "01-foundations",
+      "sha256": "8d79f3cf3d11a5e276ddd940b357101e60914e29d4e98576f476e2dffcad8817",
+      "current_sources": 39,
+      "with_record": 39,
+      "pending": 0,
+      "statuses": {
+        "supports": 37,
+        "archive_only_no_corresponding_claim": 2
+      }
+    },
+    {
+      "id": "mlp-residual-norm",
+      "path": "wiki/concepts/mlp-residual-norm.md",
+      "group": "01-foundations",
+      "sha256": "4897f991da75411e67aae50e331f771aa1a25381cf2e4c795c37ee20545d48ba",
+      "current_sources": 37,
+      "with_record": 37,
+      "pending": 0,
+      "statuses": {
+        "supports": 36,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "moe",
+      "path": "wiki/concepts/moe.md",
+      "group": "01-foundations",
+      "sha256": "49b9f5139b2aa33a5bf7bab3c3ac19d1b005581bd840fb17dc19fcdd31452dbf",
+      "current_sources": 35,
+      "with_record": 35,
+      "pending": 0,
+      "statuses": {
+        "supports": 34,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "group": "04-cache-state",
+      "sha256": "833cbe74f83087f6d14803ee6c07648f94fdc04654d4ba1ba41efabdeeae8442",
+      "current_sources": 64,
+      "with_record": 0,
+      "pending": 64,
+      "statuses": {
+        "pending": 64
+      }
+    },
+    {
+      "id": "multistream-overlap-gate",
+      "path": "wiki/params/multistream-overlap-gate.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "8241f5bb911642b2b6b4729a81bff083113d14f19f1091ba174f09e7387ac793",
+      "current_sources": 37,
+      "with_record": 37,
+      "pending": 0,
+      "statuses": {
+        "supported": 33,
+        "partially_supported": 3,
+        "archive_only": 1
+      }
+    },
+    {
+      "id": "netloader-guide",
+      "path": "wiki/concepts/netloader-guide.md",
+      "group": "05-performance-reliability",
+      "sha256": "639a517e2c0e8d63850190101d94b6b239dc7bc0bdd867fd010335a8021d15a3",
+      "current_sources": 21,
+      "with_record": 21,
+      "pending": 0,
+      "statuses": {
+        "supports_with_stated_scope": 21
+      }
+    },
+    {
+      "id": "npu-model-runner",
+      "path": "wiki/concepts/npu-model-runner.md",
+      "group": "02-request-flow",
+      "sha256": "80cd0c303b92cda4ceddf9fa292ff54d6c9c0dbe38ebf38124538233186fc4be",
+      "current_sources": 46,
+      "with_record": 0,
+      "pending": 46,
+      "statuses": {
+        "pending": 46
+      }
+    },
+    {
+      "id": "npu-platform",
+      "path": "wiki/concepts/npu-platform.md",
+      "group": "02-request-flow",
+      "sha256": "d20028b3eff57ce544f31c6ead1f169c124c88d4b0fcccfb54d027aee7ca31f1",
+      "current_sources": 56,
+      "with_record": 56,
+      "pending": 0,
+      "statuses": {
+        "supports": 55,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "npu-worker-lifecycle",
+      "path": "wiki/concepts/npu-worker-lifecycle.md",
+      "group": "02-request-flow",
+      "sha256": "8f8cd9454806bec041a418f100327bc50059bbe1e3b88083cd73f0f1f1ba9b35",
+      "current_sources": 52,
+      "with_record": 0,
+      "pending": 52,
+      "statuses": {
+        "pending": 52
+      }
+    },
+    {
+      "id": "npugraph-ex",
+      "path": "wiki/concepts/npugraph-ex.md",
+      "group": "05-performance-reliability",
+      "sha256": "f7d31a8921ebdf7965a356d9558e28bbb5a4b8e2b012aa03ee078e62b141bd81",
+      "current_sources": 53,
+      "with_record": 53,
+      "pending": 0,
+      "statuses": {
+        "支持": 45,
+        "部分支持": 6,
+        "仅存档无对应主张": 2
+      }
+    },
+    {
+      "id": "one-request",
+      "path": "wiki/concepts/one-request.md",
+      "group": "01-foundations",
+      "sha256": "cb5e5fed9b9b02a7b98b4aadc5b48063b40edceca30ae4a1044ee21dea8da20f",
+      "current_sources": 60,
+      "with_record": 60,
+      "pending": 0,
+      "statuses": {
+        "supports": 59,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "group": "03-hardware-parallel",
+      "sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6",
+      "current_sources": 27,
+      "with_record": 0,
+      "pending": 27,
+      "statuses": {
+        "pending": 27
+      }
+    },
+    {
+      "id": "ops-and-kernels",
+      "path": "wiki/concepts/ops-and-kernels.md",
+      "group": "03-hardware-parallel",
+      "sha256": "903d20733a78f0901288229c50f166ce5644f9ec5ef4a318400c3f2b7e3b944d",
+      "current_sources": 40,
+      "with_record": 0,
+      "pending": 40,
+      "statuses": {
+        "pending": 40
+      }
+    },
+    {
+      "id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "group": "04-cache-state",
+      "sha256": "c268f8f3addcde4a94157a0e7db36fe178f3029db9a190cf677d62a811ae47ac",
+      "current_sources": 72,
+      "with_record": 0,
+      "pending": 72,
+      "statuses": {
+        "pending": 72
+      }
+    },
+    {
+      "id": "pipeline-parallel",
+      "path": "wiki/concepts/pipeline-parallel.md",
+      "group": "03-hardware-parallel",
+      "sha256": "f8cfa3532163d6d0ac27b0c7c6891a9c22a05e256dc1025e183b27cc198cf2ec",
+      "current_sources": 14,
+      "with_record": 14,
+      "pending": 0,
+      "statuses": {
+        "支持": 13,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "placement-search-backtrack-limit-82b03cef98b0",
+      "path": "wiki/params/placement-search-backtrack-limit-82b03cef98b0.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "917fe9b606a0294eb9541e115d4ad580a7ed45e6d017fc70c7821ba14db3c095",
+      "current_sources": 21,
+      "with_record": 21,
+      "pending": 0,
+      "statuses": {
+        "支持": 13,
+        "部分支持": 4,
+        "仅存档无对应主张": 4
+      }
+    },
+    {
+      "id": "platform-plugin-registration",
+      "path": "wiki/concepts/platform-plugin-registration.md",
+      "group": "02-request-flow",
+      "sha256": "6d262af500aab89530d46df472ec7fd79111e3b04b0179043778c4b6a692e835",
+      "current_sources": 45,
+      "with_record": 45,
+      "pending": 0,
+      "statuses": {
+        "supports": 43,
+        "archive_only_no_corresponding_claim": 2
+      }
+    },
+    {
+      "id": "pr-11953",
+      "path": "wiki/sources/pr-11953.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "c82024b4e36fa104174a2fe97585e46e9bef150ee7a36b7478c81bbfa8cafd3b",
+      "current_sources": 12,
+      "with_record": 12,
+      "pending": 0,
+      "statuses": {
+        "supports_after_scope_correction": 5,
+        "supports_with_stated_scope": 7
+      }
+    },
+    {
+      "id": "prefetch-ratio",
+      "path": "wiki/params/prefetch-ratio.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "b24fcd9b232ff560c6d162e2688b57528a298d1243332b20b02c14988fab79a3",
+      "current_sources": 43,
+      "with_record": 43,
+      "pending": 0,
+      "statuses": {
+        "supported": 39,
+        "partially_supported": 3,
+        "archive_only": 1
+      }
+    },
+    {
+      "id": "prefill",
+      "path": "wiki/concepts/prefill.md",
+      "group": "02-request-flow",
+      "sha256": "261b1c691958df3ec41a51bf5dc76db7f479669cafc9bbf93d1c6f7b75794e6c",
+      "current_sources": 50,
+      "with_record": 0,
+      "pending": 50,
+      "statuses": {
+        "pending": 50
+      }
+    },
+    {
+      "id": "prefix-caching",
+      "path": "wiki/concepts/prefix-caching.md",
+      "group": "04-cache-state",
+      "sha256": "b9c7e5ac53ee9fd5f08c89478d72b8a55d5fcc1a35cd28fdc590776e40bbde5b",
+      "current_sources": 29,
+      "with_record": 0,
+      "pending": 29,
+      "statuses": {
+        "pending": 29
+      }
+    },
+    {
+      "id": "prepare-inputs-flow",
+      "path": "wiki/concepts/prepare-inputs-flow.md",
+      "group": "02-request-flow",
+      "sha256": "f81d47b98b2ab9af8c9dd970ad9d886c22d2952277b1a9a420827cae4ea08ad3",
+      "current_sources": 37,
+      "with_record": 0,
+      "pending": 37,
+      "statuses": {
+        "pending": 37
+      }
+    },
+    {
+      "id": "profiling-chunk-config",
+      "path": "wiki/params/profiling-chunk-config.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "a04c41cd99e034949593fe93172270c7742b91487b8abba6c49893fa3d051b12",
+      "current_sources": 57,
+      "with_record": 57,
+      "pending": 0,
+      "statuses": {
+        "archive_no_independent_claim": 3,
+        "supported": 26,
+        "expanded_source_range": 7,
+        "corrected_scope": 3,
+        "partially_supported": 5,
+        "new_support": 13
+      }
+    },
+    {
+      "id": "quantization",
+      "path": "wiki/concepts/quantization.md",
+      "group": "05-performance-reliability",
+      "sha256": "25ace18b522b874d50ceb17fd80dc8fd418b7502c89be5659a25e86213b8e987",
+      "current_sources": 48,
+      "with_record": 2,
+      "pending": 46,
+      "statuses": {
+        "pending": 46,
+        "支持": 2
+      }
+    },
+    {
+      "id": "quantization-evaluation",
+      "path": "wiki/concepts/quantization-evaluation.md",
+      "group": "05-performance-reliability",
+      "sha256": "e2c78f2e3c2693a2cc176286c3aa99375f2d469b98b377a863d050b88add6219",
+      "current_sources": 19,
+      "with_record": 19,
+      "pending": 0,
+      "statuses": {
+        "supports_with_stated_scope": 19
+      }
+    },
+    {
+      "id": "quantization-methods",
+      "path": "wiki/concepts/quantization-methods.md",
+      "group": "05-performance-reliability",
+      "sha256": "8633a72a9463de03e8975a795c5cbc641cfe647538906b398cf58b82a0755bf5",
+      "current_sources": 15,
+      "with_record": 15,
+      "pending": 0,
+      "statuses": {
+        "supports_with_stated_scope": 15
+      }
+    },
+    {
+      "id": "rank-transfer-limit-99529b37d91d",
+      "path": "wiki/params/rank-transfer-limit-99529b37d91d.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "2e302d4ab27de9aeeb5469e91f7691b5cf85c1d7f250e384bf101ed67c376bee",
+      "current_sources": 21,
+      "with_record": 21,
+      "pending": 0,
+      "statuses": {
+        "支持": 15,
+        "仅存档无对应主张": 5,
+        "部分支持": 1
+      }
+    },
+    {
+      "id": "reading-vllm-ascend",
+      "path": "wiki/concepts/reading-vllm-ascend.md",
+      "group": "02-request-flow",
+      "sha256": "b289851f625dd68f67ac76b2bc6b28c10c1a4157049a3cbcd78b9d3e16a7b3dc",
+      "current_sources": 37,
+      "with_record": 37,
+      "pending": 0,
+      "statuses": {
+        "supports": 36,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "sha256": "349d16acb989e86428c2b43124e702ebe9c16b986c0f36464b1acf0662757523",
+      "current_sources": 33,
+      "with_record": 0,
+      "pending": 33,
+      "statuses": {
+        "pending": 33
+      }
+    },
+    {
+      "id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "sha256": "fe4629408c050c85459f97f5e1eb7ea0c28a6b957f78d5e4c3a8f4859345c1de",
+      "current_sources": 43,
+      "with_record": 0,
+      "pending": 43,
+      "statuses": {
+        "pending": 43
+      }
+    },
+    {
+      "id": "relative-balance-threshold-bcbc40e7dc87",
+      "path": "wiki/params/relative-balance-threshold-bcbc40e7dc87.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "82a232b60fa004d55e5f4084f54369c3596f39d9d6af5df4d8c299936096c169",
+      "current_sources": 19,
+      "with_record": 19,
+      "pending": 0,
+      "statuses": {
+        "支持": 14,
+        "部分支持": 1,
+        "仅存档无对应主张": 4
+      }
+    },
+    {
+      "id": "replica-search-beam-size-6556d1650a62",
+      "path": "wiki/params/replica-search-beam-size-6556d1650a62.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "b7960db0dfc1cdf1195b104881c66998ded1b1618c15715a40e018b7671276ac",
+      "current_sources": 17,
+      "with_record": 17,
+      "pending": 0,
+      "statuses": {
+        "支持": 13,
+        "仅存档无对应主张": 4
+      }
+    },
+    {
+      "id": "replica-search-num-stages-e4b10925ff97",
+      "path": "wiki/params/replica-search-num-stages-e4b10925ff97.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "073ca847683cc7e1e8e90d75090b0a0189bb6f4a78fb04d8aafdb74d296c5b8c",
+      "current_sources": 18,
+      "with_record": 18,
+      "pending": 0,
+      "statuses": {
+        "支持": 13,
+        "部分支持": 1,
+        "仅存档无对应主张": 4
+      }
+    },
+    {
+      "id": "replica-search-radius-cd3118b5aae5",
+      "path": "wiki/params/replica-search-radius-cd3118b5aae5.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "b9d670f1278d8c9d9a1d04656eba9131da8ca3eca0625a4ff11144acd1501c45",
+      "current_sources": 16,
+      "with_record": 16,
+      "pending": 0,
+      "statuses": {
+        "支持": 12,
+        "仅存档无对应主张": 4
+      }
+    },
+    {
+      "id": "request-call-chain",
+      "path": "wiki/concepts/request-call-chain.md",
+      "group": "02-request-flow",
+      "sha256": "3017755e3f651eae45fdda90b5726abb1e136e305b0cad8841e4bf080a8d100a",
+      "current_sources": 72,
+      "with_record": 0,
+      "pending": 72,
+      "statuses": {
+        "pending": 72
+      }
+    },
+    {
+      "id": "request-teardown",
+      "path": "wiki/concepts/request-teardown.md",
+      "group": "02-request-flow",
+      "sha256": "43322aeccd03b7e417483dff09864cd4b77ee39c13c0687fb7ba46493636360f",
+      "current_sources": 76,
+      "with_record": 0,
+      "pending": 76,
+      "statuses": {
+        "pending": 76
+      }
+    },
+    {
+      "id": "rfork",
+      "path": "wiki/concepts/rfork.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "8bd58d56d4a661f0f01696527b61dbe5b1ff1ee8bff27b2af17090884ba536fc",
+      "current_sources": 41,
+      "with_record": 41,
+      "pending": 0,
+      "statuses": {
+        "支持": 35,
+        "部分支持": 5,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "rfork-config",
+      "path": "wiki/concepts/rfork-config.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "df5609381ccdad94ccd8902001c34fd2a42e00c31bc2c75f85b4ea590518f4c1",
+      "current_sources": 21,
+      "with_record": 21,
+      "pending": 0,
+      "statuses": {
+        "支持": 16,
+        "部分支持": 4,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "rfork-identity",
+      "path": "wiki/concepts/rfork-identity.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "9f609555fd4353e4b753ece42b8a4fea64ac8ab7b37de323133ab515c53acb6d",
+      "current_sources": 37,
+      "with_record": 37,
+      "pending": 0,
+      "statuses": {
+        "支持": 31,
+        "部分支持": 5,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "rfork-layout",
+      "path": "wiki/concepts/rfork-layout.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "7e8869bf8fbf181e806e00d367080d0f6ba4460da5595a1cf0b21ebf7e1c8a75",
+      "current_sources": 13,
+      "with_record": 13,
+      "pending": 0,
+      "statuses": {
+        "支持": 12,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "rfork-lifecycle",
+      "path": "wiki/concepts/rfork-lifecycle.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "6a492c265e549d0c415c63fdd48e14705004cc6e7717d11098d8459daad65cb7",
+      "current_sources": 25,
+      "with_record": 25,
+      "pending": 0,
+      "statuses": {
+        "支持": 17,
+        "部分支持": 7,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "rfork-maintenance",
+      "path": "wiki/concepts/rfork-maintenance.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "8cf88dbac68721db9979506d555b1116c7992a84341d140cb0bd6e0fdd1e9325",
+      "current_sources": 7,
+      "with_record": 7,
+      "pending": 0,
+      "statuses": {
+        "支持": 6,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "rfork-official-guide",
+      "path": "wiki/sources/rfork-official-guide.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "3de2493bc563eeeee09e4047bb62438bb97b644aec569aa35ca6d923f1bea589",
+      "current_sources": 24,
+      "with_record": 24,
+      "pending": 0,
+      "statuses": {
+        "部分支持": 2,
+        "支持": 21,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "rfork-startup",
+      "path": "wiki/concepts/rfork-startup.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "1e7e566678af795598946fad2df7cc84f07f11d5fc6f946c33a7230e2f810817",
+      "current_sources": 25,
+      "with_record": 25,
+      "pending": 0,
+      "statuses": {
+        "支持": 18,
+        "部分支持": 6,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "rfork-transfer",
+      "path": "wiki/concepts/rfork-transfer.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "9aee8a41e165ef91536b810f7780f7ce6c18e8379467a45fdeae5df88e5ef800",
+      "current_sources": 26,
+      "with_record": 26,
+      "pending": 0,
+      "statuses": {
+        "支持": 22,
+        "部分支持": 3,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "rfork-troubleshooting",
+      "path": "wiki/concepts/rfork-troubleshooting.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "c9ff0986c772b0a1e549cf7155a46c7d60180fedae6205f147356177decf6977",
+      "current_sources": 30,
+      "with_record": 30,
+      "pending": 0,
+      "statuses": {
+        "部分支持": 1,
+        "支持": 28,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "rope",
+      "path": "wiki/concepts/rope.md",
+      "group": "01-foundations",
+      "sha256": "63e4a1d376bee1e1b7d81d2fe6871027f2b0e8119b01dc9a6633a28995722742",
+      "current_sources": 37,
+      "with_record": 37,
+      "pending": 0,
+      "statuses": {
+        "supports": 36,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "sampling",
+      "path": "wiki/concepts/sampling.md",
+      "group": "02-request-flow",
+      "sha256": "cbeb11b77bb0e114f7c69b6a0fef836a5c4d2f78f07ce69d9860d4a00f62a048",
+      "current_sources": 180,
+      "with_record": 0,
+      "pending": 180,
+      "statuses": {
+        "pending": 180
+      }
+    },
+    {
+      "id": "sequence-parallel",
+      "path": "wiki/concepts/sequence-parallel.md",
+      "group": "03-hardware-parallel",
+      "sha256": "b2368b7d69ebc7009636ace99b4d838a89182516aa4afdab1fa768e1fc4ebbd7",
+      "current_sources": 35,
+      "with_record": 0,
+      "pending": 35,
+      "statuses": {
+        "pending": 35
+      }
+    },
+    {
+      "id": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
+      "path": "wiki/params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "8ccf645d950da5ff6b425152b0e352ff785bc714897ab564e3ffe27dd6c096b1",
+      "current_sources": 50,
+      "with_record": 50,
+      "pending": 0,
+      "statuses": {
+        "支持": 34,
+        "部分支持": 4,
+        "仅存档无对应主张": 12
+      }
+    },
+    {
+      "id": "short-request-first",
+      "path": "wiki/concepts/short-request-first.md",
+      "group": "02-request-flow",
+      "sha256": "31a34d96e3a4f97ae41f8cc9cf7ff332328b0c091b7ae796463a00bfa2a9d7aa",
+      "current_sources": 31,
+      "with_record": 0,
+      "pending": 31,
+      "statuses": {
+        "pending": 31
+      }
+    },
+    {
+      "id": "size-40a1c2ca47b8",
+      "path": "wiki/params/size-40a1c2ca47b8.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "19396bf34d19483e87d1aa4e77b5b66df07ddf4c18d1c012c1b50c45a1f89a08",
+      "current_sources": 24,
+      "with_record": 24,
+      "pending": 0,
+      "statuses": {
+        "支持": 18,
+        "部分支持": 2,
+        "仅存档无对应主张": 4
+      }
+    },
+    {
+      "id": "sleep-mode",
+      "path": "wiki/concepts/sleep-mode.md",
+      "group": "05-performance-reliability",
+      "sha256": "e9a4373c7cdafdb77d5ab798c51b0cb0cc3891ebf78711ff4b1c692a5d66562d",
+      "current_sources": 38,
+      "with_record": 38,
+      "pending": 0,
+      "statuses": {
+        "supported": 37,
+        "archive_no_independent_claim": 1
+      }
+    },
+    {
+      "id": "sparse-attention",
+      "path": "wiki/concepts/sparse-attention.md",
+      "group": "01-foundations",
+      "sha256": "1464d413d473a346a6e01afa727f348029528f54efed6ec63afd172ca2646450",
+      "current_sources": 24,
+      "with_record": 24,
+      "pending": 0,
+      "statuses": {
+        "supports": 23,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "speculative-decoding",
+      "path": "wiki/concepts/speculative-decoding.md",
+      "group": "05-performance-reliability",
+      "sha256": "ef2c3e3af5af218cfdc470241bd7832dd93bbb842ab108acfea0a2663efb1595",
+      "current_sources": 67,
+      "with_record": 0,
+      "pending": 67,
+      "statuses": {
+        "pending": 67
+      }
+    },
+    {
+      "id": "stair-config-cca9e594a052",
+      "path": "wiki/params/stair-config-cca9e594a052.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "1b65a7dca77b9c70062660de6bcbbe7d4474284542f8f5b3351889841820b374",
+      "current_sources": 29,
+      "with_record": 29,
+      "pending": 0,
+      "statuses": {
+        "支持": 20,
+        "部分支持": 4,
+        "仅存档无对应主张": 5
+      }
+    },
+    {
+      "id": "streaming-output",
+      "path": "wiki/concepts/streaming-output.md",
+      "group": "02-request-flow",
+      "sha256": "469fe3e2c95f7f659db9ac1a4899017cf6cb7d2aaa251495a207f4df35b9e78e",
+      "current_sources": 64,
+      "with_record": 0,
+      "pending": 64,
+      "statuses": {
+        "pending": 64
+      }
+    },
+    {
+      "id": "structured-output",
+      "path": "wiki/concepts/structured-output.md",
+      "group": "02-request-flow",
+      "sha256": "22f81405c5edac783f63aa2bccff41d49193584b11721b97857d57fa1af700e4",
+      "current_sources": 93,
+      "with_record": 0,
+      "pending": 93,
+      "statuses": {
+        "pending": 93
+      }
+    },
+    {
+      "id": "swa-bounded-replay",
+      "path": "wiki/concepts/swa-bounded-replay.md",
+      "group": "04-cache-state",
+      "sha256": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8",
+      "current_sources": 8,
+      "with_record": 0,
+      "pending": 8,
+      "statuses": {
+        "pending": 8
+      }
+    },
+    {
+      "id": "tensor-layout",
+      "path": "wiki/concepts/tensor-layout.md",
+      "group": "01-foundations",
+      "sha256": "cd59daa5cfd854c1041f6185ca5cdd9d02eaa6450f5a27330929d0f52ad05708",
+      "current_sources": 31,
+      "with_record": 31,
+      "pending": 0,
+      "statuses": {
+        "supports": 31
+      }
+    },
+    {
+      "id": "tensor-parallel",
+      "path": "wiki/concepts/tensor-parallel.md",
+      "group": "03-hardware-parallel",
+      "sha256": "788fccad9afa6ee6b1ca1b24934443058dae85bf61a0824fe82862bcee78faea",
+      "current_sources": 50,
+      "with_record": 50,
+      "pending": 0,
+      "statuses": {
+        "支持": 48,
+        "部分支持": 1,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "token",
+      "path": "wiki/concepts/token.md",
+      "group": "01-foundations",
+      "sha256": "dc382738b9047dc295caded0ef264bab644cc47c76207b3cdcf01753a108b253",
+      "current_sources": 64,
+      "with_record": 64,
+      "pending": 0,
+      "statuses": {
+        "supports": 62,
+        "archive_only_no_corresponding_claim": 2
+      }
+    },
+    {
+      "id": "ucm",
+      "path": "wiki/concepts/ucm.md",
+      "group": "04-cache-state",
+      "sha256": "1a19353ef4f7fc074b0912664dc5b95437dc310e22d23d4c51416302e033beeb",
+      "current_sources": 37,
+      "with_record": 0,
+      "pending": 37,
+      "statuses": {
+        "pending": 37
+      }
+    },
+    {
+      "id": "use-fused-overlap-75a180fff6ab",
+      "path": "wiki/params/use-fused-overlap-75a180fff6ab.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "1e7e9375f85973cef99b0d0fb48caba3c91ba5b388f919e7b24a47b93603e0a5",
+      "current_sources": 56,
+      "with_record": 56,
+      "pending": 0,
+      "statuses": {
+        "支持": 50,
+        "部分支持": 5,
+        "仅存档无对应主张": 1
+      }
+    },
+    {
+      "id": "use-layerwise-b475778cd352",
+      "path": "wiki/params/use-layerwise-b475778cd352.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "efcd224373f45e960e77628495fd6e888e7a6c1aafba5832b03f28f2d0b011de",
+      "current_sources": 42,
+      "with_record": 42,
+      "pending": 0,
+      "statuses": {
+        "支持": 36,
+        "部分支持": 4,
+        "仅存档无对应主张": 2
+      }
+    },
+    {
+      "id": "v030rc2-baseline",
+      "path": "wiki/sources/v030rc2-baseline.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "f3635465da0de1262e029ae55a7bbf84f504c02de8638c91e620aa054926ba3d",
+      "current_sources": 16,
+      "with_record": 16,
+      "pending": 0,
+      "statuses": {
+        "支持": 16
+      }
+    },
+    {
+      "id": "vllm-ascend-for-rl",
+      "path": "wiki/concepts/vllm-ascend-for-rl.md",
+      "group": "05-performance-reliability",
+      "sha256": "864dff31879f51cad2a3d8d5c3639f541185dd6eeef3549d8489bfd4848fa87c",
+      "current_sources": 39,
+      "with_record": 0,
+      "pending": 39,
+      "statuses": {
+        "pending": 39
+      }
+    },
+    {
+      "id": "vllm-ascend-overview",
+      "path": "wiki/concepts/vllm-ascend-overview.md",
+      "group": "02-request-flow",
+      "sha256": "14e2c8fe3b34c26e897f1bf886bba16373f1889d998e8a0f398f6abe0050b6f6",
+      "current_sources": 52,
+      "with_record": 52,
+      "pending": 0,
+      "statuses": {
+        "supports": 51,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "vllm-ascend-repo-map",
+      "path": "wiki/concepts/vllm-ascend-repo-map.md",
+      "group": "02-request-flow",
+      "sha256": "185f427a0bf2e86376962667ee7143505d02b7f474b28ff6659c9170035d3532",
+      "current_sources": 22,
+      "with_record": 22,
+      "pending": 0,
+      "statuses": {
+        "supports": 20,
+        "archive_only_no_corresponding_claim": 2
+      }
+    },
+    {
+      "id": "vllm-engine-core",
+      "path": "wiki/concepts/vllm-engine-core.md",
+      "group": "02-request-flow",
+      "sha256": "af9825b4c28a4e835bb5597f4094adf84cbbe5d79222934b273a4cc0fa224267",
+      "current_sources": 40,
+      "with_record": 0,
+      "pending": 40,
+      "statuses": {
+        "pending": 40
+      }
+    },
+    {
+      "id": "vllm-kv-block-allocation",
+      "path": "wiki/concepts/vllm-kv-block-allocation.md",
+      "group": "04-cache-state",
+      "sha256": "48b50b1d5e0c67d7f6e621dd7e2d1b9d8a6585d847ae3e735d5e8a9934c9eada",
+      "current_sources": 40,
+      "with_record": 0,
+      "pending": 40,
+      "statuses": {
+        "pending": 40
+      }
+    },
+    {
+      "id": "vllm-platform-interface",
+      "path": "wiki/concepts/vllm-platform-interface.md",
+      "group": "02-request-flow",
+      "sha256": "176059c91ec48ec7d5585ae27aa63af7e2f965d7f44b4c4807646bf8760763c8",
+      "current_sources": 46,
+      "with_record": 46,
+      "pending": 0,
+      "statuses": {
+        "supports": 45,
+        "archive_only_no_corresponding_claim": 1
+      }
+    },
+    {
+      "id": "vllm-scheduler",
+      "path": "wiki/concepts/vllm-scheduler.md",
+      "group": "02-request-flow",
+      "sha256": "868fa555a1c0a228f88c35076fea719b900d50d6f112a213938b3f4cfc01ef04",
+      "current_sources": 61,
+      "with_record": 0,
+      "pending": 61,
+      "statuses": {
+        "pending": 61
+      }
+    },
+    {
+      "id": "vllm-v1-shape",
+      "path": "wiki/concepts/vllm-v1-shape.md",
+      "group": "02-request-flow",
+      "sha256": "5e46926212029256a097b9c557a277ad602eada00e632ae55d8da498f10356bf",
+      "current_sources": 41,
+      "with_record": 0,
+      "pending": 41,
+      "statuses": {
+        "pending": 41
+      }
+    },
+    {
+      "id": "weight-prefetch-config",
+      "path": "wiki/params/weight-prefetch-config.md",
+      "group": "06-rfork-params-sources",
+      "sha256": "6b93cf279a5a5b6d1be792b0eb8764051d52b16239b2d6405c8655fbb271201e",
+      "current_sources": 73,
+      "with_record": 73,
+      "pending": 0,
+      "statuses": {
+        "supported": 70,
+        "partially_supported": 2,
+        "archive_only": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,392 @@
+[
+  {
+    "raw": "1d83babf8ed10c6ff9402b2cf25492c423cf9a14ee0a26e0c1f395009106882e",
+    "blocks": [
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L52-L53",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L704-L720",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L13-L34",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L46-L69",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L71-L104",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L158-L186",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L230-L238",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/register_custom_ops.py#L126-L131",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L74-L89",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L71-L74",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/activation.py#L37-L43",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L153-L158",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:tests/ut/ops/a2/test_weight_prefetch.py#L45-L52",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/weight_prefetch.md#L11-L32",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L117-L122",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L316-L346",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L437-L455",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L235-L249",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:tests/e2e/pull_request/two_card/test_qwen3_performance.py#L72-L75",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L709",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L62",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2ed6cbba:tests/e2e/pull_request/two_card/test_qwen3_performance.py#L76-L76",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L685-L701",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L276-L340",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/activation.py#L37-L55",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L153-L158",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L149-L157",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2282-L2286",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_static.py#L74-L122",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/weight_prefetch.py#L98-L131",
+        "exact": true
+      },
+      {
+        "ref": "vllm@0fc695fc:vllm/distributed/utils.py#L109-L154",
+        "exact": true
+      }
+    ]
+  },
+  {
+    "raw": "ba02d66e6627402c73c96eee60edcd5c70237363f540b371869fddb11c239baa",
+    "blocks": [
+      {
+        "ref": "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/weight_prefetch.md#L1-L5",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/weight_prefetch.md#L25-L32",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L66-L69",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L117-L122",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L52-L53",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L704-L720",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L13-L15",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L26-L34",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L46-L69",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L71-L86",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L88-L104",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L134-L156",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L158-L186",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L230-L238",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/register_custom_ops.py#L126-L145",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L509-L528",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L336-L338",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L81-L89",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L153-L158",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/activation.py#L37-L43",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L71-L74",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L437-L455",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L235-L249",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/tutorials/features/suffix_speculative_decoding.md#L92-L95",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L52",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L62",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/model_executor/offloader/prefetch.py#L1-L22",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@baa023ad:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2ed6cbba:docs/source/tutorials/models/Qwen3-Dense.md#L554-L554",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L685-L701",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/weight_prefetch.py#L14-L67",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/weight_prefetch.py#L202-L227",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1756-L2011",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L479-L502",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L284-L290",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/weight_prefetch.py#L1-L238",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L57-L217",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L709-L790",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L700-L781",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/linear.py#L363-L371",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L137-L156",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/mla_v1.py#L1655-L1803",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L557-L579",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L249-L314",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L355-L469",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1577-L1597",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1916-L1963",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2272-L2286",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L1118-L1135",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2263-L2278",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1305-L1312",
+        "exact": true
+      },
+      {
+        "ref": "vllm@0fc695fc:vllm/model_executor/models/utils.py#L632-L663",
+        "exact": true
+      },
+      {
+        "ref": "vllm@0fc695fc:vllm/distributed/utils.py#L109-L154",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1650-L1666",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L240-L252",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_static.py#L74-L122",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L262-L287",
+        "exact": true
+      },
+      {
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/mla_v1.py#L73-L73",
+        "exact": true
+      }
+    ]
+  }
+]

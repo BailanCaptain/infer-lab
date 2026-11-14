@@ -1,6 +1,6 @@
 layout: figure
 id: pd-disaggregation
-caption: 一次交接的先后（以设计文档作示例的 Mooncake V1 为例）。代理把同一条请求先发给 P、再转给 D；D 在自己的块池里分好目的块，由后台线程按地址读 P 的源块；D 发出的完成信号让 P 放块，D 上的请求随后回到队列，算完最后一个位置才开始逐 token 生成。编号与正文步骤一致，图不表示耗时。
+caption: 一次交接的先后（以设计文档作示例的 Mooncake V1 为例）。代理把同一条请求先发给 P、再转给 D；D 在自己的块池里分好目的块，由后台线程按地址读 P 的源块；D 发出的完成信号让 P 放块，仅成功的请求随后回到 D 队列，算完最后一个位置才开始逐 token 生成。编号与正文步骤一致，图不表示耗时。
 size: [900, 640]
 frames:
   - { at: [20, 40], size: [290, 540], label: P 实例 }
@@ -8,7 +8,7 @@ frames:
   - { at: [590, 40], size: [290, 540], label: D 实例 }
 items:
   - { at: [350, 64], size: [200, 56], text: 发给 P, sub: 只生成 1 个 token, tone: control }
-  - { at: [40, 64], size: [250, 56], text: prefill 提示词, sub: 混合模型先截掉最后 1 个位置, tone: weight }
+  - { at: [40, 64], size: [250, 56], text: prefill 提示词, sub: 混合模型多于 1 个位置才截尾, tone: weight }
   - { at: [40, 154], size: [250, 56], text: 按长度上限结束, sub: 打包块号与地址，块先不放, tone: control }
   - { at: [350, 244], size: [200, 56], text: 转给 D, sub: 带上 P 交回的信息, tone: control }
   - { at: [610, 244], size: [250, 56], text: 分配 D 自己的块, sub: 请求挂起，等远端状态, tone: kv }
@@ -16,7 +16,7 @@ items:
   - { at: [610, 334], size: [250, 56], text: 后台线程读 P 的块, sub: D 拉，不是 P 推, tone: comm }
   - { at: [610, 424], size: [250, 56], text: 通知 P 收完, sub: 成功或失败都会发, tone: control }
   - { at: [40, 424], size: [250, 56], text: 释放源块, sub: 收到通知，或超时强制释放, tone: control }
-  - { at: [610, 514], size: [250, 56], text: 算最后 1 个位置, sub: 采样首 token，进入 decode, tone: token }
+  - { at: [610, 514], size: [250, 56], text: 成功后算最后 1 个位置, sub: 失败默认结束，重算须满足条件, tone: token }
 links:
   - { from: [350, 92], to: [290, 92], tone: control }
   - { from: [165, 120], to: [165, 154] }
@@ -42,6 +42,10 @@ texts:
   - { at: [172, 276], text: 请求已结束，块仍押着, size: 12, anchor: start, note: true }
   - { at: [450, 620], text: 两边的块号各属自己的块池, anchor: middle, note: true }
 pins:
+  - source: vllm@0fc695fc:vllm/config/kv_transfer.py#L70-L73
+    symbols: [kv_load_failure_policy]
+  - source: vllm-ascend@db701c1f:vllm_ascend/platform.py#L892-L900
+    symbols: [_validate_kv_load_failure_policy]
   - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1880-L1926
     symbols: [request_finished]
   - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L774-L990

@@ -1,0 +1,631 @@
+{
+  "date": "2026-11-01",
+  "scope": "planning-only; no new completion",
+  "checks": {
+    "all_83_once": true,
+    "canonical_80": true,
+    "original_definitions_and_ids_preserved": true,
+    "all_targets_exist": true,
+    "merges_same_batch_target": true,
+    "definition_sources_downloaded_and_in_range": true,
+    "download_hashes_valid": true,
+    "first_batch_four": true,
+    "published_content_unchanged": true,
+    "local_report_links_exist": true,
+    "overall_original_count": true,
+    "identity_rules_present_in_three_versions": true
+  },
+  "pass": true,
+  "batchCounts": {
+    "O01": 4,
+    "O02": 8,
+    "O03": 9,
+    "O04": 11,
+    "O05": 9,
+    "O06": 5,
+    "O07": 5,
+    "O08": 7,
+    "O09": 8,
+    "O10": 5,
+    "O11": 2,
+    "O12": 4,
+    "O13": 3,
+    "O14": 1,
+    "O15": 2
+  },
+  "overall": {
+    "totalOriginalItems": 1712,
+    "completedOriginalItems": 120,
+    "remainingCOriginalItems": 969,
+    "remainingDOriginalItems": 623,
+    "remainingOriginalItems": 1592,
+    "priorVerifiedReductions": 7,
+    "newVerifiedReductions": 3,
+    "remainingCanonicalC": 959,
+    "remainingAfterOnlyVerifiedMerges": 1582,
+    "outOfBaselineDefinitionRecords": 786
+  },
+  "uniqueSourceDownloads": 45,
+  "protectedFiles": 831,
+  "changedProtectedFiles": [],
+  "reportLinks": [
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "diagnostics-ledger.json",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "diagnostics-ledger.csv",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "diagnostics-batches.json",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "diagnostics-plan-validation.json",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "structured-output-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/glm-5-3-flash-two-node.md#部署前提",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/inference-performance-analysis.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/inference-performance-analysis.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/api-server-entry.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/inference-performance-analysis.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/inference-performance-analysis.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/inference-performance-analysis.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/request-call-chain.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/api-server-entry.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/inference-performance-analysis.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/acl-graph.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/sampling.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/graph-mode-layer.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/npu-worker-lifecycle.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/api-server-entry.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/eplb.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/inference-performance-analysis.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/engine-processes.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/inference-benchmarking.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/device-memory.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "diagnostics-observability-plan.md",
+      "target": "../../../wiki/concepts/sparse-attention.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "diagnostics-observability-plan.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "diagnostics-ledger.json",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "diagnostics-ledger.csv",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "diagnostics-plan-validation.json",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "structured-output-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "structured-output-independent-review.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "common-entry-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "common-entry-independent-review.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "fusion-layout-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "logprobs-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "streaming-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "launch-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "mtp-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "main-graph-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "scheduler-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "capacity-kv-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "defaults-sampling-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "length-stop-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "token-controls-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "penalty-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "c-scenario-plan.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "c-scenario-ledger.csv",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "c-scenario-ledger.json",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "c-scenario-validation.json",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "deployment-backfill-plan.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "deployment-backlog.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "review-results.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "review-missing.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "review-incomplete.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "review-covered.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "review-excluded.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "review-ledger.json",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "statistics.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "reviewed-gaps.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "unmentioned.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "mentioned.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "dedicated.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "ambiguous.md",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "inventory.json",
+      "exists": true
+    },
+    {
+      "file": "README.md",
+      "target": "audit.py",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "diagnostics-observability-plan.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "structured-output-backfill-validation.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "structured-output-independent-review.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/structured-output.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/glm-5-3-flash-two-node.md#部署前提",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "c-scenario-ledger.csv",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "c-scenario-ledger.json",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "deployment-backlog.json",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/speculative-decoding.md#怎么开",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/sampling.md#怎么开",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/structured-output.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/inference-performance-analysis.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/structured-output.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/token.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/api-server-entry.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/npu-worker-lifecycle.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/engine-processes.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/cann-hccl.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/expert-parallel.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/fine-grained-tp.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/sequence-parallel.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/eplb.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/request-teardown.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/vllm-scheduler.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/sampling.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/streaming-output.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/prefix-caching.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/kv-cache-spec.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/kv-cache-quantization.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/graph-mode-layer.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/attention-backend-family.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/ops-and-kernels.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/speculative-decoding.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/structured-output.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/pd-disaggregation.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/mooncake-connector.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/kv-pool.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/lmcache.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/device-memory.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/lora.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/sleep-mode.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/vllm-ascend-for-rl.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/vllm-ascend-repo-map.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../../wiki/concepts/structured-output.md#对照源码",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "../../wiki-writing-standard.md",
+      "exists": true
+    },
+    {
+      "file": "c-scenario-plan.md",
+      "target": "c-scenario-validation.json",
+      "exists": true
+    }
+  ],
+  "firstValidationCorrection": "Initial check mistakenly constructed Counter(mapping) rather than Counter(mapping.keys()); retained first result. Actual ID multiset compared here.",
+  "identityRuleChecks": {
+    "0fc695fc": {
+      "tracking_fallback": true,
+      "parent_fallback": true,
+      "state_fallback": true
+    },
+    "568afb3a": {
+      "tracking_fallback": true,
+      "parent_fallback": true,
+      "state_fallback": true
+    },
+    "84030bbe": {
+      "tracking_fallback": true,
+      "parent_fallback": true,
+      "state_fallback": true
+    }
+  }
+}

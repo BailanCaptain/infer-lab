@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" width="900" height="610" role="img" aria-label="行并行线性的实现是按顺序挑的，第一个为真的分支直接 return——这个开关站在第五位，踩它的人大多输在位置上（v0.23 维护分支）">
-  <title>行并行线性的实现是按顺序挑的，第一个为真的分支直接 return——这个开关站在第五位，踩它的人大多输在位置上（v0.23 维护分支）</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" width="900" height="610" role="img" aria-label="v0.23 维护分支按顺序选择行并行实现，第一个满足条件的分支返回。本开关排第五，影响未被前四条认领的层；进入该类后还要满足 reduce_results 且 TP&gt;1，才调用融合算子。">
+  <title>v0.23 维护分支按顺序选择行并行实现，第一个满足条件的分支返回。本开关排第五，影响未被前四条认领的层；进入该类后还要满足 reduce_results 且 TP&gt;1，才调用融合算子。</title>
   <rect width="900" height="610" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="26" width="860" height="418" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
   <rect x="36" y="40" width="302.8" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">_get_row_parallel_op 从上往下依次判断</text>
@@ -17,7 +17,7 @@
   <rect x="136" y="180" width="728" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
   <rect x="136" y="180" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
   <text x="158" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">细粒度 MLP TP</text>
-  <text x="158" y="218" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">&quot;down_proj&quot; in prefix and mlp_tp_enable()</text>
+  <text x="158" y="218" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">down_proj 且开启 MLP TP，且不是 MoE 层</text>
   <rect x="707" y="188.5" width="138" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="776" y="206" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">MLPRowParallelOp</text>
   <rect x="136" y="226" width="728" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
   <rect x="136" y="226" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
@@ -28,7 +28,7 @@
   <rect x="136" y="272" width="5" height="42" rx="2.5" fill="var(--color-accent, #e85b32)"/>
   <g transform="translate(159.8 282.8) scale(0.85)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
   <text x="194" y="290" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">本页的开关就在这一条</text>
-  <text x="194" y="310" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">matmul_allreduce_enable()，没有 prefix 过滤，行并行线性通吃</text>
+  <text x="194" y="310" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">matmul_allreduce_enable()，认领剩余行并行层</text>
   <rect x="617" y="280.5" width="228" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="731" y="298" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">MatmulAllreduceRowParallelOp</text>
   <rect x="136" y="318" width="728" height="42" rx="10" fill="var(--color-canvas, #f5f2ea)"/>
   <rect x="136" y="318" width="5" height="42" rx="2.5" fill="var(--color-ink-faint, #8a928f)"/>
@@ -47,9 +47,8 @@
   <text x="848" y="436" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">return None</text>
   <path d="M34 318 l-8 0 L26 452 l8 0" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.4" opacity="0.75"/>
   <text x="40" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-faint, #8a928f)">到不了</text>
-  <text x="40" y="476" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">开了它，下面三条就永远到不了：FlashComm2 的 o_proj 路径、SP 的全部行并行路径，以及默认实现。代码里没有任何互斥检查或告警——配了 </text>
-  <text x="40" y="494.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">flashcomm2_parallel_size 却发现毫无效果，多半就是踩到这里。</text>
+  <text x="40" y="476" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">被此分支认领的层不再判断后面的 FlashComm2、SP 与默认分支；这不等于关闭这些特性的全部模块。该类内仍会根据 reduce_results 和 TP 大</text>
+  <text x="40" y="494.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">小选择融合或普通调用。</text>
   <text x="40" y="530" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">反过来，排在它上面的四条轮不到它：细粒度 TP 和 layer_sharding 认领掉的那些层，走的是各自的实现。</text>
-  <text x="40" y="576" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">被换掉的是「matmul 算完再 AllReduce」这一对，换成 npu_mm_all_reduce_base 一个算子，在算子内部按块把通信藏进计算。搬运的字节数没</text>
-  <text x="40" y="594.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">变，省的是干等的时间。</text>
+  <text x="40" y="576" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">融合调用争取重叠计算与通信；该 Python 包装层未给出内部切块策略或通信字节数，实际等待是否缩短需要测量。</text>
 </svg>

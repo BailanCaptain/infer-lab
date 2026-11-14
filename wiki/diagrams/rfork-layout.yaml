@@ -1,15 +1,15 @@
 layout: figure
 id: rfork-layout
-caption: 两条路都从 A 读权重，差别在后处理放在哪一侧：要转布局的，读之前先转好；按原形状搬的，读完再处理并刷新登记
+caption: 两条路都从 A 读当前权重。上路先准备布局；下路先核清单并读取，再做适用的后处理、刷新登记。checkpoint 路径不保证 A 保持原形状，读取后会跳过未量化 MoE 的重复后处理。
 size: [900, 240]
 
 items:
   - { at: [190, 40], size: [190, 60], text: 转布局 + 同步, tone: weight }
   - { at: [430, 40], size: [190, 60], text: 从 A 读, tone: comm }
-  - { at: [670, 40], size: [190, 60], text: 直接发布, tone: control, style: plain }
+  - { at: [670, 40], size: [190, 60], text: 发布判断, tone: control, style: plain }
   - { at: [190, 150], size: [190, 60], text: 只搭骨架, tone: weight, style: plain }
   - { at: [430, 150], size: [190, 60], text: 从 A 读, tone: comm }
-  - { at: [670, 150], size: [190, 60], text: 后处理 · 刷新登记, tone: weight }
+  - { at: [670, 150], size: [190, 60], text: 适用后处理 · 刷新登记, tone: weight }
 
 links:
   - { from: [380, 70], to: [430, 70], tone: control }
@@ -19,7 +19,7 @@ links:
 
 texts:
   - { at: [40, 75], text: 要转布局, size: 15 }
-  - { at: [40, 185], text: 按原形状, size: 15 }
+  - { at: [40, 185], text: 先读后处理, size: 15 }
 
 pins:
   - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L584-L644

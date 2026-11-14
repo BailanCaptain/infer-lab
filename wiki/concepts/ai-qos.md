@@ -1,38 +1,83 @@
 ---
 id: ai-qos
-title: "AI QoS：共享链路拥塞时，哪类流量先走"
+title: AI QoS：共享链路拥塞时，哪类流量先走
 type: feature
-summary: AI QoS 在受支持的 A3 网络上给流量分类、映射虚拟通道并设置服务先后。理解关键通信与 KV 搬运的争用，再核对端点和交换机两步配置、恢复边界及三版差异。
-aliases: [AI QoS, AI QoS Feature, ai_qos, 流量 QoS, 虚拟通道 VL, Virtual Lane, UB 交换机 QoS, hccs qos remap, 严格优先级调度, MASTER_ID_SDMA, aiqos_table, tools/ai_qos.py, AI QoS 配置, AI QoS 流量优先级, Ai_QoS_introduction_en, 服务质量, 网络服务质量, 虚拟通道优先级, SDMA_D2D, SDMA_H2D, PCIEDMA_H2D]
-chapters: ["07", "09"]
+summary: >-
+  AI QoS 在受支持的 A3 网络上给流量分类、映射虚拟通道并设置服务先后。理解关键通信与 KV
+  搬运的争用，再核对端点和交换机两步配置、恢复边界及各版本差异。
+aliases:
+  - AI QoS
+  - AI QoS Feature
+  - ai_qos
+  - 流量 QoS
+  - 虚拟通道 VL
+  - Virtual Lane
+  - UB 交换机 QoS
+  - hccs qos remap
+  - 严格优先级调度
+  - MASTER_ID_SDMA
+  - aiqos_table
+  - tools/ai_qos.py
+  - AI QoS 配置
+  - AI QoS 流量优先级
+  - Ai_QoS_introduction_en
+  - 服务质量
+  - 网络服务质量
+  - 虚拟通道优先级
+  - SDMA_D2D
+  - SDMA_H2D
+  - PCIEDMA_H2D
+chapters:
+  - '07'
+  - 09
 order: 140
 sources:
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L5-L82
-  - vllm-ascend@db701c1f:tools/ai_qos.py#L10-L53
-  - vllm-ascend@db701c1f:tools/ai_qos.py#L131-L175
-  - vllm-ascend@db701c1f:tools/ai_qos.py#L178-L267
-  - vllm-ascend@db701c1f:tools/ai_qos.py#L270-L319
-  - vllm-ascend@db701c1f:tools/ai_qos.py#L322-L474
-  - vllm-ascend@db701c1f:tools/ai_qos/CMakeLists.txt#L1-L61
-  - vllm-ascend@db701c1f:tools/ai_qos/ai_qos.cpp#L23-L118
-  - vllm-ascend@2c59ff10:tools/ai_qos.py#L322-L474
-  - vllm-ascend@2ed6cbba:tools/ai_qos.py#L322-L474
-  - vllm-ascend@baa023ad:tools/ai_qos.py#L322-L473
-  - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L25-L82
-  - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L25-L82
-  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L25-L86
-  - vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L342
-  - https://docs.vllm.ai/projects/ascend/en/v0.27.1rc1/user_guide/feature_guide/Ai_QoS_introduction_en.html
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L5-L82
+  - 'vllm-ascend@db701c1f:tools/ai_qos.py#L10-L53'
+  - 'vllm-ascend@db701c1f:tools/ai_qos.py#L131-L175'
+  - 'vllm-ascend@db701c1f:tools/ai_qos.py#L178-L267'
+  - 'vllm-ascend@db701c1f:tools/ai_qos.py#L270-L319'
+  - 'vllm-ascend@db701c1f:tools/ai_qos.py#L322-L474'
+  - 'vllm-ascend@db701c1f:tools/ai_qos/CMakeLists.txt#L1-L61'
+  - 'vllm-ascend@db701c1f:tools/ai_qos/ai_qos.cpp#L23-L118'
+  - 'vllm-ascend@2c59ff10:tools/ai_qos.py#L322-L474'
+  - 'vllm-ascend@2ed6cbba:tools/ai_qos.py#L322-L474'
+  - 'vllm-ascend@baa023ad:tools/ai_qos.py#L322-L473'
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L25-L82
+  - >-
+    vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L25-L82
+  - >-
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L25-L86
+  - 'vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L342'
+  - >-
+    https://docs.vllm.ai/projects/ascend/en/v0.27.1rc1/user_guide/feature_guide/Ai_QoS_introduction_en.html
+  - 'vllm-ascend@7d825229:tools/ai_qos.py#L320-L335'
+  - 'vllm-ascend@7d825229:tools/ai_qos.py#L436-L449'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
 evidence: C
 relations:
-  - {to: cann-hccl, kind: builds-on, note: 先分清通信库与物理链路，再看共享出口上的流量优先级}
-  - {to: glm-5-3-flash-two-node, kind: builds-on, note: 固定 A2 双机没有启用本特性，部署前提与通信组以该页为准}
-  - {to: kv-cache-layerwise-offload, kind: builds-on, note: 下一层状态预取为何与当前层计算通信重叠，见逐层换出机制}
-  - {to: vllm-scheduler, kind: builds-on, note: 先理解请求怎样进入计算，再区分本页的网络流量调度}
-  - {to: pd-disaggregation, kind: builds-on, note: 先理解 PD 的 KV 传输，再区分其 qos_priority 与本页流量等级表}
+  - to: cann-hccl
+    kind: builds-on
+    note: 先分清通信库与物理链路，再看共享出口上的流量优先级
+  - to: glm-5-3-flash-two-node
+    kind: builds-on
+    note: 固定 A2 双机没有启用本特性，部署前提与通信组以该页为准
+  - to: kv-cache-layerwise-offload
+    kind: builds-on
+    note: 下一层状态预取为何与当前层计算通信重叠，见逐层换出机制
+  - to: vllm-scheduler
+    kind: builds-on
+    note: 先理解请求怎样进入计算，再区分本页的网络流量调度
+  - to: pd-disaggregation
+    kind: builds-on
+    note: 先理解 PD 的 KV 传输，再区分其 qos_priority 与本页流量等级表
 contradicts: []
-updated: "2026-10-04"
+updated: 2026-11-03T00:00:00.000Z
 origin: direct
 ---
 
@@ -100,6 +145,8 @@ title: 相同四份数据，调整服务次序（等长时隙为教学假设）
 未启用的依据是官方双机脚本没有调用该工具，固定执行源码的推理路径也没有自动调用它。双机教程虽然使用特权容器，也设置了 AIV 相关通信选项，但这些条件各有用途，不能代替设备与交换机 QoS 配置。
 
 若把相同推理工作迁到受支持的 A3 拓扑，并同时运行会争用出口的状态搬运，再正确配置端点和交换机，变化发生在通信的等待时间：高优先级流量可先得到服务，低优先级搬运承担等待。具体哪次通信走哪条搬运通道，要看实际算子和驱动；特别是指南明确写明 AIV 通道设置尚不生效，所以不能把“专家派发很关键”直接推成“调高 AIV 就会更快”。
+
+若要比较昇腾 950，先看[执行与互联页](ascend-950-execution-interconnect.md)对任务、搬运和远端访问的区分。本页核实的 A3 工具与交换机条件不能直接当成 950 的已验证配置；迁移时仍需核对相应产品的软件文档与实际生效状态。
 
 ## 哪些理解最容易带偏？
 
@@ -212,6 +259,8 @@ AI QoS 的工具开销在配置阶段：枚举设备、读写驱动状态、保�
 验证应固定相同的流量组合，比较配置前后关键通信等待、KV 预取完成时刻、整体请求时延及低优先级吞吐；另外核对每个端点与交换机的实际配置。优先级的数字只能证明配置意图，不能代替收益测量。
 
 ### 版本差异
+
+**v0.30.0rc2 的工具参数和映射保持一致。** AIV/SDMA/PCIEDMA 默认分别 high/low/high，三者都接受 low/middle/high；command 默认 apply，mode 默认 auto。AIV 标签 4→VL2、PCIEDMA 标签 5→VL3、SDMA 标签 6→VL4，等级改变优先级 1/2/3，不改变类别的目标 VL。脚本不会由推理启动自动执行，设备驱动限制仍须满足；实际优先级与收益需要设备和交换机两侧验证。
 
 v0.23 一列指维护分支 **2c59ff10**；v0.26 指 **2026-09-17 的 v0.26.0rc 源码快照 2ed6cbba**；main 固定为 **baa023ad**。包含 GLM 实现的 **db701c1f** 是独立 orphan 快照，不能据它声称维护分支已有 GLM。就本特性而言，db701c1f、v0.23、v0.26 的 Python 工具内容完全一致。
 

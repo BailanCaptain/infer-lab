@@ -1,16 +1,16 @@
 layout: scene
 id: layer-sharding
-caption: 第 i 层的权重只存在组内 rank i % K 上，前向时提前一层异步广播取回（v0.23.0 维护分支；main 上整条路径已删）
+caption: 第 i 层权重常驻在组内 rank i % K；其他卡通过两份窗口接收预取广播。下面是从层 0 开始、每层 112 MiB 的示意预算，旧路径限非空配置的 P 实例。
 size: [900, 660]
 
 regions:
-  - label: 加载期 · 注册时就把不归本卡的层丢掉
-    note: 不归本卡的层直接置空张量、把 weight_loader 换成 no-op，连从磁盘读都省了；省下的显存是真的，代价写在下半张图里。
+  - label: 加载期 · 分配常驻权重，再建立预取窗口
+    note: 非本卡权重登记后改成单元素占位，参数加载函数不再写入；文件仍可能读取。加载后处理还会临时恢复完整张量做广播和量化处理。
     at: [20, 26]
     size: [860, 250]
     tone: ascend
-  - label: 前向期 · 借一层 attention 的时间把下一层的权重搬回来
-    note: 广播只有被更重的 prefill 计算盖住才划算，所以启动期硬校验 kv_role 必须是 kv_producer。
+  - label: 前向期 · 提前一层广播，使用投影前等待
+    note: 预取入口由注意力后端调用，下面是 MLA 路径的顺序；能否隐藏广播耗时取决于调用间隔、计算量和通信带宽。
     at: [20, 320]
     size: [860, 242]
     tone: neutral
@@ -23,7 +23,7 @@ strips:
     gap: 2
     highlights: [0, 16, 32, 48]
     tone: ascend
-    label: "DeepSeek-V3 的 61 层 o_proj，每层 112 MiB"
+    label: "示意：61 层 o_proj，从 0 编号，每层 112 MiB"
   - at: [40, 232]
     cells: 4
     cell: 12
@@ -31,13 +31,13 @@ strips:
     gap: 2
     highlights: [0, 1, 2, 3]
     tone: ascend
-    label: "K=16 时 rank 0 只留 4 层 = 427 MiB；另外 57 层被 dispose_tensor 置空"
+    label: "K=16 时 rank 0 常驻 4 层 = 448 MiB；其他层通过窗口取回"
 
 boxes:
   - at: [576, 206]
     size: [284, 58]
-    title: 常驻窗口只有 2 份整权重
-    sub: prefetch_step 写死 1，调不了
+    title: 另加 2 份整权重窗口
+    sub: 本例 224 MiB，合计 672 MiB
     fn: ShardWindowMetadata
     tone: muted
     icon: box
@@ -47,41 +47,41 @@ boundaries:
     from: 20
     to: 880
     vertical: false
-    label: 过了这条线，57/61 的权重已经不在本卡上——缺的那层只能等广播
+    label: rank 0 的常驻归属是 4 层；窗口还会保存当前或即将使用的其他层
 
 bands:
-  - label: ① 进第 i 层 forward 前先等
-    sub: 窗口里的数据必须正是第 i 层的，否则断言炸
-    fn: wait_weight
+  - label: ① 为第 i+1 层发异步 broadcast
+    sub: 常驻卡是组内 rank (i+1) % K，其他卡写入窗口
+    fn: reach_layer
     at: [80, 378]
     size: [776, 52]
     tone: neutral
-    icon: clock
-  - label: ② 第 i 层 attention 照常算
-    sub: 这段计算就是唯一能用来遮掩通信的时间
-    right: 遮不住就是净亏
+    icon: bolt
+  - label: ② 第 i 层继续计算
+    sub: 计算与下一层的广播有机会重叠
+    right: 不保证完全隐藏
     at: [80, 436]
     size: [776, 52]
     tone: neutral
     icon: calc
-  - label: ③ 同时给第 i+1 层发异步 broadcast
-    sub: src = 组内 ranks[(i+1) % K]，async_op=True
-    fn: reach_layer
+  - label: ③ 当前投影执行前检查权重到位
+    sub: 等待第 i 层的工作句柄，窗口层号必须匹配
+    fn: wait_weight
     at: [80, 494]
     size: [776, 52]
     tone: ascend
-    icon: bolt
+    icon: clock
 
 brackets:
   - { at: [20, 378], span: 168, label: 每层, dir: left, tone: neutral }
 
 notes:
   - at: [40, 574]
-    text: "每张卡对它不负责的那 15/16 的层都要收一份全量权重：61 × 15/16 × 112 MiB ≈ 6.3 GiB，每次前向、每张卡。摊到每层约 105 MiB，必须在一层 attention 的时间里传完。"
+    text: "每次前向：持有 4 层的卡接收 57 × 112 = 6384 MiB；持有 3 层的卡接收 58 × 112 = 6496 MiB。每个非本地层搬整份 112 MiB，不能把全组平均量当成每卡预算。"
     size: 12.5
     width: 840
   - at: [40, 622]
-    text: "所以它省的是容量、花的是带宽：batch 小、序列短的时候遮不住这 105 MiB，开了就是纯负收益。"
+    text: "省下的是常驻容量，增加的是广播和窗口；batch 小、序列短时通常更难隐藏通信，实际时延须按工作负载测量。"
     size: 12.5
     width: 840
     strong: true
@@ -95,3 +95,11 @@ pins:
     symbols: [reach_layer, wait_weight, async_op]
   - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L346
     symbols: [_validate_layer_sharding_config, kv_producer]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L15-L16
+    symbols: [dispose_tensor]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L58-L120
+    symbols: [post_process_after_loading, shard_windows]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1672-L1688
+    symbols: [reach_layer_for_shard_weight_series]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L168-L174
+    symbols: [_create_forward_wrapper, wait_weight]

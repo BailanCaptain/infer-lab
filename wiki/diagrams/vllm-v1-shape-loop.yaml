@@ -1,6 +1,6 @@
 layout: figure
 id: vllm-v1-shape-loop
-caption: EngineCore 的主循环每转一圈做的事，圈里的编号是主线七站。没有请求要算时循环停在输入队列上等；DP 部署里本组没有请求、另一组还在跑时，改让本组的 Worker 跑一个空批次陪着通信。有请求时排一份计划，经 Executor 让每个 Worker 先做前向、再做采样，拿回结果更新进度，新 token 编号送回前端。
+caption: 图示本部署正常生成路径（未开流水线并行 PP 或 prefill 上下文并行 PCP，无 KV connector），展示 EngineCore 的主循环每转一圈做的事，圈里的编号是主线七站。没有请求要算时循环停在输入队列上等；DP 部署里本组没有请求、另一组还在跑时，改让本组的 Worker 跑一个空批次陪着通信。有请求时排一份计划，经 Executor 让每个 Worker 先做前向、再做采样，拿回结果更新进度，新 token 编号送回前端。
 size: [900, 700]
 items:
   - { at: [240, 36], size: [420, 50], text: ① 前端：分词，包成请求消息, sub: 经进程间消息送进所选 DP 组的 EngineCore, tone: token }

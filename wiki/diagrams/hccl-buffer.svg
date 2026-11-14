@@ -1,14 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 432" width="900" height="432" role="img" aria-label="一张卡的设备内存：权重之外，本卡参加的每个通信组在建组时各预留一块 HCCL buffer，图里用三个组示意；KV cache 只能用剩下的部分。卡数和组数只讲原理，不是具体部署。">
-  <title>一张卡的设备内存：权重之外，本卡参加的每个通信组在建组时各预留一块 HCCL buffer，图里用三个组示意；KV cache 只能用剩下的部分。卡数和组数只讲原理，不是具体部署。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 432" width="900" height="432" role="img" aria-label="示意：本卡参加三个独立的底层通信域，每个色块代表该域的整套缓冲（含收发），不是单向容量。逻辑组可能复用底层域，不能用逻辑组数推实际占用；KV cache 使用剩余预算。卡数和组数不是具体部署。">
+  <title>示意：本卡参加三个独立的底层通信域，每个色块代表该域的整套缓冲（含收发），不是单向容量。逻辑组可能复用底层域，不能用逻辑组数推实际占用；KV cache 使用剩余预算。卡数和组数不是具体部署。</title>
   <defs><marker id="hccl-buffer-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
   <rect x="24" y="54" width="250" height="340" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="40" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">一张卡的设备内存</text>
   <rect x="470" y="54" width="406" height="92" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="486" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">组 1 · 机内 4 张卡</text>
+  <text x="486" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">域 1 · 机内 4 张卡</text>
   <rect x="470" y="178" width="406" height="92" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="486" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">组 2 · 跨机 2 张卡</text>
+  <text x="486" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">域 2 · 跨机 2 张卡</text>
   <rect x="470" y="302" width="406" height="92" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="486" y="290" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">组 3 · 全部 8 张卡</text>
+  <text x="486" y="290" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">域 3 · 全部 8 张卡</text>
   <path d="M470 100 L440 100 L440 163 L278 163" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#hccl-buffer-ah-comm)"/>
   <path d="M470 224 L416 224 L416 203 L278 203" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#hccl-buffer-ah-comm)"/>
   <path d="M470 348 L392 348 L392 243 L278 243" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#hccl-buffer-ah-comm)"/>
@@ -23,11 +23,11 @@
   <text x="149" y="102" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">权重</text>
   <text x="149" y="121" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">一直住在这里</text>
   <rect x="42" y="146" width="214" height="34" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="149" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">组 1 的缓冲</text>
+  <text x="149" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">域 1 的整套缓冲</text>
   <rect x="42" y="186" width="214" height="34" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="149" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">组 2 的缓冲</text>
+  <text x="149" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">域 2 的整套缓冲</text>
   <rect x="42" y="226" width="214" height="34" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="149" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">组 3 的缓冲</text>
+  <text x="149" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">域 3 的整套缓冲</text>
   <rect x="42" y="274" width="214" height="104" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="149" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">KV cache</text>
   <text x="149" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只能用剩下的</text>
@@ -45,5 +45,5 @@
   <text x="657" y="231" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">对面机器的卡</text>
   <rect x="486" y="328" width="86" height="44" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="529" y="355" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本卡</text>
-  <text x="450" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本卡参加三个组，就在本卡上预留三块缓冲</text>
+  <text x="450" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">示意：三个独立底层通信域，各画出整套缓冲</text>
 </svg>

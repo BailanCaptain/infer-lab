@@ -1,0 +1,33 @@
+{
+  "recorded_at": "2026-11-10T07:00:30.771438+00:00",
+  "files": [
+    {
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "sha256": "dbab31375f7c1db30b8da4b18e14f3c8a7faa4bd3c9483c7a3ae4789280418fa"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload-flow.svg",
+      "sha256": "7955d59c659c55844b9523469850a3b5b2f2d4e1f47092f24161e5759037597f"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload-flow.yaml",
+      "sha256": "4299f0956ad28f53a5b47e1347d472de591008fb18bde058a839005ae5933457"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload-overlap.svg",
+      "sha256": "1a6c9c8551ef7913731bbf47a1711894dee6f341e2f0c05a708721215d859c33"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload-overlap.yaml",
+      "sha256": "f41be5cd6938c0bebdc87bde0fa7208cb3dd77ea7128401d3a2cdb5a793e3774"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload.svg",
+      "sha256": "3d921f7a77eaeea2157b89e2a31fa3f9db514611343f6327acfd90f3621e8058"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload.yaml",
+      "sha256": "861c76fb7354c649487f94b33bc8600df062738543bd9aa074da4bf4d26c921e"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 520" width="820" height="520" role="img" aria-label="同一响应流按相同时序重放（示意）。小格代表同一请求 R 的首个内容片段：直连能收到，经原代理配置被积压，修正缓冲后恢复逐段交付；恢复旧配置又积压，才支持本例的缓冲判断。片段编号是观察标注，不是假定接口字段。">
+  <title>同一响应流按相同时序重放（示意）。小格代表同一请求 R 的首个内容片段：直连能收到，经原代理配置被积压，修正缓冲后恢复逐段交付；恢复旧配置又积压，才支持本例的缓冲判断。片段编号是观察标注，不是假定接口字段。</title>
+  <defs><marker id="inference-troubleshooting-experiment-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <rect x="20" y="40" width="780" height="110" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">对照 1：直连，片段能够到达</text>
+  <rect x="20" y="205" width="780" height="110" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="193" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">对照 2：经过原代理，片段停在代理内</text>
+  <rect x="20" y="370" width="780" height="110" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">对照 3：只修正代理缓冲，客户端恢复逐段接收</text>
+  <rect x="300" y="235" width="210" height="65" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="316" y="223" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">代理已收到</text>
+  <rect x="300" y="400" width="210" height="65" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="316" y="388" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">代理及时转发</text>
+  <path d="M205 102 L620 102" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-troubleshooting-experiment-ah-token)"/>
+  <path d="M205 267 L330 267" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-troubleshooting-experiment-ah-token)"/>
+  <path d="M205 432 L330 432" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-troubleshooting-experiment-ah-token)"/>
+  <path d="M480 432 L620 432" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-troubleshooting-experiment-ah-token)"/>
+  <rect x="65" y="85" width="130" height="35" fill="var(--color-token, #087f73)"/>
+  <text x="130" y="107.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">R / 片段 1</text>
+  <rect x="65" y="85" width="130" height="35" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="630" y="85" width="130" height="35" fill="var(--color-token, #087f73)"/>
+  <text x="695" y="107.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">R / 片段 1</text>
+  <rect x="630" y="85" width="130" height="35" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="65" y="250" width="130" height="35" fill="var(--color-token, #087f73)"/>
+  <text x="130" y="272.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">R / 片段 1</text>
+  <rect x="65" y="250" width="130" height="35" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="340" y="250" width="130" height="35" fill="var(--color-token, #087f73)"/>
+  <text x="405" y="272.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">R / 片段 1</text>
+  <rect x="340" y="250" width="130" height="35" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="630" y="250" width="130" height="35" fill="none"/>
+  <rect x="633" y="253" width="124" height="29" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <text x="695" y="272.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">还没收到</text>
+  <rect x="630" y="250" width="130" height="35" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="65" y="415" width="130" height="35" fill="var(--color-token, #087f73)"/>
+  <text x="130" y="437.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">R / 片段 1</text>
+  <rect x="65" y="415" width="130" height="35" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="340" y="415" width="130" height="35" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="405" y="437.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">R / 片段 1</text>
+  <rect x="340" y="415" width="130" height="35" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="630" y="415" width="130" height="35" fill="var(--color-token, #087f73)"/>
+  <text x="695" y="437.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">R / 片段 1</text>
+  <rect x="630" y="415" width="130" height="35" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="130" y="72" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">重放源</text>
+  <text x="695" y="72" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">客户端</text>
+  <text x="130" y="237" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">1.0 秒发出</text>
+  <text x="695" y="237" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">30 秒超时</text>
+  <text x="560" y="278" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">未转发</text>
+  <text x="130" y="402" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">相同响应与时序</text>
+  <text x="695" y="402" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">客户端</text>
+  <text x="410" y="507" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">再恢复原配置：再次积压；最后用真实请求复测完整响应和错误处理</text>
+</svg>

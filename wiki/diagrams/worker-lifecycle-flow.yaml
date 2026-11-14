@@ -8,7 +8,7 @@ items:
   - { at: [24, 220], size: [270, 52], text: 装权重, sub: 选加载器，截出本卡分片, tone: weight }
   - { at: [24, 300], size: [270, 52], text: sleep mode 开着时, sub: 权重进专用内存池, tone: weight, style: faded }
   - { at: [330, 60], size: [280, 52], text: 报状态规格, sub: 每层要存什么、每页多大, tone: kv, style: faded }
-  - { at: [330, 140], size: [280, 52], text: 量可用显存, sub: 显式值直接返回，否则试跑后做减法, tone: kv }
+  - { at: [330, 140], size: [280, 52], text: 量可用显存, sub: 都试跑；显式值跳过预算扣减, tone: kv }
   - { at: [330, 220], size: [280, 52], text: EngineCore 定块数, sub: 各卡折成块数，取最小, tone: kv, style: faded }
   - { at: [330, 300], size: [280, 52], text: 建缓存池, sub: KV 传输准备 → 分配 KV 张量, tone: kv }
   - { at: [330, 380], size: [280, 52], text: 按尺寸预热, sub: 每个预热尺寸跑一次假前向, tone: control }

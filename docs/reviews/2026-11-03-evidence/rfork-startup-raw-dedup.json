@@ -1,0 +1,140 @@
+{
+  "path": "wiki\\raw\\sha256-b55b32722cce760cf460a51943536138061f6322f2cac46d335a5c783df5da72.md",
+  "sha256": "b55b32722cce760cf460a51943536138061f6322f2cac46d335a5c783df5da72",
+  "line_count": 1188,
+  "blocks": [
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L414-L418",
+      "raw_start_line": 1,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L441-L519",
+      "raw_start_line": 9,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L521-L620",
+      "raw_start_line": 91,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L622-L710",
+      "raw_start_line": 194,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L174-L333",
+      "raw_start_line": 286,
+      "equal": false,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L73-L109",
+      "raw_start_line": 449,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L274-L286",
+      "raw_start_line": 489,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L38-L49",
+      "raw_start_line": 505,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L373-L383",
+      "raw_start_line": 520,
+      "equal": false,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148",
+      "raw_start_line": 534,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L64-L91",
+      "raw_start_line": 583,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L109",
+      "raw_start_line": 614,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:docs/source/developer_guide/Design_Documents/rfork_lease_lifecycle.md#L28-L52",
+      "raw_start_line": 658,
+      "equal": false,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:examples/rfork/rfork_planner.py#L39-L74",
+      "raw_start_line": 686,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:examples/rfork/rfork_planner.py#L192-L212",
+      "raw_start_line": 725,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L38-L57",
+      "raw_start_line": 749,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L296-L347",
+      "raw_start_line": 772,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/ops/fused_moe/fused_moe.py#L508-L511",
+      "raw_start_line": 827,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L219-L320",
+      "raw_start_line": 834,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/model_loader/rfork/rfork_loader.py#L214-L315",
+      "raw_start_line": 939,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/rfork_loader.py#L330-L440",
+      "raw_start_line": 1044,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L189-L217",
+      "raw_start_line": 1158,
+      "equal": true,
+      "equal_after_edge_newline_normalization": true
+    }
+  ],
+  "comparison_normalization": "Only strip edge CR/LF from both blocks; source code characters unchanged."
+}

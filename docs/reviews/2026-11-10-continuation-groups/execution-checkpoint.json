@@ -1,0 +1,182 @@
+{
+  "recorded_at": "2026-11-10T11:39:21.585464+00:00",
+  "status": "closed_for_this_revision",
+  "old_closed": 48,
+  "new_supplement": 44,
+  "remaining_active_old": 0,
+  "files": [
+    {
+      "path": "wiki/concepts/npu-model-runner.md",
+      "before_sha256": "7295899672851be3ad7058eb6ff0586e5863428f354c059372f5d99af323643e",
+      "final_sha256": "126271fbe20b24d4eea26c562bc0c50acaeaa87ef447cbb3b3722d7194ddb8f6",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/model-runner-layout.yaml",
+      "before_sha256": "e9aed26fc7183ae3df761730f68bb54fe9ac8f515c758c2282bda13cfc940137",
+      "final_sha256": "2962452226d0c4a1bc4ed20901628de5910b495de31087dc25cbdbefeb5cb113",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/model-runner-layout.svg",
+      "before_sha256": "4f99241872deae819e353f543a2eb2386db7ec5a6215dc4dcd1935aa5cb476e7",
+      "final_sha256": "27261b669343728570935328cd6df9d532607357634e64ddd14b6c0860d7f290",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/npu-model-runner-code-flow.yaml",
+      "before_sha256": "53d28d15dc36a0ffbfd7776aabb88b8b22c8640e637c8b1dc58e97984e3535c2",
+      "final_sha256": "53d28d15dc36a0ffbfd7776aabb88b8b22c8640e637c8b1dc58e97984e3535c2",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/npu-model-runner-code-flow.svg",
+      "before_sha256": "4c28a7014b821b68b5a92c5add857d8e54bfa5c1a771aa528eaa12032ee5f283",
+      "final_sha256": "4c28a7014b821b68b5a92c5add857d8e54bfa5c1a771aa528eaa12032ee5f283",
+      "changed": false
+    },
+    {
+      "path": "wiki/concepts/npu-worker-lifecycle.md",
+      "before_sha256": "9af46bc1e1f26fde41b26316739d7a797589939e60872f63660dc545e9b39fa8",
+      "final_sha256": "f86c281eeda5f93fe507e06f80fad8304fdffce73abe6bd40c05c4aaf807b53d",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/worker-lifecycle.yaml",
+      "before_sha256": "8691aa4520e9374c5a506b267d125fd5fe471ddcc232eabef76496357c118c37",
+      "final_sha256": "8691aa4520e9374c5a506b267d125fd5fe471ddcc232eabef76496357c118c37",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/worker-lifecycle.svg",
+      "before_sha256": "cfb8c6e6191455660faa454f2dbeab38fe4a0f5affff7e7ebebec87abcfd962c",
+      "final_sha256": "cfb8c6e6191455660faa454f2dbeab38fe4a0f5affff7e7ebebec87abcfd962c",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/worker-lifecycle-flow.yaml",
+      "before_sha256": "4d0ded4d4b8409f98542d941401570007ef05f402dc35225709d5ae0aa56957a",
+      "final_sha256": "4d0ded4d4b8409f98542d941401570007ef05f402dc35225709d5ae0aa56957a",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/worker-lifecycle-flow.svg",
+      "before_sha256": "cb8af858ff069dc4a2d9a512c7e95b33579bed12cd208d164262eb22f556bfe2",
+      "final_sha256": "cb8af858ff069dc4a2d9a512c7e95b33579bed12cd208d164262eb22f556bfe2",
+      "changed": false
+    },
+    {
+      "path": "wiki/concepts/prepare-inputs-flow.md",
+      "before_sha256": "4a62efe9b2d1a18af754f3a96cb514eb5e70b2eb92d540c4805fe8adf95bf411",
+      "final_sha256": "a0005c99a2847a2dd2d33d74c0c8c341ce8a522978e1e4d7ceebb9963f4a21e6",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/prepare-inputs-flow.yaml",
+      "before_sha256": "7256805bb4a3004d36fa1ccf6d951d46021b63c20828b60bd8bf2a187c863d56",
+      "final_sha256": "7256805bb4a3004d36fa1ccf6d951d46021b63c20828b60bd8bf2a187c863d56",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/prepare-inputs-flow.svg",
+      "before_sha256": "c2a404c5a7b154b0766cfb465d8fe6557d52e5ee45052a5345e0cf5e37a705ae",
+      "final_sha256": "c2a404c5a7b154b0766cfb465d8fe6557d52e5ee45052a5345e0cf5e37a705ae",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/prepare-inputs-code-flow.yaml",
+      "before_sha256": "9f50c9950dbb8bff10c2789b13b5f9a43d41fa0f84690d2400d1224169afb886",
+      "final_sha256": "808a8412a89d88ce354cf5a49c569f0cd2df8c16b0f4d955eeb5b0d4275d5de5",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/prepare-inputs-code-flow.svg",
+      "before_sha256": "cbcc45d105671b9867dfb1012b09984108071b000625e2f8d7f6b73d10f1f213",
+      "final_sha256": "f94b3425a9f99c7d5f8ccac543ceba2543ec656e723190af23ddf0336e60bc68",
+      "changed": true
+    },
+    {
+      "path": "wiki/concepts/vllm-engine-core.md",
+      "before_sha256": "a51f7e44c71cebff2dab888ff1b3a94d65c8868227018a57db56568b704854a3",
+      "final_sha256": "11ed3fb80d37983f04b38a06b523d5a2fe1a1729fde94174bcc6ca78d6262402",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/engine-core-loop.yaml",
+      "before_sha256": "0a52e37eef88d970c54aa402e5ae4987c57a68528a631dc39c6ea556b45552fd",
+      "final_sha256": "0a52e37eef88d970c54aa402e5ae4987c57a68528a631dc39c6ea556b45552fd",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/engine-core-loop.svg",
+      "before_sha256": "e6153edd681a3af5c43c65e341807f865414ad6e9cb6cf06297c7c65d0c93e07",
+      "final_sha256": "e6153edd681a3af5c43c65e341807f865414ad6e9cb6cf06297c7c65d0c93e07",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/engine-core-rounds.yaml",
+      "before_sha256": "3ded3bfed5efe1d35b53abc9db54670e0791c5f2fc2d20eee4afce96a5e21cc3",
+      "final_sha256": "3ded3bfed5efe1d35b53abc9db54670e0791c5f2fc2d20eee4afce96a5e21cc3",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/engine-core-rounds.svg",
+      "before_sha256": "d00a433c19bacd50d28d07276533443bf64f735468ca0f8a48e0eb26e7cf8385",
+      "final_sha256": "d00a433c19bacd50d28d07276533443bf64f735468ca0f8a48e0eb26e7cf8385",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/engine-core-flow.yaml",
+      "before_sha256": "75dd393e47c55b23796ab42118f09f382bb3f39ffcb4e518704f781da2e18870",
+      "final_sha256": "75dd393e47c55b23796ab42118f09f382bb3f39ffcb4e518704f781da2e18870",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/engine-core-flow.svg",
+      "before_sha256": "14086a15becd627211587610f457f84487b1d683798eaccd50385904e5df800f",
+      "final_sha256": "14086a15becd627211587610f457f84487b1d683798eaccd50385904e5df800f",
+      "changed": false
+    },
+    {
+      "path": "wiki/concepts/vllm-ascend-for-rl.md",
+      "before_sha256": "cdf29287c1535bf367a2f8cf2e6e1018d71ba05e5081306b514fa3cb1200363f",
+      "final_sha256": "8ca5e5b713f14da141e16f68072383f16fd6ecd8347630fda17a42293f64ecc2",
+      "changed": true
+    },
+    {
+      "path": "wiki/diagrams/vllm-ascend-for-rl-cycle.yaml",
+      "before_sha256": "1a4e381b793c8457cc868c87f6b769d2c1dfc6dd0aa26f952c21a869a2611cd8",
+      "final_sha256": "1a4e381b793c8457cc868c87f6b769d2c1dfc6dd0aa26f952c21a869a2611cd8",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/vllm-ascend-for-rl-cycle.svg",
+      "before_sha256": "32f9f95c0894f693eff3f86d8209b9fd154eca0e5f922ef8bad9b705789bdd21",
+      "final_sha256": "32f9f95c0894f693eff3f86d8209b9fd154eca0e5f922ef8bad9b705789bdd21",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/vllm-ascend-for-rl-update.yaml",
+      "before_sha256": "bc5c617143630db5b5165ae8eb329326edb432346dfd48e79088dd4276d8083c",
+      "final_sha256": "bc5c617143630db5b5165ae8eb329326edb432346dfd48e79088dd4276d8083c",
+      "changed": false
+    },
+    {
+      "path": "wiki/diagrams/vllm-ascend-for-rl-update.svg",
+      "before_sha256": "172c1c45869521f336eaaa420271095cad5eab806d41d7367626364e880fb17a",
+      "final_sha256": "172c1c45869521f336eaaa420271095cad5eab806d41d7367626364e880fb17a",
+      "changed": false
+    },
+    {
+      "path": "wiki/params/size-40a1c2ca47b8.md",
+      "before_sha256": "b375f406188dde56584c3c915b7780bbd6e49e4f5b96079fe2457c689788f553",
+      "final_sha256": "b375f406188dde56584c3c915b7780bbd6e49e4f5b96079fe2457c689788f553",
+      "changed": false
+    }
+  ],
+  "verification": "execution-verification.json",
+  "judgments": [
+    "execution-judgments.json",
+    "execution-additions-judgments.json"
+  ]
+}

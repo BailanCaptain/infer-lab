@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" width="900" height="360" role="img" aria-label="一层怎么算（一个位置，hidden 只画 4 个数，数为示意）：左边一列是这条 hidden 本身，右边是两段支路。① 支路先做 RMSNorm；② attention 算出改变量 Δ₁；③ Δ₁ 和原来的 x 按维逐个相加得到 x′；④ MLP 段对 x′ 再做一遍，得到交给下一层的 x″">
-  <title>一层怎么算（一个位置，hidden 只画 4 个数，数为示意）：左边一列是这条 hidden 本身，右边是两段支路。① 支路先做 RMSNorm；② attention 算出改变量 Δ₁；③ Δ₁ 和原来的 x 按维逐个相加得到 x′；④ MLP 段对 x′ 再做一遍，得到交给下一层的 x″</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" width="900" height="360" role="img" aria-label="普通残差的一层怎么算（一个位置，hidden 只画 4 个数，数为示意；RMSNorm 增益取 1、ε 取 0）：左边一列是这条 hidden 本身，右边是两段支路。① 支路先做 RMSNorm；② attention 算出改变量 Δ₁；③ Δ₁ 和原来的 x 按维逐个相加得到 x′；④ MLP 段对 x′ 再做一遍，得到交给下一层的 x″">
+  <title>普通残差的一层怎么算（一个位置，hidden 只画 4 个数，数为示意；RMSNorm 增益取 1、ε 取 0）：左边一列是这条 hidden 本身，右边是两段支路。① 支路先做 RMSNorm；② attention 算出改变量 Δ₁；③ Δ₁ 和原来的 x 按维逐个相加得到 x′；④ MLP 段对 x′ 再做一遍，得到交给下一层的 x″</title>
   <defs><marker id="layers-one-layer-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
   <path d="M354 86 L426 86" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-one-layer-ah-token)"/>
   <path d="M654 86 L686 86" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-one-layer-ah-token)"/>

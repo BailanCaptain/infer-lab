@@ -1,0 +1,120 @@
+{
+  "recorded_at": "2026-11-10T12:52:53.219914+00:00",
+  "reviewer": "/root/groups_recompute_review",
+  "status": "accepted",
+  "new_source_occurrences": 28,
+  "old_source_occurrences_recounted": 0,
+  "prior79_preserved": true,
+  "closed_p1": 1,
+  "open_p1_p2": 0,
+  "final_files": {
+    "wiki/concepts/async-scheduling.md": "7a102d5e2b342d55e10b2c8c9b0205d5e0a3d3967d5b60ae9e4a8f4a0cc7373b",
+    "wiki/diagrams/async-scheduling-flow.svg": "bc9ce81d8525369b3b1dfa0dd0a32192e8017548ca88413a22d98904c56abcd3",
+    "wiki/diagrams/async-scheduling-flow.yaml": "b357003c47b6d5fe3efa54d69d4763ff833d5fd689762f08c977707d1724c25f",
+    "wiki/diagrams/async-scheduling.svg": "30db1c05b291e4d44aef025689cb6bbc608ba89ef9d491317998cc13e9315f4f",
+    "wiki/diagrams/async-scheduling.yaml": "4006add9aaef49f7b1e7b21a996583c3adf7bfe1ae7c2894b03d786353d10e16"
+  },
+  "before_snapshot": ".tmp/continuation-groups-2026-11-10/dbo/before.zip",
+  "final_snapshot": ".tmp/continuation-groups-2026-11-10/dbo/review-final.zip",
+  "manual_judgments": "docs/reviews/2026-11-10-continuation-groups/dbo-manual-judgments.json",
+  "preservation": "docs/reviews/2026-11-10-continuation-groups/dbo-preservation.json",
+  "browser_report": ".tmp/continuation-groups-2026-11-10/dbo/review-browser/report.json",
+  "browser": {
+    "stable": true,
+    "overflow": false,
+    "del_count": 0,
+    "errors": [],
+    "actual_viewed": [
+      "screen-0",
+      "screen-1",
+      "mechanism",
+      "dp",
+      "config",
+      "versions",
+      "table-0",
+      "table-1",
+      "table-3",
+      "table-5",
+      "table-6",
+      "table-6-right",
+      "table-7",
+      "figure-0",
+      "figure-1",
+      "figure-2",
+      "figure-3",
+      "figure-4",
+      "figure-5",
+      "dbo-anchor",
+      "mc2-backlink"
+    ],
+    "note": "New tables 2/4 viewed fully in dp.png/versions.png. Old Ascend table6 requires horizontal scroll: actually scrolled 319px to inspect main column. Final only cost sentence changed; reran all screenshots and re-viewed first two screens. Late wording refinement rerun: both pages opened and links clicked after orphan workflow lock recovery; personally re-viewed sparse first two screens and IndexCache mechanism, DBO DP example/cost section. No source or figure changed.",
+    "dboClick": {
+      "url": "http://127.0.0.1:5201/#/wiki/async-scheduling#%E6%8A%8A%E4%B8%80%E6%89%B9%E6%8B%86%E6%88%90%E4%B8%A4%E5%8D%8A%E8%83%BD%E5%90%A6%E8%AE%A9%E9%80%9A%E4%BF%A1%E5%92%8C%E8%AE%A1%E7%AE%97%E5%90%8C%E6%97%B6%E8%BF%9B%E8%A1%8Cdbo",
+      "target": {
+        "x": 302,
+        "y": 107.984375,
+        "width": 1076,
+        "height": 35.1875
+      }
+    },
+    "mc2Click": {
+      "url": "http://127.0.0.1:5201/#/wiki/expert-parallel#mc2-%E8%BF%98%E6%98%AF-allgather",
+      "heading": "Expert parallel：16 张卡怎样分专家、发 token、收结果",
+      "target": {
+        "x": 302,
+        "y": 108.21875,
+        "width": 1076,
+        "height": 39
+      }
+    }
+  },
+  "official_reading": {
+    "readscope": ".tmp/continuation-groups-2026-11-10/dbo/review-readscope.json",
+    "full_unique_content": 2,
+    "partial_docs": 1,
+    "note": "dbo.md88 lines at4identical pins count1;moe_kernel_features.md one full doc;EP deployment only186–220 notfull. Root must global-dedup;28citations are not28pages."
+  },
+  "engineering": {
+    "status": "accepted",
+    "commands": [
+      "pnpm check:content",
+      "pnpm wiki:lint",
+      "pnpm wiki:audit",
+      "pnpm wiki:diagrams --check",
+      "pnpm build"
+    ],
+    "exit_codes": {
+      "content": 0,
+      "lint": 0,
+      "audit": 0,
+      "diagrams": 0,
+      "build": 0
+    },
+    "logs": {
+      "content": ".tmp/continuation-groups-2026-11-10/index-dbo-final-content.log",
+      "lint": ".tmp/continuation-groups-2026-11-10/index-dbo-final-lint.log",
+      "audit": ".tmp/continuation-groups-2026-11-10/index-dbo-final-audit.log",
+      "diagrams": ".tmp/continuation-groups-2026-11-10/index-dbo-final-diagrams.log",
+      "build": ".tmp/continuation-groups-2026-11-10/index-dbo-final-build-unlocked.log"
+    },
+    "log_sha256": {
+      "content": "fcfc3ac2d6c64751ac518de1d9f1f3e817bb4d989716dc0212aefe1e8e628ec7",
+      "lint": "2e17d6485bd99412862b40d4da9f2c07a6ed0d217df142ccdec9209942d810d9",
+      "audit": "568e1d735370eb404beb8d5f4fe056c7aa473a76a841ff844e05edcddf80c375",
+      "diagrams": "61a57be323003c829a141958084759e08be006ff7197b0dd5b6f2a54e35858b2",
+      "build": "4e72e9393b40338cd34e6fccf9aa7662767713ee4735811a2b05e35704e316e1"
+    },
+    "verification": "Root executed checks and reported exit codes; independent reviewer read actual success summaries. Audit is mechanical only, semantic acceptance is separate. Initial build lock failure retained as history; unlocked rerun succeeded.",
+    "lint_notes": 10
+  },
+  "limits": [
+    "No GPU/NPU device execution or performance experiment",
+    "V1 GPU thread/eager/backend details limited to0fc695fc;four-version table limited todefault/threshold/DP agreement/Ascend reset",
+    "This delta does not reopen/recount79prior sources or certify whole-site completion"
+  ],
+  "late_delta": {
+    "snapshot": ".tmp/continuation-groups-2026-11-10/dbo/review-before-hedge.zip",
+    "diff": ".tmp/continuation-groups-2026-11-10/dbo/review-late-delta.patch",
+    "conclusion": "Explicit missing-position counterexample and preserved KV retention; DBO threshold does not ensure nonempty second batch and net gain requires saved communication to outweigh overhead. Limits preserved."
+  }
+}

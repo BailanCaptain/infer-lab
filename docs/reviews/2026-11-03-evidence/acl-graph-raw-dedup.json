@@ -1,0 +1,98 @@
+{
+  "path": "wiki\\raw\\sha256-d338b1d1b52f842832501f0d81aa4cf44e91850e104d95c6cea753a6ad052335.md",
+  "sha256": "d338b1d1b52f842832501f0d81aa4cf44e91850e104d95c6cea753a6ad052335",
+  "blocks": [
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L138-L170",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L226-L259",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L28-L54",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L207-L241",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L76-L124",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L634-L646",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/config/vllm.py#L1690-L1740",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/config/compilation.py#L1437-L1518",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/config/compilation.py#L1343-L1428",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/config/compilation.py#L1453-L1468",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/v1/attention/backend.py#L506-L519",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L324",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L224",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5269-L5299",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2778-L2800",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2803-L2835",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3807-L3816",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L454-L510",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L28-L106",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L215-L235",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/compilation/breakable_aclgraph.py#L38-L60",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L129",
+      "exact_after_edge_whitespace": true
+    },
+    {
+      "ref": "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/ACL_Graph.md#L78-L96",
+      "exact_after_edge_whitespace": true
+    }
+  ]
+}

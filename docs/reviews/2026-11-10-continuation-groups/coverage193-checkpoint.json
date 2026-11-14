@@ -1,0 +1,32 @@
+{
+  "recorded_at": "2026-11-10T13:26:44.932411+00:00",
+  "status": "closed_for_frozen_revision",
+  "new_source_occurrences": 193,
+  "groups": {
+    "transfer": 72,
+    "media_config": 13,
+    "generative_scoring": 26,
+    "vit_graph": 82
+  },
+  "old_recounted": 0,
+  "remaining_active_old": 0,
+  "verification": "coverage-transfer-media-scoring-vit-verification.json",
+  "independent": [
+    "transfer-coverage-final-acceptance.json",
+    "media-scoring-checkpoint.json",
+    "vit-graph-acceptance.json"
+  ],
+  "files": {
+    "wiki/concepts/pd-disaggregation.md": "a32c1268296d56dae87e0a4713eec6a77065c8a31b2dcc2e478f69406ee0c03c",
+    "wiki/concepts/kv-pool.md": "aab6d5b3c9858a67ebd191f5e03991c2b9c3d17cebd5b1606fa612598b460628",
+    "wiki/concepts/mooncake-connector.md": "888b0ae8aa84bdc1a12dc5e091b7c519ab2fa75ce2c5d334bc9dba2c00374cc6",
+    "wiki/concepts/ucm.md": "3874c35d68d102146f9306cabee4a22b49767115dfd48320032e097bcb9d005a",
+    "wiki/concepts/api-server-entry.md": "85d7f44ecbe1625b7bea02a41e63bc1172beb19385f000aed0efd1b433e5c613",
+    "wiki/concepts/engine-processes.md": "ad8653297374421f69668a6a87ed9d59295cfe746e2f26dcb41e14ba323dbb87",
+    "wiki/concepts/sampling.md": "941c038d417d1765c1b80ec64faedb5f97fed34e220a5d81b99e74cbcdcef3a1",
+    "wiki/concepts/acl-graph.md": "1b999e41e3305ee2270de567a24c4a7f1e87ee86c90ace0e3071d3918bc5462d",
+    "wiki/diagrams/vit-graph-packing.yaml": "0ae9611fff3ea01fb12b03cd8364e096bef456ad15cb067e7085501f336f5519",
+    "wiki/diagrams/vit-graph-packing.svg": "e26f431f3c916886fb550c68e7739147cf585d719691480945a1c38877e24107"
+  },
+  "boundary": "Checks and independent acceptance are bound to these frozen hashes. Subsequent reasoning, graph metadata and transfer lifecycle changes require their own acceptance. No whole-site or NPU completion claim."
+}

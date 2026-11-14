@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 396" width="850" height="396" role="img" aria-label="第 3–5 站的教学截断对照，只画输入尾段 5–9。窗口长 3、回放从 7 开始，观察位置 8：off 的 SWA 可读 6/7/8，mask 和 compact 都只能读 7/8；后两者输入行数不同，但保留区间语义应相同。全局 KV 读取没有画入此图。">
+  <title>第 3–5 站的教学截断对照，只画输入尾段 5–9。窗口长 3、回放从 7 开始，观察位置 8：off 的 SWA 可读 6/7/8，mask 和 compact 都只能读 7/8；后两者输入行数不同，但保留区间语义应相同。全局 KV 读取没有画入此图。</title>
+  <defs><marker id="swa-replay-flow-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <path d="M394 133 L570 133" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#swa-replay-flow-ah-kv)"/>
+  <path d="M394 191 L570 191" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#swa-replay-flow-ah-kv)"/>
+  <path d="M394 249 L570 249" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#swa-replay-flow-ah-kv)"/>
+  <rect x="150" y="104" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <rect x="198" y="104" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <rect x="246" y="104" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <rect x="294" y="104" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <rect x="342" y="104" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <rect x="150" y="162" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <rect x="198" y="162" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <rect x="246" y="162" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <rect x="294" y="162" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <rect x="342" y="162" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <rect x="150" y="220" width="48" height="58" fill="none"/>
+  <rect x="153" y="223" width="42" height="52" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="198" y="220" width="48" height="58" fill="none"/>
+  <rect x="201" y="223" width="42" height="52" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="246" y="220" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <rect x="294" y="220" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <rect x="342" y="220" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <path d="M198 104v174M246 104v174M294 104v174M342 104v174M150 162h240M150 220h240" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="150" y="104" width="240" height="174" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="140" y="137.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">off</text>
+  <text x="140" y="195.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">mask</text>
+  <text x="140" y="253.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">compact</text>
+  <text x="174" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
+  <text x="222" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
+  <text x="270" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
+  <text x="318" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
+  <text x="366" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">9</text>
+  <rect x="574" y="104" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="632" y="104" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="690" y="104" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="574" y="162" width="58" height="58" fill="none"/>
+  <rect x="577" y="165" width="52" height="52" rx="3" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="632" y="162" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="690" y="162" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="574" y="220" width="58" height="58" fill="none"/>
+  <rect x="577" y="223" width="52" height="52" rx="3" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="632" y="220" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="690" y="220" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
+  <path d="M632 104v174M690 104v174M574 162h174M574 220h174" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="574" y="104" width="174" height="174" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="603" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
+  <text x="661" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
+  <text x="719" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
+  <text x="150" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="700" fill="var(--color-ink, #17211f)">后半实际处理的输入位置</text>
+  <text x="574" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="700" fill="var(--color-ink, #17211f)">位置 8 可见的 SWA key</text>
+  <text x="150" y="320" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">mask 留着所有输入行；compact 移除前部行</text>
+  <text x="150" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">先比较 mask/compact 的位置、槽位和数值，再与 off 比较截断影响</text>
+</svg>

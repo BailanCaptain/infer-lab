@@ -1,0 +1,248 @@
+{
+  "date": "2026-11-01",
+  "scope": "GLM agreed two-node required documentation",
+  "completedThisDelivery": 21,
+  "batches": {
+    "G1": 9,
+    "G2": 3,
+    "G3": 9,
+    "G4": 9
+  },
+  "requiredTotal": 30,
+  "requiredCompleted": 30,
+  "requiredRemaining": 0,
+  "recipePendingVariablesResolved": 2,
+  "historicalOriginalUnitsCompleted": 144,
+  "externalRecipeVariablesCompletedSeparately": 6,
+  "optionalCandidatesNotScheduled": 597,
+  "priorCompletionOverlay": "g1-communication-validation.json",
+  "items": [
+    {
+      "id": "W0161",
+      "name": "PYTORCH_NPU_ALLOC_CONF",
+      "batch": "G2",
+      "page": "device-memory",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W1679",
+      "name": "safetensors_load_strategy",
+      "batch": "G2",
+      "page": "npu-worker-lifecycle",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W1702",
+      "name": "trust_remote_code",
+      "batch": "G2",
+      "page": "npu-worker-lifecycle",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W1603",
+      "name": "limit_mm_per_prompt",
+      "batch": "G3",
+      "page": "token",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W0466",
+      "name": "add_generation_prompt",
+      "batch": "G3",
+      "page": "token",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W0467",
+      "name": "add_special_tokens",
+      "batch": "G3",
+      "page": "token",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W0474",
+      "name": "continue_final_message",
+      "batch": "G3",
+      "page": "token",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W0473",
+      "name": "chat_template_kwargs",
+      "batch": "G3",
+      "page": "token",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W0546",
+      "name": "truncate_prompt_tokens",
+      "batch": "G3",
+      "page": "token",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W0547",
+      "name": "truncation_side",
+      "batch": "G3",
+      "page": "token",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W0493",
+      "name": "messages",
+      "batch": "G3",
+      "page": "api-server-entry",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W0503",
+      "name": "prompt",
+      "batch": "G3",
+      "page": "api-server-entry",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W0278",
+      "name": "VLLM_LOGGING_LEVEL",
+      "batch": "G4",
+      "page": "inference-performance-analysis",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W0202",
+      "name": "VLLM_CONFIGURE_LOGGING",
+      "batch": "G4",
+      "page": "inference-performance-analysis",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W0277",
+      "name": "VLLM_LOGGING_CONFIG_PATH",
+      "batch": "G4",
+      "page": "inference-performance-analysis",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W1547",
+      "name": "disable_log_stats",
+      "batch": "G4",
+      "page": "inference-performance-analysis",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W0283",
+      "name": "VLLM_LOG_STATS_INTERVAL",
+      "batch": "G4",
+      "page": "inference-performance-analysis",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W1507",
+      "name": "aggregate_engine_logging",
+      "batch": "G4",
+      "page": "inference-performance-analysis",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W1564",
+      "name": "enable_log_requests",
+      "batch": "G4",
+      "page": "api-server-entry",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W1444",
+      "name": "max_log_len",
+      "batch": "G4",
+      "page": "api-server-entry",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    },
+    {
+      "id": "W1461",
+      "name": "uvicorn_log_level",
+      "batch": "G4",
+      "page": "api-server-entry",
+      "status": "completed",
+      "cliTop1": true,
+      "uiExpectedPageFound": true
+    }
+  ],
+  "validation": {
+    "independentReviewOpenP1P2": 0,
+    "reviewFixedP2": 5,
+    "reviewFixedP3": 3,
+    "extractedConsumerAssertions": {
+      "passed": 33,
+      "total": 33
+    },
+    "sourceWhitelistTests": {
+      "passed": 41,
+      "total": 41
+    },
+    "cliSearch": {
+      "passed": 21,
+      "total": 21
+    },
+    "uiSearch": {
+      "passed": 21,
+      "total": 21
+    },
+    "teachingBodiesPreserved": 5,
+    "diagramFilesUnchanged": 24,
+    "wikiBuildPages": 167,
+    "contentPages": 167,
+    "standardAudit": {
+      "passed": 104,
+      "total": 104
+    },
+    "diagramSpecsConsistent": 331,
+    "wikiLint": "passed with 8 existing advisories",
+    "biomeChangedCode": "passed",
+    "productionBuild": {
+      "passed": false,
+      "reason": "TS6133 unused x in src/app/wiki/wiki-parallel-mechanism-renderer.ts:1815, outside this change"
+    },
+    "npuRuntimeTested": false
+  },
+  "report": "g234-remaining-backfill-validation.md"
+}

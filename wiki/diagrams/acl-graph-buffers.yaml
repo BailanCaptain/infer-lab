@@ -1,11 +1,11 @@
 layout: figure
 id: acl-graph-buffers
-caption: 一张录好的图里存的是任务次序，加上每个任务读写哪块地址。每一轮都把本轮的 token、位置和 block table 三样全部写进捕获时定下的同一组缓冲（后一轮覆盖前一轮），再回放同一张图；结果也落回同一块输出缓冲。内容每轮都换，地址和宽度不换。
+caption: 一张录好的图里存的是任务次序，加上每个任务读写哪块地址。每轮先确保固定缓冲的有效区域含本轮 token、位置和 block table，再回放同一张图；结果也落回固定输出缓冲。固定 GLM 的块表提交复制当前活跃请求行，不要求把整块已分配缓冲全部重写。
 size: [900, 380]
 texts:
   - { at: [24, 28], text: 每一轮：内容写进同一组地址，再回放同一张图, strong: true, size: 15 }
-  - { at: [24, 262], text: 每轮三块都重写 · 后一轮覆盖前一轮, note: true }
-  - { at: [24, 344], text: 宽度变了换一张图 · 地址对不上就算错, note: true }
+  - { at: [24, 262], text: 更新本轮有效区域 · 不要求整块缓冲重写, note: true }
+  - { at: [24, 344], text: 宽度和地址须符合图约定 · DEBUG 可检查地址, note: true }
 frames:
   - { at: [306, 66], size: [268, 216], label: 捕获时定下的固定地址 }
 items:
@@ -24,5 +24,7 @@ links:
   - { from: [560, 240], to: [632, 186], tone: control }
   - { from: [754, 218], to: [754, 258], tone: token }
 pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L284-L288'
+    symbols: [commit_block_table]
   - source: 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L155-L240'
     symbols: [ACLGraphEntry, ACLGraphWrapper]

@@ -1,46 +1,101 @@
 ---
 id: gqa
-title: "GQA：几个查询头共读一组 K、V，省下什么、付出什么"
+title: GQA：几个查询头共读一组 K、V，省下什么、付出什么
 type: concept
-summary: GQA 把查询头分组，同组共读一组 K、V，K/V 投影与缓存按 KV 头数缩小，打分与汇合仍逐头计算，且须在训练时定下。GLM 的稀疏 MLA 与 KDA 都不是 GQA，本页只作对照。
-aliases: [GQA, Grouped-Query Attention, 分组查询注意力, 分组查询, MQA, Multi-Query Attention, 多查询注意力, MHA, Multi-Head Attention, 多头注意力, num_key_value_heads, num_kv_heads, num_queries_per_kv, num_kv_head_replicas, KV 头数, 注意力头, head, 多头, Q 头, KV 头]
-chapters: ["04"]
+summary: >-
+  GQA 把查询头分组，同组共读一组 K、V，K/V 投影与缓存按 KV 头数缩小，打分与汇合仍逐头计算，且须在训练时定下。GLM 的稀疏 MLA 与 KDA
+  都不是 GQA，本页只作对照。
+aliases:
+  - GQA
+  - Grouped-Query Attention
+  - 分组查询注意力
+  - 分组查询
+  - MQA
+  - Multi-Query Attention
+  - 多查询注意力
+  - MHA
+  - Multi-Head Attention
+  - 多头注意力
+  - num_key_value_heads
+  - num_kv_heads
+  - num_queries_per_kv
+  - num_kv_head_replicas
+  - KV 头数
+  - 注意力头
+  - head
+  - 多头
+  - Q 头
+  - KV 头
+chapters:
+  - '04'
 order: 15
 sources:
-  - https://arxiv.org/html/2305.13245v3
-  - vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1000-L1042
-  - vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L279-L292
-  - vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L452-L513
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L414-L428
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1336-L1359
-  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1901-L1962
-  - vllm@0fc695fc:vllm/model_executor/models/llama.py#L144-L156
-  - vllm@0fc695fc:vllm/model_executor/models/llama.py#L290-L296
-  - vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1358-L1363
-  - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L183-L201
-  - vllm@0fc695fc:vllm/v1/attention/backends/cpu_attn.py#L444-L456
-  - vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L440-L451
-  - vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L1378-L1389
-  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L526-L538
-  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L948-L959
-  - vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L121-L134
-  - vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L110-L134
-  - vllm@0fc695fc:vllm/distributed/utils.py#L52-L63
-  - vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L414-L428
-  - vllm-ascend@db701c1f:vllm_ascend/transformers_utils/configs/glm5_next.py#L23-L50
-  - vllm-ascend@db701c1f:vllm_ascend/transformers_utils/configs/glm5_next.py#L128-L134
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'https://arxiv.org/html/2305.13245v3'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1000-L1042'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L279-L292'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L452-L513'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L414-L428'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1336-L1359'
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1901-L1962'
+  - 'vllm@0fc695fc:vllm/model_executor/models/llama.py#L144-L156'
+  - 'vllm@0fc695fc:vllm/model_executor/models/llama.py#L290-L296'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1358-L1363'
+  - 'vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L183-L201'
+  - 'vllm@0fc695fc:vllm/v1/attention/backends/cpu_attn.py#L444-L456'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L440-L451'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L1378-L1389'
+  - 'vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L526-L538'
+  - 'vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L948-L959'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L121-L134'
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L110-L134
+  - 'vllm@0fc695fc:vllm/distributed/utils.py#L52-L63'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L414-L428'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/transformers_utils/configs/glm5_next.py#L23-L50
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/transformers_utils/configs/glm5_next.py#L128-L134
+  - >-
+    raw:sha256-96369723e69c470d91ca318d4e4d5324d91cb9d72c37ce9b045a7596a6aad1bf.md#L1-L490
+  - >-
+    vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/models/glm5next/model.py#L79-L82
+  - 'vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L549-L564'
+  - 'vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L958-L990'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1688-L1701'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1714-L1768'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1688-L1711'
+  - 'vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L928-L947'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
-  - { to: attention-qkv, kind: builds-on, note: 多头各自打分与汇合在那里讲；本页只讲查询头和 K、V 之间怎样共享 }
-  - { to: one-request, kind: builds-on, note: R1 在第 4 站走过 34 层 KDA 与 11 层稀疏 MLA 时每卡的形状，唯一推导处 }
-  - { to: tensor-parallel, kind: builds-on, note: 按头切到各卡的做法；本页补 KV 头少于卡数时的复制 }
-  - { to: mla, kind: alternative-to, note: GLM 稀疏 MLA 层存一条共享潜向量，而不是减少 K、V 的组数 }
-  - { to: linear-attention, kind: alternative-to, note: GLM 的 KDA 层不存逐位置的 K、V，历史压进固定大小的状态 }
+  - to: attention-qkv
+    kind: builds-on
+    note: 多头各自打分与汇合在那里讲；本页只讲查询头和 K、V 之间怎样共享
+  - to: one-request
+    kind: builds-on
+    note: R1 在第 4 站走过 34 层 KDA 与 11 层稀疏 MLA 时每卡的形状，唯一推导处
+  - to: tensor-parallel
+    kind: builds-on
+    note: 按头切到各卡的做法；本页补 KV 头少于卡数时的复制
+  - to: mla
+    kind: alternative-to
+    note: GLM 稀疏 MLA 层存一条共享潜向量，而不是减少 K、V 的组数
+  - to: linear-attention
+    kind: alternative-to
+    note: GLM 的 KDA 层不存逐位置的 K、V，历史压进固定大小的状态
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-88aad6e2c87b2b55e02c8d48d87f34f1dc39543c6eef52e0db3e6532d6466ee5.md
+  - >-
+    raw/sha256-96369723e69c470d91ca318d4e4d5324d91cb9d72c37ce9b045a7596a6aad1bf.md
 ---
 
 ## 几个查询头能不能共读一组 K、V？
@@ -87,7 +142,7 @@ MQA 把 K、V 砍到 1 组，缓存和每步要载入的 K、V 都缩到 MHA 的
 | 打分与汇合 | 一个位置读 S 个历史位置，打分约要 查询头数 × S × K 每头宽 次乘加，汇合约要 查询头数 × S × V 每头宽 次，和 KV 头数无关 |
 | 缓存与读取 | 要存的 K、V 份数按 KV 头数缩小；同组查询头能否共用一次读取，由算子实现决定 |
 
-所以「GQA 省显存、不省计算」说得太绝对：K、V 投影的计算省了，打分与汇合没省。也不能从缓存缩小的比例直接推出加速倍数：prefill（一次处理整段输入的阶段）和 decode、批大小、上下文长度、算子实现都会改变瓶颈，快多少要按负载实测。
+所以「GQA 省显存、不省计算」说得太绝对：K、V 投影的计算省了，打分与汇合没省。也不能从缓存缩小的比例直接推出加速倍数：prefill（处理提示词、可分多轮完成的阶段）和 decode、批大小、上下文长度、算子实现都会改变瓶颈，快多少要按负载实测。
 
 ## 同组的查询头怎样共读一组 K、V？算一遍
 
@@ -255,6 +310,8 @@ GQA 没有运行时开关，由模型权重和配置决定。以 vLLM 的 Llama 
 
 分组对应交给后端算子：Ascend 普通注意力后端算出 `num_queries_per_kv`，把 `num_heads` 与 `num_key_value_heads` 分别传给融合注意力算子 [C6]；vLLM 的 CPU 后端调用 PyTorch `scaled_dot_product_attention` 时传 `enable_gqa`，由算子按组广播 K、V [C13]。
 
+这里的 CPU 调用仅在 `num_heads > num_kv_heads` 时把 `enable_gqa` 设为真。[C13] `Attention` 的整除检查则允许两种头数相等。[C3] 前者是该次调用启用分组的条件，后者是头数的合法性检查，不能把两者当作同一个判断。
+
 GLM 不需要也不能开：`num_key_value_heads` 缺省等于查询头数 64 [S7]；稀疏 MLA 的压缩投影与缓存规格在 `glm5_next.py`、`indexer_kpool_mla.py` 里单独建，规格固定 `num_kv_heads=1` [C18]；KDA 的 q、k、v 投影同为 `num_heads × head_dim` 宽，按 TP 等分头 [C19]。
 
 ### 会报什么错
@@ -275,13 +332,15 @@ GLM 不需要也不能开：`num_key_value_heads` 缺省等于查询头数 64 [S
 
 ### 版本差异
 
-上游控制流（`Attention`、`QKVParallelLinear`、缓存规格）按 `vllm@0fc695fc` 读。执行侧按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26 列是 2ed6cbba，main 列是 baa023ad。**本部署的专用镜像 db701c1f 是另一个 orphan commit，不算进 v0.23 列：GLM 的模型代码只在镜像里，三个分支都没有。**
+**v0.30.0rc2 保留 GQA 的头共享定义，需检查并行组合与执行拆分条件。** 未指定 KV 头数仍取 Q 头数，要求 Q 头数可被 KV 头数整除；FIA 分别接收两种头数，不在调用前复制出完整的分组 K/V。新增的 GQA/MQA 组合校验要求同时使用 PCP>1 与 DCP>1 时 PCP=DCP，独立草稿另有 TP/KV 头/DCP 校验。batch-invariant 模式拆开 mixed prefill/decode 调用 FIA 的条件则在固定 main 已存在，不只依赖硬件画像的 phase-split 能力；这改变执行次序，不改变 GQA 数学，也不能代替 GLM 稀疏 MLA/KDA 的缓存容量公式。
+
+上游控制流（`Attention`、`QKVParallelLinear`、缓存规格）按 `vllm@0fc695fc` 读。执行侧按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26 列是 2ed6cbba，main 列是 baa023ad。**本部署的专用镜像 db701c1f 是另一个 orphan commit，不算进 v0.23 列。所列 v0.23、v0.26 维护快照没有 GLM 模型文件；main（baa023ad）已在 models/glm5next/ 下提供 GLM 实现，并接入 MLA 与 KDA 模块。**[C25] 代码存在不代表它与专用镜像的行为完全一致；本页的部署走读仍以 db701c1f 为准。
 
 | 项目 | v0.23 | v0.26 | main |
 |---|---|---|---|
 | 普通注意力后端：KV 头数缺省、整除检查、每组查询头数 | 缺省等于查询头数；断言整除；算 `num_queries_per_kv` [C5] | 同 v0.23 [C14] | 同 v0.23 [C16] |
 | 融合注意力算子收到的头数 | 查询头数与 KV 头数分开传，调用前不展开 K、V [C6] | 同 v0.23 [C15] | 同 v0.23 [C17] |
-| GLM 的稀疏 MLA、KDA 代码 | 无 | 无 | 无 |
+| GLM 的稀疏 MLA、KDA 代码 | 无 | 无 | 有，位于 models/glm5next/；不等同于专用镜像 |
 
 镜像 db701c1f 的普通注意力后端与上表一致 [C21]；GLM 的稀疏 MLA 缓存规格写 1 个 KV 头，KDA 走线性注意力状态，都不经过这套分组参数。三个分支在 GQA 的表达上没有差别。
 

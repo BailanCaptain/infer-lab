@@ -1,0 +1,960 @@
+{
+  "status": "accepted_scoped_independent_review",
+  "reviewed_at": "2026-11-10T12:10:11.556508+00:00",
+  "page": "api-server-entry",
+  "baseline_sources": 193,
+  "new_sources": 62,
+  "total_sources": 255,
+  "source_numbers": [
+    194,
+    255
+  ],
+  "source_accounting": "62 new occurrences; not 62 new full files. Prior193 not rereviewed or recounted here.",
+  "hashes": {
+    "wiki/concepts/api-server-entry.md": "e9a434b01ba102aa50ab60183996a74d48192ac28ff382919006a52422d55f85",
+    "wiki/diagrams/api-multimodal-input.yaml": "3ead6c2599aaeeb42e8ba3ec3baaee48cd2da77abf4f7db85b401a8be076a885",
+    "wiki/diagrams/api-multimodal-input.svg": "b9b0cf237c699d1b173813959b195dca72da03c4ed51d9afb92d3b8fa6812a6f"
+  },
+  "items": [
+    {
+      "source_number": 194,
+      "ref": "vllm@0fc695fc:vllm/config/multimodal.py#L97-L143",
+      "claim_under_review": "enable_mm_embeds and processor cache are distinct; processor cache default 4 GiB, lru, shm object cap128MiB. Formula in config comment needs topology condition from registry.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Defaults are actual field assignments: embeds false; media kwargs factory dict; processor kwargs None; 4 GiB/lru/128 MiB. Comment memory formula is qualified by registry topology in teaching text.",
+      "source_sha256": "2ca78ef40f8bdae73ef26af648b6384c1ece4108d1fcfda27cd00e60c013ca14",
+      "range_sha256": "a09b7ef72ccd0bf82244216d3b4e96f7a9c392fa59dd0eade3ac27f651f6c5b2",
+      "scope_lines": [
+        97,
+        143
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-194.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 195,
+      "ref": "vllm@0fc695fc:vllm/multimodal/processing/processor.py#L1214-L1334",
+      "claim_under_review": "Tokens/media separated; dummy text only in custom _call_hf_processor branch; default calls media-only helper. Cache-miss item without media raises ValueError.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Missing-media cache miss raises; custom _call_hf_processor determines temporary-text path. Page avoids claiming every pre-tokenized request reapplies a real chat template.",
+      "source_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "range_sha256": "16448c595c4a99ea8dcfe31070caed298b645999bef4043b82d1d5a6680fe24d",
+      "scope_lines": [
+        1214,
+        1334
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-195.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 196,
+      "ref": "vllm@0fc695fc:vllm/multimodal/processing/processor.py#L1343-L1511",
+      "claim_under_review": "Process missing media, merge cached/missing kwargs and updates back in original item order; renumber item_idx. Passthrough_data bypasses processor cache.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Missing items are processed, cached/new kwargs merged in original order and item_idx renumbered. A/B example and passthrough caveat match actual branches.",
+      "source_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "range_sha256": "38fa32fc455abd2a73ce83e809b0f0db5f6fe971d3afd796ec4595f96ef80516",
+      "scope_lines": [
+        1343,
+        1511
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-196.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 197,
+      "ref": "vllm@0fc695fc:vllm/multimodal/processing/processor.py#L1528-L1710",
+      "claim_under_review": "Placeholder token updates and ranges map media features to text sequence; existing HF updates are detected, otherwise applied after merge; validates item/update/placeholder counts.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Detects existing HF token updates or applies model updates, then validates item/update/placeholder counts. Seven positions are explicitly illustrative, not measured model lengths.",
+      "source_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "range_sha256": "5625c3f6a33267c613678e84f0580e289a75f3ca51537c1d2f3ce07892feeea6",
+      "scope_lines": [
+        1528,
+        1710
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-197.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 198,
+      "ref": "vllm@0fc695fc:vllm/transformers_utils/processor.py#L569-L605",
+      "claim_under_review": "Default media-only helper invokes image/video/audio subprocessor, not synthetic text.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Default helper independently calls modality subprocessor. This qualifies the official mother document wording about dummy text.",
+      "source_sha256": "dda97a9b41e9e606546d3a155b8eab29de1014b6dae7b0a1a56e2cd277796ab2",
+      "range_sha256": "31b8bb707f6bfefa5b38f387ad1e976d4ddb83123b6180ee47026b24798fa7db",
+      "scope_lines": [
+        569,
+        605
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-198.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 199,
+      "ref": "vllm@0fc695fc:vllm/renderers/base.py#L621-L724",
+      "claim_under_review": "UUID lengths/data validation; if both processor cache and APC disabled generates per-request IDs replacing user UUIDs; otherwise passes structured input to model processor.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Validates UUID lengths and nonempty identity/data; both disabled caches trigger per-request identity override in baseline. Image-only omission example respects parser boundary.",
+      "source_sha256": "7213ffb05a468340f18967dc17c3b07886936110c87ecf36a7cbfbb83e29eef7",
+      "range_sha256": "3e3dcaf08d3b656126ef11191530043a6983eb45158dce02df1bc535a84ca00c",
+      "scope_lines": [
+        621,
+        724
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-199.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 200,
+      "ref": "vllm@0fc695fc:vllm/multimodal/processing/inputs.py#L1-L71",
+      "claim_under_review": "Default hashes model+media+processor kwargs; explicit UUID used directly only without processor kwargs, else UUID+kwargs hashed; None UUID uses content.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Hash factors are model/media/processor kwargs; explicitly provided UUID passes directly only without extra kwargs. Content stability remains caller contract.",
+      "source_sha256": "85de6ef9d6240d80bdac237a3fb1be5243963e57dbbcc33d7606dc731ff6ed33",
+      "range_sha256": "85de6ef9d6240d80bdac237a3fb1be5243963e57dbbcc33d7606dc731ff6ed33",
+      "scope_lines": [
+        1,
+        71
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-200.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 201,
+      "ref": "vllm@0fc695fc:vllm/multimodal/registry.py#L268-L354",
+      "claim_under_review": "IPC cache only with one API process and DP1 or external LB; otherwise processor_only. LRU receiver is EngineCore; shm receiver is Worker. Do not universalize API+DP memory formula.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "One API process AND (DP1 OR external LB) governs IPC use; LRU receiver EngineCore and shm receiver Worker. Other topologies processor_only. Page does not multiply a nonexistent DP receiver pool.",
+      "source_sha256": "d4627c89d3459ce35a729e0940a0c5be5b54793b40192c1c068416b57a0a82fd",
+      "range_sha256": "c97e5267468f2ffc73624f5e56ca0da697c743f9f947fc7b5bc07f9218751b8b",
+      "scope_lines": [
+        268,
+        354
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-201.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 202,
+      "ref": "vllm@568afb3a:vllm/multimodal/processing/processor.py#L1214-L1334",
+      "claim_under_review": "Same actual source bytes as baseline processor (full file diff empty); same dummy-text condition and missing-data error.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Selected source and full processor file diff are identical to baseline. Same temporary-text and no-data failure semantics support v0.26 table.",
+      "source_sha256": "deda51d93d244c0782e0f5d4f4d3ec75b0c986d0d7580fb31bbefa1fc6e52f06",
+      "range_sha256": "16448c595c4a99ea8dcfe31070caed298b645999bef4043b82d1d5a6680fe24d",
+      "scope_lines": [
+        1214,
+        1334
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-202.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 203,
+      "ref": "vllm@568afb3a:vllm/multimodal/registry.py#L268-L354",
+      "claim_under_review": "Full file diff baseline empty; same cache-type topology.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Registry full-file equality with baseline supports v0.26 IPC condition and receivers, rather than only matching parameter names.",
+      "source_sha256": "d4627c89d3459ce35a729e0940a0c5be5b54793b40192c1c068416b57a0a82fd",
+      "range_sha256": "c97e5267468f2ffc73624f5e56ca0da697c743f9f947fc7b5bc07f9218751b8b",
+      "scope_lines": [
+        268,
+        354
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-203.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 204,
+      "ref": "vllm@ced6857a:vllm/multimodal/processing/processor.py#L1167-L1307",
+      "claim_under_review": "New processing API expects token IDs, media processor normally no text; model override _get_hf_processor_text may supply dummy text; miss without data still errors.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "rc2 processor separates token IDs and media; _get_hf_processor_text default/override controls temporary text. No-data failure retained.",
+      "source_sha256": "0f1b2ad34bc9ff97e8bfe3fa7923fa7c60b305843c7077b761ff6a137fa1b334",
+      "range_sha256": "9b561a1f71730d82fa4f2c0fee73723df92ec0f8c681ebbb734a509493c0c90a",
+      "scope_lines": [
+        1167,
+        1307
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-204.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 205,
+      "ref": "vllm@ced6857a:vllm/multimodal/processing/inputs.py#L1-L107",
+      "claim_under_review": "Hash now incorporates selected algorithm and modality-scoped media_io_kwargs plus processor kwargs; explicit UUID may still be raw if no additional factors.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "rc2 adds modality-filtered media_io_kwargs and hash algorithm; unified modality retains factors. Table separates raw explicit ID from hashed factors.",
+      "source_sha256": "cf128693ee6b0c78768b91a0be161457f8fd984a160534e32f75217751185f1f",
+      "range_sha256": "cf128693ee6b0c78768b91a0be161457f8fd984a160534e32f75217751185f1f",
+      "scope_lines": [
+        1,
+        107
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-205.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 206,
+      "ref": "vllm@ced6857a:vllm/multimodal/registry.py#L283-L369",
+      "claim_under_review": "Same IPC topology selection semantics as baseline; file relocations only for selected range.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "rc2 registry moved line locations but same actual IPC conditional and receiver selection; fixed main selected file equality recorded separately.",
+      "source_sha256": "265dfe93a97ee9a25851d21d59a22fa7364d126324842b0c669fe598117081bb",
+      "range_sha256": "c97e5267468f2ffc73624f5e56ca0da697c743f9f947fc7b5bc07f9218751b8b",
+      "scope_lines": [
+        283,
+        369
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-206.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 207,
+      "ref": "vllm@ced6857a:vllm/renderers/base.py#L818-L850",
+      "claim_under_review": "Both caches disabled preserves explicit UUID for EC across instances and generates only missing IDs; differs from baseline and fixed main comparison.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "rc2 both-caches-disabled path preserves provided IDs and synthesizes only missing IDs, explicitly to support EC. Table does not promise cache data exists merely because ID survives.",
+      "source_sha256": "4db44560f4d331bf0f184626ed7cac97b350355a5c64bce648bf1fa971b16d68",
+      "range_sha256": "3340c7d8d79a0c467139fd58dd52cf6b81e7417828b31461794c51ef0b51e20a",
+      "scope_lines": [
+        818,
+        850
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-207.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 208,
+      "ref": "vllm@84030bbe:vllm/renderers/base.py#L818-L848",
+      "claim_under_review": "Fixed main comparison replaces user UUID when both caches disabled; do not assume rc2 preservation behavior here. Exact paired Ascend-main provenance not asserted.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Fixed upstream main resets provided IDs in the disabled-both case; table correctly differs from rc2. No exact Ascend-main pairing asserted.",
+      "source_sha256": "1ee6434cb5e691dff668b196b0d270d1254ed2f9f918ba05fec9a5aec09562b1",
+      "range_sha256": "ce1698b2cd2ef77edd48240cf3be5bab2f2e86ad799af841a14bc236261b72c4",
+      "scope_lines": [
+        818,
+        848
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-208.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 209,
+      "ref": "vllm@0fc695fc:docs/design/mm_processing.md#L1-L63",
+      "claim_under_review": "Official design fully read; dummy-text wording qualified by actual consumers",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Full 63-line design mother was actually read. Dummy-text conceptual explanation is narrowed by consumers 195/198/204, not copied unconditionally.",
+      "source_sha256": "2be6b62e473b6df3b894b36539e14b7a849369cf20ef6a47bb6c420d78b58197",
+      "range_sha256": "2be6b62e473b6df3b894b36539e14b7a849369cf20ef6a47bb6c420d78b58197",
+      "scope_lines": [
+        1,
+        63
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-209.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 210,
+      "ref": "vllm@0fc695fc:docs/features/multimodal_inputs.md#L1-L1194",
+      "claim_under_review": "Official mother fully read; variants and linked examples accounted separately",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Full 1194-line input mother was actually read; linked four examples are separately full-read, not inferred from mother coverage. Online per-item embeddings, video metadata nesting and media types match scoped explanation.",
+      "source_sha256": "33c3d27f3891cf38aa4e358c4074e82e74b19a77b340c555e29cb744d7de2208",
+      "range_sha256": "33c3d27f3891cf38aa4e358c4074e82e74b19a77b340c555e29cb744d7de2208",
+      "scope_lines": [
+        1,
+        1194
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-210.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 211,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/interfaces.py#L374-L408",
+      "claim_under_review": "Text embedding and media embedding merge contract",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Default embed_input_ids first obtains text embeddings then merges MM rows via mask. Figure is scoped to insertion-style decoder-only models; cross-attention excluded.",
+      "source_sha256": "62ae344c350b8445f364bded9cf5a0a3887caae062873d266487aedfd55e3dd7",
+      "range_sha256": "d3ed0d4e994bf65f8920aeb14104aa8e138ee28de8aca36d56eb5d4559cc8179",
+      "scope_lines": [
+        374,
+        408
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-211.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 212,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/utils.py#L471-L506",
+      "claim_under_review": "Assign feature rows to placeholders; mismatch error",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Actual indexed assignment casts to input dtype and checks feature-row count versus placeholder mask. Error explanation distinguishes acceptance from execution-time shape validity.",
+      "source_sha256": "5c4b438be5dee3478b1a1445cb9ec2cfa6362992bd7290bde7113b43cb57e880",
+      "range_sha256": "10b1afacefe2bf5ffc4d676793af25fb78c0350f118669f905244a3e9e01ccb6",
+      "scope_lines": [
+        471,
+        506
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-212.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 213,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L3433-L3460",
+      "claim_under_review": "Decoder-only multimodal worker encoder/gather/embed consumer",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Worker branch is supports_mm_inputs AND first PP rank AND not encoder_decoder, executes/gathers encoder and calls embed_input_ids. Figure preserves this model scope.",
+      "source_sha256": "6250ca0670c4593aa2f7c4567c9c71d6cb3d8182624a985d4d4e33d5bf054666",
+      "range_sha256": "52d1aafc9a654506463649dd260b197f16170ef41f2906203918ffd31a954014",
+      "scope_lines": [
+        3433,
+        3460
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-213.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 214,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L3041-L3086",
+      "claim_under_review": "Encoder forward then per-hash cache",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "embed_multimodal or supported encoder graph produces outputs; cache stores them by mm_hash. EC is distinct from processor cache and language KV.",
+      "source_sha256": "6250ca0670c4593aa2f7c4567c9c71d6cb3d8182624a985d4d4e33d5bf054666",
+      "range_sha256": "8de5cf521302aac1017d33b3ac1c01ac4bb6847469f5d072bc587d8d1eebe45c",
+      "scope_lines": [
+        3041,
+        3086
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-214.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 215,
+      "ref": "vllm@568afb3a:vllm/config/multimodal.py#L97-L143",
+      "claim_under_review": "v0.26 configuration defaults",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "v0.26 field defaults match baseline including independently scoped media embeds and processor cache.",
+      "source_sha256": "4df62382d49521afe0196cf18078f9d807939ea088c5442279235585ea3ce612",
+      "range_sha256": "a09b7ef72ccd0bf82244216d3b4e96f7a9c392fa59dd0eade3ac27f651f6c5b2",
+      "scope_lines": [
+        97,
+        143
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-215.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 216,
+      "ref": "vllm@ced6857a:vllm/config/multimodal.py#L110-L163",
+      "claim_under_review": "rc2 configuration defaults",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "rc2 fields retain false/4 GiB/lru/128 MiB; changes elsewhere not inferred from these default declarations.",
+      "source_sha256": "271911aee151f17f092228cecee82af0713e9a47340ffdf66834ca7638a50d22",
+      "range_sha256": "62f1f7a43542ae44dc2718d9e0e60d8b01548a07429da2d9a7ee98f6ff7bcfb3",
+      "scope_lines": [
+        110,
+        163
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-216.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 217,
+      "ref": "vllm@84030bbe:vllm/config/multimodal.py#L119-L176",
+      "claim_under_review": "main configuration defaults",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "main fields retain the same selected defaults; selected-main comparison is explicit and does not claim hardware compatibility.",
+      "source_sha256": "0975ecbb0cebd6dd3e7aa18af1459e4bd64be650cfa2a6ddda677a86668ba335",
+      "range_sha256": "30e6d8de855390ee3206e5cf7548bc8f8fdfc5ed9ee3cd179f4ffd0efb3f19d6",
+      "scope_lines": [
+        119,
+        176
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-217.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 218,
+      "ref": "vllm@568afb3a:vllm/renderers/base.py#L699-L724",
+      "claim_under_review": "v0.26 both caches disabled replaces UUID",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "v0.26 disabled-both branch overwrites explicit UUIDs exactly as baseline; table does not extrapolate rc2 identity preservation backwards.",
+      "source_sha256": "d3f748aafa3729fa0a27f29ed7e845e60460148a18c11c893ba02c638e9fd644",
+      "range_sha256": "5dad5cff2cc928236e6c759d973c72ee6357a80a4164b74ea4d1bfbaa87c193d",
+      "scope_lines": [
+        699,
+        724
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-218.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 219,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1212-L1233",
+      "claim_under_review": "Actual CLI entry names",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "arg_utils adds each documented CLI option backed by multimodal config fields; real entry names, not invented aliases.",
+      "source_sha256": "3ade2488897d08b5c1fd4ddb815eb5743169907d59741a47867185caab7f250d",
+      "range_sha256": "639b9a302e9b6123df52d7a4d7d043513f26335caddc09f815401afacd3f93d0",
+      "scope_lines": [
+        1212,
+        1233
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/base-source-219.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 220,
+      "ref": "vllm@0fc695fc:vllm/envs.py#L909-L920",
+      "claim_under_review": "Image/video/audio initial fetch timeout defaults 5/30/10 seconds. Values are HTTP fetch settings, not the full media-processing or request deadline.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Baseline env getters parse integer initial HTTP image/video/audio timeouts 5/30/10; not overall request budget.",
+      "source_sha256": "b776fb6b1bae4a4f1d6c53792e65e15bd6cde7e70d5c17ef08dfeec54cd59603",
+      "range_sha256": "bef1e253aa87a9b43e6eefda3068f0f64e00f2d523fa4c4806abe4e47e2799bb",
+      "scope_lines": [
+        909,
+        920
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-220.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 221,
+      "ref": "vllm@568afb3a:vllm/envs.py#L930-L941",
+      "claim_under_review": "Image/video/audio initial fetch timeout defaults 5/30/10 seconds. Values are HTTP fetch settings, not the full media-processing or request deadline.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "v0.26 env getters retain 5/30/10 and units; consumer and retry flow separately checked.",
+      "source_sha256": "e078b0acb8e658faa6a8144d13a9036e2a82af40b348f419489a2607247cd936",
+      "range_sha256": "bef1e253aa87a9b43e6eefda3068f0f64e00f2d523fa4c4806abe4e47e2799bb",
+      "scope_lines": [
+        930,
+        941
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-221.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 222,
+      "ref": "vllm@ced6857a:vllm/envs.py#L947-L958",
+      "claim_under_review": "Image/video/audio initial fetch timeout defaults 5/30/10 seconds. Values are HTTP fetch settings, not the full media-processing or request deadline.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "rc2 env getters retain 5/30/10; later retry helper equality checked in independent frame/retry candidates.",
+      "source_sha256": "fbd370b2f56ff798d373e85705c9e044ccae893ef974f2800eec4ef6f2b4fb7f",
+      "range_sha256": "bef1e253aa87a9b43e6eefda3068f0f64e00f2d523fa4c4806abe4e47e2799bb",
+      "scope_lines": [
+        947,
+        958
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-222.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 223,
+      "ref": "vllm@84030bbe:vllm/envs.py#L960-L971",
+      "claim_under_review": "Image/video/audio initial fetch timeout defaults 5/30/10 seconds. Values are HTTP fetch settings, not the full media-processing or request deadline.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "main env getters retain 5/30/10; no claim that these bound decode/inference time.",
+      "source_sha256": "f0810fdba3fc927a78058e77c7411aa82ddf6fd08cd9b4d245b4acef84554a96",
+      "range_sha256": "bef1e253aa87a9b43e6eefda3068f0f64e00f2d523fa4c4806abe4e47e2799bb",
+      "scope_lines": [
+        960,
+        971
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-223.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 224,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen2_vl.py#L1202-L1277",
+      "claim_under_review": "Uses per-item offset and image/video grid; image T must equal1; spatial dimensions divide merge size, video scales temporal positions.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Qwen2 uses per-item offset and image/video grid to build multimodal positions, spatial merge divides H/W; page only claims layout/positions, not a universal image count.",
+      "source_sha256": "f2a6bc6de8d353558e4612ae512316c0fff801c27e4b24936a181d5e3fbb39d4",
+      "range_sha256": "8c5efdb457a17a2efeb4f2bfd135186f75f2be11d3bc09dcb5cb6b4cfa4849c9",
+      "scope_lines": [
+        1202,
+        1277
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-224.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 225,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen3_vl.py#L2706-L2786",
+      "claim_under_review": "Splits last embedding dimension into visual_dim base and multiscale_dim deepstack; then merges deepstack into language sequence. Four implementations AST-identical.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Qwen3 splits base visual_dim and extra multiscale_dim, stores/merges deepstack for intermediate language layers. Page explicitly defines extra visual features and required layout.",
+      "source_sha256": "2935e09be47a893f09176cddb1beb6ed2e73666459de2bfbb08aca50b3e08969",
+      "range_sha256": "dcddbf783125ec1b65f22e67d07e3918b79b52e585726bacc79f78754387e838",
+      "scope_lines": [
+        2706,
+        2786
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-225.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 226,
+      "ref": "vllm@0fc695fc:vllm/multimodal/audio.py#L45-L161",
+      "claim_under_review": "Channel-shape normalization, not amplitude loudness normalization. Model target None passes through; mono reduction defaults arithmetic mean, dimensional errors/unsupported expansion raise. Four selected implementations AST-identical.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "normalize_audio shapes/transposes channels and defaults mono downmix to mean; no loudness normalization claim. Four selected implementations AST-equal.",
+      "source_sha256": "01d7f05669dc6ea18e272cb9ccad785c0acd72bfdcaae05058d22bd0cbb101fe",
+      "range_sha256": "741c92eeeb98fa86f0ab250a3f4d707ca804fade8ad708bb95c8faf894880efd",
+      "scope_lines": [
+        45,
+        161
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-226.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 227,
+      "ref": "vllm@0fc695fc:vllm/multimodal/audio.py#L294-L404",
+      "claim_under_review": "ASR duration-driven split; quiet boundary search, output starts at exact prior split (not duplicated overlap). 568 adds forward-progress fallback; rc2/main explicitly reject multidimensional audio with ValueError.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "split_audio searches end window and starts next output at same split index, so search overlap is not duplicated output. Baseline lacks progress fallback and find_split_point starts quietest_idx at zero; page preserves limitation.",
+      "source_sha256": "01d7f05669dc6ea18e272cb9ccad785c0acd72bfdcaae05058d22bd0cbb101fe",
+      "range_sha256": "38bd236dca453ad96924cfca87ad71d4d91480267ac696acc990196935b1698c",
+      "scope_lines": [
+        294,
+        404
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-227.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 228,
+      "ref": "vllm@0fc695fc:vllm/multimodal/parse.py#L560-L597",
+      "claim_under_review": "Provided SR triggers resampling; model target_channels triggers channel normalization. 0fc/568 list item None is not accepted; rc2/main pass None to cached UUID path. Precomputed embedding branch is separate.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Baseline audio parser resamples/normalizes where model targets demand but does not accept None item. Earlier broad UUID omission statement was fixed to pictures and version caveat.",
+      "source_sha256": "2714a37e8340838f141813adb618df76cbeb96174f7e61a3578a765e67ae3540",
+      "range_sha256": "fcd5f006809d85341d48ebd150cab591ea38a2fd0a2d28ae1a3b2c2f4a552b29",
+      "scope_lines": [
+        560,
+        597
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-228.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 229,
+      "ref": "vllm@0fc695fc:vllm/multimodal/video.py#L223-L326",
+      "claim_under_review": "Forward scan to last requested target only; substitute valid later frame before next target if possible. No guarantee all target frames recover. 568 changes logs to debug; rc2/main moved code keeps same logic.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Recovery scans only through last requested frame and uses next-target window helper. Does not guarantee all bad frames recover; last-target failure is not scanned to video tail.",
+      "source_sha256": "a5a0caafadd11c35476c6a23aef73b1d60946bd371dab97a4d7a10acd73a60d3",
+      "range_sha256": "38415a5ea518f92a8eef9ec168e4d28b21d7aaca980add45fea1e2aefed2ad57",
+      "scope_lines": [
+        223,
+        326
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-229.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 230,
+      "ref": "vllm@0fc695fc:vllm/multimodal/media/connector.py#L371-L384",
+      "claim_under_review": "Media-specific timeout passed into URL loader; kwargs select media IO. This function is not a whole-request timeout.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Audio fetch forwards AUDIO timeout through load_from_url and configured media IO, distinguishing transport from waveform/model processing.",
+      "source_sha256": "51cfb958324d633856c70e845965506201bdfc69a97f9fb059e2a6a7e7d44952",
+      "range_sha256": "11e28bf30a77a7b1134c85bee1b802ff08b8b7579afd18608062e9643edce9ca",
+      "scope_lines": [
+        371,
+        384
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-230.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 231,
+      "ref": "vllm@0fc695fc:vllm/multimodal/media/connector.py#L401-L424",
+      "claim_under_review": "Media-specific timeout passed into URL loader; kwargs select media IO. This function is not a whole-request timeout.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Image fetch forwards IMAGE timeout and media config; source supports download-specific setting.",
+      "source_sha256": "51cfb958324d633856c70e845965506201bdfc69a97f9fb059e2a6a7e7d44952",
+      "range_sha256": "4639eccd424d0fb2cc6a49ff4d262760f27ef5780cb4cc0eac899c78bd0a4daa",
+      "scope_lines": [
+        401,
+        424
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-231.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 232,
+      "ref": "vllm@0fc695fc:vllm/multimodal/media/connector.py#L451-L475",
+      "claim_under_review": "Media-specific timeout passed into URL loader; kwargs select media IO. This function is not a whole-request timeout.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Video fetch forwards VIDEO timeout to media loader, decoder configuration separate from HTTP time budget.",
+      "source_sha256": "51cfb958324d633856c70e845965506201bdfc69a97f9fb059e2a6a7e7d44952",
+      "range_sha256": "2cb2827c29bcaabd5efb7647e15a01443d75c435b56e0a05e8b3b225a3d7db55",
+      "scope_lines": [
+        451,
+        475
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-232.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 233,
+      "ref": "vllm@568afb3a:vllm/multimodal/audio.py#L325-L440",
+      "claim_under_review": "ASR duration-driven split; quiet boundary search, output starts at exact prior split (not duplicated overlap). 568 adds forward-progress fallback; rc2/main explicitly reject multidimensional audio with ValueError.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "v0.26 adds split-point progress fallback and find_split_point default start_idx/NaN skip. Page names exact difference without claiming all arbitrary parameter values safe.",
+      "source_sha256": "28d3cc0d8c7753965af8e13ef0d12da51906fae8169fe1a8666c63c3362da443",
+      "range_sha256": "532e0c78d675375a6f9bfb0a15b9e41ba23ddd67c7296f12a9cec5d5958f0e8b",
+      "scope_lines": [
+        325,
+        440
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-233.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 234,
+      "ref": "vllm@568afb3a:vllm/multimodal/parse.py#L567-L604",
+      "claim_under_review": "Provided SR triggers resampling; model target_channels triggers channel normalization. 0fc/568 list item None is not accepted; rc2/main pass None to cached UUID path. Precomputed embedding branch is separate.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "v0.26 audio None still fails parser branch; selected source confirms table baseline-equivalent boundary.",
+      "source_sha256": "5ab3bddcf8f0b92b12e6427f72d5903cf57be7d40b69cfef3d09c3e92589c8d5",
+      "range_sha256": "fcd5f006809d85341d48ebd150cab591ea38a2fd0a2d28ae1a3b2c2f4a552b29",
+      "scope_lines": [
+        567,
+        604
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-234.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 235,
+      "ref": "vllm@568afb3a:vllm/multimodal/video.py#L314-L417",
+      "claim_under_review": "Forward scan to last requested target only; substitute valid later frame before next target if possible. No guarantee all target frames recover. 568 changes logs to debug; rc2/main moved code keeps same logic.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "v0.26 recovery preserves bounded scan; logging changes warning/info toward debug. No semantic promise beyond actual loop.",
+      "source_sha256": "3a2987da066ed47e4db8377c06f99b49a4e0f30620c752514612ea50381fd7ad",
+      "range_sha256": "ebc6f4ed8f59cbe6c64309c4ebe2627206085ed2e308002108a8e546f8664582",
+      "scope_lines": [
+        314,
+        417
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-235.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 236,
+      "ref": "vllm@ced6857a:vllm/multimodal/audio.py#L395-L517",
+      "claim_under_review": "ASR duration-driven split; quiet boundary search, output starts at exact prior split (not duplicated overlap). 568 adds forward-progress fallback; rc2/main explicitly reject multidimensional audio with ValueError.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "rc2 split_audio retains progress fallback and rejects multidimensional array explicitly. Main selected AST equality independently checked.",
+      "source_sha256": "094b5b576a9f50abb74d2b38d9db243e314ce0f22d0d1ba08bd7820a7cf03433",
+      "range_sha256": "8c60b06a0590ce9e85d0544630f8b313424e62ecc743eab1c28757b3da1fc4dd",
+      "scope_lines": [
+        395,
+        517
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-236.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 237,
+      "ref": "vllm@ced6857a:vllm/multimodal/parse.py#L673-L715",
+      "claim_under_review": "Provided SR triggers resampling; model target_channels triggers channel normalization. 0fc/568 list item None is not accepted; rc2/main pass None to cached UUID path. Precomputed embedding branch is separate.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "rc2 parser adds None passthrough but cache/identity requirements remain. UUID table does not conflate acceptance with hit.",
+      "source_sha256": "21166de024d624ea98ad25774b8d365215457b9ac5c3ab317b755be61f315564",
+      "range_sha256": "2f06b9f686566381bbbce4abe2984eaa7a11e5115f4d2077a7cba28cb1895107",
+      "scope_lines": [
+        673,
+        715
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-237.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 238,
+      "ref": "vllm@ced6857a:vllm/multimodal/video_decoders/opencv.py#L125-L228",
+      "claim_under_review": "Forward scan to last requested target only; substitute valid later frame before next target if possible. No guarantee all target frames recover. 568 changes logs to debug; rc2/main moved code keeps same logic.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "rc2 moved recovery code into opencv module retains bounded scan and oldest-failed queue semantics. Page says attempt, not guaranteed repair.",
+      "source_sha256": "dd276cdc0a3846e3b66ec2e8ab931f8759d2a80a737ebdb769520c1eb30fe5e9",
+      "range_sha256": "ebc6f4ed8f59cbe6c64309c4ebe2627206085ed2e308002108a8e546f8664582",
+      "scope_lines": [
+        125,
+        228
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-238.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 239,
+      "ref": "vllm@84030bbe:vllm/multimodal/parse.py#L671-L713",
+      "claim_under_review": "Provided SR triggers resampling; model target_channels triggers channel normalization. 0fc/568 list item None is not accepted; rc2/main pass None to cached UUID path. Precomputed embedding branch is separate.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "main accepts audio None like rc2, but disabled-both ID override differs and is cross-referenced in table.",
+      "source_sha256": "8d7f1d361ddcfad3c26d221ddfbf64221f9cbb6b1a7aab9e41be9ed74294c50b",
+      "range_sha256": "2f06b9f686566381bbbce4abe2984eaa7a11e5115f4d2077a7cba28cb1895107",
+      "scope_lines": [
+        671,
+        713
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-239.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 240,
+      "ref": "vllm@0fc695fc:vllm/connections.py#L108-L194",
+      "claim_under_review": "Retry loops grow per-attempt timeout; first-attempt 5/30/10 is not a hard total elapsed deadline. Complete retry/response subset108–305 read; later versions not yet all checked.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Sync/async retries increase per-attempt timeout and sleep; 5/30/10 cannot mean whole request deadline. New-version retry AST equality now separately verified in 42-candidate ledger, superseding author note that later versions not yet checked.",
+      "source_sha256": "955a687848fe8daafd13919a5af4cc0c3ec9550ecda6d5ff46501055a5234967",
+      "range_sha256": "b506c84065b183f941ef9ef50ce22da2757108418b6d22c344f7e592e5e1073b",
+      "scope_lines": [
+        108,
+        194
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-240.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 241,
+      "ref": "vllm@0fc695fc:vllm/connections.py#L278-L305",
+      "claim_under_review": "get_bytes and async_get_bytes decorated by retry wrappers; status checking and payload read happen inside each attempt.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "get_bytes/async_get_bytes carry retry decorators; response status and content read occur in attempted operation.",
+      "source_sha256": "955a687848fe8daafd13919a5af4cc0c3ec9550ecda6d5ff46501055a5234967",
+      "range_sha256": "bc6f761833ffdf80b63191358c64ea90d3b075ac1dec9ac02f1bbb3495c027ec",
+      "scope_lines": [
+        278,
+        305
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-241.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 242,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/speech_to_text/base/serving.py#L190-L274",
+      "claim_under_review": "Only ASR path with allow_audio_chunking and duration exceeding configured maximum calls split_audio; each chunk becomes its own model prompt then engine input.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "ASR split called only when model permits chunking and loaded audio duration exceeds configured max. Each chunk gets separate model prompt then engine input; generic Chat not automatically split.",
+      "source_sha256": "7b1ad74523e73fb325ad46e2b27a9ca338fa3ec220eacae22c6bc66b3e9234af",
+      "range_sha256": "cf87c959c84d62f49a2710a3a7543e8dee809c95e0b9c1d88b19890a2dc6d342",
+      "scope_lines": [
+        190,
+        274
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-242.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 243,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen2_vl.py#L774-L840",
+      "claim_under_review": "Embedding dict requires image_embeds plus image_grid_thw; grid determines flat field item lengths.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Qwen2 embedding dict requires image_embeds plus grid_thw; grid product divided by merge_size squared gives split sizes. Online one-item 3-number grid is a model contract.",
+      "source_sha256": "f2a6bc6de8d353558e4612ae512316c0fff801c27e4b24936a181d5e3fbb39d4",
+      "range_sha256": "0c9f9c6ed29d0d43b9c20cdd5b50f38905999911ca5e7aa6d775a73f8743a135",
+      "scope_lines": [
+        774,
+        840
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-243.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 244,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen3_vl.py#L2040-L2113",
+      "claim_under_review": "Precomputed image embeddings bypass visual model call but use dtype conversion and grid-based item splitting.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Qwen3 precomputed branch bypasses visual call, converts dtype and splits by grid; combined base/deepstack width still required by source 225.",
+      "source_sha256": "2935e09be47a893f09176cddb1beb6ed2e73666459de2bfbb08aca50b3e08969",
+      "range_sha256": "03a2b07660fd72df9e80b3747efcb2bfbec2a9c595d34a6743eb92a11dcef49b",
+      "scope_lines": [
+        2040,
+        2113
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-244.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 245,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/minicpmv.py#L454-L486",
+      "claim_under_review": "MiniCPM image embedding parser requires image_embeds and image_sizes; sizes interpreted width,height.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "MiniCPM parser explicitly requires image_embeds plus image_sizes, interpreted width/height per item. Does not reuse Qwen grid.",
+      "source_sha256": "499cb1b03deccf3d9d3e92643a8f2d378f7afef5a60cd711e76919794aed0331",
+      "range_sha256": "7f678f8a1aa9e473c49fac6585fa55b0d0e1fce3dc7b5e9dc9ed370ec66d16ba",
+      "scope_lines": [
+        454,
+        486
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-245.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 246,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/minicpmv.py#L584-L650",
+      "claim_under_review": "Image size forwarded to image processor slice placeholder construction; model version-specific logic, not universal tensor layout.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "MiniCPM sizes feed slice-image placeholder construction with model-version-specific branches. Page appropriately avoids one tensor layout for all models.",
+      "source_sha256": "499cb1b03deccf3d9d3e92643a8f2d378f7afef5a60cd711e76919794aed0331",
+      "range_sha256": "8ae3dbdfc92fa57533553efbfe3ad63f0db88a6e80f4c162c75e7865890ec3f9",
+      "scope_lines": [
+        584,
+        650
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-246.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 247,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen2_audio.py#L163-L176",
+      "claim_under_review": "Qwen2Audio sets target SR from feature extractor and target channels1.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Qwen2Audio parser target sample rate comes from feature extractor and target channel count is one; supports model-specific preprocessing statement.",
+      "source_sha256": "7e78c36d07433b6eaeb118f149e97fa711245a184e800b7b70b56cee9ae0c3f5",
+      "range_sha256": "c0996a8c29ea0aa5d1dbcdef65103392998a19c1c19e14f230397b5e2837297d",
+      "scope_lines": [
+        163,
+        176
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-247.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 248,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/whisper.py#L656-L678",
+      "claim_under_review": "Whisper supplies model sampling rate and get_target_channels to common parser; encoder prompt length handling separate.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Whisper parser receives model sampling rate and get_target_channels, not an invented globally fixed rate. Output prompt policy is separate.",
+      "source_sha256": "be30e45b6327a5bd8ddb065a7c653133f53558aa1b74d90a17f9929ae8c21b22",
+      "range_sha256": "f7ae707c9f79ce0d2fb551652c98d47a8ad68d046f422aaf7ec9a2c66d4e8abe",
+      "scope_lines": [
+        656,
+        678
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-248.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 249,
+      "ref": "vllm@0fc695fc:vllm/multimodal/video.py#L531-L592",
+      "claim_under_review": "VideoBackend frame_recovery defaultFalse, OpenCV-only forward-scan option. rc2/main delegate to decoder dispatcher. Backend-specific kwargs are not all interchangeable.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Baseline VideoBackend defaults frame_recovery false; OpenCV consumes it and pyav rejects. Source supports switch default and backend restriction.",
+      "source_sha256": "a5a0caafadd11c35476c6a23aef73b1d60946bd371dab97a4d7a10acd73a60d3",
+      "range_sha256": "cf7795edcb930422257b490cd41fba4e05b9640767f787843039bfbfa9deaf3c",
+      "scope_lines": [
+        531,
+        592
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-249.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 250,
+      "ref": "vllm@568afb3a:vllm/multimodal/video.py#L989-L1100",
+      "claim_under_review": "VideoBackend frame_recovery defaultFalse, OpenCV-only forward-scan option. rc2/main delegate to decoder dispatcher. Backend-specific kwargs are not all interchangeable.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "v0.26 loader retains default false and distinct decoder guards; not all backends accept same kwargs.",
+      "source_sha256": "3a2987da066ed47e4db8377c06f99b49a4e0f30620c752514612ea50381fd7ad",
+      "range_sha256": "ebb7bb5fa23361670f3073a84c135b47dbd3c76c003a48dce460d327d27e73e5",
+      "scope_lines": [
+        989,
+        1100
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-250.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 251,
+      "ref": "vllm@ced6857a:vllm/multimodal/video.py#L240-L310",
+      "claim_under_review": "VideoBackend frame_recovery defaultFalse, OpenCV-only forward-scan option. rc2/main delegate to decoder dispatcher. Backend-specific kwargs are not all interchangeable.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "rc2 VideoBackend retains false and delegates to decoder dispatcher. New GPU-media options are not generalized to baseline Ascend.",
+      "source_sha256": "fcd4fd681e88e530514fc0a9db855fa9481e68f1e81d28ecd92f79b3fcd8a748",
+      "range_sha256": "edf8965c20043369daa75951764b12d4de0d6fc5ee6dc264d966b85995be688e",
+      "scope_lines": [
+        240,
+        310
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-251.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 252,
+      "ref": "vllm@84030bbe:vllm/multimodal/video.py#L232-L298",
+      "claim_under_review": "VideoBackend frame_recovery defaultFalse, OpenCV-only forward-scan option. rc2/main delegate to decoder dispatcher. Backend-specific kwargs are not all interchangeable.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "main loader retains false; actual dispatch changes do not alter documented OpenCV recovery boundary.",
+      "source_sha256": "ee0d843fd4f2941e54a87768d7d7b49dd4d51ef5d83a389b611cefe5d020cf39",
+      "range_sha256": "cd6e2f7e44391e0cd66a0da208cf0081faf146f6a15902f671c8c7308c00ce4d",
+      "scope_lines": [
+        232,
+        298
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-252.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 253,
+      "ref": "vllm@ced6857a:vllm/multimodal/video_decoders/__init__.py#L78-L107",
+      "claim_under_review": "Rejects frame_recovery for nonOpenCV; passes it through decoder_kwargs only for OpenCV. Main identical selected function; unrelated decoder-option changes remain separate.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Dispatcher rejects frame recovery for non-OpenCV and passes option to OpenCV. Fixed main selected function equality recorded separately.",
+      "source_sha256": "a054dcec12e18ff88c61a4234d4084f0257d25cc831f4ba1802dae527835d82c",
+      "range_sha256": "2e47ab4c3d69af687674326ea6e99aefbbb6a261c2e7efda43b5c32deb96e05c",
+      "scope_lines": [
+        78,
+        107
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-253.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 254,
+      "ref": "vllm@ced6857a:vllm/multimodal/video_decoders/opencv.py#L282-L316",
+      "claim_under_review": "Actual recovery/no-recovery branch, defaultFalse, incomplete count warning.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "Actual OpenCV read_frames defaults false and chooses bounded recovery branch when true. Valid exact range ends316; prior candidate end324 was corrected with audit trail.",
+      "source_sha256": "dd276cdc0a3846e3b66ec2e8ab931f8759d2a80a737ebdb769520c1eb30fe5e9",
+      "range_sha256": "9660338fc748a61c880287d0a434b7b34c7cf5b705115d72e55fe4bef4be8c5d",
+      "scope_lines": [
+        282,
+        316
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-254.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    },
+    {
+      "source_number": 255,
+      "ref": "vllm@0fc695fc:vllm/multimodal/media/video.py#L42-L72",
+      "claim_under_review": "VideoMediaIO stores merged media kwargs and forwards num_frames plus kwargs to selected loader; frame_recovery reaches backend here.",
+      "verdict": "supported_with_stated_scope",
+      "manual_evidence": "VideoMediaIO stores merged kwargs and forwards num_frames and remaining kwargs into selected loader, completing entry-to-frame_recovery consumer chain.",
+      "source_sha256": "47f8aebae22678c35958f30b47599492ea071f1738362f5117eba7c725b28ffa",
+      "range_sha256": "d64a533dce19632107b82ce2fb8bf72950b608f0eed36279e161de32ff0cc25b",
+      "scope_lines": [
+        42,
+        72
+      ],
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/mm-coverage/media-source-255.txt",
+      "read_accounting": "Reuse this review actual selected-range reading; mother 209/210 and four linked examples separately recorded. No automatic new-full credit."
+    }
+  ],
+  "candidate_range_correction_record": "request-mm-candidate-range-check.json",
+  "hardware_validation": false,
+  "audit_record_corrections": [
+    {
+      "source": 220,
+      "before": "float initial",
+      "after": "integer initial",
+      "why": "Fixed getter uses int; teaching text only said seconds and did not have this audit-note typo."
+    }
+  ]
+}

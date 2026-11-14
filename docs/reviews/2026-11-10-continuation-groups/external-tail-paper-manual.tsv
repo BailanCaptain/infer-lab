@@ -1,0 +1,99 @@
+key	mode	note
+1905.12322v3-S3.T1	new_visual	BF16 1/8/7，FP32 1/8/23，FP16 1/5/10；表中BF16最小subnormal为N/A属于论文实现口径，不能写成所有硬件格式不支持次正规数；FP32累加。
+1905.12322v3-S4.F2	new_visual	AlexNet BF16 top1 57.2 vs FP32 57.4、top5 80.1 vs80.7；ResNet50两者74.7/92；这是所示训练设置精度对比不是任意模型保证。
+1905.12322v3-S4.T2	new_visual	GNMT德英BLEU 29.3相同；越英17.1 vs18.3，仅这两个训练任务。
+1905.12322v3-S4.T3	new_visual	DCGAN inception 1.97±.054 vs2.06±.055，MS-SSIM .262 vs.217，不等于逐元素相同。
+1905.12322v3-S4.T4	new_visual	SRGAN PSNR26.1749/26.1415、SSIM.73753/.74079、MS-SSIM.99999相同；容许小幅数值变化。
+1905.12322v3-S4.T5	new_visual	推荐模型近似取整较直接截断更接近FP32 logloss；DCN .44372/.44372/.44393，DNN .12520/.12520/.12537。
+2209.05433v2-S3.T1	new_visual	E4M3 bias7/max448/minnormal2^-6/minsubnormal2^-9且无inf；E5M2 bias15/max57344/minnormal2^-14/minsubnormal2^-16支持inf。正负NaN/zero位型均读。
+2209.05433v2-S4.T2	new_visual	13种图像分类网络测试准确率多有小幅下降，ResNet50 v1.5例外略升，支持经验近似保持而非完全一致。
+2209.05433v2-S4.T3	new_visual	GNMT和Transformer Base/Large翻译BLEU略降，24.83→24.65、26.87→26.83、28.43→28.35。
+2209.05433v2-S4.T4	new_visual	TransformerXL与GPT126M至175B困惑度差异很小；GPT175B 6.65→6.68，不是恒等。
+2209.05433v2-S4.T5	new_visual	PTQ E4M3在所列BERT/GPT上优于该int8基线；例如BERTBase F1 88.19/76.89/88.09；GPT3 6.7B PPL8.51/10.29/8.41。不能推广所有int8方法。
+2409.16626v2-S2.T1	new_visual	HiF8 Dot字段可变2/3/4位，Exponent由Dot决定，Mantissa1–3位；不是固定E4M3。
+2409.16626v2-S2.T2	new_visual	Dot前缀11/10/01/001/0001/0000分别为4/3/2/1/0/DML。
+2409.16626v2-S2.T3	new_visual	Dot为2/3/4时指数绝对值范围2–3/4–7/8–15，尾数3/2/1；0/1分支与DML均已看。
+2409.16626v2-S2.T4	new_visual	HiF8最大正规2^15、最小正规2^-15、最小非正规2^-22，NaN10000000与零00000000；支持Inf，不能与E4M3无Inf混为一谈。
+2409.16626v2-S4.T5	new_visual_source_inconsistency	各传统NN训练准确率约小幅变化，带星号后向HR否则TA。ViT-Base-Patch16行79.95/79.18/+0.13内部算术不符，不能直接用于本站数值结论；已通知根。
+2409.16626v2-alg1	new_visual	PTS先收集高精度逐层输出，再遍历Ea/Ew各[-4,5]；缩放量化矩阵乘后反缩放，以输出MSE择最优并执行向量运算。
+2409.16626v2-S4.T6	new_visual	直接cast与PTS须区分；ResNet50基线76.13、cast74.85、PTS75.44。星号指FP16基线否则FP32；空缺/表示未给结果；不可补值。
+2409.16626v2-S5.T7	new_visual	BLS、ALS、ALS+PTS不同训练策略及tokens不能合并。GPT3 6.7B同21.3B训练token，ALS13.14、ALS+PTS12.99 vs FP16 13.06。
+2409.16626v2-S5.T8	new_visual	PTQ中OPT66B直接cast PPL106.9 vs7.74，PTS8.16、SQ7.92，明确反证直接转换普遍无损；LLAMA各规模较稳定。
+2409.16626v2-S5.T9	new_visual	PTS后GPT3 MMLU27.73→27.90、WikiText103 PPL12.05→12.20、LLaMA7B Lambada89.37→89.21，metric方向不同。
+2609.19969v1-S0.F1	new_visual_panels_and_caption	初次HTML inline SVG尺寸异常；随后直接实际查看原始两张PNG并核SVG仅包装两图及(a)/(b)标签。V4.1终端30.0/DeepSWE74.2/Cyber88.1/Automation54.8；GlobalKV890B/token，相对V4 3514约3.9倍，相对V1 389120约437倍。GlobalKV不是整个请求全部内存。
+2609.19969v1-S2.F5	new_visual	HSI首个Full层对全部position打分选Top512且建立共享候选块池，后续Reindex只在候选pool评分取Top512；块按最大indexer分数选。
+2609.19969v1-alg1	new_visual	Sinkhorn动量更新：Nesterov梯度、mask近零行、奇偶步交替归一化行列、奇数K、乘sqrt(n)转单位行RMS、gamma校正学习率后更新W。这是训练算法，不是推理EPLB。
+2609.19969v1-S4.T1	new_visual	基座模型内部同评测设置；V4.1 552B总backbone、激活8B/16B；并非所有知识/长上下文指标领先V4Pro，不能把图文总结成全面更优。
+2609.19969v1-S5.F7	new_visual_zoom	四benchmark RL steps曲线实线pass虚线输出token；上下文大多512K，Terminal3后段切1M并涨分；存在波动，不能称单调。
+2609.19969v1-S5.F8	new_visual_zoom	ClaudeCode多版本与多scaffold联合RL，浅色单项/深色平均；pass随训练总体提升，但左图输出token在后段有大幅下降。
+2609.19969v1-S5.T2	new_visual	论文API effort标量max100/high75/low50，不等同vLLM thinking_token_budget固定token数。
+2609.19969v1-S5.T3	new_visual_after_layout_repair	初次因原ltx固定高度裁切；随后覆盖布局CSS并实际看完整19基准表，且已读全表文本；†为HLE text-only，不能混全HLE；Max effort各模型非各项最佳、缺失横线不补值。
+2609.19969v1-S5.F9	new_visual_zoom	平均pass与平均output长度对effort双轴；输出较稳定增加，DeepSWE40→60下降、Terminal90→100下降，不保证任意任务更多思考更高准确率。
+2609.19969v1-S5.T4	new_visual	不同scaffold max effort同模型不同结果；DeepSWE N8、Terminal N3；温度1 top-p.95 1M maxsteps500及Terminal禁网，ClaudeCode此表v2.1.251。
+2609.19969v1-S5.F10	new_visual_zoom	多agent比单agent此实验强，ProgramBench8h30.04/20.39，12h多agent反降；FrontierSWE20h32.90/28.20；横轴wall-clock deadline而非token预算。
+2609.19969v1-A2.T5	new_visual	ClaudeCode四版本2.1.105/238/251/259各值与平均，DeepSWE平均68.9，Terminal87.8；平均基于未舍入值。
+2609.19969v1-A2.F11	new_visual_zoom	六panel跨三scaffold与两任务，effort更稳定关联输出长度，pass弱相关且波动；不能统一宣称增预算必升分。
+2609.19969v1-A2.F12	new_visual_zoom	八推理benchmark均双轴；GPQA80后pass回落而token继续增，SimpleQA强波动；仅论文测得设置。
+2407.08608-S3.F3	new_visual	H100 WGMMA FP32 accumulator行0/8、线程0–3、d0–7布局，每线程相邻2元素，左右为d0–3/d4–7；须与F4重排对看。
+2407.08608-S3.F4	new_visual	FP8 A操作数a0–7的线程排列与FP32累加器不同；不是仅cast便能直接WGMMA，支持重排需求。
+2205.14135-S1.F1	new_visual_zoom	SRAM19TB/s20MB、HBM1.5TB/s40GB为图中设备层级示意；K/V外循环Q内循环，片上分块不物化N²注意力矩阵；不是减少理论dense注意力乘加阶数。
+2205.14135-S3.F2	new_visual_svg_and_embedded_table	新SVG显示block64→512 HBM访问降低而runtime到256后趋平；稀疏速度随非零块比例变化，不能直接当精确dense性能。左面板为嵌入HTML表（不是位图），已实际看：GFLOPs66.6→75.2增加，HBM读写40.3→4.4GB，运行41.7→7.3ms，A100/GPT2medium N1024 D64 H16 B64。
+2205.14135-S4.F3	new_visual_zoom	dense FA时间仍二次增长、memory近线性；不同近似/稀疏基线有交叉点，不能笼统比所有算法更快或复杂度降为O(N)。
+2205.14135-A5.F4	new_visual_zoom	GPT2small/medium验证PPL曲线与HF接近，非bitwise恒等证明，也不是Ascend推理吞吐数据。
+2205.14135-alg0	new_visual	标准attention将S=QK^T和P=softmax(S)写HBM后再PV，明确全矩阵中间存储。
+2205.14135-alg1	new_visual	Bc=floor(M/4d)、Br=min(floor(M/4d),d)；逐KV块/Q块更新m、l、O，按新max重缩放；算法版本1外KV内Q，不据此泛指后代kernel同循环。
+2205.14135-S4.T1	new_visual	BERTLarge8A100、MLPerf同初始化目标72%准确率、10次平均；20.0±1.5→17.4±1.4分钟，仅该配置。
+2205.14135-S4.T2	new_visual_source_caption_boundary	GPT2small9.5→2.7天(3.5x)与medium21→6.9(3x)，caption称upto3x与small表值不完全吻合；采用具体行条件，不机械转述统一上限。
+2205.14135-S4.T3	new_visual	LRA平均分59.3标准/59.8FA/59.6稀疏FA；速度2.4x/2.8x且近似方法质量不同，不能不控制质量并排当等价实现。
+2205.14135-S4.T4	new_visual	GPT2small1K/2K/4K FA2.7/3.0/3.6天与PPL18.2/17.6/17.5；Megatron1K4.7天18.2；跨上下文实验非同输入时延对比。
+2205.14135-S4.T6	new_visual_two_named_tables	此一个顶层HTML对象包含Table5和6两张命名表：长文MIMIC-III与ECtHR微F1、PathX/Path256非随机结果。ECtHR8192最高80.7后16384降79.2；FA PathX61.4，block-sparse Path25663.1。47顶层表对象实含48命名表。
+2205.14135-A5.T7	new_visual	A100SXM4-40G B64H16D64带mask/dropout；FA前向更快、反向比FMHA更慢；128合计.28 vs.27，非所有尺寸阶段稳赢。
+2205.14135-alg2	new_visual	扩展前向先存随机状态，缩放S、mask、online softmax与dropout，返回O/l/m/R供反向重算。
+2205.14135-alg3	new_visual	传统反向从HBM的P算dV、dP、dS再dQ/dK，包含N²中间态。
+2205.14135-alg4	new_visual	FA反向重算局部S/P与同随机dropoutmask，D=rowsum(dO⊙O)，累加dQ/dK/dV；增加重算换HBM传输减少。
+2205.14135-alg5	new_visual	稀疏版仅当块maskMij非0才做局部计算；与dense精确算法分别介绍，mask不是数据类型量化。
+2205.14135-A5.T8	new_visual	T9–20按dropout/masking两开关及前向/反向/combined分成12组；T21单列memory，不能跨组选最优拼单条性能。
+2205.14135-A5.T9	new_visual	带dropout/mask前向；FA128 .04ms、65536 2682.35ms，稀疏13.34ms；近似Linformer在长序列可快于denseFA，质量/语义边界。
+2205.14135-A5.T10	new_visual	带dropout/mask反向；FA512 .68、65536 6660.44ms；稀疏512 .29、65536 47.61ms；空格横线是无结果。
+2205.14135-A5.T11	new_visual	带dropout/mask合计FA1024 2.55ms、PyTorch8.29ms；65536 9341.30ms。Combined为独立测量不能严格等同两表逐格相加。
+2205.14135-A5.T12	new_visual	仅mask前向FA1024 .68ms、4096 8.40、65536 2150.88；短尺寸优于各列比较基线，长序列dense复杂度仍在。
+2205.14135-A5.T13	new_visual	仅mask反向FA1024 1.84ms、65536 5361.09，blockSparse .57/47.85；不同结构不作同精度替代承诺。
+2205.14135-A5.T14	new_visual	仅mask combined FA1024 2.37、65536 7513.01，PyTorch1024 7.23；范围128–65536。
+2205.14135-A5.T15	new_visual	仅dropout前向FA128 .10、1024 .83，Linformer1024 .52；显示denseFA并非所有算法所有尺寸最快。
+2205.14135-A5.T16	new_visual	仅dropout反向FA128 .15、65536 6643.01；blockSparse.17/37.31，短端与长端取舍不同。
+2205.14135-A5.T17	new_visual	仅dropout combined FA512 .80与稀疏.94，1024FA2.52与稀疏.92；交叉点需要给尺寸。
+2205.14135-A5.T18	new_visual	无mask/dropout前向FA128 .08、65536 2147.95；Linformer1024 .50与FA.68；空缺不是0。
+2205.14135-A5.T19	new_visual	无mask/dropout反向FA128 .11、65536 5343.19；稀疏.11/37.04；再次区分反向训练与推理。
+2205.14135-A5.T20	new_visual	无mask/dropout combined FA1024 2.29与PyTorch3.67；FA65536 7492.85，不可从短序列直接线性估计dense时长。
+2205.14135-A5.T21	new_visual	memory单位MB，FA4096 836 vsPyTorch17024约20x；FA65536 13376近线性且包含测量范围张量，非模型全部HBM/生产KV占用。
+2407.08608-S2.T1	new_visual	HopperH100SXM5设备表：GMEM80GiB3.35TB/s，L250MiB12TB/s，SMEM每SM228KiB（带宽31TB/s每GPU），寄存器每SM256KiB；不能套Ascend。
+2407.08608-alg1	new_visual	CTA级producer释放寄存器、异步搬Q/K/V、环形SMEM屏障；consumer重分寄存器后WGMMA/softmax、归一化并存O/L；标题明确尚无consumer内重叠。
+2407.08608-alg2	new_visual	consumer双阶段：QK_next与P_current V异步commit不立等；等待各自依赖后做softmax/重缩放、释放buffer；最后单独epilogue。
+2407.08608-S4.T2	new_visual	完整FA3 3.538ms661TFLOPs，去GEMM-softmax流水4.021/582，去warp specialization4.105/570；消融不是仅增加stage数通用加速。
+2407.08608-S4.T3	new_visual	FP16FA2/3 RMSE1.9e-4相同、基线3.2e-4；FP8FA3 .0091 vs baseline.024，无blockquant .0093、无incoherent .024；两精度等级仍不可等价。
+2407.08608-alg3	new_visual_source_dimension_boundary	反向分producer/consumer/dQ-writer，局部重算P、累积dV/dK、信号量原子累加dQ。第1行把rowsum(dO⊙O)标R^d与N行输入/后续按Br分块矛盾，应按N行理解，属原算法维度标注疑点。
+2407.08608-alg4	new_visual	三阶段consumer额外保留S_next/P_next及scale_o，并在prologue预热K0/K1、epilogue补最后两个V；不会由stage3自动推出比stage2快。
+2407.08608-S4.F5	new_visual_six_panels	六固定SVG逐看：H100FP16/BF16前向D64/128/256，各causalfalse/true。D64非causal512FA3333低于Triton340/cuDNN335；causal512197低于225。长16K FA3497/473；D128648/616；D256756/642 TFLOPs。不存在所有shape普遍领先。
+2407.08608-S4.F6	new_visual_two_panels	H100非causal反向D64/128逐看，16K474/561TFLOPs优于FA2291/322与cuDNN433/516；standard16KOOM不写0吞吐。
+2407.08608-S4.F7	new_visual_two_panels	FP8D256非causal16K1171TFLOPs、cuDNN1139；causal16K1024低于cuDNN1099。非causal512510低于Triton529/cuDNN686；不许宣称FP8FA3全场最快。
+2407.08608-A3.F9	new_visual_six_panels_two_reused	附录FP8D64/128/256及两causal设置共6panel，其中D256两张与正文F7同URL同字节只读一次。D64非causal16K613/causal572；D128非causal1008/causal881（后者低于cuDNN922）；短尺寸大量非优胜。全为H100 kernel基准。
+1905.12322v3-S3.F1	reused_historical_same_bytes	复用11-08实际位图阅读：FP32主权重/累加与BF16输入输出混合路径；不是本次重新全文阅读。
+1905.12322v3-S4.F3	reused_historical_same_bytes	复用两张DS2/GNMT同字节训练曲线；仅论文设置对比。
+1905.12322v3-S4.F4	reused_historical_same_bytes	复用两张SRGAN生成器/判别器曲线，不据相似曲线推出逐位相等。
+2209.05433v2-S4.F1	reused_historical_same_bytes	复用GPT各模型规模训练曲线，与本次表4保持实验范围对应。
+2209.05433v2-S4.F2	reused_historical_same_bytes	复用GPT1.3B指数bias敏感图，GEMM与残差量化范围不同。
+2409.16626v2-S2.F1	reused_historical_same_bytes	复用HiF8有效尾数精度随指数变化图，与本次Dot/尾数字段表核合。
+2409.16626v2-S3.F2	reused_historical_same_bytes	复用简化随机舍入阈值/分数图，不是硬件随机数质量验证。
+2409.16626v2-S4.F3	reused_historical_same_bytes	复用传统神经网络训练曲线；准确率数表本次另读并记录源内差值疑点。
+2409.16626v2-S5.F4	reused_historical_same_bytes	复用LLM训练曲线，不能外推直接PTQ无损，本次表8反例另列。
+2609.19969v1-S1.F2	reused_historical_same_bytes	复用精度加权decodeFLOPs图；FLOPs不是实机耗时。
+2609.19969v1-S1.F3	reused_replay_svg_same_bytes	复用本独审者前组实际查看的arch_full SVG；40层20+20编码/解码、全局KV共享，精确SHA与replay记录匹配。
+2609.19969v1-S2.F4	reused_replay_svg_same_bytes	复用本独审者前组实际查看的CSA2三模式SVG；Full/Reindex/Reuse的KV、indexerK和indices来源分别不同。
+2609.19969v1-S4.F6	reused_historical_same_bytes	复用held-out BPB比较位图；为预训练内部评估非生产在线SLO。
+2205.14135-A5.F5	reused_historical_same_bytes	复用A100各长度/掩码/dropout速度图，与本次附录分组表对看；不外推NPU。
+2205.14135-A5.F6	reused_historical_same_bytes	复用A100 D128速度图，head dim不同需分账。
+2205.14135-A5.F7	reused_historical_same_bytes	复用RTX3090速度图，不代替A100或Ascend测量。
+2205.14135-A5.F8	reused_historical_same_bytes	复用T4前反向合计与仅前向两张图，二者不混成推理延迟。
+2407.08608-S3.F1	reused_historical_same_bytes	复用pingpong warpgroup调度图；softmax与另一warpgroup GEMM重叠条件，非全服务无空闲。
+2407.08608-S3.F2	reused_historical_same_bytes	复用两stage WGMMA/softmax流水图，与本次算法2步骤对应。
+2407.08608-A2.F8	reused_historical_same_bytes	复用三stage流水图，与算法4额外状态和收尾对应，不推出stage越多越快。

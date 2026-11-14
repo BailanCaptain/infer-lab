@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 770" width="900" height="770" role="img" aria-label="GLM 双机每张卡上从最后一层到采样的先后。两个开关在固定部署里都没设，走左边一列的默认路径：先挑出要打分的行，本卡乘自己那段权重，再一次 TP8 All-Gather 拼齐分数；右边两条是开关打开时的分支，本部署不经过。MTP 草拟复用同一张输出权重和同一条路径。">
-  <title>GLM 双机每张卡上从最后一层到采样的先后。两个开关在固定部署里都没设，走左边一列的默认路径：先挑出要打分的行，本卡乘自己那段权重，再一次 TP8 All-Gather 拼齐分数；右边两条是开关打开时的分支，本部署不经过。MTP 草拟复用同一张输出权重和同一条路径。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 770" width="900" height="770" role="img" aria-label="固定 db701c1f、普通 TP8 且 SP 关闭时，GLM 双机每张卡上从最后一层到采样的先后。两个开关未设置，走左边默认路径：先挑出要打分的行，本卡乘自己那段权重，再一次 TP8 All-Gather 拼齐分数；右边是开关分支。图中 prefill 每请求 1 行指完整提示词已处理且未请求提示词概率的情况。MTP 草拟复用输出权重、投影与收集路径，但它走单流 MTP 模块，不经过主干第 44 层的四流平均。">
+  <title>固定 db701c1f、普通 TP8 且 SP 关闭时，GLM 双机每张卡上从最后一层到采样的先后。两个开关未设置，走左边默认路径：先挑出要打分的行，本卡乘自己那段权重，再一次 TP8 All-Gather 拼齐分数；右边是开关分支。图中 prefill 每请求 1 行指完整提示词已处理且未请求提示词概率的情况。MTP 草拟复用输出权重、投影与收集路径，但它走单流 MTP 模块，不经过主干第 44 层的四流平均。</title>
   <defs><marker id="lm-head-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
   <path d="M390 72 L390 100" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lm-head-flow-ah-ink)"/>
   <path d="M390 156 L390 184" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lm-head-flow-ah-ink)"/>

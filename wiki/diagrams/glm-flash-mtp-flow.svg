@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 570" width="880" height="570" role="img" aria-label="MTP 先拼接 embedding 与隐藏向量，再经过一个预测层。下一遍接收的是 RMSNorm 后的隐藏向量和本遍选出的 token；候选数量由部署配置决定。">
-  <title>MTP 先拼接 embedding 与隐藏向量，再经过一个预测层。下一遍接收的是 RMSNorm 后的隐藏向量和本遍选出的 token；候选数量由部署配置决定。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 570" width="880" height="570" role="img" aria-label="MTP 将两路输入分别处理后拼接，再经过一个预测层。启用 is_rot_used 时，隐藏输入先经 rot 再做 hnorm；这里两个固定 W8A8 配方都启用它。下一遍接收的是预测层后 RMSNorm 的隐藏向量和本遍选出的 token；候选数量由部署配置决定。">
+  <title>MTP 将两路输入分别处理后拼接，再经过一个预测层。启用 is_rot_used 时，隐藏输入先经 rot 再做 hnorm；这里两个固定 W8A8 配方都启用它。下一遍接收的是预测层后 RMSNorm 的隐藏向量和本遍选出的 token；候选数量由部署配置决定。</title>
   <defs><marker id="glm-flash-mtp-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="glm-flash-mtp-flow-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
   <path d="M290 103 L320 103 L320 158 L350 158" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-mtp-flow-ah-ink)"/>
   <path d="M290 245 L332 245 L332 188 L350 188" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-mtp-flow-ah-ink)"/>
@@ -15,7 +15,7 @@
   <text x="160" y="118" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">enorm：归一化</text>
   <rect x="30" y="208" width="260" height="74" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="160" y="241" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">上一位置的隐藏向量</text>
-  <text x="160" y="260" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">hnorm：归一化</text>
+  <text x="160" y="260" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">可选 rot → hnorm</text>
   <rect x="350" y="136" width="260" height="74" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="480" y="169" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">拼接 → eh_proj</text>
   <text x="480" y="188" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">embedding 在前，8192 → 4096</text>

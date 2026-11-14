@@ -1,0 +1,29 @@
+layout: figure
+id: kv-cache-spec-stride
+caption: 示意：每块有效状态40B，物理页64B。块号不变，块0从0B开始、块1从64B开始；每页尾部24B不属于逻辑状态。FP16视图沿块维前进一步跳32个元素，不能按20个有效元素前进。
+size: [860, 290]
+frames:
+  - { at: [30, 42], size: [800, 200], label: 同一底层分配 · 两个物理页 }
+bars:
+  - at: [100, 90]
+    h: 46
+    scale: 4
+    segments:
+      - { value: 40, text: 块 0 · 有效 40B, tone: kv }
+      - { value: 24, text: 空白 24B, tone: kv, style: hatch }
+  - at: [430, 90]
+    h: 46
+    scale: 4
+    segments:
+      - { value: 40, text: 块 1 · 有效 40B, tone: kv }
+      - { value: 24, text: 空白 24B, tone: kv, style: hatch }
+links:
+  - { from: [100, 163], to: [430, 163], tone: control }
+texts:
+  - { at: [100, 76], text: 起点 0B, size: 13 }
+  - { at: [430, 76], text: 起点 64B, size: 13 }
+  - { at: [265, 193], text: 前进一个物理页：64B, anchor: middle, strong: true }
+  - { at: [430, 270], text: 视图跳过空白；原有块号与分配保持不变, anchor: middle, note: true }
+pins:
+  - source: vllm-ascend@7d825229:docs/source/developer_guide/Design_Documents/non_contiguous_kv_cache.md#L1-L274
+    symbols: [stride]

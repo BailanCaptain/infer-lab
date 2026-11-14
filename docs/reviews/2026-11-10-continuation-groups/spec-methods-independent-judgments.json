@@ -1,0 +1,2394 @@
+{
+  "page": "wiki\\concepts\\speculative-decoding.md",
+  "reviewer": "spec_final_review, independent from author groups_replay_review",
+  "page_sha256": "71b3c8c8f496078aaefdd0b7708fe921295b519059aca60ceeae8351e2f40a8b",
+  "scope": "115 newly added citations, relevant existing citation64, body/diff/assets preservation and browser. Does not independently re-adjudicate all old67 citations.",
+  "global_new_full_credit": 0,
+  "total": 115,
+  "unresolved_P1_P2": 0,
+  "items": [
+    {
+      "packet_n": 1,
+      "page_source_number": 68,
+      "ref": "vllm@0fc695fc:docs/features/speculative_decoding/README.md#L1-L200",
+      "range": [
+        1,
+        200
+      ],
+      "source_sha256": "bf6bc35b37dd4b0308dc58da4414b838a086644e4ada95eabd47f77a7c8cd922",
+      "excerpt_sha256": "a1ea89de3ae7baa256998c63ef728305979ef80e917e021e8482508039967f35",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Read complete guide and method links; directory does not certify Ascend implementation.",
+      "identity": {
+        "source_number": 68,
+        "ref": "vllm@0fc695fc:docs/features/speculative_decoding/README.md#L1-L200",
+        "verified": true,
+        "same_as": null,
+        "lines": 200
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 2,
+      "page_source_number": 69,
+      "ref": "vllm@0fc695fc:docs/features/speculative_decoding/draft_model.md#L1-L84",
+      "range": [
+        1,
+        84
+      ],
+      "source_sha256": "9a4092f48176595a9b1cac99a48d9f63ea3560744d115cfb009b4681f4dddc21",
+      "excerpt_sha256": "2617cf6f2a4df511035452a754e0863b69d063040fe055ad033d3a87ebdfc956",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Complete independent-draft guide; extra checkpoint and serving interface distinguished.",
+      "identity": {
+        "source_number": 69,
+        "ref": "vllm@0fc695fc:docs/features/speculative_decoding/draft_model.md#L1-L84",
+        "verified": true,
+        "same_as": null,
+        "lines": 84
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 3,
+      "page_source_number": 70,
+      "ref": "vllm@0fc695fc:docs/features/speculative_decoding/eagle.md#L1-L67",
+      "range": [
+        1,
+        67
+      ],
+      "source_sha256": "7492f3892f1691358be354c7dc48a0068e08405a4eb599e658fa3b03d415cf4d",
+      "excerpt_sha256": "598780fadaf5905d8d76b0f2772ad572e2171fbee7a0a2cf82a9e4e3642c46f6",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Complete EAGLE guide; model-specific checkpoint and feature requirements remain.",
+      "identity": {
+        "source_number": 70,
+        "ref": "vllm@0fc695fc:docs/features/speculative_decoding/eagle.md#L1-L67",
+        "verified": true,
+        "same_as": null,
+        "lines": 67
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 4,
+      "page_source_number": 71,
+      "ref": "vllm@0fc695fc:docs/features/speculative_decoding/extract_hidden_states.md#L1-L86",
+      "range": [
+        1,
+        86
+      ],
+      "source_sha256": "29fe6596de94dae0d30cf9e8bcad0fddbdb92afc5dd6ef5e4c8fce9edea47bd8",
+      "excerpt_sha256": "2b609da52586c0c574622693a1eb868a4e9da301b7e986e48b420931a4c373bf",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Complete extraction guide; K=1, no chunked prefill, selected layers and file connector are a data collection example.",
+      "identity": {
+        "source_number": 71,
+        "ref": "vllm@0fc695fc:docs/features/speculative_decoding/extract_hidden_states.md#L1-L86",
+        "verified": true,
+        "same_as": null,
+        "lines": 86
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 5,
+      "page_source_number": 72,
+      "ref": "vllm@0fc695fc:docs/features/speculative_decoding/mlp.md#L1-L48",
+      "range": [
+        1,
+        48
+      ],
+      "source_sha256": "4ae425ff87d9bb317babc84691440b624ee7f9b72b63bb9e27fdc566fd416eef",
+      "excerpt_sha256": "6ecf0720da52f01388f91802efd1bf889e97263aa474bdcd1016f573a9ec1fce",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Complete MLP guide; its published example does not override missing current runner/factory dispatch.",
+      "identity": {
+        "source_number": 72,
+        "ref": "vllm@0fc695fc:docs/features/speculative_decoding/mlp.md#L1-L48",
+        "verified": true,
+        "same_as": null,
+        "lines": 48
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 6,
+      "page_source_number": 73,
+      "ref": "vllm@0fc695fc:docs/features/speculative_decoding/mtp.md#L1-L76",
+      "range": [
+        1,
+        76
+      ],
+      "source_sha256": "eae02c10ccb05901415e1e5539feb08e85cc1b714e70c8b4175ab2d37f587b66",
+      "excerpt_sha256": "ad036cdceb96a0dfc5bce64f34cb45db7fcaa94a1197e9ed7d0f89a891fa2616",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Complete MTP guide; Gemma4 assistant checkpoint is a concrete exception to same-checkpoint generalization.",
+      "identity": {
+        "source_number": 73,
+        "ref": "vllm@0fc695fc:docs/features/speculative_decoding/mtp.md#L1-L76",
+        "verified": true,
+        "same_as": null,
+        "lines": 76
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 7,
+      "page_source_number": 74,
+      "ref": "vllm@0fc695fc:docs/features/speculative_decoding/n_gram.md#L1-L27",
+      "range": [
+        1,
+        27
+      ],
+      "source_sha256": "343bc9cfb17011f683998b256acd384fc429a8490b7560aa8906f306f761d6eb",
+      "excerpt_sha256": "7ef65103b3217ea1117630f7b22ec4c5487cbb6873b31311c97896d51add9ad9",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Complete ngram guide; matching is cheap but target verification remains.",
+      "identity": {
+        "source_number": 74,
+        "ref": "vllm@0fc695fc:docs/features/speculative_decoding/n_gram.md#L1-L27",
+        "verified": true,
+        "same_as": null,
+        "lines": 27
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 8,
+      "page_source_number": 75,
+      "ref": "vllm@0fc695fc:docs/features/speculative_decoding/parallel_draft_model.md#L1-L46",
+      "range": [
+        1,
+        46
+      ],
+      "source_sha256": "5d39b6a14586af98e4a6eb85017d23915d02575e2669141494b9a5b9f265061b",
+      "excerpt_sha256": "2f03998eccb5a8bf46f18d84ef831f008cc39eec78b17adf4fdc96da6f472989",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Complete parallel-draft guide; trained model and mask inputs required.",
+      "identity": {
+        "source_number": 75,
+        "ref": "vllm@0fc695fc:docs/features/speculative_decoding/parallel_draft_model.md#L1-L46",
+        "verified": true,
+        "same_as": null,
+        "lines": 46
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 9,
+      "page_source_number": 76,
+      "ref": "vllm@0fc695fc:docs/features/speculative_decoding/speculators.md#L1-L32",
+      "range": [
+        1,
+        32
+      ],
+      "source_sha256": "42a498ee9c4b9f81e12921195a642ce2f97673d8ea6e62a57e969958258ddba7",
+      "excerpt_sha256": "3b7cfabbc4bd8c726b9ad446687c07c472a24e26c996e3e6410e6cfad95e438f",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Complete Speculators guide; checkpoint shortcut expands into verifier and drafter.",
+      "identity": {
+        "source_number": 76,
+        "ref": "vllm@0fc695fc:docs/features/speculative_decoding/speculators.md#L1-L32",
+        "verified": true,
+        "same_as": null,
+        "lines": 32
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 10,
+      "page_source_number": 77,
+      "ref": "vllm@0fc695fc:docs/features/speculative_decoding/suffix.md#L1-L35",
+      "range": [
+        1,
+        35
+      ],
+      "source_sha256": "6585dc99d3a6b9a129c80f67a0c4f674c7d6e159d158827bf26804666f99b6d6",
+      "excerpt_sha256": "dcd1a27e7326b655a808dafce256de73a8c7da7fe2bfcf562f4bff7d742c5de5",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Complete Suffix guide; explicit example K=32 does not define source default.",
+      "identity": {
+        "source_number": 77,
+        "ref": "vllm@0fc695fc:docs/features/speculative_decoding/suffix.md#L1-L35",
+        "verified": true,
+        "same_as": null,
+        "lines": 35
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 11,
+      "page_source_number": 78,
+      "ref": "vllm@0fc695fc:vllm/v1/spec_decode/ngram_proposer.py#L1-L285",
+      "range": [
+        1,
+        285
+      ],
+      "source_sha256": "4d34bfdd9ffbd9ad54e698134c9628ad881b93c70518eac2d48f0e501f9c6763",
+      "excerpt_sha256": "1b1fc04eb42969ed9174ef94e554a4dd11d621e0c5270c93ab2febb4a76132af",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Read full CPU proposer: current token history, longest match first, earliest occurrence, K and available/model-length caps.",
+      "identity": {
+        "source_number": 78,
+        "ref": "vllm@0fc695fc:vllm/v1/spec_decode/ngram_proposer.py#L1-L285",
+        "verified": true,
+        "same_as": null,
+        "lines": 285
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 12,
+      "page_source_number": 79,
+      "ref": "vllm@0fc695fc:vllm/config/speculative.py#L588-L641",
+      "range": [
+        588,
+        641
+      ],
+      "source_sha256": "e985d7c75401dc4a58d026a618680fb757450aeac937214f293fabf793751f7b",
+      "excerpt_sha256": "582cf9ee21b0c152fa8c27e508b3f70e51697e80c8adbaba1b59b42a4a8dd713",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Both lookup bounds absent become5/5; one absent copies the other; positive and ordered constraints.",
+      "identity": {
+        "source_number": 79,
+        "ref": "vllm@0fc695fc:vllm/config/speculative.py#L588-L641",
+        "verified": true,
+        "same_as": null,
+        "lines": 54
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 13,
+      "page_source_number": 80,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/spec_decode/ngram_proposer.py#L1-L102",
+      "range": [
+        1,
+        102
+      ],
+      "source_sha256": "38d2702851f201a61db894691fe5146ad053815b872ac63fa1f0c252787e1691",
+      "excerpt_sha256": "cc7854c6a966a13ccef2022e28d094c2694f4242e62908d9a331f041829b4754",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Read full Ascend adapter; inherits CPU matching, model-length and partial-prefill guards; no drafter model.",
+      "identity": {
+        "source_number": 80,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/spec_decode/ngram_proposer.py#L1-L102",
+        "verified": true,
+        "same_as": null,
+        "lines": 102
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 14,
+      "page_source_number": 81,
+      "ref": "vllm@0fc695fc:vllm/v1/spec_decode/suffix_decoding.py#L1-L101",
+      "range": [
+        1,
+        101
+      ],
+      "source_sha256": "71bb7aceed20a88f057bb9a336a79adaf2b2d9d4162d2b50b37c88be3e62d8fc",
+      "excerpt_sha256": "1d5e25dec86b94cb80043ae5ee56db9752447951684a8ee4ee4316cfc914bc26",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Read full proposer: local prompt+response, global responses, K/model cap, default single-path call.",
+      "identity": {
+        "source_number": 81,
+        "ref": "vllm@0fc695fc:vllm/v1/spec_decode/suffix_decoding.py#L1-L101",
+        "verified": true,
+        "same_as": null,
+        "lines": 101
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 15,
+      "page_source_number": 82,
+      "ref": "vllm@0fc695fc:vllm/config/speculative.py#L130-L196",
+      "range": [
+        130,
+        196
+      ],
+      "source_sha256": "e985d7c75401dc4a58d026a618680fb757450aeac937214f293fabf793751f7b",
+      "excerpt_sha256": "cf45d7bc4b76042e69d097a54a15e8429dc905570b46767db3080591ee653a47",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Field defaults24/10000/1/.1; parallel drafting False; inputs distinct from effective branch defaults.",
+      "identity": {
+        "source_number": 82,
+        "ref": "vllm@0fc695fc:vllm/config/speculative.py#L130-L196",
+        "verified": true,
+        "same_as": null,
+        "lines": 67
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 16,
+      "page_source_number": 83,
+      "ref": "vllm@0fc695fc:vllm/config/speculative.py#L811-L845",
+      "range": [
+        811,
+        845
+      ],
+      "source_sha256": "e985d7c75401dc4a58d026a618680fb757450aeac937214f293fabf793751f7b",
+      "excerpt_sha256": "3088db98bd79607821682d0713b19843a57f5c95c8200af0d6310d7cf69a2d36",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Missing dependency error recommends ==0.1.1; does NOT prove a >= version check. Corrected page; K fallback and bounds directly supported.",
+      "identity": {
+        "source_number": 83,
+        "ref": "vllm@0fc695fc:vllm/config/speculative.py#L811-L845",
+        "verified": true,
+        "same_as": null,
+        "lines": 35
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 17,
+      "page_source_number": 84,
+      "ref": "vllm@568afb3a:vllm/config/speculative.py#L155-L214",
+      "range": [
+        155,
+        214
+      ],
+      "source_sha256": "b0ccd70e399723d3720ed1178242f5becf0fe1bf6e4756972691114435db5bcf",
+      "excerpt_sha256": "b7c6a69eeccc58fef92a4aec02b8123c4e138b4f87f52b0650206b50570b7c1a",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "v26 suffix and parallel field defaults verified.",
+      "identity": {
+        "source_number": 84,
+        "ref": "vllm@568afb3a:vllm/config/speculative.py#L155-L214",
+        "verified": true,
+        "same_as": null,
+        "lines": 60
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 18,
+      "page_source_number": 85,
+      "ref": "vllm@568afb3a:vllm/config/speculative.py#L734-L771",
+      "range": [
+        734,
+        771
+      ],
+      "source_sha256": "b0ccd70e399723d3720ed1178242f5becf0fe1bf6e4756972691114435db5bcf",
+      "excerpt_sha256": "9e02b01cb2d58a2d2ddf0fa1b7e66d2d6891ec93b147b95c7f74794f9956fbbf",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "v26 ngram branch fills absent lookup bounds; model input remains method-specific.",
+      "identity": {
+        "source_number": 85,
+        "ref": "vllm@568afb3a:vllm/config/speculative.py#L734-L771",
+        "verified": true,
+        "same_as": null,
+        "lines": 38
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 19,
+      "page_source_number": 86,
+      "ref": "vllm@568afb3a:vllm/config/speculative.py#L1052-L1086",
+      "range": [
+        1052,
+        1086
+      ],
+      "source_sha256": "b0ccd70e399723d3720ed1178242f5becf0fe1bf6e4756972691114435db5bcf",
+      "excerpt_sha256": "3088db98bd79607821682d0713b19843a57f5c95c8200af0d6310d7cf69a2d36",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "v26 suffix validation and K fallback agree; dependency message is ==0.1.1.",
+      "identity": {
+        "source_number": 86,
+        "ref": "vllm@568afb3a:vllm/config/speculative.py#L1052-L1086",
+        "verified": true,
+        "same_as": 83,
+        "lines": 35
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 20,
+      "page_source_number": 87,
+      "ref": "vllm@ced6857a:vllm/config/speculative.py#L370-L540",
+      "range": [
+        370,
+        540
+      ],
+      "source_sha256": "9c642a87264339c0dbc1d0b57330572149df0f9d5e16c6893b9895e50a619e19",
+      "excerpt_sha256": "d7722286c51b8eefdc991b20fb87030703c3d4254a072a7e5323391a647081ca",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "rc2 fields include heterogeneous vocab False and method-specific controls; no inference of NPU support.",
+      "identity": {
+        "source_number": 87,
+        "ref": "vllm@ced6857a:vllm/config/speculative.py#L370-L540",
+        "verified": true,
+        "same_as": null,
+        "lines": 171
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 21,
+      "page_source_number": 88,
+      "ref": "vllm@ced6857a:vllm/config/speculative.py#L1088-L1260",
+      "range": [
+        1088,
+        1260
+      ],
+      "source_sha256": "9c642a87264339c0dbc1d0b57330572149df0f9d5e16c6893b9895e50a619e19",
+      "excerpt_sha256": "7195563ba12f5ae073a907bc42eef5a1d2901e24ec210d6935b90c1641cb48e7",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "rc2 method inference, target.model_weights preference, extraction config and MTP K comparison order read.",
+      "identity": {
+        "source_number": 88,
+        "ref": "vllm@ced6857a:vllm/config/speculative.py#L1088-L1260",
+        "verified": true,
+        "same_as": null,
+        "lines": 173
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 22,
+      "page_source_number": 89,
+      "ref": "vllm@ced6857a:vllm/config/speculative.py#L1320-L1512",
+      "range": [
+        1320,
+        1512
+      ],
+      "source_sha256": "9c642a87264339c0dbc1d0b57330572149df0f9d5e16c6893b9895e50a619e19",
+      "excerpt_sha256": "31fbd8ccd3e7aa2c79eb6a1a414b898538516b0f39ea2bc1116503e4d4b5ebe0",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "rc2 per-method defaults, parallel flags and supported-name branches read; membership differs from actual loader support.",
+      "identity": {
+        "source_number": 89,
+        "ref": "vllm@ced6857a:vllm/config/speculative.py#L1320-L1512",
+        "verified": true,
+        "same_as": null,
+        "lines": 193
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 23,
+      "page_source_number": 90,
+      "ref": "vllm@ced6857a:vllm/config/speculative.py#L37-L96",
+      "range": [
+        37,
+        96
+      ],
+      "source_sha256": "9c642a87264339c0dbc1d0b57330572149df0f9d5e16c6893b9895e50a619e19",
+      "excerpt_sha256": "7325a60cb446720d80e336a19363320fb5fd6753d7ddd50fa40f8869fedccca5",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "rc2 method enumeration read; compared against page naming table.",
+      "identity": {
+        "source_number": 90,
+        "ref": "vllm@ced6857a:vllm/config/speculative.py#L37-L96",
+        "verified": true,
+        "same_as": null,
+        "lines": 60
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 24,
+      "page_source_number": 91,
+      "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L1924-L1968",
+      "range": [
+        1924,
+        1968
+      ],
+      "source_sha256": "ead004ca266419cd25f54a7aefc0e20e1eb046f363b7f5cc977e14f52ee44bb1",
+      "excerpt_sha256": "451b137c5cd02e82fb4a850c5a61a4beb1aecd7c83e99a974f2c3ca7bbc8cacf",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "rc2 shortcut/JSON merging and key normalization order read.",
+      "identity": {
+        "source_number": 91,
+        "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L1924-L1968",
+        "verified": true,
+        "same_as": null,
+        "lines": 45
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 25,
+      "page_source_number": 92,
+      "ref": "vllm@ced6857a:vllm/config/speculative.py#L1577-L1611",
+      "range": [
+        1577,
+        1611
+      ],
+      "source_sha256": "9c642a87264339c0dbc1d0b57330572149df0f9d5e16c6893b9895e50a619e19",
+      "excerpt_sha256": "3088db98bd79607821682d0713b19843a57f5c95c8200af0d6310d7cf69a2d36",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "rc2 suffix validation same caveat: module availability and ==0.1.1 installation suggestion, not lower-bound version enforcement.",
+      "identity": {
+        "source_number": 92,
+        "ref": "vllm@ced6857a:vllm/config/speculative.py#L1577-L1611",
+        "verified": true,
+        "same_as": 83,
+        "lines": 35
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 26,
+      "page_source_number": 93,
+      "ref": "vllm@84030bbe:vllm/config/speculative.py#L449-L515",
+      "range": [
+        449,
+        515
+      ],
+      "source_sha256": "b531eeccfd7f3f2476948a22f91b5dee4fdf719e68fdc291ecdbf6f4d1b571e1",
+      "excerpt_sha256": "e9deb2d7640d2db0234c2798928a48d9c6672c7398899bd582734c9b68741001",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main suffix/parallel field defaults read.",
+      "identity": {
+        "source_number": 93,
+        "ref": "vllm@84030bbe:vllm/config/speculative.py#L449-L515",
+        "verified": true,
+        "same_as": null,
+        "lines": 67
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 27,
+      "page_source_number": 94,
+      "ref": "vllm@84030bbe:vllm/config/speculative.py#L1166-L1200",
+      "range": [
+        1166,
+        1200
+      ],
+      "source_sha256": "b531eeccfd7f3f2476948a22f91b5dee4fdf719e68fdc291ecdbf6f4d1b571e1",
+      "excerpt_sha256": "707c618da75683d570be57f6bac4855eea5cdf32241e6439b55dd0bf95562eab",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main ngram fallback path read.",
+      "identity": {
+        "source_number": 94,
+        "ref": "vllm@84030bbe:vllm/config/speculative.py#L1166-L1200",
+        "verified": true,
+        "same_as": null,
+        "lines": 35
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 28,
+      "page_source_number": 95,
+      "ref": "vllm@84030bbe:vllm/config/speculative.py#L1537-L1571",
+      "range": [
+        1537,
+        1571
+      ],
+      "source_sha256": "b531eeccfd7f3f2476948a22f91b5dee4fdf719e68fdc291ecdbf6f4d1b571e1",
+      "excerpt_sha256": "3088db98bd79607821682d0713b19843a57f5c95c8200af0d6310d7cf69a2d36",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main suffix validation/K fallback read; dependency claim corrected as for83.",
+      "identity": {
+        "source_number": 95,
+        "ref": "vllm@84030bbe:vllm/config/speculative.py#L1537-L1571",
+        "verified": true,
+        "same_as": 83,
+        "lines": 35
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 29,
+      "page_source_number": 96,
+      "ref": "vllm@0fc695fc:vllm/v1/spec_decode/llm_base_proposer.py#L322-L353",
+      "range": [
+        322,
+        353
+      ],
+      "source_sha256": "34921aef0e9008de808c2fb86ea5f8dd52ea3cf0bff2714b31b2a95038c4227c",
+      "excerpt_sha256": "4265b770d0a771feada8271e7f49d356ec0f55d8fdccbb01bd21b9f07e45d4f5",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Mask input token resolved from dflash/mask, pard or ptd checkpoint config; otherwise error.",
+      "identity": {
+        "source_number": 96,
+        "ref": "vllm@0fc695fc:vllm/v1/spec_decode/llm_base_proposer.py#L322-L353",
+        "verified": true,
+        "same_as": null,
+        "lines": 32
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 30,
+      "page_source_number": 97,
+      "ref": "vllm@0fc695fc:vllm/v1/spec_decode/llm_base_proposer.py#L485-L556",
+      "range": [
+        485,
+        556
+      ],
+      "source_sha256": "34921aef0e9008de808c2fb86ea5f8dd52ea3cf0bff2714b31b2a95038c4227c",
+      "excerpt_sha256": "888fe6c92ddd098f1ad2b48a50100483a1a9d786ab2a9ef833a36aa1a0fca56c",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "One forward then early return if K1 or parallel; serial K-1 loop otherwise.",
+      "identity": {
+        "source_number": 97,
+        "ref": "vllm@0fc695fc:vllm/v1/spec_decode/llm_base_proposer.py#L485-L556",
+        "verified": true,
+        "same_as": null,
+        "lines": 72
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 31,
+      "page_source_number": 98,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/spec_decode/llm_base_proposer.py#L1166-L1208",
+      "range": [
+        1166,
+        1208
+      ],
+      "source_sha256": "4a90532c5c3667d9eb4fec666bf03c65a2f1c92cd402f731b644ef8fa2ed82ab",
+      "excerpt_sha256": "13431860e2bd0aba10ab0386cae4ba5ab3b68c18d84a395b7e67bd9c099b2389",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "v23 Ascend early return for K1 or parallel read.",
+      "identity": {
+        "source_number": 98,
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/spec_decode/llm_base_proposer.py#L1166-L1208",
+        "verified": true,
+        "same_as": null,
+        "lines": 43
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 32,
+      "page_source_number": 99,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/spec_decode/llm_base_proposer.py#L1458-L1503",
+      "range": [
+        1458,
+        1503
+      ],
+      "source_sha256": "ed9b691e3022f3a23c7bb03053b02868d9eb8f8c40402d6a669a49f31f44f7a7",
+      "excerpt_sha256": "33803aa9284b0c0dba872449a3ce21b0d50aaa86d818280acbed5b3c1ad319eb",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "v26 same early return with method-specific branch read.",
+      "identity": {
+        "source_number": 99,
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/spec_decode/llm_base_proposer.py#L1458-L1503",
+        "verified": true,
+        "same_as": null,
+        "lines": 46
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 33,
+      "page_source_number": 100,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/spec_decode/llm_base_proposer.py#L1620-L1665",
+      "range": [
+        1620,
+        1665
+      ],
+      "source_sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+      "excerpt_sha256": "7c22683c8190aa16adcdf75e5ca005cff1489671bc52be1838264d62c2f4b546",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "rc2 same early return, reshape and draft-prob handling read.",
+      "identity": {
+        "source_number": 100,
+        "ref": "vllm-ascend@7d825229:vllm_ascend/spec_decode/llm_base_proposer.py#L1620-L1665",
+        "verified": true,
+        "same_as": null,
+        "lines": 46
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 34,
+      "page_source_number": 101,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/spec_decode/llm_base_proposer.py#L1575-L1620",
+      "range": [
+        1575,
+        1620
+      ],
+      "source_sha256": "c085d87141086a00bbb53a67e35170e15aad56922f44d0c02e141f74de32a7f1",
+      "excerpt_sha256": "7c22683c8190aa16adcdf75e5ca005cff1489671bc52be1838264d62c2f4b546",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main actual early return and remaining serial-loop allocation read.",
+      "identity": {
+        "source_number": 101,
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/spec_decode/llm_base_proposer.py#L1575-L1620",
+        "verified": true,
+        "same_as": 100,
+        "lines": 46
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 35,
+      "page_source_number": 102,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/spec_decode/__init__.py#L34-L55",
+      "range": [
+        34,
+        55
+      ],
+      "source_sha256": "cea9aef71cfd7a87d98c36f7c9a45840a6a7608a8d09c163043761eb7d97d9e8",
+      "excerpt_sha256": "8afae6c6736cb317c6c3a898e92896cf6be66e4ea122123496176937802516d9",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "v23 factory lacks MLP route; no registry-name inference.",
+      "identity": {
+        "source_number": 102,
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/spec_decode/__init__.py#L34-L55",
+        "verified": true,
+        "same_as": null,
+        "lines": 22
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 36,
+      "page_source_number": 103,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/spec_decode/__init__.py#L35-L58",
+      "range": [
+        35,
+        58
+      ],
+      "source_sha256": "3720266d459915a0b450e843dc5d8aebec692a42fbe8bc8cd663beb15d4ffe60",
+      "excerpt_sha256": "38793bc562f96562f8a848d2aadbb2589e97f2aa7bead71fb8eb5902ce177073",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "v26 factory lacks MLP route.",
+      "identity": {
+        "source_number": 103,
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/spec_decode/__init__.py#L35-L58",
+        "verified": true,
+        "same_as": null,
+        "lines": 24
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 37,
+      "page_source_number": 104,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/spec_decode/__init__.py#L41-L70",
+      "range": [
+        41,
+        70
+      ],
+      "source_sha256": "a3b72c62d683a4e58916c976fdac1c6cd2aa87c670d87aa1b43c4a9bfc5ba9a2",
+      "excerpt_sha256": "338a6f922a0c72b72ad975cfb66b5a0ccb2e7532e0a933b9f3ba17e4666488f9",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main factory lacks MLP route; rc2 existing source64 independently reread.",
+      "identity": {
+        "source_number": 104,
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/spec_decode/__init__.py#L41-L70",
+        "verified": true,
+        "same_as": null,
+        "lines": 30
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 38,
+      "page_source_number": 105,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L540-L622",
+      "range": [
+        540,
+        622
+      ],
+      "source_sha256": "6250ca0670c4593aa2f7c4567c9c71d6cb3d8182624a985d4d4e33d5bf054666",
+      "excerpt_sha256": "013d9d9e5595771f20be6a2bb18fe196050a7563b7e66feffb1b65a41a15c498",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Full referenced runner dispatch read: worker device passed to drafter, actual methods enumerated, no MLP route.",
+      "identity": {
+        "source_number": 105,
+        "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L540-L622",
+        "verified": true,
+        "same_as": null,
+        "lines": 83
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 39,
+      "page_source_number": 106,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/registry.py#L637-L646",
+      "range": [
+        637,
+        646
+      ],
+      "source_sha256": "2365c17e087ba4ae8b77c23dc14d529752c467266e23afda686731469aed34ba",
+      "excerpt_sha256": "82d2ac322fcfca818b6a81f2f2382b7f7fdc138b22dc03a5a6423710fb001236",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "MLP registry entry commented; cannot establish operational support.",
+      "identity": {
+        "source_number": 106,
+        "ref": "vllm@0fc695fc:vllm/model_executor/models/registry.py#L637-L646",
+        "verified": true,
+        "same_as": null,
+        "lines": 10
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 40,
+      "page_source_number": 107,
+      "ref": "vllm@0fc695fc:vllm/config/speculative.py#L480-L525",
+      "range": [
+        480,
+        525
+      ],
+      "source_sha256": "e985d7c75401dc4a58d026a618680fb757450aeac937214f293fabf793751f7b",
+      "excerpt_sha256": "5156bf11b6fac8f990410a8835ccbf9838f6741831ffc237728c5a3d47230ddc",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Gemma4 assistant is rewritten to gemma4_mtp with n_predict1; separate checkpoint claim supported.",
+      "identity": {
+        "source_number": 107,
+        "ref": "vllm@0fc695fc:vllm/config/speculative.py#L480-L525",
+        "verified": true,
+        "same_as": null,
+        "lines": 46
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 41,
+      "page_source_number": 108,
+      "ref": "vllm@0fc695fc:vllm/v1/spec_decode/extract_hidden_states.py#L1-L393",
+      "range": [
+        1,
+        393
+      ],
+      "source_sha256": "5dc75137ad5f7aa7062c5920ac2769f2540c99158c36460bc8f3e7030d8f9af3",
+      "excerpt_sha256": "336de8c7f75bb2d433353306edad6688a5bd0e737a9bf04f5ec09d8193c01975",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Full extractor read: K1, hidden layer requirement, stack shape, cache-only model, sampled token returned, graph/DP constraints.",
+      "identity": {
+        "source_number": 108,
+        "ref": "vllm@0fc695fc:vllm/v1/spec_decode/extract_hidden_states.py#L1-L393",
+        "verified": true,
+        "same_as": null,
+        "lines": 393
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 42,
+      "page_source_number": 109,
+      "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/example_hidden_states_connector.py#L1-L517",
+      "range": [
+        1,
+        517
+      ],
+      "source_sha256": "70c6cfa80f17d26829564013dd872337263b8c3b7156cde0068cb2fe5474d4a0",
+      "excerpt_sha256": "7a6ac39d8ce3c941411e777f142d55a4717116116792a9526fc22c51c99af4a2",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Full file connector read: /tmp,8 writer threads,locks defaultTrue; CUDA DtoH event then asynchronous safetensors write; returning path is not write completion.",
+      "identity": {
+        "source_number": 109,
+        "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/example_hidden_states_connector.py#L1-L517",
+        "verified": true,
+        "same_as": null,
+        "lines": 517
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 43,
+      "page_source_number": 110,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/spec_decode/extract_hidden_states_proposer.py#L1-L198",
+      "range": [
+        1,
+        198
+      ],
+      "source_sha256": "bccffc351cbe2b4db0d471240c87dd354585c8efc98f398e821ba3e358bc8039",
+      "excerpt_sha256": "a174aa9c7236868630f1619809661b0117c07d26389ee35a4a480a39b983e1c3",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Full Ascend extractor adapter read; runner SP/DP hooks and NPU signature differ; does not adapt upstream CUDA file connector by itself.",
+      "identity": {
+        "source_number": 110,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/spec_decode/extract_hidden_states_proposer.py#L1-L198",
+        "verified": true,
+        "same_as": null,
+        "lines": 198
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 44,
+      "page_source_number": 111,
+      "ref": "vllm@0fc695fc:vllm/transformers_utils/configs/speculators/base.py#L1-L140",
+      "range": [
+        1,
+        140
+      ],
+      "source_sha256": "c2d59234119b9761098327f1f9631175880c0713777f6e2bdbd385679a57b820",
+      "excerpt_sha256": "e787dbc07c7c6ce853470875a27a3cbd4e22bd1426a47b7d352d065dbfe44da6",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Full Speculators converter read: first proposal, verifier field validation, peagle→eagle3+parallel.",
+      "identity": {
+        "source_number": 111,
+        "ref": "vllm@0fc695fc:vllm/transformers_utils/configs/speculators/base.py#L1-L140",
+        "verified": true,
+        "same_as": null,
+        "lines": 140
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 45,
+      "page_source_number": 112,
+      "ref": "vllm@0fc695fc:vllm/transformers_utils/config.py#L625-L686",
+      "range": [
+        625,
+        686
+      ],
+      "source_sha256": "0e868dc23b66b2befa2584f478f01c3c20a522230039f444d872389a0b542fc8",
+      "excerpt_sha256": "f31731fec8eb02590e461b9accfa4eb8e4eb4d2835054710433734a69777f4a3",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Old shortcut replaces config from checkpoint and does not merge existing speculative config.",
+      "identity": {
+        "source_number": 112,
+        "ref": "vllm@0fc695fc:vllm/transformers_utils/config.py#L625-L686",
+        "verified": true,
+        "same_as": null,
+        "lines": 62
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 46,
+      "page_source_number": 113,
+      "ref": "vllm@568afb3a:vllm/transformers_utils/config.py#L632-L685",
+      "range": [
+        632,
+        685
+      ],
+      "source_sha256": "1a4d20909cf6950c3f27286206ad71160e32f8e2245b70c7ec0794090b03db05",
+      "excerpt_sha256": "70c645b412085b973f71c066679ba11983dcb99d008c430a53381bb50734919d",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "v26 shortcut same config replacement; GGUF handling differs outside claim.",
+      "identity": {
+        "source_number": 113,
+        "ref": "vllm@568afb3a:vllm/transformers_utils/config.py#L632-L685",
+        "verified": true,
+        "same_as": null,
+        "lines": 54
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 47,
+      "page_source_number": 114,
+      "ref": "vllm@ced6857a:vllm/transformers_utils/config.py#L695-L754",
+      "range": [
+        695,
+        754
+      ],
+      "source_sha256": "aaaf215c9166f85656b7491fca3c1abd48d395d084973e7ca8c3e73188b6b2e8",
+      "excerpt_sha256": "606a6676f3bfc26a8b653de461d688f93cec990215b1973033436dcf549e616a",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "rc2 first converts then merges user object, locks method/model and overrides verifier/tokenizer.",
+      "identity": {
+        "source_number": 114,
+        "ref": "vllm@ced6857a:vllm/transformers_utils/config.py#L695-L754",
+        "verified": true,
+        "same_as": null,
+        "lines": 60
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 48,
+      "page_source_number": 115,
+      "ref": "vllm@84030bbe:vllm/transformers_utils/config.py#L686-L745",
+      "range": [
+        686,
+        745
+      ],
+      "source_sha256": "e78dd02d0483d15e5ea2afa4ad944d75f47e65310ca995ce318ed5fe6bf93fda",
+      "excerpt_sha256": "606a6676f3bfc26a8b653de461d688f93cec990215b1973033436dcf549e616a",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main same conversion/merge/locked-fields flow.",
+      "identity": {
+        "source_number": 115,
+        "ref": "vllm@84030bbe:vllm/transformers_utils/config.py#L686-L745",
+        "verified": true,
+        "same_as": 114,
+        "lines": 60
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 49,
+      "page_source_number": 116,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1703-L1750",
+      "range": [
+        1703,
+        1750
+      ],
+      "source_sha256": "3ade2488897d08b5c1fd4ddb815eb5743169907d59741a47867185caab7f250d",
+      "excerpt_sha256": "b8638a905060522459a36a7e438b53e834dc47e4def82cd99d28e9ea8753eb89",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Actual engine config consumer runs override before ModelConfig; cloud-storage skip is explicit.",
+      "identity": {
+        "source_number": 116,
+        "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1703-L1750",
+        "verified": true,
+        "same_as": null,
+        "lines": 48
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 50,
+      "page_source_number": 117,
+      "ref": "vllm@ced6857a:vllm/config/speculative.py#L1814-L1850",
+      "range": [
+        1814,
+        1850
+      ],
+      "source_sha256": "9c642a87264339c0dbc1d0b57330572149df0f9d5e16c6893b9895e50a619e19",
+      "excerpt_sha256": "470f1fe0f86ef23e8754af108600508d8eec4de830cb12b369f733e7f393ae63",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "rc2 only draft_model+greedy allows heterogeneous vocab; otherwise equal-size validation.",
+      "identity": {
+        "source_number": 117,
+        "ref": "vllm@ced6857a:vllm/config/speculative.py#L1814-L1850",
+        "verified": true,
+        "same_as": null,
+        "lines": 37
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 51,
+      "page_source_number": 118,
+      "ref": "vllm@ced6857a:vllm/v1/spec_decode/draft_model.py#L1-L115",
+      "range": [
+        1,
+        115
+      ],
+      "source_sha256": "6b884f49a75f01d1aa6b2d27159b63fa27f7ba7f0518d2810d1a5b565e14f026",
+      "excerpt_sha256": "5c5d8d67e2ac7260419acf8cbae70e9989a4ffdb04d6626f2dd522d91e610dd2",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Actual upstream constructor builds VocabMapping and target/draft tokenizer inputs; equal TP enforced.",
+      "identity": {
+        "source_number": 118,
+        "ref": "vllm@ced6857a:vllm/v1/spec_decode/draft_model.py#L1-L115",
+        "verified": true,
+        "same_as": null,
+        "lines": 115
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 52,
+      "page_source_number": 119,
+      "ref": "vllm@ced6857a:vllm/v1/spec_decode/llm_base_proposer.py#L430-L512",
+      "range": [
+        430,
+        512
+      ],
+      "source_sha256": "5bd11c41f0a8cf1272b5880d9878043f876bee6c7e04fb781e613f92930b15ab",
+      "excerpt_sha256": "8f533e2eeb9556c24bc5c1d0ee9a6c3c7cbf17398359aeb16b402f4c4c01cf8b",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Actual sampling applies intersection constraint and maps draft IDs to target; probabilistic heterovocab fallback asserts absent draft_probs.",
+      "identity": {
+        "source_number": 119,
+        "ref": "vllm@ced6857a:vllm/v1/spec_decode/llm_base_proposer.py#L430-L512",
+        "verified": true,
+        "same_as": null,
+        "lines": 83
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 53,
+      "page_source_number": 120,
+      "ref": "vllm@84030bbe:vllm/config/speculative.py#L1778-L1811",
+      "range": [
+        1778,
+        1811
+      ],
+      "source_sha256": "b531eeccfd7f3f2476948a22f91b5dee4fdf719e68fdc291ecdbf6f4d1b571e1",
+      "excerpt_sha256": "05e8b9feb64e45a107a8a51729e43581e408d2fbb959fd916dee5bf4674227a2",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main same heterovocab validators read.",
+      "identity": {
+        "source_number": 120,
+        "ref": "vllm@84030bbe:vllm/config/speculative.py#L1778-L1811",
+        "verified": true,
+        "same_as": null,
+        "lines": 34
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 54,
+      "page_source_number": 121,
+      "ref": "vllm@84030bbe:vllm/v1/spec_decode/draft_model.py#L19-L61",
+      "range": [
+        19,
+        61
+      ],
+      "source_sha256": "6b884f49a75f01d1aa6b2d27159b63fa27f7ba7f0518d2810d1a5b565e14f026",
+      "excerpt_sha256": "46155ca42ef396d74744ef6dca8da30435a4e14b6e67afe3523c86615e975ebe",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main mapping constructor read.",
+      "identity": {
+        "source_number": 121,
+        "ref": "vllm@84030bbe:vllm/v1/spec_decode/draft_model.py#L19-L61",
+        "verified": true,
+        "same_as": null,
+        "lines": 43
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 55,
+      "page_source_number": 122,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/spec_decode/draft_proposer.py#L1-L17",
+      "range": [
+        1,
+        17
+      ],
+      "source_sha256": "d84d22e9e4fe4f9b270a3b31a3ba2c54414f45c24f818ef20cc0f64f31d94b59",
+      "excerpt_sha256": "f760b5180d5f90f21e324acb22b935685da4874b2adb8ecd5f563a7aea5d330c",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Ascend calls its own base directly then equality/TP checks, bypasses upstream mapping constructor; upstream field cannot establish NPU support.",
+      "identity": {
+        "source_number": 122,
+        "ref": "vllm-ascend@7d825229:vllm_ascend/spec_decode/draft_proposer.py#L1-L17",
+        "verified": true,
+        "same_as": null,
+        "lines": 17
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 56,
+      "page_source_number": 123,
+      "ref": "vllm@0fc695fc:vllm/v1/spec_decode/metrics.py#L1-L215",
+      "range": [
+        1,
+        215
+      ],
+      "source_sha256": "acf306f1b453f33f9cebd13abfa6547dea5dff4a1dc92d4e9b701daf526746ee",
+      "excerpt_sha256": "5fa65596292a14513862b231ccfbeb2ff03925bbec07a7d8b9a5512b1c48a39d",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Full aggregate stats read: accepted draft-only,1+A/R, A/D, per-position counts divided by rounds.",
+      "identity": {
+        "source_number": 123,
+        "ref": "vllm@0fc695fc:vllm/v1/spec_decode/metrics.py#L1-L215",
+        "verified": true,
+        "same_as": null,
+        "lines": 215
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 57,
+      "page_source_number": 124,
+      "ref": "vllm@ced6857a:vllm/v1/spec_decode/metrics.py#L1-L281",
+      "range": [
+        1,
+        281
+      ],
+      "source_sha256": "35e0a709042471559937f1a1979a721af9b910476efaa8b6e29865bace985afe",
+      "excerpt_sha256": "b3acefa77ba61695be7e5d46470d7666d77db8b61b58154cf12f6efa29237ec2",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Full rc2 stats read: ordinary path retains formulas; diffusion path explicitly separated.",
+      "identity": {
+        "source_number": 124,
+        "ref": "vllm@ced6857a:vllm/v1/spec_decode/metrics.py#L1-L281",
+        "verified": true,
+        "same_as": null,
+        "lines": 281
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 58,
+      "page_source_number": 125,
+      "ref": "vllm@ced6857a:vllm/v1/metrics/stats.py#L303-L375",
+      "range": [
+        303,
+        375
+      ],
+      "source_sha256": "af1983ddc32fa4d3284e72212c6525daf961dd84429023a02d612b68b3112cf3",
+      "excerpt_sha256": "022a3d5f421f48c0e260a3734f895c7e0d3cb3db717896aca9bd28a511930cb7",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Original accumulator read and independently executed: [3,3] drafts/[0,2] accepted→2,1/3,hist[1,0,1,0].",
+      "identity": {
+        "source_number": 125,
+        "ref": "vllm@ced6857a:vllm/v1/metrics/stats.py#L303-L375",
+        "verified": true,
+        "same_as": null,
+        "lines": 73
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 59,
+      "page_source_number": 126,
+      "ref": "vllm@ced6857a:vllm/config/observability.py#L48-L58",
+      "range": [
+        48,
+        58
+      ],
+      "source_sha256": "d57c59ec776477ab0a20e9f2b945bc954d8ea3737c869259480e9aa10dfb9f6d",
+      "excerpt_sha256": "77deb6acb711b8e77a9e40bd82c252b4ebaf3d3c495a10d1b770782648e87c29",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "none/summary/detailed, experimental response schema, n1, independent log-stats explicitly stated.",
+      "identity": {
+        "source_number": 126,
+        "ref": "vllm@ced6857a:vllm/config/observability.py#L48-L58",
+        "verified": true,
+        "same_as": null,
+        "lines": 11
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 60,
+      "page_source_number": 127,
+      "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L1538-L1541",
+      "range": [
+        1538,
+        1541
+      ],
+      "source_sha256": "ead004ca266419cd25f54a7aefc0e20e1eb046f363b7f5cc977e14f52ee44bb1",
+      "excerpt_sha256": "f2637473f4bf7115d39d6bff072ef80b9c15657f5fe86d6610c2d94216d5251a",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "CLI flag wired into observability argument group.",
+      "identity": {
+        "source_number": 127,
+        "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L1538-L1541",
+        "verified": true,
+        "same_as": null,
+        "lines": 4
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 61,
+      "page_source_number": 128,
+      "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L2023-L2028",
+      "range": [
+        2023,
+        2028
+      ],
+      "source_sha256": "ead004ca266419cd25f54a7aefc0e20e1eb046f363b7f5cc977e14f52ee44bb1",
+      "excerpt_sha256": "240809d0472d37613f4227fefba46d7ff2d5b7a918f1da12a640722355fcb815",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "EngineArgs passes value into ObservabilityConfig.",
+      "identity": {
+        "source_number": 128,
+        "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L2023-L2028",
+        "verified": true,
+        "same_as": null,
+        "lines": 6
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 62,
+      "page_source_number": 129,
+      "ref": "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1950-L2045",
+      "range": [
+        1950,
+        2045
+      ],
+      "source_sha256": "c1db45f3bbad3a875dd8638331b8870c4380ac1ab4734265ba5c863833a82884",
+      "excerpt_sha256": "4309da6d946e45a51e60e1fcf7b86f6bbc06e8f6dd9e7fa3b74cfe0e31f9c77b",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Actual scheduler counts after verification and before stop truncation; grammar-invalid drafts adjust denominator.",
+      "identity": {
+        "source_number": 129,
+        "ref": "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1950-L2045",
+        "verified": true,
+        "same_as": null,
+        "lines": 96
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 63,
+      "page_source_number": 130,
+      "ref": "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2485-L2495",
+      "range": [
+        2485,
+        2495
+      ],
+      "source_sha256": "c1db45f3bbad3a875dd8638331b8870c4380ac1ab4734265ba5c863833a82884",
+      "excerpt_sha256": "71169d9b2565d05622455835970eac751fd01e2b91b8e4f7d5a7f612daf2f191",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Request accumulator created only when level != none.",
+      "identity": {
+        "source_number": 130,
+        "ref": "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2485-L2495",
+        "verified": true,
+        "same_as": null,
+        "lines": 11
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 64,
+      "page_source_number": 131,
+      "ref": "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2140-L2175",
+      "range": [
+        2140,
+        2175
+      ],
+      "source_sha256": "c1db45f3bbad3a875dd8638331b8870c4380ac1ab4734265ba5c863833a82884",
+      "excerpt_sha256": "d473f9cbd6ab0a91a72053f4419bc5b35816e56614f73caf554b692933273ecc",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Final EngineCoreOutput carries accumulator only on finish.",
+      "identity": {
+        "source_number": 131,
+        "ref": "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2140-L2175",
+        "verified": true,
+        "same_as": null,
+        "lines": 36
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 65,
+      "page_source_number": 132,
+      "ref": "vllm@ced6857a:vllm/v1/engine/output_processor.py#L680-L703",
+      "range": [
+        680,
+        703
+      ],
+      "source_sha256": "e47b86cd69ce1c1e3f53dac655eaa75c32a4057d10f4a1db16bb83a397f2a329",
+      "excerpt_sha256": "7a50cd6ed06e60d95034c26b7f8d6d046837e374ec523f2610087c237e66a852",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Output processor stores final accumulator in request state.",
+      "identity": {
+        "source_number": 132,
+        "ref": "vllm@ced6857a:vllm/v1/engine/output_processor.py#L680-L703",
+        "verified": true,
+        "same_as": null,
+        "lines": 24
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 66,
+      "page_source_number": 133,
+      "ref": "vllm@ced6857a:vllm/v1/engine/output_processor.py#L427-L447",
+      "range": [
+        427,
+        447
+      ],
+      "source_sha256": "e47b86cd69ce1c1e3f53dac655eaa75c32a4057d10f4a1db16bb83a397f2a329",
+      "excerpt_sha256": "e083df65bc789e83f4de5245bf5ed341f7b881e355e76d7ae63bee8dab6b7494",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Final CompletionOutput forwards accumulator.",
+      "identity": {
+        "source_number": 133,
+        "ref": "vllm@ced6857a:vllm/v1/engine/output_processor.py#L427-L447",
+        "verified": true,
+        "same_as": null,
+        "lines": 21
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 67,
+      "page_source_number": 134,
+      "ref": "vllm@ced6857a:vllm/entrypoints/generate/base/serving.py#L105-L119",
+      "range": [
+        105,
+        119
+      ],
+      "source_sha256": "35ec53f63e86a8c1725728911db0df44eb3101d8cd65e9b2f39d048956977bad",
+      "excerpt_sha256": "2bf0ae7e5ee3255f2648113cf8da6479163653be7901690f3c0dce7cc18f3d56",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Builder consumes first output sequence; call sites must enforce single-sequence applicability.",
+      "identity": {
+        "source_number": 134,
+        "ref": "vllm@ced6857a:vllm/entrypoints/generate/base/serving.py#L105-L119",
+        "verified": true,
+        "same_as": null,
+        "lines": 15
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 68,
+      "page_source_number": 135,
+      "ref": "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L812-L872",
+      "range": [
+        812,
+        872
+      ],
+      "source_sha256": "ea1f76074a9587c8054f54d30a6ba748b6a5fc4d90dd82c801504505c1da1f92",
+      "excerpt_sha256": "b925dbf4ef6ae1e39ec2829cb5b41ae7d7af7311ff4f885f77a0cf0133241116",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Streaming Chat metrics attached to final usage chunk only; n1 gating.",
+      "identity": {
+        "source_number": 135,
+        "ref": "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L812-L872",
+        "verified": true,
+        "same_as": null,
+        "lines": 61
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 69,
+      "page_source_number": 136,
+      "ref": "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L1142-L1185",
+      "range": [
+        1142,
+        1185
+      ],
+      "source_sha256": "ea1f76074a9587c8054f54d30a6ba748b6a5fc4d90dd82c801504505c1da1f92",
+      "excerpt_sha256": "194c385053e1f35db81eb84e668fe24b97b847746d63de08a7d92cb30fa6c52f",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Nonstreaming Chat response attaches metrics only for n1.",
+      "identity": {
+        "source_number": 136,
+        "ref": "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L1142-L1185",
+        "verified": true,
+        "same_as": null,
+        "lines": 44
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 70,
+      "page_source_number": 137,
+      "ref": "vllm@ced6857a:vllm/entrypoints/openai/completion/serving.py#L447-L486",
+      "range": [
+        447,
+        486
+      ],
+      "source_sha256": "75d05ddddf303734a078a3e42fcb173fef58ea56da09bc0b5c7525cb9bbbf527",
+      "excerpt_sha256": "c5721ef91cb4cd88f8e32c0276bf73b6a6da66a256e62cd83131957b7768ab8c",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Streaming Completions requires one prompt,n1,and include_usage.",
+      "identity": {
+        "source_number": 137,
+        "ref": "vllm@ced6857a:vllm/entrypoints/openai/completion/serving.py#L447-L486",
+        "verified": true,
+        "same_as": null,
+        "lines": 40
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 71,
+      "page_source_number": 138,
+      "ref": "vllm@ced6857a:vllm/entrypoints/openai/completion/serving.py#L610-L650",
+      "range": [
+        610,
+        650
+      ],
+      "source_sha256": "75d05ddddf303734a078a3e42fcb173fef58ea56da09bc0b5c7525cb9bbbf527",
+      "excerpt_sha256": "30e7990d017ac50e2bc773b97176b215e03fae593c659bb1c1bb6af1e0a1a364",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Nonstreaming Completions requires one result batch and n1.",
+      "identity": {
+        "source_number": 138,
+        "ref": "vllm@ced6857a:vllm/entrypoints/openai/completion/serving.py#L610-L650",
+        "verified": true,
+        "same_as": null,
+        "lines": 41
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 72,
+      "page_source_number": 139,
+      "ref": "vllm@84030bbe:vllm/config/observability.py#L48-L58",
+      "range": [
+        48,
+        58
+      ],
+      "source_sha256": "d57c59ec776477ab0a20e9f2b945bc954d8ea3737c869259480e9aa10dfb9f6d",
+      "excerpt_sha256": "77deb6acb711b8e77a9e40bd82c252b4ebaf3d3c495a10d1b770782648e87c29",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main metric config same values and limits.",
+      "identity": {
+        "source_number": 139,
+        "ref": "vllm@84030bbe:vllm/config/observability.py#L48-L58",
+        "verified": true,
+        "same_as": 126,
+        "lines": 11
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 73,
+      "page_source_number": 140,
+      "ref": "vllm@84030bbe:vllm/v1/metrics/stats.py#L303-L375",
+      "range": [
+        303,
+        375
+      ],
+      "source_sha256": "af1983ddc32fa4d3284e72212c6525daf961dd84429023a02d612b68b3112cf3",
+      "excerpt_sha256": "022a3d5f421f48c0e260a3734f895c7e0d3cb3db717896aca9bd28a511930cb7",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main accumulator same formula/histogram read.",
+      "identity": {
+        "source_number": 140,
+        "ref": "vllm@84030bbe:vllm/v1/metrics/stats.py#L303-L375",
+        "verified": true,
+        "same_as": 125,
+        "lines": 73
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 74,
+      "page_source_number": 141,
+      "ref": "vllm@84030bbe:vllm/entrypoints/openai/chat_completion/serving.py#L812-L855",
+      "range": [
+        812,
+        855
+      ],
+      "source_sha256": "ea1f76074a9587c8054f54d30a6ba748b6a5fc4d90dd82c801504505c1da1f92",
+      "excerpt_sha256": "231fe4c00d87f8cd40e6ae7582dcd05b9919daa81d98efc1f07fd0f84b051e8f",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main streaming Chat usage/n1 gating read.",
+      "identity": {
+        "source_number": 141,
+        "ref": "vllm@84030bbe:vllm/entrypoints/openai/chat_completion/serving.py#L812-L855",
+        "verified": true,
+        "same_as": null,
+        "lines": 44
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 75,
+      "page_source_number": 142,
+      "ref": "vllm@84030bbe:vllm/entrypoints/openai/chat_completion/serving.py#L1145-L1158",
+      "range": [
+        1145,
+        1158
+      ],
+      "source_sha256": "ea1f76074a9587c8054f54d30a6ba748b6a5fc4d90dd82c801504505c1da1f92",
+      "excerpt_sha256": "2dc9958bc01a24742fd0a495f924ea464257be363af0807c332bb7bf6b39d0a6",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main nonstreaming Chat n1 consumer read.",
+      "identity": {
+        "source_number": 142,
+        "ref": "vllm@84030bbe:vllm/entrypoints/openai/chat_completion/serving.py#L1145-L1158",
+        "verified": true,
+        "same_as": null,
+        "lines": 14
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 76,
+      "page_source_number": 143,
+      "ref": "vllm@84030bbe:vllm/entrypoints/openai/completion/serving.py#L456-L476",
+      "range": [
+        456,
+        476
+      ],
+      "source_sha256": "75d05ddddf303734a078a3e42fcb173fef58ea56da09bc0b5c7525cb9bbbf527",
+      "excerpt_sha256": "1ab2117a225e1af2d44e51929336fbf2b2861bbf69496035e1ed1daed91e804f",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main streaming Completions usage/single-prompt/n1 consumer read.",
+      "identity": {
+        "source_number": 143,
+        "ref": "vllm@84030bbe:vllm/entrypoints/openai/completion/serving.py#L456-L476",
+        "verified": true,
+        "same_as": null,
+        "lines": 21
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 77,
+      "page_source_number": 144,
+      "ref": "vllm@84030bbe:vllm/entrypoints/openai/completion/serving.py#L617-L634",
+      "range": [
+        617,
+        634
+      ],
+      "source_sha256": "75d05ddddf303734a078a3e42fcb173fef58ea56da09bc0b5c7525cb9bbbf527",
+      "excerpt_sha256": "0337dab9b9dca4f1829df769afd00e38b3f4384c6f1b4b92a5c0b92f65d2ec1c",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main nonstreaming Completions single-prompt/n1 consumer read.",
+      "identity": {
+        "source_number": 144,
+        "ref": "vllm@84030bbe:vllm/entrypoints/openai/completion/serving.py#L617-L634",
+        "verified": true,
+        "same_as": null,
+        "lines": 18
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 78,
+      "page_source_number": 145,
+      "ref": "vllm@0fc695fc:vllm/v1/sample/rejection_sampler.py#L608-L660",
+      "range": [
+        608,
+        660
+      ],
+      "source_sha256": "08fc220f15c78d7a8250c8b13471a92042307201d80537759159e69b442d4520",
+      "excerpt_sha256": "f3e8fbcf4f6e8332bbe61141fad916087b61256f4dada65663d274b48e27524b",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Uniform generator uses per-position float64 random values, optional request generator; original function executed in random trials.",
+      "identity": {
+        "source_number": 145,
+        "ref": "vllm@0fc695fc:vllm/v1/sample/rejection_sampler.py#L608-L660",
+        "verified": true,
+        "same_as": null,
+        "lines": 53
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 79,
+      "page_source_number": 146,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/sample/rejection_sampler.py#L337-L772",
+      "range": [
+        337,
+        772
+      ],
+      "source_sha256": "41354bc762054af5f41901ce50c55df593091ccd60168fad638d2804cbcdbe4f",
+      "excerpt_sha256": "41f0f9d8b4c13d657ad85a0bd9d4414b63673d6004cd3a940779e94abb7f6439",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Full dispatch read and original CPU function run: K>=3+flag, all-greedy return, selected/full-vocab branches, real recovery; entropy/synthetic off for counterexample.",
+      "identity": {
+        "source_number": 146,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/sample/rejection_sampler.py#L337-L772",
+        "verified": true,
+        "same_as": null,
+        "lines": 436
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 80,
+      "page_source_number": 147,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/sample/rejection_sampler.py#L818-L895",
+      "range": [
+        818,
+        895
+      ],
+      "source_sha256": "41354bc762054af5f41901ce50c55df593091ccd60168fad638d2804cbcdbe4f",
+      "excerpt_sha256": "530206084e0f3156359b3f54f07ed6542cb264bad83e7733e052b8a29a539119",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Recovery dispatcher actually called with use_block_verify defaultFalse; original regular residual recovery is retained in proof.",
+      "identity": {
+        "source_number": 147,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/sample/rejection_sampler.py#L818-L895",
+        "verified": true,
+        "same_as": null,
+        "lines": 78
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 81,
+      "page_source_number": 148,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/sample/rejection_sampler.py#L967-L1137",
+      "range": [
+        967,
+        1137
+      ],
+      "source_sha256": "41354bc762054af5f41901ce50c55df593091ccd60168fad638d2804cbcdbe4f",
+      "excerpt_sha256": "a2460cbd27a7cf1c1498ee670ff81edec173c97ea9d4d0553597a1d4b704d9f1",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Standard first-rejection acceptance, placeholder/mixed request masks, recovered and bonus placement read.",
+      "identity": {
+        "source_number": 148,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/sample/rejection_sampler.py#L967-L1137",
+        "verified": true,
+        "same_as": null,
+        "lines": 171
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 82,
+      "page_source_number": 149,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/sample/rejection_sampler.py#L1187-L1424",
+      "range": [
+        1187,
+        1424
+      ],
+      "source_sha256": "41354bc762054af5f41901ce50c55df593091ccd60168fad638d2804cbcdbe4f",
+      "excerpt_sha256": "d40e0271b1c44a806f9e07d618067fd7a7ce32e6e0acf53c3b143042494b0c19",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Residual recovery and block cumulative acceptance read; last legal position retains prefix even after earlier individual failure.",
+      "identity": {
+        "source_number": 149,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/sample/rejection_sampler.py#L1187-L1424",
+        "verified": true,
+        "same_as": null,
+        "lines": 238
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 83,
+      "page_source_number": 150,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/triton/reject_sample.py#L316-L440",
+      "range": [
+        316,
+        440
+      ],
+      "source_sha256": "dcc3720d8497b707cbf8d770138f9efbb17e6f773b6591ed769e37e99e842629",
+      "excerpt_sha256": "944fa327689b07535c42b95e05b13f3a7048f327f0eb311457e9c1ff33820461",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Triton residual recovery read for full and selected vocab; deterministic q1 removes A and forces B.",
+      "identity": {
+        "source_number": 150,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/triton/reject_sample.py#L316-L440",
+        "verified": true,
+        "same_as": null,
+        "lines": 125
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 84,
+      "page_source_number": 151,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/triton/reject_sample.py#L497-L691",
+      "range": [
+        497,
+        691
+      ],
+      "source_sha256": "dcc3720d8497b707cbf8d770138f9efbb17e6f773b6591ed769e37e99e842629",
+      "excerpt_sha256": "1a9f09504f9a694fb854d1e8dc4611bb6433b02ecd427ce03e5663b07d0c2fb5",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Full Triton block read; min(cumulative_ratio,1) differs generally from PyTorch cumprod(min(ratio,1)), but q1/p.5 counterexample remains identical; no NPU execution claimed.",
+      "identity": {
+        "source_number": 151,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/triton/reject_sample.py#L497-L691",
+        "verified": true,
+        "same_as": null,
+        "lines": 195
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 85,
+      "page_source_number": 152,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/sample/rejection_sampler.py#L1326-L1439",
+      "range": [
+        1326,
+        1439
+      ],
+      "source_sha256": "2cceaf9e09bb1b9752cb9ac1d8a44ebdb5bdb92f0b3533811d91c9d2b2c36534",
+      "excerpt_sha256": "e03b8a2c7f62e67949add95fe2576d2d87a12729b6c9730d51850a0396f05904",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "v23 full block function read and executed; full rejection_sample independently byte-equal to db already read.",
+      "identity": {
+        "source_number": 152,
+        "ref": "vllm-ascend@2c59ff10:vllm_ascend/sample/rejection_sampler.py#L1326-L1439",
+        "verified": true,
+        "same_as": null,
+        "lines": 114
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 86,
+      "page_source_number": 153,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/sample/rejection_sampler.py#L1476-L1589",
+      "range": [
+        1476,
+        1589
+      ],
+      "source_sha256": "e90658be1c69a998ddedf48cd503c30e718855ce891085206e459f8af467edc1",
+      "excerpt_sha256": "e03b8a2c7f62e67949add95fe2576d2d87a12729b6c9730d51850a0396f05904",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Independently verified exact excerpt hash equality with152; original version function also executed.",
+      "identity": {
+        "source_number": 153,
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/sample/rejection_sampler.py#L1476-L1589",
+        "verified": true,
+        "same_as": 152,
+        "lines": 114
+      },
+      "actual_reading": "same_hash_verified_reuse_of_independently_read_range"
+    },
+    {
+      "packet_n": 87,
+      "page_source_number": 154,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/sample/rejection_sampler.py#L1482-L1595",
+      "range": [
+        1482,
+        1595
+      ],
+      "source_sha256": "d62875a1c942255586b9bdd85abb820153be4731fa99406ebb0ab25b0d5c816b",
+      "excerpt_sha256": "e03b8a2c7f62e67949add95fe2576d2d87a12729b6c9730d51850a0396f05904",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Independently verified exact excerpt hash equality with152; original version function also executed.",
+      "identity": {
+        "source_number": 154,
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/sample/rejection_sampler.py#L1482-L1595",
+        "verified": true,
+        "same_as": 152,
+        "lines": 114
+      },
+      "actual_reading": "same_hash_verified_reuse_of_independently_read_range"
+    },
+    {
+      "packet_n": 88,
+      "page_source_number": 155,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/sample/rejection_sampler.py#L1190-L1282",
+      "range": [
+        1190,
+        1282
+      ],
+      "source_sha256": "bb1d39de851540c16c2dd2b16df60c60a1fc4957cedb88bdce9417efc0d55eda",
+      "excerpt_sha256": "d3dbf0c6eaeb2e49a9388b074a48ef015ff97bfcc09ba9c7f4d3f9b76db2a351",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "rc2 full block function read/executed; no selected-vocab API, same deterministic counterexample.",
+      "identity": {
+        "source_number": 155,
+        "ref": "vllm-ascend@7d825229:vllm_ascend/sample/rejection_sampler.py#L1190-L1282",
+        "verified": true,
+        "same_as": null,
+        "lines": 93
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 89,
+      "page_source_number": 156,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/sample/rejection_sampler.py#L378-L683",
+      "range": [
+        378,
+        683
+      ],
+      "source_sha256": "bb1d39de851540c16c2dd2b16df60c60a1fc4957cedb88bdce9417efc0d55eda",
+      "excerpt_sha256": "51436e92d7ef82ab5a3dc9b22d9a0a07d3e55fd39e383392d1a306cb4455b151",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "rc2 full dispatch read; synthetic+block raises before all-greedy return; counterexample explicitly excludes synthetic.",
+      "identity": {
+        "source_number": 156,
+        "ref": "vllm-ascend@7d825229:vllm_ascend/sample/rejection_sampler.py#L378-L683",
+        "verified": true,
+        "same_as": null,
+        "lines": 306
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 90,
+      "page_source_number": 157,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/ops/triton/reject_sample.py#L494-L608",
+      "range": [
+        494,
+        608
+      ],
+      "source_sha256": "dced4b94b74e31e9105d2f7c3bf16b0a096fb6c74983647ce7d056111807f2c3",
+      "excerpt_sha256": "98d8ab14e8f8d034c4b37609737d536ef82a0ac6f059d6f24ce97593bd10dc95",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "rc2 Triton block loop and recovery/bonus writes read; q1 counterexample algebra valid.",
+      "identity": {
+        "source_number": 157,
+        "ref": "vllm-ascend@7d825229:vllm_ascend/ops/triton/reject_sample.py#L494-L608",
+        "verified": true,
+        "same_as": null,
+        "lines": 115
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 91,
+      "page_source_number": 158,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/sample/rejection_sampler.py#L416-L899",
+      "range": [
+        416,
+        899
+      ],
+      "source_sha256": "e90658be1c69a998ddedf48cd503c30e718855ce891085206e459f8af467edc1",
+      "excerpt_sha256": "eb9ef3ca562bb0aa4b3325aab7ec08d99faedc93f7cb25525f3aa3d004738063",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Compared full v26 dispatch against146 and read all changes: synthetic guard, assertions and standard-path arguments; non-synthetic block path unchanged.",
+      "identity": {
+        "source_number": 158,
+        "ref": "vllm-ascend@2ed6cbba:vllm_ascend/sample/rejection_sampler.py#L416-L899",
+        "verified": true,
+        "same_as": null,
+        "lines": 484
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 92,
+      "page_source_number": 159,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/sample/rejection_sampler.py#L422-L905",
+      "range": [
+        422,
+        905
+      ],
+      "source_sha256": "d62875a1c942255586b9bdd85abb820153be4731fa99406ebb0ab25b0d5c816b",
+      "excerpt_sha256": "eb9ef3ca562bb0aa4b3325aab7ec08d99faedc93f7cb25525f3aa3d004738063",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Independent exact hash/diff equality with158; same dispatch boundary.",
+      "identity": {
+        "source_number": 159,
+        "ref": "vllm-ascend@baa023ad:vllm_ascend/sample/rejection_sampler.py#L422-L905",
+        "verified": true,
+        "same_as": 158,
+        "lines": 484
+      },
+      "actual_reading": "same_hash_verified_reuse_of_independently_read_range"
+    },
+    {
+      "packet_n": 93,
+      "page_source_number": 160,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1495-L1540",
+      "range": [
+        1495,
+        1540
+      ],
+      "source_sha256": "6250ca0670c4593aa2f7c4567c9c71d6cb3d8182624a985d4d4e33d5bf054666",
+      "excerpt_sha256": "a1cccb548552d0c604e7b0aec2cc4888e1b5930e7adf73c3b1782eba61a56fd9",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Hybrid worker counts all non-placeholder outputs, including recovery/bonus, then updates or copies state.",
+      "identity": {
+        "source_number": 160,
+        "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1495-L1540",
+        "verified": true,
+        "same_as": null,
+        "lines": 46
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 94,
+      "page_source_number": 161,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2519-L2526",
+      "range": [
+        2519,
+        2526
+      ],
+      "source_sha256": "316acf1239813c42452a4a9602f05f8b22f41a317fbc8d0b91ab1587b54fa1dd",
+      "excerpt_sha256": "bb8dd9ed915da6509509449565b0e8a75f4dc0e4f877f8e1c87ac4adb78dd25f",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Ascend real worker calls inherited state update after sampler event.",
+      "identity": {
+        "source_number": 161,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2519-L2526",
+        "verified": true,
+        "same_as": null,
+        "lines": 8
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 95,
+      "page_source_number": 162,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1101-L1127",
+      "range": [
+        1101,
+        1127
+      ],
+      "source_sha256": "316acf1239813c42452a4a9602f05f8b22f41a317fbc8d0b91ab1587b54fa1dd",
+      "excerpt_sha256": "e5e2fa30afc805b53c8b1df9ffbff53654dcc6090eca54ef1a5d4d3078f25220",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Next input construction synchronizes accepted count and remaps async request indices.",
+      "identity": {
+        "source_number": 162,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1101-L1127",
+        "verified": true,
+        "same_as": null,
+        "lines": 27
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 96,
+      "page_source_number": 163,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2123-L2154",
+      "range": [
+        2123,
+        2154
+      ],
+      "source_sha256": "316acf1239813c42452a4a9602f05f8b22f41a317fbc8d0b91ab1587b54fa1dd",
+      "excerpt_sha256": "43f68c0a641ef587a15ba83919aaa91b188b6d6d3ba6ebbe723a472f2fe67431",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Align preprocessing then re-syncs count; copied state resets count1.",
+      "identity": {
+        "source_number": 163,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2123-L2154",
+        "verified": true,
+        "same_as": null,
+        "lines": 32
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 97,
+      "page_source_number": 164,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_mamba_utils.py#L226-L284",
+      "range": [
+        226,
+        284
+      ],
+      "source_sha256": "a8862c3509f698c05cdeba5aa408a28e506349eff97801b28161569b8e3c9778",
+      "excerpt_sha256": "851891ca9ded283ea11f50eb19dc4ee152283bc609fc9907f60e95829252829f",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Actual align metadata copies from accepted_count-1 then resets count1.",
+      "identity": {
+        "source_number": 164,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_mamba_utils.py#L226-L284",
+        "verified": true,
+        "same_as": null,
+        "lines": 59
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 98,
+      "page_source_number": 165,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L417-L450",
+      "range": [
+        417,
+        450
+      ],
+      "source_sha256": "b08fc40f010bb8052e9f37fd69fb2dd7dd0213f3de211a01fc72a90be6e00e16",
+      "excerpt_sha256": "1638252c0d5f4bd76c691dba04476e022a4b823219e1cefada32bc6f33be27a5",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Spec metadata requires accepted count and passes it to conv metadata.",
+      "identity": {
+        "source_number": 165,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L417-L450",
+        "verified": true,
+        "same_as": null,
+        "lines": 34
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 99,
+      "page_source_number": 166,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L580-L671",
+      "range": [
+        580,
+        671
+      ],
+      "source_sha256": "b08fc40f010bb8052e9f37fd69fb2dd7dd0213f3de211a01fc72a90be6e00e16",
+      "excerpt_sha256": "ca0d907caa95499f504adcf896897fc97df5d548871735f4b6758659ee842988",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Stable spec request selection and per-request count indexing read.",
+      "identity": {
+        "source_number": 166,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L580-L671",
+        "verified": true,
+        "same_as": null,
+        "lines": 92
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 100,
+      "page_source_number": 167,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L768-L833",
+      "range": [
+        768,
+        833
+      ],
+      "source_sha256": "b08fc40f010bb8052e9f37fd69fb2dd7dd0213f3de211a01fc72a90be6e00e16",
+      "excerpt_sha256": "ed02be5bd7f4557b358a99e48884c28a8b5e4d6a8eee0b0324178dbd09a21346",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Graph padding fills accepted count1 and final attention metadata carries values.",
+      "identity": {
+        "source_number": 167,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L768-L833",
+        "verified": true,
+        "same_as": null,
+        "lines": 66
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 101,
+      "page_source_number": 168,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L355-L388",
+      "range": [
+        355,
+        388
+      ],
+      "source_sha256": "f2469e8864a4f4fd878ce752ac4d6e595a331365b90346f1c6f55b22c7235e29",
+      "excerpt_sha256": "5c883517c6ee99b05a44f59d9945650dbfce9e9e2a9a611c2ed20454e47bd115",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Actual _C_ascend.recurrent_kda call receives num_accepted_tokens.",
+      "identity": {
+        "source_number": 168,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L355-L388",
+        "verified": true,
+        "same_as": null,
+        "lines": 34
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 102,
+      "page_source_number": 169,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L490-L559",
+      "range": [
+        490,
+        559
+      ],
+      "source_sha256": "f2469e8864a4f4fd878ce752ac4d6e595a331365b90346f1c6f55b22c7235e29",
+      "excerpt_sha256": "909a87a3a40539072adb69f3fccd9afb31d226f47632b4eb96cf718b3dfec8f6",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "KDA actual speculative conv and recurrent paths both receive accepted count.",
+      "identity": {
+        "source_number": 169,
+        "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L490-L559",
+        "verified": true,
+        "same_as": null,
+        "lines": 70
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 103,
+      "page_source_number": 170,
+      "ref": "vllm-ascend@db701c1f:csrc/attention/recurrent_kda/op_kernel/recurrent_kda.h#L232-L365",
+      "range": [
+        232,
+        365
+      ],
+      "source_sha256": "e5a020e390448167efae1161c12c9d3a4a2ecaa3e03a5ccf77e1c31751187581",
+      "excerpt_sha256": "9e3072412f16923044a4a35fdb9474cd55e8af0828e089d9bea2c54014a88494",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Kernel resolves state slot at seq0+accepted_count-1 and validates bounds.",
+      "identity": {
+        "source_number": 170,
+        "ref": "vllm-ascend@db701c1f:csrc/attention/recurrent_kda/op_kernel/recurrent_kda.h#L232-L365",
+        "verified": true,
+        "same_as": null,
+        "lines": 134
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 104,
+      "page_source_number": 171,
+      "ref": "vllm-ascend@db701c1f:csrc/attention/recurrent_kda/op_kernel/recurrent_kda.h#L785-L866",
+      "range": [
+        785,
+        866
+      ],
+      "source_sha256": "e5a020e390448167efae1161c12c9d3a4a2ecaa3e03a5ccf77e1c31751187581",
+      "excerpt_sha256": "ecc218e91b159e4b40011f870d47f3ac7200dbd8d41d409c748733e2741636b6",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Kernel writes state per token into current mapped slots; no permanent physical-slot assumption.",
+      "identity": {
+        "source_number": 171,
+        "ref": "vllm-ascend@db701c1f:csrc/attention/recurrent_kda/op_kernel/recurrent_kda.h#L785-L866",
+        "verified": true,
+        "same_as": null,
+        "lines": 82
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 105,
+      "page_source_number": 172,
+      "ref": "https://github.com/snowflakedb/ArcticInference/blob/3145f23e4c54465f1f19c4592e6713f905ab29f1/arctic_inference/suffix_decoding/cache.py#L1-L357",
+      "range": [
+        1,
+        357
+      ],
+      "source_sha256": "91c48e6cb335edbd202c8f440e5766df54315ea2d8e40decf8f7a130f3a5e126",
+      "excerpt_sha256": "016f0a6a35815bd7a8b68c929aa0f67f88d050450eb143105ed777c30cb4ab06",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Entire cache.py read; local prompt+output/global response split,FIFO,zero global limit,choose best score,use_tree_spec=False. Independent PyPI sdist and fixed GitHub bytes equal.",
+      "identity": {
+        "source_number": 172,
+        "ref": "https://github.com/snowflakedb/ArcticInference/blob/3145f23e4c54465f1f19c4592e6713f905ab29f1/arctic_inference/suffix_decoding/cache.py#L1-L357",
+        "verified": true,
+        "same_as": null,
+        "lines": 357
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 106,
+      "page_source_number": 173,
+      "ref": "https://github.com/snowflakedb/ArcticInference/blob/3145f23e4c54465f1f19c4592e6713f905ab29f1/csrc/suffix_decoding/suffix_tree.cc#L593-L633",
+      "range": [
+        593,
+        633
+      ],
+      "source_sha256": "cbd8b63b13fbf0beaab4e8736a54d52891b1aac959c5d292d083d88ed37dfc7c",
+      "excerpt_sha256": "dddcd47972cd6d6ee16dc0ace12a3e94bbfef4177d538e5a09154d7a45fdd08a",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Suffix selection scans match lengths, clips max tokens by factor, selects path when tree flagFalse, chooses highest score.",
+      "identity": {
+        "source_number": 173,
+        "ref": "https://github.com/snowflakedb/ArcticInference/blob/3145f23e4c54465f1f19c4592e6713f905ab29f1/csrc/suffix_decoding/suffix_tree.cc#L593-L633",
+        "verified": true,
+        "same_as": null,
+        "lines": 41
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 107,
+      "page_source_number": 174,
+      "ref": "https://github.com/snowflakedb/ArcticInference/blob/3145f23e4c54465f1f19c4592e6713f905ab29f1/csrc/suffix_decoding/suffix_tree.cc#L825-L853",
+      "range": [
+        825,
+        853
+      ],
+      "source_sha256": "cbd8b63b13fbf0beaab4e8736a54d52891b1aac959c5d292d083d88ed37dfc7c",
+      "excerpt_sha256": "08b526486deedb08d388ef6c9e9c530086272ec09fce41bec087e5af58b64dd8",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Single-path frequency-product probability threshold read; this is not target-model final acceptance probability.",
+      "identity": {
+        "source_number": 174,
+        "ref": "https://github.com/snowflakedb/ArcticInference/blob/3145f23e4c54465f1f19c4592e6713f905ab29f1/csrc/suffix_decoding/suffix_tree.cc#L825-L853",
+        "verified": true,
+        "same_as": null,
+        "lines": 29
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 108,
+      "page_source_number": 175,
+      "ref": "https://arxiv.org/abs/2401.15077v3",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Independent targeted reading: EAGLE §3.1–3.3, blocks24–39 and actual Fig6; shifted-token/feature and shared head supported. Not a whole-paper reread or EAGLE3 specification.",
+      "identity": {
+        "source_number": 175,
+        "ref": "https://arxiv.org/abs/2401.15077v3",
+        "identity": "local paper HTML retained; reading and online identity separately"
+      },
+      "actual_reading": "targeted_paper_method_section_and_technical_figure_read"
+    },
+    {
+      "packet_n": 109,
+      "page_source_number": 176,
+      "ref": "https://arxiv.org/abs/2404.19124v2",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Independent targeted reading: IBM §3.1, blocks18–31 and actual Fig1; multi-stage token+context conditioning, no independent-head generalization.",
+      "identity": {
+        "source_number": 176,
+        "ref": "https://arxiv.org/abs/2404.19124v2",
+        "identity": "local paper HTML retained; reading and online identity separately"
+      },
+      "actual_reading": "targeted_paper_method_section_and_technical_figure_read"
+    },
+    {
+      "packet_n": 110,
+      "page_source_number": 177,
+      "ref": "https://arxiv.org/abs/2411.04975v3",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Independent targeted reading: Suffix §3, blocks27–60 plus context20–26, actual Fig1; tree/hybrid paper scope separated from actual single-path integration.",
+      "identity": {
+        "source_number": 177,
+        "ref": "https://arxiv.org/abs/2411.04975v3",
+        "identity": "local paper HTML retained; reading and online identity separately"
+      },
+      "actual_reading": "targeted_paper_method_section_and_technical_figure_read"
+    },
+    {
+      "packet_n": 111,
+      "page_source_number": 178,
+      "ref": "https://arxiv.org/abs/2504.18583v4",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Independent targeted reading: PARD §3.1–3.2, blocks38–68, timeline and training image; mask-trained one-forward K, no arbitrary checkpoint or NPU performance transfer.",
+      "identity": {
+        "source_number": 178,
+        "ref": "https://arxiv.org/abs/2504.18583v4",
+        "identity": "local paper HTML retained; reading and online identity separately"
+      },
+      "actual_reading": "targeted_paper_method_section_and_technical_figure_read"
+    },
+    {
+      "packet_n": 112,
+      "page_source_number": 179,
+      "ref": "vllm@ced6857a:vllm/entrypoints/serve/utils/api_utils.py#L289-L301",
+      "range": [
+        289,
+        301
+      ],
+      "source_sha256": "555b3a999237e1cd8d6313eb9aaa3f2f4ad8d040bf80563c01557da7a451d1ed",
+      "excerpt_sha256": "d8f76a25bd8c7303e561bf8ff4e566fc10430fadb5b19c1b326086401b1a933e",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Actual usage gate force flag wins, otherwise request include_usage; continuous usage depends on include_usage.",
+      "identity": {
+        "source_number": 179,
+        "ref": "vllm@ced6857a:vllm/entrypoints/serve/utils/api_utils.py#L289-L301",
+        "verified": true,
+        "same_as": null,
+        "lines": 13
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 113,
+      "page_source_number": 180,
+      "ref": "vllm@84030bbe:vllm/entrypoints/serve/utils/api_utils.py#L289-L301",
+      "range": [
+        289,
+        301
+      ],
+      "source_sha256": "555b3a999237e1cd8d6313eb9aaa3f2f4ad8d040bf80563c01557da7a451d1ed",
+      "excerpt_sha256": "d8f76a25bd8c7303e561bf8ff4e566fc10430fadb5b19c1b326086401b1a933e",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "main same usage helper read.",
+      "identity": {
+        "source_number": 180,
+        "ref": "vllm@84030bbe:vllm/entrypoints/serve/utils/api_utils.py#L289-L301",
+        "verified": true,
+        "same_as": 179,
+        "lines": 13
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 114,
+      "page_source_number": 181,
+      "ref": "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L509-L512",
+      "range": [
+        509,
+        512
+      ],
+      "source_sha256": "ea1f76074a9587c8054f54d30a6ba748b6a5fc4d90dd82c801504505c1da1f92",
+      "excerpt_sha256": "01142f001197d151e3b096471518ac49c3c47b939a2cc6f23ae3e1fdbb724d6e",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Chat consumer calls helper with actual request and server fields.",
+      "identity": {
+        "source_number": 181,
+        "ref": "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L509-L512",
+        "verified": true,
+        "same_as": null,
+        "lines": 4
+      },
+      "actual_reading": "specified_range_read"
+    },
+    {
+      "packet_n": 115,
+      "page_source_number": 182,
+      "ref": "vllm@ced6857a:vllm/entrypoints/openai/completion/serving.py#L301-L304",
+      "range": [
+        301,
+        304
+      ],
+      "source_sha256": "75d05ddddf303734a078a3e42fcb173fef58ea56da09bc0b5c7525cb9bbbf527",
+      "excerpt_sha256": "01142f001197d151e3b096471518ac49c3c47b939a2cc6f23ae3e1fdbb724d6e",
+      "final_verdict": "supported_with_stated_scope_after_review_fixes",
+      "independent_note": "Completions consumer calls helper with actual request and server fields.",
+      "identity": {
+        "source_number": 182,
+        "ref": "vllm@ced6857a:vllm/entrypoints/openai/completion/serving.py#L301-L304",
+        "verified": true,
+        "same_as": 181,
+        "lines": 4
+      },
+      "actual_reading": "specified_range_read"
+    }
+  ]
+}

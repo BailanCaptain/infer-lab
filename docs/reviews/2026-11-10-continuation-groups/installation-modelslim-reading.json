@@ -1,0 +1,394 @@
+{
+  "external_full_text_records": [
+    {
+      "name": "cann-overview",
+      "repo": "Ascend/cann-container-image",
+      "pin": "a9ebb8f69bf79f02325f0275fd93b9f8f8f9a7da",
+      "path": "OVERVIEW.md",
+      "url": "https://raw.githubusercontent.com/Ascend/cann-container-image/a9ebb8f69bf79f02325f0275fd93b9f8f8f9a7da/OVERVIEW.md",
+      "status": 200,
+      "local": ".tmp/continuation-groups-2026-11-10/install-tail/cann-overview.md",
+      "sha256": "cd264e3cdcdd41428bcdae5236fc1a02e57ecb0e8aee57e7678f7d8d36573b44",
+      "lines": 145,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          145
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "name": "triton-faq",
+      "repo": "Ascend/triton-ascend",
+      "pin": "865691e2e9b656bc58008170207b4108d92e8dd1",
+      "path": "docs/en/FAQ.md",
+      "url": "https://raw.githubusercontent.com/Ascend/triton-ascend/865691e2e9b656bc58008170207b4108d92e8dd1/docs/en/FAQ.md",
+      "status": 200,
+      "local": ".tmp/continuation-groups-2026-11-10/install-tail/triton-faq.md",
+      "sha256": "c9f3220e5963f4626fccc4ec2cdba987797e1bedd08955eb19cc4187a58b2773",
+      "lines": 72,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          72
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "name": "modelslim-readme",
+      "repo": "Ascend/msmodelslim",
+      "pin": "752359b689a29e8b4511c3dd3523191ae4f0b542",
+      "path": "README.md",
+      "url": "https://raw.githubusercontent.com/Ascend/msmodelslim/752359b689a29e8b4511c3dd3523191ae4f0b542/README.md",
+      "status": 200,
+      "local": ".tmp/continuation-groups-2026-11-10/install-tail/modelslim-readme.md",
+      "sha256": "86513d08446078672216c3eb2c90f73d7337b3dfce7090f248534454037bc870",
+      "lines": 172,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          172
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "name": "modelslim-install",
+      "repo": "Ascend/msmodelslim",
+      "pin": "752359b689a29e8b4511c3dd3523191ae4f0b542",
+      "path": "docs/zh/install_guide/install_guide.md",
+      "url": "https://raw.githubusercontent.com/Ascend/msmodelslim/752359b689a29e8b4511c3dd3523191ae4f0b542/docs/zh/install_guide/install_guide.md",
+      "status": 200,
+      "local": ".tmp/continuation-groups-2026-11-10/install-tail/modelslim-install.txt",
+      "sha256": "88553cd3ccae05120ee1de88ab67b9649eb00798de29c0cdf8f74c753eff10f6",
+      "lines": 155,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          155
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "name": "modelslim-quickstart",
+      "repo": "Ascend/msmodelslim",
+      "pin": "752359b689a29e8b4511c3dd3523191ae4f0b542",
+      "path": "docs/zh/quick_start/quantization_quick_start.md",
+      "url": "https://raw.githubusercontent.com/Ascend/msmodelslim/752359b689a29e8b4511c3dd3523191ae4f0b542/docs/zh/quick_start/quantization_quick_start.md",
+      "status": 200,
+      "local": ".tmp/continuation-groups-2026-11-10/install-tail/modelslim-quickstart.txt",
+      "sha256": "e42e9db0212fd9deb219cc5176861d1e88dcc7427a1a81743fe3a99fb409163e",
+      "lines": 537,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          537
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "name": "triton-install",
+      "repo": "Ascend/triton-ascend",
+      "pin": "865691e2e9b656bc58008170207b4108d92e8dd1",
+      "path": "docs/en/installation_guide.md",
+      "url": "https://raw.githubusercontent.com/Ascend/triton-ascend/865691e2e9b656bc58008170207b4108d92e8dd1/docs/en/installation_guide.md",
+      "status": 200,
+      "local": ".tmp/continuation-groups-2026-11-10/install-tail/triton-install.txt",
+      "sha256": "bcedc8bf536c2469d764d142574698ef8594a2d2cbe281e403e0ba6c6d527dce",
+      "lines": 331,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          331
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "name": "triton-debug",
+      "repo": "Ascend/triton-ascend",
+      "pin": "865691e2e9b656bc58008170207b4108d92e8dd1",
+      "path": "docs/en/debug_guide/debugging.md",
+      "url": "https://raw.githubusercontent.com/Ascend/triton-ascend/865691e2e9b656bc58008170207b4108d92e8dd1/docs/en/debug_guide/debugging.md",
+      "status": 200,
+      "local": ".tmp/continuation-groups-2026-11-10/install-tail/triton-debug.txt",
+      "sha256": "bc5cee6fcd4c665aa53f83ee9a4984d3975f77c2d6f2e451cd3e07919dffb27a",
+      "lines": 535,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          535
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "name": "triton-accuracy",
+      "repo": "Ascend/triton-ascend",
+      "pin": "865691e2e9b656bc58008170207b4108d92e8dd1",
+      "path": "docs/en/examples/07_accuracy_comparison_example.md",
+      "url": "https://raw.githubusercontent.com/Ascend/triton-ascend/865691e2e9b656bc58008170207b4108d92e8dd1/docs/en/examples/07_accuracy_comparison_example.md",
+      "status": 200,
+      "local": ".tmp/continuation-groups-2026-11-10/install-tail/triton-accuracy.txt",
+      "sha256": "5bb784c69831c394fbf3f7e000258f4bb0125dd3352d9ea9aff5f12070e48fdf",
+      "lines": 120,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          120
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "name": "triton-profile",
+      "repo": "Ascend/triton-ascend",
+      "pin": "865691e2e9b656bc58008170207b4108d92e8dd1",
+      "path": "docs/en/debug_guide/profiling.md",
+      "url": "https://raw.githubusercontent.com/Ascend/triton-ascend/865691e2e9b656bc58008170207b4108d92e8dd1/docs/en/debug_guide/profiling.md",
+      "status": 200,
+      "local": ".tmp/continuation-groups-2026-11-10/install-tail/triton-profile.txt",
+      "sha256": "a8b9d2691f8e78eb65c64c47d70bb90abef95f901212ac05b5fb0e26b2711551",
+      "lines": 182,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          182
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "name": "cann-a2-docker",
+      "repo": "Ascend/cann-container-image",
+      "pin": "a9ebb8f69bf79f02325f0275fd93b9f8f8f9a7da",
+      "path": "cann/9.2.1-910b-ubuntu22.04-py3.12/Dockerfile",
+      "url": "https://raw.githubusercontent.com/Ascend/cann-container-image/a9ebb8f69bf79f02325f0275fd93b9f8f8f9a7da/cann/9.2.1-910b-ubuntu22.04-py3.12/Dockerfile",
+      "status": 200,
+      "local": ".tmp/continuation-groups-2026-11-10/install-tail/cann-a2-docker.txt",
+      "sha256": "4045e370b6ab97c6002a02a6ee273afee3147ce8d29470475f47a3f716bf8d1e",
+      "lines": 197,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          197
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "name": "cann-950-docker",
+      "repo": "Ascend/cann-container-image",
+      "pin": "a9ebb8f69bf79f02325f0275fd93b9f8f8f9a7da",
+      "path": "cann/9.2.1-950-openeuler24.03-py3.12/Dockerfile",
+      "url": "https://raw.githubusercontent.com/Ascend/cann-container-image/a9ebb8f69bf79f02325f0275fd93b9f8f8f9a7da/cann/9.2.1-950-openeuler24.03-py3.12/Dockerfile",
+      "status": 200,
+      "local": ".tmp/continuation-groups-2026-11-10/install-tail/cann-950-docker.txt",
+      "sha256": "2df212cd5334a137c5dd3825c77331cb2def15aae4da5324b9a61aafb0028188",
+      "lines": 212,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          212
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "pin": "3b3f5151521f0b2a0c1f29937fc735ba4938db43",
+      "path": "example/Qwen3-MOE/README.md",
+      "local": ".tmp\\continuation-groups-2026-11-10\\install-tail\\modelslim26-example--Qwen3-MOE--README.md",
+      "sha256": "0c6dec6c9a2e9f0c65fde0decb222b5c1ef4e153f207bc28eeb8895e8f43db82",
+      "lines": 115,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          115
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "pin": "3b3f5151521f0b2a0c1f29937fc735ba4938db43",
+      "path": "example/Qwen3-MOE/quant_qwen_moe_w8a8.py",
+      "local": ".tmp\\continuation-groups-2026-11-10\\install-tail\\modelslim26-example--Qwen3-MOE--quant_qwen_moe_w8a8.py",
+      "sha256": "b46d3a91c9f9656e77774a65190d148d9ba8a7b0ba8254344720e0b4c2d6d753",
+      "lines": 203,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          203
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "pin": "3b3f5151521f0b2a0c1f29937fc735ba4938db43",
+      "path": "README.md",
+      "local": ".tmp\\continuation-groups-2026-11-10\\install-tail\\modelslim26-README.md",
+      "sha256": "fcfd1ea0669318a8d54ca526e3e604793c4bc12146c14370cc6c4ad7c0a9ee87",
+      "lines": 276,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          276
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "pin": "3b3f5151521f0b2a0c1f29937fc735ba4938db43",
+      "path": "install.sh",
+      "local": ".tmp\\continuation-groups-2026-11-10\\install-tail\\modelslim26-install.sh",
+      "sha256": "7afff7a6906d444d3d263026fe1f152e87ff13ffb6b654c9223a6643c4e91678",
+      "lines": 28,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          28
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "pin": "3b3f5151521f0b2a0c1f29937fc735ba4938db43",
+      "path": "docs/zh/getting_started/install_guide.md",
+      "local": ".tmp\\continuation-groups-2026-11-10\\install-tail\\modelslim26-install_guide.md",
+      "sha256": "276e2f8b9b34f66b7e055d5d8418ec5d34039cac1fec3f8fba90292bc7f0a13b",
+      "lines": 110,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          110
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "pin": "3b3f5151521f0b2a0c1f29937fc735ba4938db43",
+      "path": "docs/zh/python_api_v0/foundation_model_compression_apis/foundation_model_quantization_apis/pytorch_QuantConfig.md",
+      "local": ".tmp\\continuation-groups-2026-11-10\\install-tail\\modelslim26-pytorch_QuantConfig.md",
+      "sha256": "95cecd5c01990a632b28b1223e88213e72688e914c6ac70050187d97cd97f16d",
+      "lines": 63,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          63
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    },
+    {
+      "pin": "3b3f5151521f0b2a0c1f29937fc735ba4938db43",
+      "path": "docs/zh/python_api_v0/foundation_model_compression_apis/foundation_model_quantization_apis/pytorch_Calibrator.md",
+      "local": ".tmp\\continuation-groups-2026-11-10\\install-tail\\modelslim26-pytorch_Calibrator.md",
+      "sha256": "c3f8d616e0f71da5a87630c4ca0032ea212f2cc655873d432f71995424844d36",
+      "lines": 104,
+      "read_status": "full_text_read_by_root",
+      "read_scope": [
+        [
+          1,
+          104
+        ]
+      ],
+      "global_full_read_count_delta": 0
+    }
+  ],
+  "technical_images": [
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\install-tail\\time_consumed.png",
+      "url": "https://raw.githubusercontent.com/Ascend/triton-ascend/865691e2e9b656bc58008170207b4108d92e8dd1/docs/en/figures/time_consumed.png",
+      "sha256": "024feb001786bd91162d6042acb0c841248b3c465369f52adb6b93229c7d192c",
+      "viewed": true,
+      "viewed_by": "root",
+      "read_scope": "all eight technical images actually displayed and inspected; not a local NPU performance test"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\install-tail\\trace_json_with_chrome.png",
+      "url": "https://raw.githubusercontent.com/Ascend/triton-ascend/865691e2e9b656bc58008170207b4108d92e8dd1/docs/en/figures/trace_json_with_chrome.png",
+      "sha256": "e6e9d1d4fd5b05e4f33011f463096d3b057b65841337fe228cfa890a74d7e5bd",
+      "viewed": true,
+      "viewed_by": "root",
+      "read_scope": "all eight technical images actually displayed and inspected; not a local NPU performance test"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\install-tail\\trace_json_with_insight.png",
+      "url": "https://raw.githubusercontent.com/Ascend/triton-ascend/865691e2e9b656bc58008170207b4108d92e8dd1/docs/en/figures/trace_json_with_insight.png",
+      "sha256": "5cd57d3b8fbf1a56b4721029ef3dab50f888308de57cd45b620578a8c7beb8fd",
+      "viewed": true,
+      "viewed_by": "root",
+      "read_scope": "all eight technical images actually displayed and inspected; not a local NPU performance test"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\install-tail\\visualize_data_with_insight.png",
+      "url": "https://raw.githubusercontent.com/Ascend/triton-ascend/865691e2e9b656bc58008170207b4108d92e8dd1/docs/en/figures/visualize_data_with_insight.png",
+      "sha256": "e769a5f5f3d689131bf21eceab56c2543193c6e9ec8006e05c227ab342e66325",
+      "viewed": true,
+      "viewed_by": "root",
+      "read_scope": "all eight technical images actually displayed and inspected; not a local NPU performance test"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\install-tail\\performance_analysis_analyse_data_op_summary.png",
+      "url": "https://raw.githubusercontent.com/Ascend/triton-ascend/865691e2e9b656bc58008170207b4108d92e8dd1/docs/en/figures/performance_analysis_analyse_data_op_summary.png",
+      "sha256": "45d5aee735dc76fa45d1b257d4720558880977568d9807199163cd64feeb4e8b",
+      "viewed": true,
+      "viewed_by": "root",
+      "read_scope": "all eight technical images actually displayed and inspected; not a local NPU performance test"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\install-tail\\performance_analysis_analyse_data_waveform.png",
+      "url": "https://raw.githubusercontent.com/Ascend/triton-ascend/865691e2e9b656bc58008170207b4108d92e8dd1/docs/en/figures/performance_analysis_analyse_data_waveform.png",
+      "sha256": "0c16c48e381891b278a469aaeeca2834d216bb2f2a33c2435a5232694b6bf732",
+      "viewed": true,
+      "viewed_by": "root",
+      "read_scope": "all eight technical images actually displayed and inspected; not a local NPU performance test"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\install-tail\\performance_analysis_analyse_data_code_mapping.png",
+      "url": "https://raw.githubusercontent.com/Ascend/triton-ascend/865691e2e9b656bc58008170207b4108d92e8dd1/docs/en/figures/performance_analysis_analyse_data_code_mapping.png",
+      "sha256": "3f0d9ea64eb8130477acbbfbca7071ebe6b7370bb1b418efa6c597ddc9571764",
+      "viewed": true,
+      "viewed_by": "root",
+      "read_scope": "all eight technical images actually displayed and inspected; not a local NPU performance test"
+    },
+    {
+      "path": ".tmp\\continuation-groups-2026-11-10\\install-tail\\optimization.png",
+      "url": "https://raw.githubusercontent.com/Ascend/triton-ascend/865691e2e9b656bc58008170207b4108d92e8dd1/docs/en/figures/optimization.png",
+      "sha256": "b4bf8accd8766fd15f60215bdcdab4e9a7db963e23c91219413b5cc2f4d7f6f4",
+      "viewed": true,
+      "viewed_by": "root",
+      "read_scope": "all eight technical images actually displayed and inspected; not a local NPU performance test"
+    }
+  ],
+  "prior_installation_include_records": 18,
+  "prior_ledger": "installation-reading.json",
+  "notes": [
+    "Full text differs from all recursively linked documents; logos, badges and QR codes do not carry technical evidence.",
+    "Version selectors and gated compatibility results are separate pending resources.",
+    "Triton profiling example formula for 128x128 float16 total gives about 0.054898 microseconds at 1.8 TB/s, not printed 0.1991; not copied into teaching.",
+    "ModelSlim quick-start blanket warning/dirty-KV assertions are not verified and not adopted.",
+    "Calibrator wildcard example has an inconsistent example comment; teaching uses explicit gate exclusions and fixed recipe."
+  ],
+  "global_full_read_count_delta": 0
+}

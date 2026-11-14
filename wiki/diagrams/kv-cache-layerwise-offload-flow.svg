@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 690" width="880" height="690" role="img" aria-label="模型执行中的逐层池存取：本层加载完成才能读，新 KV 写完才能存，任务提交不等于存好。共享槽覆盖还须等前一使用者保存完成；联合 RD2H 时额外等远端 D 读完。图示正常完成顺序，固定旧版的超时后返回和错误完成事件须按正文另核。">
+  <title>模型执行中的逐层池存取：本层加载完成才能读，新 KV 写完才能存，任务提交不等于存好。共享槽覆盖还须等前一使用者保存完成；联合 RD2H 时额外等远端 D 读完。图示正常完成顺序，固定旧版的超时后返回和错误完成事件须按正文另核。</title>
+  <defs><marker id="kv-cache-layerwise-offload-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <rect x="20" y="44" width="840" height="620" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">模型执行：每层 attention 入口 → 计算 → 出口</text>
+  <path d="M440 125 L440 155" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-layerwise-offload-flow-ah-ink)"/>
+  <path d="M440 205 L440 235" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-layerwise-offload-flow-ah-ink)"/>
+  <path d="M440 285 L440 315" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-layerwise-offload-flow-ah-ink)"/>
+  <path d="M440 365 L440 395" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-layerwise-offload-flow-ah-ink)"/>
+  <path d="M440 445 L440 475" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-layerwise-offload-flow-ah-ink)"/>
+  <path d="M440 535 L440 580" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-layerwise-offload-flow-ah-ink)"/>
+  <rect x="240" y="75" width="400" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="96" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">① 提交本层与预取层加载</text>
+  <text x="440" y="115" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后续层受当前 attention 开始事件约束</text>
+  <rect x="240" y="155" width="400" height="50" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">② 等本层历史到齐</text>
+  <text x="440" y="195" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本层读取前的等待点</text>
+  <rect x="240" y="235" width="400" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="256" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">③ attention 读历史、写新 KV</text>
+  <text x="440" y="275" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">新数据仍在设备缓存里</text>
+  <rect x="240" y="315" width="400" height="50" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">④ 记录写完事件，提交存出任务</text>
+  <text x="440" y="355" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">提交后可继续下一层计算</text>
+  <rect x="240" y="395" width="400" height="50" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="416" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑤ 后台等事件，再把本层存入池</text>
+  <text x="440" y="435" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">返回码与完成事件分别检查</text>
+  <rect x="240" y="475" width="400" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="501" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑥ 共享槽可覆盖了吗？</text>
+  <text x="440" y="520" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">池保存完成；联合 RD2H 时还须 D 读完</text>
+  <rect x="240" y="580" width="400" height="50" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="601" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑦ 后续层才可覆盖该共享槽</text>
+  <text x="440" y="620" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">整次前向末尾还按版本等待存出</text>
+  <text x="45" y="182" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">主机等待</text>
+  <text x="45" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">设备计算</text>
+  <text x="45" y="422" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">后台传输</text>
+  <text x="458" y="560" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">成功且全部完成</text>
+  <text x="667" y="505" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">未完成 → 继续等</text>
+  <text x="667" y="528" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">失败 → 按路径报错</text>
+</svg>

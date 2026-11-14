@@ -1,0 +1,30 @@
+{
+  "reviewer": "/root/review_first_pages",
+  "status": "accepted_incremental_semantic_review",
+  "files": [
+    {
+      "path": "wiki/concepts/cpu-binding.md",
+      "sha256": "f486a622d350a5f0ea200cf8c1f6de594999b735649e87126de09778371dac6a"
+    },
+    {
+      "path": "wiki/diagrams/cpu-binding.yaml",
+      "sha256": "ad1b02fd3b00d3ccca25d8f7e293148cf6ca6c1da99ccf322ebdc0889320646c"
+    },
+    {
+      "path": "wiki/diagrams/cpu-binding-flow.yaml",
+      "sha256": "95fe13ebce51240c6a607798acf1d929ec5bf47fc14d1c4a2ed77f274e23cac5"
+    },
+    {
+      "path": ".tmp/wiki-remediation-2026-11-03/cpu-binding-citation-scope.diff",
+      "sha256": "78e340f2ba220ae5f415a172976a55c4467feba6c89759addd18d0ddef71c2b9"
+    }
+  ],
+  "official": [
+    {
+      "path": "docs/source/user_guide/feature_guide/cpu_binding.md",
+      "pin": "921ccc52",
+      "sha256": "2ff2b096ee36de68d449d90687cf17692d98f44ecffad375a327f350adaf31e4",
+      "read": "full text 1-149; no visual or device verification"
+    }
+  ]
+}

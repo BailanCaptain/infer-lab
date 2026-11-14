@@ -1,0 +1,269 @@
+{
+  "id": "inference-correctness-troubleshooting",
+  "path": "wiki/concepts/inference-correctness-troubleshooting.md",
+  "sha256": "faecd9914493df757b60195e8a5d1012a73871579e424e8cd15ab3db1998ce16",
+  "body_read": true,
+  "citations": [
+    {
+      "source_number": 1,
+      "ref": "vllm@0fc695fc:vllm/v1/sample/sampler.py#L228-L302",
+      "claim": "Greedy early return and temperature-dependent mixed sampling",
+      "read_ranges": [
+        "Full fixed sampler 228-302; EPS original line17 verified through byte-identical raw extraction"
+      ],
+      "verdict": "supported",
+      "evidence": "argmax precedes all-greedy early return; mixed branch selects on <1e-5. Claims keep prior processor boundary."
+    },
+    {
+      "source_number": 2,
+      "ref": "vllm@0fc695fc:vllm/v1/engine/detokenizer.py#L47-L166",
+      "claim": "Incremental decoding, stop truncation, buffering and finished flush",
+      "read_ranges": [
+        "Full fixed detokenizer47-166"
+      ],
+      "verdict": "supported",
+      "evidence": "Branches preserve min_tokens strict >, longeststop-1 holdback, and finished buffer0; do not prove entire return parser behavior."
+    },
+    {
+      "source_number": 3,
+      "ref": "vllm@0fc695fc:vllm/renderers/hf.py#L695-L746",
+      "claim": "Chat-template render input and return_dict compatibility",
+      "read_ranges": [
+        "Full fixed hf695-746"
+      ],
+      "verdict": "supported",
+      "evidence": "resolve_template/kwargs; only tokenize and absent return_dict addsFalse; annotation identifies v5 return change."
+    },
+    {
+      "source_number": 4,
+      "ref": "vllm@0fc695fc:docs/usage/reproducibility.md#L1-L24",
+      "claim": "Offline/online reproducibility and fixed hardware/version",
+      "read_ranges": [
+        "Full fixed reproducibility1-24"
+      ],
+      "verdict": "supported",
+      "evidence": "Offline two alternatives, online batch invariance; user RNG warning and hardware/version limit explicit."
+    },
+    {
+      "source_number": 5,
+      "ref": "https://huggingface.co/docs/transformers/chat_templating",
+      "claim": "Template formatting changes model input",
+      "read_ranges": [
+        "Official HF web body112-279, all prose/code read; images not used"
+      ],
+      "verdict": "supported",
+      "evidence": "Role/content to tokens, control markers, generation prompt, continuation and special-token duplication. Teaching example remains hypothetical."
+    },
+    {
+      "source_number": 6,
+      "ref": "https://docs.vllm.ai/projects/ascend/en/main/user_guide/feature_guide/batch_invariance.html",
+      "claim": "Ascend batch invariance install and scheduling restrictions",
+      "read_ranges": [
+        "Online official guide body262-456; fixed baa full228 already read for batch-invariance audit"
+      ],
+      "verdict": "supported",
+      "evidence": "Matching source manual install, operator-package then wheel, no automatic chunk/cache disable, preemption limitation; model support kept scoped."
+    },
+    {
+      "source_number": 7,
+      "ref": "https://github.com/vllm-project/vllm/issues/64048",
+      "claim": "GH200 successful transfer with bad KV individual report",
+      "read_ranges": [
+        "GitHub issue64048 author body134-174 plus all3visible comments180-218"
+      ],
+      "verdict": "supported",
+      "evidence": "Author reports vLLM0.31/NIXL1.5/GH200 and perblock/perlayer checks; classified community attribution I7. Not independently reproduced or an Ascend diagnosis."
+    },
+    {
+      "source_number": 8,
+      "ref": "raw:sha256-a28c4479cb8576de061fe485dc0b2822395ead2da38946ef10cd3b152953b055.md#L1-L282",
+      "claim": "Archived copies of four fixed original excerpts",
+      "read_ranges": [
+        "Raw1-282; four blocks exact matched to original ranges separately read in this round"
+      ],
+      "verdict": "supported",
+      "evidence": "correctness-raw-dedup.json records equality; archive contributes no independent validation."
+    },
+    {
+      "source_number": 9,
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/renderers/hf.py#L731-L745",
+      "claim": "Explicit return_dict preserved under tokenize compatibility",
+      "read_ranges": [
+        "hf731-745 included in full695-746 read"
+      ],
+      "verdict": "supported",
+      "evidence": "Absent-key test leaves explicit option unchanged."
+    },
+    {
+      "source_number": 10,
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/sample/sampler.py#L17-L17",
+      "claim": "Temperature epsilon value",
+      "read_ranges": [
+        "sampler17 read in raw exact matched against fixed git blob"
+      ],
+      "verdict": "supported",
+      "evidence": "_SAMPLING_EPS=1e-5; mixed branch condition separately covered by11."
+    },
+    {
+      "source_number": 11,
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/sample/sampler.py#L296-L301",
+      "claim": "Mixed request greedy threshold",
+      "read_ranges": [
+        "sampler296-301 within full228-302"
+      ],
+      "verdict": "supported",
+      "evidence": "torch.where only for this mixed path, not universal request dispatch."
+    },
+    {
+      "source_number": 12,
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/detokenizer.py#L84-L89",
+      "claim": "Tail holdback length",
+      "read_ranges": [
+        "detokenizer84-89 within full47-166"
+      ],
+      "verdict": "supported",
+      "evidence": "stop and not include: maxlen-1; otherwise0."
+    },
+    {
+      "source_number": 13,
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/detokenizer.py#L120-L135",
+      "claim": "Strict min_tokens stop-string check",
+      "read_ranges": [
+        "detokenizer120-135 within full47-166"
+      ],
+      "verdict": "supported",
+      "evidence": "Offsets advance before threshold, stop check only > min_tokens."
+    },
+    {
+      "source_number": 14,
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:docs/usage/reproducibility.md#L3-L20",
+      "claim": "Reproducibility modes and RNG side effect",
+      "read_ranges": [
+        "reproducibility3-20 within full1-24"
+      ],
+      "verdict": "supported",
+      "evidence": "Exact described modes and fixed hardware/version boundary."
+    },
+    {
+      "source_number": 15,
+      "ref": "raw:sha256-a3756f07a2b1726f8940f91b065c61e8d288657df4e16e3752a6599d6cd57191.md#L1-L362",
+      "claim": "Expanded archive repeats original ten ranges",
+      "read_ranges": [
+        "Raw1-362;10exact-matching blocks; extra6read in full after original4"
+      ],
+      "verdict": "supported",
+      "evidence": "Equality and ranges recorded, not additional experiment."
+    },
+    {
+      "source_number": 16,
+      "ref": "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/runtime_guard.md",
+      "claim": "RuntimeGuard signals, V2 and lastPP/TP coverage",
+      "read_ranges": [
+        "Full921 runtime_guard guide1-129; actual rank_gate25-49/137-165;hooks137-186/253-281/319-346;v2runner361-368; finite153-220/295-340"
+      ],
+      "verdict": "supported",
+      "evidence": "Detector/report lastPP TP0, dumpallTP onlylastPP; hook wraps actual sampling, asyncoutput after trim; document remains device-unverified."
+    },
+    {
+      "source_number": 17,
+      "ref": "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/configuration/runtime_config.md",
+      "claim": "Runtime configuration, watermark/quotas/defaults and asynchronous evidence",
+      "read_ranges": [
+        "Full921 runtime_config guide1-161; defaults1-111/bootstrap1-114;config675-718/880-945;processor_report58-143;processor_dump210-342"
+      ],
+      "verdict": "supported",
+      "evidence": "Perprocess watermark increments after dump attempts; heavy save failure not success counter. Startupoverwrite, defaultoff,300s,quota0,and sensitivefalse explicit."
+    },
+    {
+      "source_number": 18,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/batch_invariant.py#L124-L164",
+      "claim": "Available libraries determine actual registered operations",
+      "read_ranges": [
+        "rc2 batch_invariant124-164 fully read"
+      ],
+      "verdict": "supported",
+      "evidence": "Triton operators and prioritizedAscendC patches differ; no wholemodel proof."
+    },
+    {
+      "source_number": 19,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/batch_invariant.py#L166-L189",
+      "claim": "Initialization gate and missing dependency warning",
+      "read_ranges": [
+        "rc2 batch_invariant166-189 fully read"
+      ],
+      "verdict": "supported",
+      "evidence": "env plus at leastone backend; otherwise warning and noinit."
+    },
+    {
+      "source_number": 20,
+      "ref": "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/batch_invariance.md#L25-L41",
+      "claim": "Prebuilt wheel lacks csrc and needs matching source",
+      "read_ranges": [
+        "rc2guide25-41 fully read; wholematchingbaa228 previouslyread"
+      ],
+      "verdict": "supported",
+      "evidence": "This range supports prerequisite and2stageorder; latermanualinstall example supported bysource6."
+    },
+    {
+      "source_number": 21,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L913-L992",
+      "claim": "Mixed phase split only on regular FIA branch",
+      "read_ranges": [
+        "rc2 attention_v1 893-1000 read; source expanded from974-990 to913-992"
+      ],
+      "verdict": "supported",
+      "evidence": "sinks/noncausal/slidingbranches precede split; corrected corresponding version sentence."
+    },
+    {
+      "source_number": 22,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L909-L933",
+      "claim": "Main KV versus indexer quantization and KPool selection differ",
+      "read_ranges": [
+        "rc2config909-933 fullyread"
+      ],
+      "verdict": "supported",
+      "evidence": "cache_dtype/mainSFA vs indexer_kv_dtype/sparseLI derived flags; no deployed quantization guarantee."
+    },
+    {
+      "source_number": 23,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L549-L565",
+      "claim": "Strict schema and msprobe input forms",
+      "read_ranges": [
+        "rc2config549-565 fullyread;921v1runner430-458/v2runner268-285 actualconsumers"
+      ],
+      "verdict": "supported",
+      "evidence": "Comment and ConfigDict forbid support parsing; noRuntimeGuardkey inferred from comments alone."
+    },
+    {
+      "source_number": 24,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1844-L1912",
+      "claim": "Unknown runtime keys rejected or Omni-filtered in rc2",
+      "read_ranges": [
+        "rc2config1844-1912 fullyread; fixed file search runtime_config returnednone"
+      ],
+      "verdict": "supported",
+      "evidence": "No runtimekeys amongdefinedfields or strippedkeys; unknown detection plus Omniwarningfilter explicit."
+    },
+    {
+      "source_number": 25,
+      "ref": "https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/batch_invariance.md#L25-L41",
+      "claim": "Same fixed guide prerequisite via directURL",
+      "read_ranges": [
+        "Same rc2guide25-41 as20, actualgittextread"
+      ],
+      "verdict": "supported",
+      "evidence": "Duplicate source not independentcorroboration; only listed prerequisite scope."
+    },
+    {
+      "source_number": 26,
+      "ref": "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/developer_guide/performance_and_debug/msprobe_guide.md",
+      "claim": "MSProbe capture levels/tasks, graph restrictions, files and comparison",
+      "read_ranges": [
+        "Full921msprobe guide1-452 read in boundedchunks inclbothJSONappendices;v1/v2runner construction actualread"
+      ],
+      "verdict": "supported",
+      "evidence": "L1 config/example; L0/mixstructure; eagergraphfieldmatrix;scheduled_tokensrequires26.2; source guide neitherdeviceexecutionnorallmodelcoverage."
+    }
+  ],
+  "reviewer": "review_publication_fix"
+}

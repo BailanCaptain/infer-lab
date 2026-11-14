@@ -572,3 +572,825 @@ vllm-ascend@main 4e19cc765510abfa1dd485b2aa72ff83d0945cf8 → a7f26e5c4e4d9dd7f2
 
 ## [2026-10-07] ingest | GLM 稠密 MLP 固定版本源码摘录
 晋升 sources/glm-mlp-version-source.md
+
+## [2026-10-08] ingest | 参数增量
+
+vllm-ascend@main a7f26e5c4e4d9dd7f20fa114f351860bd6552731 → ac1b7bceb370265e8f794f38d32a88041b0c51c9；新增 8 / 删除 1 / 变更 7。
+
+- rank_transfer_limit: 默认表达式 "1" → "-1"
+- cross_node_transfer_limit: 默认表达式 "1" → "-1"
+- sparse_kv_offload_config: 默认表达式 "dataclasses.field(kw_only=True)" → "dataclasses.field(kw_only=True)"
+- enable_sparse_sfa_c8: 默认表达式 "False" → "False"
+- enable_sparse_li_c8: 默认表达式 "False" → "False"
+- topk_buffer_size: 默认表达式 "4096" → "4096"
+- topk: 默认表达式 "dataclasses.field(default=0, init=False)" → "dataclasses.field(default=0, init=False)"
+
+## [2026-10-08] ingest | 参数增量
+
+vllm-ascend@releases/v0.23.0 2bcf78b37ea826e841ff90a4621eb15feb5519b2 → 8640109153e97c8217b95cb88f6e984d537b3f01；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-08] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-09] ingest | 参数增量
+
+vllm-ascend@main ac1b7bceb370265e8f794f38d32a88041b0c51c9 → 7fca7cae55cfe6a3319e7a1b7b4989c71f5f750c；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-09] ingest | 参数增量
+
+vllm-ascend@releases/v0.23.0 8640109153e97c8217b95cb88f6e984d537b3f01 → f16cfd192190c89ffc7884b2e8dfda98902ab259；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-09] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-10] review | 周期维护
+
+本轮维护失败，未完成步骤的检查点保留；详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录。未自动重试收费调用。
+
+## [2026-10-11] ingest | 参数增量
+
+vllm-ascend@main 7fca7cae55cfe6a3319e7a1b7b4989c71f5f750c → 9f9da5562089280a7f01c3d03e855b258e372807；新增 0 / 删除 2 / 变更 1。
+
+- enable_dsa_cp: 默认表达式 "False" → "False"
+
+## [2026-10-11] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-12] ingest | 参数增量
+
+vllm-ascend@main 9f9da5562089280a7f01c3d03e855b258e372807 → 8194eceae4a86366bea75309baa22fea4993da8a；新增 5 / 删除 0 / 变更 0。
+
+## [2026-10-12] ingest | 参数增量
+
+vllm-ascend@releases/v0.26.0rc d3e4c109bf5c02041ad3c781f38f7f8651012d60 → e0bd2501f761dbef4892ed0f6a8f55b3ab92166a；新增 0 / 删除 1 / 变更 0。
+
+## [2026-10-12] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-13] ingest | 参数增量
+
+vllm-ascend@main 8194eceae4a86366bea75309baa22fea4993da8a → 9df31e4e63333c9dece50e5336c6966062b4e806；新增 4 / 删除 1 / 变更 2。
+
+- topk_buffer_size: 默认表达式 "4096" → "-1"
+- use_fused_overlap: 默认表达式 "False" → "False"
+
+## [2026-10-13] ingest | 参数增量
+
+vllm-ascend@releases/v0.23.0 f16cfd192190c89ffc7884b2e8dfda98902ab259 → 23e286f9f4a7de13aa192c43ba894cf4e2ceabdb；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-13] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-14] ingest | 参数增量
+
+vllm-ascend@main 9df31e4e63333c9dece50e5336c6966062b4e806 → 75bfb762267c86fbec4cf3458ce08a094c0a4c72；新增 1 / 删除 0 / 变更 0。
+
+## [2026-10-14] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-15] ingest | 参数增量
+
+vllm-ascend@main 75bfb762267c86fbec4cf3458ce08a094c0a4c72 → 736b3e65c2defb5f018608baec99b6f2dfc8ac5a；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-15] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-16] ingest | 参数增量
+
+vllm-ascend@main 736b3e65c2defb5f018608baec99b6f2dfc8ac5a → f978348e9045fb045a4281d189339ef2ca1f1a45；新增 0 / 删除 13 / 变更 0。
+
+## [2026-10-16] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-17] ingest | 参数增量
+
+vllm-ascend@main f978348e9045fb045a4281d189339ef2ca1f1a45 → 22730f46da2d821dc3955f47d56d16284eb2de81；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-17] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-18] ingest | 参数增量
+
+vllm-ascend@main 22730f46da2d821dc3955f47d56d16284eb2de81 → 2581a69bcc16ee6af56e72985a15799bb5f61808；新增 0 / 删除 0 / 变更 1。
+
+- dram_size_per_dp_GB: 默认表达式 "128" → "110"
+
+## [2026-10-18] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-19] ingest | 参数增量
+
+vllm-ascend@main 2581a69bcc16ee6af56e72985a15799bb5f61808 → ee29cc6fc24d20d47948776764059f05601170a6；新增 3 / 删除 0 / 变更 0。
+
+## [2026-10-19] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-20] ingest | 参数增量
+
+vllm-ascend@main ee29cc6fc24d20d47948776764059f05601170a6 → 128f35ed1461ecb34bc8b87583a67a66bc4bd1d6；新增 6 / 删除 2 / 变更 1。
+
+- enable_sp_by_pass: 默认表达式 "False" → "False"
+
+## [2026-10-20] review | 周期维护
+
+本轮维护失败，未完成步骤的检查点保留；详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录。未自动重试收费调用。
+
+## [2026-10-21] ingest | 参数增量
+
+vllm-ascend@main 128f35ed1461ecb34bc8b87583a67a66bc4bd1d6 → 87f2b060adff3079bd63f995c6c628820fec0f9d；新增 1 / 删除 1 / 变更 0。
+
+## [2026-10-21] review | 周期维护
+
+本轮维护失败，已继续执行其余步骤并保留检查点；详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录。失败项下轮可续跑，本轮不无限重试。
+
+## [2026-10-22] ingest | 参数增量
+
+vllm-ascend@main 87f2b060adff3079bd63f995c6c628820fec0f9d → 25e376b3c7821ddf894e2a05a4e29ef019db94ad；新增 0 / 删除 0 / 变更 2。
+
+- enable_pcp_embedding_lmhead_weight_sharding: 默认表达式 "True" → "True"
+- finegrained_tp_config: 默认表达式 "dataclasses.field(default_factory=lambda: FinegrainedTPConfig())" → "dataclasses.field(default_factory=lambda: FinegrainedTPConfig())"
+
+## [2026-10-22] review | 周期维护
+
+本轮维护失败，已继续执行其余步骤并保留检查点；详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录。失败项下轮可续跑，本轮不无限重试。
+
+## [2026-10-23] ingest | 参数增量
+
+vllm-ascend@main 25e376b3c7821ddf894e2a05a4e29ef019db94ad → 4e6eac4e476d9be3476e99440f4cabed67b253ea；新增 2 / 删除 6 / 变更 0。
+## [2026-10-21] ingest | CANN 与 HCCL：计算、通信和物理链路
+merged cann-hccl → cann-hccl
+
+## [2026-10-21] ingest | 注意力代价：容量、计算与访存
+merged attention-cost → attention-cost
+
+## [2026-10-21] ingest | 我们的部署：两台机器 16 张卡上的 GLM-5.3-Flash
+merged glm-5-3-flash-two-node → glm-5-3-flash-two-node
+
+## [2026-10-21] ingest | 注意力后端：模型机制、状态布局与设备实现的连接
+merged attention-backend-family → attention-backend-family
+
+## [2026-10-23] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-10-24] ingest | 参数增量
+
+vllm-ascend@main 4e6eac4e476d9be3476e99440f4cabed67b253ea → 0058d5512cfb7d26668284fc392fb5a5ca1520e8；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-24] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-10-25] ingest | 参数增量
+
+vllm-ascend@main 0058d5512cfb7d26668284fc392fb5a5ca1520e8 → 86add7adfd1194c225fd8880699d5be7a248c3ce；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-25] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-10-26] ingest | 参数增量
+
+vllm-ascend@main 86add7adfd1194c225fd8880699d5be7a248c3ce → a406c2ea7bf11afb2d0996fe12dc7d2aceb16f8b；新增 1 / 删除 0 / 变更 0。
+
+## [2026-10-26] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-10-27] ingest | 参数增量
+
+vllm-ascend@main a406c2ea7bf11afb2d0996fe12dc7d2aceb16f8b → 30ce5af06cb89f941e98c5a6a5b56c30d9938006；新增 3 / 删除 4 / 变更 1。
+
+- enable_sp_by_pass: 默认表达式 "False" → "False"
+
+## [2026-10-27] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+## [2026-10-23] ingest | 注意力代价：容量、计算与访存
+merged attention-cost → attention-cost
+
+## [2026-10-23] ingest | NPU、板卡、服务器与机柜
+merged hardware-devices → hardware-devices
+
+## [2026-10-23] ingest | GLM-5.3-Flash：模型配置与官方双机来源基线
+merged glm-5-3-flash-baseline → glm-5-3-flash-baseline
+
+## [2026-10-23] ingest | Patch 机制：昇腾怎样在运行时换掉 vLLM 的函数和类
+merged ascend-patch-system → ascend-patch-system
+
+## [2026-10-23] ingest | 注意力后端：模型机制、状态布局与设备实现的连接
+merged attention-backend-family → attention-backend-family
+
+## [2026-10-23] ingest | KV cache：新 token 留下历史，下一步接着读
+merged kv-cache → kv-cache
+
+## [2026-10-23] ingest | Tensor Parallel：一台机器的 8 张卡怎样合算一层
+merged tensor-parallel → tensor-parallel
+
+## [2026-10-23] ingest | CANN 与 HCCL：计算、通信和物理链路
+merged cann-hccl → cann-hccl
+
+## [2026-10-23] ingest | 引擎有哪几个进程：API server、EngineCore 与 Worker
+merged engine-processes → engine-processes
+
+## [2026-10-23] ingest | GQA：几个查询头共读一组 K、V，省下什么、付出什么
+merged gqa → gqa
+
+## [2026-10-24] ingest | 认识 GLM-5.3-Flash：模型长什么样，每种层从哪里来
+merged glm-5-3-flash → glm-5-3-flash
+
+## [2026-10-24] ingest | 流水线并行（PP）：层分段、状态交接与气泡
+merged pipeline-parallel → pipeline-parallel
+
+## [2026-10-24] ingest | NPUWorker 启动：一张卡按什么顺序准备好接请求
+merged npu-worker-lifecycle → npu-worker-lifecycle
+
+## [2026-10-24] ingest | 层与隐藏表示：GLM 的 45 层如何连接
+merged layers-and-hidden → layers-and-hidden
+
+## [2026-10-24] ingest | DyntraLB：D 端各 DP 组按 KV 块数换人，少等最重的组
+merged dyntra-lb → dyntra-lb
+
+## [2026-10-24] ingest | Expert parallel：16 张卡怎样分专家、发 token、收结果
+merged expert-parallel → expert-parallel
+
+## [2026-10-24] ingest | CPU 绑核：线程亲和性与 NUMA 局部性
+merged cpu-binding → cpu-binding
+
+## [2026-10-24] ingest | Attention 与 Q/K/V：当前位置怎样从历史里取信息
+merged attention-qkv → attention-qkv
+
+## [2026-10-24] ingest | 算子与 kernel：从数学语义到设备实现
+merged ops-and-kernels → ops-and-kernels
+
+## [2026-10-24] ingest | KVPP：KV cache 按层分给各卡常驻，算到时整层广播
+merged kvpp → kvpp
+
+## [2026-10-24] ingest | KV 块分配：块从池里借出、共享、归还
+merged vllm-kv-block-allocation → vllm-kv-block-allocation
+
+## [2026-10-24] ingest | KV cache 显存预算：启动时怎样一项项扣出来
+merged kv-cache-memory-profiling → kv-cache-memory-profiling
+
+## [2026-10-24] ingest | Data parallel：请求怎样分进两组，空闲的组为什么陪跑
+merged data-parallel → data-parallel
+
+## [2026-10-24] ingest | graph mode：录一次执行次序，之后整串回放
+merged graph-mode-layer → graph-mode-layer
+
+## [2026-10-24] ingest | vllm-ascend 如何接入 vLLM
+merged vllm-ascend-overview → vllm-ascend-overview
+
+## [2026-10-24] ingest | Prefill 与 Decode：提示词怎样处理，回答怎样接着往下写
+merged prefill → prefill
+
+## [2026-10-24] ingest | MLA：历史压成一条潜向量，用时再展开
+merged mla → mla
+
+## [2026-10-24] ingest | KV cache CPU offload：缓存在主机内存多存一份，用到时搬回显存
+merged kv-cache-cpu-offload → kv-cache-cpu-offload
+
+## [2026-10-24] ingest | HCCL buffer：每个通信组各自预留的一块显存
+merged gap-a5164fe10fa9184412f8 → gap-a5164fe10fa9184412f8
+
+## [2026-10-24] ingest | KV cache 规格：每层的状态怎样换算成页、编进缓存组
+merged kv-cache-spec → kv-cache-spec
+
+## [2026-10-24] ingest | 通信基础：rank 之间怎样交换和归约张量
+merged collective-communication → collective-communication
+
+## [2026-10-24] ingest | Sparse KV offload：历史放主机，每步只搬这次要读的几行
+merged kv-cache-sparse-offload → kv-cache-sparse-offload
+
+## [2026-10-24] ingest | 一条请求：在官方双机部署上从提示词走到回答结束
+merged one-request → one-request
+
+## [2026-10-24] ingest | 矩阵乘与权重：从输入向量到输出表示
+merged matmul-and-weights → matmul-and-weights
+
+## [2026-10-24] ingest | 细粒度 TP：为特定模块选择分片组
+merged fine-grained-tp → fine-grained-tp
+
+## [2026-10-24] ingest | 大规模 EP：请求路由、专家域与跨机通信
+merged large-scale-ep → large-scale-ep
+
+## [2026-10-24] ingest | EPLB：按实测热度调整专家放在哪张卡
+merged eplb → eplb
+
+## [2026-10-24] ingest | Balance Scheduling：一组顶满，各组一起停收新请求
+merged balance-scheduling → balance-scheduling
+
+## [2026-10-24] ingest | NPUPlatform：配置校验与设备实现选择
+merged npu-platform → npu-platform
+
+## [2026-10-24] ingest | 多条请求：在官方双机部署上一步怎样装下它们
+merged concurrent-requests → concurrent-requests
+
+## [2026-10-24] ingest | lm_head：把最后的隐藏向量变成每个 token 的分数
+merged lm-head → lm-head
+
+## [2026-10-24] ingest | RoPE：把位置变成旋转，让注意力分数只看相隔多远
+merged rope → rope
+
+## [2026-10-24] ingest | 动态分块流水线：按预计耗时切 prefill 块
+merged dynamic-chunked-pp → dynamic-chunked-pp
+
+## [2026-10-24] ingest | KDA：用一个固定大小的状态代替逐位置历史
+merged linear-attention → linear-attention
+
+## [2026-10-24] ingest | Platform：硬件适配的接口契约
+merged vllm-platform-interface → vllm-platform-interface
+
+## [2026-10-28] ingest | 插件发现与模型注册
+merged platform-plugin-registration → platform-plugin-registration
+
+## [2026-10-28] ingest | RFork 版本维护：保留原补丁，钉住真正运行的完整代码
+merged rfork-maintenance → rfork-maintenance
+
+## [2026-10-28] ingest | Batch-Job-Aware Scheduler：先给正在生成的请求留块，再按作业接新请求
+merged batch-job-aware-scheduler → batch-job-aware-scheduler
+
+## [2026-10-28] ingest | enable_pcp_o_proj_weight_sharding
+merged enable-pcp-o-proj-weight-sharding-8528cf5af9c6 → enable-pcp-o-proj-weight-sharding-8528cf5af9c6
+
+## [2026-10-28] ingest | LoRA：低秩更新与多适配器推理
+merged lora → lora
+
+## [2026-10-28] ingest | Chunked prefill：长提示词分几步算完，正在生成的请求不被卡住
+merged chunked-prefill → chunked-prefill
+
+## [2026-10-28] ingest | weight_prefetch_config
+merged weight-prefetch-config → weight-prefetch-config
+
+## [2026-10-28] ingest | Ascend 配置：三个地方能写，哪个值真的生效
+merged ascend-config-system → ascend-config-system
+
+## [2026-10-28] ingest | MoE：一层里放很多专家，每个 token 只用几个
+merged moe → moe
+
+## [2026-10-28] ingest | 稀疏注意力：先挑位置，再只读这些位置
+merged sparse-attention → sparse-attention
+
+## [2026-10-28] ingest | vLLM-Ascend for RL：生成样本后，怎样安全换上新权重
+merged vllm-ascend-for-rl → vllm-ascend-for-rl
+
+## [2026-10-28] ingest | GLM 稠密 MLP 固定版本源码摘录
+merged glm-mlp-version-source → glm-mlp-version-source
+
+## [2026-10-28] ingest | RFork 生命周期：传完权重、交出模型、当上 seed、接请求各是一步
+merged rfork-lifecycle → rfork-lifecycle
+
+## [2026-10-28] ingest | 编译图融合：把相邻两步合成一个算子，再分档复用执行
+merged npugraph-ex → npugraph-ex
+
+## [2026-10-28] ingest | Embedding：按编号查表取出 token 的向量
+merged embedding → embedding
+
+## [2026-10-28] ingest | vLLM V1 的形状：请求、调度计划和执行结果怎样在组件之间循环
+merged vllm-v1-shape → vllm-v1-shape
+
+## [2026-10-28] ingest | ACL Graph：捕获、批形状与重复执行
+merged acl-graph → acl-graph
+
+## [2026-10-28] ingest | 源码目录地图：把文件放回推理架构
+merged vllm-ascend-repo-map → vllm-ascend-repo-map
+
+## [2026-10-28] ingest | Recompute CPU Offload：D 节点被抢占的请求，KV 先存主机、排回来再搬回
+merged recompute-cpu-offload → recompute-cpu-offload
+
+## [2026-10-28] ingest | Scheduler：每一步给哪些请求算几个 token
+merged vllm-scheduler → vllm-scheduler
+
+## [2026-10-28] ingest | Block Table：请求里的第几个位置，落在缓存池的哪一格
+merged block-table → block-table
+
+## [2026-10-28] ingest | Mooncake 连接器：先对好块号，再按层搬历史状态
+merged mooncake-connector → mooncake-connector
+
+## [2026-10-28] ingest | Sleep Mode：暂停推理时怎样把显存让给训练
+merged sleep-mode → sleep-mode
+
+## [2026-10-29] ingest | MLP、residual 与 RMSNorm：一个子层怎样更新 hidden
+merged mlp-residual-norm → mlp-residual-norm
+
+## [2026-10-25] ingest | Netloader Guide：新实例怎样从已有 NPU 接过权重
+merged netloader-guide → netloader-guide
+
+## [2026-10-25] ingest | relative_balance_threshold
+merged relative-balance-threshold-bcbc40e7dc87 → relative-balance-threshold-bcbc40e7dc87
+
+## [2026-10-25] ingest | RFork 身份匹配：同模型、同布局，还要同一份分片
+merged rfork-identity → rfork-identity
+
+## [2026-10-25] ingest | block_table_no_commit_optimize
+merged block-table-no-commit-optimize-8328d0d2d00d → block-table-no-commit-optimize-8328d0d2d00d
+
+## [2026-10-25] ingest | '[Refactor] remove layer sharding'
+merged pr-11953 → pr-11953
+
+## [2026-10-25] ingest | size
+merged size-40a1c2ca47b8 → size-40a1c2ca47b8
+
+## [2026-10-25] ingest | combine_quant_mode
+merged combine-quant-mode-2a3f7cd47997 → combine-quant-mode-2a3f7cd47997
+
+## [2026-10-25] ingest | runtime_config_hot_reload
+merged runtime-config-hot-reload-9c9ab794933a → runtime-config-hot-reload-9c9ab794933a
+
+## [2026-10-25] ingest | absolute_balance_threshold
+merged absolute-balance-threshold-71578a0c428d → absolute-balance-threshold-71578a0c428d
+
+## [2026-10-25] ingest | 问答记录：Block Table 里的块什么时候分配、什么时候回收
+merged answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad → answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad
+
+## [2026-10-25] ingest | kv_pool_range_debug
+merged kv-pool-range-debug-83e8b165addd → kv-pool-range-debug-83e8b165addd
+
+## [2026-10-25] ingest | enable_force_eplb
+merged enable-force-eplb-b7ec3661121f → enable-force-eplb-b7ec3661121f
+
+## [2026-10-25] ingest | use_layerwise
+merged use-layerwise-b475778cd352 → use-layerwise-b475778cd352
+
+## [2026-10-25] ingest | enable_sleep_mode_extra_cleanup
+merged enable-sleep-mode-extra-cleanup → enable-sleep-mode-extra-cleanup
+
+## [2026-10-25] ingest | enable_super_kernel
+merged enable-super-kernel-ce990e186bfa → enable-super-kernel-ce990e186bfa
+
+## [2026-10-25] ingest | placement_search_backtrack_limit
+merged placement-search-backtrack-limit-82b03cef98b0 → placement-search-backtrack-limit-82b03cef98b0
+
+## [2026-10-25] ingest | RFork 传输：登记空位、核对清单、分批读字节
+merged rfork-transfer → rfork-transfer
+
+## [2026-10-25] ingest | RecomputeScheduler：D 节点块不够时，被让出的请求退回 P 重算
+merged recompute-scheduler → recompute-scheduler
+
+## [2026-10-25] ingest | kvpp_config
+merged kvpp-config-0445bd352140 → kvpp-config-0445bd352140
+
+## [2026-10-25] ingest | replica_search_num_stages
+merged replica-search-num-stages-e4b10925ff97 → replica-search-num-stages-e4b10925ff97
+
+## [2026-10-25] ingest | replica_search_beam_size
+merged replica-search-beam-size-6556d1650a62 → replica-search-beam-size-6556d1650a62
+
+## [2026-10-25] ingest | RFork 配置：四类端口、各项超时与可复制的启动示例
+merged rfork-config → rfork-config
+
+## [2026-10-25] ingest | load_risk_quantile
+merged load-risk-quantile-d89a080ba048 → load-risk-quantile-d89a080ba048
+
+## [2026-10-25] ingest | load_window_bins
+merged load-window-bins-cc21068b082d → load-window-bins-cc21068b082d
+
+## [2026-10-25] ingest | RFork 排错：从第一条异常还原版本、阶段与资源状态
+merged rfork-troubleshooting → rfork-troubleshooting
+
+## [2026-10-25] ingest | EngineCore：vLLM 里一圈一圈推着请求往前走的循环
+merged vllm-engine-core → vllm-engine-core
+
+## [2026-10-25] ingest | 怎样读 vllm-ascend 源码：先抓请求主线，再带着问题追到实现
+merged reading-vllm-ascend → reading-vllm-ascend
+
+## [2026-10-25] ingest | enable_matmul_allreduce
+merged enable-matmul-allreduce → enable-matmul-allreduce
+
+## [2026-10-25] ingest | cross_node_transfer_limit
+merged cross-node-transfer-limit-06ee92260b7a → cross-node-transfer-limit-06ee92260b7a
+
+## [2026-10-25] ingest | prefetch_ratio
+merged prefetch-ratio → prefetch-ratio
+
+## [2026-10-25] ingest | RFork：工作版机制与排错总览
+merged rfork → rfork
+
+## [2026-10-25] ingest | c8_enable_reshape_optim
+merged c8-enable-reshape-optim-8bd7e5f82c6c → c8-enable-reshape-optim-8bd7e5f82c6c
+
+## [2026-10-25] ingest | RFork 启动：准备模型以后才借 seed，失败后先清理再重建
+merged rfork-startup → rfork-startup
+
+## [2026-10-25] ingest | Sampling：从词表分数里定下一个 token
+merged sampling → sampling
+
+## [2026-10-25] ingest | fuse_allreduce_rms
+merged fuse-allreduce-rms → fuse-allreduce-rms
+
+## [2026-10-25] ingest | AscendConfig 三版本来源摘要
+merged ascend-config-version-source → ascend-config-version-source
+
+## [2026-10-25] ingest | rank_transfer_limit
+merged rank-transfer-limit-99529b37d91d → rank-transfer-limit-99529b37d91d
+
+## [2026-10-25] ingest | 动态切块配置（profiling_chunk_config）
+merged profiling-chunk-config → profiling-chunk-config
+
+## [2026-10-25] ingest | NPUModelRunner：每张卡上把一步计划跑成 token 的执行者
+merged npu-model-runner → npu-model-runner
+
+## [2026-10-25] ingest | replica_search_radius
+merged replica-search-radius-cd3118b5aae5 → replica-search-radius-cd3118b5aae5
+
+## [2026-10-25] ingest | 准备输入：把一步的请求计划拼成模型能吃的几张表
+merged prepare-inputs-flow → prepare-inputs-flow
+
+## [2026-10-25] ingest | fused_op_type
+merged fused-op-type-fc0f5fcd7be0 → fused-op-type-fc0f5fcd7be0
+
+## [2026-10-25] ingest | 从算子到 AI Core：分工、融合与分块
+merged op-to-ai-core → op-to-ai-core
+
+## [2026-10-25] ingest | multistream_overlap_gate
+merged multistream-overlap-gate → multistream-overlap-gate
+
+## [2026-10-25] ingest | runtime_config_path
+merged runtime-config-path-e23e596c2a2e → runtime-config-path-e23e596c2a2e
+
+## [2026-10-25] ingest | 短请求优先：等待顺序与长请求公平性
+merged short-request-first → short-request-first
+
+## [2026-10-25] ingest | sfa_dcp_force_tmajor_restore
+merged sfa-dcp-force-tmajor-restore-6d9c266d3ece → sfa-dcp-force-tmajor-restore-6d9c266d3ece
+
+## [2026-10-25] ingest | RFork 张量布局：先对齐算子要的形状，再决定搬什么
+merged rfork-layout → rfork-layout
+
+## [2026-10-25] ingest | RFork 官网核读：原图、全部章节与工作版差异
+merged rfork-official-guide → rfork-official-guide
+
+## [2026-10-25] ingest | enable_async_exponential
+merged enable-async-exponential → enable-async-exponential
+
+## [2026-10-25] ingest | stair_config
+merged stair-config-cca9e594a052 → stair-config-cca9e594a052
+
+## [2026-10-25] ingest | layer_sharding
+merged layer-sharding → layer-sharding
+
+## [2026-10-28] ingest | 参数增量
+
+vllm-ascend@main 30ce5af06cb89f941e98c5a6a5b56c30d9938006 → e8a6393dda93e085cd8210011c6ec12027acb8a0；新增 9 / 删除 6 / 变更 0。
+
+## [2026-10-28] ingest | 参数增量
+
+vllm-ascend@releases/v0.23.0 23e286f9f4a7de13aa192c43ba894cf4e2ceabdb → 0b301b8dd1d8b25dc3a8f63a21f630c3ff1c4a3e；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-29] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-10-29] ingest | 参数增量
+
+vllm-ascend@main e8a6393dda93e085cd8210011c6ec12027acb8a0 → 1eda0ddad8b67f791a1019741d254cc97f9617ad；新增 7 / 删除 4 / 变更 1。
+
+- enable_early_kernel_warmup: 默认表达式 "False" → "False"
+
+## [2026-10-29] ingest | 参数增量
+
+vllm-ascend@releases/v0.23.0 0b301b8dd1d8b25dc3a8f63a21f630c3ff1c4a3e → 2c905d73577bcf6696cfeee6e5d2e47c4f296e78；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-29] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-10-30] ingest | 参数增量
+
+vllm-ascend@main 1eda0ddad8b67f791a1019741d254cc97f9617ad → acbab0ef0722f0a1aab7e6a4ac90c6c93f888efe；新增 2 / 删除 4 / 变更 6。
+
+- enable_pcp_embedding_lmhead_weight_sharding: 默认表达式 "True" → "True"
+- finegrained_tp_config: 默认表达式 "dataclasses.field(default_factory=lambda: FinegrainedTPConfig())" → "dataclasses.field(default_factory=lambda: FinegrainedTPConfig())"
+- oproj_tensor_parallel_size: 默认表达式 "0" → "1"
+- lmhead_tensor_parallel_size: 默认表达式 "0" → "1"
+- embedding_tensor_parallel_size: 默认表达式 "0" → "1"
+- mlp_tensor_parallel_size: 默认表达式 "0" → "1"
+
+## [2026-10-30] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-10-31] ingest | 参数增量
+
+vllm-ascend@main acbab0ef0722f0a1aab7e6a4ac90c6c93f888efe → 24a76e84394ae3427195e3715fc08e90769d398c；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-31] ingest | 参数增量
+
+vllm-ascend@releases/v0.23.0 2c905d73577bcf6696cfeee6e5d2e47c4f296e78 → c399628f2e5d7ff4905aed32d0efce266eb3bf20；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-31] ingest | 参数增量
+
+vllm-ascend@releases/v0.26.0rc e0bd2501f761dbef4892ed0f6a8f55b3ab92166a → b98aab21139be21988b91fcea2a71c815b47acf9；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-31] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-01] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+## [2026-11-01] ingest | fused_op_type
+merged fused-op-type-fc0f5fcd7be0 → fused-op-type-fc0f5fcd7be0
+
+## [2026-11-01] ingest | MLA：历史压成一条潜向量，用时再展开
+merged mla → mla
+
+## [2026-11-01] ingest | absolute_balance_threshold
+merged absolute-balance-threshold-71578a0c428d → absolute-balance-threshold-71578a0c428d
+
+## [2026-11-01] ingest | GLM 稠密 MLP 固定版本源码摘录
+merged glm-mlp-version-source → glm-mlp-version-source
+
+## [2026-11-01] ingest | CANN 与 HCCL：计算、通信和物理链路
+merged cann-hccl → cann-hccl
+
+## [2026-11-01] ingest | 参数增量
+
+vllm-ascend@main 24a76e84394ae3427195e3715fc08e90769d398c → b3b82c137ee242a774c29b56325133771f5f069d；新增 1 / 删除 0 / 变更 0。
+
+## [2026-11-01] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+## [2026-11-02] ingest | Token 与分词：从文本到模型输入
+merged token → token
+
+## [2026-11-02] ingest | 编译图融合：把相邻两步合成一个算子，再分档复用执行
+merged npugraph-ex → npugraph-ex
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] build | 版本谱系刷新
+
+确定性更新 1 页；教学正文保留。
+
+## [2026-11-02] ingest | 参数增量
+
+vllm-ascend@main b3b82c137ee242a774c29b56325133771f5f069d → 921ccc52c6d8c9864190b981792318a489aeadf4；新增 0 / 删除 0 / 变更 0。
+
+## [2026-11-03] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-03] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-04] ingest | 参数增量
+
+vllm-ascend@main 921ccc52c6d8c9864190b981792318a489aeadf4 → 4a29682d1d8fa89df63a45dc4df2a2a8068984ff；新增 6 / 删除 1 / 变更 2。
+
+- model_url: 默认表达式 "<required>" → "<required>"
+- model_deploy_strategy_name: 默认表达式 "<required>" → "<required>"
+
+## [2026-11-04] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-05] ingest | 参数增量
+
+vllm-ascend@main 4a29682d1d8fa89df63a45dc4df2a2a8068984ff → 01741ac93f1c3c6241a90b19c14dc58b093eb49c；新增 1 / 删除 2 / 变更 0。
+
+## [2026-11-05] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-06] ingest | 参数增量
+
+vllm-ascend@main 01741ac93f1c3c6241a90b19c14dc58b093eb49c → 743e1f1cf272575a0ccd74b1f89221bc5045e1a6；新增 0 / 删除 0 / 变更 0。
+
+## [2026-11-06] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-07] ingest | 参数增量
+
+vllm-ascend@main 743e1f1cf272575a0ccd74b1f89221bc5045e1a6 → 28e9e97ba254b076a88275e8a275556cb9a11664；新增 0 / 删除 0 / 变更 0。
+
+## [2026-11-07] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-08] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-09] ingest | 参数增量
+
+vllm-ascend@main 28e9e97ba254b076a88275e8a275556cb9a11664 → 6e3299ab492ddbadb4c8e3a00b88c982c9a28131；新增 0 / 删除 12 / 变更 3。
+
+- enable_block_verify: 默认表达式 "False" → "False"
+- enable_entropy_verify: 默认表达式 "False" → "False"
+- scheduler_config: 默认表达式 "dataclasses.field(default_factory=lambda: SchedulerConfig())" → "dataclasses.field(default_factory=lambda: SchedulerConfig())"
+
+## [2026-11-09] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-10] ingest | 参数增量
+
+vllm-ascend@main 6e3299ab492ddbadb4c8e3a00b88c982c9a28131 → e4d533d33211f0696bcdf65eda47245d52e428c5；新增 19 / 删除 5 / 变更 2。
+
+- mega_moe_max_tokens: 默认表达式 "65536" → "0"
+- enable_fused_mc2: 默认表达式 "0" → "0"
+
+## [2026-11-10] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-11] ingest | 参数增量
+
+vllm-ascend@main e4d533d33211f0696bcdf65eda47245d52e428c5 → c251a6a5ed5cc10f7ec6daa5b87d410d731bf6fd；新增 26 / 删除 1 / 变更 1。
+
+- do_remote_prefill: 默认表达式 "None" → "False"
+
+## [2026-11-11] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-12] ingest | 参数增量
+
+vllm-ascend@main c251a6a5ed5cc10f7ec6daa5b87d410d731bf6fd → e8ae04b5c29f0d69b9dd729cbe838215e451045e；新增 15 / 删除 5 / 变更 3。
+
+- enable_shared_expert_dp: 默认表达式 "False" → "False"
+- do_remote_prefill: 默认表达式 "False" → "None"
+- remote_block_ids: 默认表达式 "None" → "()"
+
+## [2026-11-12] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。
+
+## [2026-11-13] ingest | 参数增量
+
+vllm-ascend@main e8ae04b5c29f0d69b9dd729cbe838215e451045e → 775899991f9614052e4836a62e4cb6541897faee；新增 8 / 删除 0 / 变更 2。
+
+- backend: 默认表达式 "<required>" → "<required>"
+- shared_engram: 默认表达式 "None" → "None"
+
+## [2026-11-13] review | 周期维护
+
+本轮维护失败，检查点已保留；独立步骤继续执行，模型连接检查失败时暂缓依赖它的任务。详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录；失败项下轮可续跑。

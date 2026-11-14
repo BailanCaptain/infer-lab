@@ -1,6 +1,6 @@
 layout: scene
 id: enable-async-exponential
-caption: 开关只挪动一件事——那批 q 是在 softmax 之后现填，还是在 model forward 开始之前就填好（vllm-ascend v0.23 维护分支）
+caption: vllm-ascend v0.23 维护分支把 q 的生成从 softmax 之后提前提交到 forward 之前，争取与前向计算重叠；采样前仍须等待事件完成。图中的重叠不代表生成必定早于 forward 完成，投机解码的行数限制见正文。
 size: [900, 630]
 
 regions:
@@ -9,8 +9,8 @@ regions:
     at: [20, 26]
     size: [860, 214]
     tone: upstream
-  - label: 开：q 在 forward 之前就填好了
-    note: 同一批 q 改到 forward 之前填。副流那次 exponential_ 与整段前向并行，采样时它早就躺在那儿了。
+  - label: 开：forward 前提交 q 的生成
+    note: 副流先提交 exponential_，与前向有机会重叠；到采样时仍等待事件，完成先后由实际耗时决定。
     at: [20, 262]
     size: [860, 320]
     tone: ascend
@@ -63,7 +63,7 @@ boxes:
   - at: [36, 470]
     size: [420, 84]
     title: 副流先把 q 填满
-    sub: b_s × 词表宽的 float32，b_s = 本步要采样的行数
+    sub: b_s × 词表宽的 float32，b_s = logits_indices 行数
     fn: do_async_exponential
     tone: accent
     icon: bolt
@@ -82,7 +82,7 @@ arrows:
   - { from: [458, 394], to: [476, 394], tone: ascend }
   - { from: [620, 394], to: [634, 394], tone: ascend }
   - { from: [458, 512], to: [476, 512], tone: accent }
-  - { from: [747, 468], to: [747, 440], tone: accent, label: q 已备好 }
+  - { from: [747, 468], to: [747, 440], tone: accent, label: 等 q 完成 }
 
 notes:
   - at: [36, 344]
@@ -92,7 +92,7 @@ notes:
     text: global_stream：进程级的那条副流，不是本特性独占
     size: 12.5
   - at: [36, 572]
-    text: 开了之后主流少停一次，代价是这块 float32 从 forward 开头一直占到采样结束。
+    text: 是否缩短等待要看实际重叠；这块 float32 从 forward 开头一直占到采样结束。
     size: 12.5
     width: 824
   - at: [20, 606]
@@ -103,10 +103,12 @@ notes:
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L20-L43
-    symbols: [random_sample, exponential_, argmax, logits.softmax]
+    symbols: [random_sample, exponential_, argmax]
   - source: vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L90-L103
-    symbols: [do_async_exponential, set_q_event, b_s, float32, async_event.synchronize]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2278-L2283
+    symbols: [do_async_exponential, set_q_event, b_s, float32]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L146-L191
+    symbols: [logits.softmax, async_event.synchronize]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2278-L2322
     symbols: [execute_model, enable_async_exponential]
   - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L531-L537
     symbols: [global_stream]

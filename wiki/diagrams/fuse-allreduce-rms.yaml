@@ -1,11 +1,11 @@
 layout: scene
 id: fuse-allreduce-rms
-caption: 两个 pass 盯着同一段子图，谁先改完谁算数——这就是「与 SP 冲突」的全部内容（v0.23 维护分支；main 上两条都已删）
+caption: v0.23 中，融合 pass 命中的子图不能再交给后续 SP 改写；其余区间与子图仍须分别检查。main 已删除这两条旧改图入口。
 size: [900, 610]
 
 regions:
   - label: torch.compile 拿到的原始子图
-    note: 每层两处：attention 的 o_proj 接 post-attention norm、MLP 的 down_proj 接下一层 input norm。
+    note: 普通残差模型中的候选形态；须实际形成完整 pattern，并满足编译区间门槛。
     at: [20, 26]
     size: [860, 254]
     tone: upstream
@@ -38,7 +38,7 @@ bands:
 
 brackets:
   - { at: [30, 96], span: 180, dir: left, label: 融合 pass, tone: ascend }
-  - { at: [100, 188], span: 88, dir: left, label: SP, tone: neutral }
+  - { at: [100, 142], span: 134, dir: left, label: SP 目标, tone: neutral }
 
 boundaries:
   - at: 302
@@ -50,15 +50,15 @@ boundaries:
 boxes:
   - at: [36, 336]
     size: [408, 96]
-    title: 融合 pass 先到，四步换一个算子
-    sub: 内部 RS → norm → AG，按 512 一块流水
+    title: 完整匹配时，四步换一个算子
+    sub: 分块归约 → 加残差与 norm → AG
     fn: matmul_allreduce_add_rmsnorm
     tone: ascend
     icon: chip
   - at: [456, 336]
     size: [408, 96]
-    title: SP pass 再来，已匹配不到
-    sub: all_reduce 节点没了，改图数为 0
+    title: SP 不再匹配已被替换的这一处
+    sub: 其余子图仍须检查，不代表全模型为 0
     fn: MiddleAllReduceRMSNormPattern
     tone: muted
     icon: graph
@@ -68,15 +68,15 @@ arrows:
   - { from: [660, 306], to: [660, 332], tone: muted, style: dashed }
 
 pills:
-  - { at: [450, 466], text: 两个都开 = 序列并行静默失效，无报错无告警, tone: accent }
+  - { at: [450, 466], text: 注册顺序决定重叠节点先由哪条规则改写, tone: accent }
 
 notes:
   - at: [40, 516]
-    text: "SP 的 pattern 只认「all_reduce → npu_add_rms_norm_bias」这后半截，正是融合 pattern 的一部分。同一次 AllReduce 只能按一种方式拆：融合算子要在内部 AllGather 回全长，SP 要的恰恰是让 norm 及其下游停在 1/tp 长度上。二者不可叠加，上游让默认值站在 SP 这边。"
+    text: "两条规则都包含 All-Reduce 与残差归一化，不能重复改写同一批节点。所引 SP pattern 在分片上做 norm 后也立即 All-Gather；冲突来自重叠的改图目标，不能概括为通信目标相反。官方参数表因此建议默认关闭这条融合。"
     size: 12.5
     width: 820
   - at: [40, 586]
-    text: "还有一道门槛：融合 pass 的 is_applicable_for_range 要求 compile_range.start > 512，decode 的小 batch 一处都改不到。"
+    text: "融合 pass 仅适用于 compile_range.start > 512；这是编译区间条件，不是按 prefill/decode 划分收益。"
     size: 12.5
     width: 820
     strong: true

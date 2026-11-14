@@ -1,0 +1,242 @@
+{
+  "recorded_at": "2026-11-10T09:09:15.952266+00:00",
+  "reviewer": "/root/groups_replay_review",
+  "documents": [
+    {
+      "path": "deepinfer/environ.py",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/environ.py",
+      "status": 200,
+      "bytes": 8738,
+      "sha256": "fe2c531989c419f0b51b169a07f5ed826dcec7f95c0c5bc3a351805923c4f218",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/deepinfer/environ.py",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "full text read",
+      "notes": "221行；默认、范围、nextn与backtracking约束"
+    },
+    {
+      "path": "deepinfer/model_executor/input_metadata/yoco.py",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/input_metadata/yoco.py",
+      "status": 200,
+      "bytes": 10478,
+      "sha256": "882a33de3da0fba81644adde9e9e1a90ec3d3ff34a8f3ad4dda18faafebd6460",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/deepinfer/model_executor/input_metadata/yoco.py",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "full text read",
+      "notes": "182行；compact/mask元数据与CP"
+    },
+    {
+      "path": "deepinfer/model_executor/models/v4_modules/yoco.py",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/models/v4_modules/yoco.py",
+      "status": 200,
+      "bytes": 6540,
+      "sha256": "7dc8ad7b6ca4902bcef67b1cbc4804592995c5b6af9ebaa00b59cc338c1aa6ec",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/deepinfer/model_executor/models/v4_modules/yoco.py",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "full text read",
+      "notes": "123行；consumer门槛、边界搬运和CP"
+    },
+    {
+      "path": "examples/yoco/README.md",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/yoco/README.md",
+      "status": 200,
+      "bytes": 2267,
+      "sha256": "ac84c1fdf99a75ef04db3184b8c81d0774f377152abf9ce32a40145e2f4c8d79",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/examples/yoco/README.md",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "full text read",
+      "notes": "41行；L1/L2/MTP/confidence适用边界"
+    },
+    {
+      "path": "deepinfer/worker/cache_engine.py",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/worker/cache_engine.py",
+      "status": 200,
+      "bytes": 49243,
+      "sha256": "ca3d80120fe6bc50971b180278dd575d585e1a6c7a3c2174a8a6fd6213454161",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/deepinfer/worker/cache_engine.py",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "scoped text read",
+      "notes": "88–119及220–307；下载全文不等于全文已读"
+    },
+    {
+      "path": "README.md",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md",
+      "status": 200,
+      "bytes": 4660,
+      "sha256": "b55624158ada4dc21b882d24ded06bf82f65350b44d170877b68395712cd670d",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/README.md",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "full text read",
+      "notes": "107行；平台、启用和公开仓库边界；两张性能图另列"
+    },
+    {
+      "path": "doc/inference_deployment_qa.md",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/doc/inference_deployment_qa.md",
+      "status": 200,
+      "bytes": 28865,
+      "sha256": "55d428d9958aa35ac863d7f5a2eb21528e683226784b1ac334e8068e21f2326f",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/doc/inference_deployment_qa.md",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "full text read; refreshed identical historical evidence",
+      "notes": "312行；与2026-11-03固定证据字节相同；两图另列"
+    },
+    {
+      "path": "examples/yoco/yoco_equiv.py",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/yoco/yoco_equiv.py",
+      "status": 200,
+      "bytes": 51830,
+      "sha256": "4abe933e510b7797ada8835d57d7504dcc049834c990429316e34e937f6c0032",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/examples/yoco/yoco_equiv.py",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "scoped text read",
+      "notes": "38–51、243–249、371–393、767–806；入口/同源扩展/设备/回退/CP；未把已下载全文计成通读"
+    },
+    {
+      "path": "examples/yoco/run_yoco_equiv_l2.sh",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/yoco/run_yoco_equiv_l2.sh",
+      "status": 200,
+      "bytes": 421,
+      "sha256": "217004ee05e91ef59284b4cafc84f7978ddcc1b675007fa966527fa4fea6b6cc",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/examples/yoco/run_yoco_equiv_l2.sh",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "full text read",
+      "notes": "12行；默认调用与参数转发"
+    },
+    {
+      "path": "examples/README.md",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/README.md",
+      "status": 200,
+      "bytes": 13550,
+      "sha256": "fde052a91323c18565148398b47281a2183cfb008cd3c0d0f24ec25956ae62d9",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/examples/README.md",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "full text read",
+      "notes": "124行；基准口径、profile开销、prefill/decode角色与脚本承接"
+    },
+    {
+      "url": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/csrc/engine/input_metadata/prepare_tensor_input_v4.cpp#L202-L359",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/csrc__engine__input_metadata__prepare_tensor_input_v4.cpp",
+      "sha256": "93a6b1dd533db116d2f7540c78d6bb5419bdb8c1d2063b031ab8b1a8cc138fe2",
+      "scope": "scoped text read",
+      "notes": "L130–364实际读；新增引文L202–359全范围核对；不声称整份C++已读",
+      "global_new_count": "not inferred"
+    },
+    {
+      "url": "https://arxiv.org/html/2609.19969v1",
+      "local_path": ".tmp/wiki-evidence-2026-11-03/papers/2609.19969v1.html",
+      "scope": "reuse historical full reading; current claims rechecked by sections",
+      "sections": [
+        "2.2",
+        "3.2.1",
+        "3.2.2"
+      ],
+      "notes": "本轮这些节全文重读；不新增论文全文阅读计数；Fig3与Fig4 SVG实际查看单列"
+    }
+  ],
+  "assets": [
+    {
+      "path": "doc/images/architecture_overview.png",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/doc/images/architecture_overview.png",
+      "status": 200,
+      "bytes": 1199189,
+      "sha256": "a04aed83c96ddc4a6ec7e578b961d8a3fdbea16ac72a4f51b3cc2221b858beb5",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/doc/images/architecture_overview.png",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "actual image viewed; fixed official source; refreshed asset",
+      "notes": "不能证明与用户生产文章缺失的原始图片相同，不能据此关闭缺图尾项"
+    },
+    {
+      "path": "doc/images/wide_ep_decode_pareto.png",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/doc/images/wide_ep_decode_pareto.png",
+      "status": 200,
+      "bytes": 143373,
+      "sha256": "719594a75b14cbb14ddba69872eb44be7a328729716dfb3838ce59dbf898ab7c",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/doc/images/wide_ep_decode_pareto.png",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "actual image viewed; fixed official source; refreshed asset",
+      "notes": "不能证明与用户生产文章缺失的原始图片相同，不能据此关闭缺图尾项"
+    },
+    {
+      "path": "doc/images/prefill_pareto.png",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/doc/images/prefill_pareto.png",
+      "status": 200,
+      "bytes": 100168,
+      "sha256": "ef3c63e857e3340890abe2fb8379f8c8e2564c6a104975b09634875bfdc33741",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/doc/images/prefill_pareto.png",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "actual image viewed; fixed official source; refreshed asset",
+      "notes": "不能证明与用户生产文章缺失的原始图片相同，不能据此关闭缺图尾项"
+    },
+    {
+      "path": "doc/images/decode_pareto.png",
+      "url": "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/doc/images/decode_pareto.png",
+      "status": 200,
+      "bytes": 108005,
+      "sha256": "26d9f0f990c236f61f5b86e248062c4436b2fef6f5852961359b15a2d4c5c65f",
+      "commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/doc/images/decode_pareto.png",
+      "global_new_count": "not inferred; reconcile historical inventory before counting",
+      "scope": "actual image viewed; fixed official source; refreshed asset",
+      "notes": "不能证明与用户生产文章缺失的原始图片相同，不能据此关闭缺图尾项"
+    },
+    {
+      "url": "https://arxiv.org/html/2609.19969v1/arch_full.svg",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/paper/arch_full.svg",
+      "sha256": "ce602ddd190c50c2341aa8a91e5392204a54a8f85befaba824bc4584d7caa98f",
+      "scope": "new actual SVG asset viewed in this independent review",
+      "figure": 3,
+      "notes": "V4.1/CED前后半结构及全局共享KV",
+      "global_new_count": "asset only; not a full document"
+    },
+    {
+      "url": "https://arxiv.org/html/2609.19969v1/arch_csa2.svg",
+      "local_path": ".tmp/continuation-groups-2026-11-10/review-replay-source/paper/arch_csa2.svg",
+      "sha256": "1c2b7b1861e004c72484f631a73f649ab06b8f03d918dd9b6fccf8519bba2973",
+      "scope": "new actual SVG asset viewed in this independent review",
+      "figure": 4,
+      "notes": "encoder/decoder bounded replay与窗口保留路径",
+      "global_new_count": "asset only; not a full document"
+    }
+  ],
+  "official_navigation": {
+    "read_chain": [
+      "DeepInfer README",
+      "examples/README",
+      "examples/yoco/README",
+      "L1/L2 script and metadata/C++/cache implementation"
+    ],
+    "inventory": "fixed GitHub recursive tree inventoried yoco paths and doc images",
+    "boundary": "FlashMLA/DeepGEMM/DeepEP/TileKernels/DeepSelect、量化/recipe等其他专题链接未在本页审查中宣称全部读完"
+  },
+  "version_scope": {
+    "rc2": "7d825229模型与教程存在；当前模型页版本表为唯一承接，不证明DeepInfer环境变量可用于vLLM-Ascend",
+    "other_ascend_versions": "当前页保留未验证同等实现的边界，不宣称全版本支持"
+  },
+  "production_article": {
+    "body_status": "用户已提供全文，历史全文阅读证据复用；本轮只复核相关SWA与3图片占位",
+    "body_evidence": "docs/reviews/2026-11-08-evidence/materials/deepseek-v41-production-user-copy.md",
+    "url": "https://zhuanlan.zhihu.com/p/2095560295930508953",
+    "retrieval_result_this_review": "403",
+    "missing_original_images": 3,
+    "missing_kinds": [
+      "整体架构",
+      "线上统计",
+      "离线基准"
+    ],
+    "closure": "not closed; official supplemental images do not establish identity with original article figures"
+  },
+  "hardware_tests": "not run; no NPU/GPU inference results claimed"
+}

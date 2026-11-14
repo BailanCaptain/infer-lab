@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 335" width="860" height="335" role="img" aria-label="同一块 UB 的使用周期示意。三个画面表示不同时刻，不是三块不同缓冲。搬运段与 Vector 分别取得、使用、释放同一缓冲标识；后一轮覆盖必须遵守这个次序，数值正确还要求地址和计算本身正确。">
+  <title>同一块 UB 的使用周期示意。三个画面表示不同时刻，不是三块不同缓冲。搬运段与 Vector 分别取得、使用、释放同一缓冲标识；后一轮覆盖必须遵守这个次序，数值正确还要求地址和计算本身正确。</title>
+  <defs><marker id="ascend-950-buffer-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <rect x="20" y="55" width="240" height="205" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="43" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">1 · 搬运段取得使用权</text>
+  <rect x="310" y="55" width="240" height="205" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="326" y="43" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">2 · Vector 取得使用权</text>
+  <rect x="600" y="55" width="240" height="205" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="616" y="43" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">3 · 下一轮按约定复用</text>
+  <path d="M264 151 L306 151" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ascend-950-buffer-ah-control)"/>
+  <path d="M554 151 L596 151" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ascend-950-buffer-ah-control)"/>
+  <rect x="80" y="115" width="50" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="105" y="137.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">10</text>
+  <rect x="130" y="115" width="50" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="155" y="137.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">11</text>
+  <rect x="80" y="151" width="50" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="105" y="173.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">20</text>
+  <rect x="130" y="151" width="50" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="155" y="173.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">21</text>
+  <path d="M130 115v72M80 151h100" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="80" y="115" width="100" height="72" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="130" y="209" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">把当前块搬入 UB</text>
+  <rect x="370" y="115" width="50" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="395" y="137.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">10</text>
+  <rect x="420" y="115" width="50" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="445" y="137.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">11</text>
+  <rect x="370" y="151" width="50" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="395" y="173.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">20</text>
+  <rect x="420" y="151" width="50" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="445" y="173.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">21</text>
+  <path d="M420 115v72M370 151h100" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="370" y="115" width="100" height="72" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="420" y="209" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">读取当前块进行计算</text>
+  <rect x="660" y="115" width="50" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="685" y="137.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">30</text>
+  <rect x="710" y="115" width="50" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="735" y="137.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">31</text>
+  <rect x="660" y="151" width="50" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="685" y="173.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">40</text>
+  <rect x="710" y="151" width="50" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="735" y="173.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">41</text>
+  <path d="M710 115v72M660 151h100" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="660" y="115" width="100" height="72" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="710" y="209" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">搬入下一块</text>
+  <text x="20" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">Buffer ID：把同一缓冲的占用与释放串成正确次序</text>
+  <text x="45" y="236" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">搬运完成后释放</text>
+  <text x="335" y="236" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">使用完成后释放</text>
+  <text x="625" y="236" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">不能提前覆盖旧块</text>
+  <text x="20" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">省的是同步组织的复杂度；依赖等待仍在，能否重叠另看缓冲与实现。</text>
+</svg>

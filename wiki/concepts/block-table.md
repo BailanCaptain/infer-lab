@@ -1,64 +1,107 @@
 ---
 id: block-table
-title: "Block Table：请求里的第几个位置，落在缓存池的哪一格"
+title: Block Table：请求里的第几个位置，落在缓存池的哪一格
 type: concept
-summary: block table（块表）是一张整数表：一行对应批次里的一条请求，第 i 格记着它的第 i 个块在缓存池里的块号；worker 每步按它把位置换算成槽位，注意力算子也按它逐块读历史。GLM 的 5 个缓存组各有一张表，full 组的 640 块号还要展开成 5 个 128 的 kernel 块号。
-aliases: [Block Table, BlockTable, MultiGroupBlockTable, 块表, 块映射表, 逻辑块号, 物理块号, slot mapping, 槽位映射,
-  PagedAttention, Paged Attention, 分页注意力, 分页缓存, 分页布局]
-chapters: ["11"]
+summary: >-
+  block table（块表）是一张整数表：一行对应批次里的一条请求，第 i 格记着它的第 i 个块在缓存池里的块号；worker
+  每步按它把位置换算成槽位，注意力算子也按它逐块读历史。GLM 的 5 个缓存组各有一张表，full 组的 640 块号还要展开成 5 个 128 的
+  kernel 块号。
+aliases:
+  - Block Table
+  - BlockTable
+  - MultiGroupBlockTable
+  - 块表
+  - 块映射表
+  - 逻辑块号
+  - 物理块号
+  - slot mapping
+  - 槽位映射
+  - PagedAttention
+  - Paged Attention
+  - 分页注意力
+  - 分页缓存
+  - 分页布局
+chapters:
+  - '11'
 sources:
-  - vllm@0fc695fc:vllm/v1/worker/block_table.py#L18-L101
-  - vllm@0fc695fc:vllm/v1/worker/block_table.py#L102-L201
-  - vllm@0fc695fc:vllm/v1/worker/block_table.py#L223-L282
-  - vllm@0fc695fc:vllm/v1/worker/block_table.py#L325-L380
-  - vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L14-L101
-  - vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L103-L185
-  - vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L284-L309
-  - vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L329-L462
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L4943-L5026
-  - vllm@0fc695fc:vllm/v1/worker/utils.py#L262-L327
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L834-L837
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1246-L1254
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L4484-L4528
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L115-L172
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L175-L283
-  - vllm-ascend@db701c1f:vllm_ascend/core/kv_cache_interface.py#L27-L52
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L342-L371
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L553-L554
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104
-  - vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793
-  - vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L545-L600
-  - vllm@0fc695fc:vllm/v1/worker/gpu_input_batch.py#L335-L528
-  - vllm@0fc695fc:vllm/v1/worker/gpu_input_batch.py#L566-L757
-  - vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1366-L1401
-  - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L26-L83
-  - vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L90-L119
-  - vllm@0fc695fc:vllm/v1/core/block_pool.py#L173-L177
-  - vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L440
-  - https://arxiv.org/abs/2309.06180
-  - vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L49-L62
-  - vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196
-  - vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L104-L120
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L246
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L1-L180
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L278-L283
-  - vllm-ascend@2ed6cbba:vllm_ascend/worker/block_table.py#L10-L108
-  - vllm-ascend@2ed6cbba:vllm_ascend/worker/block_table.py#L289-L290
-  - vllm-ascend@2ed6cbba:vllm_ascend/ops/triton/compute_slot_mapping.py#L12-L86
-  - vllm-ascend@baa023ad:vllm_ascend/worker/block_table.py#L36-L110
-  - vllm-ascend@baa023ad:vllm_ascend/worker/block_table.py#L298-L299
-  - vllm-ascend@baa023ad:vllm_ascend/worker/block_table.py#L415-L490
-  - vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_interface.py#L303-L318
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'vllm@0fc695fc:vllm/v1/worker/block_table.py#L18-L101'
+  - 'vllm@0fc695fc:vllm/v1/worker/block_table.py#L102-L201'
+  - 'vllm@0fc695fc:vllm/v1/worker/block_table.py#L223-L282'
+  - 'vllm@0fc695fc:vllm/v1/worker/block_table.py#L325-L380'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L14-L101'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L103-L185'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L284-L309'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L329-L462'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L4943-L5026'
+  - 'vllm@0fc695fc:vllm/v1/worker/utils.py#L262-L327'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L834-L837'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1246-L1254'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L4484-L4528'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L115-L172'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L175-L283'
+  - 'vllm-ascend@db701c1f:vllm_ascend/core/kv_cache_interface.py#L27-L52'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L342-L371'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L553-L554'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104
+  - 'vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L545-L600'
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_input_batch.py#L335-L528'
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_input_batch.py#L566-L757'
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1366-L1401'
+  - 'vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L26-L83'
+  - 'vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L90-L119'
+  - 'vllm@0fc695fc:vllm/v1/core/block_pool.py#L173-L177'
+  - 'vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L440'
+  - 'https://arxiv.org/abs/2309.06180'
+  - >-
+    vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L49-L62
+  - >-
+    vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L104-L120'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L246'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L1-L180'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L278-L283'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/block_table.py#L10-L108'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/block_table.py#L289-L290'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ops/triton/compute_slot_mapping.py#L12-L86'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/block_table.py#L36-L110'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/block_table.py#L298-L299'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/block_table.py#L415-L490'
+  - 'vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_interface.py#L303-L318'
+  - >-
+    raw:sha256-60066a112b62266d1a64ee662bb2e7c96078f0778d6fcd89bdc26d5fc7f58546.md#L1-L2586
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/block_table.py#L36-L60'
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/block_table.py#L154-L300'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L36-L74'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
-  - { to: one-request, kind: builds-on, note: R1 第一步的 15 个块号怎样按组算出来、第 3 站怎样登记进表，都在主线第 2、3 站 }
-  - { to: kv-cache-spec, kind: builds-on, note: 5 个缓存组怎样编成、block_size 五种含义的唯一出处；块表只按组的块大小建表 }
-  - { to: glm-5-3-flash-two-node, kind: builds-on, note: 一个块号每张卡占多少字节、KV 预算能切出多少块，在部署页推导 }
-  - { to: sparse-attention, kind: builds-on, note: 稀疏注意力选出的历史位置，就是按这张表到缓存池里取的 }
+  - to: one-request
+    kind: builds-on
+    note: R1 第一步的 15 个块号怎样按组算出来、第 3 站怎样登记进表，都在主线第 2、3 站
+  - to: kv-cache-spec
+    kind: builds-on
+    note: 5 个缓存组怎样编成、block_size 五种含义的唯一出处；块表只按组的块大小建表
+  - to: glm-5-3-flash-two-node
+    kind: builds-on
+    note: 一个块号每张卡占多少字节、KV 预算能切出多少块，在部署页推导
+  - to: sparse-attention
+    kind: builds-on
+    note: 稀疏注意力选出的历史位置，就是按这张表到缓存池里取的
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: '2026-11-03'
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-09d9fe34460514f6a6c15a0c2b458d5d0989c7e35abbd7d6f08ae3b7be89359a.md
+  - >-
+    raw/sha256-60066a112b62266d1a64ee662bb2e7c96078f0778d6fcd89bdc26d5fc7f58546.md
+  - >-
+    raw/sha256-a9a1d51dedc32b21b632436524adce0ff490e3ad1e64ccc33b64b2b4c98864d8.md
 ---
 
 ## 请求里的第 p 个位置，KV 该写进缓存池的哪一格？
@@ -80,6 +123,16 @@ file: block-table
 注意第 3 步用的是块内偏移，不是完整位置：写成「块号 × 块长 + 6」，一过第一块就会写到别人的格子上。
 
 同一条请求的三个块在池里是 7、2、9，互不相邻，中间夹着别的请求的块。表里的顺序就是这条请求读历史的顺序，和块在显存里挨不挨着无关。
+
+在这个普通分页示例中，查表定位后，写入改变的是槽位里的缓存内容；只要仍使用已分配的块，就不需要因为这次写入而修改表中的块号。缓存内容的更新与块表映射的更新是两件事。
+
+下面先追踪一次写入：**位置 6 属于 4–7 这一组，查表得到块 2，再找到其中第 3 行。** 蓝色的一行落进去后留在原位，块表仍是 `[7,2,9]`，变的是缓存内容。K、V 在图中各取两个示意通道，位置 p 的一行依次为 `[p,p+1,p+2,p+3]`；块 9 已预留但尚未写入。
+
+画面接着演示共享与释放：把刚才这条生成任务称为**请求 A**，新来的另一条称为**请求 B**。B 共用已算好、内容与身份都匹配的完整前缀块 7，两条关系线连到同一块；蓝色行所在的块 2 仍由 A 单独使用。随后 A、B 依次结束，只有没有请求再用的块才能归还。全程使用同一个缓存池，不复制数据，也不切换场景。
+
+```wiki-scene
+inference-mechanism:1
+```
 
 ## 为什么要一张表？代价在哪？
 
@@ -120,7 +173,7 @@ file: block-table
 - **批次压紧、重排**：某一行空出来，就把最后一行整行搬进来；两条请求对调位置，两行整行对调。
 - **被抢占后恢复**：块号整组换成新分的一批，当作新请求重新入座。
 
-没用到的格子是 0，但 0 不会和真块号撞车：缓存池启动时就把块号 0 取出来当占位块，从不分给任何请求。别处的填充值不一样，槽位映射的补齐值和后面 indexer 折回的表用的都是 −1。追一个具体的数时，先弄清它属于哪张表、哪个缓冲，不能拿某一处的填充值当全局的「空」标记。
+没用到的格子是 0，但 0 不会和普通分配的块号撞车：缓存池启动时就把块号 0 取出来当占位块，从不作为普通块分给请求。别处的填充值不一样：槽位映射用 −1 表示不写入；后面 indexer 折回的块表则保留占位块号 0。追一个具体的数时，先弄清它属于块表还是槽位映射，不能拿某一处的填充值当全局的「空」标记。
 
 **表很少动，槽位每步都算。** 一条请求一辈子里，它那一行只在「要了新块」和「结束」时变；而每一步、每个新 token 都要按首屏的三步算一次槽位。两件事节奏差得很远，就被放在两边：
 
@@ -167,6 +220,8 @@ file: block-table-flow
 
 算子读取的单位由 worker 按组去问：同组各层的注意力后端各自报出支持哪些块长，worker 挑一个大家都支持、又能整除分配块长的值。MLA 的后端只认 128；indexer K 和尾状态的后端写的是「任意整数倍都行」。于是 full 组取 128，一个块号拆成 640 ÷ 128 = 5 个；尾状态组的块长 4 本身就被接受，不拆；KDA 组不是注意力，不拆，也不算槽位。
 
+候选顺序也会影响选择。本页固定执行侧快照按列表顺序选择第一个大于零、且能整除分配块长的候选值。因此，有多个可用候选值时，选中的不一定是最小值；没有提供 kernel 大小列表，或列表恰好只含一个零时，则直接保留分配器块号，不做拆分。
+
 拆开不需要搬数据。worker 切显存时，就把 MLA 每一页看成 5 段首尾相接的 128 个位置，整层的缓存张量按「块号数 × 5」段来排。kernel 块号 5b + j 正好是块号 b 那一页的第 j 段，所以只要在表里把 b 写成 5b 到 5b + 4 五个数，算子按 128 一块去找，落到的还是原来那页。设 b 是位置 p 所在那个 640 块的块号：
 
 ```calc
@@ -196,6 +251,8 @@ KDA 那 12 个块号不参与这一步的槽位计算。
 
 表有多宽，由不得请求自己：启动时按最大长度 133,120 给每个组留够一行的格数，和请求实际多长无关。块越短，一行越宽，所以块长只有 4 的尾状态组，一行反而最宽。行数按同时在跑的请求上限留，本部署最多 32 条请求并发，就是 32 行。
 
+表行容量还必须容纳分配器实际交付、并经块号转换后得到的全部表项。固定执行侧源码的 GLM-5 indexer kpool 注释指出，缓存规格带有压缩比字段，并不代表分配器会按压缩后的 token 数分配块；若仅凭这个字段缩短表行，长序列追加块号时可能超出容量。这项限制要求按实际分配规则核对表行，不能据此缩减本部署上面的容量设定。
+
 ```calc
 title: 5 张表各一行多宽
 full 组一行 = ceil(133,120 ÷ 640) × 5 = 208 × 5 = 1,040 格 × 4 B = 4,160 B
@@ -207,7 +264,7 @@ full 组一行 = ceil(133,120 ÷ 640) × 5 = 208 × 5 = 1,040 格 × 4 B = 4,160
 
 合起来约 4.19 MiB，大约半个块号；和整张卡能切出的约 3,855 个块号（[部署页](glm-5-3-flash-two-node.md#两种块数各在什么时候用)的算例）比，同样可以忽略。
 
-每步真正花的是两件事。一是拷表：这一批有几条请求，就把 5 张表的前几行整行拷到 NPU。R1 独自在跑时每步拷 1 行，5 张表合计约 134 KiB，其中尾状态组那一行占了约 97%。二是算槽位：每个新 token 一次「除、查、乘加」，在 NPU 上并行做完。拷贝和 CPU 上的其余准备同时进行，两件事都不在关键路径上占多少时间；这是按操作量推断，没有实测数据。
+每步真正花的是两件事。一是拷表：这一批有几条请求，就把 5 张表的前几行整行拷到 NPU。R1 独自在跑时每步拷 1 行，5 张表合计约 134 KiB，其中尾状态组那一行占了约 97%。二是算槽位：每个新 token 一次「除、查、乘加」，在 NPU 上并行做完。执行器提前发起拷贝，让它有机会与 CPU 上的其余准备重叠；实际隐藏了多少时间、槽位计算是否落在关键路径上，仍需 profiling，不能只从字节数判定开销可忽略。
 
 ## 分页布局和同名算子是两回事
 
@@ -226,7 +283,7 @@ GLM 所有带缓存的层（11 层稀疏 MLA、MTP 层、34 层 KDA）都按块�
 
 - **「块表里存的是显存地址。」** 存的是块号，一个整数。槽位也只是「池里第几格」，不是字节偏移；一格对应多少字节、落在哪一层，要按缓存布局（层、头数、维度、精度）再算，见 [KV cache](kv-cache.md)。
 - **「每一步都要重建这张表。」** 一行只在要了新块、换了行、请求结束时变。每步重算的是槽位，而且在 NPU 上算。
-- **「表里的 0 指向块 0。」** 0 是空格。块 0 是池里的占位块，从不分给请求；槽位映射和 indexer 折回的表用 −1 表示无效。
+- **「表里的 0 是请求实际分到的普通块。」** 0 指向池里保留的占位块，不是请求分到的有效缓存块；indexer 折回块表时也保留这个 0。槽位映射用 −1 表示不写入，两种标记不能混用。
 - **「一个模型一张块表。」** 一个缓存组一张。GLM 有 5 张，其中 3 张 KDA 的表不算槽位，块号直接当状态页编号。
 - **「块长到底是 128 还是 640？」** 都是：分配按 640 一块，full 组的表和算子按 128 一格，两种算法得出的槽位相同。尾状态组的 4、KDA 组的 133,120 也叫块长，五种含义放在一起见 [KV cache 规格](kv-cache-spec.md#block_size-到底指哪一个五种含义)。
 - **「源码里的 logical block 就是本页的逻辑块号。」** 昇腾块表代码里，physical block size 指 640 的分配块，logical block size 指 128 的 kernel 块，说的是块长的两层；本页的逻辑块号是请求自己从 0 数的块序号，对应论文里的 logical block。读代码时按上下文分辨。
@@ -234,6 +291,8 @@ GLM 所有带缓存的层（11 层稀疏 MLA、MTP 层、34 层 KDA）都按块�
 - **「分块以后，一条请求最多浪费不到一块。」** 这只对单个按位置增长的组成立。R1 第一步的 15 个块号里，12 个是 KDA 状态，full 组那一块也只用了 4 格。
 
 ## 对照源码
+
+**固定块表的选择规则。** `kernel_sizes` 为 `None` 或恰好为 `[0]` 时不拆分，逻辑块长与物理块长相同，转换直接返回物理块数组；其他列表按顺序取第一个大于零且能整除物理块长的值，所以候选顺序可能影响结果，并非总选最小值（来源 5、7）。表行容量只对压缩感知的 `AscendMLAAttentionSpec` 使用压缩比；GLM indexer kpool 使用上游 `MLAAttentionSpec`，仍按未压缩 token 数分配，不能仅凭同名字段缩减表行。缓存内容与块映射是不同的写入对象，改变前者不自动改后者。
 
 ### 怎么开
 
@@ -243,6 +302,8 @@ GLM 所有带缓存的层（11 层稀疏 MLA、MTP 层、34 层 KDA）都按块�
 - **缓冲与行操作。** 每个 `BlockTable` 的表是 int32 的 CPU/NPU 双份缓冲，行数 `max_num_reqs`，另有 numpy 游标 `num_blocks_per_row`；`add_row` = 游标归零再 `append_row`，`clear_row` 把用过的列填回 0，`move_row` / `swap_row` 整行复制或对调 [C6]。调用方在上游持久批次：`add_request` → `add_row`、`remove_request` → `clear_row`、`swap_states` → `swap_row`、`condense` → `move_row` [C22]；老请求的新块在 `_update_states` 里 `append_row`，抢占恢复时整组替换 `block_ids` 再重新入座 [C24]。
 - **kernel 块长。** model runner 对每个 `AttentionSpec` 组调 `select_common_block_size(块长, 该组后端)`，非注意力组填 `[0]`，注释写明用来关掉 Mamba 组的槽位计算 [C9]。该函数先看分配块长本身是否被所有后端接受，否则从各后端 int 形式的块长里由大到小挑第一个能整除、又被所有后端接受的。GLM 的 MLA 后端只返回 `[GLM5_SFA_KERNEL_BLOCK_SIZE]` 即 128 [C18]，indexer K 与尾状态后端返回 `MultipleOf(1)`。
 - **拆块。** 昇腾 `BlockTable.__init__` 取第一个能整除 `physical_block_size` 的 kernel 块长：`block_size = 128`、`blocks_per_phys_block = 640 // 128 = 5`、`use_hybrid_blocks = True`，列数 = 每请求最大块数 × 5 [C5]。`append_row` 经 `_convert_physical_to_logical_blocks` 把 b 展开成 `b*5 … b*5+4` [C7]；上游 vLLM 的同一逻辑叫 `map_to_kernel_blocks`。worker 切显存时把 GLM 主 MLA 缓存按 `num_blocks * blocks_per_scheduler_block` 段、每段 128 个位置取形状 [C13]。
+
+
 - **列数。** `max_num_blocks_per_req = cdiv(max_model_len, block_size × CP 总数)`，Mamba 组在此基础上加 `num_speculative_blocks`；昇腾块表只对 `AscendMLAAttentionSpec` 按 `compress_ratio` 缩列，GLM 的 indexer K 用上游 `MLAAttentionSpec`，不缩。本部署三类行宽 1,040 / 33,280 / 4 格 [D]。
 - **槽位公式。** 上游 Triton kernel 的核心三行，与官方文档「块号 × 块长 + 块内偏移」的四步对应 [C4][S31]：
 
@@ -258,6 +319,8 @@ GLM 所有带缓存的层（11 层稀疏 MLA、MTP 层、34 层 KDA）都按块�
 ### 会报什么错
 
 - `None of the kernel sizes [...] can divide physical block size ... evenly`：没有能整除分配块长的 kernel 块长。640 能被 128 整除，本部署不触发。
+
+
 - `Block table row capacity exceeded: row=..., capacity=...`：镜像 db701c1f 在 `append_row` 里新增的检查。同文件注释说明，若像 v0.23 那样对带 `compress_ratio` 字段的规格一律缩列，GLM indexer 的长序列会写穿一行、让引擎退出，所以缩列只认 `AscendMLAAttentionSpec`。
 - `GLM-5 logical block size must be divisible by the SFA kernel block size`、`GLM-5 indexer received a partially expanded SFA block table`、`GLM-5 indexer block table exceeds its persistent buffer`：indexer builder 的三道检查 [C14]。
 - `No common block size for ...`：同组后端找不到共同的 kernel 块长。
@@ -269,10 +332,12 @@ GLM 所有带缓存的层（11 层稀疏 MLA、MTP 层、34 层 KDA）都按块�
 - **关不掉，也不必省。** 5 张表一行合计 137,328 B，32 行约 4.19 MiB，NPU、CPU 各一份；一个块号每卡 7.969 MiB 的推导在[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存) [D]。
 - **提交。** `_prepare_inputs` 最前面调 `commit_block_table(num_reqs)`，注释写明先发起拷贝，与后续 CPU 工作重叠 [C11]。db701c1f 的实现是 `cpu[:num_reqs].clone().pin_memory()` 后 `non_blocking` 拷到 NPU，拷的是整行，所以 R1 独自在跑时每步约 134 KiB，尾状态组那行占约 97%。
 - **槽位。** 不开 PCP 时在准备输入中段调 `compute_slot_mapping`；`MultiGroupBlockTable` 跳过 `is_mamba_group` 的组。kernel 的 grid 是 `num_reqs + 1`，最后一个 program 把 `num_tokens` 之后到 `max_num_tokens` 的尾部填成 `PAD_SLOT_ID`。昇腾的槽位缓冲是 int32，上游是 int64。
-- **稀疏注意力读表。** 生产路径 `_execute_sparse_flash_attention_process` 把 `attn_metadata.block_table` 与 top-k 索引交给 `npu_sparse_flash_attention`，`layout_kv="PA_BSND"` [C19][C20]。旧版出处指向的 `_sparse_attention_pytorch` 只被单元测试调用，推理时不执行。
-- **待核。** 拷表与算槽位每步的实际耗时没有 profiling 数据，正文「不在关键路径」是按操作量推断 [!]。尾状态组在长序列下窗口外的块怎样回收（decode 时手里 3–4 块，窗口外的整块换成 null block 还池），归 [KV 块分配](vllm-kv-block-allocation.md#kda-组和尾状态组借法和普通注意力不同)；表里对应格写什么，没有核 [!]。
+- **稀疏注意力读表。** 生产路径 `_execute_sparse_flash_attention_process` 把 `attn_metadata.block_table` 与 top-k 索引交给 `npu_sparse_flash_attention`，`layout_kv="PA_BSND"` （调用位置见来源 19，设备接口见来源 20）[C20]。旧版出处指向的 `_sparse_attention_pytorch` 只被单元测试调用，推理时不执行。
+- **待核。** 拷表与算槽位每步的耗时及与 CPU 准备的重叠量缺 profiling 数据。尾状态组在长序列下窗口外的块怎样回收（decode 时手里 3–4 块，窗口外的整块换成 null block 还池），见 [KV 块分配](vllm-kv-block-allocation.md#kda-组和尾状态组借法和普通注意力不同)；表中已回收位置的具体填充值还需核对执行器更新分支。
 
 ### 版本差异
+
+**v0.30.0rc2 延续了逻辑块与物理块分离，并把环形尾状态单独处理。** 普通 DCP 槽位以 physical_block_size×DCP 定位虚拟物理块，再映射到本卡；不再把 PCP 额外乘入。Mamba 状态在 DCP rank 间复制，表容量直接取 spec 给出的每卡容量。环形尾缓存要求 DCP=1，每请求一格物理环，不拆成普通逻辑页；通用 compute_slot_mapping 对该组填 PAD_SLOT_ID，由专用状态路径管理。因而本页旧镜像的尾状态表长度和 PCP×DCP 扩列公式不能直接用于 rc2。
 
 钉点：v0.23 为 Ascend `2c59ff10` / vLLM `0fc695fc`，v0.26 为 Ascend `2ed6cbba` / vLLM `568afb3a`，main 为 Ascend `baa023ad`。**本页 GLM 行为按专用镜像 Ascend `db701c1f`。** v0.23 与 v0.26 里没有 GLM-5.3-Flash 的模型文件，下表这两列只说明块表类本身的差别。
 
@@ -280,10 +345,12 @@ GLM 所有带缓存的层（11 层稀疏 MLA、MTP 层、34 层 KDA）都按块�
 |---|---|---|---|---|
 | GLM 专用路径 | 无 | 无 | 有 glm5next 模型目录；尾状态改用环形规格，每请求固定一页 | indexer 折表、三套槽位按镜像写，读社区分支时文件名对不上 |
 | 尾状态组一行 | 不适用 | 不适用 | 环形组一行只留 1 格，kernel 块长强制等于块长 [C39] | 镜像一行 33,280 格，main 只要 1 格 |
-| 槽位 kernel | 导入上游 kernel，一批 1024 个 token [C34] | 昇腾自有 kernel，按 tile 处理，只把行内一窗相邻列载进片上再 gather [C38] | 同 v0.26；非 KDA 的组合成一次调用 | 槽位结果相同；profiling 里 kernel 名和调用次数不同 |
+| 槽位 kernel | 导入上游 kernel，一批 1024 个 token [C34] | 昇腾自有 kernel，按 tile 处理，只把行内一窗相邻列载进片上再 gather [C38] | 同 v0.26；多于一个非 Mamba 组、各组 DCP=1 且没有压缩位置覆盖时可融合一次调用 | 其他条件仍逐组计算，profiling 里 kernel 名和调用次数不同 |
 | 行扩展与槽位缓冲 | pcp × dcp > 1 时行数乘 (1 + 投机数)；槽位缓冲多留 2 × pcp × 最大请求数，再加 MTP 草稿余量 | 行扩展只看 dcp；槽位缓冲只加草稿余量 | 同 v0.26 | 不开 CP 时 v0.23 白留 2 × 最大请求数个 int32，不是 bug |
 | 提交方式 | `clone().pin_memory()` 后非阻塞拷 | 上游 `copy_to_gpu` | 同 v0.26 | 行为等价，v0.23 每步多一次 clone |
-| 列数调整 | 带 `compress_ratio` 字段就缩列；Mamba 组 pcp × dcp > 1 时扩列 | 缩列同 v0.23；Mamba 扩列只看 dcp | 两步都删，注释写明规格已给出每卡容量、Mamba 状态在 DCP 间复制 | 读 main 时去规格里找列数 |
+| 列数调整 | UniformType 包装内的规格带 `compress_ratio` 时缩列；Mamba 组 pcp × dcp > 1 时扩列 | 缩列同 v0.23；Mamba 扩列只看 dcp | 两步都删，注释写明规格已给出每卡容量、Mamba 状态在 DCP 间复制 | 读 main 时去规格里找列数 |
+
+版本表来源 39 的容量特例已对照 `vllm-ascend@baa023ad:vllm_ascend/worker/block_table.py#L53-L60`：环形尾缓存要求 `dcp_world_size == 1`，否则抛出不支持上下文并行的错误。满足条件时，每个请求使用一个物理环，表行容量设为 1，并把 kernel 块大小设为整个物理块以禁止普通逻辑拆分。这种状态布局需要与普通分页块展开分别理解；这里说明该固定快照分支，不表示本部署已切换到它，也没有设备实测。
 
 镜像 `db701c1f` 在块表上与 v0.23 基本一致：导入上游 kernel、用 `clone()` 提交。不同有三处：缩列只认 `AscendMLAAttentionSpec`；`append_row` 多了行容量检查；槽位缓冲只多留 2 × pcp × 最大请求数，没有 MTP 草稿余量。上游 vLLM `0fc695fc` 自带同构的 `BlockTable` 与 `MultiGroupBlockTable`，昇腾用自己的版本替换。
 
@@ -306,3 +373,5 @@ GLM 所有带缓存的层（11 层稀疏 MLA、MTP 层、34 层 KDA）都按块�
 | 版本对照 | `2c59ff10` 块表 L1–L180、L278–L283；`2ed6cbba` 块表 L10–L108、L289–L290 与 `ops/triton/compute_slot_mapping.py` L12–L86；`baa023ad` 块表 L36–L110、L298–L299、L415–L490 与 `core/kv_cache_interface.py` L303–L318 |
 
 **正文推导口径。** 首屏与示意图用一块 4 个位置、块表 [7, 2, 9] 的假设，只为手算 [A]。R1 的 15 个块号、640、133,120、32 取自主线底稿 01 §A0.4–A0.5、§A2.1–A2.2，每 token 字节取自底稿 02 §5.6；行宽、4.19 MiB、每步 134 KiB 与三套槽位的换算是按上面源码公式代入这些数得出的 [D]。
+
+indexer 折表的空标记由来源 15 的第 236–243 行确定：来源 46 对本部署的 storage_block_size=160 返回一个完整 indexer 块，因而直接复制折回的块号，0 仍为 0；来源 16 才把无效写入槽位变成 −1。不能用槽位的 PAD 规则解释块表。

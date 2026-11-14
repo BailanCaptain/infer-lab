@@ -1,0 +1,79 @@
+{
+  "reviewer": "/root/groups_replay_review",
+  "status": "three_requested_directory_descendants_fully_read; not all Mooncake descendants",
+  "commit": "4da33e5b44c28aec262dff63458c0bdb1c9bc8b0",
+  "counting": {
+    "additional_full_documents_after_first_three": 3,
+    "total_new_Mooncake_full_documents_in_group": 6,
+    "total_new_Mooncake_full_document_lines": 4184,
+    "additional_unique_technical_images": 1,
+    "total_new_unique_technical_images_in_group": 3,
+    "dedup_check": "rg of the three new SHA values in docs/reviews returned only this group's reading record before this file was written"
+  },
+  "documents": [
+    {
+      "path": "docs/source/getting_started/build.md",
+      "sha256": "d2a619e8b11e36a4a5fa76c49d18bf608c1b752f44e3996055a0fa16cb0eec66",
+      "actual_read_ranges": [[1,260],[261,546]],
+      "all_tables_read": true,
+      "external_technical_images": 0,
+      "meaning_for_site": "Build dependencies and chosen backend are part of the deployment contract; a package name alone does not prove accelerator support. Current SDK documents Ascend Direct/UBSHMEM separately from CUDA, XPU, MLU and other transports.",
+      "specific_exclusion": "Do not add all vendor compiler instructions, Store-RS/EP, XPU IPC or HiCache hugepage sizing into the three Ascend conceptual pages. They are different hardware, optional components or SGLang examples and have no verified consumer in the selected four vLLM connector paths. A short link with the pinned version and hardware boundary is appropriate. No build or hardware command was executed."
+    },
+    {
+      "path": "docs/source/design/store/mooncake-store.md",
+      "sha256": "678096300c9d0f769c445defdc5d90df9a44b4b7a26ae9d400b821a71c20de02",
+      "actual_read_ranges": [[1,240],[241,480],[481,720],[721,908]],
+      "all_tables_and_protocol_examples_read": true,
+      "meaning_for_site": "Master is the metadata/control allocator, not the data carrier; resource-owning clients hold segments. An embedded requester, dummy-real forwarding pair, and separate storage service are distinct SDK arrangements. The zero global segment pure-client case supports the two-mode explanation without conflating DummyClient.",
+      "additional_boundaries": [
+        "Store object read lease (default 10 seconds) is separate from NIXL request lease (default 30 seconds).",
+        "Object grouping is a best-effort lifecycle hint, not a transaction proving all shards visible or atomically created.",
+        "Soft pin is eviction priority with a fixed deadline; hard pin differs. Neither means durable model identity.",
+        "DISK, LOCAL_DISK and descriptor DFS have distinct ownership and recovery rules; experimental DFS is outside generic fault-tolerance guarantees.",
+        "Introductory immutable-value wording must be read with the later explicit Upsert lifecycle; introductory availability claim must be read with single-master and HA serving gates. No blanket guarantee is copied into site."
+      ],
+      "specific_exclusion": "Allocation strategy benchmarks, HA snapshot internal protocols, grouping, CXL/HCA locality and API protobuf catalogue have been read, but are not presented as capabilities already used by AscendStore or the fixed vLLM integrations. The existing site does not need every SDK feature duplicated."
+    },
+    {
+      "path": "docs/source/deployment/mooncake-store-deployment-guide.md",
+      "sha256": "abb19380a5f6f1d61947277eedea41dc3f3087793e7f38b4bf5e5ea722835c5d",
+      "actual_read_ranges": [[1,290],[291,560],[561,820],[821,1080],[1081,1340],[1341,1557]],
+      "all_tables_and_ASCII_diagrams_read": true,
+      "meaning_for_site": "Master, TE metadata, resource-owning clients and requester processes are different roles and ports. SSD owner fields and three launch methods require separate configuration spelling. Eager offload differs from eviction-triggered offload; legacy shared-filesystem persistence cannot be silently mixed into local SSD.",
+      "additional_boundaries": [
+        "The generic Method B statement about vLLM/SGLang reading MooncakeConfig is not applied to the selected fixed vLLM sources: their own MooncakeStoreConfig loads mandatory JSON and then calls setup.",
+        "A Store service can supply TE metadata through the embedded HTTP service, or use P2PHANDSHAKE; a separate external metadata daemon is not universally required.",
+        "HA election alone is not metadata continuity; etcd OpLog/snapshot serving gates and Redis experimental constraints matter. None is claimed enabled by simply starting mooncake_master.",
+        "A successful DFS WriteAt is not fsync durability; DFS allocator recovery and multi-tenant support are explicitly incomplete.",
+        "Local hot-cache bytes, shared memory, HugeTLB and SPDK registration are separate options; no inference that enabling one makes the old Ascend consumer use the others."
+      ],
+      "specific_exclusion": "HA maintenance, etcd compaction/destructive reset, experimental DFS/NoF, object-event publishers and every MC_* performance knob are outside the present three-page teaching scope. They remain read-and-classified reference branches, not executable instructions or claims of installed support."
+    }
+  ],
+  "shared_figure": {
+    "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage/external/mooncake/docs/source/image/mooncake-store-preview.png",
+    "official_path": "docs/source/image/mooncake-store-preview.png",
+    "sha256": "a54417db79b2a6b53fe82f2f85c008b93a2580afe64f4fddd270fc43e79de14a",
+    "http_status": 200,
+    "bytes": 262647,
+    "actually_viewed": true,
+    "judgment": "Separate Master control plane fans out to Store clients; lower logical pool includes embedded and standalone clients; data path is Transfer Engine client-to-client. The diagram's shared process boxes illustrate embedded integration, not a universal implementation requirement.",
+    "count": "one image referenced by both design and deployment; counted once"
+  },
+  "outgoing_directory_branches": [
+    {"branch":"Store SSD deployment and design", "status":"full_read_in_this_group", "reason":"Directly carries the requested SSD configuration and ownership explanation."},
+    {"branch":"Store Python/C++ API details", "status":"selected_actual_setup_consumers_read; full_API_reference_not_read", "reason":"Actual setup versus setup_dummy was verified in fixed C++ binding; exhaustive API semantics are not claimed."},
+    {"branch":"Multi-tenancy and cache sharing/isolation", "status":"new_snapshot_descendants_not_full_read", "reason":"Relevant when expanding tenant/key identity; current page already has separately fixed prior material. This snapshot is not silently substituted for it."},
+    {"branch":"Store metadata-management and Engram sub-design", "status":"new_snapshot_descendants_not_full_read", "reason":"Named in official toctree; not proven to be the DeepSeek model Engram behavior. Keep separate for future content mapping rather than conflating the name."},
+    {"branch":"Store allocator/allocation-strategy benchmark pages", "status":"not_full_read", "reason":"No allocator throughput, memory-utilization, or end-to-end speed claim added; descriptive mother sections already read."},
+    {"branch":"Store-RS, EP/PG and vendor hardware transport guides", "status":"not_full_read", "reason":"Optional components/different hardware are not consumers of the selected four connector implementations; build mother fully read and branch boundaries retained."},
+    {"branch":"Object storage, NVMe-oF, HF3FS and immutable DFS allocator", "status":"not_full_read", "reason":"Different storage backends and experimental features; no promise that local SSD offload enables these routes."},
+    {"branch":"Observability and etcd operator manuals", "status":"not_full_read", "reason":"Current group adds no production HA operating recipe or numerical recovery SLA; mother deployment operational sections were fully read."}
+  ],
+  "global_limits": [
+    "No claim that the entire Mooncake documentation tree or all official materials are complete.",
+    "No SDK source build, device execution, SSD benchmark, recovery drill or destructive maintenance performed.",
+    "Three original production article images remain open in external-tail-production-status.json."
+  ]
+}

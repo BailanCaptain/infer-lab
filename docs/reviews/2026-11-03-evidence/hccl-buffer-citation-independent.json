@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-03",
+  "reviewer": "review_publication_fix",
+  "page": "wiki/concepts/gap-a5164fe10fa9184412f8.md",
+  "sha256": "0afc38ceb6b866e0556377e2da6393e162746de4e771e9171c1c7f931643959e",
+  "result": "accepted_increment",
+  "scope": "完整精确差异及其新增/关联原始证据的独立静态复核；并非独立重核43项全部历史引文。作者43项保留root逐项判定。",
+  "actual_read": [
+    "root-hccl-remediation.diff全文（正文、flow YAML与SVG文本）",
+    "原sources1–8、11、14、15及新增32–43全部范围",
+    "db701c1f moe_comm_method.py40–65/260–302：FUSED_MC2与MC2真实消费者映射",
+    "db701c1f patch_distributed.py180–269：释放、睡眠恢复、替换入口",
+    "CANN 9.1.X HCCL_BUFFSIZE官方原文全文（root缓存hccl-buffer-official.txt）"
+  ],
+  "closed": [
+    "DP2实际4个int32及CPU同步不推出设备零分配",
+    "启动容量检查先于建组；融合DispatchFFNCombine窗口条件与A2实际分支分离",
+    "附加组构造条件、coordinator缓存和group_name作用范围",
+    "P3睡眠重建source42已扩238–269、图pin238–246与正文映射一致"
+  ],
+  "limits": [
+    "未使用UI或NPU，未做视觉/部署/实际显存测量",
+    "首图未变更；flow图仅语义与SVG文本同步核验",
+    "未把root的文件全版本hash比较当作本人的独立执行"
+  ]
+}

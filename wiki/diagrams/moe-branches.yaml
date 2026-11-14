@@ -1,6 +1,6 @@
 layout: figure
 id: moe-branches
-caption: 一层 MoE 在 GLM 双机部署（W8A8、多流重叠默认关）里的两条分支。每个 token 的同一条隐藏向量同时进入两支。左边的路由专家要先打分再选 8 个，跨卡的派发与回收归专家并行页；右边的共享专家不打分、不选，所有 token 都过，而且走的是把反量化、限幅 SwiGLU 与再量化合在一起的融合算子。两条分支的输出在层出口相加，宽度不变。
+caption: GLM 双机 W8A8、共享专家 TP8、多流关闭的教学基线下，两支都使用同一 token 的隐藏向量，连线不表示同时执行。左侧先打分选 8 个，跨卡派发与回收见专家并行页；右侧所有 token 都过，调用反量化、限幅 SwiGLU、再量化的融合算子。两支输出在出口相加，宽度不变；共享专家复制等条件改变时须另核分片与通信。
 size: [880, 470]
 frames:
   - { label: 路由专家分支 · 要打分, at: [40, 128], size: [364, 252] }
@@ -9,7 +9,7 @@ items:
   - { at: [330, 44], size: [220, 50], text: 这一层的输入, sub: 每个 token 一个隐藏向量, tone: token }
   - { at: [56, 148], size: [332, 42], text: 打分：宽度 4096 → 288 个分数, tone: control }
   - { at: [56, 202], size: [332, 42], text: 加偏置选 8 个，算出组合权重, tone: control }
-  - { at: [56, 256], size: [332, 42], text: 8 个专家各做三段矩阵乘, tone: weight }
+  - { at: [56, 256], size: [332, 42], text: 8 个专家各做三个逻辑投影, tone: weight }
   - { at: [56, 310], size: [332, 42], text: 按组合权重加权求和, tone: token }
   - { at: [484, 148], size: [340, 42], text: 激活量化, tone: weight }
   - { at: [484, 202], size: [340, 42], text: gate 与 up 投影, tone: weight }

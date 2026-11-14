@@ -57,5 +57,5 @@
   <text x="755" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">编号取各自卡号</text>
   <text x="30" y="280" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">full 组：潜向量与 indexer，8 卡相同</text>
   <text x="30" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">KDA 组：64 个头按卡切，每卡 8 个</text>
-  <text x="30" y="338" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">名字里没有 DP 编号：两台机器可互取</text>
+  <text x="30" y="338" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">名字里没有 DP 编号；两台机器仍须使用兼容的权重与缓存布局</text>
 </svg>

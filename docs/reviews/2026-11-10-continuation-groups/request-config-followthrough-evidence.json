@@ -1,0 +1,318 @@
+{
+  "scope": "Official configuration includes followthrough: two coverage additions; teaching pages unchanged by reviewer",
+  "status": "evidence_ready_for_author",
+  "recorded_at": "2026-11-10T12:30:47.878817+00:00",
+  "items": [
+    {
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/multimodal/media/connector.py#L128-L235",
+      "claim": "原始媒体字节缓存的初始化、URL键、读写、滑动mtime过期与LRU淘汰；非encoder/processor/KV cache",
+      "read_scope": "L128–235",
+      "source_sha256": "51cfb958324d633856c70e845965506201bdfc69a97f9fb059e2a6a7e7d44952",
+      "excerpt_sha256": "c3a15cf6603321acc1f760ad0265d53aa8d8c809be9039c50f45b2d18160a186",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/baseline-1.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/multimodal/media/connector.py#L286-L369",
+      "claim": "HTTP同步/异步命中跳过网络下载但仍load_bytes；data/file不走该字节缓存。新版本下载失败包装/max_bytes变化不改变此缓存职责",
+      "read_scope": "L286–369",
+      "source_sha256": "51cfb958324d633856c70e845965506201bdfc69a97f9fb059e2a6a7e7d44952",
+      "excerpt_sha256": "e565a19a5c3183e59989bf28a1d6441f78f5d83ccc87851bbc1e0fcf656e9488",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/baseline-2.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/envs.py#L920-L932",
+      "claim": "目录默认空字符串关闭；容量整数5120按消费者乘1024²；TTL浮点24小时，未设额外范围校验",
+      "read_scope": "L920–932",
+      "source_sha256": "b776fb6b1bae4a4f1d6c53792e65e15bd6cde7e70d5c17ef08dfeec54cd59603",
+      "excerpt_sha256": "fee2740fabbe60516e8a10338c3de452116f65c705d7579d6d3f060b4d383eb2",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/baseline-3.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/envs.py#L488-L514",
+      "claim": "VLLM_PORT未设置None；设值转int；URI格式发出K8s服务发现提示，不是HTTP监听地址",
+      "read_scope": "L488–514",
+      "source_sha256": "b776fb6b1bae4a4f1d6c53792e65e15bd6cde7e70d5c17ef08dfeec54cd59603",
+      "excerpt_sha256": "391ef4817e6465b8c1cb4e10e84e476d7449dd0d4a028864d700a10d859f4fe2",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/baseline-4.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/envs.py#L664-L671",
+      "claim": "VLLM_PORT定义绑定get_vllm_port，内部多端口按起始值递增",
+      "read_scope": "L664–671",
+      "source_sha256": "b776fb6b1bae4a4f1d6c53792e65e15bd6cde7e70d5c17ef08dfeec54cd59603",
+      "excerpt_sha256": "9525f7430fdf0eefb59c097ef938cbe95183133c81fc04cda66a3ac11df70147",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/baseline-5.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/utils/network_utils.py#L169-L220",
+      "claim": "内部端口查找读取envs.VLLM_PORT；取可用端口遇占用递增，不能用--port替代内部环境变量；新版还避DP保留区",
+      "read_scope": "L169–220",
+      "source_sha256": "83b24f1e0026d1737e036a5abedc2f34ae234df5ccd7f1addab801c3cba55de9",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/baseline/vllm/utils/network_utils.py",
+      "judgment": "supported_for_stated_scope",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/multimodal/media/connector.py#L190-L297",
+      "claim": "原始媒体字节缓存的初始化、URL键、读写、滑动mtime过期与LRU淘汰；非encoder/processor/KV cache",
+      "read_scope": "L190–297",
+      "source_sha256": "5b786ae9081bbabbdd6837aef72664e23a9d5b332279a5ee75b6a547f6cbdcda",
+      "excerpt_sha256": "c3a15cf6603321acc1f760ad0265d53aa8d8c809be9039c50f45b2d18160a186",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/v026-1.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/multimodal/media/connector.py#L348-L443",
+      "claim": "HTTP同步/异步命中跳过网络下载但仍load_bytes；data/file不走该字节缓存。新版本下载失败包装/max_bytes变化不改变此缓存职责",
+      "read_scope": "L348–443",
+      "source_sha256": "5b786ae9081bbabbdd6837aef72664e23a9d5b332279a5ee75b6a547f6cbdcda",
+      "excerpt_sha256": "07d55399281febc0ed75ec95a1207d16ac6e7a70caa2fe5124d010e06ba839aa",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/v026-2.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/envs.py#L941-L953",
+      "claim": "目录默认空字符串关闭；容量整数5120按消费者乘1024²；TTL浮点24小时，未设额外范围校验",
+      "read_scope": "L941–953",
+      "source_sha256": "e078b0acb8e658faa6a8144d13a9036e2a82af40b348f419489a2607247cd936",
+      "excerpt_sha256": "fee2740fabbe60516e8a10338c3de452116f65c705d7579d6d3f060b4d383eb2",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/v026-3.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/envs.py#L479-L505",
+      "claim": "VLLM_PORT未设置None；设值转int；URI格式发出K8s服务发现提示，不是HTTP监听地址",
+      "read_scope": "L479–505",
+      "source_sha256": "e078b0acb8e658faa6a8144d13a9036e2a82af40b348f419489a2607247cd936",
+      "excerpt_sha256": "d64c49fc8abb18c55669783c0cbb98a1105e4eee13d8bd72ef4ea544767f22d1",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/v026-4.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/envs.py#L685-L692",
+      "claim": "VLLM_PORT定义绑定get_vllm_port，内部多端口按起始值递增",
+      "read_scope": "L685–692",
+      "source_sha256": "e078b0acb8e658faa6a8144d13a9036e2a82af40b348f419489a2607247cd936",
+      "excerpt_sha256": "9525f7430fdf0eefb59c097ef938cbe95183133c81fc04cda66a3ac11df70147",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/v026-5.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/utils/network_utils.py#L169-L220",
+      "claim": "内部端口查找读取envs.VLLM_PORT；取可用端口遇占用递增，不能用--port替代内部环境变量；新版还避DP保留区",
+      "read_scope": "L169–220",
+      "source_sha256": "83b24f1e0026d1737e036a5abedc2f34ae234df5ccd7f1addab801c3cba55de9",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/v026/vllm/utils/network_utils.py",
+      "judgment": "supported_for_stated_scope",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/multimodal/media/connector.py#L204-L311",
+      "claim": "原始媒体字节缓存的初始化、URL键、读写、滑动mtime过期与LRU淘汰；非encoder/processor/KV cache",
+      "read_scope": "L204–311",
+      "source_sha256": "41230d20984205fc1fa711bab4e06cd56962ad542c2e179f82fd730e5da39a06",
+      "excerpt_sha256": "c3a15cf6603321acc1f760ad0265d53aa8d8c809be9039c50f45b2d18160a186",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/rc2-1.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/multimodal/media/connector.py#L366-L465",
+      "claim": "HTTP同步/异步命中跳过网络下载但仍load_bytes；data/file不走该字节缓存。新版本下载失败包装/max_bytes变化不改变此缓存职责",
+      "read_scope": "L366–465",
+      "source_sha256": "41230d20984205fc1fa711bab4e06cd56962ad542c2e179f82fd730e5da39a06",
+      "excerpt_sha256": "a060c5bcf724714c879821ba630d1a9bf020238db46f9927405c6bedb0202c2b",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/rc2-2.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/envs.py#L958-L970",
+      "claim": "目录默认空字符串关闭；容量整数5120按消费者乘1024²；TTL浮点24小时，未设额外范围校验",
+      "read_scope": "L958–970",
+      "source_sha256": "fbd370b2f56ff798d373e85705c9e044ccae893ef974f2800eec4ef6f2b4fb7f",
+      "excerpt_sha256": "fee2740fabbe60516e8a10338c3de452116f65c705d7579d6d3f060b4d383eb2",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/rc2-3.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/envs.py#L507-L533",
+      "claim": "VLLM_PORT未设置None；设值转int；URI格式发出K8s服务发现提示，不是HTTP监听地址",
+      "read_scope": "L507–533",
+      "source_sha256": "fbd370b2f56ff798d373e85705c9e044ccae893ef974f2800eec4ef6f2b4fb7f",
+      "excerpt_sha256": "d64c49fc8abb18c55669783c0cbb98a1105e4eee13d8bd72ef4ea544767f22d1",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/rc2-4.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/envs.py#L703-L710",
+      "claim": "VLLM_PORT定义绑定get_vllm_port，内部多端口按起始值递增",
+      "read_scope": "L703–710",
+      "source_sha256": "fbd370b2f56ff798d373e85705c9e044ccae893ef974f2800eec4ef6f2b4fb7f",
+      "excerpt_sha256": "9525f7430fdf0eefb59c097ef938cbe95183133c81fc04cda66a3ac11df70147",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/rc2-5.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/utils/network_utils.py#L190-L249",
+      "claim": "内部端口查找读取envs.VLLM_PORT；取可用端口遇占用递增，不能用--port替代内部环境变量；新版还避DP保留区",
+      "read_scope": "L190–249",
+      "source_sha256": "383648e9374a6f2304fec91bd6a54aeb0301c009e69c267bcdc4dfbed38e20e9",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/rc2/vllm/utils/network_utils.py",
+      "judgment": "supported_for_stated_scope",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/multimodal/media/connector.py#L204-L311",
+      "claim": "原始媒体字节缓存的初始化、URL键、读写、滑动mtime过期与LRU淘汰；非encoder/processor/KV cache",
+      "read_scope": "L204–311",
+      "source_sha256": "41230d20984205fc1fa711bab4e06cd56962ad542c2e179f82fd730e5da39a06",
+      "excerpt_sha256": "c3a15cf6603321acc1f760ad0265d53aa8d8c809be9039c50f45b2d18160a186",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/main-1.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/multimodal/media/connector.py#L366-L465",
+      "claim": "HTTP同步/异步命中跳过网络下载但仍load_bytes；data/file不走该字节缓存。新版本下载失败包装/max_bytes变化不改变此缓存职责",
+      "read_scope": "L366–465",
+      "source_sha256": "41230d20984205fc1fa711bab4e06cd56962ad542c2e179f82fd730e5da39a06",
+      "excerpt_sha256": "a060c5bcf724714c879821ba630d1a9bf020238db46f9927405c6bedb0202c2b",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/main-2.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/envs.py#L971-L983",
+      "claim": "目录默认空字符串关闭；容量整数5120按消费者乘1024²；TTL浮点24小时，未设额外范围校验",
+      "read_scope": "L971–983",
+      "source_sha256": "f0810fdba3fc927a78058e77c7411aa82ddf6fd08cd9b4d245b4acef84554a96",
+      "excerpt_sha256": "fee2740fabbe60516e8a10338c3de452116f65c705d7579d6d3f060b4d383eb2",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/main-3.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/envs.py#L520-L546",
+      "claim": "VLLM_PORT未设置None；设值转int；URI格式发出K8s服务发现提示，不是HTTP监听地址",
+      "read_scope": "L520–546",
+      "source_sha256": "f0810fdba3fc927a78058e77c7411aa82ddf6fd08cd9b4d245b4acef84554a96",
+      "excerpt_sha256": "d64c49fc8abb18c55669783c0cbb98a1105e4eee13d8bd72ef4ea544767f22d1",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/main-4.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/envs.py#L716-L723",
+      "claim": "VLLM_PORT定义绑定get_vllm_port，内部多端口按起始值递增",
+      "read_scope": "L716–723",
+      "source_sha256": "f0810fdba3fc927a78058e77c7411aa82ddf6fd08cd9b4d245b4acef84554a96",
+      "excerpt_sha256": "9525f7430fdf0eefb59c097ef938cbe95183133c81fc04cda66a3ac11df70147",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/main-5.txt",
+      "judgment": "supported_for_stated_scope",
+      "read_method": "baseline selected source actually read; versions compared by full selected-method AST and textual diffs; env selected definitions and getters actually read",
+      "global_new_full_credit": 0
+    },
+    {
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/utils/network_utils.py#L190-L249",
+      "claim": "内部端口查找读取envs.VLLM_PORT；取可用端口遇占用递增，不能用--port替代内部环境变量；新版还避DP保留区",
+      "read_scope": "L190–249",
+      "source_sha256": "383648e9374a6f2304fec91bd6a54aeb0301c009e69c267bcdc4dfbed38e20e9",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-followthrough/main/vllm/utils/network_utils.py",
+      "judgment": "supported_for_stated_scope",
+      "global_new_full_credit": 0
+    }
+  ],
+  "version_diff": "Media cache four implementation methods AST-identical across4; ctor only path.resolve delta; HTTP v026 adds failure wrapper, rc2/main adds max_bytes. rc2/main whole connector bytes identical. Network selected two pairs text-identical.",
+  "teaching_recommendations": [
+    {
+      "page": "api-server-entry",
+      "placement": "三种缓存段后的补充及媒体入口配置表；独立于已冻结62项",
+      "claim": "另有可选下载字节磁盘缓存：省网络下载，不省解码/预处理/encoder/KV计算。URL应内容稳定，换内容而保持URL可能读取旧字节；默认关。",
+      "limits": "容量为淘汰目标非严格硬上限：新写文件被排除且并发无全局配额锁；TTL根据可触摸的mtime，不是固定创建年龄，也非后台定时扫描。不要把所有异常写成自动回退。"
+    },
+    {
+      "page": "engine-processes",
+      "placement": "VLLM_PORT排障一段；UCM K8s部署只回链",
+      "claim": "K8s服务名vllm可能产生VLLM_PORT=tcp://...，和内部整数端口冲突；检查容器实际环境和服务命名。--port仍是HTTP监听，不解决该getter错误。",
+      "limits": "选定K8s官方Environment variables节实际读；未读取或验收全部K8s部署。"
+    }
+  ],
+  "official_linked_evidence": [
+    {
+      "url": "https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables",
+      "read_scope": "web1420–1438",
+      "claim": "active service env naming plus legacy PORT=tcp:// variables, Service must predate Pod to inject",
+      "full_read": false
+    },
+    {
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:docs/configuration/env_vars.md#L1-L12",
+      "claim": "explicit service-vllm naming warning and VLLM_PORT/internal use",
+      "full_read": true,
+      "credit": "previous mother record reused"
+    }
+  ],
+  "no_hardware_execution": true,
+  "global_new_full_credit": 0
+}

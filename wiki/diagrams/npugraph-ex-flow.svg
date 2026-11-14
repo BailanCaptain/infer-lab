@@ -21,7 +21,7 @@
   <rect x="40" y="300" width="350" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="215" y="331" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">开：外部后端编译并替换</text>
   <rect x="490" y="300" width="350" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="665" y="331" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">关：inductor 编译，本地 pass manager 应用</text>
+  <text x="665" y="331" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">关：本地规则改写 FX 图并返回</text>
   <rect x="40" y="392" width="350" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="215" y="423" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">可选 static kernel：筛出宽度提前编译</text>
   <rect x="490" y="392" width="350" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
@@ -36,7 +36,7 @@
   <text x="675" y="672" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">否 → 这一轮逐个算子提交</text>
   <text x="250" y="274" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">开（默认）</text>
   <text x="640" y="274" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">关（仍然编译）</text>
-  <text x="440" y="376" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">两条路用的是同一批规则，换的只是谁来应用</text>
+  <text x="440" y="376" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">共享候选定义，具体应用条件仍须分路径检查</text>
   <text x="440" y="472" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">档位是 NONE 时上面这段整个不做</text>
   <text x="440" y="568" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">编译成功与本轮命中图是两次判断</text>
 </svg>

@@ -1,6 +1,6 @@
 layout: figure
 id: glm-two-node-topology
-caption: 官方双机配置下 16 张卡的分工：每台机器 8 张卡组成一个 TP 组，两台机器各是一个 DP 执行组，16 张卡合起来是一个 EP 组。图中数字是全局 rank，不规定板卡布局或网络布线。
+caption: 官方双机配置下 16 张卡的分工：每台机器 8 张卡组成一个 TP 组，两台机器各是一个 DP 执行组，16 张卡合起来是一个 EP 组。图中数字是全局 rank，不规定板卡布局或网络布线。20.58 GiB 与 MTP 的 540.75 MiB 是正文所列语言模块的子账，未含视觉塔、旋转矩阵和量化辅助张量；逐层精度须匹配量化版本。
 size: [900, 580]
 frames:
   - { at: [20, 92], size: [860, 330], label: "EP 组：16 张卡合起来放下 288 个路由专家" }
@@ -27,7 +27,7 @@ items:
   - { at: [26, 474], size: [200, 52], text: 18 个路由专家, sub: 288 ÷ 16, tone: weight, style: solid }
   - { at: [238, 474], size: [200, 52], text: attention 的大投影, sub: 按 TP 切 8 份，其余整份, tone: weight, style: faded }
   - { at: [450, 474], size: [200, 52], text: 1/8 份 MLP, sub: 稠密层与共享专家, tone: weight, style: faded }
-  - { at: [662, 474], size: [200, 52], text: MTP 第 45 层, sub: 每卡 540.75 MiB, tone: token, style: solid }
+  - { at: [662, 474], size: [200, 52], text: MTP 第 45 层, sub: 所列模块 540.75 MiB, tone: token, style: solid }
 links:
   - { from: [420, 262], to: [480, 262], tone: comm, ends: both }
 texts:
@@ -37,4 +37,4 @@ texts:
   - { at: [232, 375], text: TP 组：卡 0–7, anchor: middle }
   - { at: [668, 375], text: TP 组：卡 8–15, anchor: middle }
   - { at: [26, 452], text: 一张卡上放了什么, strong: true }
-  - { at: [450, 558], text: 每卡权重合计 20.58 GiB, anchor: middle, note: true }
+  - { at: [450, 558], text: 所列语言权重子账 20.58 GiB / 卡, anchor: middle, note: true }

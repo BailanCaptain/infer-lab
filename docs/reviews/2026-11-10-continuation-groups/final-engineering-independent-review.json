@@ -1,0 +1,3087 @@
+{
+  "check_files": 872,
+  "checks_before_after_equal": true,
+  "current_drift": [],
+  "checks": [
+    {
+      "command": "pnpm check:content",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/final-site-checks/content.log",
+      "sha256": "d82a6ecbb6e8b94d64d790401b2004a5bffd24533d2656c5ac60cd1aed82e469",
+      "started": "2026-11-10T18:02:53.177622+00:00",
+      "finished": "2026-11-10T18:02:53.979490+00:00",
+      "actual_sha256": "d82a6ecbb6e8b94d64d790401b2004a5bffd24533d2656c5ac60cd1aed82e469",
+      "hash_matches": true
+    },
+    {
+      "command": "pnpm wiki:lint",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/final-site-checks/lint.log",
+      "sha256": "12a38ca2de3576d77e66c68b575c0d7ef28bf24e5f458d866ee253fc6385891d",
+      "started": "2026-11-10T18:02:53.979490+00:00",
+      "finished": "2026-11-10T18:03:19.290591+00:00",
+      "actual_sha256": "12a38ca2de3576d77e66c68b575c0d7ef28bf24e5f458d866ee253fc6385891d",
+      "hash_matches": true
+    },
+    {
+      "command": "pnpm wiki:audit",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/final-site-checks/audit.log",
+      "sha256": "7244d07dc5a912e5105864ee987d9ff5fa13082bf8ffcdb37d334f173be43bd8",
+      "started": "2026-11-10T18:03:19.290591+00:00",
+      "finished": "2026-11-10T18:03:52.318813+00:00",
+      "actual_sha256": "7244d07dc5a912e5105864ee987d9ff5fa13082bf8ffcdb37d334f173be43bd8",
+      "hash_matches": true
+    },
+    {
+      "command": "pnpm wiki:diagrams --check",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/final-site-checks/diagrams.log",
+      "sha256": "3bd07a32bd1da109b683c55e8fbd19d579115a4bc2ab188889fc83ff2a13899d",
+      "started": "2026-11-10T18:03:52.318813+00:00",
+      "finished": "2026-11-10T18:03:54.979760+00:00",
+      "actual_sha256": "3bd07a32bd1da109b683c55e8fbd19d579115a4bc2ab188889fc83ff2a13899d",
+      "hash_matches": true
+    },
+    {
+      "command": "pnpm build",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/final-site-checks/build.log",
+      "sha256": "f0bf8910ae266ce99bf15ea18221c891f59950d115dcf11b090c60b1da0e92b2",
+      "started": "2026-11-10T18:03:54.979760+00:00",
+      "finished": "2026-11-10T18:04:19.674601+00:00",
+      "actual_sha256": "f0bf8910ae266ce99bf15ea18221c891f59950d115dcf11b090c60b1da0e92b2",
+      "hash_matches": true
+    }
+  ],
+  "registry_pages": 164,
+  "browser_unique_routes": 164,
+  "browser_registry_ids_equal": true,
+  "browser_before_after_equal": true,
+  "browser_failure_ids": [],
+  "maintenance_registry_ids_equal": true,
+  "maintenance_failure_ids": [],
+  "paused": [
+    "chunked-prefill-v2"
+  ],
+  "lint_warnings": [
+    {
+      "path": "wiki/concepts/ascend-patch-system.md",
+      "sha256": "0e650c14b7f5f35d9247f649ed4ffb4f2e2cae4872e2a74fd59c7af18fbd358e",
+      "message": "84% 的标记都是 [C]，这个等级已经不携带信息",
+      "source_comparison_heading_line": 328,
+      "total": 25,
+      "C": 21,
+      "teaching_marks": 0,
+      "source_comparison_marks": 25,
+      "marks": [
+        {
+          "line": 400,
+          "mark": "[C1]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C2]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C3]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C4]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C13]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C14]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C5]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C6]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C37]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C17]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C18]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C27]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C28]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C23]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[S11]",
+          "level": "S",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[S12]",
+          "level": "S",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[S42]",
+          "level": "S",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C43]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C45]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 400,
+          "mark": "[C48]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 404,
+          "mark": "[D]",
+          "level": "D",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 406,
+          "mark": "[C1]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 406,
+          "mark": "[C2]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 406,
+          "mark": "[C23]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 406,
+          "mark": "[C24]",
+          "level": "C",
+          "zone": "source_comparison"
+        }
+      ]
+    },
+    {
+      "path": "wiki/concepts/moe.md",
+      "sha256": "e17c9044409975fab5d9f3c4e520a1d09b4d72cc414fd2de02d735d6573fa9f8",
+      "message": "81% 的标记都是 [C]，这个等级已经不携带信息",
+      "source_comparison_heading_line": 446,
+      "total": 16,
+      "C": 13,
+      "teaching_marks": 0,
+      "source_comparison_marks": 16,
+      "marks": [
+        {
+          "line": 452,
+          "mark": "[S1]",
+          "level": "S",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 452,
+          "mark": "[C4]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 464,
+          "mark": "[C9]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 466,
+          "mark": "[C6]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 466,
+          "mark": "[C7]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 470,
+          "mark": "[C12]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 499,
+          "mark": "[C7]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 499,
+          "mark": "[C10]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 499,
+          "mark": "[C16]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 500,
+          "mark": "[C17]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 500,
+          "mark": "[C18]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 501,
+          "mark": "[C19]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 501,
+          "mark": "[C20]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 501,
+          "mark": "[C21]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 536,
+          "mark": "[D]",
+          "level": "D",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 536,
+          "mark": "[A]",
+          "level": "A",
+          "zone": "source_comparison"
+        }
+      ]
+    },
+    {
+      "path": "wiki/concepts/npu-model-runner.md",
+      "sha256": "126271fbe20b24d4eea26c562bc0c50acaeaa87ef447cbb3b3722d7194ddb8f6",
+      "message": "81% 的标记都是 [C]，这个等级已经不携带信息",
+      "source_comparison_heading_line": 329,
+      "total": 27,
+      "C": 22,
+      "teaching_marks": 0,
+      "source_comparison_marks": 27,
+      "marks": [
+        {
+          "line": 335,
+          "mark": "[C17]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 335,
+          "mark": "[C20]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 337,
+          "mark": "[C12]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 337,
+          "mark": "[C24]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 338,
+          "mark": "[C15]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 338,
+          "mark": "[C22]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 338,
+          "mark": "[D]",
+          "level": "D",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 340,
+          "mark": "[C6]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 344,
+          "mark": "[C3]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 345,
+          "mark": "[C26]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 346,
+          "mark": "[C19]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 347,
+          "mark": "[C2]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 347,
+          "mark": "[C4]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 353,
+          "mark": "[D]",
+          "level": "D",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 354,
+          "mark": "[C11]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 355,
+          "mark": "[D]",
+          "level": "D",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 356,
+          "mark": "[C13]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 358,
+          "mark": "[C3]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 359,
+          "mark": "[A]",
+          "level": "A",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 379,
+          "mark": "[C38]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 379,
+          "mark": "[C33]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 381,
+          "mark": "[C32]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 387,
+          "mark": "[A]",
+          "level": "A",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 391,
+          "mark": "[C1]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 405,
+          "mark": "[C25]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 410,
+          "mark": "[C19]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 410,
+          "mark": "[C20]",
+          "level": "C",
+          "zone": "source_comparison"
+        }
+      ]
+    },
+    {
+      "path": "wiki/concepts/platform-plugin-registration.md",
+      "sha256": "346324acad53eb18f7c9478415e8a759accc3a99db1ec74aadc0f913ae297aad",
+      "message": "82% 的标记都是 [C]，这个等级已经不携带信息",
+      "source_comparison_heading_line": 328,
+      "total": 11,
+      "C": 9,
+      "teaching_marks": 0,
+      "source_comparison_marks": 11,
+      "marks": [
+        {
+          "line": 334,
+          "mark": "[C1]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 339,
+          "mark": "[C11]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 344,
+          "mark": "[C13]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 346,
+          "mark": "[C4]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 360,
+          "mark": "[C9]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 360,
+          "mark": "[D]",
+          "level": "D",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 401,
+          "mark": "[C1]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 401,
+          "mark": "[C20]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 410,
+          "mark": "[C25]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 412,
+          "mark": "[C23]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 437,
+          "mark": "[S27]",
+          "level": "S",
+          "zone": "source_comparison"
+        }
+      ]
+    },
+    {
+      "path": "wiki/concepts/quantization.md",
+      "sha256": "6947ffc3cd2b28da5100b7ce4ab573c2a045b67fc4960d92a0f5eab15bbe0b51",
+      "message": "内联标记 31 处，超过 30——只标数值、反直觉结论与 D/I/A/! 这几类",
+      "source_comparison_heading_line": 343,
+      "total": 31,
+      "C": 23,
+      "teaching_marks": 0,
+      "source_comparison_marks": 31,
+      "marks": [
+        {
+          "line": 434,
+          "mark": "[S1]",
+          "level": "S",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 435,
+          "mark": "[S2]",
+          "level": "S",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 436,
+          "mark": "[C3]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 437,
+          "mark": "[C4]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 437,
+          "mark": "[C5]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 437,
+          "mark": "[C6]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 438,
+          "mark": "[C7]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 439,
+          "mark": "[C8]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 440,
+          "mark": "[C9]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 440,
+          "mark": "[C10]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 441,
+          "mark": "[C11]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 442,
+          "mark": "[C12]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 442,
+          "mark": "[C13]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 443,
+          "mark": "[C14]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 443,
+          "mark": "[C15]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 443,
+          "mark": "[C16]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 443,
+          "mark": "[C17]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 444,
+          "mark": "[C15]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 444,
+          "mark": "[C22]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 445,
+          "mark": "[C23]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 445,
+          "mark": "[C24]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 446,
+          "mark": "[D]",
+          "level": "D",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 447,
+          "mark": "[D]",
+          "level": "D",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 448,
+          "mark": "[S47]",
+          "level": "S",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 448,
+          "mark": "[S48]",
+          "level": "S",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 449,
+          "mark": "[C18]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 449,
+          "mark": "[C19]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 449,
+          "mark": "[C20]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 449,
+          "mark": "[C21]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 453,
+          "mark": "[S55]",
+          "level": "S",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 453,
+          "mark": "[D]",
+          "level": "D",
+          "zone": "source_comparison"
+        }
+      ]
+    },
+    {
+      "path": "wiki/concepts/reading-vllm-ascend.md",
+      "sha256": "b289851f625dd68f67ac76b2bc6b28c10c1a4157049a3cbcd78b9d3e16a7b3dc",
+      "message": "90% 的标记都是 [C]，这个等级已经不携带信息",
+      "source_comparison_heading_line": 196,
+      "total": 21,
+      "C": 19,
+      "teaching_marks": 0,
+      "source_comparison_marks": 21,
+      "marks": [
+        {
+          "line": 200,
+          "mark": "[C12]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 233,
+          "mark": "[C16]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 233,
+          "mark": "[C15]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 234,
+          "mark": "[C13]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 234,
+          "mark": "[C17]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 234,
+          "mark": "[C14]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 241,
+          "mark": "[A]",
+          "level": "A",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 241,
+          "mark": "[A]",
+          "level": "A",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 243,
+          "mark": "[C12]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 244,
+          "mark": "[C9]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 244,
+          "mark": "[C10]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 244,
+          "mark": "[C11]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 244,
+          "mark": "[C6]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 245,
+          "mark": "[C1]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 245,
+          "mark": "[C2]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 245,
+          "mark": "[C3]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 245,
+          "mark": "[C22]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 246,
+          "mark": "[C5]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 246,
+          "mark": "[C4]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 246,
+          "mark": "[C8]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 248,
+          "mark": "[C7]",
+          "level": "C",
+          "zone": "source_comparison"
+        }
+      ]
+    },
+    {
+      "path": "wiki/concepts/vllm-ascend-overview.md",
+      "sha256": "14e2c8fe3b34c26e897f1bf886bba16373f1889d998e8a0f398f6abe0050b6f6",
+      "message": "91% 的标记都是 [C]，这个等级已经不携带信息",
+      "source_comparison_heading_line": 170,
+      "total": 22,
+      "C": 20,
+      "teaching_marks": 0,
+      "source_comparison_marks": 22,
+      "marks": [
+        {
+          "line": 174,
+          "mark": "[C1]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 174,
+          "mark": "[C3]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 174,
+          "mark": "[C4]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 174,
+          "mark": "[C5]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 176,
+          "mark": "[C2]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 178,
+          "mark": "[C6]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 178,
+          "mark": "[C7]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 178,
+          "mark": "[C8]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 180,
+          "mark": "[C9]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 180,
+          "mark": "[C13]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 180,
+          "mark": "[C10]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 180,
+          "mark": "[C11]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 180,
+          "mark": "[C16]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 212,
+          "mark": "[C1]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 212,
+          "mark": "[C31]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 212,
+          "mark": "[C32]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 212,
+          "mark": "[C33]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 214,
+          "mark": "[S34]",
+          "level": "S",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 214,
+          "mark": "[S35]",
+          "level": "S",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 226,
+          "mark": "[C5]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 228,
+          "mark": "[C2]",
+          "level": "C",
+          "zone": "source_comparison"
+        },
+        {
+          "line": 228,
+          "mark": "[C3]",
+          "level": "C",
+          "zone": "source_comparison"
+        }
+      ]
+    },
+    {
+      "path": "wiki/params/enable-force-eplb-b7ec3661121f.md",
+      "sha256": "4ebdfaafa8d86206b07c46f927dc27d135439e403660a4965d790c174458f785",
+      "message": "83% 的标记都是 [C]，这个等级已经不携带信息",
+      "source_comparison_heading_line": 241,
+      "total": 24,
+      "C": 20,
+      "teaching_marks": 24,
+      "source_comparison_marks": 0,
+      "marks": [
+        {
+          "line": 144,
+          "mark": "[C4]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 144,
+          "mark": "[C5]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 148,
+          "mark": "[C16]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 148,
+          "mark": "[C17]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 148,
+          "mark": "[C14]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 148,
+          "mark": "[C15]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 157,
+          "mark": "[C4]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 157,
+          "mark": "[!]",
+          "level": "!",
+          "zone": "teaching"
+        },
+        {
+          "line": 158,
+          "mark": "[C12]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 159,
+          "mark": "[D]",
+          "level": "D",
+          "zone": "teaching"
+        },
+        {
+          "line": 160,
+          "mark": "[C3]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 160,
+          "mark": "[!]",
+          "level": "!",
+          "zone": "teaching"
+        },
+        {
+          "line": 161,
+          "mark": "[C5]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 161,
+          "mark": "[C22]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 162,
+          "mark": "[C10]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 163,
+          "mark": "[C7]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 164,
+          "mark": "[C8]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 165,
+          "mark": "[C13]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 182,
+          "mark": "[D]",
+          "level": "D",
+          "zone": "teaching"
+        },
+        {
+          "line": 191,
+          "mark": "[C9]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 197,
+          "mark": "[C3]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 201,
+          "mark": "[C11]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 203,
+          "mark": "[C21]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 227,
+          "mark": "[C38]",
+          "level": "C",
+          "zone": "teaching"
+        }
+      ]
+    },
+    {
+      "path": "wiki/params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md",
+      "sha256": "cb96ce58bfc203e5bb607f6de3dc66c54473990d3c973219a46ad685ba48a9d3",
+      "message": "89% 的标记都是 [C]，这个等级已经不携带信息",
+      "source_comparison_heading_line": 236,
+      "total": 19,
+      "C": 17,
+      "teaching_marks": 19,
+      "source_comparison_marks": 0,
+      "marks": [
+        {
+          "line": 151,
+          "mark": "[C4]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 155,
+          "mark": "[C15]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 155,
+          "mark": "[C16]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 155,
+          "mark": "[C17]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 155,
+          "mark": "[C23]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 165,
+          "mark": "[C14]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 166,
+          "mark": "[C7]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 167,
+          "mark": "[S12]",
+          "level": "S",
+          "zone": "teaching"
+        },
+        {
+          "line": 167,
+          "mark": "[C13]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 168,
+          "mark": "[C8]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 169,
+          "mark": "[C9]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 170,
+          "mark": "[C5]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 171,
+          "mark": "[C3]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 173,
+          "mark": "[C10]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 180,
+          "mark": "[C4]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 195,
+          "mark": "[D]",
+          "level": "D",
+          "zone": "teaching"
+        },
+        {
+          "line": 197,
+          "mark": "[C8]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 197,
+          "mark": "[C10]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 227,
+          "mark": "[C38]",
+          "level": "C",
+          "zone": "teaching"
+        }
+      ]
+    },
+    {
+      "path": "wiki/sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md",
+      "sha256": "7497d9087c551cb33c08b450ae2d4cc75d4a438951191c34d7280b9461654920",
+      "message": "83% 的标记都是 [C]，这个等级已经不携带信息",
+      "source_comparison_heading_line": 158,
+      "total": 29,
+      "C": 24,
+      "teaching_marks": 29,
+      "source_comparison_marks": 0,
+      "marks": [
+        {
+          "line": 84,
+          "mark": "[I]",
+          "level": "I",
+          "zone": "teaching"
+        },
+        {
+          "line": 90,
+          "mark": "[C2]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 92,
+          "mark": "[C15]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 92,
+          "mark": "[C16]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 92,
+          "mark": "[C18]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 92,
+          "mark": "[C3]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 92,
+          "mark": "[C17]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 96,
+          "mark": "[C4]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 100,
+          "mark": "[I]",
+          "level": "I",
+          "zone": "teaching"
+        },
+        {
+          "line": 104,
+          "mark": "[C5]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 104,
+          "mark": "[C6]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 106,
+          "mark": "[C4]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 108,
+          "mark": "[C6]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 112,
+          "mark": "[C8]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 114,
+          "mark": "[D]",
+          "level": "D",
+          "zone": "teaching"
+        },
+        {
+          "line": 116,
+          "mark": "[C10]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 116,
+          "mark": "[C12]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 126,
+          "mark": "[C6]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 126,
+          "mark": "[C7]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 126,
+          "mark": "[C14]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 126,
+          "mark": "[C9]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 126,
+          "mark": "[C11]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 127,
+          "mark": "[C8]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 127,
+          "mark": "[C10]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 127,
+          "mark": "[C12]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 133,
+          "mark": "[C13]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 133,
+          "mark": "[C13]",
+          "level": "C",
+          "zone": "teaching"
+        },
+        {
+          "line": 154,
+          "mark": "[!]",
+          "level": "!",
+          "zone": "teaching"
+        },
+        {
+          "line": 155,
+          "mark": "[I]",
+          "level": "I",
+          "zone": "teaching"
+        }
+      ]
+    }
+  ],
+  "source_replacements": [
+    {
+      "page_id": "engine-processes",
+      "source_number": 88,
+      "old_ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L116-L125",
+      "current_ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L116-L126",
+      "evidence": "request-processes-range-adjustments.json",
+      "review": "request-processes-independent.json",
+      "reason": "126行实际返回CANN physical id；固定commit/path不变。",
+      "status": "evidenced_range_extension_same_occurrence",
+      "new_count": 0,
+      "actual_current_ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L116-L126",
+      "current_number_matches": true,
+      "same_commit_path": true,
+      "encloses_old": true,
+      "evidence_sha256": "2ffac3a5b3628a22059f4b8692474c8edfda3d9728134995938ff407d70c468a",
+      "review_sha256": "dedf7f4778bd773276615c1ab95e921edc2954a280f565650f4b46cecb4fd3dc"
+    },
+    {
+      "page_id": "engine-processes",
+      "source_number": 108,
+      "old_ref": "vllm@ced6857a:vllm/v1/engine/async_llm.py#L148-L161",
+      "current_ref": "vllm@ced6857a:vllm/v1/engine/async_llm.py#L148-L162",
+      "evidence": "request-processes-range-adjustments.json",
+      "review": "request-processes-independent.json",
+      "reason": "完整构造调用包含把共享admission_stats交给OutputProcessor；162为调用闭合。",
+      "status": "evidenced_range_extension_same_occurrence",
+      "new_count": 0,
+      "actual_current_ref": "vllm@ced6857a:vllm/v1/engine/async_llm.py#L148-L162",
+      "current_number_matches": true,
+      "same_commit_path": true,
+      "encloses_old": true,
+      "evidence_sha256": "2ffac3a5b3628a22059f4b8692474c8edfda3d9728134995938ff407d70c468a",
+      "review_sha256": "dedf7f4778bd773276615c1ab95e921edc2954a280f565650f4b46cecb4fd3dc"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "source_number": 17,
+      "old_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L220",
+      "current_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L113-L220",
+      "evidence": "ops-judgments.json",
+      "review": "ops-acceptance.md",
+      "reason": "融合资格条件引用起点从133扩到113；对应正文与关联页已独审。",
+      "status": "evidenced_range_extension_same_occurrence",
+      "new_count": 0,
+      "actual_current_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L113-L220",
+      "current_number_matches": true,
+      "same_commit_path": true,
+      "encloses_old": true,
+      "evidence_sha256": "b042a4765811f2bb245f60c4ff0e8f31b2c2282a0941da44031de279b948f9e9",
+      "review_sha256": "77147284d55ab3ac4f1eb8c7506db6b490ddecc13f79fbc5da9167d9b5ca2ab1"
+    },
+    {
+      "page_id": "ops-and-kernels",
+      "source_number": 26,
+      "old_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L215",
+      "current_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L113-L215",
+      "evidence": "ops-judgments.json",
+      "review": "ops-acceptance.md",
+      "reason": "融合资格条件引用起点从133扩到113；对应正文与关联页已独审。",
+      "status": "evidenced_range_extension_same_occurrence",
+      "new_count": 0,
+      "actual_current_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L113-L215",
+      "current_number_matches": true,
+      "same_commit_path": true,
+      "encloses_old": true,
+      "evidence_sha256": "b042a4765811f2bb245f60c4ff0e8f31b2c2282a0941da44031de279b948f9e9",
+      "review_sha256": "77147284d55ab3ac4f1eb8c7506db6b490ddecc13f79fbc5da9167d9b5ca2ab1"
+    },
+    {
+      "page_id": "request-call-chain",
+      "source_number": 26,
+      "old_ref": "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L660",
+      "current_ref": "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L675",
+      "evidence": "request-processes-range-adjustments.json",
+      "review": "request-processes-independent.json",
+      "reason": "补到675，覆盖663处queue.put及本分支收尾，与前端输出队列主张相符。",
+      "status": "evidenced_range_extension_same_occurrence",
+      "new_count": 0,
+      "actual_current_ref": "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L675",
+      "current_number_matches": true,
+      "same_commit_path": true,
+      "encloses_old": true,
+      "evidence_sha256": "2ffac3a5b3628a22059f4b8692474c8edfda3d9728134995938ff407d70c468a",
+      "review_sha256": "dedf7f4778bd773276615c1ab95e921edc2954a280f565650f4b46cecb4fd3dc"
+    },
+    {
+      "page_id": "request-call-chain",
+      "source_number": 40,
+      "old_ref": "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L270-L290",
+      "current_ref": "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L270-L295",
+      "evidence": "request-processes-range-adjustments.json",
+      "review": "request-processes-independent.json",
+      "reason": "补到295，覆盖291失败回调，支持原Executor退出叙述。",
+      "status": "evidenced_range_extension_same_occurrence",
+      "new_count": 0,
+      "actual_current_ref": "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L270-L295",
+      "current_number_matches": true,
+      "same_commit_path": true,
+      "encloses_old": true,
+      "evidence_sha256": "2ffac3a5b3628a22059f4b8692474c8edfda3d9728134995938ff407d70c468a",
+      "review_sha256": "dedf7f4778bd773276615c1ab95e921edc2954a280f565650f4b46cecb4fd3dc"
+    },
+    {
+      "page_id": "sampling",
+      "source_number": 94,
+      "old_ref": "vllm@0fc695fc:vllm/entrypoints/serve/tokenize/protocol.py#L24-L153",
+      "current_ref": "vllm@0fc695fc:vllm/entrypoints/serve/tokenize/protocol.py#L24-L163",
+      "evidence": "sampling-judgments.json",
+      "review": "sampling-preservation.json",
+      "reason": "94补至TokenizeResponse定义；115补结构化全空恢复停止分数与完整投机处理。",
+      "status": "evidenced_range_extension_same_occurrence",
+      "new_count": 0,
+      "actual_current_ref": "vllm@0fc695fc:vllm/entrypoints/serve/tokenize/protocol.py#L24-L163",
+      "current_number_matches": true,
+      "same_commit_path": true,
+      "encloses_old": true,
+      "evidence_sha256": "b3bcef6ac0cc6e41611856787456bc5cd073dfa8c30cbab5b7e89b916a7d51de",
+      "review_sha256": "68960cef8442fb0d62be768b589233f01f7aad120510475d25addcc0fb2215c3"
+    },
+    {
+      "page_id": "sampling",
+      "source_number": 115,
+      "old_ref": "vllm@84030bbe:vllm/v1/sample/logits_processor/builtin.py#L167-L295",
+      "current_ref": "vllm@84030bbe:vllm/v1/sample/logits_processor/builtin.py#L167-L371",
+      "evidence": "sampling-judgments.json",
+      "review": "sampling-preservation.json",
+      "reason": "94补至TokenizeResponse定义；115补结构化全空恢复停止分数与完整投机处理。",
+      "status": "evidenced_range_extension_same_occurrence",
+      "new_count": 0,
+      "actual_current_ref": "vllm@84030bbe:vllm/v1/sample/logits_processor/builtin.py#L167-L371",
+      "current_number_matches": true,
+      "same_commit_path": true,
+      "encloses_old": true,
+      "evidence_sha256": "b3bcef6ac0cc6e41611856787456bc5cd073dfa8c30cbab5b7e89b916a7d51de",
+      "review_sha256": "68960cef8442fb0d62be768b589233f01f7aad120510475d25addcc0fb2215c3"
+    },
+    {
+      "page_id": "vllm-scheduler",
+      "source_number": 6,
+      "old_ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L679-L691",
+      "current_ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L679-L733",
+      "evidence": "scheduling-manual-judgments.json",
+      "review": "process-scheduling-checkpoint.json",
+      "reason": "6补waiting截断/零长度分支；34补非spec decode/prefill消费者及混合拼回。",
+      "status": "evidenced_range_extension_same_occurrence",
+      "new_count": 0,
+      "actual_current_ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L679-L733",
+      "current_number_matches": true,
+      "same_commit_path": true,
+      "encloses_old": true,
+      "evidence_sha256": "fa322896374ffaa6e356581a776ca01288d3cc46c85d0c6aadfeb2f051d9de4e",
+      "review_sha256": "b84e5775859c9eee2a1a7b7719237149d44644cf4e91250c8529229b4c841888"
+    },
+    {
+      "page_id": "vllm-scheduler",
+      "source_number": 34,
+      "old_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L506-L600",
+      "current_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L506-L659",
+      "evidence": "scheduling-manual-judgments.json",
+      "review": "process-scheduling-checkpoint.json",
+      "reason": "6补waiting截断/零长度分支；34补非spec decode/prefill消费者及混合拼回。",
+      "status": "evidenced_range_extension_same_occurrence",
+      "new_count": 0,
+      "actual_current_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L506-L659",
+      "current_number_matches": true,
+      "same_commit_path": true,
+      "encloses_old": true,
+      "evidence_sha256": "fa322896374ffaa6e356581a776ca01288d3cc46c85d0c6aadfeb2f051d9de4e",
+      "review_sha256": "b84e5775859c9eee2a1a7b7719237149d44644cf4e91250c8529229b4c841888"
+    },
+    {
+      "page_id": "vllm-v1-shape",
+      "source_number": 40,
+      "old_ref": "vllm@ced6857a:vllm/v1/engine/core.py#L589-L619",
+      "current_ref": "vllm@ced6857a:vllm/v1/engine/core.py#L589-L628",
+      "evidence": "request-processes-range-adjustments.json",
+      "review": "request-processes-independent.json",
+      "reason": "补到628，保留普通step且加入同步投机post_step取draft的额外调用条件；不是每一步只可能两个RPC。",
+      "status": "evidenced_range_extension_same_occurrence",
+      "new_count": 0,
+      "actual_current_ref": "vllm@ced6857a:vllm/v1/engine/core.py#L589-L628",
+      "current_number_matches": true,
+      "same_commit_path": true,
+      "encloses_old": true,
+      "evidence_sha256": "2ffac3a5b3628a22059f4b8692474c8edfda3d9728134995938ff407d70c468a",
+      "review_sha256": "dedf7f4778bd773276615c1ab95e921edc2954a280f565650f4b46cecb4fd3dc"
+    },
+    {
+      "page_id": "vllm-v1-shape",
+      "source_number": 41,
+      "old_ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L30",
+      "current_ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L42",
+      "evidence": "request-processes-range-adjustments.json",
+      "review": "request-processes-independent.json",
+      "reason": "补到42，覆盖property实际安装，不再仅凭函数定义认定开关覆盖已生效。",
+      "status": "evidenced_range_extension_same_occurrence",
+      "new_count": 0,
+      "actual_current_ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L42",
+      "current_number_matches": true,
+      "same_commit_path": true,
+      "encloses_old": true,
+      "evidence_sha256": "2ffac3a5b3628a22059f4b8692474c8edfda3d9728134995938ff407d70c468a",
+      "review_sha256": "dedf7f4778bd773276615c1ab95e921edc2954a280f565650f4b46cecb4fd3dc"
+    }
+  ],
+  "diagram_warnings": [
+    {
+      "file": "wiki/diagrams/ai-core-execution.yaml",
+      "sha256": "fd10a1e1528b1e9d34273c22751125ee4464d3a9d8550fbb5b34c38041c6f096",
+      "message": "图上出现代码名「scale_bias」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "A4 专家计算的普通 W8A8 量化 MC2 分支；融合分支按源码条件选择，所有路径汇合到第二次矩阵乘",
+      "diagram_id": "ai-core-execution",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/ai-core.yaml",
+      "sha256": "8714f1d0c9d777bc9697edd8d56ec8488e410cfa468ad739e8ad5073565825d5",
+      "message": "texts[0]：「搬入输入和权重 → 矩阵乘 → …」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "一张 NPU 内的典型分离架构数据流；矩阵结果经 GM 交给向量侧。图省略部分缓冲、搬运与控制部件，框数不代表核数或容量",
+      "diagram_id": "ai-core",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/ai-core.yaml",
+      "sha256": "8714f1d0c9d777bc9697edd8d56ec8488e410cfa468ad739e8ad5073565825d5",
+      "message": "texts[6]：「GM 是全局内存；L1、L0、U…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "一张 NPU 内的典型分离架构数据流；矩阵结果经 GM 交给向量侧。图省略部分缓冲、搬运与控制部件，框数不代表核数或容量",
+      "diagram_id": "ai-core",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/ai-qos-flow.yaml",
+      "sha256": "a1fd11b6f5e07443a8afa057ec05c1e2854e58c1949f9b513271e65ff89d4eb2",
+      "message": "图上出现代码名「set_qos」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "独立配置脚本在 A0 推理启动前运行；apply 写端点并打印交换机命令，unset 尝试恢复端点并打印 undo。两条分支都需要操作者在交换机完成配置，A4 执行时才由网络按规则服务流量。",
+      "diagram_id": "ai-qos-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/ai-qos-flow.yaml",
+      "sha256": "a1fd11b6f5e07443a8afa057ec05c1e2854e58c1949f9b513271e65ff89d4eb2",
+      "message": "图上出现代码名「run_unset」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "独立配置脚本在 A0 推理启动前运行；apply 写端点并打印交换机命令，unset 尝试恢复端点并打印 undo。两条分支都需要操作者在交换机完成配置，A4 执行时才由网络按规则服务流量。",
+      "diagram_id": "ai-qos-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/ascend-950-buffer.yaml",
+      "sha256": "9527b7877f36c9b54ff321dcc23f97c44a15ec3e01a471fb7be3305b6678c3a2",
+      "message": "texts[4]：「省的是同步组织的复杂度；依赖等待…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "同一块 UB 的使用周期示意。三个画面表示不同时刻，不是三块不同缓冲。搬运段与 Vector 分别取得、使用、释放同一缓冲标识；后一轮覆盖必须遵守这个次序，数值正确还要求地址和计算本身正确。",
+      "diagram_id": "ascend-950-buffer",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/ascend-950-nddma.yaml",
+      "sha256": "86fc07a20e321db6076238e08d8ea2aafddd650f427e54038e3599faceedc96b",
+      "message": "texts[3]：「反例：若误用源步长 2，第二行会…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "二维地址映射示意。源每行四项，只取前两项；目标每行两项。深绿色是所需数据，淡色是本次不取的数据。行步长从四个元素变成两个，数值本身不变；格数不表示真实内存事务数或指令最小尺寸。",
+      "diagram_id": "ascend-950-nddma",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/ascend-950-observe.yaml",
+      "sha256": "f302995900cd74305ea9c151775d36ce978011b7e6b56de3970830a54fca2653",
+      "message": "texts[0]：「单算子变快而请求不变：继续找其他…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "第 4 站的取证路线。硬件规格只能提出候选，实际算子与 kernel 说明有没有采用它，执行记录才能说明该路径是否少花时间。图中的两条结果分支分别通向正确性定位或端到端性能验收。",
+      "diagram_id": "ascend-950-observe",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/cann-hccl-flow.yaml",
+      "sha256": "5138cc0e55f0f84b26fbfce17fc9e2e1bda4fce0d4b65ed660e44824e798d9cb",
+      "message": "图上出现代码名「init_distributed_environment」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "A0 先初始化 HCCL 后端与模型并行组；A4 再按算子进入普通通信或 MC2 等专用路径，普通 All-to-All 另有切片与拼接",
+      "diagram_id": "cann-hccl-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/cann-hccl-flow.yaml",
+      "sha256": "5138cc0e55f0f84b26fbfce17fc9e2e1bda4fce0d4b65ed660e44824e798d9cb",
+      "message": "图上出现代码名「device_group」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "A0 先初始化 HCCL 后端与模型并行组；A4 再按算子进入普通通信或 MC2 等专用路径，普通 All-to-All 另有切片与拼接",
+      "diagram_id": "cann-hccl-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/config-inputs.yaml",
+      "sha256": "65551edafccfe8a175fbe20cd4087274e6ec831413931644f85e4a46a1f63fe7",
+      "message": "texts[2]：「直接读环境不一定经过 Ascen…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "固定旧 GLM 的三路输入：通用参数进 VllmConfig，additional_config 交给 AscendConfig 拆成子配置，部分环境值作为兼容输入、其余由消费者直接读。配置构造、平台准备与消费者都有各自的条件检查；表外也有直接读取环境的代码。",
+      "diagram_id": "config-inputs",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/context-parallel-merge.yaml",
+      "sha256": "4f5d882767f77cac3fd31259c261e45c581c42fe1b705bbb71b87d22415d12ff",
+      "message": "图上有 11 段文字，超过 8 段：说明挪回正文，图上只留短语",
+      "heuristic": "text_count",
+      "caption": "同一个查询、同一个通道：两块内容按 2∶6 混合。除以总权重 8，把两块的占比变成 ¼ 和 ¾，得到一份输出 25。",
+      "diagram_id": "context-parallel-merge",
+      "purpose_class": "时间轴、卡/组/阶段标签与例子",
+      "disposition": "12 条段数提示包含时刻刻度、重复行标签、分组或计算步骤；不能按段数把必要对象标签删掉。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/context-parallel-merge.yaml",
+      "sha256": "4f5d882767f77cac3fd31259c261e45c581c42fe1b705bbb71b87d22415d12ff",
+      "message": "texts[5]：「加权内容：20 + 180 = …」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "同一个查询、同一个通道：两块内容按 2∶6 混合。除以总权重 8，把两块的占比变成 ¼ 和 ¾，得到一份输出 25。",
+      "diagram_id": "context-parallel-merge",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/context-parallel-merge.yaml",
+      "sha256": "4f5d882767f77cac3fd31259c261e45c581c42fe1b705bbb71b87d22415d12ff",
+      "message": "texts[10]：「B 的权重是 A 的 3 倍，所…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "同一个查询、同一个通道：两块内容按 2∶6 混合。除以总权重 8，把两块的占比变成 ¼ 和 ¾，得到一份输出 25。",
+      "diagram_id": "context-parallel-merge",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/context-parallel-overview.yaml",
+      "sha256": "0e26256f95f5ac311cf932c090ca2fb5f08fc18e871bd3cd9d4327bdc2b3fb09",
+      "message": "texts[3]：「attention 交换所需远端…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "通用 CP 的连续分片示意：两张卡负责同一序列的不同位置。每卡先计算本地 Q/K/V，在 attention 中取得所需远端信息，输出继续留在负责相应查询的卡上。后文再讨论负载均衡与具体通信算法。",
+      "diagram_id": "context-parallel-overview",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/context-parallel-ulysses.yaml",
+      "sha256": "4b8534205ba1fec4549bcb9b5c1d4940f104b48f767df685baacfc71d3697d38",
+      "message": "texts[6]：「[4, 4, d] → [8, …」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "Ulysses 的位置/头布局交换。每个格表示“4 个位置 × 1 个头”的数据块，行标签是位置范围，列标签是头编号。实色是本卡持有，虚线是本卡没有；从位置分工换成头分工，attention 后再恢复位置分工。",
+      "diagram_id": "context-parallel-ulysses",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/deepseek-model-flow.yaml",
+      "sha256": "7327447e8117000ac9fa1c4c59f33d0e7402cd14967bc6f7a53a49ca968f7cfd",
+      "message": "图上出现代码名「load_hf_model_config」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "从模型加载走到第 3–5 站执行。分别检查配置、状态所有者和实际输入布局，不把“有模型名字”当成优化已经生效。",
+      "diagram_id": "deepseek-model-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/deepseek-model-flow.yaml",
+      "sha256": "7327447e8117000ac9fa1c4c59f33d0e7402cd14967bc6f7a53a49ca968f7cfd",
+      "message": "图上出现代码名「compact_yoco_boundary」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "从模型加载走到第 3–5 站执行。分别检查配置、状态所有者和实际输入布局，不把“有模型名字”当成优化已经生效。",
+      "diagram_id": "deepseek-model-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/deepseek-serving-code-boundary.yaml",
+      "sha256": "82eb8421058eabf0cfe7d697472bd028474c2021e571f1bc4e7bb1edba08023a",
+      "message": "texts[0]：「引擎支持某种类型，只证明有这段能…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "左侧彩色块是固定 DeepInfer 快照中可沿文件阅读的引擎部分；右侧虚线块是还要单独装配、核实的在线系统。箭头仅表示阅读顺序，不表示这些函数严格串行运行。",
+      "diagram_id": "deepseek-serving-code-boundary",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/deepseek-serving-code-boundary.yaml",
+      "sha256": "82eb8421058eabf0cfe7d697472bd028474c2021e571f1bc4e7bb1edba08023a",
+      "message": "图上出现代码名「offline_inference」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "左侧彩色块是固定 DeepInfer 快照中可沿文件阅读的引擎部分；右侧虚线块是还要单独装配、核实的在线系统。箭头仅表示阅读顺序，不表示这些函数严格串行运行。",
+      "diagram_id": "deepseek-serving-code-boundary",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/deepseek-serving-code-boundary.yaml",
+      "sha256": "82eb8421058eabf0cfe7d697472bd028474c2021e571f1bc4e7bb1edba08023a",
+      "message": "图上出现代码名「cache_engine」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "左侧彩色块是固定 DeepInfer 快照中可沿文件阅读的引擎部分；右侧虚线块是还要单独装配、核实的在线系统。箭头仅表示阅读顺序，不表示这些函数严格串行运行。",
+      "diagram_id": "deepseek-serving-code-boundary",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/deepseek-serving-request.yaml",
+      "sha256": "21cb62131f84127a0e57e26589c92390fadcac6a975068b80479a66bca986317",
+      "message": "图上有 11 段文字，超过 8 段：说明挪回正文，图上只留短语",
+      "heuristic": "text_count",
+      "caption": "同一条带图请求的接力示意。E 把图片变成数值，P 接收文字编号和图片特征，D 接收 P 准备的历史以及请求设置与进度，继续生成。编号、特征格与历史块只示意数据对象，不代表真实模型形状；跨轮保存的位置在正文存储一节说明。",
+      "diagram_id": "deepseek-serving-request",
+      "purpose_class": "时间轴、卡/组/阶段标签与例子",
+      "disposition": "12 条段数提示包含时刻刻度、重复行标签、分组或计算步骤；不能按段数把必要对象标签删掉。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/device-memory-startup.yaml",
+      "sha256": "31ffaf1aff35345bc81b1dc709025b84a11aa4d6f048d80a2838029be0e4cce4",
+      "message": "texts[2]：「A1 接收请求 → A3 准备设…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "A0 启动的设备账；先检查本卡空间并加载权重，试跑后定缓存预算，图捕获在缓存分配之后",
+      "diagram_id": "device-memory-startup",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/device-memory-startup.yaml",
+      "sha256": "31ffaf1aff35345bc81b1dc709025b84a11aa4d6f048d80a2838029be0e4cce4",
+      "message": "图上出现代码名「load_model」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "A0 启动的设备账；先检查本卡空间并加载权重，试跑后定缓存预算，图捕获在缓存分配之后",
+      "diagram_id": "device-memory-startup",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/device-memory-startup.yaml",
+      "sha256": "31ffaf1aff35345bc81b1dc709025b84a11aa4d6f048d80a2838029be0e4cce4",
+      "message": "图上出现代码名「determine_available_memory」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "A0 启动的设备账；先检查本卡空间并加载权重，试跑后定缓存预算，图捕获在缓存分配之后",
+      "diagram_id": "device-memory-startup",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/device-memory-startup.yaml",
+      "sha256": "31ffaf1aff35345bc81b1dc709025b84a11aa4d6f048d80a2838029be0e4cce4",
+      "message": "图上出现代码名「compile_or_warm_up_model」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "A0 启动的设备账；先检查本卡空间并加载权重，试跑后定缓存预算，图捕获在缓存分配之后",
+      "diagram_id": "device-memory-startup",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/fine-grained-tp-flow.yaml",
+      "sha256": "84c0066659e02c8b8e40d16f4fafbeb71a1ed0b29c150c4a7c55640c04cdad90",
+      "message": "图上出现代码名「lm_head」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "固定 db701c1f 基线中细粒度 TP 的代码走向。配置先过前提检查，相关断言失败会退出；P 侧的 recompute 开关另有告警关闭分支。通过后，按 DP 方向为正的分组大小建通信组；构造模型时，词表嵌入和 lm_head 换用自己的组，线性层按层名选分组算子；前向时各模块收集输入、送回结果。rc2 的模块前提及自动关闭分支不同，见正文版本差异。",
+      "diagram_id": "fine-grained-tp-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/fine-grained-tp-flow.yaml",
+      "sha256": "84c0066659e02c8b8e40d16f4fafbeb71a1ed0b29c150c4a7c55640c04cdad90",
+      "message": "图上出现代码名「lm_head」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "固定 db701c1f 基线中细粒度 TP 的代码走向。配置先过前提检查，相关断言失败会退出；P 侧的 recompute 开关另有告警关闭分支。通过后，按 DP 方向为正的分组大小建通信组；构造模型时，词表嵌入和 lm_head 换用自己的组，线性层按层名选分组算子；前向时各模块收集输入、送回结果。rc2 的模块前提及自动关闭分支不同，见正文版本差异。",
+      "diagram_id": "fine-grained-tp-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/fine-grained-tp-intuition.yaml",
+      "sha256": "6a4d62e4eaecdbff77880ed1e4d00a315bd6ed3f854e414db91760bbe1ac6bec",
+      "message": "texts[7]：「按模块另设分组；普通 TP 中也…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "数为示意。4 张卡各跑自己的请求（DP4，普通 TP 为 1，每张卡原本都存一整份非专家权重）。按模块分组以后：词表嵌入和稠密 MLP 每 2 张卡合存一份、各存一半；attention 不分组，每张卡仍是一整份；路由专家照常按 EP 分到 4 张卡；lm_head 4 张卡合存一份、各存四分之一。分了组的模块，组里的卡服务的是不同请求，所以进这一层先收集组内各卡的输入，算完再把结果送回各自的卡。",
+      "diagram_id": "fine-grained-tp-intuition",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/fine-grained-tp-intuition.yaml",
+      "sha256": "6a4d62e4eaecdbff77880ed1e4d00a315bd6ed3f854e414db91760bbe1ac6bec",
+      "message": "图上出现代码名「lm_head」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "数为示意。4 张卡各跑自己的请求（DP4，普通 TP 为 1，每张卡原本都存一整份非专家权重）。按模块分组以后：词表嵌入和稠密 MLP 每 2 张卡合存一份、各存一半；attention 不分组，每张卡仍是一整份；路由专家照常按 EP 分到 4 张卡；lm_head 4 张卡合存一份、各存四分之一。分了组的模块，组里的卡服务的是不同请求，所以进这一层先收集组内各卡的输入，算完再把结果送回各自的卡。",
+      "diagram_id": "fine-grained-tp-intuition",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/glm-flash-mtp-flow.yaml",
+      "sha256": "8d1d74711ffd24a2096d410072fd544f60b02ec7b8aa627d1d979170d7342779",
+      "message": "图上出现代码名「eh_proj」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "MTP 将两路输入分别处理后拼接，再经过一个预测层。启用 is_rot_used 时，隐藏输入先经 rot 再做 hnorm；这里两个固定 W8A8 配方都启用它。下一遍接收的是预测层后 RMSNorm 的隐藏向量和本遍选出的 token；候选数量由部署配置决定。",
+      "diagram_id": "glm-flash-mtp-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/glm-flash-mtp-flow.yaml",
+      "sha256": "8d1d74711ffd24a2096d410072fd544f60b02ec7b8aa627d1d979170d7342779",
+      "message": "图上出现代码名「lm_head」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "MTP 将两路输入分别处理后拼接，再经过一个预测层。启用 is_rot_used 时，隐藏输入先经 rot 再做 hnorm；这里两个固定 W8A8 配方都启用它。下一遍接收的是预测层后 RMSNorm 的隐藏向量和本遍选出的 token；候选数量由部署配置决定。",
+      "diagram_id": "glm-flash-mtp-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/glm-two-node-groups.yaml",
+      "sha256": "19c02bb9b0adde659a45cb9c0c67177bb77d00512b6d17199577d92357d62414",
+      "message": "图上有 11 段文字，超过 8 段：说明挪回正文，图上只留短语",
+      "heuristic": "text_count",
+      "caption": "同一批卡同时属于三个 process group：机内 8 张卡一个 TP 组，跨机同号卡两两一个 DP 组，16 张卡一个 EP / MC2 组。线只表示成员对应关系，不表示物理布线，也不表示正在传输的数据。",
+      "diagram_id": "glm-two-node-groups",
+      "purpose_class": "时间轴、卡/组/阶段标签与例子",
+      "disposition": "12 条段数提示包含时刻刻度、重复行标签、分组或计算步骤；不能按段数把必要对象标签删掉。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/glm-two-node-groups.yaml",
+      "sha256": "19c02bb9b0adde659a45cb9c0c67177bb77d00512b6d17199577d92357d62414",
+      "message": "texts[9]：「机器 1 · TP 组 rank…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "同一批卡同时属于三个 process group：机内 8 张卡一个 TP 组，跨机同号卡两两一个 DP 组，16 张卡一个 EP / MC2 组。线只表示成员对应关系，不表示物理布线，也不表示正在传输的数据。",
+      "diagram_id": "glm-two-node-groups",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/graph-mode-record-replay.yaml",
+      "sha256": "11c7d0f12f217cab58b13534dcf477ccc977702c463e4dd54957407351ddf401",
+      "message": "texts[2]：「无可用图（本站仅录 decode…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "启动期按固定尺寸记录任务次序；之后形状、本轮模式与描述符匹配时一次提交整串。未录过或不满足图条件时逐个提交。任务块只表示次序，不代表耗时。",
+      "diagram_id": "graph-mode-record-replay",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/hccl-buffer-flow.yaml",
+      "sha256": "d3ad0a492c945e9b2fd3e47386ffc9be8dcfcc63e6e1776f91e1513d7d5fcee9",
+      "message": "图上出现代码名「dynamic_eplb」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "固定 db701c1f 的建组路径：按组名分四条挑缓冲值，dp 为公式值与 50 MiB 的较大者；四条都构造 Options 并写入组名，mc2 只是不写缓冲字段。组名还决定复用域，注册表结合成员、后端和配置判断能否复用。",
+      "diagram_id": "hccl-buffer-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/inference-analysis-critical-path.yaml",
+      "sha256": "b89b1e5f0fa7b7f963e68ca58951da9a63f6d91ea28d016e55a928e13943392b",
+      "message": "图上有 14 段文字，超过 8 段：说明挪回正文，图上只留短语",
+      "heuristic": "text_count",
+      "caption": "第 3–5 站的示意时间线，两组使用同一比例。通信使用独立准备的数据，所以能与本次计算重叠。计算由 6 ms 缩短为 4 ms，下一段仍须等通信到 8 ms 结束。",
+      "diagram_id": "inference-analysis-critical-path",
+      "purpose_class": "时间轴、卡/组/阶段标签与例子",
+      "disposition": "12 条段数提示包含时刻刻度、重复行标签、分组或计算步骤；不能按段数把必要对象标签删掉。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/inference-benchmarking-intuition.yaml",
+      "sha256": "ed85b346704a1750579db6d164a06f2c4d6e95759d349f0ea3db077fe3765c9e",
+      "message": "texts[1]：「数整体产出，也量每个人等多久；不…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "四条请求都在逐步生成，示意每条被选中的请求本步输出一个 token。左侧本步选两条，右侧选四条；本步产出更多是否值得，还要结合步长、未入选请求的等待和服务目标测量。",
+      "diagram_id": "inference-benchmarking-intuition",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/inference-capacity-intuition.yaml",
+      "sha256": "d8908373fb281946ea7a3cb457b26bc9b60f2f728cbbcd5eb780ec1f2f64ab67",
+      "message": "texts[7]：「格子表示待处理工作量；具体每秒能…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "工作去向示意，不表示每秒吞吐。左侧三套完整实例能分别接走工作；右侧 C 故障，工作只能交给 A、B。若到达量持续超过它们的能力，未接走的工作会留在队列里。每套可含多张卡，三个实例之间必须独立。",
+      "diagram_id": "inference-capacity-intuition",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/inference-correctness-first-difference.yaml",
+      "sha256": "dfbea8f83848bbd5c24151cbb73a00c16141bc7a7ebb63808ef76ada2b2bc92a",
+      "message": "图上有 11 段文字，超过 8 段：说明挪回正文，图上只留短语",
+      "heuristic": "text_count",
+      "caption": "第 3–5 站的选择示意。相同输入和前三个输出 [41,52,60] 下，两套服务的最高候选分数发生翻转。浅绿格是共同历史，实色格是本次选中编号，虚线格是尚不该混入比较的后续。分数是假设，不代表实际硬件误差。",
+      "diagram_id": "inference-correctness-first-difference",
+      "purpose_class": "时间轴、卡/组/阶段标签与例子",
+      "disposition": "12 条段数提示包含时刻刻度、重复行标签、分组或计算步骤；不能按段数把必要对象标签删掉。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/inference-correctness-first-difference.yaml",
+      "sha256": "dfbea8f83848bbd5c24151cbb73a00c16141bc7a7ebb63808ef76ada2b2bc92a",
+      "message": "texts[10]：「第四个不同以后，后续计算使用的历…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "第 3–5 站的选择示意。相同输入和前三个输出 [41,52,60] 下，两套服务的最高候选分数发生翻转。浅绿格是共同历史，实色格是本次选中编号，虚线格是尚不该混入比较的后续。分数是假设，不代表实际硬件误差。",
+      "diagram_id": "inference-correctness-first-difference",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/inference-metrics-events.yaml",
+      "sha256": "8725f21aea47ebf405ba74bf4ce4f7e65504de21b722332002fb44e6b908861b",
+      "message": "texts[6]：「inference：20 → 2…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "第 2–6 站的引擎事件示意。同一请求首次输出后被抢占，再恢复，最后交回 3 个 token。首次调度只记一次；箭头表达顺序，不按时间比例。阶段时间包含其中等待，不能当成设备 kernel 耗时。",
+      "diagram_id": "inference-metrics-events",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/inference-performance-ab-timeline.yaml",
+      "sha256": "c1196bf923b548a12b4fdfc6ca3954cd810a657da33d387d38f5e290e649a900",
+      "message": "图上有 25 段文字，超过 8 段：说明挪回正文，图上只留短语",
+      "heuristic": "text_count",
+      "caption": "正文 A/B 实验的局部时间线，单位 ms、同一比例。条形只画处理 N 输入的设备步骤；A 后续完成 D 的小步未画出。圆点是客户端收到输出，D 的前两个输出在图外。所有数值为教学示意。",
+      "diagram_id": "inference-performance-ab-timeline",
+      "purpose_class": "时间轴、卡/组/阶段标签与例子",
+      "disposition": "12 条段数提示包含时刻刻度、重复行标签、分组或计算步骤；不能按段数把必要对象标签删掉。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/inference-performance-choice.yaml",
+      "sha256": "6d28f9e6ecf7801470622748e6301df2fe314534049e8401b13f95e83abf84f7",
+      "message": "图上有 11 段文字，超过 8 段：说明挪回正文，图上只留短语",
+      "heuristic": "text_count",
+      "caption": "三种慢请求的阶段划分，条长只用于示意哪一段占主要等待，不是实测比例。灰色为等调度，黄色为设备执行，绿色为执行后的返回；先查最长的一段，再验证相应实验。",
+      "diagram_id": "inference-performance-choice",
+      "purpose_class": "时间轴、卡/组/阶段标签与例子",
+      "disposition": "12 条段数提示包含时刻刻度、重复行标签、分组或计算步骤；不能按段数把必要对象标签删掉。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/inference-troubleshooting-boundary.yaml",
+      "sha256": "20e88dfa364f014dc8ef42c1ea1f1fb03c986858938c86ae18038182e0b9b1fc",
+      "message": "图上有 16 段文字，超过 8 段：说明挪回正文，图上只留短语",
+      "heuristic": "text_count",
+      "caption": "先确认采集覆盖，再沿请求检查交接。左边是要确认的阶段，右边是回答“还没有”时先取的证据；有该请求的成功记录才继续向下，日志缺失本身不能证明没有执行。",
+      "diagram_id": "inference-troubleshooting-boundary",
+      "purpose_class": "时间轴、卡/组/阶段标签与例子",
+      "disposition": "12 条段数提示包含时刻刻度、重复行标签、分组或计算步骤；不能按段数把必要对象标签删掉。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/kv-pool-flow.yaml",
+      "sha256": "36fd13f21e239f7abc2961eeee5a29d71a2170a67152b98ca987532c9c4514ec",
+      "message": "texts[3]：「未命中与分配不足回到调度决策；异…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "固定 GLM 镜像的非逐层同步池路径。图中沿池有额外命中、本地分配成功的分支往下走；查询命中只是计划，失败报告仍受单组/多组限制。旧镜像在本步末等发送队列排空，后续版本的等待点见版本表。",
+      "diagram_id": "kv-pool-flow",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/kv-pool-flow.yaml",
+      "sha256": "36fd13f21e239f7abc2961eeee5a29d71a2170a67152b98ca987532c9c4514ec",
+      "message": "图上出现代码名「wait_for_save」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "固定 GLM 镜像的非逐层同步池路径。图中沿池有额外命中、本地分配成功的分支往下走；查询命中只是计划，失败报告仍受单组/多组限制。旧镜像在本步末等发送队列排空，后续版本的等待点见版本表。",
+      "diagram_id": "kv-pool-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/op-to-ai-core.yaml",
+      "sha256": "6dae0c5aadda0143118c16963a90d7069701312caa17a0eb004ad39000b612b2",
+      "message": "图上出现代码名「torch_npu」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "A3 提供张量与缓存寻址信息；A4 按模型实参选择算子。GLM mHC 走左路，右路是带 residual 的实现对照；扩展可用时进入下方 Host 与 kernel。",
+      "diagram_id": "op-to-ai-core",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/op-to-ai-core.yaml",
+      "sha256": "6dae0c5aadda0143118c16963a90d7069701312caa17a0eb004ad39000b612b2",
+      "message": "图上出现代码名「layer_input」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "A3 提供张量与缓存寻址信息；A4 按模型实参选择算子。GLM mHC 走左路，右路是带 residual 的实现对照；扩展可用时进入下方 Host 与 kernel。",
+      "diagram_id": "op-to-ai-core",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/op-to-ai-core.yaml",
+      "sha256": "6dae0c5aadda0143118c16963a90d7069701312caa17a0eb004ad39000b612b2",
+      "message": "图上出现代码名「enable_custom_op」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "A3 提供张量与缓存寻址信息；A4 按模型实参选择算子。GLM mHC 走左路，右路是带 residual 的实现对照；扩展可用时进入下方 Host 与 kernel。",
+      "diagram_id": "op-to-ai-core",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/op-to-ai-core.yaml",
+      "sha256": "6dae0c5aadda0143118c16963a90d7069701312caa17a0eb004ad39000b612b2",
+      "message": "图上出现代码名「npu_add_rms_norm_bias」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "A3 提供张量与缓存寻址信息；A4 按模型实参选择算子。GLM mHC 走左路，右路是带 residual 的实现对照；扩展可用时进入下方 Host 与 kernel。",
+      "diagram_id": "op-to-ai-core",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/op-to-ai-core.yaml",
+      "sha256": "6dae0c5aadda0143118c16963a90d7069701312caa17a0eb004ad39000b612b2",
+      "message": "图上出现代码名「npu_add_rms_norm」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "A3 提供张量与缓存寻址信息；A4 按模型实参选择算子。GLM mHC 走左路，右路是带 residual 的实现对照；扩展可用时进入下方 Host 与 kernel。",
+      "diagram_id": "op-to-ai-core",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/op-to-ai-core.yaml",
+      "sha256": "6dae0c5aadda0143118c16963a90d7069701312caa17a0eb004ad39000b612b2",
+      "message": "图上出现代码名「forward_oot」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "A3 提供张量与缓存寻址信息；A4 按模型实参选择算子。GLM mHC 走左路，右路是带 residual 的实现对照；扩展可用时进入下方 Host 与 kernel。",
+      "diagram_id": "op-to-ai-core",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/ops-dispatch-flow.yaml",
+      "sha256": "bbd1a4ed648cf4480d85de2f81a07a1d613ed4cf54a21e3f713cbab146feb604",
+      "message": "图上出现代码名「new__」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "固定上游 CustomOp 的类选择与方法选择分开；前向调用已保存的方法。禁用自定义操作时，原生实现仍可按 compile_native 进入编译。",
+      "diagram_id": "ops-dispatch-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/ops-dispatch-flow.yaml",
+      "sha256": "bbd1a4ed648cf4480d85de2f81a07a1d613ed4cf54a21e3f713cbab146feb604",
+      "message": "图上出现代码名「enforce_enable」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "固定上游 CustomOp 的类选择与方法选择分开；前向调用已保存的方法。禁用自定义操作时，原生实现仍可按 compile_native 进入编译。",
+      "diagram_id": "ops-dispatch-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/ops-dispatch-flow.yaml",
+      "sha256": "bbd1a4ed648cf4480d85de2f81a07a1d613ed4cf54a21e3f713cbab146feb604",
+      "message": "图上出现代码名「forward_native」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "固定上游 CustomOp 的类选择与方法选择分开；前向调用已保存的方法。禁用自定义操作时，原生实现仍可按 compile_native 进入编译。",
+      "diagram_id": "ops-dispatch-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/ops-dispatch-flow.yaml",
+      "sha256": "bbd1a4ed648cf4480d85de2f81a07a1d613ed4cf54a21e3f713cbab146feb604",
+      "message": "图上出现代码名「maybe_compile」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "固定上游 CustomOp 的类选择与方法选择分开；前向调用已保存的方法。禁用自定义操作时，原生实现仍可按 compile_native 进入编译。",
+      "diagram_id": "ops-dispatch-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/ops-dispatch-flow.yaml",
+      "sha256": "bbd1a4ed648cf4480d85de2f81a07a1d613ed4cf54a21e3f713cbab146feb604",
+      "message": "图上出现代码名「forward_oot」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "固定上游 CustomOp 的类选择与方法选择分开；前向调用已保存的方法。禁用自定义操作时，原生实现仍可按 compile_native 进入编译。",
+      "diagram_id": "ops-dispatch-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/ops-dispatch-flow.yaml",
+      "sha256": "bbd1a4ed648cf4480d85de2f81a07a1d613ed4cf54a21e3f713cbab146feb604",
+      "message": "图上出现代码名「forward_method」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "固定上游 CustomOp 的类选择与方法选择分开；前向调用已保存的方法。禁用自定义操作时，原生实现仍可按 compile_native 进入编译。",
+      "diagram_id": "ops-dispatch-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/platform-startup-contract.yaml",
+      "sha256": "e1829c0f17f99ce940ef29c15b96004cf30dde61bcce0af72f39ebbc0b5f149b",
+      "message": "texts[2]：「就绪后 → A1 接收请求 → …」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "A0 内的平台交接按启动先后展开；配置失败在设备初始化前退出，成功后由 Worker 加载模型并继续后端相关调整。强制 eager 跳过图捕获入口",
+      "diagram_id": "platform-startup-contract",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/quantization-flow.yaml",
+      "sha256": "301f1f55d94cf2fdcb11528bdb87983d1656db73f290979d87312a1f50878e53",
+      "message": "texts[0]：「此处只画 Linear/MoE；…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "上排只画接量化配置的 Linear/MoE：命中 FLOAT 跳过条件时选不量化实现，否则读取精度并按「精度名称、层类型」查注册表；缺必要条目或实现会报错。Embedding 缺量化条目时允许回退浮点，不在这条分支内。下排画普通动态 Linear 的 BF16 输入路径：量化为 INT8，整数乘加，再乘回两份系数输出 BF16；预量化与专家融合路径的实际调用次数不同。",
+      "diagram_id": "quantization-flow",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/recompute-offload-flow.yaml",
+      "sha256": "bbd2c758e669e4bd39247dfea457bc8fdb5d2a13a6340502280e54a136bf16c4",
+      "message": "图上出现代码名「update_state_before_preempt」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "保存与恢复跨越多次调度。按固定旧版展开，编号对应一条请求的七站；保存计划不是拷贝完成。D2H是设备到主机，H2D是主机到设备。worker先保存旧数据，再整理会复用块号的输入；之后等保存报告、恢复分配、搬回报告逐道满足，才能继续调度。失败分支按现场版本退回P或中止。",
+      "diagram_id": "recompute-offload-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/recompute-offload-flow.yaml",
+      "sha256": "bbd2c758e669e4bd39247dfea457bc8fdb5d2a13a6340502280e54a136bf16c4",
+      "message": "图上出现代码名「handle_preemptions」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "保存与恢复跨越多次调度。按固定旧版展开，编号对应一条请求的七站；保存计划不是拷贝完成。D2H是设备到主机，H2D是主机到设备。worker先保存旧数据，再整理会复用块号的输入；之后等保存报告、恢复分配、搬回报告逐道满足，才能继续调度。失败分支按现场版本退回P或中止。",
+      "diagram_id": "recompute-offload-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/recompute-offload-flow.yaml",
+      "sha256": "bbd2c758e669e4bd39247dfea457bc8fdb5d2a13a6340502280e54a136bf16c4",
+      "message": "图上出现代码名「start_load_kv」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "保存与恢复跨越多次调度。按固定旧版展开，编号对应一条请求的七站；保存计划不是拷贝完成。D2H是设备到主机，H2D是主机到设备。worker先保存旧数据，再整理会复用块号的输入；之后等保存报告、恢复分配、搬回报告逐道满足，才能继续调度。失败分支按现场版本退回P或中止。",
+      "diagram_id": "recompute-offload-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/recompute-offload-flow.yaml",
+      "sha256": "bbd2c758e669e4bd39247dfea457bc8fdb5d2a13a6340502280e54a136bf16c4",
+      "message": "图上出现代码名「get_finished」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "保存与恢复跨越多次调度。按固定旧版展开，编号对应一条请求的七站；保存计划不是拷贝完成。D2H是设备到主机，H2D是主机到设备。worker先保存旧数据，再整理会复用块号的输入；之后等保存报告、恢复分配、搬回报告逐道满足，才能继续调度。失败分支按现场版本退回P或中止。",
+      "diagram_id": "recompute-offload-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/request-call-chain-branches.yaml",
+      "sha256": "7f1c390d4b8426bb3ed6d17238014067cf46d7ccdab2462530c8d5ded965526d",
+      "message": "图上出现代码名「sample_tokens」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "R1 的两步沿同一主干前进，调度来源、图模式与采样器分别判断。图中 decode 回放图以两组对齐后可用为前提；MTP 草拟在这两步都走 eager。",
+      "diagram_id": "request-call-chain-branches",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/request-call-chain-functions.yaml",
+      "sha256": "2a7320f9b7d51ee161e2045526838cc0e7b16d60d8060b46885ef409c81c9dbe",
+      "message": "图上出现代码名「create_chat_completion」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "七站的主要调用与交接。④在③的执行调用内部完成；⑤由第二次 RPC 触发，消费④留在 worker 的 logits。第 6 站继续生成的请求回到调度，每步输出都送往第 7 站。",
+      "diagram_id": "request-call-chain-functions",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/request-call-chain-functions.yaml",
+      "sha256": "2a7320f9b7d51ee161e2045526838cc0e7b16d60d8060b46885ef409c81c9dbe",
+      "message": "图上出现代码名「execute_model」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "七站的主要调用与交接。④在③的执行调用内部完成；⑤由第二次 RPC 触发，消费④留在 worker 的 logits。第 6 站继续生成的请求回到调度，每步输出都送往第 7 站。",
+      "diagram_id": "request-call-chain-functions",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/request-call-chain-functions.yaml",
+      "sha256": "2a7320f9b7d51ee161e2045526838cc0e7b16d60d8060b46885ef409c81c9dbe",
+      "message": "图上出现代码名「model_forward」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "七站的主要调用与交接。④在③的执行调用内部完成；⑤由第二次 RPC 触发，消费④留在 worker 的 logits。第 6 站继续生成的请求回到调度，每步输出都送往第 7 站。",
+      "diagram_id": "request-call-chain-functions",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/request-call-chain-functions.yaml",
+      "sha256": "2a7320f9b7d51ee161e2045526838cc0e7b16d60d8060b46885ef409c81c9dbe",
+      "message": "图上出现代码名「sample_tokens」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "七站的主要调用与交接。④在③的执行调用内部完成；⑤由第二次 RPC 触发，消费④留在 worker 的 logits。第 6 站继续生成的请求回到调度，每步输出都送往第 7 站。",
+      "diagram_id": "request-call-chain-functions",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/request-call-chain-functions.yaml",
+      "sha256": "2a7320f9b7d51ee161e2045526838cc0e7b16d60d8060b46885ef409c81c9dbe",
+      "message": "图上出现代码名「update_from_output」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "七站的主要调用与交接。④在③的执行调用内部完成；⑤由第二次 RPC 触发，消费④留在 worker 的 logits。第 6 站继续生成的请求回到调度，每步输出都送往第 7 站。",
+      "diagram_id": "request-call-chain-functions",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/request-call-chain-functions.yaml",
+      "sha256": "2a7320f9b7d51ee161e2045526838cc0e7b16d60d8060b46885ef409c81c9dbe",
+      "message": "图上出现代码名「process_outputs」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "七站的主要调用与交接。④在③的执行调用内部完成；⑤由第二次 RPC 触发，消费④留在 worker 的 logits。第 6 站继续生成的请求回到调度，每步输出都送往第 7 站。",
+      "diagram_id": "request-call-chain-functions",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/request-call-chain-log-route.yaml",
+      "sha256": "7c68c9b11c29da096ac37d6c5a320ad995eac24b7d3a1967eba0fe2e74267709",
+      "message": "图上出现代码名「EngineCore_DP」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "按日志定位先找实际抛错的进程，再用最内层 traceback 认站。跨进程转达的异常要沿回传方向追到原始日志；RPC 超时则需要对齐各 worker 的时间线。",
+      "diagram_id": "request-call-chain-log-route",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/request-call-chain-log-route.yaml",
+      "sha256": "7c68c9b11c29da096ac37d6c5a320ad995eac24b7d3a1967eba0fe2e74267709",
+      "message": "图上出现代码名「Worker_DP」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "按日志定位先找实际抛错的进程，再用最内层 traceback 认站。跨进程转达的异常要沿回传方向追到原始日志；RPC 超时则需要对齐各 worker 的时间线。",
+      "diagram_id": "request-call-chain-log-route",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/rfork-startup-fallback.yaml",
+      "sha256": "afbab7dd1c29220321a26109d7585658531673b0e4a8c7572257e232016d2f41",
+      "message": "图上有 11 段文字，超过 8 段：说明挪回正文，图上只留短语",
+      "heuristic": "text_count",
+      "caption": "回退这一段在加载器里的先后与分支。会话建起来了，就先停服务、安排还租约、注销登记（最多两轮），再按拍好的快照撤掉半成品模型留下的全局登记；服务没停下或内存没注销，就报错终止，不分配第二份模型。会话根本没建起来（缺配置、没装传输引擎），跳过清理直接普通加载，事后也不发布 seed。普通加载自己失败就抛错；成功后，会话在就尝试把自己发布成 seed，发布失败也照样交回模型。",
+      "diagram_id": "rfork-startup-fallback",
+      "purpose_class": "时间轴、卡/组/阶段标签与例子",
+      "disposition": "12 条段数提示包含时刻刻度、重复行标签、分组或计算步骤；不能按段数把必要对象标签删掉。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/sequence-parallel-layer.yaml",
+      "sha256": "7c5caaf1f892ba77a30e81dcd9a1eed0c98fb415c8325b412e6b932cc4286840",
+      "message": "图上有 12 段文字，超过 8 段：说明挪回正文，图上只留短语",
+      "heuristic": "text_count",
+      "caption": "常规子层的前向边界。SP 区域保留完整的 token 行；All-Gather 后由 TP 权重分片计算各自通道，行切投影的部分和经 Reduce-Scatter 合并并重新分行。相同边界在 attention 和 MLP 后各出现一次。",
+      "diagram_id": "sequence-parallel-layer",
+      "purpose_class": "时间轴、卡/组/阶段标签与例子",
+      "disposition": "12 条段数提示包含时刻刻度、重复行标签、分组或计算步骤；不能按段数把必要对象标签删掉。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/sleep-mode-flow.yaml",
+      "sha256": "e1fdd9953d652f36012cb6587ff3dcb1baae0d6bd1b4fdf1fba7c6cbad0cdce6",
+      "message": "图上出现代码名「wake_up」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "vLLM 0fc695fc 与 Ascend db701c1f 的控制路径。sleep 在调度与 Worker 之间切换整台引擎的状态；分标签唤醒期间，调用方仍须阻止新请求进入。",
+      "diagram_id": "sleep-mode-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/sleep-mode-flow.yaml",
+      "sha256": "e1fdd9953d652f36012cb6587ff3dcb1baae0d6bd1b4fdf1fba7c6cbad0cdce6",
+      "message": "图上出现代码名「kv_cache」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "vLLM 0fc695fc 与 Ascend db701c1f 的控制路径。sleep 在调度与 Worker 之间切换整台引擎的状态；分标签唤醒期间，调用方仍须阻止新请求进入。",
+      "diagram_id": "sleep-mode-flow",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/swa-replay-flow.yaml",
+      "sha256": "7eeea46f1bdc38e04c58a282cc8adb7134c0aa338540af88a3b9effe778cb72a",
+      "message": "texts[3]：「先比较 mask/compact…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "第 3–5 站的教学截断对照，只画输入尾段 5–9。窗口长 3、回放从 7 开始，观察位置 8：off 的 SWA 可读 6/7/8，mask 和 compact 都只能读 7/8；后两者输入行数不同，但保留区间语义应相同。全局 KV 读取没有画入此图。",
+      "diagram_id": "swa-replay-flow",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/swa-replay-intuition.yaml",
+      "sha256": "1b13bd60e099b9d7fb1c928c5e7b9ff28b0141e19aa92db305a0a32fe2bb3e62",
+      "message": "图上有 10 段文字，超过 8 段：说明挪回正文，图上只留短语",
+      "heuristic": "text_count",
+      "caption": "窗口长 3 的两层均值示意，实际 attention 不按简单均值计算。第一层位置 9 都等于 6；第二层虽然都读取位置 7/8/9，完整路径读到 2/4/6，回放路径读到 6/6/6，因而得到 4 和 6。",
+      "diagram_id": "swa-replay-intuition",
+      "purpose_class": "时间轴、卡/组/阶段标签与例子",
+      "disposition": "12 条段数提示包含时刻刻度、重复行标签、分组或计算步骤；不能按段数把必要对象标签删掉。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/tensor-parallel-intuition.yaml",
+      "sha256": "a943981b7b94e6c9705ac406cb88294e68c37425fbe55e2e1199a3deb51fb744",
+      "message": "图上有 13 段文字，超过 8 段：说明挪回正文，图上只留短语",
+      "heuristic": "text_count",
+      "caption": "N 张卡合算一对矩阵：每卡用同一份 X 乘第一个矩阵的列片，得到数值完整的几列；逐元素激活后，直接乘第二个矩阵的对应行片，产生完整形状的部分和。最后只做一次 All-Reduce，每卡得到完整 Y。卡 1 与卡 N−1 之间省略其余卡。",
+      "diagram_id": "tensor-parallel-intuition",
+      "purpose_class": "时间轴、卡/组/阶段标签与例子",
+      "disposition": "12 条段数提示包含时刻刻度、重复行标签、分组或计算步骤；不能按段数把必要对象标签删掉。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/tensor-parallel.yaml",
+      "sha256": "cea5278c378cbe0eb26bb2cae20bf41e07edcaab6e515bcfb107393eff9b35f6",
+      "message": "texts[0]：「一台 Atlas 800 A2 …」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "R1 的一个稠密 MLP：gate、up 各沿输出维切八份，本地门控后直接接 down。P₀…P₇ 各是一张完整形状的 [4,4096] 张量，浅色表示数值仍为部分和；All-Reduce 把八张张量对应位置相加。矩阵格线仅示意，非逐元素比例。",
+      "diagram_id": "tensor-parallel",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/tensor-parallel.yaml",
+      "sha256": "cea5278c378cbe0eb26bb2cae20bf41e07edcaab6e515bcfb107393eff9b35f6",
+      "message": "texts[5]：「权重为 int8，输出为 BF1…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "R1 的一个稠密 MLP：gate、up 各沿输出维切八份，本地门控后直接接 down。P₀…P₇ 各是一张完整形状的 [4,4096] 张量，浅色表示数值仍为部分和；All-Reduce 把八张张量对应位置相加。矩阵格线仅示意，非逐元素比例。",
+      "diagram_id": "tensor-parallel",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/vllm-ascend-for-rl-update.yaml",
+      "sha256": "bc5c617143630db5b5165ae8eb329326edb432346dfd48e79088dd4276d8083c",
+      "message": "texts[0]：「同卡 level 2 sleep…」是一整句，放回正文",
+      "heuristic": "long_annotation",
+      "caption": "main 的权重更新控制流；IPC 分支限未打包路径。主线第 2 站的调度先暂停，第 4 站的模型才可换权重；第 5、7 站产生并返回下一轮训练数据。使用 IPC trainer 时由发送方法包办 start/update/finish，外层不再重复；出错不能直接恢复生成。",
+      "diagram_id": "vllm-ascend-for-rl-update",
+      "purpose_class": "条件、单位、计算或解释注释",
+      "disposition": "26 条长注释已读完整文本，承载流程范围、通信形状、算式或观测条件；并非自动认定为装饰性长段。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/vllm-ascend-for-rl-update.yaml",
+      "sha256": "bc5c617143630db5b5165ae8eb329326edb432346dfd48e79088dd4276d8083c",
+      "message": "图上出现代码名「kv_cache」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "main 的权重更新控制流；IPC 分支限未打包路径。主线第 2 站的调度先暂停，第 4 站的模型才可换权重；第 5、7 站产生并返回下一轮训练数据。使用 IPC trainer 时由发送方法包办 start/update/finish，外层不再重复；出错不能直接恢复生成。",
+      "diagram_id": "vllm-ascend-for-rl-update",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/vllm-ascend-for-rl-update.yaml",
+      "sha256": "bc5c617143630db5b5165ae8eb329326edb432346dfd48e79088dd4276d8083c",
+      "message": "图上出现代码名「init_weight_transfer_engine」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "main 的权重更新控制流；IPC 分支限未打包路径。主线第 2 站的调度先暂停，第 4 站的模型才可换权重；第 5、7 站产生并返回下一轮训练数据。使用 IPC trainer 时由发送方法包办 start/update/finish，外层不再重复；出错不能直接恢复生成。",
+      "diagram_id": "vllm-ascend-for-rl-update",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/vllm-ascend-for-rl-update.yaml",
+      "sha256": "bc5c617143630db5b5165ae8eb329326edb432346dfd48e79088dd4276d8083c",
+      "message": "图上出现代码名「start_weight_update」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "main 的权重更新控制流；IPC 分支限未打包路径。主线第 2 站的调度先暂停，第 4 站的模型才可换权重；第 5、7 站产生并返回下一轮训练数据。使用 IPC trainer 时由发送方法包办 start/update/finish，外层不再重复；出错不能直接恢复生成。",
+      "diagram_id": "vllm-ascend-for-rl-update",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/vllm-ascend-for-rl-update.yaml",
+      "sha256": "bc5c617143630db5b5165ae8eb329326edb432346dfd48e79088dd4276d8083c",
+      "message": "图上出现代码名「update_weights」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "main 的权重更新控制流；IPC 分支限未打包路径。主线第 2 站的调度先暂停，第 4 站的模型才可换权重；第 5、7 站产生并返回下一轮训练数据。使用 IPC trainer 时由发送方法包办 start/update/finish，外层不再重复；出错不能直接恢复生成。",
+      "diagram_id": "vllm-ascend-for-rl-update",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/vllm-ascend-for-rl-update.yaml",
+      "sha256": "bc5c617143630db5b5165ae8eb329326edb432346dfd48e79088dd4276d8083c",
+      "message": "图上出现代码名「finish_weight_update」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "main 的权重更新控制流；IPC 分支限未打包路径。主线第 2 站的调度先暂停，第 4 站的模型才可换权重；第 5、7 站产生并返回下一轮训练数据。使用 IPC trainer 时由发送方法包办 start/update/finish，外层不再重复；出错不能直接恢复生成。",
+      "diagram_id": "vllm-ascend-for-rl-update",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/vllm-ascend-repo-map.yaml",
+      "sha256": "00fa89fc0e3227bcb5e727dc3906f758d876de32eee2a86bfdef31d6ca886623",
+      "message": "图上出现代码名「model_loader」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "按职责定位目录：运行时主线从引擎进入执行、模型与算子；配置注册、通信及图执行提供相应支持",
+      "diagram_id": "vllm-ascend-repo-map",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    },
+    {
+      "file": "wiki/diagrams/vllm-ascend-repo-map.yaml",
+      "sha256": "00fa89fc0e3227bcb5e727dc3906f758d876de32eee2a86bfdef31d6ca886623",
+      "message": "图上出现代码名「spec_decode」：讲解图不放代码名，源码细节放「对照源码」",
+      "heuristic": "source_identifier",
+      "caption": "按职责定位目录：运行时主线从引擎进入执行、模型与算子；配置注册、通信及图执行提供相应支持",
+      "diagram_id": "vllm-ascend-repo-map",
+      "purpose_class": "源码/模块身份定位",
+      "disposition": "53 条代码名提示用于实际调用链、配置分支或模型部件定位；保留名称及限定，不因命名启发式删除。",
+      "verification_scope": "this reviewer read all 91 warning lines, all 47 captions, and full warning-addressed text annotations; no new full visual acceptance of all 47 diagrams claimed"
+    }
+  ],
+  "diagram_warning_counts": {
+    "source_identifier": 53,
+    "long_annotation": 26,
+    "text_count": 12
+  },
+  "artifacts": {
+    ".tmp/continuation-groups-2026-11-10/final-site-checks/report.json": "cdf78e25439e10b2d5961cc0cac2b569dafe7cd0da7a0fdfe06660404318f380",
+    ".tmp/continuation-groups-2026-11-10/final-site-browser/report.json": "5a3fa9ec7a6fe3c1663c235731c21e7336939e17c30faa84b03f7492ff49281b",
+    "docs/reviews/2026-11-10-continuation-groups/final-maintenance-scan.json": "7ae61ceafd2066c80fefe5074317df63533920dee7211496756ad654fc35aaa4",
+    "docs/reviews/2026-11-10-continuation-groups/final-source-replacements.json": "8bbd1407bece960187e477d9c875521982796c027c820b46b78ef9f77cd5828f"
+  },
+  "reviewer": "/root/spec_final_review",
+  "reviewed_at": "2026-11-10T18:34:05.605770+00:00",
+  "status": "historical_frozen_engineering_records_verified; 10 presentation findings handed to root for new independent acceptance",
+  "source_replacement_chains": [
+    {
+      "page_id": "engine-processes",
+      "source_number": 88,
+      "old_ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L116-L125",
+      "current_ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L116-L126",
+      "judgment_record": "request-processes-range-adjustments.json",
+      "judgment": "supported_scoped",
+      "claim_or_resolution": "126行实际返回CANN physical id；固定commit/path不变。",
+      "stored_artifact_integrity": [
+        {
+          "path": ".tmp/continuation-groups-2026-11-10/request-processes/review-range-migration-engine-processes-88.txt",
+          "actual_sha256": "e17e8e95cd4cbcc655ebf6838716f9371b1c4b7d59ebecb716b70dec02922c57",
+          "expected_sha256": "e17e8e95cd4cbcc655ebf6838716f9371b1c4b7d59ebecb716b70dec02922c57",
+          "matches": true
+        }
+      ],
+      "independent_chain": [
+        {
+          "record": "request-processes-independent.json",
+          "kind": "same occurrence in old 148",
+          "status": "supported_scoped",
+          "range_record": "request-processes-range-adjustments.json"
+        }
+      ],
+      "credit": 0,
+      "scope": "prior independent judgment chain and exact migration identity verified; not a new semantic reread"
+    },
+    {
+      "page_id": "engine-processes",
+      "source_number": 108,
+      "old_ref": "vllm@ced6857a:vllm/v1/engine/async_llm.py#L148-L161",
+      "current_ref": "vllm@ced6857a:vllm/v1/engine/async_llm.py#L148-L162",
+      "judgment_record": "request-processes-range-adjustments.json",
+      "judgment": "supported_scoped",
+      "claim_or_resolution": "完整构造调用包含把共享admission_stats交给OutputProcessor；162为调用闭合。",
+      "stored_artifact_integrity": [
+        {
+          "path": ".tmp/continuation-groups-2026-11-10/request-processes/review-range-migration-engine-processes-108.txt",
+          "actual_sha256": "4d807709838503c37432396754ad5250a2c3efe6835f966a5f4b4632409092a3",
+          "expected_sha256": "4d807709838503c37432396754ad5250a2c3efe6835f966a5f4b4632409092a3",
+          "matches": true
+        }
+      ],
+      "independent_chain": [
+        {
+          "record": "request-processes-independent.json",
+          "kind": "same occurrence in old 148",
+          "status": "supported_scoped",
+          "range_record": "request-processes-range-adjustments.json"
+        }
+      ],
+      "credit": 0,
+      "scope": "prior independent judgment chain and exact migration identity verified; not a new semantic reread"
+    },
+    {
+      "page_id": "op-to-ai-core",
+      "source_number": 17,
+      "old_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L220",
+      "current_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L113-L220",
+      "judgment_record": "ops-judgments.json",
+      "judgment": "repaired_reference",
+      "claim_or_resolution": "原133起漏掉dynamic_scale None、融合资格条件；扩到113，原段至220保持。已读110–220，不以分支存在推断运行命中。",
+      "stored_artifact_integrity": [],
+      "independent_chain": [
+        {
+          "record": "ops-review.md:25",
+          "kind": "P2 old missing condition range explicitly closed on both pages"
+        }
+      ],
+      "credit": 0,
+      "scope": "prior independent judgment chain and exact migration identity verified; not a new semantic reread"
+    },
+    {
+      "page_id": "ops-and-kernels",
+      "source_number": 26,
+      "old_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L215",
+      "current_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L113-L215",
+      "judgment_record": "ops-judgments.json",
+      "judgment": "repaired_reference",
+      "claim_or_resolution": "关联页同一缺条件引用扩到113；已有判断的重核，不能算新关闭旧余项。",
+      "stored_artifact_integrity": [],
+      "independent_chain": [
+        {
+          "record": "ops-review.md:25",
+          "kind": "P2 old missing condition range explicitly closed on both pages"
+        }
+      ],
+      "credit": 0,
+      "scope": "prior independent judgment chain and exact migration identity verified; not a new semantic reread"
+    },
+    {
+      "page_id": "request-call-chain",
+      "source_number": 26,
+      "old_ref": "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L660",
+      "current_ref": "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L675",
+      "judgment_record": "request-processes-range-adjustments.json",
+      "judgment": "supported_scoped",
+      "claim_or_resolution": "补到675，覆盖663处queue.put及本分支收尾，与前端输出队列主张相符。",
+      "stored_artifact_integrity": [
+        {
+          "path": ".tmp/continuation-groups-2026-11-10/request-processes/review-range-migration-request-call-chain-26.txt",
+          "actual_sha256": "a19b0cd841a97ff722dea0b0d95961ffa2af22c5a8f2c5e5c3e9cd884b6faeb8",
+          "expected_sha256": "a19b0cd841a97ff722dea0b0d95961ffa2af22c5a8f2c5e5c3e9cd884b6faeb8",
+          "matches": true
+        }
+      ],
+      "independent_chain": [
+        {
+          "record": "request-processes-independent.json",
+          "kind": "same occurrence in old 148",
+          "status": "supported_scoped",
+          "range_record": "request-processes-range-adjustments.json"
+        }
+      ],
+      "credit": 0,
+      "scope": "prior independent judgment chain and exact migration identity verified; not a new semantic reread"
+    },
+    {
+      "page_id": "request-call-chain",
+      "source_number": 40,
+      "old_ref": "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L270-L290",
+      "current_ref": "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L270-L295",
+      "judgment_record": "request-processes-range-adjustments.json",
+      "judgment": "supported_scoped",
+      "claim_or_resolution": "补到295，覆盖291失败回调，支持原Executor退出叙述。",
+      "stored_artifact_integrity": [
+        {
+          "path": ".tmp/continuation-groups-2026-11-10/request-processes/review-range-migration-request-call-chain-40.txt",
+          "actual_sha256": "07f3606e99fb01a12f335f007fc4205cd6c07965af8a0268551c99cf213d265b",
+          "expected_sha256": "07f3606e99fb01a12f335f007fc4205cd6c07965af8a0268551c99cf213d265b",
+          "matches": true
+        }
+      ],
+      "independent_chain": [
+        {
+          "record": "request-processes-independent.json",
+          "kind": "same occurrence in old 148",
+          "status": "supported_scoped",
+          "range_record": "request-processes-range-adjustments.json"
+        }
+      ],
+      "credit": 0,
+      "scope": "prior independent judgment chain and exact migration identity verified; not a new semantic reread"
+    },
+    {
+      "page_id": "sampling",
+      "source_number": 94,
+      "old_ref": "vllm@0fc695fc:vllm/entrypoints/serve/tokenize/protocol.py#L24-L153",
+      "current_ref": "vllm@0fc695fc:vllm/entrypoints/serve/tokenize/protocol.py#L24-L163",
+      "judgment_record": "sampling-judgments.json",
+      "judgment": "range_extended",
+      "claim_or_resolution": "引用24–153结束在TokenizeResponse之前；已读相邻159–163确认tokens/count/max_model_len，应将引用延至163。 最终复核：原24–153扩至24–163，已读新增响应定义，包含tokens/count/max_model_len；保留原编号。",
+      "stored_artifact_integrity": [
+        {
+          "path": ".tmp/continuation-groups-2026-11-10/sampling/final-sources/094.txt",
+          "actual_sha256": "ca1b480d6fac39cf04e6535be7e31c3933c4e896fdf2f95c2ad8fd92edfe2f9d",
+          "expected_sha256": "ca1b480d6fac39cf04e6535be7e31c3933c4e896fdf2f95c2ad8fd92edfe2f9d",
+          "matches": true
+        }
+      ],
+      "independent_chain": [
+        {
+          "record": "sampling-preservation.json/source_migrations",
+          "kind": "range_extension_same_number_not_new_occurrence"
+        }
+      ],
+      "credit": 0,
+      "scope": "prior independent judgment chain and exact migration identity verified; not a new semantic reread"
+    },
+    {
+      "page_id": "sampling",
+      "source_number": 115,
+      "old_ref": "vllm@84030bbe:vllm/v1/sample/logits_processor/builtin.py#L167-L295",
+      "current_ref": "vllm@84030bbe:vllm/v1/sample/logits_processor/builtin.py#L167-L371",
+      "judgment_record": "sampling-judgments.json",
+      "judgment": "revised_scoped",
+      "claim_or_resolution": "main新增结构化输出全-inf时恢复有限停止编号，原版本表未说明可早于min结束；范围295也未覆盖spec函数后部，已补读至371并通知根。 最终复核：结构化输出全空恢复原有限停止分数的例外已同步到机制、入口提示和四版表；原167–295扩至167–371，完整spec处理已核。",
+      "stored_artifact_integrity": [
+        {
+          "path": ".tmp/continuation-groups-2026-11-10/sampling/final-sources/115.txt",
+          "actual_sha256": "b3cfa8624a8123f31a3bb6b8043b51066ff30e5c373afc24dabd4bc7f2fd589a",
+          "expected_sha256": "b3cfa8624a8123f31a3bb6b8043b51066ff30e5c373afc24dabd4bc7f2fd589a",
+          "matches": true
+        }
+      ],
+      "independent_chain": [
+        {
+          "record": "sampling-preservation.json/source_migrations",
+          "kind": "range_extension_same_number_not_new_occurrence"
+        }
+      ],
+      "credit": 0,
+      "scope": "prior independent judgment chain and exact migration identity verified; not a new semantic reread"
+    },
+    {
+      "page_id": "vllm-scheduler",
+      "source_number": 6,
+      "old_ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L679-L691",
+      "current_ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L679-L733",
+      "judgment_record": "scheduling-manual-judgments.json",
+      "judgment": "independent_text_visual_accepted",
+      "claim_or_resolution": "原说明和边界保留；逐项核读范围、实际主张与最终页面对应。",
+      "stored_artifact_integrity": [
+        {
+          "path": ".tmp/continuation-groups-2026-11-10/scheduling/vllm-scheduler-006.txt",
+          "actual_sha256": "449dc4cbc9c7d1a4bbce770de21386a68bc19ef574eec323328edbde21e47361",
+          "expected_sha256": "449dc4cbc9c7d1a4bbce770de21386a68bc19ef574eec323328edbde21e47361",
+          "matches": true
+        },
+        {
+          "path": ".tmp/continuation-groups-2026-11-10/scheduling/fixed/vllm/0fc695fc/vllm/v1/core/sched/scheduler.py",
+          "actual_sha256": "9ae1491f57a6294e32416b93ef2ea68107fa0d65c3a4d7f745f1261012f735e9",
+          "expected_sha256": "9ae1491f57a6294e32416b93ef2ea68107fa0d65c3a4d7f745f1261012f735e9",
+          "matches": true
+        }
+      ],
+      "independent_chain": [
+        {
+          "record": "process-scheduling-checkpoint.json/judgments",
+          "kind": "manual judgment linked from accepted checkpoint; identity_migration preserved"
+        }
+      ],
+      "credit": 0,
+      "scope": "prior independent judgment chain and exact migration identity verified; not a new semantic reread"
+    },
+    {
+      "page_id": "vllm-scheduler",
+      "source_number": 34,
+      "old_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L506-L600",
+      "current_ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L506-L659",
+      "judgment_record": "scheduling-manual-judgments.json",
+      "judgment": "independent_text_visual_accepted",
+      "claim_or_resolution": "范围扩至659覆盖非spec decode/prefill执行与拼回，旧身份通过migration保留。",
+      "stored_artifact_integrity": [
+        {
+          "path": ".tmp/continuation-groups-2026-11-10/scheduling/vllm-scheduler-034.txt",
+          "actual_sha256": "2304b162f9f9af360d7698deedaa3a3a615f9ae6e1da9e07566098fc58b513cb",
+          "expected_sha256": "2304b162f9f9af360d7698deedaa3a3a615f9ae6e1da9e07566098fc58b513cb",
+          "matches": true
+        },
+        {
+          "path": ".tmp/continuation-groups-2026-11-10/scheduling/fixed/vllm-ascend/db701c1f/vllm_ascend/ops/kimi_kda.py",
+          "actual_sha256": "f2469e8864a4f4fd878ce752ac4d6e595a331365b90346f1c6f55b22c7235e29",
+          "expected_sha256": "f2469e8864a4f4fd878ce752ac4d6e595a331365b90346f1c6f55b22c7235e29",
+          "matches": true
+        }
+      ],
+      "independent_chain": [
+        {
+          "record": "process-scheduling-checkpoint.json/judgments",
+          "kind": "manual judgment linked from accepted checkpoint; identity_migration preserved"
+        }
+      ],
+      "credit": 0,
+      "scope": "prior independent judgment chain and exact migration identity verified; not a new semantic reread"
+    },
+    {
+      "page_id": "vllm-v1-shape",
+      "source_number": 40,
+      "old_ref": "vllm@ced6857a:vllm/v1/engine/core.py#L589-L619",
+      "current_ref": "vllm@ced6857a:vllm/v1/engine/core.py#L589-L628",
+      "judgment_record": "request-processes-range-adjustments.json",
+      "judgment": "supported_scoped",
+      "claim_or_resolution": "补到628，保留普通step且加入同步投机post_step取draft的额外调用条件；不是每一步只可能两个RPC。",
+      "stored_artifact_integrity": [
+        {
+          "path": ".tmp/continuation-groups-2026-11-10/request-processes/review-range-migration-vllm-v1-shape-40.txt",
+          "actual_sha256": "de7b5aa90f2f96ab48ecce0e6b3ea377a3f0fadadd8f28c40de05764ba06fe61",
+          "expected_sha256": "de7b5aa90f2f96ab48ecce0e6b3ea377a3f0fadadd8f28c40de05764ba06fe61",
+          "matches": true
+        }
+      ],
+      "independent_chain": [
+        {
+          "record": "request-processes-review.md:14",
+          "kind": "already-closed supplement extension explicitly included in independent review; not contained in old 148 JSON"
+        }
+      ],
+      "credit": 0,
+      "scope": "prior independent judgment chain and exact migration identity verified; not a new semantic reread"
+    },
+    {
+      "page_id": "vllm-v1-shape",
+      "source_number": 41,
+      "old_ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L30",
+      "current_ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L42",
+      "judgment_record": "request-processes-range-adjustments.json",
+      "judgment": "supported_scoped",
+      "claim_or_resolution": "补到42，覆盖property实际安装，不再仅凭函数定义认定开关覆盖已生效。",
+      "stored_artifact_integrity": [
+        {
+          "path": ".tmp/continuation-groups-2026-11-10/request-processes/review-range-migration-vllm-v1-shape-41.txt",
+          "actual_sha256": "e59ba3bbae4c30ff529631316796474c2c4702f4d421308fc3f0dc8c231918f2",
+          "expected_sha256": "e59ba3bbae4c30ff529631316796474c2c4702f4d421308fc3f0dc8c231918f2",
+          "matches": true
+        }
+      ],
+      "independent_chain": [
+        {
+          "record": "request-processes-review.md:14",
+          "kind": "already-closed supplement extension explicitly included in independent review; not contained in old 148 JSON"
+        }
+      ],
+      "credit": 0,
+      "scope": "prior independent judgment chain and exact migration identity verified; not a new semantic reread"
+    }
+  ],
+  "new_fulltext_credit": 0,
+  "semantic_8729_reaudit_claimed": false,
+  "expected_later_page_changes": [
+    "wiki/concepts/ascend-patch-system.md",
+    "wiki/concepts/moe.md",
+    "wiki/concepts/npu-model-runner.md",
+    "wiki/concepts/platform-plugin-registration.md",
+    "wiki/concepts/quantization.md",
+    "wiki/concepts/reading-vllm-ascend.md",
+    "wiki/concepts/vllm-ascend-overview.md",
+    "wiki/params/enable-force-eplb-b7ec3661121f.md",
+    "wiki/params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md",
+    "wiki/sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md"
+  ],
+  "later_author_package": "evidence-presentation-author.md",
+  "needs_global_checks_after_presentation_changes": true,
+  "confirmed_new_diagram_P1_P2": 0
+}

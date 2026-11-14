@@ -1,0 +1,135 @@
+{
+  "reviewed_at": "2026-11-10T18:55:41.745672+00:00",
+  "checks": {
+    "frozen_files": 872,
+    "current_hash_mismatches": [],
+    "command_logs": [
+      {
+        "command": "pnpm check:content",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/final-site-checks/content.log",
+        "sha256": "d82a6ecbb6e8b94d64d790401b2004a5bffd24533d2656c5ac60cd1aed82e469",
+        "started": "2026-11-10T18:41:49.379622+00:00",
+        "finished": "2026-11-10T18:41:50.495992+00:00",
+        "actual_sha256": "d82a6ecbb6e8b94d64d790401b2004a5bffd24533d2656c5ac60cd1aed82e469"
+      },
+      {
+        "command": "pnpm wiki:lint",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/final-site-checks/lint.log",
+        "sha256": "fb694a71c7d895b670b83a00b3cfdc32f8535e426b8c4de5a820cf670ac716a2",
+        "started": "2026-11-10T18:41:50.495992+00:00",
+        "finished": "2026-11-10T18:42:18.808893+00:00",
+        "actual_sha256": "fb694a71c7d895b670b83a00b3cfdc32f8535e426b8c4de5a820cf670ac716a2"
+      },
+      {
+        "command": "pnpm wiki:audit",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/final-site-checks/audit.log",
+        "sha256": "fb559c44a05501d7cb7646120e906c33778d344b9c39b6d9c0cc9e7735616792",
+        "started": "2026-11-10T18:42:18.808893+00:00",
+        "finished": "2026-11-10T18:42:48.361131+00:00",
+        "actual_sha256": "fb559c44a05501d7cb7646120e906c33778d344b9c39b6d9c0cc9e7735616792"
+      },
+      {
+        "command": "pnpm wiki:diagrams --check",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/final-site-checks/diagrams.log",
+        "sha256": "3bd07a32bd1da109b683c55e8fbd19d579115a4bc2ab188889fc83ff2a13899d",
+        "started": "2026-11-10T18:42:48.361131+00:00",
+        "finished": "2026-11-10T18:42:50.393683+00:00",
+        "actual_sha256": "3bd07a32bd1da109b683c55e8fbd19d579115a4bc2ab188889fc83ff2a13899d"
+      },
+      {
+        "command": "pnpm build",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/final-site-checks/build.log",
+        "sha256": "0b57b7dfaabfa60451717e4c3e04315ad54a9aa309f927e60e679fa59e1d6523",
+        "started": "2026-11-10T18:42:50.394685+00:00",
+        "finished": "2026-11-10T18:43:16.827982+00:00",
+        "actual_sha256": "0b57b7dfaabfa60451717e4c3e04315ad54a9aa309f927e60e679fa59e1d6523"
+      }
+    ],
+    "registered_routes": 164,
+    "route_failures": [],
+    "inventory_mismatches": [],
+    "groups": {
+      "06-rfork-params-sources": 49,
+      "05-performance-reliability": 24,
+      "03-hardware-parallel": 23,
+      "02-request-flow": 29,
+      "01-foundations": 19,
+      "04-cache-state": 19
+    },
+    "source_occurrences": 8750,
+    "active_occurrences": 8707,
+    "paused_occurrences": 43,
+    "tail_occurrences": 696,
+    "tail_mapping_mismatches": [],
+    "tail_review_mismatches": [],
+    "reconciliation_states": {
+      "mapped_legacy_judgment_location": 5021,
+      "mapped_judgment_or_acceptance_chain": 3187,
+      "user_deferred_excluded": 43,
+      "mapped_frozen_batch500_judgment": 499
+    },
+    "reconciliation_current_ref_mismatches": [],
+    "risk_records": 251,
+    "risk_pages": 77,
+    "risk_dispositions": {
+      "qualified_support_retained": 85,
+      "corrected_current_text_confirmed": 32,
+      "archive_not_independent": 6,
+      "p2_closed_after_followup": 3,
+      "external_boundary_retained": 2,
+      "historical_attribution_retained": 1,
+      "resolved_by_correction": 34,
+      "supported_by_combined_context": 49,
+      "supported_scoped": 18,
+      "limited_range_supplemented": 3,
+      "resolved_by_author_correction_independently_verified": 7,
+      "resolved_original_retrieved": 1,
+      "supported_by_new_context_read": 7,
+      "resolved_by_new_accepted_evidence": 3
+    },
+    "risk_current_hash_mismatches": [],
+    "presentation_review_owner": "root",
+    "presentation_review_current_hash_mismatches": [],
+    "presentation_original_sources": 639,
+    "root_final_screenshots": 50,
+    "count_correction": "4+2; six item records and old 148 closure unchanged"
+  },
+  "input_hashes": {
+    "docs\\reviews\\2026-11-10-continuation-groups\\final-report.md": "57256e6fd391cf89affa231a51cb8090d92779a60f7f75db3d03856ee17323f4",
+    "docs\\reviews\\2026-11-10-continuation-groups\\final-engineering-checkpoint.json": "1806298b227869099400473b5f2dd815a4be42bf5b413093c843100f221add14",
+    "docs\\reviews\\2026-11-10-continuation-groups\\final-page-inventory.json": "5906f112fcde9b7278ccd03125c7de6c077dd6f73c50bb223ba47c78083dc00c",
+    "docs\\reviews\\2026-11-10-continuation-groups\\final-tail696-checkpoint.json": "79d0ce0c4fcb9d0bb68e0178cc99b9d67c47f2861e7a9d20c4fa5fdb17b4d72c",
+    "docs\\reviews\\2026-11-10-continuation-groups\\final-source-reconciliation.md": "0ebd81a99cbee02cf27a98e37386a0e1bffad83becd9128b0d41dad17a48c770",
+    "docs\\reviews\\2026-11-10-continuation-groups\\final-source-reconciliation.json": "1e2c9e2b3fd1c3fde83a028789259bb9b56f3dfe9e66aef81fe5d23bf71e671c",
+    "docs\\reviews\\2026-11-10-continuation-groups\\final-historical-risk-summary.json": "1ca2d62b563e48ef71d8b9d012e2eb2997d933de60e1cf48d01b93755be5d758",
+    "docs\\reviews\\2026-11-10-continuation-groups\\evidence-presentation-independent-review.md": "b035d299d267a2f5e25520e7aa453c22f2a6734d542cc9b56bb61e41498735a0",
+    "docs\\reviews\\2026-11-10-continuation-groups\\evidence-presentation-independent-summary.json": "6095f837203e896fa46d2e527425710ef6474e9ba19335d0f95e6a51f5e1dff7",
+    "docs\\reviews\\2026-11-10-continuation-groups\\final-learner-paths-review.md": "8cb046cbc1e0447bdac95e0cd0d5d449792ef9c36b661f264484b0a29af67f4b",
+    "docs\\reviews\\2026-11-10-continuation-groups\\request-processes-count-correction.json": "90260a9790c890a7d37cc456ff9bee87b194fa35cef68aecdf6447603b3ea3ef",
+    "docs\\reviews\\2026-11-10-continuation-groups\\final-historical-risk-child-review.md": "38803093ef20d86b681068d5948a066508bbf3f9a2a11e5b3981e6f8cfbadf78",
+    "docs\\reviews\\2026-11-10-continuation-groups\\final42-coverage-independent-review.md": "8cd2652afcfbddf588adbaaa5df9013ca5924c2eda64635596d23aee1c23c32c"
+  },
+  "issues": [],
+  "reviewer": "spec_final_review",
+  "status": "accepted_for_report_scope_and_current_engineering_identity",
+  "author_role_disclosure": "Reviewer authored the ten-page evidence-presentation changes; their content acceptance belongs to root. This closeout verifies root review scope, evidence presence and current hashes, not independent self-approval.",
+  "new_semantic_rereview_credit": 0,
+  "new_global_full_document_credit": 0,
+  "browser_scope": "Read current root browser reports and checked all 164 route records/current hashes; did not claim a new browser run or fresh viewing of all historical screenshots.",
+  "report_scope_findings": [
+    "Current report distinguishes source occurrences, full-document reading, identity mapping, manual semantic review and route smoke testing.",
+    "The 251 historical-risk dispositions preserve old verdicts and limitations; no blanket promotion of old partial/unavailable/archive records.",
+    "Three initial learner problems have named accepted deliverables and scoped learning-path evidence.",
+    "The exact CANN original is now independently documented as 463 lines; historical unavailability is not silently erased.",
+    "Three unavailable DeepSeek original figures, gated CANN download guide, paused Chunked Prefill V2 and no NPU/multi-node/accuracy/performance tests remain explicit.",
+    "No new confirmation of every external original, all 8750 semantic claims, all 47 warning-bearing diagrams or other-chat 3D is made."
+  ],
+  "archive_handoff": "final-archive.json is an intentional final packaging placeholder confirmed by root; packaging occurs after this review, and is not certified by this report.",
+  "open_p1_p2": 0,
+  "questions_for_user": []
+}

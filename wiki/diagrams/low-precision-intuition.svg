@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 480" width="820" height="480" role="img" aria-label="与正文相同的三个教学数值。保存一行四位编码及对应系数；这里为便于阅读，格内显示编码代表的数。读回值不再等于原值，且载荷与系数必须成套解释。">
+  <title>与正文相同的三个教学数值。保存一行四位编码及对应系数；这里为便于阅读，格内显示编码代表的数。读回值不再等于原值，且载荷与系数必须成套解释。</title>
+  <defs><marker id="low-precision-intuition-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="low-precision-intuition-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="low-precision-intuition-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
+  <path d="M335 82 L335 144" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#low-precision-intuition-ah-token)"/>
+  <path d="M335 190 L335 260" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#low-precision-intuition-ah-kv)"/>
+  <path d="M335 306 L335 386" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#low-precision-intuition-ah-token)"/>
+  <path d="M700 283 L746 283 L746 409 L474 409" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#low-precision-intuition-ah-weight)"/>
+  <rect x="200" y="40" width="90" height="38" fill="var(--color-token, #087f73)"/>
+  <text x="245" y="63.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">0.3</text>
+  <rect x="290" y="40" width="90" height="38" fill="var(--color-token, #087f73)"/>
+  <text x="335" y="63.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1.2</text>
+  <rect x="380" y="40" width="90" height="38" fill="var(--color-token, #087f73)"/>
+  <text x="425" y="63.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2.8</text>
+  <path d="M290 40v38M380 40v38" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="200" y="40" width="270" height="38" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="190" y="63.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">原值</text>
+  <rect x="200" y="148" width="90" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="245" y="171.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">0.6</text>
+  <rect x="290" y="148" width="90" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="335" y="171.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">2.4</text>
+  <rect x="380" y="148" width="90" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="425" y="171.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">5.6</text>
+  <path d="M290 148v38M380 148v38" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="200" y="148" width="270" height="38" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="190" y="171.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">除以系数后</text>
+  <rect x="200" y="264" width="90" height="38" fill="var(--color-kv, #4c65b6)"/>
+  <text x="245" y="287.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">0.5</text>
+  <rect x="290" y="264" width="90" height="38" fill="var(--color-kv, #4c65b6)"/>
+  <text x="335" y="287.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
+  <rect x="380" y="264" width="90" height="38" fill="var(--color-kv, #4c65b6)"/>
+  <text x="425" y="287.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
+  <path d="M290 264v38M380 264v38" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="200" y="264" width="270" height="38" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="190" y="287.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">保存的 FP4 值</text>
+  <rect x="200" y="390" width="90" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="245" y="413.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">0.25</text>
+  <rect x="290" y="390" width="90" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="335" y="413.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">1</text>
+  <rect x="380" y="390" width="90" height="38" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="425" y="413.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">3</text>
+  <path d="M290 390v38M380 390v38" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="200" y="390" width="270" height="38" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="190" y="413.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">读回值</text>
+  <rect x="616" y="264" width="80" height="38" fill="var(--color-weight, #c78300)"/>
+  <text x="656" y="287.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">0.5</text>
+  <rect x="616" y="264" width="80" height="38" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="656" y="324" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">同组的 scale</text>
+  <text x="370" y="118" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">÷ 0.5</text>
+  <text x="370" y="228" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">舍入到可表示值</text>
+  <text x="370" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">× 对应 scale</text>
+  <text x="200" y="462" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">例如 2.8 → 3：省了字节，也引入了误差</text>
+</svg>

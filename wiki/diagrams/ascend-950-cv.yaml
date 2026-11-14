@@ -1,0 +1,92 @@
+layout: figure
+id: ascend-950-cv
+caption: 数据路径示意，复用 AI Core 页的小矩阵。绿色表示输入或计算结果，黄色表示权重。矩阵结果从 L0C 交给 UB，不经过一次中间 GM 写回再读入；输入搬入、数据就绪等待和最终输出仍存在。图省略另一侧 Vector 与其他可选路径，不表示真实最小指令尺寸。
+size: [880, 560]
+frames:
+  - { at: [20, 70], size: [200, 170], label: GM：输入与权重 }
+  - { at: [255, 70], size: [605, 170], label: 矩阵侧：准备 → 乘加 → 结果 }
+  - { at: [430, 305], size: [430, 225], label: 向量侧：取得结果后计算 }
+  - { at: [20, 405], size: [205, 125], label: GM：最终输出 }
+grids:
+  - at: [65, 102]
+    rows: 1
+    cols: 2
+    cell: [48, 30]
+    tone: token
+    style: solid
+    rowLabels: [x]
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+  - at: [65, 164]
+    rows: 2
+    cols: 2
+    cell: [48, 28]
+    tone: weight
+    style: solid
+    rowLabels: [W, '']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '−1' }
+      - { at: [1, 0], text: '2' }
+      - { at: [1, 1], text: '−2' }
+  - at: [735, 124]
+    rows: 1
+    cols: 2
+    cell: [48, 36]
+    tone: token
+    style: solid
+    label: L0C 中的结果
+    cells:
+      - { at: [0, 0], text: '5' }
+      - { at: [0, 1], text: '−5' }
+  - at: [465, 365]
+    rows: 1
+    cols: 2
+    cell: [48, 36]
+    tone: token
+    style: solid
+    label: UB 收到同一组数
+    cells:
+      - { at: [0, 0], text: '5' }
+      - { at: [0, 1], text: '−5' }
+  - at: [680, 460]
+    rows: 1
+    cols: 2
+    cell: [48, 36]
+    tone: token
+    style: solid
+    label: 计算后再经 UB
+    cells:
+      - { at: [0, 0], text: '5' }
+      - { at: [0, 1], text: '0' }
+  - at: [65, 460]
+    rows: 1
+    cols: 2
+    cell: [48, 36]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '5' }
+      - { at: [0, 1], text: '0' }
+items:
+  - { at: [275, 114], size: [90, 56], text: L1, tone: control, style: faded }
+  - { at: [400, 114], size: [110, 56], text: L0A / B, tone: control, style: faded }
+  - { at: [550, 114], size: [140, 56], text: Cube, sub: 矩阵乘加, tone: weight, style: solid }
+  - { at: [660, 355], size: [155, 56], text: Vector, sub: 负数变为零, tone: weight, style: faded }
+links:
+  - { from: [220, 142], to: [271, 142], tone: token }
+  - { from: [369, 142], to: [396, 142], tone: token }
+  - { from: [514, 142], to: [546, 142], tone: token }
+  - { from: [694, 142], to: [731, 142], tone: token }
+  - { from: [835, 142], to: [461, 383], via: [[845, 142], [845, 275], [410, 275], [410, 383]], tone: token }
+  - { from: [565, 383], to: [656, 383], tone: token }
+  - { from: [738, 415], to: [738, 456], tone: token }
+  - { from: [676, 478], to: [165, 478], tone: token }
+texts:
+  - { at: [20, 26], text: 第 4 站：同一块数据怎样从矩阵侧交给向量侧, strong: true }
+  - { at: [533, 264], text: CV 片上交接：省去中间 GM 写回与读入, size: 14 }
+  - { at: [20, 300], text: '[5,−5] 没有因换通路而改变', strong: true }
+  - { at: [20, 326], text: Vector 仍要等待结果就绪, size: 14 }
+  - { at: [20, 352], text: 最终结果仍需按用途保存, size: 14 }
+  - { at: [300, 466], text: 保存最终输出, size: 14 }

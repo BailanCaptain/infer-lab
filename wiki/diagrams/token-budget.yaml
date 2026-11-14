@@ -1,6 +1,6 @@
 layout: figure
 id: token-budget
-caption: 调度器每一步的选择：先给 running 里的请求续上各自差的位置，余量再给 waiting 的新请求；每排一条请求，都要同时拿到 token 预算和能存下它历史的 KV 块。
+caption: 调度器每一步的选择（默认 fcfs 策略示意）：先给 running 里的请求续上各自差的位置，余量再给 waiting 的新请求；每排一条请求，都要同时拿到 token 预算和能存下它历史的 KV 块。priority 策略缺块时改按优先级与到达时间挑受抢占者。
 size: [880, 484]
 items:
   - { at: [24, 56], size: [250, 56], text: A：差 1 个位置, sub: 上一步刚生成 1 个 token, tone: token }

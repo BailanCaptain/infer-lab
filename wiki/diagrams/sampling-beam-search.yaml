@@ -1,0 +1,25 @@
+layout: figure
+id: sampling-beam-search
+caption: 宽度 2 的两步示意，暂不考虑 EOS。每一步从全部扩展候选里重新选两条，不是每个旧 beam 各留一条。这里只画四条延伸，其他延伸的联合概率更低。
+size: [860, 490]
+items:
+  - { at: [280, 25], size: [300, 55], text: 同一个提示词, sub: 第一步保留 A、B, tone: token }
+  - { at: [105, 125], size: [220, 55], text: A：0.6, sub: 当前候选一, tone: token }
+  - { at: [535, 125], size: [220, 55], text: B：0.4, sub: 当前候选二, tone: token }
+  - { at: [20, 255], size: [190, 70], text: A→C：0.24, sub: 0.6 × 0.4, tone: token }
+  - { at: [230, 255], size: [190, 70], text: A→D：0.21, sub: 0.6 × 0.35, tone: control, style: faded }
+  - { at: [440, 255], size: [190, 70], text: B→C：0.36, sub: 0.4 × 0.9, tone: token }
+  - { at: [650, 255], size: [190, 70], text: B→D：0.02, sub: 0.4 × 0.05, tone: control, style: faded }
+  - { at: [85, 405], size: [690, 60], text: 保留 B→C 与 A→C, sub: 下一轮继续扩展这两条候选, tone: control }
+links:
+  - { from: [380, 80], via: [[380, 100], [215, 100]], to: [215, 125] }
+  - { from: [480, 80], via: [[480, 100], [645, 100]], to: [645, 125] }
+  - { from: [175, 180], to: [115, 255] }
+  - { from: [255, 180], to: [325, 255] }
+  - { from: [605, 180], to: [535, 255] }
+  - { from: [685, 180], to: [745, 255] }
+  - { from: [115, 325], to: [215, 405], tone: token }
+  - { from: [535, 325], to: [535, 405], tone: token }
+pins:
+  - source: vllm@568afb3a:vllm/entrypoints/generate/beam_search/online.py#L28-L220
+    symbols: [beam_search]

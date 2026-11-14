@@ -1,0 +1,25 @@
+{
+  "status": "accepted",
+  "new_source_occurrences": 62,
+  "source_numbers": [
+    194,
+    255
+  ],
+  "total_page_sources": 255,
+  "hashes": {
+    "wiki/concepts/api-server-entry.md": "e9a434b01ba102aa50ab60183996a74d48192ac28ff382919006a52422d55f85",
+    "wiki/diagrams/api-multimodal-input.yaml": "3ead6c2599aaeeb42e8ba3ec3baaee48cd2da77abf4f7db85b401a8be076a885",
+    "wiki/diagrams/api-multimodal-input.svg": "b9b0cf237c699d1b173813959b195dca72da03c4ed51d9afb92d3b8fa6812a6f"
+  },
+  "snapshot": ".tmp/continuation-groups-2026-11-10/mm-coverage/reviewed-after.zip",
+  "snapshot_sha256": "22a2591c5c4250aa5b6d2e161e71c361ac3079edffa66d45ea24aa4ab4809cd1",
+  "review": "request-mm-review.md",
+  "preservation": "request-mm-preservation.md",
+  "judgments": "request-mm-independent.json",
+  "p1_open": 0,
+  "p2_open": 0,
+  "browser_report": ".tmp/continuation-groups-2026-11-10/mm-coverage/review-browser/report.json",
+  "hardware_validation": false,
+  "global_new_full_credit": 0,
+  "accounting_note": "Official full-read additions remain separate pending global exact-hash dedup; no new-full credit from source occurrence count."
+}

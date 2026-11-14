@@ -1,6 +1,6 @@
 layout: figure
 id: layers-one-layer
-caption: 一层怎么算（一个位置，hidden 只画 4 个数，数为示意）：左边一列是这条 hidden 本身，右边是两段支路。① 支路先做 RMSNorm；② attention 算出改变量 Δ₁；③ Δ₁ 和原来的 x 按维逐个相加得到 x′；④ MLP 段对 x′ 再做一遍，得到交给下一层的 x″
+caption: 普通残差的一层怎么算（一个位置，hidden 只画 4 个数，数为示意；RMSNorm 增益取 1、ε 取 0）：左边一列是这条 hidden 本身，右边是两段支路。① 支路先做 RMSNorm；② attention 算出改变量 Δ₁；③ Δ₁ 和原来的 x 按维逐个相加得到 x′；④ MLP 段对 x′ 再做一遍，得到交给下一层的 x″
 size: [900, 360]
 grids:
   - at: [130, 70]

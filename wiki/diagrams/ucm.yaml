@@ -1,6 +1,6 @@
 layout: figure
 id: ucm
-caption: PD 分离时 UCM 的两种站法。左边集中式：P、D 都挂 UCM，P 在计算过程中把这条请求的状态存进共享存储，D 开始前从同一个后端取回，共享存储就是交接点。右边 P2P：这一次的状态由 Mooncake 从 P 直接传给 D，UCM 只挂在 P 上，让以后开头相同的请求少算一段；D 只挂 Mooncake。
+caption: PD 分离时 UCM 的两种站法。左边集中式：P、D 都挂 UCM，共享存储是交接点；P 已写成可见的前缀才能被 D 找到，代理先后发送请求不保证写完，D 还需计算未命中和保留的尾部。右边 P2P：本次状态由 Mooncake 直传，UCM 在 P 上服务前缀复用；D 只挂 Mooncake。
 size: [900, 390]
 frames:
   - {label: 集中式 PD, at: [25, 45], size: [410, 310]}

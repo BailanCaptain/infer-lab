@@ -1,0 +1,2541 @@
+{
+  "date": "2026-11-08",
+  "scope": "scheduling-generation",
+  "status": "paused_at_user_requested_checkpoint",
+  "method": "Manual claim-level judgments; source extraction and exact text/blob comparison only assist reading. No automatic support verdicts. Empty citations are unread/unjudged inventory, never support.",
+  "independent_review_session": "ses_e48bdde5dffeZ4GlSTSI1K11L4",
+  "pages": [
+    {
+      "id": "short-request-first",
+      "path": "wiki/concepts/short-request-first.md",
+      "sha256": "28f2a5bd4467b52aa9a6c202ad89e4675ba135e91fb6d34389eb3961110d38dc",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L148-L183",
+          "claim": "恢复优先和短长分类及老化条件",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L148-L183"
+          ],
+          "verdict": "supports",
+          "evidence": "immediate_predicate先于prompt长度；long_max_wait_ms≤0关闭；长队头达到门槛且短队非空才提升。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L329-L367",
+          "claim": "恢复判据及队列安装",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L329-L367"
+          ],
+          "verdict": "supports",
+          "evidence": "PREEMPTED/已算/已输出任一成立；安装要求FCFS且原waiting为空。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L237-L255",
+          "claim": "peek钉住候选及prepend重新分类",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L237-L255"
+          ],
+          "verdict": "supports",
+          "evidence": "peek保存队列与ID；prepend先清pin再分类，长队入队时钟setdefault。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L939-L965",
+          "claim": "配置默认与错误",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L939-L965"
+          ],
+          "verdict": "supports",
+          "evidence": "False/256/0.0；未知键拒绝；两个阈值不能负。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L652-L680",
+          "claim": "v0.26组合限制与异步类选择",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L652-L680"
+          ],
+          "verdict": "supports",
+          "evidence": "FCFS/排除batch-job与profiling/排除consumer；async选SRF子类。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L370-L384",
+          "claim": "异步子类仅在构造后装队列",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L370-L384"
+          ],
+          "verdict": "supports",
+          "evidence": "super初始化后读配置并install。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L198-L235",
+          "claim": "pop沿用候选与老化连续警告",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L198-L235"
+          ],
+          "verdict": "supports",
+          "evidence": "已钉队列优先；只有aged且jumped_shorts递增；短队出队/短队空清零。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L37-L108",
+          "claim": "三队列与5秒统计和3次门槛",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L37-L108"
+          ],
+          "verdict": "supports",
+          "evidence": "三队列同policy工厂；日志检查monotonic间隔5.0，警告门槛3。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L127-L135",
+          "claim": "同步Balance构造安装与balance开关独立",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L127-L135"
+          ],
+          "verdict": "supports",
+          "evidence": "此分支只检查short_request_first_config.enabled。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L931-L936",
+          "claim": "同步默认Scheduler被替换",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L931-L936"
+          ],
+          "verdict": "supports",
+          "evidence": "模块Scheduler赋为BalanceScheduler；显式scheduler_cls绕开。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L665-L680",
+          "claim": "waiting循环的预算暂停抢占与名额检查",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L665-L680"
+          ],
+          "verdict": "supports",
+          "evidence": "if not preempted且UNPAUSED；token_budget>0；running加等待流输入名额。构造工厂的旧引用不足已另补32。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1962-L1978",
+          "claim": "FCFS挂起队列先于三车道",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1962-L1978"
+          ],
+          "verdict": "supports",
+          "evidence": "三种blocked状态入skipped_waiting；FCFS优先该队。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1212-L1233",
+          "claim": "抢占回队及状态重置",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1212-L1233"
+          ],
+          "verdict": "supports",
+          "evidence": "先释放块与编码缓存再PREEMPTED/已算清零，prepend等待队列。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L896-L905",
+          "claim": "对齐切段为0停止waiting准入",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L896-L905"
+          ],
+          "verdict": "supports",
+          "evidence": "need_mamba_block_aligned_split且非远端异步加载时调用；0则break。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/request_queue.py#L13-L17",
+          "claim": "上游队列策略为fcfs和priority",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/request_queue.py#L13-L17"
+          ],
+          "verdict": "supports",
+          "evidence": "枚举两个值；不证明所有扩展都接受两种。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725",
+          "claim": "v0.23未提供短请求优先",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725"
+          ],
+          "verdict": "partially_supports",
+          "evidence": "所引仅dynamic/profiling选类；另定点ls-tree核core目录未含SRF实现。原全仓搜索说法已收窄。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L954-L983",
+          "claim": "main只放开同步profiling组合",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/platform.py#L954-L983"
+          ],
+          "verdict": "supports",
+          "evidence": "明确拒绝profiling&&async；保留FCFS/batch/consumer限制。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1341-L1360",
+          "claim": "main配置改pydantic且默认不变",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1341-L1360"
+          ],
+          "verdict": "supports",
+          "evidence": "config类注释extra=forbid；after validator检查负值，字段False/256/0.0。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/core/scheduler_profiling_chunk.py#L91-L103",
+          "claim": "main profiling同步构造安装三车道",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/core/scheduler_profiling_chunk.py#L91-L103"
+          ],
+          "verdict": "supports",
+          "evidence": "enabled时明确调用install并传threshold与wait。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/short_request_first.md#L1-L30",
+          "claim": "官方适用流量与嵌套配置",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/short_request_first.md#L1-L30"
+          ],
+          "verdict": "supports",
+          "evidence": "文档定位偏斜prompt/短请求TTFT，并给scheduler_config示例。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/short_request_first.md#L41-L70",
+          "claim": "官方阈值与等待门槛建议",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/short_request_first.md#L41-L70"
+          ],
+          "verdict": "supports",
+          "evidence": "P70-P85起点不是性能承诺；先量长队P90/P95，再在W_normal/W_slo间选。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/short_request_first.md#L71-L107",
+          "claim": "官方调度次序和兼容限制",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/short_request_first.md#L71-L107"
+          ],
+          "verdict": "supports",
+          "evidence": "immediate>aged-long>short>long；等待0禁用以代码1补齐；5秒统计是调用时限频非定时任务。"
+        },
+        {
+          "source_number": 23,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/short_request_first.md#L103-L107",
+          "claim": "main文档与profiling代码不一致",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/short_request_first.md#L103-L107"
+          ],
+          "verdict": "supports",
+          "evidence": "文档仍写不支持profiling，代码17只禁止异步组合。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1003-L1026",
+          "claim": "嵌套优先与旧顶层弃用",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1003-L1026"
+          ],
+          "verdict": "supports",
+          "evidence": "嵌套存在直接返回，顶层存在警告并返回。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L700-L716",
+          "claim": "GLM固定镜像未提供SRF",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/platform.py#L700-L716"
+          ],
+          "verdict": "partially_supports",
+          "evidence": "所引是dynamic/profiling选类；另定点core目录列举和固定文件不存在支持，未全库扫描。"
+        },
+        {
+          "source_number": 26,
+          "ref": "raw:sha256-cd6d5be072a4baf52bfbdc4376dee148bcc45394d401fb1a45e4e6823f58196f.md#L1-L653",
+          "claim": "旧摘录存档不是独立证据",
+          "read_ranges": [
+            "raw:sha256-cd6d5be072a4baf52bfbdc4376dee148bcc45394d401fb1a45e4e6823f58196f.md#L1-L653"
+          ],
+          "verdict": "archive_only_no_corresponding_claim",
+          "evidence": "编译包25段逐段与固定原文去除外围空白后相等；每段已在1–25阅读。"
+        },
+        {
+          "source_number": 27,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/core/short_request_first_scheduler.py#L148-L183",
+          "claim": "rc2分类逻辑未改",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/core/short_request_first_scheduler.py#L148-L183"
+          ],
+          "verdict": "supports",
+          "evidence": "摘录sha与1完全相同；整个SRF文件三版Git blob均f9628b2890443f37f49fde1494530ad87291d0a7。"
+        },
+        {
+          "source_number": 28,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1048-L1075",
+          "claim": "rc2异步profiling要求MRV2",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/platform.py#L1048-L1075"
+          ],
+          "verdict": "supports",
+          "evidence": "FCFS等限制保留；profiling&&async&&!use_v2_model_runner直接拒绝。"
+        },
+        {
+          "source_number": 29,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1377-L1383",
+          "claim": "rc2profiling按async选择新子类",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/platform.py#L1377-L1383"
+          ],
+          "verdict": "supports",
+          "evidence": "条件表达式选择ProfilingChunkAsyncScheduler或同步类。"
+        },
+        {
+          "source_number": 30,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/core/scheduler_profiling_chunk.py#L94-L106",
+          "claim": "rc2profiling构造安装SRF",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/core/scheduler_profiling_chunk.py#L94-L106"
+          ],
+          "verdict": "supports",
+          "evidence": "摘录与19逐字相同；与31的多继承初始化合读。"
+        },
+        {
+          "source_number": 31,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/core/scheduler_profiling_chunk.py#L1257-L1269",
+          "claim": "rc2异步profiling继承安装路径",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/core/scheduler_profiling_chunk.py#L1257-L1269"
+          ],
+          "verdict": "supports",
+          "evidence": "AsyncScheduler和ProfilingChunkScheduler多继承；初始化由后者贡献，前者贡献占位记账。"
+        },
+        {
+          "source_number": 32,
+          "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L175-L186",
+          "claim": "上游初始化waiting与skipped工厂",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L175-L186"
+          ],
+          "verdict": "supports",
+          "evidence": "L175–186实际读取，两个队列均create_request_queue(self.policy)。"
+        }
+      ],
+      "sources_count": 32,
+      "remaining_source_numbers": [],
+      "acceptance_status": "not_complete_independent_review_and_browser_pending"
+    },
+    {
+      "id": "batch-job-aware-scheduler",
+      "path": "wiki/concepts/batch-job-aware-scheduler.md",
+      "sha256": "c31d026f0893e759708c0d083efebedcd9aab3adf1c50de7636ea64cc5126519",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L622-L641",
+          "claim": "构造替换waiting且保留其他调度部分",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L622-L641"
+          ],
+          "verdict": "supports",
+          "evidence": "super初始化后创建parser/estimator/reserver并替换self.waiting。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L238-L287",
+          "claim": "两轮预测与预留封顶",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L238-L287"
+          ],
+          "verdict": "supports",
+          "evidence": "prefill按剩余和预算取小，decode=1+lookahead；按块余量ceil；min(R+m M)可使m被M截断，正文已修正。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L509-L541",
+          "claim": "准入预算与冷启动优先",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L509-L541"
+          ],
+          "verdict": "supports",
+          "evidence": "max(0 (F-P)*B)；预算0返回None，否则冷启动再作业排序。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L57-L74",
+          "claim": "作业ID非空正则及默认桶",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L57-L74"
+          ],
+          "verdict": "supports",
+          "evidence": "search非空方括号内容；无匹配__default__；按ID缓存，不读业务内容。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L126-L173",
+          "claim": "EWMA默认128系数0.1十样本与max_jobs缺陷",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L126-L173"
+          ],
+          "verdict": "supports",
+          "evidence": "首样本直接赋；predict=int均值；0上限observe即报错，分类取整边界已补。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L554-L609",
+          "claim": "长短分类和排序的真实方向",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L554-L609"
+          ],
+          "verdict": "supports",
+          "evidence": "大于32为长；两类共存时各自降序；只有一类随预算正反序。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L315-L333",
+          "claim": "桶内最长可容纳或最短超额",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L315-L333"
+          ],
+          "verdict": "supports",
+          "evidence": "bisect_right先取idx-1；无可容纳时idx=0取最短。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L643-L682",
+          "claim": "每步清预测缓存与只记引擎正常停止",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L643-L682"
+          ],
+          "verdict": "supports",
+          "evidence": "schedule先invalidate；_free_request仅FINISHED_STOPPED观察；已纠正前端停止字符串不自动入样本。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L496-L507",
+          "claim": "活跃桶上限与0跳过桶检查",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L496-L507"
+          ],
+          "verdict": "supports",
+          "evidence": "if max_jobs and len>=上限；桶限制与统计表限制不同。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/batch_job_aware_scheduler.md#L3-L5",
+          "claim": "官方离线定位和不防饥饿",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/batch_job_aware_scheduler.md#L3-L5"
+          ],
+          "verdict": "supports",
+          "evidence": "明写no starvation prevention；在线只适用于不关心等待时延。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L757-L802",
+          "claim": "六配置默认与范围",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L757-L802"
+          ],
+          "verdict": "supports",
+          "evidence": "False/20/2/8/4096/32；无m≤M校验，已构造R0 m10 M8反例。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L652-L680",
+          "claim": "与SRF互斥",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L652-L680"
+          ],
+          "verdict": "supports",
+          "evidence": "与short-request-first:5相同原文，if batch enabled在SRF分支拒绝。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L709-L725",
+          "claim": "profiling类被batch类覆盖且分async",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L709-L725"
+          ],
+          "verdict": "supports",
+          "evidence": "profiling先写scheduler_cls，随后batch条件覆盖；非组合执行。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L191-L236",
+          "claim": "reserver缓存按running条数增量",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L191-L236"
+          ],
+          "verdict": "supports",
+          "evidence": "长度未变复用；仅多1条算队尾；其他重扫，步首清缓存。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L372-L397",
+          "claim": "冷启动常量和docstring边界不一致",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L372-L397"
+          ],
+          "verdict": "supports",
+          "evidence": "常量3；注释short<与实际6中的≤冲突，正文以代码为准。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L419-L495",
+          "claim": "冷启动按桶到达数及peek缓存风险",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L419-L495"
+          ],
+          "verdict": "supports",
+          "evidence": "add累加≤3登记；桶空删计数；prepend调用add；remove未清_peeked，pop才清。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L611-L620",
+          "claim": "bool判可准入不是长度",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L611-L620"
+          ],
+          "verdict": "supports",
+          "evidence": "__bool__完整调用_find_admittable，__len__才是真实等待数。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L669-L694",
+          "claim": "上游循环及blocked就地提升",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L669-L694"
+          ],
+          "verdict": "supports",
+          "evidence": "拿选中队列peek并尝试提升；不就绪才pop到step_skipped，需结合33看语法状态。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1963-L1986",
+          "claim": "FCFS挂起优先但priority不同",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1963-L1986"
+          ],
+          "verdict": "supports",
+          "evidence": "FCFS先skipped；priority比较两队首，正文绕过论述限定FCFS。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/batch_job_aware_scheduler.md#L7-L19",
+          "claim": "官方三策略与waiting扩展定位",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/batch_job_aware_scheduler.md#L7-L19"
+          ],
+          "verdict": "supports",
+          "evidence": "LPT/预留/作业分桶，文档不证明吞吐实测。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/batch_job_aware_scheduler.md#L52-L75",
+          "claim": "官方run_batch和双处ID标签示例",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/batch_job_aware_scheduler.md#L52-L75"
+          ],
+          "verdict": "supports",
+          "evidence": "custom_id与body.request_id均带标签，未带则默认桶。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/batch_job_aware_scheduler.md#L77-L89",
+          "claim": "官方参数默认表",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/batch_job_aware_scheduler.md#L77-L89"
+          ],
+          "verdict": "supports",
+          "evidence": "六项与配置11一致。"
+        },
+        {
+          "source_number": 23,
+          "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L240-L263",
+          "claim": "lookahead与投机候选数",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L240-L263"
+          ],
+          "verdict": "partially_supports",
+          "evidence": "use_eagle或draft设候选数，dflash另加1；MTP归入eagle仍需其配置实现，正文不扩展所有投机方法。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L357-L378",
+          "claim": "固定GLM调度块为各组LCM",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L357-L378"
+          ],
+          "verdict": "partially_supports",
+          "evidence": "代码支持LCM*dcp*pcp及无缓存/connector返回；133120数值还依赖跨组KV规格，交主代理共同底稿核验。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L98-L117",
+          "claim": "main先过滤私有组再求块大小",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L98-L117"
+          ],
+          "verdict": "supports",
+          "evidence": "cacheable_groups过滤且deepseek例外；本文实际GLM取值明确待核。"
+        },
+        {
+          "source_number": 26,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1261-L1280",
+          "claim": "main profiling与batch选类覆盖顺序",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1261-L1280"
+          ],
+          "verdict": "supports",
+          "evidence": "两独立if先profiling后batch；async选择对应变体。"
+        },
+        {
+          "source_number": 27,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1300-L1337",
+          "claim": "main配置默认与所有范围检查",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1300-L1337"
+          ],
+          "verdict": "supports",
+          "evidence": "已扩到1337补齐short阈值检查；@config extra=forbid需与30合读。"
+        },
+        {
+          "source_number": 28,
+          "ref": "vllm-ascend@2ed6cbba:tests/e2e/pull_request/one_card/test_batch_job_aware_scheduler_e2e.py#L13-L207",
+          "claim": "官方四个Qwen0.6B贪心4token对照",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:tests/e2e/pull_request/one_card/test_batch_job_aware_scheduler_e2e.py#L13-L207"
+          ],
+          "verdict": "supports",
+          "evidence": "已扩读并扩引13–207，含basic/async/chunked/custom；不把该测试当更大模型无测试的证明。"
+        },
+        {
+          "source_number": 29,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L998-L1026",
+          "claim": "旧顶层配置回退和嵌套优先",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L998-L1026"
+          ],
+          "verdict": "supports",
+          "evidence": "构造读取scheduler_config并复用SRF24相同helper。"
+        },
+        {
+          "source_number": 30,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L35-L48",
+          "claim": "pydantic拒未知键",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L35-L48"
+          ],
+          "verdict": "supports",
+          "evidence": "merged ConfigDict extra=forbid，实际交给dataclass装饰器。"
+        },
+        {
+          "source_number": 31,
+          "ref": "vllm@568afb3a:vllm/v1/request.py#L109-L114",
+          "claim": "结构化请求初始blocked状态",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/request.py#L109-L114"
+          ],
+          "verdict": "supports",
+          "evidence": "有structured_output_request即WAITING_FOR_STRUCTURED_OUTPUT_GRAMMAR。"
+        },
+        {
+          "source_number": 32,
+          "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L2134-L2139",
+          "claim": "新请求走_enqueue_waiting_request",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L2134-L2139"
+          ],
+          "verdict": "supports",
+          "evidence": "普通add分支入选队列并保存requests。"
+        },
+        {
+          "source_number": 33,
+          "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L2586-L2610",
+          "claim": "语法就绪在原队列改状态",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L2586-L2610"
+          ],
+          "verdict": "supports",
+          "evidence": "非ready false；编译异常另登记；ready置WAITING，未迁回batch桶。"
+        },
+        {
+          "source_number": 34,
+          "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1228-L1234",
+          "claim": "抢占回self.waiting",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1228-L1234"
+          ],
+          "verdict": "supports",
+          "evidence": "与SRF13实际重叠；prepend转batch add。"
+        },
+        {
+          "source_number": 35,
+          "ref": "raw:sha256-bb72568af59f87eff3e608fc6086a5eab677a5aaf04811b539162a69ca5b6049.md#L1-L1024",
+          "claim": "旧原文摘录归档",
+          "read_ranges": [
+            "raw:sha256-bb72568af59f87eff3e608fc6086a5eab677a5aaf04811b539162a69ca5b6049.md#L1-L1024"
+          ],
+          "verdict": "archive_only_no_corresponding_claim",
+          "evidence": "原34段与原固定范围真实逐段相等；扩引27/28新增行另读，不由归档证明。"
+        },
+        {
+          "source_number": 36,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/core/batch_job_aware_scheduler.py#L57-L74",
+          "claim": "rc2解析规则和文件逻辑未变",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/core/batch_job_aware_scheduler.py#L57-L74"
+          ],
+          "verdict": "supports",
+          "evidence": "parser与4相同；三版整个文件Git blob均5a45d6bb5127a36ff8331150a56f5f2c0d243ecb。"
+        },
+        {
+          "source_number": 37,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1389-L1398",
+          "claim": "rc2同步异步类选择",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/platform.py#L1389-L1398"
+          ],
+          "verdict": "supports",
+          "evidence": "batch enabled按async选两个类。"
+        },
+        {
+          "source_number": 38,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1052-L1056",
+          "claim": "rc2仍与SRF互斥",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/platform.py#L1052-L1056"
+          ],
+          "verdict": "supports",
+          "evidence": "引用实际复用SRF28的batch拒绝分支。"
+        },
+        {
+          "source_number": 39,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1377-L1398",
+          "claim": "rc2仍后写batch覆盖profiling",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/platform.py#L1377-L1398"
+          ],
+          "verdict": "supports",
+          "evidence": "profiling异步类先赋值，batch分支随后赋值，非串联。"
+        },
+        {
+          "source_number": 40,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L824-L857",
+          "claim": "rc2存在GLM实现而非组合验证",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L824-L857"
+          ],
+          "verdict": "supports",
+          "evidence": "Glm5NextForCausalLM创建Glm5NextModel；PP末rank有lm_head，未证明调度组合可用。"
+        },
+        {
+          "source_number": 41,
+          "ref": "vllm@568afb3a:vllm/v1/engine/output_processor.py#L649-L696",
+          "claim": "前端stop字符串要取消尚未完成的core请求",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/engine/output_processor.py#L649-L696"
+          ],
+          "verdict": "supports",
+          "evidence": "detokenizer命中改对外finish_reason STOP；core未finished才追加reqs_to_abort。"
+        },
+        {
+          "source_number": 42,
+          "ref": "vllm@568afb3a:vllm/v1/engine/async_llm.py#L685-L689",
+          "claim": "前端取消列表发送到core",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/engine/async_llm.py#L685-L689"
+          ],
+          "verdict": "supports",
+          "evidence": "processed_outputs.reqs_to_abort传abort_requests_async。"
+        },
+        {
+          "source_number": 43,
+          "ref": "vllm@568afb3a:vllm/v1/engine/core.py#L479-L483",
+          "claim": "core取消不是FINISHED_STOPPED",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/engine/core.py#L479-L483"
+          ],
+          "verdict": "supports",
+          "evidence": "finish_requests使用FINISHED_ABORTED；与8观察条件互斥。"
+        }
+      ],
+      "sources_count": 43,
+      "remaining_source_numbers": [],
+      "acceptance_status": "not_complete_independent_review_and_browser_pending"
+    },
+    {
+      "id": "balance-scheduling",
+      "path": "wiki/concepts/balance-scheduling.md",
+      "sha256": "0f23a57424b0d40384d696acbd3505e120d256a4e8a1e7b88cea26cc8aa51d3d",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L65-L88",
+          "claim": "初始0计数与CPU整数All-Gather及关闭回退",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L65-L88"
+          ],
+          "verdict": "supports",
+          "evidence": "enabled才建表；gather发送len(running)，关闭返回super.schedule。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L289-L305",
+          "claim": "等于上限的共同闸门在waiting内",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L289-L305"
+          ],
+          "verdict": "supports",
+          "evidence": "本轮无抢占/未暂停/有预算/本组未满后再看max表值；不修改running分配。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L616-L658",
+          "claim": "全局状态检查后互报且dummy组参与",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L616-L658"
+          ],
+          "verdict": "supports",
+          "evidence": "idle continue在前；执行或dummy后调用_has_global_unfinished_reqs及balance_gather。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L34-L49",
+          "claim": "固定GLM开关读取优先级",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L34-L49"
+          ],
+          "verdict": "supports",
+          "evidence": "先get_ascend_config，异常回退additional_config再环境0；父类Scheduler。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L668-L675",
+          "claim": "只允许PD混部",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/platform.py#L668-L675"
+          ],
+          "verdict": "supports",
+          "evidence": "有kv_transfer且role非kv_both拒绝。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L718",
+          "claim": "旧版替换入口及dense断言路径",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L718"
+          ],
+          "verdict": "supports",
+          "evidence": "开关关闭原入口；打开且DP>1直接建BalanceDPEngineCoreProc，不先查is_moe。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L78-L94",
+          "claim": "配置读环境与profiling互斥",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L78-L94"
+          ],
+          "verdict": "supports",
+          "evidence": "_get_config_value传环境值；双enabled直接ValueError。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L562-L572",
+          "claim": "上游waiting已有本地闸门",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L562-L572"
+          ],
+          "verdict": "supports",
+          "evidence": "暂停/抢占/预算与len(running)检查；没有balance条件。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L102-L106",
+          "claim": "请求名额与token预算分别取配置",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L102-L106"
+          ],
+          "verdict": "supports",
+          "evidence": "max_num_running_reqs=max_num_seqs。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/core.py#L1152-L1162",
+          "claim": "上游dense不建MoE DP引擎",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/core.py#L1152-L1162"
+          ],
+          "verdict": "supports",
+          "evidence": "data_parallel&&is_moe才DPEngineCoreProc，非MoE缩DP为1。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/core.py#L1713-L1718",
+          "claim": "DPEngineCoreProc要求MoE",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/core.py#L1713-L1718"
+          ],
+          "verdict": "supports",
+          "evidence": "构造assert is_moe及错误原文。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945",
+          "claim": "busy-loop和每32步全局同步",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945"
+          ],
+          "verdict": "supports",
+          "evidence": "非idle执行dummy后全局检查；step_counter%32非0直接True。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L688-L745",
+          "claim": "v0.23入口与GLM相同",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L688-L745"
+          ],
+          "verdict": "supports",
+          "evidence": "逐字摘录比较与6相同，不由同名文件推断。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/envs.py#L103-L105",
+          "claim": "v0.23环境默认0且弃用",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/envs.py#L103-L105"
+          ],
+          "verdict": "supports",
+          "evidence": "bool(int(os.getenv(... 0)))与注释明确。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L81-L101",
+          "claim": "v0.26嵌套开关和KVDelivery父类",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L81-L101"
+          ],
+          "verdict": "supports",
+          "evidence": "未初始化回退函数不直接读环境；环境经AscendConfig构造34传入。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L882-L959",
+          "claim": "v0.26钩子和条件换类",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L882-L959"
+          ],
+          "verdict": "supports",
+          "evidence": "super全局检查后注入组并gather；enable才换DPEngineCoreProc，否则恢复原类。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1003-L1039",
+          "claim": "v0.26通用配置优先与环境提示",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1003-L1039"
+          ],
+          "verdict": "supports",
+          "evidence": "嵌套优先顶层，未给返回default；具体balance_env_value由34传入。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_balance_schedule.py#L84-L104",
+          "claim": "main开关解析和父类回到上游",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_balance_schedule.py#L84-L104"
+          ],
+          "verdict": "supports",
+          "evidence": "嵌套优先顶层默认False，无直接环境回退。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_engine_core.py#L21-L46",
+          "claim": "main集中条件选Dyntra或Balance引擎类",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_engine_core.py#L21-L46"
+          ],
+          "verdict": "supports",
+          "evidence": "dyntra优先elif balance；与平台互斥21合读。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1446-L1456",
+          "claim": "main删除环境配置来源",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1446-L1456"
+          ],
+          "verdict": "supports",
+          "evidence": "resolved.enable_balance_scheduling=_resolve(... False)，注释明确删除。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L941-L995",
+          "claim": "main混部条件和Dyntra互斥",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/platform.py#L941-L995"
+          ],
+          "verdict": "supports",
+          "evidence": "role非both拒绝，dyntra&&balance拒绝；不证明其他调度组合。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L26-L45",
+          "claim": "设计目的为共同停止准入而非追平",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L26-L45"
+          ],
+          "verdict": "supports",
+          "evidence": "官方设计文本明确reject catch-up并限定高并发意图。"
+        },
+        {
+          "source_number": 23,
+          "ref": "vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L176-L240",
+          "claim": "互报必须所有活跃圈参加及旧副本漂移",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L176-L240"
+          ],
+          "verdict": "supports",
+          "evidence": "文档具体列旧while True与缺shutdown等差异；与实际3/12/16一致。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L328-L348",
+          "claim": "等于和大于等于在名额约束下等价及拒绝追平",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L328-L348"
+          ],
+          "verdict": "partially_supports",
+          "evidence": "相同语义有说明；该段约520行删除是设计方案不是当前完成事实，正文保留实际副本存在。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L484-L490",
+          "claim": "指定scheduler_cls绕过模块默认类名",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L484-L490"
+          ],
+          "verdict": "supports",
+          "evidence": "文档示例指出模块赋值适用默认未设类的路径，不证明异步导入时序实跑。"
+        },
+        {
+          "source_number": 26,
+          "ref": "vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L353",
+          "claim": "GLM双机显式32与8192且未开balance",
+          "read_ranges": [
+            "vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L353"
+          ],
+          "verdict": "supports",
+          "evidence": "完整双端命令均无additional_config/该环境，TP8DP2EP及MTP3明确。"
+        },
+        {
+          "source_number": 27,
+          "ref": "vllm-ascend@baa023ad:docs/source/tutorials/models/GLM5.3.md#L180-L210",
+          "claim": "main GLM5.3的DP8示例开启balance",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/tutorials/models/GLM5.3.md#L180-L210"
+          ],
+          "verdict": "supports",
+          "evidence": "仅所引DP8片段有enable_balance_scheduling true；原DP4等泛化已收窄。"
+        },
+        {
+          "source_number": 28,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L17-L20",
+          "claim": "main文档迁移表仍列旧环境",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L17-L20"
+          ],
+          "verdict": "supports",
+          "evidence": "表中环境映射存在，与29及代码20不一致。"
+        },
+        {
+          "source_number": 29,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L147-L150",
+          "claim": "main参数表明确环境不再支持",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L147-L150"
+          ],
+          "verdict": "supports",
+          "evidence": "默认False且legacy unsupported。"
+        },
+        {
+          "source_number": 30,
+          "ref": "raw:sha256-c8158192e740899aa15fdbe9c30781e389538032e62fd46b87784686beb0fab6.md#L1-L958",
+          "claim": "固定原文汇编存档",
+          "read_ranges": [
+            "raw:sha256-c8158192e740899aa15fdbe9c30781e389538032e62fd46b87784686beb0fab6.md#L1-L958"
+          ],
+          "verdict": "archive_only_no_corresponding_claim",
+          "evidence": "29段已真实对比原文去外空白相等，不额外提供独立主张。"
+        },
+        {
+          "source_number": 31,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_engine_core.py#L32-L42",
+          "claim": "rc2条件接线沿用main",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_engine_core.py#L32-L42"
+          ],
+          "verdict": "supports",
+          "evidence": "全文件blob与19相同，相关行实际复用。"
+        },
+        {
+          "source_number": 32,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1078-L1088",
+          "claim": "rc2保留Dyntra与balance互斥",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/platform.py#L1078-L1088"
+          ],
+          "verdict": "supports",
+          "evidence": "双enabled ValueError，注释只D侧单节点。"
+        },
+        {
+          "source_number": 33,
+          "ref": "vllm@0fc695fc:vllm/config/parallel.py#L590-L604",
+          "claim": "EngineCore DP组走CPU gloo",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/parallel.py#L590-L604"
+          ],
+          "verdict": "supports",
+          "evidence": "stateless_init明确backend gloo，rank和size用DP配置。"
+        },
+        {
+          "source_number": 34,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L971-L985",
+          "claim": "v0.26环境值进入配置默认回退",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L971-L985"
+          ],
+          "verdict": "supports",
+          "evidence": "enable_balance_scheduling调用_get_config_value时传balance_env_value和环境名。"
+        },
+        {
+          "source_number": 35,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L319-L330",
+          "claim": "v0.23闸门等于名额上限",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L319-L330"
+          ],
+          "verdict": "supports",
+          "evidence": "enabled分支内max(t.item())==max_num_running_reqs即break。"
+        },
+        {
+          "source_number": 36,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L412-L423",
+          "claim": "v0.26闸门语义不变",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L412-L423"
+          ],
+          "verdict": "supports",
+          "evidence": "本地running另加流式输入名额，共同表仍数running并等于上限。"
+        },
+        {
+          "source_number": 37,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_balance_schedule.py#L397-L408",
+          "claim": "main实际仍有共同闸门",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_balance_schedule.py#L397-L408"
+          ],
+          "verdict": "supports",
+          "evidence": "注释及if max==cap；不是只读重构设计文档判定。"
+        },
+        {
+          "source_number": 38,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_balance_schedule.py#L396-L407",
+          "claim": "rc2实际闸门沿用main",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_balance_schedule.py#L396-L407"
+          ],
+          "verdict": "supports",
+          "evidence": "明确读过396–407的if/break；同名不足以支持。"
+        }
+      ],
+      "sources_count": 38,
+      "remaining_source_numbers": [],
+      "acceptance_status": "not_complete_independent_review_and_browser_pending"
+    },
+    {
+      "id": "dp-request-routing",
+      "path": "wiki/concepts/dp-request-routing.md",
+      "sha256": "5914445d2cd75eb3e61fb72ca10ce818b6e32ae742bdd55f6ec1843ad0c47e0d",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/core_client.py#L1365-L1426",
+          "claim": "显式rank与late键优先否则4W+R并本地补N",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/core_client.py#L1365-L1426"
+          ],
+          "verdict": "supports",
+          "evidence": "分支短路及严格小于；eng_start_index=floor(引擎数*client_index/client_count)。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/core_client.py#L1314-L1357",
+          "claim": "推送整体换表和发送ADD及唤醒",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/core_client.py#L1314-L1357"
+          ],
+          "verdict": "supports",
+          "evidence": "counts按受管rank切片替换lb_engines；非running发FIRST_REQ。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/core_client.py#L108-L131",
+          "claim": "DP客户端按external选择",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/core_client.py#L108-L131"
+          ],
+          "verdict": "supports",
+          "evidence": "DP>1 external为DPAsync，否则DPLB，单组Async。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/serving.py#L267-L270",
+          "claim": "Chat提取路由header",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/serving.py#L267-L270"
+          ],
+          "verdict": "supports",
+          "evidence": "调用_get_data_parallel_rank(raw_request)。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L397-L411",
+          "claim": "非整数header当未给",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L397-L411"
+          ],
+          "verdict": "supports",
+          "evidence": "已扩引并读411的except返回None。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/input_processor.py#L259-L267",
+          "claim": "请求rank按local_engines_only检查范围",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/input_processor.py#L259-L267"
+          ],
+          "verdict": "supports",
+          "evidence": "local-only取本机size否则全局size，超范围ValueError。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/coordinator.py#L22-L56",
+          "claim": "协调器职责及external只传波次状态",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/coordinator.py#L22-L56"
+          ],
+          "verdict": "supports",
+          "evidence": "stats负载用于前端，external不发布统计。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/coordinator.py#L254-L278",
+          "claim": "轮询统计节奏与旧表重发",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/coordinator.py#L254-L278"
+          ],
+          "verdict": "supports",
+          "evidence": "stats_changed间隔配置否则5000；last_step_counts为空最少50；超时才推，已纠正满100必推。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/core.py#L1856-L1888",
+          "claim": "引擎统计变化才报告及前后报数",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/core.py#L1856-L1888"
+          ],
+          "verdict": "supports",
+          "evidence": "count与last_counts比较；busy-loop已在balance12实际读过。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/core.py#L1233-L1262",
+          "claim": "新请求在输入队列等待下一次处理",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/core.py#L1233-L1262"
+          ],
+          "verdict": "supports",
+          "evidence": "_process_input_queue逐条调用_handle_client_request；不证明异步每个GPU执行边界都阻塞。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/core.py#L913-L919",
+          "claim": "internal/hybrid才发条数统计",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/core.py#L913-L919"
+          ],
+          "verdict": "supports",
+          "evidence": "有coordinator且非external。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1797-L1799",
+          "claim": "等待数包含skipped_waiting",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1797-L1799"
+          ],
+          "verdict": "supports",
+          "evidence": "返回running及waiting+skipped两计数。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm@0fc695fc:vllm/v1/pool/late_interaction.py#L15-L36",
+          "claim": "late interaction的非空query键CRC32路由",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/pool/late_interaction.py#L15-L36"
+          ],
+          "verdict": "supports",
+          "evidence": "仅CACHE_QUERY/SCORE_DOC，UTF8 CRC32%num_engines。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm@0fc695fc:vllm/config/parallel.py#L138-L150",
+          "claim": "external与hybrid字段及部署定位",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/parallel.py#L138-L150"
+          ],
+          "verdict": "supports",
+          "evidence": "external仅MoE，hybrid前端本机分组外部跨机分组。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1818-L1899",
+          "claim": "headless及rank触发模式推断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/engine/arg_utils.py#L1818-L1899"
+          ],
+          "verdict": "supports",
+          "evidence": "显式rank或external启外部；start_rank非0且非headless推hybrid；local1转external。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L71-L121",
+          "claim": "默认API进程数及互斥",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L71-L121"
+          ],
+          "verdict": "supports",
+          "evidence": "internal等DP size；external/multiport1；hybrid local size；模式多于1拒绝。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm@0fc695fc:vllm/config/parallel.py#L794-L799",
+          "claim": "elastic EP排除hybrid/external",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/parallel.py#L794-L799"
+          ],
+          "verdict": "supports",
+          "evidence": "在elastic条件内两种模式抛NotImplementedError。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm@568afb3a:vllm/v1/engine/core_client.py#L1413-L1442",
+          "claim": "v0.26增加平分扫描起点旋转",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/engine/core_client.py#L1413-L1442"
+          ],
+          "verdict": "supports",
+          "evidence": "4W+R及补client_count不变，自动打分后start+1取余。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm@98dff2a8:vllm/v1/engine/core_client.py#L1472-L1543",
+          "claim": "Docker默认v0.29对照的新打分与在途数",
+          "read_ranges": [
+            "vllm@98dff2a8:vllm/v1/engine/core_client.py#L1472-L1543"
+          ],
+          "verdict": "supports",
+          "evidence": "max(client_count*inflight W+R)加KV压力项；显式rank也加inflight；finished减1。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm-ascend@2c59ff10:Dockerfile#L42-L42",
+          "claim": "v0.23 Docker构建默认tag",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:Dockerfile#L42-L42"
+          ],
+          "verdict": "supports",
+          "evidence": "ARG VLLM_TAG=v0.23.0；仅构建默认不认证现场版本。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm-ascend@2ed6cbba:Dockerfile#L54-L54",
+          "claim": "v0.26 Docker构建默认tag",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:Dockerfile#L54-L54"
+          ],
+          "verdict": "supports",
+          "evidence": "ARG VLLM_TAG=v0.26.0。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm-ascend@baa023ad:Dockerfile#L46-L46",
+          "claim": "main Docker构建默认tag",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:Dockerfile#L46-L46"
+          ],
+          "verdict": "supports",
+          "evidence": "ARG VLLM_TAG=v0.29.0；不同于部分专题84030bbe对照，保留其明确身份。"
+        },
+        {
+          "source_number": 23,
+          "ref": "raw:sha256-850b15e05cc827d85bb154b23212d7f0fac2b240d834cf186185da0298198e4e.md#L1-L634",
+          "claim": "旧汇编存档",
+          "read_ranges": [
+            "raw:sha256-850b15e05cc827d85bb154b23212d7f0fac2b240d834cf186185da0298198e4e.md#L1-L634"
+          ],
+          "verdict": "archive_only_no_corresponding_claim",
+          "evidence": "22段真实逐段比对固定原文相等。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/core_client.py#L1398-L1425",
+          "claim": "显式rank跳过本地补数普通请求增4N",
+          "read_ranges": [
+            "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/core_client.py#L1398-L1425"
+          ],
+          "verdict": "supports",
+          "evidence": "同blob的1398–1425与1覆盖重合，代数4*client_count。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/pool/late_interaction.py#L22-L36",
+          "claim": "late键路由不是生成前缀亲和",
+          "read_ranges": [
+            "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/pool/late_interaction.py#L22-L36"
+          ],
+          "verdict": "supports",
+          "evidence": "同blob22–36与13重合，作用于pooling_params。"
+        },
+        {
+          "source_number": 26,
+          "ref": "raw:sha256-a4ccb3d8c7f7604aa6a75574a211cd9f29b631c70177921e2cfa4563f9e48a3c.md#L1-L683",
+          "claim": "更新汇编存档",
+          "read_ranges": [
+            "raw:sha256-a4ccb3d8c7f7604aa6a75574a211cd9f29b631c70177921e2cfa4563f9e48a3c.md#L1-L683"
+          ],
+          "verdict": "archive_only_no_corresponding_claim",
+          "evidence": "24段真实比对原文相等，不作新的独立证据。"
+        },
+        {
+          "source_number": 27,
+          "ref": "vllm@ced6857a:vllm/v1/engine/core_client.py#L1546-L1596",
+          "claim": "rc2选组公式及显式rank仍计inflight",
+          "read_ranges": [
+            "vllm@ced6857a:vllm/v1/engine/core_client.py#L1546-L1596"
+          ],
+          "verdict": "supports",
+          "evidence": "顺序与19比较保持，自动分支后start旋转。"
+        },
+        {
+          "source_number": 28,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1078-L1106",
+          "claim": "rc2 Dyntra限定D侧单节点DP>1",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/platform.py#L1078-L1106"
+          ],
+          "verdict": "supports",
+          "evidence": "role consumer/nnodes_within_dp≤1/DP>1及调度互斥。"
+        },
+        {
+          "source_number": 29,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/core/dyntra_lb_scheduler.py#L40-L51",
+          "claim": "Dyntra按请求KV块估计负载",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/core/dyntra_lb_scheduler.py#L40-L51"
+          ],
+          "verdict": "partially_supports",
+          "evidence": "只证明ceil(len(all_token_ids)/block_size)，不证明完整暂停/接纳主循环；完整机制交dyntra-lb页。"
+        },
+        {
+          "source_number": 30,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/coordinator.py#L145-L173",
+          "claim": "100ms为默认最小统计间隔",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/coordinator.py#L145-L173"
+          ],
+          "verdict": "supports",
+          "evidence": "DPCoordinatorProc参数及run_coordinator均100并转存，非真实固定到达时限。"
+        }
+      ],
+      "sources_count": 30,
+      "remaining_source_numbers": [],
+      "acceptance_status": "not_complete_independent_review_and_browser_pending"
+    },
+    {
+      "id": "chunked-prefill",
+      "path": "wiki/concepts/chunked-prefill.md",
+      "sha256": "b2f3eb5a2a101aa279a9a92e86149fb693e5edd4950dc554227eda6e64a968b5",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L352",
+          "claim": "按应算和已算统一安排prefill与decode",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L352"
+          ],
+          "verdict": "supports",
+          "evidence": "注释明确num_tokens_with_spec为prompt/output/spec总和；不等于worker无分支。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L401-L410",
+          "claim": "running单条阈值先于剩余预算",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L401-L410"
+          ],
+          "verdict": "supports",
+          "evidence": "差值含output_placeholders；阈值正且小于差值才截。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L678-L700",
+          "claim": "waiting关分块检查在单条阈值之后",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L678-L700"
+          ],
+          "verdict": "supports",
+          "evidence": "先request.num_tokens减computed再阈值，关闭且仍超预算break，之后min。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L997-L1019",
+          "claim": "已算在调度后提前推进但计划保留步前值",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L997-L1019"
+          ],
+          "verdict": "supports",
+          "evidence": "1000–1006解释原始计数供输入；1010前推，1011–1013计算is_prefill_chunk。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm@0fc695fc:vllm/config/scheduler.py#L70-L90",
+          "claim": "字段兜底及long阈值注释与运行含义区别",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/scheduler.py#L70-L90"
+          ],
+          "verdict": "supports",
+          "evidence": "enable True但文档说明EngineArgs设置；partial两个1；long0。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm@0fc695fc:vllm/config/scheduler.py#L238-L272",
+          "claim": "启动日志4%条件和关闭时长度校验",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/scheduler.py#L238-L272"
+          ],
+          "verdict": "supports",
+          "evidence": "partial>1且阈值0才派生4%；关闭且预算严格小于maxlen拒绝，相等可过此项。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L2370-L2394",
+          "claim": "默认由模型支持判定而非无条件True",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/engine/arg_utils.py#L2370-L2394"
+          ],
+          "verdict": "supports",
+          "evidence": "None取is_chunked_prefill_supported；生成且支持但显式关闭时warning。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L2258-L2267",
+          "claim": "标准入口拒绝非默认partial数量",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/engine/arg_utils.py#L2258-L2267"
+          ],
+          "verdict": "supports",
+          "evidence": "任一与SchedulerConfig默认不等调用unsupported。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L2518-L2528",
+          "claim": "未显式预算且关闭分块自动抬高",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/engine/arg_utils.py#L2518-L2528"
+          ],
+          "verdict": "supports",
+          "evidence": "orig_max_num_batched_tokens为None才max(model_len 当前预算)。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm@0fc695fc:vllm/config/model.py#L1803-L1811",
+          "claim": "生成模型encoder-decoder例外",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/model.py#L1803-L1811"
+          ],
+          "verdict": "supports",
+          "evidence": "已扩读并扩引1811真实return True；encoder_decoder返回False。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L259-L263",
+          "claim": "align切分开关",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L259-L263"
+          ],
+          "verdict": "supports",
+          "evidence": "has_mamba_layers且mamba_cache_mode为align。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L293-L338",
+          "claim": "对齐切分与最后缓存边界",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L293-L338"
+          ],
+          "verdict": "supports",
+          "evidence": "已扩引338完整返回；向下取整/跨last_cache_position截到边界/最后尾巴保留。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_mamba_scheduler.py#L9-L57",
+          "claim": "GLM完整状态边界使用scheduler block_size",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_mamba_scheduler.py#L9-L57"
+          ],
+          "verdict": "supports",
+          "evidence": "非GLM调用原实现；GLM取self.block_size，不是4-token物理块。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L858-L867",
+          "claim": "执行侧位置号从步前computed起编",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L858-L867"
+          ],
+          "verdict": "supports",
+          "evidence": "np.add input_batch.num_computed_tokens_cpu与query_pos；已修图文避免误用前推后的计数。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1078-L1099",
+          "claim": "提示词未追平时设置discard mask",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1078-L1099"
+          ],
+          "verdict": "supports",
+          "evidence": "PCP用original_seq_lens，否则optimistic_seq_lens；与num_tokens比较并复制下标/掩码。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1444-L1470",
+          "claim": "固定MRV1执行标签有优先分支",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1444-L1470"
+          ],
+          "verdict": "supports",
+          "evidence": "all computed0先PrefillNoCache；全1路径；spec分支；之后chunk或cachehit；非mtp spec会改标签。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2631-L2671",
+          "claim": "白采样的seed回拨及结果丢弃",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2631-L2671"
+          ],
+          "verdict": "partially_supports",
+          "evidence": "已扩读2671；seed offset减4和同步无spec clear已证。异步及spec返回过滤分支尚未追完，不能由mask计算自动认证。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L398-L474",
+          "claim": "KDA读取初始状态及写回末状态",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L398-L474"
+          ],
+          "verdict": "supports",
+          "evidence": "按has_initial_state清状态，VK/KV转置，chunk_kda_fwd接initial_state并output_final_state=True写回。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L477-L498",
+          "claim": "MLA可见长度和index清单宽度",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L477-L498"
+          ],
+          "verdict": "partially_supports",
+          "evidence": "seqused_ori_kv=seq_lens且ori_topk=index_topk+index_kpool-1；2051具体数仍需模型配置与邻页原文闭合。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm@0fc695fc:docs/configuration/optimization.md#L41-L62",
+          "claim": "官方分块合批与性能调节建议",
+          "read_ranges": [
+            "vllm@0fc695fc:docs/configuration/optimization.md#L41-L62"
+          ],
+          "verdict": "supports",
+          "evidence": "文档有2048/大预算建议而非实测保证；greater-than措辞与校验相等边界不同，正文已说明。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm@0fc695fc:vllm/model_executor/models/config.py#L371-L374",
+          "claim": "align模式要求chunked",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/model_executor/models/config.py#L371-L374"
+          ],
+          "verdict": "supports",
+          "evidence": "assert enable_chunked_prefill及原错误字符串。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L713-L718",
+          "claim": "v0.23动态批开关顺带启chunked",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L713-L718"
+          ],
+          "verdict": "supports",
+          "evidence": "与SRF16对应行重合；SLO_limits_for_dynamic_batch非-1置True。"
+        },
+        {
+          "source_number": 23,
+          "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L463-L467",
+          "claim": "v0.26 DP非对齐步节流",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L463-L467"
+          ],
+          "verdict": "partially_supports",
+          "evidence": "defer_prefills还要求非prefill_capacity_bound且running存在非prefill请求；interval到throttle的调用未追完，版本表仅推迟新prefill过于简略待复核。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm@568afb3a:vllm/config/scheduler.py#L153-L156",
+          "claim": "prefill_schedule_interval默认1",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/config/scheduler.py#L153-L156"
+          ],
+          "verdict": "supports",
+          "evidence": "Field default1 ge1，文档按N步接纳新prefill。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L1026-L1076",
+          "claim": "main额外input预算限制",
+          "read_ranges": [
+            "vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L1026-L1076"
+          ],
+          "verdict": "supports",
+          "evidence": "request_token_budget=min(token_budget input_budget-draft_slots)，关分块条件使用它；decodepadding有额外条件。"
+        },
+        {
+          "source_number": 26,
+          "ref": "vllm@84030bbe:vllm/config/speculative.py#L1811-L1850",
+          "claim": "MTP额外draft槽位为0",
+          "read_ranges": [
+            "vllm@84030bbe:vllm/config/speculative.py#L1811-L1850"
+          ],
+          "verdict": "supports",
+          "evidence": "方法分支末尾返回0；表明确MTP非并行0，其他draft方法并非0。"
+        },
+        {
+          "source_number": 27,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L186-L188",
+          "claim": "main batch-invariance要求关闭分块APC且不支持抢占",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L186-L188"
+          ],
+          "verdict": "partially_supports",
+          "evidence": "所引三行直接支持main限定条件；旧两版文档不提的否定范围本轮尚未核。"
+        },
+        {
+          "source_number": 28,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1327-L1350",
+          "claim": "v0.26执行标签沿用",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1327-L1350"
+          ],
+          "verdict": "partially_supports",
+          "evidence": "实际读过1327–1350与固定版本分支一致；此引用没有丢弃采样逻辑，不能支持该行合并断言的全部。"
+        },
+        {
+          "source_number": 29,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L222-L225",
+          "claim": "APC且align才用cache块作为mamba块",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L222-L225"
+          ],
+          "verdict": "supports",
+          "evidence": "否则mamba_block_size=max_model_len；不等同所有历史都4-token存档。"
+        },
+        {
+          "source_number": 30,
+          "ref": "https://arxiv.org/abs/2308.16369",
+          "claim": "SARATHI等长分块和decode搭车概念",
+          "read_ranges": [
+            "https://arxiv.org/abs/2308.16369"
+          ],
+          "verdict": "supports",
+          "evidence": "本轮联网阅读arXiv原站摘要，明确equal sized chunks及decode-maximal batching；未读论文全文，不认证性能数字。"
+        },
+        {
+          "source_number": 31,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1396-L1433",
+          "claim": "普通模型启chunked或APC时改128",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1396-L1433"
+          ],
+          "verdict": "supports",
+          "evidence": "deepseek_v4早返回，hybrid早返回；普通分支block非128且两开关任一真才改。"
+        },
+        {
+          "source_number": 32,
+          "ref": "raw:sha256-ab8d477aec6bfdfa592d8282eafcfa581f0abbd5f9a7f08e30f386f9a7864ecd.md#L1-L725",
+          "claim": "旧源码汇编归档",
+          "read_ranges": [
+            "raw:sha256-ab8d477aec6bfdfa592d8282eafcfa581f0abbd5f9a7f08e30f386f9a7864ecd.md#L1-L725"
+          ],
+          "verdict": "archive_only_no_corresponding_claim",
+          "evidence": "30段逐段与固定原文真实比较相等；新增扩引行另读，归档不认证论文。"
+        },
+        {
+          "source_number": 33,
+          "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/core/sched/scheduler.py#L689-L699",
+          "claim": "关分块且截后超预算停止waiting",
+          "read_ranges": [
+            "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/core/sched/scheduler.py#L689-L699"
+          ],
+          "verdict": "supports",
+          "evidence": "实际同blob与3重叠，不是仅凭行号有效。"
+        },
+        {
+          "source_number": 34,
+          "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/engine/arg_utils.py#L2370-L2377",
+          "claim": "默认None按模型支持填值",
+          "read_ranges": [
+            "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/engine/arg_utils.py#L2370-L2377"
+          ],
+          "verdict": "supports",
+          "evidence": "同blob与7重叠。"
+        },
+        {
+          "source_number": 35,
+          "ref": "vllm@ced6857a:vllm/engine/arg_utils.py#L2794-L2816",
+          "claim": "rc2仍按模型支持填chunk默认",
+          "read_ranges": [
+            "vllm@ced6857a:vllm/engine/arg_utils.py#L2794-L2816"
+          ],
+          "verdict": "supports",
+          "evidence": "None路径和生成显式关闭warning均保留。"
+        },
+        {
+          "source_number": 36,
+          "ref": "vllm@ced6857a:vllm/config/scheduler.py#L70-L74",
+          "claim": "rc2 long阈值默认0且非负",
+          "read_ranges": [
+            "vllm@ced6857a:vllm/config/scheduler.py#L70-L74"
+          ],
+          "verdict": "supports",
+          "evidence": "Field(default=0 ge=0)，文档明确0 disables cap。"
+        },
+        {
+          "source_number": 37,
+          "ref": "vllm@ced6857a:vllm/config/scheduler.py#L185-L194",
+          "claim": "rc2 DP节流间隔默认1",
+          "read_ranges": [
+            "vllm@ced6857a:vllm/config/scheduler.py#L185-L194"
+          ],
+          "verdict": "supports",
+          "evidence": "Field默认1 ge1；不等于chunked关闭。"
+        },
+        {
+          "source_number": 38,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1067-L1075",
+          "claim": "rc2 profiling异步组合限定MRV2",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/platform.py#L1067-L1075"
+          ],
+          "verdict": "supports",
+          "evidence": "与SRF28同blob相同分支；不改变普通分块默认。"
+        },
+        {
+          "source_number": 39,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L38-L38",
+          "claim": "KDA内部chunk固定64",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L38-L38"
+          ],
+          "verdict": "supports",
+          "evidence": "实际读取kimi_kda.py第38行_KDA_CHUNK_SIZE=64，与18调用参数合读。"
+        }
+      ],
+      "sources_count": 39,
+      "remaining_source_numbers": [],
+      "acceptance_status": "not_complete_independent_review_and_browser_pending"
+    },
+    {
+      "id": "sampling",
+      "path": "wiki/concepts/sampling.md",
+      "sha256": "cbeb11b77bb0e114f7c69b6a0fef836a5c4d2f78f07ce69d9860d4a00f62a048",
+      "body_read": false,
+      "body_read_ranges": [
+        "L1-L1045"
+      ],
+      "citations": [],
+      "sources_count": 180,
+      "remaining_source_numbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180
+      ],
+      "acceptance_status": "not_complete_independent_review_and_browser_pending"
+    },
+    {
+      "id": "structured-output",
+      "path": "wiki/concepts/structured-output.md",
+      "sha256": "22f81405c5edac783f63aa2bccff41d49193584b11721b97857d57fa1af700e4",
+      "body_read": false,
+      "body_read_ranges": [],
+      "citations": [],
+      "sources_count": 93,
+      "remaining_source_numbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93
+      ],
+      "acceptance_status": "not_complete_independent_review_and_browser_pending"
+    },
+    {
+      "id": "request-teardown",
+      "path": "wiki/concepts/request-teardown.md",
+      "sha256": "43322aeccd03b7e417483dff09864cd4b77ee39c13c0687fb7ba46493636360f",
+      "body_read": false,
+      "body_read_ranges": [],
+      "citations": [],
+      "sources_count": 76,
+      "remaining_source_numbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76
+      ],
+      "acceptance_status": "not_complete_independent_review_and_browser_pending"
+    },
+    {
+      "id": "streaming-output",
+      "path": "wiki/concepts/streaming-output.md",
+      "sha256": "469fe3e2c95f7f659db9ac1a4899017cf6cb7d2aaa251495a207f4df35b9e78e",
+      "body_read": false,
+      "body_read_ranges": [],
+      "citations": [],
+      "sources_count": 64,
+      "remaining_source_numbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64
+      ],
+      "acceptance_status": "not_complete_independent_review_and_browser_pending"
+    },
+    {
+      "id": "vllm-scheduler",
+      "path": "wiki/concepts/vllm-scheduler.md",
+      "sha256": "868fa555a1c0a228f88c35076fea719b900d50d6f112a213938b3f4cfc01ef04",
+      "body_read": true,
+      "body_read_ranges": [
+        "L1-L377"
+      ],
+      "citations": [],
+      "sources_count": 61,
+      "remaining_source_numbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61
+      ],
+      "acceptance_status": "not_complete_independent_review_and_browser_pending"
+    },
+    {
+      "id": "prefill",
+      "path": "wiki/concepts/prefill.md",
+      "sha256": "261b1c691958df3ec41a51bf5dc76db7f479669cafc9bbf93d1c6f7b75794e6c",
+      "body_read": false,
+      "body_read_ranges": [],
+      "citations": [],
+      "sources_count": 50,
+      "remaining_source_numbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50
+      ],
+      "acceptance_status": "not_complete_independent_review_and_browser_pending"
+    },
+    {
+      "id": "concurrent-requests",
+      "path": "wiki/concepts/concurrent-requests.md",
+      "sha256": "07ecc563f601dc48a7465874f45718395e4745057922ddb4e191d42c7eba33a0",
+      "body_read": false,
+      "body_read_ranges": [],
+      "citations": [],
+      "sources_count": 45,
+      "remaining_source_numbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "acceptance_status": "not_complete_independent_review_and_browser_pending"
+    }
+  ]
+}

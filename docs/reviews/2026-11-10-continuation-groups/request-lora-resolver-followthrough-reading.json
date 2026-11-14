@@ -1,0 +1,144 @@
+{
+  "scope": "LoRA resolver child/consumer followthrough",
+  "global_new_full_credit": 0,
+  "actual_full_baseline_reads": [
+    {
+      "version": "baseline",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "path": "vllm/lora/resolver.py",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/lora-resolver/baseline/vllm/lora/resolver.py",
+      "sha256": "4af3404c076e624548b85039f50e693d3b8f8e62d00a0f881feff7e6eda69fdf",
+      "lines": 88,
+      "methods": [
+        {
+          "name": "resolve_lora",
+          "start": 24,
+          "end": 40,
+          "ast_sha256": "12d50ea5b8243f4c999806ba7112c2ecb01e2eec276945046d136eddb0b13c20"
+        }
+      ],
+      "status": "retrieved_not_automatically_read"
+    },
+    {
+      "version": "baseline",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "path": "vllm/plugins/lora_resolvers/filesystem_resolver.py",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/lora-resolver/baseline/vllm/plugins/lora_resolvers/filesystem_resolver.py",
+      "sha256": "cace09ca52c521cc733bc99a6480f738928cfd96cffc0ec9461df09aa36cdbf3",
+      "lines": 62,
+      "methods": [
+        {
+          "name": "__init__",
+          "start": 12,
+          "end": 13,
+          "ast_sha256": "8813febcb60bb1edf151398696482a4fdcb41e3d9ee841d39842397a387d83f8"
+        },
+        {
+          "name": "resolve_lora",
+          "start": 15,
+          "end": 22,
+          "ast_sha256": "fd63c8da366387a89d24f33cfb5282a5174f4190d5b0873e9ae540e6ceea772c"
+        }
+      ],
+      "status": "retrieved_not_automatically_read"
+    },
+    {
+      "version": "baseline",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "path": "vllm/plugins/lora_resolvers/hf_hub_resolver.py",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/lora-resolver/baseline/vllm/plugins/lora_resolvers/hf_hub_resolver.py",
+      "sha256": "63c5ab5f6dc3e1dbb52706be85bbc2b96cab173eac0f64f34305c094d321b53f",
+      "lines": 145,
+      "methods": [
+        {
+          "name": "__init__",
+          "start": 17,
+          "end": 27,
+          "ast_sha256": "82ffc78a15b9d57be1bd36ed0674ff24dfaf5c64e11f341916efd56de0742105"
+        },
+        {
+          "name": "resolve_lora",
+          "start": 29,
+          "end": 60,
+          "ast_sha256": "c72e93775c28eae8626d60d7b3c2f22e03f116c11ce8d556e8981c4537b09bbb"
+        }
+      ],
+      "status": "retrieved_not_automatically_read"
+    },
+    {
+      "version": "baseline",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "path": "vllm/entrypoints/openai/models/serving.py",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/lora-resolver/baseline/vllm/entrypoints/openai/models/serving.py",
+      "sha256": "5ab10d58d5a396a57283789a7c37cb806526b1da07bc8c45dbfa6ad30651846e",
+      "lines": 337,
+      "methods": [
+        {
+          "name": "__init__",
+          "start": 38,
+          "end": 44,
+          "ast_sha256": "60b19129cf78277604e8657d0deed5ff88a0970403a83b9754fb55fad8dad58a"
+        },
+        {
+          "name": "__init__",
+          "start": 85,
+          "end": 115,
+          "ast_sha256": "753844b2f05aae09bdcd4e2d4bf0cde0eea58da0c6f032113e3347e051cb7d5b"
+        },
+        {
+          "name": "load_lora_adapter",
+          "start": 160,
+          "end": 212,
+          "ast_sha256": "ac29a605cf4c4722f99fdaaae4d787c0a451777174c13b2e2eacb7a54d190b29"
+        },
+        {
+          "name": "resolve_lora",
+          "start": 275,
+          "end": 337,
+          "ast_sha256": "41fc7714127bbb185a8c7824be72a3c8ae7f848f611490cc2934ff28d8acfc94"
+        }
+      ],
+      "status": "retrieved_not_automatically_read"
+    },
+    {
+      "version": "baseline",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "path": "vllm/plugins/__init__.py",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/lora-resolver/baseline/vllm/plugins/__init__.py",
+      "sha256": "4be66190ceaee9d0465f62ade801a8e94a907d7ab9fdb0a67fa14ce87448ae9f",
+      "lines": 82,
+      "methods": [
+        {
+          "name": "load_plugins_by_group",
+          "start": 28,
+          "end": 66,
+          "ast_sha256": "06dc22f598357a590a8c27d51e49dfaa1d9e575fe4919a8a415f6ecb449ace08"
+        }
+      ],
+      "status": "retrieved_not_automatically_read"
+    },
+    {
+      "version": "baseline",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "path": "docs/design/lora_resolver_plugins.md",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/lora-resolver/baseline/docs/design/lora_resolver_plugins.md",
+      "sha256": "5021358e3e200fd897e8ae350203368233a9ee7145764f5d2883d779125b7ae5",
+      "lines": 219,
+      "methods": [],
+      "status": "actual_full_read"
+    },
+    {
+      "version": "baseline",
+      "commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "path": "docs/features/lora.md",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/lora-resolver/baseline/docs/features/lora.md",
+      "sha256": "46513bde61b795709201cb35277907e325c9fe64aeaa1af8efc7add8da4c986e",
+      "lines": 456,
+      "methods": [],
+      "status": "actual_full_read"
+    }
+  ],
+  "four_version_reuse": "three resolver/registry files exact byte identity all four; model-serving all baseline→v026 and v026→rc2 changes read, rc2/main exact whole-file equality; plugin general loader unchanged and new endpoint-plugin diff read",
+  "selected_only": "entrypoint engine check_model/is_model_supported, env getters, LoRA weight filename/type branch and package entrypoints; remaining downloaded files not claimed full",
+  "pending": "Teaching integration and delta review; linked model-specific LoRA examples/default-MM-LoRA/mixedMoE features remain separate scope, not automatically covered by resolver acceptance"
+}

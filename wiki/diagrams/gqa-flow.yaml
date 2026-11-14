@@ -1,6 +1,6 @@
 layout: figure
 id: gqa-flow
-caption: 同一套 vLLM 流程里，每层按自己的注意力类型走三支之一。左支是普通注意力：加载模型时按 TP 定本卡几个 KV 头（够分就切，不够就每卡 1 个并复制），启动时按本卡 KV 头数定每块字节，第 4 站把查询头数和 KV 头数一起交给算子。中、右两支是 GLM 的两类层：稀疏 MLA 的潜向量不按头切，缓存规格写成 1 个 KV 头；KDA 的 q、k、v 头数相同，按头切到各卡，不存逐位置的 K、V。
+caption: 同一套 vLLM 流程里，每层按自己的注意力类型走三支之一。左支是普通注意力：加载模型时按 TP 定本卡几个 KV 头（够分就切，不够就每卡 1 个并复制），启动时先算每块元素数，再乘每个元素的字节数得到块容量，第 4 站把查询头数和 KV 头数一起交给算子。中、右两支是 GLM 的两类层：稀疏 MLA 的潜向量不按头切，缓存规格写成 1 个 KV 头；KDA 的 q、k、v 头数相同，按头切到各卡，不存逐位置的 K、V。
 size: [900, 480]
 items:
   - { at: [300, 16], size: [300, 48], text: 这一层用哪种注意力？, tone: control, style: plain }
@@ -10,7 +10,7 @@ items:
   - { at: [24, 196], size: [260, 60], text: 按 TP 定本卡头数, sub: KV 头够分就切，不够每卡 1 个并复制, tone: weight, style: plain }
   - { at: [320, 196], size: [260, 60], text: 潜向量不按头切, sub: TP8 下每卡各算、各存一份完整的, tone: weight, style: plain }
   - { at: [616, 196], size: [260, 60], text: q、k、v 头数相同, sub: 按 TP8 切，每卡 8 个头, tone: weight, style: plain }
-  - { at: [24, 286], size: [260, 60], text: 每块字节随本卡 KV 头数, sub: K、V 两份 × token 数 × 头数 × 头宽, tone: kv, style: plain }
+  - { at: [24, 286], size: [260, 60], text: 每块元素数随本卡 KV 头数, sub: K、V 两份 × token 数 × 头数 × 头宽, tone: kv, style: plain }
   - { at: [320, 286], size: [260, 60], text: 规格写 1 个 KV 头, sub: 头宽是潜向量宽，不是 64 组 K、V, tone: kv, style: plain }
   - { at: [616, 286], size: [260, 60], text: 不存逐位置的 K、V, sub: 每个头一个固定大小的状态, tone: kv, style: plain }
   - { at: [24, 376], size: [260, 60], text: 两种头数一起交给算子, sub: 算子内部让同组查询头读同一组 K、V, tone: token, style: plain }

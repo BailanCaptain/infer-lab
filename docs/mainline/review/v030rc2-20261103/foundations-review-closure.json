@@ -1,0 +1,66 @@
+{
+  "reviewer": "/root/rc2_review_params",
+  "reviewStage": "independent-recheck-of-authored-corrections",
+  "scope": "23 foundations pages originally reviewed in foundations-final-review.json; this closure rereads the four corrected pages and the fixed source consumers. No browser or hardware acceptance is claimed.",
+  "findings": [
+    {
+      "id": "F01",
+      "priority": "P2",
+      "status": "closed",
+      "file": "wiki/concepts/attention-cost.md",
+      "line": 253,
+      "evidence": "Current prose states valid-prefix tail placement already exists in fixed main and rc2 moves it into pack_tail/indexer fusion. Frontmatter now includes main helper and caller at L26–50/L142–147, rc2 caller L134–152 and Triton expansion L190–196. Re-read rc2 caller confirms pack_tail=True at L148."
+    },
+    {
+      "id": "F02",
+      "priority": "P2",
+      "status": "closed",
+      "file": "wiki/concepts/attention-cost.md",
+      "line": 253,
+      "evidence": "Current prose separately states main MLA/compressed-indexer share scheduler block IDs; tail/KDA use independent IDs; physical page-size classes pair main/KDA and indexer/tail. This matches fixed cache_config.py L3–8 and preserves old BF16/640-token arithmetic scope."
+    },
+    {
+      "id": "F03",
+      "priority": "P2",
+      "status": "closed",
+      "file": "wiki/concepts/rope.md",
+      "line": 374,
+      "evidence": "New paragraph explicitly records removal of telechat3-yarn, Unknown RoPE scaling type outcome and model-specific migration rather than invented alias compatibility. Both old main L349–378 and paired upstream rc2 L345–346 are now sources."
+    },
+    {
+      "id": "F04",
+      "priority": "P3",
+      "status": "closed",
+      "file": "wiki/concepts/gqa.md",
+      "line": 332,
+      "evidence": "Lead is now neutral; PCP/DCP equality is labeled new and batch-invariant mixed-phase split is explicitly identified as already present in fixed main. Actual main source was reread: condition and split call are L928–947, whereas preexisting L948–959 source only shows the ordinary FIA call. Citation addition C01 was subsequently found and read, as recorded below."
+    }
+  ],
+  "crossTaskObservation": {
+    "page": "inference-correctness-troubleshooting",
+    "line": 283,
+    "status": "closed",
+    "evidence": "Current prose states Runtime Guard example is pinned to 921ccc52, its three runtime_config keys are absent from rc2, ordinary Ascend rejects them and Omni warns/filters. This matches the previously read strict dataclass and factory consumer; no claim is made that all of the newer Runtime Guard implementation was reviewed here. Citation addition C02 was subsequently found and read, as recorded below."
+  },
+  "remainingCitationItems": [
+    {
+      "id": "C01",
+      "priority": "P3",
+      "file": "wiki/concepts/gqa.md",
+      "requestedSource": "vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L928-L947",
+      "status": "closed-source-added-and-read"
+    },
+    {
+      "id": "C02",
+      "priority": "P3",
+      "file": "wiki/concepts/inference-correctness-troubleshooting.md",
+      "requestedSources": [
+        "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L549-L565",
+        "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1844-L1912"
+      ],
+      "status": "closed-source-added-and-read"
+    }
+  ],
+  "result": "No outstanding P1/P2/P3 from the foundations static review. Four prose findings and Runtime Guard boundary are corrected; both requested citation additions were found in current frontmatter (gqa L69, correctness L68–69).",
+  "browserStatus": "Unavailable in child; foundations-browser-review.json records the one failed IAB creation and all 23 pages not executed. Root owns browser review."
+}

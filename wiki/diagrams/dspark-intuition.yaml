@@ -1,0 +1,61 @@
+layout: figure
+id: dspark-intuition
+caption: 一轮验证的教学编号。深蓝是已确定但还需送主模型的末尾，浅绿是所选草稿，虚线格是不验证的草稿。A 输入三行、B 输入两行；实际接受和替代后，新交付三个编号。没有提前停止或长度截断。
+size: [850, 430]
+frames:
+  - { at: [20, 42], size: [390, 350], label: A：选前两个草稿验证 }
+  - { at: [440, 42], size: [390, 350], label: B：只选第一个草稿验证 }
+grids:
+  - at: [54, 96]
+    rows: 1
+    cols: 4
+    cell: [76, 40]
+    tone: token
+    style: faded
+    colLabels: ['已确定', '候选 1', '候选 2', '未验证']
+    cells:
+      - { at: [0, 0], text: '11', tone: kv, style: solid }
+      - { at: [0, 1], text: '23' }
+      - { at: [0, 2], text: '7' }
+      - { at: [0, 3], text: '18', style: ghost }
+  - at: [474, 96]
+    rows: 1
+    cols: 4
+    cell: [76, 40]
+    tone: token
+    style: faded
+    colLabels: ['已确定', '候选 1', '未验证', '未验证']
+    cells:
+      - { at: [0, 0], text: '31', tone: kv, style: solid }
+      - { at: [0, 1], text: '8' }
+      - { at: [0, 2], text: '12', style: ghost }
+      - { at: [0, 3], text: '2', style: ghost }
+  - at: [130, 286]
+    rows: 1
+    cols: 2
+    cell: [76, 40]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '23' }
+      - { at: [0, 1], text: '9' }
+    label: 新交付两个编号
+  - at: [550, 286]
+    rows: 1
+    cols: 1
+    cell: [76, 40]
+    tone: token
+    style: solid
+    cells: [{ at: [0, 0], text: '40' }]
+    label: 新交付一个编号
+links:
+  - { from: [168, 140], to: [168, 282], tone: token }
+  - { from: [244, 140], to: [244, 282], tone: danger }
+  - { from: [588, 140], to: [588, 282], tone: danger }
+texts:
+  - { at: [54, 200], text: 23 接受, size: 14, tone: token }
+  - { at: [260, 230], text: 7 拒绝，替换为 9, size: 14, tone: danger }
+  - { at: [610, 230], text: 8 拒绝，替换为 40, size: 14, tone: danger }
+  - { at: [54, 374], text: 基础行 1 + 候选行 2 = 输入 3 行, size: 14 }
+  - { at: [474, 374], text: 基础行 1 + 候选行 1 = 输入 2 行, size: 14 }
+  - { at: [425, 416], text: 主模型共处理 5 行；这一轮实际新交付 3 个编号, anchor: middle, size: 14, strong: true }

@@ -1,0 +1,20 @@
+{
+  "source_number": 55,
+  "page": "quantization",
+  "url": "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/API/aolapi/context/ops-nn/aclnnDynamicQuant.md",
+  "local_original": ".tmp/continuation-groups-2026-11-10/quant55/aclnnDynamicQuant.md",
+  "sha256": "ec69554c3d06cc7f2ed0983167962a28e363d18d8bf9f37c20aae8a625af81fe",
+  "characters": 16150,
+  "lines": 463,
+  "retrieval": "Public browser download event, no login or license acceptance; initial web fetch failed, ordinary browser navigation reports Download is starting",
+  "read_scope": "root read complete original: lines1-150,151-300,301-end; metadata, all formulas, hardware table, argument table, constraints, errors and entire C++ example",
+  "document_version": "CANN 9.1.X; metadata lastUpdated2026-09-11",
+  "current_claim": "Per-token symmetric dynamic quantization, scaleOut=row_max(abs(x))/dtypeMax, optional smoothing before row reduction, yOut=round(x/scaleOut)",
+  "disposition": "Original unavailable status superseded by actual original acquisition and full reading; independent semantic closure recorded separately in historical-risk review",
+  "limits": [
+    "A2/A3 output supports INT4,INT8,INT32; not all table types on all devices",
+    "Floating point and all-zero behavior/tie rounding are not fully specified by these formulas; teaching ideal-error assumptions retained",
+    "C++ sample read, not compiled or executed on a device",
+    "No new occurrence: existing quantization#55 exact URL retained"
+  ]
+}

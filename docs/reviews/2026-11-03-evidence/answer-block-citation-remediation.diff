@@ -1,0 +1,69 @@
+--- before/wiki/sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md
++++ wiki/sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md
+@@ -24,9 +24,9 @@
+   - 'vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L482-L501'
+   - 'vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L298-L341'
+   - 'vllm@568afb3a:vllm/v1/core/block_pool.py#L719-L740'
+-  - 'vllm@568afb3a:vllm/v1/core/block_pool.py#L445-L460'
++  - 'vllm@568afb3a:vllm/v1/core/block_pool.py#L445-L544'
+   - 'vllm@84030bbe:vllm/v1/core/block_pool.py#L734-L758'
+-  - 'vllm@84030bbe:vllm/v1/core/block_pool.py#L446-L460'
++  - 'vllm@84030bbe:vllm/v1/core/block_pool.py#L446-L555'
+   - 'vllm@0fc695fc:vllm/v1/worker/block_table.py#L102-L128'
+   - 'vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L751-L765'
+   - 'vllm@0fc695fc:vllm/config/cache.py#L232-L244'
+@@ -35,6 +35,13 @@
+   - 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L671-L671'
+   - >-
+     raw:sha256-e5c15fb7af96df869f750d91b6aa3da57fc9f13462dd6664b456576b88794b34.md#L1-L391
++  - 'vllm@0fc695fc:vllm/config/cache.py#L42-L48'
++  - 'vllm@0fc695fc:vllm/config/model.py#L1768-L1869'
++  - 'vllm@0fc695fc:vllm/v1/worker/block_table.py#L68-L76'
++  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L145-L157'
++  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L228-L244'
++  - 'vllm@ced6857a:vllm/v1/core/block_pool.py#L770-L800'
++  - 'vllm@ced6857a:vllm/v1/core/block_pool.py#L452-L561'
+ evidence: I
+ relations:
+   - to: block-table
+@@ -80,7 +87,9 @@
+ 
+ ## 什么时候分
+ 
+-调度器每挑中一条请求就调一次 `allocate_slots`，但只有「当前块装不下新 token」时才真正要块：还差的块数 = 向上取整（要存的 token 数 ÷ 块大小）− 手里已有的块数，不大于 0 就一块都不借 [C2]。落到回答当时的单卡旧算例上，一块 128 个 token。这也是钉住版本上普通模型在默认参数下的块大小：vLLM 构造配置时先把没指定的块大小填成 16 [C15]，配置收尾时调平台钩子 [C16]，Ascend 在钩子里调块大小刷新 [C18]，对非混合模型只要前缀缓存或 chunked prefill 任一开着、块大小又不是 128，就改成 128 [C3]；而这两项在用户没指定时按模型是否支持默认打开，Qwen3 这类普通模型都支持 [C17]。
++先限定旧算例：单卡、普通全注意力组、没有前缀命中、抢占或投机预留。调度器为这一步申请位置时调用 `allocate_slots`，组内还差的块数 = 向上取整（要存的 token 数 ÷ 块大小）− 手里已有的块数；不大于 0 就不借新块 [C2]。其他缓存类型和预留策略不能只套这一个减法。
++
++这个旧算例一块 128 个 token。其默认值形成过程是：vLLM 构造配置时先把未指定的块大小填成 16 [C15]，配置收尾调平台钩子 [C16]，Ascend 再刷新块大小 [C18]。这里的普通非混合模型只要前缀缓存或 chunked prefill 任一开着、块大小又不是 128，就改成 128 [C3]。两项未显式指定时跟随模型支持属性；旧例采用生成式 decoder 模型，这两个属性均为真 [C17]。混合、encoder-decoder、pooling 等路径需另看各自条件。
+ 
+ | 时刻 | 要不要块 | 发生了什么 |
+ |---|---|---|
+@@ -106,16 +115,18 @@
+ 
+ v0.26 起 BlockPool 多了 `cache_partial_block`，可以给没写满的块挂一条「部分」前缀缓存条目，main 上也有 [C10][C12]；什么条件下会用到见 [KV 块分配的版本差异](../concepts/vllm-kv-block-allocation.md#版本差异)。所以「写满才登记」是 v0.23 的规则，不是三版通用。
+ 
+-在这两个实现快照中，部分前缀缓存条目可从更细的前缀边界定位已有块，无需为该条目另外分配或复制物理块。因此新增条目与新增物理块是两回事（来源10，568afb3a 445–460；来源12，84030bbe 446–460）。适用条件见上一段所链的版本差异。
++在这两个实现快照中，部分前缀缓存条目可从更细的前缀边界定位已有块，无需为该条目另外分配或复制物理块。函数对传入块插入或替换哈希元数据，并可记录缓存事件；新增条目与新增物理块是两回事（来源 10、12）。适用条件见上一段所链的版本差异。
+ 
+ ## 版本差异
+ 
+-钉点：v0.23 = vLLM 0fc695fc，v0.26 = vLLM 568afb3a，main = vLLM 84030bbe，与 [KV 块分配](../concepts/vllm-kv-block-allocation.md#版本差异)一致。原回答只比了 v0.23 和 v0.26 两列，没有核源码；main 一列和本节角标是归档后按钉住源码补核的。
++钉点：v0.23 = vLLM 0fc695fc，v0.26 = vLLM 568afb3a，main = vLLM 84030bbe；Ascend rc2 的配套上游对照为 ced6857a。版本身份与 [KV 块分配](../concepts/vllm-kv-block-allocation.md#版本差异)、[rc2 基线](v030rc2-baseline.md)分开登记，不能仅按“新版”混用。
+ 
+ | 项 | v0.23 | v0.26 | main | 意味着什么 |
+ |---|---|---|---|---|
+-| 请求结束时还回的块排在哪一头 | 全注意力组还块走 `free_blocks` 的默认分支，一律排队尾 [C6]；插队头的开关只给窗口外被跳过的块和滑动窗口组还块用 [C7][C14] | 按有没有哈希分两拨：没登记的插队头，登记过的排队尾，开关参数取消 [C9] | 同 v0.26；另外前缀缓存关着时一律插队头，按后进先出复用 [C11] | [!] 旧算例的第 1 块从没进过缓存表：在 v0.26 和 main 上会被下一条请求立刻取走，在 v0.23 上还得排在整条空闲队列后面 |
++| 请求结束时还回的块排在哪一头 | 全注意力组还块走 `free_blocks` 的默认分支，一律排队尾 [C6]；插队头的开关给窗口外被跳过的块和滑动窗口组还块用 [C7][C14] | 按有没有哈希分两拨：没登记的插队头，登记过的排队尾，开关参数取消 [C9] | 同 v0.26；另外前缀缓存关着时一律插队头，按后进先出复用 [C11] | 旧算例未登记的第 1 块在 v0.26 和 main 上优先排到队头，在 v0.23 上排队尾；实际下一次分配还取决于期间其他请求对队列的操作 |
+ | 没写满的块能不能登记 | 不能 [C8] | 新增部分登记 [C10] | 有部分登记 [C12] | 「写满才登记」只在 v0.23 上是绝对的 |
++
++**rc2 配套上游。** ced6857a 延续这里 main 的队头/队尾规则与部分登记能力；释放时还会把属于其他 pool 的块分组转交其所属 pool。只有引用计数归零、非空哨兵的块才入队。部分登记仍围绕传入的已有块更新哈希元数据，不能据此把旧算例的块大小和借块次数套到 rc2 的任意模型。
+ 
+ ## 块表侧只剩记账
+ 
+@@ -143,3 +154,7 @@
+ - 37 个 token、第 92 步、109 格这些数只属于 Qwen3-0.6B 单卡旧算例，**不是 GLM 双机的测量**，也不能拿来推双机的借块节奏 [!]。
+ - 回答里出现的物理块号 5 和 42 是当时被引页明确标注的假设值，不是某次真实运行的观测结果 [I]。
+ - 原回答没有覆盖 main 上的回收顺序，也没有涉及抢占时的块释放路径。前者已在[版本差异](#版本差异)补上；后者见[池子不够时：宁可抢占，也不借一半](../concepts/vllm-kv-block-allocation.md#池子不够时宁可抢占也不借一半)。
++
++## 对照源码
++
++EngineCore 创建调度器、调度器创建 KVCacheManager 的所有权链见来源 23、24。构造默认 16 和两个模型支持属性分别见来源 20、21；块表 int32 与每行计数类型见来源 22。来源 25、26 给出 rc2 配套上游的释放和部分登记函数。原问答与嵌入的旧教学页只用于保存当时的算例，不能替代这些机制来源。

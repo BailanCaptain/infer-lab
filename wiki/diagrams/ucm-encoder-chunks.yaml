@@ -1,0 +1,85 @@
+layout: figure
+id: ucm-encoder-chunks
+caption: 编码结果分块的示意。左边是同一份图像编码得到的 5 行、每行 2 个数；按每块 2 行存成中间 3 块，末块补零。查询必须三块全在才算这一项命中；读取完成后只向模型交付前 5 行。补齐占用仍随底层张量分配保留，不会因为交付了一个较短视图就消失。图只表示逻辑张量，后端的文件对齐另计。
+size: [900, 310]
+frames:
+  - { label: 编码结果 · 5 行, at: [20, 45], size: [160, 235] }
+  - { label: 外部存储 · 3 块, at: [240, 45], size: [440, 235] }
+  - { label: 交付模型 · 5 行, at: [720, 45], size: [160, 235] }
+grids:
+  - at: [56, 85]
+    rows: 5
+    cols: 2
+    cell: [44, 32]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+      - { at: [1, 0], text: '3' }
+      - { at: [1, 1], text: '4' }
+      - { at: [2, 0], text: '5' }
+      - { at: [2, 1], text: '6' }
+      - { at: [3, 0], text: '7' }
+      - { at: [3, 1], text: '8' }
+      - { at: [4, 0], text: '9' }
+      - { at: [4, 1], text: '10' }
+  - at: [270, 127]
+    rows: 2
+    cols: 2
+    cell: [44, 32]
+    tone: kv
+    style: solid
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+      - { at: [1, 0], text: '3' }
+      - { at: [1, 1], text: '4' }
+  - at: [416, 127]
+    rows: 2
+    cols: 2
+    cell: [44, 32]
+    tone: kv
+    style: solid
+    cells:
+      - { at: [0, 0], text: '5' }
+      - { at: [0, 1], text: '6' }
+      - { at: [1, 0], text: '7' }
+      - { at: [1, 1], text: '8' }
+  - at: [562, 127]
+    rows: 2
+    cols: 2
+    cell: [44, 32]
+    tone: kv
+    style: solid
+    cells:
+      - { at: [0, 0], text: '9' }
+      - { at: [0, 1], text: '10' }
+      - { at: [1, 0], text: '0', style: faded }
+      - { at: [1, 1], text: '0', style: faded }
+  - at: [756, 85]
+    rows: 5
+    cols: 2
+    cell: [44, 32]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+      - { at: [1, 0], text: '3' }
+      - { at: [1, 1], text: '4' }
+      - { at: [2, 0], text: '5' }
+      - { at: [2, 1], text: '6' }
+      - { at: [3, 0], text: '7' }
+      - { at: [3, 1], text: '8' }
+      - { at: [4, 0], text: '9' }
+      - { at: [4, 1], text: '10' }
+links:
+  - { from: [182, 159], to: [238, 159], tone: kv }
+  - { from: [682, 159], to: [718, 159], tone: kv }
+texts:
+  - { at: [314, 113], text: 块 1, anchor: middle, tone: kv }
+  - { at: [460, 113], text: 块 2, anchor: middle, tone: kv }
+  - { at: [606, 113], text: 块 3, anchor: middle, tone: kv }
+  - { at: [606, 217], text: 末行补零, anchor: middle, note: true }
+  - { at: [460, 254], text: 全部命中并读取完成，才交付, anchor: middle }

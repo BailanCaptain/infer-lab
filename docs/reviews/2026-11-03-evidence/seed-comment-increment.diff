@@ -1,0 +1,11 @@
+--- before/wiki/seeds/vllm-ascend-code.yaml
++++ after/wiki/seeds/vllm-ascend-code.yaml
+@@ -16,7 +16,7 @@
+     refs:
+       main: "0fc695fc"
+       "releases/v0.26.0": "568afb3a"   # = vLLM v0.26.0 tag，与 vllm-ascend releases/v0.26.0rc 配套（该分支 mkdocs.yml 的 vllm_version）
+-      "releases/v0.30.0": "ced6857afa0ea7b2e3f0846a62e1394e90f15607" # vLLM v0.30.0 tag；配套 Ascend v0.30.0rc2，以其 release notes 的 main2main 对齐声明为准
++      "releases/v0.30.0": "ced6857afa0ea7b2e3f0846a62e1394e90f15607" # 配套 Ascend v0.30.0rc2 的上游固定快照，以其 release notes 的 main2main 对齐声明为准；不以本地 tag 身份代替提交
+   vllm-ascend:
+     url: https://github.com/vllm-project/vllm-ascend
+     path: tools/repos/vllm-ascend

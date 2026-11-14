@@ -2,36 +2,74 @@
 id: lmcache
 title: LMCache：接在引擎外面的一层 KV 缓存
 type: feature
-summary: LMCache 是装在推理引擎外面的一层 KV cache 缓存，经 vLLM 的 KV connector 插口对接：引擎管调度和显存，它管外部数据并回答能提供到第几个位置。本页讲这条交接边界、按 chunk 取整的账、和 AscendStore 版 KV Pool 的区别，以及 GLM 双机上为什么没开。
-aliases: [LMCache, LMCacheAscendConnector, LMCacheConnectorV1, LMCache-Ascend, use_native, chunk]
-chapters: ["11"]
+summary: >-
+  LMCache 是装在推理引擎外面的一层 KV cache 缓存，经 vLLM 的 KV connector
+  插口对接：引擎管调度和显存，它管外部数据并回答能提供到第几个位置。本页讲这条交接边界、按 chunk 取整的账、和 AscendStore 版 KV
+  Pool 的区别，以及 GLM 双机上为什么没开。
+aliases:
+  - LMCache
+  - LMCacheAscendConnector
+  - LMCacheConnectorV1
+  - LMCache-Ascend
+  - use_native
+  - chunk
+chapters:
+  - '11'
 sources:
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L61-L65
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/lmcache_ascend_connector.py#L1-L5
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L83-L115
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L259-L342
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L120-L198
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L1140-L1225
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L296-L340
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L655-L670
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L460-L510
-  - vllm@0fc695fc:vllm/config/vllm.py#L1479-L1501
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/factory.py#L54-L61
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L517-L531
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/cache_config.py#L348-L354
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L3-L24
-  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L70-L72
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_mp_connector.py#L70-L83
-  - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L61-L65
-  - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L61-L65
-  - vllm@0fc695fc:examples/disaggregated/lmcache/kv_cache_sharing_lmcache_v1.py#L26-L41
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L61-L65'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/lmcache_ascend_connector.py#L1-L5
+  - >-
+    vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L72-L115
+  - >-
+    vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L259-L342
+  - >-
+    vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L120-L198
+  - >-
+    vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L1140-L1225
+  - >-
+    vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L296-L340
+  - >-
+    vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L655-L670
+  - >-
+    vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L460-L510
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L1479-L1501'
+  - 'vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/factory.py#L54-L61'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L517-L531
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/cache_config.py#L348-L354'
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L3-L24
+  - >-
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L70-L72
+  - >-
+    vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_mp_connector.py#L26-L83
+  - 'vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L61-L65'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L61-L65'
+  - >-
+    vllm@0fc695fc:examples/disaggregated/lmcache/kv_cache_sharing_lmcache_v1.py#L26-L41
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L135
+  - >-
+    vllm-ascend@7d825229:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L1-L24
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L1-L24
+  - 'vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L72-L115'
+  - 'vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L72-L115'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
-  - {to: kv-pool, kind: builds-on, note: 复用外部缓存匹配和加载的生命周期}
-  - {to: prefix-caching, kind: builds-on, note: 外部前缀复用要求一致的数据身份}
+  - to: kv-pool
+    kind: builds-on
+    note: 复用外部缓存匹配和加载的生命周期
+  - to: prefix-caching
+    kind: builds-on
+    note: 外部前缀复用要求一致的数据身份
 contradicts: []
-updated: "2026-09-29"
+updated: '2026-11-03'
 origin: direct
 ---
 
@@ -82,7 +120,7 @@ B 还要自己算 = 600 − 256 = 344 个位置
 
 另外三条边界：
 
-- **全中也要留一个位置。** 外部命中覆盖整条 prompt 时，要少报一个：最后一个位置必须真算一次，才能得到下一个 token 的输出。
+- **全中也要留一个位置。** 已核的 vLLM 自带 adapter 在外部命中数等于请求当前总 token 数时少报一个，留最后一个位置真算一次以取得采样输出；外部包的 adapter 须按其版本另核。
 - **生成出来的位置进不进外部缓存，是一项配置**（`save_decode_cache`，取值由外部包的配置给定）。核到的一条（仅 vLLM 自带的 adapter）：同一条请求重新查询时，拿去问的只有它自己 prompt 的 token，所以被抢占的请求补不回自己已生成的那段。
 - **位置数不等于字节数。** 真正搬的是这些位置在每一层、每一种缓存里的数据，字节由缓存布局决定，GLM 的账见下面 GLM 一节。
 
@@ -121,6 +159,8 @@ Ascend 上这条链由四段代码拼起来，来自三方，各管一件事：
 | 起名规则 | 由外部软件包定 | 模型名 + 并行编号 + 缓存组 + 状态种类 + 内容指纹，见[起名规则](kv-pool.md#池里一条记录叫什么名字) |
 
 表里「混合模型」那一行是本页和 GLM 最相关的一条，下一节展开。和「把被抢占的请求换出去」「在本机主机内存留一份备份」的区别，见 [KV Pool 的对照表](kv-pool.md#和抢占换出cpu-备份有什么不同)与 [CPU offload](kv-cache-cpu-offload.md)；同样接在这个插口上的还有 [UCM](ucm.md) 和 [PD 分离](pd-disaggregation.md)用的点对点连接器——它们和本页共用一套接口，走的却是不同的数据流，所以「某个模型在 PD 分离上跑通了」推不出「它的外部前缀缓存也能用」，反过来也一样。
+
+外部命中只能恢复实际保存的状态；模型若还有逐层窗口，需要另核它是否一同保存。[SWA 回放](swa-bounded-replay.md)演示窗口缺失后的重算与近似代价，不把这一模型策略视为 LMCache 的通用功能。
 
 ## 放到 GLM 双机：没开，而且照钉住的源码推演开不起来
 
@@ -172,7 +212,7 @@ title: 假如补回 1 个 chunk，要往显存里搬多少（示意：chunk = 25
 
 - 注册名 `LMCacheAscendConnector` 指向仓库里的包装模块，模块导出的类其实是上游的 `LMCacheConnectorV1` [C1]；包装模块本身只有几行：先 `import lmcache_ascend` 把昇腾插件包导进来（只为导入时的副作用，这一行不取任何东西），再把上游的类导出去，没有任何存储策略 [C2]。
 - `use_native` 默认 `false`：导入外部 `lmcache` 软件包的 adapter；显式设为 `true` 才用 vLLM 仓库自带的那套 [C3]。所以同一个连接器名下可能是两份完全不同的实现。
-- chunk 大小、是否存 decode 阶段、尾巴丢不丢，自带 adapter 每次都从外部包的配置对象里取当前值再传下去 [C8]；取整与跳过保存的逻辑本身在 [C7]。函数签名上写着 256 和「decode 不存」，但那只是缺省形参，真正生效的是外部包的配置，本页没有核到它的默认取值。
+- chunk 大小与是否存 decode 阶段，自带 adapter 在初始化时从外部包的配置对象读取并保存；丢弃尾块由连接器的 `discard_partial_chunks` 或外部包的 `save_unfull_chunk` 共同决定，前者为真或后者为假就丢弃 [C8]。中间 prefill 步始终向下取整，最后一个 prefill 步才按该设置决定是否保留尾块；保存还可被请求级跳过标记等条件关闭 [C7]。函数签名的缺省形参不代表部署默认值。
 - 一条核到的边界（仅自带 adapter）：一条请求查询时送出去的只有它自己的 `request.prompt_token_ids`，所以同一条请求补不回自己已生成的那段；后来的请求 prompt 里带着这段内容则不在此限 [C6]。
 - LMCache 自己的存储分层不走上面这份配置，而是读它自己的一组配置项：主机内存这层开不开、开多大是一项，远端存储的地址和序列化方式是另一项 [C19]。淘汰策略在外部包里，本页没有核到。
 - 上游另有一个 `LMCacheMPConnector`（把 LMCache 放到独立进程），模块加载时优先用外部包提供的实现 [C16]。
@@ -197,14 +237,16 @@ title: 假如补回 1 个 chunk，要往显存里搬多少（示意：chunk = 25
 
 ### 版本差异
 
+**v0.30.0rc2 的 Ascend 注册表仍未重新引入旧 LMCache 包装入口。** 接入依赖外部 LMCache-Ascend 插件及其安装、注册约定，不能把旧维护分支的仓库注册名直接当成 rc2 内置能力。rc2 保留的部署文档仍有 LMCache 0.3.12、Ascend v0.11.0 的旧镜像示例；这些文字能说明接入方法，不能证明其二进制组合与 rc2 兼容。实际采用时须同时固定插件、LMCache、vLLM 和 Ascend 版本，本文不把旧 Docker tag 改成未经验证的 rc2 配方。
+
 | 项 | v0.23 维护分支 2c59ff10 | GLM 快照 db701c1f | v0.26 分支 2ed6cbba | main baa023ad |
 |---|---|---|---|---|
 | 仓库是否注册这个名字 | 是 [C17] | 是 [C1] | 是 [C18] | 否，改用插件包自己的注册 [S15] |
 | 包装模块 | 几行的导入加导出 | 同左 | 同左 | 已删除 |
-| 上游连接器 | 同一份 `LMCacheConnectorV1`，`use_native` 二选一 [C3] | 同左 | 同左 | 同左 |
+| 上游连接器选择入口 | `LMCacheConnectorV1`，`use_native` 二选一 [C3] | 同左 | 此选择入口相同（来源 23） | 此选择入口相同（来源 24） |
 | 部署材料 | 给出在线与离线两种写法 [S14] | 同左 | 同左 | 只留一句「改用插件包的配置」 [S15] |
 
-意味着什么：前三列按仓库注册名启动，main 上要换写法；四列的上游连接器是同一份，真正的行为差异来自外部软件包的版本，不在这张表里 [D]。
+意味着什么：前三列按仓库注册名启动，main 上要换写法；已对照的 adapter 选择入口相同，不代表整个 adapter、上游调用生命周期和外部软件包都逐字相同。运行行为还须固定三者的版本 [D]。
 
 ### 源码位置
 

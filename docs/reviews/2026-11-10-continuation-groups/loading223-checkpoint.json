@@ -1,0 +1,39 @@
+{
+  "status": "accepted_for_frozen_revision",
+  "recorded_at": "2026-11-10T14:27:44.362406+00:00",
+  "new_source_occurrences": 223,
+  "groups": {
+    "renderer": 34,
+    "beam": 38,
+    "compile": 69,
+    "model_resolution": 44,
+    "lora_resolver": 38
+  },
+  "old_recounted": 0,
+  "remaining_active_old": 0,
+  "verification": "loading223-verification.json",
+  "files": {
+    "wiki/concepts/api-server-entry.md": "2dba8f72b1d869c00f171ba5272dd3ea2dd0a3ad06f02b7a6066469c93072a73",
+    "wiki/concepts/sampling.md": "b39ecb08207f99547959756942425959866ef0ffb8018f49c7efea78d1e8e329",
+    "wiki/concepts/npugraph-ex.md": "8626a9c94daa415a7f490b87ba105564e2728ac0bd0ab7ee7423210d70b1e980",
+    "wiki/concepts/ops-and-kernels.md": "de2fa3633b1ba370bac256b29a00cda25cb19186b456352add2f1bcb2c4a52ea",
+    "wiki/concepts/npu-worker-lifecycle.md": "8db9f4c35185535dea08c06247fff79683dce9792278ad10d9b30a973f7671f2",
+    "wiki/concepts/lora.md": "47bcdb780f37fe1d9aeb4177434bece7288e17dcc53b6dcff1b3c0a27bf301c8",
+    "wiki/diagrams/api-renderer-services.yaml": "2ac5ab269f10893a8d541a5b28a69680a8eff09db788243aba220938932ca2fe",
+    "wiki/diagrams/api-renderer-services.svg": "f5743a7b198ab669f14f35951b331eae13014c3598c466e7a660400b43a8447e",
+    "wiki/diagrams/sampling-beam-search.yaml": "803444b09beb3757bb1d2420ef13a9f8ed6e07f65a4612c027adc856f9b1a001",
+    "wiki/diagrams/sampling-beam-search.svg": "45e45e9c03b1b20a8995046cdde47b6319c489e833889b0f2b05685180c2bf8f",
+    "wiki/diagrams/ops-ir-selection.yaml": "ed20ced95b1412d8ded6e5593eb44b6d4008da3f09e95e9c3d4c2d06306e721f",
+    "wiki/diagrams/ops-ir-selection.svg": "b5508bf32cbc6b59b750f0e3840204e6124eeb5594c0d3e5ae8af91ec23bb750",
+    "wiki/diagrams/model-resolution-flow.yaml": "834c9742d52499aaa43cb41a5f6f1dcba53cd0352580442ab0f44f2bd6043b83",
+    "wiki/diagrams/model-resolution-flow.svg": "5c6fd677e8a7c142ad7845ccf14a39b5aeec1f41b4a35d85f3d74a5596bbf230",
+    "wiki/diagrams/lora-resolver-loading.yaml": "29c10df92d90311d04dd350ede9c1a6cd2f2ef7d1f4a05a7f2eaaa0441c00a85",
+    "wiki/diagrams/lora-resolver-loading.svg": "07d1de20d6f5b8a236ab55e72916610a1603046441ce0d395c13567a8a551118",
+    "scripts/wiki/sources.ts": "24530b17d8b31a246376efb7d06c02b60c1ab235810f096eb07a3c6ce4fd667d",
+    "scripts/wiki/sources.test.ts": "5d020fb164d09b4eedd16d239658eccfd981402877156758f70b210a2b8216d1",
+    "wiki/HANDBOOK.md": "5b829056044fcf4da0402da43f0f42565c0b5bf8883512364b39e3b077ffef96"
+  },
+  "snapshot": ".tmp/continuation-groups-2026-11-10/loading223-final.zip",
+  "snapshot_sha256": "c063f1ee93c62f00171c79c097ce6c6b0f1bb555d6e0172c101270dc0ef106ee",
+  "boundary": "Only the named teaching deltas. API cross-links and LoRA conditions included at the final hashes. Not all99 directory followthrough or whole-site/NPU completion."
+}

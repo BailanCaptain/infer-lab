@@ -1,0 +1,40 @@
+layout: figure
+id: ascend-950-remote-access
+caption: 同样读取卡 1 的 [10,20]，URMA 通过队列异步提交工作，UB Memory 按地址直接发出读取。紫色线表示跨卡访问或数据，灰色虚线表示提交/完成关系。图只画路径与依赖，线长不代表延迟；具体完成与可见性遵守接口约定。
+size: [880, 650]
+frames:
+  - { at: [24, 52], size: [832, 254], label: URMA：先提交工作，之后取得完成依据 }
+  - { at: [24, 370], size: [832, 254], label: UB Memory：发出远端读取，依赖它的计算等待返回 }
+grids:
+  - { at: [176, 95], rows: 3, cols: 1, cell: [112, 34], tone: control, style: plain, cells: [{ at: [0, 0], text: 读卡 1 的数据, style: solid }, { at: [1, 0], text: '…' }, { at: [2, 0], text: '…' }] }
+  - { at: [710, 122], rows: 1, cols: 2, cell: [48, 38], tone: token, style: faded, cells: [{ at: [0, 0], text: '10' }, { at: [0, 1], text: '20' }] }
+  - { at: [710, 440], rows: 1, cols: 2, cell: [48, 38], tone: token, style: faded, cells: [{ at: [0, 0], text: '10' }, { at: [0, 1], text: '20' }] }
+  - { at: [74, 236], rows: 1, cols: 2, cell: [48, 38], tone: token, style: solid, cells: [{ at: [0, 0], text: '10' }, { at: [0, 1], text: '20' }] }
+  - { at: [74, 554], rows: 1, cols: 2, cell: [48, 38], tone: token, style: solid, cells: [{ at: [0, 0], text: '10' }, { at: [0, 1], text: '20' }] }
+items:
+  - { at: [52, 112], size: [88, 48], text: 卡 0, sub: 发起方, tone: control, style: plain }
+  - { at: [354, 112], size: [116, 48], text: URMA, sub: 与端口, tone: comm, style: faded }
+  - { at: [538, 112], size: [122, 48], text: 卡 1, sub: 地址与权限, tone: control, style: plain }
+  - { at: [310, 240], size: [250, 34], text: 完成依据 → 允许后续使用, tone: control, style: plain }
+  - { at: [52, 430], size: [88, 48], text: 卡 0, sub: 发起方, tone: control, style: plain }
+  - { at: [190, 430], size: [280, 48], text: 按地址解码目的节点 → 端口, tone: comm, style: faded }
+  - { at: [538, 430], size: [122, 48], text: 卡 1, sub: 地址与权限, tone: control, style: plain }
+links:
+  - { from: [140, 136], to: [174, 136], tone: control, dashed: true }
+  - { from: [288, 136], to: [352, 136], tone: control, dashed: true }
+  - { from: [470, 136], to: [536, 136], tone: comm }
+  - { from: [660, 136], to: [708, 136], tone: comm }
+  - { from: [758, 160], to: [172, 255], via: [[758, 214], [240, 214], [240, 255]], tone: comm }
+  - { from: [412, 160], to: [412, 238], tone: control, dashed: true }
+  - { from: [140, 454], to: [188, 454], tone: comm }
+  - { from: [470, 454], to: [536, 454], tone: comm }
+  - { from: [660, 454], to: [708, 454], tone: comm }
+  - { from: [758, 478], to: [172, 573], via: [[758, 532], [240, 532], [240, 573]], tone: comm }
+texts:
+  - { at: [232, 84], text: Jetty 工作队列, anchor: middle, size: 13 }
+  - { at: [321, 102], text: 通知, anchor: middle, size: 13 }
+  - { at: [758, 103], text: 远端内存, anchor: middle, size: 13 }
+  - { at: [758, 421], text: 远端内存, anchor: middle, size: 13 }
+  - { at: [122, 225], text: 收到的数据, anchor: middle, size: 13 }
+  - { at: [122, 543], text: 返回的数据, anchor: middle, size: 13 }
+  - { at: [553, 591], text: 远端地址可访问，仍不等于本地访存延迟, anchor: middle, size: 14 }

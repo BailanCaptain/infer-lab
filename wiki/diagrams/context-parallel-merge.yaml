@@ -1,155 +1,44 @@
-{
-  "size": [
-    900,
-    490
-  ],
-  "caption": "两个历史分区为同一查询计算局部结果；用 LSE 恢复全局权重，不能直接相加或平均局部 softmax 输出",
-  "frames": [
-    {
-      "at": [
-        25,
-        65
-      ],
-      "size": [
-        340,
-        180
-      ],
-      "label": "历史分区 0"
-    },
-    {
-      "at": [
-        535,
-        65
-      ],
-      "size": [
-        340,
-        180
-      ],
-      "label": "历史分区 1"
-    }
-  ],
-  "items": [
-    {
-      "at": [
-        65,
-        110
-      ],
-      "size": [
-        260,
-        85
-      ],
-      "text": "O₀ = 10",
-      "tone": "token",
-      "sub": "Z₀ = 2，L₀ = log 2"
-    },
-    {
-      "at": [
-        575,
-        110
-      ],
-      "size": [
-        260,
-        85
-      ],
-      "text": "O₁ = 30",
-      "tone": "token",
-      "sub": "Z₁ = 6，L₁ = log 6"
-    },
-    {
-      "at": [
-        230,
-        335
-      ],
-      "size": [
-        440,
-        75
-      ],
-      "text": "O = ¼ × 10 + ¾ × 30 = 25",
-      "tone": "token",
-      "sub": "L = log(2+6) = log 8"
-    }
-  ],
-  "links": [
-    {
-      "to": [
-        350,
-        335
-      ],
-      "tone": "comm",
-      "via": [
-        [
-          195,
-          285
-        ],
-        [
-          350,
-          285
-        ]
-      ],
-      "from": [
-        195,
-        195
-      ]
-    },
-    {
-      "to": [
-        550,
-        335
-      ],
-      "tone": "comm",
-      "via": [
-        [
-          705,
-          285
-        ],
-        [
-          550,
-          285
-        ]
-      ],
-      "from": [
-        705,
-        195
-      ]
-    }
-  ],
-  "texts": [
-    {
-      "at": [
-        30,
-        30
-      ],
-      "text": "局部归一化 → 全局归一化",
-      "strong": true
-    },
-    {
-      "at": [
-        295,
-        269
-      ],
-      "text": "exp(L₀−L) = ¼",
-      "tone": "comm",
-      "size": 13
-    },
-    {
-      "at": [
-        570,
-        269
-      ],
-      "text": "exp(L₁−L) = ¾",
-      "tone": "comm",
-      "size": 13
-    },
-    {
-      "at": [
-        450,
-        460
-      ],
-      "text": "示意用标量 V；向量输出的每个分量按相同分区权重组合",
-      "anchor": "middle",
-      "note": true
-    }
-  ],
-  "layout": "figure",
-  "id": "context-parallel-merge"
-}
+layout: figure
+id: context-parallel-merge
+size: [860, 785]
+caption: 同一个查询、同一个通道：两块内容按 2∶6 混合。除以总权重 8，把两块的占比变成 ¼ 和 ¾，得到一份输出 25。
+frames:
+  - {at: [25, 65], size: [810, 155], label: "① 两块历史，各带来内容与权重"}
+  - {at: [25, 270], size: [810, 195], label: "② 先乘权重再相加：得到的 200 还是中间量"}
+  - {at: [25, 520], size: [810, 205], label: "③ 除以全部权重：把 8 个权重单位归成一份"}
+items:
+  - {at: [55, 100], size: [345, 70], text: "A：局部结果 10", sub: "原始权重合计 2 · 含 4 个历史位置", tone: kv}
+  - {at: [460, 100], size: [345, 70], text: "B：局部结果 30", sub: "原始权重合计 6 · 含 4 个历史位置", tone: weight}
+  - {at: [70, 570], size: [180, 62], text: "A 占 2/8 = ¼", tone: kv}
+  - {at: [250, 570], size: [540, 62], text: "B 占 6/8 = ¾", tone: weight}
+grids:
+  - at: [70, 315]
+    rows: 1
+    cols: 8
+    cell: [90, 56]
+    tone: weight
+    style: solid
+    cells:
+      - {at: [0, 0], text: "10", tone: kv}
+      - {at: [0, 1], text: "10", tone: kv}
+      - {at: [0, 2], text: "30"}
+      - {at: [0, 3], text: "30"}
+      - {at: [0, 4], text: "30"}
+      - {at: [0, 5], text: "30"}
+      - {at: [0, 6], text: "30"}
+      - {at: [0, 7], text: "30"}
+links:
+  - {from: [430, 225], to: [430, 256], tone: ink}
+  - {from: [430, 470], to: [430, 505], tone: ink}
+texts:
+  - {at: [430, 29], text: "为什么要除？把按权重累积的内容，变成按占比混合的一份输出", anchor: middle, strong: true}
+  - {at: [430, 198], text: "10、30 是只读各自那一块得到的结果；还不能直接相加", anchor: middle, note: true}
+  - {at: [430, 300], text: "每格 = 1 个权重单位（不是一个 token）", anchor: middle, note: true}
+  - {at: [160, 397], text: "2 × 10 = 20", anchor: middle, tone: kv, strong: true}
+  - {at: [520, 397], text: "6 × 30 = 180", anchor: middle, tone: weight, strong: true}
+  - {at: [430, 438], text: "加权内容：20 + 180 = 200    总权重：2 + 6 = 8", anchor: middle, strong: true}
+  - {at: [430, 551], text: "整条占比带 = 1 = 100%", anchor: middle, note: true}
+  - {at: [160, 663], text: "¼ × 10 = 2.5", anchor: middle, tone: kv}
+  - {at: [520, 663], text: "¾ × 30 = 22.5", anchor: middle, tone: weight}
+  - {at: [430, 703], text: "完整输出：200 ÷ 8 = 2.5 + 22.5 = 25", anchor: middle, strong: true}
+  - {at: [430, 761], text: "B 的权重是 A 的 3 倍，所以输出 25 更靠近 B 的 30", anchor: middle, note: true}

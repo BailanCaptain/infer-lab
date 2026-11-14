@@ -1,0 +1,32 @@
+layout: figure
+id: api-multimodal-input
+caption: 以把媒体特征放入语言输入序列的模型为例。前端先处理媒体和占位范围；设备编码得到真正的特征向量，再填入对应位置。CPU预处理缓存、编码结果缓存和语言层KV cache分别位于三步，命中其中一种不等于其他两步也省去。
+size: [860, 660]
+frames:
+  - { at: [20, 35], size: [820, 270], label: 入口：主机上的模板与媒体预处理 }
+  - { at: [20, 350], size: [820, 290], label: 执行：编码器接到语言模型 }
+items:
+  - { at: [50, 65], size: [320, 55], text: 消息中的文字与媒体位置, sub: 顺序由模板保留, tone: token }
+  - { at: [490, 65], size: [320, 55], text: 原始图像 A、B, sub: 解码后的像素等输入, tone: token }
+  - { at: [490, 155], size: [320, 60], text: CPU 媒体预处理, sub: 缓存命中的 A 复用；只新处理 B, tone: control }
+  - { at: [50, 235], size: [320, 50], text: 编号序列与媒体占位范围, sub: A 占哪几位、B 占哪几位, tone: token }
+  - { at: [490, 235], size: [320, 50], text: 按原顺序合回 A、B, sub: 编码器需要的张量与布局, tone: kv }
+  - { at: [490, 380], size: [320, 60], text: 媒体编码器, sub: 算出特征；编码结果缓存可省重算, tone: weight }
+  - { at: [50, 490], size: [760, 55], text: 将媒体向量放到相应占位位置, sub: 文字位置用文本嵌入，媒体位置用编码结果, tone: token }
+  - { at: [50, 575], size: [760, 45], text: 语言模型逐层前向，建立并使用自己的 KV cache, tone: weight }
+links:
+  - { from: [210, 120], to: [210, 235] }
+  - { from: [650, 120], to: [650, 155] }
+  - { from: [650, 215], to: [650, 235] }
+  - { from: [490, 260], to: [370, 260] }
+  - { from: [650, 285], to: [650, 380] }
+  - { from: [210, 285], via: [[210, 315], [420, 315], [420, 465], [210, 465]], to: [210, 490] }
+  - { from: [650, 440], to: [650, 490] }
+  - { from: [430, 545], to: [430, 575] }
+pins:
+  - source: vllm@0fc695fc:vllm/multimodal/processing/processor.py#L1343-L1511
+    symbols: [_merge_mm_kwargs, _cached_apply_hf_processor]
+  - source: vllm@0fc695fc:vllm/multimodal/processing/processor.py#L1528-L1710
+    symbols: [_apply_prompt_updates, _maybe_apply_prompt_updates]
+  - source: vllm@0fc695fc:vllm/model_executor/models/interfaces.py#L374-L408
+    symbols: [embed_input_ids]

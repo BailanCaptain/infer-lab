@@ -1,0 +1,23 @@
+{
+  "status": "archived_and_crc_checked",
+  "reviewer": "/root/groups_replay_review",
+  "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage-final-calc.zip",
+  "sha256": "78029c2f15eabdaaf0efc59aa875ab1a9f5df9cf7aa0fe7a29bfc930442406c9",
+  "bytes": 23308644,
+  "files": 294,
+  "testzip": null,
+  "supersedes": {
+    "status": "archived_and_crc_checked",
+    "reviewer": "/root/groups_replay_review",
+    "path": ".tmp/continuation-groups-2026-11-10/transfer-coverage-final.zip",
+    "sha256": "afad5c237aa907332f34e5462b5b759493721e58c17566d490a76fd3b51717df",
+    "bytes": 23560148,
+    "files": 307,
+    "testzip": null,
+    "scope": "Frozen 72 new-source audit; snapshots, original evidence, final pages, manual judgments, visual evidence and scoped code review. Downloaded-but-unread materials remain labeled as such; archive inclusion is not reading credit.",
+    "continuation": "Further Layerwise/KDA/256 segment/V2 pull source audit is separate and must not overwrite this accepted checkpoint.",
+    "metadata_correction": "Audit preservation example uses arbitrary time units, not milliseconds; teaching pages unchanged."
+  },
+  "scope": "Same72 evidence plus two calc presentation deltas and matching final five-check record. No new source/full-document counts. Previous archive remains intact.",
+  "continuation": "Layerwise/KDA/256/V2 audit separate."
+}

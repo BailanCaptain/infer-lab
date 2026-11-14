@@ -1,0 +1,13 @@
+layout: figure
+id: low-precision-flow
+caption: 低精度问题的排查顺序，箭头表示下一项检查，不表示模型执行顺序。实际 attention 先读取历史 KV，转换后参与计算；新 KV 的写入也发生在前向内部。
+size: [610, 470]
+items:
+  - { at: [30, 20], size: [550, 64], text: 加载：按哪种规则解读同一份字节, sub: 00111100：E4M3 读成 1.5，E5M2 读成 1.0, tone: control, style: faded }
+  - { at: [30, 130], size: [550, 64], text: 量化：先保留一组可复查的原值与读回值, sub: '(0.3, 1.2, 2.8) → (0.25, 1, 3)：这是舍入差异', tone: kv, style: faded }
+  - { at: [30, 240], size: [550, 64], text: 第 3–5 站：用同一输入定位首次计算差异, sub: 本例点积 4.7 → 5.25；再看后续放大与任务质量, tone: weight, style: faded }
+  - { at: [30, 350], size: [550, 80], text: 若仅缓存换入后异常，查数据与系数是否配对, sub: '载荷未变但读回 (2, 8, 24)：检查是否错配 scale=4', tone: danger, style: faded }
+links:
+  - { from: [305, 84], to: [305, 130] }
+  - { from: [305, 194], to: [305, 240] }
+  - { from: [305, 304], to: [305, 350] }

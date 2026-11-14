@@ -1,16 +1,16 @@
 layout: scene
 id: enable-sleep-mode-extra-cleanup
-caption: 开关只在 sleep() 前面和 wake_up() 后面各插一段；分配器那一步本来就会做（vllm-ascend main 开发主线）
+caption: 固定 main baa023ad：额外清理位于分配器睡眠前，恢复位于分配器唤醒后；rc2 的 anchor 流程见正文
 size: [900, 624]
 
 regions:
   - label: sleep()
-    note: 清理必须排在分配器换出之前——图和通信域都还在，才清得动
+    note: 先清理图和设备通信资源，再释放可睡眠分配
     at: [20, 44]
     size: [860, 200]
     tone: ascend
   - label: wake_up()
-    note: 顺序整个反过来，睡时省下的显存要在这里连本带利还回去
+    note: 先恢复所选标签的内存，再恢复通信与所需的图
     at: [20, 306]
     size: [860, 200]
     tone: neutral
@@ -19,7 +19,7 @@ boxes:
   - at: [40, 138]
     size: [256, 92]
     title: ① 作废 ACL 图
-    sub: workspace 置空、图参数清零
+    sub: workspace 置空、列表清空
     fn: reset_all_graph_params
     tone: accent
     icon: graph
@@ -41,7 +41,7 @@ boxes:
   - at: [40, 400]
     size: [256, 92]
     title: ① 分配器还原
-    sub: 权重与 KV 先回到卡上
+    sub: 重建空间，有备份才拷回
     fn: CaMemAllocator
     tone: muted
     icon: box
@@ -54,8 +54,8 @@ boxes:
     icon: plug
   - at: [596, 400]
     size: [256, 92]
-    title: ③ 重捕获整张图
-    sub: 含 kv_cache 才做
+    title: ③ 重捕获图
+    sub: tags 为 None 或含 kv_cache
     fn: capture_model
     tone: accent
     icon: graph
@@ -68,11 +68,11 @@ arrows:
 
 brackets:
   - { at: [40, 256], span: 534, dir: down, label: 开关加出来的只有这两步, tone: accent }
-  - { at: [318, 518], span: 534, dir: down, label: 唤醒变慢就慢在这两步上, tone: accent }
+  - { at: [318, 518], span: 534, dir: down, label: 额外清理带来的恢复工作, tone: accent }
 
 notes:
   - at: [20, 582]
-    text: "① 还受 model_runner.use_aclgraph 门控：eager 模式下这一格整个跳过，只省下 HCCL 那一半，唤醒也只需重建通信域。"
+    text: "图清理与重捕获还受 use_aclgraph 门控；HCCL 清理要求分布式已初始化。旧 KV 内容不随唤醒恢复。"
     size: 12.5
     width: 860
   - at: [20, 606]
@@ -82,7 +82,11 @@ notes:
     strong: true
 
 pins:
-  - source: vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L252-L255
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L241-L258
     symbols: [rl_config, sleep_mode_extra_cleanup, CaMemAllocator, offload_tags]
   - source: vllm-ascend@baa023ad:vllm_ascend/device_allocator/sleep_mem_optimized.py#L47-L64
     symbols: [use_aclgraph, reset_all_graph_params, destroy_hccl, restore_hccl, capture_model]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/device_allocator/camem.py#L195-L249
+    symbols: [CaMemAllocator, cpu_backup_tensor]
+  - source: vllm-ascend@baa023ad:vllm_ascend/device_allocator/sleep_mem_optimized.py#L72-L128
+    symbols: [capture_model, tags]

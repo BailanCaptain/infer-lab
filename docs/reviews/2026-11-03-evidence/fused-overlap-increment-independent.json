@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-03",
+  "reviewer": "/root/review_first_pages",
+  "scope": "increment-and-adjacent-context",
+  "decision": "accepted",
+  "report": "docs\\reviews\\2026-11-03-evidence\\fused-overlap-increment-independent.md",
+  "files": [
+    {
+      "path": "wiki/params/use-fused-overlap-75a180fff6ab.md",
+      "sha256": "1e7e9375f85973cef99b0d0fb48caba3c91ba5b388f919e7b24a47b93603e0a5"
+    },
+    {
+      "path": "wiki/params/fused-op-type-fc0f5fcd7be0.md",
+      "sha256": "9f0c727b9585d44c572f87877084308ab2de87fb3ba256db97793d82e9bd649c"
+    }
+  ],
+  "closed_findings": [
+    {
+      "severity": "P2",
+      "location": "wiki/params/use-fused-overlap-75a180fff6ab.md:5",
+      "issue": "summary incorrectly described cache hits as host reads",
+      "status": "closed_after_actual_reread"
+    },
+    {
+      "severity": "P2",
+      "location": "wiki/params/fused-op-type-fc0f5fcd7be0.md:163",
+      "issue": "historical C8 comment lacked local version qualification",
+      "status": "closed_after_actual_reread"
+    }
+  ],
+  "open_p1_p2": [],
+  "limits": [
+    "Not a second full review of all original source entries",
+    "No NPU execution",
+    "No UI or visual acceptance"
+  ]
+}

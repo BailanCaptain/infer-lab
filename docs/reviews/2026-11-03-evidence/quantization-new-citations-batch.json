@@ -1,0 +1,7 @@
+{
+  "page":"quantization",
+  "citations":[
+    {"source_number":47,"claim":"9e55cbc8固定量化包为动态W8A8，MLA四组投影保持FLOAT，KV展开/索引器Q/词表头也是FLOAT；QuaRot已开。","read_ranges":["固定JSON的model_quant_type/is_rot_used、12个MLA层的q_a_proj/kv_a_proj_with_mqa/q_b_proj/o_proj/kv_b_proj/indexer.wq_b、lm_head、全部稠密MLP和专家weight条目"],"verdict":"支持","evidence":"实际解析原始固定JSON，哈希9aae1f3c7657115b7e24294bf6d668f6ea062e2c8fe9eccad4a3862284fe665f；四组共48权重为FLOAT；9个稠密MLP、37152个路由专家、129个共享专家weight均W8A8_DYNAMIC。覆盖所述字段，不声称逐字阅读全部11万条JSON。"},
+    {"source_number":48,"claim":"3121f187将主干11层+MTP1层的MLA四组投影改为W8A8_DYNAMIC，其他指定浮点投影与动态专家配置保持。","read_ranges":["固定JSON同47的对应字段，旧新键值差异；MTP rot加载db701c1f glm5_next_mtp.py46–63、246–258"],"verdict":"支持","evidence":"实际解析哈希06da9cb1542eddc8748d1e7c3474ef2522a2d3f8946b71daddcee6ddcf11b137；四组48权重改动态，kv_b/indexer.wq_b/lm_head仍FLOAT；is_rot_used=true。旋转矩阵nn.Linear4096²不切TP，不能从旧540.75MiB子账漏掉后仍称整卡。视觉与容量完整账只回链唯一出处。"}
+  ]
+}

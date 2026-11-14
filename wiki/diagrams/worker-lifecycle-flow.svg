@@ -31,7 +31,7 @@
   <text x="470" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">每层要存什么、每页多大</text>
   <rect x="330" y="140" width="280" height="52" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="470" y="162" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">量可用显存</text>
-  <text x="470" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">显式值直接返回，否则试跑后做减法</text>
+  <text x="470" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">都试跑；显式值跳过预算扣减</text>
   <rect x="330" y="220" width="280" height="52" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
   <text x="470" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">EngineCore 定块数</text>
   <text x="470" y="261" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">各卡折成块数，取最小</text>

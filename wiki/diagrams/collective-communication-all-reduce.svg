@@ -2,7 +2,7 @@
   <title>All-Reduce（SUM）拆成两步：第 1 步同 Reduce-Scatter，每张卡的第 k 块都送到卡 k 加起来；第 2 步同 All-Gather，卡 k 把这块的和发给其余每张卡。中间两格每列是一张收数据的卡，紫色箭头是经过通信送来的块，灰色虚线是本卡自己的那块，不用发。</title>
   <defs><marker id="collective-communication-all-reduce-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="collective-communication-all-reduce-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
   <rect x="8" y="30" width="864" height="90" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="24" y="18" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">发之前：每张卡的部分和切成 4 块（一块 = 部分和张量的连续一段，真实 8 卡切 8 段）</text>
+  <text x="24" y="18" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">发之前：每张卡的部分和切成 4 块（一块 = 张量的连续一段；同一示意换成 8 卡则切 8 段）</text>
   <rect x="8" y="158" width="864" height="210" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="24" y="146" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">第 1 步（同 Reduce-Scatter）：第 k 块都送到卡 k，在卡 k 上加起来</text>
   <rect x="8" y="406" width="864" height="188" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>

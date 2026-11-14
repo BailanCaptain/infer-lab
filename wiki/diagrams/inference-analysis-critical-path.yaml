@@ -1,0 +1,32 @@
+layout: figure
+id: inference-analysis-critical-path
+caption: 第 3–5 站的示意时间线，两组使用同一比例。通信使用独立准备的数据，所以能与本次计算重叠。计算由 6 ms 缩短为 4 ms，下一段仍须等通信到 8 ms 结束。
+size: [880, 450]
+frames:
+  - { at: [24, 66], size: [832, 146], label: 优化前 }
+  - { at: [24, 260], size: [832, 146], label: 只加速本卡计算以后 }
+items:
+  - { at: [150, 90], size: [420, 38], text: 本卡计算：0–6 ms, tone: weight, style: solid }
+  - { at: [360, 154], size: [350, 38], text: 通信：3–8 ms, tone: comm, style: solid }
+  - { at: [150, 284], size: [280, 38], text: 本卡计算：0–4 ms, tone: weight, style: solid }
+  - { at: [360, 348], size: [350, 38], text: 通信：3–8 ms, tone: comm, style: solid }
+links:
+  - { from: [150, 36], to: [710, 36] }
+  - { from: [710, 50], to: [710, 410], ends: none, dashed: true }
+  - { from: [710, 173], to: [764, 173], tone: token }
+  - { from: [710, 367], to: [764, 367], tone: token }
+texts:
+  - { at: [150, 23], text: '0', anchor: middle, size: 14 }
+  - { at: [360, 23], text: '3', anchor: middle, size: 14 }
+  - { at: [430, 23], text: '4', anchor: middle, size: 14 }
+  - { at: [570, 23], text: '6', anchor: middle, size: 14 }
+  - { at: [710, 23], text: 8 ms, anchor: middle, size: 14 }
+  - { at: [45, 114], text: 计算, size: 14 }
+  - { at: [45, 178], text: 通信, size: 14 }
+  - { at: [45, 308], text: 计算, size: 14 }
+  - { at: [45, 372], text: 通信, size: 14 }
+  - { at: [798, 155], text: 下一段, anchor: middle, strong: true, size: 14 }
+  - { at: [798, 194], text: 8 ms 才开始, anchor: middle, size: 13 }
+  - { at: [798, 349], text: 下一段, anchor: middle, strong: true, size: 14 }
+  - { at: [798, 388], text: 仍在 8 ms, anchor: middle, size: 13 }
+  - { at: [440, 438], text: 不把重叠时间重复相加；先找最后满足的依赖, anchor: middle, size: 14 }

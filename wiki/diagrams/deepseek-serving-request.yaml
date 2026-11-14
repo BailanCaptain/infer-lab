@@ -1,0 +1,65 @@
+layout: figure
+id: deepseek-serving-request
+caption: 同一条带图请求的接力示意。E 把图片变成数值，P 接收文字编号和图片特征，D 接收 P 准备的历史以及请求设置与进度，继续生成。编号、特征格与历史块只示意数据对象，不代表真实模型形状；跨轮保存的位置在正文存储一节说明。
+size: [820, 630]
+items:
+  - { at: [240, 60], size: [180, 60], text: E：图片编码, tone: weight, style: solid }
+  - { at: [350, 235], size: [200, 60], text: P：处理已有输入, tone: weight, style: solid }
+  - { at: [350, 435], size: [200, 60], text: D：继续生成, tone: weight, style: solid }
+grids:
+  - at: [70, 60]
+    rows: 2
+    cols: 2
+    cell: [30, 30]
+    tone: token
+    style: faded
+    cells: [{ at: [0, 0], style: solid }, { at: [1, 1], style: solid }]
+  - at: [540, 72]
+    rows: 1
+    cols: 4
+    cell: [40, 36]
+    tone: token
+    style: solid
+    cells: [{ at: [0, 0], text: '…' }, { at: [0, 1], text: '…' }, { at: [0, 2], text: '…' }, { at: [0, 3], text: '…' }]
+  - at: [70, 175]
+    rows: 1
+    cols: 3
+    cell: [45, 36]
+    tone: token
+    style: solid
+    cells: [{ at: [0, 0], text: '11' }, { at: [0, 1], text: '23' }, { at: [0, 2], text: '7' }]
+  - at: [350, 340]
+    rows: 1
+    cols: 4
+    cell: [50, 36]
+    tone: kv
+    style: solid
+    cells: [{ at: [0, 0], text: '块' }, { at: [0, 1], text: '块' }, { at: [0, 2], text: '块' }, { at: [0, 3], text: '…' }]
+  - at: [350, 545]
+    rows: 1
+    cols: 3
+    cell: [50, 36]
+    tone: token
+    style: solid
+    cells: [{ at: [0, 0], text: '41' }, { at: [0, 1], text: '52' }, { at: [0, 2], text: '…' }]
+links:
+  - { from: [140, 90], to: [230, 90], tone: token }
+  - { from: [430, 90], to: [530, 90], tone: token }
+  - { from: [620, 108], to: [450, 235], via: [[620, 195], [450, 195]], tone: token }
+  - { from: [215, 193], to: [340, 265], via: [[280, 193], [280, 265]], tone: token }
+  - { from: [450, 295], to: [450, 340], tone: kv }
+  - { from: [450, 376], to: [450, 435], tone: kv }
+  - { from: [550, 265], to: [550, 465], via: [[740, 265], [740, 465]], tone: control }
+  - { from: [425, 495], to: [425, 545], tone: token }
+texts:
+  - { at: [100, 40], text: 说明书图片, anchor: middle, size: 14 }
+  - { at: [620, 50], text: 图片特征：一组数, anchor: middle, size: 14 }
+  - { at: [138, 156], text: 入口准备的文字编号, anchor: middle, size: 14 }
+  - { at: [325, 310], text: 第 3–5 站, anchor: end, size: 13, note: true }
+  - { at: [435, 325], text: 已算好的历史, anchor: end, size: 14, tone: kv }
+  - { at: [470, 410], text: 交接给 D, size: 14, tone: kv }
+  - { at: [720, 340], text: 同时交接, anchor: end, size: 14 }
+  - { at: [720, 367], text: 生成设置, anchor: end, size: 14 }
+  - { at: [720, 394], text: 当前进度, anchor: end, size: 14 }
+  - { at: [445, 526], text: 逐步选出的编号, size: 14, tone: token }
+  - { at: [425, 611], text: 第 6–7 站：编号还原成文字，返回给用户, anchor: middle, size: 15 }

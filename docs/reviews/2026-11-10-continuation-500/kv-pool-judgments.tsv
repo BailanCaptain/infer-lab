@@ -1,0 +1,57 @@
+source_number	verdict	note
+1	repaired_pending_acceptance	取整、差值与全中减一支持；补比较对象为request.num_tokens，包含已生成部分；不是一律prompt全中就减一。
+2	supported	consumer读写和load_async默认false，hash与各组block关系、后端选择、调度侧客户端均在范围内；这些参数不证明所有组合可用。
+3	supported	段长按各组块和压缩族取lcm，再floor；GLM133120/640是代入本站固定规格的推导。
+4	repaired_pending_acceptance	名字包含模型名、并行rank、组、role、family、hash，不含完整权重身份；删除能保证存法一致的过强结论。
+5	supported	压缩族c1/cN及粒度block_size乘压缩比；不是所有缓存都按token字节线性增长。
+6	supported	AscendStore继承SupportsHMA，角色分调度/worker；非逐层parallel.rank0起查询服务。
+7	supported	固定镜像逐层consumer直接return，bulk额外看consumer_is_to_put；不能用bulk开关推断旧逐层D写入。
+8	supported	IPC路径带lookup_rpc_port和DP编号，旧参数仍认并警告，默认0；不是TCP监听号。
+9	supported	ZMQ REP后台查询，从请求取多组hash等，回复4字节大端hit_tokens。
+10	supported	MLA等效头数1，TP大于头数时合并head_or_tp_rank并分摊写入；GLM固定TP8/CP1例子符合。
+11	repaired_pending_acceptance	align-state组用TP rank，模型名只取末级目录；改同名权重错误为可能静默命中，不保证必然不报错。
+12	supported	登记后启动线程；layerwise另走分支，非逐层按loadspec生成地址、同步或异步读取；逻辑减一可重新补成整块读取。
+14	supported	记录NPU事件并交发送线程，本步request_queue.join；新版本另读固定实现比较，不能将旧等待套到rc2。
+15	supported	非DCP、非align-state可按TP重复份数预分摊；固定GLM的复制缓存按块轮流、递推组各存符合条件。
+16	supported	put前同步current_event；consumer另做prefill PP适配，支持写入前等待计算完成。
+17	supported	识别直接AscendStore或MultiConnector子项；单独PD连接器不触发此自动align路径。
+18	supported	hybrid+store且非extract_hidden_states才强制align；prefix开启且align用block_size，否则max_model_len。
+19	supported	GLM多组scheduler用lcm，prefix或connector开启时hash默认gcd并检验整除；不是把hash粒度当存取段长。
+20	supported	num_computed_tokens为0时先本地命中再问connector；可解释抢占清零后重新查询。
+21	supported	fail默认、recompute需显式设置；是上游策略定义，生效仍须连接器报告失败且平台允许。
+22	repaired_pending_acceptance	上游处理失败块以单组元组解包；补Ascend多组跳过与平台禁止，不再将GLM重算列成未知可选项。
+23	repaired_pending_acceptance	未设种子随机根hash；警告仅CBOR函数，修正原文无条件警告说法；未声称独立实例缓存可共享。
+24	supported	仅不支持HMA的connector配置才自动关闭；AscendStore继承SupportsHMA对应支持，组合还需所有子connector支持。
+25	supported	fail默认、混合recompute不支持、MultiConnector顶层、旧逐层memcache/P限制与统一PYTHONHASHSEED。
+26	repaired_pending_acceptance	每卡贡献与1GB对齐、环境变量优先有据；删除1GB保证跑通及普通token乘法泛化为混合容量。
+27	supported	默认P写池，MLA D写须consumer_is_to_put，P PP需分区信息；不证明GLM已运行。
+28	context	设计动机是跨节点多级池与适配NPU的直接connector；不是所有后端无中转缓冲的证明，正文改为接口只交地址。
+29	supported	先本地后池只补增量，旧设计P池+D点对点；保留当时架构条件而非永久D不能用池。
+30	supported	v23键pcp/dcp后无冒号，支持版本格式比较；不会由此推断后端旧对象已删除。
+31	supported	v26键pcp/dcp有冒号，和v23串不同。
+32	supported	main普通PoolKey无pcp；rc2补查同样格式，PP逐层另有命名空间。
+33	supported	main上一save batch事件等待并检查线程失败，本步只提交新batch；和旧join不同。
+34	supported	main handle_preemptions调用wait_for_previous_save作为复用前栅栏；rc2另补按released_req_ids等待。
+35	supported	main逐层仅TP、拒绝递推hybrid与TP mismatch；只适用于该钉点，rc2条件另列。
+36	repaired_pending_acceptance	原范围只显示符号上下界，不足单独证明0到4及ValueError；扩展到13–35已读常量与完整分支。
+37	supported	main TP mismatch稀疏/逐层拒绝，hybrid为NotImplementedError；不能套到普通attention全路径。
+38	supported	三个后端注册名mooncake/memcache/yuanrong；默认由source2证明。
+39	supported	discard_partial_chunks默认时写入floor到同一粒度；关掉该选项不能沿用整段默认叙述。
+40	repaired_pending_acceptance	地址按stride而非有效长度定位，传输长度按范围计算；正文限制普通按位置公式，混合状态逐组计有效数据。
+41	supported	v23逐层consumer无条件return，对照v26消费者开关有据。
+42	supported	v26逐层仅consumer且未开put才return；官方部署支持边界与角色代码分开。
+43	supported	chunked prefill写入不受save_decode_cache门槛，decode增量默认跳过；仍须满足上游can_save和整块等条件。
+44	supported	v26子键要求非MLA非hybrid、KV头数>=较大TP且整除；计算每rank头数及子键数。
+45	supported	main同一infer_tp_mismatch_info条件，不能推广到逐层/混合布局。
+46	archive_integrity	45段原文与固定Git一致；仅归档完整性，不作为另一次全文阅读或正文支持票。
+47	duplicate	source11的220–235子范围，完整SHA与短SHA同提交；分别用于模型末级目录与组rank主张。
+48	repaired_pending_acceptance	同步get失败只为单组上报invalid，多组只记错；配合此前已验source13及新增平台禁止，把旧调用限制和实际失败处理分开，正文及新独审已关闭该问题。
+49	duplicate	source25的21–47子范围；复用混合recompute禁止与默认值判断。
+50	duplicate	source35的71–75子范围；main拒绝递推状态及TP mismatch，rc2不能沿用。
+51	repaired_pending_acceptance	rc2放开PP、仍拒绝CP/TP mismatch，每stage各组非空；扩117–200补PP命名空间identity，明确PP1不加前缀且配置摘要不是权重校验。
+52	supported	rc2在每层加载后复制Mamba，MRV1与MRV2对象分支均明示，防半加载读取；不等于GLM端到端验收。
+53	supported	rc2部署表给租户、SSD路径、1GB对齐、协议；共享tenant仍需同模型布局，不等于认证。
+54	duplicate	GitHub链接与53字节一致，同一范围复用，不另算全文。
+55	supported	后续921快照明确MLA分段/页序两次不兼容迁移、padding不传、只重启不清池，bulk与layerwise对象不能混读。
+56	supported	921快照严格租户开关与非认证身份；SSD预取与offload不同、ExistOptions与setup引擎差异、默认5/30秒都有明确范围。
+57	supported_scoped	复用190清单中该1715行全文记录，本轮重读1–135、137–431、501–620、1047–1120、1373–1454、1479–1505、1585–1613及表行814；支持现有后续部署表的D完整块/SSD逐rank/IPC与TCP/独立Memcache/YuanrongHCCS条件。不计本轮新增全文或全部外链已读。

@@ -1,6 +1,6 @@
 layout: figure
 id: data-parallel
-caption: 两个 DP 组各有自己的队列和调度。新请求只派进组 0；组 1 这一刻一条请求都没有，但它的卡持有另一半专家（示意 e4–e7），组 0 的 token 在 MoE 层要发过去算。所以组 1 用一份假输入跑同一步（dummy run），和组 0 一起进出 EP 通信；假输入自己的输出丢弃，为组 0 算的专家结果照常送回。
+caption: 两个 DP 组各有自己的队列和调度。新请求只派进组 0；组 1 此刻没有请求，但持有另一半专家（示意 e4–e7），组 0 的 token 在 MoE 层要发过去算。因此组 1 用假输入陪跑同一步，按兼容次序参加 EP 通信；这不要求各卡同一时刻进入或返回。假输入自己的输出丢弃，为组 0 算的专家结果照常送回。
 size: [900, 520]
 frames:
   - { at: [30, 136], size: [390, 226], label: DP 组 0 · 自己的队列、调度、KV cache }
@@ -15,7 +15,7 @@ items:
   - { at: [500, 166], size: [350, 44], text: 等待队列、运行队列都为空, style: plain }
   - { at: [500, 228], size: [350, 52], text: dummy run：用假输入跑同一步, sub: 假输入自己的输出丢弃, tone: control }
   - { at: [500, 298], size: [350, 44], text: 本组的卡持有专家 e4–e7（示意）, style: plain }
-  - { at: [30, 424], size: [840, 60], text: 同一步的 MoE 层 · EP 通信, sub: 两组的卡必须一起进、一起出；少一组，另一组就停在这里等, tone: comm }
+  - { at: [30, 424], size: [840, 60], text: 同一步的 MoE 层 · EP 通信, sub: 两组按兼容次序参与，后续计算等待所需结果就绪, tone: comm }
 links:
   - { from: [450, 90], to: [225, 136], via: [[450, 112], [225, 112]] }
   - { from: [400, 312], to: [500, 312], tone: comm }
@@ -26,7 +26,7 @@ texts:
   - { at: [450, 16], text: '2 个 DP 组 · 只示意分工与同步', anchor: middle, strong: true }
   - { at: [450, 305], text: token→e6, anchor: middle, size: 12, tone: comm }
   - { at: [450, 348], text: e6 结果, anchor: middle, size: 12, tone: comm }
-  - { at: [450, 398], text: 同一步，两组一起进入, anchor: middle, tone: comm }
+  - { at: [450, 398], text: 同一步，两组都须参与, anchor: middle, tone: comm }
   - { at: [450, 506], text: 示意：选中 e1、e6，e6 在组 1 算完送回, anchor: middle, note: true }
 pins:
   - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945

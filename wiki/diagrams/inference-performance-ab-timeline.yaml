@@ -1,0 +1,48 @@
+layout: figure
+id: inference-performance-ab-timeline
+caption: 正文 A/B 实验的局部时间线，单位 ms、同一比例。条形只画处理 N 输入的设备步骤；A 后续完成 D 的小步未画出。圆点是客户端收到输出，D 的前两个输出在图外。所有数值为教学示意。
+size: [610, 550]
+items:
+  - { at: [125, 80], size: [285, 48], text: A：D + N 的 1200 个位置, tone: weight, style: solid }
+  - { at: [89, 160], size: [12, 12], tone: token, style: solid }
+  - { at: [449, 160], size: [12, 12], tone: token, style: solid }
+  - { at: [524, 160], size: [12, 12], tone: token, style: solid }
+  - { at: [449, 222], size: [12, 12], tone: token, style: solid }
+  - { at: [125, 320], size: [105, 48], text: D + N400, tone: weight, style: solid }
+  - { at: [245, 320], size: [105, 48], text: D + N400, tone: weight, style: solid }
+  - { at: [365, 320], size: [105, 48], text: 仅 N400, tone: weight, style: solid }
+  - { at: [89, 400], size: [12, 12], tone: token, style: solid }
+  - { at: [269, 400], size: [12, 12], tone: token, style: solid }
+  - { at: [389, 400], size: [12, 12], tone: token, style: solid }
+  - { at: [509, 462], size: [12, 12], tone: token, style: solid }
+links:
+  - { from: [80, 48], to: [530, 48] }
+  - { from: [101, 166], to: [449, 166], ends: none }
+  - { from: [80, 288], to: [530, 288] }
+  - { from: [101, 406], to: [269, 406], ends: none }
+texts:
+  - { at: [80, 30], text: "400", anchor: middle, size: 14 }
+  - { at: [230, 30], text: "500", anchor: middle, size: 14 }
+  - { at: [380, 30], text: "600", anchor: middle, size: 14 }
+  - { at: [530, 30], text: 700 ms, anchor: middle, size: 14 }
+  - { at: [20, 112], text: 设置 A, strong: true }
+  - { at: [20, 172], text: D 输出, size: 14 }
+  - { at: [95, 196], text: "410", anchor: middle, size: 14 }
+  - { at: [455, 196], text: "650", anchor: middle, size: 14 }
+  - { at: [530, 196], text: "700", anchor: middle, size: 14 }
+  - { at: [270, 155], text: 这次等了 240 ms, anchor: middle, size: 14 }
+  - { at: [20, 234], text: N 首字, size: 14 }
+  - { at: [483, 234], text: "650", size: 14 }
+  - { at: [80, 270], text: "400", anchor: middle, size: 14 }
+  - { at: [230, 270], text: "500", anchor: middle, size: 14 }
+  - { at: [380, 270], text: "600", anchor: middle, size: 14 }
+  - { at: [530, 270], text: 700 ms, anchor: middle, size: 14 }
+  - { at: [20, 352], text: 设置 B, strong: true }
+  - { at: [20, 412], text: D 输出, size: 14 }
+  - { at: [95, 436], text: "410", anchor: middle, size: 14 }
+  - { at: [275, 436], text: "530", anchor: middle, size: 14 }
+  - { at: [395, 436], text: "610", anchor: middle, size: 14 }
+  - { at: [185, 395], text: 120 ms, anchor: middle, size: 14 }
+  - { at: [20, 474], text: N 首字, size: 14 }
+  - { at: [543, 474], text: "690", size: 14 }
+  - { at: [305, 526], text: 分块让 D 更早接到结果，但 N 要等三段输入全部处理完, anchor: middle, size: 14 }

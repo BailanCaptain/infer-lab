@@ -1,17 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700" role="img" aria-label="开了之后，每个 prefill 步的 chunk 大小是当场解一个二次方程算出来的（vllm-ascend main 开发主线 baa023ad）">
-  <title>开了之后，每个 prefill 步的 chunk 大小是当场解一个二次方程算出来的（vllm-ascend main 开发主线 baa023ad）</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700" role="img" aria-label="固定 main baa023ad 的启动模型预测路径；历史模型拟合成功后改用带前缀特征的方程。只有满足动态分支条件的 prefill 请求才使用预测，失效处理见正文。">
+  <title>固定 main baa023ad 的启动模型预测路径；历史模型拟合成功后改用带前缀特征的方程。只有满足动态分支条件的 prefill 请求才使用预测，失效处理见正文。</title>
   <rect width="900" height="700" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="26" width="860" height="170" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
   <rect x="36" y="40" width="132.7" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">启动期 · 只做一次</text>
-  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">拟合的是「这台机器上，一段长 l 的 prefill 要多久」，不是预设公式——所以换硬件不用改参数。</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">测量本机延迟后拟合；换硬件仍需重做测量，并比较基准块大小和实际负载。</text>
   <rect x="20" y="216" width="860" height="412" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
   <rect x="36" y="230" width="256.1" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="248.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">每个 prefill 步 · 算出这一步切多少</text>
-  <text x="38" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">目标是让每块耗时相等：前缀越长，注意力越贵，块就得切得越小，流水线才不空转。</text>
+  <text x="38" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">目标是让各块耗时接近，减少等待；实际切块仍受拟合误差、下限和调度预算限制。</text>
   <rect x="52" y="292" width="828" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
   <rect x="52" y="292" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
   <g transform="translate(75.8 309.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
   <text x="110" y="317" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">① 定目标时间</text>
-  <text x="110" y="337" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">T = f(base_chunk_size) − f(0)，一块「应该」花多久</text>
+  <text x="110" y="337" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">初始目标为 f(base_chunk_size) − f(0)；求根用本批剩余预算 T</text>
   <rect x="738" y="307.5" width="123" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="799.5" y="325" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">target_latency</text>
   <rect x="52" y="356" width="828" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
   <rect x="52" y="356" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
@@ -35,11 +35,11 @@
   <rect x="52" y="548" width="5" height="56" rx="2.5" fill="var(--color-accent, #e85b32)"/>
   <g transform="translate(75.8 565.8) scale(0.85)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
   <text x="110" y="573" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">⑤ 截断</text>
-  <text x="110" y="593" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">num_new_tokens = min(predicted_chunk, num_new_tokens)；返回 None 就不截</text>
+  <text x="110" y="593" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">有效预测与原 token 预算取较小值；失败按校准状态与剩余时间预算处理</text>
   <rect x="708" y="563.5" width="153" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="784.5" y="581" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">predict_chunk_size</text>
   <rect x="36" y="112" width="266" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <text x="52" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">采 64 个 chunk size</text>
-  <text x="52" y="161.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">从 base_chunk_size 一路采到接近 0</text>
+  <text x="52" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">尝试采集 64 个有效点</text>
+  <text x="52" y="161.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">另有一次预热；失败点跳过</text>
   <rect x="318" y="112" width="250" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
   <text x="334" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">每个都真跑一次 forward</text>
   <text x="334" y="161.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">量毫秒级延迟</text>
@@ -50,6 +50,6 @@
   <path d="M316 147 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
   <path d="M570 147 L582 147" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
   <path d="M582 147 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
-  <text x="20" y="646" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">关掉时这五步一步都不跑，一步切多少只受 max_num_batched_tokens 这个固定上限管。</text>
-  <text x="20" y="670" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">开着的三个硬条件：PP &gt; 1、开 chunked prefill、不能和 balance scheduling 同开；启动多付约 64 次 forward。</text>
+  <text x="20" y="646" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">关闭动态切块后沿用普通调度约束：token 预算、剩余请求长度、缓存及其他资源限制。</text>
+  <text x="20" y="670" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">PP &gt; 1，按指南启用 chunked prefill，与 balance scheduling 互斥；启动测量增加真实 forward。</text>
 </svg>

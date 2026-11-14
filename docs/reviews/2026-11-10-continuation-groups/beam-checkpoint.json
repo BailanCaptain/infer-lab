@@ -1,0 +1,30 @@
+{
+  "status": "accepted",
+  "scope": "Beam delta in sampling only, not entire page reacceptance",
+  "new_source_occurrences": 38,
+  "reused_occurrences": 1,
+  "old_recount": 0,
+  "current_hashes": {
+    "wiki/concepts/sampling.md": "b39ecb08207f99547959756942425959866ef0ffb8018f49c7efea78d1e8e329",
+    "wiki/diagrams/sampling-beam-search.yaml": "803444b09beb3757bb1d2420ef13a9f8ed6e07f65a4612c027adc856f9b1a001",
+    "wiki/diagrams/sampling-beam-search.svg": "45e45e9c03b1b20a8995046cdde47b6319c489e833889b0f2b05685180c2bf8f"
+  },
+  "snapshot": ".tmp\\continuation-groups-2026-11-10\\beam-reviewed.zip",
+  "snapshot_sha256": "19368ac02b332bc57c2fbf576560652dd86bb7a4048a379dc29a2ea48a1957db",
+  "browser_report": ".tmp\\continuation-groups-2026-11-10\\review-beam-browser\\report.json",
+  "global_new_full_credit": 0,
+  "p1_open": 0,
+  "p2_open": 0,
+  "hardware_validation": false,
+  "judgments": "beam-independent.json",
+  "review": "beam-review.md",
+  "preservation": "beam-preservation.md",
+  "engineering_verification": "loading223-verification.json",
+  "engineering_revision_hashes": {
+    "wiki/concepts/sampling.md": "b39ecb08207f99547959756942425959866ef0ffb8018f49c7efea78d1e8e329",
+    "wiki/diagrams/sampling-beam-search.yaml": "803444b09beb3757bb1d2420ef13a9f8ed6e07f65a4612c027adc856f9b1a001",
+    "wiki/diagrams/sampling-beam-search.svg": "45e45e9c03b1b20a8995046cdde47b6319c489e833889b0f2b05685180c2bf8f"
+  },
+  "engineering_checks": "content/lint/audit/diagrams/build all exit 0; stable before/after",
+  "revision_bridge": "Exact content-review hashes match engineering checks"
+}

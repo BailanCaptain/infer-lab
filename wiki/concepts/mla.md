@@ -1,50 +1,106 @@
 ---
 id: mla
-title: "MLA：历史压成一条潜向量，用时再展开"
+title: MLA：历史压成一条潜向量，用时再展开
 type: concept
-summary: MLA（Multi-head Latent Attention）把每个位置给所有头用的 K/V 压成一条共用的潜向量存进 KV cache，读取时由各头的上投影展开，或把展开吸收进查询和输出投影；GLM-5.3-Flash 的稀疏 MLA 每位置只存 512 维潜向量、不带 RoPE 段，读哪些位置由 indexer 另行决定，主缓存、indexer 缓存与计算开销分别计量。
-aliases: [MLA, Multi-head Latent Attention, 多头潜在注意力, 潜向量, latent, kv_lora_rank, q_lora_rank, 低秩压缩, 矩阵吸收, absorb, decoupled RoPE, 稀疏 MLA]
-chapters: ["04"]
+summary: >-
+  MLA（Multi-head Latent Attention）把每个位置给所有头用的 K/V 压成一条共用的潜向量存进 KV
+  cache，读取时由各头的上投影展开，或把展开吸收进查询和输出投影；GLM-5.3-Flash 的稀疏 MLA 每位置只存 512 维潜向量、不带 RoPE
+  段，读哪些位置由 indexer 另行决定，主缓存、indexer 缓存与计算开销分别计量。
+aliases:
+  - MLA
+  - Multi-head Latent Attention
+  - 多头潜在注意力
+  - 潜向量
+  - latent
+  - kv_lora_rank
+  - q_lora_rank
+  - 低秩压缩
+  - 矩阵吸收
+  - absorb
+  - decoupled RoPE
+  - 稀疏 MLA
+chapters:
+  - '04'
 order: 30
 sources:
-  - https://arxiv.org/html/2405.04434v5
-  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1900-L1963
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1965-L2000
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L744-L788
-  - vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L776-L793
-  - vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1349-L1361
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104
-  - vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793
-  - vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028
-  - vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L69-L134
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L800-L855
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L261-L362
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1106-L1134
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1235-L1291
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L573-L579
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_config.py#L12-L30
-  - vllm@0fc695fc:vllm/config/model.py#L1284-L1288
-  - vllm@0fc695fc:vllm/config/model.py#L1646-L1648
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L945-L956
-  - vllm-ascend@2ed6cbba:vllm_ascend/attention/mla_v1.py#L1549-L1560
-  - vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L1405-L1415
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L180-L230
-  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_glm5next_config.py#L34-L51
-  - vllm-ascend@db701c1f:vllm_ascend/attention/mla_v1.py#L1606-L1618
-  - vllm-ascend@db701c1f:vllm_ascend/attention/mla_v1.py#L1134-L1214
-  - vllm-ascend@db701c1f:vllm_ascend/attention/mla_v1.py#L508-L522
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'https://arxiv.org/html/2405.04434v5'
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1900-L1963'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1965-L2000'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L744-L788'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L776-L793'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1349-L1361'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104
+  - 'vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L69-L134'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L800-L855'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L261-L362'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1106-L1134
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1235-L1291'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L573-L579'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_config.py#L12-L30
+  - 'vllm@0fc695fc:vllm/config/model.py#L1284-L1288'
+  - 'vllm@0fc695fc:vllm/config/model.py#L1646-L1648'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L945-L956'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/attention/mla_v1.py#L1549-L1592'
+  - 'vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L1405-L1487'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L180-L230'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_glm5next_config.py#L34-L51
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/mla_v1.py#L1606-L1618'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/mla_v1.py#L1134-L1214'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/mla_v1.py#L508-L522'
+  - >-
+    raw:sha256-0ca90b365638f0e0df7f1c1d299c782b807c2247da0745f345d3ffea11e0cd7d.md#L1-L957
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/config/model.py#L1646-L1648
+  - >-
+    raw:sha256-415edeed2396d5708daa6647bf1fafceca87f5c424b6404368c83cfc397fd22e.md#L1-L963
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L178-L228'
+  - 'vllm-ascend@7d825229:vllm_ascend/attention/mla_v1.py#L1094-L1139'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L909-L922'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L101-L117'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/attention/mla_v1.py#L1153-L1171'
+  - 'vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L1052-L1070'
+  - 'vllm-ascend@7d825229:vllm_ascend/attention/mla_v1.py#L1487-L1575'
+  - 'vllm@ced6857a:vllm/model_executor/utils.py#L70-L143'
+  - 'vllm@0fc695fc:vllm/envs.py#L1281-L1282'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
-  - { to: attention-qkv, kind: builds-on, note: 多头打分、softmax 和 V 汇合在那里讲；本页只改历史怎样存、怎样读 }
-  - { to: glm-5-3-flash-two-node, kind: builds-on, note: 每 token 1,024 B、12 层合计 13,056 B 和 KV 块数的唯一推导 }
-  - { to: kv-cache-spec, kind: builds-on, note: 主缓存、indexer 缓存与尾状态三份规格怎样变成页和组 }
-  - { to: one-request, kind: builds-on, note: R1 在第 4 站经过 11 层稀疏 MLA 时每卡的形状 }
-  - { to: linear-attention, kind: alternative-to, note: GLM 中与稀疏 MLA 交替使用的 KDA 状态机制 }
+  - to: attention-qkv
+    kind: builds-on
+    note: 多头打分、softmax 和 V 汇合在那里讲；本页只改历史怎样存、怎样读
+  - to: glm-5-3-flash-two-node
+    kind: builds-on
+    note: '每 token 1,024 B、12 层合计 13,056 B 和 KV 块数的唯一推导'
+  - to: kv-cache-spec
+    kind: builds-on
+    note: 主缓存、indexer 缓存与尾状态三份规格怎样变成页和组
+  - to: one-request
+    kind: builds-on
+    note: R1 在第 4 站经过 11 层稀疏 MLA 时每卡的形状
+  - to: linear-attention
+    kind: alternative-to
+    note: GLM 中与稀疏 MLA 交替使用的 KDA 状态机制
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-0ca90b365638f0e0df7f1c1d299c782b807c2247da0745f345d3ffea11e0cd7d.md
+  - >-
+    raw/sha256-415edeed2396d5708daa6647bf1fafceca87f5c424b6404368c83cfc397fd22e.md
+  - >-
+    raw/sha256-afb5aa69e6b6658fec7b6b658e29ea561eb4670c3a4081b671c135967804b0be.md
 ---
 
 ## 每个历史位置都要把各个头的 K 和 V 全存下来吗？
@@ -69,6 +125,8 @@ file: mla-intuition
 
 第 4 步画成「展开」，是为了看清数学关系。GLM 的稀疏 MLA 在推理时一次都不展开，而是把 K 的上投影挪到查询一侧、V 的上投影挪到汇合之后再乘，这叫**吸收**（absorb）；推导和什么时候仍会展开，见[后文](#吸收不展开也能打分和汇合)。
 
+是否还要保存位置段，取决于模型配置。[RoPE](rope.md) 通过旋转向量分量引入位置信息；固定 GLM 专用实现保留了位置段宽度大于 0 时的处理分支，但本页 GLM-5.3-Flash 配置的 `qk_rope_head_dim=0`、`mla_use_nope=true`，主 attention 缓存只有 512 维潜向量，没有额外的 RoPE 位置段。不能把源码中的可选分支写成这个模型实际启用的位置缓存；其他带位置段的 MLA 配置应分别核对。
+
 ## 为什么要压，代价在哪？
 
 **KV cache 会随历史长度、层数、头数一起涨。** 每处理一个 token，这个位置要在每一层都留下 K 和 V；存的量是「位置数 × 层数 × 每层每位置存的数」，普通多头 attention 的最后一项又和头数成正比。decode（逐个生成 token）的每一步，还要把可见历史的 K、V 从显存里读一遍。缓存越大，一张卡能同时容纳的请求和上下文越少，每一步要搬的字节越多，见 [KV cache](kv-cache.md)。
@@ -87,6 +145,8 @@ MLA = 潜向量 512 + RoPE 段 0 = 512 个数
 
 换成字节、再乘上层数，每个 token 要占多少显存，放到后面 [GLM 双机一节](#哪些层是-mla每层存什么)交代。
 
+这里比较的是主缓存表示的宽度，不能直接把 64 倍当作全部历史状态的显存节省比例；其他状态怎样计入，见[每个位置缓存多少字节](#每个位置缓存多少字节)。
+
 **代价有四笔：**
 
 1. **模型必须按 MLA 训练。** 下投影、上投影都是模型参数，和模型一起训练。不能把一个已训练好的普通多头 attention 模型直接改成 MLA，还指望输出不变。
@@ -101,7 +161,7 @@ MLA = 潜向量 512 + RoPE 段 0 = 512 个数
 | 普通多头 attention（MHA） | 每个头一份 K、一份 V | 2 × 头数 × 每头维度 |
 | [GQA](gqa.md) | 一组头共用一份 K、V | 2 × 组数 × 每头维度 |
 | MLA | 一条所有头共用的潜向量，外加可选的 RoPE 段 | 潜向量维度 + RoPE 段维度 |
-| [稀疏注意力](sparse-attention.md) | 不改存法，改每次读哪些位置 | 取决于和它搭配的存法 |
+| [稀疏注意力](sparse-attention.md) | 决定每次访问哪些位置；内容选取型可保留全部历史，纯窗口型可回收不再访问的历史 | 取决于存法与允许访问的历史范围 |
 
 MLA 和稀疏注意力管的是两件事，可以叠加：GLM 的「稀疏 MLA」就是按 MLA 存、按稀疏选择读，[后文](#稀疏选择是压缩之上的另一层机制)专门讲两者怎样配合。
 
@@ -140,6 +200,8 @@ k₀,₁ 表示位置 0、头 1 的 K。这里的「还原」就是前面五步�
 实际模型比上面三行公式多两样东西。一是潜向量后面有一个 RMSNorm（一种只按均方根缩放的归一化），论文说是为了训练稳定；GLM 的实现在把潜向量写进缓存之前做这一步。二是 Q 也走一条压缩路线：先压成 d_c′ 维的中间表示，再上投影成各头的 Q。论文说 Q 的压缩是为了减少训练时的激活显存；它**不进 KV cache**，因为 Q 只属于当前位置，用完就丢。GLM 里 Q 的中间表示是 1536 维（配置项 q_lora_rank），缓存里的潜向量是 512 维（配置项 kv_lora_rank），这是两个不同的张量。
 
 论文里的 DeepSeek-V2 取 128 个头、每头 128 维、d_c = 512、d_c′ = 1536，另有 64 维的 RoPE 段（见[后文](#rope-为什么要另存一段)）。于是每个位置每层缓存 512 + 64 = 576 个数，而普通多头要 2 × 128 × 128 = 32,768 个；论文把 MLA 的缓存量折算成「只有 2.25 组的 GQA」，效果却好于普通多头（见[上一节](#为什么要压代价在哪)）。GLM-5.3-Flash 沿用同样的结构，只是头数、每头维度不同，而且没有 RoPE 段。
+
+完整模型中的压缩与展开可在[模型探索：低秩 Q 与 KV](#/model?view=play&segment=28)连续播放，随后接第 29 段的多头展开。该入口对应模型示例中的展开路径；下面单独说明吸收算法怎样避免逐历史位置展开。
 
 ## 吸收：不展开也能打分和汇合
 
@@ -191,7 +253,7 @@ qᵢ 是当前位置第 i 个头的查询，pᵢ 是打分经过缩放、掩码�
 3. **内核只读潜向量。** 稀疏 FlashAttention 内核（FlashAttention 是把打分、softmax、汇合融合进一个分块计算的内核写法，中间的分数矩阵不整块写回显存）把同一份 512 维潜向量缓存同时当作 key 和 value 传入，按位置清单逐个读取，打分、softmax、汇合都在 512 维里完成；缩放仍按每头 256 维，除以 √256 = 16，不是按潜向量的 512 维。
 4. **汇合后再回到每头维度。** 内核输出每头 512 维，乘 V 的那一块回到每头 256 维，再交给输出投影。
 
-吸收不是唯一的做法。vllm-ascend 给 DeepSeek 这类模型用的通用 MLA 后端，在 prefill（一次处理整段提示词）时本轮新 token 多，不走吸收：本轮新位置的潜向量，连同已经缓存的前文（[分块 prefill](chunked-prefill.md) 把长提示词切成几块分几步算时的前几块，或[前缀缓存](prefix-caching.md)命中、不必重算的那段相同开头，按块从缓存取回），都经 KV 展开投影展开成各头的 K、V，按普通多头 attention 算；decode（逐个生成）时才走吸收。GLM 的稀疏 MLA 后端在加载后就释放了 KV 展开投影，prefill 和 decode 都走吸收。
+吸收不是唯一的做法。vllm-ascend 给 DeepSeek 这类模型用的通用 MLA 后端，在 prefill（处理提示词、可分多轮完成的阶段）中本轮新 token 多的路径不走吸收：本轮新位置的潜向量，连同已经缓存的前文（[分块 prefill](chunked-prefill.md) 把长提示词切成几块分几步算时的前几块，或[前缀缓存](prefix-caching.md)命中、不必重算的那段相同开头，按块从缓存取回），都经 KV 展开投影展开成各头的 K、V，按普通多头 attention 算；decode 路径则走吸收。GLM 的稀疏 MLA 后端在加载后就释放了 KV 展开投影，prefill 和 decode 都走吸收。
 
 所以不能把「先把全部历史展开成 K、V」写成 MLA 每一步必经的环节。上面的等式说明计算为什么成立；实际内核还会融合投影、处理分片、调整布局。压缩减少的是要长期保存的状态，计算量则由投影、潜空间宽度和内核实现共同决定，不能据此断言一定更快，也不能断言一定多算。
 
@@ -214,6 +276,8 @@ GLM-5.3-Flash 的配置把 RoPE 段宽度（qk_rope_head_dim）设成 0。模型
 GLM 的三个取值是：潜向量 512 维、RoPE 段 0 维、主缓存精度在代码里写死为 BF16。代入后每层每 token 占多少字节，主干 11 层加 MTP 层、连同 indexer 压缩缓存每 token 合计多少，都只在[部署页 · 为什么一个逻辑块是 640 个 token](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token) 和[占住一个块号要用多少显存](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)里推导，结果见[哪些层是 MLA，每层存什么](#哪些层是-mla每层存什么)。
 
 主潜向量之外，一层稀疏 MLA 还有 indexer 的压缩缓存和尾状态；块里有空位，前向还有临时张量。只算主潜向量得不到这一层的全部状态。三份缓存各自的规格、怎样对齐成页、分成几个组，见 [KV Cache Spec · 每张卡报四份规格](kv-cache-spec.md#每张卡报四份规格)。
+
+这些状态也不能统一按 BF16 估算。本页固定的 GLM 专用路径中，完整 MLA 主缓存使用 BF16，压缩器窗口保留 FP32 状态，压缩结果进入 indexer 缓存时再舍入。BF16 与 FP32 是不同的浮点数表示格式，计算容量时需要分别采用对应状态的元素字节数。
 
 ## 放到 GLM 双机：一个 token 走过一层稀疏 MLA
 
@@ -286,9 +350,9 @@ GLM 的 indexer 取 32 个查询头、每头 128 维，每 4 个位置压成一�
 
 ### 怎么开
 
-MLA 没有单独的开关，由模型配置和模型代码决定，要满足三处：
+MLA 的启用取决于模型配置和模型代码的识别，运行时还可通过 VLLM_MLA_DISABLE 禁用 vLLM 的 MLA 路径。模型侧的识别与实现要满足三处：
 
-1. **vLLM 认出这是 MLA 模型。** vLLM 用 `use_mla` 判断：模型在 MLA 白名单里，且环境变量 `VLLM_MLA_DISABLE` 没有设置。vLLM 0.23 的白名单里没有 GLM 的模型类型，GLM 镜像的插件补丁改成「配置里有 `kv_lora_rank` 就算 MLA」。于是 `use_mla` 为真，缓存头宽取 `kv_lora_rank + qk_rope_head_dim`（512 + 0），每卡 KV 头数取 1。
+1. **vLLM 认出这是 MLA 模型。** vLLM 用 `use_mla` 判断：模型在 MLA 白名单里，且环境变量 `VLLM_MLA_DISABLE` 未设置或值为 0。vLLM 0.23 的白名单里没有 GLM 的模型类型，GLM 镜像的插件补丁改成「配置里有 `kv_lora_rank` 就算 MLA」。于是 `use_mla` 为真，缓存头宽取 `kv_lora_rank + qk_rope_head_dim`（512 + 0），每卡 KV 头数取 1。
 2. **模型按层号建稀疏 MLA 层。** 不在 KDA 层号表里的层建成稀疏 MLA；`q_lora_rank` 有值，所以走合并压缩投影那一支，只建 `fused_qkv_a_proj`、`q_b_proj`、`kv_b_proj`、`o_proj` 四个投影。
 3. **GLM 子类关掉两条融合路径。** 注意力后端的 GLM 子类在初始化时把 `enable_sfa_prolog_v3` 和 `enable_mlapo` 强制设为假，本部署一定走分步的原生路径，也就是流程图画的那一条。
 
@@ -319,12 +383,19 @@ MLA 没有单独的开关，由模型配置和模型代码决定，要满足三�
 
 ### 版本差异
 
-**吸收的做法三版一致；差别在有没有 GLM 模型、怎样把 GLM 认作 MLA，以及没有 RoPE 段时怎样写缓存。** 按知识库的固定快照核对：v0.23 为 Ascend 2c59ff10 维护快照，v0.26 为 Ascend 2ed6cbba，main 为 Ascend baa023ad；本页的 GLM 行为按专用镜像 db701c1f 解释。
+**v0.30.0rc2 保留 MLA 吸收数学，权重刷新改用先检查兼容性的原位复制。** kv_b_proj 后处理仍要求未量化线性方法，恢复 ND 后拆出 W_UK/W_UV；GLM 该层显式不传量化配置，不能据此推断整模型都不量化。旧 v0.23、v0.26 和固定 main 已用 copy_ 刷新现有吸收权重；rc2 改用 replace_parameter(prefer_copy=True)，只有 shape/dtype/device 兼容才原位刷新，否则重绑定，不能承诺所有 reload 地址永不变化。GLM 有 Q 低秩分支时合并 Q/KV 入口，否则仍分别投影。
+
+缓存精度也须另看：rc2 主 SFA C8 的推导已覆盖 KPool，所以主缓存不再只能 BF16；完成的索引池仍 BF16、tail 仍 FP32。正文旧 BF16 容量与“待核”保持旧部署范围，不能把主 KV 变化当成全部状态统一量化。
+
+**“不旋转位置切片”与“位置段宽度为零”要分开。** 前者仍把那一段原始数据写入缓存，只跳过 RoPE 旋转；后者根本没有那一段有效数据。rc2 的通用 MLA 后端先检查 use_mla_rope：为假时保留未旋转切片；否则再检查 qk_rope_head_dim 是否为 0，为 0 时走零宽 NoPE 写缓存分支。这里说明通用后端的条件，GLM 专用调用链仍须按版本另查。
+
+**吸收的数学做法一致；差别在模型支持、识别补丁和写缓存分支。** 按知识库的固定快照核对：v0.23 为 Ascend 2c59ff10 维护快照，v0.26 为 Ascend 2ed6cbba，main 为 Ascend baa023ad；本页的 GLM 行为按专用镜像 db701c1f 解释。
 
 | 检查项 | v0.23 | v0.26 | main |
 | --- | --- | --- | --- |
 | 通用 MLA 后端的吸收 | 有：加载后把 KV 展开投影拆成 K、V 两块 | 同 v0.23 | 同 v0.23 |
-| 无 RoPE 段时写缓存 | 通用后端没有这条分支；镜像 db701c1f 由 GLM 子类按 RoPE 段宽度是否大于 0 决定旋不旋转 | 通用后端有 `use_mla_rope`，为假时走不带 RoPE 的写缓存函数 | 同 v0.26 |
+| 保留位置切片但不旋转 | 通用后端没有 `use_mla_rope=False` 这条分支 | 通用后端有该分支，原样保留未旋转的位置切片 | 同 v0.26 |
+| GLM 的位置段宽度为 0 | 维护快照没有 GLM；镜像 db701c1f 的专用子类按宽度跳过旋转，只写主潜向量 | 没有 GLM 模型；上述“不旋转”分支不能单独证明零宽 GLM 可运行 | 通用后端另有 `qk_rope_head_dim==0` 分支；完整 GLM 专用调用链仍待核 |
 | GLM 模型与四个投影 | 维护快照没有；镜像中为 `models/glm5_next.py` | 没有 GLM 模型文件 | 拆到 `models/glm5next/`，仍按 `q_lora_rank` 分两支；`kv_b_proj` 建层时不接量化配置 |
 | 把 GLM 认作 MLA | vLLM 0.23 白名单没有 GLM；镜像插件补丁按 `kv_lora_rank` 判断 | 没有 GLM，不涉及 | 插件补丁改写 `is_deepseek_mla`，GLM 的模型类型按 `kv_lora_rank` 判断 |
 
@@ -355,15 +426,24 @@ main 的 GLM 从模型层到内核的完整调用链、主缓存精度是否仍�
 
 流程图的分支：`q_lora_rank` 有值时建合并压缩投影，否则建单独的 `kv_a_proj_with_mqa` 和 `q_proj`；写缓存时 RoPE 段宽度大于 0 才旋转。读取侧执行子类重写的入口，A2 落到基础设备适配器，见[稀疏注意力的源码位置](sparse-attention.md#源码位置)。
 
-**出处修正。** 旧版把「按选中位置取潜向量、算分数与 softmax」的出处指向 `indexer_kpool_mla_v1.py` 第 980–1061 行。这一段属于 `_sparse_attention_pytorch`（第 857–1064 行），只有单测调用，推理时不执行。本页改为上表「推理用的稀疏 attention 入口」和「设备算子」两行，与稀疏注意力页一致。
+**生产入口与测试参考计算要分开。** `indexer_kpool_mla_v1.py` 的 `_sparse_attention_pytorch` 是测试使用的参考实现；本页的推理链路走上表「推理用的稀疏 attention 入口」，再调用「设备算子」。参考函数怎样展开和读取张量，不能直接当成生产内核的访存行为。
 
 **正文证据索引。** 低秩联合压缩、上投影可吸收进查询与输出投影、Q 的压缩只为减少训练激活显存、潜向量后的 RMSNorm、decoupled RoPE 的动机与结构、各种注意力每位置缓存量的公式与「2.25 组 GQA」、DeepSeek-V2 的头数和各维度，见 [S1]。GLM 的头数、各维度、RoPE 段为 0、num_key_value_heads、indexer 参数与层号，见 [S2]。四个投影与分支见 [C3]；RoPE 的条件见 [C4]、[C5]；吸收见 [C6]、[C7]，通用后端在 prefill 时仍展开见 [C25]；推理读取见 [C8]、[C9]；V 的上投影、输出投影与通信见 [C10]；主缓存规格见 [C11]；三份缓存见 [C12]、[C13]；indexer 接 Q 中间表示见 [C14]、[C15]；融合路径见 [C16]；把 GLM 认作 MLA 见 [C17]、[C24]；每卡 1 个 KV 头与禁用变量见 [C18]、[C19]。版本差异依据 [C20]、[C21]、[C22]、[C23]；v0.23 通用后端没有无 RoPE 分支，是在 2c59ff10 的 `mla_v1.py` 中检索 `use_mla_rope` 与 `_exec_kv_no_rope` 无结果得出的。
 
 正文算式和结论各自采用以下推导口径：
 
-- 64 倍压缩比按配置直接计算，取自主线底稿 02 §5.1、§5.2。[D]
-- 四个投影的形状、每卡 8 个头、合并压缩投影与 indexer 不按 TP 切、一层一次 All-Reduce，取自底稿 02 §5.2、§5.8。[D]
-- 三份缓存、每层每 token 1,024 B 与每 token 13,056 B 的结论取自底稿 02 §5.6，推导在部署页；R1 的形状取自 §5.9，在主线页。[D]
+- 64 倍压缩比按来源 2 的模型维度直接计算，比较的是主潜向量与展开后的 K/V，不含索引状态。[D]
+- 四个投影的形状、每卡 8 个头、合并压缩投影与 indexer 不按 TP 切、一层一次 All-Reduce，分别由来源 3、10、15 的固定实现和 TP8 部署条件推出。[D]
+- 三份缓存的规格见来源 11–13；每层每 token 1,024 B 与 12 层每 token 13,056 B 的推导在[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)，R1 的形状见[单请求主线](one-request.md)。[D]
 - 直觉图的 10 个位置、选中 4 个是教学假设，不是 GLM 的实际选择。[A]
 
+容量边界按本页固定 `db701c1f` 核对：来源 11 第 74–76 行指定主缓存为 BF16，来源 12 第 818–846 行区分三份缓存，来源 13 第 312–335 行规定压缩器窗口保留 FP32、压缩池进入 indexer 时再舍入为 BF16。估算总量仍需各类状态的页规格、分配数量与设备布局，不能从主缓存宽度推出全部显存的节省比例；历史按位置保存，一次未被查询选中也不是释放证明。这些容量与释放边界保留为分析结论，实际设备分配和开销仍未测量。[I]
+
 **待核：** 本页依据固定源码和论文分析，没有在 NPU 上运行，也没有验证最终镜像；部署依据与未决项统一记录在[来源基线](../sources/glm-5-3-flash-baseline.md)。缺稀疏 FlashAttention 内核的设备 trace，吸收后 512 维打分的实际耗时、分块方式和 HBM 读写量都没有实测。四个投影的实际精度缺量化描述文件。main 的 GLM 调用链与主缓存精度未逐行核对。`VLLM_MLA_DISABLE` 对 GLM 专用层的影响未核。
+
+- 来源 29：vllm@0fc695fc，vllm/config/model.py，L1646–L1648。
+
+- 旧版吸收权重的原位刷新见来源 20、35、36；rc2 的条件复制与不兼容时重绑定见来源 32、38。保留未旋转切片与零宽 NoPE 的不同分支，见来源 21、22、37。
+- 禁用变量按整数转换为布尔值，未设置时默认 0，见来源 39；环境变量对 GLM 专用层的最终影响仍按上面的待核边界处理。
+
+位置段条件已按来源 2 的固定模型配置，以及来源 4、5 的 `db701c1f` 构造和写缓存分支核对：主 attention 构造 RoPE 还受 `skip_rope` 与 `rope_parameters` 限制，indexer 构造及写缓存也分别检查位置段宽度。当前 GLM 配置宽度为 0，不能以这些条件分支证明它启用了 RoPE；此结论限定于该配置与专用实现，不代替设备运行或性能测量。

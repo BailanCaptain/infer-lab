@@ -1,0 +1,21 @@
+{
+  "archive": ".tmp/continuation-groups-2026-11-10/evidence-presentation-author-evidence.zip",
+  "sha256": "474ba3294b6724bbcef92ff71bd25c6fa0d38a085863d9c987bd95f136d43226",
+  "members": 105,
+  "final_pages": {
+    "wiki/concepts/ascend-patch-system.md": "0ebc44923f4af0629c8165e6b2c0bf193266b41ed955ab2f29b22d8100fb76bf",
+    "wiki/concepts/moe.md": "d79bb9caee27c84ed3d635794aa40e96c718cdc5174f5aed53f6b4eada3b84cd",
+    "wiki/concepts/npu-model-runner.md": "d3d5e3bd6af0f0d75696deb915db65a4670392b8a3644efbf28901909a040b51",
+    "wiki/concepts/platform-plugin-registration.md": "a2110a411caa75864329a7c060e8d22acbe4e1aefd29792ddbec5e1d740b31c8",
+    "wiki/concepts/quantization.md": "3cd91ecca9ef96cc88b7c21a04e849c18aa30b47385218392745c4b80af6d8ae",
+    "wiki/concepts/reading-vllm-ascend.md": "aa115bccec27b96d46070d5f0e4bc4f81a817383cae6203c2a56a7ce3aadea58",
+    "wiki/concepts/vllm-ascend-overview.md": "1ae7a5d3888874a2bb50ab4f0175a0af8bcb0e1aa681d733a5a0e59cb2ecc080",
+    "wiki/params/enable-force-eplb-b7ec3661121f.md": "6b8cd86d867827f3dbeaa40706174bac38f7df0ec5d1f40433159dfafd3bba39",
+    "wiki/params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md": "d52b66821b71347feaca939f96d2c04b65d3acbbce2379379854aa346ff26fc4",
+    "wiki/sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md": "b7d10894bf802252428d780d1039dc2e57d12818e7d85337f1692e722a059eb2"
+  },
+  "new_sources": 0,
+  "new_fulltext_credit": 0,
+  "author_visual_screens_viewed": 55,
+  "independent_acceptance": "root pending"
+}

@@ -1,0 +1,1499 @@
+{
+  "target": {
+    "vllm-ascend": "7d825229c77025cfb185a010c25819c1214b9450",
+    "vllm": "ced6857afa0ea7b2e3f0846a62e1394e90f15607"
+  },
+  "summary": {
+    "allPages": 167,
+    "comparedPages": 155,
+    "activeCommunityPages": 144,
+    "needsReview": 141,
+    "unchangedRangesOnly": [
+      "multistream-engram-overlap-29113aa3f8fc",
+      "replica-search-beam-size-6556d1650a62",
+      "replica-search-radius-cd3118b5aae5"
+    ],
+    "excludedFromUpgrade": [
+      "rfork-identity",
+      "rfork-lifecycle",
+      "rfork-startup",
+      "rfork-troubleshooting",
+      "rfork",
+      "answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad",
+      "ascend-config-version-source",
+      "glm-5-3-flash-baseline",
+      "glm-mlp-version-source",
+      "pr-11953",
+      "rfork-official-guide"
+    ],
+    "ranges": {
+      "changed": 2150,
+      "moved": 1314,
+      "gone": 424,
+      "same": 528
+    },
+    "missingBaselineBlobs": []
+  },
+  "pages": [
+    {
+      "id": "acl-graph",
+      "file": "concepts/acl-graph.md",
+      "beforeHash": "a85bce4db1e813983a25de535ed40bd783921b8ce62dfb6c8286871613c361be",
+      "status": "completed",
+      "currentFile": "wiki/concepts/acl-graph.md",
+      "afterHash": "6bf87b3a4bc1d5f12a8da9e9a941bdfbfebfeb99da9883dd5dbc54605e824f1b",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "ai-core",
+      "file": "concepts/ai-core.md",
+      "beforeHash": "e78a7957199e69e0fd4c61f256d3ceb170f4e377125c09a30ad7610c6bde594e",
+      "status": "completed",
+      "currentFile": "wiki/concepts/ai-core.md",
+      "afterHash": "8609a7e3b206ff7f83af65ed0b4e06a493d6389ea232f7374c3a5b0dcc9a298a",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "ai-qos",
+      "file": "concepts/ai-qos.md",
+      "beforeHash": "b4c8d2defcf07817662f1eefe3c413def04ea3f5e1199b8ed2217c1238c83435",
+      "status": "completed",
+      "currentFile": "wiki/concepts/ai-qos.md",
+      "afterHash": "4b437000b9b01cb0bdeb6ffbbd7ead254595c221e46252ff286c5d002195c7f1",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "api-server-entry",
+      "file": "concepts/api-server-entry.md",
+      "beforeHash": "7ec75cf2341a2ffc6541478741785be344fb1e6c30948b7b93cadd77f68ebfde",
+      "status": "completed",
+      "currentFile": "wiki/concepts/api-server-entry.md",
+      "afterHash": "16209ae45d71b61589bbd649698edc7cdbf6f0ce12f94ec3c894804bac25dbde",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "ascend-config-system",
+      "file": "concepts/ascend-config-system.md",
+      "beforeHash": "6e47925d67033735390050ff435a074526862adf7ce2a7801955448d44cc8c3b",
+      "status": "completed",
+      "currentFile": "wiki/concepts/ascend-config-system.md",
+      "afterHash": "f68a0b8d87d6049393423ef060fca3a9a67076d42488ee88110f698e90d29f5b",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "ascend-patch-system",
+      "file": "concepts/ascend-patch-system.md",
+      "beforeHash": "e358cb6b6950023f1ee9c28d086065073478c20585455ea9fe41d0f7266765a1",
+      "status": "completed",
+      "currentFile": "wiki/concepts/ascend-patch-system.md",
+      "afterHash": "54c558669e28d495fa8022fe286085cab7ad7f8a9bc35934c3124bc3257f6eaa",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "async-scheduling",
+      "file": "concepts/async-scheduling.md",
+      "beforeHash": "9552270f9b6633e8c820d5dfc8ec8a0fb361924f02520b80dd1495c9f7cff872",
+      "status": "completed",
+      "currentFile": "wiki/concepts/async-scheduling.md",
+      "afterHash": "5fdf14079170b1c8e84109cf055f937b47ae3fdd6786394516dbf7e7b36976c5",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "attention-backend-family",
+      "file": "concepts/attention-backend-family.md",
+      "beforeHash": "c486c64fbf7689706a0092bc56a110b7952a2a7bbca6e937e031e1ffe57fea96",
+      "status": "completed",
+      "currentFile": "wiki/concepts/attention-backend-family.md",
+      "afterHash": "6b488172c588654c1e11d73a0b7a3c8699f9ccb068e02dafc7fdce1a663a5ad9",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "attention-cost",
+      "file": "concepts/attention-cost.md",
+      "beforeHash": "8614c86237abd76de6995678065b76a57a654b21940133b9534a1b04a344a416",
+      "status": "completed",
+      "currentFile": "wiki/concepts/attention-cost.md",
+      "afterHash": "9ba099b54d27844bf05d6416b4e2d07e885c6d31621359c94e5fa22ab1c9abc9",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "attention-qkv",
+      "file": "concepts/attention-qkv.md",
+      "beforeHash": "f3630adbca32e4196609e0a4cf632d70e53b87ca8b46ef3429fa85b327087185",
+      "status": "completed",
+      "currentFile": "wiki/concepts/attention-qkv.md",
+      "afterHash": "81e9c51d7934ee3fec01ba898df3b350ebba4ff0b734ea1ac2ae96b01877d274",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "balance-scheduling",
+      "file": "concepts/balance-scheduling.md",
+      "beforeHash": "2dcea79d92b64f101803839d93fc8321d136667764653cb182a3c6ee1f36decb",
+      "status": "completed",
+      "currentFile": "wiki/concepts/balance-scheduling.md",
+      "afterHash": "21deb1e2c7a66c3aefdc303233724a6f980c035e5e541e7e026e114eab1a533b",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "batch-invariance",
+      "file": "concepts/batch-invariance.md",
+      "beforeHash": "2a179e2881fa3b74e984d9b817eb7ed34bf5651def552f2219d2babe8960b37c",
+      "status": "completed",
+      "currentFile": "wiki/concepts/batch-invariance.md",
+      "afterHash": "d9b70aa0269f1a65f6b151d203f29f20c06540523834a0d48b51259fb4eedff4",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "batch-job-aware-scheduler",
+      "file": "concepts/batch-job-aware-scheduler.md",
+      "beforeHash": "1684278482904fa80fee6526cd9ffd6a24d7dffd1f0b177c531d540ea31837b2",
+      "status": "completed",
+      "currentFile": "wiki/concepts/batch-job-aware-scheduler.md",
+      "afterHash": "0996057369ee0eb2bda5a3de96e84e6ea639847eed20e634b54c7b0ca7a7b85c",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "block-table",
+      "file": "concepts/block-table.md",
+      "beforeHash": "c1faea4c50a3be9cbe28a2b1a09d97f72f54bdb5f5e680d91c6cc5d8298d3858",
+      "status": "completed",
+      "currentFile": "wiki/concepts/block-table.md",
+      "afterHash": "06dbbc803bc7c128ee802c4df0f4042d8cd4d6565e0b028605da7fd0bf78a32c",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "cann-hccl",
+      "file": "concepts/cann-hccl.md",
+      "beforeHash": "6cf90ab9ad3eb48df0abb9c98f17ca0c8b33cd1ed12edc1528a5d7f1478a6fa0",
+      "status": "completed",
+      "currentFile": "wiki/concepts/cann-hccl.md",
+      "afterHash": "8f6f98b198c12c9471182c49ba9cd35faf01f70a5cf589b1cc4b50bf426dcb65",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "chunked-prefill",
+      "file": "concepts/chunked-prefill.md",
+      "beforeHash": "208d5d8335705140df74602cac820449bf3b5fb64c45896339170318c48dd2a4",
+      "status": "completed",
+      "currentFile": "wiki/concepts/chunked-prefill.md",
+      "afterHash": "b061722e3798d3b426bb89ade1b4be25518f52f46e8bead90da071d2f97a9ddb",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "collective-communication",
+      "file": "concepts/collective-communication.md",
+      "beforeHash": "49caac38f012e44020087757cb5a459d9f229705bfc204aca6272d2a559e464d",
+      "status": "completed",
+      "currentFile": "wiki/concepts/collective-communication.md",
+      "afterHash": "a2835d3f39bf0d8febf96c58fad7ef7b2556504501595a7f60abcc13c254096b",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "concurrent-requests",
+      "file": "concepts/concurrent-requests.md",
+      "beforeHash": "ff6f41554a5e05d99066ead568a9c39e0454aa563219373e71bdb385fc3a240e",
+      "status": "completed",
+      "currentFile": "wiki/concepts/concurrent-requests.md",
+      "afterHash": "07ecc563f601dc48a7465874f45718395e4745057922ddb4e191d42c7eba33a0",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "context-parallel",
+      "file": "concepts/context-parallel.md",
+      "beforeHash": "212b5fc2b8278cbfd8f444b9225bac6d9ecb7a68c092ff9609ff134700d6674f",
+      "status": "completed",
+      "currentFile": "wiki/concepts/context-parallel.md",
+      "afterHash": "fb9f7a03ecce6c871dce45d83eb7aa3d503bcb91050f6333f106ac830e1c7e3e",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "cpu-binding",
+      "file": "concepts/cpu-binding.md",
+      "beforeHash": "1e186fa817053cdbfb286852957da2ab64ca0749d4166b45eba529d75484aaad",
+      "status": "completed",
+      "currentFile": "wiki/concepts/cpu-binding.md",
+      "afterHash": "756be1a992983ed8f3de41bbe602b810134b88154db3370468af2267cdb4afc7",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "data-parallel",
+      "file": "concepts/data-parallel.md",
+      "beforeHash": "65d2c49fc3f0a1e0e7a499fde0139918cce1b69f06d777e9f843cc84e6c3bbe6",
+      "status": "completed",
+      "currentFile": "wiki/concepts/data-parallel.md",
+      "afterHash": "2d7108d4b8b8d06dc3634be1fd52403f826cbb766bcec5d0a5076e5174f175ee",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "device-memory",
+      "file": "concepts/device-memory.md",
+      "beforeHash": "06b9daf05f51b2888326f91b11c25134bad52b09dcc0bc9ecb409cfae70c92fd",
+      "status": "completed",
+      "currentFile": "wiki/concepts/device-memory.md",
+      "afterHash": "68f11244b2199ee5356f08b599bfff494eb03fb4f594dbf6a70a6cfd0fbc7c02",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "dp-request-routing",
+      "file": "concepts/dp-request-routing.md",
+      "beforeHash": "05563efbe783abb4fe7d4c36793cd93d52d63038364c45e0cecd5e6fdfe68a51",
+      "status": "completed",
+      "currentFile": "wiki/concepts/dp-request-routing.md",
+      "afterHash": "ab598ae8f4d5b9e1df795acc9f36d1f0327e8cf83d1ba85e5f7690a2c5ce3379",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "dynamic-chunked-pp",
+      "file": "concepts/dynamic-chunked-pp.md",
+      "beforeHash": "fd60b47e41e648a4877759b234cf4db7a9bc7cc70a1792e112f13e70804fe95e",
+      "status": "completed",
+      "currentFile": "wiki/concepts/dynamic-chunked-pp.md",
+      "afterHash": "31d13dc0378b91c4fa8e7b479eaef7a097b62e1dc7c7e367b1d74d1157f1d891",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "dyntra-lb",
+      "file": "concepts/dyntra-lb.md",
+      "beforeHash": "ade20dd9f1e401bbcab8e3c3b51e6d318c5646d4735534707f7b8aa00f9dca5f",
+      "status": "completed",
+      "currentFile": "wiki/concepts/dyntra-lb.md",
+      "afterHash": "99de6f85e50f1aeeda4eaed4359b78ca04d930086dbb8cd2c1bf8e9e45ecee1f",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "embedding",
+      "file": "concepts/embedding.md",
+      "beforeHash": "2b7854888482c5d0f486df3c166d6b9ef88b04aa50de99da37d78bb942a28ef9",
+      "status": "completed",
+      "currentFile": "wiki/concepts/embedding.md",
+      "afterHash": "6a8ff5a9e8b05eba0d21549089aec3d660ac6d505903bbe716cdbcecddaca504",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "engine-processes",
+      "file": "concepts/engine-processes.md",
+      "beforeHash": "c1fc0f73e04bb1184a1be0bc1865f79e852304d79e65d84d37e074a879d4fda4",
+      "status": "completed",
+      "currentFile": "wiki/concepts/engine-processes.md",
+      "afterHash": "f89b755a885b8926a05cf32ba0e094d7fbe0268b2609059854cde6064718d0e4",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "eplb",
+      "file": "concepts/eplb.md",
+      "beforeHash": "f33a7aaad088cba634d86a28baa729e64ae66ad19ce9c674b32ef8f1f8036c3a",
+      "status": "completed",
+      "currentFile": "wiki/concepts/eplb.md",
+      "afterHash": "fa4aada03cbadd6f5ef3059ecf69f7e1474bb70dca6e357663d7d00bb5467754",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "expert-parallel",
+      "file": "concepts/expert-parallel.md",
+      "beforeHash": "d84128c3d5941889e8c5943685c66509eb73319099711ac997d8ee967d055a23",
+      "status": "completed",
+      "currentFile": "wiki/concepts/expert-parallel.md",
+      "afterHash": "8c2047c7fa731d646215a21bc0311e9c50bc469aca6e72694abdb08fc9059700",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "fine-grained-tp",
+      "file": "concepts/fine-grained-tp.md",
+      "beforeHash": "41feb947bb05d4443b28ecf0bfcb59e40958832ae4753bd4a646d7815c773095",
+      "status": "completed",
+      "currentFile": "wiki/concepts/fine-grained-tp.md",
+      "afterHash": "12cc3a8d511b435b09c7e266ac642c9c03255dd71e582abb9fb17d66051304c5",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "gap-a5164fe10fa9184412f8",
+      "file": "concepts/gap-a5164fe10fa9184412f8.md",
+      "beforeHash": "d517fdb53be2993769f41a7b0b6edf3a559a786ca535b45fed9c6c817ea94d4d",
+      "status": "completed",
+      "currentFile": "wiki/concepts/gap-a5164fe10fa9184412f8.md",
+      "afterHash": "3ea65f77452890eea2ee6da47418f91b252d029d8ca5f5634d88675442419ef1",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "glm-5-3-flash-two-node",
+      "file": "concepts/glm-5-3-flash-two-node.md",
+      "beforeHash": "03cb2bf810f55216e4099248abbe53af271813defd8429d14501a8e2875b6532",
+      "status": "completed",
+      "currentFile": "wiki/concepts/glm-5-3-flash-two-node.md",
+      "afterHash": "26ad796c0c01f9c8a58bb2d35b5346a7fc5a6985e87eb44d9e3dca006dfae66a",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "glm-5-3-flash",
+      "file": "concepts/glm-5-3-flash.md",
+      "beforeHash": "ff71dbc3d15894f7b3072edf599cbdea002d9ad734c20de9f4289abf36df4b15",
+      "status": "completed",
+      "currentFile": "wiki/concepts/glm-5-3-flash.md",
+      "afterHash": "c2fa5ffff6db00d287ca46761f96ea17d1f3b99a8ec96b5134b96da6de061f11",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "gqa",
+      "file": "concepts/gqa.md",
+      "beforeHash": "68c7d8b0fc0106ab72c6bf6afbdeb3f7e795948b1a1b14e37b93d025935e7dfb",
+      "status": "completed",
+      "currentFile": "wiki/concepts/gqa.md",
+      "afterHash": "5ca40cdbbd8f36b160c8a83d82c88d6cc8bfe74d36024ed3458963db17542fad",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "graph-mode-layer",
+      "file": "concepts/graph-mode-layer.md",
+      "beforeHash": "ed1f4f507b50d5881bb6a94ad40e8a2a94fb23efce0f27e56eea43a2bd8a248d",
+      "status": "completed",
+      "currentFile": "wiki/concepts/graph-mode-layer.md",
+      "afterHash": "4b379f9d074a92b0db769627346e0a10740ed4b35eba4865abdb8900d3aa01b6",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "hardware-devices",
+      "file": "concepts/hardware-devices.md",
+      "beforeHash": "683eeb8f8c6a0a88529141920c0a0279e643992b22d814037b664452bace8096",
+      "status": "completed",
+      "currentFile": "wiki/concepts/hardware-devices.md",
+      "afterHash": "0f10d83023d5656e605a30c2a9afe6f67b9f605272d0fc68c571275d58886883",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "inference-benchmarking",
+      "file": "concepts/inference-benchmarking.md",
+      "beforeHash": "b99561d91c92fe623931933a7700e36ec4bbb1a623495b8bb7629859724db9e7",
+      "status": "completed",
+      "currentFile": "wiki/concepts/inference-benchmarking.md",
+      "afterHash": "d7736cf75bac1ce7ce1886fd702a4cbd4821743c533c23ec5bf44b131a3c361f",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "inference-correctness-troubleshooting",
+      "file": "concepts/inference-correctness-troubleshooting.md",
+      "beforeHash": "5c97b89e45f2a00feed2427b65ac711ede18cbb72446a8f37644f746406d730e",
+      "status": "completed",
+      "currentFile": "wiki/concepts/inference-correctness-troubleshooting.md",
+      "afterHash": "1e9f3e577f0d72a129987f981284808dcea3c057b850bc78939c356f56cd7598",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "inference-performance-analysis",
+      "file": "concepts/inference-performance-analysis.md",
+      "beforeHash": "0f05334799d9ffa5c0fa336dd41bbea9c80638baff1cfcc416821b7c9e4e2ca3",
+      "status": "completed",
+      "currentFile": "wiki/concepts/inference-performance-analysis.md",
+      "afterHash": "c68bcf2dcd3299df7ad068d7f85c3324a2e919dbb52ebbe2d467b925faa8891d",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "inference-performance-troubleshooting",
+      "file": "concepts/inference-performance-troubleshooting.md",
+      "beforeHash": "c4008b9c7c6f42e5dc2a3b74b1a6917082614f581b4eb41fca0c6e7c31ee406a",
+      "status": "completed",
+      "currentFile": "wiki/concepts/inference-performance-troubleshooting.md",
+      "afterHash": "a9aed22889363cfb8f59d296be283e1b62c47a68bc30ec246ab9a6cf6fe6eb36",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "inference-performance-walkthrough",
+      "file": "concepts/inference-performance-walkthrough.md",
+      "beforeHash": "907390095c2e7366803c7ef504549f2557787551ac25f21a538052deb2fd481b",
+      "status": "completed",
+      "currentFile": "wiki/concepts/inference-performance-walkthrough.md",
+      "afterHash": "e64026ee55e18cddf9170e034a08b1c13dab39133e3f70fa702eba0ce80b34a7",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "inference-troubleshooting",
+      "file": "concepts/inference-troubleshooting.md",
+      "beforeHash": "e079bcf03874920a7aad5f1371a1f430c3619375d97d9422cb934685aa5a8d8e",
+      "status": "completed",
+      "currentFile": "wiki/concepts/inference-troubleshooting.md",
+      "afterHash": "e1ad1cd5f4bca88635184700988ea1f6c96da8423e1d2310b539d16a212cdf13",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "kv-cache-cpu-offload",
+      "file": "concepts/kv-cache-cpu-offload.md",
+      "beforeHash": "4090ca62f5bf1af35acb97bb4f1c48b1014343dfde7f07cf8bb25f64d428f5e7",
+      "status": "completed",
+      "currentFile": "wiki/concepts/kv-cache-cpu-offload.md",
+      "afterHash": "6033cfb26543051100677c4772919ba3b14a7b760bc352131135ceae09560d02",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "kv-cache-layerwise-offload",
+      "file": "concepts/kv-cache-layerwise-offload.md",
+      "beforeHash": "0edb65c273e849f5611224be141ef7d5c2604705bcb755c47b22eda3b4f09589",
+      "status": "completed",
+      "currentFile": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "afterHash": "3a6d98430fd262b46f8d14fb14e87429459c42e9c95aacbce451073b043b8242",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "kv-cache-memory-profiling",
+      "file": "concepts/kv-cache-memory-profiling.md",
+      "beforeHash": "fb1bc1eee6fe733dab1a716509bb9e2875b47f98439f45088c16543e73430096",
+      "status": "completed",
+      "currentFile": "wiki/concepts/kv-cache-memory-profiling.md",
+      "afterHash": "074c2d7aa84defea0d56ffda0ec10385080179d32b424291105b77b9d9d4975f",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "kv-cache-quantization",
+      "file": "concepts/kv-cache-quantization.md",
+      "beforeHash": "fb48d6d629a5b736a7f4942b842799266903a8c1b0152a236c43f8812c4b4254",
+      "status": "completed",
+      "currentFile": "wiki/concepts/kv-cache-quantization.md",
+      "afterHash": "56ceb3a106c290c3cb3b3c4c08c8da6791140f64efcc92dd83e15c7aebf3091c",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "kv-cache-sparse-offload",
+      "file": "concepts/kv-cache-sparse-offload.md",
+      "beforeHash": "00b24dd7050341b8bcee882102a1f2ab7592e07144e64fc6ba5504da52dc2c96",
+      "status": "completed",
+      "currentFile": "wiki/concepts/kv-cache-sparse-offload.md",
+      "afterHash": "99c084cbbd60649714b70283d3e11cc90d2ac808aebe92554c7ca99c858c8278",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "kv-cache-spec",
+      "file": "concepts/kv-cache-spec.md",
+      "beforeHash": "9f5f85787ce4be3cea1267d422158ba2fc3c7b844c0a2d88e33d4aa771c1c22d",
+      "status": "completed",
+      "currentFile": "wiki/concepts/kv-cache-spec.md",
+      "afterHash": "1db191d04da0da9bc481b59e375c757b855d8beb2fb5faf7291f8e6126caf01d",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "kv-cache",
+      "file": "concepts/kv-cache.md",
+      "beforeHash": "f6c6b8150abc35afa00aa151843ea93458577f3b5866ecf7c18bb3601f6c26a1",
+      "status": "completed",
+      "currentFile": "wiki/concepts/kv-cache.md",
+      "afterHash": "7eceb7dd08b9aea28488a0d535207258b2061a853e99613c94bcf61e4ab33430",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "kv-pool",
+      "file": "concepts/kv-pool.md",
+      "beforeHash": "ade26fe1d8dbf3629c4f446204ed4196d9bf3e18822ae78b6f2c67392d892657",
+      "status": "completed",
+      "currentFile": "wiki/concepts/kv-pool.md",
+      "afterHash": "4a06f92a540bf264c254e0d74af8824e0b944d5620a4674a8c6821179ebde5f2",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "kvpp",
+      "file": "concepts/kvpp.md",
+      "beforeHash": "51aabe51ca85d5e0e4125cceb175f87b833a5c01f23a4cb6ff11d3478b354c0d",
+      "status": "completed",
+      "currentFile": "wiki/concepts/kvpp.md",
+      "afterHash": "83dea6289d92a59399f7d75224259eed1c1f3eaa0382da07dd29020312cb9ef7",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "large-scale-ep",
+      "file": "concepts/large-scale-ep.md",
+      "beforeHash": "25779d9108f0025339106ba295b5ad78c9a728045de6be7c2afd94b1470662d2",
+      "status": "completed",
+      "currentFile": "wiki/concepts/large-scale-ep.md",
+      "afterHash": "d4509399fc14e8e43ec1715016f74968d21b14434f7904ce88fdb7b7535e5ae9",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "layers-and-hidden",
+      "file": "concepts/layers-and-hidden.md",
+      "beforeHash": "e0e6b727fac0775b45a4eabeecf8ab83b1faba27b8bb3dbd0d3ba9b0d3854a3e",
+      "status": "completed",
+      "currentFile": "wiki/concepts/layers-and-hidden.md",
+      "afterHash": "2efbf13be0703d741d604fcc068891a28200e7de435e4b7cfdf71eaca5cd124d",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "linear-attention",
+      "file": "concepts/linear-attention.md",
+      "beforeHash": "04e6080d4d90b6137a6f30e530fedab4063bac3ea255d3738e5a5a5b242b5ee0",
+      "status": "completed",
+      "currentFile": "wiki/concepts/linear-attention.md",
+      "afterHash": "9cf0a3d91044f74c42aaa7ad1376eea848531c1bd7d28b4a847394f896fe47af",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "lm-head",
+      "file": "concepts/lm-head.md",
+      "beforeHash": "a5743672c4baa898ea3be34129f1e97d1364915960fefbd9a32f09a6bade7a59",
+      "status": "completed",
+      "currentFile": "wiki/concepts/lm-head.md",
+      "afterHash": "1d5be4cac1b9fb2281ead3977fd8b0a4ce3a1f5815834cbd39d1bbf5f4ae9b34",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "lmcache",
+      "file": "concepts/lmcache.md",
+      "beforeHash": "ed506b4190a1cfa35e745bbc3917d1f98833f0f582cb87c7f26e731385bccc89",
+      "status": "completed",
+      "currentFile": "wiki/concepts/lmcache.md",
+      "afterHash": "197af058daa8a50da871fd319acdcb3d770f8f60b5ea155aab4853902b22b6b2",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "lora",
+      "file": "concepts/lora.md",
+      "beforeHash": "24d91bfdea23405b3befa90c881ee39d19ef10542c5ab973dbc22b6e27234685",
+      "status": "completed",
+      "currentFile": "wiki/concepts/lora.md",
+      "afterHash": "0e66ae4807d7a37ca71e3c1d84c20ecfe68de599509bc3636046eae8a3a77621",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "low-precision-formats",
+      "file": "concepts/low-precision-formats.md",
+      "beforeHash": "0d089958890a8ec5573ee7c8e2bb34a434f3bbb0ebc4c6acc3861e7dbc76c5fc",
+      "status": "completed",
+      "currentFile": "wiki/concepts/low-precision-formats.md",
+      "afterHash": "25d068ddb30b787d5a82e79dd704276771c938135218d721ce81c2e5c6e92baf",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "matmul-and-weights",
+      "file": "concepts/matmul-and-weights.md",
+      "beforeHash": "39b990d54eab34caa0013ed24818a46d771d2ece9b4695f5cdff4d7cc6912fef",
+      "status": "completed",
+      "currentFile": "wiki/concepts/matmul-and-weights.md",
+      "afterHash": "b7f7e6114f10bbae3423b18d11c3802ed5c215bd2f2fc7557161c7ae698670df",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "mla",
+      "file": "concepts/mla.md",
+      "beforeHash": "17629ef9c25dd143da27cba5a504abd98d8cbe1088cebc12a18066a1d0350d1c",
+      "status": "completed",
+      "currentFile": "wiki/concepts/mla.md",
+      "afterHash": "9fd77ec8ca4fde09b3ae1387f4a2e777413bf7f5dbcae0811777859e0c73aaa6",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "mlp-residual-norm",
+      "file": "concepts/mlp-residual-norm.md",
+      "beforeHash": "54c4a165a4f1c5cae44189338fbb6d351d3a4da96dbe737a1919ac0e3524a8c9",
+      "status": "completed",
+      "currentFile": "wiki/concepts/mlp-residual-norm.md",
+      "afterHash": "e6b905e8ffe0b6076169782c7188535fa2df67a521f703e2e0edd07972174d9d",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "moe",
+      "file": "concepts/moe.md",
+      "beforeHash": "2553a9b30e2b0c89a0da22019238fe86385fa82eba5593852d4ede873177ba1b",
+      "status": "completed",
+      "currentFile": "wiki/concepts/moe.md",
+      "afterHash": "d17e01864fef4ca5098360ecca93ee75b65cf963c71a9127cdc3fe027321e1bc",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "mooncake-connector",
+      "file": "concepts/mooncake-connector.md",
+      "beforeHash": "2868edc1e5bfd93433f8eedbcb0089439581e1d61236d4cb43b6eccb12920e87",
+      "status": "completed",
+      "currentFile": "wiki/concepts/mooncake-connector.md",
+      "afterHash": "833cbe74f83087f6d14803ee6c07648f94fdc04654d4ba1ba41efabdeeae8442",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "netloader-guide",
+      "file": "concepts/netloader-guide.md",
+      "beforeHash": "0c88d7916af6bac79c04c063a3b7964485d85bf247b34861b025e76b7e255518",
+      "status": "completed",
+      "currentFile": "wiki/concepts/netloader-guide.md",
+      "afterHash": "c281fdb9fc667b9ad7b6a3e7114468b8f016cbc3600509b27222f625bf2e155a",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "npu-model-runner",
+      "file": "concepts/npu-model-runner.md",
+      "beforeHash": "1bdf517318134726b9ab96ea804dcc9f1f3ba1d8dfbb93a9343ff708c48921a7",
+      "status": "completed",
+      "currentFile": "wiki/concepts/npu-model-runner.md",
+      "afterHash": "80cd0c303b92cda4ceddf9fa292ff54d6c9c0dbe38ebf38124538233186fc4be",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "npu-platform",
+      "file": "concepts/npu-platform.md",
+      "beforeHash": "971420dbd600b417e99060aaf8e4bf722afd423ee508519f2ca9fd9069ade66e",
+      "status": "completed",
+      "currentFile": "wiki/concepts/npu-platform.md",
+      "afterHash": "d19dbe03811e774f963126eaf9056fc192d619dd8016f7ec5d62060c8f11af66",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "npu-worker-lifecycle",
+      "file": "concepts/npu-worker-lifecycle.md",
+      "beforeHash": "40069e31afea15f685ea9e5c515c56a96ce6ad1a340dafc6855ae96a1cf65930",
+      "status": "completed",
+      "currentFile": "wiki/concepts/npu-worker-lifecycle.md",
+      "afterHash": "019298c111d53c503f970fa0b4763af351f34355b111ee3c7e55aa778f2644ab",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "npugraph-ex",
+      "file": "concepts/npugraph-ex.md",
+      "beforeHash": "33d6622a9fe1c4f7d28388b9ee44ec35d0bb2c96ed02d9b5cba9da7ecbbfc09c",
+      "status": "completed",
+      "currentFile": "wiki/concepts/npugraph-ex.md",
+      "afterHash": "5b014929a9dead2c8e62892aefc3e1463d4b4c0398d3df9335f8a5b61063cde2",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "one-request",
+      "file": "concepts/one-request.md",
+      "beforeHash": "dfa009b611b53b8e2c371ce6fea824bb1518910b79f677adcbd13582b5827001",
+      "status": "completed",
+      "currentFile": "wiki/concepts/one-request.md",
+      "afterHash": "34b2cbf44562f1acecbdba9a212184c0915cf195d5302dcc2453689620e62b63",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "op-to-ai-core",
+      "file": "concepts/op-to-ai-core.md",
+      "beforeHash": "1f26558d1aa72c12d08b749047886a5dad9ce455d26758059d46461efaa035a0",
+      "status": "completed",
+      "currentFile": "wiki/concepts/op-to-ai-core.md",
+      "afterHash": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "ops-and-kernels",
+      "file": "concepts/ops-and-kernels.md",
+      "beforeHash": "6a88b2d474be25d8ad5ea91661fa0d7af2e893a258d3f89c4f3a3fba8e8e8643",
+      "status": "completed",
+      "currentFile": "wiki/concepts/ops-and-kernels.md",
+      "afterHash": "903d20733a78f0901288229c50f166ce5644f9ec5ef4a318400c3f2b7e3b944d",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "pd-disaggregation",
+      "file": "concepts/pd-disaggregation.md",
+      "beforeHash": "2b38183d8e63887f15d6231ff57256aa424e2c7f0332807d98586596309da835",
+      "status": "completed",
+      "currentFile": "wiki/concepts/pd-disaggregation.md",
+      "afterHash": "70f6327265bef6fc98960c3eee3cea7a85bd4fbc9b1bdb0afd0d260fe341330a",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "pipeline-parallel",
+      "file": "concepts/pipeline-parallel.md",
+      "beforeHash": "f9accdaa54c0d189e2f823f522ce9a4bacc330b35137163342a2453943bc84d4",
+      "status": "completed",
+      "currentFile": "wiki/concepts/pipeline-parallel.md",
+      "afterHash": "eba4ae05717de1530f7c7b711a0bf2f6750760b942e9103a628cc99564c5b5b2",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "platform-plugin-registration",
+      "file": "concepts/platform-plugin-registration.md",
+      "beforeHash": "a6bb43b0805989f46324cf45a97eb74daa5053ff4c6617fa3a65bff0952e7510",
+      "status": "completed",
+      "currentFile": "wiki/concepts/platform-plugin-registration.md",
+      "afterHash": "774ef53b823d04a7e705eaed09aa12b55846b541f8903a9ccc28cee33e4f4302",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "prefill",
+      "file": "concepts/prefill.md",
+      "beforeHash": "7e3ea1ff827d36b8258718491c7114906e64a066f742c1a4b22961865295c640",
+      "status": "completed",
+      "currentFile": "wiki/concepts/prefill.md",
+      "afterHash": "261b1c691958df3ec41a51bf5dc76db7f479669cafc9bbf93d1c6f7b75794e6c",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "prefix-caching",
+      "file": "concepts/prefix-caching.md",
+      "beforeHash": "367b71915680aa48c333774c9b952911e6a1b016a8257d37d4f08282561c6415",
+      "status": "completed",
+      "currentFile": "wiki/concepts/prefix-caching.md",
+      "afterHash": "b9c7e5ac53ee9fd5f08c89478d72b8a55d5fcc1a35cd28fdc590776e40bbde5b",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "prepare-inputs-flow",
+      "file": "concepts/prepare-inputs-flow.md",
+      "beforeHash": "d4ed9fc7e3c6d689208696b851de28cdc6d102b1773fff517fdf19405b1eb139",
+      "status": "completed",
+      "currentFile": "wiki/concepts/prepare-inputs-flow.md",
+      "afterHash": "f81d47b98b2ab9af8c9dd970ad9d886c22d2952277b1a9a420827cae4ea08ad3",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "quantization-evaluation",
+      "file": "concepts/quantization-evaluation.md",
+      "beforeHash": "19205f75fb92b001f6913cb682a4c83abeb7c7412c10abafac294a81f908d792",
+      "status": "completed",
+      "currentFile": "wiki/concepts/quantization-evaluation.md",
+      "afterHash": "87931916754d918d3bd8f4fe4faef7d7f4ffa287185370f562a50451ab153ea7",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "quantization-methods",
+      "file": "concepts/quantization-methods.md",
+      "beforeHash": "dae1870500e56b6b5a2447c38d4d8e5ccef9ce7ae19c9ef34b368671e7a7f089",
+      "status": "completed",
+      "currentFile": "wiki/concepts/quantization-methods.md",
+      "afterHash": "df2dae1e8bfd4f1cb9eb3bf3c008c253955fca805a576fdae4b70e4dedf46c37",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "quantization",
+      "file": "concepts/quantization.md",
+      "beforeHash": "e7a47e890e6fa0c449f26c117a45b6ec8fcaee9b71bfb384db6a214d7cc17b99",
+      "status": "completed",
+      "currentFile": "wiki/concepts/quantization.md",
+      "afterHash": "8cbd88fa696b34328fe71e63d0bf8455ea525eed3b3e6c980c64e6ef7da5cdfe",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "reading-vllm-ascend",
+      "file": "concepts/reading-vllm-ascend.md",
+      "beforeHash": "fb523d4202f6dc2aa9550b09159af3476755428e5c75aa1cc8b7add71651f454",
+      "status": "completed",
+      "currentFile": "wiki/concepts/reading-vllm-ascend.md",
+      "afterHash": "56ec5239837016a97b6fd92309f95d822274f24d1e4abf4e22f22d8c06a5083c",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "recompute-cpu-offload",
+      "file": "concepts/recompute-cpu-offload.md",
+      "beforeHash": "0470e450bf1826fad77b3089e9d6d914d2142c608973e4383ecac59beb5c89fb",
+      "status": "completed",
+      "currentFile": "wiki/concepts/recompute-cpu-offload.md",
+      "afterHash": "349d16acb989e86428c2b43124e702ebe9c16b986c0f36464b1acf0662757523",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "recompute-scheduler",
+      "file": "concepts/recompute-scheduler.md",
+      "beforeHash": "8f1909c755bacd8078a8fb1e46b49f19f62682e385692e7f6f28c1117da65951",
+      "status": "completed",
+      "currentFile": "wiki/concepts/recompute-scheduler.md",
+      "afterHash": "fe4629408c050c85459f97f5e1eb7ea0c28a6b957f78d5e4c3a8f4859345c1de",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "request-call-chain",
+      "file": "concepts/request-call-chain.md",
+      "beforeHash": "1f175b7026d2b222051bcb87c2ea32d0904d65b32c45190a471e518873f20c1d",
+      "status": "completed",
+      "currentFile": "wiki/concepts/request-call-chain.md",
+      "afterHash": "3017755e3f651eae45fdda90b5726abb1e136e305b0cad8841e4bf080a8d100a",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "request-teardown",
+      "file": "concepts/request-teardown.md",
+      "beforeHash": "5c5427b13b3a1edce4bb85c3511e47a40b470928db3fd479dbe3091f031a4421",
+      "status": "completed",
+      "currentFile": "wiki/concepts/request-teardown.md",
+      "afterHash": "43322aeccd03b7e417483dff09864cd4b77ee39c13c0687fb7ba46493636360f",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "rope",
+      "file": "concepts/rope.md",
+      "beforeHash": "07312be422705a684a8fa3f821a9c3d23948676af9ba4df60c2a34a4f19e06fd",
+      "status": "completed",
+      "currentFile": "wiki/concepts/rope.md",
+      "afterHash": "1e6cf8b373052eb1bcb4f61b17370bd6bf296b15fa8aa840e0d4cad262781cb4",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "sampling",
+      "file": "concepts/sampling.md",
+      "beforeHash": "96b3947e0e7b187351e0338ee24aa521decdb31d4f3b75a5cd76645efcde856d",
+      "status": "completed",
+      "currentFile": "wiki/concepts/sampling.md",
+      "afterHash": "cbeb11b77bb0e114f7c69b6a0fef836a5c4d2f78f07ce69d9860d4a00f62a048",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "sequence-parallel",
+      "file": "concepts/sequence-parallel.md",
+      "beforeHash": "66ec4ee25457599613aae376c688985104f78c07b9b70489e8315a8342af6353",
+      "status": "completed",
+      "currentFile": "wiki/concepts/sequence-parallel.md",
+      "afterHash": "b2368b7d69ebc7009636ace99b4d838a89182516aa4afdab1fa768e1fc4ebbd7",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "short-request-first",
+      "file": "concepts/short-request-first.md",
+      "beforeHash": "8ccaba73ef5bd67946341432e5630753918ffe69406515644a488e9ee1fa39b1",
+      "status": "completed",
+      "currentFile": "wiki/concepts/short-request-first.md",
+      "afterHash": "31a34d96e3a4f97ae41f8cc9cf7ff332328b0c091b7ae796463a00bfa2a9d7aa",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "sleep-mode",
+      "file": "concepts/sleep-mode.md",
+      "beforeHash": "e3581da6c2e0171dc63053ec458af405339436f42d9036722f2381731f4696ee",
+      "status": "completed",
+      "currentFile": "wiki/concepts/sleep-mode.md",
+      "afterHash": "fc14fdc41d855bec1017dcb3e97a28e2e3c8d191590229502922c1513bdee85a",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "sparse-attention",
+      "file": "concepts/sparse-attention.md",
+      "beforeHash": "5c833fa29657a477078d9b5f8e1a8f347a3c9e3c19b91b72f1850a4bbed1f124",
+      "status": "completed",
+      "currentFile": "wiki/concepts/sparse-attention.md",
+      "afterHash": "f892023a6ecf48c06ac835f75eb854741189b8935d92767e6b5e7f6386123e19",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "speculative-decoding",
+      "file": "concepts/speculative-decoding.md",
+      "beforeHash": "67bc9d36ff6c7738b284156c502e3fa08ffa14cefd4c10a19e88bb43deeebdd6",
+      "status": "completed",
+      "currentFile": "wiki/concepts/speculative-decoding.md",
+      "afterHash": "ef2c3e3af5af218cfdc470241bd7832dd93bbb842ab108acfea0a2663efb1595",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "streaming-output",
+      "file": "concepts/streaming-output.md",
+      "beforeHash": "f3ef7bd2d5b82ff89700ed731e686f1b3bc8a30a71e525551fff52e65a543297",
+      "status": "completed",
+      "currentFile": "wiki/concepts/streaming-output.md",
+      "afterHash": "469fe3e2c95f7f659db9ac1a4899017cf6cb7d2aaa251495a207f4df35b9e78e",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "structured-output",
+      "file": "concepts/structured-output.md",
+      "beforeHash": "ffe9e98eb02af2be5f99554f16191df2ff829edccf76652a9e44d248190f36cd",
+      "status": "completed",
+      "currentFile": "wiki/concepts/structured-output.md",
+      "afterHash": "22f81405c5edac783f63aa2bccff41d49193584b11721b97857d57fa1af700e4",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "tensor-layout",
+      "file": "concepts/tensor-layout.md",
+      "beforeHash": "3203af225b78edaf5ced09e3373f97e4fe0a2f0d835b612be080e71750a27166",
+      "status": "completed",
+      "currentFile": "wiki/concepts/tensor-layout.md",
+      "afterHash": "0206784b09b42f8abe4b11c3a8f4c6eacadf9cc73f703f543da9805a6f62cd29",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "tensor-parallel",
+      "file": "concepts/tensor-parallel.md",
+      "beforeHash": "704c2eed87ce34ac1a3a0069641ddff05af311e0c0b997474eed226a0e2b464e",
+      "status": "completed",
+      "currentFile": "wiki/concepts/tensor-parallel.md",
+      "afterHash": "e3aa512ef106b4d4123d59b2351bc18e40c197b6334a44e879d250bf1596814d",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "token",
+      "file": "concepts/token.md",
+      "beforeHash": "0fc23804ee9f2d662853139464c3bcb9644236e1996638da66ad2e53029626b7",
+      "status": "completed",
+      "currentFile": "wiki/concepts/token.md",
+      "afterHash": "27c6e847f86446e4f7a547f254f26bd60867a77cf0fab356be2855cdc19ed5c1",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "ucm",
+      "file": "concepts/ucm.md",
+      "beforeHash": "d866daf36fd2d8d4b0dbf88c18146d7c38c58dec4c6892a3f381639157d48f85",
+      "status": "completed",
+      "currentFile": "wiki/concepts/ucm.md",
+      "afterHash": "1a19353ef4f7fc074b0912664dc5b95437dc310e22d23d4c51416302e033beeb",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "vllm-ascend-for-rl",
+      "file": "concepts/vllm-ascend-for-rl.md",
+      "beforeHash": "9a2608cecc1ad606d54ff6e52bed4dbc6b27902ce380f7a58ac3a5511819773b",
+      "status": "completed",
+      "currentFile": "wiki/concepts/vllm-ascend-for-rl.md",
+      "afterHash": "864dff31879f51cad2a3d8d5c3639f541185dd6eeef3549d8489bfd4848fa87c",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "vllm-ascend-overview",
+      "file": "concepts/vllm-ascend-overview.md",
+      "beforeHash": "20eee35e04e4dd5d21a231272269dd7bdd6e8fd213930bb8e5d8a6fb38d10045",
+      "status": "completed",
+      "currentFile": "wiki/concepts/vllm-ascend-overview.md",
+      "afterHash": "d13c95ea592ba22ed58c5c2493eb0b4f6e3b39d5e7b83dd59040a9e29b32b57d",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "vllm-ascend-repo-map",
+      "file": "concepts/vllm-ascend-repo-map.md",
+      "beforeHash": "1611162eee7c60f71b1ce514bf9cb4e211a3753c6ba55235cf924ad792b79326",
+      "status": "completed",
+      "currentFile": "wiki/concepts/vllm-ascend-repo-map.md",
+      "afterHash": "185f427a0bf2e86376962667ee7143505d02b7f474b28ff6659c9170035d3532",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "vllm-engine-core",
+      "file": "concepts/vllm-engine-core.md",
+      "beforeHash": "0616ba51572f5e6aa24d96e20375afbc24ee8019e200954260d2124967e03ba0",
+      "status": "completed",
+      "currentFile": "wiki/concepts/vllm-engine-core.md",
+      "afterHash": "af9825b4c28a4e835bb5597f4094adf84cbbe5d79222934b273a4cc0fa224267",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "vllm-kv-block-allocation",
+      "file": "concepts/vllm-kv-block-allocation.md",
+      "beforeHash": "75126461de5f5391eb661a5aedf21ad070079a446730acff227cf55fe3adaeb1",
+      "status": "completed",
+      "currentFile": "wiki/concepts/vllm-kv-block-allocation.md",
+      "afterHash": "48b50b1d5e0c67d7f6e621dd7e2d1b9d8a6585d847ae3e735d5e8a9934c9eada",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "vllm-platform-interface",
+      "file": "concepts/vllm-platform-interface.md",
+      "beforeHash": "d27d8dc0b52577a071aaf59b44ed66e2a6b3b9579980908f2386d04b0c86d5cb",
+      "status": "completed",
+      "currentFile": "wiki/concepts/vllm-platform-interface.md",
+      "afterHash": "f790047e61d3345caf1a01a618225902b85a0ff42eca1a1c8caf3a6569e4f7fd",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "vllm-scheduler",
+      "file": "concepts/vllm-scheduler.md",
+      "beforeHash": "b17c1afb096214b3f684f33dd09672c307bfc54a9c740a87edf1780628ac4e9e",
+      "status": "completed",
+      "currentFile": "wiki/concepts/vllm-scheduler.md",
+      "afterHash": "7a95879e9f689f29271c642c57ebd134b05aa4ca72f529929258dfee94b6e55c",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "vllm-v1-shape",
+      "file": "concepts/vllm-v1-shape.md",
+      "beforeHash": "c56876fa81b8e3e42a803df5c0dbb04b97b7d1914f63a1fb92fde89473299f7d",
+      "status": "completed",
+      "currentFile": "wiki/concepts/vllm-v1-shape.md",
+      "afterHash": "ffe7f5baa4b247f5dbfff0fc987b3d60c3b0dff4aac6c49e49a000f8720184bd",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "absolute-balance-threshold-71578a0c428d",
+      "file": "params/absolute-balance-threshold-71578a0c428d.md",
+      "beforeHash": "a294f07de15d604cff6c0954d596d4a001dd3b414e8ba942a40311f641c6f201",
+      "status": "completed",
+      "currentFile": "wiki/params/absolute-balance-threshold-71578a0c428d.md",
+      "afterHash": "5467e3b7c17fdf4a25e2299c7d5c83a9371d0386e1775868f68dde7401c14487",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "block-table-no-commit-optimize-8328d0d2d00d",
+      "file": "params/block-table-no-commit-optimize-8328d0d2d00d.md",
+      "beforeHash": "62bc499c8a61db912414cbf6b72a13b8679d59cec48184ef32fa222ddcf6278c",
+      "status": "completed",
+      "currentFile": "wiki/params/block-table-no-commit-optimize-8328d0d2d00d.md",
+      "afterHash": "970899e4467a6982877dc5edea42b9a05545f6bcf22d593bebdadda4b32468ce",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "c8-enable-reshape-optim-8bd7e5f82c6c",
+      "file": "params/c8-enable-reshape-optim-8bd7e5f82c6c.md",
+      "beforeHash": "f7fe8ab46e0db9fa3a9dae9cfb85704b318afde5d3ce0b7a9488f3225c574095",
+      "status": "completed",
+      "currentFile": "wiki/params/c8-enable-reshape-optim-8bd7e5f82c6c.md",
+      "afterHash": "b2f5fca3f52b98808b3d371c35424ab8d540b0b23b7278602ef100f1ce809347",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "combine-quant-mode-2a3f7cd47997",
+      "file": "params/combine-quant-mode-2a3f7cd47997.md",
+      "beforeHash": "43d27033ca231cf3b6c005d010d9a48c298f30ad26661c8ebb022e5c25c46a61",
+      "status": "completed",
+      "currentFile": "wiki/params/combine-quant-mode-2a3f7cd47997.md",
+      "afterHash": "891ba989899bb18974231374a55a2acf2acea04004f0b0324c3d331e3fff873e",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "cross-node-transfer-limit-06ee92260b7a",
+      "file": "params/cross-node-transfer-limit-06ee92260b7a.md",
+      "beforeHash": "d91c7731ac000c7469cc227e5e0fa8c16220261a8fd1d2bb240c4c33e483467b",
+      "status": "completed",
+      "currentFile": "wiki/params/cross-node-transfer-limit-06ee92260b7a.md",
+      "afterHash": "b4f8872c8ff5046f64c3ff777546ad4354c9b8a44b71bb3f53210de162ec8d9f",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "enable-async-exponential",
+      "file": "params/enable-async-exponential.md",
+      "beforeHash": "dd74b3a14621aedb0086e4d8c6ac89394dd529b41ef6bef74525ef022f084ac3",
+      "status": "completed",
+      "currentFile": "wiki/params/enable-async-exponential.md",
+      "afterHash": "147a2d934c48a9115d7b25c0066de317d10e79c5ded6b25f214cd5922b0dea21",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "enable-force-eplb-b7ec3661121f",
+      "file": "params/enable-force-eplb-b7ec3661121f.md",
+      "beforeHash": "2750931d77642debd6056279aba235e620ecc483a1129df5e7f73313e33788f7",
+      "status": "completed",
+      "currentFile": "wiki/params/enable-force-eplb-b7ec3661121f.md",
+      "afterHash": "31faffbd3369f99c69a6fe4787242988223be7bc6471a89319e62bfceb7aca79",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "enable-matmul-allreduce",
+      "file": "params/enable-matmul-allreduce.md",
+      "beforeHash": "b6e9ca32a453ce8718a3c7ee1be47c3b717eac3ef16fc1ea6bc392d7398a6ae2",
+      "status": "completed",
+      "currentFile": "wiki/params/enable-matmul-allreduce.md",
+      "afterHash": "372c3ea8576ded678f6c1ead95767b85037271cc3ea8065510c0f516984f1031",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9",
+      "file": "params/enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9.md",
+      "beforeHash": "e8983a3c81fea440ef7dc6959bd4be73142bc2896c084c5f7b806c9d7a874d7b",
+      "status": "completed",
+      "currentFile": "wiki/params/enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9.md",
+      "afterHash": "e0266832e38d7da344c7d62449460cdbdb8873956d5bdd83f9b327cef3279173",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
+      "file": "params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md",
+      "beforeHash": "0962430242186f4235c34ffd740fc6310b0e94dd755867dce33f7b3a77df51fe",
+      "status": "completed",
+      "currentFile": "wiki/params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md",
+      "afterHash": "bac40d851c2b00a4f0f8c14c09bc573e04de3844cba1958a47e076d4f02a213d",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "enable-sleep-mode-extra-cleanup",
+      "file": "params/enable-sleep-mode-extra-cleanup.md",
+      "beforeHash": "ee2eb3355a625d611de244d14c10436e19c0413e05dbac749c6c5df59dce1510",
+      "status": "completed",
+      "currentFile": "wiki/params/enable-sleep-mode-extra-cleanup.md",
+      "afterHash": "5ffaf8c79ef7eaf5990184e118a343af2e5f7ffce57dc094da07bb01d7fbd951",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "enable-super-kernel-ce990e186bfa",
+      "file": "params/enable-super-kernel-ce990e186bfa.md",
+      "beforeHash": "2c114a76687f351f928acafac03d2453a9a4d8786a1476b7abf4418f23a142ea",
+      "status": "completed",
+      "currentFile": "wiki/params/enable-super-kernel-ce990e186bfa.md",
+      "afterHash": "5d7a32b6cb2c8a6dda1a6734c309827e686df1eb43f1631fbfa1bf7af04da2ff",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "fuse-allreduce-rms",
+      "file": "params/fuse-allreduce-rms.md",
+      "beforeHash": "38fa7d8cfb9ec78f0c5301dfa3204136b4d2785a93dc24eb592c240998770864",
+      "status": "completed",
+      "currentFile": "wiki/params/fuse-allreduce-rms.md",
+      "afterHash": "a22aa267b14c4c96a7d17b4980682885fbe0988ed57cef76babfea2bccd3fa7b",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "fused-op-type-fc0f5fcd7be0",
+      "file": "params/fused-op-type-fc0f5fcd7be0.md",
+      "beforeHash": "737cb901d66511d0f4ee9d78ee85053d3b3c03d17e866e33cff0b40173b27a9d",
+      "status": "completed",
+      "currentFile": "wiki/params/fused-op-type-fc0f5fcd7be0.md",
+      "afterHash": "2b7291f2bb3884254e063dcf7c4125b7a620c299cc2d40ed0d76978fdce075c7",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "kv-pool-range-debug-83e8b165addd",
+      "file": "params/kv-pool-range-debug-83e8b165addd.md",
+      "beforeHash": "6381291dcabbea0f3cacbc8c88a881cbb975dd1bac4d4a47101204eb1f0b1d56",
+      "status": "completed",
+      "currentFile": "wiki/_drafts/kv-pool-range-debug-83e8b165addd.md",
+      "afterHash": "dbef948c95d29943dbcbf2df7e0bac52be79829b5c9c4f734300343676cd2b50",
+      "public": false,
+      "browser": "not-published; source/document review only"
+    },
+    {
+      "id": "kvpp-config-0445bd352140",
+      "file": "params/kvpp-config-0445bd352140.md",
+      "beforeHash": "7ef8ceb07d87fd117c1171d1855d6d554604c2bd0f6c779d0356c7f57a85f677",
+      "status": "completed",
+      "currentFile": "wiki/params/kvpp-config-0445bd352140.md",
+      "afterHash": "a69dc0c8728f81100ac006738cd0cb7b155c15bcc1f64b81daf62caa385ab13c",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "layer-sharding",
+      "file": "params/layer-sharding.md",
+      "beforeHash": "0d55cfffd65758513258ffdd2c19effc9629c20428eccdaae78e8a44a1c0db5e",
+      "status": "completed",
+      "currentFile": "wiki/params/layer-sharding.md",
+      "afterHash": "d5f7871dcb8c41dba306d6d2b85d36d4eb6e1fe3fc1270e35d129313dfd2c6aa",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "load-risk-quantile-d89a080ba048",
+      "file": "params/load-risk-quantile-d89a080ba048.md",
+      "beforeHash": "98a8bbb830b38fd44b609ef310c1d8c16dca5e994ba21209617db9ae9383400f",
+      "status": "completed",
+      "currentFile": "wiki/params/load-risk-quantile-d89a080ba048.md",
+      "afterHash": "435c283be78a982fa84bc6b8353995644472c73ef7ffa37e149d3d3793506568",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "load-window-bins-cc21068b082d",
+      "file": "params/load-window-bins-cc21068b082d.md",
+      "beforeHash": "666fd48d45d5fe03f6431526657bf62f474ede95438d99a30780871c6ba45e63",
+      "status": "completed",
+      "currentFile": "wiki/params/load-window-bins-cc21068b082d.md",
+      "afterHash": "920c4a304c685cb259bff366d98ba2509a218b08686b2db5733ab60763c9216f",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "multistream-engram-overlap-29113aa3f8fc",
+      "file": "params/multistream-engram-overlap-29113aa3f8fc.md",
+      "beforeHash": "26d14d3d8dad50272e64305b301c3e762202114f4b60e2cf10b94647bdd68c92",
+      "status": "completed",
+      "currentFile": "wiki/_drafts/multistream-engram-overlap-29113aa3f8fc.md",
+      "afterHash": "eb43c89110824d691ec5d2f950eac178a3463033e0a1fbd4e96884b2f9ce284f",
+      "public": false,
+      "browser": "not-published; source/document review only"
+    },
+    {
+      "id": "multistream-overlap-gate",
+      "file": "params/multistream-overlap-gate.md",
+      "beforeHash": "6709b8030ca5f630758aa2d5ffc57a52d7c0541db676d68edbf908f3ac10f1a5",
+      "status": "completed",
+      "currentFile": "wiki/params/multistream-overlap-gate.md",
+      "afterHash": "22694b255a47de3d766e5a89021cfed2c21d44b95fc9dae27ad95f52a0b4a5bc",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "placement-search-backtrack-limit-82b03cef98b0",
+      "file": "params/placement-search-backtrack-limit-82b03cef98b0.md",
+      "beforeHash": "e6e9aff6d701170cf88e19247be00ffc34d22fd64302a698a10ee83edaf745d3",
+      "status": "completed",
+      "currentFile": "wiki/params/placement-search-backtrack-limit-82b03cef98b0.md",
+      "afterHash": "917fe9b606a0294eb9541e115d4ad580a7ed45e6d017fc70c7821ba14db3c095",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "prefetch-ratio",
+      "file": "params/prefetch-ratio.md",
+      "beforeHash": "18d57258527f59e1e05ff9ce32af9748187f6723b665263291319f0236e38f3c",
+      "status": "completed",
+      "currentFile": "wiki/params/prefetch-ratio.md",
+      "afterHash": "98e5b05674d3385d4ca70daf4cb215d866d1cc08c68e06e0f1eeafac173a952e",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "profiling-chunk-config",
+      "file": "params/profiling-chunk-config.md",
+      "beforeHash": "f41102379d8b78e0716e5a1f3952dc17168d25312b96e970aa8f6593d3678f97",
+      "status": "completed",
+      "currentFile": "wiki/params/profiling-chunk-config.md",
+      "afterHash": "f523135261f848636ba14872bb34411441034840c4fc9a48a82e04cd79404db9",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "rank-transfer-limit-99529b37d91d",
+      "file": "params/rank-transfer-limit-99529b37d91d.md",
+      "beforeHash": "7285cdde168cb6513117a02cc3466cc4a83c14c81af0a5fc09a57c90aa4bb55f",
+      "status": "completed",
+      "currentFile": "wiki/params/rank-transfer-limit-99529b37d91d.md",
+      "afterHash": "d3946b6c2df9c7112e2361d752a021f0a3b9895d5251f6ddb0f13c8366ac9898",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "relative-balance-threshold-bcbc40e7dc87",
+      "file": "params/relative-balance-threshold-bcbc40e7dc87.md",
+      "beforeHash": "eb778b836368c3db4d0ebf7d04ecada4554b8497fd74a07f23e677af0570a2a4",
+      "status": "completed",
+      "currentFile": "wiki/params/relative-balance-threshold-bcbc40e7dc87.md",
+      "afterHash": "82a232b60fa004d55e5f4084f54369c3596f39d9d6af5df4d8c299936096c169",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "replica-search-beam-size-6556d1650a62",
+      "file": "params/replica-search-beam-size-6556d1650a62.md",
+      "beforeHash": "adfe0e056948b51ed6b12389e7dab396ddf1f7245e719be9745bc5fa29882b16",
+      "status": "completed",
+      "currentFile": "wiki/params/replica-search-beam-size-6556d1650a62.md",
+      "afterHash": "b7960db0dfc1cdf1195b104881c66998ded1b1618c15715a40e018b7671276ac",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "replica-search-num-stages-e4b10925ff97",
+      "file": "params/replica-search-num-stages-e4b10925ff97.md",
+      "beforeHash": "c146ae097b3145cb9fd763b5bda98332e30accca58dde4f17573cc2c9ffa0d89",
+      "status": "completed",
+      "currentFile": "wiki/params/replica-search-num-stages-e4b10925ff97.md",
+      "afterHash": "073ca847683cc7e1e8e90d75090b0a0189bb6f4a78fb04d8aafdb74d296c5b8c",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "replica-search-radius-cd3118b5aae5",
+      "file": "params/replica-search-radius-cd3118b5aae5.md",
+      "beforeHash": "cc819c1e8574217bce587b34c88543cab466d579f786de5fd72e3077c2abf383",
+      "status": "completed",
+      "currentFile": "wiki/params/replica-search-radius-cd3118b5aae5.md",
+      "afterHash": "b9d670f1278d8c9d9a1d04656eba9131da8ca3eca0625a4ff11144acd1501c45",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "runtime-config-abb228bbf148",
+      "file": "params/runtime-config-abb228bbf148.md",
+      "beforeHash": "31f03b71029fd3defd3604a32a3accb252a24b1bc1acc81fe2f28c49638db5f4",
+      "status": "completed",
+      "currentFile": "wiki/_drafts/runtime-config-abb228bbf148.md",
+      "afterHash": "6ec94e5e891ca6967baebc3f58ff9ecfc7d2615e13915eb0a47ce4132770abf1",
+      "public": false,
+      "browser": "not-published; source/document review only"
+    },
+    {
+      "id": "runtime-config-hot-reload-9c9ab794933a",
+      "file": "params/runtime-config-hot-reload-9c9ab794933a.md",
+      "beforeHash": "0d075a357fcb33885a765fd2d3775a18ef1b22154126bfe30c36f0e855499e97",
+      "status": "completed",
+      "currentFile": "wiki/_drafts/runtime-config-hot-reload-9c9ab794933a.md",
+      "afterHash": "82087a8ca3a001b93298b4cd3fbc48a352533c068a487cc1316711b5835d43cb",
+      "public": false,
+      "browser": "not-published; source/document review only"
+    },
+    {
+      "id": "runtime-config-path-e23e596c2a2e",
+      "file": "params/runtime-config-path-e23e596c2a2e.md",
+      "beforeHash": "34b12d49dca960d39493239e1de8147b8448709ba673141222261a4c6af05e8b",
+      "status": "completed",
+      "currentFile": "wiki/_drafts/runtime-config-path-e23e596c2a2e.md",
+      "afterHash": "9fbdabc04bf1e180cb4f4b65348d002948a2c53b0fb5766a94f122482335cec0",
+      "public": false,
+      "browser": "not-published; source/document review only"
+    },
+    {
+      "id": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
+      "file": "params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md",
+      "beforeHash": "d39fc69a00514e873a9a6f26262a2e2ca890be15a88b263e4380ed6bb6e1cc3f",
+      "status": "completed",
+      "currentFile": "wiki/params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md",
+      "afterHash": "d5cf664bf7f22c6b2e8b9f38bf68569148a2a26c6091545e86299cefbb7daa9f",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "size-40a1c2ca47b8",
+      "file": "params/size-40a1c2ca47b8.md",
+      "beforeHash": "b05683b53d8d2911b381c30b2d12e7a9fcca21989a6212a5ad2dd09770ab76cd",
+      "status": "completed",
+      "currentFile": "wiki/params/size-40a1c2ca47b8.md",
+      "afterHash": "d372ad6a7fa00f545279a165e1ede2b31886c200ceeaa7461bd036090e107595",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "stair-config-cca9e594a052",
+      "file": "params/stair-config-cca9e594a052.md",
+      "beforeHash": "aafcf51c8eb8f8f9586c1cb28eb823d576d68181c5d8613399a1d70c83576c84",
+      "status": "completed",
+      "currentFile": "wiki/params/stair-config-cca9e594a052.md",
+      "afterHash": "1b65a7dca77b9c70062660de6bcbbe7d4474284542f8f5b3351889841820b374",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "use-fused-overlap-75a180fff6ab",
+      "file": "params/use-fused-overlap-75a180fff6ab.md",
+      "beforeHash": "fd72e0cacfff67a33c2eb000defb632429b1fb9f0ea59f0967e02aa480781dd4",
+      "status": "completed",
+      "currentFile": "wiki/params/use-fused-overlap-75a180fff6ab.md",
+      "afterHash": "de2e5a13cfd42ccf37b00261833fc7d6cf5be091dde3b807743801d51014c312",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "use-layerwise-b475778cd352",
+      "file": "params/use-layerwise-b475778cd352.md",
+      "beforeHash": "865ce2b648f7e4b65a921a8789bc943e44e6f1cb0c8d20d71869833f9bfe900e",
+      "status": "completed",
+      "currentFile": "wiki/params/use-layerwise-b475778cd352.md",
+      "afterHash": "c5e8b74b5cc6daece68ce451a61fc33be6999a37cbf509e71c717da431816419",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    },
+    {
+      "id": "weight-prefetch-config",
+      "file": "params/weight-prefetch-config.md",
+      "beforeHash": "a6fb89c83223a649e302fa0076edeb253812c4a6220b4dd7ba22f84592b0cd9c",
+      "status": "completed",
+      "currentFile": "wiki/params/weight-prefetch-config.md",
+      "afterHash": "1d5c6825ab9a57fafa3d118dbfd4e5f8bb5f9633e95fba90ffd6a9f300c42591",
+      "public": true,
+      "browser": "opening and version navigation checked in IAB"
+    }
+  ],
+  "completedAt": "2026-11-02T19:47:43.137Z",
+  "delivery": {
+    "originalPages": 144,
+    "concepts": 106,
+    "formalParams": 33,
+    "draftParams": 5,
+    "newSourcePages": 1,
+    "totalPages": 145,
+    "publicPages": 140
+  },
+  "addedPages": [
+    {
+      "id": "v030rc2-baseline",
+      "currentFile": "wiki/sources/v030rc2-baseline.md",
+      "afterHash": "cb62bdc88b8cb61675302fee2ed4d5818cddbc2b393259ee8df81abc644842b9",
+      "status": "completed",
+      "public": true
+    }
+  ],
+  "scopeNote": "Task-start 144 related pages plus one baseline page; unrelated concurrent edits are not attributed to this task. Historical skeleton copies under _param-skeletons are not publication pages."
+}

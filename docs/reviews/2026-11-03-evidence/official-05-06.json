@@ -1,0 +1,220 @@
+{
+  "scope": [
+    "developer_guide/contribution",
+    "developer_guide/evaluation",
+    "community"
+  ],
+  "total_documents": 19,
+  "completed_documents": 19,
+  "documents": [
+    {
+      "path": "community/index.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "770a6e269d97117c805456d1d926435dc3a2092d0df7e95a9a99ced329701eee",
+      "read_ranges": [
+        "L1-L18"
+      ],
+      "status": "full-text-read",
+      "note": "社区入口：治理、贡献者、版本策略、issue与slash命令、用户案例。",
+      "image_visual_review": false
+    },
+    {
+      "path": "community/user_stories/index.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "c504576b1672bb514d9039219044c5d2a15a3e591c610fa36c2473b62384335c",
+      "read_ranges": [
+        "L1-L13"
+      ],
+      "status": "full-text-read",
+      "note": "案例入口列LLaMA-Factory/TRL/MindIE Turbo/GPUStack/verl；支持版本和性能是各案例宣称，不能推广为任意组合。",
+      "image_visual_review": false
+    },
+    {
+      "path": "community/user_stories/llamafactory.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "dbf970e9569a2d4cfbc04263ab751b52ba131a1c253bc08b711cce2f0797d436",
+      "read_ranges": [
+        "L1-L19"
+      ],
+      "status": "full-text-read",
+      "note": "LLaMA-Factory集成PR7739；相对Transformers最多2倍来自该案例，不是通用性能保证。",
+      "image_visual_review": false
+    },
+    {
+      "path": "developer_guide/evaluation/index.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "3e482f5edaa44e787b5fd1933b837aec726a8dbe40f80457ff678815d4742b8c",
+      "read_ranges": [
+        "L1-L1"
+      ],
+      "status": "full-text-read",
+      "note": "仅Accuracy标题；评测方法须读子页。",
+      "image_visual_review": false
+    },
+    {
+      "path": "community/governance.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "363896c8c0729a175b7c5cb0f52347e069a5ab5ad8951a16cb42e8234efa77a6",
+      "read_ranges": [
+        "L1-L55"
+      ],
+      "status": "full-text-read",
+      "note": "贡献者triage与维护者write权限、个人提名/移除、emeritus保留认可与权限及重返规则；仅为固定文档治理描述。",
+      "image_visual_review": false
+    },
+    {
+      "path": "community/issue-workflow-guidelines.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "d1be8ff338863fe930f4b5470c7ed41e86cdc6dd88453a5c640980f8eaa9609d",
+      "read_ranges": [
+        "L1-L82"
+      ],
+      "status": "full-text-read",
+      "note": "issue标签、初始响应/分诊/关闭流程；resolved包含非代码解决，不能等价于已修复发布；内嵌流程图片未视觉检查。",
+      "image_visual_review": false
+    },
+    {
+      "path": "developer_guide/contribution/index.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "f1028edc4d5eda66a34252845dfd335f9c5b1a0b24f2661b9df01971a56ad082",
+      "read_ranges": [
+        "L1-L134"
+      ],
+      "status": "full-text-read",
+      "note": "开发环境：Linux构建限制、非Linux lint/basic CI、verified vLLM commit、local csrc cache、DCO与用户可见变更的release fragment。",
+      "image_visual_review": false
+    },
+    {
+      "path": "developer_guide/contribution/e2e_ci_test.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "c6b423067277760d238e6b9589f689c15c4201c9a988f1a4afa3c7967f949992",
+      "read_ranges": [
+        "L1-L131"
+      ],
+      "status": "full-text-read",
+      "note": "/e2e授权人、路径路由硬件、synchronize复用评论；main2main验证两种上游；评论测试不是完整PR套件。",
+      "image_visual_review": false
+    },
+    {
+      "path": "community/versioning_policy.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "78fa17c7aaa6d5be2c0d70b385baa2998c9af475d15548475c836dc73f65244e",
+      "read_ranges": [
+        "L1-L215"
+      ],
+      "status": "full-text-read",
+      "note": "固定版本与依赖匹配表、main verified commit、维护分支与回移植、文档发布和torch_npu政策全文；CPU可编辑安装不等于完整运行时兼容。",
+      "image_visual_review": false
+    },
+    {
+      "path": "community/slash-commands.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "647653961a6f2df180882af8e6a55dae56a19d2c7aff59274d39efa1369bcdc8",
+      "read_ranges": [
+        "L1-L278"
+      ],
+      "status": "full-text-read",
+      "note": "e2e/nightly命令、权限、profiling时间窗、vllm-ref、日志映射、cherry-pick/revert/rerun/cancel全文；nightly作用域和--branch issue说明存在文字张力；e2e权限与另一CI指南不同，不能通用化。",
+      "image_visual_review": false
+    },
+    {
+      "path": "developer_guide/evaluation/using_opencompass.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "c2597adb223b4eeba2ec97a84829e053fecd3541da5d0b45edd894236908e8e7",
+      "read_ranges": [
+        "L1-L125"
+      ],
+      "status": "full-text-read",
+      "note": "Qwen2.5-7B单卡示例、ceval首子集、Python3.10/SDK配置与样例结果全文；68.42非通用精度结论。",
+      "image_visual_review": false
+    },
+    {
+      "path": "developer_guide/evaluation/using_evalscope.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "494e2ad44668aa56a82a4ad758719739a6ea0a339039f0fdbe1575580ea44649",
+      "read_ranges": [
+        "L1-L175"
+      ],
+      "status": "full-text-read",
+      "note": "GSM8K limit10样例与20请求并发5性能命令、TTFT/ITL/吞吐统计全文；0.8与吞吐是限定样例。",
+      "image_visual_review": false
+    },
+    {
+      "path": "developer_guide/evaluation/using_ais_bench.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "5f9cd91214c1e81e542b66ec3b127cad487879f7f9b34336f802b3a014a4fb52",
+      "read_ranges": [
+        "L1-L332"
+      ],
+      "status": "full-text-read",
+      "note": "安装、7数据集、模型服务配置、精度/性能执行、结果目录、TextVQA及路径错误全文；命令max-model-len35000与文字greater than35000边界不一致。",
+      "image_visual_review": false
+    },
+    {
+      "path": "developer_guide/evaluation/using_lm_eval.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "77cb3dcecdbaab6a93c4e2ecc25cd8605e846ef08cc40eb428996ef9ef609222",
+      "read_ranges": [
+        "L1-L329"
+      ],
+      "status": "full-text-read",
+      "note": "在线local-completions与离线vllm后端、GSM8K/MMLU本地数据和模板、ModelScope环境变量全文；未执行评测。",
+      "image_visual_review": false
+    },
+    {
+      "path": "developer_guide/contribution/doc_writing.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "fc5e1601a7f9002666a993c30689d0d322f58fd91551abbd2b6888593e0321fc",
+      "read_ranges": [
+        "L1-L508"
+      ],
+      "status": "full-text-read",
+      "note": "全文核读508行：模型模板/Triton位置、表格冻结、五种model-code转换器与YAML字段、脚本生成/校验及开发接口；生成不等于脚本可运行，官方明确要求检查生成命令。",
+      "image_visual_review": false
+    },
+    {
+      "path": "developer_guide/contribution/multi_node_test.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "0b996e03c490e96333d247820b1333d0b4c486820c2e10f8a80e509c30bbeef9",
+      "read_ranges": [
+        "L1-L556"
+      ],
+      "status": "full-text-read",
+      "note": "全文核读556行：LWS环境/内部外部DP配置与公共入口、K8S/裸机启动、worker先master后、AISBench版本和每rank日志；图未视觉核验。官方示例metadata.name=test-server但Service selector为vllm，与样例日志名也不一致。",
+      "image_visual_review": false
+    },
+    {
+      "path": "developer_guide/contribution/nightly_ci_test.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "9b1f4eca006371814b1d5448b8847d6d74b485a3fe2e46a9633df8d8d1e6afee",
+      "read_ranges": [
+        "L1-L717"
+      ],
+      "status": "full-text-read",
+      "note": "全文核读717行：nightly权限/维护时窗/动态矩阵、profiling触发和边界/OBS及artifact/不完整状态、AOP、排错。L14无cron与L94每日cron表冲突，L683 repository_dispatch也需核工作流；没有将这些描述推广为机制。",
+      "image_visual_review": false
+    },
+    {
+      "path": "developer_guide/contribution/testing.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "b229c9deaaaa28b09c0d9217917092e7e10d4da2580de51af5d9fbf2046648ab",
+      "read_ranges": [
+        "L1-L475"
+      ],
+      "status": "full-text-read",
+      "note": "全文核读475行：CPU mock单测与NPU E2E分界、选择性测试、csrc缓存证据、schedule前缀不等cron、doctest仅固定标记块、linkcheck和PR验证要求；无实际NPU执行。",
+      "image_visual_review": false
+    },
+    {
+      "path": "community/contributors.md",
+      "commit": "921ccc52c6d8c9864190b981792318a489aeadf4",
+      "sha256": "3e5539895574f82a814d8ff925c977dbdc3b6d60c1b1a5bdf37972a94e52cab0",
+      "read_ranges": [
+        "L1-L615"
+      ],
+      "status": "full-text-read",
+      "note": "全文读取615行；L1-L51原文，L52-L615将Markdown链接转为标签显示以去除重复URL但保留全部名单/日期/提交标签。名单573条记录而非独立人数证明，存在重复账号；未逐项核贡献者身份或每个提交。",
+      "image_visual_review": false
+    }
+  ]
+}

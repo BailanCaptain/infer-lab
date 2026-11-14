@@ -1,14 +1,14 @@
 layout: figure
 id: prepare-inputs-code-flow
-caption: 一步里 model runner 的先后顺序。第 2 站的调度计划经广播队列发给本组 8 个 worker；每个 worker 先把持久批次改成和计划一致，本步一个 token 都没有就直接返回。接着准备输入：先发起块表拷贝，再定每行属于谁和这一步的形态，填位置和 token id、边界和长度，在 NPU 上算槽位，最后按有没有草稿决定选哪几行。之后补齐行数（图尺寸、两个 DP 组对齐），按缓存组建好注意力元数据，进入第 4 站。
+caption: 一步里 model runner 的先后顺序。第 2 站的调度计划经广播队列发给本组 8 个 worker；每个 worker 先把持久批次改成和计划一致，本步没有 token 时不进常规输入准备，按配置完成必要协作后提前返回。接着准备输入：先发起块表拷贝，再定每行属于谁和这一步的形态，填位置和 token id、边界和长度，在 NPU 上算槽位，最后按有没有草稿决定选哪几行。之后补齐行数（图尺寸、两个 DP 组对齐），按缓存组建好注意力元数据，进入第 4 站。
 size: [900, 566]
 frames:
   - { at: [16, 132], size: [868, 322], label: 第 3 站 准备输入（每个 worker 的 model runner）, inside: true }
 items:
   - { at: [24, 40], size: [260, 60], text: 调度计划, sub: 谁、各几个 token、新块号、草稿, tone: control, style: plain }
   - { at: [324, 40], size: [260, 60], text: 广播给本组 8 个 worker, sub: 共享内存队列，8 份相同, tone: control, style: plain }
-  - { at: [456, 170], size: [408, 60], text: 同步持久批次, sub: 删请求 → 追加块号 → 加新请求 → 压紧 → 重排, tone: token, style: plain }
-  - { at: [176, 170], size: [240, 60], text: 本步 0 个 token, sub: 返回空结果，不往下走, tone: control, style: faded }
+  - { at: [456, 170], size: [408, 60], text: 同步持久批次：删、更新、加、压紧、重排, sub: 续跑追加块号；抢占恢复替换块号, tone: token, style: plain }
+  - { at: [176, 170], size: [240, 60], text: 本步 0 个 token, sub: 完成必要协作后返回, tone: control, style: faded }
   - { at: [32, 270], size: [188, 60], text: 块表拷到 NPU, sub: 先发起，与后面并行, tone: kv, style: plain }
   - { at: [244, 270], size: [188, 60], text: 每行属于谁、形态, sub: 有无历史、有无草稿, tone: control, style: plain }
   - { at: [456, 270], size: [188, 60], text: 位置、token id, sub: 已算数 + 组内序号, tone: token, style: plain }
@@ -38,6 +38,8 @@ fans:
 texts:
   - { at: [24, 26], text: 第 2 站 调度（引擎进程）, strong: true }
 pins:
+  - source: vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1282-L1382
+    symbols: [resumed_req_ids, block_ids]
   - source: vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1125-L1180
     symbols: [remove_request, unscheduled_req_ids]
   - source: vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1436-L1447

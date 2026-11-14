@@ -1,0 +1,563 @@
+{
+  "status": "read_scopes_pending_final_author_claim_selection",
+  "reviewer": "/root/groups_recompute_review",
+  "items": [
+    {
+      "id": 58,
+      "page_id": "acl-graph",
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen3_vl.py#L697-L791",
+      "claim": "Qwen3-VL帧容量传入cu_seqlens缓冲；超过pad目标不截断，frame参数并非批打包/eager阈值",
+      "action": "add_new",
+      "source_sha256": "2935e09be47a893f09176cddb1beb6ed2e73666459de2bfbb08aca50b3e08969",
+      "scope_sha256": "50c2fa26b6a9626157f10f3a1c8af170e158253ea48605c2217dcbe08828a4b8",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-58.txt",
+      "lines": [
+        697,
+        791
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 59,
+      "page_id": "acl-graph",
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen3_vl.py#L1914-L1994",
+      "claim": "Qwen3-VL帧容量传入cu_seqlens缓冲；超过pad目标不截断，frame参数并非批打包/eager阈值",
+      "action": "add_new",
+      "source_sha256": "2935e09be47a893f09176cddb1beb6ed2e73666459de2bfbb08aca50b3e08969",
+      "scope_sha256": "6e8f65377c1d3966e1dc435840dcf314f64d9d0d86334dcc1d96eefbe4a78625",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-59.txt",
+      "lines": [
+        1914,
+        1994
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 60,
+      "page_id": "acl-graph",
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen3_vl.py#L1996-L2021",
+      "claim": "Qwen3-VL帧容量传入cu_seqlens缓冲；超过pad目标不截断，frame参数并非批打包/eager阈值",
+      "action": "add_new",
+      "source_sha256": "2935e09be47a893f09176cddb1beb6ed2e73666459de2bfbb08aca50b3e08969",
+      "scope_sha256": "89e340bc196ac738dfa9b508dcb20179f5f6fbb036b1659a826ae2ddc14a7e08",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-60.txt",
+      "lines": [
+        1996,
+        2021
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 61,
+      "page_id": "acl-graph",
+      "ref": "vllm@ced6857a:vllm/model_executor/models/qwen3_vl.py#L753-L847",
+      "claim": "Qwen3-VL帧容量传入cu_seqlens缓冲；超过pad目标不截断，frame参数并非批打包/eager阈值",
+      "action": "add_new",
+      "source_sha256": "22f02a1ee1faba276a93243d23ecada1094484e39e5bde79452d8a44f32238ba",
+      "scope_sha256": "50c2fa26b6a9626157f10f3a1c8af170e158253ea48605c2217dcbe08828a4b8",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-61.txt",
+      "lines": [
+        753,
+        847
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 62,
+      "page_id": "acl-graph",
+      "ref": "vllm@ced6857a:vllm/model_executor/models/qwen3_vl.py#L2118-L2200",
+      "claim": "Qwen3-VL帧容量传入cu_seqlens缓冲；超过pad目标不截断，frame参数并非批打包/eager阈值",
+      "action": "add_new",
+      "source_sha256": "22f02a1ee1faba276a93243d23ecada1094484e39e5bde79452d8a44f32238ba",
+      "scope_sha256": "1b87395417b89329e0b8bdd739dd2d9d933acd320acbf21bc325850b6918f8c9",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-62.txt",
+      "lines": [
+        2118,
+        2200
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 63,
+      "page_id": "acl-graph",
+      "ref": "vllm@ced6857a:vllm/model_executor/models/qwen3_vl.py#L2202-L2228",
+      "claim": "Qwen3-VL帧容量传入cu_seqlens缓冲；超过pad目标不截断，frame参数并非批打包/eager阈值",
+      "action": "add_new",
+      "source_sha256": "22f02a1ee1faba276a93243d23ecada1094484e39e5bde79452d8a44f32238ba",
+      "scope_sha256": "e3a7dbe375a52d296b6495838f3ff31211f25cb7a436c41f6b8ee3bfa692e8f7",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-63.txt",
+      "lines": [
+        2202,
+        2228
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 64,
+      "page_id": "acl-graph",
+      "ref": "vllm@ced6857a:vllm/v1/worker/encoder_cudagraph.py#L454-L547",
+      "claim": "rc2装箱只看各path token预算和item上限，不按总帧数分批",
+      "action": "add_new",
+      "source_sha256": "6a08d3779bca1b47dbf9daf6eafe2d3c70dbcb8aeb7d63ba7efacc68241ee3bc",
+      "scope_sha256": "492a0eaed9e9c966e734f952bd4e6c40d60e13244f9d01c7bbe2559b3f0734a7",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-64.txt",
+      "lines": [
+        454,
+        547
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 65,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1090-L1099",
+      "claim": "Ascend平台重置上游mm_encoder_attn_backend为None，不能照搬GPU文档FLASH_ATTN选项",
+      "action": "add_new",
+      "source_sha256": "30c75952f784c4d047d7202dd7f68c8fc7c22bb975853a5048fb51ffcbe1f2a8",
+      "scope_sha256": "f26aa7f2e005a9145faad5ce2dc89e63f0f35ad90d8ca7c62aecc23a14e5e40c",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-65.txt",
+      "lines": [
+        1090,
+        1099
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 66,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L1080-L1089",
+      "claim": "Ascend平台重置上游mm_encoder_attn_backend为None，不能照搬GPU文档FLASH_ATTN选项",
+      "action": "add_new",
+      "source_sha256": "1e77e26845b0dab80ac3e97207c48f58b7ea3f0616f6683e35dd3bedbfbece5c",
+      "scope_sha256": "f26aa7f2e005a9145faad5ce2dc89e63f0f35ad90d8ca7c62aecc23a14e5e40c",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-66.txt",
+      "lines": [
+        1080,
+        1089
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 67,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L1090-L1099",
+      "claim": "Ascend平台重置上游mm_encoder_attn_backend为None，不能照搬GPU文档FLASH_ATTN选项",
+      "action": "add_new",
+      "source_sha256": "c711042261d5283be5aa644c3a5a00fcb34f70c0156f4b866700f38a927a1276",
+      "scope_sha256": "f26aa7f2e005a9145faad5ce2dc89e63f0f35ad90d8ca7c62aecc23a14e5e40c",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-67.txt",
+      "lines": [
+        1090,
+        1099
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 68,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L754-L763",
+      "claim": "Ascend平台重置上游mm_encoder_attn_backend为None，不能照搬GPU文档FLASH_ATTN选项",
+      "action": "add_new",
+      "source_sha256": "0f4e619517058f36b700a521e93c449d78b269c1d29ed1a18cbc312f2d67b082",
+      "scope_sha256": "681611628c1221b3b6a884b6a74f780860e9220535882f5af6838ffdd58a186b",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-68.txt",
+      "lines": [
+        754,
+        763
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 69,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L676-L685",
+      "claim": "Ascend平台重置上游mm_encoder_attn_backend为None，不能照搬GPU文档FLASH_ATTN选项",
+      "action": "add_new",
+      "source_sha256": "5acb2901b4950d70251222497ffff47532d1b2065e29d117d3ae0e058ceca468",
+      "scope_sha256": "681611628c1221b3b6a884b6a74f780860e9220535882f5af6838ffdd58a186b",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-69.txt",
+      "lines": [
+        676,
+        685
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 70,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/models/__init__.py#L10-L17",
+      "claim": "固定GLM多模态架构实际注册到Ascend专用wrapper",
+      "action": "add_new",
+      "source_sha256": "7c74f2b8988196cd8b35cca2baabc5de512856b5652bb0c5d5f4c5e5c72f1fdd",
+      "scope_sha256": "628f7ec8b91528a7e83c819edc4b9098b205ae4266f434d000c2d1d0144e7172",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-70.txt",
+      "lines": [
+        10,
+        17
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 71,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_multimodal.py#L638-L706",
+      "claim": "固定GLM视觉wrapper继承0fc旧GLM4V；全类没有encoder graph协议实现",
+      "action": "add_new",
+      "source_sha256": "10df9f25052a1acfb47f51a4d6a9bd832217bc35029c652e340f42f6b3801230",
+      "scope_sha256": "eb9174d560d7c297a881c6f4aa37f41d63867080e47089cfebffe27f92d34362",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-71.txt",
+      "lines": [
+        638,
+        706
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 72,
+      "page_id": "acl-graph",
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/glm4_1v.py#L1589-L1929",
+      "claim": "旧GLM4V全类不实现encoder协议必需方法；完整类人工读取与AST交叉核实，V1 gate返回None",
+      "action": "add_new",
+      "source_sha256": "983d46e38bfc49dcf51533d51e6d0b83df4bd913cc4e52393cc8315cf4d77a9d",
+      "scope_sha256": "7d31da6271941e78d48a951dcee33d195b7a957c2a2d59bd5e9231fe16b4f694",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-72.txt",
+      "lines": [
+        1589,
+        1929
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 73,
+      "page_id": "acl-graph",
+      "ref": "vllm@568afb3a:vllm/model_executor/models/glm4_1v.py#L1942-L1970",
+      "claim": "新版GLM4V实现encoder协议，pruning时图片/视频modalities皆空，buffer列表包含pos_embeds",
+      "action": "add_new",
+      "source_sha256": "ac1c43887ad7597430be1de00f75bbb8b509ef9c038654d63d91c1410ce2d184",
+      "scope_sha256": "b7675133c375e19a383d8cca213376f470b16535b9a23a8bbafe947cf6af88df",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-73.txt",
+      "lines": [
+        1942,
+        1970
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 74,
+      "page_id": "acl-graph",
+      "ref": "vllm@ced6857a:vllm/model_executor/models/glm4_1v.py#L1937-L1965",
+      "claim": "新版GLM4V实现encoder协议，pruning时图片/视频modalities皆空，buffer列表包含pos_embeds",
+      "action": "add_new",
+      "source_sha256": "32bd289bf147daa27ad38e07306c30fd70707c51f3cea350f4a2154a66ea248a",
+      "scope_sha256": "b7675133c375e19a383d8cca213376f470b16535b9a23a8bbafe947cf6af88df",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-74.txt",
+      "lines": [
+        1937,
+        1965
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 75,
+      "page_id": "acl-graph",
+      "ref": "vllm@84030bbe:vllm/model_executor/models/glm4_1v.py#L1936-L1964",
+      "claim": "新版GLM4V实现encoder协议，pruning时图片/视频modalities皆空，buffer列表包含pos_embeds",
+      "action": "add_new",
+      "source_sha256": "d15d8afbd674b62516e2d40334f5fc69bdd02e752746975adacbe2590e9c36ad",
+      "scope_sha256": "b7675133c375e19a383d8cca213376f470b16535b9a23a8bbafe947cf6af88df",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-75.txt",
+      "lines": [
+        1936,
+        1964
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 76,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/models/__init__.py#L1-L34",
+      "claim": "v26固定Ascend注册全文无GLM5Next；不能把该版上游GLM4V支持等同固定GLM已验证",
+      "action": "readscope_only",
+      "source_sha256": "4cd86809004895485ecd5a97c22ad675690c89e026844101ff6ddeefca615f99",
+      "scope_sha256": "31521f7e17aedcd3860a0974e34ecbffd9a8d264a4daf421a8cf899df4d8b41e",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-76.txt",
+      "lines": [
+        1,
+        34
+      ],
+      "full_file_read": true
+    },
+    {
+      "id": 77,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@7d825229:vllm_ascend/models/__init__.py#L82-L85",
+      "claim": "新版实际注册Glm5Next多模态wrapper",
+      "action": "add_new",
+      "source_sha256": "c54c54965a53a33ec686590fe4e4898cff8ebb88fd2155b7d9b95740686eafaa",
+      "scope_sha256": "1d659c6efae0a555c076444f0f20ecaf5b7e22365a274e3694195ceb1c2652e5",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-77.txt",
+      "lines": [
+        82,
+        85
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 78,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L916-L930",
+      "claim": "新版GLM5Next继承GLM4V多模态基类和protocol",
+      "action": "add_new",
+      "source_sha256": "2a9381fa5897578bf4922b4b2bef99635dbc58236cd0f31fe5f93664b7252bbe",
+      "scope_sha256": "9f0cc71f95bf2a06028899e2208a4fc196d9609b3b9a0b52eec492aa10ad1043",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-78.txt",
+      "lines": [
+        916,
+        930
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 79,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L1025-L1030",
+      "claim": "新版GLM5Next协议适配删去本视觉塔没有的pos_embeds；静态接线不是整机图捕获验证",
+      "action": "add_new",
+      "source_sha256": "2a9381fa5897578bf4922b4b2bef99635dbc58236cd0f31fe5f93664b7252bbe",
+      "scope_sha256": "09e11691963728a5921a5d66752207bad76875eae46fc2a4caecb866b23bdc6d",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-79.txt",
+      "lines": [
+        1025,
+        1030
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 80,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/models/__init__.py#L85-L88",
+      "claim": "新版实际注册Glm5Next多模态wrapper",
+      "action": "add_new",
+      "source_sha256": "64418ba38987a9e398be1ba73d1b9d6078de4ea1c93e0f99e082120b6e776636",
+      "scope_sha256": "1d659c6efae0a555c076444f0f20ecaf5b7e22365a274e3694195ceb1c2652e5",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-80.txt",
+      "lines": [
+        85,
+        88
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 81,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L916-L930",
+      "claim": "新版GLM5Next继承GLM4V多模态基类和protocol",
+      "action": "add_new",
+      "source_sha256": "2a9381fa5897578bf4922b4b2bef99635dbc58236cd0f31fe5f93664b7252bbe",
+      "scope_sha256": "9f0cc71f95bf2a06028899e2208a4fc196d9609b3b9a0b52eec492aa10ad1043",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-81.txt",
+      "lines": [
+        916,
+        930
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 82,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L1025-L1030",
+      "claim": "新版GLM5Next协议适配删去本视觉塔没有的pos_embeds；静态接线不是整机图捕获验证",
+      "action": "add_new",
+      "source_sha256": "2a9381fa5897578bf4922b4b2bef99635dbc58236cd0f31fe5f93664b7252bbe",
+      "scope_sha256": "09e11691963728a5921a5d66752207bad76875eae46fc2a4caecb866b23bdc6d",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-82.txt",
+      "lines": [
+        1025,
+        1030
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 83,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@7d825229:vllm_ascend/patch/worker/patch_v2/patch_model_state.py#L20-L26",
+      "claim": "V2把上游model state工厂替换为Ascend工厂",
+      "action": "readscope_only",
+      "source_sha256": "b2859f34a4e1ca09fe2cf4fd4db7953206e5a7e4a0a04850e018772cb3567ba2",
+      "scope_sha256": "b5b147fa159d6350a78c42c9c054d1c97c3c2d0e8bb129864caa8a0137caf03b",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-83.txt",
+      "lines": [
+        20,
+        26
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 84,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/v2/model_states/__init__.py#L29-L84",
+      "claim": "V2状态类型选择含model覆盖、hybrid/310P/crossattention/默认；不把默认链推广所有模型",
+      "action": "readscope_only",
+      "source_sha256": "955b79eeafc073dd20390897754f53c0c143c08c006860357057649a4d774a5d",
+      "scope_sha256": "b65dde3eb985ed7a8262ce7dc2ac8f7509f74b33452a898af5dd412eaa370696",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-84.txt",
+      "lines": [
+        29,
+        84
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 85,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/v2/model_states/default.py#L49-L70",
+      "claim": "Ascend默认state调用DefaultModelState再进入上游ModelState encoder初始化",
+      "action": "readscope_only",
+      "source_sha256": "f0890204a0f5441ea66dbd3446cdc221e62f6831e5e71fcc345e57d6a56e3445",
+      "scope_sha256": "71cb8603971d2e22ab9570342009822d5b36964657d03c21ff559af9ae7a23db",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-85.txt",
+      "lines": [
+        49,
+        70
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 86,
+      "page_id": "acl-graph",
+      "ref": "vllm@ced6857a:vllm/v1/worker/gpu/model_states/default.py#L27-L37",
+      "claim": "上游DefaultModelState调用ModelState初始化",
+      "action": "readscope_only",
+      "source_sha256": "bb614f814780f052e869f9acf31dfbfa68718ee7dc6252eefa901b5730ee8a2a",
+      "scope_sha256": "a5e7c3a55778f31c297bccebe4139864ef92269ea4ffc4549607195bfa8e2c3b",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-86.txt",
+      "lines": [
+        27,
+        37
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 87,
+      "page_id": "acl-graph",
+      "ref": "vllm@ced6857a:vllm/v1/worker/gpu/model_states/interface.py#L19-L24",
+      "claim": "上游V2 ModelState模块提前导入EncoderCudaGraphManager，非V1局部替换",
+      "action": "readscope_only",
+      "source_sha256": "5675b6fedc7403a9ab410b1e5565974e78fac23c42ab4253ae1da52d6e09b594",
+      "scope_sha256": "6af7bd88078c5baa7c07903165a100388144091102f3596894f935074950a516",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-87.txt",
+      "lines": [
+        19,
+        24
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 88,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/v2/utils.py#L24-L43",
+      "claim": "V2全局把CUDAGraph变为UpdatableGraph，不代表使用V1 EncoderAclGraphManager",
+      "action": "readscope_only",
+      "source_sha256": "49babc8ae41da35d752dab2d83d4ab1e54d4db148a05aaaeb21ad3061c29b553",
+      "scope_sha256": "c40c60fc0736fb680224dc588e7cab9d811fe7f3c1015c0b2e0ec639ae878d70",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-88.txt",
+      "lines": [
+        24,
+        43
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 89,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/v2/utils.py#L64-L82",
+      "claim": "V2 torch.npu.graph上下文与通用workspace清理，未接V1专用encoder FIA事件链",
+      "action": "readscope_only",
+      "source_sha256": "49babc8ae41da35d752dab2d83d4ab1e54d4db148a05aaaeb21ad3061c29b553",
+      "scope_sha256": "f1105bf9f6c3b78fc50c215584db2c3ceda0dbf5b45ffa7d7df446d4b8b3fd0c",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-89.txt",
+      "lines": [
+        64,
+        82
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 90,
+      "page_id": "acl-graph",
+      "ref": "vllm-ascend@7d825229:vllm_ascend/worker/v2/model_runner.py#L1213-L1241",
+      "claim": "V2只替换decoder ModelCudaGraphManager为ModelAclGraphManager，不是encoder manager",
+      "action": "readscope_only",
+      "source_sha256": "318ed022e1e7263e10212cf095dd34149ba1fe7069648d44e7dfd520cbab21c5",
+      "scope_sha256": "e12ea80c885ccda1d7273a2f40f697e870ca08f8c192d3fdefc885fdec5de27a",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-90.txt",
+      "lines": [
+        1213,
+        1241
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 91,
+      "page_id": "acl-graph",
+      "ref": "vllm@ced6857a:vllm/config/vllm.py#L2815-L2881",
+      "claim": "V2统一不支持列表没有encoder graph禁项；不能因未见专用NPU链就编造硬拒绝",
+      "action": "readscope_only",
+      "source_sha256": "956b812e5a719bcbfa3a3958801361b38b9c928c96b8c073311bbb96376dfb7a",
+      "scope_sha256": "c94f522e8477d85ca882d4775b9990fc657e6c9d1f1f5718f671d57182473b31",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-91.txt",
+      "lines": [
+        2815,
+        2881
+      ],
+      "full_file_read": false
+    },
+    {
+      "id": 92,
+      "page_id": "acl-graph",
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/interfaces.py#L1657-L1660",
+      "claim": "协议检查通过runtime-checkable Protocol的isinstance，模型缺必需方法不通过",
+      "action": "add_new",
+      "source_sha256": "62ae344c350b8445f364bded9cf5a0a3887caae062873d266487aedfd55e3dd7",
+      "scope_sha256": "74a948886949244a76b1041246dd9620036edf450df9a015d46759bb941494c6",
+      "excerpt_path": ".tmp/continuation-groups-2026-11-10/vit-graph/review-candidate-92.txt",
+      "lines": [
+        1657,
+        1660
+      ],
+      "full_file_read": false
+    }
+  ],
+  "identical_scope_groups": [
+    [
+      58,
+      61
+    ],
+    [
+      65,
+      66,
+      67
+    ],
+    [
+      68,
+      69
+    ],
+    [
+      73,
+      74,
+      75
+    ],
+    [
+      77,
+      80
+    ],
+    [
+      78,
+      81
+    ],
+    [
+      79,
+      82
+    ]
+  ]
+}

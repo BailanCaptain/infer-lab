@@ -1,49 +1,105 @@
 ---
 id: glm-5-3-flash-two-node
-title: "我们的部署：两台机器 16 张卡上的 GLM-5.3-Flash"
+title: 我们的部署：两台机器 16 张卡上的 GLM-5.3-Flash
 type: feature
 summary: 官方双机配置下 16 张卡各放了什么、启动时按什么顺序做完哪几件事、关键参数分别管住主线的哪一步，以及这套部署给后面各章留下的后果。
-aliases: [GLM 双机部署, GLM TP8 DP2, GLM 双机案例, GLM 双机启动, 我们的部署, 两机十六卡部署]
-chapters: ["13"]
+aliases:
+  - GLM 双机部署
+  - GLM TP8 DP2
+  - GLM 双机案例
+  - GLM 双机启动
+  - 我们的部署
+  - 两机十六卡部署
+chapters:
+  - '13'
 order: 90
 sources:
-  - https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
-  - vllm@0fc695fc:vllm/distributed/parallel_state.py#L1535-L1560
-  - vllm@0fc695fc:vllm/distributed/parallel_state.py#L1758-L1888
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/parallel_state.py#L84-L96
-  - vllm@0fc695fc:vllm/v1/engine/utils.py#L1049-L1200
-  - vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L173-L245
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L110-L247
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L988
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L190-L200
-  - vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L632-L736
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L236-L317
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L59-L226
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L517-L698
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L693-L784
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1880-L1930
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L39-L92
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L202-L252
-  - vllm@0fc695fc:vllm/config/model.py#L1851-L1857
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L692-L740
-  - vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L400-L456
-  - vllm@0fc695fc:vllm/v1/engine/core_client.py#L1398-L1426
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
+  - 'vllm@0fc695fc:vllm/distributed/parallel_state.py#L1535-L1560'
+  - 'vllm@0fc695fc:vllm/distributed/parallel_state.py#L1758-L1888'
+  - 'vllm-ascend@db701c1f:vllm_ascend/distributed/parallel_state.py#L84-L96'
+  - 'vllm@0fc695fc:vllm/v1/engine/utils.py#L1049-L1200'
+  - 'vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L1-L254'
+  - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L110-L247'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L988'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L190-L200'
+  - 'vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L632-L736'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L236-L317'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L59-L226
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L517-L698
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L693-L784'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1880-L1930'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L39-L92'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L202-L252'
+  - 'vllm@0fc695fc:vllm/config/model.py#L1851-L1857'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L692-L740'
+  - 'vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L400-L456'
+  - 'vllm@0fc695fc:vllm/v1/engine/core_client.py#L1398-L1426'
+  - >-
+    raw:sha256-3d53f4b483d1bded454b1df9f43e5ea7dbae8ca90202b83203703ae411b267c6.md#L1-L1698
+  - 'vllm-ascend@7d825229:docs/source/tutorials/models/GLM5.3-Flash.md#L17-L43'
+  - 'vllm-ascend@7d825229:docs/source/tutorials/models/GLM5.3-Flash.md#L544-L563'
+  - 'vllm-ascend@7d825229:docs/source/tutorials/models/GLM5.3-Flash.md#L886-L925'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L96-L117'
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/tutorials/models/GLM5.3-Flash.md#L17-L43
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/tutorials/models/GLM5.3-Flash.md#L544-L563
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/tutorials/models/GLM5.3-Flash.md#L886-L925
+  - >-
+    https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/9e55cbc8e2b19e20c63b08b916d2582f25a22504/quant_model_description.json
+  - >-
+    https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/3121f187149ef2defa15f2b28adad10e272681d9/quant_model_description.json
+  - >-
+    https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/3121f187149ef2defa15f2b28adad10e272681d9/config.json
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_multimodal.py#L64-L329'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_multimodal.py#L664-L706'
+  - 'vllm@0fc695fc:vllm/model_executor/models/interfaces.py#L251-L299'
+  - 'vllm@0fc695fc:vllm/model_executor/models/glm_ocr.py#L106-L166'
+  - 'vllm@0fc695fc:vllm/model_executor/models/glm4_1v.py#L429-L455'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/conv.py#L17-L102'
+  - 'vllm@0fc695fc:vllm/config/multimodal.py#L145-L158'
 relations:
-  - {to: learning-guide, kind: builds-on, note: 阅读指南固定主线顺序，本页展开部署与分组}
-  - {to: glm-5-3-flash, kind: builds-on, note: 先认识这台机器上要跑的模型：45 层主干、两类 attention 和 MoE}
-  - {to: collective-communication, kind: builds-on, note: 先知道 process group 和 All-Reduce、All-Gather 各是什么}
-  - {to: tensor-parallel, kind: builds-on, note: 机内 8 张卡怎样合切一个矩阵}
-  - {to: data-parallel, kind: builds-on, note: 两台机器各是一个执行组，空闲的一组为什么要陪跑}
-  - {to: expert-parallel, kind: builds-on, note: 288 个专家怎样摊到 16 张卡，dispatch 与 combine 传什么}
-  - {to: quantization, kind: builds-on, note: W8A8 决定了权重那 20.58 GiB 的字节数}
-  - {to: kv-cache-memory-profiling, kind: builds-on, note: 启动时量剩余显存、再一次性切成 KV 块的那一步}
+  - to: learning-guide
+    kind: builds-on
+    note: 阅读指南固定主线顺序，本页展开部署与分组
+  - to: glm-5-3-flash
+    kind: builds-on
+    note: 先认识这台机器上要跑的模型：45 层主干、两类 attention 和 MoE
+  - to: collective-communication
+    kind: builds-on
+    note: 先知道 process group 和 All-Reduce、All-Gather 各是什么
+  - to: tensor-parallel
+    kind: builds-on
+    note: 机内 8 张卡怎样合切一个矩阵
+  - to: data-parallel
+    kind: builds-on
+    note: 两台机器各是一个执行组，空闲的一组为什么要陪跑
+  - to: expert-parallel
+    kind: builds-on
+    note: 288 个专家怎样摊到 16 张卡，dispatch 与 combine 传什么
+  - to: quantization
+    kind: builds-on
+    note: 逐层量化配方决定所列语言权重子账，实际占用还要计视觉塔等表外项
+  - to: kv-cache-memory-profiling
+    kind: builds-on
+    note: 启动时量剩余显存、再一次性切成 KV 块的那一步
 verified: []
 evidence: C
 contradicts: []
-updated: "2026-09-27"
-origin: direct
+updated: '2026-11-10'
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-220489cf9f48b5b6e3b8d251fd4131ecbdb770233c46a546f480da729c275838.md
+  - >-
+    raw/sha256-3d53f4b483d1bded454b1df9f43e5ea7dbae8ca90202b83203703ae411b267c6.md
 ---
 
 ## 部署前提
@@ -69,7 +125,9 @@ file: glm-two-node-topology
 
 TP 的通信留在机内，EP 横跨两台机器。因此，MoE 的通信会过机间链路，attention 和稠密层的通信不会。
 
-**为什么用两台？** 单机的限制在于留给请求的显存更少：按相同切法把 288 个路由专家放到 8 张卡，每卡要放 36 个；双机摊到 16 张卡，每卡只放 18 个。于是每卡权重从 38.72 GiB 降到 20.58 GiB。按每卡 64 GiB、显存预算 0.85、激活峰值与非 torch 占用合计 3.4 GiB 的同一组教学假设，单机能装下权重，但双机剩给 KV cache 的容量约为单机的 2.5 倍，能容纳更多并发请求或更长的上下文。代价是 MoE 要跨机通信，两组每步还要同步；容量对照和 MC2 路径条件见[为什么是两台机器，不是一台](#为什么是两台机器不是一台)。
+权重切分、请求分配与专家路由的 3D 演示分别放在 [TP](tensor-parallel.md#再过稠密-mlp本地升维和门控降维后再合齐)、[DP](data-parallel.md#放到-glm-双机每台机器一个-dp-组)、[EP](expert-parallel.md#16-张卡怎样分专家) 对应章节，按当前阅读的概念单独播放。
+
+**为什么用两台？** 单机的限制在于留给请求的显存更少：按相同切法把 288 个路由专家放到 8 张卡，每卡要放 36 个；双机摊到 16 张卡，每卡只放 18 个。于是本页所列语言权重的每卡子账从 38.72 GiB 降到 20.58 GiB；它不含视觉塔、MTP 旋转矩阵和量化辅助张量，范围见[每张卡上放了什么](#每张卡上放了什么)。按每卡 64 GiB、显存预算 0.85、激活峰值与非 torch 占用合计 3.4 GiB 的同一组教学假设，这份子账给出的双机 KV 容量约为单机的 2.5 倍。实际容量还要扣除表外项并代入 profile 结果。代价是 MoE 要跨机通信，两组每步还要同步；容量对照和 MC2 路径条件见[为什么是两台机器，不是一台](#为什么是两台机器不是一台)。
 
 ### 关键参数各管哪一步
 
@@ -102,23 +160,23 @@ prefill / decode 的区别见[阅读指南](learning-guide.md#按顺序读的五
 
 先说清最容易绕晕的一件事——**有几份**。在这套部署里，**attention、稠密层和共享专家每台机器各有一份，288 个路由专家 16 张卡合起来只有一份**。所以每台机器是一个独立的调度单位（下文叫「DP 执行组」），但它不是一个能单独跑完整个模型的副本。
 
-把同样的模型放进单机 8 卡，EP 规模也变成 8。下表两列都用**未取整的权重**比较容量；后文的 [KV 算例](#两种块数各在什么时候用)另用 21 GiB 取整口径。
+把同样的模型放进单机 8 卡，EP 规模也变成 8。下表两列都用**所列语言权重子账**比较容量：MLA 四组投影采用 INT8，视觉塔、MTP 旋转矩阵和量化辅助张量等未计入，详见后面的权重表。后文的 [KV 算例](#两种块数各在什么时候用)另假设权重预算为 21 GiB；这两个算例都不代替实际加载占用。
 
 | | 单机 8 卡（EP8） | 双机 16 卡（EP16） |
 | --- | --- | --- |
 | 每卡路由专家 | 43 层 × 36 个 × 24 MiB = 37,152 MiB | 43 层 × 18 个 × 24 MiB = 18,576 MiB |
-| 每卡其余权重 | 2,502 MiB | 2,502 MiB |
-| 每卡权重合计 | 39,654 MiB ≈ **38.72 GiB** | 21,078 MiB ≈ **20.58 GiB** |
+| 每卡所列非专家权重 | 2,502 MiB | 2,502 MiB |
+| 每卡所列语言权重小计 | 39,654 MiB ≈ **38.72 GiB** | 21,078 MiB ≈ **20.58 GiB** |
 | 同一组假设下还剩给 KV | 55,705.6 − 39,654 − 3,481.6 = **12,570 MiB** | 55,705.6 − 21,078 − 3,481.6 = **31,146 MiB** |
 | 折合块数（除以 8,355,840 B） | **1,577** 块 ≈ 101 万 token | **3,908** 块 ≈ 250 万 token |
 
 （55,705.6 MiB 是 64 GiB × 0.85 的预算，3,481.6 MiB 是假设的 3.4 GiB 激活峰值与非 torch 占用。）
 
-可以看出，**「单机放不下」并不成立**：按这组假设，单机装得下权重，还剩十几 GiB 给 KV cache。两台机器真正买到的是三样东西：
+这份账说明，**不能仅凭专家参数量就断定「单机放不下」**：按这组教学假设，单机扣除所列权重后还剩十几 GiB。能否实际部署还取决于表外项、激活峰值和实现支持。两台机器买到的是三样东西：
 
-1. **KV 容量翻到约 2.5 倍**，能同时在跑的请求数和上下文长度跟着涨。
+1. **这份子账下 KV 容量约为 2.5 倍**，说明少放专家权重可以腾出更多请求空间；实际请求容量还取决于表外项、profile 和请求状态开销。
 2. **每卡只放 18 个专家**，专家那一项的显存和开机要读的字节数都减半。
-3. **MoE 才允许走 MC2 这条快路径。**在 A2 上选 MC2 有两个硬条件：EP 规模至少 16，并且每卡的专家数不超过 24。EP8 两个条件都不满足——EP 只有 8，每卡还要放 36 个专家——只能退回 All-Gather（把各张卡手上的分片拼成完整一份的那种集合通信）。
+3. **MoE 才允许走 MC2 这条快路径。**在 A2 上选 MC2 有三个同时满足的条件：EP 规模至少 16，每卡的专家数不超过 24，并且 `num_tokens <= mc2_tokens_capacity`；否则返回 `ALLGATHER`。EP8 的规模和每卡专家数条件都不满足——EP 只有 8，每卡还要放 36 个专家——只能退回 All-Gather（把各张卡手上的分片拼成完整一份的那种集合通信）。
 
 单机一列是同样切法与显存假设下的推算；实测缺口见页末[开销和什么时候别开](#开销和什么时候别开)。
 
@@ -159,7 +217,7 @@ file: glm-two-node-request-route
 
 切法分三种。按 **EP** 切的只有路由专家：288 个专家除以 16，每张卡 18 个。按 **TP** 切成 8 份的是 KDA 的 q / k / v / o 四个大投影、稀疏 MLA 的 `q_b_proj` / `kv_b_proj` / `o_proj`、前 3 层的稠密 MLP、每层那 1 个共享专家；嵌入表（embedding）和 `lm_head` 按词表的 154880 行切成 8 份。第三类是**每张卡各放一整份、根本不切**：MLA 的 `fused_qkv_a_proj`、整个索引器（`wq_b`、`wk_weights_proj`、`index_kpool_compress_gate`）、KDA 的 `f_a_proj` 与 `g_a_proj`、router gate、mHC 的混合参数，以及 MTP 层的 `eh_proj`。这一类是有意为之：索引器那 32 个头每张卡各算一遍，用冗余计算换掉一次通信。
 
-按官方权重仓库的精度配方算下来，一张卡的权重是这样：
+下面保留一份可复算的**主要语言权重子账**：MLA 的 Q 压缩、KV 压缩、Q 展开和输出投影采用 INT8，其余按表中精度。这个配方对应量化目录的 3121f187 快照；9e55cbc8 快照把这四组投影留在浮点，差额见下节。表中未计视觉塔、MTP 旋转矩阵、量化 scale / offset 及未逐项列出的小型参数，因此小计不能当作整卡完整加载占用。
 
 | 部件 | 每卡每层 | 合计 |
 | --- | --- | --- |
@@ -174,15 +232,40 @@ file: glm-two-node-request-route
 | `lm_head`（BF16） | 151.25 MiB | 151.25 MiB |
 | 主干 45 层小计 | | 20,537 MiB = 20.06 GiB |
 | MTP 第 45 层 | | 540.75 MiB |
-| **整卡合计** | | **21,078 MiB = 20.58 GiB** |
+| **所列语言权重小计** | | **21,078 MiB = 20.58 GiB** |
 
 KDA 合计有两种取整口径：按每层字节精算、乘完 34 层后再取一位小数，是 1,176.9 MiB；表中的 1,176.7 MiB 则是先把每层取整到 34.61 MiB，再乘 34 层并取一位小数得到的。
 
-最大的一项是路由专家的 17.72 GiB，占整卡权重的 86%。这也是 EP 存在的理由：每卡只放 18 个专家，才压得住这一项。
+最大的一项是路由专家的 17.72 GiB，占这份语言权重子账的约 86%。这也是 EP 存在的理由：每卡只放 18 个专家，才压得住这一项。
 
 **MTP 层放在哪里。** MTP 用来做 speculative decoding（先猜几个 token，再让主模型一次验证）。它是模型的第 45 层，有自己独立的一套稀疏 MLA、索引器和 288 个路由专家，不和主干共用；这一套按和主干一样的方式摊到 16 张卡上，所以**每张卡上是这么几项**：MLA 加索引器 37.25 MiB、18 个路由专家 432 MiB、共享专家 3 MiB、router gate 4.5 MiB，再加上不切 TP、每卡一整份的 `eh_proj` 64 MiB，合计 **540.75 MiB**。它没有 mHC 四路残差，也不自带输出投影——加载完成后它的输出头被换成主模型的 `lm_head`，所以那 151.25 MiB 不重复计。除了权重，它在 KV cache 里也占一层，这一点下一节再看。
 
-这张表采用上游配置的量化配方；权重仓库描述文件的核查缺口与 20.81 GiB 上界见页末[开销和什么时候别开](#开销和什么时候别开)。
+540.75 MiB 也是所列模块的小计：两份量化快照都开启 QuaRot，MTP 还会在每卡加载不切 TP 的 4096 × 4096 旋转矩阵。按 BF16 计算要另加 **32 MiB**，这项随权重加载，不能归入首次前向才产生的索引器副本。
+
+### 量化版本和视觉塔怎样补进这份账
+
+两个量化目录使用相同的模型配置，但逐层精度不同。应按实际部署目录固定版本，不能只凭模型名相同就沿用容量：
+
+| 量化描述快照 | MLA 四组投影 | 所列语言权重子账 | 仍需另计 |
+| --- | --- | --- | --- |
+| 3121f187 | W8A8 动态量化 | 20.58 GiB | MTP 旋转矩阵、视觉塔、量化辅助张量及其余小型参数 |
+| 9e55cbc8 | FLOAT，按 BF16 加载计算 | 每层增加 19 MiB，12 层共加 228 MiB，约 **20.81 GiB** | 同上；20.81 不是整卡占用的上界 |
+
+**官方双机配方会加载视觉塔。** 它允许每请求 1 张图、0 段视频；视觉模块只有在两种模态的额度都为 0 时才被跳过。仅发送纯文本请求，或省略模态额度参数，都不会自动省掉这份权重。默认的视觉编码器采用 weights 模式：大线性矩阵按 TP8 切，卷积、归一化和部分偏置仍复制在每卡；改成 data 模式时矩阵也复制，必须另算。
+
+用同一配置的视觉宽度 1024、MLP 宽度 4096、输出宽度 4096、合并层中间宽度 10240，按 BF16、TP8、保留视觉塔计算：
+
+```calc
+title: 每卡视觉权重的独立账（不含视觉激活和临时缓冲）
+24 层的大矩阵 = 24 × (4 × 1024² + 3 × 1024 × 4096) ÷ 8 × 2 B = 96 MiB
+合并层的大矩阵 = (4096² + 3 × 4096 × 10240) ÷ 8 × 2 B = 34 MiB
+图块卷积及偏置 = (1024 × 3 × 2 × 14² + 1024) × 2 B = 2.299 MiB
+下采样卷积及偏置 = (4096 × 1024 × 2² + 4096) × 2 B = 32.008 MiB
+其余偏置和归一化 = (24 × 5632 + 8192 + 1024) × 2 B = 0.275 MiB
+视觉权重小计 = 164.582 MiB / 卡
+```
+
+第一行的 4 个方阵来自 Q、K、V 和输出投影，3 个升降维矩阵来自 SwiGLU。每层其余 5632 个数包括 TP 切分后的 QKV 与 gate/up 偏置、复制的输出与 down 偏置，以及归一化参数。此账只统计视觉参数；模型加载后的总占用还包括量化辅助张量、对齐与运行时缓冲，应以启动日志中的加载结果和 profile 为准。
 
 ## 剩下的显存变成多少 KV cache
 
@@ -215,20 +298,20 @@ title: 一个 KV 块号占多少显存
 
 ### 两种块数各在什么时候用
 
-**3,855 块是贯穿主线的示例值；3,908 块是同一假设下使用精确权重的容量值。** 两者都假设每卡 64 GiB、激活峰值加非 torch 占用 3.4 GiB。区别只在权重：示例按 **21 GiB 取整**，多留约 0.42 GiB 余量；精确口径用 **21,078 MiB（约 20.58 GiB）**。
+**3,855 块和 3,908 块都是教学预算算例。** 两者都假设每卡 64 GiB、激活峰值加非 torch 占用 3.4 GiB。3,855 块另外假设权重占 21 GiB；3,908 块则只代入上面所列的语言权重子账 **21,078 MiB（约 20.58 GiB）**，尚未扣视觉塔、旋转矩阵等表外项。两者相差约 0.42 GiB，不代表实际部署一定有这份余量。
 
 先看示例算法。它把可用 KV 显存写成整齐的 30.00 GiB，便于后面的单请求、并发请求章节沿用：
 
 ```calc
 title: 显存余量能容纳多少 KV
 预算 = 64 GiB × 0.85 = 54.40 GiB
-减权重 = − 约 21 GiB = 33.40 GiB
+减假设权重 = − 21 GiB = 33.40 GiB
 减激活峰值与非 torch 占用 = − 3.4 GiB = 30.00 GiB，可用于 KV
 块数 = 30 GiB ÷ 8,355,840 B = 3,855 块
 能存 = 3,855 × 640 ≈ 2.47 M token
 ```
 
-用未取整权重则余下约 **30.42 GiB、3,908 块**，与示例相差 1.4%；完整比较见前面的[单机与双机表](#为什么是两台机器不是一台)。**后文引用算例沿用 3,855；比较单机与双机容量用 3,908。** 实际部署的块数须代入启动日志中的显存值，这里的「精确」只指权重口径。
+只代入所列语言权重子账时余下约 **30.42 GiB、3,908 块**，与 3,855 块算例相差 1.4%；比较见前面的[单机与双机表](#为什么是两台机器不是一台)。**后文的请求演算沿用 3,855；3,908 用于展示子账计算，不能当成精确设备容量。** 实际部署的块数须代入完整加载占用和启动 profile 的显存值。
 
 **decode 图和索引器 FP32 副本从预算外的余量支付。** 量激活峰值时尚未录图，稀疏 MLA 又跳过计算，索引器没有运行；因此，这时既没有图内存，也没有索引器首次前向才创建的副本。KV 切好后它们才出现，使用预算外的 **9.6 GiB（64 GiB 的 15%）**。索引器副本每层 4.5 MiB，11 个稀疏 MLA 层加 MTP 层共约 **54 MiB/卡**；它不属于这 3.4 GiB，也不再从已经切好的 KV 池扣除。
 
@@ -250,7 +333,7 @@ file: glm-two-node-card-budget
 file: glm-two-node-startup
 ```
 
-**第一步，起进程。** 机器 0 起三个进程：API server（接 HTTP、套聊天模板、分词）、DP 协调进程、EngineCore。机器 1 用 headless 模式启动，不建 HTTP 前端，只起一个 EngineCore，向机器 0 的握手端口报到。
+**第一步，起核心功能进程。** 机器 0 有三个角色：API server（接 HTTP、套聊天模板、分词）、DP 协调进程、EngineCore。本配方的 `--api-server-count 1` 让启动进程直接运行唯一的 API server。机器 1 用 headless 模式启动，不建 HTTP 前端；它派生一个 EngineCore，向机器 0 的握手端口报到，headless 启动父进程继续监控这个引擎。
 
 **第二步，每张卡一个 worker。** 每个 EngineCore 再派生出 8 个 worker，并建一条共享内存广播队列，一次性把本步工作发给它们。两台机器合计 16 个 worker。
 
@@ -263,7 +346,7 @@ file: glm-two-node-startup
 | 机器 1 | EngineCore（DP 组 1，headless） | 1 |
 | 机器 1 | worker（卡 8–15） | 8 |
 
-合计 20 个进程，其中 16 个占卡。
+表内合计 **20 个核心功能进程，其中 16 个 worker 占卡**。这是上述角色的组成账，不是操作系统的完整进程清单：机器 1 仍有 headless 启动父进程，所用多进程启动方式还会带来相应的运行时辅助进程；这些未计入表内。
 
 **第三步，建 process group。** 每个 worker 用 HCCL 建全局通信域，再按 TP=8 建机内 TP 组、按 DP=2 建跨机配对，最后建那个 16 卡的 EP / MC2 组。上一节那张表就是这一步的产物。
 
@@ -294,6 +377,8 @@ file: glm-two-node-startup
 
 完整的启动命令、环境变量和两端的差异，以官方教程 [GLM5.3-Flash.md](https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md)（文档提交 `0576b647`）为准。这里只解释每个参数管住主线的哪一步。
 
+启动两端进程前，先按 [HCCL 页的网络预检](cann-hccl.md#启动多机前先检查哪一层网络)确认所用 NPU 的链路、设备地址与双向连通性，再核对主机网卡及进程端口。主机可以互访、API 端口可以连接，分别只证明对应路径可达；设备通信和后续建组还需各自验证。
+
 | 参数 | 取值 | 它是什么意思 | 管住主线的哪一步 | 深入看 |
 | --- | --- | --- | --- | --- |
 | `--tensor-parallel-size` | 8 | 机内几张卡合切同一层的矩阵 | 每层 attention 和 MLP 的切分与 All-Reduce | [tensor parallel](tensor-parallel.md) |
@@ -321,34 +406,40 @@ file: glm-two-node-startup
 
 **空白二：`block_size` 没写。** 教程没有 `--block-size`，GLM 补丁按[逻辑块算式](#为什么一个逻辑块是-640-个-token)把它定成 **640**，本页容量算式都按这个数。这个字段在启动中途还会被改写，而且在不同阶段、不同缓存组里指的是五种不同的块，对照表和改写过程见 [KV cache 规格](kv-cache-spec.md#block_size-到底指哪一个五种含义)。
 
+该专用缓存路径还要求启用混合缓存管理器：摘录中，至少一个缓存规格的 `model_version` 为 `"glm5_next"` 时进入 GLM 专用分组逻辑；若禁用 hybrid KV cache manager，则抛出 `ValueError`，因此不能在该路径下通过关闭管理器来节省开销。[C24]
+
 **空白三：`--kv-cache-dtype` 没写**，同样走默认值。这一条不影响本页的数字：MLA 主 cache 的精度在代码里就写死成 BF16，本来也不由这个选项决定。 [D]
 
 ### 会报什么错
 
 - 草稿模型的层必须出现在 KV cache 配置里，否则 `initialize_attn_backend` 会在 `assert not missing_layers` 上直接断言失败 [C22]。MTP 第 45 层是 MLA 层、带自己的索引器，它的三份 cache 必须和主干一起进分组器。
-- 两端的 `data-parallel-start-rank`、`data-parallel-size` 和握手地址任一对不上，全局 rank 就凑不成 0–15（rank 的算法见下表第一行）。**待核：**缺一份实机日志，按教程设的 `HCCL_CONNECT_TIMEOUT=1200`，表现更可能是等到超时而不是立刻报错，现在没有报错原文可引。
-- 本机网卡名（`HCCL_SOCKET_IFNAME`）要填 `local_ip` 对应的那一张，这是教程给的配置约束，不是运行期报错 [S1]。
+- 两端的 `data-parallel-start-rank`、`data-parallel-size` 和握手地址任一对不上，全局 rank 就凑不成 0–15（rank 的算法见下表第一行）。**待核：**缺一份实机日志，按教程设的 `HCCL_CONNECT_TIMEOUT=1200`，表现更可能是等到超时而不是立刻报错，现在没有报错原文可引。建链、执行与 Worker 三种等待的单位、默认和覆盖见[超时参考](request-call-chain.md#怎么开)。
+- 本机网卡名（`HCCL_SOCKET_IFNAME`）要填 `local_ip` 对应的那一张，这是教程给的配置约束，不是运行期报错 [S1]。Gloo 与 HCCL 的接口语法、地址优先级及 TensorPipe 变量区别统一见[通信环境参考](engine-processes.md#怎么开)。
 
 ### 开销和什么时候别开
 
-- EP 横跨两台机器，MoE 的 dispatch 和 combine 一定走机间链路；通信规模按 DP 组里 token 数的最大值算，超过 128 就从 MC2 换成 All-Gather（见下表「MC2 与 All-Gather 的选择」一行）。代码里这个门槛读的是最大图尺寸，判断条件里没有「是不是 prefill」这一项 [D]。
-- DP=2 的代价是空闲组陪跑：没活的那组也要跑完整前向，并按 DP 对齐补齐宽度（见下表最后三行）。请求量长期只够喂一组时，这一半算力是白烧的。
+- EP 横跨两台机器，发往远端专家的输入和返回结果需要经过机间链路；本地专家的数据不因此都变成跨机传输。通信规模按 DP 组里 token 数的最大值算，超过 128 就从 MC2 换成 All-Gather（见下表「MC2 与 All-Gather 的选择」一行）。代码里这个门槛读的是最大图尺寸，判断条件里没有「是不是 prefill」这一项 [D]。
+- DP=2 的代价包括空闲请求组陪跑：没接到请求的那组也要执行 dummy 前向，并按 DP 对齐补齐宽度（见下表最后三行）。但它持有的专家仍可能为另一组的真实 token 工作，不能据此说一半算力都浪费；补齐、等待与有效专家计算各占多少，要按实际负载测量。
 - graph mode 在混合批上没有收益，两组同步后取最小值，一方 eager（逐个下发算子、不回放图）就全体 eager。
 - 每卡 18 个路由专家、每 token 13,056 B 由下表的源码值直接算出；3,855 块还依赖下一条的假设 [D]。
 - 本页显存算例里的卡上总量 64 GiB、激活峰值加非 torch 占用 3.4 GiB 都是教学假设，换一组数字要把块数公式重算一遍 [A]。
 
-**待核：**官方教程只给双机配方；单机账按相同切法推算，缺实机验证，也未核单机激活峰值是否变化。权重表假设量化仓库配方与上游 `config.json` 一致，但本机缺 `GLM-5.3-Flash-w8a8` 的 `quant_model_description.json`；若 MLA 三个大投影没有量化，整卡变为 20.81 GiB，上下界差 0.22 GiB，不影响本页结论。
+**待核：**官方教程只给双机配方；单机账按相同切法推算，缺实机验证，也未核单机激活峰值是否变化。两份量化描述的差异和视觉、旋转矩阵的构造已能逐项计算；完整加载字节数仍须核对全部参数、辅助张量与实际启动日志，不能把 20.58 / 20.81 GiB 子账当成设备总量。
 
 还在待核的条目：
 
 - 卡上显存总量。64 GiB 是教学假设，需要一份官方规格或一次真实启动日志的可用显存行来定死。教程写的「64GB」若是十进制，换算成 59.6 GiB，预算会少 3.7 GiB，落到 KV 上大约是 30 万 token 的容量差。
-- 权重的实际字节数，以及哪些张量留在 BF16：要 `GLM-5.3-Flash-w8a8` 的 `quant_model_description.json`，或者启动日志里报权重占用的那一行。
+- 权重的实际加载字节数：量化描述已经固定到下列两个版本；还需实际目录的张量形状、加载后辅助张量清单和启动日志中的权重占用，核齐整卡总账。
 - 激活峰值、非 torch 占用和图内存这三个量，只能从启动日志里读。
 - 索引器状态组 decode 时占 3–4 块（每个请求常驻 15–16 块）、长 prompt prefill 那一步临时约 n ÷ 4 块，是按滑窗管理器源码推出的，没有实跑确认；推导见 [KV 块分配](vllm-kv-block-allocation.md#开销和什么时候别开)。
 - 草稿模型那一侧的 `enforce_eager` 已经能确认是开着的，草稿模型永远走 eager；还没核的是它会不会连带影响主模型的图选择。
-- `--api-server-count` 只在教程里出现一次，它的取值影响前端进程数，不影响本页任何一个显存或通信的数字；没有独立核过。
+- 本配方 `--api-server-count 1` 使用单 API server 分支，在当前启动进程运行前端；headless 端不启动 API server。改为多个前端时，会转入多 API 进程管理分支，需重新核对进程与主机内存开销；本页的设备权重和通信算例仍按单前端配方计算（来源 6）。
 
 ### 版本差异
+
+**v0.30.0rc2 保留双机混部配方，也另给出四机 A2 的 PD 分离配方。** 双机混部仍是每机 TP8、跨两机 DP2；新增 PD 示例使用两台 P、两台 D，P 为 DP2/TP8，D 为 DP8/TP2，通过 MooncakeConnectorV2 传递缓存。这两种部署的角色、设备总数和缓存转移都不同，不能把四机配置贴进本页的两机账单。
+
+rc2 教程要求 GLM-5.3-Flash 使用 MRV1；KPool 后端仍拒绝 PCP/DCP。执行侧文件改为 models/glm5next，完成池与尾状态的缓存布局也变了。本文 16 卡分组、权重与 KV 字节数继续属于页首固定基线；采用 rc2 时须按其实际 KVCacheSpec、量化权重和 profile 结果重新定容量，不能把旧推导当成 rc2 的设备测量。
 
 - 控制流按 `vllm@0fc695fc` 读：rank 分配、DP 组与 EP 组的构造、`launch_core_engines` 与 headless 入口、`_initialize_kv_caches` 都在这一版。
 - 执行侧按 `vllm-ascend@db701c1f` 读，这是官方镜像里跑的那一版。GLM 的实现在 `vllm_ascend/models/glm5_next.py` 和 `glm5_next_mtp.py`。块大小和 KV 分组被 `vllm_ascend/patch/platform/` 下的补丁改写过；prefix caching 开不开沿用上游的判定，补丁只是读这个开关，据此决定 KDA 块大小和要不要做细粒度哈希。
@@ -363,7 +454,7 @@ file: glm-two-node-startup
 | MC2 组（16 rank）在 Ascend 侧的建立 | `vllm_ascend/distributed/parallel_state.py` [C4] |
 | 机器 0 的启动路径与 DP 协调器 | `vllm/v1/engine/utils.py` [C5] |
 | 机器 1 的 headless 启动路径 | `vllm/entrypoints/cli/serve.py` [C6] |
-| 一个引擎进程 fork 出 8 个 worker | `vllm/v1/executor/multiproc_executor.py` [C7] |
+| 一个引擎进程创建 8 个 Worker 子进程；启动方法见[进程页](engine-processes.md#怎么开) | `vllm/v1/executor/multiproc_executor.py` [C7] |
 | worker 建 HCCL 通信域、初始化模型并行 | `vllm_ascend/worker/worker.py` 975–988 行 [C8] |
 | `--quantization ascend` 从哪来 | `vllm_ascend/platform.py` [C9] |
 | 逐层判断精度、命中就换成不量化的实现 | `vllm_ascend/quantization/modelslim_config.py` [C10] |
@@ -378,5 +469,11 @@ file: glm-two-node-startup
 | hybrid 模型不支持 prefix caching | `vllm/config/model.py` [C19] |
 | 空闲 DP 组的陪跑循环 | `vllm/v1/engine/core.py` 1869–1945 行 [C20] |
 | 两组每步对齐 token 数与图模式 | `vllm_ascend/worker/model_runner_v1.py` [C21] |
-| 草稿层必须在 KV cache 组里 | `vllm_ascend/spec_decode/llm_base_proposer.py` [C22] |
+| 草稿层必须在 KV cache 组里 | `vllm_ascend/spec_decode/llm_base_proposer.py`，来源 22；断言与影响见“会报什么错” |
 | 前端选择持有请求的 DP 组 | `DPLBAsyncMPClient.get_core_engine_for_request` [C23] |
+
+量化子账的版本证据是来源 32、33 的两份固定 `quant_model_description.json`；来源 34 的模型配置与 9e55cbc8 的配置逐字相同。来源 35、38–40 给出视觉线性层、卷积、归一化及偏置的构造，来源 41 固定默认 weights 模式；来源 36、37 共同说明视觉塔的创建与跳过条件。MTP 旋转矩阵的开关和形状在来源 17 的第 46–63 行。FLOAT 表示不量化，具体驻留精度还要按配置和模块实现判断。
+
+上表的块大小补丁（来源 13，db701c1f 的第 153–166 行）中，GLM-5 Next 专属分支在当前 block_size 与计算出的 attn_block_size 不同时覆写前者，使连续的 MLA 页覆盖完整 KDA 状态；这是相等性检查，不只是“设置过小才改”。其他模型有自己的分支，不能由此推断它们绝不调整块大小。
+
+上表的模型初始化（来源 16，db701c1f 的第 1909–1911 行）另有头数约束：AscendGlm5NextMLAAttention 要求 attention 头数能被 TP 规模整除，否则触发断言；成立后，每卡头数才按总头数除以 TP 计算。

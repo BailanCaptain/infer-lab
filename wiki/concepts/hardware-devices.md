@@ -1,43 +1,85 @@
 ---
 id: hardware-devices
-title: "NPU、板卡、服务器与机柜"
+title: NPU、板卡、服务器与机柜
 type: concept
-summary: 分清芯片、板卡、服务器与软件可见设备，沿 GLM 双机的一条输入理解主机内存、设备显存、机内 HCCS 与跨机 RoCE 的边界，并核对官方规格峰值和启动源码。
-aliases: [NPU, 昇腾芯片, device, 卡, 单卡, 加速卡, 机器, 节点, 服务器, 单机, Atlas A2, Atlas A3,
-  超节点, SuperPoD, Atlas 900 A3 SuperPoD, 内存池化, MemFabric, MemCache]
-chapters: ["07", "08"]
+summary: >-
+  分清芯片、板卡、服务器与软件可见设备，沿 GLM 双机的一条输入理解主机内存、设备显存、机内 HCCS 与跨机 RoCE
+  的边界，并核对官方规格峰值和启动源码。
+aliases:
+  - NPU
+  - 昇腾芯片
+  - device
+  - 卡
+  - 单卡
+  - 加速卡
+  - 机器
+  - 节点
+  - 服务器
+  - 单机
+  - Atlas A2
+  - Atlas A3
+  - 超节点
+  - SuperPoD
+  - Atlas 900 A3 SuperPoD
+  - 内存池化
+  - MemFabric
+  - MemCache
+chapters:
+  - '07'
+  - 08
 order: 100
 sources:
-  - https://www.hiascend.com/developer/techArticles/20240914-1
-  - https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/others/acldevg/aclcppdevg_000537.html
-  - https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900beta1/API/appdevgapi/aclcppdevg_03_0107.html
-  - https://www.hiascend.com/developer/techArticles/20251203-5
-  - https://e.huawei.com/cn/documents/products/computing/b0b253c4d5da4e05ba80a39e3dc65fd2
-  - https://e.huawei.com/cn/products/computing/ascend/atlas-800t-a2
-  - https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L128-L138
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L439-L503
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L505-L524
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L988
-  - vllm@0fc695fc:vllm/distributed/parallel_state.py#L1535-L1560
-  - vllm@0fc695fc:vllm/distributed/parallel_state.py#L1758-L1772
-  - vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875
-  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L138
-  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L275-L281
-  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L137
-  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L274-L280
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L82-L92
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L225-L237
+  - 'https://www.hiascend.com/developer/techArticles/20240914-1'
+  - >-
+    https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/others/acldevg/aclcppdevg_000537.html
+  - >-
+    https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/900beta1/API/appdevgapi/aclcppdevg_03_0107.html
+  - 'https://www.hiascend.com/developer/techArticles/20251203-5'
+  - >-
+    https://e.huawei.com/cn/documents/products/computing/b0b253c4d5da4e05ba80a39e3dc65fd2
+  - 'https://e.huawei.com/cn/products/computing/ascend/atlas-800t-a2'
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L128-L138'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L395-L503'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L505-L524'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L988'
+  - 'vllm@0fc695fc:vllm/distributed/parallel_state.py#L1535-L1560'
+  - 'vllm@0fc695fc:vllm/distributed/parallel_state.py#L1758-L1772'
+  - 'vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L138'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L275-L281'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L137'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L274-L280'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L82-L92'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L225-L237'
+  - >-
+    raw:sha256-9a71c5e275ab2ca3591da54fcaba5bb8a352680d097760b4adf5f7e8a6d65d13.md#L1-L366
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L85-L99'
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L232-L244'
+  - 'vllm-ascend@7d825229:vllm_ascend/device/hardware_profile.py#L284-L304'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L931'
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - {to: glm-5-3-flash-two-node, kind: builds-on, note: A0 的设备边界确定后，继续看 16 卡分组、每卡权重和启动预算}
-  - {to: npu-platform, kind: builds-on, note: 看平台契约怎样落实设备选择、配置校验与后端选择}
-  - {to: kv-pool, kind: builds-on, note: 想继续了解内存池化时，区分外部对象缓存与本地状态池}
+  - to: glm-5-3-flash-two-node
+    kind: builds-on
+    note: A0 的设备边界确定后，继续看 16 卡分组、每卡权重和启动预算
+  - to: npu-platform
+    kind: builds-on
+    note: 看平台契约怎样落实设备选择、配置校验与后端选择
+  - to: kv-pool
+    kind: builds-on
+    note: 想继续了解内存池化时，区分外部对象缓存与本地状态池
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-4ad0a826ee278a8aae4b53a6b9dd14ca60685672bead700eda86212d11dd24a5.md
+  - >-
+    raw/sha256-9a71c5e275ab2ca3591da54fcaba5bb8a352680d097760b4adf5f7e8a6d65d13.md
 ---
 
 ## 一张“卡”和一台“机器”有什么区别？
@@ -54,11 +96,11 @@ file: hardware-devices
 
 ## 为什么多几张卡，还会多出等待？
 
-**分给更多设备能减轻每卡的存储和计算负担，也会让一部分结果必须过链路才能继续。** 本部署每卡权重主体约 **20.58 GiB**，还要容纳历史状态与临时结果；完整容量账在[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)。主机内存再大，也要经过数据传送才能成为 NPU 本次计算可用的输入。
+**分给更多设备能减轻每卡的存储和计算负担，也会让一部分结果必须过链路才能继续。** 本部署所列主要语言权重子账约 **20.58 GiB/卡**，视觉塔、MTP 旋转矩阵和量化辅助张量等还要另计；还要容纳历史状态与临时结果。容量的版本条件与表外项见[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)。主机内存再大，也要经过数据传送才能成为 NPU 本次计算可用的输入。
 
 **HCCS** 是昇腾处理器间的高速互连，本部署用它连接机内设备；**RoCE** 是在以太网上承载远程直接内存访问的协议，让设备经网络接口跨机传数据。**HCCL** 是组织多卡通信的软件库：它决定哪些参与者一起交换张量，底层利用相应物理链路；它与链路怎样分层见 [CANN 与 HCCL](cann-hccl.md)。网络接口可以由 NPU 直出，具体形态取决于机型，不能一概画成独立 PCIe 网卡。
 
-**TP（tensor parallel）**把同一层的矩阵切开合算；**EP（expert parallel）**把完整专家分给不同设备，专家就是一段可独立执行的前馈网络。GLM 主干 45 层的每一层都先过 attention（读取历史信息），它的输出投影在各卡产生部分和，要做一次 **All-Reduce**：把各卡的部分结果逐元素相加，让每卡拿到完整数值。下一段计算要用这个结果，就要等它到齐。每层随后的前馈网络再合一次，前 3 层与其余 42 层的区别只在这里：前 3 层是稠密前馈网络，在降维投影后归约；其余 42 层是 **MoE** 层，由多个专家组成、每个 token 只选择部分专家，其中所有 token 都经过的共享专家归约一次，此外还需把输入送给被选专家，再收回结果。所以每层 2 次 All-Reduce，加上开头按 token 编号查表之后的 1 次，一次主干前向共 91 次；账目见 [TP 的通信账](tensor-parallel.md#从一层走到整次前向r1-的通信账)，通信次数与特殊路径见 [TP](tensor-parallel.md#切开以后要付的代价)和 [EP](expert-parallel.md)。逐层反复的归约留在机内走 HCCS，专家的派发与收回遇到另一台机器上的专家时才走 RoCE，原因在下一节展开。
+**TP（tensor parallel）**把同一层的矩阵切开合算；**EP（expert parallel）**把完整专家分给不同设备，专家就是一段可独立执行的前馈网络。下面沿用 [TP 通信账的执行条件](tensor-parallel.md#从一层走到整次前向r1-的通信账)：关闭 SP（把中间张量按 token 行分给各卡的并行方式），共享专家按 TP 切分，并使用普通归约路径。GLM 主干 45 层的每一层都先过 attention（读取历史信息），它的输出投影在各卡产生部分和，要做一次 **All-Reduce**：把各卡的部分结果逐元素相加，让每卡拿到完整数值。下一段计算要用这个结果，就要等它到齐。每层随后的前馈网络再合一次，前 3 层与其余 42 层的区别只在这里：前 3 层是稠密前馈网络，在降维投影后归约；其余 42 层是 **MoE** 层，由多个专家组成、每个 token 只选择部分专家，其中所有 token 都经过的共享专家归约一次，此外还需把输入送给被选专家，再收回结果。在上述条件下，每层 2 次 All-Reduce，加上开头按 token 编号查表之后的 1 次，一次主干前向共 91 次；通信次数与特殊路径见 [TP](tensor-parallel.md#切开以后要付的代价)和 [EP](expert-parallel.md)。逐层反复的归约留在机内走 HCCS，专家的派发与收回遇到另一台机器上的专家时才走 RoCE，原因在下一节展开。
 
 | 层级 | 它回答什么 | 不同对象怎样联系 |
 | --- | --- | --- |
@@ -106,7 +148,7 @@ title: 单个 RoCE 接口的规格速率换算
 
 ## 主机内存和设备显存分别记什么账？
 
-**CPU 上的进程数、主机内存容量与 NPU 的显存预算是三本不同的账。** A0 的进程统计中，两台共 20 个主要服务进程，只有 16 个 worker 各占一张卡；其余前端、协调器和引擎组织任务。进程分布见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)。
+**CPU 上的进程数、主机内存容量与 NPU 的显存预算是三本不同的账。** A0 的核心功能角色示意账合计 20，其中 16 个 worker 各占一张卡；其余前端、协调器和引擎组织任务。这份账不含启动器、持续监控的父进程和运行时辅助进程，不能当成操作系统的进程总数。角色分布见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)。
 
 主机内存用于文本、请求队列、调度记录和加载中转；设备显存用于本卡权重、历史状态、临时张量、通信与图执行资源。**HBM** 是加速器使用的高带宽内存。**KV cache** 保存可供后续 token 使用的历史表示；GLM 的不同注意力还保存各自所需的状态，不能都视为普通的 K/V 数组。
 
@@ -124,6 +166,8 @@ title: 单个 RoCE 接口的规格速率换算
 
 [prefix caching](prefix-caching.md)解释哪些历史可以复用，[KV Pool](kv-pool.md)解释外部存储怎样接入推理。内存池化需要额外软件与资源管理；本页的 GLM 双机配方没有据此启用 MemFabric/MemCache。
 
+昇腾 950 的 PR/DT 型号、内存与端口规格集中在[950 架构页](ascend-950-architecture.md)，任务、通信和远端访问怎样衔接见[950 执行与互联](ascend-950-execution-interconnect.md)。阅读时沿用本页的设备层级与带宽口径，再核对具体软件支持；不要把新型号能力套到上述 A2 配方。
+
 ## 常见误解
 
 - **“一个设备就是一块物理板卡。”** Device 是软件边界，具体映射按型号与运行环境核对；“卡”在本部署中是可见 NPU 设备的简称。
@@ -138,7 +182,7 @@ title: 单个 RoCE 接口的规格速率换算
 
 先按[官方双机命令](glm-5-3-flash-two-node.md#怎么开)准备每机设备可见性、网络地址和并行组。`ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7` 选择本机运行时可见设备；TP8、DP2 是教程显式配置，硬件名称本身不会自动建好这些组。网络侧按现场填写 `HCCL_IF_IP`、`HCCL_SOCKET_IFNAME` 等接口配置。
 
-在 CANN 接口层，`aclrtGetDeviceCount()` 查询可用设备数，选定 Device 后再用 `aclrtGetMemInfo` 查询设备内存；返回总量不包含系统预留。在 vLLM-Ascend 中，对应路径是 `NPUPlatform` 声明设备身份，`NPUWorker.init_device()` 调用 `_init_device()`，用 `torch.npu.set_device()` 绑定，再创建通信环境和 ModelRunner（组织设备计算的组件）。
+在 CANN 接口层，`aclrtGetDeviceCount()` 查询可用设备数；在支持相应接口与内存属性的产品上，选定 Device 后再用 `aclrtGetMemInfo` 查询设备内存，返回总量不包含系统预留。具体产品支持表应按所用 CANN 版本核对。在 vLLM-Ascend 中，对应路径是 `NPUPlatform` 声明设备身份，`NPUWorker.init_device()` 调用 `_init_device()`，用 `torch.npu.set_device()` 绑定，再创建通信环境和 ModelRunner（组织设备计算的组件）。
 
 ```wiki-diagram
 file: hardware-device-startup
@@ -150,7 +194,9 @@ file: hardware-device-startup
 
 固定 GLM 执行侧中，`DP adjusted local rank ... is out of bounds for ... devices` 表示调整后的本地编号超出当前可见设备数；先核对设备暴露、可见列表和本机进程规模。`Free memory on device ... is less than desired GPU memory utilization` 表示启动时空闲显存低于配置预算，核对同卡其他进程占用与预算比例。
 
-分布式初始化卡住时，分别检查两端地址、接口、可见设备、rank 和组规模。能枚举本机设备，只证明本机运行时可见；跨机通信还依赖两端网络配置与参与者同时就绪。具体错误位置和上下文要保留，不能用型号或端口峰值代替排查。
+手动设置缓存大小也不能据此视为绕过启动内存检查：固定源码中，`kv_cache_memory_bytes` 为真值时仍调用 `profile_run()`，但跳过后续内存 profiling 的计算。[C11] 启动内存检查位于前面的设备初始化路径中，这个预算分支没有取消它。[C9]
+
+分布式初始化卡住时，分别检查两端地址、接口、可见设备、rank 和组规模。能枚举本机设备，只证明本机运行时可见；跨机通信还依赖两端网络配置与同组参与者完成对应初始化。具体错误位置和上下文要保留，不能用型号或端口峰值代替排查。
 
 ### 开销和什么时候别开
 
@@ -159,6 +205,8 @@ file: hardware-device-startup
 MemFabric/MemCache 应在确有跨节点状态复用需求、软硬件支持且命中收益覆盖传输成本时引入。硬件峰值不能代替有效吞吐；本页没有真实 NPU 枚举、网络基准或超节点性能测量。
 
 ### 版本差异
+
+**v0.30.0rc2 保留 NPU/OOT 平台身份和设备可见性接口。** device_type 仍为 npu，设备可见变量仍为 ASCEND_RT_VISIBLE_DEVICES；查询总显存前必须完成 NPU 初始化，随后读取 mem_get_info(device_id) 的总量，默认设备号 0 不是“零张卡”。HardwareProfile 将设备类型映射为 CPU 绑定、MoE 通信等软件策略；新增或调整软件画像不改变本文固定 A2 的物理核数和容量。
 
 硬件规格不会随 vLLM 分支变化；变化的是软件怎样暴露和查询设备。下面按项目钉点检查平台声明与总显存查询接口，范围限于这两个行为；GLM 主线执行侧仍固定在 `db701c1f`，不能套用 main 的实现。
 
@@ -172,7 +220,7 @@ MemFabric/MemCache 应在确有跨节点状态复用需求、软硬件支持且�
 
 ### 源码位置
 
-- 固定 GLM 平台声明：`platform.py:128–138`；设备选择、快照与检查：`worker.py:439–524`；自动预算：`527–597`；HCCL 与并行组初始化：`975–988`。
+- 固定 GLM 平台声明：`platform.py:128–138`；设备选择、快照与检查：`worker.py:395–524`；自动预算：`527–597`；HCCL 与并行组初始化：`975–988`。
 - 全局 rank 偏移：上游 `parallel_state.py:1535–1560`；TP 分组：`1758–1772`；DP/EP 分组：`1833–1875`。
 - 三版总显存查询：`platform.py:275–281 / 274–280 / 225–237`，依次对应版本表三列。
 
@@ -180,16 +228,17 @@ MemFabric/MemCache 应在确有跨节点状态复用需求、软硬件支持且�
 
 - NPU、主机与 CANN 的职责：昇腾官方 CANN 介绍 [S1]。
 - 设备枚举与 HCCL 通信参与者：CANN 9.1.0 集合通信开发文档 [S2]；选定设备后查询内存及系统预留边界：CANN 9.0.0-beta.1 `aclrtGetMemInfo` [S3]。
-- MemFabric/MemCache 的分层与 A3 实践：官方技术文章 [S4]，本轮外链正文访问失败，沿用原页事实并保留待核。
-- **HCCS 峰值原始出处**：华为《Atlas 800T A2 训练服务器 技术白皮书》，文档版本 **16（2026-05-12）**，§5.1 表 5-2，印刷页 **37**、PDF 第 **46** 页：每路处理器 7 条 HCCS、最大理论带宽 392 GB/s；表 5-1，印刷页 36、PDF 第 45 页列出每处理器 64 GB 内存及 200GE RoCE 接口 [S5]。本轮核读用户硬件研究目录中的 `whole/reference/atlas800t.pdf`，并核对官方文档入口。
+- MemFabric/MemCache 的分层与 A3 实践见官方技术文章 [S4]；具体部署能力仍须按使用的软件版本与硬件配套核对。
+- **HCCS 峰值原始出处**：华为《Atlas 800T A2 训练服务器 技术白皮书》，文档版本 **16（2026-05-12）**，§5.1 表 5-2，印刷页 **37**、PDF 第 **46** 页：每路处理器 7 条 HCCS、最大理论带宽 392 GB/s；表 5-1，印刷页 36、PDF 第 45 页列出每处理器 64 GB 内存及 200GE RoCE 接口 [S5]。这些是该型号的理论规格，不是本站推理部署的实测带宽。
 - **RoCE 峰值原始出处**：Atlas 800T A2 官方产品页“技术规格／网络”，整机 8 个 200GE QSFP 接口、RoCE 协议 [S6]；25 GB/s 仅为单接口位／字节换算。
 - 两机、每机可见设备 0–7、TP8/DP2 和网络配置：钉住教程的双机章节 [S7]；本地编号变为全局 rank、TP/DP/EP 组由源码构造 [C13][C14][C15]。
 - 图中设备启动流程与错误分支：平台设备声明 [C8]，选卡与内存快照 [C9]，创建 Runner [C10]，预算测量 [C11]，HCCL 初始化 [C12]。
 - 三版对照：v0.23 平台声明与总显存查询 [C16][C17]；v0.26 对应实现 [C18][C19]；main 的声明与初始化守卫 [C20][C21]。
+- SP 的初始化与刷新还会受共享专家 DP 设置影响，不能仅由默认 FlashComm 开关判断 SP 必定关闭 [C26]；91 次的完整计数前提及各投影来源统一见上文链接的 TP 通信账。
 
 **待核**
 
 - 现场 Atlas 800 A2 的完整型号、硬件版本、设备映射、运行时总显存及预留量；教程只写 Atlas 800 A2，本页规格取自 800T A2 训练服务器白皮书，现场型号与同系列其他型号均未核，上述规格不能证明现场两台机器的配置。
 - 白皮书表 5-2 未明确 392 GB/s 的单向／双向口径；继续查同型号 HCCS 互联规格或硬件接口说明。现场 HCCS/RoCE 拓扑、同口径有效带宽和 All-Reduce 实测仍缺，不能据此给倍率或延时。
 - 官方教程概览曾写“2 Atlas 800 A2（64GB × 16）”，双机操作节则写每机 8 卡且各只暴露 0–7；本库按操作节固定 2×8，原文数量差异仍保留在[来源基线](../sources/glm-5-3-flash-baseline.md)。
-- MemFabric/MemCache 原文需恢复访问并复核支持条件；没有本部署启用它们的证据，也没有超节点容量、带宽或加速比的实测。
+- MemFabric/MemCache 官方文章中的 A3 测试使用它列明的节点数、数据块与读写负载；本部署没有启用记录，文章的容量、带宽和加速比不能当成本部署实测。实际接入仍需核对安装版本及其软硬件配套。

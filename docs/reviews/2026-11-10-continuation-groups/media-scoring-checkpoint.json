@@ -1,0 +1,63 @@
+{
+  "status": "accepted_for_frozen_revision",
+  "new_source_occurrences": 39,
+  "groups": {
+    "media_config": 13,
+    "generative_scoring": 26
+  },
+  "current_hashes": {
+    "wiki/concepts/api-server-entry.md": "85d7f44ecbe1625b7bea02a41e63bc1172beb19385f000aed0efd1b433e5c613",
+    "wiki/concepts/engine-processes.md": "ad8653297374421f69668a6a87ed9d59295cfe746e2f26dcb41e14ba323dbb87",
+    "wiki/concepts/sampling.md": "941c038d417d1765c1b80ec64faedb5f97fed34e220a5d81b99e74cbcdcef3a1"
+  },
+  "global_new_full_credit": 0,
+  "hardware_validation": false,
+  "p1_open": 0,
+  "p2_open": 0,
+  "browser_report": ".tmp\\continuation-groups-2026-11-10\\review-media-scoring-browser\\report.json",
+  "snapshot": ".tmp/continuation-groups-2026-11-10/media-scoring-reviewed-final.zip",
+  "snapshot_sha256": "33381bfe8edf9ffbe854b8dbfed278004fe813f8286b8f0ec6708419e99e36af",
+  "review": "media-scoring-review.md",
+  "preservation": "media-scoring-preservation.md",
+  "judgments": "media-scoring-independent.json",
+  "final_engineering": "docs/reviews/2026-11-10-continuation-groups/coverage-transfer-media-scoring-vit-verification.json",
+  "prior_snapshot": {
+    "path": ".tmp/continuation-groups-2026-11-10/media-scoring-reviewed.zip",
+    "sha256": "f208180e11bda17ad1c41182228144ddc06ac10d24dbfb13eb735ae57f757424",
+    "reason": "superseded only by precise cache-hit and oversized-file conditions; original frozen artifact retained"
+  },
+  "final_wording_browser": ".tmp/continuation-groups-2026-11-10/review-media-scoring-browser/final-wording-report.json",
+  "final_engineering_sha256": "e77d69f27ee5cb1862b42a9a2221248a21a2c4976f7da0e86d9804d3934ca689",
+  "checks": [
+    {
+      "command": "pnpm check:content",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/coverage-closed-content.log",
+      "sha256": "fcfc3ac2d6c64751ac518de1d9f1f3e817bb4d989716dc0212aefe1e8e628ec7"
+    },
+    {
+      "command": "pnpm wiki:lint",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/coverage-closed-lint.log",
+      "sha256": "6b8dfd92b8d14acc0b7ee2b2563f1a0df13c843193838c81733a90b31d3efb27"
+    },
+    {
+      "command": "pnpm wiki:audit",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/coverage-closed-audit.log",
+      "sha256": "3040a8e6aadd79e0c645e718173a78bd047c22290b43650143dbfebd0a4242a3"
+    },
+    {
+      "command": "pnpm wiki:diagrams --check",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/coverage-closed-diagrams.log",
+      "sha256": "5d5f5b16e3f9446d030c347a8dac55b310d94e00a942658ef4c7bb1e8abca14f"
+    },
+    {
+      "command": "pnpm build",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/coverage-closed-build.log",
+      "sha256": "d35851eef81175dc43b911c7c535d4739fee11dcbb0ee395b9a31b75b5ce2ea9"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 490" width="820" height="490" role="img" aria-label="第 3–5 站的选择示意。相同输入和前三个输出 [41,52,60] 下，两套服务的最高候选分数发生翻转。浅绿格是共同历史，实色格是本次选中编号，虚线格是尚不该混入比较的后续。分数是假设，不代表实际硬件误差。">
+  <title>第 3–5 站的选择示意。相同输入和前三个输出 [41,52,60] 下，两套服务的最高候选分数发生翻转。浅绿格是共同历史，实色格是本次选中编号，虚线格是尚不该混入比较的后续。分数是假设，不代表实际硬件误差。</title>
+  <defs><marker id="inference-correctness-first-difference-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <rect x="20" y="155" width="780" height="120" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">A：选择处理后分数最高的候选</text>
+  <rect x="20" y="325" width="780" height="120" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="313" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">B：同样的选择规则，最高候选变了</text>
+  <path d="M250 218 L410 218" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-correctness-first-difference-ah-token)"/>
+  <path d="M250 388 L410 388" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-correctness-first-difference-ah-token)"/>
+  <rect x="310" y="65" width="65" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="342.5" y="87.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">41</text>
+  <rect x="375" y="65" width="65" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="407.5" y="87.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">52</text>
+  <rect x="440" y="65" width="65" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="472.5" y="87.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">60</text>
+  <path d="M375 65v36M440 65v36" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="310" y="65" width="195" height="36" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="140" y="180" width="100" height="34" fill="var(--color-token, #087f73)"/>
+  <text x="190" y="201.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">8.0001</text>
+  <rect x="140" y="214" width="100" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="190" y="235.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">8.0000</text>
+  <path d="M140 214h100" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="140" y="180" width="100" height="68" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="130" y="201.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">候选 41</text>
+  <text x="130" y="235.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">候选 52</text>
+  <rect x="420" y="200" width="62" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="451" y="222.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">41</text>
+  <rect x="482" y="200" width="62" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="513" y="222.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">52</text>
+  <rect x="544" y="200" width="62" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="575" y="222.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">60</text>
+  <rect x="606" y="200" width="62" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="637" y="222.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">41</text>
+  <rect x="668" y="200" width="62" height="36" fill="none"/>
+  <rect x="671" y="203" width="56" height="30" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <text x="699" y="222.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">…</text>
+  <path d="M482 200v36M544 200v36M606 200v36M668 200v36" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="420" y="200" width="310" height="36" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="140" y="350" width="100" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="190" y="371.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">8.0000</text>
+  <rect x="140" y="384" width="100" height="34" fill="var(--color-token, #087f73)"/>
+  <text x="190" y="405.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">8.0001</text>
+  <path d="M140 384h100" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="140" y="350" width="100" height="68" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="130" y="371.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">候选 41</text>
+  <text x="130" y="405.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">候选 52</text>
+  <rect x="420" y="370" width="62" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="451" y="392.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">41</text>
+  <rect x="482" y="370" width="62" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="513" y="392.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">52</text>
+  <rect x="544" y="370" width="62" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="575" y="392.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">60</text>
+  <rect x="606" y="370" width="62" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="637" y="392.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">52</text>
+  <rect x="668" y="370" width="62" height="36" fill="none"/>
+  <rect x="671" y="373" width="56" height="30" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <text x="699" y="392.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">…</text>
+  <path d="M482 370v36M544 370v36M606 370v36M668 370v36" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="420" y="370" width="310" height="36" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="410" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">两边都固定相同输入，以及已经生成的前三个编号</text>
+  <text x="410" y="125" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">比较的对象：选第四个编号之前的分数与状态</text>
+  <text x="330" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">选中 41</text>
+  <text x="330" y="374" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">选中 52</text>
+  <text x="513" y="189" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">相同的前三个</text>
+  <text x="637" y="189" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">第四个</text>
+  <text x="699" y="189" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">后续</text>
+  <text x="513" y="359" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">相同的前三个</text>
+  <text x="637" y="359" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">第四个</text>
+  <text x="699" y="359" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">后续</text>
+  <text x="410" y="477" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">第四个不同以后，后续计算使用的历史也不同，先不要拿来定位初始差异</text>
+</svg>

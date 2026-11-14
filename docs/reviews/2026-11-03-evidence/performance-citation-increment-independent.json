@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-03",
+  "reviewer": "review_first_pages",
+  "status": "accepted-increment-only",
+  "report": "docs/reviews/2026-11-03-evidence/performance-citation-increment-independent.md",
+  "final_files": [
+    {
+      "path": "wiki/concepts/inference-performance-analysis.md",
+      "sha256": "42c441c39d10f428da187dc7ec64b4fd92d3ba55a93e087117b773902c74ff55"
+    },
+    {
+      "path": "wiki/concepts/inference-performance-walkthrough.md",
+      "sha256": "f76797af2c1c3f1e45ddd84a0d1c476e8249566ef09cb191464c2c8f82cbca1d"
+    },
+    {
+      "path": "wiki/params/enable-super-kernel-ce990e186bfa.md",
+      "sha256": "ac6685b60429e0257602ba593193f9c015406ee0af39ae6ca1941d4954713601"
+    }
+  ],
+  "ui_or_npu_validation": false
+}

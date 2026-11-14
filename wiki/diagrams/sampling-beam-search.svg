@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 490" width="860" height="490" role="img" aria-label="宽度 2 的两步示意，暂不考虑 EOS。每一步从全部扩展候选里重新选两条，不是每个旧 beam 各留一条。这里只画四条延伸，其他延伸的联合概率更低。">
+  <title>宽度 2 的两步示意，暂不考虑 EOS。每一步从全部扩展候选里重新选两条，不是每个旧 beam 各留一条。这里只画四条延伸，其他延伸的联合概率更低。</title>
+  <defs><marker id="sampling-beam-search-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="sampling-beam-search-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <path d="M380 80 L380 100 L215 100 L215 125" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-beam-search-ah-ink)"/>
+  <path d="M480 80 L480 100 L645 100 L645 125" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-beam-search-ah-ink)"/>
+  <path d="M175 180 L115 255" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-beam-search-ah-ink)"/>
+  <path d="M255 180 L325 255" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-beam-search-ah-ink)"/>
+  <path d="M605 180 L535 255" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-beam-search-ah-ink)"/>
+  <path d="M685 180 L745 255" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sampling-beam-search-ah-ink)"/>
+  <path d="M115 325 L215 405" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#sampling-beam-search-ah-token)"/>
+  <path d="M535 325 L535 405" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#sampling-beam-search-ah-token)"/>
+  <rect x="280" y="25" width="300" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="48.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">同一个提示词</text>
+  <text x="430" y="67.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">第一步保留 A、B</text>
+  <rect x="105" y="125" width="220" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="148.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A：0.6</text>
+  <text x="215" y="167.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">当前候选一</text>
+  <rect x="535" y="125" width="220" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="148.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">B：0.4</text>
+  <text x="645" y="167.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">当前候选二</text>
+  <rect x="20" y="255" width="190" height="70" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="115" y="286" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A→C：0.24</text>
+  <text x="115" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">0.6 × 0.4</text>
+  <rect x="230" y="255" width="190" height="70" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="325" y="286" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">A→D：0.21</text>
+  <text x="325" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">0.6 × 0.35</text>
+  <rect x="440" y="255" width="190" height="70" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="535" y="286" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">B→C：0.36</text>
+  <text x="535" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">0.4 × 0.9</text>
+  <rect x="650" y="255" width="190" height="70" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="745" y="286" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">B→D：0.02</text>
+  <text x="745" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">0.4 × 0.05</text>
+  <rect x="85" y="405" width="690" height="60" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="431" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">保留 B→C 与 A→C</text>
+  <text x="430" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">下一轮继续扩展这两条候选</text>
+</svg>

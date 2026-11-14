@@ -3,9 +3,9 @@ id: layer-sharding
 title: layer_sharding
 type: param
 summary: >-
-  点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，v0.24.0rc
-  起已整体删除，v0.26 上照旧配置会被静默忽略、main 通常拒收，能发现 vLLM-Omni 时会警告并过滤未知顶层键。GLM
-  双机是混部，在钉住版本上配了启动即报错。
+  点名一组同构 Linear，让第 i 层的权重常驻在通信组内第 i % K 张卡上，其他卡前向时通过窗口接收广播。
+  v0.23 固定代码只允许 P 节点使用非空列表；v0.26、rc2 与 main 固定代码已删除旧路径。
+  GLM 双机基线是混部，非空配置会触发启动校验。
 aliases:
   - Layer Sharding Linear
   - 层间权重分片
@@ -26,12 +26,12 @@ sources:
   - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1309-L1317'
   - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1538-L1549'
   - >-
-    vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L236-L247
+    vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L236-L259
   - 'vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L766-L775'
   - >-
     vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L5-L18
   - >-
-    vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L30-L42
+    vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L30-L80
   - >-
     vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L86
   - 'vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L128'
@@ -50,7 +50,27 @@ sources:
   - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1409-L1423'
   - 'vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/index.md#L27-L27'
-  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L359'
+  - >-
+    raw:sha256-0d0ce7737d0db60b7878b2b8474b96b654c918f40a7c32c901b27de8369a255c.md#L1-L541
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L15-L16'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L58-L120'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L581-L585'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1844-L1912'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/attention/context_parallel/sfa_cp.py#L82-L109
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/attention/context_parallel/dsa_cp.py#L2551-L2584
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1515-L1564'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L557-L571'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/flashcomm2_oshard_manager.py#L35-L60'
+  - 'vllm-ascend@baa023ad:vllm_ascend/weight_switch/o_proj.py#L37-L83'
+  - 'vllm-ascend@baa023ad:vllm_ascend/weight_switch/linear.py#L429-L538'
+  - 'vllm@0fc695fc:vllm/model_executor/model_loader/weight_utils.py#L971-L1027'
+  - 'vllm@0fc695fc:vllm/model_executor/model_loader/default_loader.py#L381-L394'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1672-L1688'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L168-L174'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L1825-L1844'
 verified:
   - main
   - releases/v0.23.0
@@ -60,87 +80,101 @@ relations:
   - to: enable-matmul-allreduce
     kind: conflicts-with
     note: >-
-      同在 _get_row_parallel_op 的分派链上，ShardedCPRowParallelOp 排在前面——切了 o_proj
-      的那一层就静默不再走 matmul-allreduce 融合算子，没有告警
+      进入 row-parallel 分派后，DSA-CP 的 P 侧 o_proj 先被 ShardedCPRowParallelOp 认领，
+      不再继续选择后面的 matmul-allreduce 分支；该判据并不检查列表是否实际包含 o_proj
 contradicts: []
-updated: '2026-10-08'
+updated: 2026-11-03T00:00:00.000Z
 rawSources:
+  - >-
+    raw/sha256-0d0ce7737d0db60b7878b2b8474b96b654c918f40a7c32c901b27de8369a255c.md
   - >-
     raw/sha256-45d34afde2227ecda5a1dad641c5f8eb51184a11f3095b8016661f3d4d28a53b.md
   - >-
     raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
   - >-
     raw/sha256-d5ae5978ab15999f012c8b4e21f00edf25723b330a507f4453b4a61869032de9.md
+  - >-
+    raw/sha256-df0884d86ac7d1f22f6ed24c66e989d1b84dc7cfb92ced4ac342522713dfc419.md
 ---
 
 ## 一句话
 
-`layer_sharding` 接一个**层名列表**——不是官方表写的 dict——把这些名字对应的 Linear 权重按层号轮流分到一个通信组的 K 张卡上：第 `i` 层只存在 rank `i % K` 上，其余卡上这块权重被置空，前向时靠异步 broadcast 提前一层取回 [C3]。默认 `None`，也就是不开。
+**v0.30.0rc2 对照：** 没有恢复旧 layer_sharding 顶层键或按层号广播完整权重的分派；正常配置拒收，发现 vllm_omni 时仅告警过滤。rc2 另有默认 True 的 PCP O-projection 权重切分，覆盖 SFA-PCP 与 DSA-PCP；它沿 PCP 域切同一层权重，不是此页历史的“不同层轮流归不同卡”，旧配置不能直接迁成同义开关。
 
-该碰它的只有一种人：跑 DeepSeek-V3 这类深层模型、做了 PD 分离、而且 P 节点显存已经放不下的运维。别的场景要么根本起不来——`kv_role` 不是 `kv_producer` 就抛 `ValueError` [C2]——要么是净亏。
+`layer_sharding` 接一个**层名列表**——不是官方表写的 dict——把这些名字对应的 Linear 权重按层号轮流分到一个通信组的 K 张卡上：第 i 层的这块权重在组内 rank i % K 上常驻，其余卡登记时先释放这块完整权重的存储，前向时靠异步 broadcast 提前一层取回。默认 None，也就是不开。
 
-**存在范围。** 这一页讲的整套机制只活在 v0.23 这一代代码里：维护分支 `2c59ff10` 和本站 GLM 双机钉住的含 GLM 代码提交 `db701c1f` 都有（启动校验在同一行）；下面事实表那一列按维护分支写。它在 v0.23 就已被官方列入待废弃清单 [S18]，v0.24.0rc 起参数、`ops/layer_shard_linear.py` 与 feature guide 一并删除，v0.26 分支（`2ed6cbba`）与 main 开发主线（`baa023ad`）上都不剩什么，发布说明里明写着「Removed layer sharding. #11953」[S29]，是哪个 PR 删的见下面「版本谱系」。**两边删得不一样**：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C32]，照旧配置它服务照常起来、权重一份都不会切，显存该放不下还是放不下；main 通常因 `extra="forbid"` 在配置解析阶段拒收；若能发现 `vllm_omni`，未知顶层键会先警告并从 AscendConfig 输入过滤 [C28]，这不代表已删除的 Layer Sharding 恢复生效。
+它面向旧版 PD 分离的 P 实例，尤其是同类投影在许多层中重复占用显存的深层模型。非空列表要求角色精确为 kv_producer；通过这道检查后，还要看模型是否登记了这些层、节省的容量能否抵偿广播开销。吞吐和时延收益不能只由开关推出。
 
-**本站 GLM 双机用不到它。** 这套部署是混部、没有 `kv_transfer_config`，在钉住的 `db701c1f` 上把这个键配上连启动都过不去，报错原文和「就算在 P 节点上开」会怎样，见「开了的代价」末段。
+**存在范围。** v0.23 维护快照 2c59ff10 和本站 GLM 基线 db701c1f 都有这条路径；它在更早的 v0.13 系列已经出现，不能把 v0.23 当成首次引入。v0.23 发布说明将它列为待废弃；删除提交 #11953 已进入 v0.24.0rc1 tag，本站固定的 v0.26、rc2 与 main 也都没有旧实现。版本谱系记录引入与删除提交，具体使用条件按各版本源码核对。
 
-官方文档对应页：[Layer Sharding Linear Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)（latest 版下前两者已不存在）。
+**新版对旧键的处理不同。** v0.26 的普通配置类忽略这个未知键，不执行旧权重切分；main 与 rc2 通常拒收未知顶层键，能发现 vllm_omni 时先警告再过滤。忽略或过滤只描述此键的处理，服务能否启动仍取决于其他配置和资源。
+
+**本站 GLM 双机用不到它。** 这套部署是混部、没有 KV 传输配置，在 db701c1f 上填写非空列表就会触发启动校验。改成 P 实例也不能据此推断支持：该固定 GLM 后端明确拒绝 DSA-CP，见「开了的代价」末段。
+
+官方旧版入口：[Layer Sharding Linear Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)。配置总表仍存在于新版文档，但旧 layer_sharding 字段和实现已移除。
 
 ## 事实表
 
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|
-| 是否存在 | 有 | **已删除**，未知键静默忽略 | **已删除**，未知键被 `extra="forbid"` 拒收 | 照 v0.23.0 的教程往新版上搬：v0.26 上起得来但什么都没切，main 上启动直接报错（装了 vLLM-Omni 才降级成 warning）[C28] |
-| 实际类型 / 默认值 | `list[str]`，默认 `None` | — | — | 官方表写的 `dict` / `{}` 两项都是错的 [!]；写成 `{"o_proj": ...}` 不会报错，但 `"o_proj" in {...}` 的语义变成查键，行为不是你想要的 |
-| 取值 | 层名，取 `prefix` 最后一段，如 `["o_proj", "q_b_proj"]` | — | — | 名字拼错只有一条 `warning_once`，不报错、静默不切，得去日志里找 |
+| 是否存在 | 有 | **已删除**，此键被忽略 | **已删除**，通常拒收此键 | main / rc2 的 Omni 兼容分支会告警过滤；这些行为均不会恢复旧权重切分 |
+| 实际类型 / 默认值 | 按层名列表使用，默认 None | — | — | 官方表的 dict / {} 与使用方式不符；旧构造器不做列表类型校验，字典迭代会取键，且 FlashComm2 的精确列表校验可继续报错 |
+| 取值 | 层名，取 prefix 最后一段，如 o_proj、q_b_proj | — | — | MLA / SFA 登记点找不到名字会告警并跳过；不能把这条局部行为理解成所有错误配置都不报错 |
 | 子键 | **没有**，它是扁平列表 | — | — | 不存在「dict 里有哪些键」这回事；`prefetch_step` 在两个注册点都写死 1，用户无法调 |
 | 权重归属 | 第 `i` 层落在组内 rank `i % K` | — | — | K 是 `shard_weight` 组大小，不是 TP size；TP 切层内、它切层间，两者正交 |
-| 常驻缓冲 | `prefetch_step + 1 = 2` 份整权重 / 每个 series | — | — | 省下的不是 1/K 而是 `总量/K + 2×单层`，层数少时这 2 份能吃掉大半收益 |
-| 启用前提 | `kv_role` 必须是 `kv_producer`，否则启动抛 `ValueError` | — | — | 混部（无 `kv_transfer_config`）、`kv_both`、D 节点一律起不来 |
+| 常驻缓冲 | `prefetch_step + 1 = 2` 份整权重 / 每个 series | — | — | 等大层的最高卡预算是 `ceil(层数/K)×单层 + 2×单层`，不是简单降到1/K；层数少时两份缓冲会吃掉大半收益 |
+| 启用前提 | 非空列表要求角色精确为 kv_producer | — | — | 混部、kv_both、D 节点会被这道校验拒绝；空列表跳过该校验 |
 | 配 FlashComm2 时取值 | 只能严格等于 `["o_proj"]`，否则 `ValueError` | FlashComm2 本身也已从 `vllm_ascend/` 删除 | 同左 | 想同时切 `q_b_proj` 就不能开 FlashComm2，只能走 DSA-CP 那条路 |
-| 配 RFork 时 | 静默降级：RFork 被绕过，退回默认 loader | — | — | 只有一条 warning，模型加载变慢而不报错，容易被当成「RFork 没生效」排查半天 |
+| 配 RFork 时 | 告警后绕过 RFork，退回默认 loader | — | — | 不再从 seed 传权重；默认 loader 仍可失败，耗时取决于存储和缓存 |
 | 官方状态 | 已列入 Ready to Deprecate，与 FlashComm2 同批 | 已执行 | 已执行 | 新部署不要引入；已有部署要准备迁移 |
 
 ## 为什么存在
 
-深层模型里有一类权重矩阵，**每层结构完全一样、数值各不相同，而且每层都必须以完整形态驻留**。最典型的是 DeepSeek-V3/R1 这类 61 层模型的 `o_proj`：一旦开了 FlashComm2 或 DSA-CP，输出投影矩阵在该层前向时需要全量在手，没法靠 TP 继续摊薄。61 份全量矩阵压在每张卡上，纯粹是容量问题——不是算得慢，是放不下。
+深层模型里有一类权重矩阵，**每层结构相同、数值各不相同**。例如 DeepSeek-V3/R1 这类 61 层模型的 o_proj：所述旧 FlashComm2 或 DSA-CP 路径在执行投影时需要完整矩阵；如果每张卡一直保存所有层的完整矩阵，就会积累 61 份常驻占用。执行到一层时需要完整权重，并不等于所有层必须同时完整常驻；按层分配和提前广播正是利用这个差别减少常驻容量。
 
-`layer_sharding` 的做法是换一个维度切：**TP 切的是层内（一个矩阵切给多张卡），它切的是层间（多个矩阵轮流放）**。它和 [PP（流水线并行）](../concepts/pipeline-parallel.md#pp-是什么)都按层分，但 PP 连计算一起分，每张卡只算自己那一段层、段与段之间传激活；它只分「权重存在哪张卡」，每张卡照样从头算到尾，传的是权重本身。注册时，不归本卡的层直接 `dispose_tensor` 把张量置空，并把 `weight_loader` 换成 no-op——连从磁盘读都省了 [C4]。前向时靠 `reach_layer` 发一个异步 [Broadcast](../concepts/collective-communication.md#broadcast)（`dist.broadcast`，常驻卡把整层权重发给组里其余的卡），到该层 `forward` 入口再 `wait_weight` 收。因为 `prefetch_step` 恒为 1 [C6]，能用来遮掩这次通信的，正好是一层 attention 的计算时间。
+layer_sharding 的做法是换一个维度切：**TP 切的是层内（一个矩阵切给多张卡），它切的是层间（多个矩阵轮流放）**。它和 [PP（流水线并行）](../concepts/pipeline-parallel.md#pp-是什么)都按层分，但 PP 连计算一起分，阶段之间传递后续计算所需的中间状态；它只分「权重存在哪张卡」，组内各卡仍执行这组层，传的是权重本身。注册时，不归本卡的完整权重被换成单元素占位张量，参数加载函数也变为空操作。这能跳过向该参数写入权重，但文件迭代器仍可能先读取整文件或取得张量，不能据此保证省掉磁盘读取。
+
+前向时，注意力后端调用预取入口，发出异步 [Broadcast](../concepts/collective-communication.md#broadcast)：常驻卡把下一层权重发给组内其余卡。真正执行某个 Linear 前，包装函数等待它需要的权重到位。登记点把预取距离设为 1，也就是提前一层；可重叠的计算区间由调用位置决定，并不保证广播总能完全隐藏。一个 series 是一组同构 Linear；这份实现还要求登记层号连续，并且预取距离为 1 时至少有 3 层，不能把不连续的特殊层直接当成合法 series。
 
 ```wiki-diagram
 file: layer-sharding
 ```
 
-「只能在 P 节点」不是实现凑合，是设计前提。上游把理由直接写在代码注释里：广播只有被更重的 prefill 计算盖住才划算，所以只在 P 侧实例启用 [C12]。Decode 阶段每层计算量小得多，同样一次广播遮不住，就成了净亏。这条在 `platform.py` 里是启动期硬校验，不是建议。
+「只允许 P 实例使用非空列表」是启动期硬校验。源码注释给出的理由是，希望用较重的 prefill 计算隐藏广播。小批 decode 可供重叠的计算通常更少；这里的限制是实现选择，不能进一步推出所有硬件和批次的耗时差都相同。
 
-组建在哪几张卡上，取决于走哪条分支：FlashComm2 场景用 otp 组、DSA-CP 场景按全复制建、其余用全局 TP 组。注意那里的判据是 `layer_sharding is not None`，所以传一个空列表 `[]` 会照样建出 `shard_weight` 组，却因为 `platform.py` 对空值提前返回而跳过 P 节点校验 [C9]——空列表是个既不报错也不生效、只白建一个通信组的状态。
+权重分配组是单独构造的 shard_weight 组。FlashComm2 分支把其投影 TP 分组信息传给构造函数；普通分支传入全局 TP 分组信息。构造函数再按 PP 与模块分片位置重排这些 rank，得到负责保存同一类权重的组；它不是直接复用原 TP 通信组。有模块 TP 分组时，组大小按 world_size / (PP × 模块 TP 大小) 计算。DSA-CP 的 P 侧传入 None，按完整复制模块的情况在同一 PP 阶段内建组。
+
+建组判据是 layer_sharding 不为 None，所以空列表也会进入建组分支；启动期 P 侧校验却先跳过空值。空列表因此不登记任何层，但仍可能创建权重通信组，不能把它理解为所有初始化步骤都被跳过。
 
 ## 开了的代价
 
-**显存这笔账（DeepSeek-V3/R1，W8A8，单节点 16 卡、TP16、PP1）。** `o_proj` 权重形状是 `[hidden_size, num_heads × v_head_dim] = [7168, 128 × 128] = [7168, 16384]`，即 117,440,512 个元素；int8 每元素 1 字节，单层 **112 MiB**。61 层全量驻留 = `112 MiB × 61 = 6832 MiB ≈ 6.67 GiB`。切到 K = 16 张卡后，本卡只留 `6832 / 16 = 427 MiB`，再加 2 份窗口缓冲 `2 × 112 = 224 MiB`，共 **651 MiB**，省下约 **6.0 GiB**。这里的维度取自 DeepSeek-V3 的公开配置、K 由上面的组建规则推算，两者都不是从源码直接读出的常数 [D]。
+**显存这笔账（示意预算：DeepSeek-V3/R1 的61层，W8A8，16卡、TP16、PP1）。** 沿用 `o_proj` 形状 `[7168, 128×128]`，共有117,440,512个 int8 元素，单层112 MiB；61层合计6832 MiB，约6.67 GiB。假设这些层从0编号、都进入同一个 K=16 的分配组，按层号取模后，rank0–12各留4层，rank13–15各留3层。再加每卡两份整层窗口224 MiB，前13卡是448+224=**672 MiB**，后3卡是336+224=**560 MiB**。651 MiB只是全组平均，做容量预算要按最高卡672 MiB；最高卡相对全量约省6.0 GiB。模型维度和量化载荷是这个算例的前提，实际格式、scale及额外分配须另计。[D]
 
-**通信这笔账。** 每张卡对它不负责的那 15/16 的层都要收一份全量权重：`61 × (15/16) × 112 MiB ≈ 6.3 GiB`，**每次前向、每张卡**。摊到每层约 105 MiB，必须在一层 attention 的计算时间内传完 [D]。这就是为什么它对 batch 小、序列短的场景是纯负收益——官方在配置读取处直接告警：不配 FlashComm2 / DSA-CP 就开，性能会显著退化 [C1]。
+**通信这笔账。** 持有4层的卡每次前向要接收其余57层，共57×112=6384 MiB；持有3层的卡接收58层，共6496 MiB，约6.23–6.34 GiB。按15/16折算只能得到全组平均，不能代表每张卡。一次非本地层广播仍搬整份112 MiB权重，需要由提前一层的计算尽量遮住；批次小、序列短时较难摊平通信成本。源码在没有 FlashComm2 / DSA-CP 时启用会告警性能显著退化。[C1][D]
 
-**和谁抢 `o_proj`。** `_get_row_parallel_op` 的分派是有序的：`ShardedCPRowParallelOp`（DSA-CP + layer sharding 的 `o_proj` 路径）排在 `oproj_tensor_parallel_size`、[matmul-allreduce](enable-matmul-allreduce.md)、FlashComm2 各条之前 [C8]。也就是说 DSA-CP 场景下切了 `o_proj`，这一层就不会再走 matmul-allreduce 或 FlashComm2 的 row-parallel 实现——不报错，静默生效，看 profiling 时容易困惑。
+**和谁抢 o_proj。** 进入 row-parallel 分派后，DSA-CP 的 P 侧 o_proj 会先被 ShardedCPRowParallelOp 认领，不再落到后面的细粒度 o_proj TP、[matmul-allreduce](enable-matmul-allreduce.md) 或 FlashComm2 分支。这个条件只检查 DSA-CP 和实例角色，并不检查层名列表里是否实际包含 o_proj；选择执行实现与登记权重分片是两件事。
 
-**文档自相矛盾的一处，配之前务必确认。** feature guide 的 DSA-CP 示例是 `VLLM_ASCEND_ENABLE_FLASHCOMM1=1` 配 `["q_b_proj", "o_proj"]` [S16]，DeepSeek-V3.2 教程也给了同样的可复制启动行；但 GLM5 / GLM5.2 / InternVL3.5 三篇教程都写着「开了 FlashComm 后 `layer_sharding` 不能包含 `o_proj`」[S19]。源码层面 DSA-CP + `o_proj` 的路径是存在且被专门分派的，所以这条限制更像是模型相关而非全局，但上游没有任何一处把话说圆 [!]。按模型选对应教程的说法，不要跨模型套用。
+**官方示例有模型边界。** 旧 feature guide 的 DSA-CP 示例把 FlashComm1 与 q_b_proj、o_proj 列表一起使用；DeepSeek-V3.2 教程也给出该列表。旧 GLM5 教程却限制 FlashComm1 下不能包含 o_proj。前者证明存在这种使用示例，不能替代 GLM 的后端支持检查；本站 GLM 基线的明确拒绝条件见后文。
 
-**升到 main，旧启动命令通常起不来。** `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型，未知 key 当拼写错误 fail fast [C25]；`_NON_USER_INPUT_KEYS` 的豁免名单里只放了同批下线的 `enable_flashcomm1`，没有放 `layer_sharding` [C26]。报错比静默忽略好，至少不会让人以为显存省下来了——**v0.26 分支上恰恰没有这道关**，同一份配置会安静地跑起来，那才是更难发现的那一种。
+**升到 main 或 rc2，旧键通常会被拒收。** AscendConfig 使用 Pydantic 的 extra="forbid"；旧 layer_sharding 不在允许预先过滤的非用户字段名单里。v0.26 固定构造器则不读取这个键，留下它也不会执行旧分片。
 
-**但有一个例外：装了 vLLM-Omni 就不报错。** 构造 `AscendConfig` 前先算出 `unknown_keys`，非空且 `importlib.util.find_spec("vllm_omni")` 找得到时，只打一条「这些键对 vLLM-Ascend 无效」的 warning 再把它们剔掉 [C28]。同一份旧配置，在纯 vllm-ascend 环境里启动失败，在装了 Omni 的环境里只留一行 warning 就跑起来——后者更坑，因为你会以为 `layer_sharding` 还在生效。
+**Omni 兼容分支会过滤这个旧键。** 构造配置前发现未知顶层键、并且能找到 vllm_omni 模块时，先告警再剔除这些键。该分支只避免这一类未知键错误，不能保证其他校验、模型加载或服务启动成功。
 
-**那件事后来由谁做。** 判定函数三个版本三个名字、判定条件一字未改（没配 KV 池化、或本实例是 kv_producer 含 `kv_both`）：v0.23 叫 `enable_dsa_cp_with_layer_shard`，v0.26 叫 `enable_dsa_cp_with_o_proj_tp` [C30]，main 叫 `enable_dsa_cp_full_o_proj`。改的是承接方——`o_proj` 权重改为常驻 TP 分片态，DSA-CP prefill 需要全量时由运行时**异步 gather 出一份临时全量权重**，用完即弃 [C21]。要在新版上找这套机制，按新名字搜。
+**新版怎样取得全量投影权重。** 旧 v0.23 中两个判定函数同时存在：layer_shard 路径要求角色精确为 kv_producer；o_proj_tp 路径则要求没有 KV 传输配置，或角色精确为 kv_both。v0.26 的 o_proj_tp 和 main 的 full_o_proj 判定改为没有 KV 配置，或具备 producer 角色（包括 kv_both）。这既有实现变化，也有角色范围变化，不能当成同一条件只改了名字。
+
+新版受支持的权重切换路径让本地分片与完整视图共存：先异步 All-Gather 到完整权重缓冲，计算前等待，使用后把层的参数视图切回本地分片。完整缓冲可保留在池中复用；“切回分片”不等于立即释放那块完整缓冲。具体量化方法必须声明支持权重切换。
 
 承接这件事的代码在 main 上也搬了家。`vllm_ascend/quantization/tp_weight_switch.py` 在 `78cd10de`（PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814)）里被拆成 `vllm_ascend/weight_switch/linear.py` 和 `o_proj.py`：`TPWeightSwitchMixin` 改名 `WeightSwitchMixin`，统一开关位 `supports_tp_weight_switch` 改名 `supports_weight_switch`，适用范围从 TP 一个并行域扩到了多个 [C22]。要在 main 上找这套机制，别再照 `tp_weight_switch` 这个名字搜。
 
-**真要用户点名的那个开关，钉住的三个版本里只有 main 有（v0.28.0rc / v0.29.0rc 发布分支也已带上），叫 [`enable_pcp_o_proj_weight_sharding`](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md)。** `bool`、默认 `False`，让 SFA-PCP 在加载期把 `o_proj` 权重按 PCP 组切开、运行时在本地视图与 gather 视图之间切换；官方表明确写着它不影响 DSA-CP [S27]。和 `layer_sharding` 的差别在于用户说了算的范围小了一圈：切哪个权重、按哪个并行域切都定死了，你只能决定开不开。**v0.26 分支上连这个开关也没有**——从 v0.24.0rc 到 v0.26，关于 `o_proj` 权重怎么放，用户没有任何旋钮可拧。
+**新版另有 [`enable_pcp_o_proj_weight_sharding`](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md)，但不是同义替代。** 旧 main baa023ad 中它默认 False，只控制 SFA-PCP 的同层权重切分，不影响当时的 DSA-CP；rc2 默认 True，覆盖 SFA-PCP 与 DSA-PCP。两者都不是按层号轮流存整层权重。v0.26 没有这个开关；具体启用条件与视图切换统一见该参数页。[S27]
 
-**新版上的过时文字还在，别当真。** GLM5.2、GLM5 两篇教程以及两份部署模板里都还留着「开了 FlashComm 后 `layer_sharding` 不能包含 `o_proj`」[S23]，v0.26 分支上这三篇教程同样原样留着，feature guide 的目录页甚至还挂着一条指向已删除文件的 `layer_sharding` 条目 [S31]。`vllm_ascend/` 里既没有 `layer_sharding` 也没有 FlashComm2，这句话现在两头都落空。
+**新版文档仍可能留下旧限制。** 例如 baa023ad 的 GLM5.2 教程仍提到 layer_sharding，2ed6cbba 的 feature guide 目录还列出已删除页面。这些残留不能证明固定版本恢复了旧运行时功能。
 
-**放到 GLM 双机：配上就起不来；挪到 P 节点，按现有参数推断也切不到什么。** 本站 GLM 双机（见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)）是混部，没有 `kv_transfer_config`。钉住的 `db701c1f` 在 platform 的启动检查里第一个就查这个键：列表非空、而本实例又不是 `kv_producer`，就抛出下面这句（与 v0.23 维护分支同一行同一句）[C2]：
+**放到 GLM 双机：非空配置被拒绝，DSA-CP 也不是该固定后端的可用绕过办法。** 本站 GLM 双机（见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)）是混部，没有 KV 传输配置。db701c1f 的启动校验发现非空列表且实例角色不是 kv_producer，就抛出：
 
 > additional_config.layer_sharding can only be enabled in PD-disaggregated's P node.
 
-假如改成 PD 分离、在 P 节点上开，也要先看谁会被登记。按源码，登记只发生在 MLA 和 SFA 两个注意力后端里，切的是这两个后端里点名的投影（如 `o_proj`、`q_b_proj`）。GLM 主干 45 层里 34 层是 KDA，不经过这两个后端；剩下 11 层稀疏 MLA 用的是继承 SFA 实现的 GLM 专用类，构造时先走 SFA 的构造，而 SFA 只在开了 DSA-CP 时才登记。DSA-CP 要在 `additional_config` 里写 `enable_dsa_cp`、还要打开 SP（FlashComm1），本站部署参数里两样都没设。所以按现有参数推断，P 节点上配了也一层都不会被切。待核：GLM 在 P 节点上若开 DSA-CP，主干 11 层稀疏 MLA（MTP 的第 45 层也是稀疏 MLA，走同一路径）的投影分到几张卡、每卡能省多少——本站没有推导，也没有任何实测。GLM 每张卡现在放了多少权重，见[每张卡上放了什么](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)。
+登记入口包括 MLA、SFA 后端和 FlashComm2 的投影管理器，不能只检查前两者。本站 GLM 主干中 34 层 KDA 与 11 层稀疏 MLA 交错，稀疏 MLA 使用的专用类继承 SFA；该类在 db701c1f 的构造中明确检查 DSA-CP，并抛出“does not yet support DSA context parallelism”。因此，把实例改成 P，再打开 DSA-CP，不能成为这份固定代码的可用方案；也不能把交错的 11 层直接套进要求连续层号的容量算例。MTP 使用同一专用后端时也受此检查约束。GLM 现有权重预算统一见[每张卡上放了什么](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)。
 
 ## 版本谱系
 
@@ -148,29 +182,20 @@ file: layer-sharding
 
 | 版本 | 是否存在 |
 | --- | --- |
-| releases/v0.13.0 | 有（6 个文件） |
-| releases/v0.18.0 | 有（7 个文件） |
-| releases/v0.20.2rc | 有（7 个文件） |
-| releases/v0.21.0rc | 有（7 个文件） |
-| releases/v0.22.1rc | 有（7 个文件） |
-| releases/v0.23.0 | 有（8 个文件） |
-| releases/v0.24.0rc | 无 |
-| releases/v0.25.1rc | 无 |
-| releases/v0.26.0rc | 无 |
-| releases/v0.27.1rc | 无 |
-| releases/v0.28.0rc | 无 |
-| releases/v0.29.0rc | 无 |
 | main | 无 |
+| releases/v0.23.0 | 有（8 个文件） |
+| releases/v0.26.0rc | 无 |
+| releases/v0.30.0rc2 | 无 |
 
 - **引入**：2026-01-08 · f7db812ed7514194f15ef479817997113bf115bd · PR [#5181](https://github.com/vllm-project/vllm-ascend/pull/5181) —— [refactor] Refactor the interface for shard weight and remove the flashcomm2 o_shared interface. (#5181)
-  包含该提交的 tag：v0.13.0、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.13.0、origin/releases/v0.18.0、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann
+  包含该提交的 tag：v0.13.0、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2、v0.27.1rc1、v0.28.0.rc1、v0.29.0.rc1、v0.30.0、v0.30.0rc1、v0.30.0rc2；分支：origin/arc-fedsched-e2e-lab、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.13.0、origin/releases/v0.18.0、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/releases/v0.30.0、origin/releases/v0.30.0rc2、origin/releases/v0.31.0rc、origin/releases/v0.32.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann、origin/zxy_fix_boradash
   - `vllm_ascend/distributed/parallel_state.py` +67 / −51（文本行变化）
   - `vllm_ascend/attention/sfa_v1.py` +23 / −34（文本行变化）
   - `vllm_ascend/ops/{shared_weight_layer.py => layer_shard_linear.py}` +56 / −28（文本行变化）
   - `vllm_ascend/attention/mla_v1.py` +23 / −27（文本行变化）
   - `vllm_ascend/utils.py` +34 / −15（文本行变化）
 - **移除**：2026-07-15 · 896012151dbaaa444e940f19106fde877d616dc9 · PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953) —— [Refactor] remove layer sharding (#11953)
-  包含该提交的 tag：v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/megakernel
+  包含该提交的 tag：v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2、v0.27.1rc1、v0.28.0.rc1、v0.29.0.rc1、v0.30.0、v0.30.0rc1、v0.30.0rc2；分支：origin/arc-fedsched-e2e-lab、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/releases/v0.30.0、origin/releases/v0.30.0rc2、origin/releases/v0.31.0rc、origin/releases/v0.32.0rc、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/megakernel、origin/zxy_fix_boradash
   - `vllm_ascend/ops/layer_shard_linear.py` +0 / −296（文本行变化）
   - `vllm_ascend/ops/flashcomm2_oshard_manager.py` +0 / −103（文本行变化）
   - `vllm_ascend/ops/linear_op.py` +1 / −72（文本行变化）
@@ -197,57 +222,12 @@ file: layer-sharding
 
 约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：
 
-## 已废弃的说法
+## 对照源码
 
-### 2026-10-08 · 修订 8a8fd7c82df4e3b9
+### 源码位置
 
-旧说法（历史记录，已废弃）：
+来源 3–6、34、35 定义归属、占位、连续层号约束和两份预取窗口。加载后处理会临时给非 owner 分配完整张量，广播真实权重并执行量化后处理，再建立窗口、释放不再需要的完整存储及 dummy；登记后的占位大小不能代表整个加载期的峰值。来源 45、46 展示文件迭代与模型加载的前后关系：空的参数加载函数不保证文件读取也被跳过。
 
-```text
-main 则因 `extra="forbid"` 在配置解析阶段就拒收。
-```
+来源 2、9、12 对应非空配置的 P 侧限制、空列表仍建组和 DSA-CP 角色判定；来源 40 同时列出旧版的两种角色条件，来源 21、30 给出新版条件。来源 7、14、42 对应登记入口；来源 47–49 对应预取调用与 Linear 执行前等待。来源 41 是固定 GLM 后端拒绝 DSA-CP 的直接依据。来源 43、44 展示新版 gather、等待、视图切换和缓冲复用。
 
-替代结论：
-
-```text
-main 通常因 `extra="forbid"` 在配置解析阶段拒收；若能发现 `vllm_omni`，未知顶层键会先警告并从 AscendConfig 输入过滤 [C28]，这不代表已删除的 Layer Sharding 恢复生效。
-```
-
-废弃依据（来源是否支持结论仍须人审）：
-
-- `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671`
-
-旧文的来源编号（仅解释上方历史原文）：
-
-1. `vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L105-L112`
-2. `vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L346`
-3. `vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L39-L56`
-4. `vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L211-L253`
-5. `vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L122-L152`
-6. `vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L285-L296`
-7. `vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L412-L417`
-8. `vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L712-L724`
-9. `vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L191-L226`
-10. `vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1293-L1297`
-11. `vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1309-L1317`
-12. `vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1538-L1549`
-13. `vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L236-L247`
-14. `vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L766-L775`
-15. `vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L5-L18`
-16. `vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L30-L42`
-17. `vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L86`
-18. `vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L128`
-19. `vllm-ascend@2c59ff10:docs/source/tutorials/models/GLM5.md#L359`
-20. `vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-V3.2.md#L486`
-21. `vllm-ascend@baa023ad:vllm_ascend/utils.py#L1522-L1537`
-22. `vllm-ascend@baa023ad:vllm_ascend/weight_switch/linear.py#L146-L182`
-23. `vllm-ascend@baa023ad:docs/source/tutorials/models/GLM5.2.md#L1029`
-24. `vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L105`
-25. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L439-L455`
-26. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1613-L1661`
-27. `vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L77`
-28. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671`
-29. `vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64`
-30. `vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1409-L1423`
-31. `vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/index.md#L27-L27`
-32. `vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73`
+来源 15–20 是旧版指南、配置表和模型示例。配置表的类型、指南的共享占位与零开销措辞须结合实现理解，不能直接当成运行时保证。来源 23、31 只证明文档残留；来源 25、26、28、32、37 解释各版未知键处理；来源 27、36、38、39 解释 PCP 新开关与旧按层广播的区别。来源 33 保存对应旧摘录，来源 24 是自动定义位置。以上为固定源码和文档推导，未提供 NPU 时延或启动实测。

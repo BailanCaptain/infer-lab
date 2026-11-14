@@ -1,20 +1,20 @@
 layout: figure
 id: plugin-registration-flow
-caption: 上半部是通用组：前端、EngineCore 和每个 worker 起来时各调一次加载函数，四个入口里有三个先补一次全局补丁，模型入口只往注册表加条目。下半部是平台组：同一进程第一次要用当前平台时才解析，解析结果缓存起来。
+caption: 按本例默认 spawn、入口均被允许并成功执行计，前端、EngineCore 和 Worker 各自完成通用登记；三个入口先保证全局补丁，模型入口只加映射。平台组在当前平台缓存为空且首次访问时解析，成功后缓存对象
 size: [880, 470]
 frames:
-  - { label: 通用组：每个进程各执行一遍, at: [16, 62], size: [848, 258] }
+  - { label: 通用组：本例各角色的初始化入口, at: [16, 62], size: [848, 258] }
 items:
   - { at: [34, 78], size: [166, 54], text: 前端进程, sub: 解析启动参数时, tone: control }
   - { at: [34, 158], size: [166, 54], text: EngineCore 进程 ×2, sub: 初始化时, tone: control }
   - { at: [34, 238], size: [166, 54], text: worker 进程 ×16, sub: 初始化时, tone: control }
-  - { at: [254, 158], size: [178, 54], text: 读通用组清单, sub: 本进程只跑一次, tone: weight }
+  - { at: [254, 158], size: [178, 54], text: 读通用组清单, sub: 进程内守卫防重, tone: weight }
   - { at: [486, 88], size: [180, 54], text: 三个入口, sub: 先补全局补丁, tone: weight }
   - { at: [486, 238], size: [180, 54], text: 模型入口, sub: 不补补丁, tone: weight }
   - { at: [692, 88], size: [158, 54], text: 另外三类登记, sub: 连接器、加载器、采集, tone: weight }
   - { at: [700, 238], size: [150, 54], text: 模型注册表, sub: 多出几条映射, tone: weight }
   - { at: [34, 388], size: [166, 54], text: 本进程第一次, sub: 要用当前平台, tone: control }
-  - { at: [254, 388], size: [178, 54], text: 读平台组清单, sub: 得到一个类路径, tone: control }
+  - { at: [254, 388], size: [178, 54], text: 加载并调用平台入口, sub: 选定候选类路径, tone: control }
   - { at: [486, 388], size: [180, 54], text: 按名字导入并建对象, sub: 之后一直用它, tone: control }
 links:
   - { from: [200, 105], to: [254, 178], via: [[227, 105], [227, 178]], tone: weight }
@@ -30,7 +30,7 @@ dividers:
   - { from: [16, 344], to: [864, 344], sides: [通用组, 平台组：用到才解析] }
 texts:
   - { at: [16, 26], text: 两组入口的时机不同：一组进程起来就执行，一组第一次用到才解析, size: 15, strong: true }
-  - { at: [700, 160], text: 起来得早，所以要先补补丁, note: true }
+  - { at: [700, 160], text: 先保证本进程有补丁, note: true }
   - { at: [486, 322], text: 只建映射，没建模块也没读权重, note: true }
   - { at: [700, 388], text: 解析结果留在本进程, note: true }
 pins:

@@ -2,38 +2,59 @@
 id: glm-5-3-flash-baseline
 title: GLM-5.3-Flash：模型配置与官方双机来源基线
 type: source
-origin: direct
+origin: gap
 summary: 固定 GLM 主线的模型配置、双机教程、控制流与执行侧提交，区分配置、源码推导、量化假设和镜像证据；最终安装产物与权重配套仍待核实，尚未实机部署。
-aliases: [GLM-5.3-Flash, GLM5Next, GLM 双机基线, GLM 模型配置]
+aliases:
+  - GLM-5.3-Flash
+  - GLM5Next
+  - GLM 双机基线
+  - GLM 模型配置
 chapters: []
 order: 130
 sources:
-  - https://huggingface.co/zai-org/GLM-5.3-Flash
-  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
-  - https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
-  - https://www.modelscope.cn/api/v1/models/Eco-Tech/GLM-5.3-Flash-w8a8/repo/files?Revision=9e55cbc8e2b19e20c63b08b916d2582f25a22504&Recursive=false
-  - https://www.modelscope.cn/api/v1/models/Eco-Tech/GLM-5.3-Flash-w8a8/repo?Revision=9e55cbc8e2b19e20c63b08b916d2582f25a22504&FilePath=config.json
-  - https://quay.io/api/v1/repository/ascend/vllm-ascend/manifest/sha256:d46b8603cff8adb8edc22dfbe4d3ff64f7a35f3692cf6d51e3444efc7b09ead6
-  - https://quay.io/api/v1/repository/ascend/vllm-ascend/manifest/sha256:7fe19dc7631d5670110d50d122ff648e724cb7e5a3f128500854e1ffc0056a74
-  - https://quay.io/v2/ascend/vllm-ascend/blobs/sha256:b13a5fd27f3eac79cda41e6c571d74080b1b71fd835a24657d4ce47a9fd024e3
-  - https://quay.io/v2/ascend/vllm-ascend/blobs/sha256:40ef41925930b4378818ef80495eea345e689f43b4cfb0a4d41ba5d5abf6d56c
-  - https://github.com/vllm-project/vllm-ascend/commit/db701c1fd31de40ab028628ee2580ae68c7fd3c0
-  - https://github.com/vllm-project/vllm-ascend/blob/db701c1fd31de40ab028628ee2580ae68c7fd3c0/Dockerfile.a2
-  - https://github.com/vllm-project/vllm-ascend/blob/db701c1fd31de40ab028628ee2580ae68c7fd3c0/glm-5-next-adapt-0826/glm-5-next-transformers.patch
-  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json
-  - vllm@0fc695fc:vllm/config/model.py#L1805-L1810
-  - vllm@0fc695fc:vllm/config/model.py#L1851-L1857
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L2370-L2405
-  - vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/parallel_state.py#L84-L96
-  - vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L632-L736
-  - vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L814-L814
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L320-L320
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L511-L512
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L778-L781
-  - vllm-ascend@db701c1f:vllm_ascend/envs.py#L75-L75
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L931
-  - vllm@0fc695fc:vllm/config/speculative.py#L550-L554
+  - 'https://huggingface.co/zai-org/GLM-5.3-Flash'
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
+  - >-
+    https://www.modelscope.cn/api/v1/models/Eco-Tech/GLM-5.3-Flash-w8a8/repo/files?Revision=9e55cbc8e2b19e20c63b08b916d2582f25a22504&Recursive=false
+  - >-
+    https://www.modelscope.cn/api/v1/models/Eco-Tech/GLM-5.3-Flash-w8a8/repo?Revision=9e55cbc8e2b19e20c63b08b916d2582f25a22504&FilePath=config.json
+  - >-
+    https://quay.io/api/v1/repository/ascend/vllm-ascend/manifest/sha256:d46b8603cff8adb8edc22dfbe4d3ff64f7a35f3692cf6d51e3444efc7b09ead6
+  - >-
+    https://quay.io/api/v1/repository/ascend/vllm-ascend/manifest/sha256:7fe19dc7631d5670110d50d122ff648e724cb7e5a3f128500854e1ffc0056a74
+  - >-
+    https://quay.io/v2/ascend/vllm-ascend/blobs/sha256:b13a5fd27f3eac79cda41e6c571d74080b1b71fd835a24657d4ce47a9fd024e3
+  - >-
+    https://quay.io/v2/ascend/vllm-ascend/blobs/sha256:40ef41925930b4378818ef80495eea345e689f43b4cfb0a4d41ba5d5abf6d56c
+  - >-
+    https://github.com/vllm-project/vllm-ascend/commit/db701c1fd31de40ab028628ee2580ae68c7fd3c0
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/db701c1fd31de40ab028628ee2580ae68c7fd3c0/Dockerfile.a2
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/db701c1fd31de40ab028628ee2580ae68c7fd3c0/glm-5-next-adapt-0826/glm-5-next-transformers.patch
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json
+  - 'vllm@0fc695fc:vllm/config/model.py#L1804-L1811'
+  - 'vllm@0fc695fc:vllm/config/model.py#L1851-L1857'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L2370-L2405'
+  - 'vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875'
+  - 'vllm-ascend@db701c1f:vllm_ascend/distributed/parallel_state.py#L84-L96'
+  - 'vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L632-L736'
+  - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L814-L814'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L320-L320'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L511-L512'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L778-L781'
+  - 'vllm-ascend@db701c1f:vllm_ascend/envs.py#L75-L75'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L931'
+  - 'vllm@0fc695fc:vllm/config/speculative.py#L550-L554'
+  - >-
+    raw:sha256-cf3b17db3b295d7e328f31ba07fb4f38748d3c17f026e25700bc61650ffa683c.md#L1-L289
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L84-L122'
+  - 'vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L810-L828'
+  - 'vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L67-L67'
 relations:
   - to: glm-5-3-flash-two-node
     kind: builds-on
@@ -56,7 +77,10 @@ relations:
 verified: []
 evidence: S
 contradicts: []
-updated: '2026-09-28'
+updated: '2026-10-23'
+rawSources:
+  - >-
+    raw/sha256-cf3b17db3b295d7e328f31ba07fb4f38748d3c17f026e25700bc61650ffa683c.md
 ---
 
 ## 这份基线能支持什么
@@ -96,15 +120,17 @@ attention 的其余固定形状沿用[模型形状总表](../concepts/glm-5-3-fl
 
 官方教程链接的量化仓库 `Eco-Tech/GLM-5.3-Flash-w8a8`，2026-09-25 查询时 master 指向 `9e55cbc8e2b19e20c63b08b916d2582f25a22504`。该树中 config 文件的最后变更 revision 是 `5865345c25abfbe36addb0b2478e1bb1c2d2f582`；其完整 `text_config` 与上述原模型一致。**文件最后变更提交不等于整个量化仓库提交**，下载与复现须固定整个仓库。[S4][S5]
 
-上述量化仓库核查只读取配置与远端文件元数据，未下载或校验权重字节；模型原权重与 W8A8 产物不能因配置相同就视为相同数值精度。
+配置比较和下述逐层精度描述核对都不包含权重字节校验；模型原权重与 W8A8 产物不能因配置相同就视为相同数值精度。
 
-**W8A8 不是全模型所有张量都用 8 位。** 执行侧读取模型目录的 `quant_model_description.json`，按层选择量化方法，权重标成 `FLOAT` 的层使用不量化实现。[C19] 主线尚缺这份 W8A8 配方，按上游 FP8 配置的 `modules_to_not_convert` 推断量化范围：MLP 通路与 MLA 的三个大投影按 int8，KDA 投影、MLA 的 KV 展开、索引器及词嵌入等按 BF16，router、mHC 等另按源码保留 FP32。[I] 具体文件精度与加载后精度见[权重精度](../concepts/glm-5-3-flash.md#权重精度文件里怎么存加载后变成什么)；若 W8A8 配方不同，须回到该处及部署页统一修订字节账，形状和切分规则不因此改变。
+**W8A8 不是全模型所有张量都用 8 位。** 执行侧读取模型目录的 `quant_model_description.json`，按层选择量化方法，权重标成 `FLOAT` 的层使用不量化实现。[C19] 已取得并核对量化仓库 `9e55cbc8` 与 `3121f187` 两个固定 revision 的逐层精度描述：MLP 两版均为 W8A8_DYNAMIC，12 个 MLA 层（含 MTP）的 q_a、kv_a、q_b、o 四组权重则从旧版 FLOAT 改为新版 W8A8_DYNAMIC；KDA、KV 展开、索引器、router、视觉塔等仍有 FLOAT 项。FLOAT 只表示不走该量化方法，最终 BF16 或 FP32 等 dtype 还须看配置与加载实现。这份精度描述不等于完整的离线量化校准配方，也不证明两版数值质量相同。固定原文、加载精度和容量范围统一见[权重精度](../concepts/glm-5-3-flash.md#权重精度文件里怎么存加载后变成什么)与[量化版本和视觉塔](../concepts/glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)；更换 revision 时应按同一口径更新字节账。
+
+量化描述的加载入口见来源 29–30：已有描述时直接复用，否则定位并解析 `quant_model_description.json`。这些代码说明配置如何进入执行侧，不证明任意同名权重目录都和教程镜像配套。
 
 ## 双机示例与教学视图
 
 完整的[双机教学解读](../concepts/glm-5-3-flash-two-node.md#部署前提)将命令映射到请求与通信组，并集中列出两端差异；其组构造采用上述固定提交的参考源码，不代表最终镜像已实测。
 
-官方教程仍标 Experimental。本页固定的是教程文件提交 `0576b6471c7a35707920a665352391d33c77451c`，它是**文档提交，不是镜像内运行代码提交**。[S3]
+官方教程（来源 3）仍标 Experimental。本页固定的是教程文件提交 `0576b6471c7a35707920a665352391d33c77451c`，它是**文档提交，不是镜像内运行代码提交**。
 
 按该教程 §5.2 正文及两端命令，固定拓扑为两台 Atlas 800 A2，每台可见设备 0–7；全局 DP=2、本地 DP=1、TP=8，并开启 EP，PP=1。不能改画成跨两机 TP16。节点 0/1 的 DP 起始 rank 分别是 0/1，节点 1 带 `--headless`。
 
@@ -116,7 +142,7 @@ file: glm-two-node-topology
 
 教程 §3.1 写需要“2 Atlas 800 A2 (64GB × 16) nodes”，没有写“每节点”；这里的 16 是两台合计的卡数，即 2×8。§5.2 的 `64GB × 8` 按每台计数，与 A2 容器映射和每台 8 个可见设备一致。图据此表达“每机 8 个可见设备”，两处计数范围不同，不构成设备数量冲突。[S3]
 
-图沿用部署页的容量口径：每卡权重约 20.58 GiB、MTP 约 540.75 MiB，均是上述精度假设下的静态账。教程写单卡 64 GB；主线容量算例按 64 GiB = 65,536 MiB 代入，不把 GB 与 GiB 当作相等，也不将算例当作设备可用显存测量。每卡权重与 KV 预算统一见[部署页](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)。
+图沿用部署页的容量口径：每卡约 20.58 GiB、其中 MTP 约 540.75 MiB，是 `3121f187` 量化配方下所列主要语言权重的静态子账；视觉塔、MTP 旋转矩阵和量化辅助张量等另计。教程写单卡 64 GB；主线容量算例按 64 GiB = 65,536 MiB 代入，不把 GB 与 GiB 当作相等，也不将算例当作设备可用显存测量。每卡权重与 KV 预算统一见[部署页](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)。
 
 | 维度 | 官方双机实例 | 导读的处理方式 |
 |---|---|---|
@@ -130,9 +156,11 @@ file: glm-two-node-topology
 
 以上显式参数来自教程；未显式设置的两个默认值已核对固定控制流，decode 查询长度已核对 runner。[C14][C15][C16][C20] 教程的 `deepseek_mtp` 在该版本会归一化为 `mtp`，不是另一个草拟方案。[C26] R1 是提示词经模板和分词后为 4 token 的示例请求，prefill 的 4 行与 MTP decode 的 4 行含义不同；七站形状、15 个块号和通信账统一引用[单请求主线](../concepts/one-request.md#示例请求-r1-与官方双机部署)。普通自回归“一步一个 token”只作为对比，不再用来替代本部署主线。
 
-教程未传 `--additional-config`；在未额外设置相关环境变量时，主线按以下默认分支阅读：`enable_reduce_sample=False`、`lmhead_tensor_parallel_size=0`（不启用独立的词表投影 TP 配置）、`enable_flashcomm1=0`（`enable_sp()` 为假），以及 `rejection_sampler_config` 下 `enable_block_verify=False`、`enable_entropy_verify=False`。FlashComm1 还可从环境变量开启，因此这组值是固定命令与默认环境下的基线，不覆盖用户另加的开关。[C21][C22][C23][C24][C25]
+教程未传 `--additional-config`；在未额外设置相关环境变量时，主线按以下默认分支阅读：`enable_reduce_sample=False`、`lmhead_tensor_parallel_size=0`（不启用独立的词表投影 TP 配置）、`enable_flashcomm1=0`，以及 `rejection_sampler_config` 下 `enable_block_verify=False`、`enable_entropy_verify=False`。其中 SP 关闭的算例还要求调用方没有通过共享专家条件将其开启；具体覆盖规则见下一段。FlashComm1 也可从环境变量开启，因此这组默认配置不覆盖用户另加的开关。[C21][C22][C23][C24][C25]
 
-缓存数字统一引用[部署页的 KV 预算](../concepts/glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)：逻辑块 640 token，每个 block id 每卡占 8,355,840 B（约 7.969 MiB），5 个缓存组；带 KV 的 MLA 层共 12 层，含主干 11 层和 MTP 1 层。SFA kernel 块 128、indexer-state 块 4、KDA 组及调度对齐块 133120 各有用途，不可互换。引用预算时区分取整权重算例 3,855 块与同一假设下精确权重口径 3,908 块，两者都不是实测容量；推导留在链接处。
+固定 `db701c1f` 的 `enable_sp()` 在初始化或刷新时，若 `_ENABLE_SP` 原为假而传入的 `enable_shared_expert_dp` 为真，会将 `_ENABLE_SP` 设为真（同上来源 25）。构造器的 `enable_shared_expert_dp` 默认是 False；只有配置显式开启、EP 开启且 TP > 1，才调用这条强制开启分支。因此，按教程原样、没有额外配置和环境开关时，该构造路径不会因共享专家而开启 SP；用户另开共享专家 DP 时则不能只凭 `enable_flashcomm1=0` 判断 SP。这里描述固定源码的条件，不是对容器实际运行状态的观测。[C28]
+
+缓存数字统一引用[部署页的 KV 预算](../concepts/glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)：逻辑块 640 token，每个 block id 每卡占 8,355,840 B（约 7.969 MiB），5 个缓存组；带 KV 的 MLA 层共 12 层，含主干 11 层和 MTP 1 层。SFA kernel 块 128、indexer-state 块 4、KDA 组及调度对齐块 133120 各有用途，不可互换。引用预算时区分假设完整权重占 21 GiB 的 3,855 块算例，与仅代入所列主要语言权重子账的 3,908 块算例；后者尚未扣除视觉塔、MTP 旋转矩阵和量化辅助张量等。两者都不是实测容量，推导留在链接处。
 
 ## 镜像固定与源码对应
 
@@ -149,9 +177,9 @@ file: glm-two-node-topology
 
 arm64 元数据记录 `VLLM_TAG=v0.23.0`，Transformers 基础提交为 `b830f5a04adf76cc9206d1d714a55e12df52fbb6`，随后应用 `glm-5-next-transformers.patch`。vllm-ascend 通过构建目录复制安装。构建历史与下述固定提交中的 `Dockerfile.a2` 对应，但基础 tag、文档 commit 和今天的 main 都不能直接等同于容器内最终代码。[S8][S11]
 
-读取源码复制层（约 111 MB）后，层内 `.git/HEAD` 指向 `glm-5.3-flash-0902-1`，对应公开提交 `db701c1fd31de40ab028628ee2580ae68c7fd3c0`。其 Git tree 是 `264ac7c54ee6bd366ae74ffa1f3cf9bd76a40c88`。[S9][S10]
+源码复制层共 116,342,438 B（约 111 MiB），层内 `.git/HEAD` 指向 `glm-5.3-flash-0902-1`，对应公开提交 `db701c1fd31de40ab028628ee2580ae68c7fd3c0`。其 Git tree 是 `264ac7c54ee6bd366ae74ffa1f3cf9bd76a40c88`。[S9][S10]
 
-静态校验方法：先计算下载层的 SHA-256，再读取层内 Git 元数据，用 `git ls-tree -r HEAD` 列出受跟踪文件，对 tar 中相应文件按 Git blob 规则计算哈希。结果为 **3063 个受跟踪文件全部存在且哈希一致，缺失或不同均为 0**。额外的 889 个普通文件不在这份受跟踪文件比较范围内；这次校验不覆盖所有第三方文件或后续安装层。[D]
+静态校验方法：先计算下载层的 SHA-256，再读取层内 Git 元数据，用 `git ls-tree -r` 列出该提交的文件，对 tar 中相应文件按 Git blob 规则计算哈希。结果为 **3063 个受跟踪 blob 全部存在且哈希一致，缺失或不同均为 0**。另有一个 `csrc/third_party/catlass` 子模块记录，不作为普通文件计算 blob 哈希；排除 `.git` 元数据后，层内还有 889 个不属于这份主仓库 blob 清单的普通文件。这次校验不覆盖子模块内部的一致性、所有第三方文件或后续安装层。[D]
 
 | 对象 | 固定标识或核查结果 |
 |---|---|

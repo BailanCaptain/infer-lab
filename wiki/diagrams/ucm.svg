@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="PD 分离时 UCM 的两种站法。左边集中式：P、D 都挂 UCM，P 在计算过程中把这条请求的状态存进共享存储，D 开始前从同一个后端取回，共享存储就是交接点。右边 P2P：这一次的状态由 Mooncake 从 P 直接传给 D，UCM 只挂在 P 上，让以后开头相同的请求少算一段；D 只挂 Mooncake。">
-  <title>PD 分离时 UCM 的两种站法。左边集中式：P、D 都挂 UCM，P 在计算过程中把这条请求的状态存进共享存储，D 开始前从同一个后端取回，共享存储就是交接点。右边 P2P：这一次的状态由 Mooncake 从 P 直接传给 D，UCM 只挂在 P 上，让以后开头相同的请求少算一段；D 只挂 Mooncake。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="PD 分离时 UCM 的两种站法。左边集中式：P、D 都挂 UCM，共享存储是交接点；P 已写成可见的前缀才能被 D 找到，代理先后发送请求不保证写完，D 还需计算未命中和保留的尾部。右边 P2P：本次状态由 Mooncake 直传，UCM 在 P 上服务前缀复用；D 只挂 Mooncake。">
+  <title>PD 分离时 UCM 的两种站法。左边集中式：P、D 都挂 UCM，共享存储是交接点；P 已写成可见的前缀才能被 D 找到，代理先后发送请求不保证写完，D 还需计算未命中和保留的尾部。右边 P2P：本次状态由 Mooncake 直传，UCM 在 P 上服务前缀复用；D 只挂 Mooncake。</title>
   <defs><marker id="ucm-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
   <rect x="25" y="45" width="410" height="310" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="41" y="33" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">集中式 PD</text>

@@ -1,0 +1,27 @@
+layout: figure
+id: ops-dispatch-flow
+caption: 固定上游 CustomOp 的类选择与方法选择分开；前向调用已保存的方法。禁用自定义操作时，原生实现仍可按 compile_native 进入编译。
+size: [880, 665]
+frames:
+  - { at: [20, 30], size: [840, 160], label: 启动注册与对象创建 }
+  - { at: [20, 220], size: [840, 315], label: 对象初始化：保存本次选定的执行方法 }
+items:
+  - { at: [50, 85], size: [235, 65], text: Ascend 注册实现类, sub: 名字 → 平台提供的类, tone: control }
+  - { at: [375, 85], size: [435, 65], text: CustomOp.__new__ 查 OOT 表, sub: 有对应项用注册类；否则保留原类, tone: control }
+  - { at: [275, 265], size: [330, 55], text: enforce_enable 或 enabled()？, tone: control }
+  - { at: [50, 375], size: [300, 80], text: forward_native, sub: maybe_compile 按 compile_native 处理, tone: token }
+  - { at: [500, 375], size: [310, 80], text: 按平台选方法, sub: OOT 平台选择 forward_oot, tone: token }
+  - { at: [250, 570], size: [380, 60], text: forward 调用 _forward_method, sub: 此层不再每次重新查表选方法, tone: token }
+links:
+  - { from: [285, 117], to: [375, 117], tone: control }
+  - { from: [592, 150], to: [440, 265], via: [[592, 205], [440, 205]], tone: control }
+  - { from: [325, 320], to: [200, 375], via: [[325, 345], [200, 345]], tone: control }
+  - { from: [555, 320], to: [655, 375], via: [[555, 345], [655, 345]], tone: control }
+  - { from: [200, 455], to: [360, 570], via: [[200, 550], [360, 550]], tone: token }
+  - { from: [655, 455], to: [520, 570], via: [[655, 550], [520, 550]], tone: token }
+texts:
+  - { at: [180, 335], text: 否, size: 13 }
+  - { at: [680, 335], text: 是, size: 13 }
+  - { at: [50, 655], text: OOT：框架主仓外的平台实现；设备方法内仍可有其他分支, size: 14 }
+pins:
+  - { source: 'vllm@0fc695fc:vllm/model_executor/custom_op.py#L109-L207', symbols: [dispatch_forward, _forward_method] }

@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "old_source_prefix_unchanged": 247,
+  "old_headings_retained": 36,
+  "old_tables_byte_equal": 19,
+  "old_calc_blocks_byte_equal": 7,
+  "unchanged_diagram_files": [
+    {
+      "path": "wiki/diagrams/sampling-intuition.yaml",
+      "sha256": "5e4f41931af90989b34d373b9a9d1b14a66bab55bc676ee0a48a312ca4884789",
+      "confirmed_against": "previous accepted final-browser.after"
+    },
+    {
+      "path": "wiki/diagrams/sampling-intuition.svg",
+      "sha256": "1d9274c5e58941126b90426bff9ea7b7514f11a66d419149ef5ca2b25b0965d4",
+      "confirmed_against": "previous accepted final-browser.after"
+    },
+    {
+      "path": "wiki/diagrams/sampling-flow.yaml",
+      "sha256": "8d2aeab3058c382beef3cfe6f936561535f0d9c96dc782fdeb5036ee17bc825f",
+      "confirmed_against": "previous accepted final-browser.after"
+    },
+    {
+      "path": "wiki/diagrams/sampling-flow.svg",
+      "sha256": "55e1490d0ff909176ccb2bcc14ad9677bae0334d0629a1d275cccd999e1afb74",
+      "confirmed_against": "previous accepted final-browser.after"
+    }
+  ],
+  "body_replacements": [
+    {
+      "tag": "replace",
+      "old_lines": [
+        "**入口默认值与参数对象的默认值要分开看。** 对 Chat/Completions，请求显式给数值就使用该值；省略与 null 的处理如下。直接构造 SamplingParams 则使用对象自身的默认值，不会再替你合并模型默认。要继承离线 LLM 的模型默认，可以先调用其 get_default_sampling_params()，再修改要覆盖的字段。"
+      ],
+      "new_lines": [
+        "**入口默认值与参数对象的默认值要分开看。** 对 Chat/Completions，请求显式给数值就使用该值；省略与 null 的处理如下。直接构造 SamplingParams 则使用对象自身的默认值，不会再替你合并模型默认。要继承离线 LLM 的模型默认，可以先调用其 get_default_sampling_params()，再按前面的离线示例构造带显式覆盖的新对象，使初始化规则重新执行。"
+      ]
+    }
+  ],
+  "loss_of_prior_teaching_claims": "none detected; old paragraph repair preserves default inheritance and fixes object mutation guidance",
+  "new_tables": 2,
+  "new_sections": [
+    "## 内置规则不够时，怎样接入自己的改分规则？",
+    "### 为什么改分规则还要记请求状态？",
+    "### 为什么有些处理器可以跳过，有些不行？"
+  ],
+  "before_snapshot": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-before.zip",
+  "final_snapshot": ".tmp/continuation-groups-2026-11-10/sampling-custom/review-final.zip"
+}

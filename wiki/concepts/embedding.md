@@ -1,40 +1,72 @@
 ---
 id: embedding
-title: "Embedding：按编号查表取出 token 的向量"
+title: Embedding：按编号查表取出 token 的向量
 type: concept
-summary: "Embedding 把每个 token 编号换成一条向量：编号是几，就到嵌入表里取第几行，只有查表没有乘法。本页先讲它是什么、为什么需要，再用一张 6 行的小表演示查表、one-hot 等价和 2 张卡切表求和；最后落到 GLM 双机，看 8 张卡怎样分着查同一张表。"
-aliases: [embedding, 词向量, 词嵌入, 嵌入向量, 嵌入层, embedding 表, 词嵌入表, embedding lookup]
-chapters: ["01"]
+summary: >-
+  Embedding 把每个 token 编号换成一条向量：编号是几，就到嵌入表里取第几行，只有查表没有乘法。本页先讲它是什么、为什么需要，再用一张 6
+  行的小表演示查表、one-hot 等价和 2 张卡切表求和；最后落到 GLM 双机，看 8 张卡怎样分着查同一张表。
+aliases:
+  - embedding
+  - 词向量
+  - 词嵌入
+  - 嵌入向量
+  - 嵌入层
+  - embedding 表
+  - 词嵌入表
+  - embedding lookup
+chapters:
+  - '01'
 order: 30
 sources:
-  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2263-L2268
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2300-L2305
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2469-L2470
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2450-L2460
-  - vllm@0fc695fc:vllm/model_executor/layers/vocab_parallel_embedding.py#L77-L78
-  - vllm@0fc695fc:vllm/model_executor/layers/vocab_parallel_embedding.py#L163-L187
-  - vllm@0fc695fc:vllm/model_executor/layers/vocab_parallel_embedding.py#L477-L497
-  - vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L164-L168
-  - vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L229-L248
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L748-L748
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L881-L883
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L513-L513
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L152-L161
-  - vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L170-L181
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/vocab_parallel_embedding.py#L229-L248
-  - vllm-ascend@2ed6cbba:vllm_ascend/ops/vocab_parallel_embedding.py#L229-L248
-  - vllm-ascend@baa023ad:vllm_ascend/ops/vocab_parallel_embedding.py#L254-L285
-  - vllm@84030bbe:vllm/model_executor/layers/vocab_parallel_embedding.py#L510-L555
-  - vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L84-L95
-  - vllm@568afb3a:vllm/model_executor/layers/vocab_parallel_embedding.py#L472-L492
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L879-L880
-  - vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L841-L842
-  - vllm-ascend@baa023ad:vllm_ascend/utils.py#L933-L934
-  - vllm-ascend@2ed6cbba:vllm_ascend/ops/register_custom_ops.py#L72-L90
-  - vllm-ascend@db701c1f:vllm_ascend/envs.py#L75-L75
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2263-L2268'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2300-L2305'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2469-L2470'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2450-L2460'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/vocab_parallel_embedding.py#L32-L78'
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/vocab_parallel_embedding.py#L163-L187
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/vocab_parallel_embedding.py#L477-L497
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L164-L168'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L229-L248'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L748-L748'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L881-L883'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L513-L513'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L152-L161'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L170-L181'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/vocab_parallel_embedding.py#L229-L248'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ops/vocab_parallel_embedding.py#L229-L248'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/vocab_parallel_embedding.py#L254-L285'
+  - >-
+    vllm@84030bbe:vllm/model_executor/layers/vocab_parallel_embedding.py#L510-L555
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L84-L102'
+  - >-
+    vllm@568afb3a:vllm/model_executor/layers/vocab_parallel_embedding.py#L472-L492
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L529-L534'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L521-L526'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1151-L1154'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ops/register_custom_ops.py#L72-L90'
+  - 'vllm-ascend@db701c1f:vllm_ascend/envs.py#L75-L75'
+  - >-
+    raw:sha256-40ffa97b8ee22d51294851ef9b22a4d7f95e98de09cde6305eda542546010cfb.md#L1-L376
+  - >-
+    vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/models/glm5_next.py#L2301-L2305
+  - >-
+    vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/ops/vocab_parallel_embedding.py#L218-L227
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/vocab_parallel_embedding.py#L92-L133'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/vocab_parallel_embedding.py#L293-L308'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/vocab_parallel_embedding.py#L369-L435'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L584-L585'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L931'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L124-L144'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L52-L120'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
   - to: token
     kind: builds-on
@@ -43,8 +75,13 @@ relations:
     kind: builds-on
     note: 嵌入表按词表轴切分、入口求和的规则以 TP 页为准，本页只讲入口这一次
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-40ffa97b8ee22d51294851ef9b22a4d7f95e98de09cde6305eda542546010cfb.md
+  - >-
+    raw/sha256-53a4570c99adc94f60889c7977fc909a162a887f47cf4b13bc0da8e538829c96.md
 ---
 
 ## embedding 是什么？
@@ -59,7 +96,8 @@ file: embedding-intuition
 
 可以把嵌入表想成一本按编号排的字典：每个编号占一个词条，词条里写的不是文字解释，而是一排数。表的行从 0 开始编，第 0 行给 0 号，第 3 行给 3 号；「猫」是 3 号，就翻到第 3 行，把那一排数原样抄出来。同一个编号不管出现在哪句话里、哪个位置，查到的都是同一行。
 
-取出来的向量从此代表这个 token，送进模型的第 1 层。模型是几十个结构相同的层叠起来的，每层读进这些向量、把它们改写成新的一排数，再交给下一层，见[层与隐藏表示](layers-and-hidden.md)。所以 embedding 是整个模型的入口：后面所有计算都从这里取出的数开始。
+取出来的向量从此代表这个 token，送进模型的第 1 层。模型由多层计算叠起来，每层读进这些向量、把它们改写成新的一排数，再交给下一层；不同层可以采用不同的注意力结构，见[层与隐藏表示](layers-and-hidden.md)。在输入为 token 编号、入口没有收到现成输入向量的路径中，embedding 负责提供送入后续计算的向量。固定镜像的 GLM5 Next 首个流水线成员入口还有另一条路径：如果已经提供非空的输入向量，就直接使用这些向量作为隐藏表示，也就是模型计算中的中间向量，本次不再按 token 编号查表。这里的条件是入口已经收到可用的输入向量，并不表示任意外部向量都能作为合法输入。
+
 
 ## 为什么需要 embedding，代价在哪？
 
@@ -124,7 +162,7 @@ E 第 0～5 行的第 1 个数 = [0.2, 0.1, −0.3, 0.7, 0.5, 0.0]
 
 每行有多少个数由模型定死，叫 hidden size（隐藏维度，每个位置用多少个数表示）。token 带着这个宽度从第 1 层走到最后一层，层与层的交界处宽度不变；层内部有些中间结果可以是别的宽度，比如投影（乘一个权重矩阵，把向量换成另一种宽度）和 [MoE](moe.md) 专家（几组并列的小网络，每个 token 只交给其中几组算）的中间结果。取出来摞成的 `[S, H]` 是隐藏向量的起点：后面每一层都拿这些向量做矩阵乘，再和同一序列里的其他位置交换信息，把它改写成新的表示，所以入口这几行数是全部后续计算的起点。
 
-每一步查几行，看这一步送进来几个 token。模型处理一条请求分两段：先把整段提示词一次送进去，叫 [prefill](prefill.md)，这时 S 就是提示词的 token 数；然后逐个生成回答，每步送进上一步刚生成的那个 token，叫 decode。decode 每步也要先查一次表，普通做法下只有 1 个新 token，得到 [1, H]。如果开了投机解码（speculative decoding：先用一个便宜的办法猜出后面几个 token，再让模型在同一步里一起验证），这一步还会带上几个待验证的候选 token，要查的行数随之变多；GLM 双机就开了，见 GLM 一节。前面各位置的信息已经由后面各层存成状态（比如 [KV cache](kv-cache.md)，把历史位置算过的中间结果留着给后面的 token 读），不再重新查表。一步里的 S 行对应的是这一步要处理的 token 位置，不是请求：多条请求同时跑时，这些行可以来自不同的请求，哪一行属于哪条请求另有记录。
+每一步查几行，看这一步送进来几个 token。处理提示词的阶段叫 [prefill](prefill.md)，可以整段处理，也可以分块；S 是本步实际送入的位置数，只有整段处理时才等于完整提示词长度。之后普通 decode 每条请求通常送入上一步刚生成的 token，查出 [1, H]。开了投机解码（先草拟候选，再一起验证）还会带上候选位置，查表行数随之增加；GLM 双机就开了，见后文。此前各层保存的[历史状态](kv-cache.md)供后续计算使用，不必每步重查整个前缀的嵌入。多条请求合批时，S 行可以来自不同请求，归属另有记录。
 
 同一个编号在一句话里出现两次，两处取出的初始向量完全相同，因为查表只看编号、不看位置。它们仍是序列里的两个不同位置，进入后面各层后，位置和上下文都会参与计算，两处的表示随之分开。
 
@@ -166,7 +204,7 @@ title: 2 张卡逐格相加，看位置 2（示意）
 
 **GLM 的嵌入表逻辑形状是 `[154880, 4096]`；TP8 把它按行切成 8 份，每张卡只存、只查自己那 19360 行，查不到的位置填 0，再用 [All-Reduce](collective-communication.md#all-reduce) 把 8 份结果加起来，每张卡就都有了完整向量。** 做法和上一节的 2 张卡一样，只是卡数和表都变大了。
 
-[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)是 2 台 Atlas 800 A2 服务器、每台 8 张昇腾 NPU，共 16 张卡（2×A2×8）。其中 TP8 指同一台机器里的 8 张卡组成一组，共同切分每一层的权重；DP2 指这样的组有 2 个，各自处理不同的请求。切表和求和都发生在每个 TP8 组的 8 张卡之间。
+[GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)是 2 台 Atlas 800 A2 服务器、每台 8 张昇腾 NPU，共 16 张卡（2×A2×8）。其中 TP8 指同一台机器里的 8 张卡组成一组，共同切分采用 TP 的权重矩阵；DP2 指这样的组有 2 个，各自处理不同的请求。切表和求和都发生在每个 TP8 组的 8 张卡之间。
 
 GLM 的文本配置给出词表 154880 项、hidden size 4096，所以整表是 154880 行、每行 4096 个数。这 154880 行里既有普通的词和子词，也有特殊标记和分词器从不产出的预留行，三段的构成见 token 页的[编号要落在 154880 行之内](token.md#编号要落在-154880-行之内)。
 
@@ -188,7 +226,7 @@ R1 入口一次 All-Reduce 的载荷 = 4 × 4096 × 2 B = 32768 B
 
 切法是行切：每张卡负责一段连续的编号区间。入口时本轮的每个编号都发给 8 张卡，只有区间覆盖该编号的那张卡查到真正的行，其余 7 张卡把这一位置整行置零；8 份相加，非零的那一份就是答案，所以求和不会算错。切开的是权重表，输入的编号在每张卡上是同一份。这套「入口求和、出口拼接」的分工以[张量并行](tensor-parallel.md#词表入口求和出口拼接)页为准。
 
-入口用 All-Reduce 有一个前提：本部署没有打开 [FlashComm1](sequence-parallel.md)。它是 Ascend 的序列并行开关（序列并行：把一批 token 按位置分给几张卡、各管一段），默认关，GLM 双机的启动命令也没有另外打开。在 v0.23、v0.26 里打开它，同一个入口归约会改走 [Reduce-Scatter](collective-communication.md#reduce-scatter)（相加之后每张卡只留结果的一段），每张卡只拿到一段 token 的完整向量；main 则不论开关都固定为 All-Reduce，见下文版本差异。
+本节的入口 All-Reduce 采用[基线页的条件性假设](../sources/glm-5-3-flash-baseline.md)：本步没有启用 [FlashComm1](sequence-parallel.md) 序列并行，即没有把一批 token 按位置分给几张卡各管一段。命令未显式开启、环境变量默认 0，都不能单独证明最终状态，因为配置和共享专家路径还可能改变它。在 v0.23、v0.26 的普通入口中，只有本步 FlashComm1 条件生效且没有命中多模态草稿例外时，归约才改走 [Reduce-Scatter](collective-communication.md#reduce-scatter)（相加之后每张卡只留结果的一段）；main 的标准 TP 入口则保持 All-Reduce，见下文版本差异。这里的 32768 B 是该假设下的逻辑载荷，不是运行日志确认的通信量。
 
 沿用 R1 的 4 个输入位置，假设它们的编号是 [8, 9, 312, 8]，把查到的行按输入顺序排好，就得到本轮的输入张量：
 
@@ -228,9 +266,11 @@ R1 之后的 decode 步，入口也是查 4 行，而不是 1 行。本部署开
 
 文本模型的入口层不需要额外开关：固定 GLM 实现直接用配置里的 `vocab_size` 和 `hidden_size` 建一个 `VocabParallelEmbedding`，TP 大于 1 时它自己负责切行、置零和归约。[C2] 这里没有传量化配置，所以 W8A8 部署下这张表仍走不量化的查表实现，每个数 2 B。Ascend 侧在注册表里把这个类替换成 `AscendVocabParallelEmbedding`，所以实际跑的是 Ascend 版本。[C11]
 
-需要显式打开的是另一件事：细粒度的 embedding tensor parallel。`embedding_tensor_parallel_size` 默认 0，对应的开关判定为假，走的是与上游同形的 `_forward_origin`。[C12][C13] 把它设成大于 0 才切换到专用的 embed-TP 路径。
+需要显式打开的是另一件事：细粒度的 embedding tensor parallel。`embedding_tensor_parallel_size` 默认 0，对应的开关判定为假，走的是与上游同形的 `_forward_origin`；默认值见来源 13，开关判定见来源 12，两者共同限定这条分派路径。[C12] 把它设成大于 0 才切换到专用的 embed-TP 路径。
 
 另有一条绕过查表的入口：模型 `forward` 收到已经准备好的 `inputs_embeds` 时直接使用传入的表示，不再按编号查表；多模态和外部提供向量的调用走这条路。[C3]
+
+这段直接使用向量的分支位于流水线的首个成员，也就是把模型分成多段接力运行时负责第一段的成员；只有没有提供输入向量时，它才按编号查表。这条分支本身没有给出所有入口的校验过程，不能据此认为任意形状或数据类型的外部向量都能被接受。
 
 ### 会报什么错
 
@@ -242,28 +282,39 @@ R1 之后的 decode 步，入口也是查 4 行，而不是 1 行。本部署开
 
 查表本身是显存读取，不是乘法，入口的开销主要是两笔：常驻权重按 TP8 每卡 151.25 MiB，以及每次前向一次 All-Reduce，R1 的载荷是 32768 B。[D] 前一笔和 batch 无关，后一笔随本步 token 数线性增长。[D]
 
-归约走的是 Ascend 封装的归约算子：FlashComm1 关着时它就是一次张量并行 All-Reduce；v0.23、v0.26 打开 FlashComm1 后，它先把 token 数补齐，再做 Reduce-Scatter，每张卡只留一段 token。[C20] FlashComm1 由环境变量控制，默认 0；GLM 双机没有改它，所以本部署走的是 All-Reduce。[C26] main 不再经过这个算子，固定发 All-Reduce，注释给出的理由是：第一层期望拿到完整的 token 序列，序列并行要到该层注意力输出之后才开始，在入口换成 reduce-scatter 会让每张卡只剩一段 token。
+归约走的是 Ascend 封装的归约算子：拿不到前向上下文、本步 FlashComm1 未生效，或命中多模态草稿的普通入口例外时，返回张量并行 All-Reduce；其余适用的普通入口先按需补齐 token 数，再做 Reduce-Scatter。[C20] 环境变量默认 0 只是配置来源之一；`enable_sp()` 可从 additional_config、Ascend 配置或环境取值，初始化或刷新时还可能被共享专家条件开启。随后本步上下文还检查模型类型和 token 数，相关条件见来源 34–35。[C26] main 的标准 TP 入口不再经过这个算子，保持 All-Reduce，注释给出的理由是：第一层期望拿到完整的 token 序列，序列并行要到该层注意力输出之后才开始，在入口换成 reduce-scatter 会让每张卡只剩一段 token。
 
 细粒度 embedding TP 默认关着，它要求同时打开 recompute scheduler，并且吃一个静态容量上限。除了确有需要的大词表场景，保持默认即可。
 
 ### 版本差异
+
+**v0.30.0rc2 新增对照中的 PCP 词表分片要与标准 TP 路径分开。** 标准路径仍本地查表、将非本片词条置零、TP All-Reduce，不能只因 FlashComm 开启就说它改为 Reduce-Scatter。PCP>1 且模块前缀匹配时，默认 true 的 enable_pcp_embedding_lmhead_weight_sharding 可选择 TP×PCP 分片：先在 PCP 组 All-Gather token ID，再本地查表、PCP Reduce-Scatter 归还 token 行，最后 TP All-Reduce。disable_tp 优先返回整表复制；PCP 分片与细粒度 embedding TP 互斥。正文 GLM PCP=1 的 TP8 行数保留，但“切法不随版本变化”不能外推到这条 PCP 路径。
 
 核对的是 Ascend 侧的嵌入入口与上游通用层。GLM 双机的数字固定在执行侧 `db701c1f`、控制流 `0fc695fc`；下表的 main 是仓库约定的固定提交，不是浮动分支。
 
 | 核对项 | v0.23：2c59ff10 | v0.26：2ed6cbba | main：baa023ad | 对使用者意味着什么 |
 | --- | --- | --- | --- | --- |
 | 行切 + 置零 + 归约三步 | 有 | 有 | 有 | 三版查表语义一致，切法和求和不变 |
-| 归约调用 | `maybe_pad_and_reduce`[C16] | 同 v0.23[C17] | 换成按 TP 组调用的 all-reduce，并在注释里写明入口不能改成 reduce-scatter[C18] | 升级后入口仍是一次 All-Reduce，载荷算法不变 |
-| 打开 FlashComm1 时的入口通信 | 改成补齐后 Reduce-Scatter | 同 v0.23[C25] | 仍是 All-Reduce，开关不影响入口 | 两个旧版上开 FlashComm1 会改变入口通信量，main 不会 |
+| 归约调用 | `maybe_pad_and_reduce`[C16] | 同 v0.23[C17] | 换成按 TP 组调用的 all-reduce，并在注释里写明入口不能改成 reduce-scatter[C18] | main 标准 TP 入口保持完整 token 序列；从旧版 Reduce-Scatter 路径升级时，每卡结果形状会改变 |
+| 本步 FlashComm1 生效时的普通入口通信 | 未命中多模态草稿例外时，补齐后 Reduce-Scatter | 同 v0.23[C25] | 标准 TP 仍是 All-Reduce | 旧版须核本步上下文和草稿条件，不能只看环境开关 |
 | 细粒度 embedding TP 开关 | 默认 0[C22] | 默认 0[C23] | 默认 0[C24] | 默认都走与上游同形的路径 |
 | 上游通用层 | 掩码取行后置零再归约[C8] | 同形[C21] | 多出融合查表算子与 FP8 按 int8 求和的分支[C19] | 上游新增的是实现路径，取行语义没变 |
 
-三版的差异集中在归约怎么发和上游有没有融合算子，形状、切法与每卡行数都不随版本变化。[D]
+三版标准 TP 路径的词表切法与每卡行数相同；归约方式可能改变每卡收到的 token 行数。这里不包含 rc2 的 PCP 分片路径。[D]
+
+表中上游 FP8 按 int8 处理的行为有适用条件：来源 19 的固定 `84030bbe` 实现先排除 TP 只有一个成员的路径，进入非 fused（不使用融合查表算子）分支后，也只对 `float8_e4m3fn` 与 `float8_e5m2` 两种类型处理。这里是把同一份字节按 int8 视图通信，再恢复原类型视图；不能推广到所有类型，也不能据此认定 GLM 双机镜像或昇腾执行路径采用了该实现。
 
 ### 源码位置
 
+固定 GLM 的首个流水线 rank 在 inputs_embeds 非空时直接使用输入向量，否则查 embedding 表；FP8 的加载与转换还有独立分支（来源 3、19）。这些代码分支不能证明任意入口都接受外部向量，也不能代替设备执行验证。
+
 阅读顺序：`models/glm5_next.py` 建 `embed_tokens`，同一文件的 `embed_input_ids` 让外部用同一张表查向量；[C4] 再看 `ops/vocab_parallel_embedding.py` 的 `forward` 按开关分派；[C9] 最后是上游 `layers/vocab_parallel_embedding.py`，单卡的普通查表就是一次 `F.embedding`，多卡才加掩码与归约。[C6] 出口一侧的 `lm_head` 在同一个模型文件里单独建表。[C5]
+
+来源 34–35 对应最终 SP 状态与本步 FlashComm1 判断；来源 36 对应嵌入表构造、词表补齐、分组和不量化回退。三版细粒度 embedding TP 的默认值由来源 22–24 的配置定义给出，是否开启仍按大于 0 判断。
 
 数值出处：154880、4096 与 `tie_word_embeddings` 为 false 来自固定 revision 的模型配置；[S1] 19360 行、151.25 MiB、32768 B 和 1.18 GiB 由这些形状与精度推导；[D] 前几节的 6 行小词表、「我喜欢猫」的编号 [0, 2, 3]、表里的数和 2 张卡的切法，以及 GLM 一节图里的 `[8, 9, 312, 8]`，都是教学假设，与任何实际提示词和实际权重无关，GLM 那张图的格子也只画部分维度。[A]
 
 待核：专用镜像内最终安装的组合与运行时实际走的通信路径尚未实测，本页的字节数是按形状与精度推算的逻辑载荷，不是链路实测值。
+
+- 来源 28：vllm-ascend@db701c1f，vllm_ascend/models/glm5_next.py，L2301–L2305。
+- 来源 29：vllm-ascend@db701c1f，vllm_ascend/ops/vocab_parallel_embedding.py，L218–L227。

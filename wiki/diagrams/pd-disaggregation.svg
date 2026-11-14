@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="一次交接的先后（以设计文档作示例的 Mooncake V1 为例）。代理把同一条请求先发给 P、再转给 D；D 在自己的块池里分好目的块，由后台线程按地址读 P 的源块；D 发出的完成信号让 P 放块，D 上的请求随后回到队列，算完最后一个位置才开始逐 token 生成。编号与正文步骤一致，图不表示耗时。">
-  <title>一次交接的先后（以设计文档作示例的 Mooncake V1 为例）。代理把同一条请求先发给 P、再转给 D；D 在自己的块池里分好目的块，由后台线程按地址读 P 的源块；D 发出的完成信号让 P 放块，D 上的请求随后回到队列，算完最后一个位置才开始逐 token 生成。编号与正文步骤一致，图不表示耗时。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="一次交接的先后（以设计文档作示例的 Mooncake V1 为例）。代理把同一条请求先发给 P、再转给 D；D 在自己的块池里分好目的块，由后台线程按地址读 P 的源块；D 发出的完成信号让 P 放块，仅成功的请求随后回到 D 队列，算完最后一个位置才开始逐 token 生成。编号与正文步骤一致，图不表示耗时。">
+  <title>一次交接的先后（以设计文档作示例的 Mooncake V1 为例）。代理把同一条请求先发给 P、再转给 D；D 在自己的块池里分好目的块，由后台线程按地址读 P 的源块；D 发出的完成信号让 P 放块，仅成功的请求随后回到 D 队列，算完最后一个位置才开始逐 token 生成。编号与正文步骤一致，图不表示耗时。</title>
   <defs><marker id="pd-disaggregation-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="pd-disaggregation-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="pd-disaggregation-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
   <rect x="20" y="40" width="290" height="540" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="36" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">P 实例</text>
@@ -22,7 +22,7 @@
   <text x="450" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只生成 1 个 token</text>
   <rect x="40" y="64" width="250" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="165" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">prefill 提示词</text>
-  <text x="165" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">混合模型先截掉最后 1 个位置</text>
+  <text x="165" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">混合模型多于 1 个位置才截尾</text>
   <rect x="40" y="154" width="250" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="165" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按长度上限结束</text>
   <text x="165" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">打包块号与地址，块先不放</text>
@@ -45,8 +45,8 @@
   <text x="165" y="448" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">释放源块</text>
   <text x="165" y="467" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收到通知，或超时强制释放</text>
   <rect x="610" y="514" width="250" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="735" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算最后 1 个位置</text>
-  <text x="735" y="557" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">采样首 token，进入 decode</text>
+  <text x="735" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">成功后算最后 1 个位置</text>
+  <text x="735" y="557" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">失败默认结束，重算须满足条件</text>
   <text x="372" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#4d5652" text-anchor="middle">交回块号、地址</text>
   <text x="450" y="354" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">按块读取历史状态</text>
   <text x="450" y="444" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#4d5652" text-anchor="middle">完成信号</text>

@@ -1,0 +1,98 @@
+{
+  "retrieved_at": "2026-11-10T12:19:13.801932+00:00",
+  "records": [
+    {
+      "url": "https://docs.vllm.ai/en/v0.23.0/configuration/engine_args/",
+      "release_tag_commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-includes/engine_args.txt",
+      "html_sha256": "6d7eed88ca3dc1b7ec43fec2fe483c1f69a9f9c4937835e092f669208779e02b",
+      "text_sha256": "58c89a5dd1bd033e7cfbfe673ae9c565c88bc03c7bf6ee308befc5880347c215",
+      "text_lines": 1923,
+      "chars": 66176,
+      "status": "actually_full_rendered_text_read",
+      "read_scope": "all extracted article text L1–1923; 221 rendered parameter sections plus introduction",
+      "limits": "Documentation field definitions/defaults are not all consumers or all hardware support verification."
+    },
+    {
+      "url": "https://docs.vllm.ai/en/v0.23.0/cli/serve/",
+      "release_tag_commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-includes/serve.txt",
+      "html_sha256": "c24be523aa74f69d262c9ce2b1da9f0d25f0b4b38c4b8acd4f6a405c70a07bba",
+      "text_sha256": "d43eaf65a9adc8b669001567a672303cab58dc45ed7136c1a523f0a7664d5172",
+      "text_lines": 2202,
+      "chars": 71162,
+      "status": "full_rendered_text_covered_by_exact_reuse_and_delta_read",
+      "read_scope": "217 sections exactly match already-read engine_args by heading+body; all 62 remaining sections actually read; prefix1–335 also read",
+      "dedup_record": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-includes/dedup.json",
+      "limits": "Blank help descriptions do not prove frontend field semantics; this is not independent rereading of every shared section."
+    },
+    {
+      "url": "https://docs.vllm.ai/en/v0.23.0/configuration/env_vars/",
+      "release_tag_commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-includes/env_vars.txt",
+      "html_sha256": "986f769276b65c230185b8dedbd9d4cb362b6117767f4a0f82ed93b10fd51aaa",
+      "text_sha256": "b7c38bacd04d9566d7eabbdc3c78f7621a2dda47788b5fea1a0e6c9d867a23ff",
+      "text_lines": 5524,
+      "chars": 69811,
+      "status": "actually_full_included_definition_read",
+      "read_scope": "mother warning text plus rendered env dictionary: fixed envs.py L541–2016 read in four contiguous chunks; rendered code1471 lines differs only in three blank lines",
+      "limits": "No claim of full 2208-line envs.py source or every consumer read."
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/mkdocs/hooks/generate_argparse.py",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-includes/docs/mkdocs/hooks/generate_argparse.py",
+      "sha256": "545697fba60d4a63a93331d947bab86c9389e4c8e64f216b21e9791b2ce60233",
+      "lines": 289,
+      "status": "actually_full_read"
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/cli/json_tip.inc.md",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-includes/docs/cli/json_tip.inc.md",
+      "sha256": "dcd9e0230d756184d705b7d50951f2df24aff213880c6877ccdbf4b0c7714012",
+      "lines": 10,
+      "status": "actually_full_read"
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/cli/serve.md",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-includes/docs/cli/serve.md",
+      "sha256": "a98a678ea21acd4e114ff802ea8da2981c78d01f011fefa150c6459a98cda552",
+      "lines": 9,
+      "status": "actually_full_read"
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/cli/README.md",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-includes/docs/cli/README.md",
+      "sha256": "ac17912f1953ea3b79b7831a06b76e0491d1025ae8291706b9f08c93ea4d4434",
+      "lines": 200,
+      "status": "actually_full_read"
+    },
+    {
+      "ref": "vllm@0fc695fc:docs/cli/.nav.yml",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-includes/docs/cli/.nav.yml",
+      "sha256": "25cbf097d64f1230abe5df62d5a917a7375b39cbdbfceb4190acc9363a90b28d",
+      "lines": 10,
+      "status": "actually_full_read"
+    },
+    {
+      "ref": "vllm@0fc695fc:vllm/envs.py",
+      "local_path": ".tmp/continuation-groups-2026-11-10/request-official-coverage/config-includes/vllm/envs.py",
+      "sha256": "b776fb6b1bae4a4f1d6c53792e65e15bd6cde7e70d5c17ef08dfeec54cd59603",
+      "lines": 2208,
+      "status": "actual_range_read",
+      "read_scope": "L541–2016 included variable definitions; first540 and tail2017–2208 not all read",
+      "global_new_full_credit": 0
+    }
+  ],
+  "reading_recorded_at": "2026-11-10T12:28:22.500112+00:00",
+  "scope": "Generated official engine/serve help and full environment-variable definition include, with exact-section reuse; no global full-read credit until aggregate dedup.",
+  "global_new_full_credit": 0,
+  "linked_section_reads": [
+    {
+      "url": "https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables",
+      "actual_read_scope": "Environment variables section web lines1420–1438 plus nearby headless definition1399–1402",
+      "read_kind": "selected section only, not full page",
+      "claims": "kubelet injects active service variables; uppercase/dash-to-underscore; legacy SVC_PORT tcp:// value and creation ordering; K8s headless service is distinct from vLLM --headless",
+      "fixed_source": false
+    }
+  ]
+}

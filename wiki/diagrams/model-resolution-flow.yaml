@@ -1,0 +1,32 @@
+layout: figure
+id: model-resolution-flow
+caption: 先分清来源，再分清职责。配置读取可早于 Worker 创建；Worker 第③步根据执行实现构造参数，再填入权重。文本入口使用 tokenizer 产生编号，两条路径在模型查词向量表时汇合。配置和 tokenizer 可另选来源，因此所用文件及修订必须相互匹配；图不表示配置解析、分词器初始化与 Worker 启动的并发时序。
+size: [900, 620]
+items:
+  - { at: [30, 48], size: [840, 58], text: 模型来源与修订；可单独指定配置和 tokenizer 来源, sub: 本地目录直接读；远端仓库先查缓存，需要时访问 Hub, tone: control }
+  - { at: [30, 148], size: [510, 58], text: 读结构说明，选择配置类, sub: 得到层数、宽度和模型类型；还没有装权重, tone: control }
+  - { at: [30, 248], size: [510, 58], text: 按架构名称选择执行实现, sub: 原生注册表；符合条件时尝试 Transformers 后端, tone: weight }
+  - { at: [30, 348], size: [510, 58], text: Worker 第③步：构造本卡参数, sub: 形状由配置与实现决定，随后才填入权重, tone: weight }
+  - { at: [30, 448], size: [510, 58], text: 读取权重，再做布局后处理, sub: 文件选择看加载格式；张量名称与形状必须匹配, tone: weight }
+  - { at: [630, 148], size: [240, 58], text: 初始化 tokenizer, sub: 使用自己的来源与修订, tone: token }
+  - { at: [630, 248], size: [240, 58], text: 文字变成 token 编号, sub: 不会随之重排模型权重, tone: token }
+  - { at: [30, 548], size: [840, 52], text: 模型按输入编号查词向量，再执行前向, sub: 同一个编号的含义，必须与训练时权重的约定一致, tone: token }
+links:
+  - { from: [285, 106], to: [285, 148], tone: control }
+  - { from: [750, 106], to: [750, 148], tone: control }
+  - { from: [285, 206], to: [285, 248], tone: control }
+  - { from: [285, 306], to: [285, 348], tone: control }
+  - { from: [285, 406], to: [285, 448], tone: weight }
+  - { from: [285, 506], to: [285, 548], tone: weight }
+  - { from: [750, 206], to: [750, 248], tone: token }
+  - { from: [750, 306], to: [750, 548], tone: token }
+texts:
+  - { at: [450, 24], text: 结构说明、执行代码、权重、分词规则各负责什么, anchor: middle, strong: true }
+  - { at: [762, 426], text: 输入编号, note: true }
+pins:
+  - source: vllm@0fc695fc:vllm/transformers_utils/config.py#L689-L874
+    symbols: [get_config]
+  - source: vllm@0fc695fc:vllm/model_executor/models/registry.py#L1064-L1264
+    symbols: [resolve_model_cls]
+  - source: vllm@0fc695fc:vllm/tokenizers/registry.py#L196-L279
+    symbols: [cached_tokenizer_from_config]

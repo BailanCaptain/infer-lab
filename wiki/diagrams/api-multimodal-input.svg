@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 660" width="860" height="660" role="img" aria-label="以把媒体特征放入语言输入序列的模型为例。前端先处理媒体和占位范围；设备编码得到真正的特征向量，再填入对应位置。CPU预处理缓存、编码结果缓存和语言层KV cache分别位于三步，命中其中一种不等于其他两步也省去。">
+  <title>以把媒体特征放入语言输入序列的模型为例。前端先处理媒体和占位范围；设备编码得到真正的特征向量，再填入对应位置。CPU预处理缓存、编码结果缓存和语言层KV cache分别位于三步，命中其中一种不等于其他两步也省去。</title>
+  <defs><marker id="api-multimodal-input-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <rect x="20" y="35" width="820" height="270" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="23" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">入口：主机上的模板与媒体预处理</text>
+  <rect x="20" y="350" width="820" height="290" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="338" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">执行：编码器接到语言模型</text>
+  <path d="M210 120 L210 235" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-multimodal-input-ah-ink)"/>
+  <path d="M650 120 L650 155" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-multimodal-input-ah-ink)"/>
+  <path d="M650 215 L650 235" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-multimodal-input-ah-ink)"/>
+  <path d="M490 260 L370 260" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-multimodal-input-ah-ink)"/>
+  <path d="M650 285 L650 380" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-multimodal-input-ah-ink)"/>
+  <path d="M210 285 L210 315 L420 315 L420 465 L210 465 L210 490" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-multimodal-input-ah-ink)"/>
+  <path d="M650 440 L650 490" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-multimodal-input-ah-ink)"/>
+  <path d="M430 545 L430 575" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-multimodal-input-ah-ink)"/>
+  <rect x="50" y="65" width="320" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="210" y="88.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">消息中的文字与媒体位置</text>
+  <text x="210" y="107.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">顺序由模板保留</text>
+  <rect x="490" y="65" width="320" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="650" y="88.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">原始图像 A、B</text>
+  <text x="650" y="107.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">解码后的像素等输入</text>
+  <rect x="490" y="155" width="320" height="60" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="650" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">CPU 媒体预处理</text>
+  <text x="650" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">缓存命中的 A 复用；只新处理 B</text>
+  <rect x="50" y="235" width="320" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="210" y="256" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">编号序列与媒体占位范围</text>
+  <text x="210" y="275" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A 占哪几位、B 占哪几位</text>
+  <rect x="490" y="235" width="320" height="50" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="650" y="256" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按原顺序合回 A、B</text>
+  <text x="650" y="275" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">编码器需要的张量与布局</text>
+  <rect x="490" y="380" width="320" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="650" y="406" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">媒体编码器</text>
+  <text x="650" y="425" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算出特征；编码结果缓存可省重算</text>
+  <rect x="50" y="490" width="760" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="513.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">将媒体向量放到相应占位位置</text>
+  <text x="430" y="532.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">文字位置用文本嵌入，媒体位置用编码结果</text>
+  <rect x="50" y="575" width="760" height="45" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="602.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">语言模型逐层前向，建立并使用自己的 KV cache</text>
+</svg>

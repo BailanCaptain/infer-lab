@@ -9,16 +9,16 @@ items:
   - { at: [28, 56], size: [230, 52], text: 收到调度计划, sub: 先查上一份执行状态已取走, tone: control }
   - { at: [276, 56], size: [156, 52], text: 没取走, sub: 报错，不往下走, tone: danger, style: faded }
   - { at: [28, 124], size: [230, 52], text: 对账持久批次, sub: 删、改、加有变化的请求, tone: control }
-  - { at: [276, 124], size: [156, 52], text: 本步 0 个 token, sub: 返回空结果, tone: control, style: faded }
+  - { at: [276, 124], size: [156, 52], text: 本步 0 个 token, sub: 必要协作后提前返回, tone: control, style: faded }
   - { at: [28, 192], size: [230, 52], text: 准备输入, sub: token id、位置、槽位、选行, tone: token }
   - { at: [28, 260], size: [230, 52], text: 定执行方式, sub: 图还是 eager、补多宽、两组对齐, tone: control }
   - { at: [28, 328], size: [230, 52], text: 建注意力元数据, sub: 每个缓存组、每类后端一份, tone: kv }
   - { at: [28, 396], size: [230, 52], text: 前向, sub: 全部层在前向上下文里跑, tone: weight }
-  - { at: [276, 396], size: [156, 52], text: 流水线非末段, sub: 交出中间张量就返回, tone: control, style: faded }
+  - { at: [276, 396], size: [156, 52], text: PP 未开输出广播, sub: 非末段交中间张量返回, tone: control, style: faded }
   - { at: [28, 464], size: [230, 52], text: 选行 → 词表分数, sub: 只算被选中的行, tone: token }
   - { at: [28, 532], size: [230, 52], text: 存进执行状态, sub: 这次调用返回空, tone: control }
   - { at: [470, 56], size: [236, 52], text: 取出执行状态, sub: 取出后立刻清空, tone: control }
-  - { at: [720, 56], size: [156, 52], text: 没有执行状态, sub: 返回空, tone: control, style: faded }
+  - { at: [720, 56], size: [156, 52], text: 没有执行状态, sub: 处理广播与传输协作, tone: control, style: faded }
   - { at: [470, 124], size: [236, 52], text: 套允许词表, sub: 只在有结构化输出时, tone: control, style: plain }
   - { at: [470, 192], size: [236, 52], text: 采样, sub: 无草稿普通采样，有草稿逐位验证, tone: token }
   - { at: [470, 260], size: [236, 52], text: 整理结果, sub: 按请求拆行，丢掉提示词没算完的, tone: token }
@@ -26,7 +26,7 @@ items:
   - { at: [470, 396], size: [236, 52], text: 打包输出, sub: 每条请求这一步的新 token, tone: token }
   - { at: [470, 464], size: [236, 52], text: 记下每条请求接受几个, sub: 混合模型开投机时，给线性注意力用, tone: kv, style: plain }
   - { at: [470, 532], size: [236, 52], text: 交回引擎, sub: 异步调度时结果稍后拷回 CPU, tone: control }
-  - { at: [720, 532], size: [156, 52], text: 8 张卡都交, sub: 引擎只收 0 号卡那份, tone: control, style: faded }
+  - { at: [720, 532], size: [156, 52], text: GLM：8 卡都执行, sub: 仅 0 号卡发回这份结果, tone: control, style: faded }
 links:
   - { from: [143, 108], to: [143, 124] }
   - { from: [143, 176], to: [143, 192] }
@@ -67,3 +67,5 @@ pins:
     symbols: [_bookkeeping_sync, propose_draft_token_ids, ModelRunnerOutput]
   - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2517-L2582
     symbols: [_update_states_after_model_execute, AsyncGPUModelRunnerOutput]
+  - source: vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L969-L995
+    symbols: [worker_busy_loop, output_rank, handle_output]

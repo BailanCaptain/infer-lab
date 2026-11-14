@@ -1,0 +1,32 @@
+layout: figure
+id: api-renderer-services
+caption: 调用方按 1→2→3 提交与接回结果，服务之间没有自动转发的箭头。第 2 步才执行模型；第 3 步是 v0.26 起具备的完整结果后处理，旧 GLM 基线没有该路由。编号和输入计数为示意。
+size: [860, 600]
+frames:
+  - { at: [20, 35], size: [360, 540], label: 调用方：保存原请求并串接三步 }
+  - { at: [480, 35], size: [360, 140], label: CPU 预处理服务 }
+  - { at: [480, 235], size: [360, 140], label: 设备生成服务 }
+  - { at: [480, 435], size: [360, 140], label: CPU 后处理服务 }
+items:
+  - { at: [40, 65], size: [320, 85], text: ① 提交消息，接回生成请求, sub: '保存编号 [7, 31, 1052, 9] 和参数', tone: token }
+  - { at: [40, 265], size: [320, 85], text: ② 转交生成请求，接回输出, sub: 保存生成的 token 编号, tone: token }
+  - { at: [40, 465], size: [320, 85], text: ③ 交回输出、原请求与计数, sub: 取得整理好的文本和用量, tone: token }
+  - { at: [500, 65], size: [320, 85], text: render：套模板、分词等, sub: 只准备输入，不计算模型前向, tone: control }
+  - { at: [500, 265], size: [320, 85], text: token-in / token-out, sub: 引擎排队、计算并返回编号, tone: weight }
+  - { at: [500, 465], size: [320, 85], text: derender：编号还原文字, sub: 按原请求解析；输入计数示意为 4, tone: control }
+links:
+  - { from: [360, 90], to: [500, 90], tone: comm }
+  - { from: [500, 130], to: [360, 130], tone: token }
+  - { from: [200, 150], to: [200, 265] }
+  - { from: [360, 290], to: [500, 290], tone: comm }
+  - { from: [500, 330], to: [360, 330], tone: token }
+  - { from: [200, 350], to: [200, 465] }
+  - { from: [360, 490], to: [500, 490], tone: comm }
+  - { from: [500, 530], to: [360, 530], tone: token }
+pins:
+  - source: vllm@568afb3a:vllm/entrypoints/scale_out/render/serving.py#L64-L150
+    symbols: [render_chat_request]
+  - source: vllm@0fc695fc:vllm/entrypoints/serve/disagg/serving.py#L100-L238
+    symbols: [generate]
+  - source: vllm@568afb3a:vllm/entrypoints/scale_out/derender/serving.py#L121-L238
+    symbols: [derender_chat_response]

@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" width="900" height="240" role="img" aria-label="两条路都从 A 读权重，差别在后处理放在哪一侧：要转布局的，读之前先转好；按原形状搬的，读完再处理并刷新登记">
-  <title>两条路都从 A 读权重，差别在后处理放在哪一侧：要转布局的，读之前先转好；按原形状搬的，读完再处理并刷新登记</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" width="900" height="240" role="img" aria-label="两条路都从 A 读当前权重。上路先准备布局；下路先核清单并读取，再做适用的后处理、刷新登记。checkpoint 路径不保证 A 保持原形状，读取后会跳过未量化 MoE 的重复后处理。">
+  <title>两条路都从 A 读当前权重。上路先准备布局；下路先核清单并读取，再做适用的后处理、刷新登记。checkpoint 路径不保证 A 保持原形状，读取后会跳过未量化 MoE 的重复后处理。</title>
   <defs><marker id="rfork-layout-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
   <path d="M380 70 L430 70" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-layout-ah-control)"/>
   <path d="M620 70 L670 70" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-layout-ah-control)"/>
@@ -10,13 +10,13 @@
   <rect x="430" y="40" width="190" height="60" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="525" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">从 A 读</text>
   <rect x="670" y="40" width="190" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="765" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">直接发布</text>
+  <text x="765" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">发布判断</text>
   <rect x="190" y="150" width="190" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="285" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">只搭骨架</text>
   <rect x="430" y="150" width="190" height="60" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="525" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">从 A 读</text>
   <rect x="670" y="150" width="190" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="765" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后处理 · 刷新登记</text>
+  <text x="765" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">适用后处理 · 刷新登记</text>
   <text x="40" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">要转布局</text>
-  <text x="40" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">按原形状</text>
+  <text x="40" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">先读后处理</text>
 </svg>

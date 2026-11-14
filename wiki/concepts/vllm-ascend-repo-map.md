@@ -3,31 +3,66 @@ id: vllm-ascend-repo-map
 title: 源码目录地图：把文件放回推理架构
 type: concept
 summary: 用启动、调度、执行、模型、状态与通信职责定位目录，沿 GLM 的执行路径选择阅读入口，区分上游框架和 Ascend 适配。
-aliases: [目录结构, 代码结构, 仓库结构, repo map, vllm_ascend 目录]
-chapters: ["20"]
+aliases:
+  - 目录结构
+  - 代码结构
+  - 仓库结构
+  - repo map
+  - vllm_ascend 目录
+chapters:
+  - '20'
 order: 10
 sources:
-  - vllm-ascend@db701c1f:vllm_ascend/__init__.py#L38-L77
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L475
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L666
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2287-L2427
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L988
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L820
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L443-L482
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2075-L2105
-  - vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L78-L84
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L521-L545
-  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2585-L2607
-  - vllm-ascend@db701c1f:vllm_ascend/spec_decode/draft_proposer.py#L1-L16
+  - 'vllm-ascend@db701c1f:vllm_ascend/__init__.py#L38-L77'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L475'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L666'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2287-L2427'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L988'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L820'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L443-L482'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2075-L2105'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L78-L84'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L521-L545'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2585-L2607'
+  - 'vllm-ascend@db701c1f:vllm_ascend/spec_decode/draft_proposer.py#L1-L16'
+  - >-
+    raw:sha256-10dbcc4643349133e9f0120ad2262ba67af079e40d1a3f711e124b76e0a52434.md#L1-L579
+  - 'vllm@0fc695fc:vllm/v1/outputs.py#L298-L307'
+  - >-
+    raw:sha256-c4d240be638906b9d141ca9d17810839ab8ea41079c8e044744bded5188845ab.md#L1-L592
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/core.py#L450-L463
+  - 'vllm-ascend@7d825229:vllm_ascend/models/__init__.py#L78-L88'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L94-L134
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/router/grouped_topk_router.py#L80-L128
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/v2/eplb.py#L37-L83'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L42
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - {to: vllm-ascend-overview, kind: builds-on, note: 先认识上游框架和设备适配的协作}
-  - {to: request-call-chain, kind: builds-on, note: 用实际数据交接定位源文件}
+  - to: vllm-ascend-overview
+    kind: builds-on
+    note: 先认识上游框架和设备适配的协作
+  - to: request-call-chain
+    kind: builds-on
+    note: 用实际数据交接定位源文件
+  - to: ascend-patch-system
+    kind: builds-on
+    note: >-
+      目录地图将 patch/ 定位为适配已加载行为或登记表的目录，并以平台与 Worker
+      导入路径作为阅读入口；补丁机制页解释这两条入口如何在运行时完成替换。
 contradicts: []
-updated: "2026-10-02"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-10dbcc4643349133e9f0120ad2262ba67af079e40d1a3f711e124b76e0a52434.md
+  - >-
+    raw/sha256-5ace96083c87b9f40f2b3889e57d367dada6771eaf2fa6ce0f34adf72aeaeb77.md
 ---
 
 ## 想找一段推理逻辑，先打开哪个目录？
@@ -51,6 +86,9 @@ file: vllm-ascend-repo-map
 ## 上游保留哪些职责
 
 vLLM 的 v1/engine 组织引擎迭代，v1/core 中有调度与缓存管理，v1/executor 封装执行方式。一次迭代由 EngineCore 调度、提交执行并更新结果。这些共同框架与 Ascend 插件协作；找完整调用链时需要同时打开两个仓库。
+
+沿普通 step 阅读时，要区分提交与取得结果：调度器生成本轮计划，EngineCore 非阻塞提交执行，再取得语法掩码，随后等待执行结果。非阻塞的是提交调用，不代表后续取结果也无需等待。
+
 
 Ascend 的 core/ 提供部分调度或资源机制适配，不能因名称相同就把它当成整个 EngineCore，也不能断言它完全没有运行时推理逻辑。阅读时以实际类、派生关系和调用点确定职责。
 
@@ -79,6 +117,11 @@ Ascend 的 core/ 提供部分调度或资源机制适配，不能因名称相同
 
 先从 worker/worker.py 的执行入口看 Worker 接收什么，再进入 worker/model_runner_v1.py 的输入准备、模型前向和采样交接。对照[准备输入页](prepare-inputs-flow.md)，记录 token（文本切成的小片段）的输入行、位置与块表（历史缓存所在块的编号表）如何对应。
 
+阅读执行入口时，要分清 Runner 交给 Worker 的结果和 Worker 交回引擎的结果。模型执行输出、异步输出或空值可以直接交回；异步输出还需等待结果就绪后再取得实际输出。Runner 也可以交出供后续模型层继续计算的中间张量：在流水并行中，模型被分成前后几段，由不同 Worker 接力；由内部执行器负责接力、且当前不是最后一段时，Worker 将这些张量发给下一段，随后按缓存传输信息返回空值或结果对象。它不会把这份中间张量直接当成最终 token 交回引擎。
+
+如果执行返回空值，普通 step 才另外调用 sample_tokens，从模型计算结果中选出输出 token；是否进入这个采样入口取决于执行返回值。
+
+
 模型前向进入已注册的 GLM 类；models/glm5_next.py 负责选择混合层，并连接 mHC、注意力与前馈计算。mHC 管理并混合多路残差，也就是跨层保留的向量；注意力从历史中取信息，前馈再变换当前向量，结构见[模型总览](glm-5-3-flash.md)。进入具体层后再追 attention/ 或 ops/。
 
 例如 GLM 的稀疏注意力沿用 **DSA**（DeepSeek Sparse Attention）：用 **lightning indexer** 这个轻量打分网络先挑出要读取的历史，再做注意力计算；GLM 对候选历史的组织方式见[稀疏注意力](sparse-attention.md#候选位置从哪里来)。它在 ops/ 中包装注意力层并绑定后端，后端类则定义在 attention/ 中；阅读时沿对象的构造和调用继续追踪。
@@ -86,6 +129,8 @@ Ascend 的 core/ 提供部分调度或资源机制适配，不能因名称相同
 如果张量在设备间分片，接着读并行层与 distributed/；Worker 初始化为这些计算建立通信组。若要解释某个算子为何走 Ascend 实现，回查 utils.py 的 CustomOp 登记和相应启用条件；CustomOp 是允许插件登记并替换计算实现的扩展点。
 
 启动时的插件与平台准备则沿 \_\_init\_\_.py → platform.py 另行展开。
+
+读到平台配置更新时，还要检查继续执行的条件：已有设备配置且其设备类型不匹配，或模型配置缺失时，Ascend 的配置更新函数会提前返回。因此，找到平台入口之后，应沿条件分支确认当前配置是否会进入后续更新；这不是整个启动流程必然终止的判断。
 
 ## 常见误解
 
@@ -110,6 +155,10 @@ Ascend 的 core/ 提供部分调度或资源机制适配，不能因名称相同
 
 ### 版本差异
 
+这里的目录化入口已存在于固定 main，对照端是旧 GLM 单文件布局；列出 rc2 的准确路径不表示这些目录都在 rc2 首次出现。
+
+**v0.30.0rc2 的阅读地图沿用目录化入口。** GLM5Next 沿 models/glm5next/model.py、mtp.py 进入，文本和条件生成类均已登记；旧镜像 models/glm5_next.py 的行号不适用于 rc2。动态 W8A8 在 quantization/methods/w8a8/w8a8_dynamic.py，grouped-topk 在 ops/fused_moe/router，MRV2 EPLB 控制器在 worker/v2/eplb.py。先核 VLLM_USE_V2_MODEL_RUNNER 再选执行路径：Ascend 缺省仍为 V1，看到 v2 或 patch_v2 目录不等于运行时默认使用它。
+
 本页按[GLM 固定来源基线](../sources/glm-5-3-flash-baseline.md)定位 Ascend 专用代码，通用上游作为明确标记的参考。部署使用的已安装代码、源码工作树和某个社区发布分支不自动等价。
 
 先确认正在读哪份代码，再用目录地图找文件：
@@ -127,16 +176,24 @@ Ascend 的 core/ 提供部分调度或资源机制适配，不能因名称相同
 
 ### 源码位置
 
-除上游条目外，下列位置均属 GLM 专用提交 db701c1f，对应页末 sources：
+除上游条目外，下列位置均属 GLM 专用提交 db701c1f，对应页末 sources。固定源码证据按职责分三组：启动配置与资源接入（来源 1、2、6、7）[C1]；执行调度与采样交接（来源 3、4、8、12、13）[C8]；模型层与注意力后端（来源 5、9、10、11）[C9]。下表保留每项结论的来源编号和精确位置。
+
+正文按职责选择阅读入口的建议，是把来源 8 的调度提交、来源 3 的 Worker 接收与委派、来源 4 的 Runner 前向、来源 5 的模型层计算放在一起比较后，组织出的阅读顺序 [I]。它用于缩小查找范围；具体执行仍沿当前配置的构造、调用和分支逐步核对，不把这张目录地图当作一次现场请求的调用记录。
 
 | 本页结论 | 文件与定位 |
 |---|---|
-| 插件登记、权重加载器登记与平台配置 | \_\_init\_\_.py 第 38–77 行；platform.py 第 450–475 行 [C1][C2] |
-| Worker 接收执行任务，Runner 做前向并交接采样 | worker/worker.py 第 599–666 行；worker/model_runner_v1.py 第 2287–2427 行 [C3][C4] |
-| 混合层选择，以及 mHC、注意力和前馈的连接 | models/glm5_next.py 第 2075–2105、2212–2235 行 [C9][C5] |
-| Worker 初始化通信组；按条件登记 CustomOp | worker/worker.py 第 975–988 行；utils.py 第 735–820 行，包含登记表、310P 与版本条件，以及最终注册调用 [C6][C7] |
-| 上游组织调度、提交执行与更新结果 | vllm@0fc695fc 的 vllm/v1/engine/core.py 第 443–482 行 [C8] |
-| ops 层绑定 attention 后端 | ops/indexer_kpool_mla.py 第 78–84 行；attention/indexer_kpool_mla_v1.py 第 521–545 行 [C10][C11] |
-| 草稿候选生成与采样、验证的分工 | spec_decode/draft_proposer.py 第 1–16 行；worker/model_runner_v1.py 第 2585–2607 行按是否有草稿元数据选择 sampler 或 rejection_sampler [C13][C12] |
+| 插件登记、权重加载器登记与平台配置 | \_\_init\_\_.py 第 38–77 行；platform.py 第 450–475 行（来源 1、2） |
+| Worker 接收执行任务，Runner 做前向并交接采样 | worker/worker.py 第 599–666 行；worker/model_runner_v1.py 第 2287–2427 行（来源 3、4） |
+| 混合层选择，以及 mHC、注意力和前馈的连接 | models/glm5_next.py 第 2075–2105、2212–2235 行（来源 9、5） |
+| Worker 初始化通信组；按条件登记 CustomOp | worker/worker.py 第 975–988 行；utils.py 第 735–820 行，包含登记表、310P 与版本条件，以及最终注册调用（来源 6、7） |
+| 上游组织调度、提交执行与更新结果 | vllm@0fc695fc 的 vllm/v1/engine/core.py 第 443–482 行（来源 8） |
+| ops 层绑定 attention 后端 | ops/indexer_kpool_mla.py 第 78–84 行；attention/indexer_kpool_mla_v1.py 第 521–545 行（来源 10、11） |
+| 草稿候选生成与采样、验证的分工 | spec_decode/draft_proposer.py 第 1–16 行；worker/model_runner_v1.py 第 2585–2607 行按是否有草稿元数据选择 sampler 或 rejection_sampler（来源 13、12） |
 
 待核：实际部署环境中安装包是否与这些 Git 快照一致，仍需镜像内的提交和文件证据；本页只核对源码快照，不提供硬件运行结果。
+
+固定 GLM Worker 会直接返回普通输出、异步输出或 None；中间张量则要求不是 external_launcher 且不是最后一个 PP rank，再发给下一段。没有连接器输出时返回 None；连接器的两种完成集合均空时返回共享空输出，否则复制空输出并携带连接器信息。异步输出的 get_output 会等待就绪且只能调用一次，不能把“拿到异步对象”当成“设备已完成”。[C3][C15]
+
+固定 GLM 的平台配置更新遇到已指定其他设备，或尚无 model_config 时会提前返回。阅读该函数时，应先判断是否经过这两道条件，不能把函数里所有改写都当作每次启动必然发生。[C2]
+
+- 来源 17：vllm@0fc695fc，vllm/v1/engine/core.py，L450–L463。

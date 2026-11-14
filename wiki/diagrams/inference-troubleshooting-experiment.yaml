@@ -1,0 +1,33 @@
+layout: figure
+id: inference-troubleshooting-experiment
+caption: 同一响应流按相同时序重放（示意）。小格代表同一请求 R 的首个内容片段：直连能收到，经原代理配置被积压，修正缓冲后恢复逐段交付；恢复旧配置又积压，才支持本例的缓冲判断。片段编号是观察标注，不是假定接口字段。
+size: [820, 520]
+frames:
+  - { at: [20, 40], size: [780, 110], label: 对照 1：直连，片段能够到达 }
+  - { at: [20, 205], size: [780, 110], label: 对照 2：经过原代理，片段停在代理内 }
+  - { at: [20, 370], size: [780, 110], label: 对照 3：只修正代理缓冲，客户端恢复逐段接收 }
+  - { at: [300, 235], size: [210, 65], label: 代理已收到 }
+  - { at: [300, 400], size: [210, 65], label: 代理及时转发 }
+grids:
+  - { at: [65, 85], rows: 1, cols: 1, cell: [130, 35], tone: token, style: solid, cells: [{ at: [0, 0], text: 'R / 片段 1' }] }
+  - { at: [630, 85], rows: 1, cols: 1, cell: [130, 35], tone: token, style: solid, cells: [{ at: [0, 0], text: 'R / 片段 1' }] }
+  - { at: [65, 250], rows: 1, cols: 1, cell: [130, 35], tone: token, style: solid, cells: [{ at: [0, 0], text: 'R / 片段 1' }] }
+  - { at: [340, 250], rows: 1, cols: 1, cell: [130, 35], tone: token, style: solid, cells: [{ at: [0, 0], text: 'R / 片段 1' }] }
+  - { at: [630, 250], rows: 1, cols: 1, cell: [130, 35], tone: token, style: empty, cells: [{ at: [0, 0], text: '还没收到', style: ghost }] }
+  - { at: [65, 415], rows: 1, cols: 1, cell: [130, 35], tone: token, style: solid, cells: [{ at: [0, 0], text: 'R / 片段 1' }] }
+  - { at: [340, 415], rows: 1, cols: 1, cell: [130, 35], tone: token, style: faded, cells: [{ at: [0, 0], text: 'R / 片段 1' }] }
+  - { at: [630, 415], rows: 1, cols: 1, cell: [130, 35], tone: token, style: solid, cells: [{ at: [0, 0], text: 'R / 片段 1' }] }
+links:
+  - { from: [205, 102], to: [620, 102], tone: token }
+  - { from: [205, 267], to: [330, 267], tone: token }
+  - { from: [205, 432], to: [330, 432], tone: token }
+  - { from: [480, 432], to: [620, 432], tone: token }
+texts:
+  - { at: [130, 72], text: 重放源, anchor: middle, size: 13 }
+  - { at: [695, 72], text: 客户端, anchor: middle, size: 13 }
+  - { at: [130, 237], text: 1.0 秒发出, anchor: middle, size: 13 }
+  - { at: [695, 237], text: 30 秒超时, anchor: middle, size: 13, tone: danger }
+  - { at: [560, 278], text: 未转发, anchor: middle, size: 13, tone: danger }
+  - { at: [130, 402], text: 相同响应与时序, anchor: middle, size: 13 }
+  - { at: [695, 402], text: 客户端, anchor: middle, size: 13 }
+  - { at: [410, 507], text: 再恢复原配置：再次积压；最后用真实请求复测完整响应和错误处理, anchor: middle, size: 14 }

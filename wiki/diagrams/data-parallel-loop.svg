@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 790" width="900" height="790" role="img" aria-label="一个 DP 组的 EngineCore 每转一圈做什么。本地没算到东西、而全局还在运行时，它自己决定跑一次 dummy batch；每张卡按一条 decode 请求的形状准备 4 个 token，前向前照常和对面对齐宽度。每 32 圈两组交换一次「还有没有活」，都说没有才一起暂停，等 DP coordinator 广播唤醒消息再一起醒来。只有 MoE 模型的 DP 组走这条循环。">
-  <title>一个 DP 组的 EngineCore 每转一圈做什么。本地没算到东西、而全局还在运行时，它自己决定跑一次 dummy batch；每张卡按一条 decode 请求的形状准备 4 个 token，前向前照常和对面对齐宽度。每 32 圈两组交换一次「还有没有活」，都说没有才一起暂停，等 DP coordinator 广播唤醒消息再一起醒来。只有 MoE 模型的 DP 组走这条循环。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 790" width="900" height="790" role="img" aria-label="固定旧 GLM 部署中，一个 MoE DP 组的 EngineCore 每转一圈做什么。本地没执行请求、但本地仍有未完成请求或全局还在运行时，执行 dummy batch；本地起点为 4 个 token，是否补到其他组宽度按图模式及补齐条件决定。每 32 圈检查请求与暂停共识，都无活且没有待达成共识时结束这一波。rc2 默认间隔为 16 且第 1 步也检查，不能套用图中旧值；dummy 的 attention 等分支可能简化，非同宽真实请求的耗时承诺。">
+  <title>固定旧 GLM 部署中，一个 MoE DP 组的 EngineCore 每转一圈做什么。本地没执行请求、但本地仍有未完成请求或全局还在运行时，执行 dummy batch；本地起点为 4 个 token，是否补到其他组宽度按图模式及补齐条件决定。每 32 圈检查请求与暂停共识，都无活且没有待达成共识时结束这一波。rc2 默认间隔为 16 且第 1 步也检查，不能套用图中旧值；dummy 的 attention 等分支可能简化，非同宽真实请求的耗时承诺。</title>
   <defs><marker id="data-parallel-loop-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
   <path d="M450 90 L450 120" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#data-parallel-loop-ah-ink)"/>
   <path d="M450 170 L450 200" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#data-parallel-loop-ah-ink)"/>
@@ -28,15 +28,15 @@
   <text x="115" y="317" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">空转，不进前向</text>
   <rect x="250" y="380" width="400" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="450" y="404" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">跑一次 dummy batch</text>
-  <text x="450" y="423" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每张卡本地准备 4 个 token，对齐后按对面宽度跑</text>
+  <text x="450" y="423" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本地准备 4 个 token，按执行条件补齐</text>
   <rect x="250" y="476" width="400" height="56" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="450" y="500" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">第 32、64、96……圈：一次 All-Reduce</text>
   <text x="450" y="519" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">两组交换「本地还有没有没做完的请求」</text>
   <rect x="250" y="572" width="400" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="599" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">两组都没有活了？</text>
+  <text x="450" y="599" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">无活且无待达成的暂停共识？</text>
   <rect x="250" y="656" width="400" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="680" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">两组一起暂停，wave 加 1</text>
-  <text x="450" y="699" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">新请求到来时由 DP coordinator 叫醒</text>
+  <text x="450" y="680" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">两组结束本波，wave 加 1</text>
+  <text x="450" y="699" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">自然空闲可唤醒；运维暂停需显式恢复</text>
   <text x="450" y="18" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">一个 DP 组的引擎 · 每转一圈</text>
   <text x="462" y="268" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
   <text x="706" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">是</text>

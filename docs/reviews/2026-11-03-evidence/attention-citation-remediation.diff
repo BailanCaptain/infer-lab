@@ -1,0 +1,169 @@
+--- before/wiki\concepts\attention-backend-family.md
++++ after/wiki\concepts\attention-backend-family.md
+@@ -35,8 +35,8 @@
+   - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2072-L2105'
+   - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L216-L227'
+   - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L181-L196'
+-  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L296-L310'
+-  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L352-L368'
++  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L261-L310'
++  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L312-L368'
+   - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2018-L2049'
+   - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768'
+   - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L232-L243'
+@@ -54,8 +54,8 @@
+   - 'vllm-ascend@db701c1f:vllm_ascend/attention/fa3_v1.py#L12-L60'
+   - 'vllm-ascend@db701c1f:vllm_ascend/attention/fa3_v1.py#L62-L97'
+   - 'vllm-ascend@db701c1f:vllm_ascend/attention/fa3_v1.py#L99-L145'
+-  - 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841'
+-  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L816-L842'
++  - 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L868'
++  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L816-L869'
+   - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L679-L732'
+   - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L240-L281'
+   - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1357-L1383'
+@@ -84,6 +84,23 @@
+   - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/kda.py#L108-L133'
+   - >-
+     https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/developer_guide/Design_Documents/context_parallel.md#L26-L41
++  - 'vllm-ascend@baa023ad:vllm_ascend/ops/mla.py#L189-L218'
++  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L842-L873'
++  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L98-L127'
++  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L285-L327'
++  - 'vllm-ascend@7d825229:vllm_ascend/ops/mla.py#L39-L70'
++  - 'vllm-ascend@7d825229:vllm_ascend/ops/mla.py#L205-L242'
++  - 'vllm-ascend@7d825229:vllm_ascend/attention/mla_v1.py#L127-L138'
++  - 'vllm-ascend@7d825229:vllm_ascend/utils.py#L868-L898'
++  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1475-L1500'
++  - 'vllm@ced6857a:vllm/model_executor/layers/attention/mla_attention.py#L488-L503'
++  - 'vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L378-L393'
++  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L857-L1063'
++  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L36-L36'
++  - 'vllm-ascend@db701c1f:tests/ut/models/test_glm5_next_indexer_kpool_mla.py#L1650-L1680'
++  - 'vllm-ascend@baa023ad:vllm_ascend/ops/kimi_kda.py#L170-L180'
++  - 'vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L607-L636'
++  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L529-L559'
+ verified: []
+ evidence: C
+ relations:
+@@ -126,7 +143,7 @@
+ file: attention-backend-choice
+ ```
+ 
+-问"这个模型用什么后端"是问错了问题。后端是**按层**挂的：每一层自己报出一个后端类，同一次前向里不同的层可以报出不同的类。GLM 的一次前向就同时走两条分支——**KDA**（Kimi Delta Attention，一种线性注意力：不保存历史位置，把整段历史压进一个固定大小的状态）的层走一条，**稀疏 MLA**（Multi-head Latent Attention 的稀疏版：历史压成一条潜向量按位置存，每个查询只挑其中一部分读）的层走另一条，谁也不经过对方的算子。
++后端是**按层**挂的：每一层报出自己的后端类，同一次前向里不同的层可以报出不同的类。GLM 的一次前向就同时走两条分支——**KDA**（Kimi Delta Attention，一种线性注意力：把历史汇入固定形状的递推状态，不逐位置保留全部 K/V）的层走一条，**稀疏 MLA**（Multi-head Latent Attention 的稀疏版：历史压成潜向量按位置存，每个查询只挑其中一部分读）的层走另一条，谁也不经过对方的算子。
+ 
+ ## 为什么要专门分出这一层，代价是什么
+ 
+@@ -134,7 +151,7 @@
+ 
+ **一是硬件的差异。**同一个数学机制，在不同设备上是不同的算子。设备实现必须原样保留计算语义、因果关系和请求之间的隔离，只换执行方式——所以后端不是一个"速度选项"，它决定结果对不对，不只是快不快。
+ 
+-**二是层与层之间的差异。**[密集注意力](attention-qkv.md)描述打分、归一化与 V 汇合，[稀疏注意力](sparse-attention.md)在此之上限定能访问哪些位置，[KDA](linear-attention.md)干脆不保存历史位置，改用递推状态。三者连"历史要不要随长度增长"都不一样，状态布局自然也对不上：稀疏 MLA 按位置存压缩历史和索引，KDA 只存一份固定大小的矩阵状态和卷积状态。
++**二是层与层之间的差异。**[密集注意力](attention-qkv.md)描述打分、归一化与 V 汇合，[稀疏注意力](sparse-attention.md)在此之上限定能访问哪些位置，[KDA](linear-attention.md)改用递推状态。三者连历史怎样保存都不一样，状态布局自然也对不上：稀疏 MLA 按位置存压缩历史和索引，KDA 每份递推状态的矩阵和卷积状态大小固定；运行器还可按缓存策略与投机验证需求保留多份状态，不能把单份状态大小直接当成总分配量。
+ 
+ 代价有两条。
+ 
+@@ -161,7 +178,7 @@
+ 
+ 稀疏 MLA 这边，每个查询最多读 2051 个位置（2048 个选中位置加 0–3 个尾部位置，推导见[稀疏注意力](sparse-attention.md)）。按这个上界，一层一卡的 QK 与 PV 合计约 **33.6 MFLOP / token**，主干 11 层约 **370 MFLOP / token**；这是不含 softmax、投影和 kernel 补齐的静态上界。
+ 
+-KDA 这边没有"读几个位置"这回事：它读写的是每个头一份的矩阵状态和一份卷积状态，大小固定，不随历史变长。45 层里有 34 层因此不随长度增长——这正是这个模型敢把上下文开到十万量级的原因，细节见 [KDA 线性注意力](linear-attention.md)。
++KDA 这边不逐位置重读全部历史：一次递推读写每个头的矩阵状态与卷积状态，单份状态大小不随历史变长。主干 34 层采用这种机制，减少了逐位置历史存储和访问；为缓存与回退保留的状态份数另计。这有助于长上下文处理，具体内存和执行代价见 [KDA 线性注意力](linear-attention.md)，不能单凭层数推出某个长度必然可部署。
+ 
+ ### Runner 怎样把层归拢成组
+ 
+@@ -185,7 +202,7 @@
+ 
+ ### MTP 的第 45 层也走稀疏 MLA
+ 
+-配置里的层类型表只有 45 项，MTP 层的索引落在表外，判断函数因此返回假，这一层走的是 MLA 分支。它带自己的 indexer 和自己的三份缓存，也确实进了缓存组。**所以真正存 KV 的是 12 层，不是 11 层。**
++固定模型配置里的层类型表只有 45 项，MTP 层的索引落在表外；在这份配置下它被判为非 KDA，走 MLA 分支。它带自己的 indexer 和自己的三份缓存，也进缓存组。**所以按位置存压缩历史的是 12 层，不是 11 层。** 这不是给任意自定义层类型判断方法规定行为。
+ 
+ ### KDA 的昇腾实现是按上游版本注册的
+ 
+@@ -201,15 +218,15 @@
+ 
+ 固定版本里的 FA3 适配层调用外部包提供的注意力算子，官方文档强调的用途是训练与推理使用一致的实现。适配层接收 query、分页 K/V、有效历史长度、query 的累计长度和页表，调用外部算子后返回注意力输出。它声明的缓存形状是 `[2, num_blocks, block_size, num_kv_heads, head_size]`，最前一维区分 K 和 V，声明支持的 kernel block size 是 128——这是该后端自己的布局约束，推不出全库通用的缓存页大小。
+ 
+-混合批经过适配层时，实现按元数据把 query 和序列信息切成两段分别调用，再按原来的顺序拼接：普通 decode 传 `causal=False`（合法历史范围已经由长度和缓存布局界定），prefill 传 `causal=True`。
+-
+-这条路径是密集 MHA/GQA 的扩展阅读。GLM 主线的稀疏 MLA 切不过来——平台的选择函数在遇到 MLA 或稀疏组合时会直接抛错，具体条件见下面的"会报什么错"。
++混合批经过适配层时，实现按元数据把 query 和序列信息切成两段分别调用，再按原来的顺序拼接：decode 分支传 `causal=False`，prefill 传 `causal=True`。对每请求只有一个查询 token 的普通 decode，合法历史范围可由有效长度界定；多查询 token 的投机 decode 还需要逐查询因果约束，不能从这个固定 false 推出它同样适用。
++
++这条路径是密集 MHA/GQA 的扩展阅读。固定版本通过平台选路、显式要求 FA3 且启用批不变时，MLA 或稀疏组合会被校验拒绝；旧 GLM 的显式后端路径则直接返回自身实现。具体条件见下面的"会报什么错"。
+ 
+ ## 常见误解
+ 
+ **"一个模型用一个后端。"** 后端按层挂。GLM 的一次前向里，34 层报 GDN 后端，12 层报稀疏 MLA 后端，另外还有只管缓存的两种后端，Runner 因此建出多个注意力组。
+ 
+-**"看平台的后端选择表就知道 GLM 走哪个后端。"** 那张表按"是不是 MLA、是不是稀疏、是不是压缩"三个布尔量挑后端，服务的是通过上游通用路径建层的模型。GLM 的层自己返回后端类，根本不经过这张表。想读懂实际路径，要从模型层实际构造的对象出发，再查注册替换、后端的元数据构建，最后才是算子调用。
++**"看平台的后端选择表就知道 GLM 走哪个后端。"** 旧部署的那张表按"是不是 MLA、是不是稀疏、是不是压缩"三个布尔量挑后端；旧 GLM 缓存层直接返回自身后端类，绕过这张表。main 与 rc2 的 GLM 已改接可替换 MLA 包装层，实际 attention 后端会经过通用选择。想读懂路径，要从对应版本模型构造的对象出发，再查注册替换、后端元数据与算子调用。
+ 
+ **"`indexer_kpool_mla_v1.py` 里那段 PyTorch 稀疏注意力就是推理时跑的东西。"** 那段参考实现没有生产调用点，只有单元测试调用它；它里面 query 按 16 个一块的分块常量，是单测参考实现的写法，不能用来描述 NPU 推理的 tiling。推理实际走的是同文件里的重写方法，再进设备算子。
+ 
+@@ -217,18 +234,18 @@
+ 
+ **"FA3 更快，应该切过去。"** 固定版本只在显式选中并且开了批不变（batch invariant：同一条输入不论和谁拼在一批里，结果都逐位相同）时才尝试 FA3，而 MLA 与稀疏组合会被直接拒绝。GLM 的稀疏 MLA 层不在它的适用范围里。
+ 
+-**"KDA 层也要占 KV cache。"** KDA 不保存历史位置，只占每条请求固定大小的状态。
++**"KDA 没有按位置存 K/V，所以不占缓存。"** KDA 仍要存递推状态和卷积状态，并可能保留状态快照；只是每份状态的形状固定，不是每个历史 token 都新增一行 K/V。
+ 
+ ## 对照源码
+ 
+ ### 怎么开
+ 
+-GLM 这边没有开关：层类型由模型配置里的层类型表决定，后端由层自己返回，不经过任何环境变量。上游能拨的只有 `AttentionConfig.backend`（`"auto"` 或不填表示自动选择），它最终传给平台的 `get_attn_backend_cls`；只有走通用路径建层的模型才受它影响。FA3 那条分支还要额外满足批不变路径已启用（由 `VLLM_BATCH_INVARIANT` 决定）。
++旧 GLM 部署先按配置的层类型判断装配对象，缓存层直接返回后端类；通用 attention backend 参数不能把这些层统一换成另一种机制。上游通用路径使用 `AttentionConfig.backend`（`"auto"` 或不填表示自动选择），最终传给平台的 `get_attn_backend_cls`。旧版 FA3 还要求显式选择 `FLASH_ATTN` 且 `VLLM_BATCH_INVARIANT` 已启用。main 与 rc2 的 GLM 包装层及 FA3 条件另见版本差异。
+ 
+ ### 会报什么错
+ 
+-- 请求 FA3 但模型是 MLA 或稀疏组合：`FA3 backend does not support MLA and SFA.`
+-- 请求 FA3 但 `flash_attn_npu_v3` 没装，或装了却没有 `flash_attn_with_kvcache`：两句分别的 `ValueError`。
++- 旧版经平台显式请求 FA3 且已启用批不变，但模型是 MLA 或稀疏组合：`FA3 backend does not support MLA and SFA.`
++- 通过前述检查后，`flash_attn_npu_v3` 没装，或装了却没有 `flash_attn_with_kvcache`：两句分别的 `ValueError`。
+ - 未启用批不变就选 FA3：不报错，打印一条"不会启用 FA3"的日志，退回默认的后端选择流程。
+ - 稀疏 MLA 的设备算子只认 `sparse_mode=3`，传别的值抛 `ValueError`；传进来的 latent、RoPE 两份缓存视图维度对不上，或者拿不到打包好的 MLA 缓存，也各自抛错。
+ - KDA 的 prefill 在上下文并行组大于 1 时抛 `NotImplementedError`。
+@@ -249,7 +266,9 @@
+ 
+ **v0.30.0rc2 继续按 attention 形式与硬件选择后端，同时把 PCP/DCP 作为独立选择条件。** DCP 的 GQA、MLA、SFA 实现通过公共 mixin 复用普通 V1 后端，只覆盖通信和缓存布局不同的阶段；读专用后端时还须向上追父类。MRV2 PCP 有单独的后端表，不能把 MRV1 的选择结果套过去。
+ 
+-GLM 的稀疏层通过 models/glm5next/attention.py 返回 Glm5NextKPoolIndexerBackend；它对 NoPE 查询和硬件类别作检查，并直接拒绝 PCP/DCP。完成池与尾状态由不同的 cache-only backend 管理。KDA 则由模型自带实现接入 GatedDeltaNetAttention。这里是“模型层、索引执行、缓存 metadata 后端”三种职责，后端名字变化不等于注意力数学定义变化。
++rc2 的 GLM 稀疏层把三种职责分开：模型的 indexer 工厂返回 Glm5NextKPoolIndexerBackend，包装层据此创建索引执行模块；这个模块检查 NoPE 与硬件类别，并拒绝 PCP/DCP。真正计算 attention 的 MLA 包装层被注册为 Ascend 实现，内部构造继承上游的 AscendMLAAttention，再由通用选择器选中 SFA 后端。完成池与尾状态则由各自的 cache-only backend 管理。KDA 另由模型自带实现接入 GatedDeltaNetAttention。因此，名字里的“Backend”既可能指索引计算，也可能指 attention 或缓存管理，须看它的构造者和使用者。
++
++rc2 的 FA3 条件与下表 main 一样：未开 PCP，并且 RL 总开关与训推一致开关都为真；随后仍检查密集 attention 类型及外部包。通用 PCP 后端的存在不绕过 GLM indexer 自身的限制。
+ 
+ 上游的后端选择入口（`get_attn_backend`、`AttentionConfig.backend`）按 `vllm@0fc695fc` 读。执行侧按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26 列是 2ed6cbba，main 列是 baa023ad。**本页的 GLM 算例读的是本部署专用镜像 db701c1f，它是另一个 orphan commit，不算进 v0.23 列：该镜像包含 GLM 5.3 模型代码，2c59ff10 与 2ed6cbba 上都没有 Python 实现。**
+ 
+@@ -257,10 +276,10 @@
+ |---|---|---|---|
+ | GLM 5.3 的模型代码 | 没有 | 没有（只有 Kimi KDA 的算子与单测） | 有，在 `vllm_ascend/models/glm5next/` |
+ | KDA 层报出的后端 | 没有这条路径 | 昇腾 Kimi KDA 实现无条件注册，不再挂版本分支 | GLM 的 KDA 层直接返回 GDN 后端；`ops/kimi_kda.py` 里的类改名成 `AscendKimiK3DeltaAttention` |
+-| 稀疏 MLA 层报出的后端 | 没有这条路径 | 没有这条路径 | 不再是模型自带的后端类，改用上游的 MLA 包装层，后端回到平台表里的 `AscendSFABackend` |
++| 稀疏 MLA 层报出的后端 | 没有这条路径 | 没有这条路径 | 可替换 MLA 包装层被注册为 Ascend 实现，内部构造上游 `MLAAttention`，通用选择最终返回 `AscendSFABackend` |
+ | 尾状态缓存后端的名字 | 没有这条路径 | 没有这条路径 | `AscendIndexerKPoolTailBackend`（镜像里叫 `AscendIndexerKPoolStateBackend`） |
+ | 平台选择表的四个键 | MLA / 密集 / 稀疏 MLA / 压缩 MLA，四项一致 | 一致 | 一致，但 310P 分支换成按硬件画像判断，另加一张 PCP 专用表 |
+-| FA3 什么时候试 | 显式选 `FLASH_ATTN` 且批不变已启用 | 同 v0.23 | 不再看显式选择，改成没开 PCP 且 RL 配置里的训推一致开关为真 |
++| FA3 什么时候试 | 显式选 `FLASH_ATTN` 且批不变已启用 | 同 v0.23 | 不再看显式选择，改成没开 PCP，且 RL 总开关与训推一致开关都为真 |
+ 
+ ### 源码位置
+ 
+@@ -269,7 +288,7 @@
+ | 层类型分支：KDA 还是 MLA | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2072-L2105`；判断函数 `#L216-L227` |
+ | 尾状态、K 池两个缓存后端的延迟导入 | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L181-L196` |
+ | 主 MLA 后端由层内部的缓存层报出 | `vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L39-L45`、`#L74-L82`、`#L136-L137` |
+-| 两个只管缓存的层各自报出的后端与规格 | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L296-L310`、`#L352-L368` |
++| 两个只管缓存的层的注册、后端与规格 | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L261-L310`、`#L312-L368` |
+ | 稀疏 MLA 层构造的注意力对象 | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2018-L2049` |
+ | KDA 的昇腾实现按上游版本注册 | `vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768` |
+ | KDA 层报出 GDN 后端 | `vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L232-L243` |
+@@ -288,6 +307,8 @@
+ 
+ **证据索引。** 层类型分支、MTP 层落到 MLA、两个缓存后端的延迟导入、两个缓存层与稀疏 MLA 层构造的对象见 [C1]–[C6]；主 MLA 后端由层内部的缓存层赋值并返回，见 [C37]–[C39]；KDA 的注册前提、它报出的后端以及 prefill / decode 两条算子分支（含拒绝 PCP）见 [C7]–[C11]；推理实际走的稀疏路径、设备算子与父类调用点见 [C12]–[C14]；Runner 的分组键与元数据构建器见 [C15][C16]；平台选择表与 FA3 的三种拒绝见 [C17][C18]；FA3 适配层的缓存形状、kernel 块与混合批切分见 [C19]–[C21]；三个快照的差异见 [C22]–[C29]；上游选择入口与配置字段见 [C30][C31]；FA3 的 beta 状态、图模式建议与训推一致用途见 [S32]–[S34]；FlashAttention 与 FlashAttention-3 的机制说明见 [S35][S36]。稀疏 MLA 的 2051 个位置取自主线底稿的逐层前向一节，推导在[稀疏注意力](sparse-attention.md)与 [MLA](mla.md) [D]；33.6 MFLOP 与 370 MFLOP 是按这个位置上界算出的静态量，不含 softmax、投影与 kernel 补齐 [D]。
+ 
++新版路径的补充映射：来源 41–45 区分 rc2 平台选择、CP 继承、GLM 索引执行与 KDA 层；45 与 42 是同一固定文档。来源 46–47、56 支持 main 的包装注册、上游 MLA 构造和通用选择；48–53、55 支持 rc2 的 indexer 工厂、包装构造、Ascend MLA 子类及上游选择；54 是 rc2 FA3 的双开关条件。来源 57–59 对照参考实现、默认 query 分块 16 与单测调用，生产路径由来源 12–14 支持；60 说明 main 中 Kimi 类名，61–62 说明状态份数与投机状态的消费者。来源 32–34 的同份官方指南在首段与限制段对包是否开源的说法冲突，本页仅采用其接口、功能和启用条件，安装时仍须检查实际包与入口是否存在。
++
+ **待核：**
+ 
+ - 设备算子的实际 tiling 与 HBM 流量没有实测，本页的 MFLOP 与位置数都是静态上界。

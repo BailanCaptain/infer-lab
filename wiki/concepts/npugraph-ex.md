@@ -2,74 +2,189 @@
 id: npugraph-ex
 title: 编译图融合：把相邻两步合成一个算子，再分档复用执行
 type: feature
-summary: 从中间张量的一写一读讲清编译期融合，列出固定源码里的四条融合规则、它们各自的条件，并区分 npugraph_ex 后端、static kernel 与分档捕获在 GLM 双机 MTP 验证那一步各自管什么。
+summary: >-
+  从中间张量的一写一读讲清编译期融合，列出固定源码里的四条融合规则、它们各自的条件，并区分 npugraph_ex 后端、static kernel
+  与分档捕获在 GLM 双机 MTP 验证那一步各自管什么。
+  同时说明编译缓存怎样复用产物，以及视觉编码器编译与视觉图捕获的区别。
 aliases:
-- 编译期图融合
-- 图融合 pass
-- GraphFusionPassManager
-- ascend_compilation_config
-- enable_npugraph_ex
-- enable_static_kernel
-- enable_super_kernel
-- static kernel
-- super kernel
-- fuse_qknorm_rope
-- fuse_norm_quant
-- fuse_allreduce_rms
-- fuse_muls_add
+  - 编译期图融合
+  - 图融合 pass
+  - GraphFusionPassManager
+  - ascend_compilation_config
+  - enable_npugraph_ex
+  - enable_static_kernel
+  - enable_super_kernel
+  - static kernel
+  - super kernel
+  - fuse_qknorm_rope
+  - fuse_norm_quant
+  - fuse_allreduce_rms
+  - fuse_muls_add
+  - 归一化量化融合
+  - QK归一化旋转位置融合
+  - 乘加融合
+  - Ascend编译配置
+  - additional_config.ascend_compilation_config
+  - ascend_compilation_config.fuse_muls_add
+  - ascend_compilation_config.fuse_norm_quant
+  - ascend_compilation_config.fuse_qknorm_rope
+  - compile_mm_encoder
+  - 编译缓存
+  - TORCH_TRACE
+  - tlparse
 chapters:
-- '16'
+  - '16'
 order: 50
 sources:
-- vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L278-L301
-- vllm-ascend@db701c1f:vllm_ascend/compilation/passes/base_pattern.py#L41-L63
-- vllm-ascend@db701c1f:vllm_ascend/compilation/graph_fusion_pass_manager.py#L36-L79
-- vllm-ascend@db701c1f:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L192-L230
-- vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L71-L146
-- vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L149-L223
-- vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L586-L641
-- vllm-ascend@db701c1f:vllm_ascend/platform.py#L589-L645
-- vllm-ascend@db701c1f:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L49-L91
-- vllm-ascend@db701c1f:vllm_ascend/compilation/passes/muls_add_pass.py#L29-L105
-- vllm-ascend@db701c1f:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L134-L159
-- vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L470-L496
-- vllm-ascend@db701c1f:vllm_ascend/platform.py#L158-L173
-- vllm@0fc695fc:vllm/compilation/backends.py#L940-L966
-- vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L320-L324
-- vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2078-L2092
-- vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L1-L40
-- vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L607-L659
-- vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L599-L661
-- vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L103-L160
-- vllm-ascend@baa023ad:vllm_ascend/compilation/graph_fusion_pass_manager.py#L50-L73
-- https://github.com/vllm-project/vllm-ascend/blob/db701c1f/docs/source/user_guide/feature_guide/graph_mode.md
-- https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
-verified: []
+  - 'vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L278-L301'
+  - 'vllm-ascend@db701c1f:vllm_ascend/compilation/passes/base_pattern.py#L41-L63'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/compilation/graph_fusion_pass_manager.py#L36-L79
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L192-L230
+  - 'vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L71-L146'
+  - 'vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L149-L223'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L586-L641'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L589-L645'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L49-L91
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/compilation/passes/muls_add_pass.py#L29-L105
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L32-L159
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L470-L496'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L158-L173'
+  - 'vllm@0fc695fc:vllm/compilation/backends.py#L940-L966'
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L320-L324
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2078-L2092'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L28-L88'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L607-L659'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L599-L661'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L103-L160'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/compilation/graph_fusion_pass_manager.py#L50-L73
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/db701c1f/docs/source/user_guide/feature_guide/graph_mode.md
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
+  - >-
+    raw:sha256-47f830dd90bb5d33379d0c67407ff01fee36bfbbcdd6d9c9b0e99f5d7a5bd3a7.md#L1-L930
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L28-L29
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L27-L43'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L657-L738
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L79
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L74
+  - 'vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L28-L50'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L365-L393
+  - 'vllm@0fc695fc:vllm/config/compilation.py#L106-L122'
+  - 'vllm@568afb3a:vllm/config/compilation.py#L106-L122'
+  - 'vllm@84030bbe:vllm/config/compilation.py#L106-L122'
+  - 'vllm@0fc695fc:vllm/entrypoints/llm.py#L305-L344'
+  - 'vllm@568afb3a:vllm/entrypoints/llm.py#L294-L333'
+  - 'vllm@84030bbe:vllm/entrypoints/llm.py#L298-L338'
+  - >-
+    raw:sha256-9e54d59f6deb57e8785aab24c4142fa6daf432c67a81c0cc2fdba221f5407ea8.md#L1-L1351
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L114-L171'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73
+  - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1302-L1343'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L192-L293
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L333-L378
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/graph_mode.md
+  - 'vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L39-L68'
+  - 'vllm@0fc695fc:vllm/compilation/backends.py#L845-L849'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/triton/muls_add.py#L8-L57'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L303-L309'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2189-L2241'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L2235-L2257'
+  - 'vllm@568afb3a:vllm/engine/arg_utils.py#L2387-L2401'
+  - 'vllm@84030bbe:vllm/engine/arg_utils.py#L2644-L2658'
+  - 'vllm-ascend@baa023ad:tests/ut/test_ascend_config.py#L937-L956'
+  - 'vllm@0fc695fc:vllm/config/compilation.py#L527-L539'
+  - 'vllm@568afb3a:vllm/config/compilation.py#L535-L547'
+  - 'vllm@ced6857a:vllm/config/compilation.py#L542-L554'
+  - 'vllm@84030bbe:vllm/config/compilation.py#L535-L547'
+  - 'vllm@0fc695fc:vllm/compilation/decorators.py#L385-L411'
+  - 'vllm@568afb3a:vllm/compilation/decorators.py#L385-L411'
+  - 'vllm@ced6857a:vllm/compilation/decorators.py#L387-L413'
+  - 'vllm@84030bbe:vllm/compilation/decorators.py#L387-L413'
+  - 'vllm@0fc695fc:vllm/compilation/piecewise_backend.py#L133-L154'
+  - 'vllm@568afb3a:vllm/compilation/piecewise_backend.py#L133-L154'
+  - 'vllm@ced6857a:vllm/compilation/piecewise_backend.py#L133-L154'
+  - 'vllm@84030bbe:vllm/compilation/piecewise_backend.py#L133-L154'
+  - 'vllm@0fc695fc:vllm/model_executor/models/qwen2_5_vl.py#L460-L473'
+  - 'vllm@568afb3a:vllm/model_executor/models/qwen2_5_vl.py#L458-L471'
+  - 'vllm@ced6857a:vllm/model_executor/models/qwen2_5_vl.py#L462-L475'
+  - 'vllm@84030bbe:vllm/model_executor/models/qwen2_5_vl.py#L461-L474'
+  - 'vllm@0fc695fc:vllm/model_executor/models/qwen3_vl.py#L411-L416'
+  - 'vllm@568afb3a:vllm/model_executor/models/qwen3_vl.py#L410-L415'
+  - 'vllm@ced6857a:vllm/model_executor/models/qwen3_vl.py#L437-L451'
+  - 'vllm@84030bbe:vllm/model_executor/models/qwen3_vl.py#L437-L451'
+  - 'vllm@0fc695fc:vllm/config/compilation.py#L1034-L1081'
+  - 'vllm@0fc695fc:vllm/compilation/backends.py#L96-L120'
+  - 'vllm@0fc695fc:vllm/compilation/backends.py#L1026-L1095'
+  - 'vllm@568afb3a:vllm/compilation/backends.py#L1031-L1100'
+  - 'vllm@ced6857a:vllm/compilation/backends.py#L1031-L1100'
+  - 'vllm@84030bbe:vllm/compilation/backends.py#L1031-L1100'
+  - 'vllm@0fc695fc:vllm/compilation/compiler_interface.py#L193-L209'
+  - 'vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L236-L258'
+  - 'vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L303-L368'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L549-L556'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1188-L1195'
+  - 'vllm@0fc695fc:docs/design/debug_vllm_compile.md#L1-L361'
+  - 'vllm@0fc695fc:docs/design/torch_compile.md#L1-L261'
+  - 'vllm@0fc695fc:docs/design/torch_compile_multimodal.md#L1-L107'
+  - 'vllm@0fc695fc:docs/design/fusions.md#L1-L397'
+  - https://github.com/meta-pytorch/tlparse/blob/98b8782b90f076f3d77a4a414316e3c8d0d127d4/README.md
+  - 'vllm@0fc695fc:vllm/compilation/decorators.py#L506-L515'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L176-L181'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
 evidence: C
 relations:
-- to: ops-and-kernels
-  kind: builds-on
-  note: 先分清算子接口和真正执行的 kernel，再看融合换掉了什么
-- to: graph-mode-layer
-  kind: builds-on
-  note: 编译改「算什么」，捕获回放改「怎么提交」，两层的先后在那页
-- to: acl-graph
-  kind: builds-on
-  note: 分档捕获与回放条件的唯一出处
-- to: concurrent-requests
-  kind: builds-on
-  note: B4 的图尺寸补齐、DP 对齐与空闲组陪跑都在那页算
-- to: mlp-residual-norm
-  kind: builds-on
-  note: 融合规则里最常命中的那一对，先理解残差加与归一化的数据依赖
+  - to: ops-and-kernels
+    kind: builds-on
+    note: 先分清算子接口和真正执行的 kernel，再看融合换掉了什么
+  - to: graph-mode-layer
+    kind: builds-on
+    note: 编译改「算什么」，捕获回放改「怎么提交」，两层的先后在那页
+  - to: acl-graph
+    kind: builds-on
+    note: 分档捕获与回放条件的唯一出处
+  - to: concurrent-requests
+    kind: builds-on
+    note: B4 的图尺寸补齐、DP 对齐与空闲组陪跑都在那页算
+  - to: mlp-residual-norm
+    kind: builds-on
+    note: 融合规则里最常命中的那一对，先理解残差加与归一化的数据依赖
 contradicts: []
-updated: '2026-10-02'
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-47f830dd90bb5d33379d0c67407ff01fee36bfbbcdd6d9c9b0e99f5d7a5bd3a7.md
+  - >-
+    raw/sha256-9e54d59f6deb57e8785aab24c4142fa6daf432c67a81c0cc2fdba221f5407ea8.md
+  - >-
+    raw/sha256-ae08a6168aec51b2a7846665a4e0aa2bc0ff900da2edf4d27d8df7939a1a6db0.md
 ---
 
 ## 两步计算能不能合着做，再反复用？
 
-**编译图融合，是在编译阶段把计算图里符合规则的相邻几步，整段换成一个融合实现，省掉中间结果写出再读回的那趟搬运。** 编译器眼里的「图」，是一个个算子（一次矩阵乘、一次归一化这样的操作）加上它们之间的输入输出依赖；npugraph_ex 是昇腾默认接上的外部编译后端，这类改写由它或本地规则来做。
+**编译图融合，是在编译阶段把计算图里符合规则的相邻几步，整段换成一个融合实现，为减少中间结果写出再读回提供机会。** 具体能省掉哪些读写，取决于融合实现内部怎样存储和传递数据。编译器眼里的「图」，是一个个算子（一次矩阵乘、一次归一化这样的操作）加上它们之间的输入输出依赖；npugraph_ex 是昇腾默认接上的外部编译后端，这类改写由它或本地规则来做。
+
+这会增加启动时识别规则、编译和保存产物的工作；改写后的数值也要按容差验证。能否省回这些成本，取决于后面多少次计算能用上它。
 
 举固定源码里真有的一条：一段计算先把张量 x 的每个数乘上同一个系数，再和另一个张量 y 逐位置相加。分成两步做，第一步算出的那块中间结果得先完整写进设备显存，第二步再整块读回来。换成一个「乘完直接加」的实现，这块中间结果就可以留在算子内部，不必出去一趟。
 
@@ -106,7 +221,7 @@ title: 一个中间张量的一写一读（示意数，不是 GLM 实测访存�
 
 一条融合规则由三部分组成：要找的计算结构（pattern）、找到之后换上的实现（replacement）、以及适用条件。**匹配看的是图里的算子和依赖关系，不是源码里两行挨着写。** 如果中间结果还有别的消费者，替换必须把它们要的数据照样留下。
 
-最容易在量化模型里出现的是「归一化接量化」这一条：图里先是一个带偏置的「残差加 + RMSNorm」算子，紧跟着一个把结果按系数压成 8 位整数的量化算子，这两步被换成一个同时做完的算子。它一次给出两样东西：量化后的整数张量，和要继续往下传的残差。拿一个位置上的两个数走一遍（设 RMSNorm 的权重全是 1、量化系数 s=0.1，s 怎么来见[量化](quantization.md#一个数怎样压下去再还原回来)）：
+最容易在量化模型里出现的是「归一化接量化」这一类。先取其中静态量化的候选：图里先是一个支持偏置输入的「残差加 + RMSNorm」算子，紧跟着一个把结果按系数压成 8 位整数的量化算子，这两步被换成一个同时做完的算子。它一次给出两样东西：量化后的整数张量，和要继续往下传的残差。拿一个位置上的两个数走一遍（偏置不加，设 RMSNorm 的权重全是 1、量化系数 s=0.1，s 怎么来见[量化](quantization.md#一个数怎样压下去再还原回来)）：
 
 ```calc
 title: 归一化接量化融合前后，哪一步的中间结果消失了（示意数）
@@ -121,12 +236,14 @@ RMS = √((4² + 6²) ÷ 2) = √26 ≈ 5.10
 
 | 规则 | 合的是相邻哪两步 | 额外条件 |
 |---|---|---|
-| 归一化接量化 | 带偏置的残差加 + RMSNorm，紧跟按系数量化 | 不是 310P 设备 |
-| Q/K 归一化接 RoPE | Q、K 向量先各自归一化，紧跟加位置信息 | 模型精度是 BF16、能发现上游定义的 Attention 层、每个头的向量长 128 |
-| All-Reduce 接归一化 | 矩阵乘后的 [All-Reduce](collective-communication.md#all-reduce)，紧跟残差加 RMSNorm | 本次编译区间的起点超过 512 个 token |
-| 乘系数接相加 | 整块乘一个系数，紧跟逐位置相加 | 精度是 FP16、BF16 或 FP32，且不是 310P 设备 |
+| 归一化接量化 | 残差加 + RMSNorm，紧跟静态或动态量化；上例只是静态候选 | 不是 310P；模型精度 BF16/FP16；排除含指定 W4A4 动态权重的模型；静态候选另需自定义算子 |
+| Q/K 归一化接 RoPE | Q、K 向量先各自归一化，紧跟加位置信息 | 模型精度 BF16；能发现上游 Attention 层，取首层的头长且必须为 128 |
+| All-Reduce 接归一化 | 未量化矩阵乘后的 [All-Reduce](collective-communication.md#all-reduce)，紧跟残差加 RMSNorm | 本地管理器要求本次编译区间的起点超过 512 个 token；外部后端不能只按此门槛推断 |
+| 乘系数接相加 | 整块乘一个系数，紧跟逐位置相加 | 精度 FP16/BF16/FP32，且不是 310P；只注册模型指定的路由缩放常数，缺省为 1 |
 
 另外开了 sequence parallel 时还会加两条配套规则。四条规则各有自己的开关，关一条不影响其他三条。
+
+归一化里的小常数 ε 用来避免除数为零；上述归一化量化和 Q/K 规则只登记了 ε 为十万分之一、百万分之一的候选。动态量化会根据当前输入求缩放系数，不能把上例固定的 0.1 套进去；固定实现还区分带偏置、不带偏置及 MX 量化候选，各有算子条件。乘加也有类似限制：若模型指定乘 2，规则登记的是乘 2 再相加，图里乘 3 的另一段不会因此自动命中。**这些开关允许编译器尝试替换，不会替模型修改计算定义。**
 
 ## 两条编译路径：规则只注册一次，应用的人不一样
 
@@ -136,7 +253,9 @@ RMS = √((4² + 6²) ÷ 2) = √26 ≈ 5.10
 file: npugraph-ex-flow
 ```
 
-默认开着外部后端时，编译交给 npugraph_ex，由它按登记的替换改图；把这个开关关掉，编译改走上游 inductor，再由昇腾自己的 pass manager（按顺序组织改写规则的管理器）把这批规则应用一遍，并且会按本次编译区间逐条判断适不适用。**所以关掉这个开关不是关掉融合，只是换了应用规则的人。** 外部后端另有本库看不到的实现和版本条件，本地列出四条规则，不等于一共只有四项优化。
+默认开着外部后端时，编译交给 npugraph_ex，由它按登记的替换改图；把这个开关关掉，则由本地 `fusion_pass_compile` 通过 AOTAutograd 取得 FX 计算图，交给昇腾自己的 pass manager（按顺序组织改写规则的管理器）改写并返回。它借用了 Inductor 的匹配工具，实际选择的编译器仍是平台提供的 AscendCompiler。**所以关掉这个开关不是关掉融合，而是切换到本地改图路径。** 后端选择与本地实现的证据在页末源码索引。
+
+两条路径共享候选定义，应用条件却不能完全等同：本地管理器调用每条规则的编译区间检查，外部注册接口收到的是另一项流作用域检查。比如 512 token 门槛写在本地区间检查里，不能直接拿来判定外部后端的结果。外部后端还有本库看不到的实现和版本条件，本地列出四条规则，不等于一共只有四项优化。
 
 在这之前，平台还先决定要不要编译：图模式关掉时，编译模式一起关掉，外部后端也随之关闭；需要分段编译的档位同样不走它；不受支持的档位会退回「不录图」。整趟 decode 图这一档相反——平台会把切分算子的名单清空，让一个编译区间编成一整张图。310P 设备上外部后端和 static kernel 都直接关掉。
 
@@ -150,7 +269,9 @@ file: npugraph-ex-flow
 
 ## static kernel：为选定形状提前编译
 
-**static kernel 是给固定形状提前编译好的算子程序，把一部分运行时准备挪到启动阶段。** 它默认关着，而且必须和外部后端一起开——只开它会在配置阶段直接断言失败。打开后，编译接口从捕获宽度表里筛出一段范围交给后端：下界是每条请求一步占的位置数（1 + 草稿 token 数），上界是最大并发请求数乘这个长度，只有落在这个闭区间里的宽度才送去静态编译，表里没有的宽度不会被补出来。
+**static kernel 是给固定形状提前编译好的算子程序，把一部分运行时准备挪到启动阶段。** 它默认关着，而且必须和外部后端一起开——在没有被硬件检查提前关闭的情况下，只开它会在配置阶段断言失败。打开后，编译接口从捕获宽度表里筛出一段范围交给后端：下界是每条请求一步占的位置数（1 + 草稿 token 数），上界是最大并发请求数乘这个长度，只有落在这个闭区间里的宽度才送去静态编译，表里没有的宽度不会被补出来。
+
+**Super Kernel 合并的是已经编译好的算子二进制。** 2026-11-02 官方指南描述：在 ACL 图捕获期间识别可融合子图，把子 kernel 合成较大的 kernel，并按依赖插入同步，以减少任务下发与调度等待。它依赖 static kernel，后者又依赖 npugraph_ex；不兼容的算子会截断融合范围。这个依赖在本页固定 v0.26 维护分支、main 与 rc2 配置中均有检查；最初的 v0.26.0rc1 tag 和旧 GLM 镜像没有该字段，版本不能只按名称合并，详见 [Super Kernel 版本区别](../params/enable-super-kernel-ce990e186bfa.md)。
 
 用一组独立的示意配置走一遍：捕获宽度表是 2、4、8、16、32，最大并发 4 条请求，草稿数 1。
 
@@ -161,7 +282,40 @@ title: static kernel 的宽度范围怎么筛（示意配置，不是本部署�
 送去静态编译的宽度 = 表里满足 2 ≤ x ≤ 8 的项 = 2、4、8
 ```
 
-草稿数改成 3，范围就变成 4 到 16。它决定的是「哪些形状提前编译」，不是接受了多少草稿，也不是把旧图挪到新形状上用。代价是每多一档就多一份编译产物，而且这条路要跨节点协调：它得先按并行配置推算出本机进程数，建立按节点分组的通信组，再分发安装编译产物。形状稳定、长时间跑的服务才摊得平这笔开销。这条路径还刻意关掉了原地改写优化，避免某些算子回退到 CPU 引起主机与设备之间的拷贝，所以不能按外部后端的一般能力推断它做了原地复用。
+草稿数改成 3，范围就变成 4 到 16。它决定的是「哪些形状提前编译」，不是接受了多少草稿，也不是把旧图挪到新形状上用。更多档位可能增加编译与存储成本，而且这条路要跨节点协调：它得先按并行配置推算出本机进程数，建立按节点分组的通信组，再分发安装编译产物。是否能由后续请求节省的时间摊平，要结合实际编译耗时、缓存复用和请求分布比较。这条路径还刻意关掉了原地改写优化，避免某些算子回退到 CPU 引起主机与设备之间的拷贝，所以不能按外部后端的一般能力推断它做了原地复用。
+
+## 编译过一次，下一次启动能直接用吗？
+
+**编译缓存保存的是可以重新加载的程序产物，不是某条请求的输出，也不是已经填好的 KV cache。** 冷启动先从模型程序取得计算图，再改写、编译并保存；后续启动找到适用的产物，就能省掉相应的重新编译。进程仍要加载模型、准备缓冲和建立自己的图回放资源，缓存命中不能解释为整个服务瞬间启动。
+
+例如同一模型的两次启动，第一次用配置 A 编译，第二次仍用 A，缓存键与产物都匹配时就可以加载；改成配置 B 后，应先看新的键及编译日志。默认键考虑环境、配置、所用编译器和追踪到的源文件内容，再按执行 rank、DP rank 和组件前缀分目录。视觉组件与语言主干有不同前缀，因此同一次启动也会看到多个缓存位置。
+
+| 看到的记录 | 它能解释什么 | 下一步看哪里 |
+|---|---|---|
+| 计算图与变换后程序 | 前端追踪到了哪些操作、在哪里出现形状条件 | 编译追踪记录中的图与约束 |
+| 缓存键与加载记录 | 这次是复用旧产物，还是因为键或文件变化重新编译 | 实际缓存目录、编译器名及命中记录 |
+| 编译或融合成功 | 程序产物已形成，或规则匹配过 | 同一输入的数值及执行记录 |
+| 设备运行记录 | 这轮实际执行了哪些任务、耗时多少 | [性能分析](inference-performance-analysis.md)，并与未采集的基准比较 |
+
+图中间出现一个按输入数值决定的 Python 分支时，前端可能无法把它追成要求的整图；按本轮位置数取模的分支还可能给动态维度附加限制。动态维度的意思是同一段程序可以接受多种长度，并不保证所有 Python 分支都能自动兼容。先查追踪记录里的图中断和形状约束，再决定调整模型实现、动态形状策略或编译范围；改变配置后的结果仍要做数值对照。
+
+## 视觉编码器也能编译吗？
+
+**视觉编码器编译是改写图片编码过程的程序，视觉图捕获是录下可复用的设备任务次序。** 两个开关各管一层：前者可能减少操作之间的边界成本，后者减少重复提交的开销；图片分辨率与帧数变化也让编译范围和捕获容量成为两份不同的约束。视觉图如何按位置预算装批，统一见 [视觉编码器的图捕获](acl-graph.md#图片先过视觉编码器这一步也能录成图吗)。
+
+模型要先给相应组件接上编译入口，开关才有消费者。入口读取与语言主干共享的编译配置，检查组件自己的开关、编译模式与是否应跳过，然后用组件类名隔离缓存。Qwen2.5-VL 的视觉计算块是一个实际例子；它不代表所有视觉模型都已有同样的接入。编译会增加追踪与生成产物的启动成本，是否改善请求时延要看图片处理量和实际执行路径。
+
+编码器的位置数不等于语言主干一次调度的位置预算。因此，固定上游为编码器放宽的是**最后一个编译区间的上界**，前面的区间及最后一段的起点仍保留。用两个区间演一次：
+
+```calc
+title: 视觉组件放宽最后一段编译范围（示意配置）
+原区间 = 1–4、5–8
+视觉编译区间 = 1–4、5–2147483647
+本次 10 个位置 = 进入第二个编译区间
+> 这里的上界是 2³¹−1；它没有分配这么多位置的内存，也没有提高图片或视频输入限制
+```
+
+若只有一个从 1 开始的区间，结果才是从 1 到这个上界。这里的“可选择编译区间”仍要经过模型形状、设备内存和具体后端约束；捕获图的 token 预算与视频帧容量按前面的视觉图页面单独判断。
 
 ## 放到 GLM 双机：MTP 验证那一步用上了哪些
 
@@ -169,18 +323,20 @@ title: static kernel 的宽度范围怎么筛（示意配置，不是本部署�
 
 四条规则在这一档各自的处境不一样：
 
-- **归一化接量化**最有机会命中：W8A8 的线性层在入口按系数量化，昇腾的归一化实现产出的正是规则要找的那个带偏置算子，结构上这一对确实会出现。具体命中几处要看启动日志，本库没有。
-- **Q/K 归一化接 RoPE** 在这个模型上一个候选都注册不出来：这条规则要先从配置里取到上游定义的 Attention 层来读 head 长度，而 GLM 的注意力层是 MLA 那一支和线性注意力那一支，都不是那个类的实例，取不到就直接返回。这是按源码推断的结论，仍需启动日志确认。
-- **All-Reduce 接归一化**要求本次编译区间的起点超过 512 个 token。整齐 decode 的宽度最大 128，全在门槛以下，用不上；只有一次塞进几千个 token 的 prefill 区间才可能。
-- **乘系数接相加**的精度条件满足，命中次数同样只能看日志。
+- **归一化接量化**可以登记候选，但不能从 W8A8 推出主干命中。固定 mHC 主干先调用 `hc_pre`，再对一个输入做普通 RMSNorm；这里没有把 residual 传给 RMSNorm，因此不直接形成上面的「残差加 + RMSNorm → 量化」结构。旧实现中不带残差加的纯 RMSNorm 候选属于 MX 量化，不能套给这组 A2 W8A8。其他模块与外部后端的改写要分别核对（来源 17、27、49）。
+- **Q/K 归一化接 RoPE**先从注册上下文寻找上游定义的 Attention 层，再读取首层头长；没有这种层时直接不登记候选。GLM 主干构造 MLA 和线性注意力分支，并不能凭“模型有归一化和 RoPE”就认定符合这个检查。要判断整个服务是否登记了候选，还须检查最终注册上下文，不能把语言主干的类名推断扩大到视觉塔、草稿和其他模块。
+- **All-Reduce 接归一化**在本地管理器路径要求编译区间起点超过 512。宽度至多 128 的 decode 区间不满足该本地条件；宽度较大的区间也仍要匹配未量化矩阵乘、All-Reduce 和残差加 RMSNorm 的连接。固定部署默认使用外部后端，不能仅凭 128 < 512 就断言这一后端绝不融合，主干的 mHC 与量化边界也仍需检查。
+- **乘系数接相加**的精度条件满足，还须图中的常数等于模型路由缩放系数，命中次数同样只能看日志。
 
 如果把 static kernel 打开：这一档每条请求一步占 4 个位置（1 个已确定的加 3 个草稿），最大并发 32 条，范围就是 4 到 128，而捕获的 7 个宽度正好都落在里面——7 个宽度和 4 的来历见[官方双机上录了哪 7 张图](graph-mode-layer.md#官方双机上录了哪-7-张图)。这里的 4 是一次验证送进去的长度，不代表 4 个 token 都会被接受，更不等于给用户 4 个字：接受几个由[投机解码](speculative-decoding.md)判定，再由[流式输出](streaming-output.md)变成文本增量。
 
 走到 B4，本轮能不能回放还要另外过一遍条件：提示词都算完了、这一步每条请求都按 4 个位置、宽度没超过最大档、两个 DP 组对齐后的模式一致。[五条判据](graph-mode-layer.md#这一轮回放哪一张图五条判据)、[补齐到哪一档](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)和[空闲组为什么还要陪跑](concurrent-requests.md#空闲的-dp-组为什么还要陪跑变体-m)都在那两页算过，本页不重算。要记住的是：这些条件决定本轮用不用图，和融合有没有命中是两套判断。
 
+视觉编译默认关闭，固定命令也没有打开它。GLM 视觉图的支持边界应按 [ACL Graph 的版本表](acl-graph.md#版本差异)判断；Qwen 的编译入口不能用来证明旧 GLM 视觉塔能编译。固定 Ascend 编译器还把 torch_npu 版本及外部后端、static kernel 开关纳入自己的哈希；已有产物的路径缺失时会重新编译。
+
 ## 常见误解
 
-- **「把 enable_npugraph_ex 关掉，融合就没了。」**——规则在两边都登记过，关掉只是把应用规则的人从外部后端换成上游 inductor 加本地 pass manager。真要两层一起关，得强制 eager。
+- **「把 enable_npugraph_ex 关掉，融合就没了。」**——规则在两边都登记过，关掉会切到本地 FX 图改写；强制 eager 才会同时关闭这条编译路径和图捕获回放。模型自己显式调用的融合算子仍是另一层机制。
 - **「配置里写着开，就说明融合生效了。」**——配置打开、候选注册、图里真的匹配上是三个状态。这份源码里 All-Reduce 接归一化那一条的默认值甚至在两处不一致：按字段默认是关，按原始配置字典读默认是开。
 - **「少了两个图节点，就少两次任务下发。」**——节点数和下发次数、访存量不是一回事，要看融合实现自己的访存与排布，再加端到端耗时才能下结论。
 - **「融合和捕获回放是一回事。」**——融合改「算什么」，捕获回放改「怎么提交」。本部署两层都在用。
@@ -194,26 +350,85 @@ title: static kernel 的宽度范围怎么筛（示意配置，不是本部署�
 
 ### 怎么开
 
-- **默认就开着。** 配置入口是 `additional_config` 下的 `ascend_compilation_config`；`enable_npugraph_ex` 默认真，`enable_static_kernel` 默认假 [C7]。官方双机命令两项都没写，所以外部后端开、static kernel 关 [S23]。
-- **规则注册一次，登记两处。** 每条 pattern 构造时既调上游 pattern matcher 的 `register_replacement`，也调外部后端的同名接口并带一个额外检查；同名 pattern 全局只注册一次 [C2]。pass manager 由上游在建编译后端时实例化并配置一遍，与最终走哪条编译路径无关。
+**这是一组启动配置。** `ascend_compilation_config` 是 `additional_config` 内的 JSON 对象，省略或给空对象都会使用各字段默认值；它本身不是布尔总开关。上游负责传递字典，Ascend 再取子对象构造配置（来源 26），整体解析顺序见 [Ascend 配置系统](ascend-config-system.md#怎么开)。这些键不放进 Chat 请求，也不放进上游的 `compilation_config.pass_config`：上游同名 fuse_norm_quant 在三线声明默认 None，属于另一组规则，Ascend 管理器读的是本页默认 true 的子键（来源 32–34）。
+
+上游[融合规则表](https://github.com/vllm-project/vllm/blob/0fc695fc/docs/design/fusions.md)主要列 CUDA/ROCm 的精度、硬件和整图条件。例如上游 All-Reduce + RMSNorm、注意力输出量化和 AsyncTP 分属不同规则，不构成本页 NPU 的支持矩阵。查看配置时先确认实际平台返回哪个管理器；上游的操作语义与实现选择见 [IR 算子入口](ops-and-kernels.md#同一个算子为什么还会出现-ir-优先级)。
+
+| 项目 | 字段、类型与默认（后三项位于子对象内） | 打开后允许做什么 |
+|---|---|---|
+| 容器 | ascend_compilation_config：对象，缺省等效于 {} | 集中配置本页的编译后端与规则，不能写成 true/false |
+| 乘加 | fuse_muls_add：布尔值，true | 为乘路由缩放常数再相加注册候选；不是任意标量融合保证 |
+| 归一化量化 | fuse_norm_quant：布尔值，true | 为满足精度、量化类型和算子条件的归一化接量化注册候选 |
+| Q/K 位置变换 | fuse_qknorm_rope：布尔值，true | 读取 Attention 头信息，为 BF16、头长 128 的结构注册候选 |
+
+**一次只关一条来定位问题。** 例如仅关闭归一化量化融合，将下列片段合入两台机器各自原有启动命令；模型、并行和图模式等参数沿用[固定部署](glm-5-3-flash-two-node.md#部署前提)。其余两条因省略而保持 true：
+
+```bash
+--additional-config '{"ascend_compilation_config":{"fuse_norm_quant":false}}'
+```
+
+若要同时关闭本页三条规则，JSON 完整层级如下。已有 additional-config 时合并到同一个对象，保留其他子配置；权重布局键放在外层，具体取值见 [ND/NZ 的配置](tensor-layout.md#怎么开)。
+
+```json
+{
+  "ascend_compilation_config": {
+    "fuse_muls_add": false,
+    "fuse_norm_quant": false,
+    "fuse_qknorm_rope": false
+  }
+}
+```
+
+Python 的 LLM 将额外关键字传给 EngineArgs，EngineArgs 再把 additional_config 字典送入 VllmConfig；使用 Python 的 False，传入的对象层级不变（来源 35–37、50–52）。这里没有逐请求开关，也没有这三项一一对应的兼容环境变量。关闭三条仅排除这些候选，外部后端的其他改写、GLM 分支的 All-Reduce 规则及捕获回放仍各自受原配置控制。
+
+**启用 static/Super Kernel 的片段。** 支持该能力的版本与硬件上，将以下子对象合入已有 additional-config；图档位还须允许这条编译路径。显式写出三个值，方便比较实验：
+
+```json
+{"ascend_compilation_config":{"enable_npugraph_ex":true,"enable_static_kernel":true,"enable_super_kernel":true}}
+```
+
+只评估 static kernel 时把最后一项设为 false。省略 super 的继承规则见版本表；切换它可能使静态编译缓存重建，启动时间要另计。按 921ccc52 指南，static 的启动编译提示只能证明触发过编译，缓存复用时也可能没有提示；在 op_statistic.csv 查 static_kernel 条目确认执行。Super Kernel 的启用日志只证明优化步骤被调用，应再比较 kernel_details.csv 中的任务、耗时及 Block Dim，确认融合覆盖；采集方法见[性能分析](inference-performance-analysis.md#怎么开)。
+
+- **默认就开着。** `enable_npugraph_ex` 默认真，`enable_static_kernel` 默认假 [C7]。官方双机命令两项都没写，所以外部后端开、static kernel 关 [S23]。
+- **规则注册一次，登记两处。** 每条 pattern 构造时既调上游 pattern matcher 的 `register_replacement`，也调外部后端的同名接口并带一个额外检查；同名 pattern 全局只注册一次 [C2]。pass manager 由上游在建编译后端时实例化并配置一遍，与最终走哪条编译路径无关（来源 14、46）。
 - **谁来应用。** `enable_npugraph_ex` 为真走 `npugraph_ex_compile`，为假走 `fusion_pass_compile`；后者才会从编译配置里取出 pass manager，并按编译区间逐条判断适用性 [C1]。昇腾把这个自定义 pass 的键改成了自己的名字，不是上游那个 inductor 键。
-- **四条规则的开关。** `fuse_norm_quant`、`fuse_qknorm_rope`、`fuse_allreduce_rms`、`fuse_muls_add` 都按原始配置字典读、默认真；310P 上前后两条跳过；`enable_sp` 另加两条 sequence parallel 规则 [C3]。其中 `fuse_allreduce_rms` 作为字段的默认值是假，编译区间切分点那段又按字典默认真，两处不一致 [C12]。
+- **固定 GLM 的四条开关。** 管理器按原始子字典读，缺省均真；310P 跳过归一化量化与乘加，`enable_sp` 另加两条 sequence parallel 规则 [C3]。其中 `fuse_allreduce_rms` 作为字段的默认值是假，编译区间切分点那段又按字典默认真，两处不一致 [C12]。
 - **平台先定要不要编译。** 图模式为 NONE、或档位需要分段编译、或档位不受支持时，`enable_npugraph_ex` 被置假；整趟图这一档会把 `splitting_ops` 清空，让一个区间编成整张图 [C8]。
 - **static kernel 怎么开。** 置真后编译接口把筛出的宽度表写进后端选项；它还要先推算本机进程数并建立按节点分组的通信组，用来协调编译与产物安装 [C5]。
+
+**视觉编译与编译取证的入口。** 下表是启动选项；合并到已有配置中，保留模型、并行和其他编译字段。视觉编译的开关片段是 `--compilation-config '{"compile_mm_encoder":true}'`，其中 true 是 JSON 布尔值。支持范围还须满足版本表中的模型入口和平台条件。
+
+| 项目 | 类型、默认与入口 | 生效位置 |
+|---|---|---|
+| compile_mm_encoder | CompilationConfig 中的 bool，默认 false；CLI 如上，Python 字典用 True | 带对应装饰器门控的视觉组件；NONE、组件忽略或未开启时直接运行 forward；STOCK 模式由上层 runner 负责 |
+| cudagraph_mm_encoder | 同一对象中的独立 bool，默认 false | [视觉图捕获](acl-graph.md#怎么开)，不等于视觉编译开关 |
+| VLLM_DISABLE_COMPILE_CACHE | 环境变量，默认 0；诊断时设 1 | 停用 vLLM 这一层的编译产物缓存；编译仍运行。不能据此断言 PyTorch 或外部后端的所有内部缓存均已停用，首次与复用启动耗时应分别记录 |
+| TORCH_TRACE / tlparse | 前者指定追踪目录，后者将日志解析为 HTML | 看编译图、图中断、各 rank 记录及动态维度约束；它不是设备耗时测量工具 |
+
+取证时给原启动命令加上 TORCH_TRACE 指定目录和 VLLM_LOGGING_LEVEL=DEBUG，服务退出后用 tlparse 解析实际生成的 rank 日志。可用 `tlparse <追踪目录> -o <输出目录> --latest` 查看目录里最新的一份，排查多 rank 差异则分别解析对应文件；尖括号是需要替换的路径。记录实际 backend、缓存目录和形状约束，避免只截取一条“编译完成”。官方的 [tlparse 用法](https://github.com/meta-pytorch/tlparse/blob/98b8782b90f076f3d77a4a414316e3c8d0d127d4/README.md)说明了两种输入方式。
+
+**开关能隔离哪一层要按平台看。** 上游诊断表的 backend=eager 跳过编译器生成优化实现，但保留前端路径；IR 包装开关的职责见算子页。Ascend 的图模式 NONE 会连 compilation.mode 一起改成 NONE；enforce_eager 也同时关闭编译和图。因而这两个操作不能证明故障只在图捕获一层。先看最终配置和实际编译器，再做一次只改变可区分路径的对照。
 
 ### 会报什么错
 
 | 现象 | 看到什么 | 怎么办 |
 |---|---|---|
-| 只开 static kernel、关掉外部后端 | 配置构造阶段断言失败，说明 static kernel 依赖 npugraph_ex [C7] | 两个一起开，或都不开 |
-| 在 310P 上配了这两项 | 两条 warning 之后自动置假 | 该设备上没有这条路径 |
+| 子对象写成 null、布尔值或数组 | 固定 GLM / v0.23 / rc 在展开子对象为关键字参数时抛 TypeError；main 也要求有效子配置 | 用 {} 表示默认，用对象内的 false 关闭某项 |
+| 字段拼错或层级写错 | 旧版多数键静默忽略；三项写在外层时管理器仍按缺省 true 读取 | 对照上方 JSON；main 未知子键由配置校验拒绝 |
+| 用字符串 "false" 关规则 | 旧版原始字典中非空字符串为真，规则仍开启；null 则为假，但并非合法布尔配置约定 | 始终写 JSON 布尔 false；main 会按布尔规则转换字符串，并拒绝 null |
+| 只开 static kernel、关掉外部后端 | 若硬件降级未先把 static 关闭，配置构造阶段断言失败 [C7] | 两个一起开，或都不开 |
+| 在 310P 上配了这两项 | 对原本开启的项发 warning，随后自动置假 | 该设备上没有这条路径 |
 | 没装 npugraph_ex 这个包 | `ImportError` 被接住，落到 torchair 兼容分支 [C6] | 它只兜导入问题，不是任意编译错误的性能兜底 |
 | 图里含 Triton kernel | 跳过编译缓存并打一条 info：索引是进程内的，换进程加载会断言失败 [C6] | 正常现象，下次重新编译 |
 | 设了 `ASCEND_LAUNCH_BLOCKING=1` 又没关图 | 平台抛 `ValueError` [C8] | 属于图那一层，见 [ACL Graph](acl-graph.md#对照源码) |
 
+**没有命中不一定报错。** 本地规则会在不支持的 dtype、未发现 Attention 等分支写 debug 并返回；乘加与 QK 的匹配日志分别含 “Fused … muls_add patterns” 与 “Fused … QKNorm and Rope patterns”，归一化量化记录 “Replaced … patterns”。先确认走的是本地管理器还是外部后端，再看对应日志；外部路径不能仅以缺少本地计数判断失败。核对门控的来源分别为 10、4、27。
+
+视觉编译没有对应装饰器入口时，给出开关也不会自动改写该组件；进入编译后出现图中断或形状约束错误，应查看对应追踪条目。把整个 mode 改为 NONE 会一起改变语言主干编译，不能当成只关闭视觉编译的实验。只有确实走 Inductor 的环境才沿官方指南检查其生成 kernel、运行时断言或 unpacked 产物；Ascend 默认后端的产物按自己的加载记录检查。
+
 ### 开销和什么时候别开
 
-- **编译期**：每个编译区间都要跑一遍匹配；static kernel 还要按宽度逐档编译、跨节点分发安装，档位越多启动越久。
+- **编译期**：进入本地改写的区间要运行匹配；static kernel 还可能增加按宽度编译、跨节点分发安装的成本。增加档位不直接给出启动耗时增量，需区分首次编译与缓存复用。
 - **数值**：融合改变浮点次序，精度要按容差单独验证，不能因为图跑通就认为数值等价 [I]。
 - **刻意关掉的优化**：这条路径把原地改写优化关了，避免某些算子回退 CPU 带来主机与设备之间的拷贝。所以不要按外部后端的一般能力推断它启用了原地复用。
 - **什么时候别开**：排查精度或 hang 时常用强制 eager，但那会把编译改写和图回放一起关掉，问题消失只能把范围缩到这两层；要分开看，先只关一层 [D]。形状长期不整齐时，收益会被补齐和退回吃掉。
@@ -221,27 +436,52 @@ title: static kernel 的宽度范围怎么筛（示意配置，不是本部署�
 
 ### 版本差异
 
-三列的配置字段逐项核了各分支的 `ascend_config.py` [C18][C19][C20]，规则怎么读核的是各分支的 pass manager [C21]，规则文件按各分支 `compilation/passes` 目录清点。
+视觉编译和默认缓存键的共同机制在下列四个上游钉点一致：compile_mm_encoder 默认 false，组件门控读取同一配置；encoder 只把最后一段的上界扩大；默认缓存键包含环境、配置、编译器与追踪文件。模型是否接了入口另列，不能由字段存在推出。
 
-| 项目 | v0.23（维护分支 2c59ff10；GLM 按镜像 db701c1f） | v0.26（2ed6cbba） | main（baa023ad） |
+| 固定版本 | 本次查到的视觉编译入口 | Ascend 对共享配置的影响 |
+|---|---|---|
+| v0.23：0fc695fc；GLM 执行侧 db701c1f | Qwen2.5-VL VisionBlock 有门控；Qwen3-VL VisionBlock 尚无该装饰器 | 默认选择 AscendCompiler；图 NONE 将编译 mode 也置 NONE |
+| v0.26：568afb3a / 2ed6cbba | 上述两个入口与 v0.23 相同 | 仍按同一方式关闭编译，并关闭 static/super 等相关项 |
+| v0.30.0rc2：ced6857a / 7d825229 | Qwen2.5-VL 保留；Qwen3-VL VisionBlock 新增同样的门控 | 仍按图 NONE 关闭共享编译模式；具体设备走硬件能力分支 |
+| main：84030bbe / baa023ad | 上述 Qwen 入口与 rc2 相同 | 同样保留上述共享配置约束 |
+
+这张表列的是已读的实际组件入口，不是所有多模态模型的支持清单。固定 GLM 主线保持原配置；视觉编译在 NPU 上的数值和时延需对应镜像实测。官方多模态编译旧文中的“图捕获组合尚未探索”描述的是那份编译指南的范围，不能代替如今独立视觉图管理器的支持判断。
+
+rc2 在既有 QKNormRoPE pass 内增加 QKVNormRoPE 模式，处理 Gemma 式 Q/K/V norm 加 RoPE；它不是新的第四类 manager pass。该模式还要求 HAS_TRITON、GRAPH_QKV_NORM_ROPE_FUSION 硬件能力及单 token tiles 能放入 UB，不能只看总开关就断言命中。
+
+**v0.30.0rc2 的声明默认与最终有效值仍要分开。** npugraph_ex 默认 true，static/super 默认 false；显式给 static 而省略 super 时，super 才跟随 static。依赖链 super→static→npugraph_ex 及硬件能力检查保留，NONE 与 PIECEWISE 模式会关闭三者。GraphFusionPassManager 实际登记三类融合：norm_quant、muls_add 还检查各自硬件能力，qknorm_rope 按开关登记；目录里的清理 pass 不能全部算成独立融合规则。默认开关不证明当前图命中规则或获得加速。
+
+三列的配置字段逐项核了各分支的 `ascend_config.py`（来源 18–20），规则怎么读核的是各分支的 pass manager（来源 21、28、29）；规则文件按各分支 `compilation/passes` 目录清点。三条布尔规则在四个 Ascend 钉点均存在且默认 true；开关默认一致不代表候选实现、硬件门控或实际命中数一致。
+
+| 项目 | v0.23 / GLM | v0.26 rc | main |
 |---|---|---|---|
 | 配置形态 | 普通 Python 类，310P 降级和依赖检查写在构造里 | 同 | 迁成 pydantic 数据类，降级与依赖检查放进校验器 |
 | `passes/` 里的融合规则 | 四条，另有两条 sequence parallel | 没有 All-Reduce 接归一化那一条 | 也没有那一条，两条 sequence parallel 也不在了 |
-| `enable_npugraph_ex` 默认 | 真 | 真 | 真 |
-| `enable_static_kernel` 默认 | 假 | 假 | 假 |
-| Super Kernel | 没有这个配置 | 新增 `enable_super_kernel`，不写就跟随 static kernel | 有，默认假，并按 super kernel → static kernel → npugraph_ex 的依赖链校验 |
+| 外部后端默认 | 真 | 真 | 真 |
+| static 默认 | 假 | 假 | 假 |
+| Super Kernel | 没有这个配置 | 本页维护分支已有 enable_super_kernel，不写或为 None 就跟随 static kernel；最初 v0.26.0rc1 tag 没有 | 字段默认假；显式提供 static 而省略 super 时，前置校验将 super 设为 static；随后校验 super → static → npugraph_ex |
 | `fuse_muls_add` | 只能从额外关键字传，不是正式字段 | 同 | 成为正式字段 |
 | 规则开关怎么读 | 读原始配置字典，310P 按设备型号判断 | 同 | 读配置对象，并按硬件能力标记判断 |
+| 三条开关的输入检查 | Python 类型注解不强制转换；字符串 "false" 仍被当真，未知子键忽略 | 同 | 布尔字段经递归校验；字符串 "false" 转成假，null 和未知子键被拒绝 |
 | 捕获那一层的实现 | 一份图包装器 | 同 | 另多出可打断图与可更新图两套实现（在 `compilation/` 下，不是融合规则） |
 
 官方文档把图模式与编译改写分两层介绍，并列出昇腾支持的档位取值 [S22]。
+
+main 的递归校验由配置装饰器设置未知键拒绝策略（来源 30）；归一化量化的共同精度、W4A4、ε 门控保留，但删去旧 SP 候选，MX 可用性改从硬件能力读取（来源 31）。因此升级后应重新核候选与日志，不沿用旧版候选数量。
 
 ### 源码位置
 
 - 选路与两条编译实现：`compiler_interface.py` 的 `AscendCompiler.compile`、`npugraph_ex_compile`、`fusion_pass_compile`；宽度筛选与后端选项在同一文件的 `_compute_decode_cudagraph_batch_sizes`、`_configure_backend`。
 - 规则注册：`passes/base_pattern.py` 的 `register`；pass manager 与四条开关：`graph_fusion_pass_manager.py`；上游实例化与配置它的地方：`vllm/compilation/backends.py` [C14]；自定义 pass 键：`platform.py` [C13]。
-- 四条规则各自的 pattern：归一化接量化 [C9]、Q/K 归一化接 RoPE [C4]、All-Reduce 接归一化及 512 门槛 [C11]、乘系数接相加 [C10]。
-- 这条推断的三处依据：昇腾归一化算子 `ops/layernorm.py` [C17]、GLM 用的两类注意力层 `models/glm5_next.py` [C16]、上游 MLA 注意力不是普通 Attention 的子类 [C15]。
+- 四条融合规则的固定源码索引：归一化接量化的静态 pattern 见来源 9，完整候选门控见来源 27；其中 W4A4_DYNAMIC / W4A4_FLATQUANT_DYNAMIC 权重描述会跳过整条 pass，不带 bias 的动态候选不依赖 enable_custom_op，静态和带 bias 候选依赖它，MX 候选另需相应符号和 A5 条件。Q/K 注册与筛选见来源 4，All-Reduce 注册与区间见来源 11（512 常量见 25），乘加读取 hf_text_config.routed_scaling_factor、缺省 1.0 并注册常数，见来源 10。[C9]
+- GLM 主干的候选边界：来源 17 的昇腾归一化算子区分有无 residual，来源 49 的 mHC 前向实际传单个输入；两类注意力分支的构造见来源 16。来源 15 的上游通用 MLA 类本身也不是普通 Attention 的子类，但不能用这一类声明代替整个 GLM 服务的注册上下文检查。
 - 配置字段、310P 降级与 static kernel 断言：`ascend_config.py`；档位与平台改写：`platform.py`。
 
-**待核**：缺本部署的启动日志，所以四条规则各自命中几处（含「Q/K 归一化接 RoPE 一处都注册不出来」这条推断）都没有运行期证据；外部后端自己做了哪些改写、static kernel 实际编译多久，本库没有它的源码与实测 [I]。
+- 视觉编译的默认与图捕获字段分立：来源 54–57；四版组件初始化门控：58–61；最后一个编译区间的扩展：62–65。Qwen2.5-VL VisionBlock 四版入口为 66–69，Qwen3-VL 对应为 70–73。运行时直接 forward 的退出分支见 90。
+- 真正的编译器选择：74 先取平台 backend，75 的 make_compiler 选择适配器，91 返回 AscendCompiler。平台里旧 use_inductor/oot_compiler 赋值不能替代这条消费者链。本地改图实现仍由来源 45 支持。
+- 编译缓存：四版默认键、组件目录与禁用入口见 76–79；缓存开关消费见 80；固定 Ascend 自己的哈希与实际加载/缺失重编译见 81–82。新版图 NONE 关闭编译的片段补在 83–84，旧 GLM 与 rc2 已分别在来源 8、41。
+- 官方母文全文见 85（追踪和排查）、86（编译与缓存）、87（多模态编译）、88（上游融合矩阵）；tlparse 的目录/latest 与单日志两种输入见 89。母文中的模型收益数值不作为本页 NPU 收益；范围扩展的例子由实际源码推演，原区间与 10 个位置是教学设定。
+
+**运行时边界**：四条规则各自命中几处、最终上下文有没有符合条件的 Attention 层，以及外部后端自己完成了哪些改写，需要启动日志或编译图确认；static kernel 的编译和执行收益需要设备对照，本页没有这些运行期数据。
+
+来源 2、9、10 对应固定 db701c1f 的规则注册与替换：归一化接量化仍返回残差，乘加换成融合接口。乘加接口实际注册到 Triton 实现，代码只加载 x、y 并写最终结果，没有单独分配乘法中间张量（来源 47–48）；这支持前面的 128 B 张量读写示意，不等于设备总访存实测。Super Kernel 的机制、启用及采集验证见 921ccc52 官方图模式指南；配置依赖与默认分别见 2ed6cbba 的 ascend_config.py 599–661、baa023ad 103–160、rc2 114–171。布尔字符串转换与未知键拒绝还有固定配置类测试覆盖（来源 53），本页没有运行该 NPU 相关测试。

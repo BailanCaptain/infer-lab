@@ -3,29 +3,62 @@ id: ai-core
 title: AI Core：计算单元与数据搬运
 type: concept
 summary: 从矩阵乘和逐项运算认识 Cube、Vector、Scalar，沿设备内存到片上缓冲区的数据路径理解计算与访存的配合。
-aliases: [AI Core, AICore, Cube, Vector, Scalar, AIC, AIV, AI Cube, AI Vector, AI 核心, 计算单元与数据搬运]
-chapters: ["07"]
+aliases:
+  - AI Core
+  - AICore
+  - Cube
+  - Vector
+  - Scalar
+  - AIC
+  - AIV
+  - AI Cube
+  - AI Vector
+  - AI 核心
+  - 计算单元与数据搬运
+chapters:
+  - '07'
 order: 120
 sources:
-  - https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html
-  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155
-  - https://www.hiascend.com/developer/techArticles/20240819-1
-  - vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L61-L125
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L42-L222
-  - vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L353-L365
-  - vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L125
-  - vllm-ascend@2ed6cbba:vllm_ascend/quantization/methods/w8a8_dynamic.py#L74-L124
-  - vllm-ascend@baa023ad:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L93-L123
+  - >-
+    https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html
+  - >-
+    vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155
+  - 'https://www.hiascend.com/developer/techArticles/20240819-1'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L61-L125
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L42-L222'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L353-L365
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L125
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/quantization/methods/w8a8_dynamic.py#L74-L124
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L93-L123
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L94-L134
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/shared_experts.py#L390-L502'
+  - 'vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/shared_experts.py#L504-L630'
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - {to: hardware-devices, kind: builds-on, note: 先区分设备与设备内部的核心}
-  - {to: device-memory, kind: builds-on, note: 理解设备内存与数据访问}
-  - {to: matmul-and-weights, kind: builds-on, note: 认识矩阵计算需要的输入与权重}
-  - {to: one-request, kind: builds-on, note: 回到第 4 站，把单卡计算放回请求的逐层前向}
-  - {to: ops-and-kernels, kind: builds-on, note: 区分数学算子、软件入口与设备上的执行程序}
+  - to: hardware-devices
+    kind: builds-on
+    note: 先区分设备与设备内部的核心
+  - to: device-memory
+    kind: builds-on
+    note: 理解设备内存与数据访问
+  - to: matmul-and-weights
+    kind: builds-on
+    note: 认识矩阵计算需要的输入与权重
+  - to: one-request
+    kind: builds-on
+    note: 回到第 4 站，把单卡计算放回请求的逐层前向
+  - to: ops-and-kernels
+    kind: builds-on
+    note: 区分数学算子、软件入口与设备上的执行程序
 contradicts: []
-updated: "2026-10-02"
+updated: 2026-11-03T00:00:00.000Z
 origin: direct
 ---
 
@@ -65,6 +98,12 @@ title: 同一行数据先乘矩阵、再逐项激活（示意）
 
 这说明 Cube 与 Vector 分担的是不同运算。矩阵乘怎样从行列配对得到输出，详见[矩阵乘和权重](matmul-and-weights.md)；这里关注的是数据在哪准备、在哪计算、何时交接。上面的微型数组只演示逻辑，不规定实际矩阵指令的最小块尺寸。
 
+把这组数沿同一条路径播放一遍：先准备 L1、L0A/L0B，再由 Cube 计算，L0C 接住 `[5,−5]`；经 Fixpipe 写入 GM 中间区后，向量侧搬入 UB、做 ReLU，最后把 `[5,0]` 写回 GM。底座 NPU 模组上的格阵对应 GM 的输入、权重、中间结果和输出，随写入更新；上方把 GM 与片上缓冲、计算路径立体展开，表示逻辑关系，不是芯片内部的实物位置。
+
+```wiki-scene
+inference-mechanism:3
+```
+
 ### 一块向量的搬运与计算怎样配合？
 
 **逐项计算同样要先搬入数据，再把结果搬出。** 单独看一个只涉及搬运量的教学小块：4 个 FP32 数，FP32 表示每个数占 32 位、即 4 字节；假设做完一次逐项变换后，输出仍是 4 个 FP32 数。读取和写回的逻辑量分别为：
@@ -87,6 +126,10 @@ title: 一块向量输入与输出的逻辑搬运量（示意）
 矩阵侧的典型路径是 GM → L1 → L0A/L0B → Cube → L0C → Fixpipe → GM，结果也可经 Fixpipe 回到 L1；向量侧是 GM → UB → Vector → UB → GM。**回到 L1 不等于直接写进 AIV 的 UB**，跨侧交接仍要按对应架构与 kernel 的存储、同步约定完成。
 
 核数、缓冲容量和芯片面积属于具体产品规格，首图的一组框只表达分工，不能据此外推 A3 或后续产品的这些规格。设备、卡、服务器的层级见[硬件设备](hardware-devices.md)。这里的 UB 是片上 **Unified Buffer**；[CANN 与 HCCL 的 AI QoS 一节](cann-hccl.md#ai-qos-怎样处理共享链路上的争用)中的 **Unified Bus** 是互联概念，两者只是缩写相同。
+
+看到硬件列出 FP8 或 FP4 支持时，可先用[低精度格式](low-precision-formats.md)核对元素、缩放和分组，再确认算子接收什么、转换在哪里、用什么精度累加。类型支持列表不能直接换算成整条推理路径的加速比例。
+
+沿这块矩阵结果继续比较新硬件，见[昇腾 950 的计算与搬运](ascend-950-architecture.md)：重点检查跨侧交接是否还要写回再读，而本页的矩阵乘与向量计算仍作为基础例子。
 
 ## 放到 GLM 双机：一个 token 在卡上经历什么？
 
@@ -119,6 +162,10 @@ AI Core 是硬件执行资源，没有通用的「打开 AI Core」开关。模�
 double buffer 属于 kernel 实现变体，本页没有证据说明 GLM 的每个算子都采用它。判断优化应分别观察搬入、计算、搬出与同步；数据很小或主要受计算限制时，不应仅凭「重叠更多」决定启用。
 
 ### 版本差异
+
+W8A8 子目录与普通单次矩阵乘路径延续固定 main，相比旧 GLM 的分支不同；rc2 新增 PreparedLinearInput 的实际消费者是 [共享专家多流重叠](moe.md#版本差异)，并非全模型无条件提前量化。
+
+**v0.30.0rc2 不改变 AI Core 的硬件职责，W8A8 的软件入口已有变化。** 动态线性实现位于 quantization/methods/w8a8/w8a8_dynamic.py，普通输入先动态量化，再调用一次 npu_quant_matmul，已没有旧 _chunk_size 拆两次矩阵乘的分支。二维输入还可先构造 PreparedLinearInput，供 overlap 路径复用量化值与 scale，避免重复量化。是否命中取决于模型与调用方，不能从 Python 调用次数直接推算物理 kernel 数或性能收益。
 
 **硬件组织由产品决定，软件版本不会把耦合架构变成分离架构。** 下表比较 vllm-ascend 的软件入口；AI Core 本身在各列均不是配置特性，也无布尔默认值。架构图依据 CANN 8.0.RC2，不据此外推 A3 或后续产品的核数、面积与缓冲容量。
 

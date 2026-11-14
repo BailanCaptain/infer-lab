@@ -3,7 +3,9 @@ id: rfork-startup
 title: RFork 启动：准备模型以后才借 seed，失败后先清理再重建
 type: feature
 summary: >-
-  新实例用 RFork 加载模型时，每个 Worker 先在本卡搭好模型、转好布局，再向 Planner 借 seed、按地址读权重；借不到或读失败，先清理干净再从存储普通加载。本页按十步走一遍，讲清为什么晚申请租约、两处提前离开、回退怎样清理、三类「没有可用 seed」，以及 GLM 双机第一次冷启动怎么走。
+  新实例用 RFork 加载模型时，每个 Worker 先在本卡搭好模型、转好布局，再向 Planner 借
+  seed、按地址读权重；借不到或读失败，先清理干净再从存储普通加载。本页按十步走一遍，讲清为什么晚申请租约、两处提前离开、回退怎样清理、三类「没有可用
+  seed」，以及 GLM 双机第一次冷启动怎么走。
 aliases:
   - RFork 启动
   - RFork load_model
@@ -26,16 +28,24 @@ sources:
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L64-L91'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L109'
-  - 'rfork@3284850b:docs/source/developer_guide/Design_Documents/rfork_lease_lifecycle.md#L28-L52'
+  - >-
+    rfork@3284850b:docs/source/developer_guide/Design_Documents/rfork_lease_lifecycle.md#L28-L52
   - 'rfork@3284850b:examples/rfork/rfork_planner.py#L39-L74'
   - 'rfork@3284850b:examples/rfork/rfork_planner.py#L192-L212'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L38-L57'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L296-L347'
   - 'rfork@3284850b:vllm_ascend/ops/fused_moe/fused_moe.py#L508-L511'
-  - 'vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L219-L320'
-  - 'vllm-ascend@2ed6cbba:vllm_ascend/model_loader/rfork/rfork_loader.py#L214-L315'
-  - 'vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/rfork_loader.py#L330-L440'
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L219-L320
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/model_loader/rfork/rfork_loader.py#L214-L315
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/rfork_loader.py#L330-L440
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L189-L217'
+  - >-
+    raw:sha256-b55b32722cce760cf460a51943536138061f6322f2cac46d335a5c783df5da72.md#L1-L1188
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/rfork_loader.py#L630-L682'
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L100-L160'
 verified:
   - 'rfork:main'
 evidence: C
@@ -47,12 +57,14 @@ relations:
     kind: builds-on
     note: RFork 只替换 Worker 启动里装权重那一步，先知道前后还有哪些步骤
 contradicts: []
-updated: '2026-10-02'
+updated: '2026-10-25'
 rawSources:
   - >-
     raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md
   - >-
     raw/sha256-629e6f8b0215485342250f376eedf494ef1b55f5de26f189da5f5a615659eba1.md
+  - >-
+    raw/sha256-b55b32722cce760cf460a51943536138061f6322f2cac46d335a5c783df5da72.md
   - >-
     raw/sha256-be7651d21c2f6c44f19cb939989ef0d4119a8cdfdaf2f59003e14ee2166cd069.md
 ---
@@ -67,7 +79,7 @@ rawSources:
 file: rfork-startup
 ```
 
-图左边的竖条把十步分成三段。前六步只在本卡做准备，还没向 Planner 要任何东西；从第 7 步拿到租约到第 8 步读完，这一段才占着 A 的借用名额；读完以后的收尾和发布都不再需要 A。右边是两处提前离开和一条失败支路：失败支路先清理、再普通加载，最后汇回第 10 步。
+图左边的竖条把十步分成三段。前六步只在本卡做准备，还没向 Planner 要任何东西；第 7 步拿到租约后占用 A 的借用名额。第 8 步读完后不再读取 A 的权重字节，但名额仍要等 Planner 确认归还或回收；后台归还不阻塞模型继续启动，未确认时 B 自己的 seed 发布会延期。右边是两处提前离开和一条失败支路：失败支路先清理、再普通加载，最后汇回第 10 步。
 
 RFork 只替换 Worker 启动里装权重的那一步，前后顺序见 [Worker 生命周期](npu-worker-lifecycle.md#一张卡上的-worker启动时按什么顺序做准备)：建通信组在它之前，量显存预算、建 KV cache 池、录图在它之后，这些步骤照常进行。本页讲的是 RFork 工作版的行为；社区各版本的顺序不一样，放在页末对照。
 
@@ -97,12 +109,12 @@ RFork 只替换 Worker 启动里装权重的那一步，前后顺序见 [Worker 
 | 6 | 要转布局的模型先对空参数做布局后处理，并等 NPU 同步完 | 空位已经是 A 对外暴露的最终布局 |
 | 7 | 向 Planner 申请租约 | 一张身份对得上的租约，会话进入「已借到」；或者明确没拿到 |
 | 8 | 登记本地内存、向 A 要清单并核对、分批读 | 权重读进了空位，会话进入「已传完」 |
-| 9 | 不转布局的模型到这一步才做后处理，然后切到推理模式 | 可以交回去的模型 |
+| 9 | 先读后处理的路径，到这一步才做适用的后处理；跳过未量化 MoE 的重复后处理，然后切到推理模式 | 可以交回去的模型 |
 | 10 | 交回之前，尝试把 B 发布成 seed | 已启动、延期或失败，三种都不影响模型交回 |
 
-第 6 步和第 9 步二选一，由上面那三个条件决定，判断细节见[张量布局](rfork-layout.md#先看-b-要不要转布局)：任一成立就走「转好布局再搬」，后处理在第 6 步、申请租约之前做完，第 9 步只剩切推理模式；都不成立就走「按原形状搬」，第 6 步跳过，读完以后在第 9 步才做后处理。所以不能拿「量化 / 非量化」代替这三个条件：不量化的模型，只要权重 NZ 模式配成 2 或硬件强制 NZ，也会在第 6 步做后处理。
+第 6 步和第 9 步的后处理二选一，由上面那三个条件决定，判断细节见[张量布局](rfork-layout.md#先看-b-要不要转布局)：任一成立就走「转好布局再搬」，后处理在第 6 步、申请租约之前做完，第 9 步只剩切推理模式；都不成立就走「先读后处理」，第 6 步跳过，读完以后在第 9 步才做适用的后处理。这条路径在代码中叫 checkpoint，但 A 的未量化 MoE 权重也可能已经转置，B 读取后会跳过它的重复后处理，不能把路径名理解成一律按 checkpoint 原形状搬。所以不能拿「量化 / 非量化」代替这三个条件：不量化的模型，只要权重 NZ 模式配成 2 或硬件强制 NZ，也会在第 6 步做后处理。
 
-第 8 步从开始登记那一刻起，会话就被标成「需要清理」，登记、要清单、读数据全部成功才改成「已传完」。所以归还租约的后台线程只有整段读成功之后才会启动；任何一步失败都不走这条路，而是由后面的回退清理去安排归还。第 10 步要让下一个实例能读 B 的显存：转好布局再搬、刚传完的，沿用第 8 步的登记；按原形状搬的（第 9 步的后处理会换掉存储）或回退后新加载的模型，要先把整份模型重新登记一遍再发布。租约还没确认归还时，发布先记成延期，等后台确认后再补上。
+第 8 步从开始登记那一刻起，会话就被标成「需要清理」，登记、要清单、读数据全部成功才改成「已传完」。所以归还租约的后台线程只有整段读成功之后才会启动；任何一步失败都不走这条路，而是由后面的回退清理去安排归还。第 10 步要让下一个实例能读 B 的显存：转好布局再搬、刚传完的，沿用第 8 步的登记；先读后处理的（第 9 步的适用后处理可能换掉存储）或回退后新加载的模型，要先把整份模型重新登记一遍再发布。租约还没确认归还时，发布先记成延期，等后台确认后再补上。
 
 把同样的十步放进三种情况，就能看清哪些步一定会做、哪些白做：
 
@@ -159,7 +171,7 @@ file: rfork-startup-fallback
 | 哪一类 | 发生了什么 | 旁边能看到什么 |
 |---|---|---|
 | Planner 回 404 | 问到了，但 Planner 那里没有 seed key（按身份算出的匹配键）对得上、又还有空名额的 seed | 客户端只在 debug 级别记一笔，默认日志里没有别的线索；接着查两端的 seed key，见[身份匹配](rfork-identity.md) |
-| 问了，但出错 | 连不上、超时、回了 200 和 404 以外的状态，或者响应头缺字段、端口和编号不合法 | 每个 Worker 都有一条客户端警告，写着向 Planner 申请失败和具体原因 |
+| 问了，但出错 | 连不上、超时、回了 200 和 404 以外的状态，或者响应头缺字段、端口或 rank 不能转为整数、端口 ≤0 或 rank <0 | 每个 Worker 都有一条客户端警告，写着向 Planner 申请失败和具体原因 |
 | 会话自己拒绝，根本没去问 | 上一张租约的归还线程还活着、归还已经停止、还留着一张没还掉的旧租约，或者会话不在「已初始化」 | 只有最后一种打错误日志；前三种要回头翻本进程更早的租约归还日志，见[租约与生命周期](rfork-lifecycle.md) |
 
 所以先看有没有客户端警告，再看会话状态，最后才下「Planner 里没有匹配来源」的结论。Planner 自己的请求记录可以辅助定位，但连接失败时请求根本没到 Planner，Planner 那边没有记录，并不能单独证明是会话拒绝了申请。反过来，每个借到租约的 Worker 都会按 info 级别打一行「已借到租约」，带着全局编号；数这一行，就能知道哪些会话真的借到了。
@@ -202,18 +214,18 @@ EPLB 绕过的判定函数叫 `_is_dynamic_eplb_enabled`，但三个条件任一
 |---|---|---|
 | `RFork transfer is disabled when dynamic EPLB is enabled; using the default model loader.` | warning | 第 2 步绕过，三个条件任一命中都打这句 |
 | `RFork disabled for dynamic EPLB, but default loader failed.` | exception，随后抛出 | 绕过后普通加载失败 |
-| `RFork planner seed acquisition failed: …` | warning，每个 Worker 都打 | 第 7 步问了但出错 [C12] |
+| `RFork planner seed acquisition failed: …` | warning，每个 Worker 都打 | 第 7 步问了但出错，见来源 12 |
 | `RFork seed acquisition requires an initialized session; state=…` | error | 会话状态不对，没去问 |
-| `RFork has no available main/draft seed; loading locally and registering this worker as a seed.` | TP 编号 0 为 info，其余 debug | 第 7 步没拿到租约，三类来源不区分 [C4] |
+| `RFork has no available main/draft seed; loading locally and registering this worker as a seed.` | TP 编号 0 为 info，其余 debug | 第 7 步没拿到租约，三类来源不区分，见来源 4 |
 | `RFork transfer failed: …, clean up and fall back to default loader` | warning | 第 3–9 步抛错，或第 8 步返回失败；第 10 步发布出错不回退 |
 | `RFork fallback aborted because seed service or registered memory cleanup failed; … Refusing to allocate a second model while old weights are pinned.` | 抛 `RuntimeError` | 清理不干净，拒绝回退 |
 | `RFork fallback default loader failed.` | exception，随后抛出 | 回退后普通加载失败 |
-| `RFork main/draft model loaded from transfer/fallback is ready, but seed service startup failed; inference can continue.` | warning（抛异常时是 exception 级的 `… seed service startup raised; …`） | 第 10 步发布失败，模型照样交回 [C6] |
+| `RFork main/draft model loaded from transfer/fallback is ready, but seed service startup failed; inference can continue.` | warning（抛异常时是 exception 级的 `… seed service startup raised; …`） | 第 10 步发布失败，模型照样交回，见来源 6 |
 | `RFork seed memory registration raised; cleaning up before continuing inference.` | exception | 第 10 步重新登记时出错，随后按发布失败处理 |
 | `RFork seed promotion is deferred until the source seed lease is released; the transferred model remains available for inference.` | warning | 第 10 步租约还没确认归还，发布记成延期 |
 | `RFork cannot prepare a finalized session for fallback.` | error | 会话已经关停（FINALIZED），清理三项都算失败，于是拒绝回退 |
 
-借到租约的 Worker 会打 info 级的 `RFork lease acquired: lease=… global_rank=… request_elapsed=…`。`session.acquire_seed()` 返回 False 有两处来源：本地自检（归还停止事件已置位、归还线程存活、旧租约仍未还掉、状态不是 `INITIALIZED`），以及 `RForkPlannerClient.acquire_seed` 返回 `None`；后者对 404 只打 debug，对连接异常、非 200 状态、缺响应头和端口编号不合法打 warning。[C11]
+借到租约的 Worker 会打 info 级的 `RFork lease acquired: lease=… global_rank=… request_elapsed=…`。`session.acquire_seed()` 返回 False 有两处来源：本地自检（归还停止事件已置位、归还线程存活、旧租约仍未还掉、状态不是 `INITIALIZED`），以及 `RForkPlannerClient.acquire_seed` 返回 `None`；后者对 404 只打 debug，对连接异常、200/404 以外的状态、缺响应头、端口或 rank 不能转为整数、端口 ≤0 或 rank <0 打 warning。本地自检见来源 11，HTTP 响应检查见来源 12。端口大于 65535 可以先拿到租约，随后构造来源 URL 时失败，进入[传输失败的汇总与清理](rfork-troubleshooting.md#会报什么错)。
 
 回退清理：session 存在时调 `prepare_for_fallback`，依次停 seed 服务、`_release_seed_locked`（只安排后台归还，不等确认）、注销 MR；加载器最多调 `FALLBACK_CLEANUP_MAX_ATTEMPTS = 2` 轮。`RForkFallbackCleanupResult.can_schedule_seed` 只看 `service_stopped and memory_reset`，不要求 `lease_released`。[C7] 租约的后台归还线程只在 `transfer_from_seed` 整段成功后才启动。[C10] 回退或 checkpoint 布局下，`start_seed_service` 会先重新 `register_memory_region` 再起服务；租约未还时返回 `DEFERRED`。[C17]
 
@@ -229,11 +241,13 @@ EPLB 绕过的判定函数叫 `_is_dynamic_eplb_enabled`，但三个条件任一
 
 ### 版本差异
 
-本页的十步、晚申请、会话和回退清理只属于 RFork 工作版（`rfork@3284850b`）。社区三个版本也带 RFork 加载器，但启动顺序不同，而且三个版本的 `_requires_processed_layout_transfer` 都只看 `quantization` 是否非空，没有 NZ 模式和硬件策略这两条：[!]
+本页的十步图按 RFork 工作版 `rfork@3284850b` 组织。以下三个旧社区快照启动顺序不同，布局判断也只看 quantization 是否非空，没有 NZ 模式和硬件策略两项；rc2 的新顺序另列在后面。
 
 - **v0.23**（维护分支 `2c59ff10`，RFork 目录与固定镜像 `db701c1f` 逐字节相同）：搭模型之前先调 `is_seed_available()` 问 Planner；绕过条件是 `layer_sharding` 或同样三个 EPLB 条件；后处理之后不等 NPU 同步；回退时注销内存后 `del model`、清缓存，不恢复进程级登记。[C19]
 - **v0.26**（`2ed6cbba`）：与 v0.23 相同，只是绕过条件去掉了 `layer_sharding`。[C20]
 - **main**（`baa023ad`）：仍是先问后搭；合入了补丁 0001，后处理后等同步，回退时调 `_reset_process_global_model_state` 摘掉本模型的进程级登记；但注销失败只打警告、照常回退，不像工作版那样拒绝。[C21]
+
+- **v0.30.0rc2**（`7d825229`）：先建模型和准备布局，再登记目的内存、把可传张量的结构摘要绑定到身份，最后才申请租约并取清单、读数据。申请要求会话处于 REGISTERED 状态；工作版是先借后登记。因此不能将十步图的第7、8步顺序直接用于 rc2。实际入口在 rfork_loader.py 630–682，登记与申请检查在 session.py 100–160，固定源码链接见[总览](rfork.md#版本差异)。
 
 完整的补丁对照见[总览的版本差异](rfork.md#版本差异)。
 

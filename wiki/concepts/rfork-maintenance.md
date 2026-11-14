@@ -22,6 +22,10 @@ sources:
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L363-L386'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L18-L25'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/compat.py#L1-L23'
+  - >-
+    raw:sha256-7ddf61a5cd0186fd58b6ced0f29398dc3675db2d1ded92cc39c2b9ed331ab916.md#L1-L293
+  - >-
+    rfork@3284850b42f94934dfe6909ed6f1c4c145a7f69c:vllm_ascend/model_loader/rfork/compat.py#L10-L23
 verified:
   - 'rfork:main'
 evidence: C
@@ -32,13 +36,18 @@ relations:
   - to: rfork-troubleshooting
     kind: builds-on
     note: 排错前先识别实际运行版本，旧报错不能直接套用后来补丁的行为
+  - to: rfork-layout
+    kind: builds-on
+    note: 维护涉及权重采集、布局或量化方法的补丁时，需要依据布局页核对张量采集与运行时工作区排除规则；补丁 7 的排除范围仅限特定 top-k 下标缓冲区。
 contradicts: []
-updated: '2026-10-02'
+updated: '2026-10-30'
 rawSources:
   - >-
     raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md
   - >-
     raw/sha256-53eef0148da8e153b65a9775a7950f4593f691b77b1f6a98c26dfa63bf9cdb3d.md
+  - >-
+    raw/sha256-7ddf61a5cd0186fd58b6ced0f29398dc3675db2d1ded92cc39c2b9ed331ab916.md
   - >-
     raw/sha256-be7651d21c2f6c44f19cb939989ef0d4119a8cdfdaf2f59003e14ee2166cd069.md
   - >-
@@ -98,7 +107,12 @@ file: rfork-patch-history
 
 第七份补丁的端口怎么配见[配置](rfork-config.md#四类端口谁监听谁来连由什么决定)，那个缓冲区为什么不从来源搬见[布局](rfork-layout.md#本机的工作区不从-a-搬)。当前代码里另外一些行为——晚一点才去申请租约（见[启动](rfork-startup.md)）、有次数上限的后台归还租约（见[生命周期](rfork-lifecycle.md)）、回退时清理全局编译与 MoE 引用——都要看最终的加载器和会话代码；第七份补丁本身能直接对上的，只有端口和 top-k 采集这两处变化。
 
+维护后台归还租约的逻辑时，要先区分成功与停止重试：归还成功会先清除租约，再推进延迟启动 seed 的安排，即使这已是最后一次允许的尝试。只有租约仍未解决，且释放请求遭拒或未成功的尝试已达到配置上限，才取消延迟启动 seed 的安排；Worker 不再发布 seed，模型加载或推理仍可继续。维护时应分别检查租约是否解决、seed 是否发布以及推理是否继续，现场行为还需实际验证。
+
 表里「v0.26 接口适配」在当前代码里留下的一个痕迹，是一个**兼容垫片**：在还没有「硬件档案」这个接口的 Ascend 版本上，它按是不是 310P 现造一个只带权重布局策略的替身对象，让 RFork 照样能起来；身份指纹和布局判断都从这个入口取值。跨版本读代码时，先找这类垫片，别假设两边接口一样。
+
+兼容层只接住缺失硬件 profile 模块这一种导入错误，再根据是否为 310P 返回布局策略；若缺的是该模块内部的其他依赖，异常会继续抛出。因此，得到一个布局策略不代表所有依赖都已兼容。
+
 
 ## 代码放在哪：一份快照用来读，一份完整仓库用来改
 
@@ -140,6 +154,8 @@ file: rfork-patch-history
 
 这一轮没有 NPU、CANN、YuanRong 以及 RFork 的 Python 运行依赖，所以不声称跑过原版 RFork 单测或设备集成测试。以下几项要在实际部署里核：传输内存的登记与清理约定、MTP 全部共享时的保护、输出一致性、并发扩容，以及来源实例的推理是否受影响。
 
+清理失败的现场验收还要检查旧权重是否继续受到保护。在 RFork 加载失败后准备回退的路径上，若 seed 服务或登记内存的清理结果仍不允许继续，加载器会抛错，保留使张量存储继续有效的引用，并拒绝在旧权重仍被固定时分配第二个模型。现场需要核对的不只是是否报错，还包括保活引用是否保留、第二个模型的分配是否被阻止。
+
 ## 常见误解
 
 - **「社区升级了，RFork 也一起重钉」**——只有用户工作版的更新才会改这个钉点；社区版本继续各走各的。
@@ -169,7 +185,7 @@ file: rfork-patch-history
 
 ### 版本差异
 
-社区 v0.23 / v0.26 / main 各拿到了哪些补丁、行为差在哪，全章只在[总览的版本对照](rfork.md#版本差异)里写，本页不另列。本页只管工作版自己的版本身份。
+社区 v0.23 / v0.26 / v0.30.0rc2 / 固定 main 的行为差异集中在[总览](rfork.md#版本差异)。rc2 已有独立会话与新的租约、身份协议，但不会因此改变本页工作版的提交。迁移必须同时核代码、Planner 协议和 seed 池，不能只替换加载器文件。
 
 三个固定身份（提交号、每份补丁的 SHA256 与快照文件清单登记在 `rfork/manifest.json` 的 `patches[].sourceCommit` / `patchCommit`；核对过程与命令输出在 `rfork/VERSION-NOTE.md`；本页 `sources` 只钉源码行号，版本身份不在其中）：
 
@@ -181,7 +197,7 @@ file: rfork-patch-history
 
 两个归档提交分别是 `7ddcfca9`（patch6 终点）和 `3284850b` 的直接子提交，只新增补丁文件（6 个与 1 个），不动代码。图里的分叉对应的提交：基线 `f2f74a16`（manifest 的 `baseCommit`；对社区克隆做祖先检查，它在 v0.26 钉点 2ed6cbba 的历史上，不在 v0.23 维护分支 2c59ff10 和 main baa023ad 上）→ `b5445840`(1) → `54081fd7`(2) → `395a59cb`(3)；上路 `3aa0ee8f`(4) → `ac2be61b`(5) → `7ddcfca9`(6)；下路 `4c3016fe` → `996d9bd0` → `09b8eeae` → `3284850b`(7)。
 
-上半补丁表的原叫法对照：patch2 是注册张量 owner 保留，当前实现另保留原始 storage，应看最终 backend；patch3 是 draft 与 target 重叠注册；patch7 是可配置 seed HTTP base port 与排除本机 `topk_indices_buffer`，不负责固定 TransferEngine 端口，也不排除所有 scratch。晚申请 lease、有界异步 release、全局编译/MoE 引用清理要看最终 loader 与 Session；patch7 能直接对应的只有端口与 topk 采集变化。[C1][C2][C3][C4]
+上半补丁表的原叫法对照：patch2 是注册张量 owner 保留，当前实现另保留原始 storage，应看最终 backend；patch3 是 draft 与 target 重叠注册；patch7 是可配置 seed HTTP base port 与排除本机 `topk_indices_buffer`，不负责固定 TransferEngine 端口，也不排除所有 scratch。晚申请 lease、有界异步 release、全局编译/MoE 引用清理要看最终 loader 与 Session；patch7 能直接对应的只有端口与 topk 采集变化。 loader 与 Session 的最终实现对应来源 1、2、3 [C1]，布局采集对应来源 4 [C4]
 
 v0.26 API 适配的痕迹：`compat.py` 在导入不到 `vllm_ascend.device.hardware_profile` 时，按是否 310p 现造一个只带 `weight_layout_policy` 的替身对象；身份指纹和布局判断都从这个入口取值。[C5]
 
@@ -204,3 +220,9 @@ v0.26 API 适配的痕迹：`compat.py` 在导入不到 `vllm_ascend.device.hard
 | `rfork/reconciliation/` | 明确标识的历史衔接差异 | 解释为什么原七份不是直接连续的一条链 |
 | `rfork/manifest.json` | 原件来源、SHA256、快照文件清单 | 核对是否缺文件或发生未登记变动 |
 | `tools/repos/rfork/` | 完整、独立的 Git 仓库 | 用于应用新补丁、构建与 Git 行号审计；换机器需重建 |
+
+工作版处理归还结果时先判断 RELEASED：清租约、推进延期发布后返回；只有未成功，才检查 REJECTED 或达到次数上限并取消延期发布（来源2，session.py 197–213）。迁移回归应分别覆盖成功、永久拒绝和次数用尽，不能用“到第三次”代替结果分类。
+
+回退保护在调用默认加载器之前执行：清理结果不允许继续时，保留 owner 并拒绝分配第二个模型（来源1，rfork_loader.py 657–710）。设备回归还须核清理后的实际资源状态，不能仅由静态分支判定注销已成功。
+
+- 来源 7：rfork@3284850b，vllm_ascend/model_loader/rfork/compat.py，L10–L23。

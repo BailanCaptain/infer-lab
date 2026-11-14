@@ -1,0 +1,40 @@
+{
+  "result": "PASS",
+  "inputGapRecordsIncludingDuplicates": 3430,
+  "mappedBaselineRecords": 2644,
+  "nonBaselineDefinitionRecords": 786,
+  "uniqueWritingUnits": 1712,
+  "firstBatchUnits": 11,
+  "firstBatchOriginalRecords": 40,
+  "priorityCounts": {
+    "C": 989,
+    "B": 89,
+    "D": 623,
+    "A": 11
+  },
+  "newerDefinitionsLinkedToExistingUnits": 48,
+  "publishedPagesHashed": 161,
+  "changedPublishedPages": [],
+  "localLinksChecked": 1532,
+  "missingLocalLinks": [],
+  "existingTargetPages": 47,
+  "proposedPagesNotCreated": [
+    "wiki/concepts/beam-search.md",
+    "wiki/concepts/compatible-api-parameters.md",
+    "wiki/concepts/pooling-api.md"
+  ],
+  "checks": [
+    "输入缺口记录去向守恒且无重复分配",
+    "所有定义固定在部署基线提交",
+    "每单元有页面和排序理由",
+    "请求/global seed 与主/草稿 eager 不误并",
+    "旧版服务级与新版请求级 stream_interval 分开",
+    "Ascend 与 vLLM 同名融合字段分开",
+    "输出预算接口名称差异保留",
+    "JSON/环境兼容入口分别保存默认表达式",
+    "A 批11单元40记录3现有页面",
+    "明细表顺序与计划一致且没有重复行",
+    "知识页前后 SHA-256 一致"
+  ],
+  "notRun": "仅文档计划与台账整理；未执行硬件推理、产品构建或浏览器验收。"
+}

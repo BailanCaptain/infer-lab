@@ -1,0 +1,1445 @@
+{
+  "status": "passed_for_frozen_revision",
+  "checks": {
+    "before": {
+      "wiki/concepts/api-server-entry.md": "2dba8f72b1d869c00f171ba5272dd3ea2dd0a3ad06f02b7a6066469c93072a73",
+      "wiki/concepts/sampling.md": "b39ecb08207f99547959756942425959866ef0ffb8018f49c7efea78d1e8e329",
+      "wiki/concepts/npugraph-ex.md": "8626a9c94daa415a7f490b87ba105564e2728ac0bd0ab7ee7423210d70b1e980",
+      "wiki/concepts/ops-and-kernels.md": "de2fa3633b1ba370bac256b29a00cda25cb19186b456352add2f1bcb2c4a52ea",
+      "wiki/concepts/npu-worker-lifecycle.md": "8db9f4c35185535dea08c06247fff79683dce9792278ad10d9b30a973f7671f2",
+      "wiki/concepts/lora.md": "47bcdb780f37fe1d9aeb4177434bece7288e17dcc53b6dcff1b3c0a27bf301c8",
+      "wiki/diagrams/api-renderer-services.yaml": "2ac5ab269f10893a8d541a5b28a69680a8eff09db788243aba220938932ca2fe",
+      "wiki/diagrams/api-renderer-services.svg": "f5743a7b198ab669f14f35951b331eae13014c3598c466e7a660400b43a8447e",
+      "wiki/diagrams/sampling-beam-search.yaml": "803444b09beb3757bb1d2420ef13a9f8ed6e07f65a4612c027adc856f9b1a001",
+      "wiki/diagrams/sampling-beam-search.svg": "45e45e9c03b1b20a8995046cdde47b6319c489e833889b0f2b05685180c2bf8f",
+      "wiki/diagrams/ops-ir-selection.yaml": "ed20ced95b1412d8ded6e5593eb44b6d4008da3f09e95e9c3d4c2d06306e721f",
+      "wiki/diagrams/ops-ir-selection.svg": "b5508bf32cbc6b59b750f0e3840204e6124eeb5594c0d3e5ae8af91ec23bb750",
+      "wiki/diagrams/model-resolution-flow.yaml": "834c9742d52499aaa43cb41a5f6f1dcba53cd0352580442ab0f44f2bd6043b83",
+      "wiki/diagrams/model-resolution-flow.svg": "5c6fd677e8a7c142ad7845ccf14a39b5aeec1f41b4a35d85f3d74a5596bbf230",
+      "wiki/diagrams/lora-resolver-loading.yaml": "29c10df92d90311d04dd350ede9c1a6cd2f2ef7d1f4a05a7f2eaaa0441c00a85",
+      "wiki/diagrams/lora-resolver-loading.svg": "07d1de20d6f5b8a236ab55e72916610a1603046441ce0d395c13567a8a551118",
+      "scripts/wiki/sources.ts": "24530b17d8b31a246376efb7d06c02b60c1ab235810f096eb07a3c6ce4fd667d",
+      "scripts/wiki/sources.test.ts": "5d020fb164d09b4eedd16d239658eccfd981402877156758f70b210a2b8216d1",
+      "wiki/HANDBOOK.md": "5b829056044fcf4da0402da43f0f42565c0b5bf8883512364b39e3b077ffef96"
+    },
+    "after": {
+      "wiki/concepts/api-server-entry.md": "2dba8f72b1d869c00f171ba5272dd3ea2dd0a3ad06f02b7a6066469c93072a73",
+      "wiki/concepts/sampling.md": "b39ecb08207f99547959756942425959866ef0ffb8018f49c7efea78d1e8e329",
+      "wiki/concepts/npugraph-ex.md": "8626a9c94daa415a7f490b87ba105564e2728ac0bd0ab7ee7423210d70b1e980",
+      "wiki/concepts/ops-and-kernels.md": "de2fa3633b1ba370bac256b29a00cda25cb19186b456352add2f1bcb2c4a52ea",
+      "wiki/concepts/npu-worker-lifecycle.md": "8db9f4c35185535dea08c06247fff79683dce9792278ad10d9b30a973f7671f2",
+      "wiki/concepts/lora.md": "47bcdb780f37fe1d9aeb4177434bece7288e17dcc53b6dcff1b3c0a27bf301c8",
+      "wiki/diagrams/api-renderer-services.yaml": "2ac5ab269f10893a8d541a5b28a69680a8eff09db788243aba220938932ca2fe",
+      "wiki/diagrams/api-renderer-services.svg": "f5743a7b198ab669f14f35951b331eae13014c3598c466e7a660400b43a8447e",
+      "wiki/diagrams/sampling-beam-search.yaml": "803444b09beb3757bb1d2420ef13a9f8ed6e07f65a4612c027adc856f9b1a001",
+      "wiki/diagrams/sampling-beam-search.svg": "45e45e9c03b1b20a8995046cdde47b6319c489e833889b0f2b05685180c2bf8f",
+      "wiki/diagrams/ops-ir-selection.yaml": "ed20ced95b1412d8ded6e5593eb44b6d4008da3f09e95e9c3d4c2d06306e721f",
+      "wiki/diagrams/ops-ir-selection.svg": "b5508bf32cbc6b59b750f0e3840204e6124eeb5594c0d3e5ae8af91ec23bb750",
+      "wiki/diagrams/model-resolution-flow.yaml": "834c9742d52499aaa43cb41a5f6f1dcba53cd0352580442ab0f44f2bd6043b83",
+      "wiki/diagrams/model-resolution-flow.svg": "5c6fd677e8a7c142ad7845ccf14a39b5aeec1f41b4a35d85f3d74a5596bbf230",
+      "wiki/diagrams/lora-resolver-loading.yaml": "29c10df92d90311d04dd350ede9c1a6cd2f2ef7d1f4a05a7f2eaaa0441c00a85",
+      "wiki/diagrams/lora-resolver-loading.svg": "07d1de20d6f5b8a236ab55e72916610a1603046441ce0d395c13567a8a551118",
+      "scripts/wiki/sources.ts": "24530b17d8b31a246376efb7d06c02b60c1ab235810f096eb07a3c6ce4fd667d",
+      "scripts/wiki/sources.test.ts": "5d020fb164d09b4eedd16d239658eccfd981402877156758f70b210a2b8216d1",
+      "wiki/HANDBOOK.md": "5b829056044fcf4da0402da43f0f42565c0b5bf8883512364b39e3b077ffef96"
+    },
+    "stable": true,
+    "checks": [
+      {
+        "command": "pnpm check:content",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/loading-compile-current-content.log",
+        "sha256": "d82a6ecbb6e8b94d64d790401b2004a5bffd24533d2656c5ac60cd1aed82e469",
+        "started_at": "2026-11-10T14:25:15.728785+00:00",
+        "finished_at": "2026-11-10T14:25:16.416370+00:00"
+      },
+      {
+        "command": "pnpm wiki:lint",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/loading-compile-current-lint.log",
+        "sha256": "12a38ca2de3576d77e66c68b575c0d7ef28bf24e5f458d866ee253fc6385891d",
+        "started_at": "2026-11-10T14:25:16.416370+00:00",
+        "finished_at": "2026-11-10T14:25:34.956510+00:00"
+      },
+      {
+        "command": "pnpm wiki:audit",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/loading-compile-current-audit.log",
+        "sha256": "552e9a7e9e4f19428eb8db0fa8bac147a66b397544078f114608d6c7ce7bfc3f",
+        "started_at": "2026-11-10T14:25:34.956510+00:00",
+        "finished_at": "2026-11-10T14:25:59.249036+00:00"
+      },
+      {
+        "command": "pnpm wiki:diagrams --check",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/loading-compile-current-diagrams.log",
+        "sha256": "86234946c5142cdf0a45958da852f481e887021c2956f93ed29a018c5fcf0419",
+        "started_at": "2026-11-10T14:25:59.249036+00:00",
+        "finished_at": "2026-11-10T14:26:01.059316+00:00"
+      },
+      {
+        "command": "pnpm build",
+        "exit_code": 0,
+        "log": ".tmp/continuation-groups-2026-11-10/loading-compile-current-build.log",
+        "sha256": "8a3861b332bdce47f96958f1aa6ebc9e76e70adebb732d9e048ffe174adc29cf",
+        "started_at": "2026-11-10T14:26:01.060316+00:00",
+        "finished_at": "2026-11-10T14:26:19.778121+00:00"
+      }
+    ]
+  },
+  "source_mapping": [
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 288,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/cli/launch.py#L112-L144"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 289,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/openai/api_server.py#L420-L481"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 290,
+      "ref": "vllm@568afb3a:vllm/entrypoints/cli/launch.py#L112-L144"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 291,
+      "ref": "vllm@568afb3a:vllm/entrypoints/openai/api_server.py#L481-L570"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 292,
+      "ref": "vllm@ced6857a:vllm/entrypoints/launchers/render/entry.py#L66-L98"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 293,
+      "ref": "vllm@ced6857a:vllm/entrypoints/launchers/render/app_state.py#L22-L108"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 294,
+      "ref": "vllm@84030bbe:vllm/entrypoints/launchers/render/entry.py#L66-L98"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 295,
+      "ref": "vllm@84030bbe:vllm/entrypoints/launchers/render/app_state.py#L22-L108"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 296,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/openai/api_server.py#L201-L226"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 297,
+      "ref": "vllm@568afb3a:vllm/entrypoints/scale_out/factories.py#L61-L78"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 298,
+      "ref": "vllm@ced6857a:vllm/entrypoints/scale_out/factories.py#L65-L94"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 299,
+      "ref": "vllm@ced6857a:vllm/entrypoints/launchers/cli_args.py#L179-L191"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 300,
+      "ref": "vllm@84030bbe:vllm/entrypoints/scale_out/factories.py#L66-L102"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 301,
+      "ref": "vllm@84030bbe:vllm/envs.py#L358-L364"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 302,
+      "ref": "vllm@84030bbe:vllm/envs.py#L1883-L1885"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 303,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/serve/render/api_router.py#L24-L75"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 304,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/serve/render/serving.py#L118-L181"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 305,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/serve/render/serving.py#L268-L322"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 306,
+      "ref": "vllm@568afb3a:vllm/entrypoints/scale_out/render/serving.py#L64-L150"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 307,
+      "ref": "vllm@568afb3a:vllm/entrypoints/scale_out/render/serving.py#L152-L209"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 308,
+      "ref": "vllm@ced6857a:vllm/entrypoints/scale_out/render/serving.py#L78-L164"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 309,
+      "ref": "vllm@ced6857a:vllm/entrypoints/scale_out/render/serving.py#L181-L238"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 310,
+      "ref": "vllm@84030bbe:vllm/entrypoints/scale_out/render/serving.py#L78-L164"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 311,
+      "ref": "vllm@84030bbe:vllm/entrypoints/scale_out/render/serving.py#L181-L238"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 312,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/serve/disagg/serving.py#L100-L238"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 313,
+      "ref": "vllm@568afb3a:vllm/entrypoints/scale_out/derender/api_router.py#L26-L73"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 314,
+      "ref": "vllm@568afb3a:vllm/entrypoints/scale_out/token_in_token_out/protocol.py#L258-L332"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 315,
+      "ref": "vllm@568afb3a:vllm/entrypoints/scale_out/derender/serving.py#L121-L238"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 316,
+      "ref": "vllm@ced6857a:vllm/entrypoints/scale_out/derender/api_router.py#L31-L126"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 317,
+      "ref": "vllm@ced6857a:vllm/renderers/online_derenderer.py#L271-L324"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 318,
+      "ref": "vllm@84030bbe:vllm/entrypoints/scale_out/derender/api_router.py#L31-L126"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 319,
+      "ref": "vllm@84030bbe:vllm/renderers/online_derenderer.py#L271-L324"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 320,
+      "ref": "vllm@ced6857a:vllm/entrypoints/scale_out/token_in_token_out/protocol.py#L402-L476"
+    },
+    {
+      "group": "renderer",
+      "page": "wiki/concepts/api-server-entry.md",
+      "source_number": 321,
+      "ref": "vllm@ced6857a:vllm/entrypoints/scale_out/token_in_token_out/protocol.py#L548-L621"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 305,
+      "ref": "vllm@0fc695fc:vllm/sampling_params.py#L1025-L1038"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 306,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/protocol.py#L531-L547"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 307,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/openai/completion/protocol.py#L223-L242"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 308,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/generate/beam_search/online.py#L28-L225"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 309,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/generate/beam_search/utils.py#L137-L153"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 310,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/generate/beam_search/offline.py#L27-L182"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 311,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/openai/completion/serving.py#L133-L137"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 312,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/serving.py#L318-L382"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 313,
+      "ref": "vllm@568afb3a:vllm/sampling_params.py#L1114-L1128"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 314,
+      "ref": "vllm@568afb3a:vllm/entrypoints/openai/chat_completion/protocol.py#L589-L605"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 315,
+      "ref": "vllm@568afb3a:vllm/entrypoints/openai/completion/protocol.py#L260-L279"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 316,
+      "ref": "vllm@568afb3a:vllm/entrypoints/generate/beam_search/online.py#L28-L220"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 317,
+      "ref": "vllm@568afb3a:vllm/entrypoints/generate/beam_search/utils.py#L137-L153"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 318,
+      "ref": "vllm@568afb3a:vllm/entrypoints/generate/beam_search/offline.py#L58-L191"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 319,
+      "ref": "vllm@568afb3a:vllm/entrypoints/generate/beam_search/offline.py#L193-L327"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 320,
+      "ref": "vllm@568afb3a:vllm/entrypoints/generate/beam_search/offline.py#L399-L455"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 321,
+      "ref": "vllm@568afb3a:vllm/entrypoints/openai/completion/serving.py#L136-L140"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 322,
+      "ref": "vllm@568afb3a:vllm/entrypoints/openai/chat_completion/serving.py#L342-L396"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 323,
+      "ref": "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/protocol.py#L646-L663"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 324,
+      "ref": "vllm@ced6857a:vllm/entrypoints/openai/completion/protocol.py#L287-L307"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 325,
+      "ref": "vllm@ced6857a:vllm/entrypoints/generate/beam_search/online.py#L28-L229"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 326,
+      "ref": "vllm@ced6857a:vllm/entrypoints/generate/beam_search/utils.py#L137-L154"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 327,
+      "ref": "vllm@ced6857a:vllm/entrypoints/generate/beam_search/offline.py#L58-L195"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 328,
+      "ref": "vllm@ced6857a:vllm/entrypoints/generate/beam_search/offline.py#L197-L341"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 329,
+      "ref": "vllm@ced6857a:vllm/entrypoints/generate/beam_search/offline.py#L413-L470"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 330,
+      "ref": "vllm@ced6857a:vllm/entrypoints/openai/completion/serving.py#L132-L136"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 331,
+      "ref": "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L346-L404"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 332,
+      "ref": "vllm@84030bbe:vllm/sampling_params.py#L1301-L1318"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 333,
+      "ref": "vllm@84030bbe:vllm/entrypoints/openai/chat_completion/protocol.py#L646-L662"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 334,
+      "ref": "vllm@84030bbe:vllm/entrypoints/openai/completion/protocol.py#L287-L306"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 335,
+      "ref": "vllm@84030bbe:vllm/entrypoints/generate/beam_search/online.py#L28-L222"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 336,
+      "ref": "vllm@84030bbe:vllm/entrypoints/generate/beam_search/utils.py#L137-L153"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 337,
+      "ref": "vllm@84030bbe:vllm/entrypoints/generate/beam_search/offline.py#L58-L193"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 338,
+      "ref": "vllm@84030bbe:vllm/entrypoints/generate/beam_search/offline.py#L195-L329"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 339,
+      "ref": "vllm@84030bbe:vllm/entrypoints/generate/beam_search/offline.py#L401-L458"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 340,
+      "ref": "vllm@84030bbe:vllm/entrypoints/openai/completion/serving.py#L132-L136"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 341,
+      "ref": "vllm@84030bbe:vllm/entrypoints/openai/chat_completion/serving.py#L346-L404"
+    },
+    {
+      "group": "beam",
+      "page": "wiki/concepts/sampling.md",
+      "source_number": 342,
+      "ref": "vllm@0fc695fc:docs/models/generative_models.md#L63-L80"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 54,
+      "ref": "vllm@0fc695fc:vllm/config/compilation.py#L527-L539"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 55,
+      "ref": "vllm@568afb3a:vllm/config/compilation.py#L535-L547"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 56,
+      "ref": "vllm@ced6857a:vllm/config/compilation.py#L542-L554"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 57,
+      "ref": "vllm@84030bbe:vllm/config/compilation.py#L535-L547"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 58,
+      "ref": "vllm@0fc695fc:vllm/compilation/decorators.py#L385-L411"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 59,
+      "ref": "vllm@568afb3a:vllm/compilation/decorators.py#L385-L411"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 60,
+      "ref": "vllm@ced6857a:vllm/compilation/decorators.py#L387-L413"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 61,
+      "ref": "vllm@84030bbe:vllm/compilation/decorators.py#L387-L413"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 62,
+      "ref": "vllm@0fc695fc:vllm/compilation/piecewise_backend.py#L133-L154"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 63,
+      "ref": "vllm@568afb3a:vllm/compilation/piecewise_backend.py#L133-L154"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 64,
+      "ref": "vllm@ced6857a:vllm/compilation/piecewise_backend.py#L133-L154"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 65,
+      "ref": "vllm@84030bbe:vllm/compilation/piecewise_backend.py#L133-L154"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 66,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen2_5_vl.py#L460-L473"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 67,
+      "ref": "vllm@568afb3a:vllm/model_executor/models/qwen2_5_vl.py#L458-L471"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 68,
+      "ref": "vllm@ced6857a:vllm/model_executor/models/qwen2_5_vl.py#L462-L475"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 69,
+      "ref": "vllm@84030bbe:vllm/model_executor/models/qwen2_5_vl.py#L461-L474"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 70,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/qwen3_vl.py#L411-L416"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 71,
+      "ref": "vllm@568afb3a:vllm/model_executor/models/qwen3_vl.py#L410-L415"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 72,
+      "ref": "vllm@ced6857a:vllm/model_executor/models/qwen3_vl.py#L437-L451"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 73,
+      "ref": "vllm@84030bbe:vllm/model_executor/models/qwen3_vl.py#L437-L451"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 74,
+      "ref": "vllm@0fc695fc:vllm/config/compilation.py#L1034-L1081"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 75,
+      "ref": "vllm@0fc695fc:vllm/compilation/backends.py#L96-L120"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 76,
+      "ref": "vllm@0fc695fc:vllm/compilation/backends.py#L1026-L1095"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 77,
+      "ref": "vllm@568afb3a:vllm/compilation/backends.py#L1031-L1100"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 78,
+      "ref": "vllm@ced6857a:vllm/compilation/backends.py#L1031-L1100"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 79,
+      "ref": "vllm@84030bbe:vllm/compilation/backends.py#L1031-L1100"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 80,
+      "ref": "vllm@0fc695fc:vllm/compilation/compiler_interface.py#L193-L209"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 81,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L236-L258"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 82,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L303-L368"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 83,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L549-L556"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 84,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1188-L1195"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 85,
+      "ref": "vllm@0fc695fc:docs/design/debug_vllm_compile.md#L1-L361"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 86,
+      "ref": "vllm@0fc695fc:docs/design/torch_compile.md#L1-L261"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 87,
+      "ref": "vllm@0fc695fc:docs/design/torch_compile_multimodal.md#L1-L107"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 88,
+      "ref": "vllm@0fc695fc:docs/design/fusions.md#L1-L397"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 48,
+      "ref": "vllm@0fc695fc:vllm/model_executor/layers/layernorm.py#L36-L101"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 49,
+      "ref": "vllm@0fc695fc:vllm/ir/op.py#L327-L366"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 50,
+      "ref": "vllm@568afb3a:vllm/ir/op.py#L327-L366"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 51,
+      "ref": "vllm@ced6857a:vllm/ir/op.py#L327-L366"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 52,
+      "ref": "vllm@84030bbe:vllm/ir/op.py#L327-L366"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 53,
+      "ref": "vllm@0fc695fc:vllm/ir/op.py#L389-L426"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 54,
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/ir/lowering_pass.py#L43-L69"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 55,
+      "ref": "vllm@0fc695fc:vllm/config/kernel.py#L251-L273"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 56,
+      "ref": "vllm@568afb3a:vllm/config/kernel.py#L276-L298"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 57,
+      "ref": "vllm@ced6857a:vllm/config/kernel.py#L397-L419"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 58,
+      "ref": "vllm@84030bbe:vllm/config/kernel.py#L350-L372"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 59,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/worker_base.py#L91-L96"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 60,
+      "ref": "vllm@0fc695fc:vllm/config/kernel.py#L19-L100"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 61,
+      "ref": "vllm@0fc695fc:vllm/ir/op.py#L530-L539"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 62,
+      "ref": "vllm@0fc695fc:vllm/ir/op.py#L650-L664"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 63,
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/ir/inplace_functionalization.py#L64-L91"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 64,
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/ir/clone_elimination.py#L72-L155"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 65,
+      "ref": "vllm@0fc695fc:vllm/config/vllm.py#L1128-L1134"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 66,
+      "ref": "vllm@568afb3a:vllm/config/vllm.py#L1244-L1250"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 67,
+      "ref": "vllm@ced6857a:vllm/config/vllm.py#L1601-L1607"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 68,
+      "ref": "vllm@84030bbe:vllm/config/vllm.py#L1507-L1513"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 69,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L664-L666"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 70,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L635-L637"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 71,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1366-L1368"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 72,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1250-L1252"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 73,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ops/layernorm.py#L63-L87"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 74,
+      "ref": "vllm@0fc695fc:docs/design/vllm_ir.md#L1-L615"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 90,
+      "ref": "vllm@0fc695fc:vllm/compilation/decorators.py#L506-L515"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 91,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L176-L181"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/npugraph-ex.md",
+      "source_number": 89,
+      "ref": "https://github.com/meta-pytorch/tlparse/blob/98b8782b90f076f3d77a4a414316e3c8d0d127d4/README.md"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 75,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1436-L1442"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 76,
+      "ref": "vllm@0fc695fc:vllm/utils/argparse_utils.py#L337-L429"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 77,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L285-L337"
+    },
+    {
+      "group": "compile",
+      "page": "wiki/concepts/ops-and-kernels.md",
+      "source_number": 78,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L2153-L2167"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 74,
+      "ref": "vllm@0fc695fc:vllm/transformers_utils/config.py#L689-L874"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 75,
+      "ref": "vllm@0fc695fc:vllm/transformers_utils/config.py#L206-L302"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 76,
+      "ref": "vllm@0fc695fc:vllm/model_executor/models/registry.py#L1064-L1264"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 77,
+      "ref": "vllm@0fc695fc:vllm/config/model.py#L489-L560"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 78,
+      "ref": "vllm@0fc695fc:vllm/tokenizers/registry.py#L196-L279"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 79,
+      "ref": "vllm@0fc695fc:vllm/tokenizers/hf.py#L160-L215"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 80,
+      "ref": "vllm@0fc695fc:vllm/model_executor/model_loader/default_loader.py#L293-L317"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 81,
+      "ref": "vllm@568afb3a:vllm/transformers_utils/config.py#L688-L813"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 82,
+      "ref": "vllm@568afb3a:vllm/model_executor/models/registry.py#L1122-L1322"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 83,
+      "ref": "vllm@568afb3a:vllm/config/model.py#L506-L572"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 84,
+      "ref": "vllm@568afb3a:vllm/tokenizers/registry.py#L181-L266"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 85,
+      "ref": "vllm@568afb3a:vllm/model_executor/model_loader/default_loader.py#L326-L350"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 86,
+      "ref": "vllm@ced6857a:vllm/transformers_utils/config.py#L757-L886"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 87,
+      "ref": "vllm@ced6857a:vllm/model_executor/models/registry.py#L1217-L1423"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 88,
+      "ref": "vllm@ced6857a:vllm/config/model.py#L553-L641"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 89,
+      "ref": "vllm@ced6857a:vllm/tokenizers/registry.py#L203-L321"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 90,
+      "ref": "vllm@ced6857a:vllm/model_executor/model_loader/default_loader.py#L326-L350"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 91,
+      "ref": "vllm@84030bbe:vllm/transformers_utils/config.py#L748-L877"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 92,
+      "ref": "vllm@84030bbe:vllm/model_executor/models/registry.py#L1208-L1414"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 93,
+      "ref": "vllm@84030bbe:vllm/config/model.py#L553-L641"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 94,
+      "ref": "vllm@84030bbe:vllm/tokenizers/registry.py#L203-L321"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 95,
+      "ref": "vllm@84030bbe:vllm/model_executor/model_loader/default_loader.py#L326-L350"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 96,
+      "ref": "vllm@ced6857a:vllm/transformers_utils/repo_utils.py#L52-L87"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 97,
+      "ref": "vllm@84030bbe:vllm/transformers_utils/repo_utils.py#L52-L87"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 98,
+      "ref": "vllm@ced6857a:vllm/transformers_utils/repo_utils.py#L93-L125"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 99,
+      "ref": "vllm@0fc695fc:vllm/transformers_utils/repo_utils.py#L204-L222"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 100,
+      "ref": "vllm@0fc695fc:vllm/transformers_utils/repo_utils.py#L245-L341"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 101,
+      "ref": "vllm@0fc695fc:vllm/config/model.py#L125-L189"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 102,
+      "ref": "vllm@0fc695fc:vllm/config/model.py#L271-L315"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 103,
+      "ref": "vllm@0fc695fc:vllm/model_executor/model_loader/utils.py#L40-L94"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 104,
+      "ref": "vllm@0fc695fc:vllm/model_executor/model_loader/utils.py#L178-L234"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 105,
+      "ref": "vllm@0fc695fc:vllm/model_executor/model_loader/base_loader.py#L43-L85"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 106,
+      "ref": "vllm@0fc695fc:vllm/model_executor/model_loader/__init__.py#L133-L148"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 107,
+      "ref": "vllm@568afb3a:vllm/config/model.py#L127-L189"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 108,
+      "ref": "vllm@568afb3a:vllm/config/model.py#L273-L328"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 109,
+      "ref": "vllm@ced6857a:vllm/config/model.py#L142-L214"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 110,
+      "ref": "vllm@ced6857a:vllm/config/model.py#L309-L368"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 111,
+      "ref": "vllm@84030bbe:vllm/config/model.py#L142-L214"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 112,
+      "ref": "vllm@84030bbe:vllm/config/model.py#L309-L368"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 113,
+      "ref": "https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/docs/configuration/model_resolution.md#L1-L23"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 114,
+      "ref": "https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/docs/design/huggingface_integration.md#L1-L31"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 115,
+      "ref": "https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/docs/models/supported_models.md#L1-L210"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 116,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L779-L858"
+    },
+    {
+      "group": "model_resolution",
+      "page": "wiki/concepts/npu-worker-lifecycle.md",
+      "source_number": 117,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1565-L1629"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 49,
+      "ref": "vllm@0fc695fc:vllm/plugins/lora_resolvers/filesystem_resolver.py#L1-L62"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 50,
+      "ref": "vllm@0fc695fc:vllm/plugins/lora_resolvers/hf_hub_resolver.py#L1-L145"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 51,
+      "ref": "vllm@0fc695fc:vllm/lora/resolver.py#L1-L88"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 52,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/openai/models/serving.py#L275-L337"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 53,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/openai/models/serving.py#L106-L111"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 54,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L211-L239"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 55,
+      "ref": "vllm@0fc695fc:vllm/plugins/__init__.py#L28-L66"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 56,
+      "ref": "vllm@0fc695fc:vllm/envs.py#L1041-L1076"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 57,
+      "ref": "vllm@568afb3a:vllm/plugins/lora_resolvers/filesystem_resolver.py#L1-L62"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 58,
+      "ref": "vllm@568afb3a:vllm/plugins/lora_resolvers/hf_hub_resolver.py#L1-L145"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 59,
+      "ref": "vllm@568afb3a:vllm/lora/resolver.py#L1-L88"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 60,
+      "ref": "vllm@568afb3a:vllm/entrypoints/openai/models/serving.py#L282-L344"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 61,
+      "ref": "vllm@568afb3a:vllm/entrypoints/openai/models/serving.py#L113-L118"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 62,
+      "ref": "vllm@568afb3a:vllm/entrypoints/serve/engine/serving.py#L40-L68"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 63,
+      "ref": "vllm@568afb3a:vllm/plugins/__init__.py#L36-L74"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 64,
+      "ref": "vllm@568afb3a:vllm/envs.py#L1103-L1146"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 65,
+      "ref": "vllm@ced6857a:vllm/plugins/lora_resolvers/filesystem_resolver.py#L1-L62"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 66,
+      "ref": "vllm@ced6857a:vllm/plugins/lora_resolvers/hf_hub_resolver.py#L1-L145"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 67,
+      "ref": "vllm@ced6857a:vllm/lora/resolver.py#L1-L88"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 68,
+      "ref": "vllm@ced6857a:vllm/entrypoints/openai/models/serving.py#L282-L344"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 69,
+      "ref": "vllm@ced6857a:vllm/entrypoints/openai/models/serving.py#L113-L118"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 70,
+      "ref": "vllm@ced6857a:vllm/entrypoints/serve/engine/serving.py#L40-L68"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 71,
+      "ref": "vllm@ced6857a:vllm/plugins/__init__.py#L36-L74"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 72,
+      "ref": "vllm@ced6857a:vllm/envs.py#L1146-L1178"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 73,
+      "ref": "vllm@84030bbe:vllm/plugins/lora_resolvers/filesystem_resolver.py#L1-L62"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 74,
+      "ref": "vllm@84030bbe:vllm/plugins/lora_resolvers/hf_hub_resolver.py#L1-L145"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 75,
+      "ref": "vllm@84030bbe:vllm/lora/resolver.py#L1-L88"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 76,
+      "ref": "vllm@84030bbe:vllm/entrypoints/openai/models/serving.py#L282-L344"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 77,
+      "ref": "vllm@84030bbe:vllm/entrypoints/openai/models/serving.py#L113-L118"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 78,
+      "ref": "vllm@84030bbe:vllm/entrypoints/serve/engine/serving.py#L40-L68"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 79,
+      "ref": "vllm@84030bbe:vllm/plugins/__init__.py#L36-L74"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 80,
+      "ref": "vllm@84030bbe:vllm/envs.py#L1170-L1207"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 81,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L467-L472"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 82,
+      "ref": "vllm@568afb3a:vllm/entrypoints/serve/engine/serving.py#L70-L76"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 83,
+      "ref": "vllm@0fc695fc:pyproject.toml#L46-L48"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 84,
+      "ref": "vllm@0fc695fc:vllm/lora/lora_model.py#L205-L296"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 85,
+      "ref": "vllm@0fc695fc:docs/design/lora_resolver_plugins.md#L1-L219"
+    },
+    {
+      "group": "lora_resolver",
+      "page": "wiki/concepts/lora.md",
+      "source_number": 86,
+      "ref": "vllm@0fc695fc:docs/features/lora.md#L1-L240"
+    }
+  ],
+  "review_reports": [
+    "renderer-review.md",
+    "beam-review.md",
+    "compile-tail-independent-review.md",
+    "model-resolution-independent-review.md",
+    "lora-resolver-independent-review.md",
+    "api-loading-links-review.md"
+  ],
+  "root_browser_reports": [
+    "render-beam-root-browser/report.json",
+    "compile-root-browser/report.json",
+    "loading-root-browser/report.json"
+  ],
+  "code_validation": "110 tests passed; targeted Biome 2 files passed; build includes typecheck",
+  "hardware_validation": false
+}

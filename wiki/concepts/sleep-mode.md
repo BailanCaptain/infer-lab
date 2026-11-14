@@ -1,52 +1,99 @@
 ---
 id: sleep-mode
-title: "Sleep Mode：暂停推理时怎样把显存让给训练"
+title: Sleep Mode：暂停推理时怎样把显存让给训练
 type: feature
-summary: Sleep Mode 在保留引擎进程的同时释放可睡眠内存池：level 1 把权重备份到 CPU，level 2 丢弃权重，两者都丢弃旧 KV cache。说明唤醒顺序、请求处理、GLM 双机未启用的原因与版本差异。
-aliases: [Sleep Mode, Sleep Mode Guide, 睡眠模式, 休眠模式, sleep_mode, enable_sleep_mode, --enable-sleep-mode]
-chapters: ["19"]
+summary: >-
+  Sleep Mode 在保留引擎进程的同时释放可睡眠内存池：level 1 把权重备份到 CPU，level 2 丢弃权重，两者都丢弃旧 KV
+  cache。说明唤醒顺序、请求处理、GLM 双机未启用的原因与版本差异。
+aliases:
+  - Sleep Mode
+  - Sleep Mode Guide
+  - 睡眠模式
+  - 休眠模式
+  - sleep_mode
+  - enable_sleep_mode
+  - '--enable-sleep-mode'
+chapters:
+  - '19'
 order: 60
 sources:
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/sleep_mode.md#L3-L26
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/sleep_mode.md#L60-L81
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/sleep_mode.md#L100-L137
-  - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/sleep_mode.md#L126-L172
-  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/sleep_mode.md#L92-L180
-  - vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L341
-  - vllm@0fc695fc:vllm/config/model.py#L297-L298
-  - vllm@0fc695fc:vllm/entrypoints/serve/dev/sleep/api_router.py#L21-L48
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L688-L783
-  - vllm@0fc695fc:vllm/v1/executor/abstract.py#L318-L356
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L216-L280
-  - vllm-ascend@db701c1f:vllm_ascend/device_allocator/camem.py#L135-L249
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L668-L679
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L894-L905
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L216-L280
-  - vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L222-L270
-  - vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L241-L294
-  - vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1122-L1138
-  - vllm-ascend@baa023ad:vllm_ascend/device_allocator/camem.py#L197-L222
-  - vllm@568afb3a:vllm/config/model.py#L306-L307
-  - vllm@84030bbe:vllm/config/model.py#L342-L343
-  - vllm@0fc695fc:vllm/entrypoints/openai/api_server.py#L195-L200
-  - vllm@0fc695fc:vllm/entrypoints/llm.py#L807-L845
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L249-L254
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1771-L1787
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1805-L1828
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1621-L1668
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/sleep_mode.md#L140-L184
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918
-  - vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L1001-L1012
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/sleep_mode.md#L3-L26
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/sleep_mode.md#L60-L81
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/sleep_mode.md#L100-L137
+  - >-
+    vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/sleep_mode.md#L126-L172
+  - >-
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/sleep_mode.md#L92-L180
+  - 'vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L341'
+  - 'vllm@0fc695fc:vllm/config/model.py#L297-L298'
+  - 'vllm@0fc695fc:vllm/entrypoints/serve/dev/sleep/api_router.py#L21-L48'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L688-L783'
+  - 'vllm@0fc695fc:vllm/v1/executor/abstract.py#L318-L356'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L216-L280'
+  - 'vllm-ascend@db701c1f:vllm_ascend/device_allocator/camem.py#L135-L249'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L668-L679'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L894-L905'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L216-L280'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L222-L270'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L241-L294'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1122-L1138'
+  - 'vllm-ascend@baa023ad:vllm_ascend/device_allocator/camem.py#L197-L222'
+  - 'vllm@568afb3a:vllm/config/model.py#L306-L307'
+  - 'vllm@84030bbe:vllm/config/model.py#L342-L343'
+  - 'vllm@0fc695fc:vllm/entrypoints/openai/api_server.py#L195-L200'
+  - 'vllm@0fc695fc:vllm/entrypoints/llm.py#L807-L845'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L249-L254'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1771-L1787'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1805-L1828'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L1621-L1668'
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/sleep_mode.md#L140-L184
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L1001-L1012'
+  - >-
+    raw:sha256-420d0319585f07ff323b58f0ac201d0cb6155ea95bb8a8cba30c59e952ae6bf7.md#L1-L1207
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/core.py#L1771-L1787
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/core.py#L1805-L1816
+  - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L246-L299'
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/device_allocator/sleep_mem_optimized.py#L61-L71
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/device_allocator/sleep_mem_optimized.py#L154-L248
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/device_allocator/sleep_mem_optimized.py#L257-L302
+  - 'vllm@ced6857a:vllm/config/model.py#L342-L344'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0rc2
+  - main
 evidence: C
 relations:
-  - {to: npu-worker-lifecycle, kind: builds-on, note: 启动时权重与缓存进入专用内存池，决定以后哪些分配可以睡眠释放}
-  - {to: request-call-chain, kind: builds-on, note: Sleep Mode 从请求调度转入 Worker 控制调用，主线页解释这些进程怎样连接}
-  - {to: enable-sleep-mode-extra-cleanup, kind: builds-on, note: 理解池外显存为何仍驻留需对照清理开关页；睡眠级别与恢复顺序在本页，额外清理代价及配置迁移在参数页}
-  - {to: glm-5-3-flash-two-node, kind: builds-on, note: 固定双机部署未开 Sleep Mode，卡的分工与显存预算仍以部署页为准}
+  - to: npu-worker-lifecycle
+    kind: builds-on
+    note: 启动时权重与缓存进入专用内存池，决定以后哪些分配可以睡眠释放
+  - to: request-call-chain
+    kind: builds-on
+    note: Sleep Mode 从请求调度转入 Worker 控制调用，主线页解释这些进程怎样连接
+  - to: enable-sleep-mode-extra-cleanup
+    kind: builds-on
+    note: 理解池外显存为何仍驻留需对照清理开关页；睡眠级别与恢复顺序在本页，额外清理代价及配置迁移在参数页
+  - to: glm-5-3-flash-two-node
+    kind: builds-on
+    note: 固定双机部署未开 Sleep Mode，卡的分工与显存预算仍以部署页为准
 contradicts: []
-updated: "2026-10-04"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-420d0319585f07ff323b58f0ac201d0cb6155ea95bb8a8cba30c59e952ae6bf7.md
+  - >-
+    raw/sha256-ad479d365f8bbdc1a194ac58ffc4d8d965236880240b6dbf2e6124e3ec82d201.md
 ---
 
 ## 推理暂时不用卡时，能把显存让出来吗？
@@ -78,6 +125,9 @@ file: sleep-mode-intuition
 | 额外清理开关 | 在睡眠基础上再清通信域和图工作区 | 训练仍缺池外那部分显存 |
 
 额外清理的开关、通信域重建和图重捕获见[参数页](../params/enable-sleep-mode-extra-cleanup.md)。本页的两种睡眠级别在这个额外开关关闭时也成立。
+
+DP 协调的暂停路径要先完成各 rank 的暂停共识，再恢复调度。若暂停仍在途，恢复入口会报错并要求等待暂停 future 完成；调用方应等待这一异步结果，而不是发出暂停请求后立即恢复。
+
 
 ## 睡下去和醒过来，各要保留什么？
 
@@ -112,6 +162,8 @@ file: sleep-mode-flow
 
 分标签唤醒期间，调用方必须继续挡住新流量。钉住的 EngineCore 每次唤醒调用后都会恢复调度，包括只唤醒权重那一步；执行器此时仍能记录缓存标签尚未恢复。两种状态不能混为一谈，查询到仍在睡眠也不能代替调用方的流量控制。
 
+接口响应与操作完成也需要区分。旧 v0 引擎通过独立的前端进程接收控制请求时，接口返回成功不应单独当作内存交接完成的信号：在开始训练或恢复生成前，还需要确认睡眠或唤醒操作已经完成。这条提醒针对旧 v0 的前端多进程形态，不据此推断固定部署的控制时序。
+
 ## GLM 双机中的一个 token 会遇到睡眠吗？
 
 **固定 GLM 双机部署没有启用 Sleep Mode，请求生成期间不会因空闲自动睡眠。** [部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)所用的官方两机命令都没有睡眠开关；上游配置默认关闭。启动时权重、缓存进入普通分配路径，详细顺序见 [Worker 生命周期](../concepts/npu-worker-lifecycle.md#一张卡上的-worker启动时按什么顺序做准备)。
@@ -136,7 +188,9 @@ file: sleep-mode-flow
 
 ### 怎么开
 
-离线通过 LLM 构造参数 `enable_sleep_mode=True`，服务启动通过 `--enable-sleep-mode`。vLLM 三个钉点的默认值均为 `False`。分配器依赖 AscendCL（昇腾底层运行时接口）扩展；官方指南要求按安装文档源码构建，额外的旧版本编译环境变量说明只针对早于 v0.12.0rc1 的版本。
+离线通过 LLM 构造参数 `enable_sleep_mode=True`，服务启动通过 `--enable-sleep-mode`。v0.23、v0.26、v0.30.0rc2 与 main 所配套的 vLLM 钉点，默认值均为 `False`。分配器依赖 AscendCL（昇腾底层运行时接口）扩展；官方指南要求按安装文档源码构建，额外的旧版本编译环境变量说明只针对早于 v0.12.0rc1 的版本。
+
+上述旧版本编译设置为 `COMPILE_CUSTOM_KERNELS=1`，仅适用于低于 v0.12.0rc1 的版本；其他版本的完整安装要求仍以对应安装指南为准。
 
 以下是按钉住接口修正过的**小模型 level 1 验证流程**，在 Linux 昇腾环境执行；它不是 GLM 双机命令。先保证现有请求结束，并移除环境中与内存池冲突的分配选项。旧版环境变量和显式布局配置都关闭 NZ；NZ 是面向 NPU 矩阵乘优化的 FRACTAL_NZ 权重存储布局，钉住的唤醒路径要求它关闭。
 
@@ -182,6 +236,12 @@ CPU 备份按分配器记录的实际字节数申请 pinned memory（便于设�
 
 ### 版本差异
 
+若分阶段唤醒，锚点保留到 kv_cache 阶段完成业务组、MoE runtime 与图的恢复，而不是在只恢复权重后立即释放。
+
+rc2 的额外清理新增 HCCL lifecycle anchor：多 rank 在拆业务通信组前创建锚点并以 barrier 初始化；若锚点初始化或 MoE prepare 失败，本轮跳过 HCCL teardown。恢复业务组、MoE runtime 和图后才释放锚点，避免先销毁最后一个 HCCL 组。该流程仍受 [额外清理配置](../params/enable-sleep-mode-extra-cleanup.md) 的双开关门控。
+
+**v0.30.0rc2 的睡眠级别继续区分权重备份和 buffer 保存。** level 1 只备份 weights 池到 CPU，并清掉旧 saved_buffers 记录；level 2 另存 named_buffers，权重不备份，唤醒时再恢复这些 buffer。池外额外清理仍须 rl_config.enabled 与 sleep_mode_extra_cleanup 同时为真。wake_up 会明确拒绝非零 weight_nz_mode，要求设为 0 或启用会禁用 NZ 的 RL 配置，不能只核旧环境变量；实际释放量和恢复精度仍需 NPU 验证。
+
 v0.23 列使用维护分支 2c59ff10；GLM 镜像执行侧另列 db701c1f，两者的 sleep/wake 方法和分配器在本页相关部分一致，但维护分支没有 GLM 模型实现。v0.26 为 2ed6cbba，main 为 baa023ad；控制配置默认值分别核对 vLLM 0fc695fc、568afb3a、84030bbe。表中的 main 不是固定镜像行为。
 
 | 核对项 | v0.23 / GLM orphan | v0.26 | main | 对使用者的意义 |
@@ -196,7 +256,7 @@ v0.23 列使用维护分支 2c59ff10；GLM 镜像执行侧另列 db701c1f，两�
 
 ### 源码位置
 
-以下角标按 frontmatter 来源顺序编号，范围均经本地钉住仓库核对；它们证明源码与文档内容，不代表硬件实验通过。
+以下来源按配置、请求控制、内存分配和版本差异对应正文。
 
 - **定义、级别和构建前提**：官方 feature_guide/sleep_mode.md:3–26。[S1]
 - **分阶段恢复与旧版专家转置说明**：同文档 60–81；权重必须先补回，专家布局分支只适用于非量化模型。[S2]
@@ -207,7 +267,13 @@ v0.23 列使用维护分支 2c59ff10；GLM 镜像执行侧另列 db701c1f，两�
 - **显存内容的实际去向**：GLM Worker 216–280 与 camem.py:135–249；备份、丢弃、持久标签、重映射与错误表的来源。[C11] [C12]
 - **启动时入池**：Worker 668–679、894–905；先开配置再加载，不能运行途中补上池的归属。来源 29、30 给出维护分支和 v0.26 的缓存初始化范围。[C13] [C14]
 - **版本实现**：维护分支 Worker 216–280、v0.26 Worker 222–270、main Worker 241–294、1122–1138，以及 main camem.py:197–222。[C15] [C16] [C17] [C18] [C19]
-- **默认值、接口和布局**：三版 model.py 的配置字段分别见来源 7、20、21；开发路由守卫见来源 22，Python API 的级别与标签约定见来源 23，GLM 侧布局配置读取见来源 24。[C7] [C20] [C21] [C22] [C23] [C24]
+- **默认值、接口和布局**：四版 model.py 的配置字段分别见来源 7、20、21、38；开发路由守卫见来源 22，Python API 的级别与标签约定见来源 23，GLM 侧布局配置读取见来源 24。[C7] [C20] [C21] [C22] [C23] [C24]
 - **双机状态协作**：core.py:1771–1787 和 1805–1828，等待各数据并行组进入暂停，再同步恢复。[C25] [C26]
 
 待核：缺少固定 GLM 双机在调整分配选项、NZ 布局及流量控制后的 level 1 / level 2 实测，需核对混合注意力状态、权重重载、输出一致性、释放显存和恢复耗时。当前只确认默认未开及静态分支；本页示例尚未在 NPU 上运行。
+
+来源 8 的 api_router.py 27–28、40–41 行保留一项仅针对 v0 frontend multiprocessing 的注释：控制请求返回时操作可能尚未完成。该旧路径的可用性及固定 GLM 控制时序未实测；交接仍应确认实际完成、流量暂停、标签与权重恢复，不能只看 HTTP 成功。[I]
+
+来源 1 的 sleep_mode.md 第 26 行将 COMPILE_CUSTOM_KERNELS=1 限定于低于 v0.12.0rc1 的构建，不是所有在册版本和固定 GLM 镜像的统一要求。
+
+- **rc2 的恢复顺序**：来源 34 给出 Worker 的权重、buffer 和 NZ 条件；来源 35–37 给出业务组恢复、MoE runtime 刷新、图恢复和最后释放锚点的顺序。来源 32、33 与前述 DP 暂停共识、恢复入口属于同一固定实现。

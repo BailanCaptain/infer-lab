@@ -3,9 +3,8 @@ id: rfork-transfer
 title: RFork 传输：登记空位、核对清单、分批读字节
 type: feature
 summary: >-
-  借到 seed 后，B 的每个 Worker 先把放权重的空位登记给传输引擎，再用 HTTP 向 seed 要清单、整份逐项核对，
-  通过后由 B 按地址分批把字节读进来；任何一步失败都先注销登记、撤掉半成品再回退。也讲登记怎样保住内存，
-  以及主模型和草稿模型共享地址时字节怎么分开算。
+  借到 seed 后，B 的每个 Worker 先把放权重的空位登记给传输引擎，再用 HTTP 向 seed 要清单、整份逐项核对， 通过后由 B
+  按地址分批把字节读进来；任何一步失败都先注销登记、撤掉半成品再回退。也讲登记怎样保住内存， 以及主模型和草稿模型共享地址时字节怎么分开算。
 aliases:
   - RFork manifest
   - RFork shape mismatch
@@ -42,6 +41,16 @@ sources:
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L492-L501'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L584-L591'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L255-L286'
+  - >-
+    raw:sha256-d771f816da47b59060f7a56b0945b2a280aba7cd5e02232825b5f69b7dd9d448.md#L1-L1055
+  - >-
+    rfork@3284850b42f94934dfe6909ed6f1c4c145a7f69c:vllm_ascend/model_loader/rfork/seed_client.py#L111-L150
+  - >-
+    rfork@3284850b42f94934dfe6909ed6f1c4c145a7f69c:vllm_ascend/model_loader/rfork/manifest.py#L168-L204
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/manifest.py#L64-L214'
+  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/tensor_layout.py#L42-L61'
+  - 'vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/transfer_backend.py#L394-L482'
+  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L38-L49'
 verified:
   - 'rfork:main'
 evidence: C
@@ -53,7 +62,7 @@ relations:
     kind: builds-on
     note: key 匹配只负责挑候选来源，选中以后仍必须核验逐张量元数据
 contradicts: []
-updated: '2026-10-02'
+updated: '2026-10-30'
 rawSources:
   - >-
     raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md
@@ -67,6 +76,8 @@ rawSources:
     raw/sha256-83e2a01865a32aa947474f37b05149cfa00df90169b1014f4d2301934a03afb6.md
   - >-
     raw/sha256-ced334d86bb2fbc3284d127854ea3710bee45de12d95cdd91aeb6efb5e08e13f.md
+  - >-
+    raw/sha256-d771f816da47b59060f7a56b0945b2a280aba7cd5e02232825b5f69b7dd9d448.md
 ---
 
 ## 找到 seed 以后，B 怎样把 A 显存里的权重搬过来
@@ -168,7 +179,9 @@ Ex 注册是客户端这边的调用约定。现场的 YuanRong 版本能不能�
 - **补要时网络异常**：只有权重信息里每一项已经自带完整的形状和类型，才降级继续，日志里留一条警告；否则整次取清单失败。
 - **补要有回应，但不是成功状态**（比如 404）：B 不再追问，当作这次没有形状信息，交给后面的核对兜底——那里缺形状或缺类型一律拒绝。
 
-清单本身格式不对——整个回应不是一张表、主字段不是恰好两项、会话标识为空、权重信息不是一张表、形状那一项不是一张表——都在读任何数据之前失败。主请求回了非成功状态、网络异常、回应解析失败，也都算取清单失败。**所以不能只凭 HTTP 端口通了就说这一步完成了。**
+清单本身格式不对——整个回应不是一张表、主字段不是恰好两项、会话标识为空、权重信息不是一张表、主响应中的形状字段既不是 None 也不是映射结构——都在读任何数据之前失败。
+
+主响应没有形状字段，与字段存在但值为 None，走的是不同路径：只有缺少字段时，B 才会单独请求形状接口；字段存在但值为 None 时，直接处理这个值，不触发补要。接受 None 只说明此处不因字段类型而拒绝响应，清单是否足以传输仍由后续核对决定。主请求回了非成功状态、网络异常、回应解析失败，也都算取清单失败。**所以不能只凭 HTTP 端口通了就说这一步完成了。**
 
 seed key 不对时的表现容易误判。A 的 seed 服务对取清单的请求**不会**回一个「拒绝」状态，而是照常回应，只是主字段是空的；B 把它当成格式不对，报的也是格式不对。所以看到「seed 回的传输元数据格式不对」，**先核 seed key，别先去查网络**。seed 服务另有两个接口：一个带 key 的健康检查，key 不对才回 400（请求错误）；一个存活检查，只说自己还活着。排错时要记下是哪个接口、回的什么状态、回的什么内容，三个接口的「成功」不能混用。
 
@@ -255,14 +268,14 @@ title: 2.5 GiB 的权重切成三段（示意）
 
 ## 放到 GLM 双机：每张卡传两次，字节和批数分开记
 
-这一节是推演，不是实测：我们的部署（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）按教程命令没有开 RFork，工作版代码树里也没有 GLM-5.3-Flash 的模型实现。每张卡读多少字节、主模型至少几批，总览的[放到 GLM 双机](rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)一节已经逐项算过：主模型约 20,572 MiB、至少 21 批；MTP 草稿模型（GLM 自带的多 token 预测层，投机解码时负责先猜后面几个 token）约 844 MiB；每张卡合计约 21,416 MiB（约 20.91 GiB）。这里只讲传输这一层要分清的三件事。
+这一节是推演，不是实测：我们的部署（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）按教程命令没有开 RFork，工作版代码树里也没有 GLM-5.3-Flash 的模型实现。沿用总览的[所列语言张量子账](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)，3121f187 快照下主模型约 20,572 MiB、至少 21 批；MTP 草稿模型（负责先猜后面 token 的预测层）子账约 844 MiB；合计约 21,416 MiB，也就是 20.91 GiB。这些数未计视觉塔、MTP 旋转矩阵等表外项，不能当作完整清单。这里只讲传输这一层要分清的三件事。
 
-**两份清单分两个会话，从不装进同一批。** 主模型和草稿模型各走一遍上面的四步，各有自己的清单和批次。草稿那份不到 1 GiB，清单不超过 512 条时一批读完。
+**两份清单分两个会话，从不装进同一批。** 主模型和草稿模型各走一遍上面的四步，各有自己的清单和批次。草稿的 844 MiB 只是子账，完整草稿至少需要一批；只有补齐表外项后总字节仍不超过 1 GiB、切段数不超过 512，才能断言一批读完。
 
 ```calc
-title: GLM 每张卡的批量读次数（下限）
-分开装批 = 21 + 1 = 22 次
-> 21 是总览算出的主模型批数下限，1 是草稿那一批
+title: GLM 所列语言张量已经给出的批量读下限
+分开装批下限 = 21 + 1 = 22 次
+> 主模型子账已至少 21 批；独立草稿会话至少 1 批，完整清单可能更多
 合起来除（错误算法） = ⌈21,416 MiB ÷ 1,024 MiB⌉ = 21 次
 > 两份清单不会装进同一批，合起来除会少算草稿那一批
 ```
@@ -271,7 +284,7 @@ title: GLM 每张卡的批量读次数（下限）
 
 **排除区间防止共享部分算两遍；在这套部署里它没有东西可排。** 草稿加载时拿主模型登记过的块当排除区间。按源码推，传输那一刻草稿手里的张量没有一块落在主模型的块里：MTP 层是独立的一整套权重，草稿自建的词嵌入和输出头也是新分配的显存，要等加载结束以后才换成主模型的同名张量。所以草稿一块都不跳过，两份字节直接相加，没有重复。
 
-**登记会把草稿的旧词表钉住。** 那两份自建的词表张量传输时要读，这是草稿要读的字节比它常驻的 540.75 MiB 多出来的主要部分（常驻账见[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)）。加载结束后草稿改用主模型的同名张量，可登记时保住的旧存储放不掉；W8A8 走处理后布局，B 当 seed 时又沿用这份登记。按源码推，B 当 seed 期间每张卡多占约 302.5 MiB、折成 KV 块约少 38 块，尚未实测，推导见总览的[这套部署现在能不能受益](rfork.md#这套部署现在能不能受益)。
+**登记会把草稿的旧词表钉住。** 两份自建词表在传输时要读，而默认加载后的 MTP 所列模块子账 540.75 MiB 没有它们；该子账还没计 MTP 旋转矩阵等，范围见[部署页](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)。加载结束后草稿改用主模型的同名张量，可登记时保住的旧存储放不掉；W8A8 走处理后布局，B 当 seed 时又沿用这份登记。按源码推，B 当 seed 期间每卡多占约 302.5 MiB；其余预算不变时约少 38 个 KV 块，尚未实测，推导与教学起点的条件见总览的[这套部署现在能不能受益](rfork.md#这套部署现在能不能受益)。
 
 ## 常见误解
 
@@ -280,6 +293,7 @@ title: GLM 每张卡的批量读次数（下限）
 - **「吞吐高就说明启动快。」** 读取只是启动里的一段，要把分段耗时和整个服务就绪的时间放在一起看。
 - **「清一下显存缓存，这些权重就释放干净了。」** 还被保活列表、全局登记表或传输资源拿着的存储，不会因此变成可释放。
 - **「同一个分配块里只能登记一个张量。」** 客户端明确支持在一块里写多段逻辑范围；现场运行时支不支持，要实测。
+
 - **「把保活列表删掉，就能解决显存不够。」** 列表里保着的，正是还不能证明可以安全释放的内存；应该先查登记、注销和全局引用。
 - **「主模型字节加草稿字节，会把共享的权重算两遍。」** 完全共享的张量在草稿会话里被跳过，只在主模型那次传输里读一遍。GLM 双机上，传输那一刻草稿没有共享块，两份直接相加。
 
@@ -301,7 +315,7 @@ title: GLM 每张卡的批量读次数（下限）
 | 回应不是 mapping | `RFork seed returned malformed transfer metadata response.` |
 | 主字段不是两项序列（含 key 不匹配时主字段为 `None`） | `RFork seed returned malformed transfer metadata.` |
 | session ID 为空或 weight manifest 不是 mapping | `RFork seed returned an invalid session or weight manifest.` |
-| 形状那一项（内嵌或补要回来的）不是 mapping | `RFork seed returned a malformed shape manifest.` |
+| 主响应中的形状字段既不是 `None`，也不是 mapping | `RFork seed returned a malformed shape manifest.` |
 | 补要 `/get_rfork_transfer_engine_shape_info` 时抛网络异常、但权重条目已带 shape 与 dtype | `RFork optional shape metadata request failed; using complete weight metadata` |
 | 其余异常（含上一条不满足降级条件时重新抛出的异常、JSON 解析异常） | `RFork seed metadata request failed for ...` |
 
@@ -317,6 +331,8 @@ seed 服务端：metadata 与 shape 接口在 `seed_key` 不匹配时返回字�
 
 
 内存登记一侧：逻辑范围找不到完整覆盖的支撑块时，打印 `tensor range ... is not fully covered by a registration block` 后失败，不会把越界范围提交给传输引擎 [C14]；取不到有效的 storage owner 直接失败 [C12]；看到 `registration rollback is incomplete` 说明注册失败后的回滚没做完，要同时检查后面的 `fallback aborted` 和显存状态，不能当作零副作用失败；批量注销返回 `kNotFound` 时逐地址重试，单地址 `kNotFound` 视为该项已不存在，其他错误留在 unresolved addresses [C15]；`finalize_transfer_engine` 只在返回 `kNotReady` 时重试，其他错误或异常直接失败 [C16]；seed HTTP 服务仍被持有时，session 拒绝直接注销 MR [C19]，日志是 `RFork refuses to unregister memory while the seed server is owned.`。
+
+缺少扩展接口的失败还要与“批次已经提交、回滚没完成”区分：只有存在待登记的逻辑范围时，代码才检查扩展接口；缺失时尚未尝试本次原生登记，会清空本次登记状态并返回失败。已经提交批次后的失败，则仍按上文保留未解决地址与存储持有者，不能照此清空。
 
 失败撤销（`rfork_loader.py`）：`transfer_from_seed` 返回 False 时 loader 抛 `transfer failed.`，打印 `RFork transfer failed: ..., clean up and fall back to default loader`，再调 `prepare_for_fallback` 最多 2 次（`FALLBACK_CLEANUP_MAX_ATTEMPTS`）。`prepare_for_fallback`（`session.py` L274–286）依次停 seed 服务、归还租约、服务停掉才注销登记，归还失败交后台重试；`can_schedule_seed` 只看服务已停且登记已注销，租约没还上不挡回退。清理失败时报 `RFork fallback aborted because seed service or registered memory cleanup failed; ...`，拒绝分配第二份模型。
 
@@ -335,13 +351,15 @@ wire manifest 不携带完整远端 stride，校验是结构与类型核对而�
 
 内存登记一侧：每批注册最多 4096 项，是模块常量、不可配置 [C10]；finalize 最多尝试 10 次、间隔 1 秒，也是模块常量，和 lease release 的三次重试是两个独立设置。张量范围索引靠排序加前缀最大终点，避免逐张量扫描全部分配块 [C11]。同一 backing allocation 上多段逻辑范围的 Ex 注册是客户端约定；现场 YuanRong 版本是否支持、`kNotFound` / 部分成功 / 批量中止的语义，都要在真实 NPU 和实际库上验证，源码阅读与 CPU 测试不能替代。W 被 `W.data = 新张量` 替换后旧地址仍在 TransferEngine 注册表里、只保 W 不能保旧 storage，是由保活实现推出的结论 [D]。
 
-GLM 双机的数（推演，未实测）：主模型 session 约 20,572 MiB、至少 21 批，草稿 session 约 844 MiB、1 批，取自主线底稿 01 §A0.8「在我们部署下的具体数字」；草稿常驻 540.75 MiB 取自 02 §7.5。现场核对时，主模型和草稿各看自己那条 `RFork weight transfer completed` 日志，别把两条的 `bytes`、`chunks` 混成一条比。processed layout 下 seed 发布沿用接收时的登记、不重登（`session.py` L317–334），所以草稿两份词表张量的旧 storage 在本实例当 seed 期间一直被保活，即底稿 01 §A0.8 待核 6 的约 302.5 MiB / 约 38 块。
+GLM 双机的数是 3121f187 下所列语言张量的子账（推演，未实测）：主模型约 20,572 MiB、至少 21 批，草稿约 844 MiB、至少 1 批；540.75 MiB 是 MTP 所列模块小计，不是完整常驻量。实际量化版本、视觉塔和旋转矩阵等表外项见[部署页](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)，读取推导只维护在[RFork 总览](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)。现场分别核两条 `RFork weight transfer completed` 的完整 bytes/chunks。processed layout 发布沿用接收登记（session.py 317–334），草稿两份旧词表 storage 因此保活；302.5 MiB 及其余预算不变时约 38 块的增量条件也见总览。
 
 ### 版本差异
 
 本页只讲 RFork 工作版（`verified: rfork:main`，钉 `3284850b`）。社区 v0.23 / v0.26 / main 都没有 `manifest.py`、`seed_client.py`（它们由工作版 patch 0004 新建），社区版的元数据走 `seed_protocol.py`、没有独立的 manifest 校验层；逐补丁对照见 [RFork 总览](rfork.md) 的「版本差异」。
 
-社区版（v0.23 维护分支 `2c59ff10`、v0.26 `2ed6cbba`、main `baa023ad`，以及含 GLM 代码的 `db701c1f`）的 `rfork/` 目录都是同样 6 个文件，`transfer_backend.py` 里本页相关的差别：分批上限同为 1 GiB / 512，但单个张量不切段；登记用 `batch_register_memory(addresses, sizes)`，只有地址和长度、没有支撑范围，也没有 storage owner 保活；清单只逐张量核 numel 与 element size（`Weight info mismatch`），不核 dtype、总条数与总字节。
+旧社区 v0.23 `2c59ff10`、v0.26 `2ed6cbba`、main `baa023ad` 与 GLM `db701c1f` 都是六文件结构，分批上限同为1 GiB / 512条，单个张量不切段，清单不核 dtype、总条数与总字节。登记 API 交地址和长度，不带工作版的支撑范围。v0.23、v0.26、GLM 没有 owner 保活；baa023ad 已保留登记张量的引用、排除主草重叠区间，因此不能把它也说成“完全没有保活”。工作版进一步保存注册时的 storage owner，避免 Parameter 后来换 storage 时失去原登记内存。
+
+**v0.30.0rc2（7d825229）另有独立 manifest/seed_client，不能套用上述六文件结构。** 新清单只接受完整五元组，并要求 NPU format 清单按名称覆盖、逐项比较格式；工作版兼容旧条目与另取 shape 的流程不能当作新协议。名字、形状、dtype 和格式也参与申请前的结构摘要。若旧 seed 只返回少量元数据，即使模型路径相同也未必能通过校验；校验通过仍只证明结构相容，不证明权重内容相同。详见[总览的新版本对照](rfork.md#版本差异)及其 manifest.py 64–214 固定来源。
 
 ### 源码位置
 
@@ -376,3 +394,8 @@ GLM 双机的数（推演，未实测）：主模型 session 约 20,572 MiB、�
 | draft 加载器取 `registered_weight_blocks` 当 `exclude_blocks` | `rfork_loader.py` L492–501 |
 | `can_reuse_shared_weights` 为真时直接 eval 返回 | `rfork_loader.py` L584–591 |
 | seed HTTP 服务仍被持有时拒绝注销 MR | `session.py` L255–286 |
+
+工作版只有在 logical_registrations 非空时才要求 MemoryRegistration 与可调用的 batch_register_memory_ex。接口缺失会在批次提交前清登记状态；已提交后遇错则走保留未解决地址的回滚分支（来源14，395–445）。两类失败的资源状态不同，现场仍需检查实际接口兼容性和注销结果。
+
+- 来源 21：rfork@3284850b，vllm_ascend/model_loader/rfork/seed_client.py，L111–L150。
+- 来源 22：rfork@3284850b，vllm_ascend/model_loader/rfork/manifest.py，L168–L204。

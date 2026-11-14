@@ -34,5 +34,5 @@
   <text x="44" y="243" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">设备类型？</text>
   <text x="44" y="291" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">自动选哪个 Worker 类？</text>
   <text x="44" y="339" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">用哪个设备通信器类？</text>
-  <text x="24" y="388" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">通信后端名不在这一层</text>
+  <text x="24" y="388" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">本例 hccl 后端名由 NPUWorker 给出</text>
 </svg>

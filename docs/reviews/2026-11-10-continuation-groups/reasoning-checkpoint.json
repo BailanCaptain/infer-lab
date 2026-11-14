@@ -1,0 +1,69 @@
+{
+  "status": "accepted_for_frozen_revision",
+  "scope": "Reasoning delta only: ordinary non-beam Chat, template inputs, parser outputs and structured grammar start; not entire Responses protocol",
+  "new_source_occurrences": 50,
+  "groups": {
+    "api-server-entry": 20,
+    "streaming-output": 30
+  },
+  "current_hashes": {
+    "wiki/concepts/streaming-output.md": "485254831eeddf2d6784c5634837c64eff9d8232f57c71b6b2fef29e9086ae60",
+    "wiki/concepts/api-server-entry.md": "6c8d61985a9d14073f16f418c5625acc37fe5c5a0c62124b9a44cb502e23564b",
+    "wiki/concepts/sampling.md": "a7d6a09f412f8419fcce9b8cb16564e78abc20dea5eb552f7bdc283713b2d9f1",
+    "wiki/concepts/structured-output.md": "aee7bfb9c68fe3039857cbbe6769acf76d715e16f8284f725d0e1b5c830e7ffb"
+  },
+  "global_new_full_credit": 0,
+  "hardware_validation": false,
+  "p1_open": 0,
+  "p2_open": 0,
+  "browser_report": ".tmp/continuation-groups-2026-11-10/review-reasoning-browser/report.json",
+  "snapshot": ".tmp/continuation-groups-2026-11-10/reasoning-reviewed.zip",
+  "snapshot_sha256": "7ee174edc3430e0a01867c3415764390c975d1727087743e5c9c37697d742e72",
+  "judgments": "reasoning-independent.json",
+  "review": "reasoning-review.md",
+  "preservation": "reasoning-preservation.md",
+  "final_engineering": ".tmp/continuation-groups-2026-11-10/lifecycle-current-checks.json",
+  "final_engineering_sha256": "7f33cf2ebde2e02025c25869721222da15b3b19cf6a8c2a3ec393f62e6e8cdfc",
+  "checks": [
+    {
+      "command": "pnpm check:content",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/lifecycle-current-content.log",
+      "sha256": "d82a6ecbb6e8b94d64d790401b2004a5bffd24533d2656c5ac60cd1aed82e469",
+      "started_at": "2026-11-10T13:36:54.079345+00:00",
+      "finished_at": "2026-11-10T13:36:54.719655+00:00"
+    },
+    {
+      "command": "pnpm wiki:lint",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/lifecycle-current-lint.log",
+      "sha256": "12a38ca2de3576d77e66c68b575c0d7ef28bf24e5f458d866ee253fc6385891d",
+      "started_at": "2026-11-10T13:36:54.719655+00:00",
+      "finished_at": "2026-11-10T13:37:13.904170+00:00"
+    },
+    {
+      "command": "pnpm wiki:audit",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/lifecycle-current-audit.log",
+      "sha256": "6cbbd3b5ac31c09faa5dff241e2e2aa715fe4d61b9cfac20b477423a3e6c4109",
+      "started_at": "2026-11-10T13:37:13.904170+00:00",
+      "finished_at": "2026-11-10T13:37:36.358622+00:00"
+    },
+    {
+      "command": "pnpm wiki:diagrams --check",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/lifecycle-current-diagrams.log",
+      "sha256": "d889a13f3eec99f4f1dcde11114b91f17c198d013afdaaff96a32ce0daaff498",
+      "started_at": "2026-11-10T13:37:36.358622+00:00",
+      "finished_at": "2026-11-10T13:37:38.211322+00:00"
+    },
+    {
+      "command": "pnpm build",
+      "exit_code": 0,
+      "log": ".tmp/continuation-groups-2026-11-10/lifecycle-current-build.log",
+      "sha256": "4fbdef71de435f84f8762472305e3f0c4301ff436fceaa173a0c7401b3c8cabd",
+      "started_at": "2026-11-10T13:37:38.211322+00:00",
+      "finished_at": "2026-11-10T13:37:56.228038+00:00"
+    }
+  ]
+}

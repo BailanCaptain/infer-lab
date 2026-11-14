@@ -1,6 +1,6 @@
 layout: figure
 id: mlp-residual-norm-flow
-caption: 第 4 站逐层前向里，一层怎样安排 RMSNorm、子层与 residual。主干 45 层走左栏：每个子层前后各一次 mHC 混合，四条流代替单条旁路；MTP 层走右栏：正是本页首图的单条 pre-norm 写法，旁路暂存输入、子层后直接相加；块外进块前、出块后另有 RMSNorm。底部展开前 3 层的稠密 MLP 在 TP8 下每卡的走法。
+caption: 第 4 站逐层前向里，一层怎样安排 RMSNorm、子层与 residual。主干 45 层走左栏：每个子层前后各一次 mHC 混合，四条流代替单条旁路；MTP 层走右栏的单条 pre-norm 写法。MTP 块外的输入先按位置清零和配方 rot 条件处理，再分别 RMSNorm、拼接投影；出块后先 TP All-Reduce，再 RMSNorm 和词表投影。图中重点画块内的旁路与子层顺序。底部采用本页普通 TP8 教学基线，未走序列并行的 Reduce-Scatter 路径。
 size: [880, 1040]
 frames:
   - { at: [24, 170], size: [500, 610], label: 主干 45 层 · 四条流（mHC） }

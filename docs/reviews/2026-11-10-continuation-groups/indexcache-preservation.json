@@ -1,0 +1,79 @@
+{
+  "old_sources_prefix_identical": true,
+  "old_heading_count": 13,
+  "old_headings_retained": true,
+  "old_calc_count": 3,
+  "old_calcs_byte_identical": true,
+  "new_calc_count": 1,
+  "old_tables": [
+    {
+      "ordinal": 1,
+      "unchanged": true,
+      "note": "byte-identical"
+    },
+    {
+      "ordinal": 2,
+      "unchanged": true,
+      "note": "byte-identical"
+    },
+    {
+      "ordinal": 3,
+      "unchanged": true,
+      "note": "byte-identical"
+    },
+    {
+      "ordinal": 4,
+      "unchanged": false,
+      "note": "旧版本表扩为四版十行，原四行结论保留并补rc2、共享与MTP边界"
+    },
+    {
+      "ordinal": 5,
+      "unchanged": true,
+      "note": "byte-identical"
+    }
+  ],
+  "all6_diagram_files_unchanged": true,
+  "diagram_checks": {
+    "wiki/diagrams/sparse-attention-intuition.yaml": true,
+    "wiki/diagrams/sparse-attention-intuition.svg": true,
+    "wiki/diagrams/dense-sparse-attention.yaml": true,
+    "wiki/diagrams/dense-sparse-attention.svg": true,
+    "wiki/diagrams/sparse-attention-path.yaml": true,
+    "wiki/diagrams/sparse-attention-path.svg": true
+  },
+  "substantive_replacements": [
+    {
+      "old": "首段和末尾泛称skip调用条件待核",
+      "new": "明确旧GLM未接入与rc2/mainMTP链，保留硬件/精度/性能未验证",
+      "judgment": "supported refinement,not deletion of remaining uncertainty"
+    },
+    {
+      "old": "indexer每层都跑",
+      "new": "限定固定GLM的11层，避免新机制泛化冲突",
+      "judgment": "preserved fixed scenario"
+    },
+    {
+      "old": "main从模型到sparse_mla完整调用链没逐行核对",
+      "new": "只声明所核共享链与消费者，保留固定双机整套验证未知",
+      "judgment": "narrow closure supported by actual trace,not full deployment pass"
+    }
+  ],
+  "record_corrections": [
+    "Initial parser searched wiki-calc, mistakenly recorded0; actual calc fences=3. Corrected before final acceptance.",
+    "MTP budget label corrected: main64.09MiB, MTP68.0MiB, sum132.1MiB; not combined68.0MiB."
+  ],
+  "final_files": {
+    "wiki/concepts/sparse-attention.md": "eb83522c8a1e7ff23e1d776c21c2cda179b3787f3996f90df24c35bab7196dc1",
+    "wiki/diagrams/sparse-attention-intuition.yaml": "d58c89a461daf050dc46741bcc7976c51ba225b658bf131a95f1ff963e2ed402",
+    "wiki/diagrams/sparse-attention-intuition.svg": "9c2bc8b0524252d24c56ebf23f9894c2e43e4ee4ca97fca76366fa7867a49247",
+    "wiki/diagrams/dense-sparse-attention.yaml": "61f970edeba3b88d41ad590675232cb9f242263e9f2ec1232047e3ff92f935e4",
+    "wiki/diagrams/dense-sparse-attention.svg": "5f8c7f916dbb7d4caa450d8a58fef18b740d0ef4be3492089fe640778f33bebe",
+    "wiki/diagrams/sparse-attention-path.yaml": "236ba8ee5fc65d97c61f64e840ea137795cd42821d4f1c7d2ac41efa0898228a",
+    "wiki/diagrams/sparse-attention-path.svg": "5ce724835a0c9f438acd1c562f717de48b6ef2fad0c7a08384e35743627acac9"
+  },
+  "late_delta": {
+    "snapshot": ".tmp/continuation-groups-2026-11-10/indexcache/review-before-hedge.zip",
+    "diff": ".tmp/continuation-groups-2026-11-10/indexcache/review-late-delta.patch",
+    "conclusion": "Explicit missing-position counterexample and preserved KV retention; DBO threshold does not ensure nonempty second batch and net gain requires saved communication to outweigh overhead. Limits preserved."
+  }
+}

@@ -1,36 +1,31 @@
 layout: figure
 id: learning-guide-route
-caption: 从本页进入，按 1 到 5 读完主线。目录第一组收录本页与模型、单请求、多请求三页；部署页在「分布式推理与部署」，代码路径页在「vLLM 与 Ascend 架构」。图中各列表示后续阅读方向，底排三组按需查阅。
-size: [900, 560]
+caption: 从上往下读完左列五步。右列是每一步可继续查的主题；底部三组随时按需查阅。部署页在「分布式推理与部署」，代码路径页在「vLLM 与 Ascend 架构」。
+size: [610, 680]
 items:
-  - { at: [26, 52], size: [156, 56], text: "本页：阅读指南", sub: 从这里开始, tone: ink, style: plain }
-  - { at: [26, 140], size: [156, 64], text: 1 认识模型, sub: GLM-5.3-Flash, tone: control, style: solid }
-  - { at: [200, 140], size: [156, 64], text: 2 我们的部署, sub: 16 张卡怎么放, tone: control, style: solid }
-  - { at: [374, 140], size: [156, 64], text: 3 一条请求, sub: 走完七站, tone: control, style: solid }
-  - { at: [548, 140], size: [156, 64], text: 4 多个请求, sub: 一步装下多条, tone: control, style: solid }
-  - { at: [722, 140], size: [156, 64], text: 5 代码路径, sub: 停在哪一站, tone: control, style: solid }
-  - { at: [26, 250], size: [156, 64], text: 模型结构与计算, sub: 层与 attention, tone: ink, style: plain }
-  - { at: [200, 250], size: [156, 64], text: 分布式推理与部署, sub: "展开：16 卡怎么分", tone: ink, style: plain }
-  - { at: [200, 330], size: [156, 64], text: Ascend 硬件与软件栈, sub: "展开：卡与显存", tone: ink, style: plain }
-  - { at: [374, 250], size: [156, 64], text: 推理过程, sub: "展开：调度与 decode", tone: ink, style: plain }
-  - { at: [374, 330], size: [156, 64], text: 服务能力, sub: "展开：输出的约束", tone: ink, style: plain }
-  - { at: [548, 250], size: [156, 64], text: 性能与工程优化, sub: "展开：图尺寸与耗时", tone: ink, style: plain }
-  - { at: [722, 250], size: [156, 64], text: vLLM 与 Ascend 架构, sub: "展开：谁在执行", tone: ink, style: plain }
-  - { at: [26, 452], size: [156, 64], text: RFork 工作版, sub: 只动加载权重那步, tone: ink, style: faded }
-  - { at: [200, 452], size: [156, 64], text: 参数参考, sub: 查定义与默认值, tone: ink, style: faded }
-  - { at: [374, 452], size: [156, 64], text: 来源与更新记录, sub: 核对一手依据, tone: ink, style: faded }
+  - { at: [20, 52], size: [240, 56], text: 1 认识模型, sub: GLM-5.3-Flash, tone: control, style: solid }
+  - { at: [20, 145], size: [240, 76], text: 2 我们的部署, sub: 16 张卡怎么放, tone: control, style: solid }
+  - { at: [20, 260], size: [240, 76], text: 3 一条请求, sub: 走完七站, tone: control, style: solid }
+  - { at: [20, 375], size: [240, 64], text: 4 多个请求, sub: 一步装下多条, tone: control, style: solid }
+  - { at: [20, 480], size: [240, 64], text: 5 代码路径, sub: 停在哪一站, tone: control, style: solid }
+  - { at: [310, 52], size: [280, 56], text: 模型结构与计算, sub: 层与 attention, tone: ink, style: plain }
+  - { at: [310, 145], size: [280, 76], text: 分布式推理与部署, sub: Ascend 硬件与软件栈, tone: ink, style: plain }
+  - { at: [310, 260], size: [280, 76], text: 推理过程：调度与 decode, sub: 服务能力：输出的约束, tone: ink, style: plain }
+  - { at: [310, 375], size: [280, 64], text: 性能与工程优化, sub: 图尺寸、耗时与问题分析, tone: ink, style: plain }
+  - { at: [310, 480], size: [280, 64], text: vLLM 与 Ascend 架构, sub: 谁在执行，怎样接力, tone: ink, style: plain }
+  - { at: [20, 598], size: [180, 60], text: RFork 工作版, sub: 只动加载权重那步, tone: ink, style: faded }
+  - { at: [215, 598], size: [180, 60], text: 参数参考, sub: 查定义与默认值, tone: ink, style: faded }
+  - { at: [410, 598], size: [180, 60], text: 来源与更新记录, sub: 核对一手依据, tone: ink, style: faded }
 links:
-  - { from: [104, 108], to: [104, 140], ends: end }
-  - { from: [182, 172], to: [200, 172], ends: end }
-  - { from: [356, 172], to: [374, 172], ends: end }
-  - { from: [530, 172], to: [548, 172], ends: end }
-  - { from: [704, 172], to: [722, 172], ends: end }
-  - { from: [104, 204], to: [104, 250], ends: end, dashed: true }
-  - { from: [278, 204], to: [278, 250], ends: end, dashed: true }
-  - { from: [452, 204], to: [452, 250], ends: end, dashed: true }
-  - { from: [626, 204], to: [626, 250], ends: end, dashed: true }
-  - { from: [800, 204], to: [800, 250], ends: end, dashed: true }
+  - { from: [140, 108], to: [140, 145] }
+  - { from: [140, 221], to: [140, 260] }
+  - { from: [140, 336], to: [140, 375] }
+  - { from: [140, 439], to: [140, 480] }
+  - { from: [260, 80], to: [310, 80], dashed: true }
+  - { from: [260, 183], to: [310, 183], dashed: true }
+  - { from: [260, 298], to: [310, 298], dashed: true }
+  - { from: [260, 407], to: [310, 407], dashed: true }
+  - { from: [260, 512], to: [310, 512], dashed: true }
 texts:
-  - { at: [450, 26], text: 从入口到五页主线，再按需要展开各分组, anchor: middle, strong: true }
-  - { at: [26, 424], text: 虚线下面的每一列，接着它上面那一页读, note: true }
-  - { at: [26, 536], text: 这三组不跟主线的某一步走，需要时随时查, note: true }
+  - { at: [305, 26], text: 本页是入口：先沿左列向下读，再按虚线展开, anchor: middle, strong: true }
+  - { at: [305, 580], text: 以下三组随时按需查阅, anchor: middle, size: 14 }

@@ -1,0 +1,15 @@
+source_number	verdict	note
+1	supported	旧GLM平台在P上警告关内存对象、混部/无配置报错、D替换调度配置；P未写回差异保留。
+2	repaired_pending_acceptance	旧分支hook真只接收保存计划并正常抢占；假则free+重算名单但未正式finish，引擎与客户端结束须分开。
+3	repaired_pending_acceptance	STOP+空new_token_ids+recomputed客户端帧成立，不证明旧引擎请求表已完整清理。
+4	repaired_pending_acceptance	旧代理字符串接首条消息、按流帧计数、无退回次数上限；仅指定每帧1token示例8成立，不能保证无缝等价续写。
+5	supported	收回正常路径min夹值、全命中减1；抢占且无草稿与长度允许时补占位；失败路径另判。
+6	supported	同时无preempted/recomputed且未暂停才接waiting，退回也使本步禁新。
+7	supported	复制初始化字段并按async选类、补max_model_len/is_encoder_decoder；不是全站固定唯一scheduler。
+8	supported	有spec且consumer、长度足够才补placeholder；重复/流式会话另有分支。
+9	supported	旧GLM顶层默认false，oproj/embedding尺寸大于0要求开；rc2检查对象和阈值需另看。
+10	supported	后续动态批和profiling_chunk直接覆盖scheduler_cls，启用标志不保证最终类。
+11	supported	加载失败policy=recompute独立于本调度器；固定hybrid禁止该policy。
+12	repaired_pending_acceptance	官方参数行把P也写启动失败，与1实际警告并关闭不符；保留代码优先与具体版本。
+13	supported	官方教程说明D块不足送P重算且只在D启用；没有证明所有现代细粒度TP失败都退P。
+14	repaired_pending_acceptance	v23旧分支和GLM同样只free不finish；客户端结束不能表述为引擎完整收尾。

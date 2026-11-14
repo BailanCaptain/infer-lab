@@ -1,0 +1,2404 @@
+{
+  "reviewer": "review_groups_03_04",
+  "groups": [
+    "03-hardware-parallel",
+    "04-cache-state"
+  ],
+  "pages": [
+    {
+      "id": "ai-core",
+      "path": "wiki/concepts/ai-core.md",
+      "sha256_read": "f1e666827cd371b28ca5116cb6246227ccb0ed22f34a95c58d95b64f747dab8d",
+      "full_body_read": true,
+      "review_focus": "Cube/Vector/Scalar、GM与片上缓冲、矩阵与搬运算例、W8A8版本边界完整核读；硬件流量与核数保留未实测边界。",
+      "status": "read-no-new-material-finding",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [],
+      "sha256_at_report": "8609a7e3b206ff7f83af65ed0b4e06a493d6389ea232f7374c3a5b0dcc9a298a",
+      "changed_since_full_read": true,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "8609a7e3b206ff7f83af65ed0b4e06a493d6389ea232f7374c3a5b0dcc9a298a"
+    },
+    {
+      "id": "ai-qos",
+      "path": "wiki/concepts/ai-qos.md",
+      "sha256_read": "2fe9062f3cf2222218630b0213864000e319801ebcf7a7d556927af0e1b4afae",
+      "full_body_read": true,
+      "review_focus": "服务优先级与吞吐区别、端点/交换机分步配置、恢复风险、五键至三键版本变化；对照921官方AI QoS指南全文。",
+      "status": "read-no-new-material-finding",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [],
+      "sha256_at_report": "ee3010fcfeecf7edaaf01851c0bbe1ef5470e2eac1e794f2242bec4176bc64c9",
+      "changed_since_full_read": true,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "4b437000b9b01cb0bdeb6ffbbd7ead254595c221e46252ff286c5d002195c7f1"
+    },
+    {
+      "id": "ascend-950-architecture",
+      "path": "wiki/concepts/ascend-950-architecture.md",
+      "sha256_read": "1d57fff0a12b40c738a03a9e1bc583997b6810c59bb3400929b70e5981dffca8",
+      "full_body_read": true,
+      "review_focus": "CV直通、NDDMA地址算例、Buffer ID、SIMD/SIMT、规格口径与A2区分；白皮书尚未重新核读。",
+      "status": "read-no-new-material-finding",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [],
+      "sha256_at_report": "1d57fff0a12b40c738a03a9e1bc583997b6810c59bb3400929b70e5981dffca8",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "1d57fff0a12b40c738a03a9e1bc583997b6810c59bb3400929b70e5981dffca8"
+    },
+    {
+      "id": "ascend-950-execution-interconnect",
+      "path": "wiki/concepts/ascend-950-execution-interconnect.md",
+      "sha256_read": "38dc3190e2a22047dd8a3c0dc8fbcc359f1bc6b6afba8a2b41197540d793753a",
+      "full_body_read": true,
+      "review_focus": "STARS/CCU与请求调度区别、URMA/UB Memory、端口复用与关键路径算例；白皮书尚未重新核读。",
+      "status": "read-no-new-material-finding",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [],
+      "sha256_at_report": "38dc3190e2a22047dd8a3c0dc8fbcc359f1bc6b6afba8a2b41197540d793753a",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "38dc3190e2a22047dd8a3c0dc8fbcc359f1bc6b6afba8a2b41197540d793753a"
+    },
+    {
+      "id": "hardware-devices",
+      "path": "wiki/concepts/hardware-devices.md",
+      "sha256_read": "2e5b6e9e5b1d4d7601b40724c779bb9d1fba0f4fee83f86690775ed691efeb1a",
+      "full_body_read": true,
+      "review_focus": "设备层级、逻辑设备/rank、TP/EP、规格峰值单位、内存池边界；发现末尾维护口吻需转为支持范围。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "2e5b6e9e5b1d4d7601b40724c779bb9d1fba0f4fee83f86690775ed691efeb1a",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "0f10d83023d5656e605a30c2a9afe6f67b9f605272d0fc68c571275d58886883"
+    },
+    {
+      "id": "device-memory",
+      "path": "wiki/concepts/device-memory.md",
+      "sha256_read": "ca168c33f4a17d285a59206d4ff10922b6600d804f9b71f475ad89f98c1fc5d9",
+      "full_body_read": true,
+      "review_focus": "加载副本、容器与设备内存、cgroup事件不能单独定因、allocator注入/sleep差异；本轮未重新核全部外链。",
+      "status": "read-no-new-material-finding",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [],
+      "sha256_at_report": "15666b2f1f1a3c0490393ebd3113e994112c399d54b4cf3bf4b02438be85e601",
+      "changed_since_full_read": true,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "68f11244b2199ee5356f08b599bfff494eb03fb4f594dbf6a70a6cfd0fbc7c02"
+    },
+    {
+      "id": "cann-hccl",
+      "path": "wiki/concepts/cann-hccl.md",
+      "sha256_read": "80e04d2007f875efe7023421ffbabb7448fd3af7d271056483e88abd34ce4ca7",
+      "full_body_read": true,
+      "review_focus": "软件/通信/链路分层、DP设备组与执行组、AI QoS与KV QoS区分；维护口吻尾段需整理。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "80e04d2007f875efe7023421ffbabb7448fd3af7d271056483e88abd34ce4ca7",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "8f6f98b198c12c9471182c49ba9cd35faf01f70a5cf589b1cc4b50bf426dcb65"
+    },
+    {
+      "id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "sha256_read": "44c559d06f9a88173e094e29d49882edc88fa927c47cffa6e0a4ab9365765b97",
+      "full_body_read": true,
+      "review_focus": "RMSNorm残差分支与GLM实际单参数调用、Host tiling与KV块区别、融合数据量；末尾raw过程说明需整理。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "44c559d06f9a88173e094e29d49882edc88fa927c47cffa6e0a4ab9365765b97",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+    },
+    {
+      "id": "ops-and-kernels",
+      "path": "wiki/concepts/ops-and-kernels.md",
+      "sha256_read": "2c6457c5cf0dc9bd3e598a957fba8df364a499a47ba8b618d147c271b0a66d4a",
+      "full_body_read": true,
+      "review_focus": "分派/编译/算子/kernel分层、固定GLM调用；确认MC2只限decode的误导和raw未核声明噪声。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-01",
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "2c6457c5cf0dc9bd3e598a957fba8df364a499a47ba8b618d147c271b0a66d4a",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "903d20733a78f0901288229c50f166ce5644f9ec5ef4a318400c3f2b7e3b944d"
+    },
+    {
+      "id": "collective-communication",
+      "path": "wiki/concepts/collective-communication.md",
+      "sha256_read": "4495708f2d6f2c13f2fbdfdc1697c99a46e5354a641b401469e5d5c5310a2688",
+      "full_body_read": true,
+      "review_focus": "集合通信语义与ring数据量、MC2短prefill边界、根节点算法绝对化与审计尾段。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02",
+        "G34-P3-17"
+      ],
+      "sha256_at_report": "4495708f2d6f2c13f2fbdfdc1697c99a46e5354a641b401469e5d5c5310a2688",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "a2835d3f39bf0d8febf96c58fad7ef7b2556504501595a7f60abcc13c254096b"
+    },
+    {
+      "id": "dynamic-chunked-pp",
+      "path": "wiki/concepts/dynamic-chunked-pp.md",
+      "sha256_read": "3564a540e29a8032306a9d0dc1614f3fb2cd57eee941744a39490a3b1e05051b",
+      "full_body_read": true,
+      "review_focus": "chunk等时推导、原版与rc2拟合/调度差异、DP执行组与完整MoE副本误用。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02",
+        "G34-P1-03",
+        "G34-P2-04",
+        "G34-P2-14"
+      ],
+      "sha256_at_report": "3564a540e29a8032306a9d0dc1614f3fb2cd57eee941744a39490a3b1e05051b",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "31d13dc0378b91c4fa8e7b479eaef7a097b62e1dc7c7e367b1d74d1157f1d891"
+    },
+    {
+      "id": "pipeline-parallel",
+      "path": "wiki/concepts/pipeline-parallel.md",
+      "sha256_read": "388519e2a73c64996a78e62bef933de8b79d3927de97f4ab825e7101b3a87751",
+      "full_body_read": true,
+      "review_focus": "层分段/中间状态/批队列、跨节点启动与rank关系、源码索引副本口径。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02",
+        "G34-P1-03",
+        "G34-P2-07",
+        "G34-P2-14"
+      ],
+      "sha256_at_report": "388519e2a73c64996a78e62bef933de8b79d3927de97f4ab825e7101b3a87751",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "eba4ae05717de1530f7c7b711a0bf2f6750760b942e9103a628cc99564c5b5b2"
+    },
+    {
+      "id": "data-parallel",
+      "path": "wiki/concepts/data-parallel.md",
+      "sha256_read": "f96f239c4ac1dbebe1bc4edc7e999d8f5f9643f9123952c4031455a3b728df40",
+      "full_body_read": true,
+      "review_focus": "逻辑请求分流、TP与EP通信组、DP engine边界及版本实现、维护审计尾段。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "f96f239c4ac1dbebe1bc4edc7e999d8f5f9643f9123952c4031455a3b728df40",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "2d7108d4b8b8d06dc3634be1fd52403f826cbb766bcec5d0a5076e5174f175ee"
+    },
+    {
+      "id": "context-parallel",
+      "path": "wiki/concepts/context-parallel.md",
+      "sha256_read": "ad4439e06bbb1037261d2ac227f3e0c2a13b0836ca3a07b6e36f537c0dba7778",
+      "full_body_read": true,
+      "review_focus": "PCP/DCP拆分与缓存归属、GLM固定部署开关、最新官方支持组合及版本差异。",
+      "status": "read-no-new-material-finding",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [],
+      "sha256_at_report": "d4b3e86188a762aded616f351b741f5ab7650847b7dc56f87d40528fabedce20",
+      "changed_since_full_read": true,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "fb9f7a03ecce6c871dce45d83eb7aa3d503bcb91050f6333f106ac830e1c7e3e"
+    },
+    {
+      "id": "cpu-binding",
+      "path": "wiki/concepts/cpu-binding.md",
+      "sha256_read": "c12e082f726c262aa3cabdbcde2dc959de144dfde43152afb7eae88a1882e792",
+      "full_body_read": true,
+      "review_focus": "完整cluster、NUMA线程/内存迁移区别、版本硬件边界对照最新指南。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full body reading; source claims selectively cross-checked, no browser/NPU acceptance.",
+      "finding_ids": [
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "c12e082f726c262aa3cabdbcde2dc959de144dfde43152afb7eae88a1882e792",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "756be1a992983ed8f3de41bbe602b810134b88154db3370468af2267cdb4afc7"
+    },
+    {
+      "id": "dyntra-lb",
+      "path": "wiki/concepts/dyntra-lb.md",
+      "sha256_read": "122dced957325deb880011d34dd1ef2776bb24fb12b1b8821e9d271120a479c4",
+      "full_body_read": true,
+      "review_focus": "块数负载启发式、暂停与抢占、单节点和MoE入口、动态阈值与最新版支持范围。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full body reading; source claims selectively cross-checked, no browser/NPU acceptance.",
+      "finding_ids": [
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "122dced957325deb880011d34dd1ef2776bb24fb12b1b8821e9d271120a479c4",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "99de6f85e50f1aeeda4eaed4359b78ca04d930086dbb8cd2c1bf8e9e45ecee1f"
+    },
+    {
+      "id": "eplb",
+      "path": "wiki/concepts/eplb.md",
+      "sha256_read": "b3a513e5daa1edf68d9511db6d16d27975d082c68cc30d0ac09bc3ce1dae1c38",
+      "full_body_read": true,
+      "review_focus": "专家重排与副本算例、代价、MRV1/MRV2开关不混用、格式硬件边界；审计噪声。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full body reading; source claims selectively cross-checked, no browser/NPU acceptance.",
+      "finding_ids": [
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "b3a513e5daa1edf68d9511db6d16d27975d082c68cc30d0ac09bc3ce1dae1c38",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "79c41e78f99225741862c58fae058ffa4f1c40a6f80ecb2cc2d0b6614ba95222"
+    },
+    {
+      "id": "fine-grained-tp",
+      "path": "wiki/concepts/fine-grained-tp.md",
+      "sha256_read": "f2265603b281f96458db915e39e462477b2c5ae843c15ea1f8642a5df3168be4",
+      "full_body_read": true,
+      "review_focus": "沿DP模块分组与通信、实测不能相加、普通TP全层统一切分的错误定义。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full body reading; source claims selectively cross-checked, no browser/NPU acceptance.",
+      "finding_ids": [
+        "G34-P2-02",
+        "G34-P1-05"
+      ],
+      "sha256_at_report": "f2265603b281f96458db915e39e462477b2c5ae843c15ea1f8642a5df3168be4",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "12cc3a8d511b435b09c7e266ac642c9c03255dd71e582abb9fb17d66051304c5"
+    },
+    {
+      "id": "large-scale-ep",
+      "path": "wiki/concepts/large-scale-ep.md",
+      "sha256_read": "cd8f3891108f28faa1a553f392f12a236afab6938e44cc3206b6436f2cc3c892",
+      "full_body_read": true,
+      "review_focus": "P/D实例计数、DP入口和EP专家域、MC2前提及失效官方启动片段。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full body reading; source claims selectively cross-checked, no browser/NPU acceptance.",
+      "finding_ids": [
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "cd8f3891108f28faa1a553f392f12a236afab6938e44cc3206b6436f2cc3c892",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "d4509399fc14e8e43ec1715016f74968d21b14434f7904ce88fdb7b7535e5ae9"
+    },
+    {
+      "id": "expert-parallel",
+      "path": "wiki/concepts/expert-parallel.md",
+      "sha256_read": "8c2047c7fa731d646215a21bc0311e9c50bc469aca6e72694abdb08fc9059700",
+      "full_body_read": true,
+      "review_focus": "完整专家和token分配、MC2/AllGather边界、负载/通信算例及公式口径。",
+      "status": "read-no-new-material-finding",
+      "scope_limit": "Full body reading; source claims selectively cross-checked, no browser/NPU acceptance.",
+      "finding_ids": [],
+      "sha256_at_report": "8c2047c7fa731d646215a21bc0311e9c50bc469aca6e72694abdb08fc9059700",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "8c2047c7fa731d646215a21bc0311e9c50bc469aca6e72694abdb08fc9059700"
+    },
+    {
+      "id": "sequence-parallel",
+      "path": "wiki/concepts/sequence-parallel.md",
+      "sha256_read": "4cf41c2562bb0ef45408a3a1c46f8e1eb9a4a57feae61ad608ad93232ca3374c",
+      "full_body_read": true,
+      "review_focus": "Megatron SP与CP区别、手算、通信载荷与调用代价、GLM四路残差。",
+      "status": "read-no-new-material-finding",
+      "scope_limit": "Full body reading; source claims selectively cross-checked, no browser/NPU acceptance.",
+      "finding_ids": [],
+      "sha256_at_report": "b2368b7d69ebc7009636ace99b4d838a89182516aa4afdab1fa768e1fc4ebbd7",
+      "changed_since_full_read": true,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "b2368b7d69ebc7009636ace99b4d838a89182516aa4afdab1fa768e1fc4ebbd7"
+    },
+    {
+      "id": "tensor-parallel",
+      "path": "wiki/concepts/tensor-parallel.md",
+      "sha256_read": "e01102cb61c2de5ec49cf4974e2a856504f5e3e36af7070ff187bdd732fa4abf",
+      "full_body_read": true,
+      "review_focus": "列行配对算例、特殊复制矩阵、TP4/8/16口径和完整通信账。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full body reading; source claims selectively cross-checked, no browser/NPU acceptance.",
+      "finding_ids": [
+        "G34-P1-05"
+      ],
+      "sha256_at_report": "e01102cb61c2de5ec49cf4974e2a856504f5e3e36af7070ff187bdd732fa4abf",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "e3aa512ef106b4d4123d59b2351bc18e40c197b6334a44e879d250bf1596814d"
+    },
+    {
+      "id": "glm-5-3-flash-two-node",
+      "path": "wiki/concepts/glm-5-3-flash-two-node.md",
+      "sha256_read": "3f6fcb9421e3d21dc2799b84cb6ff6c9377bb906aaa6a864c74a7f8baa124ecb",
+      "full_body_read": true,
+      "review_focus": "固定双机完整容量/进程/启动/缓存账；发现陪跑半算力浪费及所有dispatch必跨机的绝对化。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full body reading; source claims selectively cross-checked, no browser/NPU acceptance.",
+      "finding_ids": [
+        "G34-P2-06"
+      ],
+      "sha256_at_report": "3f6fcb9421e3d21dc2799b84cb6ff6c9377bb906aaa6a864c74a7f8baa124ecb",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "26ad796c0c01f9c8a58bb2d35b5346a7fc5a6985e87eb44d9e3dca006dfae66a"
+    },
+    {
+      "id": "deepseek-serving-case",
+      "path": "wiki/concepts/deepseek-serving-case.md",
+      "sha256_read": "ab4be3ba5f3b69e77ae413c9eb20be6a1de00467149b430e8d6a776dcc8a616c",
+      "full_body_read": true,
+      "review_focus": "完整核读模型专属部署：Engram 主机表/本地 DP 共享、A3 逻辑设备整除、P/D 实例与 DP 入口数；未发现新增重大问题，未再次全读 DeepSeek 原教程。",
+      "status": "read-no-new-material-finding",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [],
+      "sha256_at_report": "ab4be3ba5f3b69e77ae413c9eb20be6a1de00467149b430e8d6a776dcc8a616c",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "ab4be3ba5f3b69e77ae413c9eb20be6a1de00467149b430e8d6a776dcc8a616c"
+    },
+    {
+      "id": "block-table",
+      "path": "wiki/concepts/block-table.md",
+      "sha256_read": "bb74877debb1496c03910cba299205e1bda5910ea7df5cc2532a56712501fdac",
+      "full_body_read": true,
+      "review_focus": "完整核读块表/slot mapping、GLM 五组表大小与拷贝字节、CPU/GPU 分工；134 KiB 推出关键路径可忽略没有 profiling。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02",
+        "G34-P2-09"
+      ],
+      "sha256_at_report": "bb74877debb1496c03910cba299205e1bda5910ea7df5cc2532a56712501fdac",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "06dbbc803bc7c128ee802c4df0f4042d8cd4d6565e0b028605da7fd0bf78a32c"
+    },
+    {
+      "id": "kv-cache",
+      "path": "wiki/concepts/kv-cache.md",
+      "sha256_read": "c44dabf8983943ab0ddbf0a666a9d3f9a82942873a92f9b79524a4196e35c34a",
+      "full_body_read": true,
+      "review_focus": "完整核读 K/V 与递推状态区别、每层/每卡字节、物理页与有效数据差异；未发现新的计算错误，清理维护口吻。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "c44dabf8983943ab0ddbf0a666a9d3f9a82942873a92f9b79524a4196e35c34a",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "7eceb7dd08b9aea28488a0d535207258b2061a853e99613c94bcf61e4ab33430"
+    },
+    {
+      "id": "kv-cache-cpu-offload",
+      "path": "wiki/concepts/kv-cache-cpu-offload.md",
+      "sha256_read": "f3054f95bd0bd71c48a0b878d0739a4adbf3ef3c263cf0228b4162a8dfd4d3e1",
+      "full_body_read": true,
+      "review_focus": "完整核读异步保存/加载生命周期、prefix 命中、块粒度、预算与手工上限；对照 921 指南全文，保留源码与官方旧例预算口径差异。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "f3054f95bd0bd71c48a0b878d0739a4adbf3ef3c263cf0228b4162a8dfd4d3e1",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "6033cfb26543051100677c4772919ba3b14a7b760bc352131135ceae09560d02"
+    },
+    {
+      "id": "prefix-caching",
+      "path": "wiki/concepts/prefix-caching.md",
+      "sha256_read": "0331f16369ecf57685f04e0086d66701e21d9eb9023e68846b6df39e295467b2",
+      "full_body_read": true,
+      "review_focus": "完整核读前缀哈希链、整块命中/部分尾块、完整命中回退一个位置与混合状态限制；无新增重大问题，期间有并行 rc2 改动。",
+      "status": "read-no-new-material-finding",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [],
+      "sha256_at_report": "b9c7e5ac53ee9fd5f08c89478d72b8a55d5fcc1a35cd28fdc590776e40bbde5b",
+      "changed_since_full_read": true,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "b9c7e5ac53ee9fd5f08c89478d72b8a55d5fcc1a35cd28fdc590776e40bbde5b"
+    },
+    {
+      "id": "swa-bounded-replay",
+      "path": "wiki/concepts/swa-bounded-replay.md",
+      "sha256_read": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8",
+      "full_body_read": true,
+      "review_focus": "完整核读窗口保留/重放、元数据与 KV 生命周期、示例边界；未发现新增重大问题，未声称所有底层源码逐行复核。",
+      "status": "read-no-new-material-finding",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [],
+      "sha256_at_report": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8"
+    },
+    {
+      "id": "kv-cache-memory-profiling",
+      "path": "wiki/concepts/kv-cache-memory-profiling.md",
+      "sha256_read": "3430b1107c1a7e52caca783c70200b3227bae555476fc7807066d2f50b059287",
+      "full_body_read": true,
+      "review_focus": "完整核读预跑/权重/非 PyTorch/图/显式预算账；源码确认跳过 attention/KDA，但“只会低估且最多一层”界限不成立。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02",
+        "G34-P2-10"
+      ],
+      "sha256_at_report": "da911ced8fef77fd01244012e4f354dd29f6d4d37ebcfb492f28eec427e2eb78",
+      "changed_since_full_read": true,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "074c2d7aa84defea0d56ffda0ec10385080179d32b424291105b77b9d9d4975f"
+    },
+    {
+      "id": "kv-cache-layerwise-offload",
+      "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+      "sha256_read": "f131d4bf22ce3a3428180f1801f9bdde25e477ecbb11ba6d1eef09edb9902aed",
+      "full_body_read": true,
+      "review_focus": "完整核读层间缓冲复用、传输/计算等待、P 侧流水与 D 侧 sparse 区别；对照最新指南和设计全文，需补新版本支持入口。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-13"
+      ],
+      "sha256_at_report": "53bf1d2ff056693b6d98e36dfb83af17aa6d639756e7e6d6900945d3761e925e",
+      "changed_since_full_read": true,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "3a6d98430fd262b46f8d14fb14e87429459c42e9c95aacbce451073b043b8242"
+    },
+    {
+      "id": "kv-cache-sparse-offload",
+      "path": "wiki/concepts/kv-cache-sparse-offload.md",
+      "sha256_read": "351721f5ca29bf3a3f62b1c17d2497ddbd0b58c65ea948e88e8f631ffbd135ac",
+      "full_body_read": true,
+      "review_focus": "完整核读主机全历史与设备热缓冲、索引查找与复制路径、TP 共享/DP 隔离预算；修完整模型副本称呼，补 921 新默认/互斥/950 边界。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02",
+        "G34-P1-03",
+        "G34-P2-13",
+        "G34-P2-14"
+      ],
+      "sha256_at_report": "351721f5ca29bf3a3f62b1c17d2497ddbd0b58c65ea948e88e8f631ffbd135ac",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "99c084cbbd60649714b70283d3e11cc90d2ac808aebe92554c7ca99c858c8278"
+    },
+    {
+      "id": "kv-cache-spec",
+      "path": "wiki/concepts/kv-cache-spec.md",
+      "sha256_read": "57d7126df0344cf7087e995493482ee0f770b55980b9c845a299c5be0fda5466",
+      "full_body_read": true,
+      "review_focus": "完整核读各种 cache spec、对齐/填充与统一块池、Mamba 状态结构和混合分组；无新增公式错误，正式正文的维护来源串需整理。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "57d7126df0344cf7087e995493482ee0f770b55980b9c845a299c5be0fda5466",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "1db191d04da0da9bc481b59e375c757b855d8beb2fb5faf7291f8e6126caf01d"
+    },
+    {
+      "id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "sha256_read": "0c653b25759dcbe4005dd780533bb337761ea35f0d33d2cc3ab9d02e9b36452e",
+      "full_body_read": true,
+      "review_focus": "完整核读池键/命中/加载/写回、backend、命名空间、DP/TP/PP 兼容；补最新 strided MLA 格式迁移、tenant 与 SSD prefetch 部署边界。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02",
+        "G34-P1-15",
+        "G34-P2-16"
+      ],
+      "sha256_at_report": "04ef81deaecff5ae1d5a99fda5f7ab23a9b9aec6885fbcb98c3deff7d464f832",
+      "changed_since_full_read": true,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "4a06f92a540bf264c254e0d74af8824e0b944d5620a4674a8c6821179ebde5f2"
+    },
+    {
+      "id": "kvpp",
+      "path": "wiki/concepts/kvpp.md",
+      "sha256_read": "0535b05cc2b84324c1706bc93521ba5048101e15e0082fdee1c9983d3f3d4ac5",
+      "full_body_read": true,
+      "review_focus": "完整核读 owner 常驻/暂存预算、广播就绪/等待时序、性能表与版本支持；修 PP 隐藏向量绝对化和 DP 副本口径，补新 pooling/组合边界。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02",
+        "G34-P1-03",
+        "G34-P2-07",
+        "G34-P2-13",
+        "G34-P2-14"
+      ],
+      "sha256_at_report": "0535b05cc2b84324c1706bc93521ba5048101e15e0082fdee1c9983d3f3d4ac5",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "83dea6289d92a59399f7d75224259eed1c1f3eaa0382da07dd29020312cb9ef7"
+    },
+    {
+      "id": "lmcache",
+      "path": "wiki/concepts/lmcache.md",
+      "sha256_read": "7b773aaa3f020a245be12af4e13bfd3a59590337c1f6a59e62428b0221859ced",
+      "full_body_read": true,
+      "review_focus": "完整核读 scheduler/worker 分工、异步加载返回、混合状态/依赖边界及部署示例；无新增重大问题，未全读外部 LMCache 项目文档。",
+      "status": "read-no-new-material-finding",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [],
+      "sha256_at_report": "197af058daa8a50da871fd319acdcb3d770f8f60b5ea155aab4853902b22b6b2",
+      "changed_since_full_read": true,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "197af058daa8a50da871fd319acdcb3d770f8f60b5ea155aab4853902b22b6b2"
+    },
+    {
+      "id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "sha256_read": "a73ba748daf471fa6088ec727f9ba0b72171b44d706e5a5ad70cc86dc17304e6",
+      "full_body_read": true,
+      "review_focus": "完整核读握手/块地址/实际读写/TP 不对称、Mamba 单状态与两种状态张量；源码确认单状态规则并发现 PD 页陈旧口径，需补 D2RH 导航。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02",
+        "G34-P2-13"
+      ],
+      "sha256_at_report": "a73ba748daf471fa6088ec727f9ba0b72171b44d706e5a5ad70cc86dc17304e6",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "833cbe74f83087f6d14803ee6c07648f94fdc04654d4ba1ba41efabdeeae8442"
+    },
+    {
+      "id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "sha256_read": "3e65339196d119e09aece7ad7d0688e4003e7114be12a69b91b30f95a18004cb",
+      "full_body_read": true,
+      "review_focus": "完整核读分阶段权衡、普通/混合请求交接点、P/D 实例卡数和块预算、各连接器；首屏分块/MTP 边界、MC2、KDA 实际传输及新 D2RH 入口待修。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-01",
+        "G34-P2-02",
+        "G34-P2-08",
+        "G34-P2-12",
+        "G34-P2-13"
+      ],
+      "sha256_at_report": "91361e38cf828cb6a57caf272d71753577f3079c88b409b15bc5e6d58365e9fb",
+      "changed_since_full_read": true,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "70f6327265bef6fc98960c3eee3cea7a85bd4fbc9b1bdb0afd0d260fe341330a"
+    },
+    {
+      "id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "sha256_read": "695f5039fc7714959eafb41222a95248ca55585e12916c7e4b3da4df547745c5",
+      "full_body_read": true,
+      "review_focus": "完整核读抢占同步 D2H 与恢复 H2D、预算按 world size、版本改名/多组限制；正文先重分块号正确，SVG 相反，已核 worker 原始注释。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02",
+        "G34-P2-11"
+      ],
+      "sha256_at_report": "695f5039fc7714959eafb41222a95248ca55585e12916c7e4b3da4df547745c5",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "349d16acb989e86428c2b43124e702ebe9c16b986c0f36464b1acf0662757523"
+    },
+    {
+      "id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "sha256_read": "56dc9209c7f32f8d77b031badb2d171ef0238e90c3be083f69adfefea9d44e4c",
+      "full_body_read": true,
+      "review_focus": "完整核读退回 P 的状态转换、DP token 同步变化、支持约束和固定部署预算；首屏 prefill 一次算完需限定，维护说明移出。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02",
+        "G34-P2-12"
+      ],
+      "sha256_at_report": "56dc9209c7f32f8d77b031badb2d171ef0238e90c3be083f69adfefea9d44e4c",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "c443990f776364685da9c98e8f1e113f45a09ff250646ad973b78b075f143ded"
+    },
+    {
+      "id": "ucm",
+      "path": "wiki/concepts/ucm.md",
+      "sha256_read": "98770114f62a80748abfe7921146fe2db332046f5eaacb0e0936de62df17e18c",
+      "full_body_read": true,
+      "review_focus": "完整核读内部适配接口、外部实现边界、部署依赖及与池/PD 的区别；保留未读取外部 UCM 实现的能力边界，去维护过程描述。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "1a19353ef4f7fc074b0912664dc5b95437dc310e22d23d4c51416302e033beeb",
+      "changed_since_full_read": true,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "1a19353ef4f7fc074b0912664dc5b95437dc310e22d23d4c51416302e033beeb"
+    },
+    {
+      "id": "vllm-kv-block-allocation",
+      "path": "wiki/concepts/vllm-kv-block-allocation.md",
+      "sha256_read": "c3562f0d3abd8deee18ab62533db42026f36edd621e9d1b7aa3933c79715b7b2",
+      "full_body_read": true,
+      "review_focus": "完整核读 free queue/refcount/hit/evict、窗口与 KDA 块、waiting/running 准入；原始源码核实 remove_skipped 先行和 Mamba 本步命中依赖，移除草稿未核噪声。",
+      "status": "read-findings-recorded",
+      "scope_limit": "Full prose reading is not independent validation of every claim/source; no browser or hardware acceptance.",
+      "finding_ids": [
+        "G34-P2-02"
+      ],
+      "sha256_at_report": "c3562f0d3abd8deee18ab62533db42026f36edd621e9d1b7aa3933c79715b7b2",
+      "changed_since_full_read": false,
+      "source_validation_scope": "原始证据选择性核对；finding_ids 和官方阅读范围列明实际核对点。无发现不等于所有事实验证通过。",
+      "sha256_after_remediation": "2145e7099379df904429ab51b2453e71e99b0384a62e956ae61f86a26d794b0b"
+    }
+  ],
+  "official_full_read": [
+    "user_guide/feature_guide/Ai_QoS_introduction_en.md",
+    "user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md",
+    "developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md",
+    "developer_guide/Design_Documents/context_parallel.md",
+    "user_guide/feature_guide/context_parallel.md",
+    "user_guide/feature_guide/cpu_binding.md",
+    "user_guide/feature_guide/dyntra_lb.md",
+    "user_guide/feature_guide/expert_parallelism_load_balancer.md",
+    "user_guide/feature_guide/large_scale_ep.md",
+    "user_guide/feature_guide/kv_cache_cpu_offload.md",
+    "user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md",
+    "developer_guide/Design_Documents/kvpp.md",
+    "user_guide/feature_guide/kvpp.md",
+    "developer_guide/Design_Documents/disaggregated_prefill.md",
+    "user_guide/feature_guide/mooncake_hybrid_attention.md",
+    "user_guide/feature_guide/preempt_offload_connector.md",
+    "user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md",
+    "developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md",
+    "user_guide/feature_guide/pipeline_parallel.md"
+  ],
+  "findings": [
+    {
+      "id": "G34-P2-01",
+      "severity": "P2",
+      "pages": [
+        "ops-and-kernels",
+        "pd-disaggregation"
+      ],
+      "location": "ops-and-kernels.md:144,174; pd-disaggregation.md:316",
+      "claim": "把 MC2 定义为纯 decode/小批量 decode 路径。",
+      "impact": "R1 的 4 token 短 prefill 也可选择 MC2，错误定义会导致对混合批调度和通信路径的错误预测。",
+      "evidence": [
+        "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L239-L252",
+        "wiki/concepts/tensor-parallel.md:302"
+      ],
+      "minimal_fix": "按每卡专家数、EP 规模和实际对齐 token 数表述条件；短 prefill 可走 MC2，链接唯一参数/请求账。",
+      "kind": "verified-content-issue",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P2-02",
+      "severity": "P2",
+      "pages": [
+        "hardware-devices",
+        "cann-hccl",
+        "op-to-ai-core",
+        "ops-and-kernels",
+        "collective-communication",
+        "pipeline-parallel",
+        "dynamic-chunked-pp",
+        "data-parallel",
+        "cpu-binding",
+        "dyntra-lb",
+        "eplb",
+        "fine-grained-tp",
+        "large-scale-ep",
+        "block-table",
+        "kv-cache",
+        "kv-cache-cpu-offload",
+        "kv-cache-memory-profiling",
+        "kv-cache-sparse-offload",
+        "kv-cache-spec",
+        "kv-pool",
+        "kvpp",
+        "mooncake-connector",
+        "pd-disaggregation",
+        "recompute-cpu-offload",
+        "recompute-scheduler",
+        "ucm",
+        "vllm-kv-block-allocation"
+      ],
+      "location": "各页正式正文末尾证据/待核段；具体例：ops-and-kernels.md:193,195,205,215；vllm-kv-block-allocation.md:359-367",
+      "claim": "正式教学正文仍反复显示本轮、raw 归档、草稿转述、来源第几行、未独立核验等维护过程。",
+      "impact": "读者承担审计过程噪声，且旧的未核状态与已存在的原始证据互相打架；单删免责声明又会把不确定结论变成无依据断言。",
+      "evidence": [
+        "docs/wiki-writing-standard.md",
+        "vllm@0fc695fc:vllm/model_executor/custom_op.py#L174-L207",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L110-L113,L225-L238,L329-L340",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L375-L398",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L1063-L1072"
+      ],
+      "minimal_fix": "把过程记录移入 reviews；在教学页保留有用的版本、前提、未实测边界和直达原始来源。已实际核对的 CustomOp、dispatch/combine 版本判断、remove_skipped 与 Mamba 同步依赖可改为直接事实；其余逐条核证，不能无证据升级。",
+      "kind": "systemic-editorial-and-evidence-issue",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P1-03",
+      "severity": "P1",
+      "pages": [
+        "dynamic-chunked-pp",
+        "pipeline-parallel",
+        "kv-cache-sparse-offload",
+        "kvpp"
+      ],
+      "location": "dynamic-chunked-pp.md:268；pipeline-parallel.md:350 的来源说明；kv-cache-sparse-offload.md:196,214；KVPP 的 DP 副本称呼",
+      "claim": "把一个 DP 执行组无条件当成独立、完整的模型副本。",
+      "impact": "GLM TP8/DP2/EP16 中专家跨两组分片，两台合起来才有一份完整专家集；按副本理解会错误规划 PP 变体、卡数和专家内存。",
+      "evidence": [
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1454-L1459,L1493-L1500",
+        "wiki/concepts/glm-5-3-flash-two-node.md:94,148",
+        "wiki/concepts/pd-disaggregation.md:354-L358"
+      ],
+      "minimal_fix": "通用口径改为 DP 请求执行组/一组参与计算的设备；明确无跨 DP EP 时才可称完整副本。CPP 16 卡变体写每组设备从 8 到 16、DP 组数从 2 到 1，并另核 EP 分布。SVG 仅改误用标签，不改整体布局。",
+      "kind": "verified-content-issue",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P2-04",
+      "severity": "P2",
+      "pages": [
+        "dynamic-chunked-pp"
+      ],
+      "location": "拟合公式及 v0.30.0rc2 比较段；旧末尾“无异步版本”",
+      "claim": "旧基线公式 a*C*(C+H)+b*(C+H)+c 未与 rc2 新公式区分，异步限制容易跨版本套用。",
+      "impact": "照旧公式解释 rc2 会误解校准点、拟合自变量和求根行为；同页版本支持互相冲突。",
+      "evidence": [
+        "vllm-ascend@7d825229:vllm_ascend/core/profiling_chunk_predictor.py#L166-L205,L245-L255,L350-L362",
+        "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_profiling_chunk.py#L35-L140",
+        "official@921ccc52:user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md"
+      ],
+      "minimal_fix": "保留旧基线推导并显式标版本；rc2 新式是 a*C*(C+H)+b*C+c，NNLS；异步限制按执行器/版本列出，不能写全版本无异步。",
+      "kind": "verified-content-issue",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P1-05",
+      "severity": "P1",
+      "pages": [
+        "fine-grained-tp",
+        "tensor-parallel"
+      ],
+      "location": "fine-grained-tp 首屏普通 TP 定义；tensor-parallel.md:487；wiki/diagrams/fine-grained-tp-intuition.svg 末尾标签",
+      "claim": "把普通 TP 讲成所有模块/所有权重都按统一 TP 规模切片。",
+      "impact": "这是首屏基础概念错误；GLM 中存在 disable_tp 的低秩输入和 ReplicatedLinear，后面的容量账又明确保留复制，读者无法形成一致模型。",
+      "evidence": [
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1918-L1924,L1935-L1940",
+        "wiki/concepts/tensor-parallel.md:488"
+      ],
+      "minimal_fix": "改成普通 TP 为支持切分的算子提供组，模块可切分、复制或使用特殊分组；fine-grained TP 是按指定模块另定分组。修 SVG 单条标签。fine-grained-tp-flow 的旧开关组合/报错语义标旧基线，避免冒充 rc2。",
+      "kind": "verified-content-issue",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P2-06",
+      "severity": "P2",
+      "pages": [
+        "glm-5-3-flash-two-node"
+      ],
+      "location": "glm-5-3-flash-two-node.md:381-L382",
+      "claim": "请求只够一组时“一半算力白烧”；MoE dispatch/combine“一定走机间链路”。",
+      "impact": "跨 DP 的 EP 专家仍可能为另一组真实 token 工作；只有目的专家跨机器的数据需走机间链路，不能从请求数得出固定浪费比例。",
+      "evidence": [
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1454-L1459,L1493-L1500",
+        "wiki/concepts/expert-parallel.md:436-L444",
+        "wiki/concepts/glm-5-3-flash-two-node.md:148"
+      ],
+      "minimal_fix": "改成空闲请求组也有 dummy/补齐开销，同时可能承接真实专家计算；代价需量测。按远端专家目的地描述跨机流量，不给无证据百分比。",
+      "kind": "verified-content-issue",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P2-07",
+      "severity": "P2",
+      "pages": [
+        "kvpp",
+        "pipeline-parallel"
+      ],
+      "location": "kvpp.md:152；pipeline-parallel-split.svg 的交接标签",
+      "claim": "KVPP 对照表仍说 PP 段间只交接隐藏向量。",
+      "impact": "与用户明确要求废弃的说法完全相同，掩盖 residual 等模型相关中间状态，并影响通信量估算。",
+      "evidence": [
+        "wiki/concepts/pipeline-parallel.md 的模型相关中间状态说明",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2241,L2263-L2319",
+        "official@921ccc52:user_guide/feature_guide/pipeline_parallel.md:1-L20"
+      ],
+      "minimal_fix": "统一为下一段继续计算所需的中间状态；示意图若只画隐藏向量，在图注限定此简化示例。保留具体 GLM 图中已逐项核定的张量。",
+      "kind": "verified-content-issue",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P2-08",
+      "severity": "P2",
+      "pages": [
+        "pd-disaggregation"
+      ],
+      "location": "pd-disaggregation.md:488；递推组“块照原样传”段",
+      "claim": "把 KDA 每请求为 MTP 保留的 4 块当成 PD 原样全读的传输块。",
+      "impact": "调度元数据的所有块号不等于网络实际读的字节，错误上界会扩大 KDA 传输预算。",
+      "evidence": [
+        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L864-L888",
+        "wiki/concepts/mooncake-connector.md 的 Mamba/KDA 单当前状态传输说明"
+      ],
+      "minimal_fix": "说明传输索引 len(remote_blocks)-num_speculative_blocks-1 选当前状态，远端单状态映射本地首槽；缓存分配的候选块与实际传输分开记账，复用 Mooncake 页字节推导。",
+      "kind": "verified-content-issue",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P2-09",
+      "severity": "P2",
+      "pages": [
+        "block-table"
+      ],
+      "location": "block-table.md:258,327",
+      "claim": "由约 134 KiB 拷贝和槽位操作量推断两者“不在关键路径占多少时间”。",
+      "impact": "没有链路/同步/调度 profiling，少量字节及可重叠不证明开销可忽略。",
+      "evidence": [
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L835-L837",
+        "wiki/concepts/block-table.md:327 明确没有 profiling"
+      ],
+      "minimal_fix": "保留字节账和提前拷贝以重叠 CPU 工作的事实；改为实际是否落在关键路径、占多少需 trace 测量。",
+      "kind": "verified-content-issue",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P2-10",
+      "severity": "P2",
+      "pages": [
+        "kv-cache-memory-profiling"
+      ],
+      "location": "kv-cache-memory-profiling.md:192,221,229 及证据尾段",
+      "claim": "断言 profile 峰值“只会偏低不会偏高”“最多偏一层的量”。",
+      "impact": "固定 dummy 形状不是任意真实负载的单调下界；跳过分支还可能关联持久副本、缓冲和异步生命周期，未证明统一一层上界。",
+      "evidence": [
+        "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1660-L1666",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L487-L489",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3683-L3696",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L537-L590"
+      ],
+      "minimal_fix": "保留 profile 确实跳过的分支和漏记运行时分配风险；删除没有证明的方向/数量界，按实际形状和 allocator/stream 生命周期量峰值。",
+      "kind": "verified-content-issue",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P2-11",
+      "severity": "P2",
+      "pages": [
+        "recompute-cpu-offload"
+      ],
+      "location": "wiki/diagrams/recompute-cpu-offload.svg:90",
+      "claim": "图写“拷完 3 块，才把块号给 C”，正文却正确写调度器可同一步先复用块号。",
+      "impact": "把逻辑分配顺序与物理字节覆盖顺序混淆，读图会得到相反的同步保障。",
+      "evidence": [
+        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L134-L151",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1984-L1989",
+        "wiki/concepts/recompute-cpu-offload.md:157"
+      ],
+      "minimal_fix": "只改标签为可先重分块号，新数据写入前拷完；保留现有图结构与正文。",
+      "kind": "verified-content-issue",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P2-12",
+      "severity": "P2",
+      "pages": [
+        "pd-disaggregation",
+        "recompute-scheduler"
+      ],
+      "location": "pd-disaggregation.md:182 及前置概念；recompute-scheduler.md:106；pd-intuition.svg 示例图注",
+      "claim": "把 P 的 prefill 定义为整段提示词一次前向算完，decode 定义为总是一步一个 token。",
+      "impact": "首屏定义遗漏 chunked prefill 与投机解码，和本站后文实际 GLM 调度冲突。",
+      "evidence": [
+        "official@921ccc52:user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md",
+        "wiki/concepts/pd-disaggregation.md:318 的每请求 4 token 步",
+        "wiki/concepts/dynamic-chunked-pp.md 的分块解释"
+      ],
+      "minimal_fix": "定义为 P 负责处理提示词，可分多步；普通自回归 decode 每步确认下一 token，MTP 等可一次处理候选。4 token 图只需标这是未分块示例。",
+      "kind": "verified-content-issue",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P2-13",
+      "severity": "P2",
+      "pages": [
+        "pd-disaggregation",
+        "mooncake-connector",
+        "kv-cache-layerwise-offload",
+        "kv-cache-sparse-offload",
+        "kvpp"
+      ],
+      "location": "缺少新的官方能力导航与角色/版本支持边界",
+      "claim": "官网已扩展 D2RH、稀疏 offload 默认值/互斥、KVPP layerwise pooling，现有旧基线/rc2 页没有足够入口。",
+      "impact": "读者会把旧能力当最新全集，或把新能力/默认值倒灌到 db701/rc2；不能据协议支持 950 就认为 sparse offload 支持 950。",
+      "evidence": [
+        "official@921ccc52:developer_guide/Design_Documents/disaggregated_prefill.md:65-L95",
+        "official@921ccc52:user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md:127-L160",
+        "official@921ccc52:user_guide/feature_guide/kvpp.md:23-L54,L133-L151"
+      ],
+      "minimal_fix": "添加固定 921 版本入口并链接权威主题页：D2RH 两跳 P HBM→D DRAM→D HBM；sparse 在该快照不支持 950、与 PreemptOffload 互斥、Copy-SFA buffer 约束；KVPP eager/PIECEWISE、投机方法和 MultiConnector 子角色、实验性 Mooncake layerwise load_async=false 与已验证范围。不能覆盖旧版本事实。",
+      "kind": "official-coverage-gap",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P2-14",
+      "severity": "P2",
+      "pages": [
+        "pipeline-parallel",
+        "dynamic-chunked-pp",
+        "kvpp",
+        "kv-cache-sparse-offload"
+      ],
+      "location": "最新 PP 组合支持与部署限制入口缺口",
+      "claim": "只说明 PP 能开及叠加特性，缺少最新指南的 RoCE 跨节点 MoE PP/DP 互斥和 KVPP 正确性限制。",
+      "impact": "数学上设备数足够不等于该通信路径支持；缺少角色边界会把 P 侧可用能力套到 D 侧。",
+      "evidence": [
+        "official@921ccc52:user_guide/feature_guide/pipeline_parallel.md:304-L305,L436-L454",
+        "official@921ccc52:user_guide/feature_guide/kvpp.md:141-L145",
+        "official@921ccc52:developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md"
+      ],
+      "minimal_fix": "注明该最新快照下跨节点 RoCE MoE 要保持 PP 或 DP 为 1；PP+KVPP 有间歇 e2e 输出不一致在调查。Sparse+layerwise 的 PP 支持与 D 侧 PP 限制按角色列出，不能武断称官网矛盾或全部组合支持。",
+      "kind": "official-support-boundary-gap",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P1-15",
+      "severity": "P1",
+      "pages": [
+        "kv-pool"
+      ],
+      "location": "KV Pool 版本升级/兼容条件缺少 strided MLA 对象格式迁移",
+      "claim": "相同总字节数不保证旧池对象和新 physical-page-major bulk 对象兼容；现有页未提供该升级约束。",
+      "impact": "混用持久化 KV 格式可能加载错误状态；重启 worker 不会自动清理旧池对象，属于实际升级正确性风险。",
+      "evidence": [
+        "official@921ccc52:user_guide/feature_guide/kv_cache_pool_ascend_store.md:55-L63"
+      ],
+      "minimal_fix": "增加明确固定快照的升级边界：所有读写端一起升级，清除受影响对象或换 namespace/cache_salt；bulk 新格式也不与 layerwise/不同布局读端混用。旧版解释保留并标范围。",
+      "kind": "official-correctness-boundary-gap",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P2-16",
+      "severity": "P2",
+      "pages": [
+        "kv-pool"
+      ],
+      "location": "KV Pool 新部署配置的 tenancy/SSD prefetch/TransferEngine 范围",
+      "claim": "现有池配置介绍未包含新 tenant strict mode 与 SSD prefetch 所改变的行为。",
+      "impact": "仅设置 tenant_id 不构成隔离/认证；开启 prefetch knobs 后不能继续假定 Store 与 PD 总共享同一 TransferEngine。",
+      "evidence": [
+        "official@921ccc52:user_guide/feature_guide/kv_cache_pool_ascend_store.md:137-L154,L213-L216"
+      ],
+      "minimal_fix": "最新版本补充：strict master 未开启时 tenant_id 被忽略；tenant 不是身份认证；SSD prefetch 与 offload 分离、依赖 ExistOptions、缺失时警告回退；config-dict setup 会另建 Store engine。独立小节链接，勿覆盖旧代码的全局引擎解释。",
+      "kind": "official-configuration-gap",
+      "status": "revised; awaiting final independent parent acceptance"
+    },
+    {
+      "id": "G34-P3-17",
+      "severity": "P3",
+      "pages": [
+        "collective-communication"
+      ],
+      "location": "collective-communication.md:201 附近算法说明",
+      "claim": "用“通信库不会先集中一张卡再发”绝对化所有 All-Reduce 实现。",
+      "impact": "集合通信规定结果语义，不规定唯一拓扑/算法；把 ring 示例当成库级保障。",
+      "evidence": [
+        "wiki/concepts/collective-communication.md 的 ring 算例与 All-Reduce 定义"
+      ],
+      "minimal_fix": "限定为本节 ring 示意不需要先集中到一张卡；具体算法由实现/拓扑/消息量选择。本条没有声称发现当前 HCCL 实际使用中央汇总。",
+      "kind": "precision-improvement",
+      "status": "revised; awaiting final independent parent acceptance"
+    }
+  ],
+  "review_date": "2026-11-03",
+  "review_kind": "Independent documentation content review; no teaching-page edits",
+  "official_snapshot": "vllm-ascend@921ccc52c6d8c9864190b981792318a489aeadf4",
+  "baseline_code": [
+    "vllm-ascend@db701c1f",
+    "vllm@0fc695fc",
+    "vllm-ascend@baa023ad",
+    "vllm@84030bbe",
+    "vllm-ascend@7d825229",
+    "vllm@ced6857a"
+  ],
+  "scope_limits": [
+    "42 teaching bodies were read in full, including version and source sections. This does not assert independent verification of every factual claim or every cited source.",
+    "Read-time full-file SHA-256 values are retained. Concurrent rc2 edits are separately detected by the report-time hash; changed files need final acceptance against the completed revision.",
+    "123 associated SVG text-label sets were read in full after XML parsing. This is semantic label review, not rendered layout/interaction acceptance.",
+    "No browser/UI or NPU execution; no throughput, latency, hardware memory, deployment-success or visual acceptance claim.",
+    "19 official guides/design documents read in full at the pinned snapshot; one 94,611-character pool guide read only over character offsets [0,18000). Official links outside those ranges were not all followed."
+  ],
+  "official_read_records": [
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/Ai_QoS_introduction_en.md",
+      "sha256": "41fd37f88aaba9511847f57afc92cd08890a6c3b7c780df04e4c9d309bbef566",
+      "range": "full document",
+      "characters": 7195
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md",
+      "sha256": "a6456a7b0bde78b961e8420b43dd3e7501424d8612b1e98933c29d5f97ac90d8",
+      "range": "full document",
+      "characters": 13785
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md",
+      "sha256": "65cf7e7770dc26ad3a7786785eb6a5d8f71416a3fc0542ce40f63c0b62e05ad0",
+      "range": "full document",
+      "characters": 7082
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/developer_guide/Design_Documents/context_parallel.md",
+      "sha256": "a0c5e6e7ad16054009b38543f0c4da217a7f3ca21c43fb4136125b922e25c5ff",
+      "range": "full document",
+      "characters": 13842
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/context_parallel.md",
+      "sha256": "190c32a10f130d294bb80f06acc01890d6ac693ebf85cd22e5d62b27a4f33ead",
+      "range": "full document",
+      "characters": 10913
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/cpu_binding.md",
+      "sha256": "2ff2b096ee36de68d449d90687cf17692d98f44ecffad375a327f350adaf31e4",
+      "range": "full document",
+      "characters": 6519
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/dyntra_lb.md",
+      "sha256": "d0307743afa645d3c2219cd9d3b48ad6c5411ab998ee4e61e82ed749b113b53f",
+      "range": "full document",
+      "characters": 8596
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/expert_parallelism_load_balancer.md",
+      "sha256": "493a9bde020ef197c113229102d72539f450e2e5d57047a6291ff4ed7ea37e6a",
+      "range": "full document",
+      "characters": 27426
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/large_scale_ep.md",
+      "sha256": "4835b70a23fedca27a558e210ec297ac61cc71a7e9d8867bd328294fede09627",
+      "range": "full document",
+      "characters": 17163
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/kv_cache_cpu_offload.md",
+      "sha256": "480b6676fa0f3cf818aace6e413899c7fa4850568f6d0a89dda902c1225c3c5f",
+      "range": "full document",
+      "characters": 7058
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md",
+      "sha256": "88dee19526d9b7eaebd8e67921f8c4eabb59828c3d6e317a994d86e1ecd9e18f",
+      "range": "full document",
+      "characters": 7357
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/developer_guide/Design_Documents/kvpp.md",
+      "sha256": "7c737810763262e727d77847784eba603a2a3452e1dc24e8f188cf9c891ce56b",
+      "range": "full document",
+      "characters": 5356
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/kvpp.md",
+      "sha256": "0fb3de46c0985eb1c46c10d501129a42336a004e2cab749a7d62554cdaa65eae",
+      "range": "full document",
+      "characters": 13490
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/developer_guide/Design_Documents/disaggregated_prefill.md",
+      "sha256": "6bb6b895f052151caab184c367e1aa994fd5cc0be9759ee88c96f6398afc382f",
+      "range": "full document",
+      "characters": 9426
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/mooncake_hybrid_attention.md",
+      "sha256": "7bd446dfd2f92bb23054eab337bca7707b1d73a09c05bcc250bfb0b43a5434e2",
+      "range": "full document",
+      "characters": 10309
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/preempt_offload_connector.md",
+      "sha256": "76b86efeea64a746ef3405339e17f919bc612ecc839fd86d04d21b538fa2ef2b",
+      "range": "full document",
+      "characters": 13614
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md",
+      "sha256": "80e41ac38216dcbc3a7c6f5344a6232e4ceac67369caf30d228979607db74b17",
+      "range": "full document",
+      "characters": 13647
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md",
+      "sha256": "eff59889874d2cdfe1425883a9bfd74e4ba5934bcd4144b212480d4a95648ce8",
+      "range": "full document",
+      "characters": 14006
+    },
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/pipeline_parallel.md",
+      "sha256": "fef1cedaacdc94ee715d25f7e6d3b49d2704228cdbab63ee6677f7ad5a872492",
+      "range": "full document",
+      "characters": 22543
+    }
+  ],
+  "official_partial_read": [
+    {
+      "path": ".tmp/doc-gap-2026-11-03/official/user_guide/feature_guide/kv_cache_pool_ascend_store.md",
+      "sha256": "a5f8f619ba84ef0465fcae1dc801c7724be9ec061271e59420aae59cc5546c05",
+      "character_range": [
+        0,
+        18000
+      ],
+      "total_characters": 94611,
+      "coverage": "Introduction, support matrix, strided MLA pool migration, Mooncake installation/configuration, SSD prefetch, tenancy and beginning of service-launch script; rest not fully read."
+    }
+  ],
+  "diagrams": [
+    {
+      "path": "wiki/diagrams/ai-core.svg",
+      "sha256_at_report": "5e60d7eab2ae04fe7e5dce2b19347b7ed238e32ad61146d6a817273ed5e930cf",
+      "pages": [
+        "ai-core"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ai-core-execution.svg",
+      "sha256_at_report": "e1a0acab35e532e89514d9f6bea260f5e6c16b8fd4b76a10c816794116fe69a5",
+      "pages": [
+        "ai-core"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ai-qos-intuition.svg",
+      "sha256_at_report": "ada82d78908b3dd791d549c5861236b599f50354a994500ad600dc68454f12b8",
+      "pages": [
+        "ai-qos"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ai-qos-flow.svg",
+      "sha256_at_report": "dd132c10aa90738e3f18d2080cb1afbc8a86a9873b6d6d5336a8d7fa58f433fa",
+      "pages": [
+        "ai-qos"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ascend-950-cv.svg",
+      "sha256_at_report": "bf6e5b0ee664b655dcb168180cf281cfd35810ba2521eed61b59dae69e49a00f",
+      "pages": [
+        "ascend-950-architecture"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ascend-950-nddma.svg",
+      "sha256_at_report": "9af5734fbf1a5cd8bec6b16247601006047766e83ccc3a14df0802c7d573ba9c",
+      "pages": [
+        "ascend-950-architecture"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ascend-950-buffer.svg",
+      "sha256_at_report": "9eabddd698834885b2c89c41eec0e8e0d4a175f725f2fe85d07ad60eb50d4898",
+      "pages": [
+        "ascend-950-architecture"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ascend-950-observe.svg",
+      "sha256_at_report": "f08043828e9ed4ae5773e4a439ed03d354a29744d49b6f4693d2b29bd723ca2b",
+      "pages": [
+        "ascend-950-architecture"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ascend-950-handoff-intuition.svg",
+      "sha256_at_report": "84663b1c87324ba0701367f1dfa745cc860398b139652d8b6872ea0d4df3a7a8",
+      "pages": [
+        "ascend-950-execution-interconnect"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ascend-950-device-handoff.svg",
+      "sha256_at_report": "167dc5e5a611a5d69130ea3bcb0d6c83487cff1389c185e35c79a6e1dbf1f403",
+      "pages": [
+        "ascend-950-execution-interconnect"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ascend-950-remote-access.svg",
+      "sha256_at_report": "ce714e0669729038f10065b4ec9b3dea3ea6806444e72e09ff3c881b875cf790",
+      "pages": [
+        "ascend-950-execution-interconnect"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/hardware-devices.svg",
+      "sha256_at_report": "d2f7a9aa634453bb08963cba95dacbd07c33803924e641cdd60548eb135bcee8",
+      "pages": [
+        "hardware-devices"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/hardware-device-startup.svg",
+      "sha256_at_report": "ea03bc47aa7994ae15a62fc15c31f5709d4101ab55f5748df4d05f0c77b3c265",
+      "pages": [
+        "hardware-devices"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/device-memory.svg",
+      "sha256_at_report": "f99fb886fe2ba37b111e7792795c2fcdb5a9af624c2bb428d32caf2cf4397c9f",
+      "pages": [
+        "device-memory"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/device-memory-startup.svg",
+      "sha256_at_report": "e05193c69ff860ebe1ba438e802a84406c36f5d67998ed369ce548fd48596982",
+      "pages": [
+        "device-memory"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/cann-hccl.svg",
+      "sha256_at_report": "d2106a3145a841206783f86cce14966704c91e752ca5e12c98444fe47a082112",
+      "pages": [
+        "cann-hccl"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/cann-hccl-flow.svg",
+      "sha256_at_report": "7270e2a56ad1016632f342b0435d8d35328bdf937a2aa36c394eff3a5e51a991",
+      "pages": [
+        "cann-hccl"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/op-to-ai-core-intuition.svg",
+      "sha256_at_report": "b4393ff5ce02bf3914542dd34f103e48e8464d09aae88c4a5f4786468a43700e",
+      "pages": [
+        "op-to-ai-core"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/op-to-ai-core.svg",
+      "sha256_at_report": "0b5027ee0a82e723899a66abd36561af0c118767f5445b31fb4887b4dd853ede",
+      "pages": [
+        "op-to-ai-core"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ops-layers.svg",
+      "sha256_at_report": "6bcfed14cf6c805d81ab299530f747e6a0a8622b23ec4e1057efa4e97b9d394b",
+      "pages": [
+        "ops-and-kernels"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/collective-communication.svg",
+      "sha256_at_report": "aa8e402ca1b4b200b6155f00d736efdf53ff3a7614f320762d4a24fafe475b01",
+      "pages": [
+        "collective-communication"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/collective-communication-broadcast.svg",
+      "sha256_at_report": "ab7b25a673721a5df89536731df78bfcf573e41a0dbbf05f251374c719d7aa97",
+      "pages": [
+        "collective-communication"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/collective-communication-scatter.svg",
+      "sha256_at_report": "2d2037386b206c1bc4f5b8bda60a7b2acb501031b10dd4f2b95f1d51b67db4cd",
+      "pages": [
+        "collective-communication"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/collective-communication-gather.svg",
+      "sha256_at_report": "d801b574d3bfb5ed493befcbb858f99aa7e6696f6a59925e84740db0557572f7",
+      "pages": [
+        "collective-communication"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/collective-communication-all-gather.svg",
+      "sha256_at_report": "43cd4d55075f0a682f402e548030690a96e6179203c9cb14f375116c697bd39c",
+      "pages": [
+        "collective-communication"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/collective-communication-reduce.svg",
+      "sha256_at_report": "fa9d0b8d9b58ddcfb218c79e968a8a7aff47f61dd3f234611c863155cb26fe62",
+      "pages": [
+        "collective-communication"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/collective-communication-reduce-scatter.svg",
+      "sha256_at_report": "2cd808d17220f580315e800f2cb14db61a9610a3a4a8bdf123acf2d05890dbb7",
+      "pages": [
+        "collective-communication"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/collective-communication-all-reduce.svg",
+      "sha256_at_report": "4df8d51259ee75b99376ed031da0016c53f9b67f6681c9e56d1f84a381bb0bdd",
+      "pages": [
+        "collective-communication"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/collective-communication-all-to-all.svg",
+      "sha256_at_report": "477597982a47e1b153686a0b967c46981ae83791b4569a450ef3fb739e57dd32",
+      "pages": [
+        "collective-communication"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/collective-communication-ring.svg",
+      "sha256_at_report": "941745744b435982755221539e33876259305504b5f6cae19ab35606c822021d",
+      "pages": [
+        "collective-communication"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/collective-communication-flow.svg",
+      "sha256_at_report": "043ac4a7287fc4adb57b8771b6e88f5f17cb33b5fda74ed825045ac817a95104",
+      "pages": [
+        "collective-communication"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/dynamic-chunked-pp.svg",
+      "sha256_at_report": "c4bf3ab8bccab0dbb4922085213f2c765d5f2d71aeeb04bd01962c5c9e9d8499",
+      "pages": [
+        "dynamic-chunked-pp"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/pipeline-parallel-split.svg",
+      "sha256_at_report": "f87e26623e72dd9770666d64401b94e9765e288a4e821d74f4669cad69d4d95a",
+      "pages": [
+        "pipeline-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/pipeline-parallel-flow.svg",
+      "sha256_at_report": "df1c678085a012a7495e5f20003f1982ef03b786bb53cf2b07411968381942b8",
+      "pages": [
+        "pipeline-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/pipeline-parallel-bubble.svg",
+      "sha256_at_report": "3cf2c9f43b80e1bb547c17245564fea5da7c64daecc83893321b10fe3ea44ed7",
+      "pages": [
+        "pipeline-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/pipeline-parallel.svg",
+      "sha256_at_report": "c3bd571980a580a5c84f92eac825d3cef1e0379a87ac75f35f8c374fde3e1884",
+      "pages": [
+        "pipeline-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/data-parallel-basics.svg",
+      "sha256_at_report": "0d51d50cffac6e65efadaa15233e73521abbb420abab46c7e21e1b4c6a9cdc2b",
+      "pages": [
+        "data-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/data-parallel.svg",
+      "sha256_at_report": "17e87ea1338d7ff084938089c99913c017b3efdc0dc354aad66cb62f6e8b9fcc",
+      "pages": [
+        "data-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/dp-ep-groups.svg",
+      "sha256_at_report": "541b46adcc9c4caac29155d9c95826a63e12b13e955a35d314fe9f637a9c8f28",
+      "pages": [
+        "data-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/data-parallel-loop.svg",
+      "sha256_at_report": "5656c3b9a5feae18962ae41032cb118bce13157a1b973d92af7c5052c171d2ca",
+      "pages": [
+        "data-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/context-parallel-overview.svg",
+      "sha256_at_report": "0ade747c139be8fd4c78b5a09e142ac147f5d1a21bba4849ea12203c2f283669",
+      "pages": [
+        "context-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/context-parallel-merge.svg",
+      "sha256_at_report": "f8136e2662ddfd6b429f234071ae117b074df4072fd1c7b109c7905bb27e74db",
+      "pages": [
+        "context-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/context-parallel-prefill.svg",
+      "sha256_at_report": "2ed14026a44aaddece23dd3ba53f8995191d86abc78be8edcebe6e8237ff47eb",
+      "pages": [
+        "context-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/context-parallel-ring.svg",
+      "sha256_at_report": "0a63506a1469ee409c71f2c3861cd5d13c1dc277fa3b7f474fa9eee12e56d71e",
+      "pages": [
+        "context-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/context-parallel-ulysses.svg",
+      "sha256_at_report": "51324f36180e3f5ea48d436f36c8aa8e9075d4ebcaa6ac72575a6aafc26f8f2e",
+      "pages": [
+        "context-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/context-parallel-paths.svg",
+      "sha256_at_report": "631f5693ce978929cef7b0bd61acefcaff022d68b213fae47591b47125e63ebd",
+      "pages": [
+        "context-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/context-parallel.svg",
+      "sha256_at_report": "fda75e1198680b630f10b6ad8306f68c63badedf30dd83804ab4148f8fdebb29",
+      "pages": [
+        "context-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/cpu-binding.svg",
+      "sha256_at_report": "4d14dbb943f5a31e4257559f7819e2da57d35a0de3453a3e1f1c36ed582a7edd",
+      "pages": [
+        "cpu-binding"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/cpu-binding-flow.svg",
+      "sha256_at_report": "fc7c75ba5f7066b7a14de52612de0e5e13bdd9546cfe4a8d3c9208df3fd00339",
+      "pages": [
+        "cpu-binding"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/dyntra-lb.svg",
+      "sha256_at_report": "f54db0c256e0e014b3d064773795d155772fee3d57797309632e678a3d020c45",
+      "pages": [
+        "dyntra-lb"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/dyntra-lb-bubble.svg",
+      "sha256_at_report": "797fe98421b7d2a9560596a86da1496cb684820bfe273bf684de7010666363cf",
+      "pages": [
+        "dyntra-lb"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/dyntra-lb-flow.svg",
+      "sha256_at_report": "ef6df49417784363b8c96ea46a28a516e270960a514aa8b020bda16a1644d7f4",
+      "pages": [
+        "dyntra-lb"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/eplb-cycle.svg",
+      "sha256_at_report": "0ba76b99f9249617b758b5a7c8854874aaa376c21c32c1a2950d8dad65c1313b",
+      "pages": [
+        "eplb"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/eplb.svg",
+      "sha256_at_report": "c893e19d59c3f23a9d41019f01d7b37283cf27617da71fcc59c4f9e2727afe40",
+      "pages": [
+        "eplb"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/fine-grained-tp-intuition.svg",
+      "sha256_at_report": "2cc94e4f901fb22fba9bedc2631daddca011362144209010acb1be3fe1301533",
+      "pages": [
+        "fine-grained-tp"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/fine-grained-tp.svg",
+      "sha256_at_report": "6d3e39e2f60f0185d2034f8ae089748ae236a1d5b1203e6b9543c2f7d75cdc88",
+      "pages": [
+        "fine-grained-tp"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/fine-grained-tp-flow.svg",
+      "sha256_at_report": "8cc920cb7612e7f1ba0960099d2278816651254f433c5d6531d54513ff07afee",
+      "pages": [
+        "fine-grained-tp"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/large-scale-ep.svg",
+      "sha256_at_report": "fc9cd04b269ee06bcb38e07b00ee3691f14aac197cc407731550653d5ca21742",
+      "pages": [
+        "large-scale-ep"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/large-scale-ep-flow.svg",
+      "sha256_at_report": "4fd5bd65ef03125950835f2f70378177d2403f19b86fd2158600481d78d5faed",
+      "pages": [
+        "large-scale-ep"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/large-scale-ep-deploy.svg",
+      "sha256_at_report": "d133ac95971188d4b68cf07a5b8499b4d2a51393c91fd346ba6bb65a9c695402",
+      "pages": [
+        "large-scale-ep"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/expert-parallel-intuition.svg",
+      "sha256_at_report": "916131c9391c0e0c48a58d77643fa1dbfb2cf4745b5e0496144d076eb2a6eb34",
+      "pages": [
+        "expert-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/expert-parallel-vs-tp.svg",
+      "sha256_at_report": "cac7253ee98da7df98d469ea17b7a3dc00ba074855d4908e3905b89595cd879f",
+      "pages": [
+        "expert-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/expert-parallel-flow.svg",
+      "sha256_at_report": "f27eb3a5aea1e0f01dcd9bd61a2f7868ab5a8060bd8626ff65fe9192adc94824",
+      "pages": [
+        "expert-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/expert-parallel-wait.svg",
+      "sha256_at_report": "3df7881a76df8e0f039690ab23520113d41a8410830e2db327286ca3a690631a",
+      "pages": [
+        "expert-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/expert-parallel-assign.svg",
+      "sha256_at_report": "46867c8b8e11612be3171b6d4b0af4cc503b2bb3b0ff9005fe6c4463370ec992",
+      "pages": [
+        "expert-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/expert-parallel-fit.svg",
+      "sha256_at_report": "09d1eab82a5287c56ebb8c3afff0fd53b0f9730fcc2d73a70a6fb0a06bc43f31",
+      "pages": [
+        "expert-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/expert-parallel-split.svg",
+      "sha256_at_report": "54f1204f0d0de22d950dcad58135da27ac92939079df7dda93d4fbfcf7a41058",
+      "pages": [
+        "expert-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/expert-parallel.svg",
+      "sha256_at_report": "28c8c445f8ea02522a378fc8869bee77b60163b6645b049f4840b852a34d047a",
+      "pages": [
+        "expert-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/sequence-parallel.svg",
+      "sha256_at_report": "46aec19e9c0493c93233f1a8dfe2691d501d5cf97dd9f72df036a89822227d34",
+      "pages": [
+        "sequence-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/sequence-parallel-steps.svg",
+      "sha256_at_report": "532880d3237ec55ca475c7729b91bf35b873d4870ea762f0fd0f7400a03b27f3",
+      "pages": [
+        "sequence-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/sequence-parallel-layer.svg",
+      "sha256_at_report": "9a12c62859950dd3438d638999680876e51f55d9c2858ddbc3779cb5c5dbea19",
+      "pages": [
+        "sequence-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/tensor-parallel-two-splits.svg",
+      "sha256_at_report": "758e33aa4fd12e56fcbb9574421a6276393b09d3f0d8653b413cbe721b770c2a",
+      "pages": [
+        "tensor-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/tensor-parallel-pair-calc.svg",
+      "sha256_at_report": "eb0602005a29a2ee547632c9f70d567e248c4590efeb1fd65c8ef76a1b8e0aba",
+      "pages": [
+        "tensor-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/tensor-parallel-intuition.svg",
+      "sha256_at_report": "7f0c0941ecf82fa5e09d9ab048cb4b1833184f376e8ce3596e2c9d5ec37028bd",
+      "pages": [
+        "tensor-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/tensor-parallel.svg",
+      "sha256_at_report": "cb4b996f80beee4e8cf6aa101678e2d35b94a3bd7f9b062ed90df43c8cbbdb36",
+      "pages": [
+        "tensor-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/tensor-parallel-forward.svg",
+      "sha256_at_report": "b1349fe10f071c23a6880c4997ecfb728cec339af1873e56767b3f8ceb5f950a",
+      "pages": [
+        "tensor-parallel"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/glm-two-node-topology.svg",
+      "sha256_at_report": "dade5c289f4f84afd025f207a8fb9607ded2a30673a78f3573341b4ec4898c6b",
+      "pages": [
+        "glm-5-3-flash-two-node"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/glm-two-node-groups.svg",
+      "sha256_at_report": "696fcd09c19ea1977894723783d6281fd1eb6ebf28ed0fd99e407db28263a377",
+      "pages": [
+        "glm-5-3-flash-two-node"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/glm-two-node-request-route.svg",
+      "sha256_at_report": "467d99225315b9b37b40a7df64721bffa4e222db50d7b03ccdc8be850cee5e84",
+      "pages": [
+        "glm-5-3-flash-two-node"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/glm-two-node-card-budget.svg",
+      "sha256_at_report": "ccc0aa1be27c2f7fce61d8bae3b31503d0846678f26a6a2cf2042e99dc2424c6",
+      "pages": [
+        "glm-5-3-flash-two-node"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/glm-two-node-startup.svg",
+      "sha256_at_report": "3f2a2c3513c7845619db0d9484c898e321854a083f767b71fc3b54234f3263dc",
+      "pages": [
+        "glm-5-3-flash-two-node"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/deepseek-serving-request.svg",
+      "sha256_at_report": "7c26205bef30f47f588b957729f6114e8c1872e18319d3ec8acd5695036cad35",
+      "pages": [
+        "deepseek-serving-case"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/deepseek-serving-code-boundary.svg",
+      "sha256_at_report": "30a34abb0147f206f33605bd375f9459eff83610dba4845184da272e6e72be91",
+      "pages": [
+        "deepseek-serving-case"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/block-table.svg",
+      "sha256_at_report": "d90e4f42316fd646b7738e1db0c25b8d78b1f1241356733b0af54c68c859b910",
+      "pages": [
+        "block-table"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/block-table-flow.svg",
+      "sha256_at_report": "d9672b6cb0eb17570cf49a1e38190eb0f829b749417df088e07298d77869ef4c",
+      "pages": [
+        "block-table"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache.svg",
+      "sha256_at_report": "b1ef22d666ed9e29f5f8dc5bef7eb2138d21e38dfea2a83fbae234eefedd670d",
+      "pages": [
+        "kv-cache"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-recompute.svg",
+      "sha256_at_report": "78765fc46fc91da4eeaa3363512b078e3a73e833937fdced76ffbfac5b679953",
+      "pages": [
+        "kv-cache"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-size.svg",
+      "sha256_at_report": "d746b539abfa8c3b8dea54dba850cf1c34b49511712aaa392d0dc625d870b894",
+      "pages": [
+        "kv-cache"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-lifecycle.svg",
+      "sha256_at_report": "281272fc23b3d563983de02c8bf8bf3b5ba44db368e3de0a08a53526da3e735b",
+      "pages": [
+        "kv-cache"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-cpu-offload.svg",
+      "sha256_at_report": "f321b71a2a4c0fe00a38d5fd4a8c9af6eb173a1e002fb3a107b5b2aa133538e0",
+      "pages": [
+        "kv-cache-cpu-offload"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-cpu-offload-cost.svg",
+      "sha256_at_report": "0524f21183d821edbfb8daa71cf4fb1022d54d1ac2554a13fdcc759a4836666f",
+      "pages": [
+        "kv-cache-cpu-offload"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/prefix-caching.svg",
+      "sha256_at_report": "7b429b81d18c715fc27ae409f5bdc423e2cf46d1bd0abb2d40d3871018e42f0d",
+      "pages": [
+        "prefix-caching"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-state.svg",
+      "sha256_at_report": "41f948a3070c6e78d335ffa90b9710545f176a543542afa72398650a0dba2b4b",
+      "pages": [
+        "swa-bounded-replay"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-intuition.svg",
+      "sha256_at_report": "52b0dd2273cf50c389df159fada99f5edfaa701da8046d3db75c39ca35f111f1",
+      "pages": [
+        "swa-bounded-replay"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-flow.svg",
+      "sha256_at_report": "d830b09a93f77bc5489a94c3b7103d6af77e1f82202c15c588a45ffaf5531b2f",
+      "pages": [
+        "swa-bounded-replay"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-memory-profiling.svg",
+      "sha256_at_report": "cb9dca3daa4fd1e5fbd6c8085f1c1dd0bbf428f0d3bff6f014431b8491f51bd2",
+      "pages": [
+        "kv-cache-memory-profiling"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-memory-profiling-flow.svg",
+      "sha256_at_report": "45ad7aed914d06c94f0f1460c07c2fa61951bb2fe5dc082724999098a3ab641a",
+      "pages": [
+        "kv-cache-memory-profiling"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload-overlap.svg",
+      "sha256_at_report": "f39f05e686f4a1b410d7a853b5988edc49f9114d7f19faf9fc57190060ed438c",
+      "pages": [
+        "kv-cache-layerwise-offload"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-layerwise-offload.svg",
+      "sha256_at_report": "3d921f7a77eaeea2157b89e2a31fa3f9db514611343f6327acfd90f3621e8058",
+      "pages": [
+        "kv-cache-layerwise-offload"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-sparse-offload.svg",
+      "sha256_at_report": "6ad2ef98f1513943ec478bc32255cf7c5ef24696b5d164601656cee17cf5aa2c",
+      "pages": [
+        "kv-cache-sparse-offload"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-sparse-offload-step.svg",
+      "sha256_at_report": "6002095d5a682143aee1bf3269c14fd0b531b4c9ae5dd2c1cd31e830efd8f5f4",
+      "pages": [
+        "kv-cache-sparse-offload"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-spec.svg",
+      "sha256_at_report": "902e08e89083a8c89b07bba710f84e7a8dd1b3e58220645484d35b29a2bb2e12",
+      "pages": [
+        "kv-cache-spec"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-cache-spec-flow.svg",
+      "sha256_at_report": "32f8f94f179d8a1e31851d355f5dc8cf9fa3c1bb09ae582a983a56df70a45fb9",
+      "pages": [
+        "kv-cache-spec"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-pool-intuition.svg",
+      "sha256_at_report": "d58a11b1936ee86bd4fbf46401036068261d52a4773aa596918d8e6a3ae9cf2d",
+      "pages": [
+        "kv-pool"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-pool.svg",
+      "sha256_at_report": "9b044a71df27da67ea3aebd6f4d640af535737bb8add3bdbb232b88b7e956b06",
+      "pages": [
+        "kv-pool"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kv-pool-glm-cards.svg",
+      "sha256_at_report": "cd188e5c2b4b19983a5fe99138fafd621bc037533a2968542d70cbbed4f61af0",
+      "pages": [
+        "kv-pool"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kvpp.svg",
+      "sha256_at_report": "eae575a0a90c2294d91197d229bc4673bcbc81d3e7af6344f8065f3fa528366f",
+      "pages": [
+        "kvpp"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kvpp-broadcast.svg",
+      "sha256_at_report": "a7a451b23f615ef74f12cef4bcacc8b5d387d5c47dd74c85f11da81831b78443",
+      "pages": [
+        "kvpp"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/kvpp-flow.svg",
+      "sha256_at_report": "74d88ece0be68382153478df42820d77cdd5754a8f7f2b294e261af0285391d9",
+      "pages": [
+        "kvpp"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/lmcache.svg",
+      "sha256_at_report": "cf2d6a3d5d6dffb68e308ca068cbaa523905b98c4f3e660b3f2a89341826560a",
+      "pages": [
+        "lmcache"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/mooncake-connector.svg",
+      "sha256_at_report": "3691f662e482fdecb331e080efac629c7851c8ce477138992a31250c65e1d2ee",
+      "pages": [
+        "mooncake-connector"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/mooncake-connector-hooks.svg",
+      "sha256_at_report": "d9ff1d6cac9cafc9577de398b40a97fc8dbf7bf084a8799bf1f3a9d4531fa963",
+      "pages": [
+        "mooncake-connector"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/mooncake-layerwise.svg",
+      "sha256_at_report": "ce08a360730cccfe6bd66f66a12b65a5d06c9be628504879884baf6d2d89f44f",
+      "pages": [
+        "mooncake-connector"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/pd-disaggregation-intuition.svg",
+      "sha256_at_report": "81ba57af4aa1f419d41bcf890c01232a1fcada9b2df727b68e4d223c24c1968f",
+      "pages": [
+        "pd-disaggregation"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/pd-disaggregation.svg",
+      "sha256_at_report": "86d2aa60398301bf2512a20ad34b6ddefc01831f48ec13b6d1cc2ad02ece4089",
+      "pages": [
+        "pd-disaggregation"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/pd-state-boundary.svg",
+      "sha256_at_report": "705f3e5cd49f21235a2cec7408fbeaf30c66d9ed944ef757f8a70ec326bbcb70",
+      "pages": [
+        "pd-disaggregation"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/recompute-cpu-offload.svg",
+      "sha256_at_report": "175ba338014e49c1de5032d744f17d0a34da0b3124f71faaad024e15d1408ecf",
+      "pages": [
+        "recompute-cpu-offload"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/recompute-scheduler.svg",
+      "sha256_at_report": "059cf9ef0d715c18b392764ce1ed1169a0d64ebbb8986f7b9d2018bf208d78b4",
+      "pages": [
+        "recompute-scheduler"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ucm-intuition.svg",
+      "sha256_at_report": "2cafca743590b23b4cf054bfb969df8878a96c0289b14e5033f2a08f73681171",
+      "pages": [
+        "ucm"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ucm-flow.svg",
+      "sha256_at_report": "2a580e94932d82bbeb90dff71d98235cbd16a62b75b25a631c2765235da02054",
+      "pages": [
+        "ucm"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/ucm.svg",
+      "sha256_at_report": "7cc1cf45d49f2ca5421cc7fccccd61f048a80f5bff7e3566fc985d823ab8cc0d",
+      "pages": [
+        "ucm"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/block-allocation.svg",
+      "sha256_at_report": "7dbaf4accf25e962b89bd855507e11558216141f664b266107a3ca7ea72f6e35",
+      "pages": [
+        "vllm-kv-block-allocation"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    },
+    {
+      "path": "wiki/diagrams/block-allocation-flow.svg",
+      "sha256_at_report": "a05477fac4079104e9cc5c60a57194f6822e439d7f2b4d759dba77727d3ba675",
+      "pages": [
+        "vllm-kv-block-allocation"
+      ],
+      "read_scope": "all text labels; XML parsed; not rendered"
+    }
+  ],
+  "counts": {
+    "pages_full_body_read": 42,
+    "svg_label_sets_read": 123,
+    "official_full_documents_read": 19,
+    "official_partial_documents_read": 1,
+    "P1": 3,
+    "P2": 13,
+    "P3": 1,
+    "changed_since_full_read": 12
+  },
+  "remediation": {
+    "recorded_at": "2026-11-03T03:25:36",
+    "status": "all 17 findings revised; root independent review in progress; no browser or NPU acceptance",
+    "teaching_pages_edited": 32,
+    "diagram_pairs_edited": 6,
+    "file_manifest": [
+      {
+        "path": "wiki/concepts/kv-pool.md",
+        "sha256": "4a06f92a540bf264c254e0d74af8824e0b944d5620a4674a8c6821179ebde5f2"
+      },
+      {
+        "path": "wiki/concepts/fine-grained-tp.md",
+        "sha256": "12cc3a8d511b435b09c7e266ac642c9c03255dd71e582abb9fb17d66051304c5"
+      },
+      {
+        "path": "wiki/concepts/tensor-parallel.md",
+        "sha256": "e3aa512ef106b4d4123d59b2351bc18e40c197b6334a44e879d250bf1596814d"
+      },
+      {
+        "path": "wiki/concepts/dynamic-chunked-pp.md",
+        "sha256": "31d13dc0378b91c4fa8e7b479eaef7a097b62e1dc7c7e367b1d74d1157f1d891"
+      },
+      {
+        "path": "wiki/concepts/glm-5-3-flash-two-node.md",
+        "sha256": "26ad796c0c01f9c8a58bb2d35b5346a7fc5a6985e87eb44d9e3dca006dfae66a"
+      },
+      {
+        "path": "wiki/concepts/kv-cache-sparse-offload.md",
+        "sha256": "99c084cbbd60649714b70283d3e11cc90d2ac808aebe92554c7ca99c858c8278"
+      },
+      {
+        "path": "wiki/concepts/kvpp.md",
+        "sha256": "83dea6289d92a59399f7d75224259eed1c1f3eaa0382da07dd29020312cb9ef7"
+      },
+      {
+        "path": "wiki/concepts/ops-and-kernels.md",
+        "sha256": "903d20733a78f0901288229c50f166ce5644f9ec5ef4a318400c3f2b7e3b944d"
+      },
+      {
+        "path": "wiki/concepts/kv-cache-memory-profiling.md",
+        "sha256": "074c2d7aa84defea0d56ffda0ec10385080179d32b424291105b77b9d9d4975f"
+      },
+      {
+        "path": "wiki/concepts/block-table.md",
+        "sha256": "06dbbc803bc7c128ee802c4df0f4042d8cd4d6565e0b028605da7fd0bf78a32c"
+      },
+      {
+        "path": "wiki/concepts/pd-disaggregation.md",
+        "sha256": "70f6327265bef6fc98960c3eee3cea7a85bd4fbc9b1bdb0afd0d260fe341330a"
+      },
+      {
+        "path": "wiki/concepts/recompute-scheduler.md",
+        "sha256": "c443990f776364685da9c98e8f1e113f45a09ff250646ad973b78b075f143ded"
+      },
+      {
+        "path": "wiki/concepts/pipeline-parallel.md",
+        "sha256": "eba4ae05717de1530f7c7b711a0bf2f6750760b942e9103a628cc99564c5b5b2"
+      },
+      {
+        "path": "wiki/concepts/kv-cache-layerwise-offload.md",
+        "sha256": "3a6d98430fd262b46f8d14fb14e87429459c42e9c95aacbce451073b043b8242"
+      },
+      {
+        "path": "wiki/concepts/mooncake-connector.md",
+        "sha256": "833cbe74f83087f6d14803ee6c07648f94fdc04654d4ba1ba41efabdeeae8442"
+      },
+      {
+        "path": "wiki/concepts/hardware-devices.md",
+        "sha256": "0f10d83023d5656e605a30c2a9afe6f67b9f605272d0fc68c571275d58886883"
+      },
+      {
+        "path": "wiki/concepts/cann-hccl.md",
+        "sha256": "8f6f98b198c12c9471182c49ba9cd35faf01f70a5cf589b1cc4b50bf426dcb65"
+      },
+      {
+        "path": "wiki/concepts/op-to-ai-core.md",
+        "sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6"
+      },
+      {
+        "path": "wiki/concepts/collective-communication.md",
+        "sha256": "a2835d3f39bf0d8febf96c58fad7ef7b2556504501595a7f60abcc13c254096b"
+      },
+      {
+        "path": "wiki/concepts/data-parallel.md",
+        "sha256": "2d7108d4b8b8d06dc3634be1fd52403f826cbb766bcec5d0a5076e5174f175ee"
+      },
+      {
+        "path": "wiki/concepts/dyntra-lb.md",
+        "sha256": "99de6f85e50f1aeeda4eaed4359b78ca04d930086dbb8cd2c1bf8e9e45ecee1f"
+      },
+      {
+        "path": "wiki/concepts/eplb.md",
+        "sha256": "79c41e78f99225741862c58fae058ffa4f1c40a6f80ecb2cc2d0b6614ba95222"
+      },
+      {
+        "path": "wiki/concepts/large-scale-ep.md",
+        "sha256": "d4509399fc14e8e43ec1715016f74968d21b14434f7904ce88fdb7b7535e5ae9"
+      },
+      {
+        "path": "wiki/concepts/kv-cache-cpu-offload.md",
+        "sha256": "6033cfb26543051100677c4772919ba3b14a7b760bc352131135ceae09560d02"
+      },
+      {
+        "path": "wiki/concepts/recompute-cpu-offload.md",
+        "sha256": "349d16acb989e86428c2b43124e702ebe9c16b986c0f36464b1acf0662757523"
+      },
+      {
+        "path": "wiki/concepts/vllm-kv-block-allocation.md",
+        "sha256": "2145e7099379df904429ab51b2453e71e99b0384a62e956ae61f86a26d794b0b"
+      },
+      {
+        "path": "wiki/concepts/kv-cache-spec.md",
+        "sha256": "1db191d04da0da9bc481b59e375c757b855d8beb2fb5faf7291f8e6126caf01d"
+      },
+      {
+        "path": "wiki/concepts/cpu-binding.md",
+        "sha256": "756be1a992983ed8f3de41bbe602b810134b88154db3370468af2267cdb4afc7"
+      },
+      {
+        "path": "wiki/concepts/device-memory.md",
+        "sha256": "68f11244b2199ee5356f08b599bfff494eb03fb4f594dbf6a70a6cfd0fbc7c02"
+      },
+      {
+        "path": "wiki/concepts/kv-cache.md",
+        "sha256": "7eceb7dd08b9aea28488a0d535207258b2061a853e99613c94bcf61e4ab33430"
+      },
+      {
+        "path": "wiki/concepts/context-parallel.md",
+        "sha256": "fb9f7a03ecce6c871dce45d83eb7aa3d503bcb91050f6333f106ac830e1c7e3e"
+      },
+      {
+        "path": "wiki/concepts/ai-qos.md",
+        "sha256": "4b437000b9b01cb0bdeb6ffbbd7ead254595c221e46252ff286c5d002195c7f1"
+      },
+      {
+        "path": "wiki/diagrams/fine-grained-tp-intuition.yaml",
+        "sha256": "6a4d62e4eaecdbff77880ed1e4d00a315bd6ed3f854e414db91760bbe1ac6bec"
+      },
+      {
+        "path": "wiki/diagrams/fine-grained-tp-intuition.svg",
+        "sha256": "b74814f52c9529b6e3cc888cffc6c1a37df3dabcd091ca3c0ae22a955561b77f"
+      },
+      {
+        "path": "wiki/diagrams/fine-grained-tp-flow.yaml",
+        "sha256": "fe5384e89dd296c2088fdd08390aea36b982016fc2697dcc6409197283e4e4b7"
+      },
+      {
+        "path": "wiki/diagrams/fine-grained-tp-flow.svg",
+        "sha256": "9a9925cecec6058609e0279f4fcdcf0f0a050b597eceb621c8bcbe52b1f9a250"
+      },
+      {
+        "path": "wiki/diagrams/pipeline-parallel-split.yaml",
+        "sha256": "4d85559576497c450840eacebef093d2e1e1433b23d72cd572ae1a25f705838f"
+      },
+      {
+        "path": "wiki/diagrams/pipeline-parallel-split.svg",
+        "sha256": "8db6b8f3994ec37cfc02f8b59ec4d00bfccbf8fea20c8409973ef3b1aa490568"
+      },
+      {
+        "path": "wiki/diagrams/recompute-cpu-offload.yaml",
+        "sha256": "9b51c32afb4d21f5e3268ace35864db4abe768667ec05ae0a6d1cce7554da8d2"
+      },
+      {
+        "path": "wiki/diagrams/recompute-cpu-offload.svg",
+        "sha256": "df9906d74906d414824e95d4d0676844b26dbe6a8a4131c82f65eda76c28b83e"
+      },
+      {
+        "path": "wiki/diagrams/kvpp-flow.yaml",
+        "sha256": "4458f9cbfd834081cc5c5a2659aabe12412dea61142d1c9b471bc59f2bfcb50c"
+      },
+      {
+        "path": "wiki/diagrams/kvpp-flow.svg",
+        "sha256": "bb9841d0b8b7f7b4986698183ab9f499e2e2e46fb6c1d6e673e022d8b56e38c6"
+      },
+      {
+        "path": "wiki/diagrams/pd-disaggregation-intuition.yaml",
+        "sha256": "25dcbc723bf81fe8648c5984ca87a7005f2148f81f19f63e5b769a311f24288f"
+      },
+      {
+        "path": "wiki/diagrams/pd-disaggregation-intuition.svg",
+        "sha256": "4a6df523812c1d073edd41358d88b83e0a7e462e5fd8cff9bf94d1ea07bb5911"
+      }
+    ],
+    "diff_scope_note": "This is the actual authored file manifest, not a clean-worktree diff; pre-existing and parallel changes were retained. Original full-read hashes remain in pages. Root reviews changes against the phase snapshot.",
+    "independent_parent_followups": [
+      "fine-grained TP 1/k is only an ideal matrix-byte budget; actual HBM traffic and latency require profiling",
+      "Memcache clear-disk setting is not a recovery guarantee; no fault recovery is promised by this version"
+    ],
+    "checks": [
+      {
+        "command": "pnpm check:content",
+        "result": "pass: 163 pages / 11 topics",
+        "log": ".tmp/doc-gap-2026-11-03/g34-content.log"
+      },
+      {
+        "command": "pnpm wiki:diagrams --check",
+        "result": "pass: 331 SVG/spec pairs",
+        "log": ".tmp/doc-gap-2026-11-03/g34-diagrams-final.log"
+      },
+      {
+        "command": "pnpm wiki:audit",
+        "result": "group had no blocking errors; global failure attention-cost prose mark outside assigned scope; root notified",
+        "log": ".tmp/doc-gap-2026-11-03/g34-wiki-audit.log"
+      },
+      {
+        "command": "pnpm wiki:lint",
+        "result": "group had no blocking errors; global failure rfork-troubleshooting stale anchor outside assigned scope; root notified",
+        "log": ".tmp/doc-gap-2026-11-03/g34-wiki-lint.log"
+      }
+    ]
+  },
+  "additional_official_reading_by_parent": {
+    "reviewer": "root",
+    "path": "user_guide/feature_guide/kv_cache_pool_ascend_store.md",
+    "scope": "full 94611 characters, reported in parent messages; does not change child partial reading record"
+  }
+}

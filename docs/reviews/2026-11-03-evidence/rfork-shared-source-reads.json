@@ -1,0 +1,167 @@
+{
+  "scope": "本轮逐引文语义审查的去重原始阅读；不代表所有页面主张已判定",
+  "reads": [
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/config.py",
+      "ranges": [
+        [
+          1,
+          139
+        ]
+      ],
+      "full": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py",
+      "ranges": [
+        [
+          1,
+          267
+        ]
+      ],
+      "full": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py",
+      "ranges": [
+        [
+          1,
+          501
+        ]
+      ],
+      "full": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py",
+      "ranges": [
+        [
+          1,
+          802
+        ]
+      ],
+      "full": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/seed_server.py",
+      "ranges": [
+        [
+          1,
+          377
+        ]
+      ],
+      "full": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py",
+      "ranges": [
+        [
+          1,
+          710
+        ]
+      ],
+      "full": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/seed_client.py",
+      "ranges": [
+        [
+          1,
+          153
+        ]
+      ],
+      "full": true
+    },
+    {
+      "ref": "rfork@3284850b:examples/rfork/rfork_planner.py",
+      "ranges": [
+        [
+          1,
+          582
+        ]
+      ],
+      "full": false
+    },
+    {
+      "ref": "rfork@3284850b:docs/source/user_guide/feature_guide/rfork.md",
+      "ranges": [
+        [
+          140,
+          230
+        ]
+      ],
+      "full": false
+    },
+    {
+      "ref": "vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/planner_client.py",
+      "ranges": [
+        [
+          1,
+          245
+        ]
+      ],
+      "full": false
+    },
+    {
+      "ref": "vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py",
+      "ranges": [
+        [
+          1,
+          554
+        ]
+      ],
+      "full": false
+    },
+    {
+      "ref": "vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/transfer_backend.py",
+      "ranges": [
+        [
+          224,
+          269
+        ]
+      ],
+      "full": false
+    },
+    {
+      "ref": "vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/seed_server.py",
+      "ranges": [
+        [
+          140,
+          180
+        ]
+      ],
+      "full": false
+    },
+    {
+      "ref": "raw:sha256-854b4facdc4efae646ebb25bcf755d84e408b6f09bfe00f179afec0a39d2d232.md",
+      "ranges": [
+        [
+          1,
+          933
+        ]
+      ],
+      "full": true
+    },
+    {
+      "ref": "rfork@3284850b:vllm_ascend/model_loader/rfork/types.py",
+      "ranges": [
+        [
+          1,
+          82
+        ]
+      ],
+      "full": true
+    },
+    {
+      "ref": "rfork@3284850b:docs/source/developer_guide/Design_Documents/rfork_lease_lifecycle.md",
+      "ranges": [
+        [
+          1,
+          160
+        ]
+      ],
+      "full": true
+    }
+  ],
+  "device_execution": false,
+  "visual_review": false
+}

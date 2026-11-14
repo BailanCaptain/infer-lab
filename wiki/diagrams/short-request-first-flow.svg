@@ -40,10 +40,10 @@
   <text x="776" y="236" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">有：取恢复车道</text>
   <text x="776" y="255" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">被抢占、算过一部分的</text>
   <rect x="220" y="292" width="440" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="440" y="321" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">长车道队头等够上限，且短车道有人吗？</text>
+  <text x="440" y="321" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">长车道队头等够门槛，且短车道有人吗？</text>
   <rect x="684" y="288" width="184" height="56" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
   <text x="776" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">是：取长车道队头</text>
-  <text x="776" y="331" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">等待上限默认 0，不触发</text>
+  <text x="776" y="331" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">等待门槛默认 0，不触发</text>
   <rect x="220" y="368" width="440" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="440" y="397" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">短车道有人吗？</text>
   <rect x="684" y="364" width="184" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>

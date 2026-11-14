@@ -1,6 +1,6 @@
 layout: figure
 id: quantization-intuition
-caption: 权重在离线阶段按输出通道压成 INT8，每个通道留下一个缩放系数；每次前向再把输入激活按行（一行是一个 token）压成 INT8，每行留下一个缩放系数。整数乘加只吃两份 INT8，结果先是整数；缩放系数不进乘加，最后一步才乘回来，输出恢复成 BF16。
+caption: 图示本页普通动态 W8A8 Linear 的 BF16 输入路径：权重在离线阶段按输出通道压成 INT8，每个通道留下一个缩放系数；前向把输入激活按行（一行是一个 token）压成 INT8，每行留下一个缩放系数。整数乘加只吃两份 INT8，结果先是整数；缩放系数不进整数乘加，最后乘回来，输出恢复成 BF16。这是逻辑步骤，提前量化和融合可以改变实际算子调用次数。
 size: [880, 440]
 frames:
   - { at: [104, 46], size: [430, 158], label: 离线做一次：权重压成 INT8 }
@@ -12,7 +12,7 @@ matrices:
   - { at: [124, 256], w: 84, h: 60, rows: 4, cols: 6, tone: token, style: faded }
   - { at: [420, 256], w: 84, h: 60, rows: 4, cols: 6, tone: token, style: solid }
   - { at: [510, 256], w: 10, h: 60, rows: 4, cols: 1, tone: control, style: solid }
-  - { at: [790, 190], w: 56, h: 56, rows: 4, cols: 4, tone: token, style: faded }
+  - { at: [790, 190], w: 72, h: 48, rows: 4, cols: 6, tone: token, style: faded }
 items:
   - { at: [240, 76], size: [156, 44], text: 每列除以自己的系数, sub: 舍入后截到 −128…127, tone: control, style: plain }
   - { at: [240, 270], size: [156, 44], text: 每行除以自己的系数, sub: 系数按本次输入现算, tone: control, style: plain }

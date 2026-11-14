@@ -1,0 +1,1117 @@
+{
+  "reviewer": "/root/groups_replay_review",
+  "status": "manual_evidence_for_root_edits_not_final_acceptance",
+  "recorded_at": "2026-11-10T11:01:42.193075+00:00",
+  "unit": "source scopes/table rows, not full document counts",
+  "rows": [
+    {
+      "page_id": "npu-model-runner",
+      "table": "版本差异",
+      "row": "两次调用/12状态/State error",
+      "rc2_value": "MRV1保留12项；前向保存并返回None，采样取出清空，未清空再次前向报错",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L346-L361",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            346,
+            361
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L2229-L2241",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            2229,
+            2241
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L2657-L2678",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            2657,
+            2678
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L2764-L2814",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            2764,
+            2814
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        }
+      ],
+      "boundary": "不推广到MRV2内部状态"
+    },
+    {
+      "page_id": "npu-model-runner",
+      "table": "版本差异",
+      "row": "CPU允许词表",
+      "rc2_value": "MRV1仍将logits转CPU float，应用mask后转回设备及原dtype",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L2803-L2814",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            2803,
+            2814
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "npu-model-runner",
+      "table": "版本差异",
+      "row": "异步两处防护",
+      "rc2_value": "重算回退与丢弃映射两处仍将prev_num_draft_len清零",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L961-L976",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            961,
+            976
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L2288-L2311",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            2288,
+            2311
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "npu-model-runner",
+      "table": "版本差异",
+      "row": "V2开关",
+      "rc2_value": "不含旧0.23专用回退；构造器读最终配置，init_device按它选类；Ascend属性只读环境变量，未设false",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L178-L198",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            178,
+            198
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L491-L506",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            491,
+            506
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L63",
+          "file_sha256": "22a732a3dd62ed6f070c4802955f43c9c1e48c5a2117b09353aa1d26992d5265",
+          "read_scope": [
+            1,
+            63
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/patch/platform/patch_use_v2_model_runner.py"
+        }
+      ],
+      "boundary": "显式选择不等于模型/特性组合可用"
+    },
+    {
+      "page_id": "npu-model-runner",
+      "table": "版本差异",
+      "row": "PCP临时批上限",
+      "rc2_value": "父类初始化前不再临时扩大max_num_batched_tokens",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L370-L380",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            370,
+            380
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        }
+      ],
+      "boundary": "核对该构造入口；不是宣称所有PCP准备都相同"
+    },
+    {
+      "page_id": "npu-model-runner",
+      "table": "版本差异",
+      "row": "接受数判断",
+      "rc2_value": "kv_cache_config.has_mamba_layers",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L4604-L4616",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            4604,
+            4616
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "npu-model-runner",
+      "table": "版本差异",
+      "row": "文件行数/execute_model",
+      "rc2_value": "6594 / L2229",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L2229-L2241",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            2229,
+            2241
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        }
+      ],
+      "boundary": "6594来自该固定文件行数统计，不是全文阅读声称"
+    },
+    {
+      "page_id": "prepare-inputs-flow",
+      "table": "版本差异",
+      "row": "_prepare_inputs",
+      "rc2_value": "L1281；先提交块表，再repeat请求行归属、有效token与形态、位置",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L1281-L1343",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            1281,
+            1343
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "prepare-inputs-flow",
+      "table": "版本差异",
+      "row": "_build_attn_state",
+      "rc2_value": "L1708；主要返回标签顺序保留",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L1708-L1735",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            1708,
+            1735
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        }
+      ],
+      "boundary": "返回attn_state与self.attn_state区分：非MTP投机时self被改ChunkedPrefill；不要笼统称所有内部状态一致"
+    },
+    {
+      "page_id": "prepare-inputs-flow",
+      "table": "版本差异",
+      "row": "无草稿选行",
+      "rc2_value": "L1645；query_start_loc[1:num_reqs+1]-1",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L1635-L1645",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            1635,
+            1645
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        }
+      ],
+      "boundary": "rc2此处已没有旧GLM的use_cp分支；只核公式本身，不能宣称CP调用链相同"
+    },
+    {
+      "page_id": "prepare-inputs-flow",
+      "table": "版本差异",
+      "row": "KDA边界",
+      "rc2_value": "仍有gdn专用边界；尾部重复末真实边界",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L405-L415",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            405,
+            415
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L1435-L1447",
+          "file_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+          "read_scope": [
+            1435,
+            1447
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/model_runner_v1.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "prepare-inputs-flow",
+      "table": "版本差异",
+      "row": "runner版本",
+      "rc2_value": "Ascend未设环境变量仍选MRV1，V2另一路",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L491-L506",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            491,
+            506
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L63",
+          "file_sha256": "22a732a3dd62ed6f070c4802955f43c9c1e48c5a2117b09353aa1d26992d5265",
+          "read_scope": [
+            1,
+            63
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/patch/platform/patch_use_v2_model_runner.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "加载参数",
+      "row": "safetensors_load_strategy",
+      "rc2_value": "默认None；字段为lazy/eager/prefetch/torchao枚举，普通iterator各分支存在",
+      "sources": [
+        {
+          "ref": "vllm@ced6857a:vllm/config/load.py#L12-L96",
+          "file_sha256": "bd6431c22e078362d749a56a2c84145432ebf2605d8bcfa2ac679182d18ed630",
+          "read_scope": [
+            12,
+            96
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/config/load.py"
+        },
+        {
+          "ref": "vllm@ced6857a:vllm/model_executor/model_loader/weight_utils.py#L866-L1000",
+          "file_sha256": "7443e55184777dcc99f621b0d97d9149d52c2ea8b4304c6621eb4902e1c8ba5b",
+          "read_scope": [
+            866,
+            1000
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/model_executor/model_loader/weight_utils.py"
+        }
+      ],
+      "boundary": "默认加载器enable_multithread_load只兼容None/lazy；可另加入口边界，依据default_loader110–126"
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "加载参数",
+      "row": "自动预读",
+      "rc2_value": "仍NFS/NFS4/Lustre且≤90%可用RAM；显式lazy不预读；显式prefetch可超阈值告警后继续",
+      "sources": [
+        {
+          "ref": "vllm@ced6857a:vllm/model_executor/model_loader/weight_utils.py#L885-L949",
+          "file_sha256": "7443e55184777dcc99f621b0d97d9149d52c2ea8b4304c6621eb4902e1c8ba5b",
+          "read_scope": [
+            885,
+            949
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/model_executor/model_loader/weight_utils.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "加载参数",
+      "row": "trust_remote_code",
+      "rc2_value": "默认false；配置读取传trust_remote_code及code_revision，generation_config亦传",
+      "sources": [
+        {
+          "ref": "vllm@ced6857a:vllm/config/model.py#L163-L169",
+          "file_sha256": "f4168b67cc93ce72ff2a6d4c66974223e32fd0f1fab4c05e44bd68a275e18d69",
+          "read_scope": [
+            163,
+            169
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/config/model.py"
+        },
+        {
+          "ref": "vllm@ced6857a:vllm/config/model.py#L628-L637",
+          "file_sha256": "f4168b67cc93ce72ff2a6d4c66974223e32fd0f1fab4c05e44bd68a275e18d69",
+          "read_scope": [
+            628,
+            637
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/config/model.py"
+        },
+        {
+          "ref": "vllm@ced6857a:vllm/config/model.py#L1705-L1721",
+          "file_sha256": "f4168b67cc93ce72ff2a6d4c66974223e32fd0f1fab4c05e44bd68a275e18d69",
+          "read_scope": [
+            1705,
+            1721
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/config/model.py"
+        }
+      ],
+      "boundary": "这些范围不自行证明tokenizer具体消费者，原有跨版本tokenizer来源保留"
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "启动阶段",
+      "row": "调用顺序",
+      "rc2_value": "设备→加载→预算→按配置建缓存→预热的职责保留；方法内部存在新增步骤",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L491-L506",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            491,
+            506
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L557-L657",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            557,
+            657
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L837-L970",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            837,
+            970
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L1178-L1221",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            1178,
+            1221
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        }
+      ],
+      "boundary": "此处是Worker方法职责；上游调用方可复用已核固定main但不能仅此证明全生命周期无变化"
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "启动阶段",
+      "row": "后处理识别",
+      "rc2_value": "旧patch不存在；GLM wrapper持有实际attention子层，上游named_modules以基类+callable后处理识别",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L301-L321",
+          "file_sha256": "80a72cea4f614e8d0406043e51eb786b7e5adcce317d52b5739d2013adb8d781",
+          "read_scope": [
+            301,
+            321
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/models/glm5next/attention.py"
+        },
+        {
+          "ref": "vllm@ced6857a:vllm/model_executor/model_loader/utils.py#L146-L158",
+          "file_sha256": "aa398e74ee835537403e60186f2e9a81e8741a4b35fec68b47df6537716a45b7",
+          "read_scope": [
+            146,
+            158
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/model_executor/model_loader/utils.py"
+        },
+        {
+          "ref": "vllm@ced6857a:vllm/model_executor/layers/attention/__init__.py#L26-L30",
+          "file_sha256": "822dde07028133a17abae8f17c9d5a8b242690c06a2bb3c186bac4738d17c3e1",
+          "read_scope": [
+            26,
+            30
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/model_executor/layers/attention/__init__.py"
+        }
+      ],
+      "boundary": "缺文件结论另由固定tree查验，不能只凭单次grep"
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "启动阶段",
+      "row": "权重名字补丁",
+      "rc2_value": "旧patch_weight_utils文件不存在",
+      "sources": [],
+      "boundary": "已git ls-tree核固定7d825229的patch目录无此文件；不等于权重处理整体已删除"
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "启动阶段",
+      "row": "预热后",
+      "rc2_value": "capture之前仍调kernel_warmup；HAS_TRITON为真才执行，增至rejection/penalties/RMS/indexer四类",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L862-L892",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            862,
+            892
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/model_executor/warmup/kernel_warmup.py#L1-L53",
+          "file_sha256": "506e713731565f910b440e900ed3a2a80e3cb4c7269b25857a6f682b4d80ab89",
+          "read_scope": [
+            1,
+            53
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/model_executor/warmup/kernel_warmup.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L266-L274",
+          "file_sha256": "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+          "read_scope": [
+            266,
+            274
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/ascend_config.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "启动阶段",
+      "row": "预算修正",
+      "rc2_value": "startup_plan；显式路径仍profile并应用offload/KVPP限制；自动路径有分组缩放/逐层复用/offload/KVPP调整",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L557-L657",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            557,
+            657
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        }
+      ],
+      "boundary": "预算公式具体适用条件继续回链量测/KVPP页，不写成main完全逐字相同"
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "启动阶段",
+      "row": "sleep池",
+      "rc2_value": "只将缓存本体置discardable池；DSpark先登记draft归属；zero metadata在池外并受共同+MRV1/2条件约束",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L1171-L1221",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            1171,
+            1221
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "加载器注册",
+      "row": "常规/专用/dummy",
+      "rc2_value": "实际注册同固定main，含modelexpress",
+      "sources": [
+        {
+          "ref": "vllm@ced6857a:vllm/model_executor/model_loader/__init__.py#L33-L66",
+          "file_sha256": "ef52616c4e844152cc6b3d347e56340eecf6dfd529d83ae7e2977d6c4d22be76",
+          "read_scope": [
+            33,
+            66
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/model_executor/model_loader/__init__.py"
+        }
+      ],
+      "boundary": "注册存在不等于Ascend模型实机兼容"
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "加载器注册",
+      "row": "gguf",
+      "rc2_value": "未注册",
+      "sources": [
+        {
+          "ref": "vllm@ced6857a:vllm/model_executor/model_loader/__init__.py#L33-L66",
+          "file_sha256": "ef52616c4e844152cc6b3d347e56340eecf6dfd529d83ae7e2977d6c4d22be76",
+          "read_scope": [
+            33,
+            66
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/model_executor/model_loader/__init__.py"
+        }
+      ],
+      "boundary": "注册存在不等于Ascend模型实机兼容"
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "加载器注册",
+      "row": "bitsandbytes",
+      "rc2_value": "未注册",
+      "sources": [
+        {
+          "ref": "vllm@ced6857a:vllm/model_executor/model_loader/__init__.py#L33-L66",
+          "file_sha256": "ef52616c4e844152cc6b3d347e56340eecf6dfd529d83ae7e2977d6c4d22be76",
+          "read_scope": [
+            33,
+            66
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/model_executor/model_loader/__init__.py"
+        }
+      ],
+      "boundary": "注册存在不等于Ascend模型实机兼容"
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "加载器注册",
+      "row": "ipc_cache",
+      "rc2_value": "已注册",
+      "sources": [
+        {
+          "ref": "vllm@ced6857a:vllm/model_executor/model_loader/__init__.py#L33-L66",
+          "file_sha256": "ef52616c4e844152cc6b3d347e56340eecf6dfd529d83ae7e2977d6c4d22be76",
+          "read_scope": [
+            33,
+            66
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/model_executor/model_loader/__init__.py"
+        }
+      ],
+      "boundary": "注册存在不等于Ascend模型实机兼容"
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "加载回退",
+      "row": "auto/PT/index",
+      "rc2_value": "auto先探Mistral再HF；显式safetensors不追加PT；远端且文件数>1才下载index",
+      "sources": [
+        {
+          "ref": "vllm@ced6857a:vllm/model_executor/model_loader/default_loader.py#L128-L230",
+          "file_sha256": "9c9d54b1b650bf5affc924ebb8b8c73711e187ae7486cadd9f737bb1279cc7b8",
+          "read_scope": [
+            128,
+            230
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/model_executor/model_loader/default_loader.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "vllm-ascend-for-rl",
+      "table": "版本差异",
+      "row": "统一RL配置",
+      "rc2_value": "有；4个bool默认false；总开关应用NZ=0、allocator环境和开发端点；可选项不隐式打开",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L365-L395",
+          "file_sha256": "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+          "read_scope": [
+            365,
+            395
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/ascend_config.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "vllm-ascend-for-rl",
+      "table": "版本差异",
+      "row": "权重更新默认",
+      "rc2_value": "提供weight_transfer_config才在load_model后创建引擎",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L837-L860",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            837,
+            860
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "vllm-ascend-for-rl",
+      "table": "版本差异",
+      "row": "跨卡/同卡入口",
+      "rc2_value": "注册hccl/npu_ipc worker后端与npu_ipc trainer工厂",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/weight_transfer/__init__.py#L24-L40",
+          "file_sha256": "7208fb625b6260f79529fe452cfc6e6d44718fa35e2d37e363bbfe0864328974",
+          "read_scope": [
+            24,
+            40
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/distributed/weight_transfer/__init__.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "vllm-ascend-for-rl",
+      "table": "版本差异",
+      "row": "NZ检查",
+      "rc2_value": "start检查生效weight_nz_mode；统一总开关强制归零",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L314-L336",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            314,
+            336
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L377-L386",
+          "file_sha256": "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+          "read_scope": [
+            377,
+            386
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/ascend_config.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "vllm-ascend-for-rl",
+      "table": "版本差异",
+      "row": "更新API",
+      "rc2_value": "start无is_checkpoint_format；后端负责重载；worker状态机保留",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L301-L363",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            301,
+            363
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "vllm-ascend-for-rl",
+      "table": "版本差异",
+      "row": "sleep额外清理",
+      "rc2_value": "rl_config.sleep_mode_extra_cleanup且enabled；两者默认false",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L365-L375",
+          "file_sha256": "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+          "read_scope": [
+            365,
+            375
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/ascend_config.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L246-L299",
+          "file_sha256": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+          "read_scope": [
+            246,
+            299
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/worker/worker.py"
+        }
+      ],
+      "boundary": ""
+    },
+    {
+      "page_id": "vllm-ascend-for-rl",
+      "table": "版本差异",
+      "row": "批不变/训推入口",
+      "rc2_value": "各自独立字段；总开关不替代子开关；batch env仅显式子开关true时写1",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L365-L395",
+          "file_sha256": "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+          "read_scope": [
+            365,
+            395
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/ascend_config.py"
+        }
+      ],
+      "boundary": "训推attention消费者/PCP前提已有来源，仍需精确rc2范围补入，不能从字段存在推效果"
+    },
+    {
+      "page_id": "npu-model-runner",
+      "table": "官方承接",
+      "row": "上游MRV2设计",
+      "rc2_value": "状态固定行与每步输入分离、临时pinned快照避免竞态、StagedWriteTensor增量提交、设备准备元数据、独立dummy/graph职责",
+      "sources": [
+        {
+          "ref": "vllm@ced6857a:docs/design/model_runner_v2.md#L1-L206",
+          "file_sha256": "5bb3b26d87976d32c90fbf1d297e8a2e4364e60c2f438475922072ed7fb2628e",
+          "read_scope": [
+            1,
+            206
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/docs/design/model_runner_v2.md"
+        }
+      ],
+      "boundary": "已实际读全文206行及5图；上游设计不证明Ascend V2功能已跑通。全文复用不计新文件。"
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "调用方补证",
+      "row": "多进程启动与缓存后置",
+      "rc2_value": "WorkerProc先init_device后load_model；EngineCore拿预算、配置各卡，再初始化缓存/预热；弹性EP扩容另有分支",
+      "sources": [
+        {
+          "ref": "vllm@ced6857a:vllm/v1/executor/multiproc_executor.py#L662-L686",
+          "file_sha256": "3ed0149a8a8e1550c4f062af40e645d1b734e70f99981bc5bf15f0360507648a",
+          "read_scope": [
+            662,
+            686
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/v1/executor/multiproc_executor.py"
+        },
+        {
+          "ref": "vllm@ced6857a:vllm/v1/engine/core.py#L284-L356",
+          "file_sha256": "268bf40534a853812867ae8e80040f190983cb364b41182b55969aace20c93f5",
+          "read_scope": [
+            284,
+            356
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/v1/engine/core.py"
+        },
+        {
+          "ref": "vllm@ced6857a:vllm/v1/executor/abstract.py#L120-L135",
+          "file_sha256": "97791426b549e4447c967f8b8e668c2e376c6a75fa7091fd9df11bc9dafb65f7",
+          "read_scope": [
+            120,
+            135
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/v1/executor/abstract.py"
+        }
+      ],
+      "boundary": "不能仅六个方法存在就证明时序；本条补实际调用方"
+    },
+    {
+      "page_id": "vllm-ascend-for-rl",
+      "table": "能力条件",
+      "row": "FA3消费者",
+      "rc2_value": "无PCP才进入FA3判定；RL总开关与training子开关同时true；MLA/SFA拒绝，包和flash_attn_with_kvcache须存在",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L245-L255",
+          "file_sha256": "0f4e619517058f36b700a521e93c449d78b269c1d29ed1a18cbc312f2d67b082",
+          "read_scope": [
+            245,
+            255
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/platform.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1475-L1500",
+          "file_sha256": "0f4e619517058f36b700a521e93c449d78b269c1d29ed1a18cbc312f2d67b082",
+          "read_scope": [
+            1475,
+            1500
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/platform.py"
+        }
+      ],
+      "boundary": "PCP绕过FA3分支不等于获得训推一致"
+    },
+    {
+      "page_id": "vllm-ascend-for-rl",
+      "table": "能力条件",
+      "row": "Router Replay",
+      "rc2_value": "rc2配置校验拒绝MRV1的routed-experts capture；必须显式V2并满足模型/功能兼容",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L488-L508",
+          "file_sha256": "0f4e619517058f36b700a521e93c449d78b269c1d29ed1a18cbc312f2d67b082",
+          "read_scope": [
+            488,
+            508
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/platform.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1627-L1639",
+          "file_sha256": "0f4e619517058f36b700a521e93c449d78b269c1d29ed1a18cbc312f2d67b082",
+          "read_scope": [
+            1627,
+            1639
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/platform.py"
+        }
+      ],
+      "boundary": "这是rc2限制；不倒推旧main数据面已被移除"
+    },
+    {
+      "page_id": "prepare-inputs-flow",
+      "table": "能力条件",
+      "row": "MRV1 PCP",
+      "rc2_value": "rc2平台校验拒绝MRV1 PCP>1；PCP须核V2",
+      "sources": [
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L488-L508",
+          "file_sha256": "0f4e619517058f36b700a521e93c449d78b269c1d29ed1a18cbc312f2d67b082",
+          "read_scope": [
+            488,
+            508
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/platform.py"
+        },
+        {
+          "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1641-L1648",
+          "file_sha256": "0f4e619517058f36b700a521e93c449d78b269c1d29ed1a18cbc312f2d67b082",
+          "read_scope": [
+            1641,
+            1648
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm-ascend/7d825229/vllm_ascend/platform.py"
+        }
+      ],
+      "boundary": "本页旧GLM本来PCP1；不能把旧CP分支直接推广rc2 MRV1"
+    },
+    {
+      "page_id": "npu-worker-lifecycle",
+      "table": "加载参数补充",
+      "row": "多线程与预读",
+      "rc2_value": "默认加载器enable_multithread_load为真时只兼容None/lazy，搭配eager/prefetch/torchao会拒绝",
+      "sources": [
+        {
+          "ref": "vllm@ced6857a:vllm/model_executor/model_loader/default_loader.py#L110-L126",
+          "file_sha256": "9c9d54b1b650bf5affc924ebb8b8c73711e187ae7486cadd9f737bb1279cc7b8",
+          "read_scope": [
+            110,
+            126
+          ],
+          "local": ".tmp/continuation-groups-2026-11-10/execution/fixed/vllm/ced6857a/vllm/model_executor/model_loader/default_loader.py"
+        }
+      ],
+      "boundary": "旧GLM命令未启用此字段，不修改其prefetch推演"
+    }
+  ],
+  "whole_file_comparisons": [
+    {
+      "repo": "vllm",
+      "commits": [
+        "ced6857a",
+        "84030bbe"
+      ],
+      "path": "vllm/v1/engine/core.py",
+      "sha256": [
+        "268bf40534a853812867ae8e80040f190983cb364b41182b55969aace20c93f5",
+        "268bf40534a853812867ae8e80040f190983cb364b41182b55969aace20c93f5"
+      ],
+      "same_bytes": true,
+      "boundary": "整文件字节比较；不表示本轮全文逐行阅读；当前主张范围另已人工读"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commits": [
+        "7d825229",
+        "baa023ad"
+      ],
+      "path": "vllm_ascend/patch/platform/patch_engine_core.py",
+      "sha256": [
+        "050f71806f8b06bb391dbfc506e588d220aa6ebfc05ba67c6f7f8dc6649d1419",
+        "050f71806f8b06bb391dbfc506e588d220aa6ebfc05ba67c6f7f8dc6649d1419"
+      ],
+      "same_bytes": true,
+      "boundary": "整文件字节比较；不表示本轮全文逐行阅读；当前主张范围另已人工读"
+    },
+    {
+      "repo": "vllm-ascend",
+      "commits": [
+        "7d825229",
+        "baa023ad"
+      ],
+      "path": "vllm_ascend/worker/model_runner_v1.py",
+      "sha256": [
+        "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+        "201566fe660d38eec77c6d7962c1e95959c7aa2c7843b411bd949c1b7fb4847d"
+      ],
+      "lines": [
+        6594,
+        6242
+      ],
+      "same_bytes": false,
+      "boundary": "Whole-file byte comparison only. Unequal files require claim-specific review; no broad same-behavior inference. Actual semantic reading is limited to documented source ranges."
+    },
+    {
+      "repo": "vllm-ascend",
+      "commits": [
+        "7d825229",
+        "baa023ad"
+      ],
+      "path": "vllm_ascend/worker/worker.py",
+      "sha256": [
+        "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4",
+        "deea0138620a6abcf0d8ab9ab9ad4b2e9f1c41c429e05b0ff2742064b3f3a921"
+      ],
+      "lines": [
+        1344,
+        1273
+      ],
+      "same_bytes": false,
+      "boundary": "Whole-file byte comparison only. Unequal files require claim-specific review; no broad same-behavior inference. Actual semantic reading is limited to documented source ranges."
+    },
+    {
+      "repo": "vllm-ascend",
+      "commits": [
+        "7d825229",
+        "baa023ad"
+      ],
+      "path": "vllm_ascend/platform.py",
+      "sha256": [
+        "0f4e619517058f36b700a521e93c449d78b269c1d29ed1a18cbc312f2d67b082",
+        "5acb2901b4950d70251222497ffff47532d1b2065e29d117d3ae0e058ceca468"
+      ],
+      "lines": [
+        1783,
+        1602
+      ],
+      "same_bytes": false,
+      "boundary": "Whole-file byte comparison only. Unequal files require claim-specific review; no broad same-behavior inference. Actual semantic reading is limited to documented source ranges."
+    },
+    {
+      "repo": "vllm-ascend",
+      "commits": [
+        "7d825229",
+        "baa023ad"
+      ],
+      "path": "vllm_ascend/ascend_config.py",
+      "sha256": [
+        "d5ea2cd9a5499e5c0d7a41114005569d3c9092027e0cf03510c40dc4951ac4cd",
+        "bebb7be51823723eca62d093081341b9e2825402a457ef52c8d2468e132473a9"
+      ],
+      "lines": [
+        1949,
+        1716
+      ],
+      "same_bytes": false,
+      "boundary": "Whole-file byte comparison only. Unequal files require claim-specific review; no broad same-behavior inference. Actual semantic reading is limited to documented source ranges."
+    },
+    {
+      "repo": "vllm-ascend",
+      "commits": [
+        "7d825229",
+        "baa023ad"
+      ],
+      "path": "vllm_ascend/patch/platform/patch_use_v2_model_runner.py",
+      "sha256": [
+        "22a732a3dd62ed6f070c4802955f43c9c1e48c5a2117b09353aa1d26992d5265",
+        "cb092bbcea27f56edb3fc137e40257fb1dc48a59927bacdbddcda7333898db47"
+      ],
+      "lines": [
+        63,
+        109
+      ],
+      "same_bytes": false,
+      "boundary": "Whole-file byte comparison only. Unequal files require claim-specific review; no broad same-behavior inference. Actual semantic reading is limited to documented source ranges."
+    },
+    {
+      "repo": "vllm-ascend",
+      "commits": [
+        "7d825229",
+        "baa023ad"
+      ],
+      "path": "vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py",
+      "sha256": [
+        "ff6dd5f1759bf5ab663718ff3c924eb1936d058e69baaa7187249b6dd5c1c082",
+        "1e81465e158fa9e3938e59d64f645a2fe299e8a337bcc3c006f76f40e38998ba"
+      ],
+      "lines": [
+        432,
+        426
+      ],
+      "same_bytes": false,
+      "boundary": "Whole-file byte comparison only. Unequal files require claim-specific review; no broad same-behavior inference. Actual semantic reading is limited to documented source ranges."
+    },
+    {
+      "repo": "vllm",
+      "commits": [
+        "ced6857a",
+        "84030bbe"
+      ],
+      "path": "vllm/model_executor/model_loader/default_loader.py",
+      "sha256": [
+        "9c9d54b1b650bf5affc924ebb8b8c73711e187ae7486cadd9f737bb1279cc7b8",
+        "9c9d54b1b650bf5affc924ebb8b8c73711e187ae7486cadd9f737bb1279cc7b8"
+      ],
+      "lines": [
+        470,
+        470
+      ],
+      "same_bytes": true,
+      "boundary": "Whole-file byte comparison only. Unequal files require claim-specific review; no broad same-behavior inference. Actual semantic reading is limited to documented source ranges."
+    },
+    {
+      "repo": "vllm",
+      "commits": [
+        "ced6857a",
+        "84030bbe"
+      ],
+      "path": "vllm/config/load.py",
+      "sha256": [
+        "bd6431c22e078362d749a56a2c84145432ebf2605d8bcfa2ac679182d18ed630",
+        "bd6431c22e078362d749a56a2c84145432ebf2605d8bcfa2ac679182d18ed630"
+      ],
+      "lines": [
+        152,
+        152
+      ],
+      "same_bytes": true,
+      "boundary": "Whole-file byte comparison only. Unequal files require claim-specific review; no broad same-behavior inference. Actual semantic reading is limited to documented source ranges."
+    }
+  ],
+  "range_correction": "Independent reviewer originally wrote end 64 for a 63-line file. Corrected before final acceptance; no unread content inferred.",
+  "final_additional_context_read": [
+    {
+      "repo": "vllm-ascend",
+      "commit": "7d825229",
+      "path": "vllm_ascend/worker/worker.py",
+      "read_scope": [
+        123,
+        245
+      ],
+      "claim_scope": [
+        123,
+        213
+      ],
+      "claim": "Full Worker constructor has direct use_v2_model_runner assignment and no old vLLM 0.23.0 fallback; lines214–245 contain adjacent uninstall helper, not used to broaden claims.",
+      "new_full_document_credit": 0
+    }
+  ]
+}

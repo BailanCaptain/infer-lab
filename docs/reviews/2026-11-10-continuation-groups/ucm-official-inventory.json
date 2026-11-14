@@ -1,0 +1,747 @@
+{
+  "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+  "entries": [
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/about.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/about.md",
+      "lines": 9,
+      "sha256": "c130fc6ab9f7569500370501d2b2fd8072cb00da31bafb45afc503937965f3a5",
+      "status": "full text read",
+      "kind": "navigation or project introduction",
+      "reading_note": "9行全文；团队介绍，不作技术或性能证据。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/benchmark/aisbench.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/benchmark/aisbench.md",
+      "lines": 157,
+      "sha256": "cf1e70c48ac38e68b14f92cdff8eeba88af1abfd836d9ef29929acdce1cf41ba",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "157行全文及全部表、文本流程；前缀预填与实际命中、性能与精度分开；覆盖验证方法。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/benchmark/pd-disaggregation.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/benchmark/pd-disaggregation.md",
+      "lines": 89,
+      "sha256": "07ae025d54171cf990da16d5f4b697806103f5c3ffc7e5f402f1b8a7eedacbba",
+      "status": "full text read",
+      "reading_note": "89行全文、3原图实际看，非Flash八机报告，TTFT和TPOT一起报。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/blog/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/blog/index.md",
+      "lines": 16,
+      "sha256": "73cad455db6110141cbd7f454d3a78ee834aa83dde976cd6c07dc85607e2dd34",
+      "status": "full text read",
+      "kind": "navigation or project introduction",
+      "reading_note": "16行全文；文章索引，无独立机制结论。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/blog/welcome.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/blog/welcome.md",
+      "lines": 47,
+      "sha256": "d642b44b6542426bb26f677cac6cd0b1df21abe35b2e07b6d4d5747e9e14a0d1",
+      "status": "full text read",
+      "kind": "navigation or project introduction",
+      "reading_note": "47行全文；缓存动机已覆盖，3–10倍宣传缺此页实验条件，不作为性能承诺；封面logo非技术图。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/add-metrics.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/add-metrics.md",
+      "lines": 149,
+      "sha256": "fc2ce2a063806b8973acc56b9d06aa6a9da19e64243fbf0c4b3b9906c1a1010c",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "149行全文；Dispatcher消费者、KV秒/普通毫秒、Counter/Gauge/Histogram、生成与自定义目录；基础采集已覆盖，逐指标语义接metrics-reference继续核。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/architecture.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/architecture.md",
+      "lines": 42,
+      "sha256": "0c706fe9404b747dce3631b6382eb2a4fddcb84d4c73396d0c0b13f6f96c4383",
+      "status": "full text read",
+      "reading_note": "引擎/connector/store职责，图已实际看；布局设计不替代码行为。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/build_from_source.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/build_from_source.md",
+      "lines": 133,
+      "sha256": "daae2f06b3e8eb0b091501b8ab2c66b66969dd08bd59cb0b6f58831462f50846",
+      "status": "full text read",
+      "reading_note": "引擎环境、平台与native依赖；与安装入口关联。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/cache-configuration/compress.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/cache-configuration/compress.md",
+      "lines": 151,
+      "sha256": "bedfa985cba7244aef4f3d87cc375f3d2359d1486dd965d590204197fd93bceb",
+      "status": "full text read",
+      "reading_note": "BF16有损、半分片4KiB、独立目录/质量；补正文与部署入口。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/cache-configuration/drampool.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/cache-configuration/drampool.md",
+      "lines": 370,
+      "sha256": "99bf3904aaf04671accf79902167059b7de4fd471dd05c10ad5a487bd7a52906",
+      "status": "full text read",
+      "reading_note": "A3/HIXL/RDMA及端口/单位/metrics；16行性能表另模型，liveURL404改固定源码入口。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/cache-configuration/ds3fs.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/cache-configuration/ds3fs.md",
+      "lines": 143,
+      "sha256": "e68143bcec3e4595871722a95a3d9dd5fbfded51b18544945b61579e5dc0eb78",
+      "status": "full text read",
+      "reading_note": "3FS原生clientIO和optional库、实际读写及health no-op；补正文。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/cache-configuration/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/cache-configuration/index.md",
+      "lines": 32,
+      "sha256": "4c86cda1d8e80af5995368e95068867f52845c7f54263cb368438affb752f237",
+      "status": "full text read",
+      "reading_note": "后端目录已逐项展开，不止Cache|Posix。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/cache-configuration/mooncake.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/cache-configuration/mooncake.md",
+      "lines": 297,
+      "sha256": "4765bdc1cc26053b64e73417a39de608867122b40317d2b23abbb39348d7f02c",
+      "status": "full text read",
+      "reading_note": "Ascend库依赖/内存和文件层/预算分开；两机GLM4.7命令未当Flash。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/cache-configuration/pipeline.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/cache-configuration/pipeline.md",
+      "lines": 154,
+      "sha256": "408354095c2089e851172a191922d94b79c8c6aa67b748a91481a4411fcfb766",
+      "status": "full text read",
+      "reading_note": "预算/GC/共享与新版代码对照。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/capability-principles.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/capability-principles.md",
+      "lines": 38,
+      "sha256": "dd0eb8011fa266c40570016af4bcd50726e8371f01226bacfd2020cc29cbf2cb",
+      "status": "full text read",
+      "reading_note": "块匹配、兼容身份、外部容量与代价，已接正文直觉。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/contribute.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/contribute.md",
+      "lines": 157,
+      "sha256": "4baf728d85842bf6923612633cd3aba2e83fe57fd281a3023201da9341e0dbf2",
+      "status": "full text read",
+      "kind": "contribution workflow",
+      "reading_note": "157行全文；社区PR/风格/文档构建。其许可证、代码风格等外链不扩为推理知识阅读范围，不在教学页复制维护流程。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/design-docs/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/design-docs/index.md",
+      "lines": 7,
+      "sha256": "852169e66b06c63f62edca1782ec4068f85b236a15acb5abb189cd75518073e7",
+      "status": "full text read",
+      "reading_note": "导航，EC chunk设计待读，不算已覆盖。",
+      "kind": "navigation/overview",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/design-docs/ucm-ec-connector.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/design-docs/ucm-ec-connector.md",
+      "lines": 577,
+      "sha256": "bd5547ac096c3ca4790901f6528f8111ee75a552566d934988cbf5cd13b47eee",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "577行全文；固定chunk、身份、完整item、失败和生命周期；PNG与Mermaid都实际查看。覆盖EC节及图。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/extending-store.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/extending-store.md",
+      "lines": 251,
+      "sha256": "7b6efe04206cc4e50a3ec543d69c2a8cfb2d484b7e16b287615dcf81c5f66696",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "251行全文；Python/native契约、任务持有/错误/工厂与实际IO。现页Store分工/完成语义覆盖；完整自定义存储开发教程非部署教学，不复制脚手架。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/features/ec-connector.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/features/ec-connector.md",
+      "lines": 184,
+      "sha256": "cb440e3a2e941a46895e808da6fd84f5ad0148b11b2117f4dc7be8b03e8982b4",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "184行全文；独立EC入口/配置/三缓存重置；128GiB默认按实际代码修正。覆盖UCM新增EC节。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/features/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/features/index.md",
+      "lines": 7,
+      "sha256": "c55aa03ce42a1e3ee99bfa4a05c9fee15e5e8eacbb6f778651a03d7a823f9c27",
+      "status": "full text read",
+      "reading_note": "导航，EC encoder cache是新增能力入口，技术正文仍待读。",
+      "kind": "navigation/overview",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/index.md",
+      "lines": 29,
+      "sha256": "2bd53b94065ed398f610620dbf1058b122c94428027750e72b4a3751c0700646",
+      "status": "full text read",
+      "reading_note": "导航，已展开后端和生命周期；EC/扩展/工具保留待读。",
+      "kind": "navigation/overview",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/pd-integration.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/pd-integration.md",
+      "lines": 36,
+      "sha256": "78d07d022eea5870ad952a274a810d71a284c7fe80d2c64a6a5f5549f9b8641f",
+      "status": "full text read",
+      "reading_note": "前缀复用与本次P/D交接两问题，已接PD节。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/developer-guide/request-lifecycle.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/developer-guide/request-lifecycle.md",
+      "lines": 52,
+      "sha256": "04d2964672fcbd3616db4dc541267eb405295e139faf081b0329ac182b391ec0",
+      "status": "full text read",
+      "reading_note": "元数据/读写/回收；按实际普通与HLA分支修订。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/index.md",
+      "lines": 58,
+      "sha256": "d1a551ffb23a1b7b6f5b292c9a720dd11964cf7eb7e6e0cfa41d08b4ff4f278a",
+      "status": "full text read",
+      "reading_note": "首页导航；3–10x泛化收益未用来证明本站固定部署；装饰logo非技术图。",
+      "kind": "navigation/overview",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/reference/config-parameters.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/reference/config-parameters.md",
+      "lines": 118,
+      "sha256": "5ff2f39b011d184b1959659f6d2c86359fc98421f1be94b5f47746f3456e76af",
+      "status": "full text read",
+      "reading_note": "根与Store字段、旧默认不能覆盖新core。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/reference/error-codes.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/reference/error-codes.md",
+      "lines": 23,
+      "sha256": "94a275230910c879e0b8ef891d4cf48978bc80ff96281fbc47da2cdc5f95aa15",
+      "status": "full text read",
+      "reading_note": "原生错误码0/-1/-50000至-50012；队列超时非backend失败。后续排障组复用。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/reference/troubleshooting.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/reference/troubleshooting.md",
+      "lines": 236,
+      "sha256": "83afb1d43c0651eec4736c69b28db6fb274547aed7cd67da615c00e5608501f3",
+      "status": "full text read",
+      "reading_note": "按初始化/未命中/load/健康分流，已回链。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/toolkit/developer/design.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/toolkit/developer/design.md",
+      "lines": 46,
+      "sha256": "09092843b0e73111b15a3c60911bd9c20763e6dc88001106c8bf87b2d552fad3",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "46行全文；CLI/Adapter/runner、构建资源与状态；工具依赖解释复用，插件开发实现细节不属本站推理教学主线。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/toolkit/developer/dev-sandbox.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/toolkit/developer/dev-sandbox.md",
+      "lines": 294,
+      "sha256": "761fa7dbf156f7f13a811d94d6028ce9a817c3fa585eba6f6b10527ded93ac86",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "294行全文含完整case表；后端/设备依赖与CPU模拟区分。默认builddir文字与用户状态说明不一致，不复制旧路径作为保证。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/toolkit/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/toolkit/index.md",
+      "lines": 99,
+      "sha256": "3595a65f449456cb17e79af27a66bf78d2cba43746894301432013c90596e1ea",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "99行全文；独立工具包/extra不选后端；覆盖工具段。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/toolkit/kv-cache-calculator.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/toolkit/kv-cache-calculator.md",
+      "lines": 17,
+      "sha256": "d805f88ee25a801c04ef86a1511448024ecedc857ef9b547f2dd855a42721a40",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "17行嵌入页全文；另读HTML301行、model-configs347行及calculator.js的933–1398行。GLM固定案例实际操作两种计算，说明向下取完整块、显示ceil符号错误及滚动状态/草稿数边界；其余JS未宣称全文。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/toolkit/user/dev-sandbox.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/toolkit/user/dev-sandbox.md",
+      "lines": 159,
+      "sha256": "0a4d59ec6434914ce51bbd9db01d30d5c0bb466443fa95c22c21679964418710",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "159行全文含文本图、表与例；copy/trans/aio独立测量，模型/IO/SDMA映射；覆盖工具表。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/toolkit/user/metrics-view.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/toolkit/user/metrics-view.md",
+      "lines": 137,
+      "sha256": "6bb0bb6f0a59dfe0aba13a218296f14c1bd12a3704763e9e3d2b380975bc5efc",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "137行全文；Counter累计与Gauge当前值及采集窗口不同。指南tp_size覆盖指令与四个固定preset冲突，真实覆盖函数均拒绝该参数；已解释冲突，不复制无效命令。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/toolkit/user/nic-monitor.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/toolkit/user/nic-monitor.md",
+      "lines": 124,
+      "sha256": "12d4a981bfe3a47db415974df47c0004694d28b1ba2791c7f3e028a4351bf756",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "124行全文；Linux物理NIC/ethtool回退/采集图；计数含非UCM流量，覆盖工具表。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/toolkit/user/posix-aio.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/toolkit/user/posix-aio.md",
+      "lines": 132,
+      "sha256": "ca4e9d877be6311f7c44a2deceb229ab2998739f0c1f8adc3fe3e5a5a16dc4ff",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "132行全文；4KiB补齐、GQA/MLA/DSA自动推导与不支持混合边界；覆盖工具表。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/toolkit/user/precheck.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/toolkit/user/precheck.md",
+      "lines": 98,
+      "sha256": "ef8f5feea1ecf6b6a41d5bf2b197d7615028ec13e0c1c58de8c1547d0fedbd2f",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "98行全文；阈值是告警而非全模型最低值、缺native可跳过；覆盖工具表。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/capabilities/pd-disaggregation/centralized.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/capabilities/pd-disaggregation/centralized.md",
+      "lines": 327,
+      "sha256": "9f07e804ce8e0f7d3ec01229bf15ed277664952876e15823d01d96649b530416",
+      "status": "full text read",
+      "reading_note": "327行全文，代理不等保存；整块/尾部及失败回退要实际引擎核。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/capabilities/pd-disaggregation/distributed.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/capabilities/pd-disaggregation/distributed.md",
+      "lines": 547,
+      "sha256": "44e680a772bc0c3287538155f105c15bbdf70c2edf5ea4aa431c2b1d6e2c934c",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "547行全文含MoE/Dense脚本、proxy与Helm；P组合UCM/Mooncake、D只传输已覆盖；Helm路由/拓扑纳入覆盖增量。Dense单进程例与proxy第二端口不对应，不照抄为完整可跑部署。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/capabilities/pd-disaggregation/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/capabilities/pd-disaggregation/index.md",
+      "lines": 28,
+      "sha256": "f13aed0616a75b590a4851d84c35ba161252ffe8e640f4064cee9f8789ea6ce3",
+      "status": "full text read",
+      "reading_note": "4种部署目录，继续跟distributed/large-scale而非据索引声称读完。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/capabilities/pd-disaggregation/large-scale-ep.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/capabilities/pd-disaggregation/large-scale-ep.md",
+      "lines": 408,
+      "sha256": "caea3b125ca8ea68e0415420358455f8b9ee69a25e1a33017ba2ee737b9b7188",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "408行全文含P4xTP8/D8xTP4八机、Helm三种replicas/HTTP模式/端口/资源。正文补Pod与逻辑实例分开；Chart承接目标继续读。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/diagnostics/trace-mode.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/diagnostics/trace-mode.md",
+      "lines": 149,
+      "sha256": "d2c4d147b45a03920f270b1cbb4ead425fc91680e6db262d558511c2ae158158",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "149行全文；仅元数据/FakeStore、启动Meta、输出上限；覆盖源码区工具段。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/frameworks/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/frameworks/index.md",
+      "lines": 12,
+      "sha256": "31b5e348843b203784187f82d36505323bab51095c475ea4f1b6bd8b944dfe2c",
+      "status": "full text read",
+      "reading_note": "导航，K8s/pyMotor待展开。",
+      "kind": "navigation/overview",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/frameworks/kubernetes/deploy.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/frameworks/kubernetes/deploy.md",
+      "lines": 279,
+      "sha256": "2ae1600d9dc1342dbecdbbd75c33a692cf1f13e05e005bb78265a90ad2eb2ca8",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "279行全文及五profile表；CRD/controller/router/镜像/IPC/挂载/端口/渲染/验证与删除语义。架构SVG及Chart引用文件另记。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/frameworks/pyMotor.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/frameworks/pyMotor.md",
+      "lines": 21,
+      "sha256": "4ecadbb4e785b582d4c87f1104de2152fd5545379786ea27dd8abbe5d0fc2563",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "21行全文；P组合Mooncake/UCM、D传输，非AscendStore backend:ucm。MindIE-Motor独立部署超出本站vLLM引擎教学，未宣称读完其站点。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/index.md",
+      "lines": 14,
+      "sha256": "3b498bab5ff78d894c0d62f95c3f0e6a3d3720c133766d93bb2c0a34dbaf3221",
+      "status": "full text read",
+      "reading_note": "导航，模型/部署/运维各有归属。",
+      "kind": "navigation/overview",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/model-tour/deepseek/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/model-tour/deepseek/index.md",
+      "lines": 298,
+      "sha256": "69853570a4022cdb04e323328cc81d34de63ace8bee9c7cdd5b4f4073febf3ee",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "298行全文A2/H100；V4-Flash非V4.1，两个块长与KV类型不同，模型设置不泛化。Cache|Posix/IPC/持久化与接口已接UCM主解释；API200非外部缓存验证。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/model-tour/glm/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/model-tour/glm/index.md",
+      "lines": 291,
+      "sha256": "ebfd50ad033038889cf96ff505ac6982c259ed02c479a1d7cd0a63413333258e",
+      "status": "full text read",
+      "reading_note": "GLM4.7命令与H100旧例读完，非旧Flash双机UCM验证。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/model-tour/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/model-tour/index.md",
+      "lines": 13,
+      "sha256": "eef4872fcd407ef527263dec13b50e2363d98b691291745bb8de124e09ba5391",
+      "status": "full text read",
+      "reading_note": "导航，GLM已读、Qwen/DeepSeek/MiniMax/Kimi仍需继续。",
+      "kind": "navigation/overview",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/model-tour/kimi/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/model-tour/kimi/index.md",
+      "lines": 21,
+      "sha256": "2536c7785b6f5a9867bf5ee3b11d45e288e27d6eaabb5945e76e28557cb3ef8e",
+      "status": "full text read",
+      "kind": "navigation or project introduction",
+      "reading_note": "21行全文；三个Ascend模型指南索引与支持表入口。上游教学已在Ascend清单，不把此索引当新增模型实测。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/model-tour/minimax/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/model-tour/minimax/index.md",
+      "lines": 289,
+      "sha256": "c22a17093d5861cc2b12f0185a321006c43a6ac7da7ba62c26c8cf535dc5a3a5",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "289行全文A2/H100；宿主sysctl、量化与TP8/TP4边界；配置接口复用UCM主解释，硬件/精度不从样例推导。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/model-tour/qwen3/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/model-tour/qwen3/index.md",
+      "lines": 294,
+      "sha256": "a8960e1157c1b226a3701cbae976301dd63b0ba4281ef3f3ab43cb8b254eafe4",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "294行全文A2/H100；混合状态align、TP2、持久阈值。私有64GiB每rank旧说法与新core预算分支不等价，本站以cache_config实际代码解释；视觉语言only示例不证明EC。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/observability/health-metrics.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/observability/health-metrics.md",
+      "lines": 146,
+      "sha256": "212799b3d6017004b488f01726a4d35e160c5dbdbb86e06193fa158272518199",
+      "status": "full text read",
+      "reading_note": "熔断与新任务拒绝、探测不替缓存正确性。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/observability/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/observability/index.md",
+      "lines": 14,
+      "sha256": "303060ba5f08f4a2ea68c142decc1f5d4ffcfdced011aff76a691e6df1c8650f",
+      "status": "full text read",
+      "reading_note": "导航，metrics-reference/trace-mode待读。",
+      "kind": "navigation/overview",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/observability/metrics-reference.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/observability/metrics-reference.md",
+      "lines": 463,
+      "sha256": "6215d78e05979b8459a2373d71ecb5abf7be2c2da0eea3e92075f41bd0b32f95",
+      "status": "full text read",
+      "kind": "technical content",
+      "reading_note": "463行全文及全部目录表/PromQL；单位、层级计数、异步提交/完成与错误路径已补正文。ASU/YuanRong详细原生开发不作为本站已验证部署；Prometheus方法外链另记。",
+      "coverage": "wiki/concepts/ucm.md; scope and remaining targets specified in reading_note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/observability/metrics.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/observability/metrics.md",
+      "lines": 195,
+      "sha256": "c73b13f361c9bb47e46bfa958357f65b42d1089143cc9989924906603c77611d",
+      "status": "full text read",
+      "reading_note": "setup及采集触发/路径计时和success分片语义分开。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/observability/verify-cache.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/observability/verify-cache.md",
+      "lines": 43,
+      "sha256": "6ab7c3ae8cbb92ad4a79fb3690ac8cf702b5c9214ad471d0abb5b5698526acdf",
+      "status": "full text read",
+      "reading_note": "重启仅排显存命中，共享host可存活；文件读和完成/输出联合验。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/quick_start/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/quick_start/index.md",
+      "lines": 665,
+      "sha256": "b50de73e5bd2d915083116d891f90e50a8783c0a9e24aa68b2a48698ff8915f4",
+      "status": "full text read",
+      "reading_note": "665行全文；另实际渲染Ascend选择器和安装页。未穷举26镜像20wheel所有组合。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    },
+    {
+      "commit": "4b9acbc8dede919ae17b14c3a23903e89623d5e8",
+      "path": "docs/docs-site/docs/en/user-guide/support-matrix/index.md",
+      "local": ".tmp/continuation-groups-2026-11-10/ucm-official/user-guide/support-matrix/index.md",
+      "lines": 78,
+      "sha256": "5322ff2128459561cf3db34bb38513894a2af39dd24ac5acd76ae3a5a073164e",
+      "status": "full text read",
+      "reading_note": "开发分支模型支持与旧镜像兼容性分开。",
+      "kind": "technical content",
+      "coverage": "wiki/concepts/ucm.md; related follow-up listed in note"
+    }
+  ],
+  "recorded_at": "2026-11-10T08:00:07.293878+00:00",
+  "counts": {
+    "total_english_markdown": 59,
+    "full_text_read": 59,
+    "not_yet_read": 0,
+    "technical_full_text_read": 46
+  },
+  "limits": [
+    "31 refers to fixed external UCM English markdown appearances, not 31 new whole-site unique documents.",
+    "No blanket closed coverage: 28 technical/other entries still unread; assets separately recorded.",
+    "Existing Ascend guide reading reused with six-snapshot diffs; not added six new full documents."
+  ],
+  "viewed_assets": [
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/ucm-official-images/ucm-architecture-en.svg",
+      "sha256": "041dbd4e2b03560bad5f4f2b8221303a10d340ebf8675e7481cd1266b1805e37",
+      "status": "actually viewed",
+      "note": "架构图实际渲染查看；布局不是当前代码全部保证。"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/ucm-official-images/ucm-request-lifecycle-en.svg",
+      "sha256": "88cf886380836b70445a8055c65e998fe5928f473009e61e707fd27eb091a688",
+      "status": "actually viewed",
+      "note": "请求生命周期图实际查看，与普通/HLA时序核。"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/ucm-official-images/doc_glm53_fig_acc_grouped.png",
+      "sha256": "a6fc0b64d373196301738616ae5a48c24458dcc1b91f60ffafcc9dde2b4b8c84",
+      "status": "actually viewed",
+      "note": "精度各两轮柱状，不能证明统计等价。"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/ucm-official-images/doc_glm53_fig_20and200req_subplots.png",
+      "sha256": "4767c182b0d11e12c6806eb999297d3401ab0ccf488b612f655a22e619a1ddcd",
+      "status": "actually viewed",
+      "note": "20/200请求TTFT/TPOT/throughput。"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/ucm-official-images/doc_glm53_fig_hitrate_2cases.png",
+      "sha256": "d7b93c82f084f56824ad338a38ad479c88dbbe2af59c282130a93f4f383ed301",
+      "status": "actually viewed",
+      "note": "HBM/UCMlocal/external分开，外部命中非所有缓存总和。"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/ucm-official-images/quickstart.png",
+      "sha256": "ddf4a17a2f96629d0e90f3d93d5358549b6c55f062f53873c27777f9b1362089",
+      "status": "actually viewed",
+      "note": "发布选择器实渲染，非新增技术架构图。"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/ucm-official-images/ec-connector-sequence.png",
+      "sha256": "2be7ea2fa99699846667c14bbfca5284d6509f523837cf2df22ce799f9916b4b",
+      "status": "actually viewed",
+      "note": "EC官方完整时序PNG实际查看。"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/browser/root-ucm-official-mermaid-0.png",
+      "sha256": "81890e3e220cbc98a0984f976b06648bb71bf3474740089502af156296396c98",
+      "status": "actually viewed",
+      "note": "EC设计内Mermaid实际渲染并查看，逐项wait/view发布与step排空保存。"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/browser/root-ucm-helm-official.png",
+      "sha256": "4f8accf772f1fa3748d60d930863737bceb91ec2d83d5dc385506c4f1e029417",
+      "status": "actually viewed",
+      "note": "Helm架构SVG实际查看：普通headless形态不泛化到hybrid。"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/browser/root-ucm-calculator-glm.png",
+      "sha256": "5402a8457aeeaf98e31ec1d9c2b3be014164d3f4bbf87b2e1435f93848548fc4",
+      "status": "actually viewed",
+      "note": "固定HTML选择GLM/Ascend/TP8/MTP/4096/chunk8192并实际点击KV计算，显示ceil错误已记录。"
+    },
+    {
+      "path": ".tmp/continuation-groups-2026-11-10/browser/root-ucm-calculator-max.png",
+      "sha256": "647979c9e4ee1ee5141cebbfb101035b4117de1718268eb1005e33b7207f7acc",
+      "status": "actually viewed",
+      "note": "固定HTML实际输入42GiB并点击最大token计算；不当作实测可服务容量。"
+    }
+  ],
+  "live_release_manifest": {
+    "path": ".tmp/continuation-groups-2026-11-10/ucm-official-images/release-manifest.json",
+    "scope": "metadata and selected rendered Ascend combination only; all artifact combinations not read or run"
+  },
+  "updated_at": "2026-11-10T08:49:16.270441+00:00",
+  "reading_boundaries": [
+    "59份英文Markdown全文均已实际读完；动态组件、图表、Chart承接文件和外部技术目标另记，不据此宣称全站官方资料全读完。",
+    "原31份阅读保持原意；本次显式增加28份，不重复计入Ascend目录或已闭合73项。",
+    "EC实现全文件另已读；EC指南旧默认、逐项发布/step保存等待按代码修订。",
+    "Chart README307行、values337行、Ascend2p2-2d2 profile200行、entrypoint-common96行全文读；modelserving模板仅必要范围核读；GET_START/DEVELOPER_GUIDE尚未读。Helm架构SVG已实际查看，未部署集群。",
+    "计算器HTML301行、model-configs347行全文；calculator.js2407行中933–1398行已读，其余仅索引；CSS485行未全文读，实际查看GLM两种计算界面。",
+    "release-manifest仍仅metadata和已记录组合；Prometheus外部方法说明、其他平台文档及Chart开发承接文件不计为全文读完。"
+  ]
+}

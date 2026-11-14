@@ -1,0 +1,65 @@
+source_number	verdict	note
+1	supported	KVConnectorRole明确调度侧与worker侧；不是P/D生产消费角色。
+2	supported	worker接口注册、开始加载、逐层等待/保存、步末等待与完成集合；抽象约定不能代替具体实现同步证明。
+3	supported	调度接口问远端匹配、分配后更新、构造metadata；默认request_finished不延期，不能推断所有连接器同样释放。
+4	supported	connector默认None、port14579、角色显式要求及engine_id自动UUID；kv_both在通用类型中不证明V1可用。
+5	supported	有kv_transfer_config才造调度连接器，另外拒绝encoder-decoder模型；支持GLM主线未启用。
+6	supported	worker全局连接器只在配置为transfer instance且尚未创建时初始化，角色WORKER。
+7	supported	_free_request按connector_delay_free_blocks决定是否立即_free_blocks，解释请求结束不等于块回收。
+8	supported	finished_sending回收，finished_recving恢复等待请求或清理已结束请求；不等于任何完成信号都成功生成。
+9	supported	等待远端状态未就绪则跳过此请求，其他请求继续；被跳过请求不在运行抢占队列。
+10	supported	前向上下文启动后台加载，finally按条件wait_for_save并读完成/坏块集合；不能推出具体Layerwise已同步。
+11	supported	通用attention装饰器前等加载、后保存；需模型实际使用该装饰器，不能由接口存在推断GLM KDA接入。
+12	supported	复用PD17的480秒默认原文，当前页以超时链接使用，不换算成网络单次超时。
+13	supported	旧注册V1/Hybrid/Layerwise及Store别名，名称与入口对应明确。
+14	supported	单类按Role只启用一半；V1逐层等待/保存/wait_for_save均为空实现，搬运在后台加载。
+15	supported	V1扣本地命中算需读数，首次分配后关远端标记，组块清单交metadata；表中整段远端已有需理解为可用前缀而非重复拉本地命中。
+16	supported	复用PD8全文，支持P长度上限交接与非空块押留。
+17	supported	每缓存张量记录base/长度/stride，登记后起线程并等就绪；登记合并按底层storage不等于每逻辑张量占一个区间。
+18	supported	地址簿区分长度/stride、组层索引，ReqMeta另有CP与远端请求信息；描述未把地址等同内容到达。
+19	repair_pending_review	读取按组/层/缓存份数求和，不可把全部层数再乘组数；TP与CP/PP拆任务，正文计数已纠正。与PD13同完整函数阅读复用。
+20	repair_pending_review	MLA的tp_num_need_pulls=1仅TP维度，不排除CP/PP多rank；正文“永远一张”已限定；PP默认1、D_PP=1同源码。
+21	supported	押块超时任务追踪与PD16同内容，支持480秒阈值后交回收名单；不是瞬间精确timer保证。
+22	supported	实际按remote PCP/DCP与TP端口循环组装接收任务；P无CP路径加入delayed或not-transfer列表，支持多任务而非一次整网调用。
+23	context_only	Mamba两端TP整除及conv/ssm地址起始；等TP两段长度和不等TP细分的完整证明见48。
+24	supported	进程级单例TransferEngine、P2PHANDSHAKE/ascend初始化、register_buffer一次、明确导入/初始化/登记失败；只证明调用方式。
+25	supported	显式非空ASCEND_TRANSFER_TIMEOUT优先，否则20/7算33064ms，与480秒押块阈值不同。
+26	repair_pending_review	片段有上限校验而无常量值；新增来源65指向utils.py14的256定义，保留合并登记解释。
+27	supported	Layerwise D分块后把地址/布局发metaserver，代理再触发P；do_virtual例外不套一般流程。
+28	supported	两个request_finished接口都False,None；仅证明不通过结束返回值延期，不能保证后台写已完成。
+29	repair_pending_review	先等事件/重排流再sync_write，每层结束且chunk_finish才回调；正文将全部传输必然隐藏改成速度与同步条件决定。
+30	supported	P存层时事件、必要重排/量化、构造SendTask入队；证明有额外stream/buffer，不能凭入队当写完。
+31	supported	每索引一个普通attn_module；mtp名称另置，生产/消费布尔可各起线程；只有消费完成集合返回。
+32	supported	D侧先断言PCP1，随后scheduler端口dp*tp；不能描述D_PCP>1为可运行端口错配。
+33	supported	worker端口dp*pcp*tp+pcp_rank*tp，与允许D_PCP1配置下scheduler一致。
+34	supported	Hybrid在use_mamba时要求两端TP相等、取conv/ssm形状；不能推至V1同限制。
+35	repair_pending_review	有效正TP下P<D先因非整除报错，后pd_tp_ratio0非必达；正文报错先后已改。头复制下pd_head_ratio不等于裸TP比。
+36	supported	非fabric_mem复用全局TE对象给Store setup；fabric分支另走，不将A3所有情况也统一。
+37	supported	非fabric登记同全局TE，Store按keys批put/get/exists；lazy未初始化返回miss或错误，不保证跨模型身份兼容。
+38	supported	Ascend helper按有connector/metadata才调用逐层hook；仅helper定义不能保证每个模型层实际调用。
+39	supported	v0.23注册范围与13逐字一致，复用阅读支持该版本。
+40	supported	v0.26新增SfaRemoteD2H入口，不能与后来D2RH泛化成同一协议。
+41	supported	main V1旧文件与V2新文件入口并存，不能把V1说成已被搬到新子目录。
+42	supported	复用PD54，V2普通类是Pull兼容别名，普通Push占位不否定独立Layerwise。
+43	supported	旧main V2基类明确PCP=1；只属于该钉点，不沿用到rc2。
+44	supported	Pull先P与Layerwise先D两条官方流程明确；图表本轮另实际查看，Pull箭头方向区分请求与字节。
+45	supported	固定官方单机模板的V1片段，包括字符串端口30000；只是连接器片段不是完整命令。
+46	supported	旧layerwise池指南明示memcache后端与AscendStore/use_layerwise，不能混为点对点Layerwise。
+47	supported	main Mooncake逐层指南使用AscendStore+mooncake+use_layerwise及预取参数，支持后端变化。
+48	supported	等TP状态每层conv/ssm各一段有效字节，不含padding；不等TP按conv行和头分段，不能说永远只有两段。
+49	supported	旧Hybrid scheduler握手基址dp*tp*pp；CP拒绝前提见54及历史版本补证。
+50	supported	main Hybrid scheduler基址新增PCP乘数，与旧CP1时结果一致。
+51	supported	main Hybrid worker基址同乘PCP、设备索引含pcp_rank；已补读1715–1745，1724明确handshake_port=side_channel_port+device_index。
+52	context_only	v0.26基类新增has_pending_push_work默认False；片段不单独证明Ascend全包没有覆盖，需定向Git检索。
+53	supported	scheduler.has_requests将连接器pending push纳入活跃条件，支持该hook的目的，不是所有连接器都实现。
+54	supported	v0.26 Hybrid断言PCP*DCP=1，支持这一版本限制；旧版须额外比对不靠推断。
+55	supported	main Hybrid scheduler只断言DCP1，PCP不再同此处拒绝。
+56	supported	main Hybrid worker仍要求DCP1且PP/PCP不同时大于1；没有拒绝不等于任意模型已实测支持。
+57	archive_integrity_only	raw56段与固定Git逐段一致，完整性证据不是新增全文或设备验证。
+58	duplicate_support	完整SHA引用与42同一Push占位/别名内容，保留定位但不是新功能。
+59	duplicate_support	与44同一设计文档用法段，重复支持Pull/Layerwise区别。
+60	supported	rc2 V2 worker PCP/PP/TP设备索引、DP跨度、缺local_DP即报错，支持拓扑影响握手端口。
+61	context_only	复用PD69，V2基类消除旧PCP1断言并读组配置；metadata确含什么还要类型/消费者补证。
+62	supported	rc2圆环组保留状态页，Mamba去草稿尾，其他组按逻辑块/DCP分，SWA不用DCP放大。
+63	supported	rc2 Pull/普通Push占位与main语义相同，V1/Layerwise保持独立入口。
+64	supported	D2RH完整两跳、P首跳后可放、D等H2D、Host命中不等于HBM命中且缓冲读完再用，支持既有解释；官方图本轮已看。

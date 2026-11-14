@@ -1,0 +1,943 @@
+{
+  "id": "graph-mode-layer",
+  "path": "wiki/concepts/graph-mode-layer.md",
+  "sha256": "1096b89223830dc380d552f19c33ef1e55308881d10857e64f64014d49ddbf40",
+  "body_read": true,
+  "citations": [
+    {
+      "source_number": 1,
+      "ref": "vllm@0fc695fc:vllm/config/compilation.py#L55-L92",
+      "claim": "五档与runtime枚举",
+      "read_ranges": [
+        "L55-L92"
+      ],
+      "verdict": "supported",
+      "evidence": "NONE/PIECEWISE/FULL为0/1/2，两个组合按decode/mixed分别取值；不是五种独立运行时图。"
+    },
+    {
+      "source_number": 2,
+      "ref": "vllm@0fc695fc:vllm/config/compilation.py#L1108-L1150",
+      "claim": "默认切分与外层整图",
+      "read_ranges": [
+        "L1108-L1150"
+      ],
+      "verdict": "supported",
+      "evidence": "1108–1150分模式处理splitting_ops；保留分段FX不否定外层FULL，Ascend平台另覆写。"
+    },
+    {
+      "source_number": 3,
+      "ref": "vllm@0fc695fc:vllm/config/vllm.py#L215-L289",
+      "claim": "优化档预设",
+      "read_ranges": [
+        "L215-L289"
+      ],
+      "verdict": "supported",
+      "evidence": "215–289为O0–O3的图模式映射；只填None规则另由55支持。"
+    },
+    {
+      "source_number": 4,
+      "ref": "vllm@0fc695fc:vllm/config/vllm.py#L1618-L1682",
+      "claim": "默认候选与预算",
+      "read_ranges": [
+        "L1618-L1682"
+      ],
+      "verdict": "supported",
+      "evidence": "1618–1682含默认上限、query_len与B截断；完整显式表与冲突由43补足。"
+    },
+    {
+      "source_number": 5,
+      "ref": "vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L76-L158",
+      "claim": "描述符和索引初始化",
+      "read_ranges": [
+        "L76-L158"
+      ],
+      "verdict": "supported",
+      "evidence": "76–158含配置初始化、补齐和descriptor；图键登记不能替代运行时捕获成功证据。"
+    },
+    {
+      "source_number": 6,
+      "ref": "vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L209-L236",
+      "claim": "统一decode图索引",
+      "read_ranges": [
+        "L209-L236"
+      ],
+      "verdict": "supported",
+      "evidence": "209–236按query_len过滤并算num_reqs，固定q4表支持7档映射。"
+    },
+    {
+      "source_number": 7,
+      "ref": "vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L262-L328",
+      "claim": "分派前提及匹配回退",
+      "read_ranges": [
+        "L262-L328"
+      ],
+      "verdict": "supported",
+      "evidence": "扩至328实读；FULL先匹配、PIECEWISE放宽键，均不命中须允许NONE否则assert。"
+    },
+    {
+      "source_number": 8,
+      "ref": "vllm@0fc695fc:vllm/compilation/monitor.py#L88-L100",
+      "claim": "捕获合法窗口",
+      "read_ranges": [
+        "L88-L100"
+      ],
+      "verdict": "supported",
+      "evidence": "validate检查全局capture-enabled，窗口外抛RuntimeError而非临时补录。"
+    },
+    {
+      "source_number": 9,
+      "ref": "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L6525-L6588",
+      "claim": "启动capture计时与显存",
+      "read_ranges": [
+        "L6525-L6588"
+      ],
+      "verdict": "supported",
+      "evidence": "6525–6588计时、free-memory前后差与日志；没有本项目NPU实际日志。"
+    },
+    {
+      "source_number": 10,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L130-L136",
+      "claim": "simple_compile_backend",
+      "read_ranges": [
+        "L130-L136"
+      ],
+      "verdict": "supported",
+      "evidence": "130–136声明eager，只指简单编译后端，不代表禁止Ascend独立编译链。"
+    },
+    {
+      "source_number": 11,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L176-L181",
+      "claim": "Ascend编译入口",
+      "read_ranges": [
+        "L176-L181"
+      ],
+      "verdict": "supported",
+      "evidence": "176–181返回AscendCompiler接入路径。"
+    },
+    {
+      "source_number": 12,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L880-L886",
+      "claim": "图wrapper接入",
+      "read_ranges": [
+        "L880-L886"
+      ],
+      "verdict": "supported",
+      "evidence": "880–886返回ACLGraphWrapper类路径，与11职责不同。"
+    },
+    {
+      "source_number": 13,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L593-L632",
+      "claim": "图档位平台处理",
+      "read_ranges": [
+        "L593-L632"
+      ],
+      "verdict": "supported",
+      "evidence": "593–632先NONE再requires_piecewise再has_full；FULL_AND_PIECEWISE不能仅因含FULL就清空切分。"
+    },
+    {
+      "source_number": 14,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L633-L648",
+      "claim": "blocking不兼容",
+      "read_ranges": [
+        "L633-L648"
+      ],
+      "verdict": "supported",
+      "evidence": "扩至648读完整ValueError/plog提示；条件为图非NONE且env字符串1。"
+    },
+    {
+      "source_number": 15,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L26-L87",
+      "claim": "stream错误联合识别",
+      "read_ranges": [
+        "L26-L87"
+      ],
+      "verdict": "supported",
+      "evidence": "26–87两个文本marker之一，或207008同时含stream resource，大小写归一；非仅错误码。"
+    },
+    {
+      "source_number": 16,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L138-L170",
+      "claim": "透传查键与地址记录",
+      "read_ranges": [
+        "L138-L170"
+      ],
+      "verdict": "supported",
+      "evidence": "138–170按runtime模式和descriptor，记录直接位置Tensor地址，不递归所有输入。"
+    },
+    {
+      "source_number": 17,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L216-L259",
+      "claim": "DEBUG地址检查与replay",
+      "read_ranges": [
+        "L216-L259"
+      ],
+      "verdict": "supported",
+      "evidence": "216–259断言直接位置Tensor地址；FULL同步再replay，返回固定output。"
+    },
+    {
+      "source_number": 18,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L693-L719",
+      "claim": "旧worker热身与capture",
+      "read_ranges": [
+        "L693-L719"
+      ],
+      "verdict": "supported",
+      "evidence": "693–719显式compile_sizes加未覆盖区间，按大小降序；eager跳捕获。"
+    },
+    {
+      "source_number": 19,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2910-L2967",
+      "claim": "GLM自动uniform判据",
+      "read_ranges": [
+        "L2910-L2967"
+      ],
+      "verdict": "supported",
+      "evidence": "2910–2967提示词完成、max scheduled=q与总数相等；源码注释示风险，非NPU复现。"
+    },
+    {
+      "source_number": 20,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2778-L2835",
+      "claim": "通用参数更新门",
+      "read_ranges": [
+        "L2778-L2835"
+      ],
+      "verdict": "supported",
+      "evidence": "2778–2835排除sparse/compress，ENPU更新前置与普通调用分开，不能代表GLM元数据全不更新。"
+    },
+    {
+      "source_number": 21,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3800-L3816",
+      "claim": "非ENPU后置更新",
+      "read_ranges": [
+        "L3800-L3816"
+      ],
+      "verdict": "supported",
+      "evidence": "3800–3816模型调用之后通用更新；只能解释Python调用次序。"
+    },
+    {
+      "source_number": 22,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5330-L5340",
+      "claim": "Ascend复用上游capture",
+      "read_ranges": [
+        "L5330-L5340"
+      ],
+      "verdict": "supported",
+      "evidence": "5330–5340调用GPUModelRunner.capture_model(self)，不是GPU实际执行声明。"
+    },
+    {
+      "source_number": 23,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L220-L236",
+      "claim": "GLM草稿禁图",
+      "read_ranges": [
+        "L220-L236"
+      ],
+      "verdict": "supported",
+      "evidence": "220–236仅强制draft use_cuda_graph False；target设置不改变。"
+    },
+    {
+      "source_number": 24,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L661-L670",
+      "claim": "Xlite输入默认",
+      "read_ranges": [
+        "L661-L670"
+      ],
+      "verdict": "supported",
+      "evidence": "661–670 enabled/full_mode原始字典缺省False；使用边界另看指南/消费代码。"
+    },
+    {
+      "source_number": 25,
+      "ref": "vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L340",
+      "claim": "官方双机七档",
+      "read_ranges": [
+        "L237-L340"
+      ],
+      "verdict": "supported",
+      "evidence": "原180–235为单机9档不支持本页双机例；现237–340完整两节点显式7档、TP8 DP2 MTP3、draft eager。"
+    },
+    {
+      "source_number": 26,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L138-L258",
+      "claim": "v023 wrapper流程",
+      "read_ranges": [
+        "L138-L258"
+      ],
+      "verdict": "supported",
+      "evidence": "138–258全文；透传/捕获/DEBUG/replay与旧GLM同结构。"
+    },
+    {
+      "source_number": 27,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L150-L290",
+      "claim": "v026 wrapper新增",
+      "read_ranges": [
+        "L150-L290"
+      ],
+      "verdict": "supported",
+      "evidence": "150–290全文（曾输出截断后补读）；包含super优化及旧HDK专用错误提示。"
+    },
+    {
+      "source_number": 28,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L748-L778",
+      "claim": "v026 kernel warmup",
+      "read_ranges": [
+        "L748-L778"
+      ],
+      "verdict": "supported",
+      "evidence": "748–778模型dummy后kernel_warmup再capture。"
+    },
+    {
+      "source_number": 29,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/compilation/acl_graph.py#L286-L302",
+      "claim": "main可更新图分支",
+      "read_ranges": [
+        "L286-L302"
+      ],
+      "verdict": "supported",
+      "evidence": "286–302用use_updatable_graph判据；仅此范围不能单独证明具体模型覆盖，85–88补类关系。"
+    },
+    {
+      "source_number": 30,
+      "ref": "vllm@0fc695fc:vllm/config/vllm.py#L1050-L1062",
+      "claim": "eager两模式覆盖",
+      "read_ranges": [
+        "L1050-L1062"
+      ],
+      "verdict": "supported",
+      "evidence": "1050–1062同时mode/cudagraph_mode=NONE，排错不等于只禁图。"
+    },
+    {
+      "source_number": 31,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L586-L636",
+      "claim": "旧构造默认",
+      "read_ranges": [
+        "L586-L636"
+      ],
+      "verdict": "supported",
+      "evidence": "586–636 npugraphTrue/staticFalse、allreduce_rmsFalse并对310P关闭；纠正四融合全开说法。"
+    },
+    {
+      "source_number": 32,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L155-L217",
+      "claim": "npugraph与torchair回退",
+      "read_ranges": [
+        "L155-L217"
+      ],
+      "verdict": "supported",
+      "evidence": "155–217完整try包含包导入、适配、后端构建和编译，except ImportError范围宽于单次import。"
+    },
+    {
+      "source_number": 33,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L280-L301",
+      "claim": "编译选择消费",
+      "read_ranges": [
+        "L280-L301"
+      ],
+      "verdict": "supported",
+      "evidence": "扩280–301读完整if/else；True走npugraph_ex_compile，False走fusion_pass_compile。"
+    },
+    {
+      "source_number": 34,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2240-L2250",
+      "claim": "GLM编译装饰器",
+      "read_ranges": [
+        "L2240-L2250"
+      ],
+      "verdict": "supported",
+      "evidence": "2240–2250 support_torch_compile在主模型上，不证明每个融合都匹配。"
+    },
+    {
+      "source_number": 35,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L44-L69",
+      "claim": "备用passmanager消费",
+      "read_ranges": [
+        "L44-L69"
+      ],
+      "verdict": "supported",
+      "evidence": "44–69从compiler_config取pass_manager并应用；不证明npugraph内部同一规则集。"
+    },
+    {
+      "source_number": 36,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/graph_fusion_pass_manager.py#L44-L75",
+      "claim": "备用融合原始字典默认",
+      "read_ranges": [
+        "L44-L75"
+      ],
+      "verdict": "supported",
+      "evidence": "44–75四字段get缺省True，两个pass排除310P；与构造器False有不同读取来源。"
+    },
+    {
+      "source_number": 37,
+      "ref": "raw:sha256-1712389442d21bfb50f706ff10fe425cea58299399b6592e6c9980469daa4935.md#L1-L1556",
+      "claim": "原始摘录存档",
+      "read_ranges": [
+        "L1-L1556"
+      ],
+      "verdict": "archive_no_independent_claim",
+      "evidence": "1556行36段对各原git范围精确匹配，全36原范围已逐条实读；graph-raw37-compare.json全exact=true。不是额外独立证据。"
+    },
+    {
+      "source_number": 38,
+      "ref": "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/compilation/acl_graph.py#L138-L158",
+      "claim": "旧wrapper重复固定范围",
+      "read_ranges": [
+        "L138-L158"
+      ],
+      "verdict": "supported",
+      "evidence": "完整SHA的138–158与16重叠，实读同范围，支持模式透传/查键。"
+    },
+    {
+      "source_number": 39,
+      "ref": "vllm@0fc695fc:vllm/config/compilation.py#L599-L698",
+      "claim": "图配置字段与说明",
+      "read_ranges": [
+        "L599-L698"
+      ],
+      "verdict": "supported",
+      "evidence": "599–698全文，None候选、warmup、inputcopy限定PIECEWISE、LoRA专用图与上限文档。"
+    },
+    {
+      "source_number": 40,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1423-L1482",
+      "claim": "CLI注册",
+      "read_ranges": [
+        "L1423-L1482"
+      ],
+      "verdict": "supported",
+      "evidence": "1423–1482两个独立size字段与compilation-config/-cc；不自行承诺字段生效。"
+    },
+    {
+      "source_number": 41,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L2194-L2210",
+      "claim": "CLI同字段互斥",
+      "read_ranges": [
+        "L2194-L2210"
+      ],
+      "verdict": "supported",
+      "evidence": "2194–2210即便相同值同时给也ValueError，非默认覆盖。"
+    },
+    {
+      "source_number": 42,
+      "ref": "vllm@0fc695fc:vllm/entrypoints/llm.py#L214-L284",
+      "claim": "LLM整数兼容",
+      "read_ranges": [
+        "L214-L284"
+      ],
+      "verdict": "supported",
+      "evidence": "214–284 int转CompilationMode，dict/None构造；不能推广到CLI/EngineArgs所有入口。"
+    },
+    {
+      "source_number": 43,
+      "ref": "vllm@0fc695fc:vllm/config/vllm.py#L1660-L1784",
+      "claim": "旧完整尺寸派生",
+      "read_ranges": [
+        "L1660-L1784"
+      ],
+      "verdict": "supported",
+      "evidence": "1660–1784显式按B过滤、SP处理、双显式不一致ValueError；自动上限可以缩到实际档。"
+    },
+    {
+      "source_number": 44,
+      "ref": "vllm@0fc695fc:vllm/config/model.py#L217-L223",
+      "claim": "主eager输入默认",
+      "read_ranges": [
+        "L217-L223"
+      ],
+      "verdict": "supported",
+      "evidence": "217–223 False，实际override由30支持。"
+    },
+    {
+      "source_number": 45,
+      "ref": "vllm@0fc695fc:vllm/utils/argparse_utils.py#L389-L429",
+      "claim": "CLI点号参数",
+      "read_ranges": [
+        "L389-L429"
+      ],
+      "verdict": "supported",
+      "evidence": "389–429组装嵌套JSON并合入parser，不把Python快捷整数推广给CLI。"
+    },
+    {
+      "source_number": 46,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L295-L337",
+      "claim": "CLI配置容器类型",
+      "read_ranges": [
+        "L295-L337"
+      ],
+      "verdict": "supported",
+      "evidence": "295–337对dataclass用TypeAdapter.validate_json；不接受LLM专有整数shortcut。"
+    },
+    {
+      "source_number": 47,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L207-L261",
+      "claim": "Ascend提前默认",
+      "read_ranges": [
+        "L207-L261"
+      ],
+      "verdict": "supported",
+      "evidence": "207–261仅两个size输入皆None注入min(Nq,512)，并不除DP数。"
+    },
+    {
+      "source_number": 48,
+      "ref": "vllm@568afb3a:vllm/config/vllm.py#L1739-L1905",
+      "claim": "v026尺寸重算",
+      "read_ranges": [
+        "L1739-L1905"
+      ],
+      "verdict": "supported",
+      "evidence": "1739–1905完整，q取num_speculative_tokens；冲突/空表/最大值写回与旧表对应。"
+    },
+    {
+      "source_number": 49,
+      "ref": "vllm@84030bbe:vllm/config/vllm.py#L2010-L2278",
+      "claim": "main尺寸重算",
+      "read_ranges": [
+        "L2010-L2278"
+      ],
+      "verdict": "supported",
+      "evidence": "2010–2278完整，Blackwell1024、统一decode档/动态tier只在max仍None生成；显式和Ascend注入不能直接继承。"
+    },
+    {
+      "source_number": 50,
+      "ref": "vllm@568afb3a:vllm/config/compilation.py#L1353-L1548",
+      "claim": "v026后端解析/对齐",
+      "read_ranges": [
+        "L1353-L1548"
+      ],
+      "verdict": "supported",
+      "evidence": "1353–1548完整：backend等级降级或报错，非V2整趟decode才MTP向上取整；max(q,tp)须同时整除。"
+    },
+    {
+      "source_number": 51,
+      "ref": "vllm@84030bbe:vllm/config/compilation.py#L1375-L1570",
+      "claim": "main后端解析/对齐",
+      "read_ranges": [
+        "L1375-L1570"
+      ],
+      "verdict": "supported",
+      "evidence": "1375–1570完整，继承非V2条件、Mamba容量校验及舍弃超max对齐结果。"
+    },
+    {
+      "source_number": 52,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1056-L1229",
+      "claim": "main平台修正",
+      "read_ranges": [
+        "L1056-L1229"
+      ],
+      "verdict": "supported",
+      "evidence": "1056–1229完整，Xlite影响eager/modes，SP或共享专家DP或DSA-CP筛TP倍数，piecewise先于full。"
+    },
+    {
+      "source_number": 53,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1385-L1424",
+      "claim": "main提前默认",
+      "read_ranges": [
+        "L1385-L1424"
+      ],
+      "verdict": "supported",
+      "evidence": "1385–1424仍min(Nq,512)，两个字段任一显式就不注入。"
+    },
+    {
+      "source_number": 54,
+      "ref": "vllm@0fc695fc:vllm/config/compilation.py#L1437-L1518",
+      "claim": "旧MTP对齐和Mamba容量",
+      "read_ranges": [
+        "L1437-L1518"
+      ],
+      "verdict": "supported",
+      "evidence": "1437–1518完整：向上取整非纯筛选，超上限舍弃；空结果与不兼容q/TP报错。"
+    },
+    {
+      "source_number": 55,
+      "ref": "vllm@0fc695fc:vllm/config/vllm.py#L713-L755",
+      "claim": "优化预设仅填None",
+      "read_ranges": [
+        "L713-L755"
+      ],
+      "verdict": "supported",
+      "evidence": "713–755递归_defaults调用_set_config_default，不覆写显式字段。"
+    },
+    {
+      "source_number": 56,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/spec_decode/llm_base_proposer.py#L215-L234",
+      "claim": "v023 GLM草稿保护",
+      "read_ranges": [
+        "L215-L234"
+      ],
+      "verdict": "supported",
+      "evidence": "215–234仅draft use_cuda_graph False，不能据此宣称旧分支支持新模型类。"
+    },
+    {
+      "source_number": 57,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/spec_decode/llm_base_proposer.py#L200-L219",
+      "claim": "v026 GLM草稿保护",
+      "read_ranges": [
+        "L200-L219"
+      ],
+      "verdict": "supported",
+      "evidence": "200–219同条件与作用域，main目标图独立。"
+    },
+    {
+      "source_number": 58,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/spec_decode/llm_base_proposer.py#L241-L260",
+      "claim": "main GLM草稿保护",
+      "read_ranges": [
+        "L241-L260"
+      ],
+      "verdict": "supported",
+      "evidence": "241–260同predicate路径，三版保护不构成三版模型覆盖保证。"
+    },
+    {
+      "source_number": 59,
+      "ref": "vllm@0fc695fc:vllm/config/compilation.py#L837-L862",
+      "claim": "枚举大小写解析",
+      "read_ranges": [
+        "L837-L862"
+      ],
+      "verdict": "supported",
+      "evidence": "837–862编译mode校验字符串成员，cudagraph_mode转upper取枚举。"
+    },
+    {
+      "source_number": 60,
+      "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L718-L722",
+      "claim": "EngineArgs字典构造",
+      "read_ranges": [
+        "L718-L722"
+      ],
+      "verdict": "supported",
+      "evidence": "718–722 isinstance dict后CompilationConfig(**dict)，不是LLM的int分支。"
+    },
+    {
+      "source_number": 61,
+      "ref": "vllm@568afb3a:vllm/engine/arg_utils.py#L1493-L1560",
+      "claim": "v026 CLI入口",
+      "read_ranges": [
+        "L1493-L1560"
+      ],
+      "verdict": "supported",
+      "evidence": "1493–1560完整，独立sizes/max及-cc注册保留。"
+    },
+    {
+      "source_number": 62,
+      "ref": "vllm@84030bbe:vllm/engine/arg_utils.py#L1638-L1706",
+      "claim": "main CLI入口",
+      "read_ranges": [
+        "L1638-L1706"
+      ],
+      "verdict": "supported",
+      "evidence": "1638–1706完整，新增其他容器不改变-cc与尺寸职责。"
+    },
+    {
+      "source_number": 63,
+      "ref": "vllm@568afb3a:vllm/engine/arg_utils.py#L2337-L2353",
+      "claim": "v026尺寸互斥",
+      "read_ranges": [
+        "L2337-L2353"
+      ],
+      "verdict": "supported",
+      "evidence": "2337–2353分别检查两个同名字段，重复设置即报错。"
+    },
+    {
+      "source_number": 64,
+      "ref": "vllm@84030bbe:vllm/engine/arg_utils.py#L2576-L2592",
+      "claim": "main尺寸互斥",
+      "read_ranges": [
+        "L2576-L2592"
+      ],
+      "verdict": "supported",
+      "evidence": "2576–2592同前，不能把新版本当覆盖优先规则。"
+    },
+    {
+      "source_number": 65,
+      "ref": "vllm@568afb3a:vllm/config/vllm.py#L205-L381",
+      "claim": "v026优化默认",
+      "read_ranges": [
+        "L205-L381"
+      ],
+      "verdict": "supported",
+      "evidence": "205–381完整，O0/O1/O2/O3图模式及optimization_level O2。"
+    },
+    {
+      "source_number": 66,
+      "ref": "vllm@84030bbe:vllm/config/vllm.py#L248-L432",
+      "claim": "main优化默认",
+      "read_ranges": [
+        "L248-L432"
+      ],
+      "verdict": "supported",
+      "evidence": "248–432完整，相同五档预设与O2默认；不表示平台最终值。"
+    },
+    {
+      "source_number": 67,
+      "ref": "vllm@568afb3a:vllm/config/vllm.py#L1162-L1172",
+      "claim": "v026 eager覆盖",
+      "read_ranges": [
+        "L1162-L1172"
+      ],
+      "verdict": "supported",
+      "evidence": "1162–1172主eager使两mode NONE。"
+    },
+    {
+      "source_number": 68,
+      "ref": "vllm@84030bbe:vllm/config/vllm.py#L1440-L1450",
+      "claim": "main eager覆盖",
+      "read_ranges": [
+        "L1440-L1450"
+      ],
+      "verdict": "supported",
+      "evidence": "1440–1450同关闭两项，非仅禁capture。"
+    },
+    {
+      "source_number": 69,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L207-L261",
+      "claim": "v023 Ascend提前注入",
+      "read_ranges": [
+        "L207-L261"
+      ],
+      "verdict": "supported",
+      "evidence": "207–261完整，默认min(Nq,512)，只在两输入空时。"
+    },
+    {
+      "source_number": 70,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L206-L260",
+      "claim": "v026 Ascend提前注入",
+      "read_ranges": [
+        "L206-L260"
+      ],
+      "verdict": "supported",
+      "evidence": "206–260完整，与69的条件/公式一致。"
+    },
+    {
+      "source_number": 71,
+      "ref": "vllm@568afb3a:vllm/config/model.py#L217-L222",
+      "claim": "v026 eager输入默认",
+      "read_ranges": [
+        "L217-L222"
+      ],
+      "verdict": "supported",
+      "evidence": "217–222 False，实际效果见67。"
+    },
+    {
+      "source_number": 72,
+      "ref": "vllm@84030bbe:vllm/config/model.py#L242-L247",
+      "claim": "main eager输入默认",
+      "read_ranges": [
+        "L242-L247"
+      ],
+      "verdict": "supported",
+      "evidence": "242–247 False，实际效果见68。"
+    },
+    {
+      "source_number": 73,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L542-L547",
+      "claim": "Ascend后续重算",
+      "read_ranges": [
+        "L542-L547"
+      ],
+      "verdict": "supported",
+      "evidence": "542–547确实再次调用_set_cudagraph_sizes；图启用且先得max0会触发上游断言。"
+    },
+    {
+      "source_number": 74,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1503-L1537",
+      "claim": "rc2 reduced cap默认",
+      "read_ranges": [
+        "L1503-L1537"
+      ],
+      "verdict": "supported",
+      "evidence": "1503–1537两输入None才min(Nq,512)，不是显式硬上限。"
+    },
+    {
+      "source_number": 75,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1264-L1300",
+      "claim": "rc2 cap补档/TP过滤",
+      "read_ranges": [
+        "L1264-L1300"
+      ],
+      "verdict": "supported",
+      "evidence": "1264–1300 cap先B截断并加入表、清max后重算；SP/sharedDP/DSACP联合门，空表assert。"
+    },
+    {
+      "source_number": 76,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/platform.py#L1302-L1343",
+      "claim": "rc2编译门",
+      "read_ranges": [
+        "L1302-L1343"
+      ],
+      "verdict": "supported",
+      "evidence": "1302–1343 NONE/PIECEWISE禁三个开关，pure full清splitting；保留elif顺序。"
+    },
+    {
+      "source_number": 77,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/compilation/acl_graph.py#L284-L319",
+      "claim": "rc2 replay同步例外",
+      "read_ranges": [
+        "L284-L319"
+      ],
+      "verdict": "supported",
+      "evidence": "284–319 FULL非draftEagle非ENPU才同步；updatable resolve/update/replay顺序分ENPU。"
+    },
+    {
+      "source_number": 78,
+      "ref": "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/graph_mode.md",
+      "claim": "官方图路径与Xlite",
+      "read_ranges": [
+        "1–410 full Markdown"
+      ],
+      "verdict": "partial",
+      "evidence": "全文1–410实读；模式/支持架构/路由用途支持，但Xlite表省略min和TP对齐须消费代码补，npugraph示例若缺FULL可能被默认piecewise关闭，不作为任意命令可用保证。"
+    },
+    {
+      "source_number": 79,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L82-L146",
+      "claim": "实际后端选项适配",
+      "read_ranges": [
+        "L82-L146"
+      ],
+      "verdict": "supported",
+      "evidence": "82–146 full实际阅读，force_eager/clone/static等选项；未逐项传四fuse字段，不能推相同融合集。"
+    },
+    {
+      "source_number": 80,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L150-L267",
+      "claim": "压缩Indexer持久metadata",
+      "read_ranges": [
+        "L150-L267"
+      ],
+      "verdict": "supported",
+      "evidence": "150–267 buffer预分配、slot copy、seq div(out)、block_table copy及容量/形状检查。"
+    },
+    {
+      "source_number": 81,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L731-L786",
+      "claim": "GDN投机图metadata",
+      "read_ranges": [
+        "L731-L786"
+      ],
+      "verdict": "supported",
+      "evidence": "731–786明确full/noPrefill/no普通decode和大小条件，复制状态索引/masks/起点/accept并填空行；不代表所有GDN模式。"
+    },
+    {
+      "source_number": 82,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L365-L390",
+      "claim": "主SFA引用公共meta",
+      "read_ranges": [
+        "L365-L390"
+      ],
+      "verdict": "supported",
+      "evidence": "365–390块表/slot/query起点/seq长度为切片，CPU长度有fallback；未声称每个字段都自身持久分配。"
+    },
+    {
+      "source_number": 83,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L830-L837",
+      "claim": "块表调用消费者",
+      "read_ranges": [
+        "L830-L837"
+      ],
+      "verdict": "supported",
+      "evidence": "830–837启动本轮prepare时先commit活跃num_reqs，注释CPU与copy可重叠。"
+    },
+    {
+      "source_number": 84,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L284-L288",
+      "claim": "块表实际复制",
+      "read_ranges": [
+        "L284-L288"
+      ],
+      "verdict": "supported",
+      "evidence": "284–288复制活跃行至固定gpu buffer，non_blocking=True；不是清空全部行。"
+    },
+    {
+      "source_number": 85,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/utils.py#L1790-L1795",
+      "claim": "main updatable判据",
+      "read_ranges": [
+        "L1790-L1795"
+      ],
+      "verdict": "supported",
+      "evidence": "1790–1795非None且issubclass AscendAttentionBackend；不是只要FULL就updatable。"
+    },
+    {
+      "source_number": 86,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/attention/sfa_v1.py#L277-L292",
+      "claim": "main SFA类继承",
+      "read_ranges": [
+        "L277-L292"
+      ],
+      "verdict": "supported",
+      "evidence": "277–292 AscendSFABackend直接AttentionBackend，不满足85。"
+    },
+    {
+      "source_number": 87,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/ops/gdn_attn_builder.py#L971-L974",
+      "claim": "main GDN类继承第一层",
+      "read_ranges": [
+        "L971-L974"
+      ],
+      "verdict": "supported",
+      "evidence": "971–974 AscendGDN继承上游GDN，builder自定义，不继承普通AscendAttentionBackend。"
+    },
+    {
+      "source_number": 88,
+      "ref": "vllm@84030bbe:vllm/v1/attention/backends/gdn_attn.py#L27-L38",
+      "claim": "main GDN类继承第二层",
+      "read_ranges": [
+        "L27-L38"
+      ],
+      "verdict": "supported",
+      "evidence": "27–38 GDNAttentionBackend直接AttentionBackend，结合87关闭原宽泛待核。"
+    },
+    {
+      "source_number": 89,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L598-L659",
+      "claim": "v023编译输入默认",
+      "read_ranges": [
+        "L598-L659"
+      ],
+      "verdict": "supported",
+      "evidence": "598–659完整，npugraphTrue/staticFalse并310P降级；支持版本表输入而非最终有效值。"
+    },
+    {
+      "source_number": 90,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L590-L661",
+      "claim": "v026编译输入默认",
+      "read_ranges": [
+        "L590-L661"
+      ],
+      "verdict": "supported",
+      "evidence": "590–661完整，super None跟static，硬件降级和依赖断言；表只声称npugraph输入True。"
+    },
+    {
+      "source_number": 91,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L104-L160",
+      "claim": "main编译输入默认",
+      "read_ranges": [
+        "L104-L160"
+      ],
+      "verdict": "supported",
+      "evidence": "104–160完整，hardwareprofile降级与static/super依赖；输入True非保证生效。"
+    },
+    {
+      "source_number": 92,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L849-L879",
+      "claim": "main热身顺序",
+      "read_ranges": [
+        "L849-L879"
+      ],
+      "verdict": "supported",
+      "evidence": "849–879完整，dummy后kernel_warmup，再非eager capture。"
+    },
+    {
+      "source_number": 93,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/compilation/acl_graph.py#L227-L244",
+      "claim": "main错误重包装",
+      "read_ranges": [
+        "L227-L244"
+      ],
+      "verdict": "supported",
+      "evidence": "227–244旧HDK marker指引25.5.1/matchingCANN，stream特征另包装，其他重抛；另外实读定义28–109。"
+    }
+  ],
+  "reviewer": "/root/review_publication_fix",
+  "increment_acceptance": {
+    "status": "pending",
+    "scope": "This author citation audit and teaching increment; no UI/NPU validation."
+  }
+}

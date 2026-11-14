@@ -1,6 +1,6 @@
 layout: figure
 id: token-entry-flow
-caption: A1 在主机端套模板、分词、登记输出并选组；成功请求进入 A2 调度，A3 才准备设备输入。省略完整调用链，失败分支不会进入模型计算。
+caption: A1 在主机端套模板、分词、登记输出并选组；成功请求进入 A2 调度，A3 才准备设备输入。本例两组同分且从 DP0 开始比较，因此选 DP0。省略完整调用链，失败分支不会进入模型计算。
 size: [840, 660]
 items:
   - { at: [30, 35], size: [490, 62], text: A1 · API server 收到聊天消息, sub: 主机 CPU 与内存：套模板 → 分词 → 校验, tone: token, style: solid }

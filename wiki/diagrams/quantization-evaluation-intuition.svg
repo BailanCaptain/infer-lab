@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 330" width="900" height="330" role="img" aria-label="同样的输入分别经过高精度基线和量化候选；对比产物、中间值、任务质量以及系统收益。四项回答不同问题，能够运行不代表后面三项已经达标。">
+  <title>同样的输入分别经过高精度基线和量化候选；对比产物、中间值、任务质量以及系统收益。四项回答不同问题，能够运行不代表后面三项已经达标。</title>
+  <defs><marker id="quantization-evaluation-intuition-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M195 105 L215 105 L215 67 L240 67" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-evaluation-intuition-ah-ink)"/>
+  <path d="M195 130 L215 130 L215 187 L240 187" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-evaluation-intuition-ah-ink)"/>
+  <path d="M430 67 L455 67 L455 105 L480 105" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-evaluation-intuition-ah-ink)"/>
+  <path d="M430 187 L455 187 L455 130 L480 130" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-evaluation-intuition-ah-ink)"/>
+  <path d="M610 105 L638 105 L638 67 L665 67" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-evaluation-intuition-ah-ink)"/>
+  <path d="M610 130 L638 130 L638 187 L665 187" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#quantization-evaluation-intuition-ah-ink)"/>
+  <rect x="35" y="85" width="160" height="65" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="115" y="113.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">相同输入与处理</text>
+  <text x="115" y="132.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模板、分词器、采样</text>
+  <rect x="240" y="35" width="190" height="65" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="335" y="63.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">高精度基线</text>
+  <text x="335" y="82.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">保存参考输出</text>
+  <rect x="240" y="155" width="190" height="65" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="335" y="183.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">量化候选</text>
+  <text x="335" y="202.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">保存编码与系数</text>
+  <rect x="480" y="85" width="130" height="65" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="545" y="113.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">逐项对照</text>
+  <text x="545" y="132.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">同一评价口径</text>
+  <rect x="665" y="35" width="210" height="65" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="770" y="63.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">产物与中间值</text>
+  <text x="770" y="82.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">编码、分组与误差</text>
+  <rect x="665" y="155" width="210" height="65" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="770" y="183.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">任务质量与系统收益</text>
+  <text x="770" y="202.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">正确率、容量、延迟、吞吐</text>
+  <text x="450" y="284" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">同一条件 · 四项对照 · 预先约定阈值</text>
+</svg>

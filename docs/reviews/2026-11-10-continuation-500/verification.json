@@ -1,0 +1,57 @@
+{
+  "scope": "final current batch mechanical checks; lint V2 three findings explicitly deferred by user; no rule bypass",
+  "commands": [
+    {
+      "command": "pnpm check:content",
+      "started_at": "2026-11-10T05:34:16.691243+00:00",
+      "exit_code": 0,
+      "log": ".tmp\\continuation-500-2026-11-10\\check-content-final.txt",
+      "key_output": [
+        "ok 内容校验：registry 164 页",
+        "ok 主章节：11 个主题，164 篇正文完整且无重复"
+      ]
+    },
+    {
+      "command": "pnpm wiki:lint",
+      "started_at": "2026-11-10T05:34:16.692241+00:00",
+      "exit_code": 1,
+      "log": ".tmp\\continuation-500-2026-11-10\\wiki-lint-final.txt",
+      "key_output": [
+        "x concepts/chunked-prefill-v2.md [orphan] 没有目录或章节归属，也没有任何页链接到它",
+        "x concepts/chunked-prefill-v2.md [cross-page-overlap] 与 concepts/chunked-prefill.md 的非模板标题和首段重复，缺少交叉引用",
+        "x concepts/chunked-prefill.md [cross-page-overlap] 与 concepts/chunked-prefill-v2.md 的非模板标题和首段重复，缺少交叉引用",
+        "wiki:lint 失败：3 处"
+      ]
+    },
+    {
+      "command": "pnpm wiki:audit",
+      "started_at": "2026-11-10T05:34:16.692241+00:00",
+      "exit_code": 0,
+      "log": ".tmp\\continuation-500-2026-11-10\\wiki-audit-final.txt",
+      "key_output": [
+        "审计 164 页，来源 6712 条",
+        "  行号有效 6309，URL 未联网验证 403，无效 commit 0，文件不存在 0，行号越界 0，未知仓库 0，raw 引用待核对 2965",
+        "写作标准：名单 104 页，达标 104 页；名单外 60 页只统计不报错（hedge-ratio 20 页，code-density 29 页，prose-marks 40 页，source-sections 40 页，diagram-first 39 页）",
+        "ok wiki:audit 本地引用与行号校验、名单页写作标准通过（URL、raw 摘录内容和结论语义不在本次通过范围内）"
+      ]
+    },
+    {
+      "command": "pnpm wiki:diagrams --check",
+      "started_at": "2026-11-10T05:34:16.692241+00:00",
+      "exit_code": 0,
+      "log": ".tmp\\continuation-500-2026-11-10\\wiki-diagrams-final.txt",
+      "key_output": [
+        "ok wiki:diagrams 337 张图与 spec 一致"
+      ]
+    },
+    {
+      "command": "pnpm build",
+      "started_at": "2026-11-10T05:34:16.692241+00:00",
+      "exit_code": 0,
+      "log": ".tmp\\continuation-500-2026-11-10\\build-final.txt",
+      "key_output": [
+        "✓ built in 6.71s"
+      ]
+    }
+  ]
+}

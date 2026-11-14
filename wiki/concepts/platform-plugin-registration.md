@@ -2,53 +2,167 @@
 id: platform-plugin-registration
 title: 插件发现与模型注册
 type: feature
-summary: 装上昇腾的包，vLLM 自己就会用昇腾：包里带着一张「我能接哪几个口」的入口点清单，vLLM 每起一个进程都按组名读一遍——一个口认平台，四个口登记连接器、模型加载器、性能采集和模型实现。
-aliases: [entry point, entry_points, vllm.platform_plugins, vllm.general_plugins, 插件注册, VLLM_PLUGINS, 平台插件, 通用插件, platform plugin, general plugin]
-chapters: ["10"]
+summary: >-
+  昇腾包通过入口点清单接入 vLLM；入口须被允许加载并成功执行，设备可用性另行检查。vLLM
+  在相应进程的初始化入口按组名加载——一个口认平台，四个口登记连接器、模型加载器、性能采集和模型实现；次数取决于启动方式与进程内防重状态。
+aliases:
+  - entry point
+  - entry_points
+  - vllm.platform_plugins
+  - vllm.general_plugins
+  - 插件注册
+  - VLLM_PLUGINS
+  - 平台插件
+  - 通用插件
+  - platform plugin
+  - general plugin
+  - IO Processor plugin
+  - vllm.io_processor_plugins
+  - vllm.stat_logger_plugins
+chapters:
+  - '10'
 order: 50
 sources:
-  - vllm-ascend@db701c1f:setup.py#L543-L551
-  - vllm-ascend@db701c1f:vllm_ascend/__init__.py#L18-L35
-  - vllm-ascend@db701c1f:vllm_ascend/__init__.py#L38-L41
-  - vllm-ascend@db701c1f:vllm_ascend/__init__.py#L44-L75
-  - vllm-ascend@db701c1f:vllm_ascend/models/__init__.py#L4-L25
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L39-L39
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L128-L146
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L278-L279
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L33-L34
-  - vllm@0fc695fc:vllm/plugins/__init__.py#L12-L25
-  - vllm@0fc695fc:vllm/plugins/__init__.py#L28-L66
-  - vllm@0fc695fc:vllm/plugins/__init__.py#L69-L82
-  - vllm@0fc695fc:vllm/platforms/__init__.py#L212-L252
-  - vllm@0fc695fc:vllm/platforms/__init__.py#L262-L281
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L744-L747
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L106-L109
-  - vllm@0fc695fc:vllm/v1/worker/worker_base.py#L245-L247
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L2578-L2585
-  - vllm@0fc695fc:vllm/model_executor/models/registry.py#L1406-L1411
-  - vllm-ascend@2c59ff10:setup.py#L543-L551
-  - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L72-L75
-  - vllm-ascend@2ed6cbba:setup.py#L543-L551
-  - vllm-ascend@2ed6cbba:vllm_ascend/__init__.py#L72-L85
-  - vllm-ascend@2ed6cbba:vllm_ascend/patch/hunyuan_vl_processor_compat.py#L8-L8
-  - vllm-ascend@baa023ad:setup.py#L506-L517
-  - vllm-ascend@baa023ad:vllm_ascend/__init__.py#L106-L109
-  - https://docs.vllm.ai/projects/ascend/en/latest/index.html
-verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
-evidence: "C"
+  - 'vllm-ascend@db701c1f:setup.py#L543-L551'
+  - 'vllm-ascend@db701c1f:vllm_ascend/__init__.py#L18-L35'
+  - 'vllm-ascend@db701c1f:vllm_ascend/__init__.py#L38-L41'
+  - 'vllm-ascend@db701c1f:vllm_ascend/__init__.py#L44-L75'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/__init__.py#L4-L25'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L39-L39'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L128-L146'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L274-L281'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L33-L34'
+  - 'vllm@0fc695fc:vllm/plugins/__init__.py#L12-L25'
+  - 'vllm@0fc695fc:vllm/plugins/__init__.py#L28-L66'
+  - 'vllm@0fc695fc:vllm/plugins/__init__.py#L69-L82'
+  - 'vllm@0fc695fc:vllm/platforms/__init__.py#L212-L252'
+  - 'vllm@0fc695fc:vllm/platforms/__init__.py#L262-L281'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L744-L747'
+  - 'vllm@0fc695fc:vllm/v1/engine/core.py#L106-L109'
+  - 'vllm@0fc695fc:vllm/v1/worker/worker_base.py#L245-L247'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L2578-L2585'
+  - 'vllm@0fc695fc:vllm/model_executor/models/registry.py#L1406-L1411'
+  - 'vllm-ascend@2c59ff10:setup.py#L543-L551'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L72-L75'
+  - 'vllm-ascend@2ed6cbba:setup.py#L543-L551'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/__init__.py#L72-L85'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/patch/hunyuan_vl_processor_compat.py#L8-L8'
+  - 'vllm-ascend@baa023ad:setup.py#L506-L517'
+  - 'vllm-ascend@baa023ad:vllm_ascend/__init__.py#L106-L109'
+  - 'https://docs.vllm.ai/projects/ascend/en/latest/index.html'
+  - >-
+    raw:sha256-740cd35fdf80517d86d351d6e08c577af0401bdeef6fcfd2063f979428492dce.md#L1-L392
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/plugins/__init__.py#L69-L82
+  - >-
+    vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/platforms/__init__.py#L229-L238
+  - 'vllm-ascend@7d825229:setup.py#L506-L517'
+  - 'vllm-ascend@7d825229:vllm_ascend/__init__.py#L52-L109'
+  - 'vllm@ced6857a:vllm/plugins/__init__.py#L36-L90'
+  - 'vllm@ced6857a:vllm/platforms/__init__.py#L233-L286'
+  - 'vllm@0fc695fc:vllm/entrypoints/serve/utils/api_utils.py#L149-L167'
+  - 'vllm@0fc695fc:vllm/entrypoints/cli/main.py#L34-L39'
+  - 'vllm@0fc695fc:vllm/model_executor/models/registry.py#L884-L931'
+  - 'vllm@0fc695fc:vllm/model_executor/models/registry.py#L1377-L1422'
+  - 'vllm@0fc695fc:vllm/model_executor/models/registry.py#L973-L1017'
+  - 'vllm@568afb3a:vllm/plugins/__init__.py#L36-L90'
+  - 'vllm@568afb3a:vllm/platforms/__init__.py#L211-L280'
+  - 'vllm@84030bbe:vllm/plugins/__init__.py#L36-L90'
+  - 'vllm@84030bbe:vllm/platforms/__init__.py#L233-L315'
+  - 'vllm@0fc695fc:vllm/platforms/__init__.py#L202-L209'
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
+  - "vllm@0fc695fc:docs/design/io_processor_plugins.md#L1-L94"
+  - "vllm@0fc695fc:docs/design/plugin_system.md#L1-L158"
+  - "vllm@0fc695fc:vllm/plugins/io_processors/__init__.py#L15-L88"
+  - "vllm@0fc695fc:vllm/plugins/io_processors/interface.py#L17-L124"
+  - "vllm@0fc695fc:vllm/entrypoints/pooling/pooling/io_processor.py#L27-L158"
+  - "vllm@0fc695fc:vllm/entrypoints/pooling/base/serving.py#L62-L201"
+  - "vllm@0fc695fc:vllm/entrypoints/pooling/factories.py#L38-L101"
+  - "vllm@0fc695fc:vllm/entrypoints/pooling/pooling/serving.py#L54-L101"
+  - "vllm@0fc695fc:vllm/entrypoints/pooling/offline.py#L51-L136"
+  - "vllm@568afb3a:vllm/plugins/io_processors/__init__.py#L15-L88"
+  - "vllm@568afb3a:vllm/plugins/io_processors/interface.py#L17-L124"
+  - "vllm@568afb3a:vllm/entrypoints/pooling/pooling/io_processor.py#L27-L181"
+  - "vllm@568afb3a:vllm/entrypoints/pooling/base/serving.py#L63-L202"
+  - "vllm@568afb3a:vllm/entrypoints/pooling/factories.py#L38-L101"
+  - "vllm@568afb3a:vllm/entrypoints/pooling/pooling/serving.py#L54-L101"
+  - "vllm@568afb3a:vllm/entrypoints/pooling/offline.py#L62-L134"
+  - "vllm@568afb3a:vllm/entrypoints/pooling/offline.py#L395-L475"
+  - "vllm@ced6857a:vllm/plugins/io_processors/__init__.py#L15-L88"
+  - "vllm@ced6857a:vllm/plugins/io_processors/interface.py#L17-L80"
+  - "vllm@ced6857a:vllm/entrypoints/pooling/pooling/io_processor.py#L27-L206"
+  - "vllm@ced6857a:vllm/entrypoints/pooling/base/serving.py#L64-L207"
+  - "vllm@ced6857a:vllm/entrypoints/pooling/factories.py#L38-L107"
+  - "vllm@ced6857a:vllm/entrypoints/pooling/pooling/serving.py#L54-L109"
+  - "vllm@ced6857a:vllm/entrypoints/pooling/offline.py#L62-L134"
+  - "vllm@ced6857a:vllm/entrypoints/pooling/offline.py#L395-L478"
+  - "vllm@84030bbe:vllm/plugins/io_processors/__init__.py#L15-L88"
+  - "vllm@84030bbe:vllm/plugins/io_processors/interface.py#L17-L80"
+  - "vllm@84030bbe:vllm/entrypoints/pooling/pooling/io_processor.py#L27-L206"
+  - "vllm@84030bbe:vllm/entrypoints/pooling/base/serving.py#L64-L207"
+  - "vllm@84030bbe:vllm/entrypoints/pooling/factories.py#L38-L107"
+  - "vllm@84030bbe:vllm/entrypoints/pooling/pooling/serving.py#L54-L109"
+  - "vllm@84030bbe:vllm/entrypoints/pooling/offline.py#L62-L134"
+  - "vllm@84030bbe:vllm/entrypoints/pooling/offline.py#L395-L478"
+  - "vllm@0fc695fc:vllm/config/model.py#L321-L322"
+  - "vllm@0fc695fc:vllm/engine/arg_utils.py#L862-L864"
+  - "vllm@0fc695fc:vllm/engine/arg_utils.py#L1624-L1626"
+  - "vllm@568afb3a:vllm/config/model.py#L335-L336"
+  - "vllm@568afb3a:vllm/engine/arg_utils.py#L887-L889"
+  - "vllm@568afb3a:vllm/engine/arg_utils.py#L1700-L1702"
+  - "vllm@ced6857a:vllm/config/model.py#L373-L374"
+  - "vllm@ced6857a:vllm/engine/arg_utils.py#L965-L967"
+  - "vllm@ced6857a:vllm/engine/arg_utils.py#L1887-L1889"
+  - "vllm@84030bbe:vllm/config/model.py#L373-L374"
+  - "vllm@84030bbe:vllm/engine/arg_utils.py#L956-L958"
+  - "vllm@84030bbe:vllm/engine/arg_utils.py#L1869-L1871"
+  - "vllm@0fc695fc:vllm/entrypoints/pooling/pooling/protocol.py#L63-L97"
+  - "vllm@0fc695fc:vllm/entrypoints/pooling/pooling/api_router.py#L20-L39"
+  - "vllm@0fc695fc:examples/pooling/plugin/prithvi_geospatial_mae_online.py#L1-L54"
+  - "vllm@0fc695fc:examples/pooling/plugin/prithvi_geospatial_mae_io_processor.py#L1-L60"
+  - "vllm@0fc695fc:vllm/v1/metrics/loggers.py#L44-L88"
+  - "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L120-L132"
+  - "vllm@568afb3a:vllm/v1/metrics/loggers.py#L44-L88"
+  - "vllm@568afb3a:vllm/v1/engine/async_llm.py#L120-L132"
+  - "vllm@ced6857a:vllm/v1/metrics/loggers.py#L45-L89"
+  - "vllm@ced6857a:vllm/v1/engine/async_llm.py#L131-L143"
+  - "vllm@84030bbe:vllm/v1/metrics/loggers.py#L44-L88"
+  - "vllm@84030bbe:vllm/v1/engine/async_llm.py#L130-L142"
+  - "https://github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/pyproject.toml#L78-L83"
+  - "https://github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/terratorch/vllm/plugins/segmentation/__init__.py#L1-L7"
+  - "https://github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/terratorch/vllm/plugins/segmentation/segmentation_io_processor.py#L286-L431"
+  - "https://github.com/IBM/terratorch/blob/83c3a928416fcf97deed924cfb99a59a817730bf/terratorch/vllm/plugins/segmentation/segmentation_io_processor.py#L433-L501"
+  - "https://github.com/vllm-project/bart-plugin/blob/77673541bd7ebdb67a83fa72fd8f72c6aafea17c/README.md#L1-L250"
+  - "https://github.com/vllm-project/bart-plugin/blob/77673541bd7ebdb67a83fa72fd8f72c6aafea17c/pyproject.toml#L27-L48"
+  - "https://github.com/vllm-project/bart-plugin/blob/77673541bd7ebdb67a83fa72fd8f72c6aafea17c/vllm_bart_plugin/__init__.py#L21-L57"
+verified:
+  - main
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+evidence: C
 relations:
-  - {to: glm-5-3-flash, kind: builds-on, note: 注册表里那个架构名对应的模型长什么样}
-  - {to: npu-worker-lifecycle, kind: builds-on, note: 注册完成之后，worker 才真正建设备、建模型、装权重}
+  - to: glm-5-3-flash
+    kind: builds-on
+    note: 注册表里那个架构名对应的模型长什么样
+  - to: npu-worker-lifecycle
+    kind: builds-on
+    note: 注册完成之后，worker 才真正建设备、建模型、装权重
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-740cd35fdf80517d86d351d6e08c577af0401bdeef6fcfd2063f979428492dce.md
+  - >-
+    raw/sha256-f39ebfc3d1aefe358deb844d5672f2ee3c1d5c8279350a3987036ae93b39f9c0.md
 ---
 
 ## 装上一个包，vLLM 怎么就会用昇腾了
 
-**插件注册是指：vLLM 启动时去读「这台机器上装了哪些包、这些包登记了哪些扩展入口」，再把登记的函数逐个调用一遍；昇腾就靠这些入口，把设备平台和模型实现换成自己的那一套。**
+**插件注册是指：vLLM 从当前 Python 环境的安装信息发现扩展入口，筛选并加载入口函数，再调用它们选择平台、登记模型等实现。** 昇腾靠这些入口接入；发现条目、加载函数与执行成功是不同的步骤。
 
-Python 包在安装时除了把代码拷到磁盘上，还会写下一份安装元数据（记录包名、版本、依赖的那份说明书），里面可以带一张 **entry point（入口点）**清单，格式是「组名 → 若干条『名字 = 某个函数』」。组名是约定好的暗号：vLLM 事先公布了几个组名，意思是「凡是登记在这个组名下的函数，我启动时都会去调」。任何一个包只要在这些组名下登记，就算把自己挂进了 vLLM——vLLM 不需要认识这个包，只需要按组名去问「谁登记了」。
+Python 包在安装时会写下一份安装元数据（记录包名、版本、依赖的那份说明书），里面可以带一张 **entry point（入口点）**清单。本节的平台和通用入口写成「组名 → 若干条『名字 = 某个函数』」。组名是约定好的暗号：vLLM 按它寻找候选入口，再按允许加载的名单筛选。包在这些组名下登记后，就提供了可被发现的扩展入口，vLLM 无需在调用处写死这个包的名字。
 
 ```wiki-diagram
 file: plugin-registration
@@ -59,27 +173,33 @@ file: plugin-registration
 - **登记平台**这条分支只有一个入口。它回答「这台机器该用哪套硬件的做法」，交回来的是一个**名字**——一行写着「去哪个模块找哪个类」的文字，指向昇腾的[平台实现](npu-platform.md)。vLLM 拿到名字后才去导入它。
 - **登记模型**这条分支上的入口是**当场执行的函数**。昇腾在这条分支上放了四个，其中一个往模型注册表里加「模型架构名 → 昇腾实现类」的映射，另外三个分别登记 KV 与权重的搬运方式、两种权重加载器、服务级性能采集的配置。
 
-两条分支落在不同的地方：上面一条决定的是**当前平台这一个对象**，下面一条改的是**几张注册表的内容**；它们之间没有约定先后。清单跟着包走，也跟着包消失：装上 vllm-ascend，下一次启动 vLLM 就会扫到它；卸载掉，vLLM 从此看不见昇腾，不需要改任何配置。
+两条分支落在不同的地方：上面一条决定的是**当前平台这一个对象**，下面一条改的是**几张注册表的内容**；它们之间没有约定先后。清单跟着包的安装元数据走：在同一 Python 环境中安装后，下次启动才有发现入口的条件；卸载后，新进程不再从该安装获取入口。是否实际加载还受白名单与导入结果影响，已有进程中的注册状态也不会因卸载自动撤销。
 
 ## 为什么要绕安装元数据这一圈，代价是什么
 
-vLLM 是给多种硬件写的通用框架，它的代码里没有「如果是昇腾就这样」的分支，官方双机的启动命令里也没有「昇腾」「NPU」这样的字眼。把硬件适配放进安装元数据，好处是双方都不用写死对方：昇腾不改 vLLM 一行代码，vLLM 也不必为每一家硬件准备一个导入分支。
+vLLM 是给多种硬件写的通用框架。把扩展入口放进安装元数据，调用方就能按统一组名发现插件，无需为每个外部包手写导入分支。官方命令通过 vLLM 启动服务，也会用到 ascend 量化选项；插件接入并不意味着完全不改上游运行行为，昇腾还会通过 patch 替换部分函数。
 
 代价有三条，都是排查启动问题时真正会撞上的：
 
-**一、粒度只有「装没装」。** 昇腾的平台入口无条件交出类路径，不先检查这台机器上有没有 NPU；而上游的规则是外部插件优先于内置的硬件判断。所以同一个 Python 环境里只要装了 vllm-ascend，vLLM 就会认定这是一台昇腾机器。想用别的硬件，得卸掉它或者用白名单把它排除在外。
+**一、入口不做硬件探测。** 昇腾平台入口被允许加载、导入并调用成功后，无条件交出类路径，不先检查有没有 NPU；上游又优先选择唯一激活的外部插件。因此选中昇腾平台不证明设备可用。想在同一环境使用别的硬件，应在启动前卸载该插件或用白名单排除其入口。
 
 **二、发现到了，不等于注册成功。** 导入某个入口失败时，vLLM 只记一条日志并跳过这个入口，启动继续往下走。于是「包装上了」和「实现真的换了」是两件事，要分别确认。
 
-**三、每个进程都得重来一遍。** 注册结果是进程内状态：模块变量、注册表都只活在本进程里。本部署的 16 个占卡进程，每一个都要把这张清单重新读一遍，才能拿到昇腾的模型实现。
+这里的跳过只针对入口对象加载失败。入口加载成功后，若通用入口函数执行时抛出异常，执行循环没有捕获它，异常会交给调用方处理；不能把加载阶段的容错理解为执行失败也会自动跳过。
 
-还要把三个容易混成一件事的动作分开：
+通用插件初始化的进程内标志，在加载并执行入口前就已设为真。若某个入口执行抛错，后续入口不保证运行；同进程再次调用初始化函数也会直接返回。因此，这个标志表示流程进入过，不表示所有入口执行成功，也不提供自动重试。
+
+
+**三、新解释器要走自己的入口。** 注册表与防重标志是进程内状态。按本页 CLI 默认使用 spawn 的假设，16 个占卡进程分别启动解释器，分别加载清单；不同启动方式的初始化与继承条件须另核，不能仅凭父进程成功就认定全部子进程成功。
+
+还要把四个容易混成一件事的动作分开：
 
 | 动作 | 什么时候发生 | 结果是什么 |
 |---|---|---|
-| 发现 | 每个进程起来时读安装元数据 | 拿到「入口名 → 函数」，还没有任何效果 |
-| 执行注册 | 立刻调用这些函数 | 交回平台的类路径；几张注册表里多出条目 |
-| 实际加载 | worker 建好通信域之后 | 模型对象真正建出来，权重进到卡上，见[显存](device-memory.md#放到-glm-双机先装权重再接住一个-token) |
+| 发现 | 到相应初始化入口查询安装元数据 | 拿到入口名与目标路径等描述，尚未加载该入口对象 |
+| 加载入口 | 通过筛选后导入目标模块、取出函数 | 得到可调用对象；模块导入本身可能有副作用 |
+| 执行注册 | 调用已加载的入口函数 | 成功时交回平台类路径、更新注册表或配置；失败须单独处理 |
+| 加载模型 | 本例 worker 建好通信域之后 | 模型模块真正建出来，权重进到卡上，见[显存](device-memory.md#放到-glm-双机先装权重再接住一个-token) |
 
 ### 发现、过滤、激活
 
@@ -87,12 +207,49 @@ vLLM 是给多种硬件写的通用框架，它的代码里没有「如果是昇
 
 **过滤**由 `VLLM_PLUGINS` 这个环境变量控制。它是白名单，按**入口名**过滤——填的是 `ascend`、`ascend_model` 这样的入口名字，不是 Python 包名。不设置就全部加载；设置了却漏掉某个名字，那个入口就等于不存在。过滤之后才逐个导入，导入失败只写一条带堆栈的日志并跳过这个入口，其余入口照旧。
 
-**激活**在插件这一层只有一个很窄的含义：函数被调用了，而且返回值不是空。平台组的入口要交回一个类路径，交回空值就算没激活；昇腾那个函数的函数体只有一行「返回昇腾平台的类路径」，所以它一定算激活。至于多个候选同时激活时按什么规则挑、挑出来的结果存在哪里，属于另一页：见[平台接口](vllm-platform-interface.md#当前平台是怎么选出来的)。通用组不看返回值，调用即生效，同一组里登记的多个入口都会被调，互不排斥。
+**平台候选的激活**在这里有很窄的含义：入口已成功加载，探测调用正常返回且结果不是 None。固定昇腾入口返回类路径，因此通过筛选、加载和调用后会被记为激活候选。多个候选怎样选择、结果存在哪里，见[平台接口](vllm-platform-interface.md#当前平台是怎么选出来的)。通用组不按返回值选赢家，而是逐个执行已加载的函数；某个函数抛错会中断这个循环，不能把“开始调用”当成全部生效。
 
 注册这一层全部成功，也不说明设备已经可用。驱动、运行库、设备可见性和 HCCL 初始化是后面几步的事，见 [Worker 启动](npu-worker-lifecycle.md#一张卡上的-worker启动时按什么顺序做准备)。
+
+判断通用入口是否全部执行成功，还需检查执行结果。避免重复加载的标志在加载与执行之前就已设为真，只能说明流程进入过，不能单独作为所有通用入口均已执行成功的依据。
+
+## 输入输出插件为什么能把一张图拆成多个请求？
+
+**IO Processor 插件把应用的数据变成模型能接收的输入，再把模型结果整理成应用需要的输出。** 这里接的是 pooling 模型：一次前向得到向量、类别或分割结果等，不逐 token 生成聊天回答。例如，应用提交一张地理影像，插件把它切成小图送进分割模型，最后将每块的分类结果拼回完整图。它扩展的是请求前后处理，模型本身仍须支持这些输入和输出。
+
+这是与 [API server](api-server-entry.md) 相邻的一条入口：应用把数据放进插件定义的字段，前处理可以展开成多个模型子请求；引擎算完后，后处理再合并成应用结果。切图、读取文件、拼图都花主机时间和内存，模型也必须完成每块的计算。一次 HTTP 请求不等于一次模型子请求，不能按 HTTP 条数估算实际工作量。
+
+```wiki-diagram
+file: plugin-io-processing
+```
+
+图中用一张 512×512 像素的方图做示意，每块 256×256，按 A、B、C、D 的位置切开。假设模型结果按 C、A、D、B 的顺序到达，在线服务先按输入编号放回对应位置，收齐后才交给插件拼图；不能照到达先后把右下角拼到左上角。
+
+```calc
+title: 一张图展开成几个模型输入（方形切片示意）
+每边切片数 = 512 ÷ 256 = 2 块
+模型子输入数 = 2 × 2 = 4 个
+> 四份模型结果按原位置合并，应用收到一张完整结果图
+```
+
+官方 TerraTorch 示例采用的正是地理影像切片与拼回流程，还会补齐边缘、在拼回后裁掉补齐区域。具体切片尺寸由其配置决定，图中的尺寸只帮助理解数量。在线返回的是插件自己的结果数据；离线入口则把合并结果放在一个输出对象里。这个过程与聊天模型识别图片的媒体处理、[独立 renderer](api-server-entry.md#模板和分词能否拆成一个独立的-cpu-服务) 分工不同：后两者面向生成请求的模板、媒体表示与编号转换。
+
+### 四种入口交给 vLLM 的东西不同
+
+同样写在安装元数据中，入口的返回值和消费位置仍由组名决定：
+
+| 入口组 | 交出什么 | 接入哪里 |
+|---|---|---|
+| 平台 | 函数返回平台类路径，或表示不激活 | 选择当前硬件平台 |
+| 通用 | 可被调用的注册函数 | 模型、搬运方式等注册表或初始化逻辑 |
+| IO Processor | 函数返回输入输出处理类的路径 | pooling 请求的前处理与后处理 |
+| Stat logger | 直接提供统计记录器类 | 读取引擎统计，记录或输出指标 |
+
+统计插件不会替换模型计算；它消费引擎已经产生的统计。它与默认文字日志是否开启也不是一回事，见[性能分析中的统计开关](inference-performance-analysis.md#怎么开)。[LoRA resolver](lora.md#请求只写适配器名服务怎样找到权重) 则先经通用入口登记查找器，之后在请求选到未知适配器名时参与查找，不能把它当成第五种 IO 处理步骤。
+
 ## 放到 GLM 双机：请求到来前，五个入口做了什么
 
-**官方双机部署起 20 个进程，其中 16 个占卡；通用组这四个入口在前端、两个 EngineCore 和 16 个 worker 里各执行一遍，平台组那一个则是本进程第一次要用当前平台时才解析。** 部署布局与进程账见[部署前提](glm-5-3-flash-two-node.md#启动时发生了什么)。
+**官方双机的核心功能角色按 20 个进程示意，其中 16 个占卡；在本页默认 spawn、入口均被允许且正常执行的假设下，通用组在前端、两个 EngineCore 和 16 个 worker 中分别登记。平台组在当前平台缓存为空且第一次被访问时解析。** 这份账不含启动器和运行时辅助进程，部署布局见[部署前提](glm-5-3-flash-two-node.md#启动时发生了什么)。
 
 ```wiki-diagram
 file: plugin-registration-flow
@@ -100,7 +257,7 @@ file: plugin-registration-flow
 
 图上半部是通用组：三种进程各有一个调用点，都指向同一件事——读一遍通用组的清单，再把读到的函数逐个执行；执行时又分成两支，三个入口先把昇腾的全局补丁补上，模型入口直接往注册表加条目。下半部是平台组，它不挂在进程启动的固定位置上，而是本进程第一次要用当前平台时才去读、才去解析。
 
-这五个入口都在**请求到来之前**就用完了：平台早已定成昇腾，模型实现早已换成昇腾的版本，补丁也在每个进程里打好。[一条请求](one-request.md)路上每一个「昇腾特有」的行为，源头都能追到这五个入口之一。
+本例正常启动完成后，这些入口已在相应进程中完成平台选择、模型登记与相关补丁准备。之后沿[一条请求](one-request.md)看执行行为，还要继续核对 Worker 初始化、配置消费和算子分派；入口登记是这条链的起点。
 
 ### 五个入口分别登记了什么
 
@@ -112,23 +269,23 @@ file: plugin-registration-flow
 | `ascend_service_profiling`（通用组） | 生成服务级性能采集的配置 | 采集功能初始化时 |
 | `ascend_model`（通用组） | 往模型注册表加「架构名 → 实现类」 | 按模型配置里的架构名查实现 |
 
-平台组只能有一家胜出，通用组是「谁登记了都调」。GLM 双机真正用到的是其中两条：平台那一个和模型那一个；连接器与加载器要等开了对应功能才走到，采集只是把配置准备好。
+平台组最终选择一家，通用组逐个调用通过筛选且成功加载的入口。GLM 双机的逐请求执行直接使用平台和模型实现；另外三个通用入口仍会执行登记、配置和全局补丁准备，只是其中登记的传输或加载实现，要等选中对应功能才会真正运行。
 
 ### 平台入口只交一个名字，不交类
 
 平台这个口交给 vLLM 的不是平台对象，而是一行「去哪个模块找哪个类」的文字。绕这一下有实际原因：真把昇腾的平台类导入进来，会连带把 `torch_npu`（PyTorch 的昇腾扩展，昇腾算子和设备管理都从它进来）一起拉进这个进程——平台模块顶部就导入了昇腾的工具模块，而那个模块在模块级 `import torch_npu`。而 vLLM 问平台的时候还没决定用哪块硬件，它要把五个内置候选和所有外部插件都问一遍才挑。如果每个口都直接交出平台对象，光是「问一圈」就会把各家的底层库全部加载一遍。
 
-交名字就没有这个问题：先收一圈名字，挑定昇腾，再按名字去导入。这和[平台实现](npu-platform.md)那一页的约束是同一根线——昇腾的底层运行库只允许初始化一次，什么时候碰它要格外小心。
+交名字能把平台实现的导入推迟到选定以后。这里要区分“导入 torch_npu 模块”和“初始化设备运行时”：固定平台注释提醒，提前查询设备信息可能过早触发后者，因此某个内存查询接口没有实现，见[平台实现](npu-platform.md)。导入成功本身不证明设备已经初始化好。
 
 ### 模型入口：从架构名找到昇腾的 GLM 实现
 
 模型目录里的配置带着**架构名**，模型注册表把架构名映射到一个 Python 实现。本部署官方权重的架构名是 `Glm5NextForConditionalGeneration`，昇腾把它登记到自己的 `AscendGlm5NextForConditionalGeneration`；纯文本那一支的 `Glm5NextForCausalLM`、MTP 草稿层用的 `Glm5NextMTPModel` 等也各有一条。同一个函数还为 DeepSeek-V4 等模型登记条目，与 GLM 无关。
 
-这一步只建映射：没有建出模型的任何一层，也没有读一个字节的权重。真正按配置查注册表、创建模块、装载权重是 worker 建好通信域之后的事，每卡最终约 **20.58 GiB**，见[显存](device-memory.md#放到-glm-双机先装权重再接住一个-token)。所以要把三件事分开记：**配置识别模型，注册表定位实现，加载器提供权重。** 配置类型的注册与兼容处理另见[补丁与实现替换](ascend-patch-system.md#昇腾怎样把-vllm-里的函数换成自己的)。
+这一步只建映射：没有建出模型的任何一层，也没有读一个字节的权重。真正按配置查注册表、创建模块、装载权重是 worker 建好通信域之后的事。[权重子账](glm-5-3-flash-two-node.md#每张卡上放了什么)按 3121f187 配方列出的主要语言权重每卡约 **20.58 GiB**，视觉塔、MTP 旋转矩阵和量化辅助张量等另计，不能把这个子账当成最终加载占用。所以要把三件事分开记：**配置识别模型，注册表定位实现，加载器提供权重。** 配置类型的注册与兼容处理另见[补丁与实现替换](ascend-patch-system.md#昇腾怎样把-vllm-里的函数换成自己的)。
 
 ### 这张清单在本部署被读了 19 遍
 
-登记结果不跨进程继承，所以那三个调用点在本部署一共执行 19 次。这里的 19 和上面的 20 个进程不矛盾，两个数口径不同：20 数的是常驻进程，19 数的是读清单的次数，差的那一个是 DP 协调器——它只在前端和各个 EngineCore 之间转发排队长度这类负载统计，不建模型也不碰设备，那三个调用点上没有它。
+按 CLI 未预设启动方式时采用 spawn、入口允许加载且执行成功的假设，这些核心角色分别完成通用插件登记，共 19 次。20 是核心功能角色的进程示意账，不含启动器和运行时辅助进程；19 数的是其中参与这条登记链的次数，差的那一个是 DP 协调器——它在前端和各个 EngineCore 之间转发负载统计，不建模型，这三个登记调用点不在它的路径上。
 
 ```calc
 title: 通用组登记在本部署执行几次
@@ -136,14 +293,16 @@ title: 通用组登记在本部署执行几次
 EngineCore 进程 = 2 个 × 1 次 = 2 次
 worker 进程 = 16 个 × 1 次 = 16 次
 合计 = 1 + 2 + 16 = 19 次
-> 同一进程内有「读过了」的记号，重复调用只生效一次
+> 按默认 spawn 与入口正常执行计；进程内守卫会阻止重复尝试，不代表失败会自动重试
 ```
 
-平台组的时机不一样：它不在这三个调用点上，而是本进程第一次要用当前平台时才解析一次，结果留在本进程里，之后都拿同一个对象。
+平台组的时机不一样：它不在这三个调用点上，而是本进程需要当前平台、缓存又为空时才解析；成功建立缓存后，后续访问复用同一个对象。解析或构造失败、缓存仍为空时，后续访问会重新尝试。
+
+平台实例的创建由当前平台属性的访问触发：缓存为空才解析并创建实例。仅知道模块已经被导入，还不能判断这个属性是否已经被访问。
 
 ### 三个通用入口先补一次全局补丁
 
-四个通用入口里有三个（连接器、加载器、采集）的第一件事，是把昇腾的全局补丁再打一遍，只有模型那个不打。原因是 EngineCore 这类子进程走不到前端那条打补丁的路，而调度器恰好就在 EngineCore 里；昇腾要改调度器和引擎的行为，只能借这几个入口在子进程里再打一次。补丁带着「打过了」的记号，三个入口各调一次也只真打一遍。模型入口只往注册表加条目，不依赖被改过的调度器和引擎，所以不打。补丁为什么要分几条路送，见[引擎有哪几个进程](engine-processes.md#补丁和配置为什么要每个进程各做一遍)。
+四个通用入口里有三个（连接器、加载器、采集）的第一件事，是确保本进程已经应用昇腾全局补丁，只有模型那个不调这个帮助函数。原因是新的 EngineCore 解释器不能只依赖前端已执行过的准备，而调度器恰好就在 EngineCore 里；这些通用入口为子进程提供补丁初始化路径。补丁带着成功后的记号，三个入口各调一次也只通过这条帮助函数应用一遍。模型入口只登记模型映射，所以没有调用它。补丁为什么要分几条路送，见[引擎有哪几个进程](engine-processes.md#补丁和配置为什么要每个进程各做一遍)。
 
 这也说明五个入口之间**没有统一的全局执行顺序**：正因为不能假定平台已经把一切准备好，那三个入口才各自带着记号去补一次。
 
@@ -158,80 +317,127 @@ worker 进程 = 16 个 × 1 次 = 16 次
 
 ## 常见误解
 
-- **「要在代码里显式注册昇腾」**——不需要。清单是装包时写下的，装上就生效，卸掉就消失。
-- **「发现到入口就等于注册成功」**——不等于。导入失败只记一条日志并跳过，启动继续；平台函数调用时抛的异常也会被吞掉。
+- **「要在代码里显式注册昇腾」**——一般不需要。安装元数据提供发现入口，但还须通过白名单、导入与调用；变更安装后要重新启动相应进程。
+- **「发现到入口就等于注册成功」**——不等于。导入失败只记一条日志并跳过，启动继续；逐个探测平台候选时，调用异常会被捕获，使该候选不计为激活。选定平台后还会再次调用它的入口，这次调用不在前面的异常捕获范围内，失败会交给调用方处理。
+
 - **「五个入口有固定先后」**——平台那一个和通用那四个之间没有约定顺序。所以那三个入口各自带着「打过了」的记号去补补丁，而不是假设平台已经准备好一切。按「平台已经初始化好了」来写通用插件，在 EngineCore 进程里很容易出错。
 - **「模型那个入口也该补补丁，是漏了」**——它确实不补，而且合理：它只往注册表加条目，不依赖被改过的调度器和引擎。
-- **「机器上没有 NPU，vLLM 会自动退回别的硬件」**——装了 vllm-ascend 就不会。昇腾的平台入口不做设备检查，而外部插件优先，想用别的硬件得先卸掉它，或者用白名单把它排除。
+- **「机器上没有 NPU，vLLM 会自动退回别的硬件」**——昇腾入口成功激活后不会因此自动回退。入口不做设备检查，唯一外部插件又优先；想用别的硬件，要在启动前卸掉它或用白名单排除。
 - **「注册表里有 GLM，就说明模型能跑起来」**——注册表只是一张「架构名 → 实现类」的映射。设备、通信域、权重都在后面几步，见 [Worker 启动](npu-worker-lifecycle.md#一张卡上的-worker启动时按什么顺序做准备)。
 
 ## 对照源码
 
+固定上游的加载器会捕获导入失败，但通用入口执行循环不捕获函数自身的异常；current_platform 则在首次访问且缓存为空时解析并实例化。固定 GLM 的平台注册函数只返回类路径。因此要区分导入、执行入口、选择平台与设备初始化四个阶段，某一阶段成功不能代替后续阶段验证。对应入口见下方源码表中的来源 3、11、12、14。
+
 ### 怎么开
 
-装包即开，不需要任何参数。清单写在 `setup.py` 的 `entry_points` 里，两组共五个入口 [C1]：
+默认通过安装元数据发现入口，不需要单独的“启用昇腾”参数；`VLLM_PLUGINS` 仍可过滤它。清单写在 `setup.py` 的 `entry_points` 里，两组共五个入口 [C1]：
 
 - `vllm.platform_plugins`：`ascend = vllm_ascend:register`
 - `vllm.general_plugins`：`ascend_kv_connector = vllm_ascend:register_connector`、`ascend_model_loader = vllm_ascend:register_model_loader`、`ascend_service_profiling = vllm_ascend:register_service_profiling`、`ascend_model = vllm_ascend:register_model`
 
-上游侧三件事 [C2]：组名常量是 `DEFAULT_PLUGINS_GROUP = "vllm.general_plugins"`（注释写明在所有进程加载——process0、engine core 与 worker）和 `PLATFORM_PLUGINS_GROUP = "vllm.platform_plugins"`；`load_plugins_by_group(group)` 用 `importlib.metadata.entry_points(group=...)` 取清单，逐个 `plugin.load()`，返回「名字 → 函数」；`load_general_plugins()` 用模块级 `plugins_loaded` 做进程内去重，再对每个函数直接 `func()`。三个调用点分别在 `EngineArgs.__post_init__`、`EngineCore.__init__` 和 `WorkerWrapperBase` 里，逐条位置见下面的源码位置表。
+上游侧三件事：来源 10 的组名常量是 `DEFAULT_PLUGINS_GROUP = "vllm.general_plugins"`（注释写明在所有进程加载——process0、engine core 与 worker）和 `PLATFORM_PLUGINS_GROUP = "vllm.platform_plugins"`；`load_plugins_by_group(group)` 用 `importlib.metadata.entry_points(group=...)` 取清单，逐个 `plugin.load()`，返回「名字 → 函数」[C11]；来源 12 的 `load_general_plugins()` 用模块级 `plugins_loaded` 做进程内去重，再对每个函数直接 `func()`。三个调用点分别在 `EngineArgs.__post_init__`、`EngineCore.__init__` 和 `WorkerWrapperBase` 里，逐条位置见下面的源码位置表。
 
-上游另有两处调用，「19 次」没有数它们（行号并入下面源码位置表的「前端调用点」一行）：`AsyncEngineArgs.add_cli_args` 在搭命令行参数时也调一次，但那还是前端同一个进程，被 `plugins_loaded` 去重；模型信息探测在缓存未命中时会另起一个短命子进程，那个进程启动后也要读一遍清单。所以 19 次的口径是「那 20 个常驻进程各读几遍」，短命子进程不计。
 
-平台侧 [C3]：`resolve_current_platform_cls_qualname()` 把内置的 tpu / cuda / rocm / xpu / cpu 与外部插件的函数都调一遍，返回值不是 `None` 就记为激活；外部插件只要有一个激活就优先于内置候选。`current_platform` 是懒加载的模块属性，第一次访问才解析，之后复用同一个对象。
+上游另有两处调用，没有额外计入这里的 19 次：`AsyncEngineArgs.add_cli_args` 在搭命令行参数时也调一次，但仍在前端同一进程，被守卫去重；懒注册模型的信息探测在无法使用缓存时会另起短命子进程，那里也加载通用插件（来源 37、38）。因此，19 只覆盖上面的核心功能角色，不是整个启动期间所有进程或所有扫描动作的总数。
 
-昇腾侧 [C5]：`register()` 的函数体只有一行 `return "vllm_ascend.platform.NPUPlatform"`，无条件返回，所以装上就算激活。四个通用函数分别调 `kv_transfer.register_connector()` 与 `weight_transfer.register_engine()`、`register_netloader()` 与 `register_rforkloader()`、`generate_service_profiling_config()`、`.models.register_model()`；前三个的第一句是 `_ensure_global_patch()`，它用 `_GLOBAL_PATCH_APPLIED` 做幂等、内部调 `adapt_patch(is_global_patch=True)`，docstring 写明理由是 engine-core 子进程里也要打上影响调度器与引擎的补丁。
+平台侧 [C13]：`resolve_current_platform_cls_qualname()` 把内置的 tpu / cuda / rocm / xpu / cpu 与外部插件的函数都调一遍，返回值不是 `None` 就记为激活；外部插件只要有一个激活就优先于内置候选。来源 14 的 `current_platform` 是懒加载的模块属性，缓存为空时访问才解析，成功后复用同一个对象。
+
+昇腾侧：来源 3 的 `register()` 函数体只有一行 `return "vllm_ascend.platform.NPUPlatform"`，成功调用后无条件返回类路径。四个通用函数分别调 `kv_transfer.register_connector()` 与 `weight_transfer.register_engine()`、`register_netloader()` 与 `register_rforkloader()`、`generate_service_profiling_config()`、`.models.register_model()` [C4]；前三个的第一句是 `_ensure_global_patch()`，来源 2 中它用 `_GLOBAL_PATCH_APPLIED` 做幂等、内部调 `adapt_patch(is_global_patch=True)`，docstring 写明理由是 engine-core 子进程里也要打上影响调度器与引擎的补丁。
+
+安装声明、实际发现、加载成功与调用成功是不同状态。来源 3 所示函数体没有硬件探测或可用性判断，因此返回平台实现名称也不证明驱动、软件栈和设备已经准备好。
 
 只想加载一部分插件：`VLLM_PLUGINS` 是按入口名过滤的白名单（填 `ascend`、`ascend_model` 这样的名字），不设则全部加载。
+
+**自定义输入输出先选择模型和插件，再选择入口。** --io-processor-plugin 对应 io_processor_plugin，四版定义默认都是 None。非空显式名称优先；没有显式名称时，加载器再查模型 HF 配置中的同名字段。名称是 vllm.io_processor_plugins 组里的入口名，入口函数返回处理类路径，vLLM 再用当前配置与 renderer 创建该类的对象。插件包须已装在服务环境中，且名称通过既有 VLLM_PLUGINS 筛选；新增一个名称时保留 Ascend 等原有必要入口。
+
+在线通过 **POST /pooling** 提交 model 与 data；data 里面放什么由插件校验，响应的 data 也由插件后处理定义。它不是 /v1/chat/completions，也不是一套统一的图像 JSON 格式。离线对已配置好同一插件的 LLM 对象调用 `llm.encode({"data": plugin_input}, pooling_task="plugin")`；这里的 plugin_input 表示已按插件格式准备的数据。普通向量或分类请求仍走对应 pooling 任务，模型的 task=plugin 本身也不保证使用了 IO 插件。
+
+要看一套具体格式，可对照固定上游的 TerraTorch 在线与离线示例（来源 93、94）：其中选择 terratorch_segmentation，提交 GeoTIFF 的 URL 或其支持的其他数据形式，返回分割图。该插件需要匹配的地理模型配置与依赖；GLM 双机配方沿用普通生成入口，未配置这个插件。
+
+**统计插件的入口值直接是类。** vllm.stat_logger_plugins 要求该类继承 StatLoggerBase；四版 AsyncLLM 都把发现的类加入自定义统计记录器列表。有自定义记录器时，即使关闭默认统计日志，也仍保持这条统计路径；默认日志与指标的完整关系见[性能分析](inference-performance-analysis.md#怎么开)。模型实现和统计结构的版本兼容仍由插件负责。
 
 「交名字不交类」的理由是推出来的：平台模块顶部导入昇腾的工具模块，而工具模块在模块级导入运行库 [C9]，源码里没有一句话直接说明这个设计意图 [D]。
 
 ### 会报什么错
 
-- **`RuntimeError: Only one platform plugin can be activated, but got: [...]`**：同一环境里有两个会激活的外部平台插件。昇腾无条件激活，和别家平台插件装在一起就撞。
-- **`Failed to load plugin <name>`**：`plugin.load()`（即导入 `vllm_ascend`）抛异常时只记一条 exception 日志、跳过这个插件，不中断启动。平台函数调用时抛的异常被 `except Exception: pass` 吞掉，表现成「这家没激活」。
+- **`RuntimeError: Only one platform plugin can be activated, but got: [...]`**：至少两个外部平台候选都被判为激活。昇腾入口通过筛选、导入并成功调用后返回非空类路径，但仅仅同时安装两个插件还不足以触发冲突。
+- **`Failed to load plugin <name>`**：`plugin.load()`（即导入 `vllm_ascend`）抛异常时只记一条 exception 日志、跳过这个插件，不中断启动。平台候选的逐个探测调用处使用 `except Exception: pass`，异常表现成「这家没激活」；选定后第 237 或 245 行再次调用入口时不在这段捕获内，异常会向调用方传播。
 - **通用入口函数自己抛异常**：`load_general_plugins()` 对 `func()` 不包 `try`，异常直接打断所在进程的启动。报错出现在 EngineCore 或 worker 进程时，先看是不是那三个补丁入口之一。
 - **设了 `VLLM_PLUGINS` 但没包含 `ascend`**：平台入口不被加载，vLLM 回落到内置判断，都不激活时落到 `UnspecifiedPlatform`。
 - **架构名不在注册表里**：模型入口没执行成功，或这个版本没有登记该架构名。
 
-以上五条的依据是上游的加载与平台选择代码，以及昇腾的入口函数 [C2][C3][C5]。第一条里「昇腾一定会激活」是推出来的：无条件返回类路径，加上上游「返回值非空即激活、外部插件优先」两条规则 [D]。
+以上条件来自上游加载、平台选择与昇腾入口函数，见源码表中的来源 3、11–13；通用入口的执行异常还要与导入异常分开处理。
+
+IO 插件还要分别检查“没有可加载入口”和“指定名称不在可加载名单”。加载器会对入口函数调用失败记告警，但所需插件不可用时仍报 ValueError；最终处理类导入或构造失败也会向上传播。HTTP data 必须通过插件自己的校验；子输入没有全部产出结果时，服务报 Failed to generate results for all prompts，不会把缺片结果当完整结果交给后处理。统计入口若不是规定的子类，则报 TypeError。
 
 ### 开销和什么时候别开
 
-开销只在启动阶段，而且很小：每个进程一次安装元数据扫描加一次导入。真正的代价是导入 `vllm_ascend` 会连带加载昇腾的底层运行库 [C9]，而本部署里这件事发生 19 次，由 20 个进程的构成与那三个调用点相乘得出 [D]，不是一次。
+开销主要在初始化阶段，包括扫描元数据、导入入口模块和执行登记。来源 9 说明导入平台所依赖的工具模块会导入 torch_npu，不能据此断言仅导入顶层 vllm_ascend 就初始化了设备。19 次是上述核心角色的通用登记示意账，不是所有导入或设备初始化的次数；实际耗时需要启动记录。
 
-昇腾机器上正常服务时，五个入口都该在。想缩小范围只有白名单一条路，而它的作用面是整个进程环境、子进程继承，不能只对某一个进程关。用白名单去掉那三个补丁入口，代价是调度器与引擎的全局补丁在子进程里不再生效，属于调试上游行为时才做的事，不要带进生产。两个外部平台插件不要装进同一个环境——不是「优先级不对」，而是直接抛错停止启动。
+用白名单缩小加载范围时，要核对每个进程实际使用的环境与调用路径。排除那三个通用入口，会失去它们负责的登记和补丁初始化路径；是否还有其他入口已应用同一补丁，必须继续查，不能仅凭排除名单就断言所有全局补丁都未生效。至少两个外置平台同时被判定为激活时，平台选择才会因冲突报错；同时安装两个外部插件本身不足以判定冲突。
+
+IO 插件的代价还发生在每次请求：展开的输入越多，引擎需要计算和保存的结果就越多，收齐后才能合并返回。官方接口列有异步帮助方法，但本页核对的四版在线 wrapper 都调用同步的 parse_data、pre_process 和 post_process。v0.23/v0.26 把整个同步前处理交给线程池；rc2/main 的异步前处理先同步调用插件生成输入，再等待并发渲染。因此插件里耗时的文件读取或 CPU 操作要结合实际调用位置评估，不能仅凭方法名带 async 就认为不会阻塞连接处理。
 
 ### 版本差异
 
-固定快照：v0.23 维护分支 = Ascend `2c59ff10`（配套 `vllm@0fc695fc`）；v0.26 = Ascend `2ed6cbba`；main = Ascend `baa023ad`。本页 GLM 算例用的专用镜像是 Ascend `db701c1f`，它的入口声明与 v0.23 维护分支逐字相同 [C1][C11]。
+输入输出与统计接口按固定上游 0fc695fc、568afb3a、ced6857a、84030bbe 对照；最后一个是独立 main 比较点，不据此建立与 Ascend main 的精确配套关系。
 
-| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+| IO／统计核对项 | v0.23 | v0.26 | v0.30.0rc2 | 固定 main |
+|---|---|---|---|---|
+| IO 名称默认与选择 | None；非空显式名称优先，否则读模型配置 | 相同 | 相同 | 相同 |
+| 在线插件方法与结果顺序 | 同步方法；按输入编号收齐再后处理 | 相同 | 相同 | 相同 |
+| 在线前处理执行位置 | 同步前处理在线程池 | 同 v0.23 | 插件工厂同步执行，再等待异步渲染 | 同 rc2 |
+| 旧 parse_request／参数验证兼容入口 | 仍有兼容转接 | 相同 | 移除这两个旧转接；输出包装兼容仍在 | 同 rc2 |
+| 离线切片提交 | 渲染并加入请求，再运行引擎 | 改为分批加入，以 max_num_seqs×2 为核心请求数目标 | 沿用，并显式拒绝零个输入 | 同 rc2 |
+| 统计入口类型与关闭默认日志 | 要求 StatLoggerBase 子类；自定义记录器可保持统计启用 | 相同 | 相同 | 相同 |
+
+注册接口有兼容承诺，插件内部实现仍须匹配所用 vLLM。官方外链的 BART 插件就是独立版本的例子：本次固定外部快照要求 vLLM ≥0.24，并接入新 model runner 的配置。它的 README 将 VLLM_PLUGINS=all 写成全部加载，但本页四版上游实际只匹配入口名字；正确的“不过滤”方式是未设置该变量。外部示例中的值不能替代当前加载器的规则。
+
+**v0.30.0rc2 的安装声明仍是三组 entry points、六个入口。** platform 一项、general 四项、指标 provider 一项；register 只返回 NPUPlatform 路径，register_model 只登记模型，connector/model_loader/profiling 则先执行带进程内守卫的全局 patch。配套上游仍通过 importlib.metadata 发现插件、按 VLLM_PLUGINS 筛选，并以一次性守卫调用 general 插件。
+
+平台选择先处理显式 CPU target 的直通，再逐个探测：一个 OOT 优先，多个 OOT 报错，没有 OOT 再检查内置冲突，没有候选则 UnspecifiedPlatform，探测异常记录 debug traceback。“外部平台优先”因此有 CPU 例外，安装声明也不能替代实际子进程加载成功的证据。
+
+固定快照：v0.23 维护分支 = Ascend `2c59ff10`（配套 `vllm@0fc695fc`）；v0.26 rc = Ascend `2ed6cbba`；main = Ascend `baa023ad`。本页 GLM 算例用的专用镜像是 Ascend `db701c1f`，它的入口声明与 v0.23 维护分支逐字相同 [来源 1](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/setup.py#L543-L551)、[来源 20](https://github.com/vllm-project/vllm-ascend/blob/2c59ff10/setup.py#L543-L551)。
+
+| 项 | v0.23 维护分支 | v0.26 rc 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|
 | `vllm.platform_plugins` | `ascend`，1 个 | 同 v0.23 | 同 v0.23 | 平台入口三边一样，认这一个名字就够 |
-| `vllm.general_plugins` | 4 个 | 4 个，名字与顺序都没变 | 同 v0.23 | 这四个入口名可以当稳定契约用 |
-| 第三组入口 | 没有 | 没有 | 多一组 `ms_service_metric.providers` → `vllm_ascend.observability:get_metric_provider` | 只有 main 会被指标框架扫到；照 main 的接入说明搬到发布分支上会找不到这个组 [C12] |
-| `register_model` 的函数体 | 只调 `.models.register_model()` | 先注册 kimi-k3 的 config，再装一个 HunyuanVL processor 兼容补丁，然后才注册模型 | 同 v0.23 | v0.26 上这个入口已经不只是「往注册表加条目」：那个补丁模块顶部 `from transformers import HunYuanVLProcessor`，所以模型入口一执行就把 `transformers` 的这个 processor 类导进本进程 [C13] |
+| `vllm.general_plugins` | 4 个 | 同四个入口名与声明顺序 | 同 v0.23 | 不约定第三方插件间的全局执行顺序 |
+| 第三组入口 | 没有 | 没有 | 多一个指标 provider 组 | 表中三版只有 main 有此组；rc2 已保留 |
+| `register_model` 的函数体 | 只登记模型 | 先处理 Kimi/HunyuanVL 兼容，再登记模型 | 同 v0.23 | v0.26 额外导入 processor 类 |
 
-上游加载与选择这两个文件本页按 `vllm@0fc695fc` 逐行核过；v0.26 与 main 各自配套的上游快照没有逐行比对。
+main 的第三组名为 `ms_service_metric.providers`，入口指向 `vllm_ascend.observability:get_metric_provider` [C25]，由指标框架发现；表中 v0.23/v0.26 没有这组入口，rc2 已保留它。
+
+v0.23 与固定 main 的模型入口只调 `.models.register_model()`；v0.26 则先注册 kimi-k3 的 config，再装 HunyuanVL processor 兼容补丁，最后登记模型 [C23]。来源 24 的补丁模块顶部导入 HunYuanVLProcessor（`from transformers import HunYuanVLProcessor`），所以模型入口执行时会把 transformers 的这个 processor 类导进本进程。
+
+配套上游的通用加载函数在 v0.26 rc 的 568afb3a 与 main 的 84030bbe 中仍按“发现、筛选、加载、执行”分步处理，守卫仍先于执行置位。平台选择在 v0.26 rc 中与旧基线采用同一套外部优先规则；main 已有显式 CPU target 直通与探测异常的 debug 日志，rc2 延续这一点（来源 33、34、40–43）。这些比较仅针对本页的加载与选择流程。
 
 ### 源码位置
 
+新增 IO／统计证据：来源 46–47 是官方 IO 与插件母文；48–54、55–62、63–70、71–78 依次对应四版的选择器、接口、在线/离线 wrapper 与消费者。79–90 对照四版字段默认、CLI 与 ModelConfig 传入；91–94 给出 HTTP 协议、路由和两个官方示例。95–102 是四版统计入口类型校验与 AsyncLLM 消费；103–106 是固定 TerraTorch 的安装声明、类路径、切片和拼回，107–109 是固定 BART 的说明、安装声明与注册函数。第三方代码说明具体例子怎样接入，不作为 Ascend 或 GLM 运行验证。
+
+以下是固定提交的入口位置。官方文档首页用于继续导航，具体版本条件以对应提交与模型教程为准。
+
 | 结论 | 来源 |
 |---|---|
-| [C1] 五个入口的声明 | `vllm-ascend@db701c1f:setup.py#L543-L551` |
-| [C2] 组名常量、按组取清单、通用组执行与去重 | `vllm@0fc695fc:vllm/plugins/__init__.py#L12-L25`、`#L28-L66`、`#L69-L82` |
-| [C3] 平台候选探测、外部优先、冲突报错 | `vllm@0fc695fc:vllm/platforms/__init__.py#L212-L252` |
-| [C4] 当前平台的懒加载与缓存 | `vllm@0fc695fc:vllm/platforms/__init__.py#L262-L281` |
-| [C5] 昇腾五个入口函数、补丁幂等、模型登记 | `vllm-ascend@db701c1f:vllm_ascend/__init__.py#L18-L35`、`#L38-L41`、`#L44-L75`；`vllm-ascend@db701c1f:vllm_ascend/models/__init__.py#L4-L25` |
-| [C6] 前端调用点，以及不计入 19 次的另外两处：命令行参数、模型信息探测子进程 | `vllm@0fc695fc:vllm/engine/arg_utils.py#L744-L747`、`#L2578-L2585`；`vllm@0fc695fc:vllm/model_executor/models/registry.py#L1406-L1411` |
-| [C7] EngineCore 调用点 | `vllm@0fc695fc:vllm/v1/engine/core.py#L106-L109` |
-| [C8] worker 调用点 | `vllm@0fc695fc:vllm/v1/worker/worker_base.py#L245-L247` |
-| [C9] 导入平台类会连带拉起运行库 | `vllm-ascend@db701c1f:vllm_ascend/platform.py#L39-L39` → `vllm-ascend@db701c1f:vllm_ascend/utils.py#L33-L34` |
-| [C10] 运行库只允许初始化一次、平台类定义 | `vllm-ascend@db701c1f:vllm_ascend/platform.py#L278-L279`、`#L128-L146` |
-| [C11] v0.23 的入口声明与模型入口函数体 | `vllm-ascend@2c59ff10:setup.py#L543-L551`；`vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L72-L75` |
-| [C12] main 的第三组入口与模型入口 | `vllm-ascend@baa023ad:setup.py#L506-L517`；`vllm-ascend@baa023ad:vllm_ascend/__init__.py#L106-L109` |
-| [C13] v0.26 的入口声明、模型入口函数体与它导入的 processor 兼容补丁 | `vllm-ascend@2ed6cbba:setup.py#L543-L551`；`vllm-ascend@2ed6cbba:vllm_ascend/__init__.py#L72-L85`；`vllm-ascend@2ed6cbba:vllm_ascend/patch/hunyuan_vl_processor_compat.py#L8-L8` |
-| [S1] 官方文档首页 | <https://docs.vllm.ai/projects/ascend/en/latest/index.html>（未联网验证） |
+| 来源 1 五个入口的声明 | `vllm-ascend@db701c1f:setup.py#L543-L551` |
+| 来源 11 按组取清单；组名常量见来源 10，通用组执行与去重见来源 12 | `vllm@0fc695fc:vllm/plugins/__init__.py#L28-L66`；另见 `#L12-L25`、`#L69-L82` |
+| 来源 13 平台候选探测、外部优先、冲突报错 | `vllm@0fc695fc:vllm/platforms/__init__.py#L212-L252` |
+| 来源 14 当前平台的懒加载与缓存 | `vllm@0fc695fc:vllm/platforms/__init__.py#L262-L281` |
+| 来源 4 四个通用入口函数；补丁幂等、平台入口、模型登记分别见来源 2、3、5 | `vllm-ascend@db701c1f:vllm_ascend/__init__.py#L44-L75`；另见 `#L18-L35`、`#L38-L41` 及 `vllm_ascend/models/__init__.py#L4-L25` |
+| 来源 15 前端调用点；不计入 19 次的命令行参数、模型信息探测子进程分别见来源 18、19 | `vllm@0fc695fc:vllm/engine/arg_utils.py#L744-L747`、`#L2578-L2585`；`vllm@0fc695fc:vllm/model_executor/models/registry.py#L1406-L1411` |
+| 来源 16 EngineCore 调用点 | `vllm@0fc695fc:vllm/v1/engine/core.py#L106-L109` |
+| 来源 17 worker 调用点 | `vllm@0fc695fc:vllm/v1/worker/worker_base.py#L245-L247` |
+| 来源 9 导入平台类会连带拉起运行库 | `vllm-ascend@db701c1f:vllm_ascend/platform.py#L39-L39` → `vllm-ascend@db701c1f:vllm_ascend/utils.py#L33-L34` |
+| 来源 8 内存查询接口的提前初始化警告与未实现分支；平台类定义见来源 7 | `vllm-ascend@db701c1f:vllm_ascend/platform.py#L274-L281`、`#L128-L146` |
+| 来源 20 v0.23 的入口声明；模型入口函数体见来源 21 | `vllm-ascend@2c59ff10:setup.py#L543-L551`；`vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L72-L75` |
+| 来源 25 main 的第三组入口；模型入口见来源 26 | `vllm-ascend@baa023ad:setup.py#L506-L517`；`vllm-ascend@baa023ad:vllm_ascend/__init__.py#L106-L109` |
+| 来源 22 v0.26 的入口声明；模型入口函数体、它导入的 processor 兼容补丁分别见来源 23、24 | `vllm-ascend@2ed6cbba:setup.py#L543-L551`；`vllm-ascend@2ed6cbba:vllm_ascend/__init__.py#L72-L85`；`vllm-ascend@2ed6cbba:vllm_ascend/patch/hunyuan_vl_processor_compat.py#L8-L8` |
+| [S27] 官方文档首页 | <https://docs.vllm.ai/projects/ascend/en/latest/index.html>（浮动导航入口） |
 
-**待核。** 一是镜像里实际安装的上游产物：本页上游证据读的是 `vllm@0fc695fc` 的 Git 对象，镜像内安装后的文件没有单独核对。二是启动日志：`Platform plugin ascend is activated`、`Available plugins for group ...` 这两类行没有采集过实际输出，本页的次数与顺序都来自静态读码。三是 v0.26 与 main 配套上游快照里这两个文件的逐行差异。
+**运行证据边界。** 本页依据固定 Git 对象；尚无镜像内安装文件的比对或实际启动日志，不能用这里的静态流程与计数证明现场已完成加载。判断现场状态仍要看所用进程的版本、环境、平台激活和入口执行结果。
+
+- 来源 29：vllm@0fc695fc，vllm/plugins/__init__.py，L69–L82。
+- 来源 30：vllm@0fc695fc，vllm/platforms/__init__.py，L229–L238。
+- 来源 35、36：CLI 对 spawn 的条件性默认与调用入口；来源 37、38：懒模型信息探测的缓存判断、子进程启动及子进程加载插件；来源 39：字符串登记只构造懒注册记录，不实例化模型或加载权重。来源 40–43 是 v0.26 rc/main 对应的加载、选择与缓存实现，来源 44 列出旧基线的五个内置平台候选，来源 45 是模型配置中的架构名。

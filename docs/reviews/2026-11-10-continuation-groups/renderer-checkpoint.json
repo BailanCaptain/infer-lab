@@ -1,0 +1,29 @@
+{
+  "status": "accepted",
+  "scope": "Renderer teaching delta API sources288–321 and one new diagram; not full existing API page reacceptance",
+  "new_source_occurrences": 34,
+  "old_recount": 0,
+  "current_hashes": {
+    "wiki/concepts/api-server-entry.md": "5ada092efa8f19943b178656f85df16954fb39454e9b2717333b391d069e205a",
+    "wiki/diagrams/api-renderer-services.yaml": "2ac5ab269f10893a8d541a5b28a69680a8eff09db788243aba220938932ca2fe",
+    "wiki/diagrams/api-renderer-services.svg": "f5743a7b198ab669f14f35951b331eae13014c3598c466e7a660400b43a8447e"
+  },
+  "snapshot": ".tmp\\continuation-groups-2026-11-10\\renderer-reviewed.zip",
+  "snapshot_sha256": "ea01cfbeea1884e560770e79c6c51f461f0c7930f099da12224a38b2ae159171",
+  "browser_report": ".tmp\\continuation-groups-2026-11-10\\review-renderer-browser\\report.json",
+  "global_new_full_credit": 0,
+  "p1_open": 0,
+  "p2_open": 0,
+  "hardware_validation": false,
+  "judgments": "renderer-independent.json",
+  "review": "renderer-review.md",
+  "preservation": "renderer-preservation.md",
+  "engineering_verification": "loading223-verification.json",
+  "engineering_revision_hashes": {
+    "wiki/concepts/api-server-entry.md": "2dba8f72b1d869c00f171ba5272dd3ea2dd0a3ad06f02b7a6066469c93072a73",
+    "wiki/diagrams/api-renderer-services.yaml": "2ac5ab269f10893a8d541a5b28a69680a8eff09db788243aba220938932ca2fe",
+    "wiki/diagrams/api-renderer-services.svg": "f5743a7b198ab669f14f35951b331eae13014c3598c466e7a660400b43a8447e"
+  },
+  "engineering_checks": "content/lint/audit/diagrams/build all exit 0; stable before/after",
+  "revision_bridge": "API only three reviewed links plus preceding-scope qualification; see api-loading-links-review.md; original content-review snapshot/hash retained"
+}

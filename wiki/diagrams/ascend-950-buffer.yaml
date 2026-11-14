@@ -1,0 +1,54 @@
+layout: figure
+id: ascend-950-buffer
+caption: 同一块 UB 的使用周期示意。三个画面表示不同时刻，不是三块不同缓冲。搬运段与 Vector 分别取得、使用、释放同一缓冲标识；后一轮覆盖必须遵守这个次序，数值正确还要求地址和计算本身正确。
+size: [860, 335]
+frames:
+  - { at: [20, 55], size: [240, 205], label: 1 · 搬运段取得使用权 }
+  - { at: [310, 55], size: [240, 205], label: 2 · Vector 取得使用权 }
+  - { at: [600, 55], size: [240, 205], label: 3 · 下一轮按约定复用 }
+grids:
+  - at: [80, 115]
+    rows: 2
+    cols: 2
+    cell: [50, 36]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '10' }
+      - { at: [0, 1], text: '11' }
+      - { at: [1, 0], text: '20' }
+      - { at: [1, 1], text: '21' }
+    label: 把当前块搬入 UB
+  - at: [370, 115]
+    rows: 2
+    cols: 2
+    cell: [50, 36]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '10' }
+      - { at: [0, 1], text: '11' }
+      - { at: [1, 0], text: '20' }
+      - { at: [1, 1], text: '21' }
+    label: 读取当前块进行计算
+  - at: [660, 115]
+    rows: 2
+    cols: 2
+    cell: [50, 36]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: '30' }
+      - { at: [0, 1], text: '31' }
+      - { at: [1, 0], text: '40' }
+      - { at: [1, 1], text: '41' }
+    label: 搬入下一块
+links:
+  - { from: [264, 151], to: [306, 151], tone: control }
+  - { from: [554, 151], to: [596, 151], tone: control }
+texts:
+  - { at: [20, 28], text: Buffer ID：把同一缓冲的占用与释放串成正确次序, strong: true }
+  - { at: [45, 236], text: 搬运完成后释放, size: 14 }
+  - { at: [335, 236], text: 使用完成后释放, size: 14 }
+  - { at: [625, 236], text: 不能提前覆盖旧块, size: 14 }
+  - { at: [20, 304], text: 省的是同步组织的复杂度；依赖等待仍在，能否重叠另看缓冲与实现。, size: 15 }

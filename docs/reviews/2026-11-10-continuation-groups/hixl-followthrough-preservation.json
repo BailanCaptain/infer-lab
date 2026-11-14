@@ -1,0 +1,10 @@
+{
+  "page": "cann-hccl",
+  "before": "6331314e9735b52fad7f154fc8d37e6725f5a6e5b19328123262ff3f3607a413",
+  "after": "0ff8e725e377d2d8bce6764044d3dfc5f5d54d9dd820748f6887c9af5fe0c425",
+  "old_sources": 71,
+  "added_sources": 3,
+  "source_prefix_preserved": true,
+  "diagram_fences_preserved": true,
+  "old_installation_acceptance": "installation-modelslim-independent-summary.json"
+}

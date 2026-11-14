@@ -73,6 +73,26 @@
 | Worker | worker、工作进程 | 负责设备初始化、模型执行与相关资源管理的执行角色。 | npu-worker-lifecycle | 角色不总是独立进程，须结合执行器部署说明。 |
 | rank | 全局 rank、组内 rank、DP rank、TP rank | 参与分布式执行的成员编号；编号的范围由全局或具体通信组决定。 | collective-communication | DP 编号和全局 worker 编号分开。 |
 
+### 数值表示、量化方法与布局
+
+| 统一叫法 | 别的叫法（收进 aliases） | 简明定义 | 对应页面 | 备注 |
+| --- | --- | --- | --- | --- |
+| ND | N-Dimension、ACL_FORMAT_ND | 通用 N 维张量格式，二维连续矩阵通常逐行存储。 | tensor-layout | N 指维数，不特指 batch；ND 不表示未量化。 |
+| NZ | FRACTAL_NZ、Nz、ACL_FORMAT_FRACTAL_NZ | 块间按列、块内按行遍历的分块格式，名称来自大 N、小 z 的排列形状。 | tensor-layout | 与数值精度分开；不展开成两个英文单词。 |
+| scale / zero-point | 缩放系数、零点 | 共同定义整数编码怎样映射回近似数值；对称方案可省去零点。 | quantization | 记录系数对应的维度、方向和类型。 |
+| BF16 | bfloat16、Brain Floating Point | 16 位浮点格式，符号、指数、尾数小数位分别为 1、8、7 位。 | low-precision-formats | 指数范围和局部分辨率分别比较。 |
+| NF4 | NormalFloat | QLoRA 中按正态分布设计的四位数值编码。 | low-precision-formats | 不等于 E2M1，也不是任意硬件原生 FP4。 |
+| PTQ | Post-Training Quantization、训练后量化 | 从已训练模型出发，通过统计、搜索或层级重构得到量化参数。 | quantization-methods | 不要求完整重跑训练；仍有量化计算成本，是否校准取决于方法。 |
+| QAT | Quantization-Aware Training、量化感知训练 | 在训练中模拟目标量化误差，让参数适应部署时的低精度计算。 | quantization-methods | 伪量化不等于所有训练张量都低比特存储。 |
+| 校准 | calibration、校准集 | 用代表性输入估计范围、分布或误差，帮助选择量化参数。 | quantization-methods | 不限于静态激活量化；和最终评测样本分开。 |
+| AWQ | Activation-aware Weight Quantization | 利用激活信息选择权重通道缩放，以改善低比特权重量化。 | quantization-methods | 原论文不是把重要权重永久留在 FP16。 |
+| GPTQ | GPTQ 权重量化 | 用层输出重建误差与近似二阶信息补偿逐步量化造成的权重误差。 | quantization-methods | 算法、文件格式与运行内核分别核对。 |
+| SmoothQuant | 平滑量化 | 用等价通道缩放将激活的部分量化困难转移给权重。 | quantization-methods | 量化前数学等价，后续舍入仍有误差。 |
+| per-channel / per-token / per-group | 逐通道、逐 token、分组量化 | 描述哪些元素共用一份量化参数。 | quantization-methods | 必须说明轴与组大小。 |
+| QLoRA | 量化低秩适配 | 冻结量化基础权重，训练低秩适配器的微调方法。 | quantization-methods | 与整个模型的 QAT 分开。 |
+| SQNR | 信号量化噪声比 | 以分贝表示信号能量与量化误差能量之比。 | quantization-evaluation | 层级误差指标不能替代任务质量。 |
+| KIVI | KV cache 低比特量化 | 用不同量化方向处理 K、V 的二位缓存研究方案。 | kv-cache-quantization | 不据论文推定本站固定镜像已支持。 |
+
 ### 三、昇腾硬件
 
 | 统一叫法 | 别的叫法（收进 aliases） | 简明定义 | 对应页面 | 备注 |
@@ -146,7 +166,6 @@ RFork 是同事仓库的权重加载工作版，术语自成一套；下面只�
 | fallback | 回退 | 清理本次尝试后改走默认模型加载器。 | rfork-startup | 可能重新分配完整模型；旧注册未安全解除时必须停止。 |
 | processed layout | 后处理布局 | 经过加载后处理的权重布局。 | rfork-layout | 量化打包、转置、派生张量都可能改变模型中的对象。 |
 | packed weight | 打包权重 | 为算子打包后的权重。 | rfork-layout | 常藏在 `impl` 对象里，只扫 `state_dict` 可能漏掉。 |
-| NZ | 昇腾分块格式 | 昇腾的一种分块存储格式。 | rfork-layout | 不能把格式转换简单理解为给 Tensor 改 shape。 |
 | shard | 分片 | 一个完整模型被并行策略切开后本 Worker 持有的那部分。 | rfork-identity | 同一模型的不同分片不能互相替代。 |
 | target | main、目标模型 | 正式提供验证与输出的那个模型。 | rfork-startup | 这里的 main 指模型角色，和 Git main 分支没有关系。 |
 | draft | 草稿模型 | 投机解码里提出候选 token 的模型。 | rfork-startup | 可能与 target 共享部分甚至全部存储；拥有独立 RFork session。 |

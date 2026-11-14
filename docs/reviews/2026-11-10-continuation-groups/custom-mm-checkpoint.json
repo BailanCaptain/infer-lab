@@ -1,0 +1,25 @@
+{
+  "recorded_at": "2026-11-10T12:15:05.196170+00:00",
+  "status": "closed_for_this_revision",
+  "new_supplement": 93,
+  "sampling_new": 31,
+  "multimodal_new": 62,
+  "old_recounted": 0,
+  "remaining_active_old": 0,
+  "files": {
+    "wiki/concepts/sampling.md": "b11e6c01f5dd0cd31f1c4e0b19968b86cc520d2c39ce4cf3a05760626d448d91",
+    "wiki/diagrams/sampling-intuition.yaml": "5e4f41931af90989b34d373b9a9d1b14a66bab55bc676ee0a48a312ca4884789",
+    "wiki/diagrams/sampling-intuition.svg": "1d9274c5e58941126b90426bff9ea7b7514f11a66d419149ef5ca2b25b0965d4",
+    "wiki/diagrams/sampling-flow.yaml": "8d2aeab3058c382beef3cfe6f936561535f0d9c96dc782fdeb5036ee17bc825f",
+    "wiki/diagrams/sampling-flow.svg": "55e1490d0ff909176ccb2bcc14ad9677bae0334d0629a1d275cccd999e1afb74",
+    "wiki/concepts/api-server-entry.md": "e9a434b01ba102aa50ab60183996a74d48192ac28ff382919006a52422d55f85",
+    "wiki/diagrams/api-multimodal-input.yaml": "3ead6c2599aaeeb42e8ba3ec3baaee48cd2da77abf4f7db85b401a8be076a885",
+    "wiki/diagrams/api-multimodal-input.svg": "b9b0cf237c699d1b173813959b195dca72da03c4ed51d9afb92d3b8fa6812a6f"
+  },
+  "verification": "custom-mm-verification.json",
+  "independent": [
+    "sampling-custom-acceptance.json",
+    "request-mm-checkpoint.json"
+  ],
+  "open_scope": "Official technical targets, further coverage gaps, external unavailable images and learner-path acceptance continue."
+}

@@ -1,0 +1,52 @@
+{
+  "zip": "C:/Users/-/Desktop/infra-view-new/.tmp/continuation-groups-2026-11-10/moe-contract-version-followup-evidence.zip",
+  "members": 132,
+  "sha256": "39680cff9a439482a1b77c1b5fd12604758d90e84ac0370f073c43bcc974f372",
+  "bytes": 4958254,
+  "manifest_members_verified": 131,
+  "pages": [
+    {
+      "page": "ops-and-kernels",
+      "before_sha256": "e03b68b1b72922b1c9d70fafc81cf8c2f266362dca74f0bbb64d2e95084059d6",
+      "after_sha256": "0afb2bf85ff3a9fe72887fd6bbffc9dc56b13e1f5069d94beeafc88a6da5a28d",
+      "old_sources": 86,
+      "new_sources": 10,
+      "source_prefix_preserved": true,
+      "calc_count": 0,
+      "calc_preserved": true,
+      "wiki-diagram_count": 3,
+      "wiki-diagram_preserved": true,
+      "wiki-component_count": 0,
+      "wiki-component_preserved": true
+    },
+    {
+      "page": "moe",
+      "before_sha256": "3cc5c3e547b6fe8a40f605628e9f0917f1cb0bdadbde91bf88f45445512855be",
+      "after_sha256": "e17c9044409975fab5d9f3c4e520a1d09b4d72cc414fd2de02d735d6573fa9f8",
+      "old_sources": 59,
+      "new_sources": 62,
+      "source_prefix_preserved": true,
+      "calc_count": 3,
+      "calc_preserved": true,
+      "wiki-diagram_count": 6,
+      "wiki-diagram_preserved": true,
+      "wiki-component_count": 0,
+      "wiki-component_preserved": true
+    },
+    {
+      "page": "expert-parallel",
+      "before_sha256": "cb7cd614f25916a39ba842e4b21e67d01f27a5a6e3073e68938dad96a2346810",
+      "after_sha256": "4a9b1bfd1bedfbb86769a0ad90c518756c73f4cc8d42bcdb4c03555436874e72",
+      "old_sources": 83,
+      "new_sources": 7,
+      "source_prefix_preserved": true,
+      "calc_count": 8,
+      "calc_preserved": true,
+      "wiki-diagram_count": 8,
+      "wiki-diagram_preserved": true,
+      "wiki-component_count": 0,
+      "wiki-component_preserved": true
+    }
+  ],
+  "new_official_fulltext_credit": 0
+}

@@ -2,84 +2,263 @@
 id: mooncake-connector
 title: Mooncake 连接器：先对好块号，再按层搬历史状态
 type: feature
-summary: vLLM 的 KV connector 在昇腾上的 Mooncake 实现：调度器那一半记账（远端能补几个位置、押哪些块），worker 那一半把块号换成显存地址，用 Mooncake 传输引擎在 P、D 之间直接读写；V1 整批拉，Layerwise 逐层推。官方双机没有开。
-aliases: [Mooncake 连接器, Mooncake Connector, KV Connector, KV 连接器, MooncakeConnector, MooncakeLayerwiseConnector, MooncakeHybridConnector, MooncakeConnectorV2, MooncakePullConnector, KVConnectorBase_V1, KVConnectorRole, kv_transfer_config, kv_connector_extra_config, Mooncake TransferEngine, 逐层推 KV]
-chapters: ["18"]
+summary: >-
+  vLLM 的 KV connector 在昇腾上的 Mooncake 实现：调度器那一半记账（远端能补几个位置、押哪些块），worker
+  那一半把块号换成显存地址，用 Mooncake 传输引擎在 P、D 之间直接读写；V1 整批拉，Layerwise 逐层推。官方双机没有开。
+aliases:
+  - Mooncake 连接器
+  - Mooncake Connector
+  - KV Connector
+  - KV 连接器
+  - MooncakeConnector
+  - MooncakeLayerwiseConnector
+  - MooncakeHybridConnector
+  - MooncakeConnectorV2
+  - MooncakePullConnector
+  - MooncakeD2RHConnectorV1
+  - D2RH
+  - KVConnectorBase_V1
+  - KVConnectorRole
+  - kv_transfer_config
+  - kv_connector_extra_config
+  - Mooncake TransferEngine
+  - 逐层推 KV
+chapters:
+  - '18'
 order: 20
 sources:
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L124-L130
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L251-L375
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L453-L562
-  - vllm@0fc695fc:vllm/config/kv_transfer.py#L11-L115
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L119-L130
-  - vllm@0fc695fc:vllm/distributed/kv_transfer/kv_transfer_state.py#L65-L87
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1888-L1910
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2221-L2250
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L576-L587
-  - vllm@0fc695fc:vllm/v1/worker/kv_connector_model_runner_mixin.py#L85-L105
-  - vllm@0fc695fc:vllm/model_executor/layers/attention/kv_transfer_utils.py#L45-L58
-  - vllm@0fc695fc:vllm/envs.py#L1684-L1686
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L55
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1506-L1590
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1784-L1879
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1880-L1926
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2332-L2471
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L96-L146
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L774-L962
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2052-L2084
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L166-L242
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L3374-L3470
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1111-L1150
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/mooncake_transfer_engine.py#L11-L43
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/utils.py#L55-L61
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/utils.py#L428-L445
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L928-L990
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1100-L1124
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L476-L528
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1690-L1840
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1340-L1432
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L805-L815
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1160-L1170
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1522-L1547
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L210-L237
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L125-L150
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L180-L250
-  - vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L428-L460
-  - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L55
-  - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L85-L93
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L45-L60
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L228-L261
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L60-L70
-  - vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L15-L55
-  - vllm-ascend@db701c1f:docs/source/tutorials/features/pd_disaggregation_mooncake_single_node.md#L172-L186
-  - vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L36-L62
-  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L185-L200
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1111-L1194
-  - vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1200-L1206
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1334-L1341
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1715-L1723
-  - vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L577-L587
-  - vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L2313-L2324
-  - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1194-L1196
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1325-L1328
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1662-L1666
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L124-L130'
+  - 'vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L251-L375'
+  - 'vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L453-L562'
+  - 'vllm@0fc695fc:vllm/config/kv_transfer.py#L11-L115'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L119-L130'
+  - 'vllm@0fc695fc:vllm/distributed/kv_transfer/kv_transfer_state.py#L65-L87'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1888-L1910'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2221-L2250'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L576-L587'
+  - 'vllm@0fc695fc:vllm/v1/worker/kv_connector_model_runner_mixin.py#L85-L105'
+  - >-
+    vllm@0fc695fc:vllm/model_executor/layers/attention/kv_transfer_utils.py#L45-L58
+  - 'vllm@0fc695fc:vllm/envs.py#L1684-L1686'
+  - 'vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L55'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1506-L1590
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1784-L1879
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1880-L1926
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2332-L2471
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L96-L146
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L774-L962
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2052-L2084
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L166-L242
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L3374-L3470
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1111-L1150
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/mooncake_transfer_engine.py#L11-L43
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/utils.py#L55-L61
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/utils.py#L428-L445
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L928-L990
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1100-L1124
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L476-L528
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1690-L1840
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1340-L1432
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L802-L815
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1160-L1170
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1522-L1547
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L210-L237'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L125-L150
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L180-L250
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L428-L460'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L55'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L85-L93'
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L45-L60'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L228-L261
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L60-L70
+  - >-
+    vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L15-L55
+  - >-
+    vllm-ascend@db701c1f:docs/source/tutorials/features/pd_disaggregation_mooncake_single_node.md#L172-L186
+  - >-
+    vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L36-L62
+  - >-
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L185-L200
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1111-L1194
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1200-L1206
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1334-L1341
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1715-L1724
+  - 'vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L577-L587'
+  - 'vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L2313-L2324'
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1194-L1196
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1325-L1328
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1662-L1666
+  - >-
+    raw:sha256-8ce4d437165176e09d85b4648b3d2c958a56064f74dc11da7304eeff8c0bcb48.md#L1-L2538
+  - >-
+    vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L247-L260
+  - >-
+    vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L17-L20
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L90-L114
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L42-L90
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L115-L154
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L233-L265
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L65-L95
+  - 'vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/utils.py#L14-L14'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L45-L89'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L131-L135'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2007-L2054'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2710-L2767'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1327-L1345'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1662-L1683'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1723-L1732'
+  - 'vllm-ascend@7d825229:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L1-L17'
+  - 'vllm-ascend@7d825229:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L166-L202'
+  - 'vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1190-L1194'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2111-L2118'
+  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py#L87-L122'
+  - "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L17-L87"
+  - "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L17-L93"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L17-L129"
+  - "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L1-L135"
+  - "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L277-L329"
+  - "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L516-L582"
+  - "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L96-L150"
+  - "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3842-L3883"
+  - "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3916-L3965"
+  - "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L166-L188"
+  - "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1298-L1312"
+  - "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2009-L2041"
+  - "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L136-L228"
+  - "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1339-L1352"
+  - "vllm@0fc695fc:vllm/model_executor/models/utils.py#L753-L784"
+  - "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L106-L118"
+  - "vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768"
+  - "vllm-ascend@db701c1f:vllm_ascend/utils.py#L819-L823"
+  - "vllm@0fc695fc:vllm/model_executor/custom_op.py#L47-L66"
+  - "vllm@0fc695fc:vllm/model_executor/custom_op.py#L332-L350"
+  - "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2075-L2085"
+  - "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2189-L2241"
+  - "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291"
+  - "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L293-L475"
+  - "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L477-L659"
+  - "vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L43-L61"
+  - "vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L228-L231"
+  - "vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L428-L476"
+  - "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L231-L329"
+  - "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L664-L698"
+  - "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2244-L2245"
+  - "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2274-L2298"
+  - "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/utils.py#L14-L15"
+  - "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L251-L273"
+  - "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L447-L527"
+  - "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L777-L787"
+  - "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1920-L1950"
+  - "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L367-L413"
+  - "vllm@0fc695fc:vllm/v1/worker/kv_connector_model_runner_mixin.py#L78-L112"
+  - "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2118-L2128"
+  - "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2259-L2291"
+  - "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2471-L2496"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L206-L320"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L113-L168"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L233-L284"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L286-L370"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L388-L419"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L594-L674"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py#L217-L346"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py#L453-L534"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py#L635-L798"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py#L1224-L1274"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py#L1362-L1442"
+  - "vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L3006-L3033"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py#L123-L140"
+  - "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py#L168-L205"
+  - "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py#L155-L214"
+  - "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py#L589-L606"
+  - "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L174-L186"
+  - "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L2550-L2574"
+  - "vllm@ced6857a:vllm/v1/worker/kv_connector_model_runner_mixin.py#L75-L110"
+  - "vllm@ced6857a:vllm/v1/worker/gpu/kv_connector.py#L100-L123"
+  - "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/utils.py#L54-L90"
+  - "vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/utils.py#L159-L178"
+  - "vllm@ced6857a:vllm/config/kv_transfer.py#L103-L106"
+  - "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1902-L1916"
+  - "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L3166-L3179"
+  - "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2929-L2960"
+  - "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2189-L2215"
+  - "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L672-L707"
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+  - releases/v0.30.0rc2
+evidence: C
 relations:
-  - {to: pd-disaggregation, kind: builds-on, note: 先弄清 P、D 为什么要交接、交接停在提示词的哪个位置；本页只讲交接由谁、怎样搬}
-  - {to: kv-cache, kind: builds-on, note: 搬的是各层留下的历史状态；GLM 有哪几类、每类多大在那一页}
-  - {to: vllm-kv-block-allocation, kind: builds-on, note: 目的块照常从块池借；押着的块要等完成通知才还}
-  - {to: kv-pool, kind: alternative-to, note: 同一个连接器插口，池按内容指纹存取、不和某个对端配对}
-  - {to: npu-model-runner, kind: builds-on, note: 前向开始前把请求交给后台线程，逐层接口挂在注意力前后}
-  - {to: large-scale-ep, kind: builds-on, note: 多个 DP rank 共用一个握手端口基址时，每个 rank 的端口怎样排}
+  - to: pd-disaggregation
+    kind: builds-on
+    note: 先弄清 P、D 为什么要交接、交接停在提示词的哪个位置；本页只讲交接由谁、怎样搬
+  - to: kv-cache
+    kind: builds-on
+    note: 搬的是各层留下的历史状态；GLM 有哪几类、每类多大在那一页
+  - to: vllm-kv-block-allocation
+    kind: builds-on
+    note: 目的块照常从块池借；押着的块要等完成通知才还
+  - to: kv-pool
+    kind: alternative-to
+    note: 同一个连接器插口，池按内容指纹存取、不和某个对端配对
+  - to: npu-model-runner
+    kind: builds-on
+    note: 前向开始前把请求交给后台线程，逐层接口挂在注意力前后
+  - to: large-scale-ep
+    kind: builds-on
+    note: 多个 DP rank 共用一个握手端口基址时，每个 rank 的端口怎样排
 contradicts: []
-updated: "2026-10-02"
-origin: direct
+updated: '2026-11-10'
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-59cd517fa0e9762eac01116769938c0da8cc0eb60e87fc7698f37102c916de46.md
+  - >-
+    raw/sha256-8ce4d437165176e09d85b4648b3d2c958a56064f74dc11da7304eeff8c0bcb48.md
 ---
 
 ## Mooncake 连接器是什么？
 
 **Mooncake 连接器是 vLLM 的 KV connector 在昇腾上的一种实现。KV connector 是 vLLM 留给「把 KV cache 搬出本实例，或从别处搬进来」的插口；Mooncake 连接器用它在 P、D 两套实例之间交接历史状态：两端先对好「P 的哪一块对应 D 的哪一块」，再把每一层的内容按块从 P 的显存搬进 D 的显存。** 真正搬字节的是 Mooncake 的传输引擎（TransferEngine）：两边都把存 KV cache 的那段显存登记给它以后，一端只要给出「对方的显存地址、本地的显存地址、长度」，它就把这段字节从对面读过来，或写过去。引擎内部怎样搬按 Mooncake 官方文档为准。
+
+这让 D 接着使用 P 的计算结果，代价是传输与握手时间、交接期间两边同时占用缓存，以及失败时的清理和重试。前向前后的通知把这些等待接入调度循环，后文按主线站点展开。
 
 先认四个前置词，细节各有专页：
 
@@ -100,8 +279,10 @@ file: mooncake-connector
 
 对表和按层搬，昇腾上有两种做法：
 
-- **整批拉（V1，默认）。** P 先把提示词的全部层都算完，把源块号和自己的握手地址交出去；D 分好目的块后，一次把所有层读回来。
+- **整批拉（V1，本页基线）。** P 先把提示词的全部层都算完，把源块号和自己的握手地址交出去；D 分好目的块后，一次把所有层读回来。连接器名必须显式配置，V1 不是启动默认值。
 - **逐层推（Layerwise）。** 顺序倒过来：D 先分好目的块，把块号和自己的握手地址交给 P；P 每算完一层，就把这一层写进 D。
+
+在本页钉住的 Layerwise 实现中，普通缓存按层登记时，同一层只能映射到一个注意力模块——也就是执行注意力计算的软件组件；重复映射会触发断言。用于额外 token 预测的缓存走另一个登记分支，具体名称匹配规则见页末源码位置。模型具有分层结构，并不足以确定它兼容这套逐层推送实现。
 
 ## 为什么需要它：两套块池之间没有共同的块号
 
@@ -110,6 +291,7 @@ file: mooncake-connector
 这三件事都不属于调度器或模型本来的工作：
 
 - **管账。** D 要在数据到来之前就分好目的块，并让这条请求先挂着、不算；P 上的源块在对面读完之前不能还回块池，否则下一条请求会把它改写，D 读到的就是别人的内容。
+
 - **换地址。** 块号 7 只是个编号。要读写字节，得知道 P 上每一层的这份缓存从哪个地址开始、一块占多少字节、相邻两块隔多远，再把块号换算成地址。
 - **发通知。** 搬完了、或者搬失败了，两边的调度器都要知道：D 才能把请求放回队列，P 才能放块。
 
@@ -117,7 +299,7 @@ file: mooncake-connector
 
 - **两边都押块。** 交接期间，同一份状态在 P、D 上各占一份块。
 - **启动时要登记显存、起后台线程。** 每张卡把存 KV cache 的显存区间登记给传输引擎，再起一个收或发的后台线程；答地址簿的那一边还要开一个握手端口。
-- **多出失败方式。** 端口配错、对端挂掉、传输超时，都会让块一直押着，直到超时被强制放掉。
+- **多出失败方式。** 端口配错、对端挂掉、传输超时都可能阻断交接。V1 读取失败后仍会通知 P 清理；若完成或失败通知无法送达，P 的源块才会继续押到超时回收。
 
 同一个插口也用在 [KV Pool](kv-pool.md)（多台实例共用的外部 KV 存储）上，Mooncake 也给那条路提供存储后端；两条路的区别放在后面「KV 池里也用 Mooncake」一节。
 
@@ -161,13 +343,13 @@ D 的 3 号块地址 = D 起始地址 + 3 × 块间距 = 1,000 + 3 × 64 = 1,192
 > 两边块号都连着时（例如 P 的 7、8 对 D 的 3、4），两块并成一段，段数就少一半；并段还要块间距正好等于块字节数、且这份缓存不用从多张 P 卡拼
 ```
 
-**一次交接不是一次网络调用。** 这 6 段「源地址、目的地址、长度」凑成一批，交给传输引擎一次提交：V1 由 D 的接收线程发起批量读，Layerwise 由 P 的发送线程每层发起一次批量写。真实模型里还要乘上每层的缓存份数（K、V 分开存就是 2 份）和缓存组数；两边 TP 不同、或开了上下文并行时，D 还要按 P 的卡分成几批，每张 P 卡一批。
+**一次交接不是一次网络调用。** 这 6 段「源地址、目的地址、长度」凑成一批，交给传输引擎一次提交：V1 由 D 的接收线程发起批量读，Layerwise 由 P 的发送线程逐层发起批量写。真实模型要按各缓存组分别列出其层、每层缓存份数和连续块段，再把段数相加；K、V 分开存时，每层通常就有两份。不能在已经数遍全部层后再一律乘缓存组数，否则会重复计算。两边 TP 不同，或开了上下文、流水线并行时，还要按实际负责这些状态的 P rank 拆分读取任务。
 
-每个进程能登记的显存区间有上限（256 段）。层多、每层几份缓存各自分配的模型，要把底层挨在一起的区间合并以后才登记得下；超过上限会在启动时报错，见页末。
+每个进程能登记的显存区间有上限（256 段）。普通 attention 路径合并底层存储区间，减少重复登记；带递推状态的路径则按配置中的原始分配登记，不能把每个逻辑缓存都算成独立区间。固定 GLM 的静态段数见后面的主线示例；超过上限会在启动时报错。
 
 ## 两边 TP 不一样大时，谁来拼 KV 头？
 
-**P 常用更大的 TP 把 prefill 算快，D 用更小的 TP；这时 D 的一张卡要的 KV 头分散在好几张 P 卡上。V1 让 D 去几张 P 卡各读一部分、读完在本地重排；Layerwise 让 P 在发出之前先在 P 卡之间交换、重排好，直接写出 D 要的那一份。** [TP](tensor-parallel.md) 把一层的注意力头平分给几张卡，每张卡只存自己那几个头的 K、V。
+**P、D 可以采用不同的 TP。若 D 的一张卡需要的 KV 头分散在几张 P 卡上，V1 让 D 各读一部分、读完在本地重排；Layerwise 让 P 在发出前先交换、重排，写出 D 要的那一份。** [TP](tensor-parallel.md) 可以按注意力头切分；当 TP 超过 KV 头总数时，KV 头还可能在多张卡上复制，因此要比较每卡实际持有的头，不能只比 TP 数字。
 
 ```calc
 title: D 的一张卡要从几张 P 卡读（示意：8 个 KV 头，P 用 TP4，D 用 TP2）
@@ -179,8 +361,8 @@ D 每卡的头数 = 8 ÷ 2 = 4 个
 
 D 的 0 号卡要头 0–3：头 0–1 在 P 的 0 号卡，头 2–3 在 P 的 1 号卡。V1 让它从两张 P 卡各读半块，放进本地这一块的前半和后半，读完再在本地重排成算子要的布局。其余几种情况：
 
-- **MLA。** 每个位置只存一条压缩过的潜向量，不按头切；TP 多大，每张卡都存完整一份，所以永远只读 1 张 P 卡（见 [MLA](mla.md)）。
-- **Layerwise。** P 的 TP 除以 D 的 TP 就是每张 D 卡要拼的份数；P 在写出每一层之前，先在 P 卡之间做一次交换再重排，代价是 P 上多一条专做重排的流和一份中转缓冲。
+- **MLA。** 本页的潜向量缓存在 TP 组内复制，不按注意力头切，因此不需要为了拼齐 TP 头而多读几张 P 卡（见 [MLA](mla.md)）。这里只说 TP 这一维；若 P 还按上下文位置或流水线阶段拆分，完整请求仍可能要从多个 P rank 读回对应部分，不能概括为“永远只读一张 P 卡”。
+- **Layerwise。** 在这里的按头切分路径中，要拼的份数按两端实际持有的 KV 头计算。若只有 8 个 KV 头，P 用 TP16、D 用 TP8，P 多出的设备持有重复头：两端每卡都是 1 个头，要拼的份数是 1，不能用 16÷8 得到 2。需要拼多份时，P 在写出本层前先交换重排，增加相应的流和中转缓冲；量化也可能需要这套缓冲路径，源码条件见后文。
 - **递推状态。** 线性注意力的递推状态按头切到各卡时也能这样拆，但要求 P 的 TP 不小于 D 的 TP，并且能被它整除；Hybrid 连接器遇到这类状态更严，要求两边 TP 相同。
 - **启动时的统一检查。** 只要配了 KV 传输、模型又不是 MLA，昇腾在启动时就检查 P 的 TP 是不是 D 的整数倍，不是就报错。
 
@@ -195,7 +377,9 @@ V1 的完成通知这样走：
 - **D 读完就报。** 接收线程读完（或者读失败）都给 P 发完成信号，免得 P 一直押着，同时把请求报成收完；失败的块怎么标、请求怎么结束，见 [PD 分离页](pd-disaggregation.md#抢占失败和超时怎么处理)。
 - **两道超时。** D 一直不报时 P 押块 480 秒后强制还块（见 [PD 分离页](pd-disaggregation.md#抢占失败和超时怎么处理)）；本页独有的是另一道单次传输的超时，默认约 33 秒，算法见页末。
 
-Layerwise 的 P 在请求结束时就还块（源码注释写的是逐层推不需要延迟释放）；设计文档的说法是全部层推完以后 P 才放掉请求并通知 D。这要求最后一层的写入赶在这些块被下一条请求改写之前完成。D 那边，接收线程收到 P 的「发完了」才把请求报成收完，只到了一两层时 D 不会开始 decode。
+旧 Layerwise 的 P 在请求结束时就还块。源码中的逐层发送先进入后台队列，发送线程等待本层计算事件后才执行网络写；最后一层的回调通知 D。前向结束虽然调用名为“等待保存”的接口，该实现却为空，完成查询也始终不返回 P 的发送完成名单。因此这条显式链路没有把“最后一次网络写结束”接成 P 延迟还块的条件；设计文档中“全部层推完再放请求”的意图不能代替这个缺失的衔接。这里是源码时序判断，尚未在设备上复现覆盖竞争。D 仍要收到最后一层的完成通知才会放行，不能只到了一两层就 decode。
+
+后续版本给 **Layerwise 与 AscendStore 的指定组合** 增加了按物理槽等待发送完成的保护，详见[逐层池的共享槽条件](kv-cache-layerwise-offload.md#同一块-p-端缓冲还要给-d-读什么时候才能换层)。它保护下一层复用相同内存，不等于单独 Layerwise 改成了 V1 那样的请求级押块协议。
 
 次序是这套机制的底线：源块在对面读完之前被复用，D 会读到另一条请求的内容；完成信号丢了，块会多押一阵，最长押到超时。超时限定的是一条请求最多押多久，不是说出一次故障，整个块池就要被占满那么久。
 
@@ -203,7 +387,7 @@ Layerwise 的 P 在请求结束时就还块（源码注释写的是逐层推不�
 
 ## 整批拉与逐层推：省下的是哪段等待？
 
-**逐层推不减少要搬的字节，它省的是两段等待：D 分目的块挪到了 P 开算之前；除最后一层外，每层的传输都藏进了 P 算后面几层的时间里。D 仍要等全部层到齐才开始生成。**
+**在传输相同状态和布局的前提下，逐层推靠重叠计算与传输减少等待：D 分目的块挪到了 P 开算之前；前面层的传输有机会与 P 计算后续层同时进行。能藏进去多少，取决于传输速度、计算速度和同步开销；D 仍要等全部层到齐才开始生成。**
 
 ```wiki-diagram
 file: mooncake-layerwise
@@ -220,7 +404,7 @@ title: 三层都到齐的时刻（示意：每层算 1 个单位，传 0.5 个�
 要拿到这 1 个单位，逐层推付出了别的东西：
 
 - **D 必须先分块。** 代理要先挑 D、等 D 分好目的块、再挑 P，P 开算时手里才有写入的目标地址。整批拉则是先找 P，P 算完才轮到 D。
-- **P 每层都要等本层真的算完。** 发送线程先等设备上这一层的计算完成事件，再发起写；每层一批小传输，总字节和链路占用一点没少。
+- **P 每层都要等本层真的算完。** 发送线程先等设备上这一层的计算完成事件，再发起写。同样的状态和传输布局仍需搬同样的有效字节；分批、重排和同步会改变链路利用率，不能从示意时间直接推出实际加速比。
 - **P 不押块。** 见上一节，最后一层写完与块被复用之间的先后要靠时序保证。
 
 整批拉的好处是简单：P 的前向里没有任何连接器动作，所有传输都在 P 算完之后由 D 一次发起。
@@ -240,13 +424,23 @@ title: 三层都到齐的时刻（示意：每层算 1 个单位，传 0.5 个�
 
 两个名字相近的「逐层」别混：点对点的 Layerwise 连接器是 P 把每层写进 D；池的逐层存取是实例每层往池里存、从池里取，配的是 AscendStore 连接器加逐层开关，v0.23、v0.26 还要求 memcache 后端，main 才加了 Mooncake 后端的逐层路径。
 
+官方上游文档里还会遇到 `MooncakeStoreConnector`。先认清注册名指向谁，再读它的配置：
+
+| 名称与所属实现 | 连接什么 | 容易混用的条件 |
+| --- | --- | --- |
+| Ascend `MooncakeConnectorV1`、Layerwise、Hybrid | 指定的 P/D 对端 | 本页的块号、握手与完成通知协议 |
+| Ascend `AscendStoreConnector`，别名 `MooncakeConnectorStoreV1` | 共享池；可选 Mooncake 后端 | JSON 的 `preferred_segment` 是布尔量；SSD 字段为 `enable_ssd_offload` |
+| 上游 `MooncakeStoreConnector` | Mooncake 共享池 | `embedded` / `standalone-store` 区分池由谁持有；owner 定位使用 `host:port`；`enable_offload` 在 vLLM 端控制读取预算 |
+
+即使用了相同的 `MOONCAKE_CONFIG_PATH` 环境变量，里面的 JSON 也不能互换。池容量按 rank 怎样相加、SSD 为何还需要主机暂存、master 与存储客户端分别做什么，见 [KV Pool 的两种 Store 部署](kv-pool.md#上游-mooncakestore池跟着推理进程还是独立持有)。上游另一套 NIXL 拉取协议则有自己的[租约与跨轮复用](pd-disaggregation.md#d-还在排队p-的块能保留多久nixl-租约)，不能套用本页 Mooncake V1 的 480 秒押块规则。
+
 ## 三套点对点连接器，看名字还不够
 
 **昇腾在钉住版本注册了三套基于 Mooncake 的点对点连接器，区别在谁搬、谁先分块、押不押块，以及两边 TP 不同时怎么办。**
 
 | 连接器 | 谁搬 | 谁先分块 | P 押不押源块 | 两边 TP 不同时 |
 |---|---|---|---|---|
-| V1（默认） | D 读 | P 先算完，D 后分 | 押到 D 报收完 | D 各读一部分再重排；有递推状态时 P 的 TP 要是 D 的整数倍 |
+| V1（本页基线） | D 读 | P 先算完，D 后分 | 押到 D 报收完 | D 各读一部分再重排；有递推状态时 P 的 TP 要是 D 的整数倍 |
 | Layerwise | P 写，一层一次 | D 先分，经代理告诉 P | 不押 | P 先交换重排；P 的 TP 要是 D 的整数倍 |
 | Hybrid | D 读 | 同 V1 | 押 | 有递推状态时两边 TP 必须相同 |
 
@@ -255,6 +449,23 @@ title: 三层都到齐的时刻（示意：每层算 1 个单位，传 0.5 个�
 - **V1 不是只会搬普通 KV。** 它也处理递推状态组，按 P、D 的 TP 比例拆开读；Hybrid 的「两边 TP 相同」只在它自己遇到递推状态时才检查，不能推广到另外两套。Layerwise 同样处理「注意力 + 递推状态」的混合模型，也让 P 少算提示词的最后一个位置。
 - **判断角色的方式不同。** V1 和 Hybrid 按角色这一项是不是「生产者」来分：生产者起发送线程，其余都起接收线程，而步末只有写明「消费者」才报收完；所以写成「两边都是」时只起接收线程，也永远报不出收完。Layerwise 用 vLLM 的「是不是生产者」「是不是消费者」两个判断，「两边都是」时两个都成立，收发线程都会起。
 - **main 分支又多了新实现。** 新的 V2 其实就是新的拉取实现，推送版还没写完；逐项差异见页末版本表。
+
+
+后续 main 把普通 MooncakeConnector 作为 pull 实现的兼容别名；同文件中的普通 Push 类仍是抛出未实现异常的占位。它与已有的逐层 push 连接器是不同入口，不能由这个占位类推断所有 push 路径都不可用。
+
+## 先落到 D 的主机内存：D2RH 改了哪段等待？
+
+前面的直接交接要求 D 准备好设备块。后续 D2RH（device-to-remote-host，把设备数据送到对端主机内存）改为两跳：**P 的 HBM → D 的 DRAM → D 的 HBM**。D 先把完整交接状态接到主机内存，第一跳完成就通知 P 释放源块；等 D 真正分到设备块，再搬入并继续生成。这样 P 的源块释放不必等到 D 的设备块准备好。
+
+代价是 D 要有足够主机内存，多做一次主机到设备的搬运，还要区分“主机已命中”与“设备已可用”：请求只有在第二跳完成后才能计算，主机缓冲也要等所有对应 H2D 读完才能复用。官方快照 921ccc52 将它命名为 MooncakeD2RHConnectorV1，并链接 Atlas 850E 的 UBoE 部署流程；这是一条新路径，不是把旧 V1 改一个模式值，也不代表本页 A2 GLM 基线已经支持或部署了它。
+
+## V2 的“接收完成”，是否代表读成功？
+
+**完成读取尝试与取得可用数据是两件事。** V2 沿用 D 主动拉取的方向，但握手和请求完成的汇合移到调度侧。P 汇总各阶段、各 TP worker 的层名与地址；D 按同名层、本地缓存规格和实际头分片组织读取，真正提交网络读。符合交接条件的 P 请求保留源块，D 的各 worker 结束尝试后，由 D 调度侧发送一次请求级释放通知，P 才将请求交回通常的还块入口；一直收不到通知则另走到期释放。
+
+固定 main 的多缓存组失败路径存在缺口：只在单缓存组时标记无效块，多组读取失败会记录告警，随后仍将请求放进“接收完成”集合。**因此混合模型不能仅凭这个完成标志判断状态可用，也不能假定它会自动进入重算。** 分组、地址和块数各自正确，不足以弥补失败没有传到调度器的问题。
+
+rc2 则把“完成”与“失败”分开上报：任一相关读取任务失败，或整个后台处理抛出异常，都能记下受影响请求；汇合完各 worker 后，调度器按失败策略处理。默认让请求报错结束；显式选择且配置允许重算时，清零该失败请求的已算计数，并在再次调度前处理原目的块。无论报错还是重算，D 都要通知 P 结束本次源块占用，因为这次读已经终止。这个释放通知说明 P 可以回收资源，不承诺 D 的结果成功。具体版本与配置名放在页末。
 
 ## 放到 GLM 双机：这套部署没有开 Mooncake 连接器
 
@@ -287,11 +498,17 @@ KDA 状态不一样：34 层 KDA 按头切到 8 张卡，每张卡读的是自�
 
 ### 押着的块会占 P 的块池多久
 
-**按 V1，P 上一条长提示词交接期间，它的一百多块从请求结束一直押到 D 读完，抢占收不回。** 主线的并发算例里，一条走到约 67,000 个 token 的请求每卡占 120–121 块、约 956–964 MiB（见[多条请求的 KV 块一节](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)）。拆成一 P 一 D 后，P 每卡只剩 1,577 块（见 PD 分离页的拆法），同样长度的提示词交接一次，要押住 P 块池的约 1/13；D 迟迟不来读时，这些块最长押 480 秒。
+**按 V1，交接时 P 实际保留的源块，从请求结束一直押到 D 读完，抢占收不回。** 主线并发页中，一条已生成到约 67,000 个 token 的请求，每卡占 120–121 块、约 956–964 MiB（见[多条请求的 KV 块一节](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)）。这是 decode 步的占用，不能直接当成同长度提示词在 P 上完成 prefill 后保留的块数；结束前还会清理不再需要的滑窗块。
+
+只为看押块比例，假设某次交接完成计算后实际仍保留 120–121 块，并沿用 PD 页算出的 1,577 块预算，那么约占 1/13。该预算只扣所列语言权重，尚未扣视觉塔、MTP 旋转矩阵与量化辅助张量等，不是实机容量。这个比例也不证明 67,000 token 的 prompt 能在此 P 实例中完成：长提示词的准入及 chunk 尾状态会要求更多瞬时块，须另按[长提示词分块条件](vllm-kv-block-allocation.md)核算。交接实际押住的块在 D 迟迟不来读时，才由 480 秒超时机制回收。
 
 GLM 的几类状态解释了连接器为什么要按缓存组分别处理，但源码里有这些分支，不等于 GLM 整套 PD 已经跑通：量化后的缓存布局、KDA 状态、MTP 和图模式，都要在同一套安装版本上一起验证。
 
-这套部署也没有开 KV Pool；[KV Pool 页](kv-pool.md#放到-glm-双机这套部署没有开-kv-pool)推演过，只加 KV Pool、不开 prefix caching，一次查询都不会发出。
+**固定 GLM 改用逐层推送还有明确的初始化阻碍。** 同一个主干 MLA 层同时登记主 MLA、压缩 indexer K 和 compressor state 三个缓存名称，运行器将完整字典交给连接器；旧 Layerwise 按物理层号要求只有一个名称，第二个同层名称就不满足断言。MTP 的特殊登记分支不解除主干的限制。KDA 也不能只看导入名：固定镜像把上游 Kimi 类替换为 Ascend 实现，实际计算路径没有调用逐层等待或保存入口。前一项已经阻止这套布局直接进入正常传输，后一项说明不能只改名称断言就认为接好了所有层。
+
+**登记显存段数则可以静态算清。** 按本页 TP8、PP1、一个 MTP 的固定配置，专用布局分出 12 个大槽和 12 个小槽，V1 因含递推状态而按每个非空原始分配登记，共 24 段，低于 256 段上限。槽数来源沿用[部署页的唯一布局说明](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)，不是把所有逻辑缓存名称相加。实际地址的 2 MiB 对齐、区间覆盖和注册成功仍需启动日志；24 段也不解除逐层连接器的名称限制。
+
+这套部署也没有开 KV Pool；[KV Pool 页](kv-pool.md#放到-glm-双机这套部署没有开-kv-pool)推演过，只加 KV Pool、不开 prefix caching 时，段长等于最长长度 133,120；短于该长度的 prompt 向下取整为 0，不会发出查询。
 
 ## 常见误解
 
@@ -325,38 +542,56 @@ GLM 的几类状态解释了连接器为什么要按缓存组分别处理，但�
 - `kv_connector_extra_config` 里的 `prefill`、`decode` 两段写的是 P、D 两套实例各自的 TP 与 DP，两边的配置里都要写全；`pp_size` 可省略（默认 1），但 D 的 `pp_size` 必须是 1。
 - 不传这项时，调度器里的连接器是空的，worker 也不造连接器；官方 GLM 双机就是这种情况。
 
+后续快照的 D2RH 使用注册名 `MooncakeD2RHConnectorV1`，还要按 [Atlas 850E UBoE 完整部署步骤](https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/tutorials/features/pd_disaggregation_mooncake_multi_node.md)准备主机接收池、设备和网络环境；不能只在上面的旧 V1 配置中换名字就当成完整部署。两跳就绪与缓冲释放条件见前文 D2RH 一节。
+
 ### 会报什么错
 
 - 缺 `prefill` 或 `decode` 的 `tp_size`、`dp_size`：worker 初始化时 `AssertionError`；D 的 `pp_size` 不是 1：`decode pp size must be 1`。
-- 非 MLA 模型 P 的 TP 不能被 D 的 TP 整除：`Prefill TP size must be divisible by Decode TP size.`；P 比 D 小：`Only support P node tp size lagger then D node tp size`（原文拼写如此）。
+- 非 MLA 模型 P 的 TP 不能被 D 的 TP 整除：`Prefill TP size must be divisible by Decode TP size.`。有效正整数配置下，P 的 TP 小于 D 时也先触发这道整除检查；不能把后面的 `pd_tp_ratio == 0` 报错当成必然先出现的日志。
 - V1 的递推状态组 P 的 TP 小于或不能整除 D 的 TP：`Mamba prefill TP size must be >= decode TP size.` 等断言；Hybrid 遇到递推状态且两边 TP 不同：`Mooncake connector does not support different TP size with Mamba.`
 - 登记区间超过 256 段：`RuntimeError`，信息以 `Mooncake register_buffer region count` 开头，提示减少 KV 分配碎片、进一步合并 k/v/dsa/scale 的分配。
+- 固定 GLM 配旧 Layerwise：同一主干 MLA 层的多个缓存名称触发 `Mooncake Layerwise Connector does not support multiple attn_module in one layer now` 对应断言；源码错误串中的 attn_module 带反引号。这是初始化条件，不能等到传输超时才排查。
 - 没装 Mooncake：`ImportError`，附安装说明链接；引擎初始化失败：`TransferEngine initialization failed with ret_value`；登记失败：`Mooncake memory registration failed.`
 - 收发线程 5 分钟没就绪：`Timeout waiting for KV Cache thread to be ready.`；线程起来就退出：`KV Cache sending/receiving thread failed to start.`
 - 押块超时：`Force freed expired request`，并写明超时阈值（`VLLM_MOONCAKE_ABORT_REQUEST_TIMEOUT`，默认 480 秒）。
 
 ### 开销和什么时候别开
 
-- **单次传输超时。** worker 初始化时把 `ASCEND_TRANSFER_TIMEOUT` 设成 `4.096 × 2^HCCL_RDMA_TIMEOUT × HCCL_RDMA_RETRY_CNT ÷ 1000 + 3000` 毫秒；默认 20 和 7 代进去是 4.096 × 1,048,576 × 7 ÷ 1000 + 3000 ≈ 33,064 毫秒，约 33 秒。这和 480 秒的押块超时是两回事。
+- **单次传输超时。** 已显式设置非空 `ASCEND_TRANSFER_TIMEOUT` 时沿用它；否则 worker 用 `floor(4.096 × 2^HCCL_RDMA_TIMEOUT × HCCL_RDMA_RETRY_CNT ÷ 1000) + 3000` 毫秒。默认 20 和 7 代进去得到 33,064 毫秒，约 33 秒。这和 480 秒的押块超时是两回事。
 - **启动开销。** 传输引擎按 `P2PHANDSHAKE` 模式、`ascend` 协议初始化，两端直接握手，不需要另起元数据服务；每个进程登记一次 KV 显存，再起一个收或发的后台线程。
-- **Layerwise 的额外开销。** P 的 TP 大于 D 时多一条重排流和一份中转缓冲；发送线程每层都要等设备事件，源码注释提到这一步在 CANN 8.5.rc1 之前偶尔会卡住。
-- **别开的情形。** 单实例混部（官方 GLM 双机就是）用不上；两边 TP 不成整数倍时不能开；Hybrid 遇到递推状态且两边 TP 不同时不能开；GLM 在钉住版本上的问题见 [PD 分离页](pd-disaggregation.md#钉住版本里长提示词交接时-full-组会少传块)。
-- **Layerwise 的端口公式两处不一致。** 调度侧交给对面的端口基址是 `kv_port + dp_rank × tp`，worker 侧监听用的是 `kv_port + dp_rank × pcp × tp + pcp_rank × tp`；D 开了 prefill 上下文并行（PCP）时两者可能对不上。
+- **Layerwise 的额外开销。** 固定实现先用 `min(P_TP, KV头数) ÷ min(D_TP, KV头数)` 得到 `pd_head_ratio`；不能用裸 TP 比替代。该头数比大于 1，或需要对应量化路径时，才建立重排流与缓冲；实际按头交换的分支还看注意力组类型和待传块数。发送线程等设备事件或重排流后再写，源码注释提到事件同步在 CANN 8.5.rc1 之前偶尔会卡住。
+- **别开的情形。** 单实例混部（官方 GLM 双机就是）用不上；非 MLA 模型按本页统一校验，P 的 TP 不能被 D 整除时不能开；Hybrid 遇到递推状态且两边 TP 不同时不能开；GLM 在钉住版本上的问题见 [PD 分离页](pd-disaggregation.md#钉住版本里长提示词交接时-full-组会少传块)。
+- **Layerwise 的 D 侧不支持 PCP。** 调度器初始化先要求消费者的 PCP 等于 1，否则立即断言失败。调度侧端口基址为 `kv_port + dp_rank × tp`，worker 为 `kv_port + dp_rank × pcp × tp + pcp_rank × tp`；在允许的 D 侧配置 PCP=1、PCP rank=0 下两式相同。不能跳过入口断言，把 D 侧 PCP>1 写成可运行后的端口错配。
 
 ### 版本差异
 
-| 项 | v0.23（2c59ff10） | db701c1f（orphan commit，含 GLM 代码） | v0.26（2ed6cbba） | main（baa023ad） |
-|---|---|---|---|---|
-| 点对点连接器 | V1、Layerwise、Hybrid | 同 v0.23 | 另多 `SfaRemoteD2HConnector` | 另多 `SfaRemoteD2HConnector`、`MooncakeConnectorV2`、`MooncakePullConnector` |
-| V1 的流程（押块、D 读、按角色字符串起线程） | 有 | 同一套 | 同一套 | V1 仍在；新的 V2 就是 `MooncakePullConnector`，推送版 `MooncakePushConnector` 初始化即 `NotImplementedError` |
-| 新实现对 PCP 的要求 | 无 V2 | 无 V2 | 无 V2 | V2 要求 prefill 上下文并行为 1 |
-| Hybrid 的握手端口基址与上下文并行 | `kv_port + dp_rank × tp × pp`；启动即断言 PCP × DCP = 1，开不了上下文并行 | 同 v0.23 | 同 v0.23 | 放开 PCP（只要求 DCP = 1，PP 与 PCP 不同时开）：端口基址另乘 PCP，每卡偏移也按 PCP rank 错开；PCP = 1 的旧配置升级后端口不变 |
-| 池的逐层存取文档 | 要求 memcache 后端 | 同 v0.23 | 同 v0.23 | 改为 Mooncake 逐层文档，配 `AscendStoreConnector` 加 `use_layerwise` |
+**v0.30.0rc2 的 MooncakeConnectorV2 仍是 pull 实现，但已不是旧 main 的 PCP=1 限制。** 新 worker 与握手 metadata 纳入 PCP rank，端口与设备编号按 DP、PP、PCP、TP 组合计算；调度侧按每组 block_size 和相应 DCP 大小裁剪传输范围，环形组单独处理。P/D 两端必须使用一致的协议与真实拓扑，不能沿用旧端口跨度估算。
+
+V2 仍要求单一传输角色；MooncakePushConnector 仍是初始化即报未实现的占位类。V1、Hybrid、Layerwise 与 V2 的注册入口共存，选了哪个名字就追哪条实现。GLM rc2 的官方 PD 配方采用 V2，不能据此将旧 V1 的逐组块数问题认定为已在原路径修复。
+
+V2 的失败处理也要按钉点分开。main baa023ad 的多组 pull 失败未进入请求失败集合；rc2 7d825229 通过 get_transfer_results 上报 failed_recving，配套上游 ced6857a 默认 kv_load_failure_policy="fail"，显式 "recompute" 才走重算分支。这里同时核了 runner 与 worker 结果汇合，不能只看字段声明。main 的上游 84030bbe 仅作源码比较钉点，不代表已验证的精确安装组合；上述链路没有 NPU 故障注入实测。
+
+| 项 | v0.23（2c59ff10） | db701c1f（独立 GLM 提交） | v0.26（2ed6cbba） | main（baa023ad） | v0.30.0rc2（7d825229） |
+|---|---|---|---|---|---|
+| 点对点连接器 | V1、Layerwise、Hybrid | 同 v0.23 | 另多 `SfaRemoteD2HConnector` | 另多 `SfaRemoteD2HConnector`、V2/Pull | 同 main，并注册 `MooncakeD2RHConnectorV1` |
+| V1 的流程（押块、D 读、按角色字符串起线程） | 有 | 同一套 | 同一套 | V1 保留；V2/Pull 是另一实现，普通 Push 初始化即报未实现 | V1 保留，并增加远端 prefill 在准入前被拒绝时安排空接收、通知 P 释放的路径；普通 Push 仍为占位类 |
+| V2 与 PCP | 无 V2 | 无 V2 | 无 V2 | 要求 PCP=1 | worker 地址和 metadata 包含 PCP；端口按 DP/PP/PCP/TP 排列，调度控制端口位于 worker 端口区间之后；仍只接受单一角色 |
+| V2 多缓存组的拉取失败 | 无 V2 | 无 V2 | 无 V2 | 记录告警并报完成，未用请求失败集合传递该失败 | 按请求上报失败、汇合 worker 后执行失败策略；默认 fail |
+| Hybrid 的握手端口与上下文并行 | 基址为 `kv_port + dp_rank × tp × pp`；要求 PCP×DCP=1 | 同 v0.23 | 同 v0.23 | 要求 DCP=1，PP 与 PCP 不同时大于 1；基址另乘 PCP，每卡偏移包含 PCP rank | 沿用 main 的端口与组合限制，另拒绝 consumer 的 PCP 大于 1；不能由生产端支持推断消费端也支持 |
+| 池的逐层存取文档 | 要求 memcache 后端 | 同 v0.23 | 同 v0.23 | 改为 Mooncake，配 AscendStore 与 use_layerwise | 沿用 Mooncake 路径，要求 range/session 客户端接口；指南明确真实 NPU、Master/Metadata 与多 TP 端到端尚未验完 |
+
+rc2 的 V2 还按组裁剪：环形组保留状态页，Mamba 去掉草稿尾，普通组使用自己的逻辑块大小及相应 DCP，SWA 不乘 DCP。它与上表的 PCP 拓扑支持是两件事，完整条件见 [PD 分离的版本差异](pd-disaggregation.md#版本差异)。
 
 - 上游连接器接口（调度侧、worker 侧两组方法，`SupportsHMA` 多组释放）在 v0.26.0（568afb3a）与 v0.23.0（0fc695fc）一致，只多一个非抽象的 `has_pending_push_work`（默认返回否；调度器用它在还有推送没发完时让主循环继续转）。昇腾在 v0.26、main 两版都没有实现它，Layerwise 在 v0.26 上走的是默认值。
 - 升到 main 时，V1 的配置照旧能用；换成 V2 要按 main 的文档重写配置，旧的「两边都是」写法在 V2 上初始化即报错（见 PD 分离页的版本表）。
 
 ### 源码位置
+
+GLM 同层多缓存名称、完整登记入口和 Layerwise 名称断言见来源 85–92；实际 Kimi 自定义算子注册、对象回调与没有逐层 hook 的计算路径见 93–105。原始大/小槽规划、带递推状态的登记分支与 256 上限见 106–110，配合既有 17、26；24 段按固定配置推得，设备登记尚未执行。
+
+旧 Layerwise 的后台队列、同步网络写、空等待接口、空发送完成集合及上游释放调用见 111–119，配合既有 7、28、30、31。新指定组合的物理槽保护统一引用[逐层池来源](kv-cache-layerwise-offload.md#源码位置)，不把它当请求级延迟释放。
+
+V2 地址登记、按层/阶段匹配、实际网络读和调度侧释放见 120–131；main 多组失败的限制见 127、132–133。rc2 从失败记账、connector、runner 到 worker 汇合与调度器策略见 134–147，默认 fail 与重算分支分开核。该 main 与其上游比较点未验证为实际安装组合；源码链和 CPU 记账复现均不替代 NPU 运行。
 
 | 看什么 | 固定源码位置 |
 |---|---|
@@ -372,12 +607,21 @@ GLM 的几类状态解释了连接器为什么要按缓存组分别处理，但�
 | P、D 的 TP 比 | `vllm_ascend/ascend_config.py`：`pd_tp_ratio`、`pd_head_ratio` |
 | 池的 Mooncake 后端 | `kv_pool/ascend_store/backend/mooncake_backend.py` |
 
-**来源索引。** 接口分调度侧、worker 侧两半，一个进程只启用一半 [C1]；调度侧的几个方法与基类默认不押块 [C3]；只有配了 KV 传输才造连接器 [C5]；押块、完成名单与等待队列的跳过 [C7][C8][C9]；V1 的调度侧记账与交回参数 [C15][C16]；登记、起线程与按角色字符串分线程 [C17]；地址簿字段 [C18]；地址算式与批量读 [C19]；拉取份数与 extra config 断言 [C20]；押块超时 [C21]；传输引擎初始化与只登记一次 [C24]；传输超时公式与区间上限 [C25][C26]；Layerwise 的 D 先报代理、P 不押块、逐层写与最后一层回调 [C27][C28][C29]；Hybrid 的等 TP 断言 [C34]；启动时的 TP 整除检查 [C35]；池后端复用传输引擎 [C36]；main 的 V2 与推送版 [C42]；递推状态组每层只搬一块、两段 [C48]；Hybrid 的握手端口基址与上下文并行断言（钉住版本 PCP × DCP = 1、main 只限 DCP）与 v0.26 上游接口新增的方法，行号在来源第 49–56 条。两种连接器的流程出自设计文档 [S44]，配置写法出自单机教程 [S45]，逐层池文档的后端要求与 main 的改写见 [S46][S47]。示意数与 R1、押块比例的换算 [D]；「押着的块抢占碰不到」由抢占只遍历运行队列、押块请求已移出运行队列推断 [I]。传输引擎和 Mooncake Store 自身的行为（按地址直接读写、两端直接握手、按名字定位）按 Mooncake 官方口径，本站只核到昇腾侧的调用方式，没有核它们的实现。
+**来源索引。** 接口分调度侧、worker 侧两半，一个进程只启用一半 [C1]；调度侧的几个方法与基类默认不押块 [C3]；只有配了 KV 传输才造连接器 [C5]；调度器的押块判断 [C7]；完成名单处理与等待队列跳过分别见来源 8、9；V1 的调度侧记账与交回参数 [C15][C16]；登记、起线程与按角色字符串分线程 [C17]；地址簿字段 [C18]；地址算式与批量读 [C19]；拉取份数与 extra config 断言 [C20]；押块超时 [C21]；传输引擎初始化与只登记一次 [C24]；传输超时公式与区间上限检查 [C25][C26]，上限常量 256 见来源 65；Layerwise 的 D 先报代理、P 不押块、逐层写与最后一层回调 [C27][C28][C29]；Hybrid 的等 TP 断言 [C34]；启动时的 TP 整除检查 [C35]；池后端复用传输引擎 [C36]；main 的 V2 与推送版 [C42]；递推状态组每层只搬一块、两段 [C48]；Hybrid 的握手端口基址与上下文并行断言（钉住版本 PCP × DCP = 1、main 只限 DCP）与 v0.26 上游接口新增的方法，行号在来源第 49–56 条。两种连接器的流程出自设计文档 [S44]，配置写法出自单机教程 [S45]，逐层池文档的后端要求与 main 的改写见 [S46][S47]。示意数与 R1、押块比例的换算 [D]；「押着的块抢占碰不到」由抢占只遍历运行队列、押块请求已移出运行队列推断 [I]。传输引擎和 Mooncake Store 的完整内部实现尚未核完；本页核对昇腾侧调用方式，本轮补核的 Store SDK 初始化、内存预算和 SSD 责任链见 [KV Pool](kv-pool.md#上游-mooncakestore池跟着推理进程还是独立持有)。按地址直接读写、两端握手与按名字定位的总体设计另参照固定的 Mooncake 官方资料。
+
+rc2 表中注册、V1 新释放分支、Hybrid 条件和池指南边界分别见来源 66–74；PCP 地址结构见来源 77，端口与逐组裁剪见来源 60–62。实际 KV 头比的建流条件见来源 75，P 交出块表前的窗口清理见来源 76。
+
+AscendStore 与 `MooncakeConnectorStoreV1` 指向同一类，见注册表来源 78–81；Ascend 后端的布尔 `preferred_segment`、`enable_ssd_offload` 和配置入口见 82–83，上游 Store 的另一套配置类见 84。上游的 owner、预算及 SDK 调用条件集中在 KV Pool 页核对；NIXL 租约集中在 PD 分离页，避免把相似名称当成共同协议。
 
 **待核。**
 
-- 待核：Layerwise 的 P 在请求结束时就还块，最后一层的写入与这些块被下一条请求改写之间，本站没有核到额外的同步；缺双机压测或更细的源码追踪。
-- 待核：GLM 的 KDA 层来自上游的线性注意力实现，不在调用逐层发送接口的文件之列（昇腾里调用它的是 MLA、稀疏注意力等后端和 gdn 算子），Layerwise 在 GLM 上能否逐层推出 KDA 状态，缺源码通读与实测。
-- 待核：GLM 每张卡要登记多少段显存、合并后是否低于 256 段，缺实际启动日志。
-- 待核：Layerwise 调度侧与 worker 侧端口公式在 D 开 PCP 时是否真的对不上，缺实测。
+- 旧 Layerwise 的请求级释放链缺少显式发送完成衔接；设备上的竞争是否发生、重排或量化副本在具体配置中的寿命，需要双机时序与地址记录。新版指定组合的槽等待另见逐层池页，不能替代这项实测。
+- 固定 GLM 的逐层名称断言及实际 KDA 缺少 hook 已按源码定位；修复后的整体兼容性尚无设备验证。新版 Kimi K3 的等待/保存入口不能作为旧 GLM 已支持的证据。
+- 固定 GLM 的 V1 静态登记为 24 段；实际地址对齐、注册结果和其他布局仍缺启动日志。
+- Layerwise 的 D 侧 PCP>1 已由初始化断言拒绝；允许配置下的端口绑定与网络连通性仍缺设备启动日志。
 - 待核：上面「会报什么错」列出的报错都没有在双机上触发过，缺实际日志原文。
+
+固定 layerwise 连接器按层索引登记缓存名称，断言同一索引只出现一次；名称含 `mtp` 的项先跳过检查，再登记到最大索引之后（来源 31）。这是名称映射的局部规则，其他模型或预测配置还须满足各自的形状与拓扑条件。
+
+固定逐层推路径的请求结束接口返回 `False, None`，无需通过结束返回值延迟释放 P 的块（来源 28）；传输流同步条件仍需按前文区分。旧 main 新拉取路径的 PCP 限制见来源 43，Hybrid 的 DCP、PP/PCP 限制见来源 55、56，握手端口公式见来源 50、51。上下文并行按输入位置分配计算或历史状态，各连接器的检查不同，不能合并成共同限制或由未拒绝推断支持。
+

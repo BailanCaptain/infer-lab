@@ -1,0 +1,47 @@
+--- before/wiki\concepts\dspark.md
++++ after/wiki\concepts\dspark.md
+@@ -21,6 +21,10 @@
+   - https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/developer_guide/Design_Documents/speculative_kv_sliding_window.md
+   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1112-L1136'
+   - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1298-L1322'
++  - 'vllm-ascend@921ccc52:vllm_ascend/ascend_config.py#L579-L593'
++  - 'vllm-ascend@921ccc52:vllm_ascend/worker/v1/spec_decode/llm_base_proposer.py#L416-L453'
++  - https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/worker/worker.py#L191-L258
++  - 'vllm-ascend@921ccc52:vllm_ascend/worker/v1/spec_decode/utils.py#L26-L112'
+ relations:
+   - { to: speculative-decoding, kind: builds-on, note: 接受、拒绝和补出下一个 token 的基本规则由原页解释 }
+   - { to: async-scheduling, kind: builds-on, note: 调度与设备执行重叠会改变置信信息何时可用 }
+@@ -124,7 +128,7 @@
+ file: dspark-flow
+ ```
+ 
+-DeepInfer 的分工是：CPU 先根据已有信息决定总预算，设备拿到更新的置信值后，再计算连续接受概率、排序并修正各请求的验证长度。请求重排信息让它知道新一批的请求对应上一批哪一行。结果回写供主机使用，不必让每次 CPU 决策都停下来等当前输出。
++DeepInfer 的分工是：CPU 先根据已有信息决定总预算，设备拿到更新的置信值后，再计算连续接受概率、排序并修正各请求的验证长度。请求重排信息让它知道新一批的请求对应上一批哪一行。结果异步回写供主机使用；这条修正路径要求存在可对应的上一批请求，变长开关也已启用，不是所有批次都执行修正。
+ 
+ 这套时序需要谨慎保持：不能利用更后面的候选信息，反过来随意决定前面的候选是否得到验证。否则“主模型最终验证”这一句本身，并不足以证明采样分布被保留。源码为预算与逐请求长度使用不同轮次的信息；排查时必须同时记录步号、请求映射和置信信息的轮次，不能只看一张最终长度表。
+ 
+@@ -163,7 +167,7 @@
+ 
+ 短上下文训练的草稿在长对话上可能猜得变差，窗口能让它回到熟悉的输入范围；但已经能利用长历史的草稿反而会损失信息。尤其草稿原生就按某个窗口训练时，不应随意把运行窗口缩得更小。判断依据仍是前面那笔账：实际接受多少、草稿与验证分别耗时多少、最终每秒交付多少 token。
+ 
+-Ascend 的这条实现限制草稿 attention 的读取范围，缓存写入位置仍按完整请求布局处理，避免后续追加时槽位失配；不能把读取窗口大小直接当成全部已分配缓存大小。它也不等于本文 DeepInfer 的置信度预算调度：一个改变可见历史，一个分配验证工作，支持和开关须各自核对。
++Ascend 的这条实现限制草稿 attention 的读取范围，缓存写入位置仍按完整请求布局处理，避免后续追加时槽位失配；不能把读取窗口大小直接当成全部已分配缓存大小。适配器同时更新设备与主机侧长度，并裁剪用于读取的块表，保留完整写槽位。它也不等于本文 DeepInfer 的置信度预算调度：一个改变可见历史，一个分配验证工作，支持和开关须各自核对。
+ 
+ ## 放回 GLM 双机，能借用什么
+ 
+@@ -194,7 +198,7 @@
+ 
+ 这些示例预算值不等于推荐值，低延迟负载、API/代理瓶颈或本来已很高的接受率都需要单独对照。V1 和 V2 不能混用对方配置；草稿窗口的 runner 限制又是另一项。
+ 
+-Ascend 的草稿窗口入口为 `--additional-config '{"draft_window_size":2048}'`，须与相应的 `--speculative-config` 一起使用；2048 是示例，先核草稿训练长度。2026-11-02 文档限定 **Model Runner V1** 的 EAGLE3、DFlash、DSpark；V2 尚未接入该窗口。MTP 会强制忽略该窗口，因为它复用目标模型自身的层。省略该字段才是关闭，不能套用 V2 中其他投机能力的支持说明。[S9][S10]
++Ascend 的草稿窗口入口为 `--additional-config '{"draft_window_size":2048}'`，须与相应的 `--speculative-config` 一起使用；2048 是示例，先核草稿训练长度。2026-11-02 文档限定 **Model Runner V1** 的 EAGLE3、DFlash、DSpark；V2 尚未接入该窗口。MTP 会强制忽略该窗口，因为它复用目标模型自身的层。省略该字段或设为 `null` 可关闭；不能套用 V2 中其他投机能力的支持说明。[S9][S10][C13][C14]
+ 
+ ### 会报什么错
+ 
+@@ -225,5 +229,6 @@
+ - 半自回归草稿与置信调度见 DSpark 论文 [S1]、V4.1 报告 §2.4.3 [S2]；草稿结构和 `ConfidenceHead` 见实现 [C3]。
+ - CPU 预算、历史置信轮次、前向/采样运行时估计在 `MTPVarlen::schedule` [C4]。代码说明预算使用 N−2 轮信息，逐请求分配使用更新信息；异步路径在设备修正。
+ - 设备端累乘、全局排名、稳定并列排序和请求映射在 `compute_seqlens_q_by_confidence_rates_tl` [C5]。
++- 上一批请求映射、变长开关及异步回写消费者见 DeepInfer worker [C15]；Ascend 草稿窗口的读块表裁剪、主机/设备长度与完整写槽位见适配器 [C16]。
+ - `examples/benchmark.py` 的 decode 报告按“每步每请求 1+nextn 全接受”换算输出率；稳态窗口剔除 flush 区间。它不能替代在线实际接受量 [C6]。
+ - 开关及 NVIDIA 确定性条件见 README [S7]、环境定义 [C8]；本页分数、概率、耗时是教学假设 [A]，422/243.4 为推导 [D]，未做设备性能或采样分布实测。

@@ -1,39 +1,105 @@
 ---
 id: attention-cost
-title: "注意力代价：容量、计算与访存"
+title: 注意力代价：容量、计算与访存
 type: concept
-summary: 历史变长时，密集注意力每一步读的份数跟着增长，稀疏注意力的主读取到预算就封顶、打分和缓存却照样增长，固定状态始终只读写同一块；放到 GLM 双机上，按一个 token 核算 34 层 KDA 与 11 层稀疏 MLA 各存多少、读多少。
-aliases: [注意力代价, attention cost, KV 容量, 注意力复杂度]
-chapters: ["04"]
+summary: >-
+  历史变长时，密集注意力每一步读的份数跟着增长，稀疏注意力的主读取到预算就封顶、打分和缓存却照样增长，固定状态始终只读写同一块；放到 GLM 双机上，按一个
+  token 核算 34 层 KDA 与 11 层稀疏 MLA 各存多少、读多少。
+aliases:
+  - 注意力代价
+  - attention cost
+  - KV 容量
+  - 注意力复杂度
+chapters:
+  - '04'
 order: 40
 sources:
-  - https://arxiv.org/abs/1706.03762
-  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
-  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda_state.py#L9-L32
-  - vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L69-L182
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L261-L362
-  - vllm-ascend@db701c1f:vllm_ascend/ops/triton/glm5_next_lightning_indexer.py#L131-L237
-  - vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104
-  - vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793
-  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L136-L146
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L44-L56
-  - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L94-L159
-  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_mamba_config.py#L94-L110
-  - vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda_state.py#L43-L45
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L115-L127
-  - vllm-ascend@baa023ad:vllm_ascend/ops/triton/glm5_next_lightning_indexer.py#L131-L153
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/cache_config.py#L90-L119
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+  - 'https://arxiv.org/abs/1706.03762'
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda_state.py#L9-L32'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L69-L182'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L261-L362'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/ops/triton/glm5_next_lightning_indexer.py#L131-L237
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104
+  - 'vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L136-L146'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L44-L56
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L94-L159
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_mamba_config.py#L94-L110
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda_state.py#L43-L45'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L115-L127'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/ops/triton/glm5_next_lightning_indexer.py#L131-L153
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/cache_config.py#L90-L119'
+  - >-
+    raw:sha256-38a65b581627f888276a010e4a2ce44ee228f3afdc773f4eff0cc5c4e5465d29.md#L1-L716
+  - >-
+    vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/ops/triton/glm5_next_lightning_indexer.py#L176-L236
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/models/glm5next/sparse_attn_indexer_kpool.py#L29-L51
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/models/glm5next/sparse_attn_indexer_kpool.py#L88-L99
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/kda.py#L120-L133'
+  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/cache_config.py#L3-L8'
+  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L909-L922'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/models/glm5next/sparse_attn_indexer_kpool.py#L26-L50
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/models/glm5next/sparse_attn_indexer_kpool.py#L142-L147
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/models/glm5next/sparse_attn_indexer_kpool.py#L134-L152
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/ops/triton/glm5_next_lightning_indexer.py#L190-L196
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
+evidence: C
 relations:
-  - { to: mla, kind: builds-on, note: 每个位置 1 KiB 的潜向量从哪里来，吸收怎样在潜空间里打分和汇合 }
-  - { to: linear-attention, kind: builds-on, note: KDA 固定状态的递推、卷积状态，以及每条请求实际写进 85 MiB 的来历 }
-  - { to: sparse-attention, kind: builds-on, note: 按池选择、2051 宽清单与每层 33.6 MFLOP 上界的推导 }
-  - { to: one-request, kind: builds-on, note: R1 在 34 层 KDA 与 11 层稀疏 MLA 里的逐卡形状 }
+  - to: mla
+    kind: builds-on
+    note: 每个位置 1 KiB 的潜向量从哪里来，吸收怎样在潜空间里打分和汇合
+  - to: linear-attention
+    kind: builds-on
+    note: KDA 固定状态的递推、卷积状态，以及每条请求分配 85 MiB 缓存页的来历
+  - to: sparse-attention
+    kind: builds-on
+    note: 按池选择、2051 宽清单与每层 33.6 MFLOP 上界的推导
+  - to: one-request
+    kind: builds-on
+    note: R1 在 34 层 KDA 与 11 层稀疏 MLA 里的逐卡形状
+  - to: ai-core
+    kind: builds-on
+    note: 注意力代价页区分逻辑读取量与实际显存流量，建立在 AI Core 页所解释的分块搬运和片上复用机制之上。
+  - to: attention-qkv
+    kind: builds-on
+    note: 注意力代价分析以 Q/K/V 的历史打分与加权汇合机制为基础，讨论历史增长时的计算、读取和缓存开销。
+  - to: block-table
+    kind: builds-on
+    note: 稀疏 MLA 的读取说明依赖块表把选中的历史位置映射到缓存池的寻址机制。
+  - to: gqa
+    kind: builds-on
+    note: 注意力代价页使用 GQA 减少 KV 头数的机制说明逐位置缓存容量如何变化；GQA 页给出了按 KV 头数缩减缓存的具体规则。
+  - to: attention-backend-family
+    kind: builds-on
+    note: >-
+      注意力代价的运算量核算依赖实际执行路径；后端页解释模型机制如何落实为状态布局和设备算子，为区分 KDA 递推与稀疏 MLA
+      的计算、读取代价提供实现基础。
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: 2026-11-03T00:00:00.000Z
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-3546b79c11f7e8b54ab8b06d363e19587cefa17f9d19966ede7251cdfb130b10.md
+  - >-
+    raw/sha256-38a65b581627f888276a010e4a2ce44ee228f3afdc773f4eff0cc5c4e5465d29.md
 ---
 
 ## 历史越来越长，每一步注意力要读多少？
@@ -46,7 +112,7 @@ origin: direct
 file: attention-cost
 ```
 
-图里每一格是一个历史位置要读的一份数据。**密集注意力**每一步都把全部历史读一遍：历史从 4 份涨到 12 份，读的也从 4 份涨到 12 份。**稀疏注意力**先让一个便宜的打分器 indexer 把全部历史扫一遍，再让真正算输出的主 attention 只读分数最高的几份。历史不超过预算时，它和密集注意力读得一样多；超过以后，主 attention 读的份数封顶，但 indexer 扫的份数、缓存里存的份数照样跟着历史增长。**固定状态**的做法是每来一个位置就把它并进一块形状固定的状态，之后只读写这一块，不再逐个回看历史位置，所以读多少与历史多长无关。
+图里每一格表示一个历史位置的数据。**密集注意力**的新查询使用全部可见历史：历史从 4 份涨到 12 份，依赖也从 4 份涨到 12 份。图中的**内容选取型稀疏注意力**先由轻量 indexer 给可见历史评分，再让主 attention 只读取选中的几份；主读取可封顶，indexer 与可被重新选中的历史缓存仍随长度增长。纯局部窗口等稀疏模式不同，可以回收不再访问的旧历史，不能统一套用本图的存储结论。**固定状态**每来一个位置就更新一块形状固定的状态，之后不逐个回看历史。这里比较逻辑数据规模，不代表每份数据实际恰好从 HBM 读取一次。
 
 GLM-5.3-Flash 把后两种混在一起用：45 层主干里 11 层是稀疏 [MLA](mla.md)，34 层是 [KDA](linear-attention.md)（Kimi Delta Attention，一种固定状态的线性注意力），排法见[模型总览](glm-5-3-flash.md#45-层怎样排)。下面先讲这几种代价为什么要分开算，再落到双机部署上的具体字节。
 
@@ -65,34 +131,38 @@ GLM-5.3-Flash 把后两种混在一起用：45 层主干里 11 层是稀疏 [MLA
 
 **密集注意力：每一步线性，整段平方。** 不压缩的普通 K/V，长度 n 的逻辑缓存是 n × KV 头数 × (dₖ + dᵥ) × 每元素字节数。Decode 的一个新查询要读当前全部可见历史，所以每一步的读取和打分都随 n 线性增长。Prefill 一次处理 n 个查询，因果掩码下一共有 n(n+1)/2 个查询–历史位置对，这就是常说的平方项。平方项只属于打分和汇合这一段；投影、MLP、MoE 的运算量仍按 token 数线性增长，不能说整个模型都随 n² 增长。GQA 减少 KV 头数，MLA 把每个位置压成一条潜向量，两者都改变「每个位置存多少」，所以缓存不能只按 query 头数去算。
 
-**稀疏注意力：主读取封顶，打分和缓存不封顶。** 每个查询只在选中的位置上打分、做 softmax、汇合 V，主 attention 的读取和运算因此有了上限。代价有三处：
+**本节内容选取型稀疏注意力：主读取封顶，索引打分和缓存仍增长。** 每个查询只在选中的位置上执行主 attention 的打分、softmax 与 V 汇合。以下三项针对以后仍可能选回任意历史位置的 GLM 路径；固定窗口等模式另见[稀疏注意力](sparse-attention.md)：
 
-- **缓存不省。** 每个查询都重新挑选，这一次没选中的位置，下一个查询照样有机会选中，所以全部历史仍要留在缓存里。查询范围缩小，不等于持久缓存缩小。
+索引列表的存储宽度不等于有效历史位置数：固定 GLM 的索引器把未参与评分的位置初始化为负无穷，Top-K 选到这种位置时改成 -1，尾部不足也用 -1 填充。因此，计算有效注意力工作量时，应区分有效索引与占位，而不是只看列表宽度。
+
+
+- **保留可重新选中的历史。** 这一次没选中的位置，下一个查询仍有机会选中，所以该路径保留全部候选历史。主 attention 这次访问的位置少，不等于持久缓存缩小。
 - **挑选本身要干活。** indexer 必须给全部可见历史打分，才能知道选谁，这部分随历史线性增长。它每个位置的数据小、运算少，但历史足够长时，它扫过的数据量可以超过主 attention 读的量（GLM 的数字见下一节）。
 - **结果只由选中的位置决定。** softmax 的分母只含选中的那几项，所以输出和密集注意力并不相同；这种模型在训练时就是按这样的选择学的。
 
 **固定状态：每一步不变，整段线性。** 线性注意力把「历史的 K、V」换成一个 dₖ × dᵥ 的矩阵状态。新位置到来时，它的信息以外积 k vᵀ 的形式**加**进同一个矩阵，而不是在后面**接**一行；加法不改变矩阵形状，所以状态大小只由头数和头宽决定，与已经处理了多少位置无关。KDA 在这之上再加按通道的衰减和 delta 规则（先用状态预测 v，再只写入预测误差），读出时只用状态和 query 相乘，完整的五步见 [KDA 一步完整的更新和读出](linear-attention.md#kda-一步完整的更新和读出)。于是逐位置的成本不随历史变长，处理 n 个位置的总成本随 n 线性增长。代价是历史被压进有限大小的状态，旧信息会被衰减和覆盖，不能像 K/V 那样按位置精确回看。
 
+若模型允许多层复用同一份历史，不能再把每层的状态预算直接乘层数。[DeepSeek 模型案例](deepseek-v4-1-flash.md#一块历史到底存多少而不是40-层乘一遍)演示先找实际来源层，再算分页载荷；计算、存储和读取仍沿本页的三笔账分别分析。
+
 ## 放到 GLM 双机：一个 token 走过两类层，各存多少、读多少
 
 部署是 2 台 Atlas 800 A2、每台 8 卡，机内 TP8、两台之间 DP2，见[部署前提](glm-5-3-flash-two-node.md#部署前提)。TP8 下每张卡负责 64 个 attention 头里的 8 个。下面跟着一个 decode 位置 p 走一遍（它面前的可见历史是 p + 1 个位置），数字都按一张卡计。
 
-1. **进 KDA 层，一共 34 层。** 本卡 8 个头各有一个 128 × 128 的矩阵状态，按 FP32 存，共 512 KiB；另有 36 KiB 的短卷积状态，存最近几个位置的 q、k、v（核长 4 减 1，再多留 3 格给[投机解码](speculative-decoding.md)的草稿位置——每轮先猜 3 个 token 再一起验证，共 6 格）。这一步读出这 561,152 B，把位置 p 并进去，再写回。这个数和 p 无关：p 是 3 还是 13 万，读的都是这一块。状态跟着头切，每卡只管自己 8 个头，跨卡不交换；整层 64 个头合起来是 4 MiB。
+1. **进 KDA 层，一共 34 层。** 本卡 8 个头各有一个 128 × 128 的矩阵状态，按 FP32 存，共 512 KiB；另有 36 KiB 的短卷积状态，存最近几个位置的 q、k、v（核长 4 减 1，再多留 3 格给[投机解码](speculative-decoding.md)的草稿位置——每轮先猜 3 个 token 再一起验证，共 6 格）。本卡需保留的原始状态容量合计 561,152 B，具体读写其中哪些部分取决于执行路径，不能把含投机保留格的容量当成每步读写量。这个容量和 p 无关：p 是 3 还是 13 万，状态形状都不变。状态跟着头切，每卡只管自己 8 个头，跨卡不交换；整层 64 个头的矩阵状态合起来是 4 MiB。
 2. **进稀疏 MLA 层，一共 11 层。** 位置 p 先在缓存里留下两样东西：一条 512 维的潜向量（BF16，1 KiB），以及索引 key 的份额（每 4 个位置压成一条 128 维 BF16 的 key，合每位置 64 B）。然后 indexer 给 ⌊(p+1)/4⌋ 个已凑满的池各打一个分，每个池只做一次 128 维点积（先把 32 个 indexer 头的 query 按权重合成一条）；选分数最高的至多 512 个池，展开成 2048 个位置，再补上还没凑满一池的 0–3 个尾部位置。主 attention 按这份清单读潜向量，本卡 8 个头共用读到的数据。潜向量在 TP 组里不切，每张卡各存一份完整的，所以每张卡都要读这些。挑选细节见[稀疏注意力的 GLM 一节](sparse-attention.md#放到-glm-双机一个查询在一层稀疏-mla-里怎样挑怎样读)。
 
-把 p 放到本部署允许的最长上下文 133,120 个位置，三种读取量是：
+把 p 放到本部署允许的最长上下文 133,120 个位置，稀疏 MLA 的逻辑读取量是：
 
 ```calc
-title: 最长上下文处一个查询的读取量（每卡，逻辑量）
+title: 最长上下文处一个查询的 MLA 读取量（每卡，逻辑量）
 完整池 = 133,120 ÷ 4 = 33,280 个
-KDA 34 层的状态 ≈ 18.2 MiB
 稀疏 MLA 主 attention 11 层 = 22.0 MiB
 indexer 打分 11 层 = 11 × 33,280 × 256 B = 93,716,480 B ≈ 89.4 MiB
 若这 11 层是密集注意力 = 11 × 133,120 × 1024 B = 1,499,463,680 B ≈ 1.40 GiB
 > 只数注意力部分要读的数据，不含权重、内核分块、重复加载和缓存复用，不是实测 HBM 流量
 ```
 
-前两行只列结果：34 层状态的逐项字节账在 [tensor parallel 的 KDA 一节](tensor-parallel.md#kda状态跟着头一起切)，22.0 MiB 的推导在[稀疏注意力](sparse-attention.md#稀疏什么时候才真的起作用)；后两行是本页的新账。这几行放在一起看：主 attention 读 2048 个位置，是全部历史的 1/65，11 层合计 22.0 MiB，而且历史再长也不会多；indexer 扫过的索引 key 却已有 89.4 MiB，约是主 attention 的 4 倍，并且还随历史线性增长；34 层 KDA 的 18.2 MiB 从第一个 token 到第 13 万个 token 都一样。运算量也是同样的形状：主 attention 每层每卡的打分和汇合上界约 33.6 MFLOP（推导见[稀疏注意力](sparse-attention.md#稀疏什么时候才真的起作用)），不随历史增长；indexer 每个池一次 128 维点积，随池数线性增长。
+22.0 MiB 的推导在[稀疏注意力](sparse-attention.md#稀疏什么时候才真的起作用)，后两行是本页的新账。这几行放在一起看：主 attention 读 2048 个位置，是全部历史的 1/65，11 层合计 22.0 MiB，而且历史再长也不会多；indexer 扫过的索引 key 却已有 89.4 MiB，约是主 attention 的 4 倍，并且还随历史线性增长。另看 KDA：34 层的原始状态容量约 18.2 MiB，从第一个 token 到第 13 万个 token 都一样；逐项字节账在 [tensor parallel 的 KDA 一节](tensor-parallel.md#kda状态跟着头一起切)，这项容量不能直接加进上面的读取量。运算量也是同样的增长关系：主 attention 每层每卡的打分和汇合上界约 33.6 MFLOP（推导见[稀疏注意力](sparse-attention.md#稀疏什么时候才真的起作用)），不随历史增长；indexer 每个池一次 128 维点积，随池数线性增长。
 
 主线的示例请求 R1 只有 4 个 token 的提示词，历史远不到 2051 个位置，512 个池加尾部就能盖住全部历史，稀疏 MLA 在这里读的和密集注意力完全一样，逐行形状见[一条请求的 11 层稀疏 MLA](one-request.md#11-层稀疏-mla)；它的 34 层 KDA 状态则和 13 万 token 的请求一样大，见[一条请求的 34 层 KDA](one-request.md#34-层-kda)。
 
@@ -102,7 +172,7 @@ indexer 打分 11 层 = 11 × 33,280 × 256 B = 93,716,480 B ≈ 89.4 MiB
 
 - **MLA 一侧按位置增长。** 每层每个位置 1 KiB 潜向量加 64 B 索引 key；12 层（主干 11 层加 [MTP](speculative-decoding.md)——生成投机草稿的配套层——的第 45 层）合计每 token 每卡 13,056 B，推导见[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)。只看一层的主潜向量，1024 个位置是 1 MiB，4096 个位置是 4 MiB；11 层在 4096 个位置上共 44 MiB。一个 133,120 token 的满长请求，MLA 一侧每卡约 1.619 GiB。
 - **稀疏层还有一份不增长的尾状态。** 压池要等凑满 4 个位置，没凑满的那几个位置先存在每层一份 4 × 256 的 FP32 尾状态里，每层每请求 4,096 B，12 层 48 KiB，与请求长度无关。
-- **KDA 一侧固定。** 每层每卡的原始状态是 561,152 B，34 层约 18.2 MiB；实际写进缓存的是每条请求每卡 85 MiB，放大来自页补齐和投机草稿的额外页，见 [KDA 的两份状态](linear-attention.md#矩阵状态之外还有短卷积历史)。并发上限 32 条时，每卡为 KDA 状态本身留约 2.66 GiB。
+- **KDA 一侧固定。** 每层每卡的原始状态是 561,152 B，34 层约 18.2 MiB；为每条请求分配的 KDA 缓存页容量是每卡 85 MiB，包含页补齐和投机草稿的额外页，不代表每步实际写入这么多数据，见 [KDA 的两份状态](linear-attention.md#矩阵状态之外还有短卷积历史)。并发上限 32 条时，每卡为这些 KDA 页留约 2.66 GiB。
 
 两边在大约 89,128,960 B ÷ 13,056 B ≈ 6,827 个 token 处一样大：比这短的请求，KDA 状态反而是缓存的大头；比这长，MLA 一侧越来越占主导。这个交点只是容量的交点，不是性能临界点：两边存的信息不同，每步做的计算也不同，GLM 是靠两类层混合来组成模型的。
 
@@ -115,6 +185,8 @@ indexer 打分 11 层 = 11 × 33,280 × 256 B = 93,716,480 B ≈ 89.4 MiB
 开了前缀共享，多条请求可以引用同一份可复用的历史；开了投机解码、图执行或缓存卸载，又会多出各自的预留和缓冲。稀疏层还有一块常驻工作区，存每个查询选中位置的清单：主干 11 层共用约 64.09 MiB，MTP 层因清单宽度向上取整到 128 的倍数而另开一份 68.0 MiB，推导见[稀疏注意力的开销一节](sparse-attention.md#开销和什么时候别开)。所以估显存时，要把逻辑状态、缓存页、工作区、权重和通信缓冲分开记账，再用[显存分析](kv-cache-memory-profiling.md)核对实测。
 
 没有设备也能做的：复算维度和容量、检查页取整和候选范围。每秒 token 数、首 token 延迟、每个输出 token 的延迟都必须带着硬件、版本、并发、输入输出长度一起说；本页的容量推导不能当性能测试用。
+
+索引器打分还需要临时分数存储，要与持久缓存和选中位置清单分开核算。固定 GLM 的 FP32 分数矩阵若不分块，需要 `num_tokens × max_pool_seq_len × 4` 字节，其中两个维度分别是本轮处理的输入位置数和池位置宽度。实现按输入位置分块，每块只创建 rows 行分数，减少一次保留的分数；这不表示全部分数计算被省掉，也不能仅凭这个临时张量推算整次执行的峰值显存。
 
 ## 三类注意力在 GLM 里各有什么特殊之处
 
@@ -143,7 +215,7 @@ KDA 的状态形状只由三样东西决定：本卡的头数（64 ÷ 8 = 8）�
 ## 常见误解
 
 - **「缓存里存了多少，每一步就从显存读多少。」** 不一定。存的是逻辑容量；实际流量取决于内核怎样分块、是否重复加载、片上缓存能复用多少。稀疏层存的是全部历史，每步主 attention 只读其中至多 2051 个位置。
-- **「稀疏注意力省了缓存。」** 没有。每个查询重新挑选，这次落选的位置下次照样有机会被选中，全部历史都得留着；GLM 的稀疏层还多存一份索引 key 和尾状态。
+- **「稀疏注意力一定省缓存。」** GLM 这条按内容选的路径以后仍可能选回旧位置，因此保留全部历史，并多存索引 key 与尾状态；纯局部窗口等其他稀疏模式的保留范围不同，见[稀疏注意力](sparse-attention.md#为什么能省代价在哪)。
 - **「稀疏层的代价和长度无关。」** 只有主 attention 封顶。indexer 每个查询都要扫全部完整池，在 133,120 个位置处，它扫过的逻辑数据约是主 attention 读取量的 4 倍，而且还在随历史线性增长。
 - **「KDA 状态固定，所以这个模型的缓存不随长度增长。」** 每 4 层里还有 1 层稀疏 MLA，按位置保留历史。短于约 6,827 个 token 的请求 KDA 状态是大头，更长的请求 MLA 一侧占主导。
 - **「密集 Prefill 是平方的，所以整个模型的计算随 n² 增长。」** 平方项只在打分和汇合那一段；投影、MLP、MoE 仍随 token 数线性增长。
@@ -156,18 +228,20 @@ KDA 的状态形状只由三样东西决定：本卡的头数（64 ÷ 8 = 8）�
 
 这些代价没有单独的开关，由模型配置和部署参数共同决定。模型配置里，34 层 KDA 与 11 层 MLA 的排法、`index_topk=2048`（每个查询的位置预算）和 `index_kpool=4`（每池位置数）决定了主 attention 的读取上限与 indexer 的扫描粒度。[S2] 部署参数里，影响本页数字的是：`--max-model-len 133120` 决定最长历史，也就决定 indexer 最多扫多少池、MLA 一侧最多存多少；`--speculative-config` 里每轮 3 个 MTP 草稿，让卷积状态多留 3 格、KDA 状态多占 3 页；`--max-num-seqs 32` 决定每个 DP 组同时驻留多少份 KDA 状态。完整启动命令见[部署前提](glm-5-3-flash-two-node.md#部署前提)。
 
-逻辑块大小不用手动设置：vllm-ascend 的补丁会把它改成能装下一份 KDA 状态、又是稀疏内核块 128 整数倍的最小值，本部署为 640。[C12]
+逻辑块大小不用手动设置：vllm-ascend 的补丁会把它改成能装下一份 KDA 状态、又是稀疏内核块 128 整数倍的最小值，本部署为 640。
+
+覆盖用户配置的条件也有版本边界：本部署专用实现 db701c1f 在 GLM 特判下，只要配置块大小与计算结果不同就覆盖。v0.23 维护分支 2c59ff10 的对应路径则仅在块大小未设置或过小时覆盖，已设置的较大值不会被这个条件修改。其他分支要按其对应实现判断。
 
 ### 会报什么错
 
 | 条件 | 报错 | 说明 |
 | --- | --- | --- |
-| 逻辑块不是 128 的整数倍 | `ValueError: GLM-5 logical block size must be divisible by the SFA kernel block size: ...` | 稀疏内核按 128 个位置一块读，一个逻辑块必须由整数个内核块组成[C10] |
-| 取不到打包后的潜向量缓存 | `ValueError: Indexer KPool MLA sparse attention requires the packed MLA cache.` | 主 attention 读的是整份打包缓存[C8] |
-| 掩码模式不是 3 | `ValueError: Indexer KPool MLA only supports sparse_mode=3, got ...` | 设备入口只接受右下对齐的因果掩码[C9] |
-| 卷积核长不合法 | `ValueError: conv_kernel_size must be positive` | KDA 状态形状函数的输入检查[C3] |
-| 投机数为负 | `ValueError: num_spec must be non-negative` | 同上[C3] |
-| 通用补丁对不齐页大小（v0.23 维护分支） | `AssertionError: Cannot align ssm_page_size and attn_page_size.` | 固定状态页与注意力页无法补成同样大小[C13] |
+| 逻辑块不是 128 的整数倍 | `ValueError: GLM-5 logical block size must be divisible by the SFA kernel block size: ...` | 稀疏内核按 128 个位置一块读，一个逻辑块必须由整数个内核块组成 |
+| 取不到打包后的潜向量缓存 | `ValueError: Indexer KPool MLA sparse attention requires the packed MLA cache.` | 主 attention 读的是整份打包缓存 |
+| 掩码模式不是 3 | `ValueError: Indexer KPool MLA only supports sparse_mode=3, got ...` | 设备入口只接受右下对齐的因果掩码 |
+| 卷积核长不合法 | `ValueError: conv_kernel_size must be positive` | KDA 状态形状函数的输入检查 |
+| 投机数为负 | `ValueError: num_spec must be non-negative` | 同上 |
+| 通用补丁对不齐页大小（v0.23 维护分支） | `AssertionError: Cannot align ssm_page_size and attn_page_size.` | 固定状态页与注意力页无法补成同样大小 |
 
 稀疏路径上其余与缓存视图、清单行数、LSE 有关的报错，见[稀疏注意力的报错表](sparse-attention.md#会报什么错)。显存不够放下一条满长请求时的报错，见[显存分析](kv-cache-memory-profiling.md#会报什么错)。
 
@@ -183,21 +257,32 @@ KDA 的状态形状只由三样东西决定：本卡的头数（64 ÷ 8 = 8）�
 
 ### 版本差异
 
+**v0.30.0rc2 保留稀疏候选的预算概念，不能照搬旧总流量。** KPool 仍选完整池并追加至多 pool_size−1 个因果尾位置，输出宽度为 topk_tokens+index_kpool−1；2048/4 配置仍对应宽度 2051，但不代表每次都读取 2051 个有效位置。尾位置紧接短请求的有效完整池前缀，这个语义在固定 main 已存在；rc2 改为 indexer 的 pack_tail 路径及内核融合，不是首次修正尾列。KDA 状态仍把投机步数计入 shape。主 MLA 与压缩 indexer 共享调度块 ID，tail/KDA 使用独立 ID；物理页分为 main/KDA 与 indexer/tail 两档。主 KV 还可走 C8，所以旧 BF16 字节数和 640 块长只能作为原部署演算，不能简单除二变成 rc2 预算。
+
 GLM 的数字按本部署专用镜像 db701c1f 读，它是含 GLM 代码的 orphan commit，不算进 v0.23 列；上游 vLLM 按 0fc695fc。v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26 列是 2ed6cbba，main 列是 baa023ad。
 
 | 项目 | v0.23 | v0.26 | main |
 |---|---|---|---|
-| 主 attention 每个查询的读取上限（按池选择） | 维护分支没有 GLM 代码；镜像 db701c1f 为 2048 + 4 − 1 = 2051 格清单[C6] | 没有 GLM 模型文件，也没有按池的 indexer | 有；清单宽度仍是位置预算 + 每池位置数 − 1，选池与补尾公式相同[C16] |
-| KDA 状态形状 | 维护分支没有该形状函数；镜像为本卡头数 × 128 × 128，卷积格数 = 核长 − 1 + 投机数[C3] | 有同名形状函数，算法与镜像相同[C14] | 改走上游的通用 KDA 形状函数，同样传入投机数[C15] |
-| 固定状态页与注意力页怎样对齐 | 通用混合模型补丁：把注意力块放大到装得下一页状态，状态页补齐到注意力页；没有 GLM 专用分支[C13]。镜像另有按 128 对齐、得出 640 的 GLM 分支[C11][C12] | 同 v0.23 的通用补丁 | GLM 专用对齐移到 glm5next 的缓存配置里：主潜向量与 KDA 状态共用一种页大小，索引 key 与尾状态共用另一种[C17] |
+| 主 attention 每个查询的读取上限（按池选择） | 维护分支没有 GLM 代码；镜像 db701c1f 为 2048 + 4 − 1 = 2051 格清单 | 没有 GLM 模型文件，也没有按池的 indexer | 有；清单宽度仍是位置预算 + 每池位置数 − 1，选池与补尾公式相同 |
+| KDA 状态形状 | 维护分支没有该形状函数；镜像为本卡头数 × 128 × 128，卷积格数 = 核长 − 1 + 投机数 | 有同名形状函数，算法与镜像相同 | 改走上游的通用 KDA 形状函数，同样传入投机数 |
+| 固定状态页与注意力页怎样对齐 | 通用混合模型补丁：把注意力块放大到装得下一页状态，状态页补齐到注意力页；没有 GLM 专用分支。镜像另有按 128 对齐、得出 640 的 GLM 分支 | 同 v0.23 的通用补丁 | GLM 专用对齐移到 glm5next 的缓存配置里：主潜向量与 KDA 状态共用一种页大小，索引 key 与尾状态共用另一种 |
 
 main 的对齐是否仍得出 640 个 token 的逻辑块，没有逐行核对；三个版本能否整套跑通本文的部署，也没有做运行验证。
 
 ### 源码位置
 
-- KDA 状态形状：卷积状态与递推状态的形状只含头数、头宽、核长和投机数，没有长度维。[C3]
-- 稀疏 MLA 的三份缓存：主潜向量固定为 BF16、每位置 512 维，一层挂主潜向量、尾状态、索引 key 三份缓存。[C4] 索引 key 与尾状态的规格在模型文件里。[C5]
-- indexer 的打分与挑选：对全部完整池算分，取至多 512 个池展开成位置，再补 0–3 个尾部位置，清单宽 2051。[C6]
-- 主 attention 的实际执行路径：父类前向调用子类重写的稀疏执行函数，再做 V 展开与输出投影；[C7] 子类重写取出打包的潜向量缓存，交给设备入口；[C8] 设备入口以潜向量同时作 key 和 value、按清单逐位置调用稀疏 FlashAttention 内核。[C9] 同一文件里另有一个 PyTorch 参考实现，只被单元测试调用，不在推理路径上。
-- 逻辑块与页补齐：GLM 分支把 KDA 目标页取为注意力页与原始状态中的较大值，[C11] 并把逻辑块改成 128 的整数倍、装得下一份 KDA 状态的最小值；[C12] 稀疏层构造时再检查逻辑块能被 128 整除。[C10]
-- 密集因果注意力的定义与每个查询读取全部可见历史：[S1]。
+索引器临时分数张量的 FP32 类型、行分块与 top-k 处理见固定 GLM 实现；这些是张量分配与控制流，不能替代设备峰值测量。[C19]
+
+固定源码按版本分为四组：镜像 db701c1f 的实现见 [C3]–[C12]；v0.23 维护分支的通用补丁见 [C13]；v0.26 的 KDA 形状见 [C14]；main 的形状、选池与页对齐见 [C15]–[C17]。下表编号逐项对应本页来源列表中的固定文件和行号。
+
+| 核对项 | 实现与结论 | 来源编号与版本 |
+|---|---|---|
+| KDA 状态形状与输入检查 | 卷积状态与递推状态的形状只含头数、头宽、核长和投机数，没有长度维；核长和投机数的报错见上表 | 3：镜像形状及输入检查；14：v0.26 形状；15：main 的上游通用形状入口 |
+| 稀疏 MLA 三份缓存 | 主潜向量固定为 BF16、每位置 512 维，一层挂主潜向量、尾状态、索引 key 三份缓存；索引 key 与尾状态的规格在模型文件里 | 4：镜像三份缓存；5：镜像索引 key 与尾状态规格 |
+| indexer 打分与挑选 | 对全部完整池算分，取至多 512 个池展开成位置，再补 0–3 个尾部位置，清单宽 2051 | 6：镜像选池；16：main 选池与补尾 |
+| 主 attention 实际执行路径 | 父类前向调用子类重写的稀疏执行函数，再做 V 展开与输出投影；子类取出打包的潜向量缓存，交给设备入口；设备入口以潜向量同时作 key 和 value、按清单逐位置调用稀疏 FlashAttention 内核。同一文件里另有一个 PyTorch 参考实现，只被单元测试调用，不在推理路径上 | 7：父类前向；8：子类取缓存及缺缓存报错；9：设备入口及掩码模式检查，均为镜像实现 |
+| 逻辑块与页补齐 | GLM 分支把 KDA 目标页取为注意力页与原始状态中的较大值，并把逻辑块改成 128 的整数倍、装得下一份 KDA 状态的最小值；稀疏层构造时再检查逻辑块能被 128 整除。覆盖用户配置的版本边界和通用补丁的失败条件见上文 | 镜像：11 取目标页、12 改逻辑块及覆盖条件、10 构造检查；13：v0.23 通用补丁及覆盖条件；17：main 缓存配置内的专用对齐 |
+
+密集因果注意力的定义与每个查询读取全部可见历史见 [S1]。
+
+- 来源 19：vllm-ascend@db701c1f，vllm_ascend/ops/triton/glm5_next_lightning_indexer.py，L176–L236。

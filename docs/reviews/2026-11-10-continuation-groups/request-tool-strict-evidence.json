@@ -1,0 +1,339 @@
+{
+  "scope": "99item84 GLM required/named exception and four-version strict tool gates, not complete parser inventory",
+  "count": 33,
+  "entries": [
+    {
+      "n": 1,
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/tool_parsers/__init__.py#L53-L60",
+      "claim": "旧glm45→glm4，glm47→Glm47MoeModelToolParser。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "252b7e19efaa9bb6600e1edea38b1424df458a4c38941c56754633d265f52c48",
+      "excerpt_sha256": "4d32c328958b0d8c4ecdcec962fb82e23084e767bb3d8e80a4d9674a94505d13",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\baseline\\vllm\\tool_parsers\\__init__.py"
+    },
+    {
+      "n": 2,
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/tool_parsers/glm47_moe_tool_parser.py#L1-L40",
+      "claim": "旧glm47继承glm4，只改XML正则；不提供结构标签方法。",
+      "read_scope": "whole file directly read",
+      "source_sha256": "82020a184624662126851c4fed172a41a7188605aed1659c2f52009af66523f4",
+      "excerpt_sha256": "d2a7aa7df7b219a3e9aac6b357c9274f45dab0ab7ba9c4cfd869c69f2bc8cab9",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\baseline\\vllm\\tool_parsers\\glm47_moe_tool_parser.py"
+    },
+    {
+      "n": 3,
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/tool_parsers/glm4_moe_tool_parser.py#L149-L178",
+      "claim": "旧GLM required/named明确跳过父类结构化JSON约束并返回，保留XML解析；auto走基类但get_structural_tag默认None。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "dd2f9b6e19bc31fe283858f3a1cd451ea9a11c9fed250385d6de77502a01e086",
+      "excerpt_sha256": "28df2324886aa83838d7a4f8859bca606bfe6db4650e0a3bd3331432efbc37dc",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\baseline\\vllm\\tool_parsers\\glm4_moe_tool_parser.py"
+    },
+    {
+      "n": 4,
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/tool_parsers/abstract_tool_parser.py#L110-L173",
+      "claim": "通用parser可以生成工具schema约束，但不能覆盖GLM的子类早返；基类get_structural_tag返回None。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "c2a0a083fac5e10cc2ab53973807905bea97e432e7c601f8f7bda3ce0c50d81d",
+      "excerpt_sha256": "a6eef9b9bf05344e122f9bbf5472d82dfd6f2f15b5c006e61924b0190d94fc67",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\baseline\\vllm\\tool_parsers\\abstract_tool_parser.py"
+    },
+    {
+      "n": 5,
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/entrypoints/serve/render/serving.py#L578-L605",
+      "claim": "真实渲染入口在tool_choice非none时调用指定tool_parser.adjust_request。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "9925a5ca124d0cdfc24e11d41ad37d65bf393311194c318657ca90a5ab3321d6",
+      "excerpt_sha256": "eaa0eb78a6ace4c5a58720db0873b1b1486be9d3f5a613e08a245de400c4156c",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\baseline\\vllm\\entrypoints\\serve\\render\\serving.py"
+    },
+    {
+      "n": 6,
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/envs.py#L1804-L1806",
+      "claim": "旧严格工具全局环境默认0，按int转bool，未打开不启用通用结构标签分支。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "b776fb6b1bae4a4f1d6c53792e65e15bd6cde7e70d5c17ef08dfeec54cd59603",
+      "excerpt_sha256": "1d0c9d0800d95ff97b7676c4a719ceb64dcc07813bfb9d64c51287c5b61658e2",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\baseline\\vllm\\envs.py"
+    },
+    {
+      "n": 7,
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/entrypoints/openai/engine/protocol.py#L28-L57",
+      "claim": "OpenAIBaseModel允许extra字段，不能把strict额外字段接受当行为已实现。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "2ca4ccb38beaff09bf3b31e8990ca036bd008b9e5caacbc20889b8f4d7dc2529",
+      "excerpt_sha256": "f4349a7e7fd5bb8d752eab68dd7fa0b1c60dedf45e5d4d6c04d24d9545517745",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\baseline\\vllm\\entrypoints\\openai\\engine\\protocol.py"
+    },
+    {
+      "n": 8,
+      "version": "baseline",
+      "ref": "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/entrypoints/openai/engine/protocol.py#L241-L253",
+      "claim": "旧FunctionDefinition没有显式strict字段；与响应格式schema.strict不是同一容器。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "2ca4ccb38beaff09bf3b31e8990ca036bd008b9e5caacbc20889b8f4d7dc2529",
+      "excerpt_sha256": "d21fd4758da84d739d0e57eef3f2a616d4c56bbac527f79c2e607a8a66b7199a",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\baseline\\vllm\\entrypoints\\openai\\engine\\protocol.py"
+    },
+    {
+      "n": 9,
+      "version": "ascend-glm",
+      "ref": "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/patch/platform/patch_glm47_tool_call_parser.py#L1-L47",
+      "claim": "Ascend旧GLM补丁只规整零参调用区域文本，没有替换adjust_request或添加文法约束。",
+      "read_scope": "whole file directly read",
+      "source_sha256": "cdc7fbc1557c46a7637c69b2c161679f4861654e31ad0933c07d6207ae12a88c",
+      "excerpt_sha256": "c00187a5ce86b83892fa5a067008afe6445a72b7fb43d20a4172550a722eb885",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\ascend-glm\\vllm_ascend\\patch\\platform\\patch_glm47_tool_call_parser.py"
+    },
+    {
+      "n": 10,
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/tool_parsers/__init__.py#L53-L60",
+      "claim": "glm45/glm47都登记新Glm47 adapter。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "ba50834126c65a24e2e675b20862dd0f93576500a5a542e39ed88853f396fa70",
+      "excerpt_sha256": "52e33667185aad156ebb1d4109a666c1f11ae38503c6cb9c1effd9988992d63c",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\v026\\vllm\\tool_parsers\\__init__.py"
+    },
+    {
+      "n": 11,
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/tool_parsers/glm47_moe_tool_parser.py#L1-L11",
+      "claim": "GLM47采用parser-engine adapter并声明structural_tag_model=glm_4_7。",
+      "read_scope": "whole 11-line file directly read; identical across three new upstream versions",
+      "source_sha256": "c4df8aa4654aa92224f8347625c8bc5caaeb03aa00361c9f997e704b21d9b1c5",
+      "excerpt_sha256": "4cdefafa0007d6461da0dbc671df8ee83734abaad5f6553bd1c948adf9b37ed6",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\v026\\vllm\\tool_parsers\\glm47_moe_tool_parser.py"
+    },
+    {
+      "n": 12,
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/envs.py#L1664-L1666",
+      "claim": "严格工具全局默认True，字符串lower后仅true/1开启；与旧int getter不同。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "e078b0acb8e658faa6a8144d13a9036e2a82af40b348f419489a2607247cd936",
+      "excerpt_sha256": "631d40f89654c6053f3d9ffba913ae83a5f6314dfdb36c25e7c132ba286c37d8",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\v026\\vllm\\envs.py"
+    },
+    {
+      "n": 13,
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/entrypoints/openai/engine/protocol.py#L289-L303",
+      "claim": "函数工具strict显式bool|None默认None，None序列化省略。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "301f15fe94aa47d786883da1a07ea7bb62592978a63aac849f588f1cd5bdad56",
+      "excerpt_sha256": "5cc107b26292a89faf8d3264a503658f6528485c2d853770983c469cd6c4da48",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\v026\\vllm\\entrypoints\\openai\\engine\\protocol.py"
+    },
+    {
+      "n": 14,
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/tool_parsers/abstract_tool_parser.py#L168-L185",
+      "claim": "结构标签需parser声明model和环境开关，随后委托registry；不是所有parser都支持。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "5826dee6676d2ffc88856ab498c6271296b17c6f743a96646a2fc49a9008d1d7",
+      "excerpt_sha256": "cb7c0cf66af2eeac822979199a5d13a8815a11d7c6658c842ffe7a560046424e",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\v026\\vllm\\tool_parsers\\abstract_tool_parser.py"
+    },
+    {
+      "n": 15,
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/parser/abstract_parser.py#L511-L558",
+      "claim": "先派生模型结构标签，成功后写structured_outputs并清response_format，再调工具parser；不能把开关等同所有模型schema保证。",
+      "read_scope": "actual v026/rc2 read; main exact AST reuse verified in selected-methods.json",
+      "source_sha256": "87a1b225e95fcdc1dc20a0103647c8b49cfeca0ced2a942ea41447e628aa59a1",
+      "excerpt_sha256": "fe37d5ac5986296d19212d75d6837879f1955da8fd9f3cb7fac459ba77b7ddff",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\v026\\vllm\\parser\\abstract_parser.py"
+    },
+    {
+      "n": 16,
+      "version": "v026",
+      "ref": "vllm@568afb3a13806beb53bb2e6bd518269357b237c0:vllm/tool_parsers/structural_tag_registry.py#L87-L136",
+      "claim": "none/无tools不约束；auto只有至少一个strict True才建结构标签；required/named不经过auto gate；委托模型专属builder。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "464642ddf07c143394071e68c69fb95029913e04907b363a31698585529952cf",
+      "excerpt_sha256": "cabc194d7040be64545fde4de3cb880867a828ff6deeacf7bdbca21ac59a6977",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\v026\\vllm\\tool_parsers\\structural_tag_registry.py"
+    },
+    {
+      "n": 17,
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/tool_parsers/__init__.py#L61-L68",
+      "claim": "glm45/glm47都登记新Glm47 adapter。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "0d265c407dd5ebe43f4e2a1c39c68a7ab79209f4ac68643fb3dcc034d48185d4",
+      "excerpt_sha256": "52e33667185aad156ebb1d4109a666c1f11ae38503c6cb9c1effd9988992d63c",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\rc2\\vllm\\tool_parsers\\__init__.py"
+    },
+    {
+      "n": 18,
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/tool_parsers/glm47_moe_tool_parser.py#L1-L11",
+      "claim": "GLM47采用parser-engine adapter并声明structural_tag_model=glm_4_7。",
+      "read_scope": "whole 11-line file directly read; identical across three new upstream versions",
+      "source_sha256": "c4df8aa4654aa92224f8347625c8bc5caaeb03aa00361c9f997e704b21d9b1c5",
+      "excerpt_sha256": "4cdefafa0007d6461da0dbc671df8ee83734abaad5f6553bd1c948adf9b37ed6",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\rc2\\vllm\\tool_parsers\\glm47_moe_tool_parser.py"
+    },
+    {
+      "n": 19,
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/envs.py#L1751-L1753",
+      "claim": "严格工具全局默认True，字符串lower后仅true/1开启；与旧int getter不同。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "fbd370b2f56ff798d373e85705c9e044ccae893ef974f2800eec4ef6f2b4fb7f",
+      "excerpt_sha256": "631d40f89654c6053f3d9ffba913ae83a5f6314dfdb36c25e7c132ba286c37d8",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\rc2\\vllm\\envs.py"
+    },
+    {
+      "n": 20,
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/entrypoints/generate/base/protocol.py#L246-L261",
+      "claim": "函数工具strict显式bool|None默认None，None序列化省略。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "cbf29ae008b7b51234d74e602f1395b5cbef660fa79e65eedab8228e9c49c9ee",
+      "excerpt_sha256": "8c85584f025b71629a566f81d7a63dd18bde5495690cc062efbae41898e12d5d",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\rc2\\vllm\\entrypoints\\generate\\base\\protocol.py"
+    },
+    {
+      "n": 21,
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/tool_parsers/abstract_tool_parser.py#L167-L184",
+      "claim": "结构标签需parser声明model和环境开关，随后委托registry；不是所有parser都支持。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "c5f1629e58a7d6db7f6f403782c0be60628c53c791d321d8c1dc508fd6e40b02",
+      "excerpt_sha256": "cb7c0cf66af2eeac822979199a5d13a8815a11d7c6658c842ffe7a560046424e",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\rc2\\vllm\\tool_parsers\\abstract_tool_parser.py"
+    },
+    {
+      "n": 22,
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/parser/abstract_parser.py#L553-L600",
+      "claim": "先派生模型结构标签，成功后写structured_outputs并清response_format，再调工具parser；不能把开关等同所有模型schema保证。",
+      "read_scope": "actual v026/rc2 read; main exact AST reuse verified in selected-methods.json",
+      "source_sha256": "543860ba3b779367611450e6721f8b3232619aab21357eec8e639e95e2c181a8",
+      "excerpt_sha256": "fe37d5ac5986296d19212d75d6837879f1955da8fd9f3cb7fac459ba77b7ddff",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\rc2\\vllm\\parser\\abstract_parser.py"
+    },
+    {
+      "n": 23,
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/tool_parsers/structural_tag_registry.py#L97-L154",
+      "claim": "none/无tools不约束；auto只有至少一个strict True才建结构标签；required/named不经过auto gate；委托模型专属builder。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "dd0fd06f8eee41862c134355da6910217f0b8063def5ceaede15a5fabc250eeb",
+      "excerpt_sha256": "0ffeec24fa3284f10b022f9c6bf83797cea97415585762bd91127659bc7e2c16",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\rc2\\vllm\\tool_parsers\\structural_tag_registry.py"
+    },
+    {
+      "n": 24,
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/tool_parsers/__init__.py#L61-L68",
+      "claim": "glm45/glm47都登记新Glm47 adapter。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "0d265c407dd5ebe43f4e2a1c39c68a7ab79209f4ac68643fb3dcc034d48185d4",
+      "excerpt_sha256": "52e33667185aad156ebb1d4109a666c1f11ae38503c6cb9c1effd9988992d63c",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\main\\vllm\\tool_parsers\\__init__.py"
+    },
+    {
+      "n": 25,
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/tool_parsers/glm47_moe_tool_parser.py#L1-L11",
+      "claim": "GLM47采用parser-engine adapter并声明structural_tag_model=glm_4_7。",
+      "read_scope": "whole 11-line file directly read; identical across three new upstream versions",
+      "source_sha256": "c4df8aa4654aa92224f8347625c8bc5caaeb03aa00361c9f997e704b21d9b1c5",
+      "excerpt_sha256": "4cdefafa0007d6461da0dbc671df8ee83734abaad5f6553bd1c948adf9b37ed6",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\main\\vllm\\tool_parsers\\glm47_moe_tool_parser.py"
+    },
+    {
+      "n": 26,
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/envs.py#L1780-L1782",
+      "claim": "严格工具全局默认True，字符串lower后仅true/1开启；与旧int getter不同。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "f0810fdba3fc927a78058e77c7411aa82ddf6fd08cd9b4d245b4acef84554a96",
+      "excerpt_sha256": "631d40f89654c6053f3d9ffba913ae83a5f6314dfdb36c25e7c132ba286c37d8",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\main\\vllm\\envs.py"
+    },
+    {
+      "n": 27,
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/entrypoints/generate/base/protocol.py#L246-L261",
+      "claim": "函数工具strict显式bool|None默认None，None序列化省略。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "cbf29ae008b7b51234d74e602f1395b5cbef660fa79e65eedab8228e9c49c9ee",
+      "excerpt_sha256": "8c85584f025b71629a566f81d7a63dd18bde5495690cc062efbae41898e12d5d",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\main\\vllm\\entrypoints\\generate\\base\\protocol.py"
+    },
+    {
+      "n": 28,
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/tool_parsers/abstract_tool_parser.py#L167-L184",
+      "claim": "结构标签需parser声明model和环境开关，随后委托registry；不是所有parser都支持。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "c5f1629e58a7d6db7f6f403782c0be60628c53c791d321d8c1dc508fd6e40b02",
+      "excerpt_sha256": "cb7c0cf66af2eeac822979199a5d13a8815a11d7c6658c842ffe7a560046424e",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\main\\vllm\\tool_parsers\\abstract_tool_parser.py"
+    },
+    {
+      "n": 29,
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/parser/abstract_parser.py#L549-L596",
+      "claim": "先派生模型结构标签，成功后写structured_outputs并清response_format，再调工具parser；不能把开关等同所有模型schema保证。",
+      "read_scope": "actual v026/rc2 read; main exact AST reuse verified in selected-methods.json",
+      "source_sha256": "368997944992edcd312acc6cb08de6877c87ed7160c8b4ca5897d7ae2bdc39d7",
+      "excerpt_sha256": "fe37d5ac5986296d19212d75d6837879f1955da8fd9f3cb7fac459ba77b7ddff",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\main\\vllm\\parser\\abstract_parser.py"
+    },
+    {
+      "n": 30,
+      "version": "main",
+      "ref": "vllm@84030bbe3d74d99bad477a3d2e37a973ccd8865c:vllm/tool_parsers/structural_tag_registry.py#L96-L153",
+      "claim": "none/无tools不约束；auto只有至少一个strict True才建结构标签；required/named不经过auto gate；委托模型专属builder。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "5d1a4b2789cb0fe05f8fbfa8739036965cb8a2746efff77749bb53176aad569c",
+      "excerpt_sha256": "0ffeec24fa3284f10b022f9c6bf83797cea97415585762bd91127659bc7e2c16",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\main\\vllm\\tool_parsers\\structural_tag_registry.py"
+    },
+    {
+      "n": 31,
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/parser/engine/adapters.py#L193-L198",
+      "claim": "新adapter会先调用ToolParser调整，再调用parser engine；已经设置structural_tag时基类保留它。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "7a77bcb86e2129762f4199ee726398a4850b9e207893fc4295f2b759bcfeeb36",
+      "excerpt_sha256": "b95e07209fccc4c17ea45769e47a8133a257f869a41858ca77090cc6877914e6",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\rc2\\vllm\\parser\\engine\\adapters.py"
+    },
+    {
+      "n": 32,
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/renderers/online_renderer.py#L716-L746",
+      "claim": "普通Chat真实消费者在渲染后实例化parser并adjust_request；本组只认普通Chat，不全包Responses。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "147ac64103d7ffa842cc6b91e916c5de8aaab35f79762451e2c0ee8cb5513c0e",
+      "excerpt_sha256": "db082436e009dc10f9cf37d5b49e8b1e0ba1ed91a510dc9ab4624363925a54ce",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\rc2\\vllm\\renderers\\online_renderer.py"
+    },
+    {
+      "n": 33,
+      "version": "rc2",
+      "ref": "vllm@ced6857afa0ea7b2e3f0846a62e1394e90f15607:vllm/tool_parsers/abstract_tool_parser.py#L118-L149",
+      "claim": "存在structural_tag时保留，不再用通用JSON工具schema覆盖。",
+      "read_scope": "selected source directly read",
+      "source_sha256": "c5f1629e58a7d6db7f6f403782c0be60628c53c791d321d8c1dc508fd6e40b02",
+      "excerpt_sha256": "e53c6235f23bd73e4c4c96880072f77028a0753e06ea50aefa1ca8417a2ffc32",
+      "local_path": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\rc2\\vllm\\tool_parsers\\abstract_tool_parser.py"
+    }
+  ],
+  "selected_comparison": ".tmp\\continuation-groups-2026-11-10\\request-official-coverage\\tool-followthrough\\selected-methods.json",
+  "teaching_edited": false,
+  "npu_execution": false
+}

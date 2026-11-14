@@ -1,0 +1,47 @@
+--- trial-before/prepare-inputs-flow.md
++++ wiki/concepts/prepare-inputs-flow.md
+@@ -56,7 +56,7 @@
+   - 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L885'
+   - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L890-L913'
+   - 'vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L1228-L1251'
+-  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3347-L3360'
++  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3379-L3548'
+   - 'vllm@0fc695fc:vllm/v1/attention/backends/gdn_attn.py#L104-L111'
+   - 'vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L283-L302'
+   - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1700-L1775'
+@@ -86,7 +86,7 @@
+     kind: builds-on
+     note: 13 条请求拼成 6048 行，以及补到图尺寸、两组对齐的账
+ contradicts: []
+-updated: 2026-11-03T00:00:00.000Z
++updated: 2026-11-10T00:00:00.000Z
+ origin: gap
+ rawSources:
+   - >-
+@@ -199,7 +199,7 @@
+ 4. 把中间的空行压紧，最后一行整行搬进空位；
+ 5. 如果注意力后端（每一层真正去调注意力算子的那层代码）声明了一个 decode 阈值，就按阈值重排：本步 token 数不超过阈值、已经在 decode 的请求排最前面，本步从位置 0 开始的新请求排最后，还在分段算提示词的排中间。
+ 
+-所以**一条请求坐第几行不是终身的**：别的请求结束、新请求加入、重排，都会让它换行。按请求找结果要靠持久批次里「请求 ID → 行号」的对照表，不能把行号记死。如果这一步的计划里一个 token 都没有，model runner 同步完持久批次就直接返回空结果，不进准备输入。
++所以**一条请求坐第几行不是终身的**：别的请求结束、新请求加入、重排，都会让它换行。按请求找结果要靠持久批次里「请求 ID → 行号」的对照表，不能把行号记死。如果这一步的计划里一个 token 都没有，就不进入本页这套常规输入准备；按配置仍可能先做 DP 陪跑或 KV 传输协作，再返回相应结果。
+ 
+ ### 再给这一步贴一个形态标签
+ 
+@@ -275,7 +275,7 @@
+ 
+ **重排阈值是 4。** GLM 开着 MTP，每步草拟 3 个候选。稀疏 MLA 的元数据构建器把 decode 阈值设为 1 + 3 = 4；KDA 的构建器按投机 token 数算，也是 4。两个阈值必须一样，不一样启动时就报错。于是多条请求混在一步里时，本步不超过 4 个 token 的 decode 请求排在前面，新请求排在最后。[场景 M](concurrent-requests.md#第-3-站-准备输入13-条请求拼成一个-6048-行的张量) 的那一步里，12 条 decode 请求各 4 个 token、1 条新请求 6000 个 token，拼成 6048 行，顺序正是 12 条 decode 在前、新请求在后；这 6048 行的位置和边界，以及补到图尺寸、两组对齐的账，都在那一页。
+ 
+-**DP1 在陪跑，不走这套流程。** DP1 没有请求，但 EP16 下 MoE 的通信要 16 张卡一起参与，所以它每步让自己的 8 个 worker 跑一次 4 个 token 的空批次（dummy batch）。空批次由 model runner 直接造好输入和元数据，不经过调度计划，也不走本页的同步持久批次和填表。
++**DP1 在陪跑，不走这套流程。** DP1 没有请求，但 EP16 下 MoE 的通信要 16 张卡一起参与，所以在这里跟踪的 R1 前两步中，它让自己的 8 个 worker 各跑一次 4 个 token 的空批次（dummy batch），与活跃组对齐。空批次由 model runner 直接造好输入和元数据，不经过调度计划，也不走本页的同步持久批次和填表。
+ 
+ ## 常见误解
+ 
+@@ -302,7 +302,7 @@
+ 
+ ### 会报什么错
+ 
+-- `assert total_num_scheduled_tokens > 0`、`assert num_reqs > 0`：在 `_prepare_inputs` 开头。正常路径上没有 token 时 `execute_model` 已经提前返回 `EMPTY_MODEL_RUNNER_OUTPUT`，撞上这两条说明持久批次和计划不同步。
++- `assert total_num_scheduled_tokens > 0`、`assert num_reqs > 0`：在 `_prepare_inputs` 开头。正常路径上没有 token 时，`execute_model` 会在必要的 DP 或 KV 协作后提前退出，不进入这里。撞上断言时要核对调用路径、持久批次和计划是否一致；不能把所有零 token 出口都当成 `EMPTY_MODEL_RUNNER_OUTPUT`。
+ - `Attention backend reorders decodes with threshold ... but other backend uses threshold ...`：启动时 `initialize_attn_backend` 调 `calculate_reorder_batch_threshold`，发现两个后端的重排阈值不一样，抛 `ValueError`。
+ - `decode_threshold exceeded`：SFA 构建器里 1 + 草稿数超过 16 时的断言。
+ - `_pad_query_start_loc_for_fia` 的两条断言：全 decode 补齐时要求真实请求数不超过补齐后的请求数，混合批时要求两者相等。

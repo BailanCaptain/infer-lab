@@ -1,6 +1,6 @@
 layout: figure
 id: pd-state-boundary
-caption: 以 R1 的 4 个提示词 token 为例看交接点。上面是 GLM 这类带递推状态的混合模型：P 故意少算最后 1 个位置，交出「处理完 3 个位置」的状态 S₃，D 只算 p₃。下面是纯注意力模型：P 算满 4 个位置，D 收到 4 格 K/V 后退回 1 格，重算 p₃ 才能采样。两种情形都由 D 算出首 token。
+caption: 以 R1 的 4 个提示词 token 为例看交接点。上面是 GLM 这类带递推状态的混合模型：P 故意少算最后 1 个位置，交出「处理完 3 个位置」的状态 S₃，D 只算 p₃。S₃ 包含 MLA 历史、indexer 的未满池尾状态及 KDA 状态；此时还没凑满 4 个位置，没有完成的 indexer 池。下面是纯注意力模型：P 算满 4 个位置，D 收到 4 格 K/V 后退回 1 格，重算 p₃ 才能采样。两种情形都由 D 算出首 token。
 size: [900, 540]
 frames:
   - { at: [20, 50], size: [860, 200], label: 带递推状态的混合模型（GLM）：P 少算最后 1 个位置 }
@@ -12,7 +12,7 @@ grids:
   - { at: [45, 322], rows: 1, cols: 4, cell: [50, 34], tone: token, style: plain, cells: [{ at: [0, 0], text: p₀ }, { at: [0, 1], text: p₁ }, { at: [0, 2], text: p₂ }, { at: [0, 3], text: p₃ }] }
 items:
   - { at: [45, 164], size: [200, 56], text: P 前向, sub: 只算 p₀–p₂，也采样 1 个, tone: weight }
-  - { at: [276, 102], size: [222, 52], text: 按位置的历史 3 格, sub: MLA 潜向量、indexer 缓存, tone: kv }
+  - { at: [276, 102], size: [222, 52], text: MLA 的前 3 格历史, sub: 另带 indexer 未满池尾状态, tone: kv }
   - { at: [276, 166], size: [222, 56], text: KDA 递推与卷积状态, sub: 处理完 3 个位置的一份, tone: kv }
   - { at: [560, 164], size: [150, 56], text: D 前向, sub: 只算 p₃, tone: weight }
   - { at: [740, 164], size: [120, 56], text: y₀, sub: 首 token, tone: token }
@@ -37,3 +37,6 @@ texts:
   - { at: [536, 184], text: 交接, anchor: middle, tone: comm }
   - { at: [529, 430], text: 交接, anchor: middle, tone: comm }
   - { at: [450, 522], text: 两种情形都由 D 算出 p₃ 这一格再采样, anchor: middle, note: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/core/kv_cache_interface.py#L27-L50
+    symbols: [format_indexer_kpool_slot_mapping]

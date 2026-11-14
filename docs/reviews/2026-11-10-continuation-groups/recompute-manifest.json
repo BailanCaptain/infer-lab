@@ -1,0 +1,707 @@
+{
+  "recorded_at": "2026-11-10T08:52:36.625396+00:00",
+  "unit": "source occurrence",
+  "items": [
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 1,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L297-L345",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 2,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/recompute_cpu_offload_connector.py#L40-L96",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 3,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L63-L118",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 4,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L133-L156",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 5,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L179-L234",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 6,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L236-L368",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 7,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L517-L553",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 8,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L96-L116",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 9,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L134-L175",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 10,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L200-L284",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 11,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1984-L1989",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 12,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/ascend_multi_connector.py#L65-L77",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 13,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L23-L26",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 14,
+      "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L40-L61",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 15,
+      "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L226-L274",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 16,
+      "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L276-L307",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 17,
+      "ref": "vllm@0fc695fc:vllm/config/parallel.py#L776-L780",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 18,
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L553-L562",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 19,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L262-L292",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 20,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L266-L280",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 21,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/preempt_offload_connector.py#L45-L63",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 22,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L282-L295",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 23,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L105-L130",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 24,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/worker/v2/model_runner.py#L320-L326",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 25,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L118-L123",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 26,
+      "ref": "https://github.com/vllm-project/vllm-ascend/pull/16510",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 27,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L548-L672",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 28,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L138-L170",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 29,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L286-L305",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 30,
+      "ref": "raw:sha256-26389ffc630503f01c6fc277dd6907472e173d67a567586c2d95ac9da48d27d5.md#L1-L1079",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 31,
+      "ref": "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L40-L79",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 32,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L125-L159",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 33,
+      "ref": "https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/preempt_offload_connector.md#L40-L79",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-cpu-offload",
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "group": "04-cache-state",
+      "source_number": 34,
+      "ref": "vllm@0fc695fc:vllm/v1/core/block_pool.py#L149-L177",
+      "state": "baseline_remaining",
+      "page_sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 15,
+      "ref": "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L689-L725",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 16,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L128-L146",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 17,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L576-L612",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 18,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/patch/recompute_proxy.py#L33-L105",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 19,
+      "ref": "vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L144-L149",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 20,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L85-L166",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 21,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L352-L370",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 22,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L1024-L1036",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 23,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1014-L1044",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 24,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 25,
+      "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2154-L2186",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 26,
+      "ref": "vllm-ascend@baa023ad:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1165-L1180",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 27,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L295-L345",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 28,
+      "ref": "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L682-L723",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 29,
+      "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1254-L1280",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 30,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L484-L500",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 31,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/__init__.py#L424-L440",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 32,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1175-L1181",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 33,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L381-L384",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 34,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/pcp_utils.py#L304-L310",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 35,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1255-L1302",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 36,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L129-L133",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 37,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L708-L710",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 38,
+      "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L689-L729",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 39,
+      "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_coordinator.py#L491-L505",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 40,
+      "ref": "https://github.com/vllm-project/vllm-ascend/pull/10742",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 41,
+      "ref": "raw:sha256-57612b2ec822e3076037e0ac4337f65f295e6e8d1c99f1dc325c6add4171929b.md#L1-L1184",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 42,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L118-L155",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "group": "04-cache-state",
+      "source_number": 43,
+      "ref": "vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L348-L370",
+      "state": "baseline_remaining",
+      "page_sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "page_id": "swa-bounded-replay",
+      "path": "wiki/concepts/swa-bounded-replay.md",
+      "group": "04-cache-state",
+      "source_number": 1,
+      "ref": "https://arxiv.org/html/2609.19969v1",
+      "state": "baseline_remaining",
+      "page_sha256": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8"
+    },
+    {
+      "page_id": "swa-bounded-replay",
+      "path": "wiki/concepts/swa-bounded-replay.md",
+      "group": "04-cache-state",
+      "source_number": 2,
+      "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/doc/inference_deployment_qa.md",
+      "state": "baseline_remaining",
+      "page_sha256": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8"
+    },
+    {
+      "page_id": "swa-bounded-replay",
+      "path": "wiki/concepts/swa-bounded-replay.md",
+      "group": "04-cache-state",
+      "source_number": 3,
+      "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/environ.py",
+      "state": "baseline_remaining",
+      "page_sha256": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8"
+    },
+    {
+      "page_id": "swa-bounded-replay",
+      "path": "wiki/concepts/swa-bounded-replay.md",
+      "group": "04-cache-state",
+      "source_number": 4,
+      "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/input_metadata/yoco.py",
+      "state": "baseline_remaining",
+      "page_sha256": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8"
+    },
+    {
+      "page_id": "swa-bounded-replay",
+      "path": "wiki/concepts/swa-bounded-replay.md",
+      "group": "04-cache-state",
+      "source_number": 5,
+      "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/models/v4_modules/yoco.py",
+      "state": "baseline_remaining",
+      "page_sha256": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8"
+    },
+    {
+      "page_id": "swa-bounded-replay",
+      "path": "wiki/concepts/swa-bounded-replay.md",
+      "group": "04-cache-state",
+      "source_number": 6,
+      "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/yoco/README.md",
+      "state": "baseline_remaining",
+      "page_sha256": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8"
+    },
+    {
+      "page_id": "swa-bounded-replay",
+      "path": "wiki/concepts/swa-bounded-replay.md",
+      "group": "04-cache-state",
+      "source_number": 7,
+      "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/worker/cache_engine.py",
+      "state": "baseline_remaining",
+      "page_sha256": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8"
+    },
+    {
+      "page_id": "swa-bounded-replay",
+      "path": "wiki/concepts/swa-bounded-replay.md",
+      "group": "04-cache-state",
+      "source_number": 8,
+      "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md",
+      "state": "baseline_remaining",
+      "page_sha256": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8"
+    }
+  ],
+  "files": [
+    {
+      "path": "wiki/concepts/recompute-cpu-offload.md",
+      "sha256": "21cbf2ff0af4b69c09411a4e7dec30c209c554885508f8fb8ac719080a8863da"
+    },
+    {
+      "path": "wiki/diagrams/recompute-cpu-offload.svg",
+      "sha256": "a9bb4235d14c7ecd049a2b3f8b70356ab9a56fc4b3bfb4f0dd01c23c527ad1bb"
+    },
+    {
+      "path": "wiki/diagrams/recompute-cpu-offload.yaml",
+      "sha256": "26d485ec14493b85698969500e84a4980e0c36b7ff112329644901dadbb0540e"
+    },
+    {
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "sha256": "82041932e04a8e2726a117e99dfbe39e95d4b0e06814ac83cf42d90ead7f05a7"
+    },
+    {
+      "path": "wiki/diagrams/recompute-scheduler.svg",
+      "sha256": "df629c424a4263d03daba5265920debcba83edf4d6186ea0795413e28a360dbf"
+    },
+    {
+      "path": "wiki/diagrams/recompute-scheduler.yaml",
+      "sha256": "5395b762ead92cf229477f134ad608804a48a55a6e3305ac2e2fb1c9e4c5eaf3"
+    },
+    {
+      "path": "wiki/diagrams/recompute-scheduler-flow.svg",
+      "sha256": "80fc1913556ec413e890c81a58f0c17264a798d34073394a4e16af9082f921ab"
+    },
+    {
+      "path": "wiki/diagrams/recompute-scheduler-flow.yaml",
+      "sha256": "51ac14fb338adb0cbbe545b858cb27d12498c6802b58a02d7a5fbdfa011c0b13"
+    },
+    {
+      "path": "wiki/concepts/swa-bounded-replay.md",
+      "sha256": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-state.svg",
+      "sha256": "41f948a3070c6e78d335ffa90b9710545f176a543542afa72398650a0dba2b4b"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-state.yaml",
+      "sha256": "2235e2b9976cdd1a684a669af5e0743eee970ab16dca107990732e54911b401f"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-intuition.svg",
+      "sha256": "52b0dd2273cf50c389df159fada99f5edfaa701da8046d3db75c39ca35f111f1"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-intuition.yaml",
+      "sha256": "1b13bd60e099b9d7fb1c928c5e7b9ff28b0141e19aa92db305a0a32fe2bb3e62"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-flow.svg",
+      "sha256": "d830b09a93f77bc5489a94c3b7103d6af77e1f82202c15c588a45ffaf5531b2f"
+    },
+    {
+      "path": "wiki/diagrams/swa-replay-flow.yaml",
+      "sha256": "7eeea46f1bdc38e04c58a282cc8adb7134c0aa338540af88a3b9effe778cb72a"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+--- before/capacity.md
++++ after/capacity.md
+@@ -14,8 +14,10 @@
+   - https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md
+   - https://github.com/vllm-project/vllm/issues/49238
+   - https://github.com/vllm-project/vllm/pull/50047
+-  - https://github.com/vllm-project/vllm/blob/dfb7dd92a406f5dc8c963fd274e59e55ae648fc4/vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_worker.py
+-  - https://github.com/vllm-project/vllm/blob/dfb7dd92a406f5dc8c963fd274e59e55ae648fc4/vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_worker.py
++  - 'vllm@dfb7dd92a406f5dc8c963fd274e59e55ae648fc4:vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_worker.py#L3548-L3630'
++  - 'vllm@dfb7dd92a406f5dc8c963fd274e59e55ae648fc4:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_worker.py#L47-L138'
++  - 'vllm@dfb7dd92a406f5dc8c963fd274e59e55ae648fc4:vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_worker.py#L1257-L1351'
++  - 'vllm@dfb7dd92a406f5dc8c963fd274e59e55ae648fc4:vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_worker.py#L2825-L2964'
+ relations:
+   - { to: deepseek-serving-case, kind: builds-on, note: 先看独立计算阶段与缓存存储之间怎样接力 }
+   - { to: inference-benchmarking, kind: builds-on, note: 用相同负载与延迟口径测可用容量 }
+@@ -205,10 +207,10 @@
+ 
+ ### 源码位置
+ 
+-- DeepSeek 的扩缩容信号、1 分钟宽限期、0.8 缩容保护和大 EP 重启策略，见固定部署问答的 `Autoscaling & fault tolerance`，并与生产文章“自动扩缩容”核对 [S1][S2]。发布边界见 README [S3]。
++- DeepSeek 的扩缩容信号、1 分钟宽限期、0.8 缩容保护和大 EP 重启策略，以固定部署问答的 `Autoscaling & fault tolerance` 为依据 [S1]；发布边界见 README [S3]。问答链接的生产文章 [S2] 保留作延伸阅读，上述具体规则均可在固定问答中直接找到。
+ - vLLM 侧沿 `Scheduler` 的结束与资源释放方法阅读，具体函数、连接器完成通知及行号统一由[请求收尾页](request-teardown.md#源码位置)维护；本页不另写一套调用链。
+ - **跨重启交接的公开证据。** 来源 4 的 [issue #49238](https://github.com/vllm-project/vllm/issues/49238) 记录 H200、vLLM v0.25.0/v0.25.1、NIXL 1.3.1 的 P 重启后 D 原生崩溃，P 为 TP1、D 为 TP4；它说明单端 ready 不足以证明交接恢复，报告者提出的具体内存竞争原因仍属假设。正文的两代实例记录与三组对照是本站分析 [I]，不是本项目的设备实验。
+-- **清理范围与版本边界。** 截至 2026-10-30，来源 5 的 [PR #50047](https://github.com/vllm-project/vllm/pull/50047) 已合并，最终 head 为 `dfb7dd92a406f5dc8c963fd274e59e55ae648fc4`，merge 为 `fff03267dae61d03615225c2f48a06082d842e2d`。该 head 的补丁只在 pull 模式下识别同地址换引擎标识，并等待相关请求与握手结束后释放旧对端状态 [C6][C7]；作者的两卡实验报告新请求成功，被强制中断的请求失败且未续传。早期评论曾讨论更广的链路恢复，不能当成最终补丁范围；这也不证明原 issue 的底层原生崩溃已由该 PR 修复。现场镜像及 NIXL/UCX 依赖是否包含相应修复，需另核实际产物，不能仅看 vLLM 版本号。
++- **清理范围与版本边界。** 截至 2026-11-03，来源 5 的 [PR #50047](https://github.com/vllm-project/vllm/pull/50047) 已于 2026-09-27 合并，最终 head 为 `dfb7dd92a406f5dc8c963fd274e59e55ae648fc4`，merge 为 `fff03267dae61d03615225c2f48a06082d842e2d`。该 head 的补丁只在 pull 模式下识别同地址换引擎标识：新握手成功后更新地址记录，在结果处理时检查是否还存在握手或使用旧对端的请求，满足清理条件才释放旧状态；已排队请求若遇到已被释放的对端，则重新握手 [C6][C7][C8][C9]。作者的两卡实验报告新请求成功，被强制中断的请求失败且未续传。早期评论曾讨论更广的链路恢复，不能当成最终补丁范围；这也不证明原 issue 的底层原生崩溃已由该 PR 修复。现场镜像及 NIXL/UCX 依赖是否包含相应修复，需另核实际产物，不能仅看 vLLM 版本号。
+ - 逐档压测表、12 条/秒、每实例 5 条/秒、就绪时间线及流式重试记录均为教学假设 [A]；实例数量、240 条积压与 80 秒理想消退时间为推导 [D]。就绪检查、迁移确认、重试与演练步骤属于本站工程分析 [I]，不是对 DeepInfer 未公开实现的描述。
+ 
+ **仍需现场核实。** 各阶段在目标负载与 SLO 下的能力、冷启动和缓存变冷耗时、迁移支持的状态、客户端续传语义，以及故障后实际失败与恢复时间。本页没有目标硬件的容量压测或故障注入结果。

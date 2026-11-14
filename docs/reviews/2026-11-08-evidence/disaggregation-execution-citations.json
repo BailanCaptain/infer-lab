@@ -1,0 +1,4238 @@
+{
+  "date": "2026-11-08",
+  "reviewer": "disaggregation-execution",
+  "complete": false,
+  "completion_scope": "用户要求转串行后的安全检查点；已读待判不是核验完成。独立复审由主会话统一调度，未启动子代理。未作设备实测或全站验收",
+  "counts": {
+    "已读待判": 343,
+    "待核": 9,
+    "支持": 50,
+    "部分支持": 13,
+    "重复存档": 1
+  },
+  "pages": [
+    {
+      "id": "pd-disaggregation",
+      "path": "wiki/concepts/pd-disaggregation.md",
+      "sha256": "6146e1e1959c58f0dbf0a000f01dbc88cdb650e498d418fb7f90165c2a530823",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L3-L13",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L3-L13"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L27-L55",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L27-L55"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L64-L105",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L64-L105"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/support_matrix/supported_models.md#L29-L45",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/support_matrix/supported_models.md#L29-L45"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L353",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L353"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L788-L806",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L788-L806"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L925-L927",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L925-L927"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1880-L1926",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1880-L1926"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1666-L1749",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1666-L1749"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1751-L1849",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1751-L1849"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L798-L824",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L798-L824"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2039-L2057",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2039-L2057"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L774-L990",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L774-L990"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L245-L390",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L245-L390"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L705-L756",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L705-L756"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L166-L243",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L166-L243"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm@0fc695fc:vllm/envs.py#L1684-L1686",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/envs.py#L1684-L1686"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2154-L2186",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2154-L2186"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2221-L2248",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2221-L2248"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm@0fc695fc:vllm/config/kv_transfer.py#L66-L73",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/kv_transfer.py#L66-L73"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm@0fc695fc:vllm/config/kv_transfer.py#L11-L13",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/kv_transfer.py#L11-L13"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2424-L2492",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2424-L2492"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 23,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L46-L51",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L46-L51"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1974-L2083",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1974-L2083"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1111-L1130",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1111-L1130"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 26,
+          "ref": "vllm@0fc695fc:vllm/v1/sample/logits_processor/builtin.py#L191-L238",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/sample/logits_processor/builtin.py#L191-L238"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 27,
+          "ref": "vllm@0fc695fc:vllm/sampling_params.py#L593-L614",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/sampling_params.py#L593-L614"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 28,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L87",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L87"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 29,
+          "ref": "vllm-ascend@db701c1f:docs/source/tutorials/features/pd_disaggregation_mooncake_multi_node.md#L227-L239",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/tutorials/features/pd_disaggregation_mooncake_multi_node.md#L227-L239"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 30,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L1101-L1109",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/platform.py#L1101-L1109"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 31,
+          "ref": "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L101-L107",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L101-L107"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 32,
+          "ref": "vllm@0fc695fc:vllm/model_executor/layers/mamba/abstract.py#L44-L48",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/model_executor/layers/mamba/abstract.py#L44-L48"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 33,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/epd_disaggregation.md#L3-L33",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/epd_disaggregation.md#L3-L33"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 34,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/epd_disaggregation.md#L39-L79",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/epd_disaggregation.md#L39-L79"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 35,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2018-L2025",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2018-L2025"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 36,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5133-L5134",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5133-L5134"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 37,
+          "ref": "vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L45-L57",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L45-L57"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 38,
+          "ref": "vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L90-L133",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L90-L133"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 39,
+          "ref": "vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L187-L200",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L187-L200"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 40,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1285-L1296",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1285-L1296"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 41,
+          "ref": "vllm@0fc695fc:vllm/model_executor/models/interfaces.py#L216-L246",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/model_executor/models/interfaces.py#L216-L246"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 42,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_multimodal.py#L671-L703",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_multimodal.py#L671-L703"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 43,
+          "ref": "vllm-ascend@db701c1f:examples/disaggregated_encoder/disagg_1e1pd_example.sh#L89-L124",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:examples/disaggregated_encoder/disagg_1e1pd_example.sh#L89-L124"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 44,
+          "ref": "vllm-ascend@db701c1f:examples/disaggregated_encoder/disagg_epd_proxy.py#L402-L430",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:examples/disaggregated_encoder/disagg_epd_proxy.py#L402-L430"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 45,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L167-L210",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L167-L210"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 46,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2585-L2616",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2585-L2616"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 47,
+          "ref": "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L96-L102",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L96-L102"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 48,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/sample/sampler.py#L46-L125",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/sample/sampler.py#L46-L125"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 49,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2585-L2598",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2585-L2598"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 50,
+          "ref": "vllm@0fc695fc:vllm/v1/sample/sampler.py#L96-L100",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/sample/sampler.py#L96-L100"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 51,
+          "ref": "vllm@0fc695fc:vllm/v1/engine/core.py#L279-L284",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/engine/core.py#L279-L284"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 52,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/cache_config.py#L169-L176",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/cache_config.py#L169-L176"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 53,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L49-L53",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L49-L53"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 54,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L228-L261",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L228-L261"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 55,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L610-L618",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L610-L618"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 56,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L84-L140",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L84-L140"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 57,
+          "ref": "raw:sha256-6b813b57db4cf5c3d89648d6ef17a8eb9d27a36cfa91b01fff90cfe7733d97ad.md#L1-L2219",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "raw:sha256-6b813b57db4cf5c3d89648d6ef17a8eb9d27a36cfa91b01fff90cfe7733d97ad.md#L1-L2219"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 58,
+          "ref": "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L103-L105",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L103-L105"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 59,
+          "ref": "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1895-L1911",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1895-L1911"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 60,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1114-L1119",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1114-L1119"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 61,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L1114-L1119",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L1114-L1119"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 62,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L700-L705",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/platform.py#L700-L705"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 63,
+          "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1735-L1742",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/engine/arg_utils.py#L1735-L1742"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 64,
+          "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L2259-L2267",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/engine/arg_utils.py#L2259-L2267"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 65,
+          "ref": "vllm@568afb3a:vllm/engine/arg_utils.py#L2403-L2411",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/engine/arg_utils.py#L2403-L2411"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 66,
+          "ref": "vllm@84030bbe:vllm/config/scheduler.py#L42-L233",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@84030bbe:vllm/config/scheduler.py#L42-L233"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 67,
+          "ref": "vllm-ascend@7d825229:docs/source/tutorials/models/GLM5.3-Flash.md#L17-L33",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:docs/source/tutorials/models/GLM5.3-Flash.md#L17-L33"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 68,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L135",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L135"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 69,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L42-L90",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L42-L90"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 70,
+          "ref": "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/encoder_cache_cpu_offload.md",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/encoder_cache_cpu_offload.md"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 71,
+          "ref": "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/configuration/encoder_cache_manager.md",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/configuration/encoder_cache_manager.md"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 72,
+          "ref": "https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/tutorials/models/GLM5.3-Flash.md#L17-L33",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/tutorials/models/GLM5.3-Flash.md#L17-L33"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        }
+      ]
+    },
+    {
+      "id": "mooncake-connector",
+      "path": "wiki/concepts/mooncake-connector.md",
+      "sha256": "8776763ab22b6176c00323a18faa0ff8d83c685912dcb5d7ab45c5ccb09cc839",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L124-L130",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L124-L130"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L251-L375",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L251-L375"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L453-L562",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L453-L562"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm@0fc695fc:vllm/config/kv_transfer.py#L11-L115",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/kv_transfer.py#L11-L115"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L119-L130",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L119-L130"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_transfer_state.py#L65-L87",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_transfer_state.py#L65-L87"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1888-L1910",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1888-L1910"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2221-L2250",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2221-L2250"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L576-L587",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L576-L587"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm@0fc695fc:vllm/v1/worker/kv_connector_model_runner_mixin.py#L85-L105",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/worker/kv_connector_model_runner_mixin.py#L85-L105"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm@0fc695fc:vllm/model_executor/layers/attention/kv_transfer_utils.py#L45-L58",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/model_executor/layers/attention/kv_transfer_utils.py#L45-L58"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm@0fc695fc:vllm/envs.py#L1684-L1686",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/envs.py#L1684-L1686"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L55",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L55"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1506-L1590",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1506-L1590"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1784-L1879",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1784-L1879"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1880-L1926",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1880-L1926"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2332-L2471",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2332-L2471"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L96-L146",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L96-L146"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L774-L962",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L774-L962"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2052-L2084",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2052-L2083"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L166-L242",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L166-L242"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L3374-L3470",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L3374-L3470"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 23,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1111-L1150",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1111-L1150"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/mooncake_transfer_engine.py#L11-L43",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/mooncake_transfer_engine.py#L11-L43"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/utils.py#L55-L61",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/utils.py#L55-L61"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 26,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/utils.py#L428-L445",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/utils/utils.py#L428-L445"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 27,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L928-L990",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L928-L990"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 28,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1100-L1124",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1100-L1124"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 29,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L476-L528",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L476-L528"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 30,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1690-L1840",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1690-L1840"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 31,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1340-L1432",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1340-L1432"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 32,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L802-L815",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L802-L815"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 33,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1160-L1170",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1160-L1170"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 34,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1522-L1547",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1522-L1547"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 35,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L210-L237",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L210-L237"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 36,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L125-L150",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L125-L150"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 37,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L180-L250",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L180-L250"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 38,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L428-L460",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L428-L460"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 39,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L55",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L55"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 40,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L85-L93",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L85-L93"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 41,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L45-L60",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L45-L60"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 42,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L228-L261",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L228-L261"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 43,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L60-L70",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L60-L70"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 44,
+          "ref": "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L15-L55",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L15-L55"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 45,
+          "ref": "vllm-ascend@db701c1f:docs/source/tutorials/features/pd_disaggregation_mooncake_single_node.md#L172-L186",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/tutorials/features/pd_disaggregation_mooncake_single_node.md#L172-L186"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 46,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L36-L62",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L36-L62"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 47,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L185-L200",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L185-L200"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 48,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1111-L1194",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1111-L1194"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 49,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1200-L1206",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1200-L1206"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 50,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1334-L1341",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1334-L1341"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 51,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1715-L1723",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1715-L1723"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 52,
+          "ref": "vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L577-L587",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L577-L587"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 53,
+          "ref": "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L2313-L2324",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L2313-L2324"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 54,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1194-L1196",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1194-L1196"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 55,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1325-L1328",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1325-L1328"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 56,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1662-L1666",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1662-L1666"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 57,
+          "ref": "raw:sha256-8ce4d437165176e09d85b4648b3d2c958a56064f74dc11da7304eeff8c0bcb48.md#L1-L2538",
+          "claim": "待逐项登记",
+          "read_ranges": [],
+          "verdict": "待核",
+          "evidence": "本轮尚未落盘语义判定，不计为支持。"
+        },
+        {
+          "source_number": 58,
+          "ref": "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L247-L260",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L247-L260"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 59,
+          "ref": "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L17-L20",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L17-L20"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 60,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L90-L114",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L90-L114"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 61,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L42-L90",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L42-L90"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 62,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L115-L154",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L115-L154"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 63,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L233-L265",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L233-L265"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 64,
+          "ref": "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L65-L95",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L65-L95"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        }
+      ]
+    },
+    {
+      "id": "kv-pool",
+      "path": "wiki/concepts/kv-pool.md",
+      "sha256": "4a06f92a540bf264c254e0d74af8824e0b944d5620a4674a8c6821179ebde5f2",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L491-L591",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L491-L591"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L86-L160",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L86-L160"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L417-L429",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L417-L429"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L26-L77",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L26-L77"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L126-L143",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L126-L143"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L76-L123",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L76-L123"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L229-L253",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L229-L253"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L1146-L1161",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L1146-L1161"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L293-L339",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L293-L339"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L174-L194",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L174-L194"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L219-L237",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L219-L237"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L722-L790",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L722-L790"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L838-L866",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L838-L866"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1432-L1450",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1432-L1450"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L734-L745",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L734-L745"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L830-L839",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L830-L839"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L26-L41",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L26-L41"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L205-L226",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L205-L226"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L358-L392",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L358-L392"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L609-L620",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L609-L620"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm@0fc695fc:vllm/config/kv_transfer.py#L70-L73",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/kv_transfer.py#L70-L73"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2286-L2293",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2286-L2293"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 23,
+          "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L98-L113",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L98-L113"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm@0fc695fc:vllm/config/vllm.py#L1479-L1500",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/vllm.py#L1479-L1500"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/kv_pool.md#L21-L50",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/kv_pool.md#L21-L50"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 26,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/kv_pool.md#L108-L120",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/kv_pool.md#L108-L120"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 27,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/kv_pool.md#L297-L307",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/kv_pool.md#L297-L307"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 28,
+          "ref": "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L5-L15",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L5-L15"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 29,
+          "ref": "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L31-L52",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L31-L52"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 30,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L66-L76",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L66-L76"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 31,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L114-L124",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L114-L124"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 32,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L116-L126",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L116-L126"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 33,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2595-L2639",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2595-L2639"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 34,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L248-L255",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L248-L255"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 35,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L55-L75",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L55-L75"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 36,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/base.py#L20-L30",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/base.py#L20-L30"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 37,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L298-L312",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L298-L312"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 38,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L18-L30",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L18-L30"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 39,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L654-L657",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L654-L657"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 40,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L359-L387",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L359-L387"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 41,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L234-L242",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L234-L242"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 42,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L245-L257",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L245-L257"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 43,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L814-L822",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L814-L822"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 44,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L36-L71",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L36-L71"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 45,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L40-L75",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L40-L75"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 46,
+          "ref": "raw:sha256-98b1383ba0728e87316d031faa4c821f4a81e9f49389c01c2be4d33419bdfd59.md#L1-L1211",
+          "claim": "待逐项登记",
+          "read_ranges": [],
+          "verdict": "待核",
+          "evidence": "本轮尚未落盘语义判定，不计为支持。"
+        },
+        {
+          "source_number": 47,
+          "ref": "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L220-L235",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L220-L235"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 48,
+          "ref": "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L831-L859",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L831-L859"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 49,
+          "ref": "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:docs/source/user_guide/feature_guide/kv_pool.md#L21-L47",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:docs/source/user_guide/feature_guide/kv_pool.md#L21-L47"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 50,
+          "ref": "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L71-L75",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L71-L75"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 51,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L152-L200",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L152-L200"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 52,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L334-L365",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L334-L365"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 53,
+          "ref": "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md#L118-L127",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md#L118-L127"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 54,
+          "ref": "https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md#L118-L127",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md#L118-L127"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 55,
+          "ref": "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md#L55-L63",
+          "claim": "待逐项登记",
+          "read_ranges": [],
+          "verdict": "待核",
+          "evidence": "本轮尚未落盘语义判定，不计为支持。"
+        },
+        {
+          "source_number": 56,
+          "ref": "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md#L137-L216",
+          "claim": "待逐项登记",
+          "read_ranges": [],
+          "verdict": "待核",
+          "evidence": "本轮尚未落盘语义判定，不计为支持。"
+        },
+        {
+          "source_number": 57,
+          "ref": "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md",
+          "claim": "待逐项登记",
+          "read_ranges": [],
+          "verdict": "待核",
+          "evidence": "本轮尚未落盘语义判定，不计为支持。"
+        }
+      ]
+    },
+    {
+      "id": "recompute-scheduler",
+      "path": "wiki/concepts/recompute-scheduler.md",
+      "sha256": "fe4629408c050c85459f97f5e1eb7ea0c28a6b957f78d5e4c3a8f4859345c1de",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L680-L700",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/platform.py#L680-L700"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L280-L345",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L280-L345"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L869-L880",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L869-L880"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L970-L1056",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L970-L1056"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L138-L169",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L138-L169"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L436-L440",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L436-L440"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L55-L93",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L55-L93"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L98-L134",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L98-L134"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L142-L161",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L142-L161"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L702-L716",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/platform.py#L702-L716"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L892-L900",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/platform.py#L892-L900"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/configuration/additional_config.md#L81",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/configuration/additional_config.md#L81"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm-ascend@db701c1f:docs/source/tutorials/features/long_sequence_context_parallel_multi_node.md#L312",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/tutorials/features/long_sequence_context_parallel_multi_node.md#L312"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L295-L345",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L295-L345"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L689-L725",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L689-L725"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L128-L146",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L128-L146"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L576-L612",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L576-L612"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/patch/recompute_proxy.py#L33-L105",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/patch/recompute_proxy.py#L33-L105"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L144-L149",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L144-L149"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L85-L166",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L85-L166"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L352-L370",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L352-L370"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L1024-L1036",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L1024-L1036"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 23,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1014-L1044",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1014-L1044"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2154-L2186",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2154-L2186"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 26,
+          "ref": "vllm-ascend@baa023ad:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1165-L1180",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1165-L1180"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 27,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L295-L345",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L295-L345"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 28,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L682-L723",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L682-L723"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 29,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1254-L1280",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1254-L1280"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 30,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L484-L500",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L484-L500"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 31,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/__init__.py#L424-L440",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/__init__.py#L424-L440"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 32,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1175-L1181",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1175-L1181"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 33,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L381-L384",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/attention/utils.py#L381-L384"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 34,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/pcp_utils.py#L304-L310",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/worker/pcp_utils.py#L304-L310"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 35,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1255-L1302",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1255-L1302"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 36,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L129-L133",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L129-L133"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 37,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L708-L710",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L708-L710"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 38,
+          "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L689-L729",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L689-L729"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 39,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_coordinator.py#L491-L505",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_coordinator.py#L491-L505"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 40,
+          "ref": "https://github.com/vllm-project/vllm-ascend/pull/10742",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://api.github.com/repos/vllm-project/vllm-ascend/pulls/10742 (body and merge_commit_sha)"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 41,
+          "ref": "raw:sha256-57612b2ec822e3076037e0ac4337f65f295e6e8d1c99f1dc325c6add4171929b.md#L1-L1184",
+          "claim": "待逐项登记",
+          "read_ranges": [],
+          "verdict": "待核",
+          "evidence": "本轮尚未落盘语义判定，不计为支持。"
+        },
+        {
+          "source_number": 42,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L118-L155",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L118-L155"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 43,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L348-L370",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/core/recompute_scheduler.py#L348-L370"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        }
+      ]
+    },
+    {
+      "id": "ucm",
+      "path": "wiki/concepts/ucm.md",
+      "sha256": "1a19353ef4f7fc074b0912664dc5b95437dc310e22d23d4c51416302e033beeb",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L59",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L59"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L37-L69",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L37-L69"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L100-L159",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L100-L159"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L194-L218",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L194-L218"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L3-L64",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L3-L64"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L79-L117",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L79-L117"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L118-L170",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L118-L170"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L202-L330",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L202-L330"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L363-L416",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L363-L416"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L459-L700",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L459-L700"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L755-L885",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L755-L885"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L454-L487",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L454-L487"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L604-L640",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L604-L640"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L783-L812",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L783-L812"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm@0fc695fc:vllm/v1/worker/kv_connector_model_runner_mixin.py#L78-L101",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/worker/kv_connector_model_runner_mixin.py#L78-L101"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L285-L290",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L285-L290"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L542-L561",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L542-L561"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm@0fc695fc:vllm/config/vllm.py#L1479-L1500",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/vllm.py#L1479-L1500"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L24-L41",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L24-L41"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L205-L226",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L205-L226"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1716-L1723",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1716-L1723"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L2028-L2031",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L2028-L2031"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 23,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L800-L850",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L800-L850"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/lmcache_ascend_connector.py#L1-L5",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/lmcache_ascend_connector.py#L1-L5"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L37-L69",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L37-L69"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 26,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L37-L69",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L37-L69"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 27,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L85-L89",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L85-L89"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 28,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector/connector.py#L37-L69",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector/connector.py#L37-L69"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 29,
+          "ref": "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L353"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 30,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L5-L8",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L5-L8"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 31,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/ascend_multi_connector.py#L19-L20",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/ascend_multi_connector.py#L19-L20"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 32,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1506-L1507",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1506-L1507"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 33,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L122-L151",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L122-L151"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 34,
+          "ref": "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L86-L113",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L86-L113"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 35,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector/connector.py#L36-L70",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector/connector.py#L36-L70"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 36,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L94-L100",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L94-L100"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 37,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L91-L100",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L91-L100"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        }
+      ]
+    },
+    {
+      "id": "lmcache",
+      "path": "wiki/concepts/lmcache.md",
+      "sha256": "19ee4bc472f40e68f0b92a1b4b895b3d47c9ab2149cf3053dcb6dd0540fbd53e",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L61-L65",
+          "claim": "旧GLM注册名指向包装模块导出的上游LMCacheConnectorV1；不证明插件已安装。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L61-L65"
+          ],
+          "verdict": "支持",
+          "evidence": "旧GLM注册名指向包装模块导出的上游LMCacheConnectorV1；不证明插件已安装。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/lmcache_ascend_connector.py#L1-L5",
+          "claim": "五行包装仅导入lmcache_ascend并导出上游类；导入副作用未展开。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/lmcache_ascend_connector.py#L1-L5"
+          ],
+          "verdict": "支持",
+          "evidence": "五行包装仅导入lmcache_ascend并导出上游类；导入副作用未展开。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L72-L115",
+          "claim": "类只继承KVConnectorBase_V1，use_native默认False选择外部adapter，True选择仓内adapter；扩读72–115补齐HMA继承证据。",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L72-L115"
+          ],
+          "verdict": "支持",
+          "evidence": "类只继承KVConnectorBase_V1，use_native默认False选择外部adapter，True选择仓内adapter；扩读72–115补齐HMA继承证据。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L259-L342",
+          "claim": "get_num_new_matched_tokens返回adapter结果与False；分配回告、metadata、结束回调均委托；不将外部异步实现当成此接口的返回值。",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L259-L342"
+          ],
+          "verdict": "支持",
+          "evidence": "get_num_new_matched_tokens返回adapter结果与False；分配回告、metadata、结束回调均委托；不将外部异步实现当成此接口的返回值。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L120-L198",
+          "claim": "加载/逐层等待/保存/等待保存均委托；接口注释要求保存完成前不能覆写paged buffer。",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L120-L198"
+          ],
+          "verdict": "支持",
+          "evidence": "加载/逐层等待/保存/等待保存均委托；接口注释要求保存完成前不能覆写paged buffer。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L1140-L1225",
+          "claim": "仅自带adapter查prompt_token_ids，可附媒体hash、skip_last_n_tokens和request config；命中等于request.num_tokens才减一。已给全中结论补此范围。",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L1140-L1225"
+          ],
+          "verdict": "部分支持",
+          "evidence": "仅自带adapter查prompt_token_ids，可附媒体hash、skip_last_n_tokens和request config；命中等于request.num_tokens才减一。已给全中结论补此范围。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L296-L340",
+          "claim": "保存有tracker.skip_save、未到下个chunk、decode开关及请求skip_save等条件；中间prefill强制取整，末步才可保留尾块。已纠正每写满必写的配置说明。",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L296-L340"
+          ],
+          "verdict": "部分支持",
+          "evidence": "保存有tracker.skip_save、未到下个chunk、decode开关及请求skip_save等条件；中间prefill强制取整，末步才可保留尾块。已纠正每写满必写的配置说明。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L655-L670",
+          "claim": "初始化保存chunk_size/save_decode_cache；discard_partial_chunks是extra开关或not save_unfull_chunk。原文每次读取当前配置不成立，已修正。",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L655-L670"
+          ],
+          "verdict": "部分支持",
+          "evidence": "初始化保存chunk_size/save_decode_cache；discard_partial_chunks是extra开关或not save_unfull_chunk。原文每次读取当前配置不成立，已修正。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L460-L510",
+          "claim": "kv_shape=(含MTP的层数, MLA为1否则2,chunk,KV头,head_size)；MLA拒绝非naive且非None serde，并拒绝layerwise。只覆盖自带adapter。",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L460-L510"
+          ],
+          "verdict": "支持",
+          "evidence": "kv_shape=(含MTP的层数, MLA为1否则2,chunk,KV头,head_size)；MLA拒绝非naive且非None serde，并拒绝layerwise。只覆盖自带adapter。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm@0fc695fc:vllm/config/vllm.py#L1479-L1501",
+          "claim": "仅disable_hybrid_kv_cache_manager尚未显式设定时，按connector支持能力自动关闭HMA。",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/vllm.py#L1479-L1501"
+          ],
+          "verdict": "支持",
+          "evidence": "仅disable_hybrid_kv_cache_manager尚未显式设定时，按connector支持能力自动关闭HMA。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/factory.py#L54-L61",
+          "claim": "工厂在HMA实际开启而connector配置不支持时抛ValueError；与自动关闭分支共同支撑两条失败路径。",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/factory.py#L54-L61"
+          ],
+          "verdict": "支持",
+          "evidence": "工厂在HMA实际开启而connector配置不支持时抛ValueError；与自动关闭分支共同支撑两条失败路径。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L517-L531",
+          "claim": "仅检测到glm5_next spec的模型进入补丁；关闭HMA时抛requires hybrid KV cache manager。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L517-L531"
+          ],
+          "verdict": "支持",
+          "evidence": "仅检测到glm5_next spec的模型进入补丁；关闭HMA时抛requires hybrid KV cache manager。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/cache_config.py#L348-L354",
+          "claim": "main模型独立配置仍检查GLM spec与HMA，错误文字变为GLM-Next。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/cache_config.py#L348-L354"
+          ],
+          "verdict": "支持",
+          "evidence": "main模型独立配置仍检查GLM spec与HMA，错误文字变为GLM-Next。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L3-L24",
+          "claim": "所引3–24行证明社区插件与旧Docker组合，未涵盖在线/离线使用段；不据此认证rc2组合。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L3-L24"
+          ],
+          "verdict": "部分支持",
+          "evidence": "所引3–24行证明社区插件与旧Docker组合，未涵盖在线/离线使用段；不据此认证rc2组合。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L70-L72",
+          "claim": "main官方Usage明确LMCacheAscendConnector不再由Ascend注册，要求外部插件配置。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L70-L72"
+          ],
+          "verdict": "支持",
+          "evidence": "main官方Usage明确LMCacheAscendConnector不再由Ascend注册，要求外部插件配置。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_mp_connector.py#L26-L83",
+          "claim": "原70–83只证明多组拒绝；已扩至26–83，实际读到优先外部multiprocess adapter，ImportError回退内置adapter。",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_mp_connector.py#L26-L83"
+          ],
+          "verdict": "支持",
+          "evidence": "原70–83只证明多组拒绝；已扩至26–83，实际读到优先外部multiprocess adapter，ImportError回退内置adapter。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L61-L65",
+          "claim": "v023同名注册指向同一包装路径与类。",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L61-L65"
+          ],
+          "verdict": "支持",
+          "evidence": "v023同名注册指向同一包装路径与类。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L61-L65",
+          "claim": "v026同名注册指向同一包装路径与类。",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L61-L65"
+          ],
+          "verdict": "支持",
+          "evidence": "v026同名注册指向同一包装路径与类。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm@0fc695fc:examples/disaggregated/lmcache/kv_cache_sharing_lmcache_v1.py#L26-L41",
+          "claim": "示例显式chunk256、关闭local CPU、设置远端URL与naive serde；支持可仅开远端，不证明磁盘路径或逐级查询顺序。图已标逻辑示意。",
+          "read_ranges": [
+            "vllm@0fc695fc:examples/disaggregated/lmcache/kv_cache_sharing_lmcache_v1.py#L26-L41"
+          ],
+          "verdict": "部分支持",
+          "evidence": "示例显式chunk256、关闭local CPU、设置远端URL与naive serde；支持可仅开远端，不证明磁盘路径或逐级查询顺序。图已标逻辑示意。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L135",
+          "claim": "rc2完整register_connector清单没有LMCache包装注册；有Mooncake/UCM/Offload等其他入口，不能从缺名推外部插件不可用。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L135"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2完整register_connector清单没有LMCache包装注册；有Mooncake/UCM/Offload等其他入口，不能从缺名推外部插件不可用。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L1-L24",
+          "claim": "rc2文档仍给LMCache0.3.12/Ascend0.11.0镜像；不是rc2二进制兼容认证。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L1-L24"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2文档仍给LMCache0.3.12/Ascend0.11.0镜像；不是rc2二进制兼容认证。"
+        },
+        {
+          "source_number": 22,
+          "ref": "https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L1-L24",
+          "claim": "联网读取固定raw URL全文，1–24与本地21相同；Usage同样要求插件注册。",
+          "read_ranges": [
+            "https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L1-L24"
+          ],
+          "verdict": "支持",
+          "evidence": "联网读取固定raw URL全文，1–24与本地21相同；Usage同样要求插件注册。"
+        },
+        {
+          "source_number": 23,
+          "ref": "vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L72-L115",
+          "claim": "实际读取v02672–115，继承与use_native选择和0fc695fc一致；只证明此入口，不证明整文件相同。",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L72-L115"
+          ],
+          "verdict": "支持",
+          "evidence": "实际读取v02672–115，继承与use_native选择和0fc695fc一致；只证明此入口，不证明整文件相同。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L72-L115",
+          "claim": "实际读取main72–115，继承与use_native选择和0fc695fc一致；已收窄原整份连接器相同断言。",
+          "read_ranges": [
+            "vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L72-L115"
+          ],
+          "verdict": "支持",
+          "evidence": "实际读取main72–115，继承与use_native选择和0fc695fc一致；已收窄原整份连接器相同断言。"
+        }
+      ]
+    },
+    {
+      "id": "swa-bounded-replay",
+      "path": "wiki/concepts/swa-bounded-replay.md",
+      "sha256": "3448e403e219cfb27d1f8cb54a275344aaa39da37b8385720c13160e1fc4dcc8",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "https://arxiv.org/html/2609.19969v1",
+          "claim": "待逐项登记",
+          "read_ranges": [],
+          "verdict": "待核",
+          "evidence": "本轮尚未落盘语义判定，不计为支持。"
+        },
+        {
+          "source_number": 2,
+          "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/doc/inference_deployment_qa.md",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/doc/inference_deployment_qa.md (full returned text)"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 3,
+          "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/environ.py",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/environ.py (full file)"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 4,
+          "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/input_metadata/yoco.py",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/input_metadata/yoco.py (full file)"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 5,
+          "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/models/v4_modules/yoco.py",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/models/v4_modules/yoco.py (full file)"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 6,
+          "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/yoco/README.md",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/yoco/README.md (full file)"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 7,
+          "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/worker/cache_engine.py",
+          "claim": "待逐项登记",
+          "read_ranges": [],
+          "verdict": "待核",
+          "evidence": "本轮尚未落盘语义判定，不计为支持。"
+        },
+        {
+          "source_number": 8,
+          "ref": "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://raw.githubusercontent.com/deepseek-ai/DeepInfer/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md (full file)"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        }
+      ]
+    },
+    {
+      "id": "large-scale-ep",
+      "path": "wiki/concepts/large-scale-ep.md",
+      "sha256": "d4509399fc14e8e43ec1715016f74968d21b14434f7904ce88fdb7b7535e5ae9",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L479-L489",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L479-L489"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L276-L287",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L276-L287"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L789-L806",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L789-L806"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L898-L945",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L898-L945"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm@0fc695fc:vllm/config/parallel.py#L138-L144",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/parallel.py#L138-L144"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm@0fc695fc:vllm/config/parallel.py#L514-L520",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/parallel.py#L514-L520"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L71-L148",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L71-L148"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L239-L282",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L239-L282"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L5-L6",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L5-L6"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L1859-L1882",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/engine/arg_utils.py#L1859-L1882"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm@0fc695fc:docs/serving/data_parallel_deployment.md#L75-L106",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:docs/serving/data_parallel_deployment.md#L75-L106"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm@0fc695fc:docs/serving/expert_parallel_deployment.md#L225-L234",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:docs/serving/expert_parallel_deployment.md#L225-L234"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L96-L101",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L96-L101"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L10-L13",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L10-L13"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L239-L295",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L239-L295"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L126-L167",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L126-L167"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L317-L362",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L317-L362"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L205-L211",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L205-L211"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L352-L410",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L352-L410"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L644-L682",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L644-L682"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1640-L1655",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1640-L1655"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm-ascend@db701c1f:examples/external_online_dp/run_dp_template.sh#L18-L21",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:examples/external_online_dp/run_dp_template.sh#L18-L21"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 23,
+          "ref": "vllm-ascend@db701c1f:examples/external_online_dp/launch_online_dp.py#L54-L59",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:examples/external_online_dp/launch_online_dp.py#L54-L59"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm@0fc695fc:vllm/config/parallel.py#L800-L831",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/config/parallel.py#L800-L831"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1257-L1298",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1257-L1298"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 26,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L115-L133",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L115-L133"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 27,
+          "ref": "https://huggingface.co/deepseek-ai/DeepSeek-R1/blob/main/config.json",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://huggingface.co/deepseek-ai/DeepSeek-R1/raw/main/config.json",
+            "https://huggingface.co/deepseek-ai/DeepSeek-R1/raw/56d4cbbb4d29f4355bab4b9a39ccb717a14ad5ad/config.json"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 28,
+          "ref": "vllm@84030bbe:vllm/engine/arg_utils.py#L2205-L2240",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@84030bbe:vllm/engine/arg_utils.py#L2205-L2240"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 29,
+          "ref": "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/large_scale_ep.md#L150-L160",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/large_scale_ep.md#L150-L160"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 30,
+          "ref": "vllm-ascend@2c59ff10:examples/external_online_dp/dp_load_balance_proxy_server.py#L148-L160",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:examples/external_online_dp/dp_load_balance_proxy_server.py#L148-L160"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 31,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/envs.py#L101-L102",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/envs.py#L101-L102"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 32,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1169-L1172",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1169-L1172"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 33,
+          "ref": "vllm@568afb3a:vllm/engine/arg_utils.py#L2010-L2030",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@568afb3a:vllm/engine/arg_utils.py#L2010-L2030"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 34,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L33-L55",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L33-L55"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 35,
+          "ref": "vllm@0fc695fc:vllm/engine/arg_utils.py#L326-L337",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/engine/arg_utils.py#L326-L337"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 36,
+          "ref": "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L492-L496",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L492-L496"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 37,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1658-L1675",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1658-L1675"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 38,
+          "ref": "raw:sha256-d990647916dbe31b7c0c53a1b86e440803a723eba04c54600568020a9bb4461d.md#L1-L924",
+          "claim": "待逐项登记",
+          "read_ranges": [],
+          "verdict": "待核",
+          "evidence": "本轮尚未落盘语义判定，不计为支持。"
+        },
+        {
+          "source_number": 39,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1271-L1302",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1271-L1302"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 40,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/utils.py#L1320-L1361",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/utils.py#L1320-L1361"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 41,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_forward_context.py#L243-L274",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/ascend_forward_context.py#L243-L274"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 42,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/ascend_forward_context.py#L373-L414",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/ascend_forward_context.py#L373-L414"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 43,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/utils.py#L1269-L1307",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/utils.py#L1269-L1307"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 44,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/utils.py#L1323-L1361",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/utils.py#L1323-L1361"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        }
+      ]
+    },
+    {
+      "id": "ops-and-kernels",
+      "path": "wiki/concepts/ops-and-kernels.md",
+      "sha256": "29b2bb2adca14f343fbd6b01c3431efcb22395d3698f64331b34d524e6c87804",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm@0fc695fc:vllm/model_executor/custom_op.py#L109-L133",
+          "claim": "__new__按类名查OOT，__init__保存dispatch结果。TypeError仅捕获读取__name__的AttributeError，不能把提示文字当成所有未装饰类的触发条件；正文已纠正。",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/model_executor/custom_op.py#L109-L133"
+          ],
+          "verdict": "部分支持",
+          "evidence": "__new__按类名查OOT，__init__保存dispatch结果。TypeError仅捕获读取__name__的AttributeError，不能把提示文字当成所有未装饰类的触发条件；正文已纠正。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm@0fc695fc:vllm/model_executor/custom_op.py#L174-L207",
+          "claim": "enforce_enable或enabled决定分派；禁用仍maybe_compile(native,compile_native)，启用再按平台选oot。",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/model_executor/custom_op.py#L174-L207"
+          ],
+          "verdict": "支持",
+          "evidence": "enforce_enable或enabled决定分派；禁用仍maybe_compile(native,compile_native)，启用再按平台选oot。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L690-L768",
+          "claim": "基础替换表逐条数26项，vllm_version_is(0.23.0)追加FusedMoE/KDA；进程标记阻止重复。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/utils.py#L690-L768"
+          ],
+          "verdict": "支持",
+          "evidence": "基础替换表逐条数26项，vllm_version_is(0.23.0)追加FusedMoE/KDA；进程标记阻止重复。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L818-L823",
+          "claim": "循环register_oot，最后才置已注册标记。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/utils.py#L818-L823"
+          ],
+          "verdict": "支持",
+          "evidence": "循环register_oot，最后才置已注册标记。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L101-L120",
+          "claim": "worker先adapt_patch，再dummy融合、非A5的ATB、customop，最后init配置；COMPILE_CUSTOM_KERNELS假只warning。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L101-L120"
+          ],
+          "verdict": "支持",
+          "evidence": "worker先adapt_patch，再dummy融合、非A5的ATB、customop，最后init配置；COMPILE_CUSTOM_KERNELS假只warning。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L409-L452",
+          "claim": "缓存布尔值；batch invariant/A5禁用；非编译期才bootstrap，libcust_opapi ImportError才加vendor路径；完整失败收尾需扩读453–467。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/utils.py#L409-L452"
+          ],
+          "verdict": "部分支持",
+          "evidence": "缓存布尔值；batch invariant/A5禁用；非编译期才bootstrap，libcust_opapi ImportError才加vendor路径；完整失败收尾需扩读453–467。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88",
+          "claim": "residual先maybe_chunk，扩展可用融合否则torch_npu+可选bias；无residual是npu_rms_norm并调用预取后处理。GLM实际是后者。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88"
+          ],
+          "verdict": "支持",
+          "evidence": "residual先maybe_chunk，扩展可用融合否则torch_npu+可选bias；无residual是npu_rms_norm并调用预取后处理。GLM实际是后者。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/__init__.py#L39-L55",
+          "claim": "dummyFusionOp只有default/name，没有call实现；注册到融合符号名不证明能运行。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/__init__.py#L39-L55"
+          ],
+          "verdict": "支持",
+          "evidence": "dummyFusionOp只有default/name，没有call实现；注册到融合符号名不证明能运行。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L2317-L2326",
+          "claim": "A5/310P独立适配，其他包括A2/A3共用Base；不能说A2与A3必各一份类。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L2317-L2326"
+          ],
+          "verdict": "支持",
+          "evidence": "A5/310P独立适配，其他包括A2/A3共用Base；不能说A2与A3必各一份类。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/linear.py#L83-L107",
+          "claim": "加载后NZ受310P标量权重、conv1d与precast条件限制；apply调用unquantized_gemm。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/linear.py#L83-L107"
+          ],
+          "verdict": "支持",
+          "evidence": "加载后NZ受310P标量权重、conv1d与precast条件限制；apply调用unquantized_gemm。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L125",
+          "claim": "先dynamic_quant；正整数_chunk_size分两次quant_matmul并cat，否则一次；输出dtype沿用输入，二维scale另squeeze/unsqueeze。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L125"
+          ],
+          "verdict": "支持",
+          "evidence": "先dynamic_quant；正整数_chunk_size分两次quant_matmul并cat，否则一次；输出dtype沿用输入，二维scale另squeeze/unsqueeze。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2147-L2169",
+          "claim": "hc_pre显式调用扩展并返回多路残差与mix系数；hc_post显式扩展，不经OOT替换。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2147-L2169"
+          ],
+          "verdict": "支持",
+          "evidence": "hc_pre显式调用扩展并返回多路残差与mix系数；hc_post显式扩展，不经OOT替换。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2213-L2240",
+          "claim": "两次hc_pre后都是单参数layernorm，attention与MLP各接hc_post；GLM实际入口不带residual，表格的带残差路径只是实现对照，仍需复审其措辞。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2213-L2240"
+          ],
+          "verdict": "支持",
+          "evidence": "两次hc_pre后都是单参数layernorm，attention与MLP各接hc_post；GLM实际入口不带residual，表格的带残差路径只是实现对照，仍需复审其措辞。"
+        },
+        {
+          "source_number": 14,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L157-L166",
+          "claim": "检查两个torch schema，缺少直接RuntimeError，无PyTorch回退。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L157-L166"
+          ],
+          "verdict": "支持",
+          "evidence": "检查两个torch schema，缺少直接RuntimeError，无PyTorch回退。"
+        },
+        {
+          "source_number": 15,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L294-L331",
+          "claim": "卷积缓存最后维须等mixed_qkv；stage padding、调用custom卷积再restore。此片段不独立证明卷积宽4。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L294-L331"
+          ],
+          "verdict": "部分支持",
+          "evidence": "卷积缓存最后维须等mixed_qkv；stage padding、调用custom卷积再restore。此片段不独立证明卷积宽4。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L355-L388",
+          "claim": "recurrent_kda带接受token数与cu_seqlens，内置qk L2与gate；投机情形不能概括一次只处理一个token。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L355-L388"
+          ],
+          "verdict": "支持",
+          "evidence": "recurrent_kda带接受token数与cu_seqlens，内置qk L2与gate；投机情形不能概括一次只处理一个token。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L430-L475",
+          "claim": "prefill明确q/k L2、按gate_lower_bound分支做cumsum、chunk_fwd后转置状态写回；常量64定义需补读。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L430-L475"
+          ],
+          "verdict": "部分支持",
+          "evidence": "prefill明确q/k L2、按gate_lower_bound分支做cumsum、chunk_fwd后转置状态写回；常量64定义需补读。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028",
+          "claim": "调用可覆写的sparse方法，再v_up和o_proj；CP分支可提前返回。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028"
+          ],
+          "verdict": "支持",
+          "evidence": "调用可覆写的sparse方法，再v_up和o_proj；CP分支可提前返回。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104",
+          "claim": "校验latent/RoPE视图后取已登记packed缓存，非从三份缓存临时拼完整KV；正文已修。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104"
+          ],
+          "verdict": "部分支持",
+          "evidence": "校验latent/RoPE视图后取已登记packed缓存，非从三份缓存临时拼完整KV；正文已修。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793",
+          "claim": "A2/Base路径cat query，补齐topk行，packed缓存同时作为K/V，TND/PA_BSND、block1、sparse3、attention2。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793"
+          ],
+          "verdict": "支持",
+          "evidence": "A2/Base路径cat query，补齐topk行，packed缓存同时作为K/V，TND/PA_BSND、block1、sparse3、attention2。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm-ascend@db701c1f:csrc/torch_binding.cpp#L2848-L2860",
+          "claim": "torch schema及PrivateUse1绑定到C++函数；注册不等于部署执行。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:csrc/torch_binding.cpp#L2848-L2860"
+          ],
+          "verdict": "支持",
+          "evidence": "torch schema及PrivateUse1绑定到C++函数；注册不等于部署执行。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm-ascend@db701c1f:csrc/attention/sparse_flash_attention/sparse_flash_attention_torch_adpt.h#L93-L149",
+          "claim": "检查非空、构造输出、EXEC_NPU_CMD(aclnnSparseFlashAttention)；不提供kernel次数与速度。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:csrc/attention/sparse_flash_attention/sparse_flash_attention_torch_adpt.h#L93-L149"
+          ],
+          "verdict": "支持",
+          "evidence": "检查非空、构造输出、EXEC_NPU_CMD(aclnnSparseFlashAttention)；不提供kernel次数与速度。"
+        },
+        {
+          "source_number": 23,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L108-L120",
+          "claim": "只探测dispatch_v2，另按硬件与层级通信设置参数；不独立探测combine_v2。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L108-L120"
+          ],
+          "verdict": "支持",
+          "evidence": "只探测dispatch_v2，另按硬件与层级通信设置参数；不独立探测combine_v2。"
+        },
+        {
+          "source_number": 24,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L225-L240",
+          "claim": "dispatch按enable_dispatch_v2二选一。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L225-L240"
+          ],
+          "verdict": "支持",
+          "evidence": "dispatch按enable_dispatch_v2二选一。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L329-L340",
+          "claim": "combine共用同一enable_dispatch_v2，且拒绝bias。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L329-L340"
+          ],
+          "verdict": "支持",
+          "evidence": "combine共用同一enable_dispatch_v2，且拒绝bias。"
+        },
+        {
+          "source_number": 26,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L215",
+          "claim": "MC2且无w1_scale_bias/offset才进所示融合候选；custom融合、设备融合、分开GMM+SwiGLU三支，随后GMM2。已纠正正文必融合。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L215"
+          ],
+          "verdict": "部分支持",
+          "evidence": "MC2且无w1_scale_bias/offset才进所示融合候选；custom融合、设备融合、分开GMM+SwiGLU三支，随后GMM2。已纠正正文必融合。"
+        },
+        {
+          "source_number": 27,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L353-L366",
+          "claim": "专家权重先transpose contiguous，W8A8再NZ；注释限定gmm_swiglu当前NZ要求。",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L353-L366"
+          ],
+          "verdict": "支持",
+          "evidence": "专家权重先transpose contiguous，W8A8再NZ；注释限定gmm_swiglu当前NZ要求。"
+        },
+        {
+          "source_number": 28,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L700",
+          "claim": "所引只覆盖v023注册入口与once标记，不含完整表和注册循环；版本表完整一致及无KDA须额外定点比对。",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L700"
+          ],
+          "verdict": "部分支持",
+          "evidence": "所引只覆盖v023注册入口与once标记，不含完整表和注册循环；版本表完整一致及无KDA须额外定点比对。"
+        },
+        {
+          "source_number": 29,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda.py#L148-L166",
+          "claim": "v026KDA存在且缺prefill schema的RuntimeError一致；类继承说明KimiK3差异。",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda.py#L148-L166"
+          ],
+          "verdict": "支持",
+          "evidence": "v026KDA存在且缺prefill schema的RuntimeError一致；类继承说明KimiK3差异。"
+        },
+        {
+          "source_number": 30,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/ops/layernorm.py#L64-L82",
+          "claim": "main residual直接导入扩展、调用enable_custom_op但不按结果分支；没有torch_npu fallback。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/ops/layernorm.py#L64-L82"
+          ],
+          "verdict": "支持",
+          "evidence": "main residual直接导入扩展、调用enable_custom_op但不按结果分支；没有torch_npu fallback。"
+        },
+        {
+          "source_number": 31,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L495-L505",
+          "claim": "main模型已在glm5next/model.py，hc_pre仍调用npu_hc_pre_v2；片段不证明其他版本无GLM。",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L495-L505"
+          ],
+          "verdict": "支持",
+          "evidence": "main模型已在glm5next/model.py，hc_pre仍调用npu_hc_pre_v2；片段不证明其他版本无GLM。"
+        },
+        {
+          "source_number": 32,
+          "ref": "raw:sha256-27c83d31e48f1e89a9eac97dd56e684db06c552ce727013a0fb1e1b183811e47.md#L1-L1026",
+          "claim": "raw的31段已逐段提取并与各固定git原文实际字符串比较，31/31相同；对应来源1–31均已阅读，存档不增加独立证据。",
+          "read_ranges": [
+            "raw:sha256-27c83d31e48f1e89a9eac97dd56e684db06c552ce727013a0fb1e1b183811e47.md#L1-L1026"
+          ],
+          "verdict": "重复存档",
+          "evidence": "raw的31段已逐段提取并与各固定git原文实际字符串比较，31/31相同；对应来源1–31均已阅读，存档不增加独立证据。"
+        },
+        {
+          "source_number": 33,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/utils.py#L819-L858",
+          "claim": "rc2注册函数once门及导入覆盖linear/norm/moe，但引用截止于导入，完整登记表应补读取。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/utils.py#L819-L858"
+          ],
+          "verdict": "部分支持",
+          "evidence": "rc2注册函数once门及导入覆盖linear/norm/moe，但引用截止于导入，完整登记表应补读取。"
+        },
+        {
+          "source_number": 34,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/utils.py#L544-L588",
+          "claim": "rc2硬件能力代替A5枚举禁用，仍有batch invariant与非编译期vendor补救；不证明residual分支会尊重False。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/utils.py#L544-L588"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2硬件能力代替A5枚举禁用，仍有batch invariant与非编译期vendor补救；不证明residual分支会尊重False。"
+        },
+        {
+          "source_number": 35,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/ops/layernorm.py#L83-L103",
+          "claim": "rc2residual直接导入扩展并调用；无residual为torch_npu+rms bias，与旧main同逻辑。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/ops/layernorm.py#L83-L103"
+          ],
+          "verdict": "支持",
+          "evidence": "rc2residual直接导入扩展并调用；无residual为torch_npu+rms bias，与旧main同逻辑。"
+        },
+        {
+          "source_number": 36,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L94-L134",
+          "claim": "仅二维输入可prepare；apply可复用PreparedLinearInput的quantized/scale/output_dtype，否则动态量化；一个量化矩阵乘。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L94-L134"
+          ],
+          "verdict": "支持",
+          "evidence": "仅二维输入可prepare；apply可复用PreparedLinearInput的quantized/scale/output_dtype，否则动态量化；一个量化矩阵乘。"
+        },
+        {
+          "source_number": 37,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L192-L293",
+          "claim": "Gemma unflatten匹配q/k RMS+RoPE与v RMS；replacement调用split_qkv_rmsnorm_rope_vnorm；按形状键登记。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L192-L293"
+          ],
+          "verdict": "支持",
+          "evidence": "Gemma unflatten匹配q/k RMS+RoPE与v RMS；replacement调用split_qkv_rmsnorm_rope_vnorm；按形状键登记。"
+        },
+        {
+          "source_number": 38,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L333-L378",
+          "claim": "Triton、硬件GRAPH_QKV_NORM_ROPE_FUSION、单token UB适配均需满足，eps仅1e-6/1e-5登记。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L333-L378"
+          ],
+          "verdict": "支持",
+          "evidence": "Triton、硬件GRAPH_QKV_NORM_ROPE_FUSION、单token UB适配均需满足，eps仅1e-6/1e-5登记。"
+        },
+        {
+          "source_number": 39,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/shared_experts.py#L390-L502",
+          "claim": "multistream才准备；LoRA/wrapper能力影响预量化；Gate-Up在router事件后提交、抢在routed TopK/dispatch前入队。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/shared_experts.py#L390-L502"
+          ],
+          "verdict": "支持",
+          "evidence": "multistream才准备；LoRA/wrapper能力影响预量化；Gate-Up在router事件后提交、抢在routed TopK/dispatch前入队。"
+        },
+        {
+          "source_number": 40,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/shared_experts.py#L504-L630",
+          "claim": "INT与MXFP路径区分SwiGLU/SiTU和中间scale，activation与Down分别等milestone；W8A8MXFP保留wrapper，不能推广为同一融合。",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/shared_experts.py#L504-L630"
+          ],
+          "verdict": "支持",
+          "evidence": "INT与MXFP路径区分SwiGLU/SiTU和中间scale，activation与Down分别等milestone；W8A8MXFP保留wrapper，不能推广为同一融合。"
+        }
+      ]
+    },
+    {
+      "id": "op-to-ai-core",
+      "path": "wiki/concepts/op-to-ai-core.md",
+      "sha256": "02d559aa718728d29a16a622193c7e58ad7e3576c6f8eabc163c1e5b5cc94cf6",
+      "body_read": true,
+      "citations": [
+        {
+          "source_number": 1,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2129-L2169",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2129-L2169"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 2,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 3,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 4,
+          "ref": "vllm@0fc695fc:vllm/model_executor/custom_op.py#L110-L207",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm@0fc695fc:vllm/model_executor/custom_op.py#L110-L207"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 5,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 6,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/utils.py#L409-L467",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/utils.py#L409-L467"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 7,
+          "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L19-L108",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L19-L108"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 8,
+          "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.cpp#L23-L71",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.cpp#L23-L71"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 9,
+          "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 10,
+          "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L167-L208",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L167-L208"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 11,
+          "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/add_rms_norm_bias_torch_adpt.h#L21-L50",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/add_rms_norm_bias_torch_adpt.h#L21-L50"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 12,
+          "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L208-L222",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L208-L222"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 13,
+          "ref": "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L373-L411",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L373-L411"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 14,
+          "ref": "https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html (successful second fetch, full returned text; images not opened)"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 15,
+          "ref": "https://arxiv.org/abs/1910.07467",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "https://arxiv.org/html/1910.07467v1#S4 (RMSNorm definition, Eq.4; returned text also read through main sections, appendix truncated)"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 16,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L126",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L126"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 17,
+          "ref": "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L220",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L220"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 18,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L88",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L88"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 19,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/ops/layernorm.py#L63-L86",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/ops/layernorm.py#L63-L86"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 20,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/ops/layernorm.py#L64-L84",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/ops/layernorm.py#L64-L84"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 21,
+          "ref": "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L467",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L467"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 22,
+          "ref": "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L401-L459",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L401-L459"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 23,
+          "ref": "vllm-ascend@baa023ad:vllm_ascend/utils.py#L521-L579",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@baa023ad:vllm_ascend/utils.py#L521-L579"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 24,
+          "ref": "raw:sha256-aff81f9c6042e3957465a5c11de61e00df90aaeb7fb0374c9e78093ed5f01635.md#L1-L1057",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "raw:sha256-aff81f9c6042e3957465a5c11de61e00df90aaeb7fb0374c9e78093ed5f01635.md#L1-L1057"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 25,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/ops/layernorm.py#L83-L103",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/ops/layernorm.py#L83-L103"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 26,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/utils.py#L544-L588",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/utils.py#L544-L588"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        },
+        {
+          "source_number": 27,
+          "ref": "vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L94-L134",
+          "claim": "待逐项登记语义判断",
+          "read_ranges": [
+            "vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L94-L134"
+          ],
+          "verdict": "已读待判",
+          "evidence": "本轮已实际打开所列原文范围，尚未完成逐项主张/调用条件/版本补证及审查闭合；不能计为支持。"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,665 @@
+{
+  "status": "scoped technical child review completed; no teaching edit necessary for fusion subsection",
+  "parent_row": 16,
+  "mother": "vllm@0fc695fc:docs/design/fusions.md#L1-L397",
+  "mother_credit_added": 0,
+  "scope_records": [
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/pass_manager.py",
+      "range": [
+        1,
+        226
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/pass_manager.py#L1-L226",
+      "file_sha256": "9e64227b1a38bd0e7dfe4d381db32a68eceac405e06c07988826ce7fc328b075",
+      "scope_sha256": "9e64227b1a38bd0e7dfe4d381db32a68eceac405e06c07988826ce7fc328b075",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__pass_manager.py",
+      "read_status": "full source manually read",
+      "full_file": true
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/config/vllm.py",
+      "range": [
+        90,
+        280
+      ],
+      "ref": "vllm@0fc695fc:vllm/config/vllm.py#L90-L280",
+      "file_sha256": "ba062ec38d075937b73d953059cf1d0e1b96f1474990bc6d45ed45e20ba6a336",
+      "scope_sha256": "7478db3710045b24c4de456b68e92fe5a8ae84c7e51bb0eda37b4175abaaacff",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__config__vllm.py",
+      "read_status": "scope: defaults and producers manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/config/compilation.py",
+      "range": [
+        107,
+        305
+      ],
+      "ref": "vllm@0fc695fc:vllm/config/compilation.py#L107-L305",
+      "file_sha256": "301f785491044b4428aec617b8a98161ab7ffc424fc2bfb0f2ab26bed6ee6913",
+      "scope_sha256": "f2307a6f68c6600f47a2a6ffafe3e1011d7c409c962ec2a09c932f35349a21a6",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__config__compilation.py",
+      "read_status": "scope: declarations and platform normalization manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/allreduce_rms_fusion.py",
+      "range": [
+        910,
+        1071
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/allreduce_rms_fusion.py#L910-L1071",
+      "file_sha256": "0a550492353a68fb61da37b301ded1c304e8816a2b12b1df5c0b3c6636645a39",
+      "scope_sha256": "cab38f2f9c38228dd78c9a5c1cb4eea2c0647dd63af682fe9ecb88cb0c43a70f",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__allreduce_rms_fusion.py",
+      "read_status": "scope: CUDA registration and compile-range gate manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/allreduce_rms_fusion.py",
+      "range": [
+        1166,
+        1277
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/allreduce_rms_fusion.py#L1166-L1277",
+      "file_sha256": "0a550492353a68fb61da37b301ded1c304e8816a2b12b1df5c0b3c6636645a39",
+      "scope_sha256": "26830973f661d94e1e20857f68678f91f2566fdd29df6973b9a050eae2648bd7",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__allreduce_rms_fusion.py",
+      "read_status": "scope: ROCm actual registration and guards manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/attn_quant_fusion.py",
+      "range": [
+        362,
+        403
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/attn_quant_fusion.py#L362-L403",
+      "file_sha256": "ecc64e82be4481954c9cac6c23d7794846ab19486b570f2dda07ab5ad67c5a49",
+      "scope_sha256": "0ad892de58acf80a7ad24902658f1ee6890a0106cda0e03ef8da93e9c51bc4dc",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__attn_quant_fusion.py",
+      "read_status": "scope: actual attention-layer capability registration manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/mla_attn_quant_fusion.py",
+      "range": [
+        574,
+        633
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/mla_attn_quant_fusion.py#L574-L633",
+      "file_sha256": "a966fe7f58bf9228379f793f5fd851735a97f9639722766b2a20cb79a9e4baec",
+      "scope_sha256": "81eb12162f40f7e5959d6dfad6da68076fd99a8bc9a2dc360fad7b2f03999f66",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__mla_attn_quant_fusion.py",
+      "read_status": "scope: MLA quant registration manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/rope_kvcache_fusion.py",
+      "range": [
+        412,
+        470
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/rope_kvcache_fusion.py#L412-L470",
+      "file_sha256": "faed3153db71f91bddcccf99cfab47dca7881933769d262dec52e22b5bfad163",
+      "scope_sha256": "6f6575aa48f23a8e6af2e5ea99ce3eac5c5c69e717203f96c5c855277289a8b6",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__rope_kvcache_fusion.py",
+      "read_status": "scope: actual backend capability and range gate manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/sequence_parallelism.py",
+      "range": [
+        495,
+        620
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/sequence_parallelism.py#L495-L620",
+      "file_sha256": "0d89b116bfb1b7a351fd20bb465f246de321073b1b8a92ad4af4ac5de00655ec",
+      "scope_sha256": "871dcc59224451a509b0acfaf0aa1469c09c981dc911adf74c7145724708c059",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__sequence_parallelism.py",
+      "read_status": "scope: registration, fullgraph and threshold manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/collective_fusion.py",
+      "range": [
+        900,
+        980
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/collective_fusion.py#L900-L980",
+      "file_sha256": "4b9e7cf9efee40f6e1895c32a23568ce25a40554436d49baa481ebb88f4d526f",
+      "scope_sha256": "6d2c94685e398fac90b4d023b7e74172fe2a29b76aa41faebd3ae08e1a564e19",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__collective_fusion.py",
+      "read_status": "scope: AsyncTP registration and fullgraph requirement manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/qk_norm_rope_fusion.py",
+      "range": [
+        188,
+        245
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/qk_norm_rope_fusion.py#L188-L245",
+      "file_sha256": "26f9fe18c24af61f2e55e7dc675fec64f3d1538548b2e22285c78039f9dc1f0d",
+      "scope_sha256": "f2e714909e5a90b7a7d4383f2a327afbe372cd5ced088f32df5667b12446363f",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__qk_norm_rope_fusion.py",
+      "read_status": "scope: dtype/layer discovery and registrations manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/rms_quant_fusion.py",
+      "range": [
+        618,
+        693
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/rms_quant_fusion.py#L618-L693",
+      "file_sha256": "d4fc85f6e2ef74cec2987c590968c18e24b98c4ea54e2c4d8ac19d4015834d19",
+      "scope_sha256": "33b9ea107d88e59859d73b6d5f930cd7e0722c8a5e98fe08c73e1d14b736771a",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__rms_quant_fusion.py",
+      "read_status": "scope: static/per-token/per-group registrations manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/act_quant_fusion.py",
+      "range": [
+        283,
+        322
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/act_quant_fusion.py#L283-L322",
+      "file_sha256": "1fa9c3ca4fb424685b7053c3dda89dda16c98dc5645d85f0f28dca58429792b3",
+      "scope_sha256": "5bc1dc5f14d4ee33bbbcb7a2a92724ee04d288eda57d3a19f1d3dcfbd31b2414",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__act_quant_fusion.py",
+      "read_status": "scope: activation quant registrations manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/rocm_aiter_fusion.py",
+      "range": [
+        546,
+        671
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/rocm_aiter_fusion.py#L546-L671",
+      "file_sha256": "7043545d77d4c4c568af78da52327dc8eb937ef064a5271d22ca7cbef9e4ae3c",
+      "scope_sha256": "3ebed3e93a43f9709d5ea35f242025dd13ca8404582f5ad481752d602bbe902a",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__rocm_aiter_fusion.py",
+      "read_status": "scope: AITER RMS quant registrations manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/rocm_aiter_fusion.py",
+      "range": [
+        673,
+        730
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/rocm_aiter_fusion.py#L673-L730",
+      "file_sha256": "7043545d77d4c4c568af78da52327dc8eb937ef064a5271d22ca7cbef9e4ae3c",
+      "scope_sha256": "07caf96b8cc716429223724a4962b99eb8c98fafa2c9220dc95acbdd65111d60",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__rocm_aiter_fusion.py",
+      "read_status": "scope: AITER SiLU group-128 replacement and registration manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/rocm_aiter_fusion.py",
+      "range": [
+        809,
+        838
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/rocm_aiter_fusion.py#L809-L838",
+      "file_sha256": "7043545d77d4c4c568af78da52327dc8eb937ef064a5271d22ca7cbef9e4ae3c",
+      "scope_sha256": "ef05964161b40ceed01d94b5efc6a416a0ea9ee9317d95b02e748d248ea7f653",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__rocm_aiter_fusion.py",
+      "read_status": "scope: 2880-width padding registration manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/compilation/passes/fusion/rocm_aiter_fusion.py",
+      "range": [
+        840,
+        936
+      ],
+      "ref": "vllm@0fc695fc:vllm/compilation/passes/fusion/rocm_aiter_fusion.py#L840-L936",
+      "file_sha256": "7043545d77d4c4c568af78da52327dc8eb937ef064a5271d22ca7cbef9e4ae3c",
+      "scope_sha256": "76ee02a9972f9948000ab92d79cff88ddb7afc9b6a77e1a2db0d4d2f4a24580c",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__compilation__passes__fusion__rocm_aiter_fusion.py",
+      "read_status": "scope: complete dual-RMS pattern/replacement and registration manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/_aiter_ops.py",
+      "range": [
+        429,
+        456
+      ],
+      "ref": "vllm@0fc695fc:vllm/_aiter_ops.py#L429-L456",
+      "file_sha256": "085355b9a7006835adde5549745337be1f6a7b34bd0e1bea922149eeb814b623",
+      "scope_sha256": "dccafc5285bf4eed2cac20ab6a46e2911b5e3d28fd73765fe8e28c42c39378ba",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm___aiter_ops.py",
+      "read_status": "scope: both public/private symbol guards manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/_aiter_ops.py",
+      "range": [
+        1125,
+        1181
+      ],
+      "ref": "vllm@0fc695fc:vllm/_aiter_ops.py#L1125-L1181",
+      "file_sha256": "085355b9a7006835adde5549745337be1f6a7b34bd0e1bea922149eeb814b623",
+      "scope_sha256": "6f322757ac6916822c8ffc2553e1c092e1a0e4e6cebaf4215ba80da3401ad8a7",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm___aiter_ops.py",
+      "read_status": "scope: actual dual-RMS invocation and fake output manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/_aiter_ops.py",
+      "range": [
+        1835,
+        1846
+      ],
+      "ref": "vllm@0fc695fc:vllm/_aiter_ops.py#L1835-L1846",
+      "file_sha256": "085355b9a7006835adde5549745337be1f6a7b34bd0e1bea922149eeb814b623",
+      "scope_sha256": "0449749580194b287b9d8b226be119d2052c7fd6a00d7f779b07f87641ea4561",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm___aiter_ops.py",
+      "read_status": "scope: op registration manually read",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/distributed/device_communicators/flashinfer_all_reduce.py",
+      "range": [
+        1,
+        336
+      ],
+      "ref": "vllm@0fc695fc:vllm/distributed/device_communicators/flashinfer_all_reduce.py#L1-L336",
+      "file_sha256": "fc43aab89fe603413dfec600e427a538b0b2d034c611f0f53039dcca87ff3d26",
+      "scope_sha256": "fc43aab89fe603413dfec600e427a538b0b2d034c611f0f53039dcca87ff3d26",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__distributed__device_communicators__flashinfer_all_reduce.py",
+      "read_status": "full source manually read",
+      "full_file": true
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "benchmarks/kernels/benchmark_fused_collective.py",
+      "range": [
+        1,
+        1149
+      ],
+      "ref": "vllm@0fc695fc:benchmarks/kernels/benchmark_fused_collective.py#L1-L1149",
+      "file_sha256": "c0ec9d9292fcbc40313a18baefd0fcd0c9f531a01cf84bf64713c3451f4dbdc5",
+      "scope_sha256": "c0ec9d9292fcbc40313a18baefd0fcd0c9f531a01cf84bf64713c3451f4dbdc5",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\benchmarks__kernels__benchmark_fused_collective.py",
+      "read_status": "full source manually read",
+      "full_file": true
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/model_executor/layers/attention/mla_attention.py",
+      "range": [
+        603,
+        640
+      ],
+      "ref": "vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L603-L640",
+      "file_sha256": "b12bfdece54eca4408e0e455ba163c9a0adaf396b2ea9e8fcc8b5d741e697001",
+      "scope_sha256": "793ee751f00084b9e49431d27713133e2508f8791ce6c6793b0de16c54f1b90e",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__model_executor__layers__attention__mla_attention.py",
+      "read_status": "scope manually read: temporary output + later quantization",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/model_executor/layers/attention/mla_attention.py",
+      "range": [
+        763,
+        829
+      ],
+      "ref": "vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L763-L829",
+      "file_sha256": "b12bfdece54eca4408e0e455ba163c9a0adaf396b2ea9e8fcc8b5d741e697001",
+      "scope_sha256": "a09790148f467b6e4735f161de02e49da12220d921cddb189333b0c90cf5ffea",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__model_executor__layers__attention__mla_attention.py",
+      "read_status": "scope manually read: temporary output + later quantization",
+      "full_file": false
+    },
+    {
+      "repo": "vllm",
+      "pin": "0fc695fc",
+      "path": "vllm/model_executor/layers/attention/mla_attention.py",
+      "range": [
+        1925,
+        1937
+      ],
+      "ref": "vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L1925-L1937",
+      "file_sha256": "b12bfdece54eca4408e0e455ba163c9a0adaf396b2ea9e8fcc8b5d741e697001",
+      "scope_sha256": "f42527922d15a24e607db22d94b9a31e2655d21ee21e06e8c4150a6ab19f6a8b",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\vllm__model_executor__layers__attention__mla_attention.py",
+      "read_status": "scope manually read: temporary output + later quantization",
+      "full_file": false
+    },
+    {
+      "repo": "ROCm/aiter",
+      "pin": "19ac0050645074c2f4fc5399b59defbfa2155ca0",
+      "pin_scope": "PR2442 final head, not arbitrary latest main",
+      "path": "csrc/kernels/fused_qk_norm.cu",
+      "range": [
+        1,
+        243
+      ],
+      "url": "https://raw.githubusercontent.com/ROCm/aiter/19ac0050645074c2f4fc5399b59defbfa2155ca0/csrc/kernels/fused_qk_norm.cu",
+      "file_sha256": "b6295933d29ce6b4d5a91f54cb2553e5a86e3a0ee00b8a2f0373610a156313a2",
+      "scope_sha256": "b6295933d29ce6b4d5a91f54cb2553e5a86e3a0ee00b8a2f0373610a156313a2",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\aiter__csrc__kernels__fused_qk_norm.cu",
+      "read_status": "full source manually read",
+      "full_file": true
+    },
+    {
+      "repo": "ROCm/aiter",
+      "pin": "19ac0050645074c2f4fc5399b59defbfa2155ca0",
+      "pin_scope": "PR2442 final head, not arbitrary latest main",
+      "path": "aiter/ops/fused_qk_norm_rope_cache_quant.py",
+      "range": [
+        1,
+        164
+      ],
+      "url": "https://raw.githubusercontent.com/ROCm/aiter/19ac0050645074c2f4fc5399b59defbfa2155ca0/aiter/ops/fused_qk_norm_rope_cache_quant.py",
+      "file_sha256": "83cf68a39a342adaae766753c6fc5c01a0d0dbd080f57907d8935e5a0027493a",
+      "scope_sha256": "83cf68a39a342adaae766753c6fc5c01a0d0dbd080f57907d8935e5a0027493a",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\aiter__aiter__ops__fused_qk_norm_rope_cache_quant.py",
+      "read_status": "full source manually read",
+      "full_file": true
+    },
+    {
+      "repo": "ROCm/aiter",
+      "pin": "19ac0050645074c2f4fc5399b59defbfa2155ca0",
+      "pin_scope": "PR2442 final head, not arbitrary latest main",
+      "path": "op_tests/test_fused_qk_norm.py",
+      "range": [
+        1,
+        134
+      ],
+      "url": "https://raw.githubusercontent.com/ROCm/aiter/19ac0050645074c2f4fc5399b59defbfa2155ca0/op_tests/test_fused_qk_norm.py",
+      "file_sha256": "5b5d0bfc94bfb66a9772dbcb789a6c0d4cc14a2ef23a18570bc9c1ba509ffd06",
+      "scope_sha256": "5b5d0bfc94bfb66a9772dbcb789a6c0d4cc14a2ef23a18570bc9c1ba509ffd06",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\aiter__op_tests__test_fused_qk_norm.py",
+      "read_status": "full source manually read",
+      "full_file": true
+    },
+    {
+      "repo": "ROCm/aiter",
+      "pin": "19ac0050645074c2f4fc5399b59defbfa2155ca0",
+      "pin_scope": "PR2442 final head, not arbitrary latest main",
+      "path": "csrc/include/fused_qk_norm_rope_cache_quant.h",
+      "range": [
+        77,
+        84
+      ],
+      "url": "https://raw.githubusercontent.com/ROCm/aiter/19ac0050645074c2f4fc5399b59defbfa2155ca0/csrc/include/fused_qk_norm_rope_cache_quant.h",
+      "file_sha256": "867f0fac627def579203e94467836daff46660375444b1becc86c29666d5ace6",
+      "scope_sha256": "f5f22715545ee329aa31c6cdc19c4ab7be315800f7903425471df5ea39f90f31",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\aiter__csrc__include__fused_qk_norm_rope_cache_quant.h",
+      "read_status": "exact API declaration/build binding scope manually read",
+      "full_file": false
+    },
+    {
+      "repo": "ROCm/aiter",
+      "pin": "19ac0050645074c2f4fc5399b59defbfa2155ca0",
+      "pin_scope": "PR2442 final head, not arbitrary latest main",
+      "path": "aiter/jit/optCompilerConfig.json",
+      "range": [
+        880,
+        898
+      ],
+      "url": "https://raw.githubusercontent.com/ROCm/aiter/19ac0050645074c2f4fc5399b59defbfa2155ca0/aiter/jit/optCompilerConfig.json",
+      "file_sha256": "224e108a568a8fb789acd7e4db9473de9a368f81060ccd3a893c11317b951739",
+      "scope_sha256": "e44c4d3bc2e2376d67a6d1954a9fbf085b468f755533ea28f4da9e5abce52cae",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\aiter__aiter__jit__optCompilerConfig.json",
+      "read_status": "exact API declaration/build binding scope manually read",
+      "full_file": false
+    },
+    {
+      "repo": "ROCm/aiter",
+      "pin": "19ac0050645074c2f4fc5399b59defbfa2155ca0",
+      "pin_scope": "PR2442 final head, not arbitrary latest main",
+      "path": "csrc/include/rocm_ops.hpp",
+      "range": [
+        1421,
+        1433
+      ],
+      "url": "https://raw.githubusercontent.com/ROCm/aiter/19ac0050645074c2f4fc5399b59defbfa2155ca0/csrc/include/rocm_ops.hpp",
+      "file_sha256": "4a0b22dcba691f3aa2fd268fabe81d27ae79a363fd244d19f9e0abd5cd812a9f",
+      "scope_sha256": "823bb548218ad55ffcad2325d5a9060cfb2f0df617cefad61efe3b3752a671d2",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\aiter__csrc__include__rocm_ops.hpp",
+      "read_status": "exact API declaration/build binding scope manually read",
+      "full_file": false
+    }
+  ],
+  "external_bodies": [
+    {
+      "name": "issue36066",
+      "url": "https://github.com/vllm-project/vllm/issues/36066",
+      "html_sha256": "6b5b6b405d494f6086786394eda6af8845e89cb3d045c85812b1959fd94c57fd",
+      "text_sha256": "6c5da221cafe15357ce9cee5254424a0b2ad4d4e7851b072effe5fd2c3d638d6",
+      "body_elements": 1,
+      "text_lines": 257,
+      "status": "read_at_declared_scope",
+      "read_status": "entire retrieved issue description text read; loaded discussion not claimed complete",
+      "text_local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\issue36066.txt",
+      "body_complete": true,
+      "historical_retrieval_status": "retrieved not read",
+      "not_claimed": "entire issue/PR discussion, hidden review or intermediate patches"
+    },
+    {
+      "name": "issue34458",
+      "url": "https://github.com/vllm-project/vllm/issues/34458",
+      "html_sha256": "0a7bd7c768e708ee7bb8f61736c905db48c52b2135862639d135079e36e79d4f",
+      "text_sha256": "ab0197e68b8638facafb662680c818b84b4fbfaaecb95efae5ba3efdca3497f2",
+      "body_elements": 1,
+      "text_lines": 572,
+      "status": "read_at_declared_scope",
+      "read_status": "entire retrieved issue description text read; loaded discussion not claimed complete",
+      "text_local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\issue34458.txt",
+      "body_complete": true,
+      "historical_retrieval_status": "retrieved not read",
+      "not_claimed": "entire issue/PR discussion, hidden review or intermediate patches"
+    },
+    {
+      "name": "issue35426",
+      "url": "https://github.com/vllm-project/vllm/issues/35426",
+      "html_sha256": "114ec052e0e51ba7e0323d07b2ad8066912d17cca95c8f41da35cfd2c5502a92",
+      "text_sha256": "c18dba6f5bc78e9c830245f23d0c9e58e6c2e3a7e42422a038075e8f54289e6a",
+      "body_elements": 1,
+      "text_lines": 23,
+      "status": "read_at_declared_scope",
+      "read_status": "entire retrieved issue description text read; loaded discussion not claimed complete",
+      "text_local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\issue35426.txt",
+      "body_complete": true,
+      "historical_retrieval_status": "retrieved not read",
+      "not_claimed": "entire issue/PR discussion, hidden review or intermediate patches"
+    },
+    {
+      "name": "issue27893",
+      "url": "https://github.com/vllm-project/vllm/issues/27893",
+      "html_sha256": "24aa36ff0bd96536f8f883928aa797f55cdec094b9984f61cffe39dbf7f7448f",
+      "text_sha256": "b4f9c546a0d85e88a87de2a3718c7bc780970acdef75b99ce6cd6c74387d3d03",
+      "body_elements": 1,
+      "text_lines": 35,
+      "status": "read_at_declared_scope",
+      "read_status": "entire retrieved issue description text read; loaded discussion not claimed complete",
+      "text_local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\issue27893.txt",
+      "body_complete": true,
+      "historical_retrieval_status": "retrieved not read",
+      "not_claimed": "entire issue/PR discussion, hidden review or intermediate patches"
+    },
+    {
+      "name": "issue34391",
+      "url": "https://github.com/vllm-project/vllm/issues/34391",
+      "html_sha256": "58e22c838fa887dad93e8d96bb2e23168f868af12e072886469310fbd32e4019",
+      "text_sha256": "e8502bc84a0daa22f7a12d2ee1e548634887c71877b7a7e171428b0a5afccda0",
+      "body_elements": 1,
+      "text_lines": 74,
+      "status": "read_at_declared_scope",
+      "read_status": "entire retrieved issue description text read; loaded discussion not claimed complete",
+      "text_local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\issue34391.txt",
+      "body_complete": true,
+      "historical_retrieval_status": "retrieved not read",
+      "not_claimed": "entire issue/PR discussion, hidden review or intermediate patches"
+    },
+    {
+      "name": "aiter-pr2442",
+      "url": "https://github.com/ROCm/aiter/pull/2442",
+      "html_sha256": "8e41da46ed3973289b2b7fba41292242c264bd421d3013c333537299260ab48f",
+      "text_sha256": "670c6d0d04956c4f067995d5150a670654e8a4b6f69d6f7aca66977c5cb8a768",
+      "body_elements": 6,
+      "text_lines": 73,
+      "status": "read_at_declared_scope",
+      "read_status": "PR description + five loaded body/comment blocks read; hidden inline review conversations and all intermediate patches not claimed",
+      "text_local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\aiter-pr2442.txt",
+      "body_complete": true,
+      "historical_retrieval_status": "retrieved not read",
+      "not_claimed": "entire issue/PR discussion, hidden review or intermediate patches"
+    }
+  ],
+  "external_figures": [
+    {
+      "document": "issue27893",
+      "index": 2,
+      "url": "https://private-user-images.githubusercontent.com/10901756/508394776-3e2e1fcd-de25-4f5a-83e1-a995c90c20c7.png",
+      "alt": "Image",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\issue27893-image-2.png",
+      "sha256": "6074e5767526c395f5ac8ac2cc98d863a6670ccd45f814baa29796b87ca85edd",
+      "status": "actually viewed",
+      "note": "Original issue image is a clipped table segment, not a complete benchmark export"
+    },
+    {
+      "document": "issue34391",
+      "index": 2,
+      "url": "https://private-user-images.githubusercontent.com/11367180/548541434-da8efcb3-6199-491d-a0ec-690eb4dd25d7.png",
+      "alt": "Image",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\issue34391-image-2.png",
+      "sha256": "573a6f1673793f2f889ab3075230f5185d5a95322cab6ab07ccca910b9d2d7c5",
+      "status": "actually viewed",
+      "note": "All visible rows/axes checked; external historical measurements, not our reproduction"
+    },
+    {
+      "document": "issue34391",
+      "index": 3,
+      "url": "https://private-user-images.githubusercontent.com/11367180/548541433-0b9329a9-1fb1-466a-a093-e7a53072a545.png",
+      "alt": "Image",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\issue34391-image-3.png",
+      "sha256": "e6e041e437b2b2160e9cab0641c682d4b0cdbe84d62f024f8ada1ff9f303a8eb",
+      "status": "actually viewed",
+      "note": "All visible rows/axes checked; external historical measurements, not our reproduction"
+    },
+    {
+      "document": "aiter-pr2442",
+      "index": 1,
+      "url": "https://private-user-images.githubusercontent.com/16217777/568174329-18293bd4-85ed-4566-8c35-e53f8406856f.png",
+      "alt": "image",
+      "local": ".tmp\\continuation-groups-2026-11-10\\fusion-child\\aiter-pr2442-image-1.png",
+      "sha256": "6003dc6212bfdb0adc9a7bc4bf09a56659a92acc0080f935546b9cdc3f92f116",
+      "status": "actually viewed",
+      "note": "All visible rows/axes checked; external historical measurements, not our reproduction"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "type": "external documentation mismatch",
+      "claim": "RoPE+KV O1 automatic",
+      "evidence": "fusions L183 vs L26; config/vllm222-255 shows O1 False, O2 conditional",
+      "site_impact": "Not copied; existing NPU/platform boundary retained."
+    },
+    {
+      "id": "F2",
+      "type": "external documentation mismatch",
+      "claim": "SP piecewise static TP-divisible sizes permitted",
+      "evidence": "sequence_parallelism602-605 and collective_fusion970-973 require full graph",
+      "site_impact": "Not copied."
+    },
+    {
+      "id": "F3",
+      "type": "external support matrix stale",
+      "claim": "AR+RMS ROCm absent",
+      "evidence": "config/vllm140-145 + pass_manager154-158 + RocmAiterAllReduceFusionPass1166-1277 actual path",
+      "site_impact": "No all-platform matrix copied to NPU."
+    },
+    {
+      "id": "F4",
+      "type": "external benchmark evidence limitation",
+      "claim": "CLI warmup/trials and fastest baseline labels can be trusted as execution facts",
+      "evidence": "benchmark-pure-check.json: no timing-call propagation, old candidate keys miss suffixed results; synthetic example reports1.50x instead of fastest-baseline0.50x",
+      "site_impact": "Do not adopt speedup numbers or treat script metadata as measured configuration."
+    },
+    {
+      "id": "F5",
+      "type": "necessary semantic boundary",
+      "claim": "Every dual-RMS fused op becomes exactly one HIP launch",
+      "evidence": "AITER PR2442 public wrapper M>=16384 returns two rmsnorm2d_fwd; actual fixed vLLM also checks newer private symbol before this legacy path",
+      "site_impact": "Current page already says graph nodes do not guarantee dispatch count; no NPU transfer."
+    }
+  ],
+  "counts": {
+    "new_teaching_source_occurrences": 0,
+    "teaching_files_changed": 0,
+    "full_source_code_files": 6,
+    "partial_source_scopes": 25,
+    "issue_description_texts": 5,
+    "pr_description_texts": 1,
+    "technical_figures_viewed": 4
+  },
+  "not_claimed": [
+    "All fusion CUDA/HIP kernels or every Attention backend directory file read in full.",
+    "All issue/PR comments, follow-on fixes or intermediate patches read.",
+    "NPU/GPU/ROCm benchmarks executed or published performance reproduced.",
+    "Current CUDA/HIP paths automatically apply to four fixed Ascend versions."
+  ],
+  "remaining_outside_current_teaching": [
+    "Deep CUDA/HIP kernel internals and other benchmark workloads are outside the current NPU explanation; not certified full-source reading.",
+    "AITER follow-up PR2958/issue3207 are API evolution beyond the directly linked PR2442; actual vLLM symbol-choice branch read but those full conversations not read.",
+    "External npugraph_ex replacement consumer and concrete NPU numerical/performance execution retain the previously precise unresolved boundary."
+  ],
+  "scope_recommendation": "Parent may close row16 for technical links necessary to existing NPU teaching boundary, while retaining explicit broader-source and hardware-execution exclusions; not all recursive links complete."
+}

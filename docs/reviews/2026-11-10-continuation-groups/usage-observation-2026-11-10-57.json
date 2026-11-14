@@ -1,0 +1,8 @@
+{
+  "recorded_at": "2026-11-10T12:59:44.116682+00:00",
+  "used_percent": 57,
+  "window_minutes": 10080,
+  "resets_at": 1794852129,
+  "source": "mcp__codex_app__get_usage_limits actual this turn",
+  "interpretation": "Account total, concurrent chats included; integer display; not exclusive task cost"
+}

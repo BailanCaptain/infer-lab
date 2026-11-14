@@ -1,0 +1,241 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GLM 模型计算演示</title>
+<style>
+/* The chapter page (A1): text left, the one 3D object right (about 4 : 6). One look with the model beside it (09-27; the
+   user: "左侧的整体好丑……跟模型图里的很割裂"): the master pages' page colour, ink, lines, font and pill buttons; the
+   components' colours are the model's own (flow-colors.js). */
+:root{--page:#f8f5ee;--card:#fffdf8;--line:#ddd5c6;--line2:#b9b2a3;--ink:#2b2823;--ink2:#4a463f;--muted:#6b665c;--soft:#efe9dc;
+ --mono:var(--journey-font-mono)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--page);color:var(--ink);font-family:var(--journey-font-sans);overflow:hidden}
+#app{display:grid;grid-template-columns:minmax(440px,40%) 1fr;height:100vh}
+#left{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
+#scroll{flex:1;overflow-y:auto;padding:22px 28px 48px;scroll-behavior:smooth}
+#right{position:relative;min-width:0}
+#right iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.kicker{font-size:12.5px;color:var(--muted);letter-spacing:.02em}
+h1{font-size:23px;font-weight:800;margin:4px 0 6px;line-height:1.35}
+.sub{color:var(--ink2);font-size:14px;line-height:1.7;margin:0 0 6px}
+.note{color:var(--muted);font-size:12.5px;line-height:1.6;margin:0 0 16px}
+/* the map (A1: 章首是整模型 2D 平面图 + 目录): the model as its steps, coloured as in the 3D; the one in hand outlined */
+#map{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:12px 14px 10px;margin-bottom:6px}
+#map .mh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+#map .mh b{font-size:13.5px}#map .mh span{font-size:12px;color:var(--muted)}
+.mrow{display:flex;align-items:center;gap:0;margin:6px 0}
+.mlab{width:48px;flex:none;font-size:12px;color:var(--muted)}
+.mlayer{border:1px dashed var(--line2);border-radius:10px;padding:4px 8px 6px;margin:8px 0}
+.mlayer .top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:2px 0 2px}
+.mlayer .top b{color:var(--ink);font-size:12.5px;margin-right:4px}
+.kind{border:1px solid var(--line2);border-radius:10px;padding:1px 8px;background:var(--page);cursor:pointer;color:var(--ink2)}
+.kind.todo{opacity:.55}.kind.cur{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.box{flex:1;min-width:0;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:var(--ink);
+ cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;border:1.5px solid transparent;transition:opacity .15s}
+.box.todo{opacity:.42}.box:hover{filter:brightness(.97)}
+.box.cur{border-color:var(--ink);box-shadow:0 1px 4px #2b282326}
+.pair{flex:1;min-width:0;display:flex;align-items:center;gap:3px}.pair .or{font-size:11px;color:var(--muted)}
+.arr{flex:none;width:14px;text-align:center;color:var(--line2);font-size:12px}
+/* the parts and their segments */
+.part{margin:26px 0 6px;font-size:16px;font-weight:800;display:flex;gap:8px;align-items:baseline}
+.part span{font-size:13px;color:var(--muted);font-weight:600}
+.row{display:flex;gap:10px;align-items:baseline;padding:5px 8px;border-radius:8px;font-size:13.5px;color:var(--muted)}
+.row .n{font:12px var(--mono);color:var(--line2);flex:none;width:20px}
+.row .t{color:var(--ink2);flex:none}.row .io{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+.row .todo-tag{font-size:11.5px;color:var(--line2);flex:none}
+.seg{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:8px 0;scroll-margin-top:12px;transition:border-color .2s,box-shadow .2s}
+.seg.cur{border-color:var(--ink);box-shadow:0 2px 12px #2b282314}
+.seg .hd{display:flex;align-items:baseline;gap:10px;cursor:pointer}
+.seg .n{font:12px var(--mono);color:var(--muted);flex:none;width:20px}
+.seg .t{font-weight:800;font-size:16.5px;flex:1}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:10px 0 4px 30px;font-size:12.5px}
+.flow span{background:var(--soft);border-radius:6px;padding:2px 7px;font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.flow em{font-style:normal;color:var(--line2)}
+.seg p{font-size:14.5px;line-height:1.8;margin:8px 0 8px 30px;color:var(--ink)}
+.seg p b{font-weight:800}
+.beats{list-style:none;margin:10px 0 6px 30px;padding:0;counter-reset:b}
+.beats li{counter-increment:b;font-size:13.5px;line-height:1.5;padding:4px 8px 4px 32px;position:relative;border-radius:7px;color:var(--muted);cursor:pointer}
+.beats li:hover{background:#f3eee3}
+.beats li::before{content:counter(b);position:absolute;left:7px;top:5px;width:18px;height:18px;border-radius:50%;border:1px solid var(--line2);font:11px/17px var(--mono);text-align:center}
+.beats li.done{color:var(--ink)}.beats li.done::before{background:var(--ink2);border-color:var(--ink2);color:var(--page)}
+.beats li.now{color:var(--ink);background:#efe9dc;font-weight:700}.beats li.now::before{background:var(--ink);border-color:var(--ink);color:var(--page)}
+.seg details{margin:6px 0 0 30px;font-size:12.5px;color:var(--muted);line-height:1.65}
+.seg details summary{cursor:pointer;width:max-content}
+.seg code{font-family:var(--mono);font-size:11.5px;background:var(--soft);padding:0 4px;border-radius:4px}
+.go{display:flex;gap:8px;margin:12px 0 0 30px}
+/* the segment's 2D panel (arch.html's drawing, arch-draw.js), in the card in hand only */
+.panel2d{margin:10px 0 4px 30px;border-radius:10px;background:var(--page);border:1px solid var(--line);padding:6px 4px 2px;overflow-x:auto;display:none}
+.seg.cur .panel2d{display:block}
+.panel2d svg{display:block;height:auto;max-width:none}
+.panel2d svg text{font-family:var(--journey-font-sans)}
+.panel2d .box2{opacity:.32;transition:opacity .2s}
+.panel2d .box2.seg2,.panel2d .box2.io{opacity:1}
+.panel2d .box2.now rect{stroke:var(--ink)!important;stroke-width:3!important}
+/* buttons: the master pages' pills */
+.btn{font:inherit;font-size:13px;border:1px solid var(--line2);border-radius:14px;padding:4px 12px;background:var(--page);color:var(--ink2);cursor:pointer}
+.btn:hover{border-color:var(--ink2)}
+.btn.on,.btn.primary{background:var(--ink);color:var(--page);border-color:var(--ink)}
+.btn.primary{font-weight:700;padding:5px 16px}
+/* the player bar: the segment in hand, at the foot of the text (A1: 底部「继续 / 跳过」) */
+#bar{border-top:1px solid var(--line);background:var(--page);padding:10px 18px 12px}
+#bar .r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#bar .now{flex:1;min-width:160px;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#bar .now i{font:12px var(--mono);font-style:normal;color:var(--muted);margin-right:6px}
+#bar .say{font-size:13.5px;color:var(--ink2);min-height:20px;margin:6px 0 2px}
+#prog{height:5px;background:var(--soft);border-radius:3px;margin:8px 0 2px;position:relative;cursor:pointer}
+#prog i{position:absolute;left:0;top:0;bottom:0;background:var(--ink2);border-radius:3px}
+#prog u{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--page)}
+#time{font:12px var(--mono);color:var(--muted)}
+#bar .k{font-size:12px;color:var(--muted)}
+#play{min-width:84px}
+@media(max-width:1100px){#app{grid-template-columns:minmax(290px,36%) 1fr}#scroll{padding:14px 12px 32px}#bar{padding:8px 10px}.seg{padding:12px 10px}.seg p,.beats,.flow,.panel2d,.go{margin-left:0}#bar .now{min-width:120px}}
+
+body[data-inline] #app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
+body[data-inline] #right{grid-row:1;min-height:0}
+body[data-inline] #left{grid-row:2;border-right:0}
+body[data-inline] #scroll{display:none}
+</style><link rel="stylesheet" href="../../typography.css"><link rel="stylesheet" href="../../reader-theme.css"><script>if(new URLSearchParams(location.search).get("site")==="1"||window.frameElement?.classList.contains("experience-frame"))document.documentElement.dataset.site="true";</script></head><body><div id="app"><div id="left"><div id="scroll"></div><div id="bar"></div></div><div id="right"><iframe id="stage" title="GLM-5.3-Flash 整个模型"></iframe></div></div>
+<script type="module">
+// The chapter's page (A1): the text of chapter 02 on the left — a map of the model that is also the contents, the 38
+// segments (the built ones with their text, their part's 2D panel and a play button) — and the whole model on the right
+// (model.html ?embed=1, played by play.js through postMessage: the chapter says where to go and what to play, A8 口 2).
+// The left column's scrolling does not move the camera (still to be decided: MASTER-DESIGN 第五节第 2 条); choosing a
+// segment does.
+import {CHAPTER,PARTS,SEGMENTS,IO,durationOf} from './segments.js';
+import {loadPalette} from './flow-colors.js';
+import {makeArch} from './arch-draw.js';
+import {layerSpec} from './truth-spec.js';
+
+const $=s=>document.querySelector(s),scroll=$('#scroll'),bar=$('#bar'),frameEl=$('#stage');
+const built=new Map(SEGMENTS.map(s=>[s.n,s])),P=loadPalette();
+const nn=n=>String(n).padStart(2,'0');
+const cfg=(await (await fetch('../reference/official-config.json')).json()).text_config;
+
+// ---- the map: the model's steps in rows, each box coloured as its component is in the 3D (its result colour); a box
+// says which segment tells it (data-n) and which row of the model it is (data-row: the segments' `rows`)
+const box=(t,row,n,comp)=>`<div class="box" data-row="${row}" data-n="${n}" style="background:${P[comp][0]}">${t}</div>`;
+const pair=(a,b)=>`<div class="pair">${a}<span class="or">或</span>${b}</div>`,arr='<span class="arr">→</span>';
+const mrow=(lab,...bs)=>`<div class="mrow"><span class="mlab">${lab}</span>${bs.join(arr)}</div>`;
+const MAP=`<div id="map"><div class="mh"><b>本章地图</b><span>40 段 · 点方框跳到对应讲解</span></div>`
+ +mrow('输入',box('词 → 编号','col:text',3,'embed'),box('查词表','col:embed',4,'embed'),box('复制成 4 路','col:expand',5,'resid'))
+ +`<div class="mlayer"><div class="top"><b>每一层 × ${cfg.num_hidden_layers}</b>三种层：${[[8,'KDA + 稠密 ×3'],[20,'KDA + MoE ×31'],[26,'MLA + MoE ×11']].map(([n,t])=>`<span class="kind" data-n="${n}">${t}</span>`).join('')}</div>`
+ +mrow('上半层',box('合成 1 路','mhc',9,'resid'),box('RMSNorm','norm',10,'norm'),pair(box('KDA','attn-kda',11,'kda'),box('MLA','attn-attn',28,'attn')),box('写回 4 路','write',16,'resid'))
+ +mrow('下半层',box('合成 1 路','mhc2',17,'resid'),box('RMSNorm','norm2',17,'norm'),pair(box('稠密','ffn-dense',18,'dense'),box('MoE','ffn-expert',22,'expert')),box('写回 4 路','write2',19,'resid'))
+ +`</div>`
+ +mrow('输出',box('4 路取平均','col:hc_head',34,'resid'),box('RMSNorm','col:norm',34,'norm'),box('输出头','col:lm_head',36,'embed'),box('选词','col:pick',37,'embed'))
+ +`</div>`;
+
+// ---- the 2D panels (arch.html's drawing, in this page's look): shown in the card in hand; the steps of the segment
+// stand out, the step the model is at is outlined
+const ARCH=makeArch(cfg,P,{BLUE:'#2b2823',LINE:'#8a857c',frame:false,titleSize:15});
+function panelSvg(key){const p=ARCH.titled(key,4,4),k=.84;return `<svg viewBox="0 0 ${p.w+8} ${p.h+8}" width="${Math.round((p.w+8)*k)}" role="img">${p.svg}</svg>`}
+const SPECS=new Map(),specOf=l=>{if(!SPECS.has(l))SPECS.set(l,layerSpec(cfg,6,l));return SPECS.get(l)},SITE={mix_ffn:'mix_attn',collapse_ffn:'collapse_attn',write_ffn:'write_attn'};
+const stepsOfBeat=b=>{const op=b.op,s=SEGMENTS.find(s=>s.beats.includes(b)),SPEC0=specOf(s?.layer||0),outs=[...[op.words||[]].flat(),...(op.heads||[]).map(([,o])=>o)];
+ for(const key of ['dot','norm','conv','fg','beta','kda','gn','write','mix','coef','ew'])if(op[key])outs.push((key==='dot'&&b.dot?b.dot:s[key]).out);
+ if(op.route)outs.push('topk_i','topk_w');if(op.expert&&op.expert!=='select')outs.push(s.expert.stages[op.expert].out);if(op.merge)outs.push(s.merge[op.merge].out);
+ if(op.lesson)outs.push(...op.lesson.writes);
+ const st=op.tour?SPEC0.steps.filter(x=>x.half===op.tour):SPEC0.steps.filter(x=>x.writes.some(w=>outs.includes(w)));return st.map(x=>SITE[x.id]||x.id)};
+function fillPanel(n){
+ for(const el of document.querySelectorAll('.panel2d'))if(+el.closest('.seg').dataset.n!==n)el.innerHTML='';
+ const s=built.get(n),el=document.querySelector(`#s${n} .panel2d`);if(!s||!el||el.firstChild)return;
+ el.innerHTML=panelSvg(s.panel);const mine=new Set(s.beats.flatMap(stepsOfBeat));
+ for(const g of el.querySelectorAll('.box')){g.classList.remove('box');g.classList.add('box2');g.classList.toggle(g.dataset.step?'seg2':'io',!g.dataset.step||mine.has(g.dataset.step))}
+}
+
+// ---- the text: title, the map, the parts; a built segment is a card, one not built yet a line
+let html=`<div class="kicker">GLM-5.3-Flash · 计算演示</div><h1>${CHAPTER.sub}</h1>`
+ +`<p class="sub">右边一直是同一个模型：GLM-5.3-Flash 的 45 层，每个张量按真实大小画。左边一段一段讲，每段都能在右边播放。</p>`
+ +`<p class="note">同一句话从查词表开始，使用各层独立的教学权重，按公式连续经过全部 45 层，再计算完整词表概率与选词。重复层快放，数值计算不跳层；教学权重未经训练，输出不是 GLM 的真实预测。</p>`+MAP;
+for(const [no,name,segs] of PARTS){
+ html+=`<div class="part"><span>${no}</span>${name}</div>`;
+ for(const [n,t] of segs){
+  const s=built.get(n);
+  if(!s){html+=`<div class="row" id="s${n}" data-n="${n}"><span class="n">${nn(n)}</span><span class="t">${t}</span><span class="io">${IO[n]||''}</span><span class="todo-tag">还没做</span></div>`;continue}
+  html+=`<section class="seg" id="s${n}" data-n="${n}"><div class="hd"><span class="n">${nn(s.displayNumber)}</span><span class="t">${s.title}</span></div>`
+   +`<div class="flow">${s.flow.map(f=>`<span>${f}</span>`).join('<em>→</em>')}</div>`
+   +s.text.map(p=>`<p>${p}</p>`).join('')
+   +(s.panel?`<div class="panel2d" data-panel="${s.panel}"></div>`:'')
+   +`<ol class="beats">${s.beats.map((b,i)=>`<li data-i="${i}">${b.say}</li>`).join('')}</ol>`
+   +`<div class="go"><button class="btn primary" data-play="${n}">▶ 播放这一段</button><button class="btn" data-show="${n}">看算完的样子</button>${n===38?'<button class="btn" data-cycle="38">▶ 快进一轮</button>':''}</div>`
+   +(s.more?`<details><summary>依据（官方代码）</summary>${s.more}</details>`:'')+`</section>`;
+ }
+}
+scroll.innerHTML=html;
+for(const el of document.querySelectorAll('#map .box,#map .kind'))el.classList.toggle('todo',!built.has(+el.dataset.n));
+
+// ---- the bar
+bar.innerHTML=`<div class="r"><button class="btn primary" id="play">▶ 播放</button><button class="btn" id="again" title="从头播放">↺</button><div class="now" id="now"></div><span id="time"></span></div>`
+ +`<div id="prog"><i></i></div><div class="say" id="say"></div>`
+ +`<div class="r"><span class="k">速度</span>${[.5,1,2].map(v=>`<button class="btn speed${v===1?' on':''}" data-v="${v}">${v}×</button>`).join('')}<button class="btn on" id="follow" style="margin-left:8px">镜头跟随</button><span style="flex:1"></span><button class="btn" id="whole">看整个模型</button><button class="btn" id="skip">跳过</button><button class="btn primary" id="next">继续 →</button></div>`;
+
+// ---- talking to the model
+const send=m=>frameEl.contentWindow?.postMessage(m,location.origin);
+let lastStep=null,ready=false,cur=null,state={t:0,dur:1,beat:0,playing:false},queued=null;
+const order=SEGMENTS.map(s=>s.n);
+function select(n,{play=false,scrollTo=true}={}){
+ if(!built.has(n)){if(scrollTo)document.getElementById('s'+n)?.scrollIntoView({block:'center'});return}
+ const d=durationOf(built.get(n));cur=n;state=play?{t:0,dur:d,beat:0,playing:true}:{t:d,dur:d,beat:built.get(n).beats.length-1,playing:false};
+ for(const el of document.querySelectorAll('.seg'))el.classList.toggle('cur',+el.dataset.n===n);
+ for(const el of document.querySelectorAll('#map .box'))el.classList.toggle('cur',built.get(n).rows.includes(el.dataset.row));
+ for(const el of document.querySelectorAll('#map .kind'))el.classList.toggle('cur',+el.dataset.n===n);
+ fillPanel(n);
+ if(scrollTo)document.getElementById('s'+n).scrollIntoView({block:'start'});
+ if(!ready){queued={n,play};paint();return}
+ send({cmd:play?'play':'go',n});paint();
+}
+// (while playing, a tick moves the bar and the time only; the rest is painted again when the segment, the beat, playing or
+// done changes — 09-28, the user: "有点卡顿", every frame rebuilt the bar's marks and restyled every beat of every card)
+let painted='';
+function paint(){
+ const s=cur&&built.get(cur);
+ const f=s?Math.min(1,state.t/state.dur):0;$('#prog i').style.width=f*100+'%';
+ $('#time').textContent=s?`${state.t.toFixed(1)} / ${state.dur.toFixed(0)} 秒`:'';
+ const key=[cur,state.beat,state.playing,state.t>=state.dur,state.t>0,state.dur].join();if(key===painted)return;painted=key;
+ $('#now').innerHTML=s?`<i>${nn(s.displayNumber)}</i>${s.title}`:'<span style="color:#6b665c;font-weight:400">选一段，或按「继续」从第一段开始</span>';
+ $('#play').textContent=state.playing?'⏸ 暂停':(s&&state.t<state.dur&&state.t>0?'▶ 继续播':'▶ 播放');
+ $('#say').textContent=s?(state.playing||state.t<state.dur?s.beats[state.beat]?.say:'算完了：结果都留在原处。按 ▶ 再看一遍，或「继续」下一段')||'':'';
+ for(const el of document.querySelectorAll('.seg')){const n=+el.dataset.n;for(const li of el.querySelectorAll('.beats li')){const i=+li.dataset.i,mine=n===cur,done=mine&&(i<state.beat||(state.t>=state.dur));li.classList.toggle('done',done);li.classList.toggle('now',mine&&state.playing&&i===state.beat)}}
+ // the step the model is at, outlined in the card's 2D panel (while the segment is not done)
+ for(const g of document.querySelectorAll('.panel2d .box2.now'))g.classList.remove('now');
+ if(s&&state.t<state.dur){const now=new Set(stepsOfBeat(s.beats[state.beat]||s.beats[0]));let first=null;for(const g of document.querySelectorAll(`#s${s.n} .panel2d .box2[data-step]`))if(now.has(g.dataset.step)){g.classList.add('now');first=first||g}
+  if(first&&first.dataset.step!==lastStep){lastStep=first.dataset.step;const box=first.closest('.panel2d'),r=first.getBoundingClientRect(),b=box.getBoundingClientRect();if(r.left<b.left||r.right>b.right)box.scrollTo({left:box.scrollLeft+r.left-b.left-(b.width-r.width)/2,behavior:'smooth'})}}
+ const pr=$('#prog');pr.querySelectorAll('u').forEach(u=>u.remove());if(s){let a=0;for(const b of s.beats.slice(0,-1)){a+=b.dur;const u=document.createElement('u');u.style.left=a/state.dur*100+'%';pr.append(u)}}
+}
+addEventListener('message',e=>{
+ if(e.origin!==location.origin||e.source!==frameEl.contentWindow)return;const m=e.data||{};
+ if(m.ev==='ready'){ready=true;if(queued){if(queued.t!==undefined)send({cmd:'seek',n:queued.n,t:queued.t});if(queued.play)send({cmd:'play',n:queued.n});else if(queued.t===undefined)send({cmd:'go',n:queued.n});queued=null}}
+ if(m.ev==='tick'&&m.n===cur){state={t:m.t,dur:m.dur,beat:m.beat,playing:m.playing};paint()}
+ if(m.ev==='end'&&m.n===cur){state.playing=false;paint()}
+ if(m.ev==='follow')$('#follow').classList.toggle('on',m.on);
+});
+
+// ---- the reader's hands
+scroll.addEventListener('click',e=>{
+ const b=e.target.closest('[data-play],[data-show],[data-cycle],.seg .hd,.beats li,#map .box,#map .kind,.row');if(!b)return;
+ if(b.dataset.cycle){select(38,{scrollTo:false});send({cmd:'seek',n:38,t:durationOf(built.get(38))-built.get(38).beats.at(-1).dur});send({cmd:'play',n:38});return}
+ if(b.dataset.play)return select(+b.dataset.play,{play:true,scrollTo:false});
+ if(b.dataset.show)return select(+b.dataset.show,{scrollTo:false});
+ if(b.matches('.beats li')){const n=+b.closest('.seg').dataset.n,s=built.get(n);if(cur!==n)select(n,{scrollTo:false});const t=s.beats.slice(0,+b.dataset.i).reduce((a,x)=>a+x.dur,0);send({cmd:'seek',n,t});return}
+ if(b.matches('#map .box,#map .kind,.row'))return select(+b.dataset.n);
+ select(+b.closest('.seg').dataset.n,{scrollTo:false});
+});
+$('#play').onclick=()=>{if(!cur)return select(order[0],{play:true});if(!ready){state.playing=!state.playing;queued={n:cur,play:state.playing,t:state.t};paint();return}if(state.playing)send({cmd:'pause'});else send({cmd:'play',n:cur})};
+$('#again').onclick=()=>{if(!cur)return;send({cmd:'seek',n:cur,t:0});send({cmd:'play',n:cur})};
+$('#prog').onclick=e=>{if(!cur)return;const r=e.currentTarget.getBoundingClientRect();send({cmd:'seek',n:cur,t:(e.clientX-r.left)/r.width*state.dur})};
+for(const b of bar.querySelectorAll('.speed'))b.onclick=()=>{for(const x of bar.querySelectorAll('.speed'))x.classList.toggle('on',x===b);send({cmd:'speed',v:+b.dataset.v})};
+$('#follow').onclick=e=>{const on=!e.currentTarget.classList.contains('on');e.currentTarget.classList.toggle('on',on);send({cmd:'follow',on})};
+$('#whole').onclick=()=>{cur=null;for(const el of document.querySelectorAll('.seg.cur,#map .cur'))el.classList.remove('cur');fillPanel(-1);send({cmd:'whole'});paint()};
+const nextOf=n=>order[order.indexOf(n)+1];
+$('#next').onclick=()=>{const n=cur?nextOf(cur):order[0];if(n)select(n,{play:true});else $('#say').textContent='本章 40 段结束。可以从地图回看任意组件，或重播第 40 段回顾下一轮。'};
+$('#skip').onclick=()=>{const n=cur?nextOf(cur):order[0];if(n)select(n);else $('#say').textContent='本章结束：40 段均可回看。'};
+addEventListener('keydown',e=>{if(e.target.closest('input,textarea'))return;if(e.code==='Space'){e.preventDefault();$('#play').click()}});
+
+// ---- the model: sized to the right side; a new size loads it again (the model page draws at its size), back where it was
+let loadedSize='';
+function load(){const r=$('#right').getBoundingClientRect(),size=Math.round(r.width)+'x'+Math.round(r.height);if(size===loadedSize)return;loadedSize=size;ready=false;frameEl.src=`model.html?embed=1&site=1&w=${Math.round(r.width)}&h=${Math.round(r.height)}`;if(cur)queued={n:cur,play:false}}
+let rt=0;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(load,400)});
+const entryParams=new URLSearchParams(location.search);
+if(entryParams.get('inline')==='1')document.body.dataset.inline='';
+load();
+const entry=Number(entryParams.get('segment'));
+if(built.has(entry))select(entry,{play:true});
+paint();
+window.__chapter={select,send,get state(){return {cur,ready,...state}}};
+</script></body></html>

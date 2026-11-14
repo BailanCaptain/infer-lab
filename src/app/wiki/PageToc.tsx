@@ -40,7 +40,7 @@ export function hasPageToc(headings: PageHeading[]): boolean {
  * 滚动时当前所在的小节。滚到页底时，末尾几节挤在最后一屏、顶不到视口上方：刚从目录点过去的那一节
  * 还在视口里就算它，否则算最后一节。
  */
-function useActiveHeading(headings: PageHeading[]): string | null {
+export function useActiveHeading(headings: PageHeading[]): string | null {
   const [active, setActive] = useState<string | null>(null);
   const { hash } = useLocation();
   const jumped = fragmentId(hash);
@@ -83,20 +83,21 @@ function useActiveHeading(headings: PageHeading[]): string | null {
 
 type ListProps = {
   pageId: string;
+  pathname?: string;
   headings: PageHeading[];
   active: string | null;
   scrollTo: (hash: string) => void;
   onPick?: () => void;
 };
 
-function TocList({ pageId, headings, active, scrollTo, onPick }: ListProps) {
+function TocList({ pageId, pathname, headings, active, scrollTo, onPick }: ListProps) {
   const { search, hash } = useLocation();
   return (
     <ol className="wiki-pagetoc-list">
       {headings.map((h) => (
         <li key={h.id} className={`is-h${h.level}`}>
           <Link
-            to={{ pathname: `/wiki/${pageId}`, search, hash: `#${h.id}` }}
+            to={{ pathname: pathname ?? `/wiki/${pageId}`, search, hash: `#${h.id}` }}
             className={h.id === active ? "wiki-pagetoc-link is-active" : "wiki-pagetoc-link"}
             aria-current={h.id === active ? "location" : undefined}
             onClick={() => {
@@ -166,6 +167,7 @@ function onListKeys(e: KeyboardEvent<HTMLElement>) {
 
 type Props = {
   pageId: string;
+  pathname?: string;
   headings: PageHeading[];
   scrollTo: (hash: string) => void;
 };

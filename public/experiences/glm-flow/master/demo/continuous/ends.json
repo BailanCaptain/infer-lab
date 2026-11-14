@@ -1,0 +1,117 @@
+{
+  "ids": [
+    105087,
+    100325,
+    3837,
+    121267,
+    98401,
+    103349
+  ],
+  "weights": {
+    "tensors": {
+      "W_embed": {
+        "shape": [
+          154880,
+          4096
+        ],
+        "scale": 1.0,
+        "rows": {
+          "105087": 2.2,
+          "100325": 0.6,
+          "3837": 0.35,
+          "121267": 1.5,
+          "98401": 0.8,
+          "103349": 1.3
+        },
+        "seedName": "embed_tokens"
+      },
+      "gamma_final": {
+        "shape": [
+          4096
+        ],
+        "scale": 0.15,
+        "add": 1
+      },
+      "W_head": {
+        "shape": [
+          154880,
+          4096
+        ],
+        "scale": 0.027063293868263706
+      }
+    }
+  },
+  "tensors": {
+    "ids": {
+      "shape": [
+        6
+      ],
+      "off": 0
+    },
+    "x0": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 6
+    },
+    "L00:residual_in": {
+      "shape": [
+        6,
+        4,
+        4096
+      ],
+      "off": 24582
+    },
+    "last_residual": {
+      "shape": [
+        6,
+        4,
+        4096
+      ],
+      "off": 122886
+    },
+    "h_mean": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 221190
+    },
+    "h_final": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 245766
+    },
+    "logits": {
+      "shape": [
+        1,
+        154880
+      ],
+      "off": 270342
+    },
+    "probs": {
+      "shape": [
+        1,
+        154880
+      ],
+      "off": 425222
+    },
+    "next_id": {
+      "shape": [
+        1
+      ],
+      "off": 580102
+    },
+    "sample_info": {
+      "shape": [
+        3
+      ],
+      "off": 580103
+    }
+  },
+  "floats": 580106,
+  "note": "Same six tokens through L00..L44, final norm, full vocabulary and top_p=.95. Invented untrained weights; not a trained GLM prediction."
+}

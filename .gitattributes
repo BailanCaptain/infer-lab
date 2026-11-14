@@ -1,6 +1,8 @@
 * text=auto eol=lf
 # Content-addressed excerpts must retain their exact bytes through git.
 wiki/raw/sha256-*.md -text
+# The published viewer manifest verifies these assets byte for byte.
+public/experiences/** -text
 # Preserve imported patch/source bytes for RFork provenance checks.
 rfork/patches/* -text
 rfork/reconciliation/* -text

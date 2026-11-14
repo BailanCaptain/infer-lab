@@ -1,0 +1,495 @@
+.matrix-part {
+  --matrix-input: var(--color-matrix-input);
+  --matrix-output: var(--color-matrix-output);
+  --matrix-parameter: var(--color-matrix-parameter);
+  margin: 24px 0 32px;
+  min-width: 0;
+  color: var(--color-ink);
+  container-type: inline-size;
+}
+.matrix-part > figcaption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.matrix-part-body {
+  min-width: 0;
+}
+.matrix-part-canvas {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  overflow: hidden;
+}
+.matrix-part[data-part="rms"] .matrix-part-canvas {
+  height: 700px;
+}
+.matrix-part[data-part="rms"] .matrix-part-canvas[data-idle="true"] {
+  height: 420px;
+}
+.matrix-part-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+.matrix-part-canvas canvas:active {
+  cursor: grabbing;
+}
+.matrix-part-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.matrix-part-label {
+  position: absolute;
+  pointer-events: none;
+  line-height: 1.5;
+  font-size: var(--text-compact);
+  text-align: center;
+}
+.matrix-part-label strong {
+  display: block;
+  font-weight: 600;
+}
+.matrix-part-label span {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  color: var(--color-ink-muted);
+  font-size: var(--text-label);
+}
+.matrix-part-label small {
+  display: block;
+  color: var(--color-token);
+  font-size: var(--text-caption);
+  white-space: nowrap;
+}
+:where(.matrix-part[data-part="rms"]) .matrix-part-label span {
+  white-space: nowrap;
+}
+.matrix-rms-work {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--color-ink);
+}
+.matrix-rms-operand,
+.matrix-rms-operator,
+.matrix-rms-operation-title {
+  position: absolute;
+  left: 0;
+  top: 0;
+  text-align: center;
+  pointer-events: none;
+}
+.matrix-rms-operand {
+  width: 104px;
+  line-height: 1.5;
+}
+.matrix-rms-operand small {
+  display: block;
+  font-size: var(--text-caption);
+  color: var(--color-ink-muted);
+}
+.matrix-rms-operand strong {
+  display: block;
+  font: 500 var(--text-compact) / 1.7 var(--font-mono);
+}
+.matrix-rms-scalar strong::before {
+  content: "≈ ";
+}
+.matrix-rms-operator {
+  font: var(--text-title) / 1 var(--font-mono);
+}
+.matrix-rms-operation-title {
+  width: max-content;
+  max-width: 90%;
+  font-size: var(--text-compact);
+  font-weight: 500;
+  line-height: 1.5;
+}
+.matrix-rms-note {
+  position: absolute;
+  bottom: 0;
+  inset-inline: 0;
+  text-align: center;
+  font-size: var(--text-caption);
+  color: var(--color-ink-muted);
+  line-height: 1.5;
+}
+.matrix-part-toolbar {
+  display: flex;
+  justify-content: center;
+  margin-block: 0 18px;
+}
+.matrix-part-playback {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 10px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.matrix-part .matrix-part-toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--color-surface);
+  background: var(--color-ink);
+}
+.matrix-part-playback input {
+  min-width: 0;
+  flex: 1;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--color-accent);
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.matrix-part-playback input::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-line-strong);
+}
+.matrix-part-playback input::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+.matrix-part-playback input::-moz-range-track {
+  height: 2px;
+  background: var(--color-line-strong);
+}
+.matrix-part-playback input::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+.matrix-part .matrix-part-reset-view {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-inline: 0;
+  font-size: var(--text-label);
+  white-space: nowrap;
+}
+.matrix-part button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.matrix-part .matrix-part-playback-caption {
+  min-height: 40px;
+  margin: 8px 0 10px;
+  font-size: var(--text-compact);
+  color: var(--color-ink-muted);
+  line-height: 1.6;
+}
+.matrix-part-words,
+.matrix-part-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.matrix-part button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-compact);
+  padding: 6px 10px;
+}
+.matrix-part button[aria-pressed="true"] {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+.matrix-part button:hover {
+  color: var(--color-ink);
+  background: var(--color-surface-sunken);
+}
+.matrix-part button:focus-visible,
+.matrix-part input:focus-visible,
+.matrix-part summary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+.matrix-part-steps {
+  justify-content: space-between;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+.matrix-part-steps button {
+  padding: 6px 4px;
+  font-size: var(--text-label);
+}
+.matrix-part-reading {
+  border-top: 1px solid var(--color-line);
+  padding-top: 18px;
+}
+.matrix-part-channel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 18px;
+  font-size: var(--text-compact);
+}
+.matrix-part-dimension {
+  color: var(--color-ink-faint);
+  font-size: var(--text-label);
+}
+.matrix-part-channel input {
+  width: 62px;
+  padding: 2px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--color-line-strong);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.matrix-part-equation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 8px;
+  padding-block: 6px;
+}
+.matrix-part-operand {
+  text-align: center;
+}
+.matrix-part-operand small {
+  display: block;
+  font-size: var(--text-label);
+  color: var(--color-ink-muted);
+  margin-bottom: 8px;
+}
+.matrix-part-operand strong {
+  font-family: var(--font-mono);
+  font-size: var(--text-prose);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.matrix-part-operand small::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+}
+.matrix-part-operand.is-input small::before {
+  background: var(--matrix-input);
+}
+.matrix-part-operand.is-output small::before {
+  background: var(--matrix-output);
+}
+.matrix-part-operand.is-parameter small::before {
+  background: var(--matrix-parameter);
+}
+.matrix-part-operation {
+  color: var(--color-ink-muted);
+  padding-bottom: 1px;
+}
+.matrix-part-numberline {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--text-prose);
+}
+.matrix-part-numberline strong {
+  font-weight: 600;
+}
+.matrix-part-numberline.is-result strong {
+  color: var(--color-token);
+}
+.matrix-part[data-phase="0"] .matrix-part-operand.is-input strong,
+.matrix-part[data-phase="1"] .matrix-part-operand:nth-child(3) strong,
+.matrix-part[data-phase="2"] .matrix-part-operand.is-parameter strong,
+.matrix-part[data-phase="3"] .matrix-part-operand.is-output strong {
+  color: var(--color-accent);
+}
+.matrix-part-expression {
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--text-body);
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.matrix-part .matrix-part-hint,
+.matrix-part .matrix-part-explanation {
+  margin: 14px 0 0;
+  font-size: var(--text-compact);
+  line-height: 1.8;
+  color: var(--color-ink-muted);
+}
+.matrix-part-contributions {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+}
+.matrix-part-contribution {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 12px;
+  font-size: var(--text-label);
+}
+.matrix-part-contribution > :first-child {
+  color: var(--color-ink-muted);
+}
+.matrix-part-contribution > :not(:first-child) {
+  font-family: var(--font-mono);
+  font-weight: 400;
+}
+.matrix-part-contribution[data-active="true"] {
+  color: var(--color-accent);
+}
+.matrix-part-details {
+  margin-top: 16px;
+  font-size: var(--text-compact);
+}
+.matrix-part-details summary {
+  color: var(--color-ink-muted);
+  cursor: pointer;
+}
+.matrix-part .matrix-part-details .wiki-calc {
+  margin: 16px 0 0;
+  padding: 14px;
+}
+.matrix-part .matrix-part-source {
+  margin: 18px 0 0;
+  color: var(--color-ink-faint);
+  font-size: var(--text-caption);
+  line-height: 1.6;
+}
+.matrix-part-loading {
+  position: absolute;
+  inset: 40% 0 auto;
+  text-align: center;
+  font-size: var(--text-compact);
+  color: var(--color-ink-muted);
+}
+.matrix-part-error {
+  color: var(--color-danger);
+  font-size: var(--text-compact);
+}
+.matrix-part[data-part="rms"] > figcaption {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+  font-size: var(--text-prose);
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 14px;
+}
+.matrix-part[data-part="rms"] .matrix-part-body {
+  display: flex;
+  flex-direction: column;
+}
+.matrix-rms-steps {
+  order: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 18px 0 0;
+  padding: 0;
+  border: 0;
+}
+.matrix-rms-steps button {
+  padding: 10px 3px;
+  border-bottom: 1px solid var(--color-line);
+  font-size: var(--text-compact);
+}
+.matrix-rms-steps button span {
+  margin-right: 7px;
+  font: 11px var(--font-mono);
+  color: var(--color-ink-muted);
+}
+.matrix-rms-steps button[aria-pressed="true"] {
+  border-bottom: 2px solid var(--color-accent);
+}
+.matrix-part[data-part="rms"] .matrix-part-playback {
+  order: 2;
+  margin-top: 14px;
+}
+.matrix-part[data-part="rms"] .matrix-part-playback-caption {
+  order: 3;
+  min-height: 48px;
+  margin: 14px 0 0;
+  font-size: var(--text-body);
+  line-height: 1.8;
+  color: var(--color-ink);
+}
+.matrix-part[data-part="rms"] .matrix-part-reading {
+  order: 5;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.matrix-part[data-part="rms"] .matrix-part-reading summary {
+  cursor: pointer;
+  font-size: var(--text-compact);
+  color: var(--color-ink-muted);
+}
+.matrix-part[data-part="rms"] .matrix-part-reading[open] summary {
+  margin-bottom: 18px;
+}
+@container (max-width: 420px) {
+  .matrix-part-canvas {
+    height: 290px;
+  }
+  .matrix-part[data-part="rms"] .matrix-part-canvas {
+    height: 480px;
+  }
+  .matrix-part[data-part="rms"] .matrix-part-canvas[data-idle="true"] {
+    height: 280px;
+  }
+  .matrix-rms-steps button {
+    font-size: var(--text-label);
+  }
+  .matrix-rms-steps button span {
+    margin-right: 4px;
+  }
+  .matrix-part-words {
+    gap: 2px;
+  }
+  .matrix-part-words button {
+    padding-inline: 8px;
+  }
+  .matrix-part-contribution {
+    gap: 8px;
+  }
+  .matrix-part-equation {
+    gap: 5px;
+  }
+  .matrix-part-operand strong {
+    font-size: var(--text-compact);
+  }
+}

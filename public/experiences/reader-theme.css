@@ -1,0 +1,53 @@
+@import "./reader-palette.css";
+/* Surfaces match the reader; semantic model and hardware colours stay intact. */
+html[data-site] {
+  --page: var(--reader-paper);
+  --card: #ffffff;
+  --line: var(--reader-line);
+  --line2: #bdc9bf;
+  --ink: #242d27;
+  --ink2: #435348;
+  --muted: #69766d;
+  --soft: var(--reader-active);
+}
+html[data-site], html[data-site] body { background: var(--reader-paper); color: var(--ink); }
+html[data-site] .l { text-shadow: 0 0 4px var(--reader-paper), 0 0 4px var(--reader-paper); }
+html[data-site] #scroll { padding: 24px 28px 40px; }
+html[data-site] #left { background: var(--reader-sidebar); }
+html[data-site] #map, html[data-site] .dot-card { border-radius: 6px; box-shadow: none; }
+html[data-site] .panel:has(#diagram) { border-radius: 6px; background: var(--reader-paper); border-color: var(--reader-line); box-shadow: none; }
+html[data-site] button { font-family: var(--journey-font-sans); }
+html[data-site] .panel h2, html[data-site] .facts b { font-family: var(--journey-font-sans); }
+html[data-site] .panel h2 { font-size: 20px; font-weight: 600; }
+/* Reading copy and controls use the same scale as the parent knowledge page. */
+html[data-site] :is(.sub, .seg p) { font-size: var(--journey-text-prose); }
+html[data-site] :is(.note, .seg details, .beats li, #bar .say) { font-size: var(--journey-text-body); }
+html[data-site] :is(.kicker, .part span, #map .mh span, .mlab, .mlayer .top, #time, #bar .k) { font-size: var(--journey-text-label); }
+html[data-site] :is(#map .mh b, .row, .btn, #bar .now) { font-size: var(--journey-text-body); }
+html[data-site] :is(.mlayer .top b, .box, .row .io, .flow, .flow span, .seg code) { font-size: var(--journey-text-compact); }
+html[data-site] :is(.row .n, .seg .n, .row .todo-tag, #bar .now i) { font-size: var(--journey-text-caption); }
+html[data-site] .part { font-size: var(--journey-text-lead); flex-wrap: wrap; }
+html[data-site] .seg .t { font-size: var(--journey-text-prose); }
+html[data-site] .box { min-height: 36px; height: auto; white-space: normal; overflow-wrap: anywhere; padding-block: 5px; }
+html[data-site] .mlab { width: 56px; }
+html[data-site] .row { flex-wrap: wrap; }
+html[data-site] .row .io { flex-basis: 100%; white-space: normal; }
+html[data-site] .seg details summary { max-width: 100%; }
+html[data-site] :is(#legend, #hint, #title i, #views) { font-size: var(--journey-text-label); }
+html[data-site] #legend { max-height: 30vh; overflow-y: auto; }
+@media (max-width: 760px) {
+  html[data-site] #stage > #title {
+    position: relative; left: auto; top: auto; z-index: 1;
+    max-width: none; margin: 8px; font-size: 16px;
+  }
+  html[data-site] #stage > #title i { font-size: var(--journey-text-label); }
+  html[data-site] #stage > #views {
+    position: relative; right: auto; top: auto; z-index: 1;
+    margin: 8px 12px; text-align: left; font-size: var(--journey-text-label);
+  }
+  html[data-site] #stage > #views a { margin: 0 4px 4px 0; padding-inline: 8px; }
+  html[data-site] #app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(220px, 44%) minmax(0, 1fr); }
+  html[data-site] #right { grid-row: 1; min-height: 0; }
+  html[data-site] #left { grid-row: 2; border-right: 0; border-top: 1px solid var(--reader-line); }
+  html[data-site] #scroll { padding: 16px; }
+}

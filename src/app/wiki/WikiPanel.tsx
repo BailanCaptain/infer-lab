@@ -3,8 +3,10 @@ import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "re
 import { wikiRequest } from "./api";
 import { ChatPane, useChat } from "./ChatDrawer";
 import { DropPane } from "./DropPane";
+import { ReaderResizeHandle } from "./ReaderResizeHandle";
 import { ReviewPane, type ReviewSummary } from "./ReviewPane";
 import { StatusPane } from "./StatusPane";
+import { tabIndexAfterKey } from "./tablist";
 
 type Tab = "chat" | "drop" | "review" | "status";
 const TABS: { id: Tab; label: string }[] = [
@@ -13,6 +15,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "review", label: "审阅" },
   { id: "status", label: "状态" },
 ];
+const tabIdOf = (tab: Tab) => `wiki-panel-tab-${tab}`;
+const panelIdOf = (tab: Tab) => `wiki-panel-${tab}`;
 
 /**
  * 知识库的全部操作收在一个侧栏里：问答、审阅、刷新，外加一页只读的运行状态。
@@ -28,7 +32,7 @@ export function WikiPanel({
   mode: "build" | "local";
   /** 返回 true 表示读者快照已更新到最新发布版本 */
   onRefresh: () => Promise<boolean>;
-  /** 面板是实打实占一列的，外层网格要知道它现在多宽 */
+  /** 外层要知道面板开没开、在哪个页签（浮层开着时「本页目录」按钮要挪到它左边） */
   onLayout: (layout: "closed" | Tab) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -39,6 +43,10 @@ export function WikiPanel({
   const [refreshing, setRefreshing] = useState(false);
   const chat = useChat();
   const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
+  const fabRef = useRef<HTMLButtonElement>(null);
+  const currentTab = useRef(tab);
+  currentTab.current = tab;
+  const wasOpen = useRef(open);
 
   const loadReviews = useCallback(async () => {
     try {
@@ -59,6 +67,13 @@ export function WikiPanel({
   useEffect(() => {
     onLayout(!open ? "closed" : tab);
   }, [open, tab, onLayout]);
+  // 打开时焦点到当前页签，关上时回到「问知识库」按钮；首次渲染（本来就关着）不抢焦点
+  useEffect(() => {
+    if (open === wasOpen.current) return;
+    wasOpen.current = open;
+    if (open) tabRefs.current[currentTab.current]?.focus();
+    else fabRef.current?.focus();
+  }, [open]);
 
   const pending = reviews.filter((r) => r.state === "pending" || r.state === "publishing").length;
 
@@ -73,13 +88,12 @@ export function WikiPanel({
   );
 
   function onTabKey(e: KeyboardEvent) {
-    const i = TABS.findIndex((t) => t.id === tab);
-    const next =
-      e.key === "ArrowRight"
-        ? TABS[(i + 1) % TABS.length]
-        : e.key === "ArrowLeft"
-          ? TABS[(i + TABS.length - 1) % TABS.length]
-          : undefined;
+    const index = tabIndexAfterKey(
+      e.key,
+      TABS.findIndex((t) => t.id === tab),
+      TABS.length,
+    );
+    const next = index === undefined ? undefined : TABS[index];
     if (!next) return;
     e.preventDefault();
     setTab(next.id);
@@ -89,6 +103,7 @@ export function WikiPanel({
   if (!open) {
     return (
       <button
+        ref={fabRef}
         type="button"
         className="wiki-chat-fab"
         data-testid="chat-open"
@@ -108,6 +123,7 @@ export function WikiPanel({
 
   return (
     <aside className={`wiki-panel is-${tab}`} data-testid="chat-drawer" aria-label="知识库助手">
+      <ReaderResizeHandle side="assistant" />
       <header className="wiki-panel-head">
         <div className="wiki-panel-tabs" role="tablist" aria-label="知识库助手" onKeyDown={onTabKey}>
           {TABS.map((t) => (
@@ -118,6 +134,8 @@ export function WikiPanel({
               }}
               type="button"
               role="tab"
+              id={tabIdOf(t.id)}
+              aria-controls={panelIdOf(t.id)}
               aria-selected={tab === t.id}
               tabIndex={tab === t.id ? 0 : -1}
               onClick={() => setTab(t.id)}
@@ -161,9 +179,10 @@ export function WikiPanel({
         </button>
       </div>
 
-      <ChatPane chat={chat} hidden={tab !== "chat"} onReview={openReview} />
-      <DropPane hidden={tab !== "drop"} onReview={openReview} />
+      <ChatPane id={panelIdOf("chat")} chat={chat} hidden={tab !== "chat"} onReview={openReview} />
+      <DropPane id={panelIdOf("drop")} hidden={tab !== "drop"} onReview={openReview} />
       <ReviewPane
+        id={panelIdOf("review")}
         hidden={tab !== "review"}
         reviews={reviews}
         listError={listError}
@@ -171,10 +190,12 @@ export function WikiPanel({
         onSelect={setSelected}
         onChanged={(r) => setReviews((items) => items.map((x) => (x.id === r.id ? { ...x, ...r } : x)))}
         onPublished={async () => {
-          if (!(await onRefresh())) throw new Error("发布成功；读取新页面失败，请点「刷新知识库」重试。");
+          // false means a newer refresh superseded this one; actual read failures reject.
+          // Reload the list too: a batch publishes its parent receipt as well as its children.
+          await Promise.all([onRefresh(), loadReviews()]);
         }}
       />
-      <StatusPane hidden={tab !== "status"} onOpenReview={() => setTab("review")} />
+      <StatusPane id={panelIdOf("status")} hidden={tab !== "status"} onOpenReview={() => setTab("review")} />
     </aside>
   );
 }

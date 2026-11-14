@@ -7,6 +7,7 @@ import city from "./city.json";
 export interface CityScene {
   reset: () => void;
   tour: (enabled: boolean) => boolean;
+  suspend: (paused: boolean) => void;
   dispose: () => void;
 }
 type Callbacks = {
@@ -45,6 +46,7 @@ export function createCityScene(host: HTMLDivElement, callbacks: Callbacks): Cit
   const homeTarget = new THREE.Vector3(...city.camera.target);
   const homePosition = new THREE.Vector3();
   let disposed = false;
+  let suspended = false;
   let frame: number | null = null;
   let inFrame = false;
   let dirty = true;
@@ -69,11 +71,12 @@ export function createCityScene(host: HTMLDivElement, callbacks: Callbacks): Cit
 
   function invalidate() {
     dirty = true;
-    if (!disposed && !document.hidden && !inFrame && frame === null) frame = requestAnimationFrame(draw);
+    if (!disposed && !suspended && !document.hidden && !inFrame && frame === null)
+      frame = requestAnimationFrame(draw);
   }
   function draw(now: number) {
     frame = null;
-    if (disposed || document.hidden) return;
+    if (disposed || suspended || document.hidden) return;
     // User input renders on the next browser frame. Only the unattended tour is capped.
     if (controls.autoRotate && !dirty && now - lastTourFrame < tourInterval) {
       frame = requestAnimationFrame(draw);
@@ -211,6 +214,16 @@ export function createCityScene(host: HTMLDivElement, callbacks: Callbacks): Cit
   motion.addEventListener("change", motionChange);
   return {
     reset,
+    suspend: (paused) => {
+      suspended = paused;
+      if (paused && frame !== null) {
+        cancelAnimationFrame(frame);
+        frame = null;
+      } else if (!paused) {
+        lastFrame = 0;
+        invalidate();
+      }
+    },
     tour: (enabled) => {
       if (enabled) {
         reset();

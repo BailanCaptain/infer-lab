@@ -1,15 +1,24 @@
-@import "tailwindcss";
-
-/* 知识库正文与文档里没有工具类。不排除的话，Tailwind 会把它们当模板盯着：
-   每发布一页就强制整页重载一次，批准途中的面板状态和在途请求都会被刷掉。 */
-@source not "../../wiki";
-@source not "../../docs";
+/* 只扫描前端源码与入口页。默认会扫整个仓库（只跳过 .gitignore 里的），
+   tmp/、.tmp/ 等未忽略的临时目录有几百 MB：开发首屏卡一分多钟，构建里 Tailwind 占大半。
+   知识库正文、文档、已验收的独立演示也都不在这里：它们没有工具类，盯着它们还会
+   让每次发布都触发整页重载。新增放工具类的目录时在这里补一行 @source。 */
+@import "tailwindcss" source(none);
+@import "../../public/experiences/font-families.css";
+@import "../../public/experiences/reader-palette.css";
+@source "../../src";
+@source "../../index.html";
 
 /* ============================================================
    设计真相源（与 DESIGN.md 一致）。组件里只写语义 token 类，禁裸色。
    2026-09-06 改为浅色暖底：页面浅色，课程轨道是深色内嵌面板。
    ============================================================ */
 @theme {
+  /* 主章节与探索页共用表面；模型与硬件的语义颜色由各自场景保留。 */
+  --color-reader-paper: var(--reader-paper);
+  --color-reader-sidebar: var(--reader-sidebar);
+  --color-reader-accent: var(--reader-accent);
+  --color-reader-active: var(--reader-active);
+  --color-reader-line: var(--reader-line);
   /* 页面表面：暖白四档 */
   --color-canvas: #f5f2ea;
   --color-surface-sunken: #ece9df;
@@ -43,6 +52,9 @@
   --color-token-soft: #ddf4ef;
   --color-weight: #c78300; /* 权重 / 计算 = 琥珀 */
   --color-weight-soft: #fff4cf;
+  --color-matrix-input: #8c9fcc;
+  --color-matrix-output: #79aaa1;
+  --color-matrix-parameter: #d8b882;
   --color-kv: #4c65b6; /* KV Cache / 显存 = 蓝 */
   --color-kv-soft: #e8edff;
   --color-comm: #9a4b86; /* 通信 / collective = 紫 */
@@ -80,30 +92,31 @@
   --color-info: #4c65b6;
 
   /* 字体 */
-  --font-sans:
-    "Inter Variable", "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --font-display:
-    "Inter Variable", "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-sans: var(--journey-font-sans);
+  --font-display: var(--journey-font-sans);
+  --font-journey-title: var(--journey-font-title);
+  --color-journey-seal: #a34e39;
+  --color-journey-seal-ink: #f1e7d6;
+  --color-journey-ink-muted: #526157;
+  --color-journey-ink-faint: #5b685f;
   /* 等宽字体没有中文字形：接上正文的中文字体，否则 Windows 上代码里的「层」「卷积」落到新宋体 */
-  --font-mono:
-    "JetBrains Mono", "Consolas", "Menlo", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace;
+  --font-mono: var(--journey-font-mono);
 
-  /* 字阶：10px 是地板 */
-  --text-micro: 10px;
-  --text-micro--line-height: 14px;
-  --text-caption: 11px;
-  --text-caption--line-height: 15px;
-  --text-label: 12px;
-  --text-label--line-height: 16px;
-  --text-compact: 13px;
-  --text-compact--line-height: 19px;
-  --text-body: 14px;
-  --text-body--line-height: 22px;
-  /* 知识页正文（长文阅读）：15/26 */
-  --text-prose: 15px;
-  --text-prose--line-height: 26px;
-  --text-lead: 16px;
-  --text-lead--line-height: 26px;
+  /* 与嵌入页面共用字阶：12px 仅用于短编号，正文与控件使用更大字号。 */
+  --text-micro: var(--journey-text-micro);
+  --text-micro--line-height: 18px;
+  --text-caption: var(--journey-text-caption);
+  --text-caption--line-height: 20px;
+  --text-label: var(--journey-text-label);
+  --text-label--line-height: 22px;
+  --text-compact: var(--journey-text-compact);
+  --text-compact--line-height: 24px;
+  --text-body: var(--journey-text-body);
+  --text-body--line-height: 26px;
+  --text-prose: var(--journey-text-prose);
+  --text-prose--line-height: 34px;
+  --text-lead: var(--journey-text-lead);
+  --text-lead--line-height: 30px;
   --text-title: 20px;
   --text-title--line-height: 28px;
   --text-display: 34px;
@@ -125,6 +138,31 @@
 
 :root {
   color-scheme: light;
+  /* Inline knowledge scenes: calm hardware, warm moving data, green completed results. */
+  --scene-paper: #eef1e9;
+  --scene-surface: #fafbf6;
+  --scene-ink: #314e40;
+  --scene-muted: #6b786b;
+  --scene-line: #d4d9cd;
+  --scene-data: #b97740;
+  --scene-result: #427b61;
+  --scene-board: #749886;
+  --scene-metal: #c7cec7;
+  --scene-chip: #344b46;
+  --scene-memory: #71829c;
+  --scene-weight: #577692;
+  --scene-weight-soft: #9ab0c3;
+  --scene-wire: #849a8b;
+  --scene-resid: #b9c4cd;
+  --scene-resid-soft: #d4dce1;
+  --scene-norm: #c4bda6;
+  --scene-norm-soft: #ded8c5;
+  --scene-kda: #78a796;
+  --scene-kda-soft: #bed1c5;
+  --scene-dense: #b6a273;
+  --scene-dense-soft: #d9cdb1;
+  --scene-embed: #8aa894;
+  --scene-embed-soft: #c9d5bf;
 }
 
 html,

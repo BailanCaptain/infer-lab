@@ -1,0 +1,748 @@
+.layer-part {
+  margin: 30px 0 36px;
+  min-width: 0;
+}
+.layer-scene-toolbar {
+  position: relative;
+  z-index: 12;
+  background: var(--color-canvas);
+}
+.layer-part .layer-scene-steps {
+  margin: 0;
+  padding: 8px 0;
+  background: var(--color-canvas);
+  border-block: 1px solid var(--color-line);
+}
+.wiki-body .layer-part figcaption {
+  position: static;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  font-size: var(--text-prose);
+  font-weight: 600;
+  color: var(--color-ink);
+  text-align: center;
+  margin: 0 0 12px;
+}
+.layer-scene {
+  position: relative;
+  height: clamp(460px, calc(100dvh - 220px), 620px);
+  overflow: hidden;
+  scroll-margin-top: 76px;
+}
+[data-layer-scene="attention"] .layer-scene {
+  height: 590px;
+}
+.attention-scene-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.attention-scene-scroll .layer-scene {
+  min-width: 660px;
+}
+.attention-annotation,
+.attention-cell {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  text-align: center;
+}
+.attention-cell {
+  font: 500 var(--attention-cell-size, 10px) / 1 var(--font-mono);
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  padding: 2px 1px;
+  border-radius: 2px;
+}
+.attention-vector[data-dim="true"] .attention-cell,
+.attention-vector[data-masked="true"] .attention-cell {
+  opacity: 0.32;
+}
+.attention-cell[data-revealing="true"] {
+  background: var(--color-matrix-output);
+}
+.attention-cell[data-added="true"] {
+  color: var(--color-matrix-output);
+}
+.attention-token {
+  font-size: 12px;
+  font-weight: 600;
+}
+.attention-alpha {
+  font: 500 11px / 1.5 var(--font-mono);
+  color: var(--color-matrix-output);
+}
+.attention-broadcast {
+  font: 10px / 1.5 var(--font-mono);
+  color: var(--color-ink-muted);
+}
+.attention-alpha[data-active="true"],
+.attention-token[data-active="true"],
+.attention-broadcast[data-active="true"] {
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.attention-workbench .attention-tensor-label {
+  width: auto;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.attention-tensor-label strong,
+.attention-tensor-label small {
+  display: block;
+}
+.attention-tensor-label small {
+  font: 9px / 1.6 var(--font-mono);
+  color: var(--color-ink-muted);
+}
+.attention-query {
+  font-size: 14px;
+  font-weight: 600;
+}
+.attention-origin-explanation {
+  font-size: 10px;
+  color: var(--color-ink-muted);
+}
+.attention-weight-hint,
+.attention-write-label {
+  font-size: 10px;
+  color: var(--color-ink-muted);
+}
+.attention-pair-sign {
+  font: 12px / 1 var(--font-mono);
+  opacity: 0.2;
+}
+.attention-pair-sign[data-active="true"] {
+  opacity: 0.9;
+}
+.attention-sigma {
+  font: 24px / 1 var(--font-mono);
+  color: var(--color-matrix-output);
+  opacity: 0.4;
+}
+.attention-sigma[data-active="true"] {
+  opacity: 1;
+}
+.attention-dot-result {
+  font: 11px / 1.6 var(--font-mono);
+  color: var(--color-ink-muted);
+}
+.attention-dot-result[data-active="true"] {
+  color: var(--color-ink);
+}
+.attention-workbench-wires path {
+  fill: none;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+.attention-collection-route,
+.attention-projection-route {
+  stroke: var(--color-matrix-output);
+}
+.attention-collection-route[data-active="true"] {
+  stroke-width: 2;
+}
+.attention-weight-route {
+  stroke: var(--color-matrix-parameter);
+}
+.attention-output-slot {
+  stroke: var(--color-ink);
+  stroke-width: 2 !important;
+}
+.wiki-body .attention-entry {
+  font-size: var(--text-compact);
+  line-height: 1.85;
+  margin: 14px 0 12px;
+}
+.attention-entry span {
+  display: block;
+}
+.wiki-body .attention-entry p {
+  font: inherit;
+  margin: 8px 0;
+}
+.wiki-body .attention-entry .attention-model-path {
+  color: var(--color-ink-muted);
+  font-size: var(--text-compact);
+  padding: 10px 0;
+  border-block: 1px solid var(--color-line);
+}
+.attention-model-path strong {
+  color: var(--color-matrix-output);
+  font-weight: 600;
+}
+.attention-context {
+  margin: 0 0 20px;
+}
+.attention-route {
+  fill: none;
+  stroke: var(--color-ink-muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+.attention-route[data-active="true"] {
+  stroke: var(--color-matrix-output);
+  opacity: 1;
+}
+.attention-route[data-parameter="true"] {
+  stroke: var(--color-matrix-parameter);
+}
+.attention-operation {
+  position: absolute;
+  transform: translateX(-50%);
+  font: 500 15px / 1.4 var(--font-mono);
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+}
+.attention-column-origin {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-ink);
+  font-size: var(--text-micro);
+  white-space: nowrap;
+}
+.attention-column-origin[hidden] {
+  display: none;
+}
+[data-mode="attention"] .matrix-rms-note {
+  inset-inline: 18px;
+  bottom: 12px;
+  font-size: var(--text-label);
+}
+.layer-part .matrix-part-playback {
+  position: relative;
+  margin: 0;
+  padding-block: 8px;
+  background: var(--color-canvas);
+  border-top: 1px solid var(--color-line);
+}
+.wiki-body .layer-scene-reading {
+  margin: 20px 0 8px;
+  color: var(--color-ink-muted);
+  font-size: var(--text-compact);
+  line-height: 1.8;
+}
+.wiki-body .layer-source {
+  margin: 16px 0;
+  font-size: var(--text-compact);
+  line-height: 1.85;
+}
+.wiki-body .layer-source p {
+  margin: 10px 0;
+  font-size: inherit;
+}
+.wiki-body .layer-scene-cue {
+  margin: -90px 24px 0;
+  height: 90px;
+  position: relative;
+  text-align: center;
+  color: var(--color-ink-muted);
+  font-size: var(--text-compact);
+}
+.layer-scene canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+.layer-scene canvas:active {
+  cursor: grabbing;
+}
+@media (max-width: 1024px) {
+  .course-reader:has(.layer-scene[data-in-view="true"]) .wiki-pagetoc-float,
+  .course-reader:has([data-layer-scene="attention"][data-in-view="true"]) .wiki-pagetoc-float {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+.layer-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.layer-wires {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.layer-wire {
+  fill: none;
+  stroke: var(--color-token);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+.layer-wire[data-tone="parameter"] {
+  stroke: var(--color-matrix-parameter);
+}
+.wiki-body .layer-caption {
+  font-size: var(--text-compact);
+  line-height: 1.9;
+  min-height: 3.8em;
+  margin: 16px 0;
+}
+.layer-weights {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 16px 0;
+}
+.layer-weights span {
+  text-align: center;
+  border-inline-end: 1px solid var(--color-line);
+}
+.layer-weights span:last-child {
+  border: 0;
+}
+.layer-weights small,
+.layer-weights strong {
+  display: block;
+  font-size: var(--text-caption);
+}
+.layer-weights strong {
+  color: var(--color-token);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  margin-top: 5px;
+}
+.layer-column-work {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.layer-column-work[hidden],
+.layer-column-tag[hidden] {
+  display: none;
+}
+.layer-column-tag {
+  position: absolute;
+  text-align: center;
+  line-height: 1.5;
+}
+.layer-column-tag small {
+  display: block;
+  font-size: var(--text-caption);
+  color: var(--color-ink-muted);
+}
+.layer-column-tag strong {
+  display: block;
+  font: 500 var(--text-label) / 1.7 var(--font-mono);
+  white-space: pre-line;
+}
+.layer-column-status {
+  position: absolute;
+  inset-inline: 5%;
+  bottom: 35px;
+  text-align: center;
+  font-size: var(--text-compact);
+  line-height: 1.5;
+}
+[data-mode="attention"] .layer-column-status {
+  inset-inline: 18px;
+  bottom: 45px;
+  font-size: var(--text-body);
+}
+.residual-route {
+  margin: 22px 0;
+  padding: 20px 0;
+  border-block: 1px solid var(--color-line);
+}
+.residual-route > div {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+}
+.residual-route span {
+  font-size: var(--text-compact);
+  line-height: 2.4;
+}
+.residual-paths {
+  flex: 1;
+  max-width: 360px;
+  border-inline: 1px solid var(--color-line-strong);
+  padding: 0 12px;
+}
+.residual-paths > span {
+  display: block;
+  text-align: center;
+}
+.residual-paths :where(span + span) {
+  border-top: 1px solid var(--color-line);
+}
+.wiki-body .residual-route figcaption {
+  position: static;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  text-align: center;
+  margin-top: 12px;
+  font-size: var(--text-caption);
+  color: var(--color-ink-muted);
+}
+.layer-weights [data-masked="true"] {
+  opacity: 0.5;
+}
+.layer-inspection {
+  font-size: var(--text-compact);
+  color: var(--color-ink-muted);
+  padding: 12px 0;
+  border-block: 1px solid var(--color-line);
+}
+.layer-inspection summary {
+  cursor: pointer;
+}
+.layer-fields {
+  display: flex;
+  gap: 24px;
+  margin-top: 16px;
+}
+.layer-fields input {
+  width: 72px;
+}
+.layer-fields input,
+.layer-fields select {
+  border-bottom: 1px solid var(--color-line);
+  padding: 4px;
+  color: var(--color-ink);
+  background: transparent;
+}
+.wiki-body .layer-inspection p {
+  font-size: var(--text-compact);
+  margin: 12px 0;
+}
+.layer-numbers {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+}
+.attention-route {
+  padding: 18px 0;
+  margin: 18px 0 8px;
+  border-block: 1px solid var(--color-line);
+}
+.attention-route-flow {
+  display: grid;
+  grid-template-columns: 1fr 20px 1fr 20px 1fr;
+  align-items: center;
+  gap: 5px;
+}
+.attention-route-flow span {
+  font-size: var(--text-compact);
+  text-align: center;
+  line-height: 1.7;
+}
+.attention-route-flow small {
+  display: block;
+  font-size: 11px;
+  color: var(--color-ink-muted);
+}
+.layer-part .layer-label small {
+  white-space: normal;
+}
+.layer-part .layer-label {
+  color: var(--color-ink-muted);
+}
+.layer-part .layer-label[data-active="true"] strong {
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--color-token);
+  text-underline-offset: 5px;
+  text-decoration-thickness: 2px;
+}
+.attention-route-flow [data-active="true"] {
+  color: var(--color-token);
+}
+.attention-route-flow i {
+  font-style: normal;
+  color: var(--color-ink-muted);
+  text-align: center;
+}
+.projection-detail[hidden] {
+  display: none;
+}
+.projection-detail {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.projection-equation > span,
+.projection-heading {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font: 500 11px / 1.2 var(--font-mono);
+  color: var(--color-ink);
+}
+.projection-equation > span[hidden],
+.projection-heading[hidden] {
+  display: none;
+}
+.projection-equation .projection-dimension {
+  color: var(--color-ink-muted);
+  font-size: 10px;
+}
+.projection-equation .projection-multiply,
+.projection-equation .projection-equals {
+  font-size: 13px;
+}
+.projection-heading {
+  font: 500 11px / 1.4 var(--font-ui);
+  white-space: normal;
+  text-align: center;
+}
+.layer-column-work[data-mode="project"] .projection-heading {
+  transform: translateX(-50%);
+}
+[data-layer-scene="attention"] .layer-column-work[data-mode="project"] .projection-heading {
+  transform: translate(-50%, -100%);
+  white-space: pre-line;
+}
+.projection-title {
+  position: absolute;
+  inset: 8px 5% auto;
+  text-align: center;
+  font-size: var(--text-caption);
+}
+.projection-sum {
+  position: absolute;
+  bottom: 64px;
+  inset-inline: 3%;
+  text-align: center;
+  font: 500 12px / 1.8 var(--font-mono);
+}
+.projection-sum[data-complete="true"] {
+  color: var(--color-token);
+}
+.course-comparison {
+  border-top: 1px solid var(--color-line);
+  margin-top: 36px;
+  padding-top: 18px;
+}
+.course-comparison summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+@media (max-width: 600px) {
+  .attention-route-flow {
+    grid-template-columns: 1fr 10px 1fr 10px 1fr;
+    gap: 2px;
+  }
+  .attention-route-flow i {
+    font-size: 12px;
+  }
+  .attention-route-flow span {
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .projection-equation > span {
+    font-size: 11px;
+  }
+  .projection-heading {
+    max-width: 72px;
+    font-size: 10px;
+    white-space: normal;
+    text-align: center;
+  }
+  .projection-detail[data-large="true"] .projection-heading {
+    max-width: 58px;
+  }
+  .projection-detail[data-large="true"] .projection-input {
+    font-size: 10px;
+  }
+  .projection-title {
+    font-size: 11px;
+  }
+  .projection-sum {
+    bottom: 95px;
+    font-size: 10px;
+  }
+  .layer-scene:has(.projection-detail:not([hidden])) {
+    height: 580px;
+  }
+  .residual-route > div {
+    gap: 8px;
+  }
+  .residual-route span {
+    font-size: var(--text-caption);
+  }
+  .layer-scene[data-idle="true"] {
+    height: 280px;
+  }
+  .layer-scene {
+    height: 480px;
+  }
+}
+
+/* Diagrams belong to the reading surface, with the same matrix colors as the 3D view. */
+.lesson-relation {
+  margin: 32px auto;
+  padding: 24px 0 20px;
+  max-width: 760px;
+  border-block: 1px solid var(--color-line);
+  background: transparent;
+}
+.wiki-body .lesson-relation > figcaption,
+.wiki-body .layer-part .lesson-relation > figcaption {
+  position: static;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  margin: 0 0 24px;
+  color: var(--color-ink);
+  font-size: 16px;
+  font-weight: 600;
+  text-align: left;
+}
+.lesson-relation svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  color: var(--color-ink-muted);
+}
+.lesson-relation svg text {
+  fill: var(--color-ink);
+  text-anchor: middle;
+  font: 14px var(--font-ui);
+}
+.lesson-relation .relation-variable {
+  font: 500 23px var(--font-mono);
+}
+.lesson-relation .relation-dimension {
+  fill: var(--color-ink-muted);
+  font-size: 13px;
+}
+.relation-wire {
+  fill: none;
+  stroke: var(--color-ink-muted);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+.relation-matrix {
+  --matrix-ink: var(--color-matrix-input);
+}
+.relation-matrix[data-tone="delta"] {
+  --matrix-ink: var(--color-matrix-parameter);
+}
+.relation-matrix[data-tone="output"] {
+  --matrix-ink: var(--color-matrix-output);
+}
+.relation-matrix > rect {
+  fill: color-mix(in srgb, var(--matrix-ink) 12%, var(--color-surface));
+  stroke: color-mix(in srgb, var(--matrix-ink) 65%, var(--color-ink-muted));
+  stroke-width: 1;
+}
+.relation-matrix .relation-selected {
+  fill: color-mix(in srgb, var(--matrix-ink) 55%, var(--color-surface));
+  stroke: var(--matrix-ink);
+}
+.relation-matrix path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--matrix-ink) 70%, var(--color-ink-muted));
+  stroke-width: 0.6;
+  opacity: 0.5;
+}
+.relation-matrix .relation-cell {
+  fill: color-mix(in srgb, var(--matrix-ink) 60%, var(--color-ink));
+  stroke: none;
+}
+.relation-ffn-state[data-active="true"] .relation-selected {
+  fill: color-mix(in srgb, var(--color-token) 48%, var(--color-surface));
+  stroke: var(--color-token);
+}
+.lesson-relation .relation-scalar {
+  font: 500 19px var(--font-mono);
+}
+.relation-span {
+  stroke: var(--color-line-strong);
+}
+.lesson-relation .relation-accent,
+.relation-ffn-operation[data-active="true"] text {
+  fill: var(--color-token);
+  font-weight: 500;
+}
+.relation-wire .relation-bypass {
+  stroke: var(--color-token);
+}
+.relation-operation {
+  fill: var(--color-surface-sunken);
+  stroke: var(--color-line-strong);
+}
+.relation-operation-accent,
+.relation-add {
+  fill: var(--color-token-soft);
+  stroke: var(--color-token);
+  stroke-width: 1.4;
+}
+.lesson-relation .relation-sign {
+  font: 400 25px var(--font-mono);
+}
+.relation-rule {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 20px;
+  margin: 16px 0 0;
+  padding-top: 16px;
+  border-top: 0;
+  font-size: 12px;
+  color: var(--color-ink-muted);
+}
+.wiki-body .relation-rule code {
+  padding: 0;
+  background: none;
+  color: var(--color-ink);
+  font: 500 14px var(--font-mono);
+}
+.wiki-body .lesson-relation p {
+  margin: 18px 0 0;
+  font-size: var(--text-body);
+  line-height: 1.8;
+  color: var(--color-ink-muted);
+}
+.lesson-relation .relation-narrow {
+  display: none;
+}
+@media (max-width: 600px) {
+  .lesson-relation {
+    padding: 20px 0 18px;
+  }
+  .wiki-body .lesson-relation > figcaption {
+    margin-bottom: 18px;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  .lesson-relation .relation-wide {
+    display: none;
+  }
+  .lesson-relation .relation-narrow {
+    display: block;
+  }
+  .wiki-body .relation-rule code {
+    font-size: 12px;
+  }
+  .lesson-relation .relation-role {
+    font-size: 12px;
+  }
+}
+
+/* One stable camera frame for idle, playback, scrubbing and completion. */
+[data-layer-scene="attention"] .layer-scene {
+  height: 590px;
+}
+.attention-workbench-caption .layer-column-status {
+  bottom: 32px;
+  font-size: var(--text-body);
+}
+.attention-workbench-caption .matrix-rms-note {
+  bottom: 9px;
+  font-size: var(--text-label);
+}

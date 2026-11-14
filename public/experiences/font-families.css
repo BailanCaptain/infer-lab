@@ -1,0 +1,16 @@
+/* Shared by the React shell and every standalone demonstration document. */
+:root {
+  --journey-font-sans:
+    "Inter Variable", "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --journey-font-title: "Songti SC", "SimSun", serif;
+  --journey-font-mono:
+    "JetBrains Mono", "Consolas", "Menlo", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace;
+  /* Reading and controls share this scale across the shell and embedded documents. */
+  --journey-text-micro: 12px;
+  --journey-text-caption: 13px;
+  --journey-text-label: 14px;
+  --journey-text-compact: 15px;
+  --journey-text-body: 16px;
+  --journey-text-prose: 18px;
+  --journey-text-lead: 20px;
+}

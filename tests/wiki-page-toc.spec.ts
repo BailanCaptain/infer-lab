@@ -11,20 +11,22 @@ async function openWiki(page: Page, id: string, query = "") {
   await page.evaluate(() => document.fonts.ready);
 }
 
-/** 正文栏的设计宽度（.wiki-article 的 --wiki-measure）与实际宽度 */
+/** 正文栏的最大宽度（.wiki-article 的 --wiki-measure）与实际宽度 */
 const articleWidths = (page: Page) =>
   page.locator("article.wiki-article").evaluate((el) => ({
     measure: Number.parseFloat(getComputedStyle(el).maxWidth),
     actual: el.getBoundingClientRect().width,
   }));
 
-test("长页默认有本页目录：1920 下正文右侧 sticky，正文宽度不变；1440 下退成按钮", async ({ page }) => {
+test("长页默认有本页目录：1920 下正文右侧 sticky，正文放得下最宽的图；1280 下退成按钮", async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await openWiki(page, "one-request");
   await expect(page.getByTestId("pagetoc-side")).toBeVisible();
   await expect(page.getByTestId("pagetoc-fab")).toBeHidden();
   const { measure, actual } = await articleWidths(page);
-  expect(actual).toBe(measure);
+  // 目录与正文并排，正文仍放得下最宽的图（934）。
+  expect(actual).toBeLessThanOrEqual(measure);
+  expect(actual).toBeGreaterThanOrEqual(934);
   // 导航在正文右边，不压在正文上
   const [article, side] = await Promise.all([
     page.locator("article.wiki-article").boundingBox(),
@@ -38,7 +40,7 @@ test("长页默认有本页目录：1920 下正文右侧 sticky，正文宽度�
     "34 层 KDA",
   );
 
-  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.setViewportSize({ width: 1280, height: 800 });
   await expect(page.getByTestId("pagetoc-side")).toBeHidden();
   const fab = page.getByRole("button", { name: "本页目录" });
   await fab.click();
@@ -55,14 +57,26 @@ test("长页默认有本页目录：1920 下正文右侧 sticky，正文宽度�
   await pop.getByRole("link", { name: "第 7 站 返回与收尾" }).click();
   await expect(pop).toHaveCount(0);
   await expect(page).toHaveURL(/\/wiki\/one-request#/);
+  // The reader's sticky header needs the heading's configured scroll margin.
   await expect
     .poll(() =>
-      page.evaluate(() => document.getElementById("第-7-站-返回与收尾")?.getBoundingClientRect().top),
+      page
+        .locator('[id="第-7-站-返回与收尾"]')
+        .evaluate((el) =>
+          Math.abs(el.getBoundingClientRect().top - Number.parseFloat(getComputedStyle(el).scrollMarginTop)),
+        ),
     )
-    .toBeLessThan(40);
+    .toBeLessThan(2);
+  const headingTop = await page
+    .locator('[id="第-7-站-返回与收尾"]')
+    .evaluate((el) => el.getBoundingClientRect().top);
+  const headerBottom = await page
+    .locator(".reader-header")
+    .evaluate((el) => el.getBoundingClientRect().bottom);
+  expect(headingTop).toBeGreaterThanOrEqual(headerBottom);
 });
 
-test("本页目录只给长页：H2 不到 4 个时不渲染导航，正文宽度照旧", async ({ page }) => {
+test("本页目录只给长页：H2 不到 4 个时不渲染导航，正文宽度在范围内", async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await openWiki(page, "ai-core");
   const h2 = await page.locator('[data-testid="wiki-body"] h2[id]').count();
@@ -70,11 +84,13 @@ test("本页目录只给长页：H2 不到 4 个时不渲染导航，正文宽�
   await expect(page.getByTestId("pagetoc-side")).toHaveCount(expected);
   await expect(page.getByTestId("pagetoc-fab")).toHaveCount(expected);
   const { measure, actual } = await articleWidths(page);
-  expect(actual).toBe(measure);
+  // 目录与正文并排，正文仍放得下最宽的图（934）。
+  expect(actual).toBeLessThanOrEqual(measure);
+  expect(actual).toBeGreaterThanOrEqual(934);
 });
 
 test("方案 B 与 ?toc= 开关已删：带旧参数也只有方案 A 的导航", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.setViewportSize({ width: 1280, height: 800 });
   await openWiki(page, "glm-5-3-flash-two-node", "?toc=b");
   await expect(page.getByTestId("pagetoc-fab")).toBeVisible();
   await expect(page.locator(".wiki-pagetoc-inline, .wiki-pagetoc-pill")).toHaveCount(0);
@@ -89,6 +105,16 @@ test("手机上长页只有右下角按钮，不撑出横向滚动", async ({ pa
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBe(0);
+  await page.getByRole("button", { name: "本页目录" }).click();
+  await page.getByTestId("pagetoc-pop").getByRole("link", { name: "第 7 站 返回与收尾" }).click();
+  // The two-row mobile header and collapsed topic directory must both clear the target.
+  await expect
+    .poll(async () => {
+      const heading = (await page.locator('[id="第-7-站-返回与收尾"]').boundingBox())!;
+      const directory = (await page.locator(".reader-directory").boundingBox())!;
+      return heading.y - directory.y - directory.height;
+    })
+    .toBeGreaterThanOrEqual(0);
 });
 
 // P3 验收：点「对照源码」，高亮落到了紧跟在它下面的「版本差异」（H3 也在旧的 96px 判定线以内）
@@ -104,8 +130,8 @@ test("点目录里的 H2 高亮这个 H2，不是它下面紧跟的 H3；点 H3 
   await side.getByRole("link", { name: "第 7 站 返回与收尾", exact: true }).click();
   await expect(current).toHaveText("第 7 站 返回与收尾");
 
-  // 1440 下是按钮 + 浮层：跳过去再打开，当前项还是点的那一节
-  await page.setViewportSize({ width: 1440, height: 900 });
+  // 1280 下是按钮 + 浮层：跳过去再打开，当前项还是点的那一节
+  await page.setViewportSize({ width: 1280, height: 800 });
   const fab = page.getByRole("button", { name: "本页目录" });
   await fab.click();
   await page.getByTestId("pagetoc-pop").getByRole("link", { name: "对照源码", exact: true }).click();

@@ -1,0 +1,193 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>整个模型</title>
+<script type="importmap">{"imports":{"three":"../../vendor/build/three.module.js","three/addons/":"../../vendor/examples/jsm/"}}</script>
+<style>
+html,body{margin:0;background:#f8f5ee;font-family:var(--journey-font-sans);color:#2b2823;overflow:hidden}
+#stage{position:relative;overflow:hidden}
+canvas{position:absolute;inset:0}
+.l{position:absolute;white-space:nowrap;font-size:12.5px;pointer-events:none;text-shadow:0 0 4px #f8f5ee,0 0 4px #f8f5ee,0 0 4px #f8f5ee}
+.l.c{transform:translate(-50%,-50%)}.l.b{transform:translate(-50%,0)}.l.t{transform:translate(-50%,-100%)}.l.r{transform:translate(0,-50%)}.l.rr{transform:translate(-100%,-50%)}
+.l.tl{transform:translate(0,-100%)}.l.bl{transform:translate(0,0)}.l.tr{transform:translate(-100%,-100%)}
+.l b{font-weight:700}.l i{font-style:normal;color:#6b665c;font-size:11.5px}
+.l.big{font-size:16px;font-weight:800}
+/* the chapter's player (?embed=1): a segment's names show only while it is the segment; the sentence's words over their columns */
+.l.off{display:none!important}
+/* a dot product acted out (play.js), as bbycroft draws it: the formula on a card by the result's cell, thin lines to
+   what it reads, the numbers as small cells of their colours (the card: the chapter page's cards) */
+.dotlayer{position:absolute;inset:0;pointer-events:none;z-index:3}
+.dotlayer>div{position:absolute;display:none;white-space:nowrap;transform:translate(-50%,-50%)}
+.dotlines{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.dotlines path.dl{fill:none;stroke-width:1.3;display:none}
+.dotlines path.dl.dim{stroke:#8a857c;stroke-width:1}
+.dot-dim{font:600 11.5px var(--journey-font-sans);color:#4a463f;background:#f8f5eecc;padding:0 3px;border-radius:3px}
+.dotlines path.dl.o{stroke:#1f1d1a;stroke-width:1.4;marker-end:url(#dotarrow)}
+.dot-card{background:#fffdf8;border:1px solid #ddd5c6;border-radius:10px;box-shadow:0 6px 20px #2b282318;box-sizing:border-box}
+.dot-card{padding:10px 14px}.dot-card>div{white-space:normal}
+.dot-shape{font:12px/1.55 var(--journey-font-sans);color:#6b665c;margin-top:4px;padding-left:44px;text-indent:-44px}.dot-shape>i{display:inline-block;width:44px;text-indent:0;font-style:normal;font-weight:700;color:#2b2823}.dot-shape b{font:600 12px var(--journey-font-mono);color:#2b2823;white-space:nowrap}
+.dot-formula{font:500 14px var(--journey-font-mono);color:#2b2823}
+.dot-pill{background:#fffdf8;border:1px solid #cfc6b4;border-radius:8px;box-shadow:0 4px 14px #2b282318;padding:6px 11px;box-sizing:border-box}.dot-pill>div{white-space:nowrap}
+.dot-formula b{font-weight:800;color:#1f1d1a}
+.dot-formula .stk>div{text-align:right;line-height:20px}.dot-formula .stk .role{font:12px var(--journey-font-sans);color:#8a8478}.dot-formula .stk .val{text-align:left;border-top:1px solid #e6dfd2;margin-top:3px;padding-top:3px}
+.dot-formula .sw{display:inline-block;vertical-align:middle;border-radius:1.5px;margin:0 2px}
+.dot-formula .sw.row{width:26px;height:8px}.dot-formula .sw.col{width:8px;height:18px}
+.dot-tag{font:700 13px var(--journey-font-sans);color:#2b2823}
+.dot-cell{width:14px;height:14px;border-radius:2px;border:1.2px solid;box-sizing:border-box}
+.dot-incoming{width:148px;height:40px;box-sizing:border-box;border:1px solid #b7a7c3;border-radius:5px;background:#f4eef7;color:#62506d;text-align:center;font:11px/17px var(--journey-font-sans);padding:2px 0}
+.dot-incoming b{font-size:10px;font-weight:500}
+.dot-target{width:10px;height:10px;border:1px dashed;box-sizing:border-box;border-radius:2px;background:#f8f5ee88}
+.dot-target-label{font:10px/16px var(--journey-font-sans);color:#62506d;background:#f8f5ee;padding:0 2px}
+.dot-expert-plane{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.dot-expert-plane path{stroke-width:1.3;fill-opacity:.12}
+.dot-source{width:130px;font:10px/18px var(--journey-font-sans);text-align:center;background:#f8f5ee;border-bottom:1px solid}
+.dot-anchor{width:5px;height:5px;border:1px solid;box-sizing:border-box;border-radius:50%;background:#f8f5ee}
+.dot-x{font:700 12px var(--journey-font-mono);color:#6b665c}
+.dot-txt{font:12.5px var(--journey-font-mono);color:#4a463f}
+.dot-txt b{color:#1f1d1a}
+.dot-note{font-size:12.5px;color:#6b665c}
+.dot-sumline{font-size:13px;color:#2b2823}.dot-sumline b{font:800 13.5px var(--journey-font-mono)}#stage.inseg .l:not(.seg){display:none!important}
+#hint{position:fixed;left:14px;bottom:12px;font:12px var(--journey-font-sans);color:#6b665c;pointer-events:none}
+.l.word{font-size:12.5px;color:#6b665c;font-weight:400}.l.word.now{color:#2b2823;font-weight:800}.l.word.narrow{display:none!important}
+.l.card{font-size:13px;text-align:center;line-height:1.25;background:#fffdf8;border:1px solid #cfc6b4;border-radius:5px;padding:2px 5px;text-shadow:none}
+.l.card i{display:block;font-size:10.5px}
+.l.card.q{border-style:dashed;color:#6b665c}
+.l.strip{display:flex;gap:4px;text-shadow:none}.l.strip span{font-size:13px;text-align:center;line-height:1.25;background:#fffdf8;border:1px solid #cfc6b4;border-radius:5px;padding:2px 6px}.l.strip i{display:block;font-size:10.5px}
+/* far (the whole model on one screen): the names step back — smaller, grey, their small print and the words' ids hidden —
+   so they do not outweigh the model (the user, 09-25: "有些文字太大了，喧宾夺主了……总览情况下"); closer in, as before */
+#stage.far .l{font-size:10.5px;color:#6b665c}
+#stage.far .l b{font-weight:600}
+#stage.far .l i{display:none}
+#stage.far .l.big{font-size:11.5px;font-weight:700}
+#stage.far .l.strip{gap:2px}
+#stage.far .l.strip span{font-size:10px;padding:0 3px;line-height:1.35;border-color:#e2dbcd;background:#fffdf8cc;color:#6b665c}
+#stage.far .l.minor{display:none!important}
+#stage.far .l.card{font-size:10px;padding:0 3px;border-color:#e2dbcd;background:#fffdf8cc}
+#legend{position:absolute;left:0;right:0;bottom:0;font-size:12.5px;line-height:1.6;background:#f8f5eef2;padding:6px 18px 7px;border-top:1px solid #ddd5c6}
+#legend h1{display:inline;font-size:13px;margin:0 8px 0 0}
+#legend .k{display:inline-block;width:11px;height:11px;border-radius:2px;margin:0 4px -1px 8px}
+#views{position:absolute;right:16px;top:14px;font-size:13px;text-align:right}
+#views div{margin-bottom:7px}
+#title{position:absolute;left:12px;top:8px;font-size:20px;font-weight:800;max-width:calc(100% - 560px);background:#f8f5eeeb;padding:6px 10px 7px;border-radius:6px}#title i{display:block;font-style:normal;font-size:13.5px;font-weight:400;color:#4a463f;margin-top:3px;white-space:normal}
+#views a{display:inline-block;margin-left:6px;padding:3px 10px;border:1px solid #b9b2a3;border-radius:12px;color:#4a463f;text-decoration:none;background:#f8f5ee}
+#views a.on{background:#2b2823;color:#f8f5ee;border-color:#2b2823}
+</style><link rel="stylesheet" href="../../typography.css"><link rel="stylesheet" href="../../reader-theme.css"><script>if(new URLSearchParams(location.search).get("site")==="1"||window.frameElement?.classList.contains("experience-frame"))document.documentElement.dataset.site="true";</script></head><body><div id="stage"></div>
+<script type="module">
+// The master (since 2026-09-25): the whole model on one page — model-spec.js lists it (the 45 layers, the MTP layer, the two
+// ends), model-layout.js places it (every layer as flow.html lays it out alone), flow-look.js draws it. ?view= whole |
+// in | out | layer (with &layer=N: one layer inside the whole), ?heads=, ?pal=, ?labels=0, ?tune=0.
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {modelSpec,lid} from './model-spec.js';
+import {layoutModel} from './model-layout.js';
+import {toWorld,ptWorld,HEAD_GAP} from './flow-layout.js';
+import {makeFlowLook} from './flow-look.js';
+import {PAGE,NAMES,DEFAULT_PALETTE,arrowColor} from './flow-colors.js';
+
+import {makeView} from './truth-view.js';
+
+const Q=new URLSearchParams(location.search),VIEW=Q.get('view')||'whole',PAL=DEFAULT_PALETTE,W=+(Q.get('w')||innerWidth),H=+(Q.get('h')||innerHeight),EMBED=Q.get('embed')==='1',LEGEND=!EMBED;   // embed: the chapter page's right side (no title, legend, tabs or tuner; play.js takes commands)
+const host=document.getElementById('stage');host.style.width=W+'px';host.style.height=H+'px';
+const cfg=(await (await fetch('../reference/official-config.json')).json()).text_config;
+// the sentence: its words and ids from the official tokenizer (reference/tokenizer.json)
+const WORDS=[['春天',105087],['来了',100325],['，',3837],['花儿',121267],['都',98401],['开了',103349]],T=WORDS.length;
+const HEADS='z',M=modelSpec(cfg,T),SLABS='gap',L=layoutModel(M,{heads:HEADS,elide:Q.get('vocab')!=='full',gap:SLABS==='gap'?HEAD_GAP:0}),N=M.dims.N,LI=+(Q.get('layer')??3);
+const WB=L.blocks.map(toWorld),B=Object.fromEntries(WB.map(b=>[b.id,b]));
+
+// (embed, the chapter page playing: the screen's own sharpness, 1.5 to 2 — at least 2 made a 1080p screen draw 4 times its
+// pixels every frame, and the user saw it stutter (09-28); the whole-model page keeps 2 to 3 for its still pictures)
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5,Math.sqrt(2500000/(W*H))));renderer.setSize(W,H);host.prepend(renderer.domElement);
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(22,W/H,1,60000),controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=false;
+const {V,label,labels,place,fit,settle,title}=makeView({host,W,H,camera,controls}),look=makeFlowLook({px:renderer.getPixelRatio(),pal:PAL,minPx:3,viewH:H,slabs:SLABS,alt:false,fine:16,hlines:true,fineWords:true,flat:false,lines:'band'});   // no block thinner than 3 px on the screen
+for(const b of WB)look.addBlock(scene,b);
+const ARROWS=[];
+const at=id=>B[id]||B[M.alias[id]],midZ=a=>-Math.min(...[at(a.from),at(a.to)].filter(Boolean).map(b=>b.z1-b.z0))/2;   // the middle of the depth both ends share
+for(const a of L.arrows){const src=at(a.from);ARROWS.push({comp:src.comp,from:src.id,to:at(a.to)?.id,m:look.addArrow(scene,a.pts.map(ptWorld),{color:arrowColor(look.palette[src.comp][0]),w:a.w,head:a.head,z:midZ(a)})})}
+
+// ---- views
+const box=bs=>({x0:Math.min(...bs.map(b=>b.x0)),x1:Math.max(...bs.map(b=>b.x1)),y0:Math.min(...bs.map(b=>b.y0)),y1:Math.max(...bs.map(b=>b.y1)),z0:Math.min(...bs.map(b=>b.z0)),z1:0});
+const layerBlocks=i=>WB.filter(b=>b.layer===i),all=box(WB);
+const IN=box([B.ids,B.W_embed,B['W_embed/0']||B.W_embed,B.x0,...layerBlocks(0).filter(b=>b.y1>B[lid(0)+':residual_in'].y0-60)]);
+const OUT=box(WB.filter(b=>b.end&&!['ids','W_embed','W_embed/0','x0'].includes(b.id)).concat(layerBlocks(N)));
+const kindName=i=>({kda:'KDA 线性注意力',mla:'稀疏注意力（MLA）'}[M.layers[i].attnKind])+' + '+({dense:'稠密前馈',moe:'MoE'}[M.layers[i].ffnKind]);
+const P=L.P,COLS=L.COLS;
+const VIEWS={
+ whole:[all,'整个模型 · 一步生成',`一句话的 ${T} 个词从左上角的词表进来，复制成 4 路，往下走过 ${N} 层：每 ${P} 层一列（KDA、KDA、KDA、MLA 一个周期），共 ${COLS} 列，同一种层在同一行；一列走完，主干从列底绕到下一列的顶上。最后一列下面：4 路取平均、RMSNorm、输出头，选出下一个词；再下面是 MTP 层，用同一个输出头猜再下一个词。块都是真实大小`,V(.28,.22,1)],
+ in:[IN,'开头：词 → 词表 → 4 路',`输入是上面 ${T} 个词的编号（卡片下那一细条）；词表从左边进（权重）：每个编号在词表里取自己那一行 ${M.dims.C} 个数，放进自己那一列 → 输出是词向量（${T} 列，一个词一列）。词向量复制成 4 份，就是第 0 层的输入（右边紫色那块，4 片往后叠）；第 0 层从它往左读：先算 24 个混合系数，把 4 路合成 1 路，再 RMSNorm`,V(.5,.42,1)],
+ out:[OUT,'结尾：输出头和 MTP',`${N} 层的 4 路取平均 → RMSNorm → 输出头给词表里每个词打分（只算最后一个词）→ softmax → 选出下一个词。MTP：句子往后挪一个词再查词表、和主模型的隐藏状态各自归一化、拼起来 → eh_proj → 一层 MLA + MoE（只有 1 路）→ RMSNorm → 同一个输出头 → 草稿`,V(.4,.34,1)],
+ layer:[box(layerBlocks(LI)),`${lid(LI)} 在整张图里 · ${LI<N?kindName(LI):'MTP 层'}`,'和单层页一样的排法；主干从上一层来，往下交给下一层',V(.5,.42,1)]};
+const [fbox,tt,sub,dir0]=VIEWS[VIEW]||VIEWS.whole,dir=dir0;if(!EMBED)title(tt,sub);
+
+// ---- names
+const tl=(b,html,dx=0)=>label(html,V(b.x0+dx,b.y1+1.5,0),'tl',true);
+const rt=(b,html,dx=1.6)=>label(html,V(b.x1+dx,(b.y0+b.y1)/2,0),'r',true);
+const lt=(b,html,dx=1.6)=>label(html,V(b.x0-dx,(b.y0+b.y1)/2,0),'rr',true);
+const sh=b=>`<i>[${b.t.shape.join(', ')}]</i>`;
+// the sentence: a card over each word's column
+// the sentence: one card a word, in order (word k is the k-th column of the ids and of the word vectors under them)
+label(WORDS.map(([w,id])=>`<span>${w}<i>${id}</i></span>`).join(''),V((B.ids.x0+B.ids.x1)/2,B.ids.y1+2,0),'t strip');
+const n0=labels.length;   // from here to the MTP layer's name: the ends' small names (steps, gaps, the two '?'), not shown far
+{const b=B.next_id;label('？<i>下一个词</i>',V((b.x0+b.x1)/2,b.y0-3,0),'b card q')}
+{const b=B.draft_id;label('？<i>草稿</i>',V((b.x0+b.x1)/2,b.y0-3,0),'b card q')}
+// an elided tensor: its left end, and the gap between its ends ('⋯')
+const lft=b=>B[b.id+'/0']||b,gap=b=>{const a=B[b.id+'/0'];if(a)label('⋯',V((a.x1+b.x0)/2,(b.y0+b.y1)/2,0),'c big',true)};
+const cut=b=>L.elide?`中间省略：真实长 ${b.trueW.toFixed(0)}，约一层宽的 6 倍`:'真实长度';
+for(const id of ['W_embed','W_head','logits','probs','logits_mtp'])gap(B[id]);
+{const b=B.W_embed,a=lft(b);label(`<b>词表</b> ${sh(b)}<br><i>${cut(b)} · 和输出头不共用</i>`,V(a.x0-3,(a.y0+a.y1)/2,0),'rr',true)}   // left of it: under it stands the first layer
+rt(B.x0,'<b>词向量</b> <i>[6, 4096] → 复制成 4 路</i>',26);
+{const b=B.W_head,a=lft(b);label(`<b>输出头</b> ${sh(b)}<br><i>${cut(b)} · 和词表不共用</i>`,V(a.x0-3,(a.y0+a.y1)/2,0),'rr',true)}
+lt(lft(B.logits),'<b>分数</b> <i>只算最后一个词</i>',10);lt(lft(B.probs),'<b>概率</b> <i>softmax</i>',10);lt(lft(B.logits_mtp),'<b>MTP 的分数</b> <i>同一个输出头</i>',14);
+rt(B.h_mean,'4 路取平均',20);rt(B.h_final,'RMSNorm',20);
+rt(B.h_n,'<i>主模型的隐藏状态 · RMSNorm</i>',20);rt(B.e_mtp,'<i>句子往后挪一个词，查同一张词表（这根箭头没画）</i>',20);rt(B.e_n,'<i>RMSNorm</i>',20);
+tl(B.W_eh,'<b>eh_proj</b> <i>[4096, 8192]</i>');rt(B.h_mtp,'RMSNorm',20);
+{const b=B[lid(N)+':residual_in'];label(`<b>MTP 层</b> <i>第 ${N} 层 · 一层 MLA + MoE · 只有 1 路，没有 mHC</i>`,V(b.x1+22,(b.y0+b.y1)/2,0),'r big',true)}
+// the start, block by block (the user, 09-25: "春天来了是怎么变成词向量的……哪里是输入，哪里是输出"): the ids, layer 0's
+// input and the first steps that read it
+if(!EMBED){const L0=id=>B[lid(0)+':'+id];
+ rt(B.ids,'<i>编号（输入）</i>',4);
+ rt(L0('residual_in'),'<b>第 0 层的输入</b> <i>4 路 [6, 4, 4096]：词向量复制 4 份</i>',3);
+ lt(L0('fn_attn'),'<i>fn：4 路 → 24 个混合系数</i>',3);
+ tl(L0('coef_attn'),'<i>24 个混合系数</i>');
+ lt(L0('collapsed_attn'),'合成 1 路',3);
+ lt(L0('x_attn'),'RMSNorm',6)}
+// …far, only the ends' main names stay: the vocabulary, the output head, the MTP layer
+for(const l of labels.slice(n0))if(!/^(词表|输出头|MTP 层)$/.test(l.el.querySelector('b')?.textContent||''))l.el.classList.add('minor');
+// every layer: its name over its top-left corner; each row's kind at the far left
+for(let i=0;i<N;i++){const bs=layerBlocks(i),bx=box(bs);label(`<b>${lid(i)}</b>`,V(bx.x0,bx.y1+3,0),'tl',true)}
+for(let r=0;r<P;r++){const bs=layerBlocks(r),bx=box(bs),x=Math.min(...WB.filter(b=>b.layer!==undefined&&b.layer<N).map(b=>b.x0));label(`<b>${{kda:'KDA',mla:'MLA'}[M.layers[r+P].attnKind]}</b><br><i>${r===P-1?'稀疏注意力':'线性注意力'}</i>`,V(x-30,(bx.y0+bx.y1)/2,0),'rr big')}
+
+fit(fbox,dir,.9,[0,0]);
+const present=[...new Set(WB.map(b=>b.comp))];
+if(LEGEND){const lg=document.createElement('div');lg.id='legend';lg.innerHTML=`一个词一列 · 张量按真实尺寸绘制 · 结果与权重使用同组颜色<br>${present.map(k=>`<span class="k" style="background:${look.palette[k][0]}"></span>${NAMES[k]||k}`).join('')}`;host.append(lg)}
+if(!EMBED){const v=document.createElement('div');v.id='views';const q=o=>'?'+new URLSearchParams({...Object.fromEntries(Q),...o});
+ v.innerHTML=`<div>${[['whole','整个'],['in','开头'],['out','结尾 · MTP'],['layer','一层']].map(([k,n])=>`<a class="${VIEW===k?'on':''}" href="${q({view:k})}">${n}</a>`).join('')}</div>`
+  +`<div>词表、输出头：${[['elide','省略画法'],['full','真实长度']].map(([k,n])=>`<a class="${(Q.get('vocab')||'elide')===k?'on':''}" href="${q({vocab:k})}">${n}</a>`).join('')}</div>`
+  +(VIEW==='layer'?`<div>${[0,3,4,44,45].map(k=>`<a class="${LI===k?'on':''}" href="${q({layer:k})}">${lid(k)}</a>`).join('')}</div>`:'')
+  +`<div><a href="flow.html">单层页</a><a href="arch.html">2D 架构图</a></div>`;host.append(v)}
+
+lod();settle(l=>!l.el.classList.contains('card')&&!l.el.classList.contains('strip')&&l.el.getClientRects().length>0);   // (a name hidden far is not in the way)
+// a name that falls under the title, the legend or the buttons waits until the reader turns there: it hides
+// (embed: the hint of how to turn the camera is the model's own, so the names it would cover hide as under any UI)
+if(EMBED){const h=document.createElement('div');h.id='hint';h.textContent='拖动旋转 · 滚轮缩放 · 右键平移';document.body.append(h)}
+const UI=()=>['title','legend','views','hint','dotcard','dotpill'].map(id=>document.getElementById(id)).filter(Boolean);
+const over=(a,b)=>a.left<b.right-1&&b.left<a.right-1&&a.top<b.bottom-1&&b.top<a.bottom-1;
+// (every name read first, then hidden: reading after hiding one would lay the page out again for each name)
+function hideUnderUI(){const us=UI().filter(u=>u.getClientRects().length&&!u.hidden).map(u=>u.getBoundingClientRect()),vis=labels.filter(({el})=>el.style.display!=='none'),rs=vis.map(({el})=>el.getBoundingClientRect());vis.forEach(({el},i)=>{const r=rs[i];if(us.some(u=>over(r,u))||r.bottom<0||r.top>H||r.right<0||r.left>W)el.style.display='none'})}
+// how far: CSS px per unit of the model at the point the camera looks at (the whole model is about .15, a layer about .8)
+function lod(){const t=controls.target,a=t.clone().project(camera),c=t.clone().add(V(100,0,0)).project(camera);host.classList.toggle('far',(c.x-a.x)/2*W/100<.3)}
+// only what the camera can see is drawn (the whole model is 5606 things to draw; close to one layer, a few hundred): each
+// block and arrow is a sphere, grown by what the "at least 3 px" can add at its distance (09-26: playing a segment was
+// 9 ms a frame on draw calls alone, and the user saw it stutter)
+const CULL=[],FRU=new THREE.Frustum(),PM=new THREE.Matrix4(),SPH=new THREE.Sphere(),MINPX=3;
+for(const m of look.meshes){const b=m.userData.block;CULL.push([m,V((b.x0+b.x1)/2,(b.y0+b.y1)/2,(b.z0+b.z1)/2),Math.hypot(b.x1-b.x0,b.y1-b.y0,b.z1-b.z0)/2])}
+for(const a of ARROWS){a.m.geometry.computeBoundingSphere();const s=a.m.geometry.boundingSphere;CULL.push([a.m,s.center.clone(),s.radius])}
+for(const [o] of CULL)o.frustumCulled=false;
+function cull(){camera.updateMatrixWorld();FRU.setFromProjectionMatrix(PM.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
+ const k=2*2*MINPX/(camera.projectionMatrix.elements[5]*H);   // world units a MINPX grows by, per unit of distance (twice, to be safe)
+ for(const c of CULL){SPH.center.copy(c[1]);SPH.radius=c[2]+camera.position.distanceTo(c[1])*k;c[0].visible=FRU.intersectsSphere(SPH)}}
+let frameRequest=0;
+function frame(){if(!frameRequest)frameRequest=requestAnimationFrame(()=>{frameRequest=0;renderFrame()})}
+function renderFrame(){cull();renderer.render(scene,camera);lod();place();hideUnderUI()}
+controls.addEventListener('change',frame);frame();
+
+for(const a of ARROWS)a.base=a.m.material.color.clone();
+window.__truth={spec:M,layout:L,camera,controls,frame,renderer,scene,place,ready:true};
+if(EMBED){const [{attachPlayer},{loadDemo}]=await Promise.all([import('./play.js'),import('./demo-data.js')]);window.__player=attachPlayer({look,B,WB,M,ARROWS,camera,controls,fit,place,frame,label,V,host,demo:await loadDemo(),words:WORDS.map(w=>w[0])})}
+</script></body></html>

@@ -1,24 +1,18 @@
 .inference-journey {
-  --city-serif: "Songti SC", "SimSun", serif;
-  --city-muted: #748078;
+  --city-muted: var(--color-journey-ink-muted);
   position: relative;
+  min-height: 620px;
   height: 100svh;
-  min-height: 740px;
   overflow: hidden;
   color: var(--city-ink);
   background: var(--city-paper);
 }
-.inference-journey button {
-  cursor: pointer;
-}
-.inference-journey button:disabled {
-  cursor: wait;
-  opacity: 0.5;
-}
+
 .city-stage {
   position: absolute;
-  inset: 0 0 0 230px;
+  inset: 0 -5vw 0 22vw;
 }
+
 .city-stage canvas {
   display: block;
   width: 100%;
@@ -26,276 +20,184 @@
   touch-action: none;
   cursor: grab;
 }
+
 .city-stage canvas:active {
   cursor: grabbing;
 }
+
 .city-atmosphere {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(90deg, var(--city-paper) 0%, var(--city-paper) 17%, transparent 39%),
     linear-gradient(
-      180deg,
-      var(--city-paper),
-      transparent 20%,
-      transparent 85%,
-      color-mix(in srgb, var(--city-paper) 65%, transparent)
-    );
+      90deg,
+      var(--city-paper) 12%,
+      color-mix(in srgb, var(--city-paper) 94%, transparent) 25%,
+      transparent 53%
+    ),
+    linear-gradient(180deg, var(--city-paper), transparent 19%, transparent 78%, var(--city-paper));
 }
-.city-header {
+
+.city-signature {
+  position: absolute;
+  z-index: 2;
+  top: 40px;
+  left: clamp(28px, 5vw, 80px);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font: 500 var(--text-prose) / 1.5 var(--font-mono);
+  letter-spacing: -0.04em;
+  pointer-events: none;
+}
+
+.city-signature span {
+  border-left: 1px solid color-mix(in srgb, var(--city-ink) 24%, transparent);
+  padding-left: 18px;
+  color: var(--city-muted);
+  font: var(--text-caption) / 1.5 var(--font-sans);
+  letter-spacing: 0.1em;
+}
+
+.city-intro {
   position: relative;
   z-index: 2;
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  justify-content: space-between;
-  padding: 38px 43px;
+  justify-content: center;
+  height: 100%;
+  padding: 110px clamp(28px, 5vw, 80px) 126px;
   pointer-events: none;
 }
-.city-brand {
-  display: flex;
-  align-items: center;
-  gap: 25px;
+
+.city-eyebrow {
+  margin: 0 0 24px;
+  color: var(--city-muted);
+  font-size: var(--text-caption);
+  letter-spacing: 0.2em;
 }
-.city-seal {
-  padding: 8px 6px;
-  border-radius: 2px;
-  color: #f1e7d6;
-  background: #a34e39;
-  font: 21px / 1.12 var(--city-serif);
-}
-.city-brand h1 {
+
+.city-intro h1 {
   margin: 0;
-  font: 36px / 1.45 var(--city-serif);
-  letter-spacing: 0.18em;
+  font: 400 clamp(52px, 5vw, 76px) / 1.25 var(--font-journey-title);
+  letter-spacing: 0.08em;
 }
-.city-brand p {
-  margin: 5px 0 0;
-  font-size: 10px;
-  letter-spacing: 0.33em;
+
+.city-intro h1 span {
+  display: block;
 }
-.city-practice {
-  display: flex;
+
+.city-description {
+  margin: 26px 0 32px;
+  color: var(--city-muted);
+  font-size: var(--text-prose);
+  line-height: 1.95;
+  letter-spacing: 0.08em;
+}
+
+.city-enter {
+  display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  padding: 10px;
-  pointer-events: auto;
-}
-.city-index {
-  position: absolute;
-  z-index: 2;
-  left: 43px;
-  top: 166px;
-  width: 224px;
-}
-.city-index-heading {
-  display: flex;
   justify-content: space-between;
-  padding-bottom: 13px;
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  color: var(--city-muted);
+  gap: 38px;
+  min-height: 56px;
+  padding: 0 24px 0 28px;
+  border: 1px solid var(--city-ink);
+  border-radius: 4px;
+  color: var(--city-paper);
+  background: var(--city-ink);
+  font-size: var(--text-body);
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  pointer-events: auto;
+  transition:
+    background 180ms ease,
+    transform 180ms ease;
 }
-.city-index ol {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+
+.city-enter:hover {
+  background: color-mix(in srgb, var(--city-ink) 90%, black);
+  transform: translateY(-2px);
 }
-.city-index li {
-  display: flex;
-  align-items: flex-start;
-  gap: 17px;
-  border-top: 1px solid #cdd2c7;
-  padding: clamp(8px, calc((100svh - 680px) / 20), 15px) 0;
+
+.city-enter:focus-visible {
+  outline: 2px solid var(--city-ink);
+  outline-offset: 5px;
 }
-.city-chapter-number {
-  min-width: 18px;
-  padding-top: 2px;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: var(--city-muted);
-}
-.city-index strong {
-  display: block;
-  font: 600 15px / 1.25 var(--city-serif);
-  letter-spacing: 0.1em;
-}
-.city-index small {
-  display: block;
-  margin-top: 5px;
-  color: var(--city-muted);
-  font-size: 10px;
-  line-height: 1.4;
-  letter-spacing: 0.04em;
-}
-.city-index-foot {
-  margin: 19px 0 0;
-  font: 12px / 1.5 var(--city-serif);
-  letter-spacing: 0.16em;
-  color: var(--city-muted);
-}
-.city-motto {
-  margin-top: 24px;
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  color: var(--city-muted);
-}
+
 .city-footer {
   position: absolute;
-  bottom: 28px;
-  right: 40px;
-}
-.city-controls {
+  z-index: 2;
+  inset: auto clamp(28px, 5vw, 80px) 30px;
   display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.city-controls > span {
-  margin-right: 12px;
-  font-size: 10px;
+  justify-content: space-between;
+  gap: 20px;
   color: var(--city-muted);
+  font-size: var(--text-caption);
+  letter-spacing: 0.14em;
+  pointer-events: none;
 }
-.city-controls button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  height: 34px;
-  padding: 0 11px;
-  border: 1px solid #c2cbbd;
-  border-radius: 24px;
-  background: color-mix(in srgb, var(--city-paper) 88%, transparent);
-  font-size: 10px;
-}
-.city-loading,
-.city-error {
-  position: absolute;
-  left: 65%;
-  top: 53%;
-  transform: translate(-50%, -50%);
-  padding: 24px 32px;
-  text-align: center;
-  background: color-mix(in srgb, var(--city-paper) 95%, transparent);
-  font-size: 13px;
-}
-.city-loading small {
-  display: block;
-  margin-top: 10px;
-  font-size: 10px;
-}
-.city-error p {
-  margin: 10px 0;
-  font-size: 12px;
-}
-.city-error button {
-  border-bottom: 1px solid currentColor;
-  font-size: 12px;
-}
-@media (max-width: 1100px) {
-  .city-header {
-    padding: 30px;
-  }
-  .city-brand h1 {
-    font-size: 29px;
-  }
-  .city-index {
-    top: 145px;
-    left: 30px;
-    width: 199px;
-  }
-  .city-stage {
-    left: 190px;
-  }
-}
-@media (max-width: 600px) {
+
+@media (max-width: 760px) {
   .inference-journey {
-    min-height: 646px;
+    min-height: 600px;
   }
-  .city-header {
-    padding: 24px 23px;
+  .city-signature {
+    top: 28px;
   }
-  .city-brand {
-    gap: 19px;
-  }
-  .city-seal {
-    font-size: 17px;
-    padding: 6px 4px;
-  }
-  .city-brand h1 {
-    font-size: clamp(20px, 6.4vw, 28px);
-    letter-spacing: 0.13em;
-    white-space: nowrap;
-  }
-  .city-brand p {
-    font-size: 6.5px;
-    letter-spacing: 0.31em;
-    margin-top: 6px;
-  }
-  .city-practice {
+  .city-signature span {
     display: none;
   }
-  .city-index {
-    top: 116px;
-    left: 23px;
-    width: 162px;
+  .city-intro {
+    justify-content: flex-start;
+    padding-top: clamp(100px, 15svh, 140px);
+    padding-bottom: 60px;
   }
-  .city-index-heading {
-    font-size: 7px;
-    padding-bottom: 10px;
+  .city-eyebrow {
+    margin-bottom: 18px;
+    font-size: var(--text-caption);
+    letter-spacing: 0.12em;
   }
-  .city-index li {
-    padding: clamp(7px, calc((100svh - 610px) / 20), 12px) 0;
-    gap: 8px;
+  .city-intro h1 {
+    font-size: clamp(42px, 8vw, 58px);
   }
-  .city-chapter-number {
-    font-size: 9px;
-    min-width: 16px;
+  .city-description {
+    margin: 22px 0 26px;
+    font-size: var(--text-body);
   }
-  .city-index strong {
-    font-size: 11px;
-  }
-  .city-index small {
-    font-size: 7px;
-    margin-top: 4px;
-  }
-  .city-index-foot {
-    font-size: 9px;
-    margin-top: 18px;
-  }
-  .city-motto {
-    font-size: 6.5px;
-    margin-top: 15px;
-    letter-spacing: 0.1em;
+  .city-enter {
+    min-height: 52px;
+    padding-inline: 24px;
+    gap: 32px;
   }
   .city-stage {
-    inset: 145px auto 50px 162px;
-    width: 620px;
+    inset: 26% -32% -4% -12%;
   }
   .city-atmosphere {
     background:
-      linear-gradient(90deg, var(--city-paper), var(--city-paper) 39%, transparent 72%),
-      linear-gradient(180deg, var(--city-paper), transparent 30%, transparent 78%, var(--city-paper));
+      linear-gradient(
+        180deg,
+        var(--city-paper) 12%,
+        color-mix(in srgb, var(--city-paper) 92%, transparent) 35%,
+        transparent 69%,
+        var(--city-paper)
+      ),
+      linear-gradient(90deg, color-mix(in srgb, var(--city-paper) 58%, transparent), transparent 80%);
   }
   .city-footer {
-    right: 17px;
-    bottom: 19px;
+    bottom: 24px;
+    font-size: var(--text-caption);
+    letter-spacing: 0.08em;
   }
-  .city-controls > span {
+  .city-interaction-hint {
     display: none;
   }
-  .city-controls button {
-    height: 28px;
-    padding: 0 8px;
-    font-size: 9px;
-  }
-  .city-loading,
-  .city-error {
-    left: 77%;
-    top: 48%;
-    width: 150px;
-    padding: 15px 8px;
-    font-size: 11px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .city-enter {
+    transition: none;
   }
 }

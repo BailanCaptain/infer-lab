@@ -1,0 +1,198 @@
+{
+  "tensors": {
+    "fn_attn": {
+      "shape": [
+        24,
+        16384
+      ],
+      "scale": 0.013532
+    },
+    "base_attn": {
+      "shape": [
+        24
+      ],
+      "scale": 0.5
+    },
+    "scale_attn": {
+      "shape": [
+        3
+      ],
+      "scale": 0.3,
+      "add": 1.0
+    },
+    "gamma_attn": {
+      "shape": [
+        4096
+      ],
+      "scale": 0.2,
+      "add": 1.0
+    },
+    "W_q": {
+      "shape": [
+        8192,
+        4096
+      ],
+      "scale": 0.027063
+    },
+    "W_k": {
+      "shape": [
+        8192,
+        4096
+      ],
+      "scale": 0.027063
+    },
+    "W_v": {
+      "shape": [
+        8192,
+        4096
+      ],
+      "scale": 0.027063
+    },
+    "W_f_a": {
+      "shape": [
+        128,
+        4096
+      ],
+      "scale": 0.027063
+    },
+    "W_b": {
+      "shape": [
+        64,
+        4096
+      ],
+      "scale": 0.027063
+    },
+    "W_g_a": {
+      "shape": [
+        128,
+        4096
+      ],
+      "scale": 0.027063
+    },
+    "conv_q": {
+      "shape": [
+        8192,
+        1,
+        4
+      ],
+      "scale": 0.8660254037844386,
+      "add": 0
+    },
+    "conv_k": {
+      "shape": [
+        8192,
+        1,
+        4
+      ],
+      "scale": 0.8660254037844386,
+      "add": 0
+    },
+    "conv_v": {
+      "shape": [
+        8192,
+        1,
+        4
+      ],
+      "scale": 0.8660254037844386,
+      "add": 0
+    },
+    "W_f_b": {
+      "shape": [
+        8192,
+        128
+      ],
+      "scale": 0.153093
+    },
+    "dt_bias": {
+      "shape": [
+        8192
+      ],
+      "scale": 0.5,
+      "add": -3.0,
+      "note": "below 0, so that the memory keeps most of itself from word to word, as a trained model's does"
+    },
+    "A_log": {
+      "shape": [
+        64
+      ],
+      "scale": 1.0
+    },
+    "W_g_b": {
+      "shape": [
+        8192,
+        128
+      ],
+      "scale": 0.153093
+    },
+    "gamma_o": {
+      "shape": [
+        128
+      ],
+      "scale": 0.2,
+      "add": 1.0
+    },
+    "W_o": {
+      "shape": [
+        4096,
+        8192
+      ],
+      "scale": 0.019137
+    },
+    "fn_ffn": {
+      "shape": [
+        24,
+        16384
+      ],
+      "scale": 0.013532
+    },
+    "base_ffn": {
+      "shape": [
+        24
+      ],
+      "scale": 0.5
+    },
+    "scale_ffn": {
+      "shape": [
+        3
+      ],
+      "scale": 0.3,
+      "add": 1.0
+    },
+    "gamma_ffn": {
+      "shape": [
+        4096
+      ],
+      "scale": 0.2,
+      "add": 1.0
+    },
+    "W_gate": {
+      "shape": [
+        12288,
+        4096
+      ],
+      "scale": 0.027063
+    },
+    "W_up": {
+      "shape": [
+        12288,
+        4096
+      ],
+      "scale": 0.027063
+    },
+    "W_down": {
+      "shape": [
+        4096,
+        12288
+      ],
+      "scale": 0.015625
+    },
+    "conv1d": {
+      "shape": [
+        24576,
+        4
+      ],
+      "scale": 0.5,
+      "note": "Q channels 0\u20138191, K 8192\u201316383, V 16384\u201324575; tap k reads the word k \u2212 3 back from 3"
+    }
+  }
+}

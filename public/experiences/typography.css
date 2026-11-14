@@ -1,0 +1,32 @@
+@import "./font-families.css";
+@import "./vendor/fonts/400.css";
+@import "./vendor/fonts/700.css";
+@import "./fonts/inter/index.css";
+@import "./fonts/jetbrains-mono/400.css";
+@import "./fonts/jetbrains-mono/500.css";
+@import "./fonts/jetbrains-mono/700.css";
+
+html,
+body,
+svg text,
+#diagram svg {
+  font-family: var(--journey-font-sans);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+code,
+kbd,
+#tunebar textarea.out {
+  font-family: var(--journey-font-mono);
+}
+
+/* Playback creates this numerical table with an inline font shorthand. */
+.dot-shape table {
+  font-family: var(--journey-font-mono) !important;
+}

@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
 test.use({ trace: { mode: "retain-on-failure", screenshots: false, snapshots: true } });
 
 // Keep the opening lightweight: these budgets protect the actual delivered asset and render path.
-test("推理之旅：模型预算、静态目录、取消点击拉近与环游", async ({ page }) => {
+test("单按钮首页：模型预算、按需绘制与进入主站", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   expect(statSync("public/models/compute-city.glb").size).toBeLessThan(1_500_000);
@@ -14,10 +14,22 @@ test("推理之旅：模型预算、静态目录、取消点击拉近与环游",
   await page.goto("/");
   const scene = page.getByTestId("city-scene");
   await expect(scene).toHaveAttribute("data-scene-ready", "true", { timeout: 60_000 });
-  await expect(page.getByRole("heading", { name: "大模型推理之旅" })).toBeVisible();
+  await expect(page.locator("h1")).toHaveText(/大模型\s*推理之旅/);
+  const orbit = await scene.evaluate(async (element) => {
+    const start = performance.now();
+    const count = Number(element.dataset.renderCount);
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    return {
+      renders: Number(element.dataset.renderCount) - count,
+      seconds: (performance.now() - start) / 1000,
+    };
+  });
+  expect(orbit.renders).toBeGreaterThan(2);
+  expect(orbit.renders / orbit.seconds).toBeLessThanOrEqual(32);
+  console.log("首页自动环绕", orbit);
   await page.screenshot({ path: "test-results/city-desktop.png" });
   // The cold frame includes the one-time shadow pass. Measure the normal camera pass after it.
-  await page.getByRole("button", { name: "重置视角", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect.poll(async () => Number(await scene.getAttribute("data-draw-calls"))).toBeLessThanOrEqual(25);
   const calls = Number(await scene.getAttribute("data-draw-calls"));
   const triangles = Number(await scene.getAttribute("data-triangles"));
@@ -37,11 +49,10 @@ test("推理之旅：模型预算、静态目录、取消点击拉近与环游",
       return gl && info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "unavailable";
     }),
   );
-  const index = page.getByRole("complementary", { name: "十章目录" });
-  await expect(index.getByRole("listitem")).toHaveCount(10);
+  await expect(page.locator("a, button")).toHaveCount(1);
   await expect(page.getByRole("button", { name: /定位|开始探索/ })).toHaveCount(0);
   const overview = await scene.screenshot();
-  await index.getByText("KV Cache", { exact: true }).click();
+  await expect(page.getByRole("link", { name: "开始阅读" })).toHaveAttribute("href", "#/wiki");
   await page.mouse.click(830, 320);
   await page.mouse.click(1050, 550);
   await page.waitForTimeout(1300);
@@ -52,31 +63,70 @@ test("推理之旅：模型预算、静态目录、取消点击拉近与环游",
   await page.mouse.move(1150, 650, { steps: 6 });
   await page.mouse.up();
   expect((await scene.screenshot()).equals(beforeDrag)).toBe(false);
-  await page.getByRole("button", { name: "自动环游" }).click();
-  await expect(page.getByRole("button", { name: "暂停环游" })).toHaveAttribute("aria-pressed", "true");
-  const start = Number(await scene.getAttribute("data-render-count"));
-  await page.waitForTimeout(2000);
-  const frames = Number(await scene.getAttribute("data-render-count")) - start;
-  expect(frames).toBeGreaterThan(0);
-  console.log(`主动环游 2s 实际绘制 ${frames} 帧（30 FPS 上限）`);
-  await page.getByRole("button", { name: "暂停环游" }).click();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("heading", { name: "大模型推理之旅" })).toBeVisible();
-  await page.getByRole("link", { name: "实践" }).click();
+  await page.getByRole("link", { name: "开始阅读" }).click();
+  await expect(page.getByTestId("knowledge-topics")).toBeVisible();
   await expect(scene).toHaveCount(0);
   await page.goBack();
   await expect(page.getByTestId("city-scene")).toHaveAttribute("data-scene-ready", "true", {
     timeout: 60_000,
   });
+  // Leaving while the automatic tour is active must release its render loop.
+  const outgoing = await scene.elementHandle();
+  await page.getByRole("link", { name: "开始阅读" }).click();
+  await expect(scene).toHaveCount(0);
+  const stopped = await outgoing!.getAttribute("data-render-count");
+  await page.waitForTimeout(500);
+  expect(await outgoing!.getAttribute("data-render-count")).toBe(stopped);
   expect(errors).toEqual([]);
+});
+
+test("手机首页只有一个入口，按钮无需滚动即可使用", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/#/home");
+  const scene = page.getByTestId("city-scene");
+  await expect(scene).toHaveAttribute("data-scene-ready", "true", { timeout: 60_000 });
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 359, height: 646 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const entry = page.getByRole("link", { name: "开始阅读" });
+    await expect(page.locator("a, button")).toHaveCount(1);
+    await expect(entry).toBeInViewport({ ratio: 1 });
+    expect((await entry.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+    await page.screenshot({ path: `test-results/single-home-${viewport.width}.png` });
+  }
+  const idle = await scene.getAttribute("data-render-count");
+  await page.waitForTimeout(500);
+  expect(await scene.getAttribute("data-render-count")).toBe(idle);
+  await page.setViewportSize({ width: 3840, height: 2160 });
+  const canvas = scene.locator("canvas");
+  await expect.poll(() => canvas.evaluate((element) => element.height)).toBeGreaterThan(1000);
+  expect(await canvas.evaluate((element) => element.width * element.height)).toBeLessThanOrEqual(2_500_000);
+  await page.setViewportSize({ width: 359, height: 646 });
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "开始阅读" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("knowledge-topics")).toBeVisible();
+});
+
+test("城市载入失败不阻塞唯一阅读入口，旧首页链接仍可用", async ({ page }) => {
+  await page.route("**/compute-city.glb", (route) => route.abort());
+  await page.goto("/#/archive/home");
+  await expect(page.getByRole("status")).toHaveText("场景暂未载入，仍可开始阅读");
+  await expect(page.locator("a, button")).toHaveCount(1);
+  await page.getByRole("link", { name: "开始阅读" }).click();
+  await expect(page.getByTestId("knowledge-topics")).toBeVisible();
 });
 
 test("持续拖动跟随浏览器刷新，松手后停止绘制", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/");
+  await page.goto("/#/home");
   const scene = page.getByTestId("city-scene");
   await expect(scene).toHaveAttribute("data-scene-ready", "true", { timeout: 60_000 });
-  await page.getByRole("button", { name: "重置视角" }).click();
+  await page.keyboard.press("Escape");
   await page.mouse.move(950, 550);
   await page.mouse.down();
   // Feed one move per browser frame after a real pointer-down. This measures scheduling
@@ -134,40 +184,4 @@ test("持续拖动跟随浏览器刷新，松手后停止绘制", async ({ page 
   const idle = await scene.getAttribute("data-render-count");
   await page.waitForTimeout(500);
   expect(await scene.getAttribute("data-render-count")).toBe(idle);
-});
-
-test("手机直接显示十章目录，减少动态效果仍生效", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
-  const scene = page.getByTestId("city-scene");
-  await expect(scene).toHaveAttribute("data-scene-ready", "true", { timeout: 60_000 });
-  await expect(page.getByRole("heading", { name: "大模型推理之旅" })).toBeVisible();
-  const index = page.getByRole("complementary", { name: "十章目录" });
-  await expect(index.getByRole("listitem")).toHaveCount(10);
-  await expect(index.getByText("社区与开源")).toBeInViewport();
-  await page.screenshot({ path: "test-results/city-mobile.png" });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.getByRole("button", { name: "自动环游" }).click();
-  await expect(page.getByRole("button", { name: "自动环游" })).toHaveAttribute("aria-pressed", "false");
-  await page.setViewportSize({ width: 359, height: 646 });
-  await expect(index.getByText("社区与开源")).toBeInViewport();
-  await page.screenshot({ path: "test-results/city-mobile-compact.png" });
-  await page.setViewportSize({ width: 3840, height: 2160 });
-  const canvas = scene.locator("canvas");
-  await expect.poll(() => canvas.evaluate((element) => element.height)).toBeGreaterThan(1000);
-  expect(await canvas.evaluate((element) => element.width * element.height)).toBeLessThanOrEqual(2_500_000);
-});
-
-test("场景网络失败可重试，十章目录仍可阅读", async ({ page }) => {
-  await page.route("**/compute-city.glb", (route) => route.abort());
-  await page.goto("/");
-  await expect(page.getByRole("alert")).toContainText("场景暂未载入");
-  await expect(page.getByRole("complementary").getByRole("listitem")).toHaveCount(10);
-  await page.unroute("**/compute-city.glb");
-  await page.getByRole("button", { name: "重新加载" }).click();
-  await expect(page.getByTestId("city-scene")).toHaveAttribute("data-scene-ready", "true", {
-    timeout: 60_000,
-  });
-  await expect(page.getByRole("alert")).toHaveCount(0);
 });

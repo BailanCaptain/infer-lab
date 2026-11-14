@@ -1,18 +1,71 @@
+import { lazy, Suspense } from "react";
 import { createHashRouter, RouterProvider } from "react-router";
 import { AppShell } from "./AppShell";
-import { SpikeCPage } from "./pages/dev/SpikeCPage";
-import { HomePage } from "./pages/HomePage";
-import { WikiPage } from "./pages/WikiPage";
+import { ExperiencePage } from "./pages/ExperiencePage";
+
+const WikiPage = lazy(async () => ({ default: (await import("./pages/WikiPage")).WikiPage }));
+const HomePage = lazy(async () => ({ default: (await import("./pages/HomePage")).HomePage }));
+
+// Commit the destination shell before loading its content, releasing the outgoing 3D scene.
+const wikiRoute = {
+  element: (
+    <Suspense
+      fallback={
+        <p className="reader-loading" role="status">
+          正在载入知识库…
+        </p>
+      }
+    >
+      <WikiPage />
+    </Suspense>
+  ),
+};
+const homeRoute = {
+  element: (
+    <Suspense
+      fallback={
+        <p className="reader-loading" role="status">
+          正在载入首页…
+        </p>
+      }
+    >
+      <HomePage />
+    </Suspense>
+  ),
+};
+
+// 旧链接仍可读；主阅读入口不加载历史课程及 3D。
+const legacyCourseRoute = {
+  HydrateFallback: () => (
+    <p className="reader-loading" role="status">
+      正在载入章节…
+    </p>
+  ),
+  lazy: async () => ({ Component: (await import("./pages/CoursePage")).CoursePage }),
+};
 
 const router = createHashRouter([
   {
     path: "/",
     Component: AppShell,
     children: [
-      { index: true, Component: HomePage },
-      { path: "wiki", Component: WikiPage },
-      { path: "wiki/:id", Component: WikiPage },
-      { path: "dev/spike-c", Component: SpikeCPage },
+      { index: true, ...homeRoute },
+      { path: "home", ...homeRoute },
+      { path: "chapters", ...wikiRoute },
+      { path: "chapters/:id", ...legacyCourseRoute },
+      { path: "model", element: <ExperiencePage kind="model" /> },
+      { path: "hardware", element: <ExperiencePage kind="hardware" /> },
+      { path: "wiki", ...wikiRoute },
+      { path: "wiki/:id", ...wikiRoute },
+      { path: "archive/home", ...homeRoute },
+      {
+        path: "*",
+        lazy: async () => ({ Component: (await import("./pages/CoursePage")).NotFoundPage }),
+      },
+      {
+        path: "dev/spike-c",
+        lazy: async () => ({ Component: (await import("./pages/dev/SpikeCPage")).SpikeCPage }),
+      },
       // 样式试样只给开发时挑方案用：构建里 DEV 是 false，整段被摇掉
       ...(import.meta.env.DEV
         ? [
@@ -30,5 +83,6 @@ const router = createHashRouter([
 ]);
 
 export function App() {
-  return <RouterProvider router={router} />;
+  // Leaving an active 3D iframe must commit the destination immediately.
+  return <RouterProvider router={router} useTransitions={false} />;
 }

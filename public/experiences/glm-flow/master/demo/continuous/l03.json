@@ -1,0 +1,581 @@
+{
+  "ids": [
+    105087,
+    100325,
+    3837,
+    121267,
+    98401,
+    103349
+  ],
+  "weights": {
+    "tensors": {
+      "fn_attn": {
+        "shape": [
+          24,
+          16384
+        ],
+        "scale": 0.013532,
+        "seedName": "L03:fn_attn"
+      },
+      "base_attn": {
+        "shape": [
+          24
+        ],
+        "scale": 0.5,
+        "seedName": "L03:base_attn"
+      },
+      "scale_attn": {
+        "shape": [
+          3
+        ],
+        "scale": 0.3,
+        "add": 1.0,
+        "seedName": "L03:scale_attn"
+      },
+      "gamma_attn": {
+        "shape": [
+          4096
+        ],
+        "scale": 0.2,
+        "add": 1.0,
+        "seedName": "L03:gamma_attn"
+      },
+      "W_q_a": {
+        "shape": [
+          1536,
+          4096
+        ],
+        "scale": 0.027063293868263706,
+        "add": 0,
+        "seedName": "L03:W_q_a"
+      },
+      "gamma_q_a": {
+        "shape": [
+          1536
+        ],
+        "scale": 0.15,
+        "add": 1,
+        "seedName": "L03:gamma_q_a"
+      },
+      "W_q_b": {
+        "shape": [
+          16384,
+          1536
+        ],
+        "scale": 0.04419417382415922,
+        "add": 0,
+        "seedName": "L03:W_q_b"
+      },
+      "W_kv_a": {
+        "shape": [
+          512,
+          4096
+        ],
+        "scale": 0.027063293868263706,
+        "add": 0,
+        "seedName": "L03:W_kv_a"
+      },
+      "gamma_kv_a": {
+        "shape": [
+          512
+        ],
+        "scale": 0.15,
+        "add": 1,
+        "seedName": "L03:gamma_kv_a"
+      },
+      "W_kv_b": {
+        "shape": [
+          32768,
+          512
+        ],
+        "scale": 0.07654655446197431,
+        "add": 0,
+        "seedName": "L03:W_kv_b"
+      },
+      "W_iq": {
+        "shape": [
+          4096,
+          1536
+        ],
+        "scale": 0.04419417382415922,
+        "add": 0,
+        "seedName": "L03:W_iq"
+      },
+      "W_ik": {
+        "shape": [
+          128,
+          4096
+        ],
+        "scale": 0.027063293868263706,
+        "add": 0,
+        "seedName": "L03:W_ik"
+      },
+      "ln_w": {
+        "shape": [
+          128
+        ],
+        "scale": 0.15,
+        "add": 1,
+        "seedName": "L03:ln_w"
+      },
+      "ln_b": {
+        "shape": [
+          128
+        ],
+        "scale": 0.15309310892394862,
+        "add": 0,
+        "seedName": "L03:ln_b"
+      },
+      "W_cg": {
+        "shape": [
+          128,
+          4096
+        ],
+        "scale": 0.027063293868263706,
+        "add": 0,
+        "seedName": "L03:W_cg"
+      },
+      "ape": {
+        "shape": [
+          4,
+          128
+        ],
+        "scale": 0.15309310892394862,
+        "add": 0,
+        "seedName": "L03:ape"
+      },
+      "W_iw": {
+        "shape": [
+          32,
+          4096
+        ],
+        "scale": 0.027063293868263706,
+        "add": 0,
+        "seedName": "L03:W_iw"
+      },
+      "W_o": {
+        "shape": [
+          4096,
+          16384
+        ],
+        "scale": 0.013531646934131853,
+        "add": 0,
+        "seedName": "L03:W_o"
+      },
+      "fn_ffn": {
+        "shape": [
+          24,
+          16384
+        ],
+        "scale": 0.013532,
+        "seedName": "L03:fn_ffn"
+      },
+      "base_ffn": {
+        "shape": [
+          24
+        ],
+        "scale": 0.5,
+        "seedName": "L03:base_ffn"
+      },
+      "scale_ffn": {
+        "shape": [
+          3
+        ],
+        "scale": 0.3,
+        "add": 1.0,
+        "seedName": "L03:scale_ffn"
+      },
+      "gamma_ffn": {
+        "shape": [
+          4096
+        ],
+        "scale": 0.2,
+        "add": 1.0,
+        "seedName": "L03:gamma_ffn"
+      },
+      "W_router": {
+        "shape": [
+          288,
+          4096
+        ],
+        "scale": 0.027063293868263706,
+        "add": 0,
+        "seedName": "L03:W_router"
+      },
+      "e_bias": {
+        "shape": [
+          288
+        ],
+        "scale": 0.18,
+        "add": 0,
+        "seedName": "L03:e_bias"
+      },
+      "W_gu": {
+        "shape": [
+          288,
+          4096,
+          4096
+        ],
+        "scale": 0.027063293868263706,
+        "add": 0,
+        "seedName": "L03:W_gu",
+        "hashHigh": true
+      },
+      "W_dn": {
+        "shape": [
+          288,
+          4096,
+          2048
+        ],
+        "scale": 0.038273277230987154,
+        "add": 0,
+        "seedName": "L03:W_dn"
+      },
+      "W_s_gate": {
+        "shape": [
+          2048,
+          4096
+        ],
+        "scale": 0.027063293868263706,
+        "add": 0,
+        "seedName": "L03:W_s_gate"
+      },
+      "W_s_up": {
+        "shape": [
+          2048,
+          4096
+        ],
+        "scale": 0.027063293868263706,
+        "add": 0,
+        "seedName": "L03:W_s_up"
+      },
+      "W_s_down": {
+        "shape": [
+          4096,
+          2048
+        ],
+        "scale": 0.038273277230987154,
+        "add": 0,
+        "seedName": "L03:W_s_down"
+      }
+    }
+  },
+  "tensors": {
+    "residual_in": {
+      "shape": [
+        6,
+        4,
+        4096
+      ],
+      "off": 0
+    },
+    "coef_attn": {
+      "shape": [
+        6,
+        24
+      ],
+      "off": 98304
+    },
+    "collapsed_attn": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 98448
+    },
+    "x_attn": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 123024
+    },
+    "q_a": {
+      "shape": [
+        6,
+        1536
+      ],
+      "off": 147600
+    },
+    "q_resid": {
+      "shape": [
+        6,
+        1536
+      ],
+      "off": 156816
+    },
+    "kv_a": {
+      "shape": [
+        6,
+        512
+      ],
+      "off": 166032
+    },
+    "c_kv": {
+      "shape": [
+        6,
+        512
+      ],
+      "off": 169104
+    },
+    "Q": {
+      "shape": [
+        6,
+        64,
+        256
+      ],
+      "off": 172176
+    },
+    "KV": {
+      "shape": [
+        6,
+        64,
+        512
+      ],
+      "off": 270480
+    },
+    "iq": {
+      "shape": [
+        6,
+        32,
+        128
+      ],
+      "off": 467088
+    },
+    "ik_raw": {
+      "shape": [
+        6,
+        128
+      ],
+      "off": 491664
+    },
+    "ik": {
+      "shape": [
+        6,
+        128
+      ],
+      "off": 492432
+    },
+    "cg": {
+      "shape": [
+        6,
+        128
+      ],
+      "off": 493200
+    },
+    "pool_k": {
+      "shape": [
+        1,
+        128
+      ],
+      "off": 493968
+    },
+    "iscore": {
+      "shape": [
+        6,
+        32,
+        1
+      ],
+      "off": 494096
+    },
+    "iw": {
+      "shape": [
+        6,
+        32
+      ],
+      "off": 494288
+    },
+    "isum": {
+      "shape": [
+        6,
+        1
+      ],
+      "off": 494480
+    },
+    "topk": {
+      "shape": [
+        6,
+        2051
+      ],
+      "off": 494486
+    },
+    "mask": {
+      "shape": [
+        6,
+        6
+      ],
+      "off": 506792
+    },
+    "attn_w": {
+      "shape": [
+        64,
+        6,
+        6
+      ],
+      "off": 506828
+    },
+    "attn_o": {
+      "shape": [
+        6,
+        64,
+        256
+      ],
+      "off": 509132
+    },
+    "attn_out": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 607436
+    },
+    "residual_mid": {
+      "shape": [
+        6,
+        4,
+        4096
+      ],
+      "off": 632012
+    },
+    "coef_ffn": {
+      "shape": [
+        6,
+        24
+      ],
+      "off": 730316
+    },
+    "collapsed_ffn": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 730460
+    },
+    "x_ffn": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 755036
+    },
+    "logits": {
+      "shape": [
+        6,
+        288
+      ],
+      "off": 779612
+    },
+    "scores": {
+      "shape": [
+        6,
+        288
+      ],
+      "off": 781340
+    },
+    "choice": {
+      "shape": [
+        6,
+        288
+      ],
+      "off": 783068
+    },
+    "topk_i": {
+      "shape": [
+        6,
+        8
+      ],
+      "off": 784796
+    },
+    "topk_w": {
+      "shape": [
+        6,
+        8
+      ],
+      "off": 784844
+    },
+    "e_gu": {
+      "shape": [
+        6,
+        8,
+        4096
+      ],
+      "off": 784892
+    },
+    "e_h": {
+      "shape": [
+        6,
+        8,
+        2048
+      ],
+      "off": 981500
+    },
+    "e_raw": {
+      "shape": [
+        6,
+        8,
+        4096
+      ],
+      "off": 1079804
+    },
+    "e_out": {
+      "shape": [
+        6,
+        8,
+        4096
+      ],
+      "off": 1276412
+    },
+    "s_gate": {
+      "shape": [
+        6,
+        2048
+      ],
+      "off": 1473020
+    },
+    "s_up": {
+      "shape": [
+        6,
+        2048
+      ],
+      "off": 1485308
+    },
+    "s_h": {
+      "shape": [
+        6,
+        2048
+      ],
+      "off": 1497596
+    },
+    "s_out": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 1509884
+    },
+    "routed": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 1534460
+    },
+    "ffn_out": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 1559036
+    },
+    "residual_out": {
+      "shape": [
+        6,
+        4,
+        4096
+      ],
+      "off": 1583612
+    }
+  },
+  "floats": 1681916,
+  "note": "Continuous 45-layer teaching forward; layer input is previous layer output, all weights are invented."
+}

@@ -1,0 +1,100 @@
+.wiki-scene[data-kind="collective-communication"] .wiki-scene-layout {
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+.wiki-scene[data-kind="collective-communication"] .wiki-scene-canvas {
+  height: 800px;
+  background: radial-gradient(ellipse at 45% 30%, #f8f8f0, #eaf0e8);
+}
+.wiki-scene[data-kind="collective-communication"] .wiki-scene-explanation {
+  padding: 24px 22px;
+  background: #fafbf7;
+}
+.wiki-scene[data-kind="collective-communication"] .wiki-scene-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 18px 22px;
+}
+.wiki-collective-turns {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 22px 0;
+  gap: 10px;
+}
+.wiki-collective-turns button,
+.wiki-collective-rounds button {
+  padding: 7px 10px;
+  border: 1px solid #dce4d8;
+  background: #f2f6ed;
+  color: #37664f;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.wiki-collective-turns button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.wiki-collective-turns span {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.wiki-collective-rounds {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.wiki-collective-rounds button[aria-pressed="true"] {
+  background: #dcebdc;
+  border-color: #6c9a7b;
+}
+.wiki-scene[data-kind="collective-communication"] .wiki-scene-steps button {
+  flex: 0 1 auto;
+  padding: 10px 13px;
+  border: 1px solid #dce4d8;
+  border-radius: 5px;
+  font-size: 13px;
+}
+.wiki-scene[data-kind="collective-communication"] .wiki-scene-steps button[aria-pressed="true"] {
+  background: #e1eee4;
+  border-color: #7eab91;
+  color: #245d46;
+}
+.wiki-collective-transfer {
+  display: grid;
+  gap: 7px;
+  padding: 15px 0;
+  border-bottom: 1px solid #e0e7dc;
+  font-size: 13px;
+}
+.wiki-collective-transfer span,
+.wiki-collective-transfer small {
+  color: #627a6c;
+}
+.wiki-collective-transfer b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #285e48;
+}
+.wiki-scene[data-kind="collective-communication"] .wiki-scene-workbench[data-expanded] .wiki-scene-canvas {
+  height: calc(100vh - 230px);
+}
+@media (max-width: 1200px) {
+  .wiki-scene[data-kind="collective-communication"] .wiki-scene-layout {
+    grid-template-columns: 1fr;
+  }
+  .wiki-scene[data-kind="collective-communication"] .wiki-scene-explanation {
+    border-left: 0;
+    border-top: 1px solid #d8e2d6;
+  }
+}
+@media (max-width: 650px) {
+  .wiki-scene[data-kind="collective-communication"] .wiki-scene-canvas-viewport {
+    overflow-x: auto;
+  }
+  .wiki-scene[data-kind="collective-communication"] .wiki-scene-canvas {
+    min-width: 650px;
+  }
+}

@@ -1,0 +1,195 @@
+.component-map.attention-structure {
+  margin: 24px 0;
+  padding: 18px 0;
+  border-block: 1px solid var(--color-line);
+  border-inline: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.wiki-body .layer-part .attention-structure > figcaption {
+  text-align: left;
+  font-size: var(--text-compact);
+  margin-bottom: 16px;
+}
+.attention-model-route {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  color: var(--color-ink-muted);
+  font-size: var(--text-label);
+  line-height: 1.9;
+}
+.attention-model-route strong {
+  color: var(--color-token);
+  font-weight: 500;
+}
+.attention-structure svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 14px 0;
+  overflow: visible;
+}
+.attention-structure svg text {
+  font: 14px var(--font-ui);
+  text-anchor: middle;
+  fill: var(--color-ink);
+}
+.attention-structure svg .attention-small {
+  font-size: 12px;
+  fill: var(--color-ink-muted);
+}
+.attention-structure svg .attention-symbol {
+  font: 500 18px var(--font-mono);
+}
+.attention-structure svg .attention-parameter {
+  fill: color-mix(in srgb, var(--color-matrix-parameter) 45%, var(--color-ink));
+  font-size: 13px;
+}
+.attention-box {
+  fill: var(--color-surface);
+  stroke: var(--color-line-strong);
+}
+.attention-focus[data-active="true"] .attention-box {
+  fill: color-mix(in srgb, var(--color-matrix-output) 12%, var(--color-surface));
+  stroke: var(--color-matrix-output);
+}
+.attention-connections path,
+.attention-exit {
+  fill: none;
+  stroke: var(--color-ink-muted);
+  stroke-width: 1.2;
+  marker-end: url(#attention-structure-arrow);
+}
+.attention-structure marker path {
+  fill: none;
+  stroke: var(--color-ink-muted);
+  stroke-width: 1.2;
+}
+.attention-connections .attention-bypass {
+  stroke: var(--color-matrix-input);
+}
+.attention-add {
+  fill: var(--color-surface);
+  stroke: var(--color-matrix-output);
+}
+.attention-structure svg .attention-bypass-label {
+  fill: var(--color-ink-muted);
+  font-size: 12px;
+}
+.attention-model-tail {
+  font-size: var(--text-label);
+  line-height: 1.9;
+  text-align: right;
+}
+.wiki-body .attention-structure-note {
+  margin: 14px 0 0;
+  font-size: var(--text-label);
+  line-height: 1.9;
+  color: var(--color-ink-muted);
+}
+.attention-sources {
+  margin: 26px 0 20px;
+}
+.attention-source-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-size: var(--text-compact);
+}
+.attention-source-heading > span {
+  color: var(--color-ink-muted);
+  font-size: var(--text-label);
+}
+.attention-source-table {
+  display: grid;
+  grid-template-columns: 106px repeat(6, minmax(0, 1fr));
+  margin-top: 15px;
+  border-block: 1px solid var(--color-line);
+}
+.attention-source-axis,
+.attention-source-choice {
+  display: grid;
+  grid-template-rows: 40px 34px 40px 34px 34px;
+  align-items: center;
+}
+.attention-source-axis {
+  font-size: var(--text-caption);
+  color: var(--color-ink-muted);
+}
+.attention-source-choice {
+  position: relative;
+  padding: 0 3px;
+  text-align: center;
+  border: 0;
+  border-left: 1px solid var(--color-line);
+  background: transparent;
+  color: var(--color-ink);
+  cursor: pointer;
+  min-width: 0;
+}
+.attention-source-choice strong {
+  font-size: var(--text-label);
+  font-weight: 500;
+}
+.attention-source-choice > span {
+  font: var(--text-caption) var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.attention-source-choice:hover:not(:disabled),
+.attention-source-choice[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--color-matrix-output) 13%, transparent);
+}
+.attention-source-choice:focus-visible {
+  outline: 2px solid var(--color-token);
+  outline-offset: 2px;
+  z-index: 1;
+}
+.attention-source-choice:disabled {
+  cursor: default;
+  color: var(--color-ink-muted);
+}
+.attention-source-proportion {
+  position: relative;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  color: var(--color-ink);
+}
+.attention-source-proportion i {
+  position: absolute;
+  height: 4px;
+  bottom: 4px;
+  left: 0;
+  background: var(--color-matrix-output);
+}
+.attention-source-product {
+  color: color-mix(in srgb, var(--color-matrix-output) 40%, var(--color-ink));
+}
+.wiki-body .attention-source-conclusion {
+  margin: 12px 0 0;
+  font-size: var(--text-label);
+  line-height: 1.9;
+  color: var(--color-ink-muted);
+}
+.attention-source-conclusion strong {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--color-ink);
+}
+@media (max-width: 600px) {
+  .attention-structure svg {
+    min-width: 580px;
+  }
+  .attention-structure {
+    overflow-x: auto;
+  }
+  .attention-source-table {
+    grid-template-columns: 88px repeat(6, minmax(66px, 1fr));
+  }
+  .attention-sources {
+    overflow-x: auto;
+  }
+}

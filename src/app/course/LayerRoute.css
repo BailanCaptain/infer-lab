@@ -1,0 +1,309 @@
+.layer-map {
+  margin: 28px 0;
+  padding: 24px;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface-sunken) 24%, transparent);
+}
+.layer-model-context {
+  display: grid;
+  grid-template-columns: 1fr 18px 1.35fr 18px 1.4fr;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 22px;
+  border-bottom: 1px solid var(--color-line);
+  text-align: center;
+  font: var(--text-body) / 1.7 var(--font-sans);
+}
+.layer-model-context small {
+  font-size: var(--text-compact);
+  color: var(--color-ink-muted);
+}
+.layer-model-context strong {
+  padding: 10px 8px;
+  border: 1px solid var(--color-token);
+  border-radius: 5px;
+  font-weight: 500;
+  color: var(--color-token);
+}
+.layer-model-context i {
+  font-style: normal;
+  color: var(--color-ink-muted);
+}
+.layer-map > figcaption,
+.wiki-body .layer-map > figcaption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  position: static;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  margin: 24px 0 18px;
+  text-align: left;
+  font-size: 20px;
+}
+.layer-map-title {
+  font-weight: 550;
+}
+.layer-map-path {
+  font: var(--text-body) var(--font-mono);
+  color: var(--color-ink-muted);
+}
+.layer-map-legend {
+  display: flex;
+  justify-content: center;
+  gap: 36px;
+  font-size: var(--text-compact);
+  color: var(--color-ink-muted);
+}
+.layer-map-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 2px;
+  margin-right: 8px;
+  vertical-align: middle;
+  background: var(--color-matrix-input);
+}
+.layer-map-legend span + span::before {
+  background: var(--color-token);
+}
+.layer-route-graphic {
+  display: block;
+  width: 100%;
+  margin-top: 24px;
+  overflow: visible;
+}
+.layer-route-graphic text {
+  fill: var(--color-ink);
+  font: 16px var(--font-sans);
+}
+.layer-route-graphic a,
+.wiki-body .layer-route-graphic a {
+  cursor: pointer;
+  outline: none;
+  text-decoration: none;
+}
+.layer-route-node rect {
+  fill: var(--color-canvas);
+  stroke: var(--color-line-strong);
+  stroke-width: 1.2;
+}
+.layer-route-node text {
+  text-anchor: middle;
+  font-size: 18px;
+  font-weight: 500;
+}
+.layer-route-node .layer-route-small {
+  font: 13px var(--font-sans);
+  fill: var(--color-ink-muted);
+}
+.layer-route-node.is-state rect {
+  fill: color-mix(in srgb, var(--color-matrix-input) 18%, var(--color-canvas));
+  stroke: var(--color-matrix-input);
+}
+.layer-route-node.is-state text {
+  font: 500 23px var(--font-mono);
+}
+.layer-route-node.is-operation rect {
+  fill: color-mix(in srgb, var(--color-token-soft) 40%, var(--color-canvas));
+  stroke: color-mix(in srgb, var(--color-token) 50%, var(--color-line));
+}
+.layer-route-node.is-add circle {
+  fill: var(--color-token-soft);
+  stroke: var(--color-token);
+  stroke-width: 1.4;
+}
+.layer-route-node.is-add text {
+  font: 500 24px var(--font-mono);
+  fill: var(--color-token);
+}
+.layer-route-node[data-active="true"] rect,
+.layer-route-node[data-active="true"] circle,
+.layer-route-node:hover rect,
+.layer-route-node:focus-visible rect,
+.layer-route-node:hover circle,
+.layer-route-node:focus-visible circle {
+  fill: var(--color-accent-soft);
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+.layer-route-bypass-link[data-active="true"] text,
+.layer-route-bypass-link:hover text,
+.layer-route-bypass-link:focus-visible text {
+  fill: var(--color-accent);
+}
+.layer-route-graphic .layer-route-small {
+  font-size: 13px;
+  fill: var(--color-ink-muted);
+}
+.layer-route-graphic .layer-route-half {
+  font-size: 14px;
+  fill: var(--color-token);
+  font-weight: 500;
+}
+.layer-route-graphic .layer-route-intermediate {
+  font: 14px var(--font-sans);
+  fill: var(--color-ink-muted);
+}
+.layer-route-graphic .layer-route-delta {
+  fill: var(--color-token);
+  font-size: 14px;
+}
+.layer-route-graphic .layer-route-foot {
+  fill: var(--color-ink-muted);
+  font-size: 13px;
+}
+.layer-route-divider {
+  stroke: var(--color-line);
+  stroke-dasharray: 3 5;
+}
+.layer-route-preserved {
+  stroke: var(--color-matrix-input);
+  stroke-width: 2.5;
+}
+.layer-route-branch {
+  stroke: var(--color-token);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+.layer-route-junction {
+  fill: var(--color-token);
+}
+.layer-map-caption,
+.wiki-body .layer-map .layer-map-caption {
+  margin: 18px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-line);
+  font: var(--text-compact) / 1.85 var(--font-sans);
+  color: var(--color-ink-muted);
+}
+.course-compass {
+  position: sticky;
+  top: 8px;
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  max-width: 760px;
+  margin: 0 auto 22px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 7px;
+  background: var(--color-canvas);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--color-ink) 4%, transparent);
+}
+.course-compass-label {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 3px 12px;
+  font-size: 13px;
+}
+.course-compass-label strong {
+  color: var(--color-ink);
+  font-weight: 500;
+}
+.course-compass-label span {
+  color: var(--color-ink-muted);
+  font-size: 12px;
+}
+.course-compass button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  border: 0;
+  background: none;
+  font-size: var(--text-compact);
+  color: var(--color-token);
+  cursor: pointer;
+  padding: 4px;
+}
+.course-reader .wiki-body h2 {
+  scroll-margin-top: 88px;
+}
+.course-section-location {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding-left: 12px;
+  border-left: 2px solid var(--color-token);
+  color: var(--color-ink-muted);
+  font: var(--text-compact) / 1.8 var(--font-sans);
+}
+.course-section-location button {
+  border: 0;
+  background: none;
+  color: var(--color-token);
+  font: inherit;
+  cursor: pointer;
+}
+.course-structure-dialog {
+  width: min(840px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0 20px 20px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  overflow: auto;
+}
+.course-structure-dialog::backdrop {
+  background: color-mix(in srgb, var(--color-ink) 35%, transparent);
+}
+.course-structure-dialog header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  background: var(--color-canvas);
+  border-bottom: 1px solid var(--color-line);
+}
+.course-structure-dialog header > div {
+  display: grid;
+  gap: 5px;
+}
+.course-structure-dialog header strong {
+  font-size: 17px;
+  font-weight: 550;
+}
+.course-structure-dialog header span {
+  font-size: var(--text-compact);
+  color: var(--color-accent);
+}
+.course-structure-dialog header button {
+  padding: 7px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  cursor: pointer;
+}
+.course-structure-dialog .layer-map {
+  margin: 0;
+  padding: 18px 0 0;
+  border: 0;
+  background: transparent;
+}
+.course-structure-dialog .layer-model-context,
+.course-structure-dialog .layer-map > figcaption,
+.course-structure-dialog .layer-map .layer-map-caption {
+  display: none;
+}
+.course-structure-dialog .layer-route-graphic {
+  width: auto;
+  max-width: 100%;
+  height: min(660px, calc(100dvh - 180px));
+  margin: 12px auto 0;
+}

@@ -1,0 +1,105 @@
+/* Keep wiki typography; the chapter sample uses one measure for prose and inline scenes. */
+.course-chapter03 .wiki-article {
+  --wiki-measure: 760px;
+}
+.course-chapter03 .wiki-body > .layer-map {
+  margin-inline: 0;
+}
+.wiki-body .course-formula {
+  margin: 28px 0;
+  padding: 20px 24px;
+  border-block: 1px solid var(--color-line);
+}
+.wiki-body .course-formula > figcaption {
+  position: static;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  margin: 0 0 14px;
+  text-align: left;
+  font: 500 var(--text-body) var(--font-sans);
+  color: var(--color-ink-muted);
+}
+.wiki-body .course-formula pre {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  white-space: pre-wrap;
+  font: var(--text-body) / 2 var(--font-mono);
+}
+.wiki-body .course-formula code {
+  padding: 0;
+  background: none;
+  font: inherit;
+}
+.course-rms-section {
+  max-width: 760px;
+  margin: 56px auto 28px;
+}
+.course-rms-section .matrix-part {
+  margin-block: 30px 34px;
+}
+.course-rms-section .course-visual-copy p {
+  margin-block: 20px;
+}
+.course-visual-section {
+  display: grid;
+  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+  grid-template-rows: min-content 1fr;
+  column-gap: 48px;
+  margin-block: 56px 28px;
+  align-items: start;
+}
+.course-visual-intro,
+.course-visual-copy {
+  grid-column: 1;
+}
+.course-visual-section .matrix-part {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  position: sticky;
+  top: 24px;
+}
+.wiki-body .course-visual-intro h2 {
+  margin-top: 0;
+  margin-bottom: 18px;
+}
+@media (max-width: 1250px) {
+  .course-visual-section {
+    display: block;
+  }
+  .course-visual-section .matrix-part {
+    position: static;
+    margin-block: 24px 32px;
+  }
+}
+.course-reader-check {
+  margin-bottom: 14px;
+  padding-block: 12px;
+  border-bottom: 1px solid var(--color-line);
+}
+.course-reader-check summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.course-reader-check[open] summary {
+  margin-bottom: 12px;
+}
+@media (min-width: 801px) and (max-width: 1024px) {
+  .course-reader .course-sidebar {
+    position: static;
+    height: auto;
+    min-height: 0;
+    padding: 10px 16px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .course-reader .site-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding-bottom: 10px;
+  }
+  .course-reader .course-directory {
+    max-height: 260px;
+  }
+}

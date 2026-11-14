@@ -16,10 +16,11 @@ test.describe("知识库阅读页", () => {
     await page.goto("/#/wiki");
     const nav = page.getByTestId("wiki-toc");
     await expect(nav).toBeVisible();
-    const items = nav.getByRole("link");
+    const items = nav.locator("a"); // 主题可折叠，完整目录仍在同一份导航里。
     expect(await items.count()).toBeGreaterThanOrEqual(11);
 
     // 锚定开头：目录里现在还有闭环长出来的「问答记录：Block Table…」，子串匹配会命中两条
+    await nav.getByRole("searchbox").fill("block table");
     await nav.getByRole("link", { name: /^Block Table/ }).click();
     await expect(page).toHaveURL(/#\/wiki\/block-table$/);
 
@@ -101,6 +102,7 @@ test.describe("知识库阅读页", () => {
       "来源与更新记录",
     ]);
     await expect(toc).not.toContainText("未归章");
+    await page.getByTestId("toc-models").locator("summary").click();
     await expect(page.getByTestId("toc-models").getByRole("link", { name: /^GQA/ })).toBeVisible();
     await expect(page.getByTestId("toc-models").getByRole("link", { name: /^MLA/ })).toBeVisible();
     await expect(page.getByTestId("toc-hardware").getByRole("link", { name: /^(GQA|MLA)/ })).toHaveCount(0);
@@ -170,6 +172,7 @@ test.describe("知识库阅读页", () => {
     for (const id of ids) {
       await page.goto(`/#/wiki/${id}`);
       const body = page.getByTestId("wiki-body");
+      await expect(body).toBeVisible();
       bolds += await body.locator("strong").count();
       expect((await body.innerText()).match(/\*\*/g)).toBeNull();
     }
@@ -266,9 +269,7 @@ test.describe("知识库阅读页", () => {
   // 图曾用满整幅阅读栏（980px），正文散文只有 72ch（约 636px），并排看图明显比正文宽一截
   // 正文栏原来只有 980px，两边空着一大片，而手写 spec 的画布最宽 1000px；
   // 一度改成把图缩到正文宽，图里的字掉到 8.7px。现在反过来：图保持 1:1，正文栏加宽到放得下图。
-  const COLUMN_MIN = 1034; // 1000 画布 + 2×16 内边距 + 2×1 边框
-
-  test("桌面上图按 1:1 渲染不缩小，正文栏宽到放得下它们，图、表、代码块与正文同宽", async ({ page }) => {
+  test("阅读栏限宽，图保留原字号，图、表、算式和正文对齐且不溢出", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     for (const id of ["one-request", "glm-5-3-flash", "request-call-chain", "glm-5-3-flash-two-node"]) {
       await page.goto(`/#/wiki/${id}`);
@@ -316,7 +317,8 @@ test.describe("知识库阅读页", () => {
       expect(report.scaled, `${id} 这些图被缩小了`).toEqual([]);
       expect(report.spill, `${id} 这些图既放不下又不能横滚`).toEqual([]);
       expect(report.misaligned, `${id} 这些块没和正文对齐（栏宽 ${report.column}）`).toEqual([]);
-      expect(report.column, `${id} 正文栏太窄，放不下 1000 宽的画布`).toBeGreaterThanOrEqual(COLUMN_MIN);
+      expect(report.column, `${id} 正文栏应适合连续阅读`).toBeGreaterThanOrEqual(720);
+      expect(report.column, `${id} 正文栏不超过 --wiki-measure（最宽 1200）`).toBeLessThanOrEqual(1200);
     }
     // 加宽之后页面本身仍不横滚
     const [clientW, scrollW] = await page.evaluate(() => [
@@ -326,7 +328,7 @@ test.describe("知识库阅读页", () => {
     expect(scrollW).toBeLessThanOrEqual(clientW);
   });
 
-  test("1280 宽度下正文栏仍然放得下 900 的画布，且页面不横滚", async ({ page }) => {
+  test("1280 宽度下图保留原字号，超宽图只在图内滚动，页面不横滚", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/#/wiki/one-request");
     const body = page.getByTestId("wiki-body");
@@ -336,6 +338,7 @@ test.describe("知识库阅读页", () => {
       const svg = el.querySelector("figure.wiki-diagram svg") as SVGSVGElement;
       return {
         canvas: canvas.clientWidth,
+        overflow: getComputedStyle(canvas).overflowX,
         drawn: Math.round(svg.getBoundingClientRect().width),
         viewBox: svg.viewBox.baseVal.width,
         docW: document.documentElement.clientWidth,
@@ -345,7 +348,8 @@ test.describe("知识库阅读页", () => {
       };
     });
     expect(m.drawn).toBe(m.viewBox);
-    expect(m.canvas).toBeGreaterThanOrEqual(900);
+    expect(m.canvas).toBeGreaterThanOrEqual(680);
+    if (m.drawn > m.canvas) expect(m.overflow).toBe("auto");
     expect(m.docScroll).toBeLessThanOrEqual(m.docW);
     // 正文区从目录右边缘之后开始，不和目录重叠
     expect(m.mainLeft).toBeGreaterThanOrEqual(m.tocRight);
@@ -376,6 +380,7 @@ test.describe("知识库阅读页", () => {
 
     // 2) 左侧目录里的链接同样落到顶部
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.getByTestId("wiki-toc").getByRole("searchbox").fill("one-request");
     await page
       .getByTestId("wiki-toc")
       .getByRole("link", { name: /^一条请求/ })
@@ -637,7 +642,7 @@ test.describe("问答抽屉", () => {
             {
               kind: "offline-claim",
               message:
-                "服务端本轮已提供联网工具（WebFetch / WebSearch），模型没有用就说无法联网；这条回答没有经过联网核对。",
+                "服务端本轮已启用联网工具，但未记录到联网调用。回答中“工具不可用”的说法尚未核实，外部结论尚未完成联网核对。",
             },
           ],
           ["done", {}],
@@ -652,7 +657,7 @@ test.describe("问答抽屉", () => {
     await expect(page.getByTestId("chat-uncited")).toHaveCount(0);
     // 2026-09-23：读者要看得到这一轮有没有联网工具，以及模型说「联不了网」却没用工具的情况
     await expect(page.getByTestId("chat-online")).toContainText("本轮可联网");
-    await expect(page.getByTestId("chat-tool-notice")).toContainText("已提供联网工具");
+    await expect(page.getByTestId("chat-tool-notice")).toContainText("未记录到联网调用");
     // F001 AC7：不报警，但要标成未收录，不能看起来像知识库结论
     await expect(page.getByTestId("chat-uncovered")).toContainText("未收录");
     await page.screenshot({ path: info.outputPath("honest-abstention-mobile.png"), fullPage: true });
@@ -741,6 +746,7 @@ test.describe("问答抽屉", () => {
 
     const found = page.getByTestId("chat-trace");
     await expect(found).toContainText("GitHub 上的相关讨论");
+    await found.locator("summary").click();
     await expect(found).toContainText("不是已确认的修复");
     await expect(found.getByRole("link", { name: /vllm-ascend issue #15815/ })).toHaveAttribute(
       "href",
@@ -807,7 +813,8 @@ test.describe("问答抽屉", () => {
 
     const log = page.getByTestId("chat-log");
     await expect(log).toContainText("KV Cache 缓存每层的 K 与 V");
-    await expect(log).toContainText("正在读：kv-cache.md");
+    await log.locator(".wiki-chat-meta summary").click();
+    await expect(log).toContainText("已读取：kv-cache.md");
 
     const link = log.locator('a[href="#/wiki/block-table"]');
     await expect(link).toBeVisible();
@@ -1048,12 +1055,17 @@ test.describe("P3 最终验收：桌面", () => {
         expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width);
       }
       expect(seen).toBeGreaterThan(0);
-      // 宽屏的右侧本页目录也不被按钮压住
+      // 右侧本页目录（宽度够时常驻）也不被按钮压住：按钮在目录底边下方，两块不相交
       const side = page.getByTestId("pagetoc-side");
       if (await side.isVisible()) {
-        const s = await side.boundingBox();
-        const chat = await page.getByTestId("chat-open").boundingBox();
-        expect(chat?.x ?? 0).toBeGreaterThanOrEqual((s?.x ?? 0) + (s?.width ?? 0));
+        const s = (await side.boundingBox())!;
+        const chat = (await page.getByTestId("chat-open").boundingBox())!;
+        const apart =
+          chat.x >= s.x + s.width ||
+          chat.y >= s.y + s.height ||
+          chat.x + chat.width <= s.x ||
+          chat.y + chat.height <= s.y;
+        expect(apart, `目录 ${JSON.stringify(s)} 与按钮 ${JSON.stringify(chat)} 重叠`).toBe(true);
       }
       // 按钮缩成图标时名字还在，读屏和测试都按名字找得到
       await expect(page.getByRole("button", { name: "问知识库" })).toBeVisible();
@@ -1197,7 +1209,7 @@ test.describe("P4 最终验收：桌面", () => {
     }
   });
 
-  test("表格单元格末行不剩单个字；首列标签一行排完；表格不超出正文栏", async ({ page }) => {
+  test("表格单元格末行不剩单个字；首列标签一行排完；宽表只在容器内横滚", async ({ page }) => {
     for (const id of PAGES) {
       await open(page, id);
       const result = await page.evaluate(() => {
@@ -1231,14 +1243,23 @@ test.describe("P4 最终验收：桌面", () => {
               );
           }
         });
+        const bounds = body.getBoundingClientRect();
         const overflow = [...body.querySelectorAll<HTMLElement>(".wiki-table-scroll")]
-          .map((s, i) => ({ i: i + 1, over: s.scrollWidth - s.clientWidth }))
-          .filter((x) => x.over > 0)
-          .map((x) => `表 ${x.i} 超出 ${x.over}px`);
-        return { orphans, overflow };
+          .filter((s) => {
+            const rect = s.getBoundingClientRect();
+            return (
+              rect.left < bounds.left - 1 ||
+              rect.right > bounds.right + 1 ||
+              (s.scrollWidth > s.clientWidth && getComputedStyle(s).overflowX !== "auto")
+            );
+          })
+          .map((s) => s.textContent?.slice(0, 80));
+        const pageOverflow = document.documentElement.scrollWidth - document.documentElement.clientWidth;
+        return { orphans, overflow, pageOverflow };
       });
       expect(result.orphans, id).toEqual([]);
       expect(result.overflow, id).toEqual([]);
+      expect(result.pageOverflow, `${id} 页面横滚`).toBeLessThanOrEqual(0);
     }
     await open(page, "tensor-parallel");
     const label = page.locator("[data-testid=wiki-body] td:first-child", {

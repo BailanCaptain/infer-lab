@@ -1,0 +1,196 @@
+.component-explanation {
+  margin: 16px 0 20px;
+}
+.component-map {
+  margin: 0;
+  padding: 16px 20px;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface-sunken) 28%, transparent);
+}
+.component-context {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr 1fr;
+  gap: 18px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--color-line);
+}
+.component-context > div {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+.component-context small {
+  font-size: var(--text-compact);
+  color: var(--color-ink-muted);
+}
+.component-context span {
+  font: var(--text-body) / 1.7 var(--font-sans);
+  color: var(--color-ink);
+}
+.component-context-focus span,
+.component-context-focus small {
+  color: var(--color-token);
+}
+.component-context-focus {
+  border-left: 2px solid var(--color-token);
+  padding-left: 16px;
+}
+.component-map svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 12px;
+  overflow: visible;
+}
+.component-map text {
+  fill: var(--color-ink);
+  text-anchor: middle;
+  font: 15px var(--font-sans);
+}
+.component-map .component-step-title {
+  font-size: 16px;
+  font-weight: 500;
+}
+.component-map .component-symbol {
+  font: 500 20px var(--font-sans);
+}
+.component-map .component-dimension {
+  font: 15px var(--font-mono);
+  fill: var(--color-ink-muted);
+}
+.component-map .component-explain {
+  font-size: 13px;
+  fill: var(--color-ink-muted);
+}
+.component-vector rect {
+  fill: var(--color-matrix-output);
+}
+.component-vector.is-input rect {
+  fill: var(--color-matrix-input);
+}
+.component-vector.is-output rect {
+  fill: var(--color-token);
+}
+.component-vector rect[data-zero="true"] {
+  fill: var(--color-surface-sunken);
+  stroke: var(--color-line);
+  stroke-width: 0.65;
+}
+.component-operation path {
+  stroke: var(--color-line-strong);
+  stroke-width: 1.4;
+  fill: none;
+  stroke-linejoin: round;
+}
+.component-operation text {
+  font-size: 16px;
+}
+.component-operation[data-active="true"] path {
+  stroke: var(--color-token);
+  stroke-width: 1.8;
+}
+.component-operation[data-active="true"] text {
+  fill: var(--color-token);
+  font-weight: 600;
+}
+.component-collection {
+  stroke: var(--color-line-strong);
+  fill: none;
+}
+.component-reading-note {
+  border-top: 1px solid var(--color-line);
+  padding-top: 10px;
+}
+.wiki-body .component-reading-note p {
+  margin: 0;
+  font-size: var(--text-compact);
+  line-height: 1.8;
+  color: var(--color-ink-muted);
+}
+.wiki-body .component-calculation p {
+  margin: 12px 0 0;
+  font-size: var(--text-compact);
+  line-height: 1.8;
+  color: var(--color-ink-muted);
+}
+.component-calculation {
+  padding: 18px 0;
+  border-top: 1px solid var(--color-line);
+}
+.component-calculation-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.component-calculation-heading strong {
+  font-size: var(--text-body);
+  font-weight: 500;
+}
+.component-calculation-heading > span,
+.component-sums-label {
+  font-size: var(--text-compact);
+  color: var(--color-ink-muted);
+}
+.component-sums-label {
+  margin: 14px 0 8px;
+}
+.component-sums {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+}
+.component-sums > div {
+  padding: 7px 2px;
+  text-align: center;
+  background: color-mix(in srgb, var(--color-matrix-output) 14%, transparent);
+}
+.component-sums small {
+  display: block;
+  font: var(--text-caption) var(--font-mono);
+  color: var(--color-ink-muted);
+  margin-bottom: 6px;
+}
+.component-sums span {
+  display: block;
+  font: var(--text-compact) var(--font-mono);
+}
+.component-result {
+  margin-top: 12px;
+  text-align: right;
+  font: var(--text-compact) var(--font-mono);
+}
+.component-result strong,
+.component-equation strong {
+  color: var(--color-token);
+}
+.component-equation {
+  margin: 14px 0;
+  font: var(--text-compact) / 2 var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.component-loading {
+  min-height: 130px;
+}
+.component-contributions {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.component-contributions > div {
+  display: grid;
+  gap: 5px;
+  border-top: 2px solid var(--color-line-strong);
+  padding-top: 8px;
+  text-align: center;
+  font: var(--text-compact) / 1.6 var(--font-mono);
+}
+.component-contributions small {
+  color: var(--color-ink-muted);
+  font: var(--text-compact) var(--font-sans);
+}
+.component-contributions strong {
+  color: var(--color-token);
+  font-weight: 500;
+}

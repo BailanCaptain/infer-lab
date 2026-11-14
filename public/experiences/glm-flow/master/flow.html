@@ -1,0 +1,113 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>GLM 单层结构</title>
+<script type="importmap">{"imports":{"three":"../../vendor/build/three.module.js","three/addons/":"../../vendor/examples/jsm/"}}</script>
+<style>
+html,body{margin:0;background:#f8f5ee;font-family:var(--journey-font-sans);color:#2b2823;overflow:hidden}
+#stage{position:relative;overflow:hidden}
+canvas{position:absolute;inset:0}
+.l{position:absolute;white-space:nowrap;font-size:12.5px;pointer-events:none;text-shadow:0 0 4px #f8f5ee,0 0 4px #f8f5ee,0 0 4px #f8f5ee}
+.l.c{transform:translate(-50%,-50%)}.l.b{transform:translate(-50%,0)}.l.t{transform:translate(-50%,-100%)}.l.r{transform:translate(0,-50%)}.l.rr{transform:translate(-100%,-50%)}
+.l.tl{transform:translate(0,-100%)}
+.l b{font-weight:700}.l i{font-style:normal;color:#6b665c;font-size:11.5px}
+.l.big{font-size:17px;font-weight:800}
+#legend{position:absolute;left:0;right:0;bottom:0;font-size:12.5px;line-height:1.6;background:#f8f5eef2;padding:6px 18px 7px;border-top:1px solid #ddd5c6}
+#legend h1{display:inline;font-size:13px;margin:0 8px 0 0}
+#legend .k{display:inline-block;width:11px;height:11px;border-radius:2px;margin:0 4px -1px 8px}
+#views{position:absolute;right:16px;top:14px;font-size:13px;text-align:right}
+#views div{margin-bottom:7px}
+#title{position:absolute;left:12px;top:8px;font-size:20px;font-weight:800;max-width:calc(100% - 600px);background:#f8f5eeeb;padding:6px 10px 7px;border-radius:6px}#title i{display:block;font-style:normal;font-size:13.5px;font-weight:400;color:#4a463f;margin-top:3px;white-space:normal}
+#views a{display:inline-block;margin-left:6px;padding:3px 10px;border:1px solid #b9b2a3;border-radius:12px;color:#4a463f;text-decoration:none;background:#f8f5ee}
+#views a.on{background:#2b2823;color:#f8f5ee;border-color:#2b2823}
+</style><link rel="stylesheet" href="../../typography.css"><link rel="stylesheet" href="../../reader-theme.css"><script>if(new URLSearchParams(location.search).get("site")==="1"||window.frameElement?.classList.contains("experience-frame"))document.documentElement.dataset.site="true";</script></head><body><div id="stage"></div>
+<script type="module">
+// The master (since 2026-09-24): a layer laid out as bbycroft.net/llm lays out GPT — flow-layout.js places the blocks and the
+// arrows, flow-look.js draws them (the approved matrix look), flow-colors.js holds the colours, flow-tune.js lets the
+// user tune them. ?layer= picks the layer (all three kinds: L00 KDA + dense, L03 MLA + MoE, L04 KDA + MoE; any of the
+// 45 works).
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {layerSpec} from './truth-spec.js';
+import {layoutFlow,toWorld,ptWorld,HEAD_GAP} from './flow-layout.js';
+import {makeFlowLook} from './flow-look.js';
+import {PAGE,NAMES,DEFAULT_PALETTE,arrowColor} from './flow-colors.js';
+
+import {makeView} from './truth-view.js';
+
+const Q=new URLSearchParams(location.search),VIEW=Q.get('view')||'layer',PAL=DEFAULT_PALETTE,W=+(Q.get('w')||innerWidth),H=+(Q.get('h')||innerHeight),LEGEND=true;
+const host=document.getElementById('stage');host.style.width=W+'px';host.style.height=H+'px';
+const cfg=(await (await fetch('../reference/official-config.json')).json()).text_config;
+const LI=+(Q.get('layer')||0),T=6,spec=layerSpec(cfg,T,LI),HEADS='z',SLABS='gap',GAP=SLABS==='gap'?HEAD_GAP:0,L=layoutFlow(spec,{heads:HEADS,gap:GAP}),D=spec.dims;
+const WB=L.blocks.map(toWorld),B=Object.fromEntries(WB.map(b=>[b.id,b])),LN='L'+String(LI).padStart(2,'0');
+const KIND={kda:'KDA 线性注意力',mla:'稀疏注意力（MLA + 索引器）'}[spec.attnKind]+' + '+{dense:'稠密前馈',moe:'MoE 前馈'}[spec.ffnKind];
+const SAME=cfg.layer_types.map((t,i)=>[t,cfg.mlp_layer_types[i],i]).filter(([t,m])=>t===cfg.layer_types[LI]&&m===cfg.mlp_layer_types[LI]).map(([,,i])=>i);
+
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5,Math.sqrt(2500000/(W*H))));renderer.setSize(W,H);host.prepend(renderer.domElement);
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(22,W/H,.5,12000),controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=false;
+const {V,label,labels,place,fit,settle,title}=makeView({host,W,H,camera,controls}),look=makeFlowLook({px:renderer.getPixelRatio(),pal:PAL,minPx:3,viewH:H,slabs:SLABS,alt:false,fine:16,hlines:true,fineWords:true,flat:false});   // no block thinner than 3 px on the screen
+for(const b of WB)look.addBlock(scene,b);
+// arrows: in the colour of the component they come from (its full colour, a quarter of the way to the page), so a weight's
+// arrow and its result's arrows are one colour (bbycroft: weights' arrows blue, data's green)
+const ARROWS=[];
+const midZ=a=>-Math.min(...[B[a.from],B[a.to]].filter(Boolean).map(b=>b.z1-b.z0))/2;   // the middle of the depth both ends share
+for(const a of L.arrows){const src=B[a.from];ARROWS.push({comp:src.comp,m:look.addArrow(scene,a.pts.map(ptWorld),{color:arrowColor(look.palette[src.comp][0]),w:a.w,head:a.head,z:midZ(a)})})}
+
+// ---- camera: the whole layer, a half, or the projection group, seen from the front, a little from the right and above
+const box=ids=>{const bs=ids.filter(i=>B[i]).map(i=>B[i]);return {x0:Math.min(...bs.map(b=>b.x0)),x1:Math.max(...bs.map(b=>b.x1)),y0:Math.min(...bs.map(b=>b.y0)),y1:Math.max(...bs.map(b=>b.y1)),z0:Math.min(...bs.map(b=>b.z0)),z1:0}};
+const half=h=>WB.filter(b=>spec.steps.some(s=>s.half===h&&[...s.writes,...s.params].includes(b.id))).map(b=>b.id);
+const all=box(WB.map(b=>b.id)),ATTN=half('attn').concat(['residual_in','residual_mid']),FFN=half('ffn').concat(['residual_out']);
+const GROUP=WB.filter(b=>b.grp).map(b=>b.id).concat(['x_attn'],spec.attnKind==='kda'?['core_out','state','o_normed']:[]);
+const dir=V(.5,.42,1);
+const SUB={
+ kda:'x_attn 同时进 6 个投影（一组）：每一行 权重 → 结果 → 自己的小步 → 线上的结果；KDA 从里侧那条道收 Q K V g β 五样；输出门走外侧那条道，到门控归一化',
+ mla:'x_attn 同时进 5 个投影（一组）：K V、Q 各先压小（512 / 1536）再归一化，再展开到 64 个头；索引器给前面的词打分、挑词，做成遮罩；Q·K → 注意力权重 → 乘 V → W_o。右边四条道从里到外：压缩 K → 打分、每头权重 → 总分、K|V 和遮罩 → 注意力权重、K|V → 注意力输出',
+ dense:'和 bbycroft 的 MLP 一样：隐藏层 12288 横着放在权重下面；W_gate / W_up 和 RMSNorm 的输出一样高（4096）、都读它（一根箭头代表这一排），W_down 和隐藏层一样宽、和输出一样高',
+ moe:'读 RMSNorm 输出的四个权重排一排、和它一样高、都读它（一根箭头代表这一排）：共享专家的 up、gate，288 个专家的 gate|up（往后叠成一摞），路由。路由打分 → 加偏置挑 8 个专家；8 个权重用不加偏置的分数算 → 每个词只进它挑中的 8 个专家（8 份往后叠）→ down → 乘权重、8 份相加 → 加上共享专家'};
+const VIEWS={layer:[all,`${LN} 一整层 · ${KIND}`,`右边一根竖的是 4 路残差（主干）：上半层从它出来、往左、往下算，结果回到它上面；下半层一样。结果都在主干左边那一条竖线上；权重在结果左边、一样高，箭头从左往右。分头的块每个头是一片横着的板，往后叠。和这层一样的有 ${SAME.length} 层`],
+ attn:[box(ATTN),'注意力这一半',SUB[spec.attnKind]],
+ group:[box(GROUP),'投影这一组 · 头往后叠','每个头一片横着的板，往后叠；权重的第 h 片正对结果的第 h 片（一样高、一样深）'],
+ ffn:[box(FFN),'前馈这一半',SUB[spec.ffnKind]]};
+const LIST={attn:ATTN,group:GROUP,ffn:FFN}[VIEW],SHOWN=LIST?new Set(LIST):null;
+// ---- names: a small tag over each block's top-left corner (as bbycroft's), the spine's names to its right, a row's name
+// left of its weight (a view of part of the layer names only its own blocks, so the rest of the layer carries no names)
+const named=id=>B[id]&&(!SHOWN||SHOWN.has(id));
+const sh=id=>`<i>[${B[id].t.shape.join(', ')}]</i>`;
+const tag=(id,html,dx=0)=>{if(!named(id))return;const b=B[id];return label(html,V(b.x0+dx,b.y1+.8,0),'tl',true)};
+const right=(id,html,dx=1.4)=>{if(!named(id))return;const b=B[id];return label(html,V(b.x1+dx,(b.y0+b.y1)/2,0),'r',true)};
+const leftT=(id,html,dx=1.4)=>{if(!named(id))return;const b=B[id];return label(html,V(b.x0-dx,(b.y0+b.y1)/2,0),'rr',true)};
+right('residual_in','<b>本层输入</b><br><i>[6, 4 路, 4096]</i>');right('residual_mid','<b>写回 4 路</b><br><i>也读混合系数里的 post、comb</i>');right('residual_out','<b>本层输出 · 写回 4 路</b><br><i>[6, 4 路, 4096] · 也读 post、comb</i>');
+for(const [id,n] of [['collapsed_attn','合成 1 路'],['x_attn','RMSNorm'],['attn_out','<b>注意力输出</b> <i>[6, 4096]</i>'],['collapsed_ffn','合成 1 路'],['x_ffn','RMSNorm'],['ffn_out','<b>前馈输出</b>']])tag(id,n);
+leftT('base_attn','<i>fn：4 路 → 24 个混合系数</i>',1);leftT('base_ffn','<i>fn：4 路 → 24 个混合系数</i>',1);
+// KDA
+for(const [id,n] of [['W_g_a','<b>输出门</b> <i>W_g_a → 128 → W_g_b →</i>'],['W_q','<b>Q</b> <i>W_q → Q → 短卷积 →</i>'],['W_k','<b>K</b> <i>W_k → K → 短卷积 →</i>'],['W_v','<b>V</b> <i>W_v → V → 短卷积 →</i>'],['W_f_a','<b>衰减门</b> <i>W_f_a → 128 → W_f_b →</i>'],['W_b','<b>β</b> <i>W_b →</i>']])leftT(id,n);
+for(const [id,n] of [['core_out','<b>KDA 输出</b>'],['o_normed','门控归一化']])tag(id,n,2);
+leftT('state','<i>记忆 S：K V g β 逐词写进去，读出时乘 q</i>');if(named('Q_conv'))label(HEADS==='z'?(SLABS==='elide'?'<i>64 个头：画了第 1、2、3 和第 64 个，中间 60 个省略</i>':'<i>64 个头，每头一片，往后叠</i>'):'<i>64 个头，每头一条</i>',V(B.Q_conv.x1-2,B.Q_conv.y1+.8,B.Q_conv.z0),'tl',true);
+// elide: a ⋯ in the gap of every head stack that has its own row name (the data blocks of the projections), on its top face
+for(const g of look.elided)if(named(g.b.id)&&/^(Q|K|V|Q_conv|K_conv|V_conv|KV|g|gate)$/.test(g.b.id))label('⋯',V((g.b.x0+g.b.x1)/2,g.b.y1+.6,(g.from+g.to)/2),'c',true);
+// MLA
+if(spec.attnKind==='mla')for(const [id,n] of [['W_kv_a','<b>K V</b> <i>W_kv_a → 512 → γ → W_kv_b →</i>'],['W_iw','<b>索引器 · 每头权重</b> <i>W_iw → 32</i>'],['W_cg','<b>压缩门</b> <i>W_cg → 128 ↘</i>'],['W_ik','<b>索引器 K</b> <i>W_ik → LayerNorm → ape →</i>'],['W_q_a','<b>Q</b> <i>W_q_a → 1536 → γ ↓</i>']])leftT(id,n);
+if(spec.attnKind==='mla')for(const [id,n] of [['KV','<b>K | V</b> <i>64 头 × (256 | 256)</i>'],['pool_k','每 4 个词压成 1 个 K'],['iq','<b>索引器 Q</b> <i>32 头 × 128</i>'],['iscore','每头给每组打分'],['isum','按每头权重加成总分'],['topk','<b>挑中的词</b> <i>最多 2048 + 3 个编号</i>'],['mask','<b>遮罩</b> <i>能看见哪些词</i>'],['Q','<b>Q</b> <i>64 头 × 256</i>'],['attn_w','<b>注意力权重</b> <i>64 头，每头 6 × 6</i>'],['attn_o','乘 V：每头 256']])tag(id,n,2);
+// W_o (both kinds of attention)
+leftT('W_o',`<b>W_o</b> ${sh('W_o')}`);
+// dense
+tag('W_up','<b>W_up</b> <i>[12288, 4096]</i>');tag('W_gate','<b>W_gate</b> <i>[12288, 4096]</i>');tag('up_ffn','up <i>[6, 12288]</i>');tag('gate_ffn','gate <i>[6, 12288]</i>');tag('h_ffn','SiLU(gate) × up');leftT('W_down','<b>W_down</b><br><i>[4096, 12288]</i>');
+// MoE
+tag('W_gu','<b>288 个专家的 gate | up</b> <i>每个 [4096, 4096]，往后叠</i>');tag('W_s_up','<b>共享专家</b> <i>up | gate</i>');tag('e_gu','每个词 8 份：它挑中的 8 个专家');tag('e_h','SiLU(gate) × up');
+leftT('W_dn','<b>288 个专家的 down</b><br><i>每个 [4096, 2048]</i>');leftT('W_s_down','<b>共享专家 down</b><br><i>[4096, 2048]</i>');tag('s_h','SiLU × up');
+tag('e_out','<b>× 8 个权重</b>',2);tag('routed','8 份相加',2);tag('s_out','共享专家输出',2);
+if(named('logits'))label('<b>路由</b> <i>288 个分数 → 挑 8 个</i>',V(B.logits.x1+1.4,(B.logits.y0+B.logits.y1)/2,0),'r',true);
+
+const [fbox,tt,sub]=VIEWS[VIEW]||VIEWS.layer;title(tt,sub);fit(fbox,dir,.86,[0,0]);
+const present=[...new Set(WB.map(b=>b.comp))];
+if(LEGEND){const lg=document.createElement('div');lg.id='legend';lg.innerHTML=`一个词一列 · 张量按真实尺寸绘制 · 结果与权重使用同组颜色<br>${present.map(k=>`<span class="k" style="background:${look.palette[k][0]}"></span>${NAMES[k]||k}`).join('')}`;host.append(lg)}
+{const v=document.createElement('div');v.id='views';const q=o=>'?'+new URLSearchParams({...Object.fromEntries(Q),...o});
+ v.innerHTML=`<div>层：${[[0,'L00 KDA + 稠密'],[4,'L04 KDA + MoE'],[3,'L03 MLA + MoE']].map(([k,n])=>`<a class="${LI===k?'on':''}" href="${q({layer:k,view:'layer'})}">${n}</a>`).join('')}</div>`
+  +`<div>${[['layer','整层'],['attn','注意力'],['group','投影一组'],['ffn','前馈']].map(([k,n])=>`<a class="${VIEW===k?'on':''}" href="${q({view:k})}">${n}</a>`).join('')}</div>`
+  +`<div><a href="arch.html">2D 架构图</a><a href="model.html">整个模型</a></div>`;host.append(v)}
+
+settle();
+let frameRequest=0;
+function frame(){if(!frameRequest)frameRequest=requestAnimationFrame(()=>{frameRequest=0;renderFrame()})}
+function renderFrame(){renderer.render(scene,camera);place()}
+controls.addEventListener('change',frame);frame();
+
+window.__truth={spec,layout:L,camera,controls,frame,ready:true};
+</script></body></html>

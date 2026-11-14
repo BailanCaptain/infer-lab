@@ -1,0 +1,561 @@
+{
+  "ids": [
+    105087,
+    100325,
+    3837,
+    121267,
+    98401,
+    103349
+  ],
+  "weights": {
+    "tensors": {
+      "fn_attn": {
+        "shape": [
+          24,
+          16384
+        ],
+        "scale": 0.013532,
+        "seedName": "L04:fn_attn"
+      },
+      "base_attn": {
+        "shape": [
+          24
+        ],
+        "scale": 0.5,
+        "seedName": "L04:base_attn"
+      },
+      "scale_attn": {
+        "shape": [
+          3
+        ],
+        "scale": 0.3,
+        "add": 1.0,
+        "seedName": "L04:scale_attn"
+      },
+      "gamma_attn": {
+        "shape": [
+          4096
+        ],
+        "scale": 0.2,
+        "add": 1.0,
+        "seedName": "L04:gamma_attn"
+      },
+      "W_q": {
+        "shape": [
+          8192,
+          4096
+        ],
+        "scale": 0.027063,
+        "seedName": "L04:W_q"
+      },
+      "W_k": {
+        "shape": [
+          8192,
+          4096
+        ],
+        "scale": 0.027063,
+        "seedName": "L04:W_k"
+      },
+      "W_v": {
+        "shape": [
+          8192,
+          4096
+        ],
+        "scale": 0.027063,
+        "seedName": "L04:W_v"
+      },
+      "W_f_a": {
+        "shape": [
+          128,
+          4096
+        ],
+        "scale": 0.027063,
+        "seedName": "L04:W_f_a"
+      },
+      "W_b": {
+        "shape": [
+          64,
+          4096
+        ],
+        "scale": 0.027063,
+        "seedName": "L04:W_b"
+      },
+      "W_g_a": {
+        "shape": [
+          128,
+          4096
+        ],
+        "scale": 0.027063,
+        "seedName": "L04:W_g_a"
+      },
+      "conv_q": {
+        "shape": [
+          8192,
+          1,
+          4
+        ],
+        "scale": 0.8660254037844386,
+        "add": 0,
+        "seedName": "L04:conv_q"
+      },
+      "conv_k": {
+        "shape": [
+          8192,
+          1,
+          4
+        ],
+        "scale": 0.8660254037844386,
+        "add": 0,
+        "seedName": "L04:conv_k"
+      },
+      "conv_v": {
+        "shape": [
+          8192,
+          1,
+          4
+        ],
+        "scale": 0.8660254037844386,
+        "add": 0,
+        "seedName": "L04:conv_v"
+      },
+      "W_f_b": {
+        "shape": [
+          8192,
+          128
+        ],
+        "scale": 0.153093,
+        "seedName": "L04:W_f_b"
+      },
+      "dt_bias": {
+        "shape": [
+          8192
+        ],
+        "scale": 0.5,
+        "add": -3.0,
+        "note": "below 0, so that the memory keeps most of itself from word to word, as a trained model's does",
+        "seedName": "L04:dt_bias"
+      },
+      "A_log": {
+        "shape": [
+          64
+        ],
+        "scale": 1.0,
+        "seedName": "L04:A_log"
+      },
+      "W_g_b": {
+        "shape": [
+          8192,
+          128
+        ],
+        "scale": 0.153093,
+        "seedName": "L04:W_g_b"
+      },
+      "gamma_o": {
+        "shape": [
+          128
+        ],
+        "scale": 0.2,
+        "add": 1.0,
+        "seedName": "L04:gamma_o"
+      },
+      "W_o": {
+        "shape": [
+          4096,
+          8192
+        ],
+        "scale": 0.019137,
+        "seedName": "L04:W_o"
+      },
+      "fn_ffn": {
+        "shape": [
+          24,
+          16384
+        ],
+        "scale": 0.013532,
+        "seedName": "L04:fn_ffn"
+      },
+      "base_ffn": {
+        "shape": [
+          24
+        ],
+        "scale": 0.5,
+        "seedName": "L04:base_ffn"
+      },
+      "scale_ffn": {
+        "shape": [
+          3
+        ],
+        "scale": 0.3,
+        "add": 1.0,
+        "seedName": "L04:scale_ffn"
+      },
+      "gamma_ffn": {
+        "shape": [
+          4096
+        ],
+        "scale": 0.2,
+        "add": 1.0,
+        "seedName": "L04:gamma_ffn"
+      },
+      "W_router": {
+        "shape": [
+          288,
+          4096
+        ],
+        "scale": 0.027063293868263706,
+        "add": 0,
+        "seedName": "L04:W_router"
+      },
+      "e_bias": {
+        "shape": [
+          288
+        ],
+        "scale": 0.18,
+        "add": 0,
+        "seedName": "L04:e_bias"
+      },
+      "W_gu": {
+        "shape": [
+          288,
+          4096,
+          4096
+        ],
+        "scale": 0.027063293868263706,
+        "add": 0,
+        "seedName": "L04:W_gu",
+        "hashHigh": true
+      },
+      "W_dn": {
+        "shape": [
+          288,
+          4096,
+          2048
+        ],
+        "scale": 0.038273277230987154,
+        "add": 0,
+        "seedName": "L04:W_dn"
+      },
+      "W_s_gate": {
+        "shape": [
+          2048,
+          4096
+        ],
+        "scale": 0.027063293868263706,
+        "add": 0,
+        "seedName": "L04:W_s_gate"
+      },
+      "W_s_up": {
+        "shape": [
+          2048,
+          4096
+        ],
+        "scale": 0.027063293868263706,
+        "add": 0,
+        "seedName": "L04:W_s_up"
+      },
+      "W_s_down": {
+        "shape": [
+          4096,
+          2048
+        ],
+        "scale": 0.038273277230987154,
+        "add": 0,
+        "seedName": "L04:W_s_down"
+      },
+      "conv1d": {
+        "shape": [
+          24576,
+          4
+        ],
+        "scale": 0.5,
+        "note": "Q channels 0–8191, K 8192–16383, V 16384–24575; tap k reads the word k − 3 back from 3",
+        "seedName": "L04:conv1d"
+      }
+    }
+  },
+  "tensors": {
+    "residual_in": {
+      "shape": [
+        6,
+        4,
+        4096
+      ],
+      "off": 0
+    },
+    "coef_attn": {
+      "shape": [
+        6,
+        24
+      ],
+      "off": 98304
+    },
+    "collapsed_attn": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 98448
+    },
+    "x_attn": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 123024
+    },
+    "Q": {
+      "shape": [
+        6,
+        8192
+      ],
+      "off": 147600
+    },
+    "K": {
+      "shape": [
+        6,
+        8192
+      ],
+      "off": 196752
+    },
+    "V": {
+      "shape": [
+        6,
+        8192
+      ],
+      "off": 245904
+    },
+    "Q_conv": {
+      "shape": [
+        6,
+        8192
+      ],
+      "off": 295056
+    },
+    "K_conv": {
+      "shape": [
+        6,
+        8192
+      ],
+      "off": 344208
+    },
+    "V_conv": {
+      "shape": [
+        6,
+        8192
+      ],
+      "off": 393360
+    },
+    "f_a": {
+      "shape": [
+        6,
+        128
+      ],
+      "off": 442512
+    },
+    "g": {
+      "shape": [
+        6,
+        8192
+      ],
+      "off": 443280
+    },
+    "beta": {
+      "shape": [
+        6,
+        64
+      ],
+      "off": 492432
+    },
+    "g_a": {
+      "shape": [
+        6,
+        128
+      ],
+      "off": 492816
+    },
+    "gate": {
+      "shape": [
+        6,
+        8192
+      ],
+      "off": 493584
+    },
+    "state": {
+      "shape": [
+        64,
+        128,
+        128
+      ],
+      "off": 542736
+    },
+    "core_out": {
+      "shape": [
+        6,
+        8192
+      ],
+      "off": 1591312
+    },
+    "o_normed": {
+      "shape": [
+        6,
+        8192
+      ],
+      "off": 1640464
+    },
+    "attn_out": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 1689616
+    },
+    "residual_mid": {
+      "shape": [
+        6,
+        4,
+        4096
+      ],
+      "off": 1714192
+    },
+    "coef_ffn": {
+      "shape": [
+        6,
+        24
+      ],
+      "off": 1812496
+    },
+    "collapsed_ffn": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 1812640
+    },
+    "x_ffn": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 1837216
+    },
+    "logits": {
+      "shape": [
+        6,
+        288
+      ],
+      "off": 1861792
+    },
+    "scores": {
+      "shape": [
+        6,
+        288
+      ],
+      "off": 1863520
+    },
+    "choice": {
+      "shape": [
+        6,
+        288
+      ],
+      "off": 1865248
+    },
+    "topk_i": {
+      "shape": [
+        6,
+        8
+      ],
+      "off": 1866976
+    },
+    "topk_w": {
+      "shape": [
+        6,
+        8
+      ],
+      "off": 1867024
+    },
+    "e_gu": {
+      "shape": [
+        6,
+        8,
+        4096
+      ],
+      "off": 1867072
+    },
+    "e_h": {
+      "shape": [
+        6,
+        8,
+        2048
+      ],
+      "off": 2063680
+    },
+    "e_raw": {
+      "shape": [
+        6,
+        8,
+        4096
+      ],
+      "off": 2161984
+    },
+    "e_out": {
+      "shape": [
+        6,
+        8,
+        4096
+      ],
+      "off": 2358592
+    },
+    "s_gate": {
+      "shape": [
+        6,
+        2048
+      ],
+      "off": 2555200
+    },
+    "s_up": {
+      "shape": [
+        6,
+        2048
+      ],
+      "off": 2567488
+    },
+    "s_h": {
+      "shape": [
+        6,
+        2048
+      ],
+      "off": 2579776
+    },
+    "s_out": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 2592064
+    },
+    "routed": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 2616640
+    },
+    "ffn_out": {
+      "shape": [
+        6,
+        4096
+      ],
+      "off": 2641216
+    },
+    "residual_out": {
+      "shape": [
+        6,
+        4,
+        4096
+      ],
+      "off": 2665792
+    }
+  },
+  "floats": 2764096,
+  "note": "Continuous 45-layer teaching forward; layer input is previous layer output, all weights are invented."
+}

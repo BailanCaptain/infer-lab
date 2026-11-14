@@ -23,6 +23,20 @@ export default defineConfig({
   resolve: { alias: { "@": "/src" } },
   // 问答服务在 server/，dev 下经代理走同源，避免 CORS
   server: {
+    host: "127.0.0.1",
+    // Build artifacts, receipts and cloned sources are not frontend inputs.
+    watch: {
+      ignored: [
+        "**/preview-dist/**",
+        "**/tools/wiki-runtime/**",
+        "**/tools/repos/**",
+        "**/tools/corpus/**",
+        "**/wiki/_jobs/**",
+        // Scratch dirs at the repo root (hundreds of MB), never imported by the app.
+        "**/tmp/**",
+        "**/.tmp/**",
+      ],
+    },
     proxy: {
       "/api": {
         target: `http://127.0.0.1:${process.env.WIKI_SERVER_PORT ?? 8790}`,

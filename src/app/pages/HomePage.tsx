@@ -1,42 +1,51 @@
-import { ArrowUpRight, Compass, Pause, RotateCcw } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import city from "../intro/city.json";
 import type { CityScene } from "../intro/cityScene";
-import world from "../intro/world.json";
 import "../../design/city.css";
 
 export function HomePage() {
   const host = useRef<HTMLDivElement>(null);
-  const controller = useRef<CityScene | null>(null);
+  const entrance = useRef<HTMLAnchorElement>(null);
+  const sceneRef = useRef<CityScene | undefined>(undefined);
+  const pauseForEntrance = () =>
+    sceneRef.current?.suspend(Boolean(entrance.current?.matches(":hover, :focus")));
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [progress, setProgress] = useState(0);
   const [touring, setTouring] = useState(false);
-  const [retry, setRetry] = useState(0);
   useEffect(() => {
+    document.title = "大模型推理之旅 · AI Infra";
     let cancelled = false;
-    setStatus("loading");
-    setProgress(0);
+    let interacted = false;
+    let scene: CityScene | undefined;
     import("../intro/cityScene")
       .then(({ createCityScene }) => {
         if (cancelled || !host.current) return;
-        host.current.dataset.attempt = String(retry);
-        controller.current = createCityScene(host.current, {
-          onLoad: () => setStatus("ready"),
-          onProgress: setProgress,
+        scene = createCityScene(host.current, {
+          onLoad: () => {
+            setStatus("ready");
+            if (!interacted) setTouring(scene?.tour(true) ?? false);
+          },
+          onProgress: () => {},
           onError: () => setStatus("error"),
-          onInteract: () => setTouring(false),
+          onInteract: () => {
+            interacted = true;
+            setTouring(false);
+          },
         });
+        sceneRef.current = scene;
+        scene.suspend(Boolean(entrance.current?.matches(":hover, :focus")));
       })
       .catch(() => {
         if (!cancelled) setStatus("error");
       });
     return () => {
       cancelled = true;
-      controller.current?.dispose();
-      controller.current = null;
+      scene?.dispose();
+      sceneRef.current = undefined;
     };
-  }, [retry]);
+  }, []);
+
   return (
     <main
       className="inference-journey"
@@ -45,82 +54,40 @@ export function HomePage() {
     >
       <div className="city-stage" ref={host} data-testid="city-scene" />
       <div className="city-atmosphere" />
-      <header className="city-header">
-        <div className="city-brand">
-          <span className="city-seal">
-            云<br />隐
-          </span>
-          <div>
-            <h1>大模型推理之旅</h1>
-            <p>A JOURNEY INTO LLM INFERENCE</p>
-          </div>
-        </div>
-        <Link className="city-practice" to="/dev/spike-c">
-          实践 <ArrowUpRight size={12} />
+      <div className="city-signature" aria-hidden="true">
+        AI Infra <span>推理，从这里开始</span>
+      </div>
+      <header className="city-intro">
+        <p className="city-eyebrow">A JOURNEY INTO AI INFRA</p>
+        <h1>
+          大模型<span>推理之旅</span>
+        </h1>
+        <p className="city-description">
+          从一次计算，
+          <br />
+          走进大模型推理的世界。
+        </p>
+        <Link
+          className="city-enter"
+          to="/wiki"
+          ref={entrance}
+          onPointerEnter={pauseForEntrance}
+          onPointerLeave={pauseForEntrance}
+          onFocus={pauseForEntrance}
+          onBlur={pauseForEntrance}
+        >
+          开始阅读 <ArrowRight size={19} strokeWidth={1.6} aria-hidden="true" />
         </Link>
       </header>
-      <aside className="city-index" aria-label="十章目录">
-        <div className="city-index-heading">
-          <span>拾级而上</span>
-          <span>十境 · 一程</span>
-        </div>
-        <ol>
-          {world.chapters.map((chapter) => (
-            <li key={chapter.id}>
-              <span className="city-chapter-number">{chapter.id}</span>
-              <div>
-                <strong>{chapter.title}</strong>
-                <small>{chapter.english}</small>
-              </div>
-            </li>
-          ))}
-        </ol>
-        <p className="city-index-foot">循山而行，见微知著。</p>
-        <p className="city-motto">EXPLORE · UNDERSTAND · BUILD</p>
-      </aside>
-      {status === "loading" && (
-        <div className="city-loading" role="status">
-          正在展开推理之旅<small>{progress < 100 ? `${progress}%` : "准备场景"}</small>
-        </div>
-      )}
-      {status === "error" && (
-        <div className="city-error" role="alert">
-          <strong>场景暂未载入</strong>
-          <p>请重试加载。</p>
-          <button
-            type="button"
-            onClick={() => {
-              setTouring(false);
-              setRetry((value) => value + 1);
-            }}
-          >
-            重新加载
-          </button>
-        </div>
-      )}
       <footer className="city-footer">
-        <div className="city-controls">
-          <span>拖动旋转 · 滚轮缩放</span>
-          <button
-            type="button"
-            aria-label="重置视角"
-            title="重置视角 (Esc)"
-            disabled={status !== "ready"}
-            onClick={() => controller.current?.reset()}
-          >
-            <RotateCcw size={14} />
-          </button>
-          <button
-            type="button"
-            aria-label={touring ? "暂停环游" : "自动环游"}
-            aria-pressed={touring}
-            disabled={status !== "ready"}
-            onClick={() => setTouring(controller.current?.tour(!touring) ?? false)}
-          >
-            {touring ? <Pause size={14} /> : <Compass size={14} />}
-            <span>{touring ? "暂停" : "环游"}</span>
-          </button>
-        </div>
+        <span>模型 · 系统 · 硬件</span>
+        {status === "ready" ? (
+          <span className="city-interaction-hint">
+            {touring ? "自动环绕 · 拖动暂停" : "拖动城市，换个角度"}
+          </span>
+        ) : (
+          <span role="status">{status === "loading" ? "正在展开城市…" : "场景暂未载入，仍可开始阅读"}</span>
+        )}
       </footer>
     </main>
   );

@@ -1,0 +1,8 @@
+/* Shared by the main site and its same-origin exploration documents. */
+:root {
+  --reader-paper: #fcfcfa;
+  --reader-sidebar: #f4f5f1;
+  --reader-accent: #286151;
+  --reader-active: #e6eee7;
+  --reader-line: #e0e5dc;
+}

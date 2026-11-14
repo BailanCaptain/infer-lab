@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import registry from "./registry.json";
+import registryJson from "./registry.json";
+import { registrySchema } from "./schema";
 import { buildToc, partNumeral, type TocPage } from "./toc";
+
+const registry = registrySchema.parse(registryJson);
 
 const page = (id: string, type = "concept", chapters: string[] = [], order = 500): TocPage => ({
   id,

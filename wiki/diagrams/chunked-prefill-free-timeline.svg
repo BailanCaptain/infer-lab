@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 432" width="840" height="432" role="img" aria-label="同一组请求（A、B 各需 1 个位置续写，C 新提交 14 个位置的提示词）在两种策略下的步长对比。每格宽度按本步处理的 token 数成比例绘制。">
+  <title>同一组请求（A、B 各需 1 个位置续写，C 新提交 14 个位置的提示词）在两种策略下的步长对比。每格宽度按本步处理的 token 数成比例绘制。</title>
+  <defs><marker id="chunked-prefill-free-timeline-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker><marker id="chunked-prefill-free-timeline-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <path d="M584 70 L608 70" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#chunked-prefill-free-timeline-ah-danger)"/>
+  <path d="M456 321 L484 321" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#chunked-prefill-free-timeline-ah-token)"/>
+  <rect x="104" y="52" width="30" height="36" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="120" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">A</text>
+  <rect x="134" y="52" width="30" height="36" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="150" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">B</text>
+  <rect x="164" y="52" width="420" height="36" rx="4" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="180" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">C 整段提示词 0–13（14）</text>
+  <rect x="104" y="176" width="44" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="120" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">A</text>
+  <rect x="148" y="176" width="44" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="164" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">B</text>
+  <rect x="192" y="176" width="264" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="208" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">C 第 1 段（0–5）</text>
+  <rect x="104" y="170" width="352" height="46" rx="7" fill="none" stroke="var(--color-control, #66716d)" stroke-width="2.2"/>
+  <text x="456" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-control, #66716d)" text-anchor="end">每步预算上限 8 个 token</text>
+  <rect x="104" y="240" width="44" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="120" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">A</text>
+  <rect x="148" y="240" width="44" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="164" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">B</text>
+  <rect x="192" y="240" width="264" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="208" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">C 第 2 段（6–11）</text>
+  <rect x="104" y="234" width="352" height="46" rx="7" fill="none" stroke="var(--color-control, #66716d)" stroke-width="2.2"/>
+  <rect x="104" y="304" width="44" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="120" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">A</text>
+  <rect x="148" y="304" width="44" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="164" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">B</text>
+  <rect x="192" y="304" width="88" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="208" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">C 12–13</text>
+  <rect x="104" y="298" width="352" height="46" rx="7" fill="none" stroke="var(--color-control, #66716d)" stroke-width="2.2"/>
+  <rect x="104" y="368" width="44" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="120" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">A</text>
+  <rect x="148" y="368" width="44" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="164" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">B</text>
+  <rect x="192" y="368" width="44" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="208" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">C</text>
+  <rect x="104" y="362" width="352" height="46" rx="7" fill="none" stroke="var(--color-control, #66716d)" stroke-width="2.2"/>
+  <rect x="608" y="46" width="208" height="48" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="712" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A、B 陪等 16 个位置</text>
+  <text x="712" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">大步跑完才蹦下一个字</text>
+  <rect x="484" y="298" width="268" height="46" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="618" y="317" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">C 读完提示词，吐出首字 y₀</text>
+  <text x="618" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">前两步未读完，不对外输出</text>
+  <text x="24" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">不分块：一步硬吞整条长提示词</text>
+  <text x="24" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">第 1 步</text>
+  <text x="24" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">分块（预算 8）：长提示词拆进三步，在线回答不断流</text>
+  <text x="24" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">第 1 步</text>
+  <text x="24" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">第 2 步</text>
+  <text x="24" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">第 3 步</text>
+  <text x="24" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">第 4 步</text>
+  <text x="484" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">算满 8 个：A、B 照常出字，C 存下 0–5</text>
+  <text x="484" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">算满 8 个：A、B 照常出字，C 接着算 6–11</text>
+  <text x="484" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">只用 3 个：C 送入 y₀，三条一起续写</text>
+</svg>

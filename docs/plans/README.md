@@ -8,7 +8,7 @@
 
 | 文件 | 是什么 |
 |---|---|
-| [2026-11-14-progressive-restructure-and-fix-plan.md](2026-11-14-progressive-restructure-and-fix-plan.md) | 全站循序渐进重构、流水线解耦与全栈缺陷根治计划：讨论背景、6 大乱文根因、防分类器中断规程与四阶段 Red-to-Green 实施步骤 |
+| [2026-11-14-progressive-restructure-and-fix-plan.md](2026-11-14-progressive-restructure-and-fix-plan.md) | 全站深度审查、循序渐进重构、全栈缺陷根治与功能演进总方案：两轮审查联合基线、6 大乱文根因、16 项全栈 Bug 台账、5 大演进功能蓝图与 Phase 0–4 实施清单 |
 | [2026-11-10-wiki-continuation-plan.md](2026-11-10-wiki-continuation-plan.md) | 接续全站教学整改与 OpenCode 成果：官方覆盖、逐项核验、分组整改、学习路径验收及下一批 500 项的计量边界 |
 | [wiki-overall-review-2026-10-08.md](wiki-overall-review-2026-10-08.md) | F001–F005 整体独立审查：1 P1 + 4 P2 的实际复现、覆盖矩阵、修复复审与正式待审状态 |
 | [wiki-final-acceptance.md](wiki-final-acceptance.md) | 10-08 最终证据：多版本导入、确认参数全量骨架、独立来源审查、GitHub 十题门槛、连续维护及四页纠错发布确认；历史记录单列 |

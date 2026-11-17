@@ -1,52 +1,77 @@
 layout: figure
 id: quantization-flow
-caption: 上排只画接量化配置的 Linear/MoE：命中 FLOAT 跳过条件时选不量化实现，否则读取精度并按「精度名称、层类型」查注册表；缺必要条目或实现会报错。Embedding 缺量化条目时允许回退浮点，不在这条分支内。下排画普通动态 Linear 的 BF16 输入路径：量化为 INT8，整数乘加，再乘回两份系数输出 BF16；预量化与专家融合路径的实际调用次数不同。
-size: [880, 400]
+caption: >-
+  v0.30.0（c09d3e20）量化配置与逐层分派主线：上段为入口识别（--quantization 或自动探测）进入 AscendModelSlimConfig，按 quant_model_description.json 逐层查表，区分标 FLOAT（与 Embedding 缺条目回退）、Linear/MoE 注册表分派及 W8A8_MIX 的 PD 角色分支；下段为原生 block-wise FP8（AscendFp8Config）校验 weight_block_size 与 dynamic 激活后，在 Ascend 950 重分组为 MXFP8（kv_b_proj 与非 32 倍数维度除外），而在 A2/A3（非 950）上 v0.30.0 静默反量化回 model_dtype（通常是 BF16，2× 显存）、main 改抛 NotImplementedError；310P 采用 COMPATIBILITY 量化后端，不注册 AscendFp8Config（仅注册 AscendModelSlimConfig310），原生 FP8 在 310P 上无 Ascend 执行路径、不受支持。
+size: [896, 512]
 dividers:
-  - { from: [24, 214], to: [856, 214], sides: [加载时走一次, 每次前向都走] }
+  - { from: [20, 248], to: [876, 248], sides: ["ModelSlim 路线（--quantization ascend）", "原生 block-wise FP8 路线（--quantization fp8）"] }
 items:
-  - { at: [24, 74], size: [136, 56], text: 启动指定 ascend, sub: 或从模型文件探测, tone: control, style: plain }
-  - { at: [176, 74], size: [140, 56], text: 读量化描述文件, sub: 模型目录里的 JSON, tone: control, style: plain }
-  - { at: [340, 74], size: [120, 56], text: Linear / MoE, sub: 查权重精度, tone: control, style: plain }
-  - { at: [484, 22], size: [176, 50], text: "标 FLOAT：不量化实现", tone: ink, style: plain }
-  - { at: [484, 100], size: [176, 50], text: 其他：查方法注册表, tone: control, style: plain }
-  - { at: [684, 86], size: [172, 76], text: W8A8 动态量化方法, sub: linear 与 moe 各一个, tone: weight, style: plain }
-  - { at: [24, 258], size: [132, 62], text: 主线第 4 站, sub: 逐层前向到这一层, tone: token, style: plain }
-  - { at: [176, 258], size: [140, 62], text: 激活按 token 量化, sub: 现算每行的系数, tone: token, style: plain }
-  - { at: [340, 258], size: [148, 62], text: 整数乘加, sub: 专家用分组矩阵乘, tone: ink, style: plain }
-  - { at: [512, 258], size: [148, 62], text: 乘回两份系数, sub: 输出类型跟随输入, tone: control, style: plain }
-  - { at: [684, 258], size: [120, 62], text: 输出 BF16, sub: 交给下一层, tone: token, style: plain }
+  - { at: [16, 68], size: [176, 66], text: 入口识别与配置, sub: 按参数或目录自动探测, tone: control, style: solid }
+  - { at: [220, 68], size: [176, 66], text: ModelSlim 逐层查表, sub: 读模型描述 JSON, tone: control, style: plain }
+  - { at: [428, 16], size: [200, 52], text: FLOAT 或 Embed 缺键, sub: 不走量化，保持模型浮点, tone: token, style: plain }
+  - { at: [664, 16], size: [216, 52], text: Unquantized* 浮点实现, sub: Embed 缺条目不报错, tone: token, style: faded }
+  - { at: [428, 82], size: [200, 56], text: Linear / FusedMoE, sub: "查 (精度, 层类型) 注册表", tone: weight, style: plain }
+  - { at: [664, 82], size: [216, 56], text: W8A8_DYNAMIC / W8A8, sub: 及 MXFP8 · W4A8 · W4A4 等, tone: weight, style: solid }
+  - { at: [428, 152], size: [200, 56], text: "W8A8_MIX（仅 linear）", sub: "看 is_kv_consumer", tone: comm, style: plain }
+  - { at: [664, 152], size: [216, 56], text: D 端静态 · P/混部动态, sub: v0.30.0 移除 moe 注册, tone: comm, style: solid }
+  - { at: [16, 354], size: [176, 68], text: AscendFp8Config, sub: 校验分块与动态激活, tone: control, style: plain }
+  - { at: [220, 354], size: [176, 68], text: 加载后硬件分流, sub: resolve_block_scales, tone: control, style: solid }
+  - { at: [428, 286], size: [212, 56], text: Ascend 950（常规层）, sub: 重分组为 MXFP8 · 约 1 B/元素, tone: weight, style: solid }
+  - { at: [672, 286], size: [208, 56], text: 原生 FP8 量化乘, sub: npu_quant_matmul, tone: weight, style: plain }
+  - { at: [428, 356], size: [212, 56], text: 950 例外层回退, sub: kv_b_proj 或维数非 32 倍数, tone: token, style: plain }
+  - { at: [672, 356], size: [208, 56], text: 保持模型浮点（2× 显存）, sub: BF16 / FP16 常规矩阵乘, tone: token, style: faded }
+  - { at: [428, 426], size: [212, 62], text: A2 / A3（非 950）, sub: 无硬件 FP8 矩阵乘, tone: danger, style: plain }
+  - { at: [672, 426], size: [208, 62], text: v0.30.0 回 model_dtype, sub: 常为 BF16 2×；main 抛错, tone: danger, style: solid }
 badges:
-  - { at: [28, 78], n: 1 }
-  - { at: [180, 78], n: 2 }
-  - { at: [344, 78], n: 3 }
-  - { at: [688, 90], n: 4 }
-  - { at: [180, 262], n: 5 }
-  - { at: [344, 262], n: 6 }
-  - { at: [516, 262], n: 7 }
+  - { at: [20, 72], n: 1, tone: control }
+  - { at: [224, 72], n: 2, tone: control }
+  - { at: [668, 86], n: 3, tone: weight }
+  - { at: [20, 358], n: 4, tone: control }
+  - { at: [224, 358], n: 5, tone: control }
+  - { at: [676, 430], n: 6, tone: danger }
 links:
-  - { from: [160, 102], to: [176, 102] }
-  - { from: [316, 102], to: [340, 102] }
-  - { from: [460, 92], to: [484, 47], via: [[472, 92], [472, 47]] }
-  - { from: [460, 112], to: [484, 125], via: [[472, 112], [472, 125]] }
-  - { from: [660, 125], to: [684, 125] }
-  - { from: [156, 289], to: [176, 289] }
-  - { from: [316, 289], to: [340, 289] }
-  - { from: [488, 289], to: [512, 289] }
-  - { from: [660, 289], to: [684, 289] }
-  - { from: [770, 162], to: [246, 258], via: [[770, 186], [246, 186]], tone: weight, dashed: true }
+  - { from: [192, 101], to: [220, 101] }
+  - { from: [396, 86], to: [428, 42], via: [[412, 86], [412, 42]] }
+  - { from: [396, 104], to: [428, 110], via: [[412, 104], [412, 110]] }
+  - { from: [396, 118], to: [428, 180], via: [[412, 118], [412, 180]] }
+  - { from: [628, 42], to: [664, 42] }
+  - { from: [628, 110], to: [664, 110] }
+  - { from: [628, 180], to: [664, 180] }
+  - { from: [192, 388], to: [220, 388] }
+  - { from: [396, 372], to: [428, 314], via: [[412, 372], [412, 314]] }
+  - { from: [396, 388], to: [428, 384] }
+  - { from: [396, 404], to: [428, 457], via: [[412, 404], [412, 457]] }
+  - { from: [640, 314], to: [672, 314] }
+  - { from: [640, 384], to: [672, 384] }
+  - { from: [640, 457], to: [672, 457] }
 texts:
-  - { at: [484, 14], text: 此处只画 Linear/MoE；Embedding 缺条目可回退浮点, size: 13, note: true }
+  - { at: [16, 176], text: "另有 compressed-tensors / mxfp8 独立配置，及 Attention C8 / C8-MXFP 缓存分派", size: 12, note: true, width: 380 }
+  - { at: [16, 286], text: "310P 走 COMPATIBILITY 后端，不注册 AscendFp8Config（仅 AscendModelSlimConfig310），原生 FP8 无执行路径、不受支持", size: 12, note: true, tone: danger, width: 376 }
+  - { at: [16, 446], text: "缺 weight_block_size 或 activation_scheme≠dynamic 在配置校验期即抛 NotImplementedError", size: 12, note: true, tone: danger, width: 380 }
 pins:
-  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L60-L70
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L340-L349
+    symbols: [QuantizationBackendFamily, AscendFp8Config, AscendModelSlimConfig310]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L332
+    symbols: [_310P, QuantizationBackendFamily, COMPATIBILITY]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/utils.py#L140-L225
+    symbols: [detect_quantization_method, maybe_auto_detect_quantization]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/modelslim_config.py#L108-L110
     symbols: [MODELSLIM_CONFIG_FILENAME]
-  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L709-L736
-    symbols: [is_layer_skipped_ascend]
-  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L662-L707
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/modelslim_config.py#L266-L355
+    symbols: [get_quant_type_for_layer, create_scheme_for_layer]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/modelslim_config.py#L660-L771
     symbols: [get_quant_method, UnquantizedEmbeddingMethod]
-  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L364-L398
-    symbols: [get_linear_quant_type]
-  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/methods/registry.py#L19-L62
-    symbols: [get_scheme_class]
-  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L125
-    symbols: [npu_quant_matmul]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/registry.py#L24-L62
+    symbols: [register_scheme, get_scheme_class]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L36-L93
+    symbols: [AscendW8A8PDMixLinearMethod]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/fp8_config.py#L26-L112
+    symbols: [AscendFp8Config, _verify_block_quantization]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L124-L260
+    symbols: [AscendFp8BlockLinearMethod, _supports_mx_regroup, _is_absorbed_by_attention, resolve_block_scales]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L129
+    symbols: [_require_fp8_weight_matmul]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/platform.py#L425-L433
+    symbols: [QuantizationBackendFamily, AscendFp8Config, AscendModelSlimConfig310]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L417-L440
+    symbols: [_310P, QuantizationBackendFamily, COMPATIBILITY]

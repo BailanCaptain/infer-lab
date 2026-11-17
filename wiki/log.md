@@ -1406,3 +1406,12 @@ vllm-ascend@main 775899991f9614052e4836a62e4cb6541897faee → 3649b8ff7fd69e707d
 ## [2026-11-17] build | 版本谱系刷新
 
 确定性更新 11 页；教学正文保留。
+
+## [2026-11-18] build | Wave 1 样板入库与生成物收口
+
+新增并重绘 Wave 1 四篇立标样板（`request-overview`、`ascend-model-onboarding`、`hf-model-anatomy`、`quantization`）及配图（`request-overview-four-steps.svg`、`quantization-flow.svg`），无损保留 `quantization-intuition.svg`（SHA-256 `1DEF4A3114AD4757DD3E8E6486778CD5E214F21C0829914EE9FBA48F91DDC953`）与冻结 3D `wiki-scene`，并重建 `wiki/index.md` 与 `src/content/wiki/registry.json`（166 页）。
+
+## [2026-11-18] build | Wave 1 终审 P2/P3 修订与规则库同步收口
+
+完成 `opus-critic` Wave 1 终审全部 4 项内容 P2 与 5 项外科式 P3 修订（含 `src/sim/rules/domain3Quantization.ts` 及单测 P2-1 同步：`310P` 使用 `COMPATIBILITY` 量化后端且不注册 `AscendFp8Config`，静默反量化仅限 `A2 / A3`），重绘 `quantization-flow.svg`（无损保留 `quantization-intuition.svg`），并重建 `wiki/index.md` 与 `src/content/wiki/registry.json`（166 页）。
+

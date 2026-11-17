@@ -1,12 +1,13 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 163 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 166 页。
 
 ## 概念（concept）
 - [AI Core：计算单元与数据搬运](concepts/ai-core.md) — 从矩阵乘和逐项运算认识 Cube、Vector、Scalar，沿设备内存到片上缓冲区的数据路径理解计算与访存的配合。 `07`
 - [API server 入口：一个 HTTP 请求怎样变成引擎里的请求](concepts/api-server-entry.md) — vLLM 前端进程从收到 HTTP 请求到交给某个 EngineCore 之间做的事：检查、套聊天模板、分词、定输出上限和采样参数、包成 EngineCoreRequest、先在本进程登记反分词器和输出槽，再选 DP 组经 ZMQ 发出。讲清每一步在哪里拒绝请求、流式与非流式的差别、CPU 开销，以及 GLM 双机上 node0 一个前端接全部请求。 `10`
 - [昇腾 950：一块数据怎样少绕路、少等候](concepts/ascend-950-architecture.md) — 沿矩阵结果交给向量计算的小例，理解昇腾 950 的 Cube/Vector 直通、多维搬运与缓冲同步；再区分 SIMD/SIMT、存储层次、低精度和 PR/DT 规格，把硬件能力变成可验证的推理分析假设。 `07 19`
 - [昇腾 950：两张卡怎样接着把工作做完](concepts/ascend-950-execution-interconnect.md) — 沿两张卡的部分结果走过本地计算、交换求和和下一段计算，理解 STARS 2.0 如何安排设备任务、CCU 如何承担通信，以及 URMA、UB Memory 和 UBoE 分别改变哪一段交接；用一组时间记录区分下发开销、参与者迟到与传输等待。 `16`
+- [新模型上线标准流程：五维版本锁死、活跃食谱识别与权重选型](concepts/ascend-model-onboarding.md) — 在昇腾上跑通一个新模型，先锁死 vllm、vllm-ascend、CANN、torch_npu 与硬件卡型五维配套，再从 v0.30.0 的 25 篇活跃模型食谱（剔除 27 篇停服桩，注意 GLM5.md 中 GLM-5 停服而 GLM-5.1 活跃）与三路注册机制确认支持路径，最后按代际完成权重与启动配置选型。 `01`
 - [注意力后端：模型机制、状态布局与设备实现的连接](concepts/attention-backend-family.md) — 注意力后端是模型层和设备算子之间的那层代码：层说自己是哪种注意力，后端决定用哪份状态、按什么形状组织这批 token、最后调哪个算子。GLM 的一次前向同时走 KDA 和稀疏 MLA 两条分支，不存在"这个模型的后端"。 `09 16`
 - [注意力代价：容量、计算与访存](concepts/attention-cost.md) — 历史变长时，密集注意力每一步读的份数跟着增长，稀疏注意力的主读取到预算就封顶、打分和缓存却照样增长，固定状态始终只读写同一块；放到 GLM 双机上，按一个 token 核算 34 层 KDA 与 11 层稀疏 MLA 各存多少、读多少。 `04`
 - [Attention 与 Q/K/V：当前位置怎样从历史里取信息](concepts/attention-qkv.md) — attention 让每个位置按相关程度，从自己和前面的位置取信息，模型靠它把上下文用起来。本页先讲它是什么、为什么需要，再用一个 3 个位置的小例子一步步演示 Q/K/V 打分、softmax 和加权汇合，讲清为什么除以 √d、causal mask 和多头，最后看 GLM 的稀疏 MLA 与 KDA 各改了哪一步。 `04`
@@ -24,6 +25,7 @@
 - [GQA：几个查询头共读一组 K、V，省下什么、付出什么](concepts/gqa.md) — GQA 把查询头分组，同组共读一组 K、V，K/V 投影与缓存按 KV 头数缩小，打分与汇合仍逐头计算，且须在训练时定下。GLM 的稀疏 MLA 与 KDA 都不是 GQA，本页只作对照。 `04`
 - [NPU、板卡、服务器与机柜](concepts/hardware-devices.md) — 分清芯片、板卡、服务器与软件可见设备，沿 GLM 双机的一条输入理解主机内存、设备显存、机内 HCCS 与跨机 RoCE 的边界，并核对官方规格峰值和启动源码。 `07 08`
 - [HCCL buffer：通信缓冲怎样配置与占用显存](concepts/hccl-buffer.md) — HCCL buffer 为集合通信提供设备中转空间；讲清逐组配置、环境变量和底层通信组复用的区别，以及 GLM 双机的配置预算怎样影响 KV cache 可用显存。 `13`
+- [读懂 HuggingFace 模型目录与 config.json：从字段认清架构、显存与坑点](concepts/hf-model-anatomy.md) — 启动 vllm serve 前，拆解 HF 模型目录里的 config.json、tokenizer_config.json、safetensors 索引与 generation_config.json，对照 Qwen3-8B 与 Qwen3-30B-A3B 算清架构、权重与每 token KV 占用，并提前排查 head_dim、长度截断与量化陷阱。 `01`
 - [推理测量：怎样知道服务真的变快了](concepts/inference-benchmarking.md) — 沿用停顿样例的 A/B 配置，把一次请求的改善放进整组压测：总吞吐相同但达标请求更多意味着什么，怎样把失败、未完成、分位数和真实到达负载一起算进结论。 `19`
 - [容量与恢复：平时够用，为什么出故障就排长队](concepts/inference-capacity-and-reliability.md) — 从一张逐级加压的结果表选出单实例可用运行点，再算正常与容错需要几套实例、故障积压多久能消退；沿就绪时间线和流式重试记录判断恢复是否真的完成。 `19`
 - [输出异常排查：同样的问题，回答为什么变了](concepts/inference-correctness-troubleshooting.md) — 完成一次从回答异常、输入编号差异到修正模板和回归验证的排查；再换成输入相同的情况，沿首次分歧区分采样、数值和状态，覆盖乱码、重复、空输出、NaN 与质量回归。用固定评测集和业务指标检验变更后的任务质量。 `19`
@@ -52,6 +54,7 @@
 - [量化方法与校准：PTQ、QAT、AWQ、GPTQ 怎样选择](concepts/quantization-methods.md) — 从权重、激活、缓存分别量化出发，解释 W4A16、W8A8、分组粒度和校准，再比较 PTQ、QAT、RTN、AWQ、GPTQ、SmoothQuant 的目标与代价；用等价缩放的手算例连接方法、量化产物和昇腾加载器，并区分加载时量化、工具导出格式与 GGUF 插件。 `11 19`
 - [怎样读 vllm-ascend 源码：先抓请求主线，再带着问题追到实现](concepts/reading-vllm-ascend.md) — vllm-ascend 是装在 vLLM 上的昇腾平台插件，靠入口点、patch、custom op 等扩展点接进请求路径，所以一条请求跑的是两个仓库拼起来的代码。先沿七站读通主线，再按数据、配置、实现三条路线带着问题追；遇到异常或版本变化时先划清证据边界，区分源码推断和运行证据。 `20`
 - [一条请求的代码路径：七站各在哪个进程、经过哪些函数](concepts/request-call-chain.md) — 沿用单请求那一页的七站，在官方双机部署上标出每一站在哪个进程里执行（API server、每个 DP 组的 EngineCore、每张卡的 worker）、经过哪些类和函数、进程之间走 ZMQ、共享内存队列还是 HCCL，哪些代码属于 vLLM、哪些属于 vllm-ascend；再讲怎样凭日志前缀和 traceback 判断请求停在哪一站，以及读源码从哪几个入口开始。 `09`
+- [一次请求全景鸟瞰：从输入文字到逐词生成](concepts/request-overview.md) — 不引入多机并行与混合模型术语，用一个 6 词词表、4 维向量的纯算术小例子，从头到尾跟完一条请求「我喜欢 → 猫。」的两轮（Prefill 与 Decode）、四件事与「Host CPU — HBM 显存 — AI Core」三块地盘的配合。 `01`
 - [请求收尾：一条请求结束或被中止后，它占的东西怎样一件件还回去](concepts/request-teardown.md) — 请求收尾是一条请求停下后，前端、引擎和 worker 各自删掉为它存的记录、还回它对 KV 块的引用。先分清引擎判停、停止字符串、客户端断开、出错四条路谁先动手，再分清还块（引用计数减 1）和清空前缀缓存（抹掉全部登记），最后看 GLM 双机上 R1 结束时还了什么。 `09`
 - [RoPE：把位置变成旋转，让注意力分数只看相隔多远](concepts/rope.md) — RoPE 在 q、k 点积之前按各自的位置编号旋转它们的二维分量对，点积里只剩两者的位置差；频率基数和 YaRN 等缩放决定能覆盖多长。固定部署的 GLM-5.3-Flash 把 RoPE 维数设为 0：稀疏 MLA 与索引器都不旋转，KDA 层本来就不用 RoPE。 `04`
 - [Sampling：从词表分数里定下一个 token](concepts/sampling.md) — 模型给词表里每个词打完分，sampling（采样）按请求的设置从中定下一个 token。本页用 6 个词的小例子手算 temperature、softmax、top-k、top-p 和按概率抽取，对照 greedy，再讲停止条件；最后落到 GLM 双机：8 张卡各采一遍、只交回一份，MTP 候选怎样验证。 `05`
@@ -107,7 +110,7 @@
 - [流水线并行（PP）：层分段、状态交接与气泡](concepts/pipeline-parallel.md) — 把模型的层按顺序切成几段放到不同的卡上，一个请求依次流过各段；讲清为什么这样切、段间交接什么、气泡从哪来，以及 GLM 双机为什么没开 PP。 `13`
 - [插件发现与模型注册](concepts/platform-plugin-registration.md) — 昇腾包通过入口点清单接入 vLLM；入口须被允许加载并成功执行，设备可用性另行检查。vLLM 在相应进程的初始化入口按组名加载——一个口认平台，四个口登记连接器、模型加载器、性能采集和模型实现；次数取决于启动方式与进程内防重状态。 `10`
 - [Prefix caching：相同的开头只算一次，靠什么认](concepts/prefix-caching.md) — 通过输入指纹找到可复用的前缀块，后来的请求共享命中块，省去相应的prefill计算。固定旧GLM镜像默认关，显式打开走align，公共恢复边界按640对齐；新版的默认值与部分尾块能力须分别确认。 `11`
-- [W8A8 量化：权重压成 INT8，算完再乘回缩放系数](concepts/quantization.md) — 量化用较少位数和相应缩放表示数值。本页用 INT8 W8A8 讲缩放、零点、舍入、截断与反量化，再分清动态与静态量化，最后落到 GLM 双机：两个 8 位分别从哪来、哪些矩阵保持 BF16、缩放系数占多少字节；其他格式、算法、ND/NZ 与验收各有延伸页。 `11`
+- [W8A8 与 Ascend 量化：怎样压到 8 位、按层与硬件怎么选路](concepts/quantization.md) — 量化把权重和激活换成较少位数并保留缩放系数。本页先讲清缩放、零点、舍入、截断与反量化，以及 W8A8 矩阵乘的四步计算，再按 vllm-ascend v0.30.0 基线结合 Qwen3-8B 与 Qwen3-30B-A3B 说明显存节省、动态/静态/PD 混合（W8A8_MIX）与原生 block-wise FP8 在不同昇腾硬件上的选路差异。 `11`
 - [Recompute CPU Offload：D 节点被抢占的请求，KV 先存主机、排回来再搬回](concepts/recompute-cpu-offload.md) — vllm-ascend 给 PD 分离 D 节点配的连接器：RecomputeScheduler 让出一条请求前先问它，主机块够就把这条的全部 KV 块同步拷到主机，重新排上时在前向前搬回，完成通知后再调度；旧版保存失败则交代理退回 P。讲清两条恢复路径的取舍（示意数）、和 CPU 备份、KV Pool 的区别；新版失败路径需按并行设置区分。GLM 双机主线不拆 P/D，没有启用。 `11 12`
 - [RecomputeScheduler：D 节点块不够时，被让出的请求退回 P 重算](concepts/recompute-scheduler.md) — PD分离的D节点续块失败时，优先尝试保存被抢占请求的状态，稍后恢复；旧版不能保存时发recomputed结束帧，由代理重投P做prefill。客户端结束、引擎收尾和状态保存是不同步骤；rc2细粒度TP还可能直接中止。GLM双机主线不拆PD，不启用此调度器。 `12`
 - [RFork：工作版机制与排错总览](concepts/rfork.md) — 新实例启动时可按地址读取兼容来源显存中的权重；借不到或读取失败时，停止 seed 服务并安全清理登记内存后可退回默认加载。本页是 RFork 工作版的入口：借的步骤、四种「成功」、GLM 双机推演和全章唯一的版本对照。
@@ -208,7 +211,7 @@
 - [kvpp_config](params/kvpp-config-0445bd352140.md)
 - [LMCache：接在引擎外面的一层 KV 缓存](concepts/lmcache.md)
 - [Prefix caching：相同的开头只算一次，靠什么认](concepts/prefix-caching.md)
-- [W8A8 量化：权重压成 INT8，算完再乘回缩放系数](concepts/quantization.md)
+- [W8A8 与 Ascend 量化：怎样压到 8 位、按层与硬件怎么选路](concepts/quantization.md)
 - [量化验收：怎样判断省了内存、保住质量、真正提速](concepts/quantization-evaluation.md)
 - [量化方法与校准：PTQ、QAT、AWQ、GPTQ 怎样选择](concepts/quantization-methods.md)
 - [Recompute CPU Offload：D 节点被抢占的请求，KV 先存主机、排回来再搬回](concepts/recompute-cpu-offload.md)
@@ -323,7 +326,10 @@
 - [一条请求：在官方双机部署上从提示词走到回答结束](concepts/one-request.md)
 
 ### 01 Token、Embedding 与向量
+- [新模型上线标准流程：五维版本锁死、活跃食谱识别与权重选型](concepts/ascend-model-onboarding.md)
 - [Embedding：按编号查表取出 token 的向量](concepts/embedding.md)
+- [读懂 HuggingFace 模型目录与 config.json：从字段认清架构、显存与坑点](concepts/hf-model-anatomy.md)
+- [一次请求全景鸟瞰：从输入文字到逐词生成](concepts/request-overview.md)
 - [Token 与分词：从文本到模型输入](concepts/token.md)
 
 ### 02 矩阵乘法与张量形状

@@ -24,6 +24,7 @@ export const domain3Rules: readonly CouplingRule[] = [
     rationale: "vLLM Ascend only accepts block-wise native FP8 scales on config load.",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
+      if (input.hardwareFamily === "310P") return null;
       if (input.quantMethod !== "fp8" || input.hasWeightBlockSize !== false) return null;
       return {
         ruleId: this.id,
@@ -55,6 +56,7 @@ export const domain3Rules: readonly CouplingRule[] = [
     rationale: "Static FP8 activation scales are unsupported in Ascend native FP8 config verification.",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
+      if (input.hardwareFamily === "310P") return null;
       if (
         input.quantMethod !== "fp8" ||
         input.hasWeightBlockSize === false ||
@@ -136,25 +138,27 @@ export const domain3Rules: readonly CouplingRule[] = [
   {
     id: "d3-fp8-block-non950-bf16-v030",
     domain: "quantization",
-    title: "Native Block-Wise FP8 Silently Dequantized to BF16 on A2/A3/310P (v0.30.0)",
+    title: "Native Block-Wise FP8 Silently Dequantized to model_dtype (BF16) on A2/A3 (v0.30.0)",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["v0.30.0"],
     sources: [
-      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L31-L34`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/platform.py#L341-L349`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/device/hardware_profile.py#L281-L309`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L29-L34`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L229`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L272-L355`,
     ],
     description:
-      "In v0.30.0, serving a native block-wise FP8 checkpoint on Ascend A2/A3/310P silently dequantizes weights into model_dtype (BF16, ~2 B/elem), doubling weight memory footprint.",
+      "In v0.30.0, serving a native block-wise FP8 checkpoint on Atlas A2/A3 (STANDARD quantization_backend_family, which registers AscendFp8Config) silently dequantizes weights into model_dtype (typically BF16, ~2 B/elem), doubling weight memory footprint. Does not apply to 310P (COMPATIBILITY backend; unsupported).",
     rationale:
-      "Non-950 chips lack hardware FP8 matmul; v0.30.0 keeps weights expanded in model_dtype and executes unquantized GEMM.",
+      "Atlas A2/A3 register AscendFp8Config via STANDARD quantization_backend_family but lack hardware FP8 matmul; v0.30.0 keeps weights expanded in model_dtype (typically BF16) and executes unquantized GEMM.",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (input.quantMethod !== "fp8" || input.hasWeightBlockSize === false) return null;
       if (input.activationScheme !== undefined && input.activationScheme !== "dynamic") return null;
       const family = input.hardwareFamily ?? "A3";
-      if (family === "A5") return null;
+      if (family !== "A2" && family !== "A3") return null;
       return {
         ruleId: this.id,
         domain: this.domain,
@@ -163,7 +167,7 @@ export const domain3Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `On ${family} in v0.30.0, native block-wise FP8 weights are silently dequantized to ${input.modelDtype ?? "bfloat16"} (~2 B/elem, 2x footprint) via unquantized GEMM.`,
+        message: `On ${family} in v0.30.0 (STANDARD quantization backend), native block-wise FP8 weights are silently dequantized to ${input.modelDtype ?? "bfloat16"} (~2 B/elem, 2x footprint) via unquantized GEMM.`,
         effectiveMutation: { resolvedWeightFormat: input.modelDtype ?? "bfloat16", bytesPerElemApprox: 2 },
       };
     },
@@ -171,24 +175,26 @@ export const domain3Rules: readonly CouplingRule[] = [
   {
     id: "d3-fp8-block-non950-error-main",
     domain: "quantization",
-    title: "Native Block-Wise FP8 Rejected on A2/A3/310P with NotImplementedError (main)",
+    title: "Native Block-Wise FP8 Rejected on A2/A3 with NotImplementedError (main)",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["main"],
     sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/platform.py#L425-L433`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/device/hardware_profile.py#L375-L416`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L128`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L207-L212`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L339-L353`,
     ],
     description:
-      "In vllm-ascend main (8d6180e2), silent BF16 dequantization on A2/A3/310P was removed; _require_fp8_weight_matmul() raises NotImplementedError on any chip lacking WeightFormat.FP8.",
-    rationale: "Prevents unexpected 2x HBM OOM surprises when deploying FP8 checkpoints on non-950 hardware.",
+      "In vllm-ascend main (8d6180e2), silent model_dtype (typically BF16) dequantization on Atlas A2/A3 was removed; _require_fp8_weight_matmul() raises NotImplementedError on STANDARD-backend chips lacking WeightFormat.FP8. (310P does not register AscendFp8Config; see d3-fp8-310p-unsupported.)",
+    rationale: "Prevents unexpected 2x HBM OOM surprises when deploying FP8 checkpoints on A2/A3 hardware.",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (input.quantMethod !== "fp8" || input.hasWeightBlockSize === false) return null;
       if (input.activationScheme !== undefined && input.activationScheme !== "dynamic") return null;
       const family = input.hardwareFamily ?? "A3";
-      if (family === "A5") return null;
+      if (family !== "A2" && family !== "A3") return null;
       return {
         ruleId: this.id,
         domain: this.domain,
@@ -199,6 +205,51 @@ export const domain3Rules: readonly CouplingRule[] = [
         sources: this.sources,
         message: `NotImplementedError: Native block-wise FP8 checkpoints run on Ascend 950 only in main; ${family} has no FP8 matmul.`,
         remediation: "Serve the BF16 release or re-quantize with ModelSlim / llm-compressor.",
+      };
+    },
+  },
+  {
+    id: "d3-fp8-310p-unsupported",
+    domain: "quantization",
+    title: "Native FP8 Unsupported on Ascend 310P (COMPATIBILITY Backend, No AscendFp8Config)",
+    judgment: "error",
+    evidenceLevel: "C",
+    versions: ["v0.30.0", "main"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/platform.py#L341-L349`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/device/hardware_profile.py#L310-L332`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/platform.py#L425-L433`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/device/hardware_profile.py#L417-L440`,
+    ],
+    description:
+      "Ascend 310P (300I DUO) uses QuantizationBackendFamily.COMPATIBILITY (and FP16 model_dtype, not BF16), so platform.py only registers AscendModelSlimConfig310 and never imports/registers AscendFp8Config. Native FP8 has no Ascend execution path on 310P in v0.30.0 or main (it never silently dequantizes to BF16).",
+    rationale:
+      "310P COMPATIBILITY quantization backend only supports AscendModelSlimConfig310 (FP16 / INT8); native FP8 checkpoints have no Ascend execution path.",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (input.quantMethod !== "fp8" || input.hardwareFamily !== "310P") return null;
+      const versionSources =
+        version === "main"
+          ? [
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/platform.py#L425-L433`,
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/device/hardware_profile.py#L417-L440`,
+            ]
+          : [
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/platform.py#L341-L349`,
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/device/hardware_profile.py#L310-L332`,
+            ];
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: this.judgment,
+        evidenceLevel: this.evidenceLevel,
+        sources: versionSources,
+        message:
+          "Unsupported: Ascend 310P (300I DUO) uses QuantizationBackendFamily.COMPATIBILITY (model_dtype is FP16, not BF16) and does not register AscendFp8Config, so native FP8 has no Ascend execution path and is unsupported (no silent dequantization).",
+        remediation:
+          "Use an FP16 checkpoint or a ModelSlim INT8 checkpoint served with --quantization ascend (AscendModelSlimConfig310), or deploy native FP8 on Ascend 950.",
       };
     },
   },

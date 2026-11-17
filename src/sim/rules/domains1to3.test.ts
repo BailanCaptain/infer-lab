@@ -488,7 +488,7 @@ describe("Domain 3: Native FP8 / MXFP8 & Hybrid KV Quantization", () => {
     ).toBe(true);
   });
 
-  it("models block-wise FP8 on 950 vs A2/A3 silent-rewrite (v0.30.0) vs NotImplementedError (main)", () => {
+  it("models block-wise FP8 on 950 vs A2/A3 silent-rewrite (v0.30.0) / error (main) vs 310P unsupported", () => {
     const a5Normal = evaluateDomain3Rules(
       { quantMethod: "fp8", hasWeightBlockSize: true, hardwareFamily: "A5", inFeatures: 4096 },
       "v0.30.0",
@@ -505,21 +505,63 @@ describe("Domain 3: Native FP8 / MXFP8 & Hybrid KV Quantization", () => {
       a5Kvb.find((m) => m.ruleId === "d3-fp8-block-950-mxfp8")?.effectiveMutation?.bytesPerElemApprox,
     ).toBe(2);
 
-    const a3V030 = evaluateDomain3Rules(
-      { quantMethod: "fp8", hasWeightBlockSize: true, hardwareFamily: "A3" },
+    for (const family of ["A2", "A3"] as const) {
+      const v030Matches = evaluateDomain3Rules(
+        { quantMethod: "fp8", hasWeightBlockSize: true, hardwareFamily: family },
+        "v0.30.0",
+      );
+      const dequantMatch = v030Matches.find((m) => m.ruleId === "d3-fp8-block-non950-bf16-v030");
+      expect(dequantMatch?.judgment).toBe("silent-rewrite");
+      expect(dequantMatch?.effectiveMutation?.resolvedWeightFormat).toBe("bfloat16");
+      expect(dequantMatch?.effectiveMutation?.bytesPerElemApprox).toBe(2);
+
+      const mainMatches = evaluateDomain3Rules(
+        { quantMethod: "fp8", hasWeightBlockSize: true, hardwareFamily: family },
+        "main",
+      );
+      expect(
+        mainMatches.some((m) => m.ruleId === "d3-fp8-block-non950-error-main" && m.judgment === "error"),
+      ).toBe(true);
+    }
+
+    // P2-1: 310P uses QuantizationBackendFamily.COMPATIBILITY (does not register AscendFp8Config; FP16 dtype),
+    // so native FP8 has no Ascend execution path and is unsupported (never silently dequantized to BF16).
+    const p310V030 = evaluateDomain3Rules(
+      { quantMethod: "fp8", hasWeightBlockSize: true, hardwareFamily: "310P" },
       "v0.30.0",
     );
-    expect(
-      a3V030.some((m) => m.ruleId === "d3-fp8-block-non950-bf16-v030" && m.judgment === "silent-rewrite"),
-    ).toBe(true);
+    expect(p310V030.some((m) => m.ruleId === "d3-fp8-block-non950-bf16-v030")).toBe(false);
+    expect(p310V030.some((m) => m.judgment === "silent-rewrite")).toBe(false);
+    const p310V030Err = p310V030.find((m) => m.ruleId === "d3-fp8-310p-unsupported");
+    expect(p310V030Err?.judgment).toBe("error");
+    expect(p310V030Err?.message).toContain("COMPATIBILITY");
+    expect(p310V030Err?.message).toContain("AscendFp8Config");
+    expect(p310V030Err?.message).toContain("FP16");
+    expect(p310V030Err?.sources).toContain("vllm-ascend@c09d3e20:vllm_ascend/platform.py#L341-L349");
+    expect(p310V030Err?.sources).toContain(
+      "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L332",
+    );
 
-    const a3Main = evaluateDomain3Rules(
-      { quantMethod: "fp8", hasWeightBlockSize: true, hardwareFamily: "A3" },
+    const p310Main = evaluateDomain3Rules(
+      { quantMethod: "fp8", hasWeightBlockSize: true, hardwareFamily: "310P" },
       "main",
     );
-    expect(a3Main.some((m) => m.ruleId === "d3-fp8-block-non950-error-main" && m.judgment === "error")).toBe(
-      true,
+    expect(p310Main.some((m) => m.ruleId === "d3-fp8-block-non950-error-main")).toBe(false);
+    const p310MainErr = p310Main.find((m) => m.ruleId === "d3-fp8-310p-unsupported");
+    expect(p310MainErr?.judgment).toBe("error");
+    expect(p310MainErr?.sources).toContain("vllm-ascend@8d6180e2:vllm_ascend/platform.py#L425-L433");
+    expect(p310MainErr?.sources).toContain(
+      "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L417-L440",
     );
+
+    // 310P rejects native FP8 via COMPATIBILITY backend even without weight_block_size or with static activation
+    const p310NoBlock = evaluateDomain3Rules(
+      { quantMethod: "fp8", hasWeightBlockSize: false, activationScheme: "static", hardwareFamily: "310P" },
+      "v0.30.0",
+    );
+    expect(p310NoBlock).toHaveLength(1);
+    expect(p310NoBlock[0]?.ruleId).toBe("d3-fp8-310p-unsupported");
+    expect(p310NoBlock[0]?.judgment).toBe("error");
   });
 
   it("validates W8A8_MIX scheme and MXFP8 C8 KV 512-multiple block_size", () => {
@@ -639,6 +681,9 @@ describe("Domain 3: Native FP8 / MXFP8 & Hybrid KV Quantization", () => {
     ).toHaveLength(0);
     expect(
       evaluateDomain3Rules({ quantMethod: "fp8", hasWeightBlockSize: true, hardwareFamily: "A5" }, "rfork"),
+    ).toHaveLength(0);
+    expect(
+      evaluateDomain3Rules({ quantMethod: "fp8", hasWeightBlockSize: true, hardwareFamily: "310P" }, "rfork"),
     ).toHaveLength(0);
     expect(
       evaluateDomain3Rules({ cacheDtype: "mxfp8", blockSize: 128, userSpecifiedBlockSize: true }, "rfork"),

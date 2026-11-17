@@ -1732,6 +1732,101 @@
       ]
     },
     {
+      "id": "ascend-model-onboarding",
+      "title": "新模型上线标准流程：五维版本锁死、活跃食谱识别与权重选型",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "在昇腾上跑通一个新模型，先锁死 vllm、vllm-ascend、CANN、torch_npu 与硬件卡型五维配套，再从 v0.30.0 的 25 篇活跃模型食谱（剔除 27 篇停服桩，注意 GLM5.md 中 GLM-5 停服而 GLM-5.1 活跃）与三路注册机制确认支持路径，最后按代际完成权重与启动配置选型。",
+      "aliases": [
+        "新模型上线",
+        "模型上线",
+        "新模型适配",
+        "五维版本锁死",
+        "版本配套",
+        "模型食谱",
+        "Model Tutorials",
+        "Supported Models",
+        "Model Onboarding",
+        "模型支持矩阵",
+        "停服模型",
+        "Discontinued Models",
+        "权重选型",
+        "ModelRegistry"
+      ],
+      "chapters": [
+        "01"
+      ],
+      "order": 3,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20:docs/source/community/versioning_policy.md#L20-L32",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/installation/supported_hardware.inc.md#L1-L6",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/installation/install_vllm_ascend.inc.md#L24-L47",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/installation/install_vllm_ascend.inc.md#L135-L166",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/support_matrix/supported_models.md#L11-L69",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.md#L1-L15",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/quantization.md#L105-L126",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/online/qwen3-0.6b-310p.inc.md#L1-L16",
+        "vllm-ascend@c09d3e20:Dockerfile#L17-L66",
+        "vllm-ascend@c09d3e20:requirements.txt#L16-L40",
+        "vllm-ascend@c09d3e20:setup.py#L141-L165",
+        "vllm-ascend@c09d3e20:setup.py#L506-L517",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware.py#L16-L76",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/device_config.py#L65-L77",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L283-L387",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L153-L160",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/__init__.py#L4-L102",
+        "vllm@ced6857a:vllm/model_executor/models/registry.py#L1318-L1423",
+        "vllm@ced6857a:vllm/config/model.py#L167-L369",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/utils.py#L140-L265",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L240",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L824-L860",
+        "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L786-L820",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/__init__.py#L1-L130",
+        "vllm@ced6857a:vllm/envs.py#L716-L719",
+        "vllm-ascend@c09d3e20:mkdocs.yml#L176-L180"
+      ],
+      "verified": [
+        "releases/v0.30.0",
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "learning-guide",
+          "kind": "builds-on",
+          "note": "先明确两条生命线与知识库导航，再按本页流程推进新模型上线"
+        },
+        {
+          "to": "hardware-devices",
+          "kind": "builds-on",
+          "note": "分清 Atlas A2/A3、310P 与 950DT 系列及软件可见设备映射，才能正确锁死第五维卡型"
+        },
+        {
+          "to": "vllm-ascend-overview",
+          "kind": "builds-on",
+          "note": "理解 vllm-ascend 作为插件通过五个扩展点接入 vLLM，才能看清模型实现由谁提供"
+        },
+        {
+          "to": "low-precision-formats",
+          "kind": "builds-on",
+          "note": "分清 BF16、INT8 W8A8、MXFP8/MXFP4 与原生分块 FP8 的加载期转换差异，避免显存估算翻倍"
+        },
+        {
+          "to": "npu-worker-lifecycle",
+          "kind": "builds-on",
+          "note": "接续上线校验之后 NPUWorker 的设备检查、模型加载后处理与显存探测流程"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-18",
+      "file": "concepts/ascend-model-onboarding.md",
+      "backlinks": []
+    },
+    {
       "id": "ascend-patch-system",
       "title": "Patch 机制：昇腾怎样在运行时换掉 vLLM 的函数和类",
       "type": "feature",
@@ -6918,7 +7013,7 @@
         {
           "from": "quantization",
           "kind": "enables",
-          "note": "专家权重和 dispatch 的 int8 载荷都出现在 MoE 这一站"
+          "note": "专家权重和 dispatch 的 int8/MXFP 载荷都出现在 MoE 这一站"
         },
         {
           "from": "rfork-identity",
@@ -7350,7 +7445,7 @@
         {
           "from": "quantization",
           "kind": "enables",
-          "note": "逐部件的文件精度与加载后精度在模型页，本页讲这些精度是怎么被选中的"
+          "note": "历史 GLM-5.3-Flash 双机部署的逐部件文件精度在模型页，本页保留该历史子表与选路规则"
         },
         {
           "from": "rope",
@@ -8183,6 +8278,11 @@
           "note": "部署前确认完整产品型号，不把芯片、卡和服务器当成同一层"
         },
         {
+          "from": "ascend-model-onboarding",
+          "kind": "enables",
+          "note": "分清 Atlas A2/A3、310P 与 950DT 系列及软件可见设备映射，才能正确锁死第五维卡型"
+        },
+        {
           "from": "cann-hccl",
           "kind": "enables",
           "note": "先认识参与计算的设备"
@@ -8330,6 +8430,96 @@
           "note": "HCCL 缓冲属于非 torch 增量，各组留多大、折合多少块在那页"
         }
       ]
+    },
+    {
+      "id": "hf-model-anatomy",
+      "title": "读懂 HuggingFace 模型目录与 config.json：从字段认清架构、显存与坑点",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "启动 vllm serve 前，拆解 HF 模型目录里的 config.json、tokenizer_config.json、safetensors 索引与 generation_config.json，对照 Qwen3-8B 与 Qwen3-30B-A3B 算清架构、权重与每 token KV 占用，并提前排查 head_dim、长度截断与量化陷阱。",
+      "aliases": [
+        "config.json",
+        "HuggingFace 模型目录",
+        "HF 模型目录",
+        "model.safetensors",
+        "model.safetensors.index.json",
+        "tokenizer_config.json",
+        "generation_config.json",
+        "safetensors",
+        "模型配置文件",
+        "权重文件结构",
+        "模型目录结构",
+        "tie_word_embeddings",
+        "architectures",
+        "model_type"
+      ],
+      "chapters": [
+        "01"
+      ],
+      "order": 15,
+      "prerequisites": [],
+      "sources": [
+        "vllm@ced6857a:docs/models/supported_models.md#L1-L80",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/support_matrix/supported_models.md#L1-L151",
+        "vllm@ced6857a:vllm/transformers_utils/config.py#L398-L416",
+        "vllm@ced6857a:vllm/transformers_utils/config.py#L757-L860",
+        "vllm@ced6857a:vllm/transformers_utils/config.py#L1138-L1182",
+        "vllm@ced6857a:vllm/transformers_utils/model_arch_config_convertor.py#L68-L216",
+        "vllm@ced6857a:vllm/transformers_utils/model_arch_config_convertor.py#L218-L265",
+        "vllm@ced6857a:vllm/config/model.py#L1130-L1157",
+        "vllm@ced6857a:vllm/config/model.py#L1258-L1340",
+        "vllm@ced6857a:vllm/config/model.py#L2277-L2367",
+        "vllm@ced6857a:vllm/config/model.py#L2393-L2505",
+        "vllm@ced6857a:vllm/model_executor/model_loader/weight_utils.py#L610-L637",
+        "vllm@ced6857a:vllm/model_executor/model_loader/default_loader.py#L180-L243",
+        "vllm@ced6857a:vllm/renderers/hf.py#L263-L315",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3.py#L99-L102",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3.py#L298-L306",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L376-L396",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/utils.py#L155-L215",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/modelslim_config.py#L109-L115",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/fp8_config.py#L26-L60",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/utils.py#L112-L139",
+        "vllm-ascend@2ed6cbba:vllm_ascend/quantization/utils.py#L112-L139",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/utils.py#L137-L168",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/modelslim_config.py#L67-L70",
+        "vllm-ascend@2ed6cbba:vllm_ascend/quantization/modelslim_config.py#L59-L62",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/configs/modelslim_config.py#L163-L166"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "request-overview",
+          "kind": "builds-on",
+          "note": "先通过请求全景理解词表、层数、隐藏维度和 KV cache 在推理中的作用，再回过头看它们在模型目录里的具体数值定义"
+        },
+        {
+          "to": "token",
+          "kind": "builds-on",
+          "note": "tokenizer.json、tokenizer_config.json 与 chat_template 如何把对话渲染并切成 token 编号，详见 token 页"
+        },
+        {
+          "to": "quantization",
+          "kind": "builds-on",
+          "note": "config.json 中的 quantization_config 与 ModelSlim 的 quant_model_description.json 在昇腾上的量化执行路径见量化页"
+        },
+        {
+          "to": "kv-cache-memory-profiling",
+          "kind": "builds-on",
+          "note": "从 config.json 读出的层数、KV 头数、head_dim 与 dtype 如何决定实际 KV 显存池大小，见显存划定页"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-18",
+      "file": "concepts/hf-model-anatomy.md",
+      "backlinks": []
     },
     {
       "id": "inference-benchmarking",
@@ -9743,6 +9933,11 @@
           "note": "启动时量剩余显存、再一次性切成 KV 块的那一步"
         },
         {
+          "from": "hf-model-anatomy",
+          "kind": "enables",
+          "note": "从 config.json 读出的层数、KV 头数、head_dim 与 dtype 如何决定实际 KV 显存池大小，见显存划定页"
+        },
+        {
           "from": "npu-worker-lifecycle",
           "kind": "enables",
           "note": "第四步量预算时每一项怎么扣、为什么试跑两次，推导在那一页"
@@ -11120,6 +11315,11 @@
       "file": "concepts/learning-guide.md",
       "backlinks": [
         {
+          "from": "ascend-model-onboarding",
+          "kind": "enables",
+          "note": "先明确两条生命线与知识库导航，再按本页流程推进新模型上线"
+        },
+        {
           "from": "concurrent-requests",
           "kind": "enables",
           "note": "阅读指南给出主线顺序，本页展开多请求时的变化"
@@ -11143,6 +11343,11 @@
           "from": "request-call-chain",
           "kind": "enables",
           "note": "阅读指南给出五页主线的顺序，本页把七站对回代码"
+        },
+        {
+          "from": "request-overview",
+          "kind": "enables",
+          "note": "承接阅读指南的第一站，在进入各块基础积木前先建立单条请求的完整心智地图"
         }
       ]
     },
@@ -11960,6 +12165,11 @@
           "note": "元素编码、分组、缩放和文件精度的唯一解释出处"
         },
         {
+          "from": "ascend-model-onboarding",
+          "kind": "enables",
+          "note": "分清 BF16、INT8 W8A8、MXFP8/MXFP4 与原生分块 FP8 的加载期转换差异，避免显存估算翻倍"
+        },
+        {
           "from": "quantization-methods",
           "kind": "enables",
           "note": "方法名不指定全部数值编码；FP8、FP4 与分组缩放由格式页解释"
@@ -12112,7 +12322,7 @@
         {
           "from": "quantization",
           "kind": "enables",
-          "note": "矩阵乘讲清 Y=XW 与权重的存法，本页讲操作数换成 8 位后多了哪两步"
+          "note": "矩阵乘讲清 Y=XW 与权重的存法，本页讲操作数换成低精度后多了哪两步"
         },
         {
           "from": "tensor-layout",
@@ -13568,6 +13778,11 @@
           "from": "ascend-config-system",
           "kind": "enables",
           "note": "Worker 初始化时建立本进程的配置状态"
+        },
+        {
+          "from": "ascend-model-onboarding",
+          "kind": "enables",
+          "note": "接续上线校验之后 NPUWorker 的设备检查、模型加载后处理与显存探测流程"
         },
         {
           "from": "enable-sleep-mode-extra-cleanup",
@@ -15747,17 +15962,22 @@
     },
     {
       "id": "quantization",
-      "title": "W8A8 量化：权重压成 INT8，算完再乘回缩放系数",
+      "title": "W8A8 与 Ascend 量化：怎样压到 8 位、按层与硬件怎么选路",
       "type": "feature",
       "origin": "direct",
-      "summary": "量化用较少位数和相应缩放表示数值。本页用 INT8 W8A8 讲缩放、零点、舍入、截断与反量化，再分清动态与静态量化，最后落到 GLM 双机：两个 8 位分别从哪来、哪些矩阵保持 BF16、缩放系数占多少字节；其他格式、算法、ND/NZ 与验收各有延伸页。",
+      "summary": "量化把权重和激活换成较少位数并保留缩放系数。本页先讲清缩放、零点、舍入、截断与反量化，以及 W8A8 矩阵乘的四步计算，再按 vllm-ascend v0.30.0 基线结合 Qwen3-8B 与 Qwen3-30B-A3B 说明显存节省、动态/静态/PD 混合（W8A8_MIX）与原生 block-wise FP8 在不同昇腾硬件上的选路差异。",
       "aliases": [
         "量化",
         "Quantization",
         "W8A8",
         "W8A8_DYNAMIC",
+        "W8A8_MIX",
+        "w8a8_pdmix",
         "INT8",
         "ModelSlim",
+        "AscendModelSlimConfig",
+        "AscendFp8Config",
+        "fp8_block",
         "quant_model_description.json",
         "动态量化",
         "静态量化",
@@ -15783,65 +16003,66 @@
       "order": 500,
       "prerequisites": [],
       "sources": [
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/quantization.md#L1-L179",
+        "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/API/aolapi/context/ops-nn/aclnnDynamicQuant.md",
         "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
-        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json",
-        "vllm-ascend@db701c1f:vllm_ascend/quantization/utils.py#L83-L214",
-        "vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L60-L70",
-        "vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L365-L470",
-        "vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L632-L736",
-        "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/registry.py#L19-L62",
-        "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L48-L152",
-        "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L155-L289",
-        "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L353-L370",
-        "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_static.py#L33-L141",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_stage_params.py#L91-L119",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L88-L229",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1235-L1300",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1540",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1541-L1680",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1881-L1963",
-        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_dynamic.py#L48-L152",
-        "vllm-ascend@2ed6cbba:vllm_ascend/quantization/methods/w8a8_dynamic.py#L47-L151",
-        "vllm-ascend@baa023ad:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L59-L127",
-        "vllm-ascend@baa023ad:vllm_ascend/quantization/configs/modelslim_config.py#L80-L90",
-        "vllm@0fc695fc:vllm/model_executor/layers/fused_moe/router/gate_linear.py#L47-L65",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2263-L2268",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2455-L2459",
-        "vllm@0fc695fc:vllm/config/model.py#L149-L215",
-        "vllm@0fc695fc:vllm/config/model.py#L996-L1096",
-        "vllm@0fc695fc:vllm/config/model.py#L1956-L2085",
-        "vllm@568afb3a:vllm/config/model.py#L2036-L2125",
-        "vllm@84030bbe:vllm/config/model.py#L2277-L2366",
-        "vllm@568afb3a:vllm/config/model.py#L149-L215",
-        "vllm@84030bbe:vllm/config/model.py#L170-L240",
-        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L140-L145",
-        "vllm-ascend@2c59ff10:vllm_ascend/quantization/utils.py#L83-L214",
-        "vllm-ascend@2ed6cbba:vllm_ascend/quantization/utils.py#L80-L214",
-        "vllm-ascend@baa023ad:vllm_ascend/quantization/utils.py#L133-L264",
-        "vllm@84030bbe:vllm/config/model.py#L1258-L1360",
-        "vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L91-L134",
-        "vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/w8a8_static.py#L89-L134",
-        "vllm-ascend@7d825229:vllm_ascend/quantization/configs/modelslim_config.py#L459-L498",
-        "vllm-ascend@7d825229:vllm_ascend/quantization/configs/modelslim_config.py#L722-L737",
-        "vllm-ascend@7d825229:vllm_ascend/quantization/configs/modelslim_config.py#L797-L837",
-        "vllm-ascend@7d825229:vllm_ascend/quantization/methods/kv_cache/mxfp_c8.py#L51-L85",
-        "vllm-ascend@7d825229:vllm_ascend/attention/attention_c8_mxfp.py#L377-L395",
-        "vllm-ascend@7d825229:vllm_ascend/attention/attention_c8_mxfp.py#L742-L745",
-        "vllm-ascend@7d825229:vllm_ascend/attention/attention_c8_mxfp.py#L875-L889",
-        "vllm-ascend@7d825229:vllm_ascend/utils.py#L1551-L1553",
         "https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/9e55cbc8e2b19e20c63b08b916d2582f25a22504/quant_model_description.json",
         "https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/3121f187149ef2defa15f2b28adad10e272681d9/quant_model_description.json",
-        "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L240-L252",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L150-L260",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L270-L339",
-        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L33-L141",
-        "vllm-ascend@2ed6cbba:vllm_ascend/quantization/methods/w8a8_static.py#L32-L126",
-        "vllm-ascend@baa023ad:vllm_ascend/quantization/methods/w8a8/w8a8_static.py#L33-L136",
-        "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/API/aolapi/context/ops-nn/aclnnDynamicQuant.md"
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L101-L108",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/utils.py#L140-L265",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/utils.py#L140-L235",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/modelslim_config.py#L108-L125",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/modelslim_config.py#L266-L355",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/modelslim_config.py#L465-L522",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/modelslim_config.py#L660-L771",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/modelslim_config.py#L816-L860",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/registry.py#L20-L62",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/fp8_config.py#L26-L144",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L17-L34",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L124-L297",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L129",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L60-L154",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L279-L300",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L407-L501",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_static.py#L33-L145",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L36-L93",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w4a8/w4a8.py#L44-L60",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w4a8/w4a8.py#L583-L600",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1444-L1515",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/kv_cache/turboquant/config.py#L15-L95",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L281-L343",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L243-L373",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L162-L287",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/dataclass/moe_quant.py#L40-L100",
+        "vllm@ced6857a:vllm/config/model.py#L170-L240",
+        "vllm@ced6857a:vllm/config/model.py#L1258-L1360",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3.py#L105-L120",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3.py#L298-L306",
+        "vllm@ced6857a:vllm/model_executor/models/qwen2.py#L81-L109",
+        "vllm@ced6857a:vllm/model_executor/models/qwen2.py#L370-L375",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L167-L213",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L279-L295",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L459-L464",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L571-L578",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L167-L229",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L295-L345",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L583-L588",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L849-L855",
+        "vllm@ced6857a:vllm/model_executor/layers/fused_moe/router/gate_linear.py#L14-L75",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_pdmix.py#L36-L90",
+        "vllm-ascend@2ed6cbba:vllm_ascend/quantization/methods/w8a8_pdmix.py#L37-L91",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_dynamic.py#L48-L152",
+        "vllm-ascend@2ed6cbba:vllm_ascend/quantization/methods/w8a8_dynamic.py#L47-L151",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L340-L349",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L425-L433",
+        "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L316-L322",
+        "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L417-L440",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/online/qwen3-0.6b-310p.inc.md#L1-L15"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -15849,17 +16070,17 @@
         {
           "to": "matmul-and-weights",
           "kind": "builds-on",
-          "note": "矩阵乘讲清 Y=XW 与权重的存法，本页讲操作数换成 8 位后多了哪两步"
+          "note": "矩阵乘讲清 Y=XW 与权重的存法，本页讲操作数换成低精度后多了哪两步"
         },
         {
           "to": "glm-5-3-flash",
           "kind": "builds-on",
-          "note": "逐部件的文件精度与加载后精度在模型页，本页讲这些精度是怎么被选中的"
+          "note": "历史 GLM-5.3-Flash 双机部署的逐部件文件精度在模型页，本页保留该历史子表与选路规则"
         },
         {
           "to": "expert-parallel",
           "kind": "builds-on",
-          "note": "专家权重和 dispatch 的 int8 载荷都出现在 MoE 这一站"
+          "note": "专家权重和 dispatch 的 int8/MXFP 载荷都出现在 MoE 这一站"
         },
         {
           "to": "cann-hccl",
@@ -15874,7 +16095,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-18",
       "file": "concepts/quantization.md",
       "backlinks": [
         {
@@ -15886,6 +16107,11 @@
           "from": "glm-5-3-flash-two-node",
           "kind": "enables",
           "note": "逐层量化配方决定所列语言权重子账，实际占用还要计视觉塔等表外项"
+        },
+        {
+          "from": "hf-model-anatomy",
+          "kind": "enables",
+          "note": "config.json 中的 quantization_config 与 ModelSlim 的 quant_model_description.json 在昇腾上的量化执行路径见量化页"
         },
         {
           "from": "kv-cache-quantization",
@@ -17191,6 +17417,79 @@
           "from": "vllm-v1-shape",
           "kind": "enables",
           "note": "每个组件落在哪个进程、从哪个函数进、走哪条通道"
+        }
+      ]
+    },
+    {
+      "id": "request-overview",
+      "title": "一次请求全景鸟瞰：从输入文字到逐词生成",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "不引入多机并行与混合模型术语，用一个 6 词词表、4 维向量的纯算术小例子，从头到尾跟完一条请求「我喜欢 → 猫。」的两轮（Prefill 与 Decode）、四件事与「Host CPU — HBM 显存 — AI Core」三块地盘的配合。",
+      "aliases": [
+        "一次请求全景鸟瞰",
+        "请求鸟瞰",
+        "推理全流程鸟瞰",
+        "request overview",
+        "两轮四件事"
+      ],
+      "chapters": [
+        "01"
+      ],
+      "order": 5,
+      "prerequisites": [],
+      "sources": [
+        "vllm@ced6857a:docs/models/supported_models.md#L1-L60",
+        "vllm@ced6857a:vllm/renderers/hf.py#L753-L840",
+        "vllm@ced6857a:vllm/tokenizers/hf.py#L115-L150",
+        "vllm@ced6857a:vllm/v1/engine/input_processor.py#L440-L545",
+        "vllm@ced6857a:vllm/v1/engine/detokenizer.py#L96-L135",
+        "vllm@ced6857a:vllm/v1/engine/core.py#L589-L620",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L573",
+        "vllm@ced6857a:vllm/v1/core/sched/utils.py#L94-L136",
+        "vllm@ced6857a:vllm/model_executor/layers/vocab_parallel_embedding.py#L510-L575",
+        "vllm@ced6857a:vllm/model_executor/layers/logits_processor.py#L58-L120",
+        "vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L485-L530",
+        "vllm@ced6857a:vllm/model_executor/layers/layernorm.py#L37-L105",
+        "vllm@ced6857a:vllm/model_executor/layers/activation.py#L116-L155",
+        "vllm@ced6857a:vllm/v1/sample/sampler.py#L244-L304",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1638-L1680",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2633-L2646",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/vocab_parallel_embedding.py#L542-L631",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351",
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L425-L436",
+        "vllm@ba15685a:vllm/v1/core/sched/scheduler.py#L721-L733",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/vocab_parallel_embedding.py#L285-L341",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ops/vocab_parallel_embedding.py#L285-L349",
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/vocab_parallel_embedding.py#L503-L592",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L1185-L1202",
+        "vllm@0fc695fc:vllm/v1/core/sched/utils.py#L94-L130",
+        "vllm@568afb3a:vllm/v1/core/sched/utils.py#L94-L130",
+        "vllm@ba15685a:vllm/v1/core/sched/utils.py#L98-L140"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "learning-guide",
+          "kind": "builds-on",
+          "note": "承接阅读指南的第一站，在进入各块基础积木前先建立单条请求的完整心智地图"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-18",
+      "file": "concepts/request-overview.md",
+      "backlinks": [
+        {
+          "from": "hf-model-anatomy",
+          "kind": "enables",
+          "note": "先通过请求全景理解词表、层数、隐藏维度和 KV cache 在推理中的作用，再回过头看它们在模型目录里的具体数值定义"
         }
       ]
     },
@@ -21125,6 +21424,11 @@
           "note": "模型输入是分词后的编号；不熟悉 token 时先了解文本如何被切分"
         },
         {
+          "from": "hf-model-anatomy",
+          "kind": "enables",
+          "note": "tokenizer.json、tokenizer_config.json 与 chat_template 如何把对话渲染并切成 token 编号，详见 token 页"
+        },
+        {
           "from": "inference-correctness-troubleshooting",
           "kind": "enables",
           "note": "核对分词器、模板与输入编号，解释同一句文字如何成为不同模型输入"
@@ -21861,6 +22165,11 @@
           "from": "api-server-entry",
           "kind": "enables",
           "note": "入口页对昇腾插件未改动请求入口的具体说明，建立在总览所述上游负责接请求、分词，昇腾负责 NPU 执行的职责边界上。"
+        },
+        {
+          "from": "ascend-model-onboarding",
+          "kind": "enables",
+          "note": "理解 vllm-ascend 作为插件通过五个扩展点接入 vLLM，才能看清模型实现由谁提供"
         },
         {
           "from": "glm-5-3-flash-baseline",

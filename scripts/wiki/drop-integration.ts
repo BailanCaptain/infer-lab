@@ -2633,42 +2633,64 @@ class DropSession {
           ) {
             budgetNav = this.sliceNavigationInventory(budgetNav, 0, lastExplicitInventoryOffset ?? 0);
           }
-          const readBytes = Math.max(
-            256,
-            Math.min(12000, Math.floor(Math.max(512, availableExtraBytes) / Math.max(1, extra.length))),
-          );
+          const convergeNegFrame = <T extends { negFrame: Record<string, unknown> }>(
+            buildWithReadBytes: (candidateReadBytes: number) => T,
+          ): T => {
+            let readBytes = Math.max(
+              16,
+              Math.min(12000, Math.floor(Math.max(16, availableExtraBytes) / Math.max(1, extra.length))),
+            );
+            let built = buildWithReadBytes(readBytes);
+            for (let pass = 0; pass < 4; pass++) {
+              const negUsedBytes = Math.max(
+                Buffer.byteLength(JSON.stringify(built.negFrame)),
+                this.serializedStdinBytes(stage, built.negFrame),
+              );
+              const negHeadroom = Math.max(0, negLimit - negUsedBytes);
+              const boundedReadBytes = Math.max(
+                16,
+                Math.min(readBytes, Math.floor(negHeadroom / Math.max(1, extra.length))),
+              );
+              if (boundedReadBytes >= readBytes || readBytes <= 16) return built;
+              readBytes = boundedReadBytes;
+              built = buildWithReadBytes(readBytes);
+            }
+            return built;
+          };
           if (this.protocol === 3) {
-            const rawNegFrame: Record<string, unknown> = {
-              ...currentFrameData,
-              protocol: this.protocol,
-              navigation: {
-                ...budgetNav,
-                budgetRequest: {
-                  reason: "本次补读组合超出预算，所请求的补充原文尚未提供；必需原文仍在 materials。",
-                  instruction:
-                    "先重新 request 实际需要的较小范围，不得直接给结论。可移除重复或无关的规则请求，但不能据此跳过必要事实与条件；确实不可拆解时保留未完成。通用写作规则已在系统规则中，完整手册只按需查对应部分。",
-                  limit: negLimit,
-                  requested: extra.map((request) => {
-                    const range = this.context.range(request);
-                    return {
-                      ...range,
-                      firstChunks: this.context
-                        .chunks(range.id, readBytes)
-                        .filter((part) => part.start < range.end && part.end > range.start)
-                        .slice(0, 8)
-                        .map(({ start, end }) => ({ start, end })),
-                    };
-                  }),
+            return convergeNegFrame((candidateReadBytes) => {
+              const rawNegFrame: Record<string, unknown> = {
+                ...currentFrameData,
+                protocol: this.protocol,
+                navigation: {
+                  ...budgetNav,
+                  budgetRequest: {
+                    reason: "本次补读组合超出预算，所请求的补充原文尚未提供；必需原文仍在 materials。",
+                    instruction:
+                      "先重新 request 实际需要的较小范围，不得直接给结论。可移除重复或无关的规则请求，但不能据此跳过必要事实与条件；确实不可拆解时保留未完成。通用写作规则已在系统规则中，完整手册只按需查对应部分。",
+                    limit: negLimit,
+                    requested: extra.map((request) => {
+                      const range = this.context.range(request);
+                      return {
+                        ...range,
+                        firstChunks: this.context
+                          .chunks(range.id, candidateReadBytes)
+                          .filter((part) => part.start < range.end && part.end > range.start)
+                          .slice(0, 8)
+                          .map(({ start, end }) => ({ start, end })),
+                      };
+                    }),
+                  },
                 },
-              },
-              ...requiredPacked,
-            };
-            const negFrame = useBaseProtocol ? rawNegFrame : fitIfNonDiscover(rawNegFrame, negLimit);
-            return { negFrame, negTurnInspected, hasUninspected: true, negProtocol, negLimit };
+                ...requiredPacked,
+              };
+              const negFrame = useBaseProtocol ? rawNegFrame : fitIfNonDiscover(rawNegFrame, negLimit);
+              return { negFrame, negTurnInspected, hasUninspected: true, negProtocol, negLimit };
+            });
           }
           const maxChunksPerItem = negLimit < 30000 ? 2 : 6;
           const missingById = new Map<string, OffsetInterval[]>();
-          const requestedDetails = extra.map((request) => {
+          const requestedMeta = extra.map((request) => {
             const range = this.context.range(request);
             const bytes = Buffer.byteLength(this.context.text(range));
             const inspected = mergeIntervals(negTurnInspected.get(range.id) ?? []);
@@ -2681,47 +2703,13 @@ class DropSession {
                 mergeIntervals([...(missingById.get(range.id) ?? []), ...missingFromCurrent]),
               );
             }
-            const sliceIntervals = (intervals: OffsetInterval[]) =>
-              intervals.flatMap((u) =>
-                this.context
-                  .chunks(range.id, readBytes)
-                  .filter((part) => part.start < u.end && part.end > u.start)
-                  .map((part) => ({
-                    start: Math.max(u.start, part.start),
-                    end: Math.min(u.end, part.end),
-                  }))
-                  .filter((part) => part.end > part.start),
-              );
-            const uninspectedChunks = sliceIntervals(uninspectedRanges);
-            const missingChunks = uninspectedChunks.length === 0 ? sliceIntervals(missingFromCurrent) : [];
-            const fallbackChunks = this.context
-              .chunks(range.id, readBytes)
-              .filter((part) => part.start < range.end && part.end > range.start)
-              .map(({ start, end }) => ({
-                start: Math.max(range.start, start),
-                end: Math.min(range.end, end),
-              }));
-            const chosenChunks =
-              uninspectedChunks.length > 0
-                ? uninspectedChunks
-                : missingChunks.length > 0
-                  ? missingChunks
-                  : fallbackChunks;
-            return {
-              id: range.id,
-              start: range.start,
-              end: range.end,
-              bytes,
-              ...(alreadyInspectedRanges.length > 0 ? { alreadyInspectedRanges } : {}),
-              uninspectedRanges,
-              firstChunks: chosenChunks.slice(0, maxChunksPerItem),
-            };
+            return { range, bytes, alreadyInspectedRanges, uninspectedRanges, missingFromCurrent };
           });
           const seenSuggestIds = new Set<string>();
-          const uninspectedTargets = requestedDetails
+          const uninspectedTargets = requestedMeta
             .filter((item) => {
-              if (!item.uninspectedRanges.length || seenSuggestIds.has(item.id)) return false;
-              seenSuggestIds.add(item.id);
+              if (!item.uninspectedRanges.length || seenSuggestIds.has(item.range.id)) return false;
+              seenSuggestIds.add(item.range.id);
               return true;
             })
             .slice(0, 3);
@@ -2729,7 +2717,7 @@ class DropSession {
           const activeTargets: { id: string; range: OffsetInterval }[] = [];
           if (uninspectedTargets.length > 0) {
             for (const target of uninspectedTargets) {
-              activeTargets.push({ id: target.id, range: target.uninspectedRanges[0]! });
+              activeTargets.push({ id: target.range.id, range: target.uninspectedRanges[0]! });
             }
           } else {
             const seenRereadIds = new Set<string>();
@@ -2746,12 +2734,12 @@ class DropSession {
                 }
               }
             }
-            for (const item of requestedDetails) {
+            for (const item of requestedMeta) {
               if (activeTargets.length >= 3) break;
-              const rem = missingById.get(item.id);
-              if (!rem?.length || seenRereadIds.has(item.id)) continue;
-              seenRereadIds.add(item.id);
-              activeTargets.push({ id: item.id, range: rem[0]! });
+              const rem = missingById.get(item.range.id);
+              if (!rem?.length || seenRereadIds.has(item.range.id)) continue;
+              seenRereadIds.add(item.range.id);
+              activeTargets.push({ id: item.range.id, range: rem[0]! });
             }
           }
           const suggestedBatch: { id: string; start: number; end: number }[] = [];
@@ -2854,24 +2842,66 @@ class DropSession {
             : uninspectedTargets.length > 0
               ? "先重新 request 实际需要的较小未读范围（可直接采用 suggestedBatch 或从 uninspectedRanges 分批请求），不得跳过未核原文直接给结论，也不要无故重复请求已核实的大段范围；可省略 plans/catalog 等非必需导航字段以留出原文预算。确实不可拆解时保留未完成。"
               : "所请求补充范围虽在本任务前序轮次提供过（uninspectedRanges 为空），但未保留在本次 materials 中；本阶段无跨轮暂存结论契约，历史已读不能替代本轮原文证据，不得直接给结论。请重新 request 可装入单次预算的较小范围（可直接采用 suggestedBatch 或按 firstChunks 分批请求，也可省略 plans/catalog 等非必需导航字段腾出预算）。";
-          const rawNegFrame: Record<string, unknown> = {
-            ...currentFrameData,
-            protocol: this.protocol,
-            navigation: {
-              ...budgetNav,
-              budgetRequest: {
-                reason: "本次补读组合超出预算，所请求的补充原文尚未提供；必需原文仍在 materials。",
-                instruction,
-                limit: negLimit,
-                availableExtraBytes,
-                suggestedBatch,
-                requested: requestedDetails,
+          return convergeNegFrame((candidateReadBytes) => {
+            const requestedDetails = requestedMeta.map((meta) => {
+              const sliceIntervals = (intervals: OffsetInterval[]) =>
+                intervals.flatMap((u) =>
+                  this.context
+                    .chunks(meta.range.id, candidateReadBytes)
+                    .filter((part) => part.start < u.end && part.end > u.start)
+                    .map((part) => ({
+                      start: Math.max(u.start, part.start),
+                      end: Math.min(u.end, part.end),
+                    }))
+                    .filter((part) => part.end > part.start),
+                );
+              const uninspectedChunks = sliceIntervals(meta.uninspectedRanges);
+              const missingChunks =
+                uninspectedChunks.length === 0 ? sliceIntervals(meta.missingFromCurrent) : [];
+              const fallbackChunks = this.context
+                .chunks(meta.range.id, candidateReadBytes)
+                .filter((part) => part.start < meta.range.end && part.end > meta.range.start)
+                .map(({ start, end }) => ({
+                  start: Math.max(meta.range.start, start),
+                  end: Math.min(meta.range.end, end),
+                }));
+              const chosenChunks =
+                uninspectedChunks.length > 0
+                  ? uninspectedChunks
+                  : missingChunks.length > 0
+                    ? missingChunks
+                    : fallbackChunks;
+              return {
+                id: meta.range.id,
+                start: meta.range.start,
+                end: meta.range.end,
+                bytes: meta.bytes,
+                ...(meta.alreadyInspectedRanges.length > 0
+                  ? { alreadyInspectedRanges: meta.alreadyInspectedRanges }
+                  : {}),
+                uninspectedRanges: meta.uninspectedRanges,
+                firstChunks: chosenChunks.slice(0, maxChunksPerItem),
+              };
+            });
+            const rawNegFrame: Record<string, unknown> = {
+              ...currentFrameData,
+              protocol: this.protocol,
+              navigation: {
+                ...budgetNav,
+                budgetRequest: {
+                  reason: "本次补读组合超出预算，所请求的补充原文尚未提供；必需原文仍在 materials。",
+                  instruction,
+                  limit: negLimit,
+                  availableExtraBytes,
+                  suggestedBatch,
+                  requested: requestedDetails,
+                },
               },
-            },
-            ...requiredPacked,
-          };
-          const negFrame = fitIfNonDiscover(rawNegFrame, useBaseProtocol ? nextEvidenceLimit : negLimit);
-          return { negFrame, negTurnInspected, hasUninspected, negProtocol, negLimit };
+              ...requiredPacked,
+            };
+            const negFrame = fitIfNonDiscover(rawNegFrame, useBaseProtocol ? nextEvidenceLimit : negLimit);
+            return { negFrame, negTurnInspected, hasUninspected, negProtocol, negLimit };
+          });
         };
         if (extra.length === 0) {
           const normalLvl = pickNavCompactLevel(

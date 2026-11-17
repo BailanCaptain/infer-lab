@@ -1,0 +1,39 @@
+layout: figure
+id: learning-guide-route
+caption: 从上往下先读左列的「一次请求鸟瞰」与「单卡基础积木」，再依次读完五步双机主线。右列是每一步对应展开的分组；底部三组随时按需查阅。部署页在「分布式推理与部署」，代码路径页在「vLLM 与 Ascend 架构」。
+size: [642, 760]
+items:
+  - { at: [20, 48], size: [256, 56], text: 一次请求全景鸟瞰, sub: 6 词 4 维纯算术走完两轮四件事, tone: token, style: solid }
+  - { at: [20, 132], size: [256, 58], text: 单卡基础积木, sub: 词元、向量、单层、注意力与 KV 缓存, tone: token, style: solid }
+  - { at: [20, 218], size: [256, 56], text: 1 认识模型, sub: GLM-5.3-Flash 模型总装, tone: control, style: solid }
+  - { at: [20, 302], size: [256, 62], text: 2 我们的部署, sub: 16 张卡怎么放, tone: control, style: solid }
+  - { at: [20, 392], size: [256, 62], text: 3 一条请求, sub: 双机走完七站, tone: control, style: solid }
+  - { at: [20, 482], size: [256, 58], text: 4 多个请求, sub: 一步装下多条, tone: control, style: solid }
+  - { at: [20, 568], size: [256, 58], text: 5 代码路径, sub: 停在哪一站, tone: control, style: solid }
+  - { at: [326, 48], size: [296, 56], text: 开始学习, sub: 阅读路线与一次请求全景鸟瞰, tone: ink, style: plain }
+  - { at: [326, 132], size: [296, 58], text: 模型结构与推理过程（前半）, sub: token / embedding / 层 / attention / KV, tone: ink, style: plain }
+  - { at: [326, 218], size: [296, 56], text: 模型结构与计算（收尾总装）, sub: MoE、MLA、稀疏与线性注意力, tone: ink, style: plain }
+  - { at: [326, 302], size: [296, 62], text: 分布式推理与部署, sub: Ascend 硬件与软件栈, tone: ink, style: plain }
+  - { at: [326, 392], size: [296, 62], text: 推理过程：调度与 decode, sub: 服务能力：输出的约束, tone: ink, style: plain }
+  - { at: [326, 482], size: [296, 58], text: 性能与工程优化, sub: 图尺寸、耗时与问题分析, tone: ink, style: plain }
+  - { at: [326, 568], size: [296, 58], text: vLLM 与 Ascend 架构, sub: 谁在执行，怎样接力, tone: ink, style: plain }
+  - { at: [20, 674], size: [188, 60], text: RFork 工作版, sub: 只动加载权重那步, tone: ink, style: faded }
+  - { at: [227, 674], size: [188, 60], text: 参数参考, sub: 查定义与默认值, tone: ink, style: faded }
+  - { at: [434, 674], size: [188, 60], text: 来源与更新记录, sub: 核对一手依据, tone: ink, style: faded }
+links:
+  - { from: [148, 104], to: [148, 132] }
+  - { from: [148, 190], to: [148, 218] }
+  - { from: [148, 274], to: [148, 302] }
+  - { from: [148, 364], to: [148, 392] }
+  - { from: [148, 454], to: [148, 482] }
+  - { from: [148, 540], to: [148, 568] }
+  - { from: [276, 76], to: [326, 76], dashed: true }
+  - { from: [276, 161], to: [326, 161], dashed: true }
+  - { from: [276, 246], to: [326, 246], dashed: true }
+  - { from: [276, 333], to: [326, 333], dashed: true }
+  - { from: [276, 423], to: [326, 423], dashed: true }
+  - { from: [276, 511], to: [326, 511], dashed: true }
+  - { from: [276, 597], to: [326, 597], dashed: true }
+texts:
+  - { at: [321, 24], text: 本页是入口：先沿左列从鸟瞰与单卡积木读起，再走完五步双机主线, anchor: middle, strong: true }
+  - { at: [321, 656], text: 以下三组随时按需查阅, anchor: middle, size: 14 }

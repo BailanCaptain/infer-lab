@@ -1,0 +1,45 @@
+layout: figure
+id: request-overview-four-steps
+caption: 示意：提示词「我喜欢」走两轮前向生成「猫。」。第 1 轮（预填充）一次算完 2 个提示词位置并把各层 K、V 写入键值缓存，直接从最后一行 h₁ 打分选出第 1 个输出词 3 号「猫」；第 2 轮（逐词生成）只送入位置 2 的 3 号「猫」，读取缓存并选出第 2 个词 5 号「。」，满 2 词上限停止。词表与向量均为教学设定。
+size: [880, 410]
+frames:
+  - { label: '第 1 轮（预填充）：一次算完提示词 2 个位置，最后一行直接选出第 1 个输出词', at: [20, 46], size: [840, 122] }
+  - { label: '第 2 轮（逐词生成）', at: [20, 276], size: [840, 122] }
+items:
+  - { at: [36, 70], size: [182, 62], text: 切词并查向量, sub: '「我喜欢」→ [0, 2]', tone: token, style: solid }
+  - { at: [244, 70], size: [182, 62], text: 逐层看前文, sub: '写下 k₀, k₁, v₀, v₁', tone: weight, style: solid }
+  - { at: [452, 70], size: [182, 62], text: 最后一行打分, sub: 'h₁ 选出 3 号「猫」', tone: token, style: solid }
+  - { at: [660, 70], size: [182, 62], text: 判继续并转文字, sub: '第 1 词「猫」< 2 词', tone: control, style: plain }
+  - { at: [215, 188], size: [240, 48], text: 键值缓存（跨轮保留历史）, sub: '已存位置 0、1 的 k 与 v', tone: kv, style: solid }
+  - { at: [36, 304], size: [182, 62], text: 新位置查向量, sub: '只送位置 2：3 号「猫」', tone: token, style: solid }
+  - { at: [244, 304], size: [182, 62], text: 读缓存算新位置, sub: '读旧 k, v 并追加 k₂, v₂', tone: weight, style: solid }
+  - { at: [452, 304], size: [182, 62], text: 输出头打分选词, sub: 'h₂ 选出 5 号「。」', tone: token, style: solid }
+  - { at: [660, 304], size: [182, 62], text: 满 2 词上限停止, sub: '还原「。」返回「猫。」', tone: control, style: plain }
+badges:
+  - { at: [36, 70], n: 1, tone: token }
+  - { at: [244, 70], n: 2, tone: weight }
+  - { at: [452, 70], n: 3, tone: token }
+  - { at: [660, 70], n: 4, tone: control }
+  - { at: [36, 304], n: 1, tone: token }
+  - { at: [244, 304], n: 2, tone: weight }
+  - { at: [452, 304], n: 3, tone: token }
+  - { at: [660, 304], n: 4, tone: control }
+texts:
+  - { at: [460, 152], text: 无需再跑一轮即可拿到第 1 个输出词, note: true, size: 12.5 }
+  - { at: [536, 204], text: '3 号「猫」作为第 2 轮输入', tone: token, strong: true }
+  - { at: [460, 386], text: 只送入刚选出的 3 号「猫」1 个新位置，直接复用键值缓存, note: true, size: 12.5 }
+links:
+  - { from: [218, 101], to: [244, 101], tone: token }
+  - { from: [426, 101], to: [452, 101], tone: weight }
+  - { from: [634, 101], to: [660, 101], tone: token }
+  - { from: [335, 132], to: [335, 188], tone: kv }
+  - { from: [335, 236], to: [335, 304], tone: kv }
+  - { from: [751, 132], to: [202, 304], via: [[751, 212], [510, 212], [510, 244], [202, 244]], tone: token, dashed: true }
+  - { from: [218, 335], to: [244, 335], tone: token }
+  - { from: [426, 335], to: [452, 335], tone: weight }
+  - { from: [634, 335], to: [660, 335], tone: token }
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472'
+    symbols: ['step', 'execute_model']
+  - source: 'vllm@0fc695fc:vllm/v1/core/sched/utils.py#L94-L117'
+    symbols: ['check_stop', 'max_tokens']

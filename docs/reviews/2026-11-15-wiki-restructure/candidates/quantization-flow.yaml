@@ -1,0 +1,46 @@
+layout: figure
+id: quantization-flow
+caption: GLM 双机决定每层精度的两道门：上段为第一道门（glm5_next.py 建层是否传入 quant_config），KDA 九投影、索引器 K/打分投影与嵌入表不传量化配置保持 BF16，MoE router GateLinear 写死按 FP32 建权重与算分，均不查描述文件；下段为第二道门，接了量化配置的层按前缀查 quant_model_description.json，分流为 FLOAT 未量化 BF16、W8A8_DYNAMIC Linear（稠密 MLP、共享专家及 3121f187 主 MLA 四投影）与 W8A8_DYNAMIC FusedMoE（路由专家）三路。
+size: [888, 436]
+dividers:
+  - { from: [20, 176], to: [864, 176], sides: [第一道门：模型代码建层, 第二道门：量化描述文件查表] }
+items:
+  - { at: [20, 58], size: [216, 62], text: 模型代码建层, sub: glm5_next.py 逐层建模块, tone: control, style: solid }
+  - { at: [284, 24], size: [280, 56], text: "未传量化配置：保持 BF16", sub: KDA 九投影 · 索引器 K/打分 · 嵌入表, tone: token, style: plain }
+  - { at: [284, 96], size: [280, 56], text: "Router GateLinear：固定 FP32", sub: 写死不接量化，按 FP32 建权重与算分, tone: ink, style: plain }
+  - { at: [608, 48], size: [256, 76], text: 不查量化描述文件, sub: 与 JSON 配方无关，直接走浮点实现, tone: token, style: faded }
+  - { at: [20, 262], size: [216, 68], text: 接量化配置的层, sub: 建层传入量化配置, tone: control, style: solid }
+  - { at: [284, 208], size: [280, 58], text: "标 FLOAT（或 Embedding 缺键）", sub: 词表头 · KV 展开 · 9e55cbc8 主 MLA, tone: token, style: plain }
+  - { at: [608, 208], size: [256, 58], text: 未量化 BF16 方法, sub: 跳过 INT8，按部署浮点类型执行, tone: token, style: faded }
+  - { at: [284, 280], size: [280, 60], text: "标 W8A8_DYNAMIC · Linear", sub: 稠密 MLP · 共享专家 · 3121f187 主 MLA, tone: weight, style: plain }
+  - { at: [608, 280], size: [256, 60], text: 动态 W8A8 Linear 方法, sub: 按行现算 scale，做整数矩阵乘, tone: weight, style: solid }
+  - { at: [284, 354], size: [280, 62], text: "标 W8A8_DYNAMIC · FusedMoE", sub: 42 层路由专家（每层 288 个）, tone: weight, style: plain }
+  - { at: [608, 354], size: [256, 62], text: 动态 W8A8 MoE 方法, sub: 路由专家分组整数矩阵乘，回 BF16, tone: weight, style: solid }
+links:
+  - { from: [236, 74], to: [284, 52], via: [[260, 74], [260, 52]] }
+  - { from: [236, 104], to: [284, 124], via: [[260, 104], [260, 124]] }
+  - { from: [564, 52], to: [608, 72], via: [[586, 52], [586, 72]] }
+  - { from: [564, 124], to: [608, 100], via: [[586, 124], [586, 100]] }
+  - { from: [236, 280], to: [284, 237], via: [[260, 280], [260, 237]] }
+  - { from: [236, 296], to: [284, 310], via: [[260, 296], [260, 310]] }
+  - { from: [236, 312], to: [284, 385], via: [[260, 312], [260, 385]] }
+  - { from: [564, 237], to: [608, 237] }
+  - { from: [564, 310], to: [608, 310] }
+  - { from: [564, 385], to: [608, 385] }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1540
+    symbols: [AscendGlm5NextMLP, FusedMoE]
+  - source: vllm@0fc695fc:vllm/model_executor/layers/fused_moe/router/gate_linear.py#L47-L65
+    symbols: [GateLinear]
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L60-L70
+    symbols: [MODELSLIM_CONFIG_FILENAME]
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L709-L736
+    symbols: [is_layer_skipped_ascend]
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L662-L707
+    symbols: [get_quant_method, UnquantizedEmbeddingMethod]
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L364-L398
+    symbols: [get_linear_quant_type]
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/methods/registry.py#L19-L62
+    symbols: [get_scheme_class]
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L125
+    symbols: [npu_quant_matmul]

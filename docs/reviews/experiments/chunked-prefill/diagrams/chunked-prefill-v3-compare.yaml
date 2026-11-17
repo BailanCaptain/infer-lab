@@ -1,0 +1,89 @@
+layout: figure
+id: chunked-prefill-v3-compare
+caption: 示意对比：A、B 已在逐字生成（每步各 1 个位置），新请求 C 带着 14 个位置的提示词到达。上方不分块时，同一步要硬算 16 个位置，A、B 被迫陪等整步结束；下方把每步位置预算封在 8 个，C 按 6、6、2 分三步读完提示词、跨步沿用已存历史，前两步采样丢弃、第 3 步末才选出首个输出 y₀，而 A、B 四步里一步未停。
+size: [880, 544]
+grids:
+  - at: [24, 138]
+    rows: 1
+    cols: 14
+    cell: [38, 34]
+    gap: 0
+    tone: control
+    style: faded
+    cells:
+      - { at: [0, 0], text: "0" }
+      - { at: [0, 1], text: "1" }
+      - { at: [0, 2], text: "2" }
+      - { at: [0, 3], text: "3" }
+      - { at: [0, 4], text: "4" }
+      - { at: [0, 5], text: "5" }
+      - { at: [0, 6], text: "6" }
+      - { at: [0, 7], text: "7" }
+      - { at: [0, 8], text: "8" }
+      - { at: [0, 9], text: "9" }
+      - { at: [0, 10], text: "10" }
+      - { at: [0, 11], text: "11" }
+      - { at: [0, 12], text: "12" }
+      - { at: [0, 13], text: "13" }
+brackets:
+  - { from: 24, to: 252, y: 180, label: 第 1 步（6） }
+  - { from: 252, to: 480, y: 180, label: 第 2 步（6） }
+  - { from: 480, to: 556, y: 180, label: 第 3 步（2） }
+items:
+  - { at: [560, 34], size: [296, 48], text: A、B 被迫等满 16 个位置, sub: 同批一起结束才拿到下一个字, tone: danger }
+  - { at: [604, 132], size: [252, 46], text: 第 3 步末选出 y₀, sub: 前两步采样结果直接丢弃, tone: token }
+links:
+  - { from: [536, 58], to: [560, 58], tone: danger }
+  - { from: [556, 155], to: [604, 155], tone: token }
+bars:
+  - at: [24, 40]
+    h: 36
+    scale: 32
+    segments:
+      - { value: 1, tone: token, text: A }
+      - { value: 1, tone: token, text: B }
+      - { value: 14, tone: danger, text: C 整段提示词 0–13（14 个位置） }
+  - at: [24, 264]
+    h: 36
+    scale: 48
+    frame: { value: 8, label: 每步预算 8 个位置, tone: control }
+    segments:
+      - { value: 1, tone: token, text: A }
+      - { value: 1, tone: token, text: B }
+      - { value: 6, tone: control, text: C 的位置 0–5 }
+  - at: [24, 336]
+    h: 36
+    scale: 48
+    frame: { value: 8, tone: control }
+    segments:
+      - { value: 1, tone: token, text: A }
+      - { value: 1, tone: token, text: B }
+      - { value: 6, tone: control, text: C 的位置 6–11 }
+  - at: [24, 408]
+    h: 36
+    scale: 48
+    frame: { value: 8, tone: control }
+    segments:
+      - { value: 1, tone: token, text: A }
+      - { value: 1, tone: token, text: B }
+      - { value: 2, tone: control, text: "C 12–13" }
+  - at: [24, 480]
+    h: 36
+    scale: 48
+    frame: { value: 8, tone: control }
+    segments:
+      - { value: 1, tone: token, text: A }
+      - { value: 1, tone: token, text: B }
+      - { value: 1, tone: token, text: C }
+texts:
+  - { at: [24, 26], text: 不分块：C 整段挤进同一步, strong: true }
+  - { at: [24, 122], text: 分块：C 按 6 + 6 + 2 分三步, strong: true }
+  - { at: [432, 287], text: 第 1 步：算 0–5 存历史，采样丢弃 }
+  - { at: [432, 359], text: 第 2 步：读 0–11 接着算，采样丢弃 }
+  - { at: [432, 431], text: 第 3 步：读 0–13，产出首字 y₀ }
+  - { at: [432, 503], text: 第 4 步：送入 y₀，三条一起续写 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L678-L700
+    symbols: [num_computed_tokens, token_budget, enable_chunked_prefill]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L997-L1019
+    symbols: [num_computed_tokens, is_prefill_chunk]

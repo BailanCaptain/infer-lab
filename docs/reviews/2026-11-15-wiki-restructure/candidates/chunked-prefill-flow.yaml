@@ -1,0 +1,37 @@
+layout: figure
+id: chunked-prefill-flow
+caption: 以请求 C 的第 2 段（位置 6–11）为例看一段提示词怎样走完一步：第 2 站调度器按 min(还差 8, 余量 6) 排入 6 个位置，先保存步前计划再把已算数从 6 推到 12（标记提示词未完）；第 3 站准备输入仍按步前已算数 6 编出位置号 6–11、查块表槽位，并给整批贴分块预填充标签，随后把完整输入送入第 4 站前向（普通注意力读旧 KV、写新 KV；线性注意力接上一段状态、写回新状态）；前向完成后统一汇入第 5 站采样——未追平提示词长度（本例第 2 段末 12 < 14）时丢弃本次采样并回拨带种子随机数，追平时（如第 3 段末 14 == 14）交付首个输出词元 y₀。
+size: [896, 424]
+dividers:
+  - { from: [20, 198], to: [876, 198], sides: [第 2–4 站：按步前位置续接历史并前向, 第 5 站：段末采样分流] }
+items:
+  - { at: [20, 32], size: [264, 62], text: 第 2 站 调度：切出本段长度, sub: "本步排 6 个位置：min(还差 8, 余量 6)", tone: control, style: solid }
+  - { at: [20, 114], size: [264, 62], text: 先存步前计划，再把已算推到步末, sub: "步前 6 交给第 3 站；已算 6 → 12", tone: control, style: plain }
+  - { at: [324, 32], size: [264, 62], text: 第 3 站 准备输入：位置与格号, sub: "仍从步前 6 编位置 6–11，查块表槽位", tone: kv, style: solid }
+  - { at: [324, 114], size: [264, 62], text: 给整批贴执行标签, sub: "混批或续算前文：贴分块预填充标签", tone: kv, style: plain }
+  - { at: [628, 32], size: [236, 62], text: 第 4 站 前向（普通注意力）, sub: "读 0–5 旧 KV，写 6–11 新 KV", tone: kv, style: plain }
+  - { at: [628, 114], size: [236, 62], text: 第 4 站 前向（线性注意力）, sub: "接上一段状态，写回本段新状态", tone: kv, style: plain }
+  - { at: [324, 236], size: [264, 58], text: 第 5 站 采样：段末位置选一次, sub: "检查已算数是否追平提示词长度", tone: control, style: solid }
+  - { at: [20, 332], size: [396, 66], text: "未追平（本例第 2 段末：12 < 14）", sub: "丢弃本次采样，回拨带种子随机数，下一步从 12 续排", tone: danger, style: faded }
+  - { at: [472, 332], size: [396, 66], text: "已追平（如第 3 段末：14 == 14）", sub: "交付首个输出词元 y₀，下一步起转入 decode", tone: token, style: solid }
+links:
+  - { from: [152, 94], to: [152, 114] }
+  - { from: [284, 145], to: [324, 63], via: [[304, 145], [304, 63]] }
+  - { from: [456, 94], to: [456, 114] }
+  - { from: [588, 145], to: [628, 63], via: [[608, 145], [608, 63]] }
+  - { from: [588, 145], to: [628, 145] }
+  - { from: [864, 63], to: [456, 236], via: [[880, 63], [880, 216], [456, 216]] }
+  - { from: [864, 145], to: [456, 236], via: [[880, 145], [880, 216], [456, 216]] }
+  - { from: [324, 265], to: [218, 332], via: [[218, 265]] }
+  - { from: [588, 265], to: [670, 332], via: [[670, 265]] }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L678-L700
+    symbols: [num_computed_tokens, token_budget, enable_chunked_prefill]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L997-L1019
+    symbols: [num_computed_tokens, is_prefill_chunk]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L858-L867
+    symbols: [num_computed_tokens_cpu, positions_np]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1444-L1470
+    symbols: [_build_attn_state, ChunkedPrefill]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1078-L1099
+    symbols: [discard_requests_mask, discard_request_indices]

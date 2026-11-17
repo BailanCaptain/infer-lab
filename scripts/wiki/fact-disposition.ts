@@ -406,7 +406,7 @@ export function resolveSectionByAnchor(
 ): { exists: boolean; text: string; resolvedSlug?: string } {
   const direct = sliceHeadingSection(activeBody, anchor);
   if (direct.exists) return { ...direct, resolvedSlug: anchor };
-  const mapped = legacyAnchors?.[anchor];
+  const mapped = legacyAnchors && Object.hasOwn(legacyAnchors, anchor) ? legacyAnchors[anchor] : undefined;
   if (!mapped) return { exists: false, text: "" };
   const headingSlugs = collectHeadingSlugs(activeBody);
   const resolved = resolveLegacyAnchorTarget(mapped, headingSlugs);

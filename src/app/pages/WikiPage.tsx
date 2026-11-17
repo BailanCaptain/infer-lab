@@ -144,7 +144,11 @@ export function WikiPage() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { pages, revision, mode, diagrams, skipped } = useSyncExternalStore(subscribeReader, getReaderState);
+  const { pages, revision, mode, diagrams, skipped } = useSyncExternalStore(
+    subscribeReader,
+    getReaderState,
+    getReaderState,
+  );
   const canonicalId = id ? resolveCanonicalPageId(pages, id, skipped) : undefined;
   const activeId = canonicalId ?? id;
   useLayoutEffect(() => {
@@ -189,7 +193,7 @@ export function WikiPage() {
       }),
     [activeId, evidenceController, registerWikiHost],
   );
-  const desktop = useSyncExternalStore(subscribeDirectory, desktopDirectory);
+  const desktop = useSyncExternalStore(subscribeDirectory, desktopDirectory, () => true);
   const [prevDesktop, setPrevDesktop] = useState(desktop);
   if (desktop !== prevDesktop) {
     const nextDrawer = resolveDirectoryDrawerState({ desktop: prevDesktop, directoryOpen }, desktop);

@@ -812,6 +812,26 @@ describe("legacy-anchor & invalid-wiki-tool：阻塞级门禁", () => {
       "## 概述\n\n跨页引用 [b](b.md#旧标题)。\n",
     );
     expect(lintPages([caller, target], opts)).toEqual([]);
+
+    const sceneTarget = mk(
+      "a",
+      {
+        legacyAnchors: { "old-anim": "scene-token-flow" },
+      } as Partial<WikiPage["fm"]>,
+      "## 动画\n\n```wiki-scene\ntoken-flow\n```\n",
+    );
+    const sceneTargetErrors = splitProblems(lintPages([sceneTarget], opts)).errors;
+    expect(sceneTargetErrors.some((p) => p.rule === "legacy-anchor")).toBe(true);
+
+    const sceneCollide = mk(
+      "a",
+      {
+        legacyAnchors: { "scene-token-flow": "动画" },
+      } as Partial<WikiPage["fm"]>,
+      "## 动画\n\n```wiki-scene\ntoken-flow\n```\n",
+    );
+    const sceneCollideErrors = splitProblems(lintPages([sceneCollide], opts)).errors;
+    expect(sceneCollideErrors.some((p) => p.rule === "legacy-anchor")).toBe(true);
   });
 
   it("wiki-tool 围栏校验：未知工具、非法 mode 与空围栏作为阻塞级 invalid-wiki-tool 报错，合法围栏放行", () => {

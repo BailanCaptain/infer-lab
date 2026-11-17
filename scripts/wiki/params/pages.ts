@@ -73,8 +73,16 @@ export function recoverPinnedGitEntry(
   if (!repoDir || !pinned.definition) return { status: "unavailable" };
   const list = Array.isArray(sources) ? sources : [];
   const source = list[pinned.definition.citationIndex - 1];
-  const ref = typeof source === "string" && /^[^@]+@([a-f0-9]{7,40}):([^#]+)#L(\d+)(?:-L\d+)?$/.exec(source);
-  if (!ref || ref[2] !== pinned.definition.file || Number(ref[3]) !== pinned.definition.line) {
+  const ref =
+    typeof source === "string" && /^[^@]+@([a-f0-9]{7,40}):([^#]+)#L(\d+)(?:-L(\d+))?$/.exec(source);
+  const startLine = ref ? Number(ref[3]) : NaN;
+  const endLine = ref ? Number(ref[4] ?? ref[3]) : NaN;
+  if (
+    !ref ||
+    ref[2] !== pinned.definition.file ||
+    pinned.definition.line < startLine ||
+    pinned.definition.line > endLine
+  ) {
     return { status: "not_found_in_blob" };
   }
   const entries = scanPinnedGitBlob(repoDir, ref[1]!, ref[2]!);
@@ -100,8 +108,17 @@ export function matchesConfirmedParamDefinition(
   }
   const sourceList = Array.isArray(sources) ? sources : [];
   const cited = sourceList[pinned.definition.citationIndex - 1];
-  const ref = typeof cited === "string" && /^([^@]+)@([a-f0-9]{7,40}):([^#]+)#L(\d+)(?:-L\d+)?$/.exec(cited);
-  if (!ref || ref[1] !== repo || ref[3] !== entry.file || Number(ref[4]) !== pinned.definition.line) {
+  const ref =
+    typeof cited === "string" && /^([^@]+)@([a-f0-9]{7,40}):([^#]+)#L(\d+)(?:-L(\d+))?$/.exec(cited);
+  const startLine = ref ? Number(ref[4]) : NaN;
+  const endLine = ref ? Number(ref[5] ?? ref[4]) : NaN;
+  if (
+    !ref ||
+    ref[1] !== repo ||
+    ref[3] !== entry.file ||
+    pinned.definition.line < startLine ||
+    pinned.definition.line > endLine
+  ) {
     return false;
   }
   if (commit && pinned.commit && pinned.commit === commit && pinned.definition.line !== entry.line) {

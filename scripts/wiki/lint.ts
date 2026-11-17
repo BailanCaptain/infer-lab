@@ -101,6 +101,8 @@ function linkTargets(page: WikiPage): string[] {
 interface RenderedBody {
   /** 阅读页上这段正文里能跳到的 id（标题 id，以及管线渲染出的其它 id） */
   ids: Set<string>;
+  /** 仅包含标题元素（h1..h6）的 id（用于 legacyAnchors 目标校验，与 rehypeLegacyAnchors 的 HEADING_TAGS 一致） */
+  headingIds: Set<string>;
   /** 渲染出来的每个链接：href 与它在正文里的行号（1 起） */
   links: { href: string; line: number }[];
 }
@@ -146,17 +148,19 @@ function renderBody(body: string, legacyAnchors?: Readonly<Record<string, string
       body,
     ),
   );
-  const ids = new Set(
-    [...html.matchAll(/\sid="([^"]*)"/g)].map((m) =>
-      (m[1] ?? "").replace(/&(amp|lt|gt|quot|#x27|#39);/g, (all, e: string) => HTML_ENTITIES[e] ?? all),
-    ),
+  const decodeId = (raw: string) =>
+    raw.replace(/&(amp|lt|gt|quot|#x27|#39);/g, (all, e: string) => HTML_ENTITIES[e] ?? all);
+  const ids = new Set([...html.matchAll(/\sid="([^"]*)"/g)].map((m) => decodeId(m[1] ?? "")));
+  const headingIds = new Set(
+    [...html.matchAll(/<h[1-6]\b[^>]*\sid="([^"]*)"/g)].map((m) => decodeId(m[1] ?? "")),
   );
-  return { ids, links };
+  return { ids, headingIds, links };
 }
 
 function legacyAnchorProblems(
   page: WikiPage,
   baseIds: ReadonlySet<string>,
+  headingIds: ReadonlySet<string>,
 ): { problems: PageProblem[]; validKeys: Record<string, string> } {
   const problems: PageProblem[] = [];
   const validKeys: Record<string, string> = {};
@@ -187,11 +191,11 @@ function legacyAnchorProblems(
       });
       continue;
     }
-    if (!resolveLegacyAnchorTarget(trimmed, baseIds)) {
+    if (!resolveLegacyAnchorTarget(trimmed, headingIds)) {
       problems.push({
         file: page.file,
         rule: "legacy-anchor",
-        message: `legacyAnchors 映射 #${oldSlug} → 「${trimmed}」在当前页找不到目标标题或锚点`,
+        message: `legacyAnchors 映射 #${oldSlug} → 「${trimmed}」在当前页找不到目标标题`,
       });
       continue;
     }
@@ -226,7 +230,7 @@ function anchorProblems(pages: WikiPage[]): PageProblem[] {
   const rendered = new Map<string, RenderedBody>();
   for (const p of pages) {
     const base = renderBody(p.body);
-    const { problems, validKeys } = legacyAnchorProblems(p, base.ids);
+    const { problems, validKeys } = legacyAnchorProblems(p, base.ids, base.headingIds);
     out.push(...problems);
     if (Object.keys(validKeys).length > 0) {
       for (const oldSlug of Object.keys(validKeys)) base.ids.add(oldSlug);

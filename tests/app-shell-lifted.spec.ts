@@ -47,3 +47,34 @@ test("/#/home 仍保持单一入口按钮，/#/chapters/00 不渲染 Wiki 助手
   await expect(page.getByTestId("chat-open")).toHaveCount(0);
   await expect(page.getByTestId("wiki-quick-search-trigger")).toHaveCount(0);
 });
+
+test("在 /#/wiki/block-table 通过证据/问答打开并关闭抽屉后，经 /#/home 回到读者路由不会重新弹出", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/#/wiki/block-table");
+  await expect(page.getByTestId("wiki-body")).toBeVisible();
+
+  // 1. 通过来源按钮 (openEvidence) 打开证据抽屉
+  await page.getByTestId("wiki-sources").locator("summary").click();
+  await page.getByTestId("source-item-open-1").click();
+  await expect(page.getByTestId("chat-drawer")).toBeVisible();
+  await expect(page.getByTestId("chat-drawer")).toHaveClass(/is-evidence/);
+
+  // 2. 通过问答入口切到问答再关闭抽屉
+  await page.getByRole("tab", { name: "问答" }).click();
+  await page.getByTestId("chat-close").click();
+  await expect(page.getByTestId("chat-drawer")).toHaveCount(0);
+
+  // 3. 切到非 reader 路由 /#/home（卸载 WikiPanel），再回到 /#/model 与 /#/wiki/block-table
+  await page.goto("/#/home");
+  await expect(page.getByTestId("chat-open")).toHaveCount(0);
+
+  await page.goto("/#/model");
+  await expect(page.getByTestId("chat-open")).toBeVisible();
+  await expect(page.getByTestId("chat-drawer")).toHaveCount(0);
+
+  await page.goto("/#/wiki/block-table");
+  await expect(page.getByTestId("chat-open")).toBeVisible();
+  await expect(page.getByTestId("chat-drawer")).toHaveCount(0);
+});

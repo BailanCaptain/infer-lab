@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { getReaderState, refreshReaderSnapshot } from "../../content/wiki/index";
 import { requestReaderSnapshot } from "./api";
@@ -38,14 +39,83 @@ export interface WikiAssistantContextValue {
   registerWikiHost: (host: WikiHostRegistration | null) => () => void;
   wikiHost: WikiHostRegistration | null;
   chat: ChatState;
-  evidenceOpenSeq: number;
-  panelCommand: { seq: number; tab: WikiPanelTab } | undefined;
   lastTriggerRef: RefObject<HTMLElement | null>;
 }
 
 const SNAPSHOT_ERROR_MSG = "未能更新，仍显示以上版本。连接问答服务后可重试刷新。";
 
 const WikiAssistantContext = createContext<WikiAssistantContextValue | null>(null);
+
+export interface WikiAssistantControllerState {
+  panel: "closed" | WikiPanelTab;
+}
+
+export function createWikiAssistantController(deps: {
+  active?: boolean | undefined;
+  getChat: () => Pick<ChatState, "busy" | "send" | "setInput">;
+  lastTriggerRef?: RefObject<HTMLElement | null> | undefined;
+}) {
+  let active = deps.active ?? true;
+  let state: WikiAssistantControllerState = { panel: "closed" };
+  const listeners = new Set<() => void>();
+  const lastTriggerRef: RefObject<HTMLElement | null> = deps.lastTriggerRef ?? { current: null };
+
+  const notify = () => {
+    for (const listener of listeners) listener();
+  };
+
+  const setPanel = (nextPanel: "closed" | WikiPanelTab) => {
+    const resolved = active ? nextPanel : "closed";
+    if (state.panel === resolved) return;
+    state = { panel: resolved };
+    notify();
+  };
+
+  const setActive = (nextActive: boolean) => {
+    active = nextActive;
+    if (!active && state.panel !== "closed") {
+      state = { panel: "closed" };
+      notify();
+    }
+  };
+
+  const openChat = (options?: OpenChatOptions) => {
+    if (options?.trigger !== undefined) {
+      lastTriggerRef.current = options.trigger ?? null;
+    }
+    if (active) setPanel("chat");
+    if (options?.prompt) {
+      const chat = deps.getChat();
+      if (options.submit && !chat.busy) {
+        void chat.send(options.prompt);
+      } else {
+        chat.setInput(options.prompt);
+      }
+    }
+  };
+
+  const openEvidence = (trigger?: HTMLElement | null) => {
+    if (trigger !== undefined) {
+      lastTriggerRef.current = trigger ?? null;
+    }
+    if (active) setPanel("evidence");
+  };
+
+  return {
+    getState: () => state,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    setActive,
+    setPanel,
+    openChat,
+    openEvidence,
+    lastTriggerRef,
+  };
+}
 
 export function WikiAssistantProvider({
   active = true,
@@ -55,15 +125,23 @@ export function WikiAssistantProvider({
   children: ReactNode;
 }) {
   const chat = useChat();
-  const [panel, setPanel] = useState<"closed" | WikiPanelTab>("closed");
   const [snapshotError, setSnapshotError] = useState("");
-  const [evidenceOpenSeq, setEvidenceOpenSeq] = useState(0);
-  const [panelCommand, setPanelCommand] = useState<{ seq: number; tab: WikiPanelTab } | undefined>();
   const [wikiHost, setWikiHost] = useState<WikiHostRegistration | null>(null);
   const lastTriggerRef = useRef<HTMLElement | null>(null);
-  const commandSeqRef = useRef(0);
   const chatRef = useRef(chat);
   chatRef.current = chat;
+  const [controller] = useState(() =>
+    createWikiAssistantController({
+      active,
+      getChat: () => chatRef.current,
+      lastTriggerRef,
+    }),
+  );
+  const { panel } = useSyncExternalStore(controller.subscribe, controller.getState, controller.getState);
+
+  useEffect(() => {
+    controller.setActive(active);
+  }, [active, controller]);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -93,28 +171,6 @@ export function WikiAssistantProvider({
     return () => import.meta.hot?.off("wiki:changed", onChanged);
   }, [active, refresh]);
 
-  const openChat = useCallback((options?: OpenChatOptions) => {
-    if (options?.trigger !== undefined) {
-      lastTriggerRef.current = options.trigger ?? null;
-    }
-    commandSeqRef.current += 1;
-    setPanelCommand({ seq: commandSeqRef.current, tab: "chat" });
-    if (options?.prompt) {
-      if (options.submit) {
-        void chatRef.current.send(options.prompt);
-      } else {
-        chatRef.current.setInput(options.prompt);
-      }
-    }
-  }, []);
-
-  const openEvidence = useCallback((trigger?: HTMLElement | null) => {
-    if (trigger !== undefined) {
-      lastTriggerRef.current = trigger ?? null;
-    }
-    setEvidenceOpenSeq((n) => n + 1);
-  }, []);
-
   const registerWikiHost = useCallback((host: WikiHostRegistration | null) => {
     setWikiHost(host);
     return () => {
@@ -125,31 +181,18 @@ export function WikiAssistantProvider({
   const value = useMemo<WikiAssistantContextValue>(
     () => ({
       panel,
-      setPanel,
+      setPanel: controller.setPanel,
       snapshotError,
       setSnapshotError,
       refresh,
-      openChat,
-      openEvidence,
+      openChat: controller.openChat,
+      openEvidence: controller.openEvidence,
       registerWikiHost,
       wikiHost,
       chat,
-      evidenceOpenSeq,
-      panelCommand,
       lastTriggerRef,
     }),
-    [
-      panel,
-      snapshotError,
-      refresh,
-      openChat,
-      openEvidence,
-      registerWikiHost,
-      wikiHost,
-      chat,
-      evidenceOpenSeq,
-      panelCommand,
-    ],
+    [panel, controller, snapshotError, refresh, registerWikiHost, wikiHost, chat],
   );
 
   return <WikiAssistantContext.Provider value={value}>{children}</WikiAssistantContext.Provider>;

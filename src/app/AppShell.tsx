@@ -13,7 +13,7 @@ import "../design/wiki.css";
 
 function AppShellView({ reader }: { reader: boolean }) {
   const { pathname } = useLocation();
-  const { pages, revision, mode } = useSyncExternalStore(subscribeReader, getReaderState);
+  const { pages, revision, mode } = useSyncExternalStore(subscribeReader, getReaderState, getReaderState);
   const assistant = useWikiAssistant();
   const [quickSearchSlot, setQuickSearchSlot] = useState<HTMLDivElement | null>(null);
   const showHeader =
@@ -104,8 +104,7 @@ function AppShellView({ reader }: { reader: boolean }) {
             chat={assistant.chat}
             currentId={assistant.wikiHost?.currentId}
             evidenceController={assistant.wikiHost?.evidenceController}
-            evidenceOpenSeq={assistant.evidenceOpenSeq}
-            panelCommand={assistant.panelCommand}
+            layout={assistant.panel}
             lastTriggerRef={assistant.lastTriggerRef}
             onLayout={assistant.setPanel}
             onRefresh={() => assistant.refresh()}

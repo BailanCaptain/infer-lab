@@ -331,7 +331,11 @@ export function createChatController(deps: ChatControllerDeps = {}) {
 
   async function send(preset?: string): Promise<void> {
     const message = (preset ?? input).trim();
-    if (!message || busy || activeTurn) return;
+    if (!message) return;
+    if (busy || activeTurn) {
+      if (preset !== undefined) setInput(preset);
+      return;
+    }
     input = "";
     busy = true;
     const turn = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

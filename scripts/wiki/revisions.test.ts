@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectPageFactDispositions } from "./fact-disposition";
+import { collectPageFactDispositions, resolveSectionByAnchor } from "./fact-disposition";
 import { parsePage } from "./pages";
 import { revisePage, revisionSchema, splitHistory, verifyRevision } from "./revisions";
 import { digest } from "./workflow";
@@ -551,5 +551,17 @@ describe("three-outlet fact disposition verification", () => {
     expect(() =>
       revisePage("sources/a.md", paraBefore, paraAfter, forgedQuoteDecision, "2026-11-15"),
     ).toThrow(/事实去向|引文/);
+  });
+
+  it("resolveSectionByAnchor ignores Object.prototype keys like constructor and toString", () => {
+    const body = "## Real Heading\nSome fact.";
+    expect(resolveSectionByAnchor(body, "constructor", { old: "real-heading" })).toEqual({
+      exists: false,
+      text: "",
+    });
+    expect(resolveSectionByAnchor(body, "toString", { old: "real-heading" })).toEqual({
+      exists: false,
+      text: "",
+    });
   });
 });

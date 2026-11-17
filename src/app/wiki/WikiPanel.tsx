@@ -35,8 +35,7 @@ export interface WikiPanelProps {
   currentId?: string | undefined;
   chat?: ChatState | undefined;
   evidenceController?: EvidenceViewController | undefined;
-  evidenceOpenSeq?: number | undefined;
-  panelCommand?: { seq: number; tab: WikiPanelTab } | undefined;
+  layout?: "closed" | WikiPanelTab | undefined;
   lastTriggerRef?: RefObject<HTMLElement | null> | undefined;
   /** 返回 true 表示读者快照已更新到最新发布版本 */
   onRefresh: () => Promise<boolean>;
@@ -62,14 +61,16 @@ function WikiPanelView({
   currentId,
   chat,
   evidenceController,
-  evidenceOpenSeq,
-  panelCommand,
+  layout,
   lastTriggerRef,
   onRefresh,
   onLayout,
 }: Omit<WikiPanelProps, "chat"> & { chat: ChatState }) {
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<WikiPanelTab>("chat");
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const [lastTab, setLastTab] = useState<WikiPanelTab>("chat");
+  const controlled = layout !== undefined;
+  const open = controlled ? layout !== "closed" : uncontrolledOpen;
+  const tab = controlled && layout !== "closed" ? layout : lastTab;
   const [reviews, setReviews] = useState<ReviewSummary[]>([]);
   const [listError, setListError] = useState("");
   const [selected, setSelected] = useState<string>();
@@ -85,8 +86,6 @@ function WikiPanelView({
   const currentTab = useRef(tab);
   currentTab.current = tab;
   const wasOpen = useRef(open);
-  const seenEvidenceSeq = useRef(0);
-  const seenCommandSeq = useRef(0);
 
   const loadReviews = useCallback(async () => {
     try {
@@ -105,20 +104,11 @@ function WikiPanelView({
     if (open && tab === "review") void loadReviews();
   }, [open, tab, loadReviews]);
   useEffect(() => {
-    if (!evidenceOpenSeq || evidenceOpenSeq === seenEvidenceSeq.current) return;
-    seenEvidenceSeq.current = evidenceOpenSeq;
-    setTab("evidence");
-    setOpen(true);
-  }, [evidenceOpenSeq]);
+    if (layout && layout !== "closed") setLastTab(layout);
+  }, [layout]);
   useEffect(() => {
-    if (!panelCommand || panelCommand.seq === seenCommandSeq.current) return;
-    seenCommandSeq.current = panelCommand.seq;
-    setTab(panelCommand.tab);
-    setOpen(true);
-  }, [panelCommand]);
-  useEffect(() => {
-    onLayout(!open ? "closed" : tab);
-  }, [open, tab, onLayout]);
+    if (!controlled) onLayout(!open ? "closed" : tab);
+  }, [controlled, open, tab, onLayout]);
   // 打开时焦点到当前页签，关上时优先回到触发来源，否则回到「问知识库」按钮；首次渲染不抢焦点
   useEffect(() => {
     if (open === wasOpen.current) return;
@@ -138,14 +128,28 @@ function WikiPanelView({
 
   const pending = reviews.filter((r) => r.state === "pending" || r.state === "publishing").length;
 
+  const openPanel = useCallback(
+    (nextTab?: WikiPanelTab) => {
+      const target = nextTab ?? currentTab.current;
+      setLastTab(target);
+      if (controlled) onLayout(target);
+      else setUncontrolledOpen(true);
+    },
+    [controlled, onLayout],
+  );
+
+  const closePanel = useCallback(() => {
+    if (controlled) onLayout("closed");
+    else setUncontrolledOpen(false);
+  }, [controlled, onLayout]);
+
   const openReview = useCallback(
     (id: string) => {
       void loadReviews();
       setSelected(id);
-      setTab("review");
-      setOpen(true);
+      openPanel("review");
     },
-    [loadReviews],
+    [loadReviews, openPanel],
   );
 
   function onTabKey(e: KeyboardEvent) {
@@ -157,7 +161,7 @@ function WikiPanelView({
     const next = index === undefined ? undefined : TABS[index];
     if (!next) return;
     e.preventDefault();
-    setTab(next.id);
+    openPanel(next.id);
     tabRefs.current[next.id]?.focus();
   }
 
@@ -169,7 +173,7 @@ function WikiPanelView({
         className="wiki-chat-fab"
         data-testid="chat-open"
         title="问知识库"
-        onClick={() => setOpen(true)}
+        onClick={() => openPanel()}
       >
         {/* 桌面上缩成图标时字只给读屏（wiki.css 的按钮道），按钮的名字始终是「问知识库」 */}
         <MessageSquare size={14} /> <span className="wiki-fab-label">问知识库</span>
@@ -199,7 +203,7 @@ function WikiPanelView({
               aria-controls={panelIdOf(t.id)}
               aria-selected={tab === t.id}
               tabIndex={tab === t.id ? 0 : -1}
-              onClick={() => setTab(t.id)}
+              onClick={() => openPanel(t.id)}
             >
               {t.label}
               {t.id === "review" && pending > 0 && <span className="wiki-panel-badge">{pending}</span>}
@@ -214,7 +218,7 @@ function WikiPanelView({
           onClick={() => {
             if (shouldStopChatOnPanelClose(tab)) chat.stop();
             if (tab === "evidence") activeEvidence.close();
-            setOpen(false);
+            closePanel();
           }}
         >
           <X size={15} />
@@ -264,7 +268,11 @@ function WikiPanelView({
           await Promise.all([onRefresh(), loadReviews()]);
         }}
       />
-      <StatusPane id={panelIdOf("status")} hidden={tab !== "status"} onOpenReview={() => setTab("review")} />
+      <StatusPane
+        id={panelIdOf("status")}
+        hidden={tab !== "status"}
+        onOpenReview={() => openPanel("review")}
+      />
     </aside>
   );
 }

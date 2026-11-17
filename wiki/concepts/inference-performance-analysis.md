@@ -35,9 +35,6 @@ aliases:
   - 离线指标快照
 chapters:
   - '19'
-toc:
-  part: performance
-  section: 性能分析与排障
 order: 3
 sources:
   - >-

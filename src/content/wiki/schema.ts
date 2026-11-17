@@ -3,6 +3,7 @@
  * 字段含义见 wiki/HANDBOOK.md「页面格式」，那里是人读的真相源，这里是机器读的。
  */
 import { z } from "zod";
+import { headingSlug } from "./anchors";
 
 /** Static discoveries are not runtime guarantees; suspect rows require explicit review. */
 export const paramEntrySchema = z.object({
@@ -124,18 +125,29 @@ export const tocPlacementSchema = z
       "guide",
       "models",
       "inference",
-      "architecture",
       "hardware",
       "distributed",
+      "disaggregation",
+      "architecture",
       "performance",
-      "serving",
+      "cases",
+      "references",
       "rfork",
       "params",
-      "references",
     ]),
     section: z.string().trim().min(1).max(80),
   })
   .strict();
+
+export const legacyAnchorSlugSchema = z
+  .string()
+  .min(1, "legacyAnchors 锚点不能为空")
+  .refine((s) => headingSlug(s) === s, "legacyAnchors 键必须是规范锚点 slug（小写、无空格与标点、不含 #）");
+
+export const legacyAnchorsSchema = z.record(
+  legacyAnchorSlugSchema,
+  z.string().trim().min(1, "legacyAnchors 目标标题或锚点不能为空"),
+);
 
 /**
  * 页与页之间的边有类型、有方向。
@@ -175,10 +187,13 @@ export const relationSchema = z.object({
 export type Relation = z.infer<typeof relationSchema>;
 
 const pageFrontmatterObjectSchema = z.object({
+  /** @deprecated Stage 2 目录编排唯一真相源已收口至 `src/content/wiki/toc.ts` */
   toc: tocPlacementSchema.optional(),
   id: idField,
   /** 机器路由兼容旧 ID（与人类可读 aliases 严格分离）；省略时不落空数组以保持现有 registry 字节一致 */
   legacyIds: z.array(idField).optional(),
+  /** 旧标题锚点映射：改名 H2/H3 时将旧锚点映射到新标题文本或锚点 slug，由 rehype 注入兼容定位点 */
+  legacyAnchors: legacyAnchorsSchema.optional(),
   title: z.string().min(1),
   type: z.enum(PAGE_TYPES),
   origin: z.enum(PAGE_ORIGINS).default("seed"),
@@ -321,8 +336,12 @@ export function collectLegacyIdConflicts(
   return conflicts;
 }
 
-function refineSinglePageLegacyIds(
-  fm: { id: string; legacyIds?: readonly string[] | undefined },
+function refineSinglePageFrontmatter(
+  fm: {
+    id: string;
+    legacyIds?: readonly string[] | undefined;
+    legacyAnchors?: Readonly<Record<string, string>> | undefined;
+  },
   ctx: z.RefinementCtx,
 ): void {
   for (const conflict of collectLegacyIdConflicts([fm])) {
@@ -332,9 +351,21 @@ function refineSinglePageLegacyIds(
       message: formatLegacyIdConflict(conflict),
     });
   }
+  if (fm.legacyAnchors) {
+    for (const [oldSlug, target] of Object.entries(fm.legacyAnchors)) {
+      const trimmed = target.trim();
+      if (oldSlug === trimmed || headingSlug(trimmed) === oldSlug) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["legacyAnchors", oldSlug],
+          message: `legacyAnchors 键「${oldSlug}」不能映射到自身`,
+        });
+      }
+    }
+  }
 }
 
-export const pageFrontmatterSchema = pageFrontmatterObjectSchema.superRefine(refineSinglePageLegacyIds);
+export const pageFrontmatterSchema = pageFrontmatterObjectSchema.superRefine(refineSinglePageFrontmatter);
 export type PageFrontmatter = z.infer<typeof pageFrontmatterSchema>;
 
 /** 派生的反向边：不写在页面里，由 wiki:build 从对方页的 relations 算出来 */
@@ -355,7 +386,7 @@ export const registryEntrySchema = pageFrontmatterObjectSchema
     /** 谁声明了指向本页的边。回答问题时「谁建在它之上」就靠它。 */
     backlinks: z.array(backlinkSchema).default([]),
   })
-  .superRefine(refineSinglePageLegacyIds);
+  .superRefine(refineSinglePageFrontmatter);
 export type RegistryEntry = z.infer<typeof registryEntrySchema>;
 
 /**

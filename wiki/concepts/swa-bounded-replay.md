@@ -6,7 +6,6 @@ origin: direct
 summary: 用窗口为三个位置的小例子推演回放为何近似，分清 encoder 缺失恢复与 decoder 窗口准备、128/134/140 的不同口径，以及 mask/compact 一致不能证明与完整重算一致。
 aliases: [SWA Bounded Replay, 有界回放, 滑窗重算, YoCo, YOCO, Zero SWA Caching, compact, mask compact 等价, 128 134 140]
 chapters: ["19"]
-toc: { part: performance, section: 模型与推理策略 }
 order: 2
 sources:
   - https://arxiv.org/html/2609.19969v1

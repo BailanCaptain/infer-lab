@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "term": "enable_async_exponential",
+  "paths": [
+    "vllm_ascend/"
+  ],
+  "interpretation": "textual-presence-not-runtime-behavior",
+  "presence": [
+    {
+      "ref": "main",
+      "commit": "8d6180e28e0941fcfc85999bf2aafe194e98f8f6",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.23.0",
+      "commit": "2c59ff1047573f40a471cf7535f01a8877344415",
+      "files": 3
+    },
+    {
+      "ref": "releases/v0.26.0rc",
+      "commit": "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.30.0rc2",
+      "commit": "7d825229c77025cfb185a010c25819c1214b9450",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.30.0",
+      "commit": "c09d3e20b9c45c80b34ae3781440d90904a44023",
+      "files": 0
+    }
+  ],
+  "events": [
+    {
+      "commit": "5d02eed16f6e4e5187259583f9db16a916095ab3",
+      "date": "2025-12-20",
+      "subject": "[Performance] Add async exponential while model executing (#4501)",
+      "kind": "introduced",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/ascend_config.py",
+          "added": 5,
+          "removed": 0
+        },
+        {
+          "path": "vllm_ascend/sample/sampler.py",
+          "added": 30,
+          "removed": 0
+        },
+        {
+          "path": "vllm_ascend/worker/model_runner_v1.py",
+          "added": 6,
+          "removed": 0
+        }
+      ],
+      "pr": 4501,
+      "containedIn": {
+        "tags": [
+          "v0.13.0",
+          "v0.13.0rc1",
+          "v0.13.0rc2",
+          "v0.13.0rc3",
+          "v0.14.0rc1",
+          "v0.15.0rc1",
+          "v0.16.0rc1",
+          "v0.17.0rc1",
+          "v0.18.0",
+          "v0.18.0rc1",
+          "v0.19.1rc1",
+          "v0.20.2rc1",
+          "v0.21.0rc1",
+          "v0.22.1rc1",
+          "v0.23.0",
+          "v0.23.0.post1",
+          "v0.23.0rc1",
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1",
+          "v0.26.0rc2",
+          "v0.27.1rc1",
+          "v0.28.0.rc1",
+          "v0.29.0.rc1",
+          "v0.30.0",
+          "v0.30.0rc1",
+          "v0.30.0rc2",
+          "v0.31.0rc1",
+          "v0.32.0rc1"
+        ],
+        "branches": [
+          "origin/arc-fedsched-e2e-lab",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/pr-20926",
+          "origin/releases/v0.13.0",
+          "origin/releases/v0.18.0",
+          "origin/releases/v0.20.2rc",
+          "origin/releases/v0.21.0rc",
+          "origin/releases/v0.22.1rc",
+          "origin/releases/v0.23.0",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/releases/v0.28.0rc",
+          "origin/releases/v0.29.0rc",
+          "origin/releases/v0.30.0",
+          "origin/releases/v0.30.0rc2",
+          "origin/releases/v0.31.0rc",
+          "origin/releases/v0.32.0rc",
+          "origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/revert-15908-new-refactor",
+          "origin/rfc/0.26.0rc1-bugfix",
+          "origin/rfc/community-contrib",
+          "origin/rfc/megakernel",
+          "origin/rfc/vllm_cann",
+          "origin/zxy_fix_boradash"
+        ]
+      }
+    },
+    {
+      "commit": "4f0a38a95c439b30948c30e777403633e0dd638b",
+      "date": "2026-07-18",
+      "subject": "[Refactor] asnc exponential optimization unset (#12306)",
+      "kind": "removed",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/sample/sampler.py",
+          "added": 0,
+          "removed": 33
+        },
+        {
+          "path": "vllm_ascend/ascend_config.py",
+          "added": 0,
+          "removed": 9
+        },
+        {
+          "path": "vllm_ascend/worker/model_runner_v1.py",
+          "added": 0,
+          "removed": 7
+        }
+      ],
+      "pr": 12306,
+      "containedIn": {
+        "tags": [
+          "v0.25.1rc1",
+          "v0.26.0rc1",
+          "v0.26.0rc2",
+          "v0.27.1rc1",
+          "v0.28.0.rc1",
+          "v0.29.0.rc1",
+          "v0.30.0",
+          "v0.30.0rc1",
+          "v0.30.0rc2",
+          "v0.31.0rc1",
+          "v0.32.0rc1"
+        ],
+        "branches": [
+          "origin/arc-fedsched-e2e-lab",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/pr-20926",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/releases/v0.28.0rc",
+          "origin/releases/v0.29.0rc",
+          "origin/releases/v0.30.0",
+          "origin/releases/v0.30.0rc2",
+          "origin/releases/v0.31.0rc",
+          "origin/releases/v0.32.0rc",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/revert-15908-new-refactor",
+          "origin/rfc/0.26.0rc1-bugfix",
+          "origin/rfc/megakernel",
+          "origin/zxy_fix_boradash"
+        ]
+      }
+    }
+  ],
+  "tagsWithTerm": [
+    "v0.13.0",
+    "v0.13.0rc1",
+    "v0.13.0rc2",
+    "v0.13.0rc3",
+    "v0.14.0rc1",
+    "v0.15.0rc1",
+    "v0.16.0rc1",
+    "v0.17.0rc1",
+    "v0.18.0",
+    "v0.18.0rc1",
+    "v0.19.1rc1",
+    "v0.20.2rc1",
+    "v0.21.0rc1",
+    "v0.22.1rc1",
+    "v0.23.0",
+    "v0.23.0.post1",
+    "v0.23.0rc1",
+    "v0.24.0rc1"
+  ]
+}

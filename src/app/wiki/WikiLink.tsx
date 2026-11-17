@@ -17,7 +17,10 @@ export function scrollToWikiFragment(hash: string): boolean {
   const target = document.getElementById(id);
   if (!target) return false;
   expandAncestorDetails(target);
-  target.scrollIntoView({ block: "start" });
+  const scrollTarget = target.classList.contains("wiki-legacy-anchor")
+    ? (target.closest("h1,h2,h3,h4,h5,h6") ?? target)
+    : target;
+  scrollTarget.scrollIntoView({ block: "start" });
   return true;
 }
 

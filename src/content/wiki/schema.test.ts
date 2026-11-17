@@ -158,6 +158,40 @@ describe("pageFrontmatterSchema", () => {
     expect(resolveCanonicalPageId(validReg.pages, "alias-slug")).toBeUndefined();
     expect(resolveCanonicalPageId(validReg.pages, "missing-page")).toBeUndefined();
   });
+
+  it("legacyAnchors 校验规范 slug、非空目标与自指冲突，省略时不落空对象", () => {
+    const valid = pageFrontmatterSchema.parse({
+      ...ok,
+      legacyAnchors: {
+        "old-heading": "新标题名称",
+        "old-slug-2": "existing-slug-1",
+      },
+    });
+    expect(valid.legacyAnchors).toEqual({
+      "old-heading": "新标题名称",
+      "old-slug-2": "existing-slug-1",
+    });
+
+    const regWithout = registrySchema.parse({
+      version: 1,
+      pages: [{ ...ok, file: "concepts/kv-cache.md" }],
+    });
+    expect(Object.hasOwn(regWithout.pages[0]!, "legacyAnchors")).toBe(false);
+
+    expect(pageFrontmatterSchema.safeParse({ ...ok, legacyAnchors: { "Bad Space": "ok" } }).success).toBe(
+      false,
+    );
+    expect(pageFrontmatterSchema.safeParse({ ...ok, legacyAnchors: { "#old": "ok" } }).success).toBe(false);
+    expect(pageFrontmatterSchema.safeParse({ ...ok, legacyAnchors: { "old-key": "   " } }).success).toBe(
+      false,
+    );
+    expect(pageFrontmatterSchema.safeParse({ ...ok, legacyAnchors: { "same-id": "same-id" } }).success).toBe(
+      false,
+    );
+    expect(
+      pageFrontmatterSchema.safeParse({ ...ok, legacyAnchors: { "same-title": "Same Title" } }).success,
+    ).toBe(false);
+  });
 });
 
 describe("CHAPTER_TITLES", () => {

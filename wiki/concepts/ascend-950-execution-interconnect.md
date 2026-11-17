@@ -20,9 +20,6 @@ aliases:
   - 昇腾950硬件调度
 chapters:
   - '16'
-toc:
-  part: hardware
-  section: 软件栈与互连
 order: 126
 sources:
   - >-

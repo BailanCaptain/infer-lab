@@ -435,11 +435,13 @@ export function QuickSearchDialog({
 export function WikiQuickSearch({
   pages,
   revision,
+  slot,
   onAfterNavigate,
 }: {
   pages: readonly RegistryEntry[];
   revision: string;
-  onAfterNavigate?: () => void;
+  slot?: HTMLElement | null | undefined;
+  onAfterNavigate?: (() => void) | undefined;
 }) {
   const navigate = useNavigate();
   const pagesRef = useRef(pages);
@@ -485,8 +487,8 @@ export function WikiQuickSearch({
   }, [controller, revision]);
 
   useLayoutEffect(() => {
-    setHeaderSlot(document.getElementById("reader-quick-search-slot"));
-  }, []);
+    setHeaderSlot(slot ?? document.getElementById("reader-quick-search-slot"));
+  }, [slot]);
 
   const openFromTrigger = (origin?: HTMLElement | null) => {
     returnFocusRef.current =

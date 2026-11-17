@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "term": "layer_sharding",
+  "paths": [
+    "vllm_ascend/"
+  ],
+  "interpretation": "textual-presence-not-runtime-behavior",
+  "presence": [
+    {
+      "ref": "main",
+      "commit": "8d6180e28e0941fcfc85999bf2aafe194e98f8f6",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.23.0",
+      "commit": "2c59ff1047573f40a471cf7535f01a8877344415",
+      "files": 8
+    },
+    {
+      "ref": "releases/v0.26.0rc",
+      "commit": "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.30.0rc2",
+      "commit": "7d825229c77025cfb185a010c25819c1214b9450",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.30.0",
+      "commit": "c09d3e20b9c45c80b34ae3781440d90904a44023",
+      "files": 0
+    }
+  ],
+  "events": [
+    {
+      "commit": "f7db812ed7514194f15ef479817997113bf115bd",
+      "date": "2026-01-08",
+      "subject": "[refactor] Refactor the interface for shard weight and remove the flashcomm2 o_shared interface. (#5181)",
+      "kind": "introduced",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/distributed/parallel_state.py",
+          "added": 67,
+          "removed": 51
+        },
+        {
+          "path": "vllm_ascend/attention/sfa_v1.py",
+          "added": 23,
+          "removed": 34
+        },
+        {
+          "path": "vllm_ascend/ops/{shared_weight_layer.py => layer_shard_linear.py}",
+          "added": 56,
+          "removed": 28
+        },
+        {
+          "path": "vllm_ascend/attention/mla_v1.py",
+          "added": 23,
+          "removed": 27
+        },
+        {
+          "path": "vllm_ascend/utils.py",
+          "added": 34,
+          "removed": 15
+        }
+      ],
+      "pr": 5181,
+      "containedIn": {
+        "tags": [
+          "v0.13.0",
+          "v0.13.0rc2",
+          "v0.13.0rc3",
+          "v0.14.0rc1",
+          "v0.15.0rc1",
+          "v0.16.0rc1",
+          "v0.17.0rc1",
+          "v0.18.0",
+          "v0.18.0rc1",
+          "v0.19.1rc1",
+          "v0.20.2rc1",
+          "v0.21.0rc1",
+          "v0.22.1rc1",
+          "v0.23.0",
+          "v0.23.0.post1",
+          "v0.23.0rc1",
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1",
+          "v0.26.0rc2",
+          "v0.27.1rc1",
+          "v0.28.0.rc1",
+          "v0.29.0.rc1",
+          "v0.30.0",
+          "v0.30.0rc1",
+          "v0.30.0rc2",
+          "v0.31.0rc1",
+          "v0.32.0rc1"
+        ],
+        "branches": [
+          "origin/arc-fedsched-e2e-lab",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/pr-20926",
+          "origin/releases/v0.13.0",
+          "origin/releases/v0.18.0",
+          "origin/releases/v0.20.2rc",
+          "origin/releases/v0.21.0rc",
+          "origin/releases/v0.22.1rc",
+          "origin/releases/v0.23.0",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/releases/v0.28.0rc",
+          "origin/releases/v0.29.0rc",
+          "origin/releases/v0.30.0",
+          "origin/releases/v0.30.0rc2",
+          "origin/releases/v0.31.0rc",
+          "origin/releases/v0.32.0rc",
+          "origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/revert-15908-new-refactor",
+          "origin/rfc/0.26.0rc1-bugfix",
+          "origin/rfc/community-contrib",
+          "origin/rfc/megakernel",
+          "origin/rfc/vllm_cann",
+          "origin/zxy_fix_boradash"
+        ]
+      }
+    },
+    {
+      "commit": "896012151dbaaa444e940f19106fde877d616dc9",
+      "date": "2026-07-15",
+      "subject": "[Refactor] remove layer sharding (#11953)",
+      "kind": "removed",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/ops/layer_shard_linear.py",
+          "added": 0,
+          "removed": 296
+        },
+        {
+          "path": "vllm_ascend/ops/flashcomm2_oshard_manager.py",
+          "added": 0,
+          "removed": 103
+        },
+        {
+          "path": "vllm_ascend/ops/linear_op.py",
+          "added": 1,
+          "removed": 72
+        },
+        {
+          "path": "vllm_ascend/distributed/parallel_state.py",
+          "added": 1,
+          "removed": 51
+        },
+        {
+          "path": "vllm_ascend/attention/sfa_v1.py",
+          "added": 3,
+          "removed": 37
+        }
+      ],
+      "pr": 11953,
+      "containedIn": {
+        "tags": [
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1",
+          "v0.26.0rc2",
+          "v0.27.1rc1",
+          "v0.28.0.rc1",
+          "v0.29.0.rc1",
+          "v0.30.0",
+          "v0.30.0rc1",
+          "v0.30.0rc2",
+          "v0.31.0rc1",
+          "v0.32.0rc1"
+        ],
+        "branches": [
+          "origin/arc-fedsched-e2e-lab",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/pr-20926",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/releases/v0.28.0rc",
+          "origin/releases/v0.29.0rc",
+          "origin/releases/v0.30.0",
+          "origin/releases/v0.30.0rc2",
+          "origin/releases/v0.31.0rc",
+          "origin/releases/v0.32.0rc",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/revert-15908-new-refactor",
+          "origin/rfc/0.26.0rc1-bugfix",
+          "origin/rfc/megakernel",
+          "origin/zxy_fix_boradash"
+        ]
+      }
+    }
+  ],
+  "tagsWithTerm": [
+    "v0.13.0",
+    "v0.13.0rc2",
+    "v0.13.0rc3",
+    "v0.14.0rc1",
+    "v0.15.0rc1",
+    "v0.16.0rc1",
+    "v0.17.0rc1",
+    "v0.18.0",
+    "v0.18.0rc1",
+    "v0.19.1rc1",
+    "v0.20.2rc1",
+    "v0.21.0rc1",
+    "v0.22.1rc1",
+    "v0.23.0",
+    "v0.23.0.post1",
+    "v0.23.0rc1"
+  ]
+}

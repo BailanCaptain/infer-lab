@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createSlugger, fragmentId } from "../../src/content/wiki/anchors";
+import { createSlugger, fragmentId, resolveLegacyAnchorTarget } from "../../src/content/wiki/anchors";
 import type { FactDispositionEntry } from "../../src/content/wiki/drop";
 import { EVIDENCE_MARK_RE } from "../../src/content/wiki/evidenceMarks";
 import { parsePage, type WikiPage } from "./pages";
@@ -373,6 +373,48 @@ export function sliceHeadingSection(
   return { exists: capturing, text: captured.join("\n") };
 }
 
+export function collectHeadingSlugs(activeBody: string): Set<string> {
+  const slugger = createSlugger();
+  const slugs = new Set<string>();
+  let fence = "";
+  for (const line of activeBody.split(/\r?\n/)) {
+    const marker = /^ {0,3}(`{3,}|~{3,})/.exec(line)?.[1];
+    if (fence) {
+      if (marker && marker[0] === fence[0] && marker.length >= fence.length) fence = "";
+      continue;
+    }
+    if (marker) {
+      fence = marker;
+      continue;
+    }
+    const h = /^ {0,3}(#{1,6})\s+(.+?)\s*$/.exec(line);
+    if (h) {
+      const headingText = h[2]!
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+        .replace(EVIDENCE_MARK_RE, "")
+        .replace(/[`*_~]/g, "");
+      slugs.add(slugger(headingText));
+    }
+  }
+  return slugs;
+}
+
+export function resolveSectionByAnchor(
+  activeBody: string,
+  anchor: string,
+  legacyAnchors?: Readonly<Record<string, string>>,
+): { exists: boolean; text: string; resolvedSlug?: string } {
+  const direct = sliceHeadingSection(activeBody, anchor);
+  if (direct.exists) return { ...direct, resolvedSlug: anchor };
+  const mapped = legacyAnchors?.[anchor];
+  if (!mapped) return { exists: false, text: "" };
+  const headingSlugs = collectHeadingSlugs(activeBody);
+  const resolved = resolveLegacyAnchorTarget(mapped, headingSlugs);
+  if (!resolved) return { exists: false, text: "" };
+  const target = sliceHeadingSection(activeBody, resolved);
+  return target.exists ? { ...target, resolvedSlug: resolved } : { exists: false, text: "" };
+}
+
 export function locateQuoteContext(
   activeBody: string,
   quote: string,
@@ -467,7 +509,7 @@ export function planPageFactDispositions(
     if (!link.anchor) continue;
     const target = siblings.get(link.targetId);
     if (!target) continue;
-    const section = sliceHeadingSection(target.active, link.anchor);
+    const section = resolveSectionByAnchor(target.active, link.anchor, target.page.fm.legacyAnchors);
     if (!section.exists) {
       throw new Error(
         `旧页修订事实去向未闭合（${file}）：跨页拆分链接锚点 #${link.anchor} 在同批目标页 ${link.targetId} 中不存在`,
@@ -707,15 +749,24 @@ export function verifyFactDispositions(
         );
       }
       const wantedSlug = fragmentId(preferred.targetAnchor);
-      const hasOutgoingLink = plan.outgoingLinks.some(
-        (l) => l.targetId === preferred.targetPage && (!l.anchor || l.anchor === wantedSlug),
-      );
+      const section = resolveSectionByAnchor(target.active, wantedSlug, target.page.fm.legacyAnchors);
+      const canonicalWanted = section.resolvedSlug ?? wantedSlug;
+      const hasOutgoingLink = plan.outgoingLinks.some((l) => {
+        if (l.targetId !== preferred.targetPage) return false;
+        if (!l.anchor) return true;
+        if (l.anchor === wantedSlug || l.anchor === canonicalWanted) return true;
+        const linkResolved = resolveSectionByAnchor(
+          target.active,
+          l.anchor,
+          target.page.fm.legacyAnchors,
+        ).resolvedSlug;
+        return Boolean(linkResolved && linkResolved === canonicalWanted);
+      });
       if (!hasOutgoingLink) {
         throw new Error(
           `旧页修订事实去向未闭合（${file}）：旧页缺少指向同批目标页 ${preferred.targetPage}#${wantedSlug} 的有效链接`,
         );
       }
-      const section = sliceHeadingSection(target.active, wantedSlug);
       if (!section.exists || !section.text.includes(preferred.targetQuote)) {
         throw new Error(
           `旧页修订事实去向未闭合（${file}）：目标页 ${preferred.targetPage}#${wantedSlug} 章节不存在或不包含回执引文`,

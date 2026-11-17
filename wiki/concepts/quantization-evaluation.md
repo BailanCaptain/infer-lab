@@ -24,9 +24,6 @@ aliases:
 chapters:
   - '11'
   - '19'
-toc:
-  part: performance
-  section: 性能分析与排障
 order: 7
 sources:
   - 'https://pytorch.org/blog/quantization-in-practice/'

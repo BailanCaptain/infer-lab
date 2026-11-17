@@ -33,9 +33,6 @@ aliases:
 chapters:
   - '07'
   - '11'
-toc:
-  part: hardware
-  section: 设备、内存与计算单元
 order: 40
 sources:
   - >-

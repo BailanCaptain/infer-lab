@@ -45,9 +45,6 @@ aliases:
   - FP16推理
 chapters:
   - '19'
-toc:
-  part: models
-  section: 数值表示与量化
 order: 10
 sources:
   - >-

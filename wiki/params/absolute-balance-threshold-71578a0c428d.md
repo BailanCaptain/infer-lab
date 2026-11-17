@@ -55,6 +55,8 @@ sources:
     vllm-ascend@7d825229c77025cfb185a010c25819c1214b9450:vllm_ascend/ascend_config.py#L221
   - >-
     vllm-ascend@01741ac93f1c3c6241a90b19c14dc58b093eb49c:vllm_ascend/ascend_config.py#L222
+  - >-
+    vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L219
 rawSources:
   - >-
     raw/sha256-0086ec9731534b60a962917a3a760e0469472d148be11dc2ff09ea283fa3720e.md
@@ -72,6 +74,8 @@ rawSources:
     raw/sha256-c72498576a170455c135d749651303ce5defbeb08b46a62e6c257bd2f15dcced.md
   - >-
     raw/sha256-c972368829e7e384b3c21d0815797ac0f5e2be6ddf069b67ecd9ccc8e557e677.md
+  - >-
+    raw/sha256-e224a73e7bf7fcecea30207720d1ad2c4b83c8765a0247f4b252b2fa35c9796d.md
   - >-
     raw/sha256-ebc514e0f60b58ff8115eb677ddc78fa222976b6c86c214942a1d9f8502a3fe7.md
 relations:
@@ -107,10 +111,11 @@ STAIR 决定「这一轮重排哪几层」靠两道门：本页这道看**现在
 | 项 | 静态记录 |
 | --- | --- |
 | 标识 | `additional_config["eplb_config"]["stair_config"]["absolute_balance_threshold"]` |
+| 所属类 | `StairConfig` |
 | 类型 | `float` |
 | 默认表达式 | `0.9` |
-| 定义 | `vllm_ascend/ascend_config.py:221` [C24] |
-| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |
+| 定义 | `vllm_ascend/ascend_config.py:219` [C26] |
+| 版本 | releases/v0.30.0 · c09d3e20b9c45c80b34ae3781440d90904a44023 |
 
 字段注释：
 
@@ -174,10 +179,11 @@ EPLB 要定期决定：哪些层值得把专家重新摆一遍。搬专家不是
 
 | 版本 | 定义是否存在 | 固定提交 |
 | --- | --- | --- |
-| main | 无 | `baa023ad` |
+| main | 有 | `8d6180e2` |
 | releases/v0.23.0 | 无 | `2c59ff10` |
 | releases/v0.26.0rc | 无 | `2ed6cbba` |
 | releases/v0.30.0rc2 | 有 | `7d825229` |
+| releases/v0.30.0 | 有 | `c09d3e20` |
 
 ## 对照源码
 

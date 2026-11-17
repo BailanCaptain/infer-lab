@@ -258,17 +258,25 @@ rc2 改成 `f(C, H) = a·C(C+H) + b·C + c`，线性项不再加上历史长度�
 
 | 版本 | 是否存在 |
 | --- | --- |
-| main | 有（8 个文件） |
+| main | 无 |
 | releases/v0.23.0 | 有（5 个文件） |
 | releases/v0.26.0rc | 有（5 个文件） |
 | releases/v0.30.0rc2 | 有（9 个文件） |
+| releases/v0.30.0 | 有（9 个文件） |
 
 - **引入**：2026-04-17 · bec63146cf1442542940d4c2ce9f7eee8ab9845c · PR [#7896](https://github.com/vllm-project/vllm-ascend/pull/7896) —— [Feature][PP] Support Dynamic Chunk for Chunked Pipeline Parallelism (#7896)
-  包含该提交的 tag：v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2、v0.27.1rc1、v0.28.0.rc1、v0.29.0.rc1、v0.30.0、v0.30.0rc1、v0.30.0rc2；分支：origin/arc-fedsched-e2e-lab、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/releases/v0.30.0、origin/releases/v0.30.0rc2、origin/releases/v0.31.0rc、origin/releases/v0.32.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann、origin/zxy_fix_boradash
+  包含该提交的 tag：v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2、v0.27.1rc1、v0.28.0.rc1、v0.29.0.rc1、v0.30.0、v0.30.0rc1、v0.30.0rc2、v0.31.0rc1、v0.32.0rc1；分支：origin/arc-fedsched-e2e-lab、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/pr-20926、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/releases/v0.30.0、origin/releases/v0.30.0rc2、origin/releases/v0.31.0rc、origin/releases/v0.32.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann、origin/zxy_fix_boradash
   - `vllm_ascend/ascend_config.py` +68 / −4（文本行变化）
   - `vllm_ascend/worker/model_runner_v1.py` +48 / −4（文本行变化）
   - `vllm_ascend/core/profiling_chunk_predictor.py` +379 / −0（文本行变化）
   - `vllm_ascend/core/scheduler_profiling_chunk.py` +723 / −0（文本行变化）
   - `vllm_ascend/patch/__init__.py` +28 / −0（文本行变化）
+- **移除**：2026-11-15 · 839f538312e3b32b0f09935381c3e4eb78a88e2c · PR [#21310](https://github.com/vllm-project/vllm-ascend/pull/21310) —— [Refactor][Core] Remove dynamic chunk size CPP feature, configuration, and documentation (#21310)
+  包含该提交的 tag：未找到；分支：origin/main
+  - `vllm_ascend/core/scheduler_profiling_chunk.py` +0 / −1168（文本行变化）
+  - `vllm_ascend/core/profiling_chunk_predictor.py` +0 / −466（文本行变化）
+  - `vllm_ascend/patch/platform/patch_profiling_chunk.py` +0 / −215（文本行变化）
+  - `vllm_ascend/ascend_config.py` +2 / −86（文本行变化）
+  - `vllm_ascend/worker/v2/spec_decode/pcp_utils.py` +0 / −77（文本行变化）
 
-当前含该标识符的 tag：v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2、v0.27.1rc1、v0.28.0.rc1、v0.29.0.rc1、v0.30.0、v0.30.0rc1、v0.30.0rc2
+当前含该标识符的 tag：v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2、v0.27.1rc1、v0.28.0.rc1、v0.29.0.rc1、v0.30.0、v0.30.0rc1、v0.30.0rc2、v0.31.0rc1、v0.32.0rc1

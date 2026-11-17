@@ -7,7 +7,7 @@ import rehypeKatex from "rehype-katex";
 import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import { remarkHeadingIds } from "./anchors";
+import { rehypeLegacyAnchors, remarkHeadingIds } from "./anchors";
 import { remarkEvidenceMarks } from "./evidenceMarks";
 import { inlineRawSourceHref } from "./schema";
 
@@ -434,3 +434,10 @@ export const WIKI_REHYPE_PLUGINS: Options["rehypePlugins"] = [
   rehypeTextGrid,
   rehypeCollapsibleSourceSection,
 ];
+
+export function createWikiRehypePlugins(
+  legacyAnchors?: Readonly<Record<string, string>>,
+): Options["rehypePlugins"] {
+  if (!legacyAnchors || Object.keys(legacyAnchors).length === 0) return WIKI_REHYPE_PLUGINS;
+  return [...(WIKI_REHYPE_PLUGINS ?? []), [rehypeLegacyAnchors, legacyAnchors]];
+}

@@ -92,15 +92,26 @@ sources:
     vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L52-L73
   - >-
     vllm-ascend@7d825229c77025cfb185a010c25819c1214b9450:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20
-  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L625-L762'
-  - 'vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L68-L85'
-  - 'vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L75-L92'
-  - 'vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L255-L305'
-  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L71-L75'
-  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L128-L141'
-  - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L332-L366'
-  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L289-L309'
-  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L19-L59'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L625-L762
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L68-L85
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L75-L92
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L255-L305
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L71-L75
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L128-L141
+  - >-
+    vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L332-L366
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L289-L309
+  - >-
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L19-L59
+  - >-
+    vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20
 rawSources:
   - >-
     raw/sha256-23467f7f139db9a53e6ecbaf45be36cc9a098e0b3c74958d818cfcef293e03bb.md
@@ -110,6 +121,8 @@ rawSources:
     raw/sha256-49388e84579cdc8f10f93fd1d7974542a23ed9026c66310523568e431b6540ec.md
   - >-
     raw/sha256-669514da04972a318ae33b644177e18d6c100c687828799c60d6aaf0457cc877.md
+  - >-
+    raw/sha256-84a06911f48172d7de4f5cff23cad81af64f94ce321d0683ff92f4a67769b16b.md
   - >-
     raw/sha256-d3d9a827c7c10514c64a59996d439dd3073b7e210488d124f267f418725693c2.md
 ---
@@ -193,24 +206,15 @@ main 上还多了一层保护，只是这一版已经不再由一个 mooncake �
 
 ## 版本谱系
 
-> 本节由 `pnpm wiki:lineage` 从 git 历史算出。标识符的文本存在不等同于运行时功能可用；引入／移除均比较提交与父提交。
+范围限定为 `vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py` 中的 `YuanrongConfig.use_layerwise` 字段定义。定义存在不等于配置可写或运行时可用；行为条件见本页正文。未核定字段的精确引入／移除提交，不以同名文本的历史代替。
 
-| 版本 | 是否存在 |
-| --- | --- |
-| main | 有（9 个文件） |
-| releases/v0.23.0 | 有（3 个文件） |
-| releases/v0.26.0rc | 有（7 个文件） |
-| releases/v0.30.0rc2 | 有（9 个文件） |
-
-- **引入**：2025-09-18 · cef43b524e5dbf24434ac330235c5c835284c580 · PR [#2913](https://github.com/vllm-project/vllm-ascend/pull/2913) —— [Feat] A Connector that supports Mooncake store (#2913)
-  包含该提交的 tag：v0.11.0、v0.11.0rc0、v0.11.0rc1、v0.11.0rc2、v0.11.0rc3、v0.12.0rc1、v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2、v0.27.1rc1、v0.28.0.rc1、v0.29.0.rc1、v0.30.0、v0.30.0rc1、v0.30.0rc2；分支：origin/arc-fedsched-e2e-lab、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.13.0、origin/releases/v0.18.0、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/releases/v0.30.0、origin/releases/v0.30.0rc2、origin/releases/v0.31.0rc、origin/releases/v0.32.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann、origin/v0.11.0-dev、origin/zxy_fix_boradash
-  - `vllm_ascend/worker/model_runner_v1.py` +3 / −9（文本行变化）
-  - `vllm_ascend/distributed/__init__.py` +5 / −0（文本行变化）
-  - `vllm_ascend/distributed/mooncake/__init__.py` +0 / −0（文本行变化）
-  - `vllm_ascend/distributed/mooncake/config_data.py` +447 / −0（文本行变化）
-  - `vllm_ascend/distributed/mooncake/kv_transfer.py` +251 / −0（文本行变化）
-
-当前含该标识符的 tag：v0.11.0、v0.11.0rc0、v0.11.0rc1、v0.11.0rc2、v0.11.0rc3、v0.12.0rc1、v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2、v0.27.1rc1、v0.28.0.rc1、v0.29.0.rc1、v0.30.0、v0.30.0rc1、v0.30.0rc2
+| 版本 | 定义是否存在 | 固定提交 |
+| --- | --- | --- |
+| main | 有 | `8d6180e2` |
+| releases/v0.23.0 | 无 | `2c59ff10` |
+| releases/v0.26.0rc | 无 | `2ed6cbba` |
+| releases/v0.30.0rc2 | 有 | `7d825229` |
+| releases/v0.30.0 | 有 | `c09d3e20` |
 
 ## 参数定义（自动生成）
 
@@ -218,11 +222,11 @@ main 上还多了一层保护，只是这一版已经不再由一个 mooncake �
 
 | 项 | 静态记录 |
 | --- | --- |
-| 标识 | `YuanrongConfig["use_layerwise"]` |
+| 字段身份（不代表用户输入入口） | `YuanrongConfig.use_layerwise` |
 | 类型 | `bool` |
 | 默认表达式 | `False` |
-| 定义 | `vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py:20` [C33] |
-| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |
+| 定义 | `vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py:20` [C43] |
+| 版本 | releases/v0.30.0 · c09d3e20b9c45c80b34ae3781440d90904a44023 |
 
 字段注释：
 

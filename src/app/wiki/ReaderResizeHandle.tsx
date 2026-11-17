@@ -126,13 +126,18 @@ export function ReaderResizeHandle({ side }: { side: "directory" | "assistant" }
   const storageKey = `infra-reader-${side}-width`;
   const columnSelector = side === "directory" ? ".reader-directory" : ".wiki-panel";
 
+  const scopeSelector = side === "assistant" ? ".knowledge-reader" : ".wiki-shell";
+  const resolveContainer = () =>
+    handle.current?.closest<HTMLElement>(scopeSelector) ??
+    handle.current?.closest<HTMLElement>(".wiki-shell");
+
   const sessionRef = useRef<ReturnType<typeof createResizeSession> | null>(null);
   if (!sessionRef.current) {
     sessionRef.current = createResizeSession({
       side,
       storageKey,
       applyCandidateWidth(value) {
-        const shell = handle.current?.closest<HTMLElement>(".wiki-shell");
+        const shell = resolveContainer();
         const column = handle.current?.closest<HTMLElement>(columnSelector);
         if (!shell || !column) return null;
         const previousInline = shell.style.getPropertyValue(variable);
@@ -149,19 +154,21 @@ export function ReaderResizeHandle({ side }: { side: "directory" | "assistant" }
         return actual;
       },
       resetStyleWidth() {
-        handle.current?.closest<HTMLElement>(".wiki-shell")?.style.removeProperty(variable);
+        resolveContainer()?.style.removeProperty(variable);
         const column = handle.current?.closest<HTMLElement>(columnSelector);
         if (column) setWidth(Math.round(column.getBoundingClientRect().width));
       },
       setResizingClass(active) {
-        handle.current?.closest(".wiki-shell")?.classList.toggle("is-resizing", active);
+        resolveContainer()?.classList.toggle("is-resizing", active);
       },
     });
   }
   const session = sessionRef.current;
 
   useLayoutEffect(() => {
-    const shell = handle.current?.closest<HTMLElement>(".wiki-shell");
+    const shell =
+      handle.current?.closest<HTMLElement>(scopeSelector) ??
+      handle.current?.closest<HTMLElement>(".wiki-shell");
     const column = handle.current?.closest<HTMLElement>(columnSelector);
     if (!shell || !column) return;
     try {
@@ -177,7 +184,7 @@ export function ReaderResizeHandle({ side }: { side: "directory" | "assistant" }
       observer.disconnect();
       shell.classList.remove("is-resizing");
     };
-  }, [columnSelector, storageKey, variable]);
+  }, [columnSelector, scopeSelector, storageKey, variable]);
 
   return (
     // biome-ignore lint/a11y/useSemanticElements: an adjustable separator needs value and keyboard interaction.

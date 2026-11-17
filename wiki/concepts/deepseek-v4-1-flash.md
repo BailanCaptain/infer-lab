@@ -18,9 +18,6 @@ aliases:
   - engram-config
 chapters:
   - '19'
-toc:
-  part: performance
-  section: 模型与推理策略
 order: 1
 sources:
   - >-

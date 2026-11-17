@@ -775,14 +775,14 @@ summary.wiki-toc-part-head::-webkit-details-marker {
 
 /* ---------- 知识库助手：问答 + 审阅 + 刷新，一个侧栏 ---------- */
 
-/* 宽屏上侧栏占第三列，把正文往左挤，不盖在正文上。问答和审阅同宽：切页签时面板和正文都不该跳 */
+/* 宽屏上侧栏固定停靠在视口右侧、把正文往左挤，不盖在正文上。问答和审阅同宽：切页签时面板和正文都不该跳 */
 @media (min-width: 1180px) {
   .wiki-shell.is-panel-chat,
   .wiki-shell.is-panel-evidence,
   .wiki-shell.is-panel-drop,
   .wiki-shell.is-panel-review,
   .wiki-shell.is-panel-status {
-    grid-template-columns: 248px minmax(0, 1fr) var(--wiki-panel-width);
+    padding-right: var(--wiki-panel-width);
   }
 }
 
@@ -2846,16 +2846,21 @@ summary.wiki-toc-part-head::-webkit-details-marker {
    1280 下正文栏因此是 940，900 的画布仍按 1:1 放得下；1440 下正文栏仍是满的 1034。
    道里只放得下圆形图标按钮，名字（问知识库 / 本页目录）留给读屏和悬停提示；≥ 1880 时「问知识库」恢复带字，
    道加宽到放得下带字的按钮（约 140 + 离窗口边 14 + 间距 8 = 162，见 --wiki-fab-lane）。 */
+.knowledge-reader,
 .wiki-shell {
   --wiki-fab-size: 40px;
   --wiki-fab-edge: 14px;
   /* 正文区右边给右下角按钮留的道 */
   --wiki-fab-lane: calc(var(--wiki-fab-size) + var(--wiki-fab-edge) + 8px);
+}
+
+.wiki-shell {
   /* 宽屏问答侧栏（第三列）的宽度；阅读主站在 knowledge-reader.css 里换成可拖动的宽度 */
   --wiki-panel-width: clamp(540px, 42vw, 780px);
 }
 
 @media (min-width: 1880px) {
+  .knowledge-reader,
   .wiki-shell {
     --wiki-fab-lane: calc(140px + var(--wiki-fab-edge) + 8px);
   }
@@ -3844,4 +3849,61 @@ summary.wiki-toc-part-head::-webkit-details-marker {
   line-height: 18px;
   font-weight: 500;
   color: var(--color-accent-hover);
+}
+
+/* ---------- 嵌入交互工具围栏（```wiki-tool） ---------- */
+
+.wiki-tool {
+  margin: 24px 0;
+  padding: 16px 18px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-elevated);
+}
+
+.wiki-tool-invalid {
+  border-color: color-mix(in srgb, var(--color-warn, #b45309) 45%, var(--color-line));
+  background: color-mix(in srgb, var(--color-warn, #b45309) 6%, var(--color-surface-elevated));
+}
+
+.wiki-tool-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.wiki-tool-title {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.wiki-tool-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  font-size: var(--text-caption);
+  font-family: var(--font-mono);
+}
+
+.wiki-tool-summary,
+.wiki-tool-note {
+  margin: 6px 0 0;
+  font-size: var(--text-compact);
+  line-height: 1.7;
+  color: var(--color-ink-muted);
+}
+
+.wiki-tool-errors {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: var(--text-compact);
+  color: var(--color-ink);
 }

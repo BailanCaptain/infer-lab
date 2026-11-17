@@ -100,6 +100,8 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L390-L403'
   - >-
     vllm-ascend@01741ac93f1c3c6241a90b19c14dc58b093eb49c:vllm_ascend/ascend_config.py#L589
+  - >-
+    vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L581
 rawSources:
   - >-
     raw/sha256-1aa8655fe7ae8108619083e6d270af174771aee2760cba56fafd6c548c5514f8.md
@@ -135,6 +137,8 @@ rawSources:
     raw/sha256-ca9a84111a41a3b9f040cdb3251cd2b13e2c00cf22725addb31dac226c9bc3b0.md
   - >-
     raw/sha256-d52e6721dafc61ddfe3628246bcae3cda0e6200d1a0263ff862b9e4889c9a67d.md
+  - >-
+    raw/sha256-e224a73e7bf7fcecea30207720d1ad2c4b83c8765a0247f4b252b2fa35c9796d.md
   - >-
     raw/sha256-ebc514e0f60b58ff8115eb677ddc78fa222976b6c86c214942a1d9f8502a3fe7.md
   - >-
@@ -210,10 +214,11 @@ gather buffer 挂在类变量 o_proj_full_pools 上，按方法类名、pool key
 
 | 版本 | 定义是否存在 | 固定提交 |
 | --- | --- | --- |
-| main | 有 | `baa023ad` |
+| main | 有 | `8d6180e2` |
 | releases/v0.23.0 | 无 | `2c59ff10` |
 | releases/v0.26.0rc | 无 | `2ed6cbba` |
 | releases/v0.30.0rc2 | 有 | `7d825229` |
+| releases/v0.30.0 | 有 | `c09d3e20` |
 
 ## 参数定义（自动生成）
 
@@ -222,10 +227,11 @@ gather buffer 挂在类变量 o_proj_full_pools 上，按方法类名、pool key
 | 项 | 静态记录 |
 | --- | --- |
 | 标识 | `additional_config["enable_pcp_o_proj_weight_sharding"]` |
+| 所属类 | `AscendConfig` |
 | 类型 | `bool` |
 | 默认表达式 | `True` |
-| 定义 | `vllm_ascend/ascend_config.py:584` |
-| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |
+| 定义 | `vllm_ascend/ascend_config.py:581` [C45] |
+| 版本 | releases/v0.30.0 · c09d3e20b9c45c80b34ae3781440d90904a44023 |
 
 字段注释：
 

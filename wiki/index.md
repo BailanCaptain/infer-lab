@@ -20,10 +20,10 @@
 - [DP 请求路由：新请求派给哪一个 DP 组](concepts/dp-request-routing.md) — 开了 DP 以后，前端给每条新请求挑一个 DP 组：请求头写了组号就直接去，否则按 waiting × 4 + running 取分数最小的组，并在本地先记一笔。讲清计数从哪来、为什么会过时、挑偏的代价（排队、KV 池、每步对齐、前缀缓存），几种部署方式与各版本打分差异，以及 GLM 双机上怎样选。 `13`
 - [Embedding：按编号查表取出 token 的向量](concepts/embedding.md) — Embedding 把每个 token 编号换成一条向量：编号是几，就到嵌入表里取第几行，只有查表没有乘法。本页先讲它是什么、为什么需要，再用一张 6 行的小表演示查表、one-hot 等价和 2 张卡切表求和；最后落到 GLM 双机，看 8 张卡怎样分着查同一张表。 `01`
 - [引擎有哪几个进程：API server、EngineCore 与 Worker](concepts/engine-processes.md) — vLLM 用三类角色协作——API server 收发请求、EngineCore 每步调度、Worker 执行设备上的模型；客户端模式与执行器决定角色如何分布到进程，请求状态、补丁和 Ascend 配置缓存按进程管理；GLM 双机按角色计 20 个进程，executor（执行器）决定 Worker 是否独立成进程。 `10`
-- [HCCL buffer：通信缓冲怎样配置与占用显存](concepts/gap-a5164fe10fa9184412f8.md) — HCCL buffer 为集合通信提供设备中转空间；讲清逐组配置、环境变量和底层通信组复用的区别，以及 GLM 双机的配置预算怎样影响 KV cache 可用显存。 `13`
 - [认识 GLM-5.3-Flash：模型长什么样，每种层从哪里来](concepts/glm-5-3-flash.md) — GLM-5.3-Flash 模型形状的唯一出处：45 层里 34 层 KDA、11 层稀疏 MLA，四条 residual 流，前 3 层稠密 MLP、其余 42 层 288 选 8 的 MoE，外加 1 个 MTP 层；每种层先讲它从哪个基础机制演变来，再给 GLM 的具体维度、参数量与权重精度。 `00`
 - [GQA：几个查询头共读一组 K、V，省下什么、付出什么](concepts/gqa.md) — GQA 把查询头分组，同组共读一组 K、V，K/V 投影与缓存按 KV 头数缩小，打分与汇合仍逐头计算，且须在训练时定下。GLM 的稀疏 MLA 与 KDA 都不是 GQA，本页只作对照。 `04`
 - [NPU、板卡、服务器与机柜](concepts/hardware-devices.md) — 分清芯片、板卡、服务器与软件可见设备，沿 GLM 双机的一条输入理解主机内存、设备显存、机内 HCCS 与跨机 RoCE 的边界，并核对官方规格峰值和启动源码。 `07 08`
+- [HCCL buffer：通信缓冲怎样配置与占用显存](concepts/hccl-buffer.md) — HCCL buffer 为集合通信提供设备中转空间；讲清逐组配置、环境变量和底层通信组复用的区别，以及 GLM 双机的配置预算怎样影响 KV cache 可用显存。 `13`
 - [推理测量：怎样知道服务真的变快了](concepts/inference-benchmarking.md) — 沿用停顿样例的 A/B 配置，把一次请求的改善放进整组压测：总吞吐相同但达标请求更多意味着什么，怎样把失败、未完成、分位数和真实到达负载一起算进结论。 `19`
 - [容量与恢复：平时够用，为什么出故障就排长队](concepts/inference-capacity-and-reliability.md) — 从一张逐级加压的结果表选出单实例可用运行点，再算正常与容错需要几套实例、故障积压多久能消退；沿就绪时间线和流式重试记录判断恢复是否真的完成。 `19`
 - [输出异常排查：同样的问题，回答为什么变了](concepts/inference-correctness-troubleshooting.md) — 完成一次从回答异常、输入编号差异到修正模板和回归验证的排查；再换成输入相同的情况，沿首次分歧区分采样、数值和状态，覆盖乱码、重复、空输出、NaN 与质量回归。用固定评测集和业务指标检验变更后的任务质量。 `19`
@@ -238,8 +238,8 @@
 - [enable_matmul_allreduce](params/enable-matmul-allreduce.md)
 - [细粒度 TP：为特定模块选择分片组](concepts/fine-grained-tp.md)
 - [fuse_allreduce_rms](params/fuse-allreduce-rms.md)
-- [HCCL buffer：通信缓冲怎样配置与占用显存](concepts/gap-a5164fe10fa9184412f8.md)
 - [我们的部署：两台机器 16 张卡上的 GLM-5.3-Flash](concepts/glm-5-3-flash-two-node.md)
+- [HCCL buffer：通信缓冲怎样配置与占用显存](concepts/hccl-buffer.md)
 - [KVPP：KV cache 按层分给各卡常驻，算到时整层广播](concepts/kvpp.md)
 - [layer_sharding](params/layer-sharding.md)
 - [流水线并行（PP）：层分段、状态交接与气泡](concepts/pipeline-parallel.md)

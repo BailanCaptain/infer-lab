@@ -514,7 +514,7 @@ node1 的本机可见设备仍写 0–7；8–15 是全局 Worker 编号，不�
 
 例如 node0 的本机接口是 eth0、node1 是 enp1s0，两边可分别填写自己的名字；关键是对应地址能互通，不是字符串必须相同。启动前两端都继承这些 export，拓扑与完整命令仍以[部署页](glm-5-3-flash-two-node.md#怎么开)为唯一出处。改当前 shell 的环境不会重新配置已经创建的通信组，需要重启服务后核对日志。
 
-AIV 只支持文档列出的对称组网推理路径，不支持多个 AIV 通信域并行执行；算子、数据类型和图模式也各有限制。不能由一个全局 AIV 值推断每条 EP/MC2 通信都使用相同路径。尤其执行等待上限随模式变化，见[通信与 Worker 超时](request-call-chain.md#怎么开)；缓冲大小见[HCCL buffer](gap-a5164fe10fa9184412f8.md#怎么开)。
+AIV 只支持文档列出的对称组网推理路径，不支持多个 AIV 通信域并行执行；算子、数据类型和图模式也各有限制。不能由一个全局 AIV 值推断每条 EP/MC2 通信都使用相同路径。尤其执行等待上限随模式变化，见[通信与 Worker 超时](request-call-chain.md#怎么开)；缓冲大小见[HCCL buffer](hccl-buffer.md#怎么开)。
 
 其他枚举也不是同义词：HOST 与 HOST_TS 都在 Host CPU 展开，前者自动选调度器，后者明确交给设备 task scheduler；AI_CPU 则在设备 AI CPU 展开，A2 下只覆盖 AllGather、AlltoAll、AlltoAllV、AlltoAllVC，Ascend IR/aclgraph 同卡并发图不超过 6。A2 的 AIV 也有双机场景边界：AlltoAllV/AlltoAllVC 仅单机，图模式的 AlltoAll/AllGather/ReduceScatter 也仅单机，不能把普通 HCCL 算子支持表直接套给 MC2 自有算子。若另设 HCCL_DETERMINISTIC=true 或 strict，确定性要求优先，某些情况下 AIV 不生效；排障时须确认实际路径而非只看 export。
 

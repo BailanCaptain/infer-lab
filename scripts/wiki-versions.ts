@@ -28,7 +28,7 @@ const roots = configuredRepoRoots(root);
 const refs = configuredRefs(root);
 const specs = [
   `${PRIMARY_REPO}:${one("--from") ?? "releases/v0.23.0"}:${one("--to") ?? "releases/v0.26.0rc"}`,
-  ...(many("--with").length ? many("--with") : ["vllm:main:releases/v0.26.0"]),
+  ...(many("--with").length ? many("--with") : ["vllm:releases/v0.23.0:releases/v0.26.0"]),
 ];
 const pairs: VersionPair[] = specs.map((spec) => {
   const [repo = "", from = "", to = ""] = spec.split(":");

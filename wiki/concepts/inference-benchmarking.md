@@ -24,9 +24,6 @@ aliases:
   - 输出事件间隔
 chapters:
   - '19'
-toc:
-  part: performance
-  section: 性能分析与排障
 order: 2
 sources:
   - 'vllm@0fc695fc:vllm/benchmarks/serve.py#L408-L615'

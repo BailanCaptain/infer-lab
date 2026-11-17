@@ -14,27 +14,33 @@ repos:
     url: https://github.com/vllm-project/vllm
     path: tools/repos/vllm
     refs:
-      main: "0fc695fc"
+      main: "ba15685ab7f4f5fbed8630bbb7441f8837e76fbe" # 与 vllm-ascend@8d6180e2 .github/vllm-main-verified.commit 对齐
+      "releases/v0.23.0": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665" # 保留 v0.23.0 标签供 evidence.ts:resolveVersionRefs 标注 2,128 处历史引用
       "releases/v0.26.0": "568afb3a"   # = vLLM v0.26.0 tag，与 vllm-ascend releases/v0.26.0rc 配套（该分支 mkdocs.yml 的 vllm_version）
-      "releases/v0.30.0": "ced6857afa0ea7b2e3f0846a62e1394e90f15607" # 配套 Ascend v0.30.0rc2 的上游固定快照，以其 release notes 的 main2main 对齐声明为准；不以本地 tag 身份代替提交
+      "releases/v0.30.0": "ced6857afa0ea7b2e3f0846a62e1394e90f15607" # 配套 Ascend v0.30.0 的上游对齐提交
     pins:
       v0-23-0-tag: "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665"
       v0-26-0-tag: "568afb3a13806beb53bb2e6bd518269357b237c0"
       v0-30-0-main2main: "ced6857afa0ea7b2e3f0846a62e1394e90f15607"
+      main-verified: "ba15685ab7f4f5fbed8630bbb7441f8837e76fbe"
+      main-fetched: "c84273be384d7faaeadfb36caced2f9d5a112f7f"
       nixl-rehandshake: "dfb7dd92a406f5dc8c963fd274e59e55ae648fc4" # NIXL 动态重握手 PR 独立提交
   vllm-ascend:
     url: https://github.com/vllm-project/vllm-ascend
     path: tools/repos/vllm-ascend
     refs:
-      main: "baa023ad"            # 2026-09-22 全库页面的 main 来源统一重钉到这里（原 28bf3a2e 是 2026-08-29 的事实基线）
+      main: "8d6180e28e0941fcfc85999bf2aafe194e98f8f6"
       "releases/v0.23.0": "2c59ff10"   # 分支 tip，2026-09-09；本批页的主叙述版本
       "releases/v0.26.0rc": "2ed6cbba"   # 分支 tip，2026-09-17；还在 rc 阶段（tag 到 v0.26.0rc2），与 vLLM v0.26.0 配套。2026-09-21 用户定：v0.23 与 v0.26 长期并存
-      "releases/v0.30.0rc2": "7d825229c77025cfb185a010c25819c1214b9450" # 用户指定 rc2 分支的 2026-11-03 核对快照
+      "releases/v0.30.0rc2": "7d825229c77025cfb185a010c25819c1214b9450" # 过渡期保留：35 页 verified 与 2 页 rc2 移除参数仍引用
+      "releases/v0.30.0": "c09d3e20b9c45c80b34ae3781440d90904a44023"   # Stage 2 全站默认主基线
     pins:
-      main-baseline: "baa023ada41a5b889cac6249845a688aab130892"
+      main-baseline: "8d6180e28e0941fcfc85999bf2aafe194e98f8f6"
+      main-phase1-archive: "baa023ada41a5b889cac6249845a688aab130892"
       v0-23-0-tip: "2c59ff1047573f40a471cf7535f01a8877344415"
       v0-26-0rc-tip: "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f"
       v0-30-0rc2-tip: "7d825229c77025cfb185a010c25819c1214b9450"
+      v0-30-0-tag: "c09d3e20b9c45c80b34ae3781440d90904a44023"
       glm-5-3-flash: "db701c1fd31de40ab028628ee2580ae68c7fd3c0"
 
 features:

@@ -38,6 +38,17 @@ it("precompiled Markdown preserves headings, evidence, tables, fences and unsafe
   expect(expected).not.toContain("<script>");
 });
 
+it("compileMarkdown preserves legacyAnchors injection identically to live rehype plugins", () => {
+  const body = "## 改名后的标题\n\n内容。\n\n## 对照源码\n\n### 新锚点\n";
+  const legacyAnchors = { "old-heading": "改名后的标题", "old-sub": "新锚点" };
+  const compiled = compileMarkdown(body, legacyAnchors);
+  const html = renderToStaticMarkup(
+    createElement(ReactMarkdown, { rehypePlugins: [() => () => structuredClone(compiled) as never] }, ""),
+  );
+  expect(html).toContain('<span id="old-heading" class="wiki-legacy-anchor" aria-hidden="true"></span>');
+  expect(html).toContain('<span id="old-sub" class="wiki-legacy-anchor" aria-hidden="true"></span>');
+});
+
 it("locks top-level katex stylesheet package to the exact katex instance resolved by rehype-katex", () => {
   const topRequire = createRequire(join(process.cwd(), "package.json"));
   const rendererRequire = createRequire(topRequire.resolve("rehype-katex"));

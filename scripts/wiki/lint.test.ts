@@ -182,11 +182,12 @@ describe("lintPages", () => {
     // 只有一页时没东西可连，不算孤立
     expect(lintPages([mk("a")], opts)).toEqual([]);
   });
-  it("orphan：无 chapters 且无入链；有入链即不算", () => {
+  it("orphan：无 chapters 且无入链；有入链或已入 toc.ts 编排即不算", () => {
     expect(lintPages([mk("lonely", { chapters: [] })], opts)[0]?.rule).toBe("orphan");
     expect(
       lintPages([mk("placed", { chapters: [], toc: { part: "inference", section: "缓存" } })], opts),
     ).toEqual([]);
+    expect(lintPages([mk("request-overview", { chapters: [] })], opts)).toEqual([]);
     expect(
       lintPages(
         [
@@ -768,5 +769,61 @@ describe("legacy-id-conflict：旧路由 ID 冲突门禁", () => {
     } as Partial<WikiPage["fm"]>);
     const collideProblems = lintPages([collideCanonical, targetB], opts);
     expect(splitProblems(collideProblems).errors.some((p) => p.rule === "legacy-id-conflict")).toBe(true);
+  });
+});
+
+describe("legacy-anchor & invalid-wiki-tool：阻塞级门禁", () => {
+  it("legacyAnchors 校验缺失目标、锚点冲突与非法键名，有效映射放行旧锚点入链", () => {
+    const missingTarget = mk(
+      "a",
+      { legacyAnchors: { "old-h2": "不存在的目标标题" } } as Partial<WikiPage["fm"]>,
+      "## 真实标题\n\n内容。\n",
+    );
+    const missingRes = lintPages([missingTarget], opts);
+    expect(splitProblems(missingRes).errors.some((p) => p.rule === "legacy-anchor")).toBe(true);
+
+    const collideHeading = mk(
+      "a",
+      { legacyAnchors: { 真实标题: "另一标题" } } as Partial<WikiPage["fm"]>,
+      "## 真实标题\n\n## 另一标题\n",
+    );
+    const collideRes = lintPages([collideHeading], opts);
+    expect(splitProblems(collideRes).errors.some((p) => p.rule === "legacy-anchor")).toBe(true);
+
+    const badKey = mk(
+      "a",
+      { legacyAnchors: { "Bad Key": "真实标题" } } as Partial<WikiPage["fm"]>,
+      "## 真实标题\n",
+    );
+    expect(splitProblems(lintPages([badKey], opts)).errors.some((p) => p.rule === "legacy-anchor")).toBe(
+      true,
+    );
+
+    const target = mk(
+      "b",
+      {
+        legacyAnchors: { 旧标题: "改名后的新标题" },
+      } as Partial<WikiPage["fm"]>,
+      "## 改名后的新标题\n\n见本页 [旧节](#旧标题)。\n",
+    );
+    const caller = mk(
+      "a",
+      { relations: [{ to: "b", kind: "builds-on", note: "依赖" }] },
+      "## 概述\n\n跨页引用 [b](b.md#旧标题)。\n",
+    );
+    expect(lintPages([caller, target], opts)).toEqual([]);
+  });
+
+  it("wiki-tool 围栏校验：未知工具、非法 mode 与空围栏作为阻塞级 invalid-wiki-tool 报错，合法围栏放行", () => {
+    const good = mk("a", {}, "## 工具\n\n```wiki-tool\ntool: deploy-calculator\nmode: quick-screen\n```\n");
+    expect(lintPages([good], opts)).toEqual([]);
+
+    const badTool = mk("a", {}, "## 工具\n\n```wiki-tool\ntool: nonexistent-tool\n```\n");
+    const badToolRes = splitProblems(lintPages([badTool], opts));
+    expect(badToolRes.errors.some((p) => p.rule === "invalid-wiki-tool")).toBe(true);
+
+    const badMode = mk("a", {}, "## 工具\n\n```wiki-tool\ntool: config-doctor\nmode: quick-screen\n```\n");
+    const badModeRes = splitProblems(lintPages([badMode], opts));
+    expect(badModeRes.errors.some((p) => p.rule === "invalid-wiki-tool")).toBe(true);
   });
 });

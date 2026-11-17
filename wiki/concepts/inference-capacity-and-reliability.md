@@ -6,7 +6,6 @@ origin: direct
 summary: 从一张逐级加压的结果表选出单实例可用运行点，再算正常与容错需要几套实例、故障积压多久能消退；沿就绪时间线和流式重试记录判断恢复是否真的完成。
 aliases: [推理容量规划, 自动扩缩容, 推理高可用, 冷启动, 预热, 优雅下线, draining, 故障域, 容量余量, 请求迁移, 推理恢复, SLO]
 chapters: ["19"]
-toc: { part: performance, section: 生产部署与容量 }
 order: 2
 sources:
   - https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/doc/inference_deployment_qa.md

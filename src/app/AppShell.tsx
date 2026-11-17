@@ -1,14 +1,21 @@
 import { BookOpen } from "lucide-react";
-import type { CSSProperties } from "react";
+import { type CSSProperties, useState, useSyncExternalStore } from "react";
 import { Link, Outlet, ScrollRestoration, useLocation } from "react-router";
+import { getReaderState, subscribeReader } from "../content/wiki/index";
 import city from "./intro/city.json";
 import { SiteNav } from "./SiteNav";
+import { useWikiAssistant, WikiAssistantProvider } from "./wiki/assistant-context";
+import { WikiQuickSearch } from "./wiki/QuickSearch";
+import { WikiPanel } from "./wiki/WikiPanel";
 import "../design/site.css";
 import "../design/knowledge-reader.css";
+import "../design/wiki.css";
 
-export function AppShell() {
+function AppShellView({ reader }: { reader: boolean }) {
   const { pathname } = useLocation();
-  const reader = pathname.startsWith("/wiki") || ["/chapters", "/model", "/hardware"].includes(pathname);
+  const { pages, revision, mode } = useSyncExternalStore(subscribeReader, getReaderState);
+  const assistant = useWikiAssistant();
+  const [quickSearchSlot, setQuickSearchSlot] = useState<HTMLDivElement | null>(null);
   const showHeader =
     !reader &&
     pathname !== "/" &&
@@ -17,9 +24,11 @@ export function AppShell() {
     pathname !== "/archive/home" &&
     !pathname.startsWith("/wiki") &&
     !pathname.startsWith("/dev/");
+  const panelClass =
+    reader && assistant.panel !== "closed" ? ` is-panel-open is-panel-${assistant.panel}` : "";
   return (
     <div
-      className={`min-h-full bg-canvas text-ink${reader ? " knowledge-reader" : showHeader && pathname !== "/chapters/03" ? " journey-shell" : ""}`}
+      className={`min-h-full bg-canvas text-ink${reader ? ` knowledge-reader${panelClass}` : showHeader && pathname !== "/chapters/03" ? " journey-shell" : ""}`}
       style={{ "--journey-paper": city.palette.sky, "--journey-ink": city.palette.ink } as CSSProperties}
     >
       {/*
@@ -46,7 +55,11 @@ export function AppShell() {
               </span>
             </Link>
             <div className="reader-header-end">
-              <div id="reader-quick-search-slot" className="reader-quick-search-slot" />
+              <div
+                ref={setQuickSearchSlot}
+                id="reader-quick-search-slot"
+                className="reader-quick-search-slot"
+              />
               <SiteNav />
             </div>
           </header>
@@ -77,6 +90,41 @@ export function AppShell() {
         </>
       )}
       <Outlet />
+      {reader && (
+        <>
+          <WikiQuickSearch
+            pages={pages}
+            revision={revision}
+            slot={quickSearchSlot}
+            onAfterNavigate={() => assistant.wikiHost?.onQuickSearchNavigate?.()}
+          />
+          <WikiPanel
+            revision={revision}
+            mode={mode}
+            chat={assistant.chat}
+            currentId={assistant.wikiHost?.currentId}
+            evidenceController={assistant.wikiHost?.evidenceController}
+            evidenceOpenSeq={assistant.evidenceOpenSeq}
+            panelCommand={assistant.panelCommand}
+            lastTriggerRef={assistant.lastTriggerRef}
+            onLayout={assistant.setPanel}
+            onRefresh={() => assistant.refresh()}
+          />
+        </>
+      )}
     </div>
+  );
+}
+
+export function AppShell() {
+  const { pathname } = useLocation();
+  const reader =
+    pathname.startsWith("/wiki") ||
+    pathname.startsWith("/tools") ||
+    ["/chapters", "/model", "/hardware"].includes(pathname);
+  return (
+    <WikiAssistantProvider active={reader}>
+      <AppShellView reader={reader} />
+    </WikiAssistantProvider>
   );
 }

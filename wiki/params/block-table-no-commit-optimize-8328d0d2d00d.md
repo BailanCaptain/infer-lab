@@ -113,24 +113,12 @@ decode 时一条请求一步通常只多出零到一个块号，老实现却每�
 
 ## 版本谱系
 
-> 本节由 `pnpm wiki:lineage` 从 git 历史算出。标识符的文本存在不等同于运行时功能可用；引入／移除均比较提交与父提交。
+范围限定为 `vllm_ascend/ascend_config.py` 中的 `AscendConfig.block_table_no_commit_optimize` 字段定义。定义存在不等于配置可写或运行时可用；行为条件见本页正文。未核定字段的精确引入／移除提交，不以同名文本的历史代替。
 
-| 版本 | 是否存在 |
-| --- | --- |
-| main | 无 |
-| releases/v0.23.0 | 无 |
-| releases/v0.26.0rc | 无 |
-| releases/v0.30.0rc2 | 无 |
-
-- **引入**：2026-09-23 · ad7a731b9c0db2592bbe1f568a776207745017ed · PR [#17066](https://github.com/vllm-project/vllm-ascend/pull/17066) —— [Performance][MRV1] Commit only dirty block-table ranges (#17066)
-  包含该提交的 tag：v0.30.0、v0.30.0rc1、v0.30.0rc2；分支：origin/arc-fedsched-e2e-lab、origin/main、origin/releases/v0.30.0、origin/releases/v0.30.0rc2、origin/releases/v0.31.0rc、origin/releases/v0.32.0rc、origin/zxy_fix_boradash
-  - `vllm_ascend/worker/block_table.py` +124 / −2（文本行变化）
-  - `vllm_ascend/ascend_config.py` +3 / −0（文本行变化）
-  - `vllm_ascend/ops/triton/block_table_scatter.py` +43 / −0（文本行变化）
-- **移除**：2026-09-24 · 4b4da9fae9cdbde1248b196681c86dbb7ffca9e1 · PR [#17470](https://github.com/vllm-project/vllm-ascend/pull/17470) —— [nightly][bugfix] Revert MRV1 dirty block-table optimization (#17066) (#17470)
-  包含该提交的 tag：v0.30.0、v0.30.0rc1、v0.30.0rc2；分支：origin/arc-fedsched-e2e-lab、origin/main、origin/releases/v0.30.0、origin/releases/v0.30.0rc2、origin/releases/v0.31.0rc、origin/releases/v0.32.0rc、origin/zxy_fix_boradash
-  - `vllm_ascend/worker/block_table.py` +2 / −124（文本行变化）
-  - `vllm_ascend/ops/triton/block_table_scatter.py` +0 / −43（文本行变化）
-  - `vllm_ascend/ascend_config.py` +0 / −3（文本行变化）
-
-当前含该标识符的 tag：未找到
+| 版本 | 定义是否存在 | 固定提交 |
+| --- | --- | --- |
+| main | 无 | `8d6180e2` |
+| releases/v0.23.0 | 无 | `2c59ff10` |
+| releases/v0.26.0rc | 无 | `2ed6cbba` |
+| releases/v0.30.0rc2 | 无 | `7d825229` |
+| releases/v0.30.0 | 无 | `c09d3e20` |

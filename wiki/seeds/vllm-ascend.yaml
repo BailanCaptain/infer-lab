@@ -9,29 +9,21 @@ repos:
     url: https://github.com/vllm-project/vllm-ascend
     path: tools/repos/vllm-ascend
     refs:
-      main: "baa023ad"            # 2026-09-22 全库页面的 main 来源统一重钉到这里（原 28bf3a2e 是 2026-08-29 的事实基线）
+      main: "8d6180e28e0941fcfc85999bf2aafe194e98f8f6"
       "releases/v0.23.0": "2c59ff10"   # 分支 tip，2026-09-09；layer_sharding 的完整形态所在分支
       "releases/v0.26.0rc": "2ed6cbba"   # 分支 tip，2026-09-17；还在 rc 阶段（tag 到 v0.26.0rc2），与 vLLM v0.26.0 配套。2026-09-21 用户定：v0.23 与 v0.26 长期并存
-      "releases/v0.30.0rc2": "7d825229c77025cfb185a010c25819c1214b9450" # 2026-11-03 核对用户指定分支；不是 v0.30.0 正式标签，配套上游 vLLM v0.30.0
+      "releases/v0.30.0rc2": "7d825229c77025cfb185a010c25819c1214b9450" # 过渡期保留：35 页 verified 与 2 页 rc2 移除参数仍引用
+      "releases/v0.30.0": "c09d3e20b9c45c80b34ae3781440d90904a44023"   # Stage 2 全站默认主基线
     pins:
-      main-baseline: "baa023ada41a5b889cac6249845a688aab130892"
+      main-baseline: "8d6180e28e0941fcfc85999bf2aafe194e98f8f6"
+      main-phase1-archive: "baa023ada41a5b889cac6249845a688aab130892"
       v0-23-0-tip: "2c59ff1047573f40a471cf7535f01a8877344415"
       v0-26-0rc-tip: "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f"
       v0-30-0rc2-tip: "7d825229c77025cfb185a010c25819c1214b9450"
+      v0-30-0-tag: "c09d3e20b9c45c80b34ae3781440d90904a44023"
       glm-5-3-flash: "db701c1fd31de40ab028628ee2580ae68c7fd3c0" # GLM-5/5.3-Flash PR 专项页引用的独立提交，锚定到 refs/wiki-pins/glm-5-3-flash
 
 features:
-  - id: paged-attention
-    title: PagedAttention
-    type: feature
-    chapters: ["11"]
-    priority: 1
-    repo: vllm-ascend
-    refs: ["releases/v0.23.0", "main"]
-    entry: [vllm_ascend/attention/attention_v1.py]
-    docs: [docs/source/user_guide/configuration/additional_config.md]
-    ask: 昇腾后端的 attention 算子如何按 block 读 KV Cache；AscendAttentionBackend 声明的 KV Cache 形状（get_kv_cache_shape）与支持的 block_size；decode 时 block_table 如何传给算子；与 vLLM 上游 PagedAttention 的差异。
-
   - id: block-table
     title: Block Table
     type: concept

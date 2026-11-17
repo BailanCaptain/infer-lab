@@ -535,7 +535,7 @@ export function bindPageHideFlush(
 /** 聊天状态放在面板外层：切页签、收起面板都不丢对话；卸载或关闭页面时先刷盘再中止连接 */
 export function useChat(): ChatState {
   const [controller] = useState(() => createChatController());
-  const state = useSyncExternalStore(controller.subscribe, controller.getState);
+  const state = useSyncExternalStore(controller.subscribe, controller.getState, controller.getState);
 
   useEffect(() => bindPageHideFlush(window, controller), [controller]);
 

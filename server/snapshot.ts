@@ -217,7 +217,7 @@ function collectSnapshot(root: string, policy: InvalidPagePolicy) {
   }
   const pageTexts = kept.map((r) => ({ file: r.page.file, text: r.text }));
   const compiledPages = Object.fromEntries(
-    kept.map((r) => [r.page.file, compileMarkdown(r.page.body.trim())]),
+    kept.map((r) => [r.page.file, compileMarkdown(r.page.body.trim(), r.page.fm.legacyAnchors)]),
   );
   const bodyByFile = new Map(kept.map((r) => [r.page.file, r.page.body.trim()]));
   const baseRegistry = buildRegistry(pages);

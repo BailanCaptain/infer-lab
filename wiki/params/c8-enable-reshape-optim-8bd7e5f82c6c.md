@@ -179,31 +179,15 @@ indexer 的 K 缓存通过 slot 定位每个 token：`npu_scatter_nd_update_` �
 
 ## 版本谱系
 
-> 本节由 `pnpm wiki:lineage` 从 git 历史算出。标识符的文本存在不等同于运行时功能可用；引入／移除均比较提交与父提交。
+范围限定为 `vllm_ascend/ascend_config.py` 中的 `AscendConfig.c8_enable_reshape_optim` 字段定义。定义存在不等于配置可写或运行时可用；行为条件见本页正文。未核定字段的精确引入／移除提交，不以同名文本的历史代替。
 
-| 版本 | 是否存在 |
-| --- | --- |
-| main | 有（1 个文件） |
-| releases/v0.23.0 | 有（2 个文件） |
-| releases/v0.26.0rc | 有（2 个文件） |
-| releases/v0.30.0rc2 | 有（1 个文件） |
-
-- **引入**：2026-06-10 · a53f8a023016219a3d5246a881d74d4d8d892f0c · PR [#10292](https://github.com/vllm-project/vllm-ascend/pull/10292) —— [Feature] add ascendc ops store_kv_block (#10292)
-  包含该提交的 tag：v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2、v0.27.1rc1、v0.28.0.rc1、v0.29.0.rc1、v0.30.0、v0.30.0rc1、v0.30.0rc2；分支：origin/arc-fedsched-e2e-lab、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/releases/v0.30.0、origin/releases/v0.30.0rc2、origin/releases/v0.31.0rc、origin/releases/v0.32.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann、origin/zxy_fix_boradash
-  - `vllm_ascend/attention/sfa_v1.py` +51 / −10（文本行变化）
-  - `vllm_ascend/worker/model_runner_v1.py` +3 / −2（文本行变化）
-  - `vllm_ascend/ascend_config.py` +1 / −0（文本行变化）
-  - `vllm_ascend/attention/utils.py` +4 / −0（文本行变化）
-  - `vllm_ascend/spec_decode/llm_base_proposer.py` +3 / −0（文本行变化）
-- **移除**：2026-09-07 · c30092741be0829dfb387103a32f433f5c0ecb5c · PR [#15752](https://github.com/vllm-project/vllm-ascend/pull/15752) —— [Refactor] Auto-enable LI C8 reshape optimization (#15752)
-  包含该提交的 tag：v0.28.0.rc1、v0.29.0.rc1、v0.30.0、v0.30.0rc1、v0.30.0rc2；分支：origin/arc-fedsched-e2e-lab、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/releases/v0.30.0、origin/releases/v0.30.0rc2、origin/releases/v0.31.0rc、origin/releases/v0.32.0rc、origin/revert-15908-new-refactor、origin/zxy_fix_boradash
-  - `vllm_ascend/ascend_config.py` +21 / −10（文本行变化）
-  - `vllm_ascend/attention/sfa_v1.py` +2 / −2（文本行变化）
-- **引入**：2026-09-20 · 1e0742722d149b99f91ece504180aa9bdf8b69af · PR [#16952](https://github.com/vllm-project/vllm-ascend/pull/16952) —— [Misc][Config] Restore C8 reshape optimization switch (#16952)
-  包含该提交的 tag：v0.29.0.rc1、v0.30.0、v0.30.0rc1、v0.30.0rc2；分支：origin/arc-fedsched-e2e-lab、origin/main、origin/releases/v0.29.0rc、origin/releases/v0.30.0、origin/releases/v0.30.0rc2、origin/releases/v0.31.0rc、origin/releases/v0.32.0rc、origin/zxy_fix_boradash
-  - `vllm_ascend/ascend_config.py` +7 / −3（文本行变化）
-
-当前含该标识符的 tag：v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2、v0.27.1rc1、v0.29.0.rc1、v0.30.0rc1、v0.30.0rc2
+| 版本 | 定义是否存在 | 固定提交 |
+| --- | --- | --- |
+| main | 无 | `8d6180e2` |
+| releases/v0.23.0 | 无 | `2c59ff10` |
+| releases/v0.26.0rc | 无 | `2ed6cbba` |
+| releases/v0.30.0rc2 | 有 | `7d825229` |
+| releases/v0.30.0 | 无 | `c09d3e20` |
 
 ## 参数定义（自动生成）
 

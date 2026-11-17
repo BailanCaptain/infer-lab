@@ -6,7 +6,6 @@ origin: direct
 summary: 用两条请求的候选概率算出怎样分配验证预算，再加入实际每轮耗时判断收益；解释半自回归草稿、置信度累乘、CPU/设备异步分工，以及接受率高却不更快时的排查方法。
 aliases: [DSpark, Confidence Scheduled Verification, 置信度调度, 变长验证, 可变验证长度, DFlash, MTP varlen, confidence head]
 chapters: ["19"]
-toc: { part: performance, section: 模型与推理策略 }
 order: 3
 sources:
   - https://arxiv.org/html/2607.05147v1

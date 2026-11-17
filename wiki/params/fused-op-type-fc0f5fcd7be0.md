@@ -182,24 +182,15 @@ LIM 合并打分与热缓冲管理，Copy-SFA 合并缺失行拷贝与 attention
 
 ## 版本谱系
 
-> 本节由 `pnpm wiki:lineage` 从 git 历史算出。标识符的文本存在不等同于运行时功能可用；引入／移除均比较提交与父提交。
+范围限定为 `vllm_ascend/ascend_config.py` 中的 `SparseKVOffloadConfig.fused_op_type` 字段定义。定义存在不等于配置可写或运行时可用；行为条件见本页正文。未核定字段的精确引入／移除提交，不以同名文本的历史代替。
 
-| 版本 | 是否存在 |
-| --- | --- |
-| main | 无 |
-| releases/v0.23.0 | 无 |
-| releases/v0.26.0rc | 无 |
-| releases/v0.30.0rc2 | 有（1 个文件） |
-
-- **引入**：2026-09-26 · 1e9e03bc53bdc53f3cc78c7af191794ee7544ad9 · PR [#17392](https://github.com/vllm-project/vllm-ascend/pull/17392) —— [Feature]Support using fused operators to improve performance of layerwise sparse offload (#17392)
-  包含该提交的 tag：v0.30.0、v0.30.0rc1、v0.30.0rc2；分支：origin/arc-fedsched-e2e-lab、origin/main、origin/releases/v0.30.0、origin/releases/v0.30.0rc2、origin/releases/v0.31.0rc、origin/releases/v0.32.0rc、origin/zxy_fix_boradash
-  - `vllm_ascend/spec_decode/mtp.py` +0 / −50（文本行变化）
-  - `vllm_ascend/attention/sfa_kv_offload.py` +552 / −19（文本行变化）
-  - `vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py` +23 / −18（文本行变化）
-  - `vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/worker.py` +68 / −9（文本行变化）
-  - `vllm_ascend/worker/model_runner_v1.py` +105 / −4（文本行变化）
-
-当前含该标识符的 tag：v0.30.0rc1、v0.30.0rc2
+| 版本 | 定义是否存在 | 固定提交 |
+| --- | --- | --- |
+| main | 无 | `8d6180e2` |
+| releases/v0.23.0 | 无 | `2c59ff10` |
+| releases/v0.26.0rc | 无 | `2ed6cbba` |
+| releases/v0.30.0rc2 | 有 | `7d825229` |
+| releases/v0.30.0 | 无 | `c09d3e20` |
 
 ## 对照源码
 

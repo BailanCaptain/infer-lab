@@ -1,5 +1,7 @@
 ---
-id: gap-a5164fe10fa9184412f8
+id: hccl-buffer
+legacyIds:
+  - gap-a5164fe10fa9184412f8
 title: HCCL buffer：通信缓冲怎样配置与占用显存
 type: concept
 summary: >-

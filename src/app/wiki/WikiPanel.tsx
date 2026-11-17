@@ -2,7 +2,7 @@ import { MessageSquare, RefreshCw, X } from "lucide-react";
 import { type KeyboardEvent, type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { createEvidenceViewController } from "../../content/wiki/evidence-schema";
 import { wikiRequest } from "./api";
-import { ChatPane, useChat } from "./ChatDrawer";
+import { ChatPane, type ChatState, useChat } from "./ChatDrawer";
 import { DropPane } from "./DropPane";
 import { EvidencePane, type EvidenceViewController } from "./EvidencePane";
 import { ReaderResizeHandle } from "./ReaderResizeHandle";
@@ -29,27 +29,45 @@ export function shouldStopChatOnPanelClose(tab: WikiPanelTab): boolean {
  * 知识库的全部操作收在一个侧栏里：问答、审阅、刷新，外加一页只读的运行状态。
  * 两个页签常驻渲染、只切显隐——对话记录、滚动位置和读到一半的 diff 都不因切换而丢。
  */
-export function WikiPanel({
-  revision,
-  mode,
-  currentId,
-  evidenceController,
-  evidenceOpenSeq,
-  lastTriggerRef,
-  onRefresh,
-  onLayout,
-}: {
+export interface WikiPanelProps {
   revision: string;
   mode: "build" | "local";
   currentId?: string | undefined;
+  chat?: ChatState | undefined;
   evidenceController?: EvidenceViewController | undefined;
   evidenceOpenSeq?: number | undefined;
+  panelCommand?: { seq: number; tab: WikiPanelTab } | undefined;
   lastTriggerRef?: RefObject<HTMLElement | null> | undefined;
   /** 返回 true 表示读者快照已更新到最新发布版本 */
   onRefresh: () => Promise<boolean>;
   /** 外层要知道面板开没开、在哪个页签（浮层开着时「本页目录」按钮要挪到它左边） */
   onLayout: (layout: "closed" | WikiPanelTab) => void;
-}) {
+}
+
+export function WikiPanel(props: WikiPanelProps) {
+  if (props.chat) {
+    return <WikiPanelView {...props} chat={props.chat} />;
+  }
+  return <WikiPanelStandalone {...props} />;
+}
+
+function WikiPanelStandalone(props: WikiPanelProps) {
+  const chat = useChat();
+  return <WikiPanelView {...props} chat={chat} />;
+}
+
+function WikiPanelView({
+  revision,
+  mode,
+  currentId,
+  chat,
+  evidenceController,
+  evidenceOpenSeq,
+  panelCommand,
+  lastTriggerRef,
+  onRefresh,
+  onLayout,
+}: Omit<WikiPanelProps, "chat"> & { chat: ChatState }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<WikiPanelTab>("chat");
   const [reviews, setReviews] = useState<ReviewSummary[]>([]);
@@ -62,13 +80,13 @@ export function WikiPanel({
     }),
   );
   const activeEvidence = evidenceController ?? fallbackEvidence;
-  const chat = useChat();
   const tabRefs = useRef<Partial<Record<WikiPanelTab, HTMLButtonElement | null>>>({});
   const fabRef = useRef<HTMLButtonElement>(null);
   const currentTab = useRef(tab);
   currentTab.current = tab;
   const wasOpen = useRef(open);
   const seenEvidenceSeq = useRef(0);
+  const seenCommandSeq = useRef(0);
 
   const loadReviews = useCallback(async () => {
     try {
@@ -92,6 +110,12 @@ export function WikiPanel({
     setTab("evidence");
     setOpen(true);
   }, [evidenceOpenSeq]);
+  useEffect(() => {
+    if (!panelCommand || panelCommand.seq === seenCommandSeq.current) return;
+    seenCommandSeq.current = panelCommand.seq;
+    setTab(panelCommand.tab);
+    setOpen(true);
+  }, [panelCommand]);
   useEffect(() => {
     onLayout(!open ? "closed" : tab);
   }, [open, tab, onLayout]);

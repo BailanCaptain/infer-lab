@@ -22,14 +22,13 @@ import {
   findByAlias,
   getPage,
   getReaderState,
-  refreshReaderSnapshot,
   sourceUrl,
   subscribeReader,
 } from "../../content/wiki/index";
 import {
+  createWikiRehypePlugins,
   plainFenceCode,
   textOf,
-  WIKI_REHYPE_PLUGINS,
   WIKI_REMARK_PLUGINS,
 } from "../../content/wiki/markdown";
 import { pageDisplayTitle } from "../../content/wiki/param-display";
@@ -44,9 +43,8 @@ import {
 import { EVIDENCE_LEVELS_INFO, EvidenceBadge, EvidenceLegend, Term } from "../../content/wiki/Term";
 import { buildToc, type TocPart } from "../../content/wiki/toc";
 import { WikiDiagram } from "../../content/wiki/WikiDiagram";
-import { requestReaderSnapshot } from "../wiki/api";
+import { useWikiAssistant } from "../wiki/assistant-context";
 import { hasPageToc, type PageHeading, PageTocFab, PageTocSide, readHeadings } from "../wiki/PageToc";
-import { WikiQuickSearch } from "../wiki/QuickSearch";
 import { ReaderResizeHandle } from "../wiki/ReaderResizeHandle";
 import { isSceneLessonId, sceneAnchorIds } from "../wiki/scene-lessons";
 import {
@@ -56,8 +54,8 @@ import {
   scrollToWikiFragment,
   WikiContentLink,
 } from "../wiki/WikiLink";
-import { WikiPanel, type WikiPanelTab } from "../wiki/WikiPanel";
 import { WikiScene } from "../wiki/WikiScene";
+import { WikiToolBlock } from "../wiki/WikiToolBlock";
 import "katex/dist/katex.min.css";
 import "../../design/wiki.css";
 
@@ -99,6 +97,13 @@ function fenceSource(node: unknown, language: string): string | null {
   if (!Array.isArray(cls) || !cls.includes(`language-${language}`)) return null;
   const text = code.children?.[0];
   return text?.type === "text" && text.value ? text.value.trim() : null;
+}
+
+function hasFenceLanguage(node: unknown, language: string): boolean {
+  const code = (node as HastNode | undefined)?.children?.[0];
+  if (code?.type !== "element" || code.tagName !== "code") return false;
+  const cls = code.properties?.className;
+  return Array.isArray(cls) && cls.includes(`language-${language}`);
 }
 
 /** 不标语言或标 text 的代码块正文；算式块识别只看这两种。字已被 rehypeTextGrid 分进字格，按拼起来的原文认 */
@@ -146,9 +151,8 @@ export function WikiPage() {
     const target = canonicalWikiRedirectTarget(id, canonicalId, location);
     if (target) navigate(target, { replace: true });
   }, [id, canonicalId, location, navigate]);
-  const [panel, setPanel] = useState<"closed" | WikiPanelTab>("closed");
-  const [evidenceOpenSeq, setEvidenceOpenSeq] = useState(0);
-  const lastEvidenceTriggerRef = useRef<HTMLElement | null>(null);
+  const assistant = useWikiAssistant();
+  const { panel, snapshotError, openEvidence, registerWikiHost } = assistant;
   const evidenceController = useMemo(
     () => createEvidenceViewController({ loadPageEvidence: ensurePageEvidence }),
     [],
@@ -159,26 +163,32 @@ export function WikiPage() {
   const openSourceEvidence = useCallback(
     (sourceIndex: number, trigger: HTMLElement | null) => {
       if (!activeId) return;
-      lastEvidenceTriggerRef.current = trigger;
-      setEvidenceOpenSeq((n) => n + 1);
+      openEvidence(trigger);
       void evidenceController.openForSource(activeId, revision, sourceIndex);
     },
-    [activeId, revision, evidenceController],
+    [activeId, revision, evidenceController, openEvidence],
   );
   const openDiagramRef = useRef<(diagramId: string, trigger: HTMLElement | null) => void>(() => {});
   openDiagramRef.current = (diagramId: string, trigger: HTMLElement | null) => {
     if (!activeId) return;
-    lastEvidenceTriggerRef.current = trigger;
-    setEvidenceOpenSeq((n) => n + 1);
+    openEvidence(trigger);
     void evidenceController.openForDiagram(activeId, revision, diagramId, 0);
   };
   const openDiagramEvidence = useCallback((diagramId: string, trigger: HTMLElement | null) => {
     openDiagramRef.current(diagramId, trigger);
   }, []);
-  const [snapshotError, setSnapshotError] = useState("");
   const [directoryQuery, setDirectoryQuery] = useState("");
   const [directoryOpen, setDirectoryOpen] = useState(false);
   const [pageError, setPageError] = useState("");
+  useLayoutEffect(
+    () =>
+      registerWikiHost({
+        currentId: activeId,
+        evidenceController,
+        onQuickSearchNavigate: () => setDirectoryOpen(false),
+      }),
+    [activeId, evidenceController, registerWikiHost],
+  );
   const desktop = useSyncExternalStore(subscribeDirectory, desktopDirectory);
   const [prevDesktop, setPrevDesktop] = useState(desktop);
   if (desktop !== prevDesktop) {
@@ -188,27 +198,6 @@ export function WikiPage() {
       setDirectoryOpen(nextDrawer.directoryOpen);
     }
   }
-  const refresh = useCallback(async (signal?: AbortSignal) => {
-    const updated = await refreshReaderSnapshot(
-      () => requestReaderSnapshot(getReaderState().revision),
-      signal,
-    );
-    if (updated) setSnapshotError("");
-    return updated;
-  }, []);
-  useEffect(() => {
-    const controller = new AbortController();
-    void refresh(controller.signal).catch(() =>
-      setSnapshotError("未能更新，仍显示以上版本。连接问答服务后可重试刷新。"),
-    );
-    return () => controller.abort();
-  }, [refresh]);
-  // dev 下 wiki 文件变了（手改，或一次发布）：就地换数据，不整页重载；问答服务不在才退回重载
-  useEffect(() => {
-    const onChanged = () => void refresh().catch(() => window.location.reload());
-    import.meta.hot?.on("wiki:changed", onChanged);
-    return () => import.meta.hot?.off("wiki:changed", onChanged);
-  }, [refresh]);
   const toc = useMemo(() => buildToc(pages), [pages]);
   const query = directoryQuery.trim().toLocaleLowerCase();
   const matchingIds = new Set(
@@ -278,7 +267,6 @@ export function WikiPage() {
 
   return (
     <div className="reader-content">
-      <WikiQuickSearch pages={pages} revision={revision} onAfterNavigate={() => setDirectoryOpen(false)} />
       <div className={`wiki-shell is-panel-${panel}`}>
         <details
           className="reader-directory"
@@ -445,24 +433,6 @@ export function WikiPage() {
             </>
           )}
         </main>
-
-        <WikiPanel
-          revision={revision}
-          mode={mode}
-          currentId={activeId}
-          evidenceController={evidenceController}
-          evidenceOpenSeq={evidenceOpenSeq}
-          lastTriggerRef={lastEvidenceTriggerRef}
-          onLayout={setPanel}
-          onRefresh={async () => {
-            try {
-              return await refresh();
-            } catch (error) {
-              setSnapshotError("未能更新，仍显示以上版本。连接问答服务后可重试刷新。");
-              throw error;
-            }
-          }}
-        />
       </div>
     </div>
   );
@@ -603,6 +573,9 @@ const WikiFence: Components["pre"] = ({ children, node }) => {
         onOpenEvidence={onOpenDiagram}
       />
     );
+  if (hasFenceLanguage(node, "wiki-tool")) {
+    return <WikiToolBlock source={fenceSource(node, "wiki-tool") ?? ""} />;
+  }
   // 算式块（calc.ts / CalcBlock.tsx）：```calc 围栏，和每行都是「标签 = …」的纯文本块。
   // 现有页面的 ```text 算式块不用改写就能认出来；认不出的照旧是代码块
   const source = fenceSource(node, "calc");
@@ -688,7 +661,11 @@ export const Article = memo(function Article({
     () => (
       <ReactMarkdown
         remarkPlugins={compiled ? [] : WIKI_REMARK_PLUGINS}
-        rehypePlugins={compiled ? [() => () => structuredClone(compiled) as never] : WIKI_REHYPE_PLUGINS}
+        rehypePlugins={
+          compiled
+            ? [() => () => structuredClone(compiled) as never]
+            : createWikiRehypePlugins(page.legacyAnchors)
+        }
         components={{
           // 图的围栏渲染成图。HANDBOOK 要求讲结构关系时必须画图，不接这一段
           // 就会以源码形式显示。在 pre 而不是 code 上拦，否则 <figure> 会落进
@@ -748,7 +725,7 @@ export const Article = memo(function Article({
         {compiled ? "" : body}
       </ReactMarkdown>
     ),
-    [body, compiled, onOpenSource, page.id, page.sources],
+    [body, compiled, onOpenSource, page.id, page.legacyAnchors, page.sources],
   );
   // 只给长页（H2 ≥ 4）；短页一屏半就读完，导航只是噪音
   const withToc = hasPageToc(headings);

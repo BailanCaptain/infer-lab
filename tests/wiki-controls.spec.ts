@@ -14,7 +14,10 @@ test.beforeEach(async () => {
       fileURLToPath(new URL("./fixtures/wiki-controls-server.ts", import.meta.url)),
     ],
     {
-      env: { ...process.env, WIKI_TEST_WEB_PORT: process.env.WIKI_TEST_WEB_PORT ?? "4173" },
+      env: {
+        ...process.env,
+        WIKI_TEST_WEB_PORT: process.env.WIKI_TEST_WEB_PORT ?? process.env.PLAYWRIGHT_PORT ?? "4173",
+      },
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
     },

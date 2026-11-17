@@ -72,26 +72,29 @@ test.describe("知识库阅读页", () => {
     await expect(versions).not.toContainText("releases/");
   });
 
-  test("RFork 独立成章；参数默认收起，读参数页时展开", async ({ page }) => {
+  test("RFork 与参数独立成章；参数默认收起，读参数页时展开", async ({ page }) => {
     await page.goto("/#/wiki");
     const toc = page.getByTestId("wiki-toc");
     await expect(toc.locator(".wiki-toc-part-head")).toContainText([
-      "开始学习",
-      "模型结构与计算",
-      "推理过程",
-      "vLLM 与 Ascend 架构",
-      "Ascend 硬件与软件栈",
-      "分布式推理与部署",
-      "性能与工程优化",
-      "服务能力",
-      "RFork 工作版",
-      "参数参考",
-      "来源与更新记录",
+      "全景入门与新模型上线",
+      "标准模型单层计算与多模态输入",
+      "单实例调度、分页 KV 缓存与注意力状态变体",
+      "昇腾硬件体系、注意力分块与现代量化",
+      "集合通信原语、分布式并行与负载均衡",
+      "PD / EPD 分离架构与跨实例外置 KV 体系",
+      "vllm-ascend 两仓架构、冷启动与图编译引擎",
+      "测量基准、核心调参、版本迁移、服务特性与排障手册",
+      "旗舰异构模型端到端全案解剖",
+      "历史版本来源快照与开发档案",
+      "RFork 权重快载专题",
+      "additional_config 参数字典",
     ]);
     await expect(toc).not.toContainText("未归章");
     await page.getByTestId("toc-models").locator("summary").click();
     await expect(page.getByTestId("toc-models").getByRole("link", { name: /^GQA/ })).toBeVisible();
-    await expect(page.getByTestId("toc-models").getByRole("link", { name: /^MLA/ })).toBeVisible();
+    await expect(page.getByTestId("toc-models").getByRole("link", { name: /^MLA/ })).toHaveCount(0);
+    await page.getByTestId("toc-inference").locator("summary").click();
+    await expect(page.getByTestId("toc-inference").getByRole("link", { name: /^MLA/ })).toBeVisible();
     await expect(page.getByTestId("toc-hardware").getByRole("link", { name: /^(GQA|MLA)/ })).toHaveCount(0);
     await expect(page.getByTestId("toc-params").getByRole("link").first()).toBeHidden();
     await page.goto("/#/wiki/layer-sharding");

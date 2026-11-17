@@ -387,4 +387,51 @@ describe("知识页正文：页末「对照源码」默认折叠与 raw: 内联�
     );
     expect(compiledHtml).toBe(liveHtml);
   });
+
+  it("rehypeLegacyAnchors 在目标标题内注入零文本兼容锚点（含默认折叠的 ## 对照源码），不污染 PageToc 标题文本", async () => {
+    const { compileMarkdown } = await import("../../../scripts/wiki/compile-markdown");
+    const md = [
+      "## 新版机制标题",
+      "",
+      "正文。",
+      "",
+      "## 对照源码",
+      "",
+      "### 新源码小节",
+      "",
+      "源码细节。",
+      "",
+    ].join("\n");
+    const legacyAnchors = {
+      旧版机制标题: "新版机制标题",
+      "old-source-sub": "新源码小节",
+    };
+
+    const liveHtml = renderToStaticMarkup(
+      createElement(
+        ReactMarkdown,
+        {
+          remarkPlugins: pipeline.WIKI_REMARK_PLUGINS,
+          rehypePlugins: pipeline.createWikiRehypePlugins(legacyAnchors),
+        },
+        md,
+      ),
+    );
+    expect(liveHtml).toContain(
+      '<h2 id="新版机制标题"><span id="旧版机制标题" class="wiki-legacy-anchor" aria-hidden="true"></span>新版机制标题</h2>',
+    );
+    expect(liveHtml).toContain(
+      '<h3 id="新源码小节"><span id="old-source-sub" class="wiki-legacy-anchor" aria-hidden="true"></span>新源码小节</h3>',
+    );
+
+    const compiled = compileMarkdown(md, legacyAnchors);
+    const compiledHtml = renderToStaticMarkup(
+      createElement(
+        ReactMarkdown,
+        { remarkPlugins: [], rehypePlugins: [() => () => structuredClone(compiled) as never] },
+        "",
+      ),
+    );
+    expect(compiledHtml).toBe(liveHtml);
+  });
 });

@@ -20,9 +20,6 @@ aliases:
   - 一个人快多个人一起为什么慢
 chapters:
   - '19'
-toc:
-  part: performance
-  section: 性能分析与排障
 order: 1
 sources:
   - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L416'

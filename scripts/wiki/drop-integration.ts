@@ -843,7 +843,7 @@ class DropSession {
       reason: "本次补读组合超出预算，所请求的补充原文尚未提供；必需原文仍在 materials。",
       instruction:
         level === 2
-          ? "所请求补充原文尚未提供，严禁跳过未核原文直接给结论；请优先采用 suggestedBatch 或从 uninspectedRanges 分批重新 request。"
+          ? "所请求补充原文尚未提供，不得跳过未核原文直接给结论；请优先采用 suggestedBatch 或从 uninspectedRanges 分批重新 request。"
           : br.instruction,
       limit: br.limit,
       ...(typeof br.nextTurnLimit === "number" ? { nextTurnLimit: br.nextTurnLimit } : {}),

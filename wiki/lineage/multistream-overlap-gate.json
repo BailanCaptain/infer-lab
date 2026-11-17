@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "term": "multistream_overlap_gate",
+  "paths": [
+    "vllm_ascend/"
+  ],
+  "interpretation": "textual-presence-not-runtime-behavior",
+  "presence": [
+    {
+      "ref": "main",
+      "commit": "8d6180e28e0941fcfc85999bf2aafe194e98f8f6",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.23.0",
+      "commit": "2c59ff1047573f40a471cf7535f01a8877344415",
+      "files": 9
+    },
+    {
+      "ref": "releases/v0.26.0rc",
+      "commit": "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.30.0rc2",
+      "commit": "7d825229c77025cfb185a010c25819c1214b9450",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.30.0",
+      "commit": "c09d3e20b9c45c80b34ae3781440d90904a44023",
+      "files": 0
+    }
+  ],
+  "events": [
+    {
+      "commit": "ba28d54f359278c83ed0f55ba78de9b1996f2b12",
+      "date": "2025-12-14",
+      "subject": "[Perf]enable prefill flashcommon3 (#4065)",
+      "kind": "introduced",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/ops/fused_moe/fused_moe.py",
+          "added": 87,
+          "removed": 21
+        },
+        {
+          "path": "vllm_ascend/quantization/w8a8_dynamic.py",
+          "added": 22,
+          "removed": 12
+        },
+        {
+          "path": "vllm_ascend/ops/fused_moe/prepare_finalize.py",
+          "added": 29,
+          "removed": 5
+        },
+        {
+          "path": "vllm_ascend/distributed/parallel_state.py",
+          "added": 21,
+          "removed": 1
+        },
+        {
+          "path": "vllm_ascend/distributed/utils.py",
+          "added": 32,
+          "removed": 1
+        }
+      ],
+      "pr": 4065,
+      "containedIn": {
+        "tags": [
+          "v0.13.0",
+          "v0.13.0rc1",
+          "v0.13.0rc2",
+          "v0.13.0rc3",
+          "v0.14.0rc1",
+          "v0.15.0rc1",
+          "v0.16.0rc1",
+          "v0.17.0rc1",
+          "v0.18.0",
+          "v0.18.0rc1",
+          "v0.19.1rc1",
+          "v0.20.2rc1",
+          "v0.21.0rc1",
+          "v0.22.1rc1",
+          "v0.23.0",
+          "v0.23.0.post1",
+          "v0.23.0rc1",
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1",
+          "v0.26.0rc2",
+          "v0.27.1rc1",
+          "v0.28.0.rc1",
+          "v0.29.0.rc1",
+          "v0.30.0",
+          "v0.30.0rc1",
+          "v0.30.0rc2",
+          "v0.31.0rc1",
+          "v0.32.0rc1"
+        ],
+        "branches": [
+          "origin/arc-fedsched-e2e-lab",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/pr-20926",
+          "origin/releases/v0.13.0",
+          "origin/releases/v0.18.0",
+          "origin/releases/v0.20.2rc",
+          "origin/releases/v0.21.0rc",
+          "origin/releases/v0.22.1rc",
+          "origin/releases/v0.23.0",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/releases/v0.28.0rc",
+          "origin/releases/v0.29.0rc",
+          "origin/releases/v0.30.0",
+          "origin/releases/v0.30.0rc2",
+          "origin/releases/v0.31.0rc",
+          "origin/releases/v0.32.0rc",
+          "origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/revert-15908-new-refactor",
+          "origin/rfc/0.26.0rc1-bugfix",
+          "origin/rfc/community-contrib",
+          "origin/rfc/megakernel",
+          "origin/rfc/vllm_cann",
+          "origin/zxy_fix_boradash"
+        ]
+      }
+    },
+    {
+      "commit": "77baade98ded755b3e5ea30091bcf40a30ae0335",
+      "date": "2026-07-15",
+      "subject": "[Refactor] Remove multistream overlap gate (#11956)",
+      "kind": "removed",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py",
+          "added": 11,
+          "removed": 76
+        },
+        {
+          "path": "vllm_ascend/ops/fused_moe/fused_moe.py",
+          "added": 11,
+          "removed": 75
+        },
+        {
+          "path": "vllm_ascend/flash_common3_context.py",
+          "added": 0,
+          "removed": 41
+        },
+        {
+          "path": "vllm_ascend/distributed/utils.py",
+          "added": 1,
+          "removed": 34
+        },
+        {
+          "path": "vllm_ascend/quantization/methods/w8a8_dynamic.py",
+          "added": 18,
+          "removed": 29
+        }
+      ],
+      "pr": 11956,
+      "containedIn": {
+        "tags": [
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1",
+          "v0.26.0rc2",
+          "v0.27.1rc1",
+          "v0.28.0.rc1",
+          "v0.29.0.rc1",
+          "v0.30.0",
+          "v0.30.0rc1",
+          "v0.30.0rc2",
+          "v0.31.0rc1",
+          "v0.32.0rc1"
+        ],
+        "branches": [
+          "origin/arc-fedsched-e2e-lab",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/pr-20926",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/releases/v0.28.0rc",
+          "origin/releases/v0.29.0rc",
+          "origin/releases/v0.30.0",
+          "origin/releases/v0.30.0rc2",
+          "origin/releases/v0.31.0rc",
+          "origin/releases/v0.32.0rc",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/revert-15908-new-refactor",
+          "origin/rfc/0.26.0rc1-bugfix",
+          "origin/rfc/megakernel",
+          "origin/zxy_fix_boradash"
+        ]
+      }
+    }
+  ],
+  "tagsWithTerm": [
+    "v0.13.0",
+    "v0.13.0rc1",
+    "v0.13.0rc2",
+    "v0.13.0rc3",
+    "v0.14.0rc1",
+    "v0.15.0rc1",
+    "v0.16.0rc1",
+    "v0.17.0rc1",
+    "v0.18.0",
+    "v0.18.0rc1",
+    "v0.19.1rc1",
+    "v0.20.2rc1",
+    "v0.21.0rc1",
+    "v0.22.1rc1",
+    "v0.23.0",
+    "v0.23.0.post1",
+    "v0.23.0rc1"
+  ]
+}

@@ -7,10 +7,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ReactMarkdown from "react-markdown";
 import { sceneAnchorIds } from "../../src/app/wiki/scene-lessons";
-import { fragmentId } from "../../src/content/wiki/anchors";
+import { fragmentId, headingSlug, resolveLegacyAnchorTarget } from "../../src/content/wiki/anchors";
 import { CHAPTER_IDS } from "../../src/content/wiki/chapters";
 import { EVIDENCE_MARK_RE, NUMBERED_EVIDENCE_LEVELS } from "../../src/content/wiki/evidenceMarks";
-import { WIKI_REHYPE_PLUGINS, WIKI_REMARK_PLUGINS } from "../../src/content/wiki/markdown";
+import { createWikiRehypePlugins, WIKI_REMARK_PLUGINS } from "../../src/content/wiki/markdown";
 import { findPageByName } from "../../src/content/wiki/page-names";
 import { citationProse } from "../../src/content/wiki/retrieve";
 import {
@@ -19,6 +19,8 @@ import {
   isSymmetric,
   parseRawRef,
 } from "../../src/content/wiki/schema";
+import { hasCuratedTocPlacement, isRforkTopicPage } from "../../src/content/wiki/toc";
+import { extractWikiToolFences, parseWikiToolFence } from "../../src/content/wiki/toolFence";
 import { buildLayerTimeline } from "../../src/sim/model/forwardLayer";
 import { getTokenPreset } from "../../src/sim/model/presets";
 import { getPresetSpec } from "../../src/sim/modelspec/presets";
@@ -119,14 +121,14 @@ const HTML_ENTITIES: Record<string, string> = {
  * 代码块里的 `##` 不算标题、同名标题加 -1、行内代码按文字算，都由同一条管线决定；
  * 链接也取渲染结果里真正的 <a>，代码里的 `[x](y.md#z)` 不算，引用式链接照样算。
  */
-function renderBody(body: string): RenderedBody {
+function renderBody(body: string, legacyAnchors?: Readonly<Record<string, string>>): RenderedBody {
   const links: RenderedBody["links"] = [];
   const html = renderToStaticMarkup(
     createElement(
       ReactMarkdown,
       {
         remarkPlugins: WIKI_REMARK_PLUGINS,
-        rehypePlugins: WIKI_REHYPE_PLUGINS,
+        rehypePlugins: createWikiRehypePlugins(legacyAnchors),
         components: {
           code: ({ className, children }) => {
             if (className === "language-wiki-scene") {
@@ -152,6 +154,67 @@ function renderBody(body: string): RenderedBody {
   return { ids, links };
 }
 
+function legacyAnchorProblems(
+  page: WikiPage,
+  baseIds: ReadonlySet<string>,
+): { problems: PageProblem[]; validKeys: Record<string, string> } {
+  const problems: PageProblem[] = [];
+  const validKeys: Record<string, string> = {};
+  if (!page.fm.legacyAnchors) return { problems, validKeys };
+  for (const [oldSlug, target] of Object.entries(page.fm.legacyAnchors)) {
+    if (!oldSlug || headingSlug(oldSlug) !== oldSlug) {
+      problems.push({
+        file: page.file,
+        rule: "legacy-anchor",
+        message: `legacyAnchors 键「${oldSlug}」不是规范锚点 slug（小写、无空格与标点、不含 #）`,
+      });
+      continue;
+    }
+    const trimmed = target.trim();
+    if (!trimmed) {
+      problems.push({
+        file: page.file,
+        rule: "legacy-anchor",
+        message: `legacyAnchors 键 #${oldSlug} 的目标不能为空`,
+      });
+      continue;
+    }
+    if (baseIds.has(oldSlug)) {
+      problems.push({
+        file: page.file,
+        rule: "legacy-anchor",
+        message: `legacyAnchors 键 #${oldSlug} 与页面既有标题/锚点 id 冲突`,
+      });
+      continue;
+    }
+    if (!resolveLegacyAnchorTarget(trimmed, baseIds)) {
+      problems.push({
+        file: page.file,
+        rule: "legacy-anchor",
+        message: `legacyAnchors 映射 #${oldSlug} → 「${trimmed}」在当前页找不到目标标题或锚点`,
+      });
+      continue;
+    }
+    validKeys[oldSlug] = trimmed;
+  }
+  return { problems, validKeys };
+}
+
+function toolFenceProblems(page: WikiPage): PageProblem[] {
+  const out: PageProblem[] = [];
+  for (const block of extractWikiToolFences(page.body)) {
+    const parsed = parseWikiToolFence(block.source);
+    if (!parsed.ok) {
+      out.push({
+        file: page.file,
+        rule: "invalid-wiki-tool",
+        message: `第 ${(page.bodyLine ?? 1) + block.line - 1} 行：wiki-tool 围栏无效 — ${parsed.errors.join("；")}`,
+      });
+    }
+  }
+  return out;
+}
+
 /**
  * `xxx.md#锚点` 与本页 `#锚点` 必须落在目标页阅读页上真有的 id 上。
  * 目标页标题改名后，指向旧标题的链接在阅读页上静默失效——prefill、moe 各出过一次，
@@ -159,8 +222,17 @@ function renderBody(body: string): RenderedBody {
  * 目标不是知识页的不看：文件缺失由 broken-link 报，raw/ 等原文没有标题锚点。
  */
 function anchorProblems(pages: WikiPage[]): PageProblem[] {
-  const rendered = new Map(pages.map((p) => [p.file, renderBody(p.body)]));
   const out: PageProblem[] = [];
+  const rendered = new Map<string, RenderedBody>();
+  for (const p of pages) {
+    const base = renderBody(p.body);
+    const { problems, validKeys } = legacyAnchorProblems(p, base.ids);
+    out.push(...problems);
+    if (Object.keys(validKeys).length > 0) {
+      for (const oldSlug of Object.keys(validKeys)) base.ids.add(oldSlug);
+    }
+    rendered.set(p.file, base);
+  }
   for (const p of pages) {
     const dir = posix.dirname(p.file);
     for (const { href, line } of rendered.get(p.file)?.links ?? []) {
@@ -593,8 +665,16 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
   }
   problems.push(...anchorProblems(pages));
   for (const p of pages) {
+    problems.push(...toolFenceProblems(p));
     const teach = p.fm.type === "concept" || p.fm.type === "feature";
-    if (teach && !p.fm.chapters.length && !p.fm.toc && !inbound.has(p.fm.id)) {
+    if (
+      teach &&
+      !p.fm.chapters.length &&
+      !p.fm.toc &&
+      !hasCuratedTocPlacement(p.fm.id) &&
+      !isRforkTopicPage(p.fm) &&
+      !inbound.has(p.fm.id)
+    ) {
       problems.push({ file: p.file, rule: "orphan", message: "没有目录或章节归属，也没有任何页链接到它" });
     }
   }

@@ -120,6 +120,8 @@ sources:
   - 'https://github.com/vllm-project/vllm-ascend/pull/14957'
   - >-
     vllm-ascend@01741ac93f1c3c6241a90b19c14dc58b093eb49c:vllm_ascend/ascend_config.py#L1670
+  - >-
+    vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L1695
 rawSources:
   - >-
     raw/sha256-1a21571011dc2c27f03bfdbdc8f176aede00683bea89eba8fb984adc97bc1c50.md
@@ -169,6 +171,8 @@ rawSources:
     raw/sha256-ca9a84111a41a3b9f040cdb3251cd2b13e2c00cf22725addb31dac226c9bc3b0.md
   - >-
     raw/sha256-d52e6721dafc61ddfe3628246bcae3cda0e6200d1a0263ff862b9e4889c9a67d.md
+  - >-
+    raw/sha256-e224a73e7bf7fcecea30207720d1ad2c4b83c8765a0247f4b252b2fa35c9796d.md
   - >-
     raw/sha256-ebc514e0f60b58ff8115eb677ddc78fa222976b6c86c214942a1d9f8502a3fe7.md
   - >-
@@ -251,10 +255,11 @@ membership map 的行容量还必须为正；分配入口会拒绝零或负容�
 
 | 版本 | 定义是否存在 | 固定提交 |
 | --- | --- | --- |
-| main | 有 | `baa023ad` |
+| main | 有 | `8d6180e2` |
 | releases/v0.23.0 | 无 | `2c59ff10` |
 | releases/v0.26.0rc | 无 | `2ed6cbba` |
 | releases/v0.30.0rc2 | 有 | `7d825229` |
+| releases/v0.30.0 | 有 | `c09d3e20` |
 
 ## 参数定义（自动生成）
 
@@ -263,21 +268,17 @@ membership map 的行容量还必须为正；分配入口会拒绝零或负容�
 | 项 | 静态记录 |
 | --- | --- |
 | 标识 | `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]` |
+| 所属类 | `SparseKVOffloadConfig` |
 | 类型 | `bool` |
 | 默认表达式 | `False` |
-| 定义 | `vllm_ascend/ascend_config.py:1698` [C47] |
-| 版本 | releases/v0.30.0rc2 · 7d825229c77025cfb185a010c25819c1214b9450 |
+| 定义 | `vllm_ascend/ascend_config.py:1695` [C58] |
+| 版本 | releases/v0.30.0 · c09d3e20b9c45c80b34ae3781440d90904a44023 |
 
 字段注释：
 
 源码未提供字段注释。
 
 约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：
-
-````python
-if self.use_fused_copy_sfa and self.use_fused_overlap:
-    raise ValueError('fused_copy_sfa and use_fused_overlap are mutually exclusive')
-````
 
 ## 对照源码
 

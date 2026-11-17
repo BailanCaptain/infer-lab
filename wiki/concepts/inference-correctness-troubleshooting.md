@@ -27,9 +27,6 @@ aliases:
   - logits_finite
 chapters:
   - '19'
-toc:
-  part: performance
-  section: 性能分析与排障
 order: 6
 sources:
   - 'vllm@0fc695fc:vllm/v1/sample/sampler.py#L228-L302'

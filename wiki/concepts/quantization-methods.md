@@ -47,9 +47,6 @@ aliases:
 chapters:
   - '11'
   - '19'
-toc:
-  part: models
-  section: 数值表示与量化
 order: 20
 sources:
   - 'https://pytorch.org/blog/quantization-in-practice/'

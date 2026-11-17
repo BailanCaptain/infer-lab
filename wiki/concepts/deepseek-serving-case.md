@@ -6,7 +6,6 @@ origin: direct
 summary: 从长输入干扰已有回答出发，推演为什么把 E/P/D 分开、要交接哪些状态以及何时得不偿失；再沿带图长文的追问拆开缓存就绪与计算等待，对照 DeepInfer 的实际发布边界。
 aliases: [DeepSeek 生产实践, DeepInfer, DeepSeek EPD 架构, 推理生产架构, 缓存命中但首字慢, 3FS, DeepSeek Recipe]
 chapters: ["19"]
-toc: { part: performance, section: 生产部署与容量 }
 order: 1
 sources:
   - https://zhuanlan.zhihu.com/p/2095560295930508953

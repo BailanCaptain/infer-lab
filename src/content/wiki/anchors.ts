@@ -72,3 +72,71 @@ export function fragmentId(hash: string): string {
     return raw;
   }
 }
+
+/** 解析 legacyAnchors 的目标值：既可直接写目标标题文本，也可写已规范化/带去重后缀的锚点 slug */
+export function resolveLegacyAnchorTarget(target: string, validIds: ReadonlySet<string>): string | undefined {
+  const trimmed = target.trim();
+  if (!trimmed) return undefined;
+  if (validIds.has(trimmed)) return trimmed;
+  const slug = headingSlug(trimmed);
+  return slug && validIds.has(slug) ? slug : undefined;
+}
+
+type HastLike = {
+  type: string;
+  tagName?: string;
+  properties?: Record<string, unknown>;
+  children?: HastLike[];
+};
+
+const HEADING_TAGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6"]);
+
+/**
+ * 为 frontmatter.legacyAnchors 声明的旧锚点注入零文本 `<span id="..." class="wiki-legacy-anchor" aria-hidden="true">`，
+ * 挂载在目标标题元素内部，既兼容 PageToc（只读 h2/h3），又保留 `expandAncestorDetails` 自动展开与跳转。
+ */
+export function rehypeLegacyAnchors(legacyAnchors?: Readonly<Record<string, string>>) {
+  return (tree: HastLike) => {
+    if (!legacyAnchors) return;
+    const entries = Object.entries(legacyAnchors);
+    if (entries.length === 0) return;
+
+    const existingIds = new Set<string>();
+    const headingById = new Map<string, HastLike>();
+    const walk = (node: HastLike) => {
+      if (node.type === "element") {
+        const id = node.properties?.id;
+        if (typeof id === "string" && id.length > 0) {
+          existingIds.add(id);
+          if (HEADING_TAGS.has(node.tagName ?? "") && !headingById.has(id)) {
+            headingById.set(id, node);
+          }
+        }
+      }
+      for (const child of node.children ?? []) walk(child);
+    };
+    walk(tree);
+
+    for (const [oldSlug, target] of entries) {
+      if (!oldSlug || existingIds.has(oldSlug)) continue;
+      const resolvedId = resolveLegacyAnchorTarget(target, existingIds);
+      if (!resolvedId) continue;
+      const heading = headingById.get(resolvedId);
+      if (!heading) continue;
+      existingIds.add(oldSlug);
+      heading.children = [
+        {
+          type: "element",
+          tagName: "span",
+          properties: {
+            id: oldSlug,
+            className: ["wiki-legacy-anchor"],
+            ariaHidden: "true",
+          },
+          children: [],
+        },
+        ...(heading.children ?? []),
+      ];
+    }
+  };
+}

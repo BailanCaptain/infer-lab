@@ -6,7 +6,6 @@ origin: direct
 summary: 沿矩阵结果交给向量计算的小例，理解昇腾 950 的 Cube/Vector 直通、多维搬运与缓冲同步；再区分 SIMD/SIMT、存储层次、低精度和 PR/DT 规格，把硬件能力变成可验证的推理分析假设。
 aliases: [Ascend 950, Ascend950, 昇腾950, 950PR, 950DT, DaVinciCore, CV融合, Cube Vector融合, NDDMA, BufferID, Buffer ID, SIMD, SIMT, Unified Buffer, L0C, UMA]
 chapters: ["07", "19"]
-toc: { part: hardware, section: 设备、内存与计算单元 }
 order: 125
 sources:
   - https://public-download.obs.cn-east-2.myhuaweicloud.com/ascend/%E6%98%87%E8%85%BE950%20NPU%E6%9E%B6%E6%9E%84%E7%99%BD%E7%9A%AE%E4%B9%A6.pdf

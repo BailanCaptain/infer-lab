@@ -177,16 +177,24 @@
   top: 12px;
 }
 
-.knowledge-reader .wiki-shell {
+.knowledge-reader {
   --reader-gutter: 62px;
   --reader-spread-width: calc(var(--wiki-measure) + 252px);
   --reader-directory-size: clamp(180px, var(--reader-directory-width, 240px), min(420px, 30vw));
+  --reader-assistant-size: clamp(320px, var(--reader-assistant-width, 38vw), min(1100px, calc(100% - 320px)));
+  --wiki-panel-width: var(--reader-assistant-size);
+}
+
+.knowledge-reader:has(.wiki-shell) {
   --reader-assistant-size: clamp(
     320px,
     var(--reader-assistant-width, 38vw),
     min(1100px, calc(100% - var(--reader-directory-size) - 480px - 2 * var(--reader-gutter)))
   );
-  --wiki-panel-width: var(--reader-assistant-size);
+}
+
+.knowledge-reader .wiki-shell {
+  box-sizing: border-box;
   grid-template-columns: var(--reader-directory-size) minmax(0, 1fr);
   min-height: calc(100vh - var(--reader-header-height));
 }
@@ -469,6 +477,7 @@
 }
 
 .reader-topic {
+  min-width: 0;
   padding-top: 18px;
   border-top: 1px solid var(--color-line);
 }
@@ -516,12 +525,18 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+  min-width: 0;
   min-height: 40px;
   padding-block: 7px;
   color: var(--color-ink);
   font-size: var(--text-body);
   line-height: 1.7;
   text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.knowledge-reader .reader-topic a > span {
+  min-width: 0;
 }
 
 .knowledge-reader .reader-topic a svg {
@@ -691,16 +706,30 @@
   justify-content: flex-end;
 }
 
-/* 宽屏上侧栏占第三列、把正文往左挤，宽度可拖动；从页头下沿开始，不盖页头 */
+/* 宽屏上侧栏固定停靠在视口右侧、把正文往左挤，宽度可拖动；从页头下沿开始，不盖页头 */
 @media (min-width: 1180px) {
   .knowledge-reader .wiki-shell:not(.is-panel-closed) {
-    grid-template-columns: var(--reader-directory-size) minmax(0, 1fr) var(--reader-assistant-size);
+    padding-right: var(--reader-assistant-size);
   }
 }
 
 .knowledge-reader .wiki-panel {
+  position: fixed;
+  right: 0;
+  left: auto;
   top: var(--reader-header-height);
   height: calc(100dvh - var(--reader-header-height));
+  width: var(--reader-assistant-size);
+  z-index: 34;
+  box-shadow: var(--shadow-floating);
+}
+
+.knowledge-reader:has(.wiki-shell) .wiki-panel {
+  box-shadow: none;
+}
+
+.knowledge-reader .wiki-legacy-anchor {
+  scroll-margin-top: calc(var(--reader-header-height) + 28px);
 }
 
 /* 目录与正文共同居中，底部让出问答按钮的位置。 */
@@ -906,9 +935,13 @@
 .reader-resize-handle:is(:hover, :focus-visible) > span {
   background: var(--color-reader-accent);
 }
+.knowledge-reader.is-resizing,
 .wiki-shell.is-resizing {
   user-select: none;
   cursor: col-resize;
+}
+.knowledge-reader.is-resizing iframe {
+  pointer-events: none;
 }
 @media (max-width: 1024px) {
   .reader-resize-handle.is-directory {
@@ -1201,5 +1234,40 @@
 @media (max-width: 640px) {
   .reader-quick-search-trigger kbd {
     display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .reader-header-end {
+    gap: 6px;
+    width: 100%;
+  }
+
+  .reader-quick-search-slot {
+    flex-shrink: 0;
+  }
+
+  .reader-quick-search-trigger {
+    min-height: 36px;
+    padding: 6px 8px;
+    gap: 0;
+  }
+
+  .reader-quick-search-trigger > span {
+    display: none;
+  }
+
+  .reader-header .site-nav {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .reader-header .site-nav a {
+    min-width: 0;
+    padding: 6px 2px;
+  }
+
+  .reader-header .site-nav strong {
+    font-size: 13px;
   }
 }

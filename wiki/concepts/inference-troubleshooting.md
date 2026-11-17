@@ -20,9 +20,6 @@ aliases:
   - 乱码排查
 chapters:
   - '19'
-toc:
-  part: performance
-  section: 性能分析与排障
 order: 4
 sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L447-L597'

@@ -22,9 +22,6 @@ aliases:
   - 单位卡产出
 chapters:
   - '19'
-toc:
-  part: performance
-  section: 性能分析与排障
 order: 5
 sources:
   - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L416'

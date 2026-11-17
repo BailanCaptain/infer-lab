@@ -776,8 +776,12 @@ describe("seeds 里的提交号必须加引号", () => {
       for (const repo of repos.items) {
         if (!isMap(repo.value)) continue;
         const refs = repo.value.get("refs");
+        const extraPins = repo.value.get("pins");
         const pins = [
           ...(isMap(refs) ? refs.items.map((item) => [`refs.${item.key}`, item.value] as const) : []),
+          ...(isMap(extraPins)
+            ? extraPins.items.map((item) => [`pins.${item.key}`, item.value] as const)
+            : []),
           ["commit", repo.value.get("commit", true)] as const,
         ];
         for (const [where, node] of pins)

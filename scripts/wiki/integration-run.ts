@@ -20,7 +20,9 @@ import {
   type RunAgent,
   strayPaths,
 } from "./ingest";
+import { lineageSection } from "./lineage";
 import { PAGE_DIRS, parsePage } from "./pages";
+import { protectedParamSection } from "./params/pages";
 import { readRawSnapshot, saveRawSnapshot, withRawSources } from "./raw";
 import { createReview } from "./review";
 import { isWikiStatePath } from "./review-files";
@@ -197,6 +199,14 @@ async function prepareStagedIntegration(
     if (new Set(revisions.map((r) => r.id)).size !== revisions.length) throw new Error("同页修订分类重复");
     const used = new Set<string>();
     decision.revisionDate = today;
+    const stagedNow = contents(stageWiki, false);
+    const siblingWrites = [...stagedNow]
+      .filter(([file]) => PAGE_DIRS.some((dir) => file.startsWith(`${dir}/`)) && file.endsWith(".md"))
+      .map(([file, afterText]) => ({
+        path: `wiki/${file}`,
+        before: before.get(file) ?? null,
+        after: afterText,
+      }));
     for (const [file, original] of before) {
       if (!PAGE_DIRS.some((dir) => file.startsWith(`${dir}/`)) || !file.endsWith(".md")) continue;
       const target = join(stageWiki, file);
@@ -205,8 +215,14 @@ async function prepareStagedIntegration(
       const revision = revisions.find((r) => r.id === id);
       if (revision) used.add(id);
       const candidate = readFileSync(target, "utf8");
+      const oldLineage = lineageSection(original);
+      if (oldLineage !== undefined && lineageSection(candidate) !== oldLineage)
+        throw new Error(`版本谱系为脚本产物，整合不能改写或删除：wiki/${file}`);
+      const oldParamDef = protectedParamSection(original);
+      if (oldParamDef !== undefined && protectedParamSection(candidate) !== oldParamDef)
+        throw new Error(`参数定义为脚本产物，整合不能改写或删除：wiki/${file}`);
       if (candidate !== original || revision)
-        writeFileSync(target, revisePage(file, original, candidate, revision, today));
+        writeFileSync(target, revisePage(file, original, candidate, revision, today, { siblingWrites }));
     }
     if (revisions.some((r) => !used.has(r.id))) throw new Error("修订分类必须对应本次处理的现有页");
     const issues = deps.validate(stagingRoot);

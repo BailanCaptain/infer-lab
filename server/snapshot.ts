@@ -12,8 +12,15 @@ import { readRawSnapshot } from "../scripts/wiki/raw";
 import { listReviewSummaries } from "../scripts/wiki/review";
 import { fileStamp, localFile } from "../scripts/wiki/review-files";
 import { atomicText, digest, WorkflowStore } from "../scripts/wiki/workflow";
-import { buildIndex } from "../src/content/wiki/retrieve";
-import { parseRawRef, readerSnapshotSchema, type SkippedPage } from "../src/content/wiki/schema";
+import { deriveParamDisplayTitle } from "../src/content/wiki/param-display";
+import { buildIndex, serializeSearchIndex } from "../src/content/wiki/retrieve";
+import {
+  collectLegacyIdConflicts,
+  formatLegacyIdConflict,
+  parseRawRef,
+  readerSnapshotSchema,
+  type SkippedPage,
+} from "../src/content/wiki/schema";
 
 /** Each new request observes one complete publication; an interrupted publication is unavailable. */
 export function readKnowledgeSnapshot(root: string) {
@@ -38,24 +45,57 @@ type Snapshot = ReturnType<typeof collectSnapshot>["snapshot"];
 const snapshots = new Map<string, { stamp: string; snapshot: Snapshot }>();
 
 // Derived caches are disposable. Pin their producer too, so a parser/schema update cannot reuse old validation.
-const implementation = digest([
-  "server/snapshot.ts", "scripts/wiki/compile-markdown.ts", "scripts/wiki/build.ts", "scripts/wiki/diagrams.ts",
-  "scripts/wiki/pages.ts", "scripts/wiki/raw.ts", "scripts/wiki/handbook.ts", "scripts/wiki/review-files.ts", "src/content/wiki/schema.ts",
-  "src/content/wiki/markdown.ts", "src/content/wiki/anchors.ts", "src/content/wiki/evidenceMarks.ts",
-  "src/content/wiki/retrieve.ts", "src/content/wiki/relations.ts", "pnpm-lock.yaml",
-].map((path) => `${path}:${fileStamp(fileURLToPath(new URL(`../${path}`, import.meta.url)))}`).join("\n"));
-const rawFiles = (snapshot: Snapshot) => snapshot.files.filter((f) => f.file.startsWith("raw/")).map((f) => `wiki/${f.file}`);
-type PersistedSnapshot = { implementation: string; root: string; stamp: string; snapshot: Snapshot; chatSafe: boolean };
+const implementation = digest(
+  [
+    "server/snapshot.ts",
+    "scripts/wiki/compile-markdown.ts",
+    "scripts/wiki/build.ts",
+    "scripts/wiki/diagrams.ts",
+    "scripts/wiki/native-svg.ts",
+    "scripts/wiki/pages.ts",
+    "scripts/wiki/raw.ts",
+    "scripts/wiki/handbook.ts",
+    "scripts/wiki/review-files.ts",
+    "src/content/wiki/diagram-sanitize.ts",
+    "src/content/wiki/schema.ts",
+    "src/content/wiki/param-display.ts",
+    "src/content/wiki/page-names.ts",
+    "src/content/wiki/markdown.ts",
+    "src/content/wiki/anchors.ts",
+    "src/content/wiki/evidenceMarks.ts",
+    "src/content/wiki/retrieve.ts",
+    "src/content/wiki/relations.ts",
+    "pnpm-lock.yaml",
+  ]
+    .map((path) => `${path}:${fileStamp(fileURLToPath(new URL(`../${path}`, import.meta.url)))}`)
+    .join("\n"),
+);
+const rawFiles = (snapshot: Snapshot) =>
+  snapshot.files.filter((f) => f.file.startsWith("raw/")).map((f) => `wiki/${f.file}`);
+type PersistedSnapshot = {
+  implementation: string;
+  root: string;
+  stamp: string;
+  snapshot: Snapshot;
+  chatSafe: boolean;
+};
 function readSharedSnapshot(root: string, policy: InvalidPagePolicy): PersistedSnapshot | undefined {
   try {
     const bytes = readFileSync(localFile(root, "tools/wiki-runtime/reader-snapshot.bin"));
     const payload = bytes.subarray(32);
     if (bytes.length < 32 || digest(payload) !== bytes.subarray(0, 32).toString("hex")) return;
     const cached = deserialize(payload) as PersistedSnapshot;
-    if (cached.implementation !== implementation || cached.root !== resolve(root) || (policy === "reject" && !cached.chatSafe)) return;
+    if (
+      cached.implementation !== implementation ||
+      cached.root !== resolve(root) ||
+      (policy === "reject" && !cached.chatSafe)
+    )
+      return;
     if (inputStamp(root, rawFiles(cached.snapshot)) !== cached.stamp) return;
     return cached;
-  } catch { return; }
+  } catch {
+    return;
+  }
 }
 function persistSnapshot(root: string, entry: PersistedSnapshot): void {
   let temp: string | undefined;
@@ -70,7 +110,11 @@ function persistSnapshot(root: string, entry: PersistedSnapshot): void {
     // A read-only cache directory must not make valid knowledge unavailable.
   } finally {
     if (temp) {
-      try { rmSync(temp, { force: true }); } catch { /* Disposable cache cleanup is best effort. */ }
+      try {
+        rmSync(temp, { force: true });
+      } catch {
+        /* Disposable cache cleanup is best effort. */
+      }
     }
   }
 }
@@ -134,11 +178,7 @@ function collectSnapshot(root: string, policy: InvalidPagePolicy) {
   const { pages: inventory, problems } = loadPages(wiki);
   const badFiles = new Set(problems.map((p) => p.file));
   for (const file of badFiles)
-    invalid(
-      "知识库页面不合法，暂不接受新问答",
-      file,
-      reasonOf(problems.filter((p) => p.file === file)),
-    );
+    invalid("知识库页面不合法，暂不接受新问答", file, reasonOf(problems.filter((p) => p.file === file)));
   const read = inventory
     .filter((page) => !badFiles.has(page.file))
     .flatMap((page) => {
@@ -153,7 +193,7 @@ function collectSnapshot(root: string, policy: InvalidPagePolicy) {
   // 快照保证就有个洞——问答会拿旧版本号引用新画面。
   const { diagrams, problems: diagramProblems } = loadDiagrams(wiki);
   if (policy === "reject" && diagramProblems.length) throw new Error("知识库图 spec 不合法，暂不接受新问答");
-  const brokenDiagrams = new Set(diagramProblems.map((p) => basename(p.file, ".yaml")));
+  const brokenDiagrams = new Set(diagramProblems.map((p) => basename(p.file).replace(/\.(yaml|svg)$/, "")));
   const diagramIssue = (id: string): string[] => {
     const diagram = diagrams.get(id);
     if (!diagram) return [`正文引用的图 ${id} 不存在`];
@@ -168,9 +208,26 @@ function collectSnapshot(root: string, policy: InvalidPagePolicy) {
     return false;
   });
   const pages = kept.map((r) => r.page);
+  const legacyConflicts = collectLegacyIdConflicts(
+    pages.map((p) => ({ id: p.fm.id, file: p.file, legacyIds: p.fm.legacyIds })),
+    skipped,
+  );
+  if (legacyConflicts.length > 0) {
+    throw new Error(`知识库 legacyIds 路由冲突：${formatLegacyIdConflict(legacyConflicts[0]!)}`);
+  }
   const pageTexts = kept.map((r) => ({ file: r.page.file, text: r.text }));
-  const compiledPages = Object.fromEntries(kept.map((r) => [r.page.file, compileMarkdown(r.page.body.trim())]));
-  const registry = buildRegistry(pages);
+  const compiledPages = Object.fromEntries(
+    kept.map((r) => [r.page.file, compileMarkdown(r.page.body.trim())]),
+  );
+  const bodyByFile = new Map(kept.map((r) => [r.page.file, r.page.body.trim()]));
+  const baseRegistry = buildRegistry(pages);
+  const registry = {
+    ...baseRegistry,
+    pages: baseRegistry.pages.map((page) => {
+      const derived = deriveParamDisplayTitle(page, bodyByFile.get(page.file) ?? "");
+      return derived !== page.title ? { ...page, displayTitle: derived } : page;
+    }),
+  };
   const handbookText = readFileSync(localFile(root, "wiki/HANDBOOK.md"), "utf8");
   const indexMd = renderIndex(pages);
   const rawPaths = new Set(
@@ -198,7 +255,6 @@ function collectSnapshot(root: string, policy: InvalidPagePolicy) {
     ...diagramFiles,
   ].sort((a, b) => a.file.localeCompare(b.file));
   const revision = digest(JSON.stringify(files));
-  const textByFile = new Map(pageTexts.map((p) => [p.file, p.text]));
   const snapshot = {
     revision,
     files,
@@ -209,7 +265,7 @@ function collectSnapshot(root: string, policy: InvalidPagePolicy) {
       .map((f) => ({ id: f.file.slice("diagrams/".length, -".svg".length), svg: f.text })),
     registry,
     handbook: sliceHandbook(handbookText),
-    index: buildIndex(registry.pages.map((page) => ({ ...page, text: textByFile.get(page.file)! }))),
+    index: buildIndex(registry.pages.map((page) => ({ ...page, text: bodyByFile.get(page.file) ?? "" }))),
     skipped,
   };
   return { snapshot, chatSafe: !skipped.length && !diagramProblems.length };
@@ -227,9 +283,49 @@ export async function readReaderSnapshot(root: string) {
   const reader = readerSnapshotSchema.parse({
     ...snapshot,
     pageTexts: snapshot.pageTexts.map((page) => ({ ...page, compiled: snapshot.compiledPages[page.file] })),
+    searchIndex: serializeSearchIndex(snapshot.index, snapshot.revision),
   });
   readerSnapshots.set(snapshot, reader);
   return reader;
+}
+
+export type LockedEvidenceSnapshot = {
+  revision: string;
+  registry: Snapshot["registry"];
+  pageTexts: Snapshot["pageTexts"];
+  files: Snapshot["files"];
+};
+
+/** Read-only locked view bound to the exact same reader snapshot revision without adding excerpts to GET /api/wiki/pages. */
+export async function readLockedEvidenceSnapshot(root: string): Promise<LockedEvidenceSnapshot> {
+  const snapshot = await new WorkflowStore(root).locked(() => cachedSnapshot(root, "skip"));
+  return {
+    revision: snapshot.revision,
+    registry: snapshot.registry,
+    pageTexts: snapshot.pageTexts,
+    files: snapshot.files,
+  };
+}
+
+/** Single-lock read for build/dev plugin so reader manifest and evidence lock never observe torn revisions. */
+export async function readReaderSnapshotWithEvidenceLock(root: string) {
+  const snapshot = await new WorkflowStore(root).locked(() => cachedSnapshot(root, "skip"));
+  let reader = readerSnapshots.get(snapshot);
+  if (!reader) {
+    reader = readerSnapshotSchema.parse({
+      ...snapshot,
+      pageTexts: snapshot.pageTexts.map((page) => ({ ...page, compiled: snapshot.compiledPages[page.file] })),
+      searchIndex: serializeSearchIndex(snapshot.index, snapshot.revision),
+    });
+    readerSnapshots.set(snapshot, reader);
+  }
+  const locked: LockedEvidenceSnapshot = {
+    revision: snapshot.revision,
+    registry: snapshot.registry,
+    pageTexts: snapshot.pageTexts,
+    files: snapshot.files,
+  };
+  return { reader, locked };
 }
 
 /** An atomic ready pointer exposes a complete immutable directory, without a Windows directory rename. */
@@ -259,6 +355,9 @@ export async function materializeSnapshot(root: string, snapshot: KnowledgeSnaps
   };
   const cached = await store.locked(readCached);
   if (cached) return cached;
+  if (relative(resolve(root, base), resolve(staging)) !== name) {
+    throw new Error("快照暂存目录越界");
+  }
   let retained = false;
   try {
     mkdirSync(staging, { recursive: true });
@@ -276,9 +375,9 @@ export async function materializeSnapshot(root: string, snapshot: KnowledgeSnaps
       return staging;
     });
   } finally {
-    const inside = relative(resolve(root, base), resolve(staging));
-    if (inside !== name) throw new Error("快照暂存目录越界");
-    if (!retained) rmSync(staging, { recursive: true, force: true });
+    if (!retained && relative(resolve(root, base), resolve(staging)) === name) {
+      rmSync(staging, { recursive: true, force: true });
+    }
   }
 }
 

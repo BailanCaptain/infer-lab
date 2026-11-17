@@ -83749,5 +83749,23 @@
       "releases/v0.30.0rc2": "7d825229c77025cfb185a010c25819c1214b9450"
     },
     "state": "patrol-diff-awaiting-teaching-review"
+  },
+  {
+    "repo": "vllm-ascend",
+    "ref": "main",
+    "before": "775899991f9614052e4836a62e4cb6541897faee",
+    "after": "3649b8ff7fd69e707db2c634073d2b4c40eadf15",
+    "added": [],
+    "removed": [],
+    "changed": [],
+    "relocated": [],
+    "skipped": [],
+    "teachingRefs": {
+      "main": "baa023ad",
+      "releases/v0.23.0": "2c59ff10",
+      "releases/v0.26.0rc": "2ed6cbba",
+      "releases/v0.30.0rc2": "7d825229c77025cfb185a010c25819c1214b9450"
+    },
+    "state": "patrol-diff-awaiting-teaching-review"
   }
 ]

@@ -11,9 +11,9 @@ import type { AgentRequest } from "../scripts/wiki/ingest";
 import { MODEL_ID, type ModelUse } from "../scripts/wiki/model-use";
 import type { Neighborhood } from "../src/content/wiki/relations";
 import type { Hit } from "../src/content/wiki/retrieve";
+import type { ChatTurn } from "./chat-session";
 import { type CodexUsage, codexChatRequest, runCodexChat } from "./codex-chat";
 import { COVERAGE_REPORT_INSTRUCTION } from "./coverage";
-import type { ChatTurn } from "./chat-session";
 
 /** 问答只读页、不写页：只拿记号含义、可引来源与查询规则，不拿整片写页规则（见 handbook.ts HANDBOOK_H3） */
 export type ChatHandbook = Pick<HandbookSlices, "reading" | "citable" | "query">;
@@ -83,7 +83,9 @@ export const chatOnline = (ctx: Pick<ChatContext, "control">) => !ctx.control;
  * 模型却有几轮这么说；程序认出来后告诉读者「这条回答没有联网核对」，不让它悄悄过去。
  */
 export const claimsOffline = (answer: string) =>
-  /没有联网工具|联网(?:核查|核验|搜索|查询)?工具[^。；\n]{0,8}不可用|无法联网|不能联网|没有联网|只能读(?:知识库)?快照|不替你(?:去官方文档)?取证/.test(answer);
+  /没有联网工具|联网(?:核查|核验|搜索|查询)?工具[^。；\n]{0,8}不可用|无法联网|不能联网|没有联网|只能读(?:知识库)?快照|不替你(?:去官方文档)?取证/.test(
+    answer,
+  );
 
 /**
  * 子图注入。回答「什么是 X」时只读 X 一页是不够的——2026-09-11 实测就是读一页
@@ -259,7 +261,9 @@ export function buildChatRequest(input: ChatInput, handbook: ChatHandbook, ctx: 
       JSON.stringify(input.previousTurns),
     );
   if (input.historyOmitted)
-    lines.push("更早或过长的问答未完整提供；若追问指代未提供的回答细节，请用户补该段原文，不要猜此前说过什么。");
+    lines.push(
+      "更早或过长的问答未完整提供；若追问指代未提供的回答细节，请用户补该段原文，不要猜此前说过什么。",
+    );
   if (input.hits?.length) {
     lines.push(
       "",

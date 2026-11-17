@@ -11,7 +11,7 @@ export type SectionEdit = {
   end: number;
   before: string;
   after: string;
-  kind: "supplement" | "supersede";
+  kind: "supplement" | "editorial" | "supersede";
   reason: string;
   sourceNote?: string;
 };

@@ -255,6 +255,11 @@ export const CITABLE_DOMAINS: CitableDomain[] = [
   { domain: "modelscope.cn", kind: "ecosystem" },
   { domain: "www.modelscope.cn", kind: "ecosystem" },
   { domain: "modelers.cn", kind: "ecosystem" },
+  {
+    domain: "www2.eecs.berkeley.edu",
+    path: "/Pubs/TechRpts/2008/Archive/EECS-2008-134.pdf",
+    kind: "paper",
+  },
 ];
 
 /** 把一条 `sources` 归类。仓库引用与三档 URL 之外一律 `unlisted`。 */

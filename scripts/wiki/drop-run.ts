@@ -1,9 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import type { z } from "zod";
-import type { DropBatch } from "../../src/content/wiki/drop";
+import {
+  type DropBatch,
+  type DropEditorialGuide,
+  dropEditorialGuideSchema,
+} from "../../src/content/wiki/drop";
 import type { RunAgent } from "./batch";
 import { assertInputFits } from "./context-window";
 import { readBatch, saveBatch } from "./drop-batch";
@@ -11,6 +15,7 @@ import { integrateDrop } from "./drop-integration";
 import { restrictedArgs } from "./restricted-claude";
 import { listReviews, rejectReview } from "./review";
 import { localFile, replaceText, wikiContents } from "./review-files";
+import { sanitizeRawInput } from "./sanitize";
 import { selectedAgent } from "./selected-agent";
 import { PAGE_TEXT_TIMEOUT_MS, parseStructuredJson } from "./structured";
 import { readSyncConfig, selectedModel } from "./sync-config";
@@ -32,8 +37,48 @@ export type DropRunnerDeps = {
 };
 export type DropAsk = {
   <T>(stage: string, data: unknown, rules: string, schema: z.ZodType<T>): Promise<T>;
+  cached?: <T>(stage: string, data: unknown, rules: string, schema: z.ZodType<T>) => T | undefined;
+  hasCache?: (stage: string, data: unknown, rules: string, schema?: z.ZodType) => boolean;
   onInput?: (stage: string, data: unknown, rules: string) => void;
 };
+
+export function callReceiptPaths(runDir: string, callKey: string) {
+  if (!/^[A-Za-z0-9-]+$/.test(callKey)) {
+    throw new Error(`非法调用回执键：${callKey}`);
+  }
+  const callsDir = join(runDir, "calls");
+  return {
+    input: join(callsDir, `call-${callKey}.input.json`),
+    output: join(callsDir, `call-${callKey}.output.json`),
+  };
+}
+
+function writeExclusiveAtomic(path: string, text: string): void {
+  mkdirSync(dirname(path), { recursive: true });
+  const tmp = `${path}.${process.pid}.${randomUUID()}.tmp`;
+  writeFileSync(tmp, text, "utf8");
+  try {
+    linkSync(tmp, path);
+  } finally {
+    rmSync(tmp, { force: true });
+  }
+}
+
+function writeOnceAtomic(path: string, text: string): boolean {
+  if (existsSync(path)) return false;
+  mkdirSync(dirname(path), { recursive: true });
+  const tmp = `${path}.${process.pid}.${randomUUID()}.tmp`;
+  writeFileSync(tmp, text, "utf8");
+  try {
+    linkSync(tmp, path);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
+    throw error;
+  } finally {
+    rmSync(tmp, { force: true });
+  }
+}
 const alive = (pid: number) => {
   try {
     process.kill(pid, 0);
@@ -60,9 +105,23 @@ export async function cancelDrop(root: string, id: string) {
 export async function startDrop(
   root: string,
   id: string,
-  options: { retry?: boolean; feedback?: string; newAttempt?: boolean } = {},
+  options: {
+    retry?: boolean;
+    feedback?: string;
+    newAttempt?: boolean;
+    editorialGuides?: DropEditorialGuide[];
+  } = {},
   deps: DropRunnerDeps = {},
 ) {
+  const parsedGuides = options.editorialGuides?.map((g) => {
+    const parsed = dropEditorialGuideSchema.parse(g);
+    const clean = sanitizeRawInput(parsed.text);
+    if (clean.blocked)
+      throw new Error(
+        `编辑意图材料隔离（${parsed.page}）：${clean.findings.map((f) => f.reason).join("、")}`,
+      );
+    return { ...parsed, text: clean.text };
+  });
   if (options.newAttempt) {
     const previous = readBatch(root, id);
     if (previous.reviewId) {
@@ -91,9 +150,11 @@ export async function startDrop(
     )
       throw new Error("需要明确重试或修订");
     if (b.state === "rejected" && !options.feedback?.trim()) options.feedback = b.error;
-    if (options.newAttempt || options.feedback) {
+    if (options.newAttempt || options.feedback || parsedGuides) {
       b.generation++;
       b.feedback = options.feedback?.trim() ?? b.feedback;
+      if (parsedGuides !== undefined) b.editorialGuides = parsedGuides;
+      else if (options.newAttempt) b.editorialGuides = undefined;
       b.reviewId = undefined;
       b.question = undefined;
     }
@@ -106,7 +167,13 @@ export async function startDrop(
         algorithm: 1,
       };
     }
-    b.protocol = 3;
+    const attemptPath = localFile(root, `wiki/_jobs/drops/runs/${b.id}/${b.generation}/attempt.json`);
+    const recordedProtocol = existsSync(attemptPath)
+      ? (JSON.parse(readFileSync(attemptPath, "utf8")) as { protocol?: number }).protocol
+      : undefined;
+    const preservedProtocol =
+      b.protocol ?? (recordedProtocol === 3 || recordedProtocol === 4 ? recordedProtocol : undefined);
+    b.protocol = options.newAttempt ? 4 : (preservedProtocol ?? 4);
     b.receipt = undefined;
     b.state = "running";
     b.stage = "提取资料";
@@ -159,7 +226,8 @@ async function executeDrop(
       return saveBatch(root, b);
     });
   try {
-    const attempt = { protocol: 3, selection: initial.selection, budget: initial.budget };
+    const activeProtocol = initial.protocol ?? 4;
+    const attempt = { protocol: activeProtocol, selection: initial.selection, budget: initial.budget };
     const attemptFile = join(dir, "attempt.json");
     if (existsSync(attemptFile) && readFileSync(attemptFile, "utf8") !== JSON.stringify(attempt))
       throw new Error("本次模型或窗口快照不一致，需要显式新尝试");
@@ -176,24 +244,76 @@ async function executeDrop(
     const repairs = new Map<string, { repair: string; previousOutput?: unknown }>(
       existsSync(repairsFile) ? JSON.parse(readFileSync(repairsFile, "utf8")) : [],
     );
+    const repairStateFile = join(dir, "repair-state.json");
+    const persistedRepairState: { rounds: [string, number][]; seenFailures: string[] } = existsSync(
+      repairStateFile,
+    )
+      ? JSON.parse(readFileSync(repairStateFile, "utf8"))
+      : { rounds: [], seenFailures: [] };
     let lastStage = "";
     const priorOutputs = new Map<string, unknown>();
+    const applyStageRepair = (stage: string, data: unknown) => {
+      const repair = repairs.get(stage);
+      if (!repair) return data;
+      if (activeProtocol === 3) return { ...(data as object), repair: repair.repair };
+      const subRound =
+        typeof data === "object" && data !== null
+          ? (data as { discoveryProgress?: { round?: number } }).discoveryProgress?.round
+          : undefined;
+      if (typeof subRound === "number" && subRound > 0) {
+        if (
+          repair.repair.includes("同一输入循环补读没有新进展") ||
+          repair.repair.includes("材料范围越界") ||
+          repair.repair.includes("上下文预算协商未完成") ||
+          repair.repair.includes("补读范围协商未完成")
+        )
+          return data;
+        return { ...(data as object), repair: repair.repair };
+      }
+      return {
+        ...(data as object),
+        repair: repair.repair,
+        ...(repair.previousOutput !== undefined ? { previousOutput: repair.previousOutput } : {}),
+      };
+    };
+    const computeCallHash = (data: unknown, rules: string) =>
+      digest(
+        JSON.stringify({
+          data,
+          rules,
+          selection: initial.selection,
+          budget: initial.budget,
+          protocol: activeProtocol,
+        }),
+      );
     const ask: DropAsk = async (stage, data, rules, schema) => {
       check();
       lastStage = stage;
-      const repair = repairs.get(stage);
-      if (repair) data = { ...(data as object), repair: repair.repair };
+      data = applyStageRepair(stage, data);
       const stdin = JSON.stringify(data);
       // A single provider context is finite; no silent truncation or false completeness.
       if (Buffer.byteLength(stdin) > 900_000)
         throw new Error("单次上下文超过 900 KB，需拆分相关知识读取；未忽略任何资料");
       assertInputFits(root, rules, stdin, initial.budget);
-      const hash = digest(
-        JSON.stringify({ data, rules, selection: initial.selection, budget: initial.budget, protocol: 3 }),
-      );
+      const hash = computeCallHash(data, rules);
       const file = join(dir, `${hash}.json`);
+      const rethrowNegotiationAbort = (error: unknown): void => {
+        const text = String(error);
+        if (text.includes("上下文预算协商未完成：请求原文尚未提供，不能直接给出结论")) {
+          throw new Error("上下文预算协商未完成：请求原文尚未提供，不能直接给出结论");
+        }
+        if (text.includes("补读范围协商未完成：越界请求尚未修正，请求原文尚未提供，不能直接给出结论")) {
+          throw new Error("补读范围协商未完成：越界请求尚未修正，请求原文尚未提供，不能直接给出结论");
+        }
+      };
       if (existsSync(file)) {
-        const parsed = schema.parse(parseStructuredJson(readFileSync(file, "utf8")));
+        let parsed: z.output<typeof schema>;
+        try {
+          parsed = schema.parse(parseStructuredJson(readFileSync(file, "utf8")));
+        } catch (error) {
+          rethrowNegotiationAbort(error);
+          throw error;
+        }
         priorOutputs.set(stage, parsed);
         ask.onInput?.(stage, data, rules);
         return parsed;
@@ -206,11 +326,11 @@ async function executeDrop(
         b.stage = stage;
         b.calls.push({ key: callKey, startedAt: new Date().toISOString() });
       });
-      atomicText(join(dir, `${hash}.input.json`), JSON.stringify({ rules, data }));
-      atomicText(
-        join(dir, `input-${digest(JSON.stringify({ rules, data }))}.json`),
-        JSON.stringify({ rules, data }),
-      );
+      const callReceipts = callReceiptPaths(dir, callKey);
+      const rawInputText = JSON.stringify({ rules, data });
+      writeExclusiveAtomic(callReceipts.input, JSON.stringify({ hash, stage, rules, data }));
+      writeOnceAtomic(join(dir, `${hash}.input.json`), rawInputText);
+      writeOnceAtomic(join(dir, `input-${digest(rawInputText)}.json`), rawInputText);
       const result = await (deps.runAgent ?? selectedAgent(root, "drop"))({
         ...initial.selection,
         id: `drop-${id}`,
@@ -229,23 +349,55 @@ async function executeDrop(
         call.usage = result.usage as Record<string, number> | undefined;
         call.error = result.reason;
       });
-      atomicText(join(dir, `${hash}.output.json`), JSON.stringify(result));
+      const rawOutputText = JSON.stringify(result);
+      writeExclusiveAtomic(callReceipts.output, rawOutputText);
+      writeOnceAtomic(join(dir, `${hash}.output.json`), rawOutputText);
       check();
       if (!result.ok || !result.output) throw new Error(result.reason ?? "模型未返回完整结果");
       let parsed: z.output<typeof schema>;
       try {
         parsed = schema.parse(parseStructuredJson(result.output));
       } catch (error) {
+        rethrowNegotiationAbort(error);
         priorOutputs.set(stage, result.output);
         throw new Error(`模型输出协议校验失败：${String(error)}`);
       }
       priorOutputs.set(stage, parsed);
-      atomicText(file, JSON.stringify(parsed));
+      writeOnceAtomic(file, JSON.stringify(parsed));
       ask.onInput?.(stage, data, rules);
       return parsed;
     };
-    const seenFailures = new Set<string>();
-    const repairRounds = new Map<string, number>();
+    ask.hasCache = (stage, data, rules, schema) => {
+      const repaired = applyStageRepair(stage, data);
+      const stdin = JSON.stringify(repaired);
+      if (Buffer.byteLength(stdin) > 900_000) return false;
+      const hash = computeCallHash(repaired, rules);
+      const file = join(dir, `${hash}.json`);
+      if (!existsSync(file)) return false;
+      if (!schema) return true;
+      try {
+        return schema.safeParse(parseStructuredJson(readFileSync(file, "utf8"))).success;
+      } catch {
+        return false;
+      }
+    };
+    ask.cached = (stage, data, rules, schema) => {
+      check();
+      const repaired = applyStageRepair(stage, data);
+      const stdin = JSON.stringify(repaired);
+      if (Buffer.byteLength(stdin) > 900_000) return undefined;
+      const hash = computeCallHash(repaired, rules);
+      const file = join(dir, `${hash}.json`);
+      if (!existsSync(file)) return undefined;
+      assertInputFits(root, rules, stdin, initial.budget);
+      lastStage = stage;
+      const parsed = schema.parse(parseStructuredJson(readFileSync(file, "utf8")));
+      priorOutputs.set(stage, parsed);
+      ask.onInput?.(stage, repaired, rules);
+      return parsed;
+    };
+    const seenFailures = new Set<string>(persistedRepairState.seenFailures);
+    const repairRounds = new Map<string, number>(persistedRepairState.rounds);
     let result: Awaited<ReturnType<typeof integrateDrop>>;
     for (;;) {
       try {
@@ -255,7 +407,7 @@ async function executeDrop(
         check();
         const message = String(error);
         if (
-          !/校验失败|复核未通过|图布局|图规格|页面或来源|提案页身份|未读全文|旧页修订|补充修订|旧说法|替代结论|修订分类/.test(
+          !/校验失败|复核未通过|图布局|图规格|页面或来源|提案页身份|未读全文|旧页修订|事实去向|补充修订|旧说法|替代结论|修订分类/.test(
             message,
           ) ||
           seenFailures.has(`${lastStage}:${message}`)
@@ -268,19 +420,28 @@ async function executeDrop(
             `自动修订已达上限：阶段「${lastStage}」已自动修订 ${MAX_DROP_REPAIR_ROUNDS} 轮仍未通过，停止调用模型；最后一次报错：${message}`,
           );
         repairRounds.set(lastStage, rounds);
-        repairs.set(lastStage, { repair: message, previousOutput: priorOutputs.get(lastStage) });
+        const mkRepair = (msg: string, prev: unknown) =>
+          activeProtocol === 3 ? { repair: msg } : { repair: msg, previousOutput: prev };
+        repairs.set(lastStage, mkRepair(message, priorOutputs.get(lastStage)));
         if (
           (message.includes("共享图") && message.includes("使用方未读全")) ||
           message.startsWith("Error: 完整性复核未通过")
         ) {
           for (const [stage, previousOutput] of priorOutputs)
-            if (stage.startsWith("查找相关知识与补证"))
-              repairs.set(stage, { repair: message, previousOutput });
+            if (stage.startsWith("查找相关知识与补证")) repairs.set(stage, mkRepair(message, previousOutput));
         }
-        if (message.startsWith("Error: 完整性复核未通过") || message.startsWith("Error: 整合校验失败"))
+        if (
+          message.startsWith("Error: 完整性复核未通过") ||
+          message.startsWith("Error: 整合校验失败") ||
+          message.includes("旧页修订事实去向未闭合")
+        )
           for (const [stage, previousOutput] of priorOutputs)
-            if (stage.startsWith("整合：")) repairs.set(stage, { repair: message, previousOutput });
+            if (stage.startsWith("整合：")) repairs.set(stage, mkRepair(message, previousOutput));
         atomicText(repairsFile, JSON.stringify([...repairs]));
+        atomicText(
+          repairStateFile,
+          JSON.stringify({ rounds: [...repairRounds], seenFailures: [...seenFailures] }),
+        );
         await update((b) => {
           b.stage = "根据校验结果自动修订";
           b.error = message;

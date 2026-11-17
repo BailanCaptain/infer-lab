@@ -1,13 +1,19 @@
 import { writeFileSync } from "node:fs";
 import { expect, it, vi } from "vitest";
 import { buildChatRequest } from "./chat";
-import { parseCodexLine } from "./codex-chat";
-import { resolveCodexCommand, runCodexChat } from "./codex-chat";
+import { parseCodexLine, resolveCodexCommand, runCodexChat } from "./codex-chat";
 
 it("uses the configured executable even when PATH selects another CLI, and never hides an invalid override", async () => {
-  const req = buildChatRequest({ message: "q" }, { reading: "", citable: "", query: "" }, {
-    wikiRoot: "snapshot", provider: "codex", timeoutMs: 1000, codexCli: process.execPath,
-  });
+  const req = buildChatRequest(
+    { message: "q" },
+    { reading: "", citable: "", query: "" },
+    {
+      wikiRoot: "snapshot",
+      provider: "codex",
+      timeoutMs: 1000,
+      codexCli: process.execPath,
+    },
+  );
   expect(req.codexCli).toBe(process.execPath);
   vi.mocked(spawnClaude).mockImplementationOnce(async (request, onLine, cmd) => {
     expect(cmd?.command).toBe(process.execPath);
@@ -17,6 +23,7 @@ it("uses the configured executable even when PATH selects another CLI, and never
   expect((await runCodexChat(req, { text: vi.fn() })).ok).toBe(true);
   expect(() => resolveCodexCommand({ ...process.env, CODEX_CLI: "missing-codex.exe" })).toThrow("CODEX_CLI");
 });
+
 import { spawnClaude } from "../scripts/wiki/claude-cli";
 
 vi.mock("../scripts/wiki/claude-cli", () => ({ spawnClaude: vi.fn() }));
@@ -25,18 +32,24 @@ it("reports a subprocess timeout instead of replacing it with an unrelated stder
   vi.stubEnv("CODEX_CLI", process.execPath);
   try {
     vi.mocked(spawnClaude).mockResolvedValue({
-      id: "chat", ok: false, exitCode: null,
+      id: "chat",
+      ok: false,
+      exitCode: null,
       reason: "timeout 300000ms",
       stderrTail: "WARN shell_snapshot: Shell snapshot not supported yet for PowerShell",
     });
     const req = buildChatRequest(
-      { message: "q" }, { reading: "", citable: "", query: "" },
+      { message: "q" },
+      { reading: "", citable: "", query: "" },
       { wikiRoot: ".", provider: "codex", timeoutMs: 300000 },
     );
     expect(await runCodexChat(req, { text: vi.fn() }, true)).toMatchObject({
-      ok: false, reason: "timeout 300000ms",
+      ok: false,
+      reason: "timeout 300000ms",
     });
-  } finally { vi.unstubAllEnvs(); }
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });
 
 it("Codex uses isolated, ephemeral, read-only execution and injected evidence, never Claude resume", () => {
@@ -119,43 +132,76 @@ it("tool-free compilation rejects tool events even if the turn later completes",
       onLine(JSON.stringify({ type: "turn.completed" }));
       return { id: req.id, ok: true, exitCode: 0, stderrTail: "" };
     });
-    const req = buildChatRequest({ message: "q" }, { reading: "", citable: "", query: "" }, { wikiRoot: ".", provider: "codex", timeoutMs: 1000 });
-    expect(await runCodexChat(req, { text: vi.fn() }, true)).toMatchObject({ ok: false, reason: "受限编译出现工具调用：command_execution" });
-  } finally { vi.unstubAllEnvs(); }
+    const req = buildChatRequest(
+      { message: "q" },
+      { reading: "", citable: "", query: "" },
+      { wikiRoot: ".", provider: "codex", timeoutMs: 1000 },
+    );
+    expect(await runCodexChat(req, { text: vi.fn() }, true)).toMatchObject({
+      ok: false,
+      reason: "受限编译出现工具调用：command_execution",
+    });
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });
 
 it("configuration warning items are not tools or terminal failures", async () => {
   vi.stubEnv("CODEX_CLI", process.execPath);
   try {
     vi.mocked(spawnClaude).mockImplementation(async (req, onLine) => {
-      onLine(JSON.stringify({ type: "item.completed", item: { type: "error", message: "Code Mode is unavailable because code-mode host is disabled." } }));
+      onLine(
+        JSON.stringify({
+          type: "item.completed",
+          item: { type: "error", message: "Code Mode is unavailable because code-mode host is disabled." },
+        }),
+      );
       onLine(JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: "result" } }));
       onLine(JSON.stringify({ type: "turn.completed" }));
       const output = req.args.indexOf("--output-last-message");
       if (output >= 0) writeFileSync(req.args[output + 1]!, "result");
       return { id: req.id, ok: true, exitCode: 0, stderrTail: "" };
     });
-    const req = buildChatRequest({ message: "q" }, { reading: "", citable: "", query: "" }, { wikiRoot: ".", provider: "codex", timeoutMs: 1000 });
+    const req = buildChatRequest(
+      { message: "q" },
+      { reading: "", citable: "", query: "" },
+      { wikiRoot: ".", provider: "codex", timeoutMs: 1000 },
+    );
     const text = vi.fn();
     expect((await runCodexChat(req, { text }, true)).ok).toBe(true);
     expect(text).toHaveBeenCalledWith("result");
-  } finally { vi.unstubAllEnvs(); }
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });
 
 it("tool-free callers receive only the CLI final response, never progress concatenated with JSON", async () => {
   vi.stubEnv("CODEX_CLI", process.execPath);
   try {
     vi.mocked(spawnClaude).mockImplementation(async (req, onLine) => {
-      onLine(JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: "我会核对三页正文中的跨页关系。" } }));
-      onLine(JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: '{"relations":[]}' } }));
+      onLine(
+        JSON.stringify({
+          type: "item.completed",
+          item: { type: "agent_message", text: "我会核对三页正文中的跨页关系。" },
+        }),
+      );
+      onLine(
+        JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: '{"relations":[]}' } }),
+      );
       onLine(JSON.stringify({ type: "turn.completed" }));
       const output = req.args.indexOf("--output-last-message");
       if (output >= 0) writeFileSync(req.args[output + 1]!, '{"relations":[]}');
       return { id: req.id, ok: true, exitCode: 0, stderrTail: "" };
     });
-    const req = buildChatRequest({ message: "q" }, { reading: "", citable: "", query: "" }, { wikiRoot: ".", provider: "codex", timeoutMs: 1000 });
+    const req = buildChatRequest(
+      { message: "q" },
+      { reading: "", citable: "", query: "" },
+      { wikiRoot: ".", provider: "codex", timeoutMs: 1000 },
+    );
     const text = vi.fn();
     expect((await runCodexChat(req, { text }, true)).ok).toBe(true);
     expect(text.mock.calls).toEqual([['{"relations":[]}']]);
-  } finally { vi.unstubAllEnvs(); }
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });

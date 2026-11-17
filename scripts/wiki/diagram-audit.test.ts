@@ -57,27 +57,105 @@ it("requires each wiki-diagram pin's symbols to exist in its own pinned blob", (
   expect(auditDiagram(page, deps("ModelRunner"))).toEqual([]);
 });
 
-it("reports a wiki-diagram fence with no spec, and a pin source the page does not cite", () => {
+it("allows diagram pins independent of page.sources while still enforcing missing spec, unreadable/out-of-range source, and AC11 symbol checks", () => {
   const page = parsePage(
     "concepts/a.md",
     "---\nid: a\ntitle: A\ntype: concept\nsummary: A\nsources: [r@abcdef0:a.py#L1-L9]\nevidence: C\nupdated: '2026-09-19'\n---\n## 一句话\n\n看图。[C1]\n\n```wiki-diagram\nfile: demo\n```\n",
   ).page!;
-  const base = { repoRoots: { r: "repo" }, readBlob: () => ({ kind: "ok" as const, text: "x\n" }) };
+  const base = {
+    repoRoots: { r: "repo" },
+    readBlob: (_root: string, _commit: string, path: string) =>
+      path === "other.py"
+        ? { kind: "ok" as const, text: "def real_helper():\n    return 1\n" }
+        : path === "a.py"
+          ? { kind: "ok" as const, text: "x = 1\n" }
+          : { kind: "missing-file" as const },
+  };
   expect(auditDiagram(page, { ...base, diagrams: new Map() })).toEqual([
     { file: page.file, rule: "diagram-missing", message: expect.stringContaining("demo.yaml") },
   ]);
-  const elsewhere = diagramSpecSchema.parse({
+
+  // 独立于 page.sources 的有效图 pin 直接通过（不再报 diagram-identifier）
+  const validIndependent = diagramSpecSchema.parse({
     layout: "scene",
     id: "demo",
     caption: "演示",
     size: [200, 100],
-    pins: [{ source: "r@abcdef0:other.py#L1", symbols: ["x"] }],
+    pins: [{ source: "r@abcdef0:other.py#L1-L2", symbols: ["real_helper"] }],
   });
-  const problems = auditDiagram(page, {
-    ...base,
-    diagrams: new Map([
-      ["demo", { id: "demo", spec: elsewhere, specFile: "diagrams/demo.yaml", svgFile: "diagrams/demo.svg" }],
-    ]),
+  expect(
+    auditDiagram(page, {
+      ...base,
+      diagrams: new Map([
+        [
+          "demo",
+          {
+            id: "demo",
+            spec: validIndependent,
+            specFile: "diagrams/demo.yaml",
+            svgFile: "diagrams/demo.svg",
+          },
+        ],
+      ]),
+    }),
+  ).toEqual([]);
+
+  // 伪造符号、缺失文件或越界行号仍被 diagram-symbol 精确拦截
+  const fakeSymbol = diagramSpecSchema.parse({
+    layout: "scene",
+    id: "demo",
+    caption: "演示",
+    size: [200, 100],
+    pins: [{ source: "r@abcdef0:other.py#L1-L2", symbols: ["invented_helper"] }],
   });
-  expect(problems.map((p) => p.rule)).toContain("diagram-identifier");
+  expect(
+    auditDiagram(page, {
+      ...base,
+      diagrams: new Map([
+        [
+          "demo",
+          { id: "demo", spec: fakeSymbol, specFile: "diagrams/demo.yaml", svgFile: "diagrams/demo.svg" },
+        ],
+      ]),
+    }),
+  ).toEqual([
+    {
+      file: "diagrams/demo.yaml",
+      rule: "diagram-symbol",
+      message: expect.stringContaining("invented_helper"),
+    },
+  ]);
+
+  const unreadableBlob = diagramSpecSchema.parse({
+    layout: "scene",
+    id: "demo",
+    caption: "演示",
+    size: [200, 100],
+    pins: [
+      { source: "r@abcdef0:missing.py#L1", symbols: ["real_helper"] },
+      { source: "unknown@abcdef0:other.py#L1", symbols: ["real_helper"] },
+    ],
+  });
+  expect(
+    auditDiagram(page, {
+      ...base,
+      diagrams: new Map([
+        [
+          "demo",
+          { id: "demo", spec: unreadableBlob, specFile: "diagrams/demo.yaml", svgFile: "diagrams/demo.svg" },
+        ],
+      ]),
+    }),
+  ).toEqual([
+    {
+      file: "diagrams/demo.yaml",
+      rule: "diagram-symbol",
+      message: expect.stringContaining("读不出源码 blob"),
+    },
+    {
+      file: "diagrams/demo.yaml",
+      rule: "diagram-symbol",
+      message: expect.stringContaining("读不出源码 blob"),
+    },
+  ]);
 });

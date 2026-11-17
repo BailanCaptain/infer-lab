@@ -408,4 +408,321 @@ describe("restricted raw compilation", () => {
       expect(f.store.list()[0]?.attempts[0]?.costUsd).toBe(0.3);
     },
   );
+
+  it("preserves full question, >600-char single-line answer, and non-measured bounds in answer-record compilation when long cited pages force readLongMaterial, and rejects off-topic drafts", async () => {
+    const f = wikiFixture();
+    fixtures.push(f);
+    f.write(
+      "wiki/sync.config.json",
+      JSON.stringify({ contextWindowTokens: 48_000, outputReserveTokens: 16_384 }),
+    );
+    const chunkedPage = `---\nid: chunked-prefill\ntitle: Chunked prefill：长提示词分几步算完\ntype: feature\nsummary: 按预算切分长提示词\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: '2026-11-15'\n---\n## 示意算例\n每轮总预算为 8，A、B 各占 1 个位置，C 的 14 个提示词位置按 6、6、2 分三轮算完，第 3 轮末得到第一枚输出 y₀，第 4 轮送入解码。\n\n## 代价在哪\n这是给定预算的教学算例，不代表真实硬件实测毫秒数。\n${"补充背景段落：不同模型与批次的算术强度需结合实际流量重算。\n".repeat(420)}`;
+    const prefillPage = `---\nid: prefill\ntitle: Prefill 与 Decode\ntype: concept\nsummary: 提示词处理与逐词生成\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: '2026-11-15'\n---\n## 选出与送入\n选出 y₀ 与下一轮把 y₀ 送进模型是前后两步；若满足停止条件则不再送入。\n\n## 提示词记录边界\nstream=true 且 prompt_logprobs>0 会被请求校验拒绝；max_model_len 限制请求总长度。\n${"补充流式校验说明：echo=true 与 skip_reading_prefix_cache 的派生边界。\n".repeat(450)}`;
+    f.write("wiki/concepts/chunked-prefill.md", chunkedPage);
+    f.write("wiki/concepts/prefill.md", prefillPage);
+
+    const question =
+      "在 chunked-prefill 的示意算例中，每轮总预算为 8，A、B 各需要 1 个解码 token，C 的提示词有 14 个 token。C 的各轮新 token 数是多少？第一枚输出何时得到、什么时候把它送入下一次解码？这个算例能否直接当作真实硬件实测？";
+    const answer =
+      '**C 前三轮分别处理 6、6、2 个新提示词 token；第 3 轮末得到第一枚输出 y₀，第 4 轮才把 y₀ 送入模型做解码。**\n\n每轮 A、B 合计占用 2 个位置，留给 C 的预算是 `8 - 2 = 6`。[D] 逐轮如下，依据[分块预填充算例](concepts/chunked-prefill.md)：\n\n| 轮次 | C 本轮计算的新位置数 | 处理什么 | C 的有效输出 |\n|---|---:|---|---|\n| 第 1 轮 | 6 | 提示词位置 0-5 | 无 |\n| 第 2 轮 | 6 | 提示词位置 6-11 | 无 |\n| 第 3 轮 | 2 | 提示词位置 12-13 | 轮末选出第一枚输出 y₀ |\n| 第 4 轮 | 1 | 把 y₀ 作为输入，计算位置 14 | 轮末选出下一枚输出 y₁ |\n\n这里要区分**本轮处理的输入位置数**与**新生成的输出 token 数**：前两轮也会采样，但结果丢弃，不作为 C 的输出。选出 y₀ 和把 y₀ 送进模型是前后两件事；若请求已满足停止条件，y₀ 就不再送入下一轮。见 [Prefill 与 Decode](concepts/prefill.md)。\n\n**不能直接当作真实硬件实测。** 这是给定预算和请求需求下的教学算例，只说明位置怎样分配；每轮不保证耗时相等，预算 8 也不代表固定的毫秒上限。真实延迟还取决于模型、历史长度、同批请求和通信，页面没有提供该算例的硬件计时结果。见[分块预填充的代价与边界](concepts/chunked-prefill.md#代价在哪)。\n\n<!-- wiki-coverage: {"satisfied":true,"reason":"当前注入的 chunked-prefill 与 prefill 正文直接支持 6、6、2 的分配、第3轮末产出首token、第4轮送入解码，以及教学算例非硬件实测的边界。"} -->';
+    expect(answer.length).toBeGreaterThan(600);
+
+    const bundle = `${JSON.stringify(
+      {
+        kind: "answer-record",
+        question,
+        answer,
+        citedPages: [
+          { file: "concepts/chunked-prefill.md", text: chunkedPage },
+          { file: "concepts/prefill.md", text: prefillPage },
+        ],
+      },
+      null,
+      2,
+    )}\n`;
+    const raw = saveRawSnapshot(join(f.root, "wiki"), bundle);
+    const source = `raw:${raw.slice(4)}#L1-L${bundle.trimEnd().split("\n").length}`;
+    const store = new WorkflowStore(f.root);
+    const compileInput = {
+      id: "answer-chunked-case",
+      origin: "chat" as const,
+      source,
+      rules: "问答记录编译规则",
+      timeoutMs: 5_000,
+      purpose: "answer-record" as const,
+      answerPages: ["chunked-prefill", "prefill"],
+    };
+
+    const chunkSources: string[] = [];
+    const chunkTopics: string[] = [];
+    let finalPacket: Record<string, unknown> | undefined;
+    let compileCalls = 0;
+
+    const runAgent: import("./batch").RunAgent = async (req) => {
+      const data = JSON.parse(req.stdin);
+      if (data.sourceHash || Array.isArray(data.lines) || Array.isArray(data.quotes)) {
+        chunkSources.push(String(data.source));
+        chunkTopics.push(String(data.topic));
+        const firstLine =
+          typeof data.text === "string"
+            ? data.text.split("\n").find((l: string) => l.trim().length > 4)!
+            : "";
+        return {
+          id: req.id,
+          ok: true,
+          exitCode: 0,
+          stderrTail: "",
+          costUsd: 0.01,
+          output: JSON.stringify({
+            evidence: firstLine ? [{ quote: firstLine.slice(0, 120), note: "引用页相关依据" }] : [],
+            caveats: [],
+          }),
+        };
+      }
+      compileCalls++;
+      finalPacket = data;
+      if (compileCalls === 1) {
+        // Off-topic draft summarizing prompt_logprobs / max_model_len without the user's Q&A core!
+        return {
+          id: req.id,
+          ok: true,
+          exitCode: 0,
+          stderrTail: "",
+          costUsd: 0.05,
+          output: `---\nid: answer-chunked-case\ntitle: 提示词记录与模型长度校验综述\ntype: source\nsummary: 整理 stream=true 下 prompt_logprobs 与 max_model_len 的请求校验边界。\nsources: [${source}]\nevidence: I\nupdated: '2026-11-15'\n---\n## 校验边界\n启用分块不会放宽 max_model_len 上限，stream=true 时显式 prompt_logprobs>0 会被拒绝 [I]，参见 [Prefill 与 Decode](../concepts/prefill.md) 与 [Chunked prefill](../concepts/chunked-prefill.md)。\n`,
+        };
+      }
+      return {
+        id: req.id,
+        ok: true,
+        exitCode: 0,
+        stderrTail: "",
+        costUsd: 0.05,
+        output: `---\nid: answer-chunked-case\ntitle: 预算 8 下 C 请求 14 个提示词的分块轮次与非实测边界\ntype: source\nsummary: 归档总预算 8、A/B 各占 1 时 C 的分块预填充轮次、首枚输出时机与教学算例适用边界问答记录。\nsources: [${source}]\nevidence: I\nrelations:\n  - to: chunked-prefill\n    kind: builds-on\n    note: 引用页提供分块预算算例与非实测边界上下文\n  - to: prefill\n    kind: builds-on\n    note: 引用页区分选出首枚输出与下一轮送入解码两个步骤\nupdated: '2026-11-15'\n---\n## 原始问答记录\n\n::answer-record-core::\n\n## 引用范围与适用边界\n\n本页归档一次问答记录，支撑上下文来自 [Chunked prefill](../concepts/chunked-prefill.md) 与 [Prefill 与 Decode](../concepts/prefill.md)，仅作推断归档而非源码或硬件实测证据 [I]。\n`,
+      };
+    };
+
+    // Attempt 1: long citedPages compressed via readLongMaterial, full Q&A preserved, off-topic draft MUST fail!
+    const first = await compileRaw(
+      store,
+      compileInput,
+      { maxAttempts: 2, maxCostUsd: 1, reserveUsd: 0.5 },
+      { runAgent },
+    );
+    expect(first.ok).toBe(false);
+    expect(first.reason).toMatch(/原问题与原回答正文核心/);
+    expect(existsSync(join(f.root, "wiki/_drafts/answer-chunked-case.md"))).toBe(false);
+
+    // Verify readLongMaterial ONLY received readable cited pages with question-anchored topic, NEVER raw answer-record JSON!
+    expect(chunkSources.length).toBeGreaterThan(1);
+    expect(chunkSources.every((s) => s.startsWith("cited-page:"))).toBe(true);
+    expect(chunkTopics.every((t) => t.includes("每轮总预算为 8"))).toBe(true);
+
+    // Verify final compiler stdin preserved 100% of question and >600-char answer!
+    const mat = (finalPacket as { material: { question: string; answer: string; citedContext: unknown } })
+      .material;
+    expect(mat.question).toBe(question);
+    expect(mat.answer).toContain("6、6、2");
+    expect(mat.answer).toContain("第 3 轮末得到第一枚输出 y₀");
+    expect(mat.answer).toContain("第 4 轮才把 y₀ 送入模型做解码");
+    expect(mat.answer).toContain("不能直接当作真实硬件实测");
+    expect(mat.answer).not.toContain("wiki-coverage");
+    expect(mat.citedContext).toBeTruthy();
+
+    // Attempt 2 (retry: true): reuses chunk caches with 0 extra chunk calls and deterministically injects verbatim Q&A!
+    const chunkCountAfterFirst = chunkSources.length;
+    const second = await compileRaw(
+      store,
+      compileInput,
+      { maxAttempts: 2, maxCostUsd: 1, reserveUsd: 0.5 },
+      { runAgent, retry: true },
+    );
+    expect(second.ok, second.reason).toBe(true);
+    expect(chunkSources.length).toBe(chunkCountAfterFirst);
+    const writtenDraft = readFileSync(join(f.root, "wiki/_drafts/answer-chunked-case.md"), "utf8");
+    expect(writtenDraft).not.toContain("::answer-record-core::");
+    expect(writtenDraft).toContain(question);
+    expect(writtenDraft).toContain(
+      "**C 前三轮分别处理 6、6、2 个新提示词 token；第 3 轮末得到第一枚输出 y₀，第 4 轮才把 y₀ 送入模型做解码。**",
+    );
+    expect(writtenDraft).toContain("| 第 3 轮 | 2 | 提示词位置 12-13 | 轮末选出第一枚输出 y₀ |");
+    expect(writtenDraft).toContain("**不能直接当作真实硬件实测。**");
+    expect(writtenDraft).toContain("[分块预填充的代价与边界](../concepts/chunked-prefill.md#代价在哪)");
+  });
+
+  it("deterministically rejects rewritten answer-record drafts that invert round order or flip non-measured negation even when sharing all keywords and numbers", async () => {
+    const answer =
+      "每轮总预算为 8，A、B 各占 1 个位置，C 的 14 个提示词按 6、6、2 分三轮算完。第 3 轮末得到第一枚输出 y₀，第 4 轮才把 y₀ 送入模型做解码。这个教学算例不能直接作为真实硬件实测。";
+    const question =
+      "预算为 8 时，C 的 14 个提示词怎样分轮？第一枚输出何时得到、何时送入下一次解码？这是否是真实硬件实测？";
+    const adversarialBodies = [
+      "每轮总预算为 8，A、B 各占 1 个位置，C 的 14 个提示词按 6、6、2 分三轮算完。第 4 轮末得到第一枚输出 y₀，第 3 轮才把 y₀ 送入模型做解码。这个教学算例不能直接作为真实硬件实测。",
+      "每轮总预算为 8，A、B 各占 1 个位置，C 的 14 个提示词按 6、6、2 分三轮算完。第 3 轮末得到第一枚输出 y₀，第 4 轮才把 y₀ 送入模型做解码。这个教学算例可以直接作为真实硬件实测。未更改其他无关配置。",
+    ];
+    for (const [idx, corruptedBody] of adversarialBodies.entries()) {
+      const f = wikiFixture();
+      fixtures.push(f);
+      const page = `---\nid: a\ntitle: A\ntype: source\nsummary: 预算分配说明\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: '2026-11-15'\n---\n## 算例\n${answer}\n`;
+      f.write("wiki/sources/a.md", page);
+      const bundle = `${JSON.stringify(
+        { kind: "answer-record", question, answer, citedPages: [{ file: "sources/a.md", text: page }] },
+        null,
+        2,
+      )}\n`;
+      const raw = saveRawSnapshot(join(f.root, "wiki"), bundle);
+      const ref = `raw:${raw.slice(4)}#L1-L${bundle.trimEnd().split("\n").length}`;
+      const id = `answer-adversarial-${idx}`;
+      const res = await compileRaw(
+        new WorkflowStore(f.root),
+        {
+          id,
+          origin: "chat",
+          source: ref,
+          rules: "保留原问答事实，不能翻转轮次或否定条件。",
+          purpose: "answer-record",
+          answerPages: ["a"],
+          timeoutMs: 5_000,
+        },
+        { maxAttempts: 2, maxCostUsd: 1, reserveUsd: 0.5 },
+        {
+          runAgent: async (req) => ({
+            id: req.id,
+            ok: true,
+            exitCode: 0,
+            stderrTail: "",
+            costUsd: 0.02,
+            output: `---\nid: ${id}\ntitle: 预算 8 的分轮问答\ntype: source\nsummary: C 的 14 个提示词与首输出轮次及实测边界\nsources: [${ref}]\nevidence: I\nupdated: '2026-11-15'\n---\n## 问答记录\n${corruptedBody} [I]，见 [A](../sources/a.md)。\n`,
+          }),
+        },
+      );
+      expect(res.ok).toBe(false);
+      expect(res.reason).toMatch(/原问题与原回答正文核心/);
+      expect(existsSync(join(f.root, `wiki/_drafts/${id}.md`))).toBe(false);
+    }
+  });
+
+  it("fails closed with zero model calls instead of silently truncating when an oversized answer-record core itself exceeds the context window", async () => {
+    const f = wikiFixture();
+    fixtures.push(f);
+    f.write(
+      "wiki/sync.config.json",
+      JSON.stringify({ contextWindowTokens: 48_000, outputReserveTokens: 16_384 }),
+    );
+    const smallPage =
+      "---\nid: a\ntitle: A\ntype: source\nsummary: A\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: '2026-11-15'\n---\n## 一句话\n解释 A。\n";
+    f.write("wiki/sources/a.md", smallPage);
+    const hugeAnswer = `${"这是不可静默截断的超长核心回答段落，见 [A](sources/a.md)。\n".repeat(450)}`;
+    const bundle = `${JSON.stringify(
+      {
+        kind: "answer-record",
+        question: "超长问答核心如何处理？",
+        answer: hugeAnswer,
+        citedPages: [{ file: "sources/a.md", text: smallPage }],
+      },
+      null,
+      2,
+    )}\n`;
+    const raw = saveRawSnapshot(join(f.root, "wiki"), bundle);
+    const source = `raw:${raw.slice(4)}#L1-L${bundle.trimEnd().split("\n").length}`;
+    let calls = 0;
+    const res = await compileRaw(
+      new WorkflowStore(f.root),
+      {
+        id: "answer-oversized-core",
+        origin: "chat",
+        source,
+        rules: "问答记录编译规则",
+        timeoutMs: 5_000,
+        purpose: "answer-record",
+        answerPages: ["a"],
+      },
+      { accountingOnly: true },
+      {
+        runAgent: async () => {
+          calls++;
+          throw new Error("must not invoke model when core Q&A itself exceeds window");
+        },
+      },
+    );
+    expect(res.ok).toBe(false);
+    expect(res.reason).toMatch(/问答核心.*超出.*预算/);
+    expect(calls).toBe(0);
+  });
+
+  it("enforces visible top-level answer-record core ownership and rejects HTML comments, code fences, inline code, blockquotes, or collapsed sections", async () => {
+    const question = "C 的 14 个提示词如何按 6、6、2 分三轮完成？";
+    const answer = "第 3 轮末产生第一枚输出 y₀，第 4 轮才把 y₀ 送入模型。教学算例不能直接作为真实硬件实测。";
+    const cases: Array<[string, string, boolean]> = [
+      ["visible-slot", "## 问答记录\n\n::answer-record-core::\n\n见 [A](../sources/a.md) [I]。", true],
+      [
+        "comment-slot",
+        "## 问答记录\n\n<!--\n::answer-record-core::\n-->\n本页实际只保存其他背景介绍。\n\n见 [A](../sources/a.md) [I]。",
+        false,
+      ],
+      [
+        "comment-copy",
+        `## 问答记录\n\n<!--\n${question}\n${answer}\n-->\n本页实际只保存其他背景介绍。\n\n见 [A](../sources/a.md) [I]。`,
+        false,
+      ],
+      [
+        "unclosed-comment-slot",
+        "## 问答记录\n\n<!--\n\n::answer-record-core::\n\n见 [A](../sources/a.md) [I]。",
+        false,
+      ],
+      [
+        "fence-slot",
+        "## 问答记录\n\n```markdown\n::answer-record-core::\n```\n\n见 [A](../sources/a.md) [I]。",
+        false,
+      ],
+      ["inline-code-slot", "## 问答记录\n\n`::answer-record-core::`\n\n见 [A](../sources/a.md) [I]。", false],
+      ["blockquote-slot", "## 问答记录\n\n> ::answer-record-core::\n\n见 [A](../sources/a.md) [I]。", false],
+      [
+        "collapsed-source-section-slot",
+        "## 问答记录\n\n背景摘要，见 [A](../sources/a.md) [I]。\n\n## 对照源码\n\n::answer-record-core::",
+        false,
+      ],
+    ];
+
+    for (const [name, sectionBody, expectedOk] of cases) {
+      const f = wikiFixture();
+      fixtures.push(f);
+      const page = `---\nid: a\ntitle: A\ntype: source\nsummary: 预算分配说明\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: "2026-11-15"\n---\n## 算例\n${answer}\n`;
+      f.write("wiki/sources/a.md", page);
+      const bundle = `${JSON.stringify(
+        { kind: "answer-record", question, answer, citedPages: [{ file: "sources/a.md", text: page }] },
+        null,
+        2,
+      )}\n`;
+      const raw = saveRawSnapshot(join(f.root, "wiki"), bundle);
+      const ref = `raw:${raw.slice(4)}#L1-L${bundle.trimEnd().split("\n").length}`;
+      const id = `answer-${name}`;
+      const result = await compileRaw(
+        new WorkflowStore(f.root),
+        {
+          id,
+          origin: "chat",
+          source: ref,
+          rules: "完整保存原问答，使用独立占位行。",
+          purpose: "answer-record",
+          answerPages: ["a"],
+          timeoutMs: 5_000,
+        },
+        { maxAttempts: 2, maxCostUsd: 1, reserveUsd: 0.5 },
+        {
+          runAgent: async (req) => ({
+            id: req.id,
+            ok: true,
+            exitCode: 0,
+            stderrTail: "",
+            output: `---\nid: ${id}\ntitle: 分块问答\ntype: source\nsummary: 保存分块轮次问答\nsources: [${ref}]\nevidence: I\nupdated: '2026-11-15'\n---\n${sectionBody}\n`,
+          }),
+        },
+      );
+      expect(result.ok, `${name}: ${result.reason ?? "accepted"}`).toBe(expectedOk);
+      if (!expectedOk) {
+        expect(result.reason).toMatch(/原问题与原回答正文核心/);
+        expect(existsSync(join(f.root, `wiki/_drafts/${id}.md`))).toBe(false);
+      }
+    }
+  });
 });

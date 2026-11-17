@@ -12,17 +12,17 @@ import {
   useSyncExternalStore,
 } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
-import { Link, useLocation, useParams } from "react-router";
-import { fragmentId } from "../../content/wiki/anchors";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { alignCalcLabels, CalcBlock } from "../../content/wiki/CalcBlock";
 import { parseCalcFence, textFenceAsCalc } from "../../content/wiki/calc";
 import {
+  createEvidenceViewController,
   ensurePage,
+  ensurePageEvidence,
+  findByAlias,
   getPage,
   getReaderState,
   refreshReaderSnapshot,
-  rewriteRelativeLink,
-  routePathOf,
   sourceUrl,
   subscribeReader,
 } from "../../content/wiki/index";
@@ -32,23 +32,36 @@ import {
   WIKI_REHYPE_PLUGINS,
   WIKI_REMARK_PLUGINS,
 } from "../../content/wiki/markdown";
-import { groupRelations } from "../../content/wiki/relations";
+import { pageDisplayTitle } from "../../content/wiki/param-display";
+import { groupRelations, prerequisiteRelations } from "../../content/wiki/relations";
 import {
   type CompiledNode,
   parseRepoRef,
   type RegistryEntry,
   rawSourceHref,
+  resolveCanonicalPageId,
 } from "../../content/wiki/schema";
 import { EVIDENCE_LEVELS_INFO, EvidenceBadge, EvidenceLegend, Term } from "../../content/wiki/Term";
 import { buildToc, type TocPart } from "../../content/wiki/toc";
 import { WikiDiagram } from "../../content/wiki/WikiDiagram";
 import { requestReaderSnapshot } from "../wiki/api";
 import { hasPageToc, type PageHeading, PageTocFab, PageTocSide, readHeadings } from "../wiki/PageToc";
+import { WikiQuickSearch } from "../wiki/QuickSearch";
 import { ReaderResizeHandle } from "../wiki/ReaderResizeHandle";
 import { isSceneLessonId, sceneAnchorIds } from "../wiki/scene-lessons";
-import { WikiPanel } from "../wiki/WikiPanel";
+import {
+  canonicalWikiRedirectTarget,
+  expandAncestorDetails,
+  isPlainPrimaryLinkClick,
+  scrollToWikiFragment,
+  WikiContentLink,
+} from "../wiki/WikiLink";
+import { WikiPanel, type WikiPanelTab } from "../wiki/WikiPanel";
 import { WikiScene } from "../wiki/WikiScene";
+import "katex/dist/katex.min.css";
 import "../../design/wiki.css";
+
+export { canonicalWikiRedirectTarget } from "../wiki/WikiLink";
 
 /** 与 scripts/wiki/build.ts 的显示名保持一致；漏一个页型会把原始字符串印在页面上 */
 /** seeds 里的分支名 → 页头上给读者看的版本名：`releases/v0.26.0rc` → `v0.26.0rc` */
@@ -88,11 +101,6 @@ function fenceSource(node: unknown, language: string): string | null {
   return text?.type === "text" && text.value ? text.value.trim() : null;
 }
 
-/** 滚到 `#锚点` 对应的标题（id 由 anchors.ts 生成）；找不到就不动 */
-function scrollToFragment(hash: string): void {
-  document.getElementById(fragmentId(hash))?.scrollIntoView({ block: "start" });
-}
-
 /** 不标语言或标 text 的代码块正文；算式块识别只看这两种。字已被 rehypeTextGrid 分进字格，按拼起来的原文认 */
 function plainFenceSource(node: unknown): string | null {
   const code = plainFenceCode(node as HastNode | undefined);
@@ -115,15 +123,71 @@ function subscribeDirectory(listener: () => void) {
   return () => media.removeEventListener("change", listener);
 }
 
+/**
+ * 窄窗目录抽屉状态机：跨过桌面断点（进入或离开桌面常驻栏）时清零窄窗临时展开态，
+ * 保证 1440 → 1000 手动展开 → 1440 → 1000 回到收起，且不触碰目录内分组的手动展开集合。
+ */
+export function resolveDirectoryDrawerState(
+  prev: { readonly desktop: boolean; readonly directoryOpen: boolean },
+  nextDesktop: boolean,
+): { readonly desktop: boolean; readonly directoryOpen: boolean } {
+  if (prev.desktop === nextDesktop) return prev;
+  return { desktop: nextDesktop, directoryOpen: false };
+}
+
 export function WikiPage() {
   const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { pages, revision, mode, diagrams, skipped } = useSyncExternalStore(subscribeReader, getReaderState);
-  const [panel, setPanel] = useState<"closed" | "chat" | "drop" | "review" | "status">("closed");
+  const canonicalId = id ? resolveCanonicalPageId(pages, id, skipped) : undefined;
+  const activeId = canonicalId ?? id;
+  useLayoutEffect(() => {
+    const target = canonicalWikiRedirectTarget(id, canonicalId, location);
+    if (target) navigate(target, { replace: true });
+  }, [id, canonicalId, location, navigate]);
+  const [panel, setPanel] = useState<"closed" | WikiPanelTab>("closed");
+  const [evidenceOpenSeq, setEvidenceOpenSeq] = useState(0);
+  const lastEvidenceTriggerRef = useRef<HTMLElement | null>(null);
+  const evidenceController = useMemo(
+    () => createEvidenceViewController({ loadPageEvidence: ensurePageEvidence }),
+    [],
+  );
+  useEffect(() => {
+    evidenceController.syncContext(activeId, revision);
+  }, [activeId, revision, evidenceController]);
+  const openSourceEvidence = useCallback(
+    (sourceIndex: number, trigger: HTMLElement | null) => {
+      if (!activeId) return;
+      lastEvidenceTriggerRef.current = trigger;
+      setEvidenceOpenSeq((n) => n + 1);
+      void evidenceController.openForSource(activeId, revision, sourceIndex);
+    },
+    [activeId, revision, evidenceController],
+  );
+  const openDiagramRef = useRef<(diagramId: string, trigger: HTMLElement | null) => void>(() => {});
+  openDiagramRef.current = (diagramId: string, trigger: HTMLElement | null) => {
+    if (!activeId) return;
+    lastEvidenceTriggerRef.current = trigger;
+    setEvidenceOpenSeq((n) => n + 1);
+    void evidenceController.openForDiagram(activeId, revision, diagramId, 0);
+  };
+  const openDiagramEvidence = useCallback((diagramId: string, trigger: HTMLElement | null) => {
+    openDiagramRef.current(diagramId, trigger);
+  }, []);
   const [snapshotError, setSnapshotError] = useState("");
   const [directoryQuery, setDirectoryQuery] = useState("");
   const [directoryOpen, setDirectoryOpen] = useState(false);
   const [pageError, setPageError] = useState("");
   const desktop = useSyncExternalStore(subscribeDirectory, desktopDirectory);
+  const [prevDesktop, setPrevDesktop] = useState(desktop);
+  if (desktop !== prevDesktop) {
+    const nextDrawer = resolveDirectoryDrawerState({ desktop: prevDesktop, directoryOpen }, desktop);
+    setPrevDesktop(nextDrawer.desktop);
+    if (nextDrawer.directoryOpen !== directoryOpen) {
+      setDirectoryOpen(nextDrawer.directoryOpen);
+    }
+  }
   const refresh = useCallback(async (signal?: AbortSignal) => {
     const updated = await refreshReaderSnapshot(
       () => requestReaderSnapshot(getReaderState().revision),
@@ -149,36 +213,40 @@ export function WikiPage() {
   const query = directoryQuery.trim().toLocaleLowerCase();
   const matchingIds = new Set(
     pages
-      .filter((p) => [p.id, p.title, ...p.aliases].some((name) => name.toLocaleLowerCase().includes(query)))
+      .filter((p) =>
+        [p.id, p.file, p.title, pageDisplayTitle(p), ...(p.legacyIds ?? []), ...p.aliases].some((name) =>
+          name.toLocaleLowerCase().includes(query),
+        ),
+      )
       .map((p) => p.id),
   );
-  const page = id ? getPage(id) : undefined;
-  const knownPage = pages.some((entry) => entry.id === id);
+  const page = activeId ? getPage(activeId) : undefined;
+  const knownPage = Boolean(canonicalId);
   // biome-ignore lint/correctness/useExhaustiveDependencies: A new snapshot must retry the external page loader.
   useEffect(() => {
     setPageError("");
-    if (!id) return;
+    if (!activeId) return;
     let live = true;
-    void ensurePage(id).catch((error: Error) => {
+    void ensurePage(activeId).catch((error: Error) => {
       if (live) setPageError(error.message);
     });
     return () => {
       live = false;
     };
-  }, [id, revision]);
+  }, [activeId, revision]);
   const activePart = toc.find((part) =>
-    part.sections.some((section) => section.pages.some((p) => p.id === id)),
+    part.sections.some((section) => section.pages.some((p) => p.id === activeId)),
   );
-  const activeSection = activePart?.sections.find((section) => section.pages.some((p) => p.id === id));
+  const activeSection = activePart?.sections.find((section) => section.pages.some((p) => p.id === activeId));
   const orderedPages = toc.flatMap((part) => part.sections.flatMap((section) => section.pages));
-  const currentIndex = orderedPages.findIndex((p) => p.id === id);
+  const currentIndex = orderedPages.findIndex((p) => p.id === activeId);
 
   // 左侧目录各分组的展开状态放在这一层：换页不重挂目录，读者手动展开/收起的分组都保留。
   // 每换到一页（或目录数据到位），当前页所在分组补成展开；首页展开「指南」。
-  const autoGroup = activePart?.id ?? (id ? undefined : "guide");
+  const autoGroup = activePart?.id ?? (activeId ? undefined : "guide");
   const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(() => new Set());
   const [autoOpenedFor, setAutoOpenedFor] = useState<string>();
-  const autoKey = `${id ?? ""}|${autoGroup ?? ""}`;
+  const autoKey = `${activeId ?? ""}|${autoGroup ?? ""}`;
   if (autoKey !== autoOpenedFor) {
     setAutoOpenedFor(autoKey);
     if (autoGroup && !expandedGroups.has(autoGroup))
@@ -195,20 +263,22 @@ export function WikiPage() {
 
   // 换页后：目录里的当前项滚进目录的可视范围，焦点移到正文（首次进入不抢焦点）
   const tocNav = useRef<HTMLElement>(null);
-  const shownId = useRef(id);
+  const shownId = useRef(activeId);
   useEffect(() => {
     tocNav.current?.querySelector(".wiki-toc a.is-active")?.scrollIntoView({ block: "nearest" });
-    if (shownId.current === id) return;
-    shownId.current = id;
+    if (shownId.current === activeId) return;
+    shownId.current = activeId;
     document.getElementById("main-content")?.focus({ preventScroll: true });
-  }, [id]);
+  }, [activeId]);
 
+  const activeDisplayTitle = page ? pageDisplayTitle(page.fm) : undefined;
   useEffect(() => {
-    document.title = `${page?.fm.title ?? "大模型推理"} · AI Infra`;
-  }, [page?.fm.title]);
+    document.title = `${activeDisplayTitle ?? "大模型推理"} · AI Infra`;
+  }, [activeDisplayTitle]);
 
   return (
     <div className="reader-content">
+      <WikiQuickSearch pages={pages} revision={revision} onAfterNavigate={() => setDirectoryOpen(false)} />
       <div className={`wiki-shell is-panel-${panel}`}>
         <details
           className="reader-directory"
@@ -263,12 +333,12 @@ export function WikiPage() {
                     {section.pages.map((p) => (
                       <li key={p.id}>
                         <Link
-                          className={p.id === id ? "is-active" : undefined}
-                          aria-current={p.id === id ? "page" : undefined}
+                          className={p.id === activeId ? "is-active" : undefined}
+                          aria-current={p.id === activeId ? "page" : undefined}
                           to={`/wiki/${p.id}`}
                           onClick={() => setDirectoryOpen(false)}
                         >
-                          {p.title}
+                          {pageDisplayTitle(p)}
                         </Link>
                       </li>
                     ))}
@@ -340,6 +410,8 @@ export function WikiPage() {
                     <span>{activeSection.title}</span>
                   </>
                 )}
+                <span>/</span>
+                <span aria-current="page">{pageDisplayTitle(page.fm)}</span>
               </nav>
               <Article
                 key={page.fm.id}
@@ -347,6 +419,8 @@ export function WikiPage() {
                 body={page.body}
                 compiled={page.compiled}
                 diagrams={diagrams}
+                onOpenSource={openSourceEvidence}
+                onOpenDiagram={openDiagramEvidence}
               />
               <nav className="reader-pagination" aria-label="章节翻页">
                 {orderedPages[currentIndex - 1] ? (
@@ -354,7 +428,7 @@ export function WikiPage() {
                     <small>
                       <ArrowLeft size={14} /> 上一节
                     </small>
-                    <span>{orderedPages[currentIndex - 1]!.title}</span>
+                    <span>{pageDisplayTitle(orderedPages[currentIndex - 1]!)}</span>
                   </Link>
                 ) : (
                   <span />
@@ -364,7 +438,7 @@ export function WikiPage() {
                     <small>
                       下一节 <ArrowRight size={14} />
                     </small>
-                    <span>{orderedPages[currentIndex + 1]!.title}</span>
+                    <span>{pageDisplayTitle(orderedPages[currentIndex + 1]!)}</span>
                   </Link>
                 )}
               </nav>
@@ -375,6 +449,10 @@ export function WikiPage() {
         <WikiPanel
           revision={revision}
           mode={mode}
+          currentId={activeId}
+          evidenceController={evidenceController}
+          evidenceOpenSeq={evidenceOpenSeq}
+          lastTriggerRef={lastEvidenceTriggerRef}
           onLayout={setPanel}
           onRefresh={async () => {
             try {
@@ -440,7 +518,7 @@ function Landing({
             <h2>第一次来，从阅读指南开始</h2>
           </div>
           <Link className="wiki-start-link" to={`/wiki/${GUIDE_ID}`}>
-            {guide.title} <ArrowRight size={14} />
+            {pageDisplayTitle(guide)} <ArrowRight size={14} />
           </Link>
           <p>{guide.summary}</p>
         </section>
@@ -461,7 +539,7 @@ function Landing({
                 {entries.slice(0, 4).map((entry) => (
                   <li key={entry.id}>
                     <Link to={`/wiki/${entry.id}`}>
-                      {entry.title}
+                      {pageDisplayTitle(entry)}
                       <ArrowRight size={13} aria-hidden="true" />
                     </Link>
                   </li>
@@ -476,7 +554,7 @@ function Landing({
                     {entries.slice(4).map((entry) => (
                       <li key={entry.id}>
                         <Link to={`/wiki/${entry.id}`}>
-                          {entry.title}
+                          {pageDisplayTitle(entry)}
                           <ArrowRight size={13} aria-hidden="true" />
                         </Link>
                       </li>
@@ -497,10 +575,16 @@ function Landing({
 }
 
 const DiagramSnapshot = createContext(new Map<string, string>());
+const DiagramPageContext = createContext("");
+const DiagramEvidenceContext = createContext<
+  ((diagramId: string, trigger: HTMLElement | null) => void) | undefined
+>(undefined);
 
 // A stable fence type preserves live scene playback when article data or its hash changes.
 const WikiFence: Components["pre"] = ({ children, node }) => {
   const diagrams = useContext(DiagramSnapshot);
+  const pageId = useContext(DiagramPageContext);
+  const onOpenDiagram = useContext(DiagramEvidenceContext);
   const scene = fenceSource(node, "wiki-scene");
   if (scene) {
     const [id, part] = scene.split(":");
@@ -509,7 +593,16 @@ const WikiFence: Components["pre"] = ({ children, node }) => {
       return <WikiScene key={scene} id={id} section={section} />;
   }
   const diagram = diagramId(node);
-  if (diagram) return <WikiDiagram id={diagram} svg={diagrams.get(diagram)} />;
+  if (diagram)
+    return (
+      <WikiDiagram
+        key={`${pageId}:${diagram}`}
+        id={diagram}
+        svg={diagrams.get(diagram)}
+        allowInteractive
+        onOpenEvidence={onOpenDiagram}
+      />
+    );
   // 算式块（calc.ts / CalcBlock.tsx）：```calc 围栏，和每行都是「标签 = …」的纯文本块。
   // 现有页面的 ```text 算式块不用改写就能认出来；认不出的照旧是代码块
   const source = fenceSource(node, "calc");
@@ -522,27 +615,31 @@ const WikiFence: Components["pre"] = ({ children, node }) => {
   return rows ? <CalcBlock rows={rows} /> : <pre>{children}</pre>;
 };
 
-const Article = memo(function Article({
+export const Article = memo(function Article({
   page,
   body,
   compiled,
   diagrams,
+  onOpenSource,
+  onOpenDiagram,
 }: {
   page: RegistryEntry;
   body: string;
   compiled?: CompiledNode | undefined;
   /** 图跟着同一份知识快照传下来，不另起一次订阅 */
   diagrams: Map<string, string>;
+  onOpenSource?: ((sourceIndex: number, trigger: HTMLElement | null) => void) | undefined;
+  onOpenDiagram?: ((diagramId: string, trigger: HTMLElement | null) => void) | undefined;
 }) {
   // hash 路由下 `#/wiki/<id>#锚点` 的锚点在 location.hash。跨页链接、页内链接、直接打开
   // 带锚点的地址都走这里；换页时新正文和标题 id 已在同一次提交里渲染好。
   const { hash } = useLocation();
   useEffect(() => {
     if (!hash || !page.id) return;
-    scrollToFragment(hash);
+    scrollToWikiFragment(hash);
     // 直接打开时中文字体的子集随后才下载完，重排会把标题挤出视口：字体就绪后再对一次
     let live = true;
-    void document.fonts?.ready.then(() => live && scrollToFragment(hash));
+    void document.fonts?.ready.then(() => live && scrollToWikiFragment(hash));
     return () => {
       live = false;
     };
@@ -554,6 +651,16 @@ const Article = memo(function Article({
     const el = bodyRef.current;
     setHeadings(el && body ? readHeadings(el) : []);
   }, [body]);
+  // 页内查找命中默认收起的「对照源码」等折叠区内部节点时，响应 beforematch 自动展开
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const onBeforeMatch = (event: Event) => {
+      if (event.target instanceof Element) expandAncestorDetails(event.target);
+    };
+    el.addEventListener("beforematch", onBeforeMatch);
+    return () => el.removeEventListener("beforematch", onBeforeMatch);
+  }, []);
   // 整页的算式块标签栏对齐（CalcBlock.tsx）：换页、正文变宽变窄、字体就绪后各量一次
   useLayoutEffect(() => {
     const el = bodyRef.current;
@@ -600,8 +707,9 @@ const Article = memo(function Article({
             if (!EVIDENCE_LETTERS.has(level)) return <abbr {...rest}>{children}</abbr>;
             const idx = Number((node as HastNode | undefined)?.properties?.["data-source"] ?? 0);
             const src = idx >= 1 && idx <= page.sources.length ? page.sources[idx - 1] : undefined;
-            const href = src ? hrefOfSource(src) : null;
-            // 带编号的角标能点进去看那一行源码——不能点的角标对读者没用
+            if (!src) return <EvidenceBadge level={level} />;
+            const href = hrefOfSource(src);
+            // 带编号的角标能点进去看那一行源码；未知仓库即使没有外部 URL 也能在右侧证据面板打开不可用说明
             return href ? (
               <a
                 className="wiki-mark-link"
@@ -609,49 +717,42 @@ const Article = memo(function Article({
                 target="_blank"
                 rel="noreferrer"
                 title={`来源 ${idx}`}
-                // 角标的编号就是「查看来源」列表里的第几条，两边必须对得上
                 data-source={idx}
+                onClick={(event) => {
+                  if (!onOpenSource || !isPlainPrimaryLinkClick(event)) return;
+                  event.preventDefault();
+                  onOpenSource(idx - 1, event.currentTarget);
+                }}
               >
                 <EvidenceBadge level={level} />
               </a>
             ) : (
-              <EvidenceBadge level={level} />
+              <button
+                type="button"
+                className="wiki-mark-btn"
+                title={`来源 ${idx}`}
+                data-source={idx}
+                onClick={(event) => onOpenSource?.(idx - 1, event.currentTarget)}
+              >
+                <EvidenceBadge level={level} />
+              </button>
             );
           },
-          a: ({ href, children }) => {
-            const to = rewriteRelativeLink(href ?? "", page.id);
-            const route = routePathOf(to);
-            const fragment = to.startsWith("#/") ? to.indexOf("#", 1) : -1;
-            // 地址没变时浏览器不发 hashchange，再点一次同一个锚点也要滚回去
-            const again = () => {
-              if (fragmentId(window.location.hash) === fragmentId(to)) scrollToFragment(to.slice(fragment));
-            };
-            // 站内链接走 <Link>：原生 <a href="#/..."> 只改 hash，hash 路由把它当成后退（POP），
-            // 于是「恢复」上一页的滚动位置——读者落在新页面的末尾，而不是开头。
-            if (route) {
-              return (
-                <Link to={route} {...(fragment > 0 ? { onClick: again } : {})}>
-                  {children}
-                </Link>
-              );
-            }
-            const external = /^https?:/i.test(to);
-            return (
-              <a href={to} {...(external ? { target: "_blank", rel: "noreferrer" } : {})}>
-                {children}
-              </a>
-            );
-          },
+          a: ({ href, children }) => (
+            <WikiContentLink href={href} currentId={page.id}>
+              {children}
+            </WikiContentLink>
+          ),
         }}
       >
         {compiled ? "" : body}
       </ReactMarkdown>
     ),
-    [body, compiled, page.id, page.sources],
+    [body, compiled, onOpenSource, page.id, page.sources],
   );
   // 只给长页（H2 ≥ 4）；短页一屏半就读完，导航只是噪音
   const withToc = hasPageToc(headings);
-  const tocProps = { pageId: page.id, headings, scrollTo: scrollToFragment };
+  const tocProps = { pageId: page.id, headings, scrollTo: scrollToWikiFragment };
   const article = (
     <article className="wiki-article">
       <header className="wiki-article-head">
@@ -685,7 +786,7 @@ const Article = memo(function Article({
           </span>
           <span className="wiki-updated">更新于 {page.updated}</span>
         </div>
-        <h1 className="display">{page.title}</h1>
+        <h1 className="display">{pageDisplayTitle(page)}</h1>
         <p className="wiki-summary">{page.summary}</p>
         {page.aliases.length > 0 && (
           <details className="wiki-aliases" key={page.id}>
@@ -693,27 +794,46 @@ const Article = memo(function Article({
             <p>{page.aliases.join("、")}</p>
           </details>
         )}
+        <PrerequisiteBar page={page} />
       </header>
 
       <div className="wiki-body" data-testid="wiki-body" ref={bodyRef}>
-        <DiagramSnapshot.Provider value={diagrams}>{markdown}</DiagramSnapshot.Provider>
+        <DiagramPageContext.Provider value={page.id}>
+          <DiagramEvidenceContext.Provider value={onOpenDiagram}>
+            <DiagramSnapshot.Provider value={diagrams}>{markdown}</DiagramSnapshot.Provider>
+          </DiagramEvidenceContext.Provider>
+        </DiagramPageContext.Provider>
 
         <WhatsNext page={page} />
         <details className="wiki-sources" data-testid="wiki-sources">
           <summary>查看来源（{page.sources.length}）</summary>
           <p>来源供你核对原文；有来源不代表本页结论已经验证。</p>
           <ol>
-            {page.sources.map((source) => {
+            {page.sources.map((source, i) => {
               const href = hrefOfSource(source);
               return (
-                <li key={source}>
-                  {href ? (
-                    <a href={href} target="_blank" rel="noreferrer">
+                <li key={source} className="wiki-source-item">
+                  <span className="wiki-source-row">
+                    <button
+                      type="button"
+                      className="wiki-source-open"
+                      data-testid={`source-item-open-${i + 1}`}
+                      onClick={(event) => onOpenSource?.(i, event.currentTarget)}
+                    >
                       {source}
-                    </a>
-                  ) : (
-                    source
-                  )}
+                    </button>
+                    {href && (
+                      <a
+                        className="wiki-source-ext"
+                        href={href}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`在新窗口打开来源 ${i + 1}`}
+                      >
+                        {source.startsWith("raw:") ? "原文页 ↗" : "外链 ↗"}
+                      </a>
+                    )}
+                  </span>
                 </li>
               );
             })}
@@ -753,6 +873,27 @@ function hrefOfSource(ref: string): string | null {
   const parsed = parseRepoRef(ref);
   if (parsed) return sourceUrl(parsed);
   return ref.startsWith("http") ? ref : null;
+}
+
+/**
+ * 页头紧凑前置阅读（`builds-on`）导览条：
+ * 从同一份 `page.relations` 读取直接前置概念，复用 `<Term>` 保留悬停/聚焦卡片与关系 `note`；无前置关系时不占位。
+ */
+export function PrerequisiteBar({ page }: { page: RegistryEntry }) {
+  const items = prerequisiteRelations(page.relations).filter((item) => Boolean(findByAlias(item.id)));
+  if (items.length === 0) return null;
+  return (
+    <nav className="wiki-prereq-bar" data-testid="wiki-prereq-bar" aria-label="前置概念">
+      <span className="wiki-prereq-label">先读基础</span>
+      <ul className="wiki-prereq-list">
+        {items.map((item) => (
+          <li key={item.id} className="wiki-prereq-item">
+            <Term id={item.id} title={item.note} note={item.note} />
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
 }
 
 /**

@@ -15,6 +15,7 @@ import { rewriteRelativeLink, routePathOf } from "../../../content/wiki/index";
 import { textOf, WIKI_REHYPE_PLUGINS, WIKI_REMARK_PLUGINS } from "../../../content/wiki/markdown";
 import { EvidenceBadge } from "../../../content/wiki/Term";
 import { rehypeNumericColumns } from "../../../content/wiki/tableAlign";
+import "katex/dist/katex.min.css";
 import "../../../design/wiki.css";
 
 // ---------- 算式：one-request 的原文 ```text 块 ----------

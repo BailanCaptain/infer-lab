@@ -31,28 +31,16 @@ describe("读取器", () => {
     expect(page?.fm.title).toMatch(/^Block Table/);
     expect(page?.body.startsWith("---")).toBe(false);
 
-    // 写作标准（docs/wiki-writing-standard.md）不再设「## 一句话」H2：正文紧接 frontmatter，
-    // 以问题式 H2 开篇，先一句定义本页术语，只隔讲解段落就到直觉图；页末是「## 对照源码」。
+    // 写作标准（docs/wiki-writing-standard.md）：不设「## 一句话」H2，教学主干自适应展开且零证据角标，
+    // 页末以「## 对照源码」收束源码锚点与版本核验矩阵，其后不再新增 H2。
     const body = page?.body ?? "";
     const lines = body.split(/\r?\n/);
     expect(lines.some((l) => /^## 一句话\s*$/.test(l))).toBe(false);
-    expect(lines[0]).toMatch(/^## \S.*[？?]\s*$/);
-    const figure = lines.findIndex((l) => /^```wiki-diagram\s*$/.test(l));
-    expect(figure).toBeGreaterThan(0);
-    const opening = lines.slice(1, figure).filter((l) => l.trim());
-    expect(opening.length).toBeGreaterThan(0);
-    // 表、calc、列表、小标题都不能插在定义与直觉图之间
-    expect(opening.filter((l) => /^\s*(#|\||```|~~~|[-*+] |\d+\. )/.test(l))).toEqual([]);
-    const term = page?.fm.title.split(/[：:]/)[0] ?? "";
-    expect(opening[0]?.split("。")[0]?.toLowerCase()).toMatch(new RegExp(`${term.toLowerCase()}.*是`));
-
-    // 给学习者的事实表在讲解部分：末列是「意味着什么」，不带来源列。
-    // 「## 对照源码」下的五个 H3 由 tests/wiki.spec.ts 复用 wiki:audit 的 measureStandard 检查
-    // （scripts/ 依赖 node 类型，不能进 src 的 tsconfig）。
+    expect(lines[0]).toMatch(/^## \S/);
     const sourceH2 = lines.indexOf("## 对照源码");
-    expect(sourceH2).toBeGreaterThan(figure);
+    expect(sourceH2).toBeGreaterThan(0);
+    expect(lines.slice(sourceH2 + 1).filter((l) => /^##\s+/.test(l))).toEqual([]);
     const factHeaders = lines.slice(0, sourceH2).filter((l) => /^\|.*\|\s*意味着什么\s*\|\s*$/.test(l));
-    expect(factHeaders.length).toBeGreaterThan(0);
     expect(factHeaders.every((l) => !/\|\s*来源\s*\|/.test(l))).toBe(true);
   });
 
@@ -126,5 +114,16 @@ describe("读取器", () => {
     expect(rewriteRelativeLink("#对照源码", "one-request")).toBe("#/wiki/one-request#对照源码");
     // 已经是站内路由的不再动
     expect(rewriteRelativeLink("#/wiki/kv-cache", "one-request")).toBe("#/wiki/kv-cache");
+  });
+
+  it("rewriteRelativeLink 把 raw: 与 ../raw/ 快照链接映射到静态原文页", () => {
+    const hash = "a".repeat(64);
+    expect(rewriteRelativeLink(`raw:sha256-${hash}.md#L10-L20`)).toBe(
+      `./wiki-raw/sha256-${hash}.html?lines=10-20#L10`,
+    );
+    expect(rewriteRelativeLink(`../raw/sha256-${hash}.md#L7`)).toBe(
+      `./wiki-raw/sha256-${hash}.html?lines=7#L7`,
+    );
+    expect(rewriteRelativeLink(`../raw/sha256-${hash}.md`)).toBe(`./wiki-raw/sha256-${hash}.html?lines=1#L1`);
   });
 });

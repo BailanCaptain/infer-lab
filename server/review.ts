@@ -15,7 +15,7 @@ const revision = z.string().regex(/^[a-f0-9]{64}$/);
 const approveInput = z.object({ revision }).strict();
 const rejectInput = approveInput.extend({ reason: z.string().trim().min(1).max(2000) }).strict();
 
-import { checkWriter, HttpError, readJson, send } from "./http";
+import { checkLocalReader, checkWriter, HttpError, parseWikiUrl, readJson, send } from "./http";
 
 /** HTTP only transports existing revisions. CLI and HTTP call the same publisher. */
 export async function handleReview(
@@ -23,11 +23,14 @@ export async function handleReview(
   res: ServerResponse,
   root: string,
 ): Promise<boolean> {
-  const path = new URL(req.url ?? "/", "http://localhost").pathname;
+  const url = parseWikiUrl(req, res);
+  if (!url) return true;
+  const path = url.pathname;
   if (path !== "/api/wiki/reviews" && !path.startsWith("/api/wiki/reviews/")) return false;
   try {
     if (path === "/api/wiki/reviews") {
       if (req.method !== "GET") throw new HttpError(405, "需要 GET");
+      checkLocalReader(req);
       send(res, 200, {
         reviews: listReviewSummaries(root),
       });
@@ -55,6 +58,7 @@ export async function handleReview(
     const action = match[2];
     if (req.method !== (action ? "POST" : "GET")) throw new HttpError(405, action ? "需要 POST" : "需要 GET");
     if (!action) {
+      checkLocalReader(req);
       const review = readReview(root, id);
       const placement = (path: string, text: string | null) => {
         if (!text) return "无此页";

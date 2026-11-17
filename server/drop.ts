@@ -1,15 +1,16 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { z } from "zod";
-import { dropItemSchema } from "../src/content/wiki/drop";
 import { acceptBatch, editBatch, listBatches, readBatch } from "../scripts/wiki/drop-batch";
 import { cancelDrop, type DropRunnerDeps, startDrop } from "../scripts/wiki/drop-run";
-import { checkWriter, HttpError, readJson, send } from "./http";
+import { dropEditorialGuideSchema, dropItemSchema } from "../src/content/wiki/drop";
+import { checkLocalReader, checkWriter, HttpError, parseWikiUrl, readJson, send } from "./http";
 
 const runInput = z
   .object({
     retry: z.boolean().optional(),
     feedback: z.string().trim().min(1).max(4000).optional(),
     newAttempt: z.boolean().optional(),
+    editorialGuides: z.array(dropEditorialGuideSchema).optional(),
   })
   .strict();
 const editInput = z
@@ -24,13 +25,16 @@ export async function handleDrop(
   root: string,
   deps: DropRunnerDeps = {},
 ): Promise<boolean> {
-  const path = new URL(req.url ?? "/", "http://localhost").pathname;
+  const url = parseWikiUrl(req, res);
+  if (!url) return true;
+  const path = url.pathname;
   if (path !== "/api/wiki/drops" && !path.startsWith("/api/wiki/drops/")) return false;
   try {
     const match = /^\/api\/wiki\/drops(?:\/([a-f0-9-]{36})(?:\/(run|edit|cancel))?)?$/.exec(path);
     if (!match) throw new HttpError(400, "无效的资料批次路径");
     const [, id, action] = match;
     if (req.method === "GET" && !action) {
+      checkLocalReader(req);
       send(res, 200, id ? { batch: readBatch(root, id) } : { batches: listBatches(root) });
       return true;
     }

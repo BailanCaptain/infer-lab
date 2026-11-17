@@ -10,7 +10,17 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import { unified } from "unified";
+import { z } from "zod";
 import { CHAPTER_IDS, CHAPTER_TITLES } from "../../src/content/wiki/chapters";
+import {
+  type HastNode,
+  WIKI_REHYPE_PLUGINS,
+  WIKI_REMARK_PLUGINS,
+  WIKI_REMARK_SYNTAX_PLUGINS,
+} from "../../src/content/wiki/markdown";
 import { buildIndex, citedPageLinks } from "../../src/content/wiki/retrieve";
 import { ID_RE, parseRawRef } from "../../src/content/wiki/schema";
 import { type AgentRequest, type AgentResult, positiveInteger, type RunAgent, runBatch } from "./batch";
@@ -38,7 +48,229 @@ export interface RawCompileInput {
   timeoutMs: number;
   purpose?: "answer-record";
   answerPages?: string[];
+  supersedes?: { jobId: string; rejectedReviews?: string[] };
   context?: { why: string; sourceId: string };
+}
+
+const answerRecordBundleSchema = z
+  .object({
+    kind: z.literal("answer-record"),
+    question: z.string().min(1),
+    answer: z.string().min(1),
+    citedPages: z.array(z.object({ file: z.string().min(1), text: z.string() })).min(1),
+  })
+  .strict();
+
+interface AnswerRecordMaterial {
+  source: string;
+  note: string;
+  question: string;
+  answer: string;
+  citedPages: { file: string; text: string }[];
+}
+
+export const ANSWER_RECORD_CORE_SLOT = "::answer-record-core::";
+
+function parseAnswerRecordMaterial(
+  source: string,
+  rawMaterial: { lines?: { line: number; text: string }[] } | null,
+): AnswerRecordMaterial | null {
+  if (!rawMaterial?.lines) return null;
+  let parsed: z.infer<typeof answerRecordBundleSchema>;
+  try {
+    parsed = answerRecordBundleSchema.parse(
+      JSON.parse(rawMaterial.lines.map((line) => line.text).join("\n")),
+    );
+  } catch (error) {
+    throw new Error(`问答记录材料格式无效，拒绝有损编译：${String(error)}`);
+  }
+  const question = parsed.question.trim();
+  const answer = parsed.answer.trim();
+  if (!question || !answer) throw new Error("问答记录缺少原问题或原回答正文，拒绝编译");
+  return {
+    source,
+    note: `question 与 answer 由程序通过 ${ANSWER_RECORD_CORE_SLOT} 原样注入归档页正文（须完整保留，不可改写、删减或翻转）；你只需据此拟定准确的 frontmatter（title、summary、chapters、relations），并在补充小节结合 citedPages / citedContext 说明引用范围、版本/配置条件与 evidence: I 的非实测边界（不照抄引用页整段原文）。`,
+    question,
+    answer,
+    citedPages: parsed.citedPages,
+  };
+}
+
+function bindAnswerRecordPageLinks(text: string, pages: { id: string; file: string }[]): string {
+  const destinations = new Map<string, string>();
+  for (const p of pages) {
+    destinations.set(`${p.id}.md`, `../${p.file}`);
+    destinations.set(p.file, `../${p.file}`);
+    destinations.set(`../${p.file}`, `../${p.file}`);
+  }
+  let fence = "";
+  const inline = /(`+).*?\1|\](\(\s*<?)(?:\.\/)?((?:\.\.\/)?(?:[a-z0-9-]+\/)?[a-z0-9-]+\.md)(?=[#)>\s])/gi;
+  const definition =
+    /^(\s*\[[^\]]+\]:\s*<?)(?:\.\/)?((?:\.\.\/)?(?:[a-z0-9-]+\/)?[a-z0-9-]+\.md)(?=[#>\s]|$)/i;
+  return text
+    .split(/(?<=\n)/)
+    .map((line) => {
+      const marker = /^ {0,3}(`{3,}|~{3,})/.exec(line)?.[1];
+      if (fence) {
+        if (marker?.[0] === fence[0] && marker.length >= fence.length) fence = "";
+        return line;
+      }
+      if (marker) {
+        fence = marker;
+        return line;
+      }
+      return line
+        .replace(inline, (match, code: string | undefined, opening: string, file: string) => {
+          if (code) return match;
+          const target = destinations.get(file);
+          return target ? `]${opening}${target}` : match;
+        })
+        .replace(definition, (match, opening: string, file: string) => {
+          const target = destinations.get(file);
+          return target ? `${opening}${target}` : match;
+        });
+    })
+    .join("");
+}
+
+type AnswerRecordMdastNode = {
+  type: string;
+  depth?: number;
+  value?: string;
+  children?: AnswerRecordMdastNode[];
+  position?: {
+    start?: { offset?: number };
+    end?: { offset?: number };
+  };
+};
+
+const answerRecordMdastParser = unified().use(remarkParse).use(WIKI_REMARK_SYNTAX_PLUGINS);
+
+const answerRecordVisibleHastProcessor = unified()
+  .use(remarkParse)
+  .use(WIKI_REMARK_PLUGINS ?? [])
+  .use(remarkRehype, { allowDangerousHtml: false })
+  .use(WIKI_REHYPE_PLUGINS ?? []);
+
+const HIDDEN_READER_TAGS = new Set(["details", "script", "style", "template"]);
+
+function mdastPlainText(node: AnswerRecordMdastNode): string {
+  if (typeof node.value === "string") return node.value;
+  return (node.children ?? []).map(mdastPlainText).join("");
+}
+
+function collectVisibleHastText(node: HastNode): string {
+  if (node.type === "text") return node.value ?? "";
+  if (node.type === "element" && HIDDEN_READER_TAGS.has(node.tagName ?? "")) return "";
+  return (node.children ?? []).map(collectVisibleHastText).join("");
+}
+
+function renderVisibleReaderText(markdownBody: string): string {
+  const tree = answerRecordVisibleHastProcessor.runSync(
+    answerRecordVisibleHastProcessor.parse(markdownBody),
+  ) as HastNode;
+  return (tree.children ?? []).map(collectVisibleHastText).join("\n").replace(/\s+/g, " ").trim();
+}
+
+function expandAnswerRecordCore(
+  markdown: string,
+  ar: AnswerRecordMaterial,
+  pages: { id: string; file: string }[],
+): { markdown: string; coreExpanded: boolean } {
+  const fmMatch = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/.exec(markdown);
+  if (!fmMatch) {
+    return { markdown: bindAnswerRecordPageLinks(markdown, pages), coreExpanded: false };
+  }
+  const head = fmMatch[0];
+  const rest = markdown.slice(head.length);
+  const root = answerRecordMdastParser.parse(rest) as AnswerRecordMdastNode;
+  const slotMatches: Array<{
+    startOffset: number;
+    endOffset: number;
+    inCollapsedSection: boolean;
+    hasHeadingBefore: boolean;
+  }> = [];
+  let currentH2 = "";
+  let hasHeadingBeforeSlot = false;
+  for (const child of root.children ?? []) {
+    if (child.type === "heading" && child.depth === 2) {
+      currentH2 = mdastPlainText(child).trim();
+      if (slotMatches.length === 0) hasHeadingBeforeSlot = true;
+      continue;
+    }
+    const startOffset = child.position?.start?.offset;
+    const endOffset = child.position?.end?.offset;
+    if (
+      child.type === "paragraph" &&
+      child.children?.length === 1 &&
+      child.children[0]?.type === "text" &&
+      child.children[0].value?.trim() === ANSWER_RECORD_CORE_SLOT &&
+      typeof startOffset === "number" &&
+      typeof endOffset === "number" &&
+      rest.slice(startOffset, endOffset).trim() === ANSWER_RECORD_CORE_SLOT
+    ) {
+      slotMatches.push({
+        startOffset,
+        endOffset,
+        inCollapsedSection: currentH2 === "对照源码",
+        hasHeadingBefore: hasHeadingBeforeSlot,
+      });
+    }
+  }
+  if (slotMatches.length > 1) {
+    throw new Error(
+      `问答草稿重复出现了 ${slotMatches.length} 次原问题与原回答正文核心占位行 ${ANSWER_RECORD_CORE_SLOT}`,
+    );
+  }
+  const slot = slotMatches[0];
+  if (!slot || slot.inCollapsedSection) {
+    return { markdown: `${head}${bindAnswerRecordPageLinks(rest, pages)}`, coreExpanded: false };
+  }
+  const boundQuestion = bindAnswerRecordPageLinks(ar.question, pages).replace(/\r\n/g, "\n").trim();
+  const boundAnswer = bindAnswerRecordPageLinks(ar.answer, pages).replace(/\r\n/g, "\n").trim();
+  const block = [
+    ...(slot.hasHeadingBefore ? [] : ["## 原始问答记录", ""]),
+    `**原问题：** ${boundQuestion}`,
+    "",
+    boundAnswer,
+  ].join("\n");
+  const replaced = `${rest.slice(0, slot.startOffset)}\n\n${block}\n\n${rest.slice(slot.endOffset)}`;
+  return { markdown: `${head}${bindAnswerRecordPageLinks(replaced, pages)}`, coreExpanded: true };
+}
+
+function assertAnswerRecordCorePreserved(
+  ar: AnswerRecordMaterial,
+  pages: { id: string; file: string }[],
+  draftBody: string,
+  coreExpanded: boolean,
+): void {
+  const normalize = (text: string) => bindAnswerRecordPageLinks(text, pages).replace(/\r\n/g, "\n").trim();
+  const body = normalize(draftBody);
+  if (!coreExpanded || body.includes(ANSWER_RECORD_CORE_SLOT)) {
+    throw new Error(
+      `问答草稿未在顶层可见正文放置独立的原问题与原回答正文核心占位 ${ANSWER_RECORD_CORE_SLOT}（禁止省略占位、自行改写，或将其放入 HTML 注释、代码围栏、折叠区等隐藏上下文）`,
+    );
+  }
+  const expectedQuestion = normalize(ar.question);
+  const expectedAnswer = normalize(ar.answer);
+  if (!body.includes(expectedQuestion) || !body.includes(expectedAnswer)) {
+    throw new Error(
+      `问答草稿未完整保留原问题与原回答正文核心（禁止改写、删减或翻转结论；请使用 ${ANSWER_RECORD_CORE_SLOT} 占位由程序原样注入）`,
+    );
+  }
+  const expectedVisibleQuestion = renderVisibleReaderText(bindDraftPageLinks(expectedQuestion, pages));
+  const expectedVisibleAnswer = renderVisibleReaderText(bindDraftPageLinks(expectedAnswer, pages));
+  const actualVisibleBody = renderVisibleReaderText(draftBody);
+  if (
+    !expectedVisibleQuestion ||
+    !expectedVisibleAnswer ||
+    !actualVisibleBody.includes(expectedVisibleQuestion) ||
+    !actualVisibleBody.includes(expectedVisibleAnswer)
+  ) {
+    throw new Error(
+      `问答草稿渲染后未在可见正文完整呈现原问题与原回答正文核心（请使用独立顶层段落 ${ANSWER_RECORD_CORE_SLOT} 由程序原样注入）`,
+    );
+  }
 }
 
 /** Also used by CLI dry-run; performs no writes and starts no agent. */
@@ -47,9 +279,12 @@ export function planRawCompile(root: string, input: RawCompileInput) {
   originSchema.parse(input.origin);
   positiveInteger(input.timeoutMs, "timeoutMs");
   const prepared = prepareRawInput(join(root, "wiki"), input.source);
-  const material = prepared.compilerData
-    ? (JSON.parse(prepared.compilerData) as { lines?: { text: string }[] })
+  const rawMaterial = prepared.compilerData
+    ? (JSON.parse(prepared.compilerData) as { source: string; lines?: { line: number; text: string }[] })
     : null;
+  const answerRecord =
+    input.purpose === "answer-record" ? parseAnswerRecordMaterial(input.source, rawMaterial) : null;
+  const material = input.purpose === "answer-record" ? answerRecord : rawMaterial;
   const inventory = loadPages(join(root, "wiki"));
   if (inventory.problems.length) throw new Error("现有页面无法解析，不能提供编译导航");
   const existing = inventory.pages.find((page) => page.fm.id === input.id);
@@ -64,7 +299,7 @@ export function planRawCompile(root: string, input: RawCompileInput) {
         query: [
           input.id,
           input.context?.why.slice(0, 500),
-          ...(material?.lines ?? []).map((l) => l.text),
+          ...(rawMaterial?.lines ?? []).map((l) => l.text),
         ].join("\n"),
       })
         .ids.filter((id) => id !== input.id)
@@ -108,8 +343,9 @@ export function planRawCompile(root: string, input: RawCompileInput) {
             type: "source",
             evidence: "I",
             sources: [input.source],
+            corePlaceholder: ANSWER_RECORD_CORE_SLOT,
             links: listed.map((page) => ({ title: page.fm.title, href: `../${page.file}` })),
-            note: "The output is staged in _drafts/. Include at least one supplied page link using exactly the href above; do not shorten it to a bare filename. Preserve the answer as an inference, not primary evidence.",
+            note: `The output is staged in _drafts/. Place the exact single-line placeholder ${ANSWER_RECORD_CORE_SLOT} once as a standalone top-level paragraph in the visible body (under a ## heading such as ## 原始问答记录, never inside HTML comments, code fences, blockquotes, lists, or ## 对照源码); the program deterministically expands ${ANSWER_RECORD_CORE_SLOT} into the verbatim material.question and verbatim material.answer with bound page links, and rejects any draft missing the visible top-level placeholder or visible rendered Q&A text. Do NOT rewrite, condense, or restate material.answer's conclusions or arithmetic. After the ${ANSWER_RECORD_CORE_SLOT} section, add a concise ## 引用范围与适用边界 section ([I]) linking at least one supplied page via the exact href above to note cited-page context, version/condition scope, and that archived Q&A is evidence: I rather than primary source code or hardware measurement (do not copy whole cited pages).`,
           }
         : {
             format: "Return only a complete Markdown page with YAML frontmatter, no surrounding prose.",
@@ -133,10 +369,12 @@ export function planRawCompile(root: string, input: RawCompileInput) {
         stdin,
         screening: prepared.receipt,
         longMaterial: 1,
+        ...(input.purpose === "answer-record" ? { answerRecordProtocol: 4 } : {}),
+        ...(input.supersedes ? { supersedes: input.supersedes } : {}),
       }),
     ),
   };
-  return { prepared, work, args, stdin };
+  return { prepared, work, args, stdin, answerRecord };
 }
 
 const readOptional = (p: string) => (existsSync(p) ? readFileSync(p, "utf8") : undefined);
@@ -192,45 +430,92 @@ export async function compileRaw(
         }
       }
     }
+    if (
+      deps.retry &&
+      (previousAttempt?.reason?.includes("原问题与原回答正文核心") ||
+        previousAttempt?.reason?.includes(ANSWER_RECORD_CORE_SLOT))
+    ) {
+      stdin = JSON.stringify({
+        ...JSON.parse(stdin),
+        validationFeedback: [{ rule: "answer-record-core-missing", requiredLine: ANSWER_RECORD_CORE_SLOT }],
+      });
+    }
     const budget = inputByteLimit(store.root, input.rules);
     if (Buffer.byteLength(stdin, "utf8") > budget) {
       const packet = JSON.parse(stdin);
-      const material = packet.material as { source: string; lines: { line: number; text: string }[] };
-      packet.material = undefined;
-      if (packet.context && jsonBytes(packet.context) > budget / 3) {
-        const { sourceId, ...texts } = packet.context;
-        packet.context = {
-          sourceId,
-          ...(await readLongMaterial(
+      if (input.purpose === "answer-record" && plan.answerRecord) {
+        const ar = plan.answerRecord;
+        const coreMaterial = {
+          source: ar.source,
+          note: ar.note,
+          question: ar.question,
+          answer: ar.answer,
+        };
+        const corePacketBytes = jsonBytes({ ...packet, material: coreMaterial });
+        const remaining = budget - corePacketBytes - 1024;
+        if (remaining < 4096) {
+          const coreBytes = jsonBytes({ question: ar.question, answer: ar.answer });
+          const maxCoreBytes = Math.max(0, budget - jsonBytes({ ...packet, material: undefined }) - 5120);
+          throw new Error(
+            `原问答核心（question + answer 共 ${coreBytes} 字节）超出当前上下文预算（可用 ${maxCoreBytes} 字节），拒绝有损压缩或静默丢弃原回答`,
+          );
+        }
+        packet.material = {
+          ...coreMaterial,
+          citedContext: await readLongMaterial(
             store.root,
             {
-              topic: `${input.id}：已有页面的结构、事实、限制；仅供对照，不作为新证据`,
-              // Quote against readable strings, not JSON's escaped representation of the page.
-              sources: Object.entries(texts).map(([name, text]) => ({
-                source: `existing-page-context:${name}`,
-                text: text as string,
+              topic: `问答归档支撑上下文（问题：${ar.question}）：仅提取与该问题及回答直接相关的引用页原文依据、适用条件、版本与非实测边界；严禁偏离原问题做无关泛化综述`,
+              sources: ar.citedPages.map((p) => ({
+                source: `cited-page:${p.file}`,
+                text: p.text,
               })),
-              maxBytes: Math.floor(budget / 4),
+              maxBytes: remaining,
               origin: input.origin,
               policy,
             },
             deps,
-          )),
+          ),
         };
+        stdin = JSON.stringify(packet);
+      } else {
+        const material = packet.material as { source: string; lines: { line: number; text: string }[] };
+        packet.material = undefined;
+        if (packet.context && jsonBytes(packet.context) > budget / 3) {
+          const { sourceId, ...texts } = packet.context;
+          packet.context = {
+            sourceId,
+            ...(await readLongMaterial(
+              store.root,
+              {
+                topic: `${input.id}：已有页面的结构、事实、限制；仅供对照，不作为新证据`,
+                // Quote against readable strings, not JSON's escaped representation of the page.
+                sources: Object.entries(texts).map(([name, text]) => ({
+                  source: `existing-page-context:${name}`,
+                  text: text as string,
+                })),
+                maxBytes: Math.floor(budget / 4),
+                origin: input.origin,
+                policy,
+              },
+              deps,
+            )),
+          };
+        }
+        const remaining = budget - jsonBytes(packet) - 1024;
+        packet.material = await readLongMaterial(
+          store.root,
+          {
+            topic: input.id,
+            sources: [{ source: material.source, text: material.lines.map((line) => line.text).join("\n") }],
+            maxBytes: remaining,
+            origin: input.origin,
+            policy,
+          },
+          deps,
+        );
+        stdin = JSON.stringify(packet);
       }
-      const remaining = budget - jsonBytes(packet) - 1024;
-      packet.material = await readLongMaterial(
-        store.root,
-        {
-          topic: input.id,
-          sources: [{ source: material.source, text: material.lines.map((line) => line.text).join("\n") }],
-          maxBytes: remaining,
-          origin: input.origin,
-          policy,
-        },
-        deps,
-      );
-      stdin = JSON.stringify(packet);
     }
     assertInputFits(store.root, input.rules, stdin);
     stage = mkdtempSync(join(tmpdir(), "wiki-compile-"));
@@ -263,7 +548,13 @@ export async function compileRaw(
     if (!result.output || Buffer.byteLength(result.output, "utf8") > 128 * 1024)
       throw new Error("缺少 Markdown 结果或结果过大");
     // 模型偶尔把整页包进一层 ```markdown 围栏（2026-09-23 真实重编）；剥掉包装再按页面 schema 验
-    const output = bindDraftPageLinks(unfence(result.output), JSON.parse(plan.stdin).navigation.pages);
+    const navigationPages = JSON.parse(plan.stdin).navigation.pages as { id: string; file: string }[];
+    const unfenced = unfence(result.output);
+    const coreExpansion =
+      input.purpose === "answer-record" && plan.answerRecord
+        ? expandAnswerRecordCore(unfenced, plan.answerRecord, navigationPages)
+        : { markdown: unfenced, coreExpanded: false };
+    const output = bindDraftPageLinks(coreExpansion.markdown, navigationPages);
     const parsed = parsePage(draft, output);
     if (!parsed.page || parsed.problems.length) throw new Error("编译草稿 schema 无效");
     if (
@@ -274,12 +565,21 @@ export async function compileRaw(
     if (parsed.page.fm.sources.some((s) => s !== input.source)) throw new Error("草稿引用了未提供的来源");
     if (input.purpose === "answer-record") {
       const known = new Set(input.answerPages ?? []);
-      const links = citedPageLinks(parsed.page.body).map((href) =>
-        href.split("/").at(-1)!.replace(/\.md$/, ""),
-      );
+      const links = citedPageLinks(parsed.page.body).map((href) => {
+        const withoutRoute = href.startsWith("#/wiki/") ? href.slice("#/wiki/".length) : href;
+        return withoutRoute.split("#")[0]!.split("/").at(-1)!.replace(/\.md$/i, "");
+      });
       const targets = [...links, ...parsed.page.fm.related, ...parsed.page.fm.relations.map((r) => r.to)];
       if (!targets.length || targets.some((id) => !known.has(id)))
         throw new Error("问答草稿必须关联已提供的页面，不能引用未知页面");
+      if (plan.answerRecord) {
+        assertAnswerRecordCorePreserved(
+          plan.answerRecord,
+          navigationPages,
+          parsed.page.body,
+          coreExpansion.coreExpanded,
+        );
+      }
     }
     // 2026-09-25 起不再规定开头必须是「## 一句话」；准入只挡掉连一个小节都没有的输出
     if (!/^##\s+\S/m.test(parsed.page.body)) throw new Error("草稿正文没有任何 ## 小节");

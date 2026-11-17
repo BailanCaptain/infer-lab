@@ -638,6 +638,10 @@
   margin-top: 0;
 }
 
+.knowledge-reader .wiki-body .wiki-source-summary > h2 {
+  margin: 0;
+}
+
 .knowledge-reader .wiki-body h3 {
   margin-top: 28px;
   font-size: var(--text-lead);
@@ -918,5 +922,284 @@
   .reader-resize-handle.is-assistant {
     left: 0;
     width: 14px;
+  }
+}
+
+/* ---------- 全库快捷搜索（Cmd/Ctrl+K，Task 751） ---------- */
+
+.reader-header-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.reader-quick-search-slot {
+  display: flex;
+  align-items: center;
+}
+
+.reader-quick-search-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-reader-line);
+  border-radius: var(--radius-field);
+  background: var(--color-reader-sidebar);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--text-label);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.reader-quick-search-trigger:hover {
+  border-color: var(--color-accent);
+  background: var(--color-reader-active);
+  color: var(--color-accent);
+}
+
+.reader-quick-search-trigger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.reader-quick-search-trigger kbd,
+.wiki-quick-search-esc,
+.wiki-quick-search-foot kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  background: var(--color-surface-elevated);
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  line-height: 1.3;
+}
+
+.wiki-quick-search-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: min(12vh, 88px) 16px 24px;
+}
+
+.wiki-quick-search-backdrop-scrim {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: color-mix(in srgb, var(--color-ink) 34%, transparent);
+  cursor: default;
+}
+
+.wiki-quick-search-dialog {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 560px;
+  max-height: min(74vh, 620px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-elevated);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-floating);
+  overflow: hidden;
+}
+
+.wiki-quick-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+}
+
+.wiki-quick-search-bar:focus-within {
+  box-shadow: inset 0 -2px 0 var(--color-accent);
+}
+
+.wiki-quick-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--text-body);
+}
+
+.wiki-quick-search-input:focus,
+.wiki-quick-search-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.wiki-quick-search-input::placeholder {
+  color: var(--color-ink-faint);
+}
+
+.wiki-quick-search-esc {
+  cursor: pointer;
+}
+
+.wiki-quick-search-esc:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.wiki-quick-search-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.wiki-quick-search-hint {
+  margin: 0;
+  padding: 24px 16px;
+  color: var(--color-ink-muted);
+  font-size: var(--text-label);
+  line-height: 1.65;
+  text-align: center;
+}
+
+.wiki-quick-search-code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--color-surface-sunken);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+}
+
+.wiki-quick-search-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.wiki-quick-search-error-msg {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-danger);
+  font-size: var(--text-label);
+}
+
+.wiki-quick-search-retry-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-field);
+  background: var(--color-accent);
+  color: var(--color-ink-inverse);
+  font: inherit;
+  font-size: var(--text-label);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.wiki-quick-search-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wiki-quick-search-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--radius-field);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wiki-quick-search-item.is-selected {
+  background: var(--color-accent-soft);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.wiki-quick-search-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wiki-quick-search-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+  font-size: var(--text-compact);
+  font-weight: 600;
+}
+
+.wiki-quick-search-badges {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.wiki-quick-search-type {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-muted);
+  font-size: var(--text-micro);
+  font-weight: 500;
+}
+
+.wiki-quick-search-ev {
+  color: var(--color-ink-faint);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+}
+
+.wiki-quick-search-summary {
+  margin: 4px 0 0;
+  color: var(--color-ink-muted);
+  font-size: var(--text-label);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.wiki-quick-search-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  font-size: var(--text-micro);
+}
+
+@media (max-width: 640px) {
+  .reader-quick-search-trigger kbd {
+    display: none;
   }
 }

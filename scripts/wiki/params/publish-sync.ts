@@ -64,7 +64,7 @@ export async function publishParamSync(
   const writes: { path: string; before?: string; after: string }[] = [];
   const skipped: { name: string; file: string; reason: string }[] = [];
   const newPages = full.added
-    .map((entry) => ({ entry, id: parameterPageId(root, input.repo, entry, pages) }))
+    .map((entry) => ({ entry, id: parameterPageId(root, input.repo, entry, pages, input.repoDir) }))
     .filter(
       ({ entry, id }) =>
         id &&
@@ -91,7 +91,10 @@ export async function publishParamSync(
   const lineageScope = fixedLineage
     ? Object.values(fixedLineage)
     : lineageRefs(input.repoDir, [input.ref], [input.before.commit, input.after.commit]);
-  const resolved = updates.map((entry) => ({ entry, id: parameterPageId(root, input.repo, entry, pages) }));
+  const resolved = updates.map((entry) => ({
+    entry,
+    id: parameterPageId(root, input.repo, entry, pages, input.repoDir),
+  }));
   for (const { entry, id } of resolved) {
     if (!id) {
       skipped.push({ name: entry.name, file: entry.file, reason: "explicit-reference-identity" });
@@ -116,6 +119,7 @@ export async function publishParamSync(
         entry,
         date: new Date().toISOString().slice(0, 10),
         pageId: id,
+        repoDir: input.repoDir,
       },
       before,
     );
@@ -134,7 +138,7 @@ export async function publishParamSync(
     writes.push({ path, before, after: replaceSection(text, "## 版本谱系", renderVerifiedLineage(lineage)) });
   }
   for (const entry of diff.removed) {
-    const id = parameterPageId(root, input.repo, entry, pages);
+    const id = parameterPageId(root, input.repo, entry, pages, input.repoDir);
     if (!id) {
       skipped.push({ name: entry.name, file: entry.file, reason: "explicit-reference-identity" });
       continue;

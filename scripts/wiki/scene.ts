@@ -55,7 +55,7 @@ const DIM = "var(--color-ink-muted, #5b6763)";
 const SURFACE = "var(--color-surface, #fbfaf6)";
 const INVERSE = "var(--color-ink-inverse, #ffffff)";
 const FONT = "'Inter Variable','Noto Sans SC',system-ui,sans-serif";
-const MONO = "'JetBrains Mono',ui-monospace,monospace";
+export const MONO = "'JetBrains Mono',ui-monospace,monospace";
 
 /** 反引号在图上没有意义，漏出来就是画在图上的一个符号——一律去掉。 */
 export function esc(t: string): string {
@@ -89,8 +89,20 @@ export function textWidth(s: string, size: number, latin = 0.56): number {
 const chipTextWidth = (text: string, size: number) =>
   Math.max(textWidth(text, size), [...text].length * 0.6 * size);
 
+/** 显式等宽文本宽度估算：中日韩全角字符约 1em，其余 ASCII 字母/数字/运算符/空格均为 0.6em */
+export function monoTextWidth(s: string, size: number): number {
+  let em = 0;
+  for (const ch of s) {
+    if (ch === "`") continue;
+    if (/[⺀-鿿＀-￯　-〿]/.test(ch)) em += 1;
+    else em += 0.6;
+  }
+  return em * size;
+}
+
 /** 按像素宽度断行。中日韩字符可在任意位置断，拉丁单词整体不拆。 */
-export function wrap(text: string, size: number, maxWidth: number): string[] {
+export function wrap(text: string, size: number, maxWidth: number, mono = false): string[] {
+  const measure = mono ? monoTextWidth : textWidth;
   const atoms: string[] = [];
   let latin = "";
   for (const ch of text) {
@@ -110,7 +122,7 @@ export function wrap(text: string, size: number, maxWidth: number): string[] {
   let cur = "";
   for (const atom of atoms) {
     const next = cur + atom;
-    if (cur && textWidth(next, size) > maxWidth) {
+    if (cur && measure(next, size) > maxWidth) {
       lines.push(cur);
       cur = atom === " " ? "" : atom;
     } else cur = next;

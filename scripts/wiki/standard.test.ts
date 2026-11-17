@@ -6,17 +6,19 @@ import {
   auditStandard,
   bodyLineOffset,
   checkStandard,
+  formatStandard,
+  formatStandardAuditSummary,
   loadStandardConfig,
   measureStandard,
+  STANDARD_ADVISORY_RULES,
   type StandardConfig,
 } from "./standard";
 
 const cfg: StandardConfig = {
   pages: ["good", "guide"],
   skip: { guide: ["source-sections", "diagram-first"] },
+  advisoryRules: [...STANDARD_ADVISORY_RULES],
   sourceSection: "对照源码",
-  sourceSubsections: ["怎么开", "会报什么错", "开销和什么时候别开", "版本差异", "源码位置"],
-  maxInlineCodePerK: 13,
   maxCalcPerK: 1.2,
   maxHedgeRatio: 0.03,
   hedgeWords: ["待核", "尚未核实", "未验证", "可能", "不确定"],
@@ -30,7 +32,7 @@ const calc = "```calc\n乘 = 2 × 3\n```";
 const table = "| 项 | 值 |\n|---|---|\n| 甲 | 1 |";
 const tailOf = (h3s: string[]) =>
   ["## 对照源码", "", "开关。[C1]", "", ...h3s.flatMap((h) => [`### ${h}`, "", "说明。[C1]", ""])].join("\n");
-const sourceTail = tailOf(cfg.sourceSubsections);
+const sourceTail = tailOf(["怎么开", "会报什么错", "开销和什么时候别开", "版本差异", "源码位置"]);
 
 /**
  * 一页达标的页：「一句话」「讲解」两个 H2 小节共 1000 字（标题 5 字 + 表格 3 字 + 正文 992 字），
@@ -54,6 +56,8 @@ function goodBody(parts: { head?: string; middle?: string; tail?: string } = {})
 
 const rules = (body: string, id = "good", diagrams?: Map<string, LoadedDiagram>) =>
   checkStandard({ file: `concepts/${id}.md`, fm: { id }, body }, cfg, diagrams).problems.map((p) => p.rule);
+const advisories = (body: string, id = "good", diagrams?: Map<string, LoadedDiagram>) =>
+  checkStandard({ file: `concepts/${id}.md`, fm: { id }, body }, cfg, diagrams).advisories.map((p) => p.rule);
 
 function diagramOf(width: number): Map<string, LoadedDiagram> {
   const spec = diagramSpecSchema.parse({ layout: "scene", id: "demo", caption: "演示", size: [width, 200] });
@@ -80,15 +84,12 @@ describe("writing standard measure", () => {
   });
 });
 
-describe("a. inline code density", () => {
+describe("a. inline code measurement without artificial quota", () => {
   const withCodes = (n: number) => goodBody({ head: `${prose(60)}${"`1`".repeat(n)}` });
-  it("allows 13 inline code spans per thousand words", () => {
+  it("measures inline code spans without failing high-density technical pages", () => {
     expect(measureStandard(withCodes(13), cfg).codePerK).toBe(13);
-    expect(rules(withCodes(13))).toEqual([]);
-  });
-  it("rejects more than 13 per thousand words", () => {
-    expect(measureStandard(withCodes(14), cfg).codePerK).toBe(14);
-    expect(rules(withCodes(14))).toEqual(["code-density"]);
+    expect(measureStandard(withCodes(30), cfg).codePerK).toBe(30);
+    expect(rules(withCodes(30))).toEqual([]);
   });
   it("does not count backticks inside fenced blocks or after 对照源码", () => {
     const body = goodBody({
@@ -112,7 +113,7 @@ describe("b. evidence marks in prose", () => {
 });
 
 describe("c. 对照源码 sections", () => {
-  it("accepts clean revisions and rejects all trailing audit or teaching sections", () => {
+  it("accepts clean revisions and rejects trailing H2 audit or teaching sections", () => {
     const source = "r@1234567:config.py#L1";
     const before = `---\nid: good\ntitle: Good\ntype: concept\nsummary: Example\nsources: [${source}]\nevidence: I\nupdated: '2026-10-08'\n---\n${goodBody()}\n旧开关默认开启。\n`;
     const after = before.replace("旧开关默认开启。", "新版已移除旧开关。");
@@ -128,23 +129,20 @@ describe("c. 对照源码 sections", () => {
     expect(rules(body)).toEqual([]);
     for (const invalid of [
       `${body}\n## 延伸阅读\n正文。`,
-      `${body}\n### 新教学节\n正文。`,
       `${body}\n## 已废弃的说法\n### 2026-10-08 · 修订 aaaaaaaaaaaaaaaa\n旧文。`,
       `${goodBody()}\n## 已废弃的说法\n正文。`,
     ])
       expect(rules(invalid)).toContain("source-sections");
-    expect(rules(body.replace("### 怎么开", "### 改掉必需标题"))).toContain("source-sections");
   });
 
   it("rejects a page without 对照源码", () => {
     expect(rules(goodBody({ tail: "" }))).toEqual(["source-sections"]);
   });
-  it("rejects missing, reordered or extra H3s", () => {
-    const missing = tailOf(["怎么开", "开销和什么时候别开", "版本差异", "源码位置"]);
-    const reordered = tailOf(["怎么开", "会报什么错", "开销和什么时候别开", "源码位置", "版本差异"]);
-    const extra = `${sourceTail}### 附录\n`;
-    for (const tail of [missing, reordered, extra])
-      expect(rules(goodBody({ tail }))).toEqual(["source-sections"]);
+  it("allows topic-adaptive H3 subsections under 对照源码 instead of locking 5 fixed H3s", () => {
+    const matrixAndAnchors = tailOf(["四版本核验矩阵", "核心源码锚点"]);
+    const subset = tailOf(["怎么开", "版本差异", "源码位置"]);
+    const compact = "## 对照源码\n\n紧凑源码锚点与四版本对照 [C1]。\n";
+    for (const tail of [matrixAndAnchors, subset, compact]) expect(rules(goodBody({ tail }))).toEqual([]);
   });
   it("rejects an H2 after 对照源码 but ignores headings inside fences", () => {
     expect(rules(goodBody({ tail: `${sourceTail}## 延伸阅读\n` }))).toEqual(["source-sections"]);
@@ -154,22 +152,25 @@ describe("c. 对照源码 sections", () => {
   });
 });
 
-describe("d. calc density", () => {
-  it("rejects more than 1.2 calc blocks per thousand words in the prose", () => {
+describe("d. calc density (advisory, non-blocking)", () => {
+  it("surfaces >1.2 calc blocks per thousand words as a visible advisory without blocking", () => {
     const two = goodBody({ middle: `${calc}\n\n${prose(30)}\n\n${calc}\n\n${prose(34)}甲乙丙` });
     expect(measureStandard(two, cfg).calcPerK).toBe(2);
-    expect(rules(two)).toEqual(["calc-density"]);
+    expect(rules(two)).toEqual([]);
+    expect(advisories(two)).toEqual(["calc-density"]);
+    expect(formatStandard(measureStandard(two, cfg), cfg)).toContain("!calc 2.00/千字");
   });
   it("does not count calc blocks after 对照源码", () => {
     const body = goodBody({ tail: `${sourceTail}${calc}\n\n说明\n\n${calc}\n` });
     expect(measureStandard(body, cfg).calc).toBe(1);
     expect(rules(body)).toEqual([]);
+    expect(advisories(body)).toEqual([]);
   });
 });
 
-describe("e. stacked calc blocks and tables", () => {
+describe("e. stacked calc blocks and tables (advisory, non-blocking)", () => {
   const middle = (between: string) => `${prose(30)}\n\n${between}\n\n${prose(34)}这里三个字`;
-  it("rejects two calc blocks, two tables, or a calc and a table separated only by blank lines", () => {
+  it("surfaces adjacent calc/table blocks as an advisory without blocking", () => {
     for (const pair of [
       `${calc}\n\n${table}`,
       `${table}\n\n\n${calc}`,
@@ -178,49 +179,63 @@ describe("e. stacked calc blocks and tables", () => {
     ]) {
       const body = goodBody({ middle: middle(pair) });
       expect(measureStandard(body, cfg).stacked.length).toBe(1);
-      expect(rules(body)).toContain("stacked-blocks");
+      expect(rules(body)).toEqual([]);
+      expect(advisories(body)).toContain("stacked-blocks");
+      expect(formatStandard(measureStandard(body, cfg), cfg)).toContain("!相邻块 1");
     }
   });
-  it("accepts them when a prose paragraph sits between", () => {
-    expect(rules(goodBody({ middle: middle(`${calc}\n\n说一句。\n\n${table}`) }))).toEqual([]);
+  it("produces no stacked-blocks advisory when a prose paragraph sits between", () => {
+    const body = goodBody({ middle: middle(`${calc}\n\n说一句。\n\n${table}`) });
+    expect(rules(body)).toEqual([]);
+    expect(advisories(body)).toEqual([]);
   });
   it("only checks the prose: adjacent version tables after 对照源码 are allowed", () => {
     const body = goodBody({ tail: `${sourceTail}${table}\n\n${table}\n\n${calc}\n` });
     expect(measureStandard(body, cfg).stacked).toEqual([]);
     expect(rules(body)).toEqual([]);
+    expect(advisories(body)).toEqual([]);
   });
 });
 
-describe("f. diagram first", () => {
-  it("rejects a calc block before the first diagram", () => {
+describe("f. diagram first (advisory, non-blocking)", () => {
+  it("surfaces a calc block before the first diagram as an advisory without blocking", () => {
     const body = goodBody({ head: `${calc}\n\n${prose(59)}` });
-    expect(rules(body)).toContain("diagram-first");
+    expect(rules(body)).toEqual([]);
+    expect(advisories(body)).toContain("diagram-first");
+    expect(formatStandard(measureStandard(body, cfg), cfg)).toContain("!图先行");
   });
-  it("rejects a first diagram outside the first two H2 sections", () => {
+  it("surfaces a first diagram outside the first two H2 sections as an advisory without blocking", () => {
     const body = goodBody({
       middle: `${prose(30)}\n\n## 第三节\n\n${diagram("demo2")}\n\n${prose(34)}`,
     }).replace(`${diagram()}\n`, "");
-    expect(rules(body)).toContain("diagram-first");
+    expect(rules(body)).toEqual([]);
+    expect(advisories(body)).toContain("diagram-first");
   });
-  it("rejects a page with no diagram, and accepts one before the first H2", () => {
-    expect(rules(goodBody().replace(diagram(), ""))).toContain("diagram-first");
+  it("accepts a page with no filler diagram, and accepts a diagram before the first H2", () => {
+    expect(rules(goodBody().replace(diagram(), ""))).toEqual([]);
+    expect(advisories(goodBody().replace(diagram(), ""))).toEqual([]);
     const early = `${diagram()}\n\n${goodBody().replace(diagram(), "")}`;
-    expect(rules(early)).not.toContain("diagram-first");
+    expect(rules(early)).toEqual([]);
+    expect(advisories(early)).not.toContain("diagram-first");
   });
 });
 
-describe("g. hedge sentences", () => {
+describe("g. hedge sentences (advisory, non-blocking, preserves applicability conditions)", () => {
   const withHedges = (n: number) =>
     goodBody({ head: `${prose(60 - n)}${"这里可能不对。".repeat(n)}`, middle: prose(40) });
-  it("counts sentences in the prose and flags a 3% share", () => {
-    const m = measureStandard(withHedges(3), cfg);
-    expect(m.sentences).toBe(100);
-    expect(m.hedged).toBe(3);
-    expect(rules(withHedges(3))).toContain("hedge-ratio");
+  it("counts sentences in the prose and surfaces >=3% share as a non-blocking advisory warning against deleting real conditions", () => {
+    const checked = checkStandard({ file: "concepts/good.md", fm: { id: "good" }, body: withHedges(3) }, cfg);
+    expect(checked.measure.sentences).toBe(100);
+    expect(checked.measure.hedged).toBe(3);
+    expect(checked.problems).toEqual([]);
+    expect(checked.advisories.map((p) => p.rule)).toContain("hedge-ratio");
+    expect(checked.advisories[0]?.message).toMatch(/切勿.*删减真实限制条件/);
+    expect(formatStandard(checked.measure, cfg)).toContain("!免责 3.0%");
   });
-  it("accepts a share below 3%", () => {
+  it("does not emit hedge-ratio advisory below 3%", () => {
     expect(measureStandard(withHedges(2), cfg).hedgeRatio).toBe(0.02);
-    expect(rules(withHedges(2))).not.toContain("hedge-ratio");
+    expect(rules(withHedges(2))).toEqual([]);
+    expect(advisories(withHedges(2))).not.toContain("hedge-ratio");
   });
 });
 
@@ -245,25 +260,50 @@ describe("diagram width", () => {
 });
 
 describe("page list", () => {
-  it("honours per-page skips", () => {
-    expect(rules(goodBody({ tail: "" }), "guide")).toEqual([]);
-    expect(rules(goodBody({ tail: "" }).replace(diagram(), ""), "guide")).toEqual([]);
+  it("honours per-page skips for both blocking rules and advisories", () => {
+    const guideWithLateDiagram = goodBody({
+      head: `${calc}\n\n${prose(59)}`,
+      tail: "",
+    });
+    expect(rules(guideWithLateDiagram, "guide")).toEqual([]);
+    expect(advisories(guideWithLateDiagram, "guide")).not.toContain("diagram-first");
+    expect(formatStandard(measureStandard(guideWithLateDiagram, cfg), cfg, cfg.skip.guide)).toContain(
+      "–图先行",
+    );
   });
-  it("enforces only listed pages and only tallies the rest", () => {
+  it("enforces blocking rules on listed pages while keeping advisory diagnostics non-blocking and visible", () => {
+    const advisoryBody = goodBody({
+      head: `${calc}\n\n${table}\n\n${"在特定配置下可能改变耗时。".repeat(5)}${prose(50)}`,
+    });
     const pages = [
-      { file: "concepts/good.md", fm: { id: "good" }, body: goodBody({ tail: "" }) },
+      { file: "concepts/good.md", fm: { id: "good" }, body: advisoryBody },
+      { file: "concepts/guide.md", fm: { id: "guide" }, body: `${prose(20)}[C1]` },
       { file: "concepts/other.md", fm: { id: "other" }, body: goodBody({ tail: "" }) },
     ];
     const r = auditStandard(pages, cfg);
-    expect(r.problems.map((p) => `${p.file} ${p.rule}`)).toEqual(["concepts/good.md source-sections"]);
-    expect(r.enforced.map((e) => e.id)).toEqual(["good"]);
-    expect(r.missing).toEqual(["guide"]);
+    expect(r.problems.map((p) => `${p.file} ${p.rule}`)).toEqual(["concepts/guide.md prose-marks"]);
+    expect(r.advisories.map((p) => p.rule)).toEqual([
+      "calc-density",
+      "stacked-blocks",
+      "diagram-first",
+      "hedge-ratio",
+    ]);
+    expect(r.enforced.map((e) => e.id)).toEqual(["good", "guide"]);
+    expect(r.missing).toEqual([]);
     expect(r.unlisted.pages).toBe(1);
     expect(r.unlisted.failing).toEqual({ "source-sections": 1 });
+
+    const formatted = formatStandardAuditSummary(r);
+    expect(formatted.summaryLine).toContain("名单 2 页，达标 1 页");
+    expect(formatted.advisoryLines[0]).toMatch(/^! 写作建议 4 处（供教学审阅参考，不阻塞）：$/);
+    expect(formatted.problemLines).toEqual([
+      "x concepts/guide.md [prose-marks] [写作标准] 「## 对照源码」之前还有 1 个证据角标，正文里不写角标",
+    ]);
   });
-  it("loads the committed page list", () => {
+  it("loads the committed page list and advisory rule set", () => {
     const real = loadStandardConfig();
     expect(real.pages).toContain("tensor-parallel");
     expect(real.skip["learning-guide"]).toContain("source-sections");
+    expect(real.advisoryRules).toEqual(["calc-density", "stacked-blocks", "diagram-first", "hedge-ratio"]);
   });
 });

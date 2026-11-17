@@ -36,6 +36,7 @@ try {
     gitText(resolve(repo.path), ["rev-parse", "--verify", `${pin}^{commit}`]).trim() !== data.commit
   )
     throw new Error("扫描提交不匹配教学 seeds 钉点；巡检差异须先审阅，不可直接刷新正式定义");
+  const repoDir = resolve(repo.path);
   const wanted = values.only?.split(",");
   const known = loadPages(resolve("wiki")).pages;
   const rows = data.entries.filter(
@@ -43,11 +44,11 @@ try {
       (!wanted || wanted.includes(p.name) || wanted.includes(paramId(p))) &&
       (p.confidence === "certain" ||
         p.review?.verdict === "param" ||
-        known.some((page) => page.fm.id === parameterPageId(process.cwd(), data.repo, p, known))) &&
+        known.some((page) => page.fm.id === parameterPageId(process.cwd(), data.repo, p, known, repoDir))) &&
       p.review?.verdict !== "not-param",
   );
   if (!rows.length) throw new Error("没有已确认的参数");
-  const actual = scanRepo(resolve(repo.path), data.commit).entries;
+  const actual = scanRepo(repoDir, data.commit).entries;
   for (const p of rows)
     if (
       !actual.some(
@@ -66,7 +67,7 @@ try {
       throw new Error(`参数记录与钉定源码不符：${p.name}`);
   const dir = resolve(values.out);
   const outputs = rows.flatMap((entry) => {
-    const id = parameterPageId(process.cwd(), data.repo, entry, known);
+    const id = parameterPageId(process.cwd(), data.repo, entry, known, repoDir);
     if (!id) return [];
     const target = join(dir, `${id}.md`);
     // Static scans can refresh an authored page but cannot publish a new skeleton.
@@ -75,13 +76,13 @@ try {
         ? resolve("wiki/_drafts", `${id}.md`)
         : target;
     let text = buildParamPage(
-      { ...data, entry, pageId: id, date: new Date().toISOString().slice(0, 10) },
+      { ...data, entry, pageId: id, repoDir, date: new Date().toISOString().slice(0, 10) },
       existsSync(path) ? readFileSync(path, "utf8") : undefined,
     );
     if (!values["dry-run"])
-      text = recordParamSource(process.cwd(), resolve(repo.path), data.repo, data.commit, entry.file, text);
+      text = recordParamSource(process.cwd(), repoDir, data.repo, data.commit, entry.file, text);
     const lineage = gitLineage(
-      resolve(repo.path),
+      repoDir,
       entry.name,
       Object.values(repo.refs),
       entry.class ? [entry.file] : ["vllm_ascend/"],

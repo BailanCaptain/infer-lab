@@ -1,4 +1,8 @@
 /** Section protection helpers. Verified Git history is implemented only in lineage-git.ts. */
+import { generatedSection } from "../../src/content/wiki/param-display";
+
+export { generatedSection } from "../../src/content/wiki/param-display";
+
 /** 上游的提交标题惯例是 `... (#11953)` */
 export function prOf(subject: string): number | undefined {
   const m = /\(#(\d+)\)\s*$/.exec(subject.trim());
@@ -7,25 +11,6 @@ export function prOf(subject: string): number | undefined {
 
 /** 渲染成参数页「版本谱系」一节的 markdown。人和 agent 都不要手改这一节。 */
 export const LINEAGE_SECTION = "## 版本谱系";
-
-/** Exact section bytes, excluding examples inside fenced code. Shared with review protection. */
-export function generatedSection(text: string, heading: string): string | undefined {
-  let fence = "";
-  let start: number | undefined;
-  let offset = 0;
-  for (const line of text.split(/(?<=\n)/)) {
-    const marker = /^ {0,3}(`{3,}|~{3,})/.exec(line)?.[1];
-    if (fence) {
-      if (marker?.[0] === fence[0] && marker.length >= fence.length) fence = "";
-    } else if (marker) fence = marker;
-    else if (/^##\s/.test(line)) {
-      if (start !== undefined) return text.slice(start, offset).trimEnd();
-      if (line.trimEnd() === heading) start = offset;
-    }
-    offset += line.length;
-  }
-  return start === undefined ? undefined : text.slice(start).trimEnd();
-}
 export const lineageSection = (text: string) => generatedSection(text, LINEAGE_SECTION);
 
 /**

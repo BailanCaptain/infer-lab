@@ -12,6 +12,7 @@ import { listGaps } from "./gap-ledger";
 import { findGapSources } from "./gap-sources";
 import { loadHandbook } from "./handbook";
 import { prMaterial } from "./pr-material";
+import { prepareRawInput } from "./prepare-input";
 import { type QueueTask, readTask, runTask } from "./queue";
 import { saveRawSnapshot } from "./raw";
 import { hasRetestPlan, runRetest } from "./retest";
@@ -260,10 +261,13 @@ export async function workOne(
         why = `重新核对现有页面；自动生成区由最终整合阶段逐字保留，中间草稿不复制旧自动生成区或旧出处编号，只据本次材料提取。旧正文仅供对照，内容差异分数不能当作旧结论错误的证据。原文：\n${snapshot.pageTexts.find((p) => p.file === page.file)!.text}`;
       }
       const before = await readKnowledgeSnapshot(root);
+      const rawMaterialContext = source.startsWith("raw:")
+        ? (prepareRawInput(join(root, "wiki"), source).compilerData ?? "")
+        : "";
       const rules = loadHandbook(
         join(root, "wiki"),
-        `${id}\n${why}`,
-        task.input.kind === "rewrite",
+        `${id}\n${source}\n${why}\n${rawMaterialContext}`,
+        true,
       ).pageFormat;
       const result = await compileRaw(
         store,

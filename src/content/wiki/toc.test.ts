@@ -55,20 +55,33 @@ describe("buildToc · 知识主题目录", () => {
     ]);
     expect(rows[2]).toMatchObject({ part: "distributed", section: "贯穿案例" });
   });
-  it("阅读指南先于模型和请求，框架总览保持唯一主题位置", () => {
+  it("阅读指南与可选概览槽位排在最前，进阶模型与单/多请求综合页排在基础与双机案例之后，框架总览保持唯一主题位置", () => {
     const input = [
       page("vllm-v1-shape"),
       page("concurrent-requests"),
       page("learning-guide"),
       page("one-request"),
+      page("glm-5-3-flash-two-node"),
       page("glm-5-3-flash"),
+      page("sampling"),
     ];
     const rows = locations(input);
-    expect(rows.filter((p) => p.part === "guide").map((p) => p.id)).toEqual([
-      "learning-guide",
+    expect(rows.filter((p) => p.part === "guide").map((p) => p.id)).toEqual(["learning-guide"]);
+    expect(rows.filter((p) => p.part === "distributed").map((p) => p.id)).toEqual([
       "glm-5-3-flash",
+      "glm-5-3-flash-two-node",
       "one-request",
       "concurrent-requests",
+    ]);
+    const ids = rows.map((p) => p.id);
+    expect(ids.indexOf("sampling")).toBeLessThan(ids.indexOf("glm-5-3-flash"));
+    expect(ids.indexOf("one-request")).toBe(ids.indexOf("glm-5-3-flash-two-node") + 1);
+
+    // 可选 request-overview 槽位：存在时紧随 learning-guide，缺省时不占位
+    const withOverview = locations([...input, page("request-overview")]);
+    expect(withOverview.filter((p) => p.part === "guide").map((p) => p.id)).toEqual([
+      "learning-guide",
+      "request-overview",
     ]);
     expect(rows.filter((p) => p.id === "vllm-v1-shape")).toEqual([
       { id: "vllm-v1-shape", part: "architecture", section: "组件、职责与进程" },
@@ -101,7 +114,7 @@ describe("buildToc · 知识主题目录", () => {
       page("prefix-caching", "feature", ["11"]),
       page("kv-cache"),
       page("token"),
-      page("one-request"),
+      page("learning-guide"),
     ]);
     expect(toc.map((p) => p.id)).toEqual([
       "guide",
@@ -119,17 +132,22 @@ describe("buildToc · 知识主题目录", () => {
     ]);
     expect(locations([page("gqa", "feature", ["08"])])[0]?.part).toBe("models");
   });
-  it("RFork 新子页保持独立与排序；参数保留独立入口并按名称排序", () => {
+  it("RFork 新子页保持独立与排序，且 rfork 前缀不抢占 source/pr/param 或问答/PR 记录；参数按名称排序", () => {
     const toc = buildToc([
       page("rfork-troubleshooting", "feature", [], 90),
       page("rfork", "feature", [], 10),
       page("rfork-new-topic", "concept", [], 80),
       page("rfork-startup", "concept", [], 20),
+      page("rfork-official-guide", "source", [], 5),
+      page("rfork-pr-record", "pr", [], 6),
+      page("rfork-param-knob", "param", [], 7),
+      { ...page("rfork-chat-note", "concept", [], 8), origin: "chat" },
+      { ...page("rfork-pr-origin", "concept", [], 9), origin: "pr" },
       page("b-param", "param"),
       page("a-param", "param"),
       page("kv-pool", "feature"),
     ]);
-    expect(toc.map((p) => p.id)).toEqual(["inference", "rfork", "params"]);
+    expect(toc.map((p) => p.id)).toEqual(["inference", "rfork", "params", "references"]);
     expect(toc.find((p) => p.id === "rfork")?.sections.flatMap((s) => s.pages.map((p) => p.id))).toEqual([
       "rfork",
       "rfork-startup",
@@ -139,6 +157,42 @@ describe("buildToc · 知识主题目录", () => {
     expect(toc.find((p) => p.id === "params")?.sections[0]?.pages.map((p) => p.id)).toEqual([
       "a-param",
       "b-param",
+      "rfork-param-knob",
+    ]);
+    const refRows = locations([
+      page("rfork-official-guide", "source", [], 5),
+      page("rfork-pr-record", "pr", [], 6),
+      { ...page("rfork-chat-note", "concept", [], 8), origin: "chat" },
+      { ...page("rfork-pr-origin", "concept", [], 9), origin: "pr" },
+    ]);
+    expect(refRows).toEqual([
+      { id: "rfork-chat-note", part: "references", section: "问答记录" },
+      { id: "rfork-pr-record", part: "references", section: "PR 记录" },
+      { id: "rfork-pr-origin", part: "references", section: "PR 记录" },
+      { id: "rfork-official-guide", part: "references", section: "来源与版本依据" },
+    ]);
+  });
+  it("同节内已编排显式 toc 页保持教学先后，显式改指其他章节时服从 toc 声明", () => {
+    const lowPrec: TocPage = {
+      ...page("low-precision-formats", "concept", [], 10),
+      toc: { part: "models", section: "数值表示与量化" },
+    };
+    const quantMethods: TocPage = {
+      ...page("quantization-methods", "concept", [], 20),
+      toc: { part: "models", section: "数值表示与量化" },
+    };
+    const relocated: TocPage = {
+      ...page("quantization", "feature", [], 500),
+      toc: { part: "performance", section: "自定义性能节" },
+    };
+    expect(locations([page("quantization"), quantMethods, lowPrec]).map((p) => p.id)).toEqual([
+      "low-precision-formats",
+      "quantization",
+      "quantization-methods",
+    ]);
+    expect(locations([relocated, lowPrec])).toEqual([
+      { id: "low-precision-formats", part: "models", section: "数值表示与量化" },
+      { id: "quantization", part: "performance", section: "自定义性能节" },
     ]);
   });
   it("已编排的生成教学页进入主题，保留原始身份；未编排内容和资料都有可见入口", () => {

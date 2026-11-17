@@ -37,6 +37,15 @@ export class DropContext {
     }
     return id;
   }
+  has(id: string) {
+    return this.entries.has(id);
+  }
+  totalLines(id: string) {
+    const entry = this.entries.get(id);
+    if (!entry) throw new Error(`材料不存在：${id}`);
+    if (!entry.text.length) return 0;
+    return entry.text.split("\n").length - (entry.text.endsWith("\n") ? 1 : 0);
+  }
   resource(id: string) {
     const entry = this.entries.get(id);
     if (!entry) throw new Error(`材料不存在：${id}`);
@@ -170,22 +179,53 @@ export class DropContext {
   }
 }
 
-export function applyDropEdits(
+export type DropEditItem = { start: number; end: number; old: string; text: string };
+
+export function validateDropEdits(
   old: string,
   hash: string,
-  edits: { start: number; end: number; old: string; text: string }[],
-) {
-  if (digest(old) !== hash) throw new Error("局部修订 hash 已过期");
+  edits: readonly DropEditItem[],
+  options?: {
+    boundRange?: { start: number; end: number };
+    chunkEdits?: readonly DropEditItem[];
+    withRepairPrefix?: boolean;
+  },
+): DropEditItem[] {
+  const fail = (baseReason: string, detail?: string) => {
+    const suffix = options?.withRepairPrefix && detail ? `（${detail}）` : "";
+    throw new Error(options?.withRepairPrefix ? `局部修订校验失败：${baseReason}${suffix}` : baseReason);
+  };
+  if (digest(old) !== hash) fail("局部修订 hash 已过期");
+  if (options?.boundRange) {
+    const { start: bStart, end: bEnd } = options.boundRange;
+    for (const e of options.chunkEdits ?? edits) {
+      if (!Number.isInteger(e.start) || !Number.isInteger(e.end) || e.start < 0 || e.end < e.start) {
+        fail("局部修订范围无效", `非法偏移 [${e.start}, ${e.end})`);
+      }
+      if (e.start < bStart || e.end > bEnd) {
+        fail("修改超出本次绑定范围", `允许范围 [${bStart}, ${bEnd})，实际返回 [${e.start}, ${e.end})`);
+      }
+    }
+  }
   const sorted = [...edits].sort((a, b) => a.start - b.start);
   let position = 0;
   let previousStart = -1;
-  let result = "";
   for (const edit of sorted) {
-    if (!Number.isInteger(edit.start) || !Number.isInteger(edit.end) || edit.start < 0)
-      throw new Error("局部修订范围无效");
-    if (edit.start < position || edit.start === previousStart) throw new Error("局部修订范围重叠");
-    if (edit.end < edit.start || edit.end > old.length || old.slice(edit.start, edit.end) !== edit.old)
-      throw new Error("局部修订原文不匹配");
+    if (!Number.isInteger(edit.start) || !Number.isInteger(edit.end) || edit.start < 0) {
+      fail("局部修订范围无效", `非法偏移 [${edit.start}, ${edit.end})`);
+    }
+    if (edit.start < position || edit.start === previousStart) {
+      fail(
+        "局部修订范围重叠",
+        `位置 [${edit.start}, ${edit.end}) 与已提交或同批编辑区间冲突，不得重复或交叉修改同一范围`,
+      );
+    }
+    if (edit.end < edit.start || edit.end > old.length || old.slice(edit.start, edit.end) !== edit.old) {
+      fail(
+        "局部修订原文不匹配",
+        `位置 [${edit.start}, ${edit.end}) 的 old 与当前绑定候选原文不一致；请严格核对本次 materials 中该候选切片的真实 UTF-16 偏移与逐字原文，无需修改本片时返回 edits=[]`,
+      );
+    }
     if (
       [edit.start, edit.end].some(
         (offset) =>
@@ -194,11 +234,25 @@ export function applyDropEdits(
           /[\uD800-\uDBFF]/.test(old[offset - 1]!) &&
           /[\uDC00-\uDFFF]/.test(old[offset]!),
       )
-    )
-      throw new Error("局部修订越过 Unicode 字符边界");
-    result += old.slice(position, edit.start) + edit.text;
+    ) {
+      fail(
+        "局部修订越过 Unicode 字符边界",
+        `位置 [${edit.start}, ${edit.end}) 切开了 UTF-16 代理对，请对齐完整字符边界`,
+      );
+    }
     position = edit.end;
     previousStart = edit.start;
+  }
+  return sorted;
+}
+
+export function applyDropEdits(old: string, hash: string, edits: DropEditItem[]) {
+  const sorted = validateDropEdits(old, hash, edits);
+  let position = 0;
+  let result = "";
+  for (const edit of sorted) {
+    result += old.slice(position, edit.start) + edit.text;
+    position = edit.end;
   }
   return result + old.slice(position);
 }

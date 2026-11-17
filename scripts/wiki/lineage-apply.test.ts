@@ -41,6 +41,64 @@ it("skips a manual parameter page without blocking updates to pinned definitions
   }
 });
 
+it("recomputes distinct verified lineage for same-name parameter pages with contextual display titles without overwriting lineage json", () => {
+  const f = wikiFixture();
+  try {
+    const file = "vllm_ascend/config.py";
+    const v1Source = "class AscendCompilationConfig:\n    size: int = 128\n";
+    f.write(`repo/${file}`, v1Source);
+    const v1 = f.commit("only compilation size");
+    const v2Source = `${v1Source}\nclass KVPPConfig:\n    size: int = 1\n`;
+    f.write(`repo/${file}`, v2Source);
+    const v2 = f.commit("add kvpp size");
+    f.git(["update-ref", "refs/remotes/origin/main", v2]);
+    f.write(
+      "seeds.yaml",
+      `repos:\n  r:\n    url: https://example.test/r\n    path: repo\n    refs: {main: ${v2}, v1: ${v1}}\nfeatures: []\n`,
+    );
+    const entries = scanSources({ [file]: v2Source }).filter((e) => e.name === "size");
+    const [comp, kvpp] = entries as [(typeof entries)[0], (typeof entries)[0]];
+    f.write(
+      "wiki/params/size-comp.md",
+      buildParamPage({
+        repo: "r",
+        ref: "main",
+        commit: v2,
+        entry: comp,
+        date: "2026-11-16",
+        pageId: "size-comp",
+      }).replace(/^title:.*$/m, "title: npu_compilation_config.size"),
+    );
+    f.write(
+      "wiki/params/size-kvpp.md",
+      buildParamPage({
+        repo: "r",
+        ref: "main",
+        commit: v2,
+        entry: kvpp,
+        date: "2026-11-16",
+        pageId: "size-kvpp",
+      }).replace(/^title:.*$/m, "title: KVPP 组大小（KVPPConfig.size）"),
+    );
+    const result = f.cli("wiki-lineage-apply", ["--seeds", "seeds.yaml"]);
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stderr).not.toContain("跳过");
+    const compOut = readFileSync(join(f.root, "wiki/params/size-comp.md"), "utf8");
+    const kvppOut = readFileSync(join(f.root, "wiki/params/size-kvpp.md"), "utf8");
+    expect(compOut).toContain("AscendCompilationConfig.size");
+    expect(compOut).toContain(`| v1 | 有 | \`${v1.slice(0, 8)}\` |`);
+    expect(kvppOut).toContain("KVPPConfig.size");
+    expect(kvppOut).toContain(`| v1 | 无 | \`${v1.slice(0, 8)}\` |`);
+    expect(kvppOut).toContain(`| main | 有 | \`${v2.slice(0, 8)}\` |`);
+    expect(readFileSync(join(f.root, "wiki/lineage/size-comp.json"), "utf8")).toContain(
+      "AscendCompilationConfig",
+    );
+    expect(readFileSync(join(f.root, "wiki/lineage/size-kvpp.json"), "utf8")).toContain("KVPPConfig");
+  } finally {
+    f.cleanup();
+  }
+});
+
 describe("replaceSection", () => {
   it("ignores example headings inside fences and preserves unrelated whitespace", () => {
     const body = "## Example\n\n```md\n## 版本谱系\nexample\n```\n\n\n## 版本谱系\nold\n\n## Tail\nkeep\n";

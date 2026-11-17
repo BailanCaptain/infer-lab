@@ -22,6 +22,7 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     reuseExistingServer: true,
     timeout: 90_000,
+    env: { NODE_ENV: "development" },
   },
   projects: [
     {

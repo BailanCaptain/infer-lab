@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { inputByteLimit } from "./context-window";
 import { HANDBOOK_H2, HANDBOOK_H3, HandbookSliceMissingError, loadHandbook, sliceHandbook } from "./handbook";
 import { lintPages } from "./lint";
 import { parsePage } from "./pages";
@@ -149,5 +150,30 @@ describe("sliceHandbook", () => {
     expect(
       lintPages([page], { chapterIds: [], existsFile: () => true }).filter((p) => p.rule.startsWith("mark-")),
     ).toEqual([]);
+  });
+  it("无工具纯文本写页（textOnly=true）在真实 HANDBOOK + 标准 + TERMS 下满足默认 128K 窗口并保留全部事实与引用规则", () => {
+    const context =
+      "PagedAttention KV Cache token prefill decode scheduler block_table NPU HCCL https://docs.vllm.ai/projects/ascend/ xgrammar";
+    const slices = loadHandbook(`${process.cwd()}/wiki`, context, true);
+    const budget128k = { contextWindowTokens: 128_000, outputReserveTokens: 16_384 };
+    expect(inputByteLimit("", slices.pageFormat, budget128k)).toBeGreaterThanOrEqual(25_000);
+    expect(
+      inputByteLimit("", `${slices.pageFormat}\n${slices.integrate}`, budget128k),
+    ).toBeGreaterThanOrEqual(15_000);
+    expect(slices.pageFormat).toContain("purpose: answer-record");
+    expect(slices.pageFormat).toContain("### 读页约定");
+    expect(slices.pageFormat).toContain("### 版本");
+    expect(slices.pageFormat).toContain("### 条件");
+    expect(slices.pageFormat).toContain("### 关系");
+    expect(slices.pageFormat).toContain("### 链接与来源");
+    expect(slices.pageFormat).toContain("### 可引来源");
+    expect(slices.pageFormat).toContain("S 至少需一条官方或论文来源");
+    expect(slices.pageFormat).toContain("镜像站和 AI 二手知识库不可引");
+    expect(slices.pageFormat).toContain("CITABLE_DOMAINS");
+    expect(slices.pageFormat).toContain("docs.vllm.ai");
+    expect(slices.pageFormat).toContain("xgrammar");
+    expect(slices.pageFormat).not.toContain("terratorch/vllm/plugins/segmentation");
+    expect(slices.pageFormat).toContain("对照源码之上零证据角标");
+    expect(slices.pageFormat).not.toContain("## 审查与修订流程");
   });
 });

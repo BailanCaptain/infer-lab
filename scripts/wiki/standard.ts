@@ -1,9 +1,11 @@
 /**
- * 写作标准检查（2026-09-28）：写手自查时，已达标页一旦超标就在 wiki:audit 里被拦下。
+ * 写作标准检查：
+ * - 对 standard-pages.json 名单页硬性校验真实结构与画布边界（prose-marks、source-sections、diagram-width）；
+ * - 对 advisoryRules（calc-density、stacked-blocks、diagram-first、hedge-ratio）保留精确度量与可读诊断建议，
+ *   不作为写作或批准硬拦截，且严禁为压低词语/算式比例删减真实适用条件。
  *
- * 只对 standard-pages.json 名单里的页强制；其余页大多还没重写，全量报错没有意义，只统计。
  * 「正文」指 `## 对照源码` 之前的部分，不含围栏块（代码、calc、wiki-diagram）；
- * 字数 = 汉字数 + 拉丁单词数。阈值、H3 顺序、免责词表都只在配置文件里定义一次。
+ * 字数 = 汉字数 + 拉丁单词数。阈值、建议规则集、免责词表只在配置文件里定义一次。
  */
 import { readFileSync } from "node:fs";
 import { z } from "zod";
@@ -12,7 +14,6 @@ import { diagramRefs, type LoadedDiagram } from "./diagrams";
 import type { PageProblem } from "./pages";
 
 export const STANDARD_RULES = [
-  "code-density",
   "prose-marks",
   "source-sections",
   "calc-density",
@@ -23,13 +24,20 @@ export const STANDARD_RULES = [
 ] as const;
 export type StandardRule = (typeof STANDARD_RULES)[number];
 
+export const STANDARD_ADVISORY_RULES = [
+  "calc-density",
+  "stacked-blocks",
+  "diagram-first",
+  "hedge-ratio",
+] as const;
+export type StandardAdvisoryRule = (typeof STANDARD_ADVISORY_RULES)[number];
+
 export const standardConfigSchema = z.object({
   note: z.string().optional(),
   pages: z.array(z.string().min(1)),
   skip: z.record(z.string(), z.array(z.enum(STANDARD_RULES))).default({}),
+  advisoryRules: z.array(z.enum(STANDARD_RULES)).default([...STANDARD_ADVISORY_RULES]),
   sourceSection: z.string().min(1),
-  sourceSubsections: z.array(z.string().min(1)).min(1),
-  maxInlineCodePerK: z.number().positive(),
   maxCalcPerK: z.number().positive(),
   maxHedgeRatio: z.number().positive(),
   hedgeWords: z.array(z.string().min(1)).min(1),
@@ -159,15 +167,11 @@ export function measureStandard(
   let sourceSections: string | null = null;
   if (cut < 0) sourceSections = `缺少「## ${cfg.sourceSection}」`;
   else {
-    const after = blocks.slice(cut + 1).filter((b) => b.kind === "heading");
-    const h2 = after.filter((b) => b.level === 2).map((b) => b.text);
-    const h3 = after.filter((b) => b.level === 3).map((b) => b.text);
-    const want = cfg.sourceSubsections;
-    const problems: string[] = [];
-    if (h3.join("/") !== want.join("/"))
-      problems.push(`H3 应依次是 ${want.join(" / ")}，实际是 ${h3.join(" / ") || "（无）"}`);
-    if (h2.length) problems.push(`之后不应再有 H2，实际有 ${h2.join(" / ")}`);
-    if (problems.length) sourceSections = `「## ${cfg.sourceSection}」${problems.join("；")}`;
+    const h2 = blocks
+      .slice(cut + 1)
+      .filter((b): b is Extract<Block, { kind: "heading" }> => b.kind === "heading" && b.level === 2)
+      .map((b) => b.text);
+    if (h2.length) sourceSections = `「## ${cfg.sourceSection}」之后不应再有 H2，实际有 ${h2.join(" / ")}`;
   }
 
   // 只查正文：对照源码里的版本表挨着放是允许的
@@ -190,8 +194,7 @@ export function measureStandard(
     if (b.lang === "calc") firstCalc ??= b.line;
     if (b.lang === "wiki-diagram" && !firstDiagram) firstDiagram = { line: b.line, h2: h2Seen };
   }
-  if (!firstDiagram) diagramFirst = "全页没有 wiki-diagram";
-  else {
+  if (firstDiagram) {
     const why: string[] = [];
     if (firstCalc !== null && firstCalc < firstDiagram.line)
       why.push(`第一个 calc 块（第 ${firstCalc} 行）在第一张图（第 ${firstDiagram.line} 行）之前`);
@@ -226,20 +229,8 @@ export function measureStandard(
 
 const fmt = (n: number, digits = 1) => (Number.isFinite(n) ? n.toFixed(digits) : "∞");
 
-/** 各项超标时的报错；skip 里的项不报 */
-export function standardProblems(
-  file: string,
-  m: StandardMeasure,
-  cfg: StandardConfig,
-  skip: readonly string[] = [],
-): PageProblem[] {
-  const all: [StandardRule, string | null][] = [
-    [
-      "code-density",
-      m.codePerK > cfg.maxInlineCodePerK
-        ? `正文行内代码 ${m.inlineCode} 处 / ${m.words} 字 = ${fmt(m.codePerK)} 处每千字，上限 ${cfg.maxInlineCodePerK}`
-        : null,
-    ],
+function standardEntries(m: StandardMeasure, cfg: StandardConfig): [StandardRule, string | null][] {
+  return [
     [
       "prose-marks",
       m.marks ? `「## ${cfg.sourceSection}」之前还有 ${m.marks} 个证据角标，正文里不写角标` : null,
@@ -248,20 +239,23 @@ export function standardProblems(
     [
       "calc-density",
       m.calcPerK > cfg.maxCalcPerK
-        ? `正文 calc 块 ${m.calc} 个 / ${m.words} 字 = ${fmt(m.calcPerK, 2)} 个每千字，上限 ${cfg.maxCalcPerK}`
+        ? `正文 calc 块 ${m.calc} 个 / ${m.words} 字 = ${fmt(m.calcPerK, 2)} 个每千字（参考值 ≤${cfg.maxCalcPerK}；分步推演确有必要时可保留）`
         : null,
     ],
     [
       "stacked-blocks",
       m.stacked.length
-        ? `第 ${m.stacked.join("、")} 行的 calc 块或表格紧跟在上一个 calc 块或表格后面，中间没有正文段落`
+        ? `第 ${m.stacked.join("、")} 行的 calc 块或表格紧跟在上一个 calc 块或表格后面，建议确认是否需要过渡说明（对照确需并列时可保留）`
         : null,
     ],
-    ["diagram-first", m.diagramFirst && `${m.diagramFirst}；直觉图要先于 calc，且落在前两个 H2 小节内`],
+    [
+      "diagram-first",
+      m.diagramFirst && `${m.diagramFirst}；如有助于建立直觉可考虑前置示意图，按教学需要自然安排即可`,
+    ],
     [
       "hedge-ratio",
       m.hedgeRatio >= cfg.maxHedgeRatio
-        ? `正文免责句 ${m.hedged} / ${m.sentences} 句 = ${fmt(m.hedgeRatio * 100)}%，须低于 ${fmt(cfg.maxHedgeRatio * 100)}%`
+        ? `正文含不确定词句 ${m.hedged} / ${m.sentences} 句 = ${fmt(m.hedgeRatio * 100)}%（参考提示线 ${fmt(cfg.maxHedgeRatio * 100)}%；请直接说明成立条件或待验证边界，切勿为压低比例删减真实限制条件）`
         : null,
     ],
     [
@@ -269,8 +263,35 @@ export function standardProblems(
       m.wideDiagrams.length ? `图宽超过 ${cfg.maxDiagramWidth}：${m.wideDiagrams.join("、")}` : null,
     ],
   ];
-  return all.flatMap(([rule, message]) =>
-    message && !skip.includes(rule) ? [{ file, rule, message: `[写作标准] ${message}` }] : [],
+}
+
+/** 硬性边界超标时的阻塞报错；advisoryRules 与 skip 里的项不进阻塞报错 */
+export function standardProblems(
+  file: string,
+  m: StandardMeasure,
+  cfg: StandardConfig,
+  skip: readonly string[] = [],
+): PageProblem[] {
+  const advisory = new Set<string>(cfg.advisoryRules);
+  return standardEntries(m, cfg).flatMap(([rule, message]) =>
+    message && !skip.includes(rule) && !advisory.has(rule)
+      ? [{ file, rule, message: `[写作标准] ${message}` }]
+      : [],
+  );
+}
+
+/** 教学可读性诊断建议（不阻塞写作或批准）；skip 里的项不报 */
+export function standardAdvisories(
+  file: string,
+  m: StandardMeasure,
+  cfg: StandardConfig,
+  skip: readonly string[] = [],
+): PageProblem[] {
+  const advisory = new Set<string>(cfg.advisoryRules);
+  return standardEntries(m, cfg).flatMap(([rule, message]) =>
+    message && !skip.includes(rule) && advisory.has(rule)
+      ? [{ file, rule, message: `[写作建议] ${message}` }]
+      : [],
   );
 }
 
@@ -294,10 +315,15 @@ export function checkStandard(
 ) {
   const measure = measureStandard(page.body, cfg, diagrams, page.lineOffset);
   const skip = cfg.skip[page.fm.id] ?? [];
-  return { measure, skip, problems: standardProblems(page.file, measure, cfg, skip) };
+  return {
+    measure,
+    skip,
+    problems: standardProblems(page.file, measure, cfg, skip),
+    advisories: standardAdvisories(page.file, measure, cfg, skip),
+  };
 }
 
-/** 名单内的页逐项强制；名单外的页只按规则统计有几页超标，不进失败数 */
+/** 名单内的页对硬性规则强制，建议项仅作可见诊断不计入失败；名单外的页只统计不报错 */
 export function auditStandard(
   pages: StandardPage[],
   cfg: StandardConfig,
@@ -306,6 +332,7 @@ export function auditStandard(
   const listed = new Set(cfg.pages);
   const enforced: (ReturnType<typeof checkStandard> & { id: string; file: string })[] = [];
   const failing: Partial<Record<StandardRule, number>> = {};
+  const unlistedAdvisories: Partial<Record<StandardRule, number>> = {};
   let unlisted = 0;
   for (const page of pages) {
     const r = checkStandard(page, cfg, diagrams);
@@ -316,26 +343,55 @@ export function auditStandard(
     unlisted++;
     for (const rule of new Set(r.problems.map((p) => p.rule as StandardRule)))
       failing[rule] = (failing[rule] ?? 0) + 1;
+    for (const rule of new Set(r.advisories.map((p) => p.rule as StandardRule)))
+      unlistedAdvisories[rule] = (unlistedAdvisories[rule] ?? 0) + 1;
   }
   const found = new Set(enforced.map((e) => e.id));
   return {
     enforced,
     problems: enforced.flatMap((e) => e.problems),
+    advisories: enforced.flatMap((e) => e.advisories),
     missing: cfg.pages.filter((id) => !found.has(id)),
-    unlisted: { pages: unlisted, failing },
+    unlisted: { pages: unlisted, failing, advisories: unlistedAdvisories },
   };
 }
 
-/** 一行实测值，给 wiki:audit 逐页打印；skip 的项标「不适用」 */
+export function formatStandardAuditSummary(standard: ReturnType<typeof auditStandard>) {
+  const standardPassed = standard.enforced.filter((e) => !e.problems.length).length;
+  const unlistedFailing = Object.entries(standard.unlisted.failing).map(([rule, n]) => `${rule} ${n} 页`);
+  const unlistedAdvisories = Object.entries(standard.unlisted.advisories).map(
+    ([rule, n]) => `${rule} ${n} 页`,
+  );
+  const unlistedNote = [
+    unlistedFailing.length ? unlistedFailing.join("，") : "无硬项超标",
+    ...(unlistedAdvisories.length ? [`建议项：${unlistedAdvisories.join("，")}`] : []),
+  ].join("；");
+  const advisorySuffix = standard.advisories.length
+    ? `（另有教学建议 ${standard.advisories.length} 处）`
+    : "";
+  const summaryLine = `写作标准：名单 ${standard.enforced.length} 页，达标 ${standardPassed} 页${advisorySuffix}；名单外 ${standard.unlisted.pages} 页只统计不报错（${unlistedNote}）`;
+  const advisoryLines = standard.advisories.length
+    ? [
+        `! 写作建议 ${standard.advisories.length} 处（供教学审阅参考，不阻塞）：`,
+        ...standard.advisories.map((a) => `  ${a.file} [${a.rule}] ${a.message}`),
+      ]
+    : [];
+  const problemLines = standard.problems.map((p) => `x ${p.file} [${p.rule}] ${p.message}`);
+  return { summaryLine, advisoryLines, problemLines };
+}
+
+/** 一行实测值，给 wiki:audit 逐页打印；skip 标「–」，建议项标「!」，硬错误标「✗」 */
 export function formatStandard(
   m: StandardMeasure,
   cfg: StandardConfig,
   skip: readonly string[] = [],
 ): string {
-  const mark = (rule: StandardRule, ok: boolean) => (skip.includes(rule) ? "–" : ok ? "✓" : "✗");
+  const advisory = new Set<string>(cfg.advisoryRules);
+  const mark = (rule: StandardRule, ok: boolean) =>
+    skip.includes(rule) ? "–" : ok ? "✓" : advisory.has(rule) ? "!" : "✗";
   return [
     `${m.words} 字`,
-    `${mark("code-density", m.codePerK <= cfg.maxInlineCodePerK)}行内代码 ${fmt(m.codePerK)}/千字`,
+    `行内代码 ${fmt(m.codePerK)}/千字`,
     `${mark("prose-marks", !m.marks)}角标 ${m.marks}`,
     `${mark("source-sections", !m.sourceSections)}对照源码`,
     `${mark("calc-density", m.calcPerK <= cfg.maxCalcPerK)}calc ${fmt(m.calcPerK, 2)}/千字`,

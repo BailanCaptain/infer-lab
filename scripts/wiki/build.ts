@@ -3,14 +3,17 @@
  * 完全由 frontmatter 决定，不含时间戳，重复运行无 diff。
  */
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { CHAPTER_TITLES } from "../../src/content/wiki/chapters";
 import {
   type Backlink,
+  collectLegacyIdConflicts,
+  formatLegacyIdConflict,
   INVERSE_KIND,
   PAGE_TYPES,
   type PageType,
   type Registry,
+  registrySchema,
 } from "../../src/content/wiki/schema";
 import { loadPages, type WikiPage } from "./pages";
 
@@ -80,22 +83,49 @@ export function deriveBacklinks(pages: WikiPage[]): Map<string, Backlink[]> {
 
 export function buildRegistry(pages: WikiPage[]): Registry {
   const backlinks = deriveBacklinks(pages);
-  return {
+  return registrySchema.parse({
     version: 1,
     pages: [...pages]
       .sort(byId)
       .map((p) => ({ ...p.fm, file: p.file, backlinks: backlinks.get(p.fm.id) ?? [] })),
-  };
+  });
 }
 
 export function runBuild(rootDir: string): { pageCount: number; problems: number } {
   const wikiRoot = join(rootDir, "wiki");
   const { pages, problems } = loadPages(wikiRoot);
+  const seenIds = new Map<string, string>();
+  for (const page of pages) {
+    const prevFile = seenIds.get(page.fm.id);
+    if (prevFile) {
+      problems.push({
+        file: page.file,
+        rule: "dup-id",
+        message: `id ${page.fm.id} 已被 ${prevFile} 使用`,
+      });
+    } else {
+      seenIds.set(page.fm.id, page.file);
+    }
+  }
+  const reservedFromProblems = problems.map((p) => ({ id: basename(p.file, ".md"), file: p.file }));
+  for (const conflict of collectLegacyIdConflicts(
+    pages.map((p) => ({ id: p.fm.id, file: p.file, legacyIds: p.fm.legacyIds })),
+    reservedFromProblems,
+  )) {
+    problems.push({
+      file: conflict.file ?? conflict.pageId,
+      rule: "legacy-id-conflict",
+      message: formatLegacyIdConflict(conflict),
+    });
+  }
   for (const p of problems) console.error(`x ${p.file} [${p.rule}] ${p.message}`);
   if (problems.length) return { pageCount: pages.length, problems: problems.length };
-  writeFileSync(join(wikiRoot, "index.md"), renderIndex(pages));
+  // 必须在写任何派生产物之前完成完整 registry 校验与 index 渲染，防止半途抛错污染单边文件
+  const registryJson = `${JSON.stringify(buildRegistry(pages), null, 2)}\n`;
+  const indexMd = renderIndex(pages);
+  writeFileSync(join(wikiRoot, "index.md"), indexMd);
   const outDir = join(rootDir, "src/content/wiki");
   mkdirSync(outDir, { recursive: true });
-  writeFileSync(join(outDir, "registry.json"), `${JSON.stringify(buildRegistry(pages), null, 2)}\n`);
+  writeFileSync(join(outDir, "registry.json"), registryJson);
   return { pageCount: pages.length, problems: problems.length };
 }

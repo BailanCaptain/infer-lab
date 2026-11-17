@@ -41,8 +41,7 @@ it("keeps the whole-page answer window bounded and skips oversized pages", () =>
 
 it.each(["前缀缓存", "Prefix Caching"])("长问题里的中文或英文主题都进入回答正文：%s", async (topic) => {
   const { retrieveChatContext } = await import("./chat-route");
-  const question =
-    `两篇提示词都是 100 个 token，前 80 个完全相同，后 20 个不同。第二篇后半段还有几个词也出现在第一篇里。${topic}能把所有重复的词都跳过吗？如果复用 80 个，是不是整条请求一定快 80%？我想弄懂原因。`;
+  const question = `两篇提示词都是 100 个 token，前 80 个完全相同，后 20 个不同。第二篇后半段还有几个词也出现在第一篇里。${topic}能把所有重复的词都跳过吗？如果复用 80 个，是不是整条请求一定快 80%？我想弄懂原因。`;
   const { hits } = retrieveChatContext(question, snapshot);
   const pages = codexEvidencePages(
     hits.flatMap((hit) => {

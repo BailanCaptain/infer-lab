@@ -100,3 +100,15 @@ it("rejects edits that split Unicode characters or give ambiguous insertions", (
     ]),
   ).toThrow("重叠");
 });
+
+it("keeps strict low-level range and pack protection against out-of-bounds or stale requests", () => {
+  const c = new DropContext(budget);
+  const text = `${"0123456789".repeat(2106)}尾部边界`;
+  expect(text.length).toBe(21064);
+  const id = c.add("raw/bounds.md", "source", text);
+  expect(() => c.range({ id, start: 20000, end: 26000 })).toThrow("材料范围越界");
+  expect(() => c.pack([{ id, start: 20000, end: 26000 }])).toThrow("材料范围越界");
+  expect(() => c.range({ id, start: -1, end: 10 })).toThrow("材料范围越界");
+  expect(() => c.range({ id, start: 20, end: 10 })).toThrow("材料范围越界");
+  expect(() => c.range({ id, hash: "0".repeat(64), start: 0, end: 10 })).toThrow("hash");
+});

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { DropReceipt } from "../../content/wiki/drop";
+import { ReviewMarkdownLink } from "./DropReviewPreview";
 
 const kinds = {
   page: "页面",
@@ -37,7 +38,8 @@ export function DropReceiptView({ receipt }: { receipt: DropReceipt }) {
           {plan.comparisons.map((comparison) => (
             <div key={`${comparison.page}-${comparison.quote}-${comparison.reason}`}>
               <p>
-                <a href={`/#/wiki/${comparison.page}`}>{comparison.page}</a>：{comparison.reason}
+                <ReviewMarkdownLink href={`${comparison.page}.md`}>{comparison.page}</ReviewMarkdownLink>：
+                {comparison.reason}
               </p>
               <blockquote>{comparison.quote}</blockquote>
             </div>
@@ -105,6 +107,35 @@ export function DropReceiptView({ receipt }: { receipt: DropReceipt }) {
           </button>
         )}
       </details>
+      {receipt.protocol === 4 && receipt.factDispositions.length > 0 && (
+        <details>
+          <summary>展开旧页事实去向（{receipt.factDispositions.length} 条）</summary>
+          <ul>
+            {receipt.factDispositions.slice(0, shown).map((entry, idx) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: immutable receipt entries within fixed snapshot
+              <li key={`${entry.pageId}-${entry.outlet}-${idx}`}>
+                <b>{entry.pageId}</b> ·{" "}
+                {entry.outlet === "retained" ? (
+                  "本页保留"
+                ) : entry.outlet === "superseded" ? (
+                  "声明替代"
+                ) : (
+                  <>
+                    迁入{" "}
+                    <ReviewMarkdownLink
+                      href={`${entry.targetPage}.md${entry.targetAnchor ? `#${entry.targetAnchor}` : ""}`}
+                    >
+                      {entry.targetPage}
+                      {entry.targetAnchor ? `#${entry.targetAnchor}` : ""}
+                    </ReviewMarkdownLink>
+                  </>
+                )}
+                ：{entry.fact}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       <details>
         <summary>查看本批上下文用量</summary>
         <p>

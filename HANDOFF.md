@@ -562,7 +562,7 @@
 
 ## 现状（一句话）
 
-**首页与教学表现层的下述记录保留历史背景；LLM WIKI F001–F005 已完成并合入 `main`，当前知识库状态见 [HANDOFF-LLM-WIKI.md](HANDOFF-LLM-WIKI.md)。** 2026-09-06 用户把我做的全部 3D 画面（`src/viz3d/`、`#/lab`、`#/model`、Spike A/B 页、3D 字体子集、three.js 依赖）整体删除（提交见 `git log`，可找回但不要找回）。原因：三版画面都被否："幻灯片"、"怎么能这么丑"、"平片图/一坨屎"。地基（`src/sim/`、`src/timeline/`、页面配色字体、播放条）完整保留，全部测试通过。
+**首页与教学表现层的下述记录保留历史背景（现行 `main` 已包含首页 3D 城市 `src/app/intro/cityScene.ts`、19 篇概念页内嵌 `wiki-scene` 3D 场景 `src/app/wiki/WikiScene.tsx` 与 `src/app/wiki/scene-*.ts` 以及模型/硬件辅助探索入口，且现有 3D 当前保持冻结）；LLM WIKI F001–F005 已完成并合入 `main`，当前知识库状态见 [HANDOFF-LLM-WIKI.md](HANDOFF-LLM-WIKI.md)。** 2026-09-06 用户把我做的全部 3D 画面（`src/viz3d/`、`#/lab`、`#/model`、Spike A/B 页、3D 字体子集、three.js 依赖）整体删除（提交见 `git log`，可找回但不要找回）。原因：三版画面都被否："幻灯片"、"怎么能这么丑"、"平片图/一坨屎"。地基（`src/sim/`、`src/timeline/`、页面配色字体、播放条）完整保留，全部测试通过。
 
 ## 知识库 F001–F005（已合入 main）
 

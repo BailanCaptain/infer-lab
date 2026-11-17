@@ -13,18 +13,24 @@ import { EVIDENCE_MARK_RE, NUMBERED_EVIDENCE_LEVELS } from "../../src/content/wi
 import { WIKI_REHYPE_PLUGINS, WIKI_REMARK_PLUGINS } from "../../src/content/wiki/markdown";
 import { findPageByName } from "../../src/content/wiki/page-names";
 import { citationProse } from "../../src/content/wiki/retrieve";
-import { isSymmetric, parseRawRef } from "../../src/content/wiki/schema";
+import {
+  collectLegacyIdConflicts,
+  formatLegacyIdConflict,
+  isSymmetric,
+  parseRawRef,
+} from "../../src/content/wiki/schema";
 import { buildLayerTimeline } from "../../src/sim/model/forwardLayer";
 import { getTokenPreset } from "../../src/sim/model/presets";
 import { getPresetSpec } from "../../src/sim/modelspec/presets";
-import { sourceLines, warmPageSources } from "./audit";
-import { auditDiagram } from "./diagram-audit";
+import { sourceLines } from "./audit";
+import { missingDiagramProblems } from "./diagram-audit";
 import { loadDiagrams } from "./diagrams";
-import { createBlobReader } from "./git";
 import { FACTS_BUDGET, MARK_FLOOD } from "./limits";
-import { loadPages, type PageProblem, type WikiPage } from "./pages";
+import { LINEAGE_SECTION } from "./lineage";
+import { loadPages, PAGE_DIRS, type PageProblem, type WikiPage } from "./pages";
+import { PARAM_SECTION } from "./params/pages";
 import { readPageRaw, readRawSnapshot } from "./raw";
-import { configuredRefs, configuredRepoRoots, PRIMARY_REPO } from "./repo-roots";
+import { configuredRefs, PRIMARY_REPO } from "./repo-roots";
 import { splitHistory } from "./revisions";
 import { classifySource, supportsOfficialEvidence } from "./sources";
 
@@ -64,6 +70,8 @@ export interface LintOptions {
   requiredTerms?: string[];
   /** seeds 里登记过的版本名；给了就检查 `verified` 里有没有写错的 */
   knownRefs?: string[];
+  /** 解析失败或被跳过的在盘页面占位 ID，禁止其他页用 legacyIds 抢占 */
+  reservedPages?: readonly { id: string; file?: string }[];
 }
 
 /**
@@ -188,13 +196,15 @@ function anchorProblems(pages: WikiPage[]): PageProblem[] {
  *
  * 2026-09-25 读者定为初学者，「一句话」也不再强制：它把开头写成定义，初学者读完
  * 还是不知道这东西解决什么问题。现在开头只要求先给一个具体问题（机器查不了，写在
- * HANDBOOK）。随后教学改版允许就近引用与按主题分节；机器继续检查来源、编号、
- * 链接和关系，不以证据出现位置或固定标题模板判错。
+ * HANDBOOK）。随后教学改版允许就近引用与按主题分节；参数页同样不再强制「一句话 /
+ * 事实表 / 为什么存在 / 开了的代价」四节标题模板（草稿生成脚本仍可用作初始骨架），
+ * 允许按内容自定标题，机器改为检查除自动生成区与对照源码外至少有一个说明小节且含
+ * 有效正文，并继续检查来源、编号、链接、关系与事实表预算，不以固定标题模板判错。
  */
 const REQUIRED_SECTIONS: Record<string, string[]> = {
   concept: [],
   feature: [],
-  param: ["一句话", "事实表", "为什么存在", "开了的代价"],
+  param: [],
 };
 
 /** 2026-09-11 改版前的四节格式，用于识别待迁移的旧页 */
@@ -309,6 +319,62 @@ function strayTagLines(body: string): number[] {
 
 function sectionsOf(body: string): string[] {
   return [...body.matchAll(H2_RE)].map((m) => (m[1] ?? "").trim());
+}
+
+const NON_AUTHORED_PARAM_HEADINGS = new Set([
+  LINEAGE_SECTION.slice(3),
+  PARAM_SECTION.slice(3),
+  "对照源码",
+  "接着看",
+]);
+
+function paramBodyProblems(p: WikiPage): PageProblem[] {
+  let fence = "";
+  let inAuthoredSection = false;
+  let authoredSectionCount = 0;
+  let hasAuthoredProse = false;
+  for (const line of p.body.split(/\r?\n/)) {
+    const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    if (fence) {
+      if (marker && marker[1]?.[0] === fence[0] && marker[1].length >= fence.length && !marker[2]?.trim())
+        fence = "";
+      continue;
+    }
+    if (marker) {
+      fence = marker[1] ?? "";
+      continue;
+    }
+    const h2 = /^##\s+(.+?)\s*$/.exec(line);
+    if (h2) {
+      const heading = (h2[1] ?? "").trim();
+      inAuthoredSection = !NON_AUTHORED_PARAM_HEADINGS.has(heading);
+      if (inAuthoredSection) authoredSectionCount++;
+      continue;
+    }
+    if (/^#{1,6}\s/.test(line)) continue;
+    if (inAuthoredSection && line.trim() && !/^\s*\|/.test(line)) {
+      hasAuthoredProse = true;
+    }
+  }
+  if (authoredSectionCount === 0) {
+    return [
+      {
+        file: p.file,
+        rule: "missing-section",
+        message: "参数页除自动生成区与对照源码外，至少须包含一个按内容自定的说明小节",
+      },
+    ];
+  }
+  if (!hasAuthoredProse) {
+    return [
+      {
+        file: p.file,
+        rule: "unfinished-page",
+        message: "参数页说明小节缺少有效正文",
+      },
+    ];
+  }
+  return [];
 }
 
 /**
@@ -435,6 +501,16 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
       } else names.set(key, p.file);
     }
   }
+  for (const conflict of collectLegacyIdConflicts(
+    pages.map((p) => ({ id: p.fm.id, file: p.file, legacyIds: p.fm.legacyIds })),
+    opts.reservedPages ?? [],
+  )) {
+    problems.push({
+      file: conflict.file ?? conflict.pageId,
+      rule: "legacy-id-conflict",
+      message: formatLegacyIdConflict(conflict),
+    });
+  }
   for (const p of pages) {
     for (const c of p.fm.chapters) {
       if (!opts.chapterIds.includes(c)) {
@@ -544,6 +620,8 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
           rule: "missing-section",
           message: `缺必需小节：${missing.join("、")}`,
         });
+      } else if (p.fm.type === "param") {
+        problems.push(...paramBodyProblems(p));
       }
     }
 
@@ -758,21 +836,7 @@ export function runLint(
   const { pages, problems } = loadPages(wikiRoot);
   const { diagrams, problems: diagramProblems } = loadDiagrams(wikiRoot);
   problems.push(...diagramProblems);
-  const diagramDeps = {
-    repoRoots: flags.repoRoots ?? configuredRepoRoots(rootDir),
-    readBlob: createBlobReader(),
-    diagrams,
-  };
-  warmPageSources(pages, diagramDeps.repoRoots);
-  problems.push(...pages.flatMap((page) => auditDiagram(page, diagramDeps)));
-  // spec 在但 SVG 没生成，页面上就是一个空框——渲染层读的是 SVG，不是 spec
-  for (const diagram of diagrams.values())
-    if (!existsSync(join(wikiRoot, diagram.svgFile)))
-      problems.push({
-        file: diagram.specFile,
-        rule: "diagram-missing",
-        message: `缺 ${diagram.svgFile}，跑 pnpm wiki:diagrams 生成`,
-      });
+  problems.push(...missingDiagramProblems(pages, diagrams, wikiRoot));
   for (const page of pages) {
     try {
       if (page.fm.rawSources) readPageRaw(wikiRoot, page.fm.id, page.fm.rawSources);
@@ -791,7 +855,13 @@ export function runLint(
       problems.push({ file: page.file, rule: "raw-integrity", message: String(error) });
     }
   }
-  const opts: LintOptions = { chapterIds: CHAPTER_IDS, existsFile: wikiFileExists(wikiRoot) };
+  const opts: LintOptions = {
+    chapterIds: CHAPTER_IDS,
+    existsFile: wikiFileExists(wikiRoot),
+    reservedPages: problems
+      .filter((p) => (PAGE_DIRS as readonly string[]).includes(posix.dirname(p.file)))
+      .map((p) => ({ id: posix.basename(p.file, ".md"), file: p.file })),
+  };
   // 不带仓库前缀的版本沿用社区分支名；独立工作版用 repo:ref，避免混淆两个 main。
   const refsByRepo = configuredRefs(rootDir);
   const knownRefs = [

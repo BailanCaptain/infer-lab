@@ -448,3 +448,72 @@ it("reserves space for every cited page and checks details introduced by the ans
     },
   );
 });
+
+it("separates answer honesty from task knowledge sufficiency in judge rules and distinguishes boundary explanation vs missing measurement", async () => {
+  const f = await setup();
+  f.write(
+    "wiki/concepts/bench.md",
+    "---\nid: bench\ntitle: 推理测量\ntype: concept\nsummary: 玩具算例与真实实测的边界\nsources: [https://docs.vllm.ai/en/v0.10.0/]\nevidence: I\nrelations:\n  - to: a\n    kind: builds-on\n    note: 基于基础定义\nupdated: '2026-11-15'\n---\n## 教学算例的边界\n以下是为演算构造的教学结果，不是已运行的压测；本页不提供这套设备的性能实测值。\n",
+  );
+  const snapshot = await readKnowledgeSnapshot(f.root);
+  let capturedRules = "";
+
+  // Case 1 (Positive): Epistemic/methodological question asking WHETHER/WHY a toy example can be treated as real benchmark -> covered
+  const positive = await judgeAnswer(
+    f.root,
+    {
+      ...f.input,
+      question: "这个教学算例能否直接当作真实硬件实测？为什么不能直接推断？",
+      answer:
+        "不能直接当作真实硬件实测，因为它是为演算构造的教学结果，见 [推理测量](concepts/bench.md#教学算例的边界)。",
+      snapshot,
+      evidencePages: snapshot.pageTexts,
+    },
+    {
+      runAgent: async (req) => {
+        capturedRules = req.args.join("\n");
+        return runner({
+          satisfied: true,
+          classification: "covered",
+          reason: "提问求证教学算例能否当作硬件实测的方法论边界，正文已明确说明该边界。",
+          answerQuote: "不能直接当作真实硬件实测",
+          evidence: [
+            {
+              pageId: "bench",
+              quote: "以下是为演算构造的教学结果，不是已运行的压测；本页不提供这套设备的性能实测值。",
+            },
+          ],
+        })(req);
+      },
+    },
+  );
+  expect(positive.decision).toMatchObject({ satisfied: true, classification: "covered" });
+  // Rules must explicitly require separating answer honesty from substantive knowledge sufficiency
+  expect(capturedRules).toContain("作答诚实");
+  expect(capturedRules).toContain("不能判 covered");
+
+  // Case 2 (Negative): User requests actual archived measurements for launch commitment; honest refusal is missing-knowledge (NOT covered)
+  const negative = await judgeAnswer(
+    f.root,
+    {
+      ...f.input,
+      question:
+        "我要做上线容量承诺。请只依据当前知识库已经归档的实际测量，给出 Atlas 800T A3 并发 32 的实测 p99 TTFT 与成功率，不要虚构缺失数值。",
+      answer:
+        '当前注入的知识库正文没有这组条件下的已归档实测，无法据此作上线容量承诺，见 [推理测量](concepts/bench.md#教学算例的边界)。<!-- wiki-coverage: {"satisfied":false,"reason":"缺少指定条件实测"} -->',
+      snapshot,
+      evidencePages: snapshot.pageTexts,
+    },
+    {
+      runAgent: runner({
+        satisfied: false,
+        classification: "missing-knowledge",
+        reason:
+          "用户索要指定硬件与并发的归档实测做容量承诺；回答如实说明无实测不属作答错误，但所给正文确无该实测数据。",
+        answerQuote: "当前注入的知识库正文没有这组条件下的已归档实测，无法据此作上线容量承诺",
+        evidence: [{ pageId: "bench", quote: "本页不提供这套设备的性能实测值。" }],
+      }),
+    },
+  );
+  expect(negative.decision).toMatchObject({ satisfied: false, classification: "missing-knowledge" });
+});

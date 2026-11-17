@@ -1,3 +1,6 @@
+import { readFileSync, realpathSync } from "node:fs";
+import { createRequire } from "node:module";
+import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ReactMarkdown from "react-markdown";
@@ -33,4 +36,47 @@ it("precompiled Markdown preserves headings, evidence, tables, fences and unsafe
   expect(render()).toBe(expected);
   expect(expected).not.toContain('href="javascript:');
   expect(expected).not.toContain("<script>");
+});
+
+it("locks top-level katex stylesheet package to the exact katex instance resolved by rehype-katex", () => {
+  const topRequire = createRequire(join(process.cwd(), "package.json"));
+  const rendererRequire = createRequire(topRequire.resolve("rehype-katex"));
+  const topKatexPkg = topRequire("katex/package.json") as { version: string };
+  const rendererKatexPkg = rendererRequire("katex/package.json") as { version: string };
+
+  expect(topKatexPkg.version).toBe(rendererKatexPkg.version);
+  expect(realpathSync(topRequire.resolve("katex"))).toBe(realpathSync(rendererRequire.resolve("katex")));
+
+  const css = readFileSync(topRequire.resolve("katex/dist/katex.min.css"), "utf8");
+  const md = [
+    "暴露通信耗时记为 $T_{\\text{comm,exposed}}$，单步耗时满足：",
+    "",
+    "$$",
+    "T_{\\text{step}} \\ge \\max\\!\\left(T_{\\text{compute}}\\!\\left(\\left\\{\\frac{W_p}{P_{\\text{peak},p}}\\right\\}\\right),\\; \\frac{Q_{\\text{dram}}}{BW_{\\text{dram}}}\\right) + T_{\\text{comm,exposed}}",
+    "$$",
+    "",
+  ].join("\n");
+
+  const compiled = compileMarkdown(md);
+  const compiledHtml = renderToStaticMarkup(
+    createElement(ReactMarkdown, { rehypePlugins: [() => () => structuredClone(compiled) as never] }, ""),
+  );
+
+  for (const cls of [
+    "base",
+    "sizing",
+    "reset-size6",
+    "size3",
+    "mfrac",
+    "frac-line",
+    "vlist-t",
+    "vlist-r",
+    "vlist",
+    "msupsub",
+    "pstrut",
+    "nulldelimiter",
+  ]) {
+    expect(compiledHtml, `DOM 应包含 .${cls}`).toMatch(new RegExp(`\\bclass="[^"]*\\b${cls}\\b`));
+    expect(css, `katex.min.css 应定义 .${cls}`).toMatch(new RegExp(`\\.${cls}(?=[\\s.,:{>+~\\[]|$)`));
+  }
 });

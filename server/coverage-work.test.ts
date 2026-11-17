@@ -3,9 +3,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { listGaps, recordGapObservation } from "../scripts/wiki/gap-ledger";
+import { CATALOG_MAX } from "../scripts/wiki/navigation";
 import { saveRawSnapshot } from "../scripts/wiki/raw";
 import { wikiFixture } from "../scripts/wiki/test-fixture";
-import { CATALOG_MAX } from "../scripts/wiki/navigation";
 import { digest, WorkflowStore } from "../scripts/wiki/workflow";
 import { assessGap, listCoverageAssessments, prepareCoverageReview } from "./coverage-work";
 import { readKnowledgeSnapshot } from "./snapshot";
@@ -117,11 +117,16 @@ it("unknown fees retain the reservation and require explicit retry within the or
   const done = await assessGap(f.root, f.key, policy, { runAgent: runner(), retry: true });
   expect(done.ok).toBe(true);
   // 判定完成后换个预算来读同一份回执不再收费，也不再拒绝（2026-09-23：夜间任务复用手工 assess 的诊断）
-  const reused = await assessGap(f.root, f.key, { ...policy, maxCostUsd: 2 }, {
-    runAgent: async () => {
-      throw new Error("must not run again");
+  const reused = await assessGap(
+    f.root,
+    f.key,
+    { ...policy, maxCostUsd: 2 },
+    {
+      runAgent: async () => {
+        throw new Error("must not run again");
+      },
     },
-  });
+  );
   expect(reused).toMatchObject({ ok: true, jobId: done.jobId });
   expect(new WorkflowStore(f.root).get(done.jobId).attempts).toHaveLength(2);
 });
@@ -536,4 +541,25 @@ it.each([
   ).rejects.toThrow();
   expect(new WorkflowStore(f.root).list()).toHaveLength(1);
   expect(existsSync(join(f.root, "wiki/_drafts"))).toBe(false);
+});
+
+it("resolves recalled pages from locked snapshot.pageTexts while keeping snapshot.index body-only without frontmatter", async () => {
+  const f = await setup();
+  const snap = await readKnowledgeSnapshot(f.root);
+  expect(snap.index.byId.get("a")!.text).not.toContain("---");
+  expect(snap.index.byId.get("a")!.text).not.toContain("evidence: S");
+  expect(snap.pageTexts.find((p) => p.file === "sources/a.md")?.text).toContain("evidence: S");
+
+  let suppliedPages: { id: string; text: string; truncated: boolean }[] = [];
+  const res = await assessGap(f.root, f.key, policy, {
+    runAgent: async (req) => {
+      suppliedPages = JSON.parse(req.stdin).material.pages;
+      return runner()(req);
+    },
+  });
+  expect(res.ok).toBe(true);
+  expect(suppliedPages).toHaveLength(1);
+  expect(suppliedPages[0]!.id).toBe("a");
+  expect(suppliedPages[0]!.text).toContain("默认值为 1。");
+  expect(suppliedPages[0]!.text).not.toContain("evidence: S");
 });

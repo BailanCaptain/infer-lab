@@ -6,11 +6,16 @@ import {
   type DropReceipt,
   dropBatchSchema,
   type dropReviewSchema,
+  type FactDispositionEntry,
 } from "../../src/content/wiki/drop";
 import { inputByteLimit, textChunks } from "./context-window";
+import { diagramRefs } from "./diagrams";
+import { diagramMaterialPaths } from "./drop-assets";
 import { mergedRanges } from "./drop-context";
 import { DropDiscovery } from "./drop-discovery";
+import { collectPageFactDispositions } from "./fact-disposition";
 import { loadPages, parsePage, type WikiPage } from "./pages";
+import type { Revision } from "./revisions";
 import { digest } from "./workflow";
 
 type DropReview = z.infer<typeof dropReviewSchema>;
@@ -27,17 +32,30 @@ export function assertDropProtocol(root: string, drop?: DropReview) {
   const file = join(root, `wiki/_jobs/drops/batches/${drop.id}.json`);
   if (existsSync(file)) {
     const batch = JSON.parse(readFileSync(file, "utf8"));
-    if (batch.protocol === 3 && batch.generation === drop.generation && drop.protocol !== 3)
-      fail("不能把当前批次降级成旧协议");
+    if (
+      (batch.protocol === 3 || batch.protocol === 4) &&
+      batch.generation === drop.generation &&
+      drop.protocol !== batch.protocol
+    )
+      fail("不能把当前批次降级或篡改协议版本");
   }
   const attempt = join(root, `wiki/_jobs/drops/runs/${drop.id}/${drop.generation}/attempt.json`);
-  if (existsSync(attempt) && JSON.parse(readFileSync(attempt, "utf8")).protocol === 3 && drop.protocol !== 3)
-    fail("不能把当前批次降级成旧协议");
-  if (drop.protocol === 3 && !drop.receipt) fail("缺少复核记录");
+  if (existsSync(attempt)) {
+    const recorded = JSON.parse(readFileSync(attempt, "utf8")).protocol;
+    if ((recorded === 3 || recorded === 4) && drop.protocol !== recorded)
+      fail("不能把当前批次降级或篡改协议版本");
+  }
+  if ((drop.protocol === 3 || drop.protocol === 4) && !drop.receipt) fail("缺少复核记录");
+  if (drop.receipt && drop.protocol !== drop.receipt.protocol) fail("外层协议版本与复核记录协议不一致");
 }
 
 /** Reconstruct provision from durable actual inputs, then recompute graph obligations from both versions. */
-export function validateDropReceipt(root: string, drop: DropReview | undefined, writes: Write[]) {
+export function validateDropReceipt(
+  root: string,
+  drop: DropReview | undefined,
+  writes: Write[],
+  revisions?: Revision[],
+) {
   assertDropProtocol(root, drop);
   if (!drop?.receipt) return;
   const receipt = drop.receipt;
@@ -191,6 +209,24 @@ export function validateDropReceipt(root: string, drop: DropReview | undefined, 
         pids.every((p) => c.pages.includes(p)) &&
         ranges.every((r) => covers(c.bindings, r.id, r.start, r.end)),
     );
+  const requiredDiagramRanges = (did: string): DropRange[] => {
+    const yamlAfter = after.get(`wiki/diagrams/${did}.yaml`) ?? fail(`共享资产缺少图规格 ${did}`);
+    let relPaths: string[];
+    try {
+      relPaths = diagramMaterialPaths(did, yamlAfter);
+    } catch {
+      fail(`共享资产图规格无效 ${did}`);
+    }
+    return relPaths!.map((relPath) => {
+      const expectedText = after.get(`wiki/${relPath}`) ?? fail(`共享资产缺少文件内容 ${relPath}`);
+      const expectedHash = digest(expectedText);
+      const resource =
+        receipt.resources.find(
+          (r) => r.kind === "diagram" && r.path === relPath && r.hash === expectedHash,
+        ) ?? fail(`共享资产缺少当前候选 ${relPath}`);
+      return { id: resource.id, hash: resource.hash, start: 0, end: resource.length };
+    });
+  };
   for (const pid of targetIds) {
     const r = finalResource(pid);
     const plan = receipt.plans.find((p) => p.path === r.path) ?? fail("目标页缺少整合判断");
@@ -199,16 +235,38 @@ export function validateDropReceipt(root: string, drop: DropReview | undefined, 
     );
     if (!relevant.length) fail("目标页缺少本批原文依据");
     const old = receipt.resources.find((s) => s.kind === "page" && s.path === r.path);
+    const newPage = newPages.find((p) => p.fm.id === pid)!;
+    const nativePageDiagramRanges = [...new Set(diagramRefs(newPage.body))].flatMap((did) => {
+      const yamlAfter = after.get(`wiki/diagrams/${did}.yaml`);
+      if (!yamlAfter) return [];
+      const relPaths = diagramMaterialPaths(did, yamlAfter);
+      return relPaths.length > 1 ? requiredDiagramRanges(did) : [];
+    });
     for (const candidate of chunks(r))
       for (const source of relevant)
         for (const sourceChunk of chunks(source))
           for (const prior of old ? chunks(old) : [undefined])
-            if (!hasCheck("page", [pid], [candidate, sourceChunk, ...(prior ? [prior] : [])]))
+            if (
+              !hasCheck(
+                "page",
+                [pid],
+                [candidate, sourceChunk, ...(prior ? [prior] : []), ...nativePageDiagramRanges],
+              )
+            )
               fail(`逐页原文复核缺段 ${pid}`);
   }
-  const changedAssets = writes
-    .filter((w) => /^wiki\/diagrams\/.*\.yaml$/.test(w.path))
-    .map((w) => w.path.split("/").at(-1)!.slice(0, -5));
+  const changedAssets = [
+    ...new Set(
+      writes
+        .filter((w) => /^wiki\/diagrams\/.*\.(yaml|svg)$/.test(w.path))
+        .map((w) =>
+          w.path
+            .split("/")
+            .at(-1)!
+            .replace(/\.(yaml|svg)$/, ""),
+        ),
+    ),
+  ];
   const tasks = new Map(
     [
       ...new DropDiscovery(oldPages).impact(targetIds, changedAssets),
@@ -236,23 +294,50 @@ export function validateDropReceipt(root: string, drop: DropReview | undefined, 
     const combinations = task.pages
       .map((pid) => chunks(finalResource(pid)))
       .reduce<DropRange[][]>((sets, ranges) => sets.flatMap((set) => ranges.map((r) => [...set, r])), [[]]);
-    const asset =
-      task.asset &&
-      receipt.resources.find(
-        (r) =>
-          r.path === `diagrams/${task.asset}.yaml` &&
-          r.hash === digest(after.get(`wiki/diagrams/${task.asset}.yaml`)!),
-      );
-    if (task.asset && !asset) fail("共享资产缺少当前候选");
+    const assetRanges = task.asset ? requiredDiagramRanges(task.asset) : [];
     for (const ranges of combinations)
-      if (
-        !hasCheck(
-          task.kind,
-          task.pages,
-          [...ranges, ...(asset ? [{ id: asset.id, hash: asset.hash, start: 0, end: asset.length }] : [])],
-          task.asset,
-        )
-      )
+      if (!hasCheck(task.kind, task.pages, [...ranges, ...assetRanges], task.asset))
         fail(`跨页或共享资产复核缺失 ${task.id}`);
+  }
+  if (receipt.protocol === 4) {
+    const sortedChanged = [...changed].sort((a, b) => a.path.localeCompare(b.path));
+    const expected: FactDispositionEntry[] = [];
+    for (const w of sortedChanged) {
+      const prior = base.get(w.path);
+      if (!prior || w.after === null) continue;
+      const pid = w.path.split("/").at(-1)!.slice(0, -3);
+      const rev = revisions?.find((r) => r.id === pid);
+      const pageSealed = receipt.factDispositions.filter((e) => e.pageId === pid);
+      try {
+        expected.push(
+          ...collectPageFactDispositions(w.path.slice(5), prior, w.after, rev, sortedChanged, pageSealed),
+        );
+      } catch (error) {
+        fail(String(error));
+      }
+    }
+    for (const entry of expected) {
+      if (entry.verification !== "semantic-check") continue;
+      if (!entry.checkId || !receipt.requiredChecks.includes(entry.checkId))
+        fail(`协议四语义复核事实缺少绑定复核记录 ${entry.pageId}`);
+      const checkRecord =
+        receipt.checks.find((c) => c.id === entry.checkId) ??
+        fail(`协议四语义复核记录不存在 ${entry.checkId}`);
+      const oldRes = receipt.resources.find(
+        (r) => r.kind === "page" && r.path.endsWith(`/${entry.pageId}.md`),
+      );
+      const candRes = finalResource(entry.pageId);
+      if (oldRes?.length && !covers(checkRecord.bindings, oldRes.id, 0, oldRes.length))
+        fail(`协议四语义复核未完整覆盖旧页 ${entry.checkId}`);
+      if (candRes.length && !covers(checkRecord.bindings, candRes.id, 0, candRes.length))
+        fail(`协议四语义复核未完整覆盖候选页 ${entry.checkId}`);
+      if (entry.outlet === "migrated" && entry.targetPage) {
+        const targetRes = finalResource(entry.targetPage);
+        if (targetRes.length && !covers(checkRecord.bindings, targetRes.id, 0, targetRes.length))
+          fail(`协议四语义复核未完整覆盖跨页目标 ${entry.checkId}`);
+      }
+    }
+    if (JSON.stringify(receipt.factDispositions) !== JSON.stringify(expected))
+      fail("协议四事实去向记录缺失或与候选页面不一致");
   }
 }

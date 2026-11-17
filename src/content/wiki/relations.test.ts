@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupRelations, neighborhood } from "./relations";
+import { groupRelations, neighborhood, prerequisiteRelations } from "./relations";
 
 const rel = (
   to: string,
@@ -62,5 +62,22 @@ describe("neighborhood", () => {
 
   it("没有邻居时三桶都空", () => {
     expect(neighborhood([], [])).toEqual({ foundations: [], dependents: [], siblings: [] });
+  });
+});
+
+describe("prerequisiteRelations", () => {
+  it("仅提取出边 builds-on，保留作者声明先后顺序并按目标 id 去重", () => {
+    expect(
+      prerequisiteRelations([
+        rel("matmul-and-weights", "builds-on", "先认识矩阵乘"),
+        rel("kv-cache-quantization", "alternative-to", "历史缓存另算"),
+        rel("glm-5-3-flash", "builds-on", "模型精度出处"),
+        rel("matmul-and-weights", "builds-on", "重复项应忽略"),
+      ]),
+    ).toEqual([
+      { id: "matmul-and-weights", note: "先认识矩阵乘" },
+      { id: "glm-5-3-flash", note: "模型精度出处" },
+    ]);
+    expect(prerequisiteRelations([rel("kv-pool", "alternative-to")])).toEqual([]);
   });
 });

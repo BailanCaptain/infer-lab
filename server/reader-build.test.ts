@@ -41,13 +41,23 @@ it("the build reader and API expose the same knowledge revision, pages and conte
         .sort(),
     ).toEqual(snapshot.registry.pages.map((p) => p.id).sort());
 
+    // Static build search must hit body-only keywords via the prebuilt search index without loading page chunks.
+    const hits = await reader.retrieve("保留版本条件");
+    expect(hits.map((h) => h.id)).toEqual(["a"]);
+    expect(reader.getPage("a")).toBeUndefined();
+    expect(reader.getPage("b")).toBeUndefined();
+
     // Lazy build imports must stay on their captured revision even after the live Wiki changes.
     f.write("wiki/sources/b.md", pageText("b", "后续发布的新正文。"));
     const live = await readReaderSnapshot(f.root);
     expect(live.revision).not.toBe(snapshot.revision);
     for (const page of snapshot.registry.pages) {
       await reader.ensurePage(page.id);
-      expect(reader.getPage(page.id)).toEqual({ fm: page, body: bodies.get(page.id), compiled: snapshot.pageTexts.find((p) => p.file === page.file)?.compiled });
+      expect(reader.getPage(page.id)).toEqual({
+        fm: page,
+        body: bodies.get(page.id),
+        compiled: snapshot.pageTexts.find((p) => p.file === page.file)?.compiled,
+      });
       expect(snapshot.pageTexts.find((p) => p.file === page.file)?.text).toBe(
         pageText(page.id, bodies.get(page.id)!),
       );
@@ -55,6 +65,8 @@ it("the build reader and API expose the same knowledge revision, pages and conte
     reader.installReaderSnapshot(live);
     expect(reader.getReaderState()).toMatchObject({ revision: live.revision, mode: "local" });
     expect(reader.getPage("b")?.body).toBe("后续发布的新正文。");
+    expect((await reader.retrieve("后续发布的新正文")).map((h) => h.id)).toEqual(["b"]);
+    expect(await reader.retrieve("参见")).toEqual([]);
   } finally {
     await server?.close();
     f.cleanup();

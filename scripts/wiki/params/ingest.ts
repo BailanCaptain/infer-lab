@@ -14,7 +14,7 @@ import { atomicText, digest, WorkflowStore } from "../workflow";
 import type { WorkflowPolicy } from "../workflow-policy";
 import { paramSourceContext } from "./context";
 import { parameterPageId } from "./identities";
-import { buildParamPage, protectedParamSection } from "./pages";
+import { buildParamPage, protectedParamSection, resolveConfiguredRepoDir } from "./pages";
 
 /** The model supplies prose only. Generated definitions and version tables never enter its output contract. */
 export async function ingestParam(
@@ -24,7 +24,8 @@ export async function ingestParam(
   deps: { runAgent?: RunAgent; retry?: boolean } = {},
 ) {
   const existing = loadPages(join(root, "wiki")).pages;
-  const id = parameterPageId(root, input.repo, input.entry, existing);
+  const repoDir = resolveConfiguredRepoDir(root, input.repo);
+  const id = parameterPageId(root, input.repo, input.entry, existing, repoDir);
   if (!id) return { id, skipped: true as const, reason: "引用身份不单独补写" };
   const path = localFile(root, `wiki/params/${id}.md`);
   const draftPath = localFile(root, `wiki/_drafts/${id}.md`);
@@ -32,7 +33,7 @@ export async function ingestParam(
   const priorDraft = existsSync(draftPath) ? readFileSync(draftPath, "utf8") : undefined;
   const previous = priorPublished ?? priorDraft;
   const skeleton = buildParamPage(
-    { ...input, pageId: id, date: new Date().toISOString().slice(0, 10) },
+    { ...input, pageId: id, ...(repoDir ? { repoDir } : {}), date: new Date().toISOString().slice(0, 10) },
     previous,
   );
   if (

@@ -335,13 +335,15 @@ summary.wiki-toc-part-head::-webkit-details-marker {
 .wiki-body > ol,
 .wiki-body > blockquote,
 .wiki-body > h2,
-.wiki-body > h3 {
+.wiki-body > h3,
+.wiki-body > details.wiki-source-check {
   max-width: var(--wiki-measure);
 }
 
 /* 图、表、代码块和上面的文字同宽。用 :where 把优先级压到 0，
    后面 .wiki-table-scroll、.wiki-diagram 自己的规则才不会被这一条压住。 */
-.wiki-body > :where(figure, .wiki-table-scroll, pre) {
+.wiki-body > :where(figure, .wiki-table-scroll, pre),
+.wiki-body .wiki-source-check-body > :where(figure, .wiki-table-scroll, pre) {
   max-width: var(--wiki-measure);
 }
 
@@ -386,17 +388,17 @@ summary.wiki-toc-part-head::-webkit-details-marker {
    只给 markdown 产出的列表加回来：正文的直接子列表，以及列表项、引用里嵌套的列表。
    「接着看」「查看来源」这些组件自己的列表不在这几个位置上，不受影响。 */
 .wiki-body > :is(ul, ol),
-.wiki-body :where(li, blockquote) > :is(ul, ol) {
+.wiki-body :where(.wiki-source-check-body, li, blockquote) > :is(ul, ol) {
   padding-left: 1.75em;
 }
 
 .wiki-body > ul,
-.wiki-body :where(li, blockquote) > ul {
+.wiki-body :where(.wiki-source-check-body, li, blockquote) > ul {
   list-style-type: disc;
 }
 
 .wiki-body > ol,
-.wiki-body :where(li, blockquote) > ol {
+.wiki-body :where(.wiki-source-check-body, li, blockquote) > ol {
   list-style-type: decimal;
 }
 
@@ -765,11 +767,18 @@ summary.wiki-toc-part-head::-webkit-details-marker {
   }
 }
 
+.wiki-body .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 4px;
+}
+
 /* ---------- 知识库助手：问答 + 审阅 + 刷新，一个侧栏 ---------- */
 
 /* 宽屏上侧栏占第三列，把正文往左挤，不盖在正文上。问答和审阅同宽：切页签时面板和正文都不该跳 */
 @media (min-width: 1180px) {
   .wiki-shell.is-panel-chat,
+  .wiki-shell.is-panel-evidence,
   .wiki-shell.is-panel-drop,
   .wiki-shell.is-panel-review,
   .wiki-shell.is-panel-status {
@@ -841,6 +850,7 @@ summary.wiki-toc-part-head::-webkit-details-marker {
 
 .wiki-panel-tabs {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 2px;
   padding: 3px;
   border-radius: 9px;
@@ -850,8 +860,8 @@ summary.wiki-toc-part-head::-webkit-details-marker {
 .wiki-panel-tabs button {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 14px;
+  gap: 5px;
+  padding: 5px 11px;
   border: none;
   border-radius: 7px;
   background: none;
@@ -2371,6 +2381,46 @@ summary.wiki-toc-part-head::-webkit-details-marker {
   letter-spacing: -0.02em;
 }
 
+.wiki-source-check {
+  margin-top: 36px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-line);
+}
+
+.wiki-source-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.wiki-source-summary::-webkit-details-marker {
+  display: none;
+}
+
+.wiki-body .wiki-source-summary > h2 {
+  margin: 0;
+}
+
+.wiki-source-summary::after {
+  content: "展开核验 ▸";
+  flex: none;
+  font-size: var(--text-compact);
+  font-weight: 500;
+  color: var(--color-ink-muted);
+}
+
+.wiki-source-check[open] > .wiki-source-summary::after {
+  content: "收起 ▾";
+}
+
+.wiki-source-check[open] > .wiki-source-check-body {
+  margin-top: 14px;
+}
+
 .wiki-next-group {
   margin-bottom: 18px;
 }
@@ -2437,16 +2487,19 @@ summary.wiki-toc-part-head::-webkit-details-marker {
    这里加回 decimal。序号由浏览器按顺序画，和 sources 数组下标 +1 一致（角标 [C3] → sources[2]）。 */
 .wiki-sources ol {
   margin: 8px 0 0;
-  padding-left: 2em;
+  padding-left: 2.4em;
   list-style-type: decimal;
 }
 
 .wiki-sources :where(li) {
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .wiki-sources :where(li)::marker {
-  color: var(--color-ink-faint);
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
 }
 
 .wiki-sources p {
@@ -2460,6 +2513,13 @@ summary.wiki-toc-part-head::-webkit-details-marker {
   padding: 14px;
   border: 1px solid var(--color-line);
   border-radius: 8px;
+}
+
+.wiki-save-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 
 .wiki-save label {
@@ -3126,4 +3186,662 @@ summary.wiki-toc-part-head::-webkit-details-marker {
   padding-left: 10px;
   border-left: 2px solid currentColor;
   white-space: pre-wrap;
+}
+
+/* ---------- 离线源码与原文证据面板（Task 045 · EvidencePane.tsx） ---------- */
+.wiki-mark-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  vertical-align: baseline;
+  cursor: pointer;
+}
+
+.wiki-source-item {
+  display: list-item;
+  list-style-type: decimal;
+}
+
+.wiki-source-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.wiki-source-open {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  line-height: 1.65;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: var(--color-line-strong);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.wiki-source-open:hover {
+  color: var(--color-accent);
+  text-decoration-color: var(--color-accent);
+}
+
+.wiki-source-ext {
+  color: var(--color-accent);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.wiki-source-ext:hover {
+  text-decoration: underline;
+}
+
+.wiki-evpane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+}
+
+.wiki-evpane-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.wiki-evpane-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.wiki-evpane-counter {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-muted);
+}
+
+.wiki-evpane-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px;
+  overscroll-behavior: contain;
+}
+
+.wiki-evpane-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 20px 4px;
+}
+
+.wiki-evpane-empty-title {
+  font-size: var(--text-lead);
+  line-height: 1.5;
+  color: var(--color-ink);
+}
+
+.wiki-evpane-empty-hint {
+  margin: 0;
+  font-size: var(--text-compact);
+  line-height: 1.75;
+  color: var(--color-ink-muted);
+}
+
+.wiki-evpane-loading {
+  margin: 0;
+  padding: 20px 4px;
+  font-size: var(--text-compact);
+  color: var(--color-ink-muted);
+}
+
+.wiki-evpane-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.wiki-evpane-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-field);
+  background: var(--color-accent);
+  color: var(--color-ink-inverse);
+  font: inherit;
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wiki-evpane-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.wiki-evpane-pins {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-field);
+  background: var(--color-surface-elevated);
+}
+
+.wiki-evpane-pins-label {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+
+.wiki-evpane-pins-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wiki-evpane-pin {
+  padding: 4px 10px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  cursor: pointer;
+}
+
+.wiki-evpane-pin.is-selected {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.wiki-evpane-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-field);
+  background: var(--color-surface-elevated);
+}
+
+.wiki-evpane-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.wiki-evpane-kind {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-surface-sunken);
+  color: var(--color-ink);
+  font-size: var(--text-micro);
+  font-weight: 600;
+}
+
+.wiki-evpane-commit {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-variant-numeric: tabular-nums;
+}
+
+.wiki-evpane-ver {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 600;
+}
+
+.wiki-evpane-ver.is-muted {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-faint);
+}
+
+.wiki-evpane-path {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  line-height: 1.5;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.wiki-evpane-range {
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-muted);
+}
+
+.wiki-evpane-codebox {
+  border: 1px solid var(--color-line);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-field);
+  background: var(--color-surface-elevated);
+  overflow-x: auto;
+  padding: 8px 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  line-height: 21px;
+}
+
+.wiki-evpane-row {
+  display: grid;
+  grid-template-columns: minmax(44px, auto) minmax(0, 1fr);
+  min-height: 21px;
+  padding: 1px 12px 1px 8px;
+}
+
+.wiki-evpane-row:hover {
+  background: var(--color-surface-sunken);
+}
+
+.wiki-evpane-ln {
+  padding-right: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-faint);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.wiki-evpane-code {
+  color: var(--color-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.wiki-evpane-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-elevated);
+}
+
+.wiki-evpane-card.is-unavailable {
+  border-left: 3px solid var(--color-warning);
+}
+
+.wiki-evpane-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-compact);
+  color: var(--color-ink);
+}
+
+.wiki-evpane-card-desc {
+  margin: 0;
+  font-size: var(--text-label);
+  line-height: 1.65;
+  color: var(--color-ink-muted);
+}
+
+.wiki-evpane-rawref {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-ink-muted);
+  overflow-wrap: anywhere;
+}
+
+.wiki-evpane-extbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-field);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+  font-size: var(--text-label);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.wiki-evpane-extbtn:hover {
+  background: var(--color-accent);
+  color: var(--color-ink-inverse);
+}
+
+.wiki-evpane-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.wiki-evpane-extlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-accent);
+  font-size: var(--text-label);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.wiki-evpane-extlink:hover {
+  text-decoration: underline;
+}
+
+.wiki-evpane-muted {
+  font-size: var(--text-caption);
+  color: var(--color-ink-faint);
+}
+
+.wiki-diagram-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.wiki-diagram-evidence-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-surface-elevated);
+  color: var(--color-ink-muted);
+  font: inherit;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wiki-diagram-evidence-btn:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+}
+
+/* ---------- 人工注册静态白名单交互式 React 2D ---------- */
+
+.wiki-diagram-interactive {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.wiki-diagram-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-field);
+  background: var(--color-surface-sunken);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.wiki-diagram-mode-switch,
+.wiki-diagram-step-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.wiki-diagram-ctrl-btn,
+.wiki-diagram-step-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-field);
+  background: var(--color-surface-elevated);
+  color: var(--color-ink-muted);
+  font: inherit;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.wiki-diagram-ctrl-btn:hover:not(:disabled),
+.wiki-diagram-step-btn:hover:not(:disabled) {
+  border-color: var(--color-line-strong);
+  color: var(--color-ink);
+}
+
+.wiki-diagram-ctrl-btn[aria-pressed="true"] {
+  border-color: var(--color-ink);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.wiki-diagram-step-btn[aria-current="step"] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-ink-inverse);
+}
+
+.wiki-diagram-ctrl-btn:disabled,
+.wiki-diagram-step-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.wiki-diagram-ctrl-btn:focus-visible,
+.wiki-diagram-step-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.wiki-diagram-stage {
+  position: relative;
+  width: 880px;
+  height: 440px;
+  flex-shrink: 0;
+}
+
+.wiki-diagram-base {
+  width: 880px;
+  height: 440px;
+}
+
+.wiki-diagram-overlay {
+  position: absolute;
+  inset: 0;
+  width: 880px;
+  height: 440px;
+  pointer-events: none;
+}
+
+.wiki-diagram-focus-rect {
+  fill: var(--color-accent-soft);
+  fill-opacity: 0.22;
+  stroke: var(--color-accent);
+  stroke-width: 2.2;
+}
+
+.wiki-diagram-focus-path {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wiki-diagram-focus-badge {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2.8;
+}
+
+.wiki-diagram-badge-hit {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.wiki-diagram-badge-hit:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.wiki-diagram-step-readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-field);
+  background: var(--color-surface-elevated);
+  font-size: var(--text-label);
+  line-height: 22px;
+  color: var(--color-ink);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.wiki-diagram-step-tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+}
+
+.wiki-diagram-step-title {
+  font-size: var(--text-label);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.wiki-diagram-step-detail {
+  flex: 1 1 100%;
+  color: var(--color-ink-muted);
+  font-size: var(--text-label);
+  line-height: 22px;
+}
+
+.wiki-diagram-step-overview-hint {
+  color: var(--color-ink-muted);
+  font-size: var(--text-caption);
+  line-height: 20px;
+}
+
+.wiki-evpane-symbols {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-accent-hover);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- 页头紧凑前置阅读（builds-on）导览条 ---------- */
+
+.wiki-prereq-bar {
+  order: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  margin-top: 14px;
+  padding: 7px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-field);
+  background: var(--color-surface-sunken);
+  max-width: 100%;
+}
+
+.wiki-prereq-label {
+  flex: none;
+  font-size: var(--text-caption);
+  line-height: var(--text-caption--line-height);
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+
+.wiki-prereq-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.wiki-prereq-item {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.wiki-term:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.wiki-term-card-note {
+  font-size: var(--text-caption);
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--color-accent-hover);
 }

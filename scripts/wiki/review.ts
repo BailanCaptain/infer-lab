@@ -368,7 +368,7 @@ export function createReviewInLock(
     ...(drop ? { drop } : {}),
   });
   if (payload.writes.some((w) => !allowed(w))) throw new Error("候选包含不允许的发布路径或操作");
-  validateDropReceipt(root, payload.drop, payload.writes);
+  validateDropReceipt(root, payload.drop, payload.writes, payload.decision.revisions);
   const id = digest(JSON.stringify(payload));
   const record: Review = { id, state: "pending", payload };
   checkBase(root, record);
@@ -452,7 +452,7 @@ export async function approveReview(
         throw new Error(`批次子版本状态已变化：${childId}`);
     }
     checkBase(root, review);
-    validateDropReceipt(root, review.payload.drop, review.payload.writes);
+    validateDropReceipt(root, review.payload.drop, review.payload.writes, review.payload.decision.revisions);
     for (const write of review.payload.writes) {
       // 发布会消费草稿；自动生成区保护针对保留下来的正式页。
       const officialPage = /^wiki\/(concepts|params|sources)\//.test(write.path);
@@ -470,6 +470,14 @@ export async function approveReview(
         write.after,
         review.payload.decision.revisions?.find((r) => r.id === id),
         review.payload.decision.revisionDate ?? "",
+        {
+          siblingWrites: review.payload.writes,
+          factDispositions:
+            review.payload.drop?.receipt?.protocol === 4
+              ? review.payload.drop.receipt.factDispositions
+              : undefined,
+          skipFactDisposition: review.payload.drop?.protocol === 3,
+        },
       );
     }
     validateCandidate(root, review, deps.validate ?? validateIntegration);

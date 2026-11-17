@@ -1,5 +1,10 @@
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { planClone, worktreeDir } from "./clone";
+import { parseSeeds } from "./ingest";
 
 const repo = {
   url: "https://github.com/vllm-project/vllm-ascend",
@@ -86,5 +91,79 @@ describe("planClone", () => {
   it("main 要 checkout 到钉住的 commit", () => {
     const plan = planClone({ worktrees: ["tools/repos/vllm-ascend"], isRepo: true }, repo);
     expect(plan.checkoutMain).toEqual(["checkout", "--detach", "28bf3a2e"]);
+  });
+
+  it("为 seeds 声明的 pins 与 40 位独立提交生成 refs/wiki-pins 恢复计划，并在新克隆下救回脱离分支的固定提交", () => {
+    const upstream = mkdtempSync(join(tmpdir(), "wiki-clone-up-"));
+    const ws = mkdtempSync(join(tmpdir(), "wiki-clone-ws-"));
+    try {
+      execFileSync("git", ["init", "-q", "-b", "main", upstream]);
+      execFileSync("git", ["-C", upstream, "config", "user.email", "t@example.com"]);
+      execFileSync("git", ["-C", upstream, "config", "user.name", "t"]);
+      execFileSync("git", ["-C", upstream, "config", "uploadpack.allowAnySHA1InWant", "true"]);
+
+      writeFileSync(join(upstream, "main.py"), "main\n");
+      execFileSync("git", ["-C", upstream, "add", "-A"]);
+      execFileSync("git", ["-C", upstream, "commit", "-q", "-m", "main commit"]);
+      const mainSha = execFileSync("git", ["-C", upstream, "rev-parse", "HEAD"], {
+        encoding: "utf8",
+      }).trim();
+
+      // 创建一个随后删除分支的独立提交（模拟脱离分支/tag 的 db701c1f / ced6857a）
+      execFileSync("git", ["-C", upstream, "checkout", "-q", "-b", "temp-pr"]);
+      writeFileSync(join(upstream, "glm.py"), "glm5\n");
+      execFileSync("git", ["-C", upstream, "add", "-A"]);
+      execFileSync("git", ["-C", upstream, "commit", "-q", "-m", "pr commit"]);
+      const pinSha = execFileSync("git", ["-C", upstream, "rev-parse", "HEAD"], {
+        encoding: "utf8",
+      }).trim();
+      execFileSync("git", ["-C", upstream, "checkout", "-q", "main"]);
+      execFileSync("git", ["-C", upstream, "branch", "-D", "temp-pr"]);
+
+      const parsed = parseSeeds(
+        [
+          "repos:",
+          "  demo:",
+          `    url: "file://${upstream.replace(/\\/g, "/")}"`,
+          "    path: tools/repos/demo",
+          "    refs:",
+          `      main: "${mainSha.slice(0, 8)}"`,
+          "    pins:",
+          `      glm-5-3-flash: "${pinSha}"`,
+          "features: []",
+          "",
+        ].join("\n"),
+      );
+      const plan = planClone(null, parsed.repos.demo!) as ReturnType<typeof planClone> & {
+        pinFetches?: { name: string; commit: string; refspec: string }[];
+      };
+      expect(plan.pinFetches).toEqual([
+        {
+          name: "glm-5-3-flash",
+          commit: pinSha,
+          refspec: `+${pinSha}:refs/wiki-pins/glm-5-3-flash`,
+        },
+      ]);
+
+      // 在全新目录执行 plan.clone + plan.fetch 后，脱离分支的 pinSha 默认不可达；执行 pinFetches 后成功救回并锚定 refs/wiki-pins/glm-5-3-flash
+      const targetDir = join(ws, "tools/repos/demo");
+      execFileSync("git", plan.clone!, { cwd: ws });
+      execFileSync("git", ["-C", targetDir, ...plan.fetch]);
+      expect(() =>
+        execFileSync("git", ["-C", targetDir, "cat-file", "-e", `${pinSha}^{commit}`], { stdio: "ignore" }),
+      ).toThrow();
+
+      for (const p of plan.pinFetches ?? []) {
+        execFileSync("git", ["-C", targetDir, "fetch", "-q", "origin", p.refspec]);
+      }
+      expect(
+        execFileSync("git", ["-C", targetDir, "rev-parse", "refs/wiki-pins/glm-5-3-flash"], {
+          encoding: "utf8",
+        }).trim(),
+      ).toBe(pinSha);
+    } finally {
+      rmSync(upstream, { recursive: true, force: true });
+      rmSync(ws, { recursive: true, force: true });
+    }
   });
 });

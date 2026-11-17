@@ -371,6 +371,24 @@ describe("classifySource", () => {
     );
   });
 
+  it("UC Berkeley Roofline 原始技术报告仅放行 EECS-2008-134.pdf 单文件（paper），拒绝同目录相邻文件与伪域名", () => {
+    const url = "https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/Archive/EECS-2008-134.pdf";
+    expect(classifySource(url)).toBe("paper");
+    expect(classifySource(`${url}#page=5`)).toBe("paper");
+    expect(supportsOfficialEvidence(classifySource(url))).toBe(true);
+    for (const rejected of [
+      "https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/Archive/EECS-2008-135.pdf",
+      "https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/Archive/",
+      "https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/Archive/EECS-2008-134.pdf.bak",
+      "https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/Archive/EECS-2008-134.pdf/extra",
+      "https://www2.eecs.berkeley.edu/",
+      "https://eecs.berkeley.edu/Pubs/TechRpts/2008/Archive/EECS-2008-134.pdf",
+      "https://www2.eecs.berkeley.edu.evil.com/Pubs/TechRpts/2008/Archive/EECS-2008-134.pdf",
+    ]) {
+      expect(classifySource(rejected), rejected).toBe("unlisted");
+    }
+  });
+
   it("子域名不能靠后缀蒙混过关", () => {
     expect(classifySource("https://docs.pytorch.org.evil.com/docs/2.14/distributed.html")).toBe("unlisted");
     expect(classifySource("https://arxiv.org.evil.com/abs/1")).toBe("unlisted");

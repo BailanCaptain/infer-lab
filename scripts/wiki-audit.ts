@@ -8,13 +8,19 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { auditPage, type RefAudit, summarize, warmPageSources } from "./wiki/audit";
-import { auditDiagram } from "./wiki/diagram-audit";
+import { auditDiagrams } from "./wiki/diagram-audit";
 import { loadDiagrams } from "./wiki/diagrams";
 import { createBlobReader } from "./wiki/git";
 import { loadPages, parsePage, type WikiPage } from "./wiki/pages";
 import { readPageRaw, readRawSnapshot } from "./wiki/raw";
 import { configuredRepoRoots } from "./wiki/repo-roots";
-import { auditStandard, bodyLineOffset, formatStandard, loadStandardConfig } from "./wiki/standard";
+import {
+  auditStandard,
+  bodyLineOffset,
+  formatStandard,
+  formatStandardAuditSummary,
+  loadStandardConfig,
+} from "./wiki/standard";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -53,9 +59,9 @@ const deps = {
   readSnapshot: (path: string): string => readRawSnapshot(wikiRoot, path),
 };
 
-warmPageSources(pages, repoRoots);
+warmPageSources(pages, repoRoots, diagrams);
 const all: RefAudit[] = [];
-const symbolProblems = [...diagramProblems, ...pages.flatMap((page) => auditDiagram(page, deps))];
+const symbolProblems = [...diagramProblems, ...auditDiagrams(pages, deps)];
 for (const p of symbolProblems) console.error(`x ${p.file} [${p.rule}] ${p.message}`);
 // 写作标准：只对 scripts/wiki/standard-pages.json 名单里的页强制，其余页只统计
 const standardConfig = loadStandardConfig();
@@ -93,14 +99,12 @@ console.log(`\n审计 ${pages.length} 页，来源 ${all.length} 条`);
 console.log(
   `  行号有效 ${s.ok}，URL 未联网验证 ${s.url}，无效 commit ${s["invalid-commit"]}，文件不存在 ${s["missing-file"]}，行号越界 ${s["out-of-range"]}，未知仓库 ${s["unknown-repo"]}，raw 引用待核对 ${s.notInRaw}`,
 );
-const standardPassed = standard.enforced.filter((e) => !e.problems.length).length;
-const unlistedFailing = Object.entries(standard.unlisted.failing).map(([rule, n]) => `${rule} ${n} 页`);
-console.log(
-  `写作标准：名单 ${standard.enforced.length} 页，达标 ${standardPassed} 页；名单外 ${standard.unlisted.pages} 页只统计不报错（${unlistedFailing.join("，") || "无超标"}）`,
-);
+const standardSummary = formatStandardAuditSummary(standard);
+console.log(standardSummary.summaryLine);
 if (standard.missing.length) console.log(`  名单里这些页本次没有读到：${standard.missing.join("、")}`);
+for (const line of standardSummary.advisoryLines) console.warn(line);
 for (const p of schemaProblems) console.error(`x ${p}`);
-for (const p of standard.problems) console.error(`x ${p.file} [${p.rule}] ${p.message}`);
+for (const line of standardSummary.problemLines) console.error(line);
 const failed =
   s["invalid-commit"] +
   s["missing-file"] +

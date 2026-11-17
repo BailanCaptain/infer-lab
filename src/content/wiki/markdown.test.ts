@@ -192,3 +192,199 @@ describe("知识页正文：专名不从中间断行", () => {
     expect(html).not.toContain("wiki-nobr");
   });
 });
+
+describe("知识页正文：KaTeX 数学公式渲染", () => {
+  it("支持行内公式 $...$ 与块级公式 $$...$$，且不向 KaTeX DOM 混入断行/字格节点", async () => {
+    const { compileMarkdown } = await import("../../../scripts/wiki/compile-markdown");
+    const md = [
+      "量化写为 $q = \\text{clamp}(\\text{round}(x / s), -128, 127)$，反量化写为 $\\hat{y} = s_x \\times s_w \\times \\sum_i q_{x,i} q_{w,i}$。",
+      "",
+      "$$",
+      "s = \\frac{\\max(|x|)}{127}",
+      "$$",
+      "",
+    ].join("\n");
+
+    const liveHtml = render(md);
+    expect(liveHtml).toContain('class="katex"');
+    expect(liveHtml).toContain('class="katex-display"');
+    expect(liveHtml).toContain('<annotation encoding="application/x-tex">');
+    expect(liveHtml).not.toContain("wiki-cell");
+    expect(liveHtml).not.toContain("wiki-nobr");
+    expect(liveHtml).not.toContain("<wbr");
+
+    const compiled = compileMarkdown(md);
+    const compiledHtml = renderToStaticMarkup(
+      createElement(
+        ReactMarkdown,
+        { remarkPlugins: [], rehypePlugins: [() => () => structuredClone(compiled) as never] },
+        md,
+      ),
+    );
+    expect(compiledHtml).toBe(liveHtml);
+  });
+
+  it("编译快照与实时双路对上下标与多层分式输出完全一致的 KaTeX DOM 类结构", async () => {
+    const { compileMarkdown } = await import("../../../scripts/wiki/compile-markdown");
+    const md = [
+      "暴露通信耗时记为 $T_{\\text{comm,exposed}}$，单步耗时满足：",
+      "",
+      "$$",
+      "T_{\\text{step}} \\ge \\max\\!\\left(T_{\\text{compute}}\\!\\left(\\left\\{\\frac{W_p}{P_{\\text{peak},p}}\\right\\}\\right),\\; \\frac{Q_{\\text{dram}}}{BW_{\\text{dram}}}\\right) + T_{\\text{comm,exposed}}",
+      "$$",
+      "",
+    ].join("\n");
+
+    const liveHtml = render(md);
+    const compiled = compileMarkdown(md);
+    const compiledHtml = renderToStaticMarkup(
+      createElement(
+        ReactMarkdown,
+        { remarkPlugins: [], rehypePlugins: [() => () => structuredClone(compiled) as never] },
+        "",
+      ),
+    );
+    expect(compiledHtml).toBe(liveHtml);
+
+    for (const cls of [
+      "base",
+      "sizing",
+      "reset-size6",
+      "size3",
+      "mfrac",
+      "frac-line",
+      "vlist-t",
+      "vlist-r",
+      "vlist",
+      "msupsub",
+      "pstrut",
+      "nulldelimiter",
+    ]) {
+      expect(liveHtml, `DOM 应包含 .${cls}`).toMatch(new RegExp(`\\bclass="[^"]*\\b${cls}\\b`));
+    }
+  });
+
+  it("保持 safe math 边界：危险协议与 HTML 扩展命令在实时与编译快照双路均不生成可执行链接或属性", async () => {
+    const { compileMarkdown } = await import("../../../scripts/wiki/compile-markdown");
+    const md = [
+      "不可信命令：$\\href{javascript:alert(1)}{click}$ 与 $\\url{javascript:alert(1)}$ 与 $\\htmlData{evil=1}{x}$。",
+      "",
+    ].join("\n");
+
+    const liveHtml = render(md);
+    const compiled = compileMarkdown(md);
+    const compiledHtml = renderToStaticMarkup(
+      createElement(
+        ReactMarkdown,
+        { remarkPlugins: [], rehypePlugins: [() => () => structuredClone(compiled) as never] },
+        "",
+      ),
+    );
+    expect(compiledHtml).toBe(liveHtml);
+    expect(liveHtml).not.toMatch(/<a[\s>]/i);
+    expect(liveHtml).not.toContain('href="javascript:');
+    expect(liveHtml).not.toContain("data-evil");
+    expect(liveHtml).toContain('style="color:#cc0000">\\href</span>');
+    expect(liveHtml).toContain('style="color:#cc0000">\\htmlData</span>');
+  });
+});
+
+describe("知识页正文：页末「对照源码」默认折叠与 raw: 内联链接管线", () => {
+  it("将 ## 对照源码 及其后续小节包裹进默认收起的 details.wiki-source-check，且保持标题 id 与预编译结果一致", async () => {
+    const { compileMarkdown } = await import("../../../scripts/wiki/compile-markdown");
+    const md = [
+      "## 核心机制",
+      "",
+      "教学主干段落。",
+      "",
+      "## 对照源码",
+      "",
+      "### 源码位置",
+      "",
+      "核验条目 [C1]。",
+      "",
+    ].join("\n");
+
+    const liveHtml = render(md);
+    expect(liveHtml).toContain('<h2 id="核心机制">核心机制</h2>');
+    expect(liveHtml).toContain(
+      '<details class="wiki-source-check" data-testid="wiki-source-check"><summary class="wiki-source-summary"><h2 id="对照源码">对照源码</h2></summary><div class="wiki-source-check-body">\n<h3 id="源码位置">源码位置</h3>',
+    );
+    expect(liveHtml).not.toMatch(/<details[^>]*\bopen\b/);
+
+    const compiled = compileMarkdown(md);
+    const compiledHtml = renderToStaticMarkup(
+      createElement(
+        ReactMarkdown,
+        { remarkPlugins: [], rehypePlugins: [() => () => structuredClone(compiled) as never] },
+        md,
+      ),
+    );
+    expect(compiledHtml).toBe(liveHtml);
+  });
+
+  it("在 ReactMarkdown 默认 urlTransform 之前将合法 raw: 链接改写为 ./wiki-raw/，同时阻断越界路径与危险协议", async () => {
+    const { compileMarkdown } = await import("../../../scripts/wiki/compile-markdown");
+    const validHash = "a".repeat(64);
+    const wholeHash = "b".repeat(64);
+    const md = [
+      `见[归档行段](raw:sha256-${validHash}.md#L5-L9)与[整份归档](raw:sha256-${wholeHash}.md)。`,
+      `危险链接：[越界](raw:../HANDBOOK.md#L1)、[伪行号](raw:sha256-${validHash}.md#L0)、[脚本](javascript:alert(1))、[数据](data:text/html,boom)。`,
+      "",
+    ].join("\n\n");
+
+    const liveHtml = render(md);
+    expect(liveHtml).toContain(`href="./wiki-raw/sha256-${validHash}.html?lines=5-9#L5"`);
+    expect(liveHtml).toContain(`href="./wiki-raw/sha256-${wholeHash}.html?lines=1#L1"`);
+    expect(liveHtml).not.toContain("HANDBOOK");
+    expect(liveHtml).not.toContain("raw:");
+    expect(liveHtml).not.toContain("javascript:");
+    expect(liveHtml).not.toContain("data:text/html");
+
+    const compiled = compileMarkdown(md);
+    const compiledHtml = renderToStaticMarkup(
+      createElement(
+        ReactMarkdown,
+        { remarkPlugins: [], rehypePlugins: [() => () => structuredClone(compiled) as never] },
+        md,
+      ),
+    );
+    expect(compiledHtml).toBe(liveHtml);
+  });
+
+  it("同名引用式链接按 CommonMark 首定义优先解析（含 Unicode 大小写折叠），后续重复 raw: 定义不会覆盖首条目标", async () => {
+    const { compileMarkdown } = await import("../../../scripts/wiki/compile-markdown");
+    const firstHash = "a".repeat(64);
+    const shadowedHash = "b".repeat(64);
+    const unicodeHash = "c".repeat(64);
+    const shadowedByExtHash = "d".repeat(64);
+    const md = [
+      "见[首条原文][ref]、[折叠标识][ẞ]与[外链优先][ext]。",
+      "",
+      `[ref]: raw:sha256-${firstHash}.md#L1`,
+      `[ref]: raw:sha256-${shadowedHash}.md#L1`,
+      `[ss]: raw:sha256-${unicodeHash}.md#L2-L3`,
+      `[ẞ]: raw:sha256-${shadowedHash}.md#L9`,
+      "[ext]: https://docs.vllm.ai/en/latest/",
+      `[ext]: raw:sha256-${shadowedByExtHash}.md#L1`,
+      "",
+    ].join("\n");
+
+    const liveHtml = render(md);
+    expect(liveHtml).toContain(`href="./wiki-raw/sha256-${firstHash}.html?lines=1#L1"`);
+    expect(liveHtml).toContain(`href="./wiki-raw/sha256-${unicodeHash}.html?lines=2-3#L2"`);
+    expect(liveHtml).toContain('href="https://docs.vllm.ai/en/latest/"');
+    expect(liveHtml).not.toContain(shadowedHash);
+    expect(liveHtml).not.toContain(shadowedByExtHash);
+
+    const compiled = compileMarkdown(md);
+    const compiledHtml = renderToStaticMarkup(
+      createElement(
+        ReactMarkdown,
+        { remarkPlugins: [], rehypePlugins: [() => () => structuredClone(compiled) as never] },
+        md,
+      ),
+    );
+    expect(compiledHtml).toBe(liveHtml);
+  });
+});

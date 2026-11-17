@@ -1,22 +1,29 @@
 import { MessageSquare, RefreshCw, X } from "lucide-react";
-import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { createEvidenceViewController } from "../../content/wiki/evidence-schema";
 import { wikiRequest } from "./api";
 import { ChatPane, useChat } from "./ChatDrawer";
 import { DropPane } from "./DropPane";
+import { EvidencePane, type EvidenceViewController } from "./EvidencePane";
 import { ReaderResizeHandle } from "./ReaderResizeHandle";
 import { ReviewPane, type ReviewSummary } from "./ReviewPane";
 import { StatusPane } from "./StatusPane";
 import { tabIndexAfterKey } from "./tablist";
 
-type Tab = "chat" | "drop" | "review" | "status";
-const TABS: { id: Tab; label: string }[] = [
+export type WikiPanelTab = "chat" | "evidence" | "drop" | "review" | "status";
+const TABS: { id: WikiPanelTab; label: string }[] = [
   { id: "chat", label: "问答" },
+  { id: "evidence", label: "证据" },
   { id: "drop", label: "Drop" },
   { id: "review", label: "审阅" },
   { id: "status", label: "状态" },
 ];
-const tabIdOf = (tab: Tab) => `wiki-panel-tab-${tab}`;
-const panelIdOf = (tab: Tab) => `wiki-panel-${tab}`;
+const tabIdOf = (tab: WikiPanelTab) => `wiki-panel-tab-${tab}`;
+const panelIdOf = (tab: WikiPanelTab) => `wiki-panel-${tab}`;
+
+export function shouldStopChatOnPanelClose(tab: WikiPanelTab): boolean {
+  return tab === "chat";
+}
 
 /**
  * 知识库的全部操作收在一个侧栏里：问答、审阅、刷新，外加一页只读的运行状态。
@@ -25,28 +32,43 @@ const panelIdOf = (tab: Tab) => `wiki-panel-${tab}`;
 export function WikiPanel({
   revision,
   mode,
+  currentId,
+  evidenceController,
+  evidenceOpenSeq,
+  lastTriggerRef,
   onRefresh,
   onLayout,
 }: {
   revision: string;
   mode: "build" | "local";
+  currentId?: string | undefined;
+  evidenceController?: EvidenceViewController | undefined;
+  evidenceOpenSeq?: number | undefined;
+  lastTriggerRef?: RefObject<HTMLElement | null> | undefined;
   /** 返回 true 表示读者快照已更新到最新发布版本 */
   onRefresh: () => Promise<boolean>;
   /** 外层要知道面板开没开、在哪个页签（浮层开着时「本页目录」按钮要挪到它左边） */
-  onLayout: (layout: "closed" | Tab) => void;
+  onLayout: (layout: "closed" | WikiPanelTab) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<Tab>("chat");
+  const [tab, setTab] = useState<WikiPanelTab>("chat");
   const [reviews, setReviews] = useState<ReviewSummary[]>([]);
   const [listError, setListError] = useState("");
   const [selected, setSelected] = useState<string>();
   const [refreshing, setRefreshing] = useState(false);
+  const [fallbackEvidence] = useState(() =>
+    createEvidenceViewController({
+      loadPageEvidence: () => Promise.reject(new Error("当前环境未接入证据读取入口。")),
+    }),
+  );
+  const activeEvidence = evidenceController ?? fallbackEvidence;
   const chat = useChat();
-  const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
+  const tabRefs = useRef<Partial<Record<WikiPanelTab, HTMLButtonElement | null>>>({});
   const fabRef = useRef<HTMLButtonElement>(null);
   const currentTab = useRef(tab);
   currentTab.current = tab;
   const wasOpen = useRef(open);
+  const seenEvidenceSeq = useRef(0);
 
   const loadReviews = useCallback(async () => {
     try {
@@ -65,15 +87,30 @@ export function WikiPanel({
     if (open && tab === "review") void loadReviews();
   }, [open, tab, loadReviews]);
   useEffect(() => {
+    if (!evidenceOpenSeq || evidenceOpenSeq === seenEvidenceSeq.current) return;
+    seenEvidenceSeq.current = evidenceOpenSeq;
+    setTab("evidence");
+    setOpen(true);
+  }, [evidenceOpenSeq]);
+  useEffect(() => {
     onLayout(!open ? "closed" : tab);
   }, [open, tab, onLayout]);
-  // 打开时焦点到当前页签，关上时回到「问知识库」按钮；首次渲染（本来就关着）不抢焦点
+  // 打开时焦点到当前页签，关上时优先回到触发来源，否则回到「问知识库」按钮；首次渲染不抢焦点
   useEffect(() => {
     if (open === wasOpen.current) return;
     wasOpen.current = open;
-    if (open) tabRefs.current[currentTab.current]?.focus();
-    else fabRef.current?.focus();
-  }, [open]);
+    if (open) {
+      tabRefs.current[currentTab.current]?.focus({ preventScroll: true });
+      return;
+    }
+    const trigger = lastTriggerRef?.current;
+    if (trigger?.isConnected) {
+      lastTriggerRef!.current = null;
+      trigger.focus({ preventScroll: true });
+    } else {
+      fabRef.current?.focus({ preventScroll: true });
+    }
+  }, [open, lastTriggerRef]);
 
   const pending = reviews.filter((r) => r.state === "pending" || r.state === "publishing").length;
 
@@ -151,7 +188,8 @@ export function WikiPanel({
           aria-label="关闭"
           data-testid="chat-close"
           onClick={() => {
-            chat.stop();
+            if (shouldStopChatOnPanelClose(tab)) chat.stop();
+            if (tab === "evidence") activeEvidence.close();
             setOpen(false);
           }}
         >
@@ -179,7 +217,14 @@ export function WikiPanel({
         </button>
       </div>
 
-      <ChatPane id={panelIdOf("chat")} chat={chat} hidden={tab !== "chat"} onReview={openReview} />
+      <ChatPane
+        id={panelIdOf("chat")}
+        chat={chat}
+        currentId={currentId}
+        hidden={tab !== "chat"}
+        onReview={openReview}
+      />
+      <EvidencePane id={panelIdOf("evidence")} hidden={tab !== "evidence"} controller={activeEvidence} />
       <DropPane id={panelIdOf("drop")} hidden={tab !== "drop"} onReview={openReview} />
       <ReviewPane
         id={panelIdOf("review")}

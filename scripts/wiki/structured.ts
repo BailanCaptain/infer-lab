@@ -42,6 +42,8 @@ const VALIDATION_HINTS: Record<string, string> = {
     "Keep applicability conditions in the teaching prose, but put all new citation marks and source details in the edit's sourceNote field. The engine appends it to the source section before revision history. Do not change old text or old citations.",
   "raw-evidence-level":
     "Do not upgrade unverified raw archive excerpts to C/S/M evidence. Preserve [I] and applicability limits, or use an actually supplied primary source that supports the claim; never change a source index just to pass validation.",
+  "editorial-fact-disposition":
+    "An editorial or supersede rewrite must conserve every atomic fact and version/hardware/numeric/negation qualifier from the original text under equivalent heading/table context, or declare evidenced replacements in supersede.claims.",
 };
 
 /**

@@ -83,7 +83,10 @@ it.each(["live", "dead", "inactive"] as const)(
     f.write("wiki/sync.config.json", JSON.stringify({ mode: "production" }));
     const receipt = JSON.stringify({ status: "running", phase: "worker" });
     f.write("wiki/_jobs/sync/last-run.json", receipt);
-    f.write("wiki/_jobs/sync/daily-lease.json", JSON.stringify({ pid: 123456, active: state !== "inactive" }));
+    f.write(
+      "wiki/_jobs/sync/daily-lease.json",
+      JSON.stringify({ pid: 123456, active: state !== "inactive" }),
+    );
     const probe = vi.spyOn(process, "kill").mockImplementation(() => {
       if (state === "dead") throw Object.assign(new Error("not running"), { code: "ESRCH" });
       return true;

@@ -4,6 +4,7 @@ import { EVIDENCE_MARK_RE } from "../../src/content/wiki/evidenceMarks";
 import { citationProse } from "../../src/content/wiki/retrieve";
 import type { RunAgent } from "./batch";
 import { inputByteLimit, jsonBytes, textChunks } from "./context-window";
+import { auditPageFactDispositionsWithAgent } from "./fact-disposition-agent";
 import { localDate } from "./ingest";
 import { markProblems, splitProblems } from "./lint";
 import { readLongMaterial } from "./long-material";
@@ -12,6 +13,7 @@ import { assertSupplementPreserves, type Revision, revisePage, splitHistory } fr
 import { retainNovelSupplements, type SectionEdit } from "./section-redundancy";
 import { loadStandardConfig, proseEvidenceLines } from "./standard";
 import { PAGE_TEXT_TIMEOUT_MS, runStructured } from "./structured";
+import { WorkflowStore } from "./workflow";
 import type { WorkflowPolicy } from "./workflow-policy";
 
 /** Keep every accepted edit discoverable even when selective evidence extraction omits it. */
@@ -66,8 +68,8 @@ export async function integrateSections(
     return [splitHistory(body).active, ...new Set(notes)].filter(Boolean).join("\n\n");
   };
   const rules = `${input.rules}
-这次只核对旧页的一个连续片段，不能替换整页。返回严格 JSON {"edits":[{"before":"本片段中唯一连续原文","after":"保留原文并补充后的内容，或有证据的替代说法","kind":"supplement|supersede","reason":"修改理由","quote":"草稿中支持该改动的连续逐字引文"}]}。
-没有可证实的新内容时 edits=[]；措辞变化不等于事实变化，不为制造差异而改写。只改当前片段所讨论的内容；不可因没看见其他段落就添加全页附录。supplement 必须逐字保留旧页的所有非空行；新增段落应接在完整旧行之后，不能在原有行的中间插入换行或文字。supersede 必须有明确相反证据。不得改图、公式、自动生成区、已有标题、出处编号和版本范围；候选正文不得包含机器修订历史。不要把固定部署升级为上游最新版本。quote 取自草稿正文；如果草稿为分段摘录，只能使用 evidence.quote，不能引用 note 当事实。引文与修改的语义支持关系仍待人工审批。
+这次只核对旧页的一个连续片段，不能替换整页。返回严格 JSON {"edits":[{"before":"本片段中唯一连续原文","after":"保留原文并补充后的内容、守恒全部事实与限定条件的重组表达、或有证据的替代说法","kind":"supplement|editorial|supersede","reason":"修改理由","quote":"草稿中支持该改动的连续逐字引文"}]}。
+没有可证实的新内容时 edits=[]；措辞变化不等于事实变化，不为制造差异而改写。只改当前片段所讨论的内容；不可因没看见其他段落就添加全页附录。supplement 必须逐字保留旧页的所有非空行；新增段落应接在完整旧行之后，不能在原有行的中间插入换行或文字。editorial 允许在合并新条件时顺畅重组段落并消除提示词残留，但必须 100% 守恒原有原子事实、代码标识符、数值单位、版本/硬件限定与否定条件（可移至 sourceNote）。supersede 必须有明确相反或修正证据。不得改图、公式、自动生成区、已有标题、出处编号和版本范围；候选正文不得包含机器修订历史。不要把固定部署升级为上游最新版本。quote 取自草稿正文；如果草稿为分段摘录，只能使用 evidence.quote，不能引用 note 当事实。引文与修改的语义支持关系仍待人工审批。
 ${teaching ? `本页有「${standard.sourceSection}」：每个 edit 另须返回 sourceNote 字符串，写清该项新增事实的来源对应与证据等级，含适用限制；程序统一放入页末源码区。sourceNote 只写说明段，不写标题或围栏；实现参数和 commit 也放这里。after 中的教学正文不得新增任何证据角标，原有角标随原文保留；不确定条件仍在正文说清，具体 [I]/[D]/[C1] 等标记放 sourceNote。这不是跨片段改正文；不要手动添加全页附录。` : ""}`;
   const budget = inputByteLimit(root, rules);
   const framing = {
@@ -120,6 +122,7 @@ ${teaching ? `本页有「${standard.sourceSection}」：每个 edit 另须返�
   const contextBytes = Math.max(6144, Math.floor(remaining / 3));
   const chunkBytes = Math.min(24_000, Math.floor((remaining - contextBytes) / 2));
   let edits: SectionEdit[] = [];
+  const sectionJobIds: string[] = [];
   for (const section of textChunks(old.body, chunkBytes)) {
     // Keep the index bounded while preserving the material reader's minimum detail budget.
     const priorChangeIndex = indexPriorChanges(
@@ -158,7 +161,7 @@ ${teaching ? `本页有「${standard.sourceSection}」：每个 edit 另须返�
           .object({
             before: z.string().min(1).max(8000),
             after: z.string().min(1).max(8000),
-            kind: z.enum(["supplement", "supersede"]),
+            kind: z.enum(["supplement", "editorial", "supersede"]),
             reason: z.string().min(1).max(1000),
             quote: z.string().min(1).max(2000),
             sourceNote: z
@@ -258,6 +261,9 @@ ${teaching ? `本页有「${standard.sourceSection}」：每个 edit 另须返�
       },
       deps,
     );
+    if (result.value.edits.some((e) => e.kind === "editorial" || e.kind === "supersede")) {
+      sectionJobIds.push(result.jobId);
+    }
     for (const edit of result.value.edits) {
       const start = section.start + section.text.indexOf(edit.before);
       edits.push({ ...edit, start, end: start + edit.before.length });
@@ -294,6 +300,7 @@ ${teaching ? `本页有「${standard.sourceSection}」：每个 edit 另须返�
     edits.flatMap((edit) => (edit.sourceNote ? [edit.sourceNote] : [])),
   );
   const superseded = edits.filter((edit) => edit.kind === "supersede");
+  const hasEditorial = edits.some((edit) => edit.kind === "editorial");
   const revision: Revision = superseded.length
     ? {
         id: old.fm.id,
@@ -307,7 +314,7 @@ ${teaching ? `本页有「${standard.sourceSection}」：每个 edit 另须返�
       }
     : {
         id: old.fm.id,
-        kind: "supplement",
+        kind: hasEditorial ? "editorial" : "supplement",
         reason: edits
           .map((e) => e.reason)
           .join("；")
@@ -322,7 +329,46 @@ ${teaching ? `本页有「${standard.sourceSection}」：每个 edit 另须返�
     updated: localDate(),
     sources: [...new Set([...old.fm.sources, ...draft.fm.sources])],
   });
+  let sealedRevision: Revision = revision;
+  if (revision.kind === "editorial" || revision.kind === "supersede") {
+    try {
+      const entries = await auditPageFactDispositionsWithAgent(
+        root,
+        {
+          path: input.path,
+          before: input.previous,
+          after: text,
+          revision,
+          origin: draft.fm.origin,
+          policy: input.policy,
+        },
+        deps,
+      );
+      sealedRevision = { ...revision, factDispositions: entries };
+    } catch (error) {
+      const store = new WorkflowStore(root);
+      for (const jobId of sectionJobIds) {
+        const job = store.get(jobId);
+        const hash = job.artifacts?.[`_jobs/decisions/${jobId}.json`];
+        if (job.state === "draft" && hash) {
+          await store.rejectCachedDecision(
+            jobId,
+            hash,
+            JSON.stringify([
+              {
+                code: "custom",
+                path: ["edits"],
+                params: { rule: "editorial-fact-disposition" },
+                message: String(error),
+              },
+            ]),
+          );
+        }
+      }
+      throw error;
+    }
+  }
   // Check exact-edit history contracts here as well as in the final staged transaction.
-  revisePage(input.path, input.previous, text, revision, localDate());
-  return { text, revision };
+  revisePage(input.path, input.previous, text, sealedRevision, localDate());
+  return { text, revision: sealedRevision };
 }

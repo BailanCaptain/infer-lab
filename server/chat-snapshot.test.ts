@@ -18,10 +18,7 @@ afterEach(() => {
 it("publishes a complete snapshot even when Windows refuses all directory renames", async () => {
   const f = wikiFixture();
   fixtures.push(f);
-  f.write(
-    "wiki/HANDBOOK.md",
-    handbookFixture(),
-  );
+  f.write("wiki/HANDBOOK.md", handbookFixture());
   const snapshot = await readKnowledgeSnapshot(f.root);
   vi.mocked(renameSync).mockImplementation((from, to) => {
     if (statSync(from).isDirectory())
@@ -39,10 +36,7 @@ it("publishes a complete snapshot even when Windows refuses all directory rename
 it("a failed ready pointer publishes nothing, and a tampered pointer is refused", async () => {
   const f = wikiFixture();
   fixtures.push(f);
-  f.write(
-    "wiki/HANDBOOK.md",
-    handbookFixture(),
-  );
+  f.write("wiki/HANDBOOK.md", handbookFixture());
   const snapshot = await readKnowledgeSnapshot(f.root);
   const pointer = join(f.root, "tools/wiki-runtime/knowledge", `${snapshot.revision}.json`);
   vi.mocked(renameSync).mockImplementation((from, to) => {
@@ -59,10 +53,7 @@ it("a failed ready pointer publishes nothing, and a tampered pointer is refused"
 it("uses one content revision for metadata, body, rules and archived evidence", async () => {
   const f = wikiFixture();
   fixtures.push(f);
-  f.write(
-    "wiki/HANDBOOK.md",
-    handbookFixture(),
-  );
+  f.write("wiki/HANDBOOK.md", handbookFixture());
   const raw = saveRawSnapshot(join(f.root, "wiki"), "默认值为 1。\n");
   const page = `---\nid: a\ntitle: A\ntype: source\nsummary: 默认值为 1\nsources: [raw:${raw.slice(4)}#L1]\nevidence: I\nupdated: '2026-09-15'\n---\n## 一句话\n默认值为 1。\n`;
   f.write("wiki/sources/a.md", page);

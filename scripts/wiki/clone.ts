@@ -23,6 +23,12 @@ export interface CloneState {
   isRepo: boolean;
 }
 
+export interface PinFetch {
+  name: string;
+  commit: string;
+  refspec: string;
+}
+
 export interface ClonePlan {
   /** 需要克隆时的 argv；已是仓库则为 null */
   clone: string[] | null;
@@ -30,6 +36,8 @@ export interface ClonePlan {
   reuseExistingDir: boolean;
   /** 刷新全部分支与 tag */
   fetch: string[];
+  /** 按完整 40 位提交哈希恢复并锚定到 refs/wiki-pins/<name> 的计划 */
+  pinFetches: PinFetch[];
   /** 主工作树切到 main 钉住的 commit */
   checkoutMain: string[];
   addWorktrees: { ref: string; commit: string; dir: string }[];
@@ -44,6 +52,15 @@ export interface ClonePlan {
 export function worktreeDir(repo: SeedRepo, ref: string): string {
   if (ref === DEFAULT_REF) return repo.path;
   return `${repo.path}@${ref.replace(/\//g, "-")}`;
+}
+
+const FULL_SHA_RE = /^[0-9a-f]{40}$/;
+
+function sanitizePinName(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 export function planClone(state: CloneState | null, repo: SeedRepo): ClonePlan {
@@ -61,11 +78,33 @@ export function planClone(state: CloneState | null, repo: SeedRepo): ClonePlan {
     .filter(([dir]) => dir !== mainDir && existing.has(dir))
     .map(([dir, ref]) => ({ ref, commit: repo.refs[ref] as string, dir }));
 
+  const pinFetches: PinFetch[] = [];
+  const seenNames = new Set<string>();
+  const seenCommits = new Set<string>();
+  for (const [name, commit] of Object.entries(repo.pins ?? {})) {
+    seenNames.add(name);
+    seenCommits.add(commit);
+    pinFetches.push({ name, commit, refspec: `+${commit}:refs/wiki-pins/${name}` });
+  }
+  for (const [ref, commit] of Object.entries(repo.refs)) {
+    if (!FULL_SHA_RE.test(commit) || seenCommits.has(commit)) continue;
+    const base = sanitizePinName(ref) || "pin";
+    let name = base;
+    let seq = 2;
+    while (seenNames.has(name)) {
+      name = `${base}-${seq++}`;
+    }
+    seenNames.add(name);
+    seenCommits.add(commit);
+    pinFetches.push({ name, commit, refspec: `+${commit}:refs/wiki-pins/${name}` });
+  }
+
   const needClone = !state?.isRepo;
   return {
     clone: needClone ? ["clone", "--no-checkout", repo.url, repo.path] : null,
     reuseExistingDir: state !== null,
     fetch: ["fetch", "origin", "+refs/heads/*:refs/remotes/origin/*", "--tags", "--prune"],
+    pinFetches,
     checkoutMain: ["checkout", "--detach", repo.refs[DEFAULT_REF] as string],
     addWorktrees,
     updateWorktrees,

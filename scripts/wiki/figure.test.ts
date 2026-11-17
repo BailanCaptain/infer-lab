@@ -7,6 +7,7 @@ import {
   figureProblems,
   figureSpecSchema,
   renderFigure,
+  resolveLinkGeometry,
   sketchUsage,
 } from "./figure";
 
@@ -18,7 +19,7 @@ it("figure 版式和 scene 版式都能按 layout 解析，figure 走自己的�
     items: [{ at: [10, 10], size: [80, 40], text: "token", tone: "token" }],
     links: [{ from: [90, 30], to: [150, 30], tone: "comm" }],
   });
-  expect(spec.layout).toBe("figure");
+  expect("layout" in spec && spec.layout).toBe("figure");
   const svg = renderDiagram(spec);
   // 箭头的 marker 带图的 id 前缀：同一页内联好几张图时 id 不会撞
   expect(svg).toContain('id="f-ah-comm"');
@@ -72,20 +73,39 @@ it("步骤编号故意压在物体角上，不算压叠", () => {
   expect(problems).toEqual([]);
 });
 
-it("文字太多、整句进图、代码名进图，列为不阻塞的提醒", () => {
+it("移除段数、长句、代码名三类机械提醒，保留自由画板复杂度提醒", () => {
   const advice = figureAdvisories(
     figureSpecSchema.parse({
       ...BASE,
       texts: [
         ...Array.from({ length: 9 }, (_, i) => ({ at: [0, i * 10], text: `第 ${i} 段` })),
-        { at: [0, 190], text: "这是一整句很长很长的说明文字，本来应该写在正文里而不是塞进图里" },
+        { at: [0, 190], text: "这是一整句很长很长的说明文字，图上空间足够时不再触发机械提醒" },
       ],
       items: [{ at: [100, 100], size: [200, 40], text: "select_moe_comm_method" }],
     }),
   );
-  expect(advice.some((a) => a.includes("超过 8 段"))).toBe(true);
-  expect(advice.some((a) => a.includes("一整句"))).toBe(true);
-  expect(advice.some((a) => a.includes("代码名"))).toBe(true);
+  expect(advice).toEqual([]);
+
+  const complexSketch = figureAdvisories(
+    figureSpecSchema.parse({
+      ...BASE,
+      sketches: [
+        {
+          name: "复杂手绘",
+          note: "超过 24 个形状仍提醒沉淀为零件",
+          at: [10, 10],
+          size: [200, 150],
+          shapes: Array.from({ length: 25 }, (_, i) => ({
+            kind: "circle" as const,
+            at: [20 + (i % 5) * 20, 20 + Math.floor(i / 5) * 20] as [number, number],
+            r: 4,
+          })),
+        },
+      ],
+    }),
+  );
+  expect(complexSketch).toHaveLength(1);
+  expect(complexSketch[0]).toContain("手画了 25 个形状");
 });
 
 // ---- 2026-09-25 补齐的常见形状：每个零件至少证明「画得出来」和「画错了会报」
@@ -111,14 +131,16 @@ it("连接可以表达单向数据流、双向通路与无向关系，旧图默�
   ).toBe(true);
 });
 
-it("硬件标签仍参与源码符号提示", () => {
+it("硬件、时间轴与驼峰代码标识符不再触发机械提醒", () => {
   expect(
     figureAdvisories(
       fig({
         hardware: [{ kind: "server", at: [30, 50], size: [320, 150], label: "select_moe_comm_method" }],
+        timelines: [{ at: [20, 220], scale: 10, end: 10, lanes: [{ label: "execute_model" }] }],
+        texts: [{ at: [20, 340], text: "isPrefill 为真时走预填充" }],
       }),
-    ).some((a) => a.includes("代码名")),
-  ).toBe(true);
+    ),
+  ).toEqual([]);
 });
 
 it("硬件零件可以表达机柜内的服务器与芯片，同时检查边框碰撞和出界", () => {
@@ -463,19 +485,6 @@ it("物体身后叠几份：往右上错开，叠出来的部分也算墨", () =
   });
   expect(renderFigure(spec).match(/rx="8"/g)?.length).toBe(4);
   expect(figureProblems(spec).some((p) => p.includes("items[0] 压住 texts[0]"))).toBe(true);
-});
-
-it("新零件里的字同样查代码名", () => {
-  const advice = figureAdvisories(
-    fig({ timelines: [{ at: [20, 40], scale: 10, end: 10, lanes: [{ label: "execute_model" }] }] }),
-  );
-  expect(advice.some((a) => a.includes("execute_model"))).toBe(true);
-});
-
-it("驼峰代码名要提醒，vLLM 这种产品名不算", () => {
-  const advice = (s: string) => figureAdvisories(fig({ texts: [{ at: [20, 40], text: s }] }));
-  expect(advice("isPrefill 为真")).not.toEqual([]);
-  expect(advice("vLLM 把请求排队")).toEqual([]);
 });
 
 /** 4 张卡、每卡 4 块的 ring All-Reduce：前 3 步 Reduce-Scatter（add），后 3 步 All-Gather（copy） */
@@ -1195,4 +1204,141 @@ it("逐张卡演：只支持两排各两张卡，两排之间要放得下加法�
   expect(two.some((p) => p.includes("逐张卡演只支持"))).toBe(true);
   // 不开 waves：照旧画箭头，块停在箭头上
   expect(renderFigure(fig({ exchanges: [RING] }, [880, 2416]))).toContain("marker-end");
+});
+
+it("links.bend：正负对称弧线、箭头切向与画布采样共用同一几何定义，0 退化直线，零长度与冲突字段明确拦截", () => {
+  const posSpec = fig({ links: [{ from: [100, 100], to: [400, 100], bend: 45, ends: "both" }] });
+  const negSpec = fig({ links: [{ from: [100, 100], to: [400, 100], bend: -45, ends: "both" }] });
+  const zeroSpec = fig({ links: [{ from: [100, 100], to: [400, 100], bend: 0 }] });
+  const plainSpec = fig({ links: [{ from: [100, 100], to: [400, 100] }] });
+
+  const posGeo = resolveLinkGeometry(posSpec.links[0]!);
+  const negGeo = resolveLinkGeometry(negSpec.links[0]!);
+  const zeroGeo = resolveLinkGeometry(zeroSpec.links[0]!);
+
+  expect(posGeo.kind).toBe("cubic");
+  expect(negGeo.kind).toBe("cubic");
+  expect(zeroGeo.kind).toBe("polyline");
+  expect(renderFigure(zeroSpec)).toBe(renderFigure(plainSpec));
+
+  // 中点峰值精确偏移 ±45px，正负沿弦轴镜像对称，起止切向与 SVG auto-start-reverse 一致
+  const posMid = posGeo.samples[Math.floor(posGeo.samples.length / 2)]!;
+  const negMid = negGeo.samples[Math.floor(negGeo.samples.length / 2)]!;
+  expect(posMid[0]).toBeCloseTo(250, 1);
+  expect(posMid[1]).toBeCloseTo(145, 1);
+  expect(negMid[0]).toBeCloseTo(250, 1);
+  expect(negMid[1]).toBeCloseTo(55, 1);
+  expect(posGeo.startTangent[1]).toBeGreaterThan(0);
+  expect(posGeo.endTangent[1]).toBeLessThan(0);
+  expect(negGeo.startTangent[1]).toBeLessThan(0);
+  expect(negGeo.endTangent[1]).toBeGreaterThan(0);
+  expect(renderFigure(posSpec)).toContain(`d="${posGeo.pathD}"`);
+
+  // 反向同正 bend 自动向各自右手侧让开，形成不重叠的双向环
+  const revSpec = fig({ links: [{ from: [400, 100], to: [100, 100], bend: 45 }] });
+  const revMid = resolveLinkGeometry(revSpec.links[0]!).samples[8]!;
+  expect(revMid[1]).toBeCloseTo(55, 1);
+
+  // 端点在画布内但弧顶越过画布上沿时，采样与渲染同源并准确报出界
+  const arcOverflow = figureProblems(fig({ links: [{ from: [100, 30], to: [400, 30], bend: -45 }] }));
+  expect(arcOverflow.some((p) => p.includes("links[0]") && p.includes("出了画布"))).toBe(true);
+
+  // 零长度连线（含 bend 非零与直线）：绝不产出 NaN，且在 figureProblems 报错拦截
+  const zeroLenBend = fig({ links: [{ from: [120, 120], to: [120, 120], bend: 30 }] });
+  expect(renderFigure(zeroLenBend)).not.toContain("NaN");
+  expect(figureProblems(zeroLenBend).some((p) => p.includes("links[0]"))).toBe(true);
+  const zeroLenLine = fig({ links: [{ from: [120, 120], to: [120, 120] }] });
+  expect(figureProblems(zeroLenLine).some((p) => p.includes("links[0]"))).toBe(true);
+
+  // 冲突字段组合（bend+curve、bend+via、curve+via）在 schema 层当场拒绝；旧 curve / via 单独保留兼容
+  expect(
+    figureSpecSchema.safeParse({
+      ...BASE,
+      links: [
+        {
+          from: [0, 0],
+          to: [100, 0],
+          bend: 20,
+          curve: [
+            [30, 20],
+            [70, 20],
+          ],
+        },
+      ],
+    }).success,
+  ).toBe(false);
+  expect(
+    figureSpecSchema.safeParse({
+      ...BASE,
+      links: [{ from: [0, 0], to: [100, 0], bend: 20, via: [[50, 10]] }],
+    }).success,
+  ).toBe(false);
+  expect(
+    figureSpecSchema.safeParse({
+      ...BASE,
+      links: [
+        {
+          from: [0, 0],
+          to: [100, 0],
+          curve: [
+            [30, 20],
+            [70, 20],
+          ],
+          via: [[50, 10]],
+        },
+      ],
+    }).success,
+  ).toBe(false);
+  expect(
+    figureSpecSchema.safeParse({
+      ...BASE,
+      links: [
+        {
+          from: [20, 40],
+          to: [180, 40],
+          curve: [
+            [60, 10],
+            [140, 10],
+          ],
+        },
+      ],
+    }).success,
+  ).toBe(true);
+});
+
+it("显式等宽文本（font: mono）：SVG 字体与碰撞/框宽/断行估宽一致，默认旧图行为不变", () => {
+  const expr = "a = b + c * (d - e)"; // 19 个 ASCII 字符（含空格与运算符）：比例字约 117.6px，14px 等宽字精确 159.6px
+  const sansSpec = fig({
+    texts: [
+      { at: [20, 60], text: expr, size: 14 },
+      { at: [155, 60], text: "右侧标签", size: 14 },
+    ],
+    items: [{ at: [20, 120], size: [145, 40], text: expr }],
+  });
+  const monoSpec = fig({
+    texts: [
+      { at: [20, 60], text: expr, size: 14, font: "mono" },
+      { at: [155, 60], text: "右侧标签", size: 14 },
+    ],
+    items: [{ at: [20, 120], size: [145, 40], text: expr, font: "mono" }],
+  });
+
+  const sansSvg = renderFigure(sansSpec);
+  const monoSvg = renderFigure(monoSpec);
+  expect(sansSvg).not.toContain("JetBrains Mono");
+  expect(monoSvg).toContain("font-family=\"'JetBrains Mono',ui-monospace,monospace\"");
+  expect(figureProblems(sansSpec)).toEqual([]);
+
+  const monoProblems = figureProblems(monoSpec);
+  expect(monoProblems.some((p) => p.includes("texts[0] 压住 texts[1]"))).toBe(true);
+  expect(monoProblems.some((p) => p.includes("items[0]") && p.includes("放不下"))).toBe(true);
+
+  const wrappedMono = renderFigure(
+    fig({
+      texts: [{ at: [20, 60], text: "step_0 = a + b + c + d", size: 14, width: 110, font: "mono" }],
+    }),
+  );
+  expect(wrappedMono.match(/font-family="'JetBrains Mono',ui-monospace,monospace"/g)?.length).toBeGreaterThan(
+    1,
+  );
 });

@@ -17,6 +17,11 @@ repos:
       main: "0fc695fc"
       "releases/v0.26.0": "568afb3a"   # = vLLM v0.26.0 tag，与 vllm-ascend releases/v0.26.0rc 配套（该分支 mkdocs.yml 的 vllm_version）
       "releases/v0.30.0": "ced6857afa0ea7b2e3f0846a62e1394e90f15607" # 配套 Ascend v0.30.0rc2 的上游固定快照，以其 release notes 的 main2main 对齐声明为准；不以本地 tag 身份代替提交
+    pins:
+      v0-23-0-tag: "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665"
+      v0-26-0-tag: "568afb3a13806beb53bb2e6bd518269357b237c0"
+      v0-30-0-main2main: "ced6857afa0ea7b2e3f0846a62e1394e90f15607"
+      nixl-rehandshake: "dfb7dd92a406f5dc8c963fd274e59e55ae648fc4" # NIXL 动态重握手 PR 独立提交
   vllm-ascend:
     url: https://github.com/vllm-project/vllm-ascend
     path: tools/repos/vllm-ascend
@@ -25,6 +30,12 @@ repos:
       "releases/v0.23.0": "2c59ff10"   # 分支 tip，2026-09-09；本批页的主叙述版本
       "releases/v0.26.0rc": "2ed6cbba"   # 分支 tip，2026-09-17；还在 rc 阶段（tag 到 v0.26.0rc2），与 vLLM v0.26.0 配套。2026-09-21 用户定：v0.23 与 v0.26 长期并存
       "releases/v0.30.0rc2": "7d825229c77025cfb185a010c25819c1214b9450" # 用户指定 rc2 分支的 2026-11-03 核对快照
+    pins:
+      main-baseline: "baa023ada41a5b889cac6249845a688aab130892"
+      v0-23-0-tip: "2c59ff1047573f40a471cf7535f01a8877344415"
+      v0-26-0rc-tip: "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f"
+      v0-30-0rc2-tip: "7d825229c77025cfb185a010c25819c1214b9450"
+      glm-5-3-flash: "db701c1fd31de40ab028628ee2580ae68c7fd3c0"
 
 features:
   - id: vllm-ascend-overview

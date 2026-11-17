@@ -54,15 +54,18 @@ export function useActiveHeading(headings: PageHeading[]): string | null {
       let current: string | null = null;
       for (const h of headings) {
         const el = document.getElementById(h.id);
-        if (!el) continue;
+        if (!el || el.getClientRects().length === 0) continue;
         const line = Number.parseFloat(getComputedStyle(el).scrollMarginTop) || 0;
         if (el.getBoundingClientRect().top <= line + ACTIVE_SLACK) current = h.id;
       }
       if (atBottom && current) {
         const target = headings.some((h) => h.id === jumped) ? document.getElementById(jumped) : null;
-        const top = target?.getBoundingClientRect().top ?? -1;
-        current =
-          top >= 0 && top < window.innerHeight ? jumped : (headings[headings.length - 1]?.id ?? current);
+        const top = target && target.getClientRects().length > 0 ? target.getBoundingClientRect().top : -1;
+        const lastVisible = [...headings].reverse().find((h) => {
+          const node = document.getElementById(h.id);
+          return node !== null && node.getClientRects().length > 0;
+        });
+        current = top >= 0 && top < window.innerHeight ? jumped : (lastVisible?.id ?? current);
       }
       setActive(current);
     };

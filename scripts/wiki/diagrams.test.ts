@@ -4,6 +4,7 @@ import { expect, it } from "vitest";
 import {
   diagramRefs,
   diagramSpecSchema,
+  isNativeSvgSpec,
   loadDiagrams,
   renderDiagram,
   sceneSpecSchema,
@@ -236,4 +237,180 @@ it("刻度条上的填充标了 overlay 就不算撞——它本来就该盖在�
 
   expect(sceneCollisions(spec(false))).toHaveLength(1);
   expect(sceneCollisions(spec(true))).toEqual([]);
+});
+
+const VALID_NATIVE_SVG = [
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" width="600" height="240" role="img">',
+  "  <title>原生图 &amp; 定位</title>",
+  "  <!-- human-authored bytes must be retained -->",
+  '  <defs><marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 Z" fill="currentColor"/></marker></defs>',
+  '  <rect x="20" y="20" width="560" height="200" fill="var(--color-surface)" stroke="currentColor"/>',
+  '  <path d="M80 160 C200 20 400 20 520 160" fill="none" stroke="currentColor" marker-end="url(#arrow)"/>',
+  '  <text x="300" y="195" text-anchor="middle" font-family="var(--font-mono)" font-size="16">fixed_svg_bytes = 1</text>',
+  "</svg>\n",
+].join("\n");
+
+it("native-svg 共同契约：支持伴生 YAML + 同名严格 XML SVG，拒绝伪装渲染与全套损坏/越界/不安全反例", () => {
+  const spec = diagramSpecSchema.parse({
+    mode: "native-svg",
+    id: "native-demo",
+    caption: "原生图 & 定位",
+    size: [600, 240],
+    pins: [{ source: "vllm@abcdef0:a.py#L1-L4", symbols: ["Scheduler"] }],
+  });
+  expect(isNativeSvgSpec(spec)).toBe(true);
+  expect(specPins(spec)).toEqual([
+    { where: "pins[0]", source: "vllm@abcdef0:a.py#L1-L4", symbols: ["Scheduler"] },
+  ]);
+  expect(() => renderDiagram(spec)).toThrow(/native-svg|原生/);
+
+  const checkCase = (meta: Record<string, unknown>, svg: string | null, extraOrphanSvg = false) => {
+    const f = wikiFixture();
+    try {
+      mkdirSync(join(f.root, "wiki/diagrams"), { recursive: true });
+      writeFileSync(
+        join(f.root, "wiki/diagrams/native-demo.yaml"),
+        JSON.stringify(
+          {
+            mode: "native-svg",
+            id: "native-demo",
+            caption: "原生图 & 定位",
+            size: [600, 240],
+            pins: [],
+            ...meta,
+          },
+          null,
+          2,
+        ),
+      );
+      if (svg !== null) writeFileSync(join(f.root, "wiki/diagrams/native-demo.svg"), svg);
+      if (extraOrphanSvg) writeFileSync(join(f.root, "wiki/diagrams/orphan-only.svg"), VALID_NATIVE_SVG);
+      return loadDiagrams(join(f.root, "wiki"));
+    } finally {
+      f.cleanup();
+    }
+  };
+
+  const ok = checkCase({}, VALID_NATIVE_SVG);
+  expect(ok.problems).toEqual([]);
+  expect([...ok.diagrams.keys()]).toEqual(["native-demo"]);
+
+  const badCases: [string, Record<string, unknown>, string | null, boolean?][] = [
+    ["missing-svg", {}, null],
+    ["orphan-svg", {}, VALID_NATIVE_SVG, true],
+    ["wrong-id", { id: "other-id" }, VALID_NATIVE_SVG],
+    ["overwide", { size: [901, 240] }, VALID_NATIVE_SVG.replaceAll("600", "901")],
+    [
+      "zero-canvas",
+      { size: [0, 240] },
+      VALID_NATIVE_SVG.replace('viewBox="0 0 600 240"', 'viewBox="0 0 0 240"'),
+    ],
+    ["canvas-mismatch", {}, VALID_NATIVE_SVG.replace('viewBox="0 0 600 240"', 'viewBox="0 0 601 240"')],
+    [
+      "wrong-namespace",
+      {},
+      VALID_NATIVE_SVG.replace("http://www.w3.org/2000/svg", "http://www.w3.org/1999/xhtml"),
+    ],
+    [
+      "doctype-xxe",
+      {},
+      `<!DOCTYPE svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" width="600" height="240"/>`,
+    ],
+    ["missing-close", {}, VALID_NATIVE_SVG.replace("</svg>", "")],
+    ["mismatched-close", {}, VALID_NATIVE_SVG.replace("</text>", "</g>")],
+    ["duplicate-attr", {}, VALID_NATIVE_SVG.replace('width="560"', 'width="560" width="10"')],
+    ["unquoted-attr", {}, VALID_NATIVE_SVG.replace('width="560"', "width=560")],
+    ["unescaped-ampersand", {}, VALID_NATIVE_SVG.replace("&amp;", "&")],
+    ["script-tag", {}, VALID_NATIVE_SVG.replace("</svg>", "<script>alert(1)</script></svg>")],
+    ["event-attr", {}, VALID_NATIVE_SVG.replace('role="img"', 'role="img" onload="alert(1)"')],
+    ["foreign-object", {}, VALID_NATIVE_SVG.replace("</svg>", "<foreignObject/>" + "</svg>")],
+    ["style-tag", {}, VALID_NATIVE_SVG.replace("</svg>", "<style>rect{fill:red}</style></svg>")],
+    [
+      "external-paint",
+      {},
+      VALID_NATIVE_SVG.replace('fill="var(--color-surface)"', 'fill="url(https://evil.invalid/x)"'),
+    ],
+    [
+      "css-escape",
+      {},
+      VALID_NATIVE_SVG.replace('fill="var(--color-surface)"', 'fill="u\\72l(https://evil.invalid/x)"'),
+    ],
+    [
+      "entity-external-paint",
+      {},
+      VALID_NATIVE_SVG.replace('fill="var(--color-surface)"', 'fill="&#117;rl(https://evil.invalid/x)"'),
+    ],
+    [
+      "external-href",
+      {},
+      VALID_NATIVE_SVG.replace('width="560"', 'width="560" href="https://evil.invalid/x"'),
+    ],
+    ["dangling-internal-ref", {}, VALID_NATIVE_SVG.replace("url(#arrow)", "url(#missing-id)")],
+  ];
+  for (const [label, meta, svg, orphan] of badCases) {
+    const res = checkCase(meta, svg, orphan);
+    expect(res.problems.length, `${label} should report problems`).toBeGreaterThan(0);
+    if (!orphan) expect(res.diagrams.size, `${label} should not admit broken native diagram`).toBe(0);
+  }
+});
+
+it("native-svg XML 声明语法与属性值空白语义与真实浏览器 XML 解析器严格对齐", () => {
+  const runSvg = (svg: string) => {
+    const f = wikiFixture();
+    try {
+      mkdirSync(join(f.root, "wiki/diagrams"), { recursive: true });
+      writeFileSync(
+        join(f.root, "wiki/diagrams/native-demo.yaml"),
+        JSON.stringify({
+          mode: "native-svg",
+          id: "native-demo",
+          caption: "原生图 & 定位",
+          size: [600, 240],
+          pins: [],
+        }),
+      );
+      writeFileSync(join(f.root, "wiki/diagrams/native-demo.svg"), svg);
+      return loadDiagrams(join(f.root, "wiki"));
+    } finally {
+      f.cleanup();
+    }
+  };
+
+  const validXmlCases: [string, string][] = [
+    ["decl-utf8", `<?xml version="1.0" encoding="UTF-8"?>${VALID_NATIVE_SVG}`],
+    [
+      "decl-single-quote-standalone",
+      `<?xml version='1.0' encoding='utf-8' standalone='yes'?>\n${VALID_NATIVE_SVG}`,
+    ],
+    ["decl-eq-spaces", `<?xml version = "1.0" standalone = "no" ?>${VALID_NATIVE_SVG}`],
+    ["bom-plus-decl", `\uFEFF<?xml version="1.0" encoding="UTF-8"?>${VALID_NATIVE_SVG}`],
+    ["attr-literal-lf", VALID_NATIVE_SVG.replace('viewBox="0 0 600 240"', 'viewBox="0 0\n600 240"')],
+    ["attr-literal-crlf-tab", VALID_NATIVE_SVG.replace('viewBox="0 0 600 240"', 'viewBox="0\r\n0\t600 240"')],
+    ["attr-charref-space", VALID_NATIVE_SVG.replace('viewBox="0 0 600 240"', 'viewBox="0 0&#32;600 240"')],
+  ];
+  for (const [label, svg] of validXmlCases) {
+    const res = runSvg(svg);
+    expect(res.problems, `${label} should pass`).toEqual([]);
+    expect(res.diagrams.size, `${label} should load`).toBe(1);
+  }
+
+  const invalidXmlCases: [string, string][] = [
+    ["decl-garbage", `<?xml garbage?>${VALID_NATIVE_SVG}`],
+    ["decl-bad-version", `<?xml version="9.9"?>${VALID_NATIVE_SVG}`],
+    ["decl-no-version", `<?xml encoding="UTF-8"?>${VALID_NATIVE_SVG}`],
+    ["decl-dup-version", `<?xml version="1.0" version="1.0"?>${VALID_NATIVE_SVG}`],
+    ["decl-wrong-order", `<?xml version="1.0" standalone="yes" encoding="UTF-8"?>${VALID_NATIVE_SVG}`],
+    ["decl-bad-standalone", `<?xml version="1.0" standalone="maybe"?>${VALID_NATIVE_SVG}`],
+    ["decl-missing-attr-space", `<?xml version="1.0"encoding="UTF-8"?>${VALID_NATIVE_SVG}`],
+    ["decl-empty", `<?xml?>${VALID_NATIVE_SVG}`],
+    ["decl-leading-space", ` <?xml version="1.0"?>${VALID_NATIVE_SVG}`],
+    ["decl-uppercase", `<?XML version="1.0"?>${VALID_NATIVE_SVG}`],
+    ["attr-charref-lf", VALID_NATIVE_SVG.replace('viewBox="0 0 600 240"', 'viewBox="0 0&#10;600 240"')],
+    ["attr-charref-tab", VALID_NATIVE_SVG.replace('viewBox="0 0 600 240"', 'viewBox="0 0&#9;600 240"')],
+  ];
+  for (const [label, svg] of invalidXmlCases) {
+    const res = runSvg(svg);
+    expect(res.problems.length, `${label} should fail`).toBeGreaterThan(0);
+    expect(res.diagrams.size, `${label} should be rejected`).toBe(0);
+  }
 });

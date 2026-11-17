@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { lstatSync, readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { parseArgs } from "node:util";
 import { dropFiles } from "./wiki/drop";
@@ -38,14 +38,20 @@ try {
   const calls = values["max-attempts"] ? Number(values["max-attempts"]) : undefined;
   if (calls !== undefined && (!Number.isSafeInteger(calls) || calls < 1))
     throw new Error("显式测试调用限额必须为正整数");
+  const MAX_CLI_DROP_FILES = 100;
+  const MAX_SINGLE_FILE_BYTES = 1024 * 1024;
   const inputs = values.batch
     ? []
     : values.url
       ? [{ name: values.url, url: values.url }]
-      : dropFiles(positionals[0]!, Number.MAX_SAFE_INTEGER).map((file) => ({
-          name: basename(file),
-          text: new TextDecoder("utf-8", { fatal: true }).decode(readFileSync(file)),
-        }));
+      : dropFiles(positionals[0]!, MAX_CLI_DROP_FILES).map((file) => {
+          if (lstatSync(file).size > MAX_SINGLE_FILE_BYTES)
+            throw new Error(`${basename(file)} 超过单份 1 MiB`);
+          return {
+            name: basename(file),
+            text: new TextDecoder("utf-8", { fatal: true }).decode(readFileSync(file)),
+          };
+        });
   if (inputs.length > 1 && values.identity)
     throw new Error("来源标识只用于单份资料；目录内文件需分别指定来源");
   const items = inputs.map((item) => ({ ...item, identity: values.identity, version: values.version }));

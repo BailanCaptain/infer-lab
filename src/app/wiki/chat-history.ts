@@ -142,6 +142,21 @@ export function interruptMessage(msg: Msg): Msg {
   };
 }
 
+export function settleCompletedMessage(msg: Msg): Msg {
+  return {
+    ...msg,
+    status: "complete",
+    trace:
+      msg.trace?.status === "searching"
+        ? { status: "failed", reason: "连接结束，未收到搜索结果" }
+        : msg.trace,
+    quality:
+      msg.quality?.status === "checking"
+        ? { status: "unavailable", reason: "独立核对未完成，未收到核对结果" }
+        : msg.quality,
+  };
+}
+
 export function readChatHistory(storage: Pick<Storage, "getItem">): ChatHistory {
   const raw = storage.getItem(CHAT_HISTORY_KEY);
   const saved = raw ? history.parse(JSON.parse(raw)) : { version: 1 as const, msgs: [], input: "" };
@@ -150,7 +165,13 @@ export function readChatHistory(storage: Pick<Storage, "getItem">): ChatHistory 
     ...saved,
     // A disconnected request can still hold the server lease; do not resume that lease.
     sessionId: interrupted ? undefined : saved.sessionId,
-    msgs: saved.msgs.map((msg) => (msg.status === "pending" ? interruptMessage(msg) : msg)),
+    msgs: saved.msgs.map((msg) =>
+      msg.status === "pending"
+        ? interruptMessage(msg)
+        : msg.quality?.status === "checking" || msg.trace?.status === "searching"
+          ? settleCompletedMessage(msg)
+          : msg,
+    ),
   };
 }
 

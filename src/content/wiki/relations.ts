@@ -51,6 +51,21 @@ const ORDER: { kind: string; title: string; hint: string }[] = [
   { kind: "alternative-to", title: "另一种解法", hint: "解决同一个问题的别的路子" },
 ];
 
+/**
+ * 提取本页出边声明的直接前置概念（`kind === "builds-on"`）：
+ * 保留作者在 frontmatter 中声明的阅读先后次序并按目标 `id` 去重，供页头紧凑「先读基础」导览条复用。
+ */
+export function prerequisiteRelations(relations: readonly Relation[]): { id: string; note: string }[] {
+  const seen = new Set<string>();
+  const out: { id: string; note: string }[] = [];
+  for (const r of relations) {
+    if (r.kind !== "builds-on" || seen.has(r.to)) continue;
+    seen.add(r.to);
+    out.push({ id: r.to, note: r.note });
+  }
+  return out;
+}
+
 export function groupRelations(relations: Relation[], backlinks: Backlink[]): RelationGroup[] {
   const byKind = new Map<string, { id: string; note: string }[]>();
   const push = (kind: string, id: string, note: string) => {

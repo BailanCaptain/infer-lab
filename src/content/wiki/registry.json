@@ -3574,26 +3574,6 @@
       "file": "concepts/chunked-prefill.md",
       "backlinks": [
         {
-          "from": "chunked-prefill-agy",
-          "kind": "alternative-to",
-          "note": "同一机制的重构对照版，保留全部源码事实与 3D 场景并重排认知阶梯"
-        },
-        {
-          "from": "chunked-prefill-free",
-          "kind": "alternative-to",
-          "note": "抛开项目模板束缚的纯阅读版，专注直觉、工程美感与真实案例"
-        },
-        {
-          "from": "chunked-prefill-v2",
-          "kind": "alternative-to",
-          "note": "同一机制的另一种讲法，可对照分段接续、调度边界和三步借块演算"
-        },
-        {
-          "from": "chunked-prefill-v3",
-          "kind": "alternative-to",
-          "note": "抛开项目八股限制重写的可读版"
-        },
-        {
           "from": "pd-disaggregation",
           "kind": "alternative-to",
           "note": "不拆实例，把长提示词切块混进 decode 步，是限制 prefill 干扰的另一条路"
@@ -3637,332 +3617,6 @@
           "from": "dynamic-chunked-pp",
           "kind": "has-variant",
           "note": "动态分块流水线是用于 PP 部署的 prefill 分块变体，在普通 token 预算约束内，按已算进度和预计耗时进一步缩小块大小。"
-        }
-      ]
-    },
-    {
-      "toc": {
-        "part": "references",
-        "section": "新增教学页（待编排）"
-      },
-      "id": "chunked-prefill-agy",
-      "title": "Chunked prefill（重构对照版）：长提示词插进来，怎样不卡住别人的回答？",
-      "type": "feature",
-      "origin": "gap",
-      "summary": "Chunked prefill 把这一步剩余预算装不下的长提示词拆成几段、分多步算完：每步先让正在生成的请求照常前进，只拿剩余位置预算推进长提示词的一段，跨步沿用已存历史与状态，直到最后一段算完才产出首个回答 token。它压住了同批大步对在线生成的拖累，代价是长请求首字更晚、前文历史跨段重读以及步数增加带来的单步杂活。",
-      "aliases": [
-        "Chunked prefill Antigravity 对照版"
-      ],
-      "chapters": [],
-      "order": 500,
-      "prerequisites": [],
-      "sources": [
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L352",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L401-L410",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L678-L700",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L997-L1019",
-        "vllm@0fc695fc:vllm/config/scheduler.py#L70-L90",
-        "vllm@0fc695fc:vllm/config/scheduler.py#L238-L272",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2370-L2394",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2258-L2267",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2518-L2528",
-        "vllm@0fc695fc:vllm/config/model.py#L1803-L1811",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L259-L263",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L293-L338",
-        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_mamba_scheduler.py#L9-L57",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L858-L867",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1078-L1099",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1444-L1470",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2631-L2671",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L398-L474",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L477-L498",
-        "vllm@0fc695fc:docs/configuration/optimization.md#L41-L62",
-        "vllm@0fc695fc:vllm/model_executor/models/config.py#L371-L374",
-        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L713-L718",
-        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L463-L467",
-        "vllm@568afb3a:vllm/config/scheduler.py#L153-L156",
-        "vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L1026-L1076",
-        "vllm@84030bbe:vllm/config/speculative.py#L1811-L1850",
-        "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L186-L188",
-        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1327-L1350",
-        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L222-L225",
-        "https://arxiv.org/abs/2308.16369",
-        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1396-L1433",
-        "raw:sha256-ab8d477aec6bfdfa592d8282eafcfa581f0abbd5f9a7f08e30f386f9a7864ecd.md#L1-L725",
-        "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/core/sched/scheduler.py#L689-L699",
-        "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/engine/arg_utils.py#L2370-L2377",
-        "vllm@ced6857a:vllm/engine/arg_utils.py#L2794-L2816",
-        "vllm@ced6857a:vllm/config/scheduler.py#L70-L74",
-        "vllm@ced6857a:vllm/config/scheduler.py#L185-L194",
-        "vllm-ascend@7d825229:vllm_ascend/platform.py#L1067-L1075",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L38-L38",
-        "vllm@568afb3a:vllm/v1/engine/core.py#L2015-L2022",
-        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L463-L500",
-        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L828-L835",
-        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1059-L1062",
-        "vllm@84030bbe:vllm/v1/engine/core.py#L2171-L2178",
-        "vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L606-L645",
-        "vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L1021-L1029",
-        "vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L1289-L1294",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2631-L2731",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2569-L2582",
-        "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L239-L310",
-        "vllm@0fc695fc:vllm/v1/sample/rejection_sampler.py#L249-L283",
-        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L259-L290",
-        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L448-L501",
-        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L767-L793",
-        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L1121-L1132"
-      ],
-      "verified": [],
-      "evidence": "C",
-      "rawSources": [
-        "raw/sha256-a784826e7872c29e9344402dd0c34d9437753b13b503dd7eb663ea72c2414099.md",
-        "raw/sha256-ab8d477aec6bfdfa592d8282eafcfa581f0abbd5f9a7f08e30f386f9a7864ecd.md"
-      ],
-      "relations": [
-        {
-          "to": "chunked-prefill",
-          "kind": "alternative-to",
-          "note": "同一机制的重构对照版，保留全部源码事实与 3D 场景并重排认知阶梯"
-        },
-        {
-          "to": "chunked-prefill-v2",
-          "kind": "alternative-to",
-          "note": "与早期循序渐进样板并排对比首屏直觉、收益代价收束与四版本对照"
-        },
-        {
-          "to": "chunked-prefill-v3",
-          "kind": "alternative-to",
-          "note": "同主题并行对照稿，保留不覆盖以便在阅读页并排审阅"
-        },
-        {
-          "to": "prefill",
-          "kind": "variant-of",
-          "note": "同一条请求的 prefill 分到几步做，只有最后一段产出首个 token"
-        },
-        {
-          "to": "vllm-scheduler",
-          "kind": "builds-on",
-          "note": "切多长由调度器每步的「还差几个」和剩余预算决定"
-        },
-        {
-          "to": "concurrent-requests",
-          "kind": "builds-on",
-          "note": "多条请求时 20,000 token 提示词每一步的预算账"
-        },
-        {
-          "to": "vllm-kv-block-allocation",
-          "kind": "builds-on",
-          "note": "每一段要借多少块，尾状态组为什么临时借两千多块"
-        },
-        {
-          "to": "pd-disaggregation",
-          "kind": "alternative-to",
-          "note": "分块把 prefill 压到每步预算内；PD 分离让 prefill 和 decode 不在同一步"
-        }
-      ],
-      "related": [],
-      "contradicts": [],
-      "updated": "2026-11-14",
-      "file": "concepts/chunked-prefill-agy.md",
-      "backlinks": []
-    },
-    {
-      "toc": {
-        "part": "references",
-        "section": "新增教学页（待编排）"
-      },
-      "id": "chunked-prefill-free",
-      "title": "Chunked Prefill：既不卡死别人，也不浪费算力",
-      "type": "feature",
-      "origin": "direct",
-      "summary": "用最直白的方式讲透 Chunked Prefill：为什么一条长提示词会冻住全场？把句子劈成三截算为什么结果不变？为什么 vLLM 源码里甚至没有「切块器」？",
-      "aliases": [
-        "Chunked Prefill 自由版"
-      ],
-      "chapters": [],
-      "order": 500,
-      "prerequisites": [],
-      "sources": [
-        "https://arxiv.org/abs/2308.16369",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L352"
-      ],
-      "verified": [],
-      "evidence": "C",
-      "relations": [
-        {
-          "to": "chunked-prefill",
-          "kind": "alternative-to",
-          "note": "抛开项目模板束缚的纯阅读版，专注直觉、工程美感与真实案例"
-        }
-      ],
-      "related": [],
-      "contradicts": [],
-      "updated": "2026-11-14",
-      "file": "concepts/chunked-prefill-free.md",
-      "backlinks": []
-    },
-    {
-      "toc": {
-        "part": "references",
-        "section": "新增教学页（待编排）"
-      },
-      "id": "chunked-prefill-v2",
-      "title": "Chunked prefill（循序渐进样板）：长提示词怎样分几步算完",
-      "type": "feature",
-      "origin": "gap",
-      "summary": "长文章和其他用户的回答一起计算时，可能让他们等得更久。Chunked prefill 把处理长输入的工作分到几步，每步也让其他回答继续生成。长输入要跨步等待首个输出，还会多出每步开销和可能的历史重复读取；实际时延取决于这些步骤各花多久。",
-      "aliases": [
-        "Chunked prefill 循序渐进样板"
-      ],
-      "chapters": [],
-      "order": 500,
-      "prerequisites": [],
-      "sources": [
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L352",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L401-L410",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L678-L700",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L997-L1019",
-        "vllm@0fc695fc:vllm/config/scheduler.py#L70-L90",
-        "vllm@0fc695fc:vllm/config/scheduler.py#L238-L272",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2370-L2394",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2258-L2267",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2518-L2528",
-        "vllm@0fc695fc:vllm/config/model.py#L1803-L1811",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L259-L263",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L293-L338",
-        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_mamba_scheduler.py#L9-L57",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L858-L867",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1078-L1099",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1444-L1470",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2631-L2671",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L398-L474",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L477-L498",
-        "vllm@0fc695fc:docs/configuration/optimization.md#L41-L62",
-        "vllm@0fc695fc:vllm/model_executor/models/config.py#L371-L374",
-        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L713-L718",
-        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L463-L467",
-        "vllm@568afb3a:vllm/config/scheduler.py#L153-L156",
-        "vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L1026-L1076",
-        "vllm@84030bbe:vllm/config/speculative.py#L1811-L1850",
-        "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L186-L188",
-        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1327-L1350",
-        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L222-L225",
-        "https://arxiv.org/abs/2308.16369",
-        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1396-L1433",
-        "raw:sha256-ab8d477aec6bfdfa592d8282eafcfa581f0abbd5f9a7f08e30f386f9a7864ecd.md#L1-L725",
-        "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/core/sched/scheduler.py#L689-L699",
-        "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/engine/arg_utils.py#L2370-L2377",
-        "vllm@ced6857a:vllm/engine/arg_utils.py#L2794-L2816",
-        "vllm@ced6857a:vllm/config/scheduler.py#L70-L74",
-        "vllm@ced6857a:vllm/config/scheduler.py#L185-L194",
-        "vllm-ascend@7d825229:vllm_ascend/platform.py#L1067-L1075",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L38-L38",
-        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L259-L290",
-        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L448-L501",
-        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L767-L793",
-        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L1121-L1132"
-      ],
-      "verified": [],
-      "evidence": "C",
-      "rawSources": [
-        "raw/sha256-a784826e7872c29e9344402dd0c34d9437753b13b503dd7eb663ea72c2414099.md",
-        "raw/sha256-ab8d477aec6bfdfa592d8282eafcfa581f0abbd5f9a7f08e30f386f9a7864ecd.md"
-      ],
-      "relations": [
-        {
-          "to": "chunked-prefill",
-          "kind": "alternative-to",
-          "note": "同一机制的另一种讲法，可对照分段接续、调度边界和三步借块演算"
-        },
-        {
-          "to": "prefill",
-          "kind": "variant-of",
-          "note": "同一条请求的 prefill 分到几步做，只有最后一段产出首个 token"
-        },
-        {
-          "to": "vllm-scheduler",
-          "kind": "builds-on",
-          "note": "切多长由调度器每步的「还差几个」和剩余预算决定"
-        },
-        {
-          "to": "concurrent-requests",
-          "kind": "builds-on",
-          "note": "多条请求时 20,000 token 提示词每一步的预算账"
-        },
-        {
-          "to": "vllm-kv-block-allocation",
-          "kind": "builds-on",
-          "note": "每一段要借多少块，尾状态组为什么临时借两千多块"
-        },
-        {
-          "to": "pd-disaggregation",
-          "kind": "alternative-to",
-          "note": "分块把 prefill 压到每步预算内；PD 分离让 prefill 和 decode 不在同一步"
-        }
-      ],
-      "related": [],
-      "contradicts": [],
-      "updated": "2026-11-10",
-      "file": "concepts/chunked-prefill-v2.md",
-      "backlinks": [
-        {
-          "from": "chunked-prefill-agy",
-          "kind": "alternative-to",
-          "note": "与早期循序渐进样板并排对比首屏直觉、收益代价收束与四版本对照"
-        },
-        {
-          "from": "chunked-prefill-v3",
-          "kind": "alternative-to",
-          "note": "与 v2 对照阅读体验"
-        }
-      ]
-    },
-    {
-      "toc": {
-        "part": "references",
-        "section": "新增教学页（待编排）"
-      },
-      "id": "chunked-prefill-v3",
-      "title": "Chunked Prefill：一条长提示词插进来，怎样不卡住别人的回答？",
-      "type": "feature",
-      "origin": "gap",
-      "summary": "把一步算不完的长提示词拆成几段、分多步推进：每步先保住正在吐字的 decode 请求，只拿剩余 token 预算去算长提示词的一小段，直到最后一段算完才输出第一个字。",
-      "aliases": [
-        "Chunked prefill 极简直觉版"
-      ],
-      "chapters": [],
-      "order": 500,
-      "prerequisites": [],
-      "sources": [
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L352",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L401-L410",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L678-L700",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L997-L1019"
-      ],
-      "verified": [],
-      "evidence": "C",
-      "relations": [
-        {
-          "to": "chunked-prefill",
-          "kind": "alternative-to",
-          "note": "抛开项目八股限制重写的可读版"
-        },
-        {
-          "to": "chunked-prefill-v2",
-          "kind": "alternative-to",
-          "note": "与 v2 对照阅读体验"
-        }
-      ],
-      "related": [],
-      "contradicts": [],
-      "updated": "2026-11-14",
-      "file": "concepts/chunked-prefill-v3.md",
-      "backlinks": [
-        {
-          "from": "chunked-prefill-agy",
-          "kind": "alternative-to",
-          "note": "同主题并行对照稿，保留不覆盖以便在阅读页并排审阅"
         }
       ]
     },
@@ -4451,16 +4105,6 @@
         },
         {
           "from": "chunked-prefill",
-          "kind": "enables",
-          "note": "多条请求时 20,000 token 提示词每一步的预算账"
-        },
-        {
-          "from": "chunked-prefill-agy",
-          "kind": "enables",
-          "note": "多条请求时 20,000 token 提示词每一步的预算账"
-        },
-        {
-          "from": "chunked-prefill-v2",
           "kind": "enables",
           "note": "多条请求时 20,000 token 提示词每一步的预算账"
         },
@@ -14999,16 +14643,6 @@
           "note": "分块把 prefill 压到每步预算内；PD 分离让 prefill 和 decode 不在同一步"
         },
         {
-          "from": "chunked-prefill-agy",
-          "kind": "alternative-to",
-          "note": "分块把 prefill 压到每步预算内；PD 分离让 prefill 和 decode 不在同一步"
-        },
-        {
-          "from": "chunked-prefill-v2",
-          "kind": "alternative-to",
-          "note": "分块把 prefill 压到每步预算内；PD 分离让 prefill 和 decode 不在同一步"
-        },
-        {
           "from": "ai-qos",
           "kind": "enables",
           "note": "先理解 PD 的 KV 传输，再区分其 qos_priority 与本页流量等级表"
@@ -15686,16 +15320,6 @@
         },
         {
           "from": "chunked-prefill",
-          "kind": "has-variant",
-          "note": "同一条请求的 prefill 分到几步做，只有最后一段产出首个 token"
-        },
-        {
-          "from": "chunked-prefill-agy",
-          "kind": "has-variant",
-          "note": "同一条请求的 prefill 分到几步做，只有最后一段产出首个 token"
-        },
-        {
-          "from": "chunked-prefill-v2",
           "kind": "has-variant",
           "note": "同一条请求的 prefill 分到几步做，只有最后一段产出首个 token"
         }
@@ -22642,16 +22266,6 @@
           "note": "每一段要借多少块，尾状态组为什么临时借两千多块"
         },
         {
-          "from": "chunked-prefill-agy",
-          "kind": "enables",
-          "note": "每一段要借多少块，尾状态组为什么临时借两千多块"
-        },
-        {
-          "from": "chunked-prefill-v2",
-          "kind": "enables",
-          "note": "每一段要借多少块，尾状态组为什么临时借两千多块"
-        },
-        {
           "from": "kv-pool",
           "kind": "enables",
           "note": "要搬的位置按已算过处理，照常从块池借块"
@@ -23018,16 +22632,6 @@
         },
         {
           "from": "chunked-prefill",
-          "kind": "enables",
-          "note": "切多长由调度器每步的「还差几个」和剩余预算决定"
-        },
-        {
-          "from": "chunked-prefill-agy",
-          "kind": "enables",
-          "note": "切多长由调度器每步的「还差几个」和剩余预算决定"
-        },
-        {
-          "from": "chunked-prefill-v2",
           "kind": "enables",
           "note": "切多长由调度器每步的「还差几个」和剩余预算决定"
         },

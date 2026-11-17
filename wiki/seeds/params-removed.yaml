@@ -17,6 +17,12 @@ repos:
       "releases/v0.23.0": "2c59ff10"
       "releases/v0.26.0rc": "2ed6cbba"   # 分支 tip，2026-09-17；还在 rc 阶段（tag 到 v0.26.0rc2），与 vLLM v0.26.0 配套。2026-09-21 用户定：v0.23 与 v0.26 长期并存
       "releases/v0.30.0rc2": "7d825229c77025cfb185a010c25819c1214b9450" # 用户指定 rc2 分支的 2026-11-03 核对快照
+    pins:
+      main-baseline: "baa023ada41a5b889cac6249845a688aab130892"
+      v0-23-0-tip: "2c59ff1047573f40a471cf7535f01a8877344415"
+      v0-26-0rc-tip: "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f"
+      v0-30-0rc2-tip: "7d825229c77025cfb185a010c25819c1214b9450"
+      glm-5-3-flash: "db701c1fd31de40ab028628ee2580ae68c7fd3c0"
 
 features:
   - id: layer-sharding

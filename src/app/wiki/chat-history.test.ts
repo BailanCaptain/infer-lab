@@ -77,6 +77,31 @@ describe("聊天记录持久化", () => {
     });
   });
 
+  it("答案已持久化后在独立核对期间刷新：保留 complete 状态与 sessionId，收起悬挂的核对等待态且不伪造 answerId", () => {
+    const saved: ChatHistory = {
+      version: 1,
+      input: "",
+      sessionId: "persisted-session",
+      msgs: [
+        {
+          key: "done-answer",
+          role: "agent",
+          text: "完整回答正文",
+          status: "complete",
+          quality: { status: "checking" },
+        },
+      ],
+    };
+    const restored = readChatHistory({ getItem: () => JSON.stringify(saved) });
+    expect(restored.sessionId).toBe("persisted-session");
+    expect(restored.msgs[0]).toMatchObject({
+      text: "完整回答正文",
+      status: "complete",
+      quality: { status: "unavailable" },
+    });
+    expect(restored.msgs[0]?.answerId).toBeUndefined();
+  });
+
   it("坏记录与禁用存储交给界面报告，不让无效数据进入渲染", () => {
     expect(() => readChatHistory({ getItem: () => '{"msgs":null}' })).toThrow();
     expect(() =>

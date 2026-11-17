@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import matter from "gray-matter";
 import { LINEAGE_SECTION, lineageTerm, replaceSection } from "./wiki/lineage";
 import { publishLineage } from "./wiki/lineage-publish";
-import { protectedParamSection } from "./wiki/params/pages";
+import { parsePinnedParamIdentity, protectedParamSection } from "./wiki/params/pages";
 
 function arg(name: string, def?: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -47,11 +47,8 @@ for (const name of readdirSync(pagesDir).filter((n) => n.endsWith(".md"))) {
     console.warn(`! 跳过 wiki/${dir}/${name}：没有固定自动定义，保留人工版本说明`);
     continue;
   }
-  const term = lineageTerm(titleOf(text) ?? "");
-  if (!term) {
-    console.warn(`! 跳过 wiki/${dir}/${name}：标题里找不到参数名，版本谱系没有重算`);
-    continue;
-  }
+  const term = parsePinnedParamIdentity(text)?.name ?? lineageTerm(titleOf(text) ?? "");
+  if (!term) throw new Error(`参数页固定定义缺少可识别的参数身份：wiki/${dir}/${name}`);
 
   const md = execFileSync(
     process.execPath,

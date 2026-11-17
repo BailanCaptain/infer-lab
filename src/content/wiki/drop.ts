@@ -23,90 +23,128 @@ export const dropComparisonSchema = z
     reason: z.string().min(1),
   })
   .strict();
-export const dropReceiptSchema = z
+export const dropProtocolSchema = z.union([z.literal(3), z.literal(4)]);
+export type DropProtocol = z.infer<typeof dropProtocolSchema>;
+
+export const factDispositionEntrySchema = z
   .object({
-    protocol: z.literal(3),
-    baseline: sha,
-    budget: dropBudgetSchema,
-    resources: z.array(
-      z
-        .object({
-          id: z.string(),
-          path: z.string(),
-          kind: z.enum(["source", "reference", "rule", "page", "candidate", "diagram"]),
-          hash: sha,
-          length: z.number().int().nonnegative(),
-          origins: z.array(z.record(z.string())),
-        })
-        .strict(),
-    ),
-    requiredReads: z.array(z.string()),
-    inputs: z.array(
-      z
-        .object({
-          key: sha,
-          stage: z.string(),
-          rulesHash: sha,
-          bytes: z.number().int(),
-          limit: z.number().int(),
-          requestedBytes: z.number().int().nonnegative(),
-          savedBytes: z.number().int().nonnegative(),
-          materials: z.array(dropRangeSchema),
-        })
-        .strict(),
-    ),
-    queries: z.array(
-      z
-        .object({
-          query: z.string(),
-          cursor: z.string().optional(),
-          total: z.number().int(),
-          ids: z.array(z.string()),
-        })
-        .strict(),
-    ),
-    inferredRelations: z
-      .array(z.object({ a: z.string(), b: z.string(), note: z.string() }).strict())
-      .optional(),
-    decisions: z.array(
-      z
-        .object({
-          topic: z.string(),
-          topics: z.array(z.string()).optional(),
-          evidence: z.array(z.string()).min(1),
-          outcome: z.enum(["integrate", "covered", "out-of-scope"]),
-          targets: z.array(z.string()),
-          reason: z.string().min(1),
-          comparisons: z.array(dropComparisonSchema),
-        })
-        .strict(),
-    ),
-    plans: z.array(
-      z
-        .object({
-          path: z.string(),
-          reason: z.string(),
-          evidence: z.array(z.string()),
-          comparisons: z.array(dropComparisonSchema),
-        })
-        .strict(),
-    ),
-    requiredChecks: z.array(z.string()),
-    checks: z.array(
-      z
-        .object({
-          id: z.string(),
-          kind: z.enum(["page", "relation", "asset", "coordination", "coverage"]),
-          pages: z.array(z.string()),
-          asset: z.string().optional(),
-          bindings: z.array(dropRangeSchema),
-          inputs: z.array(sha).min(1),
-          report: z.string().min(1),
-        })
-        .strict(),
-    ),
+    pageId: z.string().min(1),
+    baseHash: sha,
+    candidateHash: sha,
+    fact: z.string().min(1),
+    context: z.string().min(1).optional(),
+    outlet: z.enum(["retained", "superseded", "migrated"]),
+    verification: z.enum(["verbatim", "supersede-claim", "semantic-check"]),
+    targetQuote: z.string().min(1).optional(),
+    targetContext: z.string().min(1).optional(),
+    claimOld: z.string().min(1).optional(),
+    targetPage: z.string().min(1).optional(),
+    targetAnchor: z.string().min(1).optional(),
+    targetCandidateHash: sha.optional(),
+    reason: z.string().min(1).max(2000).optional(),
+    checkId: z.string().min(1).optional(),
   })
   .strict();
+export type FactDispositionEntry = z.infer<typeof factDispositionEntrySchema>;
+
+const dropReceiptBaseFields = {
+  baseline: sha,
+  budget: dropBudgetSchema,
+  resources: z.array(
+    z
+      .object({
+        id: z.string(),
+        path: z.string(),
+        kind: z.enum(["source", "reference", "rule", "page", "candidate", "diagram"]),
+        hash: sha,
+        length: z.number().int().nonnegative(),
+        origins: z.array(z.record(z.string())),
+      })
+      .strict(),
+  ),
+  requiredReads: z.array(z.string()),
+  inputs: z.array(
+    z
+      .object({
+        key: sha,
+        stage: z.string(),
+        rulesHash: sha,
+        bytes: z.number().int(),
+        limit: z.number().int(),
+        requestedBytes: z.number().int().nonnegative(),
+        savedBytes: z.number().int().nonnegative(),
+        materials: z.array(dropRangeSchema),
+      })
+      .strict(),
+  ),
+  queries: z.array(
+    z
+      .object({
+        query: z.string(),
+        cursor: z.string().optional(),
+        total: z.number().int(),
+        ids: z.array(z.string()),
+      })
+      .strict(),
+  ),
+  inferredRelations: z
+    .array(z.object({ a: z.string(), b: z.string(), note: z.string() }).strict())
+    .optional(),
+  decisions: z.array(
+    z
+      .object({
+        topic: z.string(),
+        topics: z.array(z.string()).optional(),
+        evidence: z.array(z.string()).min(1),
+        outcome: z.enum(["integrate", "covered", "out-of-scope"]),
+        targets: z.array(z.string()),
+        reason: z.string().min(1),
+        comparisons: z.array(dropComparisonSchema),
+      })
+      .strict(),
+  ),
+  plans: z.array(
+    z
+      .object({
+        path: z.string(),
+        reason: z.string(),
+        evidence: z.array(z.string()),
+        comparisons: z.array(dropComparisonSchema),
+      })
+      .strict(),
+  ),
+  requiredChecks: z.array(z.string()),
+  checks: z.array(
+    z
+      .object({
+        id: z.string(),
+        kind: z.enum(["page", "relation", "asset", "coordination", "coverage"]),
+        pages: z.array(z.string()),
+        asset: z.string().optional(),
+        bindings: z.array(dropRangeSchema),
+        inputs: z.array(sha).min(1),
+        report: z.string().min(1),
+      })
+      .strict(),
+  ),
+};
+
+export const dropReceiptV3Schema = z
+  .object({
+    protocol: z.literal(3),
+    ...dropReceiptBaseFields,
+  })
+  .strict();
+
+export const dropReceiptV4Schema = z
+  .object({
+    protocol: z.literal(4),
+    ...dropReceiptBaseFields,
+    factDispositions: z.array(factDispositionEntrySchema),
+  })
+  .strict();
+
+export const dropReceiptSchema = z.discriminatedUnion("protocol", [dropReceiptV3Schema, dropReceiptV4Schema]);
 export type DropBudget = z.infer<typeof dropBudgetSchema>;
 export type DropRange = z.infer<typeof dropRangeSchema>;
 export type DropReceipt = z.infer<typeof dropReceiptSchema>;
@@ -115,11 +153,16 @@ export const dropReviewSchema = z
     id: z.string().uuid(),
     generation: z.number().int(),
     report: z.string(),
-    protocol: z.literal(3).optional(),
+    protocol: dropProtocolSchema.optional(),
     receipt: dropReceiptSchema.optional(),
   })
   .strict()
-  .refine((d) => (d.protocol === 3) === (d.receipt !== undefined), "新 Drop 提案必须包含完整复核记录");
+  .refine(
+    (d) =>
+      (d.protocol !== undefined) === (d.receipt !== undefined) &&
+      (d.receipt === undefined || d.protocol === d.receipt.protocol),
+    "新 Drop 提案必须包含完整且协议一致的复核记录",
+  );
 
 export const dropItemSchema = z
   .object({
@@ -156,6 +199,15 @@ export const dropSourceSchema = z.object({
   omissions: z.array(z.string()),
   purpose: z.string().optional(),
 });
+export const dropEditorialGuideSchema = z
+  .object({
+    page: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    text: z.string().min(1).max(200_000),
+    note: z.string().trim().max(1000).optional(),
+  })
+  .strict();
+export type DropEditorialGuide = z.infer<typeof dropEditorialGuideSchema>;
+
 export const dropBatchSchema = z.object({
   schemaVersion: z.literal(2),
   id: z.string().uuid(),
@@ -183,13 +235,14 @@ export const dropBatchSchema = z.object({
   error: z.string().optional(),
   question: z.string().optional(),
   feedback: z.string().default(""),
+  editorialGuides: z.array(dropEditorialGuideSchema).optional(),
   generation: z.number().int().default(0),
   ownerPid: z.number().optional(),
   token: z.string().optional(),
   selection: z
     .object({ provider: z.enum(["claude", "codex"]), model: z.string(), codexCli: z.string().optional() })
     .optional(),
-  protocol: z.literal(3).optional(),
+  protocol: dropProtocolSchema.optional(),
   budget: dropBudgetSchema.optional(),
   receipt: dropReceiptSchema.optional(),
   reviewId: z.string().optional(),

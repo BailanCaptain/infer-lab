@@ -6,7 +6,15 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["src/**", "scripts/**", "tests/**", "*.ts", "*.json", "!src/content/wiki/registry.json"]
+    "includes": [
+      "src/**",
+      "scripts/**",
+      "server/**",
+      "tests/**",
+      "*.ts",
+      "*.json",
+      "!src/content/wiki/registry.json"
+    ]
   },
   "formatter": {
     "enabled": true,

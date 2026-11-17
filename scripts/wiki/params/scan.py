@@ -60,22 +60,47 @@ def scan(files):
                 if not isinstance(node, ast.Assign) or len(node.targets) != 1:
                     continue
                 target, value = node.targets[0], node.value
+                def extract_additional_key(expr):
+                    if (
+                        isinstance(expr, ast.Call)
+                        and isinstance(expr.func, ast.Attribute)
+                        and isinstance(expr.func.value, ast.Name)
+                        and expr.func.value.id == "additional_config"
+                        and expr.func.attr == "get"
+                        and expr.args
+                        and isinstance(expr.args[0], ast.Constant)
+                        and isinstance(expr.args[0].value, str)
+                    ):
+                        return expr.args[0].value
+                    return None
+
                 if isinstance(target, ast.Name):
                     selected.pop(target.id, None)
-                    if (
-                        isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute)
-                        and isinstance(value.func.value, ast.Name) and value.func.value.id == "additional_config"
-                        and value.func.attr == "get" and value.args
-                        and isinstance(value.args[0], ast.Constant) and isinstance(value.args[0].value, str)
-                    ):
-                        selected[target.id] = value.args[0].value
+                    extracted = extract_additional_key(value)
+                    if extracted:
+                        selected[target.id] = extracted
                 if not (
                     isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name) and target.value.id == "self"
                     and isinstance(value, ast.Call) and isinstance(value.func, ast.Name)
-                    and value.args and isinstance(value.args[0], ast.Name)
                 ):
                     continue
-                key = selected.get(value.args[0].id)
+                arg_id = (
+                    value.args[0].id
+                    if value.args and isinstance(value.args[0], ast.Name)
+                    else next(
+                        (kw.value.id for kw in value.keywords if kw.arg is None and isinstance(kw.value, ast.Name)),
+                        None,
+                    )
+                )
+                inline_key = (
+                    extract_additional_key(value.args[0])
+                    if value.args
+                    else None
+                ) or next(
+                    (extract_additional_key(kw.value) for kw in value.keywords if kw.arg is None),
+                    None,
+                )
+                key = (selected.get(arg_id) if arg_id else None) or inline_key
                 candidates = [(p, n) for p, n in classes if n == value.func.id]
                 if (path, value.func.id) in classes:
                     candidates = [(path, value.func.id)]
@@ -141,39 +166,112 @@ def scan(files):
             return ["additional_config"] if reachable(*name) else [name[1]]
         return sorted(set(base + "[" + json.dumps(field) + "]" for parent, field in ps for base in class_paths(parent, visited + (name,))))
 
+    container_args = {"config", "user_config", "vllm_config", "additional_config"}
+
+    def collect_ifs(node, ancestor_ifs=frozenset()):
+        found = []
+        if isinstance(node, ast.If):
+            if any(isinstance(n, (ast.Raise, ast.Assign, ast.AugAssign)) for n in ast.walk(node)):
+                statement = ast.unparse(node)
+                found.append(
+                    (
+                        node,
+                        statement,
+                        set(re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*\b", statement)),
+                        ancestor_ifs,
+                    )
+                )
+            next_ancestors = ancestor_ifs | {node}
+        else:
+            next_ancestors = ancestor_ifs
+        for child in ast.iter_child_nodes(node):
+            found.extend(collect_ifs(child, next_ancestors))
+        return found
+
     rows = []
     for (path, name), cls in classes.items():
         lines = files[path].splitlines()
-        fields = [f for f in cls.body if isinstance(f, ast.AnnAssign) and isinstance(f.target, ast.Name) and not f.target.id.startswith("_")]
-        conditions = []
-        for method in cls.body:
-            if not isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            for node in ast.walk(method):
-                if isinstance(node, ast.If) and any(isinstance(n, (ast.Raise, ast.Assign, ast.AugAssign)) for n in ast.walk(node)):
-                    statement = ast.unparse(node)
-                    conditions.append((statement, set(re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*\b", statement))))
-        certain = reachable(path, name) and (
-            name.endswith("Config") or any("config" in ast.unparse(d).lower() for d in cls.decorator_list)
-        )
-        for field in fields:
+        ann_fields = [
+            f
+            for f in cls.body
+            if isinstance(f, ast.AnnAssign) and isinstance(f.target, ast.Name) and not f.target.id.startswith("_")
+        ]
+        ann_names = {f.target.id for f in ann_fields}
+        field_specs = []
+        for field in ann_fields:
             annotation = ast.unparse(field.annotation)
             # Class constants are excluded from dataclass/config constructor fields.
             if re.match(r"(?:typing\.)?ClassVar(?:\[|$)", annotation):
                 continue
-            label = field.target.id
+            field_specs.append(
+                (field.target.id, annotation, ast.unparse(field.value) if field.value else "<required>", field.lineno)
+            )
+        if name != ROOT_CONFIG:
+            for method in cls.body:
+                if not isinstance(method, ast.FunctionDef) or method.name != "__init__":
+                    continue
+                self_attrs = {
+                    t.attr
+                    for node in ast.walk(method)
+                    if isinstance(node, ast.Assign)
+                    for t in node.targets
+                    if isinstance(t, ast.Attribute) and isinstance(t.value, ast.Name) and t.value.id == "self"
+                } | {
+                    node.target.attr
+                    for node in ast.walk(method)
+                    if isinstance(node, ast.AnnAssign)
+                    and isinstance(node.target, ast.Attribute)
+                    and isinstance(node.target.value, ast.Name)
+                    and node.target.value.id == "self"
+                }
+                all_pos_args = method.args.posonlyargs + method.args.args
+                all_pos_defaults = [None] * (len(all_pos_args) - len(method.args.defaults)) + list(method.args.defaults)
+                pairs = list(zip(all_pos_args[1:], all_pos_defaults[1:])) + list(
+                    zip(method.args.kwonlyargs, method.args.kw_defaults)
+                )
+                for arg_node, default_node in pairs:
+                    label = arg_node.arg
+                    if (
+                        label.startswith("_")
+                        or label in ann_names
+                        or label in container_args
+                        or default_node is None
+                        or label not in self_attrs
+                    ):
+                        continue
+                    field_specs.append(
+                        (
+                            label,
+                            ast.unparse(arg_node.annotation) if arg_node.annotation else "unknown",
+                            ast.unparse(default_node),
+                            arg_node.lineno,
+                        )
+                    )
+        conditions = []
+        for method in cls.body:
+            if not isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            conditions.extend(collect_ifs(method))
+        certain = reachable(path, name) and (
+            name.endswith("Config") or any("config" in ast.unparse(d).lower() for d in cls.decorator_list)
+        )
+        for label, annotation, value, lineno in field_specs:
             comments = []
-            i = field.lineno - 2
+            i = lineno - 2
             while i >= 0 and lines[i].lstrip().startswith("#"):
                 comments.insert(0, lines[i].lstrip()[1:].strip())
                 i -= 1
-            constraints = [statement for statement, identifiers in conditions if label in identifiers]
-            value = ast.unparse(field.value) if field.value else "<required>"
+            matched_ifs = {if_node for if_node, _, identifiers, _ in conditions if label in identifiers}
+            constraints = [
+                statement
+                for _, statement, identifiers, ancestor_ifs in conditions
+                if label in identifiers and not (ancestor_ifs & matched_ifs)
+            ]
             for base in class_paths((path, name)):
                 json_path = base + "[" + json.dumps(label) + "]"
                 top_key = re.match(r'additional_config\["([^"]+)"\]', json_path)
                 user_facing = certain and not (top_key and top_key.group(1) in non_user)
-                row = dict(name=label, type=annotation, default=value, **{"class": name}, json_path=json_path, file=path, line=field.lineno, comment="\n".join(comments), constraints=list(dict.fromkeys(constraints)), confidence="certain" if user_facing else "suspect", form="field")
+                row = dict(name=label, type=annotation, default=value, **{"class": name}, json_path=json_path, file=path, line=lineno, comment="\n".join(comments), constraints=list(dict.fromkeys(constraints)), confidence="certain" if user_facing else "suspect", form="field")
                 rows.append(row)
                 if re.search(r"\b(?:dict|Dict)\b", annotation):
                     for key in sorted(set(re.findall(r"\b[a-z][a-z0-9]*_[a-z0-9_]+\b", row["comment"])) - {label}):

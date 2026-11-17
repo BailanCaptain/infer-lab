@@ -96,9 +96,9 @@ export async function acceptDrop(
       id,
       source: ref,
       origin: "drop",
-      rules:
-        loadHandbook(join(root, "wiki")).pageFormat +
-        "\n将投喂文本编译为 source 页面；仅本地材料不能升为源码实证 C。",
+      rules: `${
+        loadHandbook(join(root, "wiki"), `${record.source}\n${record.why}\n${cleaned.text}`, true).pageFormat
+      }\n将投喂文本编译为 source 页面；仅本地材料不能升为源码实证 C。`,
       timeoutMs: COMPILE_TIMEOUT_MS,
       context: { why: record.why, sourceId: record.source },
     },

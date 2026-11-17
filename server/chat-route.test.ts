@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
@@ -56,23 +56,44 @@ async function setup(
 }
 
 const unauthorizedRequests: { headers: Record<string, string>; status: number }[] = [
-  { headers: { "content-type": "text/plain", origin: "https://untrusted.example", "sec-fetch-site": "cross-site" }, status: 403 },
+  {
+    headers: {
+      "content-type": "text/plain",
+      origin: "https://untrusted.example",
+      "sec-fetch-site": "cross-site",
+    },
+    status: 403,
+  },
   { headers: { "content-type": "application/json" }, status: 403 },
   { headers: { "content-type": "text/plain", "x-wiki-review": "1" }, status: 415 },
-  { headers: { "content-type": "application/json", "x-wiki-review": "1", origin: "https://untrusted.example" }, status: 403 },
+  {
+    headers: {
+      "content-type": "application/json",
+      "x-wiki-review": "1",
+      origin: "https://untrusted.example",
+    },
+    status: 403,
+  },
 ];
-it.each(unauthorizedRequests)("rejects unauthorized chat writes before model or state activity: $headers", async ({ headers, status }) => {
-  let calls = 0;
-  const f = await setup(async () => {
-    calls++;
-    return { ok: false, reason: "This request must not run a model" };
-  });
-  const response = await fetch(f.url, { method: "POST", headers, body: JSON.stringify({ message: "A 是什么？" }) });
-  await response.text();
-  expect(response.status).toBe(status);
-  expect(calls).toBe(0);
-  expect(existsSync(join(f.root, "wiki/_jobs"))).toBe(false);
-});
+it.each(unauthorizedRequests)(
+  "rejects unauthorized chat writes before model or state activity: $headers",
+  async ({ headers, status }) => {
+    let calls = 0;
+    const f = await setup(async () => {
+      calls++;
+      return { ok: false, reason: "This request must not run a model" };
+    });
+    const response = await fetch(f.url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ message: "A 是什么？" }),
+    });
+    await response.text();
+    expect(response.status).toBe(status);
+    expect(calls).toBe(0);
+    expect(existsSync(join(f.root, "wiki/_jobs"))).toBe(false);
+  },
+);
 const frame = (body: string, event: string) => {
   const value = body
     .split("\n\n")
@@ -170,7 +191,8 @@ it("does not validate or save a Codex citation to a page omitted from its eviden
 
 it("keeps the prior assistant's checks available to a Codex follow-up and its independent review", async () => {
   const firstQuestion = "A 的现场性能怎么排查？";
-  const firstAnswer = "第一步对齐请求。第二步核对 check-anchor-1101 对应的提交与完成记录。见 [A](sources/a.md)。";
+  const firstAnswer =
+    "第一步对齐请求。第二步核对 check-anchor-1101 对应的提交与完成记录。见 [A](sources/a.md)。";
   const prompts: string[] = [];
   const reviews: unknown[] = [];
   const f = await setup(
@@ -200,7 +222,9 @@ it("keeps the prior assistant's checks available to a Codex follow-up and its in
   f.write("wiki/sync.config.local.json", JSON.stringify({ chatProvider: "codex" }));
   const first = await (await f.request({ message: firstQuestion })).text();
   const sessionId = frame(first, "done").sessionId;
-  const second = await (await f.request({ message: "你刚才第二步的记录齐了，接下来怎么判断？", sessionId })).text();
+  const second = await (
+    await f.request({ message: "你刚才第二步的记录齐了，接下来怎么判断？", sessionId })
+  ).text();
   expect(frame(second, "error")).toBeUndefined();
   expect(frame(second, "done").sessionId).toBe(sessionId);
   expect(prompts).toHaveLength(2);
@@ -208,24 +232,27 @@ it("keeps the prior assistant's checks available to a Codex follow-up and its in
   expect.soft(reviews[1]).toMatchObject({ contextTurns: [{ question: firstQuestion, answer: firstAnswer }] });
 });
 
-it.each([false, true])("Codex uses pinned injected evidence without an unused filesystem snapshot (live edit: %s)", async (edited) => {
-  const f = await setup(async (req, on) => {
-    expect(req.provider).toBe("codex");
-    expect(req.stdin).toContain("默认值为 1");
-    expect(existsSync(join(f.root, "tools/wiki-runtime/knowledge"))).toBe(false);
-    // Live edits after request construction must not replace this answer's evidence.
-    if (edited) f.write("wiki/sources/a.md", original.replaceAll("默认值为 1", "默认值为 2"));
-    on.text("默认值为 1，见 [A](sources/a.md)。");
-    return { ok: true };
-  });
-  f.write("wiki/sync.config.local.json", JSON.stringify({ chatProvider: "codex" }));
-  const body = await (await f.request({ message: "A 默认值？" })).text();
-  expect(frame(body, "error")).toBeUndefined();
-  expect(frame(body, "cite").cited).toBe(true);
-  // A changed live page still prevents saving the old revision, as on the Claude path.
-  if (edited) expect(frame(body, "done").answerId).toBeUndefined();
-  else expect(frame(body, "done").answerId).toEqual(expect.any(String));
-});
+it.each([false, true])(
+  "Codex uses pinned injected evidence without an unused filesystem snapshot (live edit: %s)",
+  async (edited) => {
+    const f = await setup(async (req, on) => {
+      expect(req.provider).toBe("codex");
+      expect(req.stdin).toContain("默认值为 1");
+      expect(existsSync(join(f.root, "tools/wiki-runtime/knowledge"))).toBe(false);
+      // Live edits after request construction must not replace this answer's evidence.
+      if (edited) f.write("wiki/sources/a.md", original.replaceAll("默认值为 1", "默认值为 2"));
+      on.text("默认值为 1，见 [A](sources/a.md)。");
+      return { ok: true };
+    });
+    f.write("wiki/sync.config.local.json", JSON.stringify({ chatProvider: "codex" }));
+    const body = await (await f.request({ message: "A 默认值？" })).text();
+    expect(frame(body, "error")).toBeUndefined();
+    expect(frame(body, "cite").cited).toBe(true);
+    // A changed live page still prevents saving the old revision, as on the Claude path.
+    if (edited) expect(frame(body, "done").answerId).toBeUndefined();
+    else expect(frame(body, "done").answerId).toEqual(expect.any(String));
+  },
+);
 
 it("贴报错时把 GitHub 在线候选推给界面、交给问答模型；普通提问不去查（F003 AC4 聊天层接入）", async () => {
   const REPO = "vllm-project/vllm-ascend";
@@ -676,31 +703,62 @@ it("客户端断开（点停止）时中止模型调用、跳过质检与缺口�
 
 it("停止独立核对会中止其模型并释放会话，不保存迟到的评判或缺口", async () => {
   let started!: () => void;
-  const checking = new Promise<void>((resolve) => { started = resolve; });
+  const checking = new Promise<void>((resolve) => {
+    started = resolve;
+  });
   let signal: AbortSignal | undefined;
   let gapCalls = 0;
-  const f = await setup(async (_req, on) => {
-    on.text("默认值为 2，见 [A](sources/a.md)。");
-    return { ok: true, sessionId: randomUUID() };
-  }, {
-    judgeAnswer: (root, input) => reviewAnswer(root, input, {
-      runAgent: async (req) => {
-        signal = req.signal;
-        started();
-        await new Promise<void>((resolve) => {
-          const timer = setTimeout(resolve, 1500);
-          req.signal?.addEventListener("abort", () => { clearTimeout(timer); resolve(); }, { once: true });
-        });
-        return { id: req.id, ok: true, exitCode: 0, costUsd: 0, stderrTail: "", output: JSON.stringify({
-          satisfied: false, classification: "answer-error", reason: "数字不符", answerQuote: "默认值为 2",
-          evidence: [{ pageId: "a", quote: "默认值为 1。" }],
-        }) };
+  const f = await setup(
+    async (_req, on) => {
+      on.text("默认值为 2，见 [A](sources/a.md)。");
+      return { ok: true, sessionId: randomUUID() };
+    },
+    {
+      judgeAnswer: (root, input) =>
+        reviewAnswer(root, input, {
+          runAgent: async (req) => {
+            signal = req.signal;
+            started();
+            await new Promise<void>((resolve) => {
+              const timer = setTimeout(resolve, 1500);
+              req.signal?.addEventListener(
+                "abort",
+                () => {
+                  clearTimeout(timer);
+                  resolve();
+                },
+                { once: true },
+              );
+            });
+            return {
+              id: req.id,
+              ok: true,
+              exitCode: 0,
+              costUsd: 0,
+              stderrTail: "",
+              output: JSON.stringify({
+                satisfied: false,
+                classification: "answer-error",
+                reason: "数字不符",
+                answerQuote: "默认值为 2",
+                evidence: [{ pageId: "a", quote: "默认值为 1。" }],
+              }),
+            };
+          },
+        }),
+      judgeGap: async () => {
+        gapCalls++;
+        return undefined;
       },
-    }),
-    judgeGap: async () => { gapCalls++; return undefined; },
-  });
+    },
+  );
   const controller = new AbortController();
-  const response = await fetch(f.url, { method: "POST", headers: { "content-type": "application/json", "x-wiki-review": "1" }, body: JSON.stringify({ message: "A 的默认值？" }), signal: controller.signal });
+  const response = await fetch(f.url, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-wiki-review": "1" },
+    body: JSON.stringify({ message: "A 的默认值？" }),
+    signal: controller.signal,
+  });
   const reader = response.body!.getReader();
   let seen = "";
   while (!frame(seen, "knowledge")) seen += new TextDecoder().decode((await reader.read()).value);
@@ -709,12 +767,212 @@ it("停止独立核对会中止其模型并释放会话，不保存迟到的评�
   controller.abort();
   const session = join(f.root, "wiki/_jobs/chat-sessions", `${sessionId}.json`);
   try {
-    await expect.poll(() => JSON.parse(readFileSync(session, "utf8")).active, { timeout: 750 }).toBeUndefined();
-    expect(signal?.aborted).toBe(true);
+    await expect.poll(() => signal?.aborted, { timeout: 750 }).toBe(true);
+    await expect
+      .poll(() => JSON.parse(readFileSync(session, "utf8")).active, { timeout: 750 })
+      .toBeUndefined();
+    const savedSession = JSON.parse(readFileSync(session, "utf8")) as {
+      turns: number;
+      questions: string[];
+      history: { question: string; answer: string }[];
+    };
+    expect(savedSession.turns).toBe(1);
+    expect(savedSession.questions).toEqual(["A 的默认值？"]);
+    expect(savedSession.history).toEqual([
+      { question: "A 的默认值？", answer: "默认值为 2，见 [A](sources/a.md)。" },
+    ]);
+    expect(existsSync(join(f.root, "wiki/_jobs/answers"))).toBe(false);
     expect(gapCalls).toBe(0);
     expect(listGaps(f.root)).toEqual([]);
   } finally {
     // Keep the fixture alive until the red run's uncancelled model completes.
     await new Promise((resolve) => setTimeout(resolve, 1600));
+  }
+});
+
+it("答案完成后在进入质检前即释放会话并发送 persisted，质检中断不会串清下一轮追问的新租约", async () => {
+  let turn = 0;
+  let releaseJudge!: () => void;
+  const judgeGate = new Promise<void>((resolve) => {
+    releaseJudge = resolve;
+  });
+  let checkStarted!: () => void;
+  const checking = new Promise<void>((resolve) => {
+    checkStarted = resolve;
+  });
+  let secondTurnStarted!: () => void;
+  const onSecondTurnStarted = new Promise<void>((resolve) => {
+    secondTurnStarted = resolve;
+  });
+  let releaseSecondTurn!: () => void;
+  const holdSecondTurn = new Promise<void>((resolve) => {
+    releaseSecondTurn = resolve;
+  });
+  let seenPreviousTurns: unknown;
+
+  const f = await setup(
+    async (req, on) => {
+      turn++;
+      if (turn === 1) {
+        on.text("第一轮完整回答，见 [A](sources/a.md)。");
+        return { ok: true };
+      }
+      seenPreviousTurns = req.stdin;
+      secondTurnStarted();
+      await holdSecondTurn;
+      on.text("第二轮追问回答，见 [A](sources/a.md)。");
+      return { ok: true };
+    },
+    {
+      judgeAnswer: async (_root, input) => {
+        if (input.question === "第一问？") {
+          checkStarted();
+          await judgeGate;
+        }
+        throw new Error("judge aborted or unavailable");
+      },
+    },
+  );
+
+  const firstAbort = new AbortController();
+  try {
+    const firstRes = await fetch(f.url, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-wiki-review": "1" },
+      body: JSON.stringify({ message: "第一问？" }),
+      signal: firstAbort.signal,
+    });
+    const reader = firstRes.body!.getReader();
+    const decoder = new TextDecoder();
+    let seen = "";
+    while (!frame(seen, "quality")) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      seen += decoder.decode(chunk.value, { stream: true });
+    }
+    await checking;
+    expect(frame(seen, "persisted")).toMatchObject({
+      sessionId: frame(seen, "knowledge").sessionId,
+    });
+    expect(frame(seen, "persisted")?.answerId).toBeUndefined();
+
+    const sessionId: string = frame(seen, "knowledge").sessionId;
+    const sessionPath = join(f.root, "wiki/_jobs/chat-sessions", `${sessionId}.json`);
+    // 质检尚未结束时，第一轮会话历史已落盘、active 已释放
+    expect(JSON.parse(readFileSync(sessionPath, "utf8")).active).toBeUndefined();
+
+    firstAbort.abort();
+    const secondPromise = f.request({ message: "那第二问呢？", sessionId });
+    await onSecondTurnStarted;
+    const activeDuringSecond = JSON.parse(readFileSync(sessionPath, "utf8")).active as
+      | { token: string }
+      | undefined;
+    expect(activeDuringSecond?.token).toBeTruthy();
+
+    // 让第一轮被中断的 judgeAnswer 此刻才返回，触发第一轮 finally：绝不能清掉第二轮的新 active 租约，也不为第一轮生成回答档案
+    releaseJudge();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(JSON.parse(readFileSync(sessionPath, "utf8")).active).toEqual(activeDuringSecond);
+    expect(existsSync(join(f.root, "wiki/_jobs/answers"))).toBe(false);
+
+    releaseSecondTurn();
+    const secondRes = await secondPromise;
+    expect(secondRes.status).toBe(200);
+    const secondBody = await secondRes.text();
+    expect(secondBody).toContain("第二轮追问回答");
+    expect(String(seenPreviousTurns)).toContain("第一轮完整回答");
+    const answerFiles = readdirSync(join(f.root, "wiki/_jobs/answers")).filter((n) => n.endsWith(".json"));
+    expect(answerFiles).toHaveLength(1);
+    const savedSecond = JSON.parse(
+      readFileSync(join(f.root, "wiki/_jobs/answers", answerFiles[0]!), "utf8"),
+    ) as { question: string };
+    expect(savedSecond.question).toBe("那第二问呢？");
+  } finally {
+    firstAbort.abort();
+    releaseJudge();
+    releaseSecondTurn();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+});
+
+it("keeps boundary-explanation questions covered (with answerId) while recording gaps and suppressing answerId when requested measurements are missing or undetermined", async () => {
+  // 1. Positive: asking whether/why a summary or toy example suffices -> covered, 0 gaps, answerId issued
+  const positiveEnv = await setup(
+    async (_req, on) => {
+      on.text(
+        '不能仅凭摘要直接判断根因，默认值为 1 只是静态前提，见 [A](sources/a.md#一句话)。<!-- wiki-coverage: {"satisfied":true,"reason":"边界解释已由正文覆盖"} -->',
+      );
+      return { ok: true };
+    },
+    {
+      judgeAnswer: async (_root, input) => ({
+        status: "checked",
+        jobId: "1".repeat(64),
+        revision: input.snapshot.revision,
+        decision: {
+          satisfied: true,
+          classification: "covered",
+          reason: "提问求证能否直接判断根因，正文支持该边界说明",
+          answerQuote: "不能仅凭摘要直接判断根因",
+          evidence: [{ pageId: "a", quote: "默认值为 1。" }],
+        },
+      }),
+    },
+  );
+  const posBody = await (
+    await positiveEnv.request({ message: "只有默认值摘要能否直接判断线上超时根因？" })
+  ).text();
+  expect(frame(posBody, "gap")).toBeUndefined();
+  expect(frame(posBody, "done").answerId).toEqual(expect.any(String));
+  expect(listGaps(positiveEnv.root)).toEqual([]);
+
+  // 2. Negative (missing-knowledge) & Negative (undetermined with self-reported uncovered): both record gap AND suppress answerId
+  for (const verdict of [
+    {
+      satisfied: false as const,
+      classification: "missing-knowledge" as const,
+      reason: "所求归档实测在所给正文中缺失",
+      answerQuote: "对应原始测量表出处：当前提供的归档正文中未见。",
+      evidence: [{ pageId: "a", quote: "默认值为 1。" }],
+    },
+    {
+      satisfied: null,
+      classification: "undetermined" as const,
+      reason: "提供片段未见该实测且存在省略页面，无法排除",
+      answerQuote: "对应原始测量表出处：当前提供的归档正文中未见。",
+      evidence: [],
+    },
+  ]) {
+    const negEnv = await setup(
+      async (_req, on) => {
+        on.text(
+          '当前注入的知识库正文没有这组条件下的已归档实测，见 [A](sources/a.md#一句话)。对应原始测量表出处：当前提供的归档正文中未见。\n\n<!-- wiki-coverage: {"satisfied":false,"reason":"缺少指定硬件与并发的原始实测表"} -->',
+        );
+        return { ok: true };
+      },
+      {
+        judgeAnswer: async (_root, input) => ({
+          status: "checked",
+          jobId: "2".repeat(64),
+          revision: input.snapshot.revision,
+          decision: verdict,
+        }),
+      },
+    );
+    const negBody = await (
+      await negEnv.request({
+        message: "请只依据已归档实测给出 Atlas 800T A3 并发 32 的 p99 TTFT 与成功率做上线承诺，不要虚构。",
+      })
+    ).text();
+    expect(frame(negBody, "done").answerId, verdict.classification).toBeUndefined();
+    expect(frame(negBody, "gap"), verdict.classification).toMatchObject({ count: 1, state: "collecting" });
+    const gaps = listGaps(negEnv.root);
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]!.occurrences[0]!.signals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "independent-review" }),
+        expect.objectContaining({ kind: "agent-uncovered" }),
+      ]),
+    );
   }
 });

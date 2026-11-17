@@ -1,25 +1,33 @@
 /** Build and live readers share one content snapshot, including its revision. */
-import buildSnapshot, { loadPage } from "virtual:wiki-reader-snapshot";
+import buildSnapshot, { loadPage, loadPageEvidence, loadSearchIndex } from "virtual:wiki-reader-snapshot";
+import { repoSourceUrl } from "./evidence-schema";
 import { findPageByName } from "./page-names";
 import { createReaderStore } from "./reader-store";
-import { buildIndex, type Hit, type Index, type RetrieveOptions, retrieve as retrieveIn } from "./retrieve";
-import type { RegistryEntry, RepoRef } from "./schema";
+import { type Hit, type RetrieveOptions, retrieve as retrieveIn } from "./retrieve";
+import { inlineRawSourceHref, type RegistryEntry, type RepoRef, rawSourceHref } from "./schema";
 
-const reader = createReaderStore(buildSnapshot, loadPage);
+const reader = createReaderStore(buildSnapshot, loadPage, loadSearchIndex, loadPageEvidence);
 export const ensurePage = reader.ensurePage;
+export const ensurePageEvidence = reader.ensurePageEvidence;
+export const getPageEvidence = reader.getPageEvidence;
 export const getReaderState = reader.getState;
+export const resolvePageId = reader.resolvePageId;
 export const subscribeReader = reader.subscribe;
 export const installReaderSnapshot = reader.install;
 export const refreshReaderSnapshot = reader.refresh;
 export const getPage = reader.getPage;
+export type {
+  DiagramEvidenceGroup,
+  DiagramPinEvidence,
+  EvidenceEntry,
+  EvidenceLine,
+  EvidenceTarget,
+  EvidenceViewState,
+  ReaderPageEvidence,
+} from "./evidence-schema";
+export { createEvidenceViewController, resolveActiveEvidence } from "./evidence-schema";
 export type { WikiPage } from "./reader-store";
-
-/** 仓库名 → GitHub 仓库路径。未列出的仓库不猜 URL。 */
-const REPO_GITHUB: Record<string, string> = {
-  "vllm-ascend": "vllm-project/vllm-ascend",
-  vllm: "vllm-project/vllm",
-  rfork: "yangsonglin13/vllm-ascend",
-};
+export { resolveCanonicalPageId } from "./schema";
 
 export function listPages(): RegistryEntry[] {
   return [...reader.getState().pages];
@@ -36,13 +44,7 @@ export function pageHref(id: string): string {
 
 /** `repo@commit:path#L起-L止` → GitHub blob 链接；未知仓库返回 null。 */
 export function sourceUrl(ref: RepoRef): string | null {
-  const slug = REPO_GITHUB[ref.repo];
-  if (!slug) return null;
-  const base = `https://github.com/${slug}/blob/${ref.commit}/${ref.path}`;
-  if (ref.lineStart === undefined) return base;
-  return ref.lineEnd === undefined
-    ? `${base}#L${ref.lineStart}`
-    : `${base}#L${ref.lineStart}-L${ref.lineEnd}`;
+  return repoSourceUrl(ref);
 }
 
 /**
@@ -51,11 +53,17 @@ export function sourceUrl(ref: RepoRef): string | null {
  * 外链、站内路由与绝对路径原样返回。
  */
 export function rewriteRelativeLink(href: string, currentId?: string): string {
+  if (href.startsWith("raw:")) return inlineRawSourceHref(href) ?? "";
   if (/^[a-z]+:/i.test(href) || href.startsWith("#/") || href.startsWith("/")) return href;
   if (href.startsWith("#")) return currentId ? `${pageHref(currentId)}${href}` : href;
   const cut = href.indexOf("#");
   const path = cut < 0 ? href : href.slice(0, cut);
   const fragment = cut < 0 ? "" : href.slice(cut);
+  const rawMatch = /(?:^|\/)raw\/(sha256-[a-f0-9]{64}\.md)$/.exec(path);
+  if (rawMatch) {
+    const mapped = rawSourceHref(`raw:${rawMatch[1]}${fragment || "#L1"}`);
+    if (mapped) return mapped;
+  }
   if (!path.endsWith(".md")) return href;
   const file = path.slice(path.lastIndexOf("/") + 1, -".md".length);
   return `${pageHref(file)}${fragment}`;
@@ -63,35 +71,14 @@ export function rewriteRelativeLink(href: string, currentId?: string): string {
 
 // ---------- 检索（AC10 的单一入口）----------
 
-let searchIndex: Index | null = null;
-reader.subscribe(() => {
-  searchIndex = null;
-});
-
-function ensureIndex(): Index {
-  if (searchIndex) return searchIndex;
-  searchIndex = buildIndex(
-    reader.getState().pages.map((p) => ({
-      id: p.id,
-      title: p.title,
-      aliases: p.aliases,
-      summary: p.summary,
-      chapters: p.chapters,
-      evidence: p.evidence,
-      relations: p.relations,
-      text: getPage(p.id)?.body ?? "",
-    })),
-  );
-  return searchIndex;
-}
-
 /**
- * 聊天层唯一允许的检索入口。**不要在调用方自己 grep**——换实现（比如给
- * issue 语料接语义检索）时才不必重写聊天层。见 F001 AC10 与风险 R1。
+ * 聊天层与前端快捷搜索唯一允许的检索入口。**不要在调用方自己 grep**——
+ * 静态构建下按需懒载紧凑预编译索引（不下载全库页面 Markdown 与图），
+ * 本地刷新后自动对齐同一快照 revision 的检索索引。见 F001 AC10 与风险 R1。
  */
 export async function retrieve(query: string, opts?: RetrieveOptions): Promise<Hit[]> {
-  await Promise.all(reader.getState().pages.map((p) => reader.ensurePage(p.id)));
-  return retrieveIn(query, ensureIndex(), opts);
+  const index = await reader.ensureSearchIndex();
+  return retrieveIn(query, index, opts);
 }
 
 /**

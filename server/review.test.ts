@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { runStagedIntegration } from "../scripts/wiki/integration-run";
 import { saveRawSnapshot } from "../scripts/wiki/raw";
-import { type Review, createReview, readReview } from "../scripts/wiki/review";
+import { createReview, type Review, readReview } from "../scripts/wiki/review";
 import { wikiContents } from "../scripts/wiki/review-files";
 import { wikiFixture } from "../scripts/wiki/test-fixture";
 import { handleReview } from "./review";
@@ -87,16 +87,27 @@ describe("review HTTP API", () => {
     const f = await setup();
     const before = wikiContents(f.root);
     const after = new Map(before);
-    after.set("wiki/sources/b.md",before.get("wiki/sources/a.md")!.replace("id: a","id: b").replace("title: A","title: B"));
-    const later = await createReview(f.root,before,after,{promoted:["b"],merged:[],rejected:[],contradictions:[]});
-    const request = (body: unknown, origin=f.base) => fetch(`${f.base}/api/wiki/reviews/batch/approve`, {
-      method:"POST", headers:{"content-type":"application/json","x-wiki-review":"1",origin},body:JSON.stringify(body),
+    after.set(
+      "wiki/sources/b.md",
+      before.get("wiki/sources/a.md")!.replace("id: a", "id: b").replace("title: A", "title: B"),
+    );
+    const later = await createReview(f.root, before, after, {
+      promoted: ["b"],
+      merged: [],
+      rejected: [],
+      contradictions: [],
     });
-    expect((await request({revisions:[f.id]},"https://evil.example")).status).toBe(403);
-    expect((await request({revisions:[f.id],all:true})).status).toBe(400);
-    expect((await request({revisions:[f.id]})).status).toBe(200);
-    expect(readReview(f.root,f.id).state).toBe("published");
-    expect(readReview(f.root,later.id).state).toBe("pending");
+    const request = (body: unknown, origin = f.base) =>
+      fetch(`${f.base}/api/wiki/reviews/batch/approve`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-wiki-review": "1", origin },
+        body: JSON.stringify(body),
+      });
+    expect((await request({ revisions: [f.id] }, "https://evil.example")).status).toBe(403);
+    expect((await request({ revisions: [f.id], all: true })).status).toBe(400);
+    expect((await request({ revisions: [f.id] })).status).toBe(200);
+    expect(readReview(f.root, f.id).state).toBe("published");
+    expect(readReview(f.root, later.id).state).toBe("pending");
   });
   it("keeps superseded claims in the review and publishes only the current explanation", async () => {
     const f = await setup();

@@ -1,25 +1,30 @@
 import { describe, expect, it, vi } from "vitest";
 import { createReaderStore } from "./reader-store";
+import { buildIndex, retrieve, serializeSearchIndex } from "./retrieve";
 
 function snapshot(version: string) {
+  const revision = version.repeat(64);
+  const page = {
+    id: "a",
+    title: version,
+    type: "source" as const,
+    summary: version,
+    file: "sources/a.md",
+    sources: ["https://example.com/"],
+    evidence: "I" as const,
+    updated: "2026-09-15",
+  };
   return {
-    revision: version.repeat(64),
+    revision,
     registry: {
-      version: 1,
-      pages: [
-        {
-          id: "a",
-          title: version,
-          type: "source",
-          summary: version,
-          file: "sources/a.md",
-          sources: ["https://example.com/"],
-          evidence: "I",
-          updated: "2026-09-15",
-        },
-      ],
+      version: 1 as const,
+      pages: [page],
     },
     pageTexts: [{ file: "sources/a.md", text: `---\nid: a\n---\n${version}` }],
+    searchIndex: serializeSearchIndex(
+      buildIndex([{ ...page, aliases: [], chapters: [], relations: [], related: [], text: version }]),
+      revision,
+    ),
   };
 }
 
@@ -96,6 +101,7 @@ describe("reader snapshot state", () => {
     const invalid = [
       { ...snapshot("b"), revision: undefined },
       { ...snapshot("b"), revision: "invalid" },
+      { ...snapshot("b"), searchIndex: undefined },
       { ...snapshot("b"), pageTexts: [] },
       { ...snapshot("b"), pageTexts: [...snapshot("b").pageTexts, ...snapshot("b").pageTexts] },
       {
@@ -170,5 +176,198 @@ describe("reader snapshot state", () => {
     } finally {
       warn.mockRestore();
     }
+  });
+
+  it("lazily loads the prebuilt search index without loading page chunks, validates revision, and blocks stale in-flight indexes after live refresh", async () => {
+    const revA = snapshot("a");
+    const revB = snapshot("b");
+    const serializedOf = (s: ReturnType<typeof snapshot>, bodyText: string) =>
+      serializeSearchIndex(
+        buildIndex(
+          s.registry.pages.map((p) => ({
+            ...p,
+            aliases: [],
+            chapters: [],
+            relations: [],
+            related: [],
+            text: bodyText,
+          })),
+        ),
+        s.revision,
+      );
+    const indexA = serializedOf(revA, "旧版专有词 legacy_alpha");
+    const indexB = serializedOf(revB, "新版专有词 fresh_beta");
+
+    const loadPage = vi.fn(async () => {
+      throw new Error("检索不应触发单页 chunk 下载");
+    });
+    let resolveStaleA!: (value: unknown) => void;
+    const loadIndex = vi
+      .fn()
+      .mockResolvedValueOnce({ ...indexA, revision: "c".repeat(64) })
+      .mockResolvedValueOnce(indexA);
+
+    const lazyStore = createReaderStore(
+      { revision: revA.revision, registry: revA.registry },
+      loadPage,
+      loadIndex,
+    );
+    await expect(lazyStore.ensureSearchIndex()).rejects.toThrow("版本");
+    // 304 Not Modified flips mode to local while keeping lazy build index valid for the same revision
+    await lazyStore.refresh(async () => null);
+    expect(lazyStore.getState().mode).toBe("local");
+    const loadedIdx = await lazyStore.ensureSearchIndex();
+    expect(retrieve("legacy_alpha", loadedIdx).map((h) => h.id)).toEqual(["a"]);
+    expect(loadPage).not.toHaveBeenCalled();
+    expect(loadIndex).toHaveBeenCalledTimes(2);
+
+    // Stale in-flight build index must never pollute a newer installed live snapshot
+    const raceStore = createReaderStore(
+      { revision: revA.revision, registry: revA.registry },
+      loadPage,
+      () =>
+        new Promise((done) => {
+          resolveStaleA = done;
+        }),
+    );
+    const inFlight = raceStore.ensureSearchIndex();
+    expect(() => raceStore.install({ ...revB, searchIndex: { ...indexB, revision: revA.revision } })).toThrow(
+      "检索索引",
+    );
+    raceStore.install({ ...revB, searchIndex: indexB });
+    resolveStaleA(indexA);
+    const winner = await inFlight;
+    expect(retrieve("fresh_beta", winner).map((h) => h.id)).toEqual(["a"]);
+    expect(retrieve("legacy_alpha", winner)).toEqual([]);
+    expect(retrieve("fresh_beta", await raceStore.ensureSearchIndex()).map((h) => h.id)).toEqual(["a"]);
+  });
+
+  it("same-revision live install atomically installs diagrams alongside prefilled pages", async () => {
+    const base = snapshot("a");
+    const fullWithDiagram = {
+      ...base,
+      diagrams: [{ id: "figure-alpha", svg: '<svg xmlns="http://www.w3.org/2000/svg"/>' }],
+    };
+    const loadPage = vi.fn(async () => ({
+      revision: base.revision,
+      ...base.pageTexts[0]!,
+      diagrams: fullWithDiagram.diagrams,
+    }));
+    const store = createReaderStore(
+      { revision: base.revision, registry: base.registry },
+      loadPage,
+      async () => base.searchIndex,
+    );
+    store.install(fullWithDiagram);
+    await store.ensurePage("a");
+    expect(store.getPage("a")?.body).toBe("a");
+    expect(store.getState().diagrams.get("figure-alpha")).toBe('<svg xmlns="http://www.w3.org/2000/svg"/>');
+    expect(loadPage).not.toHaveBeenCalled();
+  });
+
+  it("refuses missing prebuilt searchIndex without falling back to all-page downloads or client-side buildIndex", async () => {
+    const base = snapshot("a");
+    const loadPage = vi.fn(async () => ({
+      revision: base.revision,
+      ...base.pageTexts[0]!,
+      diagrams: [],
+    }));
+    const legacyStore = createReaderStore({ revision: base.revision, registry: base.registry }, loadPage);
+    await expect(legacyStore.ensureSearchIndex()).rejects.toThrow("检索索引");
+    expect(loadPage).not.toHaveBeenCalled();
+    expect(legacyStore.getState().revision).toBe(base.revision);
+  });
+
+  it("resolves legacyIds to canonical pages without duplicate downloads, ignores aliases, and preserves current snapshot on conflicting live install", async () => {
+    const revA = "a".repeat(64);
+    const pageCurrent = {
+      id: "current-page",
+      legacyIds: ["former-page", "legacy-v0"],
+      title: "Current Page",
+      type: "concept" as const,
+      summary: "Canonical summary.",
+      aliases: ["Human Alias", "alias-kebab"],
+      file: "concepts/current-page.md",
+      sources: ["https://example.com/source"],
+      evidence: "I" as const,
+      updated: "2026-11-16",
+    };
+    const pageOther = {
+      id: "other-page",
+      title: "Other Page",
+      type: "concept" as const,
+      summary: "Other summary.",
+      aliases: [],
+      file: "concepts/other-page.md",
+      sources: ["https://example.com/other"],
+      evidence: "I" as const,
+      updated: "2026-11-16",
+    };
+    const calls: string[] = [];
+    const store = createReaderStore(
+      { revision: revA, registry: { version: 1, pages: [pageCurrent, pageOther] } },
+      async (id) => {
+        calls.push(id);
+        return {
+          revision: revA,
+          file: `concepts/${id}.md`,
+          text: `---\nid: ${id}\n---\n## 保留锚点\n\n正文 ${id}`,
+          diagrams: [],
+        };
+      },
+    );
+
+    expect(store.resolvePageId("former-page")).toBe("current-page");
+    expect(store.resolvePageId("current-page")).toBe("current-page");
+    expect(store.resolvePageId("alias-kebab")).toBeUndefined();
+    expect(store.resolvePageId("missing-id")).toBeUndefined();
+
+    // 旧新 ID 并发与串行请求均只按规范 ID 下载一次，未知 ID 不发请求
+    await Promise.all([
+      store.ensurePage("former-page"),
+      store.ensurePage("current-page"),
+      store.ensurePage("alias-kebab"),
+      store.ensurePage("missing-id"),
+    ]);
+    await store.ensurePage("legacy-v0");
+    expect(calls).toEqual(["current-page"]);
+    expect(store.getPage("former-page")).toBe(store.getPage("current-page"));
+    expect(store.getPage("former-page")?.fm.id).toBe("current-page");
+    expect(store.getPage("alias-kebab")).toBeUndefined();
+    expect(store.getPage("missing-id")).toBeUndefined();
+
+    // live 快照若含跨页重复 legacyIds 或与 canonical ID 冲突，必须拒绝并完整保留当前可用快照
+    const revB = "b".repeat(64);
+    const makeLive = (pages: (typeof pageCurrent | typeof pageOther)[]) => ({
+      revision: revB,
+      registry: { version: 1 as const, pages },
+      pageTexts: pages.map((p) => ({ file: p.file, text: `---\nid: ${p.id}\n---\n新版 ${p.id}` })),
+      searchIndex: serializeSearchIndex(
+        buildIndex(
+          pages.map((p) => ({ ...p, chapters: [], relations: [], related: [], text: `新版 ${p.id}` })),
+        ),
+        revB,
+      ),
+    });
+
+    const beforeState = store.getState();
+    const beforeArticle = store.getPage("current-page");
+    const dupConflict = makeLive([
+      { ...pageCurrent, legacyIds: ["shared-old"] },
+      { ...pageOther, legacyIds: ["shared-old"] },
+    ]);
+    const canonicalConflict = makeLive([{ ...pageCurrent, legacyIds: ["other-page"] }, pageOther]);
+    const skippedConflict = {
+      ...makeLive([{ ...pageCurrent, legacyIds: ["skipped-page"] }, pageOther]),
+      skipped: [{ id: "skipped-page", file: "concepts/skipped-page.md", reason: "[schema] invalid" }],
+    };
+
+    expect(() => store.install(dupConflict)).toThrow();
+    expect(() => store.install(skippedConflict)).toThrow();
+    await expect(store.refresh(async () => canonicalConflict)).rejects.toThrow();
+    await expect(store.refresh(async () => skippedConflict)).rejects.toThrow();
+    expect(store.getState()).toBe(beforeState);
+    expect(store.getPage("former-page")).toBe(beforeArticle);
+    expect(store.resolvePageId("former-page")).toBe("current-page");
   });
 });

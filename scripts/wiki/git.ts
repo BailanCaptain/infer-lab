@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { resolve } from "node:path";
 
 export class GitError extends Error {
   constructor(
@@ -33,31 +35,101 @@ export type BlobRead = { kind: "ok"; text: string } | { kind: "invalid-commit" |
 const SEP = String.fromCharCode(0);
 const TAB = String.fromCharCode(9);
 const LF = 10;
+const MAX_NEGATIVE_COMMITS = 512;
 
 /**
- * 进程级缓存。键是 (仓库, commit, 路径)——钉住的 commit 下文件内容不可变，所以跨 reader、
- * 跨请求共享是安全的。不存在的 commit 不进缓存：之后 fetch 可能把它带进来。
+ * 进程级正向缓存。键是 (仓库, commit, 路径)——钉住的 commit 下文件内容不可变，所以跨 reader、
+ * 跨请求共享是安全的。缺失 commit 仅做绑定仓库状态指纹的有界负缓存：审计批次切换或 fetch /
+ * 引用变化后立即失效，确保新拉取的真实源码立即可见。
  */
 const blobs = new Map<string, BlobRead>();
 const commits = new Set<string>();
+const commonDirs = new Map<string, string>();
+const missingCommits = new Map<string, string>();
 const blobKey = (root: string, commit: string, path: string) => [root, commit, path].join(SEP);
+
+export function resetNegativeCommitCache(): void {
+  missingCommits.clear();
+}
 
 export function clearBlobCache(): void {
   blobs.clear();
   commits.clear();
+  commonDirs.clear();
+  missingCommits.clear();
+}
+
+function resolveGitCommonDir(root: string): string {
+  const cached = commonDirs.get(root);
+  if (cached && existsSync(cached) && existsSync(root)) return cached;
+  // An unreadable repository must fail, rather than masquerading as missing evidence.
+  const raw = gitText(root, ["rev-parse", "--git-common-dir"]).trim();
+  const resolved = resolve(root, raw);
+  commonDirs.set(root, resolved);
+  return resolved;
+}
+
+function safeReadText(path: string): string {
+  try {
+    return existsSync(path) ? readFileSync(path, "utf8") : "";
+  } catch {
+    return "";
+  }
+}
+
+function safeStatStamp(path: string): string {
+  try {
+    if (!existsSync(path)) return "";
+    const st = statSync(path);
+    return `${st.size}:${st.mtimeMs}`;
+  } catch {
+    return "";
+  }
+}
+
+function safeDirStamp(path: string): string {
+  try {
+    return existsSync(path) ? readdirSync(path).sort().join(",") : "";
+  } catch {
+    return "";
+  }
+}
+
+function repoStateStamp(commonDir: string): string {
+  return [
+    safeReadText(resolve(commonDir, "FETCH_HEAD")),
+    safeReadText(resolve(commonDir, "HEAD")),
+    safeStatStamp(resolve(commonDir, "packed-refs")),
+    safeDirStamp(resolve(commonDir, "objects/pack")),
+    safeDirStamp(resolve(commonDir, "refs/wiki-pins")),
+  ].join("|");
+}
+
+function rememberMissingCommit(key: string, stamp: string): void {
+  if (!missingCommits.has(key) && missingCommits.size >= MAX_NEGATIVE_COMMITS) {
+    const oldest = missingCommits.keys().next().value;
+    if (oldest !== undefined) missingCommits.delete(oldest);
+  }
+  missingCommits.set(key, stamp);
 }
 
 function commitExists(root: string, commit: string): boolean {
   const key = [root, commit].join(SEP);
-  if (commits.has(key)) return true;
-  // An unreadable repository must fail, rather than masquerading as missing evidence.
-  gitText(root, ["rev-parse", "--git-dir"]);
+  if (commits.has(key) && existsSync(root)) return true;
+  const commonDir = resolveGitCommonDir(root);
+  const stamp = repoStateStamp(commonDir);
+  if (missingCommits.get(key) === stamp) return false;
   try {
-    if (gitText(root, ["cat-file", "-t", commit]).trim() !== "commit") return false;
+    if (gitText(root, ["cat-file", "-t", commit]).trim() !== "commit") {
+      rememberMissingCommit(key, stamp);
+      return false;
+    }
   } catch (error) {
     if (!(error instanceof GitError) || error.status !== 128) throw error;
+    rememberMissingCommit(key, stamp);
     return false;
   }
+  missingCommits.delete(key);
   commits.add(key);
   return true;
 }
@@ -115,6 +187,7 @@ function readObjects(root: string, shas: string[]): Map<string, string> {
  * 而且是同步的——问答服务会在这段时间里整个卡住。
  */
 export function warmBlobs(root: string, requests: { commit: string; path: string }[]): void {
+  if (requests.length > 0) resolveGitCommonDir(root);
   const byCommit = new Map<string, Set<string>>();
   for (const { commit, path } of requests) {
     if (blobs.has(blobKey(root, commit, path))) continue;

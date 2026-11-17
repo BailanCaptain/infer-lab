@@ -4,6 +4,7 @@ import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import { ID_RE } from "../../src/content/wiki/schema";
 import { type FigureSpec, figureSpecSchema, renderFigure } from "./figure";
+import { validateNativeSvg } from "./native-svg";
 import { renderScene } from "./scene";
 
 /**
@@ -255,19 +256,60 @@ export const sceneSpecSchema = z
   .strict();
 
 /**
- * 两种版式：scene 是存量图的旧版式；figure 是 2026-09-24 定下的教学图版式，新图只用它。
- * 画风写死在 figure.ts 里，作者只说「这是什么」，所以后面的图长得都一样。
+ * 三种图规格契约：
+ * - layout: scene（存量旧版式）与 layout: figure（确定性教学图版式）由 spec 渲染出 .svg；
+ * - mode: native-svg 为人工编写同名 .svg 的伴生元数据契约，保留原 SVG 字节，共用严格 XML + 正向白名单 + AC11。
  */
-export const diagramSpecSchema = z.discriminatedUnion("layout", [sceneSpecSchema, figureSpecSchema]);
+export const nativeSvgSpecSchema = z
+  .object({
+    mode: z.literal("native-svg"),
+    id: z.string().regex(ID_RE),
+    caption: z.string().min(1),
+    size: z.tuple([z.number().positive().max(900), z.number().positive()]),
+    pins: z
+      .array(z.object({ source: z.string().min(1), symbols: z.array(z.string().min(1)).min(1) }).strict())
+      .default([]),
+  })
+  .strict();
 
-export type DiagramSpec = z.infer<typeof diagramSpecSchema>;
+const renderedDiagramSpecSchema = z.discriminatedUnion("layout", [sceneSpecSchema, figureSpecSchema]);
+
 export type SceneSpec = z.infer<typeof sceneSpecSchema>;
+export type NativeSvgSpec = z.infer<typeof nativeSvgSpecSchema>;
 export type { FigureSpec };
+export type RenderedDiagramSpec = SceneSpec | FigureSpec;
+export type DiagramSpec = RenderedDiagramSpec | NativeSvgSpec;
+
+export const diagramSpecSchema: z.ZodType<DiagramSpec, z.ZodTypeDef, unknown> = z
+  .unknown()
+  .superRefine((val, ctx) => {
+    if (val !== null && typeof val === "object" && !Array.isArray(val) && "mode" in val) {
+      const r = nativeSvgSpecSchema.safeParse(val);
+      if (!r.success) for (const issue of r.error.issues) ctx.addIssue(issue);
+      return;
+    }
+    const r = renderedDiagramSpecSchema.safeParse(val);
+    if (!r.success) for (const issue of r.error.issues) ctx.addIssue(issue);
+  })
+  .transform((val) =>
+    val !== null && typeof val === "object" && !Array.isArray(val) && "mode" in val
+      ? nativeSvgSpecSchema.parse(val)
+      : renderedDiagramSpecSchema.parse(val),
+  );
+
+export function isNativeSvgSpec(spec: DiagramSpec): spec is NativeSvgSpec {
+  return "mode" in spec && spec.mode === "native-svg";
+}
 
 export const DIAGRAM_DIR = "diagrams";
 
-/** spec → SVG。纯函数、无随机、无时间戳：同一份 spec 永远得到同一个字节序列。 */
+/** spec → SVG。纯函数、无随机、无时间戳；原生 SVG 由人工同名文件提供原字节，禁止伪装渲染覆盖。 */
 export function renderDiagram(spec: DiagramSpec): string {
+  if (isNativeSvgSpec(spec)) {
+    throw new Error(
+      `原生 SVG 图 ${spec.id}（mode: native-svg）由同名 .svg 提供原字节，不能调用 renderDiagram 生成`,
+    );
+  }
   return spec.layout === "figure" ? renderFigure(spec) : renderScene(spec);
 }
 
@@ -298,10 +340,24 @@ export function loadDiagrams(wikiRoot: string): {
   const diagrams = new Map<string, LoadedDiagram>();
   const problems: DiagramProblem[] = [];
   if (!existsSync(dir)) return { diagrams, problems };
-  for (const name of readdirSync(dir).sort()) {
+  const entries = readdirSync(dir).sort();
+  const yamlIds = new Set(entries.filter((n) => n.endsWith(".yaml")).map((n) => n.slice(0, -".yaml".length)));
+  for (const name of entries) {
+    if (name.endsWith(".svg")) {
+      const svgId = name.slice(0, -".svg".length);
+      if (!yamlIds.has(svgId)) {
+        problems.push({
+          file: `${DIAGRAM_DIR}/${name}`,
+          rule: "diagram-spec",
+          message: `SVG 缺少同名伴生元数据 ${DIAGRAM_DIR}/${svgId}.yaml`,
+        });
+      }
+      continue;
+    }
     if (!name.endsWith(".yaml")) continue;
     const id = name.slice(0, -".yaml".length);
     const specFile = `${DIAGRAM_DIR}/${name}`;
+    const svgFile = `${DIAGRAM_DIR}/${id}.svg`;
     const parsed = diagramSpecSchema.safeParse(parseYaml(readFileSync(join(dir, name), "utf8")));
     if (!parsed.success) {
       problems.push({
@@ -311,17 +367,39 @@ export function loadDiagrams(wikiRoot: string): {
       });
       continue;
     }
-    if (parsed.data.id !== id)
+    if (parsed.data.id !== id) {
       problems.push({
         file: specFile,
         rule: "diagram-spec",
         message: `文件名 ${id} 与 spec 的 id ${parsed.data.id} 不一致`,
       });
+      if (isNativeSvgSpec(parsed.data)) continue;
+    }
+    if (isNativeSvgSpec(parsed.data)) {
+      const svgDiskPath = join(dir, `${id}.svg`);
+      if (!existsSync(svgDiskPath)) {
+        problems.push({
+          file: specFile,
+          rule: "diagram-missing",
+          message: `原生 SVG 图缺少同名配套文件 ${svgFile}`,
+        });
+        continue;
+      }
+      const svgIssues = validateNativeSvg(readFileSync(svgDiskPath, "utf8"), parsed.data.size);
+      if (svgIssues.length) {
+        problems.push({
+          file: svgFile,
+          rule: "diagram-spec",
+          message: svgIssues.join("；"),
+        });
+        continue;
+      }
+    }
     diagrams.set(id, {
       id,
       spec: parsed.data,
       specFile,
-      svgFile: `${DIAGRAM_DIR}/${id}.svg`,
+      svgFile,
     });
   }
   return { diagrams, problems };

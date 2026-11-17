@@ -91,20 +91,86 @@ export function sliceHandbook(content: string): HandbookSlices {
  */
 export const TERMS_FILE = "TERMS.md";
 
+function stripMarkdownSection(text: string, level: "##" | "###", heading: string): string {
+  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`^${level} ${escaped}\\r?\\n[\\s\\S]*?(?=^${level} |$(?![\\s\\S]))`, "m");
+  return text.replace(pattern, "");
+}
+
+export function stripNonAuthoringStandard(standard: string): string {
+  let out = standard;
+  for (const nonAuthoringHeading of ["审查与修订流程", "样板页", "自动检查", "整理依据"]) {
+    out = stripMarkdownSection(out, "##", nonAuthoringHeading);
+  }
+  return out;
+}
+
+const GENERIC_REPO_NAMES = new Set(["pytorch", "docs", "vllm", "vllm-ascend"]);
+const GENERIC_FILE_STEMS = new Set(["readme", "_index", "__init__", "index", "pyproject"]);
+
+function citableRowMatchesContext(domainCell: string, contextLower: string): boolean {
+  const rawUrl = (domainCell.match(/`([^`]+)`/)?.[1] ?? domainCell).trim().replace(/（精确）$/u, "");
+  const segments = rawUrl.replace(/\/+$/, "").split("/").filter(Boolean);
+  // Keep general official/community/ecosystem domain prefixes (<= 2 segments) unconditionally;
+  // filter long single-file/article pins (> 2 segments) unless referenced by the current task context.
+  if (segments.length <= 2) return true;
+  const candidates = new Set<string>([rawUrl.toLowerCase()]);
+  const host = segments[0]!.toLowerCase().replace(/^www\./, "");
+  if (host === "github.com") {
+    const orgRepo = `${segments[1]}/${segments[2]}`.toLowerCase();
+    candidates.add(orgRepo);
+    const repo = segments[2]!.toLowerCase();
+    if (repo.length >= 4 && !GENERIC_REPO_NAMES.has(repo)) candidates.add(repo);
+    const stem = segments
+      .at(-1)!
+      .replace(/\.[a-z0-9]+$/i, "")
+      .toLowerCase();
+    if (stem.length >= 5 && !GENERIC_FILE_STEMS.has(stem)) candidates.add(stem);
+  } else {
+    candidates.add(host);
+    for (const seg of segments.slice(1)) {
+      const clean = seg.replace(/\.[a-z0-9]+$/i, "").toLowerCase();
+      if (clean.length >= 5 && !/^\d+$/.test(clean) && !/^v\d/.test(clean)) candidates.add(clean);
+    }
+  }
+  return [...candidates].some((token) => token && contextLower.includes(token));
+}
+
+export function filterCitableDomainsInFormat(pageFormat: string, termsContext: string): string {
+  const contextLower = termsContext.toLowerCase();
+  const pattern = /^### 可引来源\r?\n[\s\S]*?(?=^### |^## |$(?![\s\S]))/m;
+  return pageFormat.replace(pattern, (section) =>
+    section
+      .split("\n")
+      .filter((line) => {
+        if (!line.startsWith("|") || /^\|\s*(域名|---)/.test(line)) return true;
+        const cells = line.split("|").map((cell) => cell.trim());
+        return citableRowMatchesContext(cells[1] ?? "", contextLower);
+      })
+      .join("\n"),
+  );
+}
+
 export function loadHandbook(wikiRoot: string, termsContext?: string, textOnly = false): HandbookSlices {
   const slices = sliceHandbook(readFileSync(join(wikiRoot, "HANDBOOK.md"), "utf8"));
-  // Exact text revisions cannot alter figures. Their geometry authoring guide is
-  // unrelated input; retain all evidence, source, revision and writing rules.
+  // Tool-free text writers/revisers cannot emit diagram YAML or alter toc.ts structure. Their geometry
+  // authoring guide, human/CLI audit appendices, and unrelated single-file URL pins are trimmed while
+  // retaining 100% of evidence, source, citation, version, revision, and writing rules.
   if (textOnly) {
-    const start = slices.pageFormat.indexOf("### 图\n");
-    const end = slices.pageFormat.indexOf("\n### ", start + 1);
-    if (start >= 0 && end > start)
-      slices.pageFormat = slices.pageFormat.slice(0, start) + slices.pageFormat.slice(end);
-    slices.pageFormat += "\n本次只准备现有页的文字修订，保留图、公式及自动生成区；不要生成或改写图规格。\n";
+    slices.pageFormat = stripMarkdownSection(slices.pageFormat, "###", "图");
+    slices.pageFormat = stripMarkdownSection(slices.pageFormat, "###", "目录的章法、章号、阅读顺序");
+    if (termsContext !== undefined) {
+      slices.pageFormat = filterCitableDomainsInFormat(slices.pageFormat, termsContext);
+    }
+    slices.pageFormat +=
+      "\n本次只输出页面 Markdown 正文（修订现有页时保留既有图围栏、公式及自动生成区）；不要生成或改写独立图规格文件。\n";
   }
   // Writers have no file tools, and integration copies contain only wiki/. Resolve
   // the canonical standard beside the code so every writing path receives it.
-  const standard = readFileSync(new URL("../../docs/wiki-writing-standard.md", import.meta.url), "utf8");
+  let standard = readFileSync(new URL("../../docs/wiki-writing-standard.md", import.meta.url), "utf8");
+  if (textOnly) {
+    standard = stripNonAuthoringStandard(standard);
+  }
   slices.pageFormat += `\n以下是正式写作标准全文；适用范围按标准执行，与手册摘要冲突时以此为准。\n${standard}`;
   const terms = join(wikiRoot, TERMS_FILE);
   if (existsSync(terms)) {

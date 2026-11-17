@@ -12,13 +12,13 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { z } from "zod";
 import { positiveInteger, type RunAgent, runBatch } from "../scripts/wiki/batch";
-import { selectedAgent } from "../scripts/wiki/selected-agent";
 import { listGaps } from "../scripts/wiki/gap-ledger";
+import { CATALOG_MAX, relevantPageIds } from "../scripts/wiki/navigation";
 import { parsePage } from "../scripts/wiki/pages";
 import { RESTRICTED_PROFILE, restrictedArgs } from "../scripts/wiki/restricted-claude";
-import { CATALOG_MAX, relevantPageIds } from "../scripts/wiki/navigation";
 import { localFile } from "../scripts/wiki/review-files";
 import { sanitizeRawInput } from "../scripts/wiki/sanitize";
+import { selectedAgent } from "../scripts/wiki/selected-agent";
 import { atomicText, digest, WorkflowStore } from "../scripts/wiki/workflow";
 import { type WorkflowPolicy, workflowPolicySchema } from "../scripts/wiki/workflow-policy";
 import { retrieve } from "../src/content/wiki/retrieve";
@@ -236,10 +236,12 @@ export async function assessGap(
     expand: true,
     expansionLimit: 5,
   });
+  const pageTextByFile = new Map(snapshot.pageTexts.map((page) => [page.file, page.text]));
   const pages = hits.slice(0, COVERAGE_CONTEXT_LIMITS.maxPages).map((hit) => {
-    const source = snapshot.index.byId.get(hit.id)!;
-    const file = snapshot.registry.pages.find((page) => page.id === hit.id)!.file;
-    const parsed = parsePage(file, source.text);
+    const entry = snapshot.registry.pages.find((page) => page.id === hit.id);
+    const original = entry ? pageTextByFile.get(entry.file) : undefined;
+    if (!entry || original === undefined) throw new Error("覆盖判定正文解析失败");
+    const parsed = parsePage(entry.file, original);
     if (!parsed.page) throw new Error("覆盖判定正文解析失败");
     const text = parsed.page.body.slice(0, COVERAGE_CONTEXT_LIMITS.maxPageChars);
     return { id: hit.id, text, truncated: text.length < parsed.page.body.length };
@@ -415,7 +417,9 @@ export async function assessGap(
       attempt.token,
       {
         ok: true,
-        costUsd, billing, usage,
+        costUsd,
+        billing,
+        usage,
         artifacts: { [paths.input]: digest(requestText), [paths.result]: digest(output) },
       },
       () => {
@@ -427,7 +431,13 @@ export async function assessGap(
       ? { ok: true, ...receipt }
       : { ok: false, jobId: job.id, reason: finished.attempts.at(-1)?.reason };
   } catch (error) {
-    const finished = await store.finish(job.id, attempt.token, { ok: false, costUsd, billing, usage, reason: String(error) });
+    const finished = await store.finish(job.id, attempt.token, {
+      ok: false,
+      costUsd,
+      billing,
+      usage,
+      reason: String(error),
+    });
     return { ok: false, jobId: job.id, reason: finished.attempts.at(-1)?.reason ?? String(error) };
   } finally {
     try {

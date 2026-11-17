@@ -1,7 +1,9 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { parseRepoRef } from "../../src/content/wiki/schema";
 import type { AuditDeps } from "./audit";
 import { diagramRefs, type LoadedDiagram, specPins } from "./diagrams";
-import type { WikiPage } from "./pages";
+import type { PageProblem, WikiPage } from "./pages";
 
 /**
  * AC11 的图符号来源检查：图上写的标识符必须在所引 commit 的源码里真实存在。
@@ -56,7 +58,6 @@ function auditMermaid(page: WikiPage, deps: DiagramAuditDeps) {
 function auditSpecs(page: WikiPage, deps: DiagramAuditDeps) {
   if (!deps.diagrams) return [];
   const problems: { file: string; rule: string; message: string }[] = [];
-  const covered = page.fm.sources.map((x) => x.split("#")[0] ?? "");
   for (const id of new Set(diagramRefs(page.body))) {
     const diagram = deps.diagrams.get(id);
     if (!diagram) {
@@ -67,7 +68,7 @@ function auditSpecs(page: WikiPage, deps: DiagramAuditDeps) {
       });
       continue;
     }
-    // 两种版式共用一个出口，新增版式不会悄悄绕过 AC11 的检查
+    // 证据面板已能按图独立读取精确 pins，不再要求在页面 sources 重复登记；固定 Git blob 与符号 AC11 继续严格核验
     for (const pin of specPins(diagram.spec)) {
       if (!pin.source) {
         problems.push({
@@ -77,13 +78,6 @@ function auditSpecs(page: WikiPage, deps: DiagramAuditDeps) {
         });
         continue;
       }
-      // 图引的文件必须也在这一页的 sources 里，读者才点得到
-      if (!covered.some((c) => c === (pin.source!.split("#")[0] ?? "")))
-        problems.push({
-          file: page.file,
-          rule: "diagram-identifier",
-          message: `${diagram.specFile} 的 ${pin.where} 引用 ${pin.source}，不在本页 sources 里`,
-        });
       const text = readRef(pin.source, deps);
       if (text === null) {
         problems.push({
@@ -105,6 +99,54 @@ function auditSpecs(page: WikiPage, deps: DiagramAuditDeps) {
   return problems;
 }
 
-export function auditDiagram(page: WikiPage, deps: DiagramAuditDeps) {
+export function auditDiagram(page: WikiPage, deps: DiagramAuditDeps): PageProblem[] {
   return [...auditMermaid(page, deps), ...auditSpecs(page, deps)];
+}
+
+/** 纯静态缺图检查：不依赖外部源码仓，供 wiki:lint 在干净克隆/CI 下直接执行 */
+export function missingDiagramProblems(
+  pages: WikiPage[],
+  diagrams: Map<string, LoadedDiagram>,
+  wikiRoot?: string,
+): PageProblem[] {
+  const problems: PageProblem[] = [];
+  for (const page of pages) {
+    for (const id of new Set(diagramRefs(page.body))) {
+      if (!diagrams.has(id)) {
+        problems.push({
+          file: page.file,
+          rule: "diagram-missing",
+          message: `正文引用了 wiki/diagrams/${id}.yaml，但这个 spec 不存在`,
+        });
+      }
+    }
+  }
+  if (wikiRoot) {
+    // spec 在但 SVG 没生成，页面上就是一个空框——渲染层读的是 SVG，不是 spec
+    for (const diagram of diagrams.values()) {
+      if (!existsSync(join(wikiRoot, diagram.svgFile))) {
+        problems.push({
+          file: diagram.specFile,
+          rule: "diagram-missing",
+          message: `缺 ${diagram.svgFile}，跑 pnpm wiki:diagrams 生成`,
+        });
+      }
+    }
+  }
+  return problems;
+}
+
+/** 批量审计页面与共用 spec 图符号，并对同一 spec 文件的重复符号报错去重 */
+export function auditDiagrams(pages: WikiPage[], deps: DiagramAuditDeps): PageProblem[] {
+  const seen = new Set<string>();
+  const out: PageProblem[] = [];
+  for (const page of pages) {
+    for (const p of auditDiagram(page, deps)) {
+      const key = `${p.file}\0${p.rule}\0${p.message}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(p);
+    }
+  }
+  return out;
 }

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { buildIndex, citationCheck, type PageIndex, retrieve } from "./retrieve";
+import {
+  buildIndex,
+  citationCheck,
+  deserializeSearchIndex,
+  type PageIndex,
+  retrieve,
+  serializeSearchIndex,
+  terms,
+} from "./retrieve";
 
 const pages: PageIndex[] = [
   {
@@ -406,5 +414,168 @@ describe("retrieve · 标识符的宽松写法（用户 2026-09-11 提出）", (
 
   it("过短的片段不触发宽松匹配，避免误命中", () => {
     expect(retrieve("la", index)).toEqual([]);
+  });
+});
+
+describe("terms 与技术词检索（Task 751：缩写、数字精度名、驼峰、CLI 与中英混排）", () => {
+  it("RoPE / LoRA / MoE 等大小写交错缩写保留完整词，不被拆成双字母碎片，且超长连续串保持线性耗时", () => {
+    expect(terms("RoPE")).toEqual(["rope"]);
+    expect(terms("LoRA MoE")).toEqual(["lora", "moe"]);
+    expect(terms("NPUPlatform")).toEqual(["npuplatform", "npu", "platform"]);
+    const start = performance.now();
+    expect(terms("x".repeat(100_000))).toHaveLength(1);
+    expect(terms("X".repeat(100_000))).toHaveLength(1);
+    expect(performance.now() - start).toBeLessThan(500);
+  });
+
+  it("W8A8 / FP8 / BF16 等字母数字混合词不被数字边界拆碎，大小写查询对称", () => {
+    expect(terms("W8A8")).toEqual(["w8a8"]);
+    expect(terms("w8a8")).toEqual(["w8a8"]);
+    const quantIdx = buildIndex([
+      {
+        id: "quant-guide",
+        title: "权重量化实践",
+        aliases: [],
+        summary: "昇腾量化概览。",
+        chapters: ["08"],
+        evidence: "C",
+        text: "在线服务常开启 W8A8 动态量化降低显存。",
+      },
+      {
+        id: "w8a8-param",
+        title: "w8a8_dynamic",
+        aliases: [],
+        summary: "动态量化配置项。",
+        chapters: ["08"],
+        evidence: "C",
+        text: "激活按 token 动态缩放。",
+      },
+    ]);
+    expect(retrieve("w8a8", quantIdx).map((h) => h.id)).toEqual(["w8a8-param", "quant-guide"]);
+    expect(retrieve("W8A8", quantIdx).map((h) => h.id)).toEqual(["w8a8-param", "quant-guide"]);
+  });
+
+  it("AllReduce / allreduce / all_reduce / all-reduce 四种写法双向互通", () => {
+    const commIdx = buildIndex([
+      {
+        id: "camel-doc",
+        title: "集合通信概述",
+        aliases: [],
+        summary: "多卡归约。",
+        chapters: ["13"],
+        evidence: "C",
+        text: "张量并行每层执行一次 AllReduce 同步激活。",
+      },
+      {
+        id: "fuse-op",
+        title: "融合算子",
+        aliases: [],
+        summary: "通信计算融合。",
+        chapters: ["16"],
+        evidence: "C",
+        text: "通过 fuse_allreduce_rms 把通信与归一化合并。",
+      },
+      {
+        id: "snake-api",
+        title: "分布式接口",
+        aliases: [],
+        summary: "底层调用。",
+        chapters: ["13"],
+        evidence: "C",
+        text: "调用 dist.all_reduce 完成求和。",
+      },
+    ]);
+    for (const q of ["AllReduce", "allreduce", "all_reduce", "all-reduce"]) {
+      expect(
+        retrieve(q, commIdx)
+          .map((h) => h.id)
+          .sort(),
+        q,
+      ).toEqual(["camel-doc", "fuse-op", "snake-api"]);
+    }
+  });
+
+  it("FP8量化、开启RoPE 等中英紧邻混排在脚本边界切开，不产生跨界伪二元串", () => {
+    expect(terms("FP8量化")).toEqual(["fp8", "量化"]);
+    expect(terms("开启RoPE位置编码")).toEqual(["开启", "rope", "位置", "置编", "编码"]);
+    const mixedIdx = buildIndex([
+      {
+        id: "fp8-mixed",
+        title: "精度格式说明",
+        aliases: [],
+        summary: "低比特推理。",
+        chapters: ["08"],
+        evidence: "C",
+        text: "Hopper 与部分新硬件支持 FP8量化 推理。",
+      },
+      {
+        id: "rope-doc",
+        title: "位置编码",
+        aliases: [],
+        summary: "旋转编码。",
+        chapters: ["03"],
+        evidence: "C",
+        text: "融合算子 fuse_qknorm_rope 在单次访存内完成旋转。",
+      },
+    ]);
+    expect(retrieve("FP8", mixedIdx)[0]?.id).toBe("fp8-mixed");
+    expect(retrieve("FP8量化", mixedIdx)[0]?.id).toBe("fp8-mixed");
+    expect(retrieve("RoPE 怎么融合", mixedIdx)[0]?.id).toBe("rope-doc");
+  });
+
+  it("CLI 开关（含双横线别名、命令串内参数及 -O2 等带数字短选项）可稳定命中标题与正文", () => {
+    const cliIdx = buildIndex([
+      {
+        id: "eager-flag",
+        title: "图模式回退",
+        aliases: ["--enforce-eager"],
+        summary: "关闭图捕获。",
+        chapters: ["16"],
+        evidence: "C",
+        text: "排障时可先回退单算子执行。",
+      },
+      {
+        id: "opt-level",
+        title: "编译优化级别",
+        aliases: [],
+        summary: "图编译配置。",
+        chapters: ["16"],
+        evidence: "C",
+        text: "命令行传入 `vllm serve -O2 --enable-chunked-prefill` 控制档位。",
+      },
+    ]);
+    expect(retrieve("vllm serve --enforce-eager 排障", cliIdx)[0]?.id).toBe("eager-flag");
+    expect(retrieve("-O2", cliIdx)[0]?.id).toBe("opt-level");
+    expect(retrieve("--enable-chunked-prefill", cliIdx)[0]?.id).toBe("opt-level");
+  });
+
+  it("紧凑序列化索引不含正文原文，且还原后保持精确/宽松/BM25/图扩展/社区语料隔离一致", () => {
+    const rev = "a".repeat(64);
+    const serialized = serializeSearchIndex(index, rev);
+    const rawJson = JSON.stringify(serialized);
+    expect(rawJson).not.toContain("每 token 每层 4 KiB");
+    expect(rawJson).not.toContain("昇腾后端默认走 FIA 不是 PA");
+    expect(rawJson).not.toContain("compiled");
+    expect(rawJson).not.toContain("diagrams");
+
+    const restored = deserializeSearchIndex(JSON.parse(rawJson));
+    const corpus = [
+      {
+        id: "issue-1",
+        title: "HCCL timeout",
+        url: "https://github.com/vllm-project/vllm-ascend/issues/1",
+        text: "RuntimeError: HCCL collective timeout after 120 seconds",
+      },
+    ];
+    for (const q of [
+      "kv-cache",
+      "layer share",
+      "block table 是干嘛的",
+      "RuntimeError: HCCL collective timeout after 60 seconds",
+    ]) {
+      expect(retrieve(q, restored, { expand: true, corpus }), q).toEqual(
+        retrieve(q, index, { expand: true, corpus }),
+      );
+    }
   });
 });

@@ -45,7 +45,10 @@ export function AppShell() {
                 AI Infra<small>大模型推理</small>
               </span>
             </Link>
-            <SiteNav />
+            <div className="reader-header-end">
+              <div id="reader-quick-search-slot" className="reader-quick-search-slot" />
+              <SiteNav />
+            </div>
           </header>
         </>
       )}

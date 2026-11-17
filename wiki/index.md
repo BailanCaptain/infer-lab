@@ -1,6 +1,6 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 167 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 163 页。
 
 ## 概念（concept）
 - [AI Core：计算单元与数据搬运](concepts/ai-core.md) — 从矩阵乘和逐项运算认识 Cube、Vector、Scalar，沿设备内存到片上缓冲区的数据路径理解计算与访存的配合。 `07`
@@ -77,10 +77,6 @@
 - [批不变性：相同输入为何会随同批请求改变结果](concepts/batch-invariance.md) — 同一条请求换了同批的伙伴，浮点加法的分组就可能变，末位随之变化。本页先讲这件事怎么发生，再讲把加法顺序钉死的做法、要付的代价，以及 GLM 双机上的启用状态与缺口。 `16`
 - [Batch-Job-Aware Scheduler：先给正在生成的请求留块，再按作业接新请求](concepts/batch-job-aware-scheduler.md) — vllm-ascend 为离线批处理准备的调度器：接新请求前先估计 running 下一步要借几块 KV 块并扣下来，只拿余额接新请求；waiting 按作业分桶，用已自然结束请求的输出长度估计决定先接哪个作业，桶内挑放得进预算的最长提示词。只改 waiting 一段，不防饿死；GLM 双机钉住的镜像里没有它。 `12`
 - [Chunked prefill：长提示词分几步算完，正在生成的请求不被卡住](concepts/chunked-prefill.md) — Chunked prefill 让调度器在一条长提示词装不下这一步时，只给它排剩余预算那么多个位置，下一步从断开处接着算；历史和状态跨段延续，只有最后一段产出首个 token。它让正在 decode 的请求每步照常前进，代价是长请求的首 token 更晚、旧历史要重复读、每步多一点杂活。 `11`
-- [Chunked prefill（重构对照版）：长提示词插进来，怎样不卡住别人的回答？](concepts/chunked-prefill-agy.md) — Chunked prefill 把这一步剩余预算装不下的长提示词拆成几段、分多步算完：每步先让正在生成的请求照常前进，只拿剩余位置预算推进长提示词的一段，跨步沿用已存历史与状态，直到最后一段算完才产出首个回答 token。它压住了同批大步对在线生成的拖累，代价是长请求首字更晚、前文历史跨段重读以及步数增加带来的单步杂活。
-- [Chunked Prefill：既不卡死别人，也不浪费算力](concepts/chunked-prefill-free.md) — 用最直白的方式讲透 Chunked Prefill：为什么一条长提示词会冻住全场？把句子劈成三截算为什么结果不变？为什么 vLLM 源码里甚至没有「切块器」？
-- [Chunked prefill（循序渐进样板）：长提示词怎样分几步算完](concepts/chunked-prefill-v2.md) — 长文章和其他用户的回答一起计算时，可能让他们等得更久。Chunked prefill 把处理长输入的工作分到几步，每步也让其他回答继续生成。长输入要跨步等待首个输出，还会多出每步开销和可能的历史重复读取；实际时延取决于这些步骤各花多久。
-- [Chunked Prefill：一条长提示词插进来，怎样不卡住别人的回答？](concepts/chunked-prefill-v3.md) — 把一步算不完的长提示词拆成几段、分多步推进：每步先保住正在吐字的 decode 请求，只拿剩余 token 预算去算长提示词的一小段，直到最后一段算完才输出第一个字。
 - [上下文并行（CP）：怎样分位置，又怎样算完整 attention](concepts/context-parallel.md) — 长序列怎样分给多张卡，为什么会头尾配对；用同一组位置追踪 All-Gather、Ring Attention 和 Ulysses，演算局部结果怎样恢复完整 attention，再对照 Ascend PCP/DCP 与 GLM 的支持边界。 `15`
 - [CPU 绑核：线程亲和性与 NUMA 局部性](concepts/cpu-binding.md) — 模型在 NPU 上算，主机侧的 Worker 仍要准备张量、下发算子；绑核从这颗卡的亲和节点出发，通常再补上编号下一个 NUMA 节点里允许的核组成一个池，共用一个池的卡按卡序平分，线程钉在分到的核上，已分配的内存页迁到其中编号最小的核所在的节点。本页讲它怎么挑核、默认开关、GLM 双机上 8 个 Worker 各绑在哪里，以及拿不到拓扑或核数不够时会怎样。 `16`
 - [Data parallel：请求怎样分进两组，空闲的组为什么陪跑](concepts/data-parallel.md) — DP 把请求分给不同执行组，各组独立排队调度。稠密模型通常每组持有一份权重；本页固定 vLLM 的 MoE 路由专家跨组切分，因此一个请求虽然归属一组，专家计算仍需其他组参加，空闲组也要陪跑；这由 MoE 触发，与是否开 EP 无关。最后落到 GLM 双机的 DP2。 `13`

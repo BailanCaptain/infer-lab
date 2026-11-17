@@ -34,6 +34,12 @@ const shaField = z
   .string({ invalid_type_error: "提交号要加引号：没加引号的 12345678、4e123456 这种形状会被 YAML 读成数字" })
   .regex(/^[0-9a-f]{7,40}$/);
 
+const fullShaField = z
+  .string({ invalid_type_error: "提交号要加引号：没加引号的 12345678、4e123456 这种形状会被 YAML 读成数字" })
+  .regex(/^[0-9a-f]{40}$/, "pins 必须使用完整 40 位提交哈希");
+
+const pinNameField = z.string().regex(/^[a-z0-9][a-z0-9-]*$/);
+
 /** 默认 ref 名。一个 repo 至少要有它，feature 不写 `ref` 时用它。 */
 export const DEFAULT_REF = "main";
 
@@ -54,12 +60,19 @@ const repoSchema = z
     /** 旧格式，等价于 refs.main */
     commit: shaField.optional(),
     refs: z.record(shaField).optional(),
+    /** 完整 40 位提交锚点（含脱离远端分支/tag 的历史引用提交），供新克隆恢复到 refs/wiki-pins/<name> */
+    pins: z.record(pinNameField, fullShaField).optional(),
     /** 相对仓库根 */
     path: z.string().min(1),
   })
   .transform((r) => {
     const refs = r.refs ?? (r.commit ? { [DEFAULT_REF]: r.commit } : undefined);
-    return { url: r.url, path: r.path, refs: refs ?? {} };
+    return {
+      url: r.url,
+      path: r.path,
+      refs: refs ?? {},
+      ...(r.pins ? { pins: r.pins } : {}),
+    };
   })
   .refine((r) => Object.keys(r.refs).length > 0, {
     message: "repo 必须声明 refs（或旧格式的 commit）",
@@ -391,7 +404,7 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
   const factsOver = drafts.filter((d) => (d.facts ?? 0) > FACTS_BUDGET);
   const stdin = [
     `任务：整合 ${draftIds.length} 份草稿到对应的正式页面目录。今天是 ${ctx.today}。`,
-    "这是增量整合：保留现有标题（已有跨页锚点依赖）、完整正文、图、公式、算例与来源编号。旧页默认 supplement，只增加有证据的新内容或关系；不可借此 editorial 全文压缩重写。确有事实推翻才按 supersede 逐条提供依据。新来源摘要不要复制教学页内容。",
+    "这是增量整合：保留现有标题（已有跨页锚点依赖）、图、公式、算例与来源编号。旧页优先用 supplement 增加有证据的新内容或关系；需顺畅重组教学表达或将角标/版本表归入对照源码时可用 editorial，但必须闭合三出口事实去向（100% 守恒原子事实、版本/硬件/数值限定与否定条件，或迁往同批带真实锚点的目标新页），严禁静默删减限定条件或无角标句子。确有事实推翻或同源码精确行号修正时按 supersede 逐条提供依据。新来源摘要不要复制教学页内容。",
     ...(() => {
       const owners = existing
         .filter((page) => page.aliases?.length)

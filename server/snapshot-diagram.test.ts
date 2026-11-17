@@ -26,10 +26,7 @@ const SPEC = [
 function fixtureWithDiagram() {
   const f = wikiFixture();
   fixtures.push(f);
-  f.write(
-    "wiki/HANDBOOK.md",
-    handbookFixture(),
-  );
+  f.write("wiki/HANDBOOK.md", handbookFixture());
   const raw = saveRawSnapshot(join(f.root, "wiki"), "图说明了入口在哪里。\n");
   f.write(
     "wiki/sources/a.md",

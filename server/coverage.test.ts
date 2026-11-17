@@ -2,10 +2,16 @@ import { expect, it } from "vitest";
 import { coverageSignals } from "./coverage";
 
 it("records structured uncertainty independently of wording and recognizes ordinary Chinese abstention", () => {
-  expect(coverageSignals('无法确定。\n<!-- wiki-coverage: {"satisfied":null,"reason":"版本材料不足"} -->', []).map(s => s.kind)).toEqual(["agent-uncovered"]);
+  expect(
+    coverageSignals('无法确定。\n<!-- wiki-coverage: {"satisfied":null,"reason":"版本材料不足"} -->', []).map(
+      (s) => s.kind,
+    ),
+  ).toEqual(["agent-uncovered"]);
   expect(coverageSignals("现有材料不足，无法确定。", [])).toHaveLength(1);
   expect(coverageSignals("无法从已有资料判断这个版本是否支持。", [])).toHaveLength(1);
-  expect(coverageSignals('资料充分。\n<!-- wiki-coverage: {"satisfied":true,"reason":"已读取所需页面"} -->', [])).toEqual([]);
+  expect(
+    coverageSignals('资料充分。\n<!-- wiki-coverage: {"satisfied":true,"reason":"已读取所需页面"} -->', []),
+  ).toEqual([]);
 });
 
 it("does not infer coverage from low scores, a normal answer or code examples", () => {

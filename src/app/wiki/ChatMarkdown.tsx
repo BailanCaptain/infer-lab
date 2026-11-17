@@ -1,11 +1,10 @@
 import { Check, Copy } from "lucide-react";
-import { memo, type ReactNode, useState } from "react";
+import { memo, type ReactNode, useMemo, useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
-import { Link } from "react-router";
 import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkGfm from "remark-gfm";
-import { rewriteRelativeLink, routePathOf } from "../../content/wiki/index";
 import { type HastNode, rehypeCodeBreaks, textOf } from "../../content/wiki/markdown";
+import { WikiContentLink } from "./WikiLink";
 
 function CodeBlock({
   children,
@@ -44,29 +43,41 @@ function CodeBlock({
   );
 }
 
-const components: Components = {
-  a: ({ href, children }) => {
-    const to = rewriteRelativeLink(href ?? "");
-    const route = routePathOf(to);
-    return route ? <Link to={route}>{children}</Link> : <a href={to}>{children}</a>;
-  },
-  pre: ({ children, node }) => {
-    const code = node?.children.find((child) => child.type === "element" && child.tagName === "code");
-    const classes = code?.type === "element" ? code.properties.className : undefined;
-    const language = Array.isArray(classes)
-      ? String(classes.find((name) => String(name).startsWith("language-")) ?? "").replace(/^language-/, "")
-      : "";
-    return (
-      <CodeBlock source={textOf(node as HastNode)} language={language}>
-        {children}
-      </CodeBlock>
-    );
-  },
-};
 const remarkPlugins = [remarkGfm, remarkCjkFriendly];
 const rehypePlugins = [rehypeCodeBreaks];
 
-export const ChatMarkdown = memo(function ChatMarkdown({ text }: { text: string }) {
+export const ChatMarkdown = memo(function ChatMarkdown({
+  text,
+  currentId,
+}: {
+  text: string;
+  currentId?: string | undefined;
+}) {
+  const components = useMemo<Components>(
+    () => ({
+      a: ({ href, children }) => (
+        <WikiContentLink href={href} currentId={currentId}>
+          {children}
+        </WikiContentLink>
+      ),
+      pre: ({ children, node }) => {
+        const code = node?.children.find((child) => child.type === "element" && child.tagName === "code");
+        const classes = code?.type === "element" ? code.properties.className : undefined;
+        const language = Array.isArray(classes)
+          ? String(classes.find((name) => String(name).startsWith("language-")) ?? "").replace(
+              /^language-/,
+              "",
+            )
+          : "";
+        return (
+          <CodeBlock source={textOf(node as HastNode)} language={language}>
+            {children}
+          </CodeBlock>
+        );
+      },
+    }),
+    [currentId],
+  );
   return (
     <div className="wiki-chat-prose">
       <ReactMarkdown

@@ -19,13 +19,28 @@ export async function wikiRequest<T>(path: string, body?: unknown, revision?: st
     throw new Error(SERVICE_DOWN);
   }
   if (revision && response.status === 304) return null as T;
-  let data: { error?: string };
+  let data: {
+    error?: string;
+    canNewAttempt?: boolean;
+    budgetUsd?: number;
+    rejectedReviewId?: string;
+  };
   try {
     data = await response.json();
   } catch {
     throw new Error(response.ok ? "问答服务返回了无法解析的内容" : SERVICE_DOWN);
   }
-  if (!response.ok) throw new Error(data.error ?? `服务返回 ${response.status}`);
+  if (!response.ok) {
+    const err = new Error(data.error ?? `服务返回 ${response.status}`) as Error & {
+      canNewAttempt?: boolean;
+      budgetUsd?: number;
+      rejectedReviewId?: string;
+    };
+    if (typeof data.canNewAttempt === "boolean") err.canNewAttempt = data.canNewAttempt;
+    if (typeof data.budgetUsd === "number") err.budgetUsd = data.budgetUsd;
+    if (typeof data.rejectedReviewId === "string") err.rejectedReviewId = data.rejectedReviewId;
+    throw err;
+  }
   return data as T;
 }
 

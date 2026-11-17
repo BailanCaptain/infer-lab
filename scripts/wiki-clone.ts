@@ -59,6 +59,16 @@ for (const [name, repo] of Object.entries(seeds.repos)) {
     }
   }
   git(plan.fetch, mainDir);
+  for (const p of plan.pinFetches) {
+    if (!hasCommit(mainDir, p.commit)) {
+      console.log(`↓ 按完整哈希拉取独立提交 ${name}@${p.name} ← ${p.commit.slice(0, 12)}`);
+      git(["fetch", "origin", p.refspec], mainDir);
+    }
+    if (!hasCommit(mainDir, p.commit)) {
+      throw new Error(`${name} 的固定提交 ${p.name} (${p.commit}) 拉取后仍不是本地可达 commit`);
+    }
+    git(["update-ref", `refs/wiki-pins/${p.name}`, p.commit], mainDir);
+  }
   // Validate every desired pin before changing any working tree.
   for (const [ref, commit] of Object.entries(repo.refs)) {
     const kind = git(["cat-file", "-t", commit], mainDir);
@@ -100,6 +110,18 @@ for (const [name, repo] of Object.entries(seeds.repos)) {
   for (const dir of plan.pruneWorktrees) {
     console.log(`- 回收不再引用的工作树 ${dir}`);
     git(["worktree", "remove", checkedPath(dir)], mainDir);
+  }
+}
+
+function hasCommit(cwd: string, commit: string): boolean {
+  try {
+    return (
+      execFileSync("git", ["cat-file", "-t", commit], { cwd, stdio: ["ignore", "pipe", "ignore"] })
+        .toString()
+        .trim() === "commit"
+    );
+  } catch {
+    return false;
   }
 }
 

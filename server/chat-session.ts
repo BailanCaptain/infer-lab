@@ -14,6 +14,8 @@ const uuid = z.string().uuid();
  */
 export const MAX_SESSION_TURNS = 3;
 export const CHAT_HISTORY_BYTES = 32 * 1024;
+/** 同一进程内异常挂起的会话租约最长保留时间（大于单轮问答超时，防止永久 409） */
+export const CHAT_LEASE_TTL_MS = 10 * 60_000;
 const turnSchema = z.object({ question: z.string(), answer: z.string() }).strict();
 export type ChatTurn = z.infer<typeof turnSchema>;
 // Keep whole consecutive turns; a partial log or answer could reverse its meaning.
@@ -35,7 +37,13 @@ const sessionSchema = z
     turns: z.number().int().nonnegative().default(0),
     questions: z.array(z.string().max(8000)).max(6),
     history: z.array(turnSchema).max(MAX_SESSION_TURNS).default([]),
-    active: z.object({ token: uuid, pid: z.number().int().positive() }).optional(),
+    active: z
+      .object({
+        token: uuid,
+        pid: z.number().int().positive(),
+        startedAt: z.number().finite().optional(),
+      })
+      .optional(),
   })
   .strict();
 type Session = z.infer<typeof sessionSchema>;
@@ -75,13 +83,16 @@ export function beginChat(
   revision: string,
   id?: string,
   modelKey = "claude",
+  now = Date.now(),
 ): Promise<ChatLease> {
   return new WorkflowStore(root).locked(() => {
     const known = id && uuid.safeParse(id).success && existsSync(pathOf(root, id));
     const session: Session = known
       ? read(root, id)
       : { id: randomUUID(), revision, modelKey, turns: 0, questions: [], history: [] };
-    if (session.active && alive(session.active.pid))
+    const leaseExpired =
+      session.active?.startedAt !== undefined && now - session.active.startedAt >= CHAT_LEASE_TTL_MS;
+    if (session.active && !leaseExpired && alive(session.active.pid))
       throw new HttpError(409, "这段会话正在回答，请等待结束后再提问");
     const changed = session.revision !== revision;
     const exhausted = !changed && session.turns >= MAX_SESSION_TURNS;
@@ -109,7 +120,7 @@ export function beginChat(
               ? "session-unavailable"
               : undefined,
     };
-    session.active = { token, pid: process.pid };
+    session.active = { token, pid: process.pid, startedAt: now };
     write(root, session);
     return lease;
   });

@@ -24,40 +24,27 @@ test.describe("知识库阅读页", () => {
     await nav.getByRole("link", { name: /^Block Table/ }).click();
     await expect(page).toHaveURL(/#\/wiki\/block-table$/);
 
-    // 写作标准（docs/wiki-writing-standard.md）：标题用英文术语，页头就是 frontmatter 的 title；
-    // 不设「## 一句话」，开篇是问题式 H2 → 一句定义 → 直觉图；页末「## 对照源码」下依次五个固定 H3。
+    // 写作标准（docs/wiki-writing-standard.md）：页头就是 frontmatter 的 title；
+    // 不设「## 一句话」，教学主干随题材自适应展开且零证据角标，页末以「## 对照源码」收尾。
     const file = "concepts/block-table.md";
     const md = parsePage(file, readFileSync(new URL(`../wiki/${file}`, import.meta.url), "utf8")).page;
     expect(md, `${file} 的 frontmatter 不合法`).toBeTruthy();
     expect(md?.fm.title).toMatch(/^Block Table/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(md?.fm.title ?? "");
-    // 对照源码的 H3 顺序与直觉图先行，用 wiki:audit 的同一套检查
     const standard = measureStandard(md?.body ?? "", loadStandardConfig());
     expect(standard.sourceSections).toBeNull();
-    expect(standard.diagramFirst).toBeNull();
+    expect(standard.marks).toBe(0);
 
     const body = page.getByTestId("wiki-body");
     await expect(body.getByRole("heading", { level: 2 }).first()).toBeVisible();
-    const opening = await body.evaluate((root) => {
-      const h2s = [...root.querySelectorAll("h2")];
-      const hasFigure = (el: Element) =>
-        el.matches("figure.wiki-diagram") || !!el.querySelector("figure.wiki-diagram");
-      const between: string[] = [];
-      let el = h2s[0]?.nextElementSibling ?? null;
-      for (; el && el.tagName !== "H2" && !hasFigure(el); el = el.nextElementSibling)
-        between.push(el.tagName);
-      return {
-        h2s: h2s.map((h) => h.textContent?.trim() ?? ""),
-        between,
-        figureInFirstSection: !!el && hasFigure(el),
-      };
-    });
-    expect(opening.h2s).not.toContain("一句话");
-    expect(opening.h2s[0]).toMatch(/[？?]$/);
-    // 第一个 H2 之后只有讲解段落（先是那句定义），然后就是直觉图，中间不夹表、算式或小标题
-    expect(opening.between.length).toBeGreaterThan(0);
-    expect(opening.between.every((tag) => tag === "P")).toBe(true);
-    expect(opening.figureInFirstSection).toBe(true);
+    const h2s = await body.evaluate((root) =>
+      [...root.querySelectorAll(":scope > h2, :scope > details.wiki-source-check > summary > h2")].map(
+        (h) => h.textContent?.trim() ?? "",
+      ),
+    );
+    expect(h2s).not.toContain("一句话");
+    expect(h2s.length).toBeGreaterThanOrEqual(2);
+    expect(h2s.at(-1)).toBe("对照源码");
   });
 
   // 首页的入口文案曾在代码里写死，阅读指南改写之后两边对不上
@@ -111,28 +98,88 @@ test.describe("知识库阅读页", () => {
     await expect(page.getByTestId("toc-params").getByRole("link", { name: "layer_sharding" })).toBeVisible();
   });
 
-  test("两层结构：上半讲给初学者、不挂证据角标；下半「对照源码」只用固定查阅小标题", async ({ page }) => {
-    // 2026-09-25 读者定为初学者：「一句话 / 那条请求 / 常见误解」五步模板弃用。
-    // 按新写法改过的页先是讲解，再是给核对源码的人查的「对照源码」。
+  test("两层结构：上半讲给初学者、不挂证据角标；下半以「对照源码」收束核验信息且其后不再起 H2", async ({
+    page,
+  }) => {
     await page.goto("/#/wiki/expert-parallel");
     const body = page.getByTestId("wiki-body");
     await expect(body.getByRole("heading", { level: 2, name: "对照源码" })).toBeVisible();
     const layout = await body.evaluate((root) => {
-      const h2 = [...root.querySelectorAll("h2")].find((h) => h.textContent?.trim() === "对照源码")!;
+      const h2s = [
+        ...root.querySelectorAll(":scope > h2, :scope > details.wiki-source-check > summary > h2"),
+      ];
+      const idx = h2s.findIndex((h) => h.textContent?.trim() === "对照源码");
+      const h2 = h2s[idx]!;
       const upperMarks = [...root.querySelectorAll("span.wiki-evidence")].filter(
         (m) => h2.compareDocumentPosition(m) & Node.DOCUMENT_POSITION_PRECEDING,
       ).length;
+      const details = root.querySelector<HTMLDetailsElement>(":scope > details.wiki-source-check");
       const lower: string[] = [];
-      for (let el = h2.nextElementSibling; el && el.tagName !== "H2"; el = el.nextElementSibling)
-        if (el.tagName === "H3") lower.push(el.textContent?.trim() ?? "");
-      const h2s = [...root.querySelectorAll("h2")].map((h) => h.textContent?.trim());
-      return { upperMarks, lower, h2s };
+      if (details) {
+        for (const h3 of details.querySelectorAll(":scope > .wiki-source-check-body > h3")) {
+          lower.push(h3.textContent?.trim() ?? "");
+        }
+      } else {
+        for (let el = h2.nextElementSibling; el && el.tagName !== "H2"; el = el.nextElementSibling)
+          if (el.tagName === "H3") lower.push(el.textContent?.trim() ?? "");
+      }
+      return {
+        upperMarks,
+        lower,
+        h2s: h2s.map((h) => h.textContent?.trim()),
+        trailingH2s: h2s.slice(idx + 1).map((h) => h.textContent?.trim()),
+      };
     });
     expect(layout.h2s).not.toContain("一句话");
     expect(layout.upperMarks).toBe(0);
-    const fixed = ["怎么开", "会报什么错", "开销和什么时候别开", "版本差异", "源码位置"];
     expect(layout.lower.length).toBeGreaterThan(0);
-    expect(layout.lower.every((t) => fixed.includes(t))).toBe(true);
+    expect(layout.trailingH2s).toEqual([]);
+  });
+
+  test("「对照源码」默认折叠：手动展开收起、#锚点直达自动展开、页内查找 beforematch 自动展开", async ({
+    page,
+  }) => {
+    await page.goto("/#/wiki/quantization");
+    const body = page.getByTestId("wiki-body");
+    const details = body.getByTestId("wiki-source-check");
+    const summary = details.locator("> summary");
+    const sourceH2 = summary.getByRole("heading", { level: 2, name: "对照源码" });
+    await expect(sourceH2).toBeVisible();
+    expect(await details.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
+
+    const firstH3 = details.locator(".wiki-source-check-body > h3").first();
+    const h3Id = await firstH3.getAttribute("id");
+    expect(h3Id).toBeTruthy();
+    await expect(firstH3).toBeHidden();
+
+    // 1. 手动点击展开与收起
+    await summary.click();
+    expect(await details.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+    await expect(firstH3).toBeVisible();
+    await summary.click();
+    expect(await details.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
+    await expect(firstH3).toBeHidden();
+
+    // 2. #锚点直达折叠区内部 H3 自动展开并滚动到位
+    await page.goto(`/#/wiki/block-table`);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Block Table");
+    await page.goto(`/#/wiki/quantization#${h3Id}`);
+    await expect.poll(() => details.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+    await expect(firstH3).toBeVisible();
+    await expect(firstH3).toBeInViewport();
+
+    // 3. 页内查找（beforematch / until-found 机制）命中折叠区内部节点时自动展开
+    await page.goto("/#/wiki/block-table");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Block Table");
+    const blockDetails = body.getByTestId("wiki-source-check");
+    expect(await blockDetails.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
+    const blockFirstH3 = blockDetails.locator(".wiki-source-check-body > h3").first();
+    await expect(blockFirstH3).toBeHidden();
+    await blockFirstH3.evaluate((el) => {
+      el.dispatchEvent(new Event("beforematch", { bubbles: true }));
+    });
+    expect(await blockDetails.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+    await expect(blockFirstH3).toBeVisible();
   });
 
   test("图渲染成 SVG，不是一段源码", async ({ page }) => {
@@ -153,6 +200,7 @@ test.describe("知识库阅读页", () => {
   test("正文里的内联证据标记渲染成角标，不是字面量 [C]", async ({ page }) => {
     await page.goto("/#/wiki/block-table");
     const body = page.getByTestId("wiki-body");
+    await body.getByTestId("wiki-source-check").locator("> summary").click();
     const badge = body.locator("span.wiki-evidence").first();
     await expect(badge).toBeVisible();
     await expect(badge).toHaveText(/^[SCDAIM!]$/);
@@ -259,7 +307,9 @@ test.describe("知识库阅读页", () => {
 
   test("带编号的内联标记能点开对应那条来源", async ({ page }) => {
     await page.goto("/#/wiki/block-table");
-    const link = page.getByTestId("wiki-body").locator("a.wiki-mark-link").first();
+    const body = page.getByTestId("wiki-body");
+    await body.getByTestId("wiki-source-check").locator("> summary").click();
+    const link = body.locator("a.wiki-mark-link").first();
     await expect(link).toBeVisible();
     // 点开的是钉住 commit 的具体行号，不是页面级的来源列表
     await expect(link).toHaveAttribute("href", /^https?:\/\/.+/);
@@ -569,6 +619,192 @@ test.describe("问答抽屉", () => {
     await expect(page.getByText(/使用 Codex 的 ChatGPT 账户额度，最多尝试两次/)).toBeVisible();
     await expect(page.getByRole("spinbutton")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "生成待审草稿" })).toBeEnabled();
+  });
+
+  test("保存结果被退回或失败耗尽时：保留退回记录可看、普通查看不重跑，仅主动点击「重新生成待审稿」发 newAttempt 并提示消耗额度", async ({
+    page,
+  }) => {
+    const rejectedAnswerId = "c".repeat(64);
+    const exhaustedAnswerId = "e".repeat(64);
+    const rejectedReviewId = "b".repeat(64);
+    const nextReviewId = "d".repeat(64);
+    const exhaustedRecoveredReviewId = "9".repeat(64);
+    const rejectedSaveCalls: unknown[] = [];
+    const exhaustedSaveCalls: unknown[] = [];
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.addInitScript(
+      ({ a1, a2 }) => {
+        localStorage.setItem(
+          "wiki-chat-history-v1",
+          JSON.stringify({
+            version: 1,
+            input: "",
+            msgs: [
+              { key: "u1", role: "user", text: "被退回的保存测试" },
+              {
+                key: "a1",
+                role: "agent",
+                text: "第一条完整回答，待保存审阅。",
+                status: "complete",
+                answerId: a1,
+              },
+              { key: "u2", role: "user", text: "失败耗尽的保存测试" },
+              {
+                key: "a2",
+                role: "agent",
+                text: "第二条完整回答，模拟失败耗尽恢复。",
+                status: "complete",
+                answerId: a2,
+              },
+            ],
+          }),
+        );
+      },
+      { a1: rejectedAnswerId, a2: exhaustedAnswerId },
+    );
+
+    await page.route("**/api/wiki/status", (route) =>
+      route.fulfill({ json: { models: { chatProvider: "codex" } } }),
+    );
+    await page.route("**/api/wiki/reviews", (route) =>
+      route.fulfill({
+        json: {
+          reviews: [
+            {
+              id: rejectedReviewId,
+              state: "rejected",
+              files: [`wiki/sources/answer-${rejectedAnswerId}.md`],
+              reason: "P1：原问答核心缺失，已整组退回",
+            },
+            ...(rejectedSaveCalls.length >= 2
+              ? [
+                  {
+                    id: nextReviewId,
+                    state: "pending",
+                    files: [`wiki/sources/answer-${rejectedAnswerId}.md`],
+                  },
+                ]
+              : []),
+          ],
+        },
+      }),
+    );
+    await page.route(`**/api/wiki/reviews/${rejectedReviewId}`, (route) =>
+      route.fulfill({
+        json: {
+          review: {
+            id: rejectedReviewId,
+            state: "rejected",
+            reason: "P1：原问答核心缺失，已整组退回",
+            payload: { writes: [] },
+          },
+          diff: "",
+        },
+      }),
+    );
+    await page.route(`**/api/wiki/reviews/${nextReviewId}`, (route) =>
+      route.fulfill({
+        json: {
+          review: {
+            id: nextReviewId,
+            state: "pending",
+            payload: { writes: [] },
+          },
+          diff: "",
+        },
+      }),
+    );
+    await page.route(`**/api/wiki/reviews/${exhaustedRecoveredReviewId}`, (route) =>
+      route.fulfill({
+        json: {
+          review: {
+            id: exhaustedRecoveredReviewId,
+            state: "pending",
+            payload: { writes: [] },
+          },
+          diff: "",
+        },
+      }),
+    );
+    await page.route(`**/api/wiki/answers/${rejectedAnswerId}/save`, (route) => {
+      const body = JSON.parse(route.request().postData() ?? "{}") as { newAttempt?: boolean };
+      rejectedSaveCalls.push(body);
+      if (body.newAttempt) {
+        return route.fulfill({
+          json: { jobId: "2".repeat(64), reviewId: nextReviewId, state: "pending" },
+        });
+      }
+      return route.fulfill({
+        json: { jobId: "1".repeat(64), reviewId: rejectedReviewId, state: "rejected" },
+      });
+    });
+    await page.route(`**/api/wiki/answers/${exhaustedAnswerId}/save`, (route) => {
+      const body = JSON.parse(route.request().postData() ?? "{}") as {
+        retry?: boolean;
+        newAttempt?: boolean;
+      };
+      exhaustedSaveCalls.push(body);
+      if (exhaustedSaveCalls.length === 1) {
+        return route.fulfill({
+          status: 409,
+          json: { error: "Error: 编译草稿 schema 无效", canNewAttempt: false },
+        });
+      }
+      if (exhaustedSaveCalls.length === 2) {
+        return route.fulfill({
+          status: 409,
+          json: { error: "Error: 已达到尝试次数上限", canNewAttempt: true },
+        });
+      }
+      return route.fulfill({
+        json: { jobId: "3".repeat(64), reviewId: exhaustedRecoveredReviewId, state: "pending" },
+      });
+    });
+
+    await page.goto("/#/wiki");
+    await page.getByTestId("chat-open").click();
+    expect(rejectedSaveCalls).toEqual([]);
+    expect(exhaustedSaveCalls).toEqual([]);
+
+    const agentCards = page.locator(".wiki-chat-msg.is-agent");
+    const firstCard = agentCards.nth(0);
+    const secondCard = agentCards.nth(1);
+
+    // 1. 被退回审阅：展开并被动查询得到 rejected，不跳走、同时展示「查看保存结果」与「重新生成待审稿」及额度消耗提示
+    await firstCard.getByRole("button", { name: "存进 Wiki", exact: true }).click();
+    expect(rejectedSaveCalls).toEqual([]);
+    await firstCard.getByRole("button", { name: "生成待审草稿", exact: true }).click();
+    expect(rejectedSaveCalls).toEqual([{ retry: false }]);
+
+    await expect(firstCard.getByRole("button", { name: "查看保存结果", exact: true })).toBeVisible();
+    await expect(firstCard.getByRole("button", { name: "重新生成待审稿", exact: true })).toBeVisible();
+    await expect(firstCard).toContainText("消耗 Codex 的 ChatGPT 账户额度");
+
+    // 点击「查看保存结果」查看退回原因，绝不自动重跑
+    await firstCard.getByRole("button", { name: "查看保存结果", exact: true }).click();
+    await expect(page.getByTestId("chat-drawer")).toContainText("P1：原问答核心缺失，已整组退回");
+    expect(rejectedSaveCalls).toHaveLength(1);
+
+    // 切回问答页签，主动点击「重新生成待审稿」才发送 newAttempt: true
+    await page.getByRole("tab", { name: "问答", exact: true }).click();
+    expect(rejectedSaveCalls).toHaveLength(1);
+    await firstCard.getByRole("button", { name: "重新生成待审稿", exact: true }).click();
+    expect(rejectedSaveCalls).toEqual([{ retry: false }, { newAttempt: true }]);
+
+    await page.getByRole("tab", { name: "问答", exact: true }).click();
+    await expect(firstCard.getByRole("button", { name: "查看保存结果", exact: true })).toBeVisible();
+    await expect(firstCard.getByRole("button", { name: "重新生成待审稿", exact: true })).toHaveCount(0);
+
+    // 2. 失败耗尽恢复：1/2 普通重试 -> 2/2 耗尽后露出同一个「重新生成待审稿」入口
+    await secondCard.getByRole("button", { name: "存进 Wiki", exact: true }).click();
+    await secondCard.getByRole("button", { name: "生成待审草稿", exact: true }).click();
+    await expect(secondCard.getByRole("button", { name: "查看状态 / 重试", exact: true })).toBeVisible();
+    await secondCard.getByRole("button", { name: "查看状态 / 重试", exact: true }).click();
+    await expect(secondCard.getByRole("button", { name: "重新生成待审稿", exact: true })).toBeVisible();
+    await expect(secondCard).toContainText("消耗 Codex 的 ChatGPT 账户额度");
+    await secondCard.getByRole("button", { name: "重新生成待审稿", exact: true }).click();
+    expect(exhaustedSaveCalls).toEqual([{ retry: false }, { retry: true }, { newAttempt: true }]);
   });
   test("标出实际作答模型；换了模型时说清谁拒答、谁接手（2026-09-23 问答全被换成 Opus 5）", async ({
     page,
@@ -1247,6 +1483,7 @@ test.describe("P4 最终验收：桌面", () => {
         const overflow = [...body.querySelectorAll<HTMLElement>(".wiki-table-scroll")]
           .filter((s) => {
             const rect = s.getBoundingClientRect();
+            if (rect.width === 0) return false;
             return (
               rect.left < bounds.left - 1 ||
               rect.right > bounds.right + 1 ||

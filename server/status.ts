@@ -13,7 +13,7 @@ import { readSyncConfig, syncConfigSchema } from "../scripts/wiki/sync-config";
 import { atomicText, WorkflowStore } from "../scripts/wiki/workflow";
 import { findPageByName } from "../src/content/wiki/page-names";
 import { DEFAULT_CODEX_MODEL } from "./codex-chat";
-import { checkWriter, HttpError, readJson, send } from "./http";
+import { checkLocalReader, checkWriter, HttpError, parseWikiUrl, readJson, send } from "./http";
 
 const json = (path: string): unknown =>
   existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : undefined;
@@ -196,7 +196,9 @@ export async function handleStatus(
   res: ServerResponse,
   root: string,
 ): Promise<boolean> {
-  const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
+  const url = parseWikiUrl(req, res);
+  if (!url) return true;
+  const pathname = url.pathname;
   if (pathname === "/api/wiki/status/model") {
     try {
       if (req.method !== "POST") throw new HttpError(405, "需要 POST");
@@ -213,9 +215,10 @@ export async function handleStatus(
   if (req.method !== "GET") send(res, 405, { error: "需要 GET" });
   else
     try {
+      checkLocalReader(req);
       send(res, 200, readStatus(root));
     } catch (error) {
-      send(res, 503, { error: String(error) });
+      send(res, error instanceof HttpError ? error.status : 503, { error: String(error) });
     }
   return true;
 }

@@ -1,11 +1,12 @@
 import { AlertTriangle, ArrowLeft, Check, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import type { DropReceipt } from "../../content/wiki/drop";
+import { WIKI_REHYPE_PLUGINS, WIKI_REMARK_PLUGINS } from "../../content/wiki/markdown";
+import { WikiDiagram } from "../../content/wiki/WikiDiagram";
 import { wikiRequest } from "./api";
 import { DropReceiptView } from "./DropReceiptView";
-import { DropReviewPreview } from "./DropReviewPreview";
+import { DropReviewPreview, ReviewMarkdownLink, reviewPageId } from "./DropReviewPreview";
 import {
   addedText,
   type DiffFile,
@@ -47,11 +48,48 @@ const kindLabel = { added: "新增", modified: "更新", deleted: "删除" } as 
 /** 待办排前面，其余保持后端顺序 */
 const rank: Record<ReviewState, number> = { publishing: 0, pending: 1, published: 2, rejected: 2 };
 
-const pageName = (path: string) => path.split("/").at(-1)!.replace(/\.md$/, "");
+export function ReviewSvgAssets({
+  writes,
+}: {
+  writes: { path: string; before: string | null; after: string | null }[];
+}) {
+  const svgWrites = writes.filter((w) => w.path.endsWith(".svg"));
+  if (!svgWrites.length) return null;
+  return (
+    <>
+      {svgWrites.map((w) => {
+        const fileName = w.path.split("/").at(-1)!;
+        const diagramName = reviewPageId(w.path).replace(/\.svg$/, "");
+        return (
+          <section key={w.path} className="wiki-drop-assets">
+            <h3>{diagramName}</h3>
+            <div>
+              {[
+                { key: "before", label: "修改前", svg: w.before },
+                { key: "after", label: "修改后", svg: w.after },
+              ].map((v) => (
+                <div key={v.key}>
+                  <p>{v.label}</p>
+                  {v.svg ? (
+                    <div role="img" aria-label={`${fileName} ${v.label}`}>
+                      <WikiDiagram id={`${diagramName}-${v.key}`} svg={v.svg} />
+                    </div>
+                  ) : (
+                    <p>无此图</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </>
+  );
+}
 
 /** 一份审阅包用它改到的正文页来称呼，而不是用哈希 */
 function packageTitle(files: string[]): string {
-  const pages = files.filter(isContentPage).map(pageName);
+  const pages = files.filter(isContentPage).map(reviewPageId);
   if (!pages.length) return "知识库维护变更";
   return pages.length <= 3 ? pages.join("、") : `${pages.slice(0, 3).join("、")} 等 ${pages.length} 页`;
 }
@@ -78,9 +116,10 @@ function Line({ line }: { line: DiffLine }) {
   );
 }
 
-function FileDiff({ file, open }: { file: DiffFile; open: boolean }) {
+export function FileDiff({ file, open }: { file: DiffFile; open: boolean }) {
   // 新增页全是绿色，逐行 diff 没有信息量：默认当成一页正文来读
   const readable = file.kind === "added" && isContentPage(file.path);
+  const currentId = reviewPageId(file.path);
   const [mode, setMode] = useState<"read" | "raw">(readable ? "read" : "raw");
   const page = useMemo(() => (readable ? splitFrontmatter(addedText(file)) : undefined), [file, readable]);
   return (
@@ -112,7 +151,18 @@ function FileDiff({ file, open }: { file: DiffFile; open: boolean }) {
               <pre>{page.frontmatter}</pre>
             </details>
           )}
-          <ReactMarkdown skipHtml remarkPlugins={[remarkGfm]}>
+          <ReactMarkdown
+            skipHtml
+            remarkPlugins={WIKI_REMARK_PLUGINS}
+            rehypePlugins={WIKI_REHYPE_PLUGINS}
+            components={{
+              a: ({ href, children }) => (
+                <ReviewMarkdownLink href={href} currentId={currentId}>
+                  {children}
+                </ReviewMarkdownLink>
+              ),
+            }}
+          >
             {page.body}
           </ReactMarkdown>
         </div>
@@ -407,31 +457,7 @@ export function ReviewPane({
               {detail.review.payload?.drop?.receipt && (
                 <DropReceiptView receipt={detail.review.payload.drop.receipt} />
               )}
-              {detail.review.payload?.writes
-                .filter((w) => w.path.endsWith(".svg"))
-                .map((w) => (
-                  <section key={w.path} className="wiki-drop-assets">
-                    <h3>{pageName(w.path)}</h3>
-                    <div>
-                      {[
-                        { label: "修改前", svg: w.before },
-                        { label: "修改后", svg: w.after },
-                      ].map((v) => (
-                        <figure key={v.label}>
-                          <figcaption>{v.label}</figcaption>
-                          {v.svg ? (
-                            <img
-                              alt={`${pageName(w.path)} ${v.label}`}
-                              src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(v.svg)}`}
-                            />
-                          ) : (
-                            <p>无此图</p>
-                          )}
-                        </figure>
-                      ))}
-                    </div>
-                  </section>
-                ))}
+              {detail.review.payload && <ReviewSvgAssets writes={detail.review.payload.writes} />}
               <p className={`wiki-review-state is-${detail.review.state}`} data-testid="review-state">
                 {labels[detail.review.state]} · {detail.review.id}
               </p>

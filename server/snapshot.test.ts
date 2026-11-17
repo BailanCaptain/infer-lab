@@ -27,10 +27,7 @@ afterEach(async () => {
 it("the running server observes new publications without restart and refuses an interrupted publication", async () => {
   const f = wikiFixture();
   fixtures.push(f);
-  f.write(
-    "wiki/HANDBOOK.md",
-    handbookFixture(),
-  );
+  f.write("wiki/HANDBOOK.md", handbookFixture());
   const raw = saveRawSnapshot(join(f.root, "wiki"), "新增知识用于解释人工设置。\n");
   const source = `raw:${raw.slice(4)}#L1`;
   const page = (id: string, title: string) =>
@@ -102,7 +99,9 @@ it("the running server observes new publications without restart and refuses an 
   const reader = async () => fetch(`${base}/api/wiki/pages`);
   const firstReader = await reader();
   expect(await firstReader.json()).toMatchObject({ pageTexts: [{ file: "sources/a.md" }] });
-  const unchanged = await fetch(`${base}/api/wiki/pages`, { headers: { "If-None-Match": firstReader.headers.get("etag")! } });
+  const unchanged = await fetch(`${base}/api/wiki/pages`, {
+    headers: { "If-None-Match": firstReader.headers.get("etag")! },
+  });
   expect(unchanged.status).toBe(304);
   expect(await unchanged.text()).toBe("");
   for (const input of [null, { message: 3 }, { message: "", sessionId: {} }]) {
@@ -122,7 +121,13 @@ it("the running server observes new publications without restart and refuses an 
   ).rejects.toThrow("interrupt");
   expect((await health()).status).toBe(503);
   expect((await reader()).status).toBe(503);
-  expect((await fetch(`${base}/api/wiki/pages`, { headers: { "If-None-Match": firstReader.headers.get("etag")! } })).status).toBe(503);
+  expect(
+    (
+      await fetch(`${base}/api/wiki/pages`, {
+        headers: { "If-None-Match": firstReader.headers.get("etag")! },
+      })
+    ).status,
+  ).toBe(503);
   const published = await fetch(`${base}/api/wiki/reviews/${proposal.reviewId}/approve`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-wiki-review": "1", origin: base },

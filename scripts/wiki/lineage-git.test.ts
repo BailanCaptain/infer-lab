@@ -92,3 +92,50 @@ it("uses the tracked branch tip when the local checkout remains pinned to an old
     f.cleanup();
   }
 });
+
+it("detects class field presence across plain __init__ constructor parameters and dataclass fields", () => {
+  const f = wikiFixture();
+  try {
+    f.write(
+      "repo/vllm_ascend/ascend_config.py",
+      `class AscendCompilationConfig:
+    def __init__(self, enable_static_kernel: bool = False, **kwargs):
+        self.enable_static_kernel = enable_static_kernel
+`,
+    );
+    const v23 = f.commit("v0.23 without super kernel");
+    f.write(
+      "repo/vllm_ascend/ascend_config.py",
+      `class AscendCompilationConfig:
+    def __init__(
+        self,
+        enable_static_kernel: bool = False,
+        enable_super_kernel: bool | None = None,
+        **kwargs,
+    ):
+        self.enable_static_kernel = enable_static_kernel
+        self.enable_super_kernel = enable_super_kernel
+`,
+    );
+    const v26 = f.commit("v0.26 backport super kernel in __init__");
+    f.write(
+      "repo/vllm_ascend/ascend_config.py",
+      `@config
+class AscendCompilationConfig:
+    enable_static_kernel: bool = False
+    enable_super_kernel: bool = False
+`,
+    );
+    const main = f.commit("main dataclass field");
+    const data = gitLineage(
+      `${f.root}/repo`,
+      "enable_super_kernel",
+      [v23, v26, main],
+      ["vllm_ascend/ascend_config.py"],
+      "AscendCompilationConfig",
+    );
+    expect(data.presence.map((p) => p.files)).toEqual([0, 1, 1]);
+  } finally {
+    f.cleanup();
+  }
+});

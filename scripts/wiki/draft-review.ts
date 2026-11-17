@@ -6,6 +6,7 @@ import { CHAPTER_IDS } from "../../src/content/wiki/chapters";
 import { buildIndex, retrieve } from "../../src/content/wiki/retrieve";
 import type { RunAgent } from "./batch";
 import { inputByteLimit, jsonBytes } from "./context-window";
+import { auditPageFactDispositionsWithAgent } from "./fact-disposition-agent";
 import { loadHandbook } from "./handbook";
 import { integrationSchema, localDate, selectRelevantPages } from "./ingest";
 import { validateIntegration } from "./integration-check";
@@ -20,7 +21,7 @@ import { localFile } from "./review-files";
 import { revisePage } from "./revisions";
 import { integrateSections } from "./section-integration";
 import { PAGE_TEXT_TIMEOUT_MS, runStructured } from "./structured";
-import { digest } from "./workflow";
+import { digest, WorkflowStore } from "./workflow";
 import type { WorkflowPolicy } from "./workflow-policy";
 
 /** A compiled draft becomes a complete cross-page proposal, never an automatic publication. */
@@ -79,7 +80,11 @@ export async function prepareDraftReview(
       });
       const byId = new Map(loaded.pages.map((p) => [p.fm.id, p.fm]));
       const existing = selected.find((p) => p.fm.id === id);
-      const handbook = loadHandbook(req.cwd, `${parsed.page!.body}\n${existing?.body ?? ""}`, !!existing);
+      const handbook = loadHandbook(
+        req.cwd,
+        `${parsed.page!.body}\n${existing?.body ?? ""}\n${parsed.page!.fm.sources.join("\n")}\n${existing?.fm.sources.join("\n") ?? ""}`,
+        true,
+      );
       const writingRules = `${handbook.pageFormat}\n${handbook.integrate}`;
       const rules = `${writingRules}\n本次无文件工具，只返回严格 JSON {"pages":[{"path":"sources/id.md","text":"完整 Markdown"}],"decision":{"promoted":[],"merged":[],"rejected":[],"contradictions":[],"revisions":[]}}。按整合规则判断更新、合并、补关系与矛盾，decision 必须恰好处置本草稿。只可修改已提供全文的页或创建与草稿同 id 的页；材料不足时拒收并说明。来源必须来自草稿或提供的旧页。catalog 只列相关页、仅供定位（catalogOmitted 是没列出的页数），禁止凭它补事实。`;
       const budget = inputByteLimit(root, rules);
@@ -119,6 +124,7 @@ export async function prepareDraftReview(
                   output.text,
                   value.decision.revisions?.find((r) => r.id === previous.fm.id),
                   localDate(),
+                  { skipFactDisposition: true },
                 );
               } catch (error) {
                 ctx.addIssue({
@@ -305,6 +311,60 @@ export async function prepareDraftReview(
         deps,
       );
       const paths = new Set<string>();
+      const siblingWrites = decision.value.pages.map((p) => {
+        const prev = selected.find((s) => s.file === p.path);
+        return {
+          path: `wiki/${p.path}`,
+          before: prev ? readFileSync(join(req.cwd, prev.file), "utf8") : null,
+          after: p.text,
+        };
+      });
+      const updatedDecision = {
+        ...decision.value.decision,
+        revisions: decision.value.decision.revisions ? [...decision.value.decision.revisions] : undefined,
+      };
+      for (const page of decision.value.pages) {
+        const prev = selected.find((s) => s.file === page.path);
+        if (!prev || !updatedDecision.revisions) continue;
+        const revIdx = updatedDecision.revisions.findIndex((r) => r.id === prev.fm.id);
+        const rev = revIdx >= 0 ? updatedDecision.revisions[revIdx] : undefined;
+        if (!rev || (rev.kind !== "editorial" && rev.kind !== "supersede")) continue;
+        try {
+          const entries = await auditPageFactDispositionsWithAgent(
+            root,
+            {
+              path: page.path,
+              before: readFileSync(join(req.cwd, prev.file), "utf8"),
+              after: page.text,
+              revision: rev,
+              siblingWrites,
+              origin: parsed.page!.fm.origin,
+              policy,
+            },
+            deps,
+          );
+          updatedDecision.revisions[revIdx] = { ...rev, factDispositions: entries };
+        } catch (error) {
+          const store = new WorkflowStore(root);
+          const job = store.get(decision.jobId);
+          const hash = job.artifacts?.[`_jobs/decisions/${decision.jobId}.json`];
+          if (job.state === "draft" && hash) {
+            await store.rejectCachedDecision(
+              decision.jobId,
+              hash,
+              JSON.stringify([
+                {
+                  code: "custom",
+                  path: ["pages"],
+                  params: { rule: "editorial-fact-disposition" },
+                  message: String(error),
+                },
+              ]),
+            );
+          }
+          throw error;
+        }
+      }
       for (const page of decision.value.pages) {
         if (
           !/^(concepts|params|sources)\/[a-z0-9]+(?:-[a-z0-9]+)*\.md$/.test(page.path) ||
@@ -325,7 +385,7 @@ export async function prepareDraftReview(
         mkdirSync(dirname(target), { recursive: true });
         writeFileSync(target, page.text);
       }
-      writeFileSync(join(req.cwd, "_drafts/_integration.json"), JSON.stringify(decision.value.decision));
+      writeFileSync(join(req.cwd, "_drafts/_integration.json"), JSON.stringify(updatedDecision));
       return { id: req.id, ok: true, exitCode: 0, stderrTail: "", costUsd: 0 };
     },
   });

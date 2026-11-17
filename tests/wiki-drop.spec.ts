@@ -114,6 +114,14 @@ for (const width of [1440, 1280, 390])
     await page.screenshot({ path: info.outputPath(`drop-review-${width}.png`), fullPage: true });
     await page.getByRole("button", { name: /批准/ }).click();
     await expect(page.getByTestId("review-state")).toContainText("已发布");
+    await page.getByRole("tab", { name: "Drop", exact: true }).click();
+    const publishedBatchLink = drop.getByRole("link", { name: "查看已接收文本", exact: true });
+    await expect(publishedBatchLink).toHaveAttribute("href", /^\/api\/wiki\/raw\?ref=/);
+    const batchRawPopupPromise = page.waitForEvent("popup");
+    await publishedBatchLink.click();
+    const batchRawPopup = await batchRawPopupPromise;
+    await expect(batchRawPopup.locator("body")).toContainText("使用时需要保留来源版本");
+    await batchRawPopup.close();
     await page.getByTestId("chat-close").click();
     await page.goto("/#/wiki/drop-cache");
     await expect(page.getByRole("heading", { name: "新缓存规则", exact: true })).toBeVisible();

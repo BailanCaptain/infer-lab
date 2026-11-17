@@ -8,17 +8,35 @@ import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
 import { readKnowledgeSnapshot, readReaderSnapshot } from "./snapshot";
 
 const fixtures: ReturnType<typeof wikiFixture>[] = [];
-afterEach(() => fixtures.splice(0).forEach((f) => f.cleanup()));
+afterEach(() => {
+  for (const f of fixtures.splice(0)) f.cleanup();
+});
 const setup = () => {
-  const f = wikiFixture(); fixtures.push(f);
+  const f = wikiFixture();
+  fixtures.push(f);
   f.write("wiki/HANDBOOK.md", handbookFixture());
   const raw = saveRawSnapshot(join(f.root, "wiki"), "固定原文\n");
-  f.write("wiki/sources/a.md", `---\nid: a\ntitle: A\ntype: source\nsummary: 快照测试\nsources: [raw:${raw.slice(4)}#L1]\nevidence: I\nupdated: '2026-11-10'\n---\n## 标题\n\n原始正文。\n`);
+  f.write(
+    "wiki/sources/a.md",
+    `---\nid: a\ntitle: A\ntype: source\nsummary: 快照测试\nsources: [raw:${raw.slice(4)}#L1]\nevidence: I\nupdated: '2026-11-10'\n---\n## 标题\n\n原始正文。\n`,
+  );
   return { ...f, raw };
 };
 function fresh(root: string) {
   const url = pathToFileURL(join(process.cwd(), "server/snapshot.ts")).href;
-  return JSON.parse(execFileSync(process.execPath, ["--import", import.meta.resolve("tsx"), "--input-type=module", "-e", `import {readKnowledgeSnapshot} from ${JSON.stringify(url)}; const s=await readKnowledgeSnapshot(process.cwd()); console.log(JSON.stringify({revision:s.revision, text:s.pageTexts[0]?.text, compiled:s.compiledPages[s.pageTexts[0]?.file], index:s.index.exact instanceof Map}));`], { cwd: root, windowsHide: true, encoding: "utf8", timeout: 20_000, stdio: ["ignore", "pipe", "pipe"] }));
+  return JSON.parse(
+    execFileSync(
+      process.execPath,
+      [
+        "--import",
+        import.meta.resolve("tsx"),
+        "--input-type=module",
+        "-e",
+        `import {readKnowledgeSnapshot} from ${JSON.stringify(url)}; const s=await readKnowledgeSnapshot(process.cwd()); console.log(JSON.stringify({revision:s.revision, text:s.pageTexts[0]?.text, compiled:s.compiledPages[s.pageTexts[0]?.file], index:s.index.exact instanceof Map}));`,
+      ],
+      { cwd: root, windowsHide: true, encoding: "utf8", timeout: 20_000, stdio: ["ignore", "pipe", "pipe"] },
+    ),
+  );
 }
 it("a fresh process shares the compiled snapshot and still observes changed, added and removed pages", async () => {
   const f = setup();
@@ -41,7 +59,8 @@ it("a fresh process shares the compiled snapshot and still observes changed, add
   expect(fresh(f.root).revision).toBe(changed.revision);
 });
 it("a corrupt shared cache is rebuilt, while altered raw evidence is still rejected", async () => {
-  const f = setup(); const snapshot = await readKnowledgeSnapshot(f.root);
+  const f = setup();
+  const snapshot = await readKnowledgeSnapshot(f.root);
   writeFileSync(join(f.root, "tools/wiki-runtime/reader-snapshot.bin"), "broken cache");
   expect(fresh(f.root).revision).toBe(snapshot.revision);
   writeFileSync(join(f.root, "wiki", f.raw), "被改原文\n");

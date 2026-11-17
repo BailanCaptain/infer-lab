@@ -165,10 +165,10 @@ export function DropPane({
             />
           </label>
           <label>
-            上传 MD/TXT 文件
+            上传 MD/TXT/RST/JSON/CSV 文件
             <input
               type="file"
-              accept=".md,.txt"
+              accept=".md,.txt,.rst,.json,.csv"
               multiple
               onChange={(e) => {
                 const files = Array.from(e.target.files ?? []);

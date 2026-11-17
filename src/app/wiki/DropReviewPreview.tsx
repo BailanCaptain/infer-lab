@@ -1,7 +1,46 @@
+import type { ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
+import { Link, useInRouterContext } from "react-router";
 import { CalcBlock } from "../../content/wiki/CalcBlock";
 import { parseCalcFence, textFenceAsCalc } from "../../content/wiki/calc";
+import { rewriteRelativeLink, routePathOf } from "../../content/wiki/index";
 import { type HastNode, textOf, WIKI_REHYPE_PLUGINS, WIKI_REMARK_PLUGINS } from "../../content/wiki/markdown";
+
+export const reviewPageId = (path: string) => path.split("/").at(-1)!.replace(/\.md$/, "");
+
+export function ReviewMarkdownLink({
+  href,
+  currentId,
+  children,
+}: {
+  href?: string | undefined;
+  currentId?: string | undefined;
+  children?: ReactNode;
+}) {
+  const inRouter = useInRouterContext();
+  const to = rewriteRelativeLink(href ?? "", currentId);
+  const rawMatch = /^\.\/wiki-raw\/sha256-([a-f0-9]{64})\.html\?lines=(\d+)(?:-(\d+))?(?:#L\d+)?$/.exec(to);
+  if (rawMatch) {
+    const apiHref = `/api/wiki/raw?ref=${encodeURIComponent(
+      `raw:sha256-${rawMatch[1]}.md#L${rawMatch[2]}${rawMatch[3] ? `-L${rawMatch[3]}` : ""}`,
+    )}`;
+    return (
+      <a href={apiHref} target="_blank" rel="noreferrer">
+        {children}
+      </a>
+    );
+  }
+  const route = routePathOf(to);
+  if (route && inRouter) {
+    return <Link to={route}>{children}</Link>;
+  }
+  const external = /^https?:/i.test(to);
+  return (
+    <a href={to} {...(external ? { target: "_blank", rel: "noreferrer" } : {})}>
+      {children}
+    </a>
+  );
+}
 
 type Change = { path: string; before: string | null; after: string | null };
 function formulas(text: string | null) {
@@ -44,6 +83,11 @@ export function DropReviewPreview({ writes, placements }: { writes: Change[]; pl
                     remarkPlugins={WIKI_REMARK_PLUGINS}
                     rehypePlugins={WIKI_REHYPE_PLUGINS}
                     components={{
+                      a: ({ href, children }) => (
+                        <ReviewMarkdownLink href={href} currentId={reviewPageId(w.path)}>
+                          {children}
+                        </ReviewMarkdownLink>
+                      ),
                       pre: ({ node, children }) => {
                         const code = (node as HastNode | undefined)?.children?.[0];
                         const source = code ? textOf(code).trim() : "";

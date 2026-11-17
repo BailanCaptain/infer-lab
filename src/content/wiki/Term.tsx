@@ -1,6 +1,7 @@
 import { type ReactNode, useId, useState } from "react";
 import { Link } from "react-router";
 import { findByAlias } from "./index";
+import { pageDisplayTitle } from "./param-display";
 
 /**
  * 七档证据等级，定义抄自 PLAN.md §1.4，是全站唯一来源。
@@ -34,7 +35,17 @@ const EVIDENCE_SHORT: Record<string, string> = Object.fromEntries(
  * 把它当成后退（POP），ScrollRestoration 于是去「恢复」位置，读者落在新页面的末尾（P3 验收：
  * 从 glm-5-3-flash 的「接着看」点阅读指南，停在 scrollY 2986）。
  */
-export function Term({ id, children }: { id: string; children?: ReactNode }) {
+export function Term({
+  id,
+  title,
+  note,
+  children,
+}: {
+  id: string;
+  title?: string | undefined;
+  note?: string | undefined;
+  children?: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const cardId = useId();
   const page = findByAlias(id);
@@ -49,20 +60,22 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
       <Link
         className="wiki-term"
         to={`/wiki/${page.id}`}
+        title={title}
         aria-describedby={open ? cardId : undefined}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
       >
-        {children ?? page.title}
+        {children ?? pageDisplayTitle(page)}
       </Link>
       {open && (
         <span className="wiki-term-card" role="tooltip" id={cardId}>
           <span className="wiki-term-card-head">
-            <strong>{page.title}</strong>
+            <strong>{pageDisplayTitle(page)}</strong>
             <EvidenceBadge level={page.evidence} />
           </span>
+          {note && <span className="wiki-term-card-note">{note}</span>}
           <span className="wiki-term-card-summary">{page.summary}</span>
         </span>
       )}

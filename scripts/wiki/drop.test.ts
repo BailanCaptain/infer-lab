@@ -45,6 +45,7 @@ it("archives immutable input, compiles only clean material, and deduplicates rep
   try {
     f.write("input.md", "缓存需要显式设置。\n");
     f.write("wiki/HANDBOOK.md", readFileSync(new URL("../../wiki/HANDBOOK.md", import.meta.url), "utf8"));
+    f.write("wiki/TERMS.md", readFileSync(new URL("../../wiki/TERMS.md", import.meta.url), "utf8"));
     let calls = 0;
     const options = { why: "补充缓存说明", policy: { maxAttempts: 1, maxCostUsd: 1, reserveUsd: 1 } };
     const deps = {

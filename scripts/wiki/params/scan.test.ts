@@ -281,3 +281,128 @@ it("被工厂从用户输入里剔掉、又没有任何一处从用户输入读�
     'additional_config["pd_tp_ratio"]': "suspect",
   });
 });
+
+it("recognizes **kwargs-unpacked __init__ constructor fields without treating container dicts as fields", () => {
+  const rows = scanSources({
+    "vllm_ascend/ascend_config.py": `class AscendConfig:
+    def __init__(self, vllm_config: "VllmConfig"):
+        self.vllm_config = vllm_config
+        additional_config = vllm_config.additional_config or {}
+        ascend_compilation_config = additional_config.get("ascend_compilation_config", {})
+        self.ascend_compilation_config = AscendCompilationConfig(**ascend_compilation_config)
+        self.profiling_chunk_config = ProfilingChunkConfig(additional_config.get("profiling_chunk_config"))
+
+class ProfilingChunkConfig:
+    def __init__(self, config: dict | None = None):
+        self.enabled = bool((config or {}).get("enabled", False))
+
+class AscendCompilationConfig:
+    def __init__(
+        self,
+        enable_npugraph_ex: bool = True,
+        enable_static_kernel: bool = False,
+        enable_super_kernel: bool | None = None,
+        **kwargs,
+    ):
+        if enable_super_kernel is None:
+            enable_super_kernel = enable_static_kernel
+        self.enable_npugraph_ex = enable_npugraph_ex
+        self.enable_static_kernel = enable_static_kernel
+        self.enable_super_kernel = enable_super_kernel
+        self.fuse_muls_add = kwargs.get("fuse_muls_add", True)
+`,
+  });
+  const fields = rows.filter((p) => p.form === "field");
+  expect(fields.map((p) => [p.class, p.name, p.type, p.default, p.json_path, p.confidence])).toEqual([
+    [
+      "AscendCompilationConfig",
+      "enable_npugraph_ex",
+      "bool",
+      "True",
+      'additional_config["ascend_compilation_config"]["enable_npugraph_ex"]',
+      "certain",
+    ],
+    [
+      "AscendCompilationConfig",
+      "enable_static_kernel",
+      "bool",
+      "False",
+      'additional_config["ascend_compilation_config"]["enable_static_kernel"]',
+      "certain",
+    ],
+    [
+      "AscendCompilationConfig",
+      "enable_super_kernel",
+      "bool | None",
+      "None",
+      'additional_config["ascend_compilation_config"]["enable_super_kernel"]',
+      "certain",
+    ],
+  ]);
+  expect(fields.find((p) => p.name === "enable_super_kernel")?.constraints).toEqual([
+    "if enable_super_kernel is None:\n    enable_super_kernel = enable_static_kernel",
+  ]);
+});
+
+it("deduplicates nested if blocks inside validators when the enclosing if already covers the field", () => {
+  const rows = scanSources({
+    "vllm_ascend/ascend_config.py": `@config
+class AscendCompilationConfig:
+    enable_static_kernel: bool = False
+    enable_super_kernel: bool = False
+    def _default_super_kernel(cls, data):
+        if isinstance(data, ArgsKwargs):
+            kw = dict(data.kwargs or {})
+            if "enable_super_kernel" not in kw and "enable_static_kernel" in kw:
+                kw["enable_super_kernel"] = kw["enable_static_kernel"]
+            return ArgsKwargs(data.args, kw)
+        if isinstance(data, dict):
+            if "enable_super_kernel" not in data and "enable_static_kernel" in data:
+                data = dict(data)
+                data["enable_super_kernel"] = data["enable_static_kernel"]
+        return data
+`,
+  });
+  const constraints = rows.find((p) => p.name === "enable_super_kernel")?.constraints ?? [];
+  expect(constraints).toHaveLength(2);
+  expect(constraints[0]).toMatch(/^if isinstance\(data, ArgsKwargs\):/);
+  expect(constraints[1]).toMatch(/^if isinstance\(data, dict\):/);
+});
+
+it("aligns __init__ positional defaults accurately across positional-only '/' boundaries", () => {
+  const rows = scanSources({
+    "vllm_ascend/ascend_config.py": `class AscendConfig:
+    def __init__(self, vllm_config: "VllmConfig"):
+        additional_config = vllm_config.additional_config or {}
+        self.normal = NormalChildConfig(**additional_config.get("normal", {}))
+        self.self_posonly = SelfPosOnlyChildConfig(**additional_config.get("self_posonly", {}))
+        self.first_posonly = FirstPosOnlyChildConfig(**additional_config.get("first_posonly", {}))
+
+class NormalChildConfig:
+    def __init__(self, first: bool = True, second: int = 7, **kwargs):
+        self.first = first
+        self.second = second
+
+class SelfPosOnlyChildConfig:
+    def __init__(self, /, first: bool = True, second: int = 7, **kwargs):
+        self.first = first
+        self.second = second
+
+class FirstPosOnlyChildConfig:
+    def __init__(self, first: bool = True, /, second: int = 7, **kwargs):
+        self.first = first
+        self.second = second
+`,
+  });
+  const fields = rows
+    .filter((p) => p.form === "field")
+    .map((p) => [p.class, p.name, p.type, p.default, p.json_path]);
+  expect(fields).toEqual([
+    ["NormalChildConfig", "first", "bool", "True", 'additional_config["normal"]["first"]'],
+    ["NormalChildConfig", "second", "int", "7", 'additional_config["normal"]["second"]'],
+    ["SelfPosOnlyChildConfig", "first", "bool", "True", 'additional_config["self_posonly"]["first"]'],
+    ["SelfPosOnlyChildConfig", "second", "int", "7", 'additional_config["self_posonly"]["second"]'],
+    ["FirstPosOnlyChildConfig", "first", "bool", "True", 'additional_config["first_posonly"]["first"]'],
+    ["FirstPosOnlyChildConfig", "second", "int", "7", 'additional_config["first_posonly"]["second"]'],
+  ]);
+});

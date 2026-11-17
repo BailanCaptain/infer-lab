@@ -687,3 +687,111 @@ it("rejects unnumbered source marks before caching a section and reuses earlier 
     f.cleanup();
   }
 });
+
+it("allows section-1 editorial restructure when atomic facts and qualifiers are conserved, and rejects qualifier loss", async () => {
+  const f = wikiFixture();
+  try {
+    const header =
+      "---\nid: a\ntitle: A\ntype: concept\nsummary: A\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: '2026-11-15'\n---\n";
+    const previous = `${header}## 核心机制\n给定材料中的 \`enable_chunked_prefill\` 在 v0.26.0rc 与 Atlas A2 下默认预算为 2048 token。\n\n## 对照源码\n\n原始出处。[S1]\n`;
+    const draft = `${header}## 新材料\n在 Atlas A2 上 \`enable_chunked_prefill\` 还可配合 \`max_num_seqs = 64\` 运行。\n`;
+
+    let dropQualifier = true;
+    let semanticCheckCalls = 0;
+    const runAgent: import("./batch").RunAgent = async (req) => {
+      const data = JSON.parse(req.stdin);
+      if (data.mode === "fact-disposition-check") {
+        semanticCheckCalls++;
+        const cand = String(data.candidateActive ?? "");
+        const hasQualifiers = cand.includes("Atlas A2") && cand.includes("v0.26.0rc");
+        return {
+          id: req.id,
+          ok: true,
+          exitCode: 0,
+          stderrTail: "",
+          output: JSON.stringify({
+            verdicts: data.pendingFacts.map((f: { index: number }) =>
+              hasQualifiers
+                ? {
+                    index: f.index,
+                    preserved: true,
+                    outlet: "retained",
+                    targetQuote:
+                      "在 Atlas A2 与 v0.26.0rc 下，`enable_chunked_prefill` 默认预算为 2048 token",
+                    reason: "独立复核确认版本、硬件与数值预算语义等价保留。",
+                  }
+                : {
+                    index: f.index,
+                    preserved: false,
+                    reason: "候选删去了 v0.26.0rc 与 Atlas A2 适用限定。",
+                  },
+            ),
+          }),
+        };
+      }
+      if (!data.section.text.includes("enable_chunked_prefill")) {
+        return { id: req.id, ok: true, exitCode: 0, stderrTail: "", output: JSON.stringify({ edits: [] }) };
+      }
+      return {
+        id: req.id,
+        ok: true,
+        exitCode: 0,
+        stderrTail: "",
+        output: JSON.stringify({
+          edits: [
+            {
+              before:
+                "给定材料中的 `enable_chunked_prefill` 在 v0.26.0rc 与 Atlas A2 下默认预算为 2048 token。",
+              after: dropQualifier
+                ? "`enable_chunked_prefill` 默认预算为 2048 token，并可配合 `max_num_seqs = 64` 运行。"
+                : "在 Atlas A2 与 v0.26.0rc 下，`enable_chunked_prefill` 默认预算为 2048 token，并可配合 `max_num_seqs = 64` 运行。",
+              kind: "editorial",
+              reason: "顺畅重组首段并合并新运行条件，不逐行硬塞补丁",
+              quote: "在 Atlas A2 上 `enable_chunked_prefill` 还可配合 `max_num_seqs = 64` 运行。",
+              sourceNote: "新增 `max_num_seqs = 64` 运行配合说明 [S1]。",
+            },
+          ],
+        }),
+      };
+    };
+
+    await expect(
+      integrateSections(
+        f.root,
+        {
+          path: "concepts/a.md",
+          previous,
+          draft,
+          rules: "重组段落时守恒全部事实与限定条件",
+          policy: { accountingOnly: true },
+        },
+        { runAgent },
+      ),
+    ).rejects.toThrow(/editorial|事实去向/);
+    expect(semanticCheckCalls).toBe(1);
+
+    dropQualifier = false;
+    const ok = await integrateSections(
+      f.root,
+      {
+        path: "concepts/a.md",
+        previous,
+        draft,
+        rules: "重组段落时守恒全部事实与限定条件",
+        policy: { accountingOnly: true },
+      },
+      { runAgent, retry: true },
+    );
+    expect(semanticCheckCalls).toBe(2);
+    expect(ok?.revision.kind).toBe("editorial");
+    if (ok?.revision.kind === "editorial") {
+      expect(ok.revision.factDispositions).toHaveLength(2);
+      expect(ok.revision.factDispositions?.[0]?.verification).toBe("semantic-check");
+      expect(ok.revision.factDispositions?.[1]?.verification).toBe("verbatim");
+    }
+    expect(ok?.text).not.toContain("给定材料中的");
+    expect(ok?.text).toContain("max_num_seqs = 64");
+  } finally {
+    f.cleanup();
+  }
+});

@@ -6,6 +6,10 @@ import { localFile } from "./review-files";
 /** 版本标记（frontmatter `verified`、页头的版本标签）说的是这个仓库的分支 */
 export const PRIMARY_REPO = "vllm-ascend";
 
+export function isGitRepoRoot(dir: string): boolean {
+  return existsSync(join(dir, ".git")) || existsSync(join(dir, "HEAD"));
+}
+
 export function configuredRepoRoots(root: string, seeds?: string): Record<string, string> {
   const dir = join(root, "wiki/seeds");
   const roots: Record<string, string> = {};

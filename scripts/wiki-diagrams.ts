@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { loadDiagrams, renderDiagram } from "./wiki/diagrams";
+import { isNativeSvgSpec, loadDiagrams, renderDiagram } from "./wiki/diagrams";
 import { figureAdvisories, figureProblems, sketchUsage } from "./wiki/figure";
 import { sceneCollisions, sceneOverflows } from "./wiki/scene";
 
@@ -23,12 +23,14 @@ if (problems.length) {
 //   一、字跑出框（第一版「图难看」有一半是这种看不见的溢出）；
 //   二、两块东西压在一起（engine-core-loop 的站点标题正好撞进地盘胶囊，全绿却糊成一团）。
 const bad = [...diagrams.values()].flatMap((d) =>
-  d.spec.layout === "figure"
-    ? figureProblems(d.spec).map((m) => `${d.specFile} ${m}`)
-    : [
-        ...sceneOverflows(d.spec).map((m) => `${d.specFile} ${m}`),
-        ...sceneCollisions(d.spec).map((m) => `${d.specFile} ${m}`),
-      ],
+  isNativeSvgSpec(d.spec)
+    ? []
+    : d.spec.layout === "figure"
+      ? figureProblems(d.spec).map((m) => `${d.specFile} ${m}`)
+      : [
+          ...sceneOverflows(d.spec).map((m) => `${d.specFile} ${m}`),
+          ...sceneCollisions(d.spec).map((m) => `${d.specFile} ${m}`),
+        ],
 );
 for (const m of bad) console.error(`x ${m}`);
 if (bad.length) {
@@ -37,11 +39,15 @@ wiki:diagrams 失败：${bad.length} 处画到了框外或压在一起`);
   process.exit(1);
 }
 
-const figures = [...diagrams.values()].flatMap((d) => (d.spec.layout === "figure" ? [d.spec] : []));
+const figures = [...diagrams.values()].flatMap((d) =>
+  !isNativeSvgSpec(d.spec) && d.spec.layout === "figure" ? [d.spec] : [],
+);
 const sketches = sketchUsage(figures);
 const advisories = [
   ...[...diagrams.values()].flatMap((d) =>
-    d.spec.layout === "figure" ? figureAdvisories(d.spec).map((m) => `${d.specFile} ${m}`) : [],
+    !isNativeSvgSpec(d.spec) && d.spec.layout === "figure"
+      ? figureAdvisories(d.spec).map((m) => `${d.specFile} ${m}`)
+      : [],
   ),
   ...sketches.promote,
 ];
@@ -54,6 +60,7 @@ if (advisories.length) {
 const stale: string[] = [];
 let written = 0;
 for (const diagram of [...diagrams.values()]) {
+  if (isNativeSvgSpec(diagram.spec)) continue;
   const path = join(wiki, diagram.svgFile);
   const next = renderDiagram(diagram.spec);
   const current = existsSync(path) ? readFileSync(path, "utf8") : null;

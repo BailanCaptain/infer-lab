@@ -20,10 +20,11 @@
  */
 
 import { z } from "zod";
-import { esc, type InkBox, round, textWidth, wrap } from "./scene";
+import { esc, type InkBox, MONO, monoTextWidth, round, textWidth, wrap } from "./scene";
 
 const point = z.tuple([z.number(), z.number()]);
 const int = z.number().int();
+const fontChoice = z.enum(["sans", "mono"]).default("sans");
 
 export const FIGURE_TONES = ["token", "weight", "kv", "comm", "control", "danger", "ink"] as const;
 type FigureTone = (typeof FIGURE_TONES)[number];
@@ -118,6 +119,7 @@ const sketchShape = z.discriminatedUnion("kind", [
       text: z.string().min(1),
       size: z.enum(["small", "normal", "large"]).default("normal"),
       strong: z.boolean().default(false),
+      font: fontChoice,
       tone: tone.optional(),
       /** 写在实色形状上时用反白字 */
       inverse: z.boolean().default(false),
@@ -178,6 +180,7 @@ export const figureSpecSchema = z
             size: point,
             text: z.string().optional(),
             sub: z.string().optional(),
+            font: fontChoice,
             tone: tone.default("ink"),
             style: z.enum(["solid", "faded", "plain"]).default("solid"),
             depth: int.min(0).max(6).default(0),
@@ -547,7 +550,7 @@ export const figureSpecSchema = z
       .default([]),
     /** 圆节点，比如加权相加的 ⊕ */
     nodes: z.array(z.object({ at: point, r: z.number().default(18), text: z.string() }).strict()).default([]),
-    /** 箭头：直线 / 折线（via）/ 三次曲线（curve 给两个控制点） */
+    /** 箭头：直线 / 折线（via）/ 单参数弧线（bend，右手法向中点偏移）/ 三次曲线（curve 给两个控制点） */
     links: z
       .array(
         z
@@ -556,11 +559,32 @@ export const figureSpecSchema = z
             to: point,
             via: z.array(point).default([]),
             curve: z.tuple([point, point]).optional(),
+            bend: z.number().finite().optional(),
             ends: z.enum(["none", "end", "both"]).default("end"),
             tone: tone.default("ink"),
             dashed: z.boolean().default(false),
           })
-          .strict(),
+          .strict()
+          .superRefine((l, ctx) => {
+            if (l.bend !== undefined && l.curve !== undefined)
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "bend 与 curve 不能同时指定",
+                path: ["bend"],
+              });
+            if (l.bend !== undefined && l.via.length > 0)
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "bend 与 via 不能同时指定",
+                path: ["bend"],
+              });
+            if (l.curve !== undefined && l.via.length > 0)
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "curve 与 via 不能同时指定",
+                path: ["curve"],
+              });
+          }),
       )
       .default([]),
     /** 一对多或多对一的一束箭头 */
@@ -587,6 +611,7 @@ export const figureSpecSchema = z
             size: z.number().default(13.5),
             strong: z.boolean().default(false),
             note: z.boolean().default(false),
+            font: fontChoice,
             tone: tone.optional(),
             width: z.number().optional(),
             anchor: z.enum(["start", "middle", "end"]).default("start"),
@@ -706,16 +731,24 @@ function text(
   x: number,
   y: number,
   s: string,
-  o: { size?: number; weight?: number; fill?: string; italic?: boolean; anchor?: string; ink?: boolean } = {},
+  o: {
+    size?: number;
+    weight?: number;
+    fill?: string;
+    italic?: boolean;
+    mono?: boolean;
+    anchor?: string;
+    ink?: boolean;
+  } = {},
 ): void {
   const size = o.size ?? 13.5;
-  const w = textWidth(s, size);
+  const w = o.mono ? monoTextWidth(s, size) : textWidth(s, size);
   const left = o.anchor === "end" ? x - w : o.anchor === "middle" ? x - w / 2 : x;
   if (o.ink !== false) r.ink.push({ where: r.where, what: s, x: left, y: y - size * 0.78, w, h: size });
   const anchor = o.anchor && o.anchor !== "start" ? ` text-anchor="${o.anchor}"` : "";
   const italic = o.italic ? ' font-style="italic"' : "";
   r.parts.push(
-    `<text x="${round(x)}" y="${round(y)}" font-family="${FONT}" font-size="${size}" font-weight="${o.weight ?? 400}" fill="${o.fill ?? INK}"${anchor}${italic}>${esc(s)}</text>`,
+    `<text x="${round(x)}" y="${round(y)}" font-family="${o.mono ? MONO : FONT}" font-size="${size}" font-weight="${o.weight ?? 400}" fill="${o.fill ?? INK}"${anchor}${italic}>${esc(s)}</text>`,
   );
 }
 
@@ -753,11 +786,11 @@ function stroke(
   return `<path d="${d}" fill="none" stroke="${COLOR[t]}" stroke-width="${w}"${dashed ? ' stroke-dasharray="7 5"' : ""}${heads}/>`;
 }
 
-/** 三次曲线上取 9 个点，留给出界检查 */
+/** 三次曲线上均匀取 17 个点（含 t = 0.5 精确弧顶），留给出界与画板边界检查 */
 function cubicPoints(p0: number[], c1: number[], c2: number[], p3: number[]): [number, number][] {
   const out: [number, number][] = [];
-  for (let i = 0; i <= 8; i++) {
-    const t = i / 8;
+  for (let i = 0; i <= 16; i++) {
+    const t = i / 16;
     const u = 1 - t;
     out.push([
       u * u * u * p0[0]! + 3 * u * u * t * c1[0]! + 3 * u * t * t * c2[0]! + t * t * t * p3[0]!,
@@ -765,6 +798,107 @@ function cubicPoints(p0: number[], c1: number[], c2: number[], p3: number[]): [n
     ]);
   }
   return out;
+}
+
+export interface LinkGeometry {
+  kind: "polyline" | "cubic";
+  pathD: string;
+  samples: [number, number][];
+  startTangent: [number, number];
+  endTangent: [number, number];
+  controlPoints?: [[number, number], [number, number]];
+  problem?: string;
+}
+
+function unitVec(dx: number, dy: number): [number, number] | null {
+  const len = Math.hypot(dx, dy);
+  return len < 1e-6 ? null : [dx / len, dy / len];
+}
+
+/**
+ * 箭头几何唯一真相源：SVG <path d>、画布边界采样与两端箭头切向均由同一组点/控制点派生，
+ * 杜绝「渲染画弯、校验按直线算」或零长度产生 NaN。
+ */
+export function resolveLinkGeometry(link: {
+  from: readonly [number, number] | number[];
+  to: readonly [number, number] | number[];
+  via?: readonly (readonly [number, number] | number[])[];
+  curve?: readonly [readonly [number, number] | number[], readonly [number, number] | number[]];
+  bend?: number | undefined;
+}): LinkGeometry {
+  const p0: [number, number] = [link.from[0]!, link.from[1]!];
+  const p3: [number, number] = [link.to[0]!, link.to[1]!];
+  if (link.curve) {
+    const c1: [number, number] = [link.curve[0][0]!, link.curve[0][1]!];
+    const c2: [number, number] = [link.curve[1][0]!, link.curve[1][1]!];
+    const sTan =
+      unitVec(c1[0] - p0[0], c1[1] - p0[1]) ??
+      unitVec(c2[0] - p0[0], c2[1] - p0[1]) ??
+      unitVec(p3[0] - p0[0], p3[1] - p0[1]);
+    const eTan =
+      unitVec(p3[0] - c2[0], p3[1] - c2[1]) ??
+      unitVec(p3[0] - c1[0], p3[1] - c1[1]) ??
+      unitVec(p3[0] - p0[0], p3[1] - p0[1]);
+    return {
+      kind: "cubic",
+      pathD: `M${p0[0]} ${p0[1]} C ${c1[0]} ${c1[1]}, ${c2[0]} ${c2[1]}, ${p3[0]} ${p3[1]}`,
+      samples: cubicPoints(p0, c1, c2, p3),
+      startTangent: sTan ?? [0, 0],
+      endTangent: eTan ?? [0, 0],
+      controlPoints: [c1, c2],
+      ...(sTan && eTan ? {} : { problem: "起点、终点与控制点重合，连线长度为 0" }),
+    };
+  }
+  if (link.bend !== undefined && link.bend !== 0) {
+    const dx = p3[0] - p0[0];
+    const dy = p3[1] - p0[1];
+    const chord = unitVec(dx, dy);
+    if (!chord) {
+      return {
+        kind: "polyline",
+        pathD: `M${round(p0[0])} ${round(p0[1])} L${round(p3[0])} ${round(p3[1])}`,
+        samples: [p0, p3],
+        startTangent: [0, 0],
+        endTangent: [0, 0],
+        problem: "起点与终点重合，无法按 bend 计算法向弧线与箭头方向",
+      };
+    }
+    const [ux, uy] = chord;
+    const nx = -uy;
+    const ny = ux;
+    const h = (4 / 3) * link.bend;
+    const r0: [number, number] = [round(p0[0]), round(p0[1])];
+    const r3: [number, number] = [round(p3[0]), round(p3[1])];
+    const c1: [number, number] = [round(p0[0] + dx / 3 + nx * h), round(p0[1] + dy / 3 + ny * h)];
+    const c2: [number, number] = [round(p0[0] + (2 * dx) / 3 + nx * h), round(p0[1] + (2 * dy) / 3 + ny * h)];
+    return {
+      kind: "cubic",
+      pathD: `M${r0[0]} ${r0[1]} C ${c1[0]} ${c1[1]}, ${c2[0]} ${c2[1]}, ${r3[0]} ${r3[1]}`,
+      samples: cubicPoints(r0, c1, c2, r3),
+      startTangent: unitVec(c1[0] - r0[0], c1[1] - r0[1]) ?? chord,
+      endTangent: unitVec(r3[0] - c2[0], r3[1] - c2[1]) ?? chord,
+      controlPoints: [c1, c2],
+    };
+  }
+  const via: [number, number][] = (link.via ?? []).map((p) => [p[0]!, p[1]!]);
+  const pts: [number, number][] = [p0, ...via, p3];
+  let firstSeg: [number, number] | null = null;
+  let lastSeg: [number, number] | null = null;
+  for (let k = 0; k + 1 < pts.length; k++) {
+    const seg = unitVec(pts[k + 1]![0] - pts[k]![0], pts[k + 1]![1] - pts[k]![1]);
+    if (seg) {
+      firstSeg ??= seg;
+      lastSeg = seg;
+    }
+  }
+  return {
+    kind: "polyline",
+    pathD: pts.map(([x, y], k) => `${k === 0 ? "M" : "L"}${x} ${y}`).join(" "),
+    samples: pts,
+    startTangent: firstSeg ?? [0, 0],
+    endTangent: lastSeg ?? [0, 0],
+    ...(firstSeg && lastSeg ? {} : { problem: "起点与终点重合，连线长度为 0" }),
+  };
 }
 
 function drawMatrix(r: Run, x: number, y: number, m: MatrixShape): void {
@@ -1346,30 +1480,31 @@ function paint(spec: FigureSpec): Run {
 
   // ---- 箭头先画，物体盖在上面
   const arrow = (
-    from: number[],
-    to: number[],
-    via: number[][],
-    curve: number[][] | undefined,
+    link: {
+      from: number[];
+      to: number[];
+      via?: number[][];
+      curve?: [number[], number[]];
+      bend?: number | undefined;
+    },
     t: FigureTone,
     dashed: boolean,
     ends: "none" | "end" | "both" = "end",
   ) => {
-    const d = curve
-      ? `M${from[0]} ${from[1]} C ${curve[0]![0]} ${curve[0]![1]}, ${curve[1]![0]} ${curve[1]![1]}, ${to[0]} ${to[1]}`
-      : [from, ...via, to].map(([x, y], k) => `${k === 0 ? "M" : "L"}${x} ${y}`).join(" ");
-    lines.push(stroke(r, id, d, t, dashed, ends));
-    const pts = curve ? cubicPoints(from, curve[0]!, curve[1]!, to) : [from, ...via, to];
-    for (const p of pts) r.points.push({ where: r.where, x: p[0]!, y: p[1]! });
+    const geo = resolveLinkGeometry(link);
+    if (geo.problem) r.tight.push(`${r.where}：${geo.problem}`);
+    lines.push(stroke(r, id, geo.pathD, t, dashed, ends));
+    for (const p of geo.samples) r.points.push({ where: r.where, x: p[0], y: p[1] });
   };
   for (const [i, l] of spec.links.entries()) {
     r.where = `links[${i}]`;
-    arrow(l.from, l.to, l.via, l.curve, l.tone, l.dashed, l.ends);
+    arrow(l, l.tone, l.dashed, l.ends);
   }
   for (const [i, f] of spec.fans.entries()) {
     r.where = `fans[${i}]`;
     const froms = Array.isArray(f.from[0]) ? (f.from as number[][]) : [f.from as number[]];
     const tos = Array.isArray(f.to[0]) ? (f.to as number[][]) : [f.to as number[]];
-    for (const a of froms) for (const b of tos) arrow(a, b, [], undefined, f.tone, false);
+    for (const a of froms) for (const b of tos) arrow({ from: a, to: b }, f.tone, false);
   }
   r.parts.push(...lines);
 
@@ -2238,7 +2373,8 @@ function paint(spec: FigureSpec): Run {
       } else {
         const size = SKETCH_TEXT[s.size];
         const [x, y] = s.at;
-        const w = textWidth(s.text, size);
+        const mono = s.font === "mono";
+        const w = mono ? monoTextWidth(s.text, size) : textWidth(s.text, size);
         const left = s.anchor === "end" ? x - w : s.anchor === "middle" ? x - w / 2 : x;
         words.push({
           where: `${r.where}.shapes[${j}]`,
@@ -2254,6 +2390,7 @@ function paint(spec: FigureSpec): Run {
           size,
           weight: s.strong ? 700 : 400,
           fill,
+          mono,
           anchor: s.anchor,
           ink: false,
         });
@@ -2298,10 +2435,12 @@ function paint(spec: FigureSpec): Run {
     const size = it.style === "faded" ? 13 : 14;
     const cx = x + w / 2;
     const cy = y + h / 2;
+    const mono = it.font === "mono";
     if (it.text && it.sub) {
-      text(r, cx, cy - 4, it.text, { size, weight, fill, anchor: "middle", ink: false });
-      text(r, cx, cy + 15, it.sub, { size: 13, fill, anchor: "middle", ink: false });
-    } else if (it.text) text(r, cx, cy + 5, it.text, { size, weight, fill, anchor: "middle", ink: false });
+      text(r, cx, cy - 4, it.text, { size, weight, fill, mono, anchor: "middle", ink: false });
+      text(r, cx, cy + 15, it.sub, { size: 13, fill, mono, anchor: "middle", ink: false });
+    } else if (it.text)
+      text(r, cx, cy + 5, it.text, { size, weight, fill, mono, anchor: "middle", ink: false });
   }
 
   // ---- 圆节点
@@ -2328,13 +2467,15 @@ function paint(spec: FigureSpec): Run {
   for (const [i, t] of spec.texts.entries()) {
     r.where = `texts[${i}]`;
     const fill = t.tone ? DEEP[t.tone] : t.note ? MUTED : INK;
-    const rows = t.width ? wrap(t.text, t.size, t.width) : [t.text];
+    const mono = t.font === "mono";
+    const rows = t.width ? wrap(t.text, t.size, t.width, mono) : [t.text];
     for (const [k, line] of rows.entries())
       text(r, t.at[0], t.at[1] + k * t.size * 1.6, line, {
         size: t.size,
         weight: t.strong ? 700 : 400,
         fill,
         italic: t.note,
+        mono,
         anchor: t.anchor,
       });
   }
@@ -2406,11 +2547,13 @@ export function figureProblems(spec: FigureSpec): string[] {
   // 物体里写的字要放得下
   for (const [i, it] of spec.items.entries()) {
     const size = it.style === "faded" ? 13 : 14;
-    for (const s of [it.text, it.sub])
-      if (s && textWidth(s, size) > it.size[0] - 12)
-        out.push(
-          `items[${i}]：「${s}」约 ${Math.round(textWidth(s, size))}px，框里放不下（只有 ${it.size[0] - 12}px）`,
-        );
+    const measure = it.font === "mono" ? monoTextWidth : textWidth;
+    for (const s of [it.text, it.sub]) {
+      if (!s) continue;
+      const need = measure(s, size);
+      if (need > it.size[0] - 12)
+        out.push(`items[${i}]：「${s}」约 ${Math.round(need)}px，框里放不下（只有 ${it.size[0] - 12}px）`);
+    }
   }
   out.push(...tight);
   const seen = new Set<string>();
@@ -2432,63 +2575,12 @@ export function figureProblems(spec: FigureSpec): string[] {
   return out;
 }
 
-/** 图上所有给读者看的字（数据出处除外），用来查代码名 */
-function figureWords(spec: FigureSpec): string[] {
-  const matrixWords = (m: MatrixShape) => [m.label, m.dims];
-  return [
-    ...spec.texts.map((t) => t.text),
-    ...spec.items.flatMap((it) => [it.text, it.sub]),
-    ...spec.frames.map((f) => f.label),
-    ...spec.hardware.map((h) => h.label),
-    ...spec.matrices.flatMap(matrixWords),
-    ...spec.equations.flatMap((e) => e.terms.flatMap((t) => ("op" in t ? [] : matrixWords(t)))),
-    ...spec.brackets.map((b) => b.label),
-    ...spec.dividers.flatMap((d) => d.sides ?? []),
-    ...spec.layers.flatMap((l) => l.bands.flatMap((b) => [b.text, b.sub])),
-    ...spec.grids.flatMap((g) => [...g.cells.map((c) => c.text), ...g.rowLabels, ...g.colLabels, g.label]),
-    ...spec.heatmaps.flatMap((h) => [...h.rowLabels, ...h.colLabels, h.label]),
-    ...spec.timelines.flatMap((t) => [
-      ...t.lanes.flatMap((l) => [l.label, ...l.spans.map((s) => s.text)]),
-      ...t.marks.map((m) => m.label),
-    ]),
-    ...spec.charts.flatMap((c) => [
-      c.x.label,
-      c.y.label,
-      ...("categories" in c.x ? c.x.categories : []),
-      ...c.series.map((s) => s.label),
-    ]),
-    ...spec.graphs.flatMap((g) => g.labels),
-    ...spec.exchanges.flatMap((e) => [
-      ...e.cards,
-      ...e.steps.map((s) => s.title),
-      e.end,
-      e.tag,
-      ...(e.labels ?? []),
-      ...(e.rowLabels ?? []),
-      ...(e.experts ?? []).flat(),
-      ...e.steps.flatMap((s) => s.sets.flatMap((t) => (t.note ? [t.note] : []))),
-    ]),
-    ...spec.sketches.flatMap((s) => s.shapes.flatMap((sh) => (sh.kind === "text" ? [sh.text] : []))),
-  ].filter((s): s is string => Boolean(s));
-}
-
 /**
- * 不阻塞的提醒：图上文字太多、句子放进了图里、讲解图里出现代码名、自由画板画得太多。
- * 这几样画出来不会「错」，但会把图重新变回满屏小字的仪表盘，所以每次出图都列出来。
+ * 不阻塞的零件化提醒：移除段数、长句、代码标识符三类机械提醒，
+ * 保留自由画板复杂度提醒（跨图复用由 sketchUsage 另行统计）。
  */
 export function figureAdvisories(spec: FigureSpec): string[] {
   const out: string[] = [];
-  if (spec.texts.length > 8)
-    out.push(`图上有 ${spec.texts.length} 段文字，超过 8 段：说明挪回正文，图上只留短语`);
-  for (const [i, t] of spec.texts.entries())
-    if (!t.width && [...t.text].length > 30)
-      out.push(`texts[${i}]：「${t.text.slice(0, 16)}…」是一整句，放回正文`);
-  // 驼峰要求大写后面跟小写：isPrefill 算代码名，vLLM 这种产品名不算
-  const code = /[A-Za-z]+_[A-Za-z_]+|\b[a-z]+[A-Z][a-z][A-Za-z0-9]*|\w+\(\)/;
-  for (const w of figureWords(spec)) {
-    const m = code.exec(w);
-    if (m) out.push(`图上出现代码名「${m[0]}」：讲解图不放代码名，源码细节放「对照源码」`);
-  }
   for (const [i, s] of spec.sketches.entries())
     if (s.shapes.length > 24)
       out.push(`sketches[${i}]「${s.name}」手画了 ${s.shapes.length} 个形状：这么复杂的形状该做成零件`);

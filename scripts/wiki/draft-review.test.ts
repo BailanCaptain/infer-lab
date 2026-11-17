@@ -294,6 +294,7 @@ it("reviews a long new draft through bounded evidence while retaining its comple
   const f = wikiFixture();
   try {
     f.write("wiki/HANDBOOK.md", readFileSync(new URL("../../wiki/HANDBOOK.md", import.meta.url), "utf8"));
+    f.write("wiki/TERMS.md", readFileSync(new URL("../../wiki/TERMS.md", import.meta.url), "utf8"));
     const draft =
       "---\nid: long-new\ntitle: 新主题\ntype: source\nsummary: 新主题说明\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: '2026-09-16'\n---\n## 一句话\n新的证据。[S1]\n" +
       "保留完整新主题说明。[S1]\n".repeat(5000);

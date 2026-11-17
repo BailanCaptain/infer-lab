@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { CHAPTER_TITLES } from "./chapters";
-import { pageFrontmatterSchema, parseRawRef, parseRepoRef, registrySchema } from "./schema";
+import {
+  pageFrontmatterSchema,
+  parseRawRef,
+  parseRepoRef,
+  rawSourceHref,
+  readerManifestSchema,
+  registrySchema,
+  resolveCanonicalPageId,
+} from "./schema";
 
 const ok = {
   id: "kv-cache",
@@ -20,6 +28,9 @@ describe("pageFrontmatterSchema", () => {
     const path = `sha256-${"a".repeat(64)}.md`;
     const ref = `raw:${path}#L2-L3`;
     expect(parseRawRef(ref)).toEqual({ path: `raw/${path}`, lineStart: 2, lineEnd: 3 });
+    expect(rawSourceHref(ref)).toBe(`./wiki-raw/sha256-${"a".repeat(64)}.html?lines=2-3#L2`);
+    expect(rawSourceHref(`raw:${path}#L5`)).toBe(`./wiki-raw/sha256-${"a".repeat(64)}.html?lines=5#L5`);
+    expect(rawSourceHref(`raw:../${path}#L1`)).toBeNull();
     expect(pageFrontmatterSchema.parse({ ...ok, sources: [ref] }).sources).toEqual([ref]);
     for (const bad of [
       `raw:../${path}#L1`,
@@ -76,6 +87,76 @@ describe("pageFrontmatterSchema", () => {
   it("registry 是 pages 数组，每项多一个 file", () => {
     const r = registrySchema.parse({ version: 1, pages: [{ ...ok, file: "concepts/kv-cache.md" }] });
     expect(r.pages[0]?.file).toBe("concepts/kv-cache.md");
+    expect(Object.hasOwn(r.pages[0]!, "legacyIds")).toBe(false);
+  });
+
+  it("legacyIds 独立于人类 aliases：保留合法旧路由 ID、拒绝非法/自指/跨页重复/占用其他页 canonical ID，且共用解析不匹配 title/aliases", () => {
+    const parsedFm = pageFrontmatterSchema.parse({ ...ok, legacyIds: ["kv-cache-v0", "former-kv"] });
+    expect(parsedFm.legacyIds).toEqual(["kv-cache-v0", "former-kv"]);
+    expect(pageFrontmatterSchema.safeParse({ ...ok, legacyIds: ["KV_Cache"] }).success).toBe(false);
+    expect(pageFrontmatterSchema.safeParse({ ...ok, legacyIds: ["kv-cache"] }).success).toBe(false);
+    expect(pageFrontmatterSchema.safeParse({ ...ok, legacyIds: ["dup-old", "dup-old"] }).success).toBe(false);
+
+    const entry = (id: string, legacyIds?: string[], aliases = ["Human Alias", "alias-slug"]) => ({
+      ...ok,
+      id,
+      title: `Title ${id}`,
+      aliases,
+      ...(legacyIds !== undefined ? { legacyIds } : {}),
+      file: `concepts/${id}.md`,
+    });
+
+    const validReg = registrySchema.parse({
+      version: 1,
+      pages: [entry("current-page", ["former-page"]), entry("other-page", [])],
+    });
+    expect(Object.hasOwn(validReg.pages[0]!, "legacyIds")).toBe(true);
+    expect(validReg.pages[0]?.legacyIds).toEqual(["former-page"]);
+
+    // 跨页重复 legacyIds 必须拒绝
+    expect(
+      registrySchema.safeParse({
+        version: 1,
+        pages: [entry("one", ["old-shared"]), entry("two", ["old-shared"])],
+      }).success,
+    ).toBe(false);
+
+    // legacyIds 占用其他页 canonical id（无论先后顺序）必须在 registry 与 manifest 入口拒绝
+    expect(
+      registrySchema.safeParse({
+        version: 1,
+        pages: [entry("one", ["two"]), entry("two", [])],
+      }).success,
+    ).toBe(false);
+    expect(
+      readerManifestSchema.safeParse({
+        revision: "a".repeat(64),
+        registry: { version: 1, pages: [entry("two", []), entry("one", ["two"])] },
+      }).success,
+    ).toBe(false);
+
+    // manifest 联查 skipped[].id：健康页 legacyIds 抢占被跳过页规范 ID 必须拒绝，无冲突 skipped 正常通过
+    expect(
+      readerManifestSchema.safeParse({
+        revision: "a".repeat(64),
+        registry: { version: 1, pages: [entry("healthy", ["unavailable"])] },
+        skipped: [{ id: "unavailable", file: "concepts/unavailable.md", reason: "[schema] invalid" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      readerManifestSchema.safeParse({
+        revision: "a".repeat(64),
+        registry: { version: 1, pages: [entry("healthy", ["former-healthy"])] },
+        skipped: [{ id: "unavailable", file: "concepts/unavailable.md", reason: "[schema] invalid" }],
+      }).success,
+    ).toBe(true);
+
+    expect(resolveCanonicalPageId(validReg.pages, "current-page")).toBe("current-page");
+    expect(resolveCanonicalPageId(validReg.pages, "former-page")).toBe("current-page");
+    expect(resolveCanonicalPageId(validReg.pages, "Title current-page")).toBeUndefined();
+    expect(resolveCanonicalPageId(validReg.pages, "Human Alias")).toBeUndefined();
+    expect(resolveCanonicalPageId(validReg.pages, "alias-slug")).toBeUndefined();
+    expect(resolveCanonicalPageId(validReg.pages, "missing-page")).toBeUndefined();
   });
 });
 

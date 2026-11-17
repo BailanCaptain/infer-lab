@@ -13,12 +13,16 @@
  */
 
 import { type CorpusDocument, retrieveCorpus } from "./corpus-retrieve";
+import { pageDisplayTitle } from "./param-display";
 import { buildAdjacency } from "./relations";
-import type { Relation } from "./schema";
+import { type ReaderSearchIndex, type Relation, readerSearchIndexSchema } from "./schema";
 
 export interface PageIndex {
   id: string;
+  file?: string | undefined;
+  legacyIds?: readonly string[] | undefined;
   title: string;
+  displayTitle?: string | undefined;
   aliases: string[];
   summary: string;
   chapters: string[];
@@ -104,26 +108,51 @@ function sameish(a: string, b: string): boolean {
   return i >= MIN_FUZZY && i >= Math.min(a.length, b.length) * 0.75;
 }
 
-export function buildIndex(pages: PageIndex[]): Index {
+function buildLookupMaps(pages: PageIndex[]) {
   const exact = new Map<string, PageIndex>();
-  for (const p of pages) {
-    for (const key of [p.id, p.title, ...p.aliases]) {
-      const k = norm(key);
-      if (k && !exact.has(k)) exact.set(k, p);
-    }
-  }
   const squashed = new Map<string, PageIndex>();
   for (const p of pages) {
-    for (const key of [p.id, p.title, ...p.aliases]) {
-      const k = squash(key);
-      if (k && !squashed.has(k)) squashed.set(k, p);
+    for (const key of [
+      p.id,
+      ...(p.legacyIds ?? []),
+      ...(p.displayTitle ? [p.displayTitle] : []),
+      p.title,
+      ...p.aliases,
+    ]) {
+      const k = norm(key);
+      if (k && !exact.has(k)) exact.set(k, p);
+      const s = squash(key);
+      if (s && !squashed.has(s)) squashed.set(s, p);
+    }
+    if (p.file) {
+      const fileBase = p.file.split("/").pop();
+      for (const fileKey of [p.file, ...(fileBase ? [fileBase] : [])]) {
+        const k = norm(fileKey);
+        if (k && !exact.has(k)) exact.set(k, p);
+      }
     }
   }
+  return {
+    exact,
+    squashed,
+    byId: new Map(pages.map((p) => [p.id, p])),
+    adjacency: buildAdjacency(pages),
+  };
+}
+
+export function buildIndex(pages: PageIndex[]): Index {
   const postings = new Map<string, Map<string, FieldTf>>();
   const fieldLen = new Map<string, FieldTf>();
   const total: FieldTf = [0, 0, 0];
   for (const p of pages) {
-    const fields = [`${p.id} ${p.title} ${p.aliases.join(" ")}`, p.summary, p.text];
+    const titleField = [
+      p.id,
+      ...(p.legacyIds ?? []),
+      p.title,
+      ...(p.displayTitle && p.displayTitle !== p.title ? [p.displayTitle] : []),
+      ...p.aliases,
+    ].join(" ");
+    const fields = [titleField, p.summary, p.text];
     const len: FieldTf = [0, 0, 0];
     fields.forEach((text, f) => {
       const ts = terms(text);
@@ -149,10 +178,7 @@ export function buildIndex(pages: PageIndex[]): Index {
   }
   return {
     pages,
-    exact,
-    squashed,
-    byId: new Map(pages.map((p) => [p.id, p])),
-    adjacency: buildAdjacency(pages),
+    ...buildLookupMaps(pages),
     postings,
     fieldLen,
     avgLen: total.map((n) => n / Math.max(1, pages.length)) as unknown as FieldTf,
@@ -160,25 +186,141 @@ export function buildIndex(pages: PageIndex[]): Index {
 }
 
 /**
- * 拆成检索词：拉丁串先按驼峰切开（`PagedAttention` → paged attention），再按
- * 非字母数字切（下划线也切开，`hccl_buffer_size` 与「hccl buffer size」得到同一组词）；
- * 中文按二元切分（"块表是干嘛的" → 块表 / 表是 / …）。索引与查询用同一把刀。
+ * 把构建期/服务端锁定的 Index 序列化为紧凑载荷：只保留页面元数据与倒排统计，
+ * 不携带任何 Markdown 正文、编译 AST、图 SVG 或来源列表。
+ */
+export function serializeSearchIndex(index: Index, revision: string): ReaderSearchIndex {
+  const pageIdxById = new Map(index.pages.map((p, idx) => [p.id, idx]));
+  const pages = index.pages.map((p) => ({
+    id: p.id,
+    ...(p.file ? { file: p.file } : {}),
+    ...(p.legacyIds?.length ? { legacyIds: [...p.legacyIds] } : {}),
+    title: p.title,
+    ...(p.displayTitle ? { displayTitle: p.displayTitle } : {}),
+    aliases: [...p.aliases],
+    summary: p.summary,
+    chapters: [...p.chapters],
+    evidence: p.evidence,
+    relations: p.relations ?? [],
+    related: p.related ?? [],
+  }));
+  const fieldLen = index.pages.map((p) => {
+    const len = index.fieldLen.get(p.id) ?? [0, 0, 0];
+    return [len[0], len[1], len[2]] as FieldTf;
+  });
+  const postings: Record<string, number[]> = {};
+  for (const [term, byPage] of index.postings) {
+    const flat: number[] = [];
+    for (const [pageId, tf] of byPage) {
+      const idx = pageIdxById.get(pageId);
+      if (idx === undefined) continue;
+      flat.push(idx, tf[0], tf[1], tf[2]);
+    }
+    if (flat.length > 0) postings[term] = flat;
+  }
+  return readerSearchIndexSchema.parse({
+    version: 1,
+    revision,
+    pages,
+    fieldLen,
+    avgLen: [index.avgLen[0], index.avgLen[1], index.avgLen[2]],
+    postings,
+  });
+}
+
+/** 从紧凑序列化索引还原内存 Index，浏览器无需重跑全量分词或加载全部页面正文。 */
+export function deserializeSearchIndex(input: unknown): Index {
+  const parsed = readerSearchIndexSchema.parse(input);
+  const pages: PageIndex[] = parsed.pages.map((p) => ({
+    id: p.id,
+    ...(p.file ? { file: p.file } : {}),
+    ...(p.legacyIds ? { legacyIds: p.legacyIds } : {}),
+    title: p.title,
+    ...(p.displayTitle ? { displayTitle: p.displayTitle } : {}),
+    aliases: p.aliases,
+    summary: p.summary,
+    chapters: p.chapters,
+    evidence: p.evidence,
+    relations: p.relations,
+    related: p.related,
+    text: "",
+  }));
+  const fieldLen = new Map<string, FieldTf>();
+  pages.forEach((p, idx) => {
+    const len = parsed.fieldLen[idx]!;
+    fieldLen.set(p.id, [len[0], len[1], len[2]]);
+  });
+  const postings = new Map<string, Map<string, FieldTf>>();
+  for (const [term, flat] of Object.entries(parsed.postings)) {
+    const byPage = new Map<string, FieldTf>();
+    for (let i = 0; i < flat.length; i += 4) {
+      const page = pages[flat[i]!];
+      if (!page) continue;
+      byPage.set(page.id, [flat[i + 1]!, flat[i + 2]!, flat[i + 3]!]);
+    }
+    postings.set(term, byPage);
+  }
+  return {
+    pages,
+    ...buildLookupMaps(pages),
+    postings,
+    fieldLen,
+    avgLen: [parsed.avgLen[0], parsed.avgLen[1], parsed.avgLen[2]],
+  };
+}
+
+function splitAsciiSegment(seg: string): string[] {
+  const whole = seg.toLowerCase();
+  // 定长窗口匹配多字母驼峰与「全大写缩写 + 驼峰词」边界（严格 O(N) 线性时间，避免在超长无大写串上二次回溯）：
+  // 保留 RoPE / LoRA / MoE / ZeRO / ReLU 与 W8A8 / FP8 完整词，不被单小写字母或数字边界切碎；
+  // 同时对 AllReduce / PagedAttention / NPUPlatform 同时产出完整复合词与组成词，打通连写与下划线写法。
+  const parts =
+    /[A-Z]/.test(seg) && seg.length <= 128
+      ? seg
+          .replace(/([a-z]{2})([A-Z])/g, "$1 $2")
+          .replace(/([A-Z])([A-Z][a-z]{2})/g, "$1 $2")
+          .replace(/([A-Z][a-z])([A-Z][a-z]{2})/g, "$1 $2")
+          .toLowerCase()
+          .split(" ")
+          .filter(Boolean)
+      : [whole];
+  const emitted: string[] = [];
+  const push = (t: string) => {
+    if (t.length >= 2 && !STOP_EN.has(t) && !emitted.includes(t)) emitted.push(t);
+  };
+  push(whole);
+  if (parts.length > 1) {
+    for (const p of parts) push(p);
+  }
+  return emitted;
+}
+
+/**
+ * 拆成检索词：拉丁/数字复合标识符与中文片段在脚本边界先严格分离（防止「FP8量化」跨界生成
+ * 「p8 / 8量」）；拉丁段保留完整缩写与数字精度名（RoPE、W8A8、FP8、-O2），并对驼峰与下划线/
+ * 连字符复合词（AllReduce / all_reduce / --enable-chunked-prefill）同步产出分段词与压平复合词；
+ * 中文按二元切分。索引与查询共用同一把刀。
  */
 export function terms(text: string): string[] {
-  const raw = text
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .toLowerCase()
-    .split(/[^a-z0-9一-鿿]+/)
-    .filter(Boolean);
   const out: string[] = [];
-  for (const t of raw) {
-    if (/^[a-z0-9]+$/.test(t)) {
-      if (t.length >= 2 && !STOP_EN.has(t)) out.push(t);
-      // 单字符片段留不住任何信息，丢弃
-    } else {
-      if (t.length === 1) continue;
-      for (let i = 0; i + 2 <= t.length; i++) out.push(t.slice(i, i + 2));
+  for (const m of text.matchAll(/[A-Za-z0-9]+(?:[_-][A-Za-z0-9]+)*|[\u3400-\u9fff]+/g)) {
+    const tok = m[0];
+    if (/^[\u3400-\u9fff]+$/.test(tok)) {
+      for (let i = 0; i + 2 <= tok.length; i++) out.push(tok.slice(i, i + 2));
+      continue;
     }
+    const segments = tok.split(/[_-]+/).filter(Boolean);
+    const perToken = new Set<string>();
+    for (const seg of segments) {
+      for (const sub of splitAsciiSegment(seg)) perToken.add(sub);
+    }
+    if (segments.length >= 2) {
+      const joined = segments.join("").toLowerCase();
+      if (joined.length >= 2 && joined.length <= 32 && !STOP_EN.has(joined)) {
+        perToken.add(joined);
+      }
+    }
+    out.push(...perToken);
   }
   return out;
 }
@@ -240,9 +382,9 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
   if (!hit) {
     const named = new Map<string, PageIndex>();
     for (const [name, page] of index.exact) {
-      if (!/^[a-z0-9][a-z0-9_./ -]+$/.test(name) && !/^[一-鿿]{4,}$/.test(name)) continue;
+      if (!/^(?:--?)?[a-z0-9][a-z0-9_./ -]+$/.test(name) && !/^[\u3400-\u9fff]{4,}$/.test(name)) continue;
       const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      if (new RegExp(`(?<![a-z0-9_])${escaped}(?![a-z0-9_])`).test(q)) named.set(page.id, page);
+      if (new RegExp(`(?<![a-z0-9_-])${escaped}(?![a-z0-9_])`).test(q)) named.set(page.id, page);
     }
     for (const page of named.values())
       add(page, FIELD_WEIGHT[0] * idf(index.pages.length, named.size), "keyword");
@@ -256,7 +398,11 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
   // 整句压平后恰好前缀命中总览页，逐片段那一步被跳过，真正的高分标识符就丢了。
   if (!hit) {
     const patterns = new Set<string>();
-    for (const frag of q.match(/[a-z0-9_\-. ]{4,}/g) ?? []) {
+    const candidates = [
+      ...(q.match(/[a-z0-9_\-. ]{4,}/g) ?? []),
+      ...(q.match(/--?[a-z0-9][a-z0-9_.-]{2,}|[a-z0-9]+(?:[_.-][a-z0-9]+)+/g) ?? []),
+    ];
+    for (const frag of candidates) {
       const f = squash(frag);
       if (f.length >= MIN_FUZZY) patterns.add(f);
     }
@@ -282,8 +428,8 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
   for (const t of ts) {
     const byPage = index.postings.get(t);
     if (!byPage) continue;
-    // 长度 2 的拉丁词（kv、tp、pp）只算标题字段命中，正文里的出现是噪声
-    const fields = t.length < 3 && /^[a-z0-9]+$/.test(t) ? SHORT_LATIN_FIELDS : undefined;
+    // 纯双字母拉丁词（kv、tp、pp）只算标题字段命中，正文里的出现是噪声；带数字的 o2 / a2 仍查全文
+    const fields = t.length < 3 && /^[a-z]+$/.test(t) ? SHORT_LATIN_FIELDS : undefined;
     const df = fields ? [...byPage.entries()].filter(([, tf]) => tf[0]! > 0).length : byPage.size;
     if (!df) continue;
     // 全库任何标题、摘要里都没有的词多半是切分噪声（「什么是」切出的「么是」全库只在
@@ -306,7 +452,7 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
 
   const toHit = ({ page, score, how }: { page: PageIndex; score: number; how: Hit["how"] }): Hit => ({
     id: page.id,
-    title: page.title,
+    title: pageDisplayTitle(page),
     summary: page.summary,
     evidence: page.evidence,
     score,

@@ -55,7 +55,7 @@ test("offline reader identifies the exact build snapshot and can retry", async (
   await expect(page.getByTestId("wiki-body")).toContainText("物理块");
   await expect(page.getByTestId("wiki-body")).not.toContainText(restoredText);
   await page.getByText("内容与版本", { exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("仍显示以上版本");
+  await expect(page.getByRole("status").filter({ hasText: "仍显示以上版本" })).toBeVisible();
   await page.screenshot({ path: info.outputPath("wiki-reader-offline.png"), fullPage: true });
   online = true;
   // 刷新与问答、审阅收在同一个侧栏里

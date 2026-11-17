@@ -3,17 +3,94 @@
  * 测到的就是读者看到的。
  */
 import type { Options } from "react-markdown";
+import rehypeKatex from "rehype-katex";
 import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import { remarkHeadingIds } from "./anchors";
 import { remarkEvidenceMarks } from "./evidenceMarks";
+import { inlineRawSourceHref } from "./schema";
+
+export type MarkdownLinkAstNode = {
+  type: string;
+  url?: string;
+  identifier?: string;
+  children?: MarkdownLinkAstNode[];
+};
+
+/**
+ * CommonMark §4.7 / mdast-util-definitions：同名引用标识以文档中第一条 definition 为准。
+ * remark-parse 已完成 CommonMark 空白折叠与 Unicode case-folding，统一按大写键首条落表。
+ */
+export function collectFirstMarkdownDefinitions(root: MarkdownLinkAstNode): Map<string, MarkdownLinkAstNode> {
+  const definitions = new Map<string, MarkdownLinkAstNode>();
+  const walk = (node: MarkdownLinkAstNode) => {
+    if (node.type === "definition" && typeof node.identifier === "string" && typeof node.url === "string") {
+      const key = node.identifier.toUpperCase();
+      if (key && !definitions.has(key)) definitions.set(key, node);
+    }
+    for (const child of node.children ?? []) walk(child);
+  };
+  walk(root);
+  return definitions;
+}
+
+export function collectResolvedMarkdownLinkUrls(root: MarkdownLinkAstNode): string[] {
+  const definitions = collectFirstMarkdownDefinitions(root);
+  const urls: string[] = [];
+  const walk = (node: MarkdownLinkAstNode) => {
+    if (node.type === "link" && typeof node.url === "string") {
+      urls.push(node.url);
+    } else if (node.type === "linkReference" && typeof node.identifier === "string") {
+      const def = definitions.get(node.identifier.toUpperCase());
+      if (def && typeof def.url === "string") urls.push(def.url);
+    }
+    for (const child of node.children ?? []) walk(child);
+  };
+  walk(root);
+  return urls;
+}
+
+/**
+ * ReactMarkdown 的默认 urlTransform 只放行常见网络协议与相对路径，会把 `raw:sha256-...` 清空成 `""`。
+ * 在共享 remark 管线里预先按白名单校验并改写成静态相对路径 `./wiki-raw/...`；
+ * 非法 `raw:` 或被首条定义遮蔽的后续重复 `raw:` 定义直接置空，其它协议原样交给 ReactMarkdown 默认安全过滤。
+ */
+export function remarkRewriteRawLinks() {
+  return (root: MarkdownLinkAstNode) => {
+    const firstDefs = new Set(collectFirstMarkdownDefinitions(root).values());
+    const walk = (node: MarkdownLinkAstNode) => {
+      if (
+        node.type === "link" &&
+        typeof node.url === "string" &&
+        (node.url.startsWith("raw:") || node.url.startsWith("../raw/"))
+      ) {
+        node.url = inlineRawSourceHref(node.url) ?? "";
+      } else if (
+        node.type === "definition" &&
+        typeof node.url === "string" &&
+        (node.url.startsWith("raw:") || node.url.startsWith("../raw/"))
+      ) {
+        node.url = firstDefs.has(node) ? (inlineRawSourceHref(node.url) ?? "") : "";
+      }
+      for (const child of node.children ?? []) walk(child);
+    };
+    walk(root);
+  };
+}
+
+export const WIKI_REMARK_SYNTAX_PLUGINS: NonNullable<Options["remarkPlugins"]> = [
+  remarkGfm,
+  remarkMath,
+  remarkCjkFriendly,
+];
 
 /** 标题 id 排在证据角标之前：`## 标题 [C3]` 的锚点按作者写下的文字算，和 GitHub 一致 */
 export const WIKI_REMARK_PLUGINS: Options["remarkPlugins"] = [
-  remarkGfm,
-  remarkCjkFriendly,
+  ...WIKI_REMARK_SYNTAX_PLUGINS,
   remarkHeadingIds,
   remarkEvidenceMarks,
+  remarkRewriteRawLinks,
 ];
 
 const SEPARATORS = "/_-.";
@@ -173,16 +250,25 @@ function withNounGuards(node: HastNode): HastNode[] {
   return out;
 }
 
-/** 这些元素里的文字不动：代码自有 withBreaks 的规则，标题、脚本等不需要 */
-const SKIP_NOUN_GUARD = new Set(["pre", "code", "script", "style"]);
+function hasClass(node: HastNode, name: string): boolean {
+  const cls = node.properties?.className;
+  return Array.isArray(cls) && cls.includes(name);
+}
+
+function isKatexSubtree(node: HastNode): boolean {
+  return node.tagName === "math" || hasClass(node, "katex") || hasClass(node, "katex-display");
+}
+
+/** 这些元素里的文字不动：代码自有 withBreaks 的规则，公式、脚本等不需要 */
+const SKIP_NOUN_GUARD = new Set(["pre", "code", "script", "style", "math"]);
 
 /**
  * 行内代码只在 codeBreakPoints 处断行（插 `<wbr>`，复制出来的文字不变），短的整段不断；
- * 正文里的专名整体不断。代码块（pre 里的）两者都不动。
+ * 正文里的专名整体不断。代码块（pre 里的）与 KaTeX 公式子树两者都不动。
  */
 export function rehypeCodeBreaks() {
   const walk = (node: HastNode) => {
-    if (node.type === "element" && SKIP_NOUN_GUARD.has(node.tagName ?? "")) {
+    if (node.type === "element" && (SKIP_NOUN_GUARD.has(node.tagName ?? "") || isKatexSubtree(node))) {
       if (node.tagName === "code") breakInlineCode(node);
       return;
     }
@@ -280,6 +366,7 @@ function gridCells(text: string): HastNode[] {
  */
 export function rehypeTextGrid() {
   const walk = (node: HastNode) => {
+    if (node.type === "element" && isKatexSubtree(node)) return;
     if (node.type === "element" && node.tagName === "pre") {
       const code = plainFenceCode(node);
       if (code)
@@ -293,8 +380,57 @@ export function rehypeTextGrid() {
   return walk;
 }
 
+/**
+ * 页末「## 对照源码」承载源码路径、行号与版本核验细节：默认折叠让初学者顺畅读完教学主干，
+ * 同时完整保留原 DOM 子树与标题 id，支持手动展开、#锚点直达自动展开与页内查找命中自动展开。
+ */
+export function rehypeCollapsibleSourceSection() {
+  return (root: HastNode) => {
+    const kids = root.children;
+    if (!kids?.length) return;
+    const idx = kids.findIndex(
+      (c) =>
+        c.type === "element" &&
+        c.tagName === "h2" &&
+        (c.properties?.id === "对照源码" || textOf(c).trim() === "对照源码"),
+    );
+    if (idx < 0) return;
+    let end = idx + 1;
+    while (end < kids.length && !(kids[end]?.type === "element" && kids[end]?.tagName === "h2")) {
+      end++;
+    }
+    const heading = kids[idx]!;
+    const trailing = kids.slice(idx + 1, end);
+    const details: HastNode = {
+      type: "element",
+      tagName: "details",
+      properties: {
+        className: ["wiki-source-check"],
+        "data-testid": "wiki-source-check",
+      },
+      children: [
+        {
+          type: "element",
+          tagName: "summary",
+          properties: { className: ["wiki-source-summary"] },
+          children: [heading],
+        },
+        {
+          type: "element",
+          tagName: "div",
+          properties: { className: ["wiki-source-check-body"] },
+          children: trailing,
+        },
+      ],
+    };
+    root.children = [...kids.slice(0, idx), details, ...kids.slice(end)];
+  };
+}
+
 export const WIKI_REHYPE_PLUGINS: Options["rehypePlugins"] = [
+  rehypeKatex,
   rehypeCodeBreaks,
   rehypeTableLabels,
   rehypeTextGrid,
+  rehypeCollapsibleSourceSection,
 ];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectStepTerms, lintLog, lintPages } from "./lint";
+import { collectStepTerms, lintLog, lintPages, splitProblems } from "./lint";
 import { parsePage, type WikiPage } from "./pages";
 
 /** 概念页的合法骨架，让不关心分节的用例不必自己写全七节 */
@@ -437,12 +437,41 @@ describe("lintPages · HANDBOOK 新规则", () => {
     expect(lintPages([good], opts).map((p) => p.rule)).not.toContain("diagram-identifier");
   });
 
-  it("参数页用自己的必需小节，不套用概念页那套", () => {
-    const paramBody = ["一句话", "事实表", "为什么存在", "开了的代价", "接着看"]
+  it("参数页允许按内容自定标题，兼容旧四节骨架，且保留有效正文与事实门禁", () => {
+    const adaptiveBody = [
+      "## 它优化什么，和前两级开关是什么关系？\n默认跟随静态内核开关。",
+      "## 在哪两步生效，为什么写了 true 却没开？\n编译期与图捕获期分两步生效。",
+      "## 对照源码\n源码依据 [S1]。",
+      "## 版本谱系\n谱系表",
+      "## 参数定义（自动生成）\n静态表",
+    ].join("\n\n");
+    expect(lintPages([mkRaw("p-adaptive", { type: "param" }, adaptiveBody)], opts)).toEqual([]);
+
+    const legacyParamBody = ["一句话", "事实表", "为什么存在", "开了的代价"]
       .map((h) => `## ${h}\nx`)
       .join("\n");
-    const good = lintPages([mkRaw("p", { type: "param" }, paramBody)], opts);
-    expect(good.map((x) => x.rule)).not.toContain("missing-section");
+    expect(lintPages([mkRaw("p-legacy", { type: "param" }, legacyParamBody)], opts)).toEqual([]);
+
+    const withBadFactsAndRefs = [
+      adaptiveBody,
+      "## 事实表\n| 项 | 值 | 来源 |\n| --- | --- | --- |\n| 默认 | False | [C9] |",
+    ].join("\n\n");
+    const gatedRules = lintPages(
+      [
+        mkRaw(
+          "p-gated",
+          {
+            type: "param",
+            relations: [{ to: "missing-target", kind: "builds-on", note: "依赖缺失页" }],
+          },
+          withBadFactsAndRefs,
+        ),
+      ],
+      opts,
+    ).map((x) => x.rule);
+    expect(gatedRules).toContain("facts-overflow");
+    expect(gatedRules).toContain("mark-index");
+    expect(gatedRules).toContain("relation-missing");
   });
 });
 
@@ -466,10 +495,43 @@ describe("lintPages · 旧格式页的过渡（Task 29）", () => {
     expect(rules).not.toContain("legacy-format");
   });
 
-  it("两种格式都不沾的页，照常报缺小节（概念页已不强制小节，拿参数页验）", () => {
-    const rules = lintPages([mkRaw("a", { type: "param" }, "## 随便写的\nx")], opts).map((p) => p.rule);
-    expect(rules).toContain("missing-section");
-    expect(rules).not.toContain("legacy-format");
+  it("参数页自定标题不报缺小节，但仅含自动生成区或缺少有效正文的残缺页仍拒收", () => {
+    expect(
+      lintPages([mkRaw("a", { type: "param" }, "## 适用条件与代价\n开启后会改变算子调度。")], opts),
+    ).toEqual([]);
+
+    const generatorOnly = [
+      "## 对照源码\n依据 [S1]。",
+      "## 版本谱系\n谱系表",
+      "## 参数定义（自动生成）\n静态表",
+    ].join("\n\n");
+    const missingRules = lintPages([mkRaw("a", { type: "param" }, generatorOnly)], opts).map((p) => p.rule);
+    expect(missingRules).toContain("missing-section");
+    expect(missingRules).not.toContain("legacy-format");
+
+    expect(
+      lintPages([mkRaw("a", { type: "param" }, "只有一段散文没有小节标题")], opts).map((p) => p.rule),
+    ).toContain("missing-section");
+
+    expect(
+      lintPages(
+        [mkRaw("a", { type: "param" }, "## 适用条件\n\n### 子标题\n\n## 版本谱系\n谱系表")],
+        opts,
+      ).map((p) => p.rule),
+    ).toContain("unfinished-page");
+
+    expect(
+      lintPages(
+        [
+          mkRaw(
+            "a",
+            { type: "param" },
+            "## 事实表\n| 项 | 值 |\n| --- | --- |\n| 默认 | False |\n## 参数定义（自动生成）\n静态表",
+          ),
+        ],
+        opts,
+      ).map((p) => p.rule),
+    ).toContain("unfinished-page");
   });
 });
 
@@ -555,6 +617,27 @@ describe("lintPages · 可引来源分级", () => {
   it("论文可以撑起 S", () => {
     const paper = mkRaw("a", { sources: ["https://arxiv.org/abs/2309.06180"], evidence: "S" }, body);
     expect(lintPages([paper], opts).map((p) => p.rule)).not.toContain("doc-evidence");
+  });
+
+  it("已核对的 Roofline 原始论文单文件配 C/S 放行，同目录未核相邻文件配 C 仍报 source-domain", () => {
+    const rooflinePdf = "https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/Archive/EECS-2008-134.pdf";
+    const adjacentPdf = "https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/Archive/EECS-2008-135.pdf";
+    const okC = mkRaw(
+      "a",
+      { sources: ["r@abc1234:vllm_ascend/worker/worker.py#L1-L2", rooflinePdf], evidence: "C" },
+      body,
+    );
+    expect(lintPages([okC], opts).map((p) => p.rule)).toEqual([]);
+
+    const okS = mkRaw("a", { sources: [rooflinePdf], evidence: "S" }, body);
+    expect(lintPages([okS], opts).map((p) => p.rule)).toEqual([]);
+
+    const badAdjacent = mkRaw(
+      "a",
+      { sources: ["r@abc1234:vllm_ascend/worker/worker.py#L1-L2", adjacentPdf], evidence: "C" },
+      body,
+    );
+    expect(lintPages([badAdjacent], opts).map((p) => p.rule)).toContain("source-domain");
   });
 });
 
@@ -655,5 +738,35 @@ describe("broken-anchor：链接里的 #锚点 必须是目标页阅读页上真
     const bad = lintPages([page, target], opts).filter((p) => p.rule === "broken-anchor");
     expect(bad).toHaveLength(1);
     expect(bad[0]?.message).toContain("第 14 行");
+  });
+});
+
+describe("legacy-id-conflict：旧路由 ID 冲突门禁", () => {
+  it("跨页重复 legacyIds 或占用其他页 canonical ID 均作为阻塞级错误拒绝，合法旧 ID 与人类 aliases 互不干扰", () => {
+    const cleanA = mk("a", {
+      legacyIds: ["former-a", "a-v0"],
+      aliases: ["展示名 A"],
+    } as Partial<WikiPage["fm"]>);
+    const cleanB = mk("b", {
+      legacyIds: ["former-b"],
+      relations: [{ to: "a", kind: "builds-on", note: "依赖" }],
+    } as Partial<WikiPage["fm"]>);
+    expect(lintPages([cleanA, cleanB], opts)).toEqual([]);
+
+    const dupA = mk("a", { legacyIds: ["shared-old"] } as Partial<WikiPage["fm"]>);
+    const dupB = mk("b", {
+      legacyIds: ["shared-old"],
+      relations: [{ to: "a", kind: "builds-on", note: "依赖" }],
+    } as Partial<WikiPage["fm"]>);
+    const dupProblems = lintPages([dupA, dupB], opts);
+    expect(dupProblems.some((p) => p.rule === "legacy-id-conflict")).toBe(true);
+    expect(splitProblems(dupProblems).errors.some((p) => p.rule === "legacy-id-conflict")).toBe(true);
+
+    const collideCanonical = mk("a", { legacyIds: ["b"] } as Partial<WikiPage["fm"]>);
+    const targetB = mk("b", {
+      relations: [{ to: "a", kind: "builds-on", note: "依赖" }],
+    } as Partial<WikiPage["fm"]>);
+    const collideProblems = lintPages([collideCanonical, targetB], opts);
+    expect(splitProblems(collideProblems).errors.some((p) => p.rule === "legacy-id-conflict")).toBe(true);
   });
 });

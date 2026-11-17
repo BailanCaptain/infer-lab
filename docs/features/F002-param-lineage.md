@@ -8,6 +8,8 @@ created: 2026-09-10
 
 # F002 — vLLM-Ascend 参数清单与版本谱系
 
+**11-15 渐进改造包 2 契约同步（待 `041` 代码核验）：** 依据 [项目渐进改造与问题修复方案](../plans/2026-11-14-progressive-restructure-and-fix-plan.md) §3.3 P3-4 与 §5.2，参数扫描与参数页维护补充三项契约：① 在 `wiki/seeds/vllm-ascend.yaml:12-15` 固定版本映射（`main = baa023ad`、`releases/v0.23.0 = 2c59ff10`、`releases/v0.26.0rc = 2ed6cbba`、`releases/v0.30.0rc2 = 7d825229`）下，`scripts/wiki/params/scan.py`（及 `lineage-git.ts`）在 dataclass/配置类属性之外扩展扫描普通 Python 配置类（如 `AscendCompilationConfig`）的 `__init__` 构造函数签名入参（见 `vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L603`），修复 `enable_super_kernel` 在 `2ed6cbba`（`releases/v0.26.0rc`）因 `__init__` 签名漏扫导致自动生成的 `## 版本谱系` 误标该版本为「`无`」的问题；② 参数页自动生成区需更新时，先经 `publishParamSync`、`pnpm wiki:lineage:apply` 或 `pnpm wiki:build-param-pages` 等确定性同步入口刷新并取得新 `base`，再提交教学正文修订，`review.ts:459-464` 继续严格逐字对比并保护自动生成区；③ 参数页保留 `## 事实表` 紧凑标识，不再强制写 `**v0.30.0rc2 对照：**` 开篇段。上述包 2 改造在任务 `041` 完成独立核验前，作为定稿终态契约记录，不冒充已验收现状。
+
 **10-08 整体复审修复：** 补正文和 CLI 现在共用参数身份映射：显式定义绑定复用稳定 ID，引用身份跳过，稳定 ID 可从同名不同作用域的扫描中精确选中目标；未映射的当前目标仍拒绝。独立复现及红绿测试通过，R2 已关闭；[整体审查](../plans/wiki-overall-review-2026-10-08.md)保留初审失败与复审依据。
 
 **10-08 完成：** AC1–AC6 开发与约定验收完成。现行扫描 1,112 条、suspect 三态回执齐全；260 个确认身份的隔离骨架全覆盖、生成幂等、独立审查通过。345 条 undetermined 按协议保留，244 个新骨架不冒充已补正文或已正式发布。详见下方 10-08 对账及 [最终证据](../plans/wiki-final-acceptance.md)。

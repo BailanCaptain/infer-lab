@@ -27,7 +27,7 @@ import { beginChat, type ChatLease, finishChat, MAX_SESSION_TURNS } from "./chat
 import { answerCitationGuide, checkAnswerCitations } from "./citations";
 import { codexEvidencePages } from "./codex-chat";
 import { coverageSignals } from "./coverage";
-import { checkWriter, HttpError, readJson, send } from "./http";
+import { checkWriter, HttpError, parseWikiUrl, readJson, send } from "./http";
 import { relatedReading } from "./related-reading";
 import {
   type KnowledgeSnapshot,
@@ -80,8 +80,12 @@ export async function handleChat(
     judgeAnswer?: typeof judgeAnswer;
   } = {},
 ): Promise<boolean> {
-  if (new URL(req.url ?? "/", "http://localhost").pathname !== "/api/wiki/chat") return false;
+  const url = parseWikiUrl(req, res);
+  if (!url) return true;
+  if (url.pathname !== "/api/wiki/chat") return false;
   let lease: ChatLease | undefined;
+  let leaseSettled = false;
+  let citeEmitted = false;
   let message = "";
   let answer = "";
   let answerId: string | undefined;
@@ -90,6 +94,11 @@ export async function handleChat(
   let outcome: Awaited<ReturnType<typeof runChat>> = { ok: false };
   const emit = (event: string, data: unknown) => {
     if (!res.destroyed) res.write(sseFrame(event, data));
+  };
+  const settleLease = async (ok: boolean) => {
+    if (!lease || leaseSettled) return;
+    leaseSettled = true;
+    await finishChat(root, lease, message, { ...outcome, answer, ok });
   };
   // 读者点「停止」= 浏览器断开连接：立刻中止模型，不再质检、不判缺口，会话随即释放
   const cancel = new AbortController();
@@ -105,7 +114,8 @@ export async function handleChat(
     cancel.signal.throwIfAborted();
     const selectedModel = readSelectedModel(root);
     // Codex receives immutable page text and runs in its own empty cwd; only Claude reads files.
-    const location = selectedModel.provider === "claude" ? await materializeSnapshot(root, snapshot) : undefined;
+    const location =
+      selectedModel.provider === "claude" ? await materializeSnapshot(root, snapshot) : undefined;
     lease = await beginChat(
       root,
       snapshot.revision,
@@ -191,17 +201,20 @@ export async function handleChat(
     );
     const execute: typeof runChat =
       deps.runChat ?? ((req, on) => withBudget(root, "chat", req, (bounded) => runChat(bounded, on)));
-    outcome = await execute({ ...request, signal: cancel.signal }, {
-      text: (text) => {
-        answer += text;
-        emit("text", { text });
+    outcome = await execute(
+      { ...request, signal: cancel.signal },
+      {
+        text: (text) => {
+          answer += text;
+          emit("text", { text });
+        },
+        tool: (name, target) => {
+          if ((name === "WebFetch" || name === "WebSearch") && webTools.length < 20)
+            webTools.push({ name, ...(target ? { target } : {}) });
+          emit("tool", { name, target });
+        },
       },
-      tool: (name, target) => {
-        if ((name === "WebFetch" || name === "WebSearch") && webTools.length < 20)
-          webTools.push({ name, ...(target ? { target } : {}) });
-        emit("tool", { name, target });
-      },
-    });
+    );
     // 失败的轮次也发：拒答换手常常就出在这种时候
     if (outcome.models)
       emit("model", {
@@ -221,10 +234,18 @@ export async function handleChat(
     if (outcome.ok && chatOnline({}) && webTools.length === 0 && claimsOffline(answer))
       emit("notice", {
         kind: "offline-claim",
-        message: "服务端本轮已启用联网工具，但未记录到联网调用。回答中“工具不可用”的说法尚未核实，外部结论尚未完成联网核对。",
+        message:
+          "服务端本轮已启用联网工具，但未记录到联网调用。回答中“工具不可用”的说法尚未核实，外部结论尚未完成联网核对。",
       });
     if (!outcome.ok) emit("error", { message: outcome.reason ?? "agent 失败" });
-    if (outcome.ok && !res.destroyed) {
+    if (outcome.ok && lease) {
+      // 主回答与快照校验已完成：立即持久化对话轮次并释放会话租约，随后再进入独立质检与缺口归并
+      await settleLease(true);
+      citeEmitted = true;
+      emit("cite", citations);
+      emit("persisted", { sessionId: lease.id, revision: lease.revision });
+    }
+    if (outcome.ok && !res.destroyed && !cancel.signal.aborted) {
       let quality: AnswerQuality;
       emit("quality", { status: "checking" });
       try {
@@ -244,8 +265,6 @@ export async function handleChat(
       }
       cancel.signal.throwIfAborted();
       emit("quality", quality);
-      if (!res.destroyed && !(quality.status === "checked" && quality.decision.satisfied === false))
-        answerId = await captureAnswer(root, message, answer, evidencePages, outcome.models);
       const signals = coverageSignals(answer, webTools).filter(
         (signal) =>
           !(
@@ -254,6 +273,13 @@ export async function handleChat(
             signal.kind === "agent-uncovered"
           ),
       );
+      if (
+        !res.destroyed &&
+        !cancel.signal.aborted &&
+        !(quality.status === "checked" && quality.decision.satisfied === false) &&
+        !signals.some((signal) => signal.kind === "agent-uncovered")
+      )
+        answerId = await captureAnswer(root, message, answer, evidencePages, outcome.models);
       if (quality.status === "checked" && quality.decision.satisfied !== true) {
         signals.unshift({
           kind: "independent-review",
@@ -290,21 +316,24 @@ export async function handleChat(
       }
     }
   } catch (error) {
-    outcome = { ok: false };
-    if (res.headersSent) emit("error", { message: String(error) });
-    else
+    if (!leaseSettled) outcome = { ok: false };
+    if (res.headersSent) {
+      if (!cancel.signal.aborted) emit("error", { message: String(error) });
+    } else
       send(res, error instanceof HttpError ? error.status : error instanceof z.ZodError ? 400 : 503, {
         error: String(error),
       });
   } finally {
     if (lease) {
-      try {
-        await finishChat(root, lease, message, { ...outcome, answer, ok: outcome.ok && !res.destroyed });
-      } catch (error) {
-        answerId = undefined;
-        emit("error", { message: String(error) });
+      if (!leaseSettled) {
+        try {
+          await settleLease(false);
+        } catch (error) {
+          answerId = undefined;
+          emit("error", { message: String(error) });
+        }
       }
-      emit("cite", citations);
+      if (!citeEmitted) emit("cite", citations);
       emit("done", { sessionId: lease.id, answerId, revision: lease.revision });
     }
     if (!res.writableEnded) res.end();

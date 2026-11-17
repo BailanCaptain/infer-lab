@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { compileRaw, planRawCompile } from "./wiki/compile-raw";
 import { loadHandbook } from "./wiki/handbook";
+import { prepareRawInput } from "./wiki/prepare-input";
 import { selectedAgent } from "./wiki/selected-agent";
 import { configuredWorkflowPolicy } from "./wiki/sync-config";
 import { originSchema, WorkflowStore } from "./wiki/workflow";
@@ -28,12 +29,17 @@ try {
   } else {
     if (!values.id || !values.source) throw new Error("必须指定 --id 和 --source；用 --help 查看用法");
     const root = process.cwd();
+    const prepared = prepareRawInput(join(root, "wiki"), values.source);
     const input = {
       id: values.id,
       source: values.source,
       origin: originSchema.parse(values.origin),
       timeoutMs: Number(values["timeout-min"]) * 60_000,
-      rules: loadHandbook(join(root, "wiki")).pageFormat,
+      rules: loadHandbook(
+        join(root, "wiki"),
+        `${values.id}\n${values.source}\n${prepared.compilerData ?? ""}`,
+        true,
+      ).pageFormat,
     };
     if (values["dry-run"]) {
       const plan = planRawCompile(root, input);

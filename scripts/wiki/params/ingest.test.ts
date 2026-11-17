@@ -175,3 +175,50 @@ it("distinguishes semantic parameter changes from shifted definition lines", () 
   });
   expect(parameterDiff([entry!], [{ ...entry!, default: "2" }]).changed).toHaveLength(1);
 });
+
+it("supplements same-version legacy classless parameter page without altering protected section bytes", async () => {
+  const f = wikiFixture();
+  try {
+    const file = "vllm_ascend/config.py";
+    const source = "class ExampleConfig:\n    limit: int = 1\n";
+    f.write(`repo/${file}`, source);
+    const commit = f.commit("legacy param");
+    f.write(
+      "wiki/seeds/r.yaml",
+      `repos:\n  r:\n    url: https://github.com/example/r\n    path: repo\n    refs: { main: ${commit} }\nfeatures: []\n`,
+    );
+    const entry = scanSources({ [file]: source })[0]!;
+    const id = paramId(entry);
+    const legacy = buildParamPage({ repo: "r", ref: "main", commit, entry, date: "2026-11-16" }).replace(
+      /^\| 所属类 \| `[^`]*` \|\r?\n/gm,
+      "",
+    );
+    f.write(`wiki/params/${id}.md`, legacy);
+    const result = await ingestParam(
+      f.root,
+      { repo: "r", ref: "main", commit, entry, source },
+      { maxAttempts: 1, maxCostUsd: 1, reserveUsd: 1 },
+      {
+        runAgent: async (req) => ({
+          id: req.id,
+          ok: true,
+          exitCode: 0,
+          stderrTail: "",
+          costUsd: 0,
+          output: JSON.stringify({
+            summary: "数量上限。[D]",
+            why: "控制资源。[D]",
+            costs: "代价待核对。",
+            conflicts: "互斥待核对。",
+          }),
+        }),
+      },
+    );
+    expect(result.id).toBe(id);
+    const draft = readFileSync(join(f.root, `wiki/_drafts/${id}.md`), "utf8");
+    expect(protectedParamSection(draft)).toBe(protectedParamSection(legacy));
+    expect(readFileSync(join(f.root, `wiki/params/${id}.md`), "utf8")).toBe(legacy);
+  } finally {
+    f.cleanup();
+  }
+});

@@ -1,3 +1,4 @@
+import { pageDisplayTitle } from "../src/content/wiki/param-display";
 import { citedPageLinks, matchesCitedPage } from "../src/content/wiki/retrieve";
 import type { KnowledgeSnapshot } from "./snapshot";
 
@@ -19,7 +20,7 @@ export function relatedReading(answer: string, snapshot: Pick<KnowledgeSnapshot,
       if (target && !cited.has(target.id) && !links.has(target.id))
         links.set(target.id, {
           id: target.id,
-          title: target.title,
+          title: pageDisplayTitle(target),
           href: `#/wiki/${target.id}`,
           note: edge.note,
         });

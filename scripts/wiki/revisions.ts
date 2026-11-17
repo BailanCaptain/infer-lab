@@ -1,11 +1,25 @@
 import { z } from "zod";
+import { type FactDispositionEntry, factDispositionEntrySchema } from "../../src/content/wiki/drop";
 import { ID_RE, isSourceRef } from "../../src/content/wiki/schema";
+import { type SiblingWrite, verifyFactDispositions } from "./fact-disposition";
 import { parsePage } from "./pages";
+
+export type RevisionCheckOptions = {
+  siblingWrites?: SiblingWrite[];
+  factDispositions?: FactDispositionEntry[];
+  skipFactDisposition?: boolean;
+};
 
 const base = { id: z.string().regex(ID_RE), reason: z.string().trim().min(1).max(2000) };
 export const revisionSchema = z.discriminatedUnion("kind", [
   z.object({ ...base, kind: z.literal("supplement") }).strict(),
-  z.object({ ...base, kind: z.literal("editorial") }).strict(),
+  z
+    .object({
+      ...base,
+      kind: z.literal("editorial"),
+      factDispositions: z.array(factDispositionEntrySchema).optional(),
+    })
+    .strict(),
   z
     .object({
       ...base,
@@ -22,6 +36,7 @@ export const revisionSchema = z.discriminatedUnion("kind", [
         )
         .min(1)
         .max(20),
+      factDispositions: z.array(factDispositionEntrySchema).optional(),
     })
     .strict(),
 ]);
@@ -73,6 +88,7 @@ export function revisePage(
   after: string,
   revision: Revision | undefined,
   date: string,
+  options?: RevisionCheckOptions,
 ): string {
   const oldPage = parsed(file, before);
   const newPage = parsed(file, after);
@@ -101,6 +117,16 @@ export function revisePage(
       seen.add(claim.old);
     }
   }
+  if ((checked.kind === "editorial" || checked.kind === "supersede") && !options?.skipFactDisposition) {
+    verifyFactDispositions(
+      file,
+      oldPage,
+      newPage,
+      checked,
+      options?.siblingWrites,
+      options?.factDispositions,
+    );
+  }
   return after;
 }
 
@@ -111,6 +137,7 @@ export function verifyRevision(
   after: string,
   revision: Revision | undefined,
   date: string,
+  options?: RevisionCheckOptions,
 ): void {
-  revisePage(file, before, after, revision, date);
+  revisePage(file, before, after, revision, date, options);
 }

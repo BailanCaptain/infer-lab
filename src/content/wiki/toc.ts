@@ -4,11 +4,13 @@
  * 不用页型、生成来源或课程章号猜测知识主题，每页只出现一次。
  */
 import type { z } from "zod";
+import { pageDisplayTitle } from "./param-display";
 import type { tocPlacementSchema } from "./schema";
 export interface TocPage {
   toc?: z.infer<typeof tocPlacementSchema> | undefined;
   id: string;
   title: string;
+  displayTitle?: string | undefined;
   type: string;
   chapters: string[];
   order: number;
@@ -52,13 +54,10 @@ const PARTS: Pick<TocPart<never>, "id" | "title" | "blurb">[] = [
 
 /** 稳定页面 id 决定主位置，组内顺序按学习依赖编排。 */
 const CURATED: Partial<Record<TocPart<never>["id"], TocSection<string>[]>> = {
-  guide: [
-    { title: "阅读路线", pages: ["learning-guide"] },
-    { title: "模型与请求概览", pages: ["glm-5-3-flash", "one-request", "concurrent-requests"] },
-  ],
+  guide: [{ title: "阅读路线", pages: ["learning-guide", "request-overview"] }],
   models: [
     { title: "输入表示与张量计算", pages: ["token", "embedding", "matmul-and-weights"] },
-    { title: "数值表示与量化", pages: ["quantization"] },
+    { title: "数值表示与量化", pages: ["low-precision-formats", "quantization", "quantization-methods"] },
     {
       title: "Decoder 层、MoE 与 lm_head",
       pages: ["layers-and-hidden", "mlp-residual-norm", "moe", "lm-head"],
@@ -158,7 +157,10 @@ const CURATED: Partial<Record<TocPart<never>["id"], TocSection<string>[]>> = {
       title: "DP 组分流与 expert 负载",
       pages: ["dp-request-routing", "balance-scheduling", "eplb", "dyntra-lb"],
     },
-    { title: "贯穿案例", pages: ["glm-5-3-flash-two-node"] },
+    {
+      title: "贯穿案例",
+      pages: ["glm-5-3-flash", "glm-5-3-flash-two-node", "one-request", "concurrent-requests"],
+    },
     {
       title: "PD 分离与 KV 传输",
       pages: ["pd-disaggregation", "mooncake-connector", "kv-cache-layerwise-offload"],
@@ -178,7 +180,15 @@ const CURATED: Partial<Record<TocPart<never>["id"], TocSection<string>[]>> = {
   ],
 };
 
-const byOrder = <P extends TocPage>(a: P, b: P) => a.order - b.order || a.title.localeCompare(b.title, "zh");
+const byOrder = <P extends TocPage>(a: P, b: P) =>
+  a.order - b.order || pageDisplayTitle(a).localeCompare(pageDisplayTitle(b), "zh");
+
+function isRforkTopicPage(p: Pick<TocPage, "id" | "type" | "origin">): boolean {
+  if (p.id !== "rfork" && !p.id.startsWith("rfork-")) return false;
+  if (p.type === "source" || p.type === "pr" || p.type === "param") return false;
+  if (p.origin === "chat" || p.origin === "pr") return false;
+  return true;
+}
 
 const DIGITS = "零一二三四五六七八九";
 /** 目录第 n 组（从 1 数）的中文序号：一…十、十一…九十九；超出范围退回阿拉伯数字。 */
@@ -211,7 +221,12 @@ export function buildToc<P extends TocPage>(pages: P[]): TocPart<P>[] {
   return PARTS.map((part): TocPart<P> => {
     const sections = (CURATED[part.id] ?? []).map((s) => ({
       title: s.title,
-      pages: take(s.pages.filter((id) => !byId.get(id)?.toc)),
+      pages: take(
+        s.pages.filter((id) => {
+          const explicit = byId.get(id)?.toc;
+          return !explicit || (explicit.part === part.id && explicit.section === s.title);
+        }),
+      ),
     }));
     for (const page of pages.filter((p) => p.toc?.part === part.id).sort(byOrder)) {
       const title = page.toc!.section;
@@ -222,12 +237,14 @@ export function buildToc<P extends TocPage>(pages: P[]): TocPart<P>[] {
     if (part.id === "rfork") {
       sections.push({
         title: "工作版机制与维护",
-        pages: remaining((p) => p.id === "rfork" || p.id.startsWith("rfork-")),
+        pages: remaining(isRforkTopicPage),
       });
     } else if (part.id === "params") {
       sections.push({
         title: "配置与版本",
-        pages: remaining((p) => p.type === "param").sort((a, b) => a.title.localeCompare(b.title, "en")),
+        pages: remaining((p) => p.type === "param").sort((a, b) =>
+          pageDisplayTitle(a).localeCompare(pageDisplayTitle(b), "en"),
+        ),
       });
     } else if (part.id === "references") {
       sections.push(

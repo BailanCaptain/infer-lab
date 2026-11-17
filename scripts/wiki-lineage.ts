@@ -9,6 +9,8 @@
  */
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import matter from "gray-matter";
+import { ID_RE } from "../src/content/wiki/schema";
 import { worktreeDir } from "./wiki/clone";
 import { parseSeeds } from "./wiki/ingest";
 import { gitLineage, lineageRefs, renderVerifiedLineage } from "./wiki/lineage-git";
@@ -35,6 +37,7 @@ if (!repo) throw new Error("seeds 里没有 repo");
 const dir = resolve(root, worktreeDir(repo, Object.keys(repo.refs)[0] as string));
 
 const pagePath = arg("--page");
+const pageText = pagePath ? readFileSync(resolve(root, pagePath), "utf8") : undefined;
 // 发布页面默认跟随教学钉点；不带页面的历史查询仍可查看浮动分支。
 const fixedRefs = pagePath && !arg("--refs") ? Object.entries(repo.refs) : undefined;
 const refs = (
@@ -42,9 +45,7 @@ const refs = (
   fixedRefs?.map(([, commit]) => commit) ??
   lineageRefs(dir, ["main"], ["main"])
 ).map((r) => r.trim());
-const definition = pagePath
-  ? parameterDefinition(dir, readFileSync(resolve(root, pagePath), "utf8"))
-  : undefined;
+const definition = pageText ? parameterDefinition(dir, pageText) : undefined;
 if (pagePath && (!definition || definition.name !== term))
   throw new Error("页面没有匹配的固定参数定义，未重算谱系");
 const paths = definition?.class ? [definition.file] : (arg("--paths", "vllm_ascend/") as string).split(",");
@@ -54,7 +55,9 @@ if (fixedRefs) {
     presence.ref = fixedRefs[i]![0];
   });
 }
-const path = localFile(root, arg("--out") ?? `wiki/lineage/${term}.json`);
+const pageId = pageText ? String(matter(pageText).data.id ?? "") : "";
+const defaultOut = pagePath && ID_RE.test(pageId) ? pageId : term;
+const path = localFile(root, arg("--out") ?? `wiki/lineage/${defaultOut}.json`);
 mkdirSync(dirname(path), { recursive: true });
 atomicText(path, JSON.stringify(lineage, null, 2));
 console.log(

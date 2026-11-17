@@ -1,5 +1,5 @@
 import { ArrowUp, BookOpen, Square } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { type AnswerQuality, QUALITY_LABELS } from "../../content/wiki/answer-quality";
 import { AnswerSave } from "./AnswerSave";
 import { ChatMarkdown } from "./ChatMarkdown";
@@ -8,11 +8,13 @@ import {
   interruptMessage,
   type Msg,
   readChatHistory,
+  settleCompletedMessage,
   type TraceVersions,
   type TraceView,
   writeChatHistory,
 } from "./chat-history";
 import { textBatch } from "./text-batch";
+import { WikiContentLink } from "./WikiLink";
 
 const repoName = (repo: string) => repo.split("/").pop() ?? repo;
 const refName = (ref: string) => ref.replace(/^releases\//, "");
@@ -125,6 +127,7 @@ async function streamChat(
     text: (t: string) => void;
     tool: (target?: string) => void;
     cite: (v: { cited: boolean; selfDeclaredUncovered: boolean; reason?: string }) => void;
+    persisted: (v: { sessionId?: string; revision?: string }) => void;
     done: (sessionId?: string, answerId?: string) => void;
     related: (pages: NonNullable<Msg["related"]>) => void;
     trace: (v: TraceView) => void;
@@ -146,8 +149,9 @@ async function streamChat(
     }) => void;
   },
   signal: AbortSignal,
+  fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
-  const res = await fetch("/api/wiki/chat", {
+  const res = await fetchImpl("/api/wiki/chat", {
     method: "POST",
     headers: { "content-type": "application/json", "x-wiki-review": "1" },
     body: JSON.stringify(body),
@@ -179,7 +183,12 @@ async function streamChat(
       if (ev === "text") on.text(String(data.text ?? ""));
       else if (ev === "tool") on.tool(data.target as string | undefined);
       else if (ev === "cite") on.cite(data as never);
-      else if (ev === "error") on.error(String(data.message ?? "未知错误"));
+      else if (ev === "persisted") {
+        const payload: { sessionId?: string; revision?: string } = {};
+        if (typeof data.sessionId === "string") payload.sessionId = data.sessionId;
+        if (typeof data.revision === "string") payload.revision = data.revision;
+        on.persisted(payload);
+      } else if (ev === "error") on.error(String(data.message ?? "未知错误"));
       else if (ev === "knowledge") on.knowledge(data as never);
       else if (ev === "notice" && typeof data.message === "string") on.notice(data as never);
       else if (ev === "gap") on.gap(data as never);
@@ -196,161 +205,353 @@ async function streamChat(
 
 /** 引导新读者的三个问题：一个名词、一组对比、一个具体时刻 */
 const STARTERS = ["KV Cache 是什么", "prefill 和 decode 有什么区别", "序列并行省下了哪些显存"];
+const SAVE_ERROR = "本机保存失败，刷新可能丢失记录；请先复制需要的回答。";
 
-/** 聊天状态放在面板外层：切页签、收起面板都不丢对话 */
-export function useChat() {
-  const [initial] = useState(() => {
+export interface ChatState {
+  msgs: Msg[];
+  input: string;
+  setInput: (value: string) => void;
+  busy: boolean;
+  send: (preset?: string) => Promise<void>;
+  stop: () => void;
+  storageError: string;
+}
+
+export interface ChatControllerDeps {
+  storage?: Pick<Storage, "getItem" | "setItem">;
+  fetchImpl?: typeof fetch;
+}
+
+interface ActiveTurn {
+  abort: AbortController;
+  persisted: boolean;
+  settled: boolean;
+  flushText: () => void;
+  settle: () => void;
+}
+
+export function createChatController(deps: ChatControllerDeps = {}) {
+  const storage = deps.storage ?? (typeof localStorage !== "undefined" ? localStorage : undefined);
+  const fetchImpl = deps.fetchImpl ?? fetch;
+
+  let msgs: Msg[] = [];
+  let input = "";
+  let sessionId: string | undefined;
+  let storageError = "";
+  let busy = false;
+  let dirty = false;
+  let saveTimer: ReturnType<typeof setTimeout> | undefined;
+  let activeTurn: ActiveTurn | null = null;
+  const listeners = new Set<() => void>();
+
+  if (storage) {
     try {
-      return { ...readChatHistory(localStorage), error: "" };
+      const initial = readChatHistory(storage);
+      msgs = initial.msgs;
+      input = initial.input;
+      sessionId = initial.sessionId;
     } catch {
-      return {
-        msgs: [] as Msg[],
-        input: "",
-        sessionId: undefined,
-        error: "无法读取本机记录；本次对话仍可使用。",
-      };
+      storageError = "无法读取本机记录；本次对话仍可使用。";
     }
-  });
-  const [msgs, setMsgs] = useState<Msg[]>(initial.msgs);
-  const [input, setInput] = useState(initial.input);
-  const [storageError, setStorageError] = useState(initial.error);
-  const [busy, setBusy] = useState(false);
-  const sessionId = useRef<string | undefined>(initial.sessionId);
-  const abort = useRef<AbortController | null>(null);
+  }
 
-  useEffect(() => {
-    const save = () => {
-      try {
-        writeChatHistory(localStorage, { version: 1, msgs, input, sessionId: sessionId.current });
-        setStorageError("");
-      } catch {
-        setStorageError("本机保存失败，刷新可能丢失记录；请先复制需要的回答。");
+  const notify = () => {
+    for (const listener of listeners) listener();
+  };
+
+  let snapshot: ChatState = {
+    msgs,
+    input,
+    setInput,
+    busy,
+    send,
+    stop,
+    storageError,
+  };
+
+  const syncSnapshot = () => {
+    snapshot = {
+      msgs,
+      input,
+      setInput,
+      busy,
+      send,
+      stop,
+      storageError,
+    };
+  };
+
+  const flushSave = () => {
+    if (saveTimer !== undefined) {
+      clearTimeout(saveTimer);
+      saveTimer = undefined;
+    }
+    if (!dirty || !storage) return;
+    dirty = false;
+    try {
+      writeChatHistory(storage, {
+        version: 1,
+        msgs,
+        input,
+        ...(sessionId !== undefined ? { sessionId } : {}),
+      });
+      if (storageError === SAVE_ERROR) {
+        storageError = "";
+        syncSnapshot();
       }
+    } catch {
+      if (storageError !== SAVE_ERROR) {
+        storageError = SAVE_ERROR;
+        syncSnapshot();
+      }
+    }
+  };
+
+  const scheduleSave = () => {
+    dirty = true;
+    if (saveTimer !== undefined) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = undefined;
+      flushSave();
+      notify();
+    }, 200);
+  };
+
+  function setInput(value: string) {
+    if (input === value) return;
+    input = value;
+    syncSnapshot();
+    scheduleSave();
+    notify();
+  }
+
+  function stop() {
+    activeTurn?.abort.abort();
+  }
+
+  async function send(preset?: string): Promise<void> {
+    const message = (preset ?? input).trim();
+    if (!message || busy || activeTurn) return;
+    input = "";
+    busy = true;
+    const turn = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const agentKey = `${turn}-a`;
+    msgs = [
+      ...msgs,
+      { key: `${turn}-u`, role: "user", text: message },
+      { key: agentKey, role: "agent", text: "", reading: [], status: "pending" },
+    ];
+    syncSnapshot();
+    scheduleSave();
+    notify();
+
+    const patch = (fn: (last: Msg) => Msg) => {
+      msgs = msgs.map((item) => (item.key === agentKey ? fn(item) : item));
+      syncSnapshot();
+      scheduleSave();
+      notify();
     };
-    const timer = window.setTimeout(save, 200);
-    window.addEventListener("pagehide", save);
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener("pagehide", save);
-    };
-  }, [msgs, input]);
+    const text = textBatch((chunk) => patch((l) => ({ ...l, text: l.text + chunk })));
+    const abortController = new AbortController();
+    let finished = false;
 
-  const send = useCallback(
-    async (preset?: string) => {
-      const message = (preset ?? input).trim();
-      if (!message || busy || abort.current) return;
-      setInput("");
-      setBusy(true);
-      const turn = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      setMsgs((m) => [
-        ...m,
-        { key: `${turn}-u`, role: "user", text: message },
-        { key: `${turn}-a`, role: "agent", text: "", reading: [], status: "pending" },
-      ]);
-
-      const patch = (fn: (last: Msg) => Msg) =>
-        setMsgs((m) => m.map((item) => (item.key === `${turn}-a` ? fn(item) : item)));
-      const text = textBatch((chunk) => patch((l) => ({ ...l, text: l.text + chunk })));
-
-      abort.current = new AbortController();
-      let finished = false;
-      try {
-        await streamChat(
-          { message, ...(sessionId.current ? { sessionId: sessionId.current } : {}) },
-          {
-            text: text.push,
-            related: (pages) => patch((l) => ({ ...l, related: pages })),
-            trace: (v) => patch((l) => ({ ...l, trace: v })),
-            tool: (target) =>
-              patch((l) => {
-                if (!target) return l;
-                const name = target.split(/[\\/]/).pop() ?? target;
-                return l.reading?.includes(name) ? l : { ...l, reading: [...(l.reading ?? []), name] };
-              }),
-            cite: (v) =>
-              patch((l) => ({
-                ...l,
-                uncited: !v.cited && !v.selfDeclaredUncovered,
-                uncovered: v.selfDeclaredUncovered,
-                citationReason: v.reason ?? "没有可核对的知识库引用",
-              })),
-            gap: (v) =>
-              patch((l) => ({
-                ...l,
-                gapNotice:
-                  v.state === "record-failed"
-                    ? "缺口信号未能保存；本次回答仍保留，请稍后重试。"
-                    : v.state === "closed"
-                      ? "这条缺口已验收关闭，本次重复通知不新增记录。"
-                      : v.state === "awaiting-assessment"
-                        ? `缺口信号已记录（${v.count} 次），已排进补写队列。夜间任务要在自动补写打开后才处理，还要先写好复测计划才会生成待审草稿。`
-                        : `缺口信号已记录（${v.count}/${v.threshold}）；尚未确认知识缺失，也未启动补写。`,
-              })),
-            notice: (v) => patch((l) => ({ ...l, toolNotice: v.message })),
-            quality: (v) => patch((l) => ({ ...l, quality: v })),
-            model: (v) => patch((l) => ({ ...l, model: v })),
-            knowledge: (v) => {
-              sessionId.current = v.sessionId;
-              patch((l) => ({
-                ...l,
-                revision: v.revision,
-                ...(v.online !== undefined ? { online: v.online } : {}),
-                ...(v.resetReason
-                  ? {
-                      versionNotice:
-                        v.resetReason === "knowledge-updated"
-                          ? "知识库已更新，本轮重新检索；旧回答仅保留显示。"
-                          : v.resetReason === "model-changed"
-                            ? "已切换模型，本轮重新检索；此前的问题只用来理解指代。"
-                            : v.resetReason === "turn-limit"
-                              ? `这段对话已答满 ${v.maxTurns ?? 3} 轮，本轮开新会话重新检索（续得越长每轮越贵）；此前的问题只用来理解指代。`
-                              : "原会话不可用，本轮重新检索。",
-                    }
-                  : {}),
-              }));
-            },
-            error: (m) => {
-              text.flush();
-              finished = true;
-              patch((l) => ({ ...l, text: `${l.text}\n\n**出错了**：${m}` }));
-            },
-            done: (sid, answerId) => {
-              text.flush();
-              finished = true;
-              if (sid) sessionId.current = sid;
-              if (answerId) patch((l) => ({ ...l, answerId }));
-            },
-          },
-          abort.current.signal,
-        );
-      } catch (err) {
+    const turnState: ActiveTurn = {
+      abort: abortController,
+      persisted: false,
+      settled: false,
+      flushText: () => {
         text.flush();
-        if ((err as Error).name !== "AbortError") {
-          patch((l) => ({ ...l, text: `${l.text}\n\n**连接失败**：${String(err)}` }));
+      },
+      settle: () => {
+        if (turnState.settled) return;
+        turnState.settled = true;
+        text.flush();
+        if (turnState.persisted || finished) {
+          msgs = msgs.map((item) => (item.key === agentKey ? settleCompletedMessage(item) : item));
+        } else {
+          sessionId = undefined;
+          msgs = msgs.map((item) => (item.key === agentKey ? interruptMessage(item) : item));
         }
-      } finally {
-        text.flush();
-        if (!finished) sessionId.current = undefined;
-        patch((l) => (finished ? { ...l, status: "complete" } : interruptMessage(l)));
-        setBusy(false);
-        abort.current = null;
-      }
-    },
-    [input, busy],
-  );
+        dirty = true;
+        syncSnapshot();
+        flushSave();
+        notify();
+      },
+    };
+    activeTurn = turnState;
 
-  const stop = useCallback(() => abort.current?.abort(), []);
-  return { msgs, input, setInput, busy, send, stop, storageError };
+    const requestBody: { message: string; sessionId?: string } =
+      sessionId !== undefined ? { message, sessionId } : { message };
+
+    try {
+      await streamChat(
+        requestBody,
+        {
+          text: text.push,
+          related: (pages) => patch((l) => ({ ...l, related: pages })),
+          trace: (v) => patch((l) => ({ ...l, trace: v })),
+          tool: (target) =>
+            patch((l) => {
+              if (!target) return l;
+              const name = target.split(/[\\/]/).pop() ?? target;
+              return l.reading?.includes(name) ? l : { ...l, reading: [...(l.reading ?? []), name] };
+            }),
+          cite: (v) =>
+            patch((l) => ({
+              ...l,
+              uncited: !v.cited && !v.selfDeclaredUncovered,
+              uncovered: v.selfDeclaredUncovered,
+              citationReason: v.reason ?? "没有可核对的知识库引用",
+            })),
+          persisted: (v) => {
+            text.flush();
+            turnState.persisted = true;
+            if (v.sessionId) sessionId = v.sessionId;
+            msgs = msgs.map((item) =>
+              item.key === agentKey
+                ? {
+                    ...item,
+                    status: "complete",
+                    ...(v.revision ? { revision: v.revision } : {}),
+                  }
+                : item,
+            );
+            dirty = true;
+            syncSnapshot();
+            flushSave();
+            notify();
+          },
+          gap: (v) =>
+            patch((l) => ({
+              ...l,
+              gapNotice:
+                v.state === "record-failed"
+                  ? "缺口信号未能保存；本次回答仍保留，请稍后重试。"
+                  : v.state === "closed"
+                    ? "这条缺口已验收关闭，本次重复通知不新增记录。"
+                    : v.state === "awaiting-assessment"
+                      ? `缺口信号已记录（${v.count} 次），已排进补写队列。夜间任务要在自动补写打开后才处理，还要先写好复测计划才会生成待审草稿。`
+                      : `缺口信号已记录（${v.count}/${v.threshold}）；尚未确认知识缺失，也未启动补写。`,
+            })),
+          notice: (v) => patch((l) => ({ ...l, toolNotice: v.message })),
+          quality: (v) => patch((l) => ({ ...l, quality: v })),
+          model: (v) => patch((l) => ({ ...l, model: v })),
+          knowledge: (v) => {
+            sessionId = v.sessionId;
+            patch((l) => ({
+              ...l,
+              revision: v.revision,
+              ...(v.online !== undefined ? { online: v.online } : {}),
+              ...(v.resetReason
+                ? {
+                    versionNotice:
+                      v.resetReason === "knowledge-updated"
+                        ? "知识库已更新，本轮重新检索；旧回答仅保留显示。"
+                        : v.resetReason === "model-changed"
+                          ? "已切换模型，本轮重新检索；此前的问题只用来理解指代。"
+                          : v.resetReason === "turn-limit"
+                            ? `这段对话已答满 ${v.maxTurns ?? 3} 轮，本轮开新会话重新检索（续得越长每轮越贵）；此前的问题只用来理解指代。`
+                            : "原会话不可用，本轮重新检索。",
+                  }
+                : {}),
+            }));
+          },
+          error: (m) => {
+            text.flush();
+            finished = true;
+            patch((l) => ({ ...l, text: `${l.text}\n\n**出错了**：${m}` }));
+          },
+          done: (sid, answerId) => {
+            text.flush();
+            finished = true;
+            turnState.persisted = true;
+            if (sid) sessionId = sid;
+            if (answerId) patch((l) => ({ ...l, answerId }));
+            else scheduleSave();
+          },
+        },
+        abortController.signal,
+        fetchImpl,
+      );
+    } catch (err) {
+      text.flush();
+      if ((err as Error).name !== "AbortError") {
+        patch((l) => ({ ...l, text: `${l.text}\n\n**连接失败**：${String(err)}` }));
+      }
+    } finally {
+      turnState.settle();
+      if (activeTurn === turnState) activeTurn = null;
+      busy = false;
+      syncSnapshot();
+      notify();
+    }
+  }
+
+  function flush() {
+    activeTurn?.flushText();
+    flushSave();
+  }
+
+  function dispose() {
+    const turn = activeTurn;
+    if (turn) {
+      activeTurn = null;
+      busy = false;
+      turn.settle();
+      turn.abort.abort();
+    } else {
+      flushSave();
+    }
+  }
+
+  return {
+    getState: () => snapshot,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    setInput,
+    send,
+    stop,
+    flush,
+    dispose,
+  };
+}
+
+export function bindPageHideFlush(
+  target: Pick<EventTarget, "addEventListener" | "removeEventListener">,
+  controller: { flush: () => void; dispose: () => void },
+): () => void {
+  const onPageHide = () => controller.flush();
+  target.addEventListener("pagehide", onPageHide);
+  return () => {
+    target.removeEventListener("pagehide", onPageHide);
+    controller.dispose();
+  };
+}
+
+/** 聊天状态放在面板外层：切页签、收起面板都不丢对话；卸载或关闭页面时先刷盘再中止连接 */
+export function useChat(): ChatState {
+  const [controller] = useState(() => createChatController());
+  const state = useSyncExternalStore(controller.subscribe, controller.getState);
+
+  useEffect(() => bindPageHideFlush(window, controller), [controller]);
+
+  return state;
 }
 
 export function ChatPane({
   id,
   chat,
+  currentId,
   hidden,
   onReview,
 }: {
   id: string;
-  chat: ReturnType<typeof useChat>;
+  chat: ChatState;
+  currentId?: string | undefined;
   hidden: boolean;
   onReview: (id: string) => void;
 }) {
@@ -443,7 +644,7 @@ export function ChatPane({
             {m.trace && <TraceResult trace={m.trace} />}
             {m.role === "agent" ? (
               m.text ? (
-                <ChatMarkdown text={m.text} />
+                <ChatMarkdown text={m.text} currentId={currentId} />
               ) : m.status !== "interrupted" ? (
                 <p className="wiki-chat-thinking" aria-hidden="true">
                   <span />
@@ -500,9 +701,9 @@ export function ChatPane({
                 <ul>
                   {m.related.map((page) => (
                     <li key={page.id}>
-                      <a href={page.href} title={page.note}>
+                      <WikiContentLink href={page.href} currentId={currentId} title={page.note}>
                         {page.title}
-                      </a>
+                      </WikiContentLink>
                       <span> · {page.note}</span>
                     </li>
                   ))}

@@ -172,7 +172,7 @@ vllm serve Qwen/Qwen2-7B-Instruct \
 | --- | --- | --- |
 | main | 有 | `baa023ad` |
 | releases/v0.23.0 | 无 | `2c59ff10` |
-| releases/v0.26.0rc | 无 | `2ed6cbba` |
+| releases/v0.26.0rc | 有 | `2ed6cbba` |
 | releases/v0.30.0rc2 | 有 | `7d825229` |
 
 ## 参数定义（自动生成）
@@ -208,17 +208,6 @@ if isinstance(data, dict):
     if 'enable_super_kernel' not in data and 'enable_static_kernel' in data:
         data = dict(data)
         data['enable_super_kernel'] = data['enable_static_kernel']
-````
-
-````python
-if 'enable_super_kernel' not in kw and 'enable_static_kernel' in kw:
-    kw['enable_super_kernel'] = kw['enable_static_kernel']
-````
-
-````python
-if 'enable_super_kernel' not in data and 'enable_static_kernel' in data:
-    data = dict(data)
-    data['enable_super_kernel'] = data['enable_static_kernel']
 ````
 
 ````python

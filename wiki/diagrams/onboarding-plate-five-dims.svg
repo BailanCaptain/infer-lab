@@ -1,88 +1,88 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" width="900" height="610" role="img" aria-label="五维配套拆解剖面与开放式中文引线直标图" font-family="var(--font-sans)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 668" width="900" height="668" role="img" aria-label="五维配套拆解剖面与开放式中文引线直标图" font-family="var(--font-sans)">
   <title>五维配套拆解剖面与中文引线直标：四层软件栈 ABI 咬合、check_ascend_device_type 启动门禁与四大硬件族分流</title>
   <desc>开放画布呈现五维配套等距立体拆解剖面：左侧依次为 vllm 0.30.0、vllm-ascend 0.30.0 插件层（编译期解析 SOC_VERSION 经 device_type_from_soc_version 写入 __device_type__）、torch_npu 2.10.0.post7 与 CANN 9.2.1；中央 NPUWorker 调用 check_ascend_device_type（get_soc_version、device_type_from_runtime_soc，失配抛 RuntimeError）；右侧 HardwareProfile 按 A2、A3、310P（NPUWorker310）、950DT（FP8_OPTIMIZED、CANN_MEGAMOE_MXFP）分流。</desc>
 
   <!-- Large Tight-Cropped Transparent Cutaway Illustration -->
-  <image href="./wiki-illustrations/onboarding-five-dims-cutaway.webp" x="85" y="92" width="730" height="436" preserveAspectRatio="xMidYMid meet"/>
+  <image href="./wiki-illustrations/onboarding-five-dims-cutaway.webp" x="85" y="122" width="730" height="436" preserveAspectRatio="xMidYMid meet"/>
 
   <!-- Leader Lines & Ring Target Dots -->
   <!-- 1: VLLM 0.30 Blue Slab -->
-  <line x1="158" y1="78" x2="246" y2="170" stroke="#1D4ED8" stroke-width="1.6"/>
-  <circle cx="246" cy="170" r="5.5" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
-  <circle cx="246" cy="170" r="2.5" fill="#1D4ED8"/>
+  <line x1="150" y1="98" x2="246" y2="200" stroke="#1D4ED8" stroke-width="1.8"/>
+  <circle cx="246" cy="200" r="6" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
+  <circle cx="246" cy="200" r="2.8" fill="#1D4ED8"/>
 
   <!-- 2: VLLM-ASCEND Teal Slab -->
-  <line x1="340" y1="78" x2="255" y2="256" stroke="#0F766E" stroke-width="1.6"/>
-  <circle cx="255" cy="256" r="5.5" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
-  <circle cx="255" cy="256" r="2.5" fill="#0F766E"/>
+  <line x1="410" y1="98" x2="255" y2="286" stroke="#0F766E" stroke-width="1.8"/>
+  <circle cx="255" cy="286" r="6" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
+  <circle cx="255" cy="286" r="2.8" fill="#0F766E"/>
 
   <!-- 3: Center SOC CHECK Key & Lock -->
-  <line x1="595" y1="78" x2="428" y2="316" stroke="#BE123C" stroke-width="1.8"/>
-  <circle cx="428" cy="316" r="6" fill="#FFFFFF" stroke="#BE123C" stroke-width="2"/>
-  <circle cx="428" cy="316" r="2.8" fill="#BE123C"/>
+  <line x1="680" y1="98" x2="428" y2="346" stroke="#BE123C" stroke-width="2"/>
+  <circle cx="428" cy="346" r="6.5" fill="#FFFFFF" stroke="#BE123C" stroke-width="2"/>
+  <circle cx="428" cy="346" r="3" fill="#BE123C"/>
 
   <!-- 4: TORCH_NPU Amber Slab -->
-  <line x1="168" y1="534" x2="235" y2="346" stroke="#B45309" stroke-width="1.6"/>
-  <circle cx="235" cy="346" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
-  <circle cx="235" cy="346" r="2.5" fill="#B45309"/>
+  <line x1="150" y1="568" x2="235" y2="376" stroke="#B45309" stroke-width="1.8"/>
+  <circle cx="235" cy="376" r="6" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
+  <circle cx="235" cy="376" r="2.8" fill="#B45309"/>
 
   <!-- 5: CANN 9.2 Dark Slate Slab -->
-  <line x1="418" y1="534" x2="262" y2="438" stroke="#334155" stroke-width="1.6"/>
-  <circle cx="262" cy="438" r="5.5" fill="#FFFFFF" stroke="#334155" stroke-width="2"/>
-  <circle cx="262" cy="438" r="2.5" fill="#334155"/>
+  <line x1="425" y1="568" x2="262" y2="468" stroke="#334155" stroke-width="1.8"/>
+  <circle cx="262" cy="468" r="6" fill="#FFFFFF" stroke="#334155" stroke-width="2"/>
+  <circle cx="262" cy="468" r="2.8" fill="#334155"/>
 
   <!-- 6: Right 4 Hardware Families Stack -->
-  <line x1="695" y1="534" x2="635" y2="425" stroke="#4338CA" stroke-width="1.6"/>
-  <circle cx="635" cy="425" r="5.5" fill="#FFFFFF" stroke="#4338CA" stroke-width="2"/>
-  <circle cx="635" cy="425" r="2.5" fill="#4338CA"/>
+  <line x1="710" y1="568" x2="635" y2="455" stroke="#4338CA" stroke-width="1.8"/>
+  <circle cx="635" cy="455" r="6" fill="#FFFFFF" stroke="#4338CA" stroke-width="2"/>
+  <circle cx="635" cy="455" r="2.8" fill="#4338CA"/>
 
   <!-- Top Open Band: 3 Borderless Callouts -->
   <g>
-    <circle cx="25" cy="24" r="11" fill="#1D4ED8"/>
-    <text x="25" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">1</text>
-    <text x="42" y="29" font-size="13" font-weight="700" fill="#17211f">引擎层：vllm 0.30.0（ced6857a）</text>
-    <text x="14" y="49" font-size="11.5" font-family="var(--font-mono)" fill="#1E40AF">VLLM_TARGET_DEVICE=&quot;empty&quot;</text>
-    <text x="14" y="66" font-size="11.5" fill="#475569">提供 V1 调度器、ModelRegistry 与接口骨架</text>
+    <circle cx="26" cy="28" r="12" fill="#1D4ED8"/>
+    <text x="26" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">1</text>
+    <text x="46" y="34" font-size="15" font-weight="700" fill="#17211f">引擎层：vllm 0.30.0</text>
+    <text x="14" y="61" font-size="13.5" font-family="var(--font-mono)" font-weight="600" fill="#1E40AF">VLLM_TARGET_DEVICE=&quot;empty&quot;</text>
+    <text x="14" y="86" font-size="14" fill="#475569">提供 V1 调度器与模型注册表</text>
   </g>
 
   <g>
-    <circle cx="289" cy="24" r="11" fill="#0F766E"/>
-    <text x="289" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">2</text>
-    <text x="306" y="29" font-size="13" font-weight="700" fill="#17211f">插件层：vllm-ascend 0.30.0</text>
-    <text x="278" y="49" font-size="11.5" fill="#475569">编译期按 SOC_VERSION 写入 __device_type__</text>
-    <text x="278" y="66" font-size="11.5" fill="#0F766E" font-weight="600">挂载昇腾平台、自定义算子与 29 项模型适配</text>
+    <circle cx="318" cy="28" r="12" fill="#0F766E"/>
+    <text x="318" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="338" y="34" font-size="15" font-weight="700" fill="#17211f">插件层：vllm-ascend 0.30.0</text>
+    <text x="306" y="61" font-size="13.5" fill="#475569">编译期写入 <tspan font-family="var(--font-mono)" font-weight="600">__device_type__</tspan></text>
+    <text x="306" y="86" font-size="14" font-weight="600" fill="#0F766E">挂载昇腾算子与 29 项模型适配</text>
   </g>
 
   <g>
-    <circle cx="569" cy="24" r="11" fill="#BE123C"/>
-    <text x="569" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">3</text>
-    <text x="586" y="29" font-size="13" font-weight="700" fill="#881337">门禁锁：check_ascend_device_type()</text>
-    <text x="558" y="49" font-size="11.5" font-weight="700" fill="#BE123C">默认 pip wheel 仅锁 A2；非 A2 卡当场抛 RuntimeError</text>
-    <text x="558" y="66" font-size="11.5" fill="#475569">NPUWorker 对比 get_soc_version() 与构建期卡型</text>
+    <circle cx="616" cy="28" r="12" fill="#BE123C"/>
+    <text x="616" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">3</text>
+    <text x="636" y="34" font-size="15" font-weight="700" fill="#881337">门禁锁：SoC 卡型一致性校验</text>
+    <text x="604" y="61" font-size="13.5" font-family="var(--font-mono)" font-weight="600" fill="#9F1239">check_ascend_device_type()</text>
+    <text x="604" y="86" font-size="14" font-weight="700" fill="#BE123C">默认 wheel 仅锁 A2，失配抛错</text>
   </g>
 
   <!-- Bottom Open Band: 3 Borderless Callouts -->
   <g>
-    <circle cx="25" cy="548" r="11" fill="#B45309"/>
-    <text x="25" y="552" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">4</text>
-    <text x="42" y="553" font-size="13" font-weight="700" fill="#17211f">框架扩展：torch_npu 2.10.0.post7</text>
-    <text x="14" y="574" font-size="11.5" fill="#475569">配套 triton-ascend 3.6.0.post2 与 transformers 5.14.1</text>
-    <text x="14" y="592" font-size="11.5" font-weight="600" fill="#BE123C">注意：310P 不支持安装 triton-ascend</text>
+    <circle cx="26" cy="586" r="12" fill="#B45309"/>
+    <text x="26" y="590.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">4</text>
+    <text x="46" y="592" font-size="15" font-weight="700" fill="#17211f">扩展层：torch_npu 2.10.0</text>
+    <text x="14" y="619" font-size="13.5" fill="#475569">配套 <tspan font-family="var(--font-mono)">post7</tspan> 与 <tspan font-family="var(--font-mono)">triton-ascend</tspan></text>
+    <text x="14" y="644" font-size="14" font-weight="600" fill="#BE123C">注意：310P 严禁装 triton</text>
   </g>
 
   <g>
-    <circle cx="329" cy="548" r="11" fill="#334155"/>
-    <text x="329" y="552" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">5</text>
-    <text x="346" y="553" font-size="13" font-weight="700" fill="#17211f">底层计算通信栈：CANN 9.2.1</text>
-    <text x="318" y="574" font-size="11.5" fill="#475569">配套 NNAL 9.2.0 与宿主机 HDK 26.1.1 驱动</text>
-    <text x="318" y="592" font-size="11.5" fill="#475569">C++/AscendC 算子与 HCCL 强绑定同代 ABI</text>
+    <circle cx="318" cy="586" r="12" fill="#334155"/>
+    <text x="318" y="590.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">5</text>
+    <text x="338" y="592" font-size="15" font-weight="700" fill="#17211f">底层计算通信栈：CANN 9.2.1</text>
+    <text x="306" y="619" font-size="13.5" fill="#475569">配套 NNAL 9.2.0 与 HDK 26.1.1</text>
+    <text x="306" y="644" font-size="14" fill="#475569">算子与 HCCL 强绑定同代 ABI</text>
   </g>
 
   <g>
-    <circle cx="609" cy="548" r="11" fill="#4338CA"/>
-    <text x="609" y="552" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">6</text>
-    <text x="626" y="553" font-size="13" font-weight="700" fill="#17211f">四大硬件族分流：HardwareProfile</text>
-    <text x="598" y="574" font-size="11.5" fill="#475569">A2 单Die · A3 双Die · 310P (NPUWorker310, 禁BF16)</text>
-    <text x="598" y="592" font-size="11.5" font-weight="600" fill="#4338CA">950DT (FP8_OPTIMIZED / CANN_MEGAMOE_MXFP)</text>
+    <circle cx="616" cy="586" r="12" fill="#4338CA"/>
+    <text x="616" y="590.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">6</text>
+    <text x="636" y="592" font-size="15" font-weight="700" fill="#17211f">四族分流：HardwareProfile</text>
+    <text x="604" y="619" font-size="13.5" fill="#475569">A2 · A3 双Die · 310P (禁BF16)</text>
+    <text x="604" y="644" font-size="13.5" font-weight="600" fill="#4338CA">950DT 启用 FP8 / MEGAMOE_MXFP</text>
   </g>
 </svg>

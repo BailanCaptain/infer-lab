@@ -1,80 +1,70 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 392" width="900" height="392" role="img" aria-label="周边四份配置文件四大隐形坑开放式排雷图" font-family="var(--font-sans)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460" role="img" aria-label="周边四份配置文件四大隐形坑开放式排雷图" font-family="var(--font-sans)">
   <title>同目录周边四份配置文件（chat_template、model_max_length、index.json、generation_config.json）隐形坑排雷全景图。</title>
   <desc>四大隐形坑排雷：1. resolve_chat_template 经命令行、AutoProcessor、AutoTokenizer 与内置模板四级回落；2. _get_and_verify_max_len 对 model_max_length 取 min 截断；3. weight_map 差集抛 FileNotFoundError 且 filter_duplicate_safetensors_files 防双倍加载；4. try_get_generation_config 读取 GenerationConfig 静音接管采样参数。</desc>
 
-  <!-- Open Dashed Crosshair Dividers (Zero Outer Quadrant Cages) -->
-  <line x1="16" y1="194" x2="884" y2="194" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
-  <line x1="448" y1="14" x2="448" y2="378" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <!-- Open Dashed Crosshair Dividers -->
+  <line x1="14" y1="228" x2="886" y2="228" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="450" y1="14" x2="450" y2="446" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
 
   <!-- Quadrant 1: chat_template 4-level fallback -->
-  <circle cx="27" cy="26" r="11" fill="#1D4ED8"/>
-  <text x="27" y="30" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">1</text>
-  <text x="44" y="31" font-size="13.5" font-weight="700" fill="#17211f">chat_template 四级回落（resolve_chat_template）</text>
+  <circle cx="26" cy="28" r="12" fill="#1D4ED8"/>
+  <text x="26" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">1</text>
+  <text x="44" y="34" font-size="16" font-weight="700" fill="#17211f">chat_template 四级回落</text>
 
-  <rect x="16" y="46" width="110" height="46" rx="6" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.3"/>
-  <text x="71" y="65" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1E40AF">1. 命令行参数</text>
-  <text x="71" y="83" text-anchor="middle" font-size="11" font-family="var(--font-mono)" fill="#334155">--chat-template</text>
+  <rect x="14" y="50" width="194" height="38" rx="6" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.3"/>
+  <text x="111" y="74" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#1E40AF">① --chat-template</text>
+  <text x="220" y="74" text-anchor="middle" font-size="14" font-weight="700" fill="#64748B">→</text>
+  <rect x="232" y="50" width="202" height="38" rx="6" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.3"/>
+  <text x="333" y="74" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#1E40AF">② AutoProcessor</text>
 
-  <text x="133" y="73" text-anchor="middle" font-size="12" font-weight="700" fill="#64748B">→</text>
+  <rect x="14" y="96" width="194" height="38" rx="6" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.3"/>
+  <text x="111" y="120" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#1E40AF">③ AutoTokenizer</text>
+  <text x="220" y="120" text-anchor="middle" font-size="14" font-weight="700" fill="#64748B">→</text>
+  <rect x="232" y="96" width="202" height="38" rx="6" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.3"/>
+  <text x="333" y="120" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1E40AF">④ vLLM 内置回落模板</text>
 
-  <rect x="140" y="46" width="96" height="46" rx="6" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.3"/>
-  <text x="188" y="65" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1E40AF">2. 处理器</text>
-  <text x="188" y="83" text-anchor="middle" font-size="11" font-family="var(--font-mono)" fill="#334155">AutoProcessor</text>
-
-  <text x="243" y="73" text-anchor="middle" font-size="12" font-weight="700" fill="#64748B">→</text>
-
-  <rect x="250" y="46" width="96" height="46" rx="6" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.3"/>
-  <text x="298" y="65" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1E40AF">3. 分词配置</text>
-  <text x="298" y="83" text-anchor="middle" font-size="11" font-family="var(--font-mono)" fill="#334155">AutoTokenizer</text>
-
-  <text x="353" y="73" text-anchor="middle" font-size="12" font-weight="700" fill="#64748B">→</text>
-
-  <rect x="360" y="46" width="72" height="46" rx="6" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.3"/>
-  <text x="396" y="65" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1E40AF">4. 内置</text>
-  <text x="396" y="83" text-anchor="middle" font-size="11" fill="#475569">回落模板</text>
-
-  <line x1="18" y1="106" x2="18" y2="176" stroke="#F43F5E" stroke-width="3"/>
-  <text x="30" y="120" font-size="12" font-weight="700" fill="#BE123C">症状：四级皆空时能启动，调对话接口立即报错</text>
-  <text x="30" y="143" font-size="12" fill="#334155">高发于裸预训练目录（缺模板字段与 .jinja）</text>
-  <text x="30" y="167" font-size="12" font-weight="700" fill="#0F766E">解法：补齐 chat_template.jinja 或传 --chat-template</text>
+  <line x1="16" y1="148" x2="16" y2="214" stroke="#F43F5E" stroke-width="3"/>
+  <text x="28" y="164" font-size="14" font-weight="700" fill="#BE123C">症状：四级皆空能启动，调对话接口即报错</text>
+  <text x="28" y="188" font-size="13.5" fill="#334155">高发于裸预训练目录（缺模板字段与 .jinja）</text>
+  <text x="28" y="212" font-size="13.5" font-weight="700" fill="#0F766E">解法：补 chat_template.jinja 或传参数</text>
 
   <!-- Quadrant 2: model_max_length silent truncation -->
-  <circle cx="475" cy="26" r="11" fill="#BE123C"/>
-  <text x="475" y="30" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">2</text>
-  <text x="492" y="31" font-size="13.5" font-weight="700" fill="#17211f">model_max_length 取 min 静音截断</text>
+  <circle cx="478" cy="28" r="12" fill="#BE123C"/>
+  <text x="478" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">2</text>
+  <text x="496" y="34" font-size="16" font-weight="700" fill="#17211f">model_max_length 静音截断</text>
 
-  <rect x="464" y="46" width="420" height="44" rx="6" fill="#FFFBEB" stroke="#D97706" stroke-width="1.4"/>
-  <text x="674" y="73" text-anchor="middle" font-size="12" font-family="var(--font-mono)" font-weight="700" fill="#92400E">max_len = min( derived_max_len , model_max_length )</text>
+  <rect x="466" y="54" width="420" height="52" rx="6" fill="#FFFBEB" stroke="#D97706" stroke-width="1.4"/>
+  <text x="676" y="85" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#92400E">max_len = min(derived_len, model_max_length)</text>
 
-  <line x1="466" y1="106" x2="466" y2="176" stroke="#F43F5E" stroke-width="3"/>
-  <text x="478" y="120" font-size="12" fill="#334155">config.json 明明写 <tspan font-family="var(--font-mono)" font-weight="700">max_position_embeddings = 40960</tspan></text>
-  <text x="478" y="143" font-size="12" font-weight="700" fill="#BE123C">但 tokenizer_config 误填 4096 → 上下文被悄悄截短！</text>
-  <text x="478" y="167" font-size="12" font-weight="700" fill="#0F766E">解法：传 --max-model-len 显式覆盖，或修正该字段</text>
+  <line x1="468" y1="126" x2="468" y2="212" stroke="#F43F5E" stroke-width="3"/>
+  <text x="480" y="146" font-size="13.5" fill="#334155">config 写 <tspan font-family="var(--font-mono)" font-weight="700">max_position_embeddings = 40960</tspan></text>
+  <text x="480" y="176" font-size="14" font-weight="700" fill="#BE123C">分词配置误填 4096 → 上下文被悄悄截短！</text>
+  <text x="480" y="206" font-size="13.5" font-weight="700" fill="#0F766E">解法：传 --max-model-len 覆盖或修正字段</text>
 
   <!-- Quadrant 3: index.json shard diff & consolidated dedup -->
-  <circle cx="27" cy="220" r="11" fill="#B45309"/>
-  <text x="27" y="224" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">3</text>
-  <text x="44" y="225" font-size="13.5" font-weight="700" fill="#17211f">index.json 差集报缺片与防双倍加载</text>
+  <circle cx="26" cy="258" r="12" fill="#B45309"/>
+  <text x="26" y="262.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">3</text>
+  <text x="44" y="264" font-size="16" font-weight="700" fill="#17211f">index.json 缺片报错与防重</text>
 
-  <rect x="16" y="242" width="416" height="62" rx="7" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.3"/>
-  <text x="28" y="264" font-size="12" font-weight="700" fill="#BE123C">A. 漏片拦截：set(weight_map.values()) - 磁盘文件 != ∅</text>
-  <text x="28" y="288" font-size="12" fill="#334155">断点续传少任一分片，立即抛 <tspan font-family="var(--font-mono)" font-weight="700" fill="#BE123C">FileNotFoundError</tspan></text>
+  <rect x="14" y="282" width="420" height="72" rx="7" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.3"/>
+  <text x="26" y="309" font-size="14.5" font-weight="700" fill="#BE123C">A. 漏片拦截：weight_map - 磁盘文件 != ∅</text>
+  <text x="26" y="337" font-size="13.5" fill="#334155">少任一分片立即抛 <tspan font-family="var(--font-mono)" font-weight="700" fill="#BE123C">FileNotFoundError</tspan></text>
 
-  <rect x="16" y="314" width="416" height="64" rx="7" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1.3"/>
-  <text x="28" y="336" font-size="12" font-weight="700" fill="#0F766E">B. 混合目录去重：filter_duplicate_safetensors_files</text>
-  <text x="28" y="360" font-size="11.5" fill="#334155">同存 consolidated* 与分片时靠索引去重 —— <tspan font-weight="700" fill="#BE123C">勿删 index.json！</tspan></text>
+  <rect x="14" y="366" width="420" height="72" rx="7" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1.3"/>
+  <text x="26" y="393" font-size="14.5" font-weight="700" fill="#0F766E">B. 去重：<tspan font-family="var(--font-mono)" font-size="13.5">filter_duplicate_safetensors_files</tspan></text>
+  <text x="26" y="421" font-size="13.5" fill="#334155">同存合并权重与分片时靠索引去重 —— <tspan font-weight="700" fill="#BE123C">勿删索引！</tspan></text>
 
   <!-- Quadrant 4: generation_config.json silent sampling override -->
-  <circle cx="475" cy="220" r="11" fill="#0F766E"/>
-  <text x="475" y="224" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">4</text>
-  <text x="492" y="225" font-size="13.5" font-weight="700" fill="#17211f">generation_config.json 静音改写采样默认</text>
+  <circle cx="478" cy="258" r="12" fill="#0F766E"/>
+  <text x="478" y="262.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">4</text>
+  <text x="496" y="264" font-size="16" font-weight="700" fill="#17211f">generation_config 改写采样</text>
 
-  <rect x="464" y="242" width="420" height="56" rx="7" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.3"/>
-  <text x="476" y="263" font-size="12" font-weight="700" fill="#0F766E">读取入口：try_get_generation_config（回落读 config.json）</text>
-  <text x="476" y="285" font-size="11.5" font-family="var(--font-mono)" fill="#334155">temperature | top_p | top_k | 额外 eos_token_id</text>
+  <rect x="466" y="282" width="420" height="68" rx="7" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.3"/>
+  <text x="478" y="309" font-size="14.5" font-weight="700" fill="#0F766E">入口：try_get_generation_config</text>
+  <text x="478" y="335" font-size="13.5" font-family="var(--font-mono)" fill="#334155">temperature | top_p | top_k | eos_token_id</text>
 
-  <line x1="466" y1="312" x2="466" y2="376" stroke="#D97706" stroke-width="3"/>
-  <text x="478" y="326" font-size="12" font-weight="700" fill="#92400E">现象：请求未显式传参时默认开启随机采样或遇词提前停</text>
-  <text x="478" y="349" font-size="12" fill="#334155">并非框架异常，而是沿用了出厂 GenerationConfig 默认值</text>
-  <text x="478" y="372" font-size="12" font-weight="700" fill="#0F766E">解法：启动传 --generation-config vllm 或请求显式传参</text>
+  <line x1="468" y1="366" x2="468" y2="442" stroke="#D97706" stroke-width="3"/>
+  <text x="480" y="384" font-size="14" font-weight="700" fill="#92400E">现象：未传参时默认随机采样或遇词提前停</text>
+  <text x="480" y="411" font-size="13.5" fill="#334155">原因：静音沿用出厂 GenerationConfig 默认值</text>
+  <text x="480" y="438" font-size="13.5" font-weight="700" fill="#0F766E">解法：传 --generation-config vllm 或显式传参</text>
 </svg>

@@ -1,7 +1,7 @@
 mode: native-svg
 id: hf-fig-tie-and-untie
 caption: tie_word_embeddings 首尾词表共享省显存效应与 v0.30.0 maybe_untie_word_embeddings 防丢独立 lm_head 流程。
-size: [900, 320]
+size: [900, 385]
 pins:
   - source: 'vllm@ced6857a:vllm/config/model.py#L1130-L1157'
     symbols: ['maybe_untie_word_embeddings', 'tie_word_embeddings', 'lm_head']

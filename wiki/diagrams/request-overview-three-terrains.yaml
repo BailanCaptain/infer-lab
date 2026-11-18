@@ -1,7 +1,7 @@
 mode: native-svg
 id: request-overview-three-terrains
 caption: 示意：一条请求在「Host CPU 前台与调度员 — NPU HBM 显存高速仓库 — NPU AI Core 矩阵计算车间」三块硬件地盘上的接力分工，以及 Prefill（整段提示词并行乘加、AI Core 算力受限）与 Decode（每步只算 1 个新词却搬运整份权重与历史 KV、HBM 带宽受限）的瓶颈差异。
-size: [880, 310]
+size: [900, 440]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L589-L620'
     symbols: ['step', 'schedule', 'execute_model']

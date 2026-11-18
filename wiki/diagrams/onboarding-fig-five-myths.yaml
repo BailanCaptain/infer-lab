@@ -1,7 +1,7 @@
 mode: native-svg
 id: onboarding-fig-five-myths
 caption: 新模型上线五组常见误解 vs v0.30.0 源码真相排障对照板
-size: [900, 412]
+size: [900, 508]
 pins:
   - source: "vllm-ascend@c09d3e20:vllm_ascend/device/device_config.py#L65-L77"
     symbols:

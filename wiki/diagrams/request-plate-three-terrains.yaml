@@ -1,7 +1,7 @@
 mode: native-svg
 id: request-plate-three-terrains
-caption: 示意：一条请求在「Host CPU 前台与调度员 — NPU HBM 显存高速仓库 — NPU AI Core 矩阵计算车间」三块硬件地盘上的立体拆解分工，以及 Prefill（搬 1 次权重算整段、AI Core 算力受限）与 Decode（每步只算 1 词却照搬全套权重+历史 KV、HBM 带宽受限）的瓶颈对照。
-size: [900, 510]
+caption: 示意：一条请求在「Host CPU 前台与调度员 — NPU HBM 显存高速仓库 — NPU AI Core 矩阵计算车间」三块硬件地盘上的立体拆解剖面与跨芯片数据接力。
+size: [900, 456]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L589-L620'
     symbols: ['step', 'schedule', 'execute_model']

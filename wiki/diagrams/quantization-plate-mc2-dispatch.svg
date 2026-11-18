@@ -1,62 +1,64 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 580" width="900" height="580" role="img" aria-label="MoE EP MC2 dispatch INT8 通信量化与返程 combine BF16 立体拆解剖面引线图">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="MoE EP MC2 dispatch INT8 通信量化与返程 combine BF16 立体拆解剖面引线图">
   <title>MoE EP MC2 通信量化立体拆解：源 NPU 按硬件家族 moe_comm_policy 选入 MC2 后，去程 dispatch 以 quant_mode=2 将隐藏向量就地压成 INT8 并附 4 B FP32 dynamic_scale（通信载荷减半）；专家 NPU 零重复量化直接送入 W8A8 分组矩阵乘；返程 combine 默认 quant_mode=0 回传 BF16。</title>
   <desc>关联源码符号：CAPACITY_AND_EXPERT_DENSITY, FUSED_OR_CAPACITY, ALLGATHER, CAPACITY_AND_WORLD_SIZE, num_experts_per_device, mc2_tokens_capacity, FUSED_MC2, MC2, dispatch_with_quant, get_dst_type, get_scale_type, quant_mode, stage1_kwargs</desc>
 
   <!-- 紧裁透明底等距拆解剖面主图（零底框、零内层网格笼，大尺寸直浮画布） -->
-  <image href="./wiki-illustrations/quantization-mc2-dispatch-cutaway.webp" x="40" y="92" width="820" height="400" preserveAspectRatio="xMidYMid meet"/>
+  <image href="./wiki-illustrations/quantization-mc2-dispatch-cutaway.webp" x="40" y="130" width="820" height="400" preserveAspectRatio="xMidYMid meet"/>
 
   <!-- 引线与靶点双环圆点（顺时针四站零交叉，精准锚定立体部件） -->
   <!-- 1 -> SOURCE NPU 的 MC2 DISPATCH 选路入口块 -->
-  <line x1="212" y1="78" x2="241" y2="242" stroke="#4338CA" stroke-width="1.6"/>
-  <circle cx="241" cy="242" r="5.5" fill="#FFFFFF" stroke="#4338CA" stroke-width="2"/>
-  <circle cx="241" cy="242" r="2.5" fill="#4338CA"/>
+  <line x1="212" y1="116" x2="241" y2="280" stroke="#4338CA" stroke-width="1.6"/>
+  <circle cx="241" cy="280" r="5.5" fill="#FFFFFF" stroke="#4338CA" stroke-width="2"/>
+  <circle cx="241" cy="280" r="2.5" fill="#4338CA"/>
 
   <!-- 2 -> 上方 DISPATCH · INT8 桥上的 INT8 + SCALE 数据包 -->
-  <line x1="560" y1="78" x2="550" y2="188" stroke="#0F766E" stroke-width="1.6"/>
-  <circle cx="550" cy="188" r="5.5" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
-  <circle cx="550" cy="188" r="2.5" fill="#0F766E"/>
+  <line x1="560" y1="116" x2="550" y2="226" stroke="#0F766E" stroke-width="1.6"/>
+  <circle cx="550" cy="226" r="5.5" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
+  <circle cx="550" cy="226" r="2.5" fill="#0F766E"/>
 
   <!-- 3 -> 右侧 EXPERT NPU 的本地 W8 分组矩阵乘模块 -->
-  <line x1="665" y1="504" x2="665" y2="308" stroke="#B45309" stroke-width="1.6"/>
-  <circle cx="665" cy="308" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
-  <circle cx="665" cy="308" r="2.5" fill="#B45309"/>
+  <line x1="665" y1="540" x2="665" y2="346" stroke="#B45309" stroke-width="1.6"/>
+  <circle cx="665" cy="346" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
+  <circle cx="665" cy="346" r="2.5" fill="#B45309"/>
 
   <!-- 4 -> 下方 COMBINE · BF16 返程宽体通道 -->
-  <line x1="365" y1="504" x2="421" y2="416" stroke="#1D4ED8" stroke-width="1.6"/>
-  <circle cx="421" cy="416" r="5.5" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
-  <circle cx="421" cy="416" r="2.5" fill="#1D4ED8"/>
+  <line x1="365" y1="540" x2="421" y2="454" stroke="#1D4ED8" stroke-width="1.6"/>
+  <circle cx="421" cy="454" r="5.5" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
+  <circle cx="421" cy="454" r="2.5" fill="#1D4ED8"/>
 
-  <!-- 顶部开放式无边框矢量编号直标（y = 8..78） -->
+  <!-- 顶部开放式无边框矢量编号直标（对齐 18px 正文字阶：标题 15px，说明 13.5–14px） -->
   <g id="mc2-callout-policy">
-    <circle cx="28" cy="22" r="11" fill="#4338CA"/>
-    <text x="28" y="26.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">1</text>
-    <text x="46" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#17211f">四族通信策略 moe_comm_policy（何时进 MC2）</text>
-    <text x="46" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">A2 满足每卡专家≤24、EP≥16、token≤容量选 MC2；A3 优先 FUSED_MC2</text>
-    <text x="46" y="65" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">Ascend 950 按容量与规模选路；310P 固定走 ALLGATHER</text>
+    <circle cx="28" cy="28" r="12" fill="#4338CA"/>
+    <text x="28" y="32.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#FFFFFF">1</text>
+    <text x="48" y="33" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#17211f">四族通信选路：何时进 MC2</text>
+    <text x="48" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" fill="#475569">A2 看 num_experts_per_device 与容量选 MC2</text>
+    <text x="48" y="82" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#475569">A3 优先 FUSED_MC2；310P 走 ALLGATHER</text>
+    <text x="48" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#64748B">受 mc2_tokens_capacity 等策略阈值控制</text>
   </g>
 
   <g id="mc2-callout-dispatch">
-    <circle cx="472" cy="22" r="11" fill="#0F766E"/>
-    <text x="472" y="26.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">2</text>
-    <text x="490" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#17211f">去程 MC2 dispatch（quant_mode=2）：载荷减半</text>
-    <text x="490" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">dispatch_with_quant 就地把 BF16 压成 INT8 + 4B dynamic_scale</text>
-    <text x="490" y="65" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">（A5 的 MXFP 方案则用 quant_mode=4 发低精度块与 E8M0 缩放）</text>
+    <circle cx="480" cy="28" r="12" fill="#0F766E"/>
+    <text x="480" y="32.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="500" y="33" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#17211f">去程 dispatch (quant_mode=2)：减半</text>
+    <text x="500" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" fill="#475569">dispatch_with_quant 压 INT8 + 4B 缩放</text>
+    <text x="500" y="82" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#475569">按 get_dst_type / get_scale_type 定格式</text>
+    <text x="500" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#64748B">A5 MXFP 路线用 quant_mode=4 发块缩放</text>
   </g>
 
-  <!-- 底部开放式无边框矢量编号直标（y = 504..568） -->
+  <!-- 底部开放式无边框矢量编号直标（y = 546..614） -->
   <g id="mc2-callout-combine">
-    <circle cx="28" cy="520" r="11" fill="#1D4ED8"/>
-    <text x="28" y="524.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">4</text>
-    <text x="46" y="524" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#17211f">返程 combine（默认 quant_mode=0）：回传 BF16</text>
-    <text x="46" y="544" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">专家输出加权归约后默认不压缩通信，直接回传 BF16 向量</text>
-    <text x="46" y="562" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">（W8A8MXFP 默认 combine 走 4，或显式覆盖配置除外）</text>
+    <circle cx="28" cy="558" r="12" fill="#1D4ED8"/>
+    <text x="28" y="562.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#FFFFFF">4</text>
+    <text x="48" y="563" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#17211f">返程 combine (quant_mode=0)：传 BF16</text>
+    <text x="48" y="589" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" fill="#475569">专家输出加权归约，默认回传 BF16 向量</text>
+    <text x="48" y="614" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#64748B">W8A8MXFP 默认走 4，或显式覆盖配置除外</text>
   </g>
 
   <g id="mc2-callout-expert">
-    <circle cx="472" cy="520" r="11" fill="#B45309"/>
-    <text x="472" y="524.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">3</text>
-    <text x="490" y="524" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#17211f">专家端零重复量化：直入本地 W8 分组矩阵乘</text>
-    <text x="490" y="544" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">通过 stage1_kwargs 直接复用收到的 INT8 激活与 dynamic_scale</text>
-    <text x="490" y="562" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">省掉专家计算入口的重复动态量化开销，算完输出恢复 BF16</text>
+    <circle cx="480" cy="558" r="12" fill="#B45309"/>
+    <text x="480" y="562.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#FFFFFF">3</text>
+    <text x="500" y="563" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#17211f">专家端零重复量化：直入 W8 矩阵乘</text>
+    <text x="500" y="589" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" fill="#475569">stage1_kwargs 直吃收到的 INT8 与缩放</text>
+    <text x="500" y="614" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#64748B">省掉专家入口动态量化，输出恢复 BF16</text>
   </g>
 </svg>

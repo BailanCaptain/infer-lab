@@ -1,7 +1,7 @@
 mode: native-svg
 id: request-fig-tokenizer-embed
 caption: 示意：为什么不能拿整数词编号 0、2 直接乘权重（0 号归零、2 号被强锁为 1 号两倍），以及真实机制如何先将「我喜欢」切成 [0, 2]，再从 6×4 嵌入表 E 零乘法按行抽出 x₀、x₁ 拼成 [2, 4] 初始张量。
-size: [900, 310]
+size: [900, 370]
 pins:
   - source: 'vllm@ced6857a:vllm/tokenizers/hf.py#L115-L150'
     symbols: ['CachedTokenizer', 'max_token_id', 'vocab_size']

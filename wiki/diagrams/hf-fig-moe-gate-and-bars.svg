@@ -1,68 +1,62 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" width="900" height="360" role="img" aria-label="MoE 层判定公式与常驻显存 vs 激活算力及 KV 反差比例图" font-family="var(--font-sans)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 425" width="900" height="425" role="img" aria-label="MoE 层判定公式与常驻显存 vs 激活算力及 KV 反差比例图" font-family="var(--font-sans)">
   <title>Qwen3MoeDecoderLayer 三条件门禁与常驻权重显存、单步激活参数及每 token KV cache 比例对照。</title>
   <desc>Qwen3MoeDecoderLayer 同时检查 mlp_only_layers、num_experts 与 decoder_sparse_step，满足时按 num_experts_per_tok 与 moe_intermediate_size 构造稀疏 MoE，否则退回 intermediate_size 稠密层。</desc>
 
   <!-- Top Band: 3-Condition Gate -->
-  <text x="16" y="26" font-size="14" font-weight="700" fill="#17211f">A. Qwen3MoeDecoderLayer 第 i 层（0..47）稀疏与稠密分流门禁</text>
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">A. Qwen3MoeDecoderLayer 第 i 层（0..47）稀疏与稠密分流门禁</text>
 
-  <rect x="16" y="40" width="188" height="48" rx="7" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.4"/>
-  <text x="110" y="60" text-anchor="middle" font-size="12" font-family="var(--font-mono)" font-weight="700" fill="#1E40AF">① i ∉ mlp_only_layers</text>
-  <text x="110" y="79" text-anchor="middle" font-size="11.5" fill="#475569">30B-A3B 为 []（无例外）</text>
+  <rect x="14" y="44" width="200" height="60" rx="7" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.4"/>
+  <text x="114" y="68" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#1E40AF">① i ∉ mlp_only_layers</text>
+  <text x="114" y="92" text-anchor="middle" font-size="13.5" fill="#475569">30B-A3B 为 []（无例外）</text>
 
-  <rect x="214" y="40" width="166" height="48" rx="7" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.4"/>
-  <text x="297" y="60" text-anchor="middle" font-size="12" font-family="var(--font-mono)" font-weight="700" fill="#1E40AF">② num_experts &gt; 0</text>
-  <text x="297" y="79" text-anchor="middle" font-size="11.5" fill="#475569">共 128 个路由专家</text>
+  <rect x="222" y="44" width="174" height="60" rx="7" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.4"/>
+  <text x="309" y="68" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#1E40AF">② num_experts &gt; 0</text>
+  <text x="309" y="92" text-anchor="middle" font-size="13.5" fill="#475569">共 128 个路由专家</text>
 
-  <rect x="390" y="40" width="218" height="48" rx="7" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.4"/>
-  <text x="499" y="60" text-anchor="middle" font-size="11.5" font-family="var(--font-mono)" font-weight="700" fill="#1E40AF">③ (i+1) % sparse_step == 0</text>
-  <text x="499" y="79" text-anchor="middle" font-size="11.5" fill="#475569">decoder_sparse_step = 1</text>
+  <rect x="404" y="44" width="214" height="60" rx="7" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.4"/>
+  <text x="511" y="68" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#1E40AF">③ (i+1)%sparse_step==0</text>
+  <text x="511" y="92" text-anchor="middle" font-size="13.5" fill="#475569">decoder_sparse_step = 1</text>
 
-  <!-- AND Badge -->
-  <rect x="618" y="47" width="54" height="34" rx="17" fill="#17211f"/>
-  <text x="645" y="69" text-anchor="middle" font-size="12" font-weight="800" fill="#FFFFFF">AND</text>
+  <rect x="626" y="55" width="54" height="38" rx="19" fill="#17211f"/>
+  <text x="653" y="79" text-anchor="middle" font-size="13.5" font-weight="800" fill="#FFFFFF">AND</text>
 
-  <rect x="682" y="34" width="202" height="29" rx="6" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.4"/>
-  <text x="783" y="53" text-anchor="middle" font-size="12" font-weight="700" fill="#0F766E">全真 → 稀疏 MoE（48 层全中）</text>
+  <rect x="688" y="38" width="198" height="34" rx="6" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.4"/>
+  <text x="787" y="60" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0F766E">全真 → 稀疏 MoE（48层）</text>
 
-  <rect x="682" y="69" width="202" height="28" rx="6" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.2"/>
-  <text x="783" y="88" text-anchor="middle" font-size="11.5" fill="#475569">任一假 → 退回稠密 MLP 层</text>
+  <rect x="688" y="80" width="198" height="34" rx="6" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.3"/>
+  <text x="787" y="102" text-anchor="middle" font-size="13.5" fill="#475569">任一假 → 稠密 MLP 层</text>
 
   <!-- Open Dashed Divider -->
-  <line x1="16" y1="112" x2="884" y2="112" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="14" y1="130" x2="886" y2="130" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
 
   <!-- Bottom Band: Proportional Memory & KV Bars -->
-  <text x="16" y="138" font-size="14" font-weight="700" fill="#17211f">B. 常驻权重显存 vs 单步激活参数 vs 每 token KV cache 真实比例对账</text>
+  <text x="14" y="160" font-size="16" font-weight="700" fill="#17211f">B. 常驻权重显存 vs 单步激活参数 vs 每 token KV cache 比例对账</text>
 
-  <!-- Scale: 1 GiB = 10.5px, X0 = 212. 15.26 GiB = 160px; 32 GiB = 336px (x=548); 56.87 GiB = 597px -->
-  <!-- Row 1: Qwen3-8B Weight -->
-  <text x="16" y="171" font-size="13" font-weight="700" fill="#17211f">Qwen3-8B 静态权重</text>
-  <text x="16" y="189" font-size="11.5" fill="#475569">稠密 36 层 · 全参数即激活</text>
-  <rect x="212" y="156" width="160" height="34" rx="5" fill="#2563EB" stroke="#1D4ED8" stroke-width="1.4"/>
-  <text x="292" y="178" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">15.26 GiB (8.19B)</text>
-  <text x="382" y="178" font-size="12" font-weight="700" fill="#0F766E">◀ 单卡可放，余留充裕 KV</text>
+  <text x="14" y="194" font-size="15" font-weight="700" fill="#17211f">Qwen3-8B 权重</text>
+  <text x="14" y="216" font-size="13.5" fill="#475569">稠密 36 层 · 全激活</text>
+  <rect x="208" y="180" width="160" height="38" rx="5" fill="#2563EB" stroke="#1D4ED8" stroke-width="1.4"/>
+  <text x="288" y="204" text-anchor="middle" font-size="14" font-weight="700" fill="#FFFFFF">15.26 GiB</text>
+  <text x="380" y="204" font-size="14" font-weight="700" fill="#0F766E">◀ 单卡可放，余留充裕 KV</text>
 
-  <!-- Row 2: Qwen3-30B-A3B Weight (Resident vs Active) -->
-  <text x="16" y="221" font-size="13" font-weight="700" fill="#17211f">Qwen3-30B-A3B 权重</text>
-  <text x="16" y="239" font-size="11.5" fill="#475569">48 层 · 128 专家驻留 / 选 8</text>
-  <rect x="212" y="206" width="597" height="34" rx="5" fill="#FDE68A" stroke="#B45309" stroke-width="1.4"/>
-  <rect x="212" y="206" width="66" height="34" rx="5" fill="#D97706"/>
-  <text x="245" y="228" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">3.35B</text>
-  <text x="558" y="228" text-anchor="middle" font-size="12" font-weight="700" fill="#78350F">128 专家全常驻显存：30.53B = 56.87 GiB（单卡直接 OOM）</text>
-  <text x="212" y="262" font-size="11.5" font-weight="700" fill="#B45309">▲ num_experts_per_tok = 8（单步激活仅 3.35B，算力轻快）</text>
+  <text x="14" y="254" font-size="15" font-weight="700" fill="#17211f">30B-A3B 权重</text>
+  <text x="14" y="276" font-size="13.5" fill="#475569">128 常驻 / 单步选 8</text>
+  <rect x="208" y="240" width="597" height="38" rx="5" fill="#FDE68A" stroke="#B45309" stroke-width="1.4"/>
+  <rect x="208" y="240" width="68" height="38" rx="5" fill="#D97706"/>
+  <text x="242" y="264" text-anchor="middle" font-size="13.5" font-weight="700" fill="#FFFFFF">3.35B</text>
+  <text x="556" y="264" text-anchor="middle" font-size="14" font-weight="700" fill="#78350F">128 专家常驻：56.87 GiB（单卡 OOM）</text>
+  <text x="208" y="304" font-size="13.5" font-weight="700" fill="#B45309">▲ num_experts_per_tok = 8（仅激活 3.35B）</text>
 
-  <!-- 32 GiB Single-Card Red Cutoff Line -->
-  <line x1="548" y1="148" x2="548" y2="256" stroke="#BE123C" stroke-width="2" stroke-dasharray="5 3"/>
-  <rect x="556" y="246" width="138" height="24" rx="4" fill="#FFE4E6" stroke="#BE123C" stroke-width="1.2"/>
-  <text x="625" y="262" text-anchor="middle" font-size="11.5" font-weight="700" fill="#BE123C">32 GiB 单卡显存上限</text>
+  <line x1="544" y1="172" x2="544" y2="294" stroke="#BE123C" stroke-width="2" stroke-dasharray="5 3"/>
+  <rect x="554" y="284" width="166" height="28" rx="5" fill="#FFE4E6" stroke="#BE123C" stroke-width="1.3"/>
+  <text x="637" y="303" text-anchor="middle" font-size="13.5" font-weight="700" fill="#BE123C">32 GiB 单卡显存上限</text>
 
-  <!-- KV Cache Reversal Comparison -->
-  <text x="16" y="308" font-size="13" font-weight="700" fill="#17211f">每 token 全层 KV cache</text>
-  <text x="16" y="328" font-size="11.5" fill="#475569">只看 L × n_kv × d_h，与专家无关</text>
+  <text x="14" y="356" font-size="15" font-weight="700" fill="#17211f">每 token KV</text>
+  <text x="14" y="380" font-size="13.5" fill="#475569">只看 L × n_kv × d_h</text>
 
-  <rect x="212" y="286" width="312" height="26" rx="4" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="1.3"/>
-  <text x="368" y="304" text-anchor="middle" font-size="12" font-weight="700" fill="#1E40AF">Qwen3-8B（36 层 × 8 KV 头）：144.0 KiB / token</text>
+  <rect x="208" y="332" width="312" height="32" rx="5" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="1.3"/>
+  <text x="364" y="353" text-anchor="middle" font-size="14" font-weight="700" fill="#1E40AF">Qwen3-8B（8 KV 头）：144.0 KiB / tok</text>
 
-  <rect x="212" y="320" width="208" height="26" rx="4" fill="#CCFBF1" stroke="#0F766E" stroke-width="1.4"/>
-  <text x="316" y="338" text-anchor="middle" font-size="12" font-weight="700" fill="#0F766E">30B-A3B：96.0 KiB / token</text>
-  <text x="432" y="338" font-size="12" font-weight="700" fill="#0F766E">◀ 多 12 层但 KV 头减半（4 个），反省 1/3 缓存！</text>
+  <rect x="208" y="374" width="208" height="32" rx="5" fill="#CCFBF1" stroke="#0F766E" stroke-width="1.4"/>
+  <text x="312" y="395" text-anchor="middle" font-size="14" font-weight="700" fill="#0F766E">30B-A3B：96.0 KiB</text>
+  <text x="428" y="395" font-size="14" font-weight="700" fill="#0F766E">◀ 48 层仅 4 KV 头，缓存省 1/3！</text>
 </svg>

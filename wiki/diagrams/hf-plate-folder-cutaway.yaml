@@ -1,0 +1,23 @@
+mode: native-svg
+id: hf-plate-folder-cutaway
+caption: HuggingFace 模型目录立体拆解剖面：轻量 JSON 配置蓝图与数十 GiB safetensors 权重金库的空间分工。
+size: [900, 660]
+pins:
+  - source: 'vllm@ced6857a:vllm/transformers_utils/config.py#L757-L860'
+    symbols: ['get_config', 'architectures', 'model_type']
+  - source: 'vllm@ced6857a:vllm/transformers_utils/config.py#L1138-L1182'
+    symbols: ['get_hf_text_config', 'try_get_generation_config', 'text_config']
+  - source: 'vllm@ced6857a:vllm/transformers_utils/model_arch_config_convertor.py#L10-L114'
+    symbols: ['ModelArchitectureConfig', 'ModelArchConfigConvertorBase', 'get_head_size']
+  - source: 'vllm@ced6857a:vllm/renderers/hf.py#L263-L315'
+    symbols: ['resolve_chat_template']
+  - source: 'vllm@ced6857a:vllm/config/model.py#L2393-L2425'
+    symbols: ['_get_and_verify_max_len', 'model_max_length']
+  - source: 'vllm@ced6857a:vllm/model_executor/model_loader/default_loader.py#L43-L60'
+    symbols: ['DefaultModelLoader']
+  - source: 'vllm@ced6857a:vllm/model_executor/model_loader/weight_utils.py#L610-L637'
+    symbols: ['filter_duplicate_safetensors_files', 'weight_map']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/quantization/utils.py#L134-L215'
+    symbols: ['detect_quantization_method', 'maybe_auto_detect_quantization']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/fp8_config.py#L27-L60'
+    symbols: ['AscendFp8Config', 'weight_block_size', 'NotImplementedError']

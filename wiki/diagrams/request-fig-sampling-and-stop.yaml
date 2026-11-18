@@ -1,7 +1,7 @@
 mode: native-svg
 id: request-fig-sampling-and-stop
 caption: 示意：左栏对比贪心采样（T=0 必选最高分 +2.1 的 3 号「猫」）与随机采样（T=1 经 Softmax 得猫 52.3% / 。17.4% / 看 14.3% 概率分布并配合 top-k/top-p 抽签）；右栏展示第 4 件事 check_stop 双停止闸门及为何 4 词成文「我喜欢猫。」在 KV cache 里只留 3 个位置。
-size: [900, 305]
+size: [900, 620]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/sample/sampler.py#L244-L304'
     symbols: ['sample', 'greedy_sample', 'apply_temperature', 'topk_topp_sampler']

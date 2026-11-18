@@ -1,7 +1,7 @@
 mode: native-svg
 id: onboarding-four-gates
 caption: 昇腾新模型上线四道关全景：五维版本与卡型锁死、52 篇食谱去伪存真、三路 ModelRegistry 解析与四类权重代际分流
-size: [900, 360]
+size: [900, 520]
 pins:
   - source: "vllm-ascend@c09d3e20:vllm_ascend/device/device_config.py#L65-L77"
     symbols:

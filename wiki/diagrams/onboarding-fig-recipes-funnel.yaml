@@ -1,7 +1,7 @@
 mode: native-svg
 id: onboarding-fig-recipes-funnel
 caption: v0.30.0 模型教程 52 篇筛选漏斗：剔除 27 篇 3 行停服桩、分清 20+5 活跃食谱与 GLM5.md 同文件分叉陷阱
-size: [900, 390]
+size: [900, 500]
 pins:
   - source: "vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.md#L1-L15"
     symbols:

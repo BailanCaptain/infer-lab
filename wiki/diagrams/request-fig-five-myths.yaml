@@ -1,7 +1,7 @@
 mode: native-svg
 id: request-fig-five-myths
 caption: 示意：一次请求全流程五大高频误解与真实机制对照。涵盖 Prefill 末位直接产出首词、真实子词切分与浮点嵌入、Decode 只送新词复用 KV cache、贪心与随机采样差异，以及末个停止词不进下一轮故 KV 位置数少 1。
-size: [900, 316]
+size: [900, 496]
 pins:
   - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1638-L1680'
     symbols: ['logits_indices', 'query_start_loc']

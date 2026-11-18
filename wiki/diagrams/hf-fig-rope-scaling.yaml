@@ -1,7 +1,7 @@
 mode: native-svg
 id: hf-fig-rope-scaling
 caption: rope_scaling 在 vllm _get_and_verify_max_len 中的两类家族缩放分流与 longrope 短上下文回退保护。
-size: [900, 268]
+size: [900, 330]
 pins:
   - source: 'vllm@ced6857a:vllm/config/model.py#L2393-L2512'
     symbols: ['_get_and_verify_max_len', 'max_position_embeddings', 'rope_parameters', 'longrope', 'original_max_position_embeddings']

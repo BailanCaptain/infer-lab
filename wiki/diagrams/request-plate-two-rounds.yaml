@@ -1,7 +1,7 @@
 mode: native-svg
 id: request-plate-two-rounds
 caption: 示意：提示词「我喜欢」经两轮四步生成「猫。」的立体拆解剖面。第 1 轮（Prefill）并行送入 [0, 2] 写下 k₀, v₀, k₁, v₁，直接由末行 h₁ 乘 W_head 选出首词 3 号「猫」；第 2 轮（Decode）只送 3 号 1 个新位置，复用旧 KV 追加 k₂, v₂，选出 5 号「。」满 max_tokens=2 当场停机。
-size: [900, 620]
+size: [900, 660]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L589-L620'
     symbols: ['step', 'execute_model']

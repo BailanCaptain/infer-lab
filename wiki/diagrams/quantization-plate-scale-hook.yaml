@@ -2,7 +2,7 @@ mode: native-svg
 id: quantization-plate-scale-hook
 caption: >-
   W8A8 量化立体拆解直觉：左侧 BF16 浮点张量（2 B/元素）经共用缩放系数 scale 除以 s 并四舍五入，压入右侧 -128..127 的 INT8 整数格（1 B/元素，存储减半）；超出上限的离群值在 127 CLIP 处被硬截断，矩阵乘累加器、scale 与层间残差仍保高精度。
-size: [900, 570]
+size: [900, 636]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L80-L93
     symbols: [weight, weight_scale, weight_offset]

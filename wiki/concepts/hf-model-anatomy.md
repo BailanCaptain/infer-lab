@@ -86,7 +86,13 @@ updated: '2026-11-18'
 
 ## 模型目录文件地图：启动时谁读哪份文件
 
-走进一个标准的 HuggingFace 模型目录，真正决定推理行为的文件可以归为五类。其中除权重分片外，其余文件都可以直接用文本编辑器或 `json.tool` 读懂；下图以立体拆解剖面配合引线直标，把目录树里的五类文件、启动阶段负责读取它们的 `vllm` / `vllm-ascend` 入口，以及四处最容易踩中的隐形坑对应到同一张视图上：
+走进一个标准的 HuggingFace 模型目录，真正决定推理行为的文件可以归为五类：最外层是几份不到几 MB、用文本编辑器就能直接读懂的 JSON 与 Jinja「建筑蓝图」，深处则是装满几十 GiB 浮点或量化张量的 `.safetensors`「权重金库」与分片索引。先通过立体拆解剖面建立五类文件的物理空间直觉：
+
+```wiki-diagram
+file: hf-plate-folder-cutaway
+```
+
+对照上面的物理拆解，再把五类文件名精确落到 `vllm` 与 `vllm-ascend` 启动代码里的读取函数与四处常见报错分支上：
 
 ```wiki-diagram
 file: hf-directory-file-map
@@ -196,6 +202,12 @@ file: hf-fig-dtype-and-quant
 ```
 
 ### 完整算账对照：Qwen3-8B vs Qwen3-30B-A3B
+
+在把全部字段拼成总账之前，先把 `Qwen3-30B-A3B` 的整座前向通道剖开，和 `Qwen3-8B` 做一次空间对照——一个 token 从首端 `EMBED` 进入，穿过显式 `head_dim = 128` 的 `32Q:4KV` 分组注意力抽屉后，由 `ROUTER` 在 `128` 间常驻显存的专家机房里单步仅点亮 `8` 间活跃机房，最后送入独立 `LM_HEAD`：
+
+```wiki-diagram
+file: hf-plate-moe-cutaway
+```
 
 把上面所有字段拼回整张表，对照本站单真源模型解析规格（按 `config.json` 形状静态推导，假设全部权重和 KV cache 均按 BF16 的每参数 2 字节存储，尚未计入前向激活、算子工作区与 CANN 运行时额外占用的显存），三个预设模型的账目如下：
 

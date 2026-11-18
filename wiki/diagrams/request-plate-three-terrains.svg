@@ -1,128 +1,98 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 510" width="900" height="510" role="img" aria-label="示意：一条请求在「Host CPU 前台与调度员 — NPU HBM 显存高速仓库 — NPU AI Core 矩阵计算车间」三块硬件地盘上的立体拆解分工，以及 Prefill（搬 1 次权重算整段、AI Core 算力受限）与 Decode（每步只算 1 词却照搬全套权重+历史 KV、HBM 带宽受限）的瓶颈对照。">
-  <title>示意：一条请求在「Host CPU 前台与调度员 — NPU HBM 显存高速仓库 — NPU AI Core 矩阵计算车间」三块硬件地盘上的立体拆解分工，以及 Prefill（搬 1 次权重算整段、AI Core 算力受限）与 Decode（每步只算 1 词却照搬全套权重+历史 KV、HBM 带宽受限）的瓶颈对照。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="示意：一条请求在「Host CPU 前台与调度员 — NPU HBM 显存高速仓库 — NPU AI Core 矩阵计算车间」三块硬件地盘上的立体拆解剖面与跨芯片数据接力。">
+  <title>示意：一条请求在「Host CPU 前台与调度员 — NPU HBM 显存高速仓库 — NPU AI Core 矩阵计算车间」三块硬件地盘上的立体拆解剖面与跨芯片数据接力。</title>
   <desc>三块硬件地盘源码锚点：Host CPU 执行 EngineCore.step、Scheduler.schedule（num_computed_tokens）以及 Detokenizer.update / decode_next；NPU HBM 与 AI Core 执行 execute_model、kv_cache / attn_metadata 读写及 logits_indices / compute_logits 打分采样。</desc>
 
   <!-- Tight-cropped panoramic 3D cutaway spanning 860px across open canvas -->
-  <image href="./wiki-illustrations/request-three-terrains-cutaway.webp" x="20" y="96" width="860" height="242" preserveAspectRatio="xMidYMid meet"/>
+  <image href="./wiki-illustrations/request-three-terrains-cutaway.webp" x="20" y="116" width="860" height="242" preserveAspectRatio="xMidYMid meet"/>
 
   <!-- ==================== CRISP LEADER LINES & RING DOTS ==================== -->
-  <!-- 1: Host CPU island (routes cleanly left of built-in HOST CPU label) -->
-  <path d="M 104 74 L 104 148 L 162 204" fill="none" stroke="#475569" stroke-width="1.6"/>
-  <circle cx="162" cy="204" r="5.5" fill="#FFFFFF" stroke="#475569" stroke-width="2"/>
-  <circle cx="162" cy="204" r="2.5" fill="#475569"/>
+  <!-- 1: Host CPU island -->
+  <path d="M 104 90 L 104 168 L 162 224" fill="none" stroke="#475569" stroke-width="1.8"/>
+  <circle cx="162" cy="224" r="5.5" fill="#FFFFFF" stroke="#475569" stroke-width="2"/>
+  <circle cx="162" cy="224" r="2.5" fill="#475569"/>
 
-  <!-- 2: HBM read-only orange weight racks + dynamic blue KV cache trays (straddling HBM label) -->
-  <path d="M 394 74 L 394 169" fill="none" stroke="#B45309" stroke-width="1.6"/>
-  <circle cx="394" cy="169" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
-  <circle cx="394" cy="169" r="2.5" fill="#B45309"/>
+  <!-- 2: HBM read-only orange weight racks + dynamic blue KV cache trays -->
+  <path d="M 394 90 L 394 189" fill="none" stroke="#B45309" stroke-width="1.8"/>
+  <circle cx="394" cy="189" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
+  <circle cx="394" cy="189" r="2.5" fill="#B45309"/>
 
-  <path d="M 497 74 L 497 169" fill="none" stroke="#2563EB" stroke-width="1.6"/>
-  <circle cx="497" cy="169" r="5.5" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
-  <circle cx="497" cy="169" r="2.5" fill="#2563EB"/>
+  <path d="M 497 90 L 497 189" fill="none" stroke="#2563EB" stroke-width="1.8"/>
+  <circle cx="497" cy="189" r="5.5" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
+  <circle cx="497" cy="189" r="2.5" fill="#2563EB"/>
 
-  <!-- 3: AI Core 3x3 compute array (routes cleanly right of built-in AI CORE label) -->
-  <path d="M 789 74 L 789 164" fill="none" stroke="#087F73" stroke-width="1.6"/>
-  <circle cx="789" cy="164" r="5.5" fill="#FFFFFF" stroke="#087F73" stroke-width="2"/>
-  <circle cx="789" cy="164" r="2.5" fill="#087F73"/>
+  <!-- 3: AI Core 3x3 compute array -->
+  <path d="M 789 90 L 789 184" fill="none" stroke="#087F73" stroke-width="1.8"/>
+  <circle cx="789" cy="184" r="5.5" fill="#FFFFFF" stroke="#087F73" stroke-width="2"/>
+  <circle cx="789" cy="184" r="2.5" fill="#087F73"/>
 
   <!-- 4: Host <-> NPU command & token return bridge -->
-  <path d="M 296 346 L 296 227" fill="none" stroke="#4338CA" stroke-width="1.6"/>
-  <circle cx="296" cy="227" r="5.5" fill="#FFFFFF" stroke="#4338CA" stroke-width="2"/>
-  <circle cx="296" cy="227" r="2.5" fill="#4338CA"/>
+  <path d="M 296 368 L 296 247" fill="none" stroke="#4338CA" stroke-width="1.8"/>
+  <circle cx="296" cy="247" r="5.5" fill="#FFFFFF" stroke="#4338CA" stroke-width="2"/>
+  <circle cx="296" cy="247" r="2.5" fill="#4338CA"/>
 
   <!-- 5: HBM <-> AI Core high-bandwidth transfer lanes -->
-  <path d="M 566 346 L 566 268" fill="none" stroke="#2563EB" stroke-width="1.6"/>
-  <circle cx="566" cy="268" r="5.5" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
-  <circle cx="566" cy="268" r="2.5" fill="#2563EB"/>
+  <path d="M 566 368 L 566 288" fill="none" stroke="#2563EB" stroke-width="1.8"/>
+  <circle cx="566" cy="288" r="5.5" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
+  <circle cx="566" cy="288" r="2.5" fill="#2563EB"/>
 
   <!-- 6: Sampled output token #3 exiting AI Core -->
-  <path d="M 824 346 L 852 224" fill="none" stroke="#B45309" stroke-width="1.6"/>
-  <circle cx="852" cy="224" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
-  <circle cx="852" cy="224" r="2.5" fill="#B45309"/>
+  <path d="M 824 368 L 852 244" fill="none" stroke="#B45309" stroke-width="1.8"/>
+  <circle cx="852" cy="244" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
+  <circle cx="852" cy="244" r="2.5" fill="#B45309"/>
 
   <!-- ==================== TOP OPEN TYPOGRAPHIC ANNOTATIONS ==================== -->
   <!-- Callout 1: Top-Left -->
   <g>
-    <circle cx="27" cy="22" r="11" fill="#475569"/>
-    <text x="27" y="26.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">1</text>
-    <text x="45" y="27" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#17211F">Host CPU 前台：切号与调度</text>
-    <text x="45" y="47" font-family="var(--font-sans)" font-size="11.5" fill="#475569">第 1 件事模板分词与越界校验；维护</text>
-    <text x="45" y="65" font-family="var(--font-sans)" font-size="11.5" fill="#475569">num_computed_tokens 指派本轮位置</text>
+    <circle cx="26" cy="24" r="12" fill="#475569"/>
+    <text x="26" y="28.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#FFFFFF">1</text>
+    <text x="45" y="29" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211F">Host CPU 前台：切号与调度</text>
+    <text x="45" y="53" font-family="var(--font-sans)" font-size="13.5" fill="#475569">第 1 件事模板分词与越界校验</text>
+    <text x="45" y="75" font-family="var(--font-sans)" font-size="13.5" fill="#475569">维护 num_computed_tokens 进度</text>
   </g>
 
   <!-- Callout 2: Top-Center -->
   <g>
-    <circle cx="323" cy="22" r="11" fill="#2563EB"/>
-    <text x="323" y="26.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">2</text>
-    <text x="341" y="27" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#17211F">NPU HBM 仓库：只读权重 + KV</text>
-    <text x="341" y="47" font-family="var(--font-sans)" font-size="11.5" fill="#475569">橙柜常驻嵌入表 E、层权重与 W_head；</text>
-    <text x="341" y="65" font-family="var(--font-sans)" font-size="11.5" fill="#475569">蓝盘按轮读写追加 kv_cache 历史状态</text>
+    <circle cx="322" cy="24" r="12" fill="#2563EB"/>
+    <text x="322" y="28.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="341" y="29" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211F">HBM 高速仓库：只读权重 + KV</text>
+    <text x="341" y="53" font-family="var(--font-sans)" font-size="13.5" fill="#475569">橙柜常驻嵌入表 E、层权重与 W_head</text>
+    <text x="341" y="75" font-family="var(--font-sans)" font-size="13.5" fill="#475569">蓝盘按轮读写追加 kv_cache 历史</text>
   </g>
 
   <!-- Callout 3: Top-Right -->
   <g>
-    <circle cx="619" cy="22" r="11" fill="#087F73"/>
-    <text x="619" y="26.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">3</text>
-    <text x="637" y="27" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#17211F">AI Core 车间：矩阵乘与选号</text>
-    <text x="637" y="47" font-family="var(--font-sans)" font-size="11.5" fill="#475569">第 2 件事 Attention 点积、Softmax、MLP</text>
-    <text x="637" y="65" font-family="var(--font-sans)" font-size="11.5" fill="#475569">及第 3 件事末行 h × W_head 打分采样</text>
+    <circle cx="618" cy="24" r="12" fill="#087F73"/>
+    <text x="618" y="28.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#FFFFFF">3</text>
+    <text x="637" y="29" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211F">AI Core 车间：矩阵乘与选号</text>
+    <text x="637" y="53" font-family="var(--font-sans)" font-size="13.5" fill="#475569">第 2 件事 Attention、Softmax、MLP</text>
+    <text x="637" y="75" font-family="var(--font-sans)" font-size="13.5" fill="#475569">第 3 件事末行 h × W_head 打分</text>
   </g>
 
-  <!-- ==================== LOWER CALLOUT ANNOTATIONS (y=350..410) ==================== -->
-  <!-- Callout 4: Lower-Left -->
+  <!-- ==================== BOTTOM OPEN TYPOGRAPHIC ANNOTATIONS ==================== -->
+  <!-- Callout 4: Bottom-Left -->
   <g>
-    <circle cx="27" cy="360" r="11" fill="#4338CA"/>
-    <text x="27" y="364.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">4</text>
-    <text x="45" y="365" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#17211F">第 4 件事回落 Host：判停与转文字</text>
-    <text x="45" y="384" font-family="var(--font-sans)" font-size="11.5" fill="#475569">check_stop 判停 + 反分词还原；CPU 慢</text>
-    <text x="45" y="401" font-family="var(--font-sans)" font-size="11.5" fill="#475569">会让 NPU 计算核心空等下一批指令</text>
+    <circle cx="26" cy="388" r="12" fill="#4338CA"/>
+    <text x="26" y="392.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#FFFFFF">4</text>
+    <text x="45" y="393" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211F">第 4 件事回 Host：判停与还原</text>
+    <text x="45" y="417" font-family="var(--font-sans)" font-size="13.5" fill="#475569">check_stop 判停并增量转回文字</text>
+    <text x="45" y="439" font-family="var(--font-sans)" font-size="13.5" fill="#475569">CPU 过慢会让 NPU 核心空等指令</text>
   </g>
 
-  <!-- Callout 5: Lower-Center -->
+  <!-- Callout 5: Bottom-Center -->
   <g>
-    <circle cx="323" cy="360" r="11" fill="#2563EB"/>
-    <text x="323" y="364.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">5</text>
-    <text x="341" y="365" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#17211F">HBM ↔ AI Core 高速搬运通道</text>
-    <text x="341" y="384" font-family="var(--font-sans)" font-size="11.5" fill="#475569">每轮搬运常驻层权重（橙块）与历史 KV；</text>
-    <text x="341" y="401" font-family="var(--font-sans)" font-size="11.5" fill="#475569">容量限并发数，搬运带宽卡逐词吐字速度</text>
+    <circle cx="322" cy="388" r="12" fill="#2563EB"/>
+    <text x="322" y="392.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#FFFFFF">5</text>
+    <text x="341" y="393" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211F">HBM ↔ AI Core 高速搬运通道</text>
+    <text x="341" y="417" font-family="var(--font-sans)" font-size="13.5" fill="#475569">每轮搬运常驻层权重与历史 KV</text>
+    <text x="341" y="439" font-family="var(--font-sans)" font-size="13.5" fill="#475569">容量限并发，带宽卡逐词吐字速度</text>
   </g>
 
-  <!-- Callout 6: Lower-Right -->
+  <!-- Callout 6: Bottom-Right -->
   <g>
-    <circle cx="619" cy="360" r="11" fill="#B45309"/>
-    <text x="619" y="364.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">6</text>
-    <text x="637" y="365" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#17211F">产出新词 #3 回传主循环</text>
-    <text x="637" y="384" font-family="var(--font-sans)" font-size="11.5" fill="#475569">compute_logits 与采样选出整数编号 #3，</text>
-    <text x="637" y="401" font-family="var(--font-sans)" font-size="11.5" fill="#475569">回交 Host 决定停止或进入下一轮 Decode</text>
-  </g>
-
-  <!-- ==================== OPEN PREFILL VS DECODE BOTTLENECK STRIP ==================== -->
-  <line x1="20" y1="418" x2="880" y2="418" stroke="#CBD5E1" stroke-width="1.2" stroke-dasharray="6 5"/>
-  <line x1="450" y1="428" x2="450" y2="500" stroke="#CBD5E1" stroke-width="1.2" stroke-dasharray="6 5"/>
-
-  <!-- Left Column: Prefill (Compute-bound) -->
-  <g>
-    <rect x="20" y="430" width="4" height="66" rx="2" fill="#D97706"/>
-    <text x="34" y="446" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#92400E">第 1 轮 Prefill · 算力受限（Compute-bound）</text>
-    <rect x="374" y="435" width="11" height="11" rx="2" fill="#D97706"/>
-    <rect x="388" y="435" width="11" height="11" rx="2" fill="#D97706"/>
-    <rect x="402" y="435" width="11" height="11" rx="2" fill="#D97706"/>
-    <rect x="416" y="435" width="11" height="11" rx="2" fill="#D97706"/>
-    <rect x="430" y="435" width="11" height="11" rx="2" fill="#D97706"/>
-    <text x="34" y="470" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#17211F">搬 1 次权重，整段提示词所有位置一起并行乘加</text>
-    <text x="34" y="491" font-family="var(--font-sans)" font-size="12" fill="#475569">大矩阵乘密集 → AI Core 乘加单元持续满载，重点拼车间算力</text>
-  </g>
-
-  <!-- Right Column: Decode (Memory-bound) -->
-  <g>
-    <rect x="466" y="430" width="4" height="66" rx="2" fill="#2563EB"/>
-    <text x="480" y="446" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#1E40AF">第 2 轮+ Decode · 带宽受限（Memory-bound）</text>
-    <rect x="810" y="435" width="11" height="11" rx="2" fill="#2563EB"/>
-    <rect x="824" y="435" width="11" height="11" rx="2" fill="#2563EB"/>
-    <rect x="838" y="435" width="11" height="11" rx="2" fill="#2563EB"/>
-    <rect x="852" y="435" width="11" height="11" rx="2" fill="#2563EB"/>
-    <rect x="866" y="435" width="11" height="11" rx="2" fill="#2563EB"/>
-    <text x="480" y="470" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#17211F">每步只算 1 个新词，却照搬整份层权重 + 全部历史 KV</text>
-    <text x="480" y="491" font-family="var(--font-sans)" font-size="12" fill="#475569">车间算得极快却常等仓库送货 → 重点卡在 HBM 显存带宽</text>
+    <circle cx="618" cy="388" r="12" fill="#B45309"/>
+    <text x="618" y="392.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#FFFFFF">6</text>
+    <text x="637" y="393" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211F">产出新词 #3 回传主循环</text>
+    <text x="637" y="417" font-family="var(--font-sans)" font-size="13.5" fill="#475569">compute_logits 与采样选出编号 #3</text>
+    <text x="637" y="439" font-family="var(--font-sans)" font-size="13.5" fill="#475569">回交 Host 判停或进入下轮 Decode</text>
   </g>
 </svg>

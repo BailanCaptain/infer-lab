@@ -1,62 +1,62 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 585" width="900" height="585" role="img" aria-label="权重探测与硬件代际转换拆解剖面与开放式中文引线直标图" font-family="var(--font-sans)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 646" width="900" height="646" role="img" aria-label="权重探测与硬件代际转换拆解剖面与开放式中文引线直标图" font-family="var(--font-sans)">
   <title>权重探测与硬件代际转换拆解剖面：四级自动探测优先级、950DT 重排 MXFP8、A2/A3 静默反量化翻倍与 310P 限制</title>
   <desc>开放画布呈现权重探测与硬件代际分流立体剖面：左侧扫描门对应 maybe_auto_detect_quantization（ASCEND_QUANTIZATION_METHOD、COMPRESSED_TENSORS_METHOD、FP8_METHOD）；右上支路对应 is_950 下 AscendW8A8MXFP8DynamicLinearMethod 在 process_weights_after_loading 调用 _mx_quantize（跳过 kv_b_proj）；右中路障对应 310P 属 QuantizationBackendFamily.COMPATIBILITY（仅注册 AscendModelSlimConfig310，不似 STANDARD 注册 AscendFp8Config）；右下对应 A2/A3 调用 resolve_block_scales 静默反量化回 BF16（显存翻倍 2×）。</desc>
 
   <!-- Large 820px Tight-Cropped Transparent Cutaway Illustration -->
-  <image href="./wiki-illustrations/onboarding-weight-fork-cutaway.webp" x="40" y="92" width="820" height="411" preserveAspectRatio="xMidYMid meet"/>
+  <image href="./wiki-illustrations/onboarding-weight-fork-cutaway.webp" x="40" y="120" width="820" height="411" preserveAspectRatio="xMidYMid meet"/>
 
   <!-- Leader Lines & Ring Target Dots -->
   <!-- 1: 4-Tier Isometric Scanner -->
-  <line x1="210" y1="78" x2="253" y2="256" stroke="#1D4ED8" stroke-width="1.6"/>
-  <circle cx="253" cy="256" r="5.5" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
-  <circle cx="253" cy="256" r="2.5" fill="#1D4ED8"/>
+  <line x1="210" y1="100" x2="253" y2="284" stroke="#1D4ED8" stroke-width="1.8"/>
+  <circle cx="253" cy="284" r="6" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
+  <circle cx="253" cy="284" r="2.8" fill="#1D4ED8"/>
 
   <!-- 2: 950DT -> MXFP8 30GB Branch -->
-  <line x1="650" y1="78" x2="680" y2="166" stroke="#0F766E" stroke-width="1.6"/>
-  <circle cx="680" cy="166" r="5.5" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
-  <circle cx="680" cy="166" r="2.5" fill="#0F766E"/>
+  <line x1="655" y1="100" x2="680" y2="194" stroke="#0F766E" stroke-width="1.8"/>
+  <circle cx="680" cy="194" r="6" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
+  <circle cx="680" cy="194" r="2.8" fill="#0F766E"/>
 
   <!-- 3: 310P Red Barrier Gate -->
-  <line x1="275" y1="516" x2="663" y2="273" stroke="#B45309" stroke-width="1.6"/>
-  <circle cx="663" cy="273" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
-  <circle cx="663" cy="273" r="2.5" fill="#B45309"/>
+  <line x1="275" y1="544" x2="663" y2="301" stroke="#B45309" stroke-width="1.8"/>
+  <circle cx="663" cy="301" r="6" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
+  <circle cx="663" cy="301" r="2.8" fill="#B45309"/>
 
   <!-- 4: A2/A3 -> BF16 60GB (2X) Expansion Block -->
-  <line x1="688" y1="516" x2="688" y2="402" stroke="#BE123C" stroke-width="1.8"/>
-  <circle cx="688" cy="402" r="6" fill="#FFFFFF" stroke="#BE123C" stroke-width="2"/>
-  <circle cx="688" cy="402" r="2.8" fill="#BE123C"/>
+  <line x1="688" y1="544" x2="688" y2="430" stroke="#BE123C" stroke-width="2"/>
+  <circle cx="688" cy="430" r="6.5" fill="#FFFFFF" stroke="#BE123C" stroke-width="2"/>
+  <circle cx="688" cy="430" r="3" fill="#BE123C"/>
 
   <!-- Top Open Band: 2 Wide Borderless Callouts -->
   <g>
-    <circle cx="27" cy="24" r="11" fill="#1D4ED8"/>
-    <text x="27" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">1</text>
-    <text x="44" y="29" font-size="13" font-weight="700" fill="#17211f">四级自动探测门：maybe_auto_detect_quantization</text>
-    <text x="16" y="49" font-size="11.5" fill="#475569">优先级：ModelSlim (ascend) → compressed-tensors → 原生分块 fp8 → 原始浮点</text>
-    <text x="16" y="66" font-size="11.5" fill="#1E40AF" font-weight="600">目录含 quant_model_description.json 时无需手写 --quantization 亦自动命中 ascend</text>
+    <circle cx="26" cy="28" r="12" fill="#1D4ED8"/>
+    <text x="26" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">1</text>
+    <text x="46" y="34" font-size="15" font-weight="700" fill="#17211f">四级探测：<tspan font-family="var(--font-mono)" font-size="14">maybe_auto_detect_quantization</tspan></text>
+    <text x="14" y="62" font-size="14" fill="#475569">顺序：<tspan font-family="var(--font-mono)" font-weight="600">ascend → compressed-tensors → fp8</tspan> → 浮点</text>
+    <text x="14" y="88" font-size="13.5" font-weight="600" fill="#1E40AF">含 <tspan font-family="var(--font-mono)">quant_model_description.json</tspan> 自动命中 ascend</text>
   </g>
 
   <g>
-    <circle cx="515" cy="24" r="11" fill="#0F766E"/>
-    <text x="515" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">2</text>
-    <text x="532" y="29" font-size="13" font-weight="700" fill="#17211f">950DT (is_950) 分支：在线重组为 MXFP8 硬件格式</text>
-    <text x="504" y="49" font-size="11.5" fill="#065F46" font-weight="600">调用 _mx_quantize 保持 ~1 B/参数（30B 约 30 GB 真正省半）</text>
-    <text x="504" y="66" font-size="11.5" fill="#475569">仅 kv_b_proj 与非 32 倍数维度层自动回退高精度浮点</text>
+    <circle cx="478" cy="28" r="12" fill="#0F766E"/>
+    <text x="478" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="498" y="34" font-size="15" font-weight="700" fill="#17211f">950DT (<tspan font-family="var(--font-mono)" font-size="14">is_950</tspan>)：在线重排 MXFP8</text>
+    <text x="466" y="62" font-size="14" font-weight="700" fill="#065F46">调 <tspan font-family="var(--font-mono)">_mx_quantize</tspan> 保 ~1 B/参数（30B 约 30 GB）</text>
+    <text x="466" y="88" font-size="13.5" fill="#475569">仅 <tspan font-family="var(--font-mono)">kv_b_proj</tspan> 与非 32 倍数层回退浮点</text>
   </g>
 
   <!-- Bottom Open Band: 2 Wide Borderless Callouts -->
   <g>
-    <circle cx="27" cy="530" r="11" fill="#B45309"/>
-    <text x="27" y="534" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">3</text>
-    <text x="44" y="535" font-size="13" font-weight="700" fill="#92400E">310P (COMPATIBILITY 后端)：拦截原生 FP8</text>
-    <text x="16" y="555" font-size="11.5" fill="#475569">310P 仅注册 AscendModelSlimConfig310，不注册 AscendFp8Config</text>
-    <text x="16" y="572" font-size="11.5" font-weight="600" fill="#B45309">浮点必传 --dtype float16；量化须选 310P 专属 W8A8 包</text>
+    <circle cx="26" cy="562" r="12" fill="#B45309"/>
+    <text x="26" y="566.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">3</text>
+    <text x="46" y="568" font-size="15" font-weight="700" fill="#92400E">310P (<tspan font-family="var(--font-mono)" font-size="14">COMPATIBILITY</tspan>)：拦截原生 FP8</text>
+    <text x="14" y="596" font-size="13.5" fill="#475569">仅注册 <tspan font-family="var(--font-mono)">ModelSlimConfig310</tspan>，不注册 <tspan font-family="var(--font-mono)">Fp8Config</tspan></text>
+    <text x="14" y="622" font-size="14" font-weight="600" fill="#B45309">浮点必传 <tspan font-family="var(--font-mono)">--dtype float16</tspan> 或选 <tspan font-family="var(--font-mono)">W8A8-310P</tspan></text>
   </g>
 
   <g>
-    <circle cx="465" cy="530" r="11" fill="#BE123C"/>
-    <text x="465" y="534" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">4</text>
-    <text x="482" y="535" font-size="13" font-weight="700" fill="#881337">Atlas A2 / A3 显存翻倍坑：静默反量化回 BF16 (2×)！</text>
-    <text x="454" y="555" font-size="11.5" font-weight="700" fill="#BE123C">v0.30.0 调 resolve_block_scales() 展开为 BF16（30 GB → 60 GB 驻留）</text>
-    <text x="454" y="572" font-size="11.5" fill="#475569">在 A2 / A3 上真省一半显存，请直接选社区昇腾版 W8A8 / W4A8 权重</text>
+    <circle cx="478" cy="562" r="12" fill="#BE123C"/>
+    <text x="478" y="566.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFFFFF">4</text>
+    <text x="498" y="568" font-size="15" font-weight="700" fill="#881337">A2 / A3 显存翻倍坑：静默反量化回 BF16 (2×)</text>
+    <text x="466" y="596" font-size="14" font-weight="700" fill="#BE123C">调 <tspan font-family="var(--font-mono)">resolve_block_scales()</tspan> 展开为 60 GB 驻留</text>
+    <text x="466" y="622" font-size="13.5" fill="#475569">真省一半显存请选社区昇腾版 <tspan font-family="var(--font-mono)" font-weight="600">W8A8 / W4A8</tspan> 权重</text>
   </g>
 </svg>

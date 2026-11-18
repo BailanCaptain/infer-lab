@@ -1,107 +1,97 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 615" width="900" height="615" role="img" aria-label="HuggingFace 模型目录五类文件拆解剖面与开放式引线直标图" font-family="var(--font-sans)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430" width="900" height="430" role="img" aria-label="HuggingFace 模型目录五类文件在 vllm 与 vllm-ascend 启动期的读取入口及四处常见隐形坑点对照。" font-family="var(--font-sans)">
   <title>HuggingFace 模型目录五类文件在 vllm 与 vllm-ascend 启动期的读取入口及四处常见隐形坑点对照。</title>
-  <desc>开放画布拆解 HuggingFace 目录五类文件与源码入口：get_config 读取 config.json 的 architectures 与 model_type，get_hf_text_config 解包 text_config 并由 ModelArchitectureConfig 与 ModelArchConfigConvertorBase.get_head_size 转换；resolve_chat_template 与 _get_and_verify_max_len 读取 tokenizer_config.json 及 model_max_length；try_get_generation_config 读取 generation_config.json；maybe_auto_detect_quantization、detect_quantization_method 与 AscendFp8Config 检查 weight_block_size（不满足抛 NotImplementedError）；DefaultModelLoader 与 filter_duplicate_safetensors_files 按 weight_map 加载权重分片。</desc>
+  <desc>五类目录文件读取映射：1. get_config 与 ModelArchitectureConfig（ModelArchConfigConvertorBase.get_head_size）读取 config.json；2. resolve_chat_template 与 _get_and_verify_max_len 读取 tokenizer_config.json 及 model_max_length；3. DefaultModelLoader 与 filter_duplicate_safetensors_files 按 weight_map 加载权重分片；4. try_get_generation_config 读取 generation_config.json；5. maybe_auto_detect_quantization 与 detect_quantization_method 识别量化配置。</desc>
+  <defs>
+    <marker id="ahInk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M0,1 L9,5 L0,9 z" fill="#475569"/>
+    </marker>
+    <marker id="ahDanger" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M0,1 L9,5 L0,9 z" fill="#BE123C"/>
+    </marker>
+    <marker id="ahWeight" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M0,1 L9,5 L0,9 z" fill="#B45309"/>
+    </marker>
+    <marker id="ahComm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M0,1 L9,5 L0,9 z" fill="#7C3AED"/>
+    </marker>
+  </defs>
 
-  <!-- Large Tight-Cropped Transparent Cutaway Illustration -->
-  <image href="./wiki-illustrations/hf-folder-cutaway.webp" x="175" y="88" width="550" height="438" preserveAspectRatio="xMidYMid meet"/>
-
-  <!-- Leader Lines & Clean Ring Target Dots -->
-  <!-- 1: Blue JSON Blueprint Folder (normX=0.17, normY=0.40 -> 269, 263) -->
-  <line x1="188" y1="166" x2="269" y2="263" stroke="#1D4ED8" stroke-width="1.6"/>
-  <circle cx="269" cy="263" r="5.5" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
-  <circle cx="269" cy="263" r="2.5" fill="#1D4ED8"/>
-
-  <!-- 2: Teal TOKEN Card (normX=0.245, normY=0.295 -> 310, 217) -->
-  <line x1="242" y1="76" x2="310" y2="217" stroke="#BE123C" stroke-width="1.6"/>
-  <circle cx="310" cy="217" r="5.5" fill="#FFFFFF" stroke="#BE123C" stroke-width="2"/>
-  <circle cx="310" cy="217" r="2.5" fill="#BE123C"/>
-
-  <!-- 3: Purple GEN Dial Card (normX=0.325, normY=0.235 -> 354, 191) -->
-  <line x1="385" y1="76" x2="354" y2="191" stroke="#7C3AED" stroke-width="1.6"/>
-  <circle cx="354" cy="191" r="5.5" fill="#FFFFFF" stroke="#7C3AED" stroke-width="2"/>
-  <circle cx="354" cy="191" r="2.5" fill="#7C3AED"/>
-
-  <!-- 4: Amber QUANT Gauge Folder (normX=0.415, normY=0.175 -> 403, 165) -->
-  <line x1="618" y1="76" x2="403" y2="165" stroke="#B45309" stroke-width="1.6"/>
-  <circle cx="403" cy="165" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
-  <circle cx="403" cy="165" r="2.5" fill="#B45309"/>
-
-  <!-- 5: Center Blueprint + Magnifier & Calipers (normX=0.545, normY=0.355 -> 475, 244) -->
-  <line x1="598" y1="168" x2="475" y2="244" stroke="#4338CA" stroke-width="1.6"/>
-  <circle cx="475" cy="244" r="5.5" fill="#FFFFFF" stroke="#4338CA" stroke-width="2"/>
-  <circle cx="475" cy="244" r="2.5" fill="#4338CA"/>
-
-  <!-- 6: SAFETENSORS Gold Weight Ingots in Vault (normX=0.705, normY=0.655 -> 563, 375) -->
-  <line x1="396" y1="532" x2="563" y2="375" stroke="#B45309" stroke-width="1.6"/>
-  <circle cx="563" cy="375" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
-  <circle cx="563" cy="375" r="2.5" fill="#B45309"/>
-
-  <!-- 7: INDEX Clipboard on Vault Wall (normX=0.895, normY=0.535 -> 667, 322) -->
-  <line x1="695" y1="532" x2="667" y2="322" stroke="#0F766E" stroke-width="1.6"/>
-  <circle cx="667" cy="322" r="5.5" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
-  <circle cx="667" cy="322" r="2.5" fill="#0F766E"/>
-
-  <!-- Open, Borderless Typographic Annotations -->
-  <!-- Callout 1: Upper-Left Open Space -->
-  <g>
-    <circle cx="27" cy="118" r="11" fill="#1D4ED8"/>
-    <text x="27" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">1</text>
-    <text x="44" y="123" font-size="13" font-weight="700" fill="#17211f">核心蓝图：config.json</text>
-    <text x="16" y="143" font-size="11.5" fill="#475569">get_config 读 architectures 与 model_type</text>
-    <text x="16" y="160" font-size="11.5" fill="#475569">定层数、head_dim、MoE 与 torch_dtype</text>
+  <g id="column-headers">
+    <path d="M10,13 L18,13 L20,16 L28,16 L28,29 L10,29 Z" fill="#FEF3C7" stroke="#B45309" stroke-width="1.5" stroke-linejoin="round"/>
+    <text x="34" y="28" font-size="16" font-weight="700" fill="#17211f"><tspan font-family="var(--font-mono)">hf_model_dir/</tspan>（5 类文件）</text>
+    <text x="306" y="28" font-size="16" font-weight="700" fill="#17211f">启动读取入口（vllm / ascend）</text>
+    <text x="634" y="28" font-size="16" font-weight="700" fill="#BE123C">4 个隐形坑与量化门禁</text>
   </g>
 
-  <!-- Callout 2: Top-Left Open Band -->
-  <g>
-    <circle cx="27" cy="24" r="11" fill="#BE123C"/>
-    <text x="27" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">2</text>
-    <text x="44" y="29" font-size="13" font-weight="700" fill="#17211f">分词与长度：tokenizer_config.json</text>
-    <text x="16" y="49" font-size="11.5" font-weight="600" fill="#BE123C">坑 1&amp;2：resolve_chat_template 缺模板即报错</text>
-    <text x="16" y="66" font-size="11.5" fill="#475569">model_max_length 过小会取 min 静音截断</text>
+  <path d="M14,31 L14,382 M14,78 L24,78 M14,154 L24,154 M14,230 L24,230 M14,306 L24,306 M14,382 L24,382" fill="none" stroke="#94A3B8" stroke-width="1.7" stroke-linecap="round"/>
+
+  <g id="row-1-config">
+    <rect x="24" y="46" width="258" height="64" rx="8" fill="#FFFFFF" stroke="#17211f" stroke-width="1.4"/>
+    <text x="36" y="71" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">config.json</text>
+    <text x="36" y="95" font-size="13.5" fill="#475569">架构 · 尺寸 · text_config</text>
+    <line x1="282" y1="78" x2="302" y2="78" stroke="#475569" stroke-width="1.5" marker-end="url(#ahInk)"/>
+    <rect x="306" y="46" width="304" height="64" rx="8" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.4"/>
+    <text x="318" y="71" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">get_config</text>
+    <text x="318" y="95" font-family="var(--font-mono)" font-size="13.5" fill="#1D4ED8">ModelArchitectureConfig</text>
+    <line x1="610" y1="78" x2="630" y2="78" stroke="#BE123C" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahDanger)"/>
+    <rect x="634" y="46" width="254" height="64" rx="8" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.4"/>
+    <text x="646" y="71" font-size="14.5" font-weight="700" fill="#BE123C">坑 1：head_dim != H/n_q</text>
+    <text x="646" y="95" font-size="13.5" fill="#17211f">错套 64 会少算一半显存</text>
   </g>
 
-  <!-- Callout 3: Top-Center Open Band -->
-  <g>
-    <circle cx="321" cy="24" r="11" fill="#7C3AED"/>
-    <text x="321" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">3</text>
-    <text x="338" y="29" font-size="13" font-weight="700" fill="#17211f">出厂采样：generation_config.json</text>
-    <text x="310" y="49" font-size="11.5" fill="#475569">由 try_get_generation_config 启动时读取</text>
-    <text x="310" y="66" font-size="11.5" font-weight="600" fill="#7C3AED">坑 4：未显式传参时静音接管 temperature / top_p</text>
+  <g id="row-2-tokenizer">
+    <rect x="24" y="122" width="258" height="64" rx="8" fill="#FFFFFF" stroke="#17211f" stroke-width="1.4"/>
+    <text x="36" y="147" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">tokenizer_config.json</text>
+    <text x="36" y="171" font-size="13.5" fill="#475569">切词 · chat_template.jinja</text>
+    <line x1="282" y1="154" x2="302" y2="154" stroke="#475569" stroke-width="1.5" marker-end="url(#ahInk)"/>
+    <rect x="306" y="122" width="304" height="64" rx="8" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.4"/>
+    <text x="318" y="147" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">resolve_chat_template</text>
+    <text x="318" y="171" font-family="var(--font-mono)" font-size="13.5" fill="#0F766E">_get_and_verify_max_len</text>
+    <line x1="610" y1="154" x2="630" y2="154" stroke="#BE123C" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahDanger)"/>
+    <rect x="634" y="122" width="254" height="64" rx="8" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.4"/>
+    <text x="646" y="147" font-size="14.5" font-weight="700" fill="#BE123C">坑 2：最大长度静音截断</text>
+    <text x="646" y="171" font-size="13.5" fill="#17211f">model_max_length 取 min</text>
   </g>
 
-  <!-- Callout 4: Top-Right Open Band -->
-  <g>
-    <circle cx="623" cy="24" r="11" fill="#B45309"/>
-    <text x="623" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">4</text>
-    <text x="640" y="29" font-size="13" font-weight="700" fill="#17211f">昇腾量化识别：ModelSlim 与 FP8</text>
-    <text x="612" y="49" font-size="11.5" fill="#475569">quant_model_description.json 自动转 ascend</text>
-    <text x="612" y="66" font-size="11.5" font-weight="600" fill="#B45309">原生 fp8 缺 weight_block_size 抛异常退出</text>
+  <g id="row-3-safetensors">
+    <rect x="24" y="198" width="258" height="64" rx="8" fill="#FFFFFF" stroke="#17211f" stroke-width="1.4"/>
+    <text x="36" y="223" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">*.safetensors + index</text>
+    <text x="36" y="247" font-size="13.5" fill="#475569">几十 GiB 分片与 weight_map</text>
+    <line x1="282" y1="230" x2="302" y2="230" stroke="#475569" stroke-width="1.5" marker-end="url(#ahInk)"/>
+    <rect x="306" y="198" width="304" height="64" rx="8" fill="#FFFBEB" stroke="#B45309" stroke-width="1.4"/>
+    <text x="316" y="223" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">DefaultModelLoader</text>
+    <text x="316" y="247" font-family="var(--font-mono)" font-size="13.5" fill="#92400E">filter_duplicate_safetensors_files</text>
+    <line x1="610" y1="230" x2="630" y2="230" stroke="#B45309" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahWeight)"/>
+    <rect x="634" y="198" width="254" height="64" rx="8" fill="#FFFBEB" stroke="#B45309" stroke-width="1.4"/>
+    <text x="646" y="223" font-size="14.5" font-weight="700" fill="#92400E">坑 3：分片索引防重校验</text>
+    <text x="646" y="247" font-size="13.5" fill="#17211f">缺片报错；勿删 index 防重</text>
   </g>
 
-  <!-- Callout 5: Upper-Right Open Space -->
-  <g>
-    <circle cx="615" cy="144" r="11" fill="#4338CA"/>
-    <text x="615" y="148" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">5</text>
-    <text x="632" y="149" font-size="13" font-weight="700" fill="#17211f">多模态剥壳与尺寸转换校验</text>
-    <text x="604" y="169" font-size="11.5" fill="#475569">get_hf_text_config 剥壳取 text_config</text>
-    <text x="604" y="186" font-size="11.5" fill="#475569">ModelArchitectureConfig 算 get_head_size</text>
+  <g id="row-4-generation">
+    <rect x="24" y="274" width="258" height="64" rx="8" fill="#FFFFFF" stroke="#17211f" stroke-width="1.4"/>
+    <text x="36" y="299" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">generation_config.json</text>
+    <text x="36" y="323" font-size="13.5" fill="#475569">出厂 temperature / top_p</text>
+    <line x1="282" y1="306" x2="302" y2="306" stroke="#475569" stroke-width="1.5" marker-end="url(#ahInk)"/>
+    <rect x="306" y="274" width="304" height="64" rx="8" fill="#F8FAFC" stroke="#64748B" stroke-width="1.4"/>
+    <text x="318" y="299" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">try_get_generation_config</text>
+    <text x="318" y="323" font-size="13.5" fill="#475569">缺失时从 config.json 提取</text>
+    <line x1="610" y1="306" x2="630" y2="306" stroke="#B45309" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahWeight)"/>
+    <rect x="634" y="274" width="254" height="64" rx="8" fill="#FFFBEB" stroke="#B45309" stroke-width="1.4"/>
+    <text x="646" y="299" font-size="14.5" font-weight="700" fill="#92400E">坑 4：静音改写采样默认</text>
+    <text x="646" y="323" font-size="13.5" fill="#17211f">未传参时沿用出厂采样值</text>
   </g>
 
-  <!-- Callout 6: Bottom-Left Open Band -->
-  <g>
-    <circle cx="27" cy="548" r="11" fill="#B45309"/>
-    <text x="27" y="552" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">6</text>
-    <text x="44" y="553" font-size="13" font-weight="700" fill="#17211f">权重金库：*.safetensors 物理张量分片</text>
-    <text x="16" y="574" font-size="11.5" fill="#475569">DefaultModelLoader 按分片映射装载权重；漏写精度时</text>
-    <text x="16" y="592" font-size="11.5" fill="#475569">引擎扫描 .safetensors 文件头元信息自动推断真实 dtype</text>
-  </g>
-
-  <!-- Callout 7: Bottom-Right Open Band -->
-  <g>
-    <circle cx="475" cy="548" r="11" fill="#0F766E"/>
-    <text x="475" y="552" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">7</text>
-    <text x="492" y="553" font-size="13" font-weight="700" fill="#17211f">分片索引与防重：model.safetensors.index.json</text>
-    <text x="464" y="574" font-size="11.5" font-weight="600" fill="#BE123C">坑 3：weight_map 缺任一分片即抛 FileNotFoundError</text>
-    <text x="464" y="592" font-size="11.5" fill="#475569">filter_duplicate_safetensors_files 靠索引剔除 consolidated* 重复</text>
+  <g id="row-5-quant">
+    <rect x="24" y="350" width="258" height="64" rx="8" fill="#FFFFFF" stroke="#17211f" stroke-width="1.4"/>
+    <text x="36" y="375" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">quant_model_description</text>
+    <text x="36" y="399" font-size="13.5" fill="#475569">或内嵌 quantization_config</text>
+    <line x1="282" y1="382" x2="302" y2="382" stroke="#475569" stroke-width="1.5" marker-end="url(#ahInk)"/>
+    <rect x="306" y="350" width="304" height="64" rx="8" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.4"/>
+    <text x="316" y="375" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">maybe_auto_detect_quantization</text>
+    <text x="316" y="399" font-family="var(--font-mono)" font-size="13.5" fill="#6D28D9">detect_quantization_method</text>
+    <line x1="610" y1="382" x2="630" y2="382" stroke="#7C3AED" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahComm)"/>
+    <rect x="634" y="350" width="254" height="64" rx="8" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.4"/>
+    <text x="646" y="375" font-size="14.5" font-weight="700" fill="#6D28D9">量化门禁：自动转 ascend</text>
+    <text x="646" y="399" font-size="13.5" fill="#17211f">原生 FP8 缺逐块参数即拒绝</text>
   </g>
 </svg>

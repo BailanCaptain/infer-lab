@@ -2,90 +2,90 @@
   <title>四大昇腾硬件族对照卡：官方镜像后缀、pip/构建通道、精度边界与必改启动开关</title>
   <desc>2×2 卡片对比 Atlas A2、Atlas A3（双裸片双可见设备）、Atlas 300I DUO / _310P（禁 BF16、禁 Triton、关 NPUGRAPH_EX、走 NPUWorker310）与 950DT / A5（原生 MXFP8/MXFP4、FP8_OPTIMIZED、CANN_MEGAMOE_MXFP）的 SOC_VERSION、AscendDeviceType、HardwareProfile、镜像标签与安装规则。</desc>
 
-  <text x="12" y="28" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#0F172A">第五维 · 四大昇腾硬件族安装通道与运行边界（先跑 <tspan font-family="var(--font-mono)" font-size="15" fill="#1D4ED8">npu-smi info</tspan> 认准卡型）</text>
+  <text x="12" y="28" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#17211f">第五维 · 四大昇腾硬件族安装通道与运行边界（先跑 <tspan font-family="var(--font-mono)" font-size="15" fill="#4c65b6">npu-smi info</tspan> 认准卡型）</text>
 
   <!-- Card 1: Atlas A2 (Top-Left) -->
   <g role="group" aria-label="Atlas A2 系列">
-    <rect x="12" y="44" width="430" height="282" rx="12" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.6"/>
-    <rect x="13" y="45" width="428" height="56" rx="11" fill="#DBEAFE"/>
-    <text x="28" y="70" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#1E3A8A">Atlas A2 系列</text>
-    <text x="28" y="92" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#1D4ED8">ascend910b* (800T/I A2 · 900 PoD)</text>
-    <rect x="356" y="57" width="70" height="32" rx="6" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.3"/>
-    <rect x="377" y="65" width="28" height="16" rx="3" fill="#1D4ED8"/>
+    <rect x="12" y="44" width="430" height="282" rx="12" fill="#ffffff" stroke="#4c65b6" stroke-width="1.6"/>
+    <rect x="13" y="45" width="428" height="56" rx="11" fill="#d7e0fb"/>
+    <text x="28" y="70" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#3a4f93">Atlas A2 系列</text>
+    <text x="28" y="92" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#4c65b6">ascend910b* (800T/I A2 · 900 PoD)</text>
+    <rect x="356" y="57" width="70" height="32" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+    <rect x="377" y="65" width="28" height="16" rx="3" fill="#4c65b6"/>
 
-    <rect x="28" y="112" width="398" height="62" rx="8" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1.2"/>
-    <text x="40" y="136" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#065F46">镜像：<tspan font-family="var(--font-mono)">vllm-ascend:v0.30.0</tspan></text>
-    <text x="40" y="161" font-family="var(--font-sans)" font-size="13.5" fill="#047857">✓ 默认 pip wheel 唯一目标 (<tspan font-family="var(--font-mono)" font-weight="600">__device_type__==&apos;A2&apos;</tspan>)</text>
+    <rect x="28" y="112" width="398" height="62" rx="8" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.2"/>
+    <text x="40" y="136" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#065f56">镜像：<tspan font-family="var(--font-mono)">vllm-ascend:v0.30.0</tspan></text>
+    <text x="40" y="161" font-family="var(--font-sans)" font-size="13.5" fill="#087f73">✓ 默认 pip wheel 唯一目标 (<tspan font-family="var(--font-mono)" font-weight="600">__device_type__==&apos;A2&apos;</tspan>)</text>
 
-    <rect x="28" y="184" width="398" height="62" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
-    <text x="40" y="208" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#1E293B">支持 <tspan font-family="var(--font-mono)">BF16 / W8A8 / W4A8</tspan></text>
-    <text x="40" y="233" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#B45309">⚠ 原生分块 FP8 静默反量化回 BF16 (显存 2×)</text>
+    <rect x="28" y="184" width="398" height="62" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+    <text x="40" y="208" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#17211f">支持 <tspan font-family="var(--font-mono)">BF16 / W8A8 / W4A8</tspan></text>
+    <text x="40" y="233" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#c78300">⚠ 原生分块 FP8 静默反量化回 BF16 (显存 2×)</text>
 
-    <text x="28" y="274" font-family="var(--font-sans)" font-size="14" fill="#334155">• 必配 <tspan font-family="var(--font-mono)" font-weight="600">triton-ascend</tspan>（先卸载上游 triton）</text>
-    <text x="28" y="302" font-family="var(--font-sans)" font-size="14" fill="#334155">• 支持 ACL Graph 与 <tspan font-family="var(--font-mono)" font-weight="600">npugraph_ex</tspan> 图加速</text>
+    <text x="28" y="274" font-family="var(--font-sans)" font-size="14" fill="#4d5652">• 必配 <tspan font-family="var(--font-mono)" font-weight="600">triton-ascend</tspan>（先卸载上游 triton）</text>
+    <text x="28" y="302" font-family="var(--font-sans)" font-size="14" fill="#4d5652">• 支持 ACL Graph 与 <tspan font-family="var(--font-mono)" font-weight="600">npugraph_ex</tspan> 图加速</text>
   </g>
 
   <!-- Card 2: Atlas A3 (Top-Right) -->
   <g role="group" aria-label="Atlas A3 双裸片">
-    <rect x="458" y="44" width="430" height="282" rx="12" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.6"/>
-    <rect x="459" y="45" width="428" height="56" rx="11" fill="#CCFBF1"/>
-    <text x="474" y="70" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#134E4A">Atlas A3 双裸片系列</text>
-    <text x="474" y="92" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#0F766E">ascend910_93* (800T/I A3 · SuperPoD)</text>
-    <rect x="802" y="57" width="70" height="32" rx="6" fill="#F0FDFA" stroke="#0F766E" stroke-width="1.3"/>
-    <rect x="810" y="65" width="23" height="16" rx="3" fill="#0F766E"/>
-    <rect x="841" y="65" width="23" height="16" rx="3" fill="#0F766E"/>
+    <rect x="458" y="44" width="430" height="282" rx="12" fill="#ffffff" stroke="#087f73" stroke-width="1.6"/>
+    <rect x="459" y="45" width="428" height="56" rx="11" fill="#cbe9e2"/>
+    <text x="474" y="70" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#065f56">Atlas A3 双裸片系列</text>
+    <text x="474" y="92" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#087f73">ascend910_93* (800T/I A3 · SuperPoD)</text>
+    <rect x="802" y="57" width="70" height="32" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+    <rect x="810" y="65" width="23" height="16" rx="3" fill="#087f73"/>
+    <rect x="841" y="65" width="23" height="16" rx="3" fill="#087f73"/>
 
-    <rect x="474" y="112" width="398" height="62" rx="8" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1.2"/>
-    <text x="486" y="136" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#92400E">镜像：<tspan font-family="var(--font-mono)">vllm-ascend:v0.30.0-a3</tspan></text>
-    <text x="486" y="161" font-family="var(--font-sans)" font-size="13.5" fill="#78350F">✗ 禁装默认 A2 wheel；用 <tspan font-family="var(--font-mono)">-a3</tspan> 镜像 / uv / 源码编译</text>
+    <rect x="474" y="112" width="398" height="62" rx="8" fill="#fff4cf" stroke="#d8b882" stroke-width="1.2"/>
+    <text x="486" y="136" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#936300">镜像：<tspan font-family="var(--font-mono)">vllm-ascend:v0.30.0-a3</tspan></text>
+    <text x="486" y="161" font-family="var(--font-sans)" font-size="13.5" fill="#936300">✗ 禁装默认 A2 wheel；用 <tspan font-family="var(--font-mono)">-a3</tspan> 镜像 / uv / 源码编译</text>
 
-    <rect x="474" y="184" width="398" height="62" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
-    <text x="486" y="208" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#1E293B">支持 <tspan font-family="var(--font-mono)">BF16 / W8A8 / W4A8</tspan></text>
-    <text x="486" y="233" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#B45309">⚠ 原生分块 FP8 静默反量化回 BF16 (显存 2×)</text>
+    <rect x="474" y="184" width="398" height="62" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+    <text x="486" y="208" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#17211f">支持 <tspan font-family="var(--font-mono)">BF16 / W8A8 / W4A8</tspan></text>
+    <text x="486" y="233" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#c78300">⚠ 原生分块 FP8 静默反量化回 BF16 (显存 2×)</text>
 
-    <text x="474" y="274" font-family="var(--font-sans)" font-size="14" font-weight="700" fill="#0F766E">• 双 Die：单卡暴露双设备 <tspan font-family="var(--font-mono)">/dev/davinci[0-15]</tspan></text>
-    <text x="474" y="302" font-family="var(--font-sans)" font-size="14" fill="#334155">• 必配 <tspan font-family="var(--font-mono)" font-weight="600">triton-ascend</tspan>，适配超节点互联</text>
+    <text x="474" y="274" font-family="var(--font-sans)" font-size="14" font-weight="700" fill="#087f73">• 双 Die：单卡暴露双设备 <tspan font-family="var(--font-mono)">/dev/davinci[0-15]</tspan></text>
+    <text x="474" y="302" font-family="var(--font-sans)" font-size="14" fill="#4d5652">• 必配 <tspan font-family="var(--font-mono)" font-weight="600">triton-ascend</tspan>，适配超节点互联</text>
   </g>
 
   <!-- Card 3: Atlas 300I DUO / 310P (Bottom-Left) -->
   <g role="group" aria-label="Atlas 300I DUO / 310P">
-    <rect x="12" y="340" width="430" height="282" rx="12" fill="#FFF9FA" stroke="#BE123C" stroke-width="1.6"/>
-    <rect x="13" y="341" width="428" height="56" rx="11" fill="#FFE4E6"/>
-    <text x="28" y="366" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#881337">Atlas 300I DUO / 310P</text>
-    <text x="28" y="388" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#BE123C">ascend310p* (专用 NPUWorker310)</text>
-    <rect x="356" y="353" width="70" height="32" rx="6" fill="#BE123C"/>
-    <text x="391" y="374" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#FFFFFF">310P</text>
+    <rect x="12" y="340" width="430" height="282" rx="12" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+    <rect x="13" y="341" width="428" height="56" rx="11" fill="#fae1d8"/>
+    <text x="28" y="366" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#8f3229">Atlas 300I DUO / 310P</text>
+    <text x="28" y="388" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#b54237">ascend310p* (专用 NPUWorker310)</text>
+    <rect x="356" y="353" width="70" height="32" rx="6" fill="#b54237"/>
+    <text x="391" y="374" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#ffffff">310P</text>
 
-    <rect x="28" y="408" width="398" height="62" rx="8" fill="#FFE4E6" stroke="#FB7185" stroke-width="1.2"/>
-    <text x="40" y="432" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#9F1239">镜像：<tspan font-family="var(--font-mono)">vllm-ascend:v0.30.0-310p</tspan></text>
-    <text x="40" y="457" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="#881337">✗ 严禁装 <tspan font-family="var(--font-mono)">triton / triton-ascend</tspan>；用定向包</text>
+    <rect x="28" y="408" width="398" height="62" rx="8" fill="#fae1d8" stroke="#b54237" stroke-width="1.2"/>
+    <text x="40" y="432" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#8f3229">镜像：<tspan font-family="var(--font-mono)">vllm-ascend:v0.30.0-310p</tspan></text>
+    <text x="40" y="457" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="#8f3229">✗ 严禁装 <tspan font-family="var(--font-mono)">triton / triton-ascend</tspan>；用定向包</text>
 
-    <rect x="28" y="480" width="398" height="62" rx="8" fill="#FFF1F2" stroke="#F43F5E" stroke-width="1.3"/>
-    <text x="40" y="504" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#BE123C">✗ 不支持 BF16 与原生分块 FP8</text>
-    <text x="40" y="529" font-family="var(--font-sans)" font-size="13.5" fill="#881337">必传 <tspan font-family="var(--font-mono)" font-weight="700">--dtype float16</tspan> 或选 <tspan font-family="var(--font-mono)" font-weight="600">W8A8-310P</tspan></text>
+    <rect x="28" y="480" width="398" height="62" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+    <text x="40" y="504" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#b54237">✗ 不支持 BF16 与原生分块 FP8</text>
+    <text x="40" y="529" font-family="var(--font-sans)" font-size="13.5" fill="#8f3229">必传 <tspan font-family="var(--font-mono)" font-weight="700">--dtype float16</tspan> 或选 <tspan font-family="var(--font-mono)" font-weight="600">W8A8-310P</tspan></text>
 
-    <text x="28" y="570" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#9F1239">• FULL_DECODE_ONLY + capture_sizes:[1,2,4,8]</text>
-    <text x="28" y="598" font-family="var(--font-sans)" font-size="14" font-weight="700" fill="#9F1239">• 必改图开关：<tspan font-family="var(--font-mono)">enable_npugraph_ex: false</tspan></text>
+    <text x="28" y="570" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#8f3229">• FULL_DECODE_ONLY + capture_sizes:[1,2,4,8]</text>
+    <text x="28" y="598" font-family="var(--font-sans)" font-size="14" font-weight="700" fill="#8f3229">• 必改图开关：<tspan font-family="var(--font-mono)">enable_npugraph_ex: false</tspan></text>
   </g>
 
   <!-- Card 4: 950DT / A5 (Bottom-Right) -->
   <g role="group" aria-label="950DT 系列 A5">
-    <rect x="458" y="340" width="430" height="282" rx="12" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.6"/>
-    <rect x="459" y="341" width="428" height="56" rx="11" fill="#EDE9FE"/>
-    <text x="474" y="366" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#4C1D95">950DT 系列 (A5)</text>
-    <text x="474" y="388" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#6D28D9">ascend950* (FP8_OPTIMIZED)</text>
-    <rect x="802" y="353" width="70" height="32" rx="6" fill="#7C3AED"/>
-    <text x="837" y="374" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#FFFFFF">MXFP</text>
+    <rect x="458" y="340" width="430" height="282" rx="12" fill="#ffffff" stroke="#9a4b86" stroke-width="1.6"/>
+    <rect x="459" y="341" width="428" height="56" rx="11" fill="#f7e7f2"/>
+    <text x="474" y="366" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#7a3a6a">950DT 系列 (A5)</text>
+    <text x="474" y="388" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#9a4b86">ascend950* (FP8_OPTIMIZED)</text>
+    <rect x="802" y="353" width="70" height="32" rx="6" fill="#9a4b86"/>
+    <text x="837" y="374" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#ffffff">MXFP</text>
 
-    <rect x="474" y="408" width="398" height="62" rx="8" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1.2"/>
-    <text x="486" y="432" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#92400E">镜像：<tspan font-family="var(--font-mono)">vllm-ascend:v0.30.0-a5</tspan></text>
-    <text x="486" y="457" font-family="var(--font-sans)" font-size="13.5" fill="#78350F">✗ 禁装默认 A2 wheel；用 <tspan font-family="var(--font-mono)">-a5</tspan> 镜像 / uv / 源码编译</text>
+    <rect x="474" y="408" width="398" height="62" rx="8" fill="#fff4cf" stroke="#d8b882" stroke-width="1.2"/>
+    <text x="486" y="432" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#936300">镜像：<tspan font-family="var(--font-mono)">vllm-ascend:v0.30.0-a5</tspan></text>
+    <text x="486" y="457" font-family="var(--font-sans)" font-size="13.5" fill="#936300">✗ 禁装默认 A2 wheel；用 <tspan font-family="var(--font-mono)">-a5</tspan> 镜像 / uv / 源码编译</text>
 
-    <rect x="474" y="480" width="398" height="62" rx="8" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1.3"/>
-    <text x="486" y="504" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#065F46">✓ 原生支持 MXFP8 / MXFP4 低比特</text>
-    <text x="486" y="529" font-family="var(--font-sans)" font-size="13.5" fill="#047857">分块 FP8 在线重排 MXFP8，保持 ~1 B/参数</text>
+    <rect x="474" y="480" width="398" height="62" rx="8" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+    <text x="486" y="504" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#065f56">✓ 原生支持 MXFP8 / MXFP4 低比特</text>
+    <text x="486" y="529" font-family="var(--font-sans)" font-size="13.5" fill="#087f73">分块 FP8 在线重排 MXFP8，保持 ~1 B/参数</text>
 
-    <text x="474" y="570" font-family="var(--font-sans)" font-size="14" fill="#334155">• 硬件档案启用 <tspan font-family="var(--font-mono)" font-weight="600">CANN_MEGAMOE_MXFP</tspan></text>
-    <text x="474" y="598" font-family="var(--font-sans)" font-size="14" fill="#334155">• 必配 <tspan font-family="var(--font-mono)" font-weight="600">triton-ascend</tspan>，原生低比特矩阵乘</text>
+    <text x="474" y="570" font-family="var(--font-sans)" font-size="14" fill="#4d5652">• 硬件档案启用 <tspan font-family="var(--font-mono)" font-weight="600">CANN_MEGAMOE_MXFP</tspan></text>
+    <text x="474" y="598" font-family="var(--font-sans)" font-size="14" fill="#4d5652">• 必配 <tspan font-family="var(--font-mono)" font-weight="600">triton-ascend</tspan>，原生低比特矩阵乘</text>
   </g>
 </svg>

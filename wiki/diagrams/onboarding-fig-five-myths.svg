@@ -3,62 +3,62 @@
   <desc>开放画布五排左右对照新模型上线常见误区与 v0.30.0 源码真相：五维 ABI 强绑定、52 篇食谱剔除 27 篇 discontinued 停服桩与 GLM5.md 分叉、默认 wheel 经 check_ascend_device_type 抛 RuntimeError、原生分块 FP8 仅 950DT（is_950）调 _mx_quantize 而 A2/A3 经 resolve_block_scales 翻倍，以及按 ModelRegistry.resolve_model_cls 与 _try_resolve_transformers 定位报错。</desc>
   <defs>
     <marker id="fm-arr-fix" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#0F766E"/>
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
     </marker>
   </defs>
 
-  <text x="14" y="30" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#9F1239">✗ 常见错误直觉（高频踩坑点）</text>
-  <text x="392" y="30" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#134E4A">✓ v0.30.0 源码与食谱真相（快速排障判据）</text>
-  <line x1="12" y1="42" x2="888" y2="42" stroke="#CBD5E1" stroke-width="1.4"/>
-  <line x1="378" y1="12" x2="378" y2="496" stroke="#CBD5E1" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <text x="14" y="30" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#8f3229">✗ 常见错误直觉（高频踩坑点）</text>
+  <text x="392" y="30" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#065f56">✓ v0.30.0 源码与食谱真相（快速排障判据）</text>
+  <line x1="12" y1="42" x2="888" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
+  <line x1="378" y1="12" x2="378" y2="496" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
 
   <g role="group" aria-label="误解 1：只装最新包不管底层栈">
-    <rect x="12" y="54" width="352" height="78" rx="10" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.4"/>
-    <text x="26" y="83" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#881337">1. 装最新 vllm + vllm-ascend 即可</text>
-    <text x="26" y="114" font-family="var(--font-sans)" font-size="14" fill="#9F1239">忽略驱动、CANN 与 torch_npu 版本</text>
-    <path d="M 364 93 L 386 93" fill="none" stroke="#0F766E" stroke-width="2" marker-end="url(#fm-arr-fix)"/>
-    <rect x="392" y="54" width="496" height="78" rx="10" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.5"/>
-    <text x="408" y="83" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#065F46">五维 ABI 必须同步锁死在同一发布基线</text>
-    <text x="408" y="114" font-family="var(--font-sans)" font-size="14" fill="#334155"><tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">v0.30.0</tspan> 强绑 <tspan font-family="var(--font-mono)" font-size="13.5">CANN 9.2.1 + torch_npu 2.10.0.post7</tspan></text>
+    <rect x="12" y="54" width="352" height="78" rx="10" fill="#fff0e9" stroke="#d88c82" stroke-width="1.4"/>
+    <text x="26" y="83" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#8f3229">1. 装最新 vllm + vllm-ascend 即可</text>
+    <text x="26" y="114" font-family="var(--font-sans)" font-size="14" fill="#8f3229">忽略驱动、CANN 与 torch_npu 版本</text>
+    <path d="M 364 93 L 386 93" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#fm-arr-fix)"/>
+    <rect x="392" y="54" width="496" height="78" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+    <text x="408" y="83" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#065f56">五维 ABI 必须同步锁死在同一发布基线</text>
+    <text x="408" y="114" font-family="var(--font-sans)" font-size="14" fill="#4d5652"><tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">v0.30.0</tspan> 强绑 <tspan font-family="var(--font-mono)" font-size="13.5">CANN 9.2.1 + torch_npu 2.10.0.post7</tspan></text>
   </g>
 
   <g role="group" aria-label="误解 2：52 篇文件等于支持 52 个模型">
-    <rect x="12" y="144" width="352" height="78" rx="10" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.4"/>
-    <text x="26" y="173" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#881337">2. 目录有 52 篇就支持 52 个模型</text>
-    <text x="26" y="204" font-family="var(--font-sans)" font-size="14" fill="#9F1239">看到 GLM5.md 以为能跑初代 GLM-5</text>
-    <path d="M 364 183 L 386 183" fill="none" stroke="#0F766E" stroke-width="2" marker-end="url(#fm-arr-fix)"/>
-    <rect x="392" y="144" width="496" height="78" rx="10" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.5"/>
-    <text x="408" y="173" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#065F46">剔除 27 篇 <tspan font-family="var(--font-mono)" font-size="14">discontinued</tspan> 桩，仅 25 篇活跃</text>
-    <text x="408" y="204" font-family="var(--font-sans)" font-size="14" fill="#334155"><tspan font-family="var(--font-mono)" font-size="13.5">GLM5.md</tspan> 分叉：L11 <tspan font-weight="700" fill="#BE123C">GLM-5 停服</tspan>，L13 起 <tspan font-weight="700" fill="#065F46">GLM-5.1 活跃</tspan></text>
+    <rect x="12" y="144" width="352" height="78" rx="10" fill="#fff0e9" stroke="#d88c82" stroke-width="1.4"/>
+    <text x="26" y="173" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#8f3229">2. 目录有 52 篇就支持 52 个模型</text>
+    <text x="26" y="204" font-family="var(--font-sans)" font-size="14" fill="#8f3229">看到 GLM5.md 以为能跑初代 GLM-5</text>
+    <path d="M 364 183 L 386 183" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#fm-arr-fix)"/>
+    <rect x="392" y="144" width="496" height="78" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+    <text x="408" y="173" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#065f56">剔除 27 篇 <tspan font-family="var(--font-mono)" font-size="14">discontinued</tspan> 桩，仅 25 篇活跃</text>
+    <text x="408" y="204" font-family="var(--font-sans)" font-size="14" fill="#4d5652"><tspan font-family="var(--font-mono)" font-size="13.5">GLM5.md</tspan> 分叉：L11 <tspan font-weight="700" fill="#b54237">GLM-5 停服</tspan>，L13 起 <tspan font-weight="700" fill="#065f56">GLM-5.1 活跃</tspan></text>
   </g>
 
   <g role="group" aria-label="误解 3：pip install 通跑所有昇腾卡">
-    <rect x="12" y="234" width="352" height="78" rx="10" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.4"/>
-    <text x="26" y="263" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#881337">3. pip install 通跑所有昇腾卡</text>
-    <text x="26" y="294" font-family="var(--font-sans)" font-size="14" fill="#9F1239">以为默认 wheel 能跑 A3 / 310P / 950</text>
-    <path d="M 364 273 L 386 273" fill="none" stroke="#0F766E" stroke-width="2" marker-end="url(#fm-arr-fix)"/>
-    <rect x="392" y="234" width="496" height="78" rx="10" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.5"/>
-    <text x="408" y="263" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#065F46">标准预编译 pip wheel 仅锁死 Atlas A2</text>
-    <text x="408" y="294" font-family="var(--font-sans)" font-size="14" fill="#334155">非 A2 调 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">check_ascend_device_type()</tspan> 抛 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#BE123C">RuntimeError</tspan></text>
+    <rect x="12" y="234" width="352" height="78" rx="10" fill="#fff0e9" stroke="#d88c82" stroke-width="1.4"/>
+    <text x="26" y="263" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#8f3229">3. pip install 通跑所有昇腾卡</text>
+    <text x="26" y="294" font-family="var(--font-sans)" font-size="14" fill="#8f3229">以为默认 wheel 能跑 A3 / 310P / 950</text>
+    <path d="M 364 273 L 386 273" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#fm-arr-fix)"/>
+    <rect x="392" y="234" width="496" height="78" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+    <text x="408" y="263" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#065f56">标准预编译 pip wheel 仅锁死 Atlas A2</text>
+    <text x="408" y="294" font-family="var(--font-sans)" font-size="14" fill="#4d5652">非 A2 调 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">check_ascend_device_type()</tspan> 抛 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#b54237">RuntimeError</tspan></text>
   </g>
 
   <g role="group" aria-label="误解 4：原生 FP8 在 A2 A3 也省一半显存">
-    <rect x="12" y="324" width="352" height="78" rx="10" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.4"/>
-    <text x="26" y="353" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#881337">4. 原生 FP8 在 A2 / A3 也省一半显存</text>
-    <text x="26" y="384" font-family="var(--font-sans)" font-size="14" fill="#9F1239">以为磁盘 1B/参数加载后显存也减半</text>
-    <path d="M 364 363 L 386 363" fill="none" stroke="#0F766E" stroke-width="2" marker-end="url(#fm-arr-fix)"/>
-    <rect x="392" y="324" width="496" height="78" rx="10" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.5"/>
-    <text x="408" y="353" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#065F46">仅 950DT (<tspan font-family="var(--font-mono)" font-size="14">is_950</tspan>) 调 <tspan font-family="var(--font-mono)" font-size="14">_mx_quantize</tspan> 保持 1B/参数</text>
-    <text x="408" y="384" font-family="var(--font-sans)" font-size="14" fill="#334155">A2/A3 经 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">resolve_block_scales()</tspan> 回 BF16 翻倍；310P 禁跑</text>
+    <rect x="12" y="324" width="352" height="78" rx="10" fill="#fff0e9" stroke="#d88c82" stroke-width="1.4"/>
+    <text x="26" y="353" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#8f3229">4. 原生 FP8 在 A2 / A3 也省一半显存</text>
+    <text x="26" y="384" font-family="var(--font-sans)" font-size="14" fill="#8f3229">以为磁盘 1B/参数加载后显存也减半</text>
+    <path d="M 364 363 L 386 363" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#fm-arr-fix)"/>
+    <rect x="392" y="324" width="496" height="78" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+    <text x="408" y="353" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#065f56">仅 950DT (<tspan font-family="var(--font-mono)" font-size="14">is_950</tspan>) 调 <tspan font-family="var(--font-mono)" font-size="14">_mx_quantize</tspan> 保持 1B/参数</text>
+    <text x="408" y="384" font-family="var(--font-sans)" font-size="14" fill="#4d5652">A2/A3 经 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">resolve_block_scales()</tspan> 回 BF16 翻倍；310P 禁跑</text>
   </g>
 
   <g role="group" aria-label="误解 5：报架构不支持一定是驱动坏了">
-    <rect x="12" y="414" width="352" height="78" rx="10" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.4"/>
-    <text x="26" y="443" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#881337">5. 报架构不支持一定是驱动坏了</text>
-    <text x="26" y="474" font-family="var(--font-sans)" font-size="14" fill="#9F1239">盲目重装驱动，不区分三四关报错</text>
-    <path d="M 364 453 L 386 453" fill="none" stroke="#0F766E" stroke-width="2" marker-end="url(#fm-arr-fix)"/>
-    <rect x="392" y="414" width="496" height="78" rx="10" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.5"/>
-    <text x="408" y="443" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#065F46">先查 <tspan font-family="var(--font-mono)" font-size="13.5">resolve_model_cls</tspan> 与 <tspan font-family="var(--font-mono)" font-size="13.5">_try_resolve_transformers</tspan></text>
-    <text x="408" y="474" font-family="var(--font-sans)" font-size="14" fill="#334155">核对 <tspan font-family="var(--font-mono)" font-size="13.5">model-impl / trust-remote-code</tspan> 及 310P 禁 BF16</text>
+    <rect x="12" y="414" width="352" height="78" rx="10" fill="#fff0e9" stroke="#d88c82" stroke-width="1.4"/>
+    <text x="26" y="443" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#8f3229">5. 报架构不支持一定是驱动坏了</text>
+    <text x="26" y="474" font-family="var(--font-sans)" font-size="14" fill="#8f3229">盲目重装驱动，不区分三四关报错</text>
+    <path d="M 364 453 L 386 453" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#fm-arr-fix)"/>
+    <rect x="392" y="414" width="496" height="78" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+    <text x="408" y="443" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#065f56">先查 <tspan font-family="var(--font-mono)" font-size="13.5">resolve_model_cls</tspan> 与 <tspan font-family="var(--font-mono)" font-size="13.5">_try_resolve_transformers</tspan></text>
+    <text x="408" y="474" font-family="var(--font-sans)" font-size="14" fill="#4d5652">核对 <tspan font-family="var(--font-mono)" font-size="13.5">model-impl / trust-remote-code</tspan> 及 310P 禁 BF16</text>
   </g>
 </svg>

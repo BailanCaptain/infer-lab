@@ -61,7 +61,7 @@
     <text x="36" y="360" font-size="13.5" fill="#8f3229">社区 main 在 A2 / A3 已改为加载期直接抛 NotImplementedError，请改选 ModelSlim W8A8</text>
   </g>
 
-  <line x1="20" y1="390" x2="880" y2="390" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <line x1="20" y1="390" x2="880" y2="390" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 5"/>
 
   <!-- 下栏：MoE EP MC2 dispatch 单副本通信载荷减半 -->
   <g id="panel-dispatch">

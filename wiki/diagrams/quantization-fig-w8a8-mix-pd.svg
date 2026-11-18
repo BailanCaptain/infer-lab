@@ -6,7 +6,7 @@
       <path d="M 0 0.5 L 9.5 5 L 0 9.5 z" fill="#17211f"/>
     </marker>
     <marker id="pd-arr-blue" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 0.5 L 9.5 5 L 0 9.5 z" fill="#1D4ED8"/>
+      <path d="M 0 0.5 L 9.5 5 L 0 9.5 z" fill="#4c65b6"/>
     </marker>
     <marker id="pd-arr-teal" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 0.5 L 9.5 5 L 0 9.5 z" fill="#087f73"/>
@@ -20,23 +20,23 @@
   <!-- 第 1 站：加载期统一建参 -->
   <g id="pd-ckpt">
     <circle cx="28" cy="64" r="12" fill="var(--color-weight, #c78300)"/>
-    <text x="28" y="68.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#FFFFFF">1</text>
+    <text x="28" y="68.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
     <text x="48" y="69" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#17211f">加载期统一建参</text>
 
     <rect x="16" y="86" width="252" height="58" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
     <text x="28" y="110" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14.5" font-weight="700" fill="#17211f">weight (INT8)</text>
-    <text x="28" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#475569">转置 [in, out] + 转 NZ</text>
+    <text x="28" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#4d5652">转置 [in, out] + 转 NZ</text>
 
     <rect x="16" y="154" width="252" height="58" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
     <text x="28" y="178" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" font-weight="700" fill="#065f56">input_scale / offset</text>
-    <text x="28" y="201" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" fill="#334155">quant_bias + deq_scale</text>
+    <text x="28" y="201" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" fill="#4d5652">quant_bias + deq_scale</text>
 
-    <rect x="16" y="222" width="252" height="58" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="#1D4ED8" stroke-width="1.4"/>
-    <text x="28" y="246" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" font-weight="700" fill="#1e3a8a">weight_scale (后处理)</text>
-    <text x="28" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#1e3a8a">补建 weight_scale_fp32</text>
+    <rect x="16" y="222" width="252" height="58" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="#4c65b6" stroke-width="1.4"/>
+    <text x="28" y="246" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" font-weight="700" fill="#3a4f93">weight_scale (后处理)</text>
+    <text x="28" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#3a4f93">补建 weight_scale_fp32</text>
 
-    <text x="16" y="306" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" fill="#5b6763">process_weights_after_loading</text>
-    <text x="16" y="329" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-style="italic" fill="#5b6763">一份静态权重喂饱动/静两套算子</text>
+    <text x="16" y="306" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" fill="#4d5652">process_weights_after_loading</text>
+    <text x="16" y="329" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-style="italic" fill="#4d5652">一份静态权重喂饱动/静两套算子</text>
   </g>
 
   <!-- 汇流箭头：静态缓冲区 -> 组合方法 -->
@@ -46,49 +46,49 @@
   <!-- 第 2 站：组合双实例与 PD 角色门 -->
   <g id="pd-router">
     <circle cx="308" cy="64" r="12" fill="var(--color-control, #66716d)"/>
-    <text x="308" y="68.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="308" y="68.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
     <text x="328" y="69" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#17211f">双实例与角色判定</text>
 
     <rect x="296" y="86" width="256" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="#17211f" stroke-width="1.4"/>
-    <text x="308" y="110" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14.5" font-weight="700" fill="#1D4ED8">self._dynamic_method</text>
-    <text x="308" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#334155">动态逐 token 量化子实例</text>
+    <text x="308" y="110" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14.5" font-weight="700" fill="#4c65b6">self._dynamic_method</text>
+    <text x="308" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#4d5652">动态逐 token 量化子实例</text>
 
     <rect x="296" y="154" width="256" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="#17211f" stroke-width="1.4"/>
     <text x="308" y="178" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14.5" font-weight="700" fill="#087f73">self._static_method</text>
-    <text x="308" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#334155">静态整张量量化子实例</text>
+    <text x="308" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#4d5652">静态整张量量化子实例</text>
 
     <rect x="296" y="222" width="256" height="108" rx="8" fill="var(--color-control, #66716d)" stroke="#17211f" stroke-width="1.5"/>
-    <text x="424" y="248" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="#FFFFFF">前向读取 PD 角色开关</text>
-    <text x="424" y="274" text-anchor="middle" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" fill="#FFF4CF">kv_transfer_config</text>
-    <text x="424" y="297" text-anchor="middle" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">.is_kv_consumer</text>
-    <text x="424" y="319" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#ECE9DF">False → 动态 ｜ True → 静态</text>
+    <text x="424" y="248" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="#ffffff">前向读取 PD 角色开关</text>
+    <text x="424" y="274" text-anchor="middle" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" fill="#fff4cf">kv_transfer_config</text>
+    <text x="424" y="297" text-anchor="middle" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14.5" font-weight="700" fill="#ffffff">.is_kv_consumer</text>
+    <text x="424" y="319" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#ece9df">False → 动态 ｜ True → 静态</text>
   </g>
 
   <!-- 分流连线 -->
-  <path d="M 552 260 L 566 260 L 566 143 L 576 143" fill="none" stroke="#1D4ED8" stroke-width="1.6" marker-end="url(#pd-arr-blue)"/>
+  <path d="M 552 260 L 566 260 L 566 143 L 576 143" fill="none" stroke="#4c65b6" stroke-width="1.6" marker-end="url(#pd-arr-blue)"/>
   <path d="M 552 292 L 566 292 L 566 273 L 576 273" fill="none" stroke="#087f73" stroke-width="1.6" marker-end="url(#pd-arr-teal)"/>
 
   <!-- 第 3 站：按角色执行算子 -->
   <g id="pd-branches">
     <circle cx="592" cy="64" r="12" fill="var(--color-comm, #9a4b86)"/>
-    <text x="592" y="68.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#FFFFFF">3</text>
+    <text x="592" y="68.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
     <text x="612" y="69" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#17211f">按节点角色分流执行</text>
 
-    <rect x="580" y="86" width="304" height="114" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="#1D4ED8" stroke-width="1.5"/>
-    <text x="594" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#1e3a8a">Prefill / 混部 → 动态量化</text>
+    <rect x="580" y="86" width="304" height="114" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="#4c65b6" stroke-width="1.5"/>
+    <text x="594" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#3a4f93">Prefill / 混部 → 动态量化</text>
     <text x="594" y="138" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" fill="#17211f">npu_dynamic_quant(x)</text>
-    <text x="594" y="162" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" fill="#334155">乘 weight_scale_fp32</text>
-    <text x="594" y="187" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#1D4ED8">✓ 逐 token 现算，保长文精度</text>
+    <text x="594" y="162" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" fill="#4d5652">乘 weight_scale_fp32</text>
+    <text x="594" y="187" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#4c65b6">✓ 逐 token 现算，保长文精度</text>
 
     <rect x="580" y="216" width="304" height="114" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="#087f73" stroke-width="1.5"/>
     <text x="594" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#065f56">Decode / kv_both → 静态量化</text>
     <text x="594" y="268" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" fill="#17211f">quantize(x) 复用校准缩放</text>
-    <text x="594" y="292" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" fill="#334155">deq_scale + quant_bias</text>
+    <text x="594" y="292" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" fill="#4d5652">deq_scale + quant_bias</text>
     <text x="594" y="317" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#065f56">✓ 省掉每步在线极值统计</text>
   </g>
 
   <!-- 底部开放式虚线分隔说明 -->
-  <line x1="16" y1="354" x2="884" y2="354" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 5"/>
-  <text x="16" y="382" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" fill="#334155">预量化重叠兼容：prepare_input_for_overlap 同样按 is_kv_consumer 委托对应子方法构造输入，</text>
-  <text x="16" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" fill="#475569">保证共享专家与通信重叠直接复用预量化激活，不发生二次量化（v0.30.0 已移除 moe 注册）。</text>
+  <line x1="16" y1="354" x2="884" y2="354" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <text x="16" y="382" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" fill="#4d5652">预量化重叠兼容：prepare_input_for_overlap 同样按 is_kv_consumer 委托对应子方法构造输入，</text>
+  <text x="16" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" fill="#4d5652">保证共享专家与通信重叠直接复用预量化激活，不发生二次量化（v0.30.0 已移除 moe 注册）。</text>
 </svg>

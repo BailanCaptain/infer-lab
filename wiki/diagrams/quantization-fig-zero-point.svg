@@ -3,49 +3,49 @@
   <desc>关联源码符号：get_perchannel_param, weight_scale, weight_offset, get_pertensor_param, input_scale, input_offset, quantize, aclnn_input_scale, aclnn_input_offset</desc>
   <defs>
     <marker id="zp-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#BE123C"/>
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
     </marker>
   </defs>
 
   <!-- 中轴与底栏开放虚线分隔（零外框、零套娃面板框，仅真实数轴条描边） -->
-  <line x1="450" y1="16" x2="450" y2="312" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 5"/>
-  <line x1="18" y1="324" x2="882" y2="324" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <line x1="450" y1="16" x2="450" y2="312" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <line x1="18" y1="324" x2="882" y2="324" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 5"/>
 
   <!-- 左栏：对称量化 (z = 0) -->
   <g id="sym-panel">
-    <text x="18" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="700" fill="#9F1239">✗ 对称量化 (z = 0)：全正数浪费左半格</text>
-    <text x="18" y="60" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" fill="#475569">q = clamp(round(x / 0.1), -128, 127)</text>
+    <text x="18" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="700" fill="#8f3229">✗ 对称量化 (z = 0)：全正数浪费左半格</text>
+    <text x="18" y="60" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" fill="#4d5652">q = clamp(round(x / 0.1), -128, 127)</text>
 
     <!-- 真实数轴条：左半 128 格闲置 + 右半 128 格有效 -->
-    <rect x="18" y="78" width="198" height="58" rx="6" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.4" stroke-dasharray="5 4"/>
-    <text x="117" y="102" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="#64748B">左半 (-128..-1)</text>
-    <text x="117" y="124" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#BE123C">128 格全闲置</text>
+    <rect x="18" y="78" width="198" height="58" rx="6" fill="#ece9df" stroke="#8a928f" stroke-width="1.4" stroke-dasharray="5 4"/>
+    <text x="117" y="102" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="#66716d">左半 (-128..-1)</text>
+    <text x="117" y="124" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#b54237">128 格全闲置</text>
 
     <rect x="216" y="78" width="198" height="58" rx="6" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.5"/>
-    <text x="315" y="102" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="#92400E">右半 (0..+127)</text>
-    <text x="315" y="124" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#78350F">仅覆 [0, 12.7]</text>
+    <text x="315" y="102" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="#936300">右半 (0..+127)</text>
+    <text x="315" y="124" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#936300">仅覆 [0, 12.7]</text>
 
     <!-- 零点锁、截止墙与溢出示意 -->
     <line x1="216" y1="70" x2="216" y2="144" stroke="#17211f" stroke-width="2"/>
-    <text x="18" y="162" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" fill="#64748B">q=-128</text>
+    <text x="18" y="162" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" fill="#66716d">q=-128</text>
     <text x="216" y="162" text-anchor="middle" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" font-weight="700" fill="#17211f">q=0 (x=0)</text>
 
-    <line x1="414" y1="68" x2="414" y2="146" stroke="#BE123C" stroke-width="2.6"/>
-    <line x1="414" y1="107" x2="438" y2="107" stroke="#BE123C" stroke-width="1.6" stroke-dasharray="3 2" marker-end="url(#zp-arr-red)"/>
-    <text x="414" y="162" text-anchor="end" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" font-weight="700" fill="#BE123C">q=127 (12.7)</text>
+    <line x1="414" y1="68" x2="414" y2="146" stroke="#b54237" stroke-width="2.6"/>
+    <line x1="414" y1="107" x2="438" y2="107" stroke="#b54237" stroke-width="1.6" stroke-dasharray="3 2" marker-end="url(#zp-arr-red)"/>
+    <text x="414" y="162" text-anchor="end" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" font-weight="700" fill="#b54237">q=127 (12.7)</text>
 
     <!-- 开放式数值对照说明（无外层小卡片框） -->
-    <text x="18" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#BE123C">实算对照 (s = 0.1)：x = 13 超界硬截断</text>
+    <text x="18" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#b54237">实算对照 (s = 0.1)：x = 13 超界硬截断</text>
     <text x="18" y="226" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" fill="#17211f">x=13 → 130 &gt; 127 → q=127 → 还原 12.7</text>
-    <text x="18" y="252" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#9F1239">丢 0.3 截断误差；强拉大 s 则小数格变粗</text>
-    <text x="18" y="278" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" fill="#334155">x=0.26 → round(2.6)=3 → 还原 0.3</text>
-    <text x="18" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#5b6763">优势：还原仅 s × q，乘加免零点偏移补偿</text>
+    <text x="18" y="252" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#8f3229">丢 0.3 截断误差；强拉大 s 则小数格变粗</text>
+    <text x="18" y="278" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" fill="#4d5652">x=0.26 → round(2.6)=3 → 还原 0.3</text>
+    <text x="18" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#4d5652">优势：还原仅 s × q，乘加免零点偏移补偿</text>
   </g>
 
   <!-- 右栏：非对称量化 (z = -128) -->
   <g id="asym-panel">
-    <text x="468" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="700" fill="#0F766E">✓ 非对称量化 (z = -128)：256 格全归正数</text>
-    <text x="468" y="60" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" fill="#475569">q = clamp(round(x / 0.1) + z, -128, 127)</text>
+    <text x="468" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="700" fill="#087f73">✓ 非对称量化 (z = -128)：256 格全归正数</text>
+    <text x="468" y="60" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" fill="#4d5652">q = clamp(round(x / 0.1) + z, -128, 127)</text>
 
     <!-- 真实数轴条：全宽 256 格均服务于 [0, 25.5] -->
     <rect x="468" y="78" width="400" height="58" rx="6" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.5"/>
@@ -59,22 +59,22 @@
     <line x1="468" y1="68" x2="468" y2="146" stroke="#087f73" stroke-width="2.6"/>
     <text x="468" y="162" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" font-weight="700" fill="#087f73">q=-128 (x=0)</text>
 
-    <circle cx="672" cy="107" r="5.5" fill="#1D4ED8" stroke="#FFFFFF" stroke-width="1.8"/>
-    <line x1="672" y1="113" x2="672" y2="144" stroke="#1D4ED8" stroke-width="1.6"/>
-    <text x="672" y="162" text-anchor="middle" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" font-weight="700" fill="#1D4ED8">q=2 (x=13.0)</text>
+    <circle cx="672" cy="107" r="5.5" fill="#4c65b6" stroke="#ffffff" stroke-width="1.8"/>
+    <line x1="672" y1="113" x2="672" y2="144" stroke="#4c65b6" stroke-width="1.6"/>
+    <text x="672" y="162" text-anchor="middle" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" font-weight="700" fill="#4c65b6">q=2 (x=13.0)</text>
 
     <text x="868" y="162" text-anchor="end" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13.5" font-weight="700" fill="#087f73">q=127 (25.5)</text>
 
     <!-- 开放式数值对照说明 -->
-    <text x="468" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#0F766E">实算对照 (s = 0.1, z = -128)：无损落格</text>
+    <text x="468" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="#087f73">实算对照 (s = 0.1, z = -128)：无损落格</text>
     <text x="468" y="226" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" fill="#17211f">x=13 → 130 - 128 = 2 → 还原 13.0</text>
     <text x="468" y="252" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#065f56">按 0.1 × (2 - (-128)) = 13.0 无截断恢复</text>
-    <text x="468" y="278" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" fill="#334155">x=0.26 → 3 - 128 = -125 → 还原 0.3</text>
-    <text x="468" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#5b6763">代价：多存整数零点 z，还原需算偏移补偿</text>
+    <text x="468" y="278" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" fill="#4d5652">x=0.26 → 3 - 128 = -125 → 还原 0.3</text>
+    <text x="468" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#4d5652">代价：多存整数零点 z，还原需算偏移补偿</text>
   </g>
 
   <!-- 底部开放式 v0.30.0 源码落点说明 -->
   <text x="18" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="#17211f">v0.30.0 源码落点：动态 W8A8 经 get_perchannel_param 建 weight_scale，忽略 weight_offset</text>
-  <text x="18" y="379" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#475569">静态 W8A8 经 get_pertensor_param 读整张量激活参数 input_scale 与零点 input_offset；</text>
-  <text x="18" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#475569">加载后展开为 aclnn_input_scale 与 aclnn_input_offset，前向送入 quantize 执行非对称量化。</text>
+  <text x="18" y="379" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#4d5652">静态 W8A8 经 get_pertensor_param 读整张量激活参数 input_scale 与零点 input_offset；</text>
+  <text x="18" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" fill="#4d5652">加载后展开为 aclnn_input_scale 与 aclnn_input_offset，前向送入 quantize 执行非对称量化。</text>
 </svg>

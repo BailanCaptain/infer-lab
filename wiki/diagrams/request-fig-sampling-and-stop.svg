@@ -3,80 +3,80 @@
   <desc>关联源码符号：sample, greedy_sample, apply_temperature, topk_topp_sampler, check_stop, eos_token_id, stop_token_ids, max_tokens, update, decode_next</desc>
   <defs>
     <marker id="ss-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M 0 1 L 10 5 L 0 9 z" fill="#0F766E"/>
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#087f73"/>
     </marker>
   </defs>
 
   <!-- ==================== TOP SECTION: SAMPLING ==================== -->
   <text x="18" y="28" font-size="16" font-weight="700" fill="#17211f">A. 首轮分数 logits₁ 的两种采样选法（Sampler.sample）</text>
-  <text x="18" y="52" font-family="var(--font-mono)" font-size="14" fill="#475569">logits₁ = [0我:-0.4, 1你:-0.5, 2喜欢:+0.2, 3猫:+2.1, 4看:+0.8, 5。:+1.0]</text>
+  <text x="18" y="52" font-family="var(--font-mono)" font-size="14" fill="#4d5652">logits₁ = [0我:-0.4, 1你:-0.5, 2喜欢:+0.2, 3猫:+2.1, 4看:+0.8, 5。:+1.0]</text>
 
   <!-- Left Card: Greedy -->
-  <rect x="18" y="68" width="386" height="204" rx="8" fill="#F0FDF9" stroke="#0F766E" stroke-width="1.4"/>
-  <text x="32" y="96" font-size="15" font-weight="700" fill="#0F766E">① 贪心采样（temperature = 0）</text>
-  <text x="32" y="122" font-size="13.5" fill="#334155">本页全程采用，直接调用 greedy_sample</text>
-  <rect x="32" y="140" width="358" height="54" rx="6" fill="#CCFBF1" stroke="#0F766E" stroke-width="1.3"/>
-  <text x="211" y="164" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065F46">必选最高分 +2.1 → 3 号「猫」</text>
-  <text x="211" y="185" text-anchor="middle" font-size="13.5" fill="#0F766E">每次运行结果 100% 唯一确定</text>
-  <text x="32" y="226" font-size="13.5" fill="#475569">适用：算例核验、代码生成等确定性场景</text>
-  <text x="32" y="252" font-size="13.5" font-weight="700" fill="#065F46">无需温度缩放与随机数抽签</text>
+  <rect x="18" y="68" width="386" height="204" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="32" y="96" font-size="15" font-weight="700" fill="#087f73">① 贪心采样（temperature = 0）</text>
+  <text x="32" y="122" font-size="13.5" fill="#4d5652">本页全程采用，直接调用 greedy_sample</text>
+  <rect x="32" y="140" width="358" height="54" rx="6" fill="#cbe9e2" stroke="#087f73" stroke-width="1.3"/>
+  <text x="211" y="164" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">必选最高分 +2.1 → 3 号「猫」</text>
+  <text x="211" y="185" text-anchor="middle" font-size="13.5" fill="#087f73">每次运行结果 100% 唯一确定</text>
+  <text x="32" y="226" font-size="13.5" fill="#4d5652">适用：算例核验、代码生成等确定性场景</text>
+  <text x="32" y="252" font-size="13.5" font-weight="700" fill="#065f56">无需温度缩放与随机数抽签</text>
 
   <!-- Right Card: Random Sampling -->
-  <rect x="420" y="68" width="462" height="204" rx="8" fill="#F8FAFC" stroke="#2563EB" stroke-width="1.4"/>
-  <text x="436" y="96" font-size="15" font-weight="700" fill="#1D4ED8">② 随机采样（temperature &gt; 0）</text>
-  <text x="436" y="120" font-size="13.5" fill="#334155">apply_temperature → Softmax → topk_topp_sampler</text>
+  <rect x="420" y="68" width="462" height="204" rx="8" fill="#ece9df" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="436" y="96" font-size="15" font-weight="700" fill="#4c65b6">② 随机采样（temperature &gt; 0）</text>
+  <text x="436" y="120" font-size="13.5" fill="#4d5652">apply_temperature → Softmax → topk_topp_sampler</text>
 
-  <text x="518" y="148" text-anchor="end" font-size="13.5" font-weight="700" fill="#1E3A8A">3「猫」</text>
-  <rect x="528" y="133" width="168" height="18" rx="3" fill="#2563EB"/>
-  <text x="704" y="148" font-size="13.5" font-weight="700" fill="#1D4ED8">52.3%（非必中）</text>
+  <text x="518" y="148" text-anchor="end" font-size="13.5" font-weight="700" fill="#3a4f93">3「猫」</text>
+  <rect x="528" y="133" width="168" height="18" rx="3" fill="#4c65b6"/>
+  <text x="704" y="148" font-size="13.5" font-weight="700" fill="#4c65b6">52.3%（非必中）</text>
 
-  <text x="518" y="176" text-anchor="end" font-size="13.5" fill="#334155">5「。」</text>
-  <rect x="528" y="161" width="56" height="18" rx="3" fill="#60A5FA"/>
-  <text x="592" y="176" font-size="13.5" fill="#334155">17.4%</text>
+  <text x="518" y="176" text-anchor="end" font-size="13.5" fill="#4d5652">5「。」</text>
+  <rect x="528" y="161" width="56" height="18" rx="3" fill="#8c9fcc"/>
+  <text x="592" y="176" font-size="13.5" fill="#4d5652">17.4%</text>
 
-  <text x="518" y="204" text-anchor="end" font-size="13.5" fill="#334155">4「看」</text>
-  <rect x="528" y="189" width="46" height="18" rx="3" fill="#60A5FA"/>
-  <text x="582" y="204" font-size="13.5" fill="#334155">14.3%</text>
+  <text x="518" y="204" text-anchor="end" font-size="13.5" fill="#4d5652">4「看」</text>
+  <rect x="528" y="189" width="46" height="18" rx="3" fill="#8c9fcc"/>
+  <text x="582" y="204" font-size="13.5" fill="#4d5652">14.3%</text>
 
-  <text x="518" y="232" text-anchor="end" font-size="13.5" fill="#64748B">其余 3 词</text>
-  <rect x="528" y="217" width="52" height="18" rx="3" fill="#CBD5E1"/>
-  <text x="588" y="232" font-size="13.5" fill="#64748B">合占 16.0%（喜欢/我/你）</text>
-  <text x="436" y="258" font-size="13.5" font-weight="600" fill="#475569">按概率抽签：同一提示词发两次可写出不同回答</text>
+  <text x="518" y="232" text-anchor="end" font-size="13.5" fill="#66716d">其余 3 词</text>
+  <rect x="528" y="217" width="52" height="18" rx="3" fill="#b8bcb5"/>
+  <text x="588" y="232" font-size="13.5" fill="#66716d">合占 16.0%（喜欢/我/你）</text>
+  <text x="436" y="258" font-size="13.5" font-weight="600" fill="#4d5652">按概率抽签：同一提示词发两次可写出不同回答</text>
 
-  <line x1="18" y1="292" x2="882" y2="292" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <line x1="18" y1="292" x2="882" y2="292" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 5"/>
 
   <!-- ==================== BOTTOM SECTION: STOP GATES & KV POSITIONS ==================== -->
   <text x="18" y="324" font-size="16" font-weight="700" fill="#17211f">B. 第 4 件事：check_stop 双停止闸门与 KV 缓存终态</text>
 
-  <rect x="18" y="340" width="422" height="96" rx="8" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.3"/>
-  <text x="32" y="366" font-size="14.5" font-weight="700" fill="#0F766E">首轮选出 3 号「猫」：双闸未命中</text>
-  <text x="32" y="392" font-size="13.5" fill="#334155">非 eos_token_id / stop_token_ids，且 1 &lt; max_tokens(2)</text>
-  <text x="32" y="418" font-size="13.5" font-weight="700" fill="#065F46">update / decode_next 还原「猫」→ 送入第 2 轮 ▶</text>
+  <rect x="18" y="340" width="422" height="96" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="32" y="366" font-size="14.5" font-weight="700" fill="#087f73">首轮选出 3 号「猫」：双闸未命中</text>
+  <text x="32" y="392" font-size="13.5" fill="#4d5652">非 eos_token_id / stop_token_ids，且 1 &lt; max_tokens(2)</text>
+  <text x="32" y="418" font-size="13.5" font-weight="700" fill="#065f56">update / decode_next 还原「猫」→ 送入第 2 轮 ▶</text>
 
-  <rect x="456" y="340" width="426" height="96" rx="8" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.4"/>
-  <text x="470" y="366" font-size="14.5" font-weight="700" fill="#BE123C">次轮选出 5 号「。」：命中长度上限！</text>
-  <text x="470" y="392" font-size="13.5" fill="#334155">已生成词数 2 == max_tokens(2)，check_stop 判停</text>
-  <text x="470" y="418" font-size="13.5" font-weight="700" fill="#9F1239">还原「。」当场停机，绝不再进第 3 轮 ■</text>
+  <rect x="456" y="340" width="426" height="96" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="470" y="366" font-size="14.5" font-weight="700" fill="#b54237">次轮选出 5 号「。」：命中长度上限！</text>
+  <text x="470" y="392" font-size="13.5" fill="#4d5652">已生成词数 2 == max_tokens(2)，check_stop 判停</text>
+  <text x="470" y="418" font-size="13.5" font-weight="700" fill="#8f3229">还原「。」当场停机，绝不再进第 3 轮 ■</text>
 
   <!-- 4 Tokens vs 3 KV Positions -->
-  <rect x="18" y="452" width="864" height="152" rx="8" fill="#FFFBEB" stroke="#D97706" stroke-width="1.4"/>
-  <text x="34" y="478" font-size="14.5" font-weight="700" fill="#92400E">为什么最终成文「我喜欢猫。」有 4 个词，KV cache 却只存了 3 个历史位置？</text>
+  <rect x="18" y="452" width="864" height="152" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="34" y="478" font-size="14.5" font-weight="700" fill="#936300">为什么最终成文「我喜欢猫。」有 4 个词，KV cache 却只存了 3 个历史位置？</text>
 
-  <rect x="34" y="492" width="194" height="72" rx="6" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.3"/>
-  <text x="131" y="518" text-anchor="middle" font-size="14" font-weight="700" fill="#1E3A8A">位置 0「我」</text>
-  <text x="131" y="546" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1D4ED8">✓ 首轮写入 k₀, v₀</text>
+  <rect x="34" y="492" width="194" height="72" rx="6" fill="#d7e0fb" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="131" y="518" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">位置 0「我」</text>
+  <text x="131" y="546" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4c65b6">✓ 首轮写入 k₀, v₀</text>
 
-  <rect x="244" y="492" width="194" height="72" rx="6" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.3"/>
-  <text x="341" y="518" text-anchor="middle" font-size="14" font-weight="700" fill="#1E3A8A">位置 1「喜欢」</text>
-  <text x="341" y="546" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1D4ED8">✓ 首轮写入 k₁, v₁</text>
+  <rect x="244" y="492" width="194" height="72" rx="6" fill="#d7e0fb" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="341" y="518" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">位置 1「喜欢」</text>
+  <text x="341" y="546" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4c65b6">✓ 首轮写入 k₁, v₁</text>
 
-  <rect x="454" y="492" width="194" height="72" rx="6" fill="#BFDBFE" stroke="#1D4ED8" stroke-width="1.4"/>
-  <text x="551" y="518" text-anchor="middle" font-size="14" font-weight="700" fill="#1E3A8A">位置 2「猫」</text>
-  <text x="551" y="546" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1D4ED8">✓ 次轮追加 k₂, v₂</text>
+  <rect x="454" y="492" width="194" height="72" rx="6" fill="#d7e0fb" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="551" y="518" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">位置 2「猫」</text>
+  <text x="551" y="546" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4c65b6">✓ 次轮追加 k₂, v₂</text>
 
-  <rect x="664" y="492" width="202" height="72" rx="6" fill="#FFE4E6" stroke="#BE123C" stroke-width="1.4" stroke-dasharray="5 3"/>
-  <text x="765" y="518" text-anchor="middle" font-size="14" font-weight="700" fill="#9F1239">末词 5「。」</text>
-  <text x="765" y="546" text-anchor="middle" font-size="13.5" font-weight="700" fill="#BE123C">✗ 选出即停无 KV</text>
+  <rect x="664" y="492" width="202" height="72" rx="6" fill="#fae1d8" stroke="#b54237" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <text x="765" y="518" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">末词 5「。」</text>
+  <text x="765" y="546" text-anchor="middle" font-size="13.5" font-weight="700" fill="#b54237">✗ 选出即停无 KV</text>
 
-  <text x="450" y="588" text-anchor="middle" font-size="13.5" font-weight="700" fill="#78350F">结论：普通逐词生成完结时，KV cache 存有历史的位置数 = 3（比整段 4 个词少 1 个）</text>
+  <text x="450" y="588" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">结论：普通逐词生成完结时，KV cache 存有历史的位置数 = 3（比整段 4 个词少 1 个）</text>
 </svg>

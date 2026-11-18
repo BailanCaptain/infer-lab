@@ -2,53 +2,53 @@
   <title>示意：一次请求全流程五大高频误解与真实机制对照。涵盖 Prefill 末位直接产出首词、真实子词切分与浮点嵌入、Decode 只送新词复用 KV cache、贪心与随机采样差异，以及末个停止词不进下一轮故 KV 位置数少 1。</title>
   <desc>关联源码符号：logits_indices, query_start_loc, schedule, num_computed_tokens, sample, greedy_sample, topk_topp_sampler, check_stop, max_tokens</desc>
 
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#BE123C">✗ 常见错误直觉</text>
-  <text x="404" y="28" font-size="16" font-weight="700" fill="#0F766E">✓ 真实运行机制（vLLM V1 自回归主循环）</text>
-  <line x1="16" y1="42" x2="884" y2="42" stroke="#CBD5E1" stroke-width="1.4"/>
-  <line x1="388" y1="12" x2="388" y2="484" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#b54237">✗ 常见错误直觉</text>
+  <text x="404" y="28" font-size="16" font-weight="700" fill="#087f73">✓ 真实运行机制（vLLM V1 自回归主循环）</text>
+  <line x1="16" y1="42" x2="884" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
+  <line x1="388" y1="12" x2="388" y2="484" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="5 4"/>
 
   <!-- Row 1 -->
-  <rect x="16" y="54" width="358" height="76" rx="7" fill="#FFF5F6" stroke="#FDA4AF" stroke-width="1.2"/>
-  <text x="28" y="82" font-size="14.5" font-weight="700" fill="#9F1239">① Prefill 只填缓存，不产词</text>
-  <text x="28" y="110" font-size="13.5" fill="#475569">误以为首词要等第 1 步 Decode 才算出</text>
+  <rect x="16" y="54" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
+  <text x="28" y="82" font-size="14.5" font-weight="700" fill="#8f3229">① Prefill 只填缓存，不产词</text>
+  <text x="28" y="110" font-size="13.5" fill="#4d5652">误以为首词要等第 1 步 Decode 才算出</text>
 
-  <rect x="404" y="54" width="480" height="76" rx="7" fill="#F0FDF9" stroke="#5EEAD4" stroke-width="1.3"/>
-  <text x="418" y="82" font-size="14.5" font-weight="700" fill="#065F46">Prefill 末位 h₁ 乘 lm_head 当场产出首词「猫」</text>
-  <text x="418" y="110" font-size="13.5" fill="#334155">logits_indices 取末位；Decode 送入首词生成第 2 词</text>
+  <rect x="404" y="54" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="418" y="82" font-size="14.5" font-weight="700" fill="#065f56">Prefill 末位 h₁ 乘 lm_head 当场产出首词「猫」</text>
+  <text x="418" y="110" font-size="13.5" fill="#4d5652">logits_indices 取末位；Decode 送入首词生成第 2 词</text>
 
   <!-- Row 2 -->
-  <rect x="16" y="142" width="358" height="76" rx="7" fill="#FFF5F6" stroke="#FDA4AF" stroke-width="1.2"/>
-  <text x="28" y="170" font-size="14.5" font-weight="700" fill="#9F1239">② 1 字 = 1 token，向量即编号</text>
-  <text x="28" y="198" font-size="13.5" fill="#475569">把 6 词教学设定误当真实分词与权重</text>
+  <rect x="16" y="142" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
+  <text x="28" y="170" font-size="14.5" font-weight="700" fill="#8f3229">② 1 字 = 1 token，向量即编号</text>
+  <text x="28" y="198" font-size="13.5" fill="#4d5652">把 6 词教学设定误当真实分词与权重</text>
 
-  <rect x="404" y="142" width="480" height="76" rx="7" fill="#F0FDF9" stroke="#5EEAD4" stroke-width="1.3"/>
-  <text x="418" y="170" font-size="14.5" font-weight="700" fill="#065F46">真实分词按词频切子词/字节；向量是数千维浮点</text>
-  <text x="418" y="198" font-size="13.5" fill="#334155">6 词词表与 4 维宽度仅为立住主线的教学简化</text>
+  <rect x="404" y="142" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="418" y="170" font-size="14.5" font-weight="700" fill="#065f56">真实分词按词频切子词/字节；向量是数千维浮点</text>
+  <text x="418" y="198" font-size="13.5" fill="#4d5652">6 词词表与 4 维宽度仅为立住主线的教学简化</text>
 
   <!-- Row 3 -->
-  <rect x="16" y="230" width="358" height="76" rx="7" fill="#FFF5F6" stroke="#FDA4AF" stroke-width="1.2"/>
-  <text x="28" y="258" font-size="14.5" font-weight="700" fill="#9F1239">③ 第 2 轮须重送全部 3 个词</text>
-  <text x="28" y="286" font-size="13.5" fill="#475569">误以为不重送前文就看不到整句历史</text>
+  <rect x="16" y="230" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
+  <text x="28" y="258" font-size="14.5" font-weight="700" fill="#8f3229">③ 第 2 轮须重送全部 3 个词</text>
+  <text x="28" y="286" font-size="13.5" fill="#4d5652">误以为不重送前文就看不到整句历史</text>
 
-  <rect x="404" y="230" width="480" height="76" rx="7" fill="#F0FDF9" stroke="#5EEAD4" stroke-width="1.3"/>
-  <text x="418" y="258" font-size="14.5" font-weight="700" fill="#065F46">旧词 K、V 永不改变；Decode 只送新词 1 个位置</text>
-  <text x="418" y="286" font-size="13.5" fill="#334155">schedule 按 num_computed_tokens 读旧 KV 追新</text>
+  <rect x="404" y="230" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="418" y="258" font-size="14.5" font-weight="700" fill="#065f56">旧词 K、V 永不改变；Decode 只送新词 1 个位置</text>
+  <text x="418" y="286" font-size="13.5" fill="#4d5652">schedule 按 num_computed_tokens 读旧 KV 追新</text>
 
   <!-- Row 4 -->
-  <rect x="16" y="318" width="358" height="76" rx="7" fill="#FFF5F6" stroke="#FDA4AF" stroke-width="1.2"/>
-  <text x="28" y="346" font-size="14.5" font-weight="700" fill="#9F1239">④ 采样永远必选最高分那一词</text>
-  <text x="28" y="374" font-size="13.5" fill="#475569">把贪心选法当成唯一采样方式</text>
+  <rect x="16" y="318" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
+  <text x="28" y="346" font-size="14.5" font-weight="700" fill="#8f3229">④ 采样永远必选最高分那一词</text>
+  <text x="28" y="374" font-size="13.5" fill="#4d5652">把贪心选法当成唯一采样方式</text>
 
-  <rect x="404" y="318" width="480" height="76" rx="7" fill="#F0FDF9" stroke="#5EEAD4" stroke-width="1.3"/>
-  <text x="418" y="346" font-size="14.5" font-weight="700" fill="#065F46">仅 T = 0 贪心（greedy_sample）或 top_k = 1 必选</text>
-  <text x="418" y="374" font-size="13.5" fill="#334155">T &gt; 0 经 Softmax 与 topk_topp_sampler 按概率抽签</text>
+  <rect x="404" y="318" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="418" y="346" font-size="14.5" font-weight="700" fill="#065f56">仅 T = 0 贪心（greedy_sample）或 top_k = 1 必选</text>
+  <text x="418" y="374" font-size="13.5" fill="#4d5652">T &gt; 0 经 Softmax 与 topk_topp_sampler 按概率抽签</text>
 
   <!-- Row 5 -->
-  <rect x="16" y="406" width="358" height="76" rx="7" fill="#FFF5F6" stroke="#FDA4AF" stroke-width="1.2"/>
-  <text x="28" y="434" font-size="14.5" font-weight="700" fill="#9F1239">⑤ 4 词文本就存了 4 份 KV 状态</text>
-  <text x="28" y="462" font-size="13.5" fill="#475569">忽略末个停止词不再进下一轮前向</text>
+  <rect x="16" y="406" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
+  <text x="28" y="434" font-size="14.5" font-weight="700" fill="#8f3229">⑤ 4 词文本就存了 4 份 KV 状态</text>
+  <text x="28" y="462" font-size="13.5" fill="#4d5652">忽略末个停止词不再进下一轮前向</text>
 
-  <rect x="404" y="406" width="480" height="76" rx="7" fill="#F0FDF9" stroke="#5EEAD4" stroke-width="1.3"/>
-  <text x="418" y="434" font-size="14.5" font-weight="700" fill="#065F46">check_stop 命中 max_tokens 当场停机，少存 1 个</text>
-  <text x="418" y="462" font-size="13.5" fill="#334155">末词 5「。」不进第 3 轮，KV cache 共存 3 份历史</text>
+  <rect x="404" y="406" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="418" y="434" font-size="14.5" font-weight="700" fill="#065f56">check_stop 命中 max_tokens 当场停机，少存 1 个</text>
+  <text x="418" y="462" font-size="13.5" fill="#4d5652">末词 5「。」不进第 3 轮，KV cache 共存 3 份历史</text>
 </svg>

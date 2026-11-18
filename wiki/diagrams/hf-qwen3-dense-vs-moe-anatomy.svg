@@ -3,96 +3,96 @@
   <desc>并排对比 Qwen3-8B 与 Qwen3-30B-A3B：ModelArchConfigConvertorBase.get_head_size 与 Qwen3Attention 读取 head_dim=128 及 total_num_kv_heads；Qwen3MoeDecoderLayer 按 num_experts、decoder_sparse_step、mlp_only_layers 构造 FusedMoEFactory（num_experts_per_tok=8，moe_intermediate_size=768）；ParallelLMHead 由 tie_word_embeddings 控制首尾词表共享。</desc>
   <defs>
     <marker id="ahAmber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M0,1 L9,5 L0,9 z" fill="#B45309"/>
+      <path d="M0,1 L9,5 L0,9 z" fill="#c78300"/>
     </marker>
     <pattern id="qTicks8B" width="11" height="16" patternUnits="userSpaceOnUse">
-      <rect x="0" y="0" width="8.5" height="16" rx="1.5" fill="#0F766E"/>
+      <rect x="0" y="0" width="8.5" height="16" rx="1.5" fill="#087f73"/>
     </pattern>
     <pattern id="qTicks30B" width="11" height="16" patternUnits="userSpaceOnUse">
-      <rect x="0" y="0" width="8.5" height="16" rx="1.5" fill="#0F766E"/>
+      <rect x="0" y="0" width="8.5" height="16" rx="1.5" fill="#087f73"/>
     </pattern>
     <pattern id="idlePool" width="9.5" height="9.5" patternUnits="userSpaceOnUse">
-      <rect x="1" y="1" width="7.2" height="7.2" rx="1.2" fill="#E2E8F0" stroke="#94A3B8" stroke-width="0.7"/>
+      <rect x="1" y="1" width="7.2" height="7.2" rx="1.2" fill="#d8d8cf" stroke="#8a928f" stroke-width="0.7"/>
     </pattern>
   </defs>
 
   <!-- Open Dividers (Zero Outer Backing Cages) -->
-  <line x1="450" y1="12" x2="450" y2="542" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
-  <line x1="14" y1="46" x2="886" y2="46" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="6 4"/>
-  <line x1="14" y1="208" x2="886" y2="208" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="6 4"/>
-  <line x1="14" y1="392" x2="886" y2="392" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <line x1="450" y1="12" x2="450" y2="542" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="14" y1="46" x2="886" y2="46" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <line x1="14" y1="208" x2="886" y2="208" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <line x1="14" y1="392" x2="886" y2="392" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
 
   <!-- Tower Headings -->
   <text x="225" y="31" text-anchor="middle" font-size="16" font-weight="700" fill="#17211f">Qwen3-8B · 稠密 GQA（36 层，H=4096）</text>
-  <text x="675" y="31" text-anchor="middle" font-size="16" font-weight="700" fill="#92400E">Qwen3-30B-A3B · 稀疏 MoE（48 层，128 选 8）</text>
+  <text x="675" y="31" text-anchor="middle" font-size="16" font-weight="700" fill="#936300">Qwen3-30B-A3B · 稀疏 MoE（48 层，128 选 8）</text>
 
   <!-- Band 1: Attention Head Grouping -->
   <text x="16" y="76" font-size="15" font-weight="700" fill="#17211f">① Attention：32 Q 头 : 8 KV 头（4:1 分组）</text>
-  <text x="16" y="106" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#0F766E">Q×32</text>
+  <text x="16" y="106" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#087f73">Q×32</text>
   <rect x="77" y="93" width="352" height="16" fill="url(#qTicks8B)"/>
-  <path d="M97,109 v9 M141,109 v9 M185,109 v9 M229,109 v9 M273,109 v9 M317,109 v9 M361,109 v9 M405,109 v9" fill="none" stroke="#94A3B8" stroke-width="1.3"/>
-  <text x="16" y="132" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#1D4ED8">KV×8</text>
-  <path d="M77,118 h40 v16 h-40 Z M121,118 h40 v16 h-40 Z M165,118 h40 v16 h-40 Z M209,118 h40 v16 h-40 Z M253,118 h40 v16 h-40 Z M297,118 h40 v16 h-40 Z M341,118 h40 v16 h-40 Z M385,118 h40 v16 h-40 Z" fill="#2563EB"/>
-  <rect x="16" y="150" width="416" height="40" rx="6" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.3"/>
+  <path d="M97,109 v9 M141,109 v9 M185,109 v9 M229,109 v9 M273,109 v9 M317,109 v9 M361,109 v9 M405,109 v9" fill="none" stroke="#8a928f" stroke-width="1.3"/>
+  <text x="16" y="132" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#4c65b6">KV×8</text>
+  <path d="M77,118 h40 v16 h-40 Z M121,118 h40 v16 h-40 Z M165,118 h40 v16 h-40 Z M209,118 h40 v16 h-40 Z M253,118 h40 v16 h-40 Z M297,118 h40 v16 h-40 Z M341,118 h40 v16 h-40 Z M385,118 h40 v16 h-40 Z" fill="#4c65b6"/>
+  <rect x="16" y="150" width="416" height="40" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
   <text x="224" y="175" text-anchor="middle" font-size="14" font-weight="600" fill="#17211f">head_dim=128：32×128 = 4096 = H（4 KiB/层）</text>
 
   <text x="466" y="76" font-size="15" font-weight="700" fill="#17211f">① Attention：32 Q 头 : 4 KV 头（8:1 分组）</text>
-  <text x="466" y="106" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#0F766E">Q×32</text>
+  <text x="466" y="106" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#087f73">Q×32</text>
   <rect x="527" y="93" width="352" height="16" fill="url(#qTicks30B)"/>
-  <path d="M569,109 v9 M657,109 v9 M745,109 v9 M833,109 v9" fill="none" stroke="#94A3B8" stroke-width="1.3"/>
-  <text x="466" y="132" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#1D4ED8">KV×4</text>
-  <path d="M527,118 h84 v16 h-84 Z M615,118 h84 v16 h-84 Z M703,118 h84 v16 h-84 Z M791,118 h84 v16 h-84 Z" fill="#2563EB"/>
-  <rect x="466" y="150" width="418" height="40" rx="6" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.4"/>
-  <text x="675" y="175" text-anchor="middle" font-size="14" font-weight="700" fill="#BE123C">陷阱：32×128 = 4096 != H(2048)，套 64 少算一半！</text>
+  <path d="M569,109 v9 M657,109 v9 M745,109 v9 M833,109 v9" fill="none" stroke="#8a928f" stroke-width="1.3"/>
+  <text x="466" y="132" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#4c65b6">KV×4</text>
+  <path d="M527,118 h84 v16 h-84 Z M615,118 h84 v16 h-84 Z M703,118 h84 v16 h-84 Z M791,118 h84 v16 h-84 Z" fill="#4c65b6"/>
+  <rect x="466" y="150" width="418" height="40" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="675" y="175" text-anchor="middle" font-size="14" font-weight="700" fill="#b54237">陷阱：32×128 = 4096 != H(2048)，套 64 少算一半！</text>
 
   <!-- Band 2: Dense MLP vs Sparse MoE -->
   <text x="16" y="238" font-size="15" font-weight="700" fill="#17211f">② 前馈层（稠密 SwiGLU）：全驻留 = 全激活</text>
-  <rect x="16" y="258" width="98" height="68" rx="7" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.4"/>
+  <rect x="16" y="258" width="98" height="68" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
   <text x="65" y="285" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">单 token</text>
-  <text x="65" y="310" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#0F766E">H=4096</text>
-  <line x1="114" y1="292" x2="138" y2="292" stroke="#B45309" stroke-width="1.6" marker-end="url(#ahAmber)"/>
-  <rect x="142" y="252" width="290" height="80" rx="8" fill="#D97706" stroke="#17211f" stroke-width="1.4"/>
-  <text x="287" y="284" text-anchor="middle" font-size="15" font-weight="700" fill="#FFFFFF">单个稠密 MLP（gate/up/down）</text>
-  <text x="287" y="311" text-anchor="middle" font-size="13.5" fill="#FFFFFF">I = 12,288 · 单层 151.0M 全乘加</text>
+  <text x="65" y="310" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#087f73">H=4096</text>
+  <line x1="114" y1="292" x2="138" y2="292" stroke="#c78300" stroke-width="1.6" marker-end="url(#ahAmber)"/>
+  <rect x="142" y="252" width="290" height="80" rx="8" fill="#c78300" stroke="#17211f" stroke-width="1.4"/>
+  <text x="287" y="284" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">单个稠密 MLP（gate/up/down）</text>
+  <text x="287" y="311" text-anchor="middle" font-size="13.5" fill="#ffffff">I = 12,288 · 单层 151.0M 全乘加</text>
   <text x="16" y="366" font-size="14" font-weight="700" fill="#17211f">全模型 8.19B 驻留（15.26 GiB）= 单步全激活</text>
 
   <text x="466" y="238" font-size="15" font-weight="700" fill="#17211f">② 前馈层（稀疏 MoE）：128 常驻，仅点亮 8 个</text>
-  <rect x="466" y="258" width="88" height="68" rx="7" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.4"/>
+  <rect x="466" y="258" width="88" height="68" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
   <text x="510" y="285" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#17211f">router</text>
-  <text x="510" y="310" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0F766E">128 选 8</text>
-  <line x1="554" y1="292" x2="572" y2="292" stroke="#B45309" stroke-width="1.6" marker-end="url(#ahAmber)"/>
-  <rect x="576" y="252" width="152" height="76" rx="4" fill="url(#idlePool)" stroke="#94A3B8" stroke-width="1.2"/>
-  <path d="M596,262.5 h7.2 v7.2 h-7.2 Z M662.5,272 h7.2 v7.2 h-7.2 Z M615,281.5 h7.2 v7.2 h-7.2 Z M700.5,291 h7.2 v7.2 h-7.2 Z M586.5,300.5 h7.2 v7.2 h-7.2 Z M653,300.5 h7.2 v7.2 h-7.2 Z M624.5,310 h7.2 v7.2 h-7.2 Z M681.5,310 h7.2 v7.2 h-7.2 Z" fill="#D97706" stroke="#17211f" stroke-width="1.1"/>
-  <rect x="736" y="250" width="150" height="38" rx="6" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.3"/>
-  <text x="811" y="274" text-anchor="middle" font-size="13.5" font-weight="700" fill="#BE123C">常驻 56.87 GiB</text>
-  <rect x="736" y="294" width="150" height="38" rx="6" fill="#FFFBEB" stroke="#B45309" stroke-width="1.3"/>
-  <text x="811" y="318" text-anchor="middle" font-size="13.5" font-weight="700" fill="#92400E">激活仅 3.35B</text>
+  <text x="510" y="310" text-anchor="middle" font-size="13.5" font-weight="700" fill="#087f73">128 选 8</text>
+  <line x1="554" y1="292" x2="572" y2="292" stroke="#c78300" stroke-width="1.6" marker-end="url(#ahAmber)"/>
+  <rect x="576" y="252" width="152" height="76" rx="4" fill="url(#idlePool)" stroke="#8a928f" stroke-width="1.2"/>
+  <path d="M596,262.5 h7.2 v7.2 h-7.2 Z M662.5,272 h7.2 v7.2 h-7.2 Z M615,281.5 h7.2 v7.2 h-7.2 Z M700.5,291 h7.2 v7.2 h-7.2 Z M586.5,300.5 h7.2 v7.2 h-7.2 Z M653,300.5 h7.2 v7.2 h-7.2 Z M624.5,310 h7.2 v7.2 h-7.2 Z M681.5,310 h7.2 v7.2 h-7.2 Z" fill="#c78300" stroke="#17211f" stroke-width="1.1"/>
+  <rect x="736" y="250" width="150" height="38" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="811" y="274" text-anchor="middle" font-size="13.5" font-weight="700" fill="#b54237">常驻 56.87 GiB</text>
+  <rect x="736" y="294" width="150" height="38" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="811" y="318" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">激活仅 3.35B</text>
   <text x="466" y="366" font-size="14" font-weight="700" fill="#17211f">128 专家常驻显存（超 32G）；单步仅 8 专家计算</text>
 
   <!-- Band 3: Proportional Weight & KV Bars -->
   <text x="16" y="422" font-size="15" font-weight="700" fill="#17211f">③ BF16 权重静态显存对比</text>
   <text x="16" y="460" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#17211f">Qwen3-8B</text>
-  <rect x="114" y="444" width="184" height="20" rx="4" fill="#E2E8F0"/>
-  <rect x="114" y="444" width="49" height="20" rx="4" fill="#D97706"/>
-  <text x="308" y="460" font-size="13.5" font-weight="700" fill="#92400E">15.26 GiB (8.19B)</text>
+  <rect x="114" y="444" width="184" height="20" rx="4" fill="#d8d8cf"/>
+  <rect x="114" y="444" width="49" height="20" rx="4" fill="#c78300"/>
+  <text x="308" y="460" font-size="13.5" font-weight="700" fill="#936300">15.26 GiB (8.19B)</text>
 
   <text x="16" y="496" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#17211f">30B-A3B</text>
-  <rect x="114" y="480" width="184" height="20" rx="4" fill="#E2E8F0"/>
-  <rect x="114" y="480" width="184" height="20" rx="4" fill="#BE123C"/>
-  <text x="308" y="496" font-size="13.5" font-weight="700" fill="#BE123C">56.87 GiB (30.5B)</text>
+  <rect x="114" y="480" width="184" height="20" rx="4" fill="#d8d8cf"/>
+  <rect x="114" y="480" width="184" height="20" rx="4" fill="#b54237"/>
+  <text x="308" y="496" font-size="13.5" font-weight="700" fill="#b54237">56.87 GiB (30.5B)</text>
 
-  <line x1="217" y1="436" x2="217" y2="510" stroke="#BE123C" stroke-width="1.6" stroke-dasharray="4 3"/>
-  <text x="217" y="534" text-anchor="middle" font-size="13.5" font-weight="700" fill="#BE123C">▲ 32 GiB 单卡线（30B-A3B 直接 OOM）</text>
+  <line x1="217" y1="436" x2="217" y2="510" stroke="#b54237" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <text x="217" y="534" text-anchor="middle" font-size="13.5" font-weight="700" fill="#b54237">▲ 32 GiB 单卡线（30B-A3B 直接 OOM）</text>
 
   <text x="466" y="422" font-size="15" font-weight="700" fill="#17211f">每 token 全层 BF16 KV cache</text>
   <text x="466" y="460" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#17211f">Qwen3-8B</text>
-  <rect x="562" y="444" width="144" height="20" rx="4" fill="#2563EB"/>
-  <text x="716" y="460" font-size="13.5" font-weight="700" fill="#1D4ED8">144.0 KiB (8头×36层)</text>
+  <rect x="562" y="444" width="144" height="20" rx="4" fill="#4c65b6"/>
+  <text x="716" y="460" font-size="13.5" font-weight="700" fill="#4c65b6">144.0 KiB (8头×36层)</text>
 
   <text x="466" y="496" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#17211f">30B-A3B</text>
-  <rect x="562" y="480" width="144" height="20" rx="4" fill="#E2E8F0"/>
-  <rect x="562" y="480" width="96" height="20" rx="4" fill="#0F766E"/>
-  <text x="716" y="496" font-size="13.5" font-weight="700" fill="#0F766E">96.0 KiB (4头×48层)</text>
+  <rect x="562" y="480" width="144" height="20" rx="4" fill="#d8d8cf"/>
+  <rect x="562" y="480" width="96" height="20" rx="4" fill="#087f73"/>
+  <text x="716" y="496" font-size="13.5" font-weight="700" fill="#087f73">96.0 KiB (4头×48层)</text>
 
-  <text x="675" y="534" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0F766E">KV 头减半（8→4）使单 token 缓存反省 1/3</text>
+  <text x="675" y="534" text-anchor="middle" font-size="13.5" font-weight="700" fill="#087f73">KV 头减半（8→4）使单 token 缓存反省 1/3</text>
 </svg>

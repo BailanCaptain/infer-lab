@@ -3,44 +3,44 @@
   <desc>_get_and_verify_max_len 读取 max_position_embeddings 与 rope_scaling（rope_parameters），区分倍乘型与已扩展长度型，并为 longrope 提供 original_max_position_embeddings 短上下文回退保护。</desc>
   <defs>
     <marker id="ropeAhBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#1D4ED8"/>
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
     </marker>
     <marker id="ropeAhTeal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#0F766E"/>
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
     </marker>
     <marker id="ropeAhAmber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#D97706"/>
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
     </marker>
   </defs>
 
   <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">位置编码与长上下文缩放分流（_get_and_verify_max_len）</text>
 
   <!-- Left Input Box -->
-  <rect x="16" y="48" width="238" height="226" rx="8" fill="#FFFFFF" stroke="#17211f" stroke-width="1.5"/>
+  <rect x="16" y="48" width="238" height="226" rx="8" fill="#ffffff" stroke="#17211f" stroke-width="1.5"/>
   <text x="30" y="76" font-size="15" font-weight="700" fill="#17211f">位置编码配置输入</text>
-  <text x="30" y="106" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#1D4ED8">max_position_embeddings</text>
-  <text x="30" y="130" font-size="13.5" fill="#475569">Qwen3 三预设均为 40960</text>
-  <text x="30" y="160" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#0F766E">rope_theta: 1000000</text>
-  <text x="30" y="190" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#B45309">rope_scaling</text>
-  <text x="30" y="214" font-size="13.5" fill="#475569">或新键名 rope_parameters</text>
-  <text x="30" y="248" font-size="13.5" font-family="var(--font-mono)" fill="#334155">→ _get_and_verify_max_len</text>
+  <text x="30" y="106" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#4c65b6">max_position_embeddings</text>
+  <text x="30" y="130" font-size="13.5" fill="#4d5652">Qwen3 三预设均为 40960</text>
+  <text x="30" y="160" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#087f73">rope_theta: 1000000</text>
+  <text x="30" y="190" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#c78300">rope_scaling</text>
+  <text x="30" y="214" font-size="13.5" fill="#4d5652">或新键名 rope_parameters</text>
+  <text x="30" y="248" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">→ _get_and_verify_max_len</text>
 
   <!-- Branch 1: Multiply by factor -->
-  <path d="M 254 118 L 274 118 L 274 90 L 292 90" fill="none" stroke="#1D4ED8" stroke-width="1.7" marker-end="url(#ropeAhBlue)"/>
-  <rect x="296" y="46" width="590" height="90" rx="8" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.5"/>
-  <text x="312" y="73" font-size="15" font-weight="700" fill="#1D4ED8">家族一（传统倍乘型）：linear / dynamic 等</text>
+  <path d="M 254 118 L 274 118 L 274 90 L 292 90" fill="none" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#ropeAhBlue)"/>
+  <rect x="296" y="46" width="590" height="90" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="312" y="73" font-size="15" font-weight="700" fill="#4c65b6">家族一（传统倍乘型）：linear / dynamic 等</text>
   <text x="312" y="99" font-size="14" fill="#17211f">推导最大上下文 = <tspan font-family="var(--font-mono)" font-weight="700">max_position_embeddings × factor</tspan></text>
-  <text x="312" y="123" font-size="13.5" font-weight="600" fill="#B45309">容错兜底：若误填 "factor": null → 告警并回退 factor = 1.0</text>
+  <text x="312" y="123" font-size="13.5" font-weight="600" fill="#c78300">容错兜底：若误填 "factor": null → 告警并回退 factor = 1.0</text>
 
   <!-- Branch 2: Already final length -->
-  <path d="M 254 190 L 292 190" fill="none" stroke="#0F766E" stroke-width="1.7" marker-end="url(#ropeAhTeal)"/>
-  <rect x="296" y="150" width="590" height="76" rx="8" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.5"/>
-  <text x="312" y="179" font-size="15" font-weight="700" fill="#0F766E">家族二（已扩展长度型）：yarn / su / longrope / llama3 等</text>
-  <text x="312" y="209" font-size="14" fill="#17211f">直接采用 <tspan font-family="var(--font-mono)" font-weight="700">max_position_embeddings</tspan> —— <tspan font-weight="700" fill="#BE123C">绝不再二次乘 factor！</tspan></text>
+  <path d="M 254 190 L 292 190" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#ropeAhTeal)"/>
+  <rect x="296" y="150" width="590" height="76" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="312" y="179" font-size="15" font-weight="700" fill="#087f73">家族二（已扩展长度型）：yarn / su / longrope / llama3 等</text>
+  <text x="312" y="209" font-size="14" fill="#17211f">直接采用 <tspan font-family="var(--font-mono)" font-weight="700">max_position_embeddings</tspan> —— <tspan font-weight="700" fill="#b54237">绝不再二次乘 factor！</tspan></text>
 
   <!-- Sibling Sub-Node: longrope short-context safeguard -->
-  <path d="M 326 226 L 326 278 L 346 278" fill="none" stroke="#D97706" stroke-width="1.7" marker-end="url(#ropeAhAmber)"/>
-  <rect x="350" y="242" width="536" height="74" rx="8" fill="#FFFBEB" stroke="#D97706" stroke-width="1.4"/>
-  <text x="366" y="270" font-size="14.5" font-weight="700" fill="#92400E">★ longrope 短上下文保护：未传 --max-model-len（或 -1）时</text>
-  <text x="366" y="298" font-size="13.5" fill="#334155">默认回退 <tspan font-family="var(--font-mono)" font-weight="700">original_max_position_embeddings</tspan> 防精度下降</text>
+  <path d="M 326 226 L 326 278 L 346 278" fill="none" stroke="#c78300" stroke-width="1.7" marker-end="url(#ropeAhAmber)"/>
+  <rect x="350" y="242" width="536" height="74" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="366" y="270" font-size="14.5" font-weight="700" fill="#936300">★ longrope 短上下文保护：未传 --max-model-len（或 -1）时</text>
+  <text x="366" y="298" font-size="13.5" fill="#4d5652">默认回退 <tspan font-family="var(--font-mono)" font-weight="700">original_max_position_embeddings</tspan> 防精度下降</text>
 </svg>

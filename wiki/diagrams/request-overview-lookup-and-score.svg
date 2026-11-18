@@ -2,93 +2,93 @@
   <title>示意：教学请求「我喜欢 → 猫。」两轮查表、缓存读写与词表打分</title>
   <desc>关联源码符号：embedding, ParallelLMHead, forward, kv_cache, LogitsProcessor, lm_head, logits, sample, greedy_sample, check_stop, max_tokens</desc>
   <defs>
-    <marker id="ls-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M 0 1 L 9.5 5 L 0 9 z" fill="#0891B2"/></marker>
-    <marker id="ls-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M 0 1 L 9.5 5 L 0 9 z" fill="#2563EB"/></marker>
-    <marker id="ls-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M 0 1 L 9.5 5 L 0 9 z" fill="#16A34A"/></marker>
+    <marker id="ls-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M 0 1 L 9.5 5 L 0 9 z" fill="#087f73"/></marker>
+    <marker id="ls-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M 0 1 L 9.5 5 L 0 9 z" fill="#4c65b6"/></marker>
+    <marker id="ls-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M 0 1 L 9.5 5 L 0 9 z" fill="#087f73"/></marker>
   </defs>
 
-  <line x1="16" y1="274" x2="884" y2="274" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <line x1="16" y1="274" x2="884" y2="274" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 5"/>
 
   <!-- Round 1 Prefill -->
-  <text x="16" y="28" font-size="16" font-weight="700" fill="#0E7490">第 1 轮 · Prefill：并行送入 [0「我」, 2「喜欢」] → 末行直接选出首词 3「猫」</text>
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#065f56">第 1 轮 · Prefill：并行送入 [0「我」, 2「喜欢」] → 末行直接选出首词 3「猫」</text>
 
-  <rect x="16" y="46" width="188" height="196" rx="8" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.4"/>
-  <text x="110" y="74" font-size="14.5" font-weight="700" fill="#0E7490" text-anchor="middle">① 查表 embedding</text>
-  <rect x="30" y="90" width="160" height="58" rx="6" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.2"/>
-  <text x="110" y="114" font-size="14" font-weight="700" fill="#0E7490" text-anchor="middle">抽出 E[0], E[2]</text>
-  <text x="110" y="136" font-size="13.5" font-family="var(--font-mono)" fill="#334155" text-anchor="middle">[2, 4] 两行张量</text>
-  <text x="110" y="182" font-size="13.5" fill="#475569" text-anchor="middle">按编号取行，零乘加</text>
+  <rect x="16" y="46" width="188" height="196" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="110" y="74" font-size="14.5" font-weight="700" fill="#065f56" text-anchor="middle">① 查表 embedding</text>
+  <rect x="30" y="90" width="160" height="58" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="110" y="114" font-size="14" font-weight="700" fill="#065f56" text-anchor="middle">抽出 E[0], E[2]</text>
+  <text x="110" y="136" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652" text-anchor="middle">[2, 4] 两行张量</text>
+  <text x="110" y="182" font-size="13.5" fill="#4d5652" text-anchor="middle">按编号取行，零乘加</text>
 
-  <line x1="204" y1="144" x2="226" y2="144" stroke="#0891B2" stroke-width="1.6" marker-end="url(#ls-c)"/>
+  <line x1="204" y1="144" x2="226" y2="144" stroke="#087f73" stroke-width="1.6" marker-end="url(#ls-c)"/>
 
-  <rect x="230" y="46" width="236" height="196" rx="8" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.4"/>
-  <text x="348" y="74" font-size="14.5" font-weight="700" fill="#1E3A8A" text-anchor="middle">② 前向写 kv_cache</text>
-  <text x="348" y="102" font-size="13.5" fill="#1E40AF" text-anchor="middle">存入 k₀,v₀ 与 k₁,v₁（2 份）</text>
-  <rect x="246" y="118" width="204" height="44" rx="6" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="4 3"/>
-  <text x="348" y="145" font-size="13.5" fill="#64748B" text-anchor="middle">h₀ 跳过不参与打分</text>
-  <rect x="246" y="172" width="204" height="54" rx="6" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="1.4"/>
-  <text x="348" y="196" font-size="14.5" font-weight="700" fill="#1E3A8A" text-anchor="middle">只取末行 h₁ [1, 4]</text>
-  <text x="348" y="216" font-size="13.5" fill="#1D4ED8" text-anchor="middle">融合整句「我喜欢」</text>
+  <rect x="230" y="46" width="236" height="196" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="348" y="74" font-size="14.5" font-weight="700" fill="#3a4f93" text-anchor="middle">② 前向写 kv_cache</text>
+  <text x="348" y="102" font-size="13.5" fill="#3a4f93" text-anchor="middle">存入 k₀,v₀ 与 k₁,v₁（2 份）</text>
+  <rect x="246" y="118" width="204" height="44" rx="6" fill="#ece9df" stroke="#8a928f" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="348" y="145" font-size="13.5" fill="#66716d" text-anchor="middle">h₀ 跳过不参与打分</text>
+  <rect x="246" y="172" width="204" height="54" rx="6" fill="#d7e0fb" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="348" y="196" font-size="14.5" font-weight="700" fill="#3a4f93" text-anchor="middle">只取末行 h₁ [1, 4]</text>
+  <text x="348" y="216" font-size="13.5" fill="#4c65b6" text-anchor="middle">融合整句「我喜欢」</text>
 
-  <line x1="466" y1="198" x2="488" y2="198" stroke="#0891B2" stroke-width="1.6" marker-end="url(#ls-c)"/>
+  <line x1="466" y1="198" x2="488" y2="198" stroke="#087f73" stroke-width="1.6" marker-end="url(#ls-c)"/>
 
-  <rect x="492" y="46" width="244" height="196" rx="8" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.4"/>
-  <text x="614" y="74" font-size="14.5" font-weight="700" fill="#1E293B" text-anchor="middle">③ lm_head 打分 logits₁</text>
-  <text x="508" y="102" font-size="13.5" fill="#64748B">0我 -0.4 ｜ 1你 -0.5 ｜ 2喜欢 +0.2</text>
-  <rect x="506" y="116" width="216" height="46" rx="6" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.4"/>
-  <text x="614" y="145" font-size="14.5" font-weight="700" fill="#14532D" text-anchor="middle">3「猫」 +2.1 ★最高当选</text>
-  <text x="508" y="188" font-size="13.5" fill="#475569">4看 +0.8 ｜ 5「。」 +1.0</text>
-  <text x="614" y="220" font-size="13.5" font-family="var(--font-mono)" fill="#64748B" text-anchor="middle">LogitsProcessor</text>
+  <rect x="492" y="46" width="244" height="196" rx="8" fill="#ffffff" stroke="#8a928f" stroke-width="1.4"/>
+  <text x="614" y="74" font-size="14.5" font-weight="700" fill="#17211f" text-anchor="middle">③ lm_head 打分 logits₁</text>
+  <text x="508" y="102" font-size="13.5" fill="#66716d">0我 -0.4 ｜ 1你 -0.5 ｜ 2喜欢 +0.2</text>
+  <rect x="506" y="116" width="216" height="46" rx="6" fill="#cbe9e2" stroke="#087f73" stroke-width="1.4"/>
+  <text x="614" y="145" font-size="14.5" font-weight="700" fill="#065f56" text-anchor="middle">3「猫」 +2.1 ★最高当选</text>
+  <text x="508" y="188" font-size="13.5" fill="#4d5652">4看 +0.8 ｜ 5「。」 +1.0</text>
+  <text x="614" y="220" font-size="13.5" font-family="var(--font-mono)" fill="#66716d" text-anchor="middle">LogitsProcessor</text>
 
-  <line x1="736" y1="140" x2="758" y2="140" stroke="#16A34A" stroke-width="1.6" marker-end="url(#ls-g)"/>
+  <line x1="736" y1="140" x2="758" y2="140" stroke="#087f73" stroke-width="1.6" marker-end="url(#ls-g)"/>
 
-  <rect x="762" y="46" width="122" height="196" rx="8" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.5"/>
-  <text x="823" y="82" font-size="14.5" font-weight="700" fill="#166534" text-anchor="middle">④ 产出首词</text>
-  <text x="823" y="122" font-size="16" font-weight="700" fill="#14532D" text-anchor="middle">3「猫」</text>
-  <text x="823" y="160" font-size="13.5" font-weight="700" fill="#15803D" text-anchor="middle">1 &lt; 2 未满</text>
-  <text x="823" y="192" font-size="13.5" fill="#166534" text-anchor="middle">进第 2 轮 ▶</text>
+  <rect x="762" y="46" width="122" height="196" rx="8" fill="#cbe9e2" stroke="#087f73" stroke-width="1.5"/>
+  <text x="823" y="82" font-size="14.5" font-weight="700" fill="#065f56" text-anchor="middle">④ 产出首词</text>
+  <text x="823" y="122" font-size="16" font-weight="700" fill="#065f56" text-anchor="middle">3「猫」</text>
+  <text x="823" y="160" font-size="13.5" font-weight="700" fill="#087f73" text-anchor="middle">1 &lt; 2 未满</text>
+  <text x="823" y="192" font-size="13.5" fill="#065f56" text-anchor="middle">进第 2 轮 ▶</text>
 
   <!-- Cross-round KV & Token arrows -->
-  <line x1="348" y1="242" x2="348" y2="320" stroke="#2563EB" stroke-width="2" marker-end="url(#ls-b)"/>
+  <line x1="348" y1="242" x2="348" y2="320" stroke="#4c65b6" stroke-width="2" marker-end="url(#ls-b)"/>
 
   <!-- Round 2 Decode -->
-  <text x="16" y="306" font-size="16" font-weight="700" fill="#1D4ED8">第 2 轮 · Decode：只送新词 [3「猫」] 1 个位置 → 选出 5「。」满 max_tokens=2 停机</text>
+  <text x="16" y="306" font-size="16" font-weight="700" fill="#4c65b6">第 2 轮 · Decode：只送新词 [3「猫」] 1 个位置 → 选出 5「。」满 max_tokens=2 停机</text>
 
-  <rect x="16" y="324" width="188" height="184" rx="8" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.4"/>
-  <text x="110" y="352" font-size="14.5" font-weight="700" fill="#0E7490" text-anchor="middle">① 只查 1 行 E[3]</text>
-  <rect x="30" y="368" width="160" height="58" rx="6" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.2"/>
-  <text x="110" y="392" font-size="14" font-weight="700" fill="#0E7490" text-anchor="middle">位置 2：3「猫」</text>
-  <text x="110" y="414" font-size="13.5" font-family="var(--font-mono)" fill="#334155" text-anchor="middle">x₂ [1, 4] 单行</text>
-  <text x="110" y="460" font-size="13.5" fill="#475569" text-anchor="middle">旧词不重送</text>
+  <rect x="16" y="324" width="188" height="184" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="110" y="352" font-size="14.5" font-weight="700" fill="#065f56" text-anchor="middle">① 只查 1 行 E[3]</text>
+  <rect x="30" y="368" width="160" height="58" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="110" y="392" font-size="14" font-weight="700" fill="#065f56" text-anchor="middle">位置 2：3「猫」</text>
+  <text x="110" y="414" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652" text-anchor="middle">x₂ [1, 4] 单行</text>
+  <text x="110" y="460" font-size="13.5" fill="#4d5652" text-anchor="middle">旧词不重送</text>
 
-  <line x1="204" y1="416" x2="226" y2="416" stroke="#0891B2" stroke-width="1.6" marker-end="url(#ls-c)"/>
+  <line x1="204" y1="416" x2="226" y2="416" stroke="#087f73" stroke-width="1.6" marker-end="url(#ls-c)"/>
 
-  <rect x="230" y="324" width="236" height="184" rx="8" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.4"/>
-  <text x="348" y="352" font-size="14.5" font-weight="700" fill="#1E3A8A" text-anchor="middle">② 读旧 KV 追加新 KV</text>
-  <text x="348" y="382" font-size="13.5" fill="#1E40AF" text-anchor="middle">读 k₀,v₀,k₁,v₁ + 写 k₂,v₂</text>
-  <text x="348" y="406" font-size="13.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">KV 共存 3 个历史位置</text>
-  <rect x="246" y="424" width="204" height="66" rx="6" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="1.4"/>
-  <text x="348" y="452" font-size="14.5" font-weight="700" fill="#1E3A8A" text-anchor="middle">单行输出 h₂ [1, 4]</text>
-  <text x="348" y="476" font-size="13.5" fill="#1D4ED8" text-anchor="middle">省去位置 0、1 重算</text>
+  <rect x="230" y="324" width="236" height="184" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="348" y="352" font-size="14.5" font-weight="700" fill="#3a4f93" text-anchor="middle">② 读旧 KV 追加新 KV</text>
+  <text x="348" y="382" font-size="13.5" fill="#3a4f93" text-anchor="middle">读 k₀,v₀,k₁,v₁ + 写 k₂,v₂</text>
+  <text x="348" y="406" font-size="13.5" font-weight="700" fill="#4c65b6" text-anchor="middle">KV 共存 3 个历史位置</text>
+  <rect x="246" y="424" width="204" height="66" rx="6" fill="#d7e0fb" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="348" y="452" font-size="14.5" font-weight="700" fill="#3a4f93" text-anchor="middle">单行输出 h₂ [1, 4]</text>
+  <text x="348" y="476" font-size="13.5" fill="#4c65b6" text-anchor="middle">省去位置 0、1 重算</text>
 
-  <line x1="466" y1="456" x2="488" y2="456" stroke="#0891B2" stroke-width="1.6" marker-end="url(#ls-c)"/>
+  <line x1="466" y1="456" x2="488" y2="456" stroke="#087f73" stroke-width="1.6" marker-end="url(#ls-c)"/>
 
-  <rect x="492" y="324" width="244" height="184" rx="8" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.4"/>
-  <text x="614" y="352" font-size="14.5" font-weight="700" fill="#1E293B" text-anchor="middle">③ 同张 W_head 打分</text>
-  <text x="508" y="382" font-size="13.5" fill="#64748B">0我 -0.8 ｜ 1你 -1.3 ｜ 2喜欢 0.0</text>
-  <text x="508" y="408" font-size="13.5" fill="#475569">3猫 +1.0 ｜ 4看 -0.4</text>
-  <rect x="506" y="424" width="216" height="46" rx="6" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.4"/>
-  <text x="614" y="453" font-size="14.5" font-weight="700" fill="#14532D" text-anchor="middle">5「。」 +1.6 ★最高当选</text>
-  <text x="614" y="492" font-size="13.5" font-family="var(--font-mono)" fill="#64748B" text-anchor="middle">greedy_sample</text>
+  <rect x="492" y="324" width="244" height="184" rx="8" fill="#ffffff" stroke="#8a928f" stroke-width="1.4"/>
+  <text x="614" y="352" font-size="14.5" font-weight="700" fill="#17211f" text-anchor="middle">③ 同张 W_head 打分</text>
+  <text x="508" y="382" font-size="13.5" fill="#66716d">0我 -0.8 ｜ 1你 -1.3 ｜ 2喜欢 0.0</text>
+  <text x="508" y="408" font-size="13.5" fill="#4d5652">3猫 +1.0 ｜ 4看 -0.4</text>
+  <rect x="506" y="424" width="216" height="46" rx="6" fill="#cbe9e2" stroke="#087f73" stroke-width="1.4"/>
+  <text x="614" y="453" font-size="14.5" font-weight="700" fill="#065f56" text-anchor="middle">5「。」 +1.6 ★最高当选</text>
+  <text x="614" y="492" font-size="13.5" font-family="var(--font-mono)" fill="#66716d" text-anchor="middle">greedy_sample</text>
 
-  <line x1="736" y1="446" x2="758" y2="446" stroke="#16A34A" stroke-width="1.6" marker-end="url(#ls-g)"/>
+  <line x1="736" y1="446" x2="758" y2="446" stroke="#087f73" stroke-width="1.6" marker-end="url(#ls-g)"/>
 
-  <rect x="762" y="324" width="122" height="184" rx="8" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.5"/>
-  <text x="823" y="358" font-size="14.5" font-weight="700" fill="#166534" text-anchor="middle">④ check_stop</text>
-  <text x="823" y="394" font-size="16" font-weight="700" fill="#14532D" text-anchor="middle">5「。」</text>
-  <text x="823" y="430" font-size="13.5" font-weight="700" fill="#15803D" text-anchor="middle">满 max_tokens</text>
-  <rect x="772" y="452" width="102" height="38" rx="6" fill="#0F172A"/>
-  <text x="823" y="476" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">成文「猫。」</text>
+  <rect x="762" y="324" width="122" height="184" rx="8" fill="#cbe9e2" stroke="#087f73" stroke-width="1.5"/>
+  <text x="823" y="358" font-size="14.5" font-weight="700" fill="#065f56" text-anchor="middle">④ check_stop</text>
+  <text x="823" y="394" font-size="16" font-weight="700" fill="#065f56" text-anchor="middle">5「。」</text>
+  <text x="823" y="430" font-size="13.5" font-weight="700" fill="#087f73" text-anchor="middle">满 max_tokens</text>
+  <rect x="772" y="452" width="102" height="38" rx="6" fill="#17211f"/>
+  <text x="823" y="476" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">成文「猫。」</text>
 
-  <text x="450" y="538" font-size="13.5" font-weight="700" fill="#92400E" text-anchor="middle">末词 5「。」选出当场停机不再进第 3 轮 → 4 词成文在 KV cache 最终存 3 个位置</text>
+  <text x="450" y="538" font-size="13.5" font-weight="700" fill="#936300" text-anchor="middle">末词 5「。」选出当场停机不再进第 3 轮 → 4 词成文在 KV cache 最终存 3 个位置</text>
 </svg>

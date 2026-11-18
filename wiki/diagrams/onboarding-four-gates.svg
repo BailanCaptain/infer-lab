@@ -3,98 +3,98 @@
   <desc>按第一关五维版本锁死（check_ascend_device_type、get_soc_version、device_type_from_runtime_soc、RuntimeError、HardwareProfile、NPUWorker310、FP8_OPTIMIZED、CANN_MEGAMOE_MXFP）、第二关 52 篇食谱去伪存真、第三关 ModelRegistry 与 register_model（如 Qwen3_5ForConditionalGeneration）三路解析、第四关 maybe_auto_detect_quantization（ASCEND_QUANTIZATION_METHOD、COMPRESSED_TENSORS_METHOD、FP8_METHOD、is_950、AscendW8A8MXFP8DynamicLinearMethod、process_weights_after_loading、resolve_block_scales、_mx_quantize）展示昇腾新模型上线检查流水线。</desc>
   <defs>
     <marker id="arrow-main" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#334155"/>
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4d5652"/>
     </marker>
     <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#059669"/>
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
     </marker>
   </defs>
 
   <g role="group" aria-label="第一关：五维配套锁死">
-    <rect x="12" y="12" width="422" height="226" rx="12" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"/>
-    <circle cx="34" cy="36" r="12" fill="#4338CA"/>
-    <text x="34" y="40.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#FFFFFF">1</text>
-    <text x="54" y="42" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#0F172A">第一关 · 五维配套锁死</text>
+    <rect x="12" y="12" width="422" height="226" rx="12" fill="#ffffff" stroke="#8a928f" stroke-width="1.5"/>
+    <circle cx="34" cy="36" r="12" fill="#4c65b6"/>
+    <text x="34" y="40.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="54" y="42" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#17211f">第一关 · 五维配套锁死</text>
 
-    <rect x="26" y="60" width="112" height="32" rx="6" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.2"/>
-    <text x="82" y="81" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#0E7490">vllm 0.30.0</text>
+    <rect x="26" y="60" width="112" height="32" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+    <text x="82" y="81" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#065f56">vllm 0.30.0</text>
 
-    <rect x="146" y="60" width="166" height="32" rx="6" fill="#FEF3C7" stroke="#D97706" stroke-width="1.2"/>
-    <text x="229" y="81" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#92400E">vllm-ascend 0.30.0</text>
+    <rect x="146" y="60" width="166" height="32" rx="6" fill="#faeab8" stroke="#c78300" stroke-width="1.2"/>
+    <text x="229" y="81" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#936300">vllm-ascend 0.30.0</text>
 
-    <rect x="320" y="60" width="100" height="32" rx="6" fill="#F1F5F9" stroke="#64748B" stroke-width="1.2"/>
-    <text x="370" y="81" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#334155">CANN 9.2.1</text>
+    <rect x="320" y="60" width="100" height="32" rx="6" fill="#ece9df" stroke="#66716d" stroke-width="1.2"/>
+    <text x="370" y="81" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#4d5652">CANN 9.2.1</text>
 
-    <rect x="26" y="100" width="204" height="32" rx="6" fill="#F1F5F9" stroke="#64748B" stroke-width="1.2"/>
-    <text x="128" y="121" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#334155">torch_npu 2.10.0.post7</text>
+    <rect x="26" y="100" width="204" height="32" rx="6" fill="#ece9df" stroke="#66716d" stroke-width="1.2"/>
+    <text x="128" y="121" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#4d5652">torch_npu 2.10.0.post7</text>
 
-    <rect x="238" y="100" width="182" height="32" rx="6" fill="#EEF2FF" stroke="#4F46E5" stroke-width="1.2"/>
-    <text x="329" y="121" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="#3730A3">四族: A2/A3/310P/950</text>
+    <rect x="238" y="100" width="182" height="32" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+    <text x="329" y="121" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="#3a4f93">四族: A2/A3/310P/950</text>
 
-    <rect x="26" y="144" width="394" height="78" rx="8" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.4"/>
-    <text x="38" y="171" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#991B1B">⚠ 默认 wheel 仅锁 A2，非 A2 卡启动抛错</text>
-    <text x="38" y="201" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#B91C1C">check_ascend_device_type() → RuntimeError</text>
+    <rect x="26" y="144" width="394" height="78" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+    <text x="38" y="171" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#8f3229">⚠ 默认 wheel 仅锁 A2，非 A2 卡启动抛错</text>
+    <text x="38" y="201" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#8f3229">check_ascend_device_type() → RuntimeError</text>
   </g>
 
-  <line x1="434" y1="125" x2="462" y2="125" stroke="#334155" stroke-width="2" marker-end="url(#arrow-main)"/>
+  <line x1="434" y1="125" x2="462" y2="125" stroke="#4d5652" stroke-width="2" marker-end="url(#arrow-main)"/>
 
   <g role="group" aria-label="第二关：52 篇食谱去伪存真">
-    <rect x="466" y="12" width="422" height="226" rx="12" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"/>
-    <circle cx="488" cy="36" r="12" fill="#0F766E"/>
-    <text x="488" y="40.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#FFFFFF">2</text>
-    <text x="508" y="42" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#0F172A">第二关 · 52 篇食谱去伪存真</text>
+    <rect x="466" y="12" width="422" height="226" rx="12" fill="#ffffff" stroke="#8a928f" stroke-width="1.5"/>
+    <circle cx="488" cy="36" r="12" fill="#087f73"/>
+    <text x="488" y="40.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="508" y="42" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#17211f">第二关 · 52 篇食谱去伪存真</text>
 
-    <rect x="480" y="60" width="136" height="72" rx="8" fill="#F8FAFC" stroke="#64748B" stroke-width="1.3"/>
-    <text x="548" y="88" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#475569">models/ 目录</text>
-    <text x="548" y="115" text-anchor="middle" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#0F172A">共 52 篇文档</text>
+    <rect x="480" y="60" width="136" height="72" rx="8" fill="#ece9df" stroke="#66716d" stroke-width="1.3"/>
+    <text x="548" y="88" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#4d5652">models/ 目录</text>
+    <text x="548" y="115" text-anchor="middle" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#17211f">共 52 篇文档</text>
 
-    <line x1="616" y1="96" x2="640" y2="96" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+    <line x1="616" y1="96" x2="640" y2="96" stroke="#087f73" stroke-width="2" marker-end="url(#arrow-green)"/>
 
-    <rect x="644" y="60" width="230" height="72" rx="8" fill="#ECFDF5" stroke="#059669" stroke-width="1.4"/>
-    <text x="656" y="88" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#065F46">✓ 锁定 25 篇活跃食谱</text>
-    <text x="656" y="115" font-family="var(--font-sans)" font-size="13.5" fill="#047857">20 标准镜像 + 5 专属镜像</text>
+    <rect x="644" y="60" width="230" height="72" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+    <text x="656" y="88" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#065f56">✓ 锁定 25 篇活跃食谱</text>
+    <text x="656" y="115" font-family="var(--font-sans)" font-size="13.5" fill="#087f73">20 标准镜像 + 5 专属镜像</text>
 
-    <rect x="480" y="144" width="394" height="78" rx="8" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.4"/>
-    <text x="492" y="171" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#991B1B">✕ 剔除 27 篇 3 行停服桩 (discontinued)</text>
-    <text x="492" y="201" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="#B91C1C">⚠ GLM5.md 分叉：GLM-5 停服，仅 GLM-5.1 活跃</text>
+    <rect x="480" y="144" width="394" height="78" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+    <text x="492" y="171" font-family="var(--font-sans)" font-size="14.5" font-weight="700" fill="#8f3229">✕ 剔除 27 篇 3 行停服桩 (discontinued)</text>
+    <text x="492" y="201" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="#8f3229">⚠ GLM5.md 分叉：GLM-5 停服，仅 GLM-5.1 活跃</text>
   </g>
 
-  <path d="M 677 238 L 677 259 L 223 259 L 223 276" fill="none" stroke="#334155" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-main)"/>
-  <rect x="382" y="245" width="136" height="28" rx="14" fill="#E2E8F0" stroke="#94A3B8" stroke-width="1.2"/>
-  <text x="450" y="264" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#334155">前两关核准后</text>
+  <path d="M 677 238 L 677 259 L 223 259 L 223 276" fill="none" stroke="#4d5652" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-main)"/>
+  <rect x="382" y="245" width="136" height="28" rx="14" fill="#d8d8cf" stroke="#8a928f" stroke-width="1.2"/>
+  <text x="450" y="264" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#4d5652">前两关核准后</text>
 
   <g role="group" aria-label="第三关：三路模型类解析">
-    <rect x="12" y="280" width="422" height="228" rx="12" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"/>
-    <circle cx="34" cy="304" r="12" fill="#B45309"/>
-    <text x="34" y="308.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#FFFFFF">3</text>
-    <text x="54" y="310" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#0F172A">第三关 · ModelRegistry 三路解析</text>
+    <rect x="12" y="280" width="422" height="228" rx="12" fill="#ffffff" stroke="#8a928f" stroke-width="1.5"/>
+    <circle cx="34" cy="304" r="12" fill="#c78300"/>
+    <text x="34" y="308.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="54" y="310" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#17211f">第三关 · ModelRegistry 三路解析</text>
 
-    <rect x="26" y="328" width="394" height="48" rx="8" fill="#FEF3C7" stroke="#D97706" stroke-width="1.3"/>
-    <text x="38" y="357" font-family="var(--font-sans)" font-size="14" fill="#78350F"><tspan font-weight="700">路径 B：</tspan>昇腾 29 项注册覆写 (<tspan font-family="var(--font-mono)" font-weight="600">Qwen3_5*</tspan>)</text>
+    <rect x="26" y="328" width="394" height="48" rx="8" fill="#faeab8" stroke="#c78300" stroke-width="1.3"/>
+    <text x="38" y="357" font-family="var(--font-sans)" font-size="14" fill="#936300"><tspan font-weight="700">路径 B：</tspan>昇腾 29 项注册覆写 (<tspan font-family="var(--font-mono)" font-weight="600">Qwen3_5*</tspan>)</text>
 
-    <rect x="26" y="384" width="394" height="48" rx="8" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.3"/>
-    <text x="38" y="413" font-family="var(--font-sans)" font-size="14" fill="#155E75"><tspan font-weight="700">路径 A：</tspan>上游 <tspan font-family="var(--font-mono)" font-weight="600">vllm</tspan> 内置 + NPU 算子 (<tspan font-family="var(--font-mono)" font-weight="600">Qwen3*</tspan>)</text>
+    <rect x="26" y="384" width="394" height="48" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+    <text x="38" y="413" font-family="var(--font-sans)" font-size="14" fill="#065f56"><tspan font-weight="700">路径 A：</tspan>上游 <tspan font-family="var(--font-mono)" font-weight="600">vllm</tspan> 内置 + NPU 算子 (<tspan font-family="var(--font-mono)" font-weight="600">Qwen3*</tspan>)</text>
 
-    <rect x="26" y="440" width="394" height="48" rx="8" fill="#F8FAFC" stroke="#64748B" stroke-width="1.3"/>
-    <text x="38" y="469" font-family="var(--font-sans)" font-size="14" fill="#334155"><tspan font-weight="700">路径 C：</tspan><tspan font-family="var(--font-mono)" font-weight="600">transformers</tspan> 回退 ｜ 失配抛 <tspan font-family="var(--font-mono)" font-weight="700" fill="#B91C1C">ValueError</tspan></text>
+    <rect x="26" y="440" width="394" height="48" rx="8" fill="#ece9df" stroke="#66716d" stroke-width="1.3"/>
+    <text x="38" y="469" font-family="var(--font-sans)" font-size="14" fill="#4d5652"><tspan font-weight="700">路径 C：</tspan><tspan font-family="var(--font-mono)" font-weight="600">transformers</tspan> 回退 ｜ 失配抛 <tspan font-family="var(--font-mono)" font-weight="700" fill="#8f3229">ValueError</tspan></text>
   </g>
 
-  <line x1="434" y1="394" x2="462" y2="394" stroke="#334155" stroke-width="2" marker-end="url(#arrow-main)"/>
+  <line x1="434" y1="394" x2="462" y2="394" stroke="#4d5652" stroke-width="2" marker-end="url(#arrow-main)"/>
 
   <g role="group" aria-label="第四关：权重探测与代际分流">
-    <rect x="466" y="280" width="422" height="228" rx="12" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"/>
-    <circle cx="488" cy="304" r="12" fill="#7C3AED"/>
-    <text x="488" y="308.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#FFFFFF">4</text>
-    <text x="508" y="310" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#0F172A">第四关 · 权重探测与代际分流</text>
+    <rect x="466" y="280" width="422" height="228" rx="12" fill="#ffffff" stroke="#8a928f" stroke-width="1.5"/>
+    <circle cx="488" cy="304" r="12" fill="#9a4b86"/>
+    <text x="488" y="308.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="508" y="310" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#17211f">第四关 · 权重探测与代际分流</text>
 
-    <rect x="480" y="328" width="394" height="38" rx="8" fill="#F8FAFC" stroke="#64748B" stroke-width="1.2"/>
-    <text x="677" y="352" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="#334155">① ascend → ② compressed → ③ fp8 → ④ 浮点</text>
+    <rect x="480" y="328" width="394" height="38" rx="8" fill="#ece9df" stroke="#66716d" stroke-width="1.2"/>
+    <text x="677" y="352" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="#4d5652">① ascend → ② compressed → ③ fp8 → ④ 浮点</text>
 
-    <rect x="480" y="374" width="394" height="72" rx="8" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.4"/>
-    <text x="492" y="400" font-family="var(--font-sans)" font-size="14" fill="#1E293B"><tspan font-weight="700">分块 FP8：</tspan><tspan fill="#047857" font-weight="700">950DT 保 1B</tspan> ｜ <tspan fill="#B91C1C" font-weight="700">310P 无路径</tspan></text>
-    <text x="492" y="429" font-family="var(--font-sans)" font-size="14" font-weight="700" fill="#B91C1C">⚠ A2 / A3 静默反量化回 BF16，显存翻倍 (2×)</text>
+    <rect x="480" y="374" width="394" height="72" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+    <text x="492" y="400" font-family="var(--font-sans)" font-size="14" fill="#17211f"><tspan font-weight="700">分块 FP8：</tspan><tspan fill="#087f73" font-weight="700">950DT 保 1B</tspan> ｜ <tspan fill="#8f3229" font-weight="700">310P 无路径</tspan></text>
+    <text x="492" y="429" font-family="var(--font-sans)" font-size="14" font-weight="700" fill="#8f3229">⚠ A2 / A3 静默反量化回 BF16，显存翻倍 (2×)</text>
 
-    <rect x="480" y="454" width="394" height="38" rx="8" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.2"/>
-    <text x="492" y="478" font-family="var(--font-sans)" font-size="13.5" fill="#1E40AF"><tspan font-weight="700">浮点：</tspan>A2/A3/950 用 BF16 ｜ <tspan font-weight="700" fill="#B91C1C">310P 必传 float16</tspan></text>
+    <rect x="480" y="454" width="394" height="38" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+    <text x="492" y="478" font-family="var(--font-sans)" font-size="13.5" fill="#3a4f93"><tspan font-weight="700">浮点：</tspan>A2/A3/950 用 BF16 ｜ <tspan font-weight="700" fill="#8f3229">310P 必传 float16</tspan></text>
   </g>
 </svg>

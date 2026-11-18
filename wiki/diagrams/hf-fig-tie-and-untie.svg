@@ -3,72 +3,72 @@
   <desc>对比 embed_tokens 与 ParallelLMHead（lm_head）在 tie_word_embeddings 为 false 与 true 时的显存占用，并展示 v0.30.0 maybe_untie_word_embeddings 在检测到独立 lm_head 时的三步保护核验。</desc>
 
   <!-- Open Vertical Dashed Divider -->
-  <line x1="436" y1="14" x2="436" y2="372" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="436" y1="14" x2="436" y2="372" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
 
   <!-- Left Section: Tied vs Untied Memory Anatomy -->
   <text x="14" y="30" font-size="16" font-weight="700" fill="#17211f">A. 首尾词表矩阵（V = 151,936）物理占用</text>
 
-  <text x="14" y="62" font-size="14.5" font-weight="700" fill="#1D4ED8">Qwen3-8B（H=4096，tie_word_embeddings: false）</text>
-  <rect x="14" y="76" width="188" height="58" rx="6" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="1.4"/>
-  <text x="108" y="100" text-anchor="middle" font-size="14.5" font-weight="700" fill="#1E3A8A">前端 embed_tokens</text>
-  <text x="108" y="123" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#334155">151,936×4,096</text>
+  <text x="14" y="62" font-size="14.5" font-weight="700" fill="#4c65b6">Qwen3-8B（H=4096，tie_word_embeddings: false）</text>
+  <rect x="14" y="76" width="188" height="58" rx="6" fill="#d7e0fb" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="108" y="100" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">前端 embed_tokens</text>
+  <text x="108" y="123" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">151,936×4,096</text>
 
-  <text x="216" y="111" text-anchor="middle" font-size="16" font-weight="800" fill="#1D4ED8">+</text>
+  <text x="216" y="111" text-anchor="middle" font-size="16" font-weight="800" fill="#4c65b6">+</text>
 
-  <rect x="230" y="76" width="188" height="58" rx="6" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="1.4"/>
-  <text x="324" y="100" text-anchor="middle" font-size="14.5" font-weight="700" fill="#1E3A8A">独立头 lm_head</text>
-  <text x="324" y="123" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#334155">4,096×151,936</text>
+  <rect x="230" y="76" width="188" height="58" rx="6" fill="#d7e0fb" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="324" y="100" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">独立头 lm_head</text>
+  <text x="324" y="123" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">4,096×151,936</text>
 
-  <text x="14" y="162" font-size="14" fill="#334155">双表独立存储：合占 <tspan font-weight="700" fill="#17211f">1.24B 参数（BF16 占 2.32 GiB）</tspan></text>
+  <text x="14" y="162" font-size="14" fill="#4d5652">双表独立存储：合占 <tspan font-weight="700" fill="#17211f">1.24B 参数（BF16 占 2.32 GiB）</tspan></text>
 
-  <line x1="14" y1="184" x2="420" y2="184" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <line x1="14" y1="184" x2="420" y2="184" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="4 3"/>
 
-  <text x="14" y="214" font-size="14.5" font-weight="700" fill="#0F766E">Qwen3-0.6B（H=1024，tie_word_embeddings: true）</text>
-  <rect x="14" y="228" width="190" height="58" rx="6" fill="#CCFBF1" stroke="#0F766E" stroke-width="1.5"/>
-  <text x="109" y="252" text-anchor="middle" font-size="14.5" font-weight="700" fill="#0F766E">共享矩阵 [V × H]</text>
-  <text x="109" y="275" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#334155">151,936×1,024</text>
+  <text x="14" y="214" font-size="14.5" font-weight="700" fill="#087f73">Qwen3-0.6B（H=1024，tie_word_embeddings: true）</text>
+  <rect x="14" y="228" width="190" height="58" rx="6" fill="#cbe9e2" stroke="#087f73" stroke-width="1.5"/>
+  <text x="109" y="252" text-anchor="middle" font-size="14.5" font-weight="700" fill="#087f73">共享矩阵 [V × H]</text>
+  <text x="109" y="275" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">151,936×1,024</text>
 
-  <line x1="204" y1="257" x2="232" y2="257" stroke="#0F766E" stroke-width="1.6"/>
-  <rect x="232" y="228" width="188" height="58" rx="6" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.4" stroke-dasharray="5 3"/>
-  <text x="326" y="252" text-anchor="middle" font-size="14.5" font-weight="700" fill="#0F766E">ParallelLMHead 复用</text>
-  <text x="326" y="275" text-anchor="middle" font-size="13.5" fill="#0F766E">新增 = 0（省 0.16B）</text>
+  <line x1="204" y1="257" x2="232" y2="257" stroke="#087f73" stroke-width="1.6"/>
+  <rect x="232" y="228" width="188" height="58" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <text x="326" y="252" text-anchor="middle" font-size="14.5" font-weight="700" fill="#087f73">ParallelLMHead 复用</text>
+  <text x="326" y="275" text-anchor="middle" font-size="13.5" fill="#087f73">新增 = 0（省 0.16B）</text>
 
-  <text x="14" y="314" font-size="14" fill="#334155">总参数收敛至 <tspan font-weight="700" fill="#0F766E">0.60B</tspan>（非嵌入主干 <tspan font-weight="700">0.44B</tspan>）</text>
-  <text x="14" y="342" font-size="13.5" fill="#64748B">注：30B-A3B 亦为 false（首尾独立各占 0.31B）</text>
+  <text x="14" y="314" font-size="14" fill="#4d5652">总参数收敛至 <tspan font-weight="700" fill="#087f73">0.60B</tspan>（非嵌入主干 <tspan font-weight="700">0.44B</tspan>）</text>
+  <text x="14" y="342" font-size="13.5" fill="#66716d">注：30B-A3B 亦为 false（首尾独立各占 0.31B）</text>
 
   <!-- Right Section: v0.30.0 maybe_untie_word_embeddings -->
   <text x="452" y="30" font-size="16" font-weight="700" fill="#17211f">B. 冲突保护：maybe_untie_word_embeddings</text>
 
-  <rect x="452" y="46" width="434" height="58" rx="7" fill="#FFFBEB" stroke="#D97706" stroke-width="1.4"/>
-  <text x="466" y="70" font-size="14.5" font-weight="700" fill="#92400E">冲突：config.json 写 tie_word_embeddings: true</text>
-  <text x="466" y="94" font-size="13.5" fill="#334155">但微调 .safetensors 实际附带了独立 lm_head 张量！</text>
+  <rect x="452" y="46" width="434" height="58" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="466" y="70" font-size="14.5" font-weight="700" fill="#936300">冲突：config.json 写 tie_word_embeddings: true</text>
+  <text x="466" y="94" font-size="13.5" fill="#4d5652">但微调 .safetensors 实际附带了独立 lm_head 张量！</text>
 
-  <line x1="544" y1="104" x2="544" y2="128" stroke="#BE123C" stroke-width="1.6"/>
-  <rect x="452" y="128" width="184" height="114" rx="7" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.4"/>
-  <text x="464" y="154" font-size="14.5" font-weight="700" fill="#BE123C">✗ v0.23 / v0.26rc</text>
-  <text x="464" y="180" font-size="13.5" fill="#334155">盲信配置强行共享，</text>
-  <text x="464" y="204" font-size="13.5" font-weight="700" fill="#BE123C">将独立 lm_head</text>
-  <text x="464" y="228" font-size="13.5" font-weight="700" fill="#BE123C">静默丢弃（乱码）</text>
+  <line x1="544" y1="104" x2="544" y2="128" stroke="#b54237" stroke-width="1.6"/>
+  <rect x="452" y="128" width="184" height="114" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="464" y="154" font-size="14.5" font-weight="700" fill="#b54237">✗ v0.23 / v0.26rc</text>
+  <text x="464" y="180" font-size="13.5" fill="#4d5652">盲信配置强行共享，</text>
+  <text x="464" y="204" font-size="13.5" font-weight="700" fill="#b54237">将独立 lm_head</text>
+  <text x="464" y="228" font-size="13.5" font-weight="700" fill="#b54237">静默丢弃（乱码）</text>
 
-  <line x1="456" y1="262" x2="456" y2="352" stroke="#94A3B8" stroke-width="2.5"/>
-  <text x="468" y="280" font-size="14" font-weight="700" fill="#334155">源码位置（v0.30.0+）</text>
-  <text x="468" y="306" font-size="13.5" font-family="var(--font-mono)" fill="#475569">vllm/config/model.py</text>
-  <text x="468" y="332" font-size="13.5" fill="#475569">防微调配置不一致</text>
+  <line x1="456" y1="262" x2="456" y2="352" stroke="#8a928f" stroke-width="2.5"/>
+  <text x="468" y="280" font-size="14" font-weight="700" fill="#4d5652">源码位置（v0.30.0+）</text>
+  <text x="468" y="306" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">vllm/config/model.py</text>
+  <text x="468" y="332" font-size="13.5" fill="#4d5652">防微调配置不一致</text>
 
-  <line x1="768" y1="104" x2="768" y2="122" stroke="#0F766E" stroke-width="1.6"/>
-  <text x="650" y="138" font-size="14.5" font-weight="700" fill="#0F766E">✓ v0.30.0+ 三步安全核验</text>
+  <line x1="768" y1="104" x2="768" y2="122" stroke="#087f73" stroke-width="1.6"/>
+  <text x="650" y="138" font-size="14.5" font-weight="700" fill="#087f73">✓ v0.30.0+ 三步安全核验</text>
 
-  <rect x="650" y="150" width="236" height="58" rx="6" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.3"/>
+  <rect x="650" y="150" width="236" height="58" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
   <text x="662" y="174" font-size="14.5" font-weight="700" fill="#17211f">① 加载前预探测权重</text>
-  <text x="662" y="197" font-size="13.5" fill="#334155">发现存在独立 lm_head</text>
+  <text x="662" y="197" font-size="13.5" fill="#4d5652">发现存在独立 lm_head</text>
 
-  <line x1="768" y1="208" x2="768" y2="222" stroke="#0F766E" stroke-width="1.6"/>
-  <rect x="650" y="222" width="236" height="58" rx="6" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.3"/>
+  <line x1="768" y1="208" x2="768" y2="222" stroke="#087f73" stroke-width="1.6"/>
+  <rect x="650" y="222" width="236" height="58" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
   <text x="662" y="246" font-size="14.5" font-weight="700" fill="#17211f">② 暂改 tie=false 载入</text>
-  <text x="662" y="269" font-size="13.5" fill="#334155">首尾两份张量均完整保留</text>
+  <text x="662" y="269" font-size="13.5" fill="#4d5652">首尾两份张量均完整保留</text>
 
-  <line x1="768" y1="280" x2="768" y2="294" stroke="#0F766E" stroke-width="1.6"/>
-  <rect x="650" y="294" width="236" height="60" rx="6" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.5"/>
-  <text x="662" y="319" font-size="14.5" font-weight="700" fill="#0F766E">③ 加载后比对张量数值</text>
-  <text x="662" y="342" font-size="13.5" fill="#334155">相等合并，不等保留独立头</text>
+  <line x1="768" y1="280" x2="768" y2="294" stroke="#087f73" stroke-width="1.6"/>
+  <rect x="650" y="294" width="236" height="60" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="662" y="319" font-size="14.5" font-weight="700" fill="#087f73">③ 加载后比对张量数值</text>
+  <text x="662" y="342" font-size="13.5" fill="#4d5652">相等合并，不等保留独立头</text>
 </svg>

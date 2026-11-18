@@ -3,98 +3,98 @@
   <desc>开放画布展示 vllm 读取 config.json 的 architectures 与可选 hf_overrides 后，由 ModelRegistry.resolve_model_cls 按 model_impl 分流：显式 transformers 走路径 C（配 trust_remote_code）；默认 auto 依次查 vllm-ascend register_model 29 项（DeepseekV4ForCausalLM、Glm5NextForCausalLM、Qwen3_5ForConditionalGeneration、Qwen3_5MoeForConditionalGeneration）、上游 _VLLM_MODELS / _TEXT_GENERATION_MODELS（Qwen3ForCausalLM、Qwen3MoeForCausalLM），未命中且 convert_type=none 时调 _try_resolve_transformers 或由 _raise_for_unsupported 抛 ValueError。</desc>
   <defs>
     <marker id="mr-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#334155"/>
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4d5652"/>
     </marker>
     <marker id="mr-arr-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4F46E5"/>
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
     </marker>
     <marker id="mr-arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#D97706"/>
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
     </marker>
     <marker id="mr-arr-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#0891B2"/>
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
     </marker>
     <marker id="mr-arr-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#7C3AED"/>
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
     </marker>
     <marker id="mr-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#DC2626"/>
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
     </marker>
   </defs>
 
   <g role="group" aria-label="模型配置与注册表入口">
-    <rect x="12" y="60" width="204" height="104" rx="10" fill="#FFFFFF" stroke="#475569" stroke-width="1.5"/>
-    <text x="114" y="88" text-anchor="middle" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#0F172A">模型配置入口</text>
-    <text x="114" y="116" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#334155">config.json 架构名</text>
-    <text x="114" y="144" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#4338CA">可选 <tspan font-family="var(--font-mono)" font-weight="600">hf_overrides</tspan></text>
+    <rect x="12" y="60" width="204" height="104" rx="10" fill="#ffffff" stroke="#4d5652" stroke-width="1.5"/>
+    <text x="114" y="88" text-anchor="middle" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211f">模型配置入口</text>
+    <text x="114" y="116" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#4d5652">config.json 架构名</text>
+    <text x="114" y="144" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" fill="#4c65b6">可选 <tspan font-family="var(--font-mono)" font-weight="600">hf_overrides</tspan></text>
 
-    <path d="M 114 164 L 114 196" fill="none" stroke="#4F46E5" stroke-width="2" marker-end="url(#mr-arr-indigo)"/>
+    <path d="M 114 164 L 114 196" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#mr-arr-indigo)"/>
 
-    <rect x="12" y="202" width="204" height="106" rx="10" fill="#EEF2FF" stroke="#4F46E5" stroke-width="1.5"/>
-    <text x="114" y="232" text-anchor="middle" font-family="var(--font-mono)" font-size="16" font-weight="700" fill="#312E81">ModelRegistry</text>
-    <text x="114" y="260" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#4338CA">resolve_model_cls()</text>
-    <text x="114" y="288" text-anchor="middle" font-family="var(--font-sans)" font-size="14" fill="#475569">按 <tspan font-family="var(--font-mono)" font-weight="600">model_impl</tspan> 分流</text>
+    <rect x="12" y="202" width="204" height="106" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+    <text x="114" y="232" text-anchor="middle" font-family="var(--font-mono)" font-size="16" font-weight="700" fill="#3a4f93">ModelRegistry</text>
+    <text x="114" y="260" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#4c65b6">resolve_model_cls()</text>
+    <text x="114" y="288" text-anchor="middle" font-family="var(--font-sans)" font-size="14" fill="#4d5652">按 <tspan font-family="var(--font-mono)" font-weight="600">model_impl</tspan> 分流</text>
   </g>
 
-  <path d="M 216 246 L 230 246 L 230 52 L 240 52" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#mr-arr-ink)"/>
-  <path d="M 216 260 L 230 260 L 230 190 L 240 190" fill="none" stroke="#4F46E5" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#mr-arr-indigo)"/>
+  <path d="M 216 246 L 230 246 L 230 52 L 240 52" fill="none" stroke="#4d5652" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#mr-arr-ink)"/>
+  <path d="M 216 260 L 230 260 L 230 190 L 240 190" fill="none" stroke="#4c65b6" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#mr-arr-indigo)"/>
 
   <g role="group" aria-label="分支一：显式指定 transformers">
-    <rect x="244" y="14" width="254" height="76" rx="10" fill="#F8FAFC" stroke="#64748B" stroke-width="1.5"/>
-    <text x="258" y="43" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#1E293B">分支 1：显式指定后端</text>
-    <text x="258" y="72" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#334155">--model-impl transformers</text>
+    <rect x="244" y="14" width="254" height="76" rx="10" fill="#ece9df" stroke="#66716d" stroke-width="1.5"/>
+    <text x="258" y="43" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211f">分支 1：显式指定后端</text>
+    <text x="258" y="72" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#4d5652">--model-impl transformers</text>
 
-    <path d="M 498 52 L 542 52" fill="none" stroke="#7C3AED" stroke-width="2" marker-end="url(#mr-arr-purple)"/>
+    <path d="M 498 52 L 542 52" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#mr-arr-purple)"/>
 
-    <rect x="548" y="14" width="340" height="76" rx="10" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.5"/>
-    <text x="564" y="43" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#5B21B6">路径 C：强制走 transformers</text>
-    <text x="564" y="72" font-family="var(--font-sans)" font-size="14" fill="#6D28D9">含 <tspan font-family="var(--font-mono)">auto_map</tspan> 时配 <tspan font-family="var(--font-mono)" font-weight="600">trust_remote_code</tspan></text>
+    <rect x="548" y="14" width="340" height="76" rx="10" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+    <text x="564" y="43" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#7a3a6a">路径 C：强制走 transformers</text>
+    <text x="564" y="72" font-family="var(--font-sans)" font-size="14" fill="#9a4b86">含 <tspan font-family="var(--font-mono)">auto_map</tspan> 时配 <tspan font-family="var(--font-mono)" font-weight="600">trust_remote_code</tspan></text>
   </g>
 
-  <line x1="244" y1="108" x2="888" y2="108" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="6 5"/>
-  <text x="244" y="136" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#1E293B">分支 2：<tspan font-family="var(--font-mono)" font-size="15">--model-impl auto</tspan>（默认按三级优先级匹配）</text>
+  <line x1="244" y1="108" x2="888" y2="108" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="244" y="136" font-family="var(--font-sans)" font-size="16" font-weight="700" fill="#17211f">分支 2：<tspan font-family="var(--font-mono)" font-size="15">--model-impl auto</tspan>（默认按三级优先级匹配）</text>
 
   <g role="group" aria-label="分支二：默认 auto 三步匹配">
-    <rect x="244" y="152" width="254" height="76" rx="10" fill="#FFFBEB" stroke="#D97706" stroke-width="1.5"/>
-    <text x="258" y="181" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#92400E">① 查昇腾注册表 (29 项)</text>
-    <text x="258" y="210" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#B45309">vllm_ascend:register_model</text>
+    <rect x="244" y="152" width="254" height="76" rx="10" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+    <text x="258" y="181" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#936300">① 查昇腾注册表 (29 项)</text>
+    <text x="258" y="210" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#c78300">vllm_ascend:register_model</text>
 
-    <path d="M 498 190 L 542 190" fill="none" stroke="#D97706" stroke-width="2" marker-end="url(#mr-arr-amber)"/>
-    <text x="520" y="181" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#92400E">命中</text>
+    <path d="M 498 190 L 542 190" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#mr-arr-amber)"/>
+    <text x="520" y="181" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#936300">命中</text>
 
-    <rect x="548" y="152" width="340" height="76" rx="10" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
-    <text x="564" y="181" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#78350F">路径 B：昇腾专有或覆写实现</text>
-    <text x="564" y="210" font-family="var(--font-mono)" font-size="13.5" fill="#92400E">DeepseekV4* · Glm5Next* · Qwen3_5*</text>
+    <rect x="548" y="152" width="340" height="76" rx="10" fill="#faeab8" stroke="#c78300" stroke-width="1.5"/>
+    <text x="564" y="181" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#936300">路径 B：昇腾专有或覆写实现</text>
+    <text x="564" y="210" font-family="var(--font-mono)" font-size="13.5" fill="#936300">DeepseekV4* · Glm5Next* · Qwen3_5*</text>
 
-    <path d="M 371 228 L 371 264" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#mr-arr-ink)"/>
-    <text x="384" y="252" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="#64748B">未命中</text>
+    <path d="M 371 228 L 371 264" fill="none" stroke="#4d5652" stroke-width="1.8" marker-end="url(#mr-arr-ink)"/>
+    <text x="384" y="252" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="#66716d">未命中</text>
 
-    <rect x="244" y="270" width="254" height="76" rx="10" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.5"/>
-    <text x="258" y="299" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#155E75">② 查上游 vLLM 内置表</text>
-    <text x="258" y="328" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#0E7490">_VLLM_MODELS</text>
+    <rect x="244" y="270" width="254" height="76" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+    <text x="258" y="299" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#065f56">② 查上游 vLLM 内置表</text>
+    <text x="258" y="328" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#065f56">_VLLM_MODELS</text>
 
-    <path d="M 498 308 L 542 308" fill="none" stroke="#0891B2" stroke-width="2" marker-end="url(#mr-arr-cyan)"/>
-    <text x="520" y="299" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#0E7490">命中</text>
+    <path d="M 498 308 L 542 308" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#mr-arr-cyan)"/>
+    <text x="520" y="299" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#065f56">命中</text>
 
-    <rect x="548" y="270" width="340" height="76" rx="10" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.5"/>
-    <text x="564" y="299" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#155E75">路径 A：上游原生架构 + NPU 适配</text>
-    <text x="564" y="328" font-family="var(--font-mono)" font-size="13.5" fill="#0E7490">Qwen3ForCausalLM · Qwen3Moe*</text>
+    <rect x="548" y="270" width="340" height="76" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+    <text x="564" y="299" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#065f56">路径 A：上游原生架构 + NPU 适配</text>
+    <text x="564" y="328" font-family="var(--font-mono)" font-size="13.5" fill="#065f56">Qwen3ForCausalLM · Qwen3Moe*</text>
 
-    <path d="M 371 346 L 371 382" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#mr-arr-ink)"/>
-    <text x="384" y="370" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="#64748B">未命中</text>
+    <path d="M 371 346 L 371 382" fill="none" stroke="#4d5652" stroke-width="1.8" marker-end="url(#mr-arr-ink)"/>
+    <text x="384" y="370" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="#66716d">未命中</text>
 
-    <rect x="244" y="388" width="254" height="104" rx="10" fill="#FFFFFF" stroke="#64748B" stroke-width="1.5"/>
-    <text x="258" y="417" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#1E293B">③ 常规生成 (<tspan font-family="var(--font-mono)" font-size="13.5">convert=none</tspan>)</text>
-    <text x="258" y="446" font-family="var(--font-mono)" font-size="13.5" fill="#475569">_try_resolve_transformers</text>
-    <text x="258" y="474" font-family="var(--font-mono)" font-size="13.5" fill="#64748B">_raise_for_unsupported</text>
+    <rect x="244" y="388" width="254" height="104" rx="10" fill="#ffffff" stroke="#66716d" stroke-width="1.5"/>
+    <text x="258" y="417" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211f">③ 常规生成 (<tspan font-family="var(--font-mono)" font-size="13.5">convert=none</tspan>)</text>
+    <text x="258" y="446" font-family="var(--font-mono)" font-size="13.5" fill="#4d5652">_try_resolve_transformers</text>
+    <text x="258" y="474" font-family="var(--font-mono)" font-size="13.5" fill="#66716d">_raise_for_unsupported</text>
 
-    <path d="M 498 424 L 518 424 L 518 411 L 542 411" fill="none" stroke="#7C3AED" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#mr-arr-purple)"/>
-    <path d="M 498 456 L 518 456 L 518 469 L 542 469" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#mr-arr-red)"/>
+    <path d="M 498 424 L 518 424 L 518 411 L 542 411" fill="none" stroke="#9a4b86" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#mr-arr-purple)"/>
+    <path d="M 498 456 L 518 456 L 518 469 L 542 469" fill="none" stroke="#b54237" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#mr-arr-red)"/>
 
-    <rect x="548" y="388" width="340" height="46" rx="8" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.4"/>
-    <text x="564" y="417" font-family="var(--font-sans)" font-size="14" fill="#5B21B6"><tspan font-weight="700">兼容 → 路径 C：</tspan>自动回退 <tspan font-family="var(--font-mono)">transformers</tspan></text>
+    <rect x="548" y="388" width="340" height="46" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+    <text x="564" y="417" font-family="var(--font-sans)" font-size="14" fill="#7a3a6a"><tspan font-weight="700">兼容 → 路径 C：</tspan>自动回退 <tspan font-family="var(--font-mono)">transformers</tspan></text>
 
-    <rect x="548" y="446" width="340" height="46" rx="8" fill="#FEE2E2" stroke="#DC2626" stroke-width="1.4"/>
-    <text x="564" y="475" font-family="var(--font-sans)" font-size="14" fill="#991B1B"><tspan font-weight="700">仍不兼容 → 抛出 </tspan><tspan font-family="var(--font-mono)" font-weight="700">ValueError</tspan>（不支持）</text>
+    <rect x="548" y="446" width="340" height="46" rx="8" fill="#fae1d8" stroke="#b54237" stroke-width="1.4"/>
+    <text x="564" y="475" font-family="var(--font-sans)" font-size="14" fill="#8f3229"><tspan font-weight="700">仍不兼容 → 抛出 </tspan><tspan font-family="var(--font-mono)" font-weight="700">ValueError</tspan>（不支持）</text>
   </g>
 </svg>

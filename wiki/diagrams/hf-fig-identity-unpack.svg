@@ -3,74 +3,74 @@
   <desc>get_config 首选 architectures，漏写时按 model_type 查 MODEL_MAPPING_NAMES 补齐，仍未命中须传 hf_overrides；多模态配置由 get_hf_text_config 提取 text_config 子对象。</desc>
   <defs>
     <marker id="arrBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#1D4ED8"/>
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
     </marker>
     <marker id="arrAmber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#B45309"/>
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
     </marker>
     <marker id="arrTeal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#0F766E"/>
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
     </marker>
     <marker id="arrRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#BE123C"/>
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
     </marker>
   </defs>
 
   <!-- Upper Track: Architecture Resolution Chain -->
   <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">A. 模型架构类三级定位链（get_config · 优先读类名，漏写查映射表）</text>
 
-  <rect x="16" y="46" width="186" height="124" rx="8" fill="#FFFFFF" stroke="#17211f" stroke-width="1.5"/>
+  <rect x="16" y="46" width="186" height="124" rx="8" fill="#ffffff" stroke="#17211f" stroke-width="1.5"/>
   <text x="28" y="72" font-size="15" font-weight="700" fill="#17211f">顶层 config.json</text>
-  <text x="28" y="98" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#1D4ED8">"architectures"</text>
-  <text x="28" y="124" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#B45309">"model_type"</text>
-  <text x="28" y="150" font-size="13.5" fill="#475569">或 Mistral params</text>
+  <text x="28" y="98" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#4c65b6">"architectures"</text>
+  <text x="28" y="124" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#c78300">"model_type"</text>
+  <text x="28" y="150" font-size="13.5" fill="#4d5652">或 Mistral params</text>
 
   <!-- Step 1: Primary -->
-  <line x1="202" y1="74" x2="232" y2="74" stroke="#1D4ED8" stroke-width="1.7" marker-end="url(#arrBlue)"/>
-  <rect x="236" y="44" width="268" height="60" rx="8" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.5"/>
-  <text x="248" y="69" font-size="14.5" font-weight="700" fill="#1D4ED8">① 首选 architectures 类名</text>
-  <text x="248" y="93" font-size="13.5" font-family="var(--font-mono)" fill="#334155">Qwen3 / Qwen3MoeForCausalLM</text>
+  <line x1="202" y1="74" x2="232" y2="74" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#arrBlue)"/>
+  <rect x="236" y="44" width="268" height="60" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="248" y="69" font-size="14.5" font-weight="700" fill="#4c65b6">① 首选 architectures 类名</text>
+  <text x="248" y="93" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">Qwen3 / Qwen3MoeForCausalLM</text>
 
   <!-- Step 2: Fallback model_type -->
-  <path d="M 202 128 L 218 128 L 218 142 L 232 142" fill="none" stroke="#B45309" stroke-width="1.7" stroke-dasharray="5 3" marker-end="url(#arrAmber)"/>
-  <rect x="236" y="112" width="268" height="60" rx="8" fill="#FFFBEB" stroke="#B45309" stroke-width="1.4"/>
-  <text x="248" y="137" font-size="14.5" font-weight="700" fill="#B45309">② 漏写按 model_type 查表</text>
-  <text x="248" y="161" font-size="13.5" font-family="var(--font-mono)" fill="#334155">MODEL_MAPPING_NAMES 补齐</text>
+  <path d="M 202 128 L 218 128 L 218 142 L 232 142" fill="none" stroke="#c78300" stroke-width="1.7" stroke-dasharray="5 3" marker-end="url(#arrAmber)"/>
+  <rect x="236" y="112" width="268" height="60" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="248" y="137" font-size="14.5" font-weight="700" fill="#c78300">② 漏写按 model_type 查表</text>
+  <text x="248" y="161" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">MODEL_MAPPING_NAMES 补齐</text>
 
   <!-- Step 3: CLI Override or Fail -->
-  <line x1="504" y1="142" x2="530" y2="142" stroke="#BE123C" stroke-width="1.7" stroke-dasharray="5 3" marker-end="url(#arrRed)"/>
-  <rect x="534" y="112" width="204" height="60" rx="8" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.4"/>
-  <text x="546" y="137" font-size="14.5" font-weight="700" fill="#BE123C">③ 未命中：手动指定</text>
-  <text x="546" y="161" font-size="13.5" fill="#334155">传 --hf-overrides 覆盖</text>
+  <line x1="504" y1="142" x2="530" y2="142" stroke="#b54237" stroke-width="1.7" stroke-dasharray="5 3" marker-end="url(#arrRed)"/>
+  <rect x="534" y="112" width="204" height="60" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="546" y="137" font-size="14.5" font-weight="700" fill="#b54237">③ 未命中：手动指定</text>
+  <text x="546" y="161" font-size="13.5" fill="#4d5652">传 --hf-overrides 覆盖</text>
 
   <!-- Registered Model Registry Target -->
-  <line x1="504" y1="74" x2="740" y2="74" stroke="#0F766E" stroke-width="1.7" marker-end="url(#arrTeal)"/>
-  <path d="M 738 142 L 816 142 L 816 108" fill="none" stroke="#0F766E" stroke-width="1.7" marker-end="url(#arrTeal)"/>
-  <rect x="744" y="44" width="142" height="60" rx="8" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.5"/>
-  <text x="815" y="69" text-anchor="middle" font-size="14.5" font-weight="700" fill="#0F766E">命中模型注册表</text>
-  <text x="815" y="93" text-anchor="middle" font-size="13.5" fill="#334155">昇腾算子就绪</text>
+  <line x1="504" y1="74" x2="740" y2="74" stroke="#087f73" stroke-width="1.7" marker-end="url(#arrTeal)"/>
+  <path d="M 738 142 L 816 142 L 816 108" fill="none" stroke="#087f73" stroke-width="1.7" marker-end="url(#arrTeal)"/>
+  <rect x="744" y="44" width="142" height="60" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="815" y="69" text-anchor="middle" font-size="14.5" font-weight="700" fill="#087f73">命中模型注册表</text>
+  <text x="815" y="93" text-anchor="middle" font-size="13.5" fill="#4d5652">昇腾算子就绪</text>
 
   <!-- Open Dashed Divider -->
-  <line x1="16" y1="194" x2="884" y2="194" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="16" y1="194" x2="884" y2="194" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
 
   <!-- Lower Track: Multimodal text_config Unpacking -->
   <text x="16" y="224" font-size="16" font-weight="700" fill="#17211f">B. 多模态复合配置解包链（get_hf_text_config 剥出语言主干）</text>
 
-  <rect x="16" y="242" width="308" height="90" rx="8" fill="#F5F3FF" stroke="#4338CA" stroke-width="1.5"/>
-  <text x="28" y="268" font-size="14.5" font-weight="700" fill="#4338CA">多模态外层 config.json（复合壳）</text>
-  <rect x="28" y="280" width="132" height="38" rx="5" fill="#E0E7FF" stroke="#6366F1" stroke-width="1.3"/>
-  <text x="94" y="304" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#3730A3">vision_config</text>
-  <rect x="168" y="280" width="144" height="38" rx="5" fill="#FEF3C7" stroke="#D97706" stroke-width="1.4"/>
-  <text x="240" y="304" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#92400E">text_config</text>
+  <rect x="16" y="242" width="308" height="90" rx="8" fill="#f7e7f2" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="28" y="268" font-size="14.5" font-weight="700" fill="#4c65b6">多模态外层 config.json（复合壳）</text>
+  <rect x="28" y="280" width="132" height="38" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="94" y="304" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">vision_config</text>
+  <rect x="168" y="280" width="144" height="38" rx="5" fill="#faeab8" stroke="#c78300" stroke-width="1.4"/>
+  <text x="240" y="304" text-anchor="middle" font-size="13.5" font-weight="700" font-family="var(--font-mono)" fill="#936300">text_config</text>
 
-  <line x1="324" y1="287" x2="354" y2="287" stroke="#0F766E" stroke-width="1.7" marker-end="url(#arrTeal)"/>
-  <rect x="358" y="252" width="246" height="70" rx="8" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.5"/>
-  <text x="481" y="280" text-anchor="middle" font-size="15" font-weight="700" font-family="var(--font-mono)" fill="#0F766E">get_hf_text_config</text>
-  <text x="481" y="306" text-anchor="middle" font-size="13.5" fill="#334155">剥离外层壳，提取语言子对象</text>
+  <line x1="324" y1="287" x2="354" y2="287" stroke="#087f73" stroke-width="1.7" marker-end="url(#arrTeal)"/>
+  <rect x="358" y="252" width="246" height="70" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="481" y="280" text-anchor="middle" font-size="15" font-weight="700" font-family="var(--font-mono)" fill="#087f73">get_hf_text_config</text>
+  <text x="481" y="306" text-anchor="middle" font-size="13.5" fill="#4d5652">剥离外层壳，提取语言子对象</text>
 
-  <line x1="604" y1="287" x2="634" y2="287" stroke="#1D4ED8" stroke-width="1.7" marker-end="url(#arrBlue)"/>
-  <rect x="638" y="242" width="248" height="90" rx="8" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.5"/>
-  <text x="762" y="268" text-anchor="middle" font-size="15" font-weight="700" fill="#1D4ED8">文本模型尺寸推导</text>
-  <text x="762" y="294" text-anchor="middle" font-size="13.5" fill="#334155">读取层数 L、隐藏维 H、头数</text>
-  <text x="762" y="318" text-anchor="middle" font-size="13.5" fill="#334155">显式 head_dim 与词表大小 V</text>
+  <line x1="604" y1="287" x2="634" y2="287" stroke="#4c65b6" stroke-width="1.7" marker-end="url(#arrBlue)"/>
+  <rect x="638" y="242" width="248" height="90" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="762" y="268" text-anchor="middle" font-size="15" font-weight="700" fill="#4c65b6">文本模型尺寸推导</text>
+  <text x="762" y="294" text-anchor="middle" font-size="13.5" fill="#4d5652">读取层数 L、隐藏维 H、头数</text>
+  <text x="762" y="318" text-anchor="middle" font-size="13.5" fill="#4d5652">显式 head_dim 与词表大小 V</text>
 </svg>

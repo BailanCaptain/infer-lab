@@ -3,95 +3,95 @@
   <desc>五类目录文件读取映射：1. get_config 与 ModelArchitectureConfig（ModelArchConfigConvertorBase.get_head_size）读取 config.json；2. resolve_chat_template 与 _get_and_verify_max_len 读取 tokenizer_config.json 及 model_max_length；3. DefaultModelLoader 与 filter_duplicate_safetensors_files 按 weight_map 加载权重分片；4. try_get_generation_config 读取 generation_config.json；5. maybe_auto_detect_quantization 与 detect_quantization_method 识别量化配置。</desc>
   <defs>
     <marker id="ahInk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M0,1 L9,5 L0,9 z" fill="#475569"/>
+      <path d="M0,1 L9,5 L0,9 z" fill="#4d5652"/>
     </marker>
     <marker id="ahDanger" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M0,1 L9,5 L0,9 z" fill="#BE123C"/>
+      <path d="M0,1 L9,5 L0,9 z" fill="#b54237"/>
     </marker>
     <marker id="ahWeight" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M0,1 L9,5 L0,9 z" fill="#B45309"/>
+      <path d="M0,1 L9,5 L0,9 z" fill="#c78300"/>
     </marker>
     <marker id="ahComm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M0,1 L9,5 L0,9 z" fill="#7C3AED"/>
+      <path d="M0,1 L9,5 L0,9 z" fill="#9a4b86"/>
     </marker>
   </defs>
 
   <g id="column-headers">
-    <path d="M10,13 L18,13 L20,16 L28,16 L28,29 L10,29 Z" fill="#FEF3C7" stroke="#B45309" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M10,13 L18,13 L20,16 L28,16 L28,29 L10,29 Z" fill="#faeab8" stroke="#c78300" stroke-width="1.5" stroke-linejoin="round"/>
     <text x="34" y="28" font-size="16" font-weight="700" fill="#17211f"><tspan font-family="var(--font-mono)">hf_model_dir/</tspan>（5 类文件）</text>
     <text x="306" y="28" font-size="16" font-weight="700" fill="#17211f">启动读取入口（vllm / ascend）</text>
-    <text x="634" y="28" font-size="16" font-weight="700" fill="#BE123C">4 个隐形坑与量化门禁</text>
+    <text x="634" y="28" font-size="16" font-weight="700" fill="#b54237">4 个隐形坑与量化门禁</text>
   </g>
 
-  <path d="M14,31 L14,382 M14,78 L24,78 M14,154 L24,154 M14,230 L24,230 M14,306 L24,306 M14,382 L24,382" fill="none" stroke="#94A3B8" stroke-width="1.7" stroke-linecap="round"/>
+  <path d="M14,31 L14,382 M14,78 L24,78 M14,154 L24,154 M14,230 L24,230 M14,306 L24,306 M14,382 L24,382" fill="none" stroke="#8a928f" stroke-width="1.7" stroke-linecap="round"/>
 
   <g id="row-1-config">
-    <rect x="24" y="46" width="258" height="64" rx="8" fill="#FFFFFF" stroke="#17211f" stroke-width="1.4"/>
+    <rect x="24" y="46" width="258" height="64" rx="8" fill="#ffffff" stroke="#17211f" stroke-width="1.4"/>
     <text x="36" y="71" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">config.json</text>
-    <text x="36" y="95" font-size="13.5" fill="#475569">架构 · 尺寸 · text_config</text>
-    <line x1="282" y1="78" x2="302" y2="78" stroke="#475569" stroke-width="1.5" marker-end="url(#ahInk)"/>
-    <rect x="306" y="46" width="304" height="64" rx="8" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.4"/>
+    <text x="36" y="95" font-size="13.5" fill="#4d5652">架构 · 尺寸 · text_config</text>
+    <line x1="282" y1="78" x2="302" y2="78" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ahInk)"/>
+    <rect x="306" y="46" width="304" height="64" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
     <text x="318" y="71" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">get_config</text>
-    <text x="318" y="95" font-family="var(--font-mono)" font-size="13.5" fill="#1D4ED8">ModelArchitectureConfig</text>
-    <line x1="610" y1="78" x2="630" y2="78" stroke="#BE123C" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahDanger)"/>
-    <rect x="634" y="46" width="254" height="64" rx="8" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.4"/>
-    <text x="646" y="71" font-size="14.5" font-weight="700" fill="#BE123C">坑 1：head_dim != H/n_q</text>
+    <text x="318" y="95" font-family="var(--font-mono)" font-size="13.5" fill="#4c65b6">ModelArchitectureConfig</text>
+    <line x1="610" y1="78" x2="630" y2="78" stroke="#b54237" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahDanger)"/>
+    <rect x="634" y="46" width="254" height="64" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+    <text x="646" y="71" font-size="14.5" font-weight="700" fill="#b54237">坑 1：head_dim != H/n_q</text>
     <text x="646" y="95" font-size="13.5" fill="#17211f">错套 64 会少算一半显存</text>
   </g>
 
   <g id="row-2-tokenizer">
-    <rect x="24" y="122" width="258" height="64" rx="8" fill="#FFFFFF" stroke="#17211f" stroke-width="1.4"/>
+    <rect x="24" y="122" width="258" height="64" rx="8" fill="#ffffff" stroke="#17211f" stroke-width="1.4"/>
     <text x="36" y="147" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">tokenizer_config.json</text>
-    <text x="36" y="171" font-size="13.5" fill="#475569">切词 · chat_template.jinja</text>
-    <line x1="282" y1="154" x2="302" y2="154" stroke="#475569" stroke-width="1.5" marker-end="url(#ahInk)"/>
-    <rect x="306" y="122" width="304" height="64" rx="8" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.4"/>
+    <text x="36" y="171" font-size="13.5" fill="#4d5652">切词 · chat_template.jinja</text>
+    <line x1="282" y1="154" x2="302" y2="154" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ahInk)"/>
+    <rect x="306" y="122" width="304" height="64" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
     <text x="318" y="147" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">resolve_chat_template</text>
-    <text x="318" y="171" font-family="var(--font-mono)" font-size="13.5" fill="#0F766E">_get_and_verify_max_len</text>
-    <line x1="610" y1="154" x2="630" y2="154" stroke="#BE123C" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahDanger)"/>
-    <rect x="634" y="122" width="254" height="64" rx="8" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.4"/>
-    <text x="646" y="147" font-size="14.5" font-weight="700" fill="#BE123C">坑 2：最大长度静音截断</text>
+    <text x="318" y="171" font-family="var(--font-mono)" font-size="13.5" fill="#087f73">_get_and_verify_max_len</text>
+    <line x1="610" y1="154" x2="630" y2="154" stroke="#b54237" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahDanger)"/>
+    <rect x="634" y="122" width="254" height="64" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+    <text x="646" y="147" font-size="14.5" font-weight="700" fill="#b54237">坑 2：最大长度静音截断</text>
     <text x="646" y="171" font-size="13.5" fill="#17211f">model_max_length 取 min</text>
   </g>
 
   <g id="row-3-safetensors">
-    <rect x="24" y="198" width="258" height="64" rx="8" fill="#FFFFFF" stroke="#17211f" stroke-width="1.4"/>
+    <rect x="24" y="198" width="258" height="64" rx="8" fill="#ffffff" stroke="#17211f" stroke-width="1.4"/>
     <text x="36" y="223" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">*.safetensors + index</text>
-    <text x="36" y="247" font-size="13.5" fill="#475569">几十 GiB 分片与 weight_map</text>
-    <line x1="282" y1="230" x2="302" y2="230" stroke="#475569" stroke-width="1.5" marker-end="url(#ahInk)"/>
-    <rect x="306" y="198" width="304" height="64" rx="8" fill="#FFFBEB" stroke="#B45309" stroke-width="1.4"/>
+    <text x="36" y="247" font-size="13.5" fill="#4d5652">几十 GiB 分片与 weight_map</text>
+    <line x1="282" y1="230" x2="302" y2="230" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ahInk)"/>
+    <rect x="306" y="198" width="304" height="64" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
     <text x="316" y="223" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">DefaultModelLoader</text>
-    <text x="316" y="247" font-family="var(--font-mono)" font-size="13.5" fill="#92400E">filter_duplicate_safetensors_files</text>
-    <line x1="610" y1="230" x2="630" y2="230" stroke="#B45309" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahWeight)"/>
-    <rect x="634" y="198" width="254" height="64" rx="8" fill="#FFFBEB" stroke="#B45309" stroke-width="1.4"/>
-    <text x="646" y="223" font-size="14.5" font-weight="700" fill="#92400E">坑 3：分片索引防重校验</text>
+    <text x="316" y="247" font-family="var(--font-mono)" font-size="13.5" fill="#936300">filter_duplicate_safetensors_files</text>
+    <line x1="610" y1="230" x2="630" y2="230" stroke="#c78300" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahWeight)"/>
+    <rect x="634" y="198" width="254" height="64" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+    <text x="646" y="223" font-size="14.5" font-weight="700" fill="#936300">坑 3：分片索引防重校验</text>
     <text x="646" y="247" font-size="13.5" fill="#17211f">缺片报错；勿删 index 防重</text>
   </g>
 
   <g id="row-4-generation">
-    <rect x="24" y="274" width="258" height="64" rx="8" fill="#FFFFFF" stroke="#17211f" stroke-width="1.4"/>
+    <rect x="24" y="274" width="258" height="64" rx="8" fill="#ffffff" stroke="#17211f" stroke-width="1.4"/>
     <text x="36" y="299" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">generation_config.json</text>
-    <text x="36" y="323" font-size="13.5" fill="#475569">出厂 temperature / top_p</text>
-    <line x1="282" y1="306" x2="302" y2="306" stroke="#475569" stroke-width="1.5" marker-end="url(#ahInk)"/>
-    <rect x="306" y="274" width="304" height="64" rx="8" fill="#F8FAFC" stroke="#64748B" stroke-width="1.4"/>
+    <text x="36" y="323" font-size="13.5" fill="#4d5652">出厂 temperature / top_p</text>
+    <line x1="282" y1="306" x2="302" y2="306" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ahInk)"/>
+    <rect x="306" y="274" width="304" height="64" rx="8" fill="#ece9df" stroke="#66716d" stroke-width="1.4"/>
     <text x="318" y="299" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">try_get_generation_config</text>
-    <text x="318" y="323" font-size="13.5" fill="#475569">缺失时从 config.json 提取</text>
-    <line x1="610" y1="306" x2="630" y2="306" stroke="#B45309" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahWeight)"/>
-    <rect x="634" y="274" width="254" height="64" rx="8" fill="#FFFBEB" stroke="#B45309" stroke-width="1.4"/>
-    <text x="646" y="299" font-size="14.5" font-weight="700" fill="#92400E">坑 4：静音改写采样默认</text>
+    <text x="318" y="323" font-size="13.5" fill="#4d5652">缺失时从 config.json 提取</text>
+    <line x1="610" y1="306" x2="630" y2="306" stroke="#c78300" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahWeight)"/>
+    <rect x="634" y="274" width="254" height="64" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+    <text x="646" y="299" font-size="14.5" font-weight="700" fill="#936300">坑 4：静音改写采样默认</text>
     <text x="646" y="323" font-size="13.5" fill="#17211f">未传参时沿用出厂采样值</text>
   </g>
 
   <g id="row-5-quant">
-    <rect x="24" y="350" width="258" height="64" rx="8" fill="#FFFFFF" stroke="#17211f" stroke-width="1.4"/>
+    <rect x="24" y="350" width="258" height="64" rx="8" fill="#ffffff" stroke="#17211f" stroke-width="1.4"/>
     <text x="36" y="375" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">quant_model_description</text>
-    <text x="36" y="399" font-size="13.5" fill="#475569">或内嵌 quantization_config</text>
-    <line x1="282" y1="382" x2="302" y2="382" stroke="#475569" stroke-width="1.5" marker-end="url(#ahInk)"/>
-    <rect x="306" y="350" width="304" height="64" rx="8" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.4"/>
+    <text x="36" y="399" font-size="13.5" fill="#4d5652">或内嵌 quantization_config</text>
+    <line x1="282" y1="382" x2="302" y2="382" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ahInk)"/>
+    <rect x="306" y="350" width="304" height="64" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
     <text x="316" y="375" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#17211f">maybe_auto_detect_quantization</text>
-    <text x="316" y="399" font-family="var(--font-mono)" font-size="13.5" fill="#6D28D9">detect_quantization_method</text>
-    <line x1="610" y1="382" x2="630" y2="382" stroke="#7C3AED" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahComm)"/>
-    <rect x="634" y="350" width="254" height="64" rx="8" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.4"/>
-    <text x="646" y="375" font-size="14.5" font-weight="700" fill="#6D28D9">量化门禁：自动转 ascend</text>
+    <text x="316" y="399" font-family="var(--font-mono)" font-size="13.5" fill="#9a4b86">detect_quantization_method</text>
+    <line x1="610" y1="382" x2="630" y2="382" stroke="#9a4b86" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ahComm)"/>
+    <rect x="634" y="350" width="254" height="64" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+    <text x="646" y="375" font-size="14.5" font-weight="700" fill="#9a4b86">量化门禁：自动转 ascend</text>
     <text x="646" y="399" font-size="13.5" fill="#17211f">原生 FP8 缺逐块参数即拒绝</text>
   </g>
 </svg>

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 504" width="900" height="504" role="img" aria-label="核心调参四大常见误解对比图">
+  <title>vllm serve 核心调参四大常见误区：错误直觉 vs 源码真相</title>
+  <desc>左右对比四组调参误解：默认批预算退回 2048、显存比例默认 0.92 且不含录图、PIECEWISE 清空图融合、未知 HCCL 变量判 unknown。</desc>
+  <defs>
+    <marker id="arr-ok" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+  <g font-family="var(--font-sans)">
+    <text x="14" y="28" font-size="16" font-weight="700" fill="#8f3229">✗ 调参现场常见错误直觉</text>
+    <text x="466" y="28" font-size="16" font-weight="700" fill="#065f56">✓ v0.30.0 源码实际行为</text>
+
+    <rect x="14" y="42" width="416" height="98" rx="10" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+    <text x="28" y="69" font-size="14.5" font-weight="700" fill="#8f3229">误区 1：大显存昇腾卡默认批预算也是 8192</text>
+    <text x="28" y="96" font-size="13.5" fill="#17211f">以为 64GB/128GB 显存会像 H100 一样自动命中</text>
+    <text x="28" y="120" font-family="var(--font-mono)" font-size="13.5" fill="#8f3229">max_num_batched_tokens = 8192 / 16384</text>
+
+    <line x1="432" y1="91" x2="462" y2="91" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-ok)"/>
+
+    <rect x="466" y="42" width="420" height="98" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+    <text x="480" y="69" font-size="14.5" font-weight="700" fill="#065f56">真相：参数解析早退置 0，在线全系回落 2048</text>
+    <text x="480" y="96" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)">torch_npu</tspan> 未初始化抛 <tspan font-family="var(--font-mono)">NotImplementedError</tspan> 置 <tspan font-family="var(--font-mono)">0</tspan>，</text>
+    <text x="480" y="120" font-size="13.5" fill="#065f56"><tspan font-family="var(--font-mono)" font-weight="700">vllm serve</tspan> 默认恒为 <tspan font-family="var(--font-mono)" font-weight="700">2048</tspan>（离线 <tspan font-family="var(--font-mono)">LLM</tspan> 为 <tspan font-family="var(--font-mono)">8192</tspan>）</text>
+
+    <rect x="14" y="156" width="416" height="98" rx="10" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+    <text x="28" y="183" font-size="14.5" font-weight="700" fill="#8f3229">误区 2：显存比例默认 0.9，且包干录图显存</text>
+    <text x="28" y="210" font-size="13.5" fill="#17211f">照搬旧 FAQ 以为默认是 <tspan font-family="var(--font-mono)">0.9</tspan>，或把比例拉到 <tspan font-family="var(--font-mono)">0.98</tspan></text>
+    <text x="28" y="234" font-size="13.5" fill="#8f3229">以为 ACL Graph 录图也从这笔预算内扣减</text>
+
+    <line x1="432" y1="205" x2="462" y2="205" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-ok)"/>
+
+    <rect x="466" y="156" width="420" height="98" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+    <text x="480" y="183" font-size="14.5" font-weight="700" fill="#065f56">真相：源码默认 0.92，录图在切完 KV 后从预算外掏</text>
+    <text x="480" y="210" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)">CacheConfig</tspan> 默认 <tspan font-family="var(--font-mono)" font-weight="700">0.92</tspan>；录图晚于 KV 切块，只能吃</text>
+    <text x="480" y="234" font-size="13.5" fill="#065f56">剩余 <tspan font-family="var(--font-mono)" font-weight="700">1 - util</tspan> 余量，故食谱常手传 <tspan font-family="var(--font-mono)">0.9</tspan> 防录图 OOM</text>
+
+    <rect x="14" y="270" width="416" height="98" rx="10" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+    <text x="28" y="297" font-size="14.5" font-weight="700" fill="#8f3229">误区 3：PIECEWISE 配 SuperKernel 可叠加加速</text>
+    <text x="28" y="324" font-size="13.5" fill="#17211f">在 <tspan font-family="var(--font-mono)">PIECEWISE</tspan> 图模式下同时开启 <tspan font-family="var(--font-mono)">static_kernel</tspan></text>
+    <text x="28" y="348" font-size="13.5" fill="#8f3229">与 <tspan font-family="var(--font-mono)">super_kernel</tspan>，见进程没报错就以为已生效</text>
+
+    <line x1="432" y1="319" x2="462" y2="319" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-ok)"/>
+
+    <rect x="466" y="270" width="420" height="98" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+    <text x="480" y="297" font-size="14.5" font-weight="700" fill="#065f56">真相：分段编译直接把三项融合静默刷回 False</text>
+    <text x="480" y="324" font-size="13.5" fill="#17211f">仅 <tspan font-family="var(--font-mono)" font-weight="700">FULL_DECODE_ONLY / FULL</tspan> 保留三级图融合；</text>
+    <text x="480" y="348" font-size="13.5" fill="#065f56"><tspan font-family="var(--font-mono)">NONE / PIECEWISE</tspan> 会无报错静默清空这三项开关</text>
+
+    <rect x="14" y="384" width="416" height="104" rx="10" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+    <text x="28" y="411" font-size="14.5" font-weight="700" fill="#8f3229">误区 4：仓内搜不到的 HCCL_* 就是无效错参</text>
+    <text x="28" y="438" font-size="13.5" fill="#17211f">见 <tspan font-family="var(--font-mono)">HCCL_BUFFSIZE_EP</tspan> 等不在 <tspan font-family="var(--font-mono)">envs.py</tspan> 里，</text>
+    <text x="28" y="462" font-size="13.5" fill="#8f3229">就直接判定脚本写错并删掉环境变量</text>
+
+    <line x1="432" y1="436" x2="462" y2="436" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-ok)"/>
+
+    <rect x="466" y="384" width="420" height="104" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+    <text x="480" y="411" font-size="14.5" font-weight="700" fill="#065f56">真相：底层 CANN/libhccl.so 可能消费，归为 unknown</text>
+    <text x="480" y="438" font-size="13.5" fill="#17211f">仓内零 Python/C++ 读取点不能证伪底层运行时读取；</text>
+    <text x="480" y="462" font-size="13.5" fill="#065f56">无对应版本 CANN 文档核实前统一标为 <tspan font-family="var(--font-mono)" font-weight="700">unknown</tspan></text>
+  </g>
+</svg>

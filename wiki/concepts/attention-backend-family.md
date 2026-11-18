@@ -16,9 +16,6 @@ aliases:
   - AscendIndexerKPoolMLABackend
   - attention group
   - 注意力组
-  - FlashAttention
-  - Flash Attention 3
-  - FA3
   - AscendFAImpl
   - flash_attn_npu_v3
   - flash_attn_npu

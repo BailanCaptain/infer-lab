@@ -1,0 +1,8 @@
+mode: native-svg
+id: ascend-fa-plate-cutaway
+caption: >-
+  FlashAttention 片上分块与 Online Softmax 立体拆解直觉：从左侧 HBM 按块流式搬入 Q Tile 与 K/V Tile，彻底取消 N×N 分数表落盘（NO N×N HBM）；在片上高速缓冲区内边打分边用 Online Softmax 动态重标定最大值 m 与分母和 l，算完一整行后仅把归一化输出 O Tile 写回右侧 HBM。
+size: [900, 625]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L994-L1018
+    symbols: [npu_fused_infer_attention_score, query, key_cache, value_cache, block_table, attn_output]

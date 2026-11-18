@@ -1,0 +1,28 @@
+mode: native-svg
+id: core-cli-graph-sched-matrix
+caption: 图编译三级融合门禁、多调度器静默覆盖链与 Mooncake P/D 联检硬边界
+size: [900, 566]
+pins:
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L131-L170"
+    symbols:
+      - enable_npugraph_ex
+      - enable_static_kernel
+      - enable_super_kernel
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1313-L1408"
+    symbols:
+      - CUDAGraphMode
+      - requires_piecewise_compilation
+      - ProfilingChunkScheduler
+      - BatchJobAwareScheduler
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/attention/fa3_v1.py#L42-L59"
+    symbols:
+      - AscendFAImpl
+      - FULL_DECODE_ONLY
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1019-L1043"
+    symbols:
+      - _check_mooncake_c8_kv_cache_quant
+      - MooncakeLayerwiseConnector
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2235-L2242"
+    symbols:
+      - decode_parallel_config
+      - _decode_pp_size

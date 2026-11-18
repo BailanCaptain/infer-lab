@@ -1,0 +1,22 @@
+mode: native-svg
+id: env-serve-env-hierarchy
+caption: 昇腾推理环境变量四层真相图：从 CANN 脚本、仓内实读变量到已下线旧开关与待核底层变量
+size: [900, 524]
+pins:
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/envs.py#L38-L93"
+    symbols:
+      - env_variables
+      - ASCEND_HOME_PATH
+      - HCCL_SO_PATH
+      - VLLM_VERSION
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1445-L1481"
+    symbols:
+      - _set_pytorch_npu_alloc_env
+      - PYTORCH_NPU_ALLOC_CONF
+      - expandable_segments
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L614-L618"
+    symbols:
+      - weight_nz_mode
+  - source: "vllm@ced6857a:vllm/envs.py#L716-L720"
+    symbols:
+      - VLLM_USE_MODELSCOPE

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 412" width="900" height="412" role="img" aria-label="示意：连续批处理与两队列调度的四组错误直觉与源码真相对照板。" font-family="var(--font-sans)">
+  <title>示意：Continuous Batching 与两队列调度四大常见误解及 vLLM V1 源码真相对照板。</title>
+  <desc>关联源码符号：schedule, preempted_reqs, num_computed_tokens, allocate_slots, new_blocks, RequestStatus, WAITING, RUNNING, PREEMPTED</desc>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#b54237">✗ 常见错误直觉</text>
+  <text x="404" y="28" font-size="16" font-weight="700" fill="#087f73">✓ 真实运行机制（vLLM V1 Scheduler）</text>
+  <line x1="16" y1="42" x2="884" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
+  <line x1="388" y1="12" x2="388" y2="400" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="5 4"/>
+
+  <!-- Row 1 -->
+  <rect x="16" y="54" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
+  <text x="28" y="82" font-size="14.5" font-weight="700" fill="#8f3229">① 调度器在「纯 P 轮」和「纯 D 轮」间切挡</text>
+  <text x="28" y="110" font-size="13.5" fill="#4d5652">误以为 Prefill 请求和 Decode 请求不能同轮执行</text>
+
+  <rect x="404" y="54" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="418" y="82" font-size="14.5" font-weight="700" fill="#065f56">V1 无阶段开关，统一按进度差同轮混排</text>
+  <text x="418" y="110" font-size="13.5" fill="#4d5652">schedule 只算待补位置数，同一步内先续 running 再接 waiting</text>
+
+  <!-- Row 2 -->
+  <rect x="16" y="142" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
+  <text x="28" y="170" font-size="14.5" font-weight="700" fill="#8f3229">② 新到的 waiting 请求缺块时会抢占老请求</text>
+  <text x="28" y="198" font-size="13.5" fill="#4d5652">误以为排队新单为了进场会把在跑请求踢出去</text>
+
+  <rect x="404" y="142" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="418" y="170" font-size="14.5" font-weight="700" fill="#065f56">仅 running 续跑缺块才触发抢占</text>
+  <text x="418" y="198" font-size="13.5" fill="#4d5652">waiting 遇 new_blocks=None 直接 break；有 preempted_reqs 则整轮停收</text>
+
+  <!-- Row 3 -->
+  <rect x="16" y="230" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
+  <text x="28" y="258" font-size="14.5" font-weight="700" fill="#8f3229">③ max_num_seqs 设得越大吞吐一定越高</text>
+  <text x="28" y="286" font-size="13.5" fill="#4d5652">忽视在跑序列每步 +1 持续吞噬 KV 缓存池</text>
+
+  <rect x="404" y="230" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="418" y="258" font-size="14.5" font-weight="700" fill="#065f56">超出 KV 承载力会引发连环 PREEMPTED 抖动</text>
+  <text x="418" y="286" font-size="13.5" fill="#4d5652">过多请求同时跨块借槽会把池子抽干，反复释放重算拖垮吞吐</text>
+
+  <!-- Row 4 -->
+  <rect x="16" y="318" width="358" height="76" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.2"/>
+  <text x="28" y="346" font-size="14.5" font-weight="700" fill="#8f3229">④ 抢占默认把 KV 换出（Swap）到 CPU 内存</text>
+  <text x="28" y="374" font-size="13.5" fill="#4d5652">把早期 V0 的 SWAP 分支套到 V1 默认路径上</text>
+
+  <rect x="404" y="318" width="480" height="76" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="418" y="346" font-size="14.5" font-weight="700" fill="#065f56">V1 默认走 RECOMPUTE（清零 num_computed_tokens）</text>
+  <text x="418" y="374" font-size="13.5" fill="#4d5652">直接释放块并插回队首重算；保 KV 须显式配 KVConnector 卸载</text>
+</svg>

@@ -1,0 +1,12 @@
+mode: native-svg
+id: paged-attention-fig-qwen3-block-bytes
+caption: >-
+  Qwen3-8B 与 Qwen3-30B-A3B 在昇腾默认 block_size = 128（BF16）下的单块字节构成比例及块大小选型权衡：30B-A3B 虽有 48 层，但 KV 头减半（8→4）使整块全层显存从 18 MiB 降至 12 MiB；下半幅对照块长 16 / 128 / 512 在昇腾 refresh_block_size 下的对齐与覆写规则。
+size: [900, 545]
+pins:
+  - source: vllm@ced6857a:vllm/v1/kv_cache_interface.py#L479-L525
+    symbols: [AttentionSpec, num_kv_heads, head_size, page_size_bytes]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L109-L152
+    symbols: [get_kv_cache_shape, get_supported_kernel_block_sizes]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1446-L1554
+    symbols: [A5_C8_MXFP_KV_CACHE_BLOCK_SIZE, refresh_block_size]

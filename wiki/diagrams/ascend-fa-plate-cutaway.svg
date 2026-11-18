@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 625" width="900" height="625" role="img" aria-label="FlashAttention 片上分块与 Online Softmax 立体拆解直觉图：左侧 HBM 流式读取 Q 与 K/V 分块，取消 N×N HBM 落盘，片上缓冲执行 Online Softmax 重标定，右侧 HBM 仅写回 O 分块">
+  <title>FlashAttention 片上分块与 Online Softmax 立体拆解直觉：左侧 HBM 流式读取 Q/K/V 分块，禁落盘 N×N 中间矩阵，在片上缓冲内完成 Online Softmax 动态重标定并写回右侧 HBM 的 O 分块。</title>
+  <desc>关联源码符号：npu_fused_infer_attention_score, query, key_cache, value_cache, block_table, attn_output</desc>
+
+  <!-- 紧裁透明底等距拆解剖面主图（零底框、零网格笼，大尺寸直浮暖纸面） -->
+  <image href="./wiki-illustrations/flash-attention-sram-cutaway.webp" x="55" y="120" width="790" height="382" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- 引线与靶点双环圆点（全部零交叉，精准锚定立体部件） -->
+  <!-- 1 -> 左侧 HBM Q/K/V 柱体 -->
+  <line x1="137" y1="112" x2="137" y2="248" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="137" cy="248" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="137" cy="248" r="2.5" fill="#4c65b6"/>
+
+  <!-- 2 -> 左上打叉的 NO N×N HBM 虚影矩阵 -->
+  <line x1="348" y1="112" x2="315" y2="202" stroke="#b54237" stroke-width="1.6"/>
+  <circle cx="315" cy="202" r="5.5" fill="#ffffff" stroke="#b54237" stroke-width="2"/>
+  <circle cx="315" cy="202" r="2.5" fill="#b54237"/>
+
+  <!-- 3 -> 中央工作台 ONLINE SOFTMAX 琥珀表盘 -->
+  <line x1="636" y1="112" x2="548" y2="266" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="548" cy="266" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="548" cy="266" r="2.5" fill="#c78300"/>
+
+  <!-- 4 -> 中央 ON-CHIP UB 工作台 K/V TILE 滑槽 -->
+  <line x1="360" y1="522" x2="434" y2="392" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="434" cy="392" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="434" cy="392" r="2.5" fill="#c78300"/>
+
+  <!-- 5 -> 右侧 HBM 汇聚写回的 O 分块 -->
+  <line x1="748" y1="522" x2="763" y2="355" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="763" cy="355" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="763" cy="355" r="2.5" fill="#087f73"/>
+
+  <!-- 顶部开放式无边框矢量编号直标（标题 15px，说明 13.5px，圆章 12.5px） -->
+  <g id="callout-hbm-in">
+    <circle cx="26" cy="28" r="12" fill="#4c65b6"/>
+    <text x="26" y="32.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="46" y="33" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211f">左侧 HBM：按块流式读取</text>
+    <text x="46" y="58" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">query 按行切块，K/V 逐块流过</text>
+    <text x="46" y="81" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">分页态凭 block_table 读 key_cache</text>
+    <text x="46" y="104" font-family="var(--font-sans)" font-size="13.5" fill="#66716d">与 value_cache，无需拼回连续张量</text>
+  </g>
+
+  <g id="callout-no-nxn">
+    <circle cx="310" cy="28" r="12" fill="#b54237"/>
+    <text x="310" y="32.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="330" y="33" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211f">禁落盘 N×N 表 (NO N×N)</text>
+    <text x="330" y="58" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">32K 序列单层 S 达 64 GiB (BF16)</text>
+    <text x="330" y="81" font-family="var(--font-sans)" font-size="13.5" fill="#b54237">彻底消除 S 与 P 的 HBM 往返读写</text>
+  </g>
+
+  <g id="callout-online-softmax">
+    <circle cx="602" cy="28" r="12" fill="#c78300"/>
+    <text x="602" y="32.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="622" y="33" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211f">Online Softmax 重标定</text>
+    <text x="622" y="58" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">维护局部最大 m 与分母累加和 l</text>
+    <text x="622" y="81" font-family="var(--font-sans)" font-size="13.5" fill="#4d5652">新块更大时同乘 exp(m_old - m_new)</text>
+    <text x="622" y="104" font-family="var(--font-sans)" font-size="13.5" fill="#66716d">无需预知整行全局最大值</text>
+  </g>
+
+  <!-- 底部开放式无边框矢量编号直标 -->
+  <g id="callout-onchip-ub">
+    <circle cx="26" cy="542" r="12" fill="#c78300"/>
+    <text x="26" y="546.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="46" y="547" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211f">片上高速缓冲：打分与汇合闭环</text>
+    <text x="46" y="573" font-family="var(--font-sans)" font-size="14" fill="#4d5652">AIC 矩阵核乘加与 AIV 片上 UB 向量归约接力</text>
+    <text x="46" y="598" font-family="var(--font-sans)" font-size="14" fill="#4d5652">全部分块流过后再做一次除 l 精确归一化</text>
+  </g>
+
+  <g id="callout-hbm-out">
+    <circle cx="472" cy="542" r="12" fill="#087f73"/>
+    <text x="472" y="546.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="492" y="547" font-family="var(--font-sans)" font-size="15" font-weight="700" fill="#17211f">右侧 HBM：仅写回 attn_output 分块</text>
+    <text x="492" y="573" font-family="var(--font-sans)" font-size="14" fill="#4d5652">输出体积与输入 Q 同阶 (32K 仅 256 MiB)</text>
+    <text x="492" y="598" font-family="var(--font-sans)" font-size="14" fill="#4d5652">与全量 Softmax 严格代数等价，零稀疏近似</text>
+  </g>
+</svg>

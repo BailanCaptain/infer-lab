@@ -1,0 +1,19 @@
+mode: native-svg
+id: env-serve-startup-probes
+caption: 单机 vllm serve 三套最小启动规格与三步递进冒烟闭环（/health → /v1/models → /v1/chat/completions）
+size: [900, 488]
+pins:
+  - source: "vllm@ced6857a:vllm/config/cache.py#L102-L106"
+    symbols:
+      - gpu_memory_utilization
+  - source: "vllm@ced6857a:vllm/config/model.py#L214-L303"
+    symbols:
+      - max_model_len
+      - served_model_name
+  - source: "vllm@ced6857a:vllm/entrypoints/serve/instrumentator/health.py#L20-L33"
+    symbols:
+      - health
+      - check_health
+  - source: "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/api_router.py#L40-L60"
+    symbols:
+      - create_chat_completion

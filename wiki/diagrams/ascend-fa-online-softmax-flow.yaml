@@ -1,0 +1,8 @@
+mode: native-svg
+id: ascend-fa-online-softmax-flow
+caption: >-
+  Online Softmax 两分块重标定演算（s = [1, 2] + [4, 1]，V = [10, 20] + [30, 40]）：第 2 块带来更大分数 m₂=4 时，只需将旧分母和 l₁ 与旧分子和 Õ₁ 同乘缩放因子 exp(2-4)=e⁻²，即可精确修正历史权重，且该代数同构直接支撑昇腾 PCP/DCP 的 npu_attention_update 跨块合并。
+size: [900, 480]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/utils.py#L715-L735
+    symbols: [merge_prefill_chunks, npu_attention_update, out_list, lse_list]

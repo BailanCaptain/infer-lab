@@ -1,0 +1,12 @@
+mode: native-svg
+id: paged-attention-plate-cutaway
+caption: >-
+  PagedAttention 分页注意力立体拆解直觉：左侧请求内部看到的逻辑块（REQ A 的 BLOCK 0..2、REQ B 的 BLOCK 0..1）连续增长，经中央整数块表（BLOCK TABLE）翻译后按需落入右侧显存池（HBM KV POOL）的等长物理块，无需事先连续预留；A 与 B 相同的系统提示词直接共指右上 SHARED 物理块实现零拷贝共享。
+size: [900, 640]
+pins:
+  - source: vllm@ced6857a:vllm/v1/core/block_pool.py#L143-L195
+    symbols: [BlockPool, free_block_queue, null_block]
+  - source: vllm@ced6857a:vllm/v1/core/block_pool.py#L664-L801
+    symbols: [get_new_blocks, touch, free_blocks, ref_cnt]
+  - source: vllm@ced6857a:vllm/v1/core/kv_cache_manager.py#L370-L465
+    symbols: [allocate_slots, block_size]

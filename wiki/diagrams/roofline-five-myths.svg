@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 508" width="900" height="508" role="img" aria-label="Roofline 模型与推理指标五组常见误解对照板" font-family="var(--font-sans)">
+  <title>Roofline 模型与推理指标五组常见误解 vs v0.30.0 源码真相对照板</title>
+  <desc>五排对照推理性能误区：核心忙等 HBM 须开 MFU 排查、长上下文 KV 与算力墙使盲目堆批失效、MoE 专家分散降低行数、投机解码下 inter_token_latencies_iter 与 mean_time_per_output_token（histogram_request_time_per_output_token）不同，以及 _track_iteration_stats 计 computed 而 counter_prompt_tokens 计总长。</desc>
+  <defs>
+    <marker id="rfm-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M0,1.5 L8.5,5 L0,8.5z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="30" font-size="16" font-weight="700" fill="#8f3229">✗ 常见错误直觉（容量与压测高频误判）</text>
+  <text x="392" y="30" font-size="16" font-weight="700" fill="#065f56">✓ v0.30.0 源码与物理真相（排障判据）</text>
+  <line x1="12" y1="42" x2="888" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
+  <line x1="378" y1="12" x2="378" y2="496" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <g>
+    <rect x="12" y="54" width="352" height="78" rx="10" fill="#fff0e9" stroke="#d88c82" stroke-width="1.4"/>
+    <text x="26" y="83" font-size="15" font-weight="700" fill="#8f3229">1. NPU 利用率高就等于算力吃满</text>
+    <text x="26" y="114" font-size="14" fill="#8f3229">看到忙碌度 90% 就排除访存瓶颈</text>
+    <path d="M364,93 L386,93" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#rfm-a)"/>
+    <rect x="392" y="54" width="496" height="78" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+    <text x="408" y="83" font-size="15" font-weight="700" fill="#065f56">核心等 HBM 送数同样计入算子忙碌区间</text>
+    <text x="408" y="114" font-size="14" fill="#4d5652">须开 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">--enable-mfu-metrics</tspan> 同看 TF/s 与 GB/s</text>
+  </g>
+
+  <g>
+    <rect x="12" y="144" width="352" height="78" rx="10" fill="#fff0e9" stroke="#d88c82" stroke-width="1.4"/>
+    <text x="26" y="173" font-size="15" font-weight="700" fill="#8f3229">2. 无脑调大 Batch 就能一直提吞吐</text>
+    <text x="26" y="204" font-size="14" fill="#8f3229">以为拼批总能免费摊薄所有访存</text>
+    <path d="M364,183 L386,183" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#rfm-a)"/>
+    <rect x="392" y="144" width="496" height="78" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+    <text x="408" y="173" font-size="15" font-weight="700" fill="#065f56">过脊点撞算力平顶，且独立 KV 无法跨请求复用</text>
+    <text x="408" y="204" font-size="14" fill="#4d5652">4:1 GQA 读 KV 恒约 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">4 FLOP/B</tspan>，盲堆批只拉爆 TPOT</text>
+  </g>
+
+  <g>
+    <rect x="12" y="234" width="352" height="78" rx="10" fill="#fff0e9" stroke="#d88c82" stroke-width="1.4"/>
+    <text x="26" y="263" font-size="15" font-weight="700" fill="#8f3229">3. MoE 激活仅 3.35B，小批也很轻快</text>
+    <text x="26" y="294" font-size="14" fill="#8f3229">按稠密 3B 模型估算 32 路并发</text>
+    <path d="M364,273 L386,273" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#rfm-a)"/>
+    <rect x="392" y="234" width="496" height="78" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+    <text x="408" y="263" font-size="15" font-weight="700" fill="#065f56">30B-A3B 选 8 专家分散后每专家平均仅 2 行</text>
+    <text x="408" y="294" font-size="14" fill="#4d5652">整批几乎读遍 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">56.87 GiB</tspan> 权重，须靠大 EP 聚批</text>
+  </g>
+
+  <g>
+    <rect x="12" y="324" width="352" height="78" rx="10" fill="#fff0e9" stroke="#d88c82" stroke-width="1.4"/>
+    <text x="26" y="353" font-size="15" font-weight="700" fill="#8f3229">4. ITL 和 TPOT 是同一个延迟指标</text>
+    <text x="26" y="384" font-size="14" fill="#8f3229">监控面板混用两条延迟直方图</text>
+    <path d="M364,363 L386,363" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#rfm-a)"/>
+    <rect x="392" y="324" width="496" height="78" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+    <text x="408" y="353" font-size="15" font-weight="700" fill="#065f56">投机解码单步吐多词时：ITL 记包间隔，TPOT 均摊</text>
+    <text x="408" y="384" font-size="14" fill="#4d5652">单词请求在 <tspan font-family="var(--font-mono)" font-size="13.5">request_time_per_output_token</tspan> 记 0</text>
+  </g>
+
+  <g>
+    <rect x="12" y="414" width="352" height="78" rx="10" fill="#fff0e9" stroke="#d88c82" stroke-width="1.4"/>
+    <text x="26" y="443" font-size="15" font-weight="700" fill="#8f3229">5. 日志输入吞吐等于 /metrics 速率</text>
+    <text x="26" y="474" font-size="14" fill="#8f3229">开启前缀缓存后两边速率对不上</text>
+    <path d="M364,453 L386,453" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#rfm-a)"/>
+    <rect x="392" y="414" width="496" height="78" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.5"/>
+    <text x="408" y="443" font-size="15" font-weight="700" fill="#065f56">日志吞吐仅累加本地实算 <tspan font-family="var(--font-mono)" font-size="14">computed</tspan>（扣命中）</text>
+    <text x="408" y="474" font-size="14" fill="#4d5652">而 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600">vllm:prompt_tokens</tspan> 计入含缓存总长 <tspan font-family="var(--font-mono)" font-size="13.5">total</tspan></text>
+  </g>
+</svg>

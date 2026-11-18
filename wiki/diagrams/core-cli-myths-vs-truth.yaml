@@ -1,0 +1,20 @@
+mode: native-svg
+id: core-cli-myths-vs-truth
+caption: vllm serve 核心调参四大常见误区：错误直觉 vs 源码真相
+size: [900, 504]
+pins:
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L232-L244"
+    symbols:
+      - get_device_total_memory
+      - NotImplementedError
+  - source: "vllm@ced6857a:vllm/config/cache.py#L103-L110"
+    symbols:
+      - gpu_memory_utilization
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1318-L1342"
+    symbols:
+      - requires_piecewise_compilation
+      - enable_super_kernel
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/envs.py#L66-L69"
+    symbols:
+      - ASCEND_HOME_PATH
+      - HCCL_SO_PATH

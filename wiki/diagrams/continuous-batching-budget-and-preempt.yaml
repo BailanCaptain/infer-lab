@@ -1,0 +1,11 @@
+mode: native-svg
+id: continuous-batching-budget-and-preempt
+caption: 示意：单步调度的三道硬上限（max_num_batched_tokens、max_num_seqs 与 KV 块池），以及在跑请求逐词增长耗尽 KV 块时，vLLM V1 如何对 running 队尾执行 LIFO 抢占（释放块、置 PREEMPTED、插回 waiting 队首重算恢复）。
+size: [900, 408]
+pins:
+  - source: 'vllm@ced6857a:vllm/config/scheduler.py#L42-L68'
+    symbols: ['SchedulerConfig', 'max_num_batched_tokens', 'max_num_seqs']
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L728-L796'
+    symbols: ['allocate_slots', 'preempted_req', '_preempt_request']
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1477-L1519'
+    symbols: ['_free_request_blocks', 'PREEMPTED', 'prepend_request']

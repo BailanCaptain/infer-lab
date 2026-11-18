@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" font-family="var(--font-sans)" font-size="13.5" role="img" aria-label="朴素注意力与 FlashAttention 访存对比图">
+  <title>Qwen3-8B 单层注意力访存对比：朴素 64 GiB 落盘 vs FlashAttention 片上流式归约</title>
+  <desc>关联符号：query, key, value, kv_cache</desc>
+  <defs>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
+  <text x="12" y="28" font-size="16" font-weight="700" fill="#17211f">Qwen3-8B 单层注意力访存账（32 查询头 · <tspan font-family="var(--font-mono)" font-size="15" fill="#4c65b6">d=128 · N=32768 · BF16</tspan>）</text>
+  <g role="group" aria-label="朴素三步实现">
+    <rect x="12" y="44" width="430" height="444" rx="12" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+    <g>
+      <rect x="13" y="45" width="428" height="54" rx="11" fill="#fae1d8"/>
+      <text x="28" y="69" font-size="16" font-weight="700" fill="#8f3229">✗ 朴素三步实现：HBM 落盘灾难</text>
+      <text x="28" y="90" font-weight="600" fill="#b54237">显存与带宽按 O(N²) 暴涨，卡在 HBM 搬运墙</text>
+    </g>
+    <g>
+      <rect x="28" y="112" width="398" height="68" rx="8" fill="#ffffff" stroke="#d88c82" stroke-width="1.2"/>
+      <text x="42" y="138" font-size="14.5" font-weight="700" fill="#8f3229">① 打分落盘：S = Q · Kᵀ / √128</text>
+      <text x="42" y="164" font-family="var(--font-mono)" font-weight="600" fill="#b54237">写 HBM: [32, 32768, 32768] = 64 GiB</text>
+    </g>
+    <line x1="227" y1="180" x2="227" y2="198" stroke="#b54237" stroke-width="1.8" marker-end="url(#arr-red)"/>
+    <g>
+      <rect x="28" y="202" width="398" height="68" rx="8" fill="#ffffff" stroke="#d88c82" stroke-width="1.2"/>
+      <text x="42" y="228" font-size="14.5" font-weight="700" fill="#8f3229">② 整行归一化：P = Softmax(S)</text>
+      <text x="42" y="254" fill="#8f3229">从 HBM 读 64 GiB S，再写回 64 GiB P</text>
+    </g>
+    <line x1="227" y1="270" x2="227" y2="288" stroke="#b54237" stroke-width="1.8" marker-end="url(#arr-red)"/>
+    <g>
+      <rect x="28" y="292" width="398" height="68" rx="8" fill="#ffffff" stroke="#d88c82" stroke-width="1.2"/>
+      <text x="42" y="318" font-size="14.5" font-weight="700" fill="#8f3229">③ 加权汇合：O = P · V</text>
+      <text x="42" y="344" fill="#8f3229">再读 64 GiB P 与 V，写出 256 MiB O</text>
+    </g>
+    <g>
+      <rect x="28" y="376" width="398" height="98" rx="8" fill="#fae1d8" stroke="#b54237" stroke-width="1.3"/>
+      <text x="42" y="401" font-size="14" font-weight="700" fill="#8f3229">单层中间矩阵 S 峰值：64 GiB（是 Q 的 256×）</text>
+      <rect x="42" y="413" width="368" height="18" rx="4" fill="#b54237"/>
+      <rect x="42" y="435" width="4" height="10" rx="2" fill="#4c65b6"/>
+      <text x="54" y="445" fill="#4d5652">蓝条：Q / O 本体仅 256 MiB</text>
+      <text x="42" y="466" font-weight="700" fill="#8f3229">单卡 64 GiB 算第一层注意力就爆显存</text>
+    </g>
+  </g>
+  <g role="group" aria-label="FlashAttention 片上分块流式归约">
+    <rect x="458" y="44" width="430" height="444" rx="12" fill="#ffffff" stroke="#087f73" stroke-width="1.6"/>
+    <g>
+      <rect x="459" y="45" width="428" height="54" rx="11" fill="#cbe9e2"/>
+      <text x="474" y="69" font-size="16" font-weight="700" fill="#065f56">✓ FlashAttention：片上分块流式归约</text>
+      <text x="474" y="90" font-weight="600" fill="#087f73">不改数学结果，显存收敛回 O(N) 线性规模</text>
+    </g>
+    <g>
+      <rect x="474" y="112" width="398" height="68" rx="8" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.2"/>
+      <text x="488" y="138" font-size="14.5" font-weight="700" fill="#065f56">① 分块搬入：query 驻留片上，K/V 流过</text>
+      <text x="488" y="164" fill="#087f73">每次只搬小分块进片上缓冲，复用查询块</text>
+    </g>
+    <line x1="673" y1="180" x2="673" y2="198" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-teal)"/>
+    <g>
+      <rect x="474" y="202" width="398" height="68" rx="8" fill="#fff4cf" stroke="#d8b882" stroke-width="1.2"/>
+      <text x="488" y="228" font-size="14.5" font-weight="700" fill="#936300">② 片上闭环：局部打分 + Online Softmax</text>
+      <text x="488" y="254" fill="#936300">UB 内原地修正 (m, l, O_tilde)，零落盘</text>
+    </g>
+    <line x1="673" y1="270" x2="673" y2="288" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-teal)"/>
+    <g>
+      <rect x="474" y="292" width="398" height="68" rx="8" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.2"/>
+      <text x="488" y="318" font-size="14.5" font-weight="700" fill="#065f56">③ 单次写回：全块扫完除以 l 输出 O</text>
+      <text x="488" y="344" fill="#087f73">向 HBM 仅写出一次 256 MiB 结果张量</text>
+    </g>
+    <g>
+      <rect x="474" y="376" width="398" height="98" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+      <text x="488" y="401" font-size="14" font-weight="700" fill="#3a4f93">HBM 中间矩阵落盘：0 B（片上 KB~MB 级）</text>
+      <rect x="488" y="413" width="368" height="18" rx="4" fill="#ece9df" stroke="#b8bcb5" stroke-width="1" stroke-dasharray="4 3"/>
+      <rect x="488" y="435" width="8" height="10" rx="2" fill="#087f73"/>
+      <text x="504" y="445" fill="#4d5652">青条：仅读写 Q / K / V / O 本体</text>
+      <text x="488" y="466" font-weight="700" fill="#3a4f93">乘法次数同阶，彻底摘除 256 GiB 往返流量</text>
+    </g>
+  </g>
+</svg>

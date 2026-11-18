@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 488" width="900" height="488" font-family="var(--font-sans)" role="img" aria-label="单机 vllm serve 最小启动规格与三步冒烟闭环">
+  <title>单机 vllm serve 三套最小启动规格与三步递进冒烟闭环（/health → /v1/models → /v1/chat/completions）</title>
+  <desc>左侧三张卡片对比 A2/A3 单卡 Qwen3-8B BF16、A2/A3 四卡 Qwen3-30B-A3B W8A8 TP4+EP 以及 310P float16 与关闭 enable_npugraph_ex 的最小参数；右侧展示等待 Application startup complete 后依次请求 /health、/v1/models、/v1/chat/completions 完成三步冒烟验证并优雅停服。</desc>
+  <defs>
+    <marker id="sp-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <line x1="546" y1="14" x2="546" y2="476" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <g role="group" aria-label="单机最小启动参数模板">
+    <circle cx="24" cy="24" r="12" fill="#4c65b6"/>
+    <text x="24" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="30" font-size="16" font-weight="700" fill="#17211f">单机最小启动规格（不含跨机 PD 与高阶融合）</text>
+
+    <rect x="12" y="48" width="516" height="132" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+    <text x="26" y="75" font-size="15" font-weight="700" fill="#3a4f93">清单 A · A2 / A3 单卡 Qwen3-8B（BF16 标准基线）</text>
+    <text x="26" y="102" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">ASCEND_RT_VISIBLE_DEVICES=0  ·  --served-model-name qwen3-8b</text>
+    <text x="26" y="128" font-family="var(--font-mono)" font-size="13.5" fill="#4d5652">--max-model-len 8192  ·  --gpu-memory-utilization 0.90 <tspan font-family="var(--font-sans)" fill="#66716d">(默认 0.92)</tspan></text>
+    <text x="26" y="154" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#3a4f93">--compilation-config &apos;{&quot;cudagraph_mode&quot;:&quot;FULL_DECODE_ONLY&quot;}&apos;</text>
+
+    <rect x="12" y="194" width="516" height="132" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+    <text x="26" y="221" font-size="15" font-weight="700" fill="#065f56">清单 B · A2 / A3 单机四卡 Qwen3-30B-A3B（W8A8 MoE）</text>
+    <text x="26" y="248" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">ASCEND_RT_VISIBLE_DEVICES=0,1,2,3 <tspan font-family="var(--font-sans)" fill="#065f56">(A3 对应 2 张物理卡)</tspan></text>
+    <text x="26" y="274" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">--tensor-parallel-size 4  ·  --enable-expert-parallel</text>
+    <text x="26" y="300" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#065f56">--quantization ascend  ·  --max-model-len 16384</text>
+
+    <rect x="12" y="340" width="516" height="136" rx="10" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+    <text x="26" y="367" font-size="15" font-weight="700" fill="#8f3229">清单 C · Atlas 300I DUO (310P) 最小适配必改三项</text>
+    <text x="26" y="394" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#b54237">1) --dtype float16 (禁 BF16)   2) --max-num-seqs 8</text>
+    <text x="26" y="421" font-family="var(--font-mono)" font-size="13.5" fill="#8f3229">3) FULL_DECODE_ONLY + capture_sizes:[1,2,4,8] (或 PIECEWISE)</text>
+    <text x="26" y="448" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#8f3229">   并传 enable_npugraph_ex: false</text>
+  </g>
+
+  <path d="M 528 260 L 558 260" fill="none" stroke="#087f73" stroke-width="2.2" marker-end="url(#sp-arr)"/>
+
+  <g role="group" aria-label="三步递进冒烟探针">
+    <circle cx="576" cy="24" r="12" fill="#087f73"/>
+    <text x="576" y="28.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="596" y="30" font-size="16" font-weight="700" fill="#17211f">就绪后三步冒烟探针</text>
+
+    <rect x="564" y="48" width="324" height="122" rx="10" fill="#ffffff" stroke="#4c65b6" stroke-width="1.5"/>
+    <text x="578" y="74" font-size="15" font-weight="700" fill="#3a4f93">探针 ① · <tspan font-family="var(--font-mono)">GET /health</tspan></text>
+    <text x="578" y="101" font-size="13.5" fill="#4d5652">先等日志：<tspan font-family="var(--font-mono)" font-weight="600" fill="#17211f">Application startup complete.</tspan></text>
+    <text x="578" y="127" font-size="13.5" font-weight="700" fill="#087f73">✓ 返回 HTTP 200 OK（空响应体）</text>
+    <text x="578" y="152" font-size="13.5" fill="#66716d">引擎崩溃或未就绪会返回 HTTP 503</text>
+
+    <rect x="564" y="184" width="324" height="122" rx="10" fill="#ffffff" stroke="#8a928f" stroke-width="1.4"/>
+    <text x="578" y="210" font-size="15" font-weight="700" fill="#17211f">探针 ② · <tspan font-family="var(--font-mono)" fill="#4c65b6">GET /v1/models</tspan></text>
+    <text x="578" y="237" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">data[0].id == &quot;qwen3-8b&quot;</text>
+    <text x="578" y="263" font-size="13.5" fill="#4d5652">确认短服务名与 <tspan font-family="var(--font-mono)">max_model_len</tspan> 生效</text>
+    <text x="578" y="289" font-size="13.5" fill="#66716d">未传服务名时 id 默认等于完整目录路径</text>
+
+    <rect x="564" y="320" width="324" height="156" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+    <text x="578" y="346" font-size="15" font-weight="700" fill="#065f56">探针 ③ · <tspan font-family="var(--font-mono)" font-size="13.5">POST /v1/chat/completions</tspan></text>
+    <text x="578" y="373" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">messages + max_tokens:32 + temp:0</text>
+    <text x="578" y="399" font-size="13.5" font-weight="700" fill="#065f56">✓ choices[0].message.content 非空吐字</text>
+    <text x="578" y="425" font-size="13.5" fill="#087f73">一次打通模板、分词、NPU 算子与 KV 缓存</text>
+    <text x="578" y="454" font-size="13.5" fill="#4d5652">停服发 <tspan font-family="var(--font-mono)" font-weight="600">Ctrl+C / kill -2</tspan> 优雅释放 NPU</text>
+  </g>
+</svg>

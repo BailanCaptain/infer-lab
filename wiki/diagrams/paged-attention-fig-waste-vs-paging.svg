@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="连续预留三种显存浪费与 PagedAttention 定长块池对比图" font-family="var(--font-sans)">
+  <title>连续预留与 PagedAttention 显存排布对照：上半幅展示按 max_model_len 连续预留带来的内部预留空洞、外部碎片死角与重复前缀拷贝；下半幅展示定长物理块池如何消灭外部碎片、实现满块共享并把内部浪费限制在最后一块。</title>
+  <desc>关联源码符号：KVCacheBlock, block_id, ref_cnt, is_null, get_new_blocks, touch, free_blocks</desc>
+
+  <!-- 开放式分栏虚线 -->
+  <line x1="16" y1="254" x2="884" y2="254" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <!-- 上半幅：传统连续预留 -->
+  <text x="18" y="34" font-size="16" font-weight="700" fill="#b54237">✗ 传统连续预留：三类显存黑洞提前吃光 HBM 容量</text>
+
+  <!-- 连续显存条 x=18..882 (总宽 864) -->
+  <rect x="18" y="54" width="92" height="64" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="64" y="81" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">A 提示词</text>
+  <text x="64" y="103" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#7a3a6a">128 tok</text>
+
+  <rect x="110" y="54" width="72" height="64" rx="4" fill="#4c65b6" stroke="#3a4f93" stroke-width="1.4"/>
+  <text x="146" y="81" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">A 独有</text>
+  <text x="146" y="103" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#ffffff">90 tok</text>
+
+  <rect x="182" y="54" width="212" height="64" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <text x="288" y="81" text-anchor="middle" font-size="14" font-weight="700" fill="#b54237">① 内部预留空洞</text>
+  <text x="288" y="103" text-anchor="middle" font-size="13.5" fill="#8f3229">按 max_model_len 占死未写</text>
+
+  <rect x="394" y="54" width="112" height="64" rx="4" fill="#ece9df" stroke="#b54237" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="450" y="81" text-anchor="middle" font-size="14" font-weight="700" fill="#b54237">② 外部夹缝</text>
+  <text x="450" y="103" text-anchor="middle" font-size="13.5" fill="#66716d">退场残留断档</text>
+
+  <rect x="506" y="54" width="92" height="64" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="552" y="81" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">③ 重复前缀</text>
+  <text x="552" y="103" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#7a3a6a">B 再拷 128</text>
+
+  <rect x="598" y="54" width="64" height="64" rx="4" fill="#4c65b6" stroke="#3a4f93" stroke-width="1.4"/>
+  <text x="630" y="81" text-anchor="middle" font-size="13.5" font-weight="700" fill="#ffffff">B 独有</text>
+  <text x="630" y="103" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#ffffff">70</text>
+
+  <rect x="662" y="54" width="154" height="64" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.4" stroke-dasharray="5 3"/>
+  <text x="739" y="81" text-anchor="middle" font-size="14" font-weight="700" fill="#b54237">① B 预留空洞</text>
+  <text x="739" y="103" text-anchor="middle" font-size="13.5" fill="#8f3229">占死未写</text>
+
+  <rect x="816" y="54" width="66" height="64" rx="4" fill="#ece9df" stroke="#b54237" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="849" y="81" text-anchor="middle" font-size="13.5" font-weight="700" fill="#b54237">② 尾缝</text>
+  <text x="849" y="103" text-anchor="middle" font-size="13.5" fill="#66716d">断档</text>
+
+  <!-- 上半幅三列因果说明 -->
+  <line x1="20" y1="140" x2="20" y2="232" stroke="#b54237" stroke-width="3"/>
+  <text x="32" y="158" font-size="14.5" font-weight="700" fill="#b54237">① 内部预留浪费（最重）</text>
+  <text x="32" y="184" font-size="13.5" fill="#4d5652">无法预知输出多长，被迫按最大</text>
+  <text x="32" y="208" font-size="13.5" fill="#4d5652">上下文占死连续段，短请求空大半</text>
+  <text x="32" y="230" font-size="13.5" fill="#66716d">提前耗尽并发槽位</text>
+
+  <line x1="316" y1="140" x2="316" y2="232" stroke="#b54237" stroke-width="3"/>
+  <text x="328" y="158" font-size="14.5" font-weight="700" fill="#b54237">② 外部碎片死角</text>
+  <text x="328" y="184" font-size="13.5" fill="#4d5652">长短请求交错结束留下散碎夹缝</text>
+  <text x="328" y="208" font-size="13.5" fill="#4d5652">总空闲够放新请求 C 却无连续段</text>
+  <text x="328" y="230" font-size="13.5" fill="#8f3229">挪动拼合需整段重拷 HBM</text>
+
+  <line x1="612" y1="140" x2="612" y2="232" stroke="#9a4b86" stroke-width="3"/>
+  <text x="624" y="158" font-size="14.5" font-weight="700" fill="#7a3a6a">③ 重复前缀拷贝</text>
+  <text x="624" y="184" font-size="13.5" fill="#4d5652">A、B 共享同一段 128-tok 提示词</text>
+  <text x="624" y="208" font-size="13.5" fill="#4d5652">连续独占下被迫各自保存一份副本</text>
+  <text x="624" y="230" font-size="13.5" fill="#66716d">白付双倍显存与 Prefill 算力</text>
+
+  <!-- 下半幅：PagedAttention 定长块池 -->
+  <text x="18" y="288" font-size="16" font-weight="700" fill="#087f73">✓ PagedAttention 定长块池（block_size = 128）：按需借块 + 零外部碎片</text>
+
+  <!-- 8 个等长物理块：宽 102，间距 6，x = 18 + i*108 -->
+  <rect x="18" y="308" width="102" height="66" rx="6" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
+  <text x="69" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#66716d">Block 0</text>
+  <text x="69" y="359" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#66716d">null_block</text>
+
+  <rect x="126" y="308" width="102" height="66" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="2"/>
+  <text x="177" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">Block 1</text>
+  <text x="177" y="359" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">共享 ref=2</text>
+
+  <rect x="234" y="308" width="102" height="66" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="285" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">Block 2</text>
+  <text x="285" y="359" text-anchor="middle" font-size="13.5" font-weight="700" fill="#087f73">空闲可借</text>
+
+  <!-- Block 3: A 尾块 90/128 有效 + 38/128 末块空余 -->
+  <rect x="342" y="308" width="102" height="66" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="342" y="308" width="72" height="66" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="393" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">Block 3</text>
+  <text x="393" y="359" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">A 尾 90/128</text>
+
+  <rect x="450" y="308" width="102" height="66" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="501" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">Block 4</text>
+  <text x="501" y="359" text-anchor="middle" font-size="13.5" font-weight="700" fill="#087f73">空闲可借</text>
+
+  <!-- Block 5: B 尾块 70/128 有效 + 58/128 末块空余 -->
+  <rect x="558" y="308" width="102" height="66" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="558" y="308" width="56" height="66" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="609" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#17211f">Block 5</text>
+  <text x="609" y="359" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">B 尾 70/128</text>
+
+  <rect x="666" y="308" width="102" height="66" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="717" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">Block 6</text>
+  <text x="717" y="359" text-anchor="middle" font-size="13.5" font-weight="700" fill="#087f73">空闲可借</text>
+
+  <rect x="774" y="308" width="102" height="66" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="825" y="336" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">Block 7</text>
+  <text x="825" y="359" text-anchor="middle" font-size="13.5" font-weight="700" fill="#087f73">空闲可借</text>
+
+  <!-- 下半幅三列解决闭环 -->
+  <line x1="20" y1="398" x2="20" y2="496" stroke="#087f73" stroke-width="3"/>
+  <text x="32" y="416" font-size="14.5" font-weight="700" fill="#087f73">外部碎片归零</text>
+  <text x="32" y="442" font-size="13.5" fill="#4d5652">所有物理块尺寸全同（128 格）</text>
+  <text x="32" y="466" font-size="13.5" fill="#4d5652">离散空闲块 <tspan font-family="var(--font-mono)" font-weight="700">2, 4, 6, 7</tspan> 可直接</text>
+  <text x="32" y="490" font-size="13.5" fill="#065f56">由 <tspan font-family="var(--font-mono)" font-weight="700">get_new_blocks</tspan> 凑给新请求 C</text>
+
+  <line x1="316" y1="398" x2="316" y2="496" stroke="#9a4b86" stroke-width="3"/>
+  <text x="328" y="416" font-size="14.5" font-weight="700" fill="#7a3a6a">满块零拷贝复用</text>
+  <text x="328" y="442" font-size="13.5" fill="#4d5652">A 块表 <tspan font-family="var(--font-mono)" font-weight="700">[1, 3]</tspan>，B 块表 <tspan font-family="var(--font-mono)" font-weight="700">[1, 5]</tspan></text>
+  <text x="328" y="466" font-size="13.5" fill="#4d5652">共指 <tspan font-family="var(--font-mono)" font-weight="700">Block 1</tspan>（<tspan font-family="var(--font-mono)" font-weight="700">ref_cnt = 2</tspan>）</text>
+  <text x="328" y="490" font-size="13.5" fill="#7a3a6a">归还时减至 0 才挂回空闲队列</text>
+
+  <line x1="612" y1="398" x2="612" y2="496" stroke="#c78300" stroke-width="3"/>
+  <text x="624" y="416" font-size="14.5" font-weight="700" fill="#936300">内部浪费有界（琥珀尾段）</text>
+  <text x="624" y="442" font-size="13.5" fill="#4d5652">仅每条请求的最后一块可能未写满</text>
+  <text x="624" y="466" font-size="13.5" fill="#4d5652">A 空 38 格、B 空 58 格</text>
+  <text x="624" y="490" font-size="13.5" font-weight="700" fill="#936300">单请求上限严格 &lt;= block_size - 1 格</text>
+</svg>

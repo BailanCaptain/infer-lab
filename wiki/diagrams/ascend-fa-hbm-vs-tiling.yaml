@@ -1,0 +1,8 @@
+mode: native-svg
+id: ascend-fa-hbm-vs-tiling
+caption: >-
+  以 Qwen3-8B（32 个查询头、8 个键值头、head_dim=128、序列长 N=32768、BF16）对比单层注意力的 HBM 流量：朴素实现必须把 64 GiB 的 [32, 32768, 32768] 分数矩阵 S 与权重矩阵 P 反复读写 HBM（是 Q 本体的 256 倍）；FlashAttention 在片上缓冲内流式归约，HBM 零 N×N 落盘。
+size: [900, 500]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1283-L1293
+    symbols: [query, key, value, kv_cache]

@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 488" width="900" height="488" role="img" aria-label="vllm serve 四大核心旋钮与单卡 HBM 水位咬合图">
+  <title>vllm serve 四大核心旋钮与单卡 HBM 水位、单步 Token 预算的咬合关系</title>
+  <desc>单卡总 HBM 按 gpu_memory_utilization（默认 0.92）划分预算池与 8% 录图余量，下方展示四个核心旋钮的联动挤压方向。</desc>
+  <defs>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+    <marker id="arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+  <g font-family="var(--font-sans)">
+    <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">单卡总 HBM 显存条：先乘 <tspan font-family="var(--font-mono)" font-size="15" fill="#4c65b6">gpu_memory_utilization</tspan>（源码默认 <tspan font-family="var(--font-mono)" font-size="15" fill="#4c65b6">0.92</tspan>）定总池，再逐项扣出 KV 份额</text>
+
+    <rect x="14" y="44" width="210" height="66" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+    <text x="119" y="71" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">① 模型权重</text>
+    <text x="119" y="94" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#936300">weights_memory</text>
+
+    <rect x="228" y="44" width="166" height="66" rx="8" fill="#faeab8" stroke="#c78300" stroke-width="1.5"/>
+    <text x="311" y="71" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">② 试跑激活峰值</text>
+    <text x="311" y="94" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" fill="#936300">profile_run 峰值</text>
+
+    <rect x="398" y="44" width="128" height="66" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+    <text x="462" y="71" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">③ 非 Torch 增量</text>
+    <text x="462" y="94" text-anchor="middle" font-size="13.5" fill="#7a3a6a">HCCL / CANN 缓冲</text>
+
+    <rect x="530" y="44" width="246" height="66" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+    <text x="653" y="71" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">④ 可用 KV Cache 池</text>
+    <text x="653" y="94" text-anchor="middle" font-size="13.5" fill="#087f73">预算剩余一次性切成块</text>
+
+    <rect x="782" y="44" width="104" height="66" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5" stroke-dasharray="5 3"/>
+    <text x="834" y="71" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">预算外 8%</text>
+    <text x="834" y="94" text-anchor="middle" font-size="13.5" fill="#b54237">录图与波动</text>
+
+    <path d="M 16 118 L 16 128 L 774 128 L 774 118" fill="none" stroke="#4c65b6" stroke-width="1.6"/>
+    <text x="395" y="148" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">预算池 <tspan font-family="var(--font-mono)">requested_memory = total_memory × 0.92</tspan>（许多食谱手传 <tspan font-family="var(--font-mono)">0.9</tspan> 多留余量）</text>
+    <text x="834" y="148" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#8f3229">capture_model</text>
+
+    <rect x="14" y="174" width="424" height="138" rx="10" fill="#ffffff" stroke="#4c65b6" stroke-width="1.6"/>
+    <rect x="15" y="175" width="422" height="42" rx="9" fill="#e8edff"/>
+    <text x="28" y="202" font-family="var(--font-mono)" font-size="15" font-weight="700" fill="#3a4f93">--gpu-memory-utilization</text>
+    <text x="424" y="201" text-anchor="end" font-size="13.5" font-weight="700" fill="#4c65b6">水位总闸门</text>
+    <text x="28" y="242" font-size="14" fill="#17211f">• 按整卡总显存定上限，不自动感知同卡其他进程</text>
+    <text x="28" y="268" font-size="14" fill="#17211f">• 调高 → ④ KV 块变多；但压窄右侧预算外余量</text>
+    <text x="28" y="294" font-size="13.5" font-weight="600" fill="#8f3229">• 留太薄会在切完 KV 后的 ACL Graph 录图阶段 OOM</text>
+
+    <rect x="462" y="174" width="424" height="138" rx="10" fill="#ffffff" stroke="#087f73" stroke-width="1.6"/>
+    <rect x="463" y="175" width="422" height="42" rx="9" fill="#ddf4ef"/>
+    <text x="476" y="202" font-family="var(--font-mono)" font-size="15" font-weight="700" fill="#065f56">--max-model-len</text>
+    <text x="872" y="201" text-anchor="end" font-size="13.5" font-weight="700" fill="#087f73">单条上下文上限</text>
+    <text x="476" y="242" font-size="14" fill="#17211f">• 默认取模型 <tspan font-family="var(--font-mono)" font-size="13.5">config.json</tspan> 推导长度（如 Qwen3 为 <tspan font-family="var(--font-mono)" font-size="13.5">40960</tspan>）</text>
+    <text x="476" y="268" font-size="14" fill="#17211f">• 启动时校验 ④ KV 池至少装得下 1 条满长序列</text>
+    <text x="476" y="294" font-size="13.5" font-weight="600" fill="#065f56">• 按真实业务截短（如 8192）是救启动报错的首选</text>
+
+    <rect x="14" y="332" width="424" height="142" rx="10" fill="#ffffff" stroke="#9a4b86" stroke-width="1.6"/>
+    <rect x="15" y="333" width="422" height="42" rx="9" fill="#f7e7f2"/>
+    <text x="28" y="360" font-family="var(--font-mono)" font-size="15" font-weight="700" fill="#7a3a6a">--max-num-seqs</text>
+    <text x="424" y="359" text-anchor="end" font-size="13.5" font-weight="700" fill="#9a4b86">单步并发槽位上限</text>
+    <text x="28" y="400" font-size="14" fill="#17211f">• 昇腾 <tspan font-family="var(--font-mono)" font-size="13.5">vllm serve</tspan> 默认落入 <tspan font-family="var(--font-mono)" font-size="13.5">256</tspan>（每 DP rank 独立计数）</text>
+    <text x="28" y="426" font-size="14" fill="#17211f">• 决定单步最多拼多少条请求，并主导默认图捕获尺寸</text>
+    <text x="28" y="452" font-size="13.5" font-weight="600" fill="#7a3a6a">• 调大增加采样缓冲、录图档位数与每步 Decode 扣减额</text>
+
+    <rect x="462" y="332" width="424" height="142" rx="10" fill="#ffffff" stroke="#c78300" stroke-width="1.6"/>
+    <rect x="463" y="333" width="422" height="42" rx="9" fill="#fff4cf"/>
+    <text x="476" y="360" font-family="var(--font-mono)" font-size="15" font-weight="700" fill="#936300">--max-num-batched-tokens</text>
+    <text x="872" y="359" text-anchor="end" font-size="13.5" font-weight="700" fill="#c78300">单步 Token 总预算</text>
+    <text x="476" y="400" font-size="14" fill="#17211f">• 昇腾在线默认退回 <tspan font-family="var(--font-mono)" font-size="13.5">2048</tspan>（先扣 Decode 再分给 Prefill）</text>
+    <text x="476" y="426" font-size="14" fill="#17211f">• 直接决定 ② <tspan font-family="var(--font-mono)" font-size="13.5">profile_run</tspan> 假输入尺寸与激活峰值</text>
+    <text x="476" y="452" font-size="13.5" font-weight="600" fill="#936300">• 调大缩短长文 TTFT，但推高 ② 峰值、反过来挤少 ④ KV</text>
+
+    <line x1="438" y1="403" x2="460" y2="403" stroke="#c78300" stroke-width="1.8" marker-end="url(#arr-amber)"/>
+    <line x1="653" y1="174" x2="653" y2="114" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-teal)"/>
+  </g>
+</svg>

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 408" width="900" height="408" role="img" aria-label="示意：三道调度硬上限与 KV 块耗尽时的 LIFO 抢占重算闭环。" font-family="var(--font-sans)">
+  <title>示意：单步调度的三道硬上限（max_num_batched_tokens、max_num_seqs 与 KV 块池），以及在跑请求逐词增长耗尽 KV 块时，vLLM V1 如何对 running 队尾执行 LIFO 抢占（释放块、置 PREEMPTED、插回 waiting 队首重算恢复）。</title>
+  <desc>关联源码符号：SchedulerConfig, max_num_batched_tokens, max_num_seqs, allocate_slots, preempted_req, _preempt_request, _free_request_blocks, PREEMPTED, prepend_request</desc>
+  <defs>
+    <marker id="bp-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="bp-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="bp-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">上半场：每步调度的三道硬闸门（任一触顶即收住 waiting 准入）</text>
+
+  <rect x="14" y="44" width="276" height="92" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="28" y="70" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#936300">① max_num_batched_tokens</text>
+  <text x="28" y="96" font-size="13.5" font-weight="700" fill="#17211f">单步总 token 计算预算</text>
+  <text x="28" y="122" font-size="13.5" fill="#4d5652">控峰值激活显存；超额走分块切分</text>
+
+  <rect x="312" y="44" width="268" height="92" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="326" y="70" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#065f56">② max_num_seqs</text>
+  <text x="326" y="96" font-size="13.5" font-weight="700" fill="#17211f">单实例并发序列槽上限</text>
+  <text x="326" y="122" font-size="13.5" fill="#4d5652">满额时 waiting 暂停进场防拥塞</text>
+
+  <rect x="602" y="44" width="284" height="92" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="616" y="70" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#3a4f93">③ allocate_slots (KV 块池)</text>
+  <text x="616" y="96" font-size="13.5" font-weight="700" fill="#17211f">按需分配物理 KV 块</text>
+  <text x="616" y="122" font-size="13.5" fill="#4d5652">waiting 缺块停收；running 缺块抢占</text>
+
+  <line x1="14" y1="156" x2="886" y2="156" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <text x="14" y="184" font-size="16" font-weight="700" fill="#b54237">下半场：running 逐词膨胀把 KV 块池借空时 → LIFO 抢占与 RECOMPUTE 恢复</text>
+
+  <!-- Box 1: Running grows +1 and hits 0 free blocks -->
+  <rect x="14" y="204" width="244" height="118" rx="7" fill="#fbfaf6" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="28" y="230" font-size="14.5" font-weight="700" fill="#17211f">1. running 同时跨块借槽</text>
+  <rect x="28" y="242" width="136" height="28" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="96" y="261" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">R1(+1), R2(+1)</text>
+  <rect x="170" y="242" width="74" height="28" rx="5" fill="#fae1d8" stroke="#b54237" stroke-width="1.4"/>
+  <text x="207" y="261" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">队尾 R3</text>
+  <text x="28" y="294" font-size="13.5" font-weight="700" fill="#b54237">KV 空闲块 = 0（new_blocks=None）</text>
+  <text x="28" y="314" font-size="13.5" fill="#66716d">不让位就会全部卡死在半途</text>
+
+  <line x1="260" y1="263" x2="298" y2="263" stroke="#b54237" stroke-width="1.8" marker-end="url(#bp-red)"/>
+  <text x="279" y="252" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#b54237">pop()</text>
+
+  <!-- Box 2: Preempt tail victim R3 -->
+  <rect x="304" y="204" width="286" height="118" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="318" y="230" font-size="14.5" font-weight="700" fill="#8f3229">2. _preempt_request 牺牲队尾 R3</text>
+  <text x="318" y="258" font-size="13.5" fill="#4d5652">• _free_request_blocks 释放 R3 的块</text>
+  <text x="318" y="284" font-size="13.5" fill="#4d5652">• 置 PREEMPTED，num_computed_tokens=0</text>
+  <text x="318" y="310" font-size="13.5" font-weight="700" fill="#8f3229">• prepend_request 插回 waiting 队首</text>
+
+  <line x1="592" y1="263" x2="628" y2="263" stroke="#087f73" stroke-width="1.8" marker-end="url(#bp-teal)"/>
+
+  <!-- Box 3: R1/R2 finish -> R3 recomputes -->
+  <rect x="634" y="204" width="252" height="118" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="648" y="230" font-size="14.5" font-weight="700" fill="#065f56">3. 救急续跑 → 队首重算恢复</text>
+  <text x="648" y="258" font-size="13.5" fill="#4d5652">• R1、R2 借到 R3 吐出的块继续</text>
+  <text x="648" y="284" font-size="13.5" fill="#4d5652">• 本步跳过 waiting 新单准入</text>
+  <text x="648" y="310" font-size="13.5" font-weight="700" fill="#065f56">• 空出块后 R3 整段 Prefill 重算</text>
+
+  <!-- Bottom note -->
+  <rect x="14" y="342" width="4" height="52" rx="2" fill="#9a4b86"/>
+  <text x="28" y="362" font-size="14.5" font-weight="700" fill="#17211f">为什么默认选队尾（LIFO）且走 RECOMPUTE 而非 CPU Swap？</text>
+  <text x="28" y="388" font-size="13.5" fill="#4d5652">FCFS 下队尾最晚入场、重算代价最小；V1 合并提示词+已生成词做一次宽 Prefill 比逐块走总线 Swap 更快。</text>
+</svg>

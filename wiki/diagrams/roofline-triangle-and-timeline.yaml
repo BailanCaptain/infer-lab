@@ -1,0 +1,15 @@
+mode: native-svg
+id: roofline-triangle-and-timeline
+caption: 推理请求时序拆解（TTFT / ITL / TPOT）与批量大小驱动的性能三角博弈
+size: [900, 440]
+pins:
+  - source: "vllm@ced6857a:vllm/v1/metrics/stats.py#L455-L580"
+    symbols:
+      - time_to_first_tokens_iter
+      - inter_token_latencies_iter
+      - mean_time_per_output_token
+      - e2e_latency
+  - source: "vllm@ced6857a:vllm/config/vllm.py#L446-L452"
+    symbols:
+      - performance_mode
+      - PerformanceMode

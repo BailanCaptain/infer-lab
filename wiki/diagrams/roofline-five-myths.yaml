@@ -1,0 +1,17 @@
+mode: native-svg
+id: roofline-five-myths
+caption: Roofline 模型与推理指标五组常见误解 vs v0.30.0 源码真相对照板
+size: [900, 508]
+pins:
+  - source: "vllm@ced6857a:vllm/v1/metrics/stats.py#L497-L563"
+    symbols:
+      - inter_token_latencies_iter
+      - mean_time_per_output_token
+  - source: "vllm@ced6857a:vllm/v1/metrics/loggers.py#L147-L154"
+    symbols:
+      - _track_iteration_stats
+      - computed
+  - source: "vllm@ced6857a:vllm/v1/metrics/loggers.py#L1110-L1175"
+    symbols:
+      - counter_prompt_tokens
+      - histogram_request_time_per_output_token

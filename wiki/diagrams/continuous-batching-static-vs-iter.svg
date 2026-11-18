@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 384" width="900" height="384" role="img" aria-label="示意：静态批处理与连续批处理在填充、EOS空转与新请求准入上的对比。" font-family="var(--font-sans)">
+  <title>示意：静态批处理（左，整批锁死导致提示词 &lt;pad&gt; 补齐浪费、短请求 EOS 空转陪跑与新请求门外干等）与连续批处理（右，按单步迭代重排、一维无填充拼接与完结当步即退即补）的对比。</title>
+  <desc>关联源码符号：step, schedule, execute_model, update_from_output, check_stop, eos_token_id, max_tokens, _prepare_inputs, total_num_scheduled_tokens</desc>
+  <defs>
+    <marker id="cb-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="cb-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <line x1="436" y1="12" x2="436" y2="372" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#b54237">✗ 静态批处理：整批锁死，双重空泡</text>
+  <text x="14" y="54" font-size="13.5" fill="#66716d">提示词向最长对齐，全部生成完才放行下一批</text>
+
+  <text x="14" y="92" font-size="14.5" font-weight="700" fill="#17211f">R1</text>
+  <rect x="48" y="70" width="82" height="34" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="89" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">提示 2</text>
+  <rect x="134" y="70" width="118" height="34" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="193" y="92" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#b54237">&lt;pad&gt; ×3</text>
+  <rect x="258" y="70" width="76" height="34" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="296" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">输出 2</text>
+  <rect x="338" y="70" width="84" height="34" rx="5" fill="#fae1d8" stroke="#b54237" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="380" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">EOS 空转</text>
+
+  <text x="14" y="142" font-size="14.5" font-weight="700" fill="#17211f">R2</text>
+  <rect x="48" y="120" width="204" height="34" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="150" y="142" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">提示词 5 个位置</text>
+  <rect x="258" y="120" width="164" height="34" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="340" y="142" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">输出 4 步才结束</text>
+
+  <text x="14" y="198" font-size="14.5" font-weight="700" fill="#8f3229">R3</text>
+  <line x1="48" y1="192" x2="416" y2="192" stroke="#b54237" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#cb-red)"/>
+  <text x="232" y="184" text-anchor="middle" font-size="13.5" font-weight="700" fill="#b54237">t=2 到达，却被挡在批外干等到 R2 完结</text>
+
+  <rect x="14" y="232" width="4" height="128" rx="2" fill="#b54237"/>
+  <text x="28" y="254" font-size="14.5" font-weight="700" fill="#8f3229">三笔硬浪费同时发生：</text>
+  <text x="28" y="282" font-size="13.5" fill="#4d5652">1. 短提示词补 &lt;pad&gt;，白跑矩阵乘且白占显存</text>
+  <text x="28" y="310" font-size="13.5" fill="#4d5652">2. R1 撞上 EOS 仍锁在张量里陪跑，KV 不释放</text>
+  <text x="28" y="338" font-size="13.5" fill="#4d5652">3. 新请求 R3 无法插空，首字延迟随慢请求暴涨</text>
+
+  <text x="454" y="28" font-size="16" font-weight="700" fill="#087f73">✓ 连续批处理：单步迭代重排，随退随补</text>
+  <text x="454" y="54" font-size="13.5" fill="#66716d">每步一维紧致拼接，完结当场释放 KV 并补入新请求</text>
+
+  <text x="454" y="92" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#17211f">t=1</text>
+  <rect x="496" y="70" width="112" height="34" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="552" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">R1 提示 2</text>
+  <rect x="614" y="70" width="184" height="34" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="706" y="92" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">R2 提示 5</text>
+  <text x="808" y="92" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#66716d">[7] 零填充</text>
+
+  <text x="454" y="142" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#17211f">t=2</text>
+  <rect x="496" y="120" width="96" height="34" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="544" y="142" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">R1 +1→EOS</text>
+  <rect x="598" y="120" width="86" height="34" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="641" y="142" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">R2 +1</text>
+  <text x="694" y="142" font-size="13.5" font-weight="700" fill="#087f73">→ R1 当场退场释块</text>
+
+  <text x="454" y="192" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#17211f">t=3</text>
+  <rect x="496" y="170" width="86" height="34" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="539" y="192" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">R2 +1</text>
+  <rect x="588" y="170" width="150" height="34" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="663" y="192" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">R3 立即补位（提示 3）</text>
+  <text x="748" y="192" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#3a4f93">混跑 [4]</text>
+
+  <text x="454" y="242" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#17211f">t=4</text>
+  <rect x="496" y="220" width="96" height="34" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="544" y="242" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">R2 +1→完结</text>
+  <rect x="598" y="220" width="96" height="34" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="646" y="242" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">R3 +1→完结</text>
+  <line x1="702" y1="237" x2="742" y2="237" stroke="#087f73" stroke-width="1.6" marker-end="url(#cb-teal)"/>
+  <text x="750" y="242" font-size="13.5" font-weight="700" fill="#065f56">全部归还 KV</text>
+
+  <rect x="454" y="274" width="4" height="86" rx="2" fill="#087f73"/>
+  <text x="468" y="296" font-size="14.5" font-weight="700" fill="#065f56">EngineCore.step 每步三连闭环：</text>
+  <text x="468" y="324" font-size="13.5" fill="#4d5652">schedule 选人分额 → _prepare_inputs 一维无填充拼接</text>
+  <text x="468" y="350" font-size="13.5" fill="#4d5652">→ update_from_output 调 check_stop 即退即释块</text>
+</svg>

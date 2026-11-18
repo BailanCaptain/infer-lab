@@ -1,0 +1,10 @@
+mode: native-svg
+id: paged-attention-fig-waste-vs-paging
+caption: >-
+  连续预留与 PagedAttention 显存排布对照：上半幅展示按 max_model_len 连续预留带来的三大黑洞（内部预留空洞、请求穿插退场留下的外部碎片死角、相同前缀重复拷贝）；下半幅展示定长物理块池如何消灭外部碎片、实现满块零拷贝共享，并将内部浪费严格关进每条请求的最后一块。
+size: [900, 520]
+pins:
+  - source: vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L175-L205
+    symbols: [KVCacheBlock, block_id, ref_cnt, is_null]
+  - source: vllm@ced6857a:vllm/v1/core/block_pool.py#L664-L798
+    symbols: [get_new_blocks, touch, free_blocks]

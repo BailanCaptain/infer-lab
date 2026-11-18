@@ -1,0 +1,12 @@
+mode: native-svg
+id: ascend-fa-operator-routing
+caption: >-
+  v0.30.0 昇腾密集注意力算子选路与图模式门禁：开启训推一致时进入 AscendFABackend（FA3，因 Host 侧算 tiling 必须配 PIECEWISE 或 eager）；默认主干 AscendAttentionBackend 以统一算子 FIA 为主力，仅在特定 Decode 条件下分流 _npu_paged_attention，同时标明 310P 与早期 PFA/IFA 的位置。
+size: [900, 610]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L247-L289
+    symbols: [get_attn_backend_cls, _validate_fa3_backend, AscendFABackend, AscendAttentionBackend]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1248-L1270
+    symbols: [forward_impl, using_paged_attention, forward_paged_attention, forward_fused_infer_attention]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/fa3_v1.py#L50-L60
+    symbols: [AscendFAImpl, enforce_eager, FULL_DECODE_ONLY]

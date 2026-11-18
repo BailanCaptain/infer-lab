@@ -1,0 +1,11 @@
+mode: native-svg
+id: continuous-batching-two-queues-trace
+caption: 示意：vLLM V1 Scheduler 两队列（waiting 与 running）在三步迭代中的真实流转——统一按 num_tokens_with_spec - num_computed_tokens 计算差额，每步先排 running 再用余量接纳 waiting，完结当步即从 running 移除。
+size: [900, 412]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L615'
+    symbols: ['schedule', 'num_computed_tokens', 'num_tokens_with_spec', 'token_budget']
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L854-L872'
+    symbols: ['waiting', 'running', 'max_num_running_reqs']
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2181-L2188'
+    symbols: ['remove_all', 'stopped_running_reqs']

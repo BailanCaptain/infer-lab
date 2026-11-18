@@ -1,0 +1,15 @@
+mode: native-svg
+id: env-serve-five-myths
+caption: 容器启动、环境变量与最小起服务五大高频误区对照（✗ 错误直觉 vs ✓ v0.30.0 源码真相）
+size: [900, 520]
+pins:
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L726-L746"
+    symbols:
+      - vllm_version_is
+      - VLLM_VERSION
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L145-L169"
+    symbols:
+      - enable_npugraph_ex
+  - source: "vllm@ced6857a:vllm/config/model.py#L2176-L2190"
+    symbols:
+      - get_served_model_name

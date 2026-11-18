@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="PagedAttention 分页注意力立体拆解直觉图：展示 REQ A 与 REQ B 逻辑块、中央 BLOCK TABLE 翻译盘、右侧 HBM KV POOL 离散物理抽屉与 SHARED 前缀共享抽屉" font-family="var(--font-sans)">
+  <title>PagedAttention 分页注意力立体拆解直觉：左侧请求看到的逻辑块（REQ A 的 BLOCK 0..2、REQ B 的 BLOCK 0..1）连续增长，经中央块表（BLOCK TABLE）翻译后散落到右侧显存池（HBM KV POOL）的定长物理抽屉中，无需连续预留；两条请求相同的系统提示词直接共指右上 SHARED 抽屉实现零拷贝共享。</title>
+  <desc>关联源码符号：BlockPool, free_block_queue, null_block, get_new_blocks, touch, free_blocks, ref_cnt, allocate_slots</desc>
+
+  <!-- 紧裁透明底等距拆解剖面主图（零外层底框、零网格笼，大尺寸直浮画布） -->
+  <image href="./wiki-illustrations/paged-attention-blocks-cutaway.webp" x="60" y="125" width="780" height="391" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- 零交叉垂直引线与双环靶点 -->
+  <!-- 1 -> REQ A 逻辑块队列 BLOCK 1 -->
+  <line x1="219" y1="112" x2="219" y2="226" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="219" cy="226" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="219" cy="226" r="2.5" fill="#087f73"/>
+
+  <!-- 2 -> 中央黄铜 BLOCK TABLE 整数翻译盘 -->
+  <line x1="440" y1="112" x2="440" y2="265" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="440" cy="265" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="440" cy="265" r="2.5" fill="#c78300"/>
+
+  <!-- 3 -> 右上梅紫 SHARED 共享前缀抽屉 -->
+  <line x1="765" y1="112" x2="765" y2="265" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="765" cy="265" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="765" cy="265" r="2.5" fill="#9a4b86"/>
+
+  <!-- 4 -> 左下 REQ B 末尾按需块 BLOCK 1 -->
+  <line x1="248" y1="534" x2="248" y2="405" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="248" cy="405" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="248" cy="405" r="2.5" fill="#087f73"/>
+
+  <!-- 5 -> 右下 HBM KV POOL 离散物理抽屉阵列 -->
+  <line x1="681" y1="534" x2="681" y2="445" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="681" cy="445" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="681" cy="445" r="2.5" fill="#4c65b6"/>
+
+  <!-- 顶部开放式无边框矢量编号直标（标题 15px，说明 13.5px） -->
+  <g id="callout-logical">
+    <circle cx="28" cy="28" r="12" fill="#087f73"/>
+    <text x="28" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="48" y="33" font-size="15" font-weight="700" fill="#17211f">连续逻辑视角 (REQ A · BLOCK 0..2)</text>
+    <text x="48" y="58" font-size="13.5" fill="#4d5652">请求内部按 0, 1, 2 连续编号切分历史</text>
+    <text x="48" y="81" font-size="13.5" fill="#4d5652">每块固定容纳 <tspan font-family="var(--font-mono)" font-weight="700">block_size</tspan> 个 token</text>
+    <text x="48" y="104" font-size="13.5" fill="#66716d">无需在启动时预知最终输出总长度</text>
+  </g>
+
+  <g id="callout-table">
+    <circle cx="322" cy="28" r="12" fill="#c78300"/>
+    <text x="322" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="342" y="33" font-size="15" font-weight="700" fill="#17211f">整数块表翻译 (BLOCK TABLE)</text>
+    <text x="342" y="58" font-size="13.5" fill="#4d5652">类比 OS 页表：逻辑块号 → 物理块号</text>
+    <text x="342" y="81" font-size="13.5" fill="#4d5652">调度侧经 <tspan font-family="var(--font-mono)" font-weight="700">allocate_slots</tspan> 追加映射</text>
+    <text x="342" y="104" font-size="13.5" fill="#66716d">算子直读块表跨块寻址，零张量拼拷</text>
+  </g>
+
+  <g id="callout-shared">
+    <circle cx="614" cy="28" r="12" fill="#9a4b86"/>
+    <text x="614" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="634" y="33" font-size="15" font-weight="700" fill="#17211f">前缀零拷贝共享 (SHARED)</text>
+    <text x="634" y="58" font-size="13.5" fill="#4d5652">A 与 B 相同系统提示词共指同一满块</text>
+    <text x="634" y="81" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">touch</tspan> 将引用计数 <tspan font-family="var(--font-mono)" font-weight="700">ref_cnt</tspan> 累加至 2</text>
+    <text x="634" y="104" font-size="13.5" fill="#7a3a6a">省去重复拷贝与重复 Prefill 计算</text>
+  </g>
+
+  <!-- 底部开放式无边框矢量编号直标 -->
+  <g id="callout-tail">
+    <circle cx="28" cy="554" r="12" fill="#087f73"/>
+    <text x="28" y="558.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="48" y="559" font-size="15" font-weight="700" fill="#17211f">按需借块与有界末块余量 (REQ B)</text>
+    <text x="48" y="585" font-size="14" fill="#4d5652">写满上一块才调 <tspan font-family="var(--font-mono)" font-weight="700">get_new_blocks</tspan> 借新块</text>
+    <text x="48" y="610" font-size="14" fill="#4d5652">内部浪费严格收敛于末块至多 <tspan font-family="var(--font-mono)" font-weight="700">block_size - 1</tspan> 格</text>
+  </g>
+
+  <g id="callout-pool">
+    <circle cx="472" cy="554" r="12" fill="#4c65b6"/>
+    <text x="472" y="558.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="492" y="559" font-size="15" font-weight="700" fill="#17211f">等长物理块池 (HBM KV POOL · 零外部碎片)</text>
+    <text x="492" y="585" font-size="14" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">BlockPool</tspan> 用双向链表 <tspan font-family="var(--font-mono)" font-weight="700">free_block_queue</tspan> 管空闲块</text>
+    <text x="492" y="610" font-size="14" fill="#4d5652">任意空闲块均可分配给任意请求，0 号保留为 <tspan font-family="var(--font-mono)" font-weight="700">null_block</tspan></text>
+  </g>
+</svg>

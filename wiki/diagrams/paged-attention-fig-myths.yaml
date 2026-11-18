@@ -1,0 +1,12 @@
+mode: native-svg
+id: paged-attention-fig-myths
+caption: >-
+  PagedAttention 五大常见误解与源码真相速查：区分「消灭外部碎片」与「有界末块内部碎片」、昇腾 refresh_block_size 静默改回 128、算子原地跨块寻址无拼拷、分页存储布局与算子名解耦，以及 free_blocks 只减 ref_cnt 不清零显存。
+size: [900, 480]
+pins:
+  - source: vllm@ced6857a:vllm/v1/core/block_pool.py#L770-L801
+    symbols: [free_blocks, ref_cnt, free_block_queue]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1536-L1541
+    symbols: [enable_prefix_caching, enable_chunked_prefill, block_size]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L897-L946
+    symbols: [block_table, block_size, npu_fused_infer_attention_score]

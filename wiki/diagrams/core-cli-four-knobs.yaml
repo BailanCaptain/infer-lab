@@ -1,0 +1,25 @@
+mode: native-svg
+id: core-cli-four-knobs
+caption: vllm serve 四大核心旋钮与单卡 HBM 水位、单步 Token 预算的咬合关系
+size: [900, 488]
+pins:
+  - source: "vllm@ced6857a:vllm/config/cache.py#L103-L110"
+    symbols:
+      - gpu_memory_utilization
+  - source: "vllm@ced6857a:vllm/config/model.py#L2497-L2544"
+    symbols:
+      - max_model_len
+  - source: "vllm@ced6857a:vllm/config/scheduler.py#L42-L68"
+    symbols:
+      - max_num_batched_tokens
+      - max_num_seqs
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L601-L637"
+    symbols:
+      - profile_run
+      - non_kv_cache_memory
+      - available_kv_cache_memory_bytes
+      - requested_memory
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L907-L945"
+    symbols:
+      - npugraph_memory_bytes
+      - capture_model

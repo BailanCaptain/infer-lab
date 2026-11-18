@@ -16,11 +16,6 @@ aliases:
   - 物理块号
   - slot mapping
   - 槽位映射
-  - PagedAttention
-  - Paged Attention
-  - 分页注意力
-  - 分页缓存
-  - 分页布局
 chapters:
   - '11'
 sources:

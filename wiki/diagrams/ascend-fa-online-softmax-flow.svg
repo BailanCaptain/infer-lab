@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" font-family="var(--font-sans)" font-size="13.5" role="img" aria-label="Online Softmax 两分块重标定示意图">
+  <title>Online Softmax 两分块重标定演算与跨卡归约同构</title>
+  <desc>关联符号：merge_prefill_chunks, npu_attention_update, out_list, lse_list</desc>
+  <defs>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+    <marker id="arr-pass" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
+  <text x="12" y="28" font-size="16" font-weight="700" fill="#17211f">Online Softmax 两分块重标定演算（示意：<tspan font-family="var(--font-mono)" font-size="14.5" fill="#4c65b6">s=[1,2]+[4,1], V=[10,20]+[30,40]</tspan>）</text>
+  <g role="group" aria-label="第 1 块局部统计">
+    <rect x="12" y="46" width="264" height="292" rx="12" fill="#ffffff" stroke="#4c65b6" stroke-width="1.6"/>
+    <g>
+      <rect x="13" y="47" width="262" height="52" rx="11" fill="#d7e0fb"/>
+      <text x="26" y="70" font-size="15" font-weight="700" fill="#3a4f93">① 第 1 块：s⁽¹⁾ = [1, 2]</text>
+      <text x="26" y="90" font-family="var(--font-mono)" font-weight="600" fill="#4c65b6">V⁽¹⁾ = [10, 20]</text>
+    </g>
+    <text x="26" y="126" font-size="14" font-weight="700" fill="#17211f">局部最大值：m₁ = 2</text>
+    <text x="26" y="154" fill="#4d5652">局部指数：[e⁻¹, e⁰] ≈ [0.368, 1]</text>
+    <text x="26" y="182" fill="#4d5652">分母和：l₁ = e⁻¹ + 1 ≈ 1.3679</text>
+    <text x="26" y="210" fill="#4d5652">分子和：Õ₁ = 10e⁻¹ + 20</text>
+    <text x="26" y="236" font-family="var(--font-mono)" font-weight="600" fill="#3a4f93">Õ₁ ≈ 23.6788</text>
+    <g>
+      <rect x="24" y="256" width="240" height="66" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+      <text x="36" y="281" font-weight="700" fill="#4d5652">暂按标尺 m₁ = 2 记账</text>
+      <text x="36" y="306" fill="#66716d">此时还未读到后面的大数 4</text>
+    </g>
+  </g>
+  <line x1="276" y1="192" x2="302" y2="192" stroke="#c78300" stroke-width="2" marker-end="url(#arr-amber)"/>
+  <g role="group" aria-label="第 2 块重标定更新">
+    <rect x="306" y="46" width="298" height="292" rx="12" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+    <g>
+      <rect x="307" y="47" width="296" height="52" rx="11" fill="#faeab8"/>
+      <text x="320" y="70" font-size="15" font-weight="700" fill="#936300">② 第 2 块：s⁽²⁾ = [4, 1]</text>
+      <text x="320" y="90" font-weight="600" fill="#936300">新最大 m₂ = max(2, 4) = 4</text>
+    </g>
+    <g>
+      <rect x="320" y="112" width="270" height="62" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+      <text x="332" y="136" font-size="14" font-weight="700" fill="#8f3229">重标定因子 α = exp(m₁ - m₂)</text>
+      <text x="332" y="161" font-family="var(--font-mono)" font-weight="700" fill="#b54237">α = exp(2 - 4) = e⁻² ≈ 0.1353</text>
+    </g>
+    <text x="320" y="202" font-weight="700" fill="#17211f">旧账同乘 e⁻²，加新块 [1, e⁻³]：</text>
+    <g font-family="var(--font-mono)">
+      <text x="320" y="232" fill="#17211f">l₂ = l₁·e⁻² + 1 + e⁻³</text>
+      <text x="320" y="256" font-weight="700" fill="#936300">l₂ ≈ 0.1851 + 1.0498 = 1.2349</text>
+      <text x="320" y="286" fill="#17211f">Õ₂ = Õ₁·e⁻² + 30 + 40e⁻³</text>
+      <text x="320" y="312" font-weight="700" fill="#936300">Õ₂ ≈ 3.2046 + 31.9915 = 35.1961</text>
+    </g>
+  </g>
+  <line x1="604" y1="192" x2="630" y2="192" stroke="#087f73" stroke-width="2" marker-end="url(#arr-pass)"/>
+  <g role="group" aria-label="单次归一与等价校验">
+    <rect x="634" y="46" width="254" height="292" rx="12" fill="#ffffff" stroke="#087f73" stroke-width="1.6"/>
+    <g>
+      <rect x="635" y="47" width="252" height="52" rx="11" fill="#cbe9e2"/>
+      <text x="648" y="70" font-size="15" font-weight="700" fill="#065f56">③ 收尾：除一次 l₂</text>
+      <text x="648" y="90" font-weight="600" fill="#087f73">与全量 Softmax 对账</text>
+    </g>
+    <g>
+      <rect x="648" y="112" width="226" height="82" rx="8" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+      <text x="660" y="137" font-size="14.5" font-weight="700" fill="#065f56">最终输出 O = Õ₂ / l₂</text>
+      <text x="660" y="162" font-family="var(--font-mono)" fill="#087f73">= 35.1961 / 1.2349</text>
+      <text x="660" y="185" font-family="var(--font-mono)" font-size="14.5" font-weight="700" fill="#065f56">≈ 28.5010</text>
+    </g>
+    <text x="648" y="224" font-weight="700" fill="#17211f">全量一次算 [1, 2, 4, 1]：</text>
+    <text x="648" y="252" fill="#4d5652">减 4 得 [-3, -2, 0, -3]</text>
+    <text x="648" y="280" fill="#4d5652">e^(s-2)·e^(2-4) = e^(s-4)</text>
+    <text x="648" y="310" font-size="14" font-weight="700" fill="#065f56">✓ 代数逐项严格相等</text>
+  </g>
+  <g role="group" aria-label="从单卡分块到跨卡上下文并行的代数同构">
+    <rect x="12" y="354" width="876" height="112" rx="12" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+    <text x="28" y="382" font-size="15" font-weight="700" fill="#7a3a6a">代数同构延伸：单卡时间流式分块 = 多卡空间上下文并行（PCP / DCP）</text>
+    <text x="28" y="412" fill="#17211f">K/V 分块在同一张卡上顺次流过片上缓冲是 FlashAttention；分在不同 NPU 上各算局部输出再跨卡归约就是 Context Parallel。</text>
+    <text x="28" y="442" fill="#4d5652">昇腾 <tspan font-family="var(--font-mono)" font-weight="600" fill="#7a3a6a">merge_prefill_chunks</tspan> 调用 <tspan font-family="var(--font-mono)" font-weight="600" fill="#7a3a6a">npu_attention_update(lse_list, out_list)</tspan>，用的正是同一套重标定公式。</text>
+  </g>
+</svg>

@@ -1,0 +1,20 @@
+mode: native-svg
+id: env-serve-container-mounts
+caption: 昇腾容器挂载与双层卡号隔离解剖：宿主机设备/驱动直通、A3 双裸片成对映射与容器内可见卡切分
+size: [900, 500]
+pins:
+  - source: "vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/ascend_image/atlas-a3.inc.md#L28-L55"
+    symbols:
+      - davinci0
+      - davinci1
+      - davinci_manager
+      - devmm_svm
+      - hisi_hdc
+      - dcmi
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L94-L98"
+    symbols:
+      - device_control_env_var
+      - ASCEND_RT_VISIBLE_DEVICES
+  - source: "vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/ascend_image/verify_container.inc.md#L1-L16"
+    symbols:
+      - is_available

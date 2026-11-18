@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" width="900" height="610" font-family="var(--font-sans)" font-size="13.5" role="img" aria-label="v0.30.0 昇腾注意力选路与 FA3 PIECEWISE 门禁图">
+  <title>v0.30.0 昇腾密集注意力算子选路：FA3（PIECEWISE 门禁）vs 默认 FIA 与条件 PA</title>
+  <desc>关联符号：get_attn_backend_cls, _validate_fa3_backend, AscendFABackend, AscendAttentionBackend, forward_impl, using_paged_attention, AscendFAImpl</desc>
+  <defs>
+    <marker id="arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="arr-main" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
+  <g role="group" aria-label="平台注意力后端选择入口">
+    <rect x="150" y="14" width="600" height="62" rx="10" fill="#ece9df" stroke="#4c65b6" stroke-width="1.6"/>
+    <text x="450" y="40" text-anchor="middle" font-size="15.5" font-weight="700" fill="#17211f">NPUPlatform.get_attn_backend_cls（密集 MHA / GQA 选路）</text>
+    <text x="450" y="63" text-anchor="middle" fill="#4d5652">重置手工 --attention-backend，按 rl_config、硬件族与运行态分流</text>
+  </g>
+  <path d="M 330 76 L 224 102" fill="none" stroke="#9a4b86" stroke-width="1.8" marker-end="url(#arr-plum)"/>
+  <path d="M 570 76 L 671 102" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#arr-main)"/>
+  <g role="group" aria-label="FA3 训推一致分支">
+    <rect x="12" y="104" width="424" height="374" rx="12" fill="#ffffff" stroke="#9a4b86" stroke-width="1.6"/>
+    <g>
+      <rect x="13" y="105" width="422" height="54" rx="11" fill="#f7e7f2"/>
+      <text x="26" y="129" font-size="15.5" font-weight="700" fill="#7a3a6a">分支 A：AscendFABackend (FA3)</text>
+      <text x="26" y="150" font-family="var(--font-mono)" font-weight="600" fill="#9a4b86">not use_pcp &amp; enable_training_consistency</text>
+    </g>
+    <g>
+      <rect x="26" y="170" width="396" height="88" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+      <text x="38" y="194" font-size="14" font-weight="700" fill="#17211f">算子：flash_attn_with_kvcache (A2/A3)</text>
+      <text x="38" y="219" fill="#4d5652">混合批拆 Decode 与 Prefill 两段，块大小 128</text>
+      <text x="38" y="244" fill="#66716d">禁 MLA/SFA、滑窗、ALiBi、FP8 与核内 RoPE</text>
+    </g>
+    <g>
+      <rect x="26" y="270" width="396" height="92" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+      <text x="38" y="295" font-size="14" font-weight="700" fill="#8f3229">✗ 禁配全图模式（FULL / FULL_DECODE_ONLY）</text>
+      <text x="38" y="321" fill="#8f3229">Host 侧算 tiling 无法录进 ACLGraph</text>
+      <text x="38" y="347" font-weight="700" fill="#b54237">FULL_DECODE_ONLY 初始化直接抛 ValueError</text>
+    </g>
+    <g>
+      <rect x="26" y="374" width="396" height="90" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+      <text x="38" y="399" font-size="14" font-weight="700" fill="#065f56">✓ 必配 PIECEWISE 图模式（或 enforce_eager）</text>
+      <text x="38" y="425" fill="#087f73">注意力作为 splitting_ops 留在图外运行</text>
+      <text x="38" y="451" fill="#065f56">前后线性层与归一化子图照常捕获加速</text>
+    </g>
+  </g>
+  <g role="group" aria-label="标准推理主干分支">
+    <rect x="454" y="104" width="434" height="374" rx="12" fill="#ffffff" stroke="#087f73" stroke-width="1.6"/>
+    <g>
+      <rect x="455" y="105" width="432" height="54" rx="11" fill="#cbe9e2"/>
+      <text x="468" y="129" font-size="15.5" font-weight="700" fill="#065f56">分支 B：AscendAttentionBackend（默认主干）</text>
+      <text x="468" y="150" font-weight="600" fill="#087f73">A2 / A3 / 950DT 经 forward_impl 动态二选一</text>
+    </g>
+    <g>
+      <rect x="468" y="170" width="406" height="152" rx="8" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+      <text x="480" y="195" font-size="14" font-weight="700" fill="#065f56">① 默认主力：FIA (npu_fused_infer_attention_score)</text>
+      <text x="480" y="222" fill="#17211f">• 统包 Prefill / Chunked / Spec / 默认 Decode</text>
+      <text x="480" y="248" fill="#4d5652">• TND 变长排布 + block_table 直读分页 KV 缓存</text>
+      <text x="480" y="274" fill="#4d5652">• 带 sinks 升 _v2；950DT 或批不变拆两段调用</text>
+      <text x="480" y="302" font-weight="700" fill="#065f56">• 原生支持 full_graph_fia 全图捕获与回放</text>
+    </g>
+    <g>
+      <rect x="468" y="334" width="406" height="130" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+      <text x="480" y="359" font-size="14" font-weight="700" fill="#3a4f93">② 条件分流：PA (torch_npu._npu_paged_attention)</text>
+      <text x="480" y="385" fill="#17211f">仅 DecodeOnly + 无滑窗 + 无投机 + A2/A3（950DT 禁）</text>
+      <text x="480" y="411" fill="#4d5652">且满足其一：head_size==512 大头回退，</text>
+      <text x="480" y="437" font-weight="600" fill="#3a4f93">或 FULL_DECODE_ONLY 且批长命中 pa_shape_list</text>
+    </g>
+  </g>
+  <g role="group" aria-label="兼容硬件与历史拆算子对照">
+    <rect x="12" y="492" width="876" height="104" rx="12" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+    <text x="28" y="519" font-size="15" font-weight="700" fill="#936300">兼容卡型与早期拆算子对照</text>
+    <text x="28" y="547" fill="#17211f">• 310P 兼容族 (AscendAttentionBackend310)：调 _npu_flash_attention(_v3) 与 _npu_paged_attention(_splitfuse)。</text>
+    <text x="28" y="575" fill="#4d5652">• 早期拆算子：npu_prompt_flash_attention 仅剩多模态调用；npu_incre_flash_attention 主仓零调用（被 FIA/PA 取代）。</text>
+  </g>
+</svg>

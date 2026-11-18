@@ -1,0 +1,11 @@
+mode: native-svg
+id: continuous-batching-four-myths
+caption: 示意：Continuous Batching 与两队列调度四大常见误解及 vLLM V1 源码真相对照板。
+size: [900, 412]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L577'
+    symbols: ['schedule', 'preempted_reqs', 'num_computed_tokens']
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1159-L1181'
+    symbols: ['allocate_slots', 'new_blocks']
+  - source: 'vllm@ced6857a:vllm/v1/request.py#L364-L388'
+    symbols: ['RequestStatus', 'WAITING', 'RUNNING', 'PREEMPTED']

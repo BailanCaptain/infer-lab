@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 524" width="900" height="524" font-family="var(--font-sans)" role="img" aria-label="昇腾推理环境变量四层真相图">
+  <title>昇腾推理环境变量四层真相图：从 CANN 脚本、仓内实读变量到已下线旧开关与待核底层变量</title>
+  <desc>四层对照展示：第一层为 CANN 与 NNAL ATB 环境脚本及 Dockerfile 默认的 TASK_QUEUE_ENABLE=1 与 OMP_NUM_THREADS=1；第二层为 vllm/envs.py 与 platform.py 明确读取的 ASCEND_RT_VISIBLE_DEVICES、PYTORCH_NPU_ALLOC_CONF、VLLM_USE_MODELSCOPE 与 spawn；第三层为 vllm_ascend/envs.py 14 项与 MC2 C++ 实读的 HCCL_BUFFSIZE、HCCL_OP_EXPANSION_MODE；第四层并列区分已在 v0.30.0 下线迁入 additional_config 的 VLLM_ASCEND_ENABLE_NZ 等旧变量与无仓内读取、标为 unknown 待核的底层 HCCL/ASCEND 变量。</desc>
+
+  <text x="12" y="28" font-size="16" font-weight="700" fill="#17211f">昇腾推理环境变量四层真相图（按固定源码是否有真实读取点分层甄别）</text>
+
+  <g role="group" aria-label="第一层 CANN 与加速库环境脚本">
+    <rect x="12" y="44" width="876" height="96" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+    <circle cx="32" cy="68" r="12" fill="#4c65b6"/>
+    <text x="32" y="72.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="52" y="74" font-size="15" font-weight="700" fill="#3a4f93">底层 CANN / ATB 环境脚本（官方镜像已固化；裸机或基础容器必先 source）</text>
+    <text x="28" y="101" font-family="var(--font-mono)" font-size="13.5" fill="#17211f">source /usr/local/Ascend/ascend-toolkit/set_env.sh  &amp;&amp;  source /usr/local/Ascend/nnal/atb/set_env.sh</text>
+    <text x="28" y="126" font-size="13.5" fill="#4d5652">漏跑后一句会在运行期报缺 <tspan font-family="var(--font-mono)" font-weight="600">libatb.so</tspan> · 官方镜像默认带 <tspan font-family="var(--font-mono)" font-weight="600">TASK_QUEUE_ENABLE=1</tspan> 与 <tspan font-family="var(--font-mono)" font-weight="600">OMP_NUM_THREADS=1</tspan></text>
+  </g>
+
+  <g role="group" aria-label="第二层 框架与分配器实读变量">
+    <rect x="12" y="152" width="876" height="114" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+    <circle cx="32" cy="176" r="12" fill="#087f73"/>
+    <text x="32" y="180.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="52" y="182" font-size="15" font-weight="700" fill="#065f56">框架入口与显存分配器实读变量（<tspan font-family="var(--font-mono)" font-size="13.5">vllm/envs.py</tspan> + <tspan font-family="var(--font-mono)" font-size="13.5">platform.py</tspan> 明确读取）</text>
+    <text x="28" y="208" font-size="13.5" fill="#17211f">• <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">ASCEND_RT_VISIBLE_DEVICES</tspan>：切分空闲卡并重编逻辑号 · <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">VLLM_USE_MODELSCOPE=True</tspan>：离线/受限网切魔搭源</text>
+    <text x="28" y="233" font-size="13.5" fill="#17211f">• <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">PYTORCH_NPU_ALLOC_CONF=expandable_segments:True</tspan>：非睡眠模式下 <tspan font-family="var(--font-mono)">NPUPlatform</tspan> 自动默认追加防碎片</text>
+    <text x="28" y="256" font-size="13.5" fill="#4d5652">• <tspan font-family="var(--font-mono)" font-weight="600">VLLM_WORKER_MULTIPROC_METHOD=spawn</tspan>：防多进程初始化死锁 · <tspan font-family="var(--font-mono)" font-weight="600">VLLM_HOST_IP</tspan> / <tspan font-family="var(--font-mono)" font-weight="600">VLLM_PORT</tspan>（须纯整数）</text>
+  </g>
+
+  <g role="group" aria-label="第三层 插件与通信实读变量">
+    <rect x="12" y="278" width="876" height="106" rx="10" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+    <circle cx="32" cy="302" r="12" fill="#9a4b86"/>
+    <text x="32" y="306.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="52" y="308" font-size="15" font-weight="700" fill="#7a3a6a">插件与通信仓内实读变量（<tspan font-family="var(--font-mono)" font-size="13.5">vllm_ascend/envs.py</tspan> 仅存 14 项 + C++/Py 显式读取）</text>
+    <text x="28" y="335" font-size="13.5" fill="#17211f">• <tspan font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">VLLM_VERSION</tspan>：源码装开发版 <tspan font-family="var(--font-mono)">vllm</tspan> 时供 <tspan font-family="var(--font-mono)">vllm_version_is()</tspan> 手动指定 <tspan font-family="var(--font-mono)">0.30.0</tspan> · 另含 <tspan font-family="var(--font-mono)">ASCEND_HOME_PATH</tspan> / <tspan font-family="var(--font-mono)">HCCL_SO_PATH</tspan></text>
+    <text x="28" y="362" font-size="13.5" fill="#17211f">• 仓内显式读取的 HCCL 项：<tspan font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">HCCL_BUFFSIZE</tspan>（MC2 C++ 算子读取通信域 MB） · <tspan font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">HCCL_OP_EXPANSION_MODE=AIV</tspan>（Vector 核展开）</text>
+  </g>
+
+  <g role="group" aria-label="第四层 下线旧变量与待核底层变量辨析">
+    <rect x="12" y="398" width="430" height="114" rx="10" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
+    <text x="28" y="424" font-size="15" font-weight="700" fill="#8f3229">✗ 已在 v0.30.0 下线失效（仓内 0 读取）</text>
+    <text x="28" y="451" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#b54237">VLLM_ASCEND_ENABLE_NZ / ENABLE_MLAPO</text>
+    <text x="28" y="476" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#b54237">VLLM_ASCEND_ENABLE_FUSED_MC2 / FLASHCOMM1</text>
+    <text x="28" y="500" font-size="13.5" font-weight="700" fill="#8f3229">→ 照抄旧帖不报错但零生效！改传 --additional-config</text>
+
+    <rect x="458" y="398" width="430" height="114" rx="10" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+    <text x="474" y="424" font-size="15" font-weight="700" fill="#936300">? 无仓内读取的底层变量（诚实标 unknown）</text>
+    <text x="474" y="451" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#936300">HCCL_BUFFSIZE_EP / HCCL_SOCKET_IFNAME 等 45+ 项</text>
+    <text x="474" y="476" font-size="13.5" fill="#17211f">Python/C++ 仓内零读取，但闭源 <tspan font-family="var(--font-mono)">libhccl.so</tspan> 可能消费</text>
+    <text x="474" y="500" font-size="13.5" font-weight="700" fill="#936300">→ 既勿武断判报错，单机最小起服也勿盲目堆砌</text>
+  </g>
+</svg>

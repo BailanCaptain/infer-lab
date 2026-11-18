@@ -379,6 +379,11 @@
           "note": "Cube、Vector、Scalar 与矩阵乘算例由原页解释，本页聚焦 950 的新增通路"
         },
         {
+          "from": "ascend-flash-attention",
+          "kind": "enables",
+          "note": "分清设备侧 HBM（GM）与片上高速缓冲（L1/L0 与 UB）及 Cube/Vector 分工，才能理解片上分块为何省带宽"
+        },
+        {
           "from": "attention-cost",
           "kind": "enables",
           "note": "注意力代价页区分逻辑读取量与实际显存流量，建立在 AI Core 页所解释的分块搬运和片上复用机制之上。"
@@ -1507,6 +1512,11 @@
           "note": "本摘要记录三项配置与缓存的固定版本证据，配置输入和消费者的教学由该页维护"
         },
         {
+          "from": "ascend-env-and-serve",
+          "kind": "enables",
+          "note": "分清环境变量与 --additional-config 的职责边界，避免沿用 v0.30.0 已下线的旧环境变量"
+        },
+        {
           "from": "block-table-no-commit-optimize-8328d0d2d00d",
           "kind": "enables",
           "note": "该历史回退开关通过 additional_config 顶层键配置，其解析及未知键处理依赖 AscendConfig 配置系统，并随版本变化。"
@@ -1520,6 +1530,11 @@
           "from": "combine-quant-mode-2a3f7cd47997",
           "kind": "enables",
           "note": "它是 main 上 pydantic AscendConfig 的顶层 Literal 字段，v0.23 / v0.26 那套逐键 .get() 根本不认识这个名字"
+        },
+        {
+          "from": "core-cli-params",
+          "kind": "enables",
+          "note": "理解 additional_config 的解析入口与校验时机，才能追踪跨子系统静默改写"
         },
         {
           "from": "enable-async-exponential",
@@ -1732,6 +1747,189 @@
       ]
     },
     {
+      "id": "ascend-env-and-serve",
+      "title": "容器镜像、核心环境变量与 vllm serve 最小起服务清单",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "锁死镜像并读懂模型目录后，把昇腾容器挂载（/dev/davinci*、驱动库、--shm-size 与 A3 双裸片成对映射）、四层环境变量真伪甄别与单机 vllm serve 最小启动及三步冒烟测试一次跑通。",
+      "aliases": [
+        "vllm serve",
+        "容器镜像",
+        "环境变量",
+        "docker run",
+        "最小起服务",
+        "冒烟测试",
+        "VLLM_USE_MODELSCOPE",
+        "vllm_ascend/envs.py",
+        "set_env.sh"
+      ],
+      "chapters": [
+        "01"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20:docs/source/getting_started/installation/prebuilt_image.inc.md#L12-L26",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/ascend_image/atlas-a2.inc.md#L25-L52",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/ascend_image/atlas-a3.inc.md#L26-L55",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/ascend_image/atlas-950dt.inc.md#L25-L49",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/ascend_image/verify_container.inc.md#L1-L16",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/installation/existing_cann_environment.inc.md#L35-L49",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/online/qwen3-0.6b-310p.inc.md#L1-L18",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/configuration/additional_config.md#L58-L62",
+        "vllm-ascend@c09d3e20:Dockerfile#L53-L68",
+        "vllm-ascend@c09d3e20:vllm_ascend/envs.py#L38-L93",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L94-L98",
+        "vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L24-L26",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1445-L1481",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L726-L746",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L120-L169",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L614-L657",
+        "vllm-ascend@c09d3e20:csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp#L28-L66",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L1255-L1260",
+        "vllm@ced6857a:vllm/envs.py#L705-L720",
+        "vllm@ced6857a:vllm/envs.py#L930-L932",
+        "vllm@ced6857a:vllm/config/cache.py#L102-L106",
+        "vllm@ced6857a:vllm/config/model.py#L2176-L2190",
+        "vllm@ced6857a:vllm/entrypoints/serve/instrumentator/health.py#L20-L33",
+        "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/api_router.py#L40-L60",
+        "vllm-ascend@2c59ff10:vllm_ascend/envs.py#L36-L114",
+        "vllm-ascend@2ed6cbba:vllm_ascend/envs.py#L36-L110",
+        "vllm-ascend@8d6180e2:vllm_ascend/envs.py#L26-L99"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "ascend-model-onboarding",
+          "kind": "builds-on",
+          "note": "承接五维版本配套、活跃食谱核验与权重格式选型结论，把选定的镜像与权重真正拉起成在线服务"
+        },
+        {
+          "to": "hf-model-anatomy",
+          "kind": "builds-on",
+          "note": "将从 config.json 与分词模板读出的架构、上下文上限与精度字段转化为 vllm serve 启动参数"
+        },
+        {
+          "to": "hardware-devices",
+          "kind": "builds-on",
+          "note": "对照四族昇腾硬件与 A3 双裸片物理拓扑，理解 /dev/davinci* 设备节点挂载与逻辑卡重映射"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "分清环境变量与 --additional-config 的职责边界，避免沿用 v0.30.0 已下线的旧环境变量"
+        },
+        {
+          "to": "npu-worker-lifecycle",
+          "kind": "builds-on",
+          "note": "敲下 vllm serve 后容器内部如何依次完成设备检查、权重加载、显存探测与图捕获，见 Worker 生命周期页"
+        },
+        {
+          "to": "kv-cache-memory-profiling",
+          "kind": "builds-on",
+          "note": "--gpu-memory-utilization 与 --max-model-len 在冷启动时如何折算成可用 KV cache 块预算，见显存划定页"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-18",
+      "file": "concepts/ascend-env-and-serve.md",
+      "backlinks": []
+    },
+    {
+      "id": "ascend-flash-attention",
+      "title": "FlashAttention 与昇腾注意力算子族：片上 Tiling、Online Softmax 与 FA / FIA / PA / FA3 选路",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "标准注意力若把整张 N×N 分数表写回 HBM，单层中间张量在 32K 长度下就会暴涨到数十 GiB。本页从 Qwen3-8B 访存账出发，拆解片上分块（Tiling）与 Online Softmax 动态重标定怎样做到零近似、零 N×N 落盘，再厘清 v0.30.0 昇腾算子族（FIA、PA、早期 PFA/IFA 与训推一致 FA3）的选路条件及 FA3 绑定 PIECEWISE 图模式的根因。",
+      "aliases": [
+        "FlashAttention",
+        "Flash Attention",
+        "Flash Attention 3",
+        "FA3",
+        "Online Softmax",
+        "在线 Softmax",
+        "FIA",
+        "npu_fused_infer_attention_score",
+        "FusedInferAttentionScore",
+        "PromptFlashAttention",
+        "IncreFlashAttention",
+        "_npu_paged_attention",
+        "npu_prompt_flash_attention",
+        "npu_incre_flash_attention",
+        "AscendFABackend",
+        "AscendAttentionBackend",
+        "片上 Tiling",
+        "注意力算子族"
+      ],
+      "chapters": [
+        "04"
+      ],
+      "order": 65,
+      "prerequisites": [],
+      "sources": [
+        "https://arxiv.org/abs/2205.14135",
+        "https://arxiv.org/abs/2407.08608",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/flash_attention.md#L1-L76",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/flash_attention.md#L139-L160",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/graph_mode.md#L33-L46",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L247-L289",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L854-L864",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1327-L1345",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1484-L1509",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L664-L821",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L832-L1019",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1102-L1146",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1248-L1270",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/utils.py#L284-L303",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/utils.py#L715-L735",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/fa3_v1.py#L11-L60",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/fa3_v1.py#L61-L144",
+        "vllm-ascend@c09d3e20:vllm_ascend/_310p/attention/attention_v1.py#L120-L324",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/utils.py#L23-L76",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/rel_pos_attention.py#L27-L45",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L869",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L816-L870",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L324-L374",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/fa3_v1.py#L15-L145"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "attention-qkv",
+          "kind": "builds-on",
+          "note": "先明确 Q/K/V 打分、缩放与 Softmax 加权汇合的数学定义，再看怎样不改结果地重排片上执行顺序"
+        },
+        {
+          "to": "paged-attention",
+          "kind": "builds-on",
+          "note": "理解分页 KV 缓存与块表寻址后，才能看清 FIA、PA 与 FA3 怎样直接消费非连续物理页"
+        },
+        {
+          "to": "ai-core",
+          "kind": "builds-on",
+          "note": "分清设备侧 HBM（GM）与片上高速缓冲（L1/L0 与 UB）及 Cube/Vector 分工，才能理解片上分块为何省带宽"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-19",
+      "file": "concepts/ascend-flash-attention.md",
+      "backlinks": []
+    },
+    {
       "id": "ascend-model-onboarding",
       "title": "新模型上线标准流程：五维版本锁死、活跃食谱识别与权重选型",
       "type": "concept",
@@ -1825,7 +2023,18 @@
       "contradicts": [],
       "updated": "2026-11-18",
       "file": "concepts/ascend-model-onboarding.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "ascend-env-and-serve",
+          "kind": "enables",
+          "note": "承接五维版本配套、活跃食谱核验与权重格式选型结论，把选定的镜像与权重真正拉起成在线服务"
+        },
+        {
+          "from": "core-cli-params",
+          "kind": "enables",
+          "note": "先锁死五维环境配套与权重路径，再按本页规则微调启动参数与双实例拓扑"
+        }
+      ]
     },
     {
       "id": "ascend-patch-system",
@@ -2246,9 +2455,6 @@
         "AscendIndexerKPoolMLABackend",
         "attention group",
         "注意力组",
-        "FlashAttention",
-        "Flash Attention 3",
-        "FA3",
         "AscendFAImpl",
         "flash_attn_npu_v3",
         "flash_attn_npu",
@@ -2652,6 +2858,11 @@
       "updated": "2026-11-03",
       "file": "concepts/attention-qkv.md",
       "backlinks": [
+        {
+          "from": "ascend-flash-attention",
+          "kind": "enables",
+          "note": "先明确 Q/K/V 打分、缩放与 Softmax 加权汇合的数学定义，再看怎样不改结果地重排片上执行顺序"
+        },
         {
           "from": "attention-backend-family",
           "kind": "enables",
@@ -3088,12 +3299,7 @@
         "逻辑块号",
         "物理块号",
         "slot mapping",
-        "槽位映射",
-        "PagedAttention",
-        "Paged Attention",
-        "分页注意力",
-        "分页缓存",
-        "分页布局"
+        "槽位映射"
       ],
       "chapters": [
         "11"
@@ -3679,6 +3885,11 @@
           "note": "理解当前轮和下一轮的输入预算"
         },
         {
+          "from": "core-cli-params",
+          "kind": "enables",
+          "note": "理解单步先扣 Decode 再分给 Prefill 的预算博弈，才能看清批预算参数对时延的影响"
+        },
+        {
           "from": "dynamic-chunked-pp",
           "kind": "enables",
           "note": "理解 token 预算与前缀进度"
@@ -4035,8 +4246,6 @@
       "aliases": [
         "多请求推理",
         "并发请求",
-        "连续批处理",
-        "continuous batching",
         "混合批次",
         "请求边界",
         "场景 M",
@@ -4446,6 +4655,207 @@
           "note": "逐项比较 PCP、DCP、DSA-CP 与模型支持条件"
         }
       ]
+    },
+    {
+      "id": "continuous-batching",
+      "title": "Continuous Batching（连续批处理）",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "摒弃整批对齐补零与慢请求锁死，按单步迭代动态挑选请求、一维无填充拼接 token，并在每步末尾对完结请求即退即释块；配合 waiting 与 running 两队列、三道预算闸门及 LIFO 抢占重算，撑起高吞吐低延迟在线服务。",
+      "aliases": [
+        "Continuous Batching",
+        "连续批处理",
+        "迭代级调度",
+        "iteration-level scheduling",
+        "in-flight batching",
+        "静态批处理",
+        "static batching",
+        "随退随补",
+        "两队列调度",
+        "ragged batching"
+      ],
+      "chapters": [
+        "03"
+      ],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "https://arxiv.org/abs/2309.06180",
+        "https://arxiv.org/abs/2401.08671",
+        "vllm@ced6857a:docs/configuration/optimization.md#L27-L80",
+        "vllm@ced6857a:docs/design/arch_overview.md#L79-L90",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/graph_mode.md#L35-L54",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L5-L39",
+        "vllm@ced6857a:vllm/v1/engine/core.py#L589-L620",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L675",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L728-L810",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L854-L872",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1159-L1181",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1477-L1519",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2117-L2188",
+        "vllm@ced6857a:vllm/v1/core/sched/utils.py#L94-L136",
+        "vllm@ced6857a:vllm/v1/request.py#L364-L388",
+        "vllm@ced6857a:vllm/config/scheduler.py#L42-L86",
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L2701-L2760",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L231-L245",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1056-L1147",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1379-L1408",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1482-L1553",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1058-L1106",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1279-L1463",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L352",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L274-L282",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L689-L725",
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L425-L437",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L658-L721",
+        "vllm@ba15685a:vllm/v1/core/sched/scheduler.py#L721-L733",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L949-L975",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1234-L1319"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "prefill",
+          "kind": "builds-on",
+          "note": "单条请求拆成 Prefill（提示词并行建历史）与 Decode（逐词续写）两阶段，是同一步跨请求混排的基础"
+        },
+        {
+          "to": "kv-cache",
+          "kind": "builds-on",
+          "note": "已算位置的历史状态留在显存复用，才允许每步只把新增 token 紧致拼入前向并在完结当步释放缓存"
+        },
+        {
+          "to": "request-overview",
+          "kind": "builds-on",
+          "note": "沿用单次引擎迭代的「调度 → 前向 → 采样 → 停止检查」四步闭环，将其扩展到多请求动态进出"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-18",
+      "file": "concepts/continuous-batching.md",
+      "backlinks": [
+        {
+          "from": "paged-attention",
+          "kind": "enables",
+          "note": "请求随时进场、长短交错退场的连续批处理调度，正是传统连续预留产生外部碎片与并发瓶颈的直接诱因"
+        }
+      ]
+    },
+    {
+      "id": "core-cli-params",
+      "title": "vllm serve 核心参数全分支调优指南：显存水位、批预算 6 分支与图编译联动",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "打通 vllm serve 四大核心旋钮与单卡显存水位的联动机制，完整拆解昇腾 v0.30.0 上 max-num-batched-tokens 早退回落 2048 的 6 分支决策树与 SP+PCP 静默向上取整，并收拢图编译、调度器覆盖链与 Mooncake P/D 双实例互斥红线。",
+      "aliases": [
+        "vllm serve 核心参数",
+        "核心参数调优",
+        "CLI 参数调优",
+        "启动参数调优",
+        "批预算全分支",
+        "--max-num-batched-tokens",
+        "--max-num-seqs",
+        "--max-model-len",
+        "--performance-mode",
+        "performance_mode",
+        "参数静默改写",
+        "参数互斥联检",
+        "P/D 联检工作台"
+      ],
+      "chapters": [
+        "06"
+      ],
+      "order": 1,
+      "prerequisites": [],
+      "sources": [
+        "vllm@ced6857a:vllm/config/cache.py#L103-L110",
+        "vllm@ced6857a:vllm/config/model.py#L2497-L2544",
+        "vllm@ced6857a:vllm/config/scheduler.py#L42-L86",
+        "vllm@ced6857a:vllm/config/compilation.py#L60-L111",
+        "vllm@ced6857a:vllm/config/vllm.py#L1877-L1899",
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L2701-L2792",
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L2904-L2990",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L581-L665",
+        "vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L2722-L2742",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3.py#L297-L308",
+        "vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6523-L6534",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L231-L245",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1052-L1147",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1313-L1408",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1650-L1701",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L131-L170",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L697-L839",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1019-L1043",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L461-L475",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L601-L638",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L907-L945",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/fa3_v1.py#L42-L59",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2145-L2242",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L17-L34",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L558-L563",
+        "vllm-ascend@c09d3e20:vllm_ascend/envs.py#L66-L69",
+        "vllm-ascend@c09d3e20:docs/source/faqs.md#L146-L150",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/pipeline_parallel.md#L180-L257",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/pipeline_parallel.md#L437-L440",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/flash_attention.md#L40-L145",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L196-L208",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L274-L282",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L273-L281",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1518-L1601",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L128",
+        "vllm@ba15685a:vllm/config/cache.py#L216-L228"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "ascend-model-onboarding",
+          "kind": "builds-on",
+          "note": "先锁死五维环境配套与权重路径，再按本页规则微调启动参数与双实例拓扑"
+        },
+        {
+          "to": "chunked-prefill",
+          "kind": "builds-on",
+          "note": "理解单步先扣 Decode 再分给 Prefill 的预算博弈，才能看清批预算参数对时延的影响"
+        },
+        {
+          "to": "kv-cache-memory-profiling",
+          "kind": "builds-on",
+          "note": "显存水位比例与试跑扣减账单在那页展开，本页聚焦四个参数如何联动挤压该账单"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "理解 additional_config 的解析入口与校验时机，才能追踪跨子系统静默改写"
+        },
+        {
+          "to": "npugraph-ex",
+          "kind": "builds-on",
+          "note": "图模式与 static_kernel、super_kernel 的三级依赖状态机与录图开销细节见该页"
+        },
+        {
+          "to": "pd-disaggregation",
+          "kind": "builds-on",
+          "note": "P/D 分离两侧不对称并行目标与 Mooncake 传输约束是双实例联检的架构前提"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-18",
+      "file": "concepts/core-cli-params.md",
+      "backlinks": []
     },
     {
       "id": "cpu-binding",
@@ -8279,6 +8689,11 @@
           "note": "部署前确认完整产品型号，不把芯片、卡和服务器当成同一层"
         },
         {
+          "from": "ascend-env-and-serve",
+          "kind": "enables",
+          "note": "对照四族昇腾硬件与 A3 双裸片物理拓扑，理解 /dev/davinci* 设备节点挂载与逻辑卡重映射"
+        },
+        {
           "from": "ascend-model-onboarding",
           "kind": "enables",
           "note": "分清 Atlas A2/A3、310P 与 950DT 系列及软件可见设备映射，才能正确锁死第五维卡型"
@@ -8520,7 +8935,18 @@
       "contradicts": [],
       "updated": "2026-11-18",
       "file": "concepts/hf-model-anatomy.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "ascend-env-and-serve",
+          "kind": "enables",
+          "note": "将从 config.json 与分词模板读出的架构、上下文上限与精度字段转化为 vllm serve 启动参数"
+        },
+        {
+          "from": "roofline-and-metrics",
+          "kind": "enables",
+          "note": "复用 Qwen3-8B 与 Qwen3-30B-A3B 的总参数、激活参数与每 token KV 静态账单"
+        }
+      ]
     },
     {
       "id": "inference-benchmarking",
@@ -8818,14 +9244,11 @@
       "origin": "direct",
       "summary": "接着 D/N 的分块实验，解释少算一些输入为什么能缩短一步、为什么切得更小也会有成本；通过矩阵流量与关键路径推演，区分算得慢、数据搬得慢和等其他卡。",
       "aliases": [
-        "Roofline",
         "性能模型",
         "计算瓶颈",
         "访存瓶颈",
         "带宽瓶颈",
         "关键路径",
-        "计算强度",
-        "算术强度",
         "设备空闲",
         "主机空隙",
         "通信重叠",
@@ -9422,6 +9845,11 @@
           "note": "问答记录区分序列长度与实际写入 KV 的位置数，依赖 KV cache 页说明的机制：输出 token 要到下一步作为输入时才留下缓存，因此最后一个输出没有自己的 KV。"
         },
         {
+          "from": "continuous-batching",
+          "kind": "enables",
+          "note": "已算位置的历史状态留在显存复用，才允许每步只把新增 token 紧致拼入前向并在完结当步释放缓存"
+        },
+        {
           "from": "glm-5-3-flash",
           "kind": "enables",
           "note": "模型页对跨轮次状态及引擎职责的说明，依赖 KV cache 对不同历史状态的统一管理。"
@@ -9457,6 +9885,11 @@
           "note": "搬的是各层留下的历史状态；GLM 有哪几类、每类多大在那一页"
         },
         {
+          "from": "paged-attention",
+          "kind": "enables",
+          "note": "理解每一层为什么要跨步保留历史 K、V，才能看清这些随生成逐词增长的张量为什么会耗尽显存"
+        },
+        {
           "from": "pd-disaggregation",
           "kind": "enables",
           "note": "交接的是 GLM 的几类历史状态，各自多大、怎样分组见该页"
@@ -9465,6 +9898,11 @@
           "from": "prefix-caching",
           "kind": "enables",
           "note": "被复用的就是已算好的 KV 历史"
+        },
+        {
+          "from": "roofline-and-metrics",
+          "kind": "enables",
+          "note": "KV cache 免去了历史位置重复乘加，但在长上下文 Decode 中也会变成无法跨请求摊薄的显存带宽大户"
         },
         {
           "from": "speculative-decoding",
@@ -9928,6 +10366,16 @@
       "updated": "2026-11-10",
       "file": "concepts/kv-cache-memory-profiling.md",
       "backlinks": [
+        {
+          "from": "ascend-env-and-serve",
+          "kind": "enables",
+          "note": "--gpu-memory-utilization 与 --max-model-len 在冷启动时如何折算成可用 KV cache 块预算，见显存划定页"
+        },
+        {
+          "from": "core-cli-params",
+          "kind": "enables",
+          "note": "显存水位比例与试跑扣减账单在那页展开，本页聚焦四个参数如何联动挤压该账单"
+        },
         {
           "from": "glm-5-3-flash-two-node",
           "kind": "enables",
@@ -12326,6 +12774,11 @@
           "note": "矩阵乘讲清 Y=XW 与权重的存法，本页讲操作数换成低精度后多了哪两步"
         },
         {
+          "from": "roofline-and-metrics",
+          "kind": "enables",
+          "note": "沿线性投影矩阵乘法的行列形状统计乘加次数与读写字节数"
+        },
+        {
           "from": "tensor-layout",
           "kind": "enables",
           "note": "先认识矩阵的行列和转置，再看这些元素在物理内存中的顺序"
@@ -13781,6 +14234,11 @@
           "note": "Worker 初始化时建立本进程的配置状态"
         },
         {
+          "from": "ascend-env-and-serve",
+          "kind": "enables",
+          "note": "敲下 vllm serve 后容器内部如何依次完成设备检查、权重加载、显存探测与图捕获，见 Worker 生命周期页"
+        },
+        {
           "from": "ascend-model-onboarding",
           "kind": "enables",
           "note": "接续上线校验之后 NPUWorker 的设备检查、模型加载后处理与显存探测流程"
@@ -14011,6 +14469,11 @@
       "updated": "2026-11-03",
       "file": "concepts/npugraph-ex.md",
       "backlinks": [
+        {
+          "from": "core-cli-params",
+          "kind": "enables",
+          "note": "图模式与 static_kernel、super_kernel 的三级依赖状态机与录图开销细节见该页"
+        },
         {
           "from": "enable-super-kernel-ce990e186bfa",
           "kind": "enables",
@@ -14621,6 +15084,89 @@
       ]
     },
     {
+      "id": "paged-attention",
+      "title": "PagedAttention（分页注意力）",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "借鉴操作系统虚拟内存分页思想，把 KV cache 显存池切成固定长度（昇腾默认 128 token）的物理块按需借还，通过块表把连续逻辑位置映射到离散物理块，彻底消灭外部显存碎片、支持相同前缀零拷贝共享，并将单序列内部预留浪费严格收敛到最后一块以内。",
+      "aliases": [
+        "PagedAttention",
+        "Paged Attention",
+        "分页注意力",
+        "分页 KV 缓存",
+        "分页缓存",
+        "KV 分页",
+        "内存碎片",
+        "显存碎片",
+        "内部碎片",
+        "外部碎片",
+        "物理块池",
+        "KVCacheBlock",
+        "free_block_queue",
+        "page_size_bytes",
+        "--block-size"
+      ],
+      "chapters": [
+        "03"
+      ],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "https://arxiv.org/abs/2309.06180",
+        "vllm@ced6857a:docs/design/paged_attention.md#L1-L80",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L45-L65",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/Design_Documents/non_contiguous_kv_cache.md#L1-L48",
+        "vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L175-L225",
+        "vllm@ced6857a:vllm/v1/core/block_pool.py#L143-L203",
+        "vllm@ced6857a:vllm/v1/core/block_pool.py#L664-L801",
+        "vllm@ced6857a:vllm/v1/core/kv_cache_manager.py#L265-L465",
+        "vllm@ced6857a:vllm/v1/kv_cache_interface.py#L478-L530",
+        "vllm@ced6857a:vllm/config/cache.py#L71-L80",
+        "vllm@ced6857a:vllm/platforms/interface.py#L609-L646",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L405-L427",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1370-L1375",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1446-L1554",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L109-L152",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L897-L954",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1558-L1612",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/utils.py#L284-L318",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1420",
+        "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1240-L1291",
+        "vllm@ba15685a:vllm/config/cache.py#L185-L195",
+        "vllm-ascend@8d6180e2:vllm_ascend/utils.py#L1460-L1547"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "kv-cache",
+          "kind": "builds-on",
+          "note": "理解每一层为什么要跨步保留历史 K、V，才能看清这些随生成逐词增长的张量为什么会耗尽显存"
+        },
+        {
+          "to": "continuous-batching",
+          "kind": "builds-on",
+          "note": "请求随时进场、长短交错退场的连续批处理调度，正是传统连续预留产生外部碎片与并发瓶颈的直接诱因"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-18",
+      "file": "concepts/paged-attention.md",
+      "backlinks": [
+        {
+          "from": "ascend-flash-attention",
+          "kind": "enables",
+          "note": "理解分页 KV 缓存与块表寻址后，才能看清 FIA、PA 与 FA3 怎样直接消费非连续物理页"
+        }
+      ]
+    },
+    {
       "id": "pd-disaggregation",
       "title": "PD 分离：prefill 与 decode 分给两组实例时怎样交接历史",
       "type": "feature",
@@ -14833,6 +15379,11 @@
           "from": "ai-qos",
           "kind": "enables",
           "note": "先理解 PD 的 KV 传输，再区分其 qos_priority 与本页流量等级表"
+        },
+        {
+          "from": "core-cli-params",
+          "kind": "enables",
+          "note": "P/D 分离两侧不对称并行目标与 Mooncake 传输约束是双实例联检的架构前提"
         },
         {
           "from": "deepseek-serving-case",
@@ -15493,6 +16044,11 @@
           "note": "多请求页对长提示词按剩余预算分轮处理、与 decode 混合执行的讨论，建立在 prefill 页对提示词跨轮计算及统一调度规则的解释之上。"
         },
         {
+          "from": "continuous-batching",
+          "kind": "enables",
+          "note": "单条请求拆成 Prefill（提示词并行建历史）与 Decode（逐词续写）两阶段，是同一步跨请求混排的基础"
+        },
+        {
           "from": "kv-cache",
           "kind": "enables",
           "note": "在多轮前向之间复用已计算状态"
@@ -15501,6 +16057,11 @@
           "from": "pd-disaggregation",
           "kind": "enables",
           "note": "P 实例做的就是整段提示词的 prefill；混合步为什么拖慢 decode 也在那页"
+        },
+        {
+          "from": "roofline-and-metrics",
+          "kind": "enables",
+          "note": "Prefill 一次并行算完提示词、Decode 每步只进一个新词，两阶段行数差异直接决定了它们在 Roofline 上的落点"
         },
         {
           "from": "speculative-decoding",
@@ -17488,6 +18049,11 @@
       "file": "concepts/request-overview.md",
       "backlinks": [
         {
+          "from": "continuous-batching",
+          "kind": "enables",
+          "note": "沿用单次引擎迭代的「调度 → 前向 → 采样 → 停止检查」四步闭环，将其扩展到多请求动态进出"
+        },
+        {
           "from": "hf-model-anatomy",
           "kind": "enables",
           "note": "先通过请求全景理解词表、层数、隐藏维度和 KV cache 在推理中的作用，再回过头看它们在模型目录里的具体数值定义"
@@ -18650,6 +19216,92 @@
           "note": "排错前先识别实际运行版本，旧报错不能直接套用后来补丁的行为"
         }
       ]
+    },
+    {
+      "id": "roofline-and-metrics",
+      "title": "Roofline 模型与性能三角：算力墙 vs 带宽墙与算术强度拐点",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "连接第三章的请求调度与第四章的昇腾硬件：先拆清首字时延 TTFT、流式间隔 ITL、每词均值 TPOT 与系统吞吐组成的性能三角，再用算术强度与 Roofline 折线解释为什么单请求 Decode 卡在 HBM 带宽斜坡、Prefill 撞上 Cube 算力屋顶，以及批处理与 W8A8 量化如何移动工作点。",
+      "aliases": [
+        "Roofline",
+        "Roofline 模型",
+        "计算强度",
+        "算术强度",
+        "arithmetic intensity",
+        "算力墙",
+        "带宽墙",
+        "性能三角",
+        "脊点",
+        "ridge point",
+        "算术强度拐点"
+      ],
+      "chapters": [
+        "04"
+      ],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/Archive/EECS-2008-134.pdf",
+        "https://public-download.obs.cn-east-2.myhuaweicloud.com/ascend/%E6%98%87%E8%85%BE950%20NPU%E6%9E%B6%E6%9E%84%E7%99%BD%E7%9A%AE%E4%B9%A6.pdf",
+        "vllm@ced6857a:docs/benchmarking/cli.md#L123-L161",
+        "vllm@ced6857a:docs/design/metrics.md#L48-L81",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/performance_and_debug/performance_benchmark.md#L113-L203",
+        "vllm@ced6857a:vllm/v1/metrics/stats.py#L217-L258",
+        "vllm@ced6857a:vllm/v1/metrics/stats.py#L455-L585",
+        "vllm@ced6857a:vllm/v1/metrics/loggers.py#L139-L161",
+        "vllm@ced6857a:vllm/v1/metrics/loggers.py#L675-L718",
+        "vllm@ced6857a:vllm/v1/metrics/loggers.py#L811-L865",
+        "vllm@ced6857a:vllm/v1/metrics/loggers.py#L1110-L1180",
+        "vllm@ced6857a:vllm/v1/metrics/buckets.py#L14-L115",
+        "vllm@ced6857a:vllm/v1/metrics/perf.py#L92-L148",
+        "vllm@ced6857a:vllm/v1/metrics/perf.py#L1740-L1835",
+        "vllm@ced6857a:vllm/config/vllm.py#L446-L452",
+        "vllm@ced6857a:vllm/config/vllm.py#L2325-L2344",
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L2936-L2952",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3.py#L99-L135",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L167-L213",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L60-L95",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L232-L244",
+        "vllm@0fc695fc:vllm/v1/metrics/loggers.py#L754-L845",
+        "vllm@568afb3a:vllm/v1/metrics/loggers.py#L796-L886",
+        "vllm@ba15685a:vllm/v1/metrics/loggers.py#L831-L965",
+        "vllm@ba15685a:vllm/v1/metrics/buckets.py#L195-L240"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "prefill",
+          "kind": "builds-on",
+          "note": "Prefill 一次并行算完提示词、Decode 每步只进一个新词，两阶段行数差异直接决定了它们在 Roofline 上的落点"
+        },
+        {
+          "to": "kv-cache",
+          "kind": "builds-on",
+          "note": "KV cache 免去了历史位置重复乘加，但在长上下文 Decode 中也会变成无法跨请求摊薄的显存带宽大户"
+        },
+        {
+          "to": "matmul-and-weights",
+          "kind": "builds-on",
+          "note": "沿线性投影矩阵乘法的行列形状统计乘加次数与读写字节数"
+        },
+        {
+          "to": "hf-model-anatomy",
+          "kind": "builds-on",
+          "note": "复用 Qwen3-8B 与 Qwen3-30B-A3B 的总参数、激活参数与每 token KV 静态账单"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-18",
+      "file": "concepts/roofline-and-metrics.md",
+      "backlinks": []
     },
     {
       "id": "rope",

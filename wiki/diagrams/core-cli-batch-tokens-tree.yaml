@@ -1,0 +1,28 @@
+mode: native-svg
+id: core-cli-batch-tokens-tree
+caption: 昇腾 v0.30.0 上 max_num_batched_tokens 的早退回落、6 分支求值流水线与 SP+PCP 静默向上取整
+size: [900, 628]
+pins:
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L231-L244"
+    symbols:
+      - get_device_total_memory
+      - NotImplementedError
+  - source: "vllm@ced6857a:vllm/engine/arg_utils.py#L2701-L2760"
+    symbols:
+      - get_batch_defaults
+      - device_memory
+      - OPENAI_API_SERVER
+      - LLM_CLASS
+  - source: "vllm@ced6857a:vllm/engine/arg_utils.py#L2904-L2990"
+    symbols:
+      - _set_default_max_num_seqs_and_batched_tokens_args
+      - use_batched_dp_moe
+      - performance_mode
+      - enable_chunked_prefill
+      - is_mm_prefix_lm
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L816-L828"
+    symbols:
+      - prefill_context_parallel_size
+      - enable_sp
+      - tp_pcp_size
+      - cdiv

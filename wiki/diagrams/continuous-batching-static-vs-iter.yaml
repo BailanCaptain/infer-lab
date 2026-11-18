@@ -1,0 +1,11 @@
+mode: native-svg
+id: continuous-batching-static-vs-iter
+caption: 示意：静态批处理（左，整批锁死导致提示词 <pad> 补齐浪费、短请求 EOS 空转陪跑与新请求门外干等）与连续批处理（右，按单步迭代重排、一维无填充拼接与完结当步即退即补）的对比。
+size: [900, 384]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L589-L620'
+    symbols: ['step', 'schedule', 'execute_model', 'update_from_output']
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/utils.py#L94-L136'
+    symbols: ['check_stop', 'eos_token_id', 'max_tokens']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1279-L1334'
+    symbols: ['_prepare_inputs', 'total_num_scheduled_tokens']

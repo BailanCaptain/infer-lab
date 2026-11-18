@@ -581,7 +581,8 @@ file: ep-fig-myths
 | `expert_placement_strategy` | 默认 `linear` | 连续专家编号的放置；本页以此画 16 卡布局 |
 | `enable_prefill_mc2` | 默认 `False` | 是否用 `max_num_batched_tokens` 预算扩大 MC2 容量来源；当前 GLM `128` 的推导链接见上文 |
 | `enable_fused_mc2` | 默认 `0` | 融合实现开关（`v0.30.0` 接受 `0/1/2`，`main` 扩至 `0/1/2/3` 含 A5 共享专家融合）；普通 MC2 由选择器自动选中，开 MC2 不要求把它设为 `1` |
-| `multistream_overlap_shared_expert`、`multistream_overlap_gate` | 默认 `False` | 共享专家或 gate 是否切到另一执行流重叠计算（与 `enable_fused_mc2=1` 同开时会自动置回 `False`） |
+| `multistream_overlap_shared_expert` | 默认 `False` | 共享专家是否切到另一执行流重叠计算（与 `enable_fused_mc2=1` 同开时会打印警告并自动置回 `False`） |
+| `multistream_overlap_gate` | 历史快照默认 `False`（`v0.26.0rc`、`v0.30.0` 与 `main` 已移除） | 旧版 gate 多流重叠开关；不受 `enable_fused_mc2=1` 自动置回影响，新基线已删除该字段 |
 | `enable_eplb`、昇腾 `eplb_config` | 关闭、零冗余 | 专家放置与动态均衡；详见 [EPLB](eplb.md) |
 
 表中默认值限定没有额外环境或 JSON 覆盖。旧快照的 fused MC2 还可读取环境变量；JSON 指定值优先，但环境读取表达式会先求值。配置初始化、读取优先级与校验见来源 19、28、42、63、70。

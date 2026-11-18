@@ -17,7 +17,7 @@
     <rect x="324" y="124" width="56" height="40" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
     <rect x="528" y="124" width="52" height="40" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
     <g><rect x="408" y="106" width="96" height="76" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/><text x="456" y="138" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#7a3a6a">W (1B)</text><text x="456" y="162" font-size="13.5" fill="#7a3a6a">16.0 MiB</text></g>
-    <g><rect x="318" y="308" width="264" height="92" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/><text x="450" y="342" font-family="var(--font-mono)" font-size="15" font-weight="700" fill="#7a3a6a">M=16 → 31.5 OP/B</text><text x="450" y="376" font-size="13.5" font-weight="600" fill="#7a3a6a">强度翻倍右移，Decode 提速</text></g>
+    <g><rect x="318" y="308" width="264" height="92" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/><text x="450" y="342" font-family="var(--font-mono)" font-size="15" font-weight="700" fill="#7a3a6a">M=16 → 31.6 OP/B</text><text x="450" y="376" font-size="13.5" font-weight="600" fill="#7a3a6a">强度翻倍右移，Decode 提速</text></g>
 
     <text x="750" y="74" font-size="15" font-weight="700" fill="#065f56">③ Prefill 大矩阵 (M=512)</text>
     <g><rect x="624" y="106" width="56" height="80" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/><text x="652" y="151" font-size="13.5" font-weight="700" fill="#065f56">4 MiB</text></g>

@@ -19,7 +19,7 @@
   <text x="198" y="207" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">18 MiB / 块（512 KiB × 36 层）</text>
 
   <text x="18" y="252" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">shape: (2, num_blocks, 128, 8, 128)</text>
-  <text x="18" y="278" font-size="13.5" font-weight="700" fill="#3a4f93">10 GiB KV 预算 ≈ 568 块（容纳 72,704 tok）</text>
+  <text x="18" y="278" font-size="13.5" font-weight="700" fill="#3a4f93">10 GiB 预算：567 可借块（72,576 tok）</text>
 
   <!-- 右上：Qwen3-30B-A3B 单块解剖 -->
   <text x="466" y="34" font-size="16" font-weight="700" fill="#936300">Qwen3-30B-A3B · 稀疏 MoE（48 层 · 4 KV 头）</text>
@@ -38,7 +38,7 @@
   <text x="720" y="207" font-size="14" font-weight="700" fill="#087f73">省 6 MiB！</text>
 
   <text x="466" y="252" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">shape: (2, num_blocks, 128, 4, 128)</text>
-  <text x="466" y="278" font-size="13.5" font-weight="700" fill="#065f56">同 10 GiB 预算 ≈ 853 块（容纳 109,184 tok，多 50%）</text>
+  <text x="466" y="278" font-size="13.5" font-weight="700" fill="#065f56">10 GiB 预算：852 可借块（109,056 tok，+50%）</text>
 
   <!-- 下半幅：block_size 粒度权衡与昇腾对齐护栏 -->
   <text x="18" y="340" font-size="16" font-weight="700" fill="#17211f">昇腾 block_size 三档粒度权衡与 refresh_block_size 对齐护栏</text>

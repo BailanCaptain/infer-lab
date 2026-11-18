@@ -47,8 +47,8 @@
 <text x="498" y="260" font-size="16" font-weight="700" fill="#17211f">SP + PP &gt; 1 编译耦合：注入 +rms_norm</text>
 <rect x="466" y="278" width="390" height="66" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
 <text x="478" y="304" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">v0.30.0: enable_sp &amp; PP&gt;1 → "+rms_norm"</text>
-<text x="478" y="329" font-size="13.5" fill="#17211f">防原生 rms_norm 跨段残差形状追踪报错</text>
+<text x="478" y="329" font-size="13.5" fill="#17211f">防跨段残差追踪报错（显式传 "-rms_norm" 则告警）</text>
 <line x1="468" y1="358" x2="468" y2="422" stroke="#b54237" stroke-width="3"/>
-<text x="480" y="376" font-size="13.5" font-weight="700" fill="#b54237">显式传 "-rms_norm" 则告警报错；FlashComm1 限 PP==1</text>
+<text x="480" y="376" font-size="13.5" font-weight="700" fill="#b54237">稠密 SP (enable_dense_sp) 限 PP=1；MoE+EP 支持 PP&gt;1+SP</text>
 <text x="480" y="408" font-size="13.5" fill="#66716d">演进：上游 main 分支已移除 PassConfig.enable_sp</text>
 </svg>

@@ -135,8 +135,8 @@ file: ascend-fa-online-softmax-flow
 |---|---|---|---|---|---|
 | **第 1 块到达**：`s=[1, 2]`，`V=[10, 20]` | $m_1 = \max(1, 2) = 2$ | 首块初始化（无旧账） | $e^{1-2} + e^{2-2} = e^{-1} + 1 \approx 1.3679$ | $10 e^{-1} + 20 \cdot 1 \approx 23.6788$ | 暂以 $m_1=2$ 记账；若序列到此结束，输出为 $23.6788 / 1.3679 \approx 17.3106$ |
 | **第 2 块到达**：`s=[4, 1]`，`V=[30, 40]` | $m_2 = \max(2, 4) = 4$ | $e^{2 - 4} = e^{-2} \approx 0.1353$ | $l_1 e^{-2} + (e^{4-4} + e^{1-4}) = (e^{-3}+e^{-2}) + (1+e^{-3}) \approx 1.2349$ | $\tilde{O}_1 e^{-2} + (30 \cdot 1 + 40 e^{-3}) = (10e^{-3}+20e^{-2}) + (30+40e^{-3}) \approx 35.1961$ | 旧账乘 $e^{-2}$ 精准缩回新标尺 $m_2=4$ 下，不重读第 1 块原始数据 |
-| **流式收尾归一**：单次除 $l_2$ | $m_2 = 4$ | — | $l_2 \approx 1.2349$ | $\tilde{O}_2 \approx 35.1961$ | $O = \tilde{O}_2 / l_2 \approx \mathbf{28.5010}$ |
-| **全量 Softmax 对照**：一次读齐 `[1, 2, 4, 1]` | 全局最大 $m = 4$ | 全行减 $4$ 得 `[-3, -2, 0, -3]` | $e^{-3} + e^{-2} + 1 + e^{-3} \approx 1.2349$ | $10e^{-3} + 20e^{-2} + 30 + 40e^{-3} \approx 35.1961$ | 权重 `[0.0403, 0.1096, 0.8098, 0.0403]`，加权和 $\mathbf{28.5010}$（**代数严格相等**） |
+| **流式收尾归一**：单次除 $l_2$ | $m_2 = 4$ | — | $l_2 \approx 1.2349$ | $\tilde{O}_2 \approx 35.1961$ | $O = \tilde{O}_2 / l_2 \approx \mathbf{28.5009}$ |
+| **全量 Softmax 对照**：一次读齐 `[1, 2, 4, 1]` | 全局最大 $m = 4$ | 全行减 $4$ 得 `[-3, -2, 0, -3]` | $e^{-3} + e^{-2} + 1 + e^{-3} \approx 1.2349$ | $10e^{-3} + 20e^{-2} + 30 + 40e^{-3} \approx 35.1961$ | 权重 `[0.0403, 0.1096, 0.8098, 0.0403]`，加权和 $\mathbf{28.5009}$（**代数严格相等**） |
 
 这里顺便埋下一条贯穿分布式章节的伏笔：**在单张 NPU 上让 $K/V$ 分块沿时间顺序流过片上缓冲，叫 FlashAttention；把同一条超长序列的 $K/V$ 分块拆到多张 NPU 卡上各自算出局部输出与对数分母和（$\text{LSE} = m + \ln l$），最后跨卡按同一公式重标定合并，就是后文将要展开的[上下文并行（PCP / DCP）](context-parallel.md)。** 在 `vllm-ascend` 中，`merge_prefill_chunks` 调用 `torch_npu.npu_attention_update` 把多段 `(out_list, lse_list)` 合成精确全局输出，底层执行的正是同一套代数重标定。
 
@@ -208,7 +208,7 @@ vllm serve Qwen/Qwen3-8B \
 
 | 核验维度 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
 |---|---|---|---|---|
-| 默认密集后端与 `FIA / PA` 分流 | `AscendAttentionBackend`；`PA` 排除 `A5` 且看 `FULL_DECODE_ONLY` + `pa_shape_list`，其余走 `FIA` | 与 `v0.23.0` 一致 | 改由 `HardwareProfile` 判断 `PAGED_ATTENTION` 能力（`A2/A3` 支持，`950DT` 不开启）；新增 `950DT` 混合批与批不变拆两段 `FIA` | 延续 `FIA` 主力与 `PA` 条件分流；新增针对 `950DT` 特定草稿层与 `MiniMax` 投机路径的专用 `fa_v1` / `flash_attention_v3` 分支 |
+| 默认密集后端与 `FIA / PA` 分流 | `AscendAttentionBackend`；`PA` 排除 `A5` 且看 `FULL_DECODE_ONLY` + `pa_shape_list`，其余走 `FIA` | 与 `v0.23.0` 一致 | 改由 `HardwareProfile` 判断 `PAGED_ATTENTION` 能力（`A2/A3` 支持，`950DT` 不开启）；新增 `950DT` 混合批与批不变拆两段 `FIA` | 延续 `FIA` 主力与 `PA` 条件分流；分设仅限 `950DT (A5)` 特定投机草稿层的 `fa_v1` 分支，以及仅限 `A2 / A3`（`FLASH_ATTN_NPU_3`）的 `MiniMax` 投机路径 `flash_attention_v3` 分支 |
 | `FA3` 启用开关 | 须显式传 `FLASH_ATTN` 且开启批不变（`VLLM_BATCH_INVARIANT=1`） | 与 `v0.23.0` 一致 | 与批不变解耦，改为 `not use_pcp` 且 `rl_config.enabled` 与 `enable_training_consistency` 同为 `true`；手工 `backend` 被重置为 `None` | 启用门禁与 `v0.30.0` 一致；`AscendFABackend` 新增 `supports_batch_invariance() -> True` |
 | `FA3` 混合批 Decode 因果开关与图限制 | Decode 段固定传 `causal=False`；因 Host 侧 tiling 须配 `PIECEWISE`（或 eager） | 与 `v0.23.0` 一致 | Decode 段仍固定传 `causal=False`；`FULL_DECODE_ONLY` 抛 `ValueError`，官方指南强制配 `PIECEWISE` | Decode 段改为 `num_decode_tokens > num_decodes` 动态决定因果掩码，并修正混合批 `block_tables` 与 `query_start_loc` 切片偏移 |
 

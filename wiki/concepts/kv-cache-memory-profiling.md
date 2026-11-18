@@ -50,11 +50,11 @@ sources:
   - 'vllm@ced6857a:vllm/config/cache.py#L103-L126'
   - 'vllm@ced6857a:vllm/config/cache.py#L228-L235'
   - 'vllm@ced6857a:vllm/v1/engine/core.py#L254-L320'
-  - 'vllm@ced6857a:vllm/v1/engine/core_client.py#L730-L760'
+  - 'vllm@ced6857a:vllm/v1/engine/core_client.py#L814-L818'
   - 'vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L975-L1015'
   - 'vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L2697-L2774'
   - 'vllm@ced6857a:vllm/v1/worker/gpu_worker.py#L528-L600'
-  - 'vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6464-L6490'
+  - 'vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6522-L6535'
   - 'vllm@ced6857a:docs/configuration/conserving_memory.md#L78-L185'
   - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L475-L587'
   - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L670-L865'
@@ -164,13 +164,13 @@ file: mem-prof-fig-qwen3-waterfall
 | 七级显存账目（单张 `64 GiB` A2 视角） | `Qwen3-8B`（`BF16`，`TP=1` 单卡） | `Qwen3-30B-A3B`（`W8A8_DYNAMIC`，`TP=4 + EP=4, DP=1`） |
 |---|---|---|
 | 1–2. 总显存与实例预算（默认 $u = 0.92$） | 总计 `64.00 GiB`；预算 `58.88 GiB`，预算外 `1 − u` 留 `5.12 GiB` | 总计 `64.00 GiB`；每卡预算 `58.88 GiB`，预算外 `1 − u` 留 `5.12 GiB` |
-| 3. 常驻权重 `weights_memory` | 纯参数 `8.19B × 2 B ≈ 15.26 GiB`（实载含 `FRACTAL_NZ` 对齐） | 本卡 32 专家与切分投影 INT8 + 词表/门控 BF16 + 缩放系数 `≈ 7.40 GiB` |
+| 3. 常驻权重 `weights_memory` | 纯参数 `8.19B × 2 B ≈ 15.26 GiB`（默认 `weight_nz_mode=1` 下 `BF16` 保持 `ND`；设 `2` 才转 `FRACTAL_NZ`） | 本卡 32 专家与切分投影 INT8（默认转 `FRACTAL_NZ`）+ 词表/门控 BF16 + 缩放系数 `≈ 7.40 GiB` |
 | 4. 试跑激活峰值 `torch_peak_increase` | 按单步批上限跑 1 次前向（示意 `2.14 GiB`） | 若批上限超 `mc2_tokens_capacity` 且命中 MC2，先加跑 MC2 再跑主试跑（示意 `2.30 GiB`） |
-| 5. 非 Torch 增量 `non_torch_increase`（含 HCCL） | 共享域去重后仅 `world(200M) + dp(50M)` 两项配置（实占含 CANN 流示意 `0.60 GiB`） | 逻辑 7 组经 `_HCCL_PG_REGISTRY` 去重为 `450 MiB` 上限 + `mc2` 归 CANN 管理（示意 `0.90 GiB`，**已含在试跑差值内**） |
+| 5. 非 Torch 增量 `non_torch_increase`（含 HCCL） | 若跨组名复用则仅 `world(200M) + dp(50M)` 两项配置（实占含 CANN 流示意 `0.60 GiB`） | 逻辑 7 组在跨 `group_name` 复用前提下经 `_HCCL_PG_REGISTRY` 去重为 `450 MiB` 上限 + `mc2` 归 CANN 管理（示意 `0.90 GiB`，**已含在试跑差值内**） |
 | 6. 可用 KV 池与 `128 token` 物理块切分 | 剩余 `40.88 GiB`；每 token 全层 `144 KiB`，每块 **`18.000 MiB`** $\to$ **`2,325` 块**（扣 1 空块剩 `2,324` 可用块） | 单卡剩余 `48.28 GiB`；每卡 1 个 KV 头对应 `24 KiB/tok`，每块 **`3.000 MiB`** $\to$ **`16,479` 块**（扣 1 空块剩 `16,478` 可用块） |
 | 7. 切完 KV 后的 `ACLGraph` 与 `150 MiB` 裕度 | `capture_model()` 图显存从 `5.12 GiB` 预算外支付；建议值另扣 `150 MiB` | 四卡同步录制 decode 图并从各自 `5.12 GiB` 预算外支付；建议值另扣 `150 MiB` |
 
-这里最值得留心的是第 5 级的 **HCCL 通信域去重规则**（详见 [HCCL buffer](hccl-buffer.md)）：在 `v0.30.0` 中，普通通信组默认配 `_DEFAULT_BUFFER_SIZE = 200 MiB`，DP 组按 $\max(\lceil(\text{dp\_size}+1)\times 4 / 1\text{ MiB}\rceil, 50)$ 取保底 `50 MiB`，而 `patch_distributed.py` 的 `_HCCL_PG_REGISTRY` 会按 `(ranks, buffer_size, reuse_domain)` 对共享通信域自动去重——例如 `TP=4, EP=4, DP=1` 时，`tp` 与 `ep` 直接复用 `world [0..3]` 的同一个 `200 MiB` 句柄，`pcp` 与 `pp` 复用 `dcp [0]`，加上 `dp [0]` 的 `50 MiB`，PyTorch 侧配置上限是 `450 MiB` 而非 7 组简单相加的 `1,250 MiB`（`mc2` 组则传 `pg_options=None`，交由 CANN 环境变量 `HCCL_BUFFSIZE` 控制）。更关键的是，无论物理上具象化了多少兆字节，它们都发生在 `init_snapshot` 之后、`after_profile` 之前，**早已包含在 `non_torch_increase` 中**。
+这里最值得留心的是第 5 级的 **HCCL 通信域去重规则**（详见 [HCCL buffer](hccl-buffer.md)）：在 `v0.30.0` 中，普通通信组默认配 `_DEFAULT_BUFFER_SIZE = 200 MiB`，DP 组按 $\max(\lceil(\text{dp\_size}+1)\times 4 / 1\text{ MiB}\rceil, 50)$ 取保底 `50 MiB`，而 `patch_distributed.py` 的 `_HCCL_PG_REGISTRY` 会按 `(backend, ranks, options_key, reuse_domain)` 对共享通信域去重——以 `TP=4, EP=4, DP=1` 下的 **`rank 0`** 为例，假设底层 `Options.hccl_config` 未因各自写入不同的 `"group_name"`（`create_hccl_pg_options` 会填入该键，真机是否据此拆键见 [HCCL buffer](hccl-buffer.md) 待核项）而分离配置键，则 `tp` 与 `ep` 复用 `world [0..3]` 的同一个 `200 MiB` 句柄，`pcp` 与 `pp` 复用 `dcp [0]`，加上 `dp [0]` 的 `50 MiB`，跨 `group_name` 复用下的 PyTorch 侧配置上限为 `450 MiB`（若按 `"group_name"` 拆键则 7 组配置字段合计 `1,250 MiB`；`mc2` 组则传 `pg_options=None`，交由 CANN 环境变量 `HCCL_BUFFSIZE` 控制）。更关键的是，无论底层最终复用了几组、物理上具象化了多少兆字节，它们都发生在 `init_snapshot` 之后、`after_profile` 之前，**早已包含在 `non_torch_increase` 中**。
 
 ### 切成块：各卡取最小，块数不等于并发数
 
@@ -247,7 +247,7 @@ file: kv-cache-memory-profiling-flow
 file: mem-prof-fig-myths
 ```
 
-- **「做显存对账时，拿 `profile_run` 扣完的数再减一遍 HCCL 缓冲才保险。」** 错。`init_snapshot` 拍在建通信组之前，`profile_run` 结束时的 `non_torch_increase` 已经包含了具象化的 HCCL 与 MC2 缓冲（且共享通信域已按 `(ranks, buffer_size, reuse_domain)` 去重）；再减一遍属于双重扣减，只会平白浪费 KV 容量。
+- **「做显存对账时，拿 `profile_run` 扣完的数再减一遍 HCCL 缓冲才保险。」** 错。`init_snapshot` 拍在建通信组之前，`profile_run` 结束时的 `non_torch_increase` 已经包含了具象化的 HCCL 与 MC2 缓冲（共享通信域另经 `_HCCL_PG_REGISTRY` 按 `(backend, ranks, options_key, reuse_domain)` 判键复用，跨 `group_name` 是否拆键见 [HCCL buffer](hccl-buffer.md) 待核项）；再减一遍属于双重扣减，只会平白浪费 KV 容量。
 - **「`0.92`（或教程的 `0.85`）就是专门留给 KV cache 的比例。」** 错。显存比例圈出的是整份实例预算，权重、试跑激活峰值和非 Torch 增量全都先从这份预算里扣，扣剩下的尾款才归 KV cache。
 - **「预算外那 `8%`～`15%` 空着也是浪费，把比例拉到 `0.98` 能多切块。」** 危险。昇腾 `NPUWorker` 在切完 KV 之后才调 `capture_model()` 录图，图显存、快照前占用与运行期延迟创建的缓冲全靠预算外 `1 − u` 余量买单；留太薄会在录图或首条请求时直接 OOM。
 - **「上游 GPU 代码会预先估算图显存并从预算扣除，昇腾也一样。」** 不一样。上游 `GPUWorker` 仅在 CUDA 平台且显式开启环境变量 `VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS` 时才在量测阶段预估图显存；昇腾 `NPUWorker` 没有这一步，图显存一律从预算外支付。
@@ -315,8 +315,8 @@ vllm serve Qwen/Qwen3-8B --gpu-memory-utilization 0.90 --kv-cache-memory-bytes 3
 以 `v0.30.0`（`vllm-ascend@c09d3e20` + `vllm@ced6857a`）为主基线定位七级闭环：
 
 - **第 1–2 级（启动快照、比例校验与 HCCL 建组先后）**：`NPUWorker._init_device`（`vllm_ascend/worker/worker.py#L460-L496`）先建 `init_snapshot` 并校验 `free_memory >= requested_memory`，随后才调用 `_init_worker_distributed_environment()`[C1]；HCCL 组缓冲默认 `200 MiB`（`utils.py#L73-L77`）、DP 保底 `50 MiB`（`utils.py#L1241-L1288`）与共享域 `_HCCL_PG_REGISTRY` 去重见 `patch_distributed.py#L39-L187`[C12]，标准块长 `128` 见 `refresh_block_size`（`utils.py#L1482-L1545`）。
-- **第 3–5 级（权重量测、试跑峰值与非 Torch 差分）**：`NPUModelRunner.load_model`（`model_runner_v1.py#L4372-L4478`）与 `NPUPlatform.get_current_memory_usage`（`platform.py#L209-L212`）记录权重峰值增量[C7]；`MemorySnapshot` 与 `memory_profiling`（`vllm/utils/mem_utils.py#L81-L321`）定义 `(total - free) - memory_reserved` 非 Torch 差分[C14]；`determine_available_memory`（`worker.py#L566-L667`）包住 `profile_run`（`model_runner_v1.py#L3909-L3923` 不建注意力元数据，`gpu_model_runner.py#L6464-L6490` 含上游采样试跑），完成三项扣减、`free_memory` 严格递减断言与多组缩放[C2]。
-- **第 6–7 级（跨卡取最小块数、录图与 `150 MiB` 建议值）**：`EngineCore._initialize_kv_caches`（`vllm/v1/engine/core.py#L254-L320`）与 `get_kv_cache_configs`（`kv_cache_utils.py#L975-L1015, #L2697-L2774`）处理块数覆盖、1 空块预扣与 `min_num_blocks` 收缩，多 DP 客户端在 `core_client.py#L730-L760` 汇总相加；`compile_or_warm_up_model`（`worker.py#L879-L955`）执行 `capture_model()` 并按 `150 MiB` 安全裕度打印建议值[C4]（上游 CUDA 专属图预估门控见 `gpu_worker.py#L528-L600`[C21]）。
+- **第 3–5 级（权重量测、试跑峰值与非 Torch 差分）**：`NPUModelRunner.load_model`（`model_runner_v1.py#L4372-L4478`）与 `NPUPlatform.get_current_memory_usage`（`platform.py#L209-L212`）记录权重峰值增量[C7]；`MemorySnapshot` 与 `memory_profiling`（`vllm/utils/mem_utils.py#L81-L321`）定义 `(total - free) - memory_reserved` 非 Torch 差分[C14]；`determine_available_memory`（`worker.py#L566-L667`）包住 `profile_run`（`model_runner_v1.py#L3909-L3923` 不建注意力元数据，`gpu_model_runner.py#L6522-L6535` 含上游 `_dummy_sampler_run` 采样试跑），完成三项扣减、`free_memory` 严格递减断言与多组缩放[C2]。
+- **第 6–7 级（跨卡取最小块数、录图与 `150 MiB` 建议值）**：`EngineCore._initialize_kv_caches`（`vllm/v1/engine/core.py#L254-L320`）与 `get_kv_cache_configs`（`kv_cache_utils.py#L975-L1015, #L2697-L2774`）处理块数覆盖、1 空块预扣与 `min_num_blocks` 收缩，多 DP 客户端在 `core_client.py#L814-L818` 汇总相加；`compile_or_warm_up_model`（`worker.py#L879-L955`）执行 `capture_model()` 并按 `150 MiB` 安全裕度打印建议值[C4]（上游 CUDA 专属图预估门控见 `gpu_worker.py#L528-L600`[C21]）。
 - **GLM 双机例外与外部容器干扰参考**：第 7 章 GLM 教程 `0.85` 配方见 [S35]，固定镜像 `db701c1f` 的量测、录图、稀疏 MLA（`sfa_v1.py#L1660-L1666`）/ KDA（`kimi_gdn_linear_attn.py#L233-L284`、`kimi_kda.py#L244-L291`）早退及混合分组（`patch_kv_cache_utils.py#L459-L548`）均已归入本页来源索引；同卡容器释放显存触发断言的社区复现记录见 [issue #56830](https://github.com/vllm-project/vllm/issues/56830)[S42]。
 
-证据归属与待核边界：HCCL 缓冲已含在 `non_torch_increase` 中且严禁二次重扣，由 `init_snapshot` 先于 `_init_worker_distributed_environment()` 及试跑触发通信具象化的时序直接推出[D]；`Qwen3-8B`（`15.26 GiB` 权重、`18.000 MiB/块`）与 `Qwen3-30B-A3B`（TP4 下每卡 `3.000 MiB/块`、`450 MiB` 去重配置上限）由模型配置与通信域规则静态推出[D]，两表中的试跑激活峰值、非 Torch 实占数及 `80 / 2 / 10 / 88 GiB` 差分例子均为方便算账核对的教学示意设定，不代表真机实测读数[A]；将七步归纳为“预算内三扣减 + 预算外录图兜底”属架构总结[I]；GLM 双机算例中的 `64 GiB`、`21 GiB`、`3.4 GiB` 沿用双机页教学假设[A]，该固定部署的真机 `Actual usage` 日志、`main` 分支实跑布局转储以及单成员 HCCL 组的硬件实占字节数仍属待核项（详见 [HCCL buffer 待核说明](hccl-buffer.md)）。
+证据归属与待核边界：HCCL 缓冲已含在 `non_torch_increase` 中且严禁二次重扣，由 `init_snapshot` 先于 `_init_worker_distributed_environment()` 及试跑触发通信具象化的时序直接推出[D]；`Qwen3-8B`（`15.26 GiB` 权重、`18.000 MiB/块`）与 `Qwen3-30B-A3B`（TP4 下每卡 `3.000 MiB/块`、跨组名复用假设下 `450 MiB` 配置上限）由模型配置与通信域规则静态推出[D]，两表中的试跑激活峰值、非 Torch 实占数及 `80 / 2 / 10 / 88 GiB` 差分例子均为方便算账核对的教学示意设定，不代表真机实测读数[A]；将七步归纳为“预算内三扣减 + 预算外录图兜底”属架构总结[I]；GLM 双机算例中的 `64 GiB`、`21 GiB`、`3.4 GiB` 沿用双机页教学假设[A]，该固定部署的真机 `Actual usage` 日志、`main` 分支实跑布局转储、单成员 HCCL 组的硬件实占字节数以及 `Options.hccl_config["group_name"]` 在真机 `torch_npu` 下是否分离复用键仍属待核项（详见 [HCCL buffer 待核说明](hccl-buffer.md)）。

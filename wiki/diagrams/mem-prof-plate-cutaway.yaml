@@ -6,7 +6,7 @@ size: [900, 690]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L461-L490
     symbols: [init_snapshot, requested_memory, gpu_memory_utilization, _init_worker_distributed_environment]
-  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L601-L637
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L567-L637
     symbols: [determine_available_memory, memory_profiling, profile_run, non_torch_increase, available_kv_cache_memory_bytes]
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L908-L928
     symbols: [capture_model, redundancy_buffer, npugraph_memory_bytes]

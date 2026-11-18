@@ -36,7 +36,7 @@
     <rect x="12" y="398" width="430" height="114" rx="10" fill="#fff0e9" stroke="#b54237" stroke-width="1.6"/>
     <text x="28" y="424" font-size="15" font-weight="700" fill="#8f3229">✗ 已在 v0.30.0 下线失效（仓内 0 读取）</text>
     <text x="28" y="451" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#b54237">VLLM_ASCEND_ENABLE_NZ / ENABLE_MLAPO</text>
-    <text x="28" y="476" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#b54237">VLLM_ASCEND_ENABLE_FUSED_MC2 / FLASHCOMM1</text>
+    <text x="28" y="476" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#b54237">ENABLE_FUSED_MC2 / MSMONITOR_USE_DAEMON</text>
     <text x="28" y="500" font-size="13.5" font-weight="700" fill="#8f3229">→ 照抄旧帖不报错但零生效！改传 --additional-config</text>
 
     <rect x="458" y="398" width="430" height="114" rx="10" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>

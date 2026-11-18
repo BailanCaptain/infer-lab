@@ -9,6 +9,7 @@ aliases:
   - PagedAttention
   - Paged Attention
   - 分页注意力
+  - 分页布局
   - 分页 KV 缓存
   - 分页缓存
   - KV 分页
@@ -105,7 +106,7 @@ $$N_{\text{blocks}}(L_{\text{seq}}) = \left\lceil \frac{L_{\text{seq}}}{B} \righ
 | --- | --- | --- | --- |
 | **启动预留 0 号块** | `BlockPool.__init__` | 不维护（`is_null = True`） | 从队头永久弹出 `block_id = 0` 作为 `null_block`（供填零占位或滑窗外淘汰位置使用），剩余 `num_gpu_blocks - 1` 块留在空闲队列 |
 | **按需借出新块** | `allocate_slots` → `get_new_blocks` | `0 → 1` | 请求写满上一块越界时，从队头 `popleft_n` 取出所需块数；若原块带有旧前缀哈希，当场注销旧哈希并覆写新计算的 K、V |
-| **命中前缀共享** | `get_computed_blocks` → `touch` | `0 → 1` 或 `k → k + 1` | [前缀缓存](prefix-caching.md)匹配到已写满的哈希块时，若该块原本在空闲队列中（`ref_cnt == 0`）则先摘出，再累加引用计数，HBM 零拷贝 |
+| **命中前缀共享** | `get_computed_blocks` + `allocate_slots` → `touch` | `0 → 1` 或 `k → k + 1` | [前缀缓存](prefix-caching.md)先由 `get_computed_blocks` 匹配到已写满的哈希块，再在 `allocate_slots` 实际分配时调 `touch`（若 `ref_cnt == 0` 先从空闲队列摘出，再累加引用计数），HBM 零拷贝 |
 | **归还未哈希块** | `free` → `free_blocks`（无哈希） | `1 → 0` | 未写满的尾块或关闭前缀缓存时的块归零后，用 `prepend_n` 插回**队头（LIFO）**优先复用，HBM 旧数据原地保留不擦除 |
 | **归还已哈希满块** | `free` → `free_blocks`（带哈希） | `k → k - 1`（至 `0` 入队） | 仍有其他请求共指（`ref_cnt > 0`）时仅减计数；减至 `0` 后用 `append_n` 挂入**队尾（FIFO / LRU）**保留哈希，等后续请求命中或队头耗尽时再淘汰 |
 
@@ -132,7 +133,7 @@ $$\text{Bytes}_{\text{layer-page}} = 2 \times B \times \frac{n_{\text{kv}}}{T} \
 | 单层 1 块 `page_size_bytes`（`128` token） | `128 × 4 KiB = 512 KiB` | `128 × 2 KiB = 256 KiB` | `128 × 512 B = 64 KiB` |
 | **全模型 1 个物理块占用 $\text{Bytes}_{\text{block}}$** | **`18 MiB`**（`512 KiB × 36`） | **`12 MiB`**（`256 KiB × 48`） | **`3 MiB / 卡`**（4 卡合计 `12 MiB`） |
 | 单请求末块内部浪费上限（`127` 个空槽位） | `< 18 MiB`（至多 `17.86 MiB`） | `< 12 MiB`（至多 `11.91 MiB`） | `< 3 MiB / 卡`（至多 `2.98 MiB / 卡`） |
-| 每卡 `10 GiB` 静态预算可切总块数（示意） | `⌊10,240 / 18⌋ = 568` 块（扣 `null_block` 后 `567` 块可借，装 `72,576` tok） | `⌊10,240 / 12⌋ = 853` 块（扣 `null_block` 后 `852` 块可借，装 `109,056` tok） | 每卡 `10 GiB` 可切 `⌊10,240 / 3⌋ = 3,413` 块（4 卡同步支撑约 `43.67 万` tok） |
+| 每卡 `10 GiB` 静态预算可切总块数（示意） | `⌊10,240 / 18⌋ = 568` 块（扣 `null_block` 后 `567` 块可借，装 `72,576` tok） | `⌊10,240 / 12⌋ = 853` 块（扣 `null_block` 后 `852` 块可借，装 `109,056` tok） | 每卡 `10 GiB` 可切 `⌊10,240 / 3⌋ = 3,413` 总块（扣 `null_block` 后 `3,412` 可借块，4 卡同步支撑 `436,736 ≈ 43.67 万` tok） |
 
 两组数字放在一起，立刻就能看清架构参数怎样左右分页容量：`Qwen3-30B-A3B` 虽然总参数高达 `30.53B`（必须切多卡才能装下 `56.87 GiB` BF16 权重）、层数也比 `Qwen3-8B` 多出三分之一（`48` vs `36`），但因为它的总 KV 头数从 `8` 减半到了 `4`，整模 1 个 `128`-token 物理块反而从 **`18 MiB` 降到了 `12 MiB`**；切到 `TP = 4` 后每张卡只存 `1` 个 KV 头，单卡每块仅占 **`3 MiB`**（若继续扩到 `TP = 8 > 4`，KV 头触发跨卡复制，每卡仍保底存 `1` 个 KV 头即 `3 MiB/块`，不会再减半）。
 
@@ -181,7 +182,7 @@ PagedAttention 在 vLLM V1 中常驻生效，无需手动开启。常用控制�
 | --- | --- | --- | --- | --- | --- |
 | 上游 `CacheConfig` 基准默认值 | `DEFAULT_BLOCK_SIZE = 16` | `DEFAULT_BLOCK_SIZE = 16` | `DEFAULT_BLOCK_SIZE = 16`，记录 `user_specified_block_size` | 上游基准提升为 `DEFAULT_BLOCK_SIZE = 64`[C21] | 昇腾未传参时均由平台与后端接管为 `128`，不受上游 `16→64` 变更影响 |
 | 昇腾 `refresh_block_size` 与 `mxfp8` 规则 | 无 `C8_MXFP` `512` 分支；APC/分块预填充强制 `128`、`xlite` 钳制 `<= 128`[C19] | 同 `v0.23.0`（行号移至 `#L1240-L1291`）[C20] | 新增 `A5_C8_MXFP_KV_CACHE_BLOCK_SIZE = 512` 自动抬升与显式传参 `ValueError` 护栏，以及独立草稿模型早退保护 | 延续 `v0.30.0` 全部 `512` / `128` / `deepseek_v4` / `xlite` 护栏[C22] | `v0.30.0+` 开 `mxfp8` 切忌手写 `--block-size 128`，省略该参数即可自动对齐 `512` |
-| `BlockPool` 借还与队列管理 | `null_block` 占 0 号块，`get_new_blocks`、`touch`、`free_blocks` 按有无哈希分头尾入队 | 扩充缓存事件与指标回调钩子 | 新增 `unpin_blocks` 延迟复用观察者与跨池转发释放 | 延续同一双端队列 LIFO/FIFO 语义与跨池释放 | 四版均保持“归还不清零 HBM、带哈希挂队尾保留复用” |
+| `BlockPool` 借还与队列管理 | `null_block` 占 0 号块（已含 `metrics_collector` 回调），`get_new_blocks`、`touch`、`free_blocks` 按有无哈希分头尾入队 | 新增 `emit_cached_block_events`、`cache_partial_block`、`move_block_hashes`，并在 `free_blocks` 内部显式按 `block_hash is None` 拆分头尾入队 | 新增 `unpin_blocks` 延迟复用观察者与跨池转发释放 | 延续同一双端队列 LIFO/FIFO 语义与跨池释放 | 四版均保持“归还不清零 HBM、带哈希挂队尾保留复用” |
 | 昇腾缓存张量形状与内核块长 | `get_supported_kernel_block_sizes` 返回 `[128]` | 同左 | 支持 `VLLM_KV_CACHE_LAYOUT` 切换 `LBHNC`/`HND` 轴序；MiniMax M3 FP8 返回 `[64, 128]`，常规 `[128]`[C15] | 签名接收可选 `kv_cache_spec`，标准路径仍为 `[128]` | 读取底层缓存视图时须认准当前布局轴序 |
 
 ### 源码位置

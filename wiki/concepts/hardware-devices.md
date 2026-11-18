@@ -50,14 +50,14 @@ sources:
   - 'vllm-ascend@c09d3e20:vllm_ascend/device/device_config.py#L23-L77'
   - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L42-L249'
   - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L284-L401'
-  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L90-L99'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L89-L99'
   - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L171-L173'
-  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L236-L249'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L231-L244'
   - 'vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L736-L744'
   - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L145-L170'
   - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L391-L525'
   - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L578-L610'
-  - 'vllm@ced6857a:vllm/distributed/parallel_state.py#L1775-L2070'
+  - 'vllm@ced6857a:vllm/distributed/parallel_state.py#L1772-L2240'
   - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L824-L872'
   - 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L275-L281'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L786-L834'
@@ -122,17 +122,17 @@ file: hardware-devices
 file: hardware-fig-four-families
 ```
 
-把全站标尺模型 **`Qwen3-8B`**（稠密 GQA，`8.2B` 总参数）与 **`Qwen3-30B-A3B`**（稀疏 MoE，`30.5B` 总参数、每词激活 `3.3B` 参数，详见[模型目录与配置拆解](hf-model-anatomy.md)）放到四族硬件上选卡时，静态权重显存下界按**总参数量**（MoE 未选中专家同样常驻显存）与每参数字节数 $b_{\text{elem}}$ 折算为二进制 `GiB`（$1\text{ GiB} = 2^{30}\text{ B}$）：
+把全站标尺模型 **`Qwen3-8B`**（稠密 GQA，`8.19B` 总参数）与 **`Qwen3-30B-A3B`**（稀疏 MoE，`30.53B` 总参数、每词激活 `3.35B` 参数，详见[模型目录与配置拆解](hf-model-anatomy.md)）放到四族硬件上选卡时，静态权重显存下界按**总参数量**（MoE 未选中专家同样常驻显存）与每参数字节数 $b_{\text{elem}}$ 折算为二进制 `GiB`（$1\text{ GiB} = 2^{30}\text{ B}$）：
 
-$$W_{\text{GiB}} = \frac{N_{\text{params}} \times b_{\text{elem}}}{2^{30}}, \qquad W_{\text{Qwen3-8B, BF16}} \approx 15.27\text{ GiB}, \qquad W_{\text{Qwen3-30B-A3B, BF16}} \approx 56.81\text{ GiB}$$
+$$W_{\text{GiB}} = \frac{N_{\text{params}} \times b_{\text{elem}}}{2^{30}}, \qquad W_{\text{Qwen3-8B, BF16}} \approx 15.26\text{ GiB}, \qquad W_{\text{Qwen3-30B-A3B, BF16}} \approx 56.87\text{ GiB}$$
 
 结合 `v0.30.0` 官方支持矩阵与快速开始食谱，两个模型在四族硬件上的精度约束与推荐部署形态对照如下：
 
-| 硬件家族（`AscendDeviceType`） | 代表产品型号 | `Qwen3-8B`（`8.2B` 稠密）部署形态 | `Qwen3-30B-A3B`（`30.5B` MoE）部署形态 | 关键硬件与软件契约边界 |
+| 硬件家族（`AscendDeviceType`） | 代表产品型号 | `Qwen3-8B`（`8.19B` 稠密）部署形态 | `Qwen3-30B-A3B`（`30.53B` MoE）部署形态 | 关键硬件与软件契约边界 |
 | --- | --- | --- | --- | --- |
-| **Atlas A2**（`A2`） | `Atlas 800T/I A2`、`900 A2 PoD`、`300T A2`（典型 `64 GB/卡`） | 单卡 `TP1` 直接跑 `BF16`（权重约 `15.27 GiB`）或 `W8A8` | `BF16` 权重达 `56.81 GiB`，单卡扣预算后装不下足够 KV，推荐 `2~4` 卡（如 `TP2` 每卡约 `28.41 GiB`）或 `W8A8` | 标准 `NPUWorker`；原生分块 `FP8` 权重加载时回退反量化为 `BF16` |
+| **Atlas A2**（`A2`） | `Atlas 800T/I A2`、`900 A2 PoD`、`300T A2`（典型 `64 GB/卡`） | 单卡 `TP1` 直接跑 `BF16`（权重约 `15.26 GiB`）或 `W8A8` | `BF16` 权重达 `56.87 GiB`，单卡扣预算后装不下足够 KV，推荐 `2~4` 卡（如 `TP2` 每卡约 `28.44 GiB`）或 `W8A8` | 标准 `NPUWorker`；原生分块 `FP8` 权重加载时回退反量化为 `BF16` |
 | **Atlas A3**（`A3`） | `Atlas 800T/I A3`、`900/9000 A3 SuperPoD`（每逻辑核 `64 GB`） | 单逻辑设备即可放下，但容器挂载须成对挂 `davinci0,1` | 官方推荐 `1~2` 张物理卡（1 张双裸片物理卡即提供 `2` 个 `64 GB` 逻辑设备跑 `TP2`） | `DUAL_CHIP_CARD` 按 `card_id = npu // 2`、`chip_id = npu % 2` 寻址；支持 `CANN_MEGAMOE` |
-| **Atlas 300I DUO**（`_310P`） | `Atlas 300I DUO`、`Atlas 200I Pro` | **不支持 `BF16`**；单芯 `TP1` 跑专用 `Qwen3-8B-W8A8SC`（或小模型显式传 `--dtype float16`） | **不支持 `BF16`**；采用 `Qwen3-30B-A3B-w8a8-QuaRot-310` 量化权重跑 `TP2`（上限 `16k` 上下文） | 走 `NPUWorker310` 与 `FORCE_NZ`；无 `NPUGRAPH_EX`（自动禁用 `npugraph_ex`、`static/super_kernel`），禁装 `triton` |
+| **Atlas 300I DUO**（`_310P`） | `Atlas 300I DUO`、`Atlas 200I Pro` | **不支持 `BF16`**；单芯 `TP1` 跑专用 `Qwen3-8B-W8A8SC`（或小模型 `FP16`）并显式传 `--dtype float16` | **不支持 `BF16`**；采用 `Qwen3-30B-A3B-w8a8-QuaRot-310` 量化权重跑 `TP2` 并显式传 `--dtype float16`（上限 `16k` 上下文） | 走 `NPUWorker310` 与 `FORCE_NZ`；无 `NPUGRAPH_EX`（自动禁用 `npugraph_ex`、`static/super_kernel`），禁装 `triton` |
 | **昇腾 950PR / 950DT**（`A5`） | `950DT`、`950PR`（`96 / 112 / 128 / 144 GB` 档位） | 单设备轻松跑 `BF16` 或原生 `FP8 / MXFP8` | `96 GB / 144 GB` 大显存档可单卡容纳，或启用硬件原生 `MXFP8` 压缩至约一半字节 | `FP8_OPTIMIZED` 适配族；支持 L0C→UB **CV 融合**、原生 `FP8/MXFP8/MXFP4` 与 **Unified Bus** 高速互联（见[昇腾 950 架构](ascend-950-architecture.md)） |
 
 ## 主机内存和设备显存分别记什么账？
@@ -198,7 +198,7 @@ file: hardware-fig-myths
 
 启动前按目标卡型选择对应镜像并配置设备可见性与网络接口（单机挂载细节见[容器与起服务清单](ascend-env-and-serve.md)，双机网络示例见[双机部署怎么开](glm-5-3-flash-two-node.md#怎么开)）：
 
-- **设备选择与拓扑约束**：`ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7` 限定当前进程可见设备并将其按顺序重映射为本地 `0..N-1`；Atlas A3 容器至少成对挂载 `/dev/davinci0` 与 `/dev/davinci1`；Atlas 300I DUO（`310P`）须显式传入 `--dtype float16`（或加载 `310P` 专用量化权重）并配合 `FULL_DECODE_ONLY`、关闭 `enable_npugraph_ex`。跨机通信按现场网卡填写 `HCCL_IF_IP` 与 `HCCL_SOCKET_IFNAME`。
+- **设备选择与拓扑约束**：`ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7` 限定当前进程可见设备并将其按顺序重映射为本地 `0..N-1`；Atlas A3 容器至少成对挂载 `/dev/davinci0` 与 `/dev/davinci1`；Atlas 300I DUO（`310P`）即使加载 `310P` 专用量化权重（如 `W8A8SC` / `QuaRot-310`）也须显式传 `--dtype float16`，并配合 `FULL_DECODE_ONLY`、关闭 `enable_npugraph_ex`。跨机通信按现场网卡填写 `HCCL_IF_IP` 与 `HCCL_SOCKET_IFNAME`。
 - **运行时与框架初始化链**：CANN 层通过 `aclrtGetDeviceCount()` 枚举可见设备数，选定 `Device` 后用 `aclrtGetMemInfo` 查询已扣除系统预留的设备内存。在 `vllm-ascend` 中，`NPUPlatform` 声明 `device_type = "npu"`、可见变量与 `get_device_name()`（平台契约详见 [NPUPlatform](npu-platform.md)）；随后 `NPUWorker.init_device()` 调用 `_init_device()` 完成 DP 本地偏移、`torch.npu.set_device()` 绑定、空闲显存快照校验与 HCCL 分布式建组，再创建 `ModelRunner`（完整冷启动时序见 [Worker 生命周期](npu-worker-lifecycle.md)）：
 
 ```wiki-diagram
@@ -235,7 +235,7 @@ file: hardware-device-startup
 - **HCCS 与 RoCE 官方峰值出处**：华为《Atlas 800T A2 训练服务器 技术白皮书》第 16 版（2026-05-12）§5.1 表 5-1/5-2（印刷页 36–37、PDF 第 45–46 页：每处理器 `64 GB`、7 条 HCCS 最大理论带宽 `392 GB/s`、200GE RoCE）[S5]；Atlas 800T A2 产品页网络规格（整机 8 个 200GE QSFP 口）[S6]；`Qwen3` 静态权重 `GiB` 与 `25 GB/s` 端口字节速率由参数量及十进制位宽公式推导 [D]。
 - `v0.30.0` 四大家族支持列表 [S8]、Atlas A3 双裸片成对挂载 `/dev/davinci0,1` 要求 [S9]、`310P` 必传 `--dtype float16` 与禁 `enable_npugraph_ex` 快速开始 [S10] 及 `Qwen3-Dense / Qwen3-30B-A3B` 支持矩阵 [S11]。
 - `v0.30.0` 核心源码：`NPUPlatform` 声明与 `get_device_name` [C17][C18]；`DUAL_CHIP_CARD` 按 `npu // 2` 寻址 [C20]；无 `NPUGRAPH_EX` 自动降级 `enable_npugraph_ex / static / super_kernel` [C21]；Worker 选卡、显存快照与 `kv_cache_memory_bytes` 下仍跑 `profile_run()` [C22][C23]；上游分布式与 TP/DP 建组 [C24]。
-- 例外 B 历史双机归档对照：钉住双机教程 [S7] 与 SP 共享专家 DP 条件 [C32]（`v0.23.0` / `v0.26.0rc` / `main` 总显存接口另见 `sources` 第 26、28、30 项，原始摘录留存 `rawSources`）。
+- 例外 B 历史双机归档对照：钉住双机教程 [S7]、历史镜像 Worker 选卡与量测及上游 TP/DP/EP 建组（`sources` 第 31、33 项）与 SP 共享专家 DP 条件 [C32]（`v0.23.0` / `v0.26.0rc` / `main` 总显存接口另见 `sources` 第 26、28、30 项，原始摘录留存 `rawSources`）。
 
 **待核**
 

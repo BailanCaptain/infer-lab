@@ -38,7 +38,7 @@ sources:
   - 'vllm@ced6857a:vllm/config/vllm.py#L446-L452'
   - 'vllm@ced6857a:vllm/config/vllm.py#L2325-L2344'
   - 'vllm@ced6857a:vllm/engine/arg_utils.py#L2936-L2952'
-  - 'vllm@ced6857a:vllm/model_executor/models/qwen3.py#L99-L135'
+  - 'vllm@ced6857a:vllm/model_executor/models/qwen3.py#L65-L135'
   - 'vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L167-L213'
   - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L60-L95'
   - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L232-L244'
@@ -144,7 +144,7 @@ file: roofline-ceiling-and-shift
 
 真实模型的一步前向不仅有线性层矩阵乘，还包含逐位置读取历史上下文的注意力计算、跨卡通信以及稀疏专家分发（详细硬件映射见 [硬件体系](hardware-devices.md) 与 [性能分析](inference-performance-analysis.md)）。把单算子结论外推到整座 `Qwen3-8B`（稠密 GQA）与 `Qwen3-30B-A3B`（稀疏 MoE）时，必须额外算清两道边界：
 
-- **边界一：拼批能摊薄线性层权重，却摊薄不了非共享的长上下文 KV cache**。`Qwen3-8B` 全模型 BF16 权重占 `15.26 GiB`，每个 token 的全层 BF16 KV cache 占 `144.0 KiB`（推导见 [HF 模型目录解剖](hf-model-anatomy.md#逐个读懂-configjson用-qwen3-8b-与-qwen3-30b-a3b-算清架构与显存)）。短上下文并发 $B = 16$ 时，线性层 16 条请求共享同一份 `15.26 GiB` 权重；但若这 16 条请求各自带着互不重合的 `32,768` 词长历史，单步 Decode 光读取各自的 KV cache 就要搬运 $16 \times 32,768 \times 144\text{ KiB} = \mathbf{72.0\text{ GiB}}$，接近模型权重的 **5 倍**！更致命的是，每份独立 KV 历史只服务它所属的那 1 条请求：在 `Qwen3-8B` 的 `4:1` GQA（`32` 个 Q 头共享 `8` 个 KV 头）下，每读入一对 BF16 K/V 元素仅供 4 个查询头各做一次乘加，注意力读缓存的算术强度恒定锁死在 $I_{\text{attn}} \approx \frac{2 \times 4}{2} = \mathbf{4\text{ FLOP/B}}$ 左右，根本不随并发数 $B$ 增长。长文 Decode 想破带宽墙，只能靠 KV cache `C8` 量化、前缀缓存复用或 MLA 潜向量压缩。
+- **边界一：拼批能摊薄线性层权重，却摊薄不了非共享的长上下文 KV cache**。`Qwen3-8B` 全模型 BF16 权重占 `15.26 GiB`，每个 token 的全层 BF16 KV cache 占 `144.0 KiB`（推导见 [HF 模型目录解剖](hf-model-anatomy.md#逐个读懂-configjson用-qwen3-8b-与-qwen3-30b-a3b-算清架构与显存)）。短上下文并发 $B = 16$ 时，线性层 16 条请求共享同一份 `15.26 GiB` 权重；但若这 16 条请求各自带着互不重合的 `32,768` 词长历史，单步 Decode 光读取各自的 KV cache 就要搬运 $16 \times 32,768 \times 144\text{ KiB} = \mathbf{72.0\text{ GiB}}$，接近模型权重的 **5 倍**！更致命的是，每份独立 KV 历史只服务它所属的那 1 条请求：在 `Qwen3-8B` 的 `4:1` GQA（`32` 个 Q 头共享 `8` 个 KV 头）下，每读入一对 BF16 K/V 元素（共 `2 + 2 = 4 B`）仅供 4 个查询头对 K、V 各做一次乘加，注意力读缓存的算术强度恒定锁死在 $I_{\text{attn}} \approx \frac{4 \times (2 + 2)\text{ FLOP}}{(2 + 2)\text{ B}} = \mathbf{4\text{ FLOP/B}}$ 左右，根本不随并发数 $B$ 增长。长文 Decode 想破带宽墙，只能靠 KV cache `C8` 量化、前缀缓存复用或 MLA 潜向量压缩。
 - **边界二：稀疏 MoE 的单步有效行数被专家路由稀释**。`Qwen3-30B-A3B` 拥有 `30.53B` 总参数（BF16 常驻显存 `56.87 GiB`），单 token 仅激活 `128` 个路由专家中的 `8` 个（激活参数 `3.35B`）。当单请求 $B = 1$ 时只读取被选中的 8 个专家；可一旦并发升到 $B = 32$，`32 × 8 = 256` 次专家抽样几乎会把 128 个专家全部点亮一遍（整批被迫搬运近 `56.87 GiB` 权重），而摊到每个专家头上的有效行数平均只有 $M_{\text{eff}} = \frac{32 \times 8}{128} = \mathbf{2}$ 行（局部算术强度仅约 `2 FLOP/B`）！这也是为什么大型 MoE 模型线上常采用 [PD 分离](pd-disaggregation.md)，在 Decode 侧用大 `DP + EP` 汇聚数百路并发请求，才能把单专家的有效行数重新推回高强度区间。
 
 结合权重静态显存、运行时预留（完整 7 级扣减见 [KV 显存划定](kv-cache-memory-profiling.md)）与上述算术强度规律，可在下方初筛台切换预设模型与昇腾拓扑对照容量与瓶颈落点：

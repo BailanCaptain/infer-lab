@@ -220,7 +220,7 @@ file: pp-fig-memory-and-budget
 对照上图的三栏结构与两项工程耦合：
 
 - **非末段（`0 .. PP−2`）用 `PPMissingLayer` 消除 `[T_sample, vocab_size]` 尖峰**：当 `PP = 1` 时，同一组卡既要装全量隐藏层权重与 100% 层的 KV cache，还要在出口执行 `norm`、`ParallelLMHead` 词表投影、词表维 All-Gather 与采样器，瞬间撑起 `[采样行数, 词表大小]` 的大张量峰值。切分 `PP > 1` 后，各段仅建本段 `[start_layer, end_layer)` 约 $1/\text{PP}$ 的隐藏层与对应 KV cache；更重要的是，所有非末段（`not is_last_rank`）直接把 `norm` 与 `lm_head` 替换成零开销的 `PPMissingLayer`，无论在开机显存探测 `profile_run`（直接跳过 `_dummy_sampler_run`）还是正常前向里都不算 `logits`、不跑采样器。与此同时，末段（`PP−1`）虽然保留了 `norm` 与 `ParallelLMHead`，但 `get_pp_indices` 默认不给末段分摊余数层，用来对冲出口模块与潜在本地草稿模型的显存开销。单卡常驻与峰值双双下降后，就能安全调高 `--max-num-batched-tokens`，并在 `v0.30.0` 下直接交棒[动态分块 CPP](dynamic-chunked-pp.md)（`profiling_chunk_config` 以 `max_num_batched_tokens` 作为二次耗时曲线首块基准，官方调优建议设为固定分块的 `2~4` 倍；注：`main` 分支已移除 CPP）。
-- **`v0.30.0` 的 `SP + PP > 1` 自动注入 `+rms_norm`**：在 `v0.30.0` 中，若同时开启上游编译期序列并行 `compilation_config.pass_config.enable_sp` 与 `PP > 1`，原生 `rms_norm` 图追踪会因跨段残差形状不匹配报错，因此 `VllmConfig` 会静默向 `compilation_config.custom_ops` 追加 `"+rms_norm"`（若用户显式传了 `"-rms_norm"` 则打印告警提示极可能报错；上游 `main` 已移除 `PassConfig.enable_sp`）。而昇腾侧的 `FlashComm1` 序列并行本身要求 `PP == 1`，在 `PP > 1` 时会打印告警并自动关闭。
+- **`v0.30.0` 的 `SP + PP > 1` 自动注入 `+rms_norm` 与昇腾 SP 分支差异**：在 `v0.30.0` 中，若同时开启上游编译期序列并行 `compilation_config.pass_config.enable_sp` 与 `PP > 1`，原生 `rms_norm` 图追踪会因跨段残差形状不匹配报错，因此 `VllmConfig` 会静默向 `compilation_config.custom_ops` 追加 `"+rms_norm"`（若用户显式传了 `"-rms_norm"` 则打印告警提示极可能报错；上游 `main` 已移除 `PassConfig.enable_sp`）。昇腾侧开启 `FlashComm1` 时须区分两条 SP 路径：MoE 序列并行（`use_sequence_parallel_moe`，即 MoE + EP + `TP > 1`）支持 `PP > 1` + SP（段间交接见下文自动跳过 `all_gather_group`）；只有稠密 SP（`enable_dense_sp`）限制 `PP = 1`，在 `PP > 1` 时会打印告警并自动关闭。
 - **跨机 RoCE `PP × DP` 禁区与 P/D `PP_D == 1` 约束**：在跨节点 RoCE 网络跑 MoE 模型时，由于 `MoeDistributeDispatch` 通信路径暂不支持该组合拓扑，**`PP > 1` 与 `DP > 1` 不能同时开启**——且 Python 启动阶段**没有断言拦截**，误配后会在运行期报错或通信挂死，必须保持 `PP = 1` 或 `DP = 1`。而在 [PD 分离](pd-disaggregation.md)采用 `MooncakeConnectorV1` 时，P 侧可开 `PP > 1`，但 **D 侧必须保持 `PP_D == 1`**（`decode.pp_size = 1`）。
 
 ## 推理和训练用 PP 有什么不同？
@@ -355,7 +355,7 @@ vllm serve /path/to/model \
 ### 开销和什么时候别开
 
 - **单机装得下且以低并发时延为首要目标时优先机内 TP**：单请求等时示意利用率仅 $1 / \text{PP}$ [D]，微批不足段数时流水线填不满；只有模型必须跨机、用 PP 把高频 TP 归约限制在机内时，才可能靠通信局部性抵消交接和气泡开销。
-- **非末段省掉 `lm_head` 尖峰，但末段仍是显存瓶颈**：阶段 `0 .. PP−2` 用 `PPMissingLayer` 省掉 `[T_sample, vocab_size]` 词表与采样峰值 [C12][C13]，从而允许调高 `--max-num-batched-tokens`；一旦单 rank OOM，优先检查是否落在承担 `norm` + `lm_head` + 草稿模型的末段，并用 `VLLM_PP_LAYER_PARTITION` 把 1–2 层往前段挪。
+- **非末段省掉 `lm_head` 尖峰，但末段仍是显存瓶颈**：阶段 `0 .. PP−2` 用 `PPMissingLayer` [C10] 省掉 `[T_sample, vocab_size]` 词表与采样峰值 [C12][C13]，从而允许调高 `--max-num-batched-tokens`；一旦单 rank OOM，优先检查是否落在承担 `norm` + `lm_head` + 草稿模型的末段，并用 `VLLM_PP_LAYER_PARTITION` 把 1–2 层往前段挪。
 - **段间流量按实际非空张量核计**：$T \times H \times \text{字节数}$ 仅对应单隐藏向量示意，GLM 的 `32 KiB/token` 也依赖 4 路 BF16 且未按序列并行再切分的前提 [D]。
 
 ### 版本差异
@@ -363,7 +363,7 @@ vllm serve /path/to/model \
 在 **`v0.30.0`（主基线 `c09d3e20` + `ced6857a`）** 与 **`main`（`8d6180e2` + `ba15685a`）** 中，PP 执行链与高阶特性的组合边界要重点区分以下几处：
 
 - **非末段返回路径区分 Runner 版本**：`NPUWorker.execute_model` 在非末段调 `isend_tensor_dict` 发出中间张量后，V2 model runner（`use_v2_model_runner`）直接返回 `None`；V1 model runner 则继续检查并透传 `kv_connector_output`（用于 PP + KV 传输场景），不能笼统简化为“发送后立即返回” [C17]。
-- **序列并行（SP）与 PP 的两处版本演进**：第一，上游 `v0.30.0` 在开启 `PassConfig.enable_sp` 且 `PP > 1` 时静默向 `custom_ops` 追加 `"+rms_norm"` [C15]，而上游 `main (ba15685a)` 已移除 `PassConfig.enable_sp`（昇腾 `FlashComm1` 本身在两版都要求 `PP == 1`，超界告警并自动关闭）；第二，段间收发关闭 `tp_group` All-Gather 的条件在 `v0.30.0` 为 `enable_sp()`，到 `main (8d6180e2)` 收窄为 `self.use_v2_model_runner and enable_sp(self.vllm_config)`。
+- **序列并行（SP）与 PP 的两处版本演进**：第一，上游 `v0.30.0` 在开启 `PassConfig.enable_sp` 且 `PP > 1` 时静默向 `custom_ops` 追加 `"+rms_norm"` [C15]，而上游 `main (ba15685a)` 已移除 `PassConfig.enable_sp`；昇腾 `FlashComm1` 在两版中对 `use_sequence_parallel_moe`（MoE + EP + `TP > 1`）均支持 `PP > 1` + SP，仅稠密 SP（`enable_dense_sp`）要求 `pp_size == 1`（超界告警并自动关闭）；第二，段间收发关闭 `tp_group` All-Gather 的条件在 `v0.30.0` 为 `enable_sp()`，到 `main (8d6180e2)` 收窄为 `self.use_v2_model_runner and enable_sp(self.vllm_config)`。
 - **动态分块 CPP 的生命周期**：`v0.23.0` 挂在 `ascend_config.profiling_chunk_config`，`v0.26.0rc` 与 `v0.30.0` 迁至 `ascend_config.scheduler_config.profiling_chunk_config`（且 `v0.30.0` 支持在 `VLLM_USE_V2_MODEL_RUNNER=1` 下叠开 `async_scheduling`）；到了 `main (8d6180e2)`，`profiling_chunk_config` 与 CPP 调度器已被整体移除。
 - **投机解码、KVPP、稀疏卸载与跨机 RoCE MoE 组合边界**：官方 PP 指南（含 `921ccc52` 与 `c09d3e20` / `8d6180e2`）明确，V2 runner 可将 PP 与 MTP 组合（草稿模型放在最后阶段，不计入目标隐藏层分段数）；`EAGLE3 + PP` 仅限 MiniMax-M3 sparse，`DFlash + PP` 不支持，`DSpark + PP` 须核对模型与特征抽取限制；`PP + KVPP` 虽可配 eager 或 `PIECEWISE`，但指南记录端到端测试仍有间歇性输出不一致在排查；稀疏 KV 卸载在 `sparse_kv_offload_config` 分支仍拒绝 `PP > 1`，经 layerwise connector 支持 PP 时还须区分 P/D 角色（D 侧限制见[稀疏卸载版本差异](kv-cache-sparse-offload.md#版本差异)）；跨节点 RoCE 的 MoE 路径在 `v0.30.0` 与 `main` 均暂不支持 `PP > 1` 与 `DP > 1` 同开 [S3][S36]。
 
@@ -374,7 +374,7 @@ vllm serve /path/to/model \
 | **段间异步收发与 TP 切片拼接** | 等上次发送 → 非首段异步收 → 非末段异步发；整除 TP 时切片后 All-Gather，开 SP 关拼接 | 与 `v0.23.0` 相同（`worker.py#L662-L702`） | 新增 `AsyncIntermediateTensors`；非末段区分 MRV2（返 `None`）与 MRV1（透传 `kv_connector_output`）；`enable_sp()` 关拼接 | 延续 MRV2/MRV1 分流；关拼接条件收窄为 `use_v2_model_runner and enable_sp(vllm_config)` |
 | **非末段 `PPMissingLayer` 削峰** | `make_layers` 非本段层与非末段 `lm_head` 置 `PPMissingLayer` | 同左 | 延续 `PPMissingLayer` 并在 `profile_run` 非末段跳过 `_dummy_sampler_run`，释放更大批预算 | 延续相同非末段削峰机制（`utils.py#L949-L1008`） |
 | **上游 `max_concurrent_batches`** | `pp_size`（异步调度 + V2 runner 时 `pp_size + 1`） | 相同（`vllm.py#L512-L522`） | 相同（`vllm.py#L588-L604`） | 相同（`vllm.py#L615-L632`） |
-| **上游 `SP + PP > 1` 注入 `+rms_norm`** | 旧版编译 pass 形态 | 过渡演进 | `PassConfig.enable_sp` 且 `PP > 1` 静默追加 `"+rms_norm"`（传 `"-rms_norm"` 则告警）；`FlashComm1` 要求 `PP == 1` | **上游移除 `PassConfig.enable_sp`**（`compilation.py#L204-L237`）；`FlashComm1` 仍要求 `PP == 1` |
+| **上游 `SP + PP > 1` 注入 `+rms_norm` 与昇腾 SP** | 旧版编译 pass 形态；MoE+EP 支持 `PP>1`+SP | 过渡演进 | `PassConfig.enable_sp` 且 `PP > 1` 静默追加 `"+rms_norm"`（传 `"-rms_norm"` 则告警）；稠密 SP（`enable_dense_sp`）限 `PP=1`；MoE+EP 支持 `PP>1`+SP | **上游移除 `PassConfig.enable_sp`**（`compilation.py#L204-L237`）；稠密 SP（`enable_dense_sp`）限 `PP=1`；MoE+EP 支持 `PP>1`+SP |
 | **动态切块 CPP（`profiling_chunk_config`）** | 挂在 `ascend_config` 下，要求 `PP > 1` | 迁入 `ascend_config.scheduler_config`，要求 `PP > 1` | 要求 `PP > 1`；新增 `async_scheduling` 须配 V2 runner 校验 | **已移除 `profiling_chunk_config` 与 CPP**（`platform.py#L1585-L1603`） |
 | **Xlite / 稀疏卸载 / RoCE MoE / Mooncake** | Xlite 与 PP 互斥；尚无稀疏 KV offload | Xlite 互斥；新增 `sparse_kv_offload_config` 拒 `PP > 1` | Xlite 互斥（文案统一）；`sparse_kv_offload_config` 拒 `PP > 1`（layerwise 另计）；`MooncakeConnectorV1` 限 `PP_D == 1`；跨机 RoCE MoE 禁 `PP>1 × DP>1` | 同 `v0.30.0` 互斥与跨机 RoCE MoE / `PP_D == 1` 边界 |
 | **历史绑定 GLM 分段算例（例外 B）** | 维护分支无 `glm5_next.py`；本页 45 层 `[23, 22]` 与 mHC 4 路交接固定取自 `db701c1f + 0fc695fc` | 同左 | 社区仓迁入 `models/glm5next/`；绑定算例继续锁定 `db701c1f` 单标尺 | 延续 `models/glm5next/`；绑定算例锁定 `db701c1f` |
@@ -386,15 +386,15 @@ vllm serve /path/to/model \
 | PP 参数、设备账 `DP×PP×TP×PCP` 与 Elastic EP 互斥 | `vllm@ced6857a:vllm/config/parallel.py#L120-L132, #L888-L895`（`main`: `ba15685a:#L1070-L1074`） |
 | 模型 `SupportsPP` 启动检查 | `vllm@ced6857a:vllm/config/model.py#L1435-L1444`（`v0.23.0`: `0fc695fc:#L1188-L1207`） |
 | `get_pp_indices` 分段公式与 `VLLM_PP_LAYER_PARTITION` | `vllm@ced6857a:vllm/distributed/utils.py#L127-L173`（`main`: `ba15685a:#L211-L256`） |
-| `PPMissingLayer`、`make_layers` 与非末段跳过 `lm_head`/采样 | `vllm@ced6857a:vllm/model_executor/models/utils.py#L826-L888` [C10]；`llama.py#L377-L401, #L502-L518`；`gpu_model_runner.py#L6524-L6535`；`vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4305-L4345` |
+| `PPMissingLayer`、`make_layers` 与非末段跳过 `lm_head`/采样 | `vllm@ced6857a:vllm/model_executor/models/utils.py#L826-L888`；`llama.py#L377-L401, #L502-L518`；`gpu_model_runner.py#L6524-L6535`；`vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4305-L4345` |
 | 批队列深度 `max_concurrent_batches` 与 `SP+PP` `+rms_norm` | `vllm@ced6857a:vllm/config/vllm.py#L588-L604, #L1877-L1899`（`v0.26.0`: `568afb3a:#L512-L522`；`main`: `ba15685a:vllm.py#L615-L632`、`compilation.py#L204-L237`） |
 | 张量字典元数据与 TP 切片点对点收发 | `vllm@ced6857a:vllm/distributed/parallel_state.py#L1067-L1205`（`v0.23.0`: `0fc695fc:#L912-L1013`） |
 | Ascend `NPUWorker` 段间收发与 MRV2/MRV1 返回路径 | `vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L775-L843`（`v0.23.0`: `2c59ff10:#L620-L662`；`v0.26.0rc`: `2ed6cbba:#L662-L702`；`main`: `8d6180e2:#L903-L962`） |
-| CPP、FlashComm1、Xlite、稀疏卸载与 Mooncake `PP_D==1` | `vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L724-L780, #L1466-L1470, #L1740-L1744`；`platform.py#L1075-L1085`（`main`: `8d6180e2:platform.py#L1585-L1603`）；`mooncake_connector.py#L2238-L2243` |
-| GLM-5.3-Flash 45 层分段、mHC 四路交接与 `SupportsPP` | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2132-L2169, #L2212-L2241, #L2262-L2319, #L2437-L2462` [C41]；`worker.py#L607-L650` |
+| CPP、FlashComm1/SP、Xlite、稀疏卸载与 Mooncake `PP_D==1` | `vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L724-L780, #L1466-L1470, #L1740-L1744`、`utils.py#L1058`；`platform.py#L1075-L1085`（`main`: `8d6180e2:platform.py#L1585-L1603`）；`mooncake_connector.py#L2238-L2243` |
+| GLM-5.3-Flash 45 层分段、mHC 四路交接与 `SupportsPP` | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2132-L2169, #L2212-L2241, #L2262-L2319, #L2437-L2462`；`worker.py#L607-L650` |
 
 **来源与结论对应：**
 - 跨节点 `mp` / `ray` 命令、首尾段调平、P/D 拓扑交接、投机解码/KVPP/layerwise 组合边界以及跨机 RoCE MoE 禁同开 `PP > 1` 与 `DP > 1` 见官方 PP 与 Ray 指南（来源 1–4、36）；由于 `platform.py` 与 `ascend_config.py` 未实现跨机 RoCE `PP×DP` 启动断言，误配后落入运行期故障属静态代码缺省推断 [I]。
-- 8 层 4 卡教学矩阵 `[1, 0] → [9, 8]`、等时气泡网格（$25\%$ vs $81\%$）与慢段周期（$62.5\%$）为教学示意设定与算术推导 [A][D]；GLM 45 层 `[23, 22]` 切分与 mHC 四路 BF16 每 token `32 KiB`（4 行 `128 KiB`）按 `db701c1f` 模型形状静态推出 [D]。
+- 8 层 4 卡教学矩阵 `[1, 0] → [9, 8]`、等时气泡网格（$25\%$ vs $81\%$）与慢段周期（$62.5\%$）为教学示意设定与算术推导 [A][D]；GLM 45 层 `[23, 22]` 切分与 mHC 四路 BF16 每 token `32 KiB`（4 行 `128 KiB`）按 `db701c1f` 模型实现 [C41] 与形状静态推出 [D]。
 
 **待核：** 官方未给出 GLM-5.3-Flash 双机主线不选 PP 的取舍说明，本站亦未在双机 NPU 上实测 GLM 开启 PP 的链路流量与端到端吞吐；`PP + KVPP` 的间歇性输出不一致进展及跨节点 RoCE MoE 未来是否放开 `PP > 1 × DP > 1` 仍待上游后续版本确认。

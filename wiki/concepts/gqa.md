@@ -60,6 +60,7 @@ sources:
   - 'vllm@ba15685a:vllm/model_executor/layers/linear.py#L1105-L1130'
   - 'vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L595-L618'
   - 'raw:sha256-96369723e69c470d91ca318d4e4d5324d91cb9d72c37ce9b045a7596a6aad1bf.md#L1-L490'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1014-L1042'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -275,7 +276,7 @@ GQA 没有运行时命令行开关，完全由模型权重和 `config.json` 的 
 | 报错或拦截异常 | 触发条件 | 源码位置 |
 |---|---|---|
 | `AssertionError: num_heads (X) is not divisible by num_kv_heads (Y)` | 查询头数不是 KV 头数的整数倍 | `Attention.__init__` [C9] |
-| `ValueError: X is not divisible by Y` 或无消息 `AssertionError` | `QKVParallelLinear` / 模型层按 `TP` 切分或复制 KV 头时无法整除，或 `AscendAttentionBackendImpl` 头数不整除 | `divide` / `ensure_divisibility` [C8]；`Qwen3` / `Llama` / `attention_v1.py` |
+| `AssertionError: X is not divisible by Y` 或无消息 `AssertionError` | `QKVParallelLinear` / 模型层按 `TP` 切分或复制 KV 头时无法整除，或 `AscendAttentionBackendImpl` 头数不整除 | `divide` / `ensure_divisibility` [C8]；`Qwen3` / `Llama` / `attention_v1.py` |
 | `ValueError: MooncakeConnector does not support C8 KV cache quantization on GQA models...` | GQA 模型开启 `enable_c8_quant=True` 且使用 `MooncakeConnector`（P 端 `bf16`、D 端 `int8`） | `AscendConfig._check_mooncake_c8_kv_cache_quant`（提示换 `MooncakeLayerwiseConnector`）[C15] |
 | `ValueError: GQA/MQA PCP+DCP requires prefill_context_parallel_size to equal decode_context_parallel_size...` | 非 MLA 模型同时开启 `PCP > 1` 与 `DCP > 1` 但 `PCP != DCP`（草稿 GQA 开 `DCP > 1` 另校验 `TP > num_kv_heads` 与整除） | `platform.py:_validate_model_pcp_dcp_config` 及草稿校验函数 [C17][S18] |
 
@@ -288,7 +289,7 @@ GQA 没有运行时命令行开关，完全由模型权重和 `config.json` 的 
 
 | 核验维度 | `v0.23.0`（`0fc695fc` / `2c59ff10`） | `v0.26.0rc`（`568afb3a` / `2ed6cbba`） | `v0.30.0`（`ced6857a` / `c09d3e20`，主基线） | `main`（`ba15685a` / `8d6180e2`） |
 |---|---|---|---|---|
-| `QKVParallelLinear` 复制与 `Attention` 校验 | `tp_size >= total_num_kv_heads` 时设 `num_kv_head_replicas` 并按整除取分片；断言 `num_heads % num_kv_heads == 0` | 延续相同切分、复制与整除断言逻辑（`linear.py#L1000-L1020`） | 扩展支持独立 `v_head_size`，其余 GQA 分片与 `num_kv_head_replicas` 规则不变 | 延续相同分片与复制规则（`linear.py#L1105-L1130`） |
+| `QKVParallelLinear` 复制与 `Attention` 校验 | `tp_size >= total_num_kv_heads` 时设 `num_kv_head_replicas` 并按整除取分片，已支持独立 `v_head_size`（`linear.py#L1014-L1042`）；断言 `num_heads % num_kv_heads == 0` | 延续相同切分、复制、独立 `v_head_size` 与整除断言逻辑（`linear.py#L1000-L1020`） | 延续相同分片、`num_kv_head_replicas` 复制与独立 `v_head_size` 支持 | 延续相同分片、复制与独立 `v_head_size` 规则（`linear.py#L1105-L1130`） |
 | `AttentionSpec` 页容量与 SDPA `enable_gqa` | `AttentionSpec` 直接按 `2 * block_size * num_kv_heads * head_size` 计字节；`cpu_attn.py` 传 `enable_gqa` | 同 `v0.23.0` 口径 | `AttentionSpec` 泛化 `head_size_v` 与 `num_head_slots`，标准 GQA 页字节不变；CPU 改走原生分页核，`mm_encoder_attention` 等保留 `enable_gqa` | 延续泛化 `AttentionSpec` 与原生核分工 |
 | 昇腾 `FIA` 双头数直读与混合批执行 | `attention_v1.py` 算 `num_queries_per_kv`，向 `FIA` 传双头数，调用前不展开 K/V | 同 `v0.23.0`（`attention_v1.py#L440-L451`） | 保持双头数直传；新增 `VLLM_BATCH_INVARIANT` 或 `950DT` `CHUNKED_PREFILL_PHASE_SPLIT` 时把混合批拆成两段 `FIA` 调用（不改 GQA 数学） | 延续双头数直传与混合批拆段（`attention_v1.py#L595-L618`） |
 | `Mooncake+GQA+C8` 与 `PCP/DCP` 门禁 | 已有 `_check_mooncake_c8_kv_cache_quant` 拦截 GQA+C8 裸传；无独立 GQA `PCP==DCP` 门禁 | 延续 GQA+C8 Mooncake 拦截 | 保留 GQA+C8 拦截（`MooncakeLayerwiseConnector` 分 `int8` 缓冲），新增 `_validate_model_pcp_dcp_config`（`PCP==DCP`）与草稿 GQA `DCP` 校验 | 延续 GQA+C8 拦截与 `PCP==DCP` / 草稿 `DCP` 全套校验 |
@@ -297,7 +298,7 @@ GQA 没有运行时命令行开关，完全由模型权重和 `config.json` 的 
 ### 源码位置
 
 - **论文与官方文档**：`GQA-G` 定义、MHA/MQA 两端关系、均值池化 + `5%` uptraining、解码带宽动机与 `GQA-8` 结论见 Ainslie 等论文 [S1]；GQA/MQA 叠用 `PCP+DCP` 要求 `DCP=PCP` 见上下文并行设计文档 `context_parallel.md#L50-L60` [S18]；GLM-5.3-Flash 头数字段见 HF `config.json` [S19]。
-- **上游 `vllm` 核心实现**：`Qwen3` / `Qwen3Moe` / `Llama` 头数切分与显式 `head_dim` 见 `qwen3.py#L85-L125`、`qwen3_moe.py#L258-L305`、`llama.py#L139-L170, #L286-L296`；`QKVParallelLinear` 复制份数与加载偏移见 `linear.py#L1040-L1065, #L1295-L1308`（整除工具 `distributed/utils.py#L52-L63`）；通用层与缓存页字节见 `attention.py#L315-L338, #L525-L580` 与 `kv_cache_interface.py#L478-L535`；SDPA `enable_gqa` 对照见 `mm_encoder_attention.py#L548-L558` 及 `v0.23.0` `cpu_attn.py#L444-L456`（`v0.26.0` / `main` 对照见 `568afb3a`、`ba15685a` `linear.py`）。
+- **上游 `vllm` 核心实现**：`Qwen3` / `Qwen3Moe` / `Llama` 头数切分与显式 `head_dim` 见 `qwen3.py#L85-L125`、`qwen3_moe.py#L258-L305`、`llama.py#L139-L170, #L286-L296`；`QKVParallelLinear` 复制份数与加载偏移见 `linear.py#L1040-L1065, #L1295-L1308`（整除工具 `distributed/utils.py#L52-L63`）；通用层与缓存页字节见 `attention.py#L315-L338, #L525-L580` 与 `kv_cache_interface.py#L478-L535`；SDPA `enable_gqa` 对照见 `mm_encoder_attention.py#L548-L558` 及 `v0.23.0` `cpu_attn.py#L444-L456`（`v0.23.0` / `v0.26.0` / `main` 对照见 `0fc695fc` `linear.py#L1014-L1042`、`568afb3a`、`ba15685a` `linear.py`）。
 - **昇腾 `vllm-ascend` 与变体对照**：`num_queries_per_kv` 与 `FIA` 双头数直传、混合批拆段见 `c09d3e20` `attention_v1.py#L550-L575, #L970-L1018`（`v0.23.0` / `v0.26.0rc` / `main` 对照见 `2c59ff10`、`2ed6cbba`、`8d6180e2` 同文件）；GQA+C8 Mooncake 拦截与逐层 `int8` 缓冲见 `ascend_config.py#L1019-L1043` 与 `mooncake_layerwise_connector.py#L1355-L1375`；`PCP/DCP` 与草稿 GQA 校验见 `platform.py#L1688-L1827`；GLM 稀疏 MLA 与 KDA 对照见 `db701c1f` `glm5_next.py#L1901-L1962`、`indexer_kpool_mla.py#L121-L134`、`0fc695fc` `kimi_gdn_linear_attn.py#L110-L134` 及社区 `c09d3e20` `models/glm5next/attention.py#L140-L175`。
 - **推导与示意说明**：`Qwen3-8B`（`144.0 KiB/tok`、`4:1`）与 `Qwen3-30B-A3B`（`96.0 KiB/tok`、`8:1`、`TP=8` 下 `replicas=2`）及单层打分/投影乘加对比均由配置与代数定义严格推出 [D]；3 位置 `4Q:2KV` 手算与 `TP=1/2/4` 格子数为教学示意设定 [A]；异常触发后在进入算子前终止属静态控制流推断 [I]。
 

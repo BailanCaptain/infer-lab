@@ -12,5 +12,5 @@ pins:
     symbols: [SharedExpertParallelMode, TENSOR_PARALLEL, SHARED_EXPERT_DATA_PARALLEL_ONLY]
   - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L281-L415
     symbols: [set_mc2_mask, select_moe_comm_method, mc2_tokens_capacity]
-  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L621-L695
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L276-L335
     symbols: [EplbConfig, dynamic_eplb, num_redundant_experts]

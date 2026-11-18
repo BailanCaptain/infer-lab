@@ -15,9 +15,9 @@
   <text x="64" y="86" font-size="14.5" font-weight="700" fill="#b54237">「用了分页后，KV 显存浪费彻底归零」</text>
   <text x="64" y="110" font-size="13.5" fill="#4d5652">把外部碎片消失误当成完全没有空闲槽位</text>
 
-  <rect x="456" y="60" width="426" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="470" y="86" font-size="14.5" font-weight="700" fill="#065f56">消灭的是外部碎片；末块仍有有界内部空余</text>
-  <text x="470" y="110" font-size="13.5" fill="#4d5652">单组按位置增长至多空 <tspan font-family="var(--font-mono)" font-weight="700">block_size - 1</tspan> 格（另有投机预留）</text>
+  <rect x="448" y="60" width="440" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="460" y="86" font-size="14.5" font-weight="700" fill="#065f56">消灭的是外部碎片；末块仍有有界内部空余</text>
+  <text x="460" y="110" font-size="13.5" fill="#4d5652">单组按位置增长至多空 <tspan font-family="var(--font-mono)" font-weight="700">block_size - 1</tspan> 格（另有投机预留）</text>
 
   <!-- 误解 2 -->
   <circle cx="30" cy="174" r="12" fill="#b54237"/>
@@ -26,9 +26,9 @@
   <text x="64" y="168" font-size="14.5" font-weight="700" fill="#b54237">「传 --block-size 16 在昇腾一定按 16 切」</text>
   <text x="64" y="192" font-size="13.5" fill="#4d5652">照搬 GPU 参数，以为命令行写了就会保留</text>
 
-  <rect x="456" y="142" width="426" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="470" y="168" font-size="14.5" font-weight="700" fill="#065f56">开着默认 APC 或分块预填充即静默改回 128</text>
-  <text x="470" y="192" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">enable_prefix_caching</tspan> 或 <tspan font-family="var(--font-mono)" font-weight="700">enable_chunked_prefill</tspan> 均触发</text>
+  <rect x="448" y="142" width="440" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="460" y="168" font-size="14.5" font-weight="700" fill="#065f56">开着默认 APC 或分块预填充即静默改回 128</text>
+  <text x="460" y="192" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">enable_prefix_caching</tspan> 或 <tspan font-family="var(--font-mono)" font-weight="700">enable_chunked_prefill</tspan> 均触发</text>
 
   <!-- 误解 3 -->
   <circle cx="30" cy="256" r="12" fill="#b54237"/>
@@ -37,9 +37,9 @@
   <text x="64" y="250" font-size="14.5" font-weight="700" fill="#b54237">「算注意力前先把离散块拷回连续张量」</text>
   <text x="64" y="274" font-size="13.5" fill="#4d5652">以为算子只认连续内存，每步先做一次拼接</text>
 
-  <rect x="456" y="224" width="426" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="470" y="250" font-size="14.5" font-weight="700" fill="#065f56">零拼拷！注意力内核拿块表原地跨块读取</text>
-  <text x="470" y="274" font-size="13.5" fill="#4d5652">每步拼回连续缓冲区等于重拷整段历史，分页即失效</text>
+  <rect x="448" y="224" width="440" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="460" y="250" font-size="14.5" font-weight="700" fill="#065f56">零拼拷！注意力内核拿块表原地跨块读取</text>
+  <text x="460" y="274" font-size="13.5" fill="#4d5652">每步拼回连续缓冲区等于重拷整段历史，分页即失效</text>
 
   <!-- 误解 4 -->
   <circle cx="30" cy="338" r="12" fill="#b54237"/>
@@ -48,9 +48,9 @@
   <text x="64" y="332" font-size="14.5" font-weight="700" fill="#b54237">「没调同名 PagedAttention 算子就没分页」</text>
   <text x="64" y="356" font-size="13.5" fill="#4d5652">将存储寻址机制与特定算子名字混为一谈</text>
 
-  <rect x="456" y="306" width="426" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="470" y="332" font-size="14.5" font-weight="700" fill="#065f56">分页是缓存布局；FIA / SFA 原生消费块表</text>
-  <text x="470" y="356" font-size="13.5" fill="#4d5652">昇腾常规路径向 <tspan font-family="var(--font-mono)" font-weight="700">npu_fused_infer_attention_score</tspan> 直传 <tspan font-family="var(--font-mono)" font-weight="700">block_table</tspan></text>
+  <rect x="448" y="306" width="440" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="460" y="332" font-size="14.5" font-weight="700" fill="#065f56">分页是缓存布局；FIA / SFA 原生消费块表</text>
+  <text x="460" y="356" font-size="13.5" fill="#4d5652">常规向 <tspan font-family="var(--font-mono)" font-weight="700">npu_fused_infer_attention_score</tspan> 传块表</text>
 
   <!-- 误解 5 -->
   <circle cx="30" cy="420" r="12" fill="#b54237"/>
@@ -59,7 +59,7 @@
   <text x="64" y="414" font-size="14.5" font-weight="700" fill="#b54237">「请求结束时物理块的 KV 数据立刻清零」</text>
   <text x="64" y="438" font-size="13.5" fill="#4d5652">以为归还块号就会把对应 HBM 显存刷成 0</text>
 
-  <rect x="456" y="388" width="426" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
-  <text x="470" y="414" font-size="14.5" font-weight="700" fill="#065f56"><tspan font-family="var(--font-mono)">free_blocks</tspan> 只减 <tspan font-family="var(--font-mono)">ref_cnt</tspan>，HBM 数据原地保留</text>
-  <text x="470" y="438" font-size="13.5" fill="#4d5652">挂回 <tspan font-family="var(--font-mono)" font-weight="700">free_block_queue</tspan> 队尾作 LRU 候选，直等前缀命中</text>
+  <rect x="448" y="388" width="440" height="64" rx="6" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+  <text x="460" y="414" font-size="14.5" font-weight="700" fill="#065f56"><tspan font-family="var(--font-mono)">free_blocks</tspan> 只减 <tspan font-family="var(--font-mono)">ref_cnt</tspan>，HBM 数据原地保留</text>
+  <text x="460" y="438" font-size="13.5" fill="#4d5652">挂回 <tspan font-family="var(--font-mono)" font-weight="700">free_block_queue</tspan> 队尾作 LRU 候选，直等前缀命中</text>
 </svg>

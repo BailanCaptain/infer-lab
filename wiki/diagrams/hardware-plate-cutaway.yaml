@@ -4,9 +4,9 @@ caption: >-
   昇腾四级物理层级与双裸片拓扑立体拆解：左侧对比 A2 单裸片板卡（1 Die + HBM，对应 1 个逻辑设备）与 A3 双裸片板卡（2 Dies 经片间互联封装在同一物理板卡，暴露为 2 个逻辑 rank）；中央展示单台服务器内主机 CPU 经 PCIe 连接 NPU 模组、模组间经 HCCS / UB 高速互联（8 模组对应 A2 的 8 卡或 A3 的 16 个逻辑设备）；右侧展示多节点机柜内跨服务器经 NPU 直出或板载 RoCE 接口互联。
 size: [900, 650]
 pins:
-  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L192-L197
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L187-L197
     symbols: [DeviceAddressingMode, DIRECT, DUAL_CHIP_CARD]
   - source: vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L736-L744
     symbols: [card_id, chip_id]
-  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L90-L99
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L89-L99
     symbols: [NPUPlatform, ASCEND_RT_VISIBLE_DEVICES]

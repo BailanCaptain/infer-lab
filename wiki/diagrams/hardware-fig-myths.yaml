@@ -6,7 +6,7 @@ size: [900, 508]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/device/device_config.py#L65-L77
     symbols: [check_ascend_device_type, get_soc_version, device_type_from_runtime_soc]
-  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L236-L249
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L231-L244
     symbols: [get_device_total_memory, mem_get_info]
   - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L430-L470
     symbols: [set_device, MemorySnapshot, gpu_memory_utilization]

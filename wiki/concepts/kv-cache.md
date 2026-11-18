@@ -68,6 +68,12 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L88-L160'
   - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L664-L698'
   - 'raw:sha256-db0aa5f4bce49076d38bcfb2b8989e17e966c146a35d96e9f005c6f608e5b0a2.md#L1-L1317'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L570-L587'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/modelslim_config.py#L725-L744'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_c8_mxfp.py#L181-L192'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1444-L1515'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/device/device_op.py#L55-L65'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/device/device_op.py#L1889-L1899'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -152,9 +158,9 @@ file: kv-cache-size
 
 ### 多个 KV 头与 Qwen3 标准模型实算
 
-真实大模型的一层注意力会并排拆成多个头（见[多头注意力](attention-qkv.md#多头同一个位置同时按几套方式去读)），并普遍采用 [GQA](gqa.md#缓存容量按-kv-头数计算) 让多个查询头共享同一组 KV 头。设模型总层数为 $L$、总 KV 头数为 $n_{\text{kv}}$、张量并行卡数为 $T$（当 $T \le n_{\text{kv}}$ 时每卡均分 $n_{\text{kv}} / T$ 个头；当 $T > n_{\text{kv}}$ 时跨卡复制，每卡保底存 `1` 个头）、每头维度为 $d_h$、缓存数值字节数为 $b_{\text{dtype}}$（BF16/FP16 为 `2 B`，INT8/FP8 主体为 `1 B`），则上游 `FullAttentionSpec` 对应的每 token 单层与全模型缓存字节数为：
+真实大模型的一层注意力会并排拆成多个头（见[多头注意力](attention-qkv.md#多头同一个位置同时按几套方式去读)），并普遍采用 [GQA](gqa.md#缓存容量按-kv-头数计算) 让多个查询头共享同一组 KV 头。设模型总层数为 $L$、总 KV 头数为 $n_{\text{kv}}$、张量并行卡数为 $T$（当 $T \le n_{\text{kv}}$ 时每卡均分 $n_{\text{kv}} / T$ 个头；当 $T > n_{\text{kv}}$ 时跨卡复制，每卡保底存 `1` 个头——例如 $n_{\text{kv}} = 4$ 的 `Qwen3-30B-A3B` 在 `TP = 8` 下每卡仍驻留 `1` 个头即 `24 KiB/tok`，而非减半至 `12 KiB/tok`）、每头维度为 $d_h$、缓存数值字节数为 $b_{\text{dtype}}$（BF16/FP16 为 `2 B`，INT8/FP8 主体为 `1 B`），则上游 `FullAttentionSpec` 对应的每卡每 token 单层与全模型缓存字节数为：
 
-$$\text{Bytes}_{\text{tok, layer}} = 2 \times \frac{n_{\text{kv}}}{T} \times d_h \times b_{\text{dtype}}, \qquad \text{Bytes}_{\text{tok, model}} = L \times \text{Bytes}_{\text{tok, layer}}$$
+$$\text{Bytes}_{\text{tok, layer}} = 2 \times \max\!\left(1, \frac{n_{\text{kv}}}{T}\right) \times d_h \times b_{\text{dtype}}, \qquad \text{Bytes}_{\text{tok, model}} = L \times \text{Bytes}_{\text{tok, layer}}$$
 
 其中最前面的系数 `2` 正对应 `K` 和 `V` 两张表（常见 32 层、`8` 个 KV 头、`128` 维的 BF16 模型即每词 `128 KiB`、`4K` 占 `512 MiB`、`16` 条并发占 `8 GiB`；下面统一落到 `v0.30.0` 主基线的两款真实预设模型 [Qwen3-8B 与 Qwen3-30B-A3B](hf-model-anatomy.md)）：
 
@@ -171,9 +177,9 @@ file: kv-cache-fig-qwen3-scaling
 | 单序列 `4K`（`4,096` tok，BF16） | **`576 MiB`** | **`384 MiB`** | **`96 MiB / 卡`** |
 | 单序列 `32K`（`32,768` tok，BF16） | **`4.5 GiB`** | **`3.0 GiB`** | **`0.75 GiB / 卡`** |
 | `B = 32` 并发 × `32K`（BF16） | **`144 GiB`**（单卡 `64 GiB` 根本装不下） | **`96 GiB`** | **`24 GiB / 卡`** |
-| 开启 `C8` 量化（`INT8` / `MXFP8` 主体 `0.5×`） | `72 KiB/tok`；`B=32×32K` 降至 **`72 GiB`** | `48 KiB/tok`；`B=32×32K` 降至 **`48 GiB`** | `12 KiB/tok`；`B=32×32K` **`12 GiB / 卡`** |
+| `C8` 量化（`1 B` 主体理想压缩值 `0.5×`） | `72 KiB/tok`；`B=32×32K` 理想值 **`72 GiB`** | `48 KiB/tok`；`B=32×32K` 理想值 **`48 GiB`** | `12 KiB/tok`；`B=32×32K` 理想值 **`12 GiB / 卡`** |
 
-这张表把三个工程真相直接摆在台面上：第一，**GQA 砍的是 KV 头数**：若 `Qwen3-8B` 不用 4:1 GQA 而存满 `32` 个 KV 头（MHA），单词立刻翻 4 倍至 `576 KiB`，单条 `32K` 序列就要吃掉 `18 GiB`；第二，**KV 容量只看注意力层与 KV 头，不看总参数量**：`Qwen3-30B-A3B` 虽有 `30.5B` 参数和 `48` 层，但 `128` 个路由专家只占权重不占逐词 KV，且 $n_{\text{kv}} = 4$ 减半，整模每词反而比 `8B` 省三分之一（`96 KiB` vs `144 KiB`）；第三，当长上下文乘上高并发导致 BF16 缓存冲破百 GiB 时，开启昇腾 `C8` [KV cache 量化](kv-cache-quantization.md)（`--kv-cache-dtype int8` 或 `mxfp8`）能把主 K/V 从 `2 B` 压到 `1 B` 直接砍半（`MXFP8` 另带少量块级缩放因子开销）。
+这张表把三个工程真相直接摆在台面上：第一，**GQA 砍的是 KV 头数**：若 `Qwen3-8B` 不用 4:1 GQA 而存满 `32` 个 KV 头（MHA），单词立刻翻 4 倍至 `576 KiB`，单条 `32K` 序列就要吃掉 `18 GiB`；第二，**KV 容量只看注意力层与 KV 头，不看总参数量**：`Qwen3-30B-A3B` 虽有 `30.5B` 参数和 `48` 层，但 `128` 个路由专家只占权重不占逐词 KV，且 $n_{\text{kv}} = 4$ 减半，整模每词反而比 `8B` 省三分之一（`96 KiB` vs `144 KiB`）；第三，当长上下文乘上高并发导致 BF16 缓存冲破百 GiB 时，昇腾 `C8` [KV cache 量化](kv-cache-quantization.md)能将主 K/V 从 `2 B` 压向 `1 B`——表中 `72 / 48 KiB/tok`（及 `B = 32 × 32K` 下的 `72 / 48 GiB`）是按 **`1 B` 主体计算的理想压缩值**，落地时须严格区分两条硬件与权重路径：在 A2 / A3 / 950 的 GQA 模型上，**`INT8 C8` 必须配对经 ModelSlim `C8` 校准导出的量化检查点**（同时具备 `--quantization ascend`、`quant_model_description.json` 声明 `"kv_cache_type": "C8"` 与 `--kv-cache-dtype int8`），对纯 BF16 权重单独传 `--kv-cache-dtype int8` 会在启动期直接抛出 `ValueError`；而 **`--kv-cache-dtype mxfp8`（`C8_MXFP`）** 要求 Ascend 950（`A5`）与 `512` token 整数倍 `block_size`，并额外增加 `+1/32` 字节的 `E8M0` 缩放因子（约 `1.03125 B/数`，单词实际约 `74.25 / 49.5 KiB`）。
 
 ## 省了重算，要付什么代价？
 
@@ -282,9 +288,9 @@ file: kv-cache-fig-myths
 
 ### 怎么开与会报什么错
 
-同请求跨步 KV cache 常驻开启，无需开关。跨请求复用由 `--enable-prefix-caching` 控制（`v0.30.0` 对生成类 hybrid 模型默认开启）；缓存精度由 `--kv-cache-dtype`（`CacheConfig.cache_dtype`）控制，不能凭权重量化 W8A8 推断缓存也为 INT8（如历史 `db701c1f` 把 `IndexerKPoolMLACacheLayer` 主缓存写死为 `bfloat16`[C44]，`v0.30.0` 新增独立 SFA `C8` 与 `turboquant_4bit_nc` 开关）。逻辑块长在常规模型上由昇腾平台默认定为 `128`，在 `GLM-5` 混合模型上由 `patch_mamba_config.py` 按最小公倍数自动对齐为 `640` 并打印启动日志（手动传更小值会被抬回 `640`，更大值向上对齐）。
+同请求跨步 KV cache 常驻开启，无需开关。跨请求复用由 `--enable-prefix-caching` 控制（`v0.30.0` 对生成类 hybrid 模型默认开启）；缓存精度由 `--kv-cache-dtype`（`CacheConfig.cache_dtype`）控制，不能凭权重量化 W8A8 推断缓存也为 INT8：在 `v0.30.0`（`c09d3e20`）中，GQA 模型的 `--kv-cache-dtype int8` 必须搭配 `--quantization ascend` 与含 `"kv_cache_type": "C8"` 的 ModelSlim 校准权重（`modelslim_config.py#L725-L744`），`--kv-cache-dtype mxfp8`（`C8_MXFP`）要求 Ascend 950（`A5`）、`512` 整数倍 `block_size` 并计入 `+1/32` `E8M0` 缩放字节[C55]，稀疏模型另设 SFA `C8` 与 `turboquant_4bit_nc` 开关；而在历史 `db701c1f` 案例中 `IndexerKPoolMLACacheLayer` 主缓存写死为 `bfloat16`[C44]。逻辑块长在常规模型上默认定为 `128`（`C8_MXFP` 默认抬至 `512`）；在 `GLM-5` 混合模型上，**历史 `db701c1f`** 仅按 `128` 整数倍向上取整至 `640`（无 `lcm` 对齐，`patch_mamba_config.py#L131-L159`），而 **`v0.30.0`（`c09d3e20`）** 的 `patch_mamba_config.py` 按 `lcm(128, index_kpool * 16)` 对齐至 `640`，且在启用紧凑打包 `SFA C8`（`sfa_c8_packed`）时通过 `min(attn_block_size, c8_block_size)` 将更大请求块长封顶压回 `640`（`patch_mamba_config.py#L127-L136`）以避免跨块空洞。
 
-常见配置与运行报错包括：开启 `enable_kv_nz` 但非 MLA、含稀疏或非 PD 解码节点时抛 `RuntimeError` / `NotImplementedError`[C20]；`GLM-5` 缺少缓存配置、三类缓存角色顺序与 `("kv", "indexer_state", "indexer")` 不符、KDA 状态批大小不一致或逻辑块非 `128` 整数倍时直接报错阻断。遇到此类报错应先核对配置与分组映射，不能单靠调大显存解决。
+常见配置与运行报错须区分两套版本路径：在 **`v0.30.0`（`c09d3e20`）** 中，GQA 模型对无 `C8` 校准配方的纯 BF16 权重单传 `--kv-cache-dtype int8` 直接抛 `ValueError`[C53]；`C8_MXFP` 手动指定非 `512` 整数倍 `--block-size` 抛 `ValueError`（`utils.py#L1509-L1515`）；开启 `enable_kv_nz` 但非 MLA、含稀疏或非 PD 解码节点时抛 `RuntimeError` / `NotImplementedError`[C20]；`models/glm5next/cache_config.py` 缺少主 MLA、压缩索引或 `indexer_tail` 规格、层号不匹配或主/索引逻辑块长不一致时抛 `ValueError`。而在 **历史 `db701c1f`（`GLM-5.3-Flash` 绑定案例）** 中，缺少 `cache_config`、三类缓存角色顺序与 `("kv", "indexer_state", "indexer")` 元组不符（`indexer_kpool_mla_v1.py#L818-L830`）、KDA 状态批大小不一致或逻辑块非 `128` 整数倍时直接报错阻断。遇到此类报错应先核对版本配置与分组映射，不能单靠调大显存解决。
 
 ### 开销和什么时候别开
 
@@ -297,7 +303,7 @@ file: kv-cache-fig-myths
 | 核对维度 | `v0.23.0` (`0fc695fc` / `2c59ff10`) | `v0.26.0rc` (`568afb3a` / `2ed6cbba`) | `v0.30.0` (`ced6857a` / `c09d3e20`) | `main` (`ba15685a` / `8d6180e2`) | 对使用者的实际影响 |
 | --- | --- | --- | --- | --- | --- |
 | 普通注意力缓存张量形状 | `(2, num_blocks, block_size, num_kv_heads, head_size)` | 同左 | 默认同左；`VLLM_KV_CACHE_LAYOUT` 取 `LBHNC`/`HND` 时头轴移至块内位置轴前[C7] | 同 `v0.30.0` | 换轴不改元素总数，读取算子须认准布局轴序 |
-| 普通注意力前向写缓存 | `reshape_and_cache` 调 `torch_npu._npu_reshape_and_cache` | 同左 | 标准路径调 `npu_scatter_pa_kv_cache`[C10]，`310P` 调 `_npu_reshape_and_cache`[C11]，PCP 独立整理后写入[C9] | 延续 `npu_scatter_pa_kv_cache` 与 `310P` 分流 | 均在单次前向内完成写与读；独立 `do_kv_cache_update` 仅服务特殊补丁 |
+| 普通注意力前向写缓存 | `reshape_and_cache` 调 `torch_npu._npu_reshape_and_cache` | 标准路径已切至 `torch_npu.npu_scatter_pa_kv_cache`[C57]，仅 `310P` 保留 `_npu_reshape_and_cache`（`device_op.py#L1889-L1899`） | 标准路径调 `npu_scatter_pa_kv_cache`[C10]，`310P` 调 `_npu_reshape_and_cache`[C11]，PCP 独立整理后写入[C9] | 延续 `npu_scatter_pa_kv_cache` 与 `310P` 分流 | 均在单次前向内完成写与读；独立 `do_kv_cache_update` 仅服务特殊补丁 |
 | 跨层 KV 共享保护 | 共享层不建规格、张量共指目标层；`reshape_and_cache` 未拦截写入[C37] | 写入前检查 `kv_sharing_target_layer_name` 直接返回 | `model_runner_v1` 跳过建规格[C13]，写入前拦截并为 producer 记录缓存事件[C8] | 迁入 `worker/v2/attn_utils.py` 跳过建规格[C29]，写入拦截同左 | 仅影响声明跨层共享的模型；`GLM` 未声明跨层共享 |
 | Hybrid 模型 `enable_prefix_caching` | `is_prefix_caching_supported` 返回 `False`，默认关 | 支持开启，但默认仍关 | 生成类 hybrid 模型未显式传参时默认开[C17] | 同 `v0.30.0` | 仍须结合具体模型的 `patch_mamba_config` 与有效配置核对 |
 | `GLM-5.3-Flash` 缓存与量化路径 | `2c59ff10` 无该模型；本文历史案例取自专用 `db701c1f`[C50] | `2ed6cbba` 无该模型 | `models/glm5next/`：主历史与索引共块号、尾状态独立，分大小两类物理页[C22]，支持 SFA `C8` | 延续 `glm5next/` 并在 `_Glm5NextCacheLayout` 拆出 `draft_groups` | 历史 `15` 块与字节账保留 `db701c1f` 前提，升级 `v0.30.0+` 按新规格核计 |
@@ -307,6 +313,6 @@ file: kv-cache-fig-myths
 - **原理与官方材料**：PagedAttention 论文定义跨步历史复用、逻辑到物理块映射及按需分配[S1]；DeepSeek-V2 论文给出 MLA 潜向量联合压缩[S2]；`GLM-5.3-Flash` 双机并行与 MTP 设定见官方教程[S43]。
 - **标准注意力规格、形状与写入**：上游 `AttentionSpec` / `FullAttentionSpec` 定义 `state_content_size_bytes` 与 `page_size_bytes`[C5]；`Attention` 因后端 `forward_includes_kv_cache_update = True` 跳过外部更新并产出 `FullAttentionSpec`[C6]；昇腾 `AscendAttentionBackend` 定义缓存轴序、`reshape_and_cache` 槽位写入与 `C8 INT8` 量化通道，底层由 `DeviceOperator` 分发至 `npu_scatter_pa_kv_cache` 或 `_npu_reshape_and_cache`（独立 `do_kv_cache_update` 仅在如 Qwen3 DFlash 补丁等路径单独调用）。
 - **前缀命中上限、槽位分配与跨层共享**：`KVCacheManager.get_computed_blocks` 将全命中上限锁在 `request.num_tokens - 1` 并配合块对齐 `allocate_slots`[C14]；`NPUModelRunner`（及 `main` 的 `v2/attn_utils.py`）跳过跨层共享目标规格。
-- **数值推导与边界口径**：前文 3 位置 / 4 维与 `B = 4` 分块为便于手算的教学示意设定[A]；位置前向次数比值公式、`Qwen3-8B`（`144 KiB/tok`、`32K` 占 `4.5 GiB`、`B=32` 占 `144 GiB` 及 `C8` `72 GiB`）[D]与 `Qwen3-30B-A3B`（整模 `96 KiB/tok`、`TP=4` 每卡 `24 KiB/tok`）[D]，以及历史案例 `13,056 B/tok`、`85 MiB` KDA 子账与 `2,051` 读取上限[D]均由模型 `config.json` 与源码公式严格推出（整块计费含大小两类槽位之和）；长上下文 Decode 受显存读取带宽主导由单步全历史读取量与算术强度归纳得出[I]，`B = 32` 并发规模为典型压力对照设定[A]。
+- **数值推导与边界口径**：前文 3 位置 / 4 维与 `B = 4` 分块为便于手算的教学示意设定[A]；位置前向次数比值公式、`Qwen3-8B`（`144 KiB/tok`、`32K` 占 `4.5 GiB`、`B=32` 占 `144 GiB` 及 `C8` `1 B` 主体理想值 `72 GiB`，`MXFP8` 另加 `+1/32` `E8M0` 缩放即 `1.03125 B/数`）[D]与 `Qwen3-30B-A3B`（整模 `96 KiB/tok`、`TP=4` 与 `TP=8` 复制下每卡均为 `24 KiB/tok`）[D]，以及历史案例 `13,056 B/tok`、`85 MiB` KDA 子账与 `2,051` 读取上限[D]均由模型 `config.json` 与源码公式严格推出（整块计费含大小两类槽位之和）；长上下文 Decode 受显存读取带宽主导由单步全历史读取量与算术强度归纳得出[I]，`B = 32` 并发规模为典型压力对照设定[A]。
 
 待核：历史 `db701c1f` 镜像最终安装的上游提交哈希、线上缓存组启动日志，以及 NPU 硬件实测的逐次 MTP 写入与 KDA 读写带宽轨迹仍待现场采集；prefill 与 decode 浮点累加顺序差异触发采样分叉的概率需实测对比；`v0.23.0` 分支跨层共享消费层是否传入非空 K/V 取决于具体模型实现。

@@ -194,7 +194,7 @@ file: worker-lifecycle-flow
 
 ### ① 构造函数 `__init__`：进程内打补丁、注算子与卡型门禁
 
-每个 Worker 子进程实例化 `NPUWorker` 时，必须在调用基类 `super().__init__()` 之前先改造当前进程的运行环境：检查 `COMPILE_CUSTOM_KERNELS`（为假时打告警），调用 `adapt_patch()` 注入 worker 层补丁（见 [Patch 机制](ascend-patch-system.md#两类-patch-各在什么时候哪个进程里生效)），注册 `register_dummy_fusion_op()`、在支持 `ATB_EXTENSIONS` 的卡型（A2/A3/310P，不含 950/A5）上注册 ATB 扩展、调用 `register_ascend_customop(vllm_config)` 与 `init_ascend_config(vllm_config)`，紧接着用 `check_ascend_device_type()` 比对编译期目标卡型与运行期 `get_soc_version()`——一旦拿 A2 安装包去跑 A3 或 310P，这一步就会当场抛 `RuntimeError` 拦停进程。
+每个 Worker 子进程实例化 `NPUWorker` 时，必须在调用基类 `super().__init__()` 之前先改造当前进程的运行环境：检查 `COMPILE_CUSTOM_KERNELS`（为假时打告警），调用 `adapt_patch()` 注入 worker 层补丁（见 [Patch 机制](ascend-patch-system.md#两类-patch-各在什么时候哪个进程里生效)），注册 `register_dummy_fusion_op()`、在支持 `ATB_EXTENSIONS` 的卡型（A2/A3，不含 310P 与 950/A5）上注册 ATB 扩展、调用 `register_ascend_customop(vllm_config)` 与 `init_ascend_config(vllm_config)`，紧接着用 `check_ascend_device_type()` 比对编译期目标卡型与运行期 `get_soc_version()`——一旦拿 A2 安装包去跑 A3 或 310P，这一步就会当场抛 `RuntimeError` 拦停进程。
 
 ### ② `init_device`：逻辑卡号偏移、建组前快照与 `NPUModelRunner`
 
@@ -339,7 +339,7 @@ grep -E "Checkpoint size:|Loading model weights took|Model loading took|Availabl
 | **冷启动六步骨架与后处理** | 六步顺序确立；含 `patch_process_weights_after_loading`（认 `DSAAttention`，GLM 镜像 `db701c1f` 另认专属 MLA 类）及 `patch_weight_utils` | 删 `patch_weight_utils`；保留 `DSAAttention` 后处理补丁 | 删旧后处理补丁，统一走上游 `is_deferred_attention_layer` 遍历子模块；`init_device` 增 `register_ascend_fla_customop` | 延续六步依赖链与上游子模块遍历后处理 |
 | **预热体系演进（7 类 vs 注册表）** | 无 `kernel_warmup` 入口，仅有尺寸 `_dummy_run` 与 `_warm_up_atb` | 新增 `kernel_warmup`（`HAS_TRITON` 下预热拒绝采样、惩罚项、RMS 三项） | 扩充至 **7 类预热**：`kernel_warmup` 增 `indexer` 达四项[C10]，并在 `load_model` 新增可选重叠线程 `nz_warmup` 与 `early_kernel_warmup` | **重构为声明式 `JitWarmupRegistry`**（`AscendTritonJitKernel` + `dcp`/`dspark` 注册，`enable_jit_warmup` 默认 `True`），移除 `early_kernel_warmup.py`，保留 `nz_warmup.py`[C44] |
 | **睡眠池边界与预算修正** | `tag="kv_cache"` 包住整个 `initialize_kv_cache` | 同 `v0.23.0`；预算修正见显存量测页 | `tag="kv_cache"` 仅包缓存本体，DSpark 归属与清零元数据留池外；支持 `startup_plan`、稀疏卸载与 KVPP 预算约束 | 延续池外持久元数据、分组缩放与可选特性预算修正 |
-| **上游模型解析与加载器注册** | 缺 `architectures` 按 `model_type` 补全；策略字段为自由 `str`；显式 `safetensors` 仍可能追加 `pt`；注册表含 `gguf`、`bitsandbytes` | 策略限定枚举；显式 `safetensors` 禁追加 `pt`；移除 `gguf` | 新增初始化 Hub `revision` 预解析、配置读取 2 次重试（间隔 2s）、`enable_multithread_load` 策略限制；移除 `bitsandbytes`，新增 `ipc_cache`、`modelexpress` | 保持与 `v0.30.0` 相同的加载器注册集合、多线程策略限制与配置重试机制 |
+| **上游模型解析与加载器注册** | 缺 `architectures` 按 `model_type` 补全（四版均保留）；策略字段为自由 `str`；显式 `safetensors` 仍可能追加 `pt`；注册表已含 `modelexpress`，并含 `gguf`、`bitsandbytes` | 保留 `model_type` 补全与 `modelexpress`、`bitsandbytes`，移除 `gguf`；策略限定枚举且新增 `enable_multithread_load` 仅允许 `None`/`lazy` 限制；显式 `safetensors` 禁追加 `pt` | 延续 `model_type` 补全与多线程策略限制；新增初始化 Hub `revision` 预解析、配置读取 `with_retry`（`max_retries=2`，即最多 2 次尝试 / 隔 2s 重试 1 次）；移除 `bitsandbytes`，新增 `ipc_cache`（保留 `modelexpress`） | 延续 `model_type` 补全、相同的加载器注册集合（含 `ipc_cache`、`modelexpress`）、多线程策略限制与配置最多 2 次尝试（1 次重试）机制 |
 
 ### 源码位置
 

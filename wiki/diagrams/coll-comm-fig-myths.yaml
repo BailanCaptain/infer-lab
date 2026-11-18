@@ -4,7 +4,7 @@ caption: >-
   集合通信五组常见误解 vs v0.30.0 HCCL / vLLM 源码真相：澄清 All-Reduce 原位形状不变求和与 All-Gather 拼接不求和的语义边界、逻辑输入载荷 M 与链路收发字节的换算差异、MoECommType.ALLGATHER 路线与单次 All-Gather 原语的命名区分、HCCL 通信域缓冲创建与 HcclPgRegistry 按域去重复用，以及异步 handle/流同步与跨机 DP 控制面协同约束。
 size: [900, 508]
 pins:
-  - source: vllm@ced6857a:vllm/distributed/device_communicators/base_device_communicator.py#L231-L312
+  - source: vllm@ced6857a:vllm/distributed/device_communicators/base_device_communicator.py#L173-L312
     symbols: [DeviceCommunicatorBase, all_reduce, all_gather, reduce_scatter]
   - source: vllm@ced6857a:vllm/config/parallel.py#L770-L815
     symbols: [has_unfinished_dp]

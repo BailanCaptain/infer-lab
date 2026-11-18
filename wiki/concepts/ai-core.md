@@ -172,7 +172,7 @@ file: aicore-fig-910b-vs-950
 | **子系统组织与片上缓冲** | `AIC` 与 `AIV` 分立取指；具体核数、面积与缓冲容量随产品型号变化，不能拿首图框数外推 | 单子系统含 `1 Cube + 2 Vector`；白皮书标明 `L1` `512 KB`、`L0A/L0B` 各 `64 KB`、`L0C` `256 KB`、两个 `UB` 各 `256 KB`（共 `512 KB`） | 产品开放的实际核数按具体型号档位核对，见[硬件设备](hardware-devices.md)与[昇腾 950 的计算与搬运](ascend-950-architecture.md) |
 | **Cube → Vector 中间交接** | `L0C → FixPipe → GM / L2 → MTE2 → UB`；`4096 B` 示意块产生 `4096 + 4096 = 8192 B` 逻辑 `GM` 读写 | `L0C → UB` 片上直通（可随路完成支持的精度与排布转换），省去中间块 `8192 B` 核外 `GM` 逻辑往返 | 原路径若命中核外 `L2 cache`，逻辑 `GM` 流量不等于真实外部 HBM 事务，不能直接除以带宽当提速倍数 |
 | **缓冲复用同步与精度能力** | 显式流水事件标志协调跨阶段读写；原生主力低比特为 `INT8` / `W4A8` | 引入 `Buffer ID`（`get_buf` / `rel_buf`）按缓冲生命周期同步；Cube 原生新增 `FP8`、`HiF8`、`MXFP8`、`MXFP4` | 看到硬件支持 `FP8` / `FP4` 先查[低精度格式](low-precision-formats.md)核对元素位域、分组缩放与累加精度，类型列表不等于整网加速比 |
-| **`v0.30.0` 框架档案选路** | `HardwareProfile` 归入 `STANDARD` 适配族，开启 `RUNTIME_CUSTOM_OPS` 加载自定义 C++ 融合算子库 | 归入 `FP8_OPTIMIZED` 适配族，启用原生 `MXFP` / `FP8` 融合能力，暂门控关闭 `vllm_ascend_C` 自定义算子库 | 这里的 `UB` 是核内 **Unified Buffer**；[CANN 与 HCCL 的 AI QoS 一节](cann-hccl.md#ai-qos-怎样处理共享链路上的争用)里的 **Unified Bus** 是超节点互联协议，仅缩写重名 |
+| **`v0.30.0` 框架档案选路** | `HardwareProfile` 归入 `STANDARD` 适配族，开启 `RUNTIME_CUSTOM_OPS` 加载自定义 C++ 融合算子库（`310P` 归 `COMPATIBILITY` 亦开启） | 归入 `FP8_OPTIMIZED` 适配族，启用原生 `MXFP` / `FP8` 融合能力，`v0.30.0` 门控关闭 `vllm_ascend_C` 自定义算子库（`main` 已为 `A5` 补入 `RUNTIME_CUSTOM_OPS`） | 这里的 `UB` 是核内 **Unified Buffer**；[CANN 与 HCCL 的 AI QoS 一节](cann-hccl.md#ai-qos-怎样处理共享链路上的争用)里的 **Unified Bus** 是超节点互联协议，仅缩写重名 |
 
 ## 放到 GLM 双机：一个 token 在卡上经历什么？
 
@@ -194,7 +194,7 @@ file: aicore-fig-910b-vs-950
 
 ### 怎么开
 
-AI Core 是芯片内的物理执行资源，框架没有所谓的“开启 AI Core”布尔开关；模型前向通过[算子与 kernel 分层](ops-and-kernels.md)把张量交给对应设备算子，由算子实现决定调用哪类核心与搬运路径。以稠密 `W8A8` 线性层为例，入口为 `AscendW8A8DynamicLinearMethod.apply`：未提前量化时先调 `torch_npu.npu_dynamic_quant` 生成 `INT8` 激活与每行尺度 `pertoken_scale`，再调 `torch_npu.npu_quant_matmul` 完成矩阵乘并按 `output_dtype` 输出（反量化可随路包含在算子内部，不代表每次都有独立反量化 kernel）。此外，`vllm_ascend/utils.py` 中的 `enable_custom_op()` 负责按需延迟加载自定义 C++ 算子扩展 `vllm_ascend_C`：在 `v0.30.0` 与 `main` 中，它通过 `get_current_hardware_profile().supports(HardwareCapability.RUNTIME_CUSTOM_OPS)` 判断当前硬件档案是否启用自定义算子库；`A2`、`A3`、`310P` 默认开启，而昇腾 950（`AscendDeviceType.A5`）因自定义算子编译执行仍在演进，当前门控返回 `False`，优先走 CANN 原生算子路径。
+AI Core 是芯片内的物理执行资源，框架没有所谓的“开启 AI Core”布尔开关；模型前向通过[算子与 kernel 分层](ops-and-kernels.md)把张量交给对应设备算子，由算子实现决定调用哪类核心与搬运路径。以稠密 `W8A8` 线性层为例，入口为 `AscendW8A8DynamicLinearMethod.apply`：未提前量化时先调 `torch_npu.npu_dynamic_quant` 生成 `INT8` 激活与每行尺度 `pertoken_scale`，再调 `torch_npu.npu_quant_matmul` 完成矩阵乘并按 `output_dtype` 输出（反量化可随路包含在算子内部，不代表每次都有独立反量化 kernel）。此外，`vllm_ascend/utils.py` 中的 `enable_custom_op()` 负责按需延迟加载自定义 C++ 算子扩展 `vllm_ascend_C`：在 `v0.30.0` 与 `main` 中，它通过 `get_current_hardware_profile().supports(HardwareCapability.RUNTIME_CUSTOM_OPS)` 判断当前硬件档案是否启用自定义算子库；`A2`、`A3`、`310P` 在两版均默认开启，而昇腾 950（`AscendDeviceType.A5`）在 `v0.30.0 (c09d3e20)` 中未列入 `RUNTIME_CUSTOM_OPS`（门控返回 `False`，优先走 CANN 原生算子路径），到 `main (8d6180e2)` 已在硬件档案中新增 `HardwareCapability.RUNTIME_CUSTOM_OPS` 放开加载。
 
 ### 会报什么错
 
@@ -217,7 +217,7 @@ AI Core 是芯片内的物理执行资源，框架没有所谓的“开启 AI Co
 | --- | --- | --- | --- | --- |
 | **`W8A8` 线性层路径与调用** | `methods/w8a8_dynamic.py`；`apply` 含内部 `_chunk_size` 检查（缺省 `0` 不拆两次矩阵乘） | 路径同左；保留相同 `_chunk_size` 分支与缺省 `0` 行为 | 迁入 `methods/w8a8/w8a8_dynamic.py`；移除 `_chunk_size` 拆分，新增 `prepare_input_for_overlap` 返回 `PreparedLinearInput` | 延续 `w8a8/w8a8_dynamic.py` 单次 `npu_quant_matmul` 与 `PreparedLinearInput` 接口 |
 | **共享专家与 MoE `gmm1/gmm2` 组织** | 专家 `MC2` 三路 `gmm1` 分支集中在 `ops/fused_moe/moe_mlp.py` | 线性入口一致，专家融合细节随分支演进 | `moe_mlp.py` 收敛为统一调度器 `apply_moe_mlp`，`W8A8` 的 `apply_gmm1_act_quant` / `apply_gmm2` 迁回方案类；`shared_experts.py` 在辅助流复用 `PreparedLinearInput` | 延续方案类分发，并在 `shared_experts.py` 新增面向 `A5` `MXFP8/MXFP4` 的 `MegamoeSharedExpertFusion` |
-| **昇腾 950（`A5`）硬件档案与 `vllm_ascend_C` 门控** | `utils.py` 的 `enable_custom_op()` 直接判断 `get_ascend_device_type() == AscendDeviceType.A5` 硬编码关闭自定义算子 | 同左，在 `utils.py` 直接按 `AscendDeviceType.A5` 置 `_CUSTOM_OP_ENABLED = False` | 抽离 `device/hardware_profile.py`：`A2/A3` 归 `STANDARD` 并含 `RUNTIME_CUSTOM_OPS`；`A5` 归 `FP8_OPTIMIZED` 且不含 `RUNTIME_CUSTOM_OPS`，由 `enable_custom_op()` 查档案关闭 | `HardwareProfile` 新增 `WeightFormat` 枚举，为 `A5` 显式登记 `FP8/HIF8/MXFP8/MXFP4` 与 `CANN_MEGAMOE_SHARED_EXPERT_FUSION`；`A5` 的 `RUNTIME_CUSTOM_OPS` 仍保持关闭 |
+| **昇腾 950（`A5`）硬件档案与 `vllm_ascend_C` 门控** | `utils.py` 的 `enable_custom_op()` 直接判断 `get_ascend_device_type() == AscendDeviceType.A5` 硬编码关闭自定义算子 | 同左，在 `utils.py` 直接按 `AscendDeviceType.A5` 置 `_CUSTOM_OP_ENABLED = False` | 抽离 `device/hardware_profile.py`：`A2`、`A3`（`STANDARD`）与 `310P`（`COMPATIBILITY`）均含 `RUNTIME_CUSTOM_OPS`；`A5` 归 `FP8_OPTIMIZED` 且未含 `RUNTIME_CUSTOM_OPS`，由 `enable_custom_op()` 查档案关闭 | `HardwareProfile` 新增 `WeightFormat` 枚举，为 `A5` 显式登记 `FP8/HIF8/MXFP8/MXFP4` 与 `CANN_MEGAMOE_SHARED_EXPERT_FUSION`，并在 `hardware_profile.py#L490` 为 `A5` 补入 `HardwareCapability.RUNTIME_CUSTOM_OPS` 开启自定义算子库 |
 
 ### 源码位置
 
@@ -239,9 +239,9 @@ file: ai-core-execution
 - [C8] `db701c1f` `moe_mlp.py:42–222`：两处输入校验报错、`MC2` 下三种 `gmm1` 路径、`MXFP` 分支条件与 `gmm2` 汇合逻辑，`ai-core-execution` 图据此绘制。
 - [C9] `2c59ff10` `w8a8_dynamic.py:75–125` 与 [C10] `2c59ff10` `utils.py:409–453`：`v0.23.0` 线性层 `_chunk_size` 分支及 `enable_custom_op()` 对 `AscendDeviceType.A5` 的直接门控。
 - [C11] `2ed6cbba` `w8a8_dynamic.py:74–124` 与 [C12] `2ed6cbba` `utils.py:401–445`：`v0.26.0rc` 保持相同的线性层 `_chunk_size` 检查与 `A5` 自定义算子关闭逻辑。
-- [C13] `c09d3e20` `hardware_profile.py:148–381` 与 [C14] `c09d3e20` `utils.py:544–588`：`v0.30.0` 建立四族 `HardwareProfile`，`A2/A3` 归 `STANDARD` 并开启 `RUNTIME_CUSTOM_OPS`，`A5` 归 `FP8_OPTIMIZED` 并经档案门控关闭 `vllm_ascend_C` [I]。
+- [C13] `c09d3e20` `hardware_profile.py:148–381` 与 [C14] `c09d3e20` `utils.py:544–588`：`v0.30.0` 建立四族 `HardwareProfile`，`A2`、`A3`、`310P` 均开启 `RUNTIME_CUSTOM_OPS`（`A2/A3` 归 `STANDARD`、`310P` 归 `COMPATIBILITY`），`A5` 归 `FP8_OPTIMIZED` 且未含 `RUNTIME_CUSTOM_OPS`，经档案门控关闭 `vllm_ascend_C` [I]。
 - [C15] `c09d3e20` `w8a8/w8a8_dynamic.py:60–144`、[C16] `w8a8/w8a8_dynamic.py:279–542` 与 [C17] `shared_experts.py:448–540`：`v0.30.0` 移除 `_chunk_size`、引入 `PreparedLinearInput` 供共享专家辅助流提前执行 AIV 量化，并将专家 `gmm1/gmm2` 迁回方案类。
-- [C18] `8d6180e2` `hardware_profile.py:172–502`、[C19] `utils.py:574–615`、[C20] `w8a8/w8a8_dynamic.py:60–144` 与 [C21] `shared_experts.py:146–210`：`main` 增补 `WeightFormat` 原生低比特枚举与 `A5` `MegamoeSharedExpertFusion`，保持 `PreparedLinearInput` 与 `RUNTIME_CUSTOM_OPS` 门控一致。
+- [C18] `8d6180e2` `hardware_profile.py:172–502`（`#L490`）、[C19] `utils.py:574–615`、[C20] `w8a8/w8a8_dynamic.py:60–144` 与 [C21] `shared_experts.py:146–210`：`main` 增补 `WeightFormat` 原生低比特枚举与 `A5` `MegamoeSharedExpertFusion`，延续 `PreparedLinearInput`，并在 `hardware_profile.py#L490` 为 `A5` 新增 `HardwareCapability.RUNTIME_CUSTOM_OPS` 开启自定义算子库。
 - [A] 正文 `x = [1, 2]` 乘矩阵接 $\text{ReLU}$ 为手算示意算例 [A]，`4` 个与 `1024` 个 `FP32` 元素为搬运教学块设定；对应的 `[5, -5] → [5, 0]`、`32 B` 向量读写 [D] 与 `8192 B` 中间块逻辑往返 [D] 均由设定直接算出，不代表实测带宽事务或硬件最小指令块。
 
 **待核：** 稠密 MLP 在固定 GLM 部署下实际命中的 `apply` 子分支及是否采用与共享专家一致的融合组织，仍缺逐层调用追踪（主线底稿保留此项）。专家融合各分支的线上命中率、`AIC / AIV` 实际并发核数、双缓冲流水重叠率、核外真实内存事务量以及端到端吞吐/时延收益，均须以目标镜像的运行 trace 与硬件实测补齐；本页给出的字节数为张量形状与逻辑搬运账，不替代硬件吞吐实测值。

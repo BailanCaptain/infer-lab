@@ -74,6 +74,8 @@ sources:
   - 'vllm-ascend@8d6180e2:vllm_ascend/ops/kimi_kda.py#L598-L850'
   - >-
     raw:sha256-08c5c80fd562026f77c85a102ffd4cedae609ed7d2c5faa5498ec73d556ed625.md#L1-L700
+  - 'vllm@ced6857a:vllm/config/model.py#L2137-L2139'
+  - 'vllm@0fc695fc:vllm/config/model.py#L1852-L1857'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
@@ -142,7 +144,7 @@ $$I_{\text{BF16}}(M) = \frac{2MNK}{2(MK + KN + MN)} = \frac{1}{\frac{1}{M} + \fr
 
 | 运行阶段与批宽（`Qwen3-8B` BF16） | 全层权重理想读取 | `q_proj` 算术强度 $I_{\text{BF16}}$ | 全层 HBM `KV cache` 读写 | `lm_head` 输出分数张量（FP32） | 典型硬件受限倾向 |
 | --- | --- | --- | --- | --- | --- |
-| **Prefill（`N = 2048` 整段）** | `15.26 GiB` 读 1 遍复用 `2048` 行 | **`1024.0 FLOP/B`**（若 `N=6000` 达 `1462.9`） | 批量写入 `2048 × 144 KiB = 288.0 MiB` | `logits_indices` 切末行：`[1, 151936] ≈ 0.58 MiB`（省去全算 `1.16 GiB`） | 远高于硬件脊点（`~120–270`），偏 **Cube 算力受限** |
+| **Prefill（`N = 2048` 整段）** | `15.26 GiB` 读 1 遍复用 `2048` 行 | **`1024.0 FLOP/B`**（若 `N=6000` 达 `1526.8`） | 批量写入 `2048 × 144 KiB = 288.0 MiB` | `logits_indices` 切末行：`[1, 151936] ≈ 0.58 MiB`（省去全算 `1.16 GiB`） | 远高于硬件脊点（`~120–270`），偏 **Cube 算力受限** |
 | **单请求 Decode（`M = 1`）** | `15.26 GiB` 仍须整套通读 1 遍 | **`1.00 FLOP/B`** | 读历史 `288.0 MiB` + 写新格 `144.0 KiB` | 单行输出：`[1, 151936] ≈ 0.58 MiB` | 深陷 **HBM 权重 + KV 带宽受限** |
 | **拼批 Decode（`M = 12` 条同长历史）** | `15.26 GiB` 由 12 条请求分摊 | **`11.93 FLOP/B`**（单条的约 12 倍） | 读独立历史 `12 × 288 MiB = 3.38 GiB` | 12 行输出：`[12, 151936] ≈ 6.96 MiB` | 权重带宽摊薄，但仍处带宽斜坡且独立 KV 翻倍 |
 
@@ -249,7 +251,7 @@ Prefill 无需手动开启，每条请求进门必经它。改变两阶段批宽
 | `--max-num-seqs` | 单 DP 组同时在跑的最大请求数 | 默认按平台配置推导 | `32` |
 | `--enable-chunked-prefill` | 允许长提示词按剩余预算跨多步切分 | 未显式传参时由模型分块能力推导开启 | 未写，按支持能力默认开启 |
 | `--long-prefill-token-threshold` | 单条长提示词每步可分得的额外上限 | 默认 `0`（不另设单条上限） | 默认 `0` |
-| `--enable-prefix-caching` | 兼容前缀块直接复用历史 `KV cache` | 标准稠密 GQA 模型默认开启 | 混合线性注意力模型默认关闭 |
+| `--enable-prefix-caching` | 兼容前缀块直接复用历史 `KV cache` | 标准稠密 GQA 与生成类 hybrid 模型均返回 `True` 默认开启（`config/model.py#L2137-L2139`） | `v0.23.0`（`0fc695fc`）历史基线中混合线性注意力模型默认关闭 |
 | `--speculative-config` / `-cc` | 投机候选数与图捕获模式（如 `FULL_DECODE_ONLY`） | 默认不启用投机；图模式默认 `FULL_AND_PIECEWISE` | MTP 草拟 `3` 个；仅纯解码回放整图 |
 
 **请求提示词概率（`prompt_logprobs`）。** 该字段是逐请求参数（Python `SamplingParams`、HTTP `/v1/completions` 与 `/v1/chat/completions` 请求体顶层整数或 `None`/`null`，默认均为 `None`，不从 `generation_config.json` 继承）[C22]：

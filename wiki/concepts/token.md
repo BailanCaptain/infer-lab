@@ -51,7 +51,7 @@ sources:
   - 'https://huggingface.co/Qwen/Qwen3-8B/raw/main/config.json'
   - 'vllm@ced6857a:vllm/renderers/hf.py#L263-L315'
   - 'vllm@ced6857a:vllm/renderers/hf.py#L753-L885'
-  - 'vllm@ced6857a:vllm/renderers/params.py#L170-L485'
+  - 'vllm@ced6857a:vllm/renderers/params.py#L170-L566'
   - 'vllm@ced6857a:vllm/tokenizers/registry.py#L33-L275'
   - 'vllm@ced6857a:vllm/tokenizers/hf.py#L115-L150'
   - 'vllm@ced6857a:vllm/v1/engine/input_processor.py#L354-L380'
@@ -338,11 +338,11 @@ file: token-fig-myths
 
 | 核对维度 | `v0.23.0 (2c59ff10/0fc695fc)` | `v0.26.0rc (2ed6cbba/568afb3a)` | `v0.30.0 (c09d3e20/ced6857a)`（主基线） | `main (8d6180e2/ba15685a)` |
 | --- | --- | --- | --- | --- |
-| Chat 模板包装与 `assistant_tokens_mask` | `safe_apply_chat_template` 默认 `tokenize=True`、强制兼容 `return_dict=False`；无 `return_assistant_tokens_mask` 形参 | 新增 `return_assistant_tokens_mask=False`（模板含 `{% generation %}` 时可导出助手位置掩码） | 延续 `return_assistant_tokens_mask` 支持；对话入口收拢至 `openai/chat_completion/serving.py` 与 `HfRenderer` | 移除 `hf.py` 内的 `return_assistant_tokens_mask` 分支；模板内部异常统一转为 400 `VLLMValidationError` |
-| 分词器注册表与 `--tokenizer-mode` | 共用 `hf`、`mistral`、`deepseek_v32`、`deepseek_v4`、`kimi_audio`，另含 `grok2`、`qwen_vl`；支持 `slow` | 移除 `grok2`/`qwen_vl`，新增原生输出编号的 `inkling`；保留 `slow` | 在 `v0.26` 基础上新增 `cohere`、`deepseek_v41`、`kimi_k3`；`hf` 显式拒绝 `mistral_format=True` 且对特定 Mistral 仓校验 `transformers>=5.15.0` | 新增 `alpamayo2_super`、`glm5_next`；**移除 `slow` 模式**与 `5.15.0` 常量检查，默认对生成任务注入 `truncation_side="left"` |
+| Chat 模板包装与 `assistant_tokens_mask` | `safe_apply_chat_template` 默认 `tokenize=True`、强制兼容 `return_dict=False`；无 `return_assistant_tokens_mask` 形参 | 新增 `return_assistant_tokens_mask=False`（模板含 `{% generation %}` 时可导出助手位置掩码） | 延续 `return_assistant_tokens_mask` 支持，模板内部异常统一转为 HTTP 400 `VLLMValidationError`（`hf.py#L880`）；对话入口收拢至 `openai/chat_completion/serving.py` 与 `HfRenderer` | 移除 `hf.py` 内的 `return_assistant_tokens_mask` 分支；保留模板异常转 HTTP 400 `VLLMValidationError` |
+| 分词器注册表与 `--tokenizer-mode` | 共用 `hf`、`mistral`、`deepseek_v32`、`deepseek_v4`、`kimi_audio`，另含 `grok2`、`qwen_vl`；支持 `slow`（四版均对生成/草稿任务默认注入 `truncation_side="left"`） | 移除 `grok2`/`qwen_vl`，新增原生输出编号的 `inkling`；保留 `slow` | 在 `v0.26` 基础上新增 `cohere`、`deepseek_v41`、`kimi_k3`；`hf` 显式拒绝 `mistral_format=True` 且对特定 Mistral 仓校验 `transformers>=5.15.0` | 新增 `alpamayo2_super`、`glm5_next`；**移除 `slow` 模式**与 `5.15.0` 常量检查 |
 | 输入长度与路由记录起点校验 | `InputProcessor` 按编号数或嵌入行数计 `seq_len`，未传 `max_tokens` 时补为 `max_model_len - seq_len` | 与 `v0.23.0` 一致 | 统一命名为 `prompt_len`，新增校验 `routed_experts_prompt_start` 必须落在 `[0, prompt_len]` | 延续 `routed_experts_prompt_start` 校验，并新增 `prompt_logprob_start < prompt_len - 1` 边界校验 |
 | 词表上下界校验与 `max_token_id` | 仅当 `tokenizer` 非空时在 `InputProcessor` 查上界；`hf.py` 缓存 `max(max_id, tokenizer.vocab_size)` | 与 `v0.23.0` 一致 | `InputProcessor` **新增拦截负数编号**（`min_input_id < 0` 同样抛 `out of vocabulary`） | 迁入 `BaseRenderer.validate_token_ids`，**无 `tokenizer` 时也按 `model_vocab_size - 1` 校验**；`hf.py` 修正为 `tokenizer.vocab_size - 1` |
-| 顶层对话参数与超长截断 | `limit_mm_per_prompt`（未列模态 `999`、`enable_mm_embeds` 例外）、`add_generation_prompt` 等顶层合并一致；显式方向在完整编码后切片 | 顶层参数一致；文本超过预算对应字符上界 `max_input_chars` 时先按显式方向裁文本再编码 | 保留 `max_input_chars` 预裁防护，并将 token 切片抽为共用 `_truncate_tokens` 同步裁剪附属对齐字段 | 延续 `v0.30.0` 的 `_truncate_tokens` 与参数合并契约 |
+| 顶层对话参数与超长截断 | `limit_mm_per_prompt`（未列模态 `999`、`enable_mm_embeds` 例外）、`add_generation_prompt` 等顶层合并一致；显式方向在完整编码后切片 | 顶层参数一致；文本超过预算对应字符上界 `max_input_chars` 时先按显式方向裁文本再编码 | 保留 `max_input_chars` 预裁防护，并将 token 切片抽为共用 `_truncation_slice`（经 `_token_truncation` 与 `apply_post_tokenization` 调用以同步裁剪附属对齐字段） | 延续 `v0.30.0` 的 `_truncation_slice` 与参数合并契约 |
 | 昇腾 Worker 输入张量准备 | `vllm_ascend/worker/model_runner_v1.py` 在 A3 按调度预算准备设备侧 `input_ids` 与 `positions` | 延续 `model_runner_v1.py` 准备路径 | `model_runner_v1.py` `_prepare_inputs` 统一管理 CPU/NPU `positions` 与 `input_ids` 缓冲拷贝 | 迁入 V2 运行器 `vllm_ascend/worker/v2/model_runner.py` 的 `input_buffers.input_ids` 与 `positions` |
 
 ### 源码位置
@@ -352,8 +352,8 @@ file: token-fig-myths
 来源索引按结论归并，编号对应页头 `sources`：
 
 - 子词切分概览、对话模板角色边界与稀有词 BPE 算法依据 Transformers 官方文档与 Sennrich 等人的论文 [S1][S2][S3]；`Qwen3-8B` 的 `vocab_size=151936`、`bos_token_id=151643`、`eos_token_id=151645` 依据预设模型配置 [S4]。
-- `v0.30.0` 主基线模板四级解析、Transformers v4.44 缺模板报错与 `return_dict=False` 兼容见 `hf.py` [C5][C6]；截断参数与 `_truncate_tokens` 见 `params.py` [C7]；分词器注册表、`auto`/`slow`/`hf` 与 `5.15.0` 门槛见 `registry.py` 及 `ModelConfig` [C8][C14]（命令行 `--chat-template` 与路径报错见来源 18、19）。
+- `v0.30.0` 主基线模板四级解析、Transformers v4.44 缺模板报错、`return_dict=False` 兼容及模板异常转 400 `VLLMValidationError` 见 `hf.py` [C5][C6]；截断参数与 `_truncation_slice`（由 `_token_truncation` 与 `apply_post_tokenization` 调用）见 `params.py` [C7]；分词器注册表、`auto`/`slow`/`hf`、生成任务默认 `truncation_side="left"` 与 `5.15.0` 门槛见 `registry.py` 及 `ModelConfig` [C8][C14]（命令行 `--chat-template` 与路径报错见来源 18、19）。
 - `HfTokenizer.max_token_id` 兼容上界计算见 `tokenizers/hf.py` [C9]；`prompt_len`、`routed_experts_prompt_start`、负数与越界编号拦截见 `input_processor.py` [C10][C11]；请求提交与 `OutputProcessor` 登记、增量反分词与 `skipped_stop_token_id` 停词跳过分别见 `async_llm.py` 与 `detokenizer.py` [C13][C12]（调度判停与 `generation_config` 结束符并入见来源 22、23）。
 - 对话顶层字段互斥、变量优先级与 `reasoning_effort` 推导见 `chat_completion/protocol.py` [C15]（Completions 默认与多模态 `limit_per_prompt` / `enable_mm_embeds` 例外见来源 16、17、20、21）；昇腾侧设备 `input_ids` 与 `positions` 准备见 `model_runner_v1.py` [C24]。
-- 跨版本演进对照：`v0.23.0` 与 `v0.26.0rc` 对照见来源 25–31；`main` 移除 `slow` 模式、`vocab_size - 1` 修正与无 `tokenizer` 词表校验下沉至 `BaseRenderer.validate_token_ids` 见 [C32][C33][C34]（模板 400 包装与昇腾 V2 runner 见来源 35–37）。
+- 跨版本演进对照：`v0.23.0` 与 `v0.26.0rc` 对照见来源 25–31；`main` 移除 `slow` 模式、`vocab_size - 1` 修正与无 `tokenizer` 词表校验下沉至 `BaseRenderer.validate_token_ids` 见 [C32][C33][C34]（`main` 移除 `return_assistant_tokens_mask`、保留 400 包装及昇腾 V2 runner 见来源 35–37）。
 - 变体与案例边界：DeepSeek Recipe 的 `special_ranges` 与 `MissingTokenizer` 依据其固定文档 [S38]；`GLM-5.3-Flash` 的 `154,880` 词表三段划分、`ignore_merges`、`36` 个新增词元中 `18` 个 `special=true`、三个 EOS 编号、教程 `image=1/video=0` 及 `tokenizers 0.22.1` 编码对照依据固定模型文件与教程 [S39][S40][S42][S43][S44]（底层 Rust 分词器实现与 DP 选组见来源 45–49）；子词合并步数守恒算式由字节数展开 [D]，R1 的 4 token 输入与开头切分编号属教学设定，本页不含主机分词耗时与并发吞吐实测 [A]。

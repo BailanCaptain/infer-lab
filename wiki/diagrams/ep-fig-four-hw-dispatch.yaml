@@ -1,11 +1,13 @@
 mode: native-svg
 id: ep-fig-four-hw-dispatch
 caption: >-
-  v0.30.0 MoE 通信选路决策树（select_moe_comm_method + HardwareProfile）：先过两道全局前置门（未开 EP 或 ep_world == 1 直返 ALLGATHER；LoRA + EP 强制 ALLTOALL），开启 EP 且无 LoRA 时按四族硬件策略分流——Atlas A2 校验每卡专家数 ≤ 24、EP ≥ 16 且不超过动态门槛 mc2_tokens_capacity；Atlas A3 优先 MegaMoe / FUSED_MC2（EP ≤ 32），其次容内 MC2、超容 ALLTOALL；310P 恒走 ALLGATHER；昇腾 950（A5）依次选 FUSED_MC2、容内 MC2、world ≤ top_k 的 ALLGATHER 或 ALLTOALL。
+  v0.30.0 MoE 通信选路决策树（select_moe_comm_method + HardwareProfile）：先过两道全局前置门（未开 EP 或 ep_world == 1 直返 ALLGATHER；LoRA + EP 强制 ALLTOALL），开启 EP 且无 LoRA 时按四族硬件策略分流——Atlas A2 校验每卡专家数 ≤ 24、EP ≥ 16 且不超过动态门槛 mc2_tokens_capacity；Atlas A3 优先 FUSED_MC2（use_cann_megamoe 允许 EP ≤ 64，非 MegaMoe 的 enable_fused_mc2 == 1 要求 EP ≤ 32），其次容内 MC2、超容 ALLTOALL；310P 恒走 ALLGATHER；昇腾 950（A5）依次选 FUSED_MC2、容内 MC2、world ≤ top_k 的 ALLGATHER 或 ALLTOALL。
 size: [900, 580]
 pins:
   - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L289-L342
     symbols: [HardwareProfile, MoECommPolicy, CAPACITY_AND_EXPERT_DENSITY, FUSED_OR_CAPACITY, ALLGATHER, CAPACITY_AND_WORLD_SIZE]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L87-L97
+    symbols: [use_cann_megamoe]
   - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L243-L425
     symbols: [set_mc2_tokens_capacity, select_moe_comm_method, MoECommType, FUSED_MC2, MC2, ALLTOALL]
   - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L574-L606

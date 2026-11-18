@@ -3,7 +3,7 @@ id: roofline-matmul-intensity
 caption: Qwen3-8B 线性投影 [M, 4096]×[4096, 4096] 随行数 M 与 W8A8 量化的算术强度跃迁
 size: [900, 430]
 pins:
-  - source: "vllm@ced6857a:vllm/model_executor/models/qwen3.py#L99-L135"
+  - source: "vllm@ced6857a:vllm/model_executor/models/qwen3.py#L65-L135"
     symbols:
       - Qwen3Attention
       - qkv_proj

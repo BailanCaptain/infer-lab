@@ -23,7 +23,7 @@
 
   <!-- 右上：Qwen3-30B-A3B 单块解剖 -->
   <text x="466" y="34" font-size="16" font-weight="700" fill="#936300">Qwen3-30B-A3B · 稀疏 MoE（48 层 · 4 KV 头）</text>
-  <text x="466" y="64" font-size="13.5" fill="#4d5652">① 1 token 单层：<tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">2(K,V) × 4 × 128 × 2B = 2 KiB</tspan>（全层 96 KiB）</text>
+  <text x="466" y="64" font-size="13.5" fill="#4d5652">① 单词单层：<tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">2 × 4 × 128 × 2B = 2 KiB</tspan>（全层 96 KiB）</text>
 
   <text x="466" y="98" font-size="13.5" font-weight="700" fill="#17211f">② 单层 1 块（KV 头减半，单层页宽减半）：</text>
   <rect x="466" y="110" width="256" height="30" rx="5" fill="#ece9df"/>

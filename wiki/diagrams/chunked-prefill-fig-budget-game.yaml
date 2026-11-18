@@ -1,0 +1,26 @@
+mode: native-svg
+id: chunked-prefill-fig-budget-game
+caption: >-
+  v0.30.0 单步 token_budget 博弈与昇腾耦合规则：Scheduler.schedule 先扣除 running Decode 请求（每条 1 个或投机 1+K 个 token），再将余量切给 Prefill 分块；昇腾 vllm serve 因初始化前 get_device_total_memory 抛 NotImplementedError 默认回落 2048，开启 SP+PCP 会静默向上取整至 tp×pcp 倍数，而 PP>1 与 CPP 可将预算放大至固定分块的 2~4 倍以减少前缀 KV 重复读取并压缩 TTFT。
+size: [900, 480]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L580-L665'
+    symbols:
+      - token_budget
+      - max_num_scheduled_tokens
+      - num_tokens_with_spec
+      - long_prefill_token_threshold
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L231-L245'
+    symbols:
+      - get_device_total_memory
+      - NotImplementedError
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L816-L828'
+    symbols:
+      - prefill_context_parallel_size
+      - tp_pcp_size
+      - max_num_batched_tokens
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/core/scheduler_profiling_chunk.py#L107-L115'
+    symbols:
+      - max_num_scheduled_tokens
+      - ProfilingChunkManager
+      - base_chunk_size

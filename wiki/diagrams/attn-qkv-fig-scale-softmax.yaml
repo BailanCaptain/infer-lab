@@ -1,0 +1,13 @@
+mode: native-svg
+id: attn-qkv-fig-scale-softmax
+caption: 1/√d 缩放与因果掩码联合机制图：左侧对比 d = 256 时未缩放（标准差 16 推入 Softmax 赢家通吃饱和区）与乘 1/√256 = 0.0625 拉回单位方差后的权重分布；右侧展示下三角因果可见域（未来位置置 -∞ 后归零）与昇腾 sparse_mode = 3 右下对齐裁剪约定。
+size: [900, 436]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L225-L258'
+    symbols: ['Attention', 'head_size', 'scale', 'AttentionType']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L163-L176'
+    symbols: ['qk_head_dim', 'qk_nope_head_dim', 'qk_rope_head_dim', 'scaling']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L632-L636'
+    symbols: ['sparse_mode', 'sliding_window', 'causal']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L529-L577'
+    symbols: ['npu_sparse_flash_attention', 'scale_value', 'sparse_indices', 'sparse_mode']

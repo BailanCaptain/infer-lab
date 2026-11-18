@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 444" width="900" height="444" role="img" aria-label="TP 成对切分省中间通信与 GQA/MLA KV 状态复制边界对比图" font-family="var(--font-sans)">
+  <title>TP 成对切分与 KV 状态触底复制对比。</title>
+  <desc>上半部展示 ColumnParallelLinear 到本地激活或头计算再到 RowParallelLinear 与末尾一次 All-Reduce；下半部对比 GQA 在 TP 大于 KV 头数时的副本复制与 MLA 共享潜向量逐卡复制。</desc>
+  <defs>
+    <marker id="tp-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="tp-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="30" font-size="16" font-weight="700" fill="#17211f">A. 权重成对切分：先列切 → 本地激活 / 头计算 → 再行切 → 末尾 1 次 All-Reduce</text>
+
+  <rect x="14" y="46" width="198" height="74" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="238" y="46" width="206" height="74" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <rect x="470" y="46" width="198" height="74" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <rect x="694" y="46" width="192" height="74" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+
+  <g fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#tp-arr-g)">
+    <path d="M 212 83 L 232 83"/>
+    <path d="M 444 83 L 464 83"/>
+  </g>
+  <path d="M 668 83 L 688 83" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#tp-arr-p)"/>
+
+  <g text-anchor="middle" font-size="14.5" font-weight="700">
+    <text x="113" y="76" font-family="var(--font-mono)" fill="#936300">ColumnParallelLinear</text>
+    <text x="341" y="76" fill="#065f56">本地激活 φ / 本卡头计算</text>
+    <text x="569" y="76" font-family="var(--font-mono)" fill="#936300">RowParallelLinear</text>
+    <text x="790" y="76" font-family="var(--font-mono)" fill="#7a3a6a">All-Reduce (SUM)</text>
+  </g>
+  <g text-anchor="middle" font-size="13.5">
+    <text x="113" y="102" fill="#17211f">切输出维 1/TP，数值完整</text>
+    <text x="341" y="102" fill="#065f56">逐通道独立算，零中间通信</text>
+    <text x="569" y="102" fill="#17211f">切输入维接分片，得部分和</text>
+    <text x="790" y="102" fill="#7a3a6a">末尾 1 次求和还原完整 Y</text>
+  </g>
+
+  <text x="14" y="146" font-size="13.5" fill="#8f3229">✗ 反例：若先按行切，因非线性 φ(P₀ + P₁) ≠ φ(P₀) + φ(P₁)，激活前必须多做 1 次 All-Reduce；两次都列切则中间须 All-Gather。</text>
+
+  <line x1="14" y1="164" x2="886" y2="164" stroke="#b8bcb5" stroke-width="1.4"/>
+  <line x1="450" y1="178" x2="450" y2="432" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <g font-size="16" font-weight="700" fill="#17211f">
+    <text x="14" y="198">B1. GQA 缓存触底：TP &gt; total_num_kv_heads</text>
+    <text x="466" y="198">B2. MLA 共享潜向量：单头潜空间逐卡复制</text>
+  </g>
+
+  <rect x="14" y="214" width="420" height="214" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <rect x="466" y="214" width="420" height="214" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+
+  <g font-size="14.5" font-weight="700">
+    <text x="28" y="242" fill="#3a4f93">示意：total_num_kv_heads = 4，TP = 8</text>
+    <text x="480" y="242" fill="#936300">GLM 稀疏 MLA：kv_lora_rank = 512（记 1 头）</text>
+  </g>
+  <g font-size="13.5" fill="#66716d">
+    <text x="28" y="266">Q 头继续按 1/8 切；KV 头触到「每卡至少 1 头」地板</text>
+    <text x="480" y="266">q_b_proj / kv_b_proj 按头切；本卡 8 头共读完整潜向量</text>
+  </g>
+
+  <g fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3">
+    <rect x="28" y="280" width="92" height="42" rx="5"/>
+    <rect x="128" y="280" width="92" height="42" rx="5"/>
+    <rect x="228" y="280" width="92" height="42" rx="5"/>
+    <rect x="328" y="280" width="92" height="42" rx="5"/>
+  </g>
+  <g text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">
+    <text x="74" y="306">R0,1:KV0</text>
+    <text x="174" y="306">R2,3:KV1</text>
+    <text x="274" y="306">R4,5:KV2</text>
+    <text x="374" y="306">R6,7:KV3</text>
+  </g>
+
+  <rect x="480" y="280" width="392" height="42" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="676" y="306" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">R0 … R7 各存完整 [T, 512] 潜向量（8 份副本）</text>
+
+  <g font-size="13.5" font-family="var(--font-mono)" font-weight="700">
+    <text x="28" y="350" fill="#7a3a6a">num_kv_head_replicas = TP // kv_heads = 2</text>
+    <text x="480" y="350" fill="#065f56">get_num_kv_heads(use_mla=True) -&gt; 1</text>
+  </g>
+  <g font-size="13.5">
+    <text x="28" y="376" fill="#3a4f93">加载偏移：shard_rank = tp_rank // 2（2 卡同持 1 份）</text>
+    <text x="28" y="404" font-weight="700" fill="#8f3229">后果：单卡 KV 停在 1 头，8 卡总驻留翻倍为 8 份</text>
+    <text x="480" y="376" fill="#936300">每位置每层：单卡 1,024 B，TP8 全组占 8,192 B</text>
+    <text x="480" y="404" font-weight="700" fill="#065f56">分摊路径：须开 decode_context_parallel_size &gt; 1 (DCP)</text>
+  </g>
+</svg>

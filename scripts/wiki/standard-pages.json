@@ -104,7 +104,17 @@
     "netloader-guide",
     "ai-qos",
     "vllm-ascend-for-rl",
-    "sleep-mode"
+    "sleep-mode",
+    "request-overview",
+    "ascend-model-onboarding",
+    "hf-model-anatomy",
+    "ascend-env-and-serve",
+    "continuous-batching",
+    "paged-attention",
+    "roofline-and-metrics",
+    "ascend-flash-attention",
+    "low-precision-formats",
+    "core-cli-params"
   ],
   "skip": {
     "learning-guide": ["source-sections", "diagram-first"]

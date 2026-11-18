@@ -1,0 +1,10 @@
+mode: native-svg
+id: aicore-fig-910b-vs-950
+caption: >-
+  910B（Atlas A2 / A3）分离架构与昇腾 950（A5）CV 融合子系统的交接对比：沿 [1, 2] → [5, -5] → [5, 0] 示意路径，910B 的 AIC 与 AIV 经核外 GM/L2 交接中间块（1024×FP32 示意块对应 8192 B 逻辑读写），而 950 通过 L0C → UB 片上随路转换直通与 Buffer ID 同步省去该轮核外落盘；底部对应 v0.30.0 HardwareProfile 的软件选路差异。
+size: [900, 450]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L281-L381
+    symbols: [AscendDeviceType, HardwareProfile, FP8_OPTIMIZED, RUNTIME_CUSTOM_OPS, DYNAMIC_MX_QUANT_FUSION]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L94-L144
+    symbols: [npu_dynamic_quant, npu_quant_matmul, PreparedLinearInput, maybe_trans_nz]

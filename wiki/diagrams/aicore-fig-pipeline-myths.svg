@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="AI Core 双缓冲流水重叠与四大常见误区对比" font-family="var(--font-sans)">
+<title>双缓冲（Ping/Pong）三级流水重叠时间轴与四大常见误区对照</title>
+<desc>CopyIn Compute CopyOutY TQue PipeBarrier enable_custom_op</desc>
+<g stroke-width="1.4">
+<rect x="184" y="60" width="164" height="36" rx="6" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="360" y="60" width="164" height="36" rx="6" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="360" y="108" width="164" height="36" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="536" y="60" width="164" height="36" rx="6" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="536" y="108" width="164" height="36" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="536" y="156" width="164" height="36" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="712" y="108" width="164" height="36" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="712" y="156" width="164" height="36" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+</g>
+<g stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4">
+<line x1="14" y1="234" x2="886" y2="234"/>
+<line x1="14" y1="366" x2="886" y2="366"/>
+<line x1="450" y1="244" x2="450" y2="488"/>
+</g>
+<g stroke-width="3">
+<line x1="18" y1="278" x2="18" y2="348" stroke="#b54237"/>
+<line x1="470" y1="278" x2="470" y2="348" stroke="#c78300"/>
+<line x1="18" y1="410" x2="18" y2="480" stroke="#4c65b6"/>
+<line x1="470" y1="410" x2="470" y2="480" stroke="#087f73"/>
+</g>
+<circle cx="26" cy="26" r="12" fill="#087f73"/>
+<g fill="#b54237">
+<circle cx="26" cy="258" r="12"/>
+<circle cx="478" cy="258" r="12"/>
+<circle cx="26" cy="390" r="12"/>
+<circle cx="478" cy="390" r="12"/>
+</g>
+<g font-weight="700">
+<text x="26" y="30.5" text-anchor="middle" font-size="12.5" fill="#ffffff">1</text>
+<text x="44" y="32" font-size="16" fill="#17211f">双缓冲（Ping / Pong）三级流水重叠：掩盖气泡，逼近屋顶</text>
+<text x="266" y="53" text-anchor="middle" font-size="13.5" fill="#66716d">拍 T1（预热）</text>
+<text x="442" y="53" text-anchor="middle" font-size="13.5" fill="#66716d">拍 T2（叠入）</text>
+<text x="618" y="53" text-anchor="middle" font-size="13.5" fill="#087f73">拍 T3（满流稳态）</text>
+<text x="794" y="53" text-anchor="middle" font-size="13.5" fill="#66716d">拍 T4（收尾）</text>
+<text x="16" y="83" font-size="14" fill="#3a4f93">CopyIn · MTE2/1</text>
+<text x="16" y="131" font-size="14" fill="#936300">Compute · Cube/V</text>
+<text x="16" y="179" font-size="14" fill="#065f56">CopyOut · Fix/MTE3</text>
+<text x="266" y="83" text-anchor="middle" font-size="13.5" fill="#3a4f93">块0 · Ping 搬入</text>
+<text x="442" y="83" text-anchor="middle" font-size="13.5" fill="#7a3a6a">块1 · Pong 搬入</text>
+<text x="442" y="131" text-anchor="middle" font-size="13.5" fill="#936300">块0 · Ping 计算</text>
+<text x="618" y="83" text-anchor="middle" font-size="13.5" fill="#3a4f93">块2 · Ping 复用</text>
+<text x="618" y="131" text-anchor="middle" font-size="13.5" fill="#936300">块1 · Pong 计算</text>
+<text x="618" y="179" text-anchor="middle" font-size="13.5" fill="#065f56">块0 · Ping 写出</text>
+<text x="794" y="131" text-anchor="middle" font-size="13.5" fill="#936300">块2 · Ping 计算</text>
+<text x="794" y="179" text-anchor="middle" font-size="13.5" fill="#065f56">块1 · Pong 写出</text>
+<text x="26" y="262.5" text-anchor="middle" font-size="12.5" fill="#ffffff">2</text>
+<text x="44" y="264" font-size="15" fill="#17211f">片上搬运（MTE）≠ 跨卡集合通信</text>
+<text x="30" y="298" font-size="13.5" fill="#b54237">✗ 误解：把 GM↔L1/UB 交接当成跨卡通信</text>
+<text x="30" y="324" font-size="13.5" fill="#065f56">✓ 真相：MTE 只在单颗 NPU 内搬数据块</text>
+<text x="478" y="262.5" text-anchor="middle" font-size="12.5" fill="#ffffff">3</text>
+<text x="496" y="264" font-size="15" fill="#17211f">双缓冲掩盖等待 ≠ 抬高算力屋顶</text>
+<text x="482" y="298" font-size="13.5" fill="#b54237">✗ 误解：开 double buffer 能让峰值算力翻倍</text>
+<text x="482" y="324" font-size="13.5" fill="#065f56">✓ 真相：它只消除流水气泡、推近 Roofline</text>
+<text x="26" y="394.5" text-anchor="middle" font-size="12.5" fill="#ffffff">4</text>
+<text x="44" y="396" font-size="15" fill="#17211f">910B 回写 L1 ≠ 直接送进 AIV UB</text>
+<text x="30" y="430" font-size="13.5" fill="#b54237">✗ 误解：FixPipe 回 L1 就能直接喂给 Vector</text>
+<text x="30" y="456" font-size="13.5" fill="#065f56">✓ 真相：910B 分离核跨侧交接须经 GM / L2</text>
+<text x="478" y="394.5" text-anchor="middle" font-size="12.5" fill="#ffffff">5</text>
+<text x="496" y="396" font-size="15" fill="#17211f">算子名与 Python 调用数 ≠ 物理核数</text>
+<text x="482" y="430" font-size="13.5" fill="#b54237">✗ 误解：调一次 matmul 就固定只跑 1 个核</text>
+<text x="482" y="456" font-size="13.5" fill="#065f56">✓ 真相：核数与分块由 Host Tiling 与轨迹决定</text>
+</g>
+<text x="16" y="216" font-size="13.5" fill="#4d5652">同步条件：块0 写出释放后，块2 才能覆写 Ping 缓冲（由 TQue 队列与 PipeBarrier 守卫）</text>
+<text x="30" y="347" font-size="13.5" fill="#4d5652">跨卡 All-Reduce / 派发走 HCCS 与 HCCL</text>
+<text x="482" y="347" font-size="13.5" fill="#4d5652">占双倍片上空间，小块或算力受限时未必快</text>
+<text x="30" y="479" font-size="13.5" fill="#4d5652">昇腾 950 才新增 L0C → UB 片上直通通路</text>
+<text x="482" y="479" font-size="13.5" fill="#4d5652">自定义算子还受 enable_custom_op 档案门控</text>
+</svg>

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 450" width="900" height="450" role="img" aria-label="910B 分离架构与昇腾 950 CV 融合架构对比" font-family="var(--font-sans)">
+<title>910B 分离架构经 GM 交接 vs 昇腾 950 CV 融合 L0C 直通 UB</title>
+<desc>HardwareProfile A2/A3 STANDARD vs A5 FP8_OPTIMIZED</desc>
+<line x1="450" y1="14" x2="450" y2="438" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g stroke-width="1.4">
+<rect x="16" y="68" width="224" height="56" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="260" y="68" width="152" height="56" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="16" y="148" width="396" height="68" rx="8" fill="#fff0e9" stroke="#b54237"/>
+<rect x="16" y="266" width="188" height="64" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="224" y="266" width="188" height="64" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="350" width="396" height="82" rx="8" fill="#fae1d8" stroke="#d88c82"/>
+<rect x="468" y="68" width="232" height="56" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="720" y="68" width="144" height="56" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="468" y="148" width="396" height="68" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="468" y="266" width="188" height="64" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="676" y="266" width="188" height="64" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="468" y="350" width="396" height="82" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+</g>
+<path d="M240 96h18m-5-4l5 4-5 4M336 124v22m-4-5l4 5 4-5M214 246v18m-4-5l4 5 4-5" fill="none" stroke="#b54237" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M204 298h18m-5-4l5 4-5 4M700 96h18m-5-4l5 4-5 4M792 124v22m-4-5l4 5 4-5M666 246v18m-4-5l4 5 4-5M656 298h18m-5-4l5 4-5 4" fill="none" stroke="#087f73" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="26" cy="26" r="12" fill="#b54237"/>
+<circle cx="478" cy="26" r="12" fill="#087f73"/>
+<g font-weight="700">
+<text x="26" y="30.5" text-anchor="middle" font-size="12.5" fill="#ffffff">1</text>
+<text x="44" y="32" font-size="16" fill="#17211f">910B（A2 / A3）分离架构：跨核绕行 GM</text>
+<text x="128" y="91" text-anchor="middle" font-size="14.5" fill="#936300">AIC：L1 → L0A/B → Cube</text>
+<text x="336" y="91" text-anchor="middle" font-size="14.5" fill="#7a3a6a">L0C · FixPipe</text>
+<text x="28" y="175" font-size="14.5" fill="#8f3229">✗ 核外中转：GM / 核外 L2（跨核落盘）</text>
+<text x="110" y="292" text-anchor="middle" font-size="14.5" fill="#3a4f93">MTE2 搬入 AIV UB</text>
+<text x="318" y="292" text-anchor="middle" font-size="14.5" fill="#065f56">Vector → MTE3</text>
+<text x="28" y="377" font-size="14.5" fill="#8f3229">v0.30.0 档案：A2 / A3（STANDARD）</text>
+<text x="478" y="30.5" text-anchor="middle" font-size="12.5" fill="#ffffff">2</text>
+<text x="496" y="32" font-size="16" fill="#17211f">昇腾 950（A5）CV 融合：片上直通 UB</text>
+<text x="584" y="91" text-anchor="middle" font-size="14.5" fill="#936300">L1 (512KB) → Cube 乘加</text>
+<text x="792" y="91" text-anchor="middle" font-size="14.5" fill="#936300">L0C (256 KB)</text>
+<text x="480" y="175" font-size="14.5" fill="#065f56">✓ 片上直通：L0C → UB（随路数值与排布转换）</text>
+<text x="562" y="292" text-anchor="middle" font-size="14.5" fill="#065f56">UB（2 × 256 KB）</text>
+<text x="770" y="292" text-anchor="middle" font-size="14.5" fill="#065f56">Vector SIMD/SIMT</text>
+<text x="480" y="377" font-size="14.5" fill="#3a4f93">v0.30.0 档案：A5（FP8_OPTIMIZED）</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="54" font-size="13.5">AIC 与 AIV 独立取指，中间块须写回核外再重读</text>
+<text x="128" y="113" text-anchor="middle" font-size="13.5">矩阵乘加算出 [5, -5]</text>
+<text x="336" y="113" text-anchor="middle" font-size="13.5">后处理写出 GM</text>
+<text x="110" y="316" text-anchor="middle" font-size="13.5">从 GM 重读 [5, -5]</text>
+<text x="28" y="402" font-size="13.5">开启 RUNTIME_CUSTOM_OPS（加载 vllm_ascend_C）</text>
+<text x="28" y="423" font-size="13.5">靠融合算子减少跨核落盘与第二次核外写回</text>
+<text x="468" y="54" font-size="13.5">1 Cube + 2 Vector 同属子系统，省去中间落盘</text>
+<text x="792" y="113" text-anchor="middle" font-size="13.5">暂存 [5, -5]</text>
+<text x="480" y="402" font-size="13.5">启用原生 MXFP 融合（DYNAMIC_MX_QUANT_FUSION）</text>
+<text x="480" y="423" font-size="13.5">未纳入 RUNTIME_CUSTOM_OPS，暂门控关闭自定义库</text>
+</g>
+<text x="28" y="201" font-size="13.5" font-weight="600" fill="#b54237">示意 1024×FP32：写 4096 B + 读 4096 B = 8192 B</text>
+<text x="16" y="238" font-size="13.5" fill="#66716d">注：FixPipe 写回 L1 仍留 AIC，不能直入 AIV 的 UB</text>
+<text x="318" y="316" text-anchor="middle" font-size="13.5" fill="#087f73">ReLU 写出 [5, 0]</text>
+<text x="584" y="113" text-anchor="middle" font-size="13.5" fill="#936300">原生 FP8 / HiF8 / MXFP4</text>
+<text x="480" y="201" font-size="13.5" font-weight="600" fill="#087f73">省去中间块 8192 B 核外 GM 读写（直达 4096 B）</text>
+<text x="468" y="238" font-size="13.5" fill="#065f56">Buffer ID（get_buf / rel_buf）按缓冲周期精准交接</text>
+<text x="562" y="316" text-anchor="middle" font-size="13.5" fill="#087f73">片上直收 [5, -5]</text>
+<text x="770" y="316" text-anchor="middle" font-size="13.5" fill="#087f73">仅最终 [5, 0] 落盘</text>
+</svg>

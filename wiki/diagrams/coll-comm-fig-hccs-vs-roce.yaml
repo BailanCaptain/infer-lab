@@ -1,0 +1,16 @@
+mode: native-svg
+id: coll-comm-fig-hccs-vs-roce
+caption: >-
+  机内 HCCS / Unified Bus 与跨机 RoCE RDMA 的 10×+ 带宽悬崖及并行策略原语映射：上半幅对比单机/超节点高速直连域（承载逐层阻塞的 TP All-Reduce 与 SP Reduce-Scatter + All-Gather）与跨节点 RoCE 网络域（承载层间异步点对点 PP Send/Recv、DP 控制同步及跨机 EP 专家派发）；下半幅按完整张量口径汇总 (N-1)/N·M 与 2(N-1)/N·M 通信量标尺及 TP / SP / EP / PP / DP 选路边界。
+size: [900, 524]
+pins:
+  - source: vllm@ced6857a:vllm/model_executor/layers/linear.py#L608-L611
+    symbols: [tensor_model_parallel_all_gather]
+  - source: vllm@ced6857a:vllm/model_executor/layers/linear.py#L1775-L1777
+    symbols: [tensor_model_parallel_all_reduce]
+  - source: vllm@ced6857a:vllm/distributed/parallel_state.py#L721-L796
+    symbols: [all_reduce, all_gather, reduce_scatter]
+  - source: vllm@ced6857a:vllm/distributed/parallel_state.py#L1148-L1285
+    symbols: [isend_tensor_dict, irecv_tensor_dict]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L27-L31
+    symbols: [MoECommType, ALLGATHER, MC2, ALLTOALL, FUSED_MC2]

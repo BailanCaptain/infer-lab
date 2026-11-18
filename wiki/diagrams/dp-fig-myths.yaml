@@ -1,0 +1,15 @@
+mode: native-svg
+id: dp-fig-myths
+caption: DP 五组常见认知误区与 v0.30.0 源码真相对照板（覆盖 MoE 跨组专家共享、陪跑触发条件与 EP 独立性、跨机 RoCE PP×DP 互斥、多机 -dpl/--headless 启动与请求不迁移、以及 v0.30.0 停机间隔与补齐宽度）。
+size: [900, 498]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/config.py#L1212-L1240'
+    symbols: ['use_ep', 'flatten_tp_across_dp_and_pcp', 'enable_expert_parallel']
+  - source: 'vllm@ced6857a:vllm/config/parallel.py#L128-L150'
+    symbols: ['data_parallel_size', 'data_parallel_size_local', 'dp_sync_interval']
+  - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L2264-L2275'
+    symbols: ['_has_global_unfinished_reqs', 'dp_sync_interval', 'sync_dp_state']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L852-L883'
+    symbols: ['max_tokens_across_dp', 'select_moe_comm_method', 'needs_uniform_moe_input']
+  - source: 'vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/pipeline_parallel.md#L438-L440'
+    symbols: ['MoeDistributeDispatch', 'RoCE']

@@ -1,0 +1,15 @@
+mode: native-svg
+id: attn-qkv-fig-myths
+caption: Attention 与 Q/K/V 五组常见认知误区 vs 论文与 v0.30.0 源码真相排障对照板（覆盖 Q/K/V 线性生成、1/√d 单头缩放口径、Prefill/DCP 因果裁剪、Decode 缓存复用与 MLA/KDA 分支边界）。
+size: [900, 498]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L225-L258'
+    symbols: ['Attention', 'num_heads', 'head_size', 'scale', 'num_kv_heads']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L140-L176'
+    symbols: ['Glm5NextMLAAttention', 'kv_lora_rank', 'qk_head_dim', 'scaling']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/kda.py#L107-L185'
+    symbols: ['Glm5NextLinearAttention', 'head_dim', 'num_heads', 'in_proj_qkvbfg_a']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L291-L315'
+    symbols: ['is_kda_layer', 'Glm5NextLinearAttention', 'Glm5NextMLAAttention']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/context_parallel/sfa_cp.py#L1845-L1860'
+    symbols: ['_remap_sparse_indices', 'topk_indices', 'sparse_mode']

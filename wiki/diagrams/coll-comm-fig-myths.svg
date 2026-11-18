@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 508" width="900" height="508" role="img" aria-label="集合通信五组常见误解与 v0.30.0 源码真相对照图" font-family="var(--font-sans)">
+  <title>集合通信五组常见误解 vs v0.30.0 HCCL / vLLM 源码真相对照图</title>
+  <desc>DeviceCommunicatorBase, all_reduce, all_gather, reduce_scatter, has_unfinished_dp, MoECommType, ALLGATHER, MC2, ALLTOALL, create_hccl_pg_options, hccl_buffer_size, _acquire_hccl_group, make_hccl_pg_key, async_all_to_all, all_to_all_single</desc>
+  <defs>
+    <marker id="cc-myth-fix" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="30" font-size="16" font-weight="700" fill="#8f3229">✗ 集合通信常见直觉误区（高频混淆点）</text>
+  <text x="388" y="30" font-size="16" font-weight="700" fill="#065f56">✓ v0.30.0 HCCL / vLLM 源码真相（核查判据）</text>
+  <line x1="12" y1="42" x2="888" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
+  <line x1="374" y1="12" x2="374" y2="496" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <g fill="#fff0e9" stroke="#b54237" stroke-width="1.4">
+    <rect x="12" y="54" width="348" height="78" rx="10"/>
+    <rect x="12" y="144" width="348" height="78" rx="10"/>
+    <rect x="12" y="234" width="348" height="78" rx="10"/>
+    <rect x="12" y="324" width="348" height="78" rx="10"/>
+    <rect x="12" y="414" width="348" height="78" rx="10"/>
+  </g>
+
+  <g fill="#ffffff" stroke="#087f73" stroke-width="1.5">
+    <rect x="388" y="54" width="500" height="78" rx="10"/>
+    <rect x="388" y="144" width="500" height="78" rx="10"/>
+    <rect x="388" y="234" width="500" height="78" rx="10"/>
+    <rect x="388" y="324" width="500" height="78" rx="10"/>
+    <rect x="388" y="414" width="500" height="78" rx="10"/>
+  </g>
+
+  <g fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#cc-myth-fix)">
+    <path d="M 360 93 L 382 93"/>
+    <path d="M 360 183 L 382 183"/>
+    <path d="M 360 273 L 382 273"/>
+    <path d="M 360 363 L 382 363"/>
+    <path d="M 360 453 L 382 453"/>
+  </g>
+
+  <g font-size="15" font-weight="700" fill="#8f3229">
+    <text x="26" y="83">1. All-Reduce 会压小张量，All-Gather 会求和</text>
+    <text x="26" y="173">2. 传入张量的大小 M 就是网卡收发字节</text>
+    <text x="26" y="263">3. ALLGATHER 策略只调一次 All-Gather 原语</text>
+    <text x="26" y="353">4. 建通信组不占显存，或同组每次重开缓冲</text>
+    <text x="26" y="443">5. 异步返回就能读输出，且推理 DP 零通信</text>
+  </g>
+
+  <g font-size="13.5" fill="#8f3229">
+    <text x="26" y="113">且误以为 All-Reduce 必然新开一块输出显存</text>
+    <text x="26" y="203">把逻辑载荷汇总直接当成每卡线速流量算时延</text>
+    <text x="26" y="293">或误以为开了 MC2 就彻底不用 HCCL 和归约</text>
+    <text x="26" y="383">漏算 HCCL 通信域中转空间对 KV 预算的挤压</text>
+    <text x="26" y="473">忽略流依赖等待与跨机 DP 控制面/EP 专家交换</text>
+  </g>
+
+  <g font-size="15" font-weight="700" fill="#065f56">
+    <text x="404" y="83">All-Reduce 形状不变求部分和；All-Gather 只拼接</text>
+    <text x="404" y="173">区分逻辑输入 M、单卡发送量与全组链路传输量</text>
+    <text x="404" y="263"><tspan font-family="var(--font-mono)" font-size="14">MoECommType.ALLGATHER</tspan> 是四步组合路线名</text>
+    <text x="404" y="353">HCCL 域预留缓冲；v0.30.0 按域去重复用底层组</text>
+    <text x="404" y="443">消费前必等完成事件；DP 同步状态且 EP 跨组收发</text>
+  </g>
+
+  <g font-size="13.5" fill="#66716d">
+    <text x="404" y="113"><tspan font-family="var(--font-mono)">all_reduce</tspan> 输入输出皆 M（可原位写回）；<tspan font-family="var(--font-mono)">all_gather</tspan> 拼为 NM</text>
+    <text x="404" y="203">ring All-Reduce 每卡发 2(N-1)M/N；All-Gather 发 (N-1)M</text>
+    <text x="404" y="293">大批路线含 AG+RS+AR；<tspan font-family="var(--font-mono)">MC2</tspan> 协同通算仍保留 TP 收集与归约</text>
+    <text x="404" y="383"><tspan font-family="var(--font-mono)">create_hccl_pg_options</tspan> 配缓冲；<tspan font-family="var(--font-mono)">_acquire_hccl_group</tspan> 防重创</text>
+    <text x="404" y="473"><tspan font-family="var(--font-mono)">async_all_to_all</tspan> 须等 handle/流；<tspan font-family="var(--font-mono)">has_unfinished_dp</tspan> 协同陪跑</text>
+  </g>
+</svg>

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 580" width="900" height="580" role="img" aria-label="v0.30.0 MoE 通信选路决策树与四族硬件策略图" font-family="var(--font-sans)">
+  <title>v0.30.0 MoE 通信选路决策树（select_moe_comm_method）</title>
+  <desc>HardwareProfile, MoECommPolicy, set_mc2_tokens_capacity, select_moe_comm_method, MoECommType</desc>
+  <defs>
+    <marker id="ep-hw-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#66716d"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">v0.30.0 MoE 通信选路决策树（select_moe_comm_method）</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.5"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="50" width="430" height="74" rx="9" fill="#f5f2ea" stroke="#b8bcb5"/>
+    <rect x="458" y="50" width="430" height="74" rx="9" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="12" y="174" width="258" height="76" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="296" y="174" width="592" height="76" rx="9" fill="#ffffff" stroke="#087f73"/>
+    <rect x="12" y="262" width="258" height="76" rx="9" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="296" y="262" width="592" height="76" rx="9" fill="#ffffff" stroke="#c78300"/>
+    <rect x="12" y="350" width="258" height="76" rx="9" fill="#fff0e9" stroke="#b54237"/>
+    <rect x="296" y="350" width="592" height="76" rx="9" fill="#ffffff" stroke="#b54237"/>
+    <rect x="12" y="438" width="258" height="76" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="296" y="438" width="592" height="76" rx="9" fill="#ffffff" stroke="#4c65b6"/>
+    <rect x="12" y="526" width="876" height="42" rx="8" fill="#f5f2ea" stroke="#b8bcb5"/>
+  </g>
+
+  <g font-size="15" font-weight="700">
+    <text x="26" y="78" fill="#17211f">前置门 1 · 未开 EP 或 <tspan font-family="var(--font-mono)" font-size="14">ep_world == 1</tspan></text>
+    <text x="472" y="78" fill="#7a3a6a">前置门 2 · 开启 LoRA + EP</text>
+    <text x="24" y="202" fill="#065f56">1. Atlas A2 (910B)</text>
+    <text x="24" y="290" fill="#936300">2. Atlas A3 (双 Die)</text>
+    <text x="24" y="378" fill="#8f3229">3. 300I DUO (310P)</text>
+    <text x="24" y="466" fill="#3a4f93">4. 昇腾 950 (A5)</text>
+  </g>
+
+  <g font-size="14" fill="#4d5652">
+    <text x="26" y="108">多卡不拆整份专家 → 直接返回 <tspan font-weight="700" fill="#7a3a6a">ALLGATHER</tspan></text>
+    <text x="472" y="108">融合算子无法挂载 LoRA → 强制 <tspan font-weight="700" fill="#7a3a6a">ALLTOALL</tspan></text>
+  </g>
+
+  <text x="18" y="150" font-size="14.5" font-weight="700" fill="#065f56">↓ 已开 EP · ep_world &gt; 1 · 无 LoRA → 按 HardwareProfile.moe_comm_policy 四族策略分流</text>
+  <line x1="12" y1="162" x2="888" y2="162" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="5 4"/>
+
+  <g fill="none" stroke="#66716d" stroke-width="1.8" marker-end="url(#ep-hw-arr)">
+    <path d="M 270 212 L 290 212"/>
+    <path d="M 270 300 L 290 300"/>
+    <path d="M 270 388 L 290 388"/>
+    <path d="M 270 476 L 290 476"/>
+  </g>
+
+  <g font-family="var(--font-mono)" font-size="13.5">
+    <text x="24" y="232" fill="#065f56">CAPACITY_AND_EXPERT_DENSITY</text>
+    <text x="24" y="320" fill="#936300">FUSED_OR_CAPACITY</text>
+    <text x="24" y="408" fill="#8f3229">MoECommPolicy.ALLGATHER</text>
+    <text x="24" y="496" fill="#3a4f93">CAPACITY_AND_WORLD_SIZE</text>
+  </g>
+
+  <g font-size="14.5" font-weight="700" fill="#17211f">
+    <text x="312" y="202">experts/卡 ≤ 24 且 EP ≥ 16 且 tokens ≤ capacity → <tspan fill="#065f56">MC2</tspan></text>
+    <text x="312" y="290">MegaMoe 激活 或 (<tspan font-family="var(--font-mono)" font-size="13.5">enable_fused_mc2=1</tspan> 且 EP ≤ 32) → <tspan fill="#936300">FUSED_MC2</tspan></text>
+    <text x="312" y="378" fill="#8f3229">独立兼容栈（NPUWorker310）→ 恒定返回 ALLGATHER</text>
+    <text x="312" y="466">MegaMoe 就绪 → <tspan fill="#3a4f93">FUSED_MC2</tspan>；容内且 world &gt; 1 → <tspan fill="#065f56">MC2</tspan></text>
+  </g>
+
+  <g font-size="13.5" fill="#4d5652">
+    <text x="312" y="232">任一不满足（如单机 EP8 为 36/卡，或长 prefill 超门槛）→ <tspan font-weight="700" fill="#7a3a6a">ALLGATHER</tspan></text>
+    <text x="312" y="320">未走融合时：tokens ≤ capacity → <tspan font-weight="700" fill="#065f56">MC2</tspan>；超门槛回退 → <tspan font-weight="700" fill="#7a3a6a">ALLTOALL</tspan></text>
+    <text x="312" y="408">不计算动态容量门槛，也不进入 MC2 / FUSED_MC2 分发算子</text>
+    <text x="312" y="496">超门槛时：world ≤ top_k → <tspan font-weight="700" fill="#7a3a6a">ALLGATHER</tspan>，否则 → <tspan font-weight="700" fill="#7a3a6a">ALLTOALL</tspan></text>
+    <text x="24" y="552" fill="#17211f">动态门槛 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="700">mc2_tokens_capacity = min(ceil(max_tokens / TP), per_rank_limit) × TP</tspan>（历史 GLM 算例固定为 128）</text>
+  </g>
+</svg>

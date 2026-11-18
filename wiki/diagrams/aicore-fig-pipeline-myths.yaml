@@ -1,0 +1,10 @@
+mode: native-svg
+id: aicore-fig-pipeline-myths
+caption: >-
+  双缓冲（Ping / Pong）三级流水重叠时间轴与四大高频认知误区排雷：稳态拍 T3 在同一时间窗内并行执行第 2 块搬入（MTE2/MTE1）、第 1 块计算（Cube/Vector）与第 0 块写出（FixPipe/MTE3），以两份片上缓冲隐藏访存气泡、推近 Roofline 上限，但不会抬高硬件峰值算力，也不等同于跨卡 HCCL 通信。
+size: [900, 500]
+pins:
+  - source: vllm-ascend@c09d3e20:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L347
+    symbols: [CopyIn, Compute, CopyOutY, TQue, PipeBarrier]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/utils.py#L544-L588
+    symbols: [enable_custom_op, RUNTIME_CUSTOM_OPS]

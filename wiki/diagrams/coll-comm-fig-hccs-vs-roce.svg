@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 524" width="900" height="524" role="img" aria-label="机内 HCCS 与跨机 RoCE 带宽悬崖及并行通信映射图" font-family="var(--font-sans)">
+<title>机内 HCCS / Unified Bus 与跨机 RoCE 带宽悬崖及并行原语映射</title>
+<desc>all_reduce, all_gather, reduce_scatter, isend_tensor_dict, MoECommType</desc>
+<defs>
+<marker id="cc-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#9a4b86"/></marker>
+</defs>
+<text x="16" y="28" font-size="16" font-weight="700" fill="#065f56">机内 HCCS / Unified Bus 高速域（含 SuperPoD）</text>
+<text x="508" y="28" font-size="16" font-weight="700" fill="#8f3229">跨机 RoCE RDMA 网络域（跨节点 10×+ 带宽悬崖）</text>
+<path d="M14 40H886M14 262H886" stroke="#b8bcb5" stroke-width="1.4"/>
+<rect x="14" y="52" width="374" height="162" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+<rect x="508" y="52" width="378" height="162" rx="10" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+<rect x="398" y="76" width="100" height="118" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4" stroke-dasharray="4 3"/>
+<path d="M388 64L502 64" fill="none" stroke="#9a4b86" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#cc-a)"/>
+<text x="28" y="78" font-size="14.5" font-weight="700" fill="#065f56">多链直连高带宽（如 800T A2 7 链聚合 392 GB/s）</text>
+<text x="522" y="78" font-size="14.5" font-weight="700" fill="#7a3a6a">单口 200GE 线速折 25 GB/s（另扣协议与跳数）</text>
+<g fill="#ffffff" stroke-width="1.4">
+<rect x="28" y="110" width="346" height="42" rx="7" stroke="#087f73"/><rect x="28" y="160" width="346" height="42" rx="7" stroke="#087f73"/>
+<rect x="522" y="110" width="350" height="42" rx="7" stroke="#9a4b86"/><rect x="522" y="160" width="350" height="42" rx="7" stroke="#c78300"/>
+</g>
+<g font-size="13.5" font-weight="700">
+<text x="40" y="136" fill="#065f56">✓ TP：每层 2× 阻塞 All-Reduce + 词表 All-Gather</text>
+<text x="40" y="186" fill="#17211f">✓ SP：拆为 Reduce-Scatter + All-Gather 省驻留</text>
+<text x="534" y="136" fill="#7a3a6a">✓ PP / DP：段间异步 Send/Recv 与轻量状态同步</text>
+<text x="534" y="186" fill="#936300">△ 跨机 EP：单机装不下专家时传激活，权重不动</text>
+</g>
+<g text-anchor="middle">
+<text x="448" y="102" font-size="14.5" font-weight="700" fill="#8f3229">10×+ 悬崖</text>
+<text x="448" y="126" font-size="13.5" fill="#8f3229">392 vs 25</text>
+<text x="448" y="147" font-size="13.5" fill="#66716d">GB/s 量级</text>
+<text x="448" y="176" font-size="13.5" font-weight="700" fill="#8f3229">✗ 忌跨机 TP</text>
+</g>
+<text x="16" y="250" font-size="16" font-weight="700" fill="#17211f">并行策略 × 通信原语 × 均衡单卡发送量标尺（N 卡组，完整张量 S=M 口径）</text>
+<g stroke-width="1.4">
+<rect x="14" y="274" width="872" height="54" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="14" y="338" width="872" height="54" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="14" y="402" width="872" height="54" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="14" y="466" width="872" height="50" rx="8" fill="#fff4cf" stroke="#c78300"/>
+</g>
+<path d="M33 93h336M527 93h340M611 291h118M611 355h118M611 419h118M611 483h118" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
+<g stroke-width="10" stroke-linecap="round">
+<path d="M33 93h336M611 291h118" stroke="#087f73"/><path d="M527 93h16" stroke="#b54237"/>
+<path d="M611 355h54M675 355h54" stroke="#4c65b6"/><path d="M611 419h56" stroke="#9a4b86"/><path d="M611 483h32" stroke="#c78300"/>
+</g>
+<circle cx="32" cy="301" r="11" fill="#087f73"/><circle cx="32" cy="365" r="11" fill="#4c65b6"/>
+<circle cx="32" cy="429" r="11" fill="#9a4b86"/><circle cx="32" cy="491" r="11" fill="#c78300"/>
+<g text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">
+<text x="32" y="305.5">1</text><text x="32" y="369.5">2</text><text x="32" y="433.5">3</text><text x="32" y="495.5">4</text>
+</g>
+<g font-size="14.5" font-weight="700">
+<text x="52" y="296" fill="#065f56">TP 张量并行</text><text x="52" y="360" fill="#3a4f93">SP 序列并行</text>
+<text x="52" y="424" fill="#7a3a6a">EP 专家并行</text><text x="52" y="487" fill="#936300">PP 流水线 / DP 数据并行</text>
+</g>
+<g font-size="13.5" fill="#66716d">
+<text x="52" y="317">行切矩阵求部分和 / 词表拼分片</text><text x="52" y="381">按 token 片归一化，省完整驻留</text>
+<text x="52" y="445">按路由目的卡派发激活并收回</text><text x="52" y="507">仅段间交接激活 / 同步运行标志</text>
+<text x="292" y="317">逐层阻塞同步 → 锁在机内 HCCS / UB</text><text x="292" y="381">两步各传一半 → 合计发送量同 All-Reduce</text>
+<text x="292" y="445">等分基准减半 → 真实路由随专家热度变长</text><text x="292" y="507">频次低或控制载荷极小 → 可跨机走 RoCE</text>
+</g>
+<g font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#17211f">
+<text x="292" y="296">All-Reduce (2×/层) + All-Gather</text><text x="292" y="360">Reduce-Scatter → All-Gather</text>
+<text x="292" y="424">MC2 / All-to-AllV / ALLGATHER</text><text x="292" y="487">isend/irecv (P2P) · CPU All-Reduce</text>
+</g>
+<g font-family="var(--font-mono)" font-size="13.5" font-weight="700">
+<text x="744" y="306" fill="#065f56">2(N-1)/N · M</text><text x="744" y="370" fill="#3a4f93">(N-1)/N·S × 2</text>
+<text x="744" y="434" fill="#7a3a6a">(N-1)/N · M</text><text x="744" y="496" fill="#936300">段间 M / 几 B</text>
+</g>
+</svg>

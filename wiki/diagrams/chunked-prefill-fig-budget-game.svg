@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="v0.30.0 单步 token_budget 扣减顺序、昇腾 2048 默认回退、SP+PCP 取整与 PP/CPP 预算放大规则图" font-family="var(--font-sans)">
+  <title>v0.30.0 单步 token_budget 博弈与昇腾耦合规则：先扣 running Decode（1 或 1+K），余量切给 Prefill 分块；昇腾 vllm serve 默认回落 2048，SP+PCP 静默向上取整至 tp×pcp 倍数，PP&gt;1 与 CPP 可放大至 2~4 倍。</title>
+  <desc>关联源码符号：token_budget, max_num_scheduled_tokens, num_tokens_with_spec, long_prefill_token_threshold, get_device_total_memory, NotImplementedError, prefill_context_parallel_size, tp_pcp_size, max_num_batched_tokens, ProfilingChunkManager, base_chunk_size</desc>
+  <defs>
+    <marker id="cp-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+  </defs>
+
+  <!-- Zone A: Per-step token_budget deduction -->
+  <text x="16" y="30" font-size="16" font-weight="700" fill="#17211f">① 单步 token_budget 扣减顺序（v0.30.0 Scheduler.schedule）</text>
+  <text x="884" y="30" text-anchor="end" font-size="13.5" fill="#66716d">总上限 max_num_scheduled_tokens</text>
+
+  <rect x="16" y="46" width="236" height="58" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="134" y="71" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">先扣 running Decode</text>
+  <text x="134" y="93" text-anchor="middle" font-size="13.5" fill="#065f56">每条扣 1（投机扣 1 + K）</text>
+
+  <rect x="258" y="46" width="376" height="58" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="446" y="71" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">剩余额度切给 Prefill 分块</text>
+  <text x="446" y="93" text-anchor="middle" font-size="13.5" fill="#3a4f93">min(待算差额, 单条阈值, 剩余预算)</text>
+
+  <rect x="640" y="46" width="244" height="58" rx="7" fill="#ece9df" stroke="#8a928f" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <text x="762" y="71" text-anchor="middle" font-size="14.5" font-weight="700" fill="#4d5652">步内富余或下一条新单</text>
+  <text x="762" y="93" text-anchor="middle" font-size="13.5" fill="#66716d">无等待请求时不强制凑满</text>
+
+  <text x="16" y="128" font-size="13.5" fill="#8f3229">▸ 高并发或投机草稿数 K 增大 → Decode 先吃掉大批额度，单条长提示词被迫切成更多碎块</text>
+  <text x="16" y="152" font-size="13.5" fill="#3a4f93">▸ 分块越多 → 因果打分对数不变，但后续块每步重读前序 KV cache 遍数递增，显著拉长 TTFT</text>
+
+  <line x1="16" y1="170" x2="884" y2="170" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone B: Three Ascend coupling & default rules -->
+  <text x="16" y="200" font-size="16" font-weight="700" fill="#17211f">② 昇腾默认批预算回退与并行耦合改写（platform.py / ascend_config.py）</text>
+
+  <rect x="16" y="216" width="278" height="96" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="30" y="243" font-size="14.5" font-weight="700" fill="#936300">vllm serve 默认落回 2048</text>
+  <text x="30" y="269" font-size="13.5" fill="#4d5652">解析期 torch_npu 尚未初始化</text>
+  <text x="30" y="294" font-size="13.5" fill="#936300">抛 NotImplementedError → 0 GiB</text>
+
+  <rect x="311" y="216" width="278" height="96" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="325" y="243" font-size="14.5" font-weight="700" fill="#7a3a6a">SP + PCP 静默向上取整</text>
+  <text x="325" y="269" font-size="13.5" fill="#4d5652">当 pcp &gt; 1 且开启序列并行</text>
+  <text x="325" y="294" font-size="13.5" fill="#7a3a6a">自动抬至 tp × pcp 整数倍</text>
+
+  <rect x="606" y="216" width="278" height="96" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="620" y="243" font-size="14.5" font-weight="700" fill="#065f56">PP &gt; 1 与 CPP 放大空间</text>
+  <text x="620" y="269" font-size="13.5" fill="#4d5652">非末级省 lm_head 峰值与分摊 KV</text>
+  <text x="620" y="294" font-size="13.5" fill="#065f56">CPP 推荐放宽至固定块 2~4×</text>
+
+  <line x1="16" y1="330" x2="884" y2="330" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone C: TTFT vs ITL bidirectional tradeoff -->
+  <text x="16" y="360" font-size="16" font-weight="700" fill="#17211f">③ 预算旋钮双向牵制：调小保 Decode ITL，调大压长文 TTFT</text>
+
+  <rect x="16" y="378" width="392" height="84" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
+  <text x="30" y="406" font-size="14.5" font-weight="700" fill="#8f3229">预算偏小（如默认 2048）→ 稳住 ITL</text>
+  <text x="30" y="436" font-size="13.5" fill="#4d5652">单步混入 Prefill 少；但前缀 KV 重读多、TTFT 慢</text>
+
+  <line x1="420" y1="420" x2="480" y2="420" stroke="#4d5652" stroke-width="1.8" marker-start="url(#cp-arr)" marker-end="url(#cp-arr)"/>
+
+  <rect x="492" y="378" width="392" height="84" rx="7" fill="#e8edff" stroke="#8c9fcc" stroke-width="1.3"/>
+  <text x="506" y="406" font-size="14.5" font-weight="700" fill="#3a4f93">预算偏大（如 8192 ~ 32768）→ 压低 TTFT</text>
+  <text x="506" y="436" font-size="13.5" fill="#4d5652">减少跨步切分与重读；但单步激活峰高、ITL 易抖</text>
+</svg>

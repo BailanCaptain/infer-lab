@@ -1,0 +1,20 @@
+mode: native-svg
+id: chunked-prefill-fig-myths
+caption: >-
+  Chunked Prefill 四组常见误解与 vLLM V1 / vllm-ascend v0.30.0 源码真相对照：中间段采样被丢弃、开启分块时单步预算不限制 max_model_len、切太碎会放大前缀 KV 重读带宽与 TTFT、多长请求并发需设 long_prefill_token_threshold 才会截断单步配额。
+size: [900, 412]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1479-L1488'
+    symbols:
+      - discard_requests_mask
+      - discard_request_indices
+      - optimistic_seq_lens_cpu
+  - source: 'vllm@ced6857a:vllm/config/scheduler.py#L295-L307'
+    symbols:
+      - verify_max_model_len
+      - max_num_batched_tokens
+      - enable_chunked_prefill
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L660-L665'
+    symbols:
+      - long_prefill_token_threshold
+      - token_budget

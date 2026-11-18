@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="PP 显存峰值削减与大批预算机制图" font-family="var(--font-sans)">
+<title>PP&gt;1 非末段 PPMissingLayer 削峰放大批预算及 SP+PP 注入 +rms_norm 机制图</title>
+<desc>PPMissingLayer, make_layers, get_pp_indices, ParallelLMHead, is_last_rank, _dummy_sampler_run, enable_sp, custom_ops, profiling_chunk_config</desc>
+<circle cx="28" cy="28" r="12" fill="#4c65b6"/>
+<text x="28" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+<text x="48" y="34" font-size="16" font-weight="700" fill="#17211f">为什么 PP &gt; 1 能放开更大的 max_num_batched_tokens 预算？</text>
+<g stroke-width="1.4">
+<text x="16" y="62" font-size="14.5" font-weight="700" fill="#8f3229">PP = 1（单段全包，预算紧）</text>
+<rect x="16" y="74" width="264" height="40" rx="6" fill="#fff0e9" stroke="#b54237"/>
+<text x="28" y="99" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">lm_head [T_s, vocab_size] 尖峰</text>
+<rect x="16" y="120" width="264" height="40" rx="6" fill="#e8edff" stroke="#4c65b6"/>
+<text x="28" y="145" font-size="14" font-weight="700" fill="#3a4f93">100% 隐藏层 KV Cache 挤占</text>
+<rect x="16" y="166" width="264" height="40" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<text x="28" y="191" font-size="13.5" font-weight="700" fill="#936300">全量隐藏层 + embed + 出口权重</text>
+<line x1="283" y1="140" x2="301" y2="140" stroke="#087f73" stroke-width="1.6"/>
+<polygon points="300,136 307,140 300,144" fill="#087f73"/>
+<text x="310" y="62" font-size="14.5" font-weight="700" fill="#065f56">阶段 0..PP−2（非末段削峰）</text>
+<rect x="310" y="74" width="276" height="40" rx="6" fill="#fbfaf6" stroke="#087f73" stroke-dasharray="5 4"/>
+<text x="322" y="99" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">lm_head → PPMissingLayer ✓</text>
+<rect x="310" y="120" width="276" height="40" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+<text x="322" y="145" font-size="14" font-weight="700" fill="#065f56">↑ 省采样尖峰 → 放大批 token 预算</text>
+<rect x="310" y="166" width="276" height="40" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<text x="322" y="191" font-size="13.5" font-weight="700" fill="#936300">仅建 [start, end) 约 1/PP 层与 KV</text>
+<line x1="589" y1="140" x2="607" y2="140" stroke="#9a4b86" stroke-width="1.6"/>
+<polygon points="606,136 613,140 606,144" fill="#9a4b86"/>
+<text x="616" y="62" font-size="14.5" font-weight="700" fill="#7a3a6a">阶段 PP−1（末段保留出口）</text>
+<rect x="616" y="74" width="268" height="40" rx="6" fill="#f7e7f2" stroke="#9a4b86"/>
+<text x="628" y="99" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">norm + ParallelLMHead + 采样</text>
+<rect x="616" y="120" width="268" height="40" rx="6" fill="#e8edff" stroke="#4c65b6"/>
+<text x="628" y="145" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">get_pp_indices 默认少分余数层</text>
+<rect x="616" y="166" width="268" height="40" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<text x="628" y="191" font-size="13.5" font-weight="700" fill="#936300">约 1/PP 层与 KV + 出口对冲拉平</text>
+</g>
+<line x1="16" y1="224" x2="884" y2="224" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+<line x1="450" y1="238" x2="450" y2="426" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+<circle cx="28" cy="254" r="12" fill="#087f73"/>
+<text x="28" y="258.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+<text x="48" y="260" font-size="16" font-weight="700" fill="#17211f">预算承接：长上下文与动态分块 CPP</text>
+<rect x="16" y="278" width="390" height="66" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+<text x="28" y="304" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">↑ max_num_batched_tokens（单段余量扩大）</text>
+<text x="28" y="329" font-size="13.5" font-weight="700" fill="#087f73">→ 交棒动态分块 CPP（首块推荐 2~4×）</text>
+<line x1="18" y1="358" x2="18" y2="422" stroke="#4c65b6" stroke-width="3"/>
+<text x="30" y="376" font-size="13.5" fill="#17211f">以该预算作二次耗时首块，反推等耗时薄块减气泡</text>
+<text x="30" y="408" font-size="13.5" fill="#66716d">边界：profiling_chunk_config 限 PP&gt;1（main 已删）</text>
+<circle cx="478" cy="254" r="12" fill="#c78300"/>
+<text x="478" y="258.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+<text x="498" y="260" font-size="16" font-weight="700" fill="#17211f">SP + PP &gt; 1 编译耦合：注入 +rms_norm</text>
+<rect x="466" y="278" width="390" height="66" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+<text x="478" y="304" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">v0.30.0: enable_sp &amp; PP&gt;1 → "+rms_norm"</text>
+<text x="478" y="329" font-size="13.5" fill="#17211f">防原生 rms_norm 跨段残差形状追踪报错</text>
+<line x1="468" y1="358" x2="468" y2="422" stroke="#b54237" stroke-width="3"/>
+<text x="480" y="376" font-size="13.5" font-weight="700" fill="#b54237">显式传 "-rms_norm" 则告警报错；FlashComm1 限 PP==1</text>
+<text x="480" y="408" font-size="13.5" fill="#66716d">演进：上游 main 分支已移除 PassConfig.enable_sp</text>
+</svg>

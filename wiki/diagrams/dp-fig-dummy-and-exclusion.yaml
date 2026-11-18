@@ -1,0 +1,15 @@
+mode: native-svg
+id: dp-fig-dummy-and-exclusion
+caption: 三类 DP 运行形态与跨机禁配对照：左栏为稠密模型 DP > 1 独立副本（内部重设 dp_size = 1，空闲组真正休眠）；中栏为 MoE 模型 DP > 1 波次协调与空闲组 execute_dummy_batch 陪跑（防跨组集合通信死锁）；右栏为跨机 RoCE 下 MoE 叠开 PP > 1 与 DP > 1 的互斥禁配（MoeDistributeDispatch 不支持且无 Python 启动拦截）。
+size: [900, 480]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L1318-L1329'
+    symbols: ['DPEngineCoreProc', 'EngineCoreProc', 'reconfigure_for_independent_dp_rank']
+  - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L2204-L2275'
+    symbols: ['execute_dummy_batch', 'dp_sync_interval', 'sync_dp_state']
+  - source: 'vllm@ced6857a:vllm/v1/engine/coordinator.py#L23-L55'
+    symbols: ['DPCoordinator', 'START_DP_WAVE']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1278-L1282'
+    symbols: ['execute_dummy_batch', '_dummy_run', 'uniform_decode_query_len']
+  - source: 'vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/pipeline_parallel.md#L438-L440'
+    symbols: ['MoeDistributeDispatch', 'RoCE', 'PP', 'DP']

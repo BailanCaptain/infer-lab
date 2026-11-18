@@ -1,0 +1,15 @@
+mode: native-svg
+id: tp-fig-myths
+caption: 张量并行五组常见认知误区与源码真相排障对照板（覆盖跨机 RoCE 同步与激活载荷、非线性激活前先列后行、KV 头副本与 MLA 潜向量复制、FRACTAL_NZ 格式转换与运行时副本峰值、以及 W8A8 下 BF16 归约与图模式边界）。
+size: [900, 498]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L1045-L1060'
+    symbols: ['num_kv_head_replicas', 'total_num_kv_heads']
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L1770-L1780'
+    symbols: ['tensor_model_parallel_all_reduce']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/linear.py#L107-L125'
+    symbols: ['process_weights_after_loading', 'maybe_trans_nz']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L63-L63'
+    symbols: ['ACL_FORMAT_FRACTAL_NZ']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/mla_v1.py#L1010-L1030'
+    symbols: ['kv_lora_rank', 'decode_context_parallel_size']

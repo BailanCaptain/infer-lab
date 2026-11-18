@@ -301,7 +301,7 @@
       "title": "AI Core：计算单元与数据搬运",
       "type": "concept",
       "origin": "direct",
-      "summary": "从矩阵乘和逐项运算认识 Cube、Vector、Scalar，沿设备内存到片上缓冲区的数据路径理解计算与访存的配合。",
+      "summary": "从矩阵乘与逐项/归约运算出发，拆解昇腾 AI Core 内 Cube、Vector、Scalar 三类执行单元与各级片上缓冲（L1、L0A/L0B/L0C、UB）及搬运引擎（MTE、FixPipe）的分工；对照三级流水重叠与双缓冲条件，辨析 910B（A2/A3）AIC/AIV 经核外 GM 交接与昇腾 950（A5）L0C→UB 片上直通的架构差异。",
       "aliases": [
         "AI Core",
         "AICore",
@@ -316,56 +316,70 @@
         "计算单元与数据搬运"
       ],
       "chapters": [
-        "07"
+        "04"
       ],
       "order": 120,
       "prerequisites": [],
       "sources": [
         "https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html",
-        "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155",
         "https://www.hiascend.com/developer/techArticles/20240819-1",
+        "https://public-download.obs.cn-east-2.myhuaweicloud.com/ascend/%E6%98%87%E8%85%BE950%20NPU%E6%9E%B6%E6%9E%84%E7%99%BD%E7%9A%AE%E4%B9%A6.pdf",
+        "vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155",
+        "vllm-ascend@c09d3e20:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L347",
         "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L61-L125",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L42-L222",
         "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L353-L365",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L42-L222",
         "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L125",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L453",
         "vllm-ascend@2ed6cbba:vllm_ascend/quantization/methods/w8a8_dynamic.py#L74-L124",
-        "vllm-ascend@baa023ad:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L93-L123",
-        "vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L94-L134",
-        "vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/shared_experts.py#L390-L502",
-        "vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/shared_experts.py#L504-L630"
+        "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L401-L445",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L148-L381",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L544-L588",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L60-L144",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L279-L542",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/shared_experts.py#L448-L540",
+        "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L172-L502",
+        "vllm-ascend@8d6180e2:vllm_ascend/utils.py#L574-L615",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L60-L144",
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/fused_moe/shared_experts.py#L146-L210"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "relations": [
         {
+          "to": "matmul-and-weights",
+          "kind": "builds-on",
+          "note": "认识线性投影矩阵乘所需的输入行、权重列与乘加次数"
+        },
+        {
+          "to": "mlp-residual-norm",
+          "kind": "builds-on",
+          "note": "对照 RMSNorm 归约、残差相加与 SwiGLU 逐项门控怎样与矩阵乘交替出现"
+        },
+        {
+          "to": "roofline-and-metrics",
+          "kind": "builds-on",
+          "note": "用算术强度与 Roofline 屋顶判断当前阶段受限于 HBM 搬运带宽还是 Cube 峰值算力"
+        },
+        {
           "to": "hardware-devices",
           "kind": "builds-on",
-          "note": "先区分设备与设备内部的核心"
+          "note": "先分清 NPU 裸片、板卡、服务器与四族硬件档案（A2/A3/310P/A5），再进入核内单元"
         },
         {
           "to": "device-memory",
           "kind": "builds-on",
-          "note": "理解设备内存与数据访问"
-        },
-        {
-          "to": "matmul-and-weights",
-          "kind": "builds-on",
-          "note": "认识矩阵计算需要的输入与权重"
-        },
-        {
-          "to": "one-request",
-          "kind": "builds-on",
-          "note": "回到第 4 站，把单卡计算放回请求的逐层前向"
-        },
-        {
-          "to": "ops-and-kernels",
-          "kind": "builds-on",
-          "note": "区分数学算子、软件入口与设备上的执行程序"
+          "note": "区分主机内存与设备侧 HBM（GM）的容量及带宽边界"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/ai-core.md",
       "backlinks": [
         {
@@ -2793,7 +2807,7 @@
         "multi-head"
       ],
       "chapters": [
-        "04"
+        "02"
       ],
       "order": 60,
       "prerequisites": [],
@@ -2802,33 +2816,42 @@
         "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json",
         "vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L177-L210",
         "vllm@0fc695fc:vllm/v1/attention/backend.py#L32-L44",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2075-L2105",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1881-L2030",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L39-L182",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L366-L472",
-        "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028",
-        "vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L111-L117",
-        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768",
-        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L140-L175",
-        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L292-L306",
         "vllm@568afb3a:vllm/model_executor/layers/attention/attention.py#L223-L256",
-        "vllm@84030bbe:vllm/model_executor/layers/attention/attention.py#L225-L258",
+        "vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L225-L258",
+        "vllm@ced6857a:vllm/v1/attention/backend.py#L36-L45",
+        "vllm@ba15685a:vllm/model_executor/layers/attention/attention.py#L244-L276",
+        "vllm@ba15685a:vllm/v1/attention/backend.py#L35-L44",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L835-L839",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L871-L875",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda.py#L427-L435",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L632-L636",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L291-L315",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L717-L735",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L140-L258",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/kda.py#L148-L185",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/kda.py#L16-L57",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L529-L577",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/context_parallel/sfa_cp.py#L1845-L1860",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L104-L107",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L319-L342",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/attention.py#L151-L266",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L264-L325",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1881-L2105",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L39-L182",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L472",
+        "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793",
         "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L576-L592",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L836-L836",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028",
         "vllm-ascend@db701c1f:vllm_ascend/attention/context_parallel/sfa_cp.py#L1303-L1307",
-        "raw:sha256-7d2c441832b6dfd0350ca61862c6d7bd0be162c67d8d213eafe23d8cd5a0483d.md#L1-L845",
-        "vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L236-L254",
-        "vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L160-L175",
-        "vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L230-L254",
-        "vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L291-L310",
-        "vllm-ascend@7d825229:vllm_ascend/models/glm5next/kda.py#L169-L187",
-        "vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L713-L729"
+        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768",
+        "vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L111-L117",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L836-L836",
+        "raw:sha256-7d2c441832b6dfd0350ca61862c6d7bd0be162c67d8d213eafe23d8cd5a0483d.md#L1-L845"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -2838,24 +2861,24 @@
       ],
       "relations": [
         {
-          "to": "layers-and-hidden",
+          "to": "token",
           "kind": "builds-on",
-          "note": "隐藏向量是 attention 的输入，本页展开位置之间怎样交换信息"
+          "note": "每个 token 占据序列里的一个位置，attention 在这些位置之间建立上下文读取关系"
+        },
+        {
+          "to": "embedding",
+          "kind": "builds-on",
+          "note": "按编号查出的嵌入向量是第 1 层隐藏表示的起点，attention 从隐藏表示投影出 Q、K、V"
         },
         {
           "to": "matmul-and-weights",
           "kind": "builds-on",
-          "note": "Q/K/V 投影、点积打分和输出投影都是矩阵乘"
-        },
-        {
-          "to": "one-request",
-          "kind": "builds-on",
-          "note": "本页的计算发生在主线第 4 站逐层前向，R1 每站形状在主线页"
+          "note": "Q/K/V 线性投影、点积打分和输出投影都遵循矩阵乘与权重切分规则"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-18",
       "file": "concepts/attention-qkv.md",
       "backlinks": [
         {
@@ -3408,6 +3431,11 @@
           "note": "它曾选那一页讲的块表往 NPU 提交时的实现——默认只提交脏行区间，写 1 退回整行拷贝；09-24 已随优化回退"
         },
         {
+          "from": "chunked-prefill",
+          "kind": "enables",
+          "note": "分块切点不必对齐物理块边界，执行侧按步前已算进度编位置号并查块表定位写入槽位"
+        },
+        {
           "from": "context-parallel",
           "kind": "enables",
           "note": "理解逻辑位置与物理存储槽位"
@@ -3772,14 +3800,14 @@
       "title": "Chunked prefill：长提示词分几步算完，正在生成的请求不被卡住",
       "type": "feature",
       "origin": "gap",
-      "summary": "Chunked prefill 让调度器在一条长提示词装不下这一步时，只给它排剩余预算那么多个位置，下一步从断开处接着算；历史和状态跨段延续，只有最后一段产出首个 token。它让正在 decode 的请求每步照常前进，代价是长请求的首 token 更晚、旧历史要重复读、每步多一点杂活。",
+      "summary": "Chunked prefill 让调度器在一条长提示词装不下本步剩余预算时，只排预算容得下的那一段、下一步从断点续算，历史与递推状态跨段延续，仅最后一段产出首个输出 token；它保护同批 decode 请求不被长提示词卡住，代价是长请求首字更晚与前缀历史重复读取。",
       "aliases": [
         "Chunked Prefill",
         "分块预填充",
         "分块 Prefill"
       ],
       "chapters": [
-        "11"
+        "03"
       ],
       "order": 500,
       "prerequisites": [],
@@ -3834,9 +3862,40 @@
         "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2631-L2731",
         "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2569-L2582",
         "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L239-L310",
-        "vllm@0fc695fc:vllm/v1/sample/rejection_sampler.py#L249-L283"
+        "vllm@0fc695fc:vllm/v1/sample/rejection_sampler.py#L249-L283",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L259-L290",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L448-L501",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L767-L793",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L1121-L1132",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L665",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1066-L1085",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1520-L1545",
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L2705-L2760",
+        "vllm@ced6857a:vllm/config/scheduler.py#L287-L315",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L231-L245",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1075-L1115",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L712-L736",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L816-L828",
+        "vllm-ascend@c09d3e20:vllm_ascend/core/scheduler_profiling_chunk.py#L107-L115",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1479-L1488",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1706-L1734",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1482-L1553",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/batch_invariance.md#L186-L192",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L196-L208",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/pipeline_parallel.md#L180-L257",
+        "vllm@ced6857a:vllm/distributed/utils.py#L127-L160",
+        "vllm@ba15685a:vllm/v1/core/sched/scheduler.py#L776-L792",
+        "vllm@ba15685a:vllm/config/scheduler.py#L91-L96",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1585-L1601",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/attn_utils.py#L719-L750",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/batch_invariance.md#L186-L192"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-a784826e7872c29e9344402dd0c34d9437753b13b503dd7eb663ea72c2414099.md",
@@ -3849,29 +3908,29 @@
           "note": "同一条请求的 prefill 分到几步做，只有最后一段产出首个 token"
         },
         {
-          "to": "vllm-scheduler",
+          "to": "continuous-batching",
           "kind": "builds-on",
-          "note": "切多长由调度器每步的「还差几个」和剩余预算决定"
+          "note": "复用 waiting 与 running 两队列及单步进度差公式，把长提示词余量拼进同轮迭代混跑"
         },
         {
-          "to": "concurrent-requests",
+          "to": "paged-attention",
           "kind": "builds-on",
-          "note": "多条请求时 20,000 token 提示词每一步的预算账"
+          "note": "前序段落算出的 KV 按分页块留在显存，后续分块直接跨段读取而无需事后拼接结果"
         },
         {
-          "to": "vllm-kv-block-allocation",
+          "to": "block-table",
           "kind": "builds-on",
-          "note": "每一段要借多少块，尾状态组为什么临时借两千多块"
+          "note": "分块切点不必对齐物理块边界，执行侧按步前已算进度编位置号并查块表定位写入槽位"
         },
         {
           "to": "pd-disaggregation",
           "kind": "alternative-to",
-          "note": "分块把 prefill 压到每步预算内；PD 分离让 prefill 和 decode 不在同一步"
+          "note": "分块把混进同一步的 prefill 压在预算内；PD 分离让 prefill 与 decode 不在同一步执行"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-18",
       "file": "concepts/chunked-prefill.md",
       "backlinks": [
         {
@@ -3907,7 +3966,7 @@
         {
           "from": "pipeline-parallel",
           "kind": "enables",
-          "note": "PP 的动态切块实现以长输入分块、分步计算为基础，将各块分步送进流水线。"
+          "note": "长提示词切块送入流水线及动态分块 CPP 均以分步预算切块为基础"
         },
         {
           "from": "prefix-caching",
@@ -3931,7 +3990,7 @@
       "title": "通信基础：rank 之间怎样交换和归约张量",
       "type": "concept",
       "origin": "gap",
-      "summary": "集合通信规定一组参与者怎样交换数据，以及结束后每张卡持有什么。用 4 张卡逐步演示 Broadcast、Scatter、Gather、All-Gather、Reduce、Reduce-Scatter、All-Reduce、All-to-All 和 ring All-Reduce，区分逻辑载荷和传输量，再沿 GLM 双机解释 HCCL 与 MC2。",
+      "summary": "集合通信规定一组参与者怎样交换数据以及结束后每张卡持有什么：用 2 卡与 4 卡分格图演示八种通信操作与 ring All-Reduce，区分逻辑载荷与链路传输量、机内 HCCS/UB 与跨机 RoCE 带宽悬崖，再沿 GLM 双机解释 HCCL 与 MC2。",
       "aliases": [
         "集合通信",
         "Collective Communication",
@@ -3955,46 +4014,59 @@
         "ring All-Reduce"
       ],
       "chapters": [
-        "12"
+        "04"
       ],
       "order": 500,
       "prerequisites": [],
       "sources": [
         "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/850/commlib/hcclug/hcclug_000009.html",
         "https://docs.pytorch.org/docs/2.14/distributed.html",
-        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L607-L681",
-        "vllm@0fc695fc:vllm/distributed/device_communicators/base_device_communicator.py#L180-L248",
-        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875",
-        "vllm-ascend@db701c1f:vllm_ascend/distributed/device_communicators/npu_communicator.py#L23-L68",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/comm_utils.py#L26-L60",
-        "vllm-ascend@db701c1f:vllm_ascend/distributed/device_communicators/pyhccl.py#L98-L171",
-        "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L80-L252",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L193-L227",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L469",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L543-L560",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L150-L339",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_comm_method.py#L122-L172",
-        "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L239-L252",
-        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L324-L497",
-        "vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L296-L425",
-        "vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L256-L269",
-        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L165-L165",
-        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L177-L177",
-        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L460-L460",
         "https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/82RC1alpha001/opdevg/ascendcbestP/CANN%E7%A4%BE%E5%8C%BA%E7%89%88%208.2.RC1.alpha001%20Ascend%20C%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5%2001.pdf",
+        "https://e.huawei.com/cn/documents/products/computing/b0b253c4d5da4e05ba80a39e3dc65fd2",
+        "vllm@ced6857a:vllm/distributed/parallel_state.py#L721-L805",
+        "vllm@ced6857a:vllm/distributed/device_communicators/base_device_communicator.py#L231-L365",
+        "vllm@ced6857a:vllm/distributed/parallel_state.py#L1067-L1346",
+        "vllm@ced6857a:vllm/config/parallel.py#L770-L815",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/device_communicators/npu_communicator.py#L23-L62",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/device_communicators/pyhccl.py#L105-L185",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/moe_utils.py#L63-L100",
+        "vllm-ascend@c09d3e20:vllm_ascend/patch/worker/patch_distributed.py#L39-L175",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1241-L1289",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L194-L343",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L297-L425",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L574-L606",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L239-L360",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L165-L179",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/device_communicators/npu_communicator.py#L23-L68",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L324-L515",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L177-L206",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/device_communicators/npu_communicator.py#L26-L86",
+        "vllm@568afb3a:vllm/distributed/parallel_state.py#L641-L725",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/device_communicators/npu_communicator.py#L46-L90",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L340-L470",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L666-L788",
+        "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L248-L455",
+        "vllm@ba15685a:vllm/config/parallel.py#L951-L996",
+        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L607-L681",
         "vllm@0fc695fc:vllm/distributed/parallel_state.py#L926-L1013",
+        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875",
+        "vllm@0fc695fc:vllm/config/parallel.py#L683-L707",
+        "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L80-L252",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L193-L373",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L560",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L102-L339",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_comm_method.py#L122-L172",
         "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L719",
         "vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L157-L167",
-        "vllm@0fc695fc:vllm/config/parallel.py#L683-L707",
-        "raw:sha256-64347e263d97d468f772950b4cba293bf8e7d038833b130b1ace241fdf164bd3.md#L1-L1301",
-        "vllm-ascend@7d825229:vllm_ascend/ascend_forward_context.py#L297-L315",
-        "vllm-ascend@7d825229:vllm_ascend/ascend_forward_context.py#L391-L414",
-        "vllm-ascend@7d825229:vllm_ascend/ops/fused_moe/moe_comm_method.py#L62-L75",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L102-L141",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L228-L373",
-        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L931"
+        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L931",
+        "raw:sha256-64347e263d97d468f772950b4cba293bf8e7d038833b130b1ace241fdf164bd3.md#L1-L1301"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-0cf9c30845c054dfd27aba2a44b05dac82bc0225367eb1ff61d8f59c959eec1e.md",
@@ -4002,24 +4074,19 @@
       ],
       "relations": [
         {
-          "to": "one-request",
-          "kind": "builds-on",
-          "note": "A4 的逐层通信次数和 R1 字节账统一引用请求主线"
-        },
-        {
           "to": "matmul-and-weights",
           "kind": "builds-on",
-          "note": "分清独立输出分片与部分和是选择通信操作的前提"
+          "note": "分清矩阵按列切产生的独立分片与按行切产生的部分和，是选择拼接还是归约的前提"
         },
         {
           "to": "hardware-devices",
           "kind": "builds-on",
-          "note": "通信组的逻辑参与者运行在具体设备上"
+          "note": "承接逻辑 Device 与机内 HCCS/UB、跨机 RoCE 带宽边界，解释高频同步为何锁在机内通信域"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-18",
       "file": "concepts/collective-communication.md",
       "backlinks": [
         {
@@ -4055,7 +4122,7 @@
         {
           "from": "data-parallel",
           "kind": "enables",
-          "note": "每步对齐宽度和每 32 步的全局检查用的都是 All-Reduce"
+          "note": "每步对齐宽度、周期停机检查与跨组专家通信都建立在 All-Reduce 等原语之上"
         },
         {
           "from": "dyntra-lb",
@@ -4080,7 +4147,7 @@
         {
           "from": "expert-parallel",
           "kind": "enables",
-          "note": "All-Gather、Reduce-Scatter 与 All-Reduce 是两条 MoE 路径的通信基础"
+          "note": "All-Gather、Reduce-Scatter、All-Reduce 与 All-to-All 是各条 MoE 路径的通信基础"
         },
         {
           "from": "fine-grained-tp",
@@ -4110,7 +4177,7 @@
         {
           "from": "pipeline-parallel",
           "kind": "enables",
-          "note": "理解点对点收发与组内收集"
+          "note": "区分段间点对点收发与段内 TP 组的 All-Gather 合并"
         },
         {
           "from": "sequence-parallel",
@@ -4410,16 +4477,6 @@
           "note": "场景 M 第 2 站的整批预算与块账，本页只讲在它上面多出的准入检查"
         },
         {
-          "from": "chunked-prefill",
-          "kind": "enables",
-          "note": "多条请求时 20,000 token 提示词每一步的预算账"
-        },
-        {
-          "from": "data-parallel",
-          "kind": "enables",
-          "note": "两组对齐、图尺寸补齐和空闲组陪跑的整批算例都在那一页，本页只讲机制"
-        },
-        {
           "from": "dp-request-routing",
           "kind": "enables",
           "note": "场景 M 的两组打分，以及两组每步按最宽的一组对齐"
@@ -4428,11 +4485,6 @@
           "from": "dyntra-lb",
           "kind": "enables",
           "note": "借用多请求页的场景 M 区分混合 prefill 造成的宽度差距与 DyntraLB 处理的纯 decode 历史负载差距。"
-        },
-        {
-          "from": "expert-parallel",
-          "kind": "enables",
-          "note": "展开场景 M 的 MoE 通信，两组补齐和 dummy run 的推导仍在主线页"
         },
         {
           "from": "inference-performance-troubleshooting",
@@ -4483,11 +4535,6 @@
           "from": "short-request-first",
           "kind": "enables",
           "note": "场景 M 和 20,000 token 提示词分三步的整批账在那一页；本页只加一条短请求看它排到哪一步"
-        },
-        {
-          "from": "tensor-parallel",
-          "kind": "enables",
-          "note": "场景 M 的 token 数与图尺寸对齐决定 TP 载荷"
         },
         {
           "from": "vllm-engine-core",
@@ -4746,6 +4793,16 @@
       "updated": "2026-11-18",
       "file": "concepts/continuous-batching.md",
       "backlinks": [
+        {
+          "from": "chunked-prefill",
+          "kind": "enables",
+          "note": "复用 waiting 与 running 两队列及单步进度差公式，把长提示词余量拼进同轮迭代混跑"
+        },
+        {
+          "from": "data-parallel",
+          "kind": "enables",
+          "note": "每个 DP 执行组内部独立运行连续批处理调度器与各自的等待、运行队列"
+        },
         {
           "from": "paged-attention",
           "kind": "enables",
@@ -5036,7 +5093,7 @@
       "title": "Data parallel：请求怎样分进两组，空闲的组为什么陪跑",
       "type": "feature",
       "origin": "gap",
-      "summary": "DP 把请求分给不同执行组，各组独立排队调度。稠密模型通常每组持有一份权重；本页固定 vLLM 的 MoE 路由专家跨组切分，因此一个请求虽然归属一组，专家计算仍需其他组参加，空闲组也要陪跑；这由 MoE 触发，与是否开 EP 无关。最后落到 GLM 双机的 DP2。",
+      "summary": "DP 把请求分给不同执行组独立排队调度。稠密模型各组自持权重、互不等待；MoE 路由专家跨全部组只放一份，触发空闲组 dummy batch 陪跑（与是否开 EP 无关）。本页结合 v0.30.0 跨机 RoCE PP×DP 禁配与 DP 缓冲规则，落到 GLM 双机 DP2。",
       "aliases": [
         "Data Parallel",
         "数据并行",
@@ -5058,72 +5115,90 @@
         "DP 执行组",
         "DP 通信组",
         "request wave",
-        "START_DP_WAVE"
+        "START_DP_WAVE",
+        "use_batched_dp_moe"
       ],
       "chapters": [
-        "13"
+        "04"
       ],
       "order": 30,
       "prerequisites": [],
       "sources": [
-        "vllm@0fc695fc:vllm/v1/engine/core_client.py#L1398-L1426",
-        "vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945",
-        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875",
-        "vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1118-L1200",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L652-L740",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1453-L1508",
-        "vllm@0fc695fc:vllm/v1/engine/core.py#L1152-L1162",
-        "vllm@0fc695fc:vllm/v1/engine/core.py#L1788-L1855",
-        "vllm@0fc695fc:vllm/v1/engine/coordinator.py#L23-L58",
-        "vllm@0fc695fc:vllm/v1/engine/coordinator.py#L145-L160",
-        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L331-L332",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L972-L973",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L652-L656",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3408-L3652",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3642-L3652",
-        "vllm@0fc695fc:vllm/config/parallel.py#L683-L707",
-        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1257-L1303",
-        "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L315-L318",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5383-L5389",
-        "vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L398-L411",
-        "vllm@0fc695fc:vllm/v1/engine/input_processor.py#L258-L268",
+        "vllm@ced6857a:vllm/config/parallel.py#L128-L165",
+        "vllm@ced6857a:vllm/config/parallel.py#L740-L805",
+        "vllm@ced6857a:vllm/config/scheduler.py#L43-L43",
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L2215-L2310",
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L2919-L2942",
+        "vllm@ced6857a:vllm/v1/engine/core.py#L1318-L1329",
+        "vllm@ced6857a:vllm/v1/engine/core.py#L1996-L2281",
+        "vllm@ced6857a:vllm/v1/engine/coordinator.py#L23-L55",
+        "vllm@ced6857a:vllm/v1/engine/core_client.py#L1546-L1597",
+        "vllm@ced6857a:vllm/model_executor/layers/fused_moe/config.py#L1212-L1250",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/pipeline_parallel.md#L438-L440",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L73-L75",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1266-L1289",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1378-L1435",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1278-L1282",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L823-L884",
+        "vllm@ba15685a:vllm/config/parallel.py#L888-L928",
+        "vllm@ba15685a:vllm/engine/arg_utils.py#L2470-L2565",
+        "vllm@ba15685a:vllm/engine/arg_utils.py#L3197-L3220",
+        "vllm@ba15685a:vllm/v1/engine/core.py#L2524-L2818",
+        "vllm@ba15685a:vllm/v1/engine/core_client.py#L1811-L1871",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/pipeline_parallel.md#L430-L432",
+        "vllm-ascend@8d6180e2:vllm_ascend/utils.py#L1277-L1300",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1397-L1405",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L720-L756",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L1293-L1340",
+        "vllm@568afb3a:vllm/config/parallel.py#L127-L138",
+        "vllm@568afb3a:vllm/engine/arg_utils.py#L1964-L2077",
+        "vllm@568afb3a:vllm/v1/engine/core_client.py#L1413-L1442",
         "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L1079-L1086",
-        "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1205-L1208",
         "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L709-L760",
-        "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L796-L850",
-        "vllm@0fc695fc:vllm/v1/engine/utils.py#L1090-L1096",
+        "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1057-L1080",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L985-L987",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L673-L721",
-        "raw:sha256-6301828dd37d1286329eea1c26e42e604f1d126e743d346e00820b0fdb7dc175.md#L1-L1142",
-        "vllm@0fc695fc:vllm/v1/pool/late_interaction.py#L15-L36",
-        "vllm@0fc695fc:vllm/v1/engine/coordinator.py#L254-L278",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1114-L1137",
+        "vllm@0fc695fc:vllm/v1/engine/core_client.py#L1398-L1426",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1152-L1162",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1788-L1945",
+        "vllm@0fc695fc:vllm/v1/engine/coordinator.py#L23-L278",
+        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875",
+        "vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1118-L1200",
         "vllm@0fc695fc:vllm/config/parallel.py#L118-L129",
-        "vllm@568afb3a:vllm/config/parallel.py#L127-L138",
-        "vllm@84030bbe:vllm/config/parallel.py#L129-L140",
+        "vllm@0fc695fc:vllm/config/parallel.py#L441-L450",
+        "vllm@0fc695fc:vllm/config/parallel.py#L683-L707",
+        "vllm@0fc695fc:vllm/config/parallel.py#L801-L835",
+        "vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L398-L411",
+        "vllm@0fc695fc:vllm/v1/engine/input_processor.py#L258-L268",
+        "vllm@0fc695fc:vllm/v1/pool/late_interaction.py#L15-L36",
+        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L331-L332",
+        "vllm@0fc695fc:vllm/v1/engine/utils.py#L1090-L1096",
         "vllm@0fc695fc:vllm/engine/arg_utils.py#L471-L474",
         "vllm@0fc695fc:vllm/engine/arg_utils.py#L999-L1022",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1817-L1928",
-        "vllm@568afb3a:vllm/engine/arg_utils.py#L1964-L2077",
-        "vllm@84030bbe:vllm/engine/arg_utils.py#L2145-L2290",
-        "vllm@0fc695fc:vllm/config/parallel.py#L441-L450",
-        "vllm@0fc695fc:vllm/config/parallel.py#L801-L835",
-        "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L825-L885",
-        "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L1268-L1271",
-        "vllm@ced6857a:vllm/config/parallel.py#L145-L145",
-        "vllm@ced6857a:vllm/v1/engine/core.py#L2016-L2016",
-        "vllm@ced6857a:vllm/v1/engine/core.py#L2263-L2271",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L3012",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3332-L3363",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1707-L1758",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1542-L1970",
         "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L804-L818",
         "vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L139-L148",
         "vllm@0fc695fc:vllm/entrypoints/openai/api_server.py#L94-L123",
         "vllm@0fc695fc:vllm/entrypoints/openai/api_server.py#L652-L682",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1542-L1549",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1962-L1970",
-        "vllm@0fc695fc:vllm/envs.py#L1297-L1309"
+        "vllm@0fc695fc:vllm/envs.py#L1297-L1309",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L972-L973",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L652-L740",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L3012",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3332-L3652",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5383-L5389",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1453-L1508",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1707-L1758",
+        "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L315-L318",
+        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1257-L1303",
+        "raw:sha256-6301828dd37d1286329eea1c26e42e604f1d126e743d346e00820b0fdb7dc175.md#L1-L1142"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-6301828dd37d1286329eea1c26e42e604f1d126e743d346e00820b0fdb7dc175.md",
@@ -5131,34 +5206,34 @@
       ],
       "relations": [
         {
-          "to": "concurrent-requests",
+          "to": "continuous-batching",
           "kind": "builds-on",
-          "note": "两组对齐、图尺寸补齐和空闲组陪跑的整批算例都在那一页，本页只讲机制"
-        },
-        {
-          "to": "expert-parallel",
-          "kind": "builds-on",
-          "note": "EP16 横跨两个 DP 组；专家怎样分卡、token 怎样派出去再收回来"
-        },
-        {
-          "to": "engine-processes",
-          "kind": "builds-on",
-          "note": "每组一个 EngineCore，DP coordinator 按核心功能角色计入 20 的示意账，实际 OS 总进程数另计"
+          "note": "每个 DP 执行组内部独立运行连续批处理调度器与各自的等待、运行队列"
         },
         {
           "to": "collective-communication",
           "kind": "builds-on",
-          "note": "每步对齐宽度和每 32 步的全局检查用的都是 All-Reduce"
+          "note": "每步对齐宽度、周期停机检查与跨组专家通信都建立在 All-Reduce 等原语之上"
         },
         {
           "to": "tensor-parallel",
           "kind": "builds-on",
-          "note": "一个 DP 组内部的 8 张卡用 TP 合作算同一批请求"
+          "note": "单个 DP 执行组内部的多张卡用 TP 切分线性层矩阵合作算同一批请求"
+        },
+        {
+          "to": "pipeline-parallel",
+          "kind": "builds-on",
+          "note": "层间分段与请求分组可正交对比，但跨机 RoCE 下 MoE 模型严禁同时启用 PP>1 与 DP>1"
+        },
+        {
+          "to": "moe",
+          "kind": "builds-on",
+          "note": "路由专家跨全部 DP 组只放一份，正是 MoE 让各组无法独立运行并触发空闲陪跑的根源"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-10",
+      "updated": "2026-11-19",
       "file": "concepts/data-parallel.md",
       "backlinks": [
         {
@@ -5180,6 +5255,11 @@
           "from": "dyntra-lb",
           "kind": "enables",
           "note": "各组为什么每一步要一起走、请求为什么一直留在派进去的那组"
+        },
+        {
+          "from": "expert-parallel",
+          "kind": "enables",
+          "note": "EP 横跨多个 DP 执行组，决定两组对齐宽度与空闲组陪跑约束"
         },
         {
           "from": "fine-grained-tp",
@@ -5473,7 +5553,7 @@
         {
           "from": "ai-core",
           "kind": "enables",
-          "note": "理解设备内存与数据访问"
+          "note": "区分主机内存与设备侧 HBM（GM）的容量及带宽边界"
         },
         {
           "from": "ascend-950-architecture",
@@ -6042,6 +6122,11 @@
           "from": "api-server-entry",
           "kind": "enables",
           "note": "入口把文本转换为 token 编号，是因为模型的嵌入入口需要按编号查表取得向量。"
+        },
+        {
+          "from": "attention-qkv",
+          "kind": "enables",
+          "note": "按编号查出的嵌入向量是第 1 层隐藏表示的起点，attention 从隐藏表示投影出 Q、K、V"
         },
         {
           "from": "layers-and-hidden",
@@ -7019,11 +7104,6 @@
           "note": "先知道 Worker 是哪个进程、主机侧负责什么，再看它被钉在哪"
         },
         {
-          "from": "data-parallel",
-          "kind": "enables",
-          "note": "每组一个 EngineCore，DP coordinator 按核心功能角色计入 20 的示意账，实际 OS 总进程数另计"
-        },
-        {
           "from": "large-scale-ep",
           "kind": "enables",
           "note": "区分服务实例与其内部进程"
@@ -7223,7 +7303,7 @@
         "no-enable-expert-parallel"
       ],
       "chapters": [
-        "14"
+        "04"
       ],
       "order": 10,
       "prerequisites": [],
@@ -7243,19 +7323,19 @@
         "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L435-L557",
         "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L719",
         "vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L159-L167",
-        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L653",
-        "vllm@0fc695fc:vllm/config/parallel.py#L154-L178",
+        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L660",
+        "vllm@0fc695fc:vllm/config/parallel.py#L154-L187",
         "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L817-L875",
         "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L139-L177",
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L202-L252",
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L324-L342",
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L482-L497",
-        "vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L296-L315",
-        "vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L373-L425",
-        "vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L256-L269",
-        "vllm@568afb3a:vllm/config/parallel.py#L163-L187",
-        "vllm@84030bbe:vllm/config/parallel.py#L167-L198",
-        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L460-L491",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L243-L364",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L373-L425",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L281-L342",
+        "vllm@568afb3a:vllm/config/parallel.py#L163-L196",
+        "vllm@ced6857a:vllm/config/parallel.py#L167-L207",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L574-L625",
         "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L292-L309",
         "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_comm_method.py#L122-L221",
         "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L290-L294",
@@ -7265,33 +7345,31 @@
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L153-L185",
         "vllm@0fc695fc:vllm/model_executor/layers/fused_moe/expert_map_manager.py#L25-L130",
         "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L311-L367",
-        "vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L241-L275",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L259-L462",
         "raw:sha256-42d0164832cbf07480425f6a5b9d053931b2662be6108fdf1cc7a0c53767dc63.md#L1-L2371",
-        "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/ascend_forward_context.py#L250-L250",
-        "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/ascend_forward_context.py#L265-L265",
-        "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/ascend_forward_context.py#L296-L296",
-        "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_forward_context.py#L309-L314",
-        "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_forward_context.py#L330-L331",
-        "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_forward_context.py#L359-L360",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1061-L1065",
+        "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/ascend_forward_context.py#L250-L296",
+        "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L375-L452",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L666-L789",
+        "vllm@ba15685a:vllm/config/parallel.py#L198-L239",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L338-L345",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L940-L945",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1061-L1074",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1976-L1987",
         "vllm@0fc695fc:vllm/config/model.py#L1137-L1142",
         "vllm@0fc695fc:vllm/config/model.py#L1197-L1198",
-        "vllm@568afb3a:vllm/config/model.py#L1177-L1182",
-        "vllm@84030bbe:vllm/config/model.py#L1373-L1378",
+        "vllm@568afb3a:vllm/config/model.py#L1177-L1238",
+        "vllm@ced6857a:vllm/config/model.py#L1373-L1434",
+        "vllm@ba15685a:vllm/config/model.py#L1512-L1582",
         "vllm@568afb3a:vllm/model_executor/layers/fused_moe/config.py#L1204-L1251",
-        "vllm@84030bbe:vllm/model_executor/layers/fused_moe/config.py#L1212-L1259",
-        "vllm@568afb3a:vllm/engine/arg_utils.py#L1100-L1104",
-        "vllm@84030bbe:vllm/engine/arg_utils.py#L1180-L1184",
-        "vllm-ascend@7d825229:vllm_ascend/ascend_forward_context.py#L243-L274",
-        "vllm-ascend@7d825229:vllm_ascend/ascend_forward_context.py#L297-L315",
-        "vllm-ascend@7d825229:vllm_ascend/ascend_forward_context.py#L373-L425",
-        "vllm-ascend@7d825229:vllm_ascend/device/hardware_profile.py#L284-L297",
-        "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L577-L583",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L338-L345",
+        "vllm@ced6857a:vllm/model_executor/layers/fused_moe/config.py#L1212-L1259",
+        "vllm@ba15685a:vllm/model_executor/layers/fused_moe/config.py#L1235-L1284",
         "vllm@568afb3a:vllm/engine/arg_utils.py#L340-L347",
-        "vllm@84030bbe:vllm/engine/arg_utils.py#L349-L356",
-        "vllm@568afb3a:vllm/config/model.py#L1227-L1238",
-        "vllm@84030bbe:vllm/config/model.py#L1423-L1434",
+        "vllm@568afb3a:vllm/engine/arg_utils.py#L965-L970",
+        "vllm@568afb3a:vllm/engine/arg_utils.py#L1100-L1104",
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L358-L365",
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L1188-L1235",
+        "vllm@ba15685a:vllm/engine/arg_utils.py#L382-L389",
+        "vllm@ba15685a:vllm/engine/arg_utils.py#L1313-L1364",
         "vllm-ascend@db701c1f:vllm_ascend/envs.py#L95-L102",
         "vllm-ascend@db701c1f:vllm_ascend/distributed/parallel_state.py#L84-L96",
         "vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L931",
@@ -7300,28 +7378,23 @@
         "https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/9e55cbc8e2b19e20c63b08b916d2582f25a22504/quant_model_description.json",
         "https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/3121f187149ef2defa15f2b28adad10e272681d9/quant_model_description.json",
         "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L335-L346",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L940-L945",
-        "vllm@568afb3a:vllm/engine/arg_utils.py#L965-L970",
-        "vllm@84030bbe:vllm/engine/arg_utils.py#L1037-L1042",
         "vllm@0fc695fc:vllm/config/parallel.py#L625-L640",
         "vllm@0fc695fc:docs/serving/expert_parallel_deployment.md#L1-L320",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1061-L1074",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1976-L1987",
-        "vllm@0fc695fc:vllm/config/parallel.py#L177-L187",
         "vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1018-L1082",
         "vllm@0fc695fc:vllm/model_executor/layers/fused_moe/all2all_utils.py#L150-L195",
-        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L660",
-        "vllm@568afb3a:vllm/config/parallel.py#L186-L196",
-        "vllm@ced6857a:vllm/config/parallel.py#L197-L207",
-        "vllm@84030bbe:vllm/config/parallel.py#L197-L207",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L659-L669",
         "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L621-L631",
-        "vllm-ascend@7d825229:vllm_ascend/platform.py#L1353-L1362",
-        "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1237-L1246"
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1363-L1372",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1569-L1578",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/shared_experts.py#L52-L59",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L1-L80",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L1-L80",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L120"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -7336,40 +7409,30 @@
           "note": "MoE 解释 router 选专家与加权输出，本页解释这些专家分布到多卡后的执行"
         },
         {
-          "to": "glm-5-3-flash",
-          "kind": "builds-on",
-          "note": "模型总览是 288 选 8、共享专家和各层维度的出处"
-        },
-        {
-          "to": "concurrent-requests",
-          "kind": "builds-on",
-          "note": "展开场景 M 的 MoE 通信，两组补齐和 dummy run 的推导仍在主线页"
-        },
-        {
           "to": "collective-communication",
           "kind": "builds-on",
-          "note": "All-Gather、Reduce-Scatter 与 All-Reduce 是两条 MoE 路径的通信基础"
+          "note": "All-Gather、Reduce-Scatter、All-Reduce 与 All-to-All 是各条 MoE 路径的通信基础"
         },
         {
           "to": "tensor-parallel",
           "kind": "builds-on",
-          "note": "路由专家按完整专家分给 EP，共享专家的矩阵仍由机内 TP8 合切"
+          "note": "路由专家按完整专家分给 EP，共享专家的矩阵仍可由机内 TP 合切"
+        },
+        {
+          "to": "data-parallel",
+          "kind": "builds-on",
+          "note": "EP 横跨多个 DP 执行组，决定两组对齐宽度与空闲组陪跑约束"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-11",
+      "updated": "2026-11-18",
       "file": "concepts/expert-parallel.md",
       "backlinks": [
         {
           "from": "combine-quant-mode-2a3f7cd47997",
           "kind": "enables",
           "note": "它改的是 MC2 那对 dispatch / combine 算子里 combine 那一半的通信量化位，而 MC2 正是 EP 收发 token 的通道"
-        },
-        {
-          "from": "data-parallel",
-          "kind": "enables",
-          "note": "EP16 横跨两个 DP 组；专家怎样分卡、token 怎样派出去再收回来"
         },
         {
           "from": "dyntra-lb",
@@ -7797,11 +7860,6 @@
           "from": "concurrent-requests",
           "kind": "enables",
           "note": "多请求页以模型总览给出的层结构和批量前向机制为基础，展开各请求共用权重、拼接本轮输入而分别维护历史的执行方式。"
-        },
-        {
-          "from": "expert-parallel",
-          "kind": "enables",
-          "note": "模型总览是 288 选 8、共享专家和各层维度的出处"
         },
         {
           "from": "glm-5-3-flash-baseline",
@@ -8378,6 +8436,11 @@
           "from": "prefill",
           "kind": "enables",
           "note": "Qwen3-8B 等标准模型的分组查询头共享 K、V 头，直接决定两阶段每位置读写缓存的字节数与注意力算术强度"
+        },
+        {
+          "from": "tensor-parallel",
+          "kind": "enables",
+          "note": "查询头与 KV 头分组后，TP 大于 KV 头数时按副本数跨卡复制"
         }
       ]
     },
@@ -8658,7 +8721,7 @@
         {
           "from": "ai-core",
           "kind": "enables",
-          "note": "先区分设备与设备内部的核心"
+          "note": "先分清 NPU 裸片、板卡、服务器与四族硬件档案（A2/A3/310P/A5），再进入核内单元"
         },
         {
           "from": "ascend-950-architecture",
@@ -8683,7 +8746,7 @@
         {
           "from": "collective-communication",
           "kind": "enables",
-          "note": "通信组的逻辑参与者运行在具体设备上"
+          "note": "承接逻辑 Device 与机内 HCCS/UB、跨机 RoCE 带宽边界，解释高频同步为何锁在机内通信域"
         },
         {
           "from": "cpu-binding",
@@ -11610,11 +11673,6 @@
       "file": "concepts/layers-and-hidden.md",
       "backlinks": [
         {
-          "from": "attention-qkv",
-          "kind": "enables",
-          "note": "隐藏向量是 attention 的输入，本页展开位置之间怎样交换信息"
-        },
-        {
           "from": "lm-head",
           "kind": "enables",
           "note": "lm_head 接在最后一层之后，吃的是那一层交出、再做完最终归一化的隐藏向量"
@@ -11627,7 +11685,7 @@
         {
           "from": "pipeline-parallel",
           "kind": "enables",
-          "note": "先理解层间表示与 GLM 的四路连接"
+          "note": "先理解层间传递的隐藏状态与 GLM 的四路残差连接"
         }
       ]
     },
@@ -12618,12 +12676,12 @@
         {
           "from": "ai-core",
           "kind": "enables",
-          "note": "认识矩阵计算需要的输入与权重"
+          "note": "认识线性投影矩阵乘所需的输入行、权重列与乘加次数"
         },
         {
           "from": "attention-qkv",
           "kind": "enables",
-          "note": "Q/K/V 投影、点积打分和输出投影都是矩阵乘"
+          "note": "Q/K/V 线性投影、点积打分和输出投影都遵循矩阵乘与权重切分规则"
         },
         {
           "from": "batch-invariance",
@@ -12633,7 +12691,7 @@
         {
           "from": "collective-communication",
           "kind": "enables",
-          "note": "分清独立输出分片与部分和是选择通信操作的前提"
+          "note": "分清矩阵按列切产生的独立分片与按行切产生的部分和，是选择拼接还是归约的前提"
         },
         {
           "from": "lm-head",
@@ -12829,7 +12887,7 @@
         {
           "from": "tensor-parallel",
           "kind": "enables",
-          "note": "MLA 的共享潜向量解释了为什么 KV cache 在 TP 内复制"
+          "note": "MLA 的共享潜向量解释了为什么未开 DCP 时 KV cache 在 TP 内复制"
         }
       ]
     },
@@ -12955,6 +13013,11 @@
       "updated": "2026-11-03",
       "file": "concepts/mlp-residual-norm.md",
       "backlinks": [
+        {
+          "from": "ai-core",
+          "kind": "enables",
+          "note": "对照 RMSNorm 归约、残差相加与 SwiGLU 逐项门控怎样与矩阵乘交替出现"
+        },
         {
           "from": "glm-mlp-version-source",
           "kind": "enables",
@@ -13172,6 +13235,11 @@
           "from": "combine-quant-mode-2a3f7cd47997",
           "kind": "enables",
           "note": "该参数建立在 MoE 的路由专家计算与结果加权合并机制上，控制 MC2 路径中专家结果收回阶段的通信量化。"
+        },
+        {
+          "from": "data-parallel",
+          "kind": "enables",
+          "note": "路由专家跨全部 DP 组只放一份，正是 MoE 让各组无法独立运行并触发空闲陪跑的根源"
         },
         {
           "from": "eplb",
@@ -14440,11 +14508,6 @@
       "file": "concepts/one-request.md",
       "backlinks": [
         {
-          "from": "ai-core",
-          "kind": "enables",
-          "note": "回到第 4 站，把单卡计算放回请求的逐层前向"
-        },
-        {
           "from": "answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad",
           "kind": "enables",
           "note": "回答里第 1 步、第 92 步、199 步只分一次这些数，全部取自该页并入的旧算例设定"
@@ -14455,19 +14518,9 @@
           "note": "R1 在 34 层 KDA 与 11 层稀疏 MLA 里的逐卡形状"
         },
         {
-          "from": "attention-qkv",
-          "kind": "enables",
-          "note": "本页的计算发生在主线第 4 站逐层前向，R1 每站形状在主线页"
-        },
-        {
           "from": "block-table",
           "kind": "enables",
           "note": "R1 第一步的 15 个块号怎样按组算出来、第 3 站怎样登记进表，都在主线第 2、3 站"
-        },
-        {
-          "from": "collective-communication",
-          "kind": "enables",
-          "note": "A4 的逐层通信次数和 R1 字节账统一引用请求主线"
         },
         {
           "from": "concurrent-requests",
@@ -14558,11 +14611,6 @@
           "from": "structured-output",
           "kind": "enables",
           "note": "主线第 5 站讲 logits 怎样变成一个 token；本页讲带格式约束的请求在这一站前多出的一道屏蔽"
-        },
-        {
-          "from": "tensor-parallel",
-          "kind": "enables",
-          "note": "本页展开第 4 站的矩阵切分与 TP 通信，七站总账留在主线页"
         },
         {
           "from": "vllm-ascend-for-rl",
@@ -14850,11 +14898,6 @@
           "note": "理解 ACL Graph 捕获和回放的设备任务，需要先区分模型运算、算子接口与实际执行的 kernel；模型运算次数不能直接当作图内 kernel 数。"
         },
         {
-          "from": "ai-core",
-          "kind": "enables",
-          "note": "区分数学算子、软件入口与设备上的执行程序"
-        },
-        {
           "from": "batch-invariance",
           "kind": "enables",
           "note": "同一个算子可以有多种 kernel 实现。"
@@ -14873,11 +14916,6 @@
           "from": "op-to-ai-core",
           "kind": "enables",
           "note": "先区分算子接口与设备核函数"
-        },
-        {
-          "from": "tensor-parallel",
-          "kind": "enables",
-          "note": "Ascend 通过算子注册替换上游 Linear 类"
         }
       ]
     },
@@ -14961,6 +14999,11 @@
           "from": "ascend-flash-attention",
           "kind": "enables",
           "note": "理解分页 KV 缓存与块表寻址后，才能看清 FIA、PA 与 FA3 怎样直接消费非连续物理页"
+        },
+        {
+          "from": "chunked-prefill",
+          "kind": "enables",
+          "note": "前序段落算出的 KV 按分页块留在显存，后续分块直接跨段读取而无需事后拼接结果"
         },
         {
           "from": "kv-cache-memory-profiling",
@@ -15176,7 +15219,7 @@
         {
           "from": "chunked-prefill",
           "kind": "alternative-to",
-          "note": "分块把 prefill 压到每步预算内；PD 分离让 prefill 和 decode 不在同一步"
+          "note": "分块把混进同一步的 prefill 压在预算内；PD 分离让 prefill 与 decode 不在同一步执行"
         },
         {
           "from": "ai-qos",
@@ -15235,7 +15278,7 @@
       "title": "流水线并行（PP）：层分段、状态交接与气泡",
       "type": "feature",
       "origin": "gap",
-      "summary": "把模型的层按顺序切成几段放到不同的卡上，一个请求依次流过各段；讲清为什么这样切、段间交接什么、气泡从哪来，以及 GLM 双机为什么没开 PP。",
+      "summary": "把模型的隐藏层按先后顺序切成几段放到不同的卡组上，让请求像工件一样依次流过各段；讲清层分段与 TP 的区别、段间状态交接、流水线气泡与微批填充，拆解 v0.30.0 非末段 PPMissingLayer 消除词表峰值并放大批 token 预算的机制，以及 GLM 双机为什么没开 PP。",
       "aliases": [
         "Pipeline Parallel",
         "流水线并行",
@@ -15244,6 +15287,7 @@
         "PP stage",
         "流水线气泡",
         "pipeline_parallel_size",
+        "--pipeline-parallel-size",
         "VLLM_PP_LAYER_PARTITION",
         "PPMissingLayer",
         "IntermediateTensors",
@@ -15251,27 +15295,61 @@
         "make_layers"
       ],
       "chapters": [
-        "13"
+        "04"
       ],
       "order": 20,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2263-L2319",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2241",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2132-L2169",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L607-L650",
-        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L912-L949",
-        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L987-L1013",
-        "vllm@0fc695fc:vllm/v1/engine/core.py#L484-L499",
-        "vllm@0fc695fc:vllm/config/model.py#L1188-L1207",
-        "raw:sha256-c8b1a2c79b32558573476b248571b6ba66e40038fa939a49b27343a5f5c7cf0c.md#L1-L293",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/pipeline_parallel.md#L1-L465",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/features/ray.md#L1-L160",
         "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/feature_guide/pipeline_parallel.md",
         "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/tutorials/features/ray.md",
-        "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L773-L825",
-        "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1733-L1741",
-        "vllm-ascend@7d825229:vllm_ascend/platform.py#L1067-L1075"
+        "raw:sha256-c8b1a2c79b32558573476b248571b6ba66e40038fa939a49b27343a5f5c7cf0c.md#L1-L293",
+        "vllm@ced6857a:vllm/config/parallel.py#L120-L132",
+        "vllm@ced6857a:vllm/config/parallel.py#L888-L895",
+        "vllm@ced6857a:vllm/config/model.py#L1435-L1444",
+        "vllm@ced6857a:vllm/distributed/utils.py#L127-L173",
+        "vllm@ced6857a:vllm/model_executor/models/utils.py#L826-L888",
+        "vllm@ced6857a:vllm/model_executor/models/llama.py#L377-L401",
+        "vllm@ced6857a:vllm/model_executor/models/llama.py#L502-L518",
+        "vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6524-L6535",
+        "vllm@ced6857a:vllm/config/vllm.py#L588-L604",
+        "vllm@ced6857a:vllm/config/vllm.py#L1877-L1899",
+        "vllm@ced6857a:vllm/distributed/parallel_state.py#L1067-L1205",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L775-L843",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4305-L4345",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L724-L780",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1466-L1470",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1740-L1744",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1075-L1085",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2238-L2243",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L620-L662",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L69-L74",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L691-L695",
+        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L912-L1013",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L484-L499",
+        "vllm@0fc695fc:vllm/config/model.py#L1188-L1207",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L662-L702",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L99-L106",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1063-L1064",
+        "vllm@568afb3a:vllm/config/vllm.py#L512-L522",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L903-L962",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1585-L1603",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/pipeline_parallel.md#L425-L435",
+        "vllm@ba15685a:vllm/config/compilation.py#L204-L237",
+        "vllm@ba15685a:vllm/config/vllm.py#L615-L632",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2132-L2169",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2241",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2262-L2319",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2437-L2462",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L607-L650"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-c503bde9e5acc84299ab340e2282e9a6dfd495d1804cdd4f80a7bdf7ed4947c8.md",
@@ -15281,33 +15359,38 @@
         {
           "to": "layers-and-hidden",
           "kind": "builds-on",
-          "note": "先理解层间表示与 GLM 的四路连接"
-        },
-        {
-          "to": "collective-communication",
-          "kind": "builds-on",
-          "note": "理解点对点收发与组内收集"
-        },
-        {
-          "to": "vllm-engine-core",
-          "kind": "builds-on",
-          "note": "理解引擎批队列与结果更新"
+          "note": "先理解层间传递的隐藏状态与 GLM 的四路残差连接"
         },
         {
           "to": "chunked-prefill",
           "kind": "builds-on",
-          "note": "PP 的动态切块实现以长输入分块、分步计算为基础，将各块分步送进流水线。"
+          "note": "长提示词切块送入流水线及动态分块 CPP 均以分步预算切块为基础"
+        },
+        {
+          "to": "collective-communication",
+          "kind": "builds-on",
+          "note": "区分段间点对点收发与段内 TP 组的 All-Gather 合并"
+        },
+        {
+          "to": "tensor-parallel",
+          "kind": "builds-on",
+          "note": "对比层内按列/行切分与层间按段切分，以及段内叠加 TP 时的切片交接"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/pipeline-parallel.md",
       "backlinks": [
         {
           "from": "kvpp",
           "kind": "alternative-to",
           "note": "同叫「流水」，PP 分的是层的权重和计算，KVPP 只分历史放在哪"
+        },
+        {
+          "from": "data-parallel",
+          "kind": "enables",
+          "note": "层间分段与请求分组可正交对比，但跨机 RoCE 下 MoE 模型严禁同时启用 PP>1 与 DP>1"
         },
         {
           "from": "dynamic-chunked-pp",
@@ -19101,6 +19184,11 @@
       "file": "concepts/roofline-and-metrics.md",
       "backlinks": [
         {
+          "from": "ai-core",
+          "kind": "enables",
+          "note": "用算术强度与 Roofline 屋顶判断当前阶段受限于 HBM 搬运带宽还是 Cube 峰值算力"
+        },
+        {
           "from": "hardware-devices",
           "kind": "enables",
           "note": "承接算力屋顶与显存带宽斜坡，将抽象的 π_peak 与 β_HBM 落到昇腾四族芯片、板卡与互联链路上"
@@ -21536,7 +21624,7 @@
         "行并行"
       ],
       "chapters": [
-        "13"
+        "04"
       ],
       "order": 10,
       "prerequisites": [],
@@ -21564,14 +21652,14 @@
         "vllm@0fc695fc:vllm/config/model.py#L1184-L1195",
         "vllm@0fc695fc:vllm/config/parallel.py#L110-L117",
         "vllm@568afb3a:vllm/config/parallel.py#L118-L125",
-        "vllm@84030bbe:vllm/config/parallel.py#L120-L131",
+        "vllm@ced6857a:vllm/config/parallel.py#L120-L130",
         "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L700-L739",
         "vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L497-L521",
-        "vllm-ascend@baa023ad:vllm_ascend/ops/linear_op.py#L311-L318",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/linear_op.py#L406-L460",
         "vllm-ascend@db701c1f:vllm_ascend/ops/linear.py#L272-L371",
         "vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768",
-        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L155-L189",
-        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L182-L229",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/kda.py#L168-L195",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L182-L230",
         "vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L84-L95",
         "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L202-L252",
         "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028",
@@ -21587,14 +21675,25 @@
         "vllm@0fc695fc:vllm/engine/arg_utils.py#L970-L976",
         "vllm@0fc695fc:vllm/config/parallel.py#L487-L492",
         "vllm@568afb3a:vllm/engine/arg_utils.py#L1013-L1015",
-        "vllm@84030bbe:vllm/engine/arg_utils.py#L1085-L1087",
-        "vllm-ascend@7d825229:vllm_ascend/ops/linear_op.py#L410-L455",
-        "vllm-ascend@7d825229:vllm_ascend/ops/linear_op.py#L156-L264",
-        "vllm-ascend@7d825229:vllm_ascend/models/kimi_k3.py#L534-L554"
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L1093-L1098",
+        "vllm@ba15685a:vllm/config/parallel.py#L146-L155",
+        "vllm@ba15685a:vllm/engine/arg_utils.py#L1217-L1222",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/linear_op.py#L156-L261",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/kimi_k3.py#L687-L712",
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/linear_op.py#L403-L455",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L300-L335",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/attention.py#L193-L238",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/kimi_k3/kimi_k3.py#L795-L815",
+        "vllm@ced6857a:vllm/model_executor/layers/linear.py#L1045-L1060",
+        "vllm@ced6857a:vllm/config/model.py#L1530-L1551",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/linear.py#L107-L125",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1437-L1443",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L856-L884"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -21604,29 +21703,19 @@
       ],
       "relations": [
         {
-          "to": "one-request",
-          "kind": "builds-on",
-          "note": "本页展开第 4 站的矩阵切分与 TP 通信，七站总账留在主线页"
-        },
-        {
-          "to": "concurrent-requests",
-          "kind": "builds-on",
-          "note": "场景 M 的 token 数与图尺寸对齐决定 TP 载荷"
-        },
-        {
           "to": "matmul-and-weights",
           "kind": "builds-on",
           "note": "column 和 row 分别切矩阵乘的输出维和输入维"
         },
         {
-          "to": "collective-communication",
+          "to": "gqa",
           "kind": "builds-on",
-          "note": "All-Reduce 求和与 All-Gather 拼接决定分片怎样合并"
+          "note": "查询头与 KV 头分组后，TP 大于 KV 头数时按副本数跨卡复制"
         },
         {
           "to": "mla",
           "kind": "builds-on",
-          "note": "MLA 的共享潜向量解释了为什么 KV cache 在 TP 内复制"
+          "note": "MLA 的共享潜向量解释了为什么未开 DCP 时 KV cache 在 TP 内复制"
         },
         {
           "to": "linear-attention",
@@ -21634,14 +21723,14 @@
           "note": "KDA 各头的递归状态随头切分，更新规则见该页"
         },
         {
-          "to": "ops-and-kernels",
+          "to": "collective-communication",
           "kind": "builds-on",
-          "note": "Ascend 通过算子注册替换上游 Linear 类"
+          "note": "All-Reduce 求和与 All-Gather 拼接决定分片怎样合并"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/tensor-parallel.md",
       "backlinks": [
         {
@@ -21652,7 +21741,7 @@
         {
           "from": "data-parallel",
           "kind": "enables",
-          "note": "一个 DP 组内部的 8 张卡用 TP 合作算同一批请求"
+          "note": "单个 DP 执行组内部的多张卡用 TP 切分线性层矩阵合作算同一批请求"
         },
         {
           "from": "embedding",
@@ -21667,7 +21756,7 @@
         {
           "from": "expert-parallel",
           "kind": "enables",
-          "note": "路由专家按完整专家分给 EP，共享专家的矩阵仍由机内 TP8 合切"
+          "note": "路由专家按完整专家分给 EP，共享专家的矩阵仍可由机内 TP 合切"
         },
         {
           "from": "fine-grained-tp",
@@ -21703,6 +21792,11 @@
           "from": "netloader-guide",
           "kind": "enables",
           "note": "Netloader 搬已有分片，分片怎样产生由 TP 页解释"
+        },
+        {
+          "from": "pipeline-parallel",
+          "kind": "enables",
+          "note": "对比层内按列/行切分与层间按段切分，以及段内叠加 TP 时的切片交接"
         },
         {
           "from": "rfork-identity",
@@ -21849,6 +21943,11 @@
           "from": "api-server-entry",
           "kind": "enables",
           "note": "聊天模板与字节级 BPE 分词本身怎么做，GLM 模板加了哪些特殊标记"
+        },
+        {
+          "from": "attention-qkv",
+          "kind": "enables",
+          "note": "每个 token 占据序列里的一个位置，attention 在这些位置之间建立上下文读取关系"
         },
         {
           "from": "embedding",
@@ -22822,11 +22921,6 @@
           "note": "EngineCore 进程里的忙循环一步做哪些事，在那一页展开"
         },
         {
-          "from": "pipeline-parallel",
-          "kind": "enables",
-          "note": "理解引擎批队列与结果更新"
-        },
-        {
           "from": "vllm-scheduler",
           "kind": "enables",
           "note": "调度器是 EngineCore 每一步开头做的第一件事；谁在什么时候调它，写在那一页"
@@ -22982,11 +23076,6 @@
           "from": "batch-job-aware-scheduler",
           "kind": "enables",
           "note": "理解缓存增长与抢占回收"
-        },
-        {
-          "from": "chunked-prefill",
-          "kind": "enables",
-          "note": "每一段要借多少块，尾状态组为什么临时借两千多块"
         },
         {
           "from": "kv-pool",
@@ -23352,11 +23441,6 @@
           "from": "batch-job-aware-scheduler",
           "kind": "enables",
           "note": "理解等待队列如何影响准入"
-        },
-        {
-          "from": "chunked-prefill",
-          "kind": "enables",
-          "note": "切多长由调度器每步的「还差几个」和剩余预算决定"
         },
         {
           "from": "dyntra-lb",

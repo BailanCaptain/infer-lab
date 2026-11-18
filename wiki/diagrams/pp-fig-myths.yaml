@@ -1,0 +1,14 @@
+mode: native-svg
+id: pp-fig-myths
+caption: >-
+  流水线并行四大常见工程误判与 v0.30.0 源码真相：单请求 Decode 串行气泡开销、首尾段 embed_tokens/lm_head 与 VLLM_PP_LAYER_PARTITION 非均匀调平、跨机 RoCE MoE 下 PP>1 与 DP>1 无启动拦截互斥、以及 P/D 分离 MooncakeConnectorV1 的 D 侧 PP_D == 1 约束。
+size: [900, 496]
+pins:
+  - source: vllm@ced6857a:vllm/distributed/utils.py#L127-L172
+    symbols: [get_pp_indices, VLLM_PP_LAYER_PARTITION]
+  - source: vllm@ced6857a:vllm/model_executor/models/llama.py#L377-L518
+    symbols: [embed_tokens, lm_head, PPMissingLayer]
+  - source: vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/pipeline_parallel.md#L341-L442
+    symbols: [MooncakeConnectorV1, MoeDistributeDispatch, VLLM_PP_LAYER_PARTITION, pp_layer_partition]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2238-L2243
+    symbols: [_decode_pp_size, pp_layer_partition]

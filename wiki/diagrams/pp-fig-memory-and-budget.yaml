@@ -1,0 +1,16 @@
+mode: native-svg
+id: pp-fig-memory-and-budget
+caption: >-
+  PP > 1 单段显存减负与批预算放大机制：各段仅建 [start, end) 约 1/PP 的隐藏层与 KV Cache，且非末段（0..PP−2）用 PPMissingLayer 替换 norm 与 lm_head、跳过 [T_s, vocab_size] 词表打分与采样尖峰，从而释放更大 max_num_batched_tokens 交棒动态分块 CPP；右下并列 v0.30.0 SP+PP 自动注入 +rms_norm 规则。
+size: [900, 440]
+pins:
+  - source: vllm@ced6857a:vllm/model_executor/models/utils.py#L826-L887
+    symbols: [PPMissingLayer, make_layers, get_pp_indices]
+  - source: vllm@ced6857a:vllm/model_executor/models/llama.py#L394-L518
+    symbols: [ParallelLMHead, PPMissingLayer, is_last_rank]
+  - source: vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6524-L6535
+    symbols: [_dummy_sampler_run, is_last_rank, max_num_tokens]
+  - source: vllm@ced6857a:vllm/config/vllm.py#L1877-L1899
+    symbols: [enable_sp, pipeline_parallel_size, custom_ops]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L724-L780
+    symbols: [profiling_chunk_config, pipeline_parallel_size]

@@ -1,0 +1,15 @@
+mode: native-svg
+id: tp-fig-kv-replication
+caption: TP 成对切分与 KV 状态触底复制对比：上半部展示先列切、本地非线性激活或头计算、再行切接末尾一次 All-Reduce 为何省去中间通信；下半部对比两类 KV 不再随 TP 缩小的边界——GQA 在 TP 大于 KV 头数时按 num_kv_head_replicas 跨卡复制（数为示意），以及 MLA 共享潜向量在未开启 DCP 时逐卡保留完整副本。
+size: [900, 444]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L430-L470'
+    symbols: ['ColumnParallelLinear']
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L1045-L1060'
+    symbols: ['num_kv_head_replicas', 'total_num_kv_heads']
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L1623-L1780'
+    symbols: ['RowParallelLinear', 'tensor_model_parallel_all_reduce']
+  - source: 'vllm@ced6857a:vllm/config/model.py#L1530-L1551'
+    symbols: ['get_num_kv_heads', 'use_mla', 'total_num_kv_heads']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/mla_v1.py#L1010-L1030'
+    symbols: ['kv_lora_rank', 'decode_context_parallel_size']

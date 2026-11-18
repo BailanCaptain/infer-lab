@@ -1,0 +1,12 @@
+mode: native-svg
+id: quantization-fig-w8a8-mix-pd
+caption: >-
+  v0.30.0 W8A8_MIX（w8a8_pdmix.py）组合架构与 PD 角色分派：统一按静态路径加载全套缓冲区并补建 weight_scale_fp32，前向依 kv_transfer_config.is_kv_consumer 分流——Prefill/混部走动态逐 token 量化保精度，Decode/kv_both 走静态省算子开销（仅注册 linear，已移除 moe）。
+size: [880, 330]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L36-L56
+    symbols: [W8A8_MIX, AscendW8A8PDMixLinearMethod, _static_method, _dynamic_method, is_kv_consumer]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L78-L93
+    symbols: [is_kv_consumer, weight_scale_fp32, process_weights_after_loading]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_static.py#L74-L87
+    symbols: [quant_bias, deq_scale, weight_scale]

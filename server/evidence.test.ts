@@ -236,13 +236,13 @@ describe("离线源码与原文证据构建、安全边界与 HTTP/静态路由�
     }
   });
 
-  it("真实仓库样本核验：quantization 的 20 条图 pins 保留与页 sources 不同的精确行范围且首屏快照不含摘录", async () => {
+  it("真实仓库样本核验：quantization 的 35 条图 pins 保留与页 sources 不同的精确行范围且首屏快照不含摘录", async () => {
     const repoRoot = resolve(import.meta.dirname, "..");
     const pack = await buildLockedPageEvidence(repoRoot, "quantization");
     const parsed = readerPageEvidenceSchema.parse(pack);
     const totalPins = parsed.diagrams.reduce((n, d) => n + d.pins.length, 0);
     expect(parsed.pageSources).toHaveLength(55);
-    expect(totalPins).toBe(20);
+    expect(totalPins).toBe(35);
     const pageSourceSet = new Set(parsed.pageSources);
     const distinctRangePins = parsed.diagrams
       .flatMap((d) => d.pins)

@@ -1779,12 +1779,13 @@
         "vllm@ced6857a:vllm/model_executor/models/registry.py#L1318-L1423",
         "vllm@ced6857a:vllm/config/model.py#L167-L369",
         "vllm-ascend@c09d3e20:vllm_ascend/quantization/utils.py#L140-L265",
-        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L240",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L130-L240",
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L824-L860",
         "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L786-L820",
         "vllm-ascend@8d6180e2:vllm_ascend/models/__init__.py#L1-L130",
         "vllm@ced6857a:vllm/envs.py#L716-L719",
-        "vllm-ascend@c09d3e20:mkdocs.yml#L176-L180"
+        "vllm-ascend@c09d3e20:mkdocs.yml#L176-L180",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L341-L350"
       ],
       "verified": [
         "releases/v0.30.0",

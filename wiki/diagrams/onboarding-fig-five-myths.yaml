@@ -1,0 +1,23 @@
+mode: native-svg
+id: onboarding-fig-five-myths
+caption: 新模型上线五组常见误解 vs v0.30.0 源码真相排障对照板
+size: [880, 340]
+pins:
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/device/device_config.py#L65-L77"
+    symbols:
+      - check_ascend_device_type
+      - RuntimeError
+  - source: "vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.md#L1-L15"
+    symbols:
+      - discontinued
+      - v0.30.0
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L240"
+    symbols:
+      - is_950
+      - resolve_block_scales
+      - _mx_quantize
+  - source: "vllm@ced6857a:vllm/model_executor/models/registry.py#L1318-L1423"
+    symbols:
+      - ModelRegistry
+      - resolve_model_cls
+      - _try_resolve_transformers

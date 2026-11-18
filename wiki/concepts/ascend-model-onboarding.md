@@ -44,12 +44,13 @@ sources:
   - 'vllm@ced6857a:vllm/model_executor/models/registry.py#L1318-L1423'
   - 'vllm@ced6857a:vllm/config/model.py#L167-L369'
   - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/utils.py#L140-L265'
-  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L240'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L130-L240'
   - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L824-L860'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L786-L820'
   - 'vllm-ascend@8d6180e2:vllm_ascend/models/__init__.py#L1-L130'
   - 'vllm@ced6857a:vllm/envs.py#L716-L719'
   - 'vllm-ascend@c09d3e20:mkdocs.yml#L176-L180'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L341-L350'
 verified:
   - releases/v0.30.0
   - releases/v0.23.0
@@ -95,17 +96,21 @@ file: onboarding-four-gates
 | 第一关：五维版本锁死 | 我的 `vllm`、`vllm-ascend`、`CANN`、`torch_npu` 与硬件卡型是否严丝合缝？ | 导入缺符号、`pip` 装错卡型包，或 Worker 启动检查直接抛 `RuntimeError` |
 | 第二关：支持矩阵与食谱 | 目标模型在 `v0.30.0` 是 25 篇活跃食谱之一还是 27 篇停服桩？先读食谱安装节核对是否注明专属镜像标签、`not yet been merged` 或 `nightly-main`，以确认能否直接用 `v0.30.0` 正式标准镜像 | 照着已停服页面或 `GLM5.md` 里停服型号调参踩中废弃分支；或拿 `v0.30.0` 正式包去跑需要专属镜像/未合入代码的模型而失败 |
 | 第三关：模型代码从哪来 | `vllm serve` 会命中上游内置类、`vllm-ascend` 专有/覆写类，还是回退 `transformers`？ | 报不支持该架构（`ValueError`），或漏开远程代码信任与配置覆盖开关 |
-| 第四关：权重选型与转换 | 选浮点、`ModelSlim`、`LLM-Compressor` 还是原生分块 `FP8`？加载期会怎样改写？ | `310P` 用 `BF16` 失败，或原生 `FP8` 在 A2/A3 上静默反量化成 `BF16` 导致显存翻倍 |
+| 第四关：权重选型与转换 | 选浮点、`ModelSlim`、`LLM-Compressor` 还是原生分块 `FP8`？加载期会怎样改写？ | `310P` 用 `BF16` 或原生 `FP8` 失败，或原生 `FP8` 在 A2/A3 上静默反量化成 `BF16` 导致显存翻倍 |
 
 ## 第一关：为什么必须锁死「五维配套」？
 
 `vllm-ascend` 不是一份独立的推理引擎，而是挂在 `vllm` 之外的平台插件（详见 [vLLM-Ascend 概览](vllm-ascend-overview.md)）。它一头调用 `vllm` 的调度与引擎接口，另一头通过编译好的 C++/AscendC 算子和 PyTorch 昇腾扩展（`torch_npu`）去驱动 **CANN**（昇腾底层软件栈，提供运行时、算子、图编排和集合通信能力）与具体 **NPU**（昇腾计算处理器）。
 
-这五条线——`vllm`、`vllm-ascend`、`CANN`、`torch_npu` 与 **硬件卡型**——必须同时锁死在同一发布基线上。原因有两个：第一，Python 接口与算子二进制接口（ABI）跨版本极易不兼容；第二，安装包装好以后，编译器会把目标卡型写死进 `vllm_ascend/_build_info.py` 的 `__device_type__`，等负责初始化设备和执行计算的 **Worker**（工作进程，`NPUWorker`）启动时，`NPUWorker.__init__` 会立刻调用 `check_ascend_device_type()`，读取运行时 `torch_npu.npu.get_soc_version()` 并与安装时的卡型比对——只要两者对不上，进程在加载模型权重之前就会直接抛出 `RuntimeError` 退出（Worker 完整六步启动顺序见 [NPUWorker 启动](npu-worker-lifecycle.md)）。
+这五条线——`vllm`、`vllm-ascend`、`CANN`、`torch_npu` 与 **硬件卡型**——必须同时锁死在同一发布基线上。原因有两个：第一，Python 接口与算子二进制接口（ABI）跨版本极易不兼容；第二，安装包装好以后，编译器会把目标卡型写死进 `vllm_ascend/_build_info.py` 的 `__device_type__`，等负责初始化设备和执行计算的 **Worker**（工作进程，`NPUWorker`）启动时，`NPUWorker.__init__` 会立刻调用 `check_ascend_device_type()`，读取运行时 `torch_npu.npu.get_soc_version()` 并与安装时的卡型比对——只要两者对不上，进程在加载模型权重之前就会直接抛出 `RuntimeError` 退出（Worker 完整六步启动顺序见 [NPUWorker 启动](npu-worker-lifecycle.md)）。下图以立体拆解剖面配合中文引线直标，把四层软件栈、启动期 SoC 校验门禁与右侧四大硬件族的对应关系对应到同一张视图上：
+
+```wiki-diagram
+file: onboarding-plate-five-dims
+```
 
 ### `v0.30.0` 五维软件配套基线
 
-在 `v0.30.0` 标准基线上，五个软件层和关键辅助依赖的对应关系如下：
+顺着剖面图左侧的四层软件栈逐项核对，`v0.30.0` 标准基线上五个软件层和关键辅助依赖的对应关系如下：
 
 | 配套维度 | `v0.30.0` 标准基线要求 | 说明 |
 |---|---|---|
@@ -119,6 +124,12 @@ file: onboarding-four-gates
 
 仅锁软件版本还不够，因为 `vllm-ascend` 在编译期与运行期把昇腾产品线分为四大硬件族（芯片与板卡的物理拓扑差异详见 [NPU、板卡、服务器与机柜](hardware-devices.md)），不同硬件族的镜像标签、安装通道和运行开关并不通用：
 
+```wiki-diagram
+file: onboarding-fig-four-families
+```
+
+对照上方四列硬件卡，各族典型产品、安装渠道与运行期硬限制汇总如下：
+
 | 硬件族 | 典型产品与 `SOC_VERSION` | 官方镜像与安装通道 | 核心硬件限制与必改开关 |
 |---|---|---|---|
 | **Atlas A2** | `Atlas 800T/I A2`、`900 A2 PoD`、`200T A2 Box16`、`300T A2`（`ascend910b*`） | `vllm-ascend:v0.30.0`；标准 `pip install vllm-ascend` 默认预编译 wheel **仅面向 A2** | 需 `triton-ascend`；支持 `BF16`、`W8A8`、`W4A8`、`ACL Graph`（昇腾图模式，捕获算子序列以减少逐次下发开销） |
@@ -130,7 +141,11 @@ file: onboarding-four-gates
 
 ## 第二关：怎样查模型支持状态，并避开 27 篇停服桩？
 
-环境锁好后，不要凭记忆或模型仓库名猜测能不能跑，先查 `vllm-ascend` 官方文档里的模型支持矩阵（`supported_models.md`）与模型教程目录（`docs/source/tutorials/models/`）。
+环境锁好后，不要凭记忆或模型仓库名猜测能不能跑，先查 `vllm-ascend` 官方文档里的模型支持矩阵（`supported_models.md`）与模型教程目录（`docs/source/tutorials/models/`）。下图把 52 篇教程文档的筛选漏斗、`20 + 5` 镜像分档以及最隐蔽的 `GLM5.md` 同文件分叉陷阱浓缩在一张图里：
+
+```wiki-diagram
+file: onboarding-fig-recipes-funnel
+```
 
 ### 先看支持矩阵图例，再识破「52 篇食谱」陷阱
 
@@ -201,7 +216,11 @@ file: onboarding-model-registry-routing
 
 ## 第四关：权重格式怎么选？不同卡型在加载期会做什么转换
 
-确认模型代码能解析之后，下一步是挑一份和目标硬件匹配的权重（checkpoint）。在 `vllm-ascend v0.30.0` 中，`NPUPlatform.check_and_update_config` 会在读盘前自动调用 `maybe_auto_detect_quantization()`：如果你没有显式传 `--quantization`，它会按固定优先级检查模型目录，决定按哪条 **quantization**（量化，即用低比特数值与缩放系数表示权重或激活以节省显存和带宽的方法，原理见 [量化](quantization.md)）或浮点路径加载。
+确认模型代码能解析之后，下一步是挑一份和目标硬件匹配的权重（checkpoint）。在 `vllm-ascend v0.30.0` 中，`NPUPlatform.check_and_update_config` 会在读盘前自动调用 `maybe_auto_detect_quantization()`：如果你没有显式传 `--quantization`，它会按固定优先级检查模型目录，决定按哪条 **quantization**（量化，即用低比特数值与缩放系数表示权重或激活以节省显存和带宽的方法，原理见 [量化](quantization.md)）或浮点路径加载。下图以立体拆解剖面配合引线直标，展示左侧四级探测门禁与右侧三类硬件代际在加载期的转换分叉：
+
+```wiki-diagram
+file: onboarding-plate-weight-fork
+```
 
 ### 四类权重路径与加载期探测优先级
 
@@ -211,21 +230,26 @@ file: onboarding-model-registry-routing
 |---|---|---|---|
 | 1 | 存在 `quant_model_description.json`（**ModelSlim** 产物，含 `W8A8`、`W4A8`、`W8A8C8`、`MXFP4` 等） | `"ascend"` | 最常见的昇腾量化路径；自动探测可免写参数，但显式加上 `--quantization ascend` 能避免混合目录歧义，且运行期可能将部分权重转为 **NZ**（`FRACTAL_NZ` 分块布局，相对通用多维 **ND** 格式更贴合矩阵核访存，见 [张量存储布局](tensor-layout.md)） |
 | 2 | `config.json` 中 `quantization_config.quant_method == "compressed-tensors"`（**LLM-Compressor** 产物） | `"compressed-tensors"` | 上游生态标准压缩格式，**不要**额外加 `--quantization ascend` |
-| 3 | `config.json` 中 `quantization_config.quant_method == "fp8"`（**原生分块 `FP8`**） | `"fp8"` | 仅支持带 `weight_block_size` 的**分块（block-wise）FP8**；逐张量或逐通道 `FP8` 无昇腾执行路径会报错。**950 与 A2/A3 的加载期行为完全不同（见下文陷阱）** |
+| 3 | `config.json` 中 `quantization_config.quant_method == "fp8"`（**原生分块 `FP8`**） | `"fp8"` | 仅支持带 `weight_block_size` 的**分块（block-wise）FP8**；逐张量或逐通道 `FP8` 无昇腾执行路径会报错。`310P` 走兼容后端不支持原生 `FP8`；**`950DT` 与 `A2/A3` 的加载期行为完全不同（见下文陷阱）** |
 | 4 | 以上皆无（未量化浮点权重） | `None`（按浮点加载） | A2 / A3 / 950DT 默认可用 `BF16`（16 位脑浮点）作精度基线；**`310P` 不支持 `BF16`**，必须显式 `--dtype float16` 或换用 `W8A8-310P` 量化权重 |
 
 ### 重点避坑：原生分块 `FP8` 在 `A2/A3` 与 `950DT` 的行为分叉
 
-现在开源社区越来越多模型直接以原生分块 `FP8`（每块权重存成 1 字节的 `float8_e4m3fn` 配一个 `float32` 块缩放系数）发布。很多初学者看到磁盘文件只有 `BF16` 一半大，就以为放到 **Atlas A2 / A3** 上也能省一半 **显存（HBM）**。在 `v0.30.0` 里这是非常危险的误判，源码里的 `fp8_block.py` 在加载后处理阶段（`process_weights_after_loading`）会按硬件代际分成两条截然不同的路：
+现在开源社区越来越多模型直接以原生分块 `FP8`（每块权重存成 1 字节的 `float8_e4m3fn` 配一个 `float32` 块缩放系数）发布。很多初学者看到磁盘文件只有 `BF16` 一半大，就以为放到 **Atlas A2 / A3** 上也能省一半 **显存（HBM）**。在 `v0.30.0` 里这是非常危险的误判，源码按硬件代际分成三条截然不同的路：
 
-- **在 `Ascend 950（is_950() 为真）` 上**：框架会先解出分块权重再在线重分组量化为 **MXFP8**（每元素仍占 `1` 字节，配套 `E8M0` 微缩放系数，调用原生 `FP8` 矩阵乘）。只有两个局部例外会回退成 `model_dtype`（通常为 `BF16`）：一是被注意力后端吸收合并的 MLA `kv_b_proj` 层，二是归约维度（输入特征数 `in_features`）不能被 `MXFP8` 组大小 `32` 整除的线性层。
-- **在 `Atlas A2 / A3（mxfp8_method 为 None）` 上**：框架会直接调用 `resolve_block_scales()`，在加载期把所有分块 `FP8` 权重**静默反量化回 `model_dtype`（通常就是 `BF16`）**，然后用 `BF16` 矩阵乘执行！计算结果和原模型等价，但驻留显存的权重大小会直接翻倍到约 **2 字节/参数**。
+- **在 `Ascend 950（is_950() 为真）` 上**：`fp8_block.py` 在加载后处理阶段（`process_weights_after_loading`）会先解出分块权重再在线重分组量化为 **MXFP8**（每元素仍占 `1` 字节，配套 `E8M0` 微缩放系数，调用原生 `FP8` 矩阵乘）。只有两个局部例外会回退成 `model_dtype`（通常为 `BF16`）：一是被注意力后端吸收合并的 MLA `kv_b_proj` 层，二是归约维度（输入特征数 `in_features`）不能被 `MXFP8` 组大小 `32` 整除的线性层。
+- **在 `Atlas A2 / A3（mxfp8_method 为 None）` 上**：`fp8_block.py` 会直接调用 `resolve_block_scales()`，在加载期把所有分块 `FP8` 权重**静默反量化回 `model_dtype`（通常就是 `BF16`）**，然后用 `BF16` 矩阵乘执行！计算结果和原模型等价，但驻留显存的权重大小会直接翻倍到约 **2 字节/参数**。
+- **在 `Atlas 300I DUO（310P）` 上**：硬件能力档案将 `quantization_backend_family` 设为 `COMPATIBILITY`，`NPUPlatform` 只导入 `AscendModelSlimConfig310` 而**不注册 `AscendFp8Config`**，因此不支持直接加载原生 `FP8` 权重；在 `310P` 上应选浮点权重配 `--dtype float16` 或专用 `W8A8-310P` 量化权重。
 
 举个最小示意账（仅作容量估算示意，不含 KV cache（保存历史位置中间表示的缓存）、图模式工作区与分段冗余）：一份磁盘体积约 30 GB 的 30B 级原生分块 `FP8` 权重，放到 `950DT` 上重排成 `MXFP8` 后驻留权重依然接近 30 GB（1 字节/参数加少量缩放系数）；但放到 `Atlas A2 / A3` 上加载完之后，权重会膨胀到约 60 GB（2 字节/参数），如果单卡或四卡总可用显存没按 `BF16` 翻倍预留，显存探测阶段就会直接溢出失败。
 
 ## 拿 `Qwen3-8B` / `Qwen3-30B-A3B` 走一遍最小上线检查单
 
-按前四关核对无误后，可以用下面这套最小命令在真实环境里验证“装得对、找得到模型、服务能吐字”。如果机器无法访问 HuggingFace，启动前导出 `export VLLM_USE_MODELSCOPE=True` 即可切换 ModelScope 拉取模型；若需覆盖底层昇腾高级选项，可用 `--additional-config` 传入 JSON（三路配置优先级见 [Ascend 配置体系](ascend-config-system.md)）。
+按前四关核对无误后，可以用下面这套三步最小流水线在真实环境里验证“装得对、找得到模型、服务能吐字”。如果机器无法访问 HuggingFace，启动前导出 `export VLLM_USE_MODELSCOPE=True` 即可切换 ModelScope 拉取模型；若需覆盖底层昇腾高级选项，可用 `--additional-config` 传入 JSON（三路配置优先级见 [Ascend 配置体系](ascend-config-system.md)）：
+
+```wiki-diagram
+file: onboarding-fig-smoke-checklist
+```
 
 ### 1. 启动前两步自检
 
@@ -281,20 +305,26 @@ curl --fail http://localhost:8000/v1/completions \
 
 ## 常见误解
 
+上线排查时最容易被直觉带偏的五个误区，可以按下方「错误直觉 vs 源码真相」对照板逐条排除：
+
+```wiki-diagram
+file: onboarding-fig-five-myths
+```
+
 - **「装最新版 `vllm` 配最新版 `vllm-ascend` 就行，不用管 `CANN` 和 `torch_npu`」**：错。`vllm-ascend` 强绑定特定 `CANN`、`torch_npu` 和 `triton-ascend` 版本，混装常见结果是导入缺符号、算子找不到或容器与宿主机驱动不匹配。
 - **「`tutorials/models/` 下有 52 个文件，说明 `v0.30.0` 支持这 52 个模型」**：错。其中 `27` 篇是只有 3 行的停服桩，只有 `25` 篇是活跃食谱；而且 `GLM5.md` 内部也是混合写法——`GLM-5` 已在文件开头标为停服，只有 `GLM-5.1` 在 `v0.30.0` 仍活跃。
 - **「直接 `pip install vllm-ascend` 就能跑在所有昇腾卡上」**：错。默认预编译 wheel 仅锁定 `Atlas A2`；跑在 `A3`、`310P` 或 `950DT` 上时，`NPUWorker.__init__` 的 `check_ascend_device_type()` 会在启动时直接报 `RuntimeError`。
-- **「原生 `FP8` 模型在 `A2/A3` 上也能按 1 字节/参数省显存」**：错。`v0.30.0` 只在 `Ascend 950` 上将分块 `FP8` 重组为 `MXFP8`（排除被吸收的 `kv_b_proj` 和归约维非 32 倍数的层）；在 `A2/A3` 上会在加载期静默反量化回 `BF16`，驻留权重显存按约 2 字节/参数计算。
+- **「原生 `FP8` 模型在 `A2/A3` 上也能按 1 字节/参数省显存」**：错。`v0.30.0` 只在 `Ascend 950` 上将分块 `FP8` 重组为 `MXFP8`（排除被吸收的 `kv_b_proj` 和归约维非 32 倍数的层）；在 `A2/A3` 上会在加载期静默反量化回 `BF16`，驻留权重显存按约 2 字节/参数计算，而 `310P` 走 `COMPATIBILITY` 后端不注册 `AscendFp8Config`，不支持原生 `FP8`。
 - **「报架构不支持一定是硬件不行，重装驱动就能好」**：错。报错先分清卡在第三关的 `ModelRegistry` 解析（`--model-impl`、`--trust-remote-code`、`--hf-overrides` 或插件版本），还是第四关的量化/数据类型限制（例如 `310P` 拒收 `BF16` 或非分块 `FP8` 缺少执行路径）。
 
 ## 对照源码
 
 ### 怎么开与五维检查点
 
-- **版本与镜像钉点**：`v0.30.0`（`c09d3e20`）通过 `.github/vllm-release-tag.commit` 与 `.github/vllm-main-verified.commit` 锁定配套上游 `vllm@ced6857a`（`v0.30.0`）[S1]；四个官方 `Dockerfile*` 均以 `cann:9.2.1-...-ubuntu22.04-py3.12` 为基础镜像，分别传入 `SOC_VERSION` 为 `ascend910b1`（A2）、`ascend910_9391`（A3）、`ascend310p1`（310P）与 `ascend950dt_9582`（A5）[C9]。Python 依赖钉在 `requirements.txt`（`torch==2.10.0`、`torch-npu==2.10.0.post7`、`triton-ascend==3.6.0.post2`、`transformers==5.14.1` 等）[C10]。`mkdocs.yml` 将 `release_hdk_version` 与 `release_nnal_version` 分别钉为 `"26.1.1"` 与 `"9.2.0"`[C26]；其文档宏变量 `release_cann_version` 在 `c09d3e20` 快照仍滞留在 `"9.2.0"`，已在社区 `main`（`8d6180e2`）修正为 `"9.2.1"` 与 `Dockerfile*` 及版本策略页对齐[S1]。
-- **编译期与运行期卡型锁死**：`setup.py` 在构建阶段调用 `device_type_from_soc_version()` 并写入 `vllm_ascend/_build_info.py` 的 `__device_type__`，官方安装文档说明标准 `pip` wheel 仅面向 `A2`（并给出 `assert __device_type__ == "A2"` 自检）[S3][C11]。运行时 `NPUWorker.__init__` 调用 `check_ascend_device_type()`，读取 `torch_npu.npu.get_soc_version()` 并经 `device_type_from_runtime_soc()` 映射后与构建期类型比对[C13][C14][C16]。硬件能力档案 `HardwareProfile` 随后据 `AscendDeviceType` 分发 `default_worker_cls`（310P 为 `NPUWorker310`）、`device_adaptor_family`（A5 为 `FP8_OPTIMIZED`）、`weight_layout_policy`（310P 为 `FORCE_NZ`）及 `NPUGRAPH_EX` / `FP8_ATTENTION` / `CANN_MEGAMOE_MXFP` 等开关[C15]。
+- **版本与镜像钉点**：`v0.30.0`（`c09d3e20`）通过 `.github/vllm-release-tag.commit` 与 `.github/vllm-main-verified.commit` 锁定配套上游 `vllm@ced6857a`（`v0.30.0`）[S1]；四个官方 `Dockerfile*` 均以 `cann:9.2.1-...-ubuntu22.04-py3.12` 为基础镜像，分别传入 `SOC_VERSION` 为 `ascend910b1`（A2）、`ascend910_9391`（A3）、`ascend310p1`（310P）与 `ascend950dt_9582`（A5）[C9]。Python 依赖钉在 `requirements.txt`（`torch==2.10.0`、`torch-npu==2.10.0.post7`、`triton-ascend==3.6.0.post2`、`transformers==5.14.1` 等）[C10]。`mkdocs.yml` 将 `release_hdk_version` 与 `release_nnal_version` 分别钉为 `"26.1.1"` 与 `"9.2.0"`[C26]；其文档宏变量 `release_cann_version` 在 `c09d3e20` 快照仍滞留在 `"9.2.0"`，已在社区 `main`（`8d6180e2`）修正为 `"9.2.1"` 与 `Dockerfile*` 及版本策略页对齐。
+- **编译期与运行期卡型锁死**：`setup.py` 在构建阶段调用 `device_type_from_soc_version()` 并写入 `vllm_ascend/_build_info.py` 的 `__device_type__`，官方安装文档说明标准 `pip` wheel 仅面向 `A2`（并给出 `assert __device_type__ == "A2"` 自检）[S3][C11]。运行时 `NPUWorker.__init__` 调用 `check_ascend_device_type()`，读取 `torch_npu.npu.get_soc_version()` 并经 `device_type_from_runtime_soc()` 映射后与构建期类型比对[C13][C14][C16]。硬件能力档案 `HardwareProfile` 随后据 `AscendDeviceType` 分发 `default_worker_cls`（310P 为 `NPUWorker310`）、`device_adaptor_family`（A5 为 `FP8_OPTIMIZED`）、`quantization_backend_family`（310P 为 `COMPATIBILITY`）及 `NPUGRAPH_EX` / `FP8_ATTENTION` / `CANN_MEGAMOE_MXFP` 等开关[C15]。
 - **模型注册与解析链**：`setup.py` 的 `vllm.general_plugins` 声明 `ascend_model = vllm_ascend:register_model`[C12]，调用 `vllm_ascend/models/__init__.py` 完成 `29` 次 `ModelRegistry.register_model(...)`（含对 `Qwen3_5*` 的覆写）[C17]。上游 `ModelRegistry.resolve_model_cls` / `inspect_model_cls` 按 `model_impl == "transformers"` → `"terratorch"` → `"auto"`（查已合并注册表，未命中且 `convert_type == "none"` 时回退 `_try_resolve_transformers`，若 `auto_map` 存在则受 `trust_remote_code` 控制）顺序解析[C18][C19]。
-- **量化自动探测与分块 `FP8` 分支**：`NPUPlatform.check_and_update_config` 触发 `maybe_auto_detect_quantization()`，依 `quant_model_description.json` → `config.json` 中 `compressed-tensors` → `fp8` → 浮点四级顺序自动填充 `model_config.quantization`[C20]。分块 `FP8` 由 `fp8_block.py` 在 `process_weights_after_loading()` 中执行：`is_950()` 为真时构造 `AscendW8A8MXFP8DynamicLinearMethod` 并调用 `_mx_quantize()` 重打包为 `MXFP8`（跳过被注意力吸收的层与归约维非 `32` 倍数的层）；`mxfp8_method is None` 时（A2/A3）则保留 `resolve_block_scales()` 产生的 `model_dtype`（`BF16`）权重并做 `maybe_trans_nz`[S7][C21]。
+- **量化自动探测与分块 `FP8` 分支**：`NPUPlatform.check_and_update_config` 触发 `maybe_auto_detect_quantization()`，依 `quant_model_description.json` → `config.json` 中 `compressed-tensors` → `fp8` → 浮点四级顺序自动填充 `model_config.quantization`[C20]；仅当 `quantization_backend_family` 为 `STANDARD` 时才注册 `AscendFp8Config`，`310P` 走 `COMPATIBILITY` 分支仅注册 `AscendModelSlimConfig310`[C27]。分块 `FP8` 由 `fp8_block.py` 在 `process_weights_after_loading()` 中执行：`is_950()` 为真时构造 `AscendW8A8MXFP8DynamicLinearMethod` 并调用 `_mx_quantize()` 重打包为 `MXFP8`（跳过被注意力吸收的 `kv_b_proj` 层与归约维非 `32` 倍数的层）；`mxfp8_method is None` 时（A2/A3）则保留 `resolve_block_scales()` 产生的 `model_dtype`（`BF16`）权重并做 `maybe_trans_nz`[S7][C21]。
 - **ModelScope 镜像源开关**：当运行环境无法直连 HuggingFace 时，设置 `VLLM_USE_MODELSCOPE=True`（由上游 `vllm/envs.py` 解析布尔环境变量）即可切换从 ModelScope 拉取模型[C25]。
 
 ### 会报什么错
@@ -303,7 +333,7 @@ curl --fail http://localhost:8000/v1/completions \
 |---|---|---|---|
 | 安装与构建期 | 在 A3/310P/950DT 上直接用标准 `pip` wheel 或未安装对应版本依赖 | 标准 `pip` wheel 仅产 `A2` 包；或 `310P` 误装 `triton` 引发算子缺失 | [S3][S4] |
 | Worker 初始化 | 构建期 `__device_type__` 与运行时 `torch_npu.npu.get_soc_version()` 所属硬件族不一致 | `check_ascend_device_type()` 抛出 `RuntimeError: Current device type: ... does not match ...` | 来源 14、16 |
-| `310P` 启动期 | 沿用 A2/A3 的 `BF16` 默认精度或未关闭 `npugraph_ex` | `supported_models.md` 标明 `310P` 不支持 `BF16`；须配 `--dtype float16`、`FULL_DECODE_ONLY` 及 `enable_npugraph_ex: false` | [S5][S8] |
+| `310P` 启动期 | 沿用 A2/A3 的 `BF16` 默认精度、加载原生 `FP8` 或未关闭 `npugraph_ex` | `supported_models.md` 标明 `310P` 不支持 `BF16`，且 `COMPATIBILITY` 后端不注册 `AscendFp8Config`；须配 `--dtype float16`、`FULL_DECODE_ONLY` 及 `enable_npugraph_ex: false` | [S5][S8] |
 | 模型解析阶段 | `architectures` 未在 `ModelRegistry` 注册且无法回退 `transformers`，或缺少远程代码信任 | `_raise_for_unsupported()` 抛出 `ValueError`；未开 `--trust-remote-code` 时拒绝加载 `auto_map` | 来源 18、19 |
 | 原生 `FP8` 加载 | 传入无 `weight_block_size` 的 per-tensor/per-channel `FP8`，或在 A2/A3 按 1B/参数估算显存 | 非分块 `FP8` 无昇腾路径报错；A2/A3 静默反量化为 `BF16` 导致权重占用翻倍至显存不足 | [S7] |
 
@@ -318,7 +348,7 @@ curl --fail http://localhost:8000/v1/completions \
 
 ### 源码位置与来源索引
 
-以下编号对应页首 `sources` 列表的第 1–26 项（其中文档 8 项对应上方 `S1`–`S8`，源码与配置 18 项对应 `C9`–`C26`）：
+以下编号对应页首 `sources` 列表的第 1–27 项（其中文档 8 项对应上方 `S1`–`S8`，源码与配置 19 项对应 `C9`–`C27`）：
 
 - 来源 1（S1）：`vllm-ascend@c09d3e20:docs/source/community/versioning_policy.md#L20-L32` — `v0.23.0`、`v0.26.0rc1`、`v0.30.0` 与 `CANN`/`torch_npu`/`triton-ascend` 版本政策。
 - 来源 2（S2）：`vllm-ascend@c09d3e20:docs/source/getting_started/installation/supported_hardware.inc.md#L1-L6` — 四大支持硬件产品系列清单。
@@ -340,10 +370,11 @@ curl --fail http://localhost:8000/v1/completions \
 - 来源 18（C18）：`vllm@ced6857a:vllm/model_executor/models/registry.py#L1318-L1423` — `ModelRegistry.resolve_model_cls` / `inspect_model_cls` 三路解析顺序。
 - 来源 19（C19）：`vllm@ced6857a:vllm/config/model.py#L167-L369` — `trust_remote_code` 与 `model_impl="auto"` 默认字段定义。
 - 来源 20（C20）：`vllm-ascend@c09d3e20:vllm_ascend/quantization/utils.py#L140-L265` — `maybe_auto_detect_quantization()` 四级自动探测逻辑。
-- 来源 21（C21）：`vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L240` — 分块 `FP8` 在 `950` 转 `MXFP8` 与在 `A2/A3` 静默反量化回 `model_dtype` 的分支实现。
+- 来源 21（C21）：`vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L130-L240` — 分块 `FP8` 在 `950` 转 `MXFP8`（跳过 `kv_b_proj` 等）与在 `A2/A3` 静默反量化回 `model_dtype` 的分支实现。
 - 来源 22（C22）：`vllm-ascend@2c59ff10:vllm_ascend/utils.py#L824-L860` — `v0.23.0` 硬件类型枚举旧位置。
 - 来源 23（C23）：`vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L786-L820` — `v0.26.0rc` 硬件类型枚举旧位置。
 - 来源 24（C24）：`vllm-ascend@8d6180e2:vllm_ascend/models/__init__.py#L1-L130` — 社区 `main` 分支扩展至 `36` 项模型注册。
 - 来源 25（C25）：`vllm@ced6857a:vllm/envs.py#L716-L719` — `VLLM_USE_MODELSCOPE` 环境变量控制从 ModelScope 拉取模型。
 - 来源 26（C26）：`vllm-ascend@c09d3e20:mkdocs.yml#L176-L180` — `release_hdk_version`（`26.1.1`）、`release_nnal_version`（`9.2.0`）及文档发布宏变量定义。
+- 来源 27（C27）：`vllm-ascend@c09d3e20:vllm_ascend/platform.py#L341-L350` — `STANDARD` 量化后端注册 `AscendFp8Config`，而 `310P`（`COMPATIBILITY`）仅导入 `AscendModelSlimConfig310`。
 - 推导说明 `[D]`：综合 `supported_models.md`（来源 5）与目录逐文件核对，`v0.30.0` 共 52 个模型文档（25 活跃 + 27 停服桩），`main` 新增 3 篇活跃食谱后共 55 个模型文档。

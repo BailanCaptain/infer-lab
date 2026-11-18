@@ -1,0 +1,22 @@
+mode: native-svg
+id: onboarding-fig-four-families
+caption: 四大昇腾硬件族对照卡：官方镜像后缀、pip/构建通道、精度边界与必改启动开关
+size: [880, 340]
+pins:
+  - source: "vllm-ascend@c09d3e20:Dockerfile#L17-L66"
+    symbols:
+      - SOC_VERSION
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/device/hardware.py#L16-L76"
+    symbols:
+      - AscendDeviceType
+      - A2
+      - A3
+      - _310P
+      - A5
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L283-L387"
+    symbols:
+      - HardwareProfile
+      - NPUWorker310
+      - FP8_OPTIMIZED
+      - CANN_MEGAMOE_MXFP
+      - NPUGRAPH_EX

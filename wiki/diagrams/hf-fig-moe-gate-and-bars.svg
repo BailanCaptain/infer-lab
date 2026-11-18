@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 325" width="860" height="325" role="img" aria-label="MoE 层判定公式与常驻显存 vs 激活算力及 KV 反差比例图" font-family="var(--font-sans)">
+  <title>Qwen3MoeDecoderLayer 三条件门禁与常驻权重显存、单步激活参数及每 token KV cache 比例对照。</title>
+  <rect x="2" y="2" width="856" height="321" rx="6" fill="#FCFBF7" stroke="#DCD6C8"/>
+
+  <!-- Top Band: 3-Condition Gate -->
+  <text x="16" y="23" font-size="11.2" font-weight="800" fill="#182230">A. Qwen3MoeDecoderLayer 第 i 层（0..47）结构分流门禁</text>
+
+  <rect x="16" y="33" width="174" height="38" rx="4" fill="#EFF6FF" stroke="#1D4ED8"/>
+  <text x="103" y="49" text-anchor="middle" font-size="10" font-family="var(--font-mono)" font-weight="700" fill="#1E40AF">① i ∉ mlp_only_layers</text>
+  <text x="103" y="64" text-anchor="middle" font-size="9.5" fill="#344054">30B-A3B: []（无强制稠密层）</text>
+
+  <rect x="200" y="33" width="152" height="38" rx="4" fill="#EFF6FF" stroke="#1D4ED8"/>
+  <text x="276" y="49" text-anchor="middle" font-size="10" font-family="var(--font-mono)" font-weight="700" fill="#1E40AF">② num_experts &gt; 0</text>
+  <text x="276" y="64" text-anchor="middle" font-size="9.5" fill="#344054">30B-A3B: 128 个专家池</text>
+
+  <rect x="362" y="33" width="212" height="38" rx="4" fill="#EFF6FF" stroke="#1D4ED8"/>
+  <text x="468" y="49" text-anchor="middle" font-size="10" font-family="var(--font-mono)" font-weight="700" fill="#1E40AF">③ (i+1) % sparse_step == 0</text>
+  <text x="468" y="64" text-anchor="middle" font-size="9.5" fill="#344054">30B-A3B: step = 1（每层皆满足）</text>
+
+  <!-- AND Badge -->
+  <rect x="588" y="35" width="54" height="34" rx="17" fill="#182230"/>
+  <text x="615" y="56" text-anchor="middle" font-size="10.5" font-weight="800" fill="#FFFDF9">AND</text>
+
+  <rect x="656" y="26" width="188" height="28" rx="4" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.2"/>
+  <text x="750" y="44" text-anchor="middle" font-size="10" font-weight="700" fill="#0F766E">全真 → 稀疏 MoE 层（48/48 全中）</text>
+
+  <rect x="656" y="59" width="188" height="24" rx="4" fill="#F8FAFC" stroke="#94A3B8"/>
+  <text x="750" y="75" text-anchor="middle" font-size="9.5" fill="#475569">任一假 → 退回 intermediate_size 稠密层</text>
+
+  <line x1="16" y1="95" x2="844" y2="95" stroke="#DCD6C8" stroke-dasharray="5 3"/>
+
+  <!-- Bottom Band: Proportional Memory & KV Bars -->
+  <text x="16" y="116" font-size="11.2" font-weight="800" fill="#182230">B. 常驻权重显存 vs 单步激活参数 vs 每 token KV cache 反差对账（按真实数值比例绘制）</text>
+
+  <!-- Scale: 1 GiB = 9.5px, X0 = 195. 32 GiB = 195 + 304 = 499; 56.87 GiB = 195 + 540 = 735 -->
+  <!-- Row 1: Qwen3-8B Weight -->
+  <text x="16" y="146" font-size="10.8" font-weight="700" fill="#182230">Qwen3-8B 静态权重</text>
+  <text x="16" y="160" font-size="9.6" fill="#5E6B7D">稠密 36 层 · 全参数即激活</text>
+  <rect x="195" y="133" width="145" height="28" rx="4" fill="#3B82F6" stroke="#1D4ED8"/>
+  <text x="267" y="151" text-anchor="middle" font-size="10.2" font-weight="700" fill="#FFFFFF">15.26 GiB (8.19B)</text>
+  <text x="348" y="151" font-size="10" font-weight="700" fill="#0F766E">◀ 32 GiB 单卡轻松放下，余留大块 KV 空间</text>
+
+  <!-- Row 2: Qwen3-30B-A3B Weight (Resident vs Active) -->
+  <text x="16" y="193" font-size="10.8" font-weight="700" fill="#182230">Qwen3-30B-A3B 权重</text>
+  <text x="16" y="207" font-size="9.6" fill="#5E6B7D">48 层 · 128 专家常驻 / 激活 8</text>
+  <rect x="195" y="180" width="540" height="30" rx="4" fill="#FDE68A" stroke="#B45309" stroke-width="1.3"/>
+  <rect x="195" y="180" width="60" height="30" rx="4" fill="#D97706"/>
+  <text x="225" y="199" text-anchor="middle" font-size="9.5" font-weight="700" fill="#FFFFFF">3.35B</text>
+  <text x="530" y="199" text-anchor="middle" font-size="10.4" font-weight="700" fill="#78350F">128 专家必须全常驻显存：30.53B = 56.87 GiB（单卡直接 OOM！）</text>
+  <text x="262" y="223" font-size="9.6" fill="#B45309" font-weight="700">▲ 单步仅点亮 8 个专家（激活参数 3.35B，算力轻快）</text>
+
+  <!-- 32 GiB Single-Card Red Cutoff Line -->
+  <line x1="499" y1="124" x2="499" y2="232" stroke="#BE123C" stroke-width="2" stroke-dasharray="5 3"/>
+  <rect x="444" y="232" width="112" height="19" rx="3" fill="#FFE4E6" stroke="#BE123C"/>
+  <text x="500" y="245" text-anchor="middle" font-size="9.6" font-weight="800" fill="#BE123C">32 GiB 单卡显存上限</text>
+
+  <!-- KV Cache Reversal Comparison -->
+  <text x="16" y="276" font-size="10.8" font-weight="700" fill="#182230">每 token 全层 KV cache</text>
+  <text x="16" y="291" font-size="9.6" fill="#5E6B7D">与专家数无关，只看 L×n_kv×d_h</text>
+
+  <rect x="195" y="261" width="288" height="20" rx="3" fill="#DBEAFE" stroke="#1D4ED8"/>
+  <text x="339" y="275" text-anchor="middle" font-size="9.8" font-weight="700" fill="#1E40AF">Qwen3-8B（36 层 × 8 KV 头）：144.0 KiB / token</text>
+
+  <rect x="195" y="287" width="192" height="20" rx="3" fill="#CCFBF1" stroke="#0F766E" stroke-width="1.2"/>
+  <text x="291" y="301" text-anchor="middle" font-size="9.8" font-weight="700" fill="#0F766E">30B-A3B（48 层 × 4 KV 头）：96.0 KiB</text>
+  <text x="396" y="301" font-size="10" font-weight="700" fill="#0F766E">◀ 尽管多 12 层，因 KV 头减半反而省缓存 1/3！</text>
+</svg>

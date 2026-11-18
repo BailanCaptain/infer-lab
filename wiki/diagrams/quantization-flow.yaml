@@ -1,7 +1,7 @@
 layout: figure
 id: quantization-flow
 caption: >-
-  v0.30.0（c09d3e20）量化配置与逐层分派主线：上段为入口识别（--quantization 或自动探测）进入 AscendModelSlimConfig，按 quant_model_description.json 逐层查表，区分标 FLOAT（与 Embedding 缺条目回退）、Linear/MoE 注册表分派及 W8A8_MIX 的 PD 角色分支；下段为原生 block-wise FP8（AscendFp8Config）校验 weight_block_size 与 dynamic 激活后，在 Ascend 950 重分组为 MXFP8（kv_b_proj 与非 32 倍数维度除外），而在 A2/A3（非 950）上 v0.30.0 静默反量化回 model_dtype（通常是 BF16，2× 显存）、main 改抛 NotImplementedError；310P 采用 COMPATIBILITY 量化后端，不注册 AscendFp8Config（仅注册 AscendModelSlimConfig310），原生 FP8 在 310P 上无 Ascend 执行路径、不受支持。
+  v0.30.0（c09d3e20）量化配置与逐层分派主线：上段由入口识别进入 AscendModelSlimConfig 逐层查表，区分 FLOAT/Embed 回退、Linear/MoE 注册表分派及 W8A8_MIX 的 PD 角色分支；下段 AscendFp8Config 校验分块与动态激活后，在 Ascend 950 转为 MXFP8（kv_b_proj 与非 32 倍数维除外），在 A2/A3 上 v0.30.0 静默展开回 model_dtype（2× 显存）、main 抛错；310P 属 COMPATIBILITY 后端不注册 AscendFp8Config，不支持原生 FP8。
 size: [896, 512]
 dividers:
   - { from: [20, 248], to: [876, 248], sides: ["ModelSlim 路线（--quantization ascend）", "原生 block-wise FP8 路线（--quantization fp8）"] }

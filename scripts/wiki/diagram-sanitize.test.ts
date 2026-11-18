@@ -189,7 +189,7 @@ describe("SVG 清洗器全量真实语料兼容性", () => {
         }
         for (const attr of el.attributes) {
           if (attr.name === "xmlns") continue;
-          if (!allowedAttribute(attr.name, attr.value)) {
+          if (!allowedAttribute(attr.name, attr.value, el.tagName)) {
             rejected.push(`${file} <${el.tagName} ${attr.name}="${attr.value}">`);
           }
         }
@@ -214,5 +214,18 @@ describe("SVG 清洗器全量真实语料兼容性", () => {
     expect(captionOf("<svg><title><![CDATA[&lt;literal&gt;]]> &amp;lt;</title></svg>")).toBe(
       "&lt;literal&gt; &lt;",
     );
+  });
+
+  it("复合拆解剖面图：允许 <image> 引用同源 ./wiki-illustrations/ 静态资源，严拒外链、穿越与非 image 标签 href", () => {
+    const validComposite = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 500" width="880" height="500"><image href="./wiki-illustrations/hf-folder-cutaway.webp" x="90" y="65" width="700" height="394" preserveAspectRatio="xMidYMid meet"/></svg>`;
+    const okOut = sanitizeDiagram(validComposite);
+    expect(okOut).toContain('<image href="./wiki-illustrations/hf-folder-cutaway.webp"');
+    expect(okOut).toContain('preserveAspectRatio="xMidYMid meet"');
+
+    const badComposite = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 500"><image href="https://evil.example/a.jpg"/><image href="./wiki-illustrations/../secret.png"/><rect x="0" y="0" width="10" height="10" href="./wiki-illustrations/hf-folder-cutaway.webp"/></svg>`;
+    const badOut = sanitizeDiagram(badComposite);
+    expect(badOut).not.toContain("evil.example");
+    expect(badOut).not.toContain("secret.png");
+    expect(badOut).not.toContain('<rect x="0" y="0" width="10" height="10" href=');
   });
 });

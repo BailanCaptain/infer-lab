@@ -1,0 +1,26 @@
+mode: native-svg
+id: onboarding-plate-five-dims
+caption: 五维配套拆解剖面与中文引线直标：四层软件栈 ABI 咬合、check_ascend_device_type 启动门禁与四大硬件族分流
+size: [880, 500]
+pins:
+  - source: "vllm-ascend@c09d3e20:setup.py#L141-L165"
+    symbols:
+      - SOC_VERSION
+      - device_type_from_soc_version
+      - __device_type__
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/device/device_config.py#L65-L77"
+    symbols:
+      - check_ascend_device_type
+      - get_soc_version
+      - device_type_from_runtime_soc
+      - RuntimeError
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L153-L160"
+    symbols:
+      - NPUWorker
+      - check_ascend_device_type
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L283-L387"
+    symbols:
+      - HardwareProfile
+      - NPUWorker310
+      - FP8_OPTIMIZED
+      - CANN_MEGAMOE_MXFP

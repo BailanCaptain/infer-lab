@@ -1,0 +1,9 @@
+mode: native-svg
+id: hf-fig-identity-unpack
+caption: 身份字段三级回退（architectures → model_type → --hf-overrides）与多模态 text_config 解包路径。
+size: [860, 250]
+pins:
+  - source: 'vllm@ced6857a:vllm/transformers_utils/config.py#L757-L830'
+    symbols: ['get_config', 'architectures', 'model_type', 'MODEL_MAPPING_NAMES', 'hf_overrides']
+  - source: 'vllm@ced6857a:vllm/transformers_utils/config.py#L1138-L1153'
+    symbols: ['get_hf_text_config', 'text_config']

@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 285" width="860" height="285" role="img" aria-label="tie_word_embeddings 首尾词表共享与 maybe_untie_word_embeddings 流程图" font-family="var(--font-sans)">
+  <title>tie_word_embeddings 首尾词表共享省显存效应与 v0.30.0 maybe_untie_word_embeddings 防丢独立 lm_head 流程。</title>
+  <rect x="2" y="2" width="856" height="281" rx="6" fill="#FCFBF7" stroke="#DCD6C8"/>
+
+  <!-- Left Panel: Tied vs Untied Memory Anatomy -->
+  <rect x="14" y="14" width="388" height="257" rx="5" fill="#FFFDF9" stroke="#C6BFAF"/>
+  <text x="26" y="34" font-size="11.2" font-weight="800" fill="#182230">A. 首尾词表矩阵（V = 151,936）物理占用对比</text>
+
+  <!-- Case 1: Qwen3-8B untied -->
+  <rect x="26" y="45" width="364" height="96" rx="4" fill="#EFF6FF" stroke="#93C5FD"/>
+  <text x="36" y="63" font-size="10.5" font-weight="700" fill="#1D4ED8">Qwen3-8B（H=4096, tie_word_embeddings: false）</text>
+  <rect x="36" y="72" width="154" height="36" rx="3" fill="#DBEAFE" stroke="#1D4ED8"/>
+  <text x="113" y="88" text-anchor="middle" font-size="9.6" font-weight="700" fill="#1E3A8A">前端 embed_tokens</text>
+  <text x="113" y="101" text-anchor="middle" font-size="9" font-family="var(--font-mono)" fill="#344054">151,936×4,096 (0.62B)</text>
+
+  <rect x="224" y="72" width="154" height="36" rx="3" fill="#DBEAFE" stroke="#1D4ED8"/>
+  <text x="301" y="88" text-anchor="middle" font-size="9.6" font-weight="700" fill="#1E3A8A">末端独立 lm_head</text>
+  <text x="301" y="101" text-anchor="middle" font-size="9" font-family="var(--font-mono)" fill="#344054">4,096×151,936 (0.62B)</text>
+
+  <text x="207" y="94" text-anchor="middle" font-size="12" font-weight="800" fill="#1D4ED8">+</text>
+  <text x="36" y="129" font-size="10" fill="#344054">两张独立表合占 <tspan font-weight="700" fill="#182230">1,244,659,712 参数（≈1.24B，BF16 占 2.32 GiB）</tspan></text>
+
+  <!-- Case 2: Qwen3-0.6B tied -->
+  <rect x="26" y="152" width="364" height="106" rx="4" fill="#ECFDF5" stroke="#6EE7B7"/>
+  <text x="36" y="170" font-size="10.5" font-weight="700" fill="#0F766E">Qwen3-0.6B（H=1024, tie_word_embeddings: true）</text>
+  <rect x="36" y="180" width="176" height="38" rx="3" fill="#CCFBF1" stroke="#0F766E" stroke-width="1.3"/>
+  <text x="124" y="196" text-anchor="middle" font-size="9.6" font-weight="700" fill="#0F766E">共享唯一物理矩阵 [V×H]</text>
+  <text x="124" y="210" text-anchor="middle" font-size="9" font-family="var(--font-mono)" fill="#344054">151,936×1,024 = 155,582,464</text>
+
+  <rect x="242" y="180" width="136" height="38" rx="3" fill="#FFFFFF" stroke="#0F766E" stroke-dasharray="4 2"/>
+  <text x="310" y="196" text-anchor="middle" font-size="9.6" font-weight="700" fill="#0F766E">lm_head 指针复用</text>
+  <text x="310" y="210" text-anchor="middle" font-size="9" fill="#0F766E">新增参数 = 0（省 0.16B）</text>
+  <line x1="242" y1="199" x2="212" y2="199" stroke="#0F766E" stroke-width="1.5"/>
+
+  <text x="36" y="236" font-size="10" fill="#344054">总参数收敛至 <tspan font-weight="700" fill="#0F766E">0.60B</tspan>（不含嵌入层主干为 <tspan font-weight="700">0.44B</tspan>）</text>
+  <text x="36" y="250" font-size="9.5" fill="#5E6B7D">注：Qwen3-30B-A3B 亦为 false（首尾独立各 311,164,928 参数）</text>
+
+  <!-- Right Panel: v0.30.0 maybe_untie_word_embeddings -->
+  <rect x="414" y="14" width="432" height="257" rx="5" fill="#FFFDF9" stroke="#C6BFAF"/>
+  <text x="426" y="34" font-size="11.2" font-weight="800" fill="#182230">B. 微调权重冲突保护：maybe_untie_word_embeddings（v0.30.0+）</text>
+
+  <rect x="426" y="45" width="408" height="40" rx="4" fill="#FEF3C7" stroke="#D97706"/>
+  <text x="436" y="62" font-size="10.2" font-weight="700" fill="#92400E">异常输入场景：config.json 写 tie_word_embeddings: true</text>
+  <text x="436" y="77" font-size="9.8" fill="#344054">但导出的微调 .safetensors 检查点里实际附带了独立的 lm_head 张量！</text>
+
+  <!-- Old versions branch -->
+  <rect x="426" y="96" width="188" height="68" rx="4" fill="#FFF1F2" stroke="#BE123C"/>
+  <text x="436" y="114" font-size="10.2" font-weight="700" fill="#BE123C">v0.23.0 / v0.26.0rc（无保护）</text>
+  <text x="436" y="131" font-size="9.6" fill="#344054">盲信 config.json 强行绑定，</text>
+  <text x="436" y="146" font-size="9.6" font-weight="700" fill="#BE123C">把检查点里的独立 lm_head</text>
+  <text x="436" y="158" font-size="9.6" font-weight="700" fill="#BE123C">静默丢弃（输出乱码/退化）！</text>
+
+  <!-- v0.30.0+ branch -->
+  <rect x="626" y="96" width="208" height="162" rx="4" fill="#F0FDF9" stroke="#0F766E" stroke-width="1.3"/>
+  <text x="636" y="114" font-size="10.2" font-weight="700" fill="#0F766E">v0.30.0 / main 三步安全核验</text>
+  <rect x="636" y="122" width="188" height="36" rx="3" fill="#FFFFFF" stroke="#99F6E4"/>
+  <text x="644" y="137" font-size="9.5" font-weight="700" fill="#182230">① 加载前预探测权重文件</text>
+  <text x="644" y="151" font-size="9.2" fill="#344054">发现存在独立 lm_head 张量</text>
+
+  <rect x="636" y="165" width="188" height="36" rx="3" fill="#FFFFFF" stroke="#99F6E4"/>
+  <text x="644" y="180" font-size="9.5" font-weight="700" fill="#182230">② 临时改 tie = false 双份加载</text>
+  <text x="644" y="194" font-size="9.2" fill="#344054">embed_tokens 与 lm_head 均载入</text>
+
+  <rect x="636" y="208" width="188" height="42" rx="3" fill="#FFFFFF" stroke="#99F6E4"/>
+  <text x="644" y="223" font-size="9.5" font-weight="700" fill="#0F766E">③ 加载后比对两张量数值</text>
+  <text x="644" y="237" font-size="9.1" fill="#344054">真相等 → 重新合并；不等 → 保留独立头</text>
+
+  <!-- Summary callout under old branch -->
+  <rect x="426" y="174" width="188" height="84" rx="4" fill="#F8FAFC" stroke="#CBD5E1"/>
+  <text x="436" y="192" font-size="9.8" font-weight="700" fill="#334155">源码锚点：</text>
+  <text x="436" y="208" font-size="9.2" font-family="var(--font-mono)" fill="#475569">vllm/config/model.py</text>
+  <text x="436" y="223" font-size="9.2" font-family="var(--font-mono)" fill="#475569">maybe_untie_word_embeddings</text>
+  <text x="436" y="240" font-size="9.2" fill="#5E6B7D">彻底杜绝微调导出配置不一致</text>
+  <text x="436" y="252" font-size="9.2" fill="#5E6B7D">导致的静默丢权重事故</text>
+</svg>

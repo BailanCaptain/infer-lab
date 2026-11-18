@@ -1,0 +1,29 @@
+mode: native-svg
+id: onboarding-plate-weight-fork
+caption: 权重探测与硬件代际转换拆解剖面：四级自动探测优先级、950DT 重排 MXFP8、A2/A3 静默反量化翻倍与 310P 限制
+size: [880, 500]
+pins:
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/quantization/utils.py#L140-L265"
+    symbols:
+      - maybe_auto_detect_quantization
+      - ASCEND_QUANTIZATION_METHOD
+      - COMPRESSED_TENSORS_METHOD
+      - FP8_METHOD
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L130-L240"
+    symbols:
+      - kv_b_proj
+      - is_950
+      - AscendW8A8MXFP8DynamicLinearMethod
+      - process_weights_after_loading
+      - resolve_block_scales
+      - _mx_quantize
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L330"
+    symbols:
+      - QuantizationBackendFamily
+      - COMPATIBILITY
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L341-L350"
+    symbols:
+      - QuantizationBackendFamily
+      - STANDARD
+      - AscendFp8Config
+      - AscendModelSlimConfig310

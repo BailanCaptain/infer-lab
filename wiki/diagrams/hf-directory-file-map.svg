@@ -1,99 +1,114 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 350" width="880" height="350" role="img" aria-label="HuggingFace 模型目录五类文件在 vllm 与 vllm-ascend 启动期的读取入口及四处常见隐形坑点对照。">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 500" width="880" height="500" role="img" aria-label="HuggingFace 模型目录五类文件拆解剖面与引线直标图" font-family="var(--font-sans)">
   <title>HuggingFace 模型目录五类文件在 vllm 与 vllm-ascend 启动期的读取入口及四处常见隐形坑点对照。</title>
   <defs>
-    <marker id="ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink-muted, #5b6763)"/>
-    </marker>
-    <marker id="ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/>
-    </marker>
-    <marker id="ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/>
-    </marker>
-    <marker id="ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/>
-    </marker>
+    <pattern id="gridA1" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E7E1D3" stroke-width="0.6"/>
+    </pattern>
   </defs>
+  <!-- Engineering Backing Plate -->
+  <rect x="2" y="2" width="876" height="496" rx="6" fill="#FCFBF7" stroke="#D5CEBE" stroke-width="1"/>
+  <rect x="90" y="65" width="700" height="394" rx="5" fill="url(#gridA1)" stroke="#C6BFAF" stroke-width="1"/>
 
-  <g id="column-headers">
-    <path d="M10,12 L18,12 L20,15 L28,15 L28,26 L10,26 Z" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4" stroke-linejoin="round"/>
-    <text x="34" y="24" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">hf_model_dir/</text>
-    <text x="144" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-muted, #5b6763)">（5 类目录文件）</text>
-    <text x="344" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">启动期谁来读（vllm / vllm-ascend）</text>
-    <text x="636" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-danger, #b54237)">4 个隐形坑与量化门禁</text>
+  <!-- Center Cutaway Illustration Slot -->
+  <image href="./wiki-illustrations/hf-folder-cutaway.jpg" x="90" y="65" width="700" height="394" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- Leader Lines + Target Dots Pointing into Illustration Zones -->
+  <!-- ① config.json (Top-Left -> Upper-Left of Cutaway) -->
+  <line x1="148" y1="58" x2="235" y2="148" stroke="#1D4ED8" stroke-width="1.8"/>
+  <circle cx="235" cy="148" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#1D4ED8" stroke-width="1.5"/>
+  <circle cx="235" cy="148" r="3.2" fill="#1D4ED8"/>
+
+  <!-- ② tokenizer_config.json & model_max_length (Top-Center -> Upper-Center of Cutaway) -->
+  <line x1="440" y1="58" x2="430" y2="162" stroke="#BE123C" stroke-width="1.8"/>
+  <circle cx="430" cy="162" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#BE123C" stroke-width="1.5"/>
+  <circle cx="430" cy="162" r="3.2" fill="#BE123C"/>
+
+  <!-- ③ index.json & safetensors shards (Top-Right -> Right-Center Weight Vault of Cutaway) -->
+  <line x1="730" y1="58" x2="635" y2="195" stroke="#B45309" stroke-width="1.8"/>
+  <circle cx="635" cy="195" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#B45309" stroke-width="1.5"/>
+  <circle cx="635" cy="195" r="3.2" fill="#B45309"/>
+
+  <!-- ④ Multimodal text_config & fallback (Left Margin -> Mid-Left of Cutaway) -->
+  <line x1="170" y1="252" x2="255" y2="252" stroke="#4338CA" stroke-width="1.8"/>
+  <circle cx="255" cy="252" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#4338CA" stroke-width="1.5"/>
+  <circle cx="255" cy="252" r="3.2" fill="#4338CA"/>
+
+  <!-- ⑤ Duplicate consolidated* filter (Right Margin -> Mid-Right of Cutaway) -->
+  <line x1="710" y1="262" x2="618" y2="285" stroke="#0F766E" stroke-width="1.8"/>
+  <circle cx="618" cy="285" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#0F766E" stroke-width="1.5"/>
+  <circle cx="618" cy="285" r="3.2" fill="#0F766E"/>
+
+  <!-- ⑥ quant_model_description.json / quantization_config (Bottom-Left -> Lower-Left of Cutaway) -->
+  <line x1="220" y1="462" x2="310" y2="378" stroke="#0F766E" stroke-width="1.8"/>
+  <circle cx="310" cy="378" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#0F766E" stroke-width="1.5"/>
+  <circle cx="310" cy="378" r="3.2" fill="#0F766E"/>
+
+  <!-- ⑦ generation_config.json (Bottom-Right -> Lower-Right of Cutaway) -->
+  <line x1="655" y1="462" x2="555" y2="374" stroke="#B45309" stroke-width="1.8"/>
+  <circle cx="555" cy="374" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#B45309" stroke-width="1.5"/>
+  <circle cx="555" cy="374" r="3.2" fill="#B45309"/>
+
+  <!-- Vector Chinese Callout Cards Around Top / Left / Right / Bottom Margins -->
+  <!-- Top-Left Card ① -->
+  <g>
+    <rect x="8" y="6" width="278" height="52" rx="5" fill="#FFFDF9" stroke="#1D4ED8" stroke-width="1.3"/>
+    <rect x="8" y="6" width="24" height="52" rx="4" fill="#DBEAFE"/>
+    <text x="20" y="37" text-anchor="middle" font-size="12" font-weight="800" fill="#1D4ED8">①</text>
+    <text x="38" y="23" font-size="11.2" font-weight="700" fill="#182230">核心蓝图：config.json（或 params.json）</text>
+    <text x="38" y="38" font-size="10" fill="#344054">由 get_config + ModelArchitectureConfig 读取</text>
+    <text x="38" y="52" font-size="9.2" fill="#5E6B7D">定类名、层数、head_dim、MoE、词表与 torch_dtype</text>
   </g>
 
-  <g id="folder-tree-lines">
-    <path d="M18,26 L18,314 M18,66 L30,66 M18,128 L30,128 M18,190 L30,190 M18,252 L30,252 M18,314 L30,314" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- Top-Center Card ② -->
+  <g>
+    <rect x="296" y="6" width="288" height="52" rx="5" fill="#FFFDF9" stroke="#BE123C" stroke-width="1.3"/>
+    <rect x="296" y="6" width="24" height="52" rx="4" fill="#FFE4E6"/>
+    <text x="308" y="37" text-anchor="middle" font-size="12" font-weight="800" fill="#BE123C">②</text>
+    <text x="326" y="23" font-size="11.2" font-weight="700" fill="#182230">分词与模板：tokenizer_config.json / .jinja</text>
+    <text x="326" y="38" font-size="10.2" fill="#BE123C" font-weight="700">坑点 1&amp;2：缺 chat_template 调对话接口即报错；</text>
+    <text x="326" y="52" font-size="10" fill="#344054">model_max_length 过小会取 min 静音截断上下文！</text>
   </g>
 
-  <g id="row-1-config">
-    <rect x="30" y="40" width="284" height="52" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
-    <text x="42" y="60" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)">config.json</text>
-    <text x="42" y="79" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink-muted, #5b6763)">架构 · 尺寸 · 头数 · params.json / text_config</text>
-    <path d="M314,66 L342,66" fill="none" stroke="var(--color-ink-muted, #5b6763)" stroke-width="1.4" marker-end="url(#ah-ink)"/>
-    <rect x="344" y="40" width="266" height="52" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-    <text x="356" y="60" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" font-weight="700" fill="var(--color-ink, #17211f)">get_config</text>
-    <text x="356" y="79" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" fill="var(--color-kv, #4c65b6)">ModelArchitectureConfig</text>
-    <path d="M610,66 L634,66" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah-danger)"/>
-    <rect x="636" y="40" width="232" height="52" rx="10" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-width="1.4"/>
-    <text x="648" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-danger, #b54237)">坑 1：head_dim=128 != H/n_q</text>
-    <text x="648" y="79" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink, #17211f)">30B-A3B 错套 64 会少算一半</text>
+  <!-- Top-Right Card ③ -->
+  <g>
+    <rect x="594" y="6" width="278" height="52" rx="5" fill="#FFFDF9" stroke="#B45309" stroke-width="1.3"/>
+    <rect x="594" y="6" width="24" height="52" rx="4" fill="#FEF3C7"/>
+    <text x="606" y="37" text-anchor="middle" font-size="12" font-weight="800" fill="#B45309">③</text>
+    <text x="624" y="23" font-size="11.2" font-weight="700" fill="#182230">权重与索引：*.safetensors + index.json</text>
+    <text x="624" y="38" font-size="9.4" fill="#B45309" font-weight="700">坑点 3：weight_map 缺分片抛 FileNotFoundError</text>
+    <text x="624" y="52" font-size="9.6" fill="#344054">由 DefaultModelLoader 按分片索引精确装载张量</text>
   </g>
 
-  <g id="row-2-tokenizer">
-    <rect x="30" y="102" width="284" height="52" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
-    <text x="42" y="122" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">tokenizer*.json + chat_template.jinja</text>
-    <text x="42" y="141" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink-muted, #5b6763)">切词规则 · 控制符编号 · model_max_length</text>
-    <path d="M314,128 L342,128" fill="none" stroke="var(--color-ink-muted, #5b6763)" stroke-width="1.4" marker-end="url(#ah-ink)"/>
-    <rect x="344" y="102" width="266" height="52" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
-    <text x="356" y="122" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" font-weight="700" fill="var(--color-ink, #17211f)">resolve_chat_template</text>
-    <text x="356" y="141" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" fill="var(--color-token, #087f73)">_get_and_verify_max_len</text>
-    <path d="M610,128 L634,128" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah-danger)"/>
-    <rect x="636" y="102" width="232" height="52" rx="10" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-width="1.4"/>
-    <text x="648" y="122" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-danger, #b54237)">坑 2：model_max_length 静音截断</text>
-    <text x="648" y="141" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink, #17211f)">与推导上限取 min 悄悄压短上下文</text>
+  <!-- Left Margin Card ④ -->
+  <g>
+    <rect x="6" y="214" width="164" height="76" rx="5" fill="#FFFDF9" fill-opacity="0.96" stroke="#4338CA" stroke-width="1.25"/>
+    <text x="14" y="231" font-size="10.8" font-weight="700" fill="#4338CA">④ 多模态剥壳与回退</text>
+    <text x="14" y="247" font-size="10" fill="#344054">语言主干嵌在 text_config</text>
+    <text x="14" y="261" font-size="10" fill="#344054">由 get_hf_text_config 解包；</text>
+    <text x="14" y="275" font-size="9.8" fill="#5E6B7D">缺 architectures 查 model_type</text>
+    <text x="14" y="286" font-size="9.8" fill="#5E6B7D">或传 --hf-overrides</text>
   </g>
 
-  <g id="row-3-safetensors">
-    <rect x="30" y="164" width="284" height="52" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
-    <text x="42" y="184" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">model-*.safetensors + index.json</text>
-    <text x="42" y="203" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink-muted, #5b6763)">几十 GiB 权重分片与 weight_map 映射</text>
-    <path d="M314,190 L342,190" fill="none" stroke="var(--color-ink-muted, #5b6763)" stroke-width="1.4" marker-end="url(#ah-ink)"/>
-    <rect x="344" y="164" width="266" height="52" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-    <text x="356" y="184" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" font-weight="700" fill="var(--color-ink, #17211f)">DefaultModelLoader</text>
-    <text x="356" y="203" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11" fill="#8a5a00">filter_duplicate_safetensors_files</text>
-    <path d="M610,190 L634,190" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah-weight)"/>
-    <rect x="636" y="164" width="232" height="52" rx="10" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-    <text x="648" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="#8a5a00">坑 3：index.json 防双倍加载</text>
-    <text x="648" y="203" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink, #17211f)">缺片抛异常；勿删索引防重复载入</text>
+  <!-- Right Margin Card ⑤ -->
+  <g>
+    <rect x="710" y="224" width="164" height="76" rx="5" fill="#FFFDF9" fill-opacity="0.96" stroke="#0F766E" stroke-width="1.25"/>
+    <text x="718" y="241" font-size="10.8" font-weight="700" fill="#0F766E">⑤ 剔除重复合并权重</text>
+    <text x="718" y="257" font-size="10" fill="#344054">同存 consolidated* 与分片</text>
+    <text x="718" y="271" font-size="10" fill="#344054">时靠 index.json 过滤重复；</text>
+    <text x="718" y="286" font-size="10" font-weight="700" fill="#BE123C">切勿手删 index.json！</text>
   </g>
 
-  <g id="row-4-generation">
-    <rect x="30" y="226" width="284" height="52" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
-    <text x="42" y="246" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" font-weight="700" fill="var(--color-ink, #17211f)">generation_config.json</text>
-    <text x="42" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink-muted, #5b6763)">出厂 temperature / top_p / eos_token_id</text>
-    <path d="M314,252 L342,252" fill="none" stroke="var(--color-ink-muted, #5b6763)" stroke-width="1.4" marker-end="url(#ah-ink)"/>
-    <rect x="344" y="226" width="266" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
-    <text x="356" y="246" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" font-weight="700" fill="var(--color-ink, #17211f)">try_get_generation_config</text>
-    <text x="356" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink-muted, #5b6763)">缺失时从 config.json 提取生成项</text>
-    <path d="M610,252 L634,252" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah-weight)"/>
-    <rect x="636" y="226" width="232" height="52" rx="10" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
-    <text x="648" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="#8a5a00">坑 4：generation_config</text>
-    <text x="648" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink, #17211f)">静音改写采样默认参数（非内置值）</text>
+  <!-- Bottom-Left Card ⑥ -->
+  <g>
+    <rect x="8" y="462" width="424" height="33" rx="5" fill="#FFFDF9" stroke="#0F766E" stroke-width="1.3"/>
+    <text x="18" y="476" font-size="10.4" font-weight="700" fill="#0F766E">⑥ 昇腾量化识别：quant_model_description.json / quantization_config</text>
+    <text x="18" y="490" font-size="9.1" fill="#344054">ModelSlim 描述自动触发 --quantization ascend；原生 fp8 缺参数报 NotImplementedError</text>
   </g>
 
-  <g id="row-5-quant">
-    <rect x="30" y="288" width="284" height="52" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
-    <text x="42" y="308" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">quant_model_description.json</text>
-    <text x="42" y="327" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" fill="var(--color-ink-muted, #5b6763)">| quantization_config (config.json)</text>
-    <path d="M314,314 L342,314" fill="none" stroke="var(--color-ink-muted, #5b6763)" stroke-width="1.4" marker-end="url(#ah-ink)"/>
-    <rect x="344" y="288" width="266" height="52" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-    <text x="356" y="308" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">maybe_auto_detect_quantization</text>
-    <text x="356" y="327" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11" fill="var(--color-comm, #9a4b86)">detect_quantization_method</text>
-    <path d="M610,314 L634,314" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah-comm)"/>
-    <rect x="636" y="288" width="232" height="52" rx="10" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
-    <text x="648" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-comm, #9a4b86)">量化门禁：ModelSlim 触发 ascend</text>
-    <text x="648" y="327" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink, #17211f)">原生 FP8 缺逐块动态参数直接拒绝</text>
+  <!-- Bottom-Right Card ⑦ -->
+  <g>
+    <rect x="444" y="462" width="428" height="33" rx="5" fill="#FFFDF9" stroke="#B45309" stroke-width="1.3"/>
+    <text x="454" y="476" font-size="10.4" font-weight="700" fill="#B45309">⑦ 坑点 4：generation_config.json（try_get_generation_config 读取）</text>
+    <text x="454" y="490" font-size="9.1" fill="#344054">未传采样参数时静音接管 temperature / top_p / eos_token_id；可传 --generation-config vllm</text>
   </g>
 </svg>

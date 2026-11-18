@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 235" width="860" height="235" role="img" aria-label="rope_scaling 两类家族缩放分流与 longrope 短上下文保护图" font-family="var(--font-sans)">
+  <title>rope_scaling 在 vllm _get_and_verify_max_len 中的两类家族缩放分流与 longrope 短上下文回退保护。</title>
+  <rect x="2" y="2" width="856" height="231" rx="6" fill="#FCFBF7" stroke="#DCD6C8"/>
+
+  <!-- Left Input Box -->
+  <rect x="16" y="42" width="198" height="148" rx="5" fill="#FFFDF9" stroke="#182230" stroke-width="1.3"/>
+  <text x="26" y="63" font-size="10.8" font-weight="700" fill="#182230">位置编码配置输入</text>
+  <text x="26" y="83" font-size="9.6" font-family="var(--font-mono)" fill="#1D4ED8">max_position_embeddings</text>
+  <text x="26" y="97" font-size="9.4" fill="#5E6B7D">（Qwen3 三预设均为 40960）</text>
+  <text x="26" y="117" font-size="9.6" font-family="var(--font-mono)" fill="#0F766E">rope_theta: 1000000</text>
+  <text x="26" y="137" font-size="9.6" font-family="var(--font-mono)" fill="#B45309">rope_scaling</text>
+  <text x="26" y="151" font-size="9.4" fill="#5E6B7D">（新配置或作 rope_parameters）</text>
+  <text x="26" y="173" font-size="9.4" font-family="var(--font-mono)" fill="#475569">→ _get_and_verify_max_len</text>
+
+  <!-- Branch 1: Multiply by factor -->
+  <path d="M 214 82 L 254 82 L 254 52 L 284 52" fill="none" stroke="#1D4ED8" stroke-width="1.6"/>
+  <rect x="286" y="18" width="556" height="72" rx="5" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.3"/>
+  <text x="298" y="38" font-size="10.8" font-weight="700" fill="#1D4ED8">家族一（传统倍乘型）：linear / dynamic 等</text>
+  <text x="298" y="56" font-size="10.2" fill="#182230">推导最大长度 = <tspan font-family="var(--font-mono)" font-weight="700">max_position_embeddings × factor</tspan></text>
+  <text x="298" y="75" font-size="9.8" fill="#B45309" font-weight="700">容错兜底：若配置文件误填 "factor": null → 打印告警并回退按 factor = 1.0 计算</text>
+
+  <!-- Branch 2: Already final length -->
+  <path d="M 214 138 L 254 138 L 254 152 L 284 152" fill="none" stroke="#0F766E" stroke-width="1.6"/>
+  <rect x="286" y="102" width="556" height="116" rx="5" fill="#F0FDF9" stroke="#0F766E" stroke-width="1.3"/>
+  <text x="298" y="122" font-size="10.8" font-weight="700" fill="#0F766E">家族二（已扩展最终长度型）：yarn / su / longrope / llama3 / deepseek_yarn / deepseek_llama_scaling + gemma3</text>
+  <text x="298" y="141" font-size="10.2" fill="#182230">直接采用 <tspan font-family="var(--font-mono)" font-weight="700">max_position_embeddings</tspan> 作为扩展后最终长度 —— <tspan font-weight="700" fill="#BE123C">绝不再二次乘以 factor！</tspan></text>
+
+  <!-- Nested longrope callout -->
+  <rect x="298" y="152" width="530" height="54" rx="4" fill="#FFFBEB" stroke="#D97706" stroke-width="1.2"/>
+  <text x="310" y="170" font-size="10.2" font-weight="700" fill="#92400E">★ longrope 专属短上下文精度保护：</text>
+  <text x="310" y="186" font-size="9.8" fill="#344054">若用户启动时未显式指定 <tspan font-family="var(--font-mono)">--max-model-len</tspan>（或传入 <tspan font-family="var(--font-mono)">-1</tspan>），引擎默认回退到</text>
+  <text x="310" y="200" font-size="9.8" fill="#344054"><tspan font-family="var(--font-mono)" font-weight="700">original_max_position_embeddings</tspan>，防止短上下文场景因超长缩放参数引起精度下降。</text>
+</svg>

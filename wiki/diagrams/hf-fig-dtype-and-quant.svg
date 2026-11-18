@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 275" width="860" height="275" role="img" aria-label="精度推断与 ModelSlim vs 原生 fp8 门禁图" font-family="var(--font-sans)">
+  <title>权重精度三级回退推断与昇腾 ModelSlim quant_model_description.json 及原生 FP8 逐块动态门禁检查。</title>
+  <rect x="2" y="2" width="856" height="271" rx="6" fill="#FCFBF7" stroke="#DCD6C8"/>
+
+  <!-- Left Half: dtype Inference Chain -->
+  <rect x="14" y="14" width="372" height="247" rx="5" fill="#FFFDF9" stroke="#C6BFAF"/>
+  <text x="26" y="34" font-size="11.2" font-weight="800" fill="#182230">A. 权重精度推断与自动降精度链</text>
+
+  <rect x="26" y="45" width="348" height="40" rx="4" fill="#EFF6FF" stroke="#1D4ED8"/>
+  <text x="36" y="62" font-size="10.2" font-weight="700" fill="#1D4ED8">① 读取 config.json（及子配置）torch_dtype / dtype</text>
+  <text x="36" y="77" font-size="9.6" fill="#344054">Qwen3 预设均为 "bfloat16"（BF16，每参数 2 字节）</text>
+
+  <line x1="200" y1="85" x2="200" y2="99" stroke="#64748B" stroke-width="1.4"/>
+  <rect x="26" y="100" width="348" height="42" rx="4" fill="#FFFBEB" stroke="#B45309"/>
+  <text x="36" y="117" font-size="10.2" font-weight="700" fill="#B45309">② 全部漏写时：扫描 .safetensors 文件头元信息</text>
+  <text x="36" y="133" font-size="9.6" fill="#344054">按张量可广播公共精度推断真实 dtype</text>
+
+  <line x1="200" y1="142" x2="200" y2="156" stroke="#64748B" stroke-width="1.4"/>
+  <rect x="26" y="157" width="348" height="38" rx="4" fill="#F8FAFC" stroke="#94A3B8"/>
+  <text x="36" y="174" font-size="10.2" font-weight="700" fill="#334155">③ 连元数据也缺失：兜底回退 torch.float32</text>
+  <text x="36" y="188" font-size="9.5" fill="#5E6B7D">（每参数 4 字节）</text>
+
+  <line x1="200" y1="195" x2="200" y2="209" stroke="#0F766E" stroke-width="1.5"/>
+  <rect x="26" y="210" width="348" height="40" rx="4" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.2"/>
+  <text x="36" y="227" font-size="10.2" font-weight="700" fill="#0F766E">④ 默认 --dtype auto 激活平台自动降精度</text>
+  <text x="36" y="242" font-size="9.6" fill="#344054">若权重为 float32 → 自动 downcast 到 NPU 首选 BF16 / FP16</text>
+
+  <!-- Right Half: Ascend Quantization Detection & FP8 Gate -->
+  <rect x="398" y="14" width="448" height="247" rx="5" fill="#FFFDF9" stroke="#C6BFAF"/>
+  <text x="410" y="34" font-size="11.2" font-weight="800" fill="#182230">B. 昇腾量化自动识别与原生 FP8 硬门禁（v0.30.0）</text>
+
+  <!-- Priority 1: ModelSlim -->
+  <rect x="410" y="45" width="424" height="50" rx="4" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.4"/>
+  <text x="420" y="63" font-size="10.5" font-weight="700" fill="#0F766E">第一优先级：目录存在 quant_model_description.json（ModelSlim）</text>
+  <text x="420" y="80" font-size="9.8" fill="#344054">detect_quantization_method 立即识别为 <tspan font-family="var(--font-mono)" font-weight="700">"ascend"</tspan>（等效自动加 <tspan font-family="var(--font-mono)">--quantization ascend</tspan>）</text>
+
+  <!-- Priority 2: quantization_config -->
+  <text x="410" y="113" font-size="10" font-weight="700" fill="#475569">▼ 若无 ModelSlim 描述文件 → 检查 config.json 内 quantization_config（或旧版 hf_quant_config.json）</text>
+
+  <!-- Sub-branch compressed-tensors -->
+  <rect x="410" y="123" width="154" height="58" rx="4" fill="#EFF6FF" stroke="#1D4ED8"/>
+  <text x="487" y="142" text-anchor="middle" font-size="10" font-family="var(--font-mono)" font-weight="700" fill="#1D4ED8">compressed-tensors</text>
+  <text x="487" y="159" text-anchor="middle" font-size="9.5" fill="#344054">通用压缩张量格式</text>
+  <text x="487" y="173" text-anchor="middle" font-size="9.5" font-weight="700" fill="#0F766E">✓ 校验通过正常加载</text>
+
+  <!-- Sub-branch native fp8 -->
+  <rect x="576" y="123" width="258" height="127" rx="4" fill="#FFFBEB" stroke="#D97706" stroke-width="1.3"/>
+  <text x="586" y="141" font-size="10.2" font-weight="700" fill="#92400E">原生 quant_method: "fp8"（AscendFp8Config）</text>
+
+  <rect x="586" y="149" width="238" height="44" rx="3" fill="#ECFDF5" stroke="#0F766E"/>
+  <text x="594" y="165" font-size="9.5" font-weight="700" fill="#0F766E">✓ 唯一放行条件（逐块 + 动态激活）：</text>
+  <text x="594" y="181" font-size="9.1" font-family="var(--font-mono)" fill="#182230">含 weight_block_size 且 activation=="dynamic"</text>
+
+  <rect x="586" y="199" width="238" height="43" rx="3" fill="#FFF1F2" stroke="#BE123C"/>
+  <text x="594" y="214" font-size="9.5" font-weight="700" fill="#BE123C">✗ per-tensor / per-channel 缩放：</text>
+  <text x="594" y="228" font-size="9.1" fill="#344054">直接抛 <tspan font-family="var(--font-mono)" font-weight="700" fill="#BE123C">NotImplementedError</tspan> 退出！</text>
+  <text x="594" y="239" font-size="8.8" fill="#5E6B7D">须改用 ModelSlim 或 llm-compressor 重新量化</text>
+
+  <!-- Note under compressed-tensors -->
+  <rect x="410" y="189" width="154" height="61" rx="4" fill="#F8FAFC" stroke="#CBD5E1"/>
+  <text x="418" y="206" font-size="9.4" font-weight="700" fill="#334155">早期格式兼容：</text>
+  <text x="418" y="221" font-size="9.1" fill="#5E6B7D">ModelOpt ≤0.29 导出为</text>
+  <text x="418" y="235" font-size="9.1" font-family="var(--font-mono)" fill="#334155">hf_quant_config.json</text>
+  <text x="418" y="246" font-size="9.1" fill="#5E6B7D">同样由 get_config 识别</text>
+</svg>

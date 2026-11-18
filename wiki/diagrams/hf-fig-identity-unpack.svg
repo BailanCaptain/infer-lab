@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 250" width="860" height="250" role="img" aria-label="身份与 text_config 解包路由图" font-family="var(--font-sans)">
+  <title>身份字段三级回退（architectures → model_type → --hf-overrides）与多模态 text_config 解包路径。</title>
+  <defs>
+    <marker id="arrBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#1D4ED8"/>
+    </marker>
+    <marker id="arrAmber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#B45309"/>
+    </marker>
+    <marker id="arrTeal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#0F766E"/>
+    </marker>
+    <marker id="arrRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#BE123C"/>
+    </marker>
+  </defs>
+  <rect x="2" y="2" width="856" height="246" rx="6" fill="#FCFBF7" stroke="#DCD6C8"/>
+
+  <!-- Upper Track: Architecture Resolution Chain -->
+  <text x="16" y="23" font-size="11.2" font-weight="800" fill="#182230">A. 模型架构类三级定位链（vllm/transformers_utils/config.py · get_config）</text>
+
+  <rect x="16" y="34" width="150" height="76" rx="5" fill="#FFFDF9" stroke="#182230" stroke-width="1.3"/>
+  <text x="26" y="52" font-size="11" font-weight="700" fill="#182230">顶层 config.json</text>
+  <text x="26" y="68" font-size="9.8" font-family="var(--font-mono)" fill="#1D4ED8">"architectures"</text>
+  <text x="26" y="83" font-size="9.8" font-family="var(--font-mono)" fill="#B45309">"model_type"</text>
+  <text x="26" y="99" font-size="9.5" fill="#5E6B7D">（Mistral 为 params.json）</text>
+
+  <!-- Step 1: Primary -->
+  <line x1="166" y1="54" x2="212" y2="54" stroke="#1D4ED8" stroke-width="1.6" marker-end="url(#arrBlue)"/>
+  <rect x="216" y="32" width="218" height="46" rx="5" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.3"/>
+  <text x="226" y="49" font-size="10.8" font-weight="700" fill="#1D4ED8">① 首选 architectures 列表类名</text>
+  <text x="226" y="66" font-size="9.8" font-family="var(--font-mono)" fill="#344054">Qwen3ForCausalLM | Qwen3MoeForCausalLM</text>
+
+  <!-- Step 2: Fallback model_type -->
+  <path d="M 166 86 L 192 86 L 192 106 L 212 106" fill="none" stroke="#B45309" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#arrAmber)"/>
+  <rect x="216" y="84" width="218" height="46" rx="5" fill="#FFFBEB" stroke="#B45309" stroke-width="1.2"/>
+  <text x="226" y="101" font-size="10.8" font-weight="700" fill="#B45309">② 漏写时按 model_type 查表补齐</text>
+  <text x="226" y="118" font-size="9.8" font-family="var(--font-mono)" fill="#344054">"qwen3" / "qwen3_moe" → 映射类名</text>
+
+  <!-- Step 3: CLI Override or Fail -->
+  <line x1="434" y1="107" x2="482" y2="107" stroke="#BE123C" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#arrRed)"/>
+  <rect x="486" y="84" width="184" height="46" rx="5" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.2"/>
+  <text x="496" y="101" font-size="10.6" font-weight="700" fill="#BE123C">③ 映射表未命中：手动指定</text>
+  <text x="496" y="118" font-size="9.8" font-family="var(--font-mono)" fill="#344054">须传 --hf-overrides 否则报错</text>
+
+  <!-- Registered Model Registry Target -->
+  <line x1="434" y1="55" x2="684" y2="55" stroke="#0F766E" stroke-width="1.7" marker-end="url(#arrTeal)"/>
+  <path d="M 670 107 L 762 107 L 762 82" fill="none" stroke="#0F766E" stroke-width="1.5" marker-end="url(#arrTeal)"/>
+  <rect x="688" y="32" width="156" height="48" rx="5" fill="#ECFDF5" stroke="#0F766E" stroke-width="1.4"/>
+  <text x="698" y="51" font-size="10.8" font-weight="700" fill="#0F766E">命中已适配模型注册表</text>
+  <text x="698" y="68" font-size="9.8" fill="#344054">vllm + vllm-ascend 算子就绪</text>
+
+  <!-- Divider -->
+  <line x1="16" y1="142" x2="844" y2="142" stroke="#DCD6C8" stroke-dasharray="5 3"/>
+
+  <!-- Lower Track: Multimodal text_config Unpacking -->
+  <text x="16" y="162" font-size="11.2" font-weight="800" fill="#182230">B. 图文 / 多模态模型外层壳解包链（get_hf_text_config → 剥出语言主干）</text>
+
+  <rect x="16" y="172" width="248" height="64" rx="5" fill="#F5F3FF" stroke="#4338CA" stroke-width="1.3"/>
+  <text x="26" y="189" font-size="10.6" font-weight="700" fill="#4338CA">多模态外层 config.json（复合壳）</text>
+  <rect x="26" y="196" width="96" height="30" rx="3" fill="#E0E7FF" stroke="#818CF8"/>
+  <text x="74" y="215" text-anchor="middle" font-size="9.6" fill="#3730A3">vision_config</text>
+  <rect x="130" y="196" width="124" height="30" rx="3" fill="#FEF3C7" stroke="#D97706" stroke-width="1.2"/>
+  <text x="192" y="215" text-anchor="middle" font-size="9.8" font-weight="700" font-family="var(--font-mono)" fill="#92400E">text_config {L,H...}</text>
+
+  <line x1="264" y1="205" x2="332" y2="205" stroke="#0F766E" stroke-width="1.8" marker-end="url(#arrTeal)"/>
+  <rect x="336" y="178" width="212" height="52" rx="5" fill="#FFFDF9" stroke="#0F766E" stroke-width="1.3"/>
+  <text x="348" y="198" font-size="10.8" font-weight="700" font-family="var(--font-mono)" fill="#0F766E">get_hf_text_config(config)</text>
+  <text x="348" y="216" font-size="10" fill="#344054">自动剥离外层壳，提取语言子对象</text>
+
+  <line x1="548" y1="205" x2="612" y2="205" stroke="#1D4ED8" stroke-width="1.8" marker-end="url(#arrBlue)"/>
+  <rect x="616" y="175" width="228" height="58" rx="5" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.3"/>
+  <text x="628" y="195" font-size="10.8" font-weight="700" fill="#1D4ED8">文本模型配置校验与显存推导</text>
+  <text x="628" y="212" font-size="9.8" fill="#344054">读取层数 L、隐藏维 H、Q/KV 头数、</text>
+  <text x="628" y="225" font-size="9.8" fill="#344054">head_dim 与词表大小</text>
+</svg>

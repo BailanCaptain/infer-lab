@@ -129,7 +129,11 @@ origin: direct
 
 **量化（quantization）把一个张量换成位数更少的格式，同时保存一组缩放系数（scale），用来把少位数的数换回原来的数值范围。** 张量是模型里成批的数：权重是训练好、长期驻留的参数；激活（activation）是当前这批输入走到某一层时算出的中间结果。
 
-BF16 是 16 位浮点格式，每个数占 2 字节；INT8 是 8 位整数，每个数占 1 字节，一共只能表示 -128 到 127 这 256 个值。从 BF16 换成 INT8，每个数就从 2 字节变成 1 字节。
+BF16 是 16 位浮点格式，每个数占 2 字节；INT8 是 8 位整数，每个数占 1 字节，一共只能表示 -128 到 127 这 256 个值。从 BF16 换成 INT8，每个数就从 2 字节变成 1 字节。下图先用立体拆解建立整体直觉——左边宽柱是 BF16 连续浮点数，中间经过共用 `scale` 标尺卡进右边窄一倍的 INT8 整数格，超出上限的大数在 `127 CLIP` 红线处被削顶截断：
+
+```wiki-diagram
+file: quantization-plate-scale-hook
+```
 
 整数装不下 `0.26` 这样的小数，所以先定一个缩放系数，比如 `0.1`（示意），每个数只记「它大约是 `0.1` 的几倍」：`0.26` 记成 `3`，`1.04` 记成 `10`，`-0.18` 记成 `-2`。要用的时候再乘回 `0.1`，得到 `0.3`、`1.0`、`-0.2`，和原来只差一点。`13` 本该记成 `130`，超出了 INT8 的上限 `127`，只能记成 `127`，还原成 `12.7`。下图就是这四个数：
 
@@ -169,7 +173,13 @@ $$q = \text{clamp}(\text{round}(x / s), -128, 127), \qquad \hat{x} = s \times q$
 
 $$q = \text{clamp}(\text{round}(x / s) + z, -128, 127), \qquad \hat{x} = s \times (q - z)$$
 
-还原时多一次减法。取 $z = -128$，`0` 就记成 `-128`，`25.5` 记成 `127`，整排格子都给了正数。用同样 $s = 0.1$ 对比两者的结果（示意数）：
+还原时多一次减法。取 $z = -128$，`0` 就记成 `-128`，`25.5` 记成 `127`，整排格子都给了正数。下图把两种零点设定在全正数区间上的格位利用率和源码落点并排对照：
+
+```wiki-diagram
+file: quantization-fig-zero-point
+```
+
+用同样 $s = 0.1$ 对比两者的结果（示意数）：
 
 | 原始数 $x$ | 对称量化（$z = 0$） | 非对称量化（$z = -128$：压成整数 $q \to$ 乘回还原 $\hat{x}$） |
 |---|---|---|
@@ -263,7 +273,11 @@ inference-mechanism:5
 | `W8A8`（静态） | 部署前校准定好，写进权重文件 | 整个张量一个（含 `input_offset`、`quant_bias`、`deq_scale`） | **仅 `linear`**（无 `moe`） | 前向省掉求激活系数那一步；真实输入偏离校准分布时截断误差风险更高 |
 | `W8A8_MIX` | 加载静态缓冲区；前向按节点角色选 | `kv_consumer`（D 端 / `kv_both`）走静态，P 端与混部走动态 | **仅 `linear`**（`v0.30.0` 已移除 `moe`） | 同一份带静态参数的权重在 PD 分离时让 D 端吃静态低开销、P 端保动态精度；注册名是 `W8A8_MIX`，不是 `W8A8_PDMIX` |
 
-动态方法只建 INT8 权重和逐输出通道的 `weight_scale`、`weight_offset`；静态方法在建参数时就为激活留了整张量共享的 `input_scale`、`input_offset`，还有 `quant_bias`（把偏置预先换成整数加进累加器）和 `deq_scale`（把整数乘加结果直接乘回输出范围的反量化系数）。`W8A8_MIX` 写在 `w8a8_pdmix.py` 里，它通过组合同时持有一份静态方法对象和一份动态方法对象：加载权重时按静态路径把全套静态系数都装进显存，执行时读取 `kv_transfer_config.is_kv_consumer`——在 PD 分离的 decode 节点或 `kv_both` 上走静态 `AscendW8A8LinearMethod`，在 prefill 节点或未开 PD 分离的混部实例上走动态 `AscendW8A8DynamicLinearMethod`。
+动态方法只建 INT8 权重和逐输出通道的 `weight_scale`、`weight_offset`；静态方法在建参数时就为激活留了整张量共享的 `input_scale`、`input_offset`，还有 `quant_bias`（把偏置预先换成整数加进累加器）和 `deq_scale`（把整数乘加结果直接乘回输出范围的反量化系数）。`W8A8_MIX` 写在 `w8a8_pdmix.py` 里，它通过组合同时持有一份静态方法对象和一份动态方法对象：加载权重时按静态路径把全套静态系数都装进显存，执行时读取 `kv_transfer_config.is_kv_consumer`——在 PD 分离的 decode 节点或 `kv_both` 上走静态 `AscendW8A8LinearMethod`，在 prefill 节点或未开 PD 分离的混部实例上走动态 `AscendW8A8DynamicLinearMethod`。下图拆出了这套组合对象与 PD 角色分派路径：
+
+```wiki-diagram
+file: quantization-fig-w8a8-mix-pd
+```
 
 除了这三套 INT8 方案，`v0.30.0` 的 Ascend 注册表与配置系统还覆盖了更高压缩率或浮点低精度的方案家族（各种数值表示细节见[低精度格式](low-precision-formats.md)，离线算法与工具导出见[量化方法](quantization-methods.md)）：
 
@@ -285,7 +299,11 @@ inference-mechanism:5
 - 在普通线性层（`AscendW8A8DynamicLinearMethod`）里，按「输出维 × 输入维」建 INT8 `weight` 与逐输出通道 `weight_scale`、`weight_offset`；权重装完后，统一在 `process_weights_after_loading` 里把矩阵转置成 `[输入维, 输出维]` 并连续化，若 `act_quant_type == torch.int8` 再视策略转成昇腾偏好的 `FRACTAL_NZ` 分块格式，并把 `weight_scale` 压平后多转一份 `weight_scale_fp32`（`to(torch.float32)`）。转置方向与数学形状的对应见[矩阵乘与权重](matmul-and-weights.md#开销和什么时候别开)。
 - 在 MoE 层（`AscendW8A8DynamicFusedMoEMethod`）里，每卡分到的本地专家合成两块 3 维大权重：`w13_weight`（合并 gate 与 up）和 `w2_weight`（down）。加载后同样转置为算子方向；当 `quant_type == QuantType.W8A8` 时，直接通过 `torch_npu.npu_format_cast(..., ACL_FORMAT_FRACTAL_NZ)` 转成 NZ 布局，同时构造 `w13_weight_scale_fp32`（注意：`w2_weight_scale` 在普通分支下**不**额外复制一份 FP32 副本，只有在 `enable_fused_mc2 == 1` 时才会把 `w13_weight_scale` 和 `w2_weight_scale` 一起转成 INT64 打包的 `fused_w1_scale` / `fused_w2_scale`）。
 
-**激活侧每次前向现算，或沿融合/预量化路径复用。** 普通动态 Linear 拿到 BF16 输入，先调 `npu_dynamic_quant` 按 token 算出 INT8 激活和每行一个 FP32 `pertoken_scale`，再调 `npu_quant_matmul` 把权重和两份系数一起送进核函数，输出恢复成 BF16；在支持通信计算重叠（如共享专家与通信重叠）的路径里，`prepare_input_for_overlap` 会把提前量化的结果打包成 `PreparedLinearInput`，线性层直接复用这份预量化张量而不再重复量化。到了 MoE 阶段，如果前一步 **dispatch**（把 token 向量发给持有它选中专家的卡）已经带着 `quant_mode=2` 传回了 INT8 激活和 `dynamic_scale`，专家计算入口就直接复用；进入 `apply_gmm1_act_quant` 时，开启 `fusion` 的 MC2 路径可以调融合算子 `grouped_matmul_swiglu_quant_weight_nz` 把第一次分组矩阵乘、SwiGLU 激活与第二次矩阵乘前的再量化合在一起做完，而非融合 MC2 路径则先做 INT32 输出的 `npu_grouped_matmul`，再调 `npu_dequant_swiglu_quant` 反量化、激活并量化，prefill 阶段再按条件走 `swiglu_quant` 或 `npu_swiglu` + `npu_dynamic_quant`。
+**激活侧每次前向现算，或沿融合/预量化路径复用。** 普通动态 Linear 拿到 BF16 输入，先调 `npu_dynamic_quant` 按 token 算出 INT8 激活和每行一个 FP32 `pertoken_scale`，再调 `npu_quant_matmul` 把权重和两份系数一起送进核函数，输出恢复成 BF16；在支持通信计算重叠（如共享专家与通信重叠）的路径里，`prepare_input_for_overlap` 会把提前量化的结果打包成 `PreparedLinearInput`，线性层直接复用这份预量化张量而不再重复量化。到了 MoE 阶段，如果前一步 **dispatch**（把 token 向量发给持有它选中专家的卡）已经带着 `quant_mode=2` 传回了 INT8 激活和 `dynamic_scale`，专家计算入口就直接复用；进入 `apply_gmm1_act_quant` 时，开启 `fusion` 的 MC2 路径可以调融合算子 `grouped_matmul_swiglu_quant_weight_nz` 把第一次分组矩阵乘、SwiGLU 激活与第二次矩阵乘前的再量化合在一起做完，而非融合 MC2 路径则先做 INT32 输出的 `npu_grouped_matmul`，再调 `npu_dequant_swiglu_quant` 反量化、激活并量化，prefill 阶段再按条件走 `swiglu_quant` 或 `npu_swiglu` + `npu_dynamic_quant`。下图把稠密 Linear 与稀疏 MoE 两条执行轨道并排对照：
+
+```wiki-diagram
+file: quantization-fig-linear-moe-pipeline
+```
 
 拿 `Qwen3-30B-A3B` 按 EP8（每卡 16 个专家，`hidden_size = 2048`，`moe_intermediate_size = 768`）算一笔单卡单层 MoE 权重与缩放系数的比例：
 
@@ -339,7 +357,11 @@ MoE 的 dispatch 要把 token 的隐藏向量发到持有它选中专家的卡�
 - **Ascend 950 / A5**（`CAPACITY_AND_WORLD_SIZE`）：在 `FUSED_MC2`、`MC2`、`ALLGATHER`、`ALLTOALL` 之间按容量与规模选路。
 - **310P**：固定走 `ALLGATHER`。
 
-一旦进入 MC2 路径，在 `token_dispatcher.py` 与 `moe_quant.py` 中：对于 `QuantType.W8A8` 和 `QuantType.W4A8` 这类整数权重/激活方案，`dispatch_with_quant` 为真，未显式覆盖 `comm_quant_mode` 时派发固定传入 **`quant_mode = 2`**，把隐藏向量就地按动态缩放压成 **INT8** 并附带每个 token 一个 FP32 `dynamic_scale` 一起发出；这样既把 dispatch 的隐藏向量张量载荷压到近一半，又让专家端直接复用这份缩放、省掉入口重复量化。而专家算完输出变回 BF16，**combine 阶段**默认 **`quant_mode = 0`**（不压缩通信），除非模型属于 `W8A8MXFP`（combine 默认走 `4`）或用户通过 `combine_quant_mode` / `comm_quant_mode` 显式覆盖；至于 A5 上的 MXFP 方案，dispatch 则使用 **`quant_mode = 4`**（FP8 E4M3FN / MXFP4 + E8M0 缩放）。W8A8FP8 与 MXFP 有各自的目标类型，不能仅凭「8 位」推断所有方案的 dispatch 都传 INT8；而普通整数方案下 combine 默认不量化的原因，源码注释没有解释。
+一旦进入 MC2 路径，在 `token_dispatcher.py` 与 `moe_quant.py` 中：对于 `QuantType.W8A8` 和 `QuantType.W4A8` 这类整数权重/激活方案，`dispatch_with_quant` 为真，未显式覆盖 `comm_quant_mode` 时派发固定传入 **`quant_mode = 2`**，把隐藏向量就地按动态缩放压成 **INT8** 并附带每个 token 一个 FP32 `dynamic_scale` 一起发出；这样既把 dispatch 的隐藏向量张量载荷压到近一半，又让专家端直接复用这份缩放、省掉入口重复量化。而专家算完输出变回 BF16，**combine 阶段**默认 **`quant_mode = 0`**（不压缩通信），除非模型属于 `W8A8MXFP`（combine 默认走 `4`）或用户通过 `combine_quant_mode` / `comm_quant_mode` 显式覆盖；至于 A5 上的 MXFP 方案，dispatch 则使用 **`quant_mode = 4`**（FP8 E4M3FN / MXFP4 + E8M0 缩放）。W8A8FP8 与 MXFP 有各自的目标类型，不能仅凭「8 位」推断所有方案的 dispatch 都传 INT8；而普通整数方案下 combine 默认不量化的原因，源码注释没有解释。下图把四族策略选路、去程 INT8 dispatch、专家端直接复用与返程 BF16 combine 串在同一张立体拆解图上：
+
+```wiki-diagram
+file: quantization-plate-mc2-dispatch
+```
 
 以 `Qwen3-30B-A3B`（`hidden_size = 2048`）与通用 `hidden_size = 4096`（如 GLM）为例，对比单个 `(token, 专家)` 副本在 MC2 dispatch 时的纯张量载荷（实际链路字节还需加上路由索引、对齐填充与通信元数据，整次通信账见[通信库 · 数据精度和本地计算](cann-hccl.md#数据精度和本地计算怎样影响通信)，路径见[expert parallel](expert-parallel.md)）：
 

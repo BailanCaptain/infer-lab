@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 360" width="860" height="360" role="img" aria-label="周边四份配置文件四大隐形坑全景排雷图" font-family="var(--font-sans)">
+  <title>同目录周边四份配置文件（chat_template、model_max_length、index.json、generation_config.json）隐形坑排雷全景图。</title>
+  <rect x="2" y="2" width="856" height="356" rx="6" fill="#FCFBF7" stroke="#DCD6C8"/>
+
+  <!-- Quadrant 1: chat_template 4-level fallback -->
+  <rect x="14" y="14" width="408" height="160" rx="5" fill="#FFFDF9" stroke="#1D4ED8" stroke-width="1.3"/>
+  <rect x="14" y="14" width="408" height="26" rx="4" fill="#DBEAFE"/>
+  <text x="24" y="31" font-size="11" font-weight="800" fill="#1D4ED8">排雷 ① · chat_template 四级回落链（resolve_chat_template）</text>
+
+  <rect x="24" y="48" width="86" height="34" rx="3" fill="#EFF6FF" stroke="#93C5FD"/>
+  <text x="67" y="62" text-anchor="middle" font-size="9" font-weight="700" fill="#1E40AF">1. 命令行显式</text>
+  <text x="67" y="75" text-anchor="middle" font-size="8.6" font-family="var(--font-mono)" fill="#344054">--chat-template</text>
+
+  <text x="116" y="69" font-size="10" fill="#64748B">→</text>
+  <rect x="124" y="48" width="90" height="34" rx="3" fill="#EFF6FF" stroke="#93C5FD"/>
+  <text x="169" y="62" text-anchor="middle" font-size="9" font-weight="700" fill="#1E40AF">2. AutoProcessor</text>
+  <text x="169" y="75" text-anchor="middle" font-size="8.4" fill="#5E6B7D">未传且未开工具调用</text>
+
+  <text x="220" y="69" font-size="10" fill="#64748B">→</text>
+  <rect x="228" y="48" width="92" height="34" rx="3" fill="#EFF6FF" stroke="#93C5FD"/>
+  <text x="274" y="62" text-anchor="middle" font-size="9" font-weight="700" fill="#1E40AF">3. AutoTokenizer</text>
+  <text x="274" y="75" text-anchor="middle" font-size="8.4" fill="#5E6B7D">config / .jinja</text>
+
+  <text x="326" y="69" font-size="10" fill="#64748B">→</text>
+  <rect x="334" y="48" width="78" height="34" rx="3" fill="#EFF6FF" stroke="#93C5FD"/>
+  <text x="373" y="62" text-anchor="middle" font-size="9" font-weight="700" fill="#1E40AF">4. vLLM 内置</text>
+  <text x="373" y="75" text-anchor="middle" font-size="8.4" fill="#5E6B7D">模型名回落模板</text>
+
+  <rect x="24" y="92" width="388" height="72" rx="4" fill="#FFF1F2" stroke="#FDA4AF"/>
+  <text x="34" y="109" font-size="9.8" font-weight="700" fill="#BE123C">典型踩坑症状（裸预训练 Base 目录高发）：</text>
+  <text x="34" y="125" font-size="9.5" fill="#344054">四级全为空时，vllm serve 启动阶段完全正常，但一收到</text>
+  <text x="34" y="140" font-size="9.5" fill="#344054"><tspan font-family="var(--font-mono)">/v1/chat/completions</tspan> 请求就立即触发对话模板解析失败！</text>
+  <text x="34" y="156" font-size="9.5" font-weight="700" fill="#0F766E">解法：补齐 chat_template.jinja 或启动传入 --chat-template</text>
+
+  <!-- Quadrant 2: model_max_length silent truncation -->
+  <rect x="438" y="14" width="408" height="160" rx="5" fill="#FFFDF9" stroke="#BE123C" stroke-width="1.3"/>
+  <rect x="438" y="14" width="408" height="26" rx="4" fill="#FFE4E6"/>
+  <text x="448" y="31" font-size="11" font-weight="800" fill="#BE123C">排雷 ② · model_max_length 取 min 静音截断（_get_and_verify_max_len）</text>
+
+  <rect x="448" y="48" width="388" height="34" rx="3" fill="#FFFBEB" stroke="#FCD34D"/>
+  <text x="642" y="69" text-anchor="middle" font-size="10.2" font-family="var(--font-mono)" font-weight="700" fill="#92400E">effective_max_len = min( derived_max_model_len , model_max_length )</text>
+
+  <rect x="448" y="92" width="388" height="72" rx="4" fill="#F8FAFC" stroke="#CBD5E1"/>
+  <text x="458" y="109" font-size="9.8" fill="#344054">• <tspan font-family="var(--font-mono)">config.json</tspan> 明明写着 <tspan font-family="var(--font-mono)" font-weight="700">max_position_embeddings = 40960</tspan></text>
+  <text x="458" y="125" font-size="9.8" fill="#BE123C" font-weight="700">• 打包误把 tokenizer_config.json 的 model_max_length 填成 4096 / 8192</text>
+  <text x="458" y="141" font-size="9.8" fill="#344054">• 后果：服务不报错，最大可接收上下文被悄悄压低到 4096 / 8192！</text>
+  <text x="458" y="157" font-size="9.5" font-weight="700" fill="#0F766E">解法：显式传 --max-model-len 覆盖，或修正 tokenizer_config.json</text>
+
+  <!-- Quadrant 3: index.json shard diff & consolidated dedup -->
+  <rect x="14" y="186" width="408" height="160" rx="5" fill="#FFFDF9" stroke="#B45309" stroke-width="1.3"/>
+  <rect x="14" y="186" width="408" height="26" rx="4" fill="#FEF3C7"/>
+  <text x="24" y="203" font-size="11" font-weight="800" fill="#B45309">排雷 ③ · index.json 差集报缺片与防双倍加载（weight_utils.py）</text>
+
+  <rect x="24" y="220" width="388" height="54" rx="4" fill="#FFF1F2" stroke="#FDA4AF"/>
+  <text x="34" y="237" font-size="9.8" font-weight="700" fill="#BE123C">A. 断点续传漏片拦截：set(weight_map.values()) - disk_files != ∅</text>
+  <text x="34" y="253" font-size="9.5" fill="#344054">只要索引引用的分片在磁盘上少了一片，立即抛 <tspan font-family="var(--font-mono)" font-weight="700">FileNotFoundError</tspan></text>
+  <text x="34" y="267" font-size="9.3" fill="#5E6B7D">（不会带着残缺权重启动）</text>
+
+  <rect x="24" y="282" width="388" height="54" rx="4" fill="#ECFDF5" stroke="#6EE7B7"/>
+  <text x="34" y="299" font-size="9.8" font-weight="700" fill="#0F766E">B. 混合目录去重：filter_duplicate_safetensors_files</text>
+  <text x="34" y="315" font-size="9.5" fill="#344054">同时存在 <tspan font-family="var(--font-mono)">consolidated*.safetensors</tspan> 与分片时，靠 <tspan font-family="var(--font-mono)">index.json</tspan></text>
+  <text x="34" y="329" font-size="9.5" font-weight="700" fill="#BE123C">剔除未入索引的重复文件避免双倍加载 —— 严禁手删 index.json！</text>
+
+  <!-- Quadrant 4: generation_config.json silent sampling override -->
+  <rect x="438" y="186" width="408" height="160" rx="5" fill="#FFFDF9" stroke="#0F766E" stroke-width="1.3"/>
+  <rect x="438" y="186" width="408" height="26" rx="4" fill="#CCFBF1"/>
+  <text x="448" y="203" font-size="11" font-weight="800" fill="#0F766E">排雷 ④ · generation_config.json 静音改写采样默认参数</text>
+
+  <rect x="448" y="220" width="388" height="46" rx="4" fill="#F0FDF9" stroke="#99F6E4"/>
+  <text x="458" y="237" font-size="9.8" font-weight="700" fill="#0F766E">读取链：try_get_generation_config（缺文件时回落读 config.json）</text>
+  <text x="458" y="254" font-size="9.4" font-family="var(--font-mono)" fill="#344054">temperature | top_p | top_k | repetition_penalty | 额外 eos_token_id</text>
+
+  <rect x="448" y="274" width="388" height="62" rx="4" fill="#FFFBEB" stroke="#FCD34D"/>
+  <text x="458" y="291" font-size="9.8" font-weight="700" fill="#92400E">典型诡异现象：</text>
+  <text x="458" y="306" font-size="9.5" fill="#344054">API 请求未显式传采样参数时自动生效，导致默认开随机采样或遇特定词提前停！</text>
+  <text x="458" y="324" font-size="9.5" font-weight="700" fill="#0F766E">解法：启动传 --generation-config vllm 恢复框架默认，或在请求体显式传参</text>
+</svg>

@@ -352,7 +352,7 @@ export function validateNativeSvg(rawSvg: string, expectedSize: readonly [number
     }
     for (const attr of el.attributes) {
       if (isRoot && attr.name === "xmlns") continue;
-      if (!allowedAttribute(attr.name, attr.value)) {
+      if (!allowedAttribute(attr.name, attr.value, el.tagName)) {
         issues.push(`不允许的 SVG 属性或值 <${el.tagName} ${attr.name}>`);
         continue;
       }

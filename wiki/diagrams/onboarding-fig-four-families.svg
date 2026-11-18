@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 340" width="880" height="340" role="img">
+  <title>四大昇腾硬件族对照卡：官方镜像后缀、pip/构建通道、精度边界与必改启动开关</title>
+  <desc>四列并排对比 Atlas A2、Atlas A3（双裸片双可见设备）、Atlas 300I DUO / 310P（禁 BF16、禁 Triton、关 npugraph_ex）与 950DT / A5（原生 MXFP8/MXFP4）的容器镜像标签、安装构建规则、支持精度与运行开关。</desc>
+
+  <rect x="0" y="0" width="880" height="340" rx="8" fill="#FBFAF6"/>
+  <text x="16" y="25" font-family="var(--font-sans)" font-size="13" font-weight="800" fill="#0F172A">第五维 · 四大昇腾硬件族安装通道与运行边界一图速查（先跑 <tspan font-family="var(--font-mono)" font-size="12" fill="#1D4ED8">npu-smi info</tspan> 认准卡型再拉镜像）</text>
+
+  <g role="group" aria-label="第一列：Atlas A2">
+    <rect x="14" y="38" width="204" height="290" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
+    <rect x="14" y="38" width="204" height="44" rx="7" fill="#DBEAFE"/>
+    <text x="26" y="57" font-family="var(--font-sans)" font-size="12.5" font-weight="800" fill="#1E3A8A">Atlas A2 系列</text>
+    <text x="26" y="73" font-family="var(--font-mono)" font-size="9.6" font-weight="600" fill="#1D4ED8">ascend910b* (800T/I A2)</text>
+    <rect x="158" y="46" width="48" height="28" rx="4" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.2"/>
+    <rect x="171" y="53" width="22" height="14" rx="2" fill="#1D4ED8"/>
+
+    <text x="24" y="100" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">官方容器镜像标签</text>
+    <rect x="24" y="106" width="184" height="24" rx="4" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1"/>
+    <text x="116" y="122" text-anchor="middle" font-family="var(--font-mono)" font-size="10.2" font-weight="700" fill="#1E40AF">vllm-ascend:v0.30.0</text>
+
+    <text x="24" y="147" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">pip / 编译安装规则</text>
+    <rect x="24" y="153" width="184" height="42" rx="4" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1"/>
+    <text x="32" y="170" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#065F46">✓ 默认 pip wheel 唯一目标</text>
+    <text x="32" y="186" font-family="var(--font-mono)" font-size="9.2" fill="#047857">__device_type__ == &apos;A2&apos;</text>
+
+    <text x="24" y="212" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">支持精度与权重行为</text>
+    <rect x="24" y="218" width="184" height="44" rx="4" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+    <text x="32" y="235" font-family="var(--font-sans)" font-size="9.8" fill="#1E293B">支持 <tspan font-family="var(--font-mono)" font-weight="700">BF16 / W8A8 / W4A8</tspan></text>
+    <text x="32" y="252" font-family="var(--font-sans)" font-size="9.5" font-weight="700" fill="#B45309">⚠ 原生 FP8 反量化回 BF16 (2×)</text>
+
+    <text x="24" y="279" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">拓扑与必配依赖</text>
+    <text x="24" y="296" font-family="var(--font-sans)" font-size="9.6" fill="#334155">• 需装 <tspan font-family="var(--font-mono)">triton-ascend</tspan></text>
+    <text x="24" y="313" font-family="var(--font-sans)" font-size="9.6" fill="#334155">• 支持 ACL Graph 与 <tspan font-family="var(--font-mono)">npugraph_ex</tspan></text>
+  </g>
+
+  <g role="group" aria-label="第二列：Atlas A3">
+    <rect x="230" y="38" width="204" height="290" rx="8" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.5"/>
+    <rect x="230" y="38" width="204" height="44" rx="7" fill="#CCFBF1"/>
+    <text x="242" y="57" font-family="var(--font-sans)" font-size="12.5" font-weight="800" fill="#134E4A">Atlas A3 双裸片</text>
+    <text x="242" y="73" font-family="var(--font-mono)" font-size="9.4" font-weight="600" fill="#0F766E">ascend910_93* (SuperPoD)</text>
+    <rect x="372" y="46" width="52" height="28" rx="4" fill="#F0FDFA" stroke="#0F766E" stroke-width="1.2"/>
+    <rect x="377" y="53" width="18" height="14" rx="2" fill="#0F766E"/>
+    <rect x="401" y="53" width="18" height="14" rx="2" fill="#0F766E"/>
+
+    <text x="240" y="100" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">官方容器镜像标签</text>
+    <rect x="240" y="106" width="184" height="24" rx="4" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="1"/>
+    <text x="332" y="122" text-anchor="middle" font-family="var(--font-mono)" font-size="10.2" font-weight="700" fill="#0F766E">vllm-ascend:v0.30.0-a3</text>
+
+    <text x="240" y="147" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">pip / 编译安装规则</text>
+    <rect x="240" y="153" width="184" height="42" rx="4" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1"/>
+    <text x="248" y="170" font-family="var(--font-sans)" font-size="9.8" font-weight="700" fill="#92400E">✗ 禁装默认 A2 pip wheel</text>
+    <text x="248" y="186" font-family="var(--font-sans)" font-size="9.4" fill="#78350F">用 -a3 镜像 / uv 变体 / 源码编译</text>
+
+    <text x="240" y="212" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">支持精度与权重行为</text>
+    <rect x="240" y="218" width="184" height="44" rx="4" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+    <text x="248" y="235" font-family="var(--font-sans)" font-size="9.8" fill="#1E293B">支持 <tspan font-family="var(--font-mono)" font-weight="700">BF16 / W8A8 / W4A8</tspan></text>
+    <text x="248" y="252" font-family="var(--font-sans)" font-size="9.5" font-weight="700" fill="#B45309">⚠ 原生 FP8 反量化回 BF16 (2×)</text>
+
+    <text x="240" y="279" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">拓扑与必配依赖</text>
+    <text x="240" y="296" font-family="var(--font-sans)" font-size="9.6" font-weight="700" fill="#0F766E">• 双 Die：1 物理卡 = 2 可见设备</text>
+    <text x="240" y="313" font-family="var(--font-sans)" font-size="9.5" fill="#334155">• <tspan font-family="var(--font-mono)">/dev/davinci[0-15]</tspan> + <tspan font-family="var(--font-mono)">triton-ascend</tspan></text>
+  </g>
+
+  <g role="group" aria-label="第三列：Atlas 300I DUO / 310P">
+    <rect x="446" y="38" width="204" height="290" rx="8" fill="#FFF9FA" stroke="#BE123C" stroke-width="1.6"/>
+    <rect x="446" y="38" width="204" height="44" rx="7" fill="#FFE4E6"/>
+    <text x="458" y="57" font-family="var(--font-sans)" font-size="12.2" font-weight="800" fill="#881337">300I DUO / 310P</text>
+    <text x="458" y="73" font-family="var(--font-mono)" font-size="9.4" font-weight="600" fill="#BE123C">ascend310p* (NPUWorker310)</text>
+    <rect x="590" y="47" width="48" height="26" rx="4" fill="#BE123C"/>
+    <text x="614" y="64" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" font-weight="800" fill="#FFFFFF">310P</text>
+
+    <text x="456" y="100" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">官方容器镜像标签</text>
+    <rect x="456" y="106" width="184" height="24" rx="4" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1"/>
+    <text x="548" y="122" text-anchor="middle" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="#9F1239">vllm-ascend:v0.30.0-310p</text>
+
+    <text x="456" y="147" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">pip / 编译安装规则</text>
+    <rect x="456" y="153" width="184" height="42" rx="4" fill="#FFE4E6" stroke="#FB7185" stroke-width="1"/>
+    <text x="464" y="170" font-family="var(--font-sans)" font-size="9.8" font-weight="700" fill="#9F1239">✗ 严禁装 triton / triton-ascend</text>
+    <text x="464" y="186" font-family="var(--font-sans)" font-size="9.4" fill="#881337">定向 -310p 镜像或源码编译</text>
+
+    <text x="456" y="212" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">支持精度与权重行为</text>
+    <rect x="456" y="218" width="184" height="44" rx="4" fill="#FFF1F2" stroke="#F43F5E" stroke-width="1.2"/>
+    <text x="464" y="235" font-family="var(--font-sans)" font-size="9.8" font-weight="700" fill="#BE123C">✗ 不支持 BF16 与原生 FP8</text>
+    <text x="464" y="252" font-family="var(--font-sans)" font-size="9.5" fill="#881337">必传 <tspan font-family="var(--font-mono)" font-weight="700">--dtype float16</tspan> / W8A8</text>
+
+    <text x="456" y="279" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#BE123C">启动必改两项图配置</text>
+    <text x="456" y="296" font-family="var(--font-mono)" font-size="9.1" font-weight="600" fill="#9F1239">• FULL_DECODE_ONLY + [1,2,4,8]</text>
+    <text x="456" y="313" font-family="var(--font-mono)" font-size="9.1" font-weight="600" fill="#9F1239">• enable_npugraph_ex: false</text>
+  </g>
+
+  <g role="group" aria-label="第四列：950DT / A5">
+    <rect x="662" y="38" width="204" height="290" rx="8" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.5"/>
+    <rect x="662" y="38" width="204" height="44" rx="7" fill="#EDE9FE"/>
+    <text x="674" y="57" font-family="var(--font-sans)" font-size="12.5" font-weight="800" fill="#4C1D95">950DT 系列 (A5)</text>
+    <text x="674" y="73" font-family="var(--font-mono)" font-size="9.4" font-weight="600" fill="#6D28D9">ascend950* (FP8_OPTIMIZED)</text>
+    <rect x="804" y="47" width="50" height="26" rx="4" fill="#7C3AED"/>
+    <text x="829" y="64" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" font-weight="800" fill="#FFFFFF">MXFP</text>
+
+    <text x="672" y="100" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">官方容器镜像标签</text>
+    <rect x="672" y="106" width="184" height="24" rx="4" fill="#F5F3FF" stroke="#C4B5FD" stroke-width="1"/>
+    <text x="764" y="122" text-anchor="middle" font-family="var(--font-mono)" font-size="10.2" font-weight="700" fill="#5B21B6">vllm-ascend:v0.30.0-a5</text>
+
+    <text x="672" y="147" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">pip / 编译安装规则</text>
+    <rect x="672" y="153" width="184" height="42" rx="4" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1"/>
+    <text x="680" y="170" font-family="var(--font-sans)" font-size="9.8" font-weight="700" fill="#92400E">✗ 禁装默认 A2 pip wheel</text>
+    <text x="680" y="186" font-family="var(--font-sans)" font-size="9.4" fill="#78350F">用 -a5 镜像 / uv 变体 / 源码编译</text>
+
+    <text x="672" y="212" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">支持精度与权重行为</text>
+    <rect x="672" y="218" width="184" height="44" rx="4" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1.2"/>
+    <text x="680" y="235" font-family="var(--font-sans)" font-size="9.8" font-weight="700" fill="#065F46">✓ 原生支持 MXFP8 / MXFP4</text>
+    <text x="680" y="252" font-family="var(--font-sans)" font-size="9.5" fill="#047857">分块 FP8 在线重排保 1B/参数</text>
+
+    <text x="672" y="279" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">拓扑与必配依赖</text>
+    <text x="672" y="296" font-family="var(--font-sans)" font-size="9.5" fill="#334155">• 启用 <tspan font-family="var(--font-mono)">CANN_MEGAMOE_MXFP</tspan></text>
+    <text x="672" y="313" font-family="var(--font-sans)" font-size="9.6" fill="#334155">• 需装 <tspan font-family="var(--font-mono)">triton-ascend</tspan></text>
+  </g>
+</svg>

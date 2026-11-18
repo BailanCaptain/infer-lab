@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 340" width="880" height="340" role="img" aria-label="示意：一次请求全流程五大常见误解与真实运行机制的五组横向对照板。">
+  <title>示意：一次请求全流程五大常见误解与真实运行机制的五组横向对照板。</title>
+
+  <!-- Outer Backing -->
+  <rect x="2" y="2" width="876" height="336" rx="8" fill="#FCFBF7" stroke="#D5CEBE" stroke-width="1.2"/>
+
+  <!-- Top Header Bar -->
+  <rect x="10" y="7" width="84" height="20" rx="4" fill="#BE123C"/>
+  <text x="52" y="21" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" font-weight="700" fill="#FFFDF9">FIG 1.4</text>
+  <text x="104" y="21" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#182230">五大常见误解 vs 真实机制速查对照板</text>
+  <text x="868" y="21" text-anchor="end" font-family="var(--font-sans)" font-size="10.5" fill="#5E6B7D">读完先自检这 5 个最容易搞反的因果</text>
+  <line x1="10" y1="31" x2="870" y2="31" stroke="#DFD9CA" stroke-width="1" stroke-dasharray="4 3"/>
+
+  <!-- Column Headers -->
+  <rect x="12" y="37" width="380" height="24" rx="4" fill="#FFE4E6" stroke="#FB7185" stroke-width="1"/>
+  <text x="24" y="53" font-family="var(--font-sans)" font-size="10.8" font-weight="800" fill="#BE123C">✗ 常见错误直觉</text>
+
+  <rect x="402" y="37" width="466" height="24" rx="4" fill="#CCFBF1" stroke="#0F766E" stroke-width="1"/>
+  <text x="414" y="53" font-family="var(--font-sans)" font-size="10.8" font-weight="800" fill="#0F766E">✓ 真实运行机制（vLLM V1 自回归主循环）</text>
+
+  <!-- Row 1 -->
+  <rect x="12" y="67" width="380" height="46" rx="5" fill="#FFF5F6" stroke="#FDA4AF" stroke-width="1"/>
+  <text x="22" y="85" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#9F1239">① Prefill 只负责填缓存，不产词</text>
+  <text x="22" y="102" font-family="var(--font-sans)" font-size="9.4" fill="#475569">误以为第 1 个输出词要等第 1 步 Decode 才算出</text>
+
+  <rect x="402" y="67" width="466" height="46" rx="5" fill="#F0FDF9" stroke="#5EEAD4" stroke-width="1.2"/>
+  <text x="412" y="85" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#065F46">Prefill 末位 h₁ 乘 lm_head 当场产出第 1 个输出词（3 号「猫」）</text>
+  <text x="412" y="102" font-family="var(--font-sans)" font-size="9.4" fill="#334155">第 1 步 Decode 送进模型的已经是首词「猫」，用来生成第 2 个输出词</text>
+
+  <!-- Row 2 -->
+  <rect x="12" y="120" width="380" height="46" rx="5" fill="#FFF5F6" stroke="#FDA4AF" stroke-width="1"/>
+  <text x="22" y="138" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#9F1239">② 中文 1 字 = 1 token，向量就是编号本身</text>
+  <text x="22" y="155" font-family="var(--font-sans)" font-size="9.4" fill="#475569">把本页 6 词教学设定误当成真实分词器与权重规格</text>
+
+  <rect x="402" y="120" width="466" height="46" rx="5" fill="#F0FDF9" stroke="#5EEAD4" stroke-width="1.2"/>
+  <text x="412" y="138" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#065F46">真实分词按统计词频切词 / 单字 / 字节；向量是数千维训练浮点数</text>
+  <text x="412" y="155" font-family="var(--font-sans)" font-size="9.4" fill="#334155">1 字/词、6 词词表与 4 维宽度仅为入门立住主线的人为教学简化</text>
+
+  <!-- Row 3 -->
+  <rect x="12" y="173" width="380" height="46" rx="5" fill="#FFF5F6" stroke="#FDA4AF" stroke-width="1"/>
+  <text x="22" y="191" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#9F1239">③ 第 2 轮必须重送「我喜欢猫」全部 3 个词</text>
+  <text x="22" y="208" font-family="var(--font-sans)" font-size="9.4" fill="#475569">误以为不重送前文就看不到整句历史</text>
+
+  <rect x="402" y="173" width="466" height="46" rx="5" fill="#F0FDF9" stroke="#5EEAD4" stroke-width="1.2"/>
+  <text x="412" y="191" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#065F46">因果掩码使旧词 K、V 永不改变；Decode 只送新词「猫」1 个位置</text>
+  <text x="412" y="208" font-family="var(--font-sans)" font-size="9.4" fill="#334155">位置 0、1 的 k, v 早已存入 KV cache，第 2 轮直接读取并追加 k₂, v₂</text>
+
+  <!-- Row 4 -->
+  <rect x="12" y="226" width="380" height="46" rx="5" fill="#FFF5F6" stroke="#FDA4AF" stroke-width="1"/>
+  <text x="22" y="244" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#9F1239">④ 采样就是永远挑 lm_head 最高分那一词</text>
+  <text x="22" y="261" font-family="var(--font-sans)" font-size="9.4" fill="#475569">把贪心选法当成所有请求唯一的采样方式</text>
+
+  <rect x="402" y="226" width="466" height="46" rx="5" fill="#F0FDF9" stroke="#5EEAD4" stroke-width="1.2"/>
+  <text x="412" y="244" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#065F46">仅 T = 0 贪心（或候选收窄至 top_k = 1）必选最高分</text>
+  <text x="412" y="261" font-family="var(--font-sans)" font-size="9.4" fill="#334155">一般随机采样（T &gt; 0 多候选）经 Softmax 转概率抽签，两次提问可不同</text>
+
+  <!-- Row 5 -->
+  <rect x="12" y="279" width="380" height="48" rx="5" fill="#FFF5F6" stroke="#FDA4AF" stroke-width="1"/>
+  <text x="22" y="297" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#9F1239">⑤ 文本共 4 个词，KV cache 就存了 4 份状态</text>
+  <text x="22" y="314" font-family="var(--font-sans)" font-size="9.4" fill="#475569">忽略了触发停止的末词不再进入下一轮前向计算</text>
+
+  <rect x="402" y="279" width="466" height="48" rx="5" fill="#F0FDF9" stroke="#5EEAD4" stroke-width="1.2"/>
+  <text x="412" y="297" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#065F46">触发停止的末词（5 号「。」）刚选出即结束，缓存比总词数少 1 个</text>
+  <text x="412" y="314" font-family="var(--font-sans)" font-size="9.4" fill="#334155">普通逐词生成里只有位置 0、1、2 走过前向并留下 K、V（共 3 份）</text>
+</svg>

@@ -1,0 +1,9 @@
+mode: native-svg
+id: hf-fig-headdim-trap
+caption: Qwen3-30B-A3B 的显式 head_dim = 128 与 GQA 分组几何比例及 2 倍算账陷阱对照。
+size: [860, 305]
+pins:
+  - source: 'vllm@ced6857a:vllm/transformers_utils/model_arch_config_convertor.py#L68-L114'
+    symbols: ['get_head_size', 'head_dim', 'get_hidden_size', 'get_total_num_attention_heads']
+  - source: 'vllm@ced6857a:vllm/model_executor/models/qwen3.py#L65-L145'
+    symbols: ['Qwen3Attention', 'head_dim', 'q_norm', 'k_norm', 'total_num_kv_heads']

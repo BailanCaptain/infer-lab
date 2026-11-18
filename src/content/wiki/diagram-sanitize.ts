@@ -11,6 +11,7 @@ export const ALLOWED_TAGS = new Set([
   "title",
   // 自由画板那句必填说明：读屏软件能读到，页面上不显示
   "desc",
+  "image",
   "path",
   "rect",
   "circle",
@@ -24,6 +25,9 @@ export const ALLOWED_TAGS = new Set([
 
 /** 只允许指向同一张图内部的 marker / pattern，不允许任何外部引用 */
 const INTERNAL_REF = /^url\(#[A-Za-z0-9_-]+\)$/;
+/** 复合拆解剖面图仅允许引用 public/wiki-illustrations/ 下的同源静态插画，严禁外链或路径穿越 */
+export const LOCAL_ILLUSTRATION_HREF = /^\.\/wiki-illustrations\/[a-z0-9-]+\.(?:webp|jpg|png)$/;
+const PRESERVE_ASPECT_RATIO = /^(?:none|x(?:Min|Mid|Max)Y(?:Min|Mid|Max)(?:\s+(?:meet|slice))?)$/;
 const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 const TOKEN_COLOR =
   /^var\(--color-[a-z0-9-]+(?:\s*,\s*#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8}))?\)$/;
@@ -128,6 +132,8 @@ const ATTR_GRAMMARS: ReadonlyMap<string, (value: string) => boolean> = new Map<
   ["patternUnits", (v) => v === "userSpaceOnUse" || v === "objectBoundingBox"],
   ["marker-start", (v) => INTERNAL_REF.test(v)],
   ["marker-end", (v) => INTERNAL_REF.test(v)],
+  ["href", (v) => LOCAL_ILLUSTRATION_HREF.test(v)],
+  ["preserveAspectRatio", (v) => PRESERVE_ASPECT_RATIO.test(v)],
 ]);
 
 function hasControlChar(value: string): boolean {
@@ -138,9 +144,12 @@ function hasControlChar(value: string): boolean {
   return false;
 }
 
-/** 这个属性能不能留下：全部走逐属性正向值语法，并拒绝反斜杠 CSS 转义 */
-export function allowedAttribute(name: string, value: string): boolean {
+/** 这个属性能不能留下：全部走逐属性正向值语法，并拒绝反斜杠 CSS 转义；href / preserveAspectRatio 仅允许在 <image> 上出现 */
+export function allowedAttribute(name: string, value: string, tagName?: string): boolean {
   if (hasControlChar(value)) return false;
+  if ((name === "href" || name === "preserveAspectRatio") && tagName !== undefined && tagName !== "image") {
+    return false;
+  }
   if (name === "aria-label") return value.length <= 500;
   if (value.includes("\\")) return false;
   const dataRule = DATA_ATTRS.get(name);
@@ -200,7 +209,7 @@ function clean(
 ): void {
   for (let i = 0; i < source.attributes.length; i++) {
     const attribute = source.attributes[i];
-    if (attribute && allowedAttribute(attribute.name, attribute.value)) {
+    if (attribute && allowedAttribute(attribute.name, attribute.value, source.tagName)) {
       target.setAttribute(
         attribute.name,
         rewriteScopedAttribute(attribute.name, attribute.value, scopePrefix),

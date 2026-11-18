@@ -940,6 +940,21 @@ export function runLint(
   const { diagrams, problems: diagramProblems } = loadDiagrams(wikiRoot);
   problems.push(...diagramProblems);
   problems.push(...missingDiagramProblems(pages, diagrams, wikiRoot));
+  for (const [, diag] of diagrams) {
+    const svgAbs = join(wikiRoot, diag.svgFile);
+    if (!existsSync(svgAbs)) continue;
+    const svgText = readFileSync(svgAbs, "utf8");
+    for (const m of svgText.matchAll(/\bhref="(\.\/wiki-illustrations\/[a-z0-9-]+\.(?:webp|jpg|png))"/g)) {
+      const rel = m[1]!;
+      if (!existsSync(join(rootDir, "public", rel.slice(2)))) {
+        problems.push({
+          file: diag.svgFile,
+          rule: "missing-diagram-illustration",
+          message: `复合拆解剖面图引用的静态插画 public/${rel.slice(2)} 不存在`,
+        });
+      }
+    }
+  }
   for (const page of pages) {
     try {
       if (page.fm.rawSources) readPageRaw(wikiRoot, page.fm.id, page.fm.rawSources);

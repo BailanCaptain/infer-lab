@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 350" width="880" height="350" role="img" aria-label="v0.30.0 W8A8_DYNAMIC 稠密 Linear Qwen3-8B 与稀疏 MoE Qwen3-30B-A3B EP8 双轨执行流水线图">
+  <title>v0.30.0 W8A8_DYNAMIC 双轨执行流水线对比：上轨稠密 Linear（Qwen3-8B）离线权重转置+NZ+weight_scale_fp32，前向经 npu_dynamic_quant 或 PreparedLinearInput 送入 npu_quant_matmul；下轨稀疏 MoE（Qwen3-30B-A3B EP8）本地 16 专家转 NZ，复用 dispatch INT8 激活后按 fusion 分流融合或非融合分组矩阵乘。</title>
+  <defs>
+    <marker id="pipe-arr-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#1D4ED8"/>
+    </marker>
+    <marker id="pipe-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#0F766E"/>
+    </marker>
+    <marker id="pipe-arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#B45309"/>
+    </marker>
+  </defs>
+
+  <rect x="2" y="2" width="876" height="346" rx="8" fill="#FCFBF7" stroke="#D5CEBE" stroke-width="1.2"/>
+
+  <!-- 上轨：Dense Linear (Qwen3-8B) -->
+  <g id="lane-dense-linear">
+    <rect x="12" y="12" width="856" height="142" rx="7" fill="#FFFDF9" stroke="#1D4ED8" stroke-width="1.3"/>
+    <rect x="12" y="12" width="856" height="26" rx="6" fill="#DBEAFE"/>
+    <circle cx="28" cy="25" r="9" fill="#1D4ED8"/>
+    <text x="28" y="29" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#FFFFFF">1</text>
+    <text x="44" y="29" font-family="var(--font-sans)" font-size="11.2" font-weight="700" fill="#1E3A8A">稠密 Linear 轨道（Qwen3-8B · AscendW8A8DynamicLinearMethod）</text>
+
+    <!-- 1A 离线权重加载后处理 -->
+    <rect x="22" y="46" width="262" height="98" rx="5" fill="#FEF3C7" stroke="#B45309" stroke-width="1.2"/>
+    <text x="32" y="63" font-family="var(--font-sans)" font-size="10.5" font-weight="700" fill="#92400E">权重侧（离线 INT8 → 加载后处理）</text>
+    <text x="32" y="81" font-family="var(--font-mono)" font-size="9.5" fill="#182230">weight [out,in] → transpose(0,1)</text>
+    <text x="32" y="96" font-family="var(--font-sans)" font-size="9.5" fill="#344054">• 连续化 + maybe_trans_nz 转 FRACTAL_NZ</text>
+    <text x="32" y="112" font-family="var(--font-sans)" font-size="9.5" fill="#344054">• 展平 weight_scale 并建 weight_scale_fp32</text>
+    <text x="32" y="128" font-family="var(--font-sans)" font-size="9.2" fill="#78350F">（动态矩阵乘不使用逐通道 weight_offset）</text>
+
+    <!-- 1B 前向激活量化 / 预量化复用 -->
+    <rect x="308" y="46" width="256" height="98" rx="5" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.2"/>
+    <text x="318" y="63" font-family="var(--font-sans)" font-size="10.5" font-weight="700" fill="#1D4ED8">激活侧（前向现算或重叠复用）</text>
+    <text x="318" y="82" font-family="var(--font-mono)" font-size="9.5" font-weight="700" fill="#182230">常规：npu_dynamic_quant(x)</text>
+    <text x="318" y="97" font-family="var(--font-sans)" font-size="9.5" fill="#344054">按 token 现算 INT8 x_q + FP32 pertoken_scale</text>
+    <line x1="318" y1="106" x2="554" y2="106" stroke="#93C5FD" stroke-dasharray="3 2"/>
+    <text x="318" y="121" font-family="var(--font-mono)" font-size="9.3" font-weight="700" fill="#0F766E">重叠：PreparedLinearInput 直接复用</text>
+    <text x="318" y="135" font-family="var(--font-sans)" font-size="9.2" fill="#5E6B7D">（如共享专家与通信重叠时提前打包免重算）</text>
+
+    <!-- 1C 矩阵乘还原输出 -->
+    <rect x="588" y="46" width="268" height="98" rx="5" fill="#F0FDF9" stroke="#0F766E" stroke-width="1.3"/>
+    <text x="598" y="63" font-family="var(--font-sans)" font-size="10.5" font-weight="700" fill="#0F766E">核函数乘加与反量化还原</text>
+    <text x="598" y="83" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="#182230">torch_npu.npu_quant_matmul(</text>
+    <text x="608" y="99" font-family="var(--font-mono)" font-size="9.5" fill="#344054">quantized_x, weight,</text>
+    <text x="608" y="114" font-family="var(--font-mono)" font-size="9.5" fill="#344054">weight_scale, pertoken_scale)</text>
+    <text x="598" y="133" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#0F766E">→ 直接恢复 output_dtype (BF16) 输出</text>
+
+    <line x1="284" y1="95" x2="304" y2="95" stroke="#B45309" stroke-width="1.6" marker-end="url(#pipe-arr-amber)"/>
+    <line x1="564" y1="95" x2="584" y2="95" stroke="#1D4ED8" stroke-width="1.6" marker-end="url(#pipe-arr-blue)"/>
+  </g>
+
+  <!-- 下轨：Sparse MoE (Qwen3-30B-A3B EP8) -->
+  <g id="lane-sparse-moe">
+    <rect x="12" y="166" width="856" height="172" rx="7" fill="#FFFDF9" stroke="#0F766E" stroke-width="1.3"/>
+    <rect x="12" y="166" width="856" height="26" rx="6" fill="#CCFBF1"/>
+    <circle cx="28" cy="179" r="9" fill="#0F766E"/>
+    <text x="28" y="183" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="44" y="183" font-family="var(--font-sans)" font-size="11.2" font-weight="700" fill="#065F46">稀疏 MoE 轨道（Qwen3-30B-A3B EP8：每卡本地 16 专家 · AscendW8A8DynamicFusedMoEMethod）</text>
+
+    <!-- 2A 本地 16 专家三维权重加载后处理 -->
+    <rect x="22" y="200" width="262" height="128" rx="5" fill="#FEF3C7" stroke="#B45309" stroke-width="1.2"/>
+    <text x="32" y="217" font-family="var(--font-sans)" font-size="10.5" font-weight="700" fill="#92400E">本地 16 专家 w13 / w2 后处理</text>
+    <text x="32" y="235" font-family="var(--font-mono)" font-size="9.5" fill="#182230">transpose(1,2) + ACL_FORMAT_FRACTAL_NZ</text>
+    <text x="32" y="252" font-family="var(--font-sans)" font-size="9.5" fill="#344054">• 建 w13_weight_scale_fp32（w2 普通分支</text>
+    <text x="40" y="266" font-family="var(--font-sans)" font-size="9.5" fill="#344054">不额外复制 FP32 副本）</text>
+    <rect x="30" y="275" width="246" height="44" rx="4" fill="#FFFDF9" stroke="#D97706"/>
+    <text x="38" y="291" font-family="var(--font-mono)" font-size="9.2" font-weight="700" fill="#B45309">enable_fused_mc2 == 1 特例：</text>
+    <text x="38" y="307" font-family="var(--font-sans)" font-size="9.2" fill="#344054">把 w13/w2 scale 转成 INT64 fused_w1/w2_scale</text>
+
+    <!-- 2B 复用 Dispatch INT8 激活 -->
+    <rect x="308" y="200" width="196" height="128" rx="5" fill="#F5F3FF" stroke="#4338CA" stroke-width="1.2"/>
+    <text x="318" y="217" font-family="var(--font-sans)" font-size="10.5" font-weight="700" fill="#4338CA">专家入口激活来源</text>
+    <text x="318" y="237" font-family="var(--font-sans)" font-size="9.6" font-weight="700" fill="#182230">优先复用 MC2 dispatch</text>
+    <text x="318" y="253" font-family="var(--font-mono)" font-size="9.5" fill="#4338CA">quant_mode = 2 返回的：</text>
+    <text x="318" y="270" font-family="var(--font-sans)" font-size="9.5" fill="#344054">• INT8 hidden_states</text>
+    <text x="318" y="286" font-family="var(--font-sans)" font-size="9.5" fill="#344054">• FP32 dynamic_scale</text>
+    <text x="318" y="310" font-family="var(--font-sans)" font-size="9.2" fill="#0F766E" font-weight="700">✓ 省去专家入口重复动态量化</text>
+
+    <!-- 2C apply_gmm1_act_quant 双分支 + gmm2 -->
+    <rect x="528" y="200" width="328" height="58" rx="5" fill="#F0FDF9" stroke="#0F766E" stroke-width="1.3"/>
+    <text x="538" y="216" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#0F766E">A. 融合分支（fusion 开启）：一把做完再进 GMM2</text>
+    <text x="538" y="233" font-family="var(--font-mono)" font-size="9.3" font-weight="700" fill="#182230">grouped_matmul_swiglu_quant_weight_nz</text>
+    <text x="538" y="249" font-family="var(--font-sans)" font-size="9.3" fill="#344054">合并 GMM1 + SwiGLU + 再量化 → apply_gmm2 → BF16</text>
+
+    <rect x="528" y="268" width="328" height="60" rx="5" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.2"/>
+    <text x="538" y="284" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#1E40AF">B. 非融合分支（MC2 Decode / Prefill 分步执行）</text>
+    <text x="538" y="301" font-family="var(--font-mono)" font-size="9.2" fill="#182230">MC2: npu_grouped_matmul(INT32) + npu_dequant_swiglu_quant</text>
+    <text x="538" y="317" font-family="var(--font-sans)" font-size="9.2" fill="#344054">Prefill: GMM1 后走 swiglu_quant 或 npu_swiglu + npu_dynamic_quant</text>
+
+    <line x1="284" y1="264" x2="304" y2="264" stroke="#B45309" stroke-width="1.6" marker-end="url(#pipe-arr-amber)"/>
+    <path d="M 504 248 L 516 248 L 516 229 L 524 229" fill="none" stroke="#0F766E" stroke-width="1.6" marker-end="url(#pipe-arr-teal)"/>
+    <path d="M 504 280 L 516 280 L 516 298 L 524 298" fill="none" stroke="#1D4ED8" stroke-width="1.6" marker-end="url(#pipe-arr-blue)"/>
+  </g>
+</svg>

@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 330" width="880" height="330" role="img" aria-label="v0.30.0 W8A8_MIX 组合式双方法架构与 is_kv_consumer Prefill/Decode 分流图">
+  <title>v0.30.0 W8A8_MIX（w8a8_pdmix.py）组合架构与 PD 角色分派：统一按静态路径加载全套缓冲区并补建 weight_scale_fp32，前向依 kv_transfer_config.is_kv_consumer 分流——Prefill/混部走动态逐 token 量化保精度，Decode/kv_both 走静态省算子开销（仅注册 linear，已移除 moe）。</title>
+  <defs>
+    <marker id="pd-arr-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#182230"/>
+    </marker>
+    <marker id="pd-arr-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#1D4ED8"/>
+    </marker>
+    <marker id="pd-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#0F766E"/>
+    </marker>
+  </defs>
+
+  <rect x="2" y="2" width="876" height="326" rx="8" fill="#FCFBF7" stroke="#D5CEBE" stroke-width="1.2"/>
+
+  <!-- 顶部标题栏与 v0.30.0 注册边界胶囊 -->
+  <text x="16" y="28" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#182230">AscendW8A8PDMixLinearMethod 组合分派架构（w8a8_pdmix.py）</text>
+  <rect x="478" y="10" width="388" height="26" rx="5" fill="#FFE4E6" stroke="#BE123C" stroke-width="1.2"/>
+  <text x="672" y="27" text-anchor="middle" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#9F1239">v0.30.0 仅注册 (&quot;W8A8_MIX&quot;, &quot;linear&quot;) · 已移除 moe（勿写 W8A8_PDMIX）</text>
+
+  <!-- 左栏：同一份静态 Checkpoint 全量缓冲区 -->
+  <g id="pd-ckpt">
+    <rect x="14" y="46" width="236" height="230" rx="6" fill="#FFFDF9" stroke="#B45309" stroke-width="1.3"/>
+    <rect x="14" y="46" width="236" height="28" rx="5" fill="#FEF3C7"/>
+    <text x="24" y="64" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#92400E">① 加载期统一建参（复用静态规格）</text>
+
+    <rect x="24" y="82" width="216" height="38" rx="4" fill="#F8F5EC" stroke="#D8D2C5"/>
+    <text x="32" y="98" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="#182230">weight (INT8)</text>
+    <text x="32" y="113" font-family="var(--font-sans)" font-size="9.5" fill="#5E6B7D">加载后转置 [in, out] + maybe_trans_nz</text>
+
+    <rect x="24" y="126" width="216" height="44" rx="4" fill="#F0FDF9" stroke="#99F6E4"/>
+    <text x="32" y="142" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="#0F766E">input_scale + input_offset</text>
+    <text x="32" y="158" font-family="var(--font-mono)" font-size="9.5" fill="#344054">quant_bias (INT32) + deq_scale</text>
+
+    <rect x="24" y="176" width="216" height="44" rx="4" fill="#EFF6FF" stroke="#93C5FD"/>
+    <text x="32" y="192" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="#1D4ED8">weight_scale + weight_offset</text>
+    <text x="32" y="208" font-family="var(--font-sans)" font-size="9.5" fill="#1E3A8A">后处理额外补建 weight_scale_fp32</text>
+
+    <text x="24" y="240" font-family="var(--font-sans)" font-size="9.5" fill="#5E6B7D">同一份静态权重包同时喂饱动/静两套算子，</text>
+    <text x="24" y="255" font-family="var(--font-sans)" font-size="9.5" fill="#5E6B7D">代价是常驻全套静态参数缓冲区</text>
+  </g>
+
+  <line x1="250" y1="161" x2="276" y2="161" stroke="#182230" stroke-width="1.6" marker-end="url(#pd-arr-ink)"/>
+
+  <!-- 中栏：组合持有双方法对象 + is_kv_consumer 分流门 -->
+  <g id="pd-router">
+    <rect x="280" y="46" width="232" height="230" rx="6" fill="#FFFDF9" stroke="#182230" stroke-width="1.3"/>
+    <rect x="280" y="46" width="232" height="28" rx="5" fill="#F1EFE6"/>
+    <text x="290" y="64" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#182230">② 组合持有双实例 &amp; 角色判定</text>
+
+    <rect x="290" y="82" width="212" height="36" rx="4" fill="#EFF6FF" stroke="#1D4ED8"/>
+    <text x="298" y="98" font-family="var(--font-mono)" font-size="9.8" font-weight="700" fill="#1D4ED8">self._dynamic_method</text>
+    <text x="298" y="112" font-family="var(--font-mono)" font-size="9" fill="#344054">AscendW8A8DynamicLinearMethod()</text>
+
+    <rect x="290" y="124" width="212" height="36" rx="4" fill="#F0FDF9" stroke="#0F766E"/>
+    <text x="298" y="140" font-family="var(--font-mono)" font-size="9.8" font-weight="700" fill="#0F766E">self._static_method</text>
+    <text x="298" y="154" font-family="var(--font-mono)" font-size="9" fill="#344054">AscendW8A8LinearMethod()</text>
+
+    <!-- 角色判定盒 -->
+    <rect x="290" y="174" width="212" height="88" rx="5" fill="#182230"/>
+    <text x="396" y="194" text-anchor="middle" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#FDE68A">执行期读取 PD 角色开关</text>
+    <text x="396" y="212" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="#FFFDF9">kv_transfer_config</text>
+    <text x="396" y="227" text-anchor="middle" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="#67E8F9">.is_kv_consumer</text>
+    <text x="396" y="248" text-anchor="middle" font-family="var(--font-sans)" font-size="9.2" fill="#CBD5E1">False → 上路动态 ｜ True → 下路静态</text>
+  </g>
+
+  <!-- 分流连线 -->
+  <path d="M 512 204 L 528 204 L 528 102 L 544 102" fill="none" stroke="#1D4ED8" stroke-width="1.8" marker-end="url(#pd-arr-blue)"/>
+  <path d="M 512 232 L 528 232 L 528 220 L 544 220" fill="none" stroke="#0F766E" stroke-width="1.8" marker-end="url(#pd-arr-teal)"/>
+
+  <!-- 右上分支：Prefill 节点 / 混部实例（动态） -->
+  <g id="pd-prefill">
+    <rect x="548" y="46" width="318" height="108" rx="6" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.4"/>
+    <rect x="548" y="46" width="318" height="26" rx="5" fill="#DBEAFE"/>
+    <text x="558" y="63" font-family="var(--font-sans)" font-size="10.8" font-weight="700" fill="#1E40AF">Prefill 节点 (kv_producer) / 未开 PD 混部 → 走动态</text>
+    <text x="558" y="88" font-family="var(--font-mono)" font-size="9.8" font-weight="700" fill="#182230">npu_dynamic_quant(x) → INT8 + pertoken_scale</text>
+    <text x="558" y="106" font-family="var(--font-mono)" font-size="9.8" fill="#344054">npu_quant_matmul(x_q, weight, weight_scale) → BF16</text>
+    <rect x="558" y="118" width="298" height="26" rx="4" fill="#FFFFFF" stroke="#93C5FD"/>
+    <text x="566" y="135" font-family="var(--font-sans)" font-size="9.8" font-weight="700" fill="#1D4ED8">✓ 按当前每个 token 实测范围现算，保首轮长上下文精度</text>
+  </g>
+
+  <!-- 右下分支：Decode 节点 / kv_both（静态） -->
+  <g id="pd-decode">
+    <rect x="548" y="168" width="318" height="108" rx="6" fill="#F0FDF9" stroke="#0F766E" stroke-width="1.4"/>
+    <rect x="548" y="168" width="318" height="26" rx="5" fill="#CCFBF1"/>
+    <text x="558" y="185" font-family="var(--font-sans)" font-size="10.8" font-weight="700" fill="#065F46">Decode 节点 (is_kv_consumer) / kv_both → 走静态</text>
+    <text x="558" y="210" font-family="var(--font-mono)" font-size="9.8" font-weight="700" fill="#182230">vllm.quantize(x, aclnn_input_scale, offset)</text>
+    <text x="558" y="228" font-family="var(--font-mono)" font-size="9.8" fill="#344054">npu_quant_matmul(x_q, weight, deq_scale, quant_bias)</text>
+    <rect x="558" y="240" width="298" height="26" rx="4" fill="#FFFFFF" stroke="#6EE7B7"/>
+    <text x="566" y="257" font-family="var(--font-sans)" font-size="9.8" font-weight="700" fill="#0F766E">✓ 复用校准静态参数，省掉每步统计激活极值开销</text>
+  </g>
+
+  <!-- 底部重叠复用旁注条 -->
+  <rect x="14" y="286" width="852" height="32" rx="5" fill="#F1EFE6" stroke="#C6BFAF" stroke-width="1"/>
+  <text x="26" y="306" font-family="var(--font-sans)" font-size="10" fill="#344054">预量化重叠兼容：prepare_input_for_overlap 同样按 layer.is_kv_consumer 委托给对应子方法构造 PreparedLinearInput，避免通信重叠路径重复量化。</text>
+</svg>

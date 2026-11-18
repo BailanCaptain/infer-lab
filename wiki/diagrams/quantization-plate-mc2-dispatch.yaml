@@ -1,0 +1,14 @@
+mode: native-svg
+id: quantization-plate-mc2-dispatch
+caption: >-
+  MoE EP MC2 通信量化立体拆解：源 NPU 按硬件家族 moe_comm_policy 选入 MC2 后，去程 dispatch 以 quant_mode=2 将隐藏向量就地压成 INT8 并附 4 B FP32 dynamic_scale（通信载荷减半）；专家 NPU 零重复量化直接送入 W8A8 分组矩阵乘；返程 combine 默认 quant_mode=0 回传 BF16。
+size: [880, 490]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L281-L342
+    symbols: [CAPACITY_AND_EXPERT_DENSITY, FUSED_OR_CAPACITY, ALLGATHER, CAPACITY_AND_WORLD_SIZE]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L297-L334
+    symbols: [num_experts_per_device, mc2_tokens_capacity, FUSED_MC2, MC2]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/dataclass/moe_quant.py#L71-L99
+    symbols: [dispatch_with_quant, get_dst_type, get_scale_type]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L168-L195
+    symbols: [dispatch_with_quant, quant_mode, stage1_kwargs]

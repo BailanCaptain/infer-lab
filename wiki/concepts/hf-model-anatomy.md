@@ -86,7 +86,7 @@ updated: '2026-11-18'
 
 ## 模型目录文件地图：启动时谁读哪份文件
 
-走进一个标准的 HuggingFace 模型目录，真正决定推理行为的文件可以归为五类。其中除权重分片外，其余文件都可以直接用文本编辑器或 `json.tool` 读懂；下图把目录树里的五类文件、启动阶段负责读取它们的 `vllm` / `vllm-ascend` 入口，以及四处最容易踩中的隐形坑对应到同一张视图上：
+走进一个标准的 HuggingFace 模型目录，真正决定推理行为的文件可以归为五类。其中除权重分片外，其余文件都可以直接用文本编辑器或 `json.tool` 读懂；下图以立体拆解剖面配合引线直标，把目录树里的五类文件、启动阶段负责读取它们的 `vllm` / `vllm-ascend` 入口，以及四处最容易踩中的隐形坑对应到同一张视图上：
 
 ```wiki-diagram
 file: hf-directory-file-map
@@ -117,6 +117,10 @@ file: hf-directory-file-map
 
 `vllm` 启动时首选 `architectures` 列表里的类名来定位模型实现。如果某些第三方导出的 `config.json` 漏掉了顶层 `architectures` 字段，`get_config` 会尝试根据 `model_type` 去模型映射表里补齐；若映射表也查不到，就必须由用户通过 `--hf-overrides` 显式指明架构类。对于图文或多模态模型，语言模型主干的层数、隐藏维度和注意力头数往往套在子对象 `text_config` 里，`vllm` 会通过 `get_hf_text_config` 把它解包出来，再交给文本模型配置校验。
 
+```wiki-diagram
+file: hf-fig-identity-unpack
+```
+
 ### 核心尺寸与 GQA：head_dim 不一定等于 hidden_size ÷ num_attention_heads
 
 接下来决定每层矩阵乘形状和注意力结构的是六个核心尺寸字段：
@@ -132,6 +136,10 @@ file: hf-directory-file-map
 
 在 `vllm` 的 `ModelArchConfigConvertorBase.get_head_size` 与 `Qwen3Attention` 实现里，引擎会优先读取显式且大于 0 的 `head_dim`（也会用它构造 `q_norm` 和 `k_norm`），只有当 `head_dim` 缺失或为 0 时才回落到 `hidden_size // num_attention_heads`。如果自己做部署前显存预估时错用 `64` 代替 `128`，算出的 `q_proj`、`k_proj`、`v_proj`、`o_proj` 参数量以及每 token 的 KV cache 字节数都会整整少算一半。
 
+```wiki-diagram
+file: hf-fig-headdim-trap
+```
+
 ### MoE 字段：总参数装进显存，激活参数决定单步算力
 
 当 `model_type` 为 `"qwen3_moe"` 时，前馈网络从单个大 MLP 变成了一组专家和一套路由网络（MoE，混合专家，机制见 [MoE](moe.md)）。`Qwen3-30B-A3B` 新增了五个关键字段来刻画这层结构：
@@ -145,6 +153,10 @@ $$i \notin \text{mlp\_only\_layers}, \quad \text{num\_experts} > 0, \quad (i + 1
 
 对照 `Qwen3-30B-A3B` 的配置，`mlp_only_layers` 为空列表且 `decoder_sparse_step = 1`，意味着全部 48 层都是 MoE 层。理解 MoE 模型配置时必须把**总参数量**与**激活参数量**分开算账：推理过程中每个 token 虽然只经过 8 个被选中的专家（激活参数仅 `3.35B`），决定一次前向的算力消耗；但在加载模型时，因为你无法提前预知后续请求会路由到哪几个专家，128 个专家的权重（总参数 `30.53B`，BF16 下 `56.87 GiB`）必须全部常驻在 NPU 显存中，32 GiB 单卡根本装不下。反过来，由于 `Qwen3-30B-A3B` 的 `num_key_value_heads` 只有 `4`，即使层数达到 `48` 层，它每 token 的 BF16 KV cache 却只有 `96.0 KiB`，比只有 `8.19B` 总参数但配了 `8` 个 KV 头的 `Qwen3-8B`（`144.0 KiB/token`）更省缓存。
 
+```wiki-diagram
+file: hf-fig-moe-gate-and-bars
+```
+
 ### 词表与首尾共享：vocab_size、tie_word_embeddings 与权重核对
 
 模型的首尾两头由 `vocab_size`（记为 $V$）和 `tie_word_embeddings` 控制。`vocab_size` 是词表总行数，决定最前端把 token 编号查成向量的 `embed_tokens` 矩阵和最末端把隐藏向量投影回词表分数的 `lm_head` 矩阵各自有多大（两者的原理分别见 [embedding](embedding.md) 与 [lm_head](lm-head.md)）。当 `tie_word_embeddings` 为 `true` 时，首尾两处共享同一份 $V \times H$ 权重矩阵，省掉整整一张输出头表的参数量；为 `false` 时，首尾各自独立保存一份矩阵。
@@ -153,12 +165,20 @@ $$i \notin \text{mlp\_only\_layers}, \quad \text{num\_experts} > 0, \quad (i + 1
 
 在 `vllm@ced6857a`（`v0.30.0` 基线）中，还新增了一道名为 `maybe_untie_word_embeddings` 的保护逻辑：有些开源微调模型在 `config.json` 里沿用了 `tie_word_embeddings: true`，实际导出的 `.safetensors` 检查点里却额外附带了独立的 `lm_head` 权重张量。若强行按配置文件共享权重，就会把检查点里的 `lm_head` 静默丢掉。`v0.30.0` 及以上版本会在加载前先探测权重文件里是否存在 `lm_head`：一旦发现确实存在，就会暂时把 `tie_word_embeddings` 改为 `false` 把两份张量都载入，等加载完再比对数值是否真的相等、决定是否重新合并（`v0.23.0` 与 `v0.26.0rc` 没有这道保护）。
 
+```wiki-diagram
+file: hf-fig-tie-and-untie
+```
+
 ### 上下文长度与位置编码：max_position_embeddings、rope_theta 与 rope_scaling
 
 `max_position_embeddings` 给出模型位置编码的基准上限（三个 Qwen3 预设均为 `40960`），`rope_theta` 设定旋转位置编码（RoPE）的基础底频（Qwen3 为 `1000000`）。当长上下文扩展模型配置了 `rope_scaling`（在较新 Transformers 配置里也可能归一化为 `rope_parameters`）时，`vllm` 的 `_get_and_verify_max_len` 并非一律拿 `max_position_embeddings` 去乘以 `factor`：
 
 - 对于 `linear`、`dynamic` 等传统缩放类型，`vllm` 会把推导出的最大长度乘以缩放字段里的 `factor`（如果配置文件错把 `factor` 写成 `null`，会打印警告并回落到 `1.0`）。
 - 对于 `yarn`、`su`、`longrope`、`llama3`、`deepseek_yarn`、`deepseek_llama_scaling` 这类类型（以及 `gemma3` 系列），`vllm` 认为 `config.json` 里的 `max_position_embeddings` 已经是扩展后的最终长度，因此**不会再二次乘以 `factor`**；此外对于 `longrope`，如果用户没有显式指定 `--max-model-len`（或传了 `-1`），引擎会默认回退到 `original_max_position_embeddings`，避免短上下文场景出现精度下降。
+
+```wiki-diagram
+file: hf-fig-rope-scaling
+```
 
 ### 精度与量化：torch_dtype / dtype 与昇腾量化检查
 
@@ -170,6 +190,10 @@ $$i \notin \text{mlp\_only\_layers}, \quad \text{num\_experts} > 0, \quad (i + 1
 - **昇腾 ModelSlim 路径**：模型由昇腾 ModelSlim 工具导出时，目录下会多出一个 `quant_model_description.json` 文件。在 `vllm-ascend@c09d3e20` 中，只要目录里检测到了 `quant_model_description.json`，`detect_quantization_method` 就会自动将量化方式识别为 `"ascend"`（等效于自动补上 `--quantization ascend`）；若没有该文件，才继续检查 `config.json` 中的 `quantization_config.quant_method` 是否为 `"compressed-tensors"` 或 `"fp8"`。
 
 需要特别警惕原生 `fp8` 权重在昇腾上的格式限制：`vllm-ascend@c09d3e20` 的 `AscendFp8Config` 只支持**按权重块（block-wise）缩放且激活为动态量化**的原生 FP8 检查点——也就是 `quantization_config` 里必须存在 `weight_block_size`，且 `activation_scheme` 必须等于 `"dynamic"`。如果拿到的是 per-tensor 或 per-channel 缩放的原生 FP8 目录，启动校验会直接抛出 `NotImplementedError` 退出，提示改用 ModelSlim 或 `llm-compressor` 重新量化。
+
+```wiki-diagram
+file: hf-fig-dtype-and-quant
+```
 
 ### 完整算账对照：Qwen3-8B vs Qwen3-30B-A3B
 
@@ -227,6 +251,10 @@ model: Qwen3-8B
 ## tokenizer_config.json、chat_template、分片与 generation_config 里的隐形坑
 
 很多启动异常或输出跑偏并不是 `config.json` 引起的，而是躲在同目录另外几份配置文件里。排查目录时至少要顺手核对下面四个隐形坑：
+
+```wiki-diagram
+file: hf-fig-four-hidden-traps
+```
 
 1. **`chat_template` 的四级回落链**：发送对话请求时，`vllm` 渲染器 `resolve_chat_template` 按固定四级顺序寻找模板——先看命令行显式传入的 `--chat-template`；未传且未开启工具调用时尝试从 `AutoProcessor` 读取；接着再走 `AutoTokenizer` 读取 `tokenizer_config.json` 或独立的 `chat_template.jinja`；最后尝试使用 `vllm` 内置的模型名回落模板。如果四级全为空（常见于只有底座分词配置的裸预训练目录），模型虽然能正常启动，但一收到对话补全请求就会立刻触发模板解析失败。
 2. **`model_max_length` 静音截断 `max_model_len`**：即便 `config.json` 里的 `max_position_embeddings` 写着 `40960`，`vllm` 在 `_get_and_verify_max_len` 里仍会把推导出的最大长度和 `tokenizer_config.json` 中的 `model_max_length` 取一次较小值（$\min(\text{derived\_max\_model\_len}, \text{model\_max\_length})$）。如果打包目录时有人误把 `tokenizer_config.json` 里的 `model_max_length` 填成 `4096` 或 `8192`，服务可接收的最大上下文就会被悄悄压低，只能通过显式传入 `--max-model-len` 或修正该字段绕开。

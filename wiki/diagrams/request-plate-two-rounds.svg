@@ -1,126 +1,94 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 500" width="880" height="500" role="img" aria-label="示意：提示词「我喜欢」经两轮四步生成「猫。」的立体拆解剖面与中文引线直标图。">
-  <title>示意：提示词「我喜欢」经两轮四步生成「猫。」的立体拆解剖面与中文引线直标图。</title>
-  <defs>
-    <pattern id="grid-two-rounds" width="20" height="20" patternUnits="userSpaceOnUse">
-      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E7E1D3" stroke-width="0.6"/>
-    </pattern>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" width="900" height="620" role="img" aria-label="示意：提示词「我喜欢」经两轮四步生成「猫。」的立体拆解剖面。第 1 轮（Prefill）并行送入 [0, 2] 写下 k₀, v₀, k₁, v₁，直接由末行 h₁ 乘 W_head 选出首词 3 号「猫」；第 2 轮（Decode）只送 3 号 1 个新位置，复用旧 KV 追加 k₂, v₂，选出 5 号「。」满 max_tokens=2 当场停机。">
+  <title>示意：提示词「我喜欢」经两轮四步生成「猫。」的立体拆解剖面。第 1 轮（Prefill）并行送入 [0, 2] 写下 k₀, v₀, k₁, v₁，直接由末行 h₁ 乘 W_head 选出首词 3 号「猫」；第 2 轮（Decode）只送 3 号 1 个新位置，复用旧 KV 追加 k₂, v₂，选出 5 号「。」满 max_tokens=2 当场停机。</title>
+  <desc>两轮四步自回归生成闭环源码锚点：EngineCore.step 驱动 schedule（维护 num_computed_tokens）与 execute_model，model_runner_v1 按 logits_indices 取末行调用 compute_logits，输出后由 check_stop 核对 max_tokens。</desc>
 
-  <!-- Engineering Backing Plate -->
-  <rect x="2" y="2" width="876" height="496" rx="8" fill="#FCFBF7" stroke="#D5CEBE" stroke-width="1.2"/>
+  <!-- Tight-cropped transparent 3D cutaway floating directly on open canvas -->
+  <image href="./wiki-illustrations/request-two-rounds-cutaway.webp" x="70" y="96" width="760" height="436" preserveAspectRatio="xMidYMid meet"/>
 
-  <!-- Top Plate Header Bar -->
-  <rect x="10" y="7" width="96" height="20" rx="4" fill="#182230"/>
-  <text x="58" y="21" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" font-weight="700" fill="#FFFDF9">PLATE 1.1</text>
-  <text x="116" y="21" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#182230">两轮四步自回归闭环立体拆解剖面</text>
-  <text x="868" y="21" text-anchor="end" font-family="var(--font-sans)" font-size="10.5" fill="#5E6B7D">教学设定：6 词词表 · 隐藏维 4 · 提示词「我喜欢」→ 输出「猫。」</text>
-  <line x1="10" y1="31" x2="870" y2="31" stroke="#DFD9CA" stroke-width="1" stroke-dasharray="4 3"/>
+  <!-- ==================== CRISP LEADER LINES & RING DOTS ==================== -->
+  <!-- 1: Prefill parallel prompt [0, 2] entering upper conveyor -->
+  <path d="M 165 74 L 165 185" fill="none" stroke="#087F73" stroke-width="1.6"/>
+  <circle cx="165" cy="185" r="5.5" fill="#FFFFFF" stroke="#087F73" stroke-width="2"/>
+  <circle cx="165" cy="185" r="2.5" fill="#087F73"/>
 
-  <!-- Center Cutaway Illustration Slot -->
-  <rect x="100" y="66" width="680" height="382" rx="6" fill="url(#grid-two-rounds)" stroke="#C6BFAF" stroke-width="1"/>
-  <image href="./wiki-illustrations/request-two-rounds-cutaway.jpg" x="100" y="66" width="680" height="382" preserveAspectRatio="xMidYMid meet"/>
+  <!-- 2: Immediate KV cache write (k0, v0, k1, v1) via central chute -->
+  <path d="M 446 74 L 446 203" fill="none" stroke="#2563EB" stroke-width="1.6"/>
+  <circle cx="446" cy="203" r="5.5" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
+  <circle cx="446" cy="203" r="2.5" fill="#2563EB"/>
 
-  <!-- ==================== LEADER LINES & TARGET DOTS ==================== -->
-  <!-- ① Prefill parallel input [0, 2] -->
-  <line x1="154" y1="86" x2="206" y2="174" stroke="#0F766E" stroke-width="1.8"/>
-  <circle cx="206" cy="174" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#0F766E" stroke-width="1.6"/>
-  <circle cx="206" cy="174" r="3.2" fill="#0F766E"/>
+  <!-- 3: Prefill end directly produces first output token 3 via LM_HEAD -->
+  <path d="M 748 74 L 748 168 L 734 236" fill="none" stroke="#B45309" stroke-width="1.6"/>
+  <circle cx="734" cy="236" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
+  <circle cx="734" cy="236" r="2.5" fill="#B45309"/>
 
-  <!-- ② Write k0,v0,k1,v1 into KV cache -->
-  <line x1="431" y1="86" x2="431" y2="188" stroke="#1D4ED8" stroke-width="1.8"/>
-  <circle cx="431" cy="188" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#1D4ED8" stroke-width="1.6"/>
-  <circle cx="431" cy="188" r="3.2" fill="#1D4ED8"/>
+  <!-- 4: Not stopped (1 < max_tokens=2), token 3 slides down to Round 2 -->
+  <path d="M 226 540 L 262 385" fill="none" stroke="#4338CA" stroke-width="1.6"/>
+  <circle cx="262" cy="385" r="5.5" fill="#FFFFFF" stroke="#4338CA" stroke-width="2"/>
+  <circle cx="262" cy="385" r="2.5" fill="#4338CA"/>
 
-  <!-- ③ Prefill end directly produces token 3 via LM_HEAD -->
-  <line x1="704" y1="86" x2="649" y2="206" stroke="#B45309" stroke-width="1.8"/>
-  <circle cx="649" cy="206" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#B45309" stroke-width="1.6"/>
-  <circle cx="649" cy="206" r="3.2" fill="#B45309"/>
+  <!-- 5: Round 2 Decode feeds only token 3 and reads KV cache -->
+  <path d="M 516 540 L 516 494 L 464 442" fill="none" stroke="#2563EB" stroke-width="1.6"/>
+  <circle cx="464" cy="442" r="5.5" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
+  <circle cx="464" cy="442" r="2.5" fill="#2563EB"/>
 
-  <!-- ④ Not stopped (1 < max_tokens=2) -> token 3 slides to Round 2 -->
-  <line x1="194" y1="296" x2="296" y2="314" stroke="#4338CA" stroke-width="1.8"/>
-  <circle cx="296" cy="314" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#4338CA" stroke-width="1.6"/>
-  <circle cx="296" cy="314" r="3.2" fill="#4338CA"/>
+  <!-- 6: Shared W_head produces token 5 and hits max_tokens=2 STOP -->
+  <path d="M 771 540 L 771 443" fill="none" stroke="#BE123C" stroke-width="1.6"/>
+  <circle cx="771" cy="443" r="5.5" fill="#FFFFFF" stroke="#BE123C" stroke-width="2"/>
+  <circle cx="771" cy="443" r="2.5" fill="#BE123C"/>
 
-  <!-- ⑦ Shared W_head on Decode gate -->
-  <line x1="704" y1="280" x2="622" y2="318" stroke="#B45309" stroke-width="1.6" stroke-dasharray="4 2"/>
-  <circle cx="622" cy="318" r="5.5" fill="#FFFFFF" fill-opacity="0.92" stroke="#B45309" stroke-width="1.5"/>
-  <circle cx="622" cy="318" r="2.8" fill="#B45309"/>
-
-  <!-- ⑤ Round 2 Decode only feeds token 3, reuses KV cache -->
-  <line x1="330" y1="440" x2="442" y2="356" stroke="#1D4ED8" stroke-width="1.8"/>
-  <circle cx="442" cy="356" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#1D4ED8" stroke-width="1.6"/>
-  <circle cx="442" cy="356" r="3.2" fill="#1D4ED8"/>
-
-  <!-- ⑥ Token 5 hits max_tokens=2 and stops immediately -->
-  <line x1="678" y1="440" x2="678" y2="360" stroke="#BE123C" stroke-width="1.8"/>
-  <circle cx="678" cy="360" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#BE123C" stroke-width="1.6"/>
-  <circle cx="678" cy="360" r="3.2" fill="#BE123C"/>
-
-  <!-- ==================== VECTOR CHINESE CALLOUT CARDS ==================== -->
-  <!-- Card ① Top-Left -->
+  <!-- ==================== TOP OPEN TYPOGRAPHIC ANNOTATIONS ==================== -->
+  <!-- Callout 1: Top-Left -->
   <g>
-    <rect x="10" y="36" width="268" height="50" rx="5" fill="#FFFDF9" stroke="#0F766E" stroke-width="1.3"/>
-    <rect x="10" y="36" width="24" height="50" rx="4" fill="#CCFBF1"/>
-    <text x="22" y="65" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="800" fill="#0F766E">①</text>
-    <text x="40" y="51" font-family="var(--font-sans)" font-size="10.8" font-weight="700" fill="#182230">第 1 轮 Prefill：并行送入 [0, 2]</text>
-    <text x="40" y="66" font-family="var(--font-sans)" font-size="9.8" fill="#344054">「我喜欢」切为 2 个位置，从嵌入表 E</text>
-    <text x="40" y="79" font-family="var(--font-sans)" font-size="9.8" fill="#5E6B7D">零乘法按行抽出 x₀, x₁ 拼成 [2, 4] 进层</text>
+    <circle cx="27" cy="22" r="11" fill="#087F73"/>
+    <text x="27" y="26.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">1</text>
+    <text x="45" y="27" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#17211F">第 1 轮 Prefill：并行送入 [0, 2]</text>
+    <text x="45" y="47" font-family="var(--font-sans)" font-size="11.5" fill="#475569">「我喜欢」切为 2 个位置，从嵌入表 E</text>
+    <text x="45" y="65" font-family="var(--font-sans)" font-size="11.5" fill="#475569">零乘法抽出 x₀, x₁ 拼成 [2, 4] 进层</text>
   </g>
 
-  <!-- Card ② Top-Center -->
+  <!-- Callout 2: Top-Center -->
   <g>
-    <rect x="286" y="36" width="278" height="50" rx="5" fill="#FFFDF9" stroke="#1D4ED8" stroke-width="1.3"/>
-    <rect x="286" y="36" width="24" height="50" rx="4" fill="#DBEAFE"/>
-    <text x="298" y="65" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="800" fill="#1D4ED8">②</text>
-    <text x="316" y="51" font-family="var(--font-sans)" font-size="10.8" font-weight="700" fill="#182230">各层写下 k₀, v₀, k₁, v₁ 入 KV cache</text>
-    <text x="316" y="66" font-family="var(--font-sans)" font-size="9.8" fill="#344054">位置 1 结合位置 0 前文，同时把两位置的</text>
-    <text x="316" y="79" font-family="var(--font-sans)" font-size="9.8" fill="#5E6B7D">K、V 当场存入键值缓存，跨轮保留历史</text>
+    <circle cx="323" cy="22" r="11" fill="#2563EB"/>
+    <text x="323" y="26.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="341" y="27" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#17211F">当场写入 KV cache：k₀, v₀, k₁, v₁</text>
+    <text x="341" y="47" font-family="var(--font-sans)" font-size="11.5" fill="#475569">位置 1 结合位置 0 前文，两位置的 K、V</text>
+    <text x="341" y="65" font-family="var(--font-sans)" font-size="11.5" fill="#475569">当场存入键值缓存，跨轮保留历史状态</text>
   </g>
 
-  <!-- Card ③ Top-Right -->
+  <!-- Callout 3: Top-Right -->
   <g>
-    <rect x="572" y="36" width="298" height="50" rx="5" fill="#FFFDF9" stroke="#B45309" stroke-width="1.3"/>
-    <rect x="572" y="36" width="24" height="50" rx="4" fill="#FEF3C7"/>
-    <text x="584" y="65" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="800" fill="#B45309">③</text>
-    <text x="602" y="51" font-family="var(--font-sans)" font-size="10.8" font-weight="700" fill="#B45309">关键：Prefill 末尾直接拿 h₁ 选出首词！</text>
-    <text x="602" y="66" font-family="var(--font-sans)" font-size="9.8" fill="#182230">只取末位 h₁ 乘 W_head，最高分 +2.1 当场</text>
-    <text x="602" y="79" font-family="var(--font-sans)" font-size="9.8" fill="#344054">选出 3 号「猫」，无需再跑一轮 Decode</text>
+    <circle cx="619" cy="22" r="11" fill="#B45309"/>
+    <text x="619" y="26.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">3</text>
+    <text x="637" y="27" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#17211F">Prefill 末尾：取 h₁ 当场选出首词</text>
+    <text x="637" y="47" font-family="var(--font-sans)" font-size="11.5" fill="#475569">末行 h₁ 乘 W_head 得最高分 +2.1 → 3「猫」</text>
+    <text x="637" y="65" font-family="var(--font-sans)" font-size="11.5" font-weight="600" fill="#B45309">无需为拿首词再多跑一轮 Decode</text>
   </g>
 
-  <!-- Card ④ Left Margin -->
+  <!-- ==================== BOTTOM OPEN TYPOGRAPHIC ANNOTATIONS ==================== -->
+  <!-- Callout 4: Bottom-Left -->
   <g>
-    <rect x="10" y="256" width="184" height="78" rx="5" fill="#FFFDF9" fill-opacity="0.96" stroke="#4338CA" stroke-width="1.3"/>
-    <text x="18" y="273" font-family="var(--font-sans)" font-size="10.6" font-weight="700" fill="#4338CA">④ 判停未满 → 滑入第 2 轮</text>
-    <text x="18" y="289" font-family="var(--font-sans)" font-size="9.6" fill="#344054">check_stop 核对：非停止符</text>
-    <text x="18" y="304" font-family="var(--font-sans)" font-size="9.6" fill="#344054">且已生成 1 &lt; max_tokens(2)</text>
-    <text x="18" y="319" font-family="var(--font-sans)" font-size="9.6" font-weight="600" fill="#182230">还原「猫」；3 号作为下轮输入</text>
+    <circle cx="27" cy="558" r="11" fill="#4338CA"/>
+    <text x="27" y="562.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">4</text>
+    <text x="45" y="563" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#17211F">判停未满：首词滑入第 2 轮</text>
+    <text x="45" y="583" font-family="var(--font-sans)" font-size="11.5" fill="#475569">check_stop 核对已生成 1 &lt; max_tokens(2)</text>
+    <text x="45" y="601" font-family="var(--font-sans)" font-size="11.5" fill="#475569">还原文字「猫」，3 号作为下轮新输入</text>
   </g>
 
-  <!-- Card ⑦ Right Margin -->
+  <!-- Callout 5: Bottom-Center -->
   <g>
-    <rect x="704" y="246" width="166" height="66" rx="5" fill="#FFFDF9" fill-opacity="0.96" stroke="#B45309" stroke-width="1.25"/>
-    <text x="712" y="263" font-family="var(--font-sans)" font-size="10.4" font-weight="700" fill="#B45309">⑦ 复用同一张 W_head</text>
-    <text x="712" y="279" font-family="var(--font-sans)" font-size="9.5" fill="#344054">两轮共用 [4, 6] 输出头权重</text>
-    <text x="712" y="294" font-family="var(--font-sans)" font-size="9.5" fill="#5E6B7D">给 6 个词打分并执行采样</text>
+    <circle cx="323" cy="558" r="11" fill="#2563EB"/>
+    <text x="323" y="562.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">5</text>
+    <text x="341" y="563" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#17211F">第 2 轮 Decode：只送 3 号 1 个位置</text>
+    <text x="341" y="583" font-family="var(--font-sans)" font-size="11.5" fill="#475569">省去位置 0、1 重算；直读旧 KV 缓存并</text>
+    <text x="341" y="601" font-family="var(--font-sans)" font-size="11.5" fill="#475569">追加位置 2 的 k₂, v₂，算出单行 h₂ [1, 4]</text>
   </g>
 
-  <!-- Card ⑤ Bottom-Left -->
+  <!-- Callout 6: Bottom-Right -->
   <g>
-    <rect x="10" y="440" width="424" height="52" rx="5" fill="#FFFDF9" stroke="#1D4ED8" stroke-width="1.3"/>
-    <rect x="10" y="440" width="24" height="52" rx="4" fill="#DBEAFE"/>
-    <text x="22" y="470" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="800" fill="#1D4ED8">⑤</text>
-    <text x="40" y="455" font-family="var(--font-sans)" font-size="10.6" font-weight="700" fill="#1D4ED8">第 2 轮 Decode：只送 3 号 1 个新位置，复用旧 KV 追加 k₂, v₂</text>
-    <text x="40" y="470" font-family="var(--font-sans)" font-size="9.6" fill="#344054">因果掩码保证前文 K、V 不变，省去位置 0、1 重算；直读旧缓存并</text>
-    <text x="40" y="484" font-family="var(--font-sans)" font-size="9.6" fill="#5E6B7D">追加位置 2 的 k₂, v₂（缓存增至 3 个位置），算出单行 h₂ [1, 4]</text>
-  </g>
-
-  <!-- Card ⑥ Bottom-Right -->
-  <g>
-    <rect x="444" y="440" width="426" height="52" rx="5" fill="#FFFDF9" stroke="#BE123C" stroke-width="1.3"/>
-    <rect x="444" y="440" width="24" height="52" rx="4" fill="#FFE4E6"/>
-    <text x="456" y="470" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="800" fill="#BE123C">⑥</text>
-    <text x="474" y="455" font-family="var(--font-sans)" font-size="10.1" font-weight="700" fill="#BE123C">选出 5 号「。」命中 max_tokens = 2 当场停机，5 号不进第 3 轮</text>
-    <text x="474" y="470" font-family="var(--font-sans)" font-size="9.2" fill="#344054">h₂ 打分选出最高分 +1.6 的 5 号「。」，凑齐「猫。」立即终止循环；</text>
-    <text x="474" y="484" font-family="var(--font-sans)" font-size="9.2" fill="#5E6B7D">末词不进前向计算，故 4 词文本在 KV cache 里只留 0, 1, 2 共 3 个位置</text>
+    <circle cx="619" cy="558" r="11" fill="#BE123C"/>
+    <text x="619" y="562.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">6</text>
+    <text x="637" y="563" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#17211F">复用 W_head 选出 5「。」→ 停机</text>
+    <text x="637" y="583" font-family="var(--font-sans)" font-size="11.5" fill="#475569">最高分 +1.6 命中 max_tokens=2 立即终止</text>
+    <text x="637" y="601" font-family="var(--font-sans)" font-size="11.5" fill="#475569">末词不进第 3 轮，KV 最终只留 3 个位置</text>
   </g>
 </svg>

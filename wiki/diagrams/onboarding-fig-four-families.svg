@@ -1,9 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 340" width="880" height="340" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" width="900" height="340" role="img">
   <title>四大昇腾硬件族对照卡：官方镜像后缀、pip/构建通道、精度边界与必改启动开关</title>
-  <desc>四列并排对比 Atlas A2、Atlas A3（双裸片双可见设备）、Atlas 300I DUO / 310P（禁 BF16、禁 Triton、关 npugraph_ex）与 950DT / A5（原生 MXFP8/MXFP4）的容器镜像标签、安装构建规则、支持精度与运行开关。</desc>
+  <desc>四列并排对比 Atlas A2、Atlas A3（双裸片双可见设备）、Atlas 300I DUO / _310P（禁 BF16、禁 Triton、关 NPUGRAPH_EX、走 NPUWorker310）与 950DT / A5（原生 MXFP8/MXFP4、FP8_OPTIMIZED、CANN_MEGAMOE_MXFP）的 SOC_VERSION、AscendDeviceType、HardwareProfile、镜像标签与安装规则。</desc>
 
-  <rect x="0" y="0" width="880" height="340" rx="8" fill="#FBFAF6"/>
-  <text x="16" y="25" font-family="var(--font-sans)" font-size="13" font-weight="800" fill="#0F172A">第五维 · 四大昇腾硬件族安装通道与运行边界一图速查（先跑 <tspan font-family="var(--font-mono)" font-size="12" fill="#1D4ED8">npu-smi info</tspan> 认准卡型再拉镜像）</text>
+  <text x="16" y="25" font-family="var(--font-sans)" font-size="13.5" font-weight="800" fill="#0F172A">第五维 · 四大昇腾硬件族安装通道与运行边界一图速查（先跑 <tspan font-family="var(--font-mono)" font-size="12.5" fill="#1D4ED8">npu-smi info</tspan> 认准卡型再拉镜像）</text>
 
   <g role="group" aria-label="第一列：Atlas A2">
     <rect x="14" y="38" width="204" height="290" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
@@ -57,7 +56,7 @@
 
     <text x="240" y="279" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#475569">拓扑与必配依赖</text>
     <text x="240" y="296" font-family="var(--font-sans)" font-size="9.6" font-weight="700" fill="#0F766E">• 双 Die：1 物理卡 = 2 可见设备</text>
-    <text x="240" y="313" font-family="var(--font-sans)" font-size="9.5" fill="#334155">• <tspan font-family="var(--font-mono)">/dev/davinci[0-15]</tspan> + <tspan font-family="var(--font-mono)">triton-ascend</tspan></text>
+    <text x="240" y="313" font-family="var(--font-sans)" font-size="8.9" fill="#334155">• <tspan font-family="var(--font-mono)">/dev/davinci[0-15]</tspan> + <tspan font-family="var(--font-mono)">triton-ascend</tspan></text>
   </g>
 
   <g role="group" aria-label="第三列：Atlas 300I DUO / 310P">

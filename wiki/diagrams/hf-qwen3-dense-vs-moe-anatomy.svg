@@ -1,112 +1,108 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 500" width="880" height="500" role="img" aria-label="Qwen3-8B 与 Qwen3-30B-A3B 立体拆解剖面引线直标图" font-family="var(--font-sans)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 595" width="900" height="595" role="img" aria-label="Qwen3-8B 与 Qwen3-30B-A3B 立体拆解剖面与开放式引线直标图" font-family="var(--font-sans)">
   <title>Qwen3-8B（稠密 36 层）与 Qwen3-30B-A3B（稀疏 MoE 48 层，128 选 8）的注意力分组头、前馈层驻留与激活反差，以及 BF16 权重显存与每 token KV cache 比例对照。</title>
-  <defs>
-    <pattern id="gridA2" width="20" height="20" patternUnits="userSpaceOnUse">
-      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E7E1D3" stroke-width="0.6"/>
-    </pattern>
-  </defs>
-  <rect x="2" y="2" width="876" height="496" rx="6" fill="#FCFBF7" stroke="#D5CEBE" stroke-width="1"/>
-  <rect x="90" y="65" width="700" height="394" rx="5" fill="url(#gridA2)" stroke="#C6BFAF" stroke-width="1"/>
+  <desc>开放画布呈现 EMBED → 32Q:4KV → ROUTER → 8/128 ACTIVE MoE → LM_HEAD 立体架构剖面：ModelArchConfigConvertorBase.get_head_size 与 Qwen3Attention 读取显式 head_dim=128 及 total_num_kv_heads；Qwen3MoeDecoderLayer 按 num_experts、decoder_sparse_step、mlp_only_layers 构造 FusedMoEFactory（num_experts_per_tok=8，moe_intermediate_size=768）；末尾 ParallelLMHead 由 tie_word_embeddings 控制是否共享词表权重。</desc>
 
-  <!-- Center Cutaway Illustration Slot -->
-  <image href="./wiki-illustrations/hf-moe-layer-cutaway.jpg" x="90" y="65" width="700" height="394" preserveAspectRatio="xMidYMid meet"/>
+  <!-- Wide 820px Tight-Cropped Transparent Architecture Cutaway -->
+  <image href="./wiki-illustrations/hf-moe-layer-cutaway.webp" x="40" y="92" width="820" height="409" preserveAspectRatio="xMidYMid meet"/>
 
-  <!-- Leader Lines + Target Dots -->
-  <!-- ① Left Dense Tower Attention & MLP -->
-  <line x1="150" y1="58" x2="275" y2="165" stroke="#1D4ED8" stroke-width="1.8"/>
-  <circle cx="275" cy="165" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#1D4ED8" stroke-width="1.5"/>
-  <circle cx="275" cy="165" r="3.2" fill="#1D4ED8"/>
+  <!-- Leader Lines & Clean Ring Target Dots (Passing Cleanly Through Label Gaps) -->
+  <!-- 1: Top-Col 1 -> EMBED 3D Slab (98, 225) -->
+  <line x1="148" y1="76" x2="98" y2="225" stroke="#4338CA" stroke-width="1.6"/>
+  <circle cx="98" cy="225" r="5.5" fill="#FFFFFF" stroke="#4338CA" stroke-width="2"/>
+  <circle cx="98" cy="225" r="2.5" fill="#4338CA"/>
 
-  <!-- ② Right MoE Attention head_dim=128 != 2048/32 -->
-  <line x1="455" y1="58" x2="545" y2="155" stroke="#BE123C" stroke-width="1.8"/>
-  <circle cx="545" cy="155" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#BE123C" stroke-width="1.5"/>
-  <circle cx="545" cy="155" r="3.2" fill="#BE123C"/>
+  <!-- 2: Top-Col 2 -> 32Q:4KV Royal Blue GQA Drawers (301, 288) -->
+  <line x1="332" y1="76" x2="301" y2="288" stroke="#BE123C" stroke-width="1.6"/>
+  <circle cx="301" cy="288" r="5.5" fill="#FFFFFF" stroke="#BE123C" stroke-width="2"/>
+  <circle cx="301" cy="288" r="2.5" fill="#BE123C"/>
 
-  <!-- ③ Right MoE 128 Experts Pool vs 8 Active -->
-  <line x1="735" y1="58" x2="625" y2="250" stroke="#B45309" stroke-width="1.8"/>
-  <circle cx="625" cy="250" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#B45309" stroke-width="1.5"/>
-  <circle cx="625" cy="250" r="3.2" fill="#B45309"/>
+  <!-- 3: Top-Col 3 -> Glowing Teal Active Expert Room (506, 260) -->
+  <line x1="490" y1="76" x2="506" y2="260" stroke="#0F766E" stroke-width="1.6"/>
+  <circle cx="506" cy="260" r="5.5" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
+  <circle cx="506" cy="260" r="2.5" fill="#0F766E"/>
 
-  <!-- ④ Left Margin: Untied Embeddings 2.32 GiB vs 0.6B Tied -->
-  <line x1="170" y1="262" x2="252" y2="310" stroke="#4338CA" stroke-width="1.8"/>
-  <circle cx="252" cy="310" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#4338CA" stroke-width="1.5"/>
-  <circle cx="252" cy="310" r="3.2" fill="#4338CA"/>
+  <!-- 4: Top-Col 4 -> Unlit Resident Brown Expert Pool (667, 202) -->
+  <line x1="712" y1="76" x2="667" y2="202" stroke="#B45309" stroke-width="1.6"/>
+  <circle cx="667" cy="202" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
+  <circle cx="667" cy="202" r="2.5" fill="#B45309"/>
 
-  <!-- ⑤ Right Margin: Router 128-choose-8 -->
-  <line x1="710" y1="262" x2="612" y2="305" stroke="#0F766E" stroke-width="1.8"/>
-  <circle cx="612" cy="305" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#0F766E" stroke-width="1.5"/>
-  <circle cx="612" cy="305" r="3.2" fill="#0F766E"/>
+  <!-- 5: Bottom-Col 1 -> 32Q Attention Projection Wires (210, 345) -->
+  <line x1="185" y1="512" x2="210" y2="345" stroke="#1D4ED8" stroke-width="1.6"/>
+  <circle cx="210" cy="345" r="5.5" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
+  <circle cx="210" cy="345" r="2.5" fill="#1D4ED8"/>
 
-  <!-- ⑥ Bottom-Left: 8B Memory & KV -->
-  <line x1="220" y1="462" x2="315" y2="405" stroke="#1D4ED8" stroke-width="1.8"/>
-  <circle cx="315" cy="405" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#1D4ED8" stroke-width="1.5"/>
-  <circle cx="315" cy="405" r="3.2" fill="#1D4ED8"/>
+  <!-- 6: Bottom-Col 2 -> Glowing ROUTER Beam (352, 292) -->
+  <line x1="395" y1="512" x2="352" y2="292" stroke="#0F766E" stroke-width="1.6"/>
+  <circle cx="352" cy="292" r="5.5" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
+  <circle cx="352" cy="292" r="2.5" fill="#0F766E"/>
 
-  <!-- ⑦ Bottom-Right: 30B-A3B Memory & KV Reversal -->
-  <line x1="655" y1="462" x2="575" y2="405" stroke="#0F766E" stroke-width="1.8"/>
-  <circle cx="575" cy="405" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#0F766E" stroke-width="1.5"/>
-  <circle cx="575" cy="405" r="3.2" fill="#0F766E"/>
+  <!-- 7: Bottom-Col 3 -> LM_HEAD Slab & tie_word_embeddings Wire (816, 337) -->
+  <line x1="842" y1="512" x2="816" y2="337" stroke="#4338CA" stroke-width="1.6"/>
+  <circle cx="816" cy="337" r="5.5" fill="#FFFFFF" stroke="#4338CA" stroke-width="2"/>
+  <circle cx="816" cy="337" r="2.5" fill="#4338CA"/>
 
-  <!-- Crisp Vector Callout Cards -->
-  <!-- Top-Left ① -->
+  <!-- Top Open Band: 4 Borderless Callouts -->
+  <!-- Callout 1 -->
   <g>
-    <rect x="8" y="6" width="276" height="52" rx="5" fill="#FFFDF9" stroke="#1D4ED8" stroke-width="1.3"/>
-    <rect x="8" y="6" width="24" height="52" rx="4" fill="#DBEAFE"/>
-    <text x="20" y="37" text-anchor="middle" font-size="12" font-weight="800" fill="#1D4ED8">①</text>
-    <text x="38" y="23" font-size="11.2" font-weight="700" fill="#182230">左塔：Qwen3-8B 稠密 36 层主干</text>
-    <text x="38" y="38" font-size="10.1" fill="#344054">H=4096，GQA 32Q / 8KV，head_dim=128</text>
-    <text x="38" y="52" font-size="10" fill="#5E6B7D">稠密 SwiGLU I=12288，单步全参数 8.19B 参与</text>
+    <circle cx="25" cy="24" r="11" fill="#4338CA"/>
+    <text x="25" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">1</text>
+    <text x="42" y="29" font-size="13" font-weight="700" fill="#17211f">首端词表 EMBED</text>
+    <text x="14" y="49" font-size="11.5" fill="#475569">V=151,936 · 8B 单表占 0.62B</text>
+    <text x="14" y="66" font-size="11.5" fill="#475569">30B-A3B (H=2048) 占 0.31B</text>
   </g>
 
-  <!-- Top-Center ② -->
+  <!-- Callout 2 -->
   <g>
-    <rect x="294" y="6" width="292" height="52" rx="5" fill="#FFFDF9" stroke="#BE123C" stroke-width="1.3"/>
-    <rect x="294" y="6" width="24" height="52" rx="4" fill="#FFE4E6"/>
-    <text x="306" y="37" text-anchor="middle" font-size="12" font-weight="800" fill="#BE123C">②</text>
-    <text x="324" y="23" font-size="11.2" font-weight="700" fill="#BE123C">右塔注意力：head_dim=128 != 2048/32</text>
-    <text x="324" y="38" font-size="10.1" fill="#182230">显式 head_dim=128 → 32Q 宽投影 4096 (2×H)</text>
-    <text x="324" y="52" font-size="10" fill="#344054">KV 头减半为 4 个（kv_dim=512），错算 64 少一半</text>
+    <circle cx="237" cy="24" r="11" fill="#BE123C"/>
+    <text x="237" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="254" y="29" font-size="13" font-weight="700" fill="#17211f">显式 head_dim=128 陷阱</text>
+    <text x="226" y="49" font-size="11.5" font-weight="600" fill="#BE123C">32Q×128=4096 != H(2048)</text>
+    <text x="226" y="66" font-size="11.5" fill="#475569">GQA 32Q:4KV · 错算 64 少一半</text>
   </g>
 
-  <!-- Top-Right ③ -->
+  <!-- Callout 3 -->
   <g>
-    <rect x="596" y="6" width="276" height="52" rx="5" fill="#FFFDF9" stroke="#B45309" stroke-width="1.3"/>
-    <rect x="596" y="6" width="24" height="52" rx="4" fill="#FEF3C7"/>
-    <text x="608" y="37" text-anchor="middle" font-size="12" font-weight="800" fill="#B45309">③</text>
-    <text x="626" y="23" font-size="11" font-weight="700" fill="#B45309">128 专家占 56.87 GiB vs 激活 8 专家仅 3.35B</text>
-    <text x="626" y="38" font-size="10" fill="#182230">48 层全稀疏 MoE，单专家 I_moe=768</text>
-    <text x="626" y="52" font-size="10" fill="#BE123C" font-weight="700">128 专家须全驻显存，32 GiB 单卡直接 OOM</text>
+    <circle cx="473" cy="24" r="11" fill="#0F766E"/>
+    <text x="473" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">3</text>
+    <text x="490" y="29" font-size="13" font-weight="700" fill="#17211f">单步点亮 8 / 128 专家</text>
+    <text x="462" y="49" font-size="11.5" fill="#475569">单专家 I_moe=768 · 48 层稀疏</text>
+    <text x="462" y="66" font-size="11.5" font-weight="600" fill="#0F766E">单 token 仅激活 3.35B 参数</text>
   </g>
 
-  <!-- Left Margin ④ -->
+  <!-- Callout 4 -->
   <g>
-    <rect x="6" y="222" width="164" height="78" rx="5" fill="#FFFDF9" fill-opacity="0.96" stroke="#4338CA" stroke-width="1.25"/>
-    <text x="14" y="239" font-size="10.6" font-weight="700" fill="#4338CA">④ tie_word_embeddings</text>
-    <text x="14" y="255" font-size="9.9" fill="#344054">8B &amp; 30B 均为 false：</text>
-    <text x="14" y="269" font-size="9.9" fill="#344054">8B 首尾双词表占 2.32 GiB；</text>
-    <text x="14" y="284" font-size="9.8" fill="#0F766E" font-weight="700">0.6B 设为 true 立省 0.16B</text>
+    <circle cx="703" cy="24" r="11" fill="#B45309"/>
+    <text x="703" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">4</text>
+    <text x="720" y="29" font-size="13" font-weight="700" fill="#17211f">常驻 128 专家显存池</text>
+    <text x="692" y="49" font-size="11.5" fill="#475569">总参数 30.53B = 56.87 GiB</text>
+    <text x="692" y="66" font-size="11.5" font-weight="600" fill="#BE123C">全专家驻留 · 32 GiB 单卡 OOM</text>
   </g>
 
-  <!-- Right Margin ⑤ -->
+  <!-- Bottom Open Band: 3 Wide Borderless Callouts -->
+  <!-- Callout 5 -->
   <g>
-    <rect x="710" y="222" width="164" height="78" rx="5" fill="#FFFDF9" fill-opacity="0.96" stroke="#0F766E" stroke-width="1.25"/>
-    <text x="718" y="239" font-size="10.6" font-weight="700" fill="#0F766E">⑤ Router 动态选 8/128</text>
-    <text x="718" y="255" font-size="9.9" fill="#344054">单层全量驻留 6.04 亿参数</text>
-    <text x="718" y="269" font-size="9.9" fill="#344054">单步激活仅 0.38 亿参数；</text>
-    <text x="718" y="284" font-size="9.8" fill="#B45309" font-weight="700">算力省 93%，显存不能省！</text>
+    <circle cx="25" cy="528" r="11" fill="#1D4ED8"/>
+    <text x="25" y="532" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">5</text>
+    <text x="42" y="533" font-size="13" font-weight="700" fill="#17211f">对照 Qwen3-8B 稠密基座</text>
+    <text x="14" y="553" font-size="11.5" fill="#475569">36 层 H=4096 · 8 KV 头 · 权重 15.26 GiB</text>
+    <text x="14" y="571" font-size="11.5" fill="#475569">每 token 144.0 KiB KV · 单张 32 GiB 可跑</text>
   </g>
 
-  <!-- Bottom-Left ⑥ -->
+  <!-- Callout 6 -->
   <g>
-    <rect x="8" y="462" width="424" height="33" rx="5" fill="#FFFDF9" stroke="#1D4ED8" stroke-width="1.3"/>
-    <text x="18" y="476" font-size="10.6" font-weight="700" fill="#1D4ED8">⑥ Qwen3-8B 显存底座：15.26 GiB 权重 + 144.0 KiB/token KV cache</text>
-    <text x="18" y="490" font-size="10" fill="#344054">单张 32 GiB NPU 扣除静态权重后，仍可留出充裕显存池容纳长上下文 KV</text>
+    <circle cx="319" cy="528" r="11" fill="#0F766E"/>
+    <text x="319" y="532" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">6</text>
+    <text x="336" y="533" font-size="13" font-weight="700" fill="#17211f">ROUTER 路由与 KV 缓存反差</text>
+    <text x="308" y="553" font-size="11.5" fill="#475569">FusedMoEFactory 动态选 8 · 省 93% 前馈算力</text>
+    <text x="308" y="571" font-size="11.5" font-weight="600" fill="#0F766E">48 层仅 4 KV 头 → 96.0 KiB/tok（比 8B 省 1/3）</text>
   </g>
 
-  <!-- Bottom-Right ⑦ -->
+  <!-- Callout 7 -->
   <g>
-    <rect x="444" y="462" width="428" height="33" rx="5" fill="#FFFDF9" stroke="#0F766E" stroke-width="1.3"/>
-    <text x="454" y="476" font-size="10.6" font-weight="700" fill="#0F766E">⑦ Qwen3-30B-A3B KV 反差：56.87 GiB 权重（需多卡），但仅 96.0 KiB/token KV</text>
-    <text x="454" y="490" font-size="10" fill="#344054">48 层 × 4 KV 头 × 128 维 × 2×2B = 98,304 B/token，比 8B 反而节省三分之一缓存</text>
+    <circle cx="621" cy="528" r="11" fill="#4338CA"/>
+    <text x="621" y="532" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">7</text>
+    <text x="638" y="533" font-size="13" font-weight="700" fill="#17211f">LM_HEAD 与词表共享开关</text>
+    <text x="610" y="553" font-size="11.5" fill="#475569">ParallelLMHead 读 tie_word_embeddings=false</text>
+    <text x="610" y="571" font-size="11.5" fill="#475569">8B 双表占 2.32 GiB；0.6B 设 true 省 0.16B</text>
   </g>
 </svg>

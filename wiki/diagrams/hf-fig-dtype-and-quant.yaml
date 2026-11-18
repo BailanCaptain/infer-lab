@@ -1,7 +1,7 @@
 mode: native-svg
 id: hf-fig-dtype-and-quant
 caption: 权重精度三级回退推断与昇腾 ModelSlim quant_model_description.json 及原生 FP8 逐块动态门禁检查。
-size: [860, 275]
+size: [900, 310]
 pins:
   - source: 'vllm@ced6857a:vllm/transformers_utils/config.py#L398-L416'
     symbols: ['get_safetensors_params_metadata', 'common_broadcastable_dtype', 'dtype']

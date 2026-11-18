@@ -1,67 +1,64 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 340" width="880" height="340" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 412" width="900" height="412" role="img" aria-label="新模型上线五组常见误解 vs v0.30.0 源码真相排障对照板">
   <title>新模型上线五组常见误解 vs v0.30.0 源码真相排障对照板</title>
-  <desc>五横排左右对照展示新模型上线高频误区与源码真相：五维 ABI 强绑定、52 篇食谱中 27 停服桩与 GLM5.md 分叉、默认 pip wheel 仅限 A2、原生分块 FP8 在 A2/A3 反量化翻倍，以及架构不支持与精度报错的分关定位。</desc>
+  <desc>开放画布五排左右对照新模型上线常见误区与 v0.30.0 源码真相：五维 ABI 强绑定、52 篇食谱剔除 27 篇 discontinued 停服桩与 GLM5.md 分叉、默认 wheel 经 check_ascend_device_type 抛 RuntimeError、原生分块 FP8 仅 950DT（is_950）调 _mx_quantize 而 A2/A3 经 resolve_block_scales 翻倍，以及按 ModelRegistry.resolve_model_cls 与 _try_resolve_transformers 定位报错。</desc>
   <defs>
-    <marker id="arr-fix" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto">
+    <marker id="fm-arr-fix" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#0F766E"/>
     </marker>
   </defs>
 
-  <rect x="0" y="0" width="880" height="340" rx="8" fill="#FBFAF6"/>
-
-  <rect x="14" y="10" width="336" height="28" rx="6" fill="#FFE4E6" stroke="#BE123C" stroke-width="1.2"/>
-  <text x="26" y="29" font-family="var(--font-sans)" font-size="11.5" font-weight="800" fill="#9F1239">✗ 常见错误直觉（高频踩坑点）</text>
-
-  <rect x="374" y="10" width="492" height="28" rx="6" fill="#CCFBF1" stroke="#0F766E" stroke-width="1.2"/>
-  <text x="386" y="29" font-family="var(--font-sans)" font-size="11.5" font-weight="800" fill="#134E4A">✓ v0.30.0 源码与食谱真相（快速排障判据）</text>
+  <text x="14" y="26" font-family="var(--font-sans)" font-size="14" font-weight="700" fill="#9F1239">✗ 常见错误直觉（高频踩坑点）</text>
+  <text x="384" y="26" font-family="var(--font-sans)" font-size="14" font-weight="700" fill="#134E4A">✓ v0.30.0 源码与食谱真相（快速排障判据）</text>
+  <line x1="12" y1="38" x2="888" y2="38" stroke="#CBD5E1" stroke-width="1.3"/>
+  <line x1="368" y1="10" x2="368" y2="402" stroke="#CBD5E1" stroke-width="1.3" stroke-dasharray="5 4"/>
 
   <g role="group" aria-label="误解 1：只装最新包不管底层栈">
-    <rect x="14" y="46" width="336" height="50" rx="6" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.1"/>
-    <text x="24" y="66" font-family="var(--font-sans)" font-size="10.2" font-weight="700" fill="#881337">1. 装最新 vllm + vllm-ascend 即可</text>
-    <text x="24" y="84" font-family="var(--font-sans)" font-size="9.5" fill="#9F1239">不用管宿主机驱动、CANN 和 torch_npu 版本</text>
-    <line x1="350" y1="71" x2="369" y2="71" stroke="#0F766E" stroke-width="1.6" marker-end="url(#arr-fix)"/>
-    <rect x="374" y="46" width="492" height="50" rx="6" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.2"/>
-    <text x="386" y="66" font-family="var(--font-sans)" font-size="10.2" font-weight="700" fill="#065F46">五维 ABI 必须同步锁死在同一发布基线</text>
-    <text x="386" y="84" font-family="var(--font-sans)" font-size="9.5" fill="#334155"><tspan font-family="var(--font-mono)">v0.30.0</tspan> 强绑 <tspan font-family="var(--font-mono)">CANN 9.2.1</tspan> + <tspan font-family="var(--font-mono)">torch_npu 2.10.0.post7</tspan> + <tspan font-family="var(--font-mono)">triton-ascend</tspan>（310P 除外）</text>
+    <rect x="12" y="48" width="340" height="62" rx="8" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.3"/>
+    <text x="24" y="73" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#881337">1. 装最新 vllm + vllm-ascend 即可</text>
+    <text x="24" y="96" font-family="var(--font-sans)" font-size="11.5" fill="#9F1239">不用管宿主机驱动、CANN 和 torch_npu 版本</text>
+    <path d="M 352 79 L 378 79" fill="none" stroke="#0F766E" stroke-width="1.7" marker-end="url(#fm-arr-fix)"/>
+    <rect x="384" y="48" width="504" height="62" rx="8" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.4"/>
+    <text x="398" y="73" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#065F46">五维 ABI 必须同步锁死在同一发布基线</text>
+    <text x="398" y="96" font-family="var(--font-sans)" font-size="11.5" fill="#334155"><tspan font-family="var(--font-mono)" font-weight="600">v0.30.0</tspan> 强绑 <tspan font-family="var(--font-mono)">CANN 9.2.1</tspan> + <tspan font-family="var(--font-mono)">torch_npu 2.10.0.post7</tspan> + <tspan font-family="var(--font-mono)">triton-ascend</tspan></text>
   </g>
 
   <g role="group" aria-label="误解 2：52 篇文件等于支持 52 个模型">
-    <rect x="14" y="104" width="336" height="50" rx="6" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.1"/>
-    <text x="24" y="124" font-family="var(--font-sans)" font-size="10.2" font-weight="700" fill="#881337">2. tutorials/models/ 有 52 篇文档</text>
-    <text x="24" y="142" font-family="var(--font-sans)" font-size="9.5" fill="#9F1239">说明支持 52 个模型，且 GLM5.md 能跑 GLM-5</text>
-    <line x1="350" y1="129" x2="369" y2="129" stroke="#0F766E" stroke-width="1.6" marker-end="url(#arr-fix)"/>
-    <rect x="374" y="104" width="492" height="50" rx="6" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.2"/>
-    <text x="386" y="124" font-family="var(--font-sans)" font-size="10.2" font-weight="700" fill="#065F46">剔除 27 篇 3 行停服桩，仅 25 篇活跃（20 标准镜像 + 5 专属/未合入）</text>
-    <text x="386" y="142" font-family="var(--font-sans)" font-size="9.5" fill="#334155"><tspan font-family="var(--font-mono)">GLM5.md</tspan> 同文件分叉：第 11 行声明 <tspan font-family="var(--font-mono)" font-weight="700" fill="#BE123C">GLM-5 停服</tspan>，第 13 行起仅 <tspan font-family="var(--font-mono)" font-weight="700" fill="#065F46">GLM-5.1 活跃</tspan></text>
+    <rect x="12" y="120" width="340" height="62" rx="8" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.3"/>
+    <text x="24" y="145" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#881337">2. 教程目录有 52 篇就支持 52 个模型</text>
+    <text x="24" y="168" font-family="var(--font-sans)" font-size="11.5" fill="#9F1239">看到 GLM5.md 以为能直接跑初代 GLM-5</text>
+    <path d="M 352 151 L 378 151" fill="none" stroke="#0F766E" stroke-width="1.7" marker-end="url(#fm-arr-fix)"/>
+    <rect x="384" y="120" width="504" height="62" rx="8" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.4"/>
+    <text x="398" y="145" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#065F46">剔除 27 篇 <tspan font-family="var(--font-mono)">discontinued</tspan> 停服桩，仅 25 篇活跃（20 标准 + 5 专属）</text>
+    <text x="398" y="168" font-family="var(--font-sans)" font-size="11.5" fill="#334155"><tspan font-family="var(--font-mono)">GLM5.md</tspan> 同页分叉：L11 声明 <tspan font-weight="700" fill="#BE123C">GLM-5 停服</tspan>，L13 起仅 <tspan font-weight="700" fill="#065F46">GLM-5.1 活跃</tspan></text>
   </g>
 
   <g role="group" aria-label="误解 3：pip install 通跑所有昇腾卡">
-    <rect x="14" y="162" width="336" height="50" rx="6" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.1"/>
-    <text x="24" y="182" font-family="var(--font-sans)" font-size="10.2" font-weight="700" fill="#881337">3. 直接 pip install vllm-ascend</text>
-    <text x="24" y="200" font-family="var(--font-sans)" font-size="9.5" fill="#9F1239">装上默认 wheel 就能通跑所有昇腾卡型</text>
-    <line x1="350" y1="187" x2="369" y2="187" stroke="#0F766E" stroke-width="1.6" marker-end="url(#arr-fix)"/>
-    <rect x="374" y="162" width="492" height="50" rx="6" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.2"/>
-    <text x="386" y="182" font-family="var(--font-sans)" font-size="10.2" font-weight="700" fill="#065F46">标准预编译 pip wheel 仅面向 Atlas A2</text>
-    <text x="386" y="200" font-family="var(--font-sans)" font-size="9.5" fill="#334155">在 A3 / 310P / 950DT 上启动时，<tspan font-family="var(--font-mono)">check_ascend_device_type()</tspan> 直接抛 <tspan font-family="var(--font-mono)" font-weight="700" fill="#BE123C">RuntimeError</tspan></text>
+    <rect x="12" y="192" width="340" height="62" rx="8" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.3"/>
+    <text x="24" y="217" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#881337">3. 直接 pip install vllm-ascend 通跑全卡</text>
+    <text x="24" y="240" font-family="var(--font-sans)" font-size="11.5" fill="#9F1239">以为装上默认 wheel 就能跑 A3 / 310P / 950DT</text>
+    <path d="M 352 223 L 378 223" fill="none" stroke="#0F766E" stroke-width="1.7" marker-end="url(#fm-arr-fix)"/>
+    <rect x="384" y="192" width="504" height="62" rx="8" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.4"/>
+    <text x="398" y="217" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#065F46">标准预编译 pip wheel 仅锁死 Atlas A2</text>
+    <text x="398" y="240" font-family="var(--font-sans)" font-size="11.5" fill="#334155">非 A2 卡启动时 <tspan font-family="var(--font-mono)" font-weight="600">check_ascend_device_type()</tspan> 当场抛 <tspan font-family="var(--font-mono)" font-weight="700" fill="#BE123C">RuntimeError</tspan></text>
   </g>
 
-  <g role="group" aria-label="误解 4：原生 FP8 在 A2/A3 也省一半显存">
-    <rect x="14" y="220" width="336" height="50" rx="6" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.1"/>
-    <text x="24" y="240" font-family="var(--font-sans)" font-size="10.2" font-weight="700" fill="#881337">4. 原生分块 FP8 模型放到 A2 / A3 上</text>
-    <text x="24" y="258" font-family="var(--font-sans)" font-size="9.5" fill="#9F1239">也能按磁盘体积（1 字节/参数）省一半显存</text>
-    <line x1="350" y1="245" x2="369" y2="245" stroke="#0F766E" stroke-width="1.6" marker-end="url(#arr-fix)"/>
-    <rect x="374" y="220" width="492" height="50" rx="6" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.2"/>
-    <text x="386" y="240" font-family="var(--font-sans)" font-size="10.2" font-weight="700" fill="#065F46">仅 950DT 在线重组为 MXFP8 (1B)；A2 / A3 静默反量化回 BF16 (2×)</text>
-    <text x="386" y="258" font-family="var(--font-sans)" font-size="9.5" fill="#334155"><tspan font-family="var(--font-mono)">resolve_block_scales()</tspan> 使 A2/A3 驻留权重翻倍占 ~2B/参数；310P 不支持原生 FP8</text>
+  <g role="group" aria-label="误解 4：原生 FP8 在 A2 A3 也省一半显存">
+    <rect x="12" y="264" width="340" height="62" rx="8" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.3"/>
+    <text x="24" y="289" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#881337">4. 原生分块 FP8 放到 A2 / A3 也省显存</text>
+    <text x="24" y="312" font-family="var(--font-sans)" font-size="11.5" fill="#9F1239">误以为磁盘 1B/参数加载后显存也是 1B/参数</text>
+    <path d="M 352 295 L 378 295" fill="none" stroke="#0F766E" stroke-width="1.7" marker-end="url(#fm-arr-fix)"/>
+    <rect x="384" y="264" width="504" height="62" rx="8" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.4"/>
+    <text x="398" y="289" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#065F46">仅 950DT (<tspan font-family="var(--font-mono)">is_950</tspan>) 调 <tspan font-family="var(--font-mono)">_mx_quantize</tspan> 保 1B；A2 / A3 静默回 BF16 (2×)</text>
+    <text x="398" y="312" font-family="var(--font-sans)" font-size="11.5" fill="#334155"><tspan font-family="var(--font-mono)" font-weight="600">resolve_block_scales()</tspan> 使驻留权重翻倍；310P 不支持原生 FP8</text>
   </g>
 
-  <g role="group" aria-label="误解 5：报不支持就是硬件或驱动坏了">
-    <rect x="14" y="278" width="336" height="50" rx="6" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.1"/>
-    <text x="24" y="298" font-family="var(--font-sans)" font-size="10.2" font-weight="700" fill="#881337">5. 报架构不支持一定是硬件不行</text>
-    <text x="24" y="316" font-family="var(--font-sans)" font-size="9.5" fill="#9F1239">盲目重装驱动或固件就能解决启动报错</text>
-    <line x1="350" y1="303" x2="369" y2="303" stroke="#0F766E" stroke-width="1.6" marker-end="url(#arr-fix)"/>
-    <rect x="374" y="278" width="492" height="50" rx="6" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.2"/>
-    <text x="386" y="298" font-family="var(--font-sans)" font-size="10.2" font-weight="700" fill="#065F46">按关卡定位：先查第三关 ModelRegistry，再查第四关精度路径</text>
-    <text x="386" y="316" font-family="var(--font-sans)" font-size="9.5" fill="#334155">核对 <tspan font-family="var(--font-mono)">--model-impl / --trust-remote-code / --hf-overrides</tspan>，以及 310P 禁 <tspan font-family="var(--font-mono)">BF16</tspan> 与非分块 <tspan font-family="var(--font-mono)">FP8</tspan></text>
+  <g role="group" aria-label="误解 5：报架构不支持一定是驱动坏了">
+    <rect x="12" y="336" width="340" height="62" rx="8" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.3"/>
+    <text x="24" y="361" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#881337">5. 报架构不支持一定是硬件或驱动坏了</text>
+    <text x="24" y="384" font-family="var(--font-sans)" font-size="11.5" fill="#9F1239">盲目重装驱动固件，不区分第三关与第四关报错</text>
+    <path d="M 352 367 L 378 367" fill="none" stroke="#0F766E" stroke-width="1.7" marker-end="url(#fm-arr-fix)"/>
+    <rect x="384" y="336" width="504" height="62" rx="8" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.4"/>
+    <text x="398" y="361" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#065F46">先查 <tspan font-family="var(--font-mono)">ModelRegistry.resolve_model_cls</tspan> 与 <tspan font-family="var(--font-mono)">_try_resolve_transformers</tspan></text>
+    <text x="398" y="384" font-family="var(--font-sans)" font-size="11.5" fill="#334155">核对 <tspan font-family="var(--font-mono)">--model-impl / --trust-remote-code</tspan>，及 310P 禁 <tspan font-family="var(--font-mono)">BF16</tspan> 边界</text>
   </g>
 </svg>

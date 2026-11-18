@@ -1,78 +1,80 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 300" width="880" height="300" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 356" width="900" height="356" role="img" aria-label="Qwen3-8B / Qwen3-30B-A3B 最小上线三步流水线：宿主机与目录自检、三套启动模板对照与双接口冒烟闭环">
   <title>Qwen3-8B / Qwen3-30B-A3B 最小上线三步流水线：宿主机与目录自检、三套启动模板对照与双接口冒烟闭环</title>
-  <desc>分三阶段展示最小上线验证：Step 1 用 npu-smi info 查卡型与空闲卡并核验目录 JSON，Step 2 对比 A2/A3 单卡 8B BF16、四卡 30B-A3B TP4+EP+ascend 与 310P float16+关 npugraph_ex 三套最小命令（Qwen3 内置架构均不加 --trust-remote-code），Step 3 用 /v1/models 与 /v1/completions 完成冒烟闭环。</desc>
+  <desc>开放画布分三阶段展示最小上线验证：Step 1 查 npu-smi info 与目录 JSON（含 quant_model_description 走 ASCEND_QUANTIZATION_METHOD 及离线 VLLM_USE_MODELSCOPE）；Step 2 对照 A2/A3 单卡 8B FULL_DECODE_ONLY、四卡 30B-A3B TP4+EP+ascend 与 310P float16 + cudagraph_capture_sizes + enable_npugraph_ex:false（内置 Qwen3 均无需 --trust-remote-code）；Step 3 用 /v1/models 与 /v1/completions 完成冒烟闭环。</desc>
   <defs>
-    <marker id="arr-pipe" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#334155"/>
+    <marker id="sc-arr-pipe" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#17211f"/>
     </marker>
   </defs>
 
-  <rect x="0" y="0" width="880" height="300" rx="8" fill="#FBFAF6"/>
+  <line x1="236" y1="12" x2="236" y2="344" stroke="#CBD5E1" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <line x1="664" y1="12" x2="664" y2="344" stroke="#CBD5E1" stroke-width="1.3" stroke-dasharray="5 4"/>
 
-  <g role="group" aria-label="Step 1：启动前两步自检">
-    <rect x="14" y="14" width="204" height="272" rx="8" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.5"/>
-    <rect x="14" y="14" width="204" height="32" rx="7" fill="#DBEAFE"/>
-    <text x="26" y="35" font-family="var(--font-sans)" font-size="11.5" font-weight="800" fill="#1E3A8A">Step 1 · 宿主机与目录自检</text>
+  <g role="group" aria-label="Step 1 宿主机与目录自检">
+    <circle cx="23" cy="22" r="11" fill="#1D4ED8"/>
+    <text x="23" y="26.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">1</text>
+    <text x="41" y="27" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#17211f">宿主机与目录自检</text>
 
-    <rect x="24" y="56" width="184" height="92" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
-    <text x="32" y="74" font-family="var(--font-sans)" font-size="10.2" font-weight="700" fill="#0F172A">1. 查卡型与空闲卡号</text>
-    <text x="32" y="92" font-family="var(--font-mono)" font-size="9.6" font-weight="700" fill="#1D4ED8">$ npu-smi info</text>
-    <text x="32" y="109" font-family="var(--font-sans)" font-size="9.4" fill="#334155">确认 A2 / A3 / 310P / 950DT</text>
-    <text x="32" y="125" font-family="var(--font-mono)" font-size="9" fill="#475569">ASCEND_RT_VISIBLE_DEVICES</text>
-    <text x="32" y="139" font-family="var(--font-mono)" font-size="9" fill="#64748B">=0 (单卡) 或 0,1,2,3 (四卡)</text>
+    <rect x="12" y="42" width="210" height="134" rx="8" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.4"/>
+    <text x="22" y="65" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#0F172A">1. 认卡型与绑空闲卡</text>
+    <text x="22" y="88" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#1D4ED8">$ npu-smi info</text>
+    <text x="22" y="110" font-family="var(--font-sans)" font-size="11.5" fill="#334155">确认 A2 / A3 / 310P / 950DT</text>
+    <text x="22" y="132" font-family="var(--font-mono)" font-size="11.5" fill="#475569">ASCEND_RT_VISIBLE_DEVICES</text>
+    <text x="22" y="154" font-family="var(--font-sans)" font-size="11.5" fill="#64748B">单卡设 <tspan font-family="var(--font-mono)">0</tspan> · 四卡设 <tspan font-family="var(--font-mono)">0,1,2,3</tspan></text>
 
-    <rect x="24" y="158" width="184" height="118" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
-    <text x="32" y="176" font-family="var(--font-sans)" font-size="10.2" font-weight="700" fill="#0F172A">2. 核验目录 JSON 匹配开关</text>
-    <text x="32" y="194" font-family="var(--font-sans)" font-size="9.4" fill="#334155">• 读 <tspan font-family="var(--font-mono)">config.json</tspan> 确认架构</text>
-    <text x="32" y="211" font-family="var(--font-sans)" font-size="9.4" fill="#0F766E">• 含 <tspan font-family="var(--font-mono)">quant_model_description</tspan></text>
-    <text x="40" y="226" font-family="var(--font-mono)" font-size="9.2" font-weight="600" fill="#0F766E">→ 显式加 --quantization ascend</text>
-    <text x="32" y="244" font-family="var(--font-sans)" font-size="9.4" fill="#BE123C">• 310P 浮点 → 必加 <tspan font-family="var(--font-mono)">float16</tspan></text>
-    <text x="32" y="262" font-family="var(--font-sans)" font-size="9.2" fill="#475569">• 离线源：<tspan font-family="var(--font-mono)">VLLM_USE_MODELSCOPE=True</tspan></text>
+    <rect x="12" y="188" width="210" height="156" rx="8" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.4"/>
+    <text x="22" y="211" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#0F172A">2. 读目录 JSON 配开关</text>
+    <text x="22" y="233" font-family="var(--font-sans)" font-size="11.5" fill="#334155">• 读 <tspan font-family="var(--font-mono)">config.json</tspan> 确认架构</text>
+    <text x="22" y="255" font-family="var(--font-sans)" font-size="11.5" fill="#0F766E">• 含 <tspan font-family="var(--font-mono)">quant_model_description</tspan></text>
+    <text x="30" y="276" font-family="var(--font-mono)" font-size="11.5" font-weight="600" fill="#0F766E">→ --quantization ascend</text>
+    <text x="22" y="298" font-family="var(--font-sans)" font-size="11.5" fill="#BE123C">• 310P 浮点必传 <tspan font-family="var(--font-mono)" font-weight="600">float16</tspan></text>
+    <text x="22" y="320" font-family="var(--font-mono)" font-size="11.2" fill="#475569">VLLM_USE_MODELSCOPE=True</text>
   </g>
 
-  <line x1="218" y1="150" x2="238" y2="150" stroke="#334155" stroke-width="2" marker-end="url(#arr-pipe)"/>
+  <path d="M 222 192 L 248 192" fill="none" stroke="#17211f" stroke-width="1.8" marker-end="url(#sc-arr-pipe)"/>
 
-  <g role="group" aria-label="Step 2：三套最小启动模板">
-    <rect x="242" y="14" width="396" height="272" rx="8" fill="#FFFFFF" stroke="#475569" stroke-width="1.5"/>
-    <rect x="242" y="14" width="396" height="32" rx="7" fill="#F1F5F9"/>
-    <text x="254" y="35" font-family="var(--font-sans)" font-size="11.2" font-weight="800" fill="#0F172A">Step 2 · 三套最小启动模板 <tspan font-size="9.8" font-weight="600" fill="#0F766E">(内置 Qwen3 均无需 --trust-remote-code)</tspan></text>
+  <g role="group" aria-label="Step 2 三套最小启动模板">
+    <circle cx="263" cy="22" r="11" fill="#334155"/>
+    <text x="263" y="26.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="281" y="27" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#17211f">三套最小启动模板 <tspan font-size="11.5" font-weight="600" fill="#0F766E">(内置 Qwen3 免 --trust-remote-code)</tspan></text>
 
-    <rect x="254" y="54" width="372" height="68" rx="6" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.2"/>
-    <text x="264" y="72" font-family="var(--font-sans)" font-size="10.4" font-weight="800" fill="#1E40AF">模板 A · A2 / A3 单卡 Qwen3-8B（未量化 BF16 基线）</text>
-    <text x="264" y="90" font-family="var(--font-mono)" font-size="9.2" fill="#1E293B">ASCEND_RT_VISIBLE_DEVICES=0  expandable_segments:True</text>
-    <text x="264" y="108" font-family="var(--font-mono)" font-size="9.2" font-weight="600" fill="#1D4ED8">vllm serve Qwen3-8B --compilation-config &apos;{&quot;cudagraph_mode&quot;:&quot;FULL_DECODE_ONLY&quot;}&apos;</text>
+    <rect x="252" y="42" width="396" height="94" rx="8" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="1.4"/>
+    <text x="266" y="65" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#1E40AF">模板 A · A2 / A3 单卡 Qwen3-8B（BF16 基线）</text>
+    <text x="266" y="88" font-family="var(--font-mono)" font-size="11.5" fill="#1E293B">vllm serve Qwen3-8B  (expandable_segments:True)</text>
+    <text x="266" y="111" font-family="var(--font-mono)" font-size="11.5" font-weight="600" fill="#1D4ED8">cudagraph_mode: &quot;FULL_DECODE_ONLY&quot;</text>
 
-    <rect x="254" y="130" width="372" height="70" rx="6" fill="#F0FDFA" stroke="#0F766E" stroke-width="1.2"/>
-    <text x="264" y="148" font-family="var(--font-sans)" font-size="10.4" font-weight="800" fill="#134E4A">模板 B · A2 / A3 四卡 Qwen3-30B-A3B（TP4 + EP + W8A8）</text>
-    <text x="264" y="166" font-family="var(--font-mono)" font-size="9.2" fill="#1E293B">--tensor-parallel-size 4 --enable-expert-parallel</text>
-    <text x="264" y="184" font-family="var(--font-mono)" font-size="9.2" font-weight="600" fill="#0F766E">--quantization ascend + FULL_DECODE_ONLY (四卡 0,1,2,3)</text>
+    <rect x="252" y="148" width="396" height="94" rx="8" fill="#F0FDFA" stroke="#0F766E" stroke-width="1.4"/>
+    <text x="266" y="171" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#134E4A">模板 B · A2 / A3 四卡 Qwen3-30B-A3B（TP4 + EP）</text>
+    <text x="266" y="194" font-family="var(--font-mono)" font-size="11.5" fill="#1E293B">--tensor-parallel-size 4 --enable-expert-parallel</text>
+    <text x="266" y="217" font-family="var(--font-mono)" font-size="11.5" font-weight="600" fill="#0F766E">--quantization ascend + FULL_DECODE_ONLY</text>
 
-    <rect x="254" y="208" width="372" height="68" rx="6" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.2"/>
-    <text x="264" y="226" font-family="var(--font-sans)" font-size="10.4" font-weight="800" fill="#9F1239">模板 C · Atlas 300I DUO (310P) 最小适配必改三项</text>
-    <text x="264" y="244" font-family="var(--font-mono)" font-size="9.2" font-weight="600" fill="#BE123C">--dtype float16  --max-num-seqs 8  capture_sizes:[1,2,4,8]</text>
-    <text x="264" y="262" font-family="var(--font-mono)" font-size="9.1" fill="#881337">--additional-config &apos;{&quot;ascend_compilation_config&quot;:{&quot;enable_npugraph_ex&quot;:false}}&apos;</text>
+    <rect x="252" y="254" width="396" height="90" rx="8" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.4"/>
+    <text x="266" y="277" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#9F1239">模板 C · Atlas 300I DUO (310P) 必改三项</text>
+    <text x="266" y="299" font-family="var(--font-mono)" font-size="11.5" font-weight="600" fill="#BE123C">--dtype float16  cudagraph_capture_sizes:[1,2,4,8]</text>
+    <text x="266" y="322" font-family="var(--font-mono)" font-size="11.5" font-weight="600" fill="#881337">ascend_compilation_config: enable_npugraph_ex:false</text>
   </g>
 
-  <line x1="638" y1="150" x2="658" y2="150" stroke="#334155" stroke-width="2" marker-end="url(#arr-pipe)"/>
+  <path d="M 648 192 L 674 192" fill="none" stroke="#17211f" stroke-width="1.8" marker-end="url(#sc-arr-pipe)"/>
 
-  <g role="group" aria-label="Step 3：双接口冒烟闭环">
-    <rect x="662" y="14" width="204" height="272" rx="8" fill="#FFFFFF" stroke="#059669" stroke-width="1.5"/>
-    <rect x="662" y="14" width="204" height="32" rx="7" fill="#DCFCE7"/>
-    <text x="674" y="35" font-family="var(--font-sans)" font-size="11.5" font-weight="800" fill="#065F46">Step 3 · 双接口冒烟闭环</text>
+  <g role="group" aria-label="Step 3 双接口冒烟闭环">
+    <circle cx="689" cy="22" r="11" fill="#059669"/>
+    <text x="689" y="26.5" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#FFFFFF">3</text>
+    <text x="707" y="27" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#17211f">双接口冒烟闭环</text>
 
-    <rect x="672" y="56" width="184" height="46" rx="5" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1"/>
-    <text x="680" y="73" font-family="var(--font-sans)" font-size="9.8" font-weight="700" fill="#065F46">等待引擎就绪日志：</text>
-    <text x="680" y="90" font-family="var(--font-mono)" font-size="9.1" font-weight="600" fill="#15803D">Application startup complete.</text>
+    <rect x="678" y="42" width="210" height="82" rx="8" fill="#F0FDF4" stroke="#059669" stroke-width="1.3"/>
+    <text x="690" y="65" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#065F46">等就绪日志再发请求：</text>
+    <text x="690" y="88" font-family="var(--font-mono)" font-size="11.5" font-weight="600" fill="#15803D">Application startup</text>
+    <text x="690" y="108" font-family="var(--font-mono)" font-size="11.5" font-weight="600" fill="#15803D">complete.</text>
 
-    <rect x="672" y="112" width="184" height="72" rx="5" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
-    <text x="680" y="130" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#0F172A">探针 1 · 核验注册模型名</text>
-    <text x="680" y="148" font-family="var(--font-mono)" font-size="9.3" font-weight="600" fill="#1D4ED8">GET /v1/models</text>
-    <text x="680" y="166" font-family="var(--font-sans)" font-size="9.3" fill="#475569">返回 <tspan font-family="var(--font-mono)">qwen3-8b</tspan> 等服务名</text>
+    <rect x="678" y="136" width="210" height="94" rx="8" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.4"/>
+    <text x="690" y="159" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#0F172A">探针 1 · 核验注册服务名</text>
+    <text x="690" y="183" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#1D4ED8">GET /v1/models</text>
+    <text x="690" y="206" font-family="var(--font-sans)" font-size="11.5" fill="#475569">返回 <tspan font-family="var(--font-mono)">qwen3-8b</tspan> 等服务名</text>
 
-    <rect x="672" y="194" width="184" height="82" rx="5" fill="#ECFDF5" stroke="#059669" stroke-width="1.2"/>
-    <text x="680" y="212" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#065F46">探针 2 · 核验真实前向吐字</text>
-    <text x="680" y="230" font-family="var(--font-mono)" font-size="9.3" font-weight="600" fill="#047857">POST /v1/completions</text>
-    <text x="680" y="247" font-family="var(--font-mono)" font-size="8.9" fill="#334155">max_tokens:5, temperature:0</text>
-    <text x="680" y="264" font-family="var(--font-sans)" font-size="9.3" font-weight="700" fill="#065F46">✓ 非空输出即四道关全通！</text>
+    <rect x="678" y="242" width="210" height="102" rx="8" fill="#ECFDF5" stroke="#059669" stroke-width="1.5"/>
+    <text x="690" y="265" font-family="var(--font-sans)" font-size="12.5" font-weight="700" fill="#065F46">探针 2 · 核验真实吐字</text>
+    <text x="690" y="288" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="#047857">POST /v1/completions</text>
+    <text x="690" y="309" font-family="var(--font-mono)" font-size="11.5" fill="#334155">max_tokens:5, temp:0</text>
+    <text x="690" y="330" font-family="var(--font-sans)" font-size="11.8" font-weight="700" fill="#065F46">✓ 非空输出即四关全通</text>
   </g>
 </svg>

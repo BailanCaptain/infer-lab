@@ -1,7 +1,7 @@
 mode: native-svg
 id: onboarding-fig-smoke-checklist
 caption: Qwen3-8B / Qwen3-30B-A3B 最小上线三步流水线：宿主机与目录自检、三套启动模板对照与双接口冒烟闭环
-size: [880, 300]
+size: [900, 356]
 pins:
   - source: "vllm@ced6857a:vllm/envs.py#L716-L719"
     symbols:

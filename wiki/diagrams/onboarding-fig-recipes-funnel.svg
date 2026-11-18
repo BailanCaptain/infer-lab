@@ -1,80 +1,71 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 330" width="880" height="330" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="v0.30.0 模型教程 52 篇筛选漏斗：剔除 27 篇 3 行停服桩、分清 20+5 活跃食谱与 GLM5.md 同文件分叉陷阱">
   <title>v0.30.0 模型教程 52 篇筛选漏斗：剔除 27 篇 3 行停服桩、分清 20+5 活跃食谱与 GLM5.md 同文件分叉陷阱</title>
-  <desc>展示 docs/source/tutorials/models/ 下 52 篇模型文档如何分流为 27 篇 3 行停服桩与 25 篇活跃食谱（20 篇正式标准镜像 + 5 篇专属镜像/nightly-main/未合入代码），并在底部高亮 GLM5.md 第 11 行 GLM-5 停服与第 13 行 GLM-5.1 活跃的同文件分叉陷阱。</desc>
+  <desc>开放画布展示 docs/source/tutorials/models/ 下 52 篇模型文档分流为 27 篇 discontinued 停服桩（跳回 v0.23.0）与 25 篇活跃食谱（20 篇 v0.30.0 标准镜像 + 5 篇专属镜像/nightly），对照 Supported、Experimental、Unverified、Unmaintained、Unsupported 五态图例，并在底部揭示 GLM5.md 同页分叉（GLM-5 停服、GLM-5.1 活跃且需 transformers &gt;= 5.2.0）。</desc>
   <defs>
-    <marker id="arr-red-fn" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <marker id="rf-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#BE123C"/>
     </marker>
-    <marker id="arr-green-fn" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <marker id="rf-arr-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#0F766E"/>
     </marker>
   </defs>
 
-  <rect x="0" y="0" width="880" height="330" rx="8" fill="#FBFAF6"/>
+  <g role="group" aria-label="入口：52 篇教程目录与支持矩阵五态">
+    <rect x="12" y="14" width="224" height="244" rx="10" fill="#FFFFFF" stroke="#64748B" stroke-width="1.5"/>
+    <text x="24" y="38" font-family="var(--font-sans)" font-size="14" font-weight="700" fill="#17211f">教程目录总盘点</text>
+    <text x="24" y="58" font-family="var(--font-mono)" font-size="11.5" font-weight="600" fill="#475569">tutorials/models/</text>
+    <text x="24" y="80" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#0F172A">共 52 篇文档 <tspan font-size="11.5" font-weight="400" fill="#64748B">(除 index)</tspan></text>
 
-  <g role="group" aria-label="入口：52 篇教程目录与五态图例">
-    <rect x="14" y="14" width="210" height="222" rx="8" fill="#FFFFFF" stroke="#64748B" stroke-width="1.5"/>
-    <text x="26" y="36" font-family="var(--font-sans)" font-size="12" font-weight="800" fill="#0F172A">教程目录总盘点</text>
-    <text x="26" y="53" font-family="var(--font-mono)" font-size="9.5" font-weight="600" fill="#475569">docs/source/tutorials/models/</text>
-    <text x="26" y="73" font-family="var(--font-sans)" font-size="11.2" font-weight="700" fill="#1E293B">共 52 篇模型文档 <tspan font-size="9.5" font-weight="400" fill="#64748B">(不含 index.md)</tspan></text>
+    <rect x="24" y="92" width="104" height="24" rx="4" fill="#FFE4E6" stroke="#BE123C" stroke-width="1.1"/>
+    <text x="76" y="108" text-anchor="middle" font-family="var(--font-sans)" font-size="11.5" font-weight="700" fill="#881337">27 停服 52%</text>
+    <rect x="132" y="92" width="92" height="24" rx="4" fill="#CCFBF1" stroke="#0F766E" stroke-width="1.1"/>
+    <text x="178" y="108" text-anchor="middle" font-family="var(--font-sans)" font-size="11.5" font-weight="700" fill="#065F46">25 活跃 48%</text>
 
-    <rect x="26" y="83" width="97" height="20" rx="3" fill="#FDA4AF" stroke="#BE123C" stroke-width="1"/>
-    <text x="74" y="97" text-anchor="middle" font-family="var(--font-sans)" font-size="9.4" font-weight="700" fill="#881337">27 停服 (52%)</text>
-    <rect x="125" y="83" width="87" height="20" rx="3" fill="#6EE7B7" stroke="#0F766E" stroke-width="1"/>
-    <text x="168" y="97" text-anchor="middle" font-family="var(--font-sans)" font-size="9.4" font-weight="700" fill="#065F46">25 活跃 (48%)</text>
-
-    <line x1="26" y1="115" x2="212" y2="115" stroke="#E2E8F0" stroke-width="1"/>
-    <text x="26" y="132" font-family="var(--font-sans)" font-size="10.2" font-weight="700" fill="#334155">支持矩阵五种状态图例：</text>
-    <text x="26" y="150" font-family="var(--font-sans)" font-size="9.6" fill="#065F46">• <tspan font-family="var(--font-mono)" font-weight="700">Supported</tspan>：正式支持可投产</text>
-    <text x="26" y="167" font-family="var(--font-sans)" font-size="9.6" fill="#1D4ED8">• <tspan font-family="var(--font-mono)" font-weight="700">Experimental</tspan>：实验支持受限</text>
-    <text x="26" y="184" font-family="var(--font-sans)" font-size="9.6" fill="#B45309">• <tspan font-family="var(--font-mono)" font-weight="700">Unverified</tspan>：已合入未系统测</text>
-    <text x="26" y="201" font-family="var(--font-sans)" font-size="9.6" fill="#BE123C">• <tspan font-family="var(--font-mono)" font-weight="700">Unmaintained</tspan>：已停服不再修</text>
-    <text x="26" y="218" font-family="var(--font-sans)" font-size="9.6" fill="#64748B">• <tspan font-family="var(--font-mono)" font-weight="700">Unsupported</tspan>：不支持 (如 310P BF16)</text>
+    <line x1="24" y1="128" x2="224" y2="128" stroke="#E2E8F0" stroke-width="1.2" stroke-dasharray="4 3"/>
+    <text x="24" y="148" font-family="var(--font-sans)" font-size="11.5" fill="#065F46">• <tspan font-family="var(--font-mono)" font-weight="700">Supported</tspan> 正式支持</text>
+    <text x="24" y="169" font-family="var(--font-sans)" font-size="11.5" fill="#1D4ED8">• <tspan font-family="var(--font-mono)" font-weight="700">Experimental</tspan> 实验受限</text>
+    <text x="24" y="190" font-family="var(--font-sans)" font-size="11.5" fill="#B45309">• <tspan font-family="var(--font-mono)" font-weight="700">Unverified</tspan> 未系统测</text>
+    <text x="24" y="211" font-family="var(--font-sans)" font-size="11.5" fill="#BE123C">• <tspan font-family="var(--font-mono)" font-weight="700">Unmaintained</tspan> 停服不修</text>
+    <text x="24" y="232" font-family="var(--font-sans)" font-size="11.5" fill="#64748B">• <tspan font-family="var(--font-mono)" font-weight="700">Unsupported</tspan> 硬件禁跑</text>
   </g>
 
-  <path d="M 224 92 L 242 92 L 242 60 L 257 60" fill="none" stroke="#BE123C" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arr-red-fn)"/>
-  <path d="M 224 96 L 242 96 L 242 176 L 257 176" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arr-green-fn)"/>
+  <path d="M 236 102 L 256 102 L 256 60 L 270 60" fill="none" stroke="#BE123C" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#rf-arr-red)"/>
+  <path d="M 236 108 L 256 108 L 256 196 L 270 196" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#rf-arr-green)"/>
 
   <g role="group" aria-label="剔除分支：27 篇 3 行停服桩">
-    <rect x="262" y="14" width="604" height="92" rx="8" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.4"/>
-    <text x="276" y="35" font-family="var(--font-sans)" font-size="12" font-weight="800" fill="#9F1239">✗ 剔除 27 篇「3 行停服桩」（Discontinued stub）—— 切勿照搬旧版命令！</text>
-    <rect x="276" y="44" width="576" height="52" rx="5" fill="#FFFFFF" stroke="#FDA4AF" stroke-width="1"/>
-    <text x="288" y="61" font-family="var(--font-mono)" font-size="9.6" fill="#334155"><tspan font-weight="700" fill="#BE123C">L1:</tspan> # &lt;Model Name&gt;    <tspan fill="#94A3B8">|</tspan>   <tspan font-weight="700" fill="#BE123C">L2:</tspan> (空行)</text>
-    <text x="288" y="78" font-family="var(--font-mono)" font-size="9.4" font-weight="600" fill="#881337"><tspan font-weight="700" fill="#BE123C">L3:</tspan> This model has been discontinued since vLLM Ascend v0.30.0 ... (附跳回 v0.23.0 历史链接)</text>
-    <text x="288" y="91" font-family="var(--font-sans)" font-size="9.2" fill="#64748B">识别判据：支持矩阵标红圆点 Unmaintained，或点进教程全文仅有上述 3 行停服声明。</text>
+    <rect x="276" y="14" width="612" height="92" rx="10" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.5"/>
+    <text x="292" y="38" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#9F1239">✗ 剔除 27 篇「3 行停服桩」（<tspan font-family="var(--font-mono)">discontinued</tspan> stub）—— 切勿照搬旧命令</text>
+    <text x="292" y="62" font-family="var(--font-mono)" font-size="11.8" font-weight="600" fill="#881337">L3: This model has been discontinued since vLLM Ascend v0.30.0 (跳回 v0.23.0)</text>
+    <text x="292" y="86" font-family="var(--font-sans)" font-size="11.5" fill="#475569">识别判据：支持矩阵标红点 <tspan font-family="var(--font-mono)" font-weight="600">Unmaintained</tspan>，或点开教程全文仅有 3 行停服声明</text>
   </g>
 
-  <g role="group" aria-label="保留分支：25 篇活跃食谱分为 20+5">
-    <rect x="262" y="116" width="604" height="120" rx="8" fill="#F0FDFA" stroke="#0F766E" stroke-width="1.5"/>
-    <text x="276" y="137" font-family="var(--font-sans)" font-size="12" font-weight="800" fill="#134E4A">✓ 锁定 25 篇活跃模型食谱（拉镜像前必读各篇 Installation 节，再分 20 + 5 两档！）</text>
+  <g role="group" aria-label="保留分支：25 篇活跃食谱分为 20 与 5 两档">
+    <text x="276" y="132" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#134E4A">✓ 锁定 25 篇活跃食谱 —— 拉镜像前先读 Installation 分两档：</text>
 
-    <rect x="276" y="146" width="276" height="80" rx="6" fill="#FFFFFF" stroke="#059669" stroke-width="1.3"/>
-    <text x="288" y="165" font-family="var(--font-sans)" font-size="10.8" font-weight="800" fill="#065F46">A 档 · 20 篇直接用 v0.30.0 标准镜像</text>
-    <text x="288" y="183" font-family="var(--font-sans)" font-size="9.6" fill="#334155">• 标尺：<tspan font-family="var(--font-mono)">Qwen3-Dense (8B)</tspan>、<tspan font-family="var(--font-mono)">Qwen3-30B-A3B</tspan></text>
-    <text x="288" y="199" font-family="var(--font-sans)" font-size="9.6" fill="#334155">• 主力：<tspan font-family="var(--font-mono)">Qwen3.5/3.6/3.8-27B</tspan>、<tspan font-family="var(--font-mono)">GLM-5.1/5.2/5.3-Flash</tspan></text>
-    <text x="288" y="215" font-family="var(--font-sans)" font-size="9.6" fill="#334155">• 其他：<tspan font-family="var(--font-mono)">DeepSeek-V4-Pro/V4.1</tspan>、<tspan font-family="var(--font-mono)">Kimi-K3</tspan>、<tspan font-family="var(--font-mono)">Gemma4</tspan> 等</text>
+    <rect x="276" y="144" width="298" height="114" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.5"/>
+    <text x="290" y="168" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#065F46">A 档 · 20 篇直接用 v0.30.0 标准镜像</text>
+    <text x="290" y="192" font-family="var(--font-sans)" font-size="11.5" fill="#1E293B">• 标尺：<tspan font-family="var(--font-mono)">Qwen3-8B</tspan>、<tspan font-family="var(--font-mono)">Qwen3-30B-A3B</tspan></text>
+    <text x="290" y="216" font-family="var(--font-sans)" font-size="11.5" fill="#1E293B">• 主力：<tspan font-family="var(--font-mono)">Qwen3.5/3.6/3.8</tspan>、<tspan font-family="var(--font-mono)">GLM-5.1/5.3</tspan></text>
+    <text x="290" y="240" font-family="var(--font-sans)" font-size="11.5" fill="#1E293B">• 其他：<tspan font-family="var(--font-mono)">DeepSeek-V4.1</tspan>、<tspan font-family="var(--font-mono)">Kimi-K3</tspan>、<tspan font-family="var(--font-mono)">Gemma4</tspan></text>
 
-    <rect x="564" y="146" width="288" height="80" rx="6" fill="#FFFBEB" stroke="#D97706" stroke-width="1.3"/>
-    <text x="576" y="165" font-family="var(--font-sans)" font-size="10.8" font-weight="800" fill="#92400E">B 档 · 5 篇需专属镜像 / nightly / 未合入代码</text>
-    <text x="576" y="182" font-family="var(--font-mono)" font-size="9.2" fill="#78350F">1. Qwen3.8-2.4T-A95B → :qwen3.8-a3 / a2</text>
-    <text x="576" y="196" font-family="var(--font-mono)" font-size="9.2" fill="#78350F">2. Qwen3.8-Flash-Next → :qwen3.8-next-a3 (仅A3)</text>
-    <text x="576" y="210" font-family="var(--font-mono)" font-size="9.2" fill="#78350F">3. DeepSeek-V4-Flash → DSpark/超长PD 用 nightly-main</text>
-    <text x="576" y="222" font-family="var(--font-mono)" font-size="9.1" fill="#B45309">4. Hy4-preview (:hy4-a3 未合入)  5. Dots3-Note (:dots3-note-prev*)</text>
+    <rect x="588" y="144" width="300" height="114" rx="10" fill="#FFFBEB" stroke="#D97706" stroke-width="1.5"/>
+    <text x="602" y="168" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#92400E">B 档 · 5 篇需专属镜像 / nightly</text>
+    <text x="602" y="192" font-family="var(--font-mono)" font-size="11.5" fill="#78350F">• Qwen3.8-2.4T → :qwen3.8-a3 / a2</text>
+    <text x="602" y="216" font-family="var(--font-mono)" font-size="11.5" fill="#78350F">• Qwen3.8-Next → :qwen3.8-next-a3</text>
+    <text x="602" y="240" font-family="var(--font-sans)" font-size="11.5" fill="#78350F">• <tspan font-family="var(--font-mono)">DeepSeek-V4-Flash</tspan> / <tspan font-family="var(--font-mono)">Hy4</tspan> / <tspan font-family="var(--font-mono)">Dots3</tspan></text>
   </g>
 
-  <g role="group" aria-label="同文件分叉高发陷阱：GLM5.md">
-    <rect x="14" y="248" width="852" height="70" rx="8" fill="#FFFDF9" stroke="#BE123C" stroke-width="1.6"/>
-    <rect x="14" y="248" width="208" height="70" rx="7" fill="#FFE4E6"/>
-    <text x="28" y="274" font-family="var(--font-sans)" font-size="11.5" font-weight="800" fill="#9F1239">⚠ 同文件分叉高发陷阱</text>
-    <text x="28" y="293" font-family="var(--font-mono)" font-size="10.5" font-weight="700" fill="#BE123C">GLM5.md (# GLM-5 &amp; GLM-5.1)</text>
-    <text x="28" y="309" font-family="var(--font-sans)" font-size="9.4" fill="#881337">文件仍在 25 篇内，但两代命运相反！</text>
+  <line x1="12" y1="276" x2="888" y2="276" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="6 5"/>
 
-    <rect x="234" y="257" width="302" height="52" rx="6" fill="#FFF1F2" stroke="#F43F5E" stroke-width="1.2"/>
-    <text x="246" y="276" font-family="var(--font-sans)" font-size="10.8" font-weight="800" fill="#BE123C">✗ 第 11 行：GLM-5 已停服（Unmaintained）</text>
-    <text x="246" y="296" font-family="var(--font-sans)" font-size="9.6" fill="#881337">明确声明自 <tspan font-family="var(--font-mono)">v0.30.0</tspan> 起停服，指引跳回 <tspan font-family="var(--font-mono)">v0.23.0</tspan> 旧文档</text>
+  <g role="group" aria-label="同文件分叉高发陷阱 GLM5.md">
+    <text x="16" y="302" font-family="var(--font-sans)" font-size="13.5" font-weight="700" fill="#9F1239">⚠ 同文件分叉高发陷阱：<tspan font-family="var(--font-mono)">GLM5.md</tspan>（文件仍在 25 篇目录内，但同页两代模型命运相反）</text>
 
-    <rect x="548" y="257" width="306" height="52" rx="6" fill="#ECFDF5" stroke="#059669" stroke-width="1.2"/>
-    <text x="560" y="276" font-family="var(--font-sans)" font-size="10.8" font-weight="800" fill="#065F46">✓ 第 13 行起：GLM-5.1 正式活跃（Supported）</text>
-    <text x="560" y="296" font-family="var(--font-sans)" font-size="9.6" fill="#047857">支持 A2/A3 与 950DT，要求 <tspan font-family="var(--font-mono)" font-weight="600">transformers &gt;= 5.2.0</tspan></text>
+    <rect x="12" y="314" width="430" height="64" rx="8" fill="#FFF1F2" stroke="#BE123C" stroke-width="1.4"/>
+    <text x="26" y="339" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#BE123C">✗ 第 11 行：GLM-5 已停服（Unmaintained）</text>
+    <text x="26" y="362" font-family="var(--font-sans)" font-size="11.8" fill="#881337">声明自 <tspan font-family="var(--font-mono)" font-weight="600">v0.30.0</tspan> 起 <tspan font-family="var(--font-mono)">discontinued</tspan>，仅留 <tspan font-family="var(--font-mono)">v0.23.0</tspan> 旧链接</text>
+
+    <rect x="458" y="314" width="430" height="64" rx="8" fill="#ECFDF5" stroke="#059669" stroke-width="1.4"/>
+    <text x="472" y="339" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#065F46">✓ 第 13 行起：GLM-5.1 正式活跃（Supported）</text>
+    <text x="472" y="362" font-family="var(--font-sans)" font-size="11.8" fill="#047857">支持 A2 / A3 与 950DT，要求 <tspan font-family="var(--font-mono)" font-weight="600">transformers &gt;= 5.2.0</tspan></text>
   </g>
 </svg>

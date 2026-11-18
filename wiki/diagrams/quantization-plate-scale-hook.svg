@@ -1,88 +1,75 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 490" width="880" height="490" role="img" aria-label="W8A8 量化立体拆解直觉图：对比左侧 BF16 2B 浮点张量、中间 SCALE 缩放标尺、右侧 INT8 1B 整数格、127 CLIP 削顶截断与高精度边界">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 570" width="900" height="570" role="img" aria-label="W8A8 量化立体拆解直觉图：对比左侧 BF16 2B 浮点张量、中间 SCALE 缩放标尺、右侧 INT8 1B 整数格、127 CLIP 削顶截断与高精度边界">
   <title>W8A8 量化立体拆解直觉：左侧 BF16 浮点张量（2 B/元素）经共用缩放系数 scale 除以 s 并四舍五入，压入右侧 -128..127 的 INT8 整数格（1 B/元素，存储减半）；超出上限的离群值在 127 CLIP 处被硬截断，矩阵乘累加器、scale 与层间残差仍保高精度。</title>
-  <defs>
-    <pattern id="plate-grid-q1" width="20" height="20" patternUnits="userSpaceOnUse">
-      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E8E2D4" stroke-width="0.6"/>
-    </pattern>
-  </defs>
+  <desc>关联源码符号：weight, weight_scale, weight_offset, npu_dynamic_quant, pertoken_scale, npu_quant_matmul, output_dtype</desc>
 
-  <!-- 工程衬板与中心拆解剖面插画窗 -->
-  <rect x="2" y="2" width="876" height="486" rx="8" fill="#FCFBF7" stroke="#D5CEBE" stroke-width="1.2"/>
-  <rect x="100" y="64" width="680" height="382" rx="6" fill="url(#plate-grid-q1)" stroke="#D4CCBC" stroke-width="1"/>
-  <image href="./wiki-illustrations/quantization-scale-cutaway.jpg" x="100" y="64" width="680" height="382" preserveAspectRatio="xMidYMid meet"/>
+  <!-- 紧裁透明底等距拆解剖面主图（零底框、零内层网格笼，大尺寸直浮画布） -->
+  <image href="./wiki-illustrations/quantization-scale-cutaway.webp" x="45" y="92" width="810" height="387" preserveAspectRatio="xMidYMid meet"/>
 
-  <!-- 引线与靶点圆环（全部不相交，直指立体部件） -->
-  <!-- ① 左上卡 -> 左侧 BF16 宽柱 -->
-  <line x1="152" y1="58" x2="250" y2="238" stroke="#B45309" stroke-width="1.8"/>
-  <circle cx="250" cy="238" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#B45309" stroke-width="1.6"/>
-  <circle cx="250" cy="238" r="3.2" fill="#B45309"/>
+  <!-- 引线与靶点双环圆点（全部零交叉，精准锚定立体部件） -->
+  <!-- 1 -> 左侧 BF16 浮点宽柱 -->
+  <line x1="154" y1="74" x2="196" y2="230" stroke="#B45309" stroke-width="1.6"/>
+  <circle cx="196" cy="230" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
+  <circle cx="196" cy="230" r="2.5" fill="#B45309"/>
 
-  <!-- ② 中上卡 -> 中央标尺与黄色 SCALE 吊牌 -->
-  <line x1="448" y1="58" x2="500" y2="218" stroke="#1D4ED8" stroke-width="1.8"/>
-  <circle cx="500" cy="218" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#1D4ED8" stroke-width="1.6"/>
-  <circle cx="500" cy="218" r="3.2" fill="#1D4ED8"/>
+  <!-- 2 -> 中央标尺旁黄色 SCALE 吊牌 -->
+  <line x1="536" y1="74" x2="556" y2="224" stroke="#1D4ED8" stroke-width="1.6"/>
+  <circle cx="556" cy="224" r="5.5" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
+  <circle cx="556" cy="224" r="2.5" fill="#1D4ED8"/>
 
-  <!-- ④ 右上卡 -> 右上红色 127 CLIP 截断线与虚线削顶 -->
-  <line x1="726" y1="58" x2="690" y2="196" stroke="#BE123C" stroke-width="1.8"/>
-  <circle cx="690" cy="196" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#BE123C" stroke-width="1.6"/>
-  <circle cx="690" cy="196" r="3.2" fill="#BE123C"/>
+  <!-- 3 -> 右上红色 127 CLIP 截断线与虚线削顶 -->
+  <line x1="790" y1="74" x2="784" y2="201" stroke="#BE123C" stroke-width="1.6"/>
+  <circle cx="784" cy="201" r="5.5" fill="#FFFFFF" stroke="#BE123C" stroke-width="2"/>
+  <circle cx="784" cy="201" r="2.5" fill="#BE123C"/>
 
-  <!-- ⑤ 左下卡 -> 变换箭头与高精参数保留边界 -->
-  <line x1="306" y1="432" x2="454" y2="266" stroke="#4338CA" stroke-width="1.8"/>
-  <circle cx="454" cy="266" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#4338CA" stroke-width="1.6"/>
-  <circle cx="454" cy="266" r="3.2" fill="#4338CA"/>
+  <!-- 4 -> 中央变换主箭头（矩阵乘高精度保留边界） -->
+  <line x1="436" y1="498" x2="450" y2="297" stroke="#4338CA" stroke-width="1.6"/>
+  <circle cx="450" cy="297" r="5.5" fill="#FFFFFF" stroke="#4338CA" stroke-width="2"/>
+  <circle cx="450" cy="297" r="2.5" fill="#4338CA"/>
 
-  <!-- ③ 右下卡 -> 右侧 INT8 窄格阶梯柱与托盘 -->
-  <line x1="654" y1="432" x2="636" y2="282" stroke="#0F766E" stroke-width="1.8"/>
-  <circle cx="636" cy="282" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#0F766E" stroke-width="1.6"/>
-  <circle cx="636" cy="282" r="3.2" fill="#0F766E"/>
+  <!-- 5 -> 右侧 INT8 窄格阶梯柱 -->
+  <line x1="660" y1="498" x2="660" y2="365" stroke="#0F766E" stroke-width="1.6"/>
+  <circle cx="660" cy="365" r="5.5" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
+  <circle cx="660" cy="365" r="2.5" fill="#0F766E"/>
 
-  <!-- 高清矢量中文编号直标卡 -->
-  <!-- 卡 ① 原始浮点张量 -->
+  <!-- 顶部开放式无边框矢量编号直标（y = 8..74） -->
   <g id="callout-bf16">
-    <rect x="8" y="8" width="276" height="50" rx="5" fill="#FFFDF9" stroke="#B45309" stroke-width="1.3"/>
-    <rect x="8" y="8" width="24" height="50" rx="4" fill="#FEF3C7"/>
-    <text x="20" y="38" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#B45309">①</text>
-    <text x="38" y="25" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#182230">原始浮点张量 (BF16 · 2B/元素)</text>
-    <text x="38" y="42" font-family="var(--font-sans)" font-size="10" fill="#344054">双倍槽宽连续柱，占双倍显存与搬运带宽</text>
-    <text x="38" y="54" font-family="var(--font-mono)" font-size="9" fill="#66716D">16-bit float · 连续幅度表示</text>
+    <circle cx="28" cy="22" r="11" fill="#B45309"/>
+    <text x="28" y="26.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">1</text>
+    <text x="46" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#17211f">原始浮点张量（BF16 · 2 B/元素）</text>
+    <text x="46" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">连续幅度宽柱，占双倍显存与访存带宽</text>
+    <text x="46" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">权重离线量化，激活经 npu_dynamic_quant 现算</text>
   </g>
 
-  <!-- 卡 ② 缩放标尺与 SCALE 系数 -->
   <g id="callout-scale">
-    <rect x="294" y="8" width="292" height="50" rx="5" fill="#FFFDF9" stroke="#1D4ED8" stroke-width="1.3"/>
-    <rect x="294" y="8" width="24" height="50" rx="4" fill="#DBEAFE"/>
-    <text x="306" y="38" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#1D4ED8">②</text>
-    <text x="324" y="25" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#182230">缩放标尺与 SCALE 系数</text>
-    <text x="324" y="42" font-family="var(--font-sans)" font-size="10" fill="#344054">整组共用少量高精系数，除以 s 四舍五入</text>
-    <text x="324" y="54" font-family="var(--font-sans)" font-size="9.5" fill="#1D4ED8" font-weight="600">卡入 -128..127 共 256 个离散整数格</text>
+    <circle cx="322" cy="22" r="11" fill="#1D4ED8"/>
+    <text x="322" y="26.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="340" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#17211f">共用缩放标尺与 scale 系数</text>
+    <text x="340" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">整组除以 s 并四舍五入，卡入 -128..127 离散格</text>
+    <text x="340" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">仅附少量高精 weight_scale 与 pertoken_scale</text>
   </g>
 
-  <!-- 卡 ④ 离群值削顶截断 -->
   <g id="callout-clip">
-    <rect x="596" y="8" width="276" height="50" rx="5" fill="#FFFDF9" stroke="#BE123C" stroke-width="1.3"/>
-    <rect x="596" y="8" width="24" height="50" rx="4" fill="#FFE4E6"/>
-    <text x="608" y="38" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#BE123C">④</text>
-    <text x="626" y="25" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#BE123C">离群值削顶截断 (127 CLIP)</text>
-    <text x="626" y="42" font-family="var(--font-sans)" font-size="10" fill="#344054">超出上限的极端大数被硬截到 127</text>
-    <text x="626" y="54" font-family="var(--font-sans)" font-size="9.5" fill="#BE123C" font-weight="600">虚线溢出部分丢失，产生不可逆截断误差</text>
+    <circle cx="622" cy="22" r="11" fill="#BE123C"/>
+    <text x="622" y="26.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">3</text>
+    <text x="640" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#17211f">离群值削顶截断（127 CLIP）</text>
+    <text x="640" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">超出上限的极端大数被硬截到整数格边 127</text>
+    <text x="640" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#BE123C">虚线溢出部分丢失，产生不可逆截断误差</text>
   </g>
 
-  <!-- 卡 ⑤ W8A8 边界 -->
+  <!-- 底部开放式无边框矢量编号直标（y = 498..560） -->
   <g id="callout-boundary">
-    <rect x="8" y="432" width="424" height="50" rx="5" fill="#FFFDF9" stroke="#4338CA" stroke-width="1.3"/>
-    <rect x="8" y="432" width="24" height="50" rx="4" fill="#E0E7FF"/>
-    <text x="20" y="462" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#4338CA">⑤</text>
-    <text x="38" y="450" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#182230">W8A8 边界：仅矩阵乘两侧 W 与 A 压 8 位</text>
-    <text x="38" y="468" font-family="var(--font-sans)" font-size="10" fill="#344054">整数乘加用宽累加器，scale 与层间残差隐藏向量仍保高精度（如 BF16 / FP32）</text>
+    <circle cx="28" cy="514" r="11" fill="#4338CA"/>
+    <text x="28" y="518.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">4</text>
+    <text x="46" y="518" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#17211f">W8A8 高精边界：仅矩阵乘两侧压 8 位</text>
+    <text x="46" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">npu_quant_matmul 用宽累加器，乘回系数后恢复</text>
+    <text x="46" y="556" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">output_dtype（BF16）与层间高精度残差隐藏向量</text>
   </g>
 
-  <!-- 卡 ③ 量化整数块 -->
   <g id="callout-int8">
-    <rect x="446" y="432" width="426" height="50" rx="5" fill="#FFFDF9" stroke="#0F766E" stroke-width="1.3"/>
-    <rect x="446" y="432" width="24" height="50" rx="4" fill="#CCFBF1"/>
-    <text x="458" y="462" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#0F766E">③</text>
-    <text x="476" y="450" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#0F766E">量化整数块 (INT8 · 1B/元素)：存储宽度直接减半！</text>
-    <text x="476" y="468" font-family="var(--font-sans)" font-size="10" fill="#344054">托盘挂留高精 scale，用时乘回恢复量纲（未截断处微差为最多半格 s/2 舍入误差）</text>
+    <circle cx="472" cy="514" r="11" fill="#0F766E"/>
+    <text x="472" y="518.5" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">5</text>
+    <text x="490" y="518" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#17211f">量化整数块（INT8 · 1 B/元素）：存储减半</text>
+    <text x="490" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">托盘挂留高精 scale，用时乘回恢复原数值范围</text>
+    <text x="490" y="556" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#475569">未截断元素微差仅为最多半格（s / 2）舍入误差</text>
   </g>
 </svg>

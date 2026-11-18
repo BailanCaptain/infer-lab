@@ -1,7 +1,7 @@
 mode: native-svg
 id: hf-fig-moe-gate-and-bars
 caption: Qwen3MoeDecoderLayer 三条件门禁与常驻权重显存、单步激活参数及每 token KV cache 比例对照。
-size: [860, 325]
+size: [900, 360]
 pins:
   - source: 'vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L199-L213'
     symbols: ['num_experts_per_tok', 'moe_intermediate_size']

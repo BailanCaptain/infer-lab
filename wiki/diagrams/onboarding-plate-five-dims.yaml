@@ -1,7 +1,7 @@
 mode: native-svg
 id: onboarding-plate-five-dims
 caption: 五维配套拆解剖面与中文引线直标：四层软件栈 ABI 咬合、check_ascend_device_type 启动门禁与四大硬件族分流
-size: [880, 500]
+size: [900, 610]
 pins:
   - source: "vllm-ascend@c09d3e20:setup.py#L141-L165"
     symbols:

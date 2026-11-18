@@ -1,7 +1,7 @@
 mode: native-svg
 id: onboarding-model-registry-routing
 caption: ModelRegistry 三路模型类解析决策树：强制 transformers、vllm-ascend 29 项注册覆写、上游 vLLM 原生内置与回退报错
-size: [880, 340]
+size: [900, 390]
 pins:
   - source: "vllm@ced6857a:vllm/config/model.py#L167-L369"
     symbols:

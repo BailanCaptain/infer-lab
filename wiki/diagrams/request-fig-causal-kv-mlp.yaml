@@ -1,7 +1,7 @@
 mode: native-svg
 id: request-fig-causal-kv-mlp
 caption: 示意：第 2 件事单层 Transformer 在 [2, 4] 上的内部流转。因果掩码让位置 0「我」只看位置 0、位置 1「喜欢」同时看位置 0 和 1（q₁ 与 k₀, k₁ 算权重汇总 v₀, v₁），当场把 k₀, k₁, v₀, v₁ 写入本层 KV cache，再经残差连接、RMSNorm 与 MLP 输出融合上下文的 h₀, h₁ [2, 4]。
-size: [880, 320]
+size: [900, 330]
 pins:
   - source: 'vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L485-L530'
     symbols: ['forward', 'kv_cache', 'attn_metadata']

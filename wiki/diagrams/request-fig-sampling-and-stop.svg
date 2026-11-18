@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 330" width="880" height="330" role="img" aria-label="示意：贪心采样与温度随机采样对比，以及第 4 件事 check_stop 双停止条件闸门与 4 词文本只留 3 个 KV 位置的原因。">
-  <title>示意：贪心采样与温度随机采样对比，以及第 4 件事 check_stop 双停止条件闸门与 4 词文本只留 3 个 KV 位置的原因。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 305" width="900" height="305" role="img" aria-label="示意：贪心采样与温度随机采样对比，以及第 4 件事 check_stop 双停止条件闸门与 4 词文本只留 3 个 KV 位置的原因。">
+  <title>示意：左栏对比贪心采样（T=0 必选最高分 +2.1 的 3 号「猫」）与随机采样（T=1 经 Softmax 得猫 52.3% / 。17.4% / 看 14.3% 概率分布并配合 top-k/top-p 抽签）；右栏展示第 4 件事 check_stop 双停止闸门及为何 4 词成文「我喜欢猫。」在 KV cache 里只留 3 个位置。</title>
+  <desc>关联源码符号：sample, greedy_sample, apply_temperature, topk_topp_sampler, check_stop, eos_token_id, stop_token_ids, max_tokens, update, decode_next</desc>
   <defs>
     <marker id="ss-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 1 L 10 5 L 0 9 z" fill="#0F766E"/>
@@ -9,20 +10,12 @@
     </marker>
   </defs>
 
-  <!-- Outer Backing -->
-  <rect x="2" y="2" width="876" height="326" rx="8" fill="#FCFBF7" stroke="#D5CEBE" stroke-width="1.2"/>
+  <line x1="438" y1="12" x2="438" y2="294" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="6 5"/>
 
-  <!-- Top Header Bar -->
-  <rect x="10" y="7" width="84" height="20" rx="4" fill="#4338CA"/>
-  <text x="52" y="21" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" font-weight="700" fill="#FFFDF9">FIG 1.3</text>
-  <text x="104" y="21" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#182230">采样选号双路径（贪心 vs 随机）与第 4 件事停止闸门 / KV 位置数对账</text>
-  <text x="868" y="21" text-anchor="end" font-family="var(--font-sans)" font-size="10.5" fill="#5E6B7D">第 3 件事选号 → 第 4 件事判停与缓存终态</text>
-  <line x1="10" y1="31" x2="870" y2="31" stroke="#DFD9CA" stroke-width="1" stroke-dasharray="4 3"/>
-
+  <g transform="translate(0, -24)">
   <!-- ==================== LEFT PANEL: GREEDY VS RANDOM SAMPLING ==================== -->
-  <rect x="12" y="38" width="414" height="280" rx="6" fill="#FFFDF9" stroke="#C6BFAF" stroke-width="1.2"/>
-  <text x="24" y="56" font-family="var(--font-sans)" font-size="11.2" font-weight="800" fill="#182230">A. 同一排首轮分数 logits₁ 的两种采样选法（Sampler.sample）</text>
-  <text x="24" y="72" font-family="var(--font-mono)" font-size="9.6" fill="#475569">logits₁ = [0我:-0.4, 1你:-0.5, 2喜欢:+0.2, 3猫:+2.1, 4看:+0.8, 5。:+1.0]</text>
+  <text x="16" y="48" font-family="var(--font-sans)" font-size="13" font-weight="800" fill="#182230">A. 首轮分数 logits₁ 的两种采样选法（Sampler.sample）</text>
+  <text x="16" y="68" font-family="var(--font-mono)" font-size="10.2" fill="#475569">logits₁ = [0我:-0.4, 1你:-0.5, 2喜欢:+0.2, 3猫:+2.1, 4看:+0.8, 5。:+1.0]</text>
 
   <!-- Greedy Sub-card -->
   <rect x="22" y="80" width="394" height="68" rx="5" fill="#F0FDF9" stroke="#0F766E" stroke-width="1.3"/>
@@ -59,8 +52,8 @@
   <text x="32" y="295" font-family="var(--font-sans)" font-size="9.4" font-weight="600" fill="#475569">提示：同一提示词发两次可能抽中不同候选，写出不同回答</text>
 
   <!-- ==================== RIGHT PANEL: STOP GATES & 3-VS-4 KV POSITIONS ==================== -->
-  <rect x="438" y="38" width="430" height="280" rx="6" fill="#FFFDF9" stroke="#C6BFAF" stroke-width="1.2"/>
-  <text x="450" y="56" font-family="var(--font-sans)" font-size="11.2" font-weight="800" fill="#182230">B. 第 4 件事：check_stop 双停止闸门与 KV cache 终态对账</text>
+  <g transform="translate(18, 0)">
+  <text x="448" y="48" font-family="var(--font-sans)" font-size="13" font-weight="800" fill="#182230">B. 第 4 件事：check_stop 停止闸门与 KV 终态</text>
 
   <!-- Two Stop Rules Box -->
   <rect x="448" y="65" width="410" height="58" rx="5" fill="#F8FAFC" stroke="#64748B" stroke-width="1.1"/>
@@ -107,5 +100,7 @@
   <text x="800" y="257" text-anchor="middle" font-family="var(--font-sans)" font-size="9" fill="#BE123C">选出当场停机</text>
   <text x="800" y="271" text-anchor="middle" font-family="var(--font-sans)" font-size="9" font-weight="700" fill="#BE123C">✗ 未算无 KV</text>
 
-  <text x="653" y="297" text-anchor="middle" font-family="var(--font-sans)" font-size="9.5" font-weight="700" fill="#78350F">结论：普通逐词生成完结时，KV cache 历史位置数 = 3（比整段 4 个词少 1 个）</text>
+  <text x="653" y="297" text-anchor="middle" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#78350F">结论：普通逐词生成完结时，KV cache 历史位置数 = 3（比整段 4 个词少 1 个）</text>
+  </g>
+  </g>
 </svg>

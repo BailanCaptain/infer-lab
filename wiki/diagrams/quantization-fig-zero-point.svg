@@ -1,93 +1,79 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 330" width="880" height="330" role="img" aria-label="对称量化 z=0 与非对称量化 z=-128 在全正数区间下的格位利用与截断对比图">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" width="900" height="340" role="img" aria-label="对称量化 z=0 与非对称量化 z=-128 在全正数区间下的格位利用与截断对比图">
   <title>对称量化（z=0）与非对称量化（z=-128）在全正数区间 [0, 25.5]、s=0.1 下的格位利用率对比：对称方案把 0 锁在正中，左半 -128..-1 闲置且 x=13 超出 12.7 被截断；非对称方案将 0 移至 -128，256 格全归正数，x=13 存为 q=2 无损还原 13.0。</title>
+  <desc>关联源码符号：get_perchannel_param, weight_scale, weight_offset, get_pertensor_param, input_scale, input_offset, quantize, aclnn_input_scale, aclnn_input_offset</desc>
   <defs>
-    <marker id="zp-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <marker id="zp-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#BE123C"/>
-    </marker>
-    <marker id="zp-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#0F766E"/>
     </marker>
   </defs>
 
-  <rect x="2" y="2" width="876" height="326" rx="8" fill="#FCFBF7" stroke="#D5CEBE" stroke-width="1.2"/>
+  <!-- 中轴与底栏开放虚线分隔（零外框、零套娃面板框，仅真实数轴条描边） -->
+  <line x1="450" y1="14" x2="450" y2="262" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <line x1="18" y1="274" x2="882" y2="274" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 5"/>
 
-  <!-- 左半：对称量化 (z = 0) -->
+  <!-- 左栏：对称量化 (z = 0) -->
   <g id="sym-panel">
-    <rect x="14" y="14" width="420" height="256" rx="6" fill="#FFF8F8" stroke="#E11D48" stroke-width="1.2"/>
-    <rect x="14" y="14" width="420" height="30" rx="5" fill="#FFE4E6"/>
-    <text x="26" y="34" font-family="var(--font-sans)" font-size="11.5" font-weight="700" fill="#9F1239">对称量化 (z = 0)：0 锁在正中，全正数 [0, 25.5] 浪费左半格</text>
+    <text x="18" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="#9F1239">✗ 对称量化（z = 0）：0 锁正中，全正数浪费左半格</text>
+    <text x="18" y="50" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" fill="#475569">q = clamp(round(x / 0.1), -128, 127)</text>
 
-    <text x="26" y="62" font-family="var(--font-mono)" font-size="10" fill="#344054">q = clamp(round(x / 0.1), -128, 127) · 正数上限仅 127×0.1 = 12.7</text>
+    <!-- 真实数轴条：左半 128 格闲置 + 右半 128 格有效 -->
+    <rect x="20" y="66" width="196" height="44" rx="4" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.4" stroke-dasharray="5 4"/>
+    <text x="118" y="85" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#64748B">左半 128 格 (-128..-1)</text>
+    <text x="118" y="103" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="600" fill="#BE123C">全正数下 100% 闲置</text>
 
-    <!-- INT8 256 格数轴条 (x=28..408, w=380: 左半 190px 闲置, 右半 190px 有效) -->
-    <rect x="28" y="78" width="190" height="34" rx="3" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1" stroke-dasharray="4 3"/>
-    <text x="123" y="94" text-anchor="middle" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#64748B">左半 128 格 (-128..-1)</text>
-    <text x="123" y="107" text-anchor="middle" font-family="var(--font-sans)" font-size="9.5" fill="#BE123C">全正数下 100% 空置浪费！</text>
+    <rect x="216" y="66" width="196" height="44" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.5"/>
+    <text x="314" y="85" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#92400E">右半 128 格 (0..+127)</text>
+    <text x="314" y="103" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#78350F">仅覆盖 x ∈ [0, 12.7]</text>
 
-    <rect x="218" y="78" width="190" height="34" rx="3" fill="#FEF3C7" stroke="#B45309" stroke-width="1.3"/>
-    <text x="313" y="94" text-anchor="middle" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#92400E">右半 128 格 (0..+127)</text>
-    <text x="313" y="107" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" fill="#78350F">仅覆盖 x ∈ [0, 12.7]</text>
+    <!-- 零点锁、截止墙与溢出示意 -->
+    <line x1="216" y1="58" x2="216" y2="118" stroke="#17211f" stroke-width="2"/>
+    <text x="20" y="133" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" fill="#64748B">q=-128</text>
+    <text x="216" y="133" text-anchor="middle" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="#17211f">q=0 (x=0)</text>
 
-    <!-- 中心零点锁与右端截止墙 -->
-    <line x1="218" y1="72" x2="218" y2="120" stroke="#182230" stroke-width="2"/>
-    <text x="218" y="133" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" font-weight="700" fill="#182230">q=0 (x=0)</text>
+    <line x1="412" y1="56" x2="412" y2="120" stroke="#BE123C" stroke-width="2.6"/>
+    <line x1="412" y1="88" x2="436" y2="88" stroke="#BE123C" stroke-width="1.6" stroke-dasharray="3 2" marker-end="url(#zp-arr-red)"/>
+    <text x="412" y="133" text-anchor="end" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="#BE123C">q=127 (上限 12.7)</text>
 
-    <line x1="408" y1="70" x2="408" y2="122" stroke="#BE123C" stroke-width="2.4"/>
-    <text x="408" y="133" text-anchor="end" font-family="var(--font-mono)" font-size="9.5" font-weight="700" fill="#BE123C">q=127 (x=12.7 上限)</text>
-    <text x="28" y="133" font-family="var(--font-mono)" font-size="9.5" fill="#64748B">q=-128</text>
-
-    <!-- x = 13 溢出撞墙示意 -->
-    <rect x="28" y="148" width="392" height="110" rx="5" fill="#FFFFFF" stroke="#FDA4AF" stroke-width="1"/>
-    <text x="38" y="168" font-family="var(--font-sans)" font-size="10.5" font-weight="700" fill="#BE123C">✗ 实算对照（s = 0.1，输入含 x = 13 与 x = 0.26）：</text>
-    <text x="38" y="188" font-family="var(--font-mono)" font-size="10" fill="#182230">• x = 13   → 13 / 0.1 = 130 &gt; 127</text>
-    <line x1="252" y1="184" x2="276" y2="184" stroke="#BE123C" stroke-width="1.5" marker-end="url(#zp-arr-red)"/>
-    <text x="282" y="188" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#BE123C">硬截为 q=127 → 还原 12.7</text>
-    <text x="48" y="205" font-family="var(--font-sans)" font-size="9.5" fill="#9F1239">（超出区间上限，产生 0.3 截断误差；若改放大 s 又会让其余小数格子变粗）</text>
-    <text x="38" y="227" font-family="var(--font-mono)" font-size="10" fill="#344054">• x = 0.26 → round(2.6) = 3 → 还原 0.3（舍入误差 0.04）</text>
-    <text x="38" y="246" font-family="var(--font-sans)" font-size="9.5" fill="#64748B">优势：还原仅需 s × q，乘加时无需额外补偿零点偏移项</text>
+    <!-- 开放式数值对照说明（无外层小卡片框） -->
+    <text x="20" y="164" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#BE123C">实算对照（s = 0.1）：x = 13 超上限被硬截断</text>
+    <text x="20" y="188" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" fill="#17211f">x = 13   → 130 &gt; 127 → 硬截 q=127 → 还原 12.7</text>
+    <text x="20" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#9F1239">（丢失 0.3 产生截断误差；若强行放大 s 又会让小数格子变粗）</text>
+    <text x="20" y="233" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" fill="#334155">x = 0.26 → round(2.6) = 3      → 还原 0.3（差 0.04）</text>
+    <text x="20" y="255" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#5b6763">优势：还原仅 s × q，整数乘加无需额外补偿零点偏移项</text>
   </g>
 
-  <!-- 右半：非对称量化 (z = -128) -->
+  <!-- 右栏：非对称量化 (z = -128) -->
   <g id="asym-panel">
-    <rect x="446" y="14" width="420" height="256" rx="6" fill="#F2FBF9" stroke="#0F766E" stroke-width="1.3"/>
-    <rect x="446" y="14" width="420" height="30" rx="5" fill="#CCFBF1"/>
-    <text x="458" y="34" font-family="var(--font-sans)" font-size="11.5" font-weight="700" fill="#0F766E">非对称量化 (z = -128)：0 移到左端，256 格全让给 [0, 25.5]</text>
+    <text x="468" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="#0F766E">✓ 非对称量化（z = -128）：256 格全归正数</text>
+    <text x="468" y="50" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" fill="#475569">q = clamp(round(x / 0.1) + z, -128, 127)</text>
 
-    <text x="458" y="62" font-family="var(--font-mono)" font-size="10" fill="#344054">q = clamp(round(x / 0.1) + (-128), -128, 127) · 还原 s × (q - z)</text>
+    <!-- 真实数轴条：全宽 256 格均服务于 [0, 25.5] -->
+    <rect x="470" y="66" width="396" height="44" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.5"/>
+    <line x1="668" y1="66" x2="668" y2="110" stroke="#087f73" stroke-width="1.2" stroke-dasharray="4 3"/>
+    <text x="569" y="85" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#065f56">左半存 [0, 12.7]</text>
+    <text x="569" y="103" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#065f56">(-128..-1 全部利用)</text>
+    <text x="767" y="85" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#065f56">右半存 [12.8, 25.5]</text>
+    <text x="767" y="103" text-anchor="middle" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#065f56">(0..+127 范围翻倍)</text>
 
-    <!-- INT8 256 格全宽有效数轴条 (x=460..840, w=380) -->
-    <rect x="460" y="78" width="380" height="34" rx="3" fill="#CCFBF1" stroke="#0F766E" stroke-width="1.4"/>
-    <line x1="650" y1="78" x2="650" y2="112" stroke="#0F766E" stroke-width="1" stroke-dasharray="3 2"/>
-    <text x="555" y="99" text-anchor="middle" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#065F46">左半 (-128..-1) 存 [0, 12.7]</text>
-    <text x="748" y="99" text-anchor="middle" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#065F46">右半 (0..+127) 存 [12.8, 25.5]</text>
+    <!-- 左端零点锚与 q=2 (x=13.0) 命中点 -->
+    <line x1="470" y1="56" x2="470" y2="120" stroke="#087f73" stroke-width="2.6"/>
+    <text x="470" y="133" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="#087f73">q=-128 (x=0.0)</text>
 
-    <!-- 左端零点 z=-128 与 q=2 (x=13.0) 命中点 -->
-    <line x1="460" y1="70" x2="460" y2="122" stroke="#0F766E" stroke-width="2.4"/>
-    <text x="460" y="133" font-family="var(--font-mono)" font-size="9.5" font-weight="700" fill="#0F766E">q=-128 (x=0.0)</text>
+    <circle cx="672" cy="88" r="5.5" fill="#1D4ED8" stroke="#FFFFFF" stroke-width="1.8"/>
+    <line x1="672" y1="94" x2="672" y2="118" stroke="#1D4ED8" stroke-width="1.6"/>
+    <text x="672" y="133" text-anchor="middle" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="#1D4ED8">q=2 (x=13.0)</text>
 
-    <circle cx="655" cy="95" r="5" fill="#1D4ED8" stroke="#FFFFFF" stroke-width="1.4"/>
-    <line x1="655" y1="100" x2="655" y2="122" stroke="#1D4ED8" stroke-width="1.5"/>
-    <text x="655" y="133" text-anchor="middle" font-family="var(--font-mono)" font-size="9.5" font-weight="700" fill="#1D4ED8">q=2 (x=13.0)</text>
+    <text x="866" y="133" text-anchor="end" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="#087f73">q=127 (x=25.5)</text>
 
-    <text x="840" y="133" text-anchor="end" font-family="var(--font-mono)" font-size="9.5" font-weight="700" fill="#0F766E">q=127 (x=25.5)</text>
-
-    <!-- x = 13 无损落格对照 -->
-    <rect x="460" y="148" width="392" height="110" rx="5" fill="#FFFFFF" stroke="#99F6E4" stroke-width="1"/>
-    <text x="470" y="168" font-family="var(--font-sans)" font-size="10.5" font-weight="700" fill="#0F766E">✓ 实算对照（同样 s = 0.1，零点偏移 z = -128）：</text>
-    <text x="470" y="188" font-family="var(--font-mono)" font-size="10" fill="#182230">• x = 13   → 130 - 128 = 2</text>
-    <line x1="654" y1="184" x2="678" y2="184" stroke="#0F766E" stroke-width="1.5" marker-end="url(#zp-arr-teal)"/>
-    <text x="684" y="188" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#0F766E">存为 q=2 → 还原 13.0！</text>
-    <text x="480" y="205" font-family="var(--font-sans)" font-size="9.5" fill="#065F46">（0.1 × (2 - (-128)) = 13.0，同格宽下正数范围翻倍，彻底消除截断）</text>
-    <text x="470" y="227" font-family="var(--font-mono)" font-size="10" fill="#344054">• x = 0.26 → 3 - 128 = -125 → 0.1 × (-125 + 128) = 0.3</text>
-    <text x="470" y="246" font-family="var(--font-sans)" font-size="9.5" fill="#64748B">代价：多存整数零点 z，还原与矩阵乘需额外处理偏移补偿</text>
+    <!-- 开放式数值对照说明 -->
+    <text x="470" y="164" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#0F766E">实算对照（同样 s = 0.1，偏移 z = -128）：无损落格</text>
+    <text x="470" y="188" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" fill="#17211f">x = 13   → 130 - 128 = 2   → 还原 13.0（零截断）</text>
+    <text x="470" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#065f56">（按 s × (q - z) = 0.1 × (2 - (-128)) = 13.0 原样恢复）</text>
+    <text x="470" y="233" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" fill="#334155">x = 0.26 → 3 - 128 = -125  → 0.1×(-125 + 128) = 0.3</text>
+    <text x="470" y="255" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="#5b6763">代价：多存整数零点 z，还原与矩阵乘需额外处理偏移补偿</text>
   </g>
 
-  <!-- 底部 v0.30.0 源码落点条 -->
-  <g id="zp-source-bar">
-    <rect x="14" y="278" width="852" height="40" rx="5" fill="#F1EFE6" stroke="#C6BFAF" stroke-width="1"/>
-    <rect x="14" y="278" width="84" height="40" rx="4" fill="#182230"/>
-    <text x="56" y="302" text-anchor="middle" font-family="var(--font-sans)" font-size="10.5" font-weight="700" fill="#FFFDF9">源码落点</text>
-    <text x="108" y="294" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#182230">W8A8_DYNAMIC（w8a8_dynamic.py）：激活按 token 对称量化无零点，且动态矩阵乘算子忽略逐通道 weight_offset；</text>
-    <text x="108" y="310" font-family="var(--font-sans)" font-size="10" fill="#344054">静态 W8A8（w8a8_static.py）：才真正启用整张量激活零点 input_offset（加载后展开为 aclnn_input_offset 供 vllm.quantize 使用）。</text>
-  </g>
+  <!-- 底部开放式 v0.30.0 源码落点说明 -->
+  <text x="18" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#17211f">v0.30.0 源码落点：W8A8_DYNAMIC 激活按 token 对称量化无零点，且动态矩阵乘算子忽略逐通道 weight_offset；</text>
+  <text x="18" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" fill="#475569">静态 W8A8（w8a8_static.py）才启用整张量激活零点 input_offset（加载后展开为 aclnn_input_offset 供 quantize 使用）。</text>
 </svg>

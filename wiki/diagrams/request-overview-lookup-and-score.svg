@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 390" width="880" height="390" role="img" aria-label="示意：教学请求「我喜欢 → 猫。」在两轮中的查表、缓存读写与词表打分。第 1 轮（Prefill）从 6 行嵌入表 E 抽出第 0、2 行拼成 2 行张量，写下 k₀, v₀ 与 k₁, v₁ 后只取最后一行 h₁（位置 0 的 h₀ 不参与打分），经 W_head 打分选出最高分 +2.1 的 3 号「猫」；第 2 轮（Decode）只查 E[3] 1 行，复用旧缓存并追加 k₂, v₂（共 3 个历史位置），用同一张 W_head 选出 +1.6 的 5 号「。」后满 max_tokens = 2 停机，5 号「。」不再进第 3 轮。">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="示意：教学请求「我喜欢 → 猫。」在两轮中的查表、缓存读写与词表打分。第 1 轮（Prefill）从 6 行嵌入表 E 抽出第 0、2 行拼成 2 行张量，写下 k₀, v₀ 与 k₁, v₁ 后只取最后一行 h₁（位置 0 的 h₀ 不参与打分），经 W_head 打分选出最高分 +2.1 的 3 号「猫」；第 2 轮（Decode）只查 E[3] 1 行，复用旧缓存并追加 k₂, v₂（共 3 个历史位置），用同一张 W_head 选出 +1.6 的 5 号「。」后满 max_tokens = 2 停机，5 号「。」不再进第 3 轮。">
   <title>示意：教学请求「我喜欢 → 猫。」在两轮中的查表、缓存读写与词表打分。第 1 轮（Prefill）从 6 行嵌入表 E 抽出第 0、2 行拼成 2 行张量，写下 k₀, v₀ 与 k₁, v₁ 后只取最后一行 h₁（位置 0 的 h₀ 不参与打分），经 W_head 打分选出最高分 +2.1 的 3 号「猫」；第 2 轮（Decode）只查 E[3] 1 行，复用旧缓存并追加 k₂, v₂（共 3 个历史位置），用同一张 W_head 选出 +1.6 的 5 号「。」后满 max_tokens = 2 停机，5 号「。」不再进第 3 轮。</title>
+  <desc>关联源码符号：embedding, ParallelLMHead, forward, kv_cache, LogitsProcessor, lm_head, logits, sample, greedy_sample, check_stop, max_tokens</desc>
   <defs>
     <marker id="ah-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 1 L 10 5 L 0 9 z" fill="#0891B2"/>
@@ -15,8 +16,9 @@
     </marker>
   </defs>
 
+  <line x1="16" y1="200" x2="884" y2="200" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="6 5"/>
+
   <!-- ==================== TOP BAND: ROUND 1 PREFILL ==================== -->
-  <rect x="12" y="8" width="856" height="170" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
   <rect x="22" y="14" width="114" height="20" rx="10" fill="#0891B2"/>
   <text x="79" y="28" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">第 1 轮 · Prefill</text>
   <text x="146" y="28" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#0F172A">输入提示词「我喜欢」（2 个位置并行前向）→ 末尾直接选出第 1 个输出词「猫」</text>
@@ -119,7 +121,6 @@
   <text x="804" y="136" font-family="var(--font-sans)" font-size="9.5" fill="#166534" text-anchor="middle">未停 → 进第 2 轮</text>
 
   <!-- ==================== BOTTOM BAND: ROUND 2 DECODE ==================== -->
-  <rect x="12" y="212" width="856" height="170" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
   <rect x="64" y="218" width="114" height="20" rx="10" fill="#2563EB"/>
   <text x="121" y="232" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">第 2 轮 · Decode</text>
   <text x="186" y="232" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#0F172A">只送新词 3「猫」1 个位置</text>

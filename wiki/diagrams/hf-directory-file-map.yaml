@@ -1,7 +1,7 @@
 mode: native-svg
 id: hf-directory-file-map
 caption: HuggingFace 模型目录五类文件在 vllm 与 vllm-ascend 启动期的读取入口及四处常见隐形坑点对照。
-size: [880, 500]
+size: [900, 615]
 pins:
   - source: 'vllm@ced6857a:vllm/transformers_utils/config.py#L757-L860'
     symbols: ['get_config', 'architectures', 'model_type']

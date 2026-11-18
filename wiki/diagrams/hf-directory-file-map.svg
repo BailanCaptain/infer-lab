@@ -1,114 +1,107 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 500" width="880" height="500" role="img" aria-label="HuggingFace 模型目录五类文件拆解剖面与引线直标图" font-family="var(--font-sans)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 615" width="900" height="615" role="img" aria-label="HuggingFace 模型目录五类文件拆解剖面与开放式引线直标图" font-family="var(--font-sans)">
   <title>HuggingFace 模型目录五类文件在 vllm 与 vllm-ascend 启动期的读取入口及四处常见隐形坑点对照。</title>
-  <defs>
-    <pattern id="gridA1" width="20" height="20" patternUnits="userSpaceOnUse">
-      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E7E1D3" stroke-width="0.6"/>
-    </pattern>
-  </defs>
-  <!-- Engineering Backing Plate -->
-  <rect x="2" y="2" width="876" height="496" rx="6" fill="#FCFBF7" stroke="#D5CEBE" stroke-width="1"/>
-  <rect x="90" y="65" width="700" height="394" rx="5" fill="url(#gridA1)" stroke="#C6BFAF" stroke-width="1"/>
+  <desc>开放画布拆解 HuggingFace 目录五类文件与源码入口：get_config 读取 config.json 的 architectures 与 model_type，get_hf_text_config 解包 text_config 并由 ModelArchitectureConfig 与 ModelArchConfigConvertorBase.get_head_size 转换；resolve_chat_template 与 _get_and_verify_max_len 读取 tokenizer_config.json 及 model_max_length；try_get_generation_config 读取 generation_config.json；maybe_auto_detect_quantization、detect_quantization_method 与 AscendFp8Config 检查 weight_block_size（不满足抛 NotImplementedError）；DefaultModelLoader 与 filter_duplicate_safetensors_files 按 weight_map 加载权重分片。</desc>
 
-  <!-- Center Cutaway Illustration Slot -->
-  <image href="./wiki-illustrations/hf-folder-cutaway.jpg" x="90" y="65" width="700" height="394" preserveAspectRatio="xMidYMid meet"/>
+  <!-- Large Tight-Cropped Transparent Cutaway Illustration -->
+  <image href="./wiki-illustrations/hf-folder-cutaway.webp" x="175" y="88" width="550" height="438" preserveAspectRatio="xMidYMid meet"/>
 
-  <!-- Leader Lines + Target Dots Pointing into Illustration Zones -->
-  <!-- ① config.json (Top-Left -> Upper-Left of Cutaway) -->
-  <line x1="148" y1="58" x2="235" y2="148" stroke="#1D4ED8" stroke-width="1.8"/>
-  <circle cx="235" cy="148" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#1D4ED8" stroke-width="1.5"/>
-  <circle cx="235" cy="148" r="3.2" fill="#1D4ED8"/>
+  <!-- Leader Lines & Clean Ring Target Dots -->
+  <!-- 1: Blue JSON Blueprint Folder (normX=0.17, normY=0.40 -> 269, 263) -->
+  <line x1="188" y1="166" x2="269" y2="263" stroke="#1D4ED8" stroke-width="1.6"/>
+  <circle cx="269" cy="263" r="5.5" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
+  <circle cx="269" cy="263" r="2.5" fill="#1D4ED8"/>
 
-  <!-- ② tokenizer_config.json & model_max_length (Top-Center -> Upper-Center of Cutaway) -->
-  <line x1="440" y1="58" x2="430" y2="162" stroke="#BE123C" stroke-width="1.8"/>
-  <circle cx="430" cy="162" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#BE123C" stroke-width="1.5"/>
-  <circle cx="430" cy="162" r="3.2" fill="#BE123C"/>
+  <!-- 2: Teal TOKEN Card (normX=0.245, normY=0.295 -> 310, 217) -->
+  <line x1="242" y1="76" x2="310" y2="217" stroke="#BE123C" stroke-width="1.6"/>
+  <circle cx="310" cy="217" r="5.5" fill="#FFFFFF" stroke="#BE123C" stroke-width="2"/>
+  <circle cx="310" cy="217" r="2.5" fill="#BE123C"/>
 
-  <!-- ③ index.json & safetensors shards (Top-Right -> Right-Center Weight Vault of Cutaway) -->
-  <line x1="730" y1="58" x2="635" y2="195" stroke="#B45309" stroke-width="1.8"/>
-  <circle cx="635" cy="195" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#B45309" stroke-width="1.5"/>
-  <circle cx="635" cy="195" r="3.2" fill="#B45309"/>
+  <!-- 3: Purple GEN Dial Card (normX=0.325, normY=0.235 -> 354, 191) -->
+  <line x1="385" y1="76" x2="354" y2="191" stroke="#7C3AED" stroke-width="1.6"/>
+  <circle cx="354" cy="191" r="5.5" fill="#FFFFFF" stroke="#7C3AED" stroke-width="2"/>
+  <circle cx="354" cy="191" r="2.5" fill="#7C3AED"/>
 
-  <!-- ④ Multimodal text_config & fallback (Left Margin -> Mid-Left of Cutaway) -->
-  <line x1="170" y1="252" x2="255" y2="252" stroke="#4338CA" stroke-width="1.8"/>
-  <circle cx="255" cy="252" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#4338CA" stroke-width="1.5"/>
-  <circle cx="255" cy="252" r="3.2" fill="#4338CA"/>
+  <!-- 4: Amber QUANT Gauge Folder (normX=0.415, normY=0.175 -> 403, 165) -->
+  <line x1="618" y1="76" x2="403" y2="165" stroke="#B45309" stroke-width="1.6"/>
+  <circle cx="403" cy="165" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
+  <circle cx="403" cy="165" r="2.5" fill="#B45309"/>
 
-  <!-- ⑤ Duplicate consolidated* filter (Right Margin -> Mid-Right of Cutaway) -->
-  <line x1="710" y1="262" x2="618" y2="285" stroke="#0F766E" stroke-width="1.8"/>
-  <circle cx="618" cy="285" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#0F766E" stroke-width="1.5"/>
-  <circle cx="618" cy="285" r="3.2" fill="#0F766E"/>
+  <!-- 5: Center Blueprint + Magnifier & Calipers (normX=0.545, normY=0.355 -> 475, 244) -->
+  <line x1="598" y1="168" x2="475" y2="244" stroke="#4338CA" stroke-width="1.6"/>
+  <circle cx="475" cy="244" r="5.5" fill="#FFFFFF" stroke="#4338CA" stroke-width="2"/>
+  <circle cx="475" cy="244" r="2.5" fill="#4338CA"/>
 
-  <!-- ⑥ quant_model_description.json / quantization_config (Bottom-Left -> Lower-Left of Cutaway) -->
-  <line x1="220" y1="462" x2="310" y2="378" stroke="#0F766E" stroke-width="1.8"/>
-  <circle cx="310" cy="378" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#0F766E" stroke-width="1.5"/>
-  <circle cx="310" cy="378" r="3.2" fill="#0F766E"/>
+  <!-- 6: SAFETENSORS Gold Weight Ingots in Vault (normX=0.705, normY=0.655 -> 563, 375) -->
+  <line x1="396" y1="532" x2="563" y2="375" stroke="#B45309" stroke-width="1.6"/>
+  <circle cx="563" cy="375" r="5.5" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
+  <circle cx="563" cy="375" r="2.5" fill="#B45309"/>
 
-  <!-- ⑦ generation_config.json (Bottom-Right -> Lower-Right of Cutaway) -->
-  <line x1="655" y1="462" x2="555" y2="374" stroke="#B45309" stroke-width="1.8"/>
-  <circle cx="555" cy="374" r="6" fill="#FFFFFF" fill-opacity="0.92" stroke="#B45309" stroke-width="1.5"/>
-  <circle cx="555" cy="374" r="3.2" fill="#B45309"/>
+  <!-- 7: INDEX Clipboard on Vault Wall (normX=0.895, normY=0.535 -> 667, 322) -->
+  <line x1="695" y1="532" x2="667" y2="322" stroke="#0F766E" stroke-width="1.6"/>
+  <circle cx="667" cy="322" r="5.5" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
+  <circle cx="667" cy="322" r="2.5" fill="#0F766E"/>
 
-  <!-- Vector Chinese Callout Cards Around Top / Left / Right / Bottom Margins -->
-  <!-- Top-Left Card ① -->
+  <!-- Open, Borderless Typographic Annotations -->
+  <!-- Callout 1: Upper-Left Open Space -->
   <g>
-    <rect x="8" y="6" width="278" height="52" rx="5" fill="#FFFDF9" stroke="#1D4ED8" stroke-width="1.3"/>
-    <rect x="8" y="6" width="24" height="52" rx="4" fill="#DBEAFE"/>
-    <text x="20" y="37" text-anchor="middle" font-size="12" font-weight="800" fill="#1D4ED8">①</text>
-    <text x="38" y="23" font-size="11.2" font-weight="700" fill="#182230">核心蓝图：config.json（或 params.json）</text>
-    <text x="38" y="38" font-size="10" fill="#344054">由 get_config + ModelArchitectureConfig 读取</text>
-    <text x="38" y="52" font-size="9.2" fill="#5E6B7D">定类名、层数、head_dim、MoE、词表与 torch_dtype</text>
+    <circle cx="27" cy="118" r="11" fill="#1D4ED8"/>
+    <text x="27" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">1</text>
+    <text x="44" y="123" font-size="13" font-weight="700" fill="#17211f">核心蓝图：config.json</text>
+    <text x="16" y="143" font-size="11.5" fill="#475569">get_config 读 architectures 与 model_type</text>
+    <text x="16" y="160" font-size="11.5" fill="#475569">定层数、head_dim、MoE 与 torch_dtype</text>
   </g>
 
-  <!-- Top-Center Card ② -->
+  <!-- Callout 2: Top-Left Open Band -->
   <g>
-    <rect x="296" y="6" width="288" height="52" rx="5" fill="#FFFDF9" stroke="#BE123C" stroke-width="1.3"/>
-    <rect x="296" y="6" width="24" height="52" rx="4" fill="#FFE4E6"/>
-    <text x="308" y="37" text-anchor="middle" font-size="12" font-weight="800" fill="#BE123C">②</text>
-    <text x="326" y="23" font-size="11.2" font-weight="700" fill="#182230">分词与模板：tokenizer_config.json / .jinja</text>
-    <text x="326" y="38" font-size="10.2" fill="#BE123C" font-weight="700">坑点 1&amp;2：缺 chat_template 调对话接口即报错；</text>
-    <text x="326" y="52" font-size="10" fill="#344054">model_max_length 过小会取 min 静音截断上下文！</text>
+    <circle cx="27" cy="24" r="11" fill="#BE123C"/>
+    <text x="27" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="44" y="29" font-size="13" font-weight="700" fill="#17211f">分词与长度：tokenizer_config.json</text>
+    <text x="16" y="49" font-size="11.5" font-weight="600" fill="#BE123C">坑 1&amp;2：resolve_chat_template 缺模板即报错</text>
+    <text x="16" y="66" font-size="11.5" fill="#475569">model_max_length 过小会取 min 静音截断</text>
   </g>
 
-  <!-- Top-Right Card ③ -->
+  <!-- Callout 3: Top-Center Open Band -->
   <g>
-    <rect x="594" y="6" width="278" height="52" rx="5" fill="#FFFDF9" stroke="#B45309" stroke-width="1.3"/>
-    <rect x="594" y="6" width="24" height="52" rx="4" fill="#FEF3C7"/>
-    <text x="606" y="37" text-anchor="middle" font-size="12" font-weight="800" fill="#B45309">③</text>
-    <text x="624" y="23" font-size="11.2" font-weight="700" fill="#182230">权重与索引：*.safetensors + index.json</text>
-    <text x="624" y="38" font-size="9.4" fill="#B45309" font-weight="700">坑点 3：weight_map 缺分片抛 FileNotFoundError</text>
-    <text x="624" y="52" font-size="9.6" fill="#344054">由 DefaultModelLoader 按分片索引精确装载张量</text>
+    <circle cx="321" cy="24" r="11" fill="#7C3AED"/>
+    <text x="321" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">3</text>
+    <text x="338" y="29" font-size="13" font-weight="700" fill="#17211f">出厂采样：generation_config.json</text>
+    <text x="310" y="49" font-size="11.5" fill="#475569">由 try_get_generation_config 启动时读取</text>
+    <text x="310" y="66" font-size="11.5" font-weight="600" fill="#7C3AED">坑 4：未显式传参时静音接管 temperature / top_p</text>
   </g>
 
-  <!-- Left Margin Card ④ -->
+  <!-- Callout 4: Top-Right Open Band -->
   <g>
-    <rect x="6" y="214" width="164" height="76" rx="5" fill="#FFFDF9" fill-opacity="0.96" stroke="#4338CA" stroke-width="1.25"/>
-    <text x="14" y="231" font-size="10.8" font-weight="700" fill="#4338CA">④ 多模态剥壳与回退</text>
-    <text x="14" y="247" font-size="10" fill="#344054">语言主干嵌在 text_config</text>
-    <text x="14" y="261" font-size="10" fill="#344054">由 get_hf_text_config 解包；</text>
-    <text x="14" y="275" font-size="9.8" fill="#5E6B7D">缺 architectures 查 model_type</text>
-    <text x="14" y="286" font-size="9.8" fill="#5E6B7D">或传 --hf-overrides</text>
+    <circle cx="623" cy="24" r="11" fill="#B45309"/>
+    <text x="623" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">4</text>
+    <text x="640" y="29" font-size="13" font-weight="700" fill="#17211f">昇腾量化识别：ModelSlim 与 FP8</text>
+    <text x="612" y="49" font-size="11.5" fill="#475569">quant_model_description.json 自动转 ascend</text>
+    <text x="612" y="66" font-size="11.5" font-weight="600" fill="#B45309">原生 fp8 缺 weight_block_size 抛异常退出</text>
   </g>
 
-  <!-- Right Margin Card ⑤ -->
+  <!-- Callout 5: Upper-Right Open Space -->
   <g>
-    <rect x="710" y="224" width="164" height="76" rx="5" fill="#FFFDF9" fill-opacity="0.96" stroke="#0F766E" stroke-width="1.25"/>
-    <text x="718" y="241" font-size="10.8" font-weight="700" fill="#0F766E">⑤ 剔除重复合并权重</text>
-    <text x="718" y="257" font-size="10" fill="#344054">同存 consolidated* 与分片</text>
-    <text x="718" y="271" font-size="10" fill="#344054">时靠 index.json 过滤重复；</text>
-    <text x="718" y="286" font-size="10" font-weight="700" fill="#BE123C">切勿手删 index.json！</text>
+    <circle cx="615" cy="144" r="11" fill="#4338CA"/>
+    <text x="615" y="148" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">5</text>
+    <text x="632" y="149" font-size="13" font-weight="700" fill="#17211f">多模态剥壳与尺寸转换校验</text>
+    <text x="604" y="169" font-size="11.5" fill="#475569">get_hf_text_config 剥壳取 text_config</text>
+    <text x="604" y="186" font-size="11.5" fill="#475569">ModelArchitectureConfig 算 get_head_size</text>
   </g>
 
-  <!-- Bottom-Left Card ⑥ -->
+  <!-- Callout 6: Bottom-Left Open Band -->
   <g>
-    <rect x="8" y="462" width="424" height="33" rx="5" fill="#FFFDF9" stroke="#0F766E" stroke-width="1.3"/>
-    <text x="18" y="476" font-size="10.4" font-weight="700" fill="#0F766E">⑥ 昇腾量化识别：quant_model_description.json / quantization_config</text>
-    <text x="18" y="490" font-size="9.1" fill="#344054">ModelSlim 描述自动触发 --quantization ascend；原生 fp8 缺参数报 NotImplementedError</text>
+    <circle cx="27" cy="548" r="11" fill="#B45309"/>
+    <text x="27" y="552" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">6</text>
+    <text x="44" y="553" font-size="13" font-weight="700" fill="#17211f">权重金库：*.safetensors 物理张量分片</text>
+    <text x="16" y="574" font-size="11.5" fill="#475569">DefaultModelLoader 按分片映射装载权重；漏写精度时</text>
+    <text x="16" y="592" font-size="11.5" fill="#475569">引擎扫描 .safetensors 文件头元信息自动推断真实 dtype</text>
   </g>
 
-  <!-- Bottom-Right Card ⑦ -->
+  <!-- Callout 7: Bottom-Right Open Band -->
   <g>
-    <rect x="444" y="462" width="428" height="33" rx="5" fill="#FFFDF9" stroke="#B45309" stroke-width="1.3"/>
-    <text x="454" y="476" font-size="10.4" font-weight="700" fill="#B45309">⑦ 坑点 4：generation_config.json（try_get_generation_config 读取）</text>
-    <text x="454" y="490" font-size="9.1" fill="#344054">未传采样参数时静音接管 temperature / top_p / eos_token_id；可传 --generation-config vllm</text>
+    <circle cx="475" cy="548" r="11" fill="#0F766E"/>
+    <text x="475" y="552" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">7</text>
+    <text x="492" y="553" font-size="13" font-weight="700" fill="#17211f">分片索引与防重：model.safetensors.index.json</text>
+    <text x="464" y="574" font-size="11.5" font-weight="600" fill="#BE123C">坑 3：weight_map 缺任一分片即抛 FileNotFoundError</text>
+    <text x="464" y="592" font-size="11.5" fill="#475569">filter_duplicate_safetensors_files 靠索引剔除 consolidated* 重复</text>
   </g>
 </svg>

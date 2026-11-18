@@ -1,15 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 340" width="880" height="340" role="img" aria-label="v0.30.0（c09d3e20）量化字节比例与硬件落点总览：左栏对比 Qwen3-8B 单层 o_proj、Qwen3-30B-A3B EP8 单卡单层 16 专家权重显存压缩与原生 fp8_block 跨芯片落点，右栏对比 MoE EP MC2 dispatch 在 quant_mode=2 下的单副本通信载荷减半。">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" width="900" height="340" role="img" aria-label="v0.30.0（c09d3e20）量化字节比例与硬件落点总览：左栏对比 Qwen3-8B 单层 o_proj、Qwen3-30B-A3B EP8 单卡单层 16 专家权重显存压缩与原生 fp8_block 跨芯片落点，右栏对比 MoE EP MC2 dispatch 在 quant_mode=2 下的单副本通信载荷减半。">
   <title>v0.30.0（c09d3e20）量化字节比例与硬件落点总览：左栏对比 Qwen3-8B 单层 o_proj（32 MiB 压至 16 MiB + 16 KiB ≈ 50.05%）、Qwen3-30B-A3B EP8 单卡单层 16 专家（144 MiB 压至 72.0 MiB + 320 KiB 辅助参数 ≈ 0.43%，48 层 6.75 GiB → 3.375 GiB），以及原生 fp8_block 在 Ascend 950 重组 MXFP8（~51.6%，1.031 B/elem）与在 Atlas A2/A3 静默展开回 BF16（100% 零节省）的反差；右栏对比 MoE EP MC2 dispatch 在 quant_mode=2 下单 (token, 专家) 副本张量载荷（H=2048：4,096 B → 2,052 B ≈ 50.10%；H=4096：8,192 B → 4,100 B ≈ 50.05%，返程 combine 默认 quant_mode=0 仍传 BF16）。</title>
+  <desc>关联源码符号：get_weight, get_perchannel_param, weight_scale, weight_offset, w13_weight, w2_weight, w13_weight_scale_fp32, w2_weight_scale, process_weights_after_loading, resolve_block_scales, _mx_quantize, mxfp8_method, dispatch_with_quant, quant_mode, npu_moe_distribute_dispatch_v2, dynamic_scale, combine_quant_mode, W8A8MXFP</desc>
   <defs>
     <marker id="ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/>
     </marker>
   </defs>
 
+  <line x1="462" y1="14" x2="462" y2="326" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="6 5"/>
+
   <!-- 左栏：权重显存压缩与原生 FP8 硬件落点对比 -->
   <g id="panel-weights">
-    <rect x="12" y="12" width="444" height="316" rx="10" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.2"/>
-    <circle cx="28" cy="28" r="10" fill="var(--color-weight, #c78300)"/>
+    <circle cx="28" cy="28" r="10.5" fill="var(--color-weight, #c78300)"/>
     <text x="28" y="32.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1</text>
     <text x="44" y="33" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">权重显存压缩比例与原生 FP8 硬件落点（v0.30.0）</text>
     <line x1="22" y1="43" x2="446" y2="43" stroke="var(--color-surface-sunken, #ece9df)" stroke-width="1.2"/>
@@ -66,9 +68,8 @@
   </g>
 
   <!-- 右栏：MoE EP MC2 dispatch 单 (token, 专家) 通信载荷减半 -->
-  <g id="panel-dispatch">
-    <rect x="468" y="12" width="400" height="316" rx="10" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.2"/>
-    <circle cx="484" cy="28" r="10" fill="var(--color-comm, #9a4b86)"/>
+  <g id="panel-dispatch" transform="translate(14, 0)">
+    <circle cx="484" cy="28" r="10.5" fill="var(--color-comm, #9a4b86)"/>
     <text x="484" y="32.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
     <text x="500" y="33" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">EP MC2 dispatch 单副本载荷（quant_mode=2）</text>
     <line x1="478" y1="43" x2="858" y2="43" stroke="var(--color-surface-sunken, #ece9df)" stroke-width="1.2"/>

@@ -4,8 +4,8 @@ html[data-site] { --rust: var(--reader-accent); }
 html[data-site] body {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  grid-template-rows: 64px minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) 372px;
+  grid-template-rows: 60px minmax(0, 1fr) auto auto;
   height: 100svh;
   background: var(--reader-sidebar);
 }
@@ -22,36 +22,47 @@ html[data-site] header {
   border-left: 1px solid var(--reader-line); border-bottom: 1px solid var(--reader-line);
   background: var(--reader-paper);
 }
-html[data-site] .vendors { background: var(--reader-sidebar); padding: 3px; gap: 3px; border-radius: 5px; box-shadow: none; }
-html[data-site] .vendors button { padding: 8px 16px; font-size: var(--journey-text-compact); letter-spacing: 0; border-radius: 3px; }
-html[data-site] .vendors .active { background: var(--reader-active); color: var(--reader-accent); }
+html[data-site] .vendors { background: var(--reader-sidebar); padding: 3px; gap: 3px; border-radius: 6px; box-shadow: none; }
+html[data-site] .vendors button { padding: 7px 16px; font-size: var(--journey-text-compact); letter-spacing: 0; border-radius: 4px; }
+html[data-site] .vendors .active { background: var(--reader-active); color: var(--reader-accent); font-weight: 600; }
 html[data-site] .step-note {
-  position: static; grid-column: 1; grid-row: 2; align-self: start; z-index: 1;
-  justify-self: center; text-align: center;
-  margin: 0 24px; max-width: 440px; pointer-events: none;
-  color: var(--muted); font-size: var(--journey-text-compact); line-height: 1.8; letter-spacing: 0;
+  position: static; grid-column: 1; grid-row: 2; align-self: start; justify-self: center; z-index: 2;
+  margin: 10px 20px 0; padding: 4px 14px; max-width: calc(100% - 40px); pointer-events: none;
+  border-radius: 999px; background: rgba(251, 250, 246, 0.86); border: 1px solid rgba(200, 208, 198, 0.6);
+  color: var(--ink2); font-size: var(--journey-text-compact); line-height: 1.5; letter-spacing: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 html[data-site] .panel:has(#diagram) {
   position: static; grid-column: 2; grid-row: 2 / 5;
   display: flex; flex-direction: column;
   width: auto; max-width: none; max-height: none; min-height: 0; min-width: 0;
-  margin: 0; padding: 24px; overflow-y: auto;
+  margin: 0; padding: 20px 22px 80px; overflow-y: auto;
   border: 0; border-left: 1px solid var(--reader-line); border-radius: 0;
+  background: var(--reader-paper); box-shadow: none;
 }
 html[data-site] .panel > * { flex-shrink: 0; }
-html[data-site] .panel .eyebrow { order: 0; color: var(--muted); letter-spacing: 1px; font-size: var(--journey-text-label); }
-html[data-site] .panel h2 { order: 1; margin: 12px 0; font-size: 21px; letter-spacing: 0; }
-html[data-site] #description { order: 2; }
-html[data-site] .panel .facts { order: 3; margin: 20px 0 0; padding-top: 16px; border-color: var(--reader-line); }
-html[data-site] .facts b { font-size: 19px; }
-html[data-site] .panel .actions { order: 4; margin-top: 20px; }
-html[data-site] .actions button { border-color: var(--reader-line); border-radius: 4px; font-size: var(--journey-text-compact); }
+html[data-site] .model-picker { order: 0; margin: 0 0 16px; padding-bottom: 14px; border-color: var(--reader-line); }
+html[data-site] .model-picker-label { color: var(--muted); font-size: var(--journey-text-label); margin-bottom: 8px; }
+html[data-site] .model-grid button { background: var(--reader-sidebar); border-color: var(--reader-line); border-radius: 6px; padding: 8px 10px; }
+html[data-site] .model-grid button:hover:not(.active) { border-color: var(--reader-accent); background: var(--reader-active); }
+html[data-site] .model-grid button.active { background: var(--reader-active); border-color: var(--reader-accent); }
+html[data-site] .model-grid button b { font-size: var(--journey-text-compact); color: var(--ink); }
+html[data-site] .model-grid button.active b { color: var(--reader-accent); }
+html[data-site] .model-grid button small { font-size: 11.5px; color: var(--muted); }
+html[data-site] .panel .eyebrow { order: 1; color: var(--muted); letter-spacing: 0.5px; font-size: var(--journey-text-label); }
+html[data-site] .eyebrow span.badge { background: var(--reader-sidebar); color: var(--ink2); border: 1px solid var(--reader-line); font-size: 11.5px; }
+html[data-site] .panel h2 { order: 2; margin: 10px 0; font-size: 20px; letter-spacing: 0; }
+html[data-site] #description { order: 3; }
+html[data-site] .panel .facts { order: 4; margin: 16px 0 0; padding-top: 14px; border-color: var(--reader-line); }
+html[data-site] .facts b { font-size: 14.5px; font-weight: 600; color: var(--ink); }
+html[data-site] .panel .actions { order: 5; margin-top: 16px; }
+html[data-site] .actions button { border-color: var(--reader-line); border-radius: 5px; font-size: var(--journey-text-compact); }
 html[data-site] .actions .primary { background: var(--reader-accent); color: white; border-color: var(--reader-accent); }
-html[data-site] #components { order: 5; max-height: none; overflow: visible; }
+html[data-site] #components { order: 6; max-height: none; overflow: visible; }
 html[data-site] #components:empty { display: none; }
-html[data-site] .component-list button { font-size: var(--journey-text-compact); background: var(--reader-sidebar); border-radius: 4px; }
-html[data-site] .component-list button.active { color: var(--reader-accent); background: var(--reader-active); }
-html[data-site] #diagram { order: 6; margin: 24px 0 0; padding: 16px 0; border-color: var(--reader-line); }
+html[data-site] .component-list button { font-size: var(--journey-text-compact); background: var(--reader-sidebar); border-color: var(--reader-line); border-radius: 4px; }
+html[data-site] .component-list button.active { color: var(--reader-accent); background: var(--reader-active); border-color: var(--reader-accent); font-weight: 600; }
+html[data-site] #diagram { order: 7; margin: 20px 0 0; padding: 14px 0; border-color: var(--reader-line); }
 html[data-site] .diagram-heading { color: var(--reader-accent); }
 html[data-site] .diagram-heading button { border-color: var(--reader-line); border-radius: 3px; }
 html[data-site] .panel #diagram .diagram-heading { font-size: var(--journey-text-body); }
@@ -59,55 +70,63 @@ html[data-site] .panel #diagram .diagram-heading button { font-size: var(--journ
 html[data-site] .panel #diagram .diagram-note { font-size: var(--journey-text-body); }
 /* The imported diagram kit sets its key copy with !important. */
 html[data-site] .panel #diagram .diagram-key p { font-size: var(--journey-text-body) !important; }
-html[data-site] .panel #diagram.diagram-expanded { padding: 24px; background: var(--reader-paper); border-color: var(--reader-line); }
-html[data-site] .panel .boundary { order: 7; display: block; margin: 16px 0; }
-html[data-site] #source { order: 8; align-self: start; }
+html[data-site] .panel #diagram.diagram-expanded { padding: 20px; background: var(--reader-paper); border-color: var(--reader-line); }
+html[data-site] .panel .boundary { order: 8; display: block; margin: 14px 0 0; background: var(--reader-sidebar); border: 1px solid var(--reader-line); }
+html[data-site] #wikilinks { order: 9; margin-top: 12px; }
+html[data-site] #wikilinks a { background: var(--reader-sidebar); border-color: var(--reader-line); color: var(--ink2); font-size: 12px; }
+html[data-site] #wikilinks a:hover { border-color: var(--reader-accent); color: var(--reader-accent); background: var(--reader-active); }
+html[data-site] #source { order: 10; align-self: start; margin-top: 12px; }
 html[data-site] .dock {
   position: static; grid-column: 1; grid-row: 1; transform: none;
-  justify-self: center; align-self: center; max-width: calc(100% - 24px);
+  justify-self: center; align-self: center; max-width: calc(100% - 20px);
   align-items: stretch; gap: 3px; padding: 3px; margin: 0;
   background: var(--reader-paper); border: 1px solid var(--reader-line);
   box-shadow: none; border-radius: 6px;
 }
 html[data-site] .dock button {
-  min-width: 0; min-height: 36px; flex: 1; padding: 7px 16px;
+  min-width: 0; min-height: 36px; flex: 0 1 auto; padding: 6px 14px;
   border: 1px solid transparent; border-radius: 4px;
 }
 html[data-site] .dock button span { display: none; }
-html[data-site] .dock button b { font-size: var(--journey-text-body); font-weight: 500; line-height: 20px; letter-spacing: 0; white-space: nowrap; }
+html[data-site] .dock button b { font-size: var(--journey-text-compact); font-weight: 500; line-height: 20px; letter-spacing: 0; white-space: nowrap; }
 html[data-site] .dock button.active { color: white; background: var(--reader-accent); border-color: var(--reader-accent); }
 html[data-site] .dock button:hover:not(.active),
 html[data-site] .viewtools button:hover { border-color: var(--reader-accent); background: var(--reader-active); color: var(--reader-accent); }
 html[data-site] .viewtools {
   position: static; grid-column: 1; grid-row: 3; flex-direction: row; flex-wrap: wrap;
   justify-self: center; justify-content: center; align-self: center;
-  max-width: calc(100% - 24px); margin: 10px auto; padding: 3px; gap: 3px;
+  max-width: calc(100% - 20px); margin: 8px auto; padding: 3px; gap: 3px;
   background: var(--reader-paper); border: 1px solid var(--reader-line); border-radius: 6px;
 }
 html[data-site] .viewtools button {
-  min-height: 36px; padding: 7px 14px; font-size: var(--journey-text-compact); font-weight: 500; line-height: 20px;
+  min-height: 34px; padding: 6px 12px; font-size: var(--journey-text-compact); font-weight: 500; line-height: 20px;
   background: transparent; border: 1px solid transparent; border-radius: 4px;
 }
 html[data-site] .viewtools button[aria-pressed="true"] { background: var(--reader-accent); border-color: var(--reader-accent); color: white; }
 html[data-site] .transport {
   position: static; grid-column: 1; grid-row: 4; transform: none;
-  justify-content: center; padding: 0 20px 12px; background: transparent; font-size: var(--journey-text-compact); color: var(--muted);
+  justify-content: center; padding: 0 16px 10px; background: transparent; font-size: var(--journey-text-compact); color: var(--muted);
 }
-html[data-site] .transport input { width: min(260px, 40vw); accent-color: var(--reader-accent); }
+html[data-site] .transport input[type="range"] { width: min(210px, 34vw); accent-color: var(--reader-accent); }
+html[data-site] .spread-presets button { background: var(--reader-paper); border-color: var(--reader-line); color: var(--ink2); font-size: 12px; }
+html[data-site] .spread-presets button:hover { border-color: var(--reader-accent); color: var(--reader-accent); background: var(--reader-active); }
 html[data-site] .panel p { font-size: var(--journey-text-body); color: var(--ink2); }
 html[data-site] .panel .boundary,
-html[data-site] .panel a,
+html[data-site] .panel a.source-link,
 html[data-site] .facts small { font-size: var(--journey-text-label); color: var(--muted); }
 html[data-site] .loading { background: var(--reader-sidebar); }
 @media (max-width: 850px) {
   html[data-site] body { display: flex; flex-direction: column; overflow-y: auto; }
-  html[data-site] header { min-height: 48px; flex: none; order: 0; border-left: 0; }
-  html[data-site] .dock { flex: none; order: 1; margin: 10px auto 0; }
-  html[data-site] .dock button { padding-inline: 8px; }
+  html[data-site] header { min-height: 46px; flex: none; order: 0; border-left: 0; }
+  html[data-site] .dock { flex: none; order: 1; margin: 8px auto 0; max-width: calc(100% - 12px); padding: 2px; gap: 2px; }
+  html[data-site] .dock button { padding: 5px 6px; min-height: 32px; }
+  html[data-site] .dock button b { font-size: 12px; }
   html[data-site] .step-note { display: none; }
-  html[data-site] #stage { flex: none; height: 48svh; min-height: 280px; order: 2; }
-  html[data-site] .viewtools { order: 3; }
-  html[data-site] .viewtools button { padding-inline: 8px; }
-  html[data-site] .transport { flex: none; justify-content: center; order: 4; }
-  html[data-site] .panel:has(#diagram) { flex: none; width: 100%; padding: 24px; border-left: 0; border-top: 1px solid var(--reader-line); order: 5; }
+  html[data-site] #stage { flex: none; height: 46svh; min-height: 270px; order: 2; }
+  html[data-site] .callout-tag { max-width: 145px; padding: 4px 7px; }
+  html[data-site] .callout-tag small { display: none; }
+  html[data-site] .viewtools { order: 3; margin: 6px auto; }
+  html[data-site] .viewtools button { padding: 5px 8px; min-height: 32px; font-size: 12px; }
+  html[data-site] .transport { flex: none; justify-content: center; order: 4; padding-bottom: 8px; }
+  html[data-site] .panel:has(#diagram) { flex: none; width: 100%; padding: 20px; border-left: 0; border-top: 1px solid var(--reader-line); order: 5; }
 }

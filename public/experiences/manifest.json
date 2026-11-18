@@ -1676,34 +1676,52 @@
       "sha256": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc"
     },
     {
+      "path": "whole/assets/ascend-950dt.glb",
+      "bytes": 3635312,
+      "sourceSha256": "ec8f8678991e29ab2216d3b85cbd4b31d5c096ea2f819199901c320edc1d15f6",
+      "sha256": "ec8f8678991e29ab2216d3b85cbd4b31d5c096ea2f819199901c320edc1d15f6"
+    },
+    {
+      "path": "whole/assets/atlas-800-3000.glb",
+      "bytes": 1989760,
+      "sourceSha256": "47ef1cc4f6c23c817e4757e5c5b2439f63b745d21bb9f258b46f89634d33d09d",
+      "sha256": "47ef1cc4f6c23c817e4757e5c5b2439f63b745d21bb9f258b46f89634d33d09d"
+    },
+    {
+      "path": "whole/assets/atlas-800i-a3.glb",
+      "bytes": 4169708,
+      "sourceSha256": "f04fd60a749dcb55694b3f8bef64015eadf18039c0646c4d64c341d6d3547ba0",
+      "sha256": "f04fd60a749dcb55694b3f8bef64015eadf18039c0646c4d64c341d6d3547ba0"
+    },
+    {
       "path": "whole/assets/atlas-800t-a2.glb",
-      "bytes": 10462228,
-      "sourceSha256": "0e88cf4c4fa4af270872aa49ff7b571a81de698a5cbf20afc14973983c86e1b1",
-      "sha256": "0e88cf4c4fa4af270872aa49ff7b571a81de698a5cbf20afc14973983c86e1b1"
+      "bytes": 3352744,
+      "sourceSha256": "b2fad808e28a51f1ab01245313f621caf5d73f8e1e9ea358ebdad7aa3c4f5fb0",
+      "sha256": "b2fad808e28a51f1ab01245313f621caf5d73f8e1e9ea358ebdad7aa3c4f5fb0"
     },
     {
       "path": "whole/assets/cabinet-42u.glb",
-      "bytes": 1500424,
-      "sourceSha256": "84862e0a98c3d67aa717d24247cc6806a36ee25454c240d578edbb5b40780f15",
-      "sha256": "84862e0a98c3d67aa717d24247cc6806a36ee25454c240d578edbb5b40780f15"
+      "bytes": 417892,
+      "sourceSha256": "fed6b48d2ac2accc240fd20ef95461621236f98928b0000536c695dd4fff7a94",
+      "sha256": "fed6b48d2ac2accc240fd20ef95461621236f98928b0000536c695dd4fff7a94"
     },
     {
       "path": "whole/assets/dgx-h100.glb",
-      "bytes": 9887960,
-      "sourceSha256": "82ddf554c0ce4b60cb8b01380eeaa9e9cc4cada6547c9b33b9fe503aff26f9f2",
-      "sha256": "82ddf554c0ce4b60cb8b01380eeaa9e9cc4cada6547c9b33b9fe503aff26f9f2"
+      "bytes": 3473316,
+      "sourceSha256": "59f45864a417c29f9949c2205f5da20826dcce7eaa49fd314b2fb7e039afc6bb",
+      "sha256": "59f45864a417c29f9949c2205f5da20826dcce7eaa49fd314b2fb7e039afc6bb"
     },
     {
       "path": "whole/explain.js",
-      "bytes": 2489,
-      "sourceSha256": "9e75b7ec43323b329ed43855a5043794133fe1d3bc091c47fdfa001618b69c27",
-      "sha256": "9e75b7ec43323b329ed43855a5043794133fe1d3bc091c47fdfa001618b69c27"
+      "bytes": 6710,
+      "sourceSha256": "b82ba1e2c0ce4d04a58e2d50bd474533a3c92193606d562e50da934f7628eaa7",
+      "sha256": "b82ba1e2c0ce4d04a58e2d50bd474533a3c92193606d562e50da934f7628eaa7"
     },
     {
       "path": "whole/index.html",
-      "bytes": 7759,
+      "bytes": 12311,
       "sourceSha256": "d7e2007c613e3011328823f9becf4d60909e86d78714152c30f333c57b745075",
-      "sha256": "5d172f7b501ffa46fcb3cd9bb9b99a1f5a05387e1a67804927c4a8a79d5dfe77"
+      "sha256": "ee2c6afb1262f3197f5d94eece4c1eac7b983e6e1bd39c42b3beda94c9ccfc54"
     },
     {
       "path": "whole/readable-diagrams.css",
@@ -1713,15 +1731,15 @@
     },
     {
       "path": "whole/README.md",
-      "bytes": 2887,
-      "sourceSha256": "a17b0305f4966045a5d7ce8f7e2fa82516706c1c11bde9d82719e72dad25b367",
-      "sha256": "a17b0305f4966045a5d7ce8f7e2fa82516706c1c11bde9d82719e72dad25b367"
+      "bytes": 3713,
+      "sourceSha256": "fd40335ff7c07e806755ebb641a1ba472604b6f40cf35062d9d467881ed1a570",
+      "sha256": "fd40335ff7c07e806755ebb641a1ba472604b6f40cf35062d9d467881ed1a570"
     },
     {
       "path": "whole/viewer.js",
-      "bytes": 15768,
+      "bytes": 41705,
       "sourceSha256": "0d42479a8c5585f7cc2b9032bd7305257f053e6ac70e293f77216a4c8e758fff",
-      "sha256": "dc7cba893db3fbec34c830e2eef65319d719e4fdcc4c1bb8c529ebe56d6cfea5"
+      "sha256": "7643e36170a5e808c15a68ca2bf4d278e29644993d65b723aecad14b2fb1ac8b"
     }
   ]
 }

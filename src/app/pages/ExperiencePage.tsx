@@ -21,15 +21,17 @@ export function ExperiencePage({ kind }: { kind: "model" | "hardware" }) {
   const segment = Number(params.get("segment"));
   const modelEntry = Number.isInteger(segment) && segment >= 1 && segment <= 40 ? `&segment=${segment}` : "";
   const vendor = params.get("vendor") === "nvidia" ? "nvidia" : "ascend";
+  const hardwareModel = params.get("model");
+  const modelParam = hardwareModel && /^[a-z0-9-]+$/.test(hardwareModel) ? `&model=${hardwareModel}` : "";
   const level = params.has("level")
-    ? Math.max(0, Math.min(3, Number(params.get("level")) || 0))
+    ? Math.max(0, Math.min(4, Number(params.get("level")) || 0))
     : hardwareModule
       ? 3
       : 0;
   const path =
     kind === "model"
       ? `glm-flow/master/${view.path}?site=1${view.id === "play" ? modelEntry : ""}`
-      : `whole/index.html?site=1&vendor=${vendor}&level=${level}`;
+      : `whole/index.html?site=1&vendor=${vendor}&level=${level}${modelParam}`;
   const src = `${import.meta.env.BASE_URL}experiences/${path}`;
   const title = kind === "model" ? "GLM 模型计算" : "硬件 3D";
   const viewTitle = kind === "model" ? view.title : "机柜与整机";

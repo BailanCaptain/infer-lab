@@ -1,14 +1,85 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>算力群岛 · 机柜到芯片</title>
 <style>
-:root{font-family:var(--journey-font-sans);color:#343f38;background:#dce2da;--paper:#f5f0e2;--ink:#343f38;--rust:#a9553e}*{box-sizing:border-box}body{margin:0;overflow:hidden}button,input{font:inherit}button{cursor:pointer;border:0;color:inherit;background:transparent}button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--rust);outline-offset:4px}button:disabled{opacity:.35;cursor:default}#stage{position:absolute;inset:0}canvas{display:block;touch-action:none}header{position:absolute;top:30px;left:36px;right:36px;display:flex;align-items:center;justify-content:space-between;pointer-events:none}.brand{display:flex;gap:17px;align-items:center}.seal{background:var(--rust);color:var(--paper);writing-mode:vertical-rl;padding:12px 8px;letter-spacing:5px;font:18px serif}.brand h1{font-family:var(--journey-font-title);font-size:32px;letter-spacing:7px;font-weight:400;margin:0 0 9px}.brand small{font-size:9px;letter-spacing:3px}.vendors{pointer-events:auto;display:flex;background:#f5f0e2e8;padding:5px;gap:5px;box-shadow:0 5px 20px #34423809}.vendors button{font-size:12px;padding:13px 17px;letter-spacing:1px}.vendors .active{background:#e3e5d8}.step-note{position:absolute;top:121px;left:40px;font-size:11px;color:#5f6d61;letter-spacing:1px}.panel{position:absolute;right:35px;top:155px;width:285px;background:#f5f0e2ed;padding:27px 26px;box-shadow:0 15px 35px #3c4c3f0a}.eyebrow{font-size:10px;letter-spacing:3px;color:#6f786a}.panel h2{font:26px/1.35 var(--journey-font-title);letter-spacing:1px;margin:23px 0 13px}.panel p{font-size:12px;line-height:1.9;color:#677164;margin:0}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border-top:1px solid #c7cabc;margin-top:22px;padding-top:20px}.facts small{display:block;font-size:10px;color:#747b70;margin-bottom:8px}.facts b{font:20px Georgia,serif;font-weight:400}.actions{display:flex;gap:7px;margin-top:23px}.actions button{padding:12px;font-size:12px;border:1px solid #c7cbbc;flex:1}.actions .primary{background:#3f594c;color:#faf4e5;border-color:#3f594c}.component-list{margin-top:18px;display:flex;flex-wrap:wrap;gap:6px;max-height:180px;overflow:auto}.component-list button{font-size:10px;padding:7px 9px;background:#e4e6da}.component-list button.active{background:#a9553e;color:#fff}.panel .boundary{font-size:10px;line-height:1.7;margin-top:20px;color:#818577}.panel a{color:#697958;font-size:10px;text-decoration:none;border-bottom:1px solid #a9b39a}.dock{position:absolute;bottom:42px;left:50%;transform:translateX(-50%);display:flex;background:#f6f0e2ec;padding:7px 12px;box-shadow:0 12px 35px #35423812;border-radius:5px}.dock button{min-width:97px;padding:13px 16px}.dock button span{display:block;font:21px Georgia,serif;margin-bottom:8px;color:#8a907e}.dock button b{font-size:11px;font-weight:400;letter-spacing:2px}.dock button.active{background:#e6e5d5}.dock button.active span{color:#a9553e}.transport{position:absolute;bottom:150px;left:50%;transform:translateX(-50%);display:flex;gap:15px;align-items:center;background:#f4f0e2da;padding:11px 17px;font-size:11px}.transport[hidden]{display:none}input{accent-color:#a9553e;width:150px}.footer{position:absolute;bottom:16px;left:35px;right:35px;display:flex;justify-content:space-between;color:#6d776a;font-size:10px;letter-spacing:1px}.footer a{color:inherit;text-decoration:none;margin-left:14px}.viewtools{position:absolute;left:37px;bottom:60px;display:flex;gap:6px}.viewtools button{padding:9px 12px;font-size:11px;background:#f5f0e2df}.loading{position:absolute;inset:0;display:grid;place-content:center;background:#dce2da;z-index:8;gap:15px;text-align:center}.loading[hidden]{display:none}.loading b{font:28px var(--journey-font-title);letter-spacing:6px}.loading span{font-size:12px;color:#71806b}.stage-label{position:absolute;left:40px;top:169px;font:13px Georgia,serif;letter-spacing:2px;color:#87907e}.hint{position:absolute;left:40px;bottom:115px;font-size:10px;color:#65725f;max-width:225px;line-height:1.7}
-@media(max-width:900px){header{top:20px;left:20px;right:20px}.brand h1{font-size:25px}.brand small{font-size:8px;letter-spacing:1px}.seal{display:none}.vendors button{padding:10px;font-size:10px}.panel{top:auto;bottom:155px;right:18px;width:220px;padding:18px}.panel h2{font-size:20px;margin:12px 0}.panel p{font-size:11px}.facts{margin-top:12px;padding-top:12px}.component-list{max-height:90px}.panel .boundary{display:none}.step-note{left:20px;top:92px;font-size:10px}.stage-label{left:20px;top:122px}.dock{bottom:48px}.dock button{min-width:75px;padding:10px}.dock button b{letter-spacing:0}.transport{bottom:122px;left:22px;transform:none;padding:8px}.transport input{width:85px}.viewtools{left:20px;bottom:175px;flex-direction:column}.hint{display:none}.footer{left:20px;right:20px;font-size:8px}.footer a{margin-left:5px}}
+:root{font-family:var(--journey-font-sans);color:#343f38;background:#dce2da;--paper:#f5f0e2;--ink:#343f38;--rust:#a9553e}*{box-sizing:border-box}body{margin:0;overflow:hidden}button,input{font:inherit}button{cursor:pointer;border:0;color:inherit;background:transparent}button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--rust);outline-offset:3px}button:disabled{opacity:.38;cursor:default}
+#stage,header,.dock,.viewtools,.transport,.actions,.component-list,.model-picker{-webkit-user-select:none;user-select:none}
+#stage{position:absolute;inset:0;overflow:hidden}canvas{display:block;touch-action:none}
+#callouts{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden}
+#callout-lines{position:absolute;inset:0;width:100%;height:100%}
+.callout-tag{position:absolute;max-width:196px;padding:6px 10px;border-radius:5px;background:#faf7efeef0;background:rgba(251,249,243,.93);border:1px solid rgba(120,136,123,.38);box-shadow:0 4px 14px rgba(30,42,35,.08);transform:translate(-50%,-50%);transition:opacity .18s ease}
+.callout-tag b{display:block;font-size:11.5px;font-weight:600;color:#233129;line-height:1.35;margin-bottom:2px}
+.callout-tag small{display:block;font-size:10.5px;color:#5c6b60;line-height:1.4}
+#hover-pill{position:absolute;padding:5px 10px;border-radius:999px;background:rgba(33,46,38,.90);color:#faf7ef;font-size:11.5px;letter-spacing:.2px;white-space:nowrap;pointer-events:none;transform:translate(-50%,-135%);box-shadow:0 4px 12px rgba(20,30,24,.18);z-index:3}
+#hover-pill[hidden],#callouts[hidden]{display:none}
+header{position:absolute;top:30px;left:36px;right:36px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;z-index:4}.brand{display:flex;gap:17px;align-items:center}.seal{background:var(--rust);color:var(--paper);writing-mode:vertical-rl;padding:12px 8px;letter-spacing:5px;font:18px serif}.brand h1{font-family:var(--journey-font-title);font-size:32px;letter-spacing:7px;font-weight:400;margin:0 0 9px}.brand small{font-size:9px;letter-spacing:3px}.vendors{pointer-events:auto;display:flex;background:#f5f0e2e8;padding:4px;gap:4px;box-shadow:0 5px 20px #34423809;border-radius:6px}.vendors button{font-size:12px;padding:10px 15px;letter-spacing:.5px;border-radius:4px;font-weight:500}.vendors .active{background:#e3e5d8}
+.step-note{position:absolute;top:116px;left:40px;font-size:11.5px;color:#58665a;letter-spacing:.5px;z-index:2;pointer-events:none}
+.panel{position:absolute;right:32px;top:106px;bottom:28px;width:316px;background:#f5f0e2f0;padding:22px 22px;box-shadow:0 15px 35px #3c4c3f0d;overflow-y:auto;z-index:4;border-radius:8px}
+.model-picker{margin:0 0 16px;padding-bottom:14px;border-bottom:1px solid #cfd4c7}
+.model-picker[hidden]{display:none}
+.model-picker-label{display:block;font-size:11px;color:#667368;margin-bottom:8px;font-weight:500;letter-spacing:.5px}
+.model-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.model-grid button{text-align:left;padding:8px 9px;border-radius:5px;border:1px solid #d1d6ca;background:#eef0e6;transition:border-color .15s,background .15s}
+.model-grid button:hover:not(.active){border-color:#8d9d8e;background:#f5f6ef}
+.model-grid button.active{border-color:var(--rust);background:#efeae0}
+.model-grid button b{display:block;font-size:12px;font-weight:600;color:#243129;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.model-grid button.active b{color:var(--rust)}
+.model-grid button small{display:block;font-size:10.5px;color:#637065;margin-top:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eyebrow{font-size:10.5px;letter-spacing:1.5px;color:#6c7668;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.eyebrow span.badge{font-size:10.5px;letter-spacing:0;padding:2px 7px;border-radius:999px;background:#e5e8de;color:#415347;font-weight:500}
+.panel h2{font:24px/1.32 var(--journey-font-title);letter-spacing:.5px;margin:12px 0 10px}
+.panel p{font-size:12.5px;line-height:1.82;color:#576357;margin:0}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 8px;border-top:1px solid #c7cabc;margin-top:16px;padding-top:14px}
+.facts div{min-width:0}
+.facts small{display:block;font-size:10.5px;color:#6e766a;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.facts b{display:block;font:15px/1.3 var(--journey-font-sans);font-weight:600;color:#253129}
+.actions{display:flex;gap:7px;margin-top:18px}.actions button{padding:10px 12px;font-size:12.5px;border:1px solid #c7cbbc;flex:1;border-radius:4px;font-weight:500}.actions .primary{background:#3f594c;color:#faf4e5;border-color:#3f594c}
+.component-list{margin-top:14px;display:flex;flex-wrap:wrap;gap:5px}.component-list button{font-size:11.5px;padding:6px 9px;background:#e4e6da;border-radius:4px;border:1px solid transparent}.component-list button:hover:not(.active){border-color:#9aaa9c}.component-list button.active{background:var(--rust);color:#fff}
+.panel .boundary{font-size:11px;line-height:1.7;margin-top:16px;color:#737b6f;padding:9px 11px;background:#eceee5;border-radius:5px}
+.wiki-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.wiki-links:empty{display:none}
+.wiki-links a{display:inline-flex;align-items:center;gap:3px;padding:4px 8px;border-radius:4px;background:#e8ece4;border:1px solid #cbd3c6;color:#354a3e;font-size:11px;text-decoration:none}
+.wiki-links a:hover{border-color:var(--rust);color:var(--rust)}
+.panel a.source-link{display:inline-block;margin-top:12px;color:#55684b;font-size:11px;text-decoration:none;border-bottom:1px solid #a9b39a}
+.dock{position:absolute;bottom:38px;left:50%;transform:translateX(-50%);display:flex;background:#f6f0e2ec;padding:5px 8px;box-shadow:0 12px 35px #35423812;border-radius:6px;gap:4px;z-index:4}.dock button{min-width:86px;padding:10px 13px;border-radius:4px}.dock button span{display:block;font:18px Georgia,serif;margin-bottom:5px;color:#8a907e}.dock button b{font-size:11.5px;font-weight:500;letter-spacing:1px}.dock button.active{background:#e6e5d5}.dock button.active span{color:var(--rust)}
+.transport{position:absolute;bottom:128px;left:50%;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;background:#f4f0e2e4;padding:8px 14px;font-size:11.5px;border-radius:6px;z-index:4}.transport[hidden]{display:none}input[type=range]{accent-color:var(--rust);width:150px;cursor:pointer}
+.spread-presets{display:flex;gap:4px}
+.spread-presets button{padding:3px 8px;font-size:11px;border-radius:4px;border:1px solid #c6cec0;background:#fbfaf5;color:#425247}
+.spread-presets button:hover{border-color:var(--rust);color:var(--rust)}
+.footer{position:absolute;bottom:12px;left:35px;right:35px;display:flex;justify-content:space-between;color:#6d776a;font-size:10px;letter-spacing:1px;z-index:3}.footer a{color:inherit;text-decoration:none;margin-left:14px}
+.viewtools{position:absolute;left:36px;bottom:48px;display:flex;gap:5px;z-index:4}.viewtools button{padding:8px 11px;font-size:11.5px;background:#f5f0e2e6;border-radius:4px}
+.loading{position:absolute;inset:0;display:grid;place-content:center;background:#dce2da;z-index:8;gap:14px;text-align:center}.loading[hidden]{display:none}.loading b{font:26px var(--journey-font-title);letter-spacing:4px}.loading span{font-size:12.5px;color:#657460}.loading button{justify-self:center;padding:8px 16px;border-radius:5px;background:var(--rust);color:#fff;font-size:12.5px}
+.stage-label{position:absolute;left:40px;top:152px;font:12.5px Georgia,serif;letter-spacing:2px;color:#808a78;z-index:2;pointer-events:none}
+.hint{position:absolute;left:40px;bottom:104px;font-size:10.5px;color:#65725f;max-width:235px;line-height:1.65;z-index:2;pointer-events:none}
+@media(max-width:900px){header{top:16px;left:16px;right:16px}.brand h1{font-size:22px}.brand small{font-size:8px;letter-spacing:1px}.seal{display:none}.vendors button{padding:8px 12px;font-size:11px}.panel{top:auto;bottom:136px;right:14px;width:246px;max-height:46svh;padding:16px}.panel h2{font-size:18px;margin:10px 0}.panel p{font-size:11.5px}.facts{margin-top:12px;padding-top:12px}.step-note{left:16px;top:82px;font-size:10.5px}.stage-label{left:16px;top:108px}.dock{bottom:38px;padding:4px}.dock button{min-width:60px;padding:7px 8px}.dock button b{letter-spacing:0;font-size:11px}.transport{bottom:102px;left:16px;transform:none;padding:6px 10px}.transport input[type=range]{width:95px}.viewtools{left:16px;bottom:154px;flex-direction:column}.hint{display:none}.footer{left:16px;right:16px;font-size:8.5px}}
 </style><link rel="stylesheet" href="../diagram-kit.css"><script type="importmap">{"imports":{"three":"../vendor/build/three.module.js","three/addons/":"../vendor/examples/jsm/"}}</script><link rel="stylesheet" href="../hardware-site.css"><script>if(new URLSearchParams(location.search).get("site")==="1")document.documentElement.dataset.site="true";</script><link rel="stylesheet" href="../typography.css"></head>
-<body><div id="stage" aria-label="可旋转的硬件三维场景"></div><header><div class="brand"><span class="seal">算力</span><div><h1>算力群岛</h1><small>A FIELD GUIDE TO AI HARDWARE</small></div></div><div class="vendors" role="group" aria-label="硬件平台"><button data-vendor="nvidia" class="active" aria-pressed="true">NVIDIA</button><button data-vendor="ascend" aria-pressed="false">华为 ASCEND</button></div></header>
+<body>
+<div id="stage" aria-label="可旋转的硬件三维场景">
+  <div id="callouts" hidden><svg id="callout-lines" aria-hidden="true"></svg><div id="callout-tags"></div></div>
+  <div id="hover-pill" hidden></div>
+</div>
+<header><div class="brand"><span class="seal">算力</span><div><h1>算力群岛</h1><small>A FIELD GUIDE TO AI HARDWARE</small></div></div><div class="vendors" role="group" aria-label="硬件平台"><button data-vendor="nvidia" class="active" aria-pressed="true">NVIDIA</button><button data-vendor="ascend" aria-pressed="false">华为 ASCEND</button></div></header>
 <div class="step-note" id="stepnote">从一座机柜，走进计算发生的地方。</div><div class="stage-label" id="stagecode">01 / CABINET</div>
-<aside class="panel"><div class="eyebrow" id="eyebrow">当前观察</div><h2 id="title">NVIDIA DGX H100</h2><div id="diagram"></div><p id="description"></p><div class="facts" id="facts"></div><div class="actions"><button class="primary" id="next">抽出服务器 →</button><button id="previous">返回</button></div><div class="component-list" id="components" aria-label="部件选择"></div><p class="boundary" id="boundary"></p><a id="source" href="#" target="_blank" rel="noreferrer">查看官方结构依据 ↗</a></aside>
-<div class="hint">拖动环绕 · 滚轮缩放<br>展开后点击部件，进入独立观察。</div><div class="viewtools"><button id="reset">复位视角</button><button id="top">俯视</button><button id="rotate" aria-pressed="false">自动环绕</button></div>
-<div class="transport" id="transport" hidden><label for="spread" id="spreadlabel">展开距离</label><input id="spread" type="range" min="0" max="1" step=".01" value=".65"><output id="amount">65%</output></div>
-<nav class="dock" aria-label="观察层级"><button data-level="0" class="active"><span>▥</span><b>整座机柜</b></button><button data-level="1"><span>▱</span><b>抽出整机</b></button><button data-level="2"><span>▤</span><b>展开内部</b></button><button data-level="3"><span>◇</span><b id="modulelabel">GPU 模组</b></button></nav>
+<aside class="panel">
+  <div class="model-picker" id="modelpicker" role="group" aria-label="昇腾机型选择">
+    <span class="model-picker-label">昇腾硬件谱系 · 选择机型对照形态与架构</span>
+    <div class="model-grid" id="modelgrid"></div>
+  </div>
+  <div class="eyebrow"><span id="eyebrow">当前观察</span><span class="badge" id="formfactor">4U 整机</span></div>
+  <h2 id="title">NVIDIA DGX H100</h2>
+  <div id="diagram"></div>
+  <p id="description"></p>
+  <div class="facts" id="facts"></div>
+  <div class="actions"><button class="primary" id="next">抽出服务器 →</button><button id="previous">返回</button></div>
+  <div class="component-list" id="components" aria-label="部件选择"></div>
+  <p class="boundary" id="boundary"></p>
+  <div class="wiki-links" id="wikilinks" aria-label="关联知识库章节"></div>
+  <a class="source-link" id="source" href="#" target="_blank" rel="noreferrer">查看官方结构与白皮书依据 ↗</a>
+</aside>
+<div class="hint">拖动环绕 · 滚轮缩放<br>内部展开后悬停或点击部件可独立拆解。</div>
+<div class="viewtools"><button id="reset">复位视角</button><button id="top">俯视</button><button id="rearview">背面细节</button><button id="rotate" aria-pressed="false">自动环绕</button></div>
+<div class="transport" id="transport" hidden><label for="spread" id="spreadlabel">展开距离</label><input id="spread" type="range" min="0" max="1" step=".01" value=".65"><output id="amount">65%</output><div class="spread-presets" id="presets"></div></div>
+<nav class="dock" aria-label="观察层级"><button data-level="0" class="active"><span>▥</span><b>整座机柜</b></button><button data-level="1"><span>▱</span><b>抽出整机</b></button><button data-level="2"><span>▤</span><b>展开内部</b></button><button data-level="3"><span>◇</span><b id="modulelabel">GPU 模组</b></button><button data-level="4"><span>❖</span><b>封装晶粒</b></button></nav>
 <footer class="footer"><span id="status">正在准备模型</span><div><a id="download" href="./assets/dgx-h100.glb" download>GLB 模型</a><a href="./README.md" target="_blank">模型说明</a></div></footer>
-<div class="loading" id="loading"><b>正在布置展场</b><span>载入 Blender 硬件模型…</span></div><script type="module" src="./viewer.js"></script></body></html>
+<div class="loading" id="loading"><b>正在布置展场</b><span>载入高精度三维硬件模型…</span></div>
+<script type="module" src="./viewer.js"></script>
+</body></html>

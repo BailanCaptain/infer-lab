@@ -1,39 +1,29 @@
-# 算力群岛：机柜到 GPU / NPU
+# 算力群岛：从机柜走进芯片
 
-独立 Blender / Three.js 模型研究，未接入 infra-view 或 infra-view-new 产品代码。
+站内硬件探索（`/#/hardware`）使用的三维微缩硬件图鉴，采用统一的低饱和纸面/矿物哑光视觉语言，覆盖从 42U 机柜、整机外形、内部子系统爆炸图、板卡/模组拆解到封装晶粒的五层连续观察。
 
-## 使用
+## 收录机型
 
-预览地址： http://127.0.0.1:4178/whole/
+### 华为昇腾（Ascend）谱系
+1. **华为 Atlas 800T A2（4U 训练/大模型推理基准）**
+   - 8 个昇腾 OAM 加速模组（64 GB HBM）、4 路鲲鹏 920、32 个 DDR4 DIMM 槽、8 个热插拔对旋风扇、4 个 2.6 kW 电源、10 个 2.5 英寸热插拔盘位、供电铜排与 8×200GE QSFP56 RoCE 直出光口（7 路 HCCS Full Mesh 理论峰值 392 GB/s）。
+2. **华为 Atlas 800I A3（10U 超节点推理服务器）**
+   - 8 个双晶粒 128 GB NPU 模组（整机 1 TB 显存、3.2 TB/s 带宽）、双向 784 GB/s 灵衢（UB）互联、LAAC 封闭式液冷辅助风冷回路（微通道铜冷板 + 红/蓝分液歧管 + 储液泵组 + 上置高密翅片冷凝器）、4 路鲲鹏 920、32 槽 DDR5、背部 64×400GE QSFP-DD 光口阵列（56 灵衢 + 8 RoCE，可组最大 384 卡 Atlas 900 A3 SuperPoD）。
+3. **华为 Atlas 800（型号 3000）· Atlas 300I Duo（2U 中心推理 · 双芯 PCIe 标卡）**
+   - 2U 机架形态，搭载 2 路鲲鹏 920、32 槽 DDR4、前部 12 盘位、4 个 2U 热插拔风扇、2 个 2000W 电源，经后部 PCIe 4.0×16 Riser 扩展仓装载 4 张全高全长单槽 Atlas 300I Duo 推理卡。单张物理 PCIe 卡内含 2 颗昇腾推理处理器与 8 颗 LPDDR4X 颗粒（48/96 GB），运行时暴露 2 个独立可见 Device（整机共 8 个可见 Device）。
+4. **昇腾 950DT 架构节点（下一代 UMA 多晶粒架构探索）**
+   - 依据《昇腾 950 NPU 架构白皮书》构建：单封装内含 2 颗中央计算晶粒（AI Die，含最高 36 Cube / 72 Vector、128 MB L2、CV 直通与五维 NDDMA）、南北 2 颗通信晶粒（IO Die，72×112G HiLink 划分为 18 个 Unified Bus 端口，双向标称 2016 GB/s，可共用 UBoE 2×400G 与 PCIe 5.0×16）及两侧 4 颗高速内存模块（144/96 GB，4 TB/s）。
 
-1. 选择 NVIDIA 或华为。
-2. 依次进入整座机柜、抽出整机、展开内部、GPU / NPU 模组。
-3. 在内部视图拖动展开距离；点击部件或列表进入独立观察。
-4. 模组视图可抬起散热器。拖动环绕，滚轮缩放。
-
-`rack-hardware.blend` 保存两座带整机与内部部件的机柜；`whole-hardware.blend` 保存两台整机和分组模型。GLB 文件在 assets，渲染图在 renders。
-
-## 范围与资料
-
-- NVIDIA DGX H100：8U，8 个 GPU、4 个 NVSwitch、2 个 CPU、32 个 DIMM 槽、12 个风扇、6 个电源、8 个数据盘位。
-- 华为 Atlas 800T A2：4U，8 个 NPU 模组、4 个 CPU、32 个 DIMM 槽、8 个风扇、4 个电源、10 个可选盘位。
-- [NVIDIA DGX H100 官方用户指南](https://docs.nvidia.com/dgx/dgxh100-user-guide/introduction-to-dgxh100.html)：机箱、GPU 托盘、主板与部件数量。
-- [Atlas 800T A2 官方产品规格](https://e.huawei.com/cn/products/computing/ascend/atlas-800t-a2)。
-- [华为技术白皮书 v16](https://e.huawei.com/cn/documents/products/computing/b0b253c4d5da4e05ba80a39e3dc65fd2)，本地 reference/atlas800t.pdf：PDF 第 13 页部件爆炸图、第 35 页 NPU 模组、第 36 页载板、第 38 页内存布局。
-- 风格依据：用户提供的云海茶屋截图。借用微缩场景、低饱和自然色、哑光材质、俯视取景和暖色纸质面板。
+### 对照基准
+5. **NVIDIA DGX H100（8U 对照基准）**
+   - 8 个 H100 SXM5 模组（GH100 计算晶粒 + 6 个 HBM3 堆栈位）、4 颗第三代 NVSwitch、Cedar-7 8×400G OSFP 网络模组、2 路 Xeon CPU、32 槽 DDR5、12 个风扇、6 个 3.3 kW 电源与 8 个 U.2 NVMe 盘位。
 
 ## 重要边界
 
-机柜是通用 42U 展示结构。4 台 DGX / 8 台 Atlas，以及顶部通用网络设备和机柜线束，只用于展示，不代表厂商认证整柜方案、供电密度、散热能力或网络拓扑。
+- **机柜层（01）**：42U 展示机柜、装机台数、顶部 ToR 交换机、竖装 PDU 与光纤理线槽用于建立物理尺度与包含关系，不代表厂商整柜认证交付方案、机房承重、供电密度或液冷一次侧管网。
+- **整机与内部层（02–03）**：整机 U 高、核心部件类别与数量依据上述官方公开规格与技术白皮书；板卡丝印、供电母排、导风结构与热管路径经过微缩几何简化，未绘制未经核验的芯片级 PCB 真实走线（昇腾 950DT 整机机箱与混冷歧管为架构承载示意，非商用整机 CAD）。
+- **模组与封装晶粒层（04–05）**：支持分段抬起散热器/冷板与金属均热盖（IHS），微距观察内部计算晶粒、片上逻辑分区与 HBM / LPDDR4X 堆栈；表面阵列网格为对应知识库正文的逻辑架构示意，非物理开盖显微照片或晶体管版图。
 
-整机外形比例依据公开规格；内部按官方部件类别和数量重建，位置、尺寸、散热鳍片数量、小元器件、背面端口与紧固件均有简化。未表达真实晶粒或 HBM 内部结构。抬起散热器后的封装表面为简化示意，不是芯片内部布局。没有把旧项目的未核验 HCCS 连接补成真实布线。
+## 可复现资产生成与校验
 
-## 可保留的资产结构
-
-建模脚本为 tools/build_whole.py、tools/interiors.py；共用材质和几何函数。机柜场景由 tools/rack_scene.py 组装。每个可操作部件有独立节点与 kind、label、source、explodeZ 等属性。Three.js 读取同一 GLB 处理层级、选择和展开。
-
-所有 GLB 均可独立使用，不依赖外部贴图。制造纹理以几何简化表达。每个语义部件按材质合并网格，避免每片鳍片单独提交绘制。
-
-## 验证
-
-tools/verify_assets.py 检查 GLB 头、长度、有限数值、内嵌缓冲区和 GPU / NPU / CPU / DIMM / NVSwitch 节点数量。结果写入 assets/verification.json。浏览器实测记录见 VERIFICATION.md。
+所有 `.glb` 资产均由 `tools/hardware-glb/`（`glb_core.py`、`parts_lib.py`、`build_all.py`）确定性生成并按语义节点与材质合并网格，无需外部贴图；`atlas-800t-a2.glb` 同时保持对知识库并行 3D 场景（`scene-parallel-hardware.ts` / `hardware-stage-renderer.ts`）的节点契约兼容。

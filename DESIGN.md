@@ -266,3 +266,7 @@ Inter + Noto Sans SC（自托管），代码与数字 JetBrains Mono。
 EP 展开镜头按所属卡、18 个专家实例、展开结构与编号标签的联合范围取景，保留屏幕边距；工具栏换行后按真实高度重新计算有效画布。文字位置、点击射线与 WebGL 使用同一画布范围，不再使用固定顶部留白或固定放大倍数。
 
 实现和测试记录位于 `tools/wiki-runtime/knowledge-main-rebuild/scene-*`、`spatial-*` 与 `flow-*`；本轮对照 [Bycroft](https://bbycroft.net/llm) 与 [Transformer Explainer](https://poloclub.github.io/transformer-explainer/) 的实际截图，保留整体与局部的对应，并用张量几何变化表达运算。外观仍以用户试用反馈为准。
+
+### 2026-11-18 · 模型探索二维架构图谱配色与版式（`--arch-*`）
+
+独立二维架构页 `public/experiences/glm-flow/master/arch.html` 采用克制的学术期刊低饱和矿物纸本色系，单一真相源定义在主站与同源探索页共用的 `public/experiences/reader-palette.css`（`src/design/tokens.css` 与 `reader-theme.css` 均自动引入，`arch.html` 运行时通过 `getComputedStyle` 直接读取，不在页面内重复硬编码色值）：近白纸面配统一石板灰墨连线与单层哑光淡彩矩形（松石绿 KDA、灰蓝稀疏 MLA、暖沙褐 MoE 专家、苔石绿稠密前馈、灰紫 mHC、暖石灰岩归一化、陶土褐路由、青灰常驻缓存），去除彩虹顶栏、彩色连线与框中套框装饰。

@@ -102,8 +102,8 @@ test("旧浏览器调色和 pal 参数不能改变定稿颜色", async ({ page }
   await expect(page.locator("svg").first()).toBeVisible();
   await expect(page.locator('[data-comp="embed"] rect[data-role="wt"]').first()).toHaveAttribute(
     "stroke",
-    /#e5d8bd/i,
+    /#9cb0bd/i,
   );
-  await expect(page.locator('line[data-comp="resid"]').first()).toHaveAttribute("stroke", /#decbe4/i);
+  await expect(page.locator('line[data-comp="resid"]').first()).toHaveAttribute("stroke", /#8d7b94/i);
   expect(errors).toEqual([]);
 });

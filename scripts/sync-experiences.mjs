@@ -98,6 +98,18 @@ for (const [name, packageName, stylesheets] of [
 tree("vendor");
 for (const name of readdirSync(join(source, "glm-flow/master"))) {
   if (!/\.(js|html)$/.test(name) || /^(qa-|shot)/.test(name) || name === "flow-tune.js") continue;
+  if (name === "arch.html") {
+    // Preserve redesigned in-repo 2D architecture sheet while keeping its source baseline hash.
+    const original = readFileSync(join(resolve(source), "glm-flow/master/arch.html"));
+    const current = readFileSync(join(destination, "glm-flow/master/arch.html"));
+    entries.push({
+      path: "glm-flow/master/arch.html",
+      bytes: current.length,
+      sourceSha256: hash(original),
+      sha256: hash(current),
+    });
+    continue;
+  }
   if (name.endsWith(".html")) {
     copy(`glm-flow/master/${name}`, (text) => {
       if (name === "chapter.html") {

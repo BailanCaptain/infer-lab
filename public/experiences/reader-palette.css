@@ -5,4 +5,86 @@
   --reader-accent: #286151;
   --reader-active: #e6eee7;
   --reader-line: #e0e5dc;
+
+  /* 2D Architecture Sheet: restrained low-chroma scholarly palette (single source of truth) */
+  --arch-bg: #f4f5f2;
+  --arch-surface: #fcfcfa;
+  --arch-header-bg: #f6f7f4;
+  --arch-sunken: #eef0ec;
+  --arch-line: #dce0da;
+  --arch-line-strong: #bcc3ba;
+  --arch-ink: #1b2421;
+  --arch-ink-2: #3d4a45;
+  --arch-muted: #626f69;
+  --arch-arrow: #56635d;
+  --arch-highlight: #286151;
+
+  /* Neutral structural tone */
+  --arch-neutral: #46544f;
+  --arch-neutral-mid: #aeb8b3;
+  --arch-neutral-soft: #f2f4f2;
+  --arch-neutral-wash: #f7f8f6;
+  --arch-neutral-ink: #222c28;
+
+  /* Calm, desaturated mineral-paper tints (low chroma, journal-grade restraint) */
+  --arch-embed: #4d6778;
+  --arch-embed-mid: #9cb0bd;
+  --arch-embed-soft: #edf2f5;
+  --arch-embed-wash: #f5f8fa;
+  --arch-embed-ink: #253844;
+
+  --arch-resid: #6f5e76;
+  --arch-resid-rail: #8d7b94;
+  --arch-resid-mid: #b6a8bc;
+  --arch-resid-soft: #f2eef4;
+  --arch-resid-wash: #f8f6f9;
+  --arch-resid-ink: #3c3042;
+
+  --arch-norm: #787262;
+  --arch-norm-mid: #beb8a8;
+  --arch-norm-soft: #f3f1ec;
+  --arch-norm-wash: #f9f8f5;
+  --arch-norm-ink: #3e3a30;
+
+  --arch-kda: #356859;
+  --arch-kda-mid: #8eb3a7;
+  --arch-kda-soft: #e9f2ef;
+  --arch-kda-wash: #f4f9f7;
+  --arch-kda-ink: #1b3d33;
+
+  --arch-attn: #495d7d;
+  --arch-attn-mid: #9aaac2;
+  --arch-attn-soft: #ecf0f6;
+  --arch-attn-wash: #f5f7fa;
+  --arch-attn-ink: #24334a;
+
+  --arch-dense: #556e4e;
+  --arch-dense-mid: #a1b69b;
+  --arch-dense-soft: #edf2eb;
+  --arch-dense-wash: #f6f9f5;
+  --arch-dense-ink: #2b3c27;
+
+  --arch-router: #8c5650;
+  --arch-router-mid: #c49c97;
+  --arch-router-soft: #f6eceb;
+  --arch-router-wash: #fbf6f5;
+  --arch-router-ink: #4d2925;
+
+  --arch-expert: #7d6643;
+  --arch-expert-mid: #bfa989;
+  --arch-expert-soft: #f5f0e7;
+  --arch-expert-wash: #faf8f3;
+  --arch-expert-ink: #43341d;
+
+  --arch-mtp: #6e6259;
+  --arch-mtp-mid: #b5aaa1;
+  --arch-mtp-soft: #f2efec;
+  --arch-mtp-wash: #f8f6f5;
+  --arch-mtp-ink: #3b332d;
+
+  --arch-cache: #566370;
+  --arch-cache-mid: #9aa5b1;
+  --arch-cache-soft: #edf0f3;
+  --arch-cache-wash: #f5f7f9;
+  --arch-cache-ink: #29323b;
 }

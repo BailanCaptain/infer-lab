@@ -1,41 +1,2126 @@
-<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>GLM-5.3-Flash 架构图</title>
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GLM-5.3-Flash 二维架构图</title>
+<link rel="stylesheet" href="../../reader-palette.css">
+<link rel="stylesheet" href="../../typography.css">
+<link rel="stylesheet" href="../../reader-theme.css">
+<script>
+if (
+  new URLSearchParams(location.search).get("site") === "1" ||
+  window.frameElement?.classList.contains("experience-frame")
+) {
+  document.documentElement.dataset.site = "true";
+}
+</script>
 <style>
-html,body{margin:0;background:#f8f5ee;font-family:var(--journey-font-sans);color:#2b2823}
-#page{position:relative}
-svg{display:block}
-svg text{font-family:var(--journey-font-sans)}
+/* Restrained scholarly stylesheet: all colors read from ../../reader-palette.css */
+html[data-site] {
+  --arch-surface: var(--reader-paper);
+  --arch-sunken: var(--reader-sidebar);
+  --arch-line: var(--reader-line);
+  --arch-line-strong: var(--line2);
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--arch-bg);
+  color: var(--arch-ink);
+  font-family: var(--journey-font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+#shell {
+  max-width: 1580px;
+  margin: 0 auto;
+  padding: 16px 20px 84px;
+}
+/* Clean Academic Spec Header */
+.arch-header {
+  background: var(--arch-surface);
+  border: 1px solid var(--arch-line);
+  border-radius: 12px;
+  padding: 16px 20px 14px;
+  margin-bottom: 14px;
+}
+.arch-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.arch-title-group h1 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--arch-ink);
+  line-height: 1.3;
+}
+.arch-title-group p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--arch-muted);
+}
+.arch-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+#views {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--arch-muted);
+}
+html[data-site] #views {
+  display: none;
+}
+#views a, .zoom-btn, .jump-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--arch-line-strong);
+  border-radius: 7px;
+  background: var(--arch-surface);
+  color: var(--arch-ink-2);
+  font-family: var(--journey-font-sans);
+  font-size: 12.2px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+#views a:hover, .zoom-btn:hover, .jump-btn:hover {
+  border-color: var(--arch-ink);
+  background: var(--arch-header-bg);
+  color: var(--arch-ink);
+}
+.zoom-btn.active, .jump-btn.active {
+  background: var(--arch-ink);
+  border-color: var(--arch-ink);
+  color: var(--arch-surface);
+}
+.arch-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+@media (max-width: 1360px) {
+  .arch-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 720px) {
+  .arch-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.metric-chip {
+  background: var(--arch-header-bg);
+  border: 1px solid var(--arch-line);
+  border-radius: 8px;
+  padding: 7px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.metric-chip .k {
+  font-size: 11.2px;
+  color: var(--arch-muted);
+  font-weight: 600;
+}
+.metric-chip .v {
+  font-family: var(--journey-font-mono);
+  font-size: 12.4px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  color: var(--arch-ink);
+  font-variant-numeric: tabular-nums;
+}
+.metric-chip .s {
+  font-size: 11.1px;
+  color: var(--arch-ink-2);
+  text-wrap: pretty;
+}
+.arch-bar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--arch-line);
+}
+.arch-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px 13px;
+  flex-wrap: wrap;
+  font-size: 12.1px;
+  color: var(--arch-ink-2);
+}
+.lg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.lg-card {
+  width: 13px;
+  height: 11px;
+  border-radius: 2.5px;
+  border: 1.1px solid var(--lg-mid);
+  background: var(--lg-soft);
+  flex: none;
+}
+.lg-pill {
+  width: 14px;
+  height: 10px;
+  border-radius: 2.5px;
+  background: var(--arch-surface);
+  border: 1.1px solid var(--arch-line-strong);
+  flex: none;
+}
+.lg-cache {
+  width: 14px;
+  height: 11px;
+  border-radius: 2.5px;
+  background: var(--arch-cache-soft);
+  border: 1.1px dashed var(--arch-cache);
+  flex: none;
+}
+.arch-jumps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+/* Diagram stage */
+#page {
+  position: relative;
+  overflow-x: auto;
+  border-radius: 12px;
+}
+#page svg {
+  display: block;
+  width: 100%;
+  max-width: 1540px;
+  height: auto;
+  margin: 0 auto;
+}
+#page.zoom-actual svg {
+  width: 1520px;
+  max-width: none;
+}
+#page.zoom-large svg {
+  width: 1860px;
+  max-width: none;
+}
+/* Protect SVG boxes from reader-theme.css HTML .box rules */
+svg .box {
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 0 !important;
+  font-size: initial !important;
+  cursor: pointer;
+}
+svg .box:hover > rect.card-ring,
+svg .box:hover > circle.card-ring {
+  stroke: var(--arch-highlight);
+  stroke-width: 1.9;
+}
+svg .box.selected > rect.card-ring,
+svg .box.selected > circle.card-ring {
+  stroke: var(--arch-highlight);
+  stroke-width: 2.2;
+}
+svg .panel-frame {
+  transition: stroke 0.2s, stroke-width 0.2s;
+}
+svg .panel-frame.flash {
+  stroke: var(--arch-highlight);
+  stroke-width: 2.2;
+}
+svg text {
+  font-family: var(--journey-font-sans);
+  user-select: text;
+}
+svg text.mono {
+  font-family: var(--journey-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+/* Clean Bottom Inspector Bar */
+#inspector {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 12px;
+  max-width: 1540px;
+  margin: 0 auto;
+  background: color-mix(in srgb, var(--arch-surface) 95%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--arch-line-strong);
+  border-radius: 10px;
+  padding: 8.5px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--arch-ink) 7%, transparent);
+  z-index: 5;
+  font-size: 12.8px;
+}
+html[data-site] #inspector {
+  right: 136px;
+}
+#inspector .ins-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+#inspector .ins-badge {
+  font-family: var(--journey-font-mono);
+  font-size: 11.3px;
+  font-weight: 700;
+  padding: 1.5px 7px;
+  border-radius: 5px;
+  background: var(--arch-sunken);
+  color: var(--arch-ink);
+  border: 1px solid var(--arch-line);
+}
+#inspector .ins-title {
+  font-weight: 750;
+  color: var(--arch-ink);
+}
+#inspector .ins-shape {
+  font-family: var(--journey-font-mono);
+  font-size: 11.8px;
+  color: var(--arch-ink-2);
+  font-weight: 600;
+}
+#inspector .ins-detail {
+  color: var(--arch-ink-2);
+  font-size: 12.4px;
+}
+#inspector .ins-src {
+  font-family: var(--journey-font-mono);
+  font-size: 11.2px;
+  color: var(--arch-muted);
+  white-space: nowrap;
+}
+@media (max-width: 900px) {
+  #shell { padding: 12px 10px 96px; }
+  #page svg { width: 1360px; max-width: none; }
+}
+@media (max-width: 720px) {
+  #shell { padding: 10px 10px 116px; }
+  .arch-header { padding: 11px 12px 9px; margin-bottom: 10px; }
+  .arch-top-row { gap: 8px; }
+  .arch-title-group h1 { font-size: 17.5px; line-height: 1.25; }
+  .arch-title-group p { font-size: 11.8px; line-height: 1.4; margin-top: 3px; }
+  .arch-metrics { gap: 5px; margin-top: 8px; }
+  .metric-chip { padding: 5px 8px; gap: 1px; }
+  .metric-chip .k, .metric-chip .s { font-size: 10.5px; line-height: 1.25; }
+  .metric-chip .v { font-size: 11.6px; }
+  .arch-bar-row { margin-top: 8px; padding-top: 7px; gap: 6px; }
+  #inspector:not(.has-selection) { display: none; }
+  #inspector, html[data-site] #inspector { left: 10px; right: 10px; bottom: 64px; padding: 8px 12px; gap: 6px; font-size: 12px; }
+}
+</style>
+</head>
+<body>
+<div id="shell">
+  <header class="arch-header">
+    <div class="arch-top-row">
+      <div class="arch-title-group">
+        <h1>GLM-5.3-Flash 语言主干与 MTP 二维架构图谱</h1>
+        <p id="arch-sub">正在根据官方 config.json 与真源规格构建向量图谱…</p>
+      </div>
+      <div class="arch-controls">
+        <div id="views" aria-label="三维视图切换">
+          <span>3D 视图：</span>
+          <a href="model.html">整个模型</a>
+          <a href="flow.html?layer=0">L00</a>
+          <a href="flow.html?layer=3">L03</a>
+          <a href="flow.html?layer=4">L04</a>
+        </div>
+        <button type="button" class="zoom-btn active" data-zoom="fit">适应窗口</button>
+        <button type="button" class="zoom-btn" data-zoom="actual">100%</button>
+        <button type="button" class="zoom-btn" data-zoom="large">125%</button>
+      </div>
+    </div>
+    <div class="arch-metrics" id="arch-metrics"></div>
+    <div class="arch-bar-row">
+      <div class="arch-legend" id="arch-legend"></div>
+      <nav class="arch-jumps" aria-label="子图快速定位">
+        <button type="button" class="jump-btn" data-jump="panel-a">(a) 主干</button>
+        <button type="button" class="jump-btn" data-jump="panel-b">(b) 45层排布</button>
+        <button type="button" class="jump-btn" data-jump="panel-c">(c) mHC残差</button>
+        <button type="button" class="jump-btn" data-jump="panel-d">(d) MTP层</button>
+        <button type="button" class="jump-btn" data-jump="panel-e">(e) KDA注意力</button>
+        <button type="button" class="jump-btn" data-jump="panel-f">(f) 稀疏MLA+索引器</button>
+        <button type="button" class="jump-btn" data-jump="panel-g">(g) 稠密与MoE</button>
+      </nav>
+    </div>
+  </header>
 
-#views{position:fixed;right:16px;top:14px;font-size:13px;text-align:right;z-index:4}
-#views div{margin-bottom:7px}
-#views a{display:inline-block;margin-left:6px;padding:3px 10px;border:1px solid #b9b2a3;border-radius:12px;color:#4a463f;text-decoration:none;background:#f8f5ee}
-#views a.on{background:#2b2823;color:#f8f5ee;border-color:#2b2823}
+  <div id="page"></div>
+  <script>
+  {
+    const p = document.getElementById('page');
+    const m = p.clientWidth > 0 && p.clientWidth < 1260 ? 'actual' : 'fit';
+    if (m === 'actual') p.classList.add('zoom-actual');
+    for (const b of document.querySelectorAll('.zoom-btn')) b.classList.toggle('active', b.dataset.zoom === m);
+  }
+  </script>
+</div>
 
-</style><link rel="stylesheet" href="../../typography.css"><link rel="stylesheet" href="../../reader-theme.css"><script>if(new URLSearchParams(location.search).get("site")==="1"||window.frameElement?.classList.contains("experience-frame"))document.documentElement.dataset.site="true";</script></head><body><div id="page"></div>
+<aside id="inspector" aria-live="polite">
+  <div class="ins-main">
+    <span class="ins-badge" id="ins-badge">图谱导览</span>
+    <span class="ins-title" id="ins-title">悬停或点击图中任意模块查看精确形状、算式与源码锚点</span>
+    <span class="ins-shape" id="ins-shape"></span>
+    <span class="ins-detail" id="ins-detail">点击 (a) 主干中的子模块可直接定位至右侧展开子图</span>
+  </div>
+  <span class="ins-src" id="ins-src">modeling_glm5_next.py · vllm-glm5next</span>
+</aside>
+
 <script type="module">
-// The 2D diagrams of GLM-5.3-Flash (the master, since 2026-09-24), in the manner of Sebastian Raschka's LLM Architecture Gallery:
-// the whole model as one column on the left, each part of a layer drawn larger in a dotted panel on the right. The
-// panels come from truth-spec.js through arch-layout.js (a box is a step of the official forward, an arrow a tensor
-// from the step that writes it to a step that reads it); the colours are flow-colors.js's, shared with the 3D layers,
-// using the approved palette.
-import {makeArch} from './arch-draw.js';
-import {loadPalette} from './flow-colors.js';
+import { layerSpec } from './truth-spec.js';
+import { mix } from './flow-colors.js';
 
-const INK='#2b2823',GREY='#6b665c';   // (the words on a filled box)
+const fullCfg = await (await fetch('../reference/official-config.json')).json();
+const tc = fullCfg.text_config;
+const vc = fullCfg.vision_config;
 
-const cfg=(await (await fetch('../reference/official-config.json')).json()).text_config;
-const P=loadPalette();
-const {render}=makeArch(cfg,P);
-const page=document.getElementById('page');
-function paint(){for(const el of page.querySelectorAll('[data-comp]')){const k=el.dataset.comp;if(!k||!P[k])continue;
- for(const r of el.matches('rect,line,path')?[el]:el.querySelectorAll('rect')){const role=r.dataset.role;
-  if(role==='res'){r.setAttribute(r.tagName==='line'?'stroke':'fill',P[k][0]);ink(r.parentNode,P[k][0])}else if(role==='wt'){r.setAttribute('fill',P[k][1]);r.setAttribute('stroke',P[k][0]);ink(r.parentNode,P[k][1])}else if(role==='op'){r.setAttribute('stroke',P[k][0])}else if(role==='res-stroke'){r.setAttribute('stroke',P[k][0]);r.setAttribute('fill',P[k][0])}}}}
-// the words on a filled box: white on a dark fill, ink on a light one (Apple's saturated colours need white)
-const lum=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2]};
-function ink(g,fill){if(!g||!g.classList||!g.classList.contains('box'))return;   // a box's own words only (a stream's line sits in the whole drawing)
- const dark=lum(fill)<.36;for(const t of g.querySelectorAll('text.ttl'))t.setAttribute('fill',dark?'#ffffff':INK);for(const t of g.querySelectorAll('text.sub'))t.setAttribute('fill',dark?'#ffffffd9':GREY)}
-page.innerHTML=render();paint();
-const v=document.createElement('div');v.id='views';
-v.innerHTML='<div>3D：<a href="model.html">整个模型</a><a href="flow.html?layer=0">L00</a><a href="flow.html?layer=4">L04</a><a href="flow.html?layer=3">L03</a></div>';
-document.body.append(v);
-window.__arch={ready:true,svg:page.querySelector('svg')};
-</script></body></html>
+// ---- Read all colors dynamically from ../../reader-palette.css (single source of truth) ----
+const rootStyle = getComputedStyle(document.documentElement);
+const tok = name => rootStyle.getPropertyValue(name).trim();
+
+const T = {
+  surface: tok('--arch-surface'),
+  headerBg: tok('--arch-header-bg'),
+  sunken: tok('--arch-sunken'),
+  line: tok('--arch-line'),
+  lineStrong: tok('--arch-line-strong'),
+  ink: tok('--arch-ink'),
+  ink2: tok('--arch-ink-2'),
+  muted: tok('--arch-muted'),
+  arrow: tok('--arch-arrow'),
+};
+
+const FAMILIES = ['neutral', 'embed', 'resid', 'norm', 'kda', 'attn', 'dense', 'router', 'expert', 'mtp', 'cache'];
+const ARCH = Object.fromEntries(
+  FAMILIES.map(k => [
+    k,
+    {
+      strong: tok(`--arch-${k}`),
+      mid: tok(`--arch-${k}-mid`),
+      soft: tok(`--arch-${k}-soft`),
+      wash: tok(`--arch-${k}-wash`),
+      ink: tok(`--arch-${k}-ink`),
+      ...(k === 'resid' ? { rail: tok('--arch-resid-rail') } : {}),
+    },
+  ])
+);
+
+const plateTone = comp => {
+  const c = ARCH[comp] || ARCH.neutral;
+  return {
+    fill: c.wash,
+    stroke: mix(c.mid, T.line, 0.35),
+    label: c.ink,
+  };
+};
+
+// ---- Single-source-of-truth architectural accounting from official-config.json & truth-spec.js ----
+const V = tc.vocab_size;                       // 154,880
+const C = tc.hidden_size;                      // 4,096
+const S = tc.hc_mult;                          // 4
+const MIX = (2 + S) * S;                       // 24
+const SK = tc.hc_sinkhorn_iters;               // 20
+const N = tc.num_hidden_layers;                // 45
+const la = tc.linear_attn_config;
+const KH = la.num_heads;                       // 64
+const KD = la.head_dim;                        // 128
+const KHD = KH * KD;                           // 8,192
+const KCONV = la.short_conv_kernel_size;       // 4
+const KCONV_WIN = KCONV - 1;                   // 3
+const KCONV_CH = 3 * KHD;                      // 24,576
+const KLB = la.gate_lower_bound;               // -5
+const NH = tc.num_attention_heads;             // 64
+const QR = tc.q_lora_rank;                     // 1,536
+const KR = tc.kv_lora_rank;                    // 512
+const QK = tc.qk_nope_head_dim + tc.qk_rope_head_dim; // 256 + 0 = 256
+const VD = tc.v_head_dim;                      // 256
+const ROPE = tc.qk_rope_head_dim;              // 0
+const KV_COMP = (NH * (QK + VD)) / (KR + ROPE); // 64
+const IH = tc.index_n_heads;                   // 32
+const ID = tc.index_head_dim;                  // 128
+const KP = tc.index_kpool;                     // 4
+const TOPK = tc.index_topk;                    // 2,048
+const TAIL = tc.index_kpool_always_select_tail ? KP - 1 : 0; // 3
+const TOPW = TOPK + TAIL;                      // 2,051
+const DEPLOY_CTX = 133120;                     // Deployment sequence context benchmark in wiki (33,280 * 4, tail = 0)
+const DEPLOY_RATIO = DEPLOY_CTX / TOPK;        // 65 (exact: 2,048 / 133,120 = 1/65)
+const I_DENSE = tc.intermediate_size;          // 12,288
+const E_ROUTED = tc.n_routed_experts;          // 288
+const K_EXP = tc.num_experts_per_tok;          // 8
+const E_SHARED = tc.n_shared_experts;          // 1
+const MI = tc.moe_intermediate_size;           // 2,048
+const SI = MI * E_SHARED;                      // 2,048
+const RS = tc.routed_scaling_factor;           // 2.5
+const LIM = tc.swiglu_limit;                   // 10
+
+const kinds = tc.layer_types.map((t, i) => [
+  t === 'linear_attention' ? 'kda' : 'mla',
+  tc.mlp_layer_types[i] === 'sparse' ? 'moe' : 'dense',
+]);
+const cntKda = kinds.filter(k => k[0] === 'kda').length;       // 34
+const cntMla = kinds.filter(k => k[0] === 'mla').length;       // 11
+const cntDense = kinds.filter(k => k[1] === 'dense').length;   // 3
+const cntMoe = kinds.filter(k => k[1] === 'moe').length;       // 42
+const cntKdaDense = kinds.filter(k => k[0] === 'kda' && k[1] === 'dense').length; // 3
+const cntKdaMoe = kinds.filter(k => k[0] === 'kda' && k[1] === 'moe').length;     // 31
+
+// Exact parameter counts via truth-spec.js
+const specL0 = layerSpec(tc, 8, 0);   // KDA + Dense
+const specL3 = layerSpec(tc, 8, 3);   // MLA + MoE
+const specL4 = layerSpec(tc, 8, 4);   // KDA + MoE
+const specMtp = layerSpec(tc, 8, N);  // MTP (MLA + MoE, single stream)
+
+const layerParamsSum =
+  cntKdaDense * specL0.params +
+  cntKdaMoe * specL4.params +
+  cntMla * specL3.params;
+const embedParams = V * C;
+const endsParams = 2 * embedParams + C;
+const backboneParams = layerParamsSum + endsParams; // 313,326,811,966
+const routedTotalParams = cntMoe * E_ROUTED * 3 * C * MI; // 304,405,807,104
+const routedSharePct = ((routedTotalParams / backboneParams) * 100).toFixed(1); // 97.2
+const activeRoutedParams = cntMoe * K_EXP * 3 * C * MI;
+const activeNonRoutedAll = backboneParams - routedTotalParams;
+const activeWithEmbedB = ((activeNonRoutedAll + activeRoutedParams) / 1e9).toFixed(1); // 17.4
+const activeNoEmbedB = ((activeNonRoutedAll - embedParams + activeRoutedParams) / 1e9).toFixed(1); // 16.7
+const denseMlpYi = ((3 * C * I_DENSE) / 1e8).toFixed(2); // 1.51 (亿)
+const mtpParams = specMtp.params + 2 * C + 2 * C * C + C; // 7,432,592,416
+const mtpActiveParams = mtpParams - (E_ROUTED - K_EXP) * 3 * C * MI; // ~0.386B
+const mtpRoutedB = ((E_ROUTED * 3 * C * MI) / 1e9).toFixed(2); // 7.25
+const mtpAllExpertsB = (((E_ROUTED + E_SHARED) * 3 * C * MI) / 1e9).toFixed(2); // 7.27
+
+const fmt = n => Number(n).toLocaleString('en-US');
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+// ---- Populate Header Subtitle, KPI Metrics & Restrained Legend ----
+document.getElementById('arch-sub').textContent =
+  `源自官方 config.json、modeling_glm5_next.py 与 vllm-glm5next · 数据自上而下流动（与 3D 视图一致）· 另有 ${vc.depth} 层视觉编码器未在此展开`;
+
+const metricsData = [
+  {
+    k: '主干总参数 (L00–L44 + 词表头尾)',
+    v: `${(backboneParams / 1e9).toFixed(1)}B (${Math.round(backboneParams / 1e8)} 亿)`,
+    s: `路由专家占 ${routedSharePct}% · 模型卡标称 320B`,
+  },
+  {
+    k: '每 token 激活参数',
+    v: `${activeWithEmbedB}B (不含 embedding ${activeNoEmbedB}B)`,
+    s: `每层 ${E_ROUTED} 选 ${K_EXP} + ${E_SHARED} 共享 · 模型卡标称 18B`,
+  },
+  {
+    k: '主干层数与投机草拟层',
+    v: `${N} 层主干 + ${tc.num_nextn_predict_layers} 层 MTP`,
+    s: `MTP 总参 ${(mtpParams / 1e9).toFixed(2)}B · 单步激活 ${(mtpActiveParams / 1e9).toFixed(2)}B`,
+  },
+  {
+    k: '隐藏宽度与多路残差',
+    v: `d = ${fmt(C)} · ${S} 路 mHC`,
+    s: `每半层 ${MIX} 系数 · ${SK} 轮 Sinkhorn 归一`,
+  },
+  {
+    k: '混合注意力与位置编码',
+    v: `${cntKda} KDA + ${cntMla} 稀疏 MLA`,
+    s: `全文本主干 NoPE (rope_dim = ${ROPE})`,
+  },
+  {
+    k: '词表规模与最大上下文',
+    v: `V = ${fmt(V)} · 1M 上下文`,
+    s: `embed_tokens 与 lm_head 不共享权重`,
+  },
+];
+document.getElementById('arch-metrics').innerHTML = metricsData
+  .map(m => `<div class="metric-chip"><span class="k">${esc(m.k)}</span><span class="v">${esc(m.v)}</span><span class="s">${esc(m.s)}</span></div>`)
+  .join('');
+
+const legendKeys = [
+  ['kda', 'KDA 线性注意力'],
+  ['attn', '稀疏 MLA 与索引器'],
+  ['expert', 'MoE 专家'],
+  ['dense', '稠密前馈'],
+  ['router', 'MoE 路由器'],
+  ['resid', '残差与 mHC'],
+  ['norm', '归一化层'],
+  ['embed', '词表头尾'],
+  ['mtp', 'MTP 投机层'],
+];
+document.getElementById('arch-legend').innerHTML =
+  legendKeys
+    .map(([k, label]) => {
+      const c = ARCH[k];
+      return `<span class="lg-item"><span class="lg-card" style="--lg-mid:${c.mid};--lg-soft:${c.soft}"></span>${esc(label)}</span>`;
+    })
+    .join('') +
+  `<span class="lg-item"><span class="lg-pill"></span>无参算子</span>` +
+  `<span class="lg-item"><span class="lg-cache"></span>常驻缓存</span>`;
+
+// ---- SVG Drawing Primitives (Journal-Grade Matte Minimalist Style) ----
+const nodeRegistry = new Map();
+let nodeSeq = 0;
+
+function registerMeta(meta, comp = null) {
+  if (!meta) return '';
+  const id = `n${++nodeSeq}`;
+  nodeRegistry.set(id, { ...meta, comp: meta.comp || comp || '' });
+  return ` data-nid="${id}"`;
+}
+
+function topBandPath(x, y, w, rx, h) {
+  const r = Math.min(rx, h);
+  return `M${x.toFixed(1)} ${(y + h).toFixed(1)} L${x.toFixed(1)} ${(y + r).toFixed(1)} Q${x.toFixed(1)} ${y.toFixed(1)} ${(x + r).toFixed(1)} ${y.toFixed(1)} L${(x + w - r).toFixed(1)} ${y.toFixed(1)} Q${(x + w).toFixed(1)} ${y.toFixed(1)} ${(x + w).toFixed(1)} ${(y + r).toFixed(1)} L${(x + w).toFixed(1)} ${(y + h).toFixed(1)} Z`;
+}
+
+function smoothOrtho(pts, r = 6) {
+  if (pts.length < 2) return '';
+  if (pts.length === 2) return `M${pts[0][0]} ${pts[0][1]} L${pts[1][0]} ${pts[1][1]}`;
+  let d = `M${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [x0, y0] = pts[i - 1];
+    const [x1, y1] = pts[i];
+    const [x2, y2] = pts[i + 1];
+    const dx1 = x1 - x0, dy1 = y1 - y0, L1 = Math.hypot(dx1, dy1) || 1;
+    const dx2 = x2 - x1, dy2 = y2 - y1, L2 = Math.hypot(dx2, dy2) || 1;
+    const rc = Math.min(r, L1 * 0.45, L2 * 0.45);
+    const ax = x1 - (dx1 / L1) * rc, ay = y1 - (dy1 / L1) * rc;
+    const bx = x1 + (dx2 / L2) * rc, by = y1 + (dy2 / L2) * rc;
+    d += ` L${ax.toFixed(1)} ${ay.toFixed(1)} Q${x1.toFixed(1)} ${y1.toFixed(1)} ${bx.toFixed(1)} ${by.toFixed(1)}`;
+  }
+  const last = pts[pts.length - 1];
+  d += ` L${last[0]} ${last[1]}`;
+  return d;
+}
+
+// Uniform graphite-ink arrows across the entire sheet (no rainbow lines!)
+function drawArrow(pts, { w = 1.35, dash = '', head = true, label = '', lx = null, ly = null } = {}) {
+  const stroke = T.arrow;
+  const d = smoothOrtho(pts, 6);
+  let out = `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ''}/>`;
+  if (head && pts.length >= 2) {
+    const [a, b] = pts.slice(-2);
+    const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1;
+    const ux = dx / L, uy = dy / L;
+    const len = 6.2, half = 2.8, notch = 1.3;
+    const p1x = b[0] - ux * len - uy * half, p1y = b[1] - uy * len + ux * half;
+    const p2x = b[0] - ux * (len - notch), p2y = b[1] - uy * (len - notch);
+    const p3x = b[0] - ux * len + uy * half, p3y = b[1] - uy * len - ux * half;
+    out += `<path d="M${b[0].toFixed(1)} ${b[1].toFixed(1)} L${p1x.toFixed(1)} ${p1y.toFixed(1)} L${p2x.toFixed(1)} ${p2y.toFixed(1)} L${p3x.toFixed(1)} ${p3y.toFixed(1)} Z" fill="${stroke}"/>`;
+  }
+  if (label) {
+    const mx = lx !== null ? lx : (pts[0][0] + pts[pts.length - 1][0]) / 2;
+    const my = ly !== null ? ly : (pts[0][1] + pts[pts.length - 1][1]) / 2;
+    const approxW = [...label].reduce((acc, ch) => acc + (ch.charCodeAt(0) > 127 ? 10.0 : 5.7), 0) + 8;
+    out += `<rect x="${(mx - approxW / 2).toFixed(1)}" y="${(my - 9.8).toFixed(1)}" width="${approxW.toFixed(1)}" height="13.8" rx="3.5" fill="${T.surface}" fill-opacity="0.96" stroke="${T.line}" stroke-width="0.8"/>`;
+    out += `<text x="${mx.toFixed(1)}" y="${my.toFixed(1)}" font-size="9.8" font-weight="600" fill="${T.ink2}" text-anchor="middle" class="mono">${esc(label)}</text>`;
+  }
+  return out;
+}
+
+// Single-layer clean matte module rectangle (no nested box-inside-box pills, no glossy gradients)
+function drawBox({
+  x, y, w, h,
+  title, sub = '',
+  comp = null,
+  kind = 'op',
+  stack = false,
+  jump = '',
+  badge = '',
+  meta = null,
+}) {
+  const rx = kind === 'io' ? h / 2 : 6;
+  const c = comp && ARCH[comp] ? ARCH[comp] : null;
+  const nidAttr = registerMeta(meta || { title, shape: sub, detail: '', src: '', panel: '' }, comp);
+  const jumpAttr = jump ? ` data-jump-target="${jump}"` : '';
+  const g = [];
+
+  if (kind === 'cache') {
+    const cc = ARCH.cache;
+    g.push(`<g class="box" data-comp="${comp || 'cache'}" data-kind="cache"${nidAttr}${jumpAttr}>`);
+    g.push(`<title>${esc(title)}${sub ? ' · ' + esc(sub) : ''}</title>`);
+    g.push(`<rect class="card-ring" x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${cc.soft}" stroke="${cc.strong}" stroke-width="1.2" stroke-dasharray="4 2.5"/>`);
+    if (sub) {
+      g.push(`<text x="${(x + w / 2).toFixed(1)}" y="${(y + h / 2 - 3.8).toFixed(1)}" font-size="11.2" font-weight="700" fill="${cc.ink}" text-anchor="middle">${esc(title)}</text>`);
+      g.push(`<text x="${(x + w / 2).toFixed(1)}" y="${(y + h / 2 + 10.8).toFixed(1)}" font-size="9.9" font-weight="600" fill="${cc.ink}" text-anchor="middle" class="mono">${esc(sub)}</text>`);
+    } else {
+      g.push(`<text x="${(x + w / 2).toFixed(1)}" y="${(y + h / 2 + 4).toFixed(1)}" font-size="11.2" font-weight="700" fill="${cc.ink}" text-anchor="middle">${esc(title)}</text>`);
+    }
+    g.push(`</g>`);
+    return g.join('');
+  }
+
+  g.push(`<g class="box" data-comp="${comp || ''}" data-kind="${kind === 'weight' ? 'weight' : 'data'}"${nidAttr}${jumpAttr}>`);
+  g.push(`<title>${esc(title)}${sub ? ' · ' + esc(sub) : ''}${meta?.src ? ' · ' + esc(meta.src) : ''}</title>`);
+
+  if (stack && c) {
+    g.push(`<rect x="${x + 4.8}" y="${y - 4.8}" width="${w}" height="${h}" rx="${rx}" fill="${T.surface}" stroke="${c.mid}" stroke-width="0.95"/>`);
+    g.push(`<rect x="${x + 2.4}" y="${y - 2.4}" width="${w}" height="${h}" rx="${rx}" fill="${c.wash}" stroke="${c.mid}" stroke-width="0.95"/>`);
+  }
+
+  if (kind === 'weight') {
+    const ck = comp && ARCH[comp] ? comp : 'neutral';
+    const pal = ARCH[ck];
+    g.push(`<rect class="card-ring" x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${pal.soft}" stroke="${pal.mid}" stroke-width="1.25" data-role="wt"/>`);
+    if (sub) {
+      const subFont = sub.length > 26 && w < 250 ? 9.4 : sub.length > 20 && w < 165 ? 9.5 : 10.0;
+      g.push(`<text x="${(x + w / 2).toFixed(1)}" y="${(y + h / 2 - 3.6).toFixed(1)}" font-size="11.4" font-weight="700" fill="${T.ink}" text-anchor="middle">${esc(title)}</text>`);
+      g.push(`<text x="${(x + w / 2).toFixed(1)}" y="${(y + h / 2 + 10.8).toFixed(1)}" font-size="${subFont}" font-weight="600" fill="${pal.ink}" text-anchor="middle" class="mono">${esc(sub)}</text>`);
+    } else {
+      g.push(`<text x="${(x + w / 2).toFixed(1)}" y="${(y + h / 2 + 4.2).toFixed(1)}" font-size="11.6" font-weight="700" fill="${T.ink}" text-anchor="middle">${esc(title)}</text>`);
+    }
+  } else if (kind === 'kernel') {
+    const ck = comp && ARCH[comp] ? comp : 'neutral';
+    const pal = ARCH[ck];
+    g.push(`<rect class="card-ring" x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${pal.soft}" stroke="${pal.strong}" stroke-width="1.55" data-role="op"/>`);
+    if (sub) {
+      const kFont = w < 200 ? 9.6 : 10.1;
+      g.push(`<text x="${(x + w / 2).toFixed(1)}" y="${(y + h / 2 - 4.2).toFixed(1)}" font-size="11.6" font-weight="750" fill="${pal.ink}" text-anchor="middle">${esc(title)}</text>`);
+      g.push(`<text x="${(x + w / 2).toFixed(1)}" y="${(y + h / 2 + 11.2).toFixed(1)}" font-size="${kFont}" font-weight="600" fill="${T.ink}" text-anchor="middle" class="mono">${esc(sub)}</text>`);
+    } else {
+      g.push(`<text x="${(x + w / 2).toFixed(1)}" y="${(y + h / 2 + 4.4).toFixed(1)}" font-size="11.8" font-weight="750" fill="${pal.ink}" text-anchor="middle">${esc(title)}</text>`);
+    }
+  } else if (kind === 'io') {
+    const fill = T.headerBg;
+    const stroke = T.lineStrong;
+    g.push(`<rect class="card-ring" x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="1.15" data-role="res"/>`);
+    if (sub) {
+      g.push(`<text x="${x + w / 2}" y="${y + h / 2 - 3.4}" font-size="11.3" font-weight="700" fill="${T.ink}" text-anchor="middle">${esc(title)}</text>`);
+      g.push(`<text x="${x + w / 2}" y="${y + h / 2 + 10.8}" font-size="10.0" font-weight="500" fill="${T.ink2}" text-anchor="middle" class="mono">${esc(sub)}</text>`);
+    } else {
+      g.push(`<text x="${x + w / 2}" y="${y + h / 2 + 4.2}" font-size="11.5" font-weight="700" fill="${T.ink}" text-anchor="middle">${esc(title)}</text>`);
+    }
+  } else {
+    g.push(`<rect class="card-ring" x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${T.surface}" stroke="${T.lineStrong}" stroke-width="1.15" data-role="op"/>`);
+    if (sub) {
+      g.push(`<text x="${x + w / 2}" y="${y + h / 2 - 3.4}" font-size="11.3" font-weight="650" fill="${T.ink}" text-anchor="middle">${esc(title)}</text>`);
+      g.push(`<text x="${x + w / 2}" y="${y + h / 2 + 10.8}" font-size="10.0" font-weight="500" fill="${T.ink2}" text-anchor="middle" class="mono">${esc(sub)}</text>`);
+    } else {
+      g.push(`<text x="${x + w / 2}" y="${y + h / 2 + 4.2}" font-size="11.5" font-weight="650" fill="${T.ink}" text-anchor="middle">${esc(title)}</text>`);
+    }
+  }
+
+  if (badge) {
+    const bw = [...badge].reduce((a, ch) => a + (ch.charCodeAt(0) > 127 ? 9.4 : 5.5), 0) + 10;
+    const bx = x + w - bw - 5, by = y + 4;
+    g.push(`<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="14" rx="4" fill="${T.surface}" stroke="${T.lineStrong}" stroke-width="0.95"/>`);
+    g.push(`<text x="${(bx + bw / 2).toFixed(1)}" y="${by + 10.1}" font-size="9.1" font-weight="700" fill="${T.ink2}" text-anchor="middle">${esc(badge)}</text>`);
+  }
+
+  g.push(`</g>`);
+  return g.join('');
+}
+
+function drawCircleOp(cx, cy, r, sym, meta = null) {
+  const nid = registerMeta(meta, 'neutral');
+  return `<g class="box" data-kind="op"${nid}><title>${esc(meta?.title || sym)}</title><circle class="card-ring" cx="${cx}" cy="${cy}" r="${r}" fill="${T.surface}" stroke="${T.ink2}" stroke-width="1.4"/><text x="${cx}" y="${cy + 4.5}" font-size="13.5" font-weight="750" fill="${T.ink}" text-anchor="middle">${esc(sym)}</text></g>`;
+}
+
+function drawSubPlate(x, y, w, h, label, tone = null, { rightLabel = '', labelX = null, anchor = 'start' } = {}) {
+  const fill = tone ? tone.fill : T.headerBg;
+  const stroke = tone ? tone.stroke : T.lineStrong;
+  const labelColor = tone ? tone.label : T.muted;
+  const tx = labelX !== null ? labelX : x + 12;
+  let out = `<g class="sub-plate"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="1.05" stroke-dasharray="4 3"/>`;
+  if (label) {
+    out += `<text x="${tx.toFixed(1)}" y="${y + 16}" font-size="10.4" font-weight="700" fill="${labelColor}" text-anchor="${anchor}">${esc(label)}</text>`;
+  }
+  if (rightLabel) {
+    out += `<text x="${(x + w - 12).toFixed(1)}" y="${y + 16}" font-size="10.1" font-weight="600" fill="${labelColor}" text-anchor="end">${esc(rightLabel)}</text>`;
+  }
+  out += `</g>`;
+  return out;
+}
+
+// Uniform, calm scholarly panel frame across all 7 sub-figures (a)-(g)
+function drawPanelFrame(id, letter, ox, oy, w, h, title, subtitle) {
+  const headPath = topBandPath(ox + 0.6, oy + 0.6, w - 1.2, 11.5, 53.4);
+  return [
+    `<g id="${id}">`,
+    `<rect class="panel-frame" x="${ox}" y="${oy}" width="${w}" height="${h}" rx="12" fill="${T.surface}" stroke="${T.line}" stroke-width="1.2"/>`,
+    `<path d="${headPath}" fill="${T.headerBg}"/>`,
+    `<line x1="${ox}" y1="${oy + 54}" x2="${ox + w}" y2="${oy + 54}" stroke="${T.line}" stroke-width="1"/>`,
+    `<rect x="${ox + 16}" y="${oy + 15}" width="24" height="24" rx="5.5" fill="${T.ink}"/>`,
+    `<text x="${ox + 28}" y="${oy + 31.3}" font-size="13" font-weight="750" fill="${T.surface}" text-anchor="middle" class="mono">${esc(letter)}</text>`,
+    `<text x="${ox + 48}" y="${oy + 27}" font-size="14.6" font-weight="750" fill="${T.ink}">${esc(title)}</text>`,
+    `<text x="${ox + 48}" y="${oy + 44}" font-size="11.3" font-weight="500" fill="${T.muted}">${subtitle}</text>`,
+    `</g>`,
+  ].join('');
+}
+
+const hi = s => `<tspan fill="${T.ink2}" font-weight="650" class="mono">${esc(s)}</tspan>`;
+
+// ============================================================================
+// PANEL (a): Whole-Model Forward Backbone (ox=20, oy=16, w=484, h=918)
+// ============================================================================
+function buildPanelA(ox, oy) {
+  const w = 484, h = 918;
+  const g = [
+    drawPanelFrame(
+      'panel-a', 'a', ox, oy, w, h,
+      '全模型前向主干 (Whole-Model Forward)',
+      `分词 → 词表嵌入 → ${hi(S + ' 路残差')} × ${hi(N + ' 层')} → 均值与归一化 → 独立输出头`
+    ),
+  ];
+  const bx = ox + 22, bw = 336, cx = bx + bw / 2;
+  const busX0 = ox + 414;
+  const busMid = busX0 + 10.5;
+
+  // 1. Input tokens
+  g.push(drawBox({
+    x: bx, y: oy + 66, w: bw, h: 40,
+    title: '输入文本与分词 (Tokenizer)',
+    sub: `切分为 T 个 token ID [T] · 词表 ${fmt(V)}`,
+    kind: 'io',
+    meta: { panel: '(a)', title: '输入分词', shape: 'input_ids [B, T]', detail: `将输入文本切分为离散编号，词表规模 vocab_size = ${fmt(V)}`, src: 'modeling_glm5_next.py:1432' },
+  }));
+  g.push(drawArrow([[cx, oy + 106], [cx, oy + 119]]));
+
+  // 2. embed_tokens
+  g.push(drawBox({
+    x: bx, y: oy + 119, w: bw, h: 44,
+    title: '词表嵌入 embed_tokens',
+    sub: `查表 → [T, ${C}] · W [${V}, ${C}]`,
+    comp: 'embed', kind: 'weight',
+    meta: { panel: '(a)', title: 'embed_tokens 词表查表', shape: `[T] → [T, ${C}] · weight [${V}, ${C}]`, detail: `每个 token 编号取对应行得到 ${C} 维隐藏向量（约 ${(embedParams / 1e9).toFixed(2)}B 参数）`, src: 'modeling_glm5_next.py:1416 · 1447' },
+  }));
+  g.push(drawArrow([[cx, oy + 163], [cx, oy + 176]]));
+
+  // 3. hc_expand
+  g.push(drawBox({
+    x: bx, y: oy + 176, w: bw, h: 42,
+    title: `扩展为 ${S} 路并行残差 (hc_expand)`,
+    sub: `[T, ${C}] → [T, ${S}, ${C}] · 无参数复制`,
+    comp: 'resid', kind: 'io',
+    meta: { panel: '(a)', title: 'hc_expand 四路残差初始化', shape: `[T, ${C}] → [T, ${S}, ${C}]`, detail: `unsqueeze(2).expand(-1, -1, ${S}, -1)：第 0 层入口将词向量复制 ${S} 份，后续各层经 mHC 独立演化`, src: 'modeling_glm5_next.py:1476' },
+  }));
+
+  // 4-lane calm mauve-gray residual bus along the right side of panel (a)
+  const busTop = oy + 197, busBot = oy + 724;
+  g.push(drawArrow([[bx + bw, busTop], [busX0 - 3, busTop]]));
+  for (let k = 0; k < S; k++) {
+    g.push(`<line x1="${busX0 + k * 7}" y1="${busTop}" x2="${busX0 + k * 7}" y2="${busBot}" stroke="${ARCH.resid.rail}" stroke-width="2.4" stroke-linecap="round" data-comp="resid" data-role="res"/>`);
+  }
+  g.push(`<text x="${busMid}" y="${busTop - 20}" font-size="10.2" font-weight="700" fill="${T.ink2}" text-anchor="middle">${S} 路残差流</text>`);
+  g.push(`<text x="${busMid}" y="${busTop - 7}" font-size="9.4" font-weight="600" fill="${T.muted}" text-anchor="middle" class="mono">[T,${S},${C}]</text>`);
+
+  // 4. x45 Decoder Layer Plate
+  const py = oy + 230, ph = 458, px = ox + 14, pw = 368;
+  g.push(`<rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="9" fill="${T.headerBg}" stroke="${T.lineStrong}" stroke-width="1.25"/>`);
+  g.push(`<text x="${px + 14}" y="${py + 21}" font-size="13" font-weight="750" fill="${T.ink}">× ${N} 层解码器 (L00–L${N - 1})</text>`);
+  const bJumpNid = registerMeta({
+    panel: '(a) → (b)',
+    title: `${N} 层混合排布总览`,
+    shape: `${cntKda} KDA + ${cntMla} 稀疏 MLA · ${cntDense} 稠密 + ${cntMoe} MoE`,
+    detail: '点击定位至 (b) 查看 4 层一周期混合排布矩阵与推理跨步状态缓存对比',
+    src: 'official-config.json:layer_types · mlp_layer_types',
+  }, 'neutral');
+  g.push(`<g class="box" data-jump-target="panel-b"${bJumpNid}><rect class="card-ring" x="${px + pw - 108}" y="${py + 7}" width="96" height="19" rx="5" fill="${T.surface}" stroke="${T.lineStrong}" stroke-width="1"/><text x="${px + pw - 60}" y="${py + 20}" font-size="10.1" font-weight="650" fill="${T.ink2}" text-anchor="middle">层排布见 (b)</text></g>`);
+
+  const ix = bx + 6, iw = bw - 12, icx = ix + iw / 2;
+  const hw = (iw - 22) / 2;
+  const lx1 = ix + hw / 2, lx2 = ix + hw + 22 + hw / 2;
+
+  // Attention Half inside x45
+  const yMhc1 = py + 30;
+  g.push(drawBox({
+    x: ix, y: yMhc1, w: iw, h: 42,
+    title: 'mHC 入口混合 (attn_hc)',
+    sub: `fn[${MIX},${S * C}]+scale+base → 合成 1 路`,
+    comp: 'resid', kind: 'weight', jump: 'panel-c', badge: '图 c',
+    meta: { panel: '(a) → (c)', title: 'attn_hc 入口流混合', shape: `[T, ${S}, ${C}] → [T, ${C}] · fn [${MIX}, ${S * C}]`, detail: `官方实现先由 attn_hc (含可学习 fn、scale [3]、base [${MIX}]) 将 ${S} 路合成为 1 路，再进入 input_layernorm`, src: 'modeling_glm5_next.py:279–295 · 1296' },
+  }));
+  g.push(drawArrow([[busX0 - 3, yMhc1 + 21], [ix + iw, yMhc1 + 21]]));
+  g.push(drawArrow([[icx, yMhc1 + 42], [icx, yMhc1 + 52]]));
+
+  const yNorm1 = yMhc1 + 52;
+  g.push(drawBox({
+    x: ix, y: yNorm1, w: iw, h: 42,
+    title: 'RMSNorm 1 (input_layernorm)',
+    sub: `γ [${C}] · 输出 x_attn [T, ${C}]`,
+    comp: 'norm', kind: 'weight',
+    meta: { panel: '(a)', title: 'input_layernorm', shape: `[T, ${C}] → [T, ${C}] · γ [${C}]`, detail: `FP32 均方根归一化 (eps = ${tc.rms_norm_eps}) 后乘可学习缩放向量 γ`, src: 'modeling_glm5_next.py:1298' },
+  }));
+
+  const yAttn = yNorm1 + 52;
+  g.push(drawArrow([[icx, yNorm1 + 42], [icx, yNorm1 + 47], [lx1, yNorm1 + 47], [lx1, yAttn]]));
+  g.push(drawArrow([[icx, yNorm1 + 42], [icx, yNorm1 + 47], [lx2, yNorm1 + 47], [lx2, yAttn]]));
+
+  g.push(drawBox({
+    x: ix, y: yAttn, w: hw, h: 44,
+    title: 'KDA 线性注意力',
+    sub: `${cntKda} 层 · 见 (e)`,
+    comp: 'kda', kind: 'weight', jump: 'panel-e',
+    meta: { panel: '(a) → (e)', title: 'KDA 线性注意力分支', shape: `[T, ${C}] → [T, ${C}]`, detail: `共 ${cntKda} 层使用 KDA，维护固定大小 [${KH}, ${KD}, ${KD}] 状态矩阵 S 与 ${KCONV_WIN} 词短卷积窗`, src: 'modeling_glm5_next.py:1300–1306' },
+  }));
+  g.push(`<text x="${icx}" y="${yAttn + 26}" font-size="10.8" font-weight="650" fill="${T.muted}" text-anchor="middle">或</text>`);
+  g.push(drawBox({
+    x: ix + hw + 22, y: yAttn, w: hw, h: 44,
+    title: '稀疏 MLA + 索引器',
+    sub: `${cntMla} 层 · 见 (f)`,
+    comp: 'attn', kind: 'weight', jump: 'panel-f',
+    meta: { panel: '(a) → (f)', title: '稀疏 MLA + DSA kpool 索引器分支', shape: `[T, ${C}] → [T, ${C}]`, detail: `L03, L07 … L43 共 ${cntMla} 层使用稀疏 MLA，kpool 每 ${KP} 词一池，最多挑 ${TOPW} 个历史位置`, src: 'modeling_glm5_next.py:1308–1317' },
+  }));
+
+  const yWrite1 = yAttn + 54;
+  g.push(drawArrow([[lx1, yAttn + 44], [lx1, yAttn + 49], [icx, yAttn + 49], [icx, yWrite1]], { head: false }));
+  g.push(drawArrow([[lx2, yAttn + 44], [lx2, yAttn + 49], [icx, yAttn + 49], [icx, yWrite1]]));
+  g.push(drawBox({
+    x: ix, y: yWrite1, w: iw, h: 38,
+    title: `mHC 写回 ${S} 路 (注意力出口)`,
+    sub: `post ⊗ attn_out + combᵀ · 原 ${S} 路`,
+    comp: 'resid', kind: 'op', jump: 'panel-c',
+    meta: { panel: '(a) → (c)', title: '注意力段残差写回', shape: `[T, ${C}] + [T, ${S}, ${C}] → [T, ${S}, ${C}]`, detail: `复用 attn_hc 生成的 post [${S}] 与 Sinkhorn 双随机矩阵 comb [${S}×${S}] 将子层输出写回 ${S} 路`, src: 'modeling_glm5_next.py:1318–1320' },
+  }));
+  g.push(drawArrow([[ix + iw, yWrite1 + 19], [busX0 - 3, yWrite1 + 19]]));
+
+  // Mid divider between Attention half and FFN half
+  const yDiv = yWrite1 + 45;
+  g.push(`<line x1="${ix}" y1="${yDiv}" x2="${ix + iw}" y2="${yDiv}" stroke="${T.lineStrong}" stroke-width="1" stroke-dasharray="3.5 3"/>`);
+
+  // FFN Half inside x45
+  const yMhc2 = yDiv + 7;
+  g.push(drawBox({
+    x: ix, y: yMhc2, w: iw, h: 42,
+    title: 'mHC 入口混合 (ffn_hc)',
+    sub: `fn[${MIX},${S * C}]+scale+base → 合成 1 路`,
+    comp: 'resid', kind: 'weight', jump: 'panel-c',
+    meta: { panel: '(a) → (c)', title: 'ffn_hc 入口流混合', shape: `[T, ${S}, ${C}] → [T, ${C}] · fn [${MIX}, ${S * C}]`, detail: `前馈段独立拥有一套 fn / scale / base 参数，同样先合流再做 RMSNorm`, src: 'modeling_glm5_next.py:1323' },
+  }));
+  g.push(drawArrow([[busX0 - 3, yMhc2 + 21], [ix + iw, yMhc2 + 21]]));
+  g.push(drawArrow([[icx, yMhc2 + 42], [icx, yMhc2 + 52]]));
+
+  const yNorm2 = yMhc2 + 52;
+  g.push(drawBox({
+    x: ix, y: yNorm2, w: iw, h: 42,
+    title: 'RMSNorm 2 (post_attention_layernorm)',
+    sub: `γ [${C}] · 输出 x_ffn [T, ${C}]`,
+    comp: 'norm', kind: 'weight',
+    meta: { panel: '(a)', title: 'post_attention_layernorm', shape: `[T, ${C}] → [T, ${C}] · γ [${C}]`, detail: `前馈子层前的 RMSNorm 归一化`, src: 'modeling_glm5_next.py:1325' },
+  }));
+
+  const yFfn = yNorm2 + 52;
+  g.push(drawArrow([[icx, yNorm2 + 42], [icx, yNorm2 + 47], [lx1, yNorm2 + 47], [lx1, yFfn]]));
+  g.push(drawArrow([[icx, yNorm2 + 42], [icx, yNorm2 + 47], [lx2, yNorm2 + 47], [lx2, yFfn]]));
+
+  g.push(drawBox({
+    x: ix, y: yFfn, w: hw, h: 44,
+    title: '稠密 SwiGLU',
+    sub: `前 ${cntDense} 层 · 见 (g)`,
+    comp: 'dense', kind: 'weight', jump: 'panel-g',
+    meta: { panel: '(a) → (g)', title: '稠密 SwiGLU MLP (L00–L02)', shape: `[T, ${C}] → [T, ${I_DENSE}] → [T, ${C}]`, detail: `前 ${cntDense} 层使用稠密前馈，中间维度 ${fmt(I_DENSE)}，限幅 gate ≤ ${LIM}、up ∈ [-${LIM}, ${LIM}]`, src: 'modeling_glm5_next.py:87–105' },
+  }));
+  g.push(`<text x="${icx}" y="${yFfn + 26}" font-size="10.8" font-weight="650" fill="${T.muted}" text-anchor="middle">或</text>`);
+  g.push(drawBox({
+    x: ix + hw + 22, y: yFfn, w: hw, h: 44,
+    title: '细粒度 MoE',
+    sub: `后 ${cntMoe} 层 · 见 (g)`,
+    comp: 'expert', kind: 'weight', jump: 'panel-g',
+    meta: { panel: '(a) → (g)', title: '细粒度混合专家 MoE (L03–L44)', shape: `[T, ${C}] → [T, ${C}]`, detail: `后 ${cntMoe} 层每层 ${E_ROUTED} 个路由专家选 ${K_EXP} 个 + ${E_SHARED} 个常驻共享专家，专家中间维 ${fmt(MI)}`, src: 'modeling_glm5_next.py:187–208' },
+  }));
+
+  const yWrite2 = yFfn + 54;
+  g.push(drawArrow([[lx1, yFfn + 44], [lx1, yFfn + 49], [icx, yFfn + 49], [icx, yWrite2]], { head: false }));
+  g.push(drawArrow([[lx2, yFfn + 44], [lx2, yFfn + 49], [icx, yFfn + 49], [icx, yWrite2]]));
+  g.push(drawBox({
+    x: ix, y: yWrite2, w: iw, h: 38,
+    title: `mHC 写回 ${S} 路 (本层输出)`,
+    sub: `post ⊗ ffn_out + combᵀ · 原 ${S} 路`,
+    comp: 'resid', kind: 'op', jump: 'panel-c',
+    meta: { panel: '(a) → (c)', title: '前馈段残差写回', shape: `[T, ${C}] + [T, ${S}, ${C}] → [T, ${S}, ${C}]`, detail: `写回后的 ${S} 路残差直接作为下一层的输入流`, src: 'modeling_glm5_next.py:1327–1329' },
+  }));
+  g.push(drawArrow([[ix + iw, yWrite2 + 19], [busX0 - 3, yWrite2 + 19]]));
+
+  // 5. Post-backbone output stack
+  const yHcHead = oy + 704;
+  g.push(drawArrow([[busMid, busBot], [busMid, yHcHead + 20], [bx + bw, yHcHead + 20]]));
+  g.push(drawBox({
+    x: bx, y: yHcHead, w: bw, h: 40,
+    title: `${S} 路等权求平均 hc_head`,
+    sub: `mean(dim=2) → [T, ${C}] · 无可学习参数`,
+    comp: 'resid', kind: 'io',
+    meta: { panel: '(a)', title: 'Glm5NextTextHyperHead', shape: `[T, ${S}, ${C}] → [T, ${C}]`, detail: `第 ${N - 1} 层结束后对 ${S} 条残差流直接做无权重算术平均`, src: 'modeling_glm5_next.py:299–303 · 1492' },
+  }));
+  g.push(drawArrow([[cx, yHcHead + 40], [cx, yHcHead + 51]]));
+
+  const yFinalNorm = yHcHead + 51;
+  g.push(drawBox({
+    x: bx, y: yFinalNorm, w: bw, h: 43,
+    title: '最终归一化 model.norm',
+    sub: `RMSNorm γ [${C}] → last_hidden [T, ${C}]`,
+    comp: 'norm', kind: 'weight', jump: 'panel-d', badge: '送 MTP (d)',
+    meta: { panel: '(a) → (d)', title: '主模型最终 RMSNorm', shape: `[T, ${C}] → [T, ${C}] · γ [${C}]`, detail: `输出既送入 lm_head 计算当前生成步词表分数，也作为第 ${N} 层 MTP 的上一步隐藏状态输入`, src: 'modeling_glm5_next.py:1420 · 1492' },
+  }));
+  g.push(drawArrow([[cx, yFinalNorm + 43], [cx, yFinalNorm + 54]]));
+
+  const yLmHead = yFinalNorm + 54;
+  g.push(drawBox({
+    x: bx, y: yLmHead, w: bw, h: 44,
+    title: '输出投影层 lm_head (独立权重)',
+    sub: `${C} → ${V} · W [${V}, ${C}] (不共享)`,
+    comp: 'embed', kind: 'weight',
+    meta: { panel: '(a)', title: 'lm_head 词表线性投影', shape: `[1, ${C}] → [1, ${V}] · weight [${V}, ${C}]`, detail: `tie_word_embeddings = false，与 embed_tokens 独立存储；生成阶段仅取最后位置计算 ${fmt(V)} 个候选分数`, src: 'modeling_glm5_next.py:2115 · 2221' },
+  }));
+  g.push(drawArrow([[cx, yLmHead + 44], [cx, yLmHead + 55]]));
+
+  const yPick = yLmHead + 55;
+  g.push(drawBox({
+    x: bx, y: yPick, w: bw, h: 40,
+    title: '词表 Logits 与采样选词',
+    sub: `[1, ${fmt(V)}] → Softmax · 默认 top_p = 0.95`,
+    comp: 'embed', kind: 'op',
+    meta: { panel: '(a)', title: '下一个 token 采样', shape: `[1, ${V}] → next_token_id`, detail: `官方 generation_config 默认采样 top_p = 0.95（贪心解码则直接取 argmax）`, src: 'generation_config.json' },
+  }));
+
+  return { svg: g.join(''), w, h };
+}
+
+// ============================================================================
+// PANEL (b): 45-Layer 3:1 Hybrid Recipe + Cache Footprint (ox=20, w=484, h=380)
+// ============================================================================
+function buildPanelB(ox, oy) {
+  const w = 484, h = 380;
+  const g = [
+    drawPanelFrame(
+      'panel-b', 'b', ox, oy, w, h,
+      `${N} 层混合排布周期与跨步缓存 (3:1 规律)`,
+      `(KDA × 3 + 稀疏 MLA × 1) × ${hi(cntMla + ' 组')} + L${N - 1} KDA · 前 ${hi(cntDense + ' 层')}稠密 / 后 ${hi(cntMoe + ' 层')} MoE`
+    ),
+  ];
+
+  // 12 columns x 4 rows periodic matrix for backbone L00..L44, plus separated L45 (MTP) on the MLA row
+  const gx0 = ox + 58, gy0 = oy + 68;
+  const cw = 30.5, ch = 31, gapX = 3.5, gapY = 5;
+  const rowLabels = ['+0 KDA', '+1 KDA', '+2 KDA', '+3 MLA'];
+  for (let r = 0; r < 4; r++) {
+    const ry = gy0 + r * (ch + gapY) + ch / 2 + 3.5;
+    g.push(`<text x="${ox + 52}" y="${ry}" font-size="9.5" font-weight="700" fill="${r === 3 ? ARCH.attn.ink : ARCH.kda.ink}" text-anchor="end" class="mono">${rowLabels[r]}</text>`);
+  }
+
+  const kdaTileTop = mix(ARCH.kda.soft, ARCH.kda.mid, 0.35);
+  const mlaTileTop = mix(ARCH.attn.soft, ARCH.attn.mid, 0.38);
+  const denseTileBot = mix(ARCH.dense.soft, ARCH.dense.mid, 0.38);
+  const moeTileBot = mix(ARCH.expert.soft, ARCH.expert.mid, 0.32);
+
+  for (let i = 0; i < N; i++) {
+    const col = Math.floor(i / 4), row = i % 4;
+    const cx = gx0 + col * (cw + gapX), cy = gy0 + row * (ch + gapY);
+    const [aKind, fKind] = kinds[i];
+    const topFill = aKind === 'kda' ? kdaTileTop : mlaTileTop;
+    const botFill = fKind === 'dense' ? denseTileBot : moeTileBot;
+    const ringCol = aKind === 'kda' ? ARCH.kda.mid : ARCH.attn.mid;
+    const label = String(i).padStart(2, '0');
+    const desc = `L${label}：${aKind === 'kda' ? 'KDA 线性注意力' : '稀疏 MLA + kpool 索引器'} + ${fKind === 'dense' ? `稠密 SwiGLU (${fmt(I_DENSE)})` : `细粒度 MoE (${E_ROUTED}选${K_EXP}+${E_SHARED})`}`;
+    const nid = registerMeta({
+      panel: '(b)',
+      title: `第 L${label} 层`,
+      shape: `${S} 路 mHC [T, ${S}, ${C}]`,
+      detail: desc,
+      src: 'official-config.json:layer_types',
+    }, aKind === 'kda' ? 'kda' : 'attn');
+    g.push(`<g class="box" data-comp="${aKind === 'kda' ? 'kda' : 'attn'}"${nid}>`);
+    g.push(`<title>${esc(desc)}</title>`);
+    g.push(`<rect x="${cx.toFixed(1)}" y="${cy}" width="${cw}" height="${(ch * 0.56).toFixed(1)}" rx="3.5" fill="${topFill}"/>`);
+    g.push(`<rect x="${cx.toFixed(1)}" y="${(cy + ch * 0.52).toFixed(1)}" width="${cw}" height="${(ch * 0.48).toFixed(1)}" rx="3" fill="${botFill}"/>`);
+    g.push(`<line x1="${(cx + 1).toFixed(1)}" y1="${(cy + ch * 0.54).toFixed(1)}" x2="${(cx + cw - 1).toFixed(1)}" y2="${(cy + ch * 0.54).toFixed(1)}" stroke="${T.surface}" stroke-width="0.9"/>`);
+    g.push(`<rect class="card-ring" x="${cx.toFixed(1)}" y="${cy}" width="${cw}" height="${ch}" rx="4" fill="none" stroke="${ringCol}" stroke-width="1"/>`);
+    g.push(`<text x="${(cx + cw / 2).toFixed(1)}" y="${cy + 13.2}" font-size="9.4" font-weight="750" fill="${T.ink}" text-anchor="middle" class="mono">${label}</text>`);
+    g.push(`<text x="${(cx + cw / 2).toFixed(1)}" y="${cy + 26.5}" font-size="8.1" font-weight="650" fill="${fKind === 'dense' ? ARCH.dense.ink : ARCH.expert.ink}" text-anchor="middle">${fKind === 'dense' ? '稠' : '专'}</text>`);
+    g.push(`</g>`);
+  }
+
+  // Separated standalone L45 (MTP) cell aligned with +3 MLA row
+  const mtpColX = gx0 + 11 * (cw + gapX) + 4;
+  const mtpRowY = gy0 + 3 * (ch + gapY);
+  const mtpDesc = `L${N} (MTP 投机草拟层)：主干外独立层，单路标准残差（无 mHC）+ 稀疏 MLA + 索引器 + MoE`;
+  const mtpNid = registerMeta({
+    panel: '(b) → (d)',
+    title: `L${N} · MTP 投机草拟层`,
+    shape: `单路 [T, ${C}] (无 mHC)`,
+    detail: mtpDesc,
+    src: 'vLLM mtp.py:40–111',
+  }, 'mtp');
+  g.push(`<line x1="${(mtpColX - 4).toFixed(1)}" y1="${mtpRowY - 14}" x2="${(mtpColX + cw + 2).toFixed(1)}" y2="${mtpRowY - 14}" stroke="${ARCH.mtp.strong}" stroke-width="1" stroke-dasharray="2.5 2"/>`);
+  g.push(`<text x="${(mtpColX + cw / 2).toFixed(1)}" y="${mtpRowY - 4}" font-size="8.3" font-weight="700" fill="${ARCH.mtp.ink}" text-anchor="middle">主干外</text>`);
+  g.push(`<g class="box" data-comp="mtp" data-jump-target="panel-d"${mtpNid}>`);
+  g.push(`<title>${esc(mtpDesc)}</title>`);
+  g.push(`<rect x="${mtpColX.toFixed(1)}" y="${mtpRowY}" width="${cw}" height="${(ch * 0.56).toFixed(1)}" rx="3.5" fill="${ARCH.mtp.soft}"/>`);
+  g.push(`<rect x="${mtpColX.toFixed(1)}" y="${(mtpRowY + ch * 0.52).toFixed(1)}" width="${cw}" height="${(ch * 0.48).toFixed(1)}" rx="3" fill="${moeTileBot}"/>`);
+  g.push(`<rect class="card-ring" x="${mtpColX.toFixed(1)}" y="${mtpRowY}" width="${cw}" height="${ch}" rx="4" fill="none" stroke="${ARCH.mtp.strong}" stroke-width="1.25" stroke-dasharray="2.5 2"/>`);
+  g.push(`<text x="${(mtpColX + cw / 2).toFixed(1)}" y="${mtpRowY + 13.2}" font-size="8.9" font-weight="750" fill="${ARCH.mtp.ink}" text-anchor="middle" class="mono">L${N}</text>`);
+  g.push(`<text x="${(mtpColX + cw / 2).toFixed(1)}" y="${mtpRowY + 26.5}" font-size="7.7" font-weight="650" fill="${ARCH.expert.ink}" text-anchor="middle" class="mono">MTP</text>`);
+  g.push(`</g>`);
+
+  // Symmetric 2 x 2 archetype summary chips grid
+  const sy = oy + 216;
+  const chips = [
+    [`L00–L02：KDA + 稠密 MLP × ${cntKdaDense}`, ARCH.dense],
+    [`其余层 (L04…L${N - 1})：KDA + MoE × ${cntKdaMoe}`, ARCH.kda],
+    [`L03, L07…L43：稀疏 MLA + MoE × ${cntMla}`, ARCH.attn],
+    [`L${N}：MTP 投机草拟层 (单路) × ${tc.num_nextn_predict_layers}`, ARCH.mtp],
+  ];
+  const chipW = (w - 32 - 8) / 2;
+  chips.forEach(([txt, pal], idx) => {
+    const cx = ox + 16 + (idx % 2) * (chipW + 8);
+    const cy0 = sy + Math.floor(idx / 2) * 25;
+    g.push(`<rect x="${cx}" y="${cy0}" width="${chipW}" height="21" rx="4.5" fill="${T.headerBg}" stroke="${T.line}" stroke-width="1"/>`);
+    g.push(`<rect x="${cx + 7}" y="${cy0 + 5}" width="10" height="11" rx="2" fill="${pal.soft}" stroke="${pal.mid}" stroke-width="1"/>`);
+    g.push(`<text x="${cx + 22}" y="${cy0 + 14.3}" font-size="10.0" font-weight="650" fill="${T.ink}">${esc(txt)}</text>`);
+  });
+
+  // Inference cross-step cache comparison box
+  const cy = oy + 272;
+  const cc = ARCH.cache;
+  g.push(`<rect x="${ox + 16}" y="${cy}" width="${w - 32}" height="94" rx="8" fill="${cc.wash}" stroke="${cc.mid}" stroke-width="1.1"/>`);
+  g.push(`<text x="${ox + 28}" y="${cy + 19}" font-size="11.2" font-weight="750" fill="${cc.ink}">推理跨轮次状态缓存对比 (KV / State Cache)</text>`);
+  g.push(`<text x="${ox + 28}" y="${cy + 40}" font-size="10.5" font-weight="650" fill="${T.ink}">· KDA (${cntKda} 层)：<tspan font-weight="500" fill="${T.ink2}">状态 S [${KH}, ${KD}, ${KD}] + 卷积窗 ${KCONV_WIN}×${KCONV_CH}，随序列 </tspan><tspan font-weight="700" fill="${ARCH.kda.ink}" class="mono">O(1) 恒定</tspan></text>`);
+  g.push(`<text x="${ox + 28}" y="${cy + 60}" font-size="10.5" font-weight="650" fill="${T.ink}">· 稀疏 MLA (${cntMla} 层 + MTP)：<tspan font-weight="500" fill="${T.ink2}">潜向量 c_kv [T, ${KR}]（较全量 KV 压缩 </tspan><tspan font-weight="700" fill="${ARCH.attn.ink}" class="mono">${KV_COMP}×</tspan><tspan font-weight="500" fill="${T.ink2}">）</tspan></text>`);
+  g.push(`<text x="${ox + 38}" y="${cy + 79}" font-size="10.1" font-weight="500" fill="${T.ink2}">索引器：vllm-ascend 存 <tspan class="mono" font-weight="600" fill="${cc.ink}">pool_k[⌊T/${KP}⌋,${ID}]</tspan> + 尾缓冲（HF 存逐词 [${2 * ID + 1}]）</text>`);
+
+  return { svg: g.join(''), w, h };
+}
+
+// ============================================================================
+// PANEL (c): mHC 4-Stream Hyper-Connections (ox=20, w=484, h=424)
+// ============================================================================
+function buildPanelC(ox, oy) {
+  const w = 484, h = 424;
+  const g = [
+    drawPanelFrame(
+      'panel-c', 'c', ox, oy, w, h,
+      `mHC 四路流形约束超连接 (每层执行 2 次)`,
+      `每词算 ${hi(MIX + ' 个系数')}：pre ${hi(S)} 合成 1 路 · post ${hi(S)} + Sinkhorn comb ${hi(S + '×' + S)} 写回`
+    ),
+  ];
+
+  // Top input
+  g.push(drawBox({
+    x: ox + 20, y: oy + 66, w: w - 40, h: 38,
+    title: `当前段输入 · ${S} 路并行残差流`,
+    sub: `hidden_streams [T, ${S}, ${C}]`,
+    comp: 'resid', kind: 'io',
+    meta: { panel: '(c)', title: 'mHC 四路输入张量', shape: `[T, ${S}, ${C}]`, detail: `注意力段与前馈段入口各接收 ${S} 条宽 ${C} 的残差流`, src: 'modeling_glm5_next.py:268' },
+  }));
+
+  const lx = ox + 20, lw = 178, lcx = lx + lw / 2;
+  const mx = ox + 244, mw = 180, mcx = mx + mw / 2;
+  const bx0 = ox + 440;
+
+  // Arrows from input
+  g.push(drawArrow([[lcx, oy + 104], [lcx, oy + 124]]));
+  g.push(drawArrow([[mcx, oy + 104], [mcx, oy + 172]]));
+  for (let k = 0; k < S; k++) {
+    g.push(`<line x1="${bx0 + k * 6}" y1="${oy + 104}" x2="${bx0 + k * 6}" y2="${oy + 325}" stroke="${ARCH.resid.rail}" stroke-width="2.2" stroke-linecap="round" data-comp="resid" data-role="res"/>`);
+  }
+  g.push(`<text x="${bx0 - 6}" y="${oy + 144}" font-size="9.5" font-weight="650" fill="${T.ink2}" text-anchor="end">原 ${S} 路</text>`);
+
+  // Left: fn mapping + scale + base
+  g.push(drawBox({
+    x: lx, y: oy + 124, w: lw, h: 48,
+    title: '展平 + 无权 RMSNorm → fn',
+    sub: `fn[${MIX},${S * C}]+scale+base`,
+    comp: 'resid', kind: 'weight',
+    meta: { panel: '(c)', title: 'hc.fn 混合系数映射 (FP32)', shape: `[T, ${S * C}] → [T, ${MIX}] · fn [${MIX}, ${S * C}], scale [3], base [${MIX}]`, detail: `${S} 路展平为 ${S * C} 维（FP32），经无权重 RMSNorm 后乘 fn 得 ${MIX} 维，拆为三段后先各乘 scale [3]、再加 base [${MIX}]`, src: 'modeling_glm5_next.py:279–286' },
+  }));
+  g.push(drawArrow([[lcx, oy + 172], [lcx, oy + 190]]));
+
+  // Left: Featured Kernel: Sinkhorn doubly-stochastic manifold projection
+  g.push(drawBox({
+    x: lx, y: oy + 190, w: lw, h: 54,
+    title: `激活与 ${SK} 轮 Sinkhorn`,
+    sub: `pre[${S}] · post[${S}] · comb[${S},${S}]`,
+    comp: 'resid', kind: 'kernel',
+    meta: { panel: '(c)', title: '流形约束系数生成', shape: `pre [T,${S}], post [T,${S}], comb [T,${S},${S}]`, detail: `pre = σ(·)+1e-6；post = 2σ(·) ∈ (0,2)；comb 经 Softmax 后先按列归一 1 次，再做 ${SK - 1} 轮行列交替归一投影至双随机流形`, src: 'modeling_glm5_next.py:284–292' },
+  }));
+
+  g.push(drawArrow([[lx + lw, oy + 202], [mx, oy + 202]], { label: `pre[${S}]`, lx: (lx + lw + mx) / 2, ly: oy + 189 }));
+
+  // Center: collapse to 1 stream
+  g.push(drawBox({
+    x: mx, y: oy + 172, w: mw, h: 44,
+    title: `按 pre 加权合成 1 路`,
+    sub: `Σ preᵢ·streamᵢ → [T, ${C}]`,
+    comp: 'resid', kind: 'op',
+    meta: { panel: '(c)', title: '四路坍缩为单路输入', shape: `[T, ${S}, ${C}] → [T, ${C}]`, detail: `(pre.unsqueeze(-1) * hidden_streams).sum(dim=2)，合成单条宽 ${C} 序列送入归一化与子层`, src: 'modeling_glm5_next.py:295' },
+  }));
+  g.push(drawArrow([[mcx, oy + 216], [mcx, oy + 234]]));
+
+  // Center: stand-in sublayer
+  const subStandinNid = registerMeta({
+    panel: '(c)',
+    title: '单路子层执行 (RMSNorm + 注意力或前馈)',
+    shape: `[T, ${C}] → sub_out [T, ${C}]`,
+    detail: 'mHC 先将 4 路合成为 1 路后，才执行该半层的 RMSNorm 与注意力（图 e/f）或前馈（图 g）计算',
+    src: 'modeling_glm5_next.py:1298–1326',
+  }, 'norm');
+  g.push(`<g class="box" data-kind="op"${subStandinNid}><rect class="card-ring" x="${mx}" y="${oy + 234}" width="${mw}" height="46" rx="6" fill="${T.headerBg}" stroke="${T.lineStrong}" stroke-width="1.15" stroke-dasharray="4 3"/><text x="${mcx}" y="${oy + 254}" font-size="11.2" font-weight="650" fill="${T.ink}" text-anchor="middle">RMSNorm → 注意力 / 前馈</text><text x="${mcx}" y="${oy + 270}" font-size="9.9" font-weight="500" fill="${T.muted}" text-anchor="middle" class="mono">子层输出 sub_out [T, ${C}]</text></g>`);
+  g.push(drawArrow([[mcx, oy + 280], [mcx, oy + 302]]));
+
+  // post + comb arrow from left down to write-back
+  g.push(drawArrow([[lcx, oy + 244], [lcx, oy + 325], [mx, oy + 325]], { label: `post[${S}] + comb[${S},${S}]`, lx: lx + 92, ly: oy + 314 }));
+  // 4-lane bypass into write-back
+  g.push(drawArrow([[bx0 + 9, oy + 325], [mx + mw, oy + 325]]));
+
+  // Center: write-back
+  g.push(drawBox({
+    x: mx, y: oy + 302, w: mw, h: 46,
+    title: `写回并混合 ${S} 路残差`,
+    sub: `post⊗sub + combᵀ·原${S}路`,
+    comp: 'resid', kind: 'op',
+    meta: { panel: '(c)', title: 'mHC 出口四路写回', shape: `[T, ${C}] + [T, ${S}, ${C}] → [T, ${S}, ${C}]`, detail: `post.unsqueeze(-1) * sub_out.unsqueeze(-2) + matmul(comb.transpose(-1, -2), residual)`, src: 'modeling_glm5_next.py:1318–1320' },
+  }));
+  g.push(drawArrow([[mcx, oy + 348], [mcx, oy + 368]]));
+
+  // Bottom output
+  g.push(drawBox({
+    x: ox + 20, y: oy + 368, w: w - 40, h: 38,
+    title: `写回后 ${S} 路残差输出`,
+    sub: `交给下半层或下一层 [T, ${S}, ${C}]`,
+    comp: 'resid', kind: 'io',
+    meta: { panel: '(c)', title: 'mHC 写回输出', shape: `[T, ${S}, ${C}]`, detail: `更新后的 ${S} 条残差流继续向下传递`, src: 'modeling_glm5_next.py:1331' },
+  }));
+
+  return { svg: g.join(''), w, h };
+}
+
+// ============================================================================
+// PANEL (d): MTP Speculative Layer L45 (ox=20, w=484, h=508)
+// ============================================================================
+function buildPanelD(ox, oy) {
+  const w = 484, h = 508;
+  const g = [
+    drawPanelFrame(
+      'panel-d', 'd', ox, oy, w, h,
+      `MTP 多词预测草拟层 (第 ${N} 层 · 投机解码)`,
+      `双路拼接 → ${hi('eh_proj')} → 单路残差 ${hi('MLA + MoE')} (无 mHC) · 总参 ${hi((mtpParams / 1e9).toFixed(2) + 'B')}`
+    ),
+  ];
+
+  const lx = ox + 20, rx = ox + 252, bw = 212;
+  const lcx = lx + bw / 2, rcx = rx + bw / 2, midX = ox + w / 2;
+
+  // Dual inputs
+  g.push(drawBox({
+    x: lx, y: oy + 66, w: bw, h: 44,
+    title: '左移 1 位词序列查词表',
+    sub: `共享 embed_tokens → [T, ${C}]`,
+    comp: 'embed', kind: 'weight',
+    meta: { panel: '(d)', title: 'MTP 词向量输入支路', shape: `[T] → [T, ${C}]`, detail: `第 t 位放第 t+1 个 token（末位放刚选出的 token，positions==0 处嵌入清零），复用主模型 embed_tokens`, src: 'vLLM llm_base_proposer.py:844–847 · glm5_next_mtp.py:94–142' },
+  }));
+  g.push(drawBox({
+    x: rx, y: oy + 66, w: bw, h: 44,
+    title: '上一步隐藏状态输入',
+    sub: `主模型末层或前次草拟 [T, ${C}]`,
+    comp: 'resid', kind: 'io',
+    meta: { panel: '(d)', title: 'MTP 隐藏状态支路', shape: `[T, ${C}]`, detail: `首轮草拟取主模型 model.norm 输出；连续多步草拟时循环取上一草拟步 shared_head.norm 输出`, src: 'vLLM mtp.py:89 · 110–111' },
+  }));
+
+  g.push(drawArrow([[lcx, oy + 110], [lcx, oy + 124]]));
+  g.push(drawArrow([[rcx, oy + 110], [rcx, oy + 124]]));
+
+  g.push(drawBox({
+    x: lx, y: oy + 124, w: bw, h: 44,
+    title: 'enorm (RMSNorm)',
+    sub: `词向量归一化 γ [${C}]`,
+    comp: 'norm', kind: 'weight',
+    meta: { panel: '(d)', title: 'mtp.enorm', shape: `[T, ${C}] → [T, ${C}]`, detail: `对移位词嵌入做独立 RMSNorm（运行时由 fused_eh_norm 按 [enorm(e), hnorm(h)] 顺序融合执行）`, src: 'vLLM mtp.py:46 · 95–102' },
+  }));
+  g.push(drawBox({
+    x: rx, y: oy + 124, w: bw, h: 44,
+    title: 'hnorm (RMSNorm)',
+    sub: `隐藏状态归一化 γ [${C}]`,
+    comp: 'norm', kind: 'weight',
+    meta: { panel: '(d)', title: 'mtp.hnorm', shape: `[T, ${C}] → [T, ${C}]`, detail: `对前一隐藏状态做独立 RMSNorm（W8A8 量化权重若启用 is_rot_used 则在 hnorm 前另乘旋转矩阵）`, src: 'vLLM mtp.py:47 · 95–102' },
+  }));
+
+  // Merge into eh_proj
+  const yEh = oy + 184;
+  g.push(drawArrow([[lcx, oy + 168], [lcx, oy + 176], [midX - 24, oy + 176], [midX - 24, yEh]]));
+  g.push(drawArrow([[rcx, oy + 168], [rcx, oy + 176], [midX + 24, oy + 176], [midX + 24, yEh]]));
+
+  g.push(drawBox({
+    x: ox + 46, y: yEh, w: w - 92, h: 44,
+    title: `拼接 Concat [T, ${2 * C}] → 线性融合 eh_proj`,
+    sub: `${2 * C} → ${C} · W [${C}, ${2 * C}]`,
+    comp: 'mtp', kind: 'weight',
+    meta: { panel: '(d)', title: 'eh_proj 双路特征融合', shape: `[T, ${2 * C}] → [T, ${C}] · weight [${C}, ${2 * C}]`, detail: `将归一化后的词向量与隐藏状态沿特征维拼接为 ${2 * C} 维，线性投影回 ${C} 维`, src: 'vLLM mtp.py:48 · 103' },
+  }));
+
+  // Single-stream Pre-Norm decoder block plate (header split left/right of midX)
+  const py = oy + 240, ph = 138;
+  const ibw = 384, ibx = midX - ibw / 2;
+  const mtpTone = plateTone('mtp');
+  g.push(drawSubPlate(ox + 26, py, w - 52, ph, 'mtp_block · 单路残差（无 hc_*）', mtpTone, { rightLabel: '算子形状同 L03' }));
+
+  g.push(drawArrow([[midX, yEh + 44], [midX, py + 26]]));
+
+  g.push(drawBox({
+    x: ibx, y: py + 26, w: ibw, h: 44,
+    title: '单路注意力段：x ← x + MLA_Idx(RMSNorm(x))',
+    sub: `${NH} 头稀疏 MLA + ${IH} 头 kpool 索引器 · [T, ${C}]`,
+    comp: 'attn', kind: 'weight', jump: 'panel-f',
+    meta: { panel: '(d) → (f)', title: 'MTP 稀疏 MLA 子层', shape: `[T, ${C}] → [T, ${C}]`, detail: `算子形状与 L03 一致，残差为标准单路加法（无 mHC）；配置含 index_share_for_mtp_iteration=true（rc2/main 接通步间索引复用，固定镜像 db701c1f 每步重算索引器）`, src: 'vLLM model.py:466–475 · mtp.py:146–150' },
+  }));
+  g.push(drawArrow([[midX, py + 70], [midX, py + 82]]));
+
+  g.push(drawBox({
+    x: ibx, y: py + 82, w: ibw, h: 44,
+    title: `单路前馈段：x ← x + MoE(RMSNorm(x))`,
+    sub: `${E_ROUTED} 选 ${K_EXP} + ${E_SHARED} 共享专家 · 单路相加 [T, ${C}]`,
+    comp: 'expert', kind: 'weight', jump: 'panel-g',
+    meta: { panel: '(d) → (g)', title: 'MTP MoE 前馈子层', shape: `[T, ${C}] → [T, ${C}]`, detail: `独立拥有 ${E_ROUTED} 个路由专家 (${mtpRoutedB}B) + ${E_SHARED} 个共享专家 (合计 ${mtpAllExpertsB}B，占 MTP ${(mtpParams / 1e9).toFixed(2)}B)，单步每词仅激活约 ${(mtpActiveParams / 1e9).toFixed(2)}B`, src: 'vLLM model.py:476–482' },
+  }));
+
+  g.push(drawArrow([[midX, py + 126], [midX, oy + 392]]));
+
+  // shared_head.norm
+  g.push(drawBox({
+    x: ox + 46, y: oy + 392, w: w - 92, h: 44,
+    title: 'shared_head.norm (RMSNorm)',
+    sub: `γ [${C}] · 输出同时可供下一草拟步循环复用`,
+    comp: 'norm', kind: 'weight',
+    meta: { panel: '(d)', title: 'shared_head.norm', shape: `[T, ${C}] → [T, ${C}]`, detail: `融合残差加法与最终 RMSNorm，输出既送入共享 lm_head，也可回传作为下一投机步的 previous_hidden_states`, src: 'vLLM mtp.py:110–111' },
+  }));
+  g.push(drawArrow([[midX, oy + 436], [midX, oy + 450]]));
+
+  // shared lm_head -> draft token
+  g.push(drawBox({
+    x: ox + 46, y: oy + 450, w: w - 92, h: 44,
+    title: '共享主模型 lm_head → argmax 草稿词',
+    sub: `[1, ${fmt(V)}] 取最高分候选 · 下一轮交主模型并行验证`,
+    comp: 'embed', kind: 'weight',
+    meta: { panel: '(d)', title: 'MTP 词表投影与贪心草拟', shape: `[1, ${C}] → draft_token_id`, detail: `复用主模型 lm_head 权重（checkpoint 无重复拷贝），词表并行 argmax 产出候选词交主模型一次前向验证`, src: 'vLLM mtp.py:181–208' },
+  }));
+
+  return { svg: g.join(''), w, h };
+}
+
+// ============================================================================
+// PANEL (e): KDA Linear Attention (ox=520, oy=16, w=980, h=596)
+// ============================================================================
+function buildPanelE(ox, oy) {
+  const w = 980, h = 596;
+  const kdaTone = plateTone('kda');
+  const g = [
+    drawPanelFrame(
+      'panel-e', 'e', ox, oy, w, h,
+      `KDA 线性注意力 (${cntKda} 层 · Kimi Delta Attention)`,
+      `${hi(KH + ' 头 × ' + KD + ' 维 = ' + KHD)} · ${hi(KCONV + '-tap')} 因果短卷积 · 通道级遗忘门 + 纠错写入固定状态 ${hi(`S [${KH},${KD},${KD}]`)}`
+    ),
+  ];
+
+  // Top input
+  const inX = ox + 22, inW = w - 44;
+  g.push(drawBox({
+    x: inX, y: oy + 66, w: inW, h: 38,
+    title: 'RMSNorm 1 输出 x_attn',
+    sub: `[T, ${C}]`,
+    comp: 'norm', kind: 'io',
+    meta: { panel: '(e)', title: 'KDA 子层输入 x_attn', shape: `[T, ${C}]`, detail: `来自 input_layernorm 的归一化隐藏向量，扇出至输出门、Q/K/V 投影、遗忘门与写入门`, src: 'modeling_glm5_next.py:631' },
+  }));
+
+  // Three grouped sub-plates at y = oy + 120..286 (all labels placed in 100% arrow-free spans)
+  const py = oy + 120, ph = 166;
+  const g1x = ox + 22, g1w = 166, g1cx = g1x + g1w / 2;
+  const g2x = ox + 198, g2w = 468;
+  const g3x = ox + 676, g3w = 282;
+  const fx = g3x + 10, fw = 132, fcx = fx + fw / 2;
+  const btx = g3x + 150, btw = 122, btcx = btx + btw / 2;
+
+  g.push(drawSubPlate(g1x, py, g1w, ph, '输出门', kdaTone, { rightLabel: '低秩支路' }));
+  g.push(drawSubPlate(g2x, py, g2w, ph, `Q/K/V 与 ${KCONV}-tap 因果短卷积`, kdaTone, { labelX: g2x + 83 + 75.5, anchor: 'middle' }));
+  g.push(drawSubPlate(g3x, py, g3w, ph, '遗忘门 g · 写入门 β', kdaTone, { labelX: (fcx + btcx) / 2, anchor: 'middle' }));
+
+  const r1y = py + 28, r1h = 50;
+  const r2y = py + 100, r2h = 50;
+
+  // Col 0: Output gate g_a -> g_b
+  g.push(drawArrow([[g1cx, oy + 104], [g1cx, r1y]]));
+  g.push(drawBox({
+    x: g1x + 10, y: r1y, w: g1w - 20, h: r1h,
+    title: '输出门压缩 W_g_a',
+    sub: `${C}→${KD} [${KD},${C}]`,
+    comp: 'kda', kind: 'weight',
+    meta: { panel: '(e)', title: 'g_a_proj 输出门降维', shape: `[T, ${C}] → [T, ${KD}] · weight [${KD}, ${C}]`, detail: `输出门低秩瓶颈第一步：${C} 维压至 ${KD} 维`, src: 'modeling_glm5_next.py:622 · 731' },
+  }));
+  g.push(drawArrow([[g1cx, r1y + r1h], [g1cx, r2y]]));
+  g.push(drawBox({
+    x: g1x + 10, y: r2y, w: g1w - 20, h: r2h,
+    title: '输出门展开 W_g_b',
+    sub: `${KD}→${KHD} [${KHD},${KD}]`,
+    comp: 'kda', kind: 'weight',
+    meta: { panel: '(e)', title: 'g_b_proj 输出门升维', shape: `[T, ${KD}] → [T, ${KH}, ${KD}] · weight [${KHD}, ${KD}]`, detail: `展开为 ${KH} 头 × ${KD} 维门控张量 gate，送往下方门控 RMSNorm`, src: 'modeling_glm5_next.py:623 · 731' },
+  }));
+
+  // Cols 1, 2, 3: Q, K, V projections + Short Conv
+  const qkvCols = [
+    ['q', 'Q 投影 W_q', '短卷积 · Q', 'q_proj'],
+    ['k', 'K 投影 W_k', '短卷积 · K', 'k_proj'],
+    ['v', 'V 投影 W_v', '短卷积 · V', 'v_proj'],
+  ];
+  const qkvCenters = [];
+  qkvCols.forEach(([id, t1, t2, code], idx) => {
+    const bx = g2x + 10 + idx * 151, bw = 146, bcx = bx + bw / 2;
+    qkvCenters.push(bcx);
+    g.push(drawArrow([[bcx, oy + 104], [bcx, r1y]]));
+    g.push(drawBox({
+      x: bx, y: r1y, w: bw, h: r1h,
+      title: t1,
+      sub: `${C}→${KHD} [${KHD},${C}]`,
+      comp: 'kda', kind: 'weight',
+      meta: { panel: '(e)', title: `${code} 线性投影`, shape: `[T, ${C}] → [T, ${KHD}] · weight [${KHD}, ${C}]`, detail: `${KH} 头 × ${KD} 维 = ${KHD}，投影输出尚未切头，先进入逐通道因果短卷积`, src: 'modeling_glm5_next.py:605–607 · 644–650' },
+    }));
+    g.push(drawArrow([[bcx, r1y + r1h], [bcx, r2y]]));
+    g.push(drawBox({
+      x: bx, y: r2y, w: bw, h: r2h,
+      title: `${t2} + SiLU`,
+      sub: `k=${KCONV} → [T, ${KH}, ${KD}]`,
+      comp: 'kda', kind: 'weight',
+      meta: { panel: '(e)', title: `conv1d (${id.toUpperCase()} 段) 因果短卷积`, shape: `[T, ${KHD}] → [T, ${KH}, ${KD}] · kernel [${KHD}, 1, ${KCONV}]`, detail: `逐通道 ${KCONV}-tap 因果卷积（只看当前词与前 ${KCONV_WIN} 词）+ SiLU 激活，随后按 ${KH} 头切分`, src: 'modeling_glm5_next.py:610–617 · 676–695' },
+    }));
+  });
+
+  // Cols 4, 5: Forget gate (f_a -> f_b) & Write gate beta (W_b -> sigmoid)
+  g.push(drawArrow([[fcx, oy + 104], [fcx, r1y]]));
+  g.push(drawBox({
+    x: fx, y: r1y, w: fw, h: r1h,
+    title: '遗忘门压缩 W_f_a',
+    sub: `${C}→${KD} [${KD},${C}]`,
+    comp: 'kda', kind: 'weight',
+    meta: { panel: '(e)', title: 'forget_gate.f_a_proj', shape: `[T, ${C}] → [T, ${KD}] · weight [${KD}, ${C}]`, detail: `遗忘门低秩降维至 ${KD} 维`, src: 'modeling_glm5_next.py:313 · 323' },
+  }));
+  g.push(drawArrow([[fcx, r1y + r1h], [fcx, r2y]]));
+  g.push(drawBox({
+    x: fx, y: r2y, w: fw, h: r2h,
+    title: '遗忘门 g (W_f_b)',
+    sub: `(${KLB},0) [T,${KH},${KD}]`,
+    comp: 'kda', kind: 'weight',
+    meta: { panel: '(e)', title: '逐通道对数遗忘门 g', shape: `[T, ${KH}, ${KD}] · W_f_b [${KHD}, ${KD}], A_log [${KH}], dt_bias [${KHD}]`, detail: `g = ${KLB} · σ(exp(A_log) · (f_b(f_a) + dt_bias)) ∈ (${KLB}, 0)，每步每通道保留率 eᵍ ≥ e⁻⁵ ≈ 0.67%`, src: 'modeling_glm5_next.py:314–330' },
+  }));
+
+  g.push(drawArrow([[btcx, oy + 104], [btcx, r1y]]));
+  g.push(drawBox({
+    x: btx, y: r1y, w: btw, h: r1h,
+    title: '写入投影 W_b',
+    sub: `${C}→${KH} [${KH},${C}]`,
+    comp: 'kda', kind: 'weight',
+    meta: { panel: '(e)', title: 'b_proj 写入门投影', shape: `[T, ${C}] → [T, ${KH}] · weight [${KH}, ${C}]`, detail: `每个注意力头投影出 1 个写入门 logit`, src: 'modeling_glm5_next.py:620' },
+  }));
+  g.push(drawArrow([[btcx, r1y + r1h], [btcx, r2y]]));
+  g.push(drawBox({
+    x: btx, y: r2y, w: btw, h: r2h,
+    title: 'Sigmoid 写入强度',
+    sub: `β ∈ (0,1) [T, ${KH}]`,
+    comp: 'kda', kind: 'op',
+    meta: { panel: '(e)', title: 'β = sigmoid(b_proj(x))', shape: `[T, ${KH}]`, detail: `将写入强度限制在 (0, 1) 区间，控制 DeltaNet 纠错更新步长`, src: 'modeling_glm5_next.py:699' },
+  }));
+
+  // Row 3: Featured Kernel: KDA Recurrent / Chunk Core + Persistent State Cache S
+  const kdaY = oy + 322, kdaH = 56;
+  for (const cx0 of qkvCenters) g.push(drawArrow([[cx0, r2y + r2h], [cx0, kdaY]]));
+  const gEnterX = ox + 704, bEnterX = ox + 758;
+  g.push(drawArrow([[fcx, r2y + r2h], [fcx, oy + 298], [gEnterX, oy + 298], [gEnterX, kdaY]], { label: 'g', lx: gEnterX - 13, ly: oy + 312 }));
+  g.push(drawArrow([[btcx, r2y + r2h], [btcx, oy + 298], [bEnterX, oy + 298], [bEnterX, kdaY]], { label: 'β', lx: bEnterX - 13, ly: oy + 312 }));
+
+  g.push(drawBox({
+    x: ox + 198, y: kdaY, w: 576, h: kdaH,
+    title: `KDA 状态递推与读出 (q, k 逐头 L2Norm · q × 1/√${KD})`,
+    sub: `S ← (I - βkkᵀ)·Diag(eᵍ)·S + βkvᵀ · 输出 o = Sᵀq [T, ${KH}, ${KD}]`,
+    comp: 'kda', kind: 'kernel',
+    meta: { panel: '(e)', title: 'Chunk / Recurrent Kimi Delta Attention', shape: `core_out [T, ${KH}, ${KD}] · state S [${KH}, ${KD}, ${KD}]`, detail: `prefill 分块并行、decode 逐词递推：旧状态先按通道乘 eᵍ 衰减，再用纠错规则写入 kvᵀ，最后用 Sᵀq 读出当前输出`, src: 'modeling_glm5_next.py:446–480 · 703–728' },
+  }));
+
+  g.push(drawArrow([[ox + 774, kdaY + 28], [ox + 790, kdaY + 28]], { dash: '3.5 2.5' }));
+  g.push(drawBox({
+    x: ox + 790, y: kdaY, w: 168, h: kdaH,
+    title: '状态与卷积缓存',
+    sub: `S[${KH},${KD},${KD}]+${KCONV_WIN}词`,
+    comp: 'kda', kind: 'cache',
+    meta: { panel: '(e)', title: 'KDA 层推理常驻状态', shape: `S [${KH}, ${KD}, ${KD}] + conv [${KCONV_WIN}, ${KCONV_CH}]`, detail: `每层仅缓存固定大小的矩阵 S 与最近 ${KCONV_WIN} 个词的卷积状态（开启 K 步投机草拟时预留 ${KCONV_WIN}+K 词与 1+K 份状态），显存占用不随上下文增长`, src: 'modeling_glm5_next.py:656–657 · 728 · kimi_kda_state.py' },
+  }));
+
+  // Rows 4-6 on left (w=644) + balanced KDA Mechanism Summary Card on right (ox+680..ox+958)
+  const onY = oy + 396, onH = 48;
+  g.push(drawArrow([[g1cx, r2y + r2h], [g1cx, onY]]));
+  g.push(drawArrow([[ox + 460, kdaY + kdaH], [ox + 460, onY]]));
+  g.push(drawBox({
+    x: ox + 22, y: onY, w: 644, h: onH,
+    title: '门控归一化 o_norm (RMSNormGated)',
+    sub: `RMSNorm(core_out, γ[${KD}]) ⊙ σ(gate) → 展平 [T, ${KHD}]`,
+    comp: 'kda', kind: 'weight',
+    meta: { panel: '(e)', title: 'Glm5NextTextRMSNormGated', shape: `[T, ${KH}, ${KD}] → [T, ${KHD}] · γ [${KD}]`, detail: `每个头 ${KD} 维先在 FP32 下做 RMSNorm 并乘 ${KH} 头共享的 γ [${KD}]，再乘 sigmoid(gate)，最后合并 ${KH} 头为 ${KHD} 维`, src: 'modeling_glm5_next.py:341–360 · 732' },
+  }));
+
+  const woY = oy + 464, woH = 48, outCenter = ox + 22 + 322;
+  g.push(drawArrow([[outCenter, onY + onH], [outCenter, woY]]));
+  g.push(drawBox({
+    x: ox + 22, y: woY, w: 644, h: woH,
+    title: `输出投影 o_proj (${KH} 头合回 ${C} 维)`,
+    sub: `${KHD} → ${C} · W_o [${C}, ${KHD}]`,
+    comp: 'kda', kind: 'weight',
+    meta: { panel: '(e)', title: 'self_attn.o_proj', shape: `[T, ${KHD}] → [T, ${C}] · weight [${C}, ${KHD}]`, detail: `将 ${KH} 个头的门控输出线性投影回隐藏维度 ${C}`, src: 'modeling_glm5_next.py:625 · 733' },
+  }));
+
+  const outY = oy + 532;
+  g.push(drawArrow([[outCenter, woY + woH], [outCenter, outY]]));
+  g.push(drawBox({
+    x: ox + 22, y: outY, w: 644, h: 40,
+    title: '注意力子层输出 attn_out',
+    sub: `[T, ${C}] → 交给 mHC 写回 ${S} 路`,
+    comp: 'kda', kind: 'io',
+    meta: { panel: '(e)', title: 'KDA 注意力输出', shape: `[T, ${C}]`, detail: `返回解码层交由 attn_hc 的 post 权重写回 ${S} 路残差`, src: 'modeling_glm5_next.py:735 · 1318' },
+  }));
+
+  // Right-bottom KDA Mechanism & Complexity Card
+  const ncx = ox + 680, ncw = 278, nch = 176;
+  g.push(`<rect x="${ncx}" y="${onY}" width="${ncw}" height="${nch}" rx="8" fill="${T.headerBg}" stroke="${T.line}" stroke-width="1.1"/>`);
+  g.push(`<text x="${ncx + 14}" y="${onY + 24}" font-size="11.2" font-weight="750" fill="${T.ink}">KDA 机制与计算特性</text>`);
+  g.push(`<line x1="${ncx + 14}" y1="${onY + 34}" x2="${ncx + ncw - 14}" y2="${onY + 34}" stroke="${T.line}" stroke-width="1"/>`);
+  g.push(`<text x="${ncx + 14}" y="${onY + 56}" font-size="10.3" font-weight="650" fill="${T.ink}">· 细粒度通道遗忘门</text>`);
+  g.push(`<text x="${ncx + 22}" y="${onY + 73}" font-size="9.9" font-weight="500" fill="${T.ink2}">${KD} 维各通道独立控制保留率 eᵍ ∈ (e⁻⁵, 1)</text>`);
+  g.push(`<text x="${ncx + 14}" y="${onY + 98}" font-size="10.3" font-weight="650" fill="${T.ink}">· 两种计算路径</text>`);
+  g.push(`<text x="${ncx + 22}" y="${onY + 115}" font-size="9.9" font-weight="500" fill="${T.ink2}">prefill 分块并行；decode 逐词递推 O(d²)</text>`);
+  g.push(`<text x="${ncx + 14}" y="${onY + 140}" font-size="10.3" font-weight="650" fill="${T.ink}">· 无显式旋转位置编码 (NoPE)</text>`);
+  g.push(`<text x="${ncx + 22}" y="${onY + 157}" font-size="9.9" font-weight="500" fill="${T.ink2}">模型无 RoPE，顺序信息来自因果递推与短卷积</text>`);
+
+  return { svg: g.join(''), w, h };
+}
+
+// ============================================================================
+// PANEL (f): Sparse MLA + DSA kpool Indexer (ox=520, w=980, h=940)
+// ============================================================================
+function buildPanelF(ox, oy) {
+  const w = 980, h = 940;
+  const attnTone = plateTone('attn');
+  const g = [
+    drawPanelFrame(
+      'panel-f', 'f', ox, oy, w, h,
+      `稀疏 MLA + DSA kpool 闪电索引器 (${cntMla} 层：L03, L07 … L43)`,
+      `${hi(NH + ' 头')} MLA (Q 压至 ${hi(QR)} · KV 压至 ${hi(KR)} · NoPE) + ${hi(IH + ' 头')} 索引器 (每 ${hi(KP + ' 词')}压 1 池，挑 ≤ ${hi(TOPW + ' 词')})`
+    ),
+  ];
+
+  // Input capsule
+  const inX = ox + 22, inW = w - 44;
+  g.push(drawBox({
+    x: inX, y: oy + 66, w: inW, h: 38,
+    title: 'RMSNorm 1 输出 x_attn',
+    sub: `[T, ${C}]`,
+    comp: 'norm', kind: 'io',
+    meta: { panel: '(f)', title: '稀疏 MLA 子层输入 x_attn', shape: `[T, ${C}]`, detail: `同时送入左侧 MLA Query 低秩通路、中间 DSA kpool 索引器与右侧 MLA KV 潜向量压缩通路`, src: 'modeling_glm5_next.py:1159' },
+  }));
+
+  // Three vertical zones at y = oy + 120 .. oy + 706
+  const zy = oy + 120, zh = 586;
+  const z1x = ox + 22, z1w = 172, z1cx = z1x + z1w / 2;
+  const z2x = ox + 206, z2w = 548;
+  const z3x = ox + 766, z3w = 192, z3cx = z3x + z3w / 2;
+
+  g.push(drawSubPlate(z1x, zy, z1w, zh, 'MLA Query', attnTone, { rightLabel: '低秩通路' }));
+  g.push(drawSubPlate(z2x, zy, z2w, zh, `DSA kpool 闪电索引器 (${IH}头×${ID}维)`, attnTone));
+  g.push(drawSubPlate(z3x, zy, z3w, zh, 'MLA KV', attnTone, { rightLabel: '潜向量通路' }));
+
+  const r1y = zy + 28, bh = 50;
+  const r2y = zy + 102;
+  const r3y = zy + 174;
+
+  // ---- Zone 1: MLA Query ----
+  g.push(drawArrow([[z1cx, oy + 104], [z1cx, r1y]]));
+  g.push(drawBox({
+    x: z1x + 10, y: r1y, w: z1w - 20, h: bh,
+    title: 'Q 压缩投影 W_q_a',
+    sub: `${C}→${QR} [${QR},${C}]`,
+    comp: 'attn', kind: 'weight',
+    meta: { panel: '(f)', title: 'q_a_proj 低秩压缩', shape: `[T, ${C}] → [T, ${QR}] · weight [${QR}, ${C}]`, detail: `Query 先压到 q_lora_rank = ${QR} 维，减少投影参数量`, src: 'modeling_glm5_next.py:1100 · 1169' },
+  }));
+  g.push(drawArrow([[z1cx, r1y + bh], [z1cx, r2y]]));
+  g.push(drawBox({
+    x: z1x + 10, y: r2y, w: z1w - 20, h: bh,
+    title: 'q_a_layernorm',
+    sub: `RMSNorm γ[${QR}]→q_resid`,
+    comp: 'norm', kind: 'weight',
+    meta: { panel: '(f)', title: 'q_a_layernorm (产出共享 q_resid)', shape: `[T, ${QR}] · γ [${QR}]`, detail: `带可学习缩放 γ [${QR}]：归一化后的 q_resid [T, ${QR}] 一路向下展开为主注意力 Q，另一路向右供索引器生成 ${IH} 头查询 iq`, src: 'modeling_glm5_next.py:1105 · 1169 · 1186' },
+  }));
+  g.push(drawArrow([[z1cx, r2y + bh], [z1cx, r3y]]));
+  g.push(drawBox({
+    x: z1x + 10, y: r3y, w: z1w - 20, h: bh,
+    title: `Q 展开 ${NH} 头 W_q_b`,
+    sub: `${QR}→${NH * QK} [${NH * QK},${QR}]`,
+    comp: 'attn', kind: 'weight',
+    meta: { panel: '(f)', title: 'q_b_proj 多头展开 (NoPE)', shape: `[T, ${QR}] → [T, ${NH}, ${QK}] · weight [${NH * QK}, ${QR}]`, detail: `展开为 ${NH} 头 × ${QK} 维；qk_rope_head_dim = ${ROPE}，无需拼接旋转位置编码`, src: 'modeling_glm5_next.py:1108 · 1170' },
+  }));
+
+  // ---- Zone 2: DSA kpool Lightning Indexer ----
+  const ix0 = z2x + 32, iw0 = 146, ic0 = ix0 + iw0 / 2;
+  const ix1 = z2x + 186, iw1 = 116, ic1 = ix1 + iw1 / 2;
+  const ix2 = z2x + 310, iw2 = 112, ic2 = ix2 + iw2 / 2;
+  const ix3 = z2x + 430, iw3 = 106, ic3 = ix3 + iw3 / 2;
+
+  g.push(drawArrow([[ic1, oy + 104], [ic1, r1y]]));
+  g.push(drawBox({
+    x: ix1, y: r1y, w: iw1, h: bh,
+    title: '索引 K · W_ik',
+    sub: `[${ID}, ${C}]`,
+    comp: 'attn', kind: 'weight',
+    meta: { panel: '(f)', title: `indexer.wk (${IH} 头共享)`, shape: `[T, ${C}] → [T, ${ID}] · weight [${ID}, ${C}]`, detail: `生成 ${IH} 个索引头共用的单份 ${ID} 维索引键投影`, src: 'modeling_glm5_next.py:764 · 800' },
+  }));
+
+  g.push(drawArrow([[ic2, oy + 104], [ic2, r1y]]));
+  g.push(drawBox({
+    x: ix2, y: r1y, w: iw2, h: bh,
+    title: '压池门 · W_cg',
+    sub: `[${ID}, ${C}]`,
+    comp: 'attn', kind: 'weight',
+    meta: { panel: '(f)', title: 'indexer.index_kpool_compress_gate', shape: `[T, ${C}] → [T, ${ID}] · weight [${ID}, ${C}]`, detail: `为每个位置生成 ${ID} 个通道的池内位置重要性分数`, src: 'modeling_glm5_next.py:773 · 802' },
+  }));
+
+  g.push(drawArrow([[ic3, oy + 104], [ic3, r1y]]));
+  g.push(drawBox({
+    x: ix3, y: r1y, w: iw3, h: bh,
+    title: '头权重 · W_iw',
+    sub: `[${IH},${C}]/√${IH}`,
+    comp: 'attn', kind: 'weight',
+    meta: { panel: '(f)', title: 'indexer.weights_proj', shape: `[T, ${C}] → [T, ${IH}] · weight [${IH}, ${C}]`, detail: `生成 ${IH} 个索引头的组合权重并乘 1/√${IH}`, src: 'modeling_glm5_next.py:766 · 831' },
+  }));
+
+  const qResX0 = z1x + z1w - 10;
+  g.push(drawArrow([[qResX0, r2y + bh / 2], [ix0, r2y + bh / 2]], { label: 'q_resid', lx: (qResX0 + ix0) / 2, ly: r2y + bh / 2 - 10 }));
+  g.push(drawBox({
+    x: ix0, y: r2y, w: iw0, h: bh,
+    title: `索引 Q · W_iq (${IH}头)`,
+    sub: `[${IH * ID},${QR}]→[T,${IH},${ID}]`,
+    comp: 'attn', kind: 'weight',
+    meta: { panel: '(f)', title: 'indexer.wq_b', shape: `[T, ${QR}] → [T, ${IH}, ${ID}] · weight [${IH * ID}, ${QR}]`, detail: `复用主 MLA 的 q_resid [T, ${QR}] 投影出 ${IH} 头 × ${ID} 维索引查询 iq`, src: 'modeling_glm5_next.py:763 · 799' },
+  }));
+
+  g.push(drawArrow([[ic1, r1y + bh], [ic1, r2y]]));
+  g.push(drawBox({
+    x: ix1, y: r2y, w: iw1, h: bh,
+    title: 'k_norm (LN)',
+    sub: `γ, β [${ID}] → ik`,
+    comp: 'norm', kind: 'weight',
+    meta: { panel: '(f)', title: 'indexer.k_norm (标准 LayerNorm)', shape: `[T, ${ID}] → [T, ${ID}] · γ, β [${ID}]`, detail: `带均值中心化、可学习缩放 γ [${ID}] 与偏置 β [${ID}] 的标准 nn.LayerNorm(${ID})，而非 RMSNorm`, src: 'modeling_glm5_next.py:765 · 800' },
+  }));
+
+  // Row 3 of Indexer: kpool compression
+  const poolW = ix2 + iw2 - ix1;
+  g.push(drawArrow([[ic1, r2y + bh], [ic1, r3y]]));
+  g.push(drawArrow([[ic2, r1y + bh], [ic2, r3y]]));
+  g.push(drawBox({
+    x: ix1, y: r3y, w: poolW, h: bh,
+    title: `kpool 压池 (每 ${KP} 词合 1 池)`,
+    sub: `softmax(cg+ape)→pool_k[⌊T/${KP}⌋,${ID}]`,
+    comp: 'attn', kind: 'weight',
+    meta: { panel: '(f)', title: 'get_pooled_states 四词压一池', shape: `pool_k [⌊T/${KP}⌋, ${ID}] · ape [${KP}, ${ID}]`, detail: `从首个有效词起每 ${KP} 词一组，各通道按 softmax(cg + ape) 对 ${KP} 个 ik 加权平均生成池摘要键 pool_k`, src: 'modeling_glm5_next.py:805 · 901–974' },
+  }));
+
+  // Row 4 of Indexer: Pool scoring + Indexer Cache Badge
+  const r4y = zy + 246;
+  const scoreX = z2x + 14, scoreW = 282, scoreCx = scoreX + scoreW / 2;
+  g.push(drawArrow([[ic0, r2y + bh], [ic0, r4y]]));
+  g.push(drawArrow([[ix1 + 74, r3y + bh], [ix1 + 74, r4y]]));
+  g.push(drawBox({
+    x: scoreX, y: r4y, w: scoreW, h: bh,
+    title: `${IH} 头池匹配打分 (Q · pool_kᵀ)`,
+    sub: `× 1/√${ID} (HF 过 ReLU) → [T,${IH},⌊T/${KP}⌋]`,
+    comp: 'attn', kind: 'op',
+    meta: { panel: '(f)', title: '索引器多头池打分', shape: `[T, ${IH}, ⌊T/${KP}⌋]`, detail: `HF 参考代码对 q·pool_kᵀ/√${ID} 执行 ReLU 后再按头加权；vllm-ascend 算子不做 ReLU，直接融合头加权查询与池 K 点乘`, src: 'modeling_glm5_next.py:827–828 · glm5_next_lightning_indexer.py' },
+  }));
+
+  const idxCacheX = z2x + 308, idxCacheW = 160;
+  g.push(drawArrow([[ic2, r3y + bh], [ic2, r4y]], { dash: '3.5 2.5' }));
+  g.push(drawBox({
+    x: idxCacheX, y: r4y, w: idxCacheW, h: bh,
+    title: '索引器池与尾缓存',
+    sub: `pool_k + 尾 <${KP} 词`,
+    comp: 'attn', kind: 'cache',
+    meta: { panel: '(f)', title: '索引器跨步缓存 (vllm-ascend 池压缩)', shape: `pool_k [⌊T/${KP}⌋, ${ID}] + tail (<${KP} 词)`, detail: `vllm-ascend 缓存已完成池的 pool_k（每 ${KP} 词 1 条）与未凑满 ${KP} 词的尾缓冲；HF 参考代码按词缓存 packed [T, ${2 * ID + 1}] 每步重建池`, src: 'vllm-ascend glm5_next_kpool_state_compress.py · HF 805–812' },
+  }));
+
+  // Row 5 of Indexer: Weighted sum across 32 heads
+  const r5y = zy + 318;
+  const sumX = z2x + 14, sumW = 520, sumCx = sumX + sumW / 2;
+  const iwAx = z2x + 502;
+  g.push(drawArrow([[scoreCx, r4y + bh], [scoreCx, r5y]]));
+  g.push(drawArrow([[iwAx, r1y + bh], [iwAx, r5y]], { label: `iw[T,${IH}]`, lx: iwAx, ly: zy + 194 }));
+  g.push(drawBox({
+    x: sumX, y: r5y, w: sumW, h: 46,
+    title: '按头权重 iw 加权求和得每池总分',
+    sub: `weights [T, 1, ${IH}] @ scores [T, ${IH}, ⌊T/${KP}⌋] → index_scores [T, ⌊T/${KP}⌋]`,
+    comp: 'attn', kind: 'op',
+    meta: { panel: '(f)', title: '合成池级匹配总分', shape: `index_scores [T, ⌊T/${KP}⌋]`, detail: `用当前 token 的 ${IH} 个头权重合成每个候选池的单一打分，并屏蔽因果不可见池`, src: 'modeling_glm5_next.py:831–846' },
+  }));
+
+  // Row 6 of Indexer: Top-k pool selection + tail append
+  const r6y = zy + 382;
+  g.push(drawArrow([[sumCx, r5y + 46], [sumCx, r6y]]));
+  g.push(drawBox({
+    x: sumX, y: r6y, w: sumW, h: 48,
+    title: `挑最高 ${TOPK / KP} 个池展开 + 补齐未满池尾巴`,
+    sub: `${TOPK / KP} 池 × ${KP} = ${TOPK} 词 + 尾巴 ≤ ${TAIL} 词 → topk_indices [T, ≤ ${TOPW}]`,
+    comp: 'attn', kind: 'op',
+    meta: { panel: '(f)', title: `Top-${TOPK / KP} 池展开与补尾`, shape: `topk_indices [T, ${TOPW}] (int32, 不足填 -1)`, detail: `历史 ≤ ${TOPW} 词时等价于看全部前文；超长上下文时最多只挑 ${TOPW} 个历史位置参与主 MLA 计算`, src: 'modeling_glm5_next.py:849–879 · 976–1026' },
+  }));
+
+  // Row 7 of Indexer: Sparse causal mask
+  const r7y = zy + 448;
+  g.push(drawArrow([[sumCx, r6y + 48], [sumCx, r7y]]));
+  g.push(drawBox({
+    x: sumX, y: r7y, w: sumW, h: 46,
+    title: '构建稀疏因果可见遮罩 (Sparse Mask)',
+    sub: `挑中位置记可见 (0 / True)，其余记 finfo.min / False · ${NH} 头共享`,
+    comp: 'attn', kind: 'op',
+    meta: { panel: '(f)', title: 'build_attention_mask_from_topk', shape: `mask [1, T, T_kv]`, detail: `挑中位置记 0（SDPA 记 True），未选中位置记当前浮点精度最小值 finfo.min（SDPA 记 False）；${NH} 个头共享同一份选择结果`, src: 'modeling_glm5_next.py:1195 · 1220–1258' },
+  }));
+
+  // Left-aligned sparsity note card inside Zone 2
+  const noteW = 412;
+  g.push(`<rect x="${sumX}" y="${zy + 506}" width="${noteW}" height="62" rx="6" fill="${T.surface}" stroke="${T.lineStrong}" stroke-width="1"/>`);
+  g.push(`<text x="${sumX + 12}" y="${zy + 528}" font-size="9.8" font-weight="650" fill="${T.ink}">· 长上下文加速：${fmt(DEPLOY_CTX)} 词末位只读 1/${DEPLOY_RATIO} (${fmt(TOPK)}/${fmt(DEPLOY_CTX)}；含尾 ≤${fmt(TOPW)})</text>`);
+  g.push(`<text x="${sumX + 12}" y="${zy + 550}" font-size="9.8" font-weight="500" fill="${T.ink2}">· indexer_types ${N} 项全为 "full"：${cntMla} 个 MLA 层各跑独立索引器，不跨层共享</text>`);
+
+  // ---- Zone 3: MLA KV Latent Compression ----
+  g.push(drawArrow([[z3cx, oy + 104], [z3cx, r1y]]));
+  g.push(drawBox({
+    x: z3x + 10, y: r1y, w: z3w - 20, h: bh,
+    title: 'KV 联合压缩 W_kv_a',
+    sub: `${C}→${KR} [${KR},${C}]`,
+    comp: 'attn', kind: 'weight',
+    meta: { panel: '(f)', title: 'kv_a_proj_with_mqa (NoPE)', shape: `[T, ${C}] → [T, ${KR}] · weight [${KR}, ${C}]`, detail: `kv_lora_rank = ${KR}, qk_rope_head_dim = ${ROPE}，K 与 V 联合压缩为单条 ${KR} 维潜向量（vllm-ascend 将 q_a 与 kv_a 合并为 fused_qkv_a_proj）`, src: 'modeling_glm5_next.py:1113 · 1172–1175' },
+  }));
+  g.push(drawArrow([[z3cx, r1y + bh], [z3cx, r2y]]));
+  g.push(drawBox({
+    x: z3x + 10, y: r2y, w: z3w - 20, h: bh,
+    title: 'kv_a_layernorm',
+    sub: `RMSNorm γ[${KR}] → c_kv`,
+    comp: 'norm', kind: 'weight',
+    meta: { panel: '(f)', title: 'kv_a_layernorm 潜向量归一化', shape: `c_kv [T, ${KR}] · γ [${KR}]`, detail: `带可学习缩放 γ [${KR}]，产出 ${KR} 维归一化潜向量 c_kv`, src: 'modeling_glm5_next.py:1118 · 1174' },
+  }));
+  g.push(drawArrow([[z3cx, r2y + bh], [z3cx, r3y]]));
+  g.push(drawBox({
+    x: z3x + 10, y: r3y, w: z3w - 20, h: bh,
+    title: 'MLA 潜向量缓存 c_kv',
+    sub: `[T, ${KR}] · 压缩 ${KV_COMP}×`,
+    comp: 'attn', kind: 'cache',
+    meta: { panel: '(f)', title: '推理 KV Cache 潜向量存储', shape: `每词每层 [1, ${KR}]`, detail: `标准 ${NH} 头 K+V 需存 ${NH}×(${QK}+${VD})=${fmt(NH * (QK + VD))} 个数；主注意力仅存 ${KR} 维共享潜向量（无 RoPE 分量，较展开 K+V 压缩至 1/${KV_COMP}；索引器池与尾缓存另计）`, src: 'wiki/concepts/glm-5-3-flash.md · mla.md' },
+  }));
+  g.push(drawArrow([[z3cx, r3y + bh], [z3cx, r4y]]));
+  g.push(drawBox({
+    x: z3x + 10, y: r4y, w: z3w - 20, h: 56,
+    title: `KV 解压 W_kv_b`,
+    sub: `[${NH * (QK + VD)},${KR}]→K,V各[${NH},${QK}]`,
+    comp: 'attn', kind: 'weight',
+    meta: { panel: '(f)', title: 'kv_b_proj 展开或矩阵吸收', shape: `c_kv [${KR}] → K [${NH}, ${QK}] | V [${NH}, ${VD}]`, detail: `HF 前向将 c_kv 展开为每头 ${QK} 维 K 与 ${VD} 维 V；推理引擎采用矩阵吸收将解压矩阵并入 Q 与 O，直接读取 ${KR} 维潜向量`, src: 'modeling_glm5_next.py:1119–1123 · 1147–1155' },
+  }));
+
+  // ---- Bottom Merge: Featured Kernel: Sparse Attention Core + Output Projection ----
+  const attY = oy + 726, attH = 54;
+  const maskAx = sumX + sumW - 48;
+  g.push(drawArrow([[z1cx, r3y + bh], [z1cx, attY]], { label: `Q [T,${NH},${QK}]`, lx: z1cx, ly: oy + 676 }));
+  g.push(drawArrow([[maskAx, r7y + 46], [maskAx, attY]], { label: '稀疏遮罩', lx: maskAx, ly: zy + 540 }));
+  g.push(drawArrow([[z3cx, r4y + 56], [z3cx, attY]], { label: 'K | V (或吸收读 c_kv)', lx: z3cx, ly: oy + 676 }));
+
+  g.push(drawBox({
+    x: inX, y: attY, w: inW, h: attH,
+    title: `${NH} 头稀疏注意力计算：Softmax(Q · Kᵀ / √${QK} + mask) · V`,
+    sub: `仅聚合索引器选出的 ≤ ${TOPW} 个可见历史位置 → attn_o [T, ${NH}, ${VD}] → 展平 [T, ${NH * VD}]`,
+    comp: 'attn', kind: 'kernel',
+    meta: { panel: '(f)', title: 'Sparse Multi-Head Latent Attention 核心', shape: `[T, ${NH}, ${VD}] → [T, ${NH * VD}]`, detail: `缩放因子 1/√${QK} = 1/${Math.sqrt(QK)}，FP32 Softmax 加权汇总选中位置的 V（推理内核直接在选中的 c_kv 潜向量块上执行）`, src: 'modeling_glm5_next.py:1054–1063 · 1205–1216' },
+  }));
+
+  const woY = oy + 798, woH = 48, midX = inX + inW / 2;
+  g.push(drawArrow([[midX, attY + attH], [midX, woY]]));
+  g.push(drawBox({
+    x: inX, y: woY, w: inW, h: woH,
+    title: `输出投影 o_proj (${NH} 头合回 ${C} 维)`,
+    sub: `${NH * VD} → ${C} · W_o [${C}, ${NH * VD}]`,
+    comp: 'attn', kind: 'weight',
+    meta: { panel: '(f)', title: 'self_attn.o_proj', shape: `[T, ${NH * VD}] → [T, ${C}] · weight [${C}, ${NH * VD}]`, detail: `将 ${NH} 头 × ${VD} 维 = ${NH * VD} 维输出线性映射回隐藏宽度 ${C}`, src: 'modeling_glm5_next.py:1125–1129 · 1217' },
+  }));
+
+  const outY = oy + 864;
+  g.push(drawArrow([[midX, woY + woH], [midX, outY]]));
+  g.push(drawBox({
+    x: inX, y: outY, w: inW, h: 40,
+    title: '注意力子层输出 attn_out',
+    sub: `[T, ${C}] → 交给 mHC 写回 ${S} 路`,
+    comp: 'attn', kind: 'io',
+    meta: { panel: '(f)', title: '稀疏 MLA 注意力输出', shape: `[T, ${C}]`, detail: `返回解码层交由 attn_hc 写回 ${S} 路残差`, src: 'modeling_glm5_next.py:1218 · 1318' },
+  }));
+
+  return { svg: g.join(''), w, h };
+}
+
+// ============================================================================
+// PANEL (g): Dense SwiGLU & Fine-Grained MoE FFN (ox=520, w=980, h=712)
+// ============================================================================
+function buildPanelG(ox, oy) {
+  const w = 980, h = 712;
+  const denseTone = plateTone('dense');
+  const moeTone = plateTone('expert');
+  const g = [
+    drawPanelFrame(
+      'panel-g', 'g', ox, oy, w, h,
+      `前馈网络：稠密 SwiGLU (前 ${cntDense} 层) 与 细粒度 MoE (后 ${cntMoe} 层)`,
+      `稠密维 ${hi(fmt(I_DENSE))} · MoE 每层 ${hi(E_ROUTED + ' 选 ' + K_EXP)} + ${hi(E_SHARED + ' 共享')} (宽 ${hi(fmt(MI))}，限幅 gate≤${hi(LIM)}, up±${hi(LIM)})`
+    ),
+  ];
+
+  // ---- Left Sub-Plate (g-1): Dense SwiGLU (L00-L02, x=ox+18, w=292) ----
+  const dx = ox + 18, dw = 292, dcx = dx + dw / 2;
+  const py = oy + 66, ph = 628;
+  g.push(drawSubPlate(dx, py, dw, ph, `(g-1) 稠密前馈 MLP · 前 ${cntDense} 层 (L00–L02)`, denseTone));
+
+  g.push(drawBox({
+    x: dx + 14, y: py + 28, w: dw - 28, h: 38,
+    title: 'RMSNorm 2 输出 x_ffn',
+    sub: `[T, ${C}]`,
+    comp: 'norm', kind: 'io',
+    meta: { panel: '(g-1)', title: '稠密 MLP 输入 x_ffn', shape: `[T, ${C}]`, detail: `第 0–2 层使用全部 token 共享权重的稠密 SwiGLU MLP`, src: 'modeling_glm5_next.py:87–105' },
+  }));
+
+  const dgw = 126, dgx1 = dx + 14, dgx2 = dx + dw - 14 - dgw;
+  const dgc1 = dgx1 + dgw / 2, dgc2 = dgx2 + dgw / 2;
+  const dr1 = py + 94;
+  g.push(drawArrow([[dcx - 36, py + 66], [dcx - 36, py + 80], [dgc1, py + 80], [dgc1, dr1]]));
+  g.push(drawArrow([[dcx + 36, py + 66], [dcx + 36, py + 80], [dgc2, py + 80], [dgc2, dr1]]));
+
+  g.push(drawBox({
+    x: dgx1, y: dr1, w: dgw, h: 50,
+    title: 'gate_proj',
+    sub: `[${I_DENSE}, ${C}]`,
+    comp: 'dense', kind: 'weight',
+    meta: { panel: '(g-1)', title: 'mlp.gate_proj', shape: `[T, ${C}] → [T, ${I_DENSE}] · weight [${I_DENSE}, ${C}]`, detail: `门控分支升维至 ${fmt(I_DENSE)}`, src: 'modeling_glm5_next.py:93 · 100' },
+  }));
+  g.push(drawBox({
+    x: dgx2, y: dr1, w: dgw, h: 50,
+    title: 'up_proj',
+    sub: `[${I_DENSE}, ${C}]`,
+    comp: 'dense', kind: 'weight',
+    meta: { panel: '(g-1)', title: 'mlp.up_proj', shape: `[T, ${C}] → [T, ${I_DENSE}] · weight [${I_DENSE}, ${C}]`, detail: `内容分支升维至 ${fmt(I_DENSE)}`, src: 'modeling_glm5_next.py:94 · 101' },
+  }));
+
+  const dr2 = py + 172;
+  g.push(drawArrow([[dgc1, dr1 + 50], [dgc1, dr2]]));
+  g.push(drawArrow([[dgc2, dr1 + 50], [dgc2, dr2]]));
+  g.push(drawBox({
+    x: dx + 14, y: dr2, w: dw - 28, h: 54,
+    title: '限幅 SwiGLU 激活',
+    sub: `SiLU(gate≤${LIM}) ⊙ up±${LIM} [T,${I_DENSE}]`,
+    comp: 'dense', kind: 'op',
+    meta: { panel: '(g-1)', title: 'Clamped SwiGLU', shape: `[T, ${I_DENSE}]`, detail: `gate.clamp(max=${LIM}), up.clamp(-${LIM}, ${LIM}), SiLU(gate) * up 防止大激活值溢出`, src: 'modeling_glm5_next.py:103–105' },
+  }));
+
+  const dr3 = py + 252;
+  g.push(drawArrow([[dcx, dr2 + 54], [dcx, dr3]]));
+  g.push(drawBox({
+    x: dx + 14, y: dr3, w: dw - 28, h: 50,
+    title: '降维投影 down_proj',
+    sub: `${I_DENSE}→${C} [${C},${I_DENSE}]`,
+    comp: 'dense', kind: 'weight',
+    meta: { panel: '(g-1)', title: 'mlp.down_proj', shape: `[T, ${I_DENSE}] → [T, ${C}] · weight [${C}, ${I_DENSE}]`, detail: `从 ${fmt(I_DENSE)} 维降回隐藏宽度 ${C}`, src: 'modeling_glm5_next.py:95 · 105' },
+  }));
+
+  const drOutDense = py + 330;
+  g.push(drawArrow([[dcx, dr3 + 50], [dcx, drOutDense]]));
+  g.push(drawBox({
+    x: dx + 14, y: drOutDense, w: dw - 28, h: 40,
+    title: '稠密前馈输出 ffn_out',
+    sub: `[T, ${C}] → mHC 写回 ${S} 路`,
+    comp: 'dense', kind: 'io',
+    meta: { panel: '(g-1)', title: '稠密前馈输出', shape: `[T, ${C}]`, detail: `交由 ffn_hc 写回 ${S} 路残差`, src: 'modeling_glm5_next.py:1326–1329' },
+  }));
+
+  // Clean specification card below ffn_out
+  const dnY = py + 392, dnH = 214;
+  g.push(`<rect x="${dx + 14}" y="${dnY}" width="${dw - 28}" height="${dnH}" rx="8" fill="${T.surface}" stroke="${T.line}" stroke-width="1.1"/>`);
+  g.push(`<text x="${dx + 28}" y="${dnY + 25}" font-size="11.1" font-weight="750" fill="${T.ink}">稠密层配置与规格 (L00–L02)</text>`);
+  g.push(`<line x1="${dx + 28}" y1="${dnY + 35}" x2="${dx + dw - 28}" y2="${dnY + 35}" stroke="${T.line}" stroke-width="1"/>`);
+  g.push(`<text x="${dx + 28}" y="${dnY + 60}" font-size="10.2" font-weight="650" fill="${T.ink}">· 前 K 层稠密替换配置</text>`);
+  g.push(`<text x="${dx + 28}" y="${dnY + 78}" font-size="9.7" font-weight="500" fill="${T.ink2}">first_k_dense_replace = ${tc.first_k_dense_replace}：前 ${cntDense} 层稠密，L03 起 MoE</text>`);
+  g.push(`<text x="${dx + 28}" y="${dnY + 106}" font-size="10.2" font-weight="650" fill="${T.ink}">· 单层全激活参数量</text>`);
+  g.push(`<text x="${dx + 28}" y="${dnY + 124}" font-size="9.8" font-weight="500" fill="${T.ink2}">3 张矩阵共约 ${denseMlpYi} 亿参数，全部 token 共享</text>`);
+  g.push(`<text x="${dx + 28}" y="${dnY + 152}" font-size="10.2" font-weight="650" fill="${T.ink}">· 非对称激活限幅</text>`);
+  g.push(`<text x="${dx + 28}" y="${dnY + 170}" font-size="9.8" font-weight="500" fill="${T.ink2}">gate 仅截上限 ≤ ${LIM}，up 双向截断 [-${LIM}, ${LIM}]</text>`);
+  g.push(`<text x="${dx + 28}" y="${dnY + 190}" font-size="9.8" font-weight="500" fill="${T.muted}" class="mono">modeling_glm5_next.py:103–105</text>`);
+
+  // ---- Right Sub-Plate (g-2): Fine-Grained MoE (L03-L44, x=ox+324, w=638) ----
+  const mx = ox + 324, mw = 638;
+  const drOut = py + 566;
+  g.push(drawSubPlate(mx, py, mw, ph, `(g-2) 细粒度混合专家 MoE · 后 ${cntMoe} 层 (L03–L${N - 1} · 占主干参数 ${routedSharePct}%)`, moeTone));
+
+  g.push(drawBox({
+    x: mx + 12, y: py + 28, w: mw - 24, h: 38,
+    title: 'RMSNorm 2 输出 x_ffn',
+    sub: `[T, ${C}]`,
+    comp: 'norm', kind: 'io',
+    meta: { panel: '(g-2)', title: 'MoE 子层输入 x_ffn', shape: `[T, ${C}]`, detail: `同时进入 FP32 路由器、选中的 ${K_EXP} 个路由专家以及常驻共享专家`, src: 'modeling_glm5_next.py:201–208' },
+  }));
+
+  const rx0 = mx + 12, rw0 = 174, rc0 = rx0 + rw0 / 2;
+  const rx1 = mx + 200, rw1 = 210, rc1 = rx1 + rw1 / 2;
+  const rx2 = mx + 422, rw2 = 204, rc2 = rx2 + rw2 / 2;
+
+  const mr1 = py + 94;
+  const mr2 = py + 168;
+  const mr3 = py + 248;
+  const mr4 = py + 322;
+  const mr5 = py + 396;
+
+  // Lane 1: Router (FP32) + Bias Top-K Selection
+  g.push(drawArrow([[rc0, py + 66], [rc0, mr1]]));
+  g.push(drawBox({
+    x: rx0, y: mr1, w: rw0, h: 50,
+    title: `FP32 路由打分 W_router`,
+    sub: `[${E_ROUTED},${C}] → σ [T,${E_ROUTED}]`,
+    comp: 'router', kind: 'weight',
+    meta: { panel: '(g-2)', title: 'mlp.gate (Glm5NextTextTopkRouter)', shape: `[T, ${C}] → scores [T, ${E_ROUTED}] (FP32)`, detail: `输入与权重强制转 FP32 相乘后过 sigmoid 得到 (0, 1) 专家原始得分`, src: 'modeling_glm5_next.py:152 · 160–162' },
+  }));
+  g.push(drawArrow([[rc0, mr1 + 50], [rc0, mr2]]));
+  g.push(drawBox({
+    x: rx0, y: mr2, w: rw0, h: 52,
+    title: `加偏置选 Top-${K_EXP} 专家`,
+    sub: `s+e_bias选号 · 原分归一×${RS}`,
+    comp: 'router', kind: 'weight',
+    meta: { panel: '(g-2)', title: '无辅助损失偏置选路与权重归一', shape: `e_bias [${E_ROUTED}] · topk_idx, topk_w [T, ${K_EXP}]`, detail: `用 scores + e_score_correction_bias [${E_ROUTED}] 选前 ${K_EXP} 名（n_group=${tc.n_group}）；组合权重取未加偏置原分，归一到和为 1 (norm_topk_prob=true) 后乘 ${RS}`, src: 'modeling_glm5_next.py:157 · 163–184' },
+  }));
+
+  // Lane 2: 288 Routed Experts (8 active per token). Top-entering arrows into stacked boxes terminate at y - 4.8
+  g.push(drawArrow([[rc1, py + 66], [rc1, mr3 - 4.8]], { label: 'x_ffn 分发', lx: rc1, ly: py + 148 }));
+  g.push(drawArrow([[rx0 + rw0, mr2 + 26], [rx1 + 42, mr2 + 26], [rx1 + 42, mr3 - 4.8]], { dash: '3.5 2.5', label: `topk_idx[${K_EXP}]`, lx: rx1 + 48, ly: mr2 + 15 }));
+
+  g.push(drawBox({
+    x: rx1, y: mr3, w: rw1, h: 52,
+    title: `${K_EXP} 个选中专家 gate | up`,
+    sub: `W_gu [${E_ROUTED}, ${2 * MI}, ${C}]`,
+    comp: 'expert', kind: 'weight', stack: true,
+    meta: { panel: '(g-2)', title: `mlp.experts.gate_up_proj (${E_ROUTED} 张堆叠)`, shape: `[T, ${K_EXP}, ${2 * MI}] · weight [${E_ROUTED}, ${2 * MI}, ${C}]`, detail: `全池共 ${E_ROUTED} 个专家，当前 token 仅分发至挑中的 ${K_EXP} 个专家计算 gate [${MI}] 与 up [${MI}]`, src: 'modeling_glm5_next.py:117 · 128–133' },
+  }));
+  g.push(drawArrow([[rc1, mr3 + 52], [rc1, mr4]]));
+  g.push(drawBox({
+    x: rx1, y: mr4, w: rw1, h: 50,
+    title: '限幅 SwiGLU (各专家)',
+    sub: `gate≤${LIM}, up±${LIM} → [T,${K_EXP},${MI}]`,
+    comp: 'expert', kind: 'op',
+    meta: { panel: '(g-2)', title: '路由专家限幅 SwiGLU', shape: `[T, ${K_EXP}, ${MI}]`, detail: `gate 截断 ≤ ${LIM}，up 截断 ±${LIM}，计算 SiLU(gate) * up`, src: 'modeling_glm5_next.py:138–143' },
+  }));
+  g.push(drawArrow([[rc1, mr4 + 50], [rc1, mr5 - 4.8]]));
+  g.push(drawArrow([[rc0, mr2 + 52], [rc0, mr5 + 26], [rx1, mr5 + 26]], { dash: '3.5 2.5', label: `topk_w[T,${K_EXP}]`, lx: rc0, ly: mr4 + 25 }));
+  g.push(drawBox({
+    x: rx1, y: mr5, w: rw1, h: 52,
+    title: `各专家 down × 路由权重`,
+    sub: `W_dn [${E_ROUTED}, ${C}, ${MI}]`,
+    comp: 'expert', kind: 'weight', stack: true,
+    meta: { panel: '(g-2)', title: 'mlp.experts.down_proj 投影与加权', shape: `[T, ${K_EXP}, ${C}] · weight [${E_ROUTED}, ${C}, ${MI}]`, detail: `每个选中专家降回 ${C} 维并乘对应路由权重 topk_w`, src: 'modeling_glm5_next.py:118 · 134' },
+  }));
+
+  const mr6 = py + 470;
+  g.push(drawArrow([[rc1, mr5 + 52], [rc1, mr6]]));
+  g.push(drawBox({
+    x: rx1, y: mr6, w: rw1, h: 42,
+    title: `${K_EXP} 份专家输出归约相加`,
+    sub: `index_add_ → routed [T, ${C}]`,
+    comp: 'expert', kind: 'op',
+    meta: { panel: '(g-2)', title: '路由专家输出汇总', shape: `routed [T, ${C}]`, detail: `每个 token 将自己挑中的 ${K_EXP} 个专家的加权输出相加`, src: 'modeling_glm5_next.py:135 · 206' },
+  }));
+
+  // Lane 3: Always-active Shared Expert (x1)
+  const sgw = 96, sgx1 = rx2, sgx2 = rx2 + rw2 - sgw;
+  const sgc1 = sgx1 + sgw / 2, sgc2 = sgx2 + sgw / 2;
+  g.push(drawArrow([[sgc1, py + 66], [sgc1, mr1]]));
+  g.push(drawArrow([[sgc2, py + 66], [sgc2, mr1]]));
+  g.push(drawBox({
+    x: sgx1, y: mr1, w: sgw, h: 50,
+    title: '共享 gate',
+    sub: `[${SI},${C}]`,
+    comp: 'expert', kind: 'weight',
+    meta: { panel: '(g-2)', title: 'shared_experts.gate_proj', shape: `[T, ${C}] → [T, ${SI}] · weight [${SI}, ${C}]`, detail: `常驻共享专家（每个 token 必过，不参与路由挑选）门控投影`, src: 'modeling_glm5_next.py:197–199 · 207' },
+  }));
+  g.push(drawBox({
+    x: sgx2, y: mr1, w: sgw, h: 50,
+    title: '共享 up',
+    sub: `[${SI},${C}]`,
+    comp: 'expert', kind: 'weight',
+    meta: { panel: '(g-2)', title: 'shared_experts.up_proj', shape: `[T, ${C}] → [T, ${SI}] · weight [${SI}, ${C}]`, detail: `常驻共享专家内容投影`, src: 'modeling_glm5_next.py:197–199 · 207' },
+  }));
+  g.push(drawArrow([[sgc1, mr1 + 50], [sgc1, mr2]]));
+  g.push(drawArrow([[sgc2, mr1 + 50], [sgc2, mr2]]));
+  g.push(drawBox({
+    x: rx2, y: mr2, w: rw2, h: 52,
+    title: '共享专家限幅 SwiGLU',
+    sub: `gate≤${LIM}, up±${LIM} → [T,${SI}]`,
+    comp: 'expert', kind: 'op',
+    meta: { panel: '(g-2)', title: '共享专家 Clamped SwiGLU', shape: `[T, ${SI}]`, detail: `同样对 gate 截上限 ≤ ${LIM}、对 up 截 ±${LIM} 后算 SiLU(gate) * up`, src: 'modeling_glm5_next.py:103–105' },
+  }));
+  g.push(drawArrow([[rc2, mr2 + 52], [rc2, mr3]]));
+  g.push(drawBox({
+    x: rx2, y: mr3, w: rw2, h: 52,
+    title: '共享专家 down_proj',
+    sub: `${SI}→${C} [${C},${SI}]`,
+    comp: 'expert', kind: 'weight',
+    meta: { panel: '(g-2)', title: 'shared_experts.down_proj', shape: `[T, ${SI}] → [T, ${C}] · weight [${C}, ${SI}]`, detail: `共享专家输出 s_out [T, ${C}]，直接与路由专家汇总结果相加`, src: 'modeling_glm5_next.py:95 · 207' },
+  }));
+
+  // Combine routed + shared at circular ⊕ node
+  const sumCy = py + 536, sumCx2 = (rc1 + rc2) / 2;
+  g.push(drawArrow([[rc1, mr6 + 42], [rc1, sumCy], [sumCx2 - 14, sumCy]]));
+  g.push(drawArrow([[rc2, mr3 + 52], [rc2, sumCy], [sumCx2 + 14, sumCy]]));
+  g.push(drawCircleOp(sumCx2, sumCy, 13, '⊕', {
+    panel: '(g-2)',
+    title: '路由专家输出 + 共享专家输出',
+    shape: `routed [T, ${C}] + s_out [T, ${C}] → [T, ${C}]`,
+    detail: `hidden_states = routed_experts_out + shared_experts(residuals)`,
+    src: 'modeling_glm5_next.py:207',
+  }));
+
+  g.push(drawArrow([[sumCx2, sumCy + 13], [sumCx2, drOut]]));
+  g.push(drawBox({
+    x: rx1, y: drOut, w: rx2 + rw2 - rx1, h: 40,
+    title: 'MoE 前馈输出 ffn_out',
+    sub: `[T, ${C}] → 交给 mHC 写回 ${S} 路`,
+    comp: 'expert', kind: 'io',
+    meta: { panel: '(g-2)', title: 'MoE 前馈子层输出', shape: `[T, ${C}]`, detail: `交由 ffn_hc 写回 ${S} 路残差`, src: 'modeling_glm5_next.py:208 · 1327' },
+  }));
+
+  return { svg: g.join(''), w, h };
+}
+
+// ---- Assemble Full Symmetric Two-Column Publication Sheet ----
+// Left column:  y = 16 -> (a) 918, +18 -> (b) 380, +18 -> (c) 424, +18 -> (d) 508 => ends at y = 2300
+// Right column: y = 16 -> (e) 596, +18 -> (f) 940, +18 -> (g) 712              => ends at y = 2300
+function renderSheet() {
+  const pA = buildPanelA(20, 16);
+  const pB = buildPanelB(20, 16 + 918 + 18);
+  const pC = buildPanelC(20, 16 + 918 + 18 + 380 + 18);
+  const pD = buildPanelD(20, 16 + 918 + 18 + 380 + 18 + 424 + 18);
+
+  const pE = buildPanelE(520, 16);
+  const pF = buildPanelF(520, 16 + 596 + 18);
+  const pG = buildPanelG(520, 16 + 596 + 18 + 940 + 18);
+
+  const W = 1520, H = 2316;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="GLM-5.3-Flash 语言主干与 MTP 二维架构图谱">${pA.svg}${pB.svg}${pC.svg}${pD.svg}${pE.svg}${pF.svg}${pG.svg}</svg>`;
+}
+
+const page = document.getElementById('page');
+page.innerHTML = renderSheet();
+
+// ---- Interactive Inspector, Cross-Panel Jump & Zoom Controls ----
+const inspector = document.getElementById('inspector');
+const insBadge = document.getElementById('ins-badge');
+const insTitle = document.getElementById('ins-title');
+const insShape = document.getElementById('ins-shape');
+const insDetail = document.getElementById('ins-detail');
+const insSrc = document.getElementById('ins-src');
+
+function showMeta(nid) {
+  const m = nodeRegistry.get(nid);
+  if (!m) return;
+  inspector.classList.add('has-selection');
+  insBadge.textContent = m.panel || '模块规格';
+  insTitle.textContent = m.title || '';
+  insShape.textContent = m.shape || '';
+  insDetail.textContent = m.detail || '';
+  insSrc.textContent = m.src || 'official-config.json';
+}
+
+function flashPanel(panelId) {
+  const g = document.getElementById(panelId);
+  if (!g) return;
+  g.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const frame = g.querySelector('.panel-frame');
+  if (frame) {
+    frame.classList.add('flash');
+    setTimeout(() => frame.classList.remove('flash'), 1400);
+  }
+}
+
+let lockedBox = null;
+page.addEventListener('mouseover', e => {
+  if (lockedBox) return;
+  const box = e.target.closest('.box[data-nid]');
+  if (box) showMeta(box.dataset.nid);
+});
+
+page.addEventListener('click', e => {
+  const jumpEl = e.target.closest('[data-jump-target]');
+  const box = e.target.closest('.box');
+  if (box) {
+    for (const b of page.querySelectorAll('.box.selected')) b.classList.remove('selected');
+    if (lockedBox === box) {
+      lockedBox = null;
+      inspector.classList.remove('has-selection');
+    } else {
+      lockedBox = box;
+      box.classList.add('selected');
+      if (box.dataset.nid) showMeta(box.dataset.nid);
+    }
+  }
+  if (jumpEl) {
+    flashPanel(jumpEl.dataset.jumpTarget);
+  }
+});
+
+for (const btn of document.querySelectorAll('.jump-btn')) {
+  btn.addEventListener('click', () => {
+    for (const b of document.querySelectorAll('.jump-btn')) b.classList.remove('active');
+    btn.classList.add('active');
+    flashPanel(btn.dataset.jump);
+  });
+}
+
+let userPickedZoom = false;
+function applyZoom(mode) {
+  for (const b of document.querySelectorAll('.zoom-btn')) {
+    b.classList.toggle('active', b.dataset.zoom === mode);
+  }
+  page.classList.remove('zoom-actual', 'zoom-large');
+  if (mode === 'actual') page.classList.add('zoom-actual');
+  if (mode === 'large') page.classList.add('zoom-large');
+}
+
+function autoZoomForViewport() {
+  if (userPickedZoom) return;
+  applyZoom(page.clientWidth > 0 && page.clientWidth < 1260 ? 'actual' : 'fit');
+}
+
+for (const btn of document.querySelectorAll('.zoom-btn')) {
+  btn.addEventListener('click', () => {
+    userPickedZoom = true;
+    applyZoom(btn.dataset.zoom);
+  });
+}
+
+autoZoomForViewport();
+window.addEventListener('resize', autoZoomForViewport);
+
+window.__arch = { ready: true, svg: page.querySelector('svg'), nodes: nodeRegistry.size };
+</script>
+</body>
+</html>

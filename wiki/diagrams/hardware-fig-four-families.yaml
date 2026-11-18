@@ -1,0 +1,12 @@
+mode: native-svg
+id: hardware-fig-four-families
+caption: >-
+  v0.30.0 昇腾四族硬件能力档案（HardwareProfile）全景对照：按 SoC 编译/运行识别码将硬件收敛为 Atlas A2（单芯直通默认基线）、Atlas A3（双裸片合封 8 物理卡=16 逻辑 NPU 与 MegaMoe 扩展）、Atlas 300I DUO（310P 独立兼容栈，强制 FP16 与 NZ 排布、禁用 BF16 与 npugraph_ex）及昇腾 950PR/950DT（A5 片内 CV 融合、原生 FP8/MXFP8/MXFP4 与 Unified Bus 直通）。
+size: [900, 504]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware.py#L16-L76
+    symbols: [AscendDeviceType, device_type_from_soc_version, device_type_from_runtime_soc]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L284-L388
+    symbols: [HardwareProfile, NPUWorker310, FORCE_NZ, FP8_OPTIMIZED, CANN_MEGAMOE_MXFP, FP8_ATTENTION]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L145-L170
+    symbols: [NPUGRAPH_EX, enable_npugraph_ex, enable_static_kernel]

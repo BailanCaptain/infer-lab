@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 504" width="900" height="504" role="img" aria-label="v0.30.0 昇腾四族硬件能力档案全景对照图" font-family="var(--font-sans)">
+  <title>v0.30.0 昇腾四族硬件能力档案（HardwareProfile）全景对照图</title>
+  <desc>AscendDeviceType, HardwareProfile, NPUWorker310, FORCE_NZ, FP8_OPTIMIZED, CANN_MEGAMOE_MXFP, FP8_ATTENTION, NPUGRAPH_EX</desc>
+
+  <g font-size="16" font-weight="700" fill="#17211f">
+    <text x="18" y="28">硬件家族与识别码</text>
+    <text x="260" y="28">物理拓扑与 Profile 策略</text>
+    <text x="562" y="28">精度、图编译与互联边界</text>
+  </g>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.5"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="52" width="876" height="102" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="12" y="166" width="876" height="102" rx="9" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="12" y="280" width="876" height="102" rx="9" fill="#fff0e9" stroke="#b54237"/>
+    <rect x="12" y="394" width="876" height="102" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+  </g>
+
+  <g stroke-width="1.2" stroke-dasharray="4 3">
+    <line x1="248" y1="62" x2="248" y2="144" stroke="#79aaa1"/>
+    <line x1="550" y1="62" x2="550" y2="144" stroke="#79aaa1"/>
+    <line x1="248" y1="176" x2="248" y2="258" stroke="#d8b882"/>
+    <line x1="550" y1="176" x2="550" y2="258" stroke="#d8b882"/>
+    <line x1="248" y1="290" x2="248" y2="372" stroke="#d88c82"/>
+    <line x1="550" y1="290" x2="550" y2="372" stroke="#d88c82"/>
+    <line x1="248" y1="404" x2="248" y2="486" stroke="#8c9fcc"/>
+    <line x1="550" y1="404" x2="550" y2="486" stroke="#8c9fcc"/>
+  </g>
+
+  <g font-size="15" font-weight="700">
+    <text x="24" y="78" fill="#065f56">1. Atlas A2 (910B 系列)</text>
+    <text x="24" y="192" fill="#936300">2. Atlas A3 (双 Die 系列)</text>
+    <text x="24" y="306" fill="#8f3229">3. Atlas 300I DUO (310P)</text>
+    <text x="24" y="420" fill="#3a4f93">4. 昇腾 950PR / 950DT (A5)</text>
+  </g>
+
+  <g font-size="14.5" font-weight="700">
+    <text x="260" y="78" fill="#17211f">单芯直通 · 8 物理卡 = 8 逻辑 NPU</text>
+    <text x="562" y="78" fill="#065f56">✓ BF16 / W8A8 / W4A8 / npugraph_ex</text>
+    <text x="260" y="192" fill="#936300">双芯合封 · 8 物理卡 = 16 逻辑 NPU</text>
+    <text x="562" y="192" fill="#17211f">✓ 继承 A2 精度图能力 + 增强 MoE</text>
+    <text x="260" y="306" fill="#8f3229">独立兼容栈 · NPUWorker310</text>
+    <text x="562" y="306" fill="#8f3229">✗ 禁 BF16 · ✗ 无 npugraph_ex</text>
+    <text x="260" y="420" fill="#3a4f93">FP8_OPTIMIZED · UMA 封装</text>
+    <text x="562" y="420" fill="#3a4f93">✓ 原生 FP8 / MXFP8 / MXFP4 计算</text>
+  </g>
+
+  <g font-size="13.5" fill="#4d5652">
+    <text x="24" y="103">SoC: ascend910b* (码 220..225)</text>
+    <text x="260" y="103">DIRECT 寻址 · TOPO_AFFINITY 绑核</text>
+    <text x="562" y="103">原生分块 FP8 加载回退 BF16 反量化</text>
+
+    <text x="24" y="217">SoC: ascend910_93* (码 250..256)</text>
+    <text x="260" y="217">DUAL_CHIP_CARD · GLOBAL_SLICE</text>
+    <text x="562" y="217">新增 CANN_MEGAMOE 与 fullmesh_v2</text>
+
+    <text x="24" y="331">SoC: ascend310p* (码 200..205)</text>
+    <text x="260" y="331">COMPATIBILITY 注意力与量化适配族</text>
+    <text x="562" y="331">必传 --dtype float16（或 W8A8SC）</text>
+
+    <text x="24" y="445">SoC: ascend950* (运行码 260)</text>
+    <text x="260" y="445">L0C→UB 片内 CV 融合直通少绕 GM</text>
+    <text x="562" y="445">支持 FP8_ATTENTION 与 MEGAMOE_MXFP</text>
+  </g>
+
+  <g font-size="13.5" fill="#66716d">
+    <text x="24" y="127">默认 pip wheel · 镜像 :v0.30.0</text>
+    <text x="260" y="127">标准 NPUWorker · 可配权重排布</text>
+    <text x="562" y="127">800T A2 机内 7 链 HCCS · 层级 MC2</text>
+
+    <text x="24" y="241">镜像 :v0.30.0-a3 · 含 SuperPoD</text>
+    <text x="260" y="241">容器须成对挂 davinci2k 与 2k+1</text>
+    <text x="562" y="241">支持 RMS_NORM_CAST 及超节点池化</text>
+
+    <text x="24" y="355">镜像 :v0.30.0-310p · 禁装 triton</text>
+    <text x="260" y="355">FORCE_NZ 分形排布 · ALLGATHER 通信</text>
+    <text x="562" y="355">自动关 static/super kernel，限解码图</text>
+
+    <text x="24" y="469">镜像 :v0.30.0-a5 · 96/144 GB 档</text>
+    <text x="260" y="469">CAPACITY_AND_WORLD_SIZE 专家策略</text>
+    <text x="562" y="469">Unified Bus 高速直通与 UBoE 互联</text>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+mode: native-svg
+id: mem-prof-plate-cutaway
+caption: >-
+  64 GiB 昇腾 HBM 七级显存预算拆解剖面：先拍启动快照并按总显存乘比例划定预算上限，留出预算外 1−u 余量；预算内依次扣除常驻权重（含 NZ 布局与缩放系数）、试跑激活峰值与非 Torch 增量（HCCL 通信域缓冲因建组晚于快照已含在此项内，严禁二次重扣），余下空间按每块 128 token 切成定长物理块；切完块后才录制的 ACLGraph 图显存从预算外 1−u 余量支付，并在日志建议值中另留 150 MiB 兜底。
+size: [900, 690]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L461-L490
+    symbols: [init_snapshot, requested_memory, gpu_memory_utilization, _init_worker_distributed_environment]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L601-L637
+    symbols: [determine_available_memory, memory_profiling, profile_run, non_torch_increase, available_kv_cache_memory_bytes]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L908-L928
+    symbols: [capture_model, redundancy_buffer, npugraph_memory_bytes]

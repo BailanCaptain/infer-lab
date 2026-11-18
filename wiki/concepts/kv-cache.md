@@ -3,9 +3,8 @@ id: kv-cache
 title: KV cache：新 token 留下历史，下一步接着读
 type: concept
 summary: >-
-  KV cache 保存每一层为已处理位置算好的 k、v 等状态：新 token
-  只算自己这一份并追加进去，下一步直接读取，不再重算旧位置；代价是占显存、每步要读、要按块管理空间。GLM-5.3-Flash 同时存两类历史：MLA
-  层按位置存压缩潜向量和 indexer K，KDA 层按请求存固定大小的状态。
+  KV cache 保存每一层为已处理位置算好的 K、V 等历史状态：新 token 只算自己这一份并按块追加，后续步骤直接读取，省去 O(t²)
+  的整段重算；代价是线性占用显存、每步读取历史带宽以及分页空间管理。除标准 GQA 逐位置存 K、V 外，MLA 存压缩潜向量、稀疏注意力只读挑中位置、线性注意力原地更新固定大小状态。
 aliases:
   - KV Cache
   - KV 缓存
@@ -15,106 +14,78 @@ aliases:
   - kv cache
   - KV 显存
 chapters:
-  - '04'
-  - '05'
-  - '11'
+  - '03'
 sources:
+  - 'https://arxiv.org/html/2309.06180v1'
+  - 'https://arxiv.org/html/2405.04434v5'
+  - 'https://huggingface.co/Qwen/Qwen3-8B/raw/main/config.json'
+  - 'https://huggingface.co/Qwen/Qwen3-30B-A3B/raw/main/config.json'
+  - 'vllm@ced6857a:vllm/v1/kv_cache_interface.py#L478-L555'
+  - 'vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L538-L670'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L108-L124'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1170-L1204'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1318-L1381'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L143-L173'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L2020-L2039'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4699-L4701'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L6314-L6406'
+  - 'vllm@ced6857a:vllm/v1/core/kv_cache_manager.py#L250-L385'
+  - 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1613-L1670'
+  - 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1874-L1895'
+  - 'vllm@ced6857a:vllm/engine/arg_utils.py#L2794-L2834'
+  - 'vllm@ced6857a:vllm/config/model.py#L2135-L2151'
+  - 'vllm@ced6857a:vllm/config/cache.py#L39-L95'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L901-L943'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/cache_config.py#L1-L44'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/cache_config.py#L90-L148'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L96-L119'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_mamba_config.py#L120-L155'
+  - 'vllm@ba15685a:vllm/engine/arg_utils.py#L3072-L3112'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L113-L124'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L1251-L1286'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/device/device_op.py#L276-L306'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/attn_utils.py#L199-L235'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/cache_config.py#L41-L49'
+  - 'vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L198-L269'
+  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1414-L1436'
+  - 'vllm@0fc695fc:vllm/config/model.py#L1851-L1857'
+  - 'vllm@0fc695fc:vllm/v1/worker/block_table.py#L325-L380'
+  - 'vllm@0fc695fc:vllm/v1/attention/backend.py#L55-L66'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L104-L112'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1430-L1454'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/device/device_op.py#L47-L52'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_qwen3_dflash.py#L45-L59'
+  - 'vllm@568afb3a:vllm/engine/arg_utils.py#L2515-L2553'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L1553-L1570'
+  - 'https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json'
+  - 'https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md'
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L69-L134'
   - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L261-L362'
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda_state.py#L9-L32'
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L398-L474'
-  - 'vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L198-L269'
-  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L800-L855'
-  - >-
-    vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104
-  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3916-L3952'
-  - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1414-L1436'
-  - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L500-L560'
-  - 'vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L405-L456'
-  - >-
-    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L222-L228
-  - 'vllm@0fc695fc:vllm/config/model.py#L1851-L1857'
-  - 'vllm@568afb3a:vllm/engine/arg_utils.py#L2515-L2553'
-  - 'vllm@84030bbe:vllm/engine/arg_utils.py#L2773-L2808'
-  - 'vllm@84030bbe:vllm/config/model.py#L2135-L2151'
-  - 'https://arxiv.org/html/2309.06180v1'
-  - 'https://arxiv.org/html/2405.04434v5'
-  - >-
-    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
-  - >-
-    https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
-  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L182-L229'
-  - 'vllm@0fc695fc:vllm/model_executor/layers/mamba/mamba_utils.py#L119-L125'
-  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2489-L2509'
-  - >-
-    vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L88-L160
   - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L130-L146'
-  - >-
-    vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_mamba_config.py#L110-L125
-  - 'vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L104-L112'
-  - 'vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1430-L1454'
-  - 'vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1529-L1534'
-  - 'vllm-ascend@2c59ff10:vllm_ascend/device/device_op.py#L47-L52'
-  - 'vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L489-L499'
-  - 'vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L183-L200'
-  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4927-L4938'
-  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3932-L3935'
-  - 'vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L1553-L1570'
-  - 'vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1124-L1141'
-  - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5142-L5152'
-  - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L39-L40'
-  - 'vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L102-L111'
-  - >-
-    vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_mamba_config.py#L58-L107
-  - >-
-    vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_mamba_config.py#L58-L107
-  - 'vllm@0fc695fc:vllm/v1/worker/block_table.py#L325-L380'
-  - >-
-    raw:sha256-db0aa5f4bce49076d38bcfb2b8989e17e966c146a35d96e9f005c6f608e5b0a2.md#L1-L1317
-  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/cache_config.py#L1-L44'
-  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L96-L117'
-  - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L905-L943'
-  - 'vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L109-L118'
-  - 'vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L1170-L1204'
-  - 'vllm@ced6857a:vllm/engine/arg_utils.py#L2794-L2834'
-  - 'vllm@ced6857a:vllm/config/model.py#L2135-L2151'
-  - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/cache_config.py#L90-L190'
-  - 'vllm@0fc695fc:vllm/v1/attention/backend.py#L55-L66'
-  - 'vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L77-L79'
-  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L38-L40'
-  - 'vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L354-L435'
-  - 'vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L1319-L1335'
-  - 'vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_qwen3_dflash.py#L45-L59'
+  - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L800-L855'
+  - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L88-L160'
   - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L664-L698'
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "releases/v0.30.0rc2", "main"]
+  - 'raw:sha256-db0aa5f4bce49076d38bcfb2b8989e17e966c146a35d96e9f005c6f608e5b0a2.md#L1-L1317'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: attention-qkv
     kind: builds-on
-    note: 缓存里存的就是那一页讲的 K 和 V；Q、K、V 各做什么、因果掩码为什么让旧 K/V 不变，本页不重讲
-  - to: prefill
-    kind: builds-on
-    note: 在多轮前向之间复用已计算状态
-  - to: mla
-    kind: builds-on
-    note: 潜向量保存按位置访问的历史
-  - to: linear-attention
-    kind: builds-on
-    note: 递推与卷积状态保存不同形式的历史
-  - to: one-request
-    kind: builds-on
-    note: 回到 A2 分配缓存与 A6 更新有效进度的请求循环
-  - to: glm-5-3-flash-two-node
-    kind: builds-on
-    note: 每块字节数与显存预算只在部署页推导
+    note: 缓存里保存的正是各层算出的 K 和 V；查询打分、加权汇合与因果掩码为什么保证旧 K/V 不变，在此基础上展开
   - to: gqa
     kind: builds-on
-    note: 普通注意力每 token 每层的缓存按 KV 头数计，GQA 减少 KV 头省的就是这份
-  - to: rope
+    note: 标准注意力每 token 每层的缓存字节数按 KV 头数计，GQA 减少 KV 头省下的正是这份容量与每步读取带宽
+  - to: prefill
     kind: builds-on
-    note: 普通注意力存进缓存的 K 已按位置旋转；GLM 的 MLA 与 indexer 不带 RoPE 段
+    note: Prefill 建立提示词历史并产出首个生成词，Decode 每步在已有缓存上只补算新位置
 contradicts: []
-updated: '2026-11-10'
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -125,320 +96,217 @@ rawSources:
 
 ## KV cache 是什么？
 
-**KV cache（KV 缓存）是生成模型跨步保留的历史状态：普通因果 attention 保存各层已处理位置的 k、v，生成下一个 token 时直接读取，不必把旧位置重新过一遍模型。** 下面先用这种普通 attention 建立直觉；MLA 保存压缩表示、KDA 保存递推状态，后文再逐项接上。
+**KV cache（KV 缓存）是生成模型跨步保留的历史状态：标准因果 attention 把每一层为已处理位置算好的 `k`、`v` 留在显存里，生成下一个 token 时直接读取，不必把旧位置重新过一遍模型。** 前半程先用标准 GQA 模型（`Qwen3-8B` 与 `Qwen3-30B-A3B`）把核心机制与容量账讲透；MLA 存压缩潜向量、稀疏注意力只读挑中位置、KDA 原地更新固定大小状态，放在后半程变体与混合模型章节逐一接上。
 
-保存历史省下重复计算，代价是占住设备显存、下一步读取历史，以及管理请求各自占用的空间。缓存跟着请求从[主线 A2 的分配](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)进入逐层前向，结果返回后再决定哪些状态有效、哪些空间可以归还。
+在[一次请求全景鸟瞰](request-overview.md)（以及端到端案例[一条请求的七站闭环](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)）的主线里，请求每次进入逐层前向之前都要先拿到缓存空间，算完这一步再更新有效进度、决定哪些空间继续保留或归还。
 
-大模型写文本是一个 [token](token.md) 一个 token 往外写的。token 是文本切出的小片段，每个 token 占一个位置。模型先读完提示词（prompt，请求里用户给的那段输入），生成第 1 个输出 token，把它接到文本末尾；再以整段文本为上下文生成第 2 个，如此反复，直到写完。
+大模型写文本是一个 [token](token.md) 接一个 token 往外写的：先在 [prefill](prefill.md)（预填充）阶段读完用户提示词（prompt），选出第 1 个输出 token 接到末尾；再进入 decode（解码）阶段，每步以整段已有文本为上下文生成下一个 token，如此循环直到结束。每写一个词，最新位置都要做一次 [attention](attention-qkv.md)（注意力）：每个位置算出查询 `q`（query，拿去找别人的）、键 `k`（key，等着被找的）和值 `v`（value，被找到后交出的内容），最新位置用自己的 `q` 和前面所有位置的 `k` 打分，再按权重把各位置的 `v` 加起来（见 [attention 逐步演算](attention-qkv.md#attention-怎么算跟着一个位置走一遍)）。关键事实只有一句：**新位置每一步都要用到前面所有位置的 `k` 和 `v`。**
 
-每写一个，最新的那个位置都要做一次 [attention](attention-qkv.md)（注意力）：回头看前面每个位置，按相关程度把它们的信息取过来。做法是每个位置先算出三条向量：q（query，查询）是拿去找别人的，k（key，键）是等着被找的，v（value，值）是被找到后交出的内容；新位置拿自己的 q 和每个位置的 k 各打一个分，再按分数把各位置的 v 加起来。三条向量怎么算、怎么配合，[attention 页](attention-qkv.md#attention-怎么算跟着一个位置走一遍)一步步算过，这里只要记住一点：**新位置每一步都要用到前面所有位置的 k 和 v。**
-
-而前面位置的 k、v 一旦算出就不会再变。接着用 attention 页的小例子：3 个位置，每条向量 4 个数，数是编的，算法是真的。第 1 步模型把 prompt 的 3 个位置一起算完，每个位置在这一层留下一行 k、一行 v；接着生成一个新 token，放在位置 3。第 2 步只有位置 3 是新的：
+而前面位置的 `k`、`v` 一旦算出就永远不会再变。沿用 attention 页的示意小例子（3 个提示词位置、每条向量 4 个数，数值为示意，机制真实）：第 1 步模型把位置 `0, 1, 2` 一起算完，每个位置在本层留下一行 `k`、一行 `v`，并采样出位置 `3` 的新词；第 2 步只有位置 `3` 是新的：
 
 ```wiki-diagram
 file: kv-cache
 ```
 
-第 2 步里，k₀、k₁、k₂ 和 v₀、v₁、v₂ 还是第 1 步那几个数，一个都没变。于是只为位置 3 算出 q₃、k₃、v₃，把 k₃、v₃ 各追加成一行，再用 q₃ 和 4 行 k 打分、按分数汇合 4 行 v。下一步新位置是 4，同样只算一行、追加一行，前 4 行原样读出。存这些行的地方就是 KV cache：各位置的 k 叠成一张 K 表，v 叠成一张 V 表，名字里的 K、V 就是这两张表。
+第 2 步里，$k_0, k_1, k_2$ 和 $v_0, v_1, v_2$ 与第 1 步分毫不差。引擎只需为新位置 `3` 算出 $q_3, k_3, v_3$，把 $k_3, v_3$ 各追加成新的一行，再用 $q_3$ 对 4 行 `K` 打分、汇合 4 行 `V`。存这两张表的地方就是 **KV cache**。这里有三条定死缓存形态的铁律：
 
-**为什么旧位置的 k、v 不会变？** 生成模型里，每个位置只能看到自己和前面的位置，这条规则叫[因果掩码](attention-qkv.md#因果掩码限定每个位置能访问的历史)。位置 1 的 k₁ 只由位置 0、1 的内容决定，后来接上的 token 影响不到它，所以读缓存和每步重算得到的是同一组数。
-
-**只存 K 和 V、不存 Q，是因为它们的使用期限不同。** 查询只来自本步的新位置：q₃ 在第 2 步打完分就不再需要；k₃、v₃ 却要被之后每一步的新位置读到。
-
-**每一层都有自己的一份。** 模型由几十层叠成，每层都做一次 attention。各层的 k、v 由各层自己的隐藏向量（hidden，一个位置在层与层之间传递的那排数，见[层与隐藏表示](layers-and-hidden.md)）算出，数各不相同。所以 KV cache 是模型每一层为已处理位置留下的中间结果：每一层、每个位置各存一行 k 和一行 v。
+1. **为什么历史 $K_{0..t-1}, V_{0..t-1}$ 绝不会变？** 生成模型受[因果掩码](attention-qkv.md#因果掩码限定每个位置能访问的历史)约束，每个位置只能看见自己和前面的位置：位置 `1` 在任意一层的隐藏表示与 $k_1, v_1$ 只由位置 `0..1` 决定，后面新接上的 token `t` 对历史零反向影响，读缓存与从头重算在数学上严格等价。
+2. **为什么只存 `K`、`V`，不存 `Q`？** 查询只来自本步正在计算的新位置：$q_3$ 在第 2 步打完分使命即终结，后续步骤再也不会回头读取历史位置的 `q`。
+3. **为什么每一层都必须各自存一份？** 模型由几十层堆叠而成，各层的 `k`、`v` 由该层自己的隐藏向量（见[层与隐藏表示](layers-and-hidden.md)）乘本层投影矩阵得到，层与层数值完全不同，因此每一层、每个历史位置都要存下属于本层的 `k` 和 `v`。
 
 ## 为什么需要 KV cache：不存的话要重算多少？
 
-**不存的话，每生成一个 token 都要把整段文本从头过一遍模型；存了以后，每步只算新来的那一个位置。**
+**不存的话，每生成一个新 token 都要把整段文本从头过一遍模型，前向计算量随输出长度按 $O(t^2)$ 平方爆炸；存了以后，每步只算新来的 1 个位置，前向计算量降为 $O(t)$ 线性增长。**
 
-为什么不能只把 k、v 那一小步重算一下？因为只有第 1 层的 k、v 直接由 token 查表得到的向量（[embedding](embedding.md)）算出；第 2 层的 k、v 要用第 1 层算完之后的隐藏向量，第 3 层又要用第 2 层的，一层接一层。想重新得到旧位置在每一层的 k、v，就得把旧位置从第 1 层一路算到最后一层，等于把它们重新做一次前向（forward，输入从第一层算到最后一层的一整趟）。
+初学者常问：为什么不能只在需要时把旧位置的 `k`、`v` 投影重算一下？因为只有第 1 层的 `k`、`v` 直接来自词表查表向量（[embedding](embedding.md)）；第 2 层的输入依赖第 1 层算完注意力和前馈网络后的隐藏向量，第 3 层又依赖第 2 层，环环相扣。想重新拿到旧位置在每一层的 `k`、`v`，就必须把旧位置从第 1 层一路算到最后一层，相当于整段重跑前向。
 
-把上面的例子走完：prompt 3 个位置，一共生成 4 个输出。第 1 步把 prompt 整段一起算，这一步叫 prefill（预填充）；之后每步只送进一个新 token，接着历史往下生成，叫 decode（解码）。下图每一行是一步，每一格是一个位置，格里写着这一步对它做了什么：
+把上面的 3 位置提示词例子接着走完，一共生成 4 个输出词。第 1 步整段处理提示词叫 [prefill](prefill.md)，后续每步送入 1 个新词往下接叫 decode。下图每行代表一步，每格代表一个序列位置：
 
 ```wiki-diagram
 file: kv-cache-recompute
 ```
 
-```calc
-title: prompt 3 个位置、生成 4 个输出，一共要算多少个位置（示意）
-不存 = 3 + 4 + 5 + 6 = 18 个位置
-> 第 k 步把前 3 + (k − 1) 个位置整段重算一遍
-存 = 3 + 1 + 1 + 1 = 6 个位置
-> 第 1 步算 3 个 prompt 位置，之后 3 步各只算上一步的输出
-比值 = 18 ÷ 6 = 3 倍
-```
+设提示词长度为 $P$、共生成 $G$ 个输出 token。由于第 $G$ 个输出词被采样出来后生成即告结束、不再送回模型跑下一轮前向，实际经历的 decode 步数为 $G - 1$ 步（这一步差在[后文](#已生成的-token为何还可能没有自己的缓存)还会再次遇到）。不存缓存与存缓存经过前向的位置总次数分别为：
 
-只生成 4 个时差 3 倍；输出越长差得越多，因为不存时每一步都比上一步多算一个位置，加起来随输出长度按平方增长；存了则每步只算一个新位置，随长度线性增长。
+$$N_{\text{no-cache}} = \sum_{k=0}^{G-1} (P + k) = G \cdot P + \frac{G(G - 1)}{2}, \qquad N_{\text{cached}} = P + (G - 1)$$
 
-### 输出变长，重复计算怎样累积？
+把上图小例子、短提示词生成 `200` 词（同主线[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署) 的长度设定，此处按普通逐词生成计数）与常见长对话放在一起对照：
 
-换成主线[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署) 的长度：prompt 4 个 token，[收尾一站](one-request.md#第-7-站-返回与收尾)设定最多生成 200 个。先按普通逐 token 生成来数，R1 实际怎样生成放到后面 GLM 一节：
+| 序列设定 | 前向总步数（`1` 步 prefill + `G - 1` 步 decode） | 不存缓存的位置前向次数 $N_{\text{no-cache}}$ | 存缓存的位置前向次数 $N_{\text{cached}}$ | 位置前向比值 |
+| --- | --- | --- | --- | --- |
+| 图示小算例（`P = 3, G = 4`，示意） | `1 + 3 = 4` 步 | `3 + 4 + 5 + 6 = 18` 个位置次 | `3 + 1 + 1 + 1 = 6` 个位置次 | **`3×`** |
+| 短输入长答（`P = 4, G = 200`） | `1 + 199 = 200` 步 | `200 × 4 + 19,900 = 20,700` 个位置次 | `4 + 199 = 203` 个位置次 | **`≈ 102×`** |
+| 常规长回答（`P = 512, G = 2,048`，示意） | `1 + 2,047 = 2,048` 步 | `1,048,576 + 2,096,128 = 3,144,704` 个位置次 | `512 + 2,047 = 2,559` 个位置次 | **`≈ 1,229×`** |
 
-```calc
-title: 普通生成 200 个输出，前向要处理多少个位置
-不缓存 = 200 × 4 + (0 + 1 + … + 199) = 800 + 19,900 = 20,700 个位置
-> 第 k 步把前 4 + (k − 1) 个位置整段重算一遍
-缓存 = 4 + 199 = 203 个位置
-> 首步处理 4 个 prompt 位置，之后 199 步各只处理上一步的输出
-比值 = 20,700 ÷ 203 ≈ 102 倍
-```
-
-102 倍是经过前向的位置次数之比，不是加速比：各步可见的历史长度、矩阵形状、访存量和算子利用率都不同。两个例子里，decode 的步数都比输出个数少一：最后一个输出生成出来就结束了，不再作为输入进模型，所以 4 个输出只有 3 步 decode，200 个输出只有 199 步。这个差别[后面](#已生成的-token为何还可能没有自己的缓存)还会用到。
+注意表末的 `102×` 或 `1,229×` 是**经过前向的位置次数之比**，不能直接等同于端到端墙钟加速比：prefill 一次算整批位置属于矩阵乘矩阵，而 decode 每步单序列只算 1 个位置、还要读取全部历史缓存，两者的矩阵形状、访存带宽占比与硬件算力利用率完全不同。
 
 ## 存一份要多少？从一个位置、一层往上乘
 
-**KV cache 的大小 = 每个位置在每层存几个数 × 层数 × 位置数 × 每个数占几个字节。** 从最小的单位一层层往上乘：
+**标准注意力的 KV cache 容量 = 单位置单层元素数 × 模型层数 × 缓存位置数 × 单元素字节数。** 先从最小单元一层层往上乘，建立空间直觉：
 
 ```wiki-diagram
 file: kv-cache-size
 ```
 
-继续用小例子：每层只有一组 k、v，各 4 个数；假设模型只有 3 层。字节数按 BF16 算：BF16 是一种 16 位浮点格式，每个数占 2 字节（B）。
+顺着上图的示意小尺寸（每层 1 组 `k`、`v` 各 `4` 个数，共 `3` 层，BF16 每个数占 `2 B`）心算一遍：1 个位置在 1 层存 `4 + 4 = 8` 个数；跨 `3` 层存 `8 × 3 = 24` 个数；生成 4 个输出后缓存里共有位置 `0..5` 共 `6` 个位置，总计 `24 × 6 = 144` 个数，折合 `144 × 2 B = 288 B`。
 
-```calc
-title: 小例子的 KV cache 有多大（示意）
-一个位置、一层 = 4 + 4 = 8 个数
-> k 一行 4 个数，v 一行 4 个数
-一个位置、3 层 = 8 × 3 = 24 个数
-6 个位置、3 层 = 24 × 6 = 144 个数
-> 生成 4 个输出后，缓存里是位置 0–5，共 6 个位置
-字节数 = 144 × 2 B = 288 B
+### 多个 KV 头与 Qwen3 标准模型实算
+
+真实大模型的一层注意力会并排拆成多个头（见[多头注意力](attention-qkv.md#多头同一个位置同时按几套方式去读)），并普遍采用 [GQA](gqa.md#缓存容量按-kv-头数计算) 让多个查询头共享同一组 KV 头。设模型总层数为 $L$、总 KV 头数为 $n_{\text{kv}}$、张量并行卡数为 $T$（当 $T \le n_{\text{kv}}$ 时每卡均分 $n_{\text{kv}} / T$ 个头；当 $T > n_{\text{kv}}$ 时跨卡复制，每卡保底存 `1` 个头）、每头维度为 $d_h$、缓存数值字节数为 $b_{\text{dtype}}$（BF16/FP16 为 `2 B`，INT8/FP8 主体为 `1 B`），则上游 `FullAttentionSpec` 对应的每 token 单层与全模型缓存字节数为：
+
+$$\text{Bytes}_{\text{tok, layer}} = 2 \times \frac{n_{\text{kv}}}{T} \times d_h \times b_{\text{dtype}}, \qquad \text{Bytes}_{\text{tok, model}} = L \times \text{Bytes}_{\text{tok, layer}}$$
+
+其中最前面的系数 `2` 正对应 `K` 和 `V` 两张表（常见 32 层、`8` 个 KV 头、`128` 维的 BF16 模型即每词 `128 KiB`、`4K` 占 `512 MiB`、`16` 条并发占 `8 GiB`；下面统一落到 `v0.30.0` 主基线的两款真实预设模型 [Qwen3-8B 与 Qwen3-30B-A3B](hf-model-anatomy.md)）：
+
+```wiki-diagram
+file: kv-cache-fig-qwen3-scaling
 ```
 
-### 多个 KV 头怎样计入容量？
+按 `1 KiB = 1,024 B`、`1 MiB = 1,024 KiB`、`1 GiB = 1,024 MiB` 精确核算两款模型从单词到 `B = 32` 长上下文批次的显存账：
 
-真实模型里，「一个位置、一层」的数要多得多。一层的 attention 通常分成好几个头（head：同一层里并排的几套 q、k、v，各按一套方式去读历史，见[多头](attention-qkv.md#多头同一个位置同时按几套方式去读)）。每个 KV 头有自己的一条 k、一条 v，每条的长度叫每头维度。于是普通 attention 里：
+| 核算尺度 | `Qwen3-8B`（稠密 GQA，`TP = 1`） | `Qwen3-30B-A3B`（稀疏 MoE，整模口径） | `Qwen3-30B-A3B`（`TP = 4` 每卡口径） |
+| --- | --- | --- | --- |
+| 结构参数（$L$ / $n_q$ / $n_{\text{kv}}$ / $d_h$） | `36` 层 / `32` Q 头 / `8` KV 头 / `128` | `48` 层 / `32` Q 头 / `4` KV 头 / `128`（`128` 专家） | 每卡分担 `4 ÷ 4 = 1` 个 KV 头 |
+| **1 token 单层 / 全模型（BF16 `2 B`）** | `4,096 B`（`4 KiB`）/ **`147,456 B`（`144 KiB`）** | `2,048 B`（`2 KiB`）/ **`98,304 B`（`96 KiB`）** | `512 B` / **`24 KiB / 卡`** |
+| 单序列 `4K`（`4,096` tok，BF16） | **`576 MiB`** | **`384 MiB`** | **`96 MiB / 卡`** |
+| 单序列 `32K`（`32,768` tok，BF16） | **`4.5 GiB`** | **`3.0 GiB`** | **`0.75 GiB / 卡`** |
+| `B = 32` 并发 × `32K`（BF16） | **`144 GiB`**（单卡 `64 GiB` 根本装不下） | **`96 GiB`** | **`24 GiB / 卡`** |
+| 开启 `C8` 量化（`INT8` / `MXFP8` 主体 `0.5×`） | `72 KiB/tok`；`B=32×32K` 降至 **`72 GiB`** | `48 KiB/tok`；`B=32×32K` 降至 **`48 GiB`** | `12 KiB/tok`；`B=32×32K` **`12 GiB / 卡`** |
 
-**每个位置每层的字节数 = 2 × KV 头数 × 每头维度 × 每个数的字节数**，前面的 2 就是 k 和 v 两份。代一组普通 attention 模型常见的尺寸：
-
-```calc
-title: 一个中等规模的普通 attention 模型（示意）
-一个位置、一层 = 2 × 8 个 KV 头 × 128 维 × 2 B = 4,096 B
-一个位置、32 层 = 4,096 B × 32 = 131,072 B = 128 KiB
-一条 4,096 token 的请求 = 128 KiB × 4,096 = 512 MiB
-> 1 KiB = 1,024 B，1 MiB = 1,024 KiB，1 GiB = 1,024 MiB
-同时 16 条这样的请求 = 512 MiB × 16 = 8 GiB
-```
-
-缓存随位置数线性增长：历史翻倍，缓存翻倍。公式里的「KV 头数」不一定等于查询头数。GQA（grouped-query attention，分组查询注意力）让几个查询头共用一组 KV 头，省的正是这一份：上例是 32 个查询头共用 8 组 KV 头；要是每个查询头各配一组，就是 32 个 KV 头，每位置每层 16,384 B，缓存变成 4 倍，见 [GQA 的缓存容量](gqa.md#缓存容量按-kv-头数计算)。把一层切到多张卡上算时，每张卡只存自己分到的那几个头，公式里的头数要换成本卡的 KV 头数。
+这张表把三个工程真相直接摆在台面上：第一，**GQA 砍的是 KV 头数**：若 `Qwen3-8B` 不用 4:1 GQA 而存满 `32` 个 KV 头（MHA），单词立刻翻 4 倍至 `576 KiB`，单条 `32K` 序列就要吃掉 `18 GiB`；第二，**KV 容量只看注意力层与 KV 头，不看总参数量**：`Qwen3-30B-A3B` 虽有 `30.5B` 参数和 `48` 层，但 `128` 个路由专家只占权重不占逐词 KV，且 $n_{\text{kv}} = 4$ 减半，整模每词反而比 `8B` 省三分之一（`96 KiB` vs `144 KiB`）；第三，当长上下文乘上高并发导致 BF16 缓存冲破百 GiB 时，开启昇腾 `C8` [KV cache 量化](kv-cache-quantization.md)（`--kv-cache-dtype int8` 或 `mxfp8`）能把主 K/V 从 `2 B` 压到 `1 B` 直接砍半（`MXFP8` 另带少量块级缩放因子开销）。
 
 ## 省了重算，要付什么代价？
 
-**KV cache 拿显存换计算：少算的是旧位置的整趟前向，多付的是一直占着的显存、每步的读取，以及管理这块空间的功夫。**
+**KV cache 拿空间和访存换计算：省掉的是旧位置 $O(t^2)$ 的整趟前向重算，多付的是常驻占用的显存、每步解码读取历史的带宽，以及分页空间管理的开销。**
 
-**代价一：历史要一直占着显存。** 上一节的账说明，缓存随历史长度和同时处理的请求数线性增长，一条 4,096 token 的请求就能占 512 MiB（示意）。这份显存不能随用随要：推理引擎（接请求、排队、在卡上跑模型的那套程序，本知识库讲的是 vLLM）在启动时从设备显存里扣掉权重，再扣掉计算过程中间结果（激活）最多时占的量，把剩下的切成缓存池，见 [KV cache 显存预算](kv-cache-memory-profiling.md)。请求越长、并发越多，缓存池越早用完。缓存占了显存以后，还有几种办法让它少占一点：用更小的数值格式存（[KV cache 量化](kv-cache-quantization.md)），把可复用的前缀放到卡外（[KV Pool](kv-pool.md)）。被收回的缓存还可以在主机内存留一份、再用时搬回，省的是重算而不是显存（[KV cache CPU 卸载](kv-cache-cpu-offload.md)）。GLM 双机每个 token 每卡占多少、一条满长请求占多少，见后面 [GLM 一节](#混合模型到底要保留哪几类状态)。
-
-**代价二：省掉的是计算，不是读取。** 新位置仍要和全部历史打分、取信息，所以普通 attention 每步都要把可见的全部 K、V 读一遍：历史有 1,000 个位置，每层每步就要读 1,000 行 k 和 1,000 行 v，历史越长读得越多。有两类改法减轻这笔读取：稀疏 attention 先挑出值得读的位置、只读那些；线性 attention 把历史压成固定大小的状态，每步读写量不随历史变长，见后面[不是每种 attention 都存完整的 K、V](#不是每种-attention-都存完整的-kv)。GLM 双机每步最多读多少个历史位置，见 GLM 一节的[每步读多少](#每步读多少稀疏-mla-只读挑中的位置)。
-
-**代价三：空间要有人管。** 缓存池要分块、记地址、记每条请求算到了哪里，容量不足时还要让请求等待，或者抢占（先收回某条请求的缓存，之后再重算）。下一节讲分块。
-
-相邻的三个概念各管一件事：**KV cache 是保存的内容；block table 是把请求内的逻辑位置映射到缓存池块号的地址表；prefix caching 是把匹配的历史借给另一条请求的复用机制。** 关闭跨请求的 prefix caching，同一请求仍会在 decode 中读取自己的缓存。
+1. **代价一：历史状态一直占住 HBM 显存。** 缓存容量随序列长度和在途并发数同步线性增长。推理引擎不会在每步临时向驱动要显存，而是在 Worker 启动期先跑一轮峰值探测（见 [NPUWorker 启动时序](npu-worker-lifecycle.md) 与 [KV cache 显存预算](kv-cache-memory-profiling.md)），从设备显存里扣掉模型权重与激活峰值，把剩余空间一次性切成固定大小的缓存池。池子见底时新请求只能排队，或抢占在途请求。想压缩占用可启用 [KV cache 量化](kv-cache-quantization.md)或把公共前缀外置到 [KV Pool](kv-pool.md)；把被收回的块暂存主机内存的 [KV cache CPU 卸载](kv-cache-cpu-offload.md)，省的则是再次调度时的重算而非在线显存。
+2. **代价二：省掉的是重算，不是每步读取。** 在 decode 阶段，新位置仍要对全部可见历史打分汇合：历史有 `1,000` 个位置，标准注意力每层每步就要从 HBM 读出 `1,000` 行 `K` 和 `1,000` 行 `V`；到 `Qwen3-8B` 单序列 `32K` 上下文时，仅解码 1 个新词就要通读整整 `4.5 GiB` 缓存，直接使 decode 落入显存带宽受限区。想砍掉这笔读取流量，靠的是[稀疏注意力](sparse-attention.md)（每步只读打分挑中的子集）或[线性注意力](linear-attention.md)（每步只读写固定大小的状态矩阵）。
+3. **代价三：空间必须按块精细调度。** 引擎必须追踪每条请求算到了哪个位置、借了哪些块、空间不够时谁等待谁抢占。这里相邻的三个概念职责分明：**KV cache 是保存的状态数据本体；[block table](block-table.md) 是把请求内连续逻辑位置翻译成物理块号的地址表；[prefix caching](prefix-caching.md) 是把已写满的相同前缀块借给其他请求共读的跨请求复用机制**——即便关闭跨请求 prefix caching，同一条请求在 decode 期间照样每步读取自己的 KV cache。
 
 ## 缓存按块存放：一个位置的 k、v 写进哪一格？
 
-**推理引擎不给每条请求预留一整段连续显存，而是把缓存池切成固定大小的块（block），请求写到哪里就借到哪里；再用一张块表（block table）记下这条请求的第几个逻辑块落在池里哪个物理块。** vLLM 把这套做法叫 PagedAttention（分页注意力），借的是操作系统内存分页的思路：请求看到的位置是连续的，实际存放的块可以分散在池里各处。
+**推理引擎不给每条请求预留大段连续显存，而是通过 [PagedAttention](paged-attention.md) 把缓存池切成固定长度（`block_size`）的物理块按需借还，再用一张整数[块表（block table）](block-table.md)记录“本请求第几个逻辑块落在池里第几号物理块”。** 请求刚进门时并不知道最终会写多长；按块借用能彻底消除块间外部碎片，把未写满的空白严格关在每条请求的最后一块里，归还的块也能立刻借给别的请求。
 
-为什么要分块？一条请求最终会写多长，开始时并不知道；要是按最大长度预留连续空间，短请求会空着大半。按块借，最多只浪费最后一块里没写满的格子，还回来的块也能立刻借给别的请求。
+给定序列内的逻辑位置 $p$ 与块长 $B$，写入哪一格（槽位 `slot`）只需一次整除取余加一次查表：
 
-找一个位置该写到哪一格，只要一次除法、一次查表：位置号除以块长，商是第几个逻辑块、余数是块内偏移；在块表里查出这个逻辑块对应的物理块，就知道写进池里哪一格，这一格的编号叫槽位（slot）。下图是一条 12 个位置的请求，每块 4 个位置（示意），图下的说明把位置 6 怎样查到槽位 10 走了一遍：
+$$b_{\text{logical}} = \left\lfloor \frac{p}{B} \right\rfloor, \qquad o = p \bmod B, \qquad \text{slot} = \text{BlockTable}[b_{\text{logical}}] \times B + o$$
+
+下图用一条 `12` 个位置的请求、每块 $B = 4$ 个位置（示意）走完位置 $p = 6$ 查到槽位 `10` 的全过程（池中 `块 0` 永久留作占位 `null_block`，不发给普通写入）：
 
 ```wiki-diagram
 file: block-table
 ```
 
-块表怎样随请求增长、每步的槽位怎样成批算出，见 [block table](block-table.md)。
+**空间启动建好，前向按槽写入。** 标准注意力每层在启动时一次性分配好缓存张量：`AscendAttentionBackend.get_kv_cache_shape` 默认形状为 `(2, num_blocks, block_size, num_kv_heads, head_size)`；当环境变量 `VLLM_KV_CACHE_LAYOUT` 设为 `LBHNC` 或 `HND` 时，块内位置轴与头轴对调为 `(2, num_blocks, num_kv_heads, block_size, head_size)`——两者元素总数完全一样，但轴序互不兼容，算子必须按实际布局读取。每步前向算到本层时，由于昇腾后端声明 `forward_includes_kv_cache_update = True`，上游 `Attention` 层跳过外部写入，交由后端 `reshape_and_cache` 按 `slot_mapping` 调用 `DeviceOperator.reshape_and_cache`（A2/A3/A5 主力路径下发 `torch_npu.npu_scatter_pa_kv_cache`，`310P` 适配器下发 `torch_npu._npu_reshape_and_cache`）把新算出的 `k`、`v` 散射进对应槽位，紧接着在同一次前向里跨块读取历史完成注意力计算。请求结束时只把块号挂回空闲队列，设备上的大张量纹丝不动。
 
-**空间先分好，内容后写入。** 缓存张量（存缓存的多维数组）在启动时就一次建好：普通 attention 每层一个，形状是「K、V 两份 × 块数 × 每块位置数 × 本卡 KV 头数 × 每头维度」。之后每一步，调度器（推理引擎里决定这一步让哪些请求算、各算几个位置的部分）先给请求借好块号，前向算到这一层时，再按块号和块内偏移算出槽位，把新位置的 k、v 写进去，同一次前向里接着读可见历史算 attention，不再临时申请显存。请求结束时还回的是块号，设备上的缓存张量一直留着，块号回到空闲队列后给后来的请求用。
+**占住的物理槽位与已写入的数据量要分开算。** 物理块按整块借出，最后一块没写满的空槽位在归还前也归该请求独占。以写入 `6` 个位置为例对照不同块长：
 
-这里列出的轴顺序不是所有版本、后端的统一布局：页末对照的另一份 Ascend 快照在指定布局下，把形状排成「K、V 两份 × 块数 × 本卡 KV 头数 × 每块位置数 × 每头维度」。读取方必须按实际布局解释，元素总数相同也不意味着轴顺序兼容；这项快照差异不表示固定部署已切换版本，具体提交与布局取值见对照源码。
+| 块长设定 $B$ | 借用块数 $\lceil 6 / B \rceil$ | 实际占住槽位数 | 已写数据利用率 | 工程含义 |
+| --- | --- | --- | --- | --- |
+| `B = 4`（小图示意） | `2` 块 | `2 × 4 = 8` 格 | `6 ÷ 8 = 75.0%` | 仅空 `2` 格，但块表极长 |
+| `B = 16`（上游 GPU 早期默认） | `1` 块 | `1 × 16 = 16` 格 | `6 ÷ 16 = 37.5%` | 空 `10` 格 |
+| `B = 128`（昇腾 NPU 标准默认） | `1` 块 | `1 × 128 = 128` 格 | `6 ÷ 128 ≈ 4.7%` | 契合 NPU 突发 DMA，超短请求末块空余占比高 |
 
-**占住的空间和写进去的数据要分开数。** 借是按整块借的，一块没写满，空着的格子也归这条请求：
-
-```calc
-title: 6 个位置占了多少格（示意）
-每块 4 个位置，借 2 块 = 2 × 4 = 8 格
-利用率 = 6 ÷ 8 = 75%
-> 8 格里写了 6 格
-每块 16 个位置，借 1 块 = 1 × 16 = 16 格
-利用率 = 6 ÷ 16 = 37.5%
-> 16 格里写了 6 格，空着 10 格
-```
-
-块越大，短请求空着的格子越多。所以能同时接多少请求，要看请求数、历史长度、块内空白，以及后面会讲到的候选预留。块号怎么借、怎么还、池子不够时怎样抢占，见[缓存块分配](vllm-kv-block-allocation.md)；每块多少字节，见[缓存规格](kv-cache-spec.md)。
-
-想看“新 K/V 写到哪里、前缀共享是否复制数据、结束后谁还能继续使用”，可以播放[块表中的缓存生命周期](block-table.md#scene-inference-mechanism-1)。图中块号、槽位编号和缓存数值分别标注，避免把地址当成内容。
+块号借还与抢占细节见[缓存块分配](vllm-kv-block-allocation.md)，每块字节规格见[缓存规格](kv-cache-spec.md)；想直观观察新 K/V 写入、前缀零拷贝共指与释放复用，可播放交互场景[块表中的缓存生命周期](block-table.md#scene-inference-mechanism-1)。
 
 ## 已生成的 token，为何还可能没有自己的缓存？
 
-**一个 token 先被采样出来，要到下一步作为输入时，才在各层留下自己的 k、v。** 采样是从模型给出的词表分数里选出输出 token。处理完 prompt 的那一步就能采样出第一个输出，不用为了得到它再多跑一次模型；但它自己的 k、v 要等下一步它作为输入进模型时才写进缓存，此后每个输出都是这样。
+**一个输出 token 先在本步末尾被采样出来，要等下一步作为输入送进模型跑前向时，才会在各层写下它自己的 `k`、`v`。** 回到前面提示词 `3` 个位置、生成 `4` 个输出的例子：第 4 个输出（位置 `6`）一采样出来整条请求就结束了，根本没有下一步再把它送进模型，因此**完整文本已有 `3 + 4 = 7` 个 token（位置 `0..6`），而缓存里只有 `3 + 3 = 6` 个位置（`0..5`）**；同理，提示词 `4` 个词、生成 `200` 个输出结束时，文本共 **`204` 个 token**，缓存里有状态的只有 **`203` 个位置**。
 
-回到前面生成 4 个输出的例子：第 4 个输出（位置 6）生成出来就结束了，没有下一步把它送进模型。
+在真实调度器（`Scheduler` 与 `KVCacheManager`）里，不止“刚采样出的末尾词”会让文本总长（`all_token_ids`）与已入缓存进度（`num_computed_tokens`）错开，四类典型情形汇总如下：
 
-```calc
-title: prompt 3 个位置、生成 4 个输出后（示意）
-文本 = 3 + 4 = 7 个 token（位置 0–6）
-有缓存的位置 = 3 + 3 = 6 个（位置 0–5）
-> 3 个 prompt 位置，加上 3 步 decode 各送进的 1 个输出
-```
-
-生成 200 个输出的例子同理：第 200 个输出来自第 199 个输出那一步的词表分数，生成到这里就结束，不再进入下一步。所以经过前向、在缓存里有状态的位置是 **203 个**，而文本已经有 **204 个** token。
-
-还有几种情况会让「文本长度」和「已算位置」对不上。分块处理 prompt（chunked prefill：prompt 太长时分几步算完）时，prompt 的后半段还没算；prefix caching 命中时，前面一段直接用别的请求留下的缓存，不用自己算；投机解码（先用小模块猜几个 token，再交主模型一次验证）会给最后被拒的候选也写进状态。所以调度器要分别记住**文本已有多少、模型算到了哪里、哪些候选有效、空间预留到哪里**；分配量可以大于有效状态，后续细节见[缓存块分配](vllm-kv-block-allocation.md)。
+| 典型运行时刻 | 文本或候选进展 | 缓存真实状态 | 调度器账本处理 |
+| --- | --- | --- | --- |
+| **刚采样出新词 / 末词结束** | 已追加最新输出词 | 该词尚未跑过前向，**无自身 KV 槽位数据** | 下一步作为输入调度时补写；若已结束则直接释放块 |
+| **[分块预填充](chunked-prefill.md)** | 长 prompt 已完整入队 | 仅前几块已算完，后半段未进前向 | `num_computed_tokens` 停在已算分块边界，后续步续算 |
+| **[Prefix caching](prefix-caching.md) 命中** | 前缀与历史块哈希一致 | 直接挂接旧满块，免重算；全命中上限限为 `num_tokens - 1` | 至少留最后 1 个词（按块对齐时可能整块）重算以产出 `logits` |
+| **[投机解码](speculative-decoding.md)草稿 / 抢占重算** | 草稿猜出多个候选词送验 | 被拒候选虽写过槽位但作废；被抢占请求块号已收回 | 验证后回退 `num_computed_tokens` 下步覆写；抢占恢复时重借块重算 |
 
 ## 不是每种 attention 都存完整的 K、V
 
-**前面讲的是普通 attention：每层、每个 KV 头、每个位置各存一条 k 和一条 v。** 为了少占显存或少读，模型结构有几种改法，缓存里存的东西随之不同。推理框架把这些要跨步保留的历史状态统称为 KV cache，放进同一个缓存池管理。
+**前文核算的是标准多头/分组查询注意力：每层、每个 KV 头、每个位置各存一条 `k` 和一条 `v`（且带 [RoPE](rope.md#在推理引擎里旋转发生在哪一步) 的模型会在写进缓存前先把 `k` 按位置旋转好，后续读出即用，无需每步重转）。** 为了进一步压低显存占用或每步读取带宽，现代模型衍生出多类注意力变体；推理框架把这些跨步保留的状态统称为 KV cache，统一纳入同一个块池管理（定量对比见[四种注意力的代价](attention-cost.md)与[缓存规格](kv-cache-spec.md)）：
 
-**先说存进去的形态。** 很多模型用 RoPE（旋转位置编码：按位置把 q、k 转一个角度，让打分带上相对位置）给 k 带上位置信息。普通 attention 存进缓存的 k 已经按位置转好，v 原样保存，读出来直接能用，不必每步重转，见 [RoPE](rope.md#在推理引擎里旋转发生在哪一步)。下面几种改法各改了存什么；不同结构每个 token 存多少、读多少，对照见[四种注意力的代价](attention-cost.md)。
+| 机制与对应规格 | 缓存里实际存什么 | 容量随长度 $t$ | 单步读取随长度 $t$ | 核心取舍与边界 |
+| --- | --- | --- | --- | --- |
+| **标准 [GQA](gqa.md)**（`FullAttentionSpec`） | 每组共享 KV 头的完整 `k`、`v` | $O(t)$ 线性增长 | 通读全部 $t$ 个位置 | 结构简单通用，长序列受限于容量与读取带宽 |
+| **压缩 [MLA](mla.md)**（`MLAAttentionSpec`） | `k`、`v` 联合压缩的短潜向量（加可选 RoPE 段；部分配置设宽度为 `0`） | $O(t)$，但单位置大幅变窄 | 通读压缩潜向量 | 解压矩阵可吸收进查询与输出投影，免展开完整多头 K/V |
+| **[稀疏注意力](sparse-attention.md) / SWA** | 稀疏 MLA 存全量潜向量与压缩索引 K；滑窗 SWA 可只留近期窗口 | 稀疏 MLA 为 $O(t)$；纯 SWA 有界 | 仅读 `top-k` 挑中位置或窗口内位置 | 稀疏 MLA 省读取不省主存；长历史命中但滑窗已淘汰时需走 [SWA 有界回放](swa-bounded-replay.md) |
+| **[线性注意力](linear-attention.md)**（KDA / GDN，`MambaSpec`） | 固定形状的递推矩阵状态 + 最近几个位置的短卷积状态 | **$O(1)$ 恒定大小** | **$O(1)$ 原地读写** | 长文本极省，但回退与跨请求任意切点复用受状态边界限制 |
+| **跨层共享**（`kv_sharing_target_layer_name`） | 消费层**不建缓存**，直接共指前序目标层的 `K`、`V` | 共享层增量为 `0` | 读目标层同一份缓存 | 缓存管理器跳过消费层规格，前向写入入口拦截防误覆写 |
 
-- **少存几组头：GQA。** 几个查询头共用一组 k、v，上一节算过它省多少，见 [GQA](gqa.md)。
-- **存压缩后的向量：MLA。** MLA（Multi-head Latent Attention，多头潜在注意力）把 k、v 联合压缩成一条较短的潜向量，历史按位置追加。计算可以把恢复 K/V 的投影合进查询和输出投影，直接围绕潜向量算，不必先展开并保存完整的多头 K/V；具体算子路径由实现选择。原版 MLA 还另存一小段带 RoPE 的 k（叫 RoPE 段），有的配置把这段宽度设成 0，GLM 就是这样。见 [MLA](mla.md)。
-- **只读挑中的位置：稀疏 attention。** GLM 用的这一类先用一个小模块给历史打分，每步只读分高的一部分，缓存照样存全部位置，省的是读取，见[稀疏注意力](sparse-attention.md)。另一类只看最近一段窗口，窗口外的旧位置可以不再保留。
-- **不按位置存：线性 attention。** 把全部历史汇总进一个固定形状的矩阵状态，每来一个位置就原地更新它；状态不随历史变长，每步读写量也固定，见 [linear attention](linear-attention.md)。
-- **后层借前层的：跨层共享（cross-layer KV sharing）。** 少数模型让后面某一层直接用前面某一层的 K、V。声明了共享目标的层不建自己的缓存，缓存管理器把它当作不存在；前向时它读目标层那一份，按设计不再写入。同样多的显存因此能放更长的历史或更多请求。Ascend（vLLM 的昇腾插件）各版本在写入时怎样处理共享层，见[版本差异](#版本差异)。
+## 延伸实例：混合模型（GLM-5.3-Flash）里的多态缓存闭环
 
-这些状态还可能有不同的保存期限。比如长历史仍在，近期窗口却已回收；此时“缓存命中”并不等于立即具备全部输入。[SWA 有界回放](swa-bounded-replay.md)用一个小窗口演示怎样补回状态，以及为什么结果可能近似。
-
-## 放到 GLM 双机：一个新 token 怎样接上历史？
-
-本页挂靠[主线 A2：调度与分配](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)，并在[主线 A6：结果更新](one-request.md#第-6-站-结果更新接受几个候选回退几格)闭合下一步。下面跟着 R1 走一步。前面数位置时把 R1 当成了普通逐 token 生成；R1 实际开着 MTP（Multi-Token Prediction，模型自带的草稿层，先猜几个 token 再交主模型验证），这会改变一步写几个位置、要预留多少空间，下面逐处说明。固定部署的 TP8 让机内 8 卡合算一层，DP2 把请求分给两台机器各自的执行组，EP16 把专家分布到全部 16 卡；完整配置只在[部署前提](glm-5-3-flash-two-node.md#部署前提)列出。
+> **案例基线说明：** 本节数字专属于双机 16 卡（`TP8 / DP2 / EP16`、开启模型自带草稿层 MTP 一次猜 `3` 个候选）的历史绑定案例 `GLM-5.3-Flash`（控制流 `vllm@0fc695fc` + 执行侧 `vllm-ascend@db701c1f`，完整部署前提见 [GLM 双机部署](glm-5-3-flash-two-node.md#部署前提)，单请求七站主线见 [一条请求](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)），不混入前文 `v0.30.0` `Qwen3` 标尺。
 
 ### 混合模型到底要保留哪几类状态？
 
-**GLM-5.3-Flash 的历史不止 K/V 一种形式。主干 45 层里，34 层 KDA 按请求存固定大小的状态，11 层稀疏 MLA 按位置存历史；接在主干（层号 0–44）之后的 MTP 层（层号 45）也是一层带 indexer 的 MLA，所以按位置增长的缓存共 12 层。** 三种东西对应前面讲的三种改法：MLA 层按位置追加，只是每个位置存的是压缩后的潜向量；同一层里的 indexer（给历史位置打分、挑出值得读的位置的小模块）还为每 4 个位置留一条 K 摘要；KDA 层（Kimi Delta Attention，一种线性 attention）不按位置存，而是把全部历史汇总成固定形状的矩阵状态，每步原地更新。三类状态都进同一个缓存池。下表是本部署每张卡上每类状态的大小；KDA 两份状态的形状推导见[一条请求的 KDA 一节](one-request.md#34-层-kda)。
+**`GLM-5.3-Flash` 同时把两类截然不同的历史装进同一个缓存池：主干 `45` 层含 `34` 层 KDA（按请求存定长状态）与 `11` 层稀疏 MLA（按位置追加历史），外加接在主干后的第 `45` 号 MTP 层也是带 indexer 的稀疏 MLA，因此按位置增长的共 `12` 层。** 每层稀疏 MLA 除了存潜向量，还由打分模块 indexer 每 `4` 个相邻位置合并（kpool）留一条池 K，并用尾状态暂存尚未凑满 `4` 个的最新位置（KDA 形状推导见[一条请求的 KDA 一节](one-request.md#34-层-kda)）：
 
-| 对象 | 在哪些层 | 保存什么 | 每卡大小 |
-|---|---|---|---|
-| MLA 潜向量 | 12 层 MLA | 每个位置一条 512 维潜向量，BF16 | 1,024 B / token / 层，随长度增长 |
-| indexer 缓存 | 同上 | 每 4 个位置合成一条 128 维池 K，BF16 | 256 B / 池，折合 64 B / token / 层 |
-| indexer 尾状态 | 同上 | 还没凑满一池的最近位置各自的 K 与门控分数，FP32 | 4,096 B / 请求 / 层，不随长度增长 |
-| KDA 递推状态 | 34 层 KDA | 本卡 8 个头各一个 128×128 矩阵，FP32 | 524,288 B / 请求 / 层 |
-| KDA 卷积状态 | 同上 | 短卷积要用的最近 3 个位置，外加 3 个候选槽位，BF16 | 36,864 B / 请求 / 层 |
+| 状态对象 | 所在层数 | 保存内容与精度 | 本部署每卡大小 |
+| --- | --- | --- | --- |
+| **MLA 潜向量** | `12` 层 MLA | 每位置 1 条 `512` 维潜向量（RoPE 段宽为 `0`），BF16 | `1,024 B / token / 层`（随长度增长） |
+| **indexer 缓存** | 同上 | 每 `4` 个位置按门控加权合成 1 条 `128` 维池 K（无 RoPE），BF16 | `256 B / 池`，折合 `64 B / token / 层` |
+| **indexer 尾状态** | 同上 | 未凑满一池的最近位置 K 与门控分数，FP32 | `4,096 B / 请求 / 层`（不随长度增长） |
+| **KDA 递推状态** | `34` 层 KDA | 本卡分担的 `8` 个头各一个 `128 × 128` 矩阵，FP32 | `524,288 B / 请求 / 层` |
+| **KDA 卷积状态** | 同上 | 短卷积最近 `3` 个位置外加 `3` 个候选槽位，BF16 | `36,864 B / 请求 / 层` |
 
-**按位置增长的只有前两行。** 12 层合计每 token 每卡 **13,056 B（12.75 KiB）**，推导见[部署页的块字节](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)；一条 133,120 token 的满长请求，这部分每卡约 **1.619 GiB**；一个 640 格的块号装满就是 8,355,840 B。后三行按请求计：12 层尾状态一份有效容量合计 48 KiB（分配器按 4 个 token 一块给它块号，R1 首步拿到 2 块）；KDA 两份合计每层 561,152 B，34 层一份有效状态约 18.2 MiB。
-
-**KDA 页占的比有效状态多。** 每份状态要补齐到和 MLA 页一样大的 655,360 B，才能与 MLA 共用同样大小的物理页；再为 MTP 的 3 个候选各多留一页，每层每请求共 4 页，34 层的 **KDA 页子账合计约 85 MiB/请求/卡**，与长度无关。仅这份子账就相当于约 6,827 个 token 的按位置历史，所以短请求里 KDA 状态反而是大头。实际借块还会占住同一块号下未使用的大页槽位与小页槽位，必须按[主线 A2 的整块账](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)计费。能分给这些状态的显存，是启动时从预算里扣掉权重和激活峰值后切出来的，见[部署页的缓存预算](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)。
-
-调度器把这些状态分成 **5 个缓存组**分配：MLA 潜向量与 indexer 缓存同属 full 组，按 640 个 token 一块；34 层 KDA 分成 3 组，每组每请求 4 块；indexer 尾状态单独一组，按 4 个 token 一块，随最新位置向前滑动。MLA 与 indexer 缓存保存按位置查找的历史；尾状态和 KDA 状态描述「算到这里时」接着算所需的条件。只留 MLA 潜向量接不上一条请求：indexer 历史、没凑满的池和 KDA 状态必须停在同一个有效边界上，这也是跨请求复用这类模型更难的原因。规格与缓存组见[缓存规格](kv-cache-spec.md)，稀疏读取见 [MLA](mla.md)，递推细节见[线性注意力](linear-attention.md)。
+按位置增长的前两项在 `12` 层合计 **`13,056 B`（`12.75 KiB`）/ token / 卡**（见[部署页块字节](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)）：满长 `133,120` token 时每卡约 `1.619 GiB`，一个 `640` 格逻辑块装满为 `8,355,840 B`。按请求计的后三项中，`12` 层尾状态有效容量合计 `48 KiB`（按 `4` token 一块分配，R1 首步拿 `2` 块）；KDA 两份有效状态每层 `561,152 B`（`34` 层约 `18.2 MiB`），但为与 MLA 共用同尺寸物理页需补齐到 `655,360 B/页`，再为 MTP 的 `3` 个候选各多留 1 页（每请求 `4` 页），**`34` 层 KDA 页子账达约 `85 MiB / 请求 / 卡`**（折合 `≈ 6,827` 个 token 的按位置历史，整块计费还包含同块号下的未用大小页槽位，预算推导见[部署页缓存预算](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）。调度器将其划为 **`5` 个缓存组**（MLA 与 indexer 共属 `full` 组 `640` tok/块、`34` 层 KDA 分 `3` 组每请求 `4` 块、尾状态单独 1 组 `4` tok/块），恢复或跨请求复用时五类状态必须停在同一个有效边界上。
 
 ### 每步读多少：稀疏 MLA 只读挑中的位置
 
-**GLM 的稀疏 MLA 先由 indexer 给历史打分，每个查询位置最多读 2,051 个历史位置**：选中的 512 个池展开成 2,048 个位置，加最多 3 个没凑满一池的最新位置。这套部署允许的最长请求是 133,120 个 token，满长时 2,051 约为全部历史的 1/65。R1 开着 MTP，在完整验证「1 个确定 token + 3 个候选」的一步中有 4 个查询位置；预算或结束条件缩短本步时，实际查询数也会变。这个读取上限按每个查询位置分别计，细节见 [MLA](mla.md#稀疏选择是压缩之上的另一层机制)。indexer 自己仍要扫过全部池 K，只是每条只有 256 B。KDA 每步读写的是固定大小的状态，读取量不随历史变长。
+**`GLM-5.3-Flash` 的稀疏 MLA 先由 indexer 扫过全部池 K（每条 `256 B`）打分，每个查询位置最多只读 `2,051` 个历史位置**：选中的 `512` 个池展开为 `2,048` 个位置，外加至多 `3` 个尚未凑满一池的最新位置；在满长 `133,120` token 下仅约占全部历史的 `1/65`。R1 开启 MTP 验证“`1` 个确定词 + `3` 个候选”时单步有 `4` 个查询位置，读取上限按每个查询位置分别计（见 [MLA 稀疏选择](mla.md#稀疏选择是压缩之上的另一层机制)）；`34` 层 KDA 则每步原地读写定长状态，流量不随历史增长。
 
-### 先拿到块号，才有地方写
+### 双尺度分块、跨卡归属与状态闭环
 
-**A2 分的是空间，A4 前向才往里写内容**，道理同前面的「空间先分好，内容后写入」。在这套部署里，两件事分给两个进程：EngineCore 是管理请求的引擎进程，它的调度器记录每条请求算到了哪里，再由缓存管理器从块池里取出空闲的块号分给请求；Worker 是每张卡上执行模型的进程，启动时由它把整份缓存预算建成设备上的缓存张量，之后每步按槽位写入。
+在这套部署里，`EngineCore` 在 CPU 侧按 **`640` 个 token 的逻辑块**分配块号，而稀疏注意力算子按 **`128` 个 token 的 kernel 块**读取，`1` 个逻辑块恰好拆成 `5` 个连续的 `128` 块交给算子（见[为什么逻辑块是 640](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)、[第 3 站](one-request.md#第-3-站-准备输入一份计划发给-8-个-worker)与[分配块与内核页](block-table.md#分配块与内核页可能不同)）。每卡缓存池切成 **`3,855` 块**（每块约 `7.969 MiB`，假设权重 `21 GiB`；仅代入语言权重子账未扣视觉塔等项时为 `3,908` 块，见[两种块数](glm-5-3-flash-two-node.md#两种块数各在什么时候用)）。
 
-**块有两种尺度：调度器按 640 个 token 的逻辑块分配，稀疏注意力的算子按 128 个 token 的 kernel 块读取，1 个逻辑块正好是 5 个 kernel 块。** 一个块号在每一层对应一段显存，叫一页（物理页）。逻辑块取 640，是为了让一个 MLA 页装得下一整份 KDA 状态，两类层就能共用同样大小的物理页；同时它必须是 128 的整数倍，推导见[部署页](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。Worker 在 block table 里把一个 640 的块号看成 5 个连续的 128 块交给算子，见[第 3 站](one-request.md#第-3-站-准备输入一份计划发给-8-个-worker)与[块表](block-table.md#分配块与内核页可能不同)。按主线算例，每张卡的缓存显存切成 **3,855 块**，每块约 7.969 MiB，两个数都在[部署页](glm-5-3-flash-two-node.md#两种块数各在什么时候用)推导；块号由 R1 所在 DP rank（也就是本机）的引擎分配，同一个块号在机内 8 张卡上各指向自己的那一块。
-
-R1 首步处理 4 个 prompt 位置，另外为 MTP 的 3 个候选预留位置；此时有了空间，不表示候选已经写入或被接受。主线算得首步 **5 个缓存组共申请 15 个块号，每卡约占 119.5 MiB**，分组与分配推导见 [A2 原账](one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号)。其中 KDA 状态组就占 12 个块号，所以短 prompt 的占用也远大于有效历史数据。15 是首步的数，不是整条请求的定值：按源码推算，进入 decode 后尾状态组边借边还；KDA 加尾状态合计 15–16 块，再加 full 组的 1 块，R1 共持有 16–17 块，结束时一起归还，见[缓存块分配](vllm-kv-block-allocation.md#结束1617-块一次还清)。
-
-### 新 token 到每一层，各自读写本层历史
-
-**同一个 token 在不同层留下不同的状态，下一步必须接回对应层的历史。** R1 分在 DP0，它的缓存只由 DP0 那台机器的 8 个 Worker 持有。MLA 的潜向量在机内 TP8（8 张卡合算一层）之间复制，每张卡存完整的一份；KDA 按注意力头切分，每卡只存自己负责的 8 个头的状态，切法见[张量并行](tensor-parallel.md#先过-attention各算自己的头再合回-hidden)。另一台机器在 MoE（混合专家）层替 R1 算它选中的专家时，收到的是这一层的输入、交回的是结果，拿不到 R1 的历史缓存。
-
-走到 MLA 层，新位置留下一条 512 维 BF16 潜向量；BF16 每个数占 2 B，所以每位置每层 **1,024 B**。本配置的潜向量不带单独的 RoPE 段（RoPE 段宽度设为 0），indexer 的 K 也不加 RoPE，见 [MLA](mla.md#glm-的这一配置不保存-rope-段)；所以两者都没有前面说的「存进去前先转好」这一步。indexer 先把新位置的 128 维 K 和压池门控分数写进尾状态（FP32，32 位浮点）；凑满 4 个位置，就按门控把它们加权合成一条 128 维的池 K，转成 BF16 写进 indexer 缓存，每条 **256 B**，折合每位置每层 64 B。这里的「池」（kpool）指 indexer 合并的 4 个相邻位置，和管理空闲显存块的缓存池不是一回事。
-
-**写缓存是卡内读写，不需要卡间通信。** 生成潜向量的压缩投影在 TP 组内不切，每张卡用同一份输入各自算出完整的潜向量，直接写进本卡缓存；indexer 的 K 也是每张卡各算一遍。注意力输出投影之后的那次 All-Reduce（各卡部分结果按位置相加）属于[层计算](tensor-parallel.md#先过-attention各算自己的头再合回-hidden)，与是否跨步保存历史分开记账。
-
-走到 KDA 层，新输入先与卷积状态里的最近几个位置做短卷积，再用 delta 规则（按「新值与矩阵当前读出值之差」修正矩阵）更新汇总历史的矩阵，读写完原地保存供下一步继续，见[线性注意力](linear-attention.md#矩阵状态之外还有短卷积历史)。有效状态的形状不随历史长度增长；投机验证还要为候选边界多留空间。本层输出随后进入下一层；层间传递的[隐藏向量与四路残差](layers-and-hidden.md#本轮-hidden历史状态和权重各管什么)只活在这一次前向里，缓存不保存它们。
-
-**GLM 的两类层都不走普通 attention 的写入路径。** 前面讲的普通缓存（每层 K 一份、V 一份）和跨层共享，GLM 双机部署都用不到：12 层 MLA 用模型自带的缓存层，写潜向量、indexer 缓存和尾状态三份，走 GLM 专用的稀疏注意力后端；34 层 KDA 写递推状态和卷积状态。两类层都没有声明跨层共享：主干 45 层加 MTP 1 层，各存各的状态。对应源码见[源码位置](#源码位置)。
-
-### 结果返回后，哪些状态可以算作有效？
-
-**A6 更新已计算进度和确定的输出，候选写过缓存不等于被接受。** R1 走的是[验证候选的循环](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)：每圈把上一圈确定的 1 个 token 和 3 个候选一起送进前向。主模型验证候选后，引擎按拒绝数量把「已计算」计数往回退。MLA 缓存里被拒候选写下的格子不用清：进度退回后，下一步会在同样的位置写入新值把它覆盖。KDA 状态没法这样回退，所以才为候选多留几页：下一步按接受数量选出对应的那一份状态接着算，卷积窗口也按接受数量对齐，其余几份候选状态弃用。请求结束时归还的是块号的引用，设备张量不动，与前面分块一节说的一样。
-
-下面的流程图把进程边界与模型分支串起来，各步在页末对应到源码。“返回 A2”表示下一次调度继续读取这次留下的有效历史。
+落到 R1（分在 `DP0` 所在机器的 8 个 Worker，另一台机器在 MoE 层跨机算专家时拿不到 R1 的缓存）：MLA 潜向量与无 [RoPE](mla.md#glm-的这一配置不保存-rope-段) 的 indexer K 在机内 `TP8` 间整份复制、卡内直写零跨卡通信（输出投影后的 All-Reduce 属[层计算](tensor-parallel.md#先过-attention各算自己的头再合回-hidden)）；KDA 按头切分每卡管 `8` 个头并原地更新[短卷积与递推矩阵](linear-attention.md#矩阵状态之外还有短卷积历史)，层间[隐藏向量与四路残差](layers-and-hidden.md#本轮-hidden历史状态和权重各管什么)用完即释不进缓存。R1 首步申请 `15` 个块号（约 `119.5 MiB/卡`，decode 期持有 `16–17` 块结束一次还清，见[缓存块分配](vllm-kv-block-allocation.md#结束1617-块一次还清)），`4` 个位置在 `11` 层主干与[第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)首遍 MTP 草拟共写入 **`52,224 B`（约 `51 KiB`）** 按位置数据（见[一次前向的通信账](one-request.md#一次前向的通信账)，`640` 格块仅用 `4` 格即 `0.6%` 利用率），同时原地改写 KDA 与尾状态（容量不增长不等于零写入流量）；满长 `133,120` 请求共需约 `222` 块（`1.728 GiB/卡`），静态除 `3,855` 上限为 `17` 条。到 [A6 验证更新](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)时，被拒候选在 MLA 中仅回退进度计数、下步原地覆盖，在 KDA 中则直接选出对应接受数的候选页续算并弃用其余页（完整调用与补丁边界见[请求调用链](request-call-chain.md)、[配置系统](ascend-config-system.md)与 [patch 系统](ascend-patch-system.md)）：
 
 ```wiki-diagram
 file: kv-cache-lifecycle
 ```
 
-**配置描述容量、类型与开关，patch 调整配置规则或替换实现，二者都不持有某条请求的历史数据。** CPU 侧维护分配与进度，设备侧保存并读写数值张量。完整进程链见[请求调用链](request-call-chain.md)，配置和补丁的生效顺序分别见[配置系统](ascend-config-system.md)与 [patch 系统](ascend-patch-system.md)。
-
-### 有效数据增长，为什么远小于显存占用？
-
-**新写进多少有效历史、原地改写多少状态、占住多少空间，要分开数。** R1 首步 4 个位置，主干 11 层写进 MLA 潜向量和 indexer 缓存共 **47,872 B（约 46.8 KiB）**；MTP 层在[第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)草拟第 1 遍时，为这 4 个位置再写 4,352 B，12 层合计 **52,224 B（约 51 KiB）**，推导见[一次前向的账](one-request.md#一次前向的通信账)。MTP 后两遍草拟怎样执行，也在第 5 站。
-
-同一步里 KDA 和 indexer 尾状态也被更新。每层 KDA 的两份状态容量合计 561,152 B，内含卷积的候选预留；每层 indexer 尾状态容量为 4,096 B。这是状态形状对应的容量，实际写了哪些槽位、是否重复写入，要看本步位置数、接受数量和算子路径。**容量不增长，不等于没有写内存；容量也不能直接充当本步写入流量。**
-
-**占住的空间远大于写进去的数据。** R1 首步已经拿到 15 个块号、每卡约 119.5 MiB，而 full 组那个 640 格的块只用了 4 格，利用率约 0.6%，就是前面「块越大，短请求空着的格子越多」的极端情形。所以 51 KiB 既不是这一步的全部写入流量，也不是 R1 占的显存。再看满长请求：133,120 个 token 要 208 个 full 组块号，连同 KDA 等状态组约 222 个、每卡约 1.728 GiB；按 3,855 块除以这份静态占用，容量上限为 17 条。这个上限只比较已保留状态与总块数；长 prefill 的分块中间状态、候选预留及调度限制仍会影响实际准入和运行并发。3,855 块假设权重为 21 GiB，3,908 块只代入所列语言权重子账、尚未扣视觉塔等表外项；两者都是教学预算，适用条件见[部署页](glm-5-3-flash-two-node.md#两种块数各在什么时候用)。请求数、历史长度、候选预留和页内空白一起决定能同时接多少请求。
-
 ## 常见误解
 
-- **“KV cache 是为了省显存。”** 反了：它是拿显存换计算，多占显存，换来每步只算新位置。量化、卸载这些手段才是在缓存已经占了显存之后，想办法少占一点。
-- **“KV cache 总是两份完整 K/V。”** 普通注意力按位置保存 K/V；MLA 存压缩后的潜向量，KDA 保存递推与卷积状态。先看模型每层是哪种注意力，再看实际缓存对象。
-- **“缓存的是 token 编号或 embedding。”** 缓存的是每一层注意力算出来的中间量，和输入的 token 编号、embedding（把 token 编号换成向量的查表结果）都不是一回事。GLM 里同一个 token 在 12 层 MLA 各留一条互不相同的潜向量，在 34 层 KDA 则融进各层的状态，不再单独可查。
-- **“模型有几层，每个 token 就存几层。”** GLM 主干 45 层里只有 11 层（加 MTP 的 1 层）按位置存；34 层 KDA 的状态与历史长度无关。
-- **“TP 卡数翻倍，每卡缓存就减半。”** 本部署的 MLA 潜向量在 TP 内复制，KDA 按头切分。权重、查询头和历史状态的切分规则应分别核对。
-- **“缓存让后续生成不用读旧内容。”** 缓存让旧状态可直接读取，省的是重算；普通、稀疏和递推注意力每步读取的范围不同。
-- **“开了缓存，结果会和重算不一样。”** 数学上等价：缓存里的数就是不缓存时每步会重算出来的那些数。实现上 prefill 与 decode 可以走不同算子（例如 KDA 的分块算法与逐 token 递推），浮点累加顺序不同会带来微小的数值差异；个别情况下，这点差异会让后面某一步采样出不同的 token，之后的文本随之分叉。原因是计算顺序，不是缓存丢了信息，怎样判断和固定计算路径见[批不变性](batch-invariance.md#为什么末位会跟着批变同一个和分几份来加)。
-- **“文本以前出现过，以后必然命中。”** 跨请求共享还需要匹配模型输入身份、缓存仍驻留，以及所有状态能从相同边界恢复。关闭 prefix caching 或请求要求跳过读取时，查询直接未命中，详见[prefix caching](prefix-caching.md)。
+```wiki-diagram
+file: kv-cache-fig-myths
+```
 
-在本页固定的前缀查找路径中，全部输入都能匹配也不意味着可以省去全部计算：最大命中长度设为输入 token 数减一，需要重新计算最后一个 token 才能得到 logits；该路径又要求已计算 token 数按块对齐，因此实际可能重新计算整个块。
-- **“请求结束就是清空设备缓存池。”** 结束后释放请求的引用；能否留作前缀复用由缓存策略决定。容量紧张时可以淘汰可复用状态、抢占后重算，或在支持并启用时使用[卸载](kv-cache-cpu-offload.md)。分页地址与共享引用见[block table](block-table.md)。
+- **“KV cache 是为了省显存，缓存的是 token 编号或词向量。”** 全反了：它是**拿显存换计算**，多占 HBM 换取每步只算新位置；量化与卸载才是在占住显存后设法省空间。缓存里存的也不是输入 token 编号或 [embedding](embedding.md)，而是各层注意力算出的历史状态（如 `GLM` 在 `12` 层 MLA 各留互不相同的潜向量，在 `34` 层 KDA 融进定长矩阵不再逐词可查）。
+- **“文本已有 $N$ 个词，缓存里就一定有 $N$ 个位置的状态；模型有几层，每个词就存几层。”** 刚采样出的最新输出词要到下一步进前向才写缓存；混合模型里也只有按位置追加的注意力层随长度增长，KDA 等线性层与长度无关。
+- **“TP 卡数翻倍，每卡缓存一定减半；有了缓存就不用再读旧内容。”** 标准注意力仅当 $T \le n_{\text{kv}}$ 时按头均分，超出则跨卡复制（`GLM` 的 MLA 潜向量更在 `TP8` 内整份复制）；且缓存省的是重算，标准注意力每步仍需通读历史。
+- **“开了缓存，生成结果会和从头重算不一样。”** 数学上严格等价；工程上 prefill 与 decode 可能走分块与逐词两套算子，浮点累加顺序差异偶尔在临界处改变采样结果（原因在计算顺序而非缓存丢信息，判别与固定方法见[批不变性](batch-invariance.md#为什么末位会跟着批变同一个和分几份来加)）。
+- **“关闭 prefix caching 就没有 KV cache；文本以前出现过就必免全部计算；请求结束会清零显存池。”** 同请求跨步缓存常驻开启，`--enable-prefix-caching` 只管跨请求共享（详见 [prefix caching](prefix-caching.md)）；即便输入全命中，上限也定为 `num_tokens - 1`，至少重算末词（按块对齐时可能重算整块）以取 `logits`；请求结束只释放块引用，HBM 数值原地保留供复用或下次覆写（见 [block table](block-table.md) 与 [CPU 卸载](kv-cache-cpu-offload.md)）。
 
 ## 对照源码
 
-### 怎么开
+### 怎么开与会报什么错
 
-正常生成路径自动维护请求自己的历史，不需要任何开关。`--enable-prefix-caching` 控制跨请求复用；`--kv-cache-dtype` 描述缓存精度选择，不能仅凭 W8A8 权重量化推断历史也是 INT8。固定 GLM 实现把 MLA 主缓存写死为 BF16（`IndexerKPoolMLACacheLayer` 里 `self.kv_cache_dtype = "bfloat16"`），indexer 尾状态要求 FP32。
+同请求跨步 KV cache 常驻开启，无需开关。跨请求复用由 `--enable-prefix-caching` 控制（`v0.30.0` 对生成类 hybrid 模型默认开启）；缓存精度由 `--kv-cache-dtype`（`CacheConfig.cache_dtype`）控制，不能凭权重量化 W8A8 推断缓存也为 INT8（如历史 `db701c1f` 把 `IndexerKPoolMLACacheLayer` 主缓存写死为 `bfloat16`[C44]，`v0.30.0` 新增独立 SFA `C8` 与 `turboquant_4bit_nc` 开关）。逻辑块长在常规模型上由昇腾平台默认定为 `128`，在 `GLM-5` 混合模型上由 `patch_mamba_config.py` 按最小公倍数自动对齐为 `640` 并打印启动日志（手动传更小值会被抬回 `640`，更大值向上对齐）。
 
-逻辑块大小同样不用手动设：官方教程没有 `--block-size`，GLM 补丁在配置阶段把 `cache_config.block_size` 改成 640，启动日志出现 `Setting GLM-5 logical attention block size to 640 tokens so the contiguous MLA page covers the complete KDA state.` 即说明生效。手动给出比 640 小的值会被抬回 640，更大的值按 128 向上取整后保留。
-
-本文数值沿用控制流 `vllm@0fc695fc` 与 GLM 执行侧 `vllm-ascend@db701c1f`。该上游钉点对 hybrid 生成模型默认关闭 prefix caching；模型专用补丁据有效开关和 Mamba 缓存模式确定状态块跨度。镜像最终安装的上游提交仍按[来源基线](../sources/glm-5-3-flash-baseline.md)待核，现场应保存启动后的有效配置。
-
-### 会报什么错
-
-`GLM-5 Indexer KPool MLA requires cache_config.` 表示缺少模型缓存配置。`Indexer KPool MLA metadata roles must match cache order` 表示传入元数据与三份物理缓存的角色顺序不一致；生产路径还校验缓存数量、BF16 类型及潜向量维度。KDA 则会检查序列边界、状态索引与初始状态标记是否描述相同的请求数。`GLM-5 logical block size must be divisible by the SFA kernel block size: logical=…, kernel=128.` 表示逻辑块不是 kernel 块 128 的整数倍；经补丁取整的正常路径不会出现，出现时先查是否有别的补丁或配置绕过了取整。遇到这些错误先核查配置和状态映射，不能只靠扩大显存预算解决。
+常见配置与运行报错包括：开启 `enable_kv_nz` 但非 MLA、含稀疏或非 PD 解码节点时抛 `RuntimeError` / `NotImplementedError`[C20]；`GLM-5` 缺少缓存配置、三类缓存角色顺序与 `("kv", "indexer_state", "indexer")` 不符、KDA 状态批大小不一致或逻辑块非 `128` 整数倍时直接报错阻断。遇到此类报错应先核对配置与分组映射，不能单靠调大显存解决。
 
 ### 开销和什么时候别开
 
-同请求缓存是本页生成循环的基础；需要判断收益的是跨请求复用、卸载或额外候选预留。prefix caching 适合有重复前缀且状态可恢复的负载；卸载用搬运成本换显存；投机预留用更多状态空间换可能的多 token 接受。实际吞吐收益需测量命中率、接受率、访问流量和等待时间。
-
-在本页固定规格下，把 `--block-size` 调得比 640 大，会扩大 KDA 页补齐与短请求的空闲空间；是否能从块表规模或算子执行中获益，需要连同这笔容量代价测量。补齐的账见 [KV cache 规格](kv-cache-spec.md#开销和什么时候别开)。
+同请求缓存是自回归解码的前提；需权衡收益的是跨请求 prefix caching（适合高重复前缀且各缓存组边界可对齐的负载）、CPU 卸载（拿主机搬运带宽换显存）与投机候选预留（多占状态槽位换多词接受率）。手动调大 `--block-size` 会放大末块空余与混合模型状态页补齐开销（补齐细账见 [KV cache 规格](kv-cache-spec.md#开销和什么时候别开)，量化选择见 [KV 量化](kv-cache-quantization.md#版本差异)）。
 
 ### 版本差异
 
-**v0.30.0rc2 中 GLM 的主 KV、索引池、尾状态和 KDA 仍是不同缓存对象。** 主 MLA 与压缩索引共用调度块编号，尾状态和各 KDA/Mamba 组独立分配编号；物理存储仍分主 MLA/KDA 大页与索引/尾状态小页。完成索引池为 BF16，尾状态保存 FP32 K/gate 环，而主 SFA KV 已有独立的 C8 配置路径。故“已有历史不必重复计算”的原理不变，旧镜像的每 token 字节数、15 块算例和缓存组内布局必须保留原版本条件。rc2 的量化选择见 [KV 量化](kv-cache-quantization.md#版本差异)，规格与容量见 [KV cache spec](kv-cache-spec.md#版本差异)。
+固定对照提交依次为：`v0.23.0`（`vllm@0fc695fc` / `vllm-ascend@2c59ff10`）、`v0.26.0rc`（`568afb3a` / `2ed6cbba`）、**`v0.30.0` 主基线（`ced6857a` / `c09d3e20`）**与 **`main`（`ba15685a` / `8d6180e2`）**；正文中 `GLM-5.3-Flash` 历史绑定案例单独对应专用提交 `db701c1f`（控制流 `0fc695fc`）。
 
-四版都维护正常生成时的历史缓存；区别在 hybrid 模型的跨请求复用默认值、普通注意力共享层的写入检查，以及 GLM-5.3-Flash 专用缓存路径。固定快照依次是：v0.23 的 Ascend 2c59ff10 / vLLM 0fc695fc、v0.26 的 Ascend 2ed6cbba / vLLM 568afb3a、rc2 的 Ascend 7d825229 / vLLM ced6857a、main 的 Ascend baa023ad / vLLM 84030bbe。**本页 GLM 数字取自专用镜像的 Ascend db701c1f（控制流仍按 vLLM 0fc695fc），它和 v0.23 维护分支不是同一提交，表中凡涉及 db701c1f 都单独写明。**
-
-| 项目 | v0.23 | v0.26 | v0.30.0rc2 | main | 对使用者意味着什么 |
-|---|---|---|---|---|---|
-| 同请求跨步保存历史 | 有，生成时使用 | 有，生成时使用 | 有，生成时使用 | 有，生成时使用 | 与 prefix caching 开关分开理解 |
-| hybrid 的 prefix caching | 支持检查返回假，默认关 | 支持，但刻意默认关，需主动开启 | 生成模型支持，未显式设置时默认开 | 同 rc2 | 这是上游默认；仍须核对模型补丁与有效配置 |
-| 普通注意力缓存形状 | (2, 块数, 每块 token 数, KV 头数, 每头维度) | 相同 | 默认相同；布局取 LBHNC 或 HND 时，头轴移到块内位置轴之前 | 同 rc2 | 布局由 VLLM_KV_CACHE_LAYOUT 控制，换轴不改变元素总数 |
-| 普通注意力写缓存 | forward 内按槽位写入本步 K、V | 相同 | 非 PCP 路径调用 reshape_and_cache；PCP 先整理输入再写 | forward 内写入 | 写入与读取在同一次前向里完成，各并行路径准备输入的方式不同 |
-| 跨层共享 | 共享层不生成缓存规格，张量指向目标层；写入函数本身不检查共享 | 写入前检查，共享层直接返回、不写 | 同 v0.26，producer 分支还记录缓存事件 | 同 v0.26 | 只影响声明了共享的模型，本页 GLM 未声明跨层共享 |
-| GLM-5.3-Flash 缓存路径 | 2c59ff10 无该模型；本页数字取自专用 db701c1f | 2ed6cbba 无该模型，本页 GLM 数字不适用 | models/glm5next/：主历史与索引共用块号，尾状态单独成组；大、小两种物理页 | 已迁到 models/glm5next/；本页未逐项复核其完整规格 | 五类状态的用途可对照理解；15 块及字节账保留 db701c1f 条件 |
-
-各版本如何对齐逻辑块、启动日志如何区分实现，见 [KV cache 规格的版本差异](kv-cache-spec.md#版本差异)。旧分支具备某些 KDA/indexer 算子或通用 hybrid 对齐，不等于已经组装出 GLM-5.3-Flash 的模型路径；两版通用对齐见 sources 40–41。
+| 核对维度 | `v0.23.0` (`0fc695fc` / `2c59ff10`) | `v0.26.0rc` (`568afb3a` / `2ed6cbba`) | `v0.30.0` (`ced6857a` / `c09d3e20`) | `main` (`ba15685a` / `8d6180e2`) | 对使用者的实际影响 |
+| --- | --- | --- | --- | --- | --- |
+| 普通注意力缓存张量形状 | `(2, num_blocks, block_size, num_kv_heads, head_size)` | 同左 | 默认同左；`VLLM_KV_CACHE_LAYOUT` 取 `LBHNC`/`HND` 时头轴移至块内位置轴前[C7] | 同 `v0.30.0` | 换轴不改元素总数，读取算子须认准布局轴序 |
+| 普通注意力前向写缓存 | `reshape_and_cache` 调 `torch_npu._npu_reshape_and_cache` | 同左 | 标准路径调 `npu_scatter_pa_kv_cache`[C10]，`310P` 调 `_npu_reshape_and_cache`[C11]，PCP 独立整理后写入[C9] | 延续 `npu_scatter_pa_kv_cache` 与 `310P` 分流 | 均在单次前向内完成写与读；独立 `do_kv_cache_update` 仅服务特殊补丁 |
+| 跨层 KV 共享保护 | 共享层不建规格、张量共指目标层；`reshape_and_cache` 未拦截写入[C37] | 写入前检查 `kv_sharing_target_layer_name` 直接返回 | `model_runner_v1` 跳过建规格[C13]，写入前拦截并为 producer 记录缓存事件[C8] | 迁入 `worker/v2/attn_utils.py` 跳过建规格[C29]，写入拦截同左 | 仅影响声明跨层共享的模型；`GLM` 未声明跨层共享 |
+| Hybrid 模型 `enable_prefix_caching` | `is_prefix_caching_supported` 返回 `False`，默认关 | 支持开启，但默认仍关 | 生成类 hybrid 模型未显式传参时默认开[C17] | 同 `v0.30.0` | 仍须结合具体模型的 `patch_mamba_config` 与有效配置核对 |
+| `GLM-5.3-Flash` 缓存与量化路径 | `2c59ff10` 无该模型；本文历史案例取自专用 `db701c1f`[C50] | `2ed6cbba` 无该模型 | `models/glm5next/`：主历史与索引共块号、尾状态独立，分大小两类物理页[C22]，支持 SFA `C8` | 延续 `glm5next/` 并在 `_Glm5NextCacheLayout` 拆出 `draft_groups` | 历史 `15` 块与字节账保留 `db701c1f` 前提，升级 `v0.30.0+` 按新规格核计 |
 
 ### 源码位置
 
-按功能对照 sources 的编号，可把流程图读成实际代码：
+- **原理与官方材料**：PagedAttention 论文定义跨步历史复用、逻辑到物理块映射及按需分配[S1]；DeepSeek-V2 论文给出 MLA 潜向量联合压缩[S2]；`GLM-5.3-Flash` 双机并行与 MTP 设定见官方教程[S43]。
+- **标准注意力规格、形状与写入**：上游 `AttentionSpec` / `FullAttentionSpec` 定义 `state_content_size_bytes` 与 `page_size_bytes`[C5]；`Attention` 因后端 `forward_includes_kv_cache_update = True` 跳过外部更新并产出 `FullAttentionSpec`[C6]；昇腾 `AscendAttentionBackend` 定义缓存轴序、`reshape_and_cache` 槽位写入与 `C8 INT8` 量化通道，底层由 `DeviceOperator` 分发至 `npu_scatter_pa_kv_cache` 或 `_npu_reshape_and_cache`（独立 `do_kv_cache_update` 仅在如 Qwen3 DFlash 补丁等路径单独调用）。
+- **前缀命中上限、槽位分配与跨层共享**：`KVCacheManager.get_computed_blocks` 将全命中上限锁在 `request.num_tokens - 1` 并配合块对齐 `allocate_slots`[C14]；`NPUModelRunner`（及 `main` 的 `v2/attn_utils.py`）跳过跨层共享目标规格。
+- **数值推导与边界口径**：前文 3 位置 / 4 维与 `B = 4` 分块为便于手算的教学示意设定[A]；位置前向次数比值公式、`Qwen3-8B`（`144 KiB/tok`、`32K` 占 `4.5 GiB`、`B=32` 占 `144 GiB` 及 `C8` `72 GiB`）[D]与 `Qwen3-30B-A3B`（整模 `96 KiB/tok`、`TP=4` 每卡 `24 KiB/tok`）[D]，以及历史案例 `13,056 B/tok`、`85 MiB` KDA 子账与 `2,051` 读取上限[D]均由模型 `config.json` 与源码公式严格推出（整块计费含大小两类槽位之和）；长上下文 Decode 受显存读取带宽主导由单步全历史读取量与算术强度归纳得出[I]，`B = 32` 并发规模为典型压力对照设定[A]。
 
-- **声明对象与形状**：sources 1–3、22–23 的主缓存规格、独立索引与尾状态、KDA 形状及精度；尾状态是一页中的滑动窗口，不是按绝对位置取模的环形数组。[C1][C2][C3][C22][C23]
-- **实际读写**：sources 4、6、7、10；KDA 从所选状态读取并写回，投机分支传入接受数量；MLA 三种角色按 `("kv", "indexer_state", "indexer")` 的顺序接入后走生产稀疏 attention 设备算子，不以单测的 PyTorch 参考实现代替生产路径。[C4][C6][C7][C10]
-- **分配与进度**：sources 5、8、9、11；`allocate_slots` 为新增与候选位置保留空间，`initialize_kv_cache_tensors` 创建并绑定设备缓存，`update_from_output` 回退拒绝的候选计数，MTP 的独立缓存层必须纳入缓存组。[C5][C8][C9][C11]
-- **逻辑块与 kernel 块**：source 24 的 `min_attn_block_size = 128 × cdiv(mamba_raw_size, 128 × attn_token_page_size)` 定出 640 并写回 `cache_config.block_size`，同段打印启动日志；source 25 校验逻辑块能被 `GLM5_SFA_KERNEL_BLOCK_SIZE` 整除，并算出 `kernel_blocks_per_logical_block = 640 // 128 = 5`；source 26 是 main 的 lcm 对齐版本。[C24][C25][C26]
-- **配置与版本**：sources 12–16；patch 更新状态块跨度，上游依模型类型与版本决定 prefix caching 默认值；source 21 对应 main 的模型目录迁移。[C12][C13][C14][C15][C16][C21]
-- **普通注意力（非 GLM）的形状与写入**：v0.23 的 `get_kv_cache_shape` 返回 `(2, num_blocks, block_size, num_kv_heads, head_size)`（source 27），main 在布局取 `LBHNC` / `HND` 时调换块内位置轴与头轴（source 39）。普通后端继承上游 `AttentionBackend`，沿用 `forward_includes_kv_cache_update = True`（sources 52–53），所以上游 `Attention.forward` 不另走独立写入分支（source 31）。后端自己的 `forward` 调用 `reshape_and_cache`，按槽位交给 `DeviceOperator.reshape_and_cache`，底层为 `torch_npu._npu_reshape_and_cache`（sources 28–30）。独立写入入口供其他调用路径使用，不能只凭该方法存在就认定普通前向会重复写一次。未量化普通 K/V 的每块字节数由 source 32 的 `2 × block_size × num_kv_heads × head_size × dtype 字节数` 给出；其 NVFP4 分支另算。
-- **跨层共享**：上游 `Attention` 声明了 `kv_sharing_target_layer_name` 的层，在独立写入入口被跳过（source 31）；Ascend model runner 的 `get_kv_cache_spec` 不为这类层生成 `KVCacheSpec`，`initialize_kv_cache_tensors` 建好张量后执行 `kv_caches[layer_name] = kv_caches[target_layer_name]`（sources 33–34）。v0.26 与 main 的 `reshape_and_cache` 在写入前检查共享并直接返回，注释说明是为了不覆盖共享的格子（sources 35–36）；v0.23 维护分支的同名函数没有这项检查。GLM 的 MLA 缓存层 `IndexerKPoolMLACacheLayer` 继承 `AttentionLayerBase` 而不是上游 `Attention`，构造后端时显式传 `kv_sharing_target_layer_name=None`（sources 38、1），db701c1f 运行器的共享判断要求 `isinstance(attn_module, Attention)`，不会命中（source 37）。
-- **普通 KV cache、分页与共享原理**：[PagedAttention 论文](https://arxiv.org/html/2309.06180v1) §2.2、§4.1–4.3 说明历史复用、逻辑块到物理块映射及按需分配；本页普通生成变体的位置数依据其逐步生成语义推演。[S17][A][D]
-- **MLA 的压缩对象**：[DeepSeek-V2 论文](https://arxiv.org/html/2405.04434v5) §2.1 将 K/V 联合压缩为潜向量；GLM 的维度、索引器与 KDA 组合另由本页专用源码确定。[S18]
-
-- **布局与前缀边界**：来源 39 的固定源码 `vllm-ascend@baa023ad` 第 102–111 行已核对：`VLLM_KV_CACHE_LAYOUT` 为 `LBHNC` / `HND` 时采用「K/V、块、头、位置、头维度」顺序；同一元素总数不能保证轴序兼容。[D] 来源 5 的固定源码 `vllm@0fc695fc` 第 215–221 行已核对：命中上限为 `request.num_tokens - 1`，`allocate_slots()` 要求已计算 token 数按块对齐，故可能重算整个块。
-- **模型与部署取值**：固定模型配置给出层类型、潜向量和索引维度；官方教程给出双机 TP8/DP2/EP16 与 MTP 候选数。容量结论是这些配置下的静态账，不是硬件流量实测。[S19][S20]
-
-- **rc2 与补充实现依据**：sources 44–46 给出 rc2 的模型缓存定义、完成池 BF16 / 尾环 FP32 与 SFA C8 配置条件；source 51 的实际分组函数落实主历史和索引共用块号、尾状态独立以及两种物理页。sources 47–48、56 给出普通注意力的布局、共享层跳过写入和前向调用；sources 49–50 给出上游 hybrid 生成模型的 prefix caching 默认。固定 GLM kernel 块 128 的常量见 source 54；source 55 展示候选槽位数量、空间不足返回及实际分配，补足 source 5 的接口定义。
-
-- **独立写入的实际调用例**：source 57 的 Qwen3 DFlash 补丁在准备好各层 K/V 后，按 context_slot_mapping 调用 `do_kv_cache_update`。这是与普通后端前向内写入不同的入口。
-
-- **状态页子账与整块占用**：source 58 按大、小两类物理槽位之和给每个块号计费，KDA 组借到的块号也占用其中的小页；85 MiB 只累计真正映射到34层KDA的页，整块账包括其余槽位。
-
-- **每类状态的字节数**：主线底稿逐层前向 §1.4（每卡 KV 与状态账）、§4.5（KDA 状态）、§5.4（kpool 与 top-2048）、§5.6（逻辑块与三份 cache）、§9.3（R1 写入量），以及部署底稿 A2.2（15 块与满长请求 222 块）。本页只引结论，13,056 B/token、每块字节与 3,855 块的推导在[部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)。[D]
-
-待核：固定镜像的最终上游安装提交、运行时缓存组日志，以及 NPU 上逐次 MTP 写入和 KDA 读写流量记录仍缺现场证据。旧 main 的逻辑块 640 来自静态推算，需镜像日志确认；prefill/decode 累加顺序的浮点差异是否导致采样分叉，需数值对比。v0.23 维护分支的共享层是否实际写入目标格子，取决于模型是否传入 K/V，不能只看写入函数。部署现场还须核对实际加载的模型配置与本页固定形状一致。
+待核：历史 `db701c1f` 镜像最终安装的上游提交哈希、线上缓存组启动日志，以及 NPU 硬件实测的逐次 MTP 写入与 KDA 读写带宽轨迹仍待现场采集；prefill 与 decode 浮点累加顺序差异触发采样分叉的概率需实测对比；`v0.23.0` 分支跨层共享消费层是否传入非空 K/V 取决于具体模型实现。

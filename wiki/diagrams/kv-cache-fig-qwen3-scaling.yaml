@@ -1,0 +1,12 @@
+mode: native-svg
+id: kv-cache-fig-qwen3-scaling
+caption: >-
+  Qwen3-8B（144 KiB/token）与 Qwen3-30B-A3B（96 KiB/token）的 KV cache 容量扩展阶梯：上半幅按 1:1 比例对照单 token 全层字节构成与 C8（INT8 / MXFP8）0.5× 压缩；下半幅展示从单序列 4K、32K 放大到 B=32 并发批次时的显存膨胀（8B 达 144 GiB，C8 压至 72 GiB）。
+size: [900, 496]
+pins:
+  - source: vllm@ced6857a:vllm/v1/kv_cache_interface.py#L478-L555
+    symbols: [AttentionSpec, FullAttentionSpec, num_kv_heads, head_size, page_size_bytes]
+  - source: vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L604-L670
+    symbols: [get_kv_cache_spec, FullAttentionSpec]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1342-L1381
+    symbols: [AscendC8AttentionBackendImpl, _quantize_kv_to_int8]

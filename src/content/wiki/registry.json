@@ -285,11 +285,6 @@
           "note": "第二个生效点在 ACL Graph 捕获期：wrapper 的 runnable 框入 scope，录完再请求 super_kernel_optimize"
         },
         {
-          "from": "kv-cache-memory-profiling",
-          "kind": "enables",
-          "note": "decode 图在切完 KV 之后才录，图内存从预算外支付"
-        },
-        {
           "from": "lora",
           "kind": "enables",
           "note": "适配器状态参与捕获图分派。"
@@ -391,7 +386,7 @@
         {
           "from": "low-precision-formats",
           "kind": "enables",
-          "note": "区分格式可存储、数据可转换与计算单元能直接执行"
+          "note": "区分格式可存储、加载期可转换与 Cube/Vector 计算单元能直接原生执行"
         },
         {
           "from": "op-to-ai-core",
@@ -2218,6 +2213,11 @@
           "note": "本页只讲补丁归哪个进程、从哪个入口进；补丁怎样替换名字、有哪几类，在那一页"
         },
         {
+          "from": "npu-worker-lifecycle",
+          "kind": "enables",
+          "note": "第①步构造函数在当前进程内打 worker 层补丁，生效范围受进程边界约束"
+        },
+        {
           "from": "reading-vllm-ascend",
           "kind": "enables",
           "note": "理解直接绑定和注册分派如何改变实现"
@@ -2886,12 +2886,12 @@
         {
           "from": "gqa",
           "kind": "enables",
-          "note": "多头各自打分与汇合在那里讲；本页只讲查询头和 K、V 之间怎样共享"
+          "note": "多头各自打分与汇合在那里讲；本页展开查询头怎样分组共读 K、V 并省下投影与缓存"
         },
         {
           "from": "kv-cache",
           "kind": "enables",
-          "note": "缓存里存的就是那一页讲的 K 和 V；Q、K、V 各做什么、因果掩码为什么让旧 K/V 不变，本页不重讲"
+          "note": "缓存里保存的正是各层算出的 K 和 V；查询打分、加权汇合与因果掩码为什么保证旧 K/V 不变，在此基础上展开"
         },
         {
           "from": "linear-attention",
@@ -2906,7 +2906,7 @@
         {
           "from": "prefill",
           "kind": "enables",
-          "note": "因果掩码决定一次送进去的多个位置各能看到哪些历史"
+          "note": "因果掩码规定并排送入的提示词位置各自只能看见自己与前文，也决定了旧位置的 K、V 无需重算"
         },
         {
           "from": "rope",
@@ -3754,6 +3754,11 @@
           "from": "hccl-buffer",
           "kind": "enables",
           "note": "通信组怎么分、走哪条物理链路在那页"
+        },
+        {
+          "from": "npu-worker-lifecycle",
+          "kind": "enables",
+          "note": "第②步建立 TP/PP/DP/EP 通信域依赖 HCCL 与底层 CANN 运行时"
         },
         {
           "from": "quantization",
@@ -5339,11 +5344,6 @@
           "note": "模型页维护草稿层数与配置的唯一出处"
         },
         {
-          "from": "low-precision-formats",
-          "kind": "enables",
-          "note": "固定模型的状态维度和完整分页字节账在模型页"
-        },
-        {
           "from": "swa-bounded-replay",
           "kind": "enables",
           "note": "先理解全局历史与逐层窗口为何分开"
@@ -5506,11 +5506,6 @@
           "note": "分清数据放在哪里、占多少空间和沿什么路径读取"
         },
         {
-          "from": "kv-cache-memory-profiling",
-          "kind": "enables",
-          "note": "先分清权重、临时张量和 KV cache 在设备内存里各放什么"
-        },
-        {
           "from": "kv-cache-sparse-offload",
           "kind": "enables",
           "note": "稀疏 KV 卸载的容量规划与搬运代价建立在主机内存、设备内存分别记账以及 H2D 传输的基础上；卸载将主 KV 放到主机，并未消除容量约束或恢复传输成本。"
@@ -5523,7 +5518,7 @@
         {
           "from": "token",
           "kind": "enables",
-          "note": "编号列表与设备中的权重和历史状态要分开记内存账"
+          "note": "主机 CPU 侧的字符串与编号列表和 NPU 显存里的权重、激活与历史缓存分属两本独立的内存账"
         }
       ]
     },
@@ -7036,7 +7031,7 @@
         {
           "from": "npu-worker-lifecycle",
           "kind": "enables",
-          "note": "Worker 在哪个进程里、每个 EngineCore 起几个 Worker，由执行器决定"
+          "note": "Worker 是否作为独立子进程派生、每个 EngineCore 管几个 Worker，由执行器决定"
         },
         {
           "from": "request-call-chain",
@@ -8132,19 +8127,9 @@
           "note": "通信组、每卡权重和 KV 预算的推导统一由双机部署页提供"
         },
         {
-          "from": "hardware-devices",
-          "kind": "enables",
-          "note": "A0 的设备边界确定后，继续看 16 卡分组、每卡权重和启动预算"
-        },
-        {
           "from": "hccl-buffer",
           "kind": "enables",
           "note": "这块缓冲是从哪份 KV 预算里扣掉的"
-        },
-        {
-          "from": "kv-cache",
-          "kind": "enables",
-          "note": "每块字节数与显存预算只在部署页推导"
         },
         {
           "from": "kv-cache-spec",
@@ -8180,11 +8165,6 @@
           "from": "pd-disaggregation",
           "kind": "enables",
           "note": "本页对照的部署：两台机器是两个 DP 执行组，拆成一 P 一 D 时的换算也在那页"
-        },
-        {
-          "from": "prefill",
-          "kind": "enables",
-          "note": "每步 8192 个位置、32 条请求、MTP 3 个候选等部署取值的出处"
         },
         {
           "from": "prefix-caching",
@@ -8290,7 +8270,7 @@
       "title": "GQA：几个查询头共读一组 K、V，省下什么、付出什么",
       "type": "concept",
       "origin": "gap",
-      "summary": "GQA 把查询头分组，同组共读一组 K、V，K/V 投影与缓存按 KV 头数缩小，打分与汇合仍逐头计算，且须在训练时定下。GLM 的稀疏 MLA 与 KDA 都不是 GQA，本页只作对照。",
+      "summary": "GQA 把查询头分组共读同一组 K、V，使 K/V 投影与 KV cache 按头数比同比例缩小，而逐头打分、汇合与输出投影不变；本页结合 Qwen3-8B（4:1）与 Qwen3-30B-A3B（8:1 及 TP=8 复制）算清开销，并拆解昇腾 FIA 直读、Mooncake+C8 边界及与 MLA、KDA 的区别。",
       "aliases": [
         "GQA",
         "Grouped-Query Attention",
@@ -8314,46 +8294,47 @@
         "KV 头"
       ],
       "chapters": [
-        "04"
+        "02"
       ],
       "order": 15,
       "prerequisites": [],
       "sources": [
         "https://arxiv.org/html/2305.13245v3",
-        "vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1000-L1042",
-        "vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L279-L292",
-        "vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L452-L513",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L414-L428",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1336-L1359",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3.py#L85-L125",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L258-L305",
+        "vllm@ced6857a:vllm/model_executor/models/llama.py#L139-L170",
+        "vllm@ced6857a:vllm/model_executor/models/llama.py#L286-L296",
+        "vllm@ced6857a:vllm/model_executor/layers/linear.py#L1040-L1065",
+        "vllm@ced6857a:vllm/model_executor/layers/linear.py#L1295-L1308",
+        "vllm@ced6857a:vllm/distributed/utils.py#L52-L63",
+        "vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L315-L338",
+        "vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L525-L580",
+        "vllm@ced6857a:vllm/v1/kv_cache_interface.py#L478-L535",
+        "vllm@ced6857a:vllm/model_executor/layers/attention/mm_encoder_attention.py#L548-L558",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L550-L575",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L970-L1018",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1019-L1043",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1355-L1375",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1688-L1827",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/Design_Documents/context_parallel.md#L50-L60",
         "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json",
         "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1901-L1962",
-        "vllm@0fc695fc:vllm/model_executor/models/llama.py#L144-L156",
-        "vllm@0fc695fc:vllm/model_executor/models/llama.py#L290-L296",
-        "vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1358-L1363",
-        "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L183-L201",
-        "vllm@0fc695fc:vllm/v1/attention/backends/cpu_attn.py#L444-L456",
-        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L440-L451",
-        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L1378-L1389",
-        "vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L526-L538",
-        "vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L948-L959",
         "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L121-L134",
         "vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L110-L134",
-        "vllm@0fc695fc:vllm/distributed/utils.py#L52-L63",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L414-L428",
-        "vllm-ascend@db701c1f:vllm_ascend/transformers_utils/configs/glm5_next.py#L23-L50",
-        "vllm-ascend@db701c1f:vllm_ascend/transformers_utils/configs/glm5_next.py#L128-L134",
-        "raw:sha256-96369723e69c470d91ca318d4e4d5324d91cb9d72c37ce9b045a7596a6aad1bf.md#L1-L490",
-        "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/models/glm5next/model.py#L79-L82",
-        "vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L549-L564",
-        "vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L958-L990",
-        "vllm-ascend@7d825229:vllm_ascend/platform.py#L1688-L1701",
-        "vllm-ascend@7d825229:vllm_ascend/platform.py#L1714-L1768",
-        "vllm-ascend@7d825229:vllm_ascend/platform.py#L1688-L1711",
-        "vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L928-L947"
+        "vllm@0fc695fc:vllm/v1/attention/backends/cpu_attn.py#L444-L456",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L414-L428",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1336-L1359",
+        "vllm@568afb3a:vllm/model_executor/layers/linear.py#L1000-L1020",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L440-L451",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L140-L175",
+        "vllm@ba15685a:vllm/model_executor/layers/linear.py#L1105-L1130",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L595-L618",
+        "raw:sha256-96369723e69c470d91ca318d4e4d5324d91cb9d72c37ce9b045a7596a6aad1bf.md#L1-L490"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -8365,32 +8346,22 @@
         {
           "to": "attention-qkv",
           "kind": "builds-on",
-          "note": "多头各自打分与汇合在那里讲；本页只讲查询头和 K、V 之间怎样共享"
-        },
-        {
-          "to": "one-request",
-          "kind": "builds-on",
-          "note": "R1 在第 4 站走过 34 层 KDA 与 11 层稀疏 MLA 时每卡的形状，唯一推导处"
-        },
-        {
-          "to": "tensor-parallel",
-          "kind": "builds-on",
-          "note": "按头切到各卡的做法；本页补 KV 头少于卡数时的复制"
+          "note": "多头各自打分与汇合在那里讲；本页展开查询头怎样分组共读 K、V 并省下投影与缓存"
         },
         {
           "to": "mla",
           "kind": "alternative-to",
-          "note": "GLM 稀疏 MLA 层存一条共享潜向量，而不是减少 K、V 的组数"
+          "note": "MLA 把每位置历史压成一条共享潜向量、用时按头还原，而不是减少 K、V 的组数"
         },
         {
           "to": "linear-attention",
           "kind": "alternative-to",
-          "note": "GLM 的 KDA 层不存逐位置的 K、V，历史压进固定大小的状态"
+          "note": "KDA 等线性注意力不存逐位置的 K、V，而把历史累积进固定大小的状态"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/gqa.md",
       "backlinks": [
         {
@@ -8401,7 +8372,12 @@
         {
           "from": "kv-cache",
           "kind": "enables",
-          "note": "普通注意力每 token 每层的缓存按 KV 头数计，GQA 减少 KV 头省的就是这份"
+          "note": "标准注意力每 token 每层的缓存字节数按 KV 头数计，GQA 减少 KV 头省下的正是这份容量与每步读取带宽"
+        },
+        {
+          "from": "prefill",
+          "kind": "enables",
+          "note": "Qwen3-8B 等标准模型的分组查询头共享 K、V 头，直接决定两阶段每位置读写缓存的字节数与注意力算术强度"
         }
       ]
     },
@@ -8574,11 +8550,6 @@
           "note": "先看懂捕获与回放的一般道理，再看昇腾这套实现"
         },
         {
-          "from": "npu-worker-lifecycle",
-          "kind": "enables",
-          "note": "第六步录下的图，运行时怎样被选中和回放"
-        },
-        {
           "from": "npugraph-ex",
           "kind": "enables",
           "note": "编译改「算什么」，捕获回放改「怎么提交」，两层的先后在那页"
@@ -8592,10 +8563,10 @@
     },
     {
       "id": "hardware-devices",
-      "title": "NPU、板卡、服务器与机柜",
+      "title": "昇腾四族硬件体系：NPU、板卡、服务器与超节点",
       "type": "concept",
       "origin": "gap",
-      "summary": "分清芯片、板卡、服务器与软件可见设备，沿 GLM 双机的一条输入理解主机内存、设备显存、机内 HCCS 与跨机 RoCE 的边界，并核对官方规格峰值和启动源码。",
+      "summary": "分清昇腾 NPU 裸片、加速板卡、服务器与超节点机柜四级物理结构及运行时逻辑 Device 边界，掌握 v0.30.0 四族硬件能力档案（A2/A3/310P/A5）、主机内存与设备显存分账以及机内 HCCS/UB 与跨机 RoCE 带宽差距。",
       "aliases": [
         "NPU",
         "昇腾芯片",
@@ -8617,8 +8588,7 @@
         "MemCache"
       ],
       "chapters": [
-        "07",
-        "08"
+        "04"
       ],
       "order": 100,
       "prerequisites": [],
@@ -8630,27 +8600,39 @@
         "https://e.huawei.com/cn/documents/products/computing/b0b253c4d5da4e05ba80a39e3dc65fd2",
         "https://e.huawei.com/cn/products/computing/ascend/atlas-800t-a2",
         "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
-        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L128-L138",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L395-L503",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L505-L524",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L988",
-        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1535-L1560",
-        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1758-L1772",
-        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875",
-        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L138",
-        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L275-L281",
-        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L137",
-        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L274-L280",
-        "vllm-ascend@baa023ad:vllm_ascend/platform.py#L82-L92",
-        "vllm-ascend@baa023ad:vllm_ascend/platform.py#L225-L237",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/installation/supported_hardware.inc.md#L1-L6",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/ascend_image/atlas-a3.inc.md#L26-L55",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/online/qwen3-0.6b-310p.inc.md#L1-L18",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/support_matrix/supported_models.md#L40-L69",
         "raw:sha256-9a71c5e275ab2ca3591da54fcaba5bb8a352680d097760b4adf5f7e8a6d65d13.md#L1-L366",
-        "vllm-ascend@7d825229:vllm_ascend/platform.py#L85-L99",
-        "vllm-ascend@7d825229:vllm_ascend/platform.py#L232-L244",
-        "vllm-ascend@7d825229:vllm_ascend/device/hardware_profile.py#L284-L304",
-        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L931"
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware.py#L16-L76",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/device_config.py#L23-L77",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L42-L249",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L284-L401",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L90-L99",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L171-L173",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L236-L249",
+        "vllm-ascend@c09d3e20:vllm_ascend/cpu_binding.py#L736-L744",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L145-L170",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L391-L525",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L578-L610",
+        "vllm@ced6857a:vllm/distributed/parallel_state.py#L1775-L2070",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L824-L872",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L275-L281",
+        "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L786-L834",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L274-L280",
+        "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L272-L509",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L260-L273",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L395-L597",
+        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L905-L931",
+        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1535-L1875"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-4ad0a826ee278a8aae4b53a6b9dd14ca60685672bead700eda86212d11dd24a5.md",
@@ -8658,24 +8640,19 @@
       ],
       "relations": [
         {
-          "to": "glm-5-3-flash-two-node",
+          "to": "roofline-and-metrics",
           "kind": "builds-on",
-          "note": "A0 的设备边界确定后，继续看 16 卡分组、每卡权重和启动预算"
+          "note": "承接算力屋顶与显存带宽斜坡，将抽象的 π_peak 与 β_HBM 落到昇腾四族芯片、板卡与互联链路上"
         },
         {
-          "to": "npu-platform",
+          "to": "hf-model-anatomy",
           "kind": "builds-on",
-          "note": "看平台契约怎样落实设备选择、配置校验与后端选择"
-        },
-        {
-          "to": "kv-pool",
-          "kind": "builds-on",
-          "note": "想继续了解内存池化时，区分外部对象缓存与本地状态池"
+          "note": "复用 Qwen3-8B 与 Qwen3-30B-A3B 的总参数、激活参数与精度口径，核算各族硬件的选卡边界"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-18",
       "file": "concepts/hardware-devices.md",
       "backlinks": [
         {
@@ -8726,7 +8703,12 @@
         {
           "from": "low-precision-formats",
           "kind": "enables",
-          "note": "按完整产品型号确认 A2/A3 环境，再核对算子与框架的精度支持"
+          "note": "先按完整产品型号分清 A2/A3、310P 与 Ascend 950，再核对量化后端与算子精度"
+        },
+        {
+          "from": "npu-worker-lifecycle",
+          "kind": "enables",
+          "note": "先明确物理板卡、A3 双裸片与软件可见 NPU 的对应关系，才能看懂单卡 Worker 绑卡与 SoC 校验"
         },
         {
           "from": "vllm-ascend-overview",
@@ -8839,13 +8821,7 @@
       "contradicts": [],
       "updated": "2026-11-03",
       "file": "concepts/hccl-buffer.md",
-      "backlinks": [
-        {
-          "from": "kv-cache-memory-profiling",
-          "kind": "enables",
-          "note": "HCCL 缓冲属于非 torch 增量，各组留多大、折合多少块在那页"
-        }
-      ]
+      "backlinks": []
     },
     {
       "id": "hf-model-anatomy",
@@ -8940,6 +8916,11 @@
           "from": "ascend-env-and-serve",
           "kind": "enables",
           "note": "将从 config.json 与分词模板读出的架构、上下文上限与精度字段转化为 vllm serve 启动参数"
+        },
+        {
+          "from": "hardware-devices",
+          "kind": "enables",
+          "note": "复用 Qwen3-8B 与 Qwen3-30B-A3B 的总参数、激活参数与精度口径，核算各族硬件的选卡边界"
         },
         {
           "from": "roofline-and-metrics",
@@ -9220,11 +9201,6 @@
       "updated": "2026-11-03",
       "file": "concepts/inference-correctness-troubleshooting.md",
       "backlinks": [
-        {
-          "from": "low-precision-formats",
-          "kind": "enables",
-          "note": "先找首次数值分歧，再定位缩放与格式转换"
-        },
         {
           "from": "quantization-evaluation",
           "kind": "enables",
@@ -9704,7 +9680,7 @@
       "title": "KV cache：新 token 留下历史，下一步接着读",
       "type": "concept",
       "origin": "gap",
-      "summary": "KV cache 保存每一层为已处理位置算好的 k、v 等状态：新 token 只算自己这一份并追加进去，下一步直接读取，不再重算旧位置；代价是占显存、每步要读、要按块管理空间。GLM-5.3-Flash 同时存两类历史：MLA 层按位置存压缩潜向量和 indexer K，KDA 层按请求存固定大小的状态。",
+      "summary": "KV cache 保存每一层为已处理位置算好的 K、V 等历史状态：新 token 只算自己这一份并按块追加，后续步骤直接读取，省去 O(t²) 的整段重算；代价是线性占用显存、每步读取历史带宽以及分页空间管理。除标准 GQA 逐位置存 K、V 外，MLA 存压缩潜向量、稀疏注意力只读挑中位置、线性注意力原地更新固定大小状态。",
       "aliases": [
         "KV Cache",
         "KV 缓存",
@@ -9715,76 +9691,68 @@
         "KV 显存"
       ],
       "chapters": [
-        "04",
-        "05",
-        "11"
+        "03"
       ],
       "order": 500,
       "prerequisites": [],
       "sources": [
+        "https://arxiv.org/html/2309.06180v1",
+        "https://arxiv.org/html/2405.04434v5",
+        "https://huggingface.co/Qwen/Qwen3-8B/raw/main/config.json",
+        "https://huggingface.co/Qwen/Qwen3-30B-A3B/raw/main/config.json",
+        "vllm@ced6857a:vllm/v1/kv_cache_interface.py#L478-L555",
+        "vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L538-L670",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L108-L124",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1170-L1204",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1318-L1381",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L143-L173",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/device_op.py#L2020-L2039",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4699-L4701",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L6314-L6406",
+        "vllm@ced6857a:vllm/v1/core/kv_cache_manager.py#L250-L385",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1613-L1670",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1874-L1895",
+        "vllm@ced6857a:vllm/engine/arg_utils.py#L2794-L2834",
+        "vllm@ced6857a:vllm/config/model.py#L2135-L2151",
+        "vllm@ced6857a:vllm/config/cache.py#L39-L95",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L901-L943",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/cache_config.py#L1-L44",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/cache_config.py#L90-L148",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L96-L119",
+        "vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_mamba_config.py#L120-L155",
+        "vllm@ba15685a:vllm/engine/arg_utils.py#L3072-L3112",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L113-L124",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L1251-L1286",
+        "vllm-ascend@8d6180e2:vllm_ascend/device/device_op.py#L276-L306",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/attn_utils.py#L199-L235",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/cache_config.py#L41-L49",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L198-L269",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1414-L1436",
+        "vllm@0fc695fc:vllm/config/model.py#L1851-L1857",
+        "vllm@0fc695fc:vllm/v1/worker/block_table.py#L325-L380",
+        "vllm@0fc695fc:vllm/v1/attention/backend.py#L55-L66",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L104-L112",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1430-L1454",
+        "vllm-ascend@2c59ff10:vllm_ascend/device/device_op.py#L47-L52",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_qwen3_dflash.py#L45-L59",
+        "vllm@568afb3a:vllm/engine/arg_utils.py#L2515-L2553",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L1553-L1570",
+        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json",
+        "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
         "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L69-L134",
         "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L261-L362",
         "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda_state.py#L9-L32",
         "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L398-L474",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L198-L269",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L800-L855",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3916-L3952",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1414-L1436",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L500-L560",
-        "vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L405-L456",
-        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L222-L228",
-        "vllm@0fc695fc:vllm/config/model.py#L1851-L1857",
-        "vllm@568afb3a:vllm/engine/arg_utils.py#L2515-L2553",
-        "vllm@84030bbe:vllm/engine/arg_utils.py#L2773-L2808",
-        "vllm@84030bbe:vllm/config/model.py#L2135-L2151",
-        "https://arxiv.org/html/2309.06180v1",
-        "https://arxiv.org/html/2405.04434v5",
-        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json",
-        "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
-        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L182-L229",
-        "vllm@0fc695fc:vllm/model_executor/layers/mamba/mamba_utils.py#L119-L125",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2489-L2509",
-        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L88-L160",
         "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L130-L146",
-        "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_mamba_config.py#L110-L125",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L104-L112",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1430-L1454",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1529-L1534",
-        "vllm-ascend@2c59ff10:vllm_ascend/device/device_op.py#L47-L52",
-        "vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L489-L499",
-        "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L183-L200",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4927-L4938",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3932-L3935",
-        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L1553-L1570",
-        "vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1124-L1141",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5142-L5152",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L39-L40",
-        "vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L102-L111",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_mamba_config.py#L58-L107",
-        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_mamba_config.py#L58-L107",
-        "vllm@0fc695fc:vllm/v1/worker/block_table.py#L325-L380",
-        "raw:sha256-db0aa5f4bce49076d38bcfb2b8989e17e966c146a35d96e9f005c6f608e5b0a2.md#L1-L1317",
-        "vllm-ascend@7d825229:vllm_ascend/models/glm5next/cache_config.py#L1-L44",
-        "vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L96-L117",
-        "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L905-L943",
-        "vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L109-L118",
-        "vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L1170-L1204",
-        "vllm@ced6857a:vllm/engine/arg_utils.py#L2794-L2834",
-        "vllm@ced6857a:vllm/config/model.py#L2135-L2151",
-        "vllm-ascend@7d825229:vllm_ascend/models/glm5next/cache_config.py#L90-L190",
-        "vllm@0fc695fc:vllm/v1/attention/backend.py#L55-L66",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L77-L79",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L38-L40",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L354-L435",
-        "vllm-ascend@7d825229:vllm_ascend/attention/attention_v1.py#L1319-L1335",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_qwen3_dflash.py#L45-L59",
-        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L664-L698"
+        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L800-L855",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L88-L160",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L664-L698",
+        "raw:sha256-db0aa5f4bce49076d38bcfb2b8989e17e966c146a35d96e9f005c6f608e5b0a2.md#L1-L1317"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "releases/v0.30.0rc2",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -9796,47 +9764,22 @@
         {
           "to": "attention-qkv",
           "kind": "builds-on",
-          "note": "缓存里存的就是那一页讲的 K 和 V；Q、K、V 各做什么、因果掩码为什么让旧 K/V 不变，本页不重讲"
-        },
-        {
-          "to": "prefill",
-          "kind": "builds-on",
-          "note": "在多轮前向之间复用已计算状态"
-        },
-        {
-          "to": "mla",
-          "kind": "builds-on",
-          "note": "潜向量保存按位置访问的历史"
-        },
-        {
-          "to": "linear-attention",
-          "kind": "builds-on",
-          "note": "递推与卷积状态保存不同形式的历史"
-        },
-        {
-          "to": "one-request",
-          "kind": "builds-on",
-          "note": "回到 A2 分配缓存与 A6 更新有效进度的请求循环"
-        },
-        {
-          "to": "glm-5-3-flash-two-node",
-          "kind": "builds-on",
-          "note": "每块字节数与显存预算只在部署页推导"
+          "note": "缓存里保存的正是各层算出的 K 和 V；查询打分、加权汇合与因果掩码为什么保证旧 K/V 不变，在此基础上展开"
         },
         {
           "to": "gqa",
           "kind": "builds-on",
-          "note": "普通注意力每 token 每层的缓存按 KV 头数计，GQA 减少 KV 头省的就是这份"
+          "note": "标准注意力每 token 每层的缓存字节数按 KV 头数计，GQA 减少 KV 头省下的正是这份容量与每步读取带宽"
         },
         {
-          "to": "rope",
+          "to": "prefill",
           "kind": "builds-on",
-          "note": "普通注意力存进缓存的 K 已按位置旋转；GLM 的 MLA 与 indexer 不带 RoPE 段"
+          "note": "Prefill 建立提示词历史并产出首个生成词，Decode 每步在已有缓存上只补算新位置"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-10",
+      "updated": "2026-11-19",
       "file": "concepts/kv-cache.md",
       "backlinks": [
         {
@@ -9858,6 +9801,11 @@
           "from": "kv-cache-cpu-offload",
           "kind": "enables",
           "note": "备份和搬回的对象"
+        },
+        {
+          "from": "kv-cache-memory-profiling",
+          "kind": "enables",
+          "note": "先理解每层为什么要跨步保留历史 K、V，才能看清为什么要把剩余显存全部拨给缓存池"
         },
         {
           "from": "kv-cache-quantization",
@@ -10226,7 +10174,7 @@
       "title": "KV cache 显存预算：启动时怎样一项项扣出来",
       "type": "concept",
       "origin": "gap",
-      "summary": "启动时先按总显存乘显存比例定预算，再用一次最大批量的 profile run 量出激活峰值和非 torch 增量，连同权重一起扣掉，剩下的切成 KV 块；录图等后来才出现的占用从预算外支付，预算也不能直接换成固定并发数。",
+      "summary": "每张 NPU 在启动期按「总显存 × 显存比例」划定实例预算，加载权重后通过一次最大批量的 profile run 量出激活峰值与包含 HCCL 缓冲在内的非 Torch 增量，三项扣完后将剩余预算按每块字节数切成物理 KV 块；ACLGraph 录图与运行期新增缓冲由预算外 1−u 余量支付，切出的块数也不等于固定并发请求数。",
       "aliases": [
         "KV Cache Memory Profiling",
         "memory profiling",
@@ -10253,84 +10201,59 @@
         "非 torch 增量"
       ],
       "chapters": [
-        "11"
+        "05"
       ],
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L464-L497",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597",
-        "vllm@0fc695fc:vllm/utils/mem_utils.py#L96-L126",
-        "vllm@0fc695fc:vllm/utils/mem_utils.py#L191-L256",
-        "vllm@0fc695fc:vllm/utils/mem_utils.py#L263-L268",
-        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L865-L867",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3729-L3794",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3683-L3696",
-        "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L6227-L6241",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3332-L3460",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1660-L1666",
-        "vllm@0fc695fc:vllm/v1/engine/core.py#L244-L263",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L713-L750",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L2024-L2085",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L717-L758",
-        "vllm@0fc695fc:vllm/v1/worker/gpu_worker.py#L416-L460",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L527-L742",
-        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L575-L788",
-        "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L616-L889",
-        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L3714-L3730",
-        "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4254-L4270",
-        "vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L282-L284",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L487-L489",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2080-L2081",
-        "vllm@0fc695fc:vllm/v1/engine/core_client.py#L722-L726",
-        "raw:sha256-33dba601f999712c1a51ec9bd5b263c1cb45ff47b831f0e31ecff03e8120e6e3.md#L1-L1457",
-        "https://github.com/vllm-project/vllm/issues/56830",
-        "vllm-ascend@db701c1fd31de40ab028628ee2580ae68c7fd3c0:vllm_ascend/worker/worker.py#L563-L577",
-        "vllm@0fc695fc:vllm/config/cache.py#L67-L88",
-        "vllm@0fc695fc:vllm/config/cache.py#L159-L167",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1116-L1132",
-        "vllm@0fc695fc:vllm/utils/argparse_utils.py#L27-L88",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L920-L949",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L2013-L2057",
-        "vllm@568afb3a:vllm/config/cache.py#L68-L89",
-        "vllm@568afb3a:vllm/config/cache.py#L171-L179",
-        "vllm@84030bbe:vllm/config/cache.py#L112-L135",
-        "vllm@84030bbe:vllm/config/cache.py#L239-L247",
-        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L459-L548",
-        "vllm@84030bbe:vllm/v1/core/kv_cache_utils.py#L2615-L2640",
-        "vllm@568afb3a:vllm/v1/core/kv_cache_utils.py#L2107-L2137",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L972-L985",
-        "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L568-L656",
-        "vllm@0fc695fc:vllm/utils/mem_utils.py#L48-L67",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L809-L817",
-        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L511-L574",
-        "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L504-L615",
-        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L787-L819",
-        "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L888-L920",
-        "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L658-L743",
-        "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L890-L933",
-        "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L4336-L4352",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L460-L496",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L566-L667",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L668-L754",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L879-L955",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L3909-L3923",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4328-L4348",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4372-L4478",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L209-L212",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L73-L77",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1241-L1288",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1482-L1545",
+        "vllm-ascend@c09d3e20:vllm_ascend/patch/worker/patch_distributed.py#L39-L187",
+        "vllm@ced6857a:vllm/utils/mem_utils.py#L81-L161",
+        "vllm@ced6857a:vllm/utils/mem_utils.py#L228-L321",
         "vllm@ced6857a:vllm/config/cache.py#L103-L126",
         "vllm@ced6857a:vllm/config/cache.py#L228-L235",
-        "vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L2693-L2742",
-        "vllm@0fc695fc:docs/configuration/conserving_memory.md#L1-L185",
-        "vllm-ascend@baa023ad:vllm_ascend/utils.py#L97-L101",
-        "vllm-ascend@baa023ad:vllm_ascend/utils.py#L177-L184",
-        "vllm-ascend@baa023ad:vllm_ascend/utils.py#L1751-L1760",
-        "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L352-L372",
-        "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L448-L451",
-        "vllm@84030bbe:vllm/config/cache.py#L89-L99",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291",
-        "vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L233-L268",
-        "vllm@568afb3a:docs/configuration/conserving_memory.md#L78-L185",
+        "vllm@ced6857a:vllm/v1/engine/core.py#L254-L320",
+        "vllm@ced6857a:vllm/v1/engine/core_client.py#L730-L760",
+        "vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L975-L1015",
+        "vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L2697-L2774",
+        "vllm@ced6857a:vllm/v1/worker/gpu_worker.py#L528-L600",
+        "vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6464-L6490",
         "vllm@ced6857a:docs/configuration/conserving_memory.md#L78-L185",
-        "vllm@84030bbe:docs/configuration/conserving_memory.md#L78-L185"
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L475-L587",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L670-L865",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1034-L1075",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L804-L835",
+        "vllm@ba15685a:vllm/config/cache.py#L216-L256",
+        "vllm@ba15685a:vllm/config/cache.py#L381-L390",
+        "vllm@ba15685a:vllm/v1/core/kv_cache_planning.py#L1521-L1605",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L527-L742",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L575-L819",
+        "vllm@0fc695fc:vllm/config/cache.py#L67-L88",
+        "vllm@568afb3a:vllm/config/cache.py#L68-L89",
+        "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L464-L597",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L717-L758",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1660-L1666",
+        "vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L233-L284",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L459-L548",
+        "https://github.com/vllm-project/vllm/issues/56830",
+        "raw:sha256-33dba601f999712c1a51ec9bd5b263c1cb45ff47b831f0e31ecff03e8120e6e3.md#L1-L1457"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "releases/v0.30.0rc2",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -10341,29 +10264,24 @@
       ],
       "relations": [
         {
-          "to": "device-memory",
+          "to": "kv-cache",
           "kind": "builds-on",
-          "note": "先分清权重、临时张量和 KV cache 在设备内存里各放什么"
+          "note": "先理解每层为什么要跨步保留历史 K、V，才能看清为什么要把剩余显存全部拨给缓存池"
         },
         {
-          "to": "kv-cache-spec",
+          "to": "paged-attention",
           "kind": "builds-on",
-          "note": "可用 KV 显存要按每块字节数切块，块规格在那页"
+          "note": "扣完非 KV 开销后的可用字节预算，最终要按固定块长切成物理分页块供请求借还"
         },
         {
-          "to": "hccl-buffer",
+          "to": "npu-worker-lifecycle",
           "kind": "builds-on",
-          "note": "HCCL 缓冲属于非 torch 增量，各组留多大、折合多少块在那页"
-        },
-        {
-          "to": "acl-graph",
-          "kind": "builds-on",
-          "note": "decode 图在切完 KV 之后才录，图内存从预算外支付"
+          "note": "显存快照、通信建组、装权重、量预算、建池与录图的严格先后顺序由 Worker 启动链固定"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-10",
+      "updated": "2026-11-18",
       "file": "concepts/kv-cache-memory-profiling.md",
       "backlinks": [
         {
@@ -10385,11 +10303,6 @@
           "from": "hf-model-anatomy",
           "kind": "enables",
           "note": "从 config.json 读出的层数、KV 头数、head_dim 与 dtype 如何决定实际 KV 显存池大小，见显存划定页"
-        },
-        {
-          "from": "npu-worker-lifecycle",
-          "kind": "enables",
-          "note": "第四步量预算时每一项怎么扣、为什么试跑两次，推导在那一页"
         },
         {
           "from": "vllm-kv-block-allocation",
@@ -10514,11 +10427,6 @@
           "from": "c8-enable-reshape-optim-8bd7e5f82c6c",
           "kind": "enables",
           "note": "它只作用在 LightningIndexer 那份 C8 量化缓存的写入路径上，indexer 不走 C8 时这个键恒等于没开"
-        },
-        {
-          "from": "low-precision-formats",
-          "kind": "enables",
-          "note": "分清对权重和历史状态量化的不同生命周期与误差"
         }
       ]
     },
@@ -10850,11 +10758,6 @@
           "note": "缓存规格决定哪些层可以共享物理缓冲区"
         },
         {
-          "from": "kv-cache-memory-profiling",
-          "kind": "enables",
-          "note": "可用 KV 显存要按每块字节数切块，块规格在那页"
-        },
-        {
           "from": "kv-cache-quantization",
           "kind": "enables",
           "note": "改精度改的是缓存规格里的字段，实际每页几个位置、怎样对齐看规格页"
@@ -10872,7 +10775,7 @@
         {
           "from": "npu-worker-lifecycle",
           "kind": "enables",
-          "note": "第五步按缓存配置分配张量，每层每页的形状由规格决定"
+          "note": "第④步上报状态规格、第⑤步分配物理缓存张量时，每层每页的字节与形状由规格决定"
         },
         {
           "from": "one-request",
@@ -11078,11 +10981,6 @@
           "from": "recompute-cpu-offload",
           "kind": "alternative-to",
           "note": "池按内容指纹存前缀段，谁的开头对上谁能取；换出只存被抢占的这一条，只有它恢复时取回"
-        },
-        {
-          "from": "hardware-devices",
-          "kind": "enables",
-          "note": "想继续了解内存池化时，区分外部对象缓存与本地状态池"
         },
         {
           "from": "kv-cache-layerwise-offload",
@@ -11902,7 +11800,7 @@
         {
           "from": "gqa",
           "kind": "alternative-to",
-          "note": "GLM 的 KDA 层不存逐位置的 K、V，历史压进固定大小的状态"
+          "note": "KDA 等线性注意力不存逐位置的 K、V，而把历史累积进固定大小的状态"
         },
         {
           "from": "mla",
@@ -11923,11 +11821,6 @@
           "from": "attention-cost",
           "kind": "enables",
           "note": "KDA 固定状态的递推、卷积状态，以及每条请求分配 85 MiB 缓存页的来历"
-        },
-        {
-          "from": "kv-cache",
-          "kind": "enables",
-          "note": "递推与卷积状态保存不同形式的历史"
         },
         {
           "from": "kv-cache-spec",
@@ -12487,7 +12380,7 @@
       "title": "BF16、INT8、FP8 与 FP4：位数一样，数值为什么不一样",
       "type": "concept",
       "origin": "gap",
-      "summary": "从 FP32、FP16、BF16 和 INT8 基线出发，分清 FP8、FP4、NF4、MX 与 HiF8 的元素编码和缩放；解释昇腾 910B/910C 为何不只支持 FP8 推理，区分模型文件精度、加载后权重与实际计算，并核对 A2/A3 的 BF16、FP16、INT8 路径及版本边界。",
+      "summary": "从 FP32、FP16、BF16 与 INT8 出发，拆解 FP8、HiF8、NF4、MXFP8、MXFP4 与 NVFP4 的位域分配和块级缩放；区分权重文件精度、加载后 HBM 驻留格式与 Cube 实际计算类型，对照 vllm-ascend v0.30.0 下 A2/A3、310P 与 Ascend 950 的四族选路边界。",
       "aliases": [
         "FP32",
         "FP16",
@@ -12527,7 +12420,7 @@
         "FP16推理"
       ],
       "chapters": [
-        "19"
+        "04"
       ],
       "order": 10,
       "prerequisites": [],
@@ -12544,68 +12437,62 @@
         "https://github.com/vllm-project/vllm-ascend/issues/16375",
         "https://www.hiascend.com/doc_center/source/en/canncommercial/850/API/aolapi/context/ops-nn/aclnnMatmul.md",
         "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/850/API/aolapi/context/ops-transformer/aclnnAllGatherMatmulV2.md",
-        "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/quantization.md#L75-L125",
-        "vllm-ascend@baa023ad:docs/source/user_guide/support_matrix/supported_models.md#L27-L36",
-        "vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_models.md#L31-L40",
-        "vllm-ascend@2ed6cbba:docs/source/user_guide/support_matrix/supported_models.md#L27-L36",
-        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/quantization.md#L75-L107",
-        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/quantization.md#L75-L107",
         "https://arxiv.org/html/1905.12322v3",
         "https://arxiv.org/html/2209.05433v2",
         "https://arxiv.org/abs/2305.14314",
         "https://pytorch.org/blog/empowering-pytorch-on-intel-xeon-scalable-processors-with-bfloat16/",
         "raw:sha256-2f7e401c61e5c890b06122c22dca5c92187461b9d8d14fca1c6b88fc1ec81158.md#L1-L164",
-        "vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:docs/source/user_guide/feature_guide/quantization.md#L105-L116",
         "raw:sha256-8be59806c72e15777245016e3f54cbfc1399ecea07a6a6a354b7c462d9d2b54f.md#L1-L179",
-        "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/quantization.md#L105-L121",
-        "vllm-ascend@7d825229:vllm_ascend/quantization/configs/fp8_config.py#L26-L111",
-        "vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L181",
-        "vllm-ascend@7d825229:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L124-L239",
-        "vllm-ascend@7d825229:vllm_ascend/quantization/methods/kv_cache/mxfp_c8.py#L51-L103",
-        "https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/quantization.md#L105-L121",
-        "vllm-ascend@baa023ad:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L123-L250"
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/quantization.md#L75-L125",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/quantization.md#L105-L122",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/support_matrix/supported_models.md#L27-L69",
+        "vllm-ascend@c09d3e20:docs/source/getting_started/quick_start/online/qwen3-0.6b-310p.inc.md#L1-L16",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/quantization.md#L75-L107",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_models.md#L31-L40",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/quantization.md#L75-L107",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/support_matrix/supported_models.md#L27-L36",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/fp8_config.py#L26-L111",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L17-L34",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L124-L297",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L128",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L207-L213",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L341-L349",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L425-L433",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L281-L340",
+        "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L375-L440",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_mxfp8.py#L54-L91",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w4a4/w4a4_mxfp4.py#L71-L114",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/kv_cache/mxfp_c8.py#L51-L103",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L36-L93",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_pdmix.py#L36-L101",
+        "vllm-ascend@2ed6cbba:vllm_ascend/quantization/methods/w8a8_pdmix.py#L37-L109"
       ],
-      "verified": [],
-      "evidence": "S",
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
       "rawSources": [
         "raw/sha256-8a13605a3f78792aa6388de030d5716f3f3b9a70111131c3c3983706b9876e1b.md",
         "raw/sha256-8be59806c72e15777245016e3f54cbfc1399ecea07a6a6a354b7c462d9d2b54f.md"
       ],
       "relations": [
         {
-          "to": "quantization",
+          "to": "hardware-devices",
           "kind": "builds-on",
-          "note": "INT8 的基本缩放过程和 GLM W8A8 由原页维护"
-        },
-        {
-          "to": "kv-cache-quantization",
-          "kind": "builds-on",
-          "note": "分清对权重和历史状态量化的不同生命周期与误差"
-        },
-        {
-          "to": "deepseek-v4-1-flash",
-          "kind": "builds-on",
-          "note": "固定模型的状态维度和完整分页字节账在模型页"
+          "note": "先按完整产品型号分清 A2/A3、310P 与 Ascend 950，再核对量化后端与算子精度"
         },
         {
           "to": "ai-core",
           "kind": "builds-on",
-          "note": "区分格式可存储、数据可转换与计算单元能直接执行"
-        },
-        {
-          "to": "hardware-devices",
-          "kind": "builds-on",
-          "note": "按完整产品型号确认 A2/A3 环境，再核对算子与框架的精度支持"
-        },
-        {
-          "to": "inference-correctness-troubleshooting",
-          "kind": "builds-on",
-          "note": "先找首次数值分歧，再定位缩放与格式转换"
+          "note": "区分格式可存储、加载期可转换与 Cube/Vector 计算单元能直接原生执行"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-18",
       "file": "concepts/low-precision-formats.md",
       "backlinks": [
         {
@@ -12902,7 +12789,7 @@
         {
           "from": "gqa",
           "kind": "alternative-to",
-          "note": "GLM 稀疏 MLA 层存一条共享潜向量，而不是减少 K、V 的组数"
+          "note": "MLA 把每位置历史压成一条共享潜向量、用时按头还原，而不是减少 K、V 的组数"
         },
         {
           "from": "linear-attention",
@@ -12918,11 +12805,6 @@
           "from": "attention-cost",
           "kind": "enables",
           "note": "每个位置 1 KiB 的潜向量从哪里来，吸收怎样在潜空间里打分和汇合"
-        },
-        {
-          "from": "kv-cache",
-          "kind": "enables",
-          "note": "潜向量保存按位置访问的历史"
         },
         {
           "from": "kv-cache-quantization",
@@ -14021,11 +13903,6 @@
           "from": "ascend-patch-system",
           "kind": "enables",
           "note": "平台准备钩子 pre_register_and_update 属于 NPUPlatform"
-        },
-        {
-          "from": "hardware-devices",
-          "kind": "enables",
-          "note": "看平台契约怎样落实设备选择、配置校验与后端选择"
         }
       ]
     },
@@ -14034,7 +13911,7 @@
       "title": "NPUWorker 启动：一张卡按什么顺序准备好接请求",
       "type": "feature",
       "origin": "gap",
-      "summary": "每张 NPU 上有一个 NPUWorker。启动时它先换补丁、选卡建通信组、装本卡那份权重、试跑量出 KV cache 预算；EngineCore 收齐各卡的数、按最紧的那张卡定块数并发回配置后，每张卡再建缓存池，最后预热并录 decode 图。每一步用到上一步的产物，所以顺序固定。预算怎么扣、块怎么借、系统怎么分层各有专页，本页只讲这条先后链。",
+      "summary": "每张可见 NPU 对应一个 NPUWorker（310P 为 NPUWorker310）。冷启动按严格依赖依次完成打补丁与算子注册、绑卡拍快照与建 HCCL 通信组、解析架构并加载分形权重、试跑量测 KV 预算、按 EngineCore 全局最小块数建缓存池，最后跑完 7 类预热机制并捕获 ACLGraph 图池。",
       "aliases": [
         "NPUWorker",
         "WorkerBase",
@@ -14062,133 +13939,64 @@
         "code_revision"
       ],
       "chapters": [
-        "10"
+        "05"
       ],
       "order": 110,
       "prerequisites": [],
       "sources": [
-        "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L90-L133",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L447-L503",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L505-L521",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L988",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L668-L691",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L894-L905",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L693-L789",
-        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L626-L634",
-        "vllm@0fc695fc:vllm/v1/engine/core.py#L236-L317",
-        "vllm@0fc695fc:vllm/v1/executor/abstract.py#L118-L126",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3717-L3795",
-        "vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_process_weights_after_loading.py#L18-L64",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L136-L191",
-        "vllm@0fc695fc:vllm/model_executor/model_loader/weight_utils.py#L801-L1027",
-        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1545-L1551",
-        "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L162-L162",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L798",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_process_weights_after_loading.py#L18-L21",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_weight_utils.py#L36-L74",
-        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L748-L778",
-        "vllm-ascend@2ed6cbba:vllm_ascend/model_executor/warmup/kernel_warmup.py#L36-L49",
-        "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L549-L620",
-        "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1129-L1138",
-        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L300-L322",
-        "vllm@0fc695fc:vllm/config/parallel.py#L156-L162",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2018-L2018",
-        "raw:sha256-2591dc384678a937fe68a029644482014f40962be3f0c3e3f16bc30685fc3704.md#L1-L1135",
-        "vllm@0fc695fc:vllm/config/load.py#L25-L85",
-        "vllm@0fc695fc:vllm/model_executor/model_loader/__init__.py#L34-L132",
-        "vllm@0fc695fc:vllm/model_executor/model_loader/default_loader.py#L97-L209",
-        "vllm@568afb3a:vllm/config/load.py#L14-L85",
-        "vllm@568afb3a:vllm/model_executor/model_loader/__init__.py#L33-L66",
-        "vllm@568afb3a:vllm/model_executor/model_loader/default_loader.py#L128-L242",
-        "vllm@84030bbe:vllm/config/load.py#L25-L85",
-        "vllm@84030bbe:vllm/model_executor/model_loader/__init__.py#L33-L66",
-        "vllm@84030bbe:vllm/model_executor/model_loader/default_loader.py#L128-L242",
-        "vllm@0fc695fc:vllm/config/model.py#L140-L155",
-        "vllm@568afb3a:vllm/config/model.py#L140-L155",
-        "vllm@84030bbe:vllm/config/model.py#L150-L185",
-        "vllm@568afb3a:vllm/model_executor/model_loader/weight_utils.py#L840-L974",
-        "vllm@84030bbe:vllm/model_executor/model_loader/weight_utils.py#L866-L1000",
-        "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L491-L506",
-        "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L837-L858",
-        "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L1178-L1221",
-        "vllm-ascend@7d825229:vllm_ascend/model_executor/warmup/kernel_warmup.py#L39-L53",
-        "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L266-L275",
-        "vllm@ced6857a:vllm/config/load.py#L30-L66",
-        "vllm@ced6857a:vllm/config/model.py#L167-L167",
-        "vllm@ced6857a:vllm/model_executor/model_loader/weight_utils.py#L888-L939",
-        "vllm@ced6857a:vllm/model_executor/model_loader/__init__.py#L50-L66",
-        "vllm@ced6857a:vllm/model_executor/model_loader/default_loader.py#L186-L230",
-        "vllm@84030bbe:vllm/model_executor/model_loader/utils.py#L147-L155",
-        "vllm@84030bbe:vllm/model_executor/layers/attention/__init__.py#L26-L30",
-        "vllm@ced6857a:vllm/config/load.py#L12-L96",
-        "vllm@ced6857a:vllm/model_executor/model_loader/weight_utils.py#L866-L1000",
-        "vllm@ced6857a:vllm/config/model.py#L163-L169",
-        "vllm@ced6857a:vllm/config/model.py#L628-L637",
-        "vllm@ced6857a:vllm/config/model.py#L1705-L1721",
-        "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L557-L657",
-        "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L837-L970",
-        "vllm-ascend@7d825229:vllm_ascend/models/glm5next/attention.py#L301-L321",
-        "vllm@ced6857a:vllm/model_executor/model_loader/utils.py#L146-L158",
-        "vllm@ced6857a:vllm/model_executor/layers/attention/__init__.py#L26-L30",
-        "vllm-ascend@7d825229:vllm_ascend/model_executor/warmup/kernel_warmup.py#L1-L53",
-        "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L1171-L1221",
-        "vllm@ced6857a:vllm/model_executor/model_loader/__init__.py#L33-L66",
-        "vllm@ced6857a:vllm/model_executor/model_loader/default_loader.py#L128-L230",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L123-L200",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L391-L521",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L567-L665",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L854-L992",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1185-L1229",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1283-L1305",
+        "vllm-ascend@c09d3e20:vllm_ascend/_310p/worker_310p.py#L34-L208",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4372-L4565",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L6607-L6622",
+        "vllm-ascend@c09d3e20:vllm_ascend/model_executor/warmup/kernel_warmup.py#L1-L53",
+        "vllm-ascend@c09d3e20:vllm_ascend/model_executor/warmup/early_kernel_warmup.py#L1-L139",
+        "vllm-ascend@c09d3e20:vllm_ascend/model_executor/warmup/nz_warmup.py#L1-L83",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L263-L273",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L565-L657",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L369-L434",
         "vllm@ced6857a:vllm/v1/executor/multiproc_executor.py#L662-L686",
-        "vllm@ced6857a:vllm/v1/engine/core.py#L284-L356",
+        "vllm@ced6857a:vllm/v1/engine/core.py#L254-L384",
         "vllm@ced6857a:vllm/v1/executor/abstract.py#L120-L135",
-        "vllm@ced6857a:vllm/model_executor/model_loader/default_loader.py#L110-L126",
-        "vllm@0fc695fc:vllm/transformers_utils/config.py#L689-L874",
-        "vllm@0fc695fc:vllm/transformers_utils/config.py#L206-L302",
-        "vllm@0fc695fc:vllm/model_executor/models/registry.py#L1064-L1264",
-        "vllm@0fc695fc:vllm/config/model.py#L489-L560",
-        "vllm@0fc695fc:vllm/tokenizers/registry.py#L196-L279",
-        "vllm@0fc695fc:vllm/tokenizers/hf.py#L160-L215",
-        "vllm@0fc695fc:vllm/model_executor/model_loader/default_loader.py#L293-L317",
-        "vllm@568afb3a:vllm/transformers_utils/config.py#L688-L813",
-        "vllm@568afb3a:vllm/model_executor/models/registry.py#L1122-L1322",
-        "vllm@568afb3a:vllm/config/model.py#L506-L572",
-        "vllm@568afb3a:vllm/tokenizers/registry.py#L181-L266",
-        "vllm@568afb3a:vllm/model_executor/model_loader/default_loader.py#L326-L350",
+        "vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L2722-L2774",
+        "vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L5410-L5422",
+        "vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L6925-L6935",
+        "vllm@ced6857a:vllm/config/load.py#L26-L96",
+        "vllm@ced6857a:vllm/config/model.py#L142-L368",
+        "vllm@ced6857a:vllm/config/model.py#L553-L641",
+        "vllm@ced6857a:vllm/model_executor/model_loader/__init__.py#L33-L66",
+        "vllm@ced6857a:vllm/model_executor/model_loader/default_loader.py#L110-L230",
+        "vllm@ced6857a:vllm/model_executor/model_loader/weight_utils.py#L866-L1000",
+        "vllm@ced6857a:vllm/model_executor/model_loader/utils.py#L146-L164",
         "vllm@ced6857a:vllm/transformers_utils/config.py#L757-L886",
         "vllm@ced6857a:vllm/model_executor/models/registry.py#L1217-L1423",
-        "vllm@ced6857a:vllm/config/model.py#L553-L641",
         "vllm@ced6857a:vllm/tokenizers/registry.py#L203-L321",
-        "vllm@ced6857a:vllm/model_executor/model_loader/default_loader.py#L326-L350",
-        "vllm@84030bbe:vllm/transformers_utils/config.py#L748-L877",
-        "vllm@84030bbe:vllm/model_executor/models/registry.py#L1208-L1414",
-        "vllm@84030bbe:vllm/config/model.py#L553-L641",
-        "vllm@84030bbe:vllm/tokenizers/registry.py#L203-L321",
-        "vllm@84030bbe:vllm/model_executor/model_loader/default_loader.py#L326-L350",
-        "vllm@ced6857a:vllm/transformers_utils/repo_utils.py#L52-L87",
-        "vllm@84030bbe:vllm/transformers_utils/repo_utils.py#L52-L87",
-        "vllm@ced6857a:vllm/transformers_utils/repo_utils.py#L93-L125",
-        "vllm@0fc695fc:vllm/transformers_utils/repo_utils.py#L204-L222",
-        "vllm@0fc695fc:vllm/transformers_utils/repo_utils.py#L245-L341",
-        "vllm@0fc695fc:vllm/config/model.py#L125-L189",
-        "vllm@0fc695fc:vllm/config/model.py#L271-L315",
-        "vllm@0fc695fc:vllm/model_executor/model_loader/utils.py#L40-L94",
-        "vllm@0fc695fc:vllm/model_executor/model_loader/utils.py#L178-L234",
-        "vllm@0fc695fc:vllm/model_executor/model_loader/base_loader.py#L43-L85",
-        "vllm@0fc695fc:vllm/model_executor/model_loader/__init__.py#L133-L148",
-        "vllm@568afb3a:vllm/config/model.py#L127-L189",
-        "vllm@568afb3a:vllm/config/model.py#L273-L328",
-        "vllm@ced6857a:vllm/config/model.py#L142-L214",
-        "vllm@ced6857a:vllm/config/model.py#L309-L368",
-        "vllm@84030bbe:vllm/config/model.py#L142-L214",
-        "vllm@84030bbe:vllm/config/model.py#L309-L368",
-        "https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/docs/configuration/model_resolution.md#L1-L23",
-        "https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/docs/design/huggingface_integration.md#L1-L31",
-        "https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/docs/models/supported_models.md#L1-L210",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L779-L858",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1565-L1629"
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/Qwen3-Dense.md#L230-L355",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/Qwen3-30B-A3B.md#L235-L285",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/configuration/additional_config.md#L40-L112",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/sleep_mode.md#L1-L36",
+        "vllm@ced6857a:docs/configuration/model_resolution.md#L1-L23",
+        "vllm@ced6857a:docs/design/huggingface_integration.md#L1-L31",
+        "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L90-L920",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_weight_utils.py#L36-L74",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L99-L1015",
+        "vllm-ascend@2ed6cbba:vllm_ascend/model_executor/warmup/kernel_warmup.py#L36-L49",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L145-L1300",
+        "vllm-ascend@8d6180e2:vllm_ascend/model_executor/warmup/kernel_warmup.py#L184-L236",
+        "vllm@0fc695fc:vllm/config/parallel.py#L156-L162",
+        "vllm@ba15685a:vllm/model_executor/model_loader/__init__.py#L33-L66",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_process_weights_after_loading.py#L18-L64",
+        "raw:sha256-2591dc384678a937fe68a029644482014f40962be3f0c3e3f16bc30685fc3704.md#L1-L1135"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "releases/v0.30.0rc2",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -14198,34 +14006,39 @@
       ],
       "relations": [
         {
-          "to": "engine-processes",
+          "to": "hardware-devices",
           "kind": "builds-on",
-          "note": "Worker 在哪个进程里、每个 EngineCore 起几个 Worker，由执行器决定"
+          "note": "先明确物理板卡、A3 双裸片与软件可见 NPU 的对应关系，才能看懂单卡 Worker 绑卡与 SoC 校验"
         },
         {
-          "to": "kv-cache-memory-profiling",
+          "to": "cann-hccl",
           "kind": "builds-on",
-          "note": "第四步量预算时每一项怎么扣、为什么试跑两次，推导在那一页"
+          "note": "第②步建立 TP/PP/DP/EP 通信域依赖 HCCL 与底层 CANN 运行时"
+        },
+        {
+          "to": "engine-processes",
+          "kind": "builds-on",
+          "note": "Worker 是否作为独立子进程派生、每个 EngineCore 管几个 Worker，由执行器决定"
+        },
+        {
+          "to": "ascend-patch-system",
+          "kind": "builds-on",
+          "note": "第①步构造函数在当前进程内打 worker 层补丁，生效范围受进程边界约束"
+        },
+        {
+          "to": "vllm-platform-interface",
+          "kind": "builds-on",
+          "note": "上游执行器通过平台契约查询 worker_cls，才定位到昇腾侧的 NPUWorker 或 NPUWorker310"
         },
         {
           "to": "kv-cache-spec",
           "kind": "builds-on",
-          "note": "第五步按缓存配置分配张量，每层每页的形状由规格决定"
-        },
-        {
-          "to": "vllm-kv-block-allocation",
-          "kind": "builds-on",
-          "note": "启动只建好池子，请求来了才从池里借块、用完归还"
-        },
-        {
-          "to": "graph-mode-layer",
-          "kind": "builds-on",
-          "note": "第六步录下的图，运行时怎样被选中和回放"
+          "note": "第④步上报状态规格、第⑤步分配物理缓存张量时，每层每页的字节与形状由规格决定"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-10",
+      "updated": "2026-11-18",
       "file": "concepts/npu-worker-lifecycle.md",
       "backlinks": [
         {
@@ -14257,6 +14070,11 @@
           "from": "inference-troubleshooting",
           "kind": "enables",
           "note": "启动失败沿设备初始化、权重、预算与预热逐段定位"
+        },
+        {
+          "from": "kv-cache-memory-profiling",
+          "kind": "enables",
+          "note": "显存快照、通信建组、装权重、量预算、建池与录图的严格先后顺序由 Worker 启动链固定"
         },
         {
           "from": "npu-model-runner",
@@ -14672,16 +14490,6 @@
           "note": "R1 的 4 token 示例、15 个块号与 MTP 闭环沿用单请求主线"
         },
         {
-          "from": "gqa",
-          "kind": "enables",
-          "note": "R1 在第 4 站走过 34 层 KDA 与 11 层稀疏 MLA 时每卡的形状，唯一推导处"
-        },
-        {
-          "from": "kv-cache",
-          "kind": "enables",
-          "note": "回到 A2 分配缓存与 A6 更新有效进度的请求循环"
-        },
-        {
           "from": "layers-and-hidden",
           "kind": "enables",
           "note": "本页的计算发生在主线第 4 站逐层前向；R1 每一站的形状、字节数和通信次数在主线页"
@@ -14710,11 +14518,6 @@
           "from": "op-to-ai-core",
           "kind": "enables",
           "note": "回到 A4 逐层前向核对真实形状与通信"
-        },
-        {
-          "from": "prefill",
-          "kind": "enables",
-          "note": "R1 的 prefill 与 decode 两圈、每卡形状、块号和通信都只在那一页推导，本页只引结论"
         },
         {
           "from": "prefix-caching",
@@ -14760,11 +14563,6 @@
           "from": "tensor-parallel",
           "kind": "enables",
           "note": "本页展开第 4 站的矩阵切分与 TP 通信，七站总账留在主线页"
-        },
-        {
-          "from": "token",
-          "kind": "enables",
-          "note": "本页展开 A1 的模板与分词，R1 的七站形状和设备账回到主线页"
         },
         {
           "from": "vllm-ascend-for-rl",
@@ -15163,6 +14961,11 @@
           "from": "ascend-flash-attention",
           "kind": "enables",
           "note": "理解分页 KV 缓存与块表寻址后，才能看清 FIA、PA 与 FA3 怎样直接消费非连续物理页"
+        },
+        {
+          "from": "kv-cache-memory-profiling",
+          "kind": "enables",
+          "note": "扣完非 KV 开销后的可用字节预算，最终要按固定块长切成物理分页块供请求借还"
         }
       ]
     },
@@ -15924,7 +15727,7 @@
       "title": "Prefill 与 Decode：提示词怎样处理，回答怎样接着往下写",
       "type": "concept",
       "origin": "gap",
-      "summary": "Prefill 处理提示词中尚未计算的位置并建立历史，可以一轮完成，也可以跨多轮；处理完成后，用最后一个位置选出回答的第一个 token。随后 decode 在已有历史上接着生成。两者用同一套权重，区别在输入位置的用途、已有历史以及调度与执行分支。",
+      "summary": "Prefill 并行处理提示词中尚未计算的位置并写入 KV 历史（可单轮或跨多轮分块完成），完结当步仅切出最后一个位置的隐藏向量经 lm_head 选出第 1 个输出 token；随后 Decode 每轮送入新位置、复用全量历史逐词续写。两者共享同一套模型权重，但在算术强度、显存带宽压力与执行分支上截然相反。",
       "aliases": [
         "Prefill",
         "Decode",
@@ -15942,68 +15745,63 @@
         "提示词对数概率"
       ],
       "chapters": [
-        "05"
+        "03"
       ],
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json",
+        "vllm@ced6857a:docs/design/metrics.md#L48-L81",
         "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L400-L416",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L680-L700",
-        "vllm@0fc695fc:vllm/config/scheduler.py#L70-L84",
-        "vllm@0fc695fc:vllm/config/scheduler.py#L259-L271",
-        "vllm@0fc695fc:vllm/v1/engine/input_processor.py#L395-L432",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L838-L856",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1444-L1471",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L147-L152",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2915-L2941",
-        "vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L306-L327",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L590-L644",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1262-L1307",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2326-L2327",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1075-L1099",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2632-L2686",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2738-L2742",
-        "vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472",
-        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L428-L436",
-        "vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L566-L574",
-        "vllm@84030bbe:vllm/config/scheduler.py#L70-L72",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1477-L1505",
-        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1327-L1355",
-        "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L1662-L1690",
-        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L434-L515",
-        "raw:sha256-08c5c80fd562026f77c85a102ffd4cedae609ed7d2c5faa5498ec73d556ed625.md#L1-L700",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L525-L590",
-        "vllm@0fc695fc:vllm/sampling_params.py#L262-L288",
-        "vllm@0fc695fc:vllm/sampling_params.py#L478-L484",
-        "vllm@0fc695fc:vllm/sampling_params.py#L713-L773",
-        "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L5399-L5509",
-        "vllm@568afb3a:vllm/v1/worker/gpu_model_runner.py#L5562-L5679",
-        "vllm@84030bbe:vllm/v1/worker/gpu_model_runner.py#L5608-L5725",
-        "vllm@0fc695fc:vllm/v1/engine/logprobs.py#L121-L206",
-        "vllm@0fc695fc:vllm/logprobs.py#L100-L206",
-        "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/protocol.py#L110-L155",
-        "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/protocol.py#L577-L630",
-        "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/protocol.py#L693-L723",
-        "vllm@0fc695fc:vllm/entrypoints/openai/completion/protocol.py#L275-L333",
-        "vllm@0fc695fc:vllm/entrypoints/openai/completion/protocol.py#L409-L437",
-        "vllm@0fc695fc:vllm/entrypoints/openai/completion/protocol.py#L476-L540",
-        "vllm@0fc695fc:vllm/entrypoints/openai/engine/serving.py#L475-L487",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L217",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2769-L2773",
-        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L2712-L2716",
-        "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L3131-L3135",
+        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json",
+        "vllm@ced6857a:vllm/v1/engine/core.py#L589-L620",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L573",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L656-L706",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1040-L1085",
+        "vllm@ced6857a:vllm/config/scheduler.py#L70-L122",
+        "vllm@ced6857a:vllm/config/scheduler.py#L274-L331",
         "vllm@ced6857a:vllm/engine/arg_utils.py#L2794-L2834",
-        "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L1308-L1324",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2370-L2385",
-        "vllm@568afb3a:vllm/engine/arg_utils.py#L2514-L2531",
-        "vllm@84030bbe:vllm/engine/arg_utils.py#L2773-L2788"
+        "vllm@ced6857a:vllm/v1/engine/input_processor.py#L440-L486",
+        "vllm@ced6857a:vllm/config/compilation.py#L58-L88",
+        "vllm@ced6857a:vllm/v1/cudagraph_dispatcher.py#L235-L325",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L154-L160",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1320-L1325",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1476-L1489",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1638-L1692",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1706-L1733",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2633-L2646",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L3038-L3135",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L3344-L3394",
+        "vllm@ced6857a:vllm/sampling_params.py#L540-L645",
+        "vllm@ced6857a:vllm/sampling_params.py#L888-L899",
+        "vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L5643-L5750",
+        "vllm@ced6857a:vllm/v1/core/kv_cache_manager.py#L245-L255",
+        "vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L600-L660",
+        "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/protocol.py#L710-L852",
+        "vllm@ced6857a:vllm/entrypoints/openai/completion/protocol.py#L358-L542",
+        "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L1168-L1292",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3.py#L99-L135",
+        "vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L167-L213",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/kimi_kda.py#L605-L710",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351",
+        "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L5399-L5509",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1477-L1505",
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L428-L436",
+        "vllm@568afb3a:vllm/v1/worker/gpu_model_runner.py#L5562-L5679",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1327-L1355",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L590-L644",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2915-L2941",
+        "vllm@ba15685a:vllm/v1/core/sched/scheduler.py#L721-L733",
+        "vllm@ba15685a:vllm/config/scheduler.py#L91-L150",
+        "vllm@ba15685a:vllm/v1/worker/gpu_model_runner.py#L5341-L5450",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/attn_utils.py#L725-L750",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L1185-L1202",
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/kimi_kda.py#L598-L850",
+        "raw:sha256-08c5c80fd562026f77c85a102ffd4cedae609ed7d2c5faa5498ec73d556ed625.md#L1-L700"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -16013,29 +15811,29 @@
       ],
       "relations": [
         {
-          "to": "one-request",
+          "to": "request-overview",
           "kind": "builds-on",
-          "note": "R1 的 prefill 与 decode 两圈、每卡形状、块号和通信都只在那一页推导，本页只引结论"
-        },
-        {
-          "to": "attention-qkv",
-          "kind": "builds-on",
-          "note": "因果掩码决定一次送进去的多个位置各能看到哪些历史"
-        },
-        {
-          "to": "glm-5-3-flash-two-node",
-          "kind": "builds-on",
-          "note": "每步 8192 个位置、32 条请求、MTP 3 个候选等部署取值的出处"
+          "note": "承接全景鸟瞰里的“两轮四件事”，深入拆开第一轮提示词并行建档与后续逐词续写的代价与执行分路"
         },
         {
           "to": "token",
           "kind": "builds-on",
-          "note": "Prefill 与 decode 按 token 所占的序列位置组织计算，依赖 token 页定义的分词、编号与位置概念。"
+          "note": "Prefill 与 Decode 按 token 在序列中所占的位置编号组织输入张量与进度计数"
+        },
+        {
+          "to": "attention-qkv",
+          "kind": "builds-on",
+          "note": "因果掩码规定并排送入的提示词位置各自只能看见自己与前文，也决定了旧位置的 K、V 无需重算"
+        },
+        {
+          "to": "gqa",
+          "kind": "builds-on",
+          "note": "Qwen3-8B 等标准模型的分组查询头共享 K、V 头，直接决定两阶段每位置读写缓存的字节数与注意力算术强度"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-18",
       "file": "concepts/prefill.md",
       "backlinks": [
         {
@@ -16051,7 +15849,7 @@
         {
           "from": "kv-cache",
           "kind": "enables",
-          "note": "在多轮前向之间复用已计算状态"
+          "note": "Prefill 建立提示词历史并产出首个生成词，Decode 每步在已有缓存上只补算新位置"
         },
         {
           "from": "pd-disaggregation",
@@ -16679,11 +16477,6 @@
           "from": "kv-cache-quantization",
           "kind": "enables",
           "note": "一个数怎样压成 8 位、偏移（零点）是什么在量化页，本页讲这些数放进缓存以后怎样写、怎样读"
-        },
-        {
-          "from": "low-precision-formats",
-          "kind": "enables",
-          "note": "INT8 的基本缩放过程和 GLM W8A8 由原页维护"
         },
         {
           "from": "netloader-guide",
@@ -17956,11 +17749,6 @@
           "note": "API server、EngineCore 两种进程和它们之间的 ZMQ 通道在那一页"
         },
         {
-          "from": "token",
-          "kind": "enables",
-          "note": "入口对象与跨进程交接的完整函数链在调用链页"
-        },
-        {
           "from": "vllm-ascend-repo-map",
           "kind": "enables",
           "note": "用实际数据交接定位源文件"
@@ -18057,6 +17845,16 @@
           "from": "hf-model-anatomy",
           "kind": "enables",
           "note": "先通过请求全景理解词表、层数、隐藏维度和 KV cache 在推理中的作用，再回过头看它们在模型目录里的具体数值定义"
+        },
+        {
+          "from": "prefill",
+          "kind": "enables",
+          "note": "承接全景鸟瞰里的“两轮四件事”，深入拆开第一轮提示词并行建档与后续逐词续写的代价与执行分路"
+        },
+        {
+          "from": "token",
+          "kind": "enables",
+          "note": "承接请求全景鸟瞰的第 1 件事与第 4 件事，拆解真实模型怎样把对话渲染、切块成整数编号，又怎样把输出编号还原为文字"
         }
       ]
     },
@@ -19301,7 +19099,13 @@
       "contradicts": [],
       "updated": "2026-11-18",
       "file": "concepts/roofline-and-metrics.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "hardware-devices",
+          "kind": "enables",
+          "note": "承接算力屋顶与显存带宽斜坡，将抽象的 π_peak 与 β_HBM 落到昇腾四族芯片、板卡与互联链路上"
+        }
+      ]
     },
     {
       "id": "rope",
@@ -19426,11 +19230,6 @@
           "from": "attention-backend-family",
           "kind": "enables",
           "note": "稀疏 MLA 后端的缓存视图与维度检查依赖潜向量和 RoPE 段的布局约定；GLM 固定配置的 RoPE 段宽度为 0。"
-        },
-        {
-          "from": "kv-cache",
-          "kind": "enables",
-          "note": "普通注意力存进缓存的 K 已按位置旋转；GLM 的 MLA 与 indexer 不带 RoPE 段"
         }
       ]
     },
@@ -21881,11 +21680,6 @@
           "note": "机内 8 张卡怎样合切一个矩阵"
         },
         {
-          "from": "gqa",
-          "kind": "enables",
-          "note": "按头切到各卡的做法；本页补 KV 头少于卡数时的复制"
-        },
-        {
           "from": "inference-performance-troubleshooting",
           "kind": "enables",
           "note": "比较并行方案时，核对矩阵分片和新增通信"
@@ -21924,10 +21718,17 @@
     },
     {
       "id": "token",
-      "title": "Token 与分词：从文本到模型输入",
+      "legacyAnchors": {
+        "落到-glm-双机分词器词表和-r1-的入口": "GLM-5.3-Flash 双机与 R1 案例边界：154880 词表与入口流转",
+        "glm-的分词器是字节级-bpe": "GLM-5.3-Flash 双机与 R1 案例边界：154880 词表与入口流转",
+        "编号要落在-154880-行之内": "GLM-5.3-Flash 双机与 R1 案例边界：154880 词表与入口流转",
+        "r1-在入口拿到了什么": "GLM-5.3-Flash 双机与 R1 案例边界：154880 词表与入口流转",
+        "再交给某一个引擎等待调度": "GLM-5.3-Flash 双机与 R1 案例边界：154880 词表与入口流转"
+      },
+      "title": "Token、分词与 chat_template：从文本消息到模型编号序列",
       "type": "concept",
       "origin": "gap",
-      "summary": "Token 是模型用整数编号表示的文本单元。先讲 token 是什么、为什么切成子词，再用一个例子演示字节级 BPE 怎样把文字拆成字节、按合并表一步步并成 token；接着讲聊天模板和生成的编号怎样变回文字，最后落到 GLM 双机的分词器、154880 行词表和 R1 的入口。",
+      "summary": "Token 是模型用整数编号表示的文本基本单元。本页从子词权衡与字节级 BPE 合并讲起，串联 chat_template 渲染、增量反分词与 Qwen3-8B 的 151936 词表校验，并对照特殊标记区间与 GLM 入口边界。",
       "aliases": [
         "词元",
         "令牌",
@@ -21959,79 +21760,67 @@
         "truncation_side"
       ],
       "chapters": [
-        "01"
+        "02"
       ],
       "order": 20,
       "prerequisites": [],
       "sources": [
         "https://huggingface.co/docs/transformers/tokenizer_summary",
         "https://huggingface.co/docs/transformers/chat_templating",
-        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json",
         "https://arxiv.org/html/1508.07909v5",
-        "vllm@0fc695fc:vllm/entrypoints/serve/render/serving.py#L183-L256",
-        "vllm@0fc695fc:vllm/renderers/hf.py#L694-L746",
-        "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L349-L415",
-        "vllm@0fc695fc:vllm/v1/engine/core_client.py#L1344-L1357",
-        "vllm@0fc695fc:vllm/v1/engine/core_client.py#L1398-L1426",
-        "vllm@0fc695fc:vllm/v1/engine/detokenizer.py#L47-L166",
-        "vllm@0fc695fc:vllm/v1/engine/input_processor.py#L387-L484",
-        "vllm@0fc695fc:vllm/config/model.py#L125-L256",
-        "vllm@568afb3a:vllm/config/model.py#L127-L258",
-        "vllm@84030bbe:vllm/config/model.py#L142-L294",
-        "vllm@568afb3a:vllm/renderers/hf.py#L699-L794",
-        "vllm@84030bbe:vllm/renderers/hf.py#L787-L885",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L814-L1225",
-        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/tokenizer.json",
-        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/chat_template.jinja",
-        "vllm@0fc695fc:vllm/tokenizers/hf.py#L112-L126",
-        "vllm@0fc695fc:vllm/sampling_params.py#L590-L618",
-        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/generation_config.json",
-        "https://github.com/deepseek-ai/deepseek-recipe/blob/935817c66f5d6e64838f419692545f06787e485f/docs/tokenizer.md",
-        "raw:sha256-b18efa9d5dec13007a53553772d09649b4147efc8d15d0b3344638b1ee728a21.md#L1-L1562",
-        "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/input_processor.py#L469-L484",
-        "vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/detokenizer.py#L107-L126",
-        "vllm@0fc695fc:vllm/tokenizers/registry.py#L43-L182",
-        "vllm@568afb3a:vllm/tokenizers/registry.py#L41-L161",
-        "vllm@84030bbe:vllm/tokenizers/registry.py#L50-L183",
-        "vllm@0fc695fc:vllm/config/model.py#L485-L505",
-        "vllm@0fc695fc:vllm/entrypoints/openai/cli_args.py#L80-L100",
-        "vllm@0fc695fc:vllm/entrypoints/chat_utils.py#L1253-L1340",
-        "vllm@0fc695fc:vllm/renderers/hf.py#L265-L314",
-        "vllm@568afb3a:vllm/entrypoints/openai/cli_args.py#L75-L100",
-        "vllm@84030bbe:vllm/entrypoints/launchers/cli_args.py#L75-L100",
-        "vllm@84030bbe:vllm/tokenizers/registry.py#L251-L273",
-        "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/protocol.py#L250-L324",
-        "vllm@568afb3a:vllm/entrypoints/openai/chat_completion/protocol.py#L260-L350",
-        "vllm@84030bbe:vllm/entrypoints/openai/chat_completion/protocol.py#L278-L368",
-        "vllm@0fc695fc:vllm/renderers/params.py#L28-L470",
-        "vllm@568afb3a:vllm/renderers/params.py#L28-L480",
-        "vllm@84030bbe:vllm/renderers/params.py#L28-L566",
-        "vllm@0fc695fc:vllm/config/multimodal.py#L17-L109",
-        "vllm@568afb3a:vllm/config/multimodal.py#L17-L106",
-        "vllm@84030bbe:vllm/config/multimodal.py#L17-L133",
-        "vllm@0fc695fc:vllm/entrypoints/openai/completion/protocol.py#L84-L105",
-        "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/protocol.py#L472-L520",
-        "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
-        "vllm@0fc695fc:vllm/renderers/base.py#L473-L494",
-        "raw:sha256-18af2b334f83526e141288bc158cd9c96a87167e8bdc8ee60da39ec7fca173f2.md#L1-L4362",
+        "https://huggingface.co/Qwen/Qwen3-8B/raw/main/config.json",
+        "vllm@ced6857a:vllm/renderers/hf.py#L263-L315",
+        "vllm@ced6857a:vllm/renderers/hf.py#L753-L885",
+        "vllm@ced6857a:vllm/renderers/params.py#L170-L485",
+        "vllm@ced6857a:vllm/tokenizers/registry.py#L33-L275",
+        "vllm@ced6857a:vllm/tokenizers/hf.py#L115-L150",
         "vllm@ced6857a:vllm/v1/engine/input_processor.py#L354-L380",
+        "vllm@ced6857a:vllm/v1/engine/input_processor.py#L440-L555",
+        "vllm@ced6857a:vllm/v1/engine/detokenizer.py#L31-L180",
+        "vllm@ced6857a:vllm/v1/engine/async_llm.py#L361-L525",
+        "vllm@ced6857a:vllm/config/model.py#L78-L300",
+        "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/protocol.py#L310-L610",
+        "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/protocol.py#L1000-L1010",
+        "vllm@ced6857a:vllm/entrypoints/openai/completion/protocol.py#L84-L125",
+        "vllm@ced6857a:vllm/entrypoints/launchers/cli_args.py#L75-L105",
+        "vllm@ced6857a:vllm/entrypoints/chat_utils.py#L1470-L1565",
+        "vllm@ced6857a:vllm/config/multimodal.py#L88-L115",
+        "vllm@ced6857a:vllm/multimodal/processing/context.py#L488-L545",
+        "vllm@ced6857a:vllm/sampling_params.py#L690-L725",
+        "vllm@ced6857a:vllm/v1/core/sched/utils.py#L94-L136",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1279-L1470",
+        "vllm@0fc695fc:vllm/v1/engine/input_processor.py#L314-L484",
+        "vllm@0fc695fc:vllm/tokenizers/registry.py#L43-L182",
+        "vllm@0fc695fc:vllm/renderers/hf.py#L694-L746",
+        "vllm@0fc695fc:vllm/renderers/params.py#L28-L470",
+        "vllm@568afb3a:vllm/renderers/hf.py#L699-L794",
+        "vllm@568afb3a:vllm/tokenizers/registry.py#L41-L161",
+        "vllm@568afb3a:vllm/renderers/params.py#L28-L480",
+        "vllm@ba15685a:vllm/tokenizers/registry.py#L47-L186",
+        "vllm@ba15685a:vllm/tokenizers/hf.py#L120-L147",
+        "vllm@ba15685a:vllm/renderers/base.py#L453-L495",
+        "vllm@ba15685a:vllm/renderers/hf.py#L854-L938",
+        "vllm@ba15685a:vllm/v1/engine/input_processor.py#L463-L664",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L1030-L1140",
+        "https://github.com/deepseek-ai/deepseek-recipe/blob/935817c66f5d6e64838f419692545f06787e485f/docs/tokenizer.md",
+        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json",
+        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/tokenizer.json",
         "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/tokenizer_config.json",
-        "vllm@0fc695fc:vllm/v1/core/sched/utils.py#L94-L117",
-        "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L210-L270",
-        "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L512-L541",
-        "vllm@0fc695fc:vllm/renderers/hf.py#L885-L1087",
-        "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/protocol.py#L850-L858",
-        "vllm@84030bbe:vllm/tokenizers/registry.py#L33-L35",
+        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/chat_template.jinja",
+        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/generation_config.json",
+        "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
+        "vllm@0fc695fc:vllm/v1/engine/core_client.py#L1344-L1426",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L814-L1225",
         "https://github.com/huggingface/tokenizers/blob/afaae088837b277c19f90604a1111a272838857b/tokenizers/src/models/bpe/model.rs#L475-L520",
         "https://github.com/huggingface/tokenizers/blob/afaae088837b277c19f90604a1111a272838857b/tokenizers/src/tokenizer/mod.rs#L890-L909",
         "https://github.com/huggingface/tokenizers/blob/afaae088837b277c19f90604a1111a272838857b/tokenizers/src/tokenizer/added_vocabulary.rs#L242-L316",
-        "vllm@0fc695fc:vllm/multimodal/processing/context.py#L430-L463",
-        "vllm@568afb3a:vllm/multimodal/processing/context.py#L430-L463",
-        "vllm@84030bbe:vllm/multimodal/processing/context.py#L509-L542"
+        "raw:sha256-b18efa9d5dec13007a53553772d09649b4147efc8d15d0b3344638b1ee728a21.md#L1-L1562",
+        "raw:sha256-18af2b334f83526e141288bc158cd9c96a87167e8bdc8ee60da39ec7fca173f2.md#L1-L4362"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -22041,24 +21830,19 @@
       ],
       "relations": [
         {
-          "to": "one-request",
+          "to": "request-overview",
           "kind": "builds-on",
-          "note": "本页展开 A1 的模板与分词，R1 的七站形状和设备账回到主线页"
-        },
-        {
-          "to": "request-call-chain",
-          "kind": "builds-on",
-          "note": "入口对象与跨进程交接的完整函数链在调用链页"
+          "note": "承接请求全景鸟瞰的第 1 件事与第 4 件事，拆解真实模型怎样把对话渲染、切块成整数编号，又怎样把输出编号还原为文字"
         },
         {
           "to": "device-memory",
           "kind": "builds-on",
-          "note": "编号列表与设备中的权重和历史状态要分开记内存账"
+          "note": "主机 CPU 侧的字符串与编号列表和 NPU 显存里的权重、激活与历史缓存分属两本独立的内存账"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-18",
       "file": "concepts/token.md",
       "backlinks": [
         {
@@ -22089,7 +21873,7 @@
         {
           "from": "prefill",
           "kind": "enables",
-          "note": "Prefill 与 decode 按 token 所占的序列位置组织计算，依赖 token 页定义的分词、编号与位置概念。"
+          "note": "Prefill 与 Decode 按 token 在序列中所占的位置编号组织输入张量与进度计数"
         },
         {
           "from": "sampling",
@@ -23215,11 +22999,6 @@
           "note": "目的块照常从块池借；押着的块要等完成通知才还"
         },
         {
-          "from": "npu-worker-lifecycle",
-          "kind": "enables",
-          "note": "启动只建好池子，请求来了才从池里借块、用完归还"
-        },
-        {
           "from": "prefix-caching",
           "kind": "enables",
           "note": "登记、引用计数、驱逐、抢占的完整机制在那页；本页讲什么能命中、GLM 上开不开"
@@ -23360,6 +23139,11 @@
           "from": "npu-platform",
           "kind": "enables",
           "note": "先理解平台契约：谁在问、当前平台怎么选出来"
+        },
+        {
+          "from": "npu-worker-lifecycle",
+          "kind": "enables",
+          "note": "上游执行器通过平台契约查询 worker_cls，才定位到昇腾侧的 NPUWorker 或 NPUWorker310"
         }
       ]
     },

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 436" width="900" height="436" role="img" aria-label="Qwen3-8B 与 Qwen3-30B-A3B 分组比例、TP=8 复制与 FIA 直读对比图" font-family="var(--font-sans)">
+  <title>Qwen3-8B（4:1 GQA）与 Qwen3-30B-A3B（8:1 GQA）投影比例、TP=8 复制与昇腾 FIA 直读。</title>
+  <desc>左栏 Qwen3-8B（4:1, TP=8 零复制），右栏 Qwen3-30B-A3B（8:1, TP=8 下 num_kv_head_replicas=2），底部 FIA 直读双头数。</desc>
+  <defs>
+    <marker id="gqa-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+  <line x1="450" y1="14" x2="450" y2="322" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="14" y1="334" x2="886" y2="334" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g fill="#ffffff" stroke-width="1.4">
+    <rect x="14" y="46" width="420" height="124" rx="8" stroke="#4c65b6"/>
+    <rect x="14" y="184" width="420" height="134" rx="8" stroke="#087f73"/>
+    <rect x="466" y="46" width="420" height="124" rx="8" stroke="#c78300"/>
+    <rect x="466" y="184" width="420" height="134" rx="8" stroke="#9a4b86"/>
+  </g>
+  <g fill="#ddf4ef" stroke="#087f73" stroke-width="1.2">
+    <rect x="26" y="82" width="320" height="24" rx="4"/>
+    <rect x="478" y="82" width="320" height="24" rx="4"/>
+    <rect x="26" y="222" width="92" height="36" rx="5"/>
+    <rect x="126" y="222" width="92" height="36" rx="5"/>
+    <rect x="226" y="222" width="92" height="36" rx="5"/>
+    <rect x="326" y="222" width="92" height="36" rx="5"/>
+    <rect x="14" y="370" width="234" height="54" rx="7"/>
+  </g>
+  <rect x="26" y="112" width="80" height="24" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <rect x="478" y="112" width="40" height="24" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <g fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3">
+    <rect x="478" y="222" width="94" height="36" rx="5"/>
+    <rect x="579" y="222" width="94" height="36" rx="5"/>
+    <rect x="680" y="222" width="94" height="36" rx="5"/>
+    <rect x="781" y="222" width="94" height="36" rx="5"/>
+  </g>
+  <rect x="260" y="370" width="250" height="54" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <path d="M 512 397 L 540 397" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#gqa-arr)"/>
+  <rect x="546" y="370" width="340" height="54" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+
+  <g font-size="16" font-weight="700" fill="#17211f">
+    <text x="14" y="30">A. Qwen3-8B（32Q : 8KV，4:1 GQA）</text>
+    <text x="466" y="30">B. Qwen3-30B-A3B（32Q : 4KV，8:1 GQA）</text>
+  </g>
+  <text x="14" y="358" font-size="15" font-weight="700" fill="#17211f">C. 昇腾 FIA 算子直读分组头（零 repeat_kv HBM 展开）</text>
+
+  <g font-size="14.5" font-weight="700">
+    <text x="26" y="70" fill="#3a4f93">H = 4096，head_dim = 128（36 层稠密）</text>
+    <text x="26" y="208" fill="#065f56">TP = 8 等分：每卡 4Q : 1KV（零重复）</text>
+    <text x="478" y="70" fill="#936300">H = 2048，显式 head_dim = 128（48 层 MoE）</text>
+    <text x="478" y="208" fill="#7a3a6a">TP = 8 不够分：每卡 4Q : 1KV（2× 复制）</text>
+  </g>
+
+  <g font-size="13.5" font-family="var(--font-mono)" font-weight="700">
+    <text x="34" y="99" fill="#065f56">W_Q [4096, 4096]（32 头）</text>
+    <text x="114" y="129" fill="#3a4f93">W_K, W_V [4096, 1024]（1/4）</text>
+    <text x="486" y="99" fill="#065f56">W_Q [2048, 4096]（32 头）</text>
+    <text x="526" y="129" fill="#936300">W_K, W_V [2048, 512]（1/8）</text>
+  </g>
+  <g text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">
+    <text x="72" y="245">R0:KV0</text>
+    <text x="172" y="245">R1:KV1</text>
+    <text x="272" y="245">… R6:KV6</text>
+    <text x="372" y="245">R7:KV7</text>
+  </g>
+  <g text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">
+    <text x="525" y="245">R0,1:KV0</text>
+    <text x="626" y="245">R2,3:KV1</text>
+    <text x="727" y="245">R4,5:KV2</text>
+    <text x="828" y="245">R6,7:KV3</text>
+  </g>
+
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="156">全层 BF16 缓存：<tspan font-weight="700" fill="#3a4f93">144.0 KiB/tok</tspan>（省 4×）</text>
+    <text x="478" y="156">全层 BF16 缓存：<tspan font-weight="700" fill="#936300">96.0 KiB/tok</tspan>（省 8×）</text>
+    <text x="26" y="282" font-family="var(--font-mono)">num_kv_head_replicas = 1，shard_rank = tp_rank</text>
+    <text x="478" y="282" font-family="var(--font-mono)" fill="#7a3a6a">num_kv_head_replicas = 2，shard_rank = tp_rank // 2</text>
+    <text x="26" y="304" fill="#66716d">8 卡各存 1 个独立 KV 头，合计 8 份</text>
+    <text x="478" y="304" fill="#66716d">每头跨 2 卡各驻留 1 份，8 卡合计存 8 份</text>
+  </g>
+
+  <g text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700">
+    <text x="131" y="393" fill="#065f56">query [T, num_heads, 128]</text>
+    <text x="385" y="393" fill="#3a4f93">K / V […, num_kv_heads, 128]</text>
+    <text x="716" y="393" fill="#936300">npu_fused_infer_attention_score</text>
+  </g>
+  <g text-anchor="middle" font-size="13.5" fill="#4d5652">
+    <text x="131" y="414">本卡查询头不压缩</text>
+    <text x="385" y="414">配合分页 block_table 直传</text>
+    <text x="716" y="414">原生接收双头数，不在 HBM 广播展开</text>
+  </g>
+</svg>

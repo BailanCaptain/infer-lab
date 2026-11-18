@@ -1,0 +1,16 @@
+mode: native-svg
+id: mem-prof-fig-qwen3-waterfall
+caption: >-
+  64 GiB Atlas 800 A2 七级显存切分与 HCCL 通信域去重对照（默认 u = 0.92，激活与非 Torch 读数为算账示意）：上半幅对比 Qwen3-8B（BF16 单卡，18.0 MiB/块）与 Qwen3-30B-A3B（W8A8 TP4+EP4 单卡视角，3.0 MiB/块），标出试跑激活与 HCCL 的重叠扣减区；下半幅展示 _HCCL_PG_REGISTRY 按 (ranks, buffer_size, reuse_domain) 对 200 MiB 默认组与 50 MiB DP 组的去重规则、MC2 归属及 150 MiB 建议值安全裕度。
+size: [900, 560]
+pins:
+  - source: vllm@ced6857a:vllm/config/cache.py#L103-L126
+    symbols: [gpu_memory_utilization, num_gpu_blocks_override]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/utils.py#L73-L77
+    symbols: [_DEFAULT_BUFFER_SIZE, _MIN_DP_BUFFER_SIZE]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1249-L1288
+    symbols: [get_hccl_config_for_pg_options, calculate_dp_buffer_size]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/patch/worker/patch_distributed.py#L39-L76
+    symbols: [_resolve_reuse_domain, _HCCL_PG_REGISTRY, make_hccl_pg_key]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L918-L928
+    symbols: [redundancy_buffer, suggested_to_requested]

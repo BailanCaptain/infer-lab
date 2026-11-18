@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 524" width="900" height="524" role="img" aria-label="四族昇腾硬件三段精度真相" font-family="var(--font-sans)">
+<title>常见误解 vs v0.30.0 四族硬件精度真相</title>
+<desc>AscendFp8BlockLinearMethod, resolve_block_scales, _supports_mx_regroup, unquantized_gemm, QuantizationBackendFamily, AscendFp8Config, AscendModelSlimConfig310, _310P, COMPATIBILITY, FP8_OPTIMIZED</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,1.5L8.5,5L0,8.5z" fill="#66716d"/></marker></defs>
+<text x="14" y="28" font-size="16" font-weight="700" fill="#8f3229">✗ 常见误解：看目录名或卡名猜精度</text>
+<text x="14" y="54" font-size="14" fill="#8f3229">误以为标 FP8 在任意卡都占 1 B/元素；<tspan x="14" y="76">或误以为 910B/910C 只能跑 FP8、W8A8=FP8</tspan></text>
+<line x1="442" y1="12" x2="442" y2="86" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="5 4"/>
+<text x="458" y="28" font-size="16" font-weight="700" fill="#065f56">✓ v0.30.0 四族真相：文件 ≠ HBM ≠ 计算</text>
+<text x="458" y="54" font-size="14" fill="#4d5652">磁盘字节按芯片后端转换后驻留 HBM，<tspan x="458" y="76">再交对应 Cube 算子执行，三处须分开核对</tspan></text>
+<line x1="14" y1="96" x2="886" y2="96" stroke="#b8bcb5" stroke-width="1.5"/>
+<text x="14" y="122" font-size="14.5" font-weight="700" fill="#17211f">昇腾芯片与路径<tspan x="291" y="122" text-anchor="middle">① 磁盘文件</tspan><tspan x="531" y="122" text-anchor="middle">② 加载后 HBM 驻留</tspan><tspan x="777" y="122" text-anchor="middle">③ Cube 实际计算</tspan></text>
+<text x="14" y="164" font-size="15" font-weight="700" fill="#065f56">Ascend 950 (A5)<tspan x="14" y="256" fill="#8f3229">A2/A3 (读 FP8 包)</tspan><tspan x="14" y="348" fill="#3a4f93">A2/A3 (主力路径)</tspan><tspan x="14" y="440" fill="#7a3a6a">300I DUO (310P)</tspan></text>
+<text x="14" y="188" font-family="var(--font-mono)" font-size="13.5" fill="#4d5652">FP8_OPTIMIZED<tspan x="14" y="280">fp8_block.py</tspan><tspan x="14" y="372" font-family="var(--font-sans)">910B / 910C 常规</tspan><tspan x="14" y="464">COMPATIBILITY</tspan></text>
+<g fill="#ffffff" stroke="#8a928f" stroke-width="1.4">
+<rect x="188" y="138" width="206" height="66" rx="8"/><rect x="188" y="230" width="206" height="66" rx="8"/><rect x="188" y="322" width="206" height="66" rx="8"/><rect x="188" y="414" width="206" height="66" rx="8"/>
+</g>
+<g fill="#ddf4ef" stroke="#087f73" stroke-width="1.5">
+<rect x="414" y="138" width="234" height="66" rx="8"/><rect x="668" y="138" width="218" height="66" rx="8"/><rect x="668" y="322" width="218" height="66" rx="8"/>
+</g>
+<rect x="414" y="230" width="234" height="66" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+<rect x="414" y="322" width="234" height="66" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+<rect x="414" y="414" width="234" height="66" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+<g fill="#fff4cf" stroke="#c78300" stroke-width="1.5">
+<rect x="668" y="230" width="218" height="66" rx="8"/><rect x="668" y="414" width="218" height="66" rx="8"/>
+</g>
+<g stroke="#66716d" stroke-width="1.8" marker-end="url(#a)">
+<line x1="394" y1="171" x2="410" y2="171"/><line x1="648" y1="171" x2="664" y2="171"/><line x1="394" y1="263" x2="410" y2="263"/><line x1="648" y1="263" x2="664" y2="263"/>
+<line x1="394" y1="355" x2="410" y2="355"/><line x1="648" y1="355" x2="664" y2="355"/><line x1="394" y1="447" x2="410" y2="447"/><line x1="648" y1="447" x2="664" y2="447"/>
+</g>
+<g text-anchor="middle" fill="#17211f">
+<text x="291" y="165" font-size="13.5" font-weight="700">float8_e4m3fn (1B)<tspan x="291" y="190" font-weight="400" fill="#4d5652">+ FP32 块尺度</tspan><tspan x="291" y="257">同份分块 FP8 文件</tspan><tspan x="291" y="282" font-weight="400" fill="#4d5652">weight_scale_inv</tspan><tspan x="291" y="349">BF16 / FP16 原版</tspan><tspan x="291" y="374" font-weight="400" fill="#4d5652">或 ModelSlim INT8</tspan><tspan x="291" y="441">FP16 或 INT8 包</tspan><tspan x="291" y="466" font-weight="400" fill="#8f3229">原生 fp8 无路径</tspan></text>
+<text x="531" y="165" font-size="13.5" font-weight="700" fill="#065f56">重组 MXFP8 (~1B/elem, 1×)<tspan x="531" y="190" font-weight="400">kv_b_proj 或 K%32!=0 浮点</tspan><tspan x="777" y="165">npu_quant_matmul</tspan><tspan x="777" y="190" font-weight="400">另支持 HiF8 / MXFP4</tspan><tspan x="777" y="349">BF16 / FP16 / INT8</tspan><tspan x="777" y="374" font-weight="400">原生 Cube 乘加</tspan></text>
+<text x="531" y="257" font-size="13.5" font-weight="700" fill="#8f3229">v0.30.0 展开 BF16 (2B, 2×)<tspan x="531" y="282" font-weight="400">main 启动即抛错阻断</tspan><tspan x="777" y="466" font-weight="400">禁 BF16 与原生 FP8</tspan></text>
+<text x="531" y="349" font-size="13.5" font-weight="700" fill="#3a4f93">BF16 / FP16 (2 B/elem)<tspan x="531" y="374" font-weight="400">或 INT8 (1B) + 通道尺度</tspan></text>
+<text x="531" y="441" font-size="13.5" font-weight="700" fill="#7a3a6a">model_dtype 为 float16<tspan x="531" y="466" font-weight="400">不注册 AscendFp8Config</tspan></text>
+<text x="777" y="257" font-size="13.5" font-weight="700" fill="#936300">unquantized_gemm<tspan x="777" y="282" font-weight="400">普通 BF16 乘加 (非 FP8)</tspan><tspan x="777" y="441">float16 或 INT8 算子</tspan></text>
+</g>
+<text x="14" y="508" font-size="13.5" fill="#4d5652">310P 仅导入 AscendModelSlimConfig310；原生 FP8 须带 weight_block_size 且 activation_scheme="dynamic"。</text>
+</svg>

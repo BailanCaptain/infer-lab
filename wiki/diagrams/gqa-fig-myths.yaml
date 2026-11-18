@@ -1,0 +1,15 @@
+mode: native-svg
+id: gqa-fig-myths
+caption: GQA 五组常见认知误区与 v0.30.0 源码真相排障对照板（覆盖打分计算量、预训练结构绑定、TP 复制保底、昇腾 FIA 与 Mooncake+C8、以及 MLA/KDA 记账边界）。
+size: [900, 498]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L315-L338'
+    symbols: ['num_heads', 'num_kv_heads']
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L1040-L1065'
+    symbols: ['num_kv_head_replicas', 'total_num_kv_heads', 'output_sizes']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L990-L1018'
+    symbols: ['npu_fused_infer_attention_score', 'num_key_value_heads']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1019-L1043'
+    symbols: ['_check_mooncake_c8_kv_cache_quant', 'MooncakeConnector', 'MooncakeLayerwiseConnector']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1688-L1710'
+    symbols: ['_validate_model_pcp_dcp_config', 'prefill_context_parallel_size', 'decode_context_parallel_size']

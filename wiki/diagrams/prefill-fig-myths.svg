@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 508" width="900" height="508" role="img" aria-label="Prefill 与 Decode 五组高频误解对照板" font-family="var(--font-sans)">
+  <title>Prefill 与 Decode 五组常见误解 vs v0.30.0 源码真相对照板</title>
+  <desc>五排对照：discard_requests_mask、logits_indices、_get_prompt_logprobs_dict、num_new_tokens、FULL_DECODE_ONLY、uniform_decode、TTFT/ITL/TPOT。</desc>
+  <defs>
+    <marker id="pfm-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,1.5 L8.5,5 L0,8.5z" fill="#087f73"/></marker>
+  </defs>
+
+  <text x="14" y="30" font-size="16" font-weight="700" fill="#8f3229">✗ 常见错误直觉（机制与调优高频误判）</text>
+  <text x="392" y="30" font-size="16" font-weight="700" fill="#065f56">✓ v0.30.0 源码与运行真相（vLLM + vllm-ascend）</text>
+  <line x1="12" y1="42" x2="888" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
+  <line x1="378" y1="12" x2="378" y2="496" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <g fill="#fff0e9" stroke="#b54237" stroke-width="1.4">
+    <rect x="12" y="54" width="352" height="78" rx="9"/>
+    <rect x="12" y="144" width="352" height="78" rx="9"/>
+    <rect x="12" y="234" width="352" height="78" rx="9"/>
+    <rect x="12" y="324" width="352" height="78" rx="9"/>
+    <rect x="12" y="414" width="352" height="78" rx="9"/>
+  </g>
+
+  <g fill="#ffffff" stroke="#087f73" stroke-width="1.5">
+    <rect x="392" y="54" width="496" height="78" rx="9"/>
+    <rect x="392" y="144" width="496" height="78" rx="9"/>
+    <rect x="392" y="234" width="496" height="78" rx="9"/>
+    <rect x="392" y="324" width="496" height="78" rx="9"/>
+    <rect x="392" y="414" width="496" height="78" rx="9"/>
+  </g>
+
+  <g fill="none" stroke="#087f73" stroke-width="2">
+    <path d="M364,93 L386,93" marker-end="url(#pfm-a)"/>
+    <path d="M364,183 L386,183" marker-end="url(#pfm-a)"/>
+    <path d="M364,273 L386,273" marker-end="url(#pfm-a)"/>
+    <path d="M364,363 L386,363" marker-end="url(#pfm-a)"/>
+    <path d="M364,453 L386,453" marker-end="url(#pfm-a)"/>
+  </g>
+
+  <g fill="#8f3229" font-size="15" font-weight="700">
+    <text x="26" y="83">1. Prefill 只建缓存，不产出输出词</text>
+    <text x="26" y="173">2. N 词提示词要对 N 行做词表选词</text>
+    <text x="26" y="263">3. 调度器分设 Prefill 与 Decode 队列</text>
+    <text x="26" y="353">4. 开了图模式，全程都在回放整图</text>
+    <text x="26" y="443">5. TTFT 等于单次 Prefill 前向耗时</text>
+  </g>
+
+  <g fill="#8f3229" font-size="14">
+    <text x="26" y="114">误以为首词要等第 1 步 Decode 才选出</text>
+    <text x="26" y="204">误以为每个提示词位置都过一遍 lm_head</text>
+    <text x="26" y="294">误以为引擎先把两阶段请求拆进不同队列</text>
+    <text x="26" y="384">误以为 Prefill 和混合批也能回放整图</text>
+    <text x="26" y="474">忽略排队、多轮分块与同批混合等待</text>
+  </g>
+
+  <g fill="#065f56" font-size="15" font-weight="700">
+    <text x="408" y="83">Prefill 完结当步由末行乘 lm_head 直接产出首词 y₀</text>
+    <text x="408" y="173">普通生成靠 <tspan font-family="var(--font-mono)" font-size="14">logits_indices</tspan> 仅切末行算 [1, 151936]</text>
+    <text x="408" y="263">V1 调度无阶段队列，统一按未算位置进度差分配预算</text>
+    <text x="408" y="353"><tspan font-family="var(--font-mono)" font-size="14">FULL_DECODE_ONLY</tspan> 仅对 <tspan font-family="var(--font-mono)" font-size="14">uniform_decode</tspan> 回放整图</text>
+    <text x="408" y="443">TTFT 含排队、多轮分块调度、同批混合与采样返回</text>
+  </g>
+
+  <g fill="#66716d" font-size="14">
+    <text x="408" y="114">分块仅中间段由 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#065f56">discard_requests_mask</tspan> 丢弃采样并回拨随机数</text>
+    <text x="408" y="204">仅开 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#065f56">prompt_logprobs</tspan> 才补算前 N−1 行并跳前缀缓存读取</text>
+    <text x="408" y="294"><tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#065f56">AscendAttentionState</tspan> 是执行侧为注意力和通信贴的标签</text>
+    <text x="408" y="384">含 Prefill 步在此模式下退回 Eager（分段图也受捕获上限约束）</text>
+    <text x="408" y="474">Decode 推进还要区分流式包间隔 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#065f56">ITL</tspan> 与每词均摊耗时 <tspan font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#065f56">TPOT</tspan></text>
+  </g>
+</svg>

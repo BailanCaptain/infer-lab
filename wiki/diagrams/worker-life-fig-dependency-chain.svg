@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" font-family="var(--font-sans)" role="img" aria-label="NPUWorker 依赖链与耗时">
+<title>NPUWorker 冷启动六步依赖链与耗时去向</title>
+<desc>左栏展示六步前置产物依赖；右栏对应五大耗时。</desc>
+<defs>
+<marker id="dc-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#66716d"/></marker>
+<marker id="dc-h" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#c78300"/></marker>
+</defs>
+<line x1="466" y1="14" x2="466" y2="544" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+<g stroke-width="1.5">
+<rect x="14" y="46" width="434" height="66" rx="9" fill="#ece9df" stroke="#66716d"/>
+<rect x="14" y="130" width="434" height="66" rx="9" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="14" y="214" width="434" height="66" rx="9" fill="#fff4cf" stroke="#c78300"/>
+<rect x="14" y="298" width="434" height="66" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="14" y="382" width="434" height="66" rx="9" fill="#ffffff" stroke="#4c65b6"/>
+<rect x="14" y="466" width="434" height="66" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+</g>
+<g fill="#ffffff" stroke-width="1.5">
+<rect x="486" y="52" width="400" height="84" rx="9" stroke="#c78300"/>
+<rect x="486" y="148" width="400" height="84" rx="9" stroke="#d8b882"/>
+<rect x="486" y="244" width="400" height="84" rx="9" stroke="#4c65b6"/>
+<rect x="486" y="340" width="400" height="84" rx="9" stroke="#9a4b86"/>
+<rect x="486" y="436" width="400" height="96" rx="9" stroke="#087f73"/>
+</g>
+<circle cx="26" cy="24" r="12" fill="#4c65b6"/><circle cx="498" cy="24" r="12" fill="#c78300"/>
+<circle cx="34" cy="69" r="11" fill="#66716d"/><circle cx="34" cy="153" r="11" fill="#9a4b86"/>
+<circle cx="34" cy="237" r="11" fill="#c78300"/><circle cx="34" cy="321" r="11" fill="#4c65b6"/>
+<circle cx="34" cy="405" r="11" fill="#4c65b6"/><circle cx="34" cy="489" r="11" fill="#087f73"/>
+<g text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">
+<text x="26" y="28.5">1</text><text x="498" y="28.5">2</text>
+<text x="34" y="73.5">1</text><text x="34" y="157.5">2</text><text x="34" y="241.5">3</text>
+<text x="34" y="325.5">4</text><text x="34" y="409.5">5</text><text x="34" y="493.5">6</text>
+</g>
+<g font-size="16" font-weight="700" fill="#17211f">
+<text x="46" y="30">六步硬依赖链 · 缺前一步产物则后一步无输入</text>
+<text x="518" y="30">冷启动耗时五大去向（示意占比与旋钮）</text>
+</g>
+<g font-size="15" font-weight="700">
+<text x="52" y="74" fill="#17211f">__init__ · 换补丁、注算子、验卡型</text>
+<text x="52" y="158" fill="#7a3a6a">init_device · 绑卡、快照、HCCL 建组</text>
+<text x="52" y="242" fill="#936300">load_model · 读分片与 ND→NZ 后处理</text>
+<text x="52" y="326" fill="#3a4f93">determine_available_memory · 试跑对齐</text>
+<text x="52" y="410" fill="#3a4f93">initialize_from_config · 建物理 KV 池</text>
+<text x="52" y="494" fill="#065f56">compile_or_warm_up_model · 预热与录图</text>
+</g>
+<g font-size="13.5" fill="#17211f">
+<text x="52" y="99" fill="#4d5652">交付：adapt_patch + 自定义算子 + AscendConfig</text>
+<text x="52" y="183">交付：self.device + 空闲快照 + NPUModelRunner</text>
+<text x="52" y="267">交付：驻留分形权重 + 实测 model_memory_usage</text>
+<text x="52" y="351">交付：扣峰值后 EngineCore 取全局 min_num_blocks</text>
+<text x="52" y="435" fill="#4d5652">交付：一次切出物理 KV 块（清零元数据置池外）</text>
+<text x="52" y="519">交付：尺寸/Triton/ATB 预热 + capture_model + 绑核</text>
+</g>
+<g fill="none" stroke="#66716d" stroke-width="1.8" marker-end="url(#dc-i)">
+<path d="M231 112v16"/><path d="M231 196v16"/><path d="M231 280v16"/><path d="M231 364v16"/><path d="M231 448v16"/>
+</g>
+<g fill="none" stroke-width="1.5" stroke-dasharray="4 3">
+<path d="M448 236L484 96" stroke="#c78300" marker-end="url(#dc-h)"/>
+<path d="M448 258L484 192" stroke="#c78300" marker-end="url(#dc-h)"/>
+<g stroke="#66716d" marker-end="url(#dc-i)"><path d="M448 331L484 288"/><path d="M448 488L484 384"/><path d="M448 510L484 480"/></g>
+</g>
+<path d="M505 90h346M505 186h346M505 282h346M505 378h346M505 474h346" stroke="#ece9df" stroke-width="10" stroke-linecap="round"/>
+<g stroke-width="10" stroke-linecap="round">
+<path d="M505 90h310" stroke="#c78300"/><path d="M505 186h200" stroke="#e0862a"/>
+<path d="M505 282h170" stroke="#4c65b6"/><path d="M505 378h195" stroke="#9a4b86"/>
+<path d="M505 474h265" stroke="#087f73"/>
+</g>
+<g font-size="14.5" font-weight="700">
+<text x="500" y="76" fill="#936300">③a safetensors 读盘与本卡分片拷贝</text>
+<text x="500" y="172" fill="#936300">③b 后处理首次 npu_format_cast 转 NZ</text>
+<text x="500" y="268" fill="#3a4f93">④ profile_run() 最大批假前向</text>
+<text x="500" y="364" fill="#7a3a6a">⑥a 7 类预热（尺寸假跑 + 4 项 Triton + ATB）</text>
+<text x="500" y="460" fill="#065f56">⑥b ACLGraph 按分桶逐档 capture_model</text>
+</g>
+<g font-size="13.5" fill="#4d5652">
+<text x="500" y="119">主模型+草稿各扫一遍；用 prefetch 或 RFork 加速</text>
+<text x="500" y="215">首次初始化约 15–19 s；可开 enable_early_nz_warmup</text>
+<text x="500" y="311">兼做首次编译，手设 --kv-cache-memory 仍必跑</text>
+<text x="500" y="407">命中编译缓存提速；310P 无 Triton 直接跳过</text>
+<text x="500" y="502" fill="#17211f">档位越多越久；图池吃 1−u 预算外余量</text>
+<text x="500" y="522" fill="#66716d">收敛 cudagraph_capture_sizes 缩短尾段等待</text>
+</g>
+</svg>

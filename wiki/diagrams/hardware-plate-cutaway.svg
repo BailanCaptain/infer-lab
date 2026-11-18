@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650" width="900" height="650" role="img" aria-label="昇腾四级物理层级与双裸片拓扑立体拆解图" font-family="var(--font-sans)">
+  <title>昇腾四级物理层级与双裸片拓扑立体拆解图</title>
+  <desc>DeviceAddressingMode, DIRECT, DUAL_CHIP_CARD, card_id, chip_id, NPUPlatform, ASCEND_RT_VISIBLE_DEVICES</desc>
+
+  <image href="./wiki-illustrations/ascend-four-hardware-cutaway.webp" x="50" y="135" width="800" height="369" preserveAspectRatio="xMidYMid meet"/>
+
+  <g fill="none" stroke-width="1.6">
+    <polyline points="86,114 86,248 155,248" stroke="#087f73"/>
+    <polyline points="548,114 548,278 485,278" stroke="#9a4b86"/>
+    <polyline points="825,114 825,295 772,295" stroke="#4c65b6"/>
+    <line x1="165" y1="528" x2="165" y2="422" stroke="#c78300"/>
+    <line x1="437" y1="528" x2="437" y2="426" stroke="#66716d"/>
+    <line x1="713" y1="528" x2="713" y2="456" stroke="#b54237"/>
+  </g>
+
+  <g fill="#ffffff" stroke-width="2">
+    <circle cx="155" cy="248" r="5.5" stroke="#087f73"/>
+    <circle cx="485" cy="278" r="5.5" stroke="#9a4b86"/>
+    <circle cx="772" cy="295" r="5.5" stroke="#4c65b6"/>
+    <circle cx="165" cy="422" r="5.5" stroke="#c78300"/>
+    <circle cx="437" cy="426" r="5.5" stroke="#66716d"/>
+    <circle cx="713" cy="456" r="5.5" stroke="#b54237"/>
+  </g>
+  <circle cx="155" cy="248" r="2.5" fill="#087f73"/>
+  <circle cx="485" cy="278" r="2.5" fill="#9a4b86"/>
+  <circle cx="772" cy="295" r="2.5" fill="#4c65b6"/>
+  <circle cx="165" cy="422" r="2.5" fill="#c78300"/>
+  <circle cx="437" cy="426" r="2.5" fill="#66716d"/>
+  <circle cx="713" cy="456" r="2.5" fill="#b54237"/>
+
+  <g font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">
+    <circle cx="24" cy="28" r="12" fill="#087f73"/><text x="24" y="32.5">1</text>
+    <circle cx="318" cy="28" r="12" fill="#9a4b86"/><text x="318" y="32.5">2</text>
+    <circle cx="622" cy="28" r="12" fill="#4c65b6"/><text x="622" y="32.5">3</text>
+    <circle cx="24" cy="548" r="12" fill="#c78300"/><text x="24" y="552.5">4</text>
+    <circle cx="328" cy="548" r="12" fill="#66716d"/><text x="328" y="552.5">5</text>
+    <circle cx="622" cy="548" r="12" fill="#b54237"/><text x="622" y="552.5">6</text>
+  </g>
+
+  <g font-size="15" font-weight="700" fill="#17211f">
+    <text x="44" y="33">单芯板卡 (A2 · 1 Die + HBM)</text>
+    <text x="338" y="33">单机高速域 (HCCS / UB 互联)</text>
+    <text x="642" y="33">机柜与超节点 (Rack / SuperPoD)</text>
+    <text x="44" y="553">双裸片合封 (A3 · 2 Dies = 2 Ranks)</text>
+    <text x="348" y="553">主机侧边界 (Host CPU · DRAM)</text>
+    <text x="642" y="553">跨机网络口 (RoCE NIC · EP/DP)</text>
+  </g>
+
+  <g font-size="13.5" fill="#4d5652">
+    <text x="44" y="57">1 张物理卡暴露 1 个 <tspan font-family="var(--font-mono)" font-weight="700">davinci</tspan> 设备</text>
+    <text x="44" y="80">档案走 <tspan font-family="var(--font-mono)" font-weight="700">DIRECT</tspan> 直通寻址</text>
+    <text x="44" y="103" fill="#66716d">权重与 KV 常驻片旁 HBM 显存</text>
+
+    <text x="338" y="57">8 物理模组：A2 为 8 卡，A3 为 16 逻辑卡</text>
+    <text x="338" y="80">800T A2 每路 7 链聚合峰值 392 GB/s</text>
+    <text x="338" y="103" fill="#7a3a6a">逐层高频 TP 归约优先锁在机内域</text>
+
+    <text x="642" y="57">机柜负责供电散热与交换机互联</text>
+    <text x="642" y="80">超节点借 UB / MemFabric 扩大高速池</text>
+    <text x="642" y="103" fill="#3a4f93">显存仍按设备分账，远端访问有开销</text>
+
+    <text x="44" y="577">1 张物理卡含 2 颗计算 Die，成对挂节点</text>
+    <text x="44" y="600"><tspan font-family="var(--font-mono)" font-weight="700">DUAL_CHIP_CARD</tspan> 按 <tspan font-family="var(--font-mono)">npu//2</tspan> 拆卡号</text>
+    <text x="44" y="623" fill="#936300">单挂 <tspan font-family="var(--font-mono)">davinci0</tspan> 会破坏双芯拓扑</text>
+
+    <text x="348" y="577">CPU 管分词、请求队列与权重加载中转</text>
+    <text x="348" y="600">主机 DRAM 与设备 HBM 分记两本账</text>
+    <text x="348" y="623" fill="#66716d">输入须经 PCIe 拷入设备显存才可算</text>
+
+    <text x="642" y="577">200GE 单口理论仅 25 GB/s（NPU 可直出）</text>
+    <text x="642" y="600">带宽远低于机内 HCCS，忌跨机切细粒度 TP</text>
+    <text x="642" y="623" fill="#8f3229">跨机 EP 只传激活向量，专家常驻持有卡</text>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+mode: native-svg
+id: low-prec-fig-ascend-matrix
+caption: >-
+  常见误解 vs v0.30.0 四族昇腾硬件三段精度真相：对比磁盘文件存储类型、加载后 HBM 驻留格式与 Cube 矩阵乘实际计算类型——原生分块 FP8 在 Ascend 950 重组为 MXFP8 (~1 B/元素)，在 Atlas A2/A3 静默展开为 BF16 (~2 B/元素，main 分支改为报错阻断)，在 310P (COMPATIBILITY 后端，model_dtype 为 float16) 无执行路径。
+size: [900, 524]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L138-L259
+    symbols: [AscendFp8BlockLinearMethod, resolve_block_scales, _supports_mx_regroup, unquantized_gemm]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L341-L349
+    symbols: [QuantizationBackendFamily, AscendFp8Config, AscendModelSlimConfig310]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L340
+    symbols: [_310P, COMPATIBILITY, FP8_OPTIMIZED]

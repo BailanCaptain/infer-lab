@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 508" width="900" height="508" role="img" aria-label="昇腾硬件五组常见误解与运行时真相排障对照图" font-family="var(--font-sans)">
+  <title>昇腾硬件五组常见误解 vs v0.30.0 运行时真相排障对照图</title>
+  <desc>check_ascend_device_type, get_soc_version, device_type_from_runtime_soc, get_device_total_memory, mem_get_info, set_device, MemorySnapshot, gpu_memory_utilization</desc>
+  <defs>
+    <marker id="hw-arr-fix" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="30" font-size="16" font-weight="700" fill="#8f3229">✗ 常见硬件直觉误区（高频踩坑点）</text>
+  <text x="392" y="30" font-size="16" font-weight="700" fill="#065f56">✓ v0.30.0 源码与物理拓扑真相（排障判据）</text>
+  <line x1="12" y1="42" x2="888" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
+  <line x1="378" y1="12" x2="378" y2="496" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <g fill="#fff0e9" stroke="#d88c82" stroke-width="1.4">
+    <rect x="12" y="54" width="352" height="78" rx="10"/>
+    <rect x="12" y="144" width="352" height="78" rx="10"/>
+    <rect x="12" y="234" width="352" height="78" rx="10"/>
+    <rect x="12" y="324" width="352" height="78" rx="10"/>
+    <rect x="12" y="414" width="352" height="78" rx="10"/>
+  </g>
+
+  <g fill="#ffffff" stroke="#087f73" stroke-width="1.5">
+    <rect x="392" y="54" width="496" height="78" rx="10"/>
+    <rect x="392" y="144" width="496" height="78" rx="10"/>
+    <rect x="392" y="234" width="496" height="78" rx="10"/>
+    <rect x="392" y="324" width="496" height="78" rx="10"/>
+    <rect x="392" y="414" width="496" height="78" rx="10"/>
+  </g>
+
+  <g fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#hw-arr-fix)">
+    <path d="M 364 93 L 386 93"/>
+    <path d="M 364 183 L 386 183"/>
+    <path d="M 364 273 L 386 273"/>
+    <path d="M 364 363 L 386 363"/>
+    <path d="M 364 453 L 386 453"/>
+  </g>
+
+  <g font-size="15" font-weight="700" fill="#8f3229">
+    <text x="26" y="83">1. 1 个 Device 就是 1 张物理板卡</text>
+    <text x="26" y="173">2. 主机内存够大 / 多卡入柜就能共用</text>
+    <text x="26" y="263">3. 看峰值 TFLOPS 或 Gbps 就能算吞吐</text>
+    <text x="26" y="353">4. 默认 wheel 与 BF16 通跑 310P</text>
+    <text x="26" y="443">5. HCCL 就是 HCCS，RoCE 必经独立网卡</text>
+  </g>
+
+  <g font-size="14" fill="#8f3229">
+    <text x="26" y="114">在 Atlas A3 容器只挂单个 davinci0</text>
+    <text x="26" y="204">把 Host DRAM 或邻机 HBM 加成一个池</text>
+    <text x="26" y="294">把 392 GB/s 当成任意两卡单链路实测</text>
+    <text x="26" y="384">不传 --dtype 直接在 300I DUO 起服务</text>
+    <text x="26" y="474">且误以为双机 DP 就是两份独立完整模型</text>
+  </g>
+
+  <g font-size="15" font-weight="700" fill="#065f56">
+    <text x="408" y="83">Device 是软件边界，A3 单物理卡含 2 逻辑设备</text>
+    <text x="408" y="173">Host DRAM 与每卡 HBM 分记两本独立账</text>
+    <text x="408" y="263">区分多链聚合峰值、单口线速与应用有效吞吐</text>
+    <text x="408" y="353"><tspan font-family="var(--font-mono)" font-size="14">check_ascend_device_type()</tspan> 锁卡，310P 禁 BF16</text>
+    <text x="408" y="443">HCCL 是通信库，RoCE 可由 NPU 直出</text>
+  </g>
+
+  <g font-size="14" fill="#4d5652">
+    <text x="408" y="114">须成对挂 <tspan font-family="var(--font-mono)" font-size="13.5">davinci0/1</tspan>；<tspan font-family="var(--font-mono)" font-size="13.5">DUAL_CHIP_CARD</tspan> 按 <tspan font-family="var(--font-mono)" font-size="13.5">npu//2</tspan> 寻址</text>
+    <text x="408" y="204"><tspan font-family="var(--font-mono)" font-size="13.5">MemorySnapshot</tspan> 查本卡空闲显存；跨机池化仍有传输开销</text>
+    <text x="408" y="294">392 GB/s 含 7 链，200GE 折 25 GB/s 未扣协议与同步开销</text>
+    <text x="408" y="384">310P 须用专属镜像，必传 <tspan font-family="var(--font-mono)" font-size="13.5">--dtype float16</tspan> 且无 <tspan font-family="var(--font-mono)" font-size="13.5">npugraph_ex</tspan></text>
+    <text x="408" y="474">HCCL 跨 HCCS / UB / RoCE 编排；跨机 EP 由全组共持专家</text>
+  </g>
+</svg>

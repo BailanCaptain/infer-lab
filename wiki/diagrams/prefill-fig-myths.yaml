@@ -1,0 +1,15 @@
+mode: native-svg
+id: prefill-fig-myths
+caption: Prefill 与 Decode 五组高频误解与 v0.30.0 源码真相对照：涵盖 Prefill 末位当场产出首词、logits_indices 避免 N 次选词与 prompt_logprobs 例外、V1 统一进度差调度、FULL_DECODE_ONLY 图模式派发边界，以及 TTFT / ITL / TPOT 指标口径。
+size: [900, 508]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L656-L674'
+    symbols: ['num_new_tokens', 'long_prefill_token_threshold', 'token_budget']
+  - source: 'vllm@ced6857a:vllm/v1/cudagraph_dispatcher.py#L235-L325'
+    symbols: ['dispatch', 'uniform_decode', 'CUDAGraphMode']
+  - source: 'vllm@ced6857a:vllm/v1/worker/gpu_model_runner.py#L5643-L5745'
+    symbols: ['_get_prompt_logprobs_dict', 'compute_logits', 'in_progress_prompt_logprobs_cpu']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1476-L1489'
+    symbols: ['discard_requests_mask', 'discard_request_indices']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L3344-L3394'
+    symbols: ['uniform_decode', 'has_initial_state', 'dispatch_cudagraph']

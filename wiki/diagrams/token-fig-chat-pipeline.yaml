@@ -1,0 +1,13 @@
+mode: native-svg
+id: token-fig-chat-pipeline
+caption: Qwen3-8B 在 vLLM v0.30.0 主机侧的三站文本进出闭环：ChatML 模板渲染并直接输出编号、InputProcessor 长度与 151936 词表双界校验、IncrementalDetokenizer 增量攒字节与停词过滤。
+size: [900, 440]
+pins:
+  - source: 'vllm@ced6857a:vllm/renderers/hf.py#L263-L315'
+    symbols: ['resolve_chat_template', 'AutoProcessor', 'AutoTokenizer']
+  - source: 'vllm@ced6857a:vllm/renderers/hf.py#L787-L885'
+    symbols: ['safe_apply_chat_template', 'ChatTemplateResolutionError', 'return_dict']
+  - source: 'vllm@ced6857a:vllm/v1/engine/input_processor.py#L440-L550'
+    symbols: ['_validate_prompt_len', '_validate_model_input', 'max_token_id']
+  - source: 'vllm@ced6857a:vllm/v1/engine/detokenizer.py#L96-L180'
+    symbols: ['update', 'decode_next', 'FastIncrementalDetokenizer', 'include_stop_str_in_output']

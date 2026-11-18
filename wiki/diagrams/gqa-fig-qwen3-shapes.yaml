@@ -1,0 +1,17 @@
+mode: native-svg
+id: gqa-fig-qwen3-shapes
+caption: Qwen3-8B（4:1 GQA）与 Qwen3-30B-A3B（8:1 GQA）投影形状比例、TP=8 下 KV 头切分与 num_kv_head_replicas=2 跨卡复制，以及昇腾 FIA 原生分组直读（零 repeat_kv HBM 展开）。
+size: [900, 436]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/models/qwen3.py#L85-L125'
+    symbols: ['total_num_heads', 'total_num_kv_heads', 'head_dim', 'qkv_proj']
+  - source: 'vllm@ced6857a:vllm/model_executor/models/qwen3_moe.py#L258-L305'
+    symbols: ['total_num_heads', 'total_num_kv_heads', 'head_dim', 'QKVParallelLinear']
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L1040-L1065'
+    symbols: ['num_kv_head_replicas', 'output_sizes', 'divide']
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/linear.py#L1295-L1308'
+    symbols: ['shard_rank', 'tp_rank', 'num_kv_head_replicas']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L550-L570'
+    symbols: ['num_queries_per_kv', 'num_heads', 'num_kv_heads']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L990-L1018'
+    symbols: ['npu_fused_infer_attention_score', 'num_key_value_heads', 'num_heads']

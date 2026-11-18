@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" font-family="var(--font-sans)" role="img" aria-label="NPUWorker 冷启动五组误判与源码真相对照">
+<title>NPUWorker 冷启动五组常见误判与 v0.30.0 源码真相对照</title>
+<desc>左右对照展示五组冷启动误区与 v0.30.0 源码真相。</desc>
+<defs>
+<marker id="my-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#087f73"/></marker>
+</defs>
+<line x1="430" y1="14" x2="430" y2="546" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+<g font-size="16" font-weight="700">
+<text x="16" y="30" fill="#b54237">✗ 冷启动常见误判</text>
+<text x="450" y="30" fill="#065f56">✓ v0.30.0 源码真相</text>
+</g>
+<g fill="#fff0e9" stroke="#b54237" stroke-width="1.4">
+<rect x="14" y="52" width="398" height="84" rx="9"/>
+<rect x="14" y="150" width="398" height="84" rx="9"/>
+<rect x="14" y="248" width="398" height="84" rx="9"/>
+<rect x="14" y="346" width="398" height="84" rx="9"/>
+<rect x="14" y="444" width="398" height="84" rx="9"/>
+</g>
+<g stroke="#087f73" stroke-width="1.5">
+<rect x="448" y="52" width="438" height="84" rx="9" fill="#ddf4ef"/>
+<rect x="448" y="150" width="438" height="84" rx="9" fill="#ffffff"/>
+<rect x="448" y="248" width="438" height="84" rx="9" fill="#ddf4ef"/>
+<rect x="448" y="346" width="438" height="84" rx="9" fill="#ffffff"/>
+<rect x="448" y="444" width="438" height="84" rx="9" fill="#ddf4ef"/>
+</g>
+<g fill="#b54237">
+<circle cx="34" cy="76" r="11"/><circle cx="34" cy="174" r="11"/>
+<circle cx="34" cy="272" r="11"/><circle cx="34" cy="370" r="11"/><circle cx="34" cy="468" r="11"/>
+</g>
+<g text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">
+<text x="34" y="80.5">1</text><text x="34" y="178.5">2</text>
+<text x="34" y="276.5">3</text><text x="34" y="374.5">4</text><text x="34" y="472.5">5</text>
+</g>
+<g stroke="#087f73" stroke-width="1.8" marker-end="url(#my-a)">
+<line x1="412" y1="94" x2="444" y2="94"/><line x1="412" y1="192" x2="444" y2="192"/>
+<line x1="412" y1="290" x2="444" y2="290"/><line x1="412" y1="388" x2="444" y2="388"/>
+<line x1="412" y1="486" x2="444" y2="486"/>
+</g>
+<g font-size="15" font-weight="700" fill="#8f3229">
+<text x="52" y="81">以为启动先切好 KV 块，再往卡里装权重</text>
+<text x="52" y="179">以为 capture_model 包在第④步预算里</text>
+<text x="52" y="277">以为每张卡按自己的空闲显存独立定块数</text>
+<text x="52" y="375">以为 --load-format dummy 能验模型好坏</text>
+<text x="52" y="473">以为文件多大显存就占多大，后处理零开销</text>
+</g>
+<g font-size="15" font-weight="700" fill="#065f56">
+<text x="464" y="79">第③步先 load_model，第⑤步才切 KV 池</text>
+<text x="464" y="177">录图在第⑥步执行，吃 1−u 预算外余量</text>
+<text x="464" y="275">EngineCore 按全组 min_num_blocks 对齐</text>
+<text x="464" y="373">DummyModelLoader 仅填随机权重供压测</text>
+<text x="464" y="471">npu_format_cast 转 NZ 会抬高加载期峰值</text>
+</g>
+<g font-size="13.5" fill="#17211f">
+<text x="52" y="109">觉得参数写了显存比例，一开始就能算出块数</text>
+<text x="52" y="207">把显存比例拉到 0.98，奇怪切完 KV 后录图 OOM</text>
+<text x="52" y="305">忽略单张卡被杂进程占掉几 GiB 对整组容量的拖累</text>
+<text x="52" y="403">权重报错后改 dummy 跑通，就误判模型包已修复</text>
+<text x="52" y="501">忽略 weight_nz_mode 分形重排与临时分配峰值</text>
+<text x="464" y="106">须先实测权重与第④步 profile_run 峰值；请求来了才借块</text>
+<text x="464" y="204" fill="#4d5652">第④步截取图捕获前的 Torch 峰值，图池在第⑤步后才分配</text>
+<text x="464" y="302">最紧一卡决定可调度总块数，富余卡同步收缩缓存尺寸</text>
+<text x="464" y="400" fill="#4d5652">跳过真实文件与张量名校验，严禁用于生产或精度验收</text>
+<text x="464" y="498">模式 2 连浮点权重一并转 NZ（310P 强制转），含对齐补齐</text>
+</g>
+</svg>

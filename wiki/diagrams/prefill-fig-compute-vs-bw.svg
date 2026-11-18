@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="Prefill 与 Decode 对比" font-family="var(--font-sans)">
+<title>Qwen3-8B Prefill N=2048 对比 Decode M=1</title>
+<desc>logits_indices, query_start_loc, compute_logits, PrefillNoCache, DecodeOnly</desc>
+<defs>
+<marker id="t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,1.5L8.5,5L0,8.5z" fill="#087f73"/></marker>
+<marker id="k" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,1.5L8.5,5L0,8.5z" fill="#4c65b6"/></marker>
+<marker id="r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,1.5L8.5,5L0,8.5z" fill="#b54237"/></marker>
+</defs>
+<text x="16" y="28" font-size="16" font-weight="700" fill="#065f56">Prefill 预填充（N = 2048 并行建档 · Cube 算力受限）</text>
+<text x="472" y="28" font-size="16" font-weight="700" fill="#8f3229">Decode 逐词续写（M = 1 单步推进 · HBM 带宽受限）</text>
+<line x1="14" y1="42" x2="886" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
+<line x1="454" y1="12" x2="454" y2="428" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+<g fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#t)">
+<path d="M160,89H186"/><path d="M368,120V210"/><path d="M343,268V283"/><path d="M759,250V283"/>
+</g>
+<g fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#k)">
+<path d="M254,120V142"/><path d="M678,146V122" stroke-dasharray="4 3"/>
+</g>
+<path d="M604,89H630" fill="none" stroke="#b54237" stroke-width="1.8" marker-end="url(#r)"/>
+<g fill="#ddf4ef" stroke="#087f73" stroke-width="1.5">
+<rect x="16" y="58" width="144" height="62" rx="7"/><rect x="248" y="214" width="190" height="54" rx="6"/><rect x="472" y="69" width="132" height="40" rx="6"/>
+</g>
+<g fill="#ffffff" stroke="#087f73" stroke-width="1.6">
+<rect x="248" y="286" width="190" height="54" rx="6"/><rect x="472" y="286" width="412" height="54" rx="6"/>
+</g>
+<g fill="#e8edff" stroke="#4c65b6" stroke-width="1.5">
+<rect x="16" y="146" width="322" height="50" rx="7"/><rect x="472" y="146" width="412" height="104" rx="7"/>
+</g>
+<g fill="#fff0e9" stroke="#b54237" stroke-width="1.5">
+<rect x="16" y="286" width="224" height="54" rx="6" stroke-dasharray="4 3"/><rect x="634" y="58" width="250" height="62" rx="7"/>
+</g>
+<rect x="190" y="58" width="248" height="62" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.6"/>
+<rect x="16" y="214" width="224" height="54" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="4 3"/>
+<g text-anchor="middle" font-size="14.5" font-weight="700">
+<text x="88" y="84" fill="#065f56">提示词 2048 行</text>
+<text x="314" y="84" fill="#936300">36 层权重 15.26 GiB 复用 2048×</text>
+<text x="343" y="309" fill="#065f56">lm_head → 首词 y₀</text>
+<text x="759" y="84" fill="#8f3229">15.26 GiB 权重仍须整套通读！</text>
+<text x="678" y="309" fill="#065f56">单行 h₂₀₄₈ [1, 4096] → lm_head → y₁</text>
+</g>
+<g text-anchor="middle" font-size="14" font-weight="700">
+<text x="177" y="168" fill="#3a4f93">批量写 KV cache：2048 × 144 KiB = 288 MiB</text>
+<text x="128" y="238" fill="#66716d">前 2047 行 h₀..h₂₀₄₆ 停步</text>
+<text x="343" y="238" font-family="var(--font-mono)" fill="#065f56">logits_indices → h₂₀₄₇</text>
+<text x="128" y="309" fill="#8f3229">✗ 省去 [2048, 151936] 投影</text>
+<text x="538" y="94" font-family="var(--font-mono)" fill="#065f56">y₀ [1, 4096]</text>
+<text x="678" y="173" font-size="15" fill="#3a4f93">HBM 双重搬运压力：整套权重 + 全量历史 KV</text>
+</g>
+<g text-anchor="middle" font-family="var(--font-mono)" font-size="13.5">
+<text x="88" y="108" fill="#065f56">X [2048, 4096]</text>
+<text x="314" y="108" fill="#936300">q_proj I = 1024 FLOP/B</text>
+<text x="343" y="330" fill="#66716d">[1, 151936] ≈ 0.58 MiB</text>
+<text x="759" y="108" fill="#8f3229">q_proj I ≈ 1.00 FLOP/B</text>
+</g>
+<g text-anchor="middle" font-size="13.5">
+<text x="177" y="188" fill="#3a4f93">位置 0..2047 历史一次建齐，供后续读取</text>
+<text x="128" y="259" fill="#66716d">已完成写 KV，不进输出头</text>
+<text x="343" y="259" font-weight="600" fill="#065f56">仅切末行 [1, 4096]</text>
+<text x="128" y="330" fill="#8f3229">免算约 1.16 GiB FP32 分数</text>
+<text x="678" y="201" font-size="14" fill="#8f3229" font-weight="700">① 读 36 层权重 15.26 GiB（≈16.38 GB）</text>
+<text x="678" y="229" font-size="14" fill="#3a4f93" font-weight="700">② 读历史 KV 288 MiB + 写新格 144 KiB</text>
+<text x="678" y="330" fill="#66716d">命中停止条件当场结束，不再进下一轮</text>
+</g>
+<rect x="16" y="358" width="4" height="62" rx="2" fill="#087f73"/>
+<text x="30" y="381" font-size="14.5" font-weight="700" fill="#17211f">PrefillNoCache：搬 1 次权重算 2048 行，吐出 y₀</text>
+<text x="30" y="407" font-size="13.5" fill="#66716d">仅开 prompt_logprobs 才额外投影前 2047 行</text>
+<rect x="472" y="358" width="4" height="62" rx="2" fill="#b54237"/>
+<text x="486" y="381" font-size="14.5" font-weight="700" fill="#17211f">DecodeOnly：算得极快，主要空等 HBM 送数</text>
+<text x="486" y="407" font-size="13.5" fill="#66716d">靠拼批摊权重、量化减字节、整图回放降下发</text>
+</svg>

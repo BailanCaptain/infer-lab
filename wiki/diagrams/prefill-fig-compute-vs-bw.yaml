@@ -1,0 +1,13 @@
+mode: native-svg
+id: prefill-fig-compute-vs-bw
+caption: Qwen3-8B（36 层，H=4096，V=151,936，BF16 纯权重 15.26 GiB ≈ 16.38 GB）Prefill 与 Decode 单步对比：Prefill 并行送入 N=2048 行把权重复用 2048 次（q_proj 算术强度 1024 FLOP/B，Cube 算力受限），写下 288 MiB KV 历史后由 logits_indices 仅切出末行 h₂₀₄₇ [1, 4096] 进 lm_head，省去 [2048, 151936] 词表投影爆炸；Decode 每步只进 M=1 行，却仍要从 HBM 通读 15.26 GiB 权重与 288 MiB 历史 KV（q_proj 约 1.00 FLOP/B，HBM 带宽受限）。
+size: [900, 440]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L573'
+    symbols: ['schedule', 'num_computed_tokens', 'num_tokens_with_spec']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1638-L1680'
+    symbols: ['logits_indices', 'query_start_loc']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2633-L2646'
+    symbols: ['sample_hidden_states', 'compute_logits', 'logits_indices']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1706-L1733'
+    symbols: ['_build_attn_state', 'PrefillNoCache', 'DecodeOnly', 'ChunkedPrefill']

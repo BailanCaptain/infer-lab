@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" aria-label="七级显存切分与 HCCL 域去重" font-family="var(--font-sans)">
+<title>64 GiB A2 七级显存切分与 HCCL 去重对比</title>
+<text x="20" y="28" font-size="16" font-weight="700" fill="#17211f">七级显存瀑布切分（64 GiB A2，默认 u = 0.92 预算 58.88 GiB；激活与非 Torch 为算账示意）</text>
+<line x1="20" y1="40" x2="880" y2="40" stroke="#b8bcb5" stroke-width="1.4"/>
+<text x="20" y="66" font-size="14.5" font-weight="700" fill="#17211f">A · Qwen3-8B 单卡 BF16（TP=1，144 KiB/tok，128 tok/块 = 18.0 MiB/块）</text>
+<rect x="20" y="78" width="202" height="44" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<text x="121" y="105" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">权重 15.26 GiB</text>
+<rect x="224" y="78" width="32" height="44" rx="3" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+<rect x="258" y="78" width="16" height="44" rx="3" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+<rect x="276" y="78" width="530" height="44" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+<text x="541" y="105" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">可用 KV 池 40.88 GiB → 2,325 块（扣 1 空块剩 2,324 块）</text>
+<rect x="810" y="78" width="70" height="44" rx="4" fill="#ece9df" stroke="#8a928f" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text x="845" y="105" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4d5652">5.12G</text>
+<text x="250" y="142" text-anchor="middle" font-size="13.5" fill="#8f3229">激活 2.14G + 非Torch 0.60G</text>
+<text x="808" y="142" text-anchor="end" font-size="13.5" fill="#66716d">▲ u=0.92 上限 (58.88G) ｜ 右侧 1−u 装 ACLGraph</text>
+<text x="20" y="174" font-size="14.5" font-weight="700" fill="#17211f">B · Qwen3-30B-A3B 四卡单卡 W8A8（TP4+EP4，本卡 32 专家，1 KV 头 = 3.0 MiB/块）</text>
+<rect x="20" y="186" width="98" height="44" rx="4" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+<text x="69" y="213" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">权重 7.4G</text>
+<rect x="120" y="186" width="32" height="44" rx="3" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+<rect x="154" y="186" width="18" height="44" rx="3" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+<rect x="174" y="186" width="632" height="44" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+<text x="490" y="213" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">单卡可用 KV 池 48.28 GiB → 16,479 块（加跑 MC2 试跑）</text>
+<rect x="810" y="186" width="70" height="44" rx="4" fill="#ece9df" stroke="#8a928f" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text x="845" y="213" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4d5652">5.12G</text>
+<text x="146" y="248" text-anchor="middle" font-size="13.5" fill="#7a3a6a">激活 2.3G + 非Torch 0.9G</text>
+<rect x="268" y="254" width="612" height="38" rx="6" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
+<text x="574" y="278" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">重叠禁区：HCCL 与 MC2 缓冲已含在 profile_run 非 Torch 差值内，严禁二次重扣！</text>
+<line x1="20" y1="312" x2="880" y2="312" stroke="#b8bcb5" stroke-width="1.4"/>
+<text x="20" y="340" font-size="16" font-weight="700" fill="#17211f">HCCL 域去重账本（TP4 + EP4, DP=1）与录图后 150 MiB 安全裕度</text>
+<rect x="20" y="356" width="276" height="184" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+<text x="32" y="384" font-size="14.5" font-weight="700" fill="#7a3a6a">① 共享域去重 (_HCCL_PG_REGISTRY)</text>
+<text x="32" y="412" font-size="13.5" fill="#17211f">world [0..3]：200 MiB (tp/ep 复用)</text>
+<text x="32" y="438" font-size="13.5" fill="#17211f">dcp [0]：200 MiB (pcp/pp 复用)</text>
+<text x="32" y="464" font-size="13.5" fill="#17211f">dp [0]：保底 50 MiB 缓冲池</text>
+<text x="32" y="492" font-size="13.5" font-weight="700" fill="#7a3a6a">去重后配置上限 = 450 MiB</text>
+<text x="32" y="518" font-size="13.5" fill="#4d5652">（非 7 组简单相加 1,250 MiB）</text>
+<rect x="312" y="356" width="276" height="184" rx="7" fill="#fff0e9" stroke="#d88c82" stroke-width="1.3"/>
+<text x="324" y="384" font-size="14.5" font-weight="700" fill="#8f3229">② MC2 归属与试跑重叠关系</text>
+<text x="324" y="412" font-size="13.5" fill="#17211f">mc2 组 pg_options = None</text>
+<text x="324" y="438" font-size="13.5" fill="#17211f">缓冲由 CANN HCCL_BUFFSIZE 管</text>
+<text x="324" y="464" font-size="13.5" fill="#17211f">加跑 mc2 容量触发通信域具象化</text>
+<text x="324" y="492" font-size="13.5" font-weight="700" fill="#8f3229">全落入 non_torch_increase</text>
+<text x="324" y="518" font-size="13.5" fill="#4d5652">对账时不可在试跑外重复扣减</text>
+<rect x="604" y="356" width="276" height="184" rx="7" fill="#ddf4ef" stroke="#79aaa1" stroke-width="1.3"/>
+<text x="616" y="384" font-size="14.5" font-weight="700" fill="#065f56">③ 录图与 150 MiB 安全裕度</text>
+<text x="616" y="412" font-size="13.5" fill="#17211f">切完 KV 才调 capture_model()</text>
+<text x="616" y="438" font-size="13.5" fill="#17211f">图显存由预算外 1−u 余量承担</text>
+<text x="616" y="464" font-size="13.5" fill="#17211f">建议值 = 预算 − 四项 − 150 MiB</text>
+<text x="616" y="492" font-size="13.5" font-weight="700" fill="#065f56">兜底 ACL/HCCL/驱动层低估</text>
+<text x="616" y="518" font-size="13.5" fill="#4d5652">填回 --kv-cache-memory-bytes</text>
+</svg>

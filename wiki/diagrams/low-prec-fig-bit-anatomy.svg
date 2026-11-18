@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 548" width="900" height="548" role="img" aria-label="低比特位域与块缩放对比" font-family="var(--font-sans)">
+<title>单元素位域与微缩放分组对比</title>
+<desc>group_size, float8_e4m3fn, weight_scale, float4_e2m1fn_x2, npu_dynamic_mx_quant, kv_cache_torch_dtype, v_cache_scale</desc>
+<text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">单元素位域解剖：指数 E 管数量级范围，尾数 M 管同区间分辨率</text>
+<line x1="14" y1="38" x2="886" y2="38" stroke="#b8bcb5" stroke-width="1.4"/>
+<text x="14" y="71" font-size="14.5" font-weight="700" fill="#17211f">FP16 (16b·2B)<tspan x="14" y="115">BF16 (16b·2B)</tspan><tspan x="14" y="159">INT8 (8b·1B)</tspan><tspan x="14" y="203">FP8 (8b·1B)</tspan><tspan x="14" y="247" fill="#7a3a6a">HiF8 (8b·1B)</tspan><tspan x="14" y="291">FP4 E2M1 (4b)</tspan></text>
+<g fill="#ece9df" stroke="#8a928f" stroke-width="1.3">
+<rect x="184" y="48" width="28" height="34" rx="5"/><rect x="184" y="92" width="28" height="34" rx="5"/><rect x="184" y="180" width="26" height="34" rx="5"/><rect x="184" y="224" width="26" height="34" rx="5"/><rect x="184" y="268" width="26" height="34" rx="5"/>
+</g>
+<g fill="#e8edff" stroke="#4c65b6" stroke-width="1.4">
+<rect x="214" y="48" width="110" height="34" rx="5"/><rect x="214" y="92" width="176" height="34" rx="5"/><rect x="212" y="180" width="98" height="34" rx="5"/><rect x="282" y="224" width="126" height="34" rx="5"/><rect x="212" y="268" width="64" height="34" rx="5"/><rect x="184" y="422" width="180" height="44" rx="6"/>
+</g>
+<g fill="#ddf4ef" stroke="#087f73" stroke-width="1.4">
+<rect x="326" y="48" width="220" height="34" rx="5"/><rect x="392" y="92" width="154" height="34" rx="5"/><rect x="312" y="180" width="96" height="34" rx="5"/><rect x="278" y="268" width="64" height="34" rx="5"/><rect x="184" y="364" width="240" height="44" rx="6"/>
+</g>
+<g fill="#fff4cf" stroke="#c78300" stroke-width="1.4">
+<rect x="184" y="136" width="224" height="34" rx="5"/><rect x="446" y="364" width="128" height="44" rx="6"/><rect x="386" y="422" width="128" height="44" rx="6"/><rect x="352" y="480" width="124" height="44" rx="6"/>
+</g>
+<g fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4">
+<rect x="212" y="224" width="68" height="34" rx="5"/><rect x="184" y="480" width="148" height="44" rx="6"/>
+</g>
+<rect x="496" y="480" width="110" height="44" rx="6" fill="#fff0e9" stroke="#d88c82" stroke-width="1.4"/>
+<g text-anchor="middle" font-family="var(--font-mono)" font-weight="700" fill="#4d5652">
+<text x="198" y="70" font-size="13.5">1<tspan x="198" y="114">1</tspan><tspan x="197" y="202">1</tspan><tspan x="197" y="246">1</tspan><tspan x="197" y="290">1</tspan></text>
+<text x="269" y="70" font-size="13.5" fill="#3a4f93">E = 5b<tspan x="302" y="114">E = 8b (同 FP32)</tspan><tspan x="261" y="202">E=4b / 5b</tspan><tspan x="345" y="246">可变 E+M</tspan><tspan x="244" y="290">E=2b</tspan><tspan x="274" y="449">32 × E2M1 (16 B)</tspan></text>
+<text x="436" y="70" font-size="13.5" fill="#065f56">M = 10b (1024 格)<tspan x="469" y="114">M = 7b (128 格)</tspan><tspan x="360" y="202">M=3b / 2b</tspan><tspan x="310" y="290">M=1b</tspan><tspan x="304" y="391">32 × FP8 E4M3 (32 B)</tspan></text>
+<text x="296" y="158" font-size="13.5" fill="#936300">8b 均匀整数 (-128..127)<tspan x="510" y="391">1×E8M0 (1 B)</tspan><tspan x="450" y="449">1×E8M0 (1 B)</tspan><tspan x="414" y="507">1×E4M3 (1 B)</tspan></text>
+<text x="246" y="246" font-size="13.5" fill="#7a3a6a">Dot<tspan x="258" y="507">16×E2M1 (8 B)</tspan></text>
+</g>
+<text x="560" y="70" font-size="14" fill="#4d5652">[1,2) 间距 2^-10；最大有限值 65504<tspan x="560" y="114">[1,2) 间距 2^-7 (粗 8 倍)，抗溢出强</tspan><tspan x="422" y="158">无指数位；靠外部 scale (+零点) 还原范围</tspan><tspan x="422" y="202">E4M3 上限 448 (细) vs E5M2 上限 57344 (宽)</tspan><tspan x="422" y="246">Dot 动态分指数/尾数位宽，不可按 E4M3 读</tspan><tspan x="356" y="290">仅 16 值 (±0,0.5,1,1.5,2,3,4,6)；配块尺度</tspan></text>
+<line x1="14" y1="318" x2="886" y2="318" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="14" y="348" font-size="16" font-weight="700" fill="#17211f">分组块缩放对比：离群值隔离在 32/16 元素块内，尺度计入真实字节</text>
+<text x="14" y="391" font-size="14.5" font-weight="700" fill="#065f56">MXFP8 (OCP 32组)<tspan x="14" y="449" fill="#3a4f93">MXFP4 (OCP 32组)</tspan><tspan x="14" y="507" fill="#7a3a6a">NVFP4 (双层 16组)</tspan></text>
+<text x="551" y="507" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">张量 FP32</text>
+<text x="434" y="391" text-anchor="middle" font-size="14.5" font-weight="700" fill="#66716d">+<tspan x="374" y="449">+</tspan><tspan x="342" y="507">+</tspan><tspan x="486" y="507">+</tspan></text>
+<text x="588" y="383" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="#065f56">= 33 B / 32 = 1.03125 B/elem<tspan x="528" y="441" fill="#3a4f93">= 17 B / 32 = 0.53125 B/elem</tspan><tspan x="618" y="499" fill="#7a3a6a">局部 9 B/16 = 0.5625 B + 全局</tspan></text>
+<text x="588" y="405" font-size="13.5" fill="#4d5652">E8M0 存 2^k 共享指数，跨块隔离离群值<tspan x="528" y="463">较 BF16 (64 B) 省 73.44%；两元素打包 uint8</tspan><tspan x="618" y="521">16 元素 E4M3 尺度，异于 MXFP4</tspan></text>
+</svg>

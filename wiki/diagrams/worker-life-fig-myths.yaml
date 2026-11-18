@@ -1,0 +1,26 @@
+mode: native-svg
+id: worker-life-fig-myths
+caption: NPUWorker 冷启动五组常见误判与 v0.30.0 源码真相对照：KV 池滞后于加载试跑、录图吃预算外余量、多卡取最小块数、dummy 仅限压测占位、NZ 后处理推高加载峰值
+size: [900, 560]
+pins:
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L579-L638"
+    symbols:
+      - determine_available_memory
+      - kv_cache_memory_bytes
+      - profile_run
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L907-L928"
+    symbols:
+      - capture_model
+      - npugraph_memory_bytes
+  - source: "vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L2757-L2773"
+    symbols:
+      - min_num_blocks
+      - get_kv_cache_config_from_groups
+  - source: "vllm@ced6857a:vllm/model_executor/model_loader/__init__.py#L50-L66"
+    symbols:
+      - DummyModelLoader
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L369-L407"
+    symbols:
+      - weight_nz_mode
+      - npu_format_cast
+      - ACL_FORMAT_FRACTAL_NZ

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 690" width="900" height="690" role="img" aria-label="64 GiB 昇腾 HBM 七级显存预算拆解剖面图" font-family="var(--font-sans)">
+  <title>64 GiB 昇腾 HBM 七级显存预算拆解剖面</title>
+  <desc>init_snapshot, requested_memory, gpu_memory_utilization, _init_worker_distributed_environment, determine_available_memory, memory_profiling, profile_run, non_torch_increase, available_kv_cache_memory_bytes, capture_model, redundancy_buffer, npugraph_memory_bytes</desc>
+  <image href="./wiki-illustrations/worker-memory-seven-stages-cutaway.webp" x="90" y="130" width="720" height="432" preserveAspectRatio="xMidYMid meet"/>
+  <line x1="119" y1="114" x2="119" y2="285" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="119" cy="285" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="119" cy="285" r="2.5" fill="#4c65b6"/>
+  <line x1="442" y1="114" x2="426" y2="355" stroke="#b54237" stroke-width="1.6"/>
+  <circle cx="426" cy="355" r="5.5" fill="#ffffff" stroke="#b54237" stroke-width="2"/>
+  <circle cx="426" cy="355" r="2.5" fill="#b54237"/>
+  <line x1="762" y1="114" x2="726" y2="229" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="726" cy="229" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="726" cy="229" r="2.5" fill="#087f73"/>
+  <line x1="262" y1="568" x2="236" y2="442" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="236" cy="442" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="236" cy="442" r="2.5" fill="#c78300"/>
+  <line x1="448" y1="568" x2="448" y2="378" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="448" cy="378" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="448" cy="378" r="2.5" fill="#9a4b86"/>
+  <line x1="756" y1="568" x2="736" y2="438" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="736" cy="438" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="736" cy="438" r="2.5" fill="#4c65b6"/>
+  <g id="c1">
+    <circle cx="26" cy="28" r="12" fill="#4c65b6"/>
+    <text x="26" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="46" y="33" font-size="15" font-weight="700" fill="#17211f">整卡 HBM 与启动快照</text>
+    <text x="46" y="58" font-size="13.5" fill="#4d5652">建通信组前拍 init_snapshot</text>
+    <text x="46" y="81" font-size="13.5" fill="#4d5652">预算 = total_memory × u (默认 0.92)</text>
+    <text x="46" y="104" font-size="13.5" fill="#66716d">启动空闲不足预算则当场报错退出</text>
+  </g>
+  <g id="c2">
+    <circle cx="310" cy="28" r="12" fill="#b54237"/>
+    <text x="310" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="330" y="33" font-size="15" font-weight="700" fill="#17211f">试跑扣减与重叠禁区</text>
+    <text x="330" y="58" font-size="13.5" fill="#4d5652">profile_run 量出激活工作区峰值</text>
+    <text x="330" y="81" font-size="13.5" fill="#4d5652">连同 non_torch_increase 一并扣除</text>
+    <text x="330" y="104" font-size="13.5" fill="#b54237">HCCL 已含在差值内，禁二次重扣</text>
+  </g>
+  <g id="c3">
+    <circle cx="614" cy="28" r="12" fill="#087f73"/>
+    <text x="614" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="634" y="33" font-size="15" font-weight="700" fill="#17211f">预算外 1−u 余量区</text>
+    <text x="634" y="58" font-size="13.5" fill="#4d5652">装快照前已占用 + ACLGraph 录图</text>
+    <text x="634" y="81" font-size="13.5" fill="#4d5652">切完 KV 后才调 capture_model()</text>
+    <text x="634" y="104" font-size="13.5" fill="#66716d">建议值另扣 150 MiB 防非 Torch 低估</text>
+  </g>
+  <g id="c4">
+    <circle cx="26" cy="590" r="12" fill="#c78300"/>
+    <text x="26" y="594.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="46" y="595" font-size="15" font-weight="700" fill="#17211f">常驻模型权重 (NZ 布局)</text>
+    <text x="46" y="620" font-size="13.5" fill="#4d5652">load_model 前后分配峰值之差</text>
+    <text x="46" y="643" font-size="13.5" fill="#4d5652">含 FRACTAL_NZ 分块重排与量化</text>
+    <text x="46" y="666" font-size="13.5" fill="#66716d">缩放系数副本，常驻不随请求释放</text>
+  </g>
+  <g id="c5">
+    <circle cx="310" cy="590" r="12" fill="#9a4b86"/>
+    <text x="310" y="594.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="330" y="595" font-size="15" font-weight="700" fill="#17211f">HCCL 通信缓冲 (按域去重)</text>
+    <text x="330" y="620" font-size="13.5" fill="#4d5652">建组晚于快照，落入非 Torch 增量</text>
+    <text x="330" y="643" font-size="13.5" fill="#4d5652">共享域按 (ranks, size) 复用句柄</text>
+    <text x="330" y="666" font-size="13.5" fill="#66716d">200 MiB 默认 / 50 MiB DP 保底</text>
+  </g>
+  <g id="c6">
+    <circle cx="608" cy="590" r="12" fill="#4c65b6"/>
+    <text x="608" y="594.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">6</text>
+    <text x="628" y="595" font-size="15" font-weight="700" fill="#17211f">分页 KV 块池 (128 tok/块)</text>
+    <text x="628" y="620" font-size="13.5" fill="#4d5652">剩余预算按每块字节切物理块</text>
+    <text x="628" y="643" font-size="13.5" fill="#4d5652">引擎取各卡 min(num_blocks) 对齐</text>
+    <text x="628" y="666" font-size="13.5" fill="#66716d">预留 1 个空块后按需借还给请求</text>
+  </g>
+</svg>

@@ -1,0 +1,11 @@
+mode: native-svg
+id: token-fig-myths
+caption: 分词与模板四大高频误区排雷对照：词表行数与上下文上限、整段模板计数与二次补 BOS、特殊标记区间与普通用户文本、流式文本增量与内部输出编号。
+size: [900, 460]
+pins:
+  - source: 'vllm@ced6857a:vllm/tokenizers/hf.py#L120-L146'
+    symbols: ['max_token_id', 'vocab_size']
+  - source: 'vllm@ced6857a:vllm/renderers/params.py#L170-L200'
+    symbols: ['truncate_prompt_tokens', 'truncation_side', 'add_special_tokens']
+  - source: 'vllm@ced6857a:vllm/v1/engine/detokenizer.py#L108-L136'
+    symbols: ['stop_terminated', 'skipped_stop_token_id', 'check_stop_strings']

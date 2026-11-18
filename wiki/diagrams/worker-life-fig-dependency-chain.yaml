@@ -1,0 +1,29 @@
+mode: native-svg
+id: worker-life-fig-dependency-chain
+caption: NPUWorker 冷启动六步硬依赖链与墙钟耗时五大重头去向：前一步的设备句柄、分片权重、试跑峰值与统一块数是后一步的刚性输入，耗时集中在读盘、首次 NZ 分形转换、假前向试跑、7 类预热与分桶录图
+size: [900, 560]
+pins:
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L123-L166"
+    symbols:
+      - NPUWorker
+      - adapt_patch
+      - check_ascend_device_type
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L498-L638"
+    symbols:
+      - init_device
+      - determine_available_memory
+      - profile_run
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L854-L968"
+    symbols:
+      - load_model
+      - compile_or_warm_up_model
+      - kernel_warmup
+      - capture_model
+      - _warm_up_atb
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/model_executor/warmup/nz_warmup.py#L30-L56"
+    symbols:
+      - warm_nz_format_cast
+      - enable_early_nz_warmup
+  - source: "vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L2757-L2773"
+    symbols:
+      - min_num_blocks

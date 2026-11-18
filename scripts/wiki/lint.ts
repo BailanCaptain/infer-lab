@@ -771,6 +771,25 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
       });
     }
 
+    // 二阶段 1+3 视觉优先准则：已换轨至 v0.30.0 主基线的页面停用灰底 ```calc 围栏与 ASCII 流程图，
+    // 统一改用 2D wiki-diagram（native-svg / figure）+ 清爽表格 + 标准 KaTeX 公式。
+    const isStage2V030Page = p.fm.verified.some((v) => v === "releases/v0.30.0" || v === "v0.30.0");
+    if (isStage2V030Page && /(?:^|\r?\n) {0,3}(?:`{3,}|~{3,})calc\b/.test(p.body)) {
+      problems.push({
+        file: p.file,
+        rule: "stage2-no-calc",
+        message:
+          "二阶段 v0.30.0 页面停用灰底 ```calc 框——请改用 2D 图（mode: native-svg / layout: figure）+ 清爽表格 + 标准 KaTeX 公式",
+      });
+    }
+    if (isStage2V030Page && /```(?:text|plaintext)?\r?\n[\s\S]*?[├└]─+[►>][\s\S]*?```/.test(p.body)) {
+      problems.push({
+        file: p.file,
+        rule: "stage2-no-ascii-diagram",
+        message: "二阶段 v0.30.0 页面禁止用代码块 ASCII 箭头树代替 2D 图——请画成正式 wiki-diagram 矢量图",
+      });
+    }
+
     // 能读什么不限，能引什么才限——白名单见 HANDBOOK「可引来源」，
     // 与 sources.ts 的 CITABLE_DOMAINS 由测试锁住一致
     const kinds = p.fm.sources.map((x) => ({ ref: x, kind: classifySource(x) }));

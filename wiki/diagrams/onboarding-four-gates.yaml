@@ -1,0 +1,35 @@
+mode: native-svg
+id: onboarding-four-gates
+caption: 昇腾新模型上线四道关全景：五维版本与卡型锁死、52 篇食谱去伪存真、三路 ModelRegistry 解析与四类权重代际分流
+size: [880, 360]
+pins:
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/device/device_config.py#L65-L77"
+    symbols:
+      - check_ascend_device_type
+      - get_soc_version
+      - device_type_from_runtime_soc
+      - RuntimeError
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L283-L387"
+    symbols:
+      - HardwareProfile
+      - NPUWorker310
+      - FP8_OPTIMIZED
+      - CANN_MEGAMOE_MXFP
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/models/__init__.py#L4-L102"
+    symbols:
+      - register_model
+      - ModelRegistry
+      - Qwen3_5ForConditionalGeneration
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/quantization/utils.py#L140-L265"
+    symbols:
+      - maybe_auto_detect_quantization
+      - ASCEND_QUANTIZATION_METHOD
+      - COMPRESSED_TENSORS_METHOD
+      - FP8_METHOD
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L240"
+    symbols:
+      - is_950
+      - AscendW8A8MXFP8DynamicLinearMethod
+      - process_weights_after_loading
+      - resolve_block_scales
+      - _mx_quantize

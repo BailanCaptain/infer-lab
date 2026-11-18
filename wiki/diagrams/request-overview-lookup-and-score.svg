@@ -1,0 +1,227 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 390" width="880" height="390" role="img" aria-label="示意：教学请求「我喜欢 → 猫。」在两轮中的查表、缓存读写与词表打分。第 1 轮（Prefill）从 6 行嵌入表 E 抽出第 0、2 行拼成 2 行张量，写下 k₀, v₀ 与 k₁, v₁ 后只取最后一行 h₁（位置 0 的 h₀ 不参与打分），经 W_head 打分选出最高分 +2.1 的 3 号「猫」；第 2 轮（Decode）只查 E[3] 1 行，复用旧缓存并追加 k₂, v₂（共 3 个历史位置），用同一张 W_head 选出 +1.6 的 5 号「。」后满 max_tokens = 2 停机，5 号「。」不再进第 3 轮。">
+  <title>示意：教学请求「我喜欢 → 猫。」在两轮中的查表、缓存读写与词表打分。第 1 轮（Prefill）从 6 行嵌入表 E 抽出第 0、2 行拼成 2 行张量，写下 k₀, v₀ 与 k₁, v₁ 后只取最后一行 h₁（位置 0 的 h₀ 不参与打分），经 W_head 打分选出最高分 +2.1 的 3 号「猫」；第 2 轮（Decode）只查 E[3] 1 行，复用旧缓存并追加 k₂, v₂（共 3 个历史位置），用同一张 W_head 选出 +1.6 的 5 号「。」后满 max_tokens = 2 停机，5 号「。」不再进第 3 轮。</title>
+  <defs>
+    <marker id="ah-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#0891B2"/>
+    </marker>
+    <marker id="ah-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#2563EB"/>
+    </marker>
+    <marker id="ah-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#16A34A"/>
+    </marker>
+    <marker id="ah-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#94A3B8"/>
+    </marker>
+  </defs>
+
+  <!-- ==================== TOP BAND: ROUND 1 PREFILL ==================== -->
+  <rect x="12" y="8" width="856" height="170" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+  <rect x="22" y="14" width="114" height="20" rx="10" fill="#0891B2"/>
+  <text x="79" y="28" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">第 1 轮 · Prefill</text>
+  <text x="146" y="28" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#0F172A">输入提示词「我喜欢」（2 个位置并行前向）→ 末尾直接选出第 1 个输出词「猫」</text>
+
+  <!-- Stage 1: Lookup E[0], E[2] -->
+  <text x="51" y="50" font-family="var(--font-sans)" font-size="10" font-weight="600" fill="#475569" text-anchor="middle">① 切词编号</text>
+  <rect x="22" y="58" width="58" height="24" rx="5" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.3"/>
+  <text x="51" y="74" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#0E7490" text-anchor="middle">0「我」</text>
+  <rect x="22" y="90" width="58" height="24" rx="5" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.3"/>
+  <text x="51" y="106" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#0E7490" text-anchor="middle">2「喜欢」</text>
+  <text x="51" y="132" font-family="var(--font-sans)" font-size="9.5" fill="#64748B" text-anchor="middle">查表零乘法</text>
+
+  <text x="124" y="50" font-family="var(--font-sans)" font-size="10" font-weight="600" fill="#475569" text-anchor="middle">嵌入表 E</text>
+  <rect x="94" y="56" width="60" height="16" rx="3" fill="#CFFAFE" stroke="#0891B2" stroke-width="1.3"/>
+  <text x="124" y="68" font-family="var(--font-sans)" font-size="9.5" font-weight="700" fill="#0E7490" text-anchor="middle">E[0] 我</text>
+  <rect x="94" y="74" width="60" height="16" rx="3" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.8"/>
+  <text x="124" y="86" font-family="var(--font-sans)" font-size="9.5" fill="#94A3B8" text-anchor="middle">E[1] 你</text>
+  <rect x="94" y="92" width="60" height="16" rx="3" fill="#CFFAFE" stroke="#0891B2" stroke-width="1.3"/>
+  <text x="124" y="104" font-family="var(--font-sans)" font-size="9.5" font-weight="700" fill="#0E7490" text-anchor="middle">E[2] 喜欢</text>
+  <rect x="94" y="110" width="60" height="16" rx="3" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.8"/>
+  <text x="124" y="122" font-family="var(--font-sans)" font-size="9.5" fill="#94A3B8" text-anchor="middle">E[3] 猫</text>
+  <rect x="94" y="128" width="60" height="16" rx="3" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.8"/>
+  <text x="124" y="140" font-family="var(--font-sans)" font-size="9.5" fill="#94A3B8" text-anchor="middle">E[4] 看</text>
+  <rect x="94" y="146" width="60" height="16" rx="3" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.8"/>
+  <text x="124" y="158" font-family="var(--font-sans)" font-size="9.5" fill="#94A3B8" text-anchor="middle">E[5] 。</text>
+
+  <path d="M 80 70 L 92 65" fill="none" stroke="#0891B2" stroke-width="1.3" marker-end="url(#ah-cyan)"/>
+  <path d="M 80 102 L 92 100" fill="none" stroke="#0891B2" stroke-width="1.3" marker-end="url(#ah-cyan)"/>
+
+  <text x="197" y="56" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#0E7490" text-anchor="middle">2 行张量</text>
+  <rect x="168" y="64" width="58" height="22" rx="4" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.3"/>
+  <text x="197" y="79" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="#0E7490" text-anchor="middle">x₀ [1,4]</text>
+  <rect x="168" y="88" width="58" height="22" rx="4" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.3"/>
+  <text x="197" y="103" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="#0E7490" text-anchor="middle">x₁ [1,4]</text>
+
+  <path d="M 154 64 L 166 73" fill="none" stroke="#0891B2" stroke-width="1.3" marker-end="url(#ah-cyan)"/>
+  <path d="M 154 100 L 166 99" fill="none" stroke="#0891B2" stroke-width="1.3" marker-end="url(#ah-cyan)"/>
+
+  <!-- Stage 2: Layer Forward, Write KV Cache, Take Last Row h1 -->
+  <path d="M 226 87 L 240 87" fill="none" stroke="#0891B2" stroke-width="1.4" marker-end="url(#ah-cyan)"/>
+  <rect x="242" y="50" width="114" height="68" rx="8" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.3"/>
+  <text x="299" y="67" font-family="var(--font-sans)" font-size="10.5" font-weight="700" fill="#1E293B" text-anchor="middle">② 逐层前向融合</text>
+  <text x="299" y="83" font-family="var(--font-sans)" font-size="9.5" fill="#475569" text-anchor="middle">位置 1 结合位置 0</text>
+  <text x="299" y="98" font-family="var(--font-sans)" font-size="9.5" font-weight="600" fill="#2563EB" text-anchor="middle">Attention + MLP</text>
+  <text x="299" y="112" font-family="var(--font-sans)" font-size="9" fill="#64748B" text-anchor="middle">写出本轮 K 与 V</text>
+
+  <path d="M 299 118 L 299 128" fill="none" stroke="#2563EB" stroke-width="1.4" marker-end="url(#ah-blue)"/>
+  <rect x="242" y="130" width="232" height="40" rx="7" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.3"/>
+  <text x="250" y="154" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#1D4ED8">KV cache</text>
+  <rect x="308" y="137" width="76" height="26" rx="4" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1"/>
+  <text x="346" y="154" font-family="var(--font-sans)" font-size="9.5" font-weight="600" fill="#1E40AF" text-anchor="middle">k₀, v₀ (我)</text>
+  <rect x="390" y="137" width="78" height="26" rx="4" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1"/>
+  <text x="429" y="154" font-family="var(--font-sans)" font-size="9.5" font-weight="600" fill="#1E40AF" text-anchor="middle">k₁, v₁ (喜欢)</text>
+
+  <path d="M 356 66 L 368 66" fill="none" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#ah-muted)"/>
+  <path d="M 356 98 L 368 98" fill="none" stroke="#0891B2" stroke-width="1.5" marker-end="url(#ah-cyan)"/>
+  <text x="422" y="48" font-family="var(--font-sans)" font-size="9.5" fill="#64748B" text-anchor="middle">位置 0 的 h₀ 不参与打分</text>
+  <rect x="370" y="54" width="104" height="24" rx="5" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1" stroke-dasharray="3 2"/>
+  <text x="422" y="70" font-family="var(--font-sans)" font-size="9.5" fill="#64748B" text-anchor="middle">h₀（跳过不送出）</text>
+  <rect x="370" y="84" width="104" height="28" rx="5" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.5"/>
+  <text x="422" y="102" font-family="var(--font-sans)" font-size="10.5" font-weight="700" fill="#0E7490" text-anchor="middle">只取末行 h₁</text>
+
+  <!-- Stage 3: Vocab Scoring Bars Round 1 -->
+  <path d="M 474 98 L 488 98" fill="none" stroke="#0891B2" stroke-width="1.5" marker-end="url(#ah-cyan)"/>
+  <rect x="490" y="40" width="246" height="130" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+  <text x="613" y="54" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#1E293B" text-anchor="middle">③ W_head 词表打分 logits₁（T=0 贪心）</text>
+  <line x1="584" y1="60" x2="584" y2="164" stroke="#94A3B8" stroke-width="1" stroke-dasharray="2 2"/>
+
+  <text x="542" y="71" font-family="var(--font-sans)" font-size="10" fill="#475569" text-anchor="end">0「我」</text>
+  <rect x="573" y="61" width="11" height="12" rx="2" fill="#CBD5E1"/>
+  <text x="589" y="71" font-family="var(--font-mono)" font-size="9.5" fill="#64748B">-0.4</text>
+
+  <text x="542" y="88" font-family="var(--font-sans)" font-size="10" fill="#475569" text-anchor="end">1「你」</text>
+  <rect x="570" y="78" width="14" height="12" rx="2" fill="#CBD5E1"/>
+  <text x="589" y="88" font-family="var(--font-mono)" font-size="9.5" fill="#64748B">-0.5</text>
+
+  <text x="542" y="105" font-family="var(--font-sans)" font-size="10" fill="#475569" text-anchor="end">2「喜欢」</text>
+  <rect x="584" y="95" width="6" height="12" rx="2" fill="#94A3B8"/>
+  <text x="595" y="105" font-family="var(--font-mono)" font-size="9.5" fill="#475569">+0.2</text>
+
+  <rect x="494" y="110" width="238" height="16" rx="4" fill="#DCFCE7" stroke="#16A34A" stroke-width="1"/>
+  <text x="542" y="122" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#14532D" text-anchor="end">3「猫」</text>
+  <rect x="584" y="112" width="56" height="12" rx="2" fill="#16A34A"/>
+  <text x="644" y="122" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#15803D">+2.1 ★最高当选</text>
+
+  <text x="542" y="139" font-family="var(--font-sans)" font-size="10" fill="#475569" text-anchor="end">4「看」</text>
+  <rect x="584" y="129" width="22" height="12" rx="2" fill="#94A3B8"/>
+  <text x="611" y="139" font-family="var(--font-mono)" font-size="9.5" fill="#475569">+0.8</text>
+
+  <text x="542" y="156" font-family="var(--font-sans)" font-size="10" fill="#475569" text-anchor="end">5「。」</text>
+  <rect x="584" y="146" width="27" height="12" rx="2" fill="#94A3B8"/>
+  <text x="616" y="156" font-family="var(--font-mono)" font-size="9.5" fill="#475569">+1.0</text>
+
+  <!-- Stage 4: Round 1 Output -->
+  <path d="M 736 118 L 748 106" fill="none" stroke="#16A34A" stroke-width="1.5" marker-end="url(#ah-green)"/>
+  <rect x="750" y="64" width="108" height="80" rx="8" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.5"/>
+  <text x="804" y="82" font-family="var(--font-sans)" font-size="10.5" font-weight="700" fill="#166534" text-anchor="middle">④ 当场产出首词</text>
+  <text x="804" y="104" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#14532D" text-anchor="middle">3 号「猫」</text>
+  <text x="804" y="122" font-family="var(--font-sans)" font-size="9.5" font-weight="600" fill="#15803D" text-anchor="middle">已生成 1 &lt; 2 词</text>
+  <text x="804" y="136" font-family="var(--font-sans)" font-size="9.5" fill="#166534" text-anchor="middle">未停 → 进第 2 轮</text>
+
+  <!-- ==================== BOTTOM BAND: ROUND 2 DECODE ==================== -->
+  <rect x="12" y="212" width="856" height="170" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+  <rect x="64" y="218" width="114" height="20" rx="10" fill="#2563EB"/>
+  <text x="121" y="232" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">第 2 轮 · Decode</text>
+  <text x="186" y="232" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="#0F172A">只送新词 3「猫」1 个位置</text>
+
+  <!-- Cross-Round Connectors (drawn after Bottom Band bg so paths stay visible) -->
+  <path d="M 355 170 L 355 244" fill="none" stroke="#2563EB" stroke-width="1.8" marker-end="url(#ah-blue)"/>
+  <text x="364" y="206" font-family="var(--font-sans)" font-size="9.5" font-weight="600" fill="#1D4ED8">跨轮保留旧 KV</text>
+
+  <path d="M 804 144 L 804 190 L 361 190 A 6 6 0 0 0 349 190 L 36 190 L 36 274" fill="none" stroke="#16A34A" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ah-green)"/>
+  <rect x="528" y="181" width="186" height="18" rx="9" fill="#DCFCE7" stroke="#16A34A" stroke-width="1"/>
+  <text x="621" y="194" font-family="var(--font-sans)" font-size="9.5" font-weight="700" fill="#15803D" text-anchor="middle">3 号「猫」作为第 2 轮新输入</text>
+
+  <!-- Stage 1: Lookup Only E[3] -->
+  <text x="44" y="268" font-family="var(--font-sans)" font-size="9.5" font-weight="600" fill="#475569">只送位置 2</text>
+  <rect x="22" y="276" width="58" height="26" rx="5" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.4"/>
+  <text x="51" y="293" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="#0E7490" text-anchor="middle">3「猫」</text>
+
+  <rect x="94" y="248" width="60" height="14" rx="2.5" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.8"/>
+  <text x="124" y="259" font-family="var(--font-sans)" font-size="9" fill="#94A3B8" text-anchor="middle">E[0] 我</text>
+  <rect x="94" y="264" width="60" height="14" rx="2.5" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.8"/>
+  <text x="124" y="275" font-family="var(--font-sans)" font-size="9" fill="#94A3B8" text-anchor="middle">E[1] 你</text>
+  <rect x="94" y="280" width="60" height="14" rx="2.5" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.8"/>
+  <text x="124" y="291" font-family="var(--font-sans)" font-size="9" fill="#94A3B8" text-anchor="middle">E[2] 喜欢</text>
+  <rect x="94" y="296" width="60" height="14" rx="2.5" fill="#CFFAFE" stroke="#0891B2" stroke-width="1.4"/>
+  <text x="124" y="307" font-family="var(--font-sans)" font-size="9" font-weight="700" fill="#0E7490" text-anchor="middle">E[3] 猫</text>
+  <rect x="94" y="312" width="60" height="14" rx="2.5" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.8"/>
+  <text x="124" y="323" font-family="var(--font-sans)" font-size="9" fill="#94A3B8" text-anchor="middle">E[4] 看</text>
+  <rect x="94" y="328" width="60" height="14" rx="2.5" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.8"/>
+  <text x="124" y="339" font-family="var(--font-sans)" font-size="9" fill="#94A3B8" text-anchor="middle">E[5] 。</text>
+
+  <path d="M 80 289 L 92 302" fill="none" stroke="#0891B2" stroke-width="1.3" marker-end="url(#ah-cyan)"/>
+
+  <text x="197" y="269" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#0E7490" text-anchor="middle">只查 1 行</text>
+  <rect x="168" y="276" width="58" height="26" rx="5" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.4"/>
+  <text x="197" y="293" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="#0E7490" text-anchor="middle">x₂ [1,4]</text>
+  <path d="M 154 303 L 166 291" fill="none" stroke="#0891B2" stroke-width="1.3" marker-end="url(#ah-cyan)"/>
+
+  <!-- Stage 2: Read KV Cache + Append k2,v2 (3 positions total) -->
+  <rect x="242" y="246" width="232" height="44" rx="7" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.4"/>
+  <text x="250" y="258" font-family="var(--font-sans)" font-size="9" font-weight="700" fill="#1D4ED8">KV cache 读旧追新（共 3 份历史状态）</text>
+  <rect x="248" y="263" width="68" height="21" rx="3.5" fill="#DBEAFE" stroke="#60A5FA" stroke-width="1"/>
+  <text x="282" y="277" font-family="var(--font-sans)" font-size="9.5" fill="#1E40AF" text-anchor="middle">旧 k₀, v₀</text>
+  <rect x="320" y="263" width="68" height="21" rx="3.5" fill="#DBEAFE" stroke="#60A5FA" stroke-width="1"/>
+  <text x="354" y="277" font-family="var(--font-sans)" font-size="9.5" fill="#1E40AF" text-anchor="middle">旧 k₁, v₁</text>
+  <rect x="392" y="263" width="76" height="21" rx="3.5" fill="#BFDBFE" stroke="#1D4ED8" stroke-width="1.3"/>
+  <text x="430" y="277" font-family="var(--font-sans)" font-size="9.5" font-weight="700" fill="#1E3A8A" text-anchor="middle">+新 k₂, v₂</text>
+
+  <path d="M 226 289 L 240 315" fill="none" stroke="#0891B2" stroke-width="1.4" marker-end="url(#ah-cyan)"/>
+  <path d="M 290 290 L 290 300" fill="none" stroke="#2563EB" stroke-width="1.4" marker-end="url(#ah-blue)"/>
+  <path d="M 352 302 L 408 286" fill="none" stroke="#2563EB" stroke-width="1.3" marker-end="url(#ah-blue)"/>
+
+  <rect x="242" y="302" width="124" height="38" rx="7" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.3"/>
+  <text x="304" y="318" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#1E293B" text-anchor="middle">读缓存算位置 2</text>
+  <text x="304" y="333" font-family="var(--font-sans)" font-size="9.5" fill="#475569" text-anchor="middle">省去位置 0、1 重算</text>
+
+  <path d="M 366 321 L 378 321" fill="none" stroke="#0891B2" stroke-width="1.5" marker-end="url(#ah-cyan)"/>
+  <rect x="380" y="305" width="94" height="32" rx="5" fill="#ECFEFF" stroke="#0891B2" stroke-width="1.5"/>
+  <text x="427" y="325" font-family="var(--font-sans)" font-size="10.5" font-weight="700" fill="#0E7490" text-anchor="middle">单行输出 h₂</text>
+
+  <!-- Callout Note on KV cache = 3 positions instead of 4 -->
+  <rect x="22" y="350" width="452" height="24" rx="6" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+  <text x="248" y="366" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#92400E" text-anchor="middle">5「。」刚选出即停，不再进第 3 轮 → KV cache 最终存 3 个位置而非 4 个</text>
+
+  <!-- Stage 3: Same W_head Vocab Scoring Bars Round 2 -->
+  <path d="M 474 321 L 488 321" fill="none" stroke="#0891B2" stroke-width="1.5" marker-end="url(#ah-cyan)"/>
+  <rect x="490" y="244" width="246" height="130" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+  <text x="613" y="258" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#1E293B" text-anchor="middle">同一张 W_head 打分 logits₂</text>
+  <line x1="584" y1="264" x2="584" y2="368" stroke="#94A3B8" stroke-width="1" stroke-dasharray="2 2"/>
+
+  <text x="542" y="275" font-family="var(--font-sans)" font-size="10" fill="#475569" text-anchor="end">0「我」</text>
+  <rect x="562" y="265" width="22" height="12" rx="2" fill="#CBD5E1"/>
+  <text x="589" y="275" font-family="var(--font-mono)" font-size="9.5" fill="#64748B">-0.8</text>
+
+  <text x="542" y="292" font-family="var(--font-sans)" font-size="10" fill="#475569" text-anchor="end">1「你」</text>
+  <rect x="549" y="282" width="35" height="12" rx="2" fill="#CBD5E1"/>
+  <text x="589" y="292" font-family="var(--font-mono)" font-size="9.5" fill="#64748B">-1.3</text>
+
+  <text x="542" y="309" font-family="var(--font-sans)" font-size="10" fill="#475569" text-anchor="end">2「喜欢」</text>
+  <rect x="583" y="299" width="2" height="12" rx="1" fill="#94A3B8"/>
+  <text x="589" y="309" font-family="var(--font-mono)" font-size="9.5" fill="#64748B">0.0</text>
+
+  <text x="542" y="326" font-family="var(--font-sans)" font-size="10" fill="#475569" text-anchor="end">3「猫」</text>
+  <rect x="584" y="316" width="27" height="12" rx="2" fill="#94A3B8"/>
+  <text x="616" y="326" font-family="var(--font-mono)" font-size="9.5" fill="#475569">+1.0</text>
+
+  <text x="542" y="343" font-family="var(--font-sans)" font-size="10" fill="#475569" text-anchor="end">4「看」</text>
+  <rect x="573" y="333" width="11" height="12" rx="2" fill="#CBD5E1"/>
+  <text x="589" y="343" font-family="var(--font-mono)" font-size="9.5" fill="#64748B">-0.4</text>
+
+  <rect x="494" y="348" width="238" height="16" rx="4" fill="#DCFCE7" stroke="#16A34A" stroke-width="1"/>
+  <text x="542" y="360" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#14532D" text-anchor="end">5「。」</text>
+  <rect x="584" y="350" width="43" height="12" rx="2" fill="#16A34A"/>
+  <text x="632" y="360" font-family="var(--font-sans)" font-size="10" font-weight="700" fill="#15803D">+1.6 ★最高当选</text>
+
+  <!-- Stage 4: Round 2 Output & Stop -->
+  <path d="M 736 356 L 748 302" fill="none" stroke="#16A34A" stroke-width="1.5" marker-end="url(#ah-green)"/>
+  <rect x="750" y="250" width="108" height="84" rx="8" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.5"/>
+  <text x="804" y="268" font-family="var(--font-sans)" font-size="10.5" font-weight="700" fill="#166534" text-anchor="middle">产出第 2 词</text>
+  <text x="804" y="290" font-family="var(--font-sans)" font-size="13" font-weight="700" fill="#14532D" text-anchor="middle">5 号「。」</text>
+  <text x="804" y="309" font-family="var(--font-sans)" font-size="9.5" font-weight="700" fill="#15803D" text-anchor="middle">满 max_tokens=2</text>
+  <text x="804" y="324" font-family="var(--font-sans)" font-size="9.5" fill="#166534" text-anchor="middle">命中上限 → 停机</text>
+
+  <rect x="750" y="342" width="108" height="30" rx="7" fill="#0F172A"/>
+  <text x="804" y="361" font-family="var(--font-sans)" font-size="11.5" font-weight="700" fill="#FFFFFF" text-anchor="middle">拼成「猫。」</text>
+</svg>

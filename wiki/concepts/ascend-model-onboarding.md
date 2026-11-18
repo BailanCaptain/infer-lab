@@ -84,6 +84,12 @@ updated: '2026-11-18'
 
 把“在昇腾上上线一个新模型”拆成四个依次把关的问题，哪一步没对齐，后面就会在导入、启动或加载权重时直接报错或悄悄吃掉翻倍显存：
 
+```wiki-diagram
+file: onboarding-four-gates
+```
+
+对照上图，四道关各自要核实的核心问题与失配后果如下：
+
 | 关卡 | 要回答的核心问题 | 不对齐的典型后果 |
 |---|---|---|
 | 第一关：五维版本锁死 | 我的 `vllm`、`vllm-ascend`、`CANN`、`torch_npu` 与硬件卡型是否严丝合缝？ | 导入缺符号、`pip` 装错卡型包，或 Worker 启动检查直接抛 `RuntimeError` |
@@ -183,21 +189,8 @@ updated: '2026-11-18'
 
 当你把模型目录或仓库 ID 交给 `vllm serve` 后，vLLM 不会直接猜模型结构，而是先读取模型目录下的 `config.json`（如果命令行传入了 `--hf-overrides`，会先在内存中覆盖 `architectures`、`model_type` 等字段，而不改动磁盘文件），拿到 `architectures` 列表后交给 `ModelRegistry` 按以下三条路径依次解析出要实例化的模型类：
 
-```text
-config.json (architectures) + [--hf-overrides]
-   │
-   ├─► 1. --model-impl transformers？ ───────────────► 路径 C：强制走 transformers 后端
-   │                                                    (含 auto_map 时需 --trust-remote-code)
-   └─► 2. --model-impl auto（默认）
-         │
-         ├─► 命中 vllm_ascend/models/__init__.py？ ─► 路径 B：vllm-ascend 专有或覆写实现
-         │     (v0.30.0 共 29 项注册；含后注册覆盖上游同名架构，如 Qwen3_5*)
-         │
-         ├─► 命中上游 vllm 内置 _VLLM_MODELS？ ─────► 路径 A：上游 vllm 原生架构 + NPU 算子/补丁
-         │     (如 Qwen3ForCausalLM、Qwen3MoeForCausalLM)
-         │
-         └─► 未命中且任务为常规生成（convert=none）─► 路径 C：自动回退 transformers
-               └─ 仍不兼容或找不到 ──► 抛出 ValueError（不支持该架构）
+```wiki-diagram
+file: onboarding-model-registry-routing
 ```
 
 把这三条路径分清，就能解释为什么“有的新模型一发布就能直接跑，有的却必须等 `vllm-ascend` 发新版本”：

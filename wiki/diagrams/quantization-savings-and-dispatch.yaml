@@ -1,0 +1,16 @@
+mode: native-svg
+id: quantization-savings-and-dispatch
+caption: >-
+  v0.30.0（c09d3e20）量化字节比例与硬件落点总览：左栏对比 Qwen3-8B 单层 o_proj（32 MiB 压至 16 MiB + 16 KiB ≈ 50.05%）、Qwen3-30B-A3B EP8 单卡单层 16 专家（144 MiB 压至 72.0 MiB + 320 KiB 辅助参数 ≈ 0.43%，48 层 6.75 GiB → 3.375 GiB），以及原生 fp8_block 在 Ascend 950 重组 MXFP8（~51.6%，1.031 B/elem）与在 Atlas A2/A3 静默展开回 BF16（100% 零节省）的反差；右栏对比 MoE EP MC2 dispatch 在 quant_mode=2 下单 (token, 专家) 副本张量载荷（H=2048：4,096 B → 2,052 B ≈ 50.10%；H=4096：8,192 B → 4,100 B ≈ 50.05%，返程 combine 默认 quant_mode=0 仍传 BF16）。
+size: [880, 340]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L80-L93
+    symbols: [get_weight, get_perchannel_param, weight_scale, weight_offset]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L279-L292
+    symbols: [w13_weight, w2_weight, w13_weight_scale_fp32, w2_weight_scale]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L199-L240
+    symbols: [process_weights_after_loading, resolve_block_scales, _mx_quantize, mxfp8_method]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L165-L248
+    symbols: [dispatch_with_quant, quant_mode, npu_moe_distribute_dispatch_v2, dynamic_scale]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L275-L288
+    symbols: [combine_quant_mode, quant_mode, W8A8MXFP]

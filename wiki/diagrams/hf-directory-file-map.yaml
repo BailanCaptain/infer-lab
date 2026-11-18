@@ -1,0 +1,21 @@
+mode: native-svg
+id: hf-directory-file-map
+caption: HuggingFace 模型目录五类文件在 vllm 与 vllm-ascend 启动期的读取入口及四处常见隐形坑点对照。
+size: [880, 350]
+pins:
+  - source: 'vllm@ced6857a:vllm/transformers_utils/config.py#L757-L815'
+    symbols: ['get_config']
+  - source: 'vllm@ced6857a:vllm/transformers_utils/model_arch_config_convertor.py#L10-L114'
+    symbols: ['ModelArchitectureConfig', 'ModelArchConfigConvertorBase', 'get_head_size']
+  - source: 'vllm@ced6857a:vllm/renderers/hf.py#L263-L315'
+    symbols: ['resolve_chat_template']
+  - source: 'vllm@ced6857a:vllm/config/model.py#L2393-L2425'
+    symbols: ['_get_and_verify_max_len', 'model_max_length']
+  - source: 'vllm@ced6857a:vllm/model_executor/model_loader/default_loader.py#L43-L60'
+    symbols: ['DefaultModelLoader']
+  - source: 'vllm@ced6857a:vllm/model_executor/model_loader/weight_utils.py#L610-L637'
+    symbols: ['filter_duplicate_safetensors_files', 'weight_map']
+  - source: 'vllm@ced6857a:vllm/transformers_utils/config.py#L1155-L1182'
+    symbols: ['try_get_generation_config']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/quantization/utils.py#L163-L225'
+    symbols: ['maybe_auto_detect_quantization', 'detect_quantization_method']

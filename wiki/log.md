@@ -1415,3 +1415,8 @@ vllm-ascend@main 775899991f9614052e4836a62e4cb6541897faee → 3649b8ff7fd69e707d
 
 完成 `opus-critic` Wave 1 终审全部 4 项内容 P2 与 5 项外科式 P3 修订（含 `src/sim/rules/domain3Quantization.ts` 及单测 P2-1 同步：`310P` 使用 `COMPATIBILITY` 量化后端且不注册 `AscendFp8Config`，静默反量化仅限 `A2 / A3`），重绘 `quantization-flow.svg`（无损保留 `quantization-intuition.svg`），并重建 `wiki/index.md` 与 `src/content/wiki/registry.json`（166 页）。
 
+## [2026-11-18] build | Wave 1 视觉优先（native-svg + 1+3 算式规范）升级
+
+按盲测审阅反馈更新 `docs/wiki-writing-standard.md` 与 `scripts/wiki/lint.ts`（新增 `stage2-no-calc` 与 `stage2-no-ascii-diagram` 阻断门禁），移除 Wave 1 四篇样板全部 `calc` 灰框（11 → 0）与 ASCII 树框（1 → 0），新增 7 张 `mode: "native-svg"` 矢量图（`request-overview-lookup-and-score`、`request-overview-three-terrains`、`onboarding-four-gates`、`onboarding-model-registry-routing`、`hf-directory-file-map`、`hf-qwen3-dense-vs-moe-anatomy`、`quantization-savings-and-dispatch`），同步更新 `server/evidence.test.ts`（20 条量化图 pins）并重建 `wiki/index.md` 与 `src/content/wiki/registry.json`。
+
+

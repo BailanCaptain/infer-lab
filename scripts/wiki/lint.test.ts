@@ -846,4 +846,31 @@ describe("legacy-anchor & invalid-wiki-tool：阻塞级门禁", () => {
     const badModeRes = splitProblems(lintPages([badMode], opts));
     expect(badModeRes.errors.some((p) => p.rule === "invalid-wiki-tool")).toBe(true);
   });
+
+  it("二阶段 v0.30.0 页面拦截灰底 calc 框与 ASCII 箭头树，存量未换轨页保留兼容", () => {
+    const legacyWithCalc = mk(
+      "legacy-page",
+      { verified: ["releases/v0.26.0rc"] },
+      "## 算账\n\n```calc\ntitle: 旧账\n每层 = 2 × 4 = 8\n```\n",
+    );
+    expect(lintPages([legacyWithCalc], opts)).toEqual([]);
+
+    const stage2WithCalc = mk(
+      "stage2-page",
+      { verified: ["releases/v0.30.0", "main"] },
+      "## 算账\n\n```calc\ntitle: 新账\n每层 = 2 × 4 = 8\n```\n",
+    );
+    expect(splitProblems(lintPages([stage2WithCalc], opts)).errors.map((p) => p.rule)).toContain(
+      "stage2-no-calc",
+    );
+
+    const stage2WithAscii = mk(
+      "stage2-ascii",
+      { verified: ["releases/v0.30.0"] },
+      "## 分流\n\n```text\n入口\n ├─► 路径 A\n └─► 路径 B\n```\n",
+    );
+    expect(splitProblems(lintPages([stage2WithAscii], opts)).errors.map((p) => p.rule)).toContain(
+      "stage2-no-ascii-diagram",
+    );
+  });
 });

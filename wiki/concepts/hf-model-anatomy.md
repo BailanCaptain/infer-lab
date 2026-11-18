@@ -86,15 +86,21 @@ updated: '2026-11-18'
 
 ## 模型目录文件地图：启动时谁读哪份文件
 
-走进一个标准的 HuggingFace 模型目录，真正决定推理行为的文件可以归为五类。其中除权重分片外，其余文件都可以直接用文本编辑器或 `json.tool` 读懂。
+走进一个标准的 HuggingFace 模型目录，真正决定推理行为的文件可以归为五类。其中除权重分片外，其余文件都可以直接用文本编辑器或 `json.tool` 读懂；下图把目录树里的五类文件、启动阶段负责读取它们的 `vllm` / `vllm-ascend` 入口，以及四处最容易踩中的隐形坑对应到同一张视图上：
+
+```wiki-diagram
+file: hf-directory-file-map
+```
+
+顺着图中的五条读取路径逐项核对，各类文件记录的内容、读取入口与异常后果如下：
 
 | 目录文件 | 它描述什么 | 启动时由谁读取 | 缺失或异常时的典型后果 |
 | --- | --- | --- | --- |
 | `config.json`（Mistral 格式用 `params.json`；多模态模型语言侧常放在 `text_config` 下） | 模型类名、层数、隐藏维度、注意力与 MoE 参数、词表大小、精度 `torch_dtype`、可选的 `quantization_config` | `vllm` 配置加载器 `get_config` 与架构转换器 `ModelArchitectureConfig` | 缺失直接报错退出；缺少 `architectures` 时尝试按 `model_type` 映射或要求传入 `--hf-overrides` |
-| `tokenizer.json` / `tokenizer.model`、`tokenizer_config.json`、可选 `chat_template.jinja` | 子词切分规则、特殊控制符编号（如 `bos_token_id`、`eos_token_id`）、对话 Jinja 模板与 `model_max_length` | `vllm` 分词器包装与渲染器 `resolve_chat_template` | 无 `chat_template` 时调用 `/v1/chat/completions` 报错；`model_max_length` 过小会悄悄截断 `max_model_len` |
+| `tokenizer.json` / `tokenizer.model`、`tokenizer_config.json`、可选 `chat_template.jinja` | 子词切分规则、特殊控制符编号（如 `bos_token_id`、`eos_token_id`）、对话 Jinja 模板与 `model_max_length` | `vllm` 分词器包装、`resolve_chat_template` 与 `_get_and_verify_max_len` | 无 `chat_template` 时调用 `/v1/chat/completions` 报错；`model_max_length` 过小会悄悄截断 `max_model_len` |
 | `model.safetensors` 或 `model-00001-of-NNNNN.safetensors` 与 `model.safetensors.index.json` | 真实模型权重张量；索引文件通过 `weight_map` 记录每个张量名落在哪个分片文件 | `DefaultModelLoader` 与 `filter_duplicate_safetensors_files` | 索引记录的分片缺任一个即抛出 `FileNotFoundError`；同时存在合并权重与分片时会靠索引剔除重复项 |
 | `generation_config.json` | 模型出厂默认的采样超参数（`temperature`、`top_p`、`top_k`、`eos_token_id` 等） | `try_get_generation_config`（缺失时尝试从 `config.json` 构造） | 请求未传采样参数时会静音沿用该文件默认值，而不是框架内置默认值 |
-| `quantization_config`（内嵌或旧版 `hf_quant_config.json`）或 `quant_model_description.json` | 量化位宽、分组大小、激活缩放方式与逐层量化开关 | `vllm` `_verify_quantization` 与 `vllm-ascend` `detect_quantization_method` | 存在 `quant_model_description.json` 时自动触发 `--quantization ascend`；原生 `fp8` 缺少逐块参数会报 `NotImplementedError` |
+| `quantization_config`（内嵌或旧版 `hf_quant_config.json`）或 `quant_model_description.json` | 量化位宽、分组大小、激活缩放方式与逐层量化开关 | `vllm` `_verify_quantization` 与 `vllm-ascend` `maybe_auto_detect_quantization` / `detect_quantization_method` | 存在 `quant_model_description.json` 时自动触发 `--quantization ascend`；原生 `fp8` 缺少逐块参数会报 `NotImplementedError` |
 
 在[一次请求全景鸟瞰](request-overview.md)里看到的四件运行时大事——切出 token（分词器输出的离散整数编号）、逐层前向与读写 KV cache、末尾投影采样、最后还原文字——它们的张量尺寸和行为开关，几乎全部在启动阶段从这五类文件里确定下来；其中分词词表与对话模板的切分细节可进一步对照 [token](token.md)。
 
@@ -181,37 +187,32 @@ $$i \notin \text{mlp\_only\_layers}, \quad \text{num\_experts} > 0, \quad (i + 1
 | BF16 纯权重占用 | `15.26 GiB` | `56.87 GiB` | `1.11 GiB` |
 | 每 token BF16 KV cache（全层） | `144.0 KiB` | `96.0 KiB` | `112.0 KiB` |
 
-整模型参数量把五块加在一起：`embed_tokens`（$V \times H$）、$L$ 层注意力（含 `input_layernorm`、Q/K/V/O 投影与 Qwen3 特有的 `q_norm`/`k_norm`）、$L$ 层前馈网络（含 `post_attention_layernorm`）、末层 `model.norm`（$H$）以及当 `tie_word_embeddings` 为 `false` 时的 `lm_head`（$H \times V$）。下面先按 `Qwen3-8B` 走一遍完整算式：
+把 `Qwen3-8B` 与 `Qwen3-30B-A3B` 并排画开，可以一眼看清两组关键反差——在注意力层，`30B-A3B` 的 `32` 个 Q 头乘上显式 `head_dim = 128` 得到 `4096`（不等于 `H = 2048`），而 KV 头从 `8` 个减半到 `4` 个；在前馈层与显存条上，128 个专家把权重静态显存推高到 `56.87 GiB`，但单步仅点亮 8 个专家，每 token 的全层 KV cache 反而比 `8B` 短三分之一：
 
-```calc
-title: Qwen3-8B 参数量、权重显存与每 token KV 占用（BF16 静态基线）
-embed_tokens = 151,936 × 4,096 = 622,329,856
-单层注意力 = 4,096 + 4,096 × 4,096 + 2 × 4,096 × 1,024 + 4,096 × 4,096 + 2 × 128 = 41,947,392
-> 含 input_layernorm、Q/K/V/O 四投影（q_dim=32×128=4,096，kv_dim=8×128=1,024）与 q_norm/k_norm
-单层 MLP = 4,096 + 3 × 4,096 × 12,288 = 150,999,040
-> 含 post_attention_layernorm 与 gate/up/down_proj 三个矩阵
-36 层 + 末层 norm + lm_head = 36 × (41,947,392 + 150,999,040) + 4,096 + 622,329,856 = 7,568,405,504
-总参数量 = 622,329,856 + 7,568,405,504 = 8,190,735,360 ≈ 8.19 B
-BF16 纯权重显存 = 8,190,735,360 × 2 B = 16,381,470,720 B ≈ 15.26 GiB
-每层每 token KV 占用 = 2 × 8 × 128 × 2 B = 4,096 B
-整模型每 token KV 占用 = 36 × 4,096 B = 147,456 B = 144.0 KiB
+```wiki-diagram
+file: hf-qwen3-dense-vs-moe-anatomy
 ```
 
-接着把相同的拆解方法套用到 `Qwen3-30B-A3B`。此时注意力里的 `q_proj` 与 `o_proj` 维度受 `head_dim = 128` 主导而变成 `2,048 × 4,096` 与 `4,096 × 2,048`（千万不能用 `2,048`），而前馈部分变成路由矩阵加上 128 个专家——加载显存按全量 `128` 个专家算，单步计算量按激活 `8` 个专家算，KV cache 则由 `num_key_value_heads = 4` 与 `48` 层共同决定：
+从代数关系上看，任意标准因果语言模型的整模型参数量都由首端词嵌入、$L$ 层注意力与前馈网络、末层归一化 `model.norm` 以及可选独立输出头 `lm_head` 五块相加而成（当 `tie_word_embeddings` 为 `false` 时 $P_{\text{lm\_head}} = H \times V$，为 `true` 时 $P_{\text{lm\_head}} = 0$）：
 
-```calc
-title: Qwen3-30B-A3B 总参数 vs 激活参数与每 token KV 占用（BF16 静态基线）
-embed_tokens = 151,936 × 2,048 = 311,164,928
-单层注意力 = 2,048 + 2,048 × 4,096 + 2 × 2,048 × 512 + 4,096 × 2,048 + 2 × 128 = 18,876,672
-> q_dim = 32 × 128 = 4,096，kv_dim = 4 × 128 = 512（若错用 head_dim=64 会少算一半）
-单层 MoE（全部 128 专家） = 2,048 + 2,048 × 128 + 128 × (3 × 2,048 × 768) = 604,243,968
-单层 MoE（激活 8 专家） = 2,048 + 2,048 × 128 + 8 × (3 × 2,048 × 768) = 38,012,928
-总参数量 = 311,164,928 + 48 × (18,876,672 + 604,243,968) + 2,048 + 311,164,928 = 30,532,122,624 ≈ 30.53 B
-单 token 激活参数 = 311,164,928 + 48 × (18,876,672 + 38,012,928) + 2,048 + 311,164,928 = 3,353,032,704 ≈ 3.35 B
-BF16 纯权重显存 = 30,532,122,624 × 2 B = 61,064,245,248 B ≈ 56.87 GiB
-每层每 token KV 占用 = 2 × 4 × 128 × 2 B = 2,048 B
-整模型每 token KV 占用 = 48 × 2,048 B = 98,304 B = 96.0 KiB
-```
+$$P_{\text{total}} = V \times H + L \times \bigl(P_{\text{attn}} + P_{\text{ffn}}\bigr) + H + P_{\text{lm\_head}}$$
+
+而每个 token 在整座模型全部 $L$ 层里新增的 KV cache 字节数，只取决于 K 与 V 两份张量、层数 $L$、KV 头数 $n_{\text{kv}}$、单头维度 $d_h$ 以及单个元素字节数 $\text{bytes}$（BF16 下为 `2` 字节），与专家总数或词表大小无关：
+
+$$\text{KV}_{\text{token}} = 2 \times L \times n_{\text{kv}} \times d_h \times \text{bytes}$$
+
+把 `Qwen3-8B` 与 `Qwen3-30B-A3B` 的字段逐项代入上面两条公式（注意 `Qwen3-30B-A3B` 的 `q_proj` / `o_proj` 维度由 `32 × 128 = 4,096` 主导，加载显存按全量 `128` 专家算、单步算力按激活 `8` 专家算），完整分项对账如下：
+
+| 拆解模块与静态指标 | `Qwen3-8B`（稠密 36 层，`H = 4,096`） | `Qwen3-30B-A3B`（稀疏 MoE 48 层，`H = 2,048`） |
+| --- | --- | --- |
+| 首端 `embed_tokens`（$V \times H$） | `151,936 × 4,096 = 622,329,856` | `151,936 × 2,048 = 311,164,928` |
+| 单层 Attention（$P_{\text{attn}}$，含 `input_layernorm`、Q/K/V/O 投影与 `q_norm`/`k_norm`） | `4,096 + 4,096×4,096 + 2×4,096×1,024 + 4,096×4,096 + 2×128 = 41,947,392`（`q_dim = 4,096`，`kv_dim = 1,024`） | `2,048 + 2,048×4,096 + 2×2,048×512 + 4,096×2,048 + 2×128 = 18,876,672`（`q_dim = 4,096`，`kv_dim = 512`；错套 `head_dim=64` 会少算一半） |
+| 单层前馈：全量驻留（含 `post_attention_layernorm` 与 `gate`/`up`/`down_proj`） | 稠密 MLP：`4,096 + 3×4,096×12,288 = 150,999,040` | MoE 全量 128 专家：`2,048 + 2,048×128 + 128×(3×2,048×768) = 604,243,968` |
+| 单层前馈：单步激活 | 同上（全参数参与）：`150,999,040` | MoE 激活 8 专家：`2,048 + 2,048×128 + 8×(3×2,048×768) = 38,012,928` |
+| $L$ 层主体 + 末层 `model.norm` + 独立 `lm_head` | `36 × (41,947,392 + 150,999,040) + 4,096 + 622,329,856 = 7,568,405,504` | 驻留：`48 × (18,876,672 + 604,243,968) + 2,048 + 311,164,928 = 30,220,957,696`；激活：`48 × (18,876,672 + 38,012,928) + 2,048 + 311,164,928 = 3,041,867,776` |
+| 整模型总参数 vs 单 token 激活参数 | 总参数 = 激活参数 = `8,190,735,360`（`≈ 8.19B`） | 总参数 `30,532,122,624`（`≈ 30.53B`） / 激活参数 `3,353,032,704`（`≈ 3.35B`） |
+| BF16 纯权重静态显存（每参数 `2 B`） | `8,190,735,360 × 2 B = 16,381,470,720 B ≈ 15.26 GiB` | `30,532,122,624 × 2 B = 61,064,245,248 B ≈ 56.87 GiB` |
+| 每层 / 全模型每 token BF16 KV cache | 每层 `2 × 8 × 128 × 2 B = 4,096 B`；36 层共 `147,456 B = 144.0 KiB` | 每层 `2 × 4 × 128 × 2 B = 2,048 B`；48 层共 `98,304 B = 96.0 KiB` |
 
 有了这两组数字，启动服务前就能先心里有底：哪怕不考虑运行时激活与框架缓冲（详细显存划定与两次试跑扣减机制见 [KV 显存划定](kv-cache-memory-profiling.md)），单张 32 GiB 卡想跑 BF16 的 `Qwen3-30B-A3B` 也会在加载阶段直接 OOM；而单张 32 GiB 卡跑 BF16 `Qwen3-8B` 时，扣除 `15.26 GiB` 权重后仍能腾出可观的显存留给 KV cache。下面可以通过快速初筛工具容器把这组静态账直接对应到卡数门槛上：
 

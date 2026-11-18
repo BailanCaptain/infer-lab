@@ -1,0 +1,36 @@
+mode: native-svg
+id: onboarding-model-registry-routing
+caption: ModelRegistry 三路模型类解析决策树：强制 transformers、vllm-ascend 29 项注册覆写、上游 vLLM 原生内置与回退报错
+size: [880, 340]
+pins:
+  - source: "vllm@ced6857a:vllm/config/model.py#L167-L369"
+    symbols:
+      - trust_remote_code
+      - hf_overrides
+      - model_impl
+  - source: "vllm-ascend@c09d3e20:setup.py#L506-L517"
+    symbols:
+      - register_model
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/models/__init__.py#L4-L102"
+    symbols:
+      - register_model
+      - ModelRegistry
+      - DeepseekV4ForCausalLM
+      - Glm5NextForCausalLM
+      - Qwen3_5ForConditionalGeneration
+      - Qwen3_5MoeForConditionalGeneration
+  - source: "vllm@ced6857a:vllm/model_executor/models/registry.py#L200-L206"
+    symbols:
+      - Qwen3ForCausalLM
+      - Qwen3MoeForCausalLM
+  - source: "vllm@ced6857a:vllm/model_executor/models/registry.py#L773-L784"
+    symbols:
+      - _VLLM_MODELS
+      - _TEXT_GENERATION_MODELS
+  - source: "vllm@ced6857a:vllm/model_executor/models/registry.py#L1318-L1423"
+    symbols:
+      - resolve_model_cls
+      - _try_resolve_transformers
+      - _raise_for_unsupported
+      - convert_type
+      - ValueError

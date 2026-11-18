@@ -1,0 +1,15 @@
+mode: native-svg
+id: request-overview-lookup-and-score
+caption: 示意：教学请求「我喜欢 → 猫。」在两轮中的查表、缓存读写与词表打分。第 1 轮（Prefill）从 6 行嵌入表 E 抽出第 0、2 行拼成 2 行张量，写下 k₀, v₀ 与 k₁, v₁ 后只取最后一行 h₁（位置 0 的 h₀ 不参与打分），经 W_head 打分选出最高分 +2.1 的 3 号「猫」；第 2 轮（Decode）只查 E[3] 1 行，复用旧缓存并追加 k₂, v₂（共 3 个历史位置），用同一张 W_head 选出 +1.6 的 5 号「。」后满 max_tokens = 2 停机，5 号「。」不再进第 3 轮。
+size: [880, 390]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/vocab_parallel_embedding.py#L510-L575'
+    symbols: ['embedding', 'ParallelLMHead']
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/attention/attention.py#L485-L530'
+    symbols: ['forward', 'kv_cache']
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/logits_processor.py#L58-L120'
+    symbols: ['LogitsProcessor', 'lm_head', 'logits']
+  - source: 'vllm@ced6857a:vllm/v1/sample/sampler.py#L244-L304'
+    symbols: ['sample', 'greedy_sample']
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/utils.py#L94-L136'
+    symbols: ['check_stop', 'max_tokens']

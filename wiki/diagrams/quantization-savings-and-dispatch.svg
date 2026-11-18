@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 340" width="880" height="340" role="img" aria-label="v0.30.0（c09d3e20）量化字节比例与硬件落点总览：左栏对比 Qwen3-8B 单层 o_proj、Qwen3-30B-A3B EP8 单卡单层 16 专家权重显存压缩与原生 fp8_block 跨芯片落点，右栏对比 MoE EP MC2 dispatch 在 quant_mode=2 下的单副本通信载荷减半。">
+  <title>v0.30.0（c09d3e20）量化字节比例与硬件落点总览：左栏对比 Qwen3-8B 单层 o_proj（32 MiB 压至 16 MiB + 16 KiB ≈ 50.05%）、Qwen3-30B-A3B EP8 单卡单层 16 专家（144 MiB 压至 72.0 MiB + 320 KiB 辅助参数 ≈ 0.43%，48 层 6.75 GiB → 3.375 GiB），以及原生 fp8_block 在 Ascend 950 重组 MXFP8（~51.6%，1.031 B/elem）与在 Atlas A2/A3 静默展开回 BF16（100% 零节省）的反差；右栏对比 MoE EP MC2 dispatch 在 quant_mode=2 下单 (token, 专家) 副本张量载荷（H=2048：4,096 B → 2,052 B ≈ 50.10%；H=4096：8,192 B → 4,100 B ≈ 50.05%，返程 combine 默认 quant_mode=0 仍传 BF16）。</title>
+  <defs>
+    <marker id="ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/>
+    </marker>
+  </defs>
+
+  <!-- 左栏：权重显存压缩与原生 FP8 硬件落点对比 -->
+  <g id="panel-weights">
+    <rect x="12" y="12" width="444" height="316" rx="10" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.2"/>
+    <circle cx="28" cy="28" r="10" fill="var(--color-weight, #c78300)"/>
+    <text x="28" y="32.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1</text>
+    <text x="44" y="33" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">权重显存压缩比例与原生 FP8 硬件落点（v0.30.0）</text>
+    <line x1="22" y1="43" x2="446" y2="43" stroke="var(--color-surface-sunken, #ece9df)" stroke-width="1.2"/>
+
+    <!-- 组 1：Qwen3-8B o_proj -->
+    <text x="24" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">Qwen3-8B 单层 o_proj（4096×4096 = 16,777,216 元素）</text>
+    <text x="24" y="81" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" fill="var(--color-ink-muted, #66716d)">BF16</text>
+    <rect x="60" y="67" width="204" height="20" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+    <text x="162" y="81" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="middle">32 MiB（100%）</text>
+    <text x="272" y="81" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" fill="var(--color-ink-muted, #66716d)">33,554,432 B（2 B/元素）</text>
+
+    <text x="24" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="700" fill="#936300">INT8</text>
+    <rect x="60" y="92" width="102" height="20" rx="3" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+    <text x="111" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">16 MiB</text>
+    <rect x="163" y="92" width="4" height="20" rx="1" fill="#936300"/>
+    <rect x="169" y="92" width="95" height="20" rx="3" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1" stroke-dasharray="3 3"/>
+    <text x="216.5" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">省 ~50%</text>
+    <text x="272" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" font-weight="700" fill="#936300">+16 KiB scale+offset (50.05%)</text>
+
+    <line x1="22" y1="119" x2="446" y2="119" stroke="var(--color-surface-sunken, #ece9df)" stroke-width="1"/>
+
+    <!-- 组 2：Qwen3-30B-A3B EP8 单卡单层 16 专家 -->
+    <text x="24" y="134" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">Qwen3-30B-A3B EP8 单卡单层 16 专家（w13 + w2）</text>
+    <text x="24" y="154" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" fill="var(--color-ink-muted, #66716d)">BF16</text>
+    <rect x="60" y="140" width="204" height="20" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+    <text x="162" y="154" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="middle">144 MiB / 层</text>
+    <text x="272" y="154" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" fill="var(--color-ink-muted, #66716d)">48 层 6.75 GiB（100%）</text>
+
+    <text x="24" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="700" fill="#936300">INT8</text>
+    <rect x="60" y="165" width="102" height="20" rx="3" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+    <text x="111" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">72.0 MiB</text>
+    <rect x="163" y="165" width="4" height="20" rx="1" fill="#936300"/>
+    <rect x="169" y="165" width="95" height="20" rx="3" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1" stroke-dasharray="3 3"/>
+    <text x="272" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" font-weight="700" fill="#936300">48 层 3.375 GiB + 320 KiB</text>
+    <text x="60" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" fill="var(--color-ink-muted, #66716d)">末端琥珀细边：320.0 KiB 缩放参数（96+128+96 KiB），仅占主体 0.43%</text>
+
+    <!-- 组 3：红框警示条（原生 fp8_block 跨芯片对比） -->
+    <rect x="22" y="210" width="424" height="108" rx="7" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-width="1.3"/>
+    <text x="32" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="#8f3229">原生 fp8_block 跨芯片落点对比（勿默认省一半！）</text>
+
+    <text x="32" y="249" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="700" fill="#936300">Ascend 950</text>
+    <rect x="106" y="235" width="90" height="20" rx="3" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+    <text x="151" y="249" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">重组 MXFP8</text>
+    <rect x="197" y="235" width="4" height="20" rx="1" fill="#936300"/>
+    <rect x="203" y="235" width="83" height="20" rx="3" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1" stroke-dasharray="3 3"/>
+    <text x="294" y="249" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" font-weight="700" fill="#936300">~51.6% (1.031 B/elem)</text>
+
+    <text x="32" y="275" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="700" fill="#8f3229">Atlas A2/A3</text>
+    <rect x="106" y="261" width="180" height="20" rx="3" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+    <text x="196" y="275" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">v0.30.0 静默展开回 BF16</text>
+    <text x="294" y="275" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" font-weight="700" fill="#8f3229">100%（零节省！）</text>
+
+    <text x="32" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" fill="#8f3229">main 在 A2/A3 改抛 NotImplementedError；310P 不注册 AscendFp8Config</text>
+  </g>
+
+  <!-- 右栏：MoE EP MC2 dispatch 单 (token, 专家) 通信载荷减半 -->
+  <g id="panel-dispatch">
+    <rect x="468" y="12" width="400" height="316" rx="10" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.2"/>
+    <circle cx="484" cy="28" r="10" fill="var(--color-comm, #9a4b86)"/>
+    <text x="484" y="32.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
+    <text x="500" y="33" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">EP MC2 dispatch 单副本载荷（quant_mode=2）</text>
+    <line x1="478" y1="43" x2="858" y2="43" stroke="var(--color-surface-sunken, #ece9df)" stroke-width="1.2"/>
+
+    <!-- 顶部迷你流转示意 -->
+    <rect x="480" y="51" width="106" height="36" rx="6" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.2"/>
+    <text x="533" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" font-weight="700" fill="#065f56" text-anchor="middle">源卡隐藏向量</text>
+    <text x="533" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10" fill="#065f56" text-anchor="middle">BF16 [1, H]</text>
+    <line x1="586" y1="69" x2="605" y2="69" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4" marker-end="url(#ah-comm)"/>
+
+    <rect x="608" y="51" width="126" height="36" rx="6" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+    <text x="671" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MC2 压成 INT8</text>
+    <text x="671" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">+ 4B dynamic_scale</text>
+    <line x1="734" y1="69" x2="753" y2="69" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4" marker-end="url(#ah-comm)"/>
+
+    <rect x="756" y="51" width="100" height="36" rx="6" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+    <text x="806" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">专家卡直接复用</text>
+    <text x="806" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">省入口重复量化</text>
+
+    <!-- H = 2048 (Qwen3-30B-A3B) -->
+    <text x="480" y="109" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">H = 2048（Qwen3-30B-A3B）</text>
+    <text x="480" y="131" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" fill="var(--color-ink-muted, #66716d)">BF16</text>
+    <rect x="520" y="117" width="96" height="20" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+    <text x="568" y="131" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="middle">4,096 B</text>
+    <text x="624" y="131" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" fill="var(--color-ink-muted, #66716d)">2048 × 2 B（100%）</text>
+
+    <text x="480" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="700" fill="#7a3a6a">INT8</text>
+    <rect x="520" y="142" width="48" height="20" rx="3" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+    <text x="544" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2,048B</text>
+    <rect x="569" y="142" width="4" height="20" rx="1" fill="var(--color-token, #087f73)"/>
+    <rect x="575" y="142" width="41" height="20" rx="3" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1" stroke-dasharray="3 3"/>
+    <text x="624" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" font-weight="700" fill="#7a3a6a">+ 4 B scale = 2,052 B（50.10%）</text>
+
+    <line x1="478" y1="170" x2="858" y2="170" stroke="var(--color-surface-sunken, #ece9df)" stroke-width="1"/>
+
+    <!-- H = 4096 (通用如 GLM) -->
+    <text x="480" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">H = 4096（通用如 GLM）</text>
+    <text x="480" y="206" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" fill="var(--color-ink-muted, #66716d)">BF16</text>
+    <rect x="520" y="192" width="192" height="20" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+    <text x="616" y="206" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="middle">8,192 B（4096 × 2 B）</text>
+    <text x="720" y="206" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" fill="var(--color-ink-muted, #66716d)">100%</text>
+
+    <text x="480" y="231" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="700" fill="#7a3a6a">INT8</text>
+    <rect x="520" y="217" width="96" height="20" rx="3" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+    <text x="568" y="231" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4,096 B</text>
+    <rect x="617" y="217" width="4" height="20" rx="1" fill="var(--color-token, #087f73)"/>
+    <rect x="623" y="217" width="89" height="20" rx="3" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1" stroke-dasharray="3 3"/>
+    <text x="720" y="231" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" font-weight="700" fill="#7a3a6a">4,100 B（50.05%）</text>
+    <text x="520" y="251" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" fill="#065f56">青色细边：每 token 附带 1 个 FP32 dynamic_scale（+4 B）</text>
+
+    <!-- Combine 阶段旁注 -->
+    <rect x="480" y="260" width="376" height="58" rx="7" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.45" stroke-width="1.2"/>
+    <text x="492" y="278" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="700" fill="#7a3a6a">旁注：返程 combine 阶段默认 quant_mode = 0（仍传 BF16）</text>
+    <text x="492" y="295" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" fill="var(--color-ink, #17211f)">整数方案仅减半去程 dispatch，专家输出加权归约默认回传 BF16</text>
+    <text x="492" y="311" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10" fill="var(--color-ink-muted, #66716d)">（W8A8MXFP 默认 combine=4，或显式配 combine_quant_mode 除外）</text>
+  </g>
+</svg>

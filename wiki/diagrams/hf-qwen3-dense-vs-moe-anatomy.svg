@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 410" width="880" height="410" role="img" aria-label="Qwen3-8B（稠密 36 层）与 Qwen3-30B-A3B（稀疏 MoE 48 层，128 选 8）的注意力分组头、前馈层驻留与激活反差，以及 BF16 权重显存与每 token KV cache 比例对照。">
+  <title>Qwen3-8B（稠密 36 层）与 Qwen3-30B-A3B（稀疏 MoE 48 层，128 选 8）的注意力分组头、前馈层驻留与激活反差，以及 BF16 权重显存与每 token KV cache 比例对照。</title>
+  <defs>
+    <marker id="ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/>
+    </marker>
+  </defs>
+
+  <g id="model-headers">
+    <rect x="14" y="8" width="420" height="30" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+    <text x="224" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Qwen3-8B · 稠密 Dense GQA（36 层，H=4096）</text>
+
+    <rect x="446" y="8" width="420" height="30" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+    <text x="656" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Qwen3-30B-A3B · 稀疏 MoE（48 层，H=2048，128 选 8）</text>
+  </g>
+
+  <g id="panel-1-attention">
+    <rect x="14" y="46" width="420" height="108" rx="10" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.3"/>
+    <text x="28" y="65" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)">① Attention 头结构：32 Q 头 : 8 KV 头（4:1 分组）</text>
+    <text x="28" y="86" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-token, #087f73)">Q×32</text>
+    <text x="28" y="107" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-kv, #4c65b6)">KV×8</text>
+    <path d="M72,75 h7.5 v13 h-7.5 Z M81,75 h7.5 v13 h-7.5 Z M90,75 h7.5 v13 h-7.5 Z M99,75 h7.5 v13 h-7.5 Z M115,75 h7.5 v13 h-7.5 Z M124,75 h7.5 v13 h-7.5 Z M133,75 h7.5 v13 h-7.5 Z M142,75 h7.5 v13 h-7.5 Z M158,75 h7.5 v13 h-7.5 Z M167,75 h7.5 v13 h-7.5 Z M176,75 h7.5 v13 h-7.5 Z M185,75 h7.5 v13 h-7.5 Z M201,75 h7.5 v13 h-7.5 Z M210,75 h7.5 v13 h-7.5 Z M219,75 h7.5 v13 h-7.5 Z M228,75 h7.5 v13 h-7.5 Z M244,75 h7.5 v13 h-7.5 Z M253,75 h7.5 v13 h-7.5 Z M262,75 h7.5 v13 h-7.5 Z M271,75 h7.5 v13 h-7.5 Z M287,75 h7.5 v13 h-7.5 Z M296,75 h7.5 v13 h-7.5 Z M305,75 h7.5 v13 h-7.5 Z M314,75 h7.5 v13 h-7.5 Z M330,75 h7.5 v13 h-7.5 Z M339,75 h7.5 v13 h-7.5 Z M348,75 h7.5 v13 h-7.5 Z M357,75 h7.5 v13 h-7.5 Z M373,75 h7.5 v13 h-7.5 Z M382,75 h7.5 v13 h-7.5 Z M391,75 h7.5 v13 h-7.5 Z M400,75 h7.5 v13 h-7.5 Z" fill="var(--color-token, #087f73)"/>
+    <path d="M89.2,88 v8 M132.2,88 v8 M175.2,88 v8 M218.2,88 v8 M261.2,88 v8 M304.2,88 v8 M347.2,88 v8 M390.2,88 v8" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.2"/>
+    <path d="M72,96 h34.5 v13 h-34.5 Z M115,96 h34.5 v13 h-34.5 Z M158,96 h34.5 v13 h-34.5 Z M201,96 h34.5 v13 h-34.5 Z M244,96 h34.5 v13 h-34.5 Z M287,96 h34.5 v13 h-34.5 Z M330,96 h34.5 v13 h-34.5 Z M373,96 h34.5 v13 h-34.5 Z" fill="var(--color-kv, #4c65b6)"/>
+    <rect x="28" y="118" width="392" height="27" rx="6" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+    <text x="224" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="middle">head_dim=128：32×128 = 4096 = H  |  单层 KV = 4,096 B/tok</text>
+
+    <rect x="446" y="46" width="420" height="108" rx="10" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.3"/>
+    <text x="460" y="65" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)">① Attention 头结构：32 Q 头 : 4 KV 头（8:1 分组）</text>
+    <text x="460" y="86" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-token, #087f73)">Q×32</text>
+    <text x="460" y="107" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-kv, #4c65b6)">KV×4</text>
+    <path d="M504,75 h8.5 v13 h-8.5 Z M514,75 h8.5 v13 h-8.5 Z M524,75 h8.5 v13 h-8.5 Z M534,75 h8.5 v13 h-8.5 Z M544,75 h8.5 v13 h-8.5 Z M554,75 h8.5 v13 h-8.5 Z M564,75 h8.5 v13 h-8.5 Z M574,75 h8.5 v13 h-8.5 Z M592,75 h8.5 v13 h-8.5 Z M602,75 h8.5 v13 h-8.5 Z M612,75 h8.5 v13 h-8.5 Z M622,75 h8.5 v13 h-8.5 Z M632,75 h8.5 v13 h-8.5 Z M642,75 h8.5 v13 h-8.5 Z M652,75 h8.5 v13 h-8.5 Z M662,75 h8.5 v13 h-8.5 Z M680,75 h8.5 v13 h-8.5 Z M690,75 h8.5 v13 h-8.5 Z M700,75 h8.5 v13 h-8.5 Z M710,75 h8.5 v13 h-8.5 Z M720,75 h8.5 v13 h-8.5 Z M730,75 h8.5 v13 h-8.5 Z M740,75 h8.5 v13 h-8.5 Z M750,75 h8.5 v13 h-8.5 Z M768,75 h8.5 v13 h-8.5 Z M778,75 h8.5 v13 h-8.5 Z M788,75 h8.5 v13 h-8.5 Z M798,75 h8.5 v13 h-8.5 Z M808,75 h8.5 v13 h-8.5 Z M818,75 h8.5 v13 h-8.5 Z M828,75 h8.5 v13 h-8.5 Z M838,75 h8.5 v13 h-8.5 Z" fill="var(--color-token, #087f73)"/>
+    <path d="M543.2,88 v8 M631.2,88 v8 M719.2,88 v8 M807.2,88 v8" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.2"/>
+    <path d="M504,96 h78.5 v13 h-78.5 Z M592,96 h78.5 v13 h-78.5 Z M680,96 h78.5 v13 h-78.5 Z M768,96 h78.5 v13 h-78.5 Z" fill="var(--color-kv, #4c65b6)"/>
+    <rect x="458" y="118" width="396" height="27" rx="6" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-width="1.3"/>
+    <text x="656" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="var(--color-danger, #b54237)" text-anchor="middle">陷阱：32×128 = 4096 != H(2048)，套 H/n_q=64 会少算一半！</text>
+  </g>
+
+  <g id="panel-2-ffn">
+    <rect x="14" y="162" width="420" height="128" rx="10" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.3"/>
+    <text x="28" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)">② 前馈层（稠密 SwiGLU MLP）：全驻留 = 全激活</text>
+    <rect x="28" y="204" width="74" height="42" rx="6" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.3"/>
+    <text x="65" y="221" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">每个 token</text>
+    <text x="65" y="238" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11" fill="var(--color-token, #087f73)" text-anchor="middle">H=4096</text>
+    <path d="M102,225 L126,225" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#ah-weight)"/>
+    <rect x="128" y="194" width="292" height="62" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+    <text x="274" y="218" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">单个稠密 MLP（gate / up / down_proj）</text>
+    <text x="274" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">I = 12,288 · 单层 151.0M 参数全参与乘加</text>
+    <text x="28" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink, #17211f)">全模型 8.19B 驻留显存（15.26 GiB） = 单步 8.19B 全激活</text>
+
+    <rect x="446" y="162" width="420" height="128" rx="10" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.3"/>
+    <text x="460" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)">② 前馈层（稀疏 MoE）：128 专家常驻，router 仅点亮 8 个</text>
+    <rect x="458" y="204" width="66" height="42" rx="6" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.3"/>
+    <text x="491" y="221" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">router</text>
+    <text x="491" y="238" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="700" fill="var(--color-token, #087f73)" text-anchor="middle">128 选 8</text>
+    <path d="M524,225 L544,225" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#ah-weight)"/>
+
+    <rect x="546" y="191" width="172" height="68" rx="6" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.2"/>
+    <path id="moe-pool-120-idle" d="M552,196 h7.5 v5.2 h-7.5 Z M562,196 h7.5 v5.2 h-7.5 Z M582,196 h7.5 v5.2 h-7.5 Z M592,196 h7.5 v5.2 h-7.5 Z M602,196 h7.5 v5.2 h-7.5 Z M612,196 h7.5 v5.2 h-7.5 Z M622,196 h7.5 v5.2 h-7.5 Z M632,196 h7.5 v5.2 h-7.5 Z M642,196 h7.5 v5.2 h-7.5 Z M652,196 h7.5 v5.2 h-7.5 Z M662,196 h7.5 v5.2 h-7.5 Z M672,196 h7.5 v5.2 h-7.5 Z M682,196 h7.5 v5.2 h-7.5 Z M692,196 h7.5 v5.2 h-7.5 Z M702,196 h7.5 v5.2 h-7.5 Z M552,203.5 h7.5 v5.2 h-7.5 Z M562,203.5 h7.5 v5.2 h-7.5 Z M572,203.5 h7.5 v5.2 h-7.5 Z M582,203.5 h7.5 v5.2 h-7.5 Z M592,203.5 h7.5 v5.2 h-7.5 Z M602,203.5 h7.5 v5.2 h-7.5 Z M612,203.5 h7.5 v5.2 h-7.5 Z M622,203.5 h7.5 v5.2 h-7.5 Z M632,203.5 h7.5 v5.2 h-7.5 Z M642,203.5 h7.5 v5.2 h-7.5 Z M652,203.5 h7.5 v5.2 h-7.5 Z M672,203.5 h7.5 v5.2 h-7.5 Z M682,203.5 h7.5 v5.2 h-7.5 Z M692,203.5 h7.5 v5.2 h-7.5 Z M702,203.5 h7.5 v5.2 h-7.5 Z M552,211 h7.5 v5.2 h-7.5 Z M562,211 h7.5 v5.2 h-7.5 Z M572,211 h7.5 v5.2 h-7.5 Z M582,211 h7.5 v5.2 h-7.5 Z M592,211 h7.5 v5.2 h-7.5 Z M612,211 h7.5 v5.2 h-7.5 Z M622,211 h7.5 v5.2 h-7.5 Z M632,211 h7.5 v5.2 h-7.5 Z M642,211 h7.5 v5.2 h-7.5 Z M652,211 h7.5 v5.2 h-7.5 Z M662,211 h7.5 v5.2 h-7.5 Z M672,211 h7.5 v5.2 h-7.5 Z M682,211 h7.5 v5.2 h-7.5 Z M692,211 h7.5 v5.2 h-7.5 Z M702,211 h7.5 v5.2 h-7.5 Z M552,218.5 h7.5 v5.2 h-7.5 Z M562,218.5 h7.5 v5.2 h-7.5 Z M572,218.5 h7.5 v5.2 h-7.5 Z M582,218.5 h7.5 v5.2 h-7.5 Z M592,218.5 h7.5 v5.2 h-7.5 Z M602,218.5 h7.5 v5.2 h-7.5 Z M612,218.5 h7.5 v5.2 h-7.5 Z M622,218.5 h7.5 v5.2 h-7.5 Z M632,218.5 h7.5 v5.2 h-7.5 Z M642,218.5 h7.5 v5.2 h-7.5 Z M652,218.5 h7.5 v5.2 h-7.5 Z M662,218.5 h7.5 v5.2 h-7.5 Z M672,218.5 h7.5 v5.2 h-7.5 Z M682,218.5 h7.5 v5.2 h-7.5 Z M702,218.5 h7.5 v5.2 h-7.5 Z M552,226 h7.5 v5.2 h-7.5 Z M572,226 h7.5 v5.2 h-7.5 Z M582,226 h7.5 v5.2 h-7.5 Z M592,226 h7.5 v5.2 h-7.5 Z M602,226 h7.5 v5.2 h-7.5 Z M612,226 h7.5 v5.2 h-7.5 Z M622,226 h7.5 v5.2 h-7.5 Z M632,226 h7.5 v5.2 h-7.5 Z M642,226 h7.5 v5.2 h-7.5 Z M652,226 h7.5 v5.2 h-7.5 Z M662,226 h7.5 v5.2 h-7.5 Z M672,226 h7.5 v5.2 h-7.5 Z M682,226 h7.5 v5.2 h-7.5 Z M692,226 h7.5 v5.2 h-7.5 Z M702,226 h7.5 v5.2 h-7.5 Z M552,233.5 h7.5 v5.2 h-7.5 Z M562,233.5 h7.5 v5.2 h-7.5 Z M572,233.5 h7.5 v5.2 h-7.5 Z M582,233.5 h7.5 v5.2 h-7.5 Z M592,233.5 h7.5 v5.2 h-7.5 Z M602,233.5 h7.5 v5.2 h-7.5 Z M612,233.5 h7.5 v5.2 h-7.5 Z M622,233.5 h7.5 v5.2 h-7.5 Z M632,233.5 h7.5 v5.2 h-7.5 Z M652,233.5 h7.5 v5.2 h-7.5 Z M662,233.5 h7.5 v5.2 h-7.5 Z M672,233.5 h7.5 v5.2 h-7.5 Z M682,233.5 h7.5 v5.2 h-7.5 Z M692,233.5 h7.5 v5.2 h-7.5 Z M702,233.5 h7.5 v5.2 h-7.5 Z M552,241 h7.5 v5.2 h-7.5 Z M562,241 h7.5 v5.2 h-7.5 Z M572,241 h7.5 v5.2 h-7.5 Z M582,241 h7.5 v5.2 h-7.5 Z M592,241 h7.5 v5.2 h-7.5 Z M602,241 h7.5 v5.2 h-7.5 Z M622,241 h7.5 v5.2 h-7.5 Z M632,241 h7.5 v5.2 h-7.5 Z M642,241 h7.5 v5.2 h-7.5 Z M652,241 h7.5 v5.2 h-7.5 Z M662,241 h7.5 v5.2 h-7.5 Z M672,241 h7.5 v5.2 h-7.5 Z M682,241 h7.5 v5.2 h-7.5 Z M692,241 h7.5 v5.2 h-7.5 Z M702,241 h7.5 v5.2 h-7.5 Z M552,248.5 h7.5 v5.2 h-7.5 Z M562,248.5 h7.5 v5.2 h-7.5 Z M572,248.5 h7.5 v5.2 h-7.5 Z M582,248.5 h7.5 v5.2 h-7.5 Z M592,248.5 h7.5 v5.2 h-7.5 Z M602,248.5 h7.5 v5.2 h-7.5 Z M612,248.5 h7.5 v5.2 h-7.5 Z M622,248.5 h7.5 v5.2 h-7.5 Z M632,248.5 h7.5 v5.2 h-7.5 Z M642,248.5 h7.5 v5.2 h-7.5 Z M652,248.5 h7.5 v5.2 h-7.5 Z M662,248.5 h7.5 v5.2 h-7.5 Z M682,248.5 h7.5 v5.2 h-7.5 Z M692,248.5 h7.5 v5.2 h-7.5 Z M702,248.5 h7.5 v5.2 h-7.5 Z" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="0.7"/>
+    <path id="moe-pool-8-active" d="M572,196 h7.5 v5.2 h-7.5 Z M662,203.5 h7.5 v5.2 h-7.5 Z M602,211 h7.5 v5.2 h-7.5 Z M692,218.5 h7.5 v5.2 h-7.5 Z M562,226 h7.5 v5.2 h-7.5 Z M642,233.5 h7.5 v5.2 h-7.5 Z M612,241 h7.5 v5.2 h-7.5 Z M672,248.5 h7.5 v5.2 h-7.5 Z" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.1"/>
+
+    <rect x="726" y="191" width="128" height="32" rx="6" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-width="1.2"/>
+    <text x="790" y="205" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="var(--color-danger, #b54237)" text-anchor="middle">全驻留 30.53B</text>
+    <text x="790" y="218" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" fill="var(--color-ink, #17211f)" text-anchor="middle">56.87 GiB 超 32G</text>
+
+    <rect x="726" y="227" width="128" height="32" rx="6" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.2"/>
+    <text x="790" y="241" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="#8a5a00" text-anchor="middle">单步激活 3.35B</text>
+    <text x="790" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="10.5" fill="var(--color-ink, #17211f)" text-anchor="middle">算力比 8B 还轻！</text>
+
+    <text x="460" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">128 专家（I_moe=768）常驻 HBM；单步仅 8 专家参与计算</text>
+  </g>
+
+  <g id="panel-3-bars">
+    <rect x="14" y="298" width="852" height="104" rx="10" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+    <line x1="440" y1="308" x2="440" y2="392" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.2" stroke-dasharray="4 3"/>
+
+    <text x="28" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)">③ BF16 权重显存对比（30B-A3B 远长于 8B）</text>
+    <text x="28" y="344" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">Qwen3-8B</text>
+    <rect x="114" y="331" width="192" height="16" rx="4" fill="var(--color-surface-sunken, #ece9df)"/>
+    <rect x="114" y="331" width="49" height="16" rx="4" fill="var(--color-weight, #c78300)"/>
+    <text x="314" y="344" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="#8a5a00">15.26 GiB (8.19B)</text>
+
+    <text x="28" y="370" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">30B-A3B</text>
+    <rect x="114" y="357" width="192" height="16" rx="4" fill="var(--color-surface-sunken, #ece9df)"/>
+    <rect x="114" y="357" width="182" height="16" rx="4" fill="var(--color-danger, #b54237)"/>
+    <text x="314" y="370" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="var(--color-danger, #b54237)">56.87 GiB (30.5B)</text>
+
+    <line x1="216" y1="326" x2="216" y2="378" stroke="var(--color-danger, #b54237)" stroke-width="1.4" stroke-dasharray="3 2"/>
+    <text x="216" y="393" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="600" fill="var(--color-danger, #b54237)" text-anchor="middle">▲ 32 GiB 单卡线（30B-A3B 直接 OOM）</text>
+
+    <text x="454" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)">每 token BF16 KV cache（30B-A3B 反省三分之一！）</text>
+    <text x="454" y="344" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">Qwen3-8B</text>
+    <rect x="538" y="331" width="156" height="16" rx="4" fill="var(--color-surface-sunken, #ece9df)"/>
+    <rect x="538" y="331" width="144" height="16" rx="4" fill="var(--color-kv, #4c65b6)"/>
+    <text x="702" y="344" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="var(--color-kv, #4c65b6)">144.0 KiB (8头×36层)</text>
+
+    <text x="454" y="370" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">30B-A3B</text>
+    <rect x="538" y="357" width="156" height="16" rx="4" fill="var(--color-surface-sunken, #ece9df)"/>
+    <rect x="538" y="357" width="96" height="16" rx="4" fill="var(--color-token, #087f73)"/>
+    <text x="702" y="370" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="700" fill="var(--color-token, #087f73)">96.0 KiB (4头×48层)</text>
+
+    <text x="653" y="393" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11" font-weight="600" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">KV 头减半（8→4）压过层数增加（36→48），单步 KV 省 33%</text>
+  </g>
+</svg>

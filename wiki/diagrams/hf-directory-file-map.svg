@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 350" width="880" height="350" role="img" aria-label="HuggingFace 模型目录五类文件在 vllm 与 vllm-ascend 启动期的读取入口及四处常见隐形坑点对照。">
+  <title>HuggingFace 模型目录五类文件在 vllm 与 vllm-ascend 启动期的读取入口及四处常见隐形坑点对照。</title>
+  <defs>
+    <marker id="ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink-muted, #5b6763)"/>
+    </marker>
+    <marker id="ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/>
+    </marker>
+    <marker id="ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/>
+    </marker>
+    <marker id="ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/>
+    </marker>
+  </defs>
+
+  <g id="column-headers">
+    <path d="M10,12 L18,12 L20,15 L28,15 L28,26 L10,26 Z" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4" stroke-linejoin="round"/>
+    <text x="34" y="24" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">hf_model_dir/</text>
+    <text x="144" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-muted, #5b6763)">（5 类目录文件）</text>
+    <text x="344" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">启动期谁来读（vllm / vllm-ascend）</text>
+    <text x="636" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-danger, #b54237)">4 个隐形坑与量化门禁</text>
+  </g>
+
+  <g id="folder-tree-lines">
+    <path d="M18,26 L18,314 M18,66 L30,66 M18,128 L30,128 M18,190 L30,190 M18,252 L30,252 M18,314 L30,314" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.6" stroke-linecap="round"/>
+  </g>
+
+  <g id="row-1-config">
+    <rect x="30" y="40" width="284" height="52" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+    <text x="42" y="60" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)">config.json</text>
+    <text x="42" y="79" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink-muted, #5b6763)">架构 · 尺寸 · 头数 · params.json / text_config</text>
+    <path d="M314,66 L342,66" fill="none" stroke="var(--color-ink-muted, #5b6763)" stroke-width="1.4" marker-end="url(#ah-ink)"/>
+    <rect x="344" y="40" width="266" height="52" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+    <text x="356" y="60" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" font-weight="700" fill="var(--color-ink, #17211f)">get_config</text>
+    <text x="356" y="79" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" fill="var(--color-kv, #4c65b6)">ModelArchitectureConfig</text>
+    <path d="M610,66 L634,66" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah-danger)"/>
+    <rect x="636" y="40" width="232" height="52" rx="10" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-width="1.4"/>
+    <text x="648" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-danger, #b54237)">坑 1：head_dim=128 != H/n_q</text>
+    <text x="648" y="79" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink, #17211f)">30B-A3B 错套 64 会少算一半</text>
+  </g>
+
+  <g id="row-2-tokenizer">
+    <rect x="30" y="102" width="284" height="52" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+    <text x="42" y="122" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">tokenizer*.json + chat_template.jinja</text>
+    <text x="42" y="141" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink-muted, #5b6763)">切词规则 · 控制符编号 · model_max_length</text>
+    <path d="M314,128 L342,128" fill="none" stroke="var(--color-ink-muted, #5b6763)" stroke-width="1.4" marker-end="url(#ah-ink)"/>
+    <rect x="344" y="102" width="266" height="52" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+    <text x="356" y="122" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" font-weight="700" fill="var(--color-ink, #17211f)">resolve_chat_template</text>
+    <text x="356" y="141" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" fill="var(--color-token, #087f73)">_get_and_verify_max_len</text>
+    <path d="M610,128 L634,128" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah-danger)"/>
+    <rect x="636" y="102" width="232" height="52" rx="10" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-width="1.4"/>
+    <text x="648" y="122" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-danger, #b54237)">坑 2：model_max_length 静音截断</text>
+    <text x="648" y="141" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink, #17211f)">与推导上限取 min 悄悄压短上下文</text>
+  </g>
+
+  <g id="row-3-safetensors">
+    <rect x="30" y="164" width="284" height="52" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+    <text x="42" y="184" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">model-*.safetensors + index.json</text>
+    <text x="42" y="203" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink-muted, #5b6763)">几十 GiB 权重分片与 weight_map 映射</text>
+    <path d="M314,190 L342,190" fill="none" stroke="var(--color-ink-muted, #5b6763)" stroke-width="1.4" marker-end="url(#ah-ink)"/>
+    <rect x="344" y="164" width="266" height="52" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+    <text x="356" y="184" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" font-weight="700" fill="var(--color-ink, #17211f)">DefaultModelLoader</text>
+    <text x="356" y="203" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11" fill="#8a5a00">filter_duplicate_safetensors_files</text>
+    <path d="M610,190 L634,190" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah-weight)"/>
+    <rect x="636" y="164" width="232" height="52" rx="10" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+    <text x="648" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="#8a5a00">坑 3：index.json 防双倍加载</text>
+    <text x="648" y="203" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink, #17211f)">缺片抛异常；勿删索引防重复载入</text>
+  </g>
+
+  <g id="row-4-generation">
+    <rect x="30" y="226" width="284" height="52" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+    <text x="42" y="246" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" font-weight="700" fill="var(--color-ink, #17211f)">generation_config.json</text>
+    <text x="42" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink-muted, #5b6763)">出厂 temperature / top_p / eos_token_id</text>
+    <path d="M314,252 L342,252" fill="none" stroke="var(--color-ink-muted, #5b6763)" stroke-width="1.4" marker-end="url(#ah-ink)"/>
+    <rect x="344" y="226" width="266" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+    <text x="356" y="246" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12" font-weight="700" fill="var(--color-ink, #17211f)">try_get_generation_config</text>
+    <text x="356" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink-muted, #5b6763)">缺失时从 config.json 提取生成项</text>
+    <path d="M610,252 L634,252" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah-weight)"/>
+    <rect x="636" y="226" width="232" height="52" rx="10" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+    <text x="648" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="#8a5a00">坑 4：generation_config</text>
+    <text x="648" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink, #17211f)">静音改写采样默认参数（非内置值）</text>
+  </g>
+
+  <g id="row-5-quant">
+    <rect x="30" y="288" width="284" height="52" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+    <text x="42" y="308" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">quant_model_description.json</text>
+    <text x="42" y="327" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" fill="var(--color-ink-muted, #5b6763)">| quantization_config (config.json)</text>
+    <path d="M314,314 L342,314" fill="none" stroke="var(--color-ink-muted, #5b6763)" stroke-width="1.4" marker-end="url(#ah-ink)"/>
+    <rect x="344" y="288" width="266" height="52" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
+    <text x="356" y="308" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11.5" font-weight="700" fill="var(--color-ink, #17211f)">maybe_auto_detect_quantization</text>
+    <text x="356" y="327" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="11" fill="var(--color-comm, #9a4b86)">detect_quantization_method</text>
+    <path d="M610,314 L634,314" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah-comm)"/>
+    <rect x="636" y="288" width="232" height="52" rx="10" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
+    <text x="648" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-comm, #9a4b86)">量化门禁：ModelSlim 触发 ascend</text>
+    <text x="648" y="327" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" fill="var(--color-ink, #17211f)">原生 FP8 缺逐块动态参数直接拒绝</text>
+  </g>
+</svg>

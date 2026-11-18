@@ -17425,7 +17425,7 @@
       "title": "一次请求全景鸟瞰：从输入文字到逐词生成",
       "type": "concept",
       "origin": "direct",
-      "summary": "不引入多机并行与混合模型术语，用一个 6 词词表、4 维向量的纯算术小例子，从头到尾跟完一条请求「我喜欢 → 猫。」的两轮（Prefill 与 Decode）、四件事与「Host CPU — HBM 显存 — AI Core」三块地盘的配合。",
+      "summary": "不引入多机并行与混合模型术语，用一个 6 词教学小词表从头到尾跟完一条请求「我喜欢 → 猫。」的两轮（Prefill 与 Decode）、四件事，以及「Host CPU — HBM 显存 — AI Core」三块硬件地盘的配合。",
       "aliases": [
         "一次请求全景鸟瞰",
         "请求鸟瞰",

@@ -1,56 +1,54 @@
 <!doctype html><html lang="zh"><head><meta charset="utf-8"><title>GLM 单层结构</title>
 <script type="importmap">{"imports":{"three":"../../vendor/build/three.module.js","three/addons/":"../../vendor/examples/jsm/"}}</script>
 <style>
-html,body{margin:0;background:#f8f5ee;font-family:var(--journey-font-sans);color:#2b2823;overflow:hidden}
-#stage{position:relative;overflow:hidden}
+html,body{margin:0;background:#f6f7f4;font-family:var(--journey-font-sans);color:#1b2421;overflow:hidden}
+#stage{position:relative;overflow:hidden;background:radial-gradient(circle at 52% 38%,#ffffff 0%,#fcfcfa 66%,#f2f4f0 100%);background-image:radial-gradient(rgba(38,56,49,.028) 1px,transparent 1px),radial-gradient(circle at 52% 38%,#ffffff 0%,#fcfcfa 66%,#f2f4f0 100%);background-size:24px 24px,100% 100%}
 canvas{position:absolute;inset:0}
-.l{position:absolute;white-space:nowrap;font-size:12.5px;pointer-events:none;text-shadow:0 0 4px #f8f5ee,0 0 4px #f8f5ee,0 0 4px #f8f5ee}
+.l{position:absolute;white-space:nowrap;font-size:12.5px;line-height:1.35;color:#1e2824;pointer-events:none;text-shadow:0 0 4px #fcfcfa,0 0 6px #fcfcfa,0 1px 2px #fcfcfa}
 .l.c{transform:translate(-50%,-50%)}.l.b{transform:translate(-50%,0)}.l.t{transform:translate(-50%,-100%)}.l.r{transform:translate(0,-50%)}.l.rr{transform:translate(-100%,-50%)}
-.l.tl{transform:translate(0,-100%)}
-.l b{font-weight:700}.l i{font-style:normal;color:#6b665c;font-size:11.5px}
-.l.big{font-size:17px;font-weight:800}
-#legend{position:absolute;left:0;right:0;bottom:0;font-size:12.5px;line-height:1.6;background:#f8f5eef2;padding:6px 18px 7px;border-top:1px solid #ddd5c6}
+.l.tl{transform:translate(0,-100%)}.l.tr{transform:translate(-100%,-100%)}.l.bl{transform:translate(0,0)}.l.br{transform:translate(-100%,0)}
+#stage.far .l.inner{display:none!important}
+.l b{font-weight:700;color:#151e1c}.l i{font-style:normal;color:#52605a;font-size:11.5px;font-family:var(--journey-font-mono);font-variant-numeric:tabular-nums}
+.l.big{font-size:16.5px;font-weight:800}
+#legend{position:absolute;left:0;right:0;bottom:0;font-size:12.5px;line-height:1.65;background:rgba(252,252,250,.93);backdrop-filter:blur(6px);padding:7px 20px 8px;border-top:1px solid #dce2d8;color:#35433f}
 #legend h1{display:inline;font-size:13px;margin:0 8px 0 0}
-#legend .k{display:inline-block;width:11px;height:11px;border-radius:2px;margin:0 4px -1px 8px}
-#views{position:absolute;right:16px;top:14px;font-size:13px;text-align:right}
-#views div{margin-bottom:7px}
-#title{position:absolute;left:12px;top:8px;font-size:20px;font-weight:800;max-width:calc(100% - 600px);background:#f8f5eeeb;padding:6px 10px 7px;border-radius:6px}#title i{display:block;font-style:normal;font-size:13.5px;font-weight:400;color:#4a463f;margin-top:3px;white-space:normal}
-#views a{display:inline-block;margin-left:6px;padding:3px 10px;border:1px solid #b9b2a3;border-radius:12px;color:#4a463f;text-decoration:none;background:#f8f5ee}
-#views a.on{background:#2b2823;color:#f8f5ee;border-color:#2b2823}
+#legend .k{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid rgba(21,30,28,.22);box-sizing:border-box;margin:0 5px -1.5px 10px}
+#views{position:absolute;right:16px;top:12px;font-size:13px;text-align:right;z-index:2}
+#views div{margin-bottom:6px}
+#title{position:absolute;left:14px;top:10px;font-size:19px;font-weight:700;letter-spacing:-.01em;max-width:calc(100% - 590px);background:rgba(252,252,250,.93);border:1px solid #dce2d8;border-left:3.5px solid #286151;box-shadow:0 6px 20px rgba(23,33,31,.06);padding:7px 12px 8px;border-radius:8px;z-index:2}#title i{display:block;font-style:normal;font-size:13px;line-height:1.45;font-weight:400;color:#4a5852;margin-top:3px;white-space:normal}
+#views a{display:inline-block;margin-left:5px;padding:3px 10px;border:1px solid #cbd4c9;border-radius:999px;color:#2f3d37;font-weight:500;text-decoration:none;background:rgba(252,252,250,.94);box-shadow:0 2px 6px rgba(23,33,31,.04);transition:border-color .15s,background .15s,color .15s}
+#views a:hover{border-color:#286151;color:#286151;background:#eef4ef}
+#views a.on{background:#286151;color:#ffffff;border-color:#286151}
+@media(max-width:920px){#stage>#title{position:relative;left:auto;top:auto;max-width:none;margin:8px 10px 0;padding:5px 10px 6px;font-size:15.5px;line-height:1.3}#stage>#title i{font-size:12px;line-height:1.35;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}#stage>#views{position:relative;right:auto;top:auto;margin:6px 10px 0;text-align:left;font-size:12px}#stage>#views div{margin-bottom:4px}#stage>#views a{margin:0 4px 3px 0;padding:2px 8px}#legend{padding:5px 12px 7px;font-size:11px;line-height:1.45}#stage.far .l{font-size:10.5px}#stage.far .l i,#stage.far .l br{display:none}}
 </style><link rel="stylesheet" href="../../typography.css"><link rel="stylesheet" href="../../reader-theme.css"><script>if(new URLSearchParams(location.search).get("site")==="1"||window.frameElement?.classList.contains("experience-frame"))document.documentElement.dataset.site="true";</script></head><body><div id="stage"></div>
 <script type="module">
-// The master (since 2026-09-24): a layer laid out as bbycroft.net/llm lays out GPT — flow-layout.js places the blocks and the
-// arrows, flow-look.js draws them (the approved matrix look), flow-colors.js holds the colours, flow-tune.js lets the
-// user tune them. ?layer= picks the layer (all three kinds: L00 KDA + dense, L03 MLA + MoE, L04 KDA + MoE; any of the
-// 45 works).
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {layerSpec} from './truth-spec.js';
 import {layoutFlow,toWorld,ptWorld,HEAD_GAP} from './flow-layout.js';
 import {makeFlowLook} from './flow-look.js';
-import {PAGE,NAMES,DEFAULT_PALETTE,arrowColor} from './flow-colors.js';
-
+import {ACCENTS,PAGE,NAMES,DEFAULT_PALETTE,arrowColor,mix} from './flow-colors.js';
 import {makeView} from './truth-view.js';
 
-const Q=new URLSearchParams(location.search),VIEW=Q.get('view')||'layer',PAL=DEFAULT_PALETTE,W=+(Q.get('w')||innerWidth),H=+(Q.get('h')||innerHeight),LEGEND=true;
+const Q=new URLSearchParams(location.search),VIEW=Q.get('view')||'layer',PAL=DEFAULT_PALETTE,LEGEND=true;
+let W=+(Q.get('w')||innerWidth),H=+(Q.get('h')||innerHeight);
 const host=document.getElementById('stage');host.style.width=W+'px';host.style.height=H+'px';
 const cfg=(await (await fetch('../reference/official-config.json')).json()).text_config;
-const LI=+(Q.get('layer')||0),T=6,spec=layerSpec(cfg,T,LI),HEADS='z',SLABS='gap',GAP=SLABS==='gap'?HEAD_GAP:0,L=layoutFlow(spec,{heads:HEADS,gap:GAP}),D=spec.dims;
+const LI=+(Q.get('layer')||0),T=6,spec=layerSpec(cfg,T,LI),HEADS='z',SLABS='gap',GAP=SLABS==='gap'?HEAD_GAP:0,L=layoutFlow(spec,{heads:HEADS,gap:GAP});
 const WB=L.blocks.map(toWorld),B=Object.fromEntries(WB.map(b=>[b.id,b])),LN='L'+String(LI).padStart(2,'0');
 const KIND={kda:'KDA 线性注意力',mla:'稀疏注意力（MLA + 索引器）'}[spec.attnKind]+' + '+{dense:'稠密前馈',moe:'MoE 前馈'}[spec.ffnKind];
 const SAME=cfg.layer_types.map((t,i)=>[t,cfg.mlp_layer_types[i],i]).filter(([t,m])=>t===cfg.layer_types[LI]&&m===cfg.mlp_layer_types[LI]).map(([,,i])=>i);
 
-const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5,Math.sqrt(2500000/(W*H))));renderer.setSize(W,H);host.prepend(renderer.domElement);
-const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(22,W/H,.5,12000),controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=false;
-const {V,label,labels,place,fit,settle,title}=makeView({host,W,H,camera,controls}),look=makeFlowLook({px:renderer.getPixelRatio(),pal:PAL,minPx:3,viewH:H,slabs:SLABS,alt:false,fine:16,hlines:true,fineWords:true,flat:false});   // no block thinner than 3 px on the screen
-for(const b of WB)look.addBlock(scene,b);
-// arrows: in the colour of the component they come from (its full colour, a quarter of the way to the page), so a weight's
-// arrow and its result's arrows are one colour (bbycroft: weights' arrows blue, data's green)
-const ARROWS=[];
-const midZ=a=>-Math.min(...[B[a.from],B[a.to]].filter(Boolean).map(b=>b.z1-b.z0))/2;   // the middle of the depth both ends share
-for(const a of L.arrows){const src=B[a.from];ARROWS.push({comp:src.comp,m:look.addArrow(scene,a.pts.map(ptWorld),{color:arrowColor(look.palette[src.comp][0]),w:a.w,head:a.head,z:midZ(a)})})}
+const pixelRatioFor=(w,h)=>Math.min(Math.max(devicePixelRatio||1,2),2.5,Math.sqrt(8500000/Math.max(1,w*h)));
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:false,powerPreference:'high-performance'});
+renderer.setPixelRatio(pixelRatioFor(W,H));renderer.setSize(W,H);host.prepend(renderer.domElement);
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(22,W/H,.5,60000),controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=false;
+const viewApi=makeView({host,W,H,camera,controls}),{V,label,labels,place,hideUnderUI,fit,settle,title}=viewApi;
+const look=makeFlowLook({px:renderer.getPixelRatio(),pal:PAL,minPx:3,viewH:H,slabs:SLABS,alt:false,fine:16,hlines:true,fineWords:true,flat:false,prism:true});
+look.addBlockBatch(scene,WB);
+const midZ=a=>-Math.min(...[B[a.from],B[a.to]].filter(Boolean).map(b=>b.z1-b.z0))/2;
+const arrowBatch=look.addArrowBatch(scene,L.arrows.map(a=>{const src=B[a.from];return{pts:a.pts.map(ptWorld),color:arrowColor(look.palette[src.comp][0],src.comp),w:a.w,head:a.head,z:midZ(a),meta:{comp:src.comp,from:a.from,to:a.to}}}));
 
-// ---- camera: the whole layer, a half, or the projection group, seen from the front, a little from the right and above
 const box=ids=>{const bs=ids.filter(i=>B[i]).map(i=>B[i]);return {x0:Math.min(...bs.map(b=>b.x0)),x1:Math.max(...bs.map(b=>b.x1)),y0:Math.min(...bs.map(b=>b.y0)),y1:Math.max(...bs.map(b=>b.y1)),z0:Math.min(...bs.map(b=>b.z0)),z1:0}};
 const half=h=>WB.filter(b=>spec.steps.some(s=>s.half===h&&[...s.writes,...s.params].includes(b.id))).map(b=>b.id);
 const all=box(WB.map(b=>b.id)),ATTN=half('attn').concat(['residual_in','residual_mid']),FFN=half('ffn').concat(['residual_out']);
@@ -66,48 +64,80 @@ const VIEWS={layer:[all,`${LN} 一整层 · ${KIND}`,`右边一根竖的是 4 �
  group:[box(GROUP),'投影这一组 · 头往后叠','每个头一片横着的板，往后叠；权重的第 h 片正对结果的第 h 片（一样高、一样深）'],
  ffn:[box(FFN),'前馈这一半',SUB[spec.ffnKind]]};
 const LIST={attn:ATTN,group:GROUP,ffn:FFN}[VIEW],SHOWN=LIST?new Set(LIST):null;
-// ---- names: a small tag over each block's top-left corner (as bbycroft's), the spine's names to its right, a row's name
-// left of its weight (a view of part of the layer names only its own blocks, so the rest of the layer carries no names)
+if(SHOWN){
+ const pageCol=new THREE.Color(PAGE);
+ for(const b of WB)if(!SHOWN.has(b.id))look.dimOne(b.id,.85);
+ arrowBatch.syncDim(a=>SHOWN.has(a.to)&&(SHOWN.has(a.from)||(VIEW==='ffn'&&a.from==='residual_mid')),pageCol,.85);
+}
 const named=id=>B[id]&&(!SHOWN||SHOWN.has(id));
 const sh=id=>`<i>[${B[id].t.shape.join(', ')}]</i>`;
-const tag=(id,html,dx=0)=>{if(!named(id))return;const b=B[id];return label(html,V(b.x0+dx,b.y1+.8,0),'tl',true)};
-const right=(id,html,dx=1.4)=>{if(!named(id))return;const b=B[id];return label(html,V(b.x1+dx,(b.y0+b.y1)/2,0),'r',true)};
-const leftT=(id,html,dx=1.4)=>{if(!named(id))return;const b=B[id];return label(html,V(b.x0-dx,(b.y0+b.y1)/2,0),'rr',true)};
+const sp=B.residual_out||B.residual_in,spineX=(sp?.x1??L.XS)+2.2,spineZ=sp?.z0??0;
+const right=(id,html,dx=2.2)=>{if(!named(id))return;const b=B[id];return label(html,V(b.x1+dx,(b.y0+b.y1)/2,b.z0),'r',true)};
+const spineRight=(id,html,dx=0,cls='r')=>{if(!named(id))return;const b=B[id];return label(html,V(Math.max(b.x1+2.2,spineX)+dx,(b.y0+b.y1)/2,spineZ),cls,true)};
+const leftT=(id,html,dx=3.2)=>{if(!named(id))return;const b=B[id];return label(html,V(b.x0-dx,(b.y0+b.y1)/2,0),'rr',true)};
 right('residual_in','<b>本层输入</b><br><i>[6, 4 路, 4096]</i>');right('residual_mid','<b>写回 4 路</b><br><i>也读混合系数里的 post、comb</i>');right('residual_out','<b>本层输出 · 写回 4 路</b><br><i>[6, 4 路, 4096] · 也读 post、comb</i>');
-for(const [id,n] of [['collapsed_attn','合成 1 路'],['x_attn','RMSNorm'],['attn_out','<b>注意力输出</b> <i>[6, 4096]</i>'],['collapsed_ffn','合成 1 路'],['x_ffn','RMSNorm'],['ffn_out','<b>前馈输出</b>']])tag(id,n);
-leftT('base_attn','<i>fn：4 路 → 24 个混合系数</i>',1);leftT('base_ffn','<i>fn：4 路 → 24 个混合系数</i>',1);
-// KDA
+const mlaPad=spec.attnKind==='mla'?14:0;
+for(const [id,n,dx,cls] of [['collapsed_attn','合成 1 路',mlaPad,'r'],['x_attn','RMSNorm',mlaPad,'r'],['coef_ffn','<i>fn：4 路 → 24 个混合系数</i>',0,'r inner'],['collapsed_ffn','合成 1 路',0,'r inner'],['x_ffn','RMSNorm',0,'r']])spineRight(id,n,dx,cls);
+spineRight('attn_out','<b>注意力输出</b> <i>[6, 4096]</i>');spineRight('ffn_out','<b>前馈输出</b> <i>[6, 4096]</i>');
+leftT('base_attn','<i>fn：4 路 → 24 个混合系数</i>',2.6);
 for(const [id,n] of [['W_g_a','<b>输出门</b> <i>W_g_a → 128 → W_g_b →</i>'],['W_q','<b>Q</b> <i>W_q → Q → 短卷积 →</i>'],['W_k','<b>K</b> <i>W_k → K → 短卷积 →</i>'],['W_v','<b>V</b> <i>W_v → V → 短卷积 →</i>'],['W_f_a','<b>衰减门</b> <i>W_f_a → 128 → W_f_b →</i>'],['W_b','<b>β</b> <i>W_b →</i>']])leftT(id,n);
-for(const [id,n] of [['core_out','<b>KDA 输出</b>'],['o_normed','门控归一化']])tag(id,n,2);
-leftT('state','<i>记忆 S：K V g β 逐词写进去，读出时乘 q</i>');if(named('Q_conv'))label(HEADS==='z'?(SLABS==='elide'?'<i>64 个头：画了第 1、2、3 和第 64 个，中间 60 个省略</i>':'<i>64 个头，每头一片，往后叠</i>'):'<i>64 个头，每头一条</i>',V(B.Q_conv.x1-2,B.Q_conv.y1+.8,B.Q_conv.z0),'tl',true);
-// elide: a ⋯ in the gap of every head stack that has its own row name (the data blocks of the projections), on its top face
-for(const g of look.elided)if(named(g.b.id)&&/^(Q|K|V|Q_conv|K_conv|V_conv|KV|g|gate)$/.test(g.b.id))label('⋯',V((g.b.x0+g.b.x1)/2,g.b.y1+.6,(g.from+g.to)/2),'c',true);
-// MLA
-if(spec.attnKind==='mla')for(const [id,n] of [['W_kv_a','<b>K V</b> <i>W_kv_a → 512 → γ → W_kv_b →</i>'],['W_iw','<b>索引器 · 每头权重</b> <i>W_iw → 32</i>'],['W_cg','<b>压缩门</b> <i>W_cg → 128 ↘</i>'],['W_ik','<b>索引器 K</b> <i>W_ik → LayerNorm → ape →</i>'],['W_q_a','<b>Q</b> <i>W_q_a → 1536 → γ ↓</i>']])leftT(id,n);
-if(spec.attnKind==='mla')for(const [id,n] of [['KV','<b>K | V</b> <i>64 头 × (256 | 256)</i>'],['pool_k','每 4 个词压成 1 个 K'],['iq','<b>索引器 Q</b> <i>32 头 × 128</i>'],['iscore','每头给每组打分'],['isum','按每头权重加成总分'],['topk','<b>挑中的词</b> <i>最多 2048 + 3 个编号</i>'],['mask','<b>遮罩</b> <i>能看见哪些词</i>'],['Q','<b>Q</b> <i>64 头 × 256</i>'],['attn_w','<b>注意力权重</b> <i>64 头，每头 6 × 6</i>'],['attn_o','乘 V：每头 256']])tag(id,n,2);
-// W_o (both kinds of attention)
+for(const [id,n] of [['core_out','<b>KDA 输出</b>'],['o_normed','门控归一化']])spineRight(id,n);
+leftT('state','<i>记忆 S：K V g β 逐词写进去，读出时乘 q</i>',3.8);if(named('Q_conv'))spineRight('Q_conv',HEADS==='z'?(SLABS==='elide'?'<i>64 个头：画了第 1、2、3 和第 64 个，中间 60 个省略</i>':'<i>64 个头，每头一片，往后叠</i>'):'<i>64 个头，每头一条</i>');
+for(const g of look.elided)if(named(g.b.id)&&/^(Q|K|V|Q_conv|K_conv|V_conv|KV|g|gate)$/.test(g.b.id))label('⋯',V((g.b.x0+g.b.x1)/2,g.b.y1+.6,(g.from+g.to)/2),'c');
+if(spec.attnKind==='mla')for(const [id,n] of [['W_kv_a','<b>K V</b> <i>W_kv_a → c_kv(512) → W_kv_b</i>'],['W_iw','<b>索引器 · 头权重</b> <i>W_iw → 32</i>'],['W_cg','<b>压缩门</b> <i>W_cg → 128 ↘</i>'],['W_ik','<b>索引器 K</b> <i>W_ik → LayerNorm → ape</i>'],['W_q_a','<b>Q</b> <i>W_q_a → 1536 → γ ↓</i>']])leftT(id,n);
+if(spec.attnKind==='mla'){
+ if(named('KV'))label('<b>K | V</b> <i>64 头（主注意力缓存 c_kv；索引器另存组 K 与尾槽）</i>',V(spineX+22,B.KV.y0+4,spineZ),'r',true);
+ for(const [id,n,dx] of [['pool_k','每 4 个词压成 1 个组 K',0],['iq','<b>索引器 Q</b> <i>32 头 × 128</i>',0],['iscore','每头对组 K 打分',0],['isum','按头权重合成总分',0],['topk','<b>挑中的词</b> <i>最多 2048 + 3</i>',0],['mask','<b>因果与稀疏遮罩</b> <i>[6, 6]</i>',22],['Q','<b>Q</b> <i>64 头 × 256</i>',22],['attn_w','<b>注意力权重</b> <i>64 头 × 6 × 6</i>',22],['attn_o','乘 V：每头 256',18]])spineRight(id,n,dx);
+}
 leftT('W_o',`<b>W_o</b> ${sh('W_o')}`);
-// dense
-tag('W_up','<b>W_up</b> <i>[12288, 4096]</i>');tag('W_gate','<b>W_gate</b> <i>[12288, 4096]</i>');tag('up_ffn','up <i>[6, 12288]</i>');tag('gate_ffn','gate <i>[6, 12288]</i>');tag('h_ffn','SiLU(gate) × up');leftT('W_down','<b>W_down</b><br><i>[4096, 12288]</i>');
-// MoE
-tag('W_gu','<b>288 个专家的 gate | up</b> <i>每个 [4096, 4096]，往后叠</i>');tag('W_s_up','<b>共享专家</b> <i>up | gate</i>');tag('e_gu','每个词 8 份：它挑中的 8 个专家');tag('e_h','SiLU(gate) × up');
-leftT('W_dn','<b>288 个专家的 down</b><br><i>每个 [4096, 2048]</i>');leftT('W_s_down','<b>共享专家 down</b><br><i>[4096, 2048]</i>');tag('s_h','SiLU × up');
-tag('e_out','<b>× 8 个权重</b>',2);tag('routed','8 份相加',2);tag('s_out','共享专家输出',2);
-if(named('logits'))label('<b>路由</b> <i>288 个分数 → 挑 8 个</i>',V(B.logits.x1+1.4,(B.logits.y0+B.logits.y1)/2,0),'r',true);
+let gateEntry=null;
+if(VIEW==='layer'){leftT('W_up','<b>W_up | W_gate</b><br><i>各 [12288, 4096]</i>');leftT('up_ffn','<b>up | gate</b><br><i>各 [6, 12288]</i>')}
+else{leftT('W_up','<b>W_up</b><br><i>[12288, 4096]</i>');if(named('W_gate')){const b=B.W_gate;label('<b>W_gate</b> <i>[12288, 4096]</i>',V(b.x0,b.y1+2.6,b.z0),'tl',true)}
+ leftT('up_ffn','<b>up</b> <i>[6, 12288]</i>');if(named('gate_ffn')){const b=B.gate_ffn;label('<b>gate</b> <i>[6, 12288]</i>',V(b.x1+2.6,b.y0+.6,0),'bl',true);gateEntry=labels.at(-1)}}
+leftT('h_ffn','<b>SiLU(gate) × up</b>');leftT('W_down','<b>W_down</b><br><i>[4096, 12288]</i>');
+if(VIEW==='layer')leftT('W_s_up','<b>共享专家 · 288 路由专家</b><br><i>up | gate（共享各 [2048, 4096] · 路由各 [4096, 4096]）</i>');
+else{leftT('W_s_up','<b>共享专家</b><br><i>up | gate 各 [2048, 4096]</i>');if(named('W_gu')){const b=B.W_gu;label('<b>288 个专家 gate | up</b><br><i>各 [4096, 4096]</i>',V(b.x0-12,b.y1+3.5,b.z0),'t',true)}}
+if(named('s_up'))label('<b>每词挑中的 8 份 gate | up</b><br><i>左二块：共享 up | gate</i>',V(B.s_up.x0-3.2,(B.s_up.y0+B.s_up.y1)/2,0),'rr inner',true);
+if(named('W_dn')){const b=B.W_dn;label('<b>288 个专家 down</b><br><i>各 [4096, 2048]</i>',V(B.s_h.x1+.6,(b.y0+b.y1)/2,0),'rr',true)}
+leftT('W_s_down','<b>共享专家 down</b><br><i>[4096, 2048]</i>');
+if(named('s_h'))label(VIEW==='layer'?'<b>共享 SiLU × up</b>':'<b>SiLU(gate) × up</b><br><i>左：共享 · 右：每词 8 份</i>',V(B.s_h.x0-3.6,(B.s_h.y0+B.s_h.y1)/2,0),'rr',true);
+spineRight('e_out','<b>× 8 个路由权重</b>');spineRight('routed','<b>8 份相加</b>');
+if(named('s_out')){const b=B.s_out;label('<b>共享专家输出</b>',V(b.x0-1,b.y0-2.2,0),'br',true)}
+spineRight('logits','<b>路由</b> <i>288 分数 → 挑 8 个</i>');
 
 const [fbox,tt,sub]=VIEWS[VIEW]||VIEWS.layer;title(tt,sub);fit(fbox,dir,.86,[0,0]);
 const present=[...new Set(WB.map(b=>b.comp))];
-if(LEGEND){const lg=document.createElement('div');lg.id='legend';lg.innerHTML=`一个词一列 · 张量按真实尺寸绘制 · 结果与权重使用同组颜色<br>${present.map(k=>`<span class="k" style="background:${look.palette[k][0]}"></span>${NAMES[k]||k}`).join('')}`;host.append(lg)}
+if(LEGEND){const lg=document.createElement('div');lg.id='legend';lg.innerHTML=`一个词一列 · 张量按真实尺寸绘制 · 同组深浅双阶区分结果与权重<br>${present.map(k=>`<span class="k" style="background:linear-gradient(135deg,${look.palette[k][0]} 52%,${look.palette[k][1]} 52%);border-color:${mix(look.palette[k][0],ACCENTS[k]||'#4a5852',.42)}"></span>${NAMES[k]||k}`).join('')}`;host.append(lg)}
 {const v=document.createElement('div');v.id='views';const q=o=>'?'+new URLSearchParams({...Object.fromEntries(Q),...o});
  v.innerHTML=`<div>层：${[[0,'L00 KDA + 稠密'],[4,'L04 KDA + MoE'],[3,'L03 MLA + MoE']].map(([k,n])=>`<a class="${LI===k?'on':''}" href="${q({layer:k,view:'layer'})}">${n}</a>`).join('')}</div>`
   +`<div>${[['layer','整层'],['attn','注意力'],['group','投影一组'],['ffn','前馈']].map(([k,n])=>`<a class="${VIEW===k?'on':''}" href="${q({view:k})}">${n}</a>`).join('')}</div>`
   +`<div><a href="arch.html">2D 架构图</a><a href="model.html">整个模型</a></div>`;host.append(v)}
 
-settle();
+const _lodA=new THREE.Vector3(),_lodC=new THREE.Vector3();
+function lod(){const t=controls.target;_lodA.copy(t).project(camera);_lodC.copy(t);_lodC.x+=100;_lodC.project(camera);const ppu=(_lodC.x-_lodA.x)/2*W/100;host.classList.toggle('far',ppu<1.05)}
+function syncDynamic(){
+ camera.updateMatrixWorld();
+ if(gateEntry&&sp){
+  const b=B.gate_ffn,pNear=V(b.x1+2.6,b.y0+.6,0).project(camera),pSpine=V(sp.x0,b.y0+.6,0).project(camera);
+  const gapPx=((pSpine.x-pNear.x)/2)*W,lw=gateEntry.w>0?gateEntry.w:(gateEntry.el.offsetWidth||96),near=gapPx>=lw+8;
+  gateEntry.el.classList.toggle('bl',near);gateEntry.el.classList.toggle('r',!near);
+  if(near)gateEntry.p.set(b.x1+2.6,b.y0+.6,0);else gateEntry.p.set(spineX,(b.y0+b.y1)/2,spineZ);
+ }
+}
+lod();syncDynamic();settle(()=>true,()=>{lod();syncDynamic()});
 let frameRequest=0;
-function frame(){if(!frameRequest)frameRequest=requestAnimationFrame(()=>{frameRequest=0;renderFrame()})}
-function renderFrame(){renderer.render(scene,camera);place()}
-controls.addEventListener('change',frame);frame();
+function frame(){if(!frameRequest&&!document.hidden)frameRequest=requestAnimationFrame(()=>{frameRequest=0;renderFrame()})}
+function renderFrame(){renderer.render(scene,camera);lod();syncDynamic();place();hideUnderUI()}
+controls.addEventListener('change',frame);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&frameRequest){cancelAnimationFrame(frameRequest);frameRequest=0}else if(!document.hidden)frame()});
+addEventListener('resize',()=>{
+ W=innerWidth;H=innerHeight;host.style.width=W+'px';host.style.height=H+'px';
+ const pr=pixelRatioFor(W,H);renderer.setPixelRatio(pr);renderer.setSize(W,H);
+ camera.aspect=W/H;camera.updateProjectionMatrix();look.setResolution(pr,H);viewApi.resize(W,H);
+ settle(()=>true,()=>{lod();syncDynamic()});frame();
+});
+document.fonts?.ready.then(()=>{viewApi.invalidate();frame()});
+frame();
 
 window.__truth={spec,layout:L,camera,controls,frame,ready:true};
 </script></body></html>

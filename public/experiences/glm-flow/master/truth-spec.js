@@ -133,7 +133,7 @@ export function layerSpec(tc, T, li = 0) {
     weight('W_kv_b', 'W_kv_b', 'attn', kr, kn + vd, heads, [NH * (kn + vd), kr], 'kv_b_proj');
     data('KV', 'K | V', 'attn', kn + vd, heads, [T, NH, kn + vd], { split: [kn, vd], note: `每头 ${kn + vd} = K ${kn} | V ${vd}` });
     step('proj_kv_b', 'K V · 展开到 64 头', 'attn', 'linear', ['c_kv'], ['W_kv_b'], ['KV'], '1119–1123 · 1147–1148 · 1177',
-      `每头前 ${kn} 维是 K、后 ${vd} 维是 V（1148 行切开）；K 本应再拼上位置编码部分，这里是 ${rope} 维（1152–1154 行）；K、V 存进缓存（1181 行）`);
+      `每头前 ${kn} 维是 K、后 ${vd} 维是 V（1148 行切开），qk_rope_head_dim = ${rope}；HF 参考实现把展开后的 K、V 写入缓存（1181 行），实际推理（vLLM / 昇腾）主注意力只缓存 512 维低秩 c_kv（宽度为展开 K/V 的 1/64；索引器池与尾状态另计），并把 W_kv_b 吸收进 Q 与输出端`);
     // the indexer picks which earlier words each word may look at (every layer's indexer is 'full' in this config)
     weight('W_iq', 'W_iq', 'attn', qr, id, iheads, [IH * id, qr], 'indexer.wq_b'); data('iq', '索引器 Q', 'attn', id, iheads, [T, IH, id], { note: `${IH} 头 × ${id}` });
     step('idx_q', '索引器 Q：32 个头', 'attn', 'linear', ['q_resid'], ['W_iq'], ['iq'], '763 · 799');
@@ -147,9 +147,9 @@ export function layerSpec(tc, T, li = 0) {
     weight('ape', 'ape', 'attn', kp, id, null, [kp, id], 'indexer.index_kpool_compress_ape', { note: `一组 ${kp} 个位置各一行` });
     data('pool_k', `每 ${kp} 个词压成 1 个 K`, 'attn', id, null, [P, id], { rows: { n: P, unit: 'pool', size: kp } });
     step('idx_pool', `每 ${kp} 个词压成 1 个 K`, 'attn', 'pool', ['ik', 'cg'], ['ape'], ['pool_k'], '805 · 826 · 901–974',
-      `K、压缩门分数和“有没有这个词”先拼成每个词 ${2 * id + 1} 个数存进缓存（805–812 行）；从第一个词起每 ${kp} 个词一组：压缩门分数加上 ape，在组内 ${kp} 个位置上做 softmax（每个通道各自），按它把 ${kp} 个 K 加权平均；不满 ${kp} 个词的组不算（${T} 个词只有 ${P} 组）`);
+      `HF 参考实现先把 K、压缩门分数和有效位拼成每词 ${2 * id + 1} 个数存进缓存（805–812 行；vllm-ascend 实际部署直接缓存压好的组 K [⌊T/4⌋, ${id}] 与不足 ${kp} 词的尾槽）；从第一个词起每 ${kp} 个词一组：压缩门分数加 ape，在组内 ${kp} 个位置逐通道做 softmax，把 ${kp} 个 K 加权合成 1 个组 K；不满 ${kp} 个词的尾组不压缩（${T} 个词只有 ${P} 组）`);
     data('iscore', '每个头给每组打分', 'attn', P, iheads, [T, IH, P]);
-    step('idx_score', '每个头：Q 点乘每组的 K', 'attn', 'matmul', ['iq', 'pool_k'], [], ['iscore'], '827–828', `× 1/√${id}，再过 relu`);
+    step('idx_score', '每个头：Q 点乘每组的 K', 'attn', 'matmul', ['iq', 'pool_k'], [], ['iscore'], '827–828', `HF 参考实现 × 1/√${id} 后过 ReLU（本页算例数值按此生成；vllm-ascend 部署融合头权重查询直接点乘组 K）`);
     weight('W_iw', 'W_iw', 'attn', C, IH, null, [IH, C], 'indexer.weights_proj'); data('iw', '每个头的权重', 'attn', IH, null, [T, IH]);
     step('idx_w', '每个头一个权重', 'attn', 'linear', ['x_attn'], ['W_iw'], ['iw'], '766 · 831', `× 1/√${IH}`);
     data('isum', '每组的总分', 'attn', P, null, [T, P]);

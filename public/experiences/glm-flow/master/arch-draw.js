@@ -5,21 +5,22 @@
 // = a step of truth-spec.js) and data-row (the column's rows), so a page can light the one it is at.
 import {layerSpec} from './truth-spec.js';
 import {panelLayout,modelColumn,EDGE_NAMES,CW,RH} from './arch-layout.js';
+import {ACCENTS, mix} from './flow-colors.js';
 
 // skin (a page's own look, 09-27 the chapter page: "字体啊啥的……跟模型图里的很割裂"): the colours of ink, grey, lines and the
-// numbers, whether a panel has its dotted frame, its title's size; arch.html keeps the defaults
+// numbers, whether a panel has its dotted frame, its title's size; harmonized with journal-grade mineral style
 export function makeArch(cfg, P, skin = {}) {
   const T=6,SPEC={0:layerSpec(cfg,T,0),3:layerSpec(cfg,T,3),4:layerSpec(cfg,T,4)},M=modelColumn(cfg),MTP_B=(layerSpec(cfg,T,cfg.num_hidden_layers).params+2*cfg.hidden_size+2*cfg.hidden_size*cfg.hidden_size+cfg.hidden_size)/1e9;
   // the same layers with twice the words: a size that doubles is the number of words (T); one that grows from 1 to 3 is the
   // number of groups of 4 words the indexer compresses them into (T/4)
   const SPEC2={0:layerSpec(cfg,2*T,0),3:layerSpec(cfg,2*T,3),4:layerSpec(cfg,2*T,4)};
-  const {INK='#2b2823',GREY='#6b665c',LINE='#57524a',BLUE='#1d4ed8',frame=true,titleSize=17}=skin;
+  const {INK='#1b2421',GREY='#5c6963',LINE='#56635d',BLUE='#286151',frame=true,titleSize=17}=skin;
   const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   const fmt=n=>n.toLocaleString('en');
   // ---- text: wrap a title into lines that fit a width (a CJK character ~ the font size, anything else ~ .55 of it)
   // (a line breaks at a space when there is one in it, so a shape [16,384, 1,536] stays whole)
   function wrap(s,px,size){const cw=ch=>/[⺀-￿]/.test(ch)?size:size*.56,W=t=>[...t].reduce((a,c)=>a+cw(c),0);const out=[];let line='';
-   for(const ch of s){if(W(line+ch)>px&&line){const k=line.lastIndexOf(' ');if(k>0&&/[!-~]/.test(ch+line.slice(k+1))){out.push(line.slice(0,k));line=line.slice(k+1)+ch;continue}out.push(line);line=''}line+=ch}if(line)out.push(line);return out}
+   for(const ch of s){if(W(line+ch)>px&&line){if(/^[）)\]、，。]$/.test(ch)){line+=ch;out.push(line);line='';continue}const p=Math.max(line.lastIndexOf('（'),line.lastIndexOf('('));if(p>1&&W(line.slice(p)+ch)<=px){out.push(line.slice(0,p).trimEnd());line=line.slice(p)+ch;continue}const k=line.lastIndexOf(' ');if(k>0&&/[!-~]/.test(ch+line.slice(k+1))){out.push(line.slice(0,k));line=line.slice(k+1)+ch;continue}out.push(line);line=''}line+=ch}if(line)out.push(line);return out}
   const TWICE=Object.fromEntries(Object.values(SPEC2).flatMap(s=>s.tensors.map(t=>[t.id,t.shape])));
   const shapeText=t=>{const s2=TWICE[t.id]||t.shape;return '['+t.shape.map((d,i)=>s2[i]===2*d&&d===T?'T':s2[i]===Math.floor(2*T/cfg.index_kpool)&&d===Math.floor(T/cfg.index_kpool)&&s2[i]!==d?'T/'+cfg.index_kpool:d).join(', ')+']'};
   // what a step box says under its title: a matmul its weight and shape; otherwise the shape of what it writes
@@ -30,44 +31,57 @@ export function makeArch(cfg, P, skin = {}) {
    if(s.op==='kda')return `${shapeText(byId('core_out'))} · 记忆 S ${shapeText(byId('state'))}`;
    return s.writes.map(id=>shapeText(byId(id))).join(' · ');
   }
-  // ---- the palette as tuned
-  const colorOf=(comp,weight)=>comp&&P[comp]?(weight?P[comp][1]:P[comp][0]):'#ffffff';
+  // ---- the palette as tuned (journal-grade matte mineral soft washes + crisp borders)
+  const colorOf=(comp,weight)=>comp&&P[comp]?(weight?P[comp][1]:P[comp][0]):'#fcfcfa';
+  const softFill=(comp,io,weight)=>!comp||!P[comp]?'#fcfcfa':io?mix(P[comp][0],'#fcfcfa',.38):weight?mix(P[comp][1],'#fcfcfa',.35):'#fcfcfa';
+  const ringStroke=(comp,io)=>!comp||!P[comp]?'#b8c1b8':mix(P[comp][0],ACCENTS[comp]||'#4a5852',io?.38:.32);
+  const smoothOrtho=(pts,r=5.5)=>{
+   if(pts.length<2)return '';
+   if(pts.length===2)return `M${pts[0][0]} ${pts[0][1]} L${pts[1][0]} ${pts[1][1]}`;
+   let d=`M${pts[0][0]} ${pts[0][1]}`;
+   for(let i=1;i<pts.length-1;i++){
+    const [x0,y0]=pts[i-1],[x1,y1]=pts[i],[x2,y2]=pts[i+1];
+    const dx1=x1-x0,dy1=y1-y0,L1=Math.hypot(dx1,dy1)||1,dx2=x2-x1,dy2=y2-y1,L2=Math.hypot(dx2,dy2)||1;
+    const rc=Math.min(r,L1*.45,L2*.45),ax=x1-dx1/L1*rc,ay=y1-dy1/L1*rc,bx=x1+dx2/L2*rc,by=y1+dy2/L2*rc;
+    d+=` L${ax.toFixed(1)} ${ay.toFixed(1)} Q${x1.toFixed(1)} ${y1.toFixed(1)} ${bx.toFixed(1)} ${by.toFixed(1)}`;
+   }
+   return d+` L${pts.at(-1)[0]} ${pts.at(-1)[1]}`;
+  };
 
   // ---- pieces of SVG, every coloured one tagged with its component (so tuning and fading reach it)
-  const S=[];
-  const box=({x,y,w,h,title,sub,comp,weight,io,src,tip,step,row},size=12.5)=>{
-   const fill=io?colorOf(comp,false):weight?colorOf(comp,true):'#ffffff',stroke=comp?colorOf(comp,false):'#b9b2a3';
-   const tl=wrap(title,w-14,size),sl=sub?wrap(sub,w-12,11):[],lh=size+3,th=tl.length*lh+sl.length*14,y0=y+h/2-th/2+size-1;
-   let t=tl.map((l,i)=>`<text x="${x+w/2}" y="${y0+i*lh}" text-anchor="middle" font-size="${size}" font-weight="700" fill="${INK}" class="ttl">${esc(l)}</text>`).join('');
-   t+=sl.map((l,i)=>`<text x="${x+w/2}" y="${y0+tl.length*lh+i*14}" text-anchor="middle" font-size="11" fill="${GREY}" class="sub">${esc(l)}</text>`).join('');
-   return `<g class="box" data-comp="${comp||''}" data-kind="${io||!weight?'data':'weight'}"${step?` data-step="${step}"`:''}${row?` data-row="${row}"`:''}><title>${esc(tip||title)}${src?' · 官方代码 '+src+' 行':''}</title><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${io?h/2:7}" fill="${fill}" stroke="${stroke}" stroke-width="${io?0:2}" data-role="${io?'res':weight?'wt':'op'}"/>${t}</g>`;
+  const box=({x,y,w,h,title,sub,comp,weight,io,src,tip,step,row},size=12.2)=>{
+   const fill=softFill(comp,io,weight),stroke=ringStroke(comp,io);
+   const tl=wrap(title,w-14,size),sl=sub?wrap(sub,w-12,10.3):[],lh=size+2.8,th=tl.length*lh+sl.length*13.6,y0=y+h/2-th/2+size-1;
+   let t=tl.map((l,i)=>`<text x="${x+w/2}" y="${(y0+i*lh).toFixed(1)}" text-anchor="middle" font-size="${size}" font-weight="700" fill="${INK}" class="ttl">${esc(l)}</text>`).join('');
+   t+=sl.map((l,i)=>`<text x="${x+w/2}" y="${(y0+tl.length*lh+i*13.6).toFixed(1)}" text-anchor="middle" font-size="10.3" font-weight="600" fill="${comp&&ACCENTS[comp]?mix(ACCENTS[comp],INK,.35):GREY}" class="sub mono">${esc(l)}</text>`).join('');
+   return `<g class="box" data-comp="${comp||''}" data-kind="${io||!weight?'data':'weight'}"${step?` data-step="${step}"`:''}${row?` data-row="${row}"`:''}><title>${esc(tip||title)}${src?' · 官方代码 '+src+' 行':''}</title><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${io?h/2:6}" fill="${fill}" stroke="${stroke}" stroke-width="${io?1.2:weight?1.3:1.2}" data-role="${io?'res':weight?'wt':'op'}"/>${t}</g>`;
   };
-  const arrow=(pts,{color=LINE,w=1.6,head=true,dash=''}={})=>{
-   const d='M'+pts.map(p=>p.join(' ')).join(' L');
-   let s=`<path d="${d}" fill="none" stroke="${color}" stroke-width="${w}" ${dash?`stroke-dasharray="${dash}"`:''} stroke-linejoin="round"/>`;
-   if(head){const [a,b]=pts.slice(-2),dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,s1=7,s2=3.6;
-    s+=`<path d="M${b[0]} ${b[1]} L${b[0]-ux*s1-uy*s2} ${b[1]-uy*s1+ux*s2} L${b[0]-ux*s1+uy*s2} ${b[1]-uy*s1-ux*s2} Z" fill="${color}"/>`}
+  const arrow=(pts,{color=LINE,w=1.35,head=true,dash=''}={})=>{
+   const d=smoothOrtho(pts,5.5);
+   let s=`<path d="${d}" fill="none" stroke="${color}" stroke-width="${w}" ${dash?`stroke-dasharray="${dash}"`:''} stroke-linecap="round" stroke-linejoin="round"/>`;
+   if(head){const [a,b]=pts.slice(-2),dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,len=6.2,half=2.8,notch=1.3;
+    s+=`<path d="M${b[0].toFixed(1)} ${b[1].toFixed(1)} L${(b[0]-ux*len-uy*half).toFixed(1)} ${(b[1]-uy*len+ux*half).toFixed(1)} L${(b[0]-ux*(len-notch)).toFixed(1)} ${(b[1]-uy*(len-notch)).toFixed(1)} L${(b[0]-ux*len+uy*half).toFixed(1)} ${(b[1]-uy*len-ux*half).toFixed(1)} Z" fill="${color}"/>`}
    return s;
   };
   const text=(x,y,s,{size=12.5,weight=400,color=INK,anchor='start'}={})=>`<text x="${x}" y="${y}" font-size="${size}" font-weight="${weight}" fill="${color}" text-anchor="${anchor}">${s}</text>`;
-  const num=n=>`<tspan fill="${BLUE}" font-weight="700">${n}</tspan>`;
+  const num=n=>`<tspan fill="${BLUE}" font-weight="700" class="mono">${n}</tspan>`;
 
-  // ---- a panel: its boxes and arrows from arch-layout.js, in a dotted frame with a title and its numbers
+  // ---- a panel: its boxes and arrows from arch-layout.js, in a subtle scholarly frame with a title and its numbers
   function panel(key,li,ox,oy,title,facts){
-   const spec=SPEC[li],L=panelLayout(spec,key),tensor=id=>spec.tensors.find(t=>t.id===id),PADX=22,top=58;
+   const spec=SPEC[li],L=panelLayout(spec,key),tensor=id=>spec.tensors.find(t=>t.id===id),PADX=20,top=56;
    const g=[];
-   if(frame)g.push(`<rect x="${ox}" y="${oy}" width="${L.W+2*PADX}" height="${L.H+top+26}" rx="16" fill="none" stroke="${INK}" stroke-width="2.2" stroke-dasharray="3 5"/>`);
-   g.push(text(ox+PADX,oy+26,esc(title),{size:titleSize,weight:800}));
-   g.push(text(ox+PADX,oy+45,facts,{size:12.5,color:GREY}));
+   if(frame)g.push(`<rect x="${ox}" y="${oy}" width="${L.W+2*PADX}" height="${L.H+top+24}" rx="12" fill="#fcfcfa" stroke="#dce1da" stroke-width="1.2"/>`);
+   g.push(text(ox+PADX,oy+24,esc(title),{size:titleSize,weight:750}));
+   g.push(text(ox+PADX,oy+43,facts,{size:12,color:GREY}));
    const X=x=>ox+PADX+x,Y=y=>oy+top+y;
-   for(const e of L.edges){g.push(arrow(e.pts.map(([x,y])=>[X(x),Y(y)])));const n=EDGE_NAMES[e.tensor];if(n&&e.pts.length>2)g.push(text(X(e.pts[1][0])+4,Y(e.pts[1][1])-3,esc(n),{size:10.5,color:GREY}))}
+   for(const e of L.edges){g.push(arrow(e.pts.map(([x,y])=>[X(x),Y(y)])));const n=EDGE_NAMES[e.tensor];if(n&&e.pts.length>2)g.push(text(X(e.pts[1][0])+4,Y(e.pts[1][1])-3,esc(n),{size:10.2,color:GREY}))}
    for(const b of Object.values(L.box)){
-    if(b.io){const t=tensor(b.tensor);g.push(box({x:X(b.x0),y:Y(b.y0)+8,w:b.x1-b.x0,h:RH-16,title:`${b.io==='in'?'':'→ '}${t.name}`,sub:null,comp:t.comp,io:b.io,tip:`${t.name} ${shapeText(t)}`},12))}
-    else if(b.step.pseudo)g.push(`<g><rect x="${X(b.x0)}" y="${Y(b.y0)}" width="${b.x1-b.x0}" height="${RH}" rx="7" fill="#efe9dc" stroke="#b9b2a3" stroke-dasharray="4 3"/>${text(X((b.x0+b.x1)/2),Y(b.y0)+RH/2+4,esc(b.step.title),{size:12,anchor:'middle',color:GREY})}</g>`);
+    if(b.io){const t=tensor(b.tensor);g.push(box({x:X(b.x0),y:Y(b.y0)+8,w:b.x1-b.x0,h:RH-16,title:`${b.io==='in'?'':'→ '}${t.name}`,sub:null,comp:t.comp,io:b.io,tip:`${t.name} ${shapeText(t)}`},11.6))}
+    else if(b.step.pseudo)g.push(`<g><rect x="${X(b.x0)}" y="${Y(b.y0)}" width="${b.x1-b.x0}" height="${RH}" rx="6" fill="#eef1ed" stroke="#aeb8b2" stroke-width="1.15" stroke-dasharray="4 2.5"/>${text(X((b.x0+b.x1)/2),Y(b.y0)+RH/2+4,esc(b.step.title),{size:11.6,weight:600,anchor:'middle',color:GREY})}</g>`);
     else{const s=b.step,comp=tensor(s.writes[0]).comp,w=s.params.map(tensor).some(t=>t&&!t.vector);
-     g.push(box({x:X(b.x0),y:Y(b.y0),w:b.x1-b.x0,h:RH,title:s.title,sub:subOf(spec,s),comp,weight:w,src:s.src,tip:s.title+(s.merged?'：'+s.merged:''),step:s.id},12))}
+     g.push(box({x:X(b.x0),y:Y(b.y0),w:b.x1-b.x0,h:RH,title:s.title,sub:subOf(spec,s),comp,weight:w,src:s.src,tip:s.title+(s.merged?'：'+s.merged:''),step:s.id},11.8))}
    }
-   return {svg:g.join(''),w:L.W+2*PADX,h:L.H+top+26};
+   return {svg:g.join(''),w:L.W+2*PADX,h:L.H+top+24};
   }
 
   // ---- the model column: the words in, the 45 layers as one box with the 4 streams along its right, the scores out
@@ -81,7 +95,7 @@ export function makeArch(cfg, P, skin = {}) {
    const ly=y+34,rows=[['mhc','合成 1 路','mHC：4 路 → 24 个系数 → 1 路','resid'],['norm','RMSNorm 1','input_layernorm','norm'],['attn','注意力','KDA × '+M.counts.kda+'  或  MLA + 索引器 × '+M.counts.mla,'kda'],['write','写回 4 路','post · 结果 + comb · 4 路','resid'],
     ['mhc2','合成 1 路','mHC','resid'],['norm2','RMSNorm 2','post_attention_layernorm','norm'],['ffn','前馈','稠密 × '+M.counts.dense+'  或  MoE × '+M.counts.moe,'dense'],['write2','写回 4 路','post · 结果 + comb · 4 路','resid']];
    const bh=40,bg=18,inner=px+22,iw=w-44,LH=rows.length*(bh+bg)+34;
-   g.push(`<rect x="${px-4}" y="${ly-18}" width="${w+74}" height="${LH}" rx="18" fill="#e9f0fb" stroke="${BLUE}" stroke-width="1.6"/>`);
+   g.push(`<rect x="${px-4}" y="${ly-18}" width="${w+74}" height="${LH}" rx="18" fill="#edf2ef" stroke="${BLUE}" stroke-width="1.6"/>`);
    g.push(text(px+2,ly-24,`<tspan font-size="22" font-weight="800" fill="${BLUE}">× ${M.n} 层</tspan>`,{}));
    let yy=ly;const rowY={};
    for(const [id,title,sub,comp] of rows){

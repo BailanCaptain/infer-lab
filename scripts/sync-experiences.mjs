@@ -96,14 +96,29 @@ for (const [name, packageName, stylesheets] of [
 
 // Use the viewer's own Three.js version and fonts, including their license files.
 tree("vendor");
+const IN_REPO_MODEL_MASTER = new Set([
+  "arch-draw.js",
+  "arch.html",
+  "chapter.html",
+  "flow-colors.js",
+  "flow-look.js",
+  "flow.html",
+  "lesson-data.js",
+  "model-layout.js",
+  "model.html",
+  "play.js",
+  "segments-rest.js",
+  "truth-spec.js",
+  "truth-view.js",
+]);
 for (const name of readdirSync(join(source, "glm-flow/master"))) {
   if (!/\.(js|html)$/.test(name) || /^(qa-|shot)/.test(name) || name === "flow-tune.js") continue;
-  if (name === "arch.html") {
-    // Preserve redesigned in-repo 2D architecture sheet while keeping its source baseline hash.
-    const original = readFileSync(join(resolve(source), "glm-flow/master/arch.html"));
-    const current = readFileSync(join(destination, "glm-flow/master/arch.html"));
+  if (IN_REPO_MODEL_MASTER.has(name)) {
+    // Preserve redesigned in-repo 2D/3D model master files while keeping their source baseline hashes.
+    const original = readFileSync(join(resolve(source), `glm-flow/master/${name}`));
+    const current = readFileSync(join(destination, `glm-flow/master/${name}`));
     entries.push({
-      path: "glm-flow/master/arch.html",
+      path: `glm-flow/master/${name}`,
       bytes: current.length,
       sourceSha256: hash(original),
       sha256: hash(current),

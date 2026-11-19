@@ -54,7 +54,7 @@ export function explain(D, st, index=0) {
     result=terms.reduce((s,t,k)=>{t.alpha=ex[k]/den;t.value=t.alpha*t.key.value;return s+t.value},0);
     formula='Σ₄ softmax(cg + ape) × K';total=4;detail='α = exp(cg + ape − 最大值) ÷ 四词指数总和；每个通道独立归一化，尾词不压缩。';
   } else if(id==='idx_score') {
-    const h=r;result=Math.max(0,dot(128,c=>['iq',(j*32+h)*128+c],c=>['pool_k',c])/Math.sqrt(128));total=128;formula='ReLU(索引 Q · 组 K ÷ √128)';
+    const h=r;result=Math.max(0,dot(128,c=>['iq',(j*32+h)*128+c],c=>['pool_k',c])/Math.sqrt(128));total=128;formula='ReLU(索引 Q · 组 K ÷ √128)';detail='算例按 HF 参考实现取 ReLU；vllm-ascend 推理部署将头权重融合进查询向量直接点乘组 K。';
   } else if(id==='idx_sum') {
     result=dot(32,h=>['iw',j*32+h],h=>['iscore',j*32+h]);total=32;formula='Σ₃₂ 头权重 × 组分数';
   } else if(id==='idx_topk') {

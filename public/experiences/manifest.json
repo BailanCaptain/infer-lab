@@ -201,9 +201,9 @@
     },
     {
       "path": "glm-flow/master/arch-draw.js",
-      "bytes": 17159,
+      "bytes": 18731,
       "sourceSha256": "bd62bd14ecf7c5f42cae1fc6704857932f1d54b8901a81bc871fa6d3e23a1d20",
-      "sha256": "bd62bd14ecf7c5f42cae1fc6704857932f1d54b8901a81bc871fa6d3e23a1d20"
+      "sha256": "03606f4aabf5d5e81769b4e8509ff43ccb5849420c4481e0659f23399d546e6f"
     },
     {
       "path": "glm-flow/master/arch-layout.js",
@@ -219,9 +219,9 @@
     },
     {
       "path": "glm-flow/master/chapter.html",
-      "bytes": 22570,
+      "bytes": 24841,
       "sourceSha256": "ee4c1454f71a7f2ec06e82687295dc2a51766780ae7c9bd49dc7f2baa5b2e5b5",
-      "sha256": "469f7eeebb90c60e4043fdb722da73a4c5e6b3d51a208c1850aa01393b95ffc7"
+      "sha256": "2b1d7c766044e1af30f3b70a7a45468c4f7509cd739ddca47cca08677b728190"
     },
     {
       "path": "glm-flow/master/demo-data.js",
@@ -291,9 +291,9 @@
     },
     {
       "path": "glm-flow/master/flow-colors.js",
-      "bytes": 1328,
+      "bytes": 2553,
       "sourceSha256": "38eb4d3afabaef683a730c9c984fb2875e24e6189b11987ded90eb9c5565aded",
-      "sha256": "4c91146f6f8fc556d669653fc81d60e67e49d0c7924921818a88e8de7b981c95"
+      "sha256": "f19e8416dca3ac9e81e27bf7b7b872cec7c4a314f1ae2e887f588c0d92137fe8"
     },
     {
       "path": "glm-flow/master/flow-layout.js",
@@ -303,21 +303,21 @@
     },
     {
       "path": "glm-flow/master/flow-look.js",
-      "bytes": 27600,
+      "bytes": 44170,
       "sourceSha256": "4b2c358f13a086934cbba891aea6abed11b6898760dbffa4941a9c4c3fd27343",
-      "sha256": "f3e0c89bdd820eead283c280da694d4d70ec8142a66aff4d348896e254e2092a"
+      "sha256": "e48e740e4be49b44181a4a999212ce075f3848edc31d95ecbfa826e96694dbc7"
     },
     {
       "path": "glm-flow/master/flow.html",
-      "bytes": 13588,
+      "bytes": 17201,
       "sourceSha256": "971ff9e5ef5c43a4386fedc0b9ac73ec528bbc09eb1c0aaa11c2311452bcf450",
-      "sha256": "853e344a8362c4aa39e522d522753cf9053b7035ab6dde0a7fde9324a30d1057"
+      "sha256": "20293e8f85d7fdac1330d36dbae45f534e24a087311df3e872909667551a1407"
     },
     {
       "path": "glm-flow/master/lesson-data.js",
-      "bytes": 9704,
+      "bytes": 9827,
       "sourceSha256": "249f6c812287567a33fd84ec24cda98388d03eb33b2b0d877ba0580e895c4614",
-      "sha256": "249f6c812287567a33fd84ec24cda98388d03eb33b2b0d877ba0580e895c4614"
+      "sha256": "44f860d2e609ebf774a3d8643df908222043bdfd6999876d8b6b8a3a89753664"
     },
     {
       "path": "glm-flow/master/lesson-position.js",
@@ -327,9 +327,9 @@
     },
     {
       "path": "glm-flow/master/model-layout.js",
-      "bytes": 13226,
+      "bytes": 13237,
       "sourceSha256": "2e5036d123319689de27f17ee1ecc25c0cf114361a32fe0b68e938f14371086f",
-      "sha256": "2e5036d123319689de27f17ee1ecc25c0cf114361a32fe0b68e938f14371086f"
+      "sha256": "86807a16063201bc4af98ca4dc8f1cc67dd2e5373a60143af746fc68c1c989dd"
     },
     {
       "path": "glm-flow/master/model-spec.js",
@@ -339,21 +339,21 @@
     },
     {
       "path": "glm-flow/master/model.html",
-      "bytes": 20670,
+      "bytes": 28855,
       "sourceSha256": "0a7ab9882869c3aa767f8199babf08505cfa79c0b886a90b56b34ce77b34b7ce",
-      "sha256": "203367e30091a584e8123535bc16eb7e548efdfce7d802265b73efed9042300d"
+      "sha256": "d6e759803a229df3ae55a7542bfaaa7ea83a0456ee294da2cb3591b271646788"
     },
     {
       "path": "glm-flow/master/play.js",
-      "bytes": 156745,
+      "bytes": 200289,
       "sourceSha256": "a40be50fdc984e7289820e82fc63750db8baa451365da63ac112760d2f31de9e",
-      "sha256": "a40be50fdc984e7289820e82fc63750db8baa451365da63ac112760d2f31de9e"
+      "sha256": "a0d456cb1c85962bc29f3b1975a1ae5140a116e483fb5999f91a682c8685a7b5"
     },
     {
       "path": "glm-flow/master/segments-rest.js",
-      "bytes": 20974,
+      "bytes": 23455,
       "sourceSha256": "1fc35275dd9498ca065adeae0729f61c350fc2ccf12fe66ada9f1b1cc6d6db2a",
-      "sha256": "1fc35275dd9498ca065adeae0729f61c350fc2ccf12fe66ada9f1b1cc6d6db2a"
+      "sha256": "614e1ba17aeab82c857214b73f79fe4c8cdbe8708347d491a6b33d843419297e"
     },
     {
       "path": "glm-flow/master/segments.js",
@@ -369,15 +369,15 @@
     },
     {
       "path": "glm-flow/master/truth-spec.js",
-      "bytes": 28599,
+      "bytes": 28959,
       "sourceSha256": "7951bb54bf02317fde8261deef85010d2274c02a01e5bc304f7c1899eeec03a0",
-      "sha256": "7951bb54bf02317fde8261deef85010d2274c02a01e5bc304f7c1899eeec03a0"
+      "sha256": "1e172569aafe7b7763a698378f70201b89670f95a47f85ec43e1dd91aaeddbf7"
     },
     {
       "path": "glm-flow/master/truth-view.js",
-      "bytes": 5750,
+      "bytes": 10311,
       "sourceSha256": "f8c24fa671a79be01b21f52130f4b6ff5a6d511615beae042f048e3d18f8f070",
-      "sha256": "362cbf2d8d4310390d797a6015f41ebd8f5d707f5828fcf22f0cf80751e4028f"
+      "sha256": "4793b793aebac13676453385b41d4ce935ba2eef94560694be5382913d7bbd27"
     },
     {
       "path": "glm-flow/reference/official-config.json",

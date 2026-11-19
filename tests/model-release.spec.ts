@@ -17,12 +17,28 @@ test("模型定稿保留 40 段播放与分层探索，四个视图均无调试�
   page.on("pageerror", (error) => errors.push(error.message));
   await page.setViewportSize({ width: 1600, height: 1000 });
   await page.goto("/#/model");
+  await expect(page.locator(".experience-edition-switch")).toHaveCount(0);
   const chapter = page.frameLocator(".experience-frame");
   await expect(chapter.locator(".seg")).toHaveCount(40);
   await expectReleaseControls(chapter);
   const stage = chapter.frameLocator("#stage");
   await expect(stage.locator("canvas")).toBeVisible({ timeout: 60_000 });
   await expectReleaseControls(stage);
+
+  await chapter.locator('[data-play="3"]').click();
+  await expect(stage.locator(".lesson-sentence")).toBeVisible();
+  await expect(stage.locator(".l.seg:not(.off)", { hasText: "句子里的词" })).toBeVisible();
+  await chapter.locator('[data-show="3"]').click();
+  await expect(stage.locator(".tok-badge")).toHaveCount(6);
+  await expect(stage.locator(".tok-badge").first()).toBeVisible();
+
+  await chapter.locator('[data-play="4"]').click();
+  await chapter.locator("#s4 .beats li").nth(1).click();
+  await expect(stage.locator("#dotcard")).toBeVisible();
+  await expect(stage.locator("#dotpill")).toBeVisible();
+  await expect(stage.locator(".l.seg:not(.off)", { hasText: "词表" })).toBeVisible();
+  await expect(stage.locator(".l.seg:not(.off)", { hasText: "词向量" })).toBeVisible();
+  await expect(stage.locator('[data-elided-active="1"]')).toHaveCount(1);
 
   await chapter.locator("#play").click();
   await expect(chapter.locator("#play")).toContainText("暂停");
@@ -94,10 +110,10 @@ test("旧浏览器调色和 pal 参数不能改变定稿颜色", async ({ page }
   const chapter = page.frameLocator(".experience-frame");
   await expect
     .soft(chapter.locator('#map [data-row="col:embed"]'))
-    .toHaveCSS("background-color", "rgb(229, 216, 189)");
+    .toHaveCSS("background-color", "rgb(187, 210, 223)");
   await expect
     .soft(chapter.locator('#map [data-row="col:expand"]'))
-    .toHaveCSS("background-color", "rgb(222, 203, 228)");
+    .toHaveCSS("background-color", "rgb(214, 201, 220)");
   await page.goto("/experiences/glm-flow/master/arch.html?pal=tailwind");
   await expect(page.locator("svg").first()).toBeVisible();
   await expect(page.locator('[data-comp="embed"] rect[data-role="wt"]').first()).toHaveAttribute(
@@ -105,5 +121,11 @@ test("旧浏览器调色和 pal 参数不能改变定稿颜色", async ({ page }
     /#9cb0bd/i,
   );
   await expect(page.locator('line[data-comp="resid"]').first()).toHaveAttribute("stroke", /#8d7b94/i);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/experiences/glm-flow/master/model.html?view=whole");
+  await expect(page.locator("canvas")).toBeVisible();
+  const titleBox = await page.locator("#title").boundingBox();
+  expect(titleBox?.width ?? 0).toBeGreaterThan(240);
+  expect(titleBox?.height ?? 999).toBeLessThan(120);
   expect(errors).toEqual([]);
 });

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { expect, it } from "vitest";
 
 it("站内演示保留母版计算与几何，适配入口、布局、字体并移除临时调试", () => {
@@ -20,12 +21,18 @@ it("站内演示保留母版计算与几何，适配入口、布局、字体并�
     "fonts/jetbrains-mono/400.css",
     "fonts/jetbrains-mono/500.css",
     "fonts/jetbrains-mono/700.css",
+    "glm-flow/master/arch-draw.js",
     "glm-flow/master/arch.html",
     "glm-flow/master/chapter.html",
     "glm-flow/master/flow-colors.js",
     "glm-flow/master/flow-look.js",
     "glm-flow/master/flow.html",
+    "glm-flow/master/lesson-data.js",
+    "glm-flow/master/model-layout.js",
     "glm-flow/master/model.html",
+    "glm-flow/master/play.js",
+    "glm-flow/master/segments-rest.js",
+    "glm-flow/master/truth-spec.js",
     "glm-flow/master/truth-view.js",
     "whole/index.html",
     "whole/viewer.js",
@@ -86,6 +93,41 @@ it("每个演示文档独立加载共享字体，字体样式及 WOFF2 资产可
   for (const family of ["inter", "jetbrains-mono"]) {
     expect(existsSync(join(root, "fonts", family, "LICENSE")), family).toBe(true);
   }
+});
+
+it("三维模型直接启用精修定稿，对齐 MTP 末列输入、MLA 低秩缓存说明与全段播放契约", async () => {
+  const root = "public/experiences";
+  expect(existsSync(join(root, "glm-flow/legacy"))).toBe(false);
+  const readerTheme = readFileSync(join(root, "reader-theme.css"), "utf8");
+  expect(readerTheme).toContain("p.sub");
+  expect(readerTheme).not.toMatch(/:is\(\.sub\b/);
+  const flowLook = readFileSync(join(root, "glm-flow/master/flow-look.js"), "utf8");
+  expect(flowLook).toContain("addArrowBatch");
+  expect(flowLook).toContain("setRecv");
+  const playJs = readFileSync(join(root, "glm-flow/master/play.js"), "utf8");
+  expect(playJs).toContain("op.token !== undefined");
+  expect(playJs).toContain("B[bid + '/0']");
+  expect(playJs).toContain("...beat.op.lesson.reads, ...beat.op.lesson.params");
+  const cfg = JSON.parse(
+    readFileSync(join(root, "glm-flow/reference/official-config.json"), "utf8"),
+  ).text_config;
+  const [{ modelSpec }, { layoutModel }, { layerSpec }] = await Promise.all([
+    import(pathToFileURL(resolve(root, "glm-flow/master/model-spec.js")).href),
+    import(pathToFileURL(resolve(root, "glm-flow/master/model-layout.js")).href),
+    import(pathToFileURL(resolve(root, "glm-flow/master/truth-spec.js")).href),
+  ]);
+  const layout = layoutModel(modelSpec(cfg, 6));
+  const em = layout.B.e_mtp;
+  const colW = (em.x1 - em.x0) / 6;
+  const arrow = layout.arrows.find(
+    (a: { from: string; to: string }) => a.from === "next_id" && a.to === "e_mtp",
+  )!;
+  expect(arrow.pts.at(-1)[0]).toBeCloseTo(em.x1 - colW / 2, 5);
+  const mlaSpec = layerSpec(cfg, 6, 3);
+  const kvStep = mlaSpec.steps.find((s: { id: string }) => s.id === "proj_kv_b")!;
+  expect(kvStep.merged).toContain("只缓存 512 维低秩 c_kv");
+  expect(kvStep.merged).toContain("1/64");
+  expect(kvStep.merged).not.toContain("省 64 倍显存");
 });
 
 it("全部六套硬件三维 GLB 资产登记在案，具备合法二进制头与分层语义节点", () => {
@@ -467,4 +509,33 @@ it("六套硬件 GLB 在闭合与展开态（65% / 100%）无子部件穿模、�
     }
   }
   expect(allFailures).toEqual([]);
+});
+
+it("三维矿物色盘与二维架构令牌 1:1 对齐，激活/权重保持严格明度极性且镜头颜色跟随输出张量", async () => {
+  const root = "public/experiences";
+  const paletteCss = readFileSync(join(root, "reader-palette.css"), "utf8");
+  const { ACCENTS, PALETTES } = (await import(
+    pathToFileURL(resolve(root, "glm-flow/master/flow-colors.js")).href
+  )) as {
+    ACCENTS: Record<string, string>;
+    PALETTES: { user: Record<string, [string, string]> };
+  };
+  const srgbToLum = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => {
+      const c = Number.parseInt(hex.slice(i, i + 2), 16) / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+  };
+  for (const key of ["embed", "resid", "norm", "kda", "attn", "dense", "router", "expert", "mtp"]) {
+    const m = paletteCss.match(new RegExp(`--arch-${key}:\\s*(#[0-9a-fA-F]{6})`));
+    expect(m?.[1]?.toLowerCase(), key).toBe(ACCENTS[key]?.toLowerCase());
+  }
+  for (const [key, [act, wt]] of Object.entries(PALETTES.user)) {
+    expect(srgbToLum(act), `${key} activation fuller than weight`).toBeLessThan(srgbToLum(wt) - 0.08);
+  }
+  const playJs = readFileSync(join(root, "glm-flow/master/play.js"), "utf8");
+  expect(playJs).not.toContain("bNow.lesson.comp");
+  expect(playJs).toContain("activeComp = outId ? B[id(s, outId)]?.comp : null;");
+  expect(playJs).toContain("wName: p0.X.t.name, xName: p0.W.t.name");
 });

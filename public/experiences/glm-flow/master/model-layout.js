@@ -141,8 +141,8 @@ export function layoutModel(M, { heads = 'z', elide = true, gap = HEAD_GAP } = {
   arrow('h_final', 'logits', [[cx(hf), cy(lg)], [lg.x1 + PAD, cy(lg)]], { joins: 'h_final>h_n' });   // off the arrow down to h_n
   const em = onLineAt(XL, 'e_mtp', hn.y1 + STAGE), en = onLineAt(XL, 'e_n', em.y1 + STAGE);
   place('gamma_e', 'rod', en.x0 - P_GAP - wOf('gamma_e', 'rod'), en.y0);
-  const yk = (hn.y1 + em.y0) / 2;
-  arrow('next_id', 'e_mtp', [[cx(nid), nid.y1 + PAD], [cx(nid), yk], [em.x0 + Tw * .3, yk], [em.x0 + Tw * .3, em.y0 - PAD]]);
+  const yk = (hn.y1 + em.y0) / 2, emLastX = em.x1 - ROW / 2;
+  arrow('next_id', 'e_mtp', [[cx(nid), nid.y1 + PAD], [cx(nid), yk], [emLastX, yk], [emLastX, em.y0 - PAD]]);
   arrow('e_mtp', 'e_n', [[cx(em), em.y1 + PAD], [cx(em), en.y0 - PAD]]);
   const K = N, LM = per[K], mrin = LM.B.residual_in;
   const mdx = XL, mdy = en.y1 + STAGE - mrin.y0;

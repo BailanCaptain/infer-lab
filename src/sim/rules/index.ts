@@ -4,11 +4,13 @@ import { domain3Rules, evaluateDomain3Rules } from "./domain3Quantization";
 import { domain4Rules, evaluateDomain4Rules } from "./domain4CpPd";
 import {
   classifyEnvVar,
+  DEPRECATED_FALLBACK_ENV_SPECS,
   DOCS_ONLY_UNKNOWN_ASCEND_VARS,
   DOCS_ONLY_UNKNOWN_HCCL_VARS,
   domain5Rules,
   evaluateDomain5Rules,
   KNOWN_READ_ENV_SPECS,
+  RETIRED_ENV_SPECS,
 } from "./domain5GraphSchedEnv";
 import {
   calculateDpBufferSizeMiB,
@@ -82,7 +84,12 @@ export function evaluateCouplingRules(
 }
 
 export type { BatchTokensResolution } from "./domain2BatchTokens";
-export type { EnvVarClassification, KnownEnvSpec } from "./domain5GraphSchedEnv";
+export type {
+  DeprecatedFallbackEnvSpec,
+  EnvVarClassification,
+  KnownEnvSpec,
+  RetiredEnvSpec,
+} from "./domain5GraphSchedEnv";
 export type {
   HcclAccountingInput,
   HcclDomainEntry,
@@ -97,6 +104,7 @@ export {
   calculateMc2TokensCapacity,
   classifyEnvVar,
   DEFAULT_RULE_VERSION,
+  DEPRECATED_FALLBACK_ENV_SPECS,
   DOCS_ONLY_UNKNOWN_ASCEND_VARS,
   DOCS_ONLY_UNKNOWN_HCCL_VARS,
   domain1Rules,
@@ -119,6 +127,7 @@ export {
   isMegaMoeActive,
   KNOWN_READ_ENV_SPECS,
   parseSourceRef,
+  RETIRED_ENV_SPECS,
   resolveDefaultBatchTokens,
   resolveReuseDomain,
   SOURCE_REF_PATTERN,

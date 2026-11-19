@@ -256,7 +256,7 @@ $$\text{KV}_{\text{token}} = 2 \times L \times n_{\text{kv}} \times d_h \times \
 tool: deploy-calculator
 mode: quick-screen
 title: 部署算账台 · 快速初筛视图
-summary: 对照 config.json 的层数、隐藏维度、KV 头数与 dtype，快速初筛单卡/多卡权重与每 token KV 显存门槛（完整交互面板将在 Wave 3/4 接入）。
+summary: 对照 config.json 的层数、隐藏维度、KV 头数与 dtype，快速初筛单卡/多卡权重与每 token KV 显存门槛。
 model: Qwen3-8B
 ```
 

@@ -1,3 +1,4 @@
+import "../../design/tools.css";
 import type { ComponentType } from "react";
 import {
   KNOWN_WIKI_TOOLS,
@@ -5,12 +6,44 @@ import {
   type WikiToolId,
   type WikiToolSpec,
 } from "../../content/wiki/toolFence";
+import { ConfigDoctorView } from "../tools/ConfigDoctorView";
+import { DeployCalculatorView } from "../tools/DeployCalculatorView";
 
 export interface WikiToolRenderProps {
   spec: WikiToolSpec;
 }
 
-const TOOL_REGISTRY = new Map<WikiToolId, ComponentType<WikiToolRenderProps>>();
+function EmbeddedDeployCalculator({ spec }: WikiToolRenderProps) {
+  const mode =
+    spec.mode === "quick-screen" || spec.mode === "minimal" || spec.mode === "full" ? spec.mode : undefined;
+  return (
+    <DeployCalculatorView
+      mode={mode}
+      title={spec.title}
+      summary={spec.summary}
+      initialModel={spec.model}
+      embedded
+    />
+  );
+}
+
+function EmbeddedConfigDoctor({ spec }: WikiToolRenderProps) {
+  const mode = spec.mode === "minimal" || spec.mode === "full" ? spec.mode : undefined;
+  return (
+    <ConfigDoctorView
+      mode={mode}
+      title={spec.title}
+      summary={spec.summary}
+      initialPresetId={spec.preset}
+      embedded
+    />
+  );
+}
+
+const TOOL_REGISTRY = new Map<WikiToolId, ComponentType<WikiToolRenderProps>>([
+  ["deploy-calculator", EmbeddedDeployCalculator],
+  ["config-doctor", EmbeddedConfigDoctor],
+]);
 
 export function WikiToolBlock({ source }: { source: string }) {
   const parsed = parseWikiToolFence(source);

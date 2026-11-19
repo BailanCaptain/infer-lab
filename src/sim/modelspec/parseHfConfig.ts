@@ -30,7 +30,11 @@ export class UnsupportedModelError extends Error {
   }
 }
 
-const SUPPORTED = new Set(["qwen3", "qwen3_moe", "qwen2", "llama"]);
+const SUPPORTED_DENSE = new Set(["qwen3", "qwen2", "llama", "mistral", "gemma2", "gemma", "internlm2", "yi"]);
+
+const SUPPORTED_MOE = new Set(["qwen3_moe", "qwen2_moe", "mixtral"]);
+
+const SUPPORTED = new Set([...SUPPORTED_DENSE, ...SUPPORTED_MOE]);
 
 /** 有些多模态 config 把语言模型放在 text_config 里 */
 function unwrapTextConfig(raw: Json): { cfg: Json; nested: boolean } {
@@ -85,7 +89,15 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
   const numKvHeads = num(cfg, "num_key_value_heads", used, numHeads);
   const headDim = num(cfg, "head_dim", used, Math.floor(hidden / numHeads));
   const vocab = num(cfg, "vocab_size", used);
-  const intermediate = num(cfg, "intermediate_size", used);
+  const isMoeType = SUPPORTED_MOE.has(modelType);
+  const moeIntermediateRaw =
+    typeof cfg.moe_intermediate_size === "number" ? cfg.moe_intermediate_size : undefined;
+  const intermediate = num(
+    cfg,
+    "intermediate_size",
+    used,
+    isMoeType && moeIntermediateRaw !== undefined ? moeIntermediateRaw : undefined,
+  );
   const dtypeStr = str(cfg, "torch_dtype", used, str(cfg, "dtype", used, "bfloat16"));
   const dtype = parseDtype(dtypeStr);
 
@@ -98,14 +110,38 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
     bias: bool(cfg, "attention_bias", used, modelType === "qwen2"),
     ropeTheta: num(cfg, "rope_theta", used, 10000),
   };
-  const act = str(cfg, "hidden_act", used, "silu");
+  const act = str(cfg, "hidden_act", used, str(cfg, "hidden_activation", used, "silu"));
 
-  // MLP：qwen3_moe 支持 decoder_sparse_step 与 mlp_only_layers 指定哪些层是 dense
+  // MLP：支持 qwen3_moe / qwen2_moe / mixtral，含共享专家与 decoder_sparse_step / mlp_only_layers
   let layers: LayerSpec[];
-  if (modelType === "qwen3_moe") {
-    const numExperts = num(cfg, "num_experts", used);
+  if (isMoeType) {
+    const numExperts =
+      typeof cfg.num_experts === "number"
+        ? num(cfg, "num_experts", used)
+        : num(cfg, "num_local_experts", used);
+    used.add("num_experts");
+    used.add("num_local_experts");
     const topK = num(cfg, "num_experts_per_tok", used);
-    const moeIntermediate = num(cfg, "moe_intermediate_size", used);
+    const moeIntermediate = num(
+      cfg,
+      "moe_intermediate_size",
+      used,
+      modelType === "mixtral" ? intermediate : undefined,
+    );
+    const sharedIntermediateRaw = num(cfg, "shared_expert_intermediate_size", used, 0);
+    const numSharedRaw =
+      typeof cfg.num_shared_experts === "number"
+        ? num(cfg, "num_shared_experts", used)
+        : typeof cfg.n_shared_experts === "number"
+          ? num(cfg, "n_shared_experts", used)
+          : sharedIntermediateRaw > 0
+            ? 1
+            : 0;
+    used.add("num_shared_experts");
+    used.add("n_shared_experts");
+    const numSharedExperts = Math.max(0, numSharedRaw);
+    const sharedIntermediate =
+      numSharedExperts > 0 ? (sharedIntermediateRaw > 0 ? sharedIntermediateRaw : moeIntermediate) : 0;
     const normTopkProb = bool(cfg, "norm_topk_prob", used, false);
     const sparseStep = num(cfg, "decoder_sparse_step", used, 1);
     used.add("mlp_only_layers");
@@ -119,8 +155,8 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
       numExperts,
       topK,
       moeIntermediate,
-      numSharedExperts: 0,
-      sharedIntermediate: 0,
+      numSharedExperts,
+      sharedIntermediate,
       normTopkProb,
       act,
     };
@@ -151,6 +187,15 @@ export function parseHfConfig(raw: unknown, opts: ParseOptions = {}): ModelSpec 
     "rope_scaling",
     "output_router_logits",
     "router_aux_loss_coef",
+    "router_jitter_noise",
+    "hidden_activation",
+    "query_pre_attn_scalar",
+    "final_logit_softcapping",
+    "attn_logit_softcapping",
+    "cache_implementation",
+    "pretraining_tp",
+    "mlp_bias",
+    "quantization_config",
   ])
     used.add(k);
 

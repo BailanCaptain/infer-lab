@@ -972,4 +972,62 @@ describe("Domain 3: Native FP8 / MXFP8 & Hybrid KV Quantization", () => {
     expect(zeroModelLen.finalMaxNumBatchedTokens).toBe(2048);
     expect(zeroModelLen.finalMaxNumSeqs).toBe(256);
   });
+
+  it("Wave 3 review fixes: supports enableFusedMc2=2/3 (MegaMoe) and enforces GQA C8 INT8 block_size % 32 == 0", () => {
+    // P2-4: enable_fused_mc2=2 (v0.30.0 & main) and 3 (main) trigger MegaMoe / FUSED_MC2 and silent reset checks
+    const a3Mc2Mode2 = selectMoeCommMethod(
+      {
+        hardwareFamily: "A3",
+        isMoe: true,
+        enableExpertParallel: true,
+        tpSize: 8,
+        dpSize: 2,
+        enableFusedMc2: 2,
+      },
+      "v0.30.0",
+    );
+    expect(a3Mc2Mode2.method).toBe("FUSED_MC2");
+    expect(
+      isFusedMc2SilentlyReset(
+        {
+          hardwareFamily: "A3",
+          isMoe: true,
+          enableExpertParallel: true,
+          enableFusedMc2: 2,
+          isMegaMoeSupportedByConfig: false,
+        },
+        "v0.30.0",
+      ),
+    ).toBe(true);
+
+    const a5Mc2Mode3 = selectMoeCommMethod(
+      {
+        hardwareFamily: "A5",
+        isMoe: true,
+        enableExpertParallel: true,
+        tpSize: 4,
+        dpSize: 2,
+        enableFusedMc2: 3,
+      },
+      "main",
+    );
+    expect(a5Mc2Mode3.method).toBe("FUSED_MC2");
+
+    // P3-2: GQA C8 INT8 requires block_size % 32 == 0 (attention_v1.py#L1560-L1561, #L1608-L1611)
+    const badC8Block = evaluateDomain3Rules(
+      { useMla: false, cacheDtype: "int8", quantMethod: "ascend", enableC8Quant: true, blockSize: 16 },
+      "v0.30.0",
+    );
+    const blockErr = badC8Block.find((m) => m.ruleId === "d3-gqa-c8-block-size-multiple-32");
+    expect(blockErr?.judgment).toBe("error");
+    expect(blockErr?.sources).toContain(
+      "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1560-L1561",
+    );
+
+    const goodC8Block = evaluateDomain3Rules(
+      { useMla: false, cacheDtype: "int8", quantMethod: "ascend", enableC8Quant: true, blockSize: 64 },
+      "v0.30.0",
+    );
+    expect(goodC8Block.some((m) => m.ruleId === "d3-gqa-c8-block-size-multiple-32")).toBe(false);
+  });
 });

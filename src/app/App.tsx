@@ -5,6 +5,7 @@ import { ExperiencePage } from "./pages/ExperiencePage";
 
 const WikiPage = lazy(async () => ({ default: (await import("./pages/WikiPage")).WikiPage }));
 const HomePage = lazy(async () => ({ default: (await import("./pages/HomePage")).HomePage }));
+const ToolsPage = lazy(async () => ({ default: (await import("./pages/ToolsPage")).ToolsPage }));
 
 // Commit the destination shell before loading its content, releasing the outgoing 3D scene.
 const wikiRoute = {
@@ -33,6 +34,19 @@ const homeRoute = {
     </Suspense>
   ),
 };
+const toolsRoute = {
+  element: (
+    <Suspense
+      fallback={
+        <p className="reader-loading" role="status">
+          正在载入交互工程工作台…
+        </p>
+      }
+    >
+      <ToolsPage />
+    </Suspense>
+  ),
+};
 
 // 旧链接仍可读；主阅读入口不加载历史课程及 3D。
 const legacyCourseRoute = {
@@ -57,6 +71,7 @@ const router = createHashRouter([
       { path: "hardware", element: <ExperiencePage kind="hardware" /> },
       { path: "wiki", ...wikiRoute },
       { path: "wiki/:id", ...wikiRoute },
+      { path: "tools", ...toolsRoute },
       { path: "archive/home", ...homeRoute },
       {
         path: "*",

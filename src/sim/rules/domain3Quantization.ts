@@ -538,6 +538,167 @@ export const domain3Rules: readonly CouplingRule[] = [
       };
     },
   },
+  {
+    id: "d3-gqa-c8-requires-quant-weights",
+    domain: "quantization",
+    title: "GQA C8 KV Cache (--kv-cache-dtype int8) Requires ModelSlim Quantized Weights",
+    judgment: "error",
+    evidenceLevel: "C",
+    versions: ["v0.30.0", "main"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/attention/attention_v1.py#L570-L587`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/attention/attention_v1.py#L614-L631`,
+    ],
+    description:
+      "Standard GQA attention (attention_v1.py) adopts static C8 KV quantization and raises ValueError when --kv-cache-dtype is int8 (or non-MXFP8 quantized dtype) without ModelSlim --quantization ascend weights that set enable_c8_quant=True.",
+    rationale:
+      "GQA C8 KV quantization depends on offline-calibrated static KV scales stored in the ModelSlim checkpoint; MXFP8 is the only cache_dtype exempt from enable_c8_quant.",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (input.useMla || input.usesSfaSparse) return null;
+      const cacheDtype = input.cacheDtype?.toLowerCase();
+      if (
+        !cacheDtype ||
+        cacheDtype === "auto" ||
+        cacheDtype === "float16" ||
+        cacheDtype === "bfloat16" ||
+        cacheDtype === "float32" ||
+        cacheDtype === "mxfp8" ||
+        cacheDtype === "turboquant_4bit_nc"
+      ) {
+        return null;
+      }
+      if (input.enableC8Quant === true) return null;
+      const versionSources =
+        version === "main"
+          ? [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/attention/attention_v1.py#L614-L631`]
+          : [
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/attention/attention_v1.py#L570-L587`,
+            ];
+      if (input.enableC8Quant === false || input.quantMethod !== "ascend") {
+        return {
+          ruleId: this.id,
+          domain: this.domain,
+          title: this.title,
+          version,
+          judgment: "error",
+          evidenceLevel: this.evidenceLevel,
+          sources: versionSources,
+          message: `ValueError: GQA --kv-cache-dtype ${input.cacheDtype} requires ModelSlim C8 quantized weights (--quantization ascend with enable_c8_quant=True); unquantized checkpoints raise ValueError in attention_v1.py.`,
+          remediation:
+            "Use a ModelSlim C8-calibrated checkpoint with --quantization ascend, or remove --kv-cache-dtype int8 (keep auto/BF16 KV cache).",
+        };
+      }
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: "warn",
+        evidenceLevel: this.evidenceLevel,
+        sources: versionSources,
+        message: `GQA --kv-cache-dtype ${input.cacheDtype} with --quantization ascend requires C8 KV calibration scales (enable_c8_quant=True) in the checkpoint's quant_model_description.json; otherwise attention_v1.py raises ValueError.`,
+        remediation:
+          "Verify quant_model_description.json includes C8 KV scales, or revert --kv-cache-dtype to auto.",
+      };
+    },
+  },
+  {
+    id: "d3-310p-requires-float16",
+    domain: "quantization",
+    title: "Ascend 310P (Atlas 300I DUO) Lacks BF16 Support and Requires --dtype float16",
+    judgment: "error",
+    evidenceLevel: "C",
+    versions: ["v0.30.0", "main"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/getting_started/quick_start/online/qwen3-0.6b-310p.inc.md#L1-L16`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/tutorials/models/Qwen3-Dense.md#L270-L293`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/device/hardware_profile.py#L310-L332`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/_310p/quantization/methods/w8a8_base.py#L25-L34`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/device/hardware_profile.py#L417-L440`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/_310p/quantization/methods/w8a8_base.py#L25-L34`,
+    ],
+    description:
+      "Ascend 310P (Atlas 300I DUO / 200I Pro) does not support BF16 hardware execution and requires explicit --dtype float16, including when loading W8A8SC quantized checkpoints with --quantization ascend (leaving --dtype auto on a BF16 config.json fails).",
+    rationale:
+      "All 310P COMPATIBILITY attention, MoE, and ModelSlim W8A8/W8A8SC kernels operate on float16 activations and parameters.",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (input.hardwareFamily !== "310P") return null;
+      if (input.modelDtype !== "bfloat16") return null;
+      const versionSources =
+        version === "main"
+          ? [
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/device/hardware_profile.py#L417-L440`,
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/_310p/quantization/methods/w8a8_base.py#L25-L34`,
+            ]
+          : [
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/getting_started/quick_start/online/qwen3-0.6b-310p.inc.md#L1-L16`,
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/tutorials/models/Qwen3-Dense.md#L270-L293`,
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/device/hardware_profile.py#L310-L332`,
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/_310p/quantization/methods/w8a8_base.py#L25-L34`,
+            ];
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: this.judgment,
+        evidenceLevel: this.evidenceLevel,
+        sources: versionSources,
+        message:
+          "Unsupported: Ascend 310P (Atlas 300I DUO) lacks BF16 hardware support; explicit --dtype float16 is required (even with ModelSlim W8A8SC --quantization ascend, because default auto resolves BF16 from config.json).",
+        remediation: "Pass --dtype float16 explicitly on Ascend 310P.",
+      };
+    },
+  },
+  {
+    id: "d3-gqa-c8-block-size-multiple-32",
+    domain: "quantization",
+    title: "GQA C8 INT8 KV Cache Requires block_size Multiple of 32",
+    judgment: "error",
+    evidenceLevel: "C",
+    versions: ["v0.30.0", "main"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/attention/attention_v1.py#L1560-L1561`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/attention/attention_v1.py#L1608-L1611`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/attention/attention_v1.py#L1648`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/attention/attention_v1.py#L1696-L1698`,
+    ],
+    description:
+      "GQA C8 INT8 paged KV decode and chunked prefill paths assert block_size % 32 == 0 before constructing the NZ 5D view for npu_fused_infer_attention_score.",
+    rationale: "NZ 5D INT8 KV cache layout tiles block_size along 32-element slices.",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (input.useMla || input.usesSfaSparse) return null;
+      const cacheDtype = input.cacheDtype?.toLowerCase();
+      if (cacheDtype === "mxfp8") return null;
+      const c8Int8Active = cacheDtype === "int8" || Boolean(input.enableC8Quant);
+      if (!c8Int8Active) return null;
+      if (input.blockSize === undefined || input.blockSize % 32 === 0) return null;
+      const versionSources =
+        version === "main"
+          ? [
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/attention/attention_v1.py#L1648`,
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/attention/attention_v1.py#L1696-L1698`,
+            ]
+          : [
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/attention/attention_v1.py#L1560-L1561`,
+              `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/attention/attention_v1.py#L1608-L1611`,
+            ];
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: this.judgment,
+        evidenceLevel: this.evidenceLevel,
+        sources: versionSources,
+        message: `AssertionError: C8 INT8 KV cache requires block_size to be a multiple of 32 (got ${input.blockSize}).`,
+        remediation: "Set --block-size to a multiple of 32 (e.g. 64 or 128).",
+      };
+    },
+  },
 ];
 
 export function evaluateDomain3Rules(

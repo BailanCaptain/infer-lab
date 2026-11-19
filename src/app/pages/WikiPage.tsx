@@ -57,6 +57,7 @@ import {
 import { WikiScene } from "../wiki/WikiScene";
 import { WikiToolBlock } from "../wiki/WikiToolBlock";
 import "katex/dist/katex.min.css";
+import "../../design/tools.css";
 import "../../design/wiki.css";
 
 export { canonicalWikiRedirectTarget } from "../wiki/WikiLink";
@@ -497,6 +498,37 @@ function Landing({
           <p>{guide.summary}</p>
         </section>
       )}
+
+      <section className="wt-landing-tools" data-testid="wiki-landing-tools" aria-label="交互工程工作台">
+        <div className="wt-landing-tools-head">
+          <h2 className="wt-landing-tools-title">交互工程工作台</h2>
+          <p className="wt-landing-tools-note">源码级显存账本与起服务联检，不改阅读路线即可随手验算</p>
+        </div>
+        <div className="wt-landing-tools-grid">
+          <Link
+            className="wt-landing-tool-card"
+            to="/tools?tab=calculator"
+            data-testid="landing-tool-calculator"
+          >
+            <span className="wt-landing-tool-card-top">
+              <span>① 部署算账台</span>
+              <ArrowRight size={14} aria-hidden="true" />
+            </span>
+            <span className="wt-landing-tool-card-desc">
+              7 级冷启动显存区间、Roofline 落点与启动日志逐项对账
+            </span>
+          </Link>
+          <Link className="wt-landing-tool-card" to="/tools?tab=doctor" data-testid="landing-tool-doctor">
+            <span className="wt-landing-tool-card-top">
+              <span>② vllm serve 配置体检器</span>
+              <ArrowRight size={14} aria-hidden="true" />
+            </span>
+            <span className="wt-landing-tool-card-desc">
+              单机与 P/D 分离双实例规则联检、静默改写与源码锚点
+            </span>
+          </Link>
+        </div>
+      </section>
 
       <div className="reader-topics" data-testid="knowledge-topics">
         {toc.map((part, index) => {

@@ -28,6 +28,10 @@ const MEGA_MOE_TOKENS_PER_RANK_LIMIT = 16384;
 const RFORK_MEGA_MOE_TOKENS_PER_RANK_LIMIT = 4096;
 const MC2_TOKENS_PER_RANK_LIMIT = 512;
 
+function isFusedMc2Requested(val: CouplingCheckInput["enableFusedMc2"]): boolean {
+  return val === 1 || val === 2 || val === 3;
+}
+
 export function isMegaMoeActive(input: CouplingCheckInput, version: RuleVersion): boolean {
   if (version === "rfork") {
     // rfork@3284850b:vllm_ascend/ascend_forward_context.py#L86 hardcodes use_cann_megamoe -> False
@@ -37,7 +41,7 @@ export function isMegaMoeActive(input: CouplingCheckInput, version: RuleVersion)
   if (family !== "A3" && family !== "A5") return false;
   if (input.isLoraEnabled) return false;
   if (!input.isMoe || !input.enableExpertParallel) return false;
-  if (input.enableFusedMc2 !== 1) return false;
+  if (!isFusedMc2Requested(input.enableFusedMc2)) return false;
   if (input.isMegaMoeSupportedByModel === false) return false;
   if (input.isMegaMoeSupportedByConfig === false) return false;
   if (input.cannOpsTransformerAvailable === false) return false;
@@ -58,7 +62,7 @@ export function isMegaMoeActive(input: CouplingCheckInput, version: RuleVersion)
 
 export function isFusedMc2SilentlyReset(input: CouplingCheckInput, version: RuleVersion): boolean {
   if (version === "rfork") return false;
-  if (input.enableFusedMc2 !== 1) return false;
+  if (!isFusedMc2Requested(input.enableFusedMc2)) return false;
   if (input.cannOpsTransformerAvailable === false) return false;
   if (input.isMegaMoeSupportedByModel === false) return false;
   return input.isMegaMoeSupportedByConfig === false;
@@ -74,7 +78,8 @@ export function calculateMc2TokensCapacity(
   const uniformDecodeQueryLen = input.uniformDecodeQueryLen ?? 1;
 
   const useMegaMoe = isMegaMoeActive(input, version);
-  const effectiveFusedMc2 = input.enableFusedMc2 === 1 && !isFusedMc2SilentlyReset(input, version);
+  const effectiveFusedMc2 =
+    isFusedMc2Requested(input.enableFusedMc2) && !isFusedMc2SilentlyReset(input, version);
   const cudagraphCaptureEnabled =
     input.cudagraphCaptureSizes === undefined ? true : input.cudagraphCaptureSizes.length > 0;
 
@@ -118,7 +123,7 @@ export function calculateMc2TokensCapacity(
   const mc2TokensCapacity = numTokensPerTpRank * tp;
 
   let dispatchV2TokensCapacity: number | undefined;
-  if (version === "rfork" && input.enableFusedMc2 === 1) {
+  if (version === "rfork" && isFusedMc2Requested(input.enableFusedMc2)) {
     let dispatchV2MaxTokens: number;
     if (cudagraphCaptureEnabled && input.maxCudagraphCaptureSize !== undefined) {
       dispatchV2MaxTokens = input.maxCudagraphCaptureSize;
@@ -261,7 +266,7 @@ export function selectMoeCommMethod(
   const numTokens = input.numTokens;
   const withinCapacity = numTokens === undefined || numTokens <= capacity;
   const fusedReset = isFusedMc2SilentlyReset(input, version);
-  const effectiveFusedMc2 = input.enableFusedMc2 === 1 && !fusedReset;
+  const effectiveFusedMc2 = isFusedMc2Requested(input.enableFusedMc2) && !fusedReset;
 
   if (family === "A2") {
     const numExperts = input.numExperts ?? 64;

@@ -13,16 +13,31 @@ import {
 export interface EnvVarClassification {
   name: string;
   version: RuleVersion;
-  judgment: "known-read" | "unknown";
+  judgment: "known-read" | "retired" | "deprecated-fallback" | "unknown";
   ruleJudgment: RuleJudgment;
   evidenceLevel: EvidenceLevel;
   sources: readonly string[];
   reason: string;
+  replacement?: string | undefined;
 }
 
 export interface KnownEnvSpec {
   versions: readonly RuleVersion[];
   sources: readonly string[];
+  note: string;
+}
+
+export interface RetiredEnvSpec {
+  versions: readonly RuleVersion[];
+  sourcesByVersion: Partial<Record<RuleVersion, readonly string[]>>;
+  replacement: string;
+  note: string;
+}
+
+export interface DeprecatedFallbackEnvSpec {
+  versions: readonly RuleVersion[];
+  sourcesByVersion: Partial<Record<RuleVersion, readonly string[]>>;
+  replacement: string;
   note: string;
 }
 
@@ -129,6 +144,177 @@ export const KNOWN_READ_ENV_SPECS: Readonly<Record<string, KnownEnvSpec>> = {
     ],
     note: "Docs-only ('unknown') in v0.30.0; explicitly checked in main ec_transfer store_backend.py.",
   },
+  PYTORCH_NPU_ALLOC_CONF: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/platform.py#L1445-L1481`],
+    note: "Read/written by NPUPlatform._set_pytorch_npu_alloc_env() (auto-appends expandable_segments:True unless sleep mode or conflicting flags).",
+  },
+  VLLM_USE_MODELSCOPE: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L717-L719`],
+    note: "Read by vllm/envs.py to download model weights from ModelScope instead of Hugging Face Hub.",
+  },
+  VLLM_WORKER_MULTIPROC_METHOD: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L930-L932`],
+    note: "Read by vllm/envs.py ('spawn' or 'fork') for MultiprocExecutor worker spawning.",
+  },
+  VLLM_HOST_IP: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L705`],
+    note: "Read by vllm/envs.py for distributed host IP binding.",
+  },
+  VLLM_PORT: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L710`],
+    note: "Read by vllm/envs.py (must be an integer port; Kubernetes tcp:// URI raises ValueError).",
+  },
+  VLLM_USE_V2_MODEL_RUNNER: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L2037-L2038`],
+    note: "Read by vllm/envs.py to enable Model Runner V2 (required for PCP > 1 and TurboQuant Route B in v0.30.0).",
+  },
+  VLLM_LOGGING_LEVEL: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L834`],
+    note: "Read by vllm/envs.py to control vLLM log verbosity (e.g. DEBUG).",
+  },
+  VLLM_ALLOW_LONG_MAX_MODEL_LEN: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L1097-L1098`],
+    note: "Read by vllm/envs.py to allow --max-model-len above config.json native limit.",
+  },
+  VLLM_PP_LAYER_PARTITION: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L864`],
+    note: "Read by vllm/envs.py to customize layer counts across PP stages.",
+  },
+  VLLM_BATCH_INVARIANT: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L619`],
+    note: "Read by vllm/envs.py and vllm_ascend/batch_invariant.py for deterministic batch invariance.",
+  },
+  VLLM_VERSION: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L76`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/utils.py#L726-L746`,
+    ],
+    note: "Defined in vllm_ascend/envs.py and read by vllm_version_is() to override non-standard source builds.",
+  },
+  DYNAMIC_EPLB: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L78`],
+    note: "Defined in vllm_ascend/envs.py for dynamic EPLB enablement.",
+  },
+  TASK_QUEUE_ENABLE: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:Dockerfile#L55-L57`],
+    note: "Set to 1 in official vllm-ascend Dockerfile for torch_npu async task dispatch queue.",
+  },
+  OMP_NUM_THREADS: {
+    versions: ["v0.30.0", "main", "rfork"],
+    sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:Dockerfile#L55-L57`],
+    note: "Set to 1 in official vllm-ascend Dockerfile to avoid OpenMP thread contention across workers.",
+  },
+};
+
+export const RETIRED_ENV_SPECS: Readonly<Record<string, RetiredEnvSpec>> = {
+  VLLM_ASCEND_ENABLE_NZ: {
+    versions: ["v0.30.0", "main"],
+    sourcesByVersion: {
+      "v0.30.0": [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/configuration/additional_config.md#L60`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L38-L93`,
+      ],
+      main: [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:docs/source/user_guide/configuration/additional_config.md#L68`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/envs.py#L46-L98`,
+      ],
+    },
+    replacement: `--additional-config '{"weight_nz_mode": 0}' (0=off, 1=quantized only [default], 2=quantized+float)`,
+    note: "VLLM_ASCEND_ENABLE_NZ was removed in v0.30.0 (0 reads in codebase) and silently does nothing; migrate to additional_config.weight_nz_mode.",
+  },
+  VLLM_ASCEND_ENABLE_MLAPO: {
+    versions: ["v0.30.0", "main"],
+    sourcesByVersion: {
+      "v0.30.0": [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/configuration/additional_config.md#L58`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L38-L93`,
+      ],
+      main: [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:docs/source/user_guide/configuration/additional_config.md#L66`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/envs.py#L46-L98`,
+      ],
+    },
+    replacement: `--additional-config '{"enable_mlapo": true}'`,
+    note: "VLLM_ASCEND_ENABLE_MLAPO was removed in v0.30.0 (0 reads in codebase) and silently does nothing; migrate to additional_config.enable_mlapo.",
+  },
+  VLLM_ASCEND_ENABLE_FUSED_MC2: {
+    versions: ["v0.30.0", "main"],
+    sourcesByVersion: {
+      "v0.30.0": [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/configuration/additional_config.md#L61`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L38-L93`,
+      ],
+      main: [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:docs/source/user_guide/configuration/additional_config.md#L69`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/envs.py#L46-L98`,
+      ],
+    },
+    replacement: `--additional-config '{"enable_fused_mc2": 1}' (0=off, 1=dispatch-FFN-combine, 2=MegaMoe)`,
+    note: "VLLM_ASCEND_ENABLE_FUSED_MC2 was removed in v0.30.0 (0 reads in codebase) and silently does nothing; migrate to additional_config.enable_fused_mc2.",
+  },
+  MSMONITOR_USE_DAEMON: {
+    versions: ["v0.30.0", "main"],
+    sourcesByVersion: {
+      "v0.30.0": [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/configuration/additional_config.md#L57`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L38-L93`,
+      ],
+      main: [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:docs/source/user_guide/configuration/additional_config.md#L65`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/envs.py#L46-L98`,
+      ],
+    },
+    replacement: `--additional-config '{"msmonitor_use_daemon": true}'`,
+    note: "MSMONITOR_USE_DAEMON was removed in v0.30.0 (0 reads in codebase) and silently does nothing; migrate to additional_config.msmonitor_use_daemon.",
+  },
+  VLLM_ASCEND_FUSION_OP_TRANSPOSE_KV_CACHE_BY_BLOCK: {
+    versions: ["v0.30.0", "main"],
+    sourcesByVersion: {
+      "v0.30.0": [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/configuration/additional_config.md#L62`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L38-L93`,
+      ],
+      main: [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:docs/source/user_guide/configuration/additional_config.md#L70`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/envs.py#L46-L98`,
+      ],
+    },
+    replacement: `--additional-config '{"enable_transpose_kv_cache_by_block": true}'`,
+    note: "VLLM_ASCEND_FUSION_OP_TRANSPOSE_KV_CACHE_BY_BLOCK was removed in v0.30.0 (0 reads in codebase); migrate to additional_config.enable_transpose_kv_cache_by_block.",
+  },
+};
+
+export const DEPRECATED_FALLBACK_ENV_SPECS: Readonly<Record<string, DeprecatedFallbackEnvSpec>> = {
+  VLLM_ASCEND_ENABLE_FLASHCOMM1: {
+    versions: ["v0.30.0", "main"],
+    sourcesByVersion: {
+      "v0.30.0": [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L747-L750`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/utils.py#L1016-L1022`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/configuration/additional_config.md#L64`,
+      ],
+      main: [
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L845-L848`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/patch/worker/patch_qwen3_5.py#L55-L61`,
+        `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:docs/source/user_guide/configuration/additional_config.md#L71`,
+      ],
+    },
+    replacement: `--additional-config '{"enable_flashcomm1": true}'`,
+    note: "VLLM_ASCEND_ENABLE_FLASHCOMM1 was removed from vllm_ascend/envs.py in v0.30.0, but STILL has active os.getenv compatibility fallback reads in ascend_config.py & utils.py; migrate to additional_config.enable_flashcomm1.",
+  },
 };
 
 export const DOCS_ONLY_UNKNOWN_HCCL_VARS: readonly string[] = [
@@ -203,6 +389,40 @@ export function classifyEnvVar(
         evidenceLevel: "C",
         sources: spec.sources,
         reason: spec.note,
+      };
+    }
+  }
+
+  if (Object.hasOwn(RETIRED_ENV_SPECS, name)) {
+    const spec = RETIRED_ENV_SPECS[name];
+    if (spec?.versions.includes(version)) {
+      const sources = spec.sourcesByVersion[version] ?? spec.sourcesByVersion["v0.30.0"] ?? [];
+      return {
+        name,
+        version,
+        judgment: "retired",
+        ruleJudgment: "warn",
+        evidenceLevel: "C",
+        sources,
+        reason: spec.note,
+        replacement: spec.replacement,
+      };
+    }
+  }
+
+  if (Object.hasOwn(DEPRECATED_FALLBACK_ENV_SPECS, name)) {
+    const spec = DEPRECATED_FALLBACK_ENV_SPECS[name];
+    if (spec?.versions.includes(version)) {
+      const sources = spec.sourcesByVersion[version] ?? spec.sourcesByVersion["v0.30.0"] ?? [];
+      return {
+        name,
+        version,
+        judgment: "deprecated-fallback",
+        ruleJudgment: "warn",
+        evidenceLevel: "C",
+        sources,
+        reason: spec.note,
+        replacement: spec.replacement,
       };
     }
   }
@@ -812,6 +1032,86 @@ export const domain5Rules: readonly CouplingRule[] = [
         evidenceLevel: "I",
         sources: [...collectedSources],
         message: `Unverified CANN/HCCL env var(s) with 0 in-repo reads in ${version}: ${unknownVars.join(", ")}. Classified 'unknown' (NOT 'error') pending pinned CANN documentation.${knownVars.length > 0 ? ` (Verified read vars also present: ${knownVars.join(", ")}.)` : ""}`,
+      };
+    },
+  },
+  {
+    id: "d5-retired-ascend-env-var",
+    domain: "graph-sched-env",
+    title: "Retired vllm-ascend Env Var Has 0 Reads in v0.30.0+ (Migrated to --additional-config)",
+    judgment: "warn",
+    evidenceLevel: "C",
+    versions: ["v0.30.0", "main"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/configuration/additional_config.md#L57-L62`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L38-L93`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:docs/source/user_guide/configuration/additional_config.md#L65-L70`,
+    ],
+    description:
+      "VLLM_ASCEND_ENABLE_NZ, VLLM_ASCEND_ENABLE_MLAPO, VLLM_ASCEND_ENABLE_FUSED_MC2, MSMONITOR_USE_DAEMON, and VLLM_ASCEND_FUSION_OP_TRANSPOSE_KV_CACHE_BY_BLOCK have 0 reads in v0.30.0 and main; exporting them silently does nothing and must be replaced with --additional-config.",
+    rationale:
+      "These legacy v0.23/v0.26 flags were deleted from vllm_ascend/envs.py and consolidated into AscendConfig additional_config fields.",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (!input.envVars) return null;
+      const hits: EnvVarClassification[] = [];
+      const collectedSources = new Set<string>();
+      for (const name of Object.keys(input.envVars)) {
+        if (!Object.hasOwn(RETIRED_ENV_SPECS, name)) continue;
+        const classified = classifyEnvVar(name, version);
+        if (classified.judgment === "retired") {
+          hits.push(classified);
+          for (const s of classified.sources) collectedSources.add(s);
+        }
+      }
+      if (hits.length === 0) return null;
+      const details = hits.map((h) => `${h.name} -> ${h.replacement}`).join("; ");
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: this.judgment,
+        evidenceLevel: this.evidenceLevel,
+        sources: [...collectedSources],
+        message: `Retired env var(s) with 0 reads in ${version} (silently ignored): ${hits.map((h) => h.name).join(", ")}.`,
+        remediation: `Replace via --additional-config: ${details}.`,
+      };
+    },
+  },
+  {
+    id: "d5-deprecated-flashcomm1-env-fallback",
+    domain: "graph-sched-env",
+    title: "VLLM_ASCEND_ENABLE_FLASHCOMM1 Uses Deprecated os.getenv Fallback (Prefer additional_config)",
+    judgment: "warn",
+    evidenceLevel: "C",
+    versions: ["v0.30.0", "main"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L747-L750`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/utils.py#L1016-L1022`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L845-L848`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/patch/worker/patch_qwen3_5.py#L55-L61`,
+    ],
+    description:
+      "VLLM_ASCEND_ENABLE_FLASHCOMM1 was removed from vllm_ascend/envs.py in v0.30.0, but still has active os.getenv compatibility fallback reads in ascend_config.py and utils.py (patch_qwen3_5.py on main); it is deprecated rather than 0-read dead.",
+    rationale:
+      "Distinguishes live os.getenv compatibility fallback from 0-read retired env vars while nudging migration to additional_config.enable_flashcomm1.",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (!input.envVars || !Object.hasOwn(input.envVars, "VLLM_ASCEND_ENABLE_FLASHCOMM1")) return null;
+      const classified = classifyEnvVar("VLLM_ASCEND_ENABLE_FLASHCOMM1", version);
+      if (classified.judgment !== "deprecated-fallback") return null;
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: this.judgment,
+        evidenceLevel: this.evidenceLevel,
+        sources: classified.sources,
+        message:
+          "VLLM_ASCEND_ENABLE_FLASHCOMM1 was removed from vllm_ascend/envs.py in v0.30.0, but STILL takes effect via os.getenv compatibility fallback in ascend_config.py / utils.py (not 0-read dead).",
+        remediation: `Migrate to ${classified.replacement ?? `--additional-config '{"enable_flashcomm1": true}'`}.`,
       };
     },
   },

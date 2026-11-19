@@ -138,7 +138,7 @@ export interface CouplingCheckInput {
   uniformDecodeQueryLen?: number;
   numTokens?: number;
   enablePrefillMc2?: boolean;
-  enableFusedMc2?: 0 | 1;
+  enableFusedMc2?: 0 | 1 | 2 | 3;
   isDecodeOnlyNode?: boolean;
   profilingChunkEnabled?: boolean;
   profilingMinChunk?: number;

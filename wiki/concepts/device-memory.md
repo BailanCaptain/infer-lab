@@ -79,15 +79,37 @@ sources:
   - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1436-L1472'
   - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L377-L395'
   - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L232-L244'
+  - 'vllm@ced6857a:vllm/config/cache.py#L103-L105'
+  - 'vllm@ced6857a:vllm/config/cache.py#L228-L236'
+  - 'vllm@ba15685a:vllm/config/cache.py#L216-L237'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L231-L244'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1445-L1464'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L464-L474'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L558-L598'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4476-L4476'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/worker/patch_v2/patch_uva.py#L29-L55'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L377-L386'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L259-L265'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1743-L1752'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L555-L565'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L684-L707'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/worker/patch_uva.py#L32-L58'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
   - to: hardware-devices
     kind: builds-on
     note: 先明确设备边界，才能回答某段内存归哪个设备使用
+  - to: npu-worker-lifecycle
+    kind: builds-on
+    note: 启动冷启动阶段各次 HBM 分配峰值与权重/试跑/KV/录图时序统一在生命周期页核对
+  - to: kv-cache-memory-profiling
+    kind: builds-on
+    note: 自动显存预算如何通过 profile run 扣除激活与非 PyTorch 占用，由显存探测页完整推演
   - to: glm-5-3-flash-two-node
     kind: builds-on
     note: A0 启动及每卡权重、KV 预算的数字与推导统一在双机部署页
@@ -101,7 +123,7 @@ relations:
     kind: builds-on
     note: 内存启动流程以请求调用链页的完整进程调用链为背景，本页聚焦各步骤中的内存分配与测量。
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-19'
 origin: direct
 ---
 
@@ -188,7 +210,7 @@ HBM 是高带宽内存技术，容量和带宽仍要看具体硬件；部分昇�
 
 ### 启动预算：显存里还要容纳权重之外的东西
 
-**自动预算从设备总容量出发，减去已加载权重和试跑测得的非缓存开销，余量才给缓存池。** 试跑使用假输入，用于估计激活峰值和 PyTorch 张量统计之外的占用，例如部分运行时资源。主机空闲内存不参与这次设备预算，测量机制可继续读[显存探测](kv-cache-memory-profiling.md)。
+**自动预算从设备总容量出发，减去已加载权重和试跑测得的非缓存开销，余量才给缓存池。** 在 `v0.30.0` 主基线上，上游 `CacheConfig.gpu_memory_utilization` 默认取 **0.92**（预留 8% 给图捕获、通信缓冲与碎片余量）；试跑使用假输入，用于估计激活峰值和 PyTorch 张量统计之外的占用，例如部分运行时资源。主机空闲内存不参与这次设备预算，冷启动全链路显存台阶与测量机制可继续回链[NPU Worker 生命周期](npu-worker-lifecycle.md)与[显存探测](kv-cache-memory-profiling.md)。
 
 双机页的[两种块数](glm-5-3-flash-two-node.md#两种块数各在什么时候用)都假设每卡 **64 GiB**、激活峰值加非 PyTorch 占用 **3.4 GiB**，采用教程的 **0.85** 预算比例。另假设权重为 21 GiB 时，余下 **30.00 GiB、3,855 块**；只代入所列语言权重子账时，余下约 **30.42 GiB、3,908 块**，尚未扣视觉塔等表外项。两者都是教学预算，块数和算式只在部署页维护。
 
@@ -198,7 +220,7 @@ HBM 是高带宽内存技术，容量和带宽仍要看具体硬件；部分昇�
 
 ## 常见误解：能访问，就等于已经在本卡了吗？
 
-**可访问地址与物理存放位置是两件事。** 在硬件和运行时支持时，可以把主机内存注册、映射成设备可访问地址；设备沿该地址读取的是主机数据，注册动作本身没有把全部内容复制成本卡显存。普通复制则要先申请设备空间，复制完成后才得到本地副本。
+**可访问地址与物理存放位置是两件事。** 在硬件和运行时支持时，可以把主机内存注册、映射成设备可访问地址；设备沿该地址读取的是主机数据，注册动作本身没有把全部内容复制成本卡显存。普通复制则要先申请设备空间，复制完成后才得到本地副本。例如在 `v0.30.0` 与 `main` 的 V2 runner 路径中，启用 **UVA（Unified Virtual Addressing，统一虚拟编址）** 需要 `PYTORCH_NPU_ALLOC_CONF` 包含 `pinned_mem_register:True` 且 `triton-ascend` 版本不在受指针校验缺陷影响的 `3.2.1` / `3.2.2` 列表中；即便 UVA 可用，锁页主机内存仍物理驻留在主机侧，不计入 HBM 容量。
 
 在支持 MemFabric 的超节点部署中，这类软件可把分散在多机的内存组织成可访问的池；它改变了寻址和访问方式，各处存储介质与传输路径仍然存在。预算要分清本地分配、远端访问和实际复制；支持范围受产品及软件版本限制。
 
@@ -253,38 +275,25 @@ file: device-memory-startup
 
 ### 版本差异
 
-**v0.30.0rc2 仍区分“不注入 allocator 配置”和“主动删除配置”。** 有 model_config 且未启用 sleep 时，平台在现有配置不含 expandable_segments、max_split_size_mb、garbage_collection_threshold 的情况下补入 expandable_segments:True；已有这些项就不追加。rl_config.enabled 则在 apply 时主动删除 expandable_segments 并保留其他项，单独 enable_sleep_mode 只阻止平台注入，不能据此推断外部已有值会被删掉。设备总显存仍须在 NPU 初始化后查询；主机容器 limit 与设备显存预算继续是两本账，底层 allocator 的语法还须对应实际 torch_npu 版本。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；GLM 双机绑定算例另钉 `db701c1f` + `0fc695fc`。容器主机内存部分依据 Linux 6.12 cgroup v2 及 Docker / Kubernetes 官方文档，与下表框架版本核对范围相互独立；主机注册和 MemFabric 支持范围由 CANN、驱动与硬件决定。
 
-PYTORCH_NPU_ALLOC_CONF 由 torch_npu 消费，不是 vLLM 自己注册的环境项。Ascend v0.23（2c59ff10）与 GLM 镜像 db701c1f、v0.26 rc（2ed6cbba）的条件注入和已有值保护相同；main（baa023ad）保留这套规则并抽为独立函数，另在 rl_config.enabled=true 的配置应用阶段清除 expandable_segments。单独 enable_sleep_mode 只会阻止平台注入，不能据此认定已有环境项会被清除。这里的 torch_npu 默认、语法和冲突检查只核到配套 8751b36d（2.10.0.post2），不替其他依赖版本作保证。
-
-容器主机内存部分依据 Linux 6.12 的 cgroup v2 文档，以及 2026-11-01 核读的 Docker、Kubernetes 官方文档。它与下面的 vLLM 三版核对是不同范围；未验证现场内核、容器运行时和 Kubernetes 版本，也未验证其实际控制组配置。cgroup v1 的字段不能直接照抄本页。
-
-本页三版核对范围包括设备预算入口、比例默认值、平台容量查询，以及显式预算分支、两条内存报错、权重日志单位和缓存分配与录图的先后。GLM 的具体加载路径另钉在固定部署提交；主机注册和 MemFabric 的支持范围由 CANN、驱动与硬件决定，不由 vLLM 分支名决定。
-
-| 核对项 | v0.23 | v0.26 | main | 对使用者意味着什么 |
+| 核对维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 |---|---|---|---|---|
-| 每卡按总容量取预算，并检查启动空闲量 | 有 | 有 | 有 | 三版都按设备记账，主机空闲量不补入 |
-| 上游比例默认值 | 0.92 | 0.92 | 0.92 | 三版一致；本教程显式覆盖成 0.85 |
-| 平台 `get_device_total_memory()` | 抛未实现异常 | 同左 | 未初始化时抛异常，已初始化时查询 | main 的守卫式查询不能套回固定镜像 |
-| 显式缓存预算分支 | 先试跑，再采用指定字节数 | 同样先试跑、跳过自动预算；可受 sparse KV offload 调整 | 同样先试跑、跳过自动预算；可受 KV offload、KVPP 调整 | 三版都有此分支；一致的是试跑和跳过自动预算，返回值的附加约束有差异 |
-| 两条内存报错、权重日志单位、录图顺序 | 均有；日志按 GiB，分配 KV 后条件录图 | 同左 | 同左 | 三版一致；录图仍受执行模式控制 |
+| `CacheConfig.gpu_memory_utilization` | 默认 `0.92`（GLM 教程显式覆盖为 `0.85`）；启动按总容量算额并校验空闲量 | 默认 `0.92`；规则相同 | 默认 `0.92`（`cache.py#L103-L105`）；启动快照校验见 `worker.py#L464-L474` | 字段改为 `float \| None = None`（默认可扩展 KV 缓存下解析为 `1.0`，否则 `0.92`），新增 `device_memory_utilization` 别名（`cache.py#L216-L237`） |
+| 平台 `get_device_total_memory()` | 抛 `NotImplementedError`（防过早初始化 NPU） | 同左 | 守卫式查询：未初始化 `torch.npu` 时抛 `NotImplementedError`，已初始化后调 `torch.npu.mem_get_info`（`platform.py#L231-L244`） | 延续守卫式查询（`platform.py#L259-L265`） |
+| `PYTORCH_NPU_ALLOC_CONF` 注入与 RL 清理 | 有 `model_config` 且未开 sleep 时条件注入/追加 `expandable_segments:True`（避开冲突键） | 同左 | 抽为 `_set_pytorch_npu_alloc_env`（`platform.py#L1445-L1464`）；`rl_config.enabled` 时在 `ascend_config.py#L377-L386` 主动移除 `expandable_segments`；单独 `enable_sleep_mode` 只阻止注入不删已有项 | 规则延续（`platform.py#L1743-L1752`） |
+| 显式 `kv_cache_memory_bytes` 预算分支 | 先试跑，再直接采用指定字节数 | 先试跑，再经 sparse KV offload 约束调整 | 先试跑并跳过自动公式，再依次经 KV offload 与 `_apply_kvpp_memory_budget` 调整（`worker.py#L558-L598`） | 同上，额外先经 `_scale_kv_cache_memory_for_multi_group` 多组修正（`worker.py#L684-L707`） |
+| UVA 主机锁页内存映射 | 无 Ascend V2 UVA 补丁 | 无该补丁 | `patch/worker/patch_v2/patch_uva.py#L29-L55`：`is_uva_available()` 校验 `pinned_mem_register:True` 与 `triton-ascend` 不在 `3.2.1`/`3.2.2` | 迁至 `patch/worker/patch_uva.py#L32-L58`，判据一致 |
+| 两条内存报错、权重日志单位与录图顺序 | 均有；权重日志按 $2^{30}$ 报 GiB；分配 KV 后条件录图 | 同左 | 同左（`model_runner_v1.py#L4476` 报 GiB） | Worker 校验与录图顺序延续；主 runner 迁移至 V2 路径 |
 
-Ascend 三版依次钉在 `2c59ff10`、`2ed6cbba`、`baa023ad`，上游依次为 `0fc695fc`、`568afb3a`、`84030bbe`。[平台契约](vllm-platform-interface.md)约定引擎怎样选择设备、查询能力；Ascend 实现在合适的初始化阶段履行它。固定部署的 Ascend `db701c1f` 与 v0.23 一样主动禁止这个平台接口提前查询，以免过早初始化 NPU；Worker 初始化后仍可通过运行时获得内存快照。这里的 verified 表示所列入口经过源码核读，未表示三版 GLM 或硬件性能均已实测。
+`PYTORCH_NPU_ALLOC_CONF` 由 `torch_npu` 消费而非 vLLM 注册项，本文底层默认与冲突检查固定在 `torch_npu 8751b36d`（`2.10.0.post2`）。[平台契约](vllm-platform-interface.md)约定引擎查询设备能力的时机；固定部署 `db701c1f` 与 `v0.23.0` 一样禁止提前查询总显存，Worker 初始化后再按运行时快照核算。
 
 ### 源码位置
 
-- 来源 35–38 是 GLM 平台及三个对照版本的分配器环境注入；39 的构造与单例读取、40 的解析及互斥检查、41 的 Expandable Segments 说明与实现，分别支撑依赖默认、合法配置和减少碎片的机制；42 定位 main 清除分配器选项的 RL 消费者。三份依赖源码固定在 torch_npu 8751b36d，不以浮动文档替代安装版本。
-
-- `aclrtGetMemInfo` 要先选定设备，返回其空闲与总字节数（不含系统预留），并列出不支持 HBM 时转查 DDR 的行为。[S1]
-- `aclrtHostRegister` 返回可供设备访问的映射地址；主机操作仍用原地址。文档限制支持产品、页对齐与操作系统版本；它不是权重复制接口。[S2]
-- MemFabric 的特定 Atlas A3 实践是跨机异构内存映射的来源，属于有产品前提的软件能力。[S3]
-- Linux cgroup v2 的 Memory Interface Files 说明占用、两类边界与事件统计；层级规则用于区分计数归属和限制来源。Docker 的资源约束文档补充容器限额与整机 OOM 的关系。[S29][S30]
-- Docker 的退出信号说明列出 137 与主动终止的关系。Kubernetes 资源管理文档区分 request / limit；其内存练习展示如何从同一次终止记录读取 containerID、reason、exitCode 和时间。来源 31–33 支撑本页三步取证，不能据此替现场判根因。[S31][S32][S33]
-- Docker kill 的命令文档明确默认 SIGKILL、作用对象为容器主进程，以及 `--signal` 的覆盖行为。[S34]
-- `BaseModelLoader.load_model` 在目标设备上建参数；迭代器产生 CPU 权重，Linear 加载器先切片再 `copy_`，W8A8 后处理转置并准备算子布局。共同支撑首图的加载方向与两地副本语义。[C4][C5][C6][C7]
-- `NPUModelRunner.load_model` 测量主模型和草稿模型加载占用；Worker 先做空闲检查，再经 `determine_available_memory` 试跑取得预算，后续 `compile_or_warm_up_model` 才条件录图。来源 22 确认通信环境和执行器在空闲检查通过后建立。[C8][C9][C10][C11][C22]
-- 平台查询的固定实现与三版差异、三个上游默认值、三个 Worker 空闲检查分别对应来源 12–21；其核对范围限定在上表。[C12][C13][C14][C15][C16][C17][C18][C19][C20][C21]
-- 来源 23–25 依次对应三版 Worker 的显式预算、profiling 断言与条件录图；来源 26–28 对应三版加载日志的 GiB 换算。显式预算的后续约束按版本表区分，不能把“跳过自动预算”理解成所有分支原样返回指定值。
+- `aclrtGetMemInfo` 返回设备空闲与总字节（不支持 HBM 时转查 DDR）[S1]；`aclrtHostRegister` 映射主机地址给设备访问（非权重复制）[S2]；MemFabric 跨机内存映射实践见 [S3]。
+- Linux cgroup v2 接口与层级计数规则、Docker 资源约束/退出码 137/`docker kill` 信号以及 Kubernetes request/limit 与终止取证见 [S29][S30][S31][S32][S33][S34]。
+- `BaseModelLoader.load_model`、权重切片与 W8A8 后处理布局支撑首图主机→设备复制方向 [C4][C5][C7]；`NPUModelRunner.load_model` 与 Worker 空闲检查、试跑、显式预算和条件录图见 `vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L464-L474`、`#L558-L598` 及 `vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L555-L565`、`#L684-L707` [C8][C10][C51][C52]。
+- `CacheConfig.gpu_memory_utilization` 与 `kv_cache_memory_bytes` 四版入口见来源 16–18 及 46–48（`ced6857a` / `ba15685a`）[C46][C48]；平台总显存查询与 `PYTORCH_NPU_ALLOC_CONF` 条件注入及 RL 清理见来源 12–15、35–38、49–50、55–57 [C49][C50]；UVA 判定见 `vllm-ascend@c09d3e20:vllm_ascend/patch/worker/patch_v2/patch_uva.py#L29-L55` 与 `vllm-ascend@8d6180e2:vllm_ascend/patch/worker/patch_uva.py#L32-L58` [C54][C60]；`torch_npu` 分配器解析与互斥检查固定在来源 39–41。
 - 数字引用[双机部署](glm-5-3-flash-two-node.md)的权重与 KV 账：20.58／20.81 GiB 是两个固定量化版本的主要语言权重子账；64 GiB、3.4 GiB 和 21 GiB 权重预算是教学假设，3,855／3,908 是假设下的块数，不是启动实测。[D][A]
 
 **待核：** 两份固定量化描述已取得，版本差异见部署页；运行时总字节、主机峰值、每卡加载与试跑峰值、图捕获峰值及 H2D 耗时仍需现场日志与测量，静态字节账不能直接换算时延。本部署的确切机型及配套 HBM、主机到设备链路带宽尚未确认，具体规格应与[硬件页](hardware-devices.md#官方带宽规格能说明什么)的型号对应；Atlas 800T A2 白皮书中的数字不能直接套到未确认机型。两份官方接口文档分别适用 CANN 9.0.0-beta.1 和 9.1.0，不构成一个已经验证的软件组合；MemFabric 现行支持仍需按部署版本核对。

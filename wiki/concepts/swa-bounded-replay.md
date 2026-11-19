@@ -19,15 +19,27 @@ sources:
   - https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/csrc/engine/input_metadata/prepare_tensor_input_v4.cpp#L202-L359
   - https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/yoco/yoco_equiv.py#L371-L393
   - https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/yoco/yoco_equiv.py#L767-L806
+  - 'vllm@ced6857a:vllm/v1/kv_cache_interface.py#L807-L815'
+  - 'vllm@ba15685a:vllm/v1/kv_cache_interface.py#L900-L908'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/cache_config.py#L27-L60'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L633-L635'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/cache_config.py#L30-L63'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/decoder_replay_state.py#L36-L70'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/decoder_replay_layers.py#L19-L35'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L673-L679'
 relations:
   - { to: deepseek-v4-1-flash, kind: builds-on, note: 先理解全局历史与逐层窗口为何分开 }
   - { to: prefix-caching, kind: builds-on, note: 前缀复用的通用前提仍由原页维护 }
   - { to: inference-correctness-troubleshooting, kind: builds-on, note: 回放引入差异时，用同一前缀找第一处变化 }
   - { to: kv-cache, kind: builds-on, note: 区分分页历史、窗口与运行状态 }
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: I
 contradicts: []
-updated: "2026-10-30"
+updated: '2026-11-19'
 ---
 
 **SWA bounded replay 在缺少滑窗状态时，只重新计算末尾一段历史，用较少工作恢复一个可继续生成的近似状态。** “有界”指重新处理的历史长度被限制了；“近似”意味着它不保证与完整历史重算得到相同的中间数值。
@@ -62,16 +74,16 @@ file: swa-replay-state
 file: swa-replay-intuition
 ```
 
-完整计算时，第一层位置 7 读到 (0,0,6)，位置 8 读到 (0,6,6)，位置 9 读到 (6,6,6)。从 7 开始回放时，只剩后面三个 6。进入第二层，位置 9 在两条路径中都读编号 7、8、9，却读到了不同的值：
+完整计算时，第一层位置 7 读到 $(0,0,6)$，位置 8 读到 $(0,6,6)$，位置 9 读到 $(6,6,6)$。从 7 开始回放时，只剩后面三个 $6$。进入第二层，位置 9 在两条路径中都读编号 7、8、9，却读到了不同的值：
 
-```calc
-title: 相同的三个位置，第二层为什么算出不同结果（均值示意）
-完整第一层位置 7 = (0 + 0 + 6) ÷ 3 = 2
-完整第一层位置 8 = (0 + 6 + 6) ÷ 3 = 4
-完整第一层位置 9 = (6 + 6 + 6) ÷ 3 = 6
-完整第二层位置 9 = (2 + 4 + 6) ÷ 3 = 4
-回放第二层位置 9 = (6 + 6 + 6) ÷ 3 = 6
-```
+$$y^{(2)}_{\text{full}}(9) = \frac{2 + 4 + 6}{3} = 4, \qquad y^{(2)}_{\text{replay}}(9) = \frac{6 + 6 + 6}{3} = 6$$
+
+| 层与位置（窗口 $W = 3$ 均值示意） | 完整计算算式与结果 | 从位置 7 有界回放算式与结果 |
+| --- | --- | --- |
+| 第 1 层位置 7 | $(0 + 0 + 6) \div 3 = \mathbf{2}$ | $6 \div 1 = \mathbf{6}$ |
+| 第 1 层位置 8 | $(0 + 6 + 6) \div 3 = \mathbf{4}$ | $(6 + 6) \div 2 = \mathbf{6}$ |
+| 第 1 层位置 9 | $(6 + 6 + 6) \div 3 = \mathbf{6}$ | $(6 + 6 + 6) \div 3 = \mathbf{6}$ |
+| 第 2 层位置 9（读 7、8、9） | $(2 + 4 + 6) \div 3 = \mathbf{4}$ | $(6 + 6 + 6) \div 3 = \mathbf{6}$ |
 
 窗口边界上的差异就这样传到了后面的层。若要精确恢复第二层末尾，必须补齐它所读的第一层状态；为了得到这些状态，又得往前补第一层的输入。这就是多层依赖会向前延伸的原因。
 
@@ -106,15 +118,16 @@ title: 相同的三个位置，第二层为什么算出不同结果（均值示�
 
 开源快照还会把最大回退长度取为“用户值”与“推测步数 + 1”中较大者。推测步数默认5，对应至少6个回退位置，因而有128 + 6 = 134这个组合；调整推测步数后，不能只改保留长度而不重新检查实际回退值。执行入口会检查保留长度确实覆盖窗口与回退之和。
 
-再看命中策略的**教学输入**：长度 L=1000，生产规则先给命中长度留出 134 个末尾位置。假设前面的 block KV 都可复用，先向下对齐到 128 的块边界，再查对应 SWA。
+再看命中策略的**教学输入**：长度 $L = 1000$，生产规则先给命中长度留出 134 个末尾位置。假设前面的 block KV 都可复用，先向下对齐到 128 的块边界，再查对应 SWA：
 
-```calc
-title: 同一条输入，窗口缺失为什么要后退一块（示意）
-命中上限 = 1000 − 134 = 866
-按完整块向下对齐 = floor(866 ÷ 128) × 128 = 768
-若对应窗口缺失，后退一块 = 768 − 128 = 640
-需要回放的已命中部分 = 768 − 640 = 128 个位置
-```
+$$L_{\text{hit}} = \left\lfloor \frac{1000 - 134}{128} \right\rfloor \times 128 = 768, \qquad L_{\text{replay}} = 768 - 640 = 128$$
+
+| 步骤（$L = 1000$，块粒度 128，留尾 134 示意） | 算式 | 结果 |
+| --- | --- | --- |
+| 命中上限 | $1000 - 134$ | **866** |
+| 按完整块向下对齐 | $\lfloor 866 \div 128 \rfloor \times 128$ | **768**（位置 0–767） |
+| 若对应窗口缺失，后退一块 | $768 - 128$ | **640** |
+| 需要回放的已命中部分 | $768 - 640$ | **128 个位置**（位置 640–767） |
 
 这里的 768 是命中长度。按位置从 0 开始计数，原先命中的是位置 0–767；后退后，重算位置 **640–767，共 128 个**，用于补窗口，位置 **768–999，共 232 个**才是原先未命中的后缀。两段都需要计算，但前一段是“历史已命中、窗口缺失后回放”，后一段是“新输入”，应分别记录。该规则来自生产架构说明，公开仓库未包含完整外部缓存服务，不能仅运行离线示例就声称验证了线上命中路径。
 
@@ -171,19 +184,17 @@ compact 增加输入选取与元数据整理；CP 大于 1 时还涉及边界重
 
 ### 版本差异
 
-| 范围 | 默认值与行为边界 |
-| --- | --- |
-| DeepInfer `774ce244` | 环境默认 off；README 推荐的 compact/140 是启用方案。mask 与 compact 具有相同 SWA 可见域，输入布局不同 |
-| vLLM-Ascend v0.23 | 本页没有核实同等实现和默认值；GLM 主线不采用这套 CED 恢复方案 |
-| vLLM-Ascend v0.26 | 不把同名缓存功能视为同等有界回放，须核对模型与实现 |
-| vLLM-Ascend v0.30.0rc2 | Ascend模型教程与具体runner条件见[模型页的版本差异](deepseek-v4-1-flash.md#版本差异)；本页的off/mask/compact与实验命令属于DeepInfer固定快照，不能据模型可部署就沿用其环境变量 |
-| vLLM-Ascend main | 同样没有在本页验证支持与行为；不沿用 DeepInfer 环境变量 |
+DeepInfer `774ce244` 的 `off` / `mask` / `compact` 环境变量与 `yoco_equiv.py` 实验命令属于 DeepInfer 固定快照，不能直接套用到 vLLM Ascend。以下按知识库四版本正式钉点核对 vLLM 与 vLLM Ascend 中的 SWA（滑动窗口注意力）与 DeepSeek V4.1 有界回放状态边界：
+
+| 核对维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| DeepSeek V4.1 与 SWA 环形状态 | 无 `models/deepseek_v41/` 与 CED 有界回放实现 | 同左 | 引入 `models/deepseek_v41/cache_config.py#L27-L60`（`STATE_RING_ROWS = 32` 与 `make_swa_cache_spec`，A5 打包为 `a5_mxfp8_bf16_scale`），**尚无 `decoder_replay_state.py` / `bounded_replay` 开关** | `cache_config.py#L30-L63` 在 `make_swa_cache_spec` 新增 `bounded_replay=False` 参数，并新增 MRV2 解码器有界回放子批收拢模块 `decoder_replay_state.py#L36-L70`（`DecoderReplayInputs` / `DecoderReplayState`）与 `decoder_replay_layers.py#L19-L35`（`AscendDecoderReplayLayers`） |
+| 通用 SWA 缓存规格与注意力算子 | GLM 主线不采用 CED 恢复方案；上游管理普通滑窗 KV | 同左 | 上游 `SlidingWindowSpec`（`kv_cache_interface.py#L807-L815`）配合 Ascend `attention_v1.py#L633-L635`（`sparse_mode=4`、`pre_tokens=sliding_window`、`next_tokens=0`） | 上游 `SlidingWindowSpec`（`kv_cache_interface.py#L900-L908`）与 Ascend `attention_v1.py#L673-L679` 延续 SWA 掩码配置 |
+| DeepInfer `774ce244` 环境变量边界 | 不适用 DeepInfer 环境变量 | 不适用 | DeepSeek V4.1 Ascend 部署教程与 runner 条件见[模型页的版本差异](deepseek-v4-1-flash.md#版本差异)，不沿用 `DEEPINFER_YOCO_*` | 同左；vLLM Ascend 侧通过 MRV2 `DecoderReplayState` 实现紧凑子批回放，不沿用 `DEEPINFER_YOCO_*` |
 
 ### 源码位置
 
 - 报告 §2.2、§3.2.2 说明多层依赖、两个回放路径及近似性质 [S1]；生产命中、窗口保存与回退规则 [S2]。
-- 默认值与窗口覆盖约束在环境定义 [C3]；两种可见域与紧凑 metadata 在 `YocoMetadataMixin` [C4]，边界数据选取在 `compact_yoco_boundary` [C5]。
-- L1/L2 检查范围、设备与版本要求，以及 confidence 输出滞后一轮的限制，见官方等价性说明 [S6]。
-- 运行时环与附加空间的构成见 `get_inference_swa_block_size`、`get_kvstore_swa_block_size` [C7]；启用推荐来自 README [S8]。
-- 窗口 3 和 L=1000 为教学假设 [A]，可见范围与命中长度为推导 [D]；生产文档的命中规则尚无本站外部缓存服务实测。
-- C++元数据入口逐chunk裁剪、占位行不写环和keep长度检查见来源9；L1的设备/同源扩展前提见10，L2实际回退与CP/EP检查见11。回退值与推测步数的关系见来源3，实验质量与confidence范围见6。
+- DeepInfer 默认值与窗口覆盖约束在环境定义 [C3]；两种可见域与紧凑 metadata 在 `YocoMetadataMixin` [C4]，边界数据选取在 `compact_yoco_boundary` [C5]；运行时环与附加空间见 `get_inference_swa_block_size`、`get_kvstore_swa_block_size` [C7]；启用推荐与 L1/L2 等价性实验见 [S6][S8]；C++ 逐 chunk 裁剪、占位行与 L1/L2 校验见来源 9–11。
+- vLLM 与 vLLM Ascend 四版 SWA 规格与 `deepseek_v41` 有界回放演进见来源 12–19：`vllm@ced6857a:vllm/v1/kv_cache_interface.py#L807-L815`、`vllm@ba15685a:vllm/v1/kv_cache_interface.py#L900-L908`、`vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/cache_config.py#L27-L60`、`attention/attention_v1.py#L633-L635`，以及 `vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/cache_config.py#L30-L63`、`decoder_replay_state.py#L36-L70`、`decoder_replay_layers.py#L19-L35` [C14][C16][C17]。
+- 窗口 3 和 $L = 1000$ 为教学假设 [A]，可见范围与命中长度为推导 [D]；生产文档的命中规则尚无本站外部缓存服务实测。

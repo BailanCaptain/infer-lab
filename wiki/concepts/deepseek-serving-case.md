@@ -16,13 +16,19 @@ sources:
   - https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/engine/engine_type.py
   - https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/engine/llm_engine.py
   - https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/worker/cache_engine.py
+  - 'vllm-ascend@c09d3e20:docs/source/tutorials/models/DeepSeek-V4.1-Flash.md#L1-L65'
+  - 'vllm-ascend@8d6180e2:docs/source/tutorials/models/DeepSeek-V4.1-Flash.md#L1-L65'
 relations:
   - { to: one-request, kind: builds-on, note: 先理解单个引擎里一次请求的计算与生成过程 }
   - { to: pd-disaggregation, kind: builds-on, note: 继续查分开计算后怎样交接状态及连接器约束 }
   - { to: prefix-caching, kind: builds-on, note: 可复用前缀怎样判断由原页解释 }
   - { to: dp-request-routing, kind: builds-on, note: 比较 DeepSeek 的工作量路由与本站 vLLM 请求分配 }
   - { to: eplb, kind: builds-on, note: 请求分配均匀后还要检查专家负载 }
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: I
 contradicts: []
 updated: "2026-11-08"
@@ -68,13 +74,11 @@ DeepSeek 将 E、P、D 分开配置资源。长文读入变多时可以增加 P�
 
 两边计算本身都没有加速。拆分的收益来自少排队，代价是多搬一次状态；在这个简化例子里各段串行，可以直接相加。真实服务有重叠时，应按[关键路径](inference-performance-analysis.md#时间线怎样告诉你应该先优化哪一段)计时。
 
-```calc
-title: 少排的队能否覆盖新增的交接（示意）
-共用资源的首字时间 = 120 + 80 + 20 = 220 ms
-分开资源的首字时间 = 10 + 80 + 30 + 10 + 20 = 150 ms
-本次节省 = 220 − 150 = 70 ms
-若交接改为 120 ms = 10 + 80 + 120 + 10 + 20 = 240 ms
-```
+| 方案对比（示意：串行各段相加，判断少排的队能否覆盖新增交接） | 算式 | 首字时间 / 差值 |
+| --- | --- | --- |
+| 共用计算资源 | $120 + 80 + 20$ | **220 ms** |
+| 分开 P/D 资源（交接 30 ms） | $10 + 80 + 30 + 10 + 20$ | **150 ms**（本次节省 $220 - 150 = \mathbf{70\text{ ms}}$） |
+| 若交接拖延至 120 ms | $10 + 80 + 120 + 10 + 20$ | **240 ms**（反比共用慢 20 ms） |
 
 因此，30 ms 交接时这个请求受益；交接拖到 120 ms 时，首字反而更晚。若主要问题是 D 容量不足，拆开后 D 的队列还可能继续增长。决定采用分离部署，需要在相同资源与工作量下同时检查首字、持续输出、达标吞吐和成功率，不能只看到分工更清楚就宣布更快。
 
@@ -108,14 +112,12 @@ V4.1 的 SWA bounded replay 会在特定路径重算一小段后缀，恢复**�
 
 **开始计算要同时满足两个条件：轮到这条请求，而且数据已经备齐。** 因此要取两个时刻中较晚的那个，算式里的 max 就是“取较大值”。本例为方便演示，要求所需数据全部到齐，随后计算和返回共需 50 ms；实际逐层搬运与计算可以重叠，要按各层需要数据的时刻分析。
 
-```calc
-title: 同样命中，差别发生在开算之前（示意）
-本机已有缓存：开始计算 = max(30, 25) = 30 ms
-需远端取回：开始计算 = max(30, 150) = 150 ms
-本机已有缓存：首字延迟 = 30 + 50 = 80 ms
-需远端取回：首字延迟 = 150 + 50 = 200 ms
-本例增加的等待 = 200 − 80 = 120 ms
-```
+$$t_{\text{开算}} = \max(t_{\text{排到引擎}},\; t_{\text{缓存到卡}}), \qquad \text{TTFT} = t_{\text{开算}} + t_{\text{计算与返回}}$$
+
+| 缓存路径对比（示意：均在 20 ms 匹配、30 ms 排到引擎，计算与返回 50 ms） | 开算时刻 | 首字延迟（TTFT） |
+| --- | --- | --- |
+| 本机已有缓存（25 ms 到卡） | $\max(30, 25) = 30\text{ ms}$ | $30 + 50 =$ **80 ms** |
+| 需远端取回（150 ms 到卡） | $\max(30, 150) = 150\text{ ms}$ | $150 + 50 =$ **200 ms**（增加等待 $200 - 80 = \mathbf{120\text{ ms}}$） |
 
 两次实际计算没有变慢，缓存命中长度也没变；增加的是数据未就绪的等待。下一步应检查读取和换入路径。若记录显示数据早已备齐，排到引擎却晚了，就转去查可用容量和分流；若已开算但执行更久，再进入[设备性能分析](inference-performance-analysis.md)。
 
@@ -188,12 +190,13 @@ file: deepseek-serving-code-boundary
 
 ### 版本差异
 
-| 范围 | 本页能确认什么 | 默认值与迁移边界 |
-| --- | --- | --- |
-| DeepInfer `774ce244` | README、部署问答、示例及下表引擎代码 | 离线发布；完整 KV 系统、E/P/D 服务拆分和跨 DP 分流不在此次完整交付范围 |
-| v0.23 控制流 `0fc695fc` / GLM 执行侧 `db701c1f` | 本站固定基线与已审查机制页 | GLM 基线不开 PD；不能把 DeepInfer 的路由策略视为此版本默认行为 |
-| v0.26 | 本页的取证方法适用 | PD 连接器与路由差异见各机制页版本表；本页未验证整套 DeepSeek 架构移植 |
-| main | 同样区分生产设计与实际安装版本 | 不是固定快照；未核实的新增行为不填写为已支持或默认开启 |
+本页生产架构与阶段分解对照 DeepInfer `774ce244`（离线发布；完整 3FS 集群、在线 E/P/D 编排与跨 DP 分流不在此次开源交付范围）；若在 vLLM-Ascend 社区四版中对照 DeepSeek-V4.1-Flash 的部署参考，边界如下：
+
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| DeepSeek-V4.1-Flash 生产参考教程 | 无 V4.1 教程（本站 GLM 基线固定于 `db701c1f`，不开 PD） | 无 V4.1 教程；PD 连接器与路由演进见各机制页版本表 | `DeepSeek-V4.1-Flash.md` 提供 A2/A3/950DT 单机、多机、1P1D 与 KV Pool 参考：A3 用 V1（P DP4/TP4 + D DP8/TP2），950DT 用 V2（DP8/TP1/EP8）[S9] | A2 / A3 / 950DT 全部统一至 **Model Runner V2**；A3 PD 升级为 Prefill `DP4/PCP4/TP1` + Decode `DP16/TP1` + SWA bounded replay + MegaMoE，A2/A3/950DT 支持 Mooncake / Memcache 池化 [S10] |
+| 与 DeepInfer 生产路由边界 | DeepInfer 四层 P 分流与 3FS 不属于该版 vLLM-Ascend 默认行为 | 同左 | 昇腾参考示例采用 `MooncakeHybridConnector` / KV Pool 与独立代理（生产推荐 MindIE Motor + vLLM-Ascend），不是 DeepInfer 内置编排 | 同 `v0.30.0`，扩展 Memcache 池化与跨实例 Shared Engram |
+| 取证方法适用性 | 三完成点与关键路径拆解法通用 | 通用 | 通用 | 通用 |
 
 ### 源码位置
 

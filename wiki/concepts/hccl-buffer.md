@@ -73,7 +73,22 @@ sources:
   - 'vllm-ascend@7d825229:csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp#L38-L51'
   - 'vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_distributed.py#L238-L269'
   - 'vllm-ascend@db701c1f:tests/ut/patch/worker/patch_common/test_patch_distributed.py#L288-L317'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L73-L77'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1241-L1289'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/parallel_state.py#L87-L107'
+  - >-
+    vllm-ascend@c09d3e20:csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp#L63-L85
+  - 'vllm-ascend@c09d3e20:docs/source/tutorials/models/Qwen3.8-2.4T-A95B.md#L200-L210'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/utils.py#L73-L77'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/utils.py#L1252-L1300'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/parallel_state.py#L88-L137'
+  - >-
+    vllm-ascend@8d6180e2:csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp#L63-L85
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: collective-communication
@@ -89,7 +104,7 @@ relations:
     kind: builds-on
     note: 这块缓冲是从哪份 KV 预算里扣掉的
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -139,14 +154,14 @@ file: hccl-buffer
 
 ### DP 组为什么只留 50 M
 
-dp 是唯一按规模算的组：公式取 DP 规模再加一个标记位，每项算一个 int32，换算成 M 之后取一个下限。
+`dp` 是唯一按规模算的组：公式取 DP 规模再加一个标记位，每项算一个 int32（4 B），换算成 MiB 向上取整后再与源码常量下限 `50` 取大：
 
-```calc
-title: DP 组的 50 M 是怎么来的
-按公式换算 = ceil((2 + 1) × 4 B ÷ 1 MiB) = ceil(12 ÷ 1,048,576) = 1 M
-和下限比 = max(1 M, 50 M) = 50 M
-> 公式里的 4 是 int32 的字节数，下限 50 写在源码常量里
-```
+$$B_{\text{dp}} = \max\!\left(\left\lceil \frac{(\text{dp\_size} + 1) \times 4}{1024^2} \right\rceil,\; 50\right)\text{ MiB}$$
+
+| 步骤（DP 组 `dp_size = 2`） | 算式 | 结果 |
+| --- | --- | --- |
+| 按公式换算 | $\lceil (2 + 1) \times 4\text{ B} \div 1{,}048{,}576\text{ B} \rceil = \lceil 12 \div 1{,}048{,}576 \rceil$ | **1 M** |
+| 与源码下限比较 | $\max(1\text{ M},\; 50\text{ M})$ | **50 M** |
 
 DP=2 时换算项还不到 1 M，结果完全由下限决定。反过来不成立：50 M 不代表每步真的发 50 M。这一步同步的只是几个 int32 标记——本部署这条路径构造两组、每组 DP 个 int32，再归约成各 rank 的状态——而且默认走 CPU 通道（gloo），只有把 `dp_allreduce_on_npu` 打开才改走这条 HCCL 组；消息布局由收发代码决定，不能从预算值反推。
 
@@ -154,15 +169,14 @@ DP=2 时换算项还不到 1 M，结果完全由下限决定。反过来不成�
 
 把上表的配置值加起来，再按一个 KV 块 7.969 MiB 折算。块大小和 3,855 块是[双机部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)推导好的，本页只引用：
 
-这里相加的是表列配置值。实际占用还取决于组创建和复用、单成员组的分配、收发方向及内部资源；后文 CANN 的收发各一份口径也不能省略。因此下式只是把配置数字换成读者熟悉的容量单位，不是预测实际少了多少 KV 块。
+这里相加的是表列配置值。实际占用还取决于组创建和复用、单成员组的分配、收发方向及内部资源；后文 CANN 的收发各一份口径也不能省略。因此下表只是把配置数字换成读者熟悉的容量单位，不是预测实际少了多少 KV 块：
 
-```calc
-title: 本卡上这些组的配置值合计
-真要跨卡通信的四个组 = 200 M（world）+ 200 M（tp）+ 200 M（ep）+ 50 M（dp） = 650 M
-只有本卡一个成员的三个组 = 3 × 200 M = 600 M
-650 M 折合 KV 块 = 650 MiB ÷ 7.969 MiB = 81.6 ≈ 82 块
-82 块折合缓存位置 = 82 × 640 = 52,480 token
-```
+| 核算项（本卡表列配置值折算参考） | 算式 | 结果 |
+| --- | --- | --- |
+| 真要跨卡通信的四个组（world / tp / ep / dp） | $200 + 200 + 200 + 50$ | **650 M** |
+| 只有本卡一个成员的三个组（pp / dcp / pcp） | $3 \times 200$ | **600 M** |
+| 650 M 折合 KV 块（每块 7.969 MiB） | $650 \div 7.969 = 81.6$ | **$\approx 82$ 块** |
+| 82 块折合缓存位置（每块 640 token） | $82 \times 640$ | **52,480 token** |
 
 650 MiB 这个数值相当于约 82 个 KV 块、5 万多个缓存位置，是那 3,855 块算例的约 2.1%；它不代表四个组实际吃掉了 2.1% 的 KV 额度。三个单成员组的字段之和另为 600 M，也不能当成三次真实分配。真正的预算影响应读取显存探测中的非 torch 增量，并结合通信域复用与收发缓冲解释。
 
@@ -229,15 +243,17 @@ file: hccl-buffer-flow
 
 **v0.30.0rc2 保留常规 HCCL buffer 预算，新增名称分支。** 普通组默认 200 MiB、DP 至少 50 MiB、dynamic_eplb 为 100 MiB；DP 的估算仍按 (dp_size+1)×4 字节向上取 MiB，再取至少 50 MiB，MC2 仍提前返回 None，不走普通 hccl_buffer_size 选项。sleep_lifecycle_anchor 名称新增 1 MiB 分派；这只证明该名称如何配置，不证明每次启动都创建它或固定多占 1 MiB。注册表和分布式补丁与已钉 main 无差分；DispatchFFNCombine 的窗口×3+10 MiB 条件保留，但 worldSize 改为显式算子属性并校验 1–768。CANN 环境变量约束仍须按实际 CANN 版本核对。
 
-| 版本 | 常量与分派 | 复用与 MC2 判据 |
-|---|---|---|
-| GLM 固定镜像（`vllm-ascend@db701c1f`） | `_DEFAULT_BUFFER_SIZE=200`、`_MIN_DP_BUFFER_SIZE=50`、`_DYNAMIC_EPLB_BUFFER_SIZE=100`；四条分派（位置见下方源码位置表） | 注册表按成员、后端、配置、复用域去重；MC2 窗口按 `× 3 + 10 * MB_SIZE` 判 |
-| v0.26（`vllm-ascend@2ed6cbba`） | 同上，位置在 `vllm_ascend/utils.py#L64-L66`、`#L1058-L1065` [C16] | 同上，判据同一行一致 |
-| main（`vllm-ascend@baa023ad`） | 同上，位置在 `vllm_ascend/utils.py#L82-L84`、`#L1139-L1146` [C17] | 同上，判据同一行一致 |
+按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；GLM 固定镜像 `db701c1f` 的常量、分派与 `DispatchFFNCombine` 判据均与 `v0.23.0` 一致。
 
-上表三个快照的常量、缓冲分派、mc2 提前返回、注册表键与复用域、该融合算子的窗口判据一致。这不表示整个分布式补丁无差异：main 还调整了协调器接口与 All-to-All 方法归属，不能只凭缓冲规则相同认定全部通信行为相同。
+| 核对项 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+|---|---|---|---|---|
+| 逐组缓冲常量与分派 | 默认 `200 MB`、`dp` $\max(\dots, 50)\text{ MB}$、`dynamic_eplb` `100 MB`、`mc2` 返回 `None` | 同 `v0.23.0`（`utils.py#L64-L66, #L1058-L1065`）[C16] | 延续上述四条分派，并新增 `sleep_lifecycle_anchor = 1 MB`（`utils.py#L73-L77, #L1249-L1288`） | 同 `v0.30.0`（`utils.py#L73-L77, #L1260-L1299`）[C17] |
+| `mc2` 与 `HCCL_BUFFSIZE` 判据 | `mc2` 不写逐组字段；`DispatchFFNCombine` 读 `HCCL_BUFFSIZE`（默认 `200 MB`），窗口按 `× 3 + 10 MiB` 判 | 同 `v0.23.0` | 同 `v0.23.0`（`dispatch_ffn_combine_tiling.cpp#L63-L85`），`worldSize` 改为显式算子属性并校验 `1–768` | 同 `v0.30.0`（`dispatch_ffn_combine_tiling.cpp#L63-L85`） |
+| `etp` / `edp` 扩展组归属 | 无 `etp` / `edp` | 无 `etp` / `edp` | `parallel_state.py#L87-L107` 创建 `edp`（`dp_shared_memory` 走 `gloo`，否则走 `hccl` 并落入默认 `200 MB` 分派） | `parallel_state.py#L88-L137` 补建 `etp`（`TP×DP` HCCL 组）并将 `edp` 扩至 `PCP==1` 共享 PLE；未单列缓冲键，建为 HCCL 组时均走默认 `200 MB` |
+| `HCCL_BUFFSIZE_EP` 仓内读取 | 无读取 | 无读取 | **`vllm_ascend/` 与 `csrc/` 均无任何读取逻辑**；仅见于 `docs/source/tutorials/models/Qwen3.8-2.4T-A95B.md#L200-L210` 示例脚本 | 同 `v0.30.0`（全仓代码零读取） |
+| 复用注册表 | 按有序成员、后端、配置、复用域去重 | 同 `v0.23.0` | 延续复用键与复用域规则 | 同 `v0.30.0` |
 
-社区 v0.23 的 2c59ff10、v0.26 rc 的 2ed6cbba、main 的 baa023ad 中，DispatchFFNCombine tiling 文件与 GLM db701c1f 字节一致：未设置 HCCL_BUFFSIZE 时取 200、uint16 上界回退、stoul 解析及实际 +10 MiB 判据均一致。这只说明该算子的实现相同；注册表等行为分别按上表使用。CANN 的 ≥1、默认 200 与逐域覆盖取自 9.1.X 官方文档，部署时仍须匹配实际 CANN 版本。
+上表确认四版的默认 `200 MB`、`dynamic_eplb 100 MB`、`dp max(..., 50 MB)`、`mc2` 提前返回 `None` 及 `DispatchFFNCombine` 窗口判据一致。注意 `HCCL_BUFFSIZE_EP` 并非 `vllm-ascend` 仓内消费的环境变量（仓内代码不读取它，仅某模型教程脚本导出），是否被特定底层 CANN/HCCL 版本消费须以现场 CANN 文档与实机分配日志核定。此外，CANN 的 `≥1`、默认 `200` 与逐域覆盖取自 9.1.X 官方文档，部署时仍须匹配实际 CANN 版本。
 
 ### 源码位置
 

@@ -219,9 +219,23 @@
         "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2002",
         "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L786",
         "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1180-L1230",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L416-L450"
+        "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L416-L450",
+        "vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L66-L250",
+        "vllm-ascend@c09d3e20:vllm_ascend/compilation/breakable_aclgraph.py#L38-L90",
+        "vllm-ascend@c09d3e20:vllm_ascend/xlite/xlite_worker.py#L22-L36",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L905-L955",
+        "vllm-ascend@8d6180e2:vllm_ascend/compilation/acl_graph.py#L66-L255",
+        "vllm-ascend@8d6180e2:vllm_ascend/compilation/breakable_aclgraph.py#L38-L90",
+        "vllm-ascend@8d6180e2:vllm_ascend/xlite/xlite_worker.py#L27-L49",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/aclgraph_utils.py#L83-L235",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1034-L1085"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-56cb0ca4a4c911b962f03499423230ad3fa94bad9672e8915edc8bf0fed3f3a7.md",
@@ -612,6 +626,11 @@
           "from": "msprobe-accuracy-debug",
           "kind": "enables",
           "note": "通常先由 AISBench 或 EvalScope 发现评测集掉点，再挑出单条典型错题送入本页排查"
+        },
+        {
+          "from": "quantization-evaluation",
+          "kind": "enables",
+          "note": "量化质量评测与服务性能压测的 AISBench / EvalScope 实操命令、预热剔除与双端口径对齐见该实战页"
         }
       ]
     },
@@ -1373,9 +1392,24 @@
       "order": 125,
       "prerequisites": [],
       "sources": [
-        "https://public-download.obs.cn-east-2.myhuaweicloud.com/ascend/%E6%98%87%E8%85%BE950%20NPU%E6%9E%B6%E6%9E%84%E7%99%BD%E7%9A%AE%E4%B9%A6.pdf"
+        "https://public-download.obs.cn-east-2.myhuaweicloud.com/ascend/%E6%98%87%E8%85%BE950%20NPU%E6%9E%B6%E6%9E%84%E7%99%BD%E7%9A%AE%E4%B9%A6.pdf",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L178-L179",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L824-L859",
+        "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L170-L171",
+        "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L786-L821",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L333-L381",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L561-L561",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L240",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_mxfp8.py#L54-L60",
+        "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L441-L499",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L128"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "S",
       "relations": [
         {
@@ -1411,7 +1445,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-10-30",
+      "updated": "2026-11-19",
       "file": "concepts/ascend-950-architecture.md",
       "backlinks": [
         {
@@ -1447,9 +1481,20 @@
       "prerequisites": [],
       "sources": [
         "https://public-download.obs.cn-east-2.myhuaweicloud.com/ascend/%E6%98%87%E8%85%BE950%20NPU%E6%9E%B6%E6%9E%84%E7%99%BD%E7%9A%AE%E4%B9%A6.pdf",
-        "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md"
+        "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L571-L575",
+        "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L541-L545",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L365-L372",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L120-L120",
+        "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L477-L488",
+        "vllm-ascend@8d6180e2:vllm_ascend/compilation/graph_fusion_pass_manager.py#L76-L76"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "I",
       "relations": [
         {
@@ -1490,7 +1535,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-10-30",
+      "updated": "2026-11-19",
       "file": "concepts/ascend-950-execution-interconnect.md",
       "backlinks": []
     },
@@ -1569,9 +1614,24 @@
         "vllm-ascend@db701c1f:vllm_ascend/patch/platform/__init__.py#L17-L57",
         "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_eplb.py#L867-L874",
         "vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L659",
-        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1402-L1440"
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1402-L1440",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L562-L635",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L745-L756",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1795-L1951",
+        "vllm-ascend@c09d3e20:vllm_ascend/envs.py#L38-L90",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L478-L525",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L652-L737",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L845-L865",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1909-L2078",
+        "vllm-ascend@8d6180e2:vllm_ascend/envs.py#L51-L95",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L606-L685"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-1d32b572cfa7effcf6bc2b6876b3b8d672a41e7c59caf52ef95d8903f1aa02f7.md",
@@ -2036,6 +2096,11 @@
       "updated": "2026-11-19",
       "file": "concepts/ascend-flash-attention.md",
       "backlinks": [
+        {
+          "from": "attention-backend-family",
+          "kind": "enables",
+          "note": "密集 MHA/GQA 下 FA、FIA、PA 与 FA3 算子族的片上 Tiling 与执行选路在那页展开"
+        },
         {
           "from": "pooling-and-non-ar",
           "kind": "enables",
@@ -2656,9 +2721,22 @@
         "vllm-ascend@db701c1f:tests/ut/models/test_glm5_next_indexer_kpool_mla.py#L1650-L1680",
         "vllm-ascend@baa023ad:vllm_ascend/ops/kimi_kda.py#L170-L180",
         "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L607-L636",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L529-L559"
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L529-L559",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L247-L290",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1484-L1510",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/fa3_v1.py#L11-L60",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L920-L1115",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L275-L374",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1793-L1953",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/fa3_v1.py#L11-L66",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L982-L1195"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-09edf6e76e4698e7dc9a9f1c5517fe527f3e05c8ca2e288d8ca828bd8072249d.md",
@@ -2669,6 +2747,11 @@
           "to": "attention-qkv",
           "kind": "builds-on",
           "note": "后端要实现已经定义的注意力计算和因果约束"
+        },
+        {
+          "to": "ascend-flash-attention",
+          "kind": "builds-on",
+          "note": "密集 MHA/GQA 下 FA、FIA、PA 与 FA3 算子族的片上 Tiling 与执行选路在那页展开"
         },
         {
           "to": "mla",
@@ -3116,9 +3199,21 @@
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L319-L330",
         "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L412-L423",
         "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_balance_schedule.py#L397-L408",
-        "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_balance_schedule.py#L396-L407"
+        "vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_balance_schedule.py#L396-L407",
+        "vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_balance_schedule.py#L392-L407",
+        "vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_engine_core.py#L32-L44",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1036-L1097",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L731-L736",
+        "vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_balance_schedule.py#L425-L438",
+        "vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_engine_core.py#L31-L43",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1221-L1232"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-c8158192e740899aa15fdbe9c30781e389538032e62fd46b87784686beb0fab6.md",
@@ -3158,13 +3253,13 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/balance-scheduling.md",
       "backlinks": [
         {
           "from": "dyntra-lb",
           "kind": "alternative-to",
-          "note": "同样防「等最重的组」但只数条数，已钉 main 与 rc2 中都与本特性二选一"
+          "note": "同样防「等最重的组」但只数条数，v0.30.0 与 main 中都与本特性二选一"
         },
         {
           "from": "ascend-patch-system",
@@ -3246,13 +3341,21 @@
         "vllm-ascend@2ed6cbba:tests/e2e/pull_request/one_card/test_batch_invariant.py#L213-L410",
         "vllm-ascend@db701c1f:vllm_ascend/ops/triton/batch_invariant/matmul.py#L353-L441",
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73",
-        "vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64"
+        "vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L544-L590",
+        "vllm-ascend@c09d3e20:vllm_ascend/batch_invariant.py#L68-L189",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L975-L1085",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L380-L396",
+        "vllm-ascend@8d6180e2:vllm_ascend/utils.py#L574-L618",
+        "vllm-ascend@8d6180e2:vllm_ascend/batch_invariant.py#L68-L194",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L1055-L1165",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L396-L412"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "main",
-        "releases/v0.30.0rc2"
+        "releases/v0.30.0",
+        "main"
       ],
       "evidence": "C",
       "relations": [
@@ -3380,9 +3483,21 @@
         "vllm-ascend@7d825229:vllm_ascend/models/glm5next/model.py#L824-L857",
         "vllm@568afb3a:vllm/v1/engine/output_processor.py#L649-L696",
         "vllm@568afb3a:vllm/v1/engine/async_llm.py#L685-L689",
-        "vllm@568afb3a:vllm/v1/engine/core.py#L479-L483"
+        "vllm@568afb3a:vllm/v1/engine/core.py#L479-L483",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1517-L1555",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1058-L1066",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1380-L1408",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1610-L1648",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1243-L1252",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1586-L1630",
+        "vllm-ascend@8d6180e2:vllm_ascend/core/batch_job_aware_scheduler.py#L445-L458"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-12b04055f0789082f8ee94e05542b97c0e2891c1a33877063f1757252ab660ed.md",
@@ -3495,11 +3610,18 @@
         "raw:sha256-60066a112b62266d1a64ee662bb2e7c96078f0778d6fcd89bdc26d5fc7f58546.md#L1-L2586",
         "vllm-ascend@7d825229:vllm_ascend/worker/block_table.py#L36-L60",
         "vllm-ascend@7d825229:vllm_ascend/worker/block_table.py#L154-L300",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L36-L74"
+        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L36-L74",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1482-L1554",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L389-L426",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L50-L85",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/block_table.py#L32-L109",
+        "vllm-ascend@8d6180e2:vllm_ascend/utils.py#L1475-L1547",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/block_table.py#L29-L85"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -3847,9 +3969,23 @@
         "vllm-ascend@7d825229:docs/source/community/versioning_policy.md#L22-L92",
         "https://gitcode.com/cann/hixl/wiki/A5%20LocalCommRes%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97.md",
         "https://gitcode.com/cann/hixl/blob/dcf0027ffb4408446bb3ae5b810e44f20f19cc3c/scripts/tools/hixl_tool/readme.md#L1-L275",
-        "https://gitcode.com/cann/hixl/blob/dcf0027ffb4408446bb3ae5b810e44f20f19cc3c/docs/zh/api/cpp/HIXL-interface.md#L487-L665"
+        "https://gitcode.com/cann/hixl/blob/dcf0027ffb4408446bb3ae5b810e44f20f19cc3c/docs/zh/api/cpp/HIXL-interface.md#L487-L665",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1283-L1305",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1405-L1427",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/parallel_state.py#L63-L115",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/parallel_state.py#L63-L145",
+        "vllm-ascend@c09d3e20:tools/ai_qos.py#L453-L473",
+        "vllm-ascend@8d6180e2:tools/ai_qos.py#L453-L473",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/utils/utils.py#L18-L47",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/utils/utils.py#L18-L47",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L179-L185"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-50cc686229cc3c850b453bae6e3349228421cccf972150b556c818ffa9bffb98.md",
@@ -3885,7 +4021,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-10",
+      "updated": "2026-11-19",
       "file": "concepts/cann-hccl.md",
       "backlinks": [
         {
@@ -4624,12 +4760,19 @@
         "vllm@84030bbe:vllm/v1/engine/core.py#L2264-L2282",
         "vllm-ascend@2ed6cbba:vllm_ascend/spec_decode/llm_base_proposer.py#L202-L219",
         "vllm-ascend@baa023ad:vllm_ascend/spec_decode/llm_base_proposer.py#L243-L260",
-        "vllm-ascend@7d825229:vllm_ascend/spec_decode/__init__.py#L43-L65"
+        "vllm-ascend@7d825229:vllm_ascend/spec_decode/__init__.py#L43-L65",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L823-L845",
+        "vllm-ascend@c09d3e20:vllm_ascend/spec_decode/multi_kv_cache_group_proposer.py#L23-L48",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L289-L300",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L259-L320",
+        "vllm@ba15685a:vllm/config/parallel.py#L171",
+        "vllm@ba15685a:vllm/v1/engine/core.py#L2804",
+        "vllm@ba15685a:vllm/v1/engine/core_client.py#L1679"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "releases/v0.30.0rc2",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -4863,9 +5006,22 @@
         "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104",
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L114-L136",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L727-L761",
-        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1541-L1562"
+        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1541-L1562",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1650-L1712",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/pcp_manager.py#L225-L250",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L251-L275",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/utils.py#L320-L329",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/indexer_kpool.py#L491-L505",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L2105-L2179",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/pcp_manager.py#L225-L248",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/indexer_kpool.py#L782-L800"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -4891,7 +5047,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/context-parallel.md",
       "backlinks": [
         {
@@ -5550,9 +5706,16 @@
         "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/offline_inference.py",
         "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/engine/engine_type.py",
         "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/engine/llm_engine.py",
-        "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/worker/cache_engine.py"
+        "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/worker/cache_engine.py",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/DeepSeek-V4.1-Flash.md#L1-L65",
+        "vllm-ascend@8d6180e2:docs/source/tutorials/models/DeepSeek-V4.1-Flash.md#L1-L65"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "I",
       "relations": [
         {
@@ -5632,9 +5795,18 @@
         "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md",
         "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/tutorials/models/DeepSeek-V4.1-Flash.md",
         "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/support_matrix/supported_models.md",
-        "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/tutorials/models/GLM5.3-Flash.md"
+        "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/tutorials/models/GLM5.3-Flash.md",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/DeepSeek-V4.1-Flash.md#L1-L65",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/cache_config.py#L1-L50",
+        "vllm-ascend@8d6180e2:docs/source/tutorials/models/DeepSeek-V4.1-Flash.md#L1-L65",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/decoder_replay_layers.py#L1-L35"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "I",
       "relations": [
         {
@@ -5839,11 +6011,27 @@
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L274-L287",
         "vllm-ascend@7d825229:vllm_ascend/platform.py#L1436-L1472",
         "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L377-L395",
-        "vllm-ascend@7d825229:vllm_ascend/platform.py#L232-L244"
+        "vllm-ascend@7d825229:vllm_ascend/platform.py#L232-L244",
+        "vllm@ced6857a:vllm/config/cache.py#L103-L105",
+        "vllm@ced6857a:vllm/config/cache.py#L228-L236",
+        "vllm@ba15685a:vllm/config/cache.py#L216-L237",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L231-L244",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1445-L1464",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L464-L474",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L558-L598",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4476-L4476",
+        "vllm-ascend@c09d3e20:vllm_ascend/patch/worker/patch_v2/patch_uva.py#L29-L55",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L377-L386",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L259-L265",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1743-L1752",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L555-L565",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L684-L707",
+        "vllm-ascend@8d6180e2:vllm_ascend/patch/worker/patch_uva.py#L32-L58"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -5852,6 +6040,16 @@
           "to": "hardware-devices",
           "kind": "builds-on",
           "note": "先明确设备边界，才能回答某段内存归哪个设备使用"
+        },
+        {
+          "to": "npu-worker-lifecycle",
+          "kind": "builds-on",
+          "note": "启动冷启动阶段各次 HBM 分配峰值与权重/试跑/KV/录图时序统一在生命周期页核对"
+        },
+        {
+          "to": "kv-cache-memory-profiling",
+          "kind": "builds-on",
+          "note": "自动显存预算如何通过 profile run 扣除激活与非 PyTorch 占用，由显存探测页完整推演"
         },
         {
           "to": "glm-5-3-flash-two-node",
@@ -5876,7 +6074,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/device-memory.md",
       "backlinks": [
         {
@@ -6198,9 +6396,20 @@
         "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3380-L3424",
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L50-L96",
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L82-L123",
-        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L573-L598"
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L573-L598",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L711-L735",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1478-L1515",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1075-L1085",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1386-L1405",
+        "vllm-ascend@c09d3e20:vllm_ascend/core/profiling_chunk_predictor.py#L166-L205",
+        "vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_engine_core.py#L18-L51"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-1caeb038508c752da55dc4d9dbac02fd9337783598baa477a76feb174db372ee.md",
@@ -6235,7 +6444,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/dynamic-chunked-pp.md",
       "backlinks": []
     },
@@ -6244,7 +6453,7 @@
       "title": "DyntraLB：D 端各 DP 组按 KV 块数换人，少等最重的组",
       "type": "feature",
       "origin": "gap",
-      "summary": "已钉 vllm-ascend main 与 rc2 中 PD 分离 decode 端的 DP 负载均衡：各组每步互报按 token 数估计的 KV 块数，下一步在本组内暂停或接纳请求，让各组注意力负载接近；不搬请求，暂停不还 KV。讲清与 EPLB、Balance Scheduling 的分工、计划怎样算、何时生效，以及本部署为何没开。",
+      "summary": "vllm-ascend v0.30.0 与 main 中 PD 分离 decode 端的 DP 负载均衡：各组每步互报按 token 数估计的 KV 块数，下一步在本组内暂停或接纳请求，让各组注意力负载接近；不搬请求，暂停不还 KV。讲清与 EPLB、Balance Scheduling 的分工、计划怎样算、何时生效，以及本部署为何没开。",
       "aliases": [
         "DyntraLB",
         "DynTra",
@@ -6309,9 +6518,22 @@
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1420-L1464",
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1613-L1685",
         "vllm-ascend@baa023ad:.github/vllm-release-tag.commit#L1-L1",
-        "vllm@98dff2a8:vllm/v1/engine/core.py#L2268-L2281"
+        "vllm@98dff2a8:vllm/v1/engine/core.py#L2268-L2281",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1579-L1635",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1086-L1115",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1380-L1385",
+        "vllm-ascend@c09d3e20:vllm_ascend/core/dyntra_lb_scheduler.py#L140-L245",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1672-L1727",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1260-L1287",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1586-L1630",
+        "vllm-ascend@8d6180e2:vllm_ascend/core/dyntra_lb_scheduler.py#L140-L230"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-16c2ece421b5494c3468011118fda8b28b59e3a03ad29ba53c79243f56bf61de.md",
@@ -6331,7 +6553,7 @@
         {
           "to": "balance-scheduling",
           "kind": "alternative-to",
-          "note": "同样防「等最重的组」但只数条数，已钉 main 与 rc2 中都与本特性二选一"
+          "note": "同样防「等最重的组」但只数条数，v0.30.0 与 main 中都与本特性二选一"
         },
         {
           "to": "expert-parallel",
@@ -7633,6 +7855,11 @@
           "from": "multimodal-inference",
           "kind": "alternative-to",
           "note": "当多图或高分辨率视频把视觉编码器推成瓶颈时，可把单实例内置编码器切换为独立 E 节点池的 EPD 分离架构"
+        },
+        {
+          "from": "pd-disaggregation",
+          "kind": "has-variant",
+          "note": "再把多模态编码器独立成 E 池、与 P/D 协同的完整三池架构与 ECConnector 见该页"
         }
       ]
     },
@@ -8088,9 +8315,20 @@
         "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2018-L2050",
         "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L54-L114",
         "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L521-L578",
-        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L683-L693"
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L683-L693",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1322-L1432",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L830-L840",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1148-L1160",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1431-L1550",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L899-L910",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1320-L1332"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-0ffb3feb6e1a9db47775d4122d25d681a736421321b869980b1aed646005633c.md",
@@ -8120,7 +8358,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/fine-grained-tp.md",
       "backlinks": [
         {
@@ -8347,9 +8585,20 @@
         "https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/9e55cbc8e2b19e20c63b08b916d2582f25a22504/quant_model_description.json",
         "https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/3121f187149ef2defa15f2b28adad10e272681d9/quant_model_description.json",
         "https://huggingface.co/api/models/zai-org/GLM-5.3-Flash/revision/690b705278a3a58e538fcb37c2ca8b5f9511213c",
-        "vllm@0fc695fc:vllm/model_executor/models/deepseek_mtp.py#L43-L60"
+        "vllm@0fc695fc:vllm/model_executor/models/deepseek_mtp.py#L43-L60",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/kda.py#L171-L185",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L183-L220",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L45",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L299-L325",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda_input_projection_tp.py#L18-L45",
+        "vllm-ascend@8d6180e2:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L45"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-a8adad8cb834fac4c89fe9f8175c501254f418b7a8fe8975ca54df642b753303.md",
@@ -8610,9 +8859,23 @@
         "vllm@0fc695fc:vllm/model_executor/models/glm_ocr.py#L106-L166",
         "vllm@0fc695fc:vllm/model_executor/models/glm4_1v.py#L429-L455",
         "vllm@0fc695fc:vllm/model_executor/layers/conv.py#L17-L102",
-        "vllm@0fc695fc:vllm/config/multimodal.py#L145-L158"
+        "vllm@0fc695fc:vllm/config/multimodal.py#L145-L158",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md#L15-L45",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md#L305-L420",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/kda.py#L171-L185",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L183-L220",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L724-L729",
+        "vllm-ascend@8d6180e2:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L45",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L299-L325",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda_input_projection_tp.py#L18-L45",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L815-L820"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-220489cf9f48b5b6e3b8d251fd4131ecbdb770233c46a546f480da729c275838.md",
@@ -9376,9 +9639,23 @@
         "vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L330-L357",
         "vllm-ascend@7d825229:csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp#L38-L51",
         "vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_distributed.py#L238-L269",
-        "vllm-ascend@db701c1f:tests/ut/patch/worker/patch_common/test_patch_distributed.py#L288-L317"
+        "vllm-ascend@db701c1f:tests/ut/patch/worker/patch_common/test_patch_distributed.py#L288-L317",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L73-L77",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1241-L1289",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/parallel_state.py#L87-L107",
+        "vllm-ascend@c09d3e20:csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp#L63-L85",
+        "vllm-ascend@c09d3e20:docs/source/tutorials/models/Qwen3.8-2.4T-A95B.md#L200-L210",
+        "vllm-ascend@8d6180e2:vllm_ascend/utils.py#L73-L77",
+        "vllm-ascend@8d6180e2:vllm_ascend/utils.py#L1252-L1300",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/parallel_state.py#L88-L137",
+        "vllm-ascend@8d6180e2:csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp#L63-L85"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-905971ffcb5c66867cbc02fe98b1ecaf3394ac7dae5cda4eaa98c5343ee85cb0.md",
@@ -9409,7 +9686,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/hccl-buffer.md",
       "backlinks": [
         {
@@ -9581,9 +9858,22 @@
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L826-L836",
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1801-L1823",
         "vllm@ced6857a:vllm/v1/metrics/loggers.py#L891-L900",
-        "vllm@84030bbe:vllm/v1/metrics/loggers.py#L962-L971"
+        "vllm@84030bbe:vllm/v1/metrics/loggers.py#L962-L971",
+        "vllm@ba15685a:vllm/benchmarks/serve.py#L602-L690",
+        "vllm@ba15685a:vllm/benchmarks/lib/endpoint_request_func.py#L416-L490",
+        "vllm@ba15685a:vllm/v1/metrics/stats.py#L474-L635",
+        "vllm@ba15685a:vllm/v1/metrics/loggers.py#L1010-L1020",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L940-L962",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L1034-L1056",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1230-L1252",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1317-L1348"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "I",
       "relations": [
         {
@@ -9773,9 +10063,25 @@
         "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L549-L565",
         "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1844-L1912",
         "https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/batch_invariance.md#L25-L41",
-        "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/developer_guide/performance_and_debug/msprobe_guide.md"
+        "https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/developer_guide/performance_and_debug/msprobe_guide.md",
+        "vllm-ascend@2c59ff10:vllm_ascend/batch_invariant.py#L99-L163",
+        "vllm-ascend@2ed6cbba:vllm_ascend/batch_invariant.py#L76-L162",
+        "vllm-ascend@c09d3e20:vllm_ascend/batch_invariant.py#L95-L189",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L975-L1085",
+        "vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_guard/hooks.py#L18-L145",
+        "vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_guard/detector/manager.py#L57-L95",
+        "vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_glm53_reasoning.py#L21-L66",
+        "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L131-L165",
+        "vllm@ba15685a:vllm/entrypoints/openai/chat_completion/serving.py#L137-L175",
+        "vllm@ba15685a:vllm/v1/sample/sampler.py#L299-L365",
+        "vllm@ba15685a:vllm/v1/engine/detokenizer.py#L84-L170"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "I",
       "rawSources": [
         "raw/sha256-a3756f07a2b1726f8940f91b065c61e8d288657df4e16e3752a6599d6cd57191.md",
@@ -10059,9 +10365,24 @@
         "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L491-L506",
         "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L569-L587",
         "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L624-L656",
-        "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L1223-L1251"
+        "vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L1223-L1251",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L527-L565",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L940-L962",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L511-L555",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L1034-L1056",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L498-L518",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L567-L666",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1230-L1252",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L589-L618",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L664-L785",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1317-L1348"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "I",
       "rawSources": [
         "raw/sha256-3e27f506a54dd667865dd7464a2a928d626d75896ef7442f2fc6695208165fd5.md",
@@ -10598,12 +10919,18 @@
         "https://github.com/vllm-project/vllm-ascend/pull/13389",
         "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L233-L264",
         "vllm@84030bbe:vllm/v1/kv_offload/factory.py#L30-L58",
-        "vllm@0fc695fc:vllm/v1/kv_offload/cpu/spec.py#L24-L28"
+        "vllm@0fc695fc:vllm/v1/kv_offload/cpu/spec.py#L24-L28",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/__init__.py#L25-L34",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L41-L65",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L60-L68",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L43-L68",
+        "vllm@ba15685a:vllm/v1/kv_offload/cpu/spec.py#L99-L123",
+        "vllm@ba15685a:vllm/distributed/kv_transfer/kv_connector/v1/offloading/config.py#L121-L134"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "releases/v0.30.0rc2",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -10775,11 +11102,18 @@
         "vllm-ascend@baa023ad:vllm_ascend/models/kimi_k3.py#L392-L442",
         "vllm-ascend@baa023ad:vllm_ascend/ops/kimi_kda.py#L500-L529",
         "vllm-ascend@7d825229:vllm_ascend/models/kimi_k3.py#L412-L462",
-        "vllm-ascend@7d825229:vllm_ascend/ops/kimi_kda.py#L530-L563"
+        "vllm-ascend@7d825229:vllm_ascend/ops/kimi_kda.py#L530-L563",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L128-L192",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L395-L425",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L150-L210",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise/layerwise_cache_layout.py#L120-L190",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L430-L460",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L150-L210"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -10953,6 +11287,11 @@
           "note": "显存水位比例与试跑扣减账单在那页展开，本页聚焦四个参数如何联动挤压该账单"
         },
         {
+          "from": "device-memory",
+          "kind": "enables",
+          "note": "自动显存预算如何通过 profile run 扣除激活与非 PyTorch 占用，由显存探测页完整推演"
+        },
+        {
           "from": "glm-5-3-flash-two-node",
           "kind": "enables",
           "note": "启动时量剩余显存、再一次性切成 KV 块的那一步"
@@ -11050,9 +11389,27 @@
         "vllm-ascend@7d825229:vllm_ascend/attention/attention_c8_mxfp.py#L854-L925",
         "https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/9e55cbc8e2b19e20c63b08b916d2582f25a22504/quant_model_description.json",
         "https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/3121f187149ef2defa15f2b28adad10e272681d9/quant_model_description.json",
-        "vllm-ascend@baa023ad:vllm_ascend/quantization/configs/modelslim_config.py#L707-L745"
+        "vllm-ascend@baa023ad:vllm_ascend/quantization/configs/modelslim_config.py#L707-L745",
+        "vllm@ced6857a:vllm/config/cache.py#L155-L157",
+        "vllm@ba15685a:vllm/config/cache.py#L285-L287",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1560-L1615",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_c8_mxfp.py#L85-L115",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_c8_mxfp.py#L380-L410",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/kv_cache/mxfp_c8.py#L51-L85",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/kv_cache/turboquant/config.py#L24-L110",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L701-L716",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L920-L935",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L1647-L1700",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/attention_c8_mxfp.py#L393-L408",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/configs/modelslim_config.py#L925-L960",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L865-L880"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -11078,7 +11435,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/kv-cache-quantization.md",
       "backlinks": [
         {
@@ -11160,9 +11517,20 @@
         "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1121-L1213",
         "vllm-ascend@921ccc52:docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md#L196-L222",
         "vllm-ascend@921ccc52:docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md#L662-L686",
-        "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L244-L260"
+        "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L244-L260",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1684-L1772",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L217-L290",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1480-L1490",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1775-L1855",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L216-L289",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1515-L1526"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-2156c1d8806c7256e4e9cad16b37de3e441fbfb730e387519f6da3ec001a4bd7.md",
@@ -11749,9 +12117,19 @@
         "https://z.ai/blog/scaling-pain",
         "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L200-L211",
         "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L3110-L3145",
-        "vllm-ascend@921ccc52:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L60-L225"
+        "vllm-ascend@921ccc52:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L60-L225",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L38-L110",
+        "vllm-ascend@c09d3e20:vllm_ascend/core/kv_cache_placement.py#L21-L205",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L42-L117",
+        "vllm-ascend@8d6180e2:vllm_ascend/core/kv_cache_placement.py#L21-L201",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L335-L342"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-0c0e738d4e6a6dece282439e136000d132e31e0e282c6e383be16fec78771bab.md",
@@ -11806,7 +12184,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-10",
+      "updated": "2026-11-19",
       "file": "concepts/kvpp.md",
       "backlinks": [
         {
@@ -13261,9 +13639,18 @@
         "vllm@0fc695fc:vllm/model_executor/custom_op.py#L109-L207",
         "vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L535-L613",
         "vllm-ascend@db701c1f:vllm_ascend/ops/linear.py#L83-L140",
-        "vllm@0fc695fc:vllm/model_executor/layers/linear.py#L179-L215"
+        "vllm@0fc695fc:vllm/model_executor/layers/linear.py#L179-L215",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L60-L144",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/shared_experts.py#L462",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L60-L144",
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/fused_moe/shared_experts.py#L859"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-1954901a8cda7b670a3884246836019685f23ef7fb146beef656ee379f0a097f.md",
@@ -13603,9 +13990,20 @@
         "vllm-ascend@baa023ad:vllm_ascend/utils.py#L841-L866",
         "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L345-L358",
         "vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L535-L613",
-        "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L48-L153"
+        "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L48-L153",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L90-L138",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L325-L335",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L869-L885",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L118-L160",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L354-L364",
+        "vllm-ascend@8d6180e2:vllm_ascend/utils.py#L896-L912"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-453fdb48c994a96c6b4491804bc60fc5843f28e98d22cbbc3104e5f675b3ed30.md",
@@ -13764,6 +14162,11 @@
           "from": "msprobe-accuracy-debug",
           "kind": "enables",
           "note": "MRV1 与 MRV2 在 load_model 与 sample_tokens/pool 均内建了等价的 msprobe 启停钩子"
+        },
+        {
+          "from": "request-call-chain",
+          "kind": "enables",
+          "note": "v0.30.0 默认仍走 MRV1、main 收口为 MRV2 唯一路径，第 3 到第 5 站的 V2 常驻设备缓冲与执行栈在那页展开"
         },
         {
           "from": "v030-release-baseline",
@@ -13929,11 +14332,18 @@
         "vllm@84030bbe:vllm/model_executor/layers/fused_moe/topk_weight_and_reduce.py#L11-L41",
         "vllm@84030bbe:vllm/model_executor/layers/fused_moe/topk_weight_and_reduce.py#L44-L77",
         "vllm@ced6857a:vllm/model_executor/layers/fused_moe/oracle/unquantized.py#L48-L163",
-        "vllm@84030bbe:vllm/model_executor/layers/fused_moe/oracle/unquantized.py#L48-L163"
+        "vllm@84030bbe:vllm/model_executor/layers/fused_moe/oracle/unquantized.py#L48-L163",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/router/grouped_topk_router.py#L80-L127",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/shared_experts.py#L64-L130",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L373-L426",
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/fused_moe/router/grouped_topk_router.py#L80-L127",
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/fused_moe/shared_experts.py#L72-L145",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L420-L465"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -13951,11 +14361,16 @@
           "to": "glm-5-3-flash",
           "kind": "builds-on",
           "note": "288 选 8、共享专家、每层维度和全模型参数量的出处"
+        },
+        {
+          "to": "moe-comm-dispatch",
+          "kind": "builds-on",
+          "note": "昇腾四族硬件下 AllGather / MC2 / Fused MC2 / MegaMoe / AllToAll 通信调度状态机与运行期权重重切分"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-11",
+      "updated": "2026-11-19",
       "file": "concepts/moe.md",
       "backlinks": [
         {
@@ -14056,7 +14471,13 @@
       "contradicts": [],
       "updated": "2026-11-19",
       "file": "concepts/moe-comm-dispatch.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "moe",
+          "kind": "enables",
+          "note": "昇腾四族硬件下 AllGather / MC2 / Fused MC2 / MegaMoe / AllToAll 通信调度状态机与运行期权重重切分"
+        }
+      ]
     },
     {
       "id": "mooncake-connector",
@@ -14235,13 +14656,26 @@
         "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L3166-L3179",
         "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2929-L2960",
         "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2189-L2215",
-        "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L672-L707"
+        "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L672-L707",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L135",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2235-L2250",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L880-L899",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1020-L1044",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1410-L1436",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L237-L270",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L40-L85",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L730-L746",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L162",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L241-L312",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L945-L968",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1138-L1162",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1666-L1692"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "main",
-        "releases/v0.30.0rc2"
+        "releases/v0.30.0",
+        "main"
       ],
       "evidence": "C",
       "rawSources": [
@@ -15110,6 +15544,11 @@
           "note": "了解昇腾权重转 NZ 与 ACL Graph 录图耗时来源，才能合理设置 K8s startupProbe 宽限窗口"
         },
         {
+          "from": "device-memory",
+          "kind": "enables",
+          "note": "启动冷启动阶段各次 HBM 分配峰值与权重/试跑/KV/录图时序统一在生命周期页核对"
+        },
+        {
           "from": "enable-sleep-mode-extra-cleanup",
           "kind": "enables",
           "note": "清理插在 NPUWorker.sleep() / wake_up() 这一层，管的是 worker 启动时建起来的那些通信域和已捕获的图"
@@ -15295,11 +15734,18 @@
         "vllm@0fc695fc:docs/design/fusions.md#L1-L397",
         "https://github.com/meta-pytorch/tlparse/blob/98b8782b90f076f3d77a4a414316e3c8d0d127d4/README.md",
         "vllm@0fc695fc:vllm/compilation/decorators.py#L506-L515",
-        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L176-L181"
+        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L176-L181",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L112-L170",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1310-L1354",
+        "vllm-ascend@c09d3e20:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L119-L177",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1515-L1559",
+        "vllm-ascend@8d6180e2:vllm_ascend/compilation/graph_fusion_pass_manager.py#L52-L79"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -15442,9 +15888,19 @@
         "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/mtp.py#L80-L104",
         "vllm-ascend@baa023ad:vllm_ascend/spec_decode/llm_base_proposer.py#L241-L260",
         "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L131-L157",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L495"
+        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L495",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L243-L278",
+        "vllm-ascend@c09d3e20:vllm_ascend/spec_decode/multi_kv_cache_group_proposer.py#L23-L48",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L823-L845",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L259-L320",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L289-L300"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-733f71dd7d1dd1a301bfaf1f59040a866c26548025fe7c6b36cc6cb3c01dd135.md",
@@ -16163,13 +16619,21 @@
         "vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L2927-L2968",
         "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1216-L1236",
         "vllm@0fc695fc:vllm/v1/worker/gpu_input_batch.py#L346-L375",
-        "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1901-L1947"
+        "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1901-L1947",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L135",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1788-L1905",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L40-L85",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L778-L785",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L162",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L260-L310",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L364-L385",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L943-L949"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "main",
-        "releases/v0.30.0rc2"
+        "releases/v0.30.0",
+        "main"
       ],
       "evidence": "C",
       "relations": [
@@ -16197,11 +16661,16 @@
           "to": "chunked-prefill",
           "kind": "alternative-to",
           "note": "不拆实例，把长提示词切块混进 decode 步，是限制 prefill 干扰的另一条路"
+        },
+        {
+          "to": "epd-disaggregation",
+          "kind": "variant-of",
+          "note": "再把多模态编码器独立成 E 池、与 P/D 协同的完整三池架构与 ECConnector 见该页"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-10",
+      "updated": "2026-11-19",
       "file": "concepts/pd-disaggregation.md",
       "backlinks": [
         {
@@ -17736,15 +18205,35 @@
         "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L909-L933",
         "vllm@ced6857a:vllm/benchmarks/lib/endpoint_request_func.py#L402-L434",
         "vllm@ced6857a:vllm/benchmarks/lib/endpoint_request_func.py#L606-L639",
-        "vllm@ced6857a:vllm/benchmarks/lib/endpoint_request_func.py#L526-L561"
+        "vllm@ced6857a:vllm/benchmarks/lib/endpoint_request_func.py#L526-L561",
+        "vllm@ced6857a:vllm/benchmarks/serve.py#L568-L600",
+        "vllm@ba15685a:vllm/benchmarks/serve.py#L602-L635",
+        "vllm@ba15685a:vllm/benchmarks/lib/endpoint_request_func.py#L416-L445",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/evaluation/using_ais_bench.md#L1-L3",
+        "vllm-ascend@2ed6cbba:docs/source/developer_guide/evaluation/using_ais_bench.md#L1-L3",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/evaluation/using_ais_bench.md#L1-L20",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/evaluation/using_evalscope.md#L1-L20",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L260",
+        "vllm-ascend@8d6180e2:docs/source/developer_guide/evaluation/using_ais_bench.md#L1-L20",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L128"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "S",
       "relations": [
         {
           "to": "quantization-methods",
           "kind": "builds-on",
           "note": "确定量化对象、方法与校准之后，用同一标准比较候选产物"
+        },
+        {
+          "to": "aisbench-and-evalscope",
+          "kind": "builds-on",
+          "note": "量化质量评测与服务性能压测的 AISBench / EvalScope 实操命令、预热剔除与双端口径对齐见该实战页"
         },
         {
           "to": "tensor-layout",
@@ -17764,7 +18253,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/quantization-evaluation.md",
       "backlinks": []
     },
@@ -17879,9 +18368,27 @@
         "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/quantization.md#L13-L59",
         "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/quantization.md#L13-L59",
         "vllm-ascend@7d825229:docs/source/user_guide/feature_guide/quantization.md#L13-L59",
-        "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/quantization.md#L13-L59"
+        "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/quantization.md#L13-L59",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_pdmix.py#L36-L89",
+        "vllm-ascend@2ed6cbba:vllm_ascend/quantization/methods/w8a8_pdmix.py#L37-L95",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L36-L56",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_static.py#L33-L43",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L60-L150",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L260",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/fp8_config.py#L26-L80",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/modelslim_config.py#L798-L840",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L36-L56",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L128",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L207-L345",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/configs/fp8_config.py#L93-L115",
+        "vllm@ba15685a:vllm/config/quantization.py#L70-L115"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "S",
       "relations": [
         {
@@ -17897,7 +18404,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/quantization-methods.md",
       "backlinks": [
         {
@@ -18167,12 +18674,19 @@
         "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L107-L238",
         "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L252-L292",
         "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L325-L451",
-        "vllm-ascend@7d825229:vllm_ascend/core/kv_cache_interface.py#L49-L54"
+        "vllm-ascend@7d825229:vllm_ascend/core/kv_cache_interface.py#L49-L54",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/preempt_offload_connector.py#L41-L115",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L70-L120",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L180-L205",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L293-L345",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L95-L120",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L315-L335",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L522-L538"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "releases/v0.30.0rc2",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -18225,7 +18739,7 @@
       "title": "RecomputeScheduler：D 节点块不够时，被让出的请求退回 P 重算",
       "type": "feature",
       "origin": "gap",
-      "summary": "PD分离的D节点续块失败时，优先尝试保存被抢占请求的状态，稍后恢复；旧版不能保存时发recomputed结束帧，由代理重投P做prefill。客户端结束、引擎收尾和状态保存是不同步骤；rc2细粒度TP还可能直接中止。GLM双机主线不拆PD，不启用此调度器。",
+      "summary": "PD分离的D节点续块失败时，优先尝试保存被抢占请求的状态，稍后恢复；旧版不能保存时发recomputed结束帧，由代理重投P做prefill。客户端结束、引擎收尾和状态保存是不同步骤；v0.30.0 与 main 细粒度TP还可能直接中止。GLM双机主线不拆PD，不启用此调度器。",
       "aliases": [
         "RecomputeScheduler",
         "AsyncRecomputeScheduler",
@@ -18302,12 +18816,20 @@
         "vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L610-L627",
         "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1645-L1680",
         "vllm-ascend@7d825229:vllm_ascend/platform.py#L1371-L1398",
-        "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L101-L126"
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L101-L126",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1116-L1157",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1380-L1408",
+        "vllm-ascend@c09d3e20:vllm_ascend/core/recompute_scheduler.py#L135-L180",
+        "vllm-ascend@c09d3e20:vllm_ascend/core/recompute_scheduler.py#L1018-L1035",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1288-L1330",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1586-L1630",
+        "vllm-ascend@8d6180e2:vllm_ascend/core/recompute_scheduler.py#L155-L200",
+        "vllm-ascend@8d6180e2:vllm_ascend/core/recompute_scheduler.py#L1032-L1050"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "releases/v0.30.0rc2",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -18861,12 +19383,21 @@
         "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L742-L746",
         "vllm@568afb3a:vllm/v1/executor/multiproc_executor.py#L986-L1011",
         "vllm@ced6857a:vllm/v1/executor/multiproc_executor.py#L1035-L1059",
-        "vllm@84030bbe:vllm/v1/executor/multiproc_executor.py#L1035-L1059"
+        "vllm@84030bbe:vllm/v1/executor/multiproc_executor.py#L1035-L1059",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L498-L518",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L942-L950",
+        "vllm-ascend@c09d3e20:vllm_ascend/spec_decode/__init__.py#L41-L69",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L606-L622",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1106-L1114",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L589-L618",
+        "vllm@ba15685a:vllm/envs.py#L1952-L1954",
+        "vllm@ba15685a:vllm/v1/engine/core.py#L709-L760",
+        "vllm@ba15685a:vllm/entrypoints/llm.py#L490-L618"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "releases/v0.30.0rc2",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -18890,6 +19421,11 @@
           "to": "npu-model-runner",
           "kind": "builds-on",
           "note": "第 3 到第 5 站的大部分函数都在 model_runner_v1.py 这一个文件里，那一页讲这个文件怎么分区"
+        },
+        {
+          "to": "model-runner-v2",
+          "kind": "builds-on",
+          "note": "v0.30.0 默认仍走 MRV1、main 收口为 MRV2 唯一路径，第 3 到第 5 站的 V2 常驻设备缓冲与执行栈在那页展开"
         },
         {
           "to": "async-scheduling",
@@ -21104,9 +21640,21 @@
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1557-L1563",
         "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L228-L314",
         "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L642-L648",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L726-L832"
+        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L726-L832",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L739-L828",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1071-L1084",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1437-L1443",
+        "vllm@ced6857a:vllm/config/vllm.py#L1877-L1898",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L837-L898",
+        "vllm-ascend@8d6180e2:vllm_ascend/utils.py#L1050-L1065",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1724-L1730"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -21127,7 +21675,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/sequence-parallel.md",
       "backlinks": [
         {
@@ -21311,9 +21859,23 @@
         "vllm-ascend@7d825229:vllm_ascend/platform.py#L1377-L1383",
         "vllm-ascend@7d825229:vllm_ascend/core/scheduler_profiling_chunk.py#L94-L106",
         "vllm-ascend@7d825229:vllm_ascend/core/scheduler_profiling_chunk.py#L1257-L1269",
-        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L175-L186"
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L175-L186",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L202-L205",
+        "vllm@ba15685a:vllm/v1/core/sched/scheduler.py#L232-L240",
+        "vllm-ascend@c09d3e20:vllm_ascend/core/short_request_first_scheduler.py#L148-L183",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1049-L1085",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1557-L1575",
+        "vllm-ascend@c09d3e20:vllm_ascend/core/scheduler_profiling_chunk.py#L94-L106",
+        "vllm-ascend@8d6180e2:vllm_ascend/core/short_request_first_scheduler.py#L329-L380",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1234-L1259",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1758-L1771"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-cd6d5be072a4baf52bfbdc4376dee148bcc45394d401fb1a45e4e6823f58196f.md",
@@ -21353,7 +21915,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/short-request-first.md",
       "backlinks": [
         {
@@ -22689,9 +23251,22 @@
         "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md",
         "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/csrc/engine/input_metadata/prepare_tensor_input_v4.cpp#L202-L359",
         "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/yoco/yoco_equiv.py#L371-L393",
-        "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/yoco/yoco_equiv.py#L767-L806"
+        "https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/examples/yoco/yoco_equiv.py#L767-L806",
+        "vllm@ced6857a:vllm/v1/kv_cache_interface.py#L807-L815",
+        "vllm@ba15685a:vllm/v1/kv_cache_interface.py#L900-L908",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/cache_config.py#L27-L60",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L633-L635",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/cache_config.py#L30-L63",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/decoder_replay_state.py#L36-L70",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/decoder_replay_layers.py#L19-L35",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L673-L679"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
       "evidence": "I",
       "relations": [
         {
@@ -22717,7 +23292,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-10-30",
+      "updated": "2026-11-19",
       "file": "concepts/swa-bounded-replay.md",
       "backlinks": []
     },
@@ -22789,11 +23364,20 @@
         "https://modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/9e55cbc8e2b19e20c63b08b916d2582f25a22504/quant_model_description.json",
         "https://modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/3121f187149ef2defa15f2b28adad10e272681d9/quant_model_description.json",
         "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L579-L640",
-        "vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L31-L50"
+        "vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L31-L50",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L352-L412",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L379-L386",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L615-L657",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L320",
+        "vllm-ascend@8d6180e2:vllm_ascend/utils.py#L370-L442",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L395-L402",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L718-L763",
+        "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L417-L446"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "S",
@@ -22811,7 +23395,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/tensor-layout.md",
       "backlinks": [
         {
@@ -23831,12 +24415,19 @@
         "vllm-ascend@7d825229:vllm_ascend/platform.py#L245-L255",
         "vllm-ascend@7d825229:vllm_ascend/platform.py#L1475-L1500",
         "vllm-ascend@7d825229:vllm_ascend/platform.py#L488-L508",
-        "vllm-ascend@7d825229:vllm_ascend/platform.py#L1627-L1639"
+        "vllm-ascend@7d825229:vllm_ascend/platform.py#L1627-L1639",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L363-L395",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1467-L1483",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/weight_transfer/__init__.py#L24-L40",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L379-L410",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1754-L1770",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/weight_transfer/__init__.py#L24-L52",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/weight_transfer/sparse_hccl_engine.py#L90-L125"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "releases/v0.30.0rc2",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",

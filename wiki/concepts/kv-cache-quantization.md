@@ -82,7 +82,24 @@ sources:
     https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/3121f187149ef2defa15f2b28adad10e272681d9/quant_model_description.json
   - >-
     vllm-ascend@baa023ad:vllm_ascend/quantization/configs/modelslim_config.py#L707-L745
-verified: []
+  - 'vllm@ced6857a:vllm/config/cache.py#L155-L157'
+  - 'vllm@ba15685a:vllm/config/cache.py#L285-L287'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1560-L1615'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_c8_mxfp.py#L85-L115'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_c8_mxfp.py#L380-L410'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/kv_cache/mxfp_c8.py#L51-L85'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/kv_cache/turboquant/config.py#L24-L110'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L701-L716'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L920-L935'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L1647-L1700'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/attention/attention_c8_mxfp.py#L393-L408'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/quantization/configs/modelslim_config.py#L925-L960'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L865-L880'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: quantization
@@ -98,7 +115,7 @@ relations:
     kind: builds-on
     note: 改精度改的是缓存规格里的字段，实际每页几个位置、怎样对齐看规格页
 contradicts: []
-updated: '2026-11-03'
+updated: '2026-11-19'
 origin: direct
 ---
 
@@ -142,17 +159,15 @@ file: kv-cache-quantization-intuition
 
 ### 写进缓存：误差从哪来
 
-取一个块里 k 的某一维，三个位置上的值是 1.0、1.006、1.7；这一维的系数 s = 0.0125，偏移取 0（都是示意数）：
+取一个块里 $k$ 的某一维，三个位置上的值是 $1.0, 1.006, 1.7$；这一维的系数 $s = 0.0125$，偏移取 $0$（都是示意数）：
 
-```calc
-title: 一维的三个历史值写进缓存再读回（示意数：s = 0.0125，偏移 0）
-位置 0 存的整数 = round(1.0 ÷ 0.0125) = round(80) = 80
-> 读回 0.0125 × 80 = 1.0，原样还原
-位置 1 存的整数 = round(1.006 ÷ 0.0125) = round(80.48) = 80
-> 读回 0.0125 × 80 = 1.0，差 0.006，这是舍入误差
-位置 2 存的整数 = clamp(round(1.7 ÷ 0.0125), −128, 127) = clamp(136, −128, 127) = 127
-> 读回 0.0125 × 127 = 1.5875，差 0.1125，这是截断误差
-```
+$$q = \text{clamp}\!\left(\text{round}\!\left(\frac{x}{s}\right),\, -128,\, 127\right), \qquad \hat{x} = s \cdot q$$
+
+| 位置（示意：$s = 0.0125$，偏移 $0$） | 原值 $x$ | 写入整数 $q$ | 读回值 $\hat{x} = s \cdot q$ | 误差与类型 |
+| --- | --- | --- | --- | --- |
+| 位置 0 | $1.0$ | $\text{round}(1.0 \div 0.0125) = \mathbf{80}$ | $0.0125 \times 80 = \mathbf{1.0}$ | $0$（原样还原） |
+| 位置 1 | $1.006$ | $\text{round}(80.48) = \mathbf{80}$ | $0.0125 \times 80 = \mathbf{1.0}$ | 差 **0.006**（舍入误差） |
+| 位置 2 | $1.7$ | $\text{clamp}(136, -128, 127) = \mathbf{127}$ | $0.0125 \times 127 = \mathbf{1.5875}$ | 差 **0.1125**（截断误差） |
 
 这一例里舍入误差最多半格，即 0.00625；1.7 超出了 127 × 0.0125 = 1.5875 这个上限，所以被截断。把 s 调大到 1.7 ÷ 127 ≈ 0.0134，截断没了，最大舍入误差却升到约 0.0067；格子粗细与范围宽窄怎样取舍，见[量化页](quantization.md#一个数怎样压下去再还原回来)。实际权重包里的系数和偏移，由它的量化方案决定。
 
@@ -160,17 +175,14 @@ title: 一维的三个历史值写进缓存再读回（示意数：s = 0.0125，
 
 ### 一块省多少：有效数据减半，按页分配也减半
 
-设本卡上的一层有 2 个 KV 头、每头 64 维，一条请求的历史有 100 个位置，每页装 32 个位置（示意数）：
+设本卡上的一层有 2 个 KV 头、每头 64 维，一条请求的历史有 100 个位置，每页装 32 个位置（示意数）；所需页数为 $\lceil 100 \div 32 \rceil = 4$ 页（共 $4 \times 32 = 128$ 个位置，前导系数 `2` 代表 $k, v$ 两张缓存）：
 
-```calc
-title: 一层 k、v 两张缓存占多少（示意数：2 个 KV 头 × 64 维，100 个位置）
-BF16 有效数据 = 2 × 100 × 2 × 64 × 2 B = 51,200 B = 50 KiB
-> 第一个 2 是 k、v 两张缓存
-INT8 有效数据 = 2 × 100 × 2 × 64 × 1 B = 25,600 B = 25 KiB
-页数 = ceil(100 ÷ 32) = 4 页，共 128 个位置
-BF16 实际分配 = 2 × 128 × 2 × 64 × 2 B = 65,536 B = 64 KiB
-INT8 实际分配 = 2 × 128 × 2 × 64 × 1 B = 32,768 B = 32 KiB
-```
+$$B_{\text{valid}}(\text{dtype}) = 2 \times 100 \times 2 \times 64 \times b, \qquad B_{\text{alloc}}(\text{dtype}) = 2 \times 128 \times 2 \times 64 \times b$$
+
+| 存储格式（2 个 KV 头 × 64 维，100 位置，32 位置/页示意） | 有效数据（100 位置） | 按页实际分配（4 页 = 128 位置） |
+| --- | --- | --- |
+| **BF16**（$b = 2\text{ B}$） | $2 \times 100 \times 2 \times 64 \times 2\text{ B} = 51{,}200\text{ B} =$ **50 KiB** | $2 \times 128 \times 2 \times 64 \times 2\text{ B} = 65{,}536\text{ B} =$ **64 KiB** |
+| **INT8**（$b = 1\text{ B}$） | $2 \times 100 \times 2 \times 64 \times 1\text{ B} = 25{,}600\text{ B} =$ **25 KiB** | $2 \times 128 \times 2 \times 64 \times 1\text{ B} = 32{,}768\text{ B} =$ **32 KiB** |
 
 最后一页只用了 4 个位置（100 − 96），剩下 28 个空着，两种格式空着的位置一样多。系数另算：k、v 各一套系数和偏移，每套 2 × 64 = 128 个数，这一层一共 512 个数，历史再长也不变。这里有效数据和按页分配都正好减半，前提是每页的位置数保持 32、没有别的对齐要求；[后面一节](#页和整卡为什么不一定跟着减半)讲这个前提什么时候不成立。
 
@@ -216,7 +228,12 @@ file: kv-cache-quantization
 | FA 量化 | MLA | 只压潜向量那一份，RoPE 段保持原精度。A5（另一代昇腾设备）上压成 FP8，所有实例都生效；A2、A3 上压成 INT8，只在 PD 分离的 decode 端生效 | 每层一组，随权重加载 |
 | 稀疏 C8 | 带索引器的稀疏 MLA | 主缓存连同系数打包成一份 8 位缓存；索引器的缓存由另一个开关单独压 | 和数据一起存进缓存块 |
 
-在固定版本里，三条路的开关都不在上游 vLLM 的 kv-cache-dtype 选项上：C8 和 FA 量化写在权重包的量化描述文件里（FA 量化这个名字就取自打开它的键 fa_quant_type），稀疏 C8 写在启动时的附加配置里，具体键名见[怎么开](#怎么开)；main 上 FA 量化另要求 kv-cache-dtype 设成 fp8 或 int8，见[版本差异](#版本差异)。FA 量化在 A2、A3 上还有一道门槛：实例必须是 [PD 分离](pd-disaggregation.md)里做 decode、接收缓存的那一端（KV consumer），普通部署在描述文件里写了它也不会压缓存。MLA 那一行只压潜向量，是因为 vllm-ascend 的 MLA 缓存把潜向量放在 K 一侧、RoPE 段放在 V 一侧，而 FA 量化对 MLA 模型只压 K 一侧，源码注释说这样做是为了保精度。个别模型在自己的代码里另定缓存精度，例如 DeepSeek-V4 在 A5 上直接把缓存建成 FP8，不属于这三条路。
+在固定版本里，三条路的开关都不在上游 vLLM 的 `kv-cache-dtype` 选项上：C8 和 FA 量化写在权重包的量化描述文件里（FA 量化这个名字就取自打开它的键 `fa_quant_type`），稀疏 C8 写在启动时的附加配置里，具体键名见[怎么开](#怎么开)。到 `v0.30.0` 与 `main` 主基线，KV 量化体系进一步扩展出三条重要规则：
+- **GQA `INT8 C8`** 仍依赖 ModelSlim 量化权重包（`quant_model_description.json` 含 `kv_cache_type: C8` 与每层 scale）和 `block_size % 32 == 0` 约束；
+- **`MXFP8 C8`（`--kv-cache-dtype mxfp8`）** 面向标准 full Attention（K 动态量化、V 静态 E8M0 scale），其 `AscendC8MXFPAttentionBackend` 强制 kernel 页大小为 **512 的倍数**（`get_supported_kernel_block_sizes()` 返回 `[512]`），且拒绝 PCP/DCP、非因果与滑窗；
+- **`TurboQuant`（`--kv-cache-dtype turboquant_4bit_nc`）** 仅支持 A2/A3，按模型家族分为 SFA 打包主缓存与 DeepSeek V4 压缩缓存两路（后者要求 `VLLM_USE_V2_MODEL_RUNNER=1` 与 `indexer_kv_dtype='int8'`）；同时上游提供 **`--kv-cache-dtype-skip-layers`** 按层号或注意力类型跳过 KV 量化（例如 Ascend 在 A5 上自动将 MiniMax-M3 的 GQA 层写入该跳过列表以保持 BF16）。
+
+FA 量化在 A2、A3 上还有一道门槛：实例必须是 [PD 分离](pd-disaggregation.md)里做 decode、接收缓存的那一端（KV consumer），普通部署在描述文件里写了它也不会压缓存；`v0.30.0` / `main` 上 FA 量化另要求 `--kv-cache-dtype` 设成 `fp8` 或 `int8`，见[版本差异](#版本差异)。MLA 那一行只压潜向量，是因为 vllm-ascend 的 MLA 缓存把潜向量放在 K 一侧、RoPE 段放在 V 一侧，而 FA 量化对 MLA 模型只压 K 一侧，源码注释说这样做是为了保精度。个别模型在自己的代码里另定缓存精度，例如 DeepSeek-V4 在 A5 上直接把缓存建成 FP8，不属于这三条路。
 
 ### PD 分离时，两端的缓存格式不一样
 
@@ -260,14 +277,15 @@ W8A8 只管权重和激活（见[哪些矩阵是 8 位](quantization.md#哪些�
 
 ### 假如只把潜向量压成 1 字节，块数会翻倍吗
 
-**不会简单翻倍，因为 GLM 的块大小是按缓存精度凑出来的。** 一个逻辑块取 640 个 token，是为了让一块的 MLA 页装得下一层 [KDA](linear-attention.md)（GLM 用的线性 attention）在一条请求上的递推状态（561,152 B），推导见[为什么一个逻辑块是 640 个 token](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。这条规则按缓存精度的字节数算每个 token 的页大小；若没有显式指定更大的块，把同一条规则代入 1 字节：
+**不会简单翻倍，因为 GLM 的块大小是按缓存精度凑出来的。** 一个逻辑块取 640 个 token，是为了让一块的 MLA 页装得下一层 [KDA](linear-attention.md)（GLM 用的线性 attention）在一条请求上的递推状态（561,152 B），推导见[为什么一个逻辑块是 640 个 token](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。这条规则按缓存精度的字节数算每个 token 的页大小；若没有显式指定更大的块，把同一条规则代入 1 字节（假设推算，不是部署状态）：
 
-```calc
-title: 同一条定块规则代入 1 字节（假设推算，不是部署状态）
-每 token 每层的潜向量 = 512 × 1 B = 512 B
-要几个 128 token 的 kernel 块 = ceil(561,152 ÷ (128 × 512)) = ceil(8.5625) = 9
-逻辑块大小 = 128 × 9 = 1,152 个 token
-```
+$$n_{\text{kblk}} = \left\lceil \frac{561{,}152}{128 \times 512} \right\rceil = \lceil 8.5625 \rceil = 9, \qquad B_{\text{logical}} = 128 \times 9 = 1{,}152\text{ token}$$
+
+| 推算项（同一条定块规则代入 1 字节假设） | 算式 | 结果 |
+| --- | --- | --- |
+| 每 token 每层潜向量 | $512 \times 1\text{ B}$ | **512 B** |
+| 所需 128-token kernel 块数 | $\lceil 561{,}152 \div (128 \times 512) \rceil = \lceil 8.5625 \rceil$ | **9 块** |
+| 重算后的逻辑块大小 | $128 \times 9$ | **1,152 个 token** |
 
 逻辑块从 640 个 token 变成 1,152 个，每个块号占多少字节、预算能切出多少块，都要整个重算；KDA 递推状态本身（每层每条请求 561,152 B，一条请求固定占 12 个块号，见[为什么短请求也占 15 个块](glm-5-3-flash-two-node.md#为什么短请求也占-15-个块)）不属于潜向量缓存，压潜向量不会让它变小。所以「潜向量字节减半」推不出「块数翻倍」或「能多装一倍请求」。这里只是把规则代进去看方向：固定版本里 GLM 的缓存精度不会变成 1 字节。
 
@@ -317,22 +335,16 @@ GLM 上写了 `enable_sparse_sfa_c8` 或 `enable_sparse_li_c8`（不带重排优
 
 ### 版本差异
 
-rc2 还新增面向标准 full Attention 的 C8-MXFP：必须显式设置 kv-cache-dtype=mxfp8，K 动态量化、V 使用静态 E8M0 通道 scale，缓存另含尺度张量。这里的 prefill 与 decode 都从已写入的分页缓存走 QFA，不沿用前面 INT8 C8 的“新 prefill 直接用浮点”分路。该后端拒绝 PCP/DCP、非因果与滑窗，使用 512-token kernel 页；PD 仅接受能同时传 K、V 与两份尺度缓存的 Mooncake 路径，恰好不同于旧 INT8 C8 对普通整块 Mooncake 的限制。完整配置与 recipe 的区别见 [量化版本对照](quantization.md#版本差异)。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；历史 GLM-5.3-Flash 双机另钉 `db701c1f`（主缓存写死 BF16、稀疏 C8 强制关，与 `v0.23.0` 同支但不互相替代）。
 
-**v0.30.0rc2 把主 SFA KV 与 LightningIndexer 缓存精度分别推导。** 主缓存的 cache_dtype 为 fp8/int8 且模型使用 SFA 或 KPool 时启用 sparse SFA C8；因此 GLM-5.3-Flash 的 KPool 已不再意味着主 KV 必须保持旧镜像的 BF16。索引缓存则由 indexer_kv_dtype 推导 LI C8 或 LI C4，并只适用于 LightningIndexer 路径；GLM 完成的 KPool 索引仍为 BF16，尾状态仍为 FP32。
+| 核对维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| GQA `INT8 C8` 与页大小约束 | `quantization/methods/kv_c8.py`；需 ModelSlim 权重描述与 scale，`block_size % 32 == 0`，拦 `MooncakeConnector` 整块传输 | 同左 | 迁至 `quantization/methods/kv_cache/kv_c8.py`；仍要求 ModelSlim 量化权重、`block_size % 32 == 0`（`attention_v1.py#L1560-L1615`）与非 producer 改 INT8 | 延续同等规则与断言（`attention_v1.py#L1647-L1700`） |
+| `MXFP8 C8`（`--kv-cache-dtype mxfp8`） | 无该路径 | 无该路径 | 新增面向标准 full Attention 的 `AscendC8MXFPKVCacheAttentionMethod`（`mxfp_c8.py#L51-L85`）：K 动态量化、V 静态 E8M0 scale；`AscendC8MXFPAttentionBackend.get_supported_kernel_block_sizes()` 返回 `[512]` 强制 `block_size` 为 **512 倍数**（`attention_c8_mxfp.py#L380-L410`；V scale 校验 64 整除，`#L85-L115`）；prefill/decode 统一走 QFA，拒绝 PCP/DCP、非因果与滑窗 | 延续 `MXFP8 C8` 与 `512`-token kernel 页约束（`attention_c8_mxfp.py#L393-L408`） |
+| FA 量化与稀疏 SFA / LI 推导 | FA 量化在 A5 全生效、非 A5 仅 decode 生效，不看 `kv-cache-dtype`；带索引器模型平台改回模型精度 | 同左 | FA 量化先查 `--kv-cache-dtype` 为 `fp8`/`int8` 且按 `HardwareCapability.FP8_ATTENTION` 放宽角色；主 SFA KV（`cache_dtype`）与 LightningIndexer 缓存（`indexer_kv_dtype`）分别推导；GLM-5.3-Flash KPool 索引仍 BF16、尾状态 FP32 | 延续 FA 量化与稀疏推导（`modelslim_config.py#L925-L960`）；`models/glm5next/` 经可替换 MLA wrapper 决定缓存格式 |
+| `TurboQuant` 与 `--kv-cache-dtype-skip-layers` | 无 `TurboQuant` 与按层跳过选项 | 同左 | 识别 `turboquant_4bit_nc`（仅 A2/A3，经 `turboquant/config.py#L24-L110` 校验 SFA 打包主缓存与 DeepSeek V4 V2-runner 压缩缓存两路，`ascend_config.py#L920-L935`）；上游支持 `--kv-cache-dtype-skip-layers`（`cache.py#L155-L157`），Ascend 在 A5 上自动将 MiniMax-M3 GQA 层加入跳过列表（`platform.py#L701-L716`） | 延续 `TurboQuant`（扩展 V2 runner 支持）与 `--kv-cache-dtype-skip-layers`（`cache.py#L285-L287`、`platform.py#L865-L880`） |
 
-相同的“8 bit”名字不代表相同缓存对象或可互换布局。rc2 还独立识别 turboquant_4bit_nc，实际支持继续受模型、硬件、算子和 CP 组合限制。新精度会改变缓存 spec 与传输数据布局，不能只把旧 GLM 字节账除以二。
-
-三个对照版本都有 C8、FA 量化和稀疏 C8 三条路，C8 的 producer 规则、32 倍数断言和 Mooncake 启动检查也一致；差别在文件位置、带索引器模型的缓存精度改写、FA 量化的生效门槛，以及有没有 GLM-5.3-Flash 的代码。
-
-| 对照版本 | C8 方法所在 | 带索引器模型的缓存精度 | FA 量化的生效门槛 | GLM-5.3-Flash |
-|---|---|---|---|---|
-| v0.23：Ascend 2c59ff10 | `quantization/methods/kv_c8.py` | 平台初始化时改回模型精度 | A5 全部生效；其余设备只在 decode 实例生效；不看 kv-cache-dtype | 没有模型代码 |
-| 固定镜像：Ascend db701c1f | 同上 | 同上 | 同上 | 主缓存写死 BF16，稀疏 C8 强制关 |
-| v0.26：Ascend 2ed6cbba | 同上 | 同上 | 同上 | 没有模型代码 |
-| main：Ascend baa023ad | 移到 `quantization/methods/kv_cache/kv_c8.py`，配置类移到 `quantization/configs/` | 平台里这段改写已去掉 | 先要求 kv-cache-dtype 为 fp8 或 int8；支持 FP8 attention 的硬件不限制 PD 角色，其余仍要求只收不发的 decode 实例，逐层均需配方；缺 FA 条目时报错 | 移到 `models/glm5next/`，经可替换的 MLA wrapper 构建；Ascend 注册的包装仍创建上游 MLAAttention，缓存格式继续由配置和后端决定 |
-
-执行源码中的上游 vLLM 核对范围仍为 v0.23.0（0fc695fc）的 kv-cache-dtype 可选值。新增的 v0.25 FP8 文档只作为格式、缩放与后端约束的补充，不扩大固定 GLM 部署的支持范围。固定镜像与 v0.23 维护分支的 C8 代码行号相同，但固定镜像以 db701c1f 为准，不能只凭同属 v0.23 就互相代替。
+相同的“8 bit”名称不代表相同缓存对象或可互换布局；启用新精度会改变缓存 spec 与传输布局，不能直接把旧 GLM 字节账除以二。
 
 ### 源码位置
 
@@ -340,33 +352,18 @@ KIVI 的二位缓存、K/V 不同量化方向和未满分组保留高精度状�
 
 | 入口 | 对照什么 | 意味着什么 |
 |---|---|---|
-| quantization/modelslim_config.py，964–980、770–779、745–754 行 | 读缓存量化类型、登记各层；FA 量化选 INT8 或 FP8，MLA 只压 K；非 A5 只在 decode 实例逐层生效 | 开关写在权重包的描述文件里 |
-| quantization/utils.py，215–224 行 | FA 量化总开关：非 A5 且不是 KV consumer 直接返回否 | 普通 A2 部署走不到 FA 量化 |
-| quantization/methods/kv_c8.py，108–145 行 | 建系数与偏移、换 C8 实现、非 producer 才改 INT8 | 同一份历史在 PD 两端格式不同 |
-| attention/attention_v1.py，1568–1643 行 | C8 前向区分非 PD、producer 和非 producer；不支持输出融合量化 | 图中 INT8 写入不包括 PD producer 的原类型写入 |
-| 同文件 1650–1682、1733–1754 行 | 按 KV 头切系数、预算倒数；写入时乘倒数、加偏移、舍入、截断 | 一维一个系数 |
-| 同文件 1685–1731、1756–1791、1794–1893、1895–1934 行 | 收拢展开、decode 直接读 8 位、分块 prefill 分路、整段 prefill 与前缀命中 | 旧普通 C8 的 prefill 接历史或浮点 K/V 不可用时，进入收拢展开分支 |
-| ascend_config.py，280–289、349–372 行 | 稀疏 C8 的两个开关；C8 与 MooncakeConnector 的启动检查 | 开关与接口约束 |
-| attention/mla_v1.py，760–765 行；worker/model_runner_v1.py，3978–3989 行 | FA 量化层的缓存类型；MLA 缓存的 K 一侧是潜向量、V 一侧是 RoPE 段 | FA 量化压的是潜向量 |
-| core/kv_cache_interface.py，54–71 行；attention/sfa_v1.py，672–685 行 | 稀疏 C8 的缓存布局与两个含义 | 系数随块存 |
-| ops/indexer_kpool_mla.py，69–77 行；attention/indexer_kpool_mla_v1.py，557–578 行；platform.py，504–505 行 | GLM 主缓存写死 BF16；稀疏 C8 强制关；带索引器模型改回模型精度 | GLM 双机没有开缓存量化 |
-| patch/platform/patch_mamba_config.py，83–86、112–139 行 | 定块规则按缓存精度的字节数算每 token 页大小 | 改精度会改块大小 |
-| 上游 vllm 的 config/cache.py，19–35 行 | kv-cache-dtype 的可选值 | 上游入口与 Ascend 的描述文件是两套 |
+| `quantization/modelslim_config.py` / `configs/modelslim_config.py` | 读缓存量化类型、登记各层；FA 量化选 INT8/FP8，MLA 只压 K；非 A5 仅 decode 逐层生效 | 开关与逐层配方写在权重包描述文件里 |
+| `quantization/methods/kv_c8.py` & `kv_cache/kv_c8.py` | 建系数与偏移、换 C8 实现、非 producer 才改 INT8 | 同一份历史在 PD 两端格式不同 |
+| `attention/attention_v1.py`（`c09d3e20#L1560-L1615` / `8d6180e2#L1647-L1700`） | C8 前向分派、写入量化、decode 直接读 8 位与 `block_size % 32 == 0` 断言、prefill 接历史展开 | 读回不减偏移，实际配方须零偏移 |
+| `attention/attention_c8_mxfp.py` & `kv_cache/mxfp_c8.py`（`c09d3e20` / `8d6180e2`） | `MXFP8 C8` 的 512-token kernel 页、统一 QFA 路径、PCP/DCP/滑窗拒绝与四份缓存传输 | `MXFP8 C8` 与旧 INT8 C8 传输和页约束不同 |
+| `kv_cache/turboquant/config.py` & `platform.py` / `vllm/config/cache.py` | `TurboQuant` A2/A3 校验与 `--kv-cache-dtype-skip-layers`（含 A5 MiniMax-M3 GQA 自动跳过） | 稀疏低位缓存与按层回退由独立入口校验 |
+| `ops/indexer_kpool_mla.py`、`attention/indexer_kpool_mla_v1.py`、`patch_mamba_config.py` | 固定 GLM `db701c1f` 主缓存 BF16、稀疏 C8 强制关与 640-token 定块规则 | 固定镜像 GLM 双机未开缓存量化 |
 
 **来源与结论对应：**
 
-- 写入时乘倒数、加偏移、舍入、截到 −128…127，对照第 3 项来源。[C3] 系数按「KV 头 × 头内维度」取、TP 下按 KV 头切、预先算好倒数，对照第 9 项来源。[C9]
-- C8 前向先量化写入、prefill 保留浮点 k、v、按 decode / 分块 prefill / 其他三路分派，以及不支持输出融合量化，对照第 8 项来源。[C8] decode 直接读分页 INT8、只传系数、要求每页位置数是 32 的倍数，对照第 4 项来源。[C4]
-- 分块 prefill 的分路、整段 prefill 用浮点与前缀命中时展开，对照第 5、10 项来源；展开时的收拢、掩码与只乘系数，对照第 6 项来源。[C6] 「这套实现实际要求偏移为 0」是由两条读路都不减偏移推出的。[I]
-- C8 由描述文件登记，对照第 1 项来源。[C1] 建系数与偏移、换实现、只有非 producer 改 INT8，对照第 2 项来源。[C2] Mooncake 启动检查与改用逐层连接器的提示，对照第 7 项来源。[C7]
-- FA 量化选 INT8 或 FP8、MLA 只压 K，对照第 11、12 项来源。[C11] 非 A5 设备只在 KV consumer / decode 实例生效，对照第 30、31 项来源（v0.23、v0.26 同样写法见第 33、34 项）。[C30] main 上先查 kv-cache-dtype、按硬件能力判断、缺条目报错，对照第 32 项来源。 MLA 缓存的 K 一侧是潜向量、V 一侧是 RoPE 段，对照第 13 项来源。[C13] 稀疏 C8 的缓存布局与两个开关，对照第 14–16 项来源。[C14] DeepSeek-V4 在 A5 上自定 FP8，对照第 29 项来源。
-- GLM 主缓存写死 BF16、稀疏 C8 强制关与重排优化报错、带索引器模型改回模型精度，对照第 17–19 项来源。[C17][C18][C19]
-- 定块规则按缓存精度的字节数算页大小，对照第 20、21 项来源。[C21] 代入 1 字节得到 1,152 个 token 是本页推算，不是部署状态。[D]
-- 上游 kv-cache-dtype 的可选值对照第 22 项来源。[C22] 三个版本的 C8 方法、平台改写与 main 上 GLM 主缓存的建法，对照第 23–27 项来源；GLM-5.1 的 W8A8C8 测试配置对照第 28 项来源。
-- 示意模型（每层 8 个 KV 头、128 维、32 层）、s = 0.0125 的三个值、2 个 KV 头 × 64 维 × 100 个位置都是教学设定。[A] 同样 8 GiB 装 32 条请求、有效数据与按页分配减半，是按每个数 1 字节推出的。[D] GLM 每 token 13,056 B 及其拆分、561,152 B 的 KDA 状态、每条请求 12 个 KDA 块号，引自[双机部署](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)的统一账单。[D]
+- 写入量化公式、逐维系数、decode 直接读 8 位（`block_size % 32 == 0`）与 prefill 接历史展开见来源 1–10 及 `c09d3e20#L1560-L1615`、`8d6180e2#L1647-L1700` [C1][C3][C4][C6][C8]；「分页读回须零偏移」由两条读路均不减偏移推出 [I]。
+- FA 量化与稀疏 C8、GLM 固定镜像主缓存 BF16 及 640-token 定块规则见来源 11–21、29–34、46–47 [C11][C14][C17][C21]；两份公开 GLM 快照逐键筛查未见 C8/FA/indexer 量化条目。
+- `v0.30.0` / `main` 的 `MXFP8 C8`（512 页大小）、`TurboQuant` 与 `--kv-cache-dtype-skip-layers` 见来源 49–61（`ced6857a`/`ba15685a` `cache.py`、`c09d3e20`/`8d6180e2` `attention_c8_mxfp.py`、`mxfp_c8.py`、`turboquant/config.py`、`platform.py`）[C49][C53][C55][C56]。
+- 示意模型（8 KV 头 × 128 维 × 32 层）、$s = 0.0125$ 算例与 2 KV 头 × 64 维 × 100 位置为教学设定 [A]；有效/按页字节减半及 GLM 代入 1 字节重算得 1,152 token 均为推导 [D]，GLM 13,056 B/token 与 561,152 B KDA 状态回链[双机部署](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)单一出处 [D]。
 
-- 来源 27 已覆盖实际 wrapper 构造，41–42 给出 Ascend 包装中的 MLAAttention 构造及注册映射；仅有 import 不能证明实际运行路径。main 的逐层 FA 门槛及 K/V 类型分配补见来源 48。
-- rc2 C8-MXFP 的 PCP/DCP 限制与 kernel 页见来源 43；统一 QFA 读取及非因果、滑窗限制见来源 44；Q/K 动态量化、V 静态量化、共享 KV 写入条件和四份缓存传输要求见来源 45。它们不能用旧 INT8 C8 的传输限制替代。
-- 来源 46–47 是已取得的公开量化描述固定快照，分别含 113,358 / 113,454 个键；逐键筛查未见 kv_cache、fa_quant、fa_k.scale、fa_v.scale 或 indexer.quant_type 条目。这里验证文件字段，不冒称现场目录与其中一版一致。
-
-**待核：** 现场产物与公开快照是否一致、实际采用的 C8 产物偏移是否为 0，以及 A2 上的精度和性能数据。固定 main 的特定主缓存精度与 FA 量化组合还需按配置验收，不能由 rc2 的新增路径倒推。“GLM 没有可开的缓存量化路”仅限定旧镜像 db701c1f，rc2 的精度选择见版本差异。
+**待核：** 现场产物与公开快照是否一致、实际采用的 C8 产物偏移是否为 0，以及 A2/A5 上的精度和性能数据。`v0.30.0` / `main` 下主缓存精度、FA 量化、MXFP8 C8 与 TurboQuant 的具体模型组合仍须按实机配置验收；“GLM 没有可开的缓存量化路”仅限定旧镜像 `db701c1f`。

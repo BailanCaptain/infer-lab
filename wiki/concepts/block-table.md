@@ -69,9 +69,16 @@ sources:
   - 'vllm-ascend@7d825229:vllm_ascend/worker/block_table.py#L36-L60'
   - 'vllm-ascend@7d825229:vllm_ascend/worker/block_table.py#L154-L300'
   - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L36-L74'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1482-L1554'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L389-L426'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L50-L85'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/v2/block_table.py#L32-L109'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/utils.py#L1475-L1547'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/block_table.py#L29-L85'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -219,14 +226,14 @@ file: block-table-flow
 
 拆开不需要搬数据。worker 切显存时，就把 MLA 每一页看成 5 段首尾相接的 128 个位置，整层的缓存张量按「块号数 × 5」段来排。kernel 块号 5b + j 正好是块号 b 那一页的第 j 段，所以只要在表里把 b 写成 5b 到 5b + 4 五个数，算子按 128 一块去找，落到的还是原来那页。设 b 是位置 p 所在那个 640 块的块号：
 
-```calc
-title: full 组一个块号怎样展开，槽位为什么不变
-一个 640 的块里的 kernel 块数 = 640 ÷ 128 = 5
-块号 b 展开 = 5b 到 5b + 4
-位置 p 的 kernel 块号 = 5b + (p % 640) // 128
-位置 p 的槽位 = (5b + (p % 640) // 128) × 128 + p % 128 = 640b + p % 640
-> 和按 640 一块直接算的结果相同
-```
+$$\text{slot}(p) = \left(5b + \left\lfloor\frac{p \bmod 640}{128}\right\rfloor\right) \times 128 + (p \bmod 128) = 640b + (p \bmod 640)$$
+
+| `full` 组块号展开项（设 $b$ 为位置 $p$ 所在 640 块的物理块号） | 算式与映射规则 | 说明 |
+| --- | --- | --- |
+| 每个 640 块对应的 kernel 块数 | $640 \div 128 = \mathbf{5}$ | 必须整除，否则启动报错 |
+| 块号 $b$ 在 `full` 组表里的展开项 | $5b,\; 5b+1,\; 5b+2,\; 5b+3,\; 5b+4$ | 连续 5 格，不搬动显存数据 |
+| 位置 $p$ 的 kernel 块号 | $5b + \lfloor (p \bmod 640) \div 128 \rfloor$ | 落在该页 5 段 128 中的对应一段 |
+| 位置 $p$ 的最终槽位 | $640b + (p \bmod 640)$ | 与按 640 一块直接算的结果完全相同 |
 
 所以读源码、看日志时见到块长 128 和 640 同时出现，说的是这两层：分配按 640 一块，full 组的表和算子按 128 一格。两者必须整除，640 不是 128 的倍数时启动就会报错。
 
@@ -248,14 +255,12 @@ KDA 那 12 个块号不参与这一步的槽位计算。
 
 表行容量还必须容纳分配器实际交付、并经块号转换后得到的全部表项。固定执行侧源码的 GLM-5 indexer kpool 注释指出，缓存规格带有压缩比字段，并不代表分配器会按压缩后的 token 数分配块；若仅凭这个字段缩短表行，长序列追加块号时可能超出容量。这项限制要求按实际分配规则核对表行，不能据此缩减本部署上面的容量设定。
 
-```calc
-title: 5 张表各一行多宽
-full 组一行 = ceil(133,120 ÷ 640) × 5 = 208 × 5 = 1,040 格 × 4 B = 4,160 B
-尾状态组一行 = 133,120 ÷ 4 = 33,280 格 × 4 B = 133,120 B = 130 KiB
-每个 KDA 组一行 = 1 + 3 = 4 格 × 4 B = 16 B
-5 张表 32 行合计 = 32 × (4,160 + 133,120 + 3 × 16) B ≈ 4.19 MiB
-> NPU 上一份，CPU 上还有一份
-```
+| 缓存组（最大长度 133,120，每格 `int32` 占 4 B） | 单行格数算式 | 单行字节数 |
+| --- | --- | --- |
+| `full` 组 | $\lceil 133{,}120 \div 640 \rceil \times 5 = 208 \times 5 = \mathbf{1{,}040\text{ 格}}$ | $1{,}040 \times 4\text{ B} =$ **4,160 B** |
+| 尾状态组 | $133{,}120 \div 4 = \mathbf{33{,}280\text{ 格}}$ | $33{,}280 \times 4\text{ B} = 133{,}120\text{ B} =$ **130 KiB** |
+| 每个 KDA 组（共 3 组） | $1 + 3 = \mathbf{4\text{ 格}}$ | $4 \times 4\text{ B} =$ **16 B** |
+| **5 张表 × 32 行合计** | $32 \times (4{,}160 + 133{,}120 + 3 \times 16)\text{ B}$ | $\approx \mathbf{4.19\text{ MiB}}$（NPU 与 CPU 各存一份） |
 
 合起来约 4.19 MiB，大约半个块号；和整张卡能切出的约 3,855 个块号（[部署页](glm-5-3-flash-two-node.md#两种块数各在什么时候用)的算例）比，同样可以忽略。
 
@@ -293,10 +298,10 @@ GLM 所有带缓存的层（11 层稀疏 MLA、MTP 层、34 层 KDA）都按块�
 
 块表没有开关，每一步都要用。昇腾官方设计文档把它定义为把每个块在序列内的逻辑地址翻译成设备显存全局物理地址的表，形状是 (max num request, max model len / block size) [S30]；PagedAttention 论文 §4 给出逻辑块、物理块与块表的原始设计 [S29]。决定它形状和行为的是下面几样。
 
-- **按组建表。** 调度侧 `KVCacheBlocks.get_block_ids()` 返回「每个缓存组一个列表」的元组；协调器给每个组一个 manager，共用一个 `BlockPool` [C26]；块号 0 在池初始化时被取出当 `null_block`，从不分配 [C27]；官方设计文档同样用 block_0 标记未用的块。worker 侧 `MultiGroupBlockTable` 按组建 `BlockTable`，行操作对各组同一个 `row_idx` 依次执行。
-- **缓冲与行操作。** 每个 `BlockTable` 的表是 int32 的 CPU/NPU 双份缓冲，行数 `max_num_reqs`，另有 numpy 游标 `num_blocks_per_row`；`add_row` = 游标归零再 `append_row`，`clear_row` 把用过的列填回 0，`move_row` / `swap_row` 整行复制或对调 [C6]。调用方在上游持久批次：`add_request` → `add_row`、`remove_request` → `clear_row`、`swap_states` → `swap_row`、`condense` → `move_row` [C22]；老请求的新块在 `_update_states` 里 `append_row`，抢占恢复时整组替换 `block_ids` 再重新入座 [C24]。
-- **kernel 块长。** model runner 对每个 `AttentionSpec` 组调 `select_common_block_size(块长, 该组后端)`，非注意力组填 `[0]`，注释写明用来关掉 Mamba 组的槽位计算 [C9]。该函数先看分配块长本身是否被所有后端接受，否则从各后端 int 形式的块长里由大到小挑第一个能整除、又被所有后端接受的。GLM 的 MLA 后端只返回 `[GLM5_SFA_KERNEL_BLOCK_SIZE]` 即 128 [C18]，indexer K 与尾状态后端返回 `MultipleOf(1)`。
-- **拆块。** 昇腾 `BlockTable.__init__` 取第一个能整除 `physical_block_size` 的 kernel 块长：`block_size = 128`、`blocks_per_phys_block = 640 // 128 = 5`、`use_hybrid_blocks = True`，列数 = 每请求最大块数 × 5 [C5]。`append_row` 经 `_convert_physical_to_logical_blocks` 把 b 展开成 `b*5 … b*5+4` [C7]；上游 vLLM 的同一逻辑叫 `map_to_kernel_blocks`。worker 切显存时把 GLM 主 MLA 缓存按 `num_blocks * blocks_per_scheduler_block` 段、每段 128 个位置取形状 [C13]。
+- **按组建表。** 调度侧 `KVCacheBlocks.get_block_ids()` 返回「每个缓存组一个列表」的元组；协调器给每个组一个 manager，共用一个 `BlockPool`，块号 0 在池初始化时被取出当 `null_block`，从不分配（来源 26–27）；官方设计文档同样用 `block_0` 标记未用的块。worker 侧 `MultiGroupBlockTable` 按组建 `BlockTable`，行操作对各组同一个 `row_idx` 依次执行。[C26]
+- **缓冲与行操作。** 每个 `BlockTable` 的表是 int32 的 CPU/NPU 双份缓冲，行数 `max_num_reqs`，另有 numpy 游标 `num_blocks_per_row`；`add_row` = 游标归零再 `append_row`，`clear_row` 把用过的列填回 0，`move_row` / `swap_row` 整行复制或对调（来源 6）。调用方在上游持久批次：`add_request` → `add_row`、`remove_request` → `clear_row`、`swap_states` → `swap_row`、`condense` → `move_row`；老请求的新块在 `_update_states` 里 `append_row`，抢占恢复时整组替换 `block_ids` 再重新入座（来源 22、24）。[C6]
+- **kernel 块长。** model runner 对每个 `AttentionSpec` 组调 `select_common_block_size(块长, 该组后端)`，非注意力组填 `[0]`，注释写明用来关掉 Mamba 组的槽位计算（来源 9）。该函数先看分配块长本身是否被所有后端接受，否则从各后端 int 形式的块长里由大到小挑第一个能整除、又被所有后端接受的。GLM 的 MLA 后端只返回 `[GLM5_SFA_KERNEL_BLOCK_SIZE]` 即 128（来源 18），indexer K 与尾状态后端返回 `MultipleOf(1)`。[C9]
+- **拆块。** 昇腾 `BlockTable.__init__` 取第一个能整除 `physical_block_size` 的 kernel 块长：`block_size = 128`、`blocks_per_phys_block = 640 // 128 = 5`、`use_hybrid_blocks = True`，列数 = 每请求最大块数 × 5；`append_row` 经 `_convert_physical_to_logical_blocks` 把 b 展开成 `b*5 … b*5+4`（来源 5、7）；上游 vLLM 的同一逻辑叫 `map_to_kernel_blocks`。worker 切显存时把 GLM 主 MLA 缓存按 `num_blocks * blocks_per_scheduler_block` 段、每段 128 个位置取形状（来源 13）。[C5]
 
 
 - **列数。** `max_num_blocks_per_req = cdiv(max_model_len, block_size × CP 总数)`，Mamba 组在此基础上加 `num_speculative_blocks`；昇腾块表只对 `AscendMLAAttentionSpec` 按 `compress_ratio` 缩列，GLM 的 indexer K 用上游 `MLAAttentionSpec`，不缩。本部署三类行宽 1,040 / 33,280 / 4 格 [D]。
@@ -332,28 +337,33 @@ GLM 所有带缓存的层（11 层稀疏 MLA、MTP 层、34 层 KDA）都按块�
 
 ### 版本差异
 
-**v0.30.0rc2 延续了逻辑块与物理块分离，并把环形尾状态单独处理。** 普通 DCP 槽位以 physical_block_size×DCP 定位虚拟物理块，再映射到本卡；不再把 PCP 额外乘入。Mamba 状态在 DCP rank 间复制，表容量直接取 spec 给出的每卡容量。环形尾缓存要求 DCP=1，每请求一格物理环，不拆成普通逻辑页；通用 compute_slot_mapping 对该组填 PAD_SLOT_ID，由专用状态路径管理。因而本页旧镜像的尾状态表长度和 PCP×DCP 扩列公式不能直接用于 rc2。
+**`v0.30.0` 的平台 `refresh_block_size` 与后端校准形成四路 `block_size` 对齐逻辑，同时在块表层延续逻辑块/物理块分离与环形尾状态特例。** 按 `vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1482-L1554` 与 `platform.py#L389-L426`（来源 47–48）核实，四路对齐顺序如下（先排除共享目标配置的独立 draft 模型，未指定 `--block-size` 时默认 `128`）：[C47]
 
-钉点：v0.23 为 Ascend `2c59ff10` / vLLM `0fc695fc`，v0.26 为 Ascend `2ed6cbba` / vLLM `568afb3a`，main 为 Ascend `baa023ad`。**本页 GLM 行为按专用镜像 Ascend `db701c1f`。** v0.23 与 v0.26 里没有 GLM-5.3-Flash 的模型文件，下表这两列只说明块表类本身的差别。
+1. **A5 `C8_MXFP` KV 量化路径**：要求 `block_size` 为 `A5_C8_MXFP_KV_CACHE_BLOCK_SIZE`（512）的整数倍；用户显式指定非倍数直接抛 `ValueError`，未显式指定则自动改为 `512` 并返回。
+2. **`deepseek_v4` 模型路径**：仅接受 `[32, 64, 128]`，超出范围则打告警并强制设为 `32` 后返回。
+3. **混合架构路径（`model_config.is_hybrid`）**：`refresh_block_size` 直接返回，把块长对齐交给模型专属与平台钩子——`NPUPlatform._align_hybrid_block_size` 对 MLA + `int8`/`fp8` + kpool indexer 调用 `HybridAttentionMambaModelConfig.verify_and_update_config` 复用打包几何；`update_block_size_for_backend` 在关 prefix caching、启用 KV 传输且 `mamba_cache_mode == "align"` 时，要求 `mamba_block_size % block_size == 0`。
+4. **通用与 `xlite` 路径**：非混合模型启用 `enable_prefix_caching` 或 `enable_chunked_prefill` 且 `block_size != 128` 时统一改回 `128`；开启 `xlite_graph_config` 且 `block_size > 128` 时同样钳回 `128`。
 
-| 项 | v0.23 | v0.26 | main | 意味着什么 |
-|---|---|---|---|---|
-| GLM 专用路径 | 无 | 无 | 有 glm5next 模型目录；尾状态改用环形规格，每请求固定一页 | indexer 折表、三套槽位按镜像写，读社区分支时文件名对不上 |
-| 尾状态组一行 | 不适用 | 不适用 | 环形组一行只留 1 格，kernel 块长强制等于块长 [C39] | 镜像一行 33,280 格，main 只要 1 格 |
-| 槽位 kernel | 导入上游 kernel，一批 1024 个 token [C34] | 昇腾自有 kernel，按 tile 处理，只把行内一窗相邻列载进片上再 gather [C38] | 同 v0.26；多于一个非 Mamba 组、各组 DCP=1 且没有压缩位置覆盖时可融合一次调用 | 其他条件仍逐组计算，profiling 里 kernel 名和调用次数不同 |
-| 行扩展与槽位缓冲 | pcp × dcp > 1 时行数乘 (1 + 投机数)；槽位缓冲多留 2 × pcp × 最大请求数，再加 MTP 草稿余量 | 行扩展只看 dcp；槽位缓冲只加草稿余量 | 同 v0.26 | 不开 CP 时 v0.23 白留 2 × 最大请求数个 int32，不是 bug |
-| 提交方式 | `clone().pin_memory()` 后非阻塞拷 | 上游 `copy_to_gpu` | 同 v0.26 | 行为等价，v0.23 每步多一次 clone |
-| 列数调整 | UniformType 包装内的规格带 `compress_ratio` 时缩列；Mamba 组 pcp × dcp > 1 时扩列 | 缩列同 v0.23；Mamba 扩列只看 dcp | 两步都删，注释写明规格已给出每卡容量、Mamba 状态在 DCP 间复制 | 读 main 时去规格里找列数 |
+普通 DCP 槽位以 `physical_block_size × DCP` 定位虚拟物理块再映射到本卡，不再把 PCP 额外乘入；Mamba 状态在 DCP rank 间复制，表容量直接取规格给出的每卡容量；环形尾缓存要求 `DCP=1`，每请求一格物理环，不拆成普通逻辑页，通用 `compute_slot_mapping` 对该组填 `PAD_SLOT_ID`。因此本页旧镜像的尾状态表长度和 `PCP × DCP` 扩列公式不能直接套用于 `v0.30.0` / `main`。
 
-版本表来源 39 的容量特例已对照 `vllm-ascend@baa023ad:vllm_ascend/worker/block_table.py#L53-L60`：环形尾缓存要求 `dcp_world_size == 1`，否则抛出不支持上下文并行的错误。满足条件时，每个请求使用一个物理环，表行容量设为 1，并把 kernel 块大小设为整个物理块以禁止普通逻辑拆分。这种状态布局需要与普通分页块展开分别理解；这里说明该固定快照分支，不表示本部署已切换到它，也没有设备实测。
+四版社区分支钉点：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）、`main`（`8d6180e2` / `ba15685a`）；**本文 GLM 绑定算例按例外 B 镜像 `vllm-ascend@db701c1f` 解释**，`v0.23.0` 与 `v0.26.0rc` 未含 GLM-5.3-Flash 模型文件。
 
-镜像 `db701c1f` 在块表上与 v0.23 基本一致：导入上游 kernel、用 `clone()` 提交。不同有三处：缩列只认 `AscendMLAAttentionSpec`；`append_row` 多了行容量检查；槽位缓冲只多留 2 × pcp × 最大请求数，没有 MTP 草稿余量。上游 vLLM `0fc695fc` 自带同构的 `BlockTable` 与 `MultiGroupBlockTable`，昇腾用自己的版本替换。
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| 块表模块形态 | 仅 V1 `worker/block_table.py` | 仅 V1 `worker/block_table.py` | V1 `worker/block_table.py` 与 V2 `worker/v2/block_table.py` 并存 | **移除 V1 `worker/block_table.py`**，统一收敛到 `worker/v2/block_table.py` 的 `AscendBlockTables`（适配上游 `#57169` 本地保留 kernel 块展开） |
+| GLM 尾状态与环形组 | 无 GLM 模型路径 | 无 GLM 模型路径 | `glm5next` 尾状态改用环形规格；`is_circular` 组要求 `DCP=1`、一行 1 格且 `kernel_sizes=[block_size]`（来源 49） | 同 `v0.30.0` 语义，经 V2 `AscendBlockTables` + `slot_mapping_enabled` 与 `dcp_sharded` 管理（来源 52） |
+| 槽位计算 kernel | 导入上游 Triton kernel，一批 1024 token（来源 34） | 昇腾自有 tiled kernel，只把行内相邻列载入片上再 gather（来源 38） | V1 延续 tiled kernel 并支持多非 Mamba 组融合计算；V2 调 `_compute_slot_mappings_kernel`（来源 50） | V2 统一使用 `ops/triton/block_table/compute_slot_mappings.py` |
+| 平台 `block_size` 对齐 | 仅基础 `128` 约束 | 沿用通用检查 | 四路 `refresh_block_size`（C8_MXFP 512 / `deepseek_v4` / hybrid 放行 / 通用与 xlite 128）+ `platform.py` hybrid 钩子 | 同 `v0.30.0` 四路逻辑（`utils.py#L1475-L1547`，清理了 `deepseek_v4` 的死分支 `None` 判断） |
+| 提交与行扩列方式 | `clone().pin_memory()` 非阻塞拷；按 `pcp × dcp` 扩列、带 `compress_ratio` 缩列 | 改为上游 `copy_to_gpu`；扩列只看 `dcp` | 沿用 `copy_to_gpu`；删除手动 `compress_ratio` 缩列与 Mamba 扩列，由 spec 给出每卡容量 | V2 全量基于设备张量缓冲与 `AscendBlockTables` 维护 |
+
+镜像 `db701c1f` 在块表上与 `v0.23.0` 基本一致：导入上游 kernel、用 `clone()` 提交。不同有三处：缩列只认 `AscendMLAAttentionSpec`；`append_row` 多了行容量检查；槽位缓冲只多留 `2 × pcp × 最大请求数`，没有 MTP 草稿余量。上游 vLLM `0fc695fc` 自带同构的 `BlockTable` 与 `MultiGroupBlockTable`，昇腾用自己的版本替换。[C52]
 
 ### 源码位置
 
 | 要找的 | 位置 |
 |---|---|
-| 昇腾块表类 | `vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py`：构造 L14–L101，行操作与槽位 L103–L185，提交与展开 L284–L309，多组 L329–L462 |
+| 昇腾块表类（镜像与 `v0.30.0` / `main`） | `vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py`（L14–L101、L103–L185、L284–L309、L329–L462）；`c09d3e20:worker/block_table.py#L50-L85` 与 `worker/v2/block_table.py#L32-L109`；`8d6180e2:worker/v2/block_table.py#L29-L85` |
+| 四路 `block_size` 对齐逻辑 | `vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1482-L1554`、`platform.py#L389-L426`；`vllm-ascend@8d6180e2:vllm_ascend/utils.py#L1475-L1547` |
 | 上游块表类与槽位 kernel | `vllm@0fc695fc:vllm/v1/worker/block_table.py`：构造 L18–L101，行操作 L102–L201，多组 L223–L282，kernel L325–L380 |
 | 每组 kernel 块长与列数 | `vllm_ascend/worker/model_runner_v1.py` L4943–L5026；`vllm/v1/worker/utils.py` L262–L327 |
 | 提交与算槽位的调用点 | `model_runner_v1.py` L834–L837、L1246–L1254 |
@@ -365,7 +375,7 @@ GLM 所有带缓存的层（11 层稀疏 MLA、MTP 层、34 层 KDA）都按块�
 | 调度侧按组的块号与占位块 | `vllm/v1/core/kv_cache_manager.py` L26–L83；`kv_cache_coordinator.py` L90–L119；`block_pool.py` L173–L177、L333–L440 |
 | 普通注意力的 PagedAttention 门槛 | `vllm_ascend/attention/utils.py` L104–L120；默认值 `vllm_ascend/ascend_config.py` L246 |
 | 官方设计文档 | `docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md` L49–L62、L153–L196 |
-| 版本对照 | `2c59ff10` 块表 L1–L180、L278–L283；`2ed6cbba` 块表 L10–L108、L289–L290 与 `ops/triton/compute_slot_mapping.py` L12–L86；`baa023ad` 块表 L36–L110、L298–L299、L415–L490 与 `core/kv_cache_interface.py` L303–L318 |
+| 历史版本对照 | `2c59ff10` 块表 L1–L180、L278–L283；`2ed6cbba` 块表 L10–L108、L289–L290 与 `ops/triton/compute_slot_mapping.py` L12–L86 |
 
 **正文推导口径。** 首屏与示意图用一块 4 个位置、块表 [7, 2, 9] 的假设，只为手算 [A]。R1 的 15 个块号、640、133,120、32 取自主线底稿 01 §A0.4–A0.5、§A2.1–A2.2，每 token 字节取自底稿 02 §5.6；行宽、4.19 MiB、每步 134 KiB 与三套槽位的换算是按上面源码公式代入这些数得出的 [D]。
 

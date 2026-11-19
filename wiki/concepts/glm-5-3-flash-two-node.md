@@ -65,6 +65,15 @@ sources:
   - 'vllm@0fc695fc:vllm/model_executor/models/glm4_1v.py#L429-L455'
   - 'vllm@0fc695fc:vllm/model_executor/layers/conv.py#L17-L102'
   - 'vllm@0fc695fc:vllm/config/multimodal.py#L145-L158'
+  - 'vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md#L15-L45'
+  - 'vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md#L305-L420'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/kda.py#L171-L185'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L183-L220'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L724-L729'
+  - 'vllm-ascend@8d6180e2:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L45'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L299-L325'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda_input_projection_tp.py#L18-L45'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L815-L820'
 relations:
   - to: learning-guide
     kind: builds-on
@@ -90,7 +99,11 @@ relations:
   - to: kv-cache-memory-profiling
     kind: builds-on
     note: 启动时量剩余显存、再一次性切成 KV 块的那一步
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 contradicts: []
 updated: '2026-11-10'
@@ -255,15 +268,14 @@ KDA 合计有两种取整口径：按每层字节精算、乘完 34 层后再取
 
 用同一配置的视觉宽度 1024、MLP 宽度 4096、输出宽度 4096、合并层中间宽度 10240，按 BF16、TP8、保留视觉塔计算：
 
-```calc
-title: 每卡视觉权重的独立账（不含视觉激活和临时缓冲）
-24 层的大矩阵 = 24 × (4 × 1024² + 3 × 1024 × 4096) ÷ 8 × 2 B = 96 MiB
-合并层的大矩阵 = (4096² + 3 × 4096 × 10240) ÷ 8 × 2 B = 34 MiB
-图块卷积及偏置 = (1024 × 3 × 2 × 14² + 1024) × 2 B = 2.299 MiB
-下采样卷积及偏置 = (4096 × 1024 × 2² + 4096) × 2 B = 32.008 MiB
-其余偏置和归一化 = (24 × 5632 + 8192 + 1024) × 2 B = 0.275 MiB
-视觉权重小计 = 164.582 MiB / 卡
-```
+| 每卡视觉权重分项（BF16、TP8、不含视觉激活和临时缓冲） | 算式 | 每卡大小 |
+| --- | --- | --- |
+| 24 层的大矩阵 | $24 \times (4 \times 1024^2 + 3 \times 1024 \times 4096) \div 8 \times 2\text{ B}$ | **96 MiB** |
+| 合并层的大矩阵 | $(4096^2 + 3 \times 4096 \times 10240) \div 8 \times 2\text{ B}$ | **34 MiB** |
+| 图块卷积及偏置 | $(1024 \times 3 \times 2 \times 14^2 + 1024) \times 2\text{ B}$ | **2.299 MiB** |
+| 下采样卷积及偏置 | $(4096 \times 1024 \times 2^2 + 4096) \times 2\text{ B}$ | **32.008 MiB** |
+| 其余偏置和归一化 | $(24 \times 5632 + 8192 + 1024) \times 2\text{ B}$ | **0.275 MiB** |
+| **视觉权重小计** | 以上五项相加 | **164.582 MiB / 卡** |
 
 第一行的 4 个方阵来自 Q、K、V 和输出投影，3 个升降维矩阵来自 SwiGLU。每层其余 5632 个数包括 TP 切分后的 QKV 与 gate/up 偏置、复制的输出与 down 偏置，以及归一化参数。此账只统计视觉参数；模型加载后的总占用还包括量化辅助张量、对齐与运行时缓冲，应以启动日志中的加载结果和 profile 为准。
 
@@ -275,26 +287,27 @@ title: 每卡视觉权重的独立账（不含视觉激活和临时缓冲）
 
 **这里的「块」比常见的大得多：一个逻辑块是 640 个 token。** 原因是 GLM 是 hybrid 模型——34 层 KDA 线性 attention 存的是固定大小的递推状态，11 层稀疏 MLA 存的是按 token 增长的压缩表示，两种状态要共用同一个池子。vllm-ascend 的做法是让块大到「一个 MLA 页刚好装得下一整份 KDA 状态」：
 
-```calc
-title: KV 块的大小是怎么定的
-KDA 每层每请求的状态（TP=8 之后） = 561,152 B
-MLA 每 token 每层 = kv_lora_rank 512 × 2 B = 1,024 B
-需要多少个 128 token 的 kernel 块 = ceil(561,152 / (128 × 1024)) = 5
-逻辑块大小 = 128 × 5 = 640 个 token
-```
+$$\text{kernel 块数} = \left\lceil \frac{561{,}152}{128 \times 1{,}024} \right\rceil = 5, \qquad \text{逻辑块大小} = 128 \times 5 = 640\text{ 个 token}$$
+
+| 逻辑块大小推导项 | 算式 | 数值 |
+| --- | --- | --- |
+| KDA 每层每请求的状态（TP=8 之后） | 递归状态 524,288 B + 短卷积状态 36,864 B | **561,152 B** |
+| MLA 每 token 每层主 cache | `kv_lora_rank` $512 \times 2\text{ B}$ | **1,024 B** |
+| 需容纳整份 KDA 状态的 128-token kernel 块数 | $\lceil 561{,}152 \div (128 \times 1{,}024) \rceil$ | **5** |
+| **逻辑块大小** | $128 \times 5$ | **640 个 token** |
 
 ### 占住一个块号，要用多少显存
 
 **640 表示逻辑块覆盖的 token 数，块号则是池里分配空间的编号。** 每个块号对应所有存储层的一组空间，因此要把这些层的字节数加起来。这里包括主干和 MTP 的稀疏 MLA，也包括索引器的压缩 cache：
 
-```calc
-title: 一个 KV 块号占多少显存
-存 KV 的层 = 主干 11 层稀疏 MLA（第 3、7、…、43 层） + MTP 第 45 层 = 12 层
-每块字节 = 12 × 655,360（MLA 主 cache） + 12 × 40,960（索引器压缩 cache）
-  = 8,355,840 B = 7.969 MiB
-折合每 token = 8,355,840 ÷ 640 = 13,056 B，其中 MTP 层占 1,088 B
-块数 = 可用 KV 显存 ÷ 8,355,840
-```
+$$\text{每块号字节} = 12 \times 655{,}360 + 12 \times 40{,}960 = 8{,}355{,}840\text{ B} = 7.969\text{ MiB}$$
+
+| 单个 KV 块号显存账 | 算式 | 结果 |
+| --- | --- | --- |
+| 存 KV 的层数 | 主干 11 层稀疏 MLA（第 3、7、…、43 层）+ MTP 第 45 层 | **12 层** |
+| 每块号总字节 | $12 \times 655{,}360\text{ B（MLA 主 cache）} + 12 \times 40{,}960\text{ B（索引器压缩 cache）}$ | $8{,}355{,}840\text{ B} =$ **7.969 MiB** |
+| 折合每 token | $8{,}355{,}840 \div 640$ | **13,056 B**（其中 MTP 层占 **1,088 B**） |
+| 整卡块数 | $\lfloor \text{可用 KV 显存} \div 8{,}355{,}840\text{ B} \rfloor$ | 见下节预算算例 |
 
 ### 两种块数各在什么时候用
 
@@ -302,14 +315,13 @@ title: 一个 KV 块号占多少显存
 
 先看示例算法。它把可用 KV 显存写成整齐的 30.00 GiB，便于后面的单请求、并发请求章节沿用：
 
-```calc
-title: 显存余量能容纳多少 KV
-预算 = 64 GiB × 0.85 = 54.40 GiB
-减假设权重 = − 21 GiB = 33.40 GiB
-减激活峰值与非 torch 占用 = − 3.4 GiB = 30.00 GiB，可用于 KV
-块数 = 30 GiB ÷ 8,355,840 B = 3,855 块
-能存 = 3,855 × 640 ≈ 2.47 M token
-```
+| 显存余量与 KV 块数预算（假设每卡 64 GiB、权重 21 GiB、激活峰值与非 torch 占用 3.4 GiB） | 算式 | 结果 |
+| --- | --- | --- |
+| 总显存预算（85%） | $64\text{ GiB} \times 0.85$ | **54.40 GiB** |
+| 减假设权重 | $54.40 - 21$ | **33.40 GiB** |
+| 减激活峰值与非 torch 占用（可用于 KV） | $33.40 - 3.4$ | **30.00 GiB** |
+| 切出的 KV 块数 | $\lfloor 30\text{ GiB} \div 8{,}355{,}840\text{ B} \rfloor$ | **3,855 块** |
+| 理论可存 token 上限 | $3{,}855 \times 640$ | $\approx$ **2.47 M token** |
 
 只代入所列语言权重子账时余下约 **30.42 GiB、3,908 块**，与 3,855 块算例相差 1.4%；比较见前面的[单机与双机表](#为什么是两台机器不是一台)。**后文的请求演算沿用 3,855；3,908 用于展示子账计算，不能当成精确设备容量。** 实际部署的块数须代入完整加载占用和启动 profile 的显存值。
 
@@ -370,6 +382,19 @@ file: glm-two-node-startup
 6. **MTP 同时影响权重、KV 和每步 token 数。** 前两项见本页的权重表与每块字节算式；每请求每步从 1 个变成 4 个 token，还会影响图尺寸、token 预算和 MC2 的 128 门槛。见 [speculative decoding](speculative-decoding.md)。
 
 沿着请求本身往下走，看 [一条请求的全过程](one-request.md)；多条请求同时进来时的样子，看 [并发请求](concurrent-requests.md)。
+
+## 活跃食谱增量对照：v0.30.0 与 main 变了什么
+
+上文全篇算例、16 卡容量子账与 3,855 / 3,908 块预算属于**例外 B 历史绑定算例**，严格钉在 `vllm@0fc695fc + vllm-ascend@db701c1f`（教程提交 `0576b647`）以确保与全站 19 篇冻结 3D 算例页数字自洽。若直接部署社区正式版 `v0.30.0`（`vllm-ascend@c09d3e20`）或开发主线 `main`（`vllm-ascend@8d6180e2`）中的活跃 `GLM5.3-Flash.md` 食谱，核心架构与参数有以下四类增量演进，不可直接把旧镜像字节账套回新版本：
+
+| 演进维度 | 历史绑定镜像（`db701c1f` / 教程 `0576b647`） | `v0.30.0` 活跃食谱（`c09d3e20`） | `main` 活跃食谱（`8d6180e2`） |
+| --- | --- | --- | --- |
+| **模型目录与缓存重构** | 单文件 `models/glm5_next.py` + `glm5_next_mtp.py` + `glm5_next_multimodal.py`；依赖 `patch/platform/` 改写块长与 5 组 KV | 重构为模块化目录 `models/glm5next/`（`model.py`、`attention.py`、`kda.py`、`mtp.py`、`cache_config.py`、`kv_cache.py`、`sparse_attn_indexer_kpool.py`、`ops/`）；尾状态改用每请求 1 格的环形缓冲规格 | 延续 `models/glm5next/`，新增 `kda_input_projection_tp.py`、`recoverssm_config.py`、`recoverssm_metadata.py` |
+| **KDA / MLA 投影融合** | KDA 经 `REGISTERED_ASCEND_OPS` 替换上游类，6 路输入投影独立执行；MLA 权重按旧镜像量化描述分派 | KDA 的 `q/k/v/b/f_a/g_a` 六路输入合并为单次列切融合投影 `in_proj_qkvbfg_a`（`f_a/g_a` 仍逐卡复制）；MLA 低秩输入改用 `DeepSeekV2FusedQkvAProjLinear`，且 `kv_b_proj` 显式设 `quant_config=None` 保持 BF16 | `in_proj_qkvbfg_a` 进一步支持细粒度 `qkv_iproj_tensor_parallel_size`（`KDAInputProjectionTP`） |
+| **A2 双机混部启动项与环境变量** | 2×A2×8、TP8/DP2/EP16、133120、32、8192、0.85、MTP 3、`FULL_DECODE_ONLY`（未显式写 Runner 版本与 prefetch） | 保留上述 A2 双机混部核心参数；**显式设置 `VLLM_USE_V2_MODEL_RUNNER=0`**（当时仅支持 Model Runner V1），新增 `--safetensors-load-strategy prefetch`，并显式列出 `PYTORCH_NPU_ALLOC_CONF=expandable_segments:True`、`HCCL_OP_EXPANSION_MODE=AIV`、`HCCL_BUFFSIZE=1024`、`VLLM_RPC_TIMEOUT=3600000`、`VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=3000`、`HCCL_EXEC_TIMEOUT=3600`、`HCCL_CONNECT_TIMEOUT=1200` 与网卡环境变量 | 同组 A2 双机脚本保留核心参数与超时变量，但 **全面切换至 Model Runner V2（`VLLM_USE_V2_MODEL_RUNNER=1`）** |
+| **硬件覆盖与 PD / KV Pool 形态** | 仅覆盖 A2 双机混部 W8A8 | 扩展 **A3 单机（16 逻辑卡）** 与 **950DT 单机（`GLM-5.3-Flash-w8a8-mxfp8`）**；支持 **W8A8C8 动态 KV 量化**（A3 用 `--kv-cache-dtype int8`、950DT 用 `--kv-cache-dtype fp8`）；新增 4 机 A2 / 2 机 A3 / 2 机 950DT 的 **1P1D PD 分离** 与 DDR KV Cache Pool（`MultiConnector` = `MooncakeConnectorV2` + `AscendStoreConnector`，强制 `use_layerwise: false`、自动设 `--mamba-cache-mode align`） | A3 PD 进一步升级为 Prefill **`PCP8/TP1`** + `--mamba-ssm-cache-dtype bfloat16` + `enable_fused_mc2: 2` + `--enable-eplb`（Decode 保持 `PCP1`）；950DT 与 A2 同步收敛到 MRV2 |
+
+因此，阅读站内第 7 章与冻结 3D 绑定算例时，仍以本文前几节的固定钉点账单为准；若要在现网直接按 `v0.30.0` 或 `main` 启动 GLM-5.3-Flash，必须以对应提交的 `GLM5.3-Flash.md` 镜像、环境变量与实际启动 profile 重新核定 KV 块数。
 
 ## 对照源码
 
@@ -437,40 +462,30 @@ file: glm-two-node-startup
 
 ### 版本差异
 
-**v0.30.0rc2 保留双机混部配方，也另给出四机 A2 的 PD 分离配方。** 双机混部仍是每机 TP8、跨两机 DP2；新增 PD 示例使用两台 P、两台 D，P 为 DP2/TP8，D 为 DP8/TP2，通过 MooncakeConnectorV2 传递缓存。这两种部署的角色、设备总数和缓存转移都不同，不能把四机配置贴进本页的两机账单。
+四版社区分支按固定钉点核验：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0`（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；**本文双机 16 卡算例与容量推导固定在例外 B 专用镜像 `vllm-ascend@db701c1f` + `vllm@0fc695fc`，两套钉点分开核对。**
 
-rc2 教程要求 GLM-5.3-Flash 使用 MRV1；KPool 后端仍拒绝 PCP/DCP。执行侧文件改为 models/glm5next，完成池与尾状态的缓存布局也变了。本文 16 卡分组、权重与 KV 字节数继续属于页首固定基线；采用 rc2 时须按其实际 KVCacheSpec、量化权重和 profile 结果重新定容量，不能把旧推导当成 rc2 的设备测量。
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| 模型目录与补丁方式 | 维护分支未含 GLM-5.3-Flash（绑定算例在镜像 `db701c1f`：`models/glm5_next.py` + `patch/platform/`） | 未含 GLM-5.3-Flash 模型文件 | 拆入 `models/glm5next/` 模块目录，使用环形尾状态规格（来源 44–46）[C44] | 延续 `models/glm5next/`，新增 `kda_input_projection_tp.py` 与 `recoverssm_*`（来源 48–50）[C48] |
+| 投影融合与量化保护 | 镜像 `db701c1f` 中 KDA 六路独立投影 | — | KDA 合并为 `in_proj_qkvbfg_a`（`kda.py#L171-L185`，权重映射 `model.py#L724-L729`）；MLA 用 `DeepSeekV2FusedQkvAProjLinear` 且 `kv_b_proj` 设 `quant_config=None`（`attention.py#L183-L220`） | `in_proj_qkvbfg_a` 接入细粒度 `qkv_iproj_tensor_parallel_size`（`kda.py#L299-L325`） |
+| 活跃教程与 Model Runner | 仅历史教程 `0576b647`（A2 双机混部） | 无 GLM-5.3-Flash 教程 | `GLM5.3-Flash.md` 覆盖 A2 双机混部、4 机 A2 PD、A3/950DT 单机与 PD、DDR KV Pool；显式要求 `VLLM_USE_V2_MODEL_RUNNER=0`（来源 42–43）[S42] | `GLM5.3-Flash.md` 全面切换至 `VLLM_USE_V2_MODEL_RUNNER=1`（MRV2），A3 PD Prefill 启用 `PCP8/TP1` + BF16 SSM 状态（来源 47）[S47] |
+| 显存与 KV 块口径 | 仅镜像 `db701c1f` 适用本文 20.58 GiB / 3,855 块算例 | 不适用 | 新 `KVCacheSpec` 与 W8A8C8（`int8`/`fp8` KV）改变每块字节，须按实际 profile 重算 | 同 `v0.30.0`，且 MRV2 改变持久输入与图缓冲开销 |
 
 - 控制流按 `vllm@0fc695fc` 读：rank 分配、DP 组与 EP 组的构造、`launch_core_engines` 与 headless 入口、`_initialize_kv_caches` 都在这一版。
 - 执行侧按 `vllm-ascend@db701c1f` 读，这是官方镜像里跑的那一版。GLM 的实现在 `vllm_ascend/models/glm5_next.py` 和 `glm5_next_mtp.py`。块大小和 KV 分组被 `vllm_ascend/patch/platform/` 下的补丁改写过；prefix caching 开不开沿用上游的判定，补丁只是读这个开关，据此决定 KDA 块大小和要不要做细粒度哈希。
-- vllm-ascend 的 main 分支（`baa023ad`）把 GLM 的实现挪进了 `vllm_ascend/models/glm5next/` 目录，读这一版时路径要换。
 
 ### 源码位置
 
 | 想核对的事 | 读哪里 |
 | --- | --- |
-| 全局 rank = DP 组号 × 8 + 本机卡号，world 是 16 | `vllm/distributed/parallel_state.py` [C2] |
-| TP 组、DP 组、EP 组各自的成员怎么算出来 | 同文件 1758–1888 行 [C3] |
-| MC2 组（16 rank）在 Ascend 侧的建立 | `vllm_ascend/distributed/parallel_state.py` [C4] |
-| 机器 0 的启动路径与 DP 协调器 | `vllm/v1/engine/utils.py` [C5] |
-| 机器 1 的 headless 启动路径 | `vllm/entrypoints/cli/serve.py` [C6] |
-| 一个引擎进程创建 8 个 Worker 子进程；启动方法见[进程页](engine-processes.md#怎么开) | `vllm/v1/executor/multiproc_executor.py` [C7] |
-| worker 建 HCCL 通信域、初始化模型并行 | `vllm_ascend/worker/worker.py` 975–988 行 [C8] |
-| `--quantization ascend` 从哪来 | `vllm_ascend/platform.py` [C9] |
-| 逐层判断精度、命中就换成不量化的实现 | `vllm_ascend/quantization/modelslim_config.py` [C10] |
-| 量显存、切 KV 块的总入口 | `vllm/v1/engine/core.py` 236–317 行 [C11] |
-| 显存预算与可用 KV 显存的算式 | `vllm_ascend/worker/worker.py` 527–597 行 [C12] |
-| 逻辑块为什么是 640 token | `vllm_ascend/patch/platform/patch_mamba_config.py` [C13] |
-| 5 个缓存组怎么分、一个块 id 多少字节 | `vllm_ascend/patch/platform/patch_kv_cache_utils.py` [C14] |
-| warmup 与图捕获 | `vllm_ascend/worker/worker.py` 693–784 行 [C15] |
-| MLA 的 `fused_qkv_a_proj` 关掉 TP 切分 | `vllm_ascend/models/glm5_next.py` [C16] |
-| MTP 第 45 层的构造与它的 `eh_proj` | `vllm_ascend/models/glm5_next_mtp.py` [C17] |
-| A2 上选 MC2 的三个条件：EP ≥16、每卡专家 ≤24、token 数 ≤ 最大图尺寸 128（A3 的分支条件不同） | `vllm_ascend/ascend_forward_context.py` [C18] |
-| hybrid 模型不支持 prefix caching | `vllm/config/model.py` [C19] |
-| 空闲 DP 组的陪跑循环 | `vllm/v1/engine/core.py` 1869–1945 行 [C20] |
-| 两组每步对齐 token 数与图模式 | `vllm_ascend/worker/model_runner_v1.py` [C21] |
-| 草稿层必须在 KV cache 组里 | `vllm_ascend/spec_decode/llm_base_proposer.py`，来源 22；断言与影响见“会报什么错” |
-| 前端选择持有请求的 DP 组 | `DPLBAsyncMPClient.get_core_engine_for_request` [C23] |
+| 全局 rank = DP 组号 × 8 + 本机卡号，TP/DP/EP 成员与 Ascend MC2 组 | `vllm/distributed/parallel_state.py`（L1535–L1560、L1758–L1888）；`vllm_ascend/distributed/parallel_state.py`（来源 2–4）[C2] |
+| 机器 0 启动与 DP 协调器、机器 1 headless 入口、Worker 派生与 HCCL 建组 | `vllm/v1/engine/utils.py`、`vllm/entrypoints/cli/serve.py`、`vllm/v1/executor/multiproc_executor.py`、`vllm_ascend/worker/worker.py` L975–L988（来源 5–8）[C5] |
+| `--quantization ascend` 注入与逐层精度分派 | `vllm_ascend/platform.py`、`vllm_ascend/quantization/modelslim_config.py`（来源 9–10）[C10] |
+| 量显存、切 KV 块、640 逻辑块补丁与 5 组 KV 切分 | `vllm/v1/engine/core.py` L236–L317、`vllm_ascend/worker/worker.py` L527–L597、`patch/platform/patch_mamba_config.py`、`patch_kv_cache_utils.py`（来源 11–14）[C13] |
+| warmup 与图捕获、MLA `fused_qkv_a_proj` 关 TP、MTP 第 45 层构造 | `vllm_ascend/worker/worker.py` L693–L784、`models/glm5_next.py` L1880–L1930、`models/glm5_next_mtp.py` L39–L92（来源 15–17）[C16] |
+| A2 选 MC2 三条件（EP ≥16、每卡专家 ≤24、token ≤ 128）、hybrid 关 prefix caching | `vllm_ascend/ascend_forward_context.py`、`vllm/config/model.py`（来源 18–19）[C18] |
+| 空闲 DP 组陪跑、两组步内对齐、草稿层 KV 校验与前端 DP 选组 | `vllm/v1/engine/core.py` L1869–L1945、`worker/model_runner_v1.py` L692–L740、`spec_decode/llm_base_proposer.py`、`vllm/v1/engine/core_client.py`（来源 20–23）[C20] |
+| `v0.30.0` / `main` 活跃食谱与 `models/glm5next/` 投影融合 | `c09d3e20`：`GLM5.3-Flash.md#L15-L45`、`#L305-L420`、`glm5next/kda.py#L171-L185`、`attention.py#L183-L220`、`model.py#L724-L729`；`8d6180e2`：`GLM5.3-Flash.md#L1-L45`、`glm5next/kda.py#L299-L325`、`kda_input_projection_tp.py#L18-L45`、`model.py#L815-L820`（来源 42–50） |
 
 量化子账的版本证据是来源 32、33 的两份固定 `quant_model_description.json`；来源 34 的模型配置与 9e55cbc8 的配置逐字相同。来源 35、38–40 给出视觉线性层、卷积、归一化及偏置的构造，来源 41 固定默认 weights 模式；来源 36、37 共同说明视觉塔的创建与跳过条件。MTP 旋转矩阵的开关和形状在来源 17 的第 46–63 行。FLOAT 表示不量化，具体驻留精度还要按配置和模块实现判断。
 

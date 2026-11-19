@@ -205,10 +205,19 @@ sources:
   - 'vllm@568afb3a:vllm/v1/executor/multiproc_executor.py#L986-L1011'
   - 'vllm@ced6857a:vllm/v1/executor/multiproc_executor.py#L1035-L1059'
   - 'vllm@84030bbe:vllm/v1/executor/multiproc_executor.py#L1035-L1059'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L498-L518'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L942-L950'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/spec_decode/__init__.py#L41-L69'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L606-L622'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1106-L1114'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L589-L618'
+  - 'vllm@ba15685a:vllm/envs.py#L1952-L1954'
+  - 'vllm@ba15685a:vllm/v1/engine/core.py#L709-L760'
+  - 'vllm@ba15685a:vllm/entrypoints/llm.py#L490-L618'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -224,6 +233,9 @@ relations:
   - to: npu-model-runner
     kind: builds-on
     note: 第 3 到第 5 站的大部分函数都在 model_runner_v1.py 这一个文件里，那一页讲这个文件怎么分区
+  - to: model-runner-v2
+    kind: builds-on
+    note: v0.30.0 默认仍走 MRV1、main 收口为 MRV2 唯一路径，第 3 到第 5 站的 V2 常驻设备缓冲与执行栈在那页展开
   - to: async-scheduling
     kind: builds-on
     note: 官方部署默认开着异步调度，EngineCore 因此走带批次队列的那条循环；占位 token 的记账规则在那一页
@@ -373,11 +385,13 @@ file: request-offline-queue
 
 用一个普通生成示意：已有引擎尚未提交过请求，每个输入只要一个答案。先交题目 A、B、C，取得编号 0、1、2；再交 D、E，取得编号 3、4。
 
-```calc
-title: 分两次提交，最后一起收齐（示意）
-提交的请求 = 3 条 + 2 条 = 5 条
-完整返回的结果 = 5 条请求 × 1 份结果/请求 = 5 份结果
-```
+$$\text{提交请求总数} = 3 + 2 = 5\text{ 条}, \qquad \text{完整返回结果} = 5 \times 1 = 5\text{ 份}$$
+
+| 阶段（分两次提交，最后一起收齐·示意） | 对应题目与请求编号 | 计数 |
+| --- | --- | --- |
+| 第一次 `enqueue` | A、B、C（编号 `0, 1, 2`） | 3 条请求 |
+| 第二次 `enqueue` | D、E（编号 `3, 4`） | 2 条请求 |
+| 一次 `wait_for_completion` 统一收齐 | 按编号 `0, 1, 2, 3, 4` 排序返回 | **5 份完整结果** |
 
 假设实际完成顺序是 2、0、4、1、3，等待结束返回的列表仍按编号 0、1、2、3、4 排列，方便与 A 到 E 对回去。**等待的是当前引擎里全部未完成的请求，不能只传第一组的编号、要求单独等这三条。** 编号方便识别结果，本接口没有按编号选择等待子集的参数。
 
@@ -509,49 +523,21 @@ Worker 超时变量为空或不是整数时，int 转换会报 ValueError。旧�
 
 ### 版本差异
 
-离线队列按固定上游比较点核对，main 是独立固定对照，不据此推定与 Ascend main 精确配套：
+**核心演进：`v0.30.0`（`c09d3e20`）默认仍走 MRV1（`VLLM_USE_V2_MODEL_RUNNER=1` 可选切 V2），而 `main`（`8d6180e2`）已删除 `model_runner_v1.py` 与旧 `spec_decode/`，通过 `apply_v2_model_runner_config_patch()` 将 [Model Runner V2](model-runner-v2.md) 收口为唯一执行路径。** 读 traceback 认第 3–5 站时，必须先确认当前版本是 MRV1 还是 MRV2：
+- **`v0.30.0 (c09d3e20)`**：`NPUWorker.init_device` 默认实例化 `vllm_ascend/worker/model_runner_v1.py` 中的 `NPUModelRunner`（仅当 `use_v2_model_runner` 为真时切换至 `vllm_ascend/worker/v2/model_runner.py`）；MTP proposer 由 `vllm_ascend/spec_decode/__init__.py` 的统一 `get_spec_decode_method` 分派，草稿配置 `model_type == "glm5_next_mtp"` 或 `architectures` 含 `Glm5NextMTPModel` 时才命中白名单 `AscendMultiKVCacheGroupMTPProposer`（不是运行时见多 KV 组就自动选择）；GLM 实现已拆分至 `vllm_ascend/models/glm5next/` 目录。
+- **`main (8d6180e2)`**：`NPUPlatform.check_and_update_config` 入口首行即调用 `apply_v2_model_runner_config_patch()` 强制启用 MRV2，`NPUWorker.init_device` 不再有 MRV1 分支（除多模态编码器专用 runner 外统一创建 `vllm_ascend.worker.v2.model_runner.NPUModelRunner`），投机解码栈也收归 `vllm_ascend/worker/v2/spec_decode/`。第 3–5 站的 V2 常驻设备缓冲与调用栈详见 [Model Runner V2](model-runner-v2.md)。
+- **离线队列与公共控制流**：下表按四组配套快照（上游 `0fc695fc / 568afb3a / ced6857a / ba15685a` 与 Ascend `2c59ff10 / 2ed6cbba / c09d3e20 / 8d6180e2`）对照；正文七站教学图与 GLM 双机配方仍锚定历史绑定镜像 `db701c1f`（单文件 `models/glm5_next.py` 与 `ops/fused_moe/fused_moe_0_23_0.py`，不与社区发布分支混算）。
 
-| 离线调用行为 | v0.23（0fc695fc） | v0.26 rc（568afb3a） | v0.30.0rc2（ced6857a） | 固定 main（84030bbe） |
+| 核对项 | `v0.23.0 (2c59ff10)` / `vllm@0fc695fc` | `v0.26.0rc (2ed6cbba)` / `vllm@568afb3a` | `v0.30.0 (c09d3e20)` / `vllm@ced6857a` | `main (8d6180e2)` / `vllm@ba15685a` |
 |---|---|---|---|---|
-| 提交／等待入口 | enqueue、enqueue_chat、wait_for_completion；等待全部并按编号排序 | 相同 | 相同 | 相同 |
-| 默认进程模式 | 环境默认 1；后台可在等待前计算 | 相同 | 相同 | 相同 |
-| 进程内模式 | get_output 直接推进 step；由调用方驱动 | 相同 | 相同 | 相同 |
-| level 0 与唤醒 | 只暂停调度；wake 恢复调度 | wake 还检查执行器内存已完全唤醒 | 同前列；完成暂停另同步设备 | 同 rc2 |
-| 公开 RPC 与模型回调 | 两入口都有；默认收执行器各 Worker 结果，回调对象分别是 Worker 侧对象／模型 | 相同 | 相同 | 相同 |
-| 公开 timeout | 默认 None；MP 共享截止时间；UniProc 同步分支不执行计时中断 | 相同 | MP 将剩余负时间钳为 0；UniProc 同前 | 同 rc2 |
+| 第 3–5 站执行器（MRV1 vs MRV2） | 仅 MRV1（`worker/model_runner_v1.py`） | 仅 MRV1（`worker/model_runner_v1.py`） | **MRV1 默认**，`VLLM_USE_V2_MODEL_RUNNER=1` 可选切 `worker/v2/model_runner.py` | **MRV2 唯一路径**：`model_runner_v1.py` 移除，`platform.py` 强制 V2 补丁，见 [Model Runner V2](model-runner-v2.md) |
+| 上游普通文本 `step` | 调度、执行；无直接结果时采样；处理取消后更新 | 保留次序，调度增加 prefill 节流输入 | 同 `v0.26.0rc`；HTTP SSE 辅助移至 `entrypoints/serve/utils` | 同 `v0.30.0`（`core.py#L709-L760`） |
+| GLM 模型与 MTP 入口 | 维护分支 `2c59ff10` 无同名模型；专用镜像 `db701c1f` 为单文件 `models/glm5_next.py` + 旧 proposer + `fused_moe_0_23_0.py` | `2ed6cbba` 无同名 GLM 模型链 | `models/glm5next/` 分模块目录；`spec_decode/__init__.py` 按白名单分派 `AscendMultiKVCacheGroupMTPProposer` | `models/glm5next/` 延续；旧 `spec_decode/` 退役，投机栈迁入 `worker/v2/spec_decode/` |
+| 离线队列与 `level=0` 暂停 | `enqueue`/`enqueue_chat`/`wait_for_completion`；默认多进程（`VLLM_ENABLE_V1_MULTIPROCESSING=1`）；`level=0` 仅停调度 | `wake_up` 额外检查执行器内存已完全唤醒；UniProc 取出 `AsyncModelRunnerOutput` | 完成暂停时另同步设备；MP 将剩余负 timeout 钳为 0；新增内部 EC 输出聚合 | 延续 `v0.30.0` 离线与公开 RPC 契约（`llm.py#L490-L618`、`envs.py#L1506-L1507`） |
+| `VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS` | 上游默认 300 s；`2c59ff10` 与 `db701c1f` 将 `<1836` 改写为 3000 | 上游默认 300 s；`2ed6cbba` 无平台小值改写 | 上游默认 300 s；`c09d3e20` 平台将 `<1836` 改写为 3000 | 上游默认 300 s；`8d6180e2` 平台延续将 `<1836` 改写为 3000 |
+| HCCL 两个超时 | 由安装的 CANN 版本与硬件/展开模式决定（本页 A2 数值限 CANN 9.1.X 文档） | 同左，须独立核运行时 | 同左，须独立核运行时 | 同左，须独立核运行时 |
 
-上表公开 RPC 只核对 UniProc/MP 的默认同步调用，Ray 与自定义执行器按其实现检查。v0.26 起 UniProc 会取出 AsyncModelRunnerOutput 的实际输出；MP 把输出处理纳入异常捕获。rc2/main 又增加内部 EC 输出聚合并拆出单条 Worker 调用函数。这些内部变化不改变上述短字符串示例的结果列表契约，也不能据此说整套 RPC 实现完全相同。
-
-因此，在从未卸载内存的清醒引擎上，先 level 0 暂停、后只恢复 scheduling 的示例适用于所列四版；若此前做过内存休眠，必须先恢复所需内存，不能把这个示例替代完整唤醒流程。这些是固定代码的调用边界，GLM 双机的 DP 协同暂停未在本次做设备实测。
-
-**v0.30.0rc2 需要更新按文件名认栈的路径。** HTTP 的 SSE 辅助入口已在 entrypoints/serve/utils，EngineCore 的 execute/sample/update 次序保留；MTP proposer 改由统一 get_spec_decode_method 分派。在 MTP 分支中，草稿配置的 model_type 为 glm5_next_mtp，或 architectures 含 Glm5NextMTPModel 时，才由相应白名单选到 AscendMultiKVCacheGroupMTPProposer；不是运行时只要发现多个 KV 组就自动选择。排错时应看 models/glm5next 与 multi_kv_cache_group_proposer，不能只找旧 AscendEagleProposer。七站教学图和旧日志例子仍指原固定部署，实际调用栈还要区分 MRV1/MRV2。
-
-本页七站图的控制流依据 `vllm@0fc695fc`，执行侧依据 GLM 专用镜像 `vllm-ascend@db701c1f`。和固定 main（`baa023ad`）相比，请求路径上有两处改名。按日志定位时，先确认实际安装的代码，再使用下面的文件名：
-
-| 项 | `db701c1f`（本页） | main（`baa023ad`） | 意味着什么 |
-|---|---|---|---|
-| GLM 实现放在哪 | 单文件 `vllm_ascend/models/glm5_next.py`，类名带 `Ascend` 前缀 [C34] | 目录 `vllm_ascend/models/glm5next/`，拆成 `model.py`、`kda.py`、`attention.py`、`mtp.py` 等，类名去掉前缀 [C43] | [!] 第 4 站报错栈里的文件名和类名两边都不一样，按本页的名字去 main 上搜会搜不到 |
-| MoE 走哪个文件 | vLLM 是 0.23.0 时用 `ops/fused_moe/fused_moe_0_23_0.py` [C23] | 同一目录下另一套实现（`fused_moe.py` 里 `vllm_version_is("0.23.0")` 不成立的那一支） | [!] 同一个类名 `AscendFusedMoE` 在两边指向不同的文件，贴行号前先确认读的是哪一支 |
-
-公共引擎的职责能跨版本对照，GLM 专用模型栈却不能直接移植到所有发布分支：
-
-| 对照项 | v0.23 | v0.26 rc | v0.30.0rc2 | 固定 main |
-|---|---|---|---|---|
-| 上游普通文本 step | 0fc695fc：调度、执行；无直接结果时采样；处理取消后更新 | 568afb3a：次序保留，调度增加 prefill 节流输入 | ced6857a：同样次序和节流入口 | 84030bbe：所列入口同 rc2 |
-| Ascend 的 GLM 模型位置 | 2c59ff10 不含本页同名模型；db701c1f 专用镜像另提供旧单文件 | 2ed6cbba 不含本页同名模型 | 7d825229：models/glm5next/ | baa023ad：同名目录，具体实现需按该提交读取 |
-| GLM MTP 入口 | db 专用镜像使用本文旧 proposer；不推给 2c 发布分支 | 没有本文同名 GLM 模型链 | 统一分派后按草稿类型/架构白名单选多缓存组 proposer | 同样入口和白名单；图支持等内部实现不据此视为相同 |
-
-后版的 prefill 节流还会影响已开始的分块计算，条件见[调度器](vllm-scheduler.md)；这里仅用它辨认调用入口。V1 引擎与 MRV1/MRV2 是不同层次，Worker/Runner 的选择见[V1 架构版本表](vllm-v1-shape.md#版本差异)。本表核对的是列出的控制流、命名与选类，七站的 GLM 层数、三候选和图模式仍采用 db 专用配方；实际对象的继承关系与所有 MRV2/PP 组合不能由这张表推定。
-
-超时参数按四个固定快照比较，作用阶段与本页前面的解释一致：
-
-| 超时核对项 | v0.23 | v0.26 rc | v0.30.0rc2 | 固定 main |
-|---|---|---|---|---|
-| 上游 VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS 定义 | 0fc695fc：int，默认 300 秒 | 568afb3a：相同 | ced6857a：相同 | 84030bbe：相同 |
-| Ascend 小值改写 | 2c59ff10 与 GLM db701c1f 都将 <1836 改为 3000 | 2ed6cbba：运行包没有这条改写，不代表上游变量消失 | 7d825229：仍将 <1836 改为 3000 | baa023ad：同 rc2 |
-| HCCL 两个超时 | 由安装的 CANN 版本与硬件/展开模式决定 | 同样需独立核运行时 | 同样需独立核运行时 | 同样需独立核运行时 |
-
-本页 HCCL 数值限定 CANN 9.1.X 文档的 A2 条目，不根据 Ascend 插件分支推定运行时相同；实际 AIV 等待还需设备日志与硬件量化结果。旧 VLLM_RPC_TIMEOUT 的不适用结论限定固定 GLM 代码，没有将历史单位或其他版本行为移植过来。
+上表公开 RPC 只核对 UniProc/MP 的默认同步调用，Ray 与自定义执行器按其实现检查；在从未卸载内存的清醒引擎上，先 `level=0` 暂停、后只恢复 `scheduling` 的示例适用于所列四版，若此前做过内存休眠则须先恢复所需内存。后版 prefill 节流条件见[调度器](vllm-scheduler.md)，V1 架构总览见[V1 架构版本表](vllm-v1-shape.md#版本差异)；GLM 双机 DP 协同暂停与实际 AIV 硬件量化等待仍需对应镜像实测。旧 `VLLM_RPC_TIMEOUT` 不适用结论限定固定 GLM 代码，不能将历史单位或其他版本行为移植过来。[!][D]
 
 ### 源码位置
 
@@ -638,3 +624,4 @@ rc2/main 的入口与分派对应来源 70–76；77–78 补齐 rc2 的超时�
 
 - 来源 56：vllm@0fc695fc，vllm/v1/engine/async_llm.py，L408–L412。
 - 来源 57：vllm-ascend@db701c1f，vllm_ascend/worker/model_runner_v1.py，L2027–L2057。
+- `v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 演进实核：MRV1 默认 vs MRV2 唯一路径见 `vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L498-L518`、`vllm-ascend@8d6180e2:vllm_ascend/platform.py#L606-L622` 与 `vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L589-L618`；两版超时小值改写见 `c09d3e20:platform.py#L942-L950` 与 `8d6180e2:platform.py#L1106-L1114`；`v0.30.0` MTP 统一分派见 `c09d3e20:spec_decode/__init__.py#L41-L69`；上游 `ba15685a` 超时、`step`/`step_with_batch_queue` 与离线入口见 `vllm@ba15685a:vllm/envs.py#L1952-L1954`、`vllm/v1/engine/core.py#L709-L760`、`vllm/entrypoints/llm.py#L490-L618`。

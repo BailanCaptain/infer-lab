@@ -174,11 +174,11 @@ test("3. /#/tools?tab=calculator Mode A、Wave-4 异构架构解锁（MLA/KDA/CS
   await expect(calc.locator(".wt-calc-hccl-box")).toContainText("严禁在 profile_run 峰值之上二次重扣 HCCL");
   await assertRooflineSvgTextsInsideViewBox(page);
 
-  // Honest legacy-baseline badge verification: hccl-buffer (legacy) vs kv-cache-memory-profiling (v0.30.0)
+  // Wave-4C-1 verified deep-links: both hccl-buffer and kv-cache-memory-profiling are now v0.30.0 verified
   const hcclLink = calc.getByTestId("tool-deeplink-hccl-buffer").first();
   await expect(hcclLink).toBeVisible();
-  await expect(hcclLink).toHaveAttribute("data-legacy-baseline", "true");
-  await expect(hcclLink.getByTestId("legacy-baseline-badge")).toHaveText("历史基线页（待更新）");
+  await expect(hcclLink).toHaveAttribute("data-legacy-baseline", "false");
+  await expect(hcclLink.getByTestId("legacy-baseline-badge")).toHaveCount(0);
 
   const kvProfLink = calc.getByTestId("tool-deeplink-kv-cache-memory-profiling").first();
   await expect(kvProfLink).toBeVisible();
@@ -265,16 +265,16 @@ test("4. /#/tools?tab=doctor P/D 双实例联检、健康基线与问答助手�
   await expect(doctor.getByTestId("doctor-finding-d4-mooncake-decode-pp-eq-1")).toBeVisible();
   await expect(doctor.getByTestId("doctor-finding-d4-recompute-scheduler-p-node-disable")).toBeVisible();
 
-  // Honest legacy-baseline badges on pd-disaggregation & mooncake-connector
+  // Wave-4C-1 verified deep-links on pd-disaggregation & mooncake-connector
   const pdLink = doctor.getByTestId("tool-deeplink-pd-disaggregation").first();
   await expect(pdLink).toBeVisible();
-  await expect(pdLink).toHaveAttribute("data-legacy-baseline", "true");
-  await expect(pdLink.getByTestId("legacy-baseline-badge")).toHaveText("历史基线页（待更新）");
+  await expect(pdLink).toHaveAttribute("data-legacy-baseline", "false");
+  await expect(pdLink.getByTestId("legacy-baseline-badge")).toHaveCount(0);
 
   const mooncakeLink = doctor.getByTestId("tool-deeplink-mooncake-connector").first();
   await expect(mooncakeLink).toBeVisible();
-  await expect(mooncakeLink).toHaveAttribute("data-legacy-baseline", "true");
-  await expect(mooncakeLink.getByTestId("legacy-baseline-badge")).toHaveText("历史基线页（待更新）");
+  await expect(mooncakeLink).toHaveAttribute("data-legacy-baseline", "false");
+  await expect(mooncakeLink.getByTestId("legacy-baseline-badge")).toHaveCount(0);
 
   await page.screenshot({ path: join(EVIDENCE_DIR, "08-workbench-doctor-pd.png"), fullPage: true });
 

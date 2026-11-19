@@ -99,6 +99,11 @@ sources:
   - 'vllm-ascend@baa023ad:vllm_ascend/spec_decode/llm_base_proposer.py#L241-L260'
   - 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L131-L157'
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L495'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L243-L278'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/spec_decode/multi_kv_cache_group_proposer.py#L23-L48'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L823-L845'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L259-L320'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L289-L300'
 relations:
   - to: learning-guide
     kind: builds-on
@@ -121,7 +126,11 @@ relations:
   - to: kv-cache-spec
     kind: builds-on
     note: '640 个 token 一块、5 个缓存组、每块号 8,355,840 B 的规格来源在那一页'
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 contradicts: []
 updated: 2026-11-03T00:00:00.000Z
@@ -198,12 +207,10 @@ file: one-request-system
 
 引擎每一步调用一次调度，它先照顾已经在跑的请求，再看等待队列里能不能加入新的。R1 在等待队列里，这一步的账是：
 
-```calc
-title: 首步要分配多少 token 预算和 KV 位置
-token 预算 = 8192
-> R1 需要 4 → 给 4
-KV 需求位置数 = 4 个新 token + 3 个预留给 MTP 候选 = 7
-```
+| 首步调度预算与 KV 位置需求 | 算式 / 规则 | 结果 |
+| --- | --- | --- |
+| 本步 token 预算 | 单步上限 8,192，R1 只需 4 | 分配 **4 个 token** |
+| KV 需求位置数 | $4\text{ 个新 token} + 3\text{ 个预留给 MTP 候选}$ | **7 个位置** |
 
 预留的 3 个位置叫 lookahead：下一步 MTP 的 3 个候选也要先写进 KV cache 才能被验证，调度器现在就把它们的位置算进去。
 
@@ -244,17 +251,13 @@ file: one-request-blocks
 
 R1 第一步在 node0 每张卡上的输入完全相同：
 
-```calc
-title: 首步输入怎样标出请求边界
-num_reqs = 1
-input_ids = [p₀, p₁, p₂, p₃]
-> int32 [4]
-positions = [0, 1, 2, 3]
-> int64 [4]
-query_start_loc = [0, 4]
-> 本批只有 R1 一段，从 0 开始、到 4 之前结束
-attn_state = 含 prefill
-```
+| 首步输入字段 | 取值与形状 | 含义 |
+| --- | --- | --- |
+| `num_reqs` | `1` | 本批只有 R1 一条请求 |
+| `input_ids` | `[p₀, p₁, p₂, p₃]`（`int32 [4]`） | 提示词 4 个 token 编号 |
+| `positions` | `[0, 1, 2, 3]`（`int64 [4]`） | R1 尚无已算历史，从位置 0 开始 |
+| `query_start_loc` | `[0, 4]` | 本批只有 R1 一段，从 0 开始、到 4 之前结束 |
+| `attn_state` | 含 prefill | 标记本步包含提示词预填充 |
 
 `int32`、`int64` 是 32 位、64 位整数。位置序号不同于 token 编号：同一个 token 可以出现在不同位置。R1 还没有已计算的位置，所以从 0 开始。这些张量怎样一步步算出来，见[准备输入的流程](prepare-inputs-flow.md)和[块表](block-table.md)。
 
@@ -288,13 +291,11 @@ token-flow
 
 **embedding**（词嵌入）按 token 编号从嵌入矩阵里读出一条向量；这条在层间加工的表示叫**隐藏向量**。TP8 下词表 154880 行按行切成 8 段，每卡 19360 行：
 
-```calc
-title: 嵌入查表的权重与通信量有多大
-每卡嵌入权重 = 19360 × 4096 × 2 B = 151.25 MiB（BF16：16 位浮点，每个数 2 字节）
-本卡查表 = input_ids [4] → [4, 4096]，编号不在本卡那一段的行填 0
-All-Reduce = TP8 内按元素相加 → 每卡都得到完整的 [4, 4096]
-单次张量 = 4 × 4096 × 2 B = 32,768 B
-```
+| 嵌入查表核算项（TP8，BF16 每数 2 B） | 算式 / 形状变化 | 结果 |
+| --- | --- | --- |
+| 每卡嵌入权重 | $19{,}360 \times 4096 \times 2\text{ B}$ | **151.25 MiB** |
+| 本卡查表 | `input_ids [4]` $\to$ `[4, 4096]` | 编号不在本卡区间的行填 0 |
+| TP8 All-Reduce | 组内按元素相加得完整 `[4, 4096]` | 单次张量 $4 \times 4096 \times 2\text{ B} =$ **32,768 B** |
 
 每个编号只落在 8 段中的一段里，所以 8 张卡的结果相加，正好拼出完整的嵌入，见 [embedding](embedding.md)。这里的 **All-Reduce** 是集合通信的一种：组内每个成员拿出同形状的张量，按元素相加，然后每个成员都拿到相加后的完整结果。
 
@@ -340,13 +341,10 @@ All-Reduce    TP8，单次张量 32,768 B
 
 状态写在第 2 站分到的 KDA 块号里。每层每卡的状态：
 
-```calc
-title: KDA 为一条请求保留多少状态
-卷积状态 = 3072 × 6 × 2 B = 36,864 B
-> 6 = 卷积宽度 4 − 1 + 候选 3
-递推状态 = 8 × 128 × 128 × 4 B = 524,288 B
-> 递推状态是 FP32（32 位浮点，每个数 4 字节）
-```
+| KDA 单层每卡保留的状态（TP8 每卡 8 头） | 算式 | 字节数 |
+| --- | --- | --- |
+| 短卷积状态（BF16，长度 $4 - 1 + 3 = 6$ 含 3 个候选） | $3072 \times 6 \times 2\text{ B}$ | **36,864 B** |
+| 递推状态（FP32，每数 4 B） | $8 \times 128 \times 128 \times 4\text{ B}$ | **524,288 B** |
 
 prefill 时 4 个 token 按 64 个一组分块并行地推进状态，这里只有 1 组；decode 时逐个推进。每张卡只保存自己 8 个头的状态，下一步也只读自己的，所以状态本身不需要跨卡同步，整层只有 `o_proj` 后的 1 次 All-Reduce。
 
@@ -389,12 +387,11 @@ MLA 历史写入前做 RMSNorm：按向量的均方根缩放，再乘可学习�
 
 **专家怎么分到卡上。** vLLM 把 DP2 和 TP8 拍平成一个 EP16 维度，第 `r` 张卡（`r = DP 编号 × 8 + 机内编号`）持有第 `18r` 到 `18r + 17` 号专家，专家内部的 2048 维不再切：
 
-```calc
-title: 路由专家的权重怎样分摊到每张卡
-每卡专家数 = 288 ÷ 16 = 18
-每卡每层权重 = 18 × (4096 × 4096 + 4096 × 2048) × 1 B = 432 MiB（int8）
-42 层 = 17.72 GiB，约占本页主干 45 层主要语言权重子账的 88%
-```
+| 路由专家权重分摊（EP16，int8 每数 1 B） | 算式 | 结果 |
+| --- | --- | --- |
+| 每卡持有专家数 | $288 \div 16$ | **18 个** |
+| 每卡每层路由专家权重 | $18 \times (4096 \times 4096 + 4096 \times 2048) \times 1\text{ B}$ | **432 MiB** |
+| 主干 42 层合计 | $42 \times 432\text{ MiB}$ | **17.72 GiB**（约占本页主干 45 层主要语言权重子账的 88%） |
 
 所以 R1 的一个 token 选中的 8 个专家，通常散在不同的卡上，甚至在另一台机器上。token 要被送过去（**dispatch**，派发），算完的结果再按路由权重收回来相加（**combine**，结果组合）。
 
@@ -402,12 +399,12 @@ title: 路由专家的权重怎样分摊到每张卡
 
 这个固定 A2 分支在两种通信方式里选：**MC2**（通算融合，把专家计算和跨卡收发协同执行的一类昇腾实现，按路由结果派发 token）和 **AllGather**（本页关闭 SP 时，先沿 DP 维度收集各组的隐藏向量和路由分数，每张卡再处理落到本卡专家的行）。这里的 AllGather 是这条通信路径的名字；下文单独出现的集合操作写作 All-Gather。本例门槛是 128 个 token：
 
-```calc
-title: 什么时候走 MC2
-每卡每次最多 = ceil(128 ÷ 8) = 16 个 token
-TP8 共 = 16 × 8 = 128
-判断用的是两台机器里较大的那个 token 数
-```
+$$\text{MC2 容量门槛} = \lceil 128 \div 8 \rceil \times 8 = 16 \times 8 = 128\text{ 个 token（按两台机器里较大的 token 数判断）}$$
+
+| MC2 容量门槛核对 | 算式 | 结果 |
+| --- | --- | --- |
+| 每卡每次最多处理 | $\lceil 128 \div 8 \rceil$ | **16 个 token** |
+| TP8 组内总门槛 | $16 \times 8$ | **128 个 token**（取两组较大 token 数比较） |
 
 128 正好是 32 条请求 × 每条 4 个 token，也就是最大的 decode 图尺寸：纯 decode 步一定走 MC2；只要任一边这一步超过 128 个 token，比如混进一段较长的 prefill，两边就一起翻到 AllGather。R1 这一步两边都是 4 个 token，走 **MC2**。
 
@@ -528,13 +525,11 @@ decode 每一圈都从第 2 站走到第 6 站。普通自回归每步只送 1 �
 
 **③ 准备输入**：
 
-```calc
-title: 下一圈在哪些位置验证草稿
-input_ids = [y₀, d₁, d₂, d₃]
-> int32 [4]
-positions = [4, 5, 6, 7]
-KV 写入 = full 组那个块号的第 4–7 格
-```
+| 第二圈（decode 1）输入项 | 取值与位置 |
+| --- | --- |
+| `input_ids`（`int32 [4]`） | `[y₀, d₁, d₂, d₃]` |
+| `positions` | `[4, 5, 6, 7]` |
+| KV 写入位置 | `full` 组那个块号的第 4–7 格 |
 
 R1 的整条序列都住在同一个 640 格的块号里，所以块内格号就等于位置号。
 
@@ -556,13 +551,11 @@ R1 的整条序列都住在同一个 640 格的块号里，所以块内格号就
 
 ### 第三圈（decode 2）
 
-```calc
-title: 拒绝草稿后从哪些位置继续
-input_ids = [y₂, d₁′, d₂′, d₃′]
-positions = [6, 7, 8, 9]
-> 位置 6、7 覆盖上一圈写错的两格
-图 = 还是那张 4-token 图，回放
-```
+| 第三圈（decode 2）输入项 | 取值与说明 |
+| --- | --- |
+| `input_ids` | `[y₂, d₁′, d₂′, d₃′]` |
+| `positions` | `[6, 7, 8, 9]`（位置 6、7 覆盖上一圈写错的两格） |
+| 执行方式 | 仍回放启动时捕获的 4-token 图 |
 
 假设 3 个候选全对：前 3 行各接受一个，第 4 行的 bonus 也采纳，产出 `y₃ y₄ y₅ y₆` 共 4 个 token，已计算数从 6 推进到 10，不用回退；MTP 再猜出 `d₁″ d₂″ d₃″` 留给下一圈。
 
@@ -661,13 +654,16 @@ MTP 每步增加 3 遍草拟，收益取决于候选接受数；本页 218 次�
 
 ### 版本差异
 
-rc2 的 GLM5Next 多 KV 组 MTP proposer 声明支持草稿图，跳过基类对 GLM 草稿统一强制 eager 的门槛；仍须满足 runner 的图可用条件，显式 enforce_eager 仍有效。因此下文固定 main 的“草稿强制 eager”不能用于 rc2，原 R1 图和时延演算也不据此改成草稿图实测。
+**`v0.30.0` 与 `main` 延续了“排计划 → 执行 → 必要时采样 → 更新请求”的七站主循环，但 GLM 模型代码、MTP proposer 与 Model Runner 已完成架构升级。** 本文 R1 的 15 块、218 次通信与逐层形状仍严格钉在例外 B 镜像 `vllm-ascend@db701c1f` + `vllm@0fc695fc`，与社区四版分别核对如下：
 
-**v0.30.0rc2 的普通同步一步仍遵循“排计划 → 执行 → 必要时采样 → 更新请求”。** GLM 的 MTP 已经由多 KV cache group 专用 proposer 分派，源码位置转到 models/glm5next 与 multi_kv_cache_group_proposer；仍需分别管理主模型与草稿模型状态。R1 的 token、块数、逐层形状与通信账单继续采用本文 db701c1f 固定部署，流程相似不能证明这些数值、权重量化或吞吐在 rc2 也相同。
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| GLM 模型与 MTP 实现 | 维护分支未含 GLM-5.3-Flash（绑定算例在镜像 `db701c1f`：`glm5_next.py` + `glm5_next_mtp.py`） | 维护分支未含 GLM-5.3-Flash 实现与专用教程 | 重构至 `models/glm5next/`；MTP 由 `multi_kv_cache_group_proposer.py` 分派（来源 62），支持草稿图并尊重显式 `enforce_eager` [C62] | 延续 `models/glm5next/`，V1 `spec_decode/` 整体迁入 `worker/v2/spec_decode/`（`mtp/`、`multi_module_mtp/`） |
+| Model Runner 与 DP 对齐 | 仅 V1 `worker/model_runner_v1.py` | 仅 V1 `worker/model_runner_v1.py` | V1（`model_runner_v1.py#L823-L845`）与 V2 并存；GLM 教程默认 V1（`VLLM_USE_V2_MODEL_RUNNER=0`） | **移除 V1 Runner**，统一收敛到 `worker/v2/model_runner.py`（L289–L300），GLM 教程切至 `VLLM_USE_V2_MODEL_RUNNER=1` [C65] |
+| MC2 容量门槛 | 镜像 `db701c1f` 由 `ascend_forward_context.py`（L202–L252）决定 128 门槛 | 沿用 `ascend_forward_context.py` 分支 | `set_mc2_tokens_capacity` 显式按 `max_num_reqs` 与 `uniform_decode_query_len` 初始化全局门槛（`ascend_forward_context.py#L243-L278`）[C61] | 同 `v0.30.0`（`ascend_forward_context.py#L259-L320`），由 MRV2 在初始化时设置 |
+| 与 R1 绑定算例的关系 | 仅镜像 `db701c1f`（需 `vllm_version_is("0.23.0")` 替换 `FusedMoE` 与 `KimiGatedDeltaNetAttention`）适用本文精确账单 | 本文固定部署数字不适用（逐版对照见 [KV cache 版本差异](kv-cache.md#版本差异)） | 缓存组与投影已融合，吞吐与显存须按 `v0.30.0` 实测重算 | 同 `v0.30.0`，且 MRV2 改变持久输入与图缓冲路径 |
 
-- 控制流按 vLLM v0.23.0（`vllm@0fc695fc`）核读，NPU 执行侧按 GLM 专用的 vllm-ascend 源码快照（`vllm-ascend@db701c1f`）核读。只有在 `vllm_version_is("0.23.0")` 为真时，vllm-ascend 才把 `FusedMoE` 和 `KimiGatedDeltaNetAttention` 换成本页描述的 Ascend 实现。专用镜像里最终安装的上游版本尚未核实，记录见[来源基线](../sources/glm-5-3-flash-baseline.md)。
-- vllm-ascend 的 `main`（`baa023ad`）把 MTP 挪到 `vllm_ascend/models/glm5next/mtp.py`，把位置 0 的嵌入清零、嵌入与隐藏向量各自归一化及拼接交给 `fused_eh_norm`，再做投影；这保留上述处理步骤，不据此保证浮点结果逐位一致。「GLM 加投机解码时草稿强制 eager」在这个 `main` 快照中仍在，见来源 57、58。
-- v0.26.0rc（`vllm-ascend@2ed6cbba`，配套 `vllm@568afb3a`）：该固定分支没有本页使用的 GLM-5.3-Flash 模型实现与专用教程，已有 GLM4.x、GLM5、GLM5.2 教程不能替代它。上面的固定部署数字不适用于该分支，逐版对照见 [KV cache 的版本差异](kv-cache.md#版本差异)。
+- `v0.30.0` 与 `main` 的 `models/glm5next/mtp.py` 把位置 0 的嵌入清零、嵌入与隐藏向量各自归一化及拼接交给 `fused_eh_norm` 再做投影；这保留上述数学步骤，不据此保证浮点结果逐位一致。
 
 ### 源码位置
 
@@ -679,37 +675,17 @@ rc2 的 GLM5Next 多 KV 组 MTP proposer 声明支持草稿图，跳过基类对
 |---|---|---|
 | 0 部署 | 45 层、4096、154880 词表、288 选 8、KDA 与 MLA 的层号 | GLM-5.3-Flash 的 `config.json` [S1] |
 | 0 部署 | DP2、TP8、EP16、MTP 3、图尺寸、8192 / 32 / 133120 | 官方 GLM-5.3-Flash 双机教程 [S2] |
-| 1 入口 | 按 `waiting × 4 + running` 选 DP 组 | `DPLBAsyncMPClient.get_core_engine_for_request` [C3] |
-| 1 入口 | 聊天模板、分词与生成 `EngineCoreRequest` | `OpenAIServingChat.create_chat_completion`、`AsyncLLM.add_request`，见[引擎进程](engine-processes.md) |
-| 2 调度 | 等待队列里的请求带 `num_lookahead_tokens = 3` 要块 | `Scheduler.schedule` 的 waiting 分支 [C5] |
-| 2 调度 | KDA 组每请求 1 + 3 块 | `MambaManager.get_num_blocks_to_allocate` [C6] |
-| 2 调度 | 640 的由来与 KDA 状态 561,152 B | `verify_and_update_config` 的替换版 [C7] |
-| 2 调度 | GLM 的 5 个缓存组 | vllm-ascend 替换的 `get_kv_cache_groups` [C8] |
-| 2 调度 | 每块号 `12 × (655,360 + 40,960) = 8,355,840 B` | GLM 布局的块字节公式 [C9]，推导见[部署页的 KV 预算](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache) [D] |
-| 2 调度 | R1 第一步 `1 + 12 + 2 = 15` 个块号 | 由第 2 站三行算式相加 [D] |
-| 2 调度 | 混合模型默认不开前缀缓存 | `is_prefix_caching_supported` [C10] |
-| 3 准备 | 广播给 8 个 worker、位置与块表 | `MultiprocExecutor.execute_model`、`NPUModelRunner._prepare_inputs`，见[准备输入的流程](prepare-inputs-flow.md) |
-| 3 准备 | RPC 的调用发送范围与响应回收范围分别确定 | `vllm@0fc695fc` 的 `collective_rpc` 通过广播队列提交调用，指定 `output_rank` 时只读取该成员的响应队列；单个成员返回响应不足以说明只有该成员执行。这是已核实的固定源码行为，不构成双机实测结论 |
-| 3 准备 | 两台机器对齐宽度与图模式 | `_sync_metadata_across_dp` [C11] |
-| 3 准备 | 空闲的一边跑 dummy batch、每 32 步查一次全局 | `DPEngineCoreProc.run_busy_loop` [C4] |
-| 4 前向 | mHC 展开、每层两次 `hc_pre`、四路求均值 | `AscendGlm5NextDecoderLayer` 与 `AscendGlm5NextModel` [C12] |
-| 4 前向 | KDA 的候选状态格与 `num_accepted_tokens` | `AscendKimiGatedDeltaNetAttention._forward` 的 spec 分支 [C13] |
-| 4 前向 | 512 个 kpool、展开 2048、尾部 3 | `ops/triton/glm5_next_lightning_indexer.py` 的 `glm5_next_lightning_indexer_triton` [C14] |
-| 4 前向 | A2 上 MC2 与 AllGather 的门槛 128 | `mc2_tokens_capacity`、`_select_a2_moe_comm_method` [C15] |
-| 4 前向 | 218 = 91 + 42 × 3 + 1 次集合通信 | 由第 4 站各段相加 [D] |
-| 4 前向 | 嵌入、稀疏注意力、MoE 通信、lm_head 的通用实现 | 见 [embedding](embedding.md)、[稀疏注意力](sparse-attention.md)、[专家并行](expert-parallel.md) |
-| 5 采样 | GLM 加投机解码时草稿强制 eager | `_is_glm_model` 与 proposer 初始化里的覆盖 [C16] |
-| 5 采样 | 同一层跑 3 遍、每遍取分数最大；索引复用的接口检查 | `_run_merged_draft`（含 `hasattr(draft_model, "set_skip_topk")`）[C17] |
-| 5 采样 | 采样、MTP 左移一格的输入 | `NPUModelRunner.sample_tokens`、`set_inputs_first_pass`，见[投机解码](speculative-decoding.md) |
-| 6 更新 | 贪心下逐位比较、首个不等处停止 | `rejection_sample` 的贪心分支 [C18] |
-| 6 更新 | `num_computed_tokens -= num_rejected` | `Scheduler.update_from_output` [C19] |
-| 6 更新 | 图的回放与不回放时的透传 | `ACLGraphWrapper.__call__`，见 [ACL Graph](acl-graph.md) |
-| 6 更新 | 逐个追加、截断、停止条件与释放块号 | `_update_request_with_output`、`check_stop`、`_free_request`；`check_stop` 先过 `min_tokens`，再查结束 token、停止 token、长度与重复检测，见[调度器](vllm-scheduler.md) |
-| 7 返回 | 增量反分词与输出收集 | `OutputProcessor.process_outputs`，见[引擎进程](engine-processes.md) |
-| 7 返回 | 前端命中 stop string 后通知引擎终止并回收 | `OutputProcessor.process_outputs` 的 `reqs_to_abort` → `abort_requests_async` → `Scheduler.finish_requests` [C35] |
-| 5/6 | 异步调度下候选留在 worker，引擎维护占位数 | `AsyncScheduler._update_after_schedule` [C36] |
-| 1 / 7 | 生成前缀、未启用 reasoning parser 时的原始 content、SSE 收尾 | 模型聊天模板的末尾、`chat_completion_stream_generator` 的普通文本分支与末尾 `[DONE]`，对应来源 37、38；教程未传 reasoning parser，见来源 2 |
-| 7 返回 | EOS 分支在输出最终结果前先释放 R1 | `Scheduler.update_from_output` 先调用 `_free_request`，再构造 `EngineCoreOutput`，对应来源 39 |
+| 1 入口 | 按 `waiting × 4 + running` 选 DP 组；聊天模板与分词 | `DPLBAsyncMPClient.get_core_engine_for_request`（来源 3）[C3]；`OpenAIServingChat.create_chat_completion`、`AsyncLLM.add_request` |
+| 2 调度 | waiting 请求带 `num_lookahead_tokens = 3` 要块；KDA 组每请求 1 + 3 块 | `Scheduler.schedule`（来源 5）、`MambaManager.get_num_blocks_to_allocate`（来源 6）[C5] |
+| 2 调度 | 640 的由来、GLM 5 个缓存组与每块号 `8,355,840 B` | `verify_and_update_config` 替换版、`get_kv_cache_groups`（来源 7–9）[C7]；R1 首步 15 块由三行算式相加 [D] |
+| 2 调度 | 混合模型默认不开前缀缓存 | `is_prefix_caching_supported`（来源 10） |
+| 3 准备 | 广播给 8 个 worker、RPC 发送与 `output_rank` 回收、两机对齐与空闲组陪跑 | `MultiprocExecutor.execute_model`、`collective_rpc`（来源 22、54、59）；`_sync_metadata_across_dp`（来源 11）、`DPEngineCoreProc.run_busy_loop`（来源 4）[C11] |
+| 4 前向 | mHC 展开与四路求均值；KDA 候选状态格；512 个 kpool 与尾部 3 | `AscendGlm5NextDecoderLayer`、`AscendKimiGatedDeltaNetAttention._forward`、`glm5_next_lightning_indexer_triton`（来源 12–14）[C12] |
+| 4 前向 | A2 上 MC2 与 AllGather 的门槛 128；218 次集合通信 | `mc2_tokens_capacity`、`_select_a2_moe_comm_method`（来源 15）[C15]；218 = 91 + 42 × 3 + 1 由各段相加 [D] |
+| 5 采样 | GLM 加投机解码草稿强制 eager；同一层跑 3 遍与 `set_skip_topk` 检查 | `_is_glm_model`、`_run_merged_draft`（来源 16–17）[C16]；采样与左移一格见[投机解码](speculative-decoding.md) |
+| 6 更新 | 贪心逐位比较与回退 `num_computed_tokens -= num_rejected` | `rejection_sample`（来源 18）、`Scheduler.update_from_output`（来源 19）[C18] |
+| 6/7 收尾 | 异步调度占位、增量反分词、stop string 终止与 EOS 释放块号 | `AsyncScheduler._update_after_schedule`（来源 36）、`OutputProcessor.process_outputs`（来源 34–35）、`Scheduler.update_from_output`（来源 39）[C35] |
+| `v0.30.0` / `main` | 四版 MC2 容量设置、多组 MTP proposer 与 V2 Runner 入口 | `c09d3e20`：`ascend_forward_context.py#L243-L278`、`multi_kv_cache_group_proposer.py#L23-L48`、`model_runner_v1.py#L823-L845`；`8d6180e2`：`ascend_forward_context.py#L259-L320`、`worker/v2/model_runner.py#L289-L300`（来源 61–65） |
 
 补充来源按本页结论定位：45、46 展开 KDA 步长分组与 full/indexer-state 配对；47 是贪心首个不匹配处停止的实际内核；48 给出 embedding 的 All-Reduce / Reduce-Scatter 条件；49 是 MTP 两类权重共享的独立判断；50、51 给出 dummy 元数据条件和 KDA 提前返回；52、53 展开 MC2 的切片、拼回与派发/组合参数；54、59 分别定位响应 rank 的选择与广播队列构造；55、56 衔接提示词 logprobs 的额外词表投影；57、58 定位 main 的 MTP 预处理与草稿关图；60 是本页关闭 SP 时 AllGather 的 DP 收集路径。
 

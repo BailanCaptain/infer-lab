@@ -26,6 +26,12 @@ sources:
     https://public-download.obs.cn-east-2.myhuaweicloud.com/ascend/%E6%98%87%E8%85%BE950%20NPU%E6%9E%B6%E6%9E%84%E7%99%BD%E7%9A%AE%E4%B9%A6.pdf
   - >-
     https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L571-L575'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L541-L545'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L365-L372'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/token_dispatcher.py#L120-L120'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L477-L488'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/compilation/graph_fusion_pass_manager.py#L76-L76'
 relations:
   - to: ascend-950-architecture
     kind: builds-on
@@ -50,10 +56,14 @@ relations:
     note: >-
       950 的远端访存与内存池分析建立在本地设备内存、远端可访问数据和实际复制的区别上；硬件可访问远端池，不代表数据已经驻留本卡或增加了本轮本地 KV
       容量。
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: I
 contradicts: []
-updated: '2026-10-30'
+updated: '2026-11-19'
 ---
 
 **昇腾 950 的设备调度和通信单元，负责把已经安排好的计算接起来：前一段产出数据，把需要的数据送齐，再让后一段继续。** 它们能减少安排和搬运工作的开销；数据还没算出、链路还在传输时，依赖这份数据的计算仍要等待。
@@ -139,13 +149,14 @@ file: ascend-950-remote-access
 
 从卡 0 看，2–5 ms 的等待来自另一张卡尚未算完。协调更快以后，这 3 ms 仍然存在。下一段开始时刻由较晚的输入，加上尚未完成的后续工作决定：
 
-```calc
-title: 卸载省下协调，参与者迟到仍要等（示意）
-原路径下一段开始 = max(2, 5) + 0.8 + 0.6 = 6.4 ms
-卸载后下一段开始 = max(2, 5) + 0.2 + 0.6 = 5.8 ms
-本轮提前 = 6.4 − 5.8 = 0.6 ms
-卡 0 等另一份输入 = 5 − 2 = 3 ms
-```
+$$t_{\text{next}} = \max(t_0, t_1) + t_{\text{coord}} + t_{\text{comm}}, \qquad \Delta t = 6.4 - 5.8 = 0.6\text{ ms}$$
+
+| 推导项（示意时间线） | 算式 | 结果 |
+| --- | --- | --- |
+| 原路径下一段开始 | $\max(2, 5) + 0.8 + 0.6$ | **6.4 ms** |
+| 卸载后下一段开始 | $\max(2, 5) + 0.2 + 0.6$ | **5.8 ms** |
+| 本轮提前量 | $6.4 - 5.8$ | **0.6 ms** |
+| 卡 0 等待另一份输入 | $5 - 2$ | **3.0 ms** |
 
 实际通信可以按块流水执行，部分协调也能提前完成。这时沿各块真实依赖画[关键路径](inference-performance-analysis.md#时间线怎样告诉你应该先优化哪一段)，不能把已经重叠的区间再相加。这个小例子教的是分开记账：卸载改变了谁来干活，以及哪一段变短；它不改变后一段需要完整输入这件事。
 
@@ -192,12 +203,13 @@ DeepInfer 的固定公开版本把 Ascend 950 列为支持硬件，并列出 CAN
 
 ### 版本差异
 
-| 核对对象 | 已有依据 | 本页尚未确认的范围 |
-| --- | --- | --- |
-| vLLM / vllm-ascend v0.23 | 本站 A2 固定部署另钉独立执行提交 | 该维护线在 950 上的 STARS 2.0、CCU、URMA 选择条件与默认行为 |
-| vLLM / vllm-ascend v0.26 | 版本号本身不指定设备通信路径 | 对应 950 软件组合、默认路径与回退条件 |
-| vLLM / vllm-ascend main | 随提交变化，需固定版本核查 | 具体提交在 950 上的启用、回退与执行轨迹 |
-| DeepInfer `774ce244…` | README 声明支持 Ascend 950，列 CANN 9.2 | 各操作采用 CCU/URMA/UB Memory 的实际条件与设备测量 |
+白皮书核实了 950 的 STARS 2.0、CCU、URMA/UB Memory 与 UBoE 硬件机制；DeepInfer `774ce244` 的 README 声明支持 Ascend 950（前提 CANN 9.2），但未公开各集合操作命中 CCU/URMA/UB Memory 的实测边界；本站 A2 固定部署另钉 `db701c1f`。以下按知识库四版本正式钉点核对 vLLM Ascend 中涉及 950（`AscendDeviceType.A5`）通信资源、MoE 派发与融合通信的框架接口：
+
+| 核对维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| A5 本地通信资源配置 | `utils.py#L571-L575` 加载 A5 本地端点至 `ASCEND_LOCAL_COMM_RES` | 同左（`utils.py#L541-L545`） | `HardwareProfile` 显式声明 `LOCAL_KV_COMM_RESOURCE`（`hardware_profile.py#L365`）管理本地 KV 通信资源 | 延续 `LOCAL_KV_COMM_RESOURCE`（`hardware_profile.py#L480`） |
+| MoE 派发与矩阵乘-通信融合能力 | 未建集中式 `HardwareProfile` 能力枚举；无 A5 图级 MM+ReduceScatter 融合能力标志 | 同左 | A5 档案声明 `MOE_DISPATCH_EXTRA_ARGS`（`token_dispatcher.py#L120` 消费）与 `MM_REDUCE_SCATTER_AI_CPU_INFERENCE`（`hardware_profile.py#L369-L371`） | 延续上述能力，并新增图级 `GRAPH_MM_REDUCE_SCATTER_FUSION`（`hardware_profile.py#L477`、`graph_fusion_pass_manager.py#L76`） |
+| STARS 2.0 / CCU / URMA / UB Memory 软硬件验证 | 仅白皮书硬件依据；无该维护线在 950 上的 CCU/URMA 实测与回退表 | 同左 | 框架通过硬件档案暴露融合通信与本地 KV 资源钩子，底层是否卸载到 CCU/URMA 仍由 CANN / HCCL 运行时决定，缺设备实测 trace | 同左 |
 
 ### 源码位置
 
@@ -212,5 +224,6 @@ DeepInfer 的固定公开版本把 Ascend 950 列为支持硬件，并列出 CAN
 | CCUM/Mission、CCUA、MemorySlice、Reduce Unit 与 URMA 调用 | 同一白皮书 §4.6.4，PDF 32–33 页，图 4-14。软件预置算法，硬件解析执行，任务完成后上报状态。 |
 | 端口转发、超节点、内存/存储资源池及两种以太接入 | 同一白皮书 §4.6.5、§4.7，PDF 34、36–39 页，图 4-15、4-17 至 4-21。单 IO Die 内 9 个 x4 端口可转发，转发不进计算 Die/DRAM；芯片与池的连接能力不等于框架已经启用远端 KV 访问。 |
 | DeepInfer 支持范围、异步调度说明、构建前提 | 来源 2：固定提交 README 的 Supported features、Supported hardware、Prerequisites 与 Build from source。[S2] |
+| vLLM Ascend 四版 A5 通信资源与融合通信能力声明 | `vllm-ascend@2c59ff10:vllm_ascend/utils.py#L571-L575`、`2ed6cbba:vllm_ascend/utils.py#L541-L545`、`c09d3e20:vllm_ascend/device/hardware_profile.py#L365-L372`、`ops/fused_moe/token_dispatcher.py#L120`、`8d6180e2:vllm_ascend/device/hardware_profile.py#L477-L488`、`compilation/graph_fusion_pass_manager.py#L76`。[C5][C7] |
 
-**待核：** 尚无本项目在 950 上的驱动、固件、CANN、框架和通信库组合实测，也未核清各软件版本实际选择 CCU/URMA/UB Memory 的分支、默认值及回退。本页的两卡数值来自已有教学例子；时间表是另设的依赖演算，不代表白皮书测试数据。硬件机制来自原文与原图，`verified` 保持空数组。
+**待核：** 尚无本项目在 950 上的驱动、固件、CANN、框架和通信库组合实测，也未核清各软件版本实际选择 CCU/URMA/UB Memory 的分支、默认值及回退。本页的两卡数值来自已有教学例子 [A]；时间表是另设的依赖演算 [D]，不代表白皮书测试数据。

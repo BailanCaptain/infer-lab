@@ -127,7 +127,19 @@
     "v030-release-baseline",
     "aisbench-and-evalscope",
     "msprobe-accuracy-debug",
-    "cluster-serving"
+    "cluster-serving",
+    "ascend-950-architecture",
+    "ascend-950-execution-interconnect",
+    "deepseek-serving-case",
+    "deepseek-v4-1-flash",
+    "hccl-buffer",
+    "inference-benchmarking",
+    "inference-correctness-troubleshooting",
+    "inference-performance-troubleshooting",
+    "quantization-evaluation",
+    "quantization-methods",
+    "swa-bounded-replay",
+    "tensor-layout"
   ],
   "skip": {
     "learning-guide": ["source-sections", "diagram-first"]

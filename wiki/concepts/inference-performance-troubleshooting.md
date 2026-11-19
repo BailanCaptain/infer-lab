@@ -39,6 +39,16 @@ sources:
   - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L569-L587'
   - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L624-L656'
   - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L1223-L1251'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L527-L565'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L940-L962'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L511-L555'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L1034-L1056'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L498-L518'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L567-L666'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1230-L1252'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L589-L618'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L664-L785'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1317-L1348'
 relations:
   - to: inference-performance-walkthrough
     kind: builds-on
@@ -64,7 +74,11 @@ relations:
   - to: expert-parallel
     kind: builds-on
     note: 核对专家放置和逐卡容量，不把总显存当作每张卡可用容量
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: I
 contradicts: []
 updated: 2026-11-03T00:00:00.000Z
@@ -97,14 +111,14 @@ file: inference-performance-choice
 
 [贯穿样例的实验](inference-performance-walkthrough.md#怎样验证是长提示词拖慢了回答)已经完整演示长输入分块：旧回答少等，新请求的首字多等。这里换一类证据，避免遇到任何“慢”都去缩小预算。
 
-假设某请求从 0 ms 入队到 800 ms 才开始计算，计算用 50 ms，返回用 10 ms；同类请求在低负载下的计算也约 50 ms。以下时间均为**教学示意**。这次主要等待发生在开算之前，因此先检验“到达工作超过可用能力”，同时观察是否只集中在一个执行组。先只看这条请求，暂时固定排队与返回时间，算计算减半的直接收益。
+假设某请求从 0 ms 入队到 800 ms 才开始计算，计算用 50 ms，返回用 10 ms；同类请求在低负载下的计算也约 50 ms。以下时间均为**教学示意**。这次主要等待发生在开算之前，因此先检验“到达工作超过可用能力”，同时观察是否只集中在一个执行组。先只看这条请求，暂时固定排队与返回时间，算计算减半的直接收益（教学示意）：
 
-```calc
-title: 先看优化哪一段才可能有明显收益（示意）
-当前端到端等待 = 800 + 50 + 10 = 860 ms
-假设只把计算缩短一半 = 800 + 25 + 10 = 835 ms
-固定其余等待时节省 = 860 − 835 = 25 ms
-```
+$$T_{\text{原}} = 800 + 50 + 10 = 860\text{ ms}, \qquad T_{\text{算减半}} = 800 + 25 + 10 = 835\text{ ms}, \qquad \Delta T = 860 - 835 = 25\text{ ms}$$
+
+| 阶段拆分（单请求排队主导·示意） | 当前基线 | 仅把计算缩短一半 | 固定其余等待时节省 |
+| --- | --- | --- | --- |
+| 排队 + 计算 + 返回 | $800 + 50 + 10$ | $800 + 25 + 10$ | — |
+| 端到端等待 | **860 ms** | **835 ms** | **25 ms** |
 
 持续负载下，计算加速还可能提高服务率，进一步缩短队列，因此 25 ms 不是整体收益上限。这个小账的作用是提醒我们：除了计算时间，还必须观察排队怎样变化。
 
@@ -220,22 +234,19 @@ file: inference-performance-evidence
 
 ### 版本差异
 
-**v0.30.0rc2 沿用单项实验与分阶段取证方法，现场记录要补最终配置与实际 runner。** Worker 按最终配置分派 MRV1/MRV2，profiler 惰性启动；KV 预算还经过多组、逐层复用、卸载和 KVPP 等后处理。显式 kv_cache_memory_bytes 仍跑 profile_run，但不走按利用率自动算预算的相同分支，而是继续应用稀疏卸载/KVPP 限制，单个“可用字节数”不能直接比较请求容量。PCP 权重分片和 SFA C8 也可能同时改变通信与驻留布局，因此一个参数的变化仍可能跨多个执行分支；旧 GLM 的图/MTP/MC2 账单不随之重算。
+**跨版本排查性能回归时，除遵循单项实验与六阶段取证方法外，还必须把最终配置、实际 runner（MRV1 vs MRV2）与 KV 显存预算后处理链路一并记入实验档案。** 在 `v0.30.0` 及 `main` 中，显式 `kv_cache_memory_bytes` 仍跑 `profile_run`，但不走按利用率自动算预算的相同分支，而是继续应用多组缩放、稀疏 KV 卸载与 KVPP 约束；PCP 权重分片与 SFA C8 也会同时牵动通信与显存布局，单个“可用字节数”不能直接跨版本对比请求容量；旧 GLM 的图/MTP/MC2 账单仍锚定固定镜像 `db701c1f` 不随之重算。
 
-| 范围 | 本页依据 | 使用边界 |
-| --- | --- | --- |
-| v0.23 上游 `0fc695fc` 与 GLM 执行侧 `db701c1f` | 调度预算、执行图分派与优化文档 | 参数支持仍按相应机制及镜像安装产物确认 |
-| 社区 v0.23 `2c59ff10` | 六类取证方法可复用 | 不当作 GLM 专用代码，默认值查机制页 |
-| v0.26 `2ed6cbba` | 成本、关键路径、对照验证方法可复用 | 本页未逐项重测全部特性，配置按对应版本核对 |
-| main `baa023ad` | 同上 | 在线采集指南不等于固定快照的功能清单 |
+| 核对项 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
+|---|---|---|---|---|
+| Runner 路径与主机空隙取证 | 仅 MRV1（`model_runner_v1.py`） | 仅 MRV1（`model_runner_v1.py`） | 默认 MRV1，`use_v2_model_runner` 可选切 MRV2（`worker.py#L498-L518`） | MRV2 唯一路径（`worker.py#L589-L618`），常驻设备缓冲与异步调度路径不同 |
+| KV 显存预算计算（`determine_available_memory`） | 基础利用率扣除权重/激活/非 torch（`worker.py#L527-L565`） | 延续基础探测（`worker.py#L511-L555`） | 叠加多组缩放、KV 卸载与 KVPP 预算裁剪（`worker.py#L567-L666`） | 同 `v0.30.0`，并扩展 `_get_gpu_memory_utilization()` 与 HiSparse 显存统计（`worker.py#L664-L785`） |
+| 剖析器入口（`NPUWorker.profile`） | 惰性构造 `TorchNPUProfilerWrapper`（`worker.py#L940-L962`） | 同左（`worker.py#L1034-L1056`） | 同左（`worker.py#L1230-L1252`） | 同左，兼容 MRV2 调用链（`worker.py#L1317-L1348`） |
+| 现场方法复用与边界 | 六类取证方法可复用；GLM 专用分支见 `db701c1f` | 方法可复用；参数默认值与新特性查对应机制页 | 方法可复用；须同步记录最终 runner、多组/卸载/KVPP 预算 | 方法可复用；结合 MRV2 与在线采集指南核对现场包 |
 
 ### 源码位置
 
-- 调度预算与已算/待算位置的关系 [C1]；执行图和尺寸分派入口 [C2]。图复用已审查的贯穿样例，函数链只在调用链页维护。
-- 缩小分块预算对 TTFT、ITL 与吞吐的取舍见固定版[优化文档](https://github.com/vllm-project/vllm/blob/0fc695fc/docs/configuration/optimization.md#L41-L62) [S3]。
+- 四版 `vllm-ascend` Worker 的 runner 选择、KV 显存预算探测与惰性剖析入口实核：`2c59ff10:worker/worker.py#L527-L565`、`#L940-L962`；`2ed6cbba:worker/worker.py#L511-L555`、`#L1034-L1056`；`c09d3e20:worker/worker.py#L498-L518`、`#L567-L666`、`#L1230-L1252`；`8d6180e2:worker/worker.py#L589-L618`、`#L664-L785`、`#L1317-L1348` [C16][C20]。
+- 调度预算与已算/待算位置的关系 [C1]；固定 GLM 执行图和尺寸分派入口见来源 2、6 [C2]。图复用已审查的贯穿样例，函数链只在[请求调用链](request-call-chain.md)维护；若同时伴随异常退出或版本配置回归，返回[推理排障入口](inference-troubleshooting.md)分流。
+- 缩小分块预算对 TTFT、ITL 与吞吐的取舍见固定版[优化文档](https://github.com/vllm-project/vllm/blob/0fc695fc/docs/configuration/optimization.md#L41-L62)（来源 3，前提是启用 chunked prefill；其中大于 8192 的建议指向大 GPU 上的较小模型，不是 GLM 双机 NPU 的最优预算或收益实测）[S3]。
 - 采集入口见[官方 Profiling 指南](https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html) [S4]。
-- 排队时间与局部加速数值为教学假设 [A]，耗时相加为推导 [D]；六类分支与无故障优化表是本站依据机制组织的实验方法 [I]。是否适用需现场基准与正确性结果。
-
-- 来源 6：vllm-ascend@db701c1f，vllm_ascend/worker/model_runner_v1.py，L2914–L2996。
-
-两项调优方向来自来源 3 的固定 vLLM `0fc695fc:docs/configuration/optimization.md` L41–L62，前提是启用 chunked prefill。该文档明确区分 ITL、TTFT 与吞吐目标，并将大于 8192 的建议特别指向大 GPU 上的较小模型；这不是 GLM 双机 NPU 的最优预算或收益实测。
+- 排队时间与局部加速数值为教学假设 [A]，耗时相加为推导 [D]；六类分支与无故障优化表是本站依据机制组织的实验方法 [I]，是否适用需现场基准与正确性结果。

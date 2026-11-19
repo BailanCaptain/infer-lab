@@ -149,7 +149,20 @@ sources:
   - "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L786"
   - "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1180-L1230"
   - "vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L416-L450"
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L66-L250'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/compilation/breakable_aclgraph.py#L38-L90'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/xlite/xlite_worker.py#L22-L36'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L905-L955'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/compilation/acl_graph.py#L66-L255'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/compilation/breakable_aclgraph.py#L38-L90'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/xlite/xlite_worker.py#L27-L49'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/aclgraph_utils.py#L83-L235'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1034-L1085'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: graph-mode-layer
@@ -200,15 +213,15 @@ Host 交任务和设备算任务是两条流水：Host 交出去一个就接着�
 file: acl-graph
 ```
 
-把图里的格数写成账，能看清省的是哪一段：
+把图里的格数写成账，能看清省的是哪一段（示意格数，不是实测；两边设备干的活一样多，差别是 Host 交任务占掉的时间）：
 
-```calc
-title: 一步的时间花在哪（示意格数，不是实测）
-逐个下发 = 6 个任务 × 每个交 2 格 + 最后一个算完 1.5 格 = 13.5 格
-整串回放 = 提交 1 格 + 6 个任务 × 每个算 1.5 格 = 10 格
-设备真正在算 = 6 × 1.5 = 9 格
-> 两边设备干的活一样多，差别是 Host 交任务占掉的时间
-```
+$$T_{\text{eager}} = 6 \times 2 + 1.5 = 13.5\text{ 格}, \qquad T_{\text{replay}} = 1 + 6 \times 1.5 = 10\text{ 格}, \qquad T_{\text{device}} = 6 \times 1.5 = 9\text{ 格}$$
+
+| 执行方式（示意 6 个设备任务） | Host 下发 + 设备计算拆解 | 总耗时（示意格数） |
+| --- | --- | --- |
+| 逐个下发（eager） | 6 个任务 × 每个交 2 格 + 最后一个算完 1.5 格 | **13.5 格** |
+| 整串回放（ACL Graph） | 整串提交 1 格 + 6 个任务 × 每个算 1.5 格 | **10 格** |
+| 设备真正在算 | $6 \times 1.5$ 格 | **9 格** |
 
 两点要记住。第一，**这幅示意没有减少设备计算量**，省的是 Host 交任务的次数。较大的 prefill 批次处理更多提示词位置；若设备工作已盖住下发开销，减少下发就难以缩短这段等待。小 prefill 或混合批在下发成为瓶颈时也有优化空间，能否回放还由模式与后端决定。prefill 可以分块，不要求整段提示词一次算完。第二，上面的格数是教学设定，本库没有 NPU 实测数据，不据此给出加速比。
 
@@ -247,6 +260,9 @@ file: acl-graph-buffers
 
 - **算子自己得支持。** 每个注意力后端声明一个等级：混合批也支持、只支持「一批里每条请求位置数都一样」、只支持「每条正好 1 个位置」、完全不支持。整个模型按所有后端里最低的那个算，配置里要求的档位超出这个等级就自动降级并打一条 warning；只有「完全不支持」兜不住——要求混合批也走整趟图时，启动直接报错；只给 decode 要整趟图的，退到分段或不录图，同样打 warning。
 - **只在启动窗口里录。** 服务期遇到没录过的形状不会临时补录，捕获合法性检查会直接拒绝；启动期怎么热身、怎么按宽度从大到小逐个录，见[图模式](graph-mode-layer.md#启动时录运行时放)。
+- **录图显存走 `1 - u` 余量。** 设 `--gpu-memory-utilization` 为 $u$（默认 `0.9`），显存探测阶段按 $u \times \text{total\_memory}$ 扣除权重、激活峰值与非 torch 占用后，将剩余额度分配给 KV cache；随后的 `capture_model()` 录图显存（`npugraph_memory_bytes`）实际从设备剩下的 $(1 - u)$ 余量里划出。若捕获档位过多或 $u$ 设得过满把余量吃干，就会在录图期 OOM；`v0.30.0` 与 `main` 会在录图结束后将权重、激活、非 torch 与 `npugraph_memory_bytes` 合并为 `non_kv_memory`，扣除 150 MiB 安全冗余后在日志中打印推荐 `--kv-cache-memory`。
+
+在 `v0.30.0` 及 `main` 中，昇腾的图捕获生态分化为三条互补实现：**`ACLGraph`**（默认整图/分段包装器 `ACLGraphWrapper` 与 `updatable_graph`）、**`BreakableACLGraph`**（`BreakableACLGraphWrapper`，允许分段捕获在动态切分点打断）、以及 **`XliteGraph`**（`xlite_graph_config` 启用、平台在 `worker_cls="auto"` 且非 310P 时选中的独立 `XliteWorker` 图执行路径）。三者的版本演进见文末[版本差异](#版本差异)。
 
 ## 图片先过视觉编码器，这一步也能录成图吗？
 
@@ -264,14 +280,14 @@ file: vit-graph-packing
 
 图里的排序只改变执行组合。每次回放后拆出有效结果、复制出复用的输出缓冲，再恢复 A、B、C 的原输入顺序，交给语言模型的媒体位置对应关系才保持不变。
 
-```calc
-title: 三项视觉输入怎样使用图容量（示意）
-第一子批 B+C = 96 + 160 = 256 个位置
-第二子批 A = 192 个位置
-两次都选256档，共覆盖 = 256 + 256 = 512 个位置
-实际有效位置 = 192 + 96 + 160 = 448 个
-容量余量 = 512 − 448 = 64 个位置
-```
+$$\text{覆盖容量} = 256 + 256 = 512, \qquad \text{有效位置} = 192 + 96 + 160 = 448, \qquad \text{容量余量} = 512 - 448 = 64$$
+
+| 视觉输入分批（三项视觉输入使用图容量·示意） | 组成与计算式 | 位置数 |
+| --- | --- | --- |
+| 第一子批 `B + C`（选 256 档） | $96 + 160$ | **256**（满档） |
+| 第二子批 `A`（选 256 档） | $192$ | **192**（占 256 档） |
+| 两次共覆盖容量 / 实际有效位置 | $256 + 256$ vs $192 + 96 + 160$ | **512 / 448** |
+| 容量余量（补齐空位） | $512 - 448$ | **64** |
 
 余量是容量账，不是时间损失百分比；实际算子还取决于输入布局。若另有单项输出超过最大 512 档，该项走 eager，即直接执行、逐个提交设备任务。不能把这条 token 超档分支推广成任意缓冲不足都会自动退回。
 
@@ -315,7 +331,7 @@ Model Runner V1 的 Ascend 接入会换成专用的视觉图管理器：把本�
 
 ## 对照源码
 
-钉点：v0.23 为 vLLM `0fc695fc` + Ascend `2c59ff10`（维护分支，没有 GLM 代码）；**本页 GLM 行为按专用镜像 Ascend `db701c1f`**，它配的也是 vLLM `0fc695fc`；v0.26 为 Ascend `2ed6cbba`；main 为 Ascend `baa023ad`。
+钉点：`v0.23.0` 为 vLLM `0fc695fc` + Ascend `2c59ff10`（维护分支，没有 GLM 代码；**正文 GLM 绑定算例按专用镜像 Ascend `db701c1f`**）；`v0.26.0rc` 为 Ascend `2ed6cbba`（配套 vLLM `568afb3a`）；`v0.30.0` 为 Ascend `c09d3e20`（配套 vLLM `ced6857a`）；`main` 为 Ascend `8d6180e2`（配套 vLLM `ba15685a`）。
 
 ### 怎么开
 
@@ -366,41 +382,22 @@ Model Runner V1 的 Ascend 接入会换成专用的视觉图管理器：把本�
 
 ### 版本差异
 
-视觉图使用的固定上游分别是 0fc695fc、568afb3a、ced6857a、84030bbe；Ascend 比较点沿用本页钉点并补 rc2 的 7d825229。main 上游是独立比较快照，不由此声称它与 Ascend main 精确配套。
+**`v0.30.0`（`c09d3e20`）集齐 `ACLGraph` / `BreakableACLGraph` / `XliteGraph` 三类图路径，并在录图后给出扣除 `npugraph_memory_bytes` 与 150 MiB 余量的 `--kv-cache-memory` 建议；`main`（`8d6180e2`）进一步收口为 MRV2 `ModelAclGraphManager` 统一编排。**
 
-| 视觉图检查项 | v0.23 / 固定基线 | v0.26 | rc2 | 固定 main |
+| 图捕获核对项 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
 |---|---|---|---|---|
-| 四字段默认与 V1 总入口 | false / [] / 0 / None；总模式 NONE 先返回 | 相同 | 相同 | 相同 |
-| Ascend V1 实际管理器 | 捕获上下文换为 EncoderAclGraphManager | 相同接入方式 | 相同接入方式 | 相同接入方式 |
-| 上游路径组织 | 单路径预算 | 增加模型选择的全局图像/局部切片两条路径 | 通用多路径及额外捕获轴组合 | 同 rc2 |
-| NPU 多路径边界 | FIA 参数按 token_budget 建账 | 仍按预算建账，多路径分账尚有 TODO，不能仅因接收 path 就宣布完整支持 | 仍按预算建账；另明确拒绝非空 capture axes，抛 NotImplementedError | 同 rc2 |
-| GLM 多模态协议 | 固定 db 镜像与旧上游父类没有协议 | 上游 GLM4V 已有；Ascend 此快照没有固定 GLM5Next 本地注册 | GLM5Next 有实际注册和协议适配，去掉该视觉塔不产生的 pos_embeds | 同样有适配；仍需模型与设备验证 |
-| Qwen3-VL 多模态裁剪 | 图的模态列表为空，图片和视频均退出 | 相同 | 相同 | 相同 |
-| Ascend 上游视觉后端选项 | 平台重置 mm_encoder_attn_backend 为 None | 相同 | 相同 | 相同 |
+| 三类图实现（`ACLGraph` / `Breakable` / `XliteGraph`） | 仅 `ACLGraphWrapper` 与独立 `XliteWorker`；无 `BreakableACLGraphWrapper` | 同 `v0.23.0`（行号后移） | 齐备 `ACLGraphWrapper`、`updatable_graph`、`BreakableACLGraphWrapper` 与 `XliteWorker` | 同左，且 MRV2 经 `worker/v2/aclgraph_utils.py` 的 `ModelAclGraphManager` 统一管理整图/可打断图与可更新图 |
+| 捕获失败识别与 `ASCEND_LAUNCH_BLOCKING` | 只识别设备流资源不足；`ASCEND_LAUNCH_BLOCKING=1` 撞图模式抛 `ValueError` | 新增识别旧 HDK `Alloc sq cq fail` 并提示升级 HDK 25.5.1+；同左抛 `ValueError` | 保留 `Alloc sq cq fail` 提示；A5 砍档改按 `HardwareProfile` 能力标记 | 同 `v0.30.0`；平台图配置不再单独对 `ASCEND_LAUNCH_BLOCKING=1` 做拒绝（不代表所有组合均支持） |
+| 录图预算与 `1 - u` 余量 | 录图显存落在 `gpu_memory_utilization`（$u$）之外的 $(1 - u)$ 设备余量 | 同 `v0.23.0` | 同左；录图后汇总 `non_kv_memory`（含 `npugraph_memory_bytes`）并扣 150 MiB 输出推荐 `--kv-cache-memory` | 同 `v0.30.0`（改经 `_get_gpu_memory_utilization()` 与 HiSparse 非 KV 显存分支计算） |
+| 可更新图 `update` / `replay` 次序 | 普通 paged attention 经侧流事件同步，非 ENPU 先调模型再调通用更新 | 同 `v0.23.0` | `FULL` 加特定后端进入可更新分支：`enable_enpu` 先 update 后 replay，其余先 replay 后 update；`FULL` 通常回放前同步流（ENPU/EAGLE 合图跳过） | 延续可更新图条件次序，由 `ModelAclGraphManager._updatable_graph_replay` 承接 |
+| 视觉图（`cudagraph_mm_encoder`）与多模态 | 单路径预算，Ascend V1 换用 `EncoderAclGraphManager`；`db701c1f` GLM 无视觉图协议；平台重置 `mm_encoder_attn_backend` 为 `None` | 上游增加全局/局部双路径；NPU FIA 仍按 `token_budget` 建账 | 通用多路径；NPU 拒绝非空 `capture axes` 抛 `NotImplementedError`；`GLM5Next` 补齐协议适配（去掉 `pos_embeds`） | 同 `v0.30.0`；MRV2 分开判断视觉图与语言图入口，Qwen3-VL 裁剪仍置空图模态 |
 
-较新上游的 Model Runner V2 分别判断编码器和语言图的捕获，入口不同于上表 V1 的 NONE 早退；不能直接套用 V1 条件。Ascend V2 的默认状态链和通用图适配另有实现，本节只核清 V1 专用 FIA 事件链；V2 的模型、形状与设备组合尚需实际捕获和结果对照。官方 ViT 指南的性能表使用 GPU 及指定模型，不是本站 A2/GLM 的收益数据。
-
-**v0.30.0rc2 的可更新图有条件性的 update/replay 顺序。** FULL 加特定 attention backend 才进入该分支，普通路径仍直接 replay；enable_enpu 时先 update 后 replay，其他可更新图路径先 replay 后 update。主模型从 ContextSource 的 attention metadata 取任务，draft 从 SharedSource 的 draft metadata 取任务。FULL 通常在回放前同步流，但 ENPU 或 EAGLE draft 合图场景会跳过该屏障。不能把它概括为每步都先更新，也不能据此宣布旧 GLM 所有 FULL 图都命中可更新分支。
-
-| 检查项 | v0.23 | v0.26 | main |
-|---|---|---|---|
-| 包装器与条目结构（透传 / 查条目 / 录 / 放） | 维护分支与专用镜像是同一份文件，错误码、类、更新入口几处行号都相同 | 同，行号后移 | 同，另有一个可打断的包装器单独成文件 |
-| 捕获失败识别 | 只识别设备流资源不足 | 多识别旧 HDK 的 `Alloc sq cq fail` 并提示升级 | 与 v0.26 同 |
-| `ASCEND_LAUNCH_BLOCKING=1` 撞上图模式 | 启动抛 `ValueError` | 同 | 平台图模式配置函数不再含这项拒绝检查；示例和测试中仍可能设置该变量，不代表所有调试组合都受支持 |
-| A5 砍到 4 档的门禁 | 按设备类型判断 | 同 | 改按硬件能力标记判断；枚举声明见来源 22，实际消费见来源 30 |
-| 整图注意力参数更新入口 | 有 | 有 | 有 |
-
-官方文档把 ACL Graph 记在 v0.9.0rc1 起，并列出五个档位；最终有效模式仍受平台与后端限制 [S23]。设计文档把参数更新概括为“回放之前” [S24]，实际非 ENPU Python 路径却先调用模型、再调用通用更新入口 [C16]。普通 paged attention 的具体机制能解释这个次序：捕获时先登记事件等待，再登记注意力任务；更新流修改该任务后记录事件，才允许注意力执行 [C18][C31]。因此更新要赶在对应注意力任务执行前，未必早于整张图的 replay 调用。固定 GLM 则走前文的缓冲更新路径，两条机制分别核对。
+官方文档把 ACL Graph 记在 v0.9.0rc1 起并列出五个档位，最终有效模式仍受平台与后端限制 [S23]。设计文档把参数更新概括为“回放之前” [S24]，实际非 ENPU Python 路径先调用模型再调用通用更新入口 [C16]，原因在于捕获时先登记事件等待再登记注意力任务，更新流改参后记录事件才放行注意力 [C18]。较新上游 MRV2 分别判断编码器和语言图的捕获，不能直接套用 V1 的 NONE 早退条件；官方 ViT 指南的性能表使用 GPU 与指定模型，不作为 A2/GLM 收益数据。
 
 ### 源码位置
 
-固定 GLM 的构建先于前向见来源 119–120；稀疏 MLA 子类接公共元数据、传递查询与历史长度并进入设备算子见 121–124，结合既有来源 32–34 的块表复制。压缩索引器和状态缓存实际消费这些元数据见 125，KDA 的投机元数据封装见 126；持久缓冲更新及真实 Kimi 注册/算子消费者分别回查[图模式](graph-mode-layer.md#源码位置)与[算子页](ops-and-kernels.md#源码位置)的既有固定来源。这里限定 db701c1f 与配套上游 0fc695fc，不将新版模型实现套回这条链。
-
-视觉图的固定官方设计见来源 37–39；四版字段、校验、V1 入口与 Qwen3-VL 裁剪分别见 40–44、45–49、50–54、55–59。NPU V1 的实际替换与回填见 60–69；各版专用捕获/回放见 70–77。FIA 按预算记账及事件更新链见 78–81，预算推断、分批、复制和 TP 收集见 82–86；双路径、多路径及较新 V2 入口见 87–90。310P 的另一注册见 91，帧元数据与真实装箱约束见 92–96，Ascend 平台视觉后端重置见 97–101。
-
-固定 GLM 的实际注册、完整子类与旧父类见 102–104；v0.26 上游 GLM4V 协议与 Ascend 注册范围见 105、108；rc2/main 的父类与 GLM5Next 适配见 106–107、109–114，运行时协议检查见 115。新视觉图示的 128/256/512 与 A/B/C 数值是按分批算法建立的教学示意，不是这些模型的实测参数。
-
-后三个 Ascend 快照的视觉 FIA 参数仍按 token_budget 建账，分别见来源 116–118；rc2/main 新增 capture axes 拒绝检查，没有同时解决这项多路径分账限制。
+- `v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 实核：`ACLGraphWrapper` 见 `c09d3e20:compilation/acl_graph.py#L66-L250` 与 `8d6180e2:compilation/acl_graph.py#L66-L255`；`BreakableACLGraphWrapper` 见 `c09d3e20` / `8d6180e2:compilation/breakable_aclgraph.py#L38-L90`；`XliteWorker` 见 `c09d3e20:xlite/xlite_worker.py#L22-L36` 与 `8d6180e2:xlite/xlite_worker.py#L27-L49`；`main` MRV2 图管理器见 `8d6180e2:worker/v2/aclgraph_utils.py#L83-L235`；录图走 `1 - u` 余量与 150 MiB 推荐公式见 `c09d3e20:worker/worker.py#L905-L955` 与 `8d6180e2:worker/worker.py#L1034-L1085` [C130][C135]。
+- 固定 GLM（`db701c1f`）元数据构建、块表复制、稀疏 MLA 与 KDA 封装见来源 119–126；视觉图官方设计与四版字段/入口/FIA 事件更新链见来源 37–118；`v0.23.0` / `v0.26.0rc` 包装器、平台与宽度表派生见来源 1–36。新视觉图示的 128/256/512 与 A/B/C 数值、以及 6 任务格数账单均为教学示意设定 [A][D]。
 
 | 看什么 | 在哪 |
 |---|---|

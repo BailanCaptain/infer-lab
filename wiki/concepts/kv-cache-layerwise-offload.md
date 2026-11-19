@@ -124,9 +124,16 @@ sources:
   - "vllm-ascend@baa023ad:vllm_ascend/ops/kimi_kda.py#L500-L529"
   - "vllm-ascend@7d825229:vllm_ascend/models/kimi_k3.py#L412-L462"
   - "vllm-ascend@7d825229:vllm_ascend/ops/kimi_kda.py#L530-L563"
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L128-L192'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L395-L425'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L150-L210'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise/layerwise_cache_layout.py#L120-L190'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L430-L460'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L150-L210'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -193,16 +200,14 @@ file: kv-cache-layerwise-offload-overlap
 
 **整趟搬 = 全部搬入 + 全部计算 + 全部存出；逐层搬（每层搬得不比算得慢时）= 第一层搬入 + 全部计算 + 最后一层存出。** 中间各层的搬入、存出都藏进了别的层的计算里。
 
-接着用上图的示意数：4 层，每层搬入 2 ms、计算 3 ms、存出 2 ms。
+接着用上图的示意数：4 层，每层搬入 2 ms、计算 3 ms、存出 2 ms（层数越多，头尾那两份越不显眼：32 层时整趟 $64 + 96 + 64 = 224\text{ ms}$，逐层 $2 + 96 + 2 = 100\text{ ms}$）：
 
-```calc
-title: 4 层模型一次前向：整趟搬和逐层搬（示意数）
-整趟 = 4 × 2 ms + 4 × 3 ms + 4 × 2 ms = 8 + 12 + 8 = 28 ms
-逐层 = 2 ms（第 0 层搬入）+ 4 × 3 ms + 2 ms（第 3 层存出） = 16 ms
-计算在等（整趟） = 8 + 8 = 16 ms
-计算在等（逐层） = 2 + 2 = 4 ms
-> 层数越多，头尾那两份越不显眼：32 层时整趟 64 + 96 + 64 = 224 ms，逐层 2 + 96 + 2 = 100 ms
-```
+$$T_{\text{layerwise}} = t_{\text{load},0} + L \cdot t_{\text{comp}} + t_{\text{save},L-1} = 2 + 4 \times 3 + 2 = 16\text{ ms}$$
+
+| 4 层模型一次前向（示意数：单层搬入 2 ms、计算 3 ms、存出 2 ms） | 总耗时算式 | 计算等待时间 |
+| --- | --- | --- |
+| **整趟搬** | $4 \times 2 + 4 \times 3 + 4 \times 2 = 8 + 12 + 8 =$ **28 ms** | $8 + 8 =$ **16 ms** |
+| **逐层搬（理想重叠）** | $2 + 4 \times 3 + 2 =$ **16 ms** | $2 + 2 =$ **4 ms** |
 
 这个公式采用理想流水线：**每层搬入和存出都不比可用于重叠的计算慢，两个传输方向可并行，也没有额外带宽争用和同步开销。** 这里把每层 3 ms 都视为可重叠窗口；实际预取门在 attention 开始时打开，不能把此前的所有层计算时间都算作窗口。把每层搬入改成 4 ms、可重叠计算仍是 3 ms，算第 L 层的 3 ms 里只能搬完第 L+1 层的四分之三，从第 1 层起每层都要多等 1 ms：一次前向 = 4（第 0 层搬入）+ 4 × 3 + 3 × 1 + 2（第 3 层存出）= 21 ms。仍比整趟的 16 + 12 + 8 = 36 ms 快，但等待散到了每一层。
 
@@ -212,17 +217,16 @@ title: 4 层模型一次前向：整趟搬和逐层搬（示意数）
 
 **一层要搬的字节 = 开头的位置数 × 每个位置在这一层的缓存字节；能遮它的，是这一步在前一层上算新位置花的时间。** 开头越长，要搬的越多；这一步新算的位置越少，能遮的越少。
 
-沿用 [CPU offload 页的示意模型](kv-cache-cpu-offload.md#搬回和重算各花多少)：32 层，每个位置 32 层共存 128 KiB；开头 4,096 个位置；外部到显存的有效带宽 16 GiB/s；这张卡每秒能算 16,384 个位置（粗算，不细分开头长短对速度的影响）。
+沿用 [CPU offload 页的示意模型](kv-cache-cpu-offload.md#搬回和重算各花多少)：32 层，每个位置 32 层共存 128 KiB；开头 4,096 个位置；外部到显存的有效带宽 16 GiB/s；这张卡每秒能算 16,384 个位置（粗算，不细分开头长短对速度的影响）。对比本步新算 512 个与 128 个位置：512 个时刚好遮住，只有 128 个时每层还要多等约 0.73 ms：
 
-```calc
-title: 一层的搬入和一层的计算（示意数）
-每个位置在一层的缓存 = 128 KiB ÷ 32 层 = 4 KiB
-一层要搬 = 4,096 位置 × 4 KiB = 16 MiB
-一层搬入 = 16 MiB ÷ 16 GiB/s ≈ 0.98 ms
-这一步算 512 个新位置，一层的计算 = 512 ÷ 16,384 位置/s ÷ 32 层 ≈ 0.98 ms
-这一步只算 128 个新位置，一层的计算 = 128 ÷ 16,384 位置/s ÷ 32 层 ≈ 0.24 ms
-> 512 个新位置时刚好遮住；只有 128 个时，每层还要多等约 0.73 ms
-```
+$$t_{\text{load,layer}} = \frac{4{,}096 \times (128\text{ KiB} \div 32)}{16\text{ GiB/s}} = \frac{16\text{ MiB}}{16\text{ GiB/s}} \approx 0.98\text{ ms}$$
+
+| 单层搬入与计算对比（示意数：32 层、4,096 开头、16 GiB/s） | 算式 | 结果 |
+| --- | --- | --- |
+| 每个位置在一层的缓存 | $128\text{ KiB} \div 32$ | **4 KiB** |
+| 一层要搬字节与耗时 | $4{,}096 \times 4\text{ KiB} = 16\text{ MiB}$；$16\text{ MiB} \div 16\text{ GiB/s}$ | **约 0.98 ms** |
+| 本步算 512 个新位置的单层计算时间 | $512 \div 16{,}384 \div 32$ | **约 0.98 ms**（刚好遮住） |
+| 本步算 128 个新位置的单层计算时间 | $128 \div 16{,}384 \div 32$ | **约 0.24 ms**（每层多等约 0.73 ms） |
 
 所以同一个开头，后面接一大段新内容时逐层搬最划算；多轮对话里长开头后面只追问一句，每层的计算太短，搬入基本遮不住，每层都在等。存出方向反过来：一层要存的只是这一步新写的位置，512 个新位置在一层只有 2 MiB，比搬入小得多。
 
@@ -274,20 +278,18 @@ PD 分离里还有一个同样按层搬的 MooncakeLayerwiseConnector，但对�
 
 **按层搬以后，一层的数据只在「搬入开始」到「存出完成」这段时间里需要占显存；不同层的这段时间大多不重叠，就可以让几层轮流用同一块显存。** 这是和逐层搬分开的另一个能力：逐层搬改的是时间安排，共享槽改的是显存怎么分。
 
-v0.26、rc2 和固定 main 的 memcache 路径实现了这种布局：指定几层独占自己的空间（默认只有第 0 层），其余各层按顺序轮流用 N 个共享槽，第 k 个参与轮换的层用第 k mod N 个槽。下面假设 8 个缓存规格完全相同的层，每层的缓存占 P 字节，配两个共享槽：
+`v0.26.0rc`、`v0.30.0` 与 `main` 的 memcache 路径实现了这种布局：指定几层独占自己的空间（默认只有第 0 层），其余各层按顺序轮流用 $N$ 个共享槽，第 $k$ 个参与轮换的层用第 $k \bmod N$ 个槽。下面假设 8 个缓存规格完全相同的层，每层的缓存占 $P$ 字节，配 2 个共享槽（外部池、传输工作区和元数据另算）：
 
 ```wiki-diagram
 file: kv-cache-layerwise-offload
 ```
 
-```calc
-title: L0 独占 + 7 层轮用 2 个共享槽：显存省多少（示意数）
-各层独占 = 8 × P = 8P
-L0 独占 + 两个共享槽 = 1P + 2P = 3P
-比例 = 3P ÷ 8P = 37.5%
-P = 16 MiB（接上一节的一层）时 = 8 × 16 MiB = 128 MiB → 3 × 16 MiB = 48 MiB
-> 外部池、传输工作区和元数据另算
-```
+$$\text{ratio} = \frac{1P + 2P}{8P} = \frac{3}{8} = 37.5\%$$
+
+| L0 独占 + 7 层轮用 2 个共享槽的显存对比（示意数） | 符号算式 | 代入 $P = 16\text{ MiB}$ |
+| --- | --- | --- |
+| 各层独占（默认不共享） | $8 \times P = 8P$ | $8 \times 16\text{ MiB} =$ **128 MiB** |
+| L0 独占 + 2 个共享槽 | $1P + 2P = 3P$（占 $37.5\%$） | $3 \times 16\text{ MiB} =$ **48 MiB** |
 
 省下显存的代价是时间上的约束：
 
@@ -326,16 +328,16 @@ GLM 的层很不均匀（见[模型结构](glm-5-3-flash.md)）：
 - 另外 34 层是 [KDA](linear-attention.md)，基线每条请求每层预留 4 页、每页 640 KiB，包含当前状态、3 份草稿状态和页内填充。这是预留页容量，不能当作单份有效状态或每次搬运量，三种口径见[线性 attention 页](linear-attention.md#放到-glm-双机34-层-kda-的状态有多大)。
 - 一层 MLA 每个位置在每张卡上存 1,088 B（压缩表示 1,024 B + 索引器 64 B，TP 各卡存同一份）。一个块号 640 个位置，12 层合起来 8,355,840 B ≈ 7.969 MiB，推导见[部署页的块大小](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)。
 
-借[多条请求页](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)里被抢占的那条请求来感受规模：它约 67,000 个位置，按位置存的那一组占 105 个块。以下 MLA 按 105 个整块全部取回估算；KDA 另列基线预留页容量，不能与 MLA 相加当作实传流量。
+借[多条请求页](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)里被抢占的那条请求来感受规模：它约 67,000 个位置，按位置存的那一组占 105 个块。以下 MLA 按 105 个整块全部取回估算；KDA 另列基线预留页容量（含草稿页和填充，接池后实际搬哪些状态、多少块须按 `align` 布局与传输任务另算，不能与 MLA 相加当作实传流量）：
 
-```calc
-title: MLA 整块取回估算与 KDA 基线页容量（每张卡）
-一层 MLA 一块 = 640 位置 × 1,088 B = 696,320 B = 680 KiB
-一层 MLA = 105 块 × 680 KiB ≈ 69.7 MiB
-12 层 MLA 合计 = 105 块 × 7.969 MiB ≈ 836.7 MiB
-一层 KDA 的基线预留页容量（一条请求） = 4 页 × 640 KiB = 2.5 MiB
-> KDA 含草稿页和填充；接池后实际搬哪些状态、多少块，须按 align 布局与传输任务另算
-```
+$$B_{\text{MLA,12L}} = 105\text{ 块} \times 7.969\text{ MiB} \approx 836.7\text{ MiB}$$
+
+| MLA 整块取回估算与 KDA 基线页容量（每张卡） | 算式 | 结果 |
+| --- | --- | --- |
+| 一层 MLA 单块（640 位置 × 1,088 B） | $640 \times 1{,}088\text{ B}$ | $696{,}320\text{ B} =$ **680 KiB** |
+| 一层 MLA（105 块全取） | $105 \times 680\text{ KiB}$ | **约 69.7 MiB** |
+| 12 层 MLA 合计 | $105 \times 7.969\text{ MiB}$ | **约 836.7 MiB** |
+| 一层 KDA 基线预留页容量（单条请求） | $4\text{ 页} \times 640\text{ KiB}$ | **2.5 MiB**（含草稿页与填充） |
 
 在这个全量取回的假设里，每 4 层有一层 MLA 要读约 69.7 MiB。两层 MLA 之间隔着 3 层 KDA 的计算，如果能提前 4 层发起，就有机会用前面几层的计算覆盖这次搬入。KDA 的 2.5 MiB 只描述未接池基线的页容量；改成 align 留档后，实际任务的状态块数和传输布局要另核。实现能不能正确排层，还取决于下面的入口与层计数条件。
 
@@ -406,46 +408,33 @@ title: MLA 整块取回估算与 KDA 基线页容量（每张卡）
 
 ### 版本差异
 
-后续官方快照 `921ccc52` 将逐层 prefill 与 sparse decode 联合部署放在同一指南，但两侧支持范围仍要分开：P 侧逐层缓冲与 D 侧热缓存不是同一机制；该快照的 sparse decode 暂不支持 950PR/950DT，并与 PreemptOffloadConnector 互斥。D 侧的默认 Copy-SFA 路径、热缓冲约束和主机预算统一见[稀疏卸载版本差异](kv-cache-sparse-offload.md#版本差异)，不能从传输协议的硬件支持反推整个联合方案可用。
+**`v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 清晰区分逐层池存取、P 侧共享槽缓冲复用与 D 侧稀疏卸载。** `AscendStore` 的逐层路径按后端协议分流（memcache 全局地址 vs Mooncake 按块键）；Mooncake 的 block-key 路径已能处理 TP/PP 和混合缓存组，但仍拒绝 CP 与 P/D 两端 TP 不一致，PP 每个阶段必须覆盖各缓存组；递推状态的拷贝必须等该层加载完成后才执行。memcache 预取数取自共享槽布局（`min(槽数, 8)`，槽数默认等于层数），非 GVA 路径默认 2；加载按 10 秒间隔循环等待并检查后台异常，前向末尾先等后台 PUT 队列排空再等末层完成事件。**`main (8d6180e2)` 进一步将逐层池实现从 `ascend_store/` 根目录拆入独立子包 `ascend_store/layerwise/`**（包含 `layerwise_cache_layout.py`、`kv_transfer.py`、`metadata.py`、`pool_scheduler.py`、`pool_worker.py`），并将整趟与逐层逻辑解耦。
 
-**v0.30.0rc2 区分逐层池存取、P 侧缓冲复用和 D 侧稀疏卸载。** AscendStore 的逐层路径按后端协议分流；Mooncake 的 block-key 路径已能处理 TP/PP 和混合缓存组，但仍拒绝 CP 与 P/D 两端 TP 不一致，PP 每个阶段还必须覆盖各缓存组。递推状态的拷贝必须等该层加载完成后才执行，不能先复制尚未到齐的状态。
+与稀疏 decode 卸载组合的官方指南列出 GLM-5.1、GLM-5.2、DeepSeek-V3.2；D 侧稀疏卸载暂不支持 950PR/950DT 且与 `PreemptOffloadConnector` 互斥（见[稀疏卸载版本差异](kv-cache-sparse-offload.md#版本差异)）。本站 A2 的 GLM-5.3-Flash 旧算例不能从该列表自动获得组合支持。
 
-rc2 的 memcache 预取数取自共享槽布局，非 GVA 路径默认 2。加载按 10 秒间隔循环等待并检查后台异常；前向末尾等待保存完成时，先等后台 PUT 队列排空，再等末层完成事件，避免“末层没有任务，前层却还在拷贝”时提前复用缓冲。block-key 路径还会收齐前层保存事件。rc2 和 main 的 Kimi K3 KDA 都在读取卷积与递推状态前调用等待入口，在正常与空工作出口调用空参数保存入口。这些动作放在不被编译跟踪的执行区间内，并有 Kimi K3 decoder 的实际构造入口；它们不证明旧 GLM 也走这套实现。
-
-与稀疏 decode 卸载组合的官方指南只列 GLM-5.1、GLM-5.2、DeepSeek-V3.2，并按 A3 与 950 系列分别配置依赖和传输协议；未验证其他稀疏模型。本站 A2 的 GLM-5.3-Flash 旧算例不能从这个列表自动获得组合支持。具体拓扑与 connector 见 [KV Pool](kv-pool.md#版本差异)。
-
-| 项 | v0.23 维护分支 2c59ff10 / GLM 快照 db701c1f | v0.26 分支 2ed6cbba | main baa023ad | 意味着什么 |
+| 项 | v0.23.0 (2c59ff10) | v0.26.0rc (2ed6cbba) | v0.30.0 (c09d3e20) | main (8d6180e2) |
 |---|---|---|---|---|
-| 池的逐层数据面 | 两者逐字相同；模型计算入口另核 | 新增共享槽布局，等待改为一直等 | 再按后端协议分成两种数据面 | 数据面相同不保证两个模型都调用了所需 hook |
-| 支持的后端 | 只有 memcache（官方指南） | 同左 | memcache（全局地址）和 Mooncake（按块的键）两种 | main 起 Mooncake 也能逐层 |
-| 提前层数默认 | 1 | memcache 取 min(槽数, 8)，槽数默认等于层数；其余 1 | memcache 同左；其余 2 | 同一份配置换版本，重叠程度会变 |
-| 共享槽 | 无 | 有（memcache） | 有（memcache） | rc2 也保留该布局；共享槽 prefill 按指南用 eager |
-| 等超时 | 等 10 秒后照常往下走 | 一直等，出错抛出 | 一直等，出错抛出 | 旧版超时后可能读到没搬完的数据（按代码推断）[I] |
-| KDA 文件里的逐层入口 | 2c 无该 Ascend Kimi 文件与注册项；db 实际替换为 Ascend 旧 Kimi 实现，但无 wait/save | 仍注册旧 Kimi 实现，无 wait/save | Kimi K3 decoder 直接构造新类，有 wait/save；rc2 相同 | 按实际模型构造判断，不能沿用旧注册名推断新类，也不能反推旧 GLM 获得支持 |
+| 逐层数据面与代码组织 | 仅 `ascend_store/` 根目录旧实现（与镜像 `db701c1f` 数据面同源） | 新增共享槽布局，等待改为循环并检查异常 | 按后端协议分流（memcache 全局地址 + Mooncake block-key）；末层先排空 PUT 队列再等事件 | 拆出独立子包 `ascend_store/layerwise/`（`layout`/`kv_transfer`/`scheduler`/`worker` 解耦） |
+| 支持的后端与混合模型 | 仅 memcache（官方指南） | 同 v0.23.0 | memcache + Mooncake（block-key 支持 TP/PP 与混合组，拒 CP 与 P/D 不等 TP） | 同 v0.30.0 |
+| 提前层数默认与共享槽 | 默认 1；无共享槽 | memcache 取 `min(槽数, 8)`，其余 1；memcache 支持共享槽 | memcache 取 `min(槽数, 8)`，非 GVA 默认 2；memcache 共享槽 prefill 按指南配 eager | 同 v0.30.0 |
+| 超时等待与后台异常 | 等 10 秒超时打日志继续（可能读未完数据）[I] | 持续等待，后台异常抛出 | 按 10 秒间隔循环等待并检查后台异常，排空队列后再复用槽 | 同 v0.30.0 |
+| KDA 逐层入口 | `2c59ff10` 无 Ascend Kimi 文件；`db701c1f` 旧替换无 wait/save | 仍注册旧 Kimi 实现，无 wait/save | Kimi K3 decoder 直接构造新类，含读取前 wait 与空参数 save 入口 | 同 v0.30.0 |
 
-表中“等待改为一直等”描述事件等待与后台异常检查，不把完成事件等同于每次后端写入均成功。固定旧后台即使收到非零拷贝返回码也会记录错误并置完成事件；使用时须一起检查错误日志。main 的只加载角色在等待入口推进层号，和旧版依靠保存入口推进层号不同。
+表中“持续等待”描述事件等待与后台异常检查，不把完成事件等同于每次后端写入均成功。固定旧后台即使收到非零拷贝返回码也会记录错误并置完成事件；使用时须一起检查错误日志。新版只加载角色在等待入口推进层号，和旧版依靠保存入口推进层号不同。
 
 ### 源码位置
 
-Layerwise 推送的槽完成事件、发送前关闭和发送后释放见来源 54–56；MultiConnector 的等待传递和保存顺序见 57，v0.26 的池接入及实际覆盖前等待见 58–60。main 的 worker 条件、无加载等待、range 与 H2D 等待见 61–65，rc2 对应条件和覆盖前等待见 66–68，并复用已有 51 的层入口。
-
-旧 2c 注册函数、v0.26 旧 Kimi 注册与计算路径见 69–72；main/rc2 Kimi K3 的实际 decoder 构造与状态读取前等待见 73–76，保存入口复用 38、53。这些来源纠正的是模型和版本边界，原 GLM 状态容量与搬运算例不变。
+Layerwise 推送的槽完成事件、发送前关闭和发送后释放见来源 54–56；MultiConnector 的等待传递和保存顺序见 57，v0.26 的池接入及实际覆盖前等待见 58–60。`v0.30.0` / `main` 共享槽布局、连接器 `wait_for_save` 与 Mooncake 逐层后端见下表对应条目。
 
 | 看什么 | 在哪 |
 |---|---|
-| 开关、后端、角色 | `vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py`（GLM 快照 L85–L108） |
-| 连接器的逐层等待与存出 | 同文件 L229–L253；要求 PIECEWISE：L77–L83 |
+| 开关、后端、角色与 `wait_for_save` | `vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L395-L425`；`main (8d6180e2)` 见 `#L430-L460`（GLM 快照 L77–L108、L229–L253） |
 | attention 里调用的入口 | `vllm_ascend/attention/utils.py`（L429–L473）；上游同类装饰器 `vllm/model_executor/layers/attention/kv_transfer_utils.py`（v0.23.0 L15–L60） |
-| 发起、等待、存出、层计数 | `.../ascend_store/pool_worker.py`（GLM 快照 L1356–L1430）；提前层数默认：L277–L290 |
-| 预取门 | `vllm_ascend/memcache_comm_fence.py`（L24–L91） |
-| 从第 0 块查、强制加载、关异步 | `.../ascend_store/pool_scheduler.py`（L250–L258、L565–L591） |
-| 结束时立即释放 | 同文件 L1066–L1077；按层登记：L176–L182 |
-| 混合线性 attention 要求 align | 同文件 L77–L84；自动改成 align：`vllm_ascend/patch/platform/patch_mamba_config.py`（GLM 快照 L26–L42、L205–L226；v0.23 / v0.26 L137，main L176） |
-| 共享槽布局 | `.../ascend_store/layerwise_cache_layout.py`（main L128–L192、L210–L294、L297–L381） |
-| 共享槽时每步重搬、每步存出 | `.../ascend_store/pool_scheduler.py`（main L870–L900） |
-| 按层数 ÷ 格数放大 KV 预算 | `vllm_ascend/worker/worker.py`（main L620–L632） |
-| main 的提前层数与等待 | `.../ascend_store/pool_worker.py`（main L505–L556、L2495–L2518） |
-| main 的 Mooncake 逐层限制 | `.../ascend_store/backend/mooncake_layerwise.py`（main L55–L76） |
+| 发起、等待、存出、层计数与预取门 | `.../ascend_store/pool_worker.py`（GLM 快照 L277–L290、L1356–L1430）；`vllm_ascend/memcache_comm_fence.py`（L24–L91） |
+| 调度侧查池、强制加载、立即释放与 align | `.../ascend_store/pool_scheduler.py`（L77–L84、L176–L182、L250–L258、L565–L591、L1066–L1077）；`patch_mamba_config.py`（GLM 快照 L205–L226） |
+| 共享槽布局（`v0.30.0` 与 `main` 拆包路径） | `vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L128-L192`；`main (8d6180e2)` 移至 `.../ascend_store/layerwise/layerwise_cache_layout.py#L120-L190` |
+| Mooncake 逐层后端 | `vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L150-L210`；`main (8d6180e2)` 见 `#L150-L210` |
+| 按层数 ÷ 格数放大 KV 预算与共享槽重搬 | `vllm_ascend/worker/worker.py`（L620–L632）；`.../ascend_store/pool_scheduler.py`（L870–L900） |
 
 新增部署依赖、旧代理回连地址及角色冲突分别见来源35–37；main KDA 保存入口见38，默认上限与整数解析见39–40。旧后台处理与完成事件见41，main 只加载角色计数及末层等待见42，v0.26 保存角色门槛见43。联合部署的物理槽、请求终态和失败边界见44，main 实际槽等待与报错见45；两种完成条件不能互相代替。
 

@@ -219,11 +219,24 @@ sources:
   - "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2929-L2960"
   - "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2189-L2215"
   - "vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L672-L707"
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L135'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2235-L2250'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L880-L899'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1020-L1044'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1410-L1436'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L237-L270'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L40-L85'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L730-L746'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L162'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L241-L312'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L945-L968'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1138-L1162'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1666-L1692'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
-  - releases/v0.30.0rc2
 evidence: C
 relations:
   - to: pd-disaggregation
@@ -334,14 +347,16 @@ file: mooncake-connector-hooks
 - **地址簿随握手交给对端。** 除了每层每份缓存的起始地址、块字节数和块间距，还有各缓存组对应哪些层、传输引擎的端口。V1 里是 D 的接收线程第一次遇到某个 P 时，去 P 的握手端口要来这份地址簿并缓存起来；P 那边的发送线程不发数据，只回答这份元数据、记下谁已经收完。
 - **块字节数和块间距可以不等。** 一块的字节数按这份缓存张量自己的形状算，块间距是张量里相邻两块的实际距离。几类状态为了共用同样大小的物理页而补齐时，两者就不相等；搬的只是字节数那么长，补齐的部分不搬。
 
-```calc
-title: 一层里的一次读取（示意数）
-P 的 7 号块地址 = P 起始地址 + 7 × 块间距 = 5,000 + 7 × 64 = 5,448 KiB
-D 的 3 号块地址 = D 起始地址 + 3 × 块间距 = 1,000 + 3 × 64 = 1,192 KiB
-这一段的长度 = 每块字节数 × 连续块数 = 64 KiB × 1 = 64 KiB
-这条请求的段数 = 2 块 × 3 层 × 1 份缓存 = 6 段
-> 两边块号都连着时（例如 P 的 7、8 对 D 的 3、4），两块并成一段，段数就少一半；并段还要块间距正好等于块字节数、且这份缓存不用从多张 P 卡拼
-```
+以「P 起始地址 5,000 KiB、D 起始地址 1,000 KiB、块字节数与块间距均为 64 KiB、2 块 × 3 层 × 1 份缓存」的示意设定为例，地址与段数按下式换算（若两边块号都连着，例如 P 的 7、8 对 D 的 3、4，且块间距正好等于块字节数、无需从多张 P 卡拼凑，则两块可并成一段，段数少一半）：
+
+$$\text{addr}(b) = \text{base} + b \times \text{stride}$$
+
+| 一层里的一次读取（示意数） | 算式 | 结果 |
+| --- | --- | --- |
+| P 的 7 号块地址 | $5{,}000 + 7 \times 64$ | **5,448 KiB** |
+| D 的 3 号块地址 | $1{,}000 + 3 \times 64$ | **1,192 KiB** |
+| 这一段的长度（连续 1 块） | $64\text{ KiB} \times 1$ | **64 KiB** |
+| 这条请求的段数（2 块 × 3 层 × 1 份缓存） | $2 \times 3 \times 1$ | **6 段** |
 
 **一次交接不是一次网络调用。** 这 6 段「源地址、目的地址、长度」凑成一批，交给传输引擎一次提交：V1 由 D 的接收线程发起批量读，Layerwise 由 P 的发送线程逐层发起批量写。真实模型要按各缓存组分别列出其层、每层缓存份数和连续块段，再把段数相加；K、V 分开存时，每层通常就有两份。不能在已经数遍全部层后再一律乘缓存组数，否则会重复计算。两边 TP 不同，或开了上下文、流水线并行时，还要按实际负责这些状态的 P rank 拆分读取任务。
 
@@ -349,22 +364,23 @@ D 的 3 号块地址 = D 起始地址 + 3 × 块间距 = 1,000 + 3 × 64 = 1,192
 
 ## 两边 TP 不一样大时，谁来拼 KV 头？
 
-**P、D 可以采用不同的 TP。若 D 的一张卡需要的 KV 头分散在几张 P 卡上，V1 让 D 各读一部分、读完在本地重排；Layerwise 让 P 在发出前先交换、重排，写出 D 要的那一份。** [TP](tensor-parallel.md) 可以按注意力头切分；当 TP 超过 KV 头总数时，KV 头还可能在多张卡上复制，因此要比较每卡实际持有的头，不能只比 TP 数字。
+**P、D 可以采用不同的 TP。若 D 的一张卡需要的 KV 头分散在几张 P 卡上，V1 让 D 各读一部分、读完在本地重排；Layerwise 让 P 在发出前先交换、重排，写出 D 要的那一份。** [TP](tensor-parallel.md) 可以按注意力头切分；当 TP 超过 KV 头总数时，KV 头还可能在多张卡上复制，因此要比较每卡实际持有的头，不能只比 TP 数字。以 8 个 KV 头、P 用 TP4、D 用 TP2、单块每层 64 KiB 为示意：
 
-```calc
-title: D 的一张卡要从几张 P 卡读（示意：8 个 KV 头，P 用 TP4，D 用 TP2）
-P 每卡的头数 = 8 ÷ 4 = 2 个
-D 每卡的头数 = 8 ÷ 2 = 4 个
-要读的 P 卡数 = 4 ÷ 2 = 2 张
-每张 P 卡读的长度 = 64 KiB ÷ 2 = 32 KiB（每块每层）
-```
+$$r_{\text{head}} = \frac{\min(\text{TP}_P,\; H_{\text{kv}})}{\min(\text{TP}_D,\; H_{\text{kv}})} = \frac{4}{2} = 2$$
+
+| 核算项（示意：8 个 KV 头，P 用 TP4，D 用 TP2） | 算式 | 结果 |
+| --- | --- | --- |
+| P 每卡 KV 头数 | $8 \div 4$ | **2 个** |
+| D 每卡 KV 头数 | $8 \div 2$ | **4 个** |
+| D 每卡要读的 P 卡数 | $4 \div 2$ | **2 张** |
+| 每张 P 卡读的长度（每块每层） | $64\text{ KiB} \div 2$ | **32 KiB** |
 
 D 的 0 号卡要头 0–3：头 0–1 在 P 的 0 号卡，头 2–3 在 P 的 1 号卡。V1 让它从两张 P 卡各读半块，放进本地这一块的前半和后半，读完再在本地重排成算子要的布局。其余几种情况：
 
 - **MLA。** 本页的潜向量缓存在 TP 组内复制，不按注意力头切，因此不需要为了拼齐 TP 头而多读几张 P 卡（见 [MLA](mla.md)）。这里只说 TP 这一维；若 P 还按上下文位置或流水线阶段拆分，完整请求仍可能要从多个 P rank 读回对应部分，不能概括为“永远只读一张 P 卡”。
 - **Layerwise。** 在这里的按头切分路径中，要拼的份数按两端实际持有的 KV 头计算。若只有 8 个 KV 头，P 用 TP16、D 用 TP8，P 多出的设备持有重复头：两端每卡都是 1 个头，要拼的份数是 1，不能用 16÷8 得到 2。需要拼多份时，P 在写出本层前先交换重排，增加相应的流和中转缓冲；量化也可能需要这套缓冲路径，源码条件见后文。
 - **递推状态。** 线性注意力的递推状态按头切到各卡时也能这样拆，但要求 P 的 TP 不小于 D 的 TP，并且能被它整除；Hybrid 连接器遇到这类状态更严，要求两边 TP 相同。
-- **启动时的统一检查。** 只要配了 KV 传输、模型又不是 MLA，昇腾在启动时就检查 P 的 TP 是不是 D 的整数倍，不是就报错。
+- **启动时的统一检查。** 只要配了 KV 传输、模型又不是 MLA，昇腾在启动时就检查 P 的 TP 是不是 D 的整数倍（`prefill_tp_size % decode_tp_size == 0`），不是就报错；同时 `MooncakeConnectorV1` 要求 D 端 `PP=1`。在 `v0.30.0` 及 `main` 中，若在 GQA 模型上同时启用 `C8` KV cache 量化与普通 `MooncakeConnector`，因为 P 端保留 `bf16` KV cache 而 D 端分配 `int8` KV cache，原始按字节拷贝会把 `bf16` 误读为 `int8`，启动检查直接抛 `ValueError`，要求关闭 `C8` 或改用先量化再发送的 `MooncakeLayerwiseConnector`；此外，一旦开启 PD 分离或 KV 池并同时开启 `DCP > 1`，平台层强制要求 `cp_kv_cache_interleave_size == block_size`，保证按块交错对齐。
 
 ## 完成通知：块什么时候放，请求什么时候算？
 
@@ -393,13 +409,14 @@ V1 的完成通知这样走：
 file: mooncake-layerwise
 ```
 
-```calc
-title: 三层都到齐的时刻（示意：每层算 1 个单位，传 0.5 个单位）
-整批拉 = 3 × 1 + 3 × 0.5 = 4.5 个单位
-逐层推 = 3 × 1 + 0.5 = 3.5 个单位
-省下 = 4.5 − 3.5 = 1 个单位
-> 省下的正是前两层的传输；传输比计算快时，L 层里能藏进去的是前 L − 1 层
-```
+以 3 层模型、每层计算耗时 $1$ 个单位、单层传输耗时 $0.5$ 个单位的理想流水线为例，当传输快于计算时，$L$ 层里可被计算隐藏的是前 $L - 1$ 层的传输：
+
+$$T_{\text{saved}} = (L - 1) \times t_{\text{xfer}} = (3 - 1) \times 0.5 = 1\text{ 个单位}$$
+
+| 传输方式（示意：3 层，每层算 $1$、传 $0.5$ 单位） | 三层到齐时刻算式 | 结果 |
+| --- | --- | --- |
+| 整批拉（V1） | $3 \times 1 + 3 \times 0.5$ | **4.5 个单位** |
+| 逐层推（Layerwise） | $3 \times 1 + 0.5$ | **3.5 个单位**（省下前两层共 **1 个单位**） |
 
 要拿到这 1 个单位，逐层推付出了别的东西：
 
@@ -448,10 +465,10 @@ title: 三层都到齐的时刻（示意：每层算 1 个单位，传 0.5 个�
 
 - **V1 不是只会搬普通 KV。** 它也处理递推状态组，按 P、D 的 TP 比例拆开读；Hybrid 的「两边 TP 相同」只在它自己遇到递推状态时才检查，不能推广到另外两套。Layerwise 同样处理「注意力 + 递推状态」的混合模型，也让 P 少算提示词的最后一个位置。
 - **判断角色的方式不同。** V1 和 Hybrid 按角色这一项是不是「生产者」来分：生产者起发送线程，其余都起接收线程，而步末只有写明「消费者」才报收完；所以写成「两边都是」时只起接收线程，也永远报不出收完。Layerwise 用 vLLM 的「是不是生产者」「是不是消费者」两个判断，「两边都是」时两个都成立，收发线程都会起。
-- **main 分支又多了新实现。** 新的 V2 其实就是新的拉取实现，推送版还没写完；逐项差异见页末版本表。
+- **后续版本新增 V2 家族。** 在 `v0.30.0` 中 `MooncakeConnectorV2` 指向新的拉取实现 `MooncakePullConnector`，而 `MooncakePushConnector` 还是抛出未实现异常的占位；到了当前 `main`，`MooncakePushConnector` 已实现为新的逐层推送入口，且 `MooncakeConnectorV2` 按 `use_layerwise` 自动路由 Pull 或 Push。逐项差异见页末版本表。
 
 
-后续 main 把普通 MooncakeConnector 作为 pull 实现的兼容别名；同文件中的普通 Push 类仍是抛出未实现异常的占位。它与已有的逐层 push 连接器是不同入口，不能由这个占位类推断所有 push 路径都不可用。
+上述新 `MooncakePushConnector` 与既有的 `MooncakeLayerwiseConnector` 是不同入口，在 `v0.30.0` 仍为占位类时不能据此推断所有 push 路径都不可用。
 
 ## 先落到 D 的主机内存：D2RH 改了哪段等待？
 
@@ -463,9 +480,9 @@ title: 三层都到齐的时刻（示意：每层算 1 个单位，传 0.5 个�
 
 **完成读取尝试与取得可用数据是两件事。** V2 沿用 D 主动拉取的方向，但握手和请求完成的汇合移到调度侧。P 汇总各阶段、各 TP worker 的层名与地址；D 按同名层、本地缓存规格和实际头分片组织读取，真正提交网络读。符合交接条件的 P 请求保留源块，D 的各 worker 结束尝试后，由 D 调度侧发送一次请求级释放通知，P 才将请求交回通常的还块入口；一直收不到通知则另走到期释放。
 
-固定 main 的多缓存组失败路径存在缺口：只在单缓存组时标记无效块，多组读取失败会记录告警，随后仍将请求放进“接收完成”集合。**因此混合模型不能仅凭这个完成标志判断状态可用，也不能假定它会自动进入重算。** 分组、地址和块数各自正确，不足以弥补失败没有传到调度器的问题。
+早期社区主干的多缓存组失败路径存在缺口：只在单缓存组时标记无效块，多组读取失败会记录告警，随后仍将请求放进“接收完成”集合。**因此混合模型不能仅凭这个完成标志判断状态可用，也不能假定它会自动进入重算。** 分组、地址和块数各自正确，不足以弥补失败没有传到调度器的问题。
 
-rc2 则把“完成”与“失败”分开上报：任一相关读取任务失败，或整个后台处理抛出异常，都能记下受影响请求；汇合完各 worker 后，调度器按失败策略处理。默认让请求报错结束；显式选择且配置允许重算时，清零该失败请求的已算计数，并在再次调度前处理原目的块。无论报错还是重算，D 都要通知 P 结束本次源块占用，因为这次读已经终止。这个释放通知说明 P 可以回收资源，不承诺 D 的结果成功。具体版本与配置名放在页末。
+`v0.30.0` 与当前 `main` 则把“完成”与“失败”分开上报：任一相关读取任务失败，或整个后台处理抛出异常，都能记下受影响请求；汇合完各 worker 后，调度器按失败策略处理。默认让请求报错结束；显式选择且配置允许重算时，清零该失败请求的已算计数，并在再次调度前处理原目的块。无论报错还是重算，D 都要通知 P 结束本次源块占用，因为这次读已经终止。这个释放通知说明 P 可以回收资源，不承诺 D 的结果成功。具体版本与配置名放在页末。
 
 ## 放到 GLM 双机：这套部署没有开 Mooncake 连接器
 
@@ -481,16 +498,16 @@ P 机的 8 个 worker 各起一个发送线程、各开一个握手端口；D �
 
 ### R1 交接一次，full 组要搬多少
 
-**连接器按整块搬：R1 在 P 上只交出 3 个位置，每张 D 卡照样读满一个 640 格的块；潜向量和 indexer 缓存在 TP8 的每张卡上各存一整份，所以 8 张 D 卡读回的是 8 份相同的内容。** R1 是本站贯穿的示例请求，提示词 4 个 token（见[一条请求](one-request.md#示例请求-r1-与官方双机部署)）；GLM 是混合模型，P 少算最后 1 个位置。
+**连接器按整块搬：R1 在 P 上只交出 3 个位置，每张 D 卡照样读满一个 640 格的块；潜向量和 indexer 缓存在 TP8 的每张卡上各存一整份，所以 8 张 D 卡读回的是 8 份相同的内容。** R1 是本站贯穿的示例请求，提示词 4 个 token（见[一条请求](one-request.md#示例请求-r1-与官方双机部署)）；GLM 是混合模型，P 少算最后 1 个位置（以下为按源码换算，无实测）：
 
-```calc
-title: R1 交接时 full 组搬多少（按源码换算，无实测）
-P 交出的位置 = 4 − 1 = 3 个 token
-full 组块数 = ⌈3 ÷ 640⌉ = 1 块
-每张 D 卡读 = 1 × 8,355,840 B = 8,355,840 B ≈ 7.97 MiB
-8 张 D 卡合计 = 8 × 8,355,840 B = 66,846,720 B ≈ 63.75 MiB
-> 8 份内容相同：潜向量和 indexer 缓存在 TP8 的每张卡上各存一整份
-```
+$$B_{\text{full,total}} = 8 \times 1 \times 8{,}355{,}840\text{ B} = 66{,}846{,}720\text{ B} \approx 63.75\text{ MiB}$$
+
+| R1 交接 full 组换算项（无实测；8 张 D 卡内容相同） | 算式 | 结果 |
+| --- | --- | --- |
+| P 交出的位置 | $4 - 1$ | **3 个 token** |
+| full 组块数（每块 640 位置） | $\lceil 3 \div 640 \rceil$ | **1 块** |
+| 每张 D 卡读入 | $1 \times 8{,}355{,}840\text{ B}$ | $8{,}355{,}840\text{ B} \approx$ **7.97 MiB** |
+| 8 张 D 卡合计 | $8 \times 8{,}355{,}840\text{ B}$ | $66{,}846{,}720\text{ B} \approx$ **63.75 MiB** |
 
 一块 8,355,840 B 的来历见[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)。这里假设两边按 640 个位置的逻辑块对上了块大小；钉住版本在 GLM 上报给 D 的块大小取的是各组里最小的 4，D 端可能先断言失败，长提示词还会少传块，见 [PD 分离页](pd-disaggregation.md#钉住版本里长提示词交接时-full-组会少传块)。
 
@@ -548,6 +565,8 @@ GLM 的几类状态解释了连接器为什么要按缓存组分别处理，但�
 
 - 缺 `prefill` 或 `decode` 的 `tp_size`、`dp_size`：worker 初始化时 `AssertionError`；D 的 `pp_size` 不是 1：`decode pp size must be 1`。
 - 非 MLA 模型 P 的 TP 不能被 D 的 TP 整除：`Prefill TP size must be divisible by Decode TP size.`。有效正整数配置下，P 的 TP 小于 D 时也先触发这道整除检查；不能把后面的 `pd_tp_ratio == 0` 报错当成必然先出现的日志。
+- `v0.30.0` / `main` 下 GQA + C8 KV 量化配普通 `MooncakeConnector`：`ValueError: MooncakeConnector does not support C8 KV cache quantization on GQA models...`（需关闭 C8 或改用先量化再发送的 `MooncakeLayerwiseConnector`）。
+- `v0.30.0` / `main` 下 PD 分离或 KV 池同开 `DCP > 1` 且交错块大小不等：`AssertionError: cp_kv_cache_interleave_size(...) and block_size(...) needs to be equal if DCP is enabled in P/D disaggregate and kv pool scenario.`。
 - V1 的递推状态组 P 的 TP 小于或不能整除 D 的 TP：`Mamba prefill TP size must be >= decode TP size.` 等断言；Hybrid 遇到递推状态且两边 TP 不同：`Mooncake connector does not support different TP size with Mamba.`
 - 登记区间超过 256 段：`RuntimeError`，信息以 `Mooncake register_buffer region count` 开头，提示减少 KV 分配碎片、进一步合并 k/v/dsa/scale 的分配。
 - 固定 GLM 配旧 Layerwise：同一主干 MLA 层的多个缓存名称触发 `Mooncake Layerwise Connector does not support multiple attn_module in one layer now` 对应断言；源码错误串中的 attn_module 带反引号。这是初始化条件，不能等到传输超时才排查。
@@ -565,22 +584,22 @@ GLM 的几类状态解释了连接器为什么要按缓存组分别处理，但�
 
 ### 版本差异
 
-**v0.30.0rc2 的 MooncakeConnectorV2 仍是 pull 实现，但已不是旧 main 的 PCP=1 限制。** 新 worker 与握手 metadata 纳入 PCP rank，端口与设备编号按 DP、PP、PCP、TP 组合计算；调度侧按每组 block_size 和相应 DCP 大小裁剪传输范围，环形组单独处理。P/D 两端必须使用一致的协议与真实拓扑，不能沿用旧端口跨度估算。
+**`v0.30.0 (c09d3e20)` 的 `MooncakeConnectorV2` 仍是 pull 实现，但已解除旧 main 的 `PCP=1` 限制；当前 `main (8d6180e2)` 进一步实现 `MooncakePushConnector`，并让 `MooncakeConnectorV2` 按 `use_layerwise` 自动路由 Pull 或 Push。** 新 worker 与握手 metadata 纳入 PCP rank，端口与设备编号按 DP、PP、PCP、TP 组合计算；调度侧按每组 `block_size` 和相应 DCP 大小裁剪传输范围，环形组单独处理。P/D 两端必须使用一致的协议与真实拓扑，不能沿用旧端口跨度估算。
 
-V2 仍要求单一传输角色；MooncakePushConnector 仍是初始化即报未实现的占位类。V1、Hybrid、Layerwise 与 V2 的注册入口共存，选了哪个名字就追哪条实现。GLM rc2 的官方 PD 配方采用 V2，不能据此将旧 V1 的逐组块数问题认定为已在原路径修复。
+V2 仍要求单一传输角色；V1、Hybrid、Layerwise 与 V2 的注册入口共存，选了哪个名字就追哪条实现。`v0.30.0` 的 GLM 官方 PD 配方采用 V2，不能据此将旧 V1 的逐组块数问题认定为已在原路径修复。
 
-V2 的失败处理也要按钉点分开。main baa023ad 的多组 pull 失败未进入请求失败集合；rc2 7d825229 通过 get_transfer_results 上报 failed_recving，配套上游 ced6857a 默认 kv_load_failure_policy="fail"，显式 "recompute" 才走重算分支。这里同时核了 runner 与 worker 结果汇合，不能只看字段声明。main 的上游 84030bbe 仅作源码比较钉点，不代表已验证的精确安装组合；上述链路没有 NPU 故障注入实测。
+V2 的失败处理也要按钉点分开：早期社区主干（`baa023ad`）的多组 pull 失败未进入请求失败集合；`v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 均通过 `get_transfer_results` 上报 `failed_recving`，配套上游 `ced6857a` 默认 `kv_load_failure_policy="fail"`，显式 `"recompute"` 才走重算分支。这里同时核了 runner 与 worker 结果汇合，不能只看字段声明；上述链路没有 NPU 故障注入实测。
 
-| 项 | v0.23（2c59ff10） | db701c1f（独立 GLM 提交） | v0.26（2ed6cbba） | main（baa023ad） | v0.30.0rc2（7d825229） |
-|---|---|---|---|---|---|
-| 点对点连接器 | V1、Layerwise、Hybrid | 同 v0.23 | 另多 `SfaRemoteD2HConnector` | 另多 `SfaRemoteD2HConnector`、V2/Pull | 同 main，并注册 `MooncakeD2RHConnectorV1` |
-| V1 的流程（押块、D 读、按角色字符串起线程） | 有 | 同一套 | 同一套 | V1 保留；V2/Pull 是另一实现，普通 Push 初始化即报未实现 | V1 保留，并增加远端 prefill 在准入前被拒绝时安排空接收、通知 P 释放的路径；普通 Push 仍为占位类 |
-| V2 与 PCP | 无 V2 | 无 V2 | 无 V2 | 要求 PCP=1 | worker 地址和 metadata 包含 PCP；端口按 DP/PP/PCP/TP 排列，调度控制端口位于 worker 端口区间之后；仍只接受单一角色 |
-| V2 多缓存组的拉取失败 | 无 V2 | 无 V2 | 无 V2 | 记录告警并报完成，未用请求失败集合传递该失败 | 按请求上报失败、汇合 worker 后执行失败策略；默认 fail |
-| Hybrid 的握手端口与上下文并行 | 基址为 `kv_port + dp_rank × tp × pp`；要求 PCP×DCP=1 | 同 v0.23 | 同 v0.23 | 要求 DCP=1，PP 与 PCP 不同时大于 1；基址另乘 PCP，每卡偏移包含 PCP rank | 沿用 main 的端口与组合限制，另拒绝 consumer 的 PCP 大于 1；不能由生产端支持推断消费端也支持 |
-| 池的逐层存取文档 | 要求 memcache 后端 | 同 v0.23 | 同 v0.23 | 改为 Mooncake，配 AscendStore 与 use_layerwise | 沿用 Mooncake 路径，要求 range/session 客户端接口；指南明确真实 NPU、Master/Metadata 与多 TP 端到端尚未验完 |
+| 项 | v0.23.0 (2c59ff10) | v0.26.0rc (2ed6cbba) | v0.30.0 (c09d3e20) | main (8d6180e2) |
+|---|---|---|---|---|
+| 点对点注册连接器 | V1、Layerwise、Hybrid | 另多 `SfaRemoteD2HConnector` | 另多 V2/Pull、`MooncakeD2RHConnectorV1` | 另注册实现版 `MooncakePushConnector`；V2 按 `use_layerwise` 选 Pull/Push |
+| V1 核心校验与流程 | 押块、D 读、按角色字符串起线程；D 端 `PP=1`、非 MLA `TP_P % TP_D == 0` | 同一套 | 保留主流程与 D 端 `PP=1` / `TP_P % TP_D == 0`，增远端 prefill 拒绝前安排空接收释放 P 源块；新增 GQA+C8 拒绝普通 Mooncake（需 `MooncakeLayerwiseConnector`）及 DCP `cp_kv_cache_interleave_size == block_size` 强校验 | 延续 v0.30.0 全部校验 |
+| V2、Push 与 PCP | 无 V2 | 无 V2 | V2 为 Pull 别名，普通 `MooncakePushConnector` 仍为占位类；worker 地址与 metadata 含 PCP，端口按 DP/PP/PCP/TP 排列，仅接受单一角色 | `MooncakePushConnector` 落地逐层推送（`push_scheduler.py` / `push_worker.py`），延续 PCP 拓扑与单一角色限制 |
+| V2 多缓存组拉取失败 | 无 V2 | 无 V2 | `get_transfer_results` 按请求上报 `failed_recving`，汇合后按 `kv_load_failure_policy` 处理（默认 `fail`） | 延续 v0.30.0，Push 路径同样接入 `failed_recving` |
+| Hybrid 的握手端口与上下文并行 | 基址 `kv_port + dp_rank × tp × pp`；要求 `PCP × DCP = 1` | 同 v0.23.0 | 要求 `DCP=1`、`PP` 与 `PCP` 不同时大于 1、拒绝 consumer `PCP > 1`；基址乘 PCP 且偏移含 PCP rank | 延续 v0.30.0 |
+| 池的逐层存取与注册表 | 要求 memcache 后端 | 同 v0.23.0 | 改为 Mooncake（AscendStore + `use_layerwise`），注册 `OffloadingConnector` / `SimpleCPUOffloadConnector` / `PreemptOffloadConnector` | 延续 Mooncake 逐层池；注册表移除 `SimpleCPUOffloadConnector` |
 
-rc2 的 V2 还按组裁剪：环形组保留状态页，Mamba 去掉草稿尾，普通组使用自己的逻辑块大小及相应 DCP，SWA 不乘 DCP。它与上表的 PCP 拓扑支持是两件事，完整条件见 [PD 分离的版本差异](pd-disaggregation.md#版本差异)。
+独立 GLM 提交 `db701c1f` 的点对点/池连接器集合、V1 流程与 Hybrid 约束与 `v0.23.0` 同源；`v0.30.0` 与 `main` 的 V2 还按组裁剪：环形组保留状态页，Mamba 去掉草稿尾，普通组使用自己的逻辑块大小及相应 DCP，SWA 不乘 DCP。完整条件见 [PD 分离的版本差异](pd-disaggregation.md#版本差异)。
 
 - 上游连接器接口（调度侧、worker 侧两组方法，`SupportsHMA` 多组释放）在 v0.26.0（568afb3a）与 v0.23.0（0fc695fc）一致，只多一个非抽象的 `has_pending_push_work`（默认返回否；调度器用它在还有推送没发完时让主循环继续转）。昇腾在 v0.26、main 两版都没有实现它，Layerwise 在 v0.26 上走的是默认值。
 - 升到 main 时，V1 的配置照旧能用；换成 V2 要按 main 的文档重写配置，旧的「两边都是」写法在 V2 上初始化即报错（见 PD 分离页的版本表）。
@@ -604,7 +623,8 @@ V2 地址登记、按层/阶段匹配、实际网络读和调度侧释放见 120
 | 传输引擎与登记 | `utils/mooncake_transfer_engine.py`：`GlobalTE`；区间上限与超时在 `utils/utils.py` |
 | Layerwise | `kv_p2p/mooncake_layerwise_connector.py`：`update_state_after_alloc`（报给代理）、`save_kv_layer`、`KVCacheSendingLayerThread` |
 | Hybrid | `kv_p2p/mooncake_hybrid_connector.py` |
-| P、D 的 TP 比 | `vllm_ascend/ascend_config.py`：`pd_tp_ratio`、`pd_head_ratio` |
+| P、D 的 TP 比与 GQA+C8 校验 | `vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L880-L899`（`pd_tp_ratio`/`pd_head_ratio`）、`#L1020-L1044`（`_check_mooncake_c8_kv_cache_quant`）；`main (8d6180e2)` 见 `#L945-L968`、`#L1138-L1162` |
+| `v0.30.0` / `main` D 端 `PP=1`、DCP 交错对齐与 V2/Push 路由 | `vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2235-L2250`、`platform.py#L1410-L1436`、`mooncake/connector.py#L237-L270`、`mooncake/pull_scheduler.py#L730-L746`；`vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L162`、`mooncake/connector.py#L241-L312`、`platform.py#L1666-L1692` |
 | 池的 Mooncake 后端 | `kv_pool/ascend_store/backend/mooncake_backend.py` |
 
 **来源索引。** 接口分调度侧、worker 侧两半，一个进程只启用一半 [C1]；调度侧的几个方法与基类默认不押块 [C3]；只有配了 KV 传输才造连接器 [C5]；调度器的押块判断 [C7]；完成名单处理与等待队列跳过分别见来源 8、9；V1 的调度侧记账与交回参数 [C15][C16]；登记、起线程与按角色字符串分线程 [C17]；地址簿字段 [C18]；地址算式与批量读 [C19]；拉取份数与 extra config 断言 [C20]；押块超时 [C21]；传输引擎初始化与只登记一次 [C24]；传输超时公式与区间上限检查 [C25][C26]，上限常量 256 见来源 65；Layerwise 的 D 先报代理、P 不押块、逐层写与最后一层回调 [C27][C28][C29]；Hybrid 的等 TP 断言 [C34]；启动时的 TP 整除检查 [C35]；池后端复用传输引擎 [C36]；main 的 V2 与推送版 [C42]；递推状态组每层只搬一块、两段 [C48]；Hybrid 的握手端口基址与上下文并行断言（钉住版本 PCP × DCP = 1、main 只限 DCP）与 v0.26 上游接口新增的方法，行号在来源第 49–56 条。两种连接器的流程出自设计文档 [S44]，配置写法出自单机教程 [S45]，逐层池文档的后端要求与 main 的改写见 [S46][S47]。示意数与 R1、押块比例的换算 [D]；「押着的块抢占碰不到」由抢占只遍历运行队列、押块请求已移出运行队列推断 [I]。传输引擎和 Mooncake Store 的完整内部实现尚未核完；本页核对昇腾侧调用方式，本轮补核的 Store SDK 初始化、内存预算和 SSD 责任链见 [KV Pool](kv-pool.md#上游-mooncakestore池跟着推理进程还是独立持有)。按地址直接读写、两端握手与按名字定位的总体设计另参照固定的 Mooncake 官方资料。

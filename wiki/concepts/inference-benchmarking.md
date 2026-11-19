@@ -55,6 +55,14 @@ sources:
   - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1801-L1823'
   - 'vllm@ced6857a:vllm/v1/metrics/loggers.py#L891-L900'
   - 'vllm@84030bbe:vllm/v1/metrics/loggers.py#L962-L971'
+  - 'vllm@ba15685a:vllm/benchmarks/serve.py#L602-L690'
+  - 'vllm@ba15685a:vllm/benchmarks/lib/endpoint_request_func.py#L416-L490'
+  - 'vllm@ba15685a:vllm/v1/metrics/stats.py#L474-L635'
+  - 'vllm@ba15685a:vllm/v1/metrics/loggers.py#L1010-L1020'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L940-L962'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L1034-L1056'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1230-L1252'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1317-L1348'
 relations:
   - to: inference-performance-walkthrough
     kind: builds-on
@@ -62,7 +70,11 @@ relations:
   - to: streaming-output
     kind: builds-on
     note: 理解一个流式片段为何能包含多个 token，以及首个可见文本为何晚于模型输出
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: I
 contradicts: []
 updated: 2026-11-03T00:00:00.000Z
@@ -115,17 +127,18 @@ file: inference-benchmarking-intuition
 file: inference-metrics-events
 ```
 
-这里首次输出含 1 个 token，第二次含 3 个 token，总共 4 个。一次能交回多个 token，以及几步怎样合成片段，见[流式输出](streaming-output.md#前端跟不上时几步的文字并成一段)。图中的抢占发生在首个输出以后，因此它落在 decode 的时间段里；首次调度时间仍保留 20 ms，恢复时不重新起算。
+这里首次输出含 1 个 token，第二次含 3 个 token，总共 4 个。一次能交回多个 token，以及几步怎样合成片段，见[流式输出](streaming-output.md#前端跟不上时几步的文字并成一段)。图中的抢占发生在首个输出以后，因此它落在 decode 的时间段里；首次调度时间仍保留 20 ms，恢复时不重新起算（以下均为同一组引擎事件的示意推导）：
 
-```calc
-title: 同一份引擎事件，分别回答什么（示意）
-首次排队时间 = 20 − 0 = 20 ms
-prefill 阶段时间 = 100 − 20 = 80 ms
-decode 阶段时间 = 200 − 100 = 100 ms
-inference 阶段时间 = 200 − 20 = 180 ms
-两次输出事件的间隔 = 200 − 100 = 100 ms
-请求级平均后续 token 时间 = 100 ÷ (4 − 1) ≈ 33.33 ms
-```
+$$\text{TPOT}_{\text{req}} = \frac{200 - 100}{4 - 1} \approx 33.33\text{ ms}, \qquad \Delta t_{\text{event}} = 200 - 100 = 100\text{ ms}$$
+
+| 指标名称（同一份引擎事件·示意） | 计算式 | 结果 |
+| --- | --- | --- |
+| 首次排队时间 | $20 - 0$ | **20 ms** |
+| prefill 阶段时间 | $100 - 20$ | **80 ms** |
+| decode 阶段时间（含抢占等待） | $200 - 100$ | **100 ms** |
+| inference 阶段时间 | $200 - 20$ | **180 ms** |
+| 两次输出事件的间隔（inter-token 样本） | $200 - 100$ | **100 ms** |
+| 请求级平均后续 token 时间 | $100 / (4 - 1)$ | **$\approx 33.33\text{ ms}$** |
 
 所以，100 ms 的输出事件间隔与 33.33 ms 的请求平均值可以同时正确。内部 inter-token 指标每遇到一次后续输出事件就记一个样本，没有按该次交回的 3 个 token 再平摊；请求级平均值才按输出数量计算。空文本、思考字段和合并发送会继续改变客户端看到的片段，不能把这三种样本互换。
 
@@ -150,19 +163,18 @@ inference 阶段时间 = 200 − 20 = 180 ms
 
 两种配置的交付总数一样，B 却让更多交付满足等待要求。我们要把“完成多少”和“其中多少可接受”分别统计，才不会漏掉这种收益。
 
-我们采用“窗口内成功完成请求的完整输出”口径，失败请求的部分输出另记，未完成请求继续追踪最终结果。窗口开始时没有遗留请求。这样的口径能说明这段时间交付了多少完整回答，但不等于逐个数窗口内所有到达的 token。
+我们采用“窗口内成功完成请求的完整输出”口径，失败请求的部分输出另记，未完成请求继续追踪最终结果。窗口开始时没有遗留请求。这样的口径能说明这段时间交付了多少完整回答，但不等于逐个数窗口内所有到达的 token（以下按 10 秒窗口、24 条请求的教学结果推导）：
 
-```calc
-title: 一份报告里应该同时留下的量（示意）
-成功请求吞吐 = 20 ÷ 10 = 2 请求/秒
-成功请求输出吞吐 = (20 × 100) ÷ 10 = 200 token/秒
-A 的达标请求吞吐 = 16 ÷ 10 = 1.6 请求/秒
-B 的达标请求吞吐 = 18 ÷ 10 = 1.8 请求/秒
-B 多交付的达标请求 = 18 − 16 = 2 请求
-窗口内已知失败比例 = 2 ÷ 24 × 100 = 8.33 %
-窗口结束未完成数 = 24 − 20 − 2 = 2 请求
-本批最终成功率的最高可能值 = (20 + 2) ÷ 24 × 100 ≈ 91.67 %
-```
+$$\text{goodput}_A = \frac{16}{10} = 1.6\text{ 请求/秒}, \qquad \text{goodput}_B = \frac{18}{10} = 1.8\text{ 请求/秒}, \qquad \text{最高可能成功率} = \frac{20 + 2}{24} \approx 91.67\%$$
+
+| 报告留存口径（10 秒窗口·示意） | 计算式 | 数值 |
+| --- | --- | --- |
+| 成功请求吞吐 | $20 / 10$ | **2 请求/秒** |
+| 成功请求输出吞吐 | $(20 \times 100) / 10$ | **200 token/秒** |
+| A / B 达标请求吞吐（goodput） | $16 / 10$ vs $18 / 10$ | **1.6 vs 1.8 请求/秒**（B 多交付 2 请求） |
+| 窗口内已知失败比例 | $2 / 24 \times 100\%$ | **8.33%** |
+| 窗口结束未完成数 | $24 - 20 - 2$ | **2 请求** |
+| 本批最终成功率最高可能值 | $(20 + 2) / 24 \times 100\%$ | **$\approx 91.67\%$** |
 
 本页的 **goodput（达标请求吞吐）**是单位时间内成功且满足约定目标的请求数，单位为请求/秒。这里 A、B 都是每秒 200 个成功输出 token，B 的达标吞吐却从 1.6 提高到 1.8 请求/秒。因此，“总吞吐没涨”不等于“改动没用”；它改善的是同一工作量下的可接受交付。
 
@@ -179,13 +191,14 @@ B 多交付的达标请求 = 18 − 16 = 2 请求
 
 比较前先按输入长度、输出长度和请求种类分组。一组全是短问答，另一组混入大量长文档，即使程序没变，整体 P95 也会变。报告至少保留各组样本数、失败数、长度分布、P50/P95/P99 和重复运行的波动。
 
-还有一个容易忽略的差别。假设一条短回答只有一个后续间隔，长 100 ms；另一条长回答有九个后续间隔，每个都是 20 ms。这也是教学示意。先算每条请求的 TPOT，再取平均，每条请求各占一票；把所有间隔放在一起，长回答就贡献九票。
+还有一个容易忽略的差别。假设一条短回答只有一个后续间隔，长 100 ms；另一条长回答有九个后续间隔，每个都是 20 ms。这也是教学示意。先算每条请求的 TPOT，再取平均，每条请求各占一票；把所有间隔放在一起，长回答就贡献九票：
 
-```calc
-title: 每条请求一票，与每个间隔一票（示意）
-请求级 TPOT 的平均值 = (100 + 20) ÷ 2 = 60 ms
-全部 ITL 的平均值 = (100 + 9 × 20) ÷ 10 = 28 ms
-```
+$$\overline{\text{TPOT}}_{\text{req}} = \frac{100 + 20}{2} = 60\text{ ms}, \qquad \overline{\text{ITL}}_{\text{all}} = \frac{100 + 9 \times 20}{10} = 28\text{ ms}$$
+
+| 统计口径（两请求示意：短答 1×100 ms、长答 9×20 ms） | 权重与算式 | 结果 |
+| --- | --- | --- |
+| 请求级 TPOT 的平均值 | 每条请求一票：$(100 + 20) / 2$ | **60 ms** |
+| 全部 ITL 的平均值 | 每个间隔一票：$(100 + 9 \times 20) / 10$ | **28 ms** |
 
 两个结果都能算对，但回答的问题不同。报告出现差别时，先核对这种样本权重以及片段是否合并，再判断程序是否出错。
 
@@ -213,15 +226,16 @@ file: inference-benchmarking-flow
 
 现在带着同一把尺子读 DeepInfer 的离线基准。**P（Prefill）处理输入，D（Decode）利用已有历史继续生成。** 示例分别测 P 处理未命中输入的速度、D 连续执行的步速；**步速**是一秒完成多少轮生成计算。一轮可能验证多个候选，候选也可能被拒绝，所以步数、验证数和实际输出数需要分开。
 
-固定快照的示例把 D 的吞吐按“所有候选都被接受”换算。假设一张卡每轮处理两条请求，每条验证三个候选，测得每秒 100 轮；这是缩小的教学例子。按全部接受计数，每条这一轮产出三个接受的候选，再加一个新 token；若实际平均每条只交付两个，结果就不同。
+固定快照的示例把 D 的吞吐按“所有候选都被接受”换算。假设一张卡每轮处理两条请求，每条验证三个候选，测得每秒 100 轮；这是缩小的教学例子。按全部接受计数，每条这一轮产出三个接受的候选，再加一个新 token；若实际平均每条只交付两个，结果就不同：
 
-```calc
-title: 相同步速，两种输出计数（示意）
-全部接受口径 = 100 × 2 × (1 + 3) = 800 token/秒
-按平均实际交付计数 = 100 × 2 × 2 = 400 token/秒
-```
+$$\text{TPS}_{\text{全接受}} = 100 \times 2 \times (1 + 3) = 800\text{ token/秒}, \qquad \text{TPS}_{\text{实交付}} = 100 \times 2 \times 2 = 400\text{ token/秒}$$
 
-800 描述一种计数口径；要回答用户得到多少，必须补上实际接受与交付记录。候选怎样变成输出，继续见 [DSpark](dspark.md)。
+| 计数口径（100 轮/秒 × 2 请求/轮·示意） | 算式 | 换算吞吐 |
+| --- | --- | --- |
+| 全部接受口径（1 新 + 3 候选） | $100 \times 2 \times (1 + 3)$ | **800 token/秒** |
+| 平均实际交付口径（每条交付 2 token） | $100 \times 2 \times 2$ | **400 token/秒** |
+
+800 描述一种计数口径；要回答用户得到多少，必须补上实际接受与交付记录。候选怎样变成输出，继续见 [DSpark](dspark.md)。在昇腾生产压测与精度基线验收中，把这些指标口径落到具体压测工具与数据集的实战步骤见[AISBench 与 EvalScope 实战](aisbench-and-evalscope.md)。
 
 另一个陷阱在时间线。示例导出的 **trace** 是设备执行事件记录，但其中 P、D 分别采样，再首尾拼接到一张图里。中间的预热和性能测量没有放进去。因此，图上 P 的末尾紧挨 D 的开头，只表示两个采样片段被排在一起，无法据此计算在线请求的首字延迟，或认定真实服务没有交接等待。
 
@@ -250,7 +264,7 @@ title: 相同步速，两种输出计数（示意）
 
 ### 怎么开
 
-现场先用该安装版本的 `vllm bench serve --help` 核对接口、数据集、到达速率、并发上限、预热和保存逐请求结果的参数。使用与部署一致的分词器；输出长度优先用可信的服务 token 计数，退回对返回文本重新分词时注明这一口径。
+现场先用该安装版本的 `vllm bench serve --help` 核对接口、数据集、到达速率、并发上限、预热和保存逐请求结果的参数；昇腾侧工具化压测与精度基线对照流程（AISBench 压测模式、EvalScope 评测与指标对齐）见[AISBench 与 EvalScope 实战](aisbench-and-evalscope.md)。使用与部署一致的分词器；输出长度优先用可信的服务 token 计数，退回对返回文本重新分词时注明这一口径。
 
 ### 会报什么错
 
@@ -262,40 +276,26 @@ title: 相同步速，两种输出计数（示意）
 
 ### 版本差异
 
-下面单列**服务内部计时**，与后面的压测客户端版本表分开读。v0.23、v0.26、v0.30.0rc2、main 分别采用本页固定上游快照。
+下表同时核对**服务内部计时**、**压测客户端口径**与**昇腾 Worker 剖析入口**在四套配套快照（`vllm@0fc695fc / 568afb3a / ced6857a / ba15685a` 与 `vllm-ascend@2c59ff10 / 2ed6cbba / c09d3e20 / 8d6180e2`）上的差异：
 
-| 服务行为 | v0.23 | v0.26 | v0.30.0rc2 | main |
+| 核对项 | `v0.23.0 (2c59ff10)` / `vllm@0fc695fc` | `v0.26.0rc (2ed6cbba)` / `vllm@568afb3a` | `v0.30.0 (c09d3e20)` / `vllm@ced6857a` | `main (8d6180e2)` / `vllm@ba15685a` |
 |---|---|---|---|---|
-| 首次调度与阶段时间 | 只保存第一次 SCHEDULED；排队、prefill、decode、inference 按本节事件边界计算 | 相同 | 相同 | 相同 |
+| 首次调度与阶段时间（`IterationStats`） | 只保存第一次 `SCHEDULED`；排队、prefill、decode、inference 按本页事件边界计算 | 相同 | 相同 | 相同（`stats.py#L474-L635`） |
 | 多 token 输出与请求平均 | 后续每次输出记一个间隔；请求平均按生成数减一作分母，不足两个记 0 | 相同 | 相同 | 相同 |
-| 抢占计数 | 汇总 num_preemptions 计数 | 相同 | 另在请求结束时记录 request_num_preemptions 直方图 | 与 rc2 相同 |
+| 抢占统计 | 汇总 `num_preemptions` 计数 | 相同 | 另在请求结束时记录 `vllm:request_num_preemptions` 直方图 | 同 `v0.30.0`（`loggers.py#L1010-L1020`） |
+| 压测客户端 `chat` 计时与成功判定 | `choices` 非空即推进计时；后续 usage 片段也推进结束计时；HTTP 200 流结束未检是否收到 `choices` 即判成功 | 延续同口径（聚合统计同左） | ChatCompletion/audio 仅非空 `choices` 片段推进结束时间，尾部纯 usage 不延长 latency，且至少收到一个该类片段才判成功；pooling/bytes 读完整个响应体 | 延续 `v0.30.0` 口径，并收紧为 `_choice_has_streamed_output(choices[0])` 才推进流式计时（`endpoint_request_func.py#L416-L490`） |
+| 压测聚合统计（`calculate_metrics`） | 仅纳入成功请求；普通 TPOT 要求输出 $>1$，goodput 短输出按 TPOT=0；NumPy 算分位数；未给 `goodput_config_dict` 时达标数为 0 | 相同 | 相同 | 相同（`serve.py#L602-L690`） |
+| 昇腾 Worker 剖析入口（`NPUWorker.profile`） | `worker.py#L940-L962`（惰性构造 `TorchNPUProfilerWrapper`） | `worker.py#L1034-L1056` | `worker.py#L1230-L1252` | `worker.py#L1317-L1348`（MRV2 统一入口） |
 
-直方图是按数值范围累计样本数的统计形式。新增的请求抢占次数分布没有改变旧的阶段时间定义；它也不会自动证明发生抢占的设备原因。
-
-**v0.30.0rc2 配套压测客户端改变了部分计时和成功判定边界，横向比较必须记录客户端版本。** ChatCompletion 和 audio 流只在非空 `choices` 数组的片段到达时推进结束时间，尾部只有 usage 的片段不再延长 latency。这里检查的是 `choices`，并不要求其中的 `content` 非空；角色、结束信息等空内容片段也可能参与计时，不能把它直接叫作“可见文字到达”。这两个流式函数还要求至少收到一个这样的片段才判成功；HTTP 200 后正常结束但一直没有 `choices`，也会记为失败。[C13][C14]
-
-pooling/embedding 则读完整个响应 body 才记结束，bytes/bytes_only 也会消费完整流。[C15] 这些客户端变化可能影响 E2EL、TPOT 或成功样本数，却不是服务端变快的证据。
-
-主要生成统计仍只纳入成功请求，普通 TPOT 样本仍要求输出长度>1，短输出在 goodput 判断取 0，分位数仍由 NumPy 计算。SSE 内容块可包含多个 token，块间隔不能直接当成逐 token ITL；这项测量口径和正文的实验控制要求都继续保留。
-
-| 范围 | 已核内容 | 使用方式 |
-| --- | --- | --- |
-| vLLM v0.23 `0fc695fc` | 统计成功请求；TPOT 普通样本要求输出大于 1；goodput 判定时，输出不超过 1 token 的请求按 TPOT 为 0 处理；分位数调用 NumPy | 填零的是达标判定用的 TPOT，不是该请求的 goodput；接口片段逻辑仍须看对应请求函数 |
-| v0.26 `568afb3a` | 上述成功样本、TPOT、goodput 短输出和 NumPy 分位数口径相同 | CLI 参数与接口计时事件仍查该版工具和请求函数 |
-| main `84030bbe` | 上述四项统计口径相同 | 在线指南随开发变化，新参数不能反推旧版支持 |
-| GLM 教程镜像 | 模型、执行侧与上游安装产物的关系见部署来源基线 | 压测客户端也单独记录版本，不能只记服务镜像 |
-| DeepInfer `774ce244` | P/D 分段测量；D 吞吐按候选全接受换算；采样 trace 拼接 | 这些约定属于此快照示例，不外推为所有框架的统计方式 |
+- **直方图与阶段边界**：新增 `request_num_preemptions` 分布没有改变旧的阶段时间定义，也不能自动证明发生抢占的设备原因。
+- **客户端变化不等于服务端加速**：`v0.30.0` 与 `main` 的客户端计时边界调整可能改变 E2EL、TPOT 或成功样本数（其中检查 `choices` / `_choice_has_streamed_output` 时，角色或思考片段与可见答案仍须区分），横向比较必须记录压测客户端版本 [C13][C14][C15]。
+- **专项示例边界**：GLM 教程镜像的执行侧与安装产物关系见[来源基线](../sources/glm-5-3-flash-baseline.md)；DeepInfer `774ce244` 的 P/D 分段测量、候选全接受换算与 trace 拼接约定属于该快照示例，不外推为所有框架口径。
 
 ### 源码位置
 
-- 来源 16–19 是四版 IterationStats 的实际更新与完成统计：只保留首次 SCHEDULED，区分前端墙上时钟与引擎事件时钟，按输出事件记录间隔、按请求生成数计算均值。来源 20–24 补输出处理、批次时间与入队/调度事件的生产位置；图中的 0/20/100/120/180/200 ms 与 1+3 token 为教学假设，算式按这组事件推导。
-- 来源 25、26 给出 rc2/main 的请求抢占次数直方图注册；发布消费者见[性能分析源码区](inference-performance-analysis.md#源码位置)的四版 record。旧版已有累计抢占计数，新增分布不改变阶段时间。
-
-- 成功样本、输出长度回退、TPOT、goodput 和分位数：固定版 `calculate_metrics` [C1]。该文件是程序统计口径，不代表所有客户端采用相同计时事件。
-- v0.23 completions 在带非空 `choices` 的片段上计时，其中的 `text` 可以为空 [C2]；chat 函数同样会在首个带 `choices` 的 delta（不要求 content 非空）记录 TTFT，但后续 usage 也会推进结束计时，且 HTTP 200 的流正常结束后未检查是否收到过这种片段就判成功 [C5]。这与上面 rc2 的成功条件不同。两个 backend、不同客户端版本的事件不能只按指标名字视为相同；返回层机制见流式输出页。
-- v0.26 与 main 的上述四项统计口径分别核对固定版聚合函数 [C6][C7]，未据此声明所有 CLI 或接口行为相同。
-- 工具入口、负载和在线监控的当前说明：[官方基准测试指南](https://docs.vllm.ai/en/latest/benchmarking/cli/) [S3]、[官方指标说明](https://docs.vllm.ai/en/latest/usage/metrics/) [S4]。滚动文档不作为旧镜像默认值证据。
-- 24 条请求与 10 秒窗口是教学假设 [A]；算式是指定统计口径下的推导 [D]。实验记录结构与问题划分是本站方法 [I]。
-- DeepInfer 示例的计数、测量与采集窗口见固定 `examples/README.md` 的 Stage decoupling and metrics [S8]：decode 吞吐为 `avg_SPS × decode_num_requests × (1 + nextn) / cp`；trace 合并两段采集，包含 2 个完整 P chunk 和 3 个稳定 D 步，测量窗口不在其中；与 MoE 负载统计汇集重合的间隔会剔除。正文两请求的 800/400 对比为教学演算，非该框架实测。
-
-- 来源 10：vllm@0fc695fc，vllm/benchmarks/serve.py，L431–L496。这个固定版本的 `calculate_metrics` 将达标计数初始化为 0，只有提供 `goodput_config_dict` 才逐请求判断并累加；未配置阈值时的零值表示未做这项统计，不是所有请求都未达标。其他工具或版本须另核，不能把这条实现规则当成 goodput 的定义。
+- 四版 `vllm-ascend` Worker 剖析入口实核：`vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L940-L962`、`vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L1034-L1056`、`vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1230-L1252`、`vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1317-L1348`；配套上游 `main` 压测聚合与监控见 `vllm@ba15685a:vllm/benchmarks/serve.py#L602-L690`、`endpoint_request_func.py#L416-L490`、`v1/metrics/stats.py#L474-L635`、`v1/metrics/loggers.py#L1010-L1020` [C27][C33]。
+- 来源 16–19 是四版 `IterationStats` 的实际更新与完成统计：只保留首次 `SCHEDULED`，区分前端墙上时钟与引擎事件时钟，按输出事件记录间隔、按请求生成数计算均值。来源 20–24 补输出处理、批次时间与入队/调度事件的生产位置；图中的 0/20/100/120/180/200 ms 与 1+3 token 为教学假设，算式按这组事件推导。
+- 来源 25、26、30 给出 `v0.30.0` / `main` 的请求抢占次数直方图注册；发布消费者见[性能分析源码区](inference-performance-analysis.md#源码位置)。旧版已有累计抢占计数，新增分布不改变阶段时间。
+- 成功样本、输出长度回退、TPOT、goodput 与分位数：固定版 `calculate_metrics` [C1]（来源 10 说明未提供 `goodput_config_dict` 时达标计数保持 0，并非全未达标）；`v0.23.0` completions / chat 流式计时见来源 2、5 [C2][C5]，`v0.26.0rc` / `v0.30.0` / `main` 聚合函数分别见来源 6、11–12、27。
+- 工具入口与官方说明：[官方基准测试指南](https://docs.vllm.ai/en/latest/benchmarking/cli/) [S3]、[官方指标说明](https://docs.vllm.ai/en/latest/usage/metrics/) [S4]；昇腾实战压测工具见[AISBench 与 EvalScope 实战](aisbench-and-evalscope.md)。滚动文档不作为旧镜像默认值证据。
+- 24 条请求与 10 秒窗口、两请求 TPOT/ITL 对比与 800/400 步速对比均为教学假设 [A]，算式是指定统计口径下的推导 [D]，实验记录结构与问题划分是本站方法 [I]。DeepInfer 示例的 `avg_SPS × decode_num_requests × (1 + nextn) / cp` 换算、trace 合并（2 个完整 P chunk + 3 个稳定 D 步，不含测量窗口）与剔除 MoE 负载统计汇集重合间隔见固定 `examples/README.md` [S8]。

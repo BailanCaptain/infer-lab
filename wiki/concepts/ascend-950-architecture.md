@@ -9,6 +9,16 @@ chapters: ["07", "19"]
 order: 125
 sources:
   - https://public-download.obs.cn-east-2.myhuaweicloud.com/ascend/%E6%98%87%E8%85%BE950%20NPU%E6%9E%B6%E6%9E%84%E7%99%BD%E7%9A%AE%E4%B9%A6.pdf
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L178-L179'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L824-L859'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L170-L171'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L786-L821'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L333-L381'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L561-L561'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L240'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_mxfp8.py#L54-L60'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L441-L499'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L128'
 relations:
   - { to: ai-core, kind: builds-on, note: Cube、Vector、Scalar 与矩阵乘算例由原页解释，本页聚焦 950 的新增通路 }
   - { to: op-to-ai-core, kind: builds-on, note: 把硬件假设接回算子、kernel、分块和运行证据 }
@@ -16,10 +26,14 @@ relations:
   - { to: low-precision-formats, kind: builds-on, note: 元素编码、分组、缩放和文件精度的唯一解释出处 }
   - { to: hardware-devices, kind: builds-on, note: 部署前确认完整产品型号，不把芯片、卡和服务器当成同一层 }
   - { to: inference-performance-analysis, kind: builds-on, note: 用实际关键路径判断少搬数据是否能减少请求等待 }
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: S
 contradicts: []
-updated: "2026-10-30"
+updated: '2026-11-19'
 ---
 
 **昇腾 950 是执行模型计算的 NPU 芯片。理解它的一个入口，是看一块数据怎样搬到计算单元、怎样交给下一段计算，以及什么时候能够复用原来的缓冲。** 新的通路与指令可以减少绕行和控制工作；是否让请求更快，要看软件是否使用它，以及省下的工作是不是正在拖慢请求。
@@ -42,13 +56,14 @@ file: ascend-950-cv
 
 ## 少一次交接，究竟少了什么
 
-把首图的两个数扩展为一个教学结果块：假设有 1024 个 FP32 元素，每个占 4 字节，而且结果必须完整交给下一段 Vector。先只算中间交接的逻辑数据量。
+把首图的两个数扩展为一个教学结果块：假设有 1024 个 FP32 元素，每个占 4 字节，而且结果必须完整交给下一段 Vector。先只算中间交接的逻辑数据量：
 
-```calc
-title: 一块中间结果经 GM 交接的逻辑读写量（示意）
-中间结果大小 = 1024 × 4 B = 4096 B
-矩阵侧写出再由向量侧读入 = 4096 + 4096 = 8192 B
-```
+$$B_{\text{block}} = 1024 \times 4\text{ B} = 4096\text{ B}, \qquad B_{\text{GM-roundtrip}} = 4096\text{ B} + 4096\text{ B} = 8192\text{ B}$$
+
+| 中间交接口径（1024 个 FP32 元素示意） | 算式 | 逻辑字节数 |
+| --- | --- | --- |
+| 单份中间结果大小 | $1024 \times 4\text{ B}$ | **4,096 B** |
+| 经 GM 写出再由向量侧读入 | $4096\text{ B} + 4096\text{ B}$ | **8,192 B** |
 
 采用内部交接后，可以省去这条 GM 路径上的逻辑写出和读入，但仍要把 4096 B 的结果送到 UB。逻辑 GM 访问不等于实际外部内存事务：**L2 cache** 是缓存近期数据的一层存储，原路径可能已经命中它。因此不能直接宣称“必定少读写外部内存 8192 B”，更不能拿这笔数除以标称带宽当作实测提速。
 
@@ -64,16 +79,18 @@ title: 一块中间结果经 GM 交接的逻辑读写量（示意）
 file: ascend-950-nddma
 ```
 
-从 0 开始数位置，把一个元素的大小暂记为一份地址单位。源矩阵换一行要跳 4 份，目标 UB 换一行只跳 2 份。令 r 为行号、c 为该行选取部分的列号，二者都只取 0、1；源偏移为 4×r+c，目标偏移为 2×r+c。以第二行首元素为例，再把四个位置排在一起：
+从 0 开始数位置，把一个元素的大小暂记为一份地址单位。源矩阵换一行要跳 4 份，目标 UB 换一行只跳 2 份。令 $r$ 为行号、$c$ 为该行选取部分的列号，二者都只取 $0, 1$；源偏移与目标偏移分别为：
 
-```calc
-title: 用两个步长找到四个元素并紧凑存放（示意）
-第二行首元素源偏移 = 4 × 1 + 0 = 4
-第二行首元素目标偏移 = 2 × 1 + 0 = 2
-依次读取的源偏移 = (0, 1, 4, 5)
-读到的数 = (10, 11, 20, 21)
-依次写入的目标偏移 = (0, 1, 2, 3)
-```
+$$\text{offset}_{\text{src}}(r, c) = 4r + c, \qquad \text{offset}_{\text{dst}}(r, c) = 2r + c$$
+
+以第二行首元素 $(r=1, c=0)$ 为例，源偏移为 $4 \times 1 + 0 = 4$、目标偏移为 $2 \times 1 + 0 = 2$；把四个元素的搬运映射排在一起（示意）：
+
+| 元素坐标 $(r, c)$ | 源偏移 $4r + c$ | 读到的数值 | 目标 UB 偏移 $2r + c$ |
+| --- | --- | --- | --- |
+| $(0, 0)$ | $0$ | `10` | $0$ |
+| $(0, 1)$ | $1$ | `11` | $1$ |
+| $(1, 0)$ | $4$ | `20` | $2$ |
+| $(1, 1)$ | $5$ | `21` | $3$ |
 
 这就是布局变化：数没变，位置变得适合下一段使用。实际地址还要加基地址、乘元素字节数，并符合接口的对齐约束。白皮书说明 NDDMA 可做最多五维的重排，由 GM 搬到 UB；内置缓存可把元素级读取组织成 128 B 读取。上面的四个数只说明地址映射，既不是一次指令的最小工作量，也不是四次真实内存事务。
 
@@ -132,7 +149,7 @@ file: ascend-950-buffer
 
 白皮书同时描述了 L0C 到 UB 的随路格式转换：把结果送给 Vector 时，可以完成支持的数值转换与数据排列转换。例如累加结果与下一段输入可以使用不同类型，软件须按这条路径约定准备缩放和布局。若原来有独立转换，合并后就少一道执行段；若转换后的类型更小，也会减少交接字节。具体采用哪条路径要看实际 **kernel**，即设备上执行该算子的程序。
 
-把“磁盘权重是 FP8”“设备中权重是 FP8”“矩阵乘采用 FP8”“累加结果是 FP8”混在一起，会同时算错容量和误差。诊断时分别记录文件、加载后张量、算子输入、累加和输出类型；已有 A2/A3 文件兼容与实际计算的对照在格式页，本页不再复制。
+把“磁盘权重是 FP8”“设备中权重是 FP8”“矩阵乘采用 FP8”“累加结果是 FP8”混在一起，会同时算错容量和误差。诊断时分别记录文件、加载后张量、算子输入、累加和输出类型；已有 A2/A3 文件兼容与实际计算的对照在格式页，本页不再复制。在 vLLM Ascend `v0.30.0` 与 `main` 源码中，昇腾 950 对应 `AscendDeviceType.A5` 硬件档案（`HardwareProfile`）：原生 `W8A8_MXFP8` 与 block-wise FP8 在 A5 上走 `MXFP8` 动态量化矩阵乘路径（并声明 `FP8_ATTENTION`、`CANN_MEGAMOE_MXFP`、`DYNAMIC_MX_QUANT_FUSION` 等能力），但需要注意 `v0.30.0` 的 A5 档案尚未开启 `RUNTIME_CUSTOM_OPS`（导致 `enable_custom_op()` 在该版直接返回关闭），`main` 才将该能力补回 A5 档案。
 
 ## PR 与 DT 的规格，怎样读才不串成一款产品
 
@@ -213,13 +230,14 @@ file: ascend-950-observe
 
 ### 版本差异
 
-| 范围 | 已知边界与尚需的证据 |
-| --- | --- |
-| 本页白皮书快照 | 核实了 950 架构机制与 PR/DT 规格，不是驱动/CANN/框架兼容矩阵 |
-| vLLM-Ascend v0.23，`2c59ff10` | 本页未核该分支在 950 上的模型与算子支持，不能填入这些硬件机制的软件默认值 |
-| vLLM-Ascend v0.26 rc，`2ed6cbba` | 同样未逐算子核实 CV、NDDMA、Buffer ID 和 SIMD/SIMT 的使用路径；缺目标镜像与 kernel 证据 |
-| vLLM-Ascend main，`baa023ad` | 格式页核对了特定分块 FP8 文件的加载说明；这不证明整模型或本页全部硬件通路已启用 |
-| 固定 GLM 执行侧，`db701c1f` | 对应本库 A2 双机主线；其实际执行链继续由原页维护，不用 950 能力反推该路径 |
+白皮书快照核实了 950 硬件架构机制与 PR/DT 规格，不替代驱动/CANN/框架兼容矩阵；固定 GLM 执行侧 `db701c1f` 对应本库 A2 双机主线，不能用 950 能力反推 A2 路径。以下按知识库四版本正式钉点核对 vLLM Ascend 中对昇腾 950（`AscendDeviceType.A5`）的软件档案与低精度路径演进：
+
+| 核对维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| 950 / A5 设备识别与档案抽象 | 仅在 `utils.py#L178-L179`、`#L824-L859` 定义 `AscendDeviceType.A5` 与 `is_950()`；无统一 `HardwareProfile` | 延续 `utils.py#L170-L171`、`#L786-L821` 枚举判断 | 引入集中式 `HardwareProfile`（`device/hardware_profile.py#L333-L381`），A5 声明 `FP8_OPTIMIZED` 适配器、`FP8_ATTENTION`、`CANN_MEGAMOE_MXFP`、`DYNAMIC_MX_QUANT_FUSION`、`DSV41_PACKED_CACHE`、`NPUGRAPH_EX` 等能力 | 扩展 A5 `HardwareProfile`（`device/hardware_profile.py#L441-L499`），显式声明 `native_weight_formats=_FP8_WEIGHT_FORMATS` 与 `requires_2d_nz_linear_input=True`，新增 `CANN_MEGAMOE_SHARED_EXPERT_FUSION` 等 |
+| `RUNTIME_CUSTOM_OPS` 开关 | `enable_custom_op` 在 `utils.py#L426` 硬编码跳过 `AscendDeviceType.A5` | 同左（`utils.py#L418`） | `enable_custom_op` 改查 `HardwareCapability.RUNTIME_CUSTOM_OPS`（`utils.py#L561`），**A5 档案在 `v0.30.0` 仍未开启 `RUNTIME_CUSTOM_OPS`**（仅含 `AUTO_ENABLE_CUSTOM_OPS`） | **A5 档案补回 `HardwareCapability.RUNTIME_CUSTOM_OPS`**（`hardware_profile.py#L490`），解除运行时自定义算子拦截 |
+| 原生 `MXFP8` 与 block-wise FP8 路径 | 无原生 `fp8_block` 重组路径 | 无原生 `fp8_block` 重组路径 | 注册 `W8A8_MXFP8`（`w8a8_mxfp8.py#L54-L60`）；`AscendFp8BlockLinearMethod` 在 `is_950()` 下将 block-wise FP8 重组为 `MXFP8`（`fp8_block.py#L178-L240`），非 A5 则反量化回 `model_dtype` | 延续 `W8A8_MXFP8` 与 A5 重组路径；`fp8_block.py#L114-L128` 改为查 `supports_weight_format(WeightFormat.FP8)`，非 A5 直接抛 `NotImplementedError` |
+| CV / NDDMA / Buffer ID / SIMD-SIMT 内核实测 | 未逐算子核实底层核内指令路径 | 同左 | 白皮书硬件能力未逐 kernel 映射到框架开关；需结合具体 CANN 与算子 trace 确认 | 同左 |
 
 ### 源码位置
 
@@ -231,6 +249,7 @@ file: ascend-950-observe
 - 第 22–24 页 §4.1.5–4.1.6、图 4-7/4-8：NDDMA 多维地址、GM→UB、最多五维、128 B 读取，以及 Buffer ID 的取得/释放示例。
 - 第 25–27 页 §4.3：内存层次、L2 缓存行/sector、缓存提示与 CMO；不能把这些能力等同于实际模型命中率。
 - 第 24 页 §4.2、第 28–29 页 §4.5：AI CPU 的控制与计算职责，DVPP 的 JPEGD/VPC/JPEGE 分工。图片等待的取证顺序是本站分析，不声明 DeepInfer 或本站 GLM 服务已采用 DVPP。
+- vLLM Ascend 四版 A5 设备识别、`HardwareProfile`（`RUNTIME_CUSTOM_OPS` 演进）与原生 `MXFP8` / `fp8_block` 路径对应 `vllm-ascend@2c59ff10:vllm_ascend/utils.py#L178-L179`、`#L824-L859`，`vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L170-L171`、`#L786-L821`，`vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L333-L381`、`utils.py#L561`、`quantization/methods/w8a8/fp8_block.py#L178-L240`、`w8a8_mxfp8.py#L54-L60`，以及 `vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L441-L499`、`fp8_block.py#L114-L128`。[C6][C8][C10][C11]
 - [A] 首图复用 AI Core 页的微型矩阵算例；1024 个 FP32 元素、二维数组和 12→9 μs 均为教学设定。[D] 8192 B 与源/目标偏移由这些设定推导，无设备性能实测。
 
 **待核：** 具体 950 产品型号的驱动/CANN 配套、目标模型与各算子支持、实际采用的 CV/NDDMA/Buffer ID/SIMD/SIMT 路径、真实内存事务及服务收益。软件缺口须用目标镜像与运行记录补齐，白皮书不替代这些证据。

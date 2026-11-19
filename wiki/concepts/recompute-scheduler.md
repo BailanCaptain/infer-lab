@@ -3,7 +3,7 @@ id: recompute-scheduler
 title: RecomputeScheduler：D 节点块不够时，被让出的请求退回 P 重算
 type: feature
 summary: >-
-  PD分离的D节点续块失败时，优先尝试保存被抢占请求的状态，稍后恢复；旧版不能保存时发recomputed结束帧，由代理重投P做prefill。客户端结束、引擎收尾和状态保存是不同步骤；rc2细粒度TP还可能直接中止。GLM双机主线不拆PD，不启用此调度器。
+  PD分离的D节点续块失败时，优先尝试保存被抢占请求的状态，稍后恢复；旧版不能保存时发recomputed结束帧，由代理重投P做prefill。客户端结束、引擎收尾和状态保存是不同步骤；v0.30.0 与 main 细粒度TP还可能直接中止。GLM双机主线不拆PD，不启用此调度器。
 aliases:
   - RecomputeScheduler
   - AsyncRecomputeScheduler
@@ -85,10 +85,18 @@ sources:
   - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1645-L1680'
   - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1371-L1398'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L101-L126'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1116-L1157'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1380-L1408'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/core/recompute_scheduler.py#L135-L180'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/core/recompute_scheduler.py#L1018-L1035'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1288-L1330'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1586-L1630'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/core/recompute_scheduler.py#L155-L200'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/core/recompute_scheduler.py#L1032-L1050'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -142,16 +150,15 @@ file: recompute-scheduler
 
 通用调度器会清零已算位置并排回waiting，恢复时仍可能命中本地或外部缓存；没有可用副本才需重算，步骤见[Scheduler](vllm-scheduler.md)。首次PD交接完成后，不能假设P还为这条请求保留着原块或会自动重新prefill。再次交给P需要代理重投，见[PD分离的抢占处理](pd-disaggregation.md#抢占失败和超时怎么处理)。
 
-这套机制的设计说明把 D 不适合重算的理由写得很直接：D 的每步 token 上限通常设成「同时在跑的条数 ×（1 + 草稿数）」，刚好够每条 decode 请求走一步；在这样的 D 上重做 prefill，很容易 OOM，性能也会大受影响。上限有多紧，拿示意数算一下：
+这套机制的设计说明把 D 不适合重算的理由写得很直接：D 的每步 token 上限通常设成「同时在跑的条数 ×（1 + 草稿数）」，刚好够每条 decode 请求走一步；在这样的 D 上重做 prefill，很容易 OOM，性能也会大受影响。上限有多紧，拿示意数算一下（假设其余 15 条 decode 持续占 60 个位置且无缓存命中，不是任意负载的实际耗时；关 chunked prefill 时，整段放不进余量就不能本步接纳）：
 
-```calc
-title: D 上重做 prefill，每步能分到几个位置（示意）
-D 的每步 token 上限 = 16 条 × (1 + 3 个草稿) = 64
-其余 15 条 decode 先占 = 15 × (1 + 3) = 60
-留给重做 prefill 的 = 64 − 60 = 4
-重做 6,400 个位置要的步数 = 6,400 ÷ 4 = 1,600
-> 假设这15条decode持续占60个位置，且无缓存命中；不是任意负载的实际耗时。关chunked prefill时，整段放不进余量就不能本步接纳
-```
+$$N_{\text{steps}} = \frac{6{,}400}{64 - 60} = 1{,}600\text{ 步}$$
+
+| D 上重做 prefill 的余量核算（示意数：16 条、3 个草稿） | 算式 | 结果 |
+| --- | --- | --- |
+| D 的每步 token 上限 | $16 \times (1 + 3)$ | **64** |
+| 其余 15 条 decode 占用与剩余额度 | $15 \times (1 + 3) = 60$；$64 - 60$ | 占 60，余 **4 个位置/步** |
+| 重做 6,400 个位置所需步数 | $6{,}400 \div 4$ | **1,600 步** |
 
 退回 P 也不是免费的：
 
@@ -173,14 +180,14 @@ D 的每步 token 上限 = 16 条 × (1 + 3 个草稿) = 64
 3. **重新挑一对 P/D。** 改好的请求像一条新请求一样再走一遍 PD 流程：P 做 prefill，把 KV 交给 D，D 接着往下生成 y₂、y₃……
 4. **客户端接着收。** 示例代理在重投成功时保持同一个外部流继续输出，中间有停顿；这不保证重投前后的分词、生成轨迹或计数完全等同于不中断运行。
 
-生成上限怎么扣，代码里多了一个加项：
+生成上限怎么扣，代码里多了一个加项：代理每收到一帧就记 1 个，那帧空的结束回复也被记上了，所以再加回退回次数（下面假设每帧正好 1 个 token；聊天格式流式输出第一帧只带角色、不带 token 时会多记 1 个，D 开投机解码一帧带多个 token 时又会少记，这两种情况新上限会偏小或偏大）：
 
-```calc
-title: 退回一次后，新的生成上限
-流式时代理记下的帧数 = 2 帧回答 + 1 帧空的结束回复 = 3
-新的生成上限 = 原上限 − 记下的帧数 + 退回次数 = 10 − 3 + 1 = 8
-> 示例假设每帧正好 1 个 token：代理每收到一帧就记 1 个，那帧空的结束回复也被记上了，所以再加回退回次数，8 正好是 10 减去真正送出的 2 个。聊天格式的流式输出第一帧只带角色、不带 token，会多记 1 个；D 上开投机解码时一帧能带好几个 token，又会少记。这两种情况下新上限会偏小或偏大
-```
+$$\text{max\_tokens}' = \text{max\_tokens}_0 - N_{\text{chunks}} + N_{\text{retry}} = 10 - 3 + 1 = 8$$
+
+| 退回一次后的新生成上限核算（原上限 10，已出 2 token） | 算式 | 结果 |
+| --- | --- | --- |
+| 流式时代理记下的帧数 | $2\text{ 帧回答} + 1\text{ 帧空结束回复}$ | **3 帧** |
+| 新的生成上限 | $10 - 3 + 1$ | **8**（正好等于 $10 - 2$） |
 
 这里有四处要留意：
 
@@ -282,45 +289,39 @@ v0.26改在调度时补齐：有静态草稿、需要采样、仅差1个位置�
 - 代价：无可复用缓存时P重算“问题 + 已生成”全长，再交接所需状态；实际重算和传输量要扣可用命中。保存路线的模型支持、容量和速度见[Recompute CPU Offload](recompute-cpu-offload.md)，不由主机内存够用单独保证。
 - 必须挂一个认 `stop_reason="recomputed"` 的代理，官方示例是 `examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py`。直连 D 的调用方会把这一帧当成正常结束：输出截断，`finish_reason` 却是 `stop` [D]。
 - 旧示例聊天请求接在 `messages[0]` 后面，多轮或system场景会改错续接位置（来源4）。v0.26按token编号续接并检查历史（来源18）；rc2/main仍按文本拼接，列表content追加文本片段（来源26、47）。保存token历史也不是全部请求语义、采样结果一致性的保证。
-- 同时开别的调度器变体会让它悄悄失效 [C10]：GLM 快照的平台先按本开关换好 `scheduler_config`，紧接着 `SLO_limits_for_dynamic_batch != -1` 或 `profiling_chunk_config.enabled` 会直接改写 `scheduler_cls`，两者之间没有互斥校验，也没有 warning。v0.26 上 `profiling_chunk_config`、`batch_job_sched_config` 同样排在后面改写；main 上这两项在 `_setup_worker_and_scheduler` 里改写，DyntraLB 是例外，会和本调度器组合成专门的类 [C29]。
+- 同时开别的调度器变体会让它悄悄失效 [C10]：GLM 快照的平台先按本开关换好 `scheduler_config`，紧接着 `SLO_limits_for_dynamic_batch != -1` 或 `profiling_chunk_config.enabled` 会直接改写 `scheduler_cls`，两者之间没有互斥校验，也没有 warning。`v0.26.0rc` 与 `v0.30.0 (c09d3e20)` 上 `profiling_chunk_config.enabled`、`batch_job_sched_config.enabled` 按序排在后面，开启即静默覆写 `scheduler_cls`；`main (8d6180e2)` 移除了 `profiling_chunk_config`，只剩 `batch_job_sched_config.enabled` 仍排在后面静默覆写。DyntraLB 是例外，会和本调度器组合成专门的 4 个类，不再互相覆盖 [C29]。
 - 不拆 P/D 的部署（包括 GLM 双机主线）不要开：启动直接 `ValueError`。
 
 ### 版本差异
 
-本文“存不走就回 P”的流程图与首屏例子按固定旧部署绘制；rc2 下述细粒度 TP 的直接 abort 分支不在旧图范围内。
+本文“存不走就回 P”的流程图与首屏例子按固定旧部署绘制；`v0.30.0` 与 `main` 下述细粒度 TP 的直接 abort 分支不在旧图范围内。
 
-**v0.30.0rc2 的卸载失败不再一律回 P 重算。** 当 finegrained_tp_config 中 oproj 或 mlp 的并行尺寸实际大于 1 时，KV offload 失败会直接置 FINISHED_ABORTED；尺寸为 1、没有真实分片时才保留原来的回 P 降级。分配失败后还会先检查 connector 的 pending frees 及候选块能否立即释放，拿不到即时可用块就停止本轮抢占，避免反复触发无收益的卸载/重算。
+**`v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 的卸载失败不再一律回 P 重算。** 当 `finegrained_tp_config` 中 `oproj` 或 `mlp` 的并行尺寸实际大于 1 时，启动校验强制要求包含 `PreemptOffloadConnector`，运行时 KV offload 失败会直接置 `FINISHED_ABORTED`；尺寸为 1、没有真实分片时才保留原来的回 P 降级。分配失败后还会先检查 connector 的 pending frees 及候选块能否立即释放，拿不到即时可用块就停止本轮抢占，避免反复触发无收益的卸载/重算。此外，`main (8d6180e2)` 在启用 `recompute_scheduler_enable` 时会通过 `_swa_bounded_replay_unsupported_mode` 自动关闭 SWA bounded replay，并移除 `profiling_chunk_config` 覆写分支。
 
-| 项 | v0.23 / Ascend 2c59ff10 | v0.26 / 2ed6cbba | rc2 / 7d825229 | main / baa023ad |
+| 项 | v0.23.0 (2c59ff10) | v0.26.0rc (2ed6cbba) | v0.30.0 (c09d3e20) | main (8d6180e2) |
 |---|---|---|---|---|
-| 不能保存的收尾 | 只free KV并发客户端帧，未正式结束引擎请求 | 先正式finish，再发recomputed帧 | 普通退回同左；细粒度TP大于1直接abort | 正式finish并发recomputed帧 |
-| 保存钩子抛异常 | 不捕获，异常可中断本步 | 同左 | 捕获后按上述失败分支处理 | 捕获、警告并退回P |
-| 选抢占请求 | D分支写死取running队尾 | 同左 | 按策略选择；pending frees或候选不能立即还块时停止本轮抢占 | 按策略选择；没有rc2这两项前置检查 |
-| 开关默认及位置 | false，只读顶层 | false，嵌套优先，顶层兼容但弃用 | 同v0.26 | 同v0.26 |
-| 在P误开 | 警告并关闭，写回additional_config | 关闭并写回嵌套配置 | 同左 | 同左 |
-| 首个decode补形状 | add_request塞占位草稿，受长度限制 | 满足静态草稿/采样/仅差1位/无prefill时补；预算或长度不足不接纳 | 同类条件；长度须容纳采样位，不足时保留1位继续；长度够而预算不足才停止接纳 | 同rc2 |
-| 接收KV后的本地重写 | 夹值，抢占过且无草稿时补占位 | 只夹值 | 无此重写，用上游 | 同rc2 |
-| 混合组本地命中特例 | 有 | 有 | 无旧特例 | 无旧特例 |
-| 示例代理续接 | 字符串拼prompt或首条message | token历史拼接并检查一致 | 文本拼接，列表content追加文本 | 同rc2 |
-| 同步/异步与DyntraLB | 2类 | 2类 | 4类，可与DyntraLB组合 | 同rc2 |
+| 仅限 D 节点与在 P 误开 | D 节点启用；P 节点警告关闭并写回 `additional_config`；混部 `ValueError` | 关闭并写回嵌套 `scheduler_config` | 同 v0.26.0rc，且强制 `kv_role == "kv_consumer"` | 同 v0.30.0 |
+| 多调度器静默覆盖顺序 | `SLO_limits` / `profiling_chunk` 排后覆写 `scheduler_cls` | `profiling_chunk` → `batch_job_sched` 按序静默覆写 | 同 v0.26.0rc（`platform.py#L1387-L1407`）；DyntraLB 走 4 类组合不覆写 | 移除 `profiling_chunk`，仅剩 `batch_job_sched` 排后静默覆写（`#L1593-L1601`）；另自动关闭 SWA bounded replay |
+| 不能保存的收尾与细粒度 TP | 只 free KV 并发客户端帧，未正式结束引擎请求 | 先正式 finish，再发 `recomputed` 帧 | 普通退回正式 finish 并发帧；细粒度 TP（`oproj`/`mlp` > 1）要求 `PreemptOffloadConnector` 且失败直接 `FINISHED_ABORTED` | 延续 v0.30.0 |
+| 保存钩子抛异常与选抢占请求 | 不捕获异常；D 分支写死取 running 队尾 | 同左 | 捕获后按失败分支处理；按调度策略选择，且含 pending frees 与即时还块前置检查 | 延续 v0.30.0 |
+| 开关默认及位置 | `false`，只读顶层 | `false`，嵌套优先，顶层兼容但弃用 | 同 v0.26.0rc | 同 v0.26.0rc |
+| 首个 decode 补形状与接收后重写 | `add_request` 塞占位草稿；接收后夹值并补占位 | 调度时按条件补齐；接收后只夹值 | 调度时补齐并为采样位留空间；移除本地接收后重写，直接用上游；无旧混合组命中特例 | 同 v0.30.0 |
+| 示例代理续接与同步/异步类 | 字符串拼 prompt 或首条 message；2 类 | token 历史拼接并检查一致；2 类 | 文本拼接，列表 content 追加文本；4 类（可与 DyntraLB 组合） | 延续 v0.30.0 |
 
-固定GLM镜像db701c1f的上述主要行为沿用旧版，但在P上关闭开关后**没有写回additional_config**，worker重新构建配置仍可能读到true；实际后果缺运行证据。它的模型代码和部署不能归入v0.23发布分支。旧版两个概念也应分开：发出客户端结束帧是已实现的行为，完整引擎收尾则是该快照没有调用的步骤（来源1–3、14–16）。
+固定 GLM 镜像 `db701c1f` 的主要行为沿用 `v0.23.0`，但在 P 上关闭开关后**没有写回 `additional_config`**，worker 重新构建配置仍可能读到 `true`；且不能保存时发出客户端结束帧而未调用完整引擎收尾。
 
-rc2/main在PRIORITY策略下用max(priority, arrival_time)选择被抢占请求，其他策略取队尾；旧D分支始终取队尾，因此不遵循所设PRIORITY顺序（来源43、48）。与[DyntraLB](dyntra-lb.md)组合时使用专门的同步或异步类，不能把它当作后续直接覆盖scheduler_cls的配置。
-
-新版四类选择与P配置回写见45、54–55、57；补形状条件见17、46、56；rc2文本续接见47，v0.26接收后的夹值见59。嵌套优先由配置解析决定，不是同时给两个开关叠加效果。实际scheduler_cls还可能被profiling或batch-job配置覆盖，rc2也有这一顺序（来源58）；启用后应检查最终调度类、保存/退回日志及客户端标记。
+`v0.30.0` / `main` 在 `PRIORITY` 策略下用 `max(priority, arrival_time)` 选择被抢占请求，其他策略取队尾；旧 D 分支始终取队尾，因此不遵循所设 `PRIORITY` 顺序。启用后应核对最终生效的 `scheduler_cls`、保存/退回日志及客户端 `stop_reason` 标记。
 
 ### 源码位置
 
 | 看什么 | 在哪 |
 |---|---|
-| 岔路口（续块失败时怎样处置被让出的那条） | `vllm_ascend/core/recompute_scheduler.py`，`schedule()` 里 `allocate_slots` 的 `while True`（GLM 快照 L280–L345） |
+| 岔路口与细粒度 TP 中止分支 | `vllm_ascend/core/recompute_scheduler.py`：GLM 快照 `L280–L345`；`v0.30.0 (c09d3e20)` 见 `#L135-L180`、`#L1018-L1035`；`main (8d6180e2)` 见 `#L155-L200`、`#L1032-L1050` |
 | 上游被替换的那条抢占 | `vllm/v1/core/sched/scheduler.py`，`_preempt_request`（v0.23.0 L974–L995） |
-| 本步禁新 | `recompute_scheduler.py` L438 |
-| recomputed 结束帧 | `recompute_scheduler.py`，`update_from_output()`（L869–L880） |
-| 占位草稿 | `recompute_scheduler.py`，`__init__` 与 `add_request`（L98–L134） |
-| 远端 KV 收完后的夹值 | `recompute_scheduler.py`，`_update_waiting_for_remote_kv`（L138–L169） |
-| 三道门与挑类 | `vllm_ascend/platform.py`（GLM 快照 L680–L700；main L1014–L1044） |
+| 本步禁新 | `recompute_scheduler.py` L438（`v0.30.0` L465；`main` L491） |
+| recomputed 结束帧 | `recompute_scheduler.py`，`update_from_output()`（GLM 快照 L869–L880） |
+| 占位草稿与远端 KV 夹值（旧版） | `recompute_scheduler.py`（GLM 快照 `__init__`/`add_request` L98–L134，`_update_waiting_for_remote_kv` L138–L169） |
+| 三道门、细粒度 TP 检查与多调度器覆盖顺序 | `vllm_ascend/platform.py`：GLM 快照 L680–L700；`v0.30.0 (c09d3e20)` 见 `#L1116-L1157`、`#L1380-L1408`；`main (8d6180e2)` 见 `#L1288-L1330`、`#L1586-L1630` |
 | 开关与细粒度 TP 的硬依赖 | `vllm_ascend/ascend_config.py`（GLM 快照 L142–L161） |
 | 代理认标记、重投 | `examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py`（GLM 快照 L970–L1056） |
 | v0.26 按 token 续接 | `vllm_ascend/patch/recompute_proxy.py`（L33–L105） |

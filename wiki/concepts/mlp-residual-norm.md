@@ -82,7 +82,17 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L345-L358'
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L535-L613'
   - 'vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L48-L153'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L90-L138'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L325-L335'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L869-L885'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L118-L160'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L354-L364'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/utils.py#L896-L912'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: layers-and-hidden
@@ -161,16 +171,10 @@ yᵢ = γᵢ × xᵢ / r
 
 ε 是一个很小的常数，防止分母过小。这个运算只在同一个位置的 H 维之间求平方均值，不在不同 token（模型输入的一个个单位，每个 token 占一个输入位置）之间求平均，输出宽度不变。它也不会把各维变得一样大：除以同一个 r 保留了各维之间的比例，γ 又是每维各学一个。拿两维的小例子对照两种归一化：
 
-```calc
-title: x = [3, 4] 分别过 RMSNorm 与 LayerNorm（γ 取 1，偏移与 ε 取 0）
-RMSNorm 均方根 = sqrt((3² + 4²) ÷ 2) = sqrt(12.5) ≈ 3.536
-RMSNorm 输出第 0 维 = 3 ÷ 3.536 ≈ 0.849
-RMSNorm 输出第 1 维 = 4 ÷ 3.536 ≈ 1.131
-LayerNorm 均值 = (3 + 4) ÷ 2 = 3.5
-LayerNorm 标准差 = sqrt(((3 − 3.5)² + (4 − 3.5)²) ÷ 2) = 0.5
-LayerNorm 输出第 0 维 = (3 − 3.5) ÷ 0.5 = −1
-LayerNorm 输出第 1 维 = (4 − 3.5) ÷ 0.5 = 1
-```
+| 归一化方式（示意：$x = [3, 4]$，$\gamma = 1$，偏移与 $\varepsilon$ 取 0） | 统计量计算 | 逐维输出 |
+| --- | --- | --- |
+| **RMSNorm** | 均方根 $r = \sqrt{(3^2 + 4^2) \div 2} = \sqrt{12.5} \approx 3.536$ | 第 0 维 $3 \div 3.536 \approx \mathbf{0.849}$；第 1 维 $4 \div 3.536 \approx \mathbf{1.131}$ |
+| **LayerNorm** | 均值 $\mu = (3 + 4) \div 2 = 3.5$；标准差 $\sigma = \sqrt{((3 - 3.5)^2 + (4 - 3.5)^2) \div 2} = 0.5$ | 第 0 维 $(3 - 3.5) \div 0.5 = \mathbf{-1}$；第 1 维 $(4 - 3.5) \div 0.5 = \mathbf{1}$ |
 
 RMSNorm 的输出仍是 3 : 4，方向没变，只是长度被缩放到均方根为 1；LayerNorm 先扣掉两维共有的 3.5，输出变成 [−1, 1]。RMSNorm 少了求均值和减均值两步，每次只需一次平方和归约。
 
@@ -241,24 +245,19 @@ g 这一路算门，u 这一路是内容。SiLU(g) = g × sigmoid(g)，其中 si
 file: mlp-swiglu-calc
 ```
 
-```calc
-title: 一个 MLP 子层的手算（数为示意；每步用上一行写出的数接着算，保留两位小数，sigmoid 保留三位）
-n = RMSNorm([3, 4]) ≈ [0.85, 1.13]
-> 就是 RMSNorm 一节算出的 [0.849, 1.131]
-W_gate 的四列 = [1, 1]、[−1, −3]、[−1, 1]、[0, 1]
-g 的第 0 个数 = 0.85 × 1 + 1.13 × 1 = 1.98
-g = [1.98, −4.24, 0.28, 1.13]
-> 另外三个数同样是 n 和 W_gate 一列的点积
-W_up 的四列 = [0, 1]、[1, 1]、[−2, 0]、[1, −2]
-u = [1.13, 1.98, −1.70, −1.41]
-sigmoid(g) = 1 ÷ (1 + e⁻ᵍ) = [0.879, 0.014, 0.570, 0.756]
-SiLU(g) = g × sigmoid(g) = [1.74, −0.06, 0.16, 0.85]
-z = SiLU(g) ⊙ u = [1.74 × 1.13, −0.06 × 1.98, 0.16 × (−1.70), 0.85 × (−1.41)] = [1.97, −0.12, −0.27, −1.20]
-W_down 的两列 = [1, 1, −1, 1]、[0, 1, 1, −1]
-Δ 的第 0 个数 = 1.97 × 1 + (−0.12) × 1 + (−0.27) × (−1) + (−1.20) × 1 = 0.92
-Δ 的第 1 个数 = 1.97 × 0 + (−0.12) × 1 + (−0.27) × 1 + (−1.20) × (−1) = 0.81
-y = x + Δ = [3 + 0.92, 4 + 0.81] = [3.92, 4.81]
-```
+$$\text{SiLU}(g) = g \cdot \sigma(g) = \frac{g}{1 + e^{-g}}, \qquad z = \text{SiLU}(g) \odot u, \qquad y = x + \Delta$$
+
+以下用示意数逐步手算（每步沿用上一行保留两位小数的结果，$\sigma(g)$ 保留三位小数）：
+
+| 步骤 | 权重列 / 算式 | 结果向量 |
+| --- | --- | --- |
+| ① 入口归一化 $n$ | $\text{RMSNorm}([3, 4])$（即前文 $[0.849, 1.131]$ 两位取舍） | $[0.85, 1.13]$ |
+| ② 门控投影 $g = n W_{\text{gate}}$ | $W_{\text{gate}}$ 四列为 $[1, 1]$、$[-1, -3]$、$[-1, 1]$、$[0, 1]$；如第 0 维 $0.85 \times 1 + 1.13 \times 1 = 1.98$（其余三列同理点积） | $[1.98, -4.24, 0.28, 1.13]$ |
+| ③ 内容投影 $u = n W_{\text{up}}$ | $W_{\text{up}}$ 四列为 $[0, 1]$、$[1, 1]$、$[-2, 0]$、$[1, -2]$ | $[1.13, 1.98, -1.70, -1.41]$ |
+| ④ 门系数 $\text{SiLU}(g)$ | $\sigma(g) = [0.879, 0.014, 0.570, 0.756]$，再逐维乘 $g$ | $[1.74, -0.06, 0.16, 0.85]$ |
+| ⑤ 逐维相乘 $z = \text{SiLU}(g) \odot u$ | $[1.74 \times 1.13,\; -0.06 \times 1.98,\; 0.16 \times (-1.70),\; 0.85 \times (-1.41)]$ | $[1.97, -0.12, -0.27, -1.20]$ |
+| ⑥ 降维投影 $\Delta = z W_{\text{down}}$ | $W_{\text{down}}$ 两列 $[1, 1, -1, 1]$、$[0, 1, 1, -1]$：第 0 维 $1.97 \times 1 + (-0.12) \times 1 + (-0.27) \times (-1) + (-1.20) \times 1 = 0.92$；第 1 维 $1.97 \times 0 + (-0.12) \times 1 + (-0.27) \times 1 + (-1.20) \times (-1) = 0.81$ | $[0.92, 0.81]$ |
+| ⑦ 残差相加 $y = x + \Delta$ | $[3 + 0.92,\; 4 + 0.81]$ | **$[3.92, 4.81]$** |
 
 四列对照着看：内容最大的是第 1 维（1.98），但它的 g 是 −4.24，门只有 −0.06，这一维几乎被关掉，只剩 −0.12；第 0 维的门是 1.74，内容 1.13 被放大到 1.97；第 2 维的 g 接近 0，门 0.16 把 −1.70 压到 −0.27；第 3 维的门 0.85，把 −1.41 略缩成 −1.20。放大、关掉还是压小，都是同一个输入 n 经 gate 投影算出来的，这就是「由输入自己决定中间每一维放大多少」。第 1 维的门略小于 0，是因为 SiLU 在负半轴会给出很小的负数，乘出来的符号也跟着翻了，但量已经很小。
 
@@ -280,16 +279,12 @@ gate 只需要限上界，是因为 SiLU 在负半轴本来就有界：输入很
 
 换一组大一些的示意数看限幅怎样起作用：某一维 gate = 13、up = −12，另一维 gate = −15。
 
-```calc
-title: 限幅示意（上限 10，数为示意）
-截断后的 gate = min(13, 10) = 10
-截断后的 up = max(−10, min(−12, 10)) = −10
-SiLU(10) = 10 × sigmoid(10) = 10 × 0.99995 ≈ 10.00
-这一维的中间值 = 10.00 × (−10) = −100
-> 不截断时是 SiLU(13) × (−12) ≈ 13.00 × (−12) = −156，超出约 100 的范围
-SiLU(−15) = −15 × sigmoid(−15) ≈ −0.0000046
-> gate = −15 没有超过上界，不截断；SiLU 在负半轴自己就趋于 0，所以 gate 不用限下界
-```
+$$\text{gate}' = \min(\text{gate},\; 10), \qquad \text{up}' = \text{clamp}(\text{up},\; -10,\; 10)$$
+
+| 限幅示意维度（上限 10，数为示意） | 截断与计算过程 | 结果与对比 |
+| --- | --- | --- |
+| $\text{gate} = 13,\; \text{up} = -12$ | $\text{gate}' = \min(13, 10) = 10$；$\text{up}' = \max(-10, \min(-12, 10)) = -10$；$\text{SiLU}(10) = 10 \times 0.99995 \approx 10.00$ | 中间值 $10.00 \times (-10) = \mathbf{-100}$（不截断为 $\text{SiLU}(13) \times (-12) \approx -156$，超出约 100 范围） |
+| $\text{gate} = -15$ | 未超过上界 10，不截断；$\text{SiLU}(-15) = -15 \times \sigma(-15)$ | 约 $\mathbf{-0.0000046}$（SiLU 负半轴天然趋于 0，故 `gate` 不必限下界） |
 
 ```wiki-diagram
 file: gated-ffn
@@ -399,48 +394,47 @@ ValueError: Unsupported activation: <hidden_act>. Only silu is supported for now
 
 ### 版本差异
 
-**v0.30.0rc2 的 GLM model.py 与已钉 main 相同，MLP 分支条件仍需保留。** gate/up 合并列切，接 SiluAndMul 或带 swiglu_limit 的裁剪，再由 down 行切，bias 均为 false；hidden_act 非 silu 仍报错。SP 路径的输入输出已经按 token 切，稠密 MLP 权重复制且关闭 reduce_results，不能把普通 TP 的层尾 All-Reduce 无条件套上去。dense/MoE 仍由 mlp_layer_types 决定，MTP 越界取最后项。rc2 共享专家可预量化输入以便多流重叠，但这不改变残差/RMSNorm 数学；mHC 入口仍可能另调 RMSNorm，函数合并不等于单 kernel。
+**`v0.30.0` 与 `main` 均已合入社区版 `models/glm5next/model.py`，保留了 `Glm5NextMLP` 的分支条件与激活检查，且 `main` 修复了限幅激活的注册键错配。** `gate/up` 合并列切，接 `SiluAndMul` 或带 `swiglu_limit` 的限幅激活，再由 `down` 行切，`bias` 均为 `False`；`hidden_act` 非 `silu` 时在构造阶段抛错。序列并行（SP）路径的输入输出已按 token 切分，稠密 MLP 权重复制且关闭 `reduce_results`，不能把普通 TP 的层尾 All-Reduce 无条件套上去。`dense/sparse` 仍由 `mlp_layer_types` 决定，MTP 越界取最后项。`v0.30.0` 与 `main` 的共享专家支持预量化输入以便多流重叠，但不改变残差/RMSNorm 数学；mHC 入口仍可能另调 RMSNorm，函数合并不等于单 kernel。
 
-GLM 双机的行为固定在执行侧 `db701c1f`。两个发布分支都没有 GLM-5.3-Flash 的模型代码（对 `vllm_ascend/models/` 做 `git ls-tree`，没有任何 glm 文件），通用的限幅激活与 RMSNorm 替换三版都有。
+GLM 双机绑定算例固定在例外 B 镜像 `db701c1f`。`v0.23.0` 与 `v0.26.0rc` 维护分支均未包含 GLM-5.3-Flash 模型代码（对 `vllm_ascend/models/` 做 `git ls-tree` 无 `glm5` 文件），但通用的限幅激活与 RMSNorm 替换四版均存在：
 
-| 核对项 | v0.23：2c59ff10 | v0.26：2ed6cbba | main：baa023ad |
-|---|---|---|---|
-| GLM 稠密 MLP 类 | 没有 | 没有 | `Glm5NextMLP`：gate/up 合并列切、down 行切、无偏置，与固定版本相同 |
-| 激活函数检查 | — | — | `hidden_act` 不是 silu 就抛错 |
-| 按层选稠密 MLP 或 MoE | — | — | 只读 `mlp_layer_types`，不再回退到 `first_k_dense_replace`；超出列表的 MTP 层取最后一项 |
-| 稠密 MLP 与序列并行 | — | — | 打开序列并行时 MLP 不切、不归约 |
-| Ascend 限幅激活的注册键 | `SiluAndMulClamp` | `SiluAndMulClamp` | `SiluAndMulClamp` |
-| Ascend RMSNorm 替换 | 注册为 `RMSNorm` | 注册为 `RMSNorm` | 注册为 `RMSNorm` |
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| GLM 稠密 MLP 类 | 无（绑定算例在镜像 `db701c1f`） | 无 | `models/glm5next/model.py` `Glm5NextMLP`（L90–L138）：gate/up 合并列切、down 行切、无偏置 | 同 `v0.30.0`（L118–L160） |
+| 激活函数检查 | — | — | `hidden_act != "silu"` 抛 `ValueError`（L126） | 同 `v0.30.0`（L154） |
+| 按层选稠密 MLP 或 MoE | — | — | `config.py` 规范化 `mlp_layer_types`，`model.py` 按列表选层、MTP 越界取末项（L325–L335） | 同 `v0.30.0`（L354–L364） |
+| 稠密 MLP 与序列并行 | — | — | 打开序列并行时稠密 MLP 不切、不归约 | 同 `v0.30.0` |
+| Ascend 限幅激活注册键 | `SiluAndMulClamp`（`utils.py#L738`） | `SiluAndMulClamp`（`utils.py#L709`） | 仍为 `SiluAndMulClamp`（`utils.py#L870`），与上游 `SiluAndMulWithClamp` 类名不一致 | **已修复为 `SiluAndMulWithClamp`**（`utils.py#L897`），与上游实例化查表键对齐 |
+| Ascend RMSNorm 替换 | 注册为 `RMSNorm`（`utils.py#L751`） | 注册为 `RMSNorm`（`utils.py#L722`） | 注册为 `RMSNorm`（`utils.py#L884`，310P 另注册 `AscendRMSNorm310`） | 同 `v0.30.0`（`utils.py#L911`） |
 
-main 对子层前 RMSNorm 与 mHC 的改动（RMSNorm 挪进入口混合的同一个函数）只影响调用方式，不改数学，见[层与 hidden 的版本差异](layers-and-hidden.md#版本差异)。
+`v0.30.0` / `main` 对子层前 RMSNorm 与 mHC 的改动（RMSNorm 挪进入口混合的同一个函数）只影响调用方式，不改数学，见[层与 hidden 的版本差异](layers-and-hidden.md#版本差异)。
 
 ### 源码位置
 
-阅读顺序：先看 `glm5_next.py` 的 `AscendGlm5NextMLP`（1403–1442 行）：`gate_up_proj` 是合并的列切投影，`act_fn` 按 `swiglu_limit` 选带限幅的激活，`down_proj` 是行切投影，三者都 `bias=False`。[C2] 再看 `AscendGlm5NextDecoderLayer.__init__` 按层号选 MLP、建两个子层前 RMSNorm，[C3] 和 `forward` 里的两条路径：`not self.mhc or self.is_mtp_layer` 为真时走单条 residual，否则走 `hc_pre` → RMSNorm → 子层 → `hc_post`，第 0 层先复制成四条、第 44 层求平均。[C4] 最终 RMSNorm 在模型的 `forward` 末尾。[C5] MoE 的 routed experts 和 shared expert 同样传入限幅，shared expert 宽度为 `moe_intermediate_size × n_shared_experts`。[C6]
+阅读顺序：先看 `glm5_next.py` 的 `AscendGlm5NextMLP`（1403–1442 行）：`gate_up_proj` 是合并的列切投影，`act_fn` 按 `swiglu_limit` 选带限幅的激活，`down_proj` 是行切投影，三者都 `bias=False`；再看 `AscendGlm5NextDecoderLayer.__init__` 按层号选 MLP、建两个子层前 RMSNorm，和 `forward` 里的两条路径：`not self.mhc or self.is_mtp_layer` 为真时走单条 residual，否则走 `hc_pre` → RMSNorm → 子层 → `hc_post`，第 0 层先复制成四条、第 44 层求平均；最终 RMSNorm 在模型的 `forward` 末尾；MoE 的 routed experts 和 shared expert 同样传入限幅，shared expert 宽度为 `moe_intermediate_size × n_shared_experts`（来源 2–6）。[C2]
 
-激活与归一化的实现：Ascend 限幅激活先把前一半夹到不超过上限、后一半夹到正负上限之间，再调用 `npu_swiglu`；[C7] 上游 vLLM 的数学为 `silu(clamp(gate)) * clamp(up)`，固定注册链选择该写法。[C8] vLLM 的 RMSNorm 定义为 x → w · x / sqrt(E[x²] + eps)；[C11] Ascend 版不带 residual 时调用 `npu_rms_norm`，带 residual 时按自定义算子开关选 `npu_add_rms_norm_bias` 或 `npu_add_rms_norm`，量化配方带来的偏移另按加载状态处理。[C12] MTP 块外先把位置 0 的词嵌入清零再做 enorm；hidden 按 is_rot_used 条件过 rot，再做 hnorm，拼接后过 eh_proj 进入块，出块后先做 TP All-Reduce 再交给 shared_head。[C23] shared_head 的 forward 是一次 RMSNorm，词表投影另在 logits 计算时调用。[C24]
+激活与归一化的实现：Ascend 限幅激活先把前一半夹到不超过上限、后一半夹到正负上限之间，再调用 `npu_swiglu`；上游 vLLM 的数学为 `silu(clamp(gate)) * clamp(up)`，固定镜像与 `v0.30.0` 注册链选择该写法（来源 7–8）。[C7] vLLM 的 RMSNorm 定义为 `x -> w * x / sqrt(E[x^2] + eps)`；Ascend 版不带 residual 时调用 `npu_rms_norm`，带 residual 时按自定义算子开关选 `npu_add_rms_norm_bias` 或 `npu_add_rms_norm`，量化配方带来的偏移另按加载状态处理（来源 11–12）。[C11] MTP 块外先把位置 0 的词嵌入清零再做 `enorm`；hidden 按 `is_rot_used` 条件过 `rot`，再做 `hnorm`，拼接后过 `eh_proj` 进入块，出块后先做 TP All-Reduce 再交给 `shared_head`；`shared_head` 的 `forward` 是一次 RMSNorm，词表投影另在 logits 计算时调用（来源 23–24）。[C23]
 
-版本表的来源按结论分组：开发快照的稠密 MLP 投影、无偏置、激活检查和序列并行构造开关对应来源 13 的 90–138 行。[C13] 按层选择及超出列表时取末项、向稠密 MLP 传递序列并行和归约开关对应来源 14 的 324–350 行。[C14] v0.23 的限幅激活注册键与 RMSNorm 替换分别见来源 15 的 738、751 行，[C15] v0.26 对应来源 16 的 709、722 行。[C16]
+版本表的来源按结论分组：`v0.30.0` 与 `main` 的稠密 MLP 投影、无偏置、激活检查、按层选择及序列并行开关分别见来源 38–39、41–42，注册键修复见来源 40、43；`v0.23.0` 与 `v0.26.0rc` 注册键分别见来源 15、16。[C38][C43]
 
-来源 4 的 2195、2237–2241 行限定了末层均值的分支：mHC 启用且不是 MTP 层时，在最后一个基础层把 hidden 重排为“位置 × 残差流 × hidden 宽度”，只沿残差流维取均值，返回的 residual 为 None。来源 2 的 1403–1442 行没有激活类型检查，构造时仍选择 SiLU 类；来源 13 的 125–126 行显式拒绝非 silu。检查缺失不能证明其他激活受支持；这些结论来自固定源码，不代表设备运行或安装包组合已验证。
+来源 4 的 2195、2237–2241 行限定了末层均值的分支：mHC 启用且不是 MTP 层时，在最后一个基础层把 hidden 重排为“位置 × 残差流 × hidden 宽度”，只沿残差流维取均值，返回的 residual 为 `None`。来源 2 的 1403–1442 行没有激活类型检查，构造时仍选择 SiLU 类；`v0.30.0` / `main` 则显式拒绝非 `silu`。检查缺失不能证明其他激活受支持；这些结论来自固定源码，不代表设备运行或安装包组合已验证。
 
 来源与结论的对应：
 
-- 归一化类型与位置是不同选择：固定 vLLM 的 GPT-2 子层在支路入口和整叠层末尾都用 LayerNorm；[C27] OPT 根据配置把 LayerNorm 放在支路入口或残差相加之后。[C28] 这两处是首屏示例适用范围的源码反例，GLM 的 RMSNorm 仍以本页 C3–C5 为依据。
-
-- Qwen3 的逐头归一化范围、共享增益及投影 → RMSNorm → RoPE 顺序：Transformers v4.51.3 固定提交 `5f4ecf2d`。`Qwen3RMSNorm` 沿最后一维求均值，`Qwen3Attention` 为 Q、K 各建立一份长度为 head_dim 的权重，forward 先归一化再旋转。[C26] 该来源只支持上文 Qwen3 小节，不替代“版本差异”一节的 vLLM-Ascend 三版本 GLM 对照。
+- 归一化类型与位置是不同选择：固定 vLLM 的 GPT-2 子层在支路入口和整叠层末尾都用 LayerNorm；OPT 根据配置把 LayerNorm 放在支路入口或残差相加之后（来源 27–28）。[C27] 这两处是首屏示例适用范围的源码反例，GLM 的 RMSNorm 仍以本页来源 3–5 为依据。
+- Qwen3 的逐头归一化范围、共享增益及投影 → RMSNorm → RoPE 顺序：Transformers v4.51.3 固定提交 `5f4ecf2d`。`Qwen3RMSNorm` 沿最后一维求均值，`Qwen3Attention` 为 Q、K 各建立一份长度为 `head_dim` 的权重，forward 先归一化再旋转。[C26] 该来源只支持上文 Qwen3 小节，不替代“版本差异”一节的 vLLM-Ascend 四版本 GLM 对照。
 - 深网络不加旁路会训练退化、恒等旁路不加参数：ResNet 原论文。[S17]
 - 原始 Transformer 的 post-norm 写法、MLP 取 F = 4H 与 ReLU：Transformer 原论文。[S18]
 - 初始化下的梯度分析、指定训练设置的 warm-up 试验及 RAdam 反例：pre-norm 分析论文 §3–4。[S19]
 - RMSNorm 去掉减均值、只按均方根缩放，效果与 LayerNorm 相当且更快：RMSNorm 原论文。[S20]
 - SwiGLU 的三投影结构、为等参数把 F 缩到 2/3：GLU 变体论文。[S21]
 - GLM 的 45 层、H、两种中间宽度、逐层 MLP 类型、限幅、ε、四条流：模型配置 `690b7052`。[S1] 该配置与旧 revision 及母版配置一致性的核对见[GLM-5.3-Flash 固定配置](../sources/glm-5-3-flash-baseline.md)。
-- 部署数字（每卡 3072 / 1536 列、32,768 B）按普通 TP8、4 个位置和 BF16 的教学条件计算，完整推导在[一条请求](one-request.md#前-3-层的稠密-mlp)。
+- 手算示例（$x=[3,4]$、2→4→2 SwiGLU 与限幅 10）为教学示意推导，部署数字（每卡 3072 / 1536 列、32,768 B）按普通 TP8、4 个位置和 BF16 的教学条件计算，完整推导在[一条请求](one-request.md#前-3-层的稠密-mlp)。[D]
 
 固定分派与验证边界：
 
-- **限幅激活的静态选择。** Ascend 以 `SiluAndMulClamp` 为键注册，[C9] vLLM 登记时使用给定键、[C22] 实例化却按类名 `SiluAndMulWithClamp` 查表，[C10] 因而所引固定代码选择上游类和原生 PyTorch 路径。main 的同名注册见来源 34。共享专家的 W8A8/W4A8 融合分支要求两个投影都有 weight_scale；不满足时可进入调用 act_fn 的后备路径，不能把影响范围无条件限于前 3 层。[C25] 后备路径实际调用见来源 35 的 345–358 行。routed experts 的限幅由 fused MoE 参数传入；运行包是否与固定代码完全相同、编译后多少 kernel 及性能如何，仍缺运行日志或 profiling。
-- **稠密 W8A8 的计算边界。** 固定方法在投影内动态量化，再调用量化矩阵乘并返回输入 dtype；稠密 MLP 的 act_fn 位于 gate/up 与 down 两次投影调用之间。这个路径与共享专家直接调用 dequant-swiglu-quant 的分支不同，见来源 37 的 48–153 行及[量化](quantization.md)。编译器是否进一步融合仍需实际图或 profiling。
+- **限幅激活的静态选择。** 旧镜像、`v0.23.0`、`v0.26.0rc` 与 `v0.30.0` 均以 `SiluAndMulClamp` 为键注册（来源 9、15、16、40），vLLM 登记时使用给定键（来源 22）、实例化却按类名 `SiluAndMulWithClamp` 查表（来源 10），因而静态路径回落上游原生 PyTorch 实现；`main`（`8d6180e2`）已修正注册键为 `SiluAndMulWithClamp`（来源 43）。[C9] 共享专家的 W8A8/W4A8 融合分支要求两个投影都有 `weight_scale`；不满足时可进入调用 `act_fn` 的后备路径，不能把影响范围无条件限于前 3 层（来源 25、35）。[C25] routed experts 的限幅由 fused MoE 参数传入；运行包是否与固定代码完全相同、编译后多少 kernel 及性能如何，仍缺运行日志或 profiling。[I]
+- **稠密 W8A8 的计算边界。** 固定方法在投影内动态量化，再调用量化矩阵乘并返回输入 dtype；稠密 MLP 的 `act_fn` 位于 gate/up 与 down 两次投影调用之间。这个路径与共享专家直接调用 dequant-swiglu-quant 的分支不同，见来源 37 的 48–153 行及[量化](quantization.md)。编译器是否进一步融合仍需实际图或 profiling。
 - NPU 的 RMSNorm 算子与公式的数值等价没有实测，也没有这三件东西的内核耗时数据；专用镜像内最终安装的包组合未核。
 
 来源 36 的 535–613 行区分本步未启用 FlashComm1 时的 All-Reduce 与启用后可选的 Reduce-Scatter，支撑本页 TP 算例的适用条件。

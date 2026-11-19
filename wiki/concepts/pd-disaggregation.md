@@ -186,11 +186,19 @@ sources:
   - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1216-L1236'
   - 'vllm@0fc695fc:vllm/v1/worker/gpu_input_batch.py#L346-L375'
   - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1901-L1947'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L135'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1788-L1905'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L40-L85'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L778-L785'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L162'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L260-L310'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L364-L385'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L943-L949'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
-  - releases/v0.30.0rc2
 evidence: C
 relations:
   - to: prefill
@@ -208,8 +216,11 @@ relations:
   - to: chunked-prefill
     kind: alternative-to
     note: 不拆实例，把长提示词切块混进 decode 步，是限制 prefill 干扰的另一条路
+  - to: epd-disaggregation
+    kind: variant-of
+    note: 再把多模态编码器独立成 E 池、与 P/D 协同的完整三池架构与 ECConnector 见该页
 contradicts: []
-updated: '2026-11-10'
+updated: '2026-11-19'
 origin: direct
 ---
 
@@ -321,7 +332,7 @@ file: pd-state-boundary
 
 这里的 V1 传输失败时，D 把没读成的目的块标成无效，并照样通知 P 放块。vLLM 对这种情况有两种策略：默认是「失败」，这条请求带着错误结束；模型与平台允许改用「重算」时，调度器保留已经成功读到的部分，其余位置在 D 上重新算。本页 GLM 是混合模型，固定镜像在启动校验中拒绝此策略。
 
-换用 V2 要另核失败上报。固定 main 的多缓存组失败只有告警，仍会报接收完成；rc2 才有按请求汇合的失败结果，再交给失败策略处理。**完成通知不能单独证明传来的状态可用。** 执行链和版本区别见[Mooncake V2 的失败与释放](mooncake-connector.md#v2-的接收完成是否代表读成功)。
+换用 V2 要另核失败上报。早期社区主干的多缓存组失败只有告警，仍会报接收完成；v0.30.0 与当前 main 才提供按请求汇合的失败结果，再交给失败策略处理。**完成通知不能单独证明传来的状态可用。** 执行链和版本区别见[Mooncake V2 的失败与释放](mooncake-connector.md#v2-的接收完成是否代表读成功)。
 
 P 这边，交接后押着的块一直占着 P 的块池，直到 D 报告收完；D 始终不报告时，P 在超时（默认 480 秒）后强制释放，并打一条错误日志。这段时间里，P 能接的新请求相应变少。
 
@@ -329,7 +340,7 @@ P 这边，交接后押着的块一直占着 P 的块池，直到 D 报告收完
 
 ## 带图像的请求：再把编码器分出去（EPD）
 
-**E（Encoder）分离把图像等媒体的编码放到独立的资源上，再把编码结果交给后面的语言模型推理。** 带图像的输入要先由视觉编码器转成语言模型能用的表示。EC（Encoder Cache）保存的就是这类编码结果；KV cache 和 KDA 状态则是语言模型各层计算时才形成的历史。两者的阶段、形状、身份与复用条件都不同，传了图像 embedding 不等于迁移了语言模型的历史。
+**E（Encoder）分离把图像等媒体的编码放到独立的资源上，再把编码结果交给后面的语言模型推理。**（独立 E 池架构、ECMemcacheConnector 与 AscendECMooncakeConnector 等专页细节见 [EPD 分离](epd-disaggregation.md)。）带图像的输入要先由视觉编码器转成语言模型能用的表示。EC（Encoder Cache）保存的就是这类编码结果；KV cache 和 KDA 状态则是语言模型各层计算时才形成的历史。两者的阶段、形状、身份与复用条件都不同，传了图像 embedding 不等于迁移了语言模型的历史。
 
 两种形态要分清。**E+PD** 只把媒体编码分出去，prefill 与 decode 仍在同一个实例；**E+P+D** 在此基础上再分离 P、D，因此还要解决语言模型状态的交接。第一种不依赖 P→D 的 KV 传输，不能因为某个模型的 PD 组合没有实测，就判定所有编码器分离形态都不能用。示例代理先调用 E，再视配置决定是否调用独立的 P，最后进入生成。E、P、D 同样是职责名，不保证每类恰好一台机器或一个进程。
 
@@ -355,18 +366,16 @@ Ascend 的 **ECCPUConnector** 走这条本机路径。它把编码结果放进�
 
 前面的 Mooncake V1 用超时兜底释放源块。上游 **NixlConnector 的拉取路径**采用另一种办法：P 先给这条请求的 KV 一段较短的保留时间，D 只要仍需要它，就定期通知 P 延长时间。这段保留时间叫 **租约（lease）**。它解决一个两难：超时太长，D 故障后 P 的缓存迟迟不能回收；超时太短，健康的 D 可能仅因排队就丢失已经算好的状态。
 
-以本页固定上游基线的默认值为例，P 完成 prefill 后先保留 30 秒；D 收到带有完整远端定位信息的请求，**进入 waiting 队列时就开始跟踪续约**，不用等到请求真正获准前向。调度步约每隔 5 秒把需要续约的请求按 P 实例合并，worker 用 NIXL 通知发送心跳。收到心跳后，P 将到期时刻更新为下列结果：
+以本页固定上游基线的默认值为例，P 完成 prefill 后先保留 30 秒；D 收到带有完整远端定位信息的请求，**进入 waiting 队列时就开始跟踪续约**，不用等到请求真正获准前向。调度步约每隔 5 秒把需要续约的请求按 P 实例合并，worker 用 NIXL 通知发送心跳。收到心跳后，P 将到期时刻更新为下式（不是每收到一次就在旧到期时刻上累加 20 秒）：
 
-```calc
-title: 心跳延长的是到期时刻（示意，单位：秒）
-初始租约 = 30 秒
-心跳间隔 = 30 // 6 = 5 秒
-续约窗口 = 30 × 2 // 3 = 20 秒
-新到期时刻 = max(旧到期时刻, 收到心跳时刻 + 20)
-在 t=5 收到心跳，旧到期30 = max(30, 5 + 20) = 30 秒
-在 t=15 收到心跳，旧到期30 = max(30, 15 + 20) = 35 秒
-> 不是每收到一次，就在旧到期时刻上累加 20 秒
-```
+$$t_{\text{expire}}' = \max(t_{\text{expire}},\; t_{\text{hb}} + 20)$$
+
+| 租约参数与示意事件（默认初始租约 $30\text{ s}$） | 推导算式 | 结果（秒） |
+| --- | --- | --- |
+| 心跳间隔 | $\lfloor 30 \div 6 \rfloor$ | **5 s** |
+| 续约窗口 | $\lfloor 30 \times 2 \div 3 \rfloor$ | **20 s** |
+| 在 $t=5\text{ s}$ 收到心跳（旧到期 $30\text{ s}$） | $\max(30,\; 5 + 20)$ | **30 s** |
+| 在 $t=15\text{ s}$ 收到心跳（旧到期 $30\text{ s}$） | $\max(30,\; 15 + 20)$ | **35 s** |
 
 沿着这个到期时刻看，D 继续等待、读取完成和失联，会走不同的保留或释放分支：
 
@@ -431,15 +440,14 @@ GLM 的 3 个 KDA 组在调度器里都是递推状态组，所以连接器对 G
 
 **按钉住版本的源码静态阅读（本站没有实测），GLM 的提示词超过 641 个 token 时，连接器给 full 组算出的块数就开始少于应传的块数：刚过这个长度时只传一半，提示词越长，越接近只传四分之一。** 这是读源码得出的结论，不是 PD 的实测现象；传少以后 D 端是先报错还是静默错位，见本节后文。
 
-原因在压缩比。GLM 把 MLA 主缓存和 indexer 缓存放进同一个 full 组、用同一套块号，一块都代表 640 个位置；indexer 只是在块内把每 4 个位置压成一条存，压缩比 4，MLA 主缓存的压缩比是 1。一块多少个位置见[部署页的逻辑块一节](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。连接器给每个组算「一块代表多少个位置」时，把组里各类缓存的压缩比依次读一遍，最后留下的是 indexer 的 4，于是把一块当成 640 × 4 = 2,560 个位置，再按这个数截取要传的块。
+原因在压缩比。GLM 把 MLA 主缓存和 indexer 缓存放进同一个 full 组、用同一套块号，一块都代表 640 个位置；indexer 只是在块内把每 4 个位置压成一条存，压缩比 4，MLA 主缓存的压缩比是 1。一块多少个位置见[部署页的逻辑块一节](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)。连接器给每个组算「一块代表多少个位置」时，把组里各类缓存的压缩比依次读一遍，最后留下的是 indexer 的 4，于是把一块当成 $640 \times 4 = 2{,}560$ 个位置，再按这个数截取要传的块（以 2,000 个 token 的示意提示词为例）：
 
-```calc
-title: full 组要传几块（示意：提示词 2,000 个 token）
-P 交出的位置 = 2,000 − 1 = 1,999
-应传 = ⌈1,999 ÷ 640⌉ = 4 块
-实现算出 = ⌈1,999 ÷ 2,560⌉ = 1 块
-> 若走到截齐这一步，D 只读回第 1 块，后 3 块目的块没有写入
-```
+$$N_{\text{P}} = 2{,}000 - 1 = 1{,}999\text{ 个位置}$$
+
+| 口径（示意提示词 $2{,}000$ token） | 块数算式 | 结果与后果 |
+| --- | --- | --- |
+| 实际应传（每块 640 位置） | $\lceil 1{,}999 \div 640 \rceil$ | **4 块** |
+| V1 实现算出（误乘压缩比 4，每块 2,560 位置） | $\lceil 1{,}999 \div 2{,}560 \rceil$ | **1 块**（若走到截齐，D 只读回第 1 块，后 3 块目的块未写入） |
 
 D 端在同一个函数里先做一道检查：P 报来的块大小要能被 D 自己的算子块大小整除，然后才把两边的块号截成较短的一边。按钉住版本，P 报来的块大小是各缓存组里最小的那个（GLM 是 4）；这道检查会不会先报 AssertionError，取决于 D 的 worker 进程里块大小被改成了多少，只读源码定不下来，缺的是一次双机实际运行（见页末待核）。如果检查通过，D 就拿自己分到的 4 块和 P 报来的 1 块截齐，截齐这一步不报错；D 的调度器仍按「1,999 个位置已算好」往下走，后面那 3 块里的历史没有写进去，成了一种不报错的错误状态。提示词不超过 641 个 token 时，P 交出的位置不超过 640 个，两种算法都是 1 块，不受影响。
 
@@ -541,40 +549,36 @@ Score 管理器通过 `--ec-manager-config` 选择类名 `vllm_ascend.ec_manager
 
 上游 NIXL 的读回保护也在演变，下表只比较其拉取路径，和下方 Ascend Mooncake 表分别使用。`84030bbe` 是本站固定的上游 main 比较点，不据此认定它就是每个 Ascend main 镜像安装的上游版本。
 
-| NIXL 条件 | v0.23（0fc695fc） | v0.26（568afb3a） | main 比较点（84030bbe） | rc2 配套（ced6857a） |
+| NIXL 条件 | v0.23.0（0fc695fc） | v0.26.0rc 配套（568afb3a） | v0.30.0 配套（ced6857a） | main 比较点（84030bbe） |
 | --- | --- | --- | --- | --- |
 | D 返回跨轮块的到期时刻 | 未导出该字段 | 导出到期时刻 | 保留 | 保留 |
 | P 开始读回前检查寿命 | 没有这道到期保护 | 转换远端时钟后，预留 5 秒；即将到期则拒绝读回 | 保留 | 保留 |
-| 调度侧到 worker 的租约时钟 | 直接传到期时刻 | 同类路径 | 用剩余 TTL 换算到 worker 自己的时钟 | 同 main 比较点 |
-| 本表所说的连接器 | NIXL 拉取实现 | 拉取实现 | 拉取实现 | Pull 别名；不外推到 Push |
-| D 的输入与交接信息 | 命中数读取 D 的 prompt 长度；交接字典不携带替代 prompt 的 token 序列 | 保留；拉取调度移到 `pull_scheduler.py` | 同 v0.26 | 同 v0.26；新增拓扑字段不改变这一点 |
+| 调度侧到 worker 的租约时钟 | 直接传到期时刻 | 同类路径 | 用剩余 TTL 换算到 worker 自己的时钟 | 同左 |
+| 本表所说的连接器 | NIXL 拉取实现 | 拉取实现 | Pull 别名；不外推到 Push | 拉取实现 |
+| D 的输入与交接信息 | 命中数读取 D 的 prompt 长度；交接字典不携带替代 prompt 的 token 序列 | 保留；拉取调度移到 `pull_scheduler.py` | 同 v0.26；新增拓扑字段不改变这一点 | 同 v0.26 |
 
-跨轮到期字段名是 `remote_blocks_expiry_time`；main 比较点与 rc2 另传 `scheduler_clock`，据此把剩余 TTL 换算到 worker 自己的时钟。这里的 `NixlConnector` 在基线指拉取实现，在 rc2 是 `NixlPullConnector` 的别名，不把这些结论外推到 Push。
+跨轮到期字段名是 `remote_blocks_expiry_time`；`v0.30.0` 配套上游与历史 main 比较点另传 `scheduler_clock`，据此把剩余 TTL 换算到 worker 自己的时钟。这里的 `NixlConnector` 在基线指拉取实现，在 `v0.30.0` 配套上游是 `NixlPullConnector` 的别名，不把这些结论外推到 Push。
 
 较新的到期保护仍依赖代理传回该字段；缺失时沿原读取路径继续。拒绝临近到期的读回会进入传输失败处理，能否重算由失败策略和模型条件决定，不保证一律自动恢复。**寿命检查也不检查 token 内容**，所以不能替代上面关于聊天模板和推理历史的一致性条件。
 
-rc2 已注册 MooncakeD2RHConnectorV1；固定官方文档快照 921ccc52 进一步说明其两跳关系：先把 P 的设备状态拉进 D 的主机内存，首跳完成后 P 可放块，D 分到设备块后再搬入计算。它改变源块占用与排队关系，也增加主机容量和第二跳搬运，机制及硬件入口见 [Mooncake 的 D2RH](mooncake-connector.md#先落到-d-的主机内存d2rh-改了哪段等待)。不能把“远端状态已经到主机”当成 D 已能开始前向。
+`v0.30.0` 与 `main` 已注册 `MooncakeD2RHConnectorV1`；固定官方文档快照 `921ccc52` 进一步说明其两跳关系：先把 P 的设备状态拉进 D 的主机内存，首跳完成后 P 可放块，D 分到设备块后再搬入计算。它改变源块占用与排队关系，也增加主机容量和第二跳搬运，机制及硬件入口见 [Mooncake 的 D2RH](mooncake-connector.md#先落到-d-的主机内存d2rh-改了哪段等待)。不能把“远端状态已经到主机”当成 D 已能开始前向。
 
-**v0.30.0rc2 的 GLM-5.3-Flash PD 配方已明确区分硬件和 P/D 拓扑。** A3 示例为 P 的 DP2/TP8 与 D 的 DP16/TP1；A2 示例使用两台 P 和两台 D，分别 DP2/TP8 与 DP8/TP2，不同于本站两机混部。该 GLM 教程要求 Model Runner V1，PCP=DCP=1；实验性的 SFA CP 在 TP 组内切 query，不等于打开 PCP 或 DCP。
+**`v0.30.0` 系列的 GLM-5.3-Flash PD 配方已明确区分硬件和 P/D 拓扑。** A3 示例为 P 的 DP2/TP8 与 D 的 DP16/TP1；A2 示例使用两台 P 和两台 D，分别 DP2/TP8 与 DP8/TP2，不同于本站两机混部。该 GLM 教程要求 Model Runner V1，PCP=DCP=1；实验性的 SFA CP 在 TP 组内切 query，不等于打开 PCP 或 DCP。
 
-连接器实现层面，rc2 V2 不再沿用旧 main 的 PCP=1 强制条件。握手数据带 PP/PCP/DCP/TP 规模，按阶段与 rank 组织层名、组索引、块大小、形状、步长及地址；D 用这些远端信息和本地缓存规格一起决定读取 [C74][C75][C76]。这是协议能力的变化，不扩张上一段 GLM 配方的支持范围。
+连接器实现层面，`v0.30.0` 与 `main` 的 V2 不再沿用旧 main 的 PCP=1 强制条件。握手数据带 PP/PCP/DCP/TP 规模，按阶段与 rank 组织层名、组索引、块大小、形状、步长及地址；D 用这些远端信息和本地缓存规格一起决定读取 [C74][C75][C76]。`main (8d6180e2)` 进一步实现了 `MooncakePushConnector` 并让 `MooncakeConnectorV2` 按 `use_layerwise` 自动路由 Pull / Push，同时移除了注册表中的 `SimpleCPUOffloadConnector`。
 
-rc2 注册表保留 V1、V2、Hybrid、Layerwise、AscendStore、UCM，并将通用 OffloadingConnector 的 worker 边界适配到 NPU；抢占保存入口为 PreemptOffloadConnector。不同 connector 的角色、缓存复用与恢复协议仍各自成立，V2 不接受 kv_both 作为同时收发的捷径。模型教程要求的执行器和实际缓存布局应与两端配置一起固定。
+| 项 | v0.23.0 (2c59ff10) | v0.26.0rc (2ed6cbba) | v0.30.0 (c09d3e20) | main (8d6180e2) |
+| --- | --- | --- | --- | --- |
+| V1 主流程 | 按长度上限交棒、D 拉、完成信号放块 | 同 v0.23.0 | 主流程保留；另处理 D 入队前拒绝时释放 P 源块 [C78] | 延续 v0.30.0 |
+| 混合模型截断（$N>1$） | P 少算最后 1 个位置 | 相同 | 仍只截一次；状态组另支持 align 模式按提示词位置选最终状态块 [C77] | 延续 v0.30.0 |
+| full 组选块 | V1 按最后压缩比算跨度（无 GLM） | 同类 V1 代码（无 GLM） | V1 仍乘最后压缩比；V2 按组逻辑块与 DCP 规则裁剪 | 延续 v0.30.0 |
+| `kv_both` 配 V1 / V2 | V1 按字符串选线程（不报错也不工作） | 同 v0.23.0 | V1 仍按字符串选线程；V2 初始化拒绝 `kv_both` [C69][C79] | 延续 V1/V2 校验 |
+| 点对点注册入口 | V1、Hybrid、Layerwise | 另有 `SfaRemoteD2HConnector` | 同 v0.26.0rc + V2/Pull + `MooncakeD2RHConnectorV1` | 另增实现版 `MooncakePushConnector`，V2 按 `use_layerwise` 选 Pull/Push |
+| 池及 offload 入口 | AscendStore、UCM、LMCache、SimpleCPU、Recompute | 同 v0.23.0 | 去掉 LMCache/Recompute，提供 AscendStore、UCM、Offloading、SimpleCPU、Preempt | 移除注册表中的 `SimpleCPUOffloadConnector`，保留其余入口 |
+| GLM 支持矩阵与 `partial_prefills` | 无 GLM 行；文档明列 P 限制且平台重置非 1 值为 1 | 无 GLM 行；文档删限制，平台仍重置非 1 值为 1 | 实验性模型支持且 PD 勾选 [S80]；平台仍按非 1 值重置 [C81] | 延续实验性标注与平台非 1 值重置 |
+| 配套上游的加载失败默认策略 | `fail` | `fail` | `fail`；不代表混合模型允许改用重算 [C82] | `fail` |
 
-| 项 | v0.23（2c59ff10） | GLM 镜像（db701c1f） | v0.26（2ed6cbba） | main（baa023ad） | rc2（7d825229） |
-| --- | --- | --- | --- | --- | --- |
-| V1 主流程 | 按长度上限交棒、D 拉、完成信号放块 | 同 v0.23 | 同 v0.23 | 同 v0.23 | 主流程保留；另处理 D 入队前拒绝时释放 P 源块 [C78] |
-| 混合模型截断（N>1） | P 少算最后 1 个位置 | 相同 | 相同 | 相同 | 仍只截一次 [C77] |
-| full 组选块 | 按最后压缩比算跨度，但没有 GLM | 有 GLM，V1 会少传 | 同类 V1 代码，没有 GLM | V1 仍有此问题；V2 不再额外乘压缩比 | V1 仍乘最后压缩比；V2 按组逻辑块和对应 DCP 规则裁剪 |
-| 状态组的传输块 | 元数据保留状态块，worker 选当前槽 | 相同 | 相同 | V1 同类路径 | V1 另支持 align 模式按提示词位置选最终状态块，不能全套旧槽位规则 [C77] |
-| `kv_both` 配 V1 / V2 | V1 不报错也不工作 | 相同 | 相同 | V1 仍如此；V2 初始化拒绝 | V1 仍按字符串选线程；V2 要求单一角色 [C69][C79] |
-| 点对点注册入口 | V1、Hybrid、Layerwise | 同 v0.23 | 另有 SfaRemoteD2H | 另有 SfaRemoteD2H、V2/Pull | 同 main，另有 D2RH V1 [C68] |
-| 池及 offload 入口 | AscendStore、UCM、LMCache、SimpleCPU、Recompute | 同 v0.23 | 同 v0.23 | 去掉 LMCache/Recompute，另有 Offloading、Preempt | AscendStore、UCM、Offloading、SimpleCPU、Preempt；SimpleCPU 仍有导入条件 [C68] |
-| GLM 支持矩阵 | 无该行 | 无该行 | 无该行 | 实验性模型支持，PD 勾选 | 同类标注，具体配方仍有上述限制 [S80] |
-| partial-prefills 限制文字 | 明列 P 不支持非默认值 | 设计文档已删 | 已删 | 已删 | 文档未列；平台仍按非 1 值重置 [C81] |
-| 配套上游的加载失败默认策略 | fail | fail | fail | fail | fail；不代表混合模型允许改用重算 [C82] |
-
-GLM 镜像 `db701c1f` 是含模型代码的独立提交，不属于表中任何发布分支。表中 V2 的选块结论只说明不再额外乘压缩比；本页 N>1、PCP=DCP=1 的算例因此修正该处块数，不能据此断言 D 端恢复或整条链路已通过。
+GLM 绑定镜像 `db701c1f` 是含模型代码的独立提交（不属于上表发布分支），其 V1 主流程、状态组选块、`kv_both` 及点对点/池注册入口与 `v0.23.0` 一致，但已包含 GLM 从而暴露 V1 full 组少传块问题。表中 V2 的选块结论只说明不再额外乘压缩比；本页 $N>1$、PCP=DCP=1 的算例因此修正该处块数，不能据此断言 D 端恢复或整条链路已通过。
 
 - max_num_partial_prefills 那条限制从文档里删掉，并不表示放开了：四份 Ascend 快照的平台层都在发现该属性非 1 时才重置为 1，这和 PD 角色无关。正常 v0.23/v0.26 启动入口更早就拒绝非默认值；固定 main 的上游已删除该字段，平台用缺省 1 读取时不会再写入。入口先后、版本与完整参数参考见 [Scheduler](vllm-scheduler.md#怎么开)。
 - LMCache 从 main 的注册表里去掉了：按 v0.23 或 v0.26 配 LMCache 的部署升到 main，会报连接器不存在。
@@ -601,8 +605,9 @@ GLM 镜像 `db701c1f` 是含模型代码的独立提交，不属于表中任何�
 | 代理改长度、转交参数 | `vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L788-L806`、`#L925-L927` |
 | 屏蔽停止 token | `vllm@0fc695fc:vllm/v1/sample/logits_processor/builtin.py#L191-L238`；上游 `Sampler.forward` 先调它（`vllm/v1/sample/sampler.py#L96-L100`） |
 | Ascend 采样也经过它 | `vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2585-L2598`（`_sample` 调 `self.sampler`）；`vllm_ascend/sample/sampler.py#L46-L125`（`AscendSampler` 不重写 `forward`） |
-| 连接器注册 | `vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L87` |
-| EPD：只编码就返回、编码缓存、只跑编码器的模式 | `vllm_ascend/worker/model_runner_v1.py#L2018-L2025`、`vllm/distributed/ec_transfer/ec_connector/example_connector.py`、`vllm/model_executor/models/interfaces.py#L216-L246` |
+| 连接器注册 | `vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L87`；`v0.30.0 (c09d3e20)` 见 `#L21-L135`；`main (8d6180e2)` 见 `#L57-L162` |
+| `v0.30.0` / `main` V1 选块、V2 角色校验与 `partial_prefills` | `vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1788-L1905`、`mooncake/base_scheduler.py#L40-L85`、`platform.py#L778-L785`；`vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L260-L310`、`mooncake/base_scheduler.py#L364-L385`、`platform.py#L943-L949` |
+| EPD：只编码就返回、编码缓存、只跑编码器的模式 | `vllm_ascend/worker/model_runner_v1.py#L2018-L2025`、`vllm/distributed/ec_transfer/ec_connector/example_connector.py`、`vllm/model_executor/models/interfaces.py#L216-L246`（三池完整架构见 [EPD 分离](epd-disaggregation.md)） |
 
 同一个连接器类在两个进程里各造一份：调度器进程里是 `MooncakeConnectorScheduler`，worker 进程里是 `MooncakeConnectorWorker`，上游的连接器接口本来就分成调度侧和 worker 侧两组方法。
 

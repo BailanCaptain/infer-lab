@@ -99,7 +99,19 @@ sources:
   - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L114-L136'
   - 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L727-L761'
   - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L1541-L1562'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1650-L1712'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/v2/pcp_manager.py#L225-L250'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L251-L275'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/utils.py#L320-L329'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/indexer_kpool.py#L491-L505'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L2105-L2179'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/pcp_manager.py#L225-L248'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/attention/indexer_kpool.py#L782-L800'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: attention-qkv
@@ -117,7 +129,7 @@ relations:
       上下文并行的数据交换和结果合并方式取决于注意力后端：decode 可合并局部输出与 LSE，MLA 的分块 prefill 则收集
       KV；理解这些分路需要先理解后端对状态布局和执行方式的约束。
 contradicts: []
-updated: '2026-11-03'
+updated: '2026-11-19'
 origin: direct
 ---
 
@@ -147,16 +159,14 @@ attention 中，每个位置先得到三个向量：Q（query，当前查询）�
 
 ## prefill 的位置怎么分才公平？
 
-[因果掩码](attention-qkv.md#因果掩码限定每个位置能访问的历史)让每个位置的工作量都不一样：位置 0 只有 1 个可见的键，位置 7 有 8 个。所以按前后对半分，两张卡的活差得很远：
+[因果掩码](attention-qkv.md#因果掩码限定每个位置能访问的历史)让每个位置的工作量都不一样：位置 0 只有 1 个可见的键，位置 7 有 8 个。总合法查询—键组合为 $\sum_{i=1}^{8} i = 36$ 对，所以按前后对半分，两张卡的活差得很远，而头尾配对刚好均分：
 
-```calc
-title: 长度 8 的因果序列，两种切法各分到多少
-全部合法的查询–键组合 = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 = 36 对
-对半切 · 卡 0（位置 0–3） = 1 + 2 + 3 + 4 = 10 对
-对半切 · 卡 1（位置 4–7） = 5 + 6 + 7 + 8 = 26 对
-头尾配对 · 卡 0（位置 0、1、6、7） = 1 + 2 + 7 + 8 = 18 对
-头尾配对 · 卡 1（位置 2、3、4、5） = 3 + 4 + 5 + 6 = 18 对
-```
+| 切分方式（长度 8 的因果序列） | 分到位置与合法查询–键组合算式 | 每卡合法组合数 |
+| --- | --- | --- |
+| 对半切 · 卡 0 | 位置 0–3：$1 + 2 + 3 + 4$ | **10 对** |
+| 对半切 · 卡 1 | 位置 4–7：$5 + 6 + 7 + 8$ | **26 对** |
+| **头尾配对 · 卡 0** | 位置 0、1、6、7：$1 + 2 + 7 + 8$ | **18 对** |
+| **头尾配对 · 卡 1** | 位置 2、3、4、5：$3 + 4 + 5 + 6$ | **18 对** |
 
 下面的 PCP 图先用等权算例看位置分工：每个能读到的位置都占 1 份。位置 7 读取 8 行，第 0 通道为 1、3、5、7、9、11、13、15，加起来是 64，再除以 8 份，得到平均值 8。权重不等时为什么也要除以权重总和，放在 Ring 之前单独讲；Ring、DCP 图使用那里两块权重不等的算例。
 
@@ -211,20 +221,15 @@ file: context-parallel-merge
 
 **A 的四行各带 0.5，合计权重 2；B 的四行各带 1.5，合计权重 6。** 后面 3D 的“权重总份额”指这个权重和；“份”不是 token 数或通道数。
 
-可以先把各行 V 乘未归一化权重，再把它们加起来，最后统一除以总权重。这和先算每行占比再乘 V 完全等价，因为每一项的分母相同。图里的“内容总和”就是这个**还没除以总权重的加权和**：它是中间量，不是要交出去的上下文。
+可以先把各行 V 乘未归一化权重，再把它们加起来，最后统一除以总权重。这和先算每行占比再乘 V 完全等价，因为每一项的分母相同。图里的“内容总和”就是这个**还没除以总权重的加权和**：它是中间量，不是要交出去的上下文。下式以 $U$ 记加权内容之和、$Z$ 记未归一化权重之和、$O$ 记除法之后的输出（图中用中文表示同一组量，数为示意）：
 
-```calc
-title: 从两块历史得到一份上下文：先加权，再除以全部权重（示意）
-A 的权重和 Z₀ = 4 × 0.5 = 2
-A 的加权内容 U₀ = 0.5 × (4 + 8 + 12 + 16) = 20
-A 单独读完的局部输出 O₀ = 20 ÷ 2 = 10
-B 的权重和 Z₁ = 4 × 1.5 = 6
-B 的加权内容 U₁ = 1.5 × (24 + 28 + 32 + 36) = 180
-B 单独读完的局部输出 O₁ = 180 ÷ 6 = 30
-完整输出 O = (20 + 180) ÷ (2 + 6) = 25
-按两块占比混合 O = ¼ × 10 + ¾ × 30 = 25
-> U 记加权内容之和，Z 记未归一化权重之和，O 记除法之后的输出；图中用中文表示同一组量
-```
+$$O = \frac{U_0 + U_1}{Z_0 + Z_1} = \frac{20 + 180}{2 + 6} = 25 = \frac{1}{4}\times 10 + \frac{3}{4}\times 30$$
+
+| 计算阶段（从两块历史得到一份上下文，示意） | 算式 | 结果 |
+| --- | --- | --- |
+| 历史块 A（位置 0、1、6、7） | $Z_0 = 4 \times 0.5 = 2$；$U_0 = 0.5 \times (4 + 8 + 12 + 16) = 20$ | 局部输出 $O_0 = 20 \div 2 =$ **10** |
+| 历史块 B（位置 2、3、4、5） | $Z_1 = 4 \times 1.5 = 6$；$U_1 = 1.5 \times (24 + 28 + 32 + 36) = 180$ | 局部输出 $O_1 = 180 \div 6 =$ **30** |
+| 两块合并（按全局权重总和或两块占比） | $(20 + 180) \div (2 + 6) = \tfrac{1}{4}\times 10 + \tfrac{3}{4}\times 30$ | 完整输出 $O =$ **25** |
 
 **为什么不能直接交出 200？** 它包含了 8 份权重的内容，除以 8 才得到按比例混合的一份。一个检验办法是把所有未归一化权重同时乘 2：两块的相对重要程度仍是 1∶3，加权内容却从 200 变成 400，总权重从 8 变成 16；400÷16 仍是 25。省掉除法，输出会仅因权重的共同尺度改变而翻倍。这里说的是把取指数后的权重一起缩放，不是把 QK 评分乘 2。
 
@@ -354,16 +359,14 @@ file: context-parallel
 
 不过 DCP 想消掉的那种重复，GLM 身上确实存在：11 层稀疏 MLA 加上 MTP 层，KV 只有一个头，TP8 的 8 张卡各存一份**完全相同**的历史（见 [MLA](mla.md)、[TP 页的这一节](tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)）。每个 token 每张卡要存 13,056 B，也就是 12 层各 1024 B 的主 KV 加 64 B 的索引器；一条满长 133,120 token 的请求就是 1.619 GiB，每张卡都一样（推导见 [KV cache](kv-cache.md)）。
 
-**DCP 能省到什么量级？** 平台层认得这类稀疏模型，也定好了布局：主 KV 按位置分片，负责挑历史位置的那套索引每张卡各留一整份（它要看完整的序列，才能挑出和不开 DCP 时同样的位置），并且要求 DCP 等于 TP。但这套布局是给另一族稀疏 attention 后端写的，GLM 用的 kpool 索引器在固定版本里没有这份代码（见下面第二道门）。所以下面只是「照那套布局做能省多少」的量级示意，不是这套部署能开出来的结果：
+**DCP 能省到什么量级？** 平台层认得这类稀疏模型，也定好了布局：主 KV 按位置分片，负责挑历史位置的那套索引每张卡各留一整份（它要看完整的序列，才能挑出和不开 DCP 时同样的位置），并且要求 DCP 等于 TP。但这套布局是给另一族稀疏 attention 后端写的，GLM 用的 kpool 索引器在固定版本里没有这份代码（见下面第二道门）。所以下表只是「照那套布局把 DCP 开到 8 能省多少」的量级示意（只算随长度增长的主 KV 和索引，不含每条请求固定大小的状态和临时缓冲，本模型没有这份实现也没有实测）：
 
-```calc
-title: 照「主 KV 分片、索引复制」的布局把 DCP 开到 8 能省多少（量级示意：本模型没有这份实现，也没有实测）
-主 KV 每 token 每层（分给 8 张卡） = 1024 B ÷ 8 = 128 B
-索引每 token 每层（每张卡各留一份） = 64 B
-12 层每 token 每卡 = 12 × (128 + 64) = 2,304 B
-满长请求 133,120 token = 133,120 × 2,304 B = 306,708,480 B ≈ 292.5 MiB（每卡）
-> 这条账只算随长度增长的主 KV 和索引，不含每条请求固定大小的状态和临时缓冲——它们未必按位置切
-```
+| 核算项（DCP=8，主 KV 分片、索引复制量级示意） | 算式 | 每卡用量 |
+| --- | --- | --- |
+| 主 KV 每 token 每层（分给 8 张卡） | $1024\text{ B} \div 8$ | **128 B** |
+| 索引每 token 每层（每卡各留一份） | 不随 DCP 切分 | **64 B** |
+| 12 层（11 主干 + 1 MTP）每 token 每卡 | $12 \times (128 + 64)$ | **2,304 B** |
+| 满长请求 133,120 token 每卡 | $133{,}120 \times 2{,}304\text{ B} = 306{,}708{,}480\text{ B}$ | **$\approx 292.5\text{ MiB}$** |
 
 在固定版本上真要开 CP，会先撞上三道门：
 
@@ -426,16 +429,17 @@ DCP 的上限按 attention 形式分：MLA 类要求 tp ≥ dcp 且 tp % dcp == 
 
 以上分别核对 rc2 的 platform.py、V2 pcp_manager.py、block_table.py、common_cp.py 和 indexer_kpool.py。旧版与固定 GLM 镜像的行为继续见下表；rc2 不替换它们的来源与实测条件。
 
-| 项 | v0.23 维护分支 | 固定版本（含 GLM 代码） | v0.26 | main |
-|---|---|---|---|---|
-| 开关函数 | `enable_cp()`，一个管两件事 [C18] | 同 v0.23 | 只剩 `enable_dcp()` | `enable_dcp()` 与 `enable_pcp()` 分开 [C20] |
-| PCP 什么时候被拦 | dp > 1 时才拦 | 同 v0.23 | 不在 V2 模型执行器上就抛错，信息写死「not supported by vLLM Ascend」[C19] | 同一条判定还在 [C21] |
-| KDA prefill 遇上 PCP | 分支里没有 GLM 代码 | 抛 NotImplementedError [C8] | 同左 | 这条检查已经不在，PCP 改由 kpool 索引和平台层拦下 |
-| 稀疏路径的 DCP 怎么判定 | 稀疏、DCP > 1 且 PCP = 1 [C50] | 同 v0.23 [C9] | 去掉 PCP = 1 这一条，只看「稀疏且 DCP > 1」[C26] | 同 v0.26 [C28] |
-| 稀疏路径的 DCP 能取哪些值 | dcp == tp，并要求粒度 = 块大小 [C51] | 同 v0.23 | 同左；走复制索引时不再强制粒度 = 块大小 [C27] | dcp 可取 pcp，或 tp × pcp [C29] |
-| GLM 的 kpool 索引器 | 无 | 专用后端固定选普通实现，没有接入 SFA 的 PCP/DCP 后端选择；独立 DSA-CP 功能则被显式拒绝 | 分支里没有 GLM 代码 | 直接拒绝 PCP 与 DCP |
+按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；本文例外 B 固定 GLM 镜像 `db701c1f` 的旧路径与上表 `v0.30.0rc2` 说明一并保留对照（GLM `db701c1f` 中 KDA prefill 遇 PCP 抛 `NotImplementedError` [C8]，KPool 专用后端固定选普通实现、未接入 SFA 的 CP 分派且独立 `enable_dsa_cp` 被拒，稀疏 DCP 判定见 [C9]）。
 
-表中的 main 指 sources 钉住的提交，不代表持续变化的分支最新状态。跨版本配置需要同时核对执行器、模型和 attention 后端；满足一条平台条件，不等于整个组合已经受支持。
+| 核对项 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+|---|---|---|---|---|
+| 开关函数 | `enable_cp()` 统一判定 [C18] | 只剩 `enable_dcp()` | `enable_dcp()` 与 `enable_pcp()` 分开（`attention/utils.py#L320-L329`）[C20] | 移除旧 `attention/utils.py` 封装，新增 PCP 权重切分开关（`enable_pcp_o_proj_weight_sharding` / `enable_pcp_embedding_lmhead_weight_sharding`） |
+| PCP 执行器门槛与投机/图限制 | 仅在 `dp > 1` 时拦 PCP | 非 V2 模型执行器直接报 `ValueError` [C19] | **PCP 强制要求 MRV2**（`platform.py#L1652-L1657`）；`v2/pcp_manager.py#L225-L250` 拒 encoder-decoder、LoRA 与 `FULL` 图，投机限 `mtp / eagle3 / dspark` [C21] | PCP 仍要求 MRV2（`platform.py#L2107-L2112`）；`v2/pcp_manager.py#L225-L248` 投机白名单扩至 `mtp / eagle3 / dspark / dflash` |
+| 稀疏路径 DCP 判定与取值 | 稀疏、DCP > 1 且 PCP = 1，要求 `dcp == tp` 且粒度 = 块大小 [C50][C51] | 去掉 `PCP = 1` 条件 [C26]；走复制索引时不再强制粒度 = 块大小 [C27] | 稀疏复制索引允许 `dcp ∈ {pcp, tp × pcp}`（`platform.py#L1674-L1685`）；GQA/MQA 同时开 PCP+DCP 要求 `pcp == dcp`（`platform.py#L1688-L1702`）[C28][C29] | 延续上述取值；**非 MLA/SFA 的 GQA 模型 DCP 进入弃用日落告警**（RFC #21305，`platform.py#L2163-L2173`） |
+| 缓存交错虚拟块公式 | `block_size × PCP × DCP` | 过渡 | `physical_block_size × dcp_world_size`，不再重复乘 PCP（`worker/block_table.py#L268-L275`） | 同 `v0.30.0` |
+| GLM KPool 索引器与 CP | 分支无 GLM 代码 | 分支无 GLM 代码 | `indexer_kpool.py#L498-L499` 明确拒绝 `PCP > 1` 或 `DCP > 1` | **KPool 已新增 PCP 支持**（`indexer_kpool.py#L885-L899`），`__init__` 仅拒绝 `DCP > 1`（`indexer_kpool.py#L789-L790`） |
+
+表中的 `main` 指 `sources` 钉住的提交 `8d6180e2`，不代表持续变化的分支最新状态。跨版本配置需要同时核对执行器、模型和 attention 后端；满足一条平台条件，不等于整个组合已经受支持。
 
 固定版本的 `enable_dsa_cp` 是独立的 `additional_config` 开关，并要求 SP；它不是由 PCP/DCP 的大小自动开启。旧 KPool 构造函数对该功能抛错，不能把这条错误当成普通 DCP 参数的直接校验。rc2 的 GLM 实验性 DSA-CP 是后续另一条实现路径，条件见上表。
 

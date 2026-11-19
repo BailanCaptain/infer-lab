@@ -103,8 +103,7 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     expect(fullHtml).toContain('data-testid="doctor-rewrites-section"');
     expect(fullHtml).toContain('data-testid="doctor-insights-section"');
     expect(fullHtml).toContain('data-testid="tool-deeplink-pd-disaggregation"');
-    expect(fullHtml).toContain('data-legacy-baseline="true"');
-    expect(fullHtml).toContain(LEGACY_BASELINE_BADGE_TEXT);
+    expect(fullHtml).toContain('data-legacy-baseline="false"');
   });
 
   it("renders troubleshoot-workbench in logs, timeline, and full modes with physical Panel A / Panel B isolation outside RouterProvider", () => {
@@ -186,8 +185,8 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     expect(fullHtml).toContain('data-testid="tool-deeplink-ai-core"');
   });
 
-  it("enforces honest legacy-baseline badge on un-upgraded pages and omits it on v0.30.0 Core-26 / Wave-4B pages", () => {
-    for (const legacyId of ["hccl-buffer", "pd-disaggregation", "mooncake-connector", "npugraph-ex"]) {
+  it("enforces honest legacy-baseline badge on archive snapshots and omits it on all Stage-2 verified pages", () => {
+    for (const legacyId of ["v030rc2-baseline", "glm-5-3-flash-baseline"]) {
       const html = renderToStaticMarkup(createElement(ToolDeepLinkById, { pageId: legacyId }));
       expect(html).toContain(`data-testid="tool-deeplink-${legacyId}"`);
       expect(html).toContain('data-legacy-baseline="true"');
@@ -205,6 +204,11 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
       "linear-attention",
       "kv-cache-spec",
       "engram-conditional-memory",
+      "hccl-buffer",
+      "pd-disaggregation",
+      "mooncake-connector",
+      "npugraph-ex",
+      "rfork",
     ]) {
       const html = renderToStaticMarkup(createElement(ToolDeepLinkById, { pageId: upgradedId }));
       expect(html).toContain(`data-testid="tool-deeplink-${upgradedId}"`);

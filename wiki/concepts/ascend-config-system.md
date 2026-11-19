@@ -76,7 +76,21 @@ sources:
   - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_eplb.py#L867-L874'
   - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L659'
   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1402-L1440'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L562-L635'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L745-L756'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1795-L1951'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/envs.py#L38-L90'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L478-L525'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L652-L737'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L845-L865'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1909-L2078'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/envs.py#L51-L95'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L606-L685'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: engine-processes
@@ -126,10 +140,10 @@ file: config-inputs
 | 入口 | 谁解释里面的名字 | 名字写错会怎样 |
 | --- | --- | --- |
 | 命令行通用参数 | 上游 vLLM 的解析器 | 参数不存在，命令直接失败 |
-| JSON 容器里的键 | vllm-ascend；少数键归上游 | 旧版顶层和多数子配置忽略未知键，EPLB 等例外会报错；main/rc2 通常严格拒收 |
+| JSON 容器里的键 | vllm-ascend；少数键归上游 | 旧版（v0.23 / v0.26 rc）顶层和多数子配置忽略未知键，EPLB 等例外会报错；v0.30.0 与 main 迁至 `extra="forbid"` 严格拒收（安装 `vllm_omni` 时未知顶层键先告警后过滤） |
 | 环境变量 | 用到它的代码，或作为兼容输入喂进配置 | 名字拼错通常没有统一提示；表外也可能有直接读取，必须查消费者 |
 
-三个入口并存还有两笔隐性代价。第一，上游把非空 JSON 的完整内容纳入配置 hash；更改内容会影响缓存标识。默认编译缓存目录由配置、环境、代码和编译器等 hash 共同生成，所以不能只改一个“看起来不影响模型”的键就保证命中旧缓存；这也不等于删除已有缓存，是否编译还取决于编译模式、缓存开关和目标缓存是否已有产物。第二，同一件事有两处能写，就必须有优先级规则。旧版在使用已设置的环境变量回退时打印“下个版本移除”的迁移提示；实际迁移行为仍要以目标版本代码为准。
+三个入口并存还有两笔隐性代价。第一，上游把非空 JSON 的完整内容纳入配置 hash；更改内容会影响缓存标识。默认编译缓存目录由配置、环境、代码和编译器等 hash 共同生成，所以不能只改一个“看起来不影响模型”的键就保证命中旧缓存；这也不等于删除已有缓存，是否编译还取决于编译模式、缓存开关和目标缓存是否已有产物。第二，同一件事有两处能写，就必须有优先级规则。旧版在使用已设置的环境变量回退时打印“下个版本移除”的迁移提示；到了 `v0.30.0`，`AscendConfig` 已完成字段收口，`VLLM_ASCEND_ENABLE_NZ`、`VLLM_ASCEND_ENABLE_MLAPO`、`VLLM_ASCEND_ENABLE_FUSED_MC2`、`MSMONITOR_USE_DAEMON` 等旧兼容环境变量均已从 `envs.py` 退役并统一收归 `additional_config` 对应字段，仅保留 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 的环境变量兜底读取；实际迁移行为仍要以目标版本代码为准。
 
 ## JSON 进来以后被拆成什么
 
@@ -173,7 +187,7 @@ file: config-inputs
 
 **第一道在建配置的时候。** 组合不合法当场报错，有些值会按别处的预算被裁剪：启用 profiling 分块要求 pipeline parallel 大于 1，即把层分到多个阶段接力，阶段可以在同机或跨机；它与均衡调度不能同时开；启用后最小块若大于每步 token 预算，会被裁到预算值并打一条日志。即使没有启用分块，所传 `min_chunk`、`smooth_factor`、`max_fit_chunk` 仍要通过子配置的范围检查。fine-grained TP 里只要注意力输出投影（`oproj_tensor_parallel_size`）或词嵌入（`embedding_tensor_parallel_size`）的规模大于 0，固定旧 GLM 实现就要求 `recompute_scheduler_enable=true`，以满足这条路径的 token 对齐和通信前提；这不是对所有版本、所有对齐机制的通用断言。LM head 那个字段（`lmhead_tensor_parallel_size`）不在这条约束里。
 
-**第二道在平台准备阶段。** 平台先跑四个校验，再建配置，建完还会按角色改写：在 PD 分离（prefill 和 decode 拆成两组实例）的 producer 一侧，重算调度开关会被忽略并重置为关，只打一条警告；既不是 producer 也不是 consumer 却开了它，直接报错。校验族完整清单见 [NPU 平台](npu-platform.md#校验与改写怎样影响执行)。下图保留固定旧 GLM 的逐键解析；rc2 严格校验与拒收旧键的规则见[版本差异](#版本差异)。
+**第二道在平台准备阶段。** 平台先跑前置校验，再建配置，建完还会按角色改写：在 PD 分离（prefill 和 decode 拆成两组实例）的 producer 一侧，重算调度开关会被忽略并重置为关，只打一条警告；既不是 producer 也不是 consumer 却开了它，直接报错。校验族完整清单见 [NPU 平台](npu-platform.md#校验与改写怎样影响执行)。下图保留固定旧 GLM 的逐键解析；`v0.30.0` 与 `main` 下的 `extra="forbid"` 严格校验、环境变量退役与 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 兜底规则见[版本差异](#版本差异)。
 
 ```wiki-diagram
 file: config-flow
@@ -275,26 +289,20 @@ file: config-flow
 
 ### 版本差异
 
-固定 rc2 的输入 schema 已删除 `enable_reduce_sample`，而固定 main 的 AscendConfig 仍声明这个字段；rc2 普通严格配置下旧键会被拒收。MRV2 的 `enable_batch_sharded_sampling` 是上游 `parallel_config` 入口，并与非零细粒度 LMHead TP 互斥，不是旧键改名后的同一算法。rc2 的 Ascend warmup 两项默认仍 false；STAIR 的默认策略及 HIXL/Gloo 回退见 [EPLB 版本差异](eplb.md#版本差异)。
+**`v0.30.0`（`c09d3e20`）已完成 `AscendConfig` 字段收口与严格校验，并在 `main`（`8d6180e2`）进一步扩展 `runtime_config` 与 `quantized_all_reduce_config`：**
+- **`extra="forbid"` 严格解析与 Omni 兼容例外**：`v0.30.0` 与 `main` 统一采用 Pydantic dataclass（`ConfigDict(extra="forbid")`），构造期即拒绝未知键与非法类型；内部派生键与调度兼容旧键由 `init_ascend_config` 工厂提前消费或剔除；只有可发现 `vllm_omni` 时，未知顶层键才告警后从 `AscendConfig` 输入过滤（不代表未知子配置一并放行）。构造期类型/范围检查之后，再顺序执行 `derive_and_validate`、RL `apply` 与细粒度 TP / Xlite 等前置校验，最后才发布进程内单例；失败不覆盖旧缓存，但派生过程可能已经修改传入的总配置，不是整个初始化事务回滚。
+- **退役环境变量与 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 兜底**：`v0.30.0` 与 `main` 的 `envs.py` 均已移除 `VLLM_ASCEND_ENABLE_NZ`、`VLLM_ASCEND_ENABLE_MLAPO`、`VLLM_ASCEND_ENABLE_FUSED_MC2`、`MSMONITOR_USE_DAEMON`、`VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE`、`VLLM_ASCEND_BALANCE_SCHEDULING`、`VLLM_ASCEND_FLASHCOMM2_PARALLEL_SIZE`、`VLLM_ASCEND_FUSION_OP_TRANSPOSE_KV_CACHE_BY_BLOCK` 等旧兼容变量，对应开关收归 `additional_config` 的 `weight_nz_mode`、`enable_mlapo`、`enable_fused_mc2`、`msmonitor_use_daemon` 等字段。`AscendConfig.derive_and_validate` 仍保留对 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 的直读兜底（去除空白并转小写后仅 `1` / `true` 为真），且与 JSON `enable_flashcomm1` 做逻辑或（`or`），因此 JSON 写 `false` 不会盖掉环境里的开启值，且后续还与 DSA-CP / SP MoE / 稠密 SP 判定联动。
+- **历史 `v0.30.0rc2` / 旧字段归档说明**：`v0.30.0` 与 `main` 均已从输入 schema 移除 `enable_reduce_sample`（旧固定 `baa023ad` 曾短暂保留声明），MRV2 的 `enable_batch_sharded_sampling` 属于上游 `parallel_config` 入口且与非零细粒度 LMHead TP 互斥；`ascend_warmup_config` 两项默认仍为 `false`；STAIR 默认策略及 HIXL/Gloo 回退见 [EPLB 版本差异](eplb.md#版本差异)。正文配置流程图与 GLM 双机算例按固定旧镜像 `db701c1f`（与 `2c59ff10` 相比，后者在采样归约上增加了实验性警告以及与细粒度 LM head TP / PD producer 互斥拒绝，环境变量表与四个前置平台校验相同）绘制，不能把逐键静默忽略套到 `v0.30.0` / `main`。
 
-本文配置流程图按固定旧 GLM 基线绘制，逐键读取与未知键静默的路径不能套到 rc2。FlashComm1 的有效消费逻辑在固定 main 已存在，rc2 移除的是工厂弃用告警，并非恢复曾无效的键。
-
-**v0.30.0rc2 延续严格配置，并保留顶层 Omni 兼容例外。** AscendConfig 为 extra=forbid，兼容/派生键由工厂先消费或过滤；只有可发现 vllm_omni 时，未知顶层键才告警后从 Ascend 输入剔除，这不代表未知子配置也全部放行。构造的类型/范围检查之后才做跨配置派生、RL apply 和细粒度 TP 校验，再发布进程内单例；失败不会用新实例替换旧缓存，但派生过程可能已经改动传入的总配置，不是整个初始化事务回滚。FlashComm1 在 rc2 仍读取 JSON 或环境 1/true，DSA-CP 可自动开启，旧 main 的弃用警告不能概括 rc2。
-
-按固定快照核对：v0.23 列是维护分支 2c59ff10，v0.26 rc 列是 2ed6cbba，main 列是 baa023ad；旧 GLM 示例单独使用 db701c1f。db701c1f 与 2c59ff10 的 `ascend_config.py` 差异集中在采样归约：2c59ff10 增加实验性警告，以及与细粒度 LM head TP 同开、或在 PD producer 上开启时的两条拒绝条件。它们的环境变量表与本页所列四个前置平台校验相同；其他模型与部署能力仍按各自版本判断。
-
-| 项 | v0.23 | v0.26 rc | main | 意味着什么 |
+| 核对项 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
 | --- | --- | --- | --- | --- |
-| 解析方式 | 逐键 `.get()` + 手写校验 | 一样是逐键 `.get()` | 迁到 pydantic dataclass（`extra="forbid"`） | 照 main 的严格校验去两个发布分支上找会扑空 |
-| 未识别的键 | 顶层与多数子配置静默忽略，`eplb_config` 那一组报错 | 同左 | 通常由严格配置校验报错；若能发现 `vllm_omni`，未知顶层键会先警告并从 AscendConfig 输入过滤 | main 的拼写错误通常会阻止启动，但 Omni 共用配置的兼容分支是例外，不能概括成一律报错 |
-| 调度相关键的层级 | 只有顶层 | 推荐嵌在 `scheduler_config` 下；顶层仍认但打 deprecated 警告，两处都写以嵌套为准 | 仍有 `scheduler_config` 这一层 | 按 v0.23 把这些键写在顶层，在 v0.26 rc 上会看到弃用警告 |
-| 子配置构成 | 八组，含权重预取与 profiling 分块 | 权重预取已删，profiling 分块挪进 `scheduler_config`，新增批作业调度与短请求优先 | 顶层声明 11 组，含 scheduler、dynamic_spec、RL、稀疏 KV 卸载与 KVPP；profiling 归入 scheduler | 顶层组数不等于所有嵌套配置数；按 v0.23 配权重预取，在 v0.26 rc 上不报错也不生效 |
-| 环境变量兼容读取 | 九对兼容映射，JSON 键优先 | 顶层 6 个字段加 `scheduler_config` 里的均衡调度 | 通用 `_get_config_value` 已移除；FlashComm1 仍兼容旧 JSON 键与环境变量，并发出弃用警告 | main 的 FlashComm1 将 JSON 值与环境开启值做逻辑或，JSON `false` 不会覆盖环境开启值；其他开关需分别核对 |
-| `env_variables` 条目 | 21 条，9 条带昇腾前缀 | 20 条，8 条带前缀 | 14 条，3 条带前缀 | 这里只数读取表；直接 `os.getenv` 的名字不在此计数内，不能据此推断全部环境入口已移除 |
-| 建配置前的平台校验 | 四个，含层切分配置校验 | 两个，层切分那个键已删 | 三个：一个类方法（索引器与 pipeline parallel）加两个模块级函数（投机 + DCP、并行），见 [NPU 平台的版本差异](npu-platform.md#版本差异) | 「配了会被拦」还是「压根不存在」，取决于版本 |
-| 进程内缓存 | 模块变量 + 刷新标记 + 绑定同一个总配置 | 同左 | 仍是模块变量，另用一个变量记住绑定的总配置 | 三个版本都是每进程一份，不是跨进程单例 |
-
-main 的 FlashComm1 环境值去除空白并转为小写后，只有 `1` 或 `true` 被视为开启；推导结果还与 DSA-CP 配置合并，后续仍检查 SP MoE 条件，不能仅凭该兼容入口认定执行路径已启用。[C32] Omni 例外只说明未知顶层键被过滤，不代表所有子配置也忽略未知键。[C33]
+| 解析与未知键策略 | 逐键 `.get()` + 手写校验；顶层与多数子配置静默忽略，`eplb_config` 报错 | 同 `v0.23.0` | Pydantic dataclass（`ConfigDict(extra="forbid")`）严格拒收；检测到 `vllm_omni` 时未知顶层键先告警后过滤 | 延续 `extra="forbid"` 与 `vllm_omni` 顶层过滤例外 |
+| 调度相关键层级 | 仅顶层键 | 推荐嵌在 `scheduler_config`；顶层仍认但打 deprecated 警告，两处都写以嵌套为准 | 工厂提前剥离 4 个顶层旧调度键并交给 `scheduler_config` 构造 | 同 `v0.30.0` |
+| 子配置构成 | 8 组（含权重预取与独立 profiling 分块） | 删除权重预取；profiling 分块迁入 `scheduler_config`，新增批作业调度与短请求优先 | 12 组：含 `ascend_compilation` / `fusion` / `warmup`、`eplb`、`rejection_sampler`、`rl`、`xlite_graph`、`finegrained_tp`、`scheduler`、`dynamic_spec`、`sparse_kv_offload`、`kvpp` | 13 组：移除 `dynamic_spec_config`，新增 `runtime_config`（含热更新引导）与 `quantized_all_reduce_config` |
+| 环境变量兼容映射 | 9 对兼容映射，`_get_config_value` 按 JSON 键优先 | 顶层 6 字段 + `scheduler_config` 均衡调度 | 退役 `VLLM_ASCEND_ENABLE_NZ/MLAPO/FUSED_MC2/MSMONITOR_USE_DAEMON` 等；仅 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 在 `derive_and_validate` 保留逻辑或兜底 | 延续退役收口与 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 逻辑或兜底（并新增 Qwen3.5 稠密 SP 联动） |
+| `envs.py` `env_variables` 条目 | 21 条（9 条带 `VLLM_ASCEND_` 前缀） | 20 条（8 条带前缀） | 14 条（3 条带前缀：`ENABLE_BATCH_MEMCPY`、`KVPOOL_RANGE_DEBUG`、`ROPE_UB_SIZE_KB`） | 12 条（1 条带前缀：`VLLM_ASCEND_ENABLE_BATCH_MEMCPY`） |
+| 建配置前平台校验 | 4 个前置校验（含已删除的 `layer_sharding`） | 2 个前置校验（已删 `layer_sharding`） | 7 个前置校验（runner、indexer-PP、routing replay、PCP/DCP、draft DCP、parallel、engram）+ 量化/FP8 能力检查与 `_fix_incompatible_config` | 同类前置校验链，且入口首行调用 `apply_v2_model_runner_config_patch()` 固定 MRV2 |
+| 进程内缓存 | 模块变量 `_ASCEND_CONFIG` + `_INIT_VLLM_CONFIG` + `refresh` 标记 | 同 `v0.23.0` | 校验完整后原子发布 `_ASCEND_CONFIG` 并 `clear_enable_sp()`；失败保留旧单例 | 同 `v0.30.0`（额外校验 `quantized_all_reduce` 与 `xlite_graph` 前置条件） |
 
 ### 源码位置
 
@@ -319,12 +327,11 @@ main 的 FlashComm1 环境值去除空白并转为小写后，只有 `1` 或 `tr
 | Worker 里建本进程那一份 | `vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L107-L126` |
 | v0.26 rc 的顶层构造与嵌套层 | `vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L360`；`vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L968-L1040` |
 | v0.26 rc 的环境变量表 | `vllm-ascend@2ed6cbba:vllm_ascend/envs.py#L30-L107` |
-| main 的 pydantic 化、子配置组成与严格键校验 | `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L295-L310`；`vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L430-L608` |
-| main 的环境变量表与缓存 | `vllm-ascend@baa023ad:vllm_ascend/envs.py#L38-L90`；`vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1536-L1700` |
-| EPLB 子配置自己拒绝未识别的键 | `vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L828-L876` |
-| 三版平台校验数量对照 | `vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L480`；`vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426`；`vllm-ascend@baa023ad:vllm_ascend/platform.py#L457-L495` |
-| main 的 FlashComm1 环境兼容与推导 | `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L609-L628` |
-| main 的 Omni 未知顶层键过滤例外 | `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671` |
+| `v0.30.0 (c09d3e20)` 严格校验、12 组子配置、FlashComm1 兜底与工厂发布 | `vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L562-L635`、`#L745-L756`、`#L1795-L1951` |
+| `v0.30.0 (c09d3e20)` 环境变量收口（14 条）与平台前置校验 | `vllm-ascend@c09d3e20:vllm_ascend/envs.py#L38-L90`；`vllm-ascend@c09d3e20:vllm_ascend/platform.py#L478-L525` |
+| `main (8d6180e2)` 13 组子配置（含 `runtime_config` / `quantized_all_reduce`）、FlashComm1 兜底与工厂发布 | `vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L652-L737`、`#L845-L865`、`#L1909-L2078` |
+| `main (8d6180e2)` 环境变量表（12 条）与平台 MRV2 入口前置校验 | `vllm-ascend@8d6180e2:vllm_ascend/envs.py#L51-L95`；`vllm-ascend@8d6180e2:vllm_ascend/platform.py#L606-L685` |
+| 历史 `baa023ad` main 存档与 Omni 过滤参考 | `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L295-L310`、`#L430-L608`、`#L1536-L1700`、`#L1660-L1671` |
 | 配置 hash 怎样参与默认编译缓存目录 | 来源 46，`vllm/compilation/backends.py` 1024–1084 行；缓存开关与编译模式另有门控 |
 | SP 可以覆盖 FlashComm1 关闭值的实际消费者 | 来源 47，`vllm_ascend/utils.py` 905–931 行 |
 | 分块调度器、普通与混合 Mooncake 的初始化调用点 | 来源 48–50，分别覆盖调用和紧随的配置读取 |
@@ -332,11 +339,11 @@ main 的 FlashComm1 环境值去除空白并转为小写后，只有 `1` 或 `tr
 | 读取表之外的环境入口 | 来源 52，全局 patch 直接读取 EPLB 两个环境变量 |
 | rc2 EPLB 扩展的安装调用 | 来源 53；策略扩展、回退条件与官方说明见来源 39–42、45 |
 | Xlite Worker 的自动选择条件 | 来源 54，`platform.py` 650–659 行；显式 Worker 和 310P 分支不由这个开关替换 |
-| main 的 profiling 分块仍归 scheduler 子配置 | 来源 55，`ascend_config.py` 1402–1440 行；不把顶层组数当成全部嵌套配置数 |
+| 历史 main 的 profiling 分块仍归 scheduler 子配置 | 来源 55，`ascend_config.py` 1402–1440 行；不把顶层组数当成全部嵌套配置数 |
 
-**关键路径对应来源。** 上游容器被声明为不透明字典 [C3]；参数注册、完整内容进入配置 hash、上游内部写键分别见来源 2、4、5，缓存消费者见来源 46。构造配置时逐键拆分并建立子配置 [C6]；层级不等价、顶层字段及构造期检查需合看来源 6、7、8；EPLB 子配置对未识别键报错：[C30]。键优先于环境值的判断与迁移提示：[C9]。环境变量表与每次访问重读：[C14]。平台在建配置前先执行四个校验 [C16]；解析阶段补充候选选项和建成后按 PD 角色改写分别见来源 15、17。建、取、清三件事与复用的四个条件：[C12]；Worker 侧的调用点：[C18]。GLM 双机命令没有那段 JSON：[S1]；相关默认值见来源 10、19、20，SP 条件须合看来源 47与[来源基线](../sources/glm-5-3-flash-baseline.md)。v0.26 rc 的嵌套层与 main 的 pydantic 化：[C22][C24]；三版建配置前的校验数量：[C28][C29]。
+**关键路径对应来源。** 上游容器被声明为不透明字典 [C3]；参数注册、完整内容进入配置 hash、上游内部写键分别见来源 2、4、5，缓存消费者见来源 46。构造配置时逐键拆分并建立子配置 [C6]；层级不等价、顶层字段及构造期检查需合看来源 6–8，EPLB 子配置拒绝未知键见来源 30，优先级判断与迁移提示见来源 9，环境变量表与每次访问重读见来源 14。平台前置校验与按 PD 角色改写见来源 15–17，建/取/清缓存与 Worker 侧调用点见来源 12、18。GLM 双机命令没有那段 JSON [S1]；相关默认值见来源 10、19、20，SP 条件须合看来源 47 与[来源基线](../sources/glm-5-3-flash-baseline.md)。四版演进对照：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）分别见来源 21–23、28、56–65 [C56][C61]。
 
-子配置八组、兼容映射九对、环境变量表 21 条里 9 条带昇腾前缀，都是照上述源码数出来的计数 [D]。这里两个「9」不是同一批名字：兼容映射的九对里有一对的环境名不带昇腾前缀，而带前缀的那 9 条里也有一条没参与映射 [D]。三版读取表条目数 21 / 20 / 14 同理 [D]。教程未传 JSON 只支持“未从该 CLI 入口覆盖”，最终生效值还需合看派生与消费者。main 已移除通用回退函数，但 FlashComm1 仍有显式环境兼容读取；函数缺失不足以推出兼容入口全部失效。[C32]
+子配置八组（旧 GLM）到 12 组（`v0.30.0`）与 13 组（`main`）、兼容映射九对、环境变量表 21 / 20 / 14 / 12 条（带 `VLLM_ASCEND_` 前缀 9 / 8 / 3 / 1 条），均按对应提交源码实点 [D]。旧版两个「9」不是同一批名字：兼容映射的九对里有一对的环境名不带昇腾前缀，而带前缀的那 9 条里也有一条没参与映射 [D]。教程未传 JSON 只支持“未从该 CLI 入口覆盖”，最终生效值还需合看派生与消费者 [I]。`v0.30.0` 与 `main` 虽已移除通用回退函数及四个旧环境变量，但 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 仍保留逻辑或直读兜底（来源 57、62）[C57]。
 
 本页的日志说明来自固定源码，尚无目标镜像启动日志证明实际采用了哪条分支。官方教程与公开代码也不能代替安装产物：部署时应保存各进程的最终配置、环境来源与代码版本，核对镜像是否另有注入或改写。
 

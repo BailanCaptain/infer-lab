@@ -68,11 +68,19 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/triton/batch_invariant/matmul.py#L353-L441'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
   - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L544-L590'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/batch_invariant.py#L68-L189'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L975-L1085'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L380-L396'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/utils.py#L574-L618'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/batch_invariant.py#L68-L194'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L1055-L1165'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L396-L412'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
-  - releases/v0.30.0rc2
 evidence: C
 relations:
   - to: matmul-and-weights
@@ -115,16 +123,14 @@ file: batch-invariance
 
 矩阵乘的每个输出数是一串乘积之和（见[矩阵乘与权重](matmul-and-weights.md)）。实数加法满足结合律，浮点计算却要舍入到可表示的数，因此**改变分组可能改变结果**。
 
-拿 float32 举一个能手算的例子，舍入规则是通常的「就近舍入，恰好居中时取偶数」。float32 在 [2²⁴, 2²⁵) 这段正数范围内，相邻可表示数相差 2。16,777,216 + 1 恰好居中，被舍回 16,777,216，那个 1 就这么丢了：
+拿 float32 举一个能手算的例子，舍入规则是通常的「就近舍入，恰好居中时取偶数」。float32 在 $[2^{24}, 2^{25})$ 这段正数范围内，相邻可表示数相差 2。$16{,}777{,}216 + 1$ 恰好居中，被舍回 $16{,}777{,}216$，那个 1 就这么丢了（取 $a = 16{,}777{,}216,\; b = 1,\; c = -16{,}777{,}216$；不是谁算错了，是浮点舍入的必然结果）：
 
-```calc
-title: 同样三个数，换个加法分组，float32 的结果就不同（a = 16,777,216，b = 1，c = −16,777,216）
-第一种分组，先加 a 与 b = 16,777,216 + 1 = 16,777,217 → 舍回 = 16,777,216
-再加 c = 16,777,216 − 16,777,216 = 0
-第二种分组，先加 b 与 c = 1 − 16,777,216 = −16,777,215（能精确表示）
-再加 a = −16,777,215 + 16,777,216 = 1
-> 同样三个数，一个得 0，一个得 1。不是谁算错了，是舍入的必然结果。
-```
+$$(a + b) + c = \text{fl}(16{,}777{,}216 + 1) - 16{,}777{,}216 = 0 \;\neq\; a + (b + c) = 16{,}777{,}216 + (-16{,}777{,}215) = 1$$
+
+| 加法分组方式（float32，三个数完全相同） | 第一步（含舍入） | 第二步 | 最终结果 |
+| --- | --- | --- | --- |
+| 先加 $a$ 与 $b$，再加 $c$ | $16{,}777{,}216 + 1 = 16{,}777{,}217 \to \text{舍回 } 16{,}777{,}216$ | $16{,}777{,}216 - 16{,}777{,}216$ | **0** |
+| 先加 $b$ 与 $c$，再加 $a$ | $1 - 16{,}777{,}216 = -16{,}777{,}215$（可精确表示） | $-16{,}777{,}215 + 16{,}777{,}216$ | **1** |
 
 再把这件事放回矩阵乘。假设一个输出数是 512 个乘积之和，一种策略把 K 方向拆成几段并行计算，再合并小计；另一种让一个输出块沿 K 方向依次累加。如果库随批形状在这两种策略间切换，同一条请求换批时就改变了加法分组。图用小批与大批演示这组条件；实际硬件各形状选择的策略须查对应实现与运行记录。
 
@@ -138,14 +144,14 @@ title: 同样三个数，换个加法分组，float32 的结果就不同（a = 1
 
 上游 GPU 实现也按硬件与算子分别处理。固定 0fc695fc 的注释在 Hopper／Blackwell 矩阵乘分支把 split-K 作为要抑制的差异来源，该分支设置了两个 cuBLAS 环境项；Ampere 则注册 Triton 矩阵乘。后面还统一替换 softmax、mean、bmm 等算子。因此，不能把这段注释扩写成「GPU 的全部批间差异只有 split-K、改一个配置就够了」。
 
-```calc
-title: 固定 K 分块的设计示意（K = 512，且只画一个 N 方向输出块）
-K 方向切成几段 = 512 ÷ 64 = 8
-一个输出数的加法链 = 段 1 → 段 2 → … → 段 8 = 固定 8 步
-批里 1 行时铺开几个块 = ceil(1 / 128) = 1
-批里 300 行时铺开几个块 = ceil(300 / 128) = 3
-> 固定这一份回退实现后，M 方向的输出块从 1 个变成 3 个，各块仍按段 1 → 段 8 累加。这说明如何避免批大小改变 K 段合并方式；不替代整模型一致性测试。
-```
+以 $K = 512$、固定 $K$ 分块 $64$、$M$ 方向块高 $128$（只看单个 $N$ 方向输出块）做设计示意：固定这一份回退实现后，$M$ 方向输出块随批次行数从 1 个变成 3 个，而每个输出块沿 $K$ 方向的加法链都锁死为段 1 到段 8 共 8 步（说明避免批大小改变 $K$ 段合并方式的原理，不替代整模型一致性测试）：
+
+$$N_K = \frac{512}{64} = 8\text{ 段}, \qquad B_{M=1} = \lceil 1 / 128 \rceil = 1\text{ 块}, \qquad B_{M=300} = \lceil 300 / 128 \rceil = 3\text{ 块}$$
+
+| 批次行数 $M$（固定 $K = 512$、$K$ 块 $64$·示意） | $M$ 方向铺开的输出块数 | 每个输出数的 $K$ 方向加法链 |
+| --- | --- | --- |
+| $M = 1$ 行 | $\lceil 1 / 128 \rceil = 1$ 块 | 段 1 $\to$ 段 2 $\to \dots \to$ 段 8（**固定 8 步**） |
+| $M = 300$ 行 | $\lceil 300 / 128 \rceil = 3$ 块 | 段 1 $\to$ 段 2 $\to \dots \to$ 段 8（**固定 8 步**） |
 
 其余几步照同一个思路办：
 
@@ -168,12 +174,12 @@ K 方向切成几段 = 512 ÷ 64 = 8
 
 ## 代价：部分加速路径被限制
 
-批不变会改变可选实现。固定 db 快照的 `enable_custom_op()` 在首次计算门禁、环境开关已开启时返回 False，关闭依赖这道门禁的自定义算子选择；直接调用扩展的路径未必经过它，也不保证每个模型都有完整通用回退（见[算子与核函数](ops-and-kernels.md)）。源码中可见的变化有四处：
+批不变会改变可选实现。在固定 `db701c1f` 以及 `v0.30.0` / `main` 中，`utils.py` 的 `enable_custom_op()` 在首次计算门禁且 `VLLM_BATCH_INVARIANT=1`（或当前硬件不支持 `HardwareCapability.RUNTIME_CUSTOM_OPS`）时直接返回 `False`，**统一禁用依赖这道门禁的 `vllm_ascend_C` 自定义核懒加载与算子分派**；直接调用扩展的路径未必经过它，也不保证每个模型都有完整通用回退（见[算子与核函数](ops-and-kernels.md)）。源码中可见的变化有四处：
 
 - 矩阵乘沿 K 方向的分块被钉死，`mm` / `matmul` 那条连 M、N 方向也不再按形状调优；
-- 带残差的归一化从一个融合步拆成两步；
+- 带残差的归一化（`torch_npu.npu_add_rms_norm`）从一个融合步拆成先加残差再 `npu_rms_norm` 两步（在 `main` 中只要进入 `enable_batch_invariant_mode()` 便无条件覆盖，不再仅限 AscendC 在场分支）；
 - 采样退回上游的通用实现；
-- 初始化成功进入覆盖分支时，设置跨卡通信确定性选项。
+- 初始化成功进入覆盖分支时，设置 `weight_nz_mode = 0`、`HCCL_DETERMINISTIC=strict`、`LCCL_DETERMINISTIC=1`，并在 `v0.30.0` 启用 `torch.use_deterministic_algorithms(True, warn_only=True)`、在 `main` 改为 `torch_npu.npu.set_deterministic_level(3)`。
 
 本页引用的固定指南只定性提示性能代价，具体收益与开销取决于选中的实现和负载；指南及本项目均未提供该部署的开关对照实测倍数。
 
@@ -279,21 +285,21 @@ VLLM_BATCH_INVARIANT=1 vllm serve <model> \
 
 ### 版本差异
 
-**v0.30.0rc2 扩展了批不变 reduce_sum 的调用接口。** 新增 axis 别名与 dtype 参数；axis 与 dim 都非 None 时抛 TypeError，dtype 非 None 时回退保存的 torch.sum，以保留调用者指定的输出类型。只有 dtype 为 None、输入在 NPU、归约最后一维且类型为 fp16/fp32/bf16 时才走批不变求和算子。这是接口修正，不能推断分块、前缀缓存或抢占组合已获得整体批不变保证。
+**`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）延续 `VLLM_BATCH_INVARIANT=1` 经 `enable_custom_op()` 禁用 `vllm_ascend_C` 自定义核的总门禁，并收紧了确定性算子覆盖范围与 `reduce_sum` 签名保护；`main` 进一步将确定性接口切至 `torch_npu.npu.set_deterministic_level(3)` 并无条件拆分 `npu_add_rms_norm`。**
 
-v0.13.0 发布说明记录了基础框架与 PR #5517。[S27]下表对照三个固定版本；rc2 的求和接口补充见上文。v0.23 列使用维护分支 `2c59ff10`，GLM 独立快照 `db701c1f` 的 batch_invariant.py 与其逐字一致，不把模型文件也视为相同。
+v0.13.0 发布说明记录了基础框架与 PR #5517 [S27]；GLM 独立快照 `db701c1f` 的 `batch_invariant.py` 与 `v0.23.0` 维护分支 `2c59ff10` 逐字一致（不把模型文件视为相同）。四版对照如下：
 
-| 项 | v0.23（`2c59ff10`）| v0.26（`2ed6cbba`）| main（`baa023ad`）| 意味着什么 |
+| 确定性核对项 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
 |---|---|---|---|---|
-| `enable_matmul_allreduce` | 初始化覆盖分支强制置 `False` | 禁用赋值与旧融合功能均已删除 | 同 v0.26 | 删除赋值不是恢复兼容；旧键在不同版本的未知键处理见参数页 |
-| `reduce_sum` 适用范围 | NPU 张量且 `dim` 不是 `None` 就走批不变实现 | 同 v0.23 | 收紧成只处理最后一维、且 dtype 是 fp16 / fp32 / bf16，其余退回原生实现 | 旧条件真会撞上 `AclNN_Parameter_Error`，main 修掉了 |
-| `aten::sum` | 注册成 AscendC 的批不变求和 | 同 v0.23 | 注销，改成给 `torch.sum` 与 `torch.Tensor.sum` 直接赋值 [C21] | 走 aten 派发过来的 `sum`（例如被编译捕获进图的那些）在 main 上不再被换掉 |
-| 调度限制 | 指南未列这一节 | 同 v0.23 | 明确列出 chunked prefill、prefix caching、抢占不受支持且不自动关闭 | 新指南补充了边界，不能反推所有旧配置都必然产生差异 |
-| 图捕获 | 示例用 PIECEWISE，明确不支持 FULL／FULL_DECODE_ONLY [S17] | 同 v0.23 | 删除该 note 与对应改进计划 | 初始化函数没有图模式检查；删除说明也不等于任意整图组合已验证 |
-| 混合批的 attention | 没有 main 新增的这项开关判断 | 同 v0.23 | attention_v1 的常规 FIA 路径中，无 sink、因果且非滑窗时，有 prefill 和 decode 可按阶段拆分 [C23] | 这是特定分支的处理，不覆盖所有后端，也不取消抢占限制 |
-| 开关入口 | 只有环境变量 | 同 v0.23 | 多一条 `rl_config` 的路 | 环境变量这条路 main 上照样有，`rl_config` 只是打包 |
+| `vllm_ascend_C` 自定义核门禁 | `VLLM_BATCH_INVARIANT=1` 时 `enable_custom_op()` 返回 `False` 跳过扩展加载 | 同 `v0.23.0` | `utils.py#L544-L590`：`VLLM_BATCH_INVARIANT` 或缺 `RUNTIME_CUSTOM_OPS` 时禁用 `vllm_ascend_C` | `utils.py#L574-L618`：延续禁用 `vllm_ascend_C` |
+| 确定性全局开关与通信覆盖 | `weight_nz_mode=0`、`HCCL_DETERMINISTIC=strict`、`LCCL_DETERMINISTIC=1`、`torch.use_deterministic_algorithms(True, warn_only=True)`；且置 `enable_matmul_allreduce=False` | 删除 `enable_matmul_allreduce` 赋值（旧融合已移除），其余同左 | 延续 `use_deterministic_algorithms(True, warn_only=True)` 与 HCCL/LCCL/NZ=0 覆盖（`batch_invariant.py#L102-L119`） | 改用 `torch_npu.npu.set_deterministic_level(3)`（注释明示不可在其后再调 `use_deterministic_algorithms`）（`batch_invariant.py#L102-L123`） |
+| 确定性算子覆盖范围（AscendC + Triton） | AscendC 覆 `mm/matmul/sum`、FIA、`npu_add_rms_norm`；Triton 覆 `addmm/bmm/softmax` 及无 AscendC 时的 `mm/matmul/linear` | 同 `v0.23.0` | 撤销 `aten::sum` 注册，改直接覆 `torch.sum`（AscendC 在场时覆 FIA、`npu_add_rms_norm`、`mm/matmul/sum`）；`reduce_sum` 增 `axis`/`dtype` 并仅最后一维 fp16/fp32/bf16 走批不变核 | `torch_npu.npu_add_rms_norm` 提到 `enable_batch_invariant_mode()` 顶部无条件拆开；AscendC 同时覆 `torch.sum` 与 `torch.Tensor.sum` |
+| 混合批 FIA 注意力拆分 | 无 | 无 | `attention_v1.py#L975-L1085`：无 sink、因果且非滑窗时按 prefill/decode 拆分计算 | `attention_v1.py#L1055-L1165`：同 `v0.30.0` |
+| 开关入口与调度/图限制 | 仅环境变量；指南用 `PIECEWISE`，不支持 `FULL` / `FULL_DECODE_ONLY` [S17] | 同 `v0.23.0` | 新增 `rl_config.enabled` + `enable_batch_invariant` 联动设环境变量；指南明确不支持 chunked prefill、prefix caching、抢占且不自动关闭 | 同 `v0.30.0`（删除旧整图 note，但不等于任意整图组合已验证） |
 
 ### 源码位置
+
+- `v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 实核：`VLLM_BATCH_INVARIANT=1` 禁用 `vllm_ascend_C` 见 `c09d3e20:utils.py#L544-L590` 与 `8d6180e2:utils.py#L574-L618`；确定性算子注册、`reduce_sum` 边界与 `set_deterministic_level(3)` 见 `c09d3e20:batch_invariant.py#L68-L189` 与 `8d6180e2:batch_invariant.py#L68-L194`；FIA 混合批拆分见 `c09d3e20:attention/attention_v1.py#L975-L1085` 与 `8d6180e2:attention/attention_v1.py#L1055-L1165`；`rl_config` 联动见 `c09d3e20:ascend_config.py#L380-L396` 与 `8d6180e2:ascend_config.py#L396-L412` [C39][C44]。
 
 - 入口与时机：固定 worker 的 `_init_worker_distributed_environment()` 先调用 `init_batch_invariance()`，再建立分布式环境。替换是进程级的，但只有注册成功且之后经过这些入口的调用才使用替换实现。[C11]
 - 环境覆盖：`override_envs_for_invariance()` 设置 `weight_nz_mode`、HCCL／LCCL 变量与 PyTorch 确定性选项。`warn_only=True` 只描述该确定性检查的处理方式，不保证其他算子或配置错误都只警告。

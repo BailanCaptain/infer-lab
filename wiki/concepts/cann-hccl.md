@@ -123,7 +123,20 @@ sources:
   - 'https://gitcode.com/cann/hixl/wiki/A5%20LocalCommRes%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97.md'
   - 'https://gitcode.com/cann/hixl/blob/dcf0027ffb4408446bb3ae5b810e44f20f19cc3c/scripts/tools/hixl_tool/readme.md#L1-L275'
   - 'https://gitcode.com/cann/hixl/blob/dcf0027ffb4408446bb3ae5b810e44f20f19cc3c/docs/zh/api/cpp/HIXL-interface.md#L487-L665'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1283-L1305'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1405-L1427'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/parallel_state.py#L63-L115'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/parallel_state.py#L63-L145'
+  - 'vllm-ascend@c09d3e20:tools/ai_qos.py#L453-L473'
+  - 'vllm-ascend@8d6180e2:tools/ai_qos.py#L453-L473'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/utils/utils.py#L18-L47'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/utils/utils.py#L18-L47'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L179-L185'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: hardware-devices
@@ -142,7 +155,7 @@ relations:
     kind: builds-on
     note: 区分 DP 执行组与跨机 DP 设备通信组，需要先理解 DP 如何分配请求，以及执行组内部如何使用 TP。
 contradicts: []
-updated: 2026-11-10T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -392,24 +405,20 @@ rc2 额外睡眠清理还增加了 HCCL lifecycle anchor，创建失败时可跳
 
 **v0.30.0rc2 仍用 hccl 初始化分布式环境，但建组和 QoS 要看具体入口。** Engram+PCP 会临时复制配置并清除 Engram 项，避免上游先建 DP-only 组，随后由 Ascend 沿 DP×PCP 维度分组。实际组大小还须对齐每节点的完整执行组数量与 rank 布局，不满足时退回大小 1、不另建组；开启主机共享时这个 Engram 组使用 gloo。整机 AI QoS 工具继续使用 AIV/SDMA/PCIEDMA 三键（high/low/high）；P/D 传输的 inject_qos 则默认 1、严格接受整数 0–4，并合并全局资源配置保留其他字段。常规、layerwise、hybrid Mooncake P2P 都调用后者，这两种 QoS 不是同一个入口，hccl 后端名也不能单独证明实际物理链路或性能。
 
-下表比较登记的 v0.23 维护分支、v0.26.0rc（2026-09-17 快照）与 main（2026-09-21 快照）。对应提交依次为 `2c59ff10`、`2ed6cbba`、`baa023ad`；固定 GLM 执行快照另为 `db701c1f`。
+下表按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；固定 GLM 执行快照另为 `db701c1f`，旧快照 `baa023ad` / `7d825229` 的行号线索见上方说明与来源清单。
 
-| 核对项 | v0.23 | v0.26.0rc | main |
-|---|---|---|---|
-| Worker 设备通信后端 | 显式使用 hccl，再初始化模型并行组 | 相同 | 相同 |
-| AI QoS 是否存在、默认模式 | 有独立脚本，默认 auto | 相同 | 相同 |
-| 文档调用入口 | python tools/ai_qos.py | 相同 | python -m tools.ai_qos |
-| QoS 键与默认等级 | 五键；AIV 两项 high、SDMA D2D high / H2D low、PCIEDMA high | 相同 | 三键 AIV high、SDMA low、PCIEDMA high |
-| 可选等级 | 前四键 high / middle / low，PCIEDMA_H2D 仅 high / low | 相同 | 三键均 high / middle / low |
-| 映射依据 | 按 D2D / H2D 初始 VL 区分，同类端点源标签取两项较小值 | 相同 | 按通道类型配置；两种 cacheable / noncacheable 初始 VL 都生成映射 |
-| 默认目标 VL / 优先级 | AIV D2D 为 2 / 3、H2D 为 5 / 3；SDMA D2D 为 2 / 3、H2D 为 3 / 1；PCIEDMA H2D 为 5 / 3 | 相同 | AIV 为 2 / 3，PCIEDMA 为 3 / 3，SDMA 为 4 / 1 |
-| 恢复与执行边界 | 恢复端点首次快照，打印交换机 undo | 相同 | 相同 |
-| 硬件与驱动限制 | A3 指定产品；AIV 两项不生效；HDK / 交换机最低版本同上 | 相同 | A3 指定产品与最低版本相同；文档写 AIV 不生效 |
-| 推理引擎内的 KV 传输 QoS 入口 | 无 | 无 | 有：kv_connector_extra_config 的 qos_priority，整数 0–4 |
+| 核对项 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+|---|---|---|---|---|
+| Worker 后端与建组入口 | 显式 `hccl` 初始化，随后调用 `ensure_model_parallel_initialized` 与 `init_ascend_model_parallel` | 相同 | 相同（`worker.py#L1283-L1305`）；Engram+PCP 临时清除上游 `engram_config` 避免重复建 DP-only 组 | 相同（`worker.py#L1405-L1427`）；MRV2 `pp_broadcast` 显式按 `hccl` + `create_hccl_pg_options("pp_broadcast")` 重建（`v2/model_runner.py#L179-L185`） |
+| Ascend 扩展通信域 | TP / DP / EP / MC2 / `dynamic_eplb` / 细粒度 TP 等 | 延续并调整部分辅助组 | 新增 `edp`（Engram `DP×PCP`，`dp_shared_memory` 走 `gloo` 否则 `hccl`）与 `kvpp`（`TP×PCP`）（`parallel_state.py#L63-L115`）；睡眠清理含 `sleep_lifecycle_anchor`（1 MiB） | 在 `v0.30.0` 基础上补建 `etp`（`TP×DP` 覆盖上游 TP 回退）并将 `edp` 扩展至 `PCP==1` 共享 PLE 表（`parallel_state.py#L63-L145`） |
+| AI QoS 入口与键 | 独立脚本 `python tools/ai_qos.py`（默认 `auto`）；五键（AIV D2D/H2D `high`、SDMA D2D `high` / H2D `low`、PCIEDMA_H2D `high`） | 相同 | `python -m tools.ai_qos`；收敛为三键 `AIV` `high`、`SDMA` `low`、`PCIEDMA` `high`，均支持 `high/middle/low`（`tools/ai_qos.py#L453-L473`） | 同 `v0.30.0`（`tools/ai_qos.py#L453-L473`） |
+| AI QoS 映射依据与默认目标 VL / 优先级 | 按 D2D / H2D 初始 VL 区分，AIV D2D 2/3、H2D 5/3；SDMA D2D 2/3、H2D 3/1；PCIEDMA H2D 5/3 | 相同 | 按通道类型配置（cacheable / noncacheable 初始 VL 均生成映射）；默认 AIV 2/3、PCIEDMA 3/3、SDMA 4/1 | 同 `v0.30.0` |
+| 恢复边界与硬件限制 | 恢复端点首次快照并打印交换机 `undo`；A3 指定产品、AIV 不生效 | 相同 | 相同（A3 指定产品与最低版本要求不变，AIV 不生效） | 相同 |
+| 推理引擎内 KV 传输 QoS 入口 | 无 | 无 | 有：`kv_connector_extra_config.qos_priority`（整数 `0–4`，PD 默认 `1`，`kv_transfer/utils/utils.py#L18-L47`） | 同 `v0.30.0`（`kv_transfer/utils/utils.py#L18-L47`） |
 
-main 新增的 `qos_priority` 与 AI QoS 是两套东西。它写在 KV 传输配置的 `kv_connector_extra_config` 里，只由 PD 分离的三个 Mooncake 连接器（MooncakeConnectorV1、MooncakeHybridConnector、MooncakeLayerwiseConnector）和 KV 池后端读取。连接器在建立传输引擎前，把它写进环境变量 `ASCEND_GLOBAL_RESOURCE_CONFIG` 的 `comm_resource_config.qos`，不填时用 P/D 默认值 **1**；KV 池后端只在显式填写时写入，Mooncake 后端写 `store.comm_resource_config.qos`，Memcache 后端写 `MF_DEVICE_UB_QOS`。这里的 0–4 是 KV 传输通道的 QoS 值，与本页 AI QoS 的 high / middle / low 等级、VL 编号和交换机优先级不是同一套编号。使用 HIXL Client/Server 传输时，连接通道采用发起端的值：pull 用 decode 侧，push 用 prefill 侧；该规则不能单凭环境写入日志推广到其他传输实现。本页 GLM 双机主线没有配置 KV 传输，用不到这个入口；机制见 [PD 分离](pd-disaggregation.md)与[外部 KV 池](kv-pool.md)。
+`v0.30.0` 与 `main` 沿用的 `qos_priority` 与 AI QoS 是两套东西。它写在 KV 传输配置的 `kv_connector_extra_config` 里，只由 PD 分离的三个 Mooncake 连接器（MooncakeConnectorV1、MooncakeHybridConnector、MooncakeLayerwiseConnector）和 KV 池后端读取。连接器在建立传输引擎前，把它写进环境变量 `ASCEND_GLOBAL_RESOURCE_CONFIG` 的 `comm_resource_config.qos`，不填时用 P/D 默认值 **1**；KV 池后端只在显式填写时写入，Mooncake 后端写 `store.comm_resource_config.qos`，Memcache 后端写 `MF_DEVICE_UB_QOS`。这里的 0–4 是 KV 传输通道的 QoS 值，与本页 AI QoS 的 high / middle / low 等级、VL 编号和交换机优先级不是同一套编号。使用 HIXL Client/Server 传输时，连接通道采用发起端的值：pull 用 decode 侧，push 用 prefill 侧；该规则不能单凭环境写入日志推广到其他传输实现。本页 GLM 双机主线没有配置 KV 传输，用不到这个入口；机制见 [PD 分离](pd-disaggregation.md)与[外部 KV 池](kv-pool.md)。
 
-固定 GLM 快照的五键定义、默认值与恢复逻辑和表中 v0.23 / v0.26 一致。三版这里只核通信初始化、QoS 工具与 KV 传输的 QoS 入口，CANN 9.1.0 文档用于解释软件职责，完整镜像配套另需核验，因此本页不把整套部署标成三版均已验证。
+固定 GLM 快照的五键定义、默认值与恢复逻辑和表中 `v0.23.0` / `v0.26.0rc` 一致。四版核对覆盖通信初始化、Ascend 扩展通信域、AI QoS 工具与 KV 传输 `qos_priority` 入口；CANN 9.1.0 文档用于解释软件职责，具体集群的驱动与完整镜像配套仍须按部署环境另核。
 
 ### 源码位置
 

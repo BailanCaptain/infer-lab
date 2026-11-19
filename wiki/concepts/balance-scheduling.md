@@ -71,7 +71,18 @@ sources:
   - 'vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L412-L423'
   - 'vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_balance_schedule.py#L397-L408'
   - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_balance_schedule.py#L396-L407'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_balance_schedule.py#L392-L407'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_engine_core.py#L32-L44'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1036-L1097'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L731-L736'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_balance_schedule.py#L425-L438'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_engine_core.py#L31-L43'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1221-L1232'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: data-parallel
@@ -97,7 +108,7 @@ relations:
       固定 db701c1f 中，Balance Scheduling 与动态切块配置不能同时启用；同开会在配置校验时报
       ValueError。具体配置入口及环境变量兜底仍按两页的版本条件核对。
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -151,12 +162,11 @@ Balance Scheduling 的办法是：只要有一组顶满，所有组就暂时一�
 
 判断只有一句：表里的最大值等于上限就停。换一个四组的例子手算一遍（数为示意，上限缩成 8 是为了能手算，真实上限要大得多）：此刻四组 running 里分别有 8、3、5、2 条。
 
-```calc
-title: 一组顶满时，其余三组空着多少名额（示意）
-表里的最大值 = max(8, 3, 5, 2) = 8 条，等于上限 8，四组这一步都不接 waiting
-其余三组的空位 = (8 − 3) + (8 − 5) + (8 − 2) = 14 个，这一步空着
-下一步若第 0 组算完 1 条 = max(7, 3, 5, 2) = 7 条，小于上限，各组照常接纳
-```
+| 时刻与判定项（四组、每组上限 8，示意） | 算式 | 结果与闸门动作 |
+| --- | --- | --- |
+| 当前计数表最大值 | $\max(8,\, 3,\, 5,\, 2) = 8$ | 等于上限 8 → **四组都不接 waiting** |
+| 其余三组空着的名额 | $(8 - 3) + (8 - 5) + (8 - 2)$ | **14 个名额**本步空着 |
+| 下一步若第 0 组算完 1 条 | $\max(7,\, 3,\, 5,\, 2) = 7 < 8$ | 小于上限 → **闸门抬起，各组照常接纳** |
 
 有两点要看清。第一，比的是**最大值**：只要有一组顶满就落闸，其余三组空位再多也一起停；不开时，那三组这一步会照常往 14 个空位里接请求。此刻四组合计 8 + 3 + 5 + 2 = 18 条在跑；闸门落着的时候，这个数只会随请求算完而减少，不会增加。第二，只有真顶满才落闸：最大值是 7 时，差一条也不落。running 的条数本来就不会超过上限，所以「等于上限」和「达到上限」是一回事。
 
@@ -201,12 +211,9 @@ file: balance-scheduling-flow
 - **前提都满足。** GLM-5.3-Flash 是 MoE，两组走的正是能挂上互报的那种引擎进程；这套部署没有配 KV 传输，prefill 和 decode 在同一个实例里做（PD 混部），满足它只支持混部的要求。
 - **什么时候落闸。** 只有某一组 running 满 32 条时。那一刻另一组若有 n 条在跑，就有 32 − n 个名额这一步不接新请求。
 
-拿主线的[场景 M](concurrent-requests.md#示例场景-m-与变体-m)对照：DP0 有 12 条 decode 请求，一条 6000 token 提示词的新请求 N 进了 DP0 的 waiting；DP1 有 7 条 decode 请求。
+拿主线的[场景 M](concurrent-requests.md#示例场景-m-与变体-m)对照：DP0 有 12 条 decode 请求，一条 6000 token 提示词的新请求 N 进了 DP0 的 waiting；DP1 有 7 条 decode 请求。判定如下：
 
-```calc
-title: 场景 M 下闸门会不会落
-计数表里的最大值 = max(12, 7) = 12 条 < 32 条
-```
+$$\max(12,\, 7) = 12 < 32 \quad \Longrightarrow \quad \text{闸门不落}$$
 
 最大值 12 离上限 32 还远，闸门不落，N 照常被 DP0 接纳，这一步和不开时完全一样。场景 M 里真正的浪费，是 DP1 的 28 个 token 先补到 32，再按对面补到 6048 宽、改走 eager（逐个下发算子，不回放录好的计算图）（见[宽度先按自己补，再按对面补](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)）。那是每一步宽度对齐的浪费，按 token 数算；Balance Scheduling 只数条数、只在顶满时起作用，管不到它。
 
@@ -253,16 +260,15 @@ title: 场景 M 下闸门会不会落
 
 **v0.30.0rc2 保留已钉 main 的条件式接线。** 只有 Ascend scheduler_config 启用相应配置，才把 DPEngineCoreProc 换成 BalanceDPEngineCoreProc；DyntraLB 的优先分支及两者互斥检查仍在。默认 Scheduler 正常排批不等于开启这套 Balance 调度，历史文档里的环境变量也不能自动当成 rc2 的有效配置入口。
 
-闸门语义在四个快照上一致：读上一步末尾的计数表，最大值等于上限就停收。差异都在外围。v0.23 列是维护分支 2c59ff10，db701c1f 是本部署镜像（另一个 orphan commit），v0.26 列是 2ed6cbba，main 列是 baa023ad。
+闸门语义在四版本正式钉点上一致：读上一步末尾的计数表，最大值等于上限就停收；差异都在外围接线与互斥组合。四版本钉点为 `v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；本部署 GLM 固定镜像 `db701c1f` 与 `v0.23.0` 行为一致。
 
-| 项目 | v0.23 | db701c1f | v0.26 | main |
+| 核对项 | `v0.23.0`（`2c59ff10` / `db701c1f`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 |---|---|---|---|---|
-| 配置键 | 只认顶层 | 只认顶层 | 顶层或 `scheduler_config`，后者优先，顶层告警 | 同 v0.26 |
-| 环境变量 | 认，标注将删 | 认，标注将删 | 认，标注将删 | 已删除 |
-| 引擎侧 | 整段抄 `run_busy_loop`、`run_engine_core` | 同 v0.23 | 只覆盖 `_has_global_unfinished_reqs`，开关开时才换类名 | 同 v0.26，换名挪进 `patch_engine_core.py` |
-| dense 模型 + DP>1 + 开关 | 启动断言失败 | 同 v0.23 | 不报错，不生效 | 同 v0.26 |
-| BalanceScheduler 的父类 | 上游 `Scheduler` | 上游 `Scheduler` | `KVDeliveryScheduler`（vllm-ascend 的调度器） | 上游 `Scheduler` |
-| 与 DyntraLB | 无此特性 | 无此特性 | 无此特性 | 同开报错 |
+| 配置键 | 只认顶层 `enable_balance_scheduling` | 顶层或 `scheduler_config`，后者优先，顶层告警 | 同 `v0.26.0rc`（`ascend_config.py#L1629-L1669`） | 同 `v0.30.0`（`ascend_config.py#L1722-L1761`） |
+| 环境变量 | 认 `VLLM_ASCEND_BALANCE_SCHEDULING`，标注将删 | 认，标注将删 | 已删除 | 已删除 |
+| 引擎侧接线与准入闸门 | 整段抄 `run_busy_loop`、`run_engine_core`；dense+DP>1 启动断言失败 | 只覆盖 `_has_global_unfinished_reqs`，开关开时换类名；dense+DP>1 不报错不生效 | `patch_engine_core.py#L32-L44` 条件替换 `DPEngineCoreProc`（DyntraLB 优先）；准入闸门在 `patch_balance_schedule.py#L395-L403` | 同 `v0.30.0`（`patch_engine_core.py#L31-L43`；准入闸门在 `patch_balance_schedule.py#L432`） |
+| `BalanceScheduler` 父类 | 上游 `Scheduler` | `KVDeliveryScheduler` | 上游 `Scheduler` | 上游 `Scheduler` |
+| 互斥与部署限制 | PD 混部；与 `profiling_chunk_config` 互斥 | 同 `v0.23.0` | PD 混部（`platform.py#L1036-L1045`）；与 `profiling_chunk_config`（`ascend_config.py#L731-L736`）、`DyntraLB`（`platform.py#L1095-L1096`）互斥 | PD 混部（`platform.py#L1221-L1232`）；与 `DyntraLB` 互斥（`profiling_chunk_config` 已在 `main` 移除） |
 
 靠环境变量打开它的部署升到 main 会静默失效：服务照起，闸门不会打开。main 的配置文档前后不一，开头的迁移表仍列着这个环境变量对应 `scheduler_config.enable_balance_scheduling`，同一文件的参数表却写明它已不再支持，以代码为准。
 

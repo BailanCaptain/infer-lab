@@ -100,6 +100,13 @@ sources:
   - 'vllm-ascend@2ed6cbba:vllm_ascend/spec_decode/llm_base_proposer.py#L202-L219'
   - 'vllm-ascend@baa023ad:vllm_ascend/spec_decode/llm_base_proposer.py#L243-L260'
   - 'vllm-ascend@7d825229:vllm_ascend/spec_decode/__init__.py#L43-L65'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L823-L845'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/spec_decode/multi_kv_cache_group_proposer.py#L23-L48'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L289-L300'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L259-L320'
+  - 'vllm@ba15685a:vllm/config/parallel.py#L171'
+  - 'vllm@ba15685a:vllm/v1/engine/core.py#L2804'
+  - 'vllm@ba15685a:vllm/v1/engine/core_client.py#L1679'
 relations:
   - to: learning-guide
     kind: builds-on
@@ -122,7 +129,7 @@ relations:
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 contradicts: []
@@ -182,14 +189,12 @@ file: concurrent-request-batching
 
 两组的引擎进程各自排队、各自调度。前端是 node0 上的 API server（接 HTTP、做分词的进程），它收到一条请求时，要先决定把它交给哪一组。默认的办法是给每组打一个分，挑分数最小的那组：
 
-```calc
-title: 新请求怎样比较两组的负载
-score = waiting 队列里的条数 × 4 + running 队列里的条数
+$$\text{score} = \text{waiting 队列条数} \times 4 + \text{running 队列条数}$$
 
-场景 M（DP0） = 0 × 4 + 12 = 12
-场景 M（DP1） = 0 × 4 + 7 = 7
-> → 默认会选 DP1
-```
+| 场景 M 负载比较 | 算式 | 得分与默认去向 |
+| --- | --- | --- |
+| DP0 | $0 \times 4 + 12$ | **12** |
+| DP1 | $0 \times 4 + 7$ | **7**（默认更低，选 **DP1**） |
 
 **running 队列**是调度器眼里「已经在算」的请求，**waiting 队列**是「到了但还没开始算」的请求。等待中的请求按 4 倍计入：它们还没开始 prefill，接下来要先占一大段预算。两组的计数由 node0 上的 DP 协调器（汇总两组负载的小进程）定期推给前端，间隔至少 100 ms；前端每派出一条请求，就先在本地给那组的 waiting 计数加 1，免得两次汇总之间把一串请求都派到同一组。
 
@@ -212,16 +217,14 @@ file: concurrent-request-schedule
 按剩余预算先算一部分提示词，需要该路径允许分块。关闭分块时，若新请求所需的位置数超过剩余预算，调度器会停止这一轮的等待队列接纳。下方例子中，N 的 6000 个位置未超过剩余的 8144 个预算，不涉及这种不足情形。
 
 
-```calc
-title: 一步预算怎样分给已有请求和新请求
-running 每条 = 1 个确定的 token + 3 个草稿 = 4
-先排 running 里的 12 条 = 12 × 4 = 48
-剩下的预算 = 8192 − 48 = 8144
-再排 waiting 里的 N = min(6000, 8144) = 6000
-> 一步算完，不用切
-running 条数：12 → 13，没到上限 32
-这一步 DP0 合计 = 48 + 6000 = 6048 个 token，13 条请求
-```
+| DP0 第 2 步预算分配项 | 算式 | 结果 |
+| --- | --- | --- |
+| `running` 每条 decode 需求 | $1\text{ 个确定 token} + 3\text{ 个草稿}$ | **4** |
+| 先排 `running` 里的 12 条 | $12 \times 4$ | **48** |
+| 剩余预算 | $8192 - 48$ | **8,144** |
+| 再排 `waiting` 里的 N | $\min(6000,\; 8144)$ | **6,000**（一步算完，不用切） |
+| `running` 条数变化 | $12 \to 13$ | 未达上限 32 |
+| **本步 DP0 合计** | $48 + 6000$ | **6,048 个 token，13 条请求** |
 
 同一步里 DP1 只有 7 条 decode：`7 × 4 = 28` 个 token。两组各自按本地队列分配预算，所以 N 的到来只增加 DP0 的调度量；N 算完提示词后转入 decode，下一步也只取一条 decode 请求的预算。把前后三步排在一起，就能看到这次混合步怎样形成、又怎样结束：
 
@@ -241,14 +244,13 @@ file: concurrent-request-rounds
 
 **chunked prefill**（分块预填充）把长提示词分配到多轮，每轮只占当时可用的预算，对应调度图中的切分分支。本部署默认开启；N 的 6000 个 token 一步装得下，超过剩余预算的提示词才需要切分：
 
-```calc
-title: 新提示词多长才需要分块
-提示词 > 8192 − 4 × running 条数 就要切
+$$\text{需要分块的提示词门槛} = 8192 - 4 \times \text{running 条数}$$
 
-running 12 条时的门槛 = 8192 − 48 = 8144
-running 31 条时的门槛 = 8192 − 124 = 8068（新请求进来后正好 32 条）
-running 32 条时：新请求这一步根本进不来，要等有请求结束
-```
+| 当前 `running` 条数 | 剩余预算算式 | 新提示词切分门槛 / 准入状态 |
+| --- | --- | --- |
+| 12 条 | $8192 - 48$ | 超过 **8,144** 就要切 |
+| 31 条（新请求进来后正好 32 条） | $8192 - 124$ | 超过 **8,068** 就要切 |
+| 32 条（已达上限） | — | 新请求本步进不来，需等有请求结束 |
 
 把 N 换成一条 20,000 token 的提示词，DP0 的四步是：
 
@@ -265,19 +267,14 @@ running 32 条时：新请求这一步根本进不来，要等有请求结束
 
 调度结果发到 DP0 的 8 个 Worker（每张卡一个、真正执行前向的进程）以后，每个 Worker 里的 model runner（把调度决定翻译成张量的那部分代码）要把 13 条请求这一步的输入首尾相接，拼成一个张量交给模型。以第 2 步为例，按 `[D₁, …, D₁₂, N]` 的顺序写出来：
 
-```calc
-title: 混合批次怎样标出各请求的输入范围
-请求顺序 = [D₁, D₂, …, D₁₂, N]
-本步输入数量 = [4, 4, …, 4, 6000]
-> 合计 6048
-步前已计算位置数 = [L₁, L₂, …, L₁₂, 0]
-
-input_ids = [D₁.y, D₁.d₁, D₁.d₂, D₁.d₃, D₂.y, …, D₁₂.d₃, N.p₀, N.p₁, …, N.p₅₉₉₉]
-positions = [L₁, L₁+1, L₁+2, L₁+3, L₂, …, L₁₂+3, 0, 1, …, 5999]
-query_start_loc = [0, 4, 8, …, 44, 48, 6048]
-> 共 14 个数
-本步计算后的长度 = [L₁+4, …, L₁₂+4, 6000]
-```
+| 混合批次输入张量（请求顺序 `[D₁, D₂, …, D₁₂, N]`） | 排布内容 | 尺寸 / 说明 |
+| --- | --- | --- |
+| 本步输入数量 | `[4, 4, …, 4, 6000]` | 合计 **6,048 行** |
+| 步前已计算位置数 | `[L₁, L₂, …, L₁₂, 0]` | $L_k \approx 20{,}000$，N 为新请求从 0 开始 |
+| `input_ids` | `[D₁.y, D₁.d₁, D₁.d₂, D₁.d₃, D₂.y, …, D₁₂.d₃, N.p₀, N.p₁, …, N.p₅₉₉₉]` | 13 段词表编号首尾拼接 |
+| `positions` | `[L₁, L₁+1, L₁+2, L₁+3, L₂, …, L₁₂+3, 0, 1, …, 5999]` | 各请求独立延续自己的位置序号 |
+| `query_start_loc` | `[0, 4, 8, …, 44, 48, 6048]` | 共 **14 个数**，标出 13 段边界 |
+| 本步计算后的长度 | `[L₁+4, …, L₁₂+4, 6000]` | 供各层与步末更新使用 |
 
 逐行看：
 
@@ -427,16 +424,15 @@ GLM 的 42 个 MoE 层各有 288 个路由专家，每个 token 选其中 8 个�
 
 **第 1 步走 MC2 时是多少。** 两组都回放 64 的图，MoE 里按 TP8 沿 token 维切开，每卡最多 `64 ÷ 8 = 8` 行：
 
-```calc
-title: 一个 decode 步的 MoE 逻辑载荷上界
-dispatch = 8 行 × 8 个专家 × 4,100 B = 262,400 B
-combine = 8 行 × 8 个专家 × 8,192 B = 524,288 B
-TP8 把 8 份切片拼回完整张量 = 8 行 × 8,192 B = 65,536 B
-共享专家的 TP8 all-reduce = 64 行 × 8,192 B = 524,288 B
-每层合计 = 1,376,512 B ≈ 1.31 MiB
-42 层（约） = 55.1 MiB
-> 其中 EP16 范围的 dispatch 与 combine 逻辑载荷约 31.5 MiB，包含同机或本卡的专家去向，不能全算成跨机流量
-```
+| 第 1 步（64-token 图，MC2）每卡 MoE 逻辑载荷上界 | 算式 | 结果 |
+| --- | --- | --- |
+| dispatch（每卡最多 8 行 × 8 专家） | $8 \times 8 \times 4{,}100\text{ B}$ | **262,400 B** |
+| combine（每卡最多 8 行 × 8 专家） | $8 \times 8 \times 8{,}192\text{ B}$ | **524,288 B** |
+| TP8 拼回完整张量（All-Gather） | $8 \times 8{,}192\text{ B}$ | **65,536 B** |
+| 共享专家的 TP8 All-Reduce | $64 \times 8{,}192\text{ B}$ | **524,288 B** |
+| **每层合计 / 42 层合计** | $1{,}376{,}512\text{ B} \approx 1.31\text{ MiB/层}$；$\times 42$ | 约 **55.1 MiB** |
+
+其中 EP16 范围的 dispatch 与 combine 逻辑载荷约 31.5 MiB，包含同机或本卡的专家去向，不能全算成跨机流量。
 
 这是按每卡 8 行都参与派发算的逻辑上界；MC2 另用掩码标出真实行，DP0 的 48 行和 DP1 的 28 行都不满 64。两步的真实 token 从 `48 + 28 = 76` 涨到 `6048 + 28 = 6076`，约 80 倍。两条路径的载荷结构也变了：DP1 被补到 6048 行，All-Gather 交换完整 BF16 隐藏向量，而 MC2 按选中的专家传递 int8 副本。由于载荷、填充行和专家去向的口径不同，不能把上面的合计数相除后称作实际跨机通信或耗时的增长倍数；应在相同负载下采集通信与链路 profile。
 
@@ -467,15 +463,11 @@ M′ 里 DP1 一条请求都没有。它的调度器每一步都排不出东西�
 
 第 2 步的主干输出有 6048 行，但只有一部分行要变成词表分数（logits，词表里每个 token 一个分数）。哪几行，由每条请求自己决定：
 
-```calc
-title: 混合批次有多少行需要投影到词表
-D₁…D₁₂ = 12 × 4 = 48 行，第 0–47 行
-> 每条 4 行，拿来验证 3 个草稿，外加一个额外的 token
-N = 1 行，第 6047 行
-> 只要最后一个提示词位置的那一行
-合计 = 49 行
-> → 词表分数 [49, 154880]
-```
+| 混合批次需要投影到词表（`lm_head`）的行 | 行范围与行数 | 用途 |
+| --- | --- | --- |
+| $D_1\dots D_{12}$（12 条 decode） | 第 0–47 行，共 $12 \times 4 = \mathbf{48\text{ 行}}$ | 每条 4 行，验证 3 个草稿加 1 个额外 token |
+| $N$（6,000 token 新请求） | 第 6047 行，共 **1 行** | 只取最后一个提示词位置生成首 token |
+| **合计** | **49 行** | 产出词表分数 `[49, 154880]` |
 
 这 49 行以后就按请求各走各的：Dₖ 用自己的 4 行按[一条请求](one-request.md)第 6 站的办法验证草稿，这一步接受几个、退回几个，12 条各不相同，已算到的位置数也各自回退；N 从第 6047 行采样出第一个输出 token，随后 MTP 层也给它猜 3 个草稿，所以第 3 步它和别人一样送 4 个 token。
 
@@ -519,58 +511,36 @@ N = 1 行，第 6047 行
 
 ### 版本差异
 
-**v0.30.0rc2 配套上游改变了前端选 DP 组的评分。** 基础分取“API 进程数×本前端在途数”与 waiting+running 的较大值，KV 使用率超过 50% 后还会增加 waiting 的权重，同分时旋转扫描起点。正文 running+4×waiting 是原固定部署的算法，不能直接用于 rc2。这个分数决定新请求进入哪个组，不是每组 Scheduler 的 token 预算；组内执行仍需看实际 runner，Ascend rc2 默认仍选 MRV1。
+**`v0.30.0` 与 `main` 配套上游改变了前端选 DP 组的评分与结束共识节奏，且 `main` 已收敛至 Model Runner V2。** 基础分取「API 进程数 × 本前端在途数」与 `waiting + running` 的较大值，KV 使用率超过 50% 后还会增加 `waiting` 权重，同分时旋转扫描起点；正文 `waiting × 4 + running` 是例外 B 固定旧部署的算法，不能直接套用到 `v0.30.0` / `main`。这个分数决定新请求进入哪个组，不是每组 Scheduler 的 token 预算。
 
-下表按上游 0fc695fc / 568afb3a / ced6857a / 84030bbe 与 Ascend 2c59ff10 / 2ed6cbba / 7d825229 / baa023ad 比较列出的规则。GLM 专用 db701c1f 另列在旧版格内；固定上游 main 仅作比较，不推定是某个 Ascend 镜像的实际安装版本。
+下表按四版社区正式钉点比较规则（**本文场景 M 与变体 M′ 固定于例外 B 镜像 `vllm-ascend@db701c1f` + `vllm@0fc695fc`**）：
 
-| 机制 | v0.23 / GLM 旧基线 | v0.26 rc | rc2 | 固定 main |
-|---|---|---|---|---|
-| 前端选组 | waiting×4+running；同分按既有扫描起点 | 分数不变，但派发后旋转同分扫描起点 | 加入在途下限与 KV 压力，仍旋转起点 | 与 rc2 所列评分相同 |
-| MRV1 的 DP 输入补齐 | db：调用方允许补齐或在草拟时统一宽度，否则保留本地宽度 | 所列条件相同 | 按同步后的图模式、通信方式及细粒度 TP 等条件判断 | 仍是旧 allow_dp_padding / 草拟条件，与 rc2 有差异 |
-| 组间结束共识 | 每 32 步，旧算例末尾最多额外 31 步 | 仍每 32 步 | 每轮工作首步及配置间隔；默认 16 | 与 rc2 所列节奏相同 |
-| GLM 模型与草拟 | 2c 无本页模型；db 专用模型，草拟强制 eager | 无本页同名 GLM 模型链；通用 GLM 判断仍强制草拟 eager | 专用多缓存组 proposer 可支持草拟图，仍尊重显式 eager | 通用 GLM 判断仍强制草拟 eager，没有 rc2 的该例外 |
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| 前端选组评分 | `waiting × 4 + running`；同分按既有扫描起点 | 分数不变，派发后旋转同分扫描起点 | 加入在途下限与 KV 压力并旋转起点（`core_client.py#L1546-L1596`） | 同 `v0.30.0`（`core_client.py#L1679`） |
+| Runner 与 DP 输入补齐 | 仅 MRV1；镜像 `db701c1f` 由 `allow_dp_padding` 或草拟条件统一宽度 | MRV1 同左条件 | MRV1（`_sync_metadata_across_dp`，`model_runner_v1.py#L823-L845`）按同步后图模式、通信路径与细粒度 TP 统一宽度；MRV2 并存但 GLM 教程默认 MRV1 [C76] | **移除 MRV1**，统一收敛至 `worker/v2/model_runner.py`（L289–L300），MC2 容量在初始化阶段由 `ascend_forward_context.py`（L259–L320）设置 [C78] |
+| 组间结束共识 | 固定每 32 步（末尾最多多跑 31 步） | 仍固定每 32 步 | 可配 `--dp-sync-interval`（默认 16），首步及每间隔步检查 | 同 `v0.30.0`（`parallel.py#L171`、`core.py#L2804`）[C80] |
+| GLM 模型与草拟 | `2c59ff10` 无模型；镜像 `db701c1f` 草拟强制 eager | 无 GLM-5.3-Flash 链路；通用 GLM 判断强制草拟 eager | `models/glm5next/` + `multi_kv_cache_group_proposer.py`（L23–L48）支持草拟图，仍尊重显式 `enforce_eager` [C77] | 迁入 `worker/v2/spec_decode/`；GLM 教程全面切至 MRV2 |
 
-rc2 的补齐不再使用 allow_dp_padding 入参。正常进行 DP 同步后，只要同步后的图模式不是 NONE、正在草拟、通信选中 MC2/AllGather、选中且使用 CANN MegaMoE 的 FUSED_MC2，或输出投影/词表/嵌入/MLP 任一细粒度 TP 大于 1，就统一 runner 输入宽度。否则保留各组本地宽度；另有明确跳过同步的特定路径。这里比较的是 MRV1，不用这段代码推断 MRV2。固定 main 仍保留旧条件，不能按分支名字认定它已经包含 rc2 的每一项改变。
-
-新的结束共识参数为 `--dp-sync-interval`（ParallelConfig 的 dp_sync_interval），整数 ≥1，默认 16，所有 DP rank 必须使用相同值；后续间隔之间至多多等 15 步，但每轮工作的首步还会检查。调小会更频繁地做全局集合通信，调大则可能增加尾部陪跑。它检查是否全局结束，与[调度器的 prefill 间隔](vllm-scheduler.md#多个-dp-组怎样对齐-prefill-的节奏)是两件事；正文“每 32 步、最多 31 步”只对应固定旧配方。
+`v0.30.0` 的 MRV1 补齐不再使用 `allow_dp_padding` 入参。正常进行 DP 同步后，只要同步后的图模式不是 `NONE`、正在草拟、通信选中 `MC2`/`AllGather`、选中且使用 CANN MegaMoE 的 `FUSED_MC2`，或输出投影/词表/嵌入/MLP 任一细粒度 TP 大于 1，就统一 runner 输入宽度，否则保留各组本地宽度。新的结束共识参数 `--dp-sync-interval`（`ParallelConfig.dp_sync_interval`）为正整数、默认 16，所有 DP rank 必须一致；它检查是否全局结束，与[调度器的 prefill 间隔](vllm-scheduler.md#多个-dp-组怎样对齐-prefill-的节奏)是两件事，正文“每 32 步、最多 31 步”只对应固定旧配方。
 
 - 调度、选组、陪跑循环按 `vllm@0fc695fc` 读；输入准备、DP 对齐、MoE 通信按 `vllm-ascend@db701c1f` 读，这是官方镜像里跑 GLM 的那一版。
 - 每步两组对齐走的是 vllm-ascend 自己的 `_sync_metadata_across_dp`，一次 All-Reduce 同时带上 token 数和执行方式；上游 vLLM 的 GPU 路径另有一套对齐函数，在昇腾的 model runner 上不走。
 - MC2 与 AllGather 的二选一只在 A2 上成立；A3 的选择函数里另有 All-to-All 分支 [C23]。
 - vllm-ascend 另有 balance scheduling 等调度器变体，开关默认关（`vllm_ascend/envs.py` 103–105 行），本页按上游调度器写。
-- vllm-ascend 的 main 分支（`baa023ad`）把 GLM 的实现挪进了 `vllm_ascend/models/glm5next/` 目录，读这一版时模型文件的路径要换。
 
 ### 源码位置
 
 | 想核对的事 | 读哪里 |
 | --- | --- |
-| 前端按 `waiting × 4 + running` 挑组，派出后本地先加计数 | `vllm/v1/engine/core_client.py` [C3] |
-| 请求头 `X-data-parallel-rank` 怎样取出 | `vllm/entrypoints/openai/engine/serving.py` 398–411 行 |
-| 调度器没有 prefill、decode 两个阶段 | `vllm/v1/core/sched/scheduler.py` [C4] |
-| running 里的请求本步要几个 token，被预算夹住 | 同文件 403–416 行 [C5] |
-| 这一步发生过抢占就不接纳新请求；running 满 32 条就停 | 同文件 562–570 行 [C6] |
-| 新请求的提示词按剩余预算切块 | 同文件 684–700 行 |
-| waiting 里的新请求要不到块时只停下、不抢占 | 同文件 761–781 行 |
-| 池子里空闲块不够时返回 None | `vllm/v1/core/kv_cache_manager.py` [C9] |
-| 续块失败就从 running 末尾抢占一条 | `scheduler.py` 459–509 行 [C10] |
-| 抢占：收回块号、已算位置清零、退回 waiting 最前面 | `scheduler.py` 974–995 行 [C11] |
-| positions 与 query_start_loc 怎样拼 | `vllm_ascend/worker/model_runner_v1.py` 830–868、1018–1040 行 [C14] |
-| KDA 按槽位号读写各请求的状态，新请求的状态先清零 | 模型层构造 `KimiGatedDeltaNetAttention`，v0.23 custom op 注册后落到 `vllm_ascend/ops/kimi_kda.py` 的实际 prefill/recurrent 分支；旧模型文件中的同类逻辑不能代替这条调用链 |
-| 稀疏 MLA 按块表和槽位映射读写各请求的历史 | `glm5_next.py` 1201–1232 行 |
-| token 数往上补到最近一档图尺寸；按条件选择图模式 | `vllm/v1/cudagraph_dispatcher.py` 的 `_compute_bs_to_padded_graph_size`（76–96 行）、`dispatch`（239–300 行） |
-| 能不能用图的五条判据，两组对齐后重挑图尺寸 | `model_runner_v1.py` 2898–2996 行 [C19] |
-| 两组交换 token 数与执行方式的那次 All-Reduce | `model_runner_v1.py` 692–740 行 [C20] |
-| GLM 的草拟层强制 eager，所以草拟不补图尺寸 | `vllm_ascend/spec_decode/llm_base_proposer.py` 217–236 行 |
-| 草拟模型一律补到两组最大值 | `llm_base_proposer.py` 895–906 行 |
-| MoE 通信按两组 token 数的最大值选 | `vllm_ascend/ascend_forward_context.py` 90–101 行 [C22] |
-| 容量 128 的算法与 A2 上的三个条件 | `ascend_forward_context.py` 200–252 行 |
-| AllGather 路径的补齐、交换与 Reduce-Scatter | `vllm_ascend/ops/fused_moe/prepare_finalize.py` 440–495、543–560 行 [C24]；之后的 TP All-Reduce 在 v0.23 专用文件 `fused_moe_0_23_0.py` 的 `AscendMoERunner._maybe_reduce_final_output`，不能只用 prepare/finalize 证明它 |
-| 本地没活但全局有活时执行空批次，每 32 步查一次全局 | `vllm/v1/engine/core.py` 1869–1945 行 [C26] |
-| 空批次只准备一条 decode 请求的 1 + 3 = 4 个 token | `vllm_ascend/worker/worker.py` 972–973 行，`model_runner_v1.py` 652–656 行 |
-| 空批次同样经过两组对齐，草拟模型也陪跑 | `model_runner_v1.py` 3405–3452、3640–3652 行 [C28] |
-| 混合步取哪 49 行做词表分数 | `model_runner_v1.py` 1262–1306 行 [C30] |
-| 提示词没算完的请求，这一步采样出的 token 被丢掉 | `model_runner_v1.py` 1080–1099 行 |
-| 每条请求各自检查停止条件，结束后归还块号 | `scheduler.py` 1695–1711、1888–1910 行 |
+| 前端按 `waiting × 4 + running` 挑组、请求头 `X-data-parallel-rank` | `vllm/v1/engine/core_client.py`、`vllm/entrypoints/openai/engine/serving.py` 398–411 行（来源 1、3）[C3] |
+| 调度器统一步内预算、抢占后停接新请求、按余量切块与不抢占 waiting | `vllm/v1/core/sched/scheduler.py` 342–351、403–416、562–570、684–700、761–781 行（来源 4–7、12）[C4] |
+| 池子空闲块检查与抢占回退（从 running 末尾回收并清零位置） | `vllm/v1/core/kv_cache_manager.py`、`scheduler.py` 459–509、974–995 行（来源 9–11）[C10] |
+| `positions`、`query_start_loc` 拼接；KDA 状态读写与稀疏 MLA 块表 | `vllm_ascend/worker/model_runner_v1.py` 830–868、1018–1040 行、`ops/kimi_kda.py`、`glm5_next.py` 1201–1232 行（来源 13–14、17、48–49）[C14] |
+| 图尺寸补齐、能否用图五条判据、两组对齐与 GLM 草拟补齐 | `vllm/v1/cudagraph_dispatcher.py`、`model_runner_v1.py` 2898–2996、692–740 行、`llm_base_proposer.py` 217–236、895–906 行（来源 18–21、38）[C19] |
+| MoE 通信按两组最大值选、128 门槛、AllGather 路径与 TP 归约 | `ascend_forward_context.py` 90–101、200–252 行、`prepare_finalize.py` 440–495、543–560 行、`fused_moe_0_23_0.py`（来源 22–25、50）[C22] |
+| 空批次陪跑、32 步结束检查、混合步取 49 行 logits 与停止释放块号 | `vllm/v1/engine/core.py` 1869–1945 行、`worker/worker.py` 972–973 行、`model_runner_v1.py` 3405–3452、3640–3652、1262–1306、1080–1099 行、`scheduler.py` 1695–1711、1888–1910 行（来源 26–33）[C26] |
+| `v0.30.0` / `main` DP 对齐、多组 proposer、V2 Runner 与 `--dp-sync-interval` | `c09d3e20`：`model_runner_v1.py#L823-L845`、`multi_kv_cache_group_proposer.py#L23-L48`；`8d6180e2`：`worker/v2/model_runner.py#L289-L300`、`ascend_forward_context.py#L259-L320`；`ba15685a`：`parallel.py#L171`、`core.py#L2804`、`core_client.py#L1679`（来源 76–82） |
 
 **推导对应与实测范围**
 

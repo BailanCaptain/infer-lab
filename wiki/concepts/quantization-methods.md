@@ -123,6 +123,19 @@ sources:
   - 'vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/quantization.md#L13-L59'
   - 'vllm-ascend@7d825229:docs/source/user_guide/feature_guide/quantization.md#L13-L59'
   - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/quantization.md#L13-L59'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_pdmix.py#L36-L89'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/quantization/methods/w8a8_pdmix.py#L37-L95'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L36-L56'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_static.py#L33-L43'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L60-L150'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L260'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/fp8_config.py#L26-L80'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/configs/modelslim_config.py#L798-L840'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L36-L56'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L128'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L207-L345'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/quantization/configs/fp8_config.py#L93-L115'
+  - 'vllm@ba15685a:vllm/config/quantization.py#L70-L115'
 relations:
   - to: quantization
     kind: builds-on
@@ -130,10 +143,14 @@ relations:
   - to: low-precision-formats
     kind: builds-on
     note: 方法名不指定全部数值编码；FP8、FP4 与分组缩放由格式页解释
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: S
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-19'
 ---
 
 ## 一份量化方案究竟决定哪些事？
@@ -164,15 +181,15 @@ file: quantization-methods-intuition
 
 以数学权重 W 的“输入维 × 输出维”为例，per-output-channel 是每列共享系数；若 checkpoint 以转置方向保存，文件中的“每行”就对应数学上的“每列”。因此必须同时记录逻辑轴、实际 shape 和分组方向。group size=128 只说明每组 128 项，没说沿哪个轴分。
 
-粒度细通常能减少范围差异的影响，但要多存系数，并要求算子支持。取同一列 256 个 INT4 权重、每组配一个 FP16 scale、无 zero-point 和补齐作为示意：
+粒度细通常能减少范围差异的影响，但要多存系数，并要求算子支持。取同一列 256 个 INT4 权重、每组配一个 FP16 scale（2 B）、无 zero-point 和补齐作为示意：
 
-```calc
-title: 分组越细，附加系数越多（示意条件）
-四位载荷 = 256 × 4 ÷ 8 = 128 B
-每 128 项一组 = 128 B + (256 ÷ 128) × 2 B = 132 B
-每 32 项一组 = 128 B + (256 ÷ 32) × 2 B = 144 B
-后一方案每权重平均位数 = 144 × 8 ÷ 256 = 4.5 bit
-```
+$$B_{\text{total}}(g) = \frac{256 \times 4}{8} + \frac{256}{g} \times 2\text{ B}, \qquad b_{\text{avg}}(32) = \frac{144 \times 8}{256} = 4.5\text{ bit}$$
+
+| 分组方案（256 个 INT4 权重，每组 1 个 FP16 scale 示意） | 权重本体 + 系数算式 | 总字节 | 每权重平均位数 |
+| --- | --- | --- | --- |
+| 纯 4 位载荷（不含系数） | $256 \times 4 \div 8$ | **128 B** | $4.0\text{ bit}$ |
+| 每 128 项一组（$g = 128$） | $128\text{ B} + (256 \div 128) \times 2\text{ B}$ | **132 B** | $4.125\text{ bit}$ |
+| 每 32 项一组（$g = 32$） | $128\text{ B} + (256 \div 32) \times 2\text{ B}$ | **144 B** | **4.5 bit** |
 
 这解释了“4 位模型”实际每权重平均占用为何大于 4 位。若真实产物包含零点、高精度层、打包对齐或 [NZ 补齐](tensor-layout.md)，还要把这些开销逐项加进去。
 
@@ -206,16 +223,14 @@ QAT 会增加训练资源和时间，数据与目标格式也必须匹配。它�
 
 ## 等价缩放为什么能改变量化难度？
 
-用同一个点积演示 SmoothQuant 所用变换的数学基础。激活 x=(20,1)，权重 w=(0.1,1)，将第一个输入通道除以 10，同时将对应权重乘以 10。下例只演示变换，取 10 是教学假设，不是校准所得最优值。
+用同一个点积演示 SmoothQuant 所用变换的数学基础。激活 $x = (20, 1)$，权重 $w = (0.1, 1)$，将第一个输入通道除以 $10$，同时将对应权重乘以 $10$。下例只演示变换，取 $10$ 是教学假设，不是校准所得最优值：
 
-```calc
-title: 量化前改变范围，原点积保持不变（示意）
-原点积 = 20 × 0.1 + 1 × 1 = 3
-变换后激活 = (20 ÷ 10, 1) = (2, 1)
-变换后权重 = (0.1 × 10, 1) = (1, 1)
-变换后点积 = 2 × 1 + 1 × 1 = 3
-激活最大绝对值 = 20 ÷ 10 = 2
-```
+$$x \cdot w = (x D^{-1}) \cdot (D w) = 20 \times 0.1 + 1 \times 1 = 2 \times 1 + 1 \times 1 = 3$$
+
+| 变换对比（通道 0 缩放因子 $s_0 = 10$ 示意） | 激活向量 $x$ | 权重向量 $w$ | 点积 $x \cdot w$ | 激活最大绝对值 $\max \lvert x \rvert$ |
+| --- | --- | --- | --- | --- |
+| 变换前 | $(20,\; 1)$ | $(0.1,\; 1)$ | $20 \times 0.1 + 1 \times 1 = \mathbf{3}$ | **20** |
+| 变换后（$x_0 \div 10,\; w_0 \times 10$） | $(2,\; 1)$ | $(1,\; 1)$ | $2 \times 1 + 1 \times 1 = \mathbf{3}$ | **2** |
 
 若用对称 INT8 的最大值定系数，激活步长由 20/127 变为 2/127；权重第一项同时变大，所以要检查权重侧能否承担这个变化。一般矩阵形式是 XW=(XD⁻¹)(DW)，D 是对角线上放通道缩放的矩阵。数学等价只对量化前的精确计算成立；两侧分别舍入后，最终误差要重新评估。
 
@@ -283,7 +298,7 @@ TorchAO 也有类似的“能保存不等于任意环境能重载”问题。所
 file: quantization-methods-flow
 ```
 
-模型产物至少要把低位权重、系数、零点或其他元数据，以及哪些层保留浮点说明清楚。若文件方向或打包方式与算子要求不同，加载后还要转置、[打包或转 NZ](tensor-layout.md)。仅修改模型配置中的精度名字不会产生相应权重数据，也不能把任意算法产物变成另一个加载器接受的格式。
+模型产物至少要把低位权重、系数、零点或其他元数据，以及哪些层保留浮点说明清楚。若文件方向或打包方式与算子要求不同，加载后还要转置、[打包或转 NZ](tensor-layout.md)。仅修改模型配置中的精度名字不会产生相应权重数据，也不能把任意算法产物变成另一个加载器接受的格式。同时要核对框架对该层类型的实际注册范围：在 `v0.30.0` 与 `main` 主基线上，静态 `W8A8` 与 PD 混合 `W8A8_MIX` 均**只注册线性层（`linear`）**（`W8A8_MIX` 已移除旧版 `MoE` 注册），只有 `W8A8_DYNAMIC` 同时覆盖线性层与 MoE 专家；原生 `FP8_BLOCK` 在昇腾 950（A5）上会重组为 `MXFP8` 执行，而在 A2/A3 上 `v0.30.0` 会反量化为 BF16 走非量化矩阵乘、`main` 则直接抛出 `NotImplementedError` 拒绝加载。
 
 本站 [GLM 双机前提](glm-5-3-flash-two-node.md#部署前提)使用配套 W8A8 包，主线位置是加载阶段准备权重、[第 4 站](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)使用量化算子。实际每层方案由描述文件决定。已取得并核对两份固定快照的逐层描述，二者的 MLA 投影精度存在差异，详见 [GLM 的逐层量化范围](quantization.md#哪些矩阵是-8-位哪些保持-bf16)。这些文件说明每层采用的精度，尚不能还原离线校准数据与工具配方，因此不能从“W8A8”推断它采用了 AWQ、GPTQ 或某一种平滑算法。
 
@@ -339,41 +354,22 @@ PTQ 要承担校准、搜索或重构成本，QAT 还需要训练；推理阶段
 
 ### 版本差异
 
-四个 Ascend 教学快照的量化指南均将 ModelSlim 26.0.0 和 Qwen3-MoE 示例作为制作入口；指南相同只说明推荐入口相同。本页额外核对的是该工具 26.0.0 分支的固定提交及脚本，不能由此补出 GLM 模型包未公开的配方，也不把较新 ModelSlim 快速开始里的模型、Transformers 版本或卡数套回这个示例。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；ModelSlim 26.0.0 与 Qwen3-MoE 制作示例另核对 `msmodelslim@3b3f5151`，不据此反推 GLM 未公开配方。下表覆盖 Ascend 注册表、原生 `FP8_BLOCK` 分流与上游加载时量化接口：
 
-**v0.30.0rc2 继续区分量化算法、存储格式和实际执行 scheme。** 官方量化指南与已钉 main 相同，原生 FP8 loader 仍只接受 block-wise、dynamic activation_scheme，跳过层走普通方法。950 上满足分组条件的线性层可重组为 MXFP8；被 attention 吸收的 kv_b_proj、分组不匹配的层和其他硬件走 model dtype。这不能作为 AWQ/GPTQ 等算法自动获得支持的证据。
+| 核对维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| `W8A8_MIX` 注册范围 | 同时注册 `linear` 与 `moe`（`w8a8_pdmix.py#L36,#L88`） | 同时注册 `linear` 与 `moe`，但对 `moe` 发出弃用告警（`w8a8_pdmix.py#L37,#L89-L95`） | **仅注册 `linear`**（`w8a8/w8a8_pdmix.py#L36-L56`），移除旧 `moe` 注册（P 侧动态、D 侧静态均只用于线性层） | 同 `v0.30.0`（`w8a8/w8a8_pdmix.py#L36-L56`），仅注册 `linear` |
+| `W8A8` 静态 vs `W8A8_DYNAMIC` 覆盖 | `W8A8` 静态面向线性层，`W8A8_DYNAMIC` 覆盖线性层与 MoE 专家 | 同左 | 明确拆分：`W8A8`（`w8a8_static.py#L33`）**仅注册 `linear`**；`W8A8_DYNAMIC`（`w8a8_dynamic.py#L60,#L146`）同时注册 `linear` 与 `moe` 专家 | 同 `v0.30.0`（另扩展 `W4A8_DYNAMIC` 同时覆盖 `linear` 与 `moe`） |
+| 原生 `FP8_BLOCK` 硬件分流 | 无原生 block-wise FP8 重组路径 | 无该原生路径 | 校验 block-wise + dynamic（`fp8_config.py#L26-L80`）；**A5（950）转为 `MXFP8` 执行**（`kv_b_proj` 或未对齐归约维回退 `model_dtype`）；**A2/A3 反量化为 `model_dtype`（如 BF16）后走 `unquantized_gemm`**（`fp8_block.py#L178-L260`） | A5 延续转 `MXFP8`（`fp8_block.py#L207-L345`）；**A2/A3 在 `_require_fp8_weight_matmul()` 直接抛 `NotImplementedError`**（`#L114-L128`），不再静默反量化为双倍显存的 BF16 |
+| 上游 online 量化与 ModelOpt MXFP8 | `linear` / `moe` / `ignore` + 基础 FP8 预设；显式预量化方法拒绝叠加 `quantization-config` | 新增 per-channel FP8 与仅 MoE 的 `nvfp4_per_token` 预设（限 Blackwell/FlashInfer） | 新增按层 `targets` 与预量化组合，支持 MXFP4/MXFP8 延迟识别；Ascend 注册自有 `modelopt_mxfp8` 配置类并新增 `C8-MXFP`（需显式 `--kv-cache-dtype mxfp8`，限标准 full Attention，`modelslim_config.py#L798-L840`） | 上游 `QuantKey` / `QuantSpec` 延续 `targets` 与 `activation: null` 显式校验（`quantization.py#L70-L115`）；Ascend 延续同名 MXFP8 注册与 `C8-MXFP` |
 
-ModelSlim 新增 C8-MXFP attention scheme，只有显式 kv-cache-dtype=mxfp8 才开启；checkpoint 的模型级 kv_cache_type 或逐层 self_attn.quant_type 只说明 scale recipe。它面向标准 full Attention，不把 GDN/Mamba/encoder 状态套成同一种 KV 方法；具体 PCP/DCP、PD 和缓存张量限制见 [量化版本对照](quantization.md#版本差异)。
-
-本页方法定义依据论文和工具文档，不把三条 Ascend 分支标为全部算法已验证。下面比较的是实际读过的量化指南，不能当作每种算法、硬件与模型的兼容矩阵。
-
-| 文档快照 | 已核对的内容 | 使用时意味着什么 |
-| --- | --- | --- |
-| v0.23 维护分支，2026-09-09 | 量化指南与固定 GLM 提交相同，介绍 ModelSlim、LLM-Compressor 与 W8A8 示例 | 按产物类型选加载入口 |
-| v0.26 rc 分支，2026-09-17 | 该指南文件内容与上述快照相同 | 文档相同不代表全部执行实现相同 |
-| v0.30.0rc2，固定快照 | 指南包含原生 FP8 增量，另有 ModelOpt MXFP8 配置类 | 仍按实际硬件与逐层方法确定执行路径 |
-| main，2026-09-22 固定快照 | 指南另增原生 block-wise FP8 checkpoint 的说明：950 与其他代际采用不同加载后路径 | 文件里一字节不保证所有硬件上驻留权重仍一字节 |
-
-加载时量化的上游接口另外按四个固定点比较。main 这里只作独立比较点，不据此认定它与 Ascend main 精确配套。
-
-| 教学版本对应上游 | 配置与消费者变化 | 不能省略的条件 |
-| --- | --- | --- |
-| v0.23 / `0fc695fc` | linear、moe、ignore；预设包含 per-tensor、per-block FP8 等 | 显式预量化方法再叠加 quantization-config 被入口拒绝；纯 online 只执行已实现的 weight 组合 |
-| v0.26 / `568afb3a` | 新增 per-channel FP8 与仅 MoE 的 nvfp4_per_token 预设 | 后者的 Blackwell / FlashInfer 条件不代表 NPU 支持；原有入口组合限制仍在 |
-| v0.30.0rc2 / `ced6857a` | 新增按层 targets；预量化配置可与 online 配置组合；MXFP4/MXFP8 可等待 checkpoint 信息后再决定 | targets 与 linear/moe 不能混填；融合分片必须一致；组合不表示任意已量化层都能再次转换 |
-| main / `84030bbe` | 本表涉及的配置定义及 online 消费者与 rc2 同文 | 同文范围不扩展为全部加载器、算子或设备行为相同 |
-
-Ascend rc2 与 main 还会将 `mxfp8` / `modelopt_mxfp8` 注册到自己的 ModelOpt MXFP8 配置类，由它选择 Ascend 的线性层或 MoE 方法。上游注册表允许插件替换同名类，因此看到相同字符串不能直接推出“这里执行的就是上游在线转换”。
+上游注册表允许插件覆盖同名配置类，因此看到 `mxfp8` / `modelopt_mxfp8` 字符串不能直接推断走上游在线转换；同样，`C8-MXFP` 面向标准 full Attention，不适用于 GDN/Mamba/encoder 状态（详情见 [量化版本对照](quantization.md#版本差异)）。
 
 ### 源码位置
 
 - 校准和量化粒度的基础见 PyTorch 实践说明 [S1]；QAT 的伪量化、导出与训练成本见 PyTorch QAT 说明 [S2]。
 - SmoothQuant 的等价缩放见论文 §4 [S3]；AWQ 的激活统计、通道缩放和 weight-only 范围见 §3 [S4]；GPTQ 的目标与分块补偿见 §3–4 [S5]；QLoRA 的冻结基座和适配器训练见原论文 [S6]。
-- 工具与加载入口对应来源表第 7–9 项；main 的原生 FP8 增量对应第 10 项。四版所列的 ModelSlim 安装与 Qwen3-MoE 配方入口见来源 57–60。
-- ModelSlim Qwen3-MoE 的安装依赖、模型范围和示例命令见来源 55；反异常值与量化数据的分别读取、gate 跳过、混合精度、保存格式及配置复制见来源 56。这里核对的是工具流程，未执行 NPU 量化。
-- rc2 的 FP8 配置校验、跳过层与线性层实际转换分支见 [C12][C13]；C8-MXFP 的启用开关与 recipe 区别见 [C14]。逐层精度以 [GLM 的量化描述](quantization.md#哪些矩阵是-8-位哪些保持-bf16)所列固定文件为准。
-- 0.01 的误差传播、256 项分组账和通道缩放小例子采用教学数据 [A]，相应算术为推导 [D]；没有本站各算法的 NPU 对比实测。
-- 制作模型包、加载转换与动态激活的区别对应来源 16–20 的在线量化及四种 LLM-Compressor 配方，工具主流程另见来源 53。各工具与产物入口对应来源 21–27；算法与导出格式的独立性对应 AutoRound 固定说明（45），逐模块覆盖和融合限制对应 GPTQModel（46）。
-- 上游四版配置定义对应来源 28–31，纯 online 消费者及组合分支对应 32–33；模型配置读取与加载后 FP8 转换对应 34–36，方法识别、平台/dtype 校验对应 49–50。bitsandbytes 预量化 TP 限制对应来源 37。
-- TorchAO 的读取与加载后处理对应来源 38–39，工具序列化条件对应 44；Quark、ModelOpt 读取的元数据对应 51–52。GGUF 的内置/插件文档差异对应 40–41，插件设备前提和注册消费者对应 42–43。
-- Ascend rc2/main 的同名 MXFP8 注册与层方法选择对应来源 47–48；上游允许自定义量化类覆盖注册表的实现对应来源 54。此处没有执行任何量化工具或 NPU/GPU 推理，工具支持与运行效果仍须按目标环境验收。
+- 四版 ModelSlim 指南与 Qwen3-MoE 配方脚本见来源 7–10 与 55–60（未执行 NPU 量化，不据此反推 GLM 未公开校准数据）。
+- 四版 `W8A8_MIX`（移除 `moe`）、`W8A8` 静态 vs `W8A8_DYNAMIC`、原生 `FP8_BLOCK`（A5 转 MXFP8 vs A2/A3 `v0.30.0` 反量化 BF16 / `main` `NotImplementedError`）与 `C8-MXFP` 分别见来源 61–72（`2c59ff10`/`2ed6cbba` `w8a8_pdmix.py`、`c09d3e20` `w8a8_pdmix.py#L36-L56`、`w8a8_static.py#L33-L43`、`w8a8_dynamic.py#L60-L150`、`fp8_block.py#L178-L260`、`fp8_config.py#L26-L80`、`modelslim_config.py#L798-L840`，以及 `8d6180e2` `fp8_block.py#L114-L128`、`#L207-L345`）[C63][C64][C65][C66][C70]。
+- 制作模型包、加载转换、工具产物（LLM-Compressor、AutoAWQ、GPTQModel、AutoRound、ModelOpt、Quark、TorchAO、bitsandbytes、GGUF 插件）及上游四版 `quantization.py` 配置定义见来源 16–54 与 73（`ba15685a:vllm/config/quantization.py#L70-L115`）[C73]；逐层精度以 [GLM 的量化描述](quantization.md#哪些矩阵是-8-位哪些保持-bf16)所列固定文件为准。
+- 0.01 的误差传播、256 项分组账和通道缩放小例子采用教学数据 [A]，相应算术为推导 [D]；此处未执行量化工具或 NPU/GPU 推理实测，工具支持与运行效果仍须按目标环境验收。

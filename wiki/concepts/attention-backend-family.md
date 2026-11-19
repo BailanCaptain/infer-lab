@@ -98,12 +98,27 @@ sources:
   - 'vllm-ascend@baa023ad:vllm_ascend/ops/kimi_kda.py#L170-L180'
   - 'vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L607-L636'
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L529-L559'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L247-L290'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1484-L1510'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/fa3_v1.py#L11-L60'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L920-L1115'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L275-L374'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1793-L1953'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/attention/fa3_v1.py#L11-L66'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/attention/attention_v1.py#L982-L1195'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: attention-qkv
     kind: builds-on
     note: 后端要实现已经定义的注意力计算和因果约束
+  - to: ascend-flash-attention
+    kind: builds-on
+    note: 密集 MHA/GQA 下 FA、FIA、PA 与 FA3 算子族的片上 Tiling 与执行选路在那页展开
   - to: mla
     kind: builds-on
     note: 理解压缩历史、索引和尾状态，才能解释对应后端输入
@@ -217,7 +232,7 @@ FlashAttention 把 Q、K、V 分块装进更靠近计算单元的存储，在处
 
 混合批经过适配层时，实现按元数据把 query 和序列信息切成两段分别调用，再按原来的顺序拼接：decode 分支传 `causal=False`，prefill 传 `causal=True`。对每请求只有一个查询 token 的普通 decode，合法历史范围可由有效长度界定；多查询 token 的投机 decode 还需要逐查询因果约束，不能从这个固定 false 推出它同样适用。
 
-这条路径是密集 MHA/GQA 的扩展阅读。固定版本通过平台选路、显式要求 FA3 且启用批不变时，MLA 或稀疏组合会被校验拒绝；旧 GLM 的显式后端路径则直接返回自身实现。具体条件见下面的"会报什么错"。
+这条路径是密集 MHA/GQA 的扩展阅读。在昇腾平台选择树里，标准密集注意力（`use_mla=False, use_sparse=False, use_compress=False`）默认落入 `AscendAttentionBackend`，内部按阶段与硬件能力在 **FIA**（`npu_fused_infer_attention_score` / `v2`）与 **PA**（`_npu_paged_attention`）等算子之间分流；**MLA / SFA / DSA** 分别对应 `(True, False, False)` / `(True, True, False)` / `(True, False, True)`；**Linear（线性注意力 / KDA / GDN）**则不经过通用注意力后端表，由模型层直接报出 GDN 等线性后端。至于 **FA3（`AscendFABackend` / `AscendFAImpl`）**：在 `v0.23.0` / `v0.26.0rc` 须显式选 `FLASH_ATTN` 且开批不变，在 `v0.30.0` 与 `main` 改为未开 PCP 且 `rl_config.enabled` 与 `rl_config.enable_training_consistency` 同为真时优先命中（同时要求图模式用 `PIECEWISE` 或 eager，拒绝 `FULL_DECODE_ONLY` 与滑动窗口）；`main` 还为特定草稿/模型增加了 CANN **FA**（`fa_v1`）与 A2/A3 `flash_attn_npu_3`（`flash_attention_v3`）两条前置验证分支。各算子族的片上 Tiling、Online Softmax 与 FA/FIA/PA/FA3 详细分流见[FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)；具体拒绝条件见下面的[会报什么错](#会报什么错)。
 
 ## 常见误解
 
@@ -261,22 +276,18 @@ FA3 只适合密集 MHA/GQA，官方文档把它列为 A2/A3 上的 beta，并�
 
 ### 版本差异
 
-**v0.30.0rc2 继续按 attention 形式与硬件选择后端，同时把 PCP/DCP 作为独立选择条件。** DCP 的 GQA、MLA、SFA 实现通过公共 mixin 复用普通 V1 后端，只覆盖通信和缓存布局不同的阶段；读专用后端时还须向上追父类。MRV2 PCP 有单独的后端表，不能把 MRV1 的选择结果套过去。
+**`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）沿「前置特判（FA3 / FA）→ 硬件兼容分支（310P）→ PCP 分支 → 通用四元组查表」组织注意力后端选择树，并将 `Linear`（KDA/GDN）留在模型层直报路径：**
+- **FA / FIA / PA / FA3（`PIECEWISE`）**：标准密集层 `(False, False, False)` 在四版均落入 `AscendAttentionBackend`（`attention_v1.py` 内部按硬件/阶段/量化在 FIA / FIA v2 / PA 之间调度，详见 [FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)）。训推一致 **FA3（`fa3_v1.AscendFABackend`）**在 `v0.23.0` / `v0.26.0rc` 须显式选 `FLASH_ATTN` 且开 `VLLM_BATCH_INVARIANT`，而在 `v0.30.0` 与 `main` 改为「未开 PCP 且 `rl_config.enabled` 与 `rl_config.enable_training_consistency` 同为真」触发，初始化仍拒绝 `sliding_window` 与 `FULL_DECODE_ONLY`（须配 `PIECEWISE` 或 `enforce_eager`）。`main` 还额外在查表前插入两条特判：A5 特定草稿走 CANN **FA**（`fa_v1.AscendFlashAttentionBackend`），A2/A3 兼容 MiniMax 走 `flash_attention_v3.AscendFlashAttentionBackend`。
+- **MLA / SFA / DSA 与 GLM 稀疏路径**：`v0.30.0` 与 `main` 均以 `(use_mla, use_sparse, use_compress)` 映射到 `AscendMLABackend`、`AscendSFABackend`、`AscendDSABackend`，310P 由 `HardwareProfile.attention_backend_family is COMPATIBILITY` 落到 `AscendAttentionBackend310`；PCP/DCP 通过专用映射表与公共 mixin 复用普通 V1 后端。GLM 稀疏层在 `v0.30.0` / `main` 已拆分为 `Glm5NextKPoolIndexerBackend`（索引执行，检查 NoPE 与硬件并拒绝 PCP/DCP）、可替换 MLA 包装层经通用选择命中 `AscendSFABackend`、以及完成池与尾状态各自的 cache-only backend（尾状态改名 `AscendIndexerKPoolTailBackend`）；而正文 GLM 双机绑定算例读的是专用镜像 `db701c1f`（独立 orphan commit，不属于 `2c59ff10` / `2ed6cbba` 维护分支，后两者不含 GLM 5.3 Python 实现）。
+- **Linear（KDA / GDN）**：不走平台 `get_attn_backend_cls` 查表；`v0.26.0rc` 取消了上游版本号门控注册，`v0.30.0` / `main` 中 GLM 的 KDA 层直接报出 GDN 后端，`ops/kimi_kda.py` 对应类改名 `AscendKimiK3DeltaAttention`。
 
-rc2 的 GLM 稀疏层把三种职责分开：模型的 indexer 工厂返回 Glm5NextKPoolIndexerBackend，包装层据此创建索引执行模块；这个模块检查 NoPE 与硬件类别，并拒绝 PCP/DCP。真正计算 attention 的 MLA 包装层被注册为 Ascend 实现，内部构造继承上游的 AscendMLAAttention，再由通用选择器选中 SFA 后端。完成池与尾状态则由各自的 cache-only backend 管理。KDA 另由模型自带实现接入 GatedDeltaNetAttention。因此，名字里的“Backend”既可能指索引计算，也可能指 attention 或缓存管理，须看它的构造者和使用者。
-
-rc2 的 FA3 条件与下表 main 一样：未开 PCP，并且 RL 总开关与训推一致开关都为真；随后仍检查密集 attention 类型及外部包。通用 PCP 后端的存在不绕过 GLM indexer 自身的限制。
-
-上游的后端选择入口（`get_attn_backend`、`AttentionConfig.backend`）按 `vllm@0fc695fc` 读。执行侧按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26 列是 2ed6cbba，main 列是 baa023ad。**本页的 GLM 算例读的是本部署专用镜像 db701c1f，它是另一个 orphan commit，不算进 v0.23 列：该镜像包含 GLM 5.3 模型代码，2c59ff10 与 2ed6cbba 上都没有 Python 实现。**
-
-| 项目 | v0.23（来源 22） | v0.26（来源 23、24） | main（来源 25–29） |
-|---|---|---|---|
-| GLM 5.3 的模型代码 | 没有 | 没有（只有 Kimi KDA 的算子与单测） | 有，在 `vllm_ascend/models/glm5next/` |
-| KDA 层报出的后端 | 没有这条路径 | 昇腾 Kimi KDA 实现无条件注册，不再挂版本分支 | GLM 的 KDA 层直接返回 GDN 后端；`ops/kimi_kda.py` 里的类改名成 `AscendKimiK3DeltaAttention` |
-| 稀疏 MLA 层报出的后端 | 没有这条路径 | 没有这条路径 | 可替换 MLA 包装层被注册为 Ascend 实现，内部构造上游 `MLAAttention`，通用选择最终返回 `AscendSFABackend` |
-| 尾状态缓存后端的名字 | 没有这条路径 | 没有这条路径 | `AscendIndexerKPoolTailBackend`（镜像里叫 `AscendIndexerKPoolStateBackend`） |
-| 平台选择表的四个键 | MLA / 密集 / 稀疏 MLA / 压缩 MLA，四项一致 | 一致 | 一致，但 310P 分支换成按硬件画像判断，另加一张 PCP 专用表 |
-| FA3 什么时候试 | 显式选 `FLASH_ATTN` 且批不变已启用 | 同 v0.23 | 不再看显式选择，改成没开 PCP，且 RL 总开关与训推一致开关都为真 |
+| 选择树与后端项 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
+|---|---|---|---|---|
+| 密集默认（FIA / PA） | `AscendAttentionBackend`（`attention_v1.py` 内部路由 FIA / PA） | 同 `v0.23.0` | 同左，310P 改由 `HardwareProfile` 判 `COMPATIBILITY` 落 `AscendAttentionBackend310` | 同 `v0.30.0`，并在入口增加存储 dtype 合法性校验 |
+| 训推一致 FA3（`fa3_v1`） | 显式选 `FLASH_ATTN` 且 `VLLM_BATCH_INVARIANT=1` 才试；拒绝 MLA/SFA、`sliding_window`、`FULL_DECODE_ONLY` | 同 `v0.23.0` | 未开 PCP 且 `rl_config.enabled` + `enable_training_consistency` 同为真；须 `PIECEWISE` 或 eager | 同 `v0.30.0` |
+| CANN FA / A2-A3 `flash_attn_npu_3` | 无 | 无 | 无 | 新增 `_validate_flash_attn_backend` → `fa_v1`（A5 特定草稿）与 `_validate_flash_attn_npu_3` → `flash_attention_v3`（兼容 MiniMax） |
+| MLA / SFA / DSA | 按 `(use_mla, use_sparse, use_compress)` 查 4 项表 | 同 `v0.23.0` | 4 项表（`MLA / Attention / SFA / DSA`）+ 独立 `use_pcp` MRV2 PCP 映射表 | 同 `v0.30.0`（MRV2 统一执行栈） |
+| Linear（KDA / GDN）与 GLM 路径 | 维护分支无 GLM 5.3（镜像 `db701c1f` 按 0.23.0 分支注册 KDA、MLA 缓存层直返 `AscendIndexerKPoolMLABackend`） | 无 GLM 5.3（Kimi KDA 无条件注册） | `models/glm5next/`：KDA 直报 GDN；MLA 包装层经通用选择命中 `AscendSFABackend`；尾状态 `AscendIndexerKPoolTailBackend` | 延续 `models/glm5next/` 拆分（`AscendKimiK3DeltaAttention` + `AscendSFABackend` + cache-only backend） |
 
 ### 源码位置
 
@@ -298,13 +309,13 @@ rc2 的 FA3 条件与下表 main 一样：未开 PCP，并且 RL 总开关与训
 | Runner 按「类名 + 缓存规格」分组 | `vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5039-L5063` |
 | 每组建一个元数据构建器 | `vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5065-L5083` |
 | 上游的后端选择入口与批不变开关 | `vllm@0fc695fc:vllm/v1/attention/selector.py#L54-L110`；`vllm@0fc695fc:vllm/config/attention.py#L14-L22` |
-| 平台的后端选择表 | `vllm-ascend@db701c1f:vllm_ascend/platform.py#L805-L831` |
-| FA3 的启用条件与三种拒绝 | `vllm-ascend@db701c1f:vllm_ascend/platform.py#L833-L858` |
-| FA3 适配层：缓存形状、kernel 块、混合批切分 | `vllm-ascend@db701c1f:vllm_ascend/attention/fa3_v1.py#L12-L60`、`#L62-L97`、`#L99-L145` |
+| 平台的后端选择表（旧基线与四版演进） | `vllm-ascend@db701c1f:vllm_ascend/platform.py#L805-L831`；`vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L868`；`vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L816-L869`；`vllm-ascend@c09d3e20:vllm_ascend/platform.py#L247-L290`；`vllm-ascend@8d6180e2:vllm_ascend/platform.py#L275-L374` |
+| FA3 / CANN FA / `flash_attn_npu_3` 验证与拒绝 | `vllm-ascend@db701c1f:vllm_ascend/platform.py#L833-L858`；`vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1484-L1510`；`vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1793-L1953` |
+| FA3 与 FIA / PA 适配层实现 | `vllm-ascend@db701c1f:vllm_ascend/attention/fa3_v1.py#L12-L145`；`vllm-ascend@c09d3e20:vllm_ascend/attention/fa3_v1.py#L11-L60`、`attention_v1.py#L920-L1115`；`vllm-ascend@8d6180e2:vllm_ascend/attention/fa3_v1.py#L11-L66`、`attention_v1.py#L982-L1195` |
 
-**证据索引。** 层类型分支、MTP 层落到 MLA、两个缓存后端的延迟导入、两个缓存层与稀疏 MLA 层构造的对象见 [C1]–[C6]；主 MLA 后端由层内部的缓存层赋值并返回，见 [C37]–[C39]；KDA 的注册前提、它报出的后端以及 prefill / decode 两条算子分支（含拒绝 PCP）见 [C7]–[C11]；推理实际走的稀疏路径、设备算子与父类调用点见 [C12]–[C14]；Runner 的分组键与元数据构建器见 [C15][C16]；平台选择表与 FA3 的三种拒绝见 [C17][C18]；FA3 适配层的缓存形状、kernel 块与混合批切分见 [C19]–[C21]；三个快照的差异见 [C22]–[C29]；上游选择入口与配置字段见 [C30][C31]；FA3 的 beta 状态、图模式建议与训推一致用途见 [S32]–[S34]；FlashAttention 与 FlashAttention-3 的机制说明见 [S35][S36]。稀疏 MLA 的 2051 个位置取自主线底稿的逐层前向一节，推导在[稀疏注意力](sparse-attention.md)与 [MLA](mla.md) [D]；33.6 MFLOP 与 370 MFLOP 是按这个位置上界算出的静态量，不含 softmax、投影与 kernel 补齐 [D]。
+**证据索引。** 层类型分支、MTP 层落到 MLA、两个缓存后端延迟导入与主 MLA 缓存层后端返回见来源 1–6、37–39 [C1]；KDA 注册前提、GDN 后端与拒绝 PCP 见来源 7–11，推理稀疏路径、设备算子与父类调用点见来源 12–14 [C12]；Runner 分组键与元数据构建器见来源 15–16，四版平台选择表与 FA3/FA/FIA/PA 适配层见来源 17–29、63–70 [C63][C67]；上游选择入口见来源 30–31。FA3 的 beta 状态、图模式建议与训推一致用途见来源 32–34 [S32][S34]；FlashAttention 与 FlashAttention-3 原论文见来源 35–36 [S35][S36]。稀疏 MLA 的 2051 个位置取自主线推导（见[稀疏注意力](sparse-attention.md)与 [MLA](mla.md)），33.6 MFLOP 与 370 MFLOP 是按该位置上界算出的静态量，不含 softmax、投影与 kernel 补齐 [D]。
 
-新版路径的补充映射：来源 41–45 区分 rc2 平台选择、CP 继承、GLM 索引执行与 KDA 层；45 与 42 是同一固定文档。来源 46–47、56 支持 main 的包装注册、上游 MLA 构造和通用选择；48–53、55 支持 rc2 的 indexer 工厂、包装构造、Ascend MLA 子类及上游选择；54 是 rc2 FA3 的双开关条件。来源 57–59 对照参考实现、默认 query 分块 16 与单测调用，生产路径由来源 12–14 支持；60 说明 main 中 Kimi 类名，61–62 说明状态份数与投机状态的消费者。来源 32–34 的同份官方指南在首段与限制段对包是否开源的说法冲突，本页仅采用其接口、功能和启用条件，安装时仍须检查实际包与入口是否存在。
+新版路径的补充映射：来源 41–45 区分 CP 继承、GLM 索引执行与 KDA 层；来源 46–56 支持 GLM 包装注册、Ascend MLA 子类与通用选择；来源 57–59 对照参考实现、默认 query 分块 16 与单测调用；来源 60 说明 Kimi 类名，61–62 说明状态份数与投机状态消费者。来源 32–34 同份官方指南在首段与限制段对包是否开源的说法冲突，本页仅采用其接口、功能和启用条件，安装时仍须检查实际包与入口是否存在 [I]。
 
 **待核：**
 

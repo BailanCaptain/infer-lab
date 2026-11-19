@@ -54,10 +54,23 @@ sources:
   - 'vllm@ced6857a:vllm/benchmarks/lib/endpoint_request_func.py#L402-L434'
   - 'vllm@ced6857a:vllm/benchmarks/lib/endpoint_request_func.py#L606-L639'
   - 'vllm@ced6857a:vllm/benchmarks/lib/endpoint_request_func.py#L526-L561'
+  - 'vllm@ced6857a:vllm/benchmarks/serve.py#L568-L600'
+  - 'vllm@ba15685a:vllm/benchmarks/serve.py#L602-L635'
+  - 'vllm@ba15685a:vllm/benchmarks/lib/endpoint_request_func.py#L416-L445'
+  - 'vllm-ascend@2c59ff10:docs/source/developer_guide/evaluation/using_ais_bench.md#L1-L3'
+  - 'vllm-ascend@2ed6cbba:docs/source/developer_guide/evaluation/using_ais_bench.md#L1-L3'
+  - 'vllm-ascend@c09d3e20:docs/source/developer_guide/evaluation/using_ais_bench.md#L1-L20'
+  - 'vllm-ascend@c09d3e20:docs/source/developer_guide/evaluation/using_evalscope.md#L1-L20'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L178-L260'
+  - 'vllm-ascend@8d6180e2:docs/source/developer_guide/evaluation/using_ais_bench.md#L1-L20'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L128'
 relations:
   - to: quantization-methods
     kind: builds-on
     note: 确定量化对象、方法与校准之后，用同一标准比较候选产物
+  - to: aisbench-and-evalscope
+    kind: builds-on
+    note: 量化质量评测与服务性能压测的 AISBench / EvalScope 实操命令、预热剔除与双端口径对齐见该实战页
   - to: tensor-layout
     kind: builds-on
     note: 先分清精度误差与数据排布错误，再统计实际存储和转换成本
@@ -67,10 +80,14 @@ relations:
   - to: inference-performance-walkthrough
     kind: builds-on
     note: 用设备与请求时间线区分转换、计算、通信和排队
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: S
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-19'
 ---
 
 ## 量化模型能回答问题，就算成功了吗？
@@ -93,14 +110,15 @@ file: quantization-evaluation-intuition
 
 ## 一个张量的误差怎样算，能说明什么？
 
-原张量取 x=(1,2,4)，量化再还原得到 x̂=(1.1,1.8,4)，均为示意数据。**MSE** 是 Mean Squared Error，即误差平方的平均；相对 L2 误差则用误差向量的长度除以原向量长度。
+原张量取 $x = (1, 2, 4)$，量化再还原得到 $\hat{x} = (1.1, 1.8, 4)$，均为示意数据。**MSE** 是 Mean Squared Error，即误差平方的平均；相对 L2 误差则用误差向量的长度除以原向量长度：
 
-```calc
-title: 同一张量的两种误差口径（示意）
-逐项误差 = (1.1 − 1, 1.8 − 2, 4 − 4) = (0.1, −0.2, 0)
-MSE = (0.1² + (−0.2)² + 0²) ÷ 3 ≈ 0.016667
-相对 L2 误差 = √(0.1² + (−0.2)²) ÷ √(1² + 2² + 4²) ≈ 4.88%
-```
+$$\text{MSE} = \frac{1}{n}\sum_{i=1}^{n}(\hat{x}_i - x_i)^2, \qquad \text{Rel-L2} = \frac{\lVert \hat{x} - x \rVert_2}{\lVert x \rVert_2}$$
+
+| 误差口径（示意：$x = (1, 2, 4),\; \hat{x} = (1.1, 1.8, 4)$） | 算式 | 结果 |
+| --- | --- | --- |
+| 逐项误差 $\hat{x} - x$ | $(1.1 - 1,\; 1.8 - 2,\; 4 - 4)$ | $(0.1,\; -0.2,\; 0)$ |
+| **MSE** | $(0.1^2 + (-0.2)^2 + 0^2) \div 3$ | **$\approx 0.016667$** |
+| **相对 L2 误差** | $\sqrt{0.1^2 + (-0.2)^2} \div \sqrt{1^2 + 2^2 + 4^2}$ | **$\approx 4.88\%$** |
 
 这两项衡量的是这三个数的变化，不能直接解释成“模型正确率下降 4.88%”。MSE 会受数值量级影响；相对误差在原向量接近零时不稳定，应约定分母处理方式。还可以记录最大误差、余弦相似度以及分层、分通道的分布，防止少数异常被平均值掩盖。
 
@@ -128,15 +146,15 @@ MSE = (0.1² + (−0.2)² + 0²) ÷ 3 ≈ 0.016667
 
 ## 权重字节减半，推理会快一倍吗？
 
-**只能缩短被优化的那部分工作，新增转换也要计时。** 假设一次前向原来耗时 100 ms，其中读权重 60 ms，其余工作 40 ms；量化后读权重降为 30 ms，但新增量化与反量化共 10 ms。这是各阶段不重叠的教学模型。
+**只能缩短被优化的那部分工作，新增转换也要计时。** 假设一次前向原来耗时 100 ms，其中读权重 60 ms，其余工作 40 ms；量化后读权重降为 30 ms，但新增量化与反量化共 10 ms。这是各阶段不重叠的教学模型：
 
-```calc
-title: 字节减少与总时间的关系（示意、无重叠）
-原总时间 = 60 ms + 40 ms = 100 ms
-新总时间 = 30 ms + 10 ms + 40 ms = 80 ms
-加速比 = 100 ms ÷ 80 ms = 1.25
-总时间下降 = (100 − 80) ÷ 100 = 20%
-```
+$$S = \frac{T_{\text{orig}}}{T_{\text{new}}} = \frac{100}{80} = 1.25, \qquad \Delta T = \frac{100 - 80}{100} = 20\%$$
+
+| 耗时对比项（示意、无重叠） | 算式 | 结果 |
+| --- | --- | --- |
+| 原总时间 | $60\text{ ms} + 40\text{ ms}$ | **100 ms** |
+| 新总时间（含 10 ms 量化/反量化） | $30\text{ ms} + 10\text{ ms} + 40\text{ ms}$ | **80 ms** |
+| 加速比 / 总时间下降 | $100 \div 80$；$(100 - 80) \div 100$ | **1.25×** / **下降 20%** |
 
 真实执行还会重叠搬运与计算，需要用时间线确认关键路径。小批 decode、较大批 prefill、长上下文 attention 的瓶颈不同：weight-only 重点检查权重流量，W8A8 还要检查是否实际选中低精度矩阵计算，KV 量化重点检查历史状态容量与读取。三类收益要分别测。
 
@@ -164,7 +182,7 @@ file: quantization-evaluation-flow
 2. 在加载后抽查转置、NZ 和系数对应关系，排除布局及打包错误。
 3. 到[第 4 站逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)对照中间输出，再用独立样本评估目标任务。
 4. 记录显存各笔账；质量达标后，测代表性 prefill、decode、长上下文和并发场景。
-5. 质量失败则定位敏感层、校准覆盖或格式问题；性能失败则定位转换、算子、通信和排队，再改变一个因素复测。
+5. 质量失败则定位敏感层、校准覆盖或格式问题；性能失败则定位转换、算子、通信和排队，再改变一个因素复测。实际落地 AISBench 与 EvalScope 压测/评测命令、预热剔除和双端指标口径对齐，见[AISBench 与 EvalScope 实战](aisbench-and-evalscope.md)。
 
 本站固定 GLM W8A8 的内存推导不等于以上实验已完成；它也未开启 KV cache 量化。未来测试 C8 或四位权重属于新候选，需要重新确认模型、算子和版本支持。
 
@@ -180,7 +198,7 @@ file: quantization-evaluation-flow
 
 ### 怎么开
 
-官方提供 [AISBench 评测入口](https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/evaluation/using_ais_bench.html)和[性能测试入口](https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/performance_and_debug/performance_benchmark.html)。先确定数据、基线、指标与资源口径，再按当前安装版本的命令运行；本页没有能够替代测试的通用“量化通过”开关。
+官方提供 [AISBench 评测入口](https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/evaluation/using_ais_bench.html)和[性能测试入口](https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/performance_and_debug/performance_benchmark.html)。在昇腾上落地数据集精度基线与并发/到达率压测时，可直接按[AISBench 与 EvalScope 实战](aisbench-and-evalscope.md)准备预热剔除、前缀缓存防污染、思维链剥离与双端 TTFT/TPOT/ITL 口径对齐；先确定数据、基线、指标与资源口径，再按当前安装版本的命令运行，本页没有能够替代测试的通用“量化通过”开关。
 
 ### 会报什么错
 
@@ -192,23 +210,19 @@ file: quantization-evaluation-flow
 
 ### 版本差异
 
-**v0.30.0rc2 的 A/B 比较仍须固定质量目标和工作负载，还要写清最终执行格式。** 原生 block FP8 会按硬件、层形状和 attention 吸收路径在 MXFP8、model dtype 之间分流，W8A8 可以提前准备量化输入，主 KV 与 indexer 又各有精度；仅写“FP8”或“W8A8”不足以复现。报告应同时记录 checkpoint 量化描述、驻留 dtype/布局、runner、cache dtype 与 indexer dtype。950 不满足 MX 分组的层仍可回退，不能将格式转换宣称为逐位等价。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；固定 GLM 双机另钉 `db701c1f` + `0fc695fc`。无论哪个版本，A/B 报告都应写清 checkpoint 量化描述、驻留 dtype/布局、runner、cache dtype 与 indexer dtype，不能只写“FP8”或“W8A8”。
 
-配套压测客户端还调整了 chat/audio 尾 usage 与 pooling 响应体的计时边界，详见 [压测版本对照](inference-benchmarking.md#版本差异)。客户端变化可能改变统计结果，不能当成量化提速或精度通过的证据；本次没有新增 NPU 质量、容量或性能测量。
+| 核对维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| 昇腾评测与压测工具入口 | 官方文档提供 AISBench（`using_ais_bench.md`）与性能压测指南 | 延续 AISBench 评测与压测文档 | 同步覆盖 AISBench（`using_ais_bench.md#L1-L20`）与 EvalScope（`using_evalscope.md#L1-L20`），工具分工与口径对齐见[AISBench 与 EvalScope 实战](aisbench-and-evalscope.md) | 延续 AISBench 与 EvalScope 双工具评测入口 |
+| 驻留格式与执行路径对照 | 动态 W8A8 线性层在 `w8a8_dynamic.py` 走融合量化矩阵乘 | 延续同原则；各量化组合仍需按本机实测验收 | 原生 block-wise FP8 按硬件分流（A5 转 MXFP8，A2/A3 反量化为 `model_dtype` 走 `unquantized_gemm`，`fp8_block.py#L178-L260`）；W8A8 支持提前准备量化输入；主 KV 与 indexer 精度分离 | 原生 block-wise FP8 在非 FP8 硬件改为显式 `NotImplementedError`（`fp8_block.py#L114-L128`），避免把反量化 BF16 误当成 FP8 验收基线 |
+| 上游 `vllm bench serve` 统计口径 | `serve.py#L456-L496`、`#L578-L587` 排除单 token 请求于普通 TPOT 样本，goodput 下记为 `0` | 延续同统计公式 | `serve.py#L568-L600` 延续 TPOT/goodput 规则；`endpoint_request_func.py` 调整 chat/audio 尾 `usage` 与 pooling 计时边界（见[压测版本对照](inference-benchmarking.md#版本差异)） | `serve.py#L602-L635` 与 `endpoint_request_func.py#L416-L445` 延续该计时与统计口径 |
 
-| 范围 | 本页的验证边界 |
-| --- | --- |
-| 固定 GLM 提交与上游 vLLM v0.23 基线 | 已读动态 W8A8 调用和 benchmark 统计公式；文档提供 AISBench 与性能测试入口 |
-| Ascend v0.23 维护分支 | 应按实际提交和工具版本记录结果；本文不声称固定 GLM 的实测能替代该分支 |
-| Ascend v0.26 rc，2026-09-17 快照 | 继续采用同一比较原则；未完成本模型各量化组合的设备验收 |
-| Ascend main，2026-09-22 固定快照 | 加载器和后端可能改变驻留类型与路径；逐组合验证，不沿用旧版速度结论 |
+客户端计时边界调整可能改变统计数字，不能当成量化提速或精度通过的证据；本页不提供未经运行的 NPU 质量、容量或性能测量成绩。
 
 ### 源码位置
 
 - 数值比较与敏感性分析的参考入口见 PyTorch 实践说明 [S1]；PPL 定义及 tokenization、上下文窗口的影响见 Hugging Face 文档 [S2]。
 - weight-only 的访存动机和运行时反量化见 AWQ §4 [S3]；key/value 分组差异的研究实例见 KIVI [S4]，不据此宣称本站已实现 KIVI。
-- 固定性能与 AISBench 文档见 [S5][S6][S7][S8]；TPOT 和 goodput 的统计见 [C9][C10]；动态量化与矩阵乘输出类型见 [C11]。
-- rc2 的加载后类型、预先量化输入、主 KV 与 indexer 精度分支见 [C14][C15][C16]；chat、pooling、audio 的计时边界分别见 [C17][C18][C19]。
+- 固定性能与 AISBench / EvalScope 文档见来源 5–8 与 23–28（含 `c09d3e20` `using_ais_bench.md`、`using_evalscope.md`）[S5][S7]；TPOT 和 goodput 的四版统计见来源 9–10、13、20–22（`0fc695fc` / `ced6857a` / `ba15685a` `serve.py` 与 `endpoint_request_func.py`）[C9][C20][C21]；动态量化与原生 FP8 分流见来源 11、14–16、27、29（`c09d3e20:fp8_block.py#L178-L260`、`8d6180e2:fp8_block.py#L114-L128`）[C11][C27][C29]。
 - 两个数值算例均是假设数据 [A]，误差、容量分账和耗时关系是推导 [D]。验收流程是基于上述资料的工程归纳 [D]，没有填写未经运行的设备性能或质量成绩。
-
-- 来源 13：vllm@0fc695fc，vllm/benchmarks/serve.py，L458–L496。

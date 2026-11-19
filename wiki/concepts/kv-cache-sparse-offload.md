@@ -91,7 +91,17 @@ sources:
   - 'vllm-ascend@921ccc52:docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md#L196-L222'
   - 'vllm-ascend@921ccc52:docs/source/user_guide/feature_guide/kv_cache_pool_ascend_store.md#L662-L686'
   - 'vllm-ascend@7d825229:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L244-L260'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1684-L1772'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L217-L290'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1480-L1490'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1775-L1855'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L216-L289'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1515-L1526'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: sparse-attention
@@ -176,13 +186,15 @@ file: kv-cache-sparse-offload
 
 5. **更新表。** 槽里现在装着 5、2、4、6，最久没用的顺序变成 4、5、2、6——这一步没被碰的 4 排到了最前面。
 
-```calc
-title: 这一步搬了多少（示意数：一行 1 KiB）
-不卸载也不稀疏，整段历史都在设备 = 0 行 = 0 KiB
-卸载后每步搬全部选中的行 = 3 行 × 1 KiB = 3 KiB
-卸载 + 热缓冲，只搬缺的行 = 1 行 × 1 KiB = 1 KiB
-> 省下的 2 行是位置 2 和 6：上一步搬过，还在槽里
-```
+以每行 1 KiB 为示意，三种方案本步从主机搬回的载荷如下（省下的 2 行是位置 2 和 6：上一步搬过、仍在热槽里）：
+
+$$B_{\text{H2D}} = N_{\text{miss}} \times B_{\text{row}} = 1 \times 1\text{ KiB} = 1\text{ KiB}$$
+
+| 方案（示意数：一行 1 KiB，本步选中 3 行） | 搬回行数与算式 | 本步 H2D 载荷 |
+| --- | --- | --- |
+| 不卸载也不稀疏（整段历史常驻设备） | $0 \times 1\text{ KiB}$ | **0 KiB** |
+| 卸载后每步搬全部选中行（无热缓冲） | $3 \times 1\text{ KiB}$ | **3 KiB** |
+| 卸载 + 热缓冲（仅搬缺失行） | $1 \times 1\text{ KiB}$ | **1 KiB** |
 
 第一行是基准：不卸载时设备上就有全部历史，一步 0 字节搬运，代价是显存要一直装着 8 行。往下两行是卸载之后的两种情况，热缓冲把 3 行压成 1 行。
 
@@ -244,15 +256,16 @@ file: kv-cache-sparse-offload-step
 4. **混合缓存布局不支持。** 内存规划先要求全部缓存规格共用一个块大小，管理器还要求只有一个缓存组；仅把块大小改相同仍不够。GLM 的状态分成 5 个组（full 组、尾状态组、3 个 KDA 组，见 [KV 缓存规格](kv-cache-spec.md#对齐成两档页编成五个组)），尾状态组的块大小也不是 640。
 5. **热缓冲默认值对不上块大小。** 实现要求热槽数是块大小的整数倍；GLM 的逻辑块是 640 个 token，而默认热缓冲是 4,096，除不尽。既要不小于 `index_topk` = 2,048、又要是 640 的整数倍，最小可用值是 2,560。
 
-假如前四道都放开（换 A3 机器、按 PD 分离部署、模型进清单、缓存布局对齐），按源码公式代入这套部署的其余参数，热缓冲要占的显存是固定的一笔：
+假如前四道都放开（换 A3 机器、按 PD 分离部署、模型进清单、缓存布局对齐），按源码公式代入这套部署的其余参数，热缓冲要占的显存是固定的一笔（不受支持的 GLM 布局假设）：
 
-```calc
-title: 不受支持的 GLM 布局假设：每卡热缓冲容量
-一步最多几个查询行 = min(8,192 个 token 预算, 32 条并发 × 4 个 token) = 128 个查询行
-一个查询行一层 = 2,560 个热槽 × 512 维 × 2 B = 2,621,440 B = 2.5 MiB
-一层 = 128 × 2.5 MiB = 320 MiB
-12 层（11 层稀疏 MLA + MTP 层） = 3,840 MiB = 3.75 GiB
-```
+$$M_{\text{hot}} = 12\text{ 层} \times 128\text{ 行} \times (2{,}560 \times 512 \times 2\text{ B}) = 3{,}840\text{ MiB} = 3.75\text{ GiB}$$
+
+| 不受支持的 GLM 布局假设：每卡热缓冲容量 | 算式 | 结果 |
+| --- | --- | --- |
+| 一步最多查询行数 | $\min(8{,}192,\; 32 \times 4)$ | **128 个查询行** |
+| 一个查询行单层容量（2,560 槽 × 512 维 × BF16） | $2{,}560 \times 512 \times 2\text{ B}$ | $2{,}621{,}440\text{ B} =$ **2.5 MiB** |
+| 单层全部查询行 | $128 \times 2.5\text{ MiB}$ | **320 MiB** |
+| 12 层合计（11 层稀疏 MLA + 1 层 MTP） | $12 \times 320\text{ MiB}$ | $3{,}840\text{ MiB} =$ **3.75 GiB** |
 
 这 3.75 GiB 和上下文多长无关，开了就占着。省下的则随长度增长：每个位置每层的主 KV 是 1,024 B（[一个块号占多少显存](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)里 13,056 B 的 12,288 B 那部分），12 层合起来，一条 133,120 个位置的满长请求约 1.52 GiB，32 条约 48.8 GiB——这些都挪到主机，默认给每个 DP rank 的 128 GiB 装得下。留在设备上的是 indexer 的 768 B/token 和尾状态。
 
@@ -341,43 +354,30 @@ title: 不受支持的 GLM 布局假设：每卡热缓冲容量
 
 ### 版本差异
 
-**v0.30.0rc2 的指南已把 sparse decode offload 与 layerwise prefill offload 合并说明，并明确支持边界。** 组合部署列出 GLM-5.1、GLM-5.2、DeepSeek-V3.2，硬件分 A3 与 950 系列；D 侧支持 DP/TP，仍不支持 CP 和 D 侧 PP。主 KV 要求 BF16，不支持 sparse SFA C8；设备上常驻的 LightningIndexer 可以另用 LI C8，不能把两种 C8 混为一谈。
+**`v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 均以融合 LIM + Copy-SFA 作为默认路径（`use_fused_copy_sfa = enabled and not use_fused_overlap`），并收紧硬件与互斥边界。** 组合部署列出 GLM-5.1、GLM-5.2、DeepSeek-V3.2，D 侧支持 DP/TP，不支持 CP 与 D 侧 PP；启动配置直接拦截 `950PR&950DT`（`is_950()` 报 `ValueError`）以及与 `PreemptOffloadConnector` 同开（经 `MultiConnector` 也拦截），管理器初始化仍只放行 Atlas A3（`RuntimeError: Sparse KV offload is only support on A3`）。主 KV 要求 BF16，不支持 sparse SFA C8；设备上常驻的 LightningIndexer 可以另用 LI C8（`attention_config.indexer_kv_dtype=int8`，不支持 `fp8`）。
 
-fused_copy_sfa 是可选融合路径，默认 none；它的 LI C8 serving 路径要求 attention_config.indexer_kv_dtype=int8，不支持 fp8。新指南已支持 MRV2，并给出 MTP 和 DSpark 的专门条件。只开启目标模型的卸载不能证明完整 DSpark 长上下文链路受支持。本文 A2 GLM 旧部署的限制继续成立，不能凭“同属稀疏 attention”迁移配置。
+在默认参数与三路木桶预算上，`v0.30.0` 与 `main` 将 `topk_buffer_size` 默认改为 `-1`（自动解析为 `(1 + num_speculative_tokens) × 2048`），`dram_size_per_dp_GB` 默认改为 `110` GiB，热槽须满足 256 对齐且不超过 32,512（运行时另自动加 `COPY_SFA_TAIL_BLOCKS` 两个尾块，无需手工多加）；`plan_sparse_kv_offload_memory` 统一按 **NPU 上限、扣除 2 MiB 对齐预留后的 DRAM 上限、工作负载上限（`max_blocks_per_request × max_num_seqs + 1`）** 三路木桶取最小值并打印 `limiting_factor`（DRAM 比 NPU 紧时告警）。`main (8d6180e2)` 另新增 `store_port_base: int = 8500` 以区分共享网络命名空间的多服务端口基址。P 端支持 PP（如 GLM-5.2 的 DP1×PP2×TP8 按 38/40 分层），D 端仍固定 PP=1；开启 DSpark 投机解码须配 Model Runner V2。
 
-**rc2 开启融合路径还要满足二进制、内存和容量条件。** 指南要求 LIM、量化 LIM 和 Copy-SFA 原生接口，指向 PR #16640 的固定修订；仅有 Python 分支不足以运行，Copy-SFA 适配器还须接受由 MemFabric 注册的主机张量视图。普通 CPU 分配不能冒充这块注册内存。模型 top-k 必须为 2048、缓存块为 128；每步查询宽度为 1 加草稿数，范围 1–14，热槽至少为该宽度乘 2048、按 256 对齐且不超过 32512；运行时另加两个尾块，不要手工再加进设置。MTP3 对应最小 8192 槽，且须关闭 use_fused_overlap。这些是 rc2 融合路径的条件，不改写前面旧默认路径的 2560 槽假设算例。
-
-rc2 的 P 端可以用 PP，D 端仍保持 PP1。指南给 GLM-5.2 的 16 NPU 例子是 P 端 DP1×PP2×TP8，分层38/40；平均39/39会把共享 indexer 的归属跨过阶段边界，被校验拒绝。D 端是 DP2×TP8。这里应同时检查[PP 与多节点](pipeline-parallel.md)及模型的阶段边界，不能看到两台机器就把 DP、PP 各乘一次。
-
-**后续官方快照 `921ccc52` 又调整了默认路径和支持说明，须与 rc2 分开。** 该指南明确写 sparse decode offload 暂不支持 950PR/950DT；MemFabric 的连接器协议支持某种硬件，不等于稀疏卸载也支持它。默认使用融合 LightningIndexer 与 Copy-SFA 路径，热缓冲默认值 −1 会解析成 `(1 + num_speculative_tokens) × 2048`；显式值不自动改写。默认 Copy-SFA 路径要求热缓冲为 256 的倍数，不小于这个乘积、不大于 32512。主机池默认每个 DP rank 110 GiB，组内 TP 共享；与 PreemptOffloadConnector 互斥，放在 MultiConnector 中也不能绕开。部署时应按目标快照选配置，不能把这些默认值套回上面的旧 main 算例。
-
-该后续仓库已经包含上述融合原生核、PyTorch 绑定和 Python 接入；安装成品仍须实际包含这些接口。它的设计文档明确接受注册主机视图，不能把 rc2 文档里的“需额外适配”当作所有后续版本都未实现。
-
-| 项 | v0.23 维护分支 2c59ff10 | GLM 快照 db701c1f | v0.26 分支 2ed6cbba | main baa023ad |
+| 项 | v0.23.0 (2c59ff10) | v0.26.0rc (2ed6cbba) | v0.30.0 (c09d3e20) | main (8d6180e2) |
 |---|---|---|---|---|
-| 有没有这套实现 | 无 | 无 | 有：`sfa_kv_offload.py` + `sparse_kv_offload/` | 有 |
-| 配置键 | — | — | `enabled`、`topk_buffer_size`、`dram_size_per_dp_GB`、`keep_device_kv_cache` [C15] | 再加一个 `use_fused_overlap` [C1] |
-| 多写的键 | — | — | 普通类逐个取值，认不出的静默忽略 | 走配置对象校验，多写会被拒 |
-| 内存怎么定 | — | — | 按主机/设备页字节比算出需要多少主机内存，超了报错，并把省下的显存加回可用额度 [C16] | 设备、主机、工作负载三条上限取最小，日志报是哪条 [C10] |
-| 硬件限制 | — | — | 建管理器时不判设备型号 [C23] | 不是 A3 直接 `RuntimeError` |
-| 官方文档 | 无 | 无 | 用户指南，支持 GLM-5.2、DeepSeek-V3.2 | 用户指南 + 设计文档，支持 GLM-5.1、GLM-5.2、DeepSeek-V3.2 [C13] |
+| 实现与配置入口 | 无 | 有：`sfa_kv_offload.py` + `sparse_kv_offload/`；4 个字段，多余键静默忽略 [C15] | 完整配置类校验，默认 `topk_buffer_size=-1`（自动乘 `2048`）、`dram_size_per_dp_GB=110`、`use_fused_overlap=False` | 延续 v0.30.0，另增 `store_port_base=8500` |
+| 默认 decode 路径 | 无 | 默认 LRU 常规搬运路径 | 默认走融合 LIM + Copy-SFA（`use_fused_copy_sfa`）；开 `use_fused_overlap` 才切融合重叠路径 | 同 v0.30.0 |
+| 容量规划口径 | 无 | 按主机/设备页字节比估算所需主机内存并加回显存额度 [C16] | `plan_sparse_kv_offload_memory` 三路木桶（`npu` / `dram` / `workload`）取最小值并记录瓶颈 | 同 v0.30.0 |
+| 硬件、连接器与 Runner 约束 | 无 | 建管理器时不判设备型号 [C23]；仅 MRV1 | 启动拦截 `950PR&950DT` 及 `PreemptOffloadConnector`；管理器仅放行 Atlas A3；支持 MRV2（DSpark 强制 MRV2） | 同 v0.30.0 |
+| 官方文档与支持模型 | 无 | 用户指南（GLM-5.2、DeepSeek-V3.2） | 合并 Layerwise Prefill + Sparse Decode 指南与设计文档（GLM-5.1、GLM-5.2、DeepSeek-V3.2） [C13] | 同 v0.30.0 |
 
-前两列的仓库里没有 `sparse_kv_offload/` 这个目录，也没有对应的注意力实现，所以这套特性在 GLM 的钉住快照上根本不存在 [I]。两个有它的版本都写明同样的限制：只支持 DP 和 TP，不支持 CP 和 PP；主 KV 必须是 BF16；MemFabric 是唯一的传输后端；联合部署要求 prefill 的 TP 数不小于 decode 的 TP 数且能整除 [C14]。
+固定 GLM 镜像 `db701c1f` 与 `v0.23.0` 一样不包含 `sparse_kv_offload/` 目录，本部署（Atlas 800 A2 + 混部 + 5 组混合缓存）无法启用 [I]。所有存在该实现的版本均维持：主 KV 必须是 BF16、MemFabric 为唯一传输后端、D 端不支持 CP/PP，且联合部署要求 `prefill_tp_size >= decode_tp_size` 且整除 [C14]。
 
 ### 源码位置
 
-| 看什么 | 在哪（`vllm-ascend@baa023ad`） |
+| 看什么 | 在哪 |
 |---|---|
-| 配置字段与全部前置检查 | `vllm_ascend/ascend_config.py`，`SparseKVOffloadConfig`（L1466–L1533） |
-| 开关换哪两个类 | `vllm_ascend/attention/sfa_v1.py`（L284–L311） |
-| 把稀疏 MLA 规格标成「放在主机」 | `vllm_ascend/worker/model_runner_v1.py`（L5878–L5890） |
-| 新算出的 K/V 写进主机池 | `vllm_ascend/attention/sfa_kv_offload.py`，`exec_kv`（L346–L393） |
-| decode 主流程：掩掉无效位置、取常驻视图、搬、算 | 同文件（L1001–L1156） |
-| 搬运入口：算计划、TP 广播、发起拷贝 | `…/sparse_kv_offload/sparse_kv_offload_manager.py`，`onload_topk_kv`（L1215–L1337） |
-| 命中、缺失、换出与槽号重映射 | `csrc/torch_binding.cpp`，`process_one_lru_resident_row`（L2266–L2400） |
-| 三条上限与对齐预留 | `…/sparse_kv_offload_manager.py`（L213–L297） |
-| 热缓冲按什么公式开 | 同文件（L107–L140） |
-| 只在 A3 上初始化、缺算子的提示 | 同文件（L1645–L1663、L90–L104） |
+| 配置字段、默认 `-1`/`110` 与前置校验 | `vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1684-L1772`；`main (8d6180e2)` 见 `#L1775-L1855`（含 `store_port_base=8500`） |
+| 开关换哪两个类 | `vllm-ascend@baa023ad:vllm_ascend/attention/sfa_v1.py`（L284–L311） |
+| 把稀疏 MLA 规格标成「放在主机」 | `vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py`（L5878–L5890） |
+| 新算出的 K/V 写进主机池与 decode 主流程 | `vllm-ascend@baa023ad:vllm_ascend/attention/sfa_kv_offload.py`（`exec_kv` L346–L393；decode L1001–L1156） |
+| 搬运入口、热缓冲公式与 LRU 槽重映射 | `sparse_kv_offload_manager.py`（`onload_topk_kv` L1215–L1337、热缓冲 L107–L140）；`csrc/torch_binding.cpp`（L2266–L2400） |
+| 三路木桶预算与仅限 A3 校验 | `vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L217-L290`、`#L1480-L1490`；`main (8d6180e2)` 见 `#L216-L289`、`#L1515-L1526` |
 | 一步 decode 的官方描述 | `docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md`（L154–L193） |
 
 待核：设备运行中热缓冲的实际命中率、主机到设备的有效带宽与单步耗时；GLM-5.3-Flash 会不会进入后续版本的支持清单；混合缓存布局若被放开，GLM 的 5 个缓存组怎样适配分组与块大小要求；默认路径与融合路径的浮点输出是否逐位一致。

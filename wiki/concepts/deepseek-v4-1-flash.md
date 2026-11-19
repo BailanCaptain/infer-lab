@@ -30,6 +30,10 @@ sources:
   - 'https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/tutorials/models/DeepSeek-V4.1-Flash.md'
   - 'https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/user_guide/support_matrix/supported_models.md'
   - 'https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/tutorials/models/GLM5.3-Flash.md'
+  - 'vllm-ascend@c09d3e20:docs/source/tutorials/models/DeepSeek-V4.1-Flash.md#L1-L65'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/cache_config.py#L1-L50'
+  - 'vllm-ascend@8d6180e2:docs/source/tutorials/models/DeepSeek-V4.1-Flash.md#L1-L65'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/decoder_replay_layers.py#L1-L35'
 relations:
   - to: deepseek-serving-case
     kind: builds-on
@@ -40,7 +44,11 @@ relations:
   - to: inference-performance-analysis
     kind: builds-on
     note: 后半输入截断的收益判断依赖设备耗时与请求关键路径的区分：局部计算变快后，仍须检查交接、排队和其他计算是否决定首字时间。
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: I
 contradicts: []
 updated: '2026-11-03'
@@ -78,13 +86,12 @@ CED 中的 encoder 和 decoder 分别指语言模型前后两半。图片则先�
 
 仍用前后各两层的教学模型，把图中的输入延长到 100 个位置，并让后半保留末尾 4 个位置。一次“一个位置经过一层”暂记为一份工作，另行忽略投影、选取历史和搬运开销。
 
-```calc
-title: 少走后半层为什么能节省 prefill 工作（示意）
-完整逐层处理 = 100 × 4 = 400 份
-前半处理全部输入 = 100 × 2 = 200 份
-后半只处理保留的末尾 = 4 × 2 = 8 份
-两部分合计 = 200 + 8 = 208 份
-```
+| prefill 路径对比（示意：4 层模型，100 个输入位置，后半保留末尾 4 个位置） | 算式 | 层-位置工作量 |
+| --- | --- | --- |
+| 完整逐层处理 | $100 \times 4$ | **400 份** |
+| CED 前半处理全部输入 | $100 \times 2$ | **200 份** |
+| CED 后半只处理保留末尾 | $4 \times 2$ | **8 份** |
+| **CED 两部分合计** | $200 + 8$ | **208 份** |
 
 减少的是后半层上那些不再需要完整前向的输入位置，绝不是删掉模型后半层。这个计数也不等于运行时间减半：投影、窗口恢复、通信和低精度转换仍会花时间。短提示词若原本就落在保留区间，省下的工作更少。现场应同时看前后半层实际处理的位置数和耗时。
 
@@ -112,13 +119,14 @@ CED 解释了后半的长历史从哪里来。接下来还有两笔成本：保�
 
 固定模型有四个主 KV 来源，其余需要全局历史的层按配置复用它们，不能按模型的 40 层各算一份。考虑 128 个原始历史位置这一块：前三个来源采用压缩率 2，每个产生 64 条；后半的来源采用压缩率 1，产生 128 条。以下只算这四份分页主 KV 和索引 K 的载荷，假设该块完整、不计分配对齐。
 
-```calc
-title: 一块完整历史的分页载荷（固定布局推导）
-每条主 KV 加索引 K = 288 + 68 = 356 B
-前三个来源的条目数 = 3 × (128 ÷ 2) = 192
-第四个来源的条目数 = 128
-本块分页载荷 = (192 + 128) × 356 = 113920 B
-```
+$$\text{单块分页载荷} = \left(3 \times \frac{128}{2} + 128\right) \times (288 + 68)\text{ B} = 320 \times 356\text{ B} = 113{,}920\text{ B}$$
+
+| 一块 128 位置完整历史的分页载荷（固定布局推导，不含对齐与状态缓存） | 算式 | 结果 |
+| --- | --- | --- |
+| 每条主 KV 加索引 K 字节 | $288 + 68$ | **356 B** |
+| 前三个压缩来源（压缩率 2）条目数 | $3 \times (128 \div 2)$ | **192 条** |
+| 第四个后半来源（压缩率 1）条目数 | $1 \times 128$ | **128 条** |
+| **本块分页载荷合计** | $(192 + 128) \times 356\text{ B}$ | **113,920 B**（约 890 B/原始位置） |
 
 这还没算 SWA、压缩中间态、草稿状态、块表和空闲预留。**压缩中间态**保存尚未凑齐一个压缩分组时的累积结果；**环形缓冲**循环使用固定数量的位置保存最近窗口，另外还要留出推测回退的空间。[KV cache spec](kv-cache-spec.md)解释为何不同类型不能用一条“每层固定字节数”公式包办。
 
@@ -148,11 +156,11 @@ title: 一块完整历史的分页载荷（固定布局推导）
 | 草稿模块 | 另有 3 个 DSpark 层，一次提出 5 个候选；不计入前述 40 层主干 |
 | 图片路径 | Vision Encoder 32 层、隐藏宽度 1024、patch 边长 14；特征经过空间降采样和投影进入语言主干 |
 
-模型还含 **Engram**，即按短 token 组合查询的条件记忆表；以及 **mHC**，即在多条残差信息流之间混合和传递中间结果的结构。它们不等于请求的 KV cache。参数文件大小、单次激活的参数量、每请求历史状态大小因此是三笔不同的账，不能用其中一个替代另外两个。
+模型还含 **[Engram 条件记忆](engram-conditional-memory.md)**，即按短 token 组合查询的条件记忆表；以及 **mHC**，即在多条残差信息流之间混合和传递中间结果的结构。它们不等于请求的 KV cache。参数文件大小、单次激活的参数量、每请求历史状态大小因此是三笔不同的账，不能用其中一个替代另外两个。
 
 ## Engram 为什么把另一笔内存账放到主机上？
 
-**Engram 是模型学到的条件记忆表：根据短 token 组合查找已有条目，把查得的表示用于当前计算。** 可以把它想成模型自带的短语索引。例如当前短组合是 A、B，查表得到向量 e，再把 e 用于当前层的处理；换成 A、C，就可能查到不同条目。这只是查表流程的示意，真实索引和融合按模型定义执行，不是把文本直接映射成最终回答。
+**[Engram](engram-conditional-memory.md) 是模型学到的条件记忆表：根据短 token 组合查找已有条目，把查得的表示用于当前计算。** 可以把它想成模型自带的短语索引。例如当前短组合是 A、B，查表得到向量 e，再把 e 用于当前层的处理；换成 A、C，就可能查到不同条目。这只是查表流程的示意，真实索引和融合按模型定义执行，不是把文本直接映射成最终回答。关于 N-gram 哈希映射、Host DRAM ACL 钉页直读与跨实例 MemFabric / HIXL 共享池的完整机制，见 [Engram 条件记忆专页](engram-conditional-memory.md)。
 
 这张表属于模型参数，加载后可被多条请求读取。KV cache 则是某条请求处理到当前位置形成的历史，随输入和生成过程变化。两者都可能占主机内存，但内容、生命周期和传输目的不同：把 Engram 放到 CPU，不会顺便把请求的 KV cache 全部搬到 CPU，也不会免去 NPU 上其余权重和算子的显存。
 
@@ -250,21 +258,22 @@ Ascend 的 Engram 分配失败先核 24 个头与可见设备分组、卸载和�
 
 ### 版本差异
 
-新增 Ascend 内容单独固定到 `921ccc52`。该快照的支持矩阵仍将 DeepSeek-V4.1 的 PD 标为不支持，而模型教程已给出 A3/A2 的 PD 命令；模型教程的概述又写 V1 限制，后面的有界回放章节另报告 A5/V2 测试。两处资料存在范围或更新时点差异。因此本页只按上述 **A3/V1 教程案例**说明部署，不宣称所有硬件、runner 和 PD 组合已通过验证；A5/V2 的特定测试不能扩展为 A3/V2 支持。[S7][S8]
+本页结构定义与分页字节账以 DeepInfer `774ce244` + HF 模型配置 `1bae0e10` 为固定基线；历史 A3/V1 教程案例对照 `921ccc52` 快照（该快照的支持矩阵仍将 PD 标为不支持，而同快照模型教程已给出 A3/A2 PD 命令，且 A5/V2 测试与 A3/V1 说明并存，不能把 A5/V2 支持范围外推给 A3/V1）。[S7][S8]
 
-| 范围 | 本页核实到什么 |
-| --- | --- |
-| DeepInfer `774ce244` + 模型 `1bae0e10` | 本页配置、来源层映射和缓存布局的固定依据；无本站设备实测 |
-| vLLM-Ascend v0.23 | 本站 GLM 主线不使用这套模型结构；本页没有验证该版 V4.1 的支持、默认值与行为 |
-| vLLM-Ascend v0.26 | 本页没有验证其 V4.1 全路径；不能把 DeepInfer 配置当作该版开关 |
-| vLLM-Ascend v0.30.0rc2 | 新增官方教程声明以 rc2 为文档和验证基线；本站另钉住该分支的 `7d825229`，不是浮动 latest 或正式版。本页依据 `921ccc52` 的教程说明上述 A3/V1 配方，尚未逐项回查全部功能在 `7d825229` 的实现，不将教程声明扩成所有组合的支持保证 |
-| vLLM-Ascend main | 同样需要核对实际提交的模型注册、状态布局与算子支持，不能由分支名推定 |
+在社区四版正式分支上核验结果如下：
+
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| V4.1 模型代码目录 | 仅含 `deepseek_v4.py` / `mtp`，无 `models/deepseek_v41/` | 仅含 `deepseek_v4.py` / `dspark` / `mtp`，无 `models/deepseek_v41/` | 完整合入 `models/deepseek_v41/`（`cache_config.py`、`compressor.py`、`dspark.py`、`engram/`、`indexer.py`、`mixed_quant_attention.py`、`model.py`、`vision.py`、`vl_model.py`）[C11] | 延续 `models/deepseek_v41/`，新增 `decoder_replay_layers.py`（`AscendDecoderReplayLayers`）、`decoder_replay_state.py`、`engram_lifecycle.py` 与 `engram/shared_{host,pool,rdma}.py` [C13] |
+| 官方模型教程与硬件配方 | 无 V4.1 教程 | 无 V4.1 教程 | `DeepSeek-V4.1-Flash.md` 以 `v0.30.0` 为验证基线：A3 用 W8A8 + INT8 Engram + Model Runner V1（共置 DP4/TP4；PD 为 P DP4/TP4 + D DP8/TP2）；950DT 用 MXFP + Model Runner V2（DP8/TP1/EP8）[S10] | A2 / A3 / 950DT 全部统一至 **Model Runner V2**；A3 升级为 W4A8 + Prefill `DP4/PCP4/TP1` + Decode `DP16/TP1` + SWA bounded replay + MegaMoE，可选 Memcache 池化 [S12] |
+| Engram 卸载与共享 | 不适用 | 不适用 | 支持机内 CPU offload + `dp_shared_memory`（详见 [Engram 条件记忆](engram-conditional-memory.md)） | 扩展跨实例 Shared Engram（Host / Pool / RDMA 共享路径） |
+| 与 DeepInfer `774ce244` 的关系 | 仅作架构概念参照，不可混套配置 | 同左 | 共享层映射与 890 B/token 全局 KV 口径同源；A5 打包缓存由 `cache_config.py#uses_a5_packed_cache` 按 `HardwareProfile` 分派 | 同 `v0.30.0`，并在 MRV2 下独立封装 decoder replay 层与状态管理 |
 
 ### 源码位置
 
 - 固定配置中的主干、共享来源、MoE、视觉和草稿字段 [S1]；CED、CSA2、Engram、mHC 的结构与动机见报告 §2 [S2]。
 - 配置加载与最近来源层映射：`load_hf_model_config`、`_source_map`、`_shared_layer_cfg` [C3]。
-- 分页缓存、SWA、压缩中间态、存储区与运行时区：`KVCache`、`StateBlock`、共享层映射 [C4]。
-- 后半层判断与输入收紧：`is_yoco_consumer_layer`、`compact_yoco_boundary` [C5]；公开支持硬件和服务边界见 README [S6]。
-- 100 个位置的四层模型是教学假设 [A]；113920 B 是固定布局的分页载荷推导 [D]，不是单请求总显存。
-- Ascend Engram 放置、IPC、物理与逻辑设备、DP/TP、连接器、runner 和 CED 的 KV pool 限制见固定官方模型教程 §3–5、§11–12 [S7]。支持矩阵的相反状态单独保留范围说明 [S8]；GLM A3 对照来自同快照的 GLM-5.3-Flash 教程 [S9]。4E→E 与设备乘法是明确条件下的推导 [D]；本轮未执行 NPU 部署或性能测量。
+- 分页缓存、SWA、压缩中间态、存储区与运行时区：`KVCache`、`StateBlock`、共享层映射 [C4]；`v0.30.0` 昇腾侧缓存规格见 `vllm_ascend/models/deepseek_v41/cache_config.py#L1-L50`（来源 11）。
+- 后半层判断与输入收紧：`is_yoco_consumer_layer`、`compact_yoco_boundary` [C5]；`main` 昇腾侧 MRV2 回放层见 `vllm_ascend/models/deepseek_v41/decoder_replay_layers.py#L1-L35`（来源 13）；公开支持硬件和服务边界见 README [S6]。
+- 100 个位置的四层模型是教学假设 [A]；113,920 B 是固定布局的分页载荷推导 [D]，不是单请求总显存。
+- Ascend Engram 放置、IPC、物理与逻辑设备、DP/TP、连接器、runner 和 CED 的 KV pool 限制见固定官方模型教程 §3–5、§11–12（来源 7）及 `v0.30.0` / `main` 教程（来源 10、12）；支持矩阵范围说明见来源 8；GLM A3 对照来自同快照的 GLM-5.3-Flash 教程 [S9]。4E→E 与设备乘法是明确条件下的推导 [D]；本轮未执行 NPU 部署或性能测量。

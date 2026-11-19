@@ -65,7 +65,17 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L54-L114'
   - 'vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L521-L578'
   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L683-L693'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1322-L1432'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L830-L840'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1148-L1160'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1431-L1550'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L899-L910'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1320-L1332'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: tensor-parallel
@@ -81,7 +91,7 @@ relations:
     kind: builds-on
     note: 理解收集与归约分片的输入输出
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -155,13 +165,12 @@ file: fine-grained-tp
 
 1. **All-Gather 编号**：两张卡互换编号，都拿到 [6, 1]。第 0 个位置来自卡 0，第 1 个位置来自卡 1，这个顺序后面用来把结果送回原处。
 2. **本地查表**：每张卡把两个编号都查一遍，但只查自己存的那几行，不归本卡的编号填 0。卡 0 得到 [0, 0] 和 [1, 3]，卡 1 得到 [2, 5] 和 [0, 0]。
-3. **Reduce-Scatter**：两张卡的结果按位置相加，第 0 行留给卡 0，第 1 行留给卡 1。
+3. **Reduce-Scatter**：两张卡的结果按位置相加，第 0 行留给卡 0，第 1 行留给卡 1（示意）：
 
-```calc
-title: Reduce-Scatter 按位置相加（示意）
-第 0 行（A 的 token） = 卡 0 的 [0, 0] + 卡 1 的 [2, 5] = [2, 5]，留在卡 0
-第 1 行（B 的 token） = 卡 0 的 [1, 3] + 卡 1 的 [0, 0] = [1, 3]，留在卡 1
-```
+| 行号（Reduce-Scatter 按位置相加） | 卡 0 与卡 1 贡献相加 | 归属卡与最终向量 |
+| --- | --- | --- |
+| 第 0 行（A 的 token，编号 6） | $[0,\, 0] + [2,\, 5]$ | **$[2,\, 5]$**，留在卡 0 |
+| 第 1 行（B 的 token，编号 1） | $[1,\, 3] + [0,\, 0]$ | **$[1,\, 3]$**，留在卡 1 |
 
 每一行只有一张卡查到了真值，另一张卡贡献的是 0，所以相加恰好还原出整行，不会多加。A 要的第 6 行是卡 1 替它查的，B 要的第 1 行是卡 0 替它查的。
 
@@ -191,14 +200,15 @@ title: Reduce-Scatter 按位置相加（示意）
 | A 的分数 | 词 0–3 | 词 4–7 | 8 个分数都在卡 0 |
 | B 的分数 | 词 0–3 | 词 4–7 | 8 个分数都在卡 1 |
 
-每张卡最后拿到的是自己请求的一整行分数，接下来的采样照常在本卡做。其中任何一个分数都在一张卡上一次算完，All-to-All 只负责搬运，比如：
+每张卡最后拿到的是自己请求的一整行分数，接下来的采样照常在本卡做。其中任何一个分数都在一张卡上一次算完，All-to-All 只负责搬运，比如 A 对词 6 的分数就在卡 1 上一次算完再送回卡 0（示意）：
 
-```calc
-title: A 对词 6 的分数在卡 1 上算完（示意）
-h_A = [1, 2]
-卡 1 上词 6 那一行 = [1, −1]
-A 对词 6 的分数 = 1 × 1 + 2 × (−1) = −1，经 All-to-All 送回卡 0
-```
+$$\text{score}(A,\, \text{词 } 6) = h_A \cdot w_6 = [1,\, 2] \cdot [1,\, -1] = 1 \times 1 + 2 \times (-1) = -1$$
+
+| 计算项（A 对词 6 的分数，示意） | 数值 | 说明 |
+| --- | --- | --- |
+| A 的隐藏向量 $h_A$ | $[1,\, 2]$ | 经入口 All-Gather 送达卡 1 |
+| 卡 1 上词 6 的权重行 | $[1,\, -1]$ | 本地词段权重 |
+| A 对词 6 的最终分数 | $1 \times 1 + 2 \times (-1) =$ **$-1$** | 经 All-to-All 送回卡 0 |
 
 vllm-ascend 还有一个「按段采样」的开关：打开后不做这次 All-to-All，各卡留着自己那段分数，采样按分段完成，见 [lm_head 页的两个默认关着的开关](lm-head.md#两个默认关着的开关)。
 
@@ -231,16 +241,16 @@ attention 的最后一步是输出投影：每个 token 的各头结果拼成一
 
 ## 省下的和多付的：怎样比？
 
-先算一笔示意账：某个模块整份是 1 GiB，组大小 k = 4，这一步每张卡有 b = 8 个 token，隐藏维度 H = 4096，每个数 2 字节（BF16）。按稠密 MLP 那种「入口 All-Gather、出口 Reduce-Scatter」的走法：
+先算一笔示意账：某个模块整份是 1 GiB，组大小 $k = 4$，这一步每张卡有 $b = 8$ 个 token，隐藏维度 $H = 4096$，每个数 2 字节（BF16）。按稠密 MLP 那种「入口 All-Gather、出口 Reduce-Scatter」的 ring 走法，每卡发出或接收整份（$4 \times 8$ 行）的 $(k - 1)/k$：
 
-```calc
-title: 组大小为 4 时，每张卡省下多少、多传多少（示意）
-每卡存的权重 = 1 GiB ÷ 4 = 0.25 GiB，比整份少 0.75 GiB
-入口 All-Gather 每卡收到 = (4 − 1) × 8 × 4096 × 2 B = 196,608 B
-出口 Reduce-Scatter 每卡发出 = (4 − 1) × 8 × 4096 × 2 B = 196,608 B
-> 按 ring 走法，每卡发出整份结果的 (k − 1)/k，整份是 4 × 8 行
-每卡每轮 AG + RS 单向合计 = 196,608 B + 196,608 B = 393,216 B = 384 KiB
-```
+$$\text{Traffic}_{\text{AG+RS}} = 2 \times (k - 1) \times b \times H \times 2\text{ B} = 2 \times 3 \times 8 \times 4096 \times 2\text{ B} = 393{,}216\text{ B} = 384\text{ KiB}$$
+
+| 核算项（$k = 4,\; b = 8,\; H = 4096$，BF16，示意） | 算式 | 每卡结果 |
+| --- | --- | --- |
+| 每卡常驻权重 | $1\text{ GiB} \div 4$ | **0.25 GiB**（比整份少 **0.75 GiB**） |
+| 入口 All-Gather 每卡收到 | $(4 - 1) \times 8 \times 4096 \times 2\text{ B}$ | **196,608 B**（192 KiB） |
+| 出口 Reduce-Scatter 每卡发出 | $(4 - 1) \times 8 \times 4096 \times 2\text{ B}$ | **196,608 B**（192 KiB） |
+| 每卡每轮 AG + RS 单向合计 | $196{,}608\text{ B} + 196{,}608\text{ B}$ | **$393{,}216\text{ B} =$ 384 KiB** |
 
 这份示意里，常驻矩阵每卡少 0.75 GiB；若再假设相同工作量下每份矩阵理想读取一次，权重读取预算也少 0.75 GiB。384 KiB 是所列 ring 通信的单方向字节账，不能和容量差直接比较出收益，更不保证实际 HBM 少读这么多。加上第二节讲过的补齐（空行照样算、照样传），还要看三件事：
 
@@ -271,14 +281,13 @@ vllm-ascend 的特性文档给过一组实测数：DeepSeek-R1 W8A8（权重和�
 
 - **组大小只能取 1 或 2**：它必须整除 DP 数，而这套部署 DP 是 2。
 - **组沿 DP 方向排，全部跨机**：组大小为 2 时，卡 i 和卡 i+8 一组，也就是两台机器上编号相同的两张卡。vLLM 自己的 DP 组正是这 8 对，见 [16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)。
-- **换了组就不再按 TP8 切**：分到细粒度组的模块，改成只按这 2 张卡（或 1 张卡）切，每张卡存的反而更多。
+- **换了组就不再按 TP8 切**：分到细粒度组的模块，改成只按这 2 张卡（或 1 张卡）切，每张卡存的反而更多（以下为 GLM 双机 `lm_head` BF16 单矩阵静态估算）：
 
-```calc
-title: GLM 双机的 lm_head，每张卡存多少（BF16）
-默认按 TP8 切 = 154880 ÷ 8 × 4096 × 2 B = 158,597,120 B = 151.25 MiB
-组大小为 2 = 154880 ÷ 2 × 4096 × 2 B = 634,388,480 B = 605 MiB，约 0.591 GiB
-组大小为 1 = 154880 × 4096 × 2 B = 1,268,776,960 B ≈ 1.182 GiB，每卡一整份
-```
+| GLM 双机 `lm_head` 切分方案（BF16） | 每卡权重字节算式 | 每卡大小 |
+| --- | --- | --- |
+| 默认按 TP8 切 | $154880 \div 8 \times 4096 \times 2\text{ B} = 158{,}597{,}120\text{ B}$ | **151.25 MiB** |
+| 细粒度组大小为 2 | $154880 \div 2 \times 4096 \times 2\text{ B} = 634{,}388{,}480\text{ B}$ | **605 MiB**（$\approx 0.591\text{ GiB}$） |
+| 细粒度组大小为 1（每卡一整份） | $154880 \times 4096 \times 2\text{ B} = 1{,}268{,}776{,}960\text{ B}$ | **$\approx 1.182\text{ GiB}$** |
 
 这里只算一张 BF16 权重矩阵，不算补齐、量化元数据和运行时缓冲。默认的 151.25 MiB 出自 [lm_head 页](lm-head.md#每张卡存-19360-个词算出来的就是最终分数)，其余两行是同一个式子换了除数。稠密 MLP 也一样：前 3 层每层每卡的 int8 权重从 18.0 MiB 变成 72.0 MiB，三层从 54.0 MiB 变成 216.0 MiB（TP8 下的 18.0 MiB 见 [TP 页](tensor-parallel.md#稠密-mlp-与共享专家每卡各留一段通道)）。而且同一台机器里的 8 张卡手里 token 相同、存的又是同一半权重，等于把同一份活在机内算 8 遍。
 
@@ -346,17 +355,15 @@ rc2 的 oproj/mlp 组大小>1 还必须配置 PreemptOffloadConnector（可经 M
 
 **v0.30.0rc2 保留四个默认 0 的字段，增加了 oproj/mlp 真正分片的前提。** 字段仍须非负、用于 MoE 且能整除 DP；当 oproj 或 mlp 组大小>1 时，还要求 TP=1、非 NONE 图模式、D 侧 KV consumer、PCP=1。图捕获最大档覆盖不了最大可能步宽时会告警并把这两项置 0，所以“参数能解析”不表示实际生效。另一道派生校验在 oproj/mlp 任一>0 时要求 recompute_scheduler_enable=true，不能仅靠开启图或传入字典满足全部条件。
 
-v0.23 列是维护分支 2c59ff10，不含 GLM 代码；固定镜像 db701c1f 另列。vLLM 上游没有这个特性，只在 vllm-ascend 里。
+按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；GLM 固定镜像 `db701c1f` 的配置类与 `v0.23.0` 逐行一致，上文 `v0.30.0rc2` / `baa023ad` 过渡行为见对应说明。vLLM 上游没有这个特性，只在 `vllm-ascend` 里。
 
-| 项 | v0.23（2c59ff10） | 固定镜像（db701c1f） | v0.26（2ed6cbba） | main（baa023ad） |
+| 核对项 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 |---|---|---|---|---|
-| 字段 | 五项，含低秩输出投影 | 同 v0.23 | 同 v0.23 | 四项，低秩输出投影一项已移除；输出投影作用于 DeepSeek-V4 两段式投影的写法仍在 |
-| 默认值 | 全 0，不分组 | 同 | 同 | 同 |
-| 负数校验 | 这些配置检查只处理正值，负值不会启用对应路径 | 同 | 同 | 显式拒绝负值；应始终用 0 表示关闭 |
-| 前提检查（MoE、整除 DP、输出投影三条） | 有 | 同 | 同 | 同，挪进单独的前提检查方法；另拒绝负数 |
-| 词表嵌入、输出投影绑定 recompute 调度器 | 有 | 同 | 同 | 同 |
-| 建组方式（沿 DP、固定 PP 与 TP 坐标） | 有 | 同 | 同 | 同 |
-| lm_head 的送回 | 组的 All-to-All | 同 | 同 | 改成一次 all_to_all_single，行数须整除组大小；不切的输出头（组大小 1）走普通路径 |
+| 字段与默认值 | 5 项（含 `olora_tensor_parallel_size`），默认全 `0` | 同 `v0.23.0` | 4 项（移除 `olora`），默认全 `0`（`ascend_config.py#L1333-L1336`） | 5 项（新增 KDA 输入投影 `qkv_iproj_tensor_parallel_size`，须整除 `linear_num_heads`）；**全部默认值由 `0` 改为 `1`**（`ascend_config.py#L1446-L1488`） |
+| 负数校验与前提 | 仅正值启用；校验 MoE、整除 DP、输出投影三条 | 同 `v0.23.0` | 显式拒绝负值；`oproj/mlp > 1` 须 `TP=1`、非 `NONE` 图模式、D 侧 `kv_consumer`、`PCP=1`、`recompute_scheduler_enable=true` 及 `PreemptOffloadConnector`（`ascend_config.py#L830-L840, #L1358-L1381`、`platform.py#L1148-L1160`） | 延续 `v0.30.0` 校验（`ascend_config.py#L899-L910, #L1489-L1515`、`platform.py#L1320-L1332`） |
+| 图尺寸不足静默清零门槛 | 无该降级门槛 | 无该降级门槛 | 当 `max_cudagraph_capture_size`（或显式 `cudagraph_capture_sizes` 最大值）为空或 `< max_step = min(max_num_batched_tokens, max_num_seqs * decode_query_len)` 时，告警并静默将 `oproj / mlp` 清零为 `0`（`ascend_config.py#L1383-L1410`） | 同一判据，告警并静默重置 `oproj / mlp = 1`（`ascend_config.py#L1527-L1540`） |
+| `recompute_scheduler` 绑定 | 绑定 `oproj` 与 `embedding` | 同 `v0.23.0` | 改绑 `oproj` 与 `mlp`；`embedding` 不再受此绑定 | 同 `v0.30.0` |
+| 建组与 `lm_head` 送回 | 沿 DP 固定 PP/TP 建组；`lm_head` 走组 `all_to_all` | 同 `v0.23.0` | 同建组方式；`lm_head` 改用单次 `all_to_all_single`（行数须整除组大小；组大小 `1` 走普通路径） | 同 `v0.30.0` |
 
 ### 源码位置
 

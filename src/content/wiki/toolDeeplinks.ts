@@ -112,7 +112,7 @@ export const TOOL_DEEPLINK_MANIFEST: readonly ToolDeepLinkManifestEntry[] = [
   { pageId: "msprobe-accuracy-debug", tool: "troubleshoot-workbench" },
   { pageId: "cluster-serving", tool: "config-doctor" },
 
-  // ---- Un-upgraded Wave-4C / Exception-B legacy-baseline pages (verified lacks "releases/v0.30.0") ----
+  // ---- Wave-4C-1 upgraded v0.30.0 & Exception-B verified pages ----
   { pageId: "hccl-buffer", tool: "shared" },
   { pageId: "pd-disaggregation", tool: "config-doctor" },
   { pageId: "mooncake-connector", tool: "config-doctor" },
@@ -188,7 +188,9 @@ export function resolveToolDeepLink(
   const cleanAnchor = normalizeAnchor(opts?.anchor);
   const href = cleanAnchor ? `#/wiki/${canonicalId}#${cleanAnchor}` : `#/wiki/${canonicalId}`;
   const verified = entry.verified ?? [];
-  const isV030Verified = verified.includes(V030_VERIFIED_TAG);
+  const isRforkMainVerified =
+    (canonicalId === "rfork" || canonicalId.startsWith("rfork-")) && verified.includes("main");
+  const isV030Verified = verified.includes(V030_VERIFIED_TAG) || isRforkMainVerified;
   const isLegacyBaseline = !isV030Verified;
   const badgeText = isLegacyBaseline ? LEGACY_BASELINE_BADGE_TEXT : null;
 

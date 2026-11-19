@@ -68,6 +68,17 @@ sources:
     https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/batch_invariance.md#L25-L41
   - >-
     https://github.com/vllm-project/vllm-ascend/blob/921ccc52c6d8c9864190b981792318a489aeadf4/docs/source/developer_guide/performance_and_debug/msprobe_guide.md
+  - 'vllm-ascend@2c59ff10:vllm_ascend/batch_invariant.py#L99-L163'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/batch_invariant.py#L76-L162'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/batch_invariant.py#L95-L189'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L975-L1085'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_guard/hooks.py#L18-L145'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_guard/detector/manager.py#L57-L95'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_glm53_reasoning.py#L21-L66'
+  - 'vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L131-L165'
+  - 'vllm@ba15685a:vllm/entrypoints/openai/chat_completion/serving.py#L137-L175'
+  - 'vllm@ba15685a:vllm/v1/sample/sampler.py#L299-L365'
+  - 'vllm@ba15685a:vllm/v1/engine/detokenizer.py#L84-L170'
 relations:
   - to: inference-troubleshooting
     kind: builds-on
@@ -84,7 +95,11 @@ relations:
   - to: batch-invariance
     kind: builds-on
     note: 输入与采样固定后，检查批形状对数值及输出的影响
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: I
 contradicts: []
 updated: 2026-11-03T00:00:00.000Z
@@ -207,7 +222,7 @@ A 的最高候选是 41，B 的最高候选是 52；两边领先幅度都只有 
 
 例如原始流依次只发出增量“今天”“下雨”，客户端却显示“今天今天下雨”。用保存的这两个片段离线重放到客户端，仍得到重复文本；修正拼接后显示“今天下雨”，再对照整段原始流确认没有漏片段。在这个示意中，设备与生成参数都无需改变，重复发生在展示路径。若原始流里本来就有重复内容，则应继续向服务端追，不能沿用这个结论。
 
-**空输出**先保留结束原因、输出编号与原始流全部字段。模型直接选择结束编号、停止字符串截掉内容、内容进入思考或工具字段、生成过程出错，都有不同证据。没有收到非空答案文本不等于设备没有执行。先按[采样的停止规则](sampling.md)与[返回处理](streaming-output.md)确认是哪一种。
+**空输出**先保留结束原因、输出编号与原始流全部字段。模型直接选择结束编号、停止字符串截掉内容、内容进入思考或工具字段、生成过程出错，都有不同证据。启用 `tool_parser`（工具调用解析器）或 `reasoning_parser`（思考过程解析器）时，服务端会把特定标签之间的 token 拆进 `tool_calls` 或 `reasoning_content` 而令正文 `content` 看似为空；部分模型模板还自带思考开关或常驻思考（如 `main` 中 `patch_glm53_reasoning` 针对含 `Reasoning Effort:` 且不含 `enable_thinking` 的 GLM-5.3 模板做专门识别）。没有收到非空答案文本不等于设备没有执行。先按[采样的停止规则](sampling.md)与[返回处理](streaming-output.md)确认是哪一种。
 
 停止字符串也会影响可见输出的时机：配置了停止字符串且不把它包含在输出中时，实现缓冲末尾的“最长停止字符串长度减一”个字符，其他情况缓冲长度为零。客户端暂时没看到文字，可能只是这段尾部仍在缓冲。
 
@@ -222,7 +237,7 @@ A 的最高候选是 41，B 的最高候选是 52；两边领先幅度都只有 
 
 ## 偶发异常来不及复现，怎样留下现场？
 
-能稳定复现、且输入已经对齐时，可用 **MSProbe** 捕获中间张量，比较“第一次在哪一层或算子产生差异”。statistics 先记录最大/最小值等摘要，tensor 才保存具体数值；L0 按模块，L1 按算子 API，mix 同时保留两者。先圈定请求、共同前缀、step 和 rank，再扩大范围，避免把不同计算阶段的两个张量直接相减。操作入口见下方“怎么开”。
+能稳定复现、且输入已经对齐时，可用 **MSProbe** 捕获中间张量，比较“第一次在哪一层或算子产生差异”。statistics 先记录最大/最小值等摘要，tensor 才保存具体数值；L0 按模块，L1 按算子 API，mix 同时保留两者。先圈定请求、共同前缀、step 和 rank，再扩大范围，避免把不同计算阶段的两个张量直接相减。完整逐层对齐、配置与图对比步骤见[msprobe 逐层精度对齐与输出异常定位](msprobe-accuracy-debug.md)，精简启动片段见下方“怎么开”。
 
 前面的手工对照适合可重复的问题。**Runtime Guard 是运行中的异常检测与取证层**：观察 decode 信号，命中条件后写报告，并可选择保存请求相关的 KV 数据供后续检查。它帮助留下“哪条请求、在哪一步、什么信号异常”的记录，不会自动修正模型回答，也不替代输入对齐和首次分歧分析。
 
@@ -302,21 +317,22 @@ Runtime Guard 报告的 `dump_attempted` 表示动作被请求，不表示异步
 
 ### 版本差异
 
-本页 Runtime Guard 示例另钉 921ccc52，不是 rc2 配置。rc2 缺少 runtime_config、runtime_config_path、runtime_config_hot_reload，普通 Ascend 严格解析会拒收这些键，Omni 特例也只告警过滤；该示例不能直接复制到 rc2 启用热更新。
+**`Runtime Guard`（`runtime_config` / `runtime_config_path` / `runtime_config_hot_reload`）仅在 `main`（`8d6180e2`）正式落地且限定 MRV2 接线；`v0.30.0`（`c09d3e20`）尚无上述键，普通 Ascend 严格解析会直接拒收（`vllm_omni` 特例也只告警过滤），不能把 `main` 的热更新配置直接复制到 `v0.30.0`。**
 
-**v0.30.0rc2 的首个分歧排查仍要固定输入与采样，还应记录实际实现是否启用。** batch-invariant 只有运行时开关为 1 且 Triton 或 AscendC 扩展可用时才注册，缺依赖会 warning 后跳过。在普通 attention_v1 的 FIA 分支中，无 attention sinks、采用因果注意力且未启用滑动窗口时，批不变开关会让混合 prefill/decode 分开计算；其他后端与分支须分别检查。官方指南明确预编译 wheel 不带 csrc，安装 wheel 时设开关不会自动编译扩展；已安装包也可从匹配源码依次安装 AscendC 算子包和配套 wheel。因此“变量已设”不证明全模型逐位一致。主 KV 与 indexer 精度、KPool/LightningIndexer、MRV1/MRV2 也须分别记录，避免把切换执行分支误判为同一路径的随机误差。
+| 正确性取证核对项 | `v0.23.0 (2c59ff10)` / `vllm@0fc695fc` | `v0.26.0rc (2ed6cbba)` / `vllm@568afb3a` | `v0.30.0 (c09d3e20)` / `vllm@ced6857a` | `main (8d6180e2)` / `vllm@ba15685a` |
+|---|---|---|---|---|
+| `Runtime Guard` 在线监测与 KV 转储 | 无 | 无 | 无（`observability/` 仅含 metrics 基础配置，未含 `runtime_guard` 与 `runtime_config` 键） | 正式落地 `observability/runtime_guard/`（`hooks.py` 明确 MRV2-only），提供 `token_repeat`、`logits_finite`、`spec_acceptance` 三类检测器与热更新 KV 转储 |
+| Tool / Reasoning Parser 演进 | 上游 `OpenAIServingChat` 接入 `tool_parser` / `reasoning_parser`；按请求与模板分别核对 | 延续上游解析器扩展 | `vllm@ced6857a` 具备 53 个 `tool_parsers` / 34 个 `reasoning` 模块，`serving.py` 向引擎透传 `reasoning_parser_kwargs` | `vllm@ba15685a` 扩展至 64 个 `tool_parsers` / 44 个 `reasoning` 模块；`vllm-ascend@8d6180e2` 补齐 `patch_glm53_reasoning.py` 识别 GLM-5.3 常驻思考模板 |
+| 批不变性（`VLLM_BATCH_INVARIANT`） | 仅环境变量，注册依赖 Triton / AscendC；`reduce_sum` 维度过宽 | 同 `v0.23.0` | `attention_v1` FIA 无 sink/因果/非滑窗时拆分混合批；`reduce_sum` 支持 `axis`/`dtype` 保护；预编译 wheel 不含 csrc | 改用 `torch_npu.npu.set_deterministic_level(3)` 并无条件拆分 `npu_add_rms_norm`；详见 [批不变性版本表](batch-invariance.md#版本差异) |
+| MSProbe 与首次分歧排查 | 前缀对齐、贪心阈值 `1e-5`、停止串缓冲与逐层对比方法适用 | 相同 | 相同；同时记录主 KV 与 indexer 精度、MRV1/MRV2 | 相同；MSProbe 逐层对齐与图对比详见[msprobe 逐层精度对齐与输出异常定位](msprobe-accuracy-debug.md) |
 
-Runtime Guard 新增说明固定到官方 `921ccc52`，与下表的旧 GLM 基线分别成立。未据字段名存在推断 v0.23、v0.26、v0.30.0rc2 或旧 main 全部具备相同接线；部署时按实际 runner 与对应版本核对。此处提供文档取证步骤，没有本站异常触发或硬件转储实测。[S16][S17]
-
-| 范围 | 可采用的检查 | 需保留的边界 |
-| --- | --- | --- |
-| v0.23 控制流 `0fc695fc` 与 GLM 执行侧 `db701c1f` | 输入模板、采样选择、增量解码入口见下方源码 | 本页无 GLM 设备数值实测；批不变覆盖不能由环境开关推定 |
-| v0.26 | 相同前缀、首次分歧和分层对照方法适用 | 采样、图与确定性支持按相应机制页核对 |
-| main | 同样先对齐输入、参数和实际路径 | 批不变官方指南补有调度/缓存限制；在线文档不代表旧版自动处理这些条件 |
-
-详细旧版支持差异统一见 [batch invariance 的版本表](batch-invariance.md#版本差异)、[采样](sampling.md#版本差异)和[流式输出](streaming-output.md#版本差异)。MSProbe 的新配置与 graph 转储条件来自 921ccc52 指南，须核对现场包与 runner；本页没有三版端到端设备对照。
+- **实测与实现边界**：`v0.30.0` 及 `main` 中 `batch-invariant` 仅在运行时开关为 1 且 Triton 或 AscendC 扩展可用时才注册，缺依赖会 warning 后跳过；预编译 wheel 不带 csrc，安装 wheel 时设开关不会自动编译扩展，须从匹配源码依次安装 AscendC 算子包与配套 wheel。因此“变量已设”不证明全模型逐位一致；主 KV 与 indexer 精度、KPool/LightningIndexer、MRV1/MRV2 也须分别记录，避免把切换执行分支误判为随机误差。
+- 详细跨版差异另见[batch invariance 版本表](batch-invariance.md#版本差异)、[采样](sampling.md#版本差异)与[流式输出](streaming-output.md#版本差异)。本页提供源码与文档取证步骤，不含本站异常触发或硬件转储实测 [S16][S17]。
 
 ### 源码位置
+
+- `main (8d6180e2)` `Runtime Guard` 与 Reasoning Parser 实核：`vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_guard/hooks.py#L18-L145`（`runtime_guard_step` / `runtime_guard_sample_tokens`，明确 MRV2-only）、`detector/manager.py#L57-L95`（三类检测器注册）、`patch/platform/patch_glm53_reasoning.py#L21-L66`；上游 Tool / Reasoning Parser 透传与采样/反分词实核见 `vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L131-L165` 与 `vllm@ba15685a:vllm/entrypoints/openai/chat_completion/serving.py#L137-L175`、`v1/sample/sampler.py#L299-L365`、`v1/engine/detokenizer.py#L84-L170` [C31][C35]。
+- 四版 `batch_invariant.py` 与 `v0.30.0` FIA 混合批拆分实核见来源 27–30（`2c59ff10` / `2ed6cbba` / `c09d3e20`）；Runtime Guard 文档入口、热更新水位、配额及有限性同步语义见 [S16][S17]；MSProbe 详尽实操见[msprobe 逐层精度对齐与输出异常定位](msprobe-accuracy-debug.md)。
 
 - Runtime Guard 的检测阶段、V2 接线、报告与 KV 转储范围见 [S16]；启动 overlay、热更新、水位、配额、日志及有限性同步语义见 [S17]。它是收集证据的入口，不作为已定位根因的证明。
 

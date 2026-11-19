@@ -73,6 +73,14 @@ sources:
   - 'https://modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8/resolve/3121f187149ef2defa15f2b28adad10e272681d9/quant_model_description.json'
   - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L579-L640'
   - 'vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L31-L50'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L352-L412'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L379-L386'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L615-L657'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L320'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/utils.py#L370-L442'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L395-L402'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L718-L763'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L417-L446'
 relations:
   - to: matmul-and-weights
     kind: builds-on
@@ -83,10 +91,11 @@ relations:
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: S
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-19'
 ---
 
 ## ND、NZ 是什么，名字从哪里来？
@@ -133,16 +142,16 @@ inference-mechanism:4
 
 **补齐让尾部也能容纳完整小块；新增位置不属于原矩阵的有效元素。** CANN 9.1 的 ATB TransdataOperation 约定：FP16/BF16 的 m₀、n₀ 都是 16；INT8 的 m₀ 是 16、n₀ 是 32。ATB 是 Ascend Transformer Boost 加速库，这里引用的是这个具体转换接口的尺寸规则。
 
-假设一张 17×17 的 FP16 矩阵，每元素 2 字节，按上述接口补齐：
+假设一张 $17 \times 17$ 的 FP16 矩阵（示意尺寸），每元素占 2 字节，按上述接口 $m_0 = n_0 = 16$ 补齐为完整小块：
 
-```calc
-title: 17×17 的 FP16 矩阵补成完整小块（示意尺寸）
-补齐后的行数 = ceil(17 ÷ 16) × 16 = 32
-补齐后的列数 = ceil(17 ÷ 16) × 16 = 32
-有效数据 = 17 × 17 × 2 B = 578 B
-分块载荷 = 32 × 32 × 2 B = 2,048 B
-补齐增加 = 2,048 B − 578 B = 1,470 B
-```
+$$M_{\text{pad}} = \lceil 17 \div 16 \rceil \times 16 = 32, \qquad N_{\text{pad}} = \lceil 17 \div 16 \rceil \times 16 = 32, \qquad \Delta = 2{,}048 - 578 = 1{,}470\text{ B}$$
+
+| 核算项（$17 \times 17$ FP16 示意尺寸） | 算式 | 结果 |
+| --- | --- | --- |
+| 补齐后的行数 / 列数 | $\lceil 17 \div 16 \rceil \times 16$ | 各 **32** |
+| 有效数据载荷 | $17 \times 17 \times 2\text{ B}$ | **578 B** |
+| 分块后载荷 | $32 \times 32 \times 2\text{ B}$ | **2,048 B** |
+| 补齐增加空间 | $2{,}048\text{ B} - 578\text{ B}$ | **1,470 B** |
 
 这是格式载荷的账，分配器对齐和临时副本另算。矩阵很小、边长刚越过对齐边界时，补齐比例会特别大；大而已对齐的矩阵则没有这笔尾部浪费。由此不能把“NZ 更适合某些算子”理解为“NZ 一定省内存”。
 
@@ -175,7 +184,7 @@ title: 17×17 的 FP16 矩阵补成完整小块（示意尺寸）
 | 1（默认） | 调用 NZ 转换 | 原样返回 | 原样返回 |
 | 2 | 调用 NZ 转换 | 调用 NZ 转换 | 原样返回 |
 
-这张表回答“是否发起转换”，转换接口能否接受具体张量还取决于算子支持。meta 张量只携带形状和类型，没有实体数据。固定实现先排除 FP32 和 meta，再判断设备；310P 会在读取模式之前走优先转换分支，因此不能拿 A2 上模式 0 的结果直接套给 310P。
+这张表回答“是否发起转换”，转换接口能否接受具体张量还取决于算子支持。`meta` 张量只携带形状和类型，没有实体数据。在 `v0.30.0` 与 `main` 主基线中，统一由 `additional_config.weight_nz_mode`（`0` / `1` / `2`，默认 `1`）控制普通策略，旧环境变量 `VLLM_ASCEND_ENABLE_NZ` 已退役不再读取；`_should_trans_nz` 先排除 FP32、`meta` 以及至少二维且末两维含 `1` 的张量，再检查硬件档案的强制策略——**310P 通过 `WeightLayoutPolicy.FORCE_NZ` 强制转换 `FRACTAL_NZ`**，先于 `weight_nz_mode` 生效，因此不能拿 A2 上模式 0 的结果直接套给 310P。
 
 模式 1 和 2 的差别在于是否将半精度权重也送去转换，不会把 INT8 权重变成 BF16，也不会把所有激活与缓存一并改格式。开关的覆盖范围必须沿具体层的后处理入口确认，下面的专家层就是例外。
 
@@ -259,25 +268,20 @@ W8A8 专家后处理直接调用转换接口，未经过上述普通权重策略
 
 ### 版本差异
 
-**v0.30.0rc2 的普通 NZ 策略保留默认 1 和 0/1/2 范围，最终分支仍比模式值更具体。** 工具先排除 FP32/meta、末两维含 1 的张量，再看硬件 FORCE_NZ，最后才看模式，所以硬件强制分支可能先于 mode=0 生效。RL enabled 会把模式置 0，但不能据此断言所有显式 NZ 转换都撤销。maybe_trans_nz_with_scale 同步转置权重与 scale，仅需要 NZ 时才 contiguous 并转换；关闭 NZ 时保留非连续转置，非 contiguous 本身不等于布局错误。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；例外 B 的历史 GLM 双机绑定算例另钉 `db701c1f`（与 `v0.23.0` 的 `weight_nz_mode` 入口一致，W8A8 专家层另有直接 NZ 转换）。
 
-FP8 block 加载还会先解析源 scale，再按硬件与形状重组 MXFP8 或保留解析矩阵；C8-MXFP cache 另有 E8M0 尺度张量。这些属于数值格式和缓存对象变化，不只是 ND/NZ 重排，不能与数学矩阵方向混为一谈。
+| 核对维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| 配置入口与退役环境变量 | `weight_nz_mode` 默认 `1`；JSON 键优先，兼容旧环境 `VLLM_ASCEND_ENABLE_NZ`；无 `0/1/2` 范围校验 | 默认、环境兼容与 JSON 优先级同 `v0.23.0` | 正式顶层整数字段 `weight_nz_mode: int = 1`（`ascend_config.py#L615-L657`），Pydantic `model_validator` 强校验 `0/1/2`；**已退役 `VLLM_ASCEND_ENABLE_NZ`**（`envs.py` 不再登记）；`rl_config.enabled` 覆写为 `0`（`#L379-L386`） | 同 `v0.30.0`（`ascend_config.py#L718-L763`、`#L395-L402`），旧环境变量彻底移除 |
+| `_should_trans_nz` 判定与 `310P` 强制策略 | 排除 FP32/`meta` → `310P` 特例直接转 NZ → 按模式 `0/1/2` 判断 | 判定顺序同 `v0.23.0` | 排除 FP32/`meta` 及末两维含 `1` 的 ≥2D 张量 → 查 `HardwareProfile.weight_layout_policy is WeightLayoutPolicy.FORCE_NZ`（`310P` 在 `hardware_profile.py#L317` 强制 `FRACTAL_NZ`，先于 `mode=0` 生效）→ 按 `weight_nz_mode` 判断（`utils.py#L352-L412`） | 同 `v0.30.0`（`utils.py#L370-L442`、`hardware_profile.py#L424`）；`A5` 档案新增 `requires_2d_nz_linear_input=True`（`hardware_profile.py#L443`） |
+| 联动转置与数值格式路径 | 普通线性层按 `maybe_trans_nz`，W8A8 专家另有直接转换 | 同上 | `maybe_trans_nz_with_scale` 同步转置权重与 scale，仅需 NZ 时才 `contiguous` 并转换（关 NZ 时保留非连续转置）；原生 FP8 block 按硬件重组 MXFP8 或反量化，C8-MXFP cache 另含 E8M0 尺度张量 | 同 `v0.30.0`；`maybe_trans_nz` 与 `maybe_trans_nz_with_scale` 延续统一入口 |
 
-ND/NZ 的定义来自格式文档；下面核对普通权重转换策略与入口。v0.23 是 vLLM 0fc695fc + Ascend 2c59ff10，本部署另用 Ascend db701c1f；v0.26 rc 为 568afb3a + 2ed6cbba；main 为 84030bbe + baa023ad。上游传递 additional_config，NZ 策略由 Ascend 解释；这些快照不表示已验证全部模型与硬件组合。
-
-| 范围 | 固定实现的行为 | 对使用者意味着什么 |
-| --- | --- | --- |
-| v0.23 维护分支，2026-09-09 快照 | 默认 1；JSON 键优先，兼容旧环境；先排除 FP32/meta，310P 特例，再按模式判断 | 普通策略与固定 GLM 相同；入口没有 0/1/2 范围校验 |
-| v0.26 rc 分支，2026-09-17 快照 | 默认、环境兼容、JSON 优先和 utils 判定顺序均相同 | 本入口一致，不能由此推断全部后处理一致 |
-| main，2026-09-22 固定快照 | 正式整数字段默认 1，范围限 0/1/2；不再读取旧 NZ 环境变量；启用 RL 会改为 0 | 环境单独设 2 已不起作用，需迁移到 JSON；按最终对象值排查 |
-| main 的普通转换 | 排除 FP32/meta 后，若张量至少二维且末两维任一为 1，原样返回；然后查硬件强制 NZ，再查模式；转换可带类型参数 | 尺寸排除先于硬件强制策略；其余受硬件策略和调用参数影响 |
-| 固定 GLM 提交 | 默认与旧环境规则同 v0.23；普通线性层走策略，W8A8 专家另有直接 NZ 转换 | 判断开关影响时必须追到具体层 |
+FP8 block 重组为 MXFP8 与 C8-MXFP 附加 E8M0 尺度张量属于数值格式与缓存对象变化，不只是 ND/NZ 排布重排，不能与数学矩阵方向混为一谈。
 
 ### 源码位置
 
 - ND 的 N-Dimension 名称与硬件代际边界见 CANN 分形格式说明 [S1]；NZ 的大 N、小 z 命名、分块维度顺序见 ATC 格式说明 [S2]。
 - 转换前后 dtype 一致、FP16/BF16 与 INT8 的不同对齐位、ATB 输出维度见 TransdataOperation [S3]；视图、reshape 和连续副本的行为见 PyTorch Tensor Views [S4]。
-- 普通策略的三个快照分别对应 [C8][C9][C10]；固定线性层与专家后处理分别对应 [C6][C7]。图中使用职责名，不假定所有层共用一个入口。
-- 配置优先级、旧环境整数解析见来源 11、13、14；v0.23 与 v0.26 rc 入口见 15–17；main 字段、范围、RL 覆盖和不再登记旧 NZ 环境键见 18–21。
-- 2×2 分块是教学假设 [A]；坐标映射和 17×17 补齐账是按格式规则的推导 [D]。本页未做 NPU 时延、内存峰值或跨框架互拷实测。
-- 固定量化描述见来源 28、29；旧编译子对象通过 kwargs 接受未使用键见来源 30，main 的配置装饰器默认 extra=forbid 见来源 31。它们支持配置入口的版本边界，不构成运行包或格式转换实测。
+- 普通策略与 `310P` `FORCE_NZ` 四版实现见来源 8–10 与 32–39（`c09d3e20` 的 `utils.py#L352-L412`、`hardware_profile.py#L310-L320`、`ascend_config.py#L379-L386`/`#L615-L657`；`8d6180e2` 的 `utils.py#L370-L442`、`hardware_profile.py#L417-L446`、`ascend_config.py#L395-L402`/`#L718-L763`）[C8][C9][C32][C35][C36][C39]；固定线性层与专家后处理见 [C6][C7]。
+- 旧版配置优先级与 `VLLM_ASCEND_ENABLE_NZ` 解析见来源 11、13–17；固定量化描述见来源 28–29；编译子对象与 `extra=forbid` 校验见来源 30–31。
+- 2×2 分块是教学假设 [A]；坐标映射和 $17 \times 17$ 补齐账是按格式规则的推导 [D]。本页未做 NPU 时延、内存峰值或跨框架互拷实测。

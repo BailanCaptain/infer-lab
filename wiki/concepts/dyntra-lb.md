@@ -3,7 +3,7 @@ id: dyntra-lb
 title: DyntraLB：D 端各 DP 组按 KV 块数换人，少等最重的组
 type: feature
 summary: >-
-  已钉 vllm-ascend main 与 rc2 中 PD 分离 decode 端的 DP 负载均衡：各组每步互报按 token 数估计的 KV
+  vllm-ascend v0.30.0 与 main 中 PD 分离 decode 端的 DP 负载均衡：各组每步互报按 token 数估计的 KV
   块数，下一步在本组内暂停或接纳请求，让各组注意力负载接近；不搬请求，暂停不还 KV。讲清与 EPLB、Balance Scheduling
   的分工、计划怎样算、何时生效，以及本部署为何没开。
 aliases:
@@ -84,7 +84,19 @@ sources:
   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1613-L1685'
   - 'vllm-ascend@baa023ad:.github/vllm-release-tag.commit#L1-L1'
   - 'vllm@98dff2a8:vllm/v1/engine/core.py#L2268-L2281'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1579-L1635'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1086-L1115'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1380-L1385'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/core/dyntra_lb_scheduler.py#L140-L245'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1672-L1727'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1260-L1287'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1586-L1630'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/core/dyntra_lb_scheduler.py#L140-L230'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: data-parallel
@@ -95,7 +107,7 @@ relations:
     note: D 节点是什么，候选请求的 KV 怎样从 P 拉过来
   - to: balance-scheduling
     kind: alternative-to
-    note: 同样防「等最重的组」但只数条数，已钉 main 与 rc2 中都与本特性二选一
+    note: 同样防「等最重的组」但只数条数，v0.30.0 与 main 中都与本特性二选一
   - to: expert-parallel
     kind: builds-on
     note: dispatch 与 combine 把各组绑在一起；专家那一段的等待归 EPLB 管
@@ -123,7 +135,7 @@ rawSources:
 
 ## DyntraLB 是什么？
 
-**DyntraLB（Dynamic Intra-Decoder Data-Parallel Load Balancing）是 vllm-ascend 给 PD 分离的 decode 端用的负载均衡：同一个 decode 实例里的几个 DP 组，每一步末尾按每条请求已有的 token 数估计 KV 块数、互相汇报，按同一张表算出下一步各组暂停哪几条、接纳哪几条，让各组的历史处理负载接近。它有 main 与 rc2 实现；请求不在组之间搬，被暂停的请求也不交还 KV 块。**
+**DyntraLB（Dynamic Intra-Decoder Data-Parallel Load Balancing）是 vllm-ascend 给 PD 分离的 decode 端用的负载均衡：同一个 decode 实例里的几个 DP 组，每一步末尾按每条请求已有的 token 数估计 KV 块数、互相汇报，按同一张表算出下一步各组暂停哪几条、接纳哪几条，让各组的历史处理负载接近。它在 `v0.30.0` 与 `main` 中提供；请求不在组之间搬，被暂停的请求也不交还 KV 块。**
 
 先交代几个词。[PD 分离](pd-disaggregation.md)把一条请求的 prefill（一次算完整段提示词）和 decode（之后逐个生成 token）交给两组机器，专做 decode 的那组叫 D 节点，新请求带着 P 那边算好的 KV cache 过来。[DP](data-parallel.md) 把一个实例分成几个 DP 组，每组有自己的调度器，手里两个队列：running 放正在算的请求，waiting 放已经到了、还没开始算的请求（见 [vLLM 调度器](vllm-scheduler.md)）。KV cache 按块存放（见[缓存按块存放](kv-cache.md#缓存按块存放一个位置的-kv-写进哪一格)），一条请求的历史越长，占的块越多。
 
@@ -167,15 +179,14 @@ DyntraLB 和 Balance Scheduling 管同一段，启动时不能同开；它和 EP
 
 块数每一步都要重数：decode 每生成一个 token，编号列表就长一点，跨过块边界就多算一块。计数使用请求全部 token 编号：最新产出的编号在下一次主干前向之前也已经加入列表；物理分配块、不同缓存组、共享前缀和投机预留块另有各自的账。按每块 128 个 token 示意，100 token 算 1 块，16,384 token 算 128 块，8,192 token 算 64 块，就是开头例子里的三种请求。对照 [Balance Scheduling](balance-scheduling.md)：它只数条数，1 块的短问答和 128 块的长对话都算一条，这是两者最根本的区别。
 
-失衡有两种量法，由门槛本身的大小决定：门槛不小于 1 时，量的是块数差「最重 − 平均」；门槛小于 1 时，量的是比例「(最重 − 平均) ÷ 最重」。默认门槛 5.0 属于前一种，意思是 5 块，不是 5%。代入开头的例子：
+失衡有两种量法，由门槛本身的大小决定：门槛不小于 1 时，量的是块数差「最重 − 平均」；门槛小于 1 时，量的是比例「(最重 − 平均) ÷ 最重」。默认门槛 5.0 属于前一种，意思是 5 块，不是 5%。代入开头的示意例子（门槛 5 块）：
 
-```calc
-title: 换人前后的失衡（数为示意，门槛 5 块）
-换人前的平均 = (131 + 4) ÷ 2 = 67.5 块
-换人前的失衡 = 131 − 67.5 = 63.5 块
-换人后的平均 = (131 + 67) ÷ 2 = 99 块
-换人后的失衡 = 131 − 99 = 32 块
-```
+$$\text{bubble} = L_{\max} - \bar{L}$$
+
+| 阶段（示意，门槛 5 块） | 各组平均块数 $\bar{L}$ | 失衡度 $L_{\max} - \bar{L}$ |
+| --- | --- | --- |
+| 换人前（DP0 131 块，DP1 4 块） | $(131 + 4) \div 2 = 67.5$ 块 | $131 - 67.5 =$ **63.5 块** |
+| 换人后（DP0 131 块，DP1 67 块） | $(131 + 67) \div 2 = 99$ 块 | $131 - 99 =$ **32 块** |
 
 32 块仍高于门槛，但已经找不到可做的动作，计划就停在这里。算计划时先一次性补空位，然后一轮轮做后面三步；某一轮什么都没做，或者失衡已经低于门槛，就停下（最多 1000 轮）。补空位本身不受失衡门槛限制：
 
@@ -190,14 +201,15 @@ title: 换人前后的失衡（数为示意，门槛 5 块）
 
 **第 4 步用一个固定公式估一步多久：20000 + 19.2 × 最重那组的块数；吞吐 = 各组 running 的总条数 ÷ 这个时长。它挑估计吞吐更高的停法；估计值恰好相同时，还可能优先撤回本次规划刚补进来的请求。**
 
-两个常数没有单位，是这份实现写死的启发式，不是哪个模型的实测时延。代入换人之后的局面（两组共 8 条在跑，DP0 131 块、DP1 67 块），停 DP0 的哪一条都不划算：
+两个常数没有单位，是这份实现写死的启发式，不是哪个模型的实测时延。代入换人之后的局面（两组共 8 条在跑，DP0 131 块、DP1 67 块），按每 $10^6$ 个时间单位完成的条数计，停 DP0 的哪一条都不划算：
 
-```calc
-title: 停一条划不划算（按每 10⁶ 个时间单位完成的条数，数为示意）
-现在 = 8 ÷ (20000 + 19.2 × 131) × 10⁶ = 8 ÷ 22,515.2 × 10⁶ ≈ 355.3
-停掉 128 块那条 = 7 ÷ (20000 + 19.2 × 67) × 10⁶ = 7 ÷ 21,286.4 × 10⁶ ≈ 328.8
-停掉一条 1 块的 = 7 ÷ (20000 + 19.2 × 130) × 10⁶ = 7 ÷ 22,496 × 10⁶ ≈ 311.2
-```
+$$\text{throughput} = \frac{N_{\text{running}}}{20000 + 19.2 \times L_{\max}}$$
+
+| 候选方案（示意，按每 $10^6$ 时间单位完成条数） | 算式 | 估计吞吐 |
+| --- | --- | --- |
+| 维持现状（8 条，$L_{\max}=131$） | $8 \div (20000 + 19.2 \times 131) \times 10^6 = 8 \div 22{,}515.2 \times 10^6$ | **约 355.3** |
+| 停掉 128 块那条（7 条，$L_{\max}=67$） | $7 \div (20000 + 19.2 \times 67) \times 10^6 = 7 \div 21{,}286.4 \times 10^6$ | **约 328.8** |
+| 停掉一条 1 块的（7 条，$L_{\max}=130$） | $7 \div (20000 + 19.2 \times 130) \times 10^6 = 7 \div 22{,}496 \times 10^6$ | **约 311.2** |
 
 停掉 128 块那条以后，最重的变成 DP1 的 67 块，所以按 67 算。两种停法都比现在低，于是这一轮既没换也没停，计划结束。固定项 20000 相当于 20000 ÷ 19.2 ≈ 1,042 块，但这不是允许暂停的块数门槛：是否划算还取决于总请求数，以及停掉一条后各组最大负载能降多少。例如两组共有 100 条请求，最重组 249 块（200 块的一条加 49 条各 1 块），另一组 50 条各 1 块时，暂停 200 块那条会提高公式中的吞吐估计。
 
@@ -323,32 +335,33 @@ file: dyntra-lb-flow
 
 ### 版本差异
 
-本文流程图中的旧主线同步循环保留原基线；配套 vLLM 0.30 的 dp_sync_interval 默认 16 且可配置，dummy 步宽按投机配置推导，不能从旧 GLM 图沿用 32 圈/4 token 常数。
+本文流程图中的旧主线同步循环保留原基线；配套 vLLM 0.30 的 `dp_sync_interval` 默认 16 且可配置，dummy 步宽按投机配置推导，不能从旧 GLM 图沿用 32 圈/4 token 常数。
 
-**v0.30.0rc2 保留 DyntraLB 的配置与默认关闭状态。** scheduler_config.dyntra_lb_config 默认 enabled=false、dynamic、start=250、end=-1、bubble=5、长请求 700 块、动态窗口 256，与已钉 main 一致。块长读取 scheduler.cache_config.block_size，须为正整数，请求负载按全部 token 数向上取块数，不能固定按 128 token 一块。启动仍要求 kv_role 严格为 kv_consumer、DP>1、nnodes_within_dp≤1，且与 Balance/CPP 互斥；配置检查不等于证明所有 DP rank 真在同一台机器，官方单节点 decoder 的支持范围仍要保留。
+**`v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 均保留 DyntraLB 配置及默认关闭状态。** `scheduler_config.dyntra_lb_config` 默认 `enabled=false`、`mode="dynamic"`、`start_step=250`、`end_step=-1`、`bubble_threshold=5.0`、`long_req_block_threshold=700`、`dynamic_max_step=256`。块长读取 `scheduler.cache_config.block_size`，须为正整数，请求负载按全部 token 数向上取块数，不能固定按 128 token 一块。启动仍要求 `kv_role` 严格为 `kv_consumer`、`DP>1`、`nnodes_within_dp<=1` 且与 Balance Scheduling 互斥；`main (8d6180e2)` 移除了 `profiling_chunk_config` 及其互斥校验，将等待队列由 `skipped_waiting` 改接上游 `kv_holding_waiting`，并在开启 DyntraLB 时经 `_swa_bounded_replay_unsupported_mode` 自动关闭 SWA bounded replay。配置检查不等于证明所有 DP rank 真在同一台机器，官方单节点 decoder 的支持范围仍要保留。
 
-| | v0.23 维护分支 2c59ff10 | 本部署镜像 db701c1f | v0.26 2ed6cbba | main baa023ad |
+| 项 | v0.23.0 (2c59ff10) | v0.26.0rc (2ed6cbba) | v0.30.0 (c09d3e20) | main (8d6180e2) |
 |---|---|---|---|---|
-| DyntraLB | 无 | 无 | 无 | 有，默认关 |
+| DyntraLB 功能与默认状态 | 无 | 无 | 有，默认关（仅支持 `scheduler_config.dyntra_lb_config` 嵌套写法） | 有，默认关（同 v0.30.0 嵌套写法与 7 项默认参数） |
+| 互斥检查与调度器接入 | 无 | 无 | 互斥 `enable_balance_scheduling` 与 `profiling_chunk_config`；可与 `recompute_scheduler_enable` 组合为 4 个专用类 | 移除 `profiling_chunk_config` 及其互斥检查；保留与 Balance 互斥和 Recompute 4 类组合；开启时自动降级关闭 SWA bounded replay |
+| 等待队列与预取追踪 | 无 | 无 | 基于 `skipped_waiting` 与 `waiting` 合并排序并执行 KV 预取 | 改接 `kv_holding_waiting` 与 `waiting`，统一经 `_handle_blocked_waiting_request` 刷新 |
 
-前三个提交没有 DyntraLB 的调度器、引擎补丁与配置分支。main 仓库登记的已验证 vLLM main 提交是 84030bbe，发布标签另登记为 v0.29.0（98dff2a8）；二者在本页相关处有两处不同：「全局还有没有活」的跨组同步，84030bbe 是第 1 步和之后每 16 步（可调）一次，v0.29.0 是每 32 步一次，DyntraLB 每步照跑不受影响；KV 初始化后改写块大小时，84030bbe 跳过 GLM 的尾状态组，v0.29.0 不跳过，于是 GLM 上「一块」是多少 token 不同（见上文 GLM 一节）。这些结论只对应列出的固定提交。
+本部署镜像 `db701c1f` 亦无 DyntraLB 的调度器、引擎补丁与配置分支。早期社区 `main`（`baa023ad`）仓库登记的已验证 vLLM 提交为 `84030bbe`，发布标签另登记为 `v0.29.0`（`98dff2a8`）；二者在跨组同步间隔（每 16 步可调 vs 每 32 步）与 KV 初始化改写块大小（是否跳过 GLM 尾状态组）上存在差异，其中 DyntraLB 每步照跑不受同步间隔影响，而块大小差异决定 GLM 上「一块」对应多少 token（见上文 GLM 一节）。
 
 ### 源码位置
 
 | 看什么 | 在哪 |
 |---|---|
 | 块数怎么算 | `vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L41-L52` |
-| 候选准备与 KV 预取 | 同一文件 `#L166-L248` |
-| 计划落地、准入 | 同一文件 `#L250-L292`、`#L436-L443`、`#L700-L705` |
+| 候选准备与 KV 预取 | `vllm-ascend@c09d3e20:vllm_ascend/core/dyntra_lb_scheduler.py#L140-L245`；`main (8d6180e2)` 改接 `kv_holding_waiting` 见 `#L140-L230` |
+| 计划落地、准入 | `vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L250-L292`、`#L436-L443`、`#L700-L705` |
 | 暂停与抢占 | 同一文件 `#L364-L419` |
 | planner：失衡、补位、换人、停一条、收尾 | `vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L123-L321` |
 | 缓冲区、长请求检测、何时生效 | 同一文件 `#L324-L470` |
 | 打包与 All-Gather | 同一文件 `#L472-L517` |
 | 引擎进程替换 | `vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_engine_core.py#L32-L42` |
-| 启动检查、调度器类 | `vllm-ascend@baa023ad:vllm_ascend/platform.py#L984-L1012`、`#L1254-L1260`、`#L1470-L1488` |
-| 配置项、默认值、只认嵌套写法 | `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1363-L1397`、`#L1450-L1464` |
+| 启动检查、调度器类与 SWA 降级 | `vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1086-L1115`、`#L1380-L1385`；`vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1260-L1287`、`#L1586-L1630` |
+| 配置项、默认值、只认嵌套写法 | `vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1579-L1635`；`vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1672-L1727` |
 | 官方说明 | `vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dyntra_lb.md` |
-| main 登记的已验证上游提交 | `vllm-ascend@baa023ad:.github/vllm-main-verified.commit#L1-L1` |
 | 上游 main：只为 MoE 建 DP 进程；步数、波次与同步间隔；节点数定义；块大小改写跳过不参与前缀缓存的组 | `vllm@84030bbe:vllm/v1/engine/core.py#L1319-L1328`、`#L2242-L2270`、`#L333-L349`；`vllm/config/parallel.py#L145-L146`、`#L752-L759` |
 | v0.29.0 的块大小改写（不跳过）；上游抢占 | `vllm@98dff2a8:vllm/v1/engine/core.py#L332-L338`；`vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995` |
 | GLM 尾状态组：每块 = 压缩比 + 草稿数，不参与前缀缓存 | `vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kv_cache.py#L28-L42`；`vllm_ascend/core/kv_cache_interface.py#L303-L322` |

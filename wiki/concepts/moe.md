@@ -164,9 +164,16 @@ sources:
   - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/topk_weight_and_reduce.py#L44-L77'
   - 'vllm@ced6857a:vllm/model_executor/layers/fused_moe/oracle/unquantized.py#L48-L163'
   - 'vllm@84030bbe:vllm/model_executor/layers/fused_moe/oracle/unquantized.py#L48-L163'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/router/grouped_topk_router.py#L80-L127'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/shared_experts.py#L64-L130'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L373-L426'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ops/fused_moe/router/grouped_topk_router.py#L80-L127'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ops/fused_moe/shared_experts.py#L72-L145'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L420-L465'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -176,8 +183,11 @@ relations:
   - to: glm-5-3-flash
     kind: builds-on
     note: 288 选 8、共享专家、每层维度和全模型参数量的出处
+  - to: moe-comm-dispatch
+    kind: builds-on
+    note: 昇腾四族硬件下 AllGather / MC2 / Fused MC2 / MegaMoe / AllToAll 通信调度状态机与运行期权重重切分
 contradicts: []
-updated: 2026-11-11T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -253,25 +263,20 @@ file: moe-router-calc
 
 **⑥ 按组合权重把专家输出加起来。** 专家 2 和 4 各拿 x 算一遍自己的前馈网络，各得到一条和 x 一样长的输出（示意）：E₂(x) = [1, 0, 2, −1]，E₄(x) = [0, 2, 1, 1]。每条乘上自己的组合权重，再逐位相加。以第 3 个数为例：1.09 × 2 + 0.91 × 1 = 3.09。四个数都这样算，这一层路由分支的输出是 [1.09, 1.82, 3.09, −0.18]，宽度仍是 4。其余 4 个专家这一轮一次乘法也没做。
 
-```calc
-title: 「苹果」过一层 MoE 的手算（示意）
-六个专家的 z = [−1, 2, 1.5, 1, −2, 0.5]
-原始分数 s = sigmoid(z)（保留两位小数） = [0.27, 0.88, 0.82, 0.73, 0.12, 0.62]
-选人分数 = s + b = [0.27, 0.88, 0.62, 0.83, 0.12, 0.62] → 选中专家 2、4
-> 只看 s 会选专家 2、3；偏置只改了选谁
-归一化（用 s，不用 s + b） = [0.88, 0.73] ÷ 1.61 = [0.547, 0.453]
-组合权重 = 2 × [0.547, 0.453] = [1.09, 0.91]
-路由分支输出 = 1.09 × E₂(x) + 0.91 × E₄(x) = [1.09, 1.82, 3.09, −0.18]
-```
+| 步骤（「苹果」过一层 MoE 手算，示意） | 计算过程 | 结果 |
+| --- | --- | --- |
+| ① router 打分 $z$ | 隐藏向量与 6 列权重做点积 | $[-1,\, 2,\, 1.5,\, 1,\, -2,\, 0.5]$ |
+| ② 原始分数 $s = \text{sigmoid}(z)$ | 保留两位小数 | $[0.27,\, 0.88,\, 0.82,\, 0.73,\, 0.12,\, 0.62]$ |
+| ③ 选人分数 $s + b$ | 只看 $s$ 会选专家 2、3；偏置改选专家 2、4 | $[0.27,\, 0.88,\, 0.62,\, 0.83,\, 0.12,\, 0.62] \rightarrow$ **专家 2、4** |
+| ④ 归一化（用 $s$，不用 $s + b$） | $[0.88,\, 0.73] \div 1.61$ | **$[0.547,\, 0.453]$** |
+| ⑤ 整体缩放（$r = 2$） | $2 \times [0.547,\, 0.453]$ | 组合权重 **$[1.09,\, 0.91]$** |
+| ⑥ 路由分支输出 | $1.09 \times E_2(x) + 0.91 \times E_4(x)$ | **$[1.09,\, 1.82,\, 3.09,\, -0.18]$** |
 
-写成通式：zⱼ 是 router 给专家 j 算出的数，bⱼ 是它的校正偏置，S 是选中的 k 个专家，r 是缩放系数：
+写成通式：$z_j$ 是 router 给专家 $j$ 算出的数，$b_j$ 是它的校正偏置，$S$ 是选中的 $k$ 个专家，$r$ 是缩放系数：
 
-```text
-sⱼ = sigmoid(zⱼ)
-S  = 取 sⱼ + bⱼ 最大的 k 个专家
-αⱼ = r × sⱼ / Σ(i ∈ S) sᵢ           j ∈ S
-路由分支输出 = Σ(j ∈ S) αⱼ Eⱼ(x)
-```
+$$s_j = \text{sigmoid}(z_j), \qquad S = \text{TopK}_k(s_j + b_j)$$
+
+$$\alpha_j = r \cdot \frac{s_j}{\sum_{i \in S} s_i}\quad (j \in S), \qquad y_{\text{routed}} = \sum_{j \in S} \alpha_j E_j(x)$$
 
 αⱼ 就是专家 j 的组合权重，Eⱼ(x) 是专家 j 对当前隐藏向量算出的输出。第三行的分子分母里都只有 s、没有 b，这就是上面第 ④ 步。这组式子说明的是路由关系；换成低精度或融合算子（把几步合成一次调用的专用算子）执行时，数值细节以对应算子为准。
 
@@ -352,16 +357,14 @@ file: moe-batch-load
 | Standard：二维 token 行 | [M, K] | 每行选中的专家编号、组合权重、全局到本地的专家映射；实现可再把行复制、重排成 token–专家配对 |
 | BatchedExperts：按专家预留行 | [E, T, K] | 每个专家这一步实际有多少有效行；T 是容量，不是本轮负载 |
 
-接着上一节的示意，卡 A 持有专家 1–3，实际收到的配对行数是 [1, 4, 1]。再设有 2 个派发端，每端最多提交 4 个 token，于是一个专家最多可能接到 8 行；用按专家预留的形式时，卡 A 的输入容量可写成 [3, 8, 4]。每个专家只读自己的有效行，空余位置不能算成新增请求，也不要求它们代表零向量。
+接着上一节的示意，卡 A 持有专家 1–3，实际收到的配对行数是 `[1, 4, 1]`。再设有 2 个派发端，每端最多提交 4 个 token，于是一个专家最多可能接到 8 行；用按专家预留的形式时，卡 A 的输入容量可写成 `[3, 8, 4]`。每个专家只读自己的有效行，空余位置不能算成新增请求，也不要求它们代表零向量（下表隐藏宽度 4 为教学缩小数，仅计输入区，不含权重、缩放、输出或临时工作区）：
 
-```calc
-title: 按专家预留的容量与实际工作（示意）
-每专家行容量 = 2 个派发端 × 每端最多 4 行 = 8 行
-本卡预留输入 = 3 个专家 × 8 行 = 24 行
-本轮有效配对 = 1 + 4 + 1 = 6 行
-BF16 输入区 = 3 × 8 × 4 × 2 B = 192 B
-> 隐藏宽度 4 是教学缩小数；这里只算输入区，不含权重、缩放、输出或临时工作区
-```
+| 核算项（按专家预留容量 vs 实际工作，示意） | 算式 | 结果 |
+| --- | --- | --- |
+| 每专家行容量 | $2\text{ 个派发端} \times 4\text{ 行/端}$ | **8 行** |
+| 本卡预留输入总行数 | $3\text{ 个专家} \times 8\text{ 行}$ | **24 行** |
+| 本轮实际有效配对行数 | $1 + 4 + 1$ | **6 行** |
+| BF16 输入区大小 | $3 \times 8 \times 4 \times 2\text{ B}$ | **192 B** |
 
 因此，把专家负载的 6 行直接拿去估算一个固定容量缓冲，会少算预留空间。反过来，看到预留 24 行也不能说这一步算了 24 个真实配对。专家实现还会申请矩阵乘和激活的临时工作区；有些中间结果寿命不重叠，可以复用同一块存储。**容量、有效工作量、同时存活的缓冲大小是三笔账。**
 
@@ -371,7 +374,7 @@ BF16 输入区 = 3 × 8 × 4 × 2 B = 192 B
 
 有的准备与收尾可以先发起通信，返回一个“等待接收完成”的回调，让这段时间与其他计算重叠。调用这个异步入口并不表示结果已经可读，必须按接口执行完成回调。是否能与共享专家或另一微批重叠，还看后端支持与实际调度；它不能消除通信载荷，也不能单凭配置推断节省了多少时间。
 
-这一节讲上游接口如何约束组合。GLM 双机用的是 Ascend 自己的 prepare、量化方法和 finalize 链，MC2 与 AllGather 的实际张量、切片和合并见 [EP 的两条搬法](expert-parallel.md#mc2-还是-allgather)。不要把上游 GPU 后端表中的类名直接替换进昇腾命令。
+这一节讲上游接口如何约束组合。昇腾在 `v0.30.0` 已将四族硬件（A2 / A3 / 950 / 310P）在 `AllGather`、`MC2`、`Fused MC2 / MegaMoe` 与 `AllToAll` 四类实现间的实时选路收拢进统一的状态机与动态容量体系，详见 [MoE 通信调度状态机与运行期权重重切分](moe-comm-dispatch.md)；下方 GLM 双机算例则沿用固定镜像的 Ascend prepare、量化方法和 finalize 链，MC2 与 AllGather 的具体张量与合并见 [EP 的两条搬法](expert-parallel.md#mc2-还是-allgather)。不要把上游 GPU 后端表中的类名直接替换进昇腾命令。
 
 ## 落到 GLM 双机：45 层里 42 层是 MoE
 
@@ -387,16 +390,14 @@ file: glm-flash-moe
 
 ### 一个 token 用上多少专家参数
 
-**一层 288 个路由专家，一个 token 只用 8 个，用到的专家参数不到 3%。** 算法和前面示意的那张表相同，只是数换成了真的：
+**一层 288 个路由专家，一个 token 只用 8 个，用到的专家参数不到 3%。** 算法和前面示意的那张表相同，只是数换成了真的（以下仅计路由专家三片矩阵，不含共享专家、router 和注意力）：
 
-```calc
-title: 一层 MoE 里，一个 token 用上多少专家参数
-一个专家 = 3 × 4096 × 2048 = 25,165,824
-一层 288 个路由专家 = 288 × 25,165,824 = 7,247,757,312
-一个 token 这一层用到 = 8 × 25,165,824 = 201,326,592
-用到的比例 = 201,326,592 ÷ 7,247,757,312 ≈ 2.8%
-> 这四个数只算路由专家的三片矩阵，不含共享专家、router 和注意力
-```
+| 一层 MoE 参数核算项（GLM-5.3-Flash，每专家 $4096 \to 2048 \to 4096$） | 算式 | 参数量 / 比例 |
+| --- | --- | --- |
+| 单个路由专家 | $3 \times 4096 \times 2048$ | **25,165,824** |
+| 一层 288 个路由专家合计 | $288 \times 25{,}165{,}824$ | **7,247,757,312** |
+| 单个 token 本层实际用到（top-8） | $8 \times 25{,}165{,}824$ | **201,326,592** |
+| 单 token 激活比例 | $201{,}326{,}592 \div 7{,}247{,}757{,}312$ | **$\approx 2.8\%$**（$8/288 = 1/36$） |
 
 如果这一层是个参数量相同的稠密前馈网络，这 72 亿个参数每个 token 都要乘一遍。**MoE 把这一层的参数量做到了 8 个专家的 36 倍（288 ÷ 8），每个 token 的矩阵乘法量却仍然是 8 个专家那么多。** 路由专家占了全模型参数的绝大部分，具体占比见[模型总览](glm-5-3-flash.md#参数量3133-亿里-97-是路由专家)；全模型的总参数与每个 token 的激活参数是另一套口径，也统一在那一节。每张卡实际放多少字节，见[双机部署的权重表](glm-5-3-flash-two-node.md#每张卡上放了什么)。
 
@@ -494,11 +495,13 @@ rc2 共享专家增加了真正移动执行时点的重叠路径：量化输入�
 
 各版本都可表达本页“偏置选人、原分数算权重”的 grouped 路由规则，但分支选择、缩放次数和执行条件必须分别核对。上述旧原生回退重复缩放在 2c59ff10、2ed6cbba 也存在，不能由单组配置推出所有分支结果相同。
 
-| 分支 | router 打分与选择 | 共享专家的 W8A8 路径 |
-| --- | --- | --- |
-| v0.23（本站钉住 `db701c1f`；维护分支 `2c59ff10`） | `experts_selector.py`：偏置只用于选人、原始分数归一化后乘缩放系数 [来源 7](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/ops/fused_moe/experts_selector.py#L139-L232) | `_forward_shared_experts` 里的量化分支，用融合的反量化-SwiGLU-量化算子 [来源 10](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L671)、[来源 16](https://github.com/vllm-project/vllm-ascend/blob/2c59ff10/vllm_ascend/ops/fused_moe/fused_moe.py#L726-L800) |
-| v0.26 rc（`2ed6cbba`） | grouped 分支仍取原始分数，外层回退缩放问题另见上文 [C17] | 保留整数融合路径，并增加共享输入就绪事件与 SiTU 激活分支；并非只移动行号 [C18] |
-| main（`baa023ad`） | 重构成 `AscendGroupedTopKRouter`，该类按需归一化后乘一次缩放 [C19] | W8A8/W4A8 且有 scale、无活跃 LoRA 时走 `A8_INT_FUSED`；W4A8MXFP 有独立路径，其他量化方案或活跃 LoRA 也可能走 `LINEAR_WRAPPER` [C20][C21] |
+按四版本正式钉点核对昇腾 MoE 实现：`v0.23.0`（`2c59ff10`，GLM 固定镜像为 `db701c1f`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）：
+
+| 核对项 | `v0.23.0`（`2c59ff10` / `db701c1f`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| router 打分与选择 | `experts_selector.py`：偏置只用于选人、原始分数归一化后乘缩放系数 [来源 7](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/ops/fused_moe/experts_selector.py#L139-L232) | grouped 分支仍取原始分数，外层回退缩放问题见上文 [C17] | `AscendGroupedTopKRouter`（`grouped_topk_router.py#L80-L127`）：grouped+bias 取原分数归一化并单次缩放，支持 `sqrtsoftplus` [C19] | 同 `v0.30.0`（`grouped_topk_router.py#L80-L127`） |
+| 共享专家 W8A8 与重叠路径 | `_forward_shared_experts` 量化分支走融合反量化-SwiGLU-量化算子 [来源 10](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L671)、[来源 16](https://github.com/vllm-project/vllm-ascend/blob/2c59ff10/vllm_ascend/ops/fused_moe/fused_moe.py#L726-L800) | 保留整数融合路径，新增共享输入就绪事件与 SiTU 分支 [C18] | `AscendSharedExperts`（`shared_experts.py#L64-L130`）：W8A8/W4A8 无 LoRA 走 `A8_INT_FUSED`，支持共享输入提前准备与 Gate-Up 事件重叠；权重复制仅由 `enable_shared_expert_dp` 决定 [C20][C21] | 延续 `AscendSharedExperts`（`shared_experts.py#L72-L145`），支持路由与共享专家混合量化路径 |
+| 四路通信调度状态机 | `ascend_forward_context.py` 按硬件分支硬编码选路 | 延续分支选路 | 抽象 `HardwareProfile` + `select_moe_comm_method`（`ascend_forward_context.py#L373-L426`），在 `AllGather / MC2 / Fused MC2 (MegaMoe) / AllToAll` 间按动态容量选路，详见 [MoE 通信调度状态机](moe-comm-dispatch.md) | 延续状态机与动态容量选路（`ascend_forward_context.py#L420-L465`） |
 
 main 的路径选择由 scale、具体量化类型和 LoRA 条件共同决定；枚举名称本身不能证明某次部署命中哪条路径。GLM 入口在各分支的状态见[模型总览的版本差异](glm-5-3-flash.md#版本差异)，也不能把其他模型的 SiTU 或 MXFP 分支推回旧镜像的 GLM W8A8 算例。
 

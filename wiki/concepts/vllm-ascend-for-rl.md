@@ -96,10 +96,17 @@ sources:
   - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1475-L1500'
   - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L488-L508'
   - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1627-L1639'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L363-L395'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1467-L1483'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/weight_transfer/__init__.py#L24-L40'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L379-L410'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1754-L1770'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/weight_transfer/__init__.py#L24-L52'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/weight_transfer/sparse_hccl_engine.py#L90-L125'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -172,16 +179,17 @@ wait 的代价是等待尚未完成的请求，abort 的代价是丢掉这些未
 
 **使用不同物理卡：保留推理端内存，使用 HCCL。** 训练和 rollout 有各自设备，通常无须为了训练而 sleep。初始化时建立训练端与所有推理 worker 的通信组；更新时训练端发送，worker 接收并装载。通信组规模包括发送方，不能只填推理卡数。HCCL 后端在计算 worker 的通信编号时还计入 DP 组偏移，避免不同 DP 组内相同的局部编号撞在一起。
 
-下面只演算接口里的参与者计数：假设有一个发送进程、两个接收 worker，发送方编号从零开始，接收方偏移为一。这是教学拓扑，和 GLM 双机卡数无关。
+下面只演算接口里的参与者计数：假设有一个发送进程、两个接收 worker，发送方编号从零开始，接收方偏移为一（教学拓扑，和 GLM 双机卡数无关）：
 
-```calc
-title: HCCL 权重更新通信组的参与者（教学示意）
-通信组规模 = 1 个训练端发送进程 + 2 个推理 worker = 3 个参与者
-第一个接收编号 = 0 + 1 = 1
-第二个接收编号 = 1 + 1 = 2
-```
+$$\text{world\_size} = 1_{\text{trainer}} + N_{\text{workers}} = 1 + 2 = 3$$
 
-传输的数据还包括参数名称、数据类型和形状。HCCL 的普通路径逐个接收权重、调用模型装载，再释放临时张量；本页 main 的 packed 路径把多个张量打包，减少通信调用，打包参数（缓冲大小与缓冲个数）随更新信息由发送端下发，接收端直接取用。NPU IPC 按物理设备标识查找句柄，再由模型装载；“同机”不能代替“同卡”这一前提。本页 main 的普通 IPC 路径有装载调用，packed 路径却缺少这一步，不能把传输返回成功当作模型已更新；rc2 的对应路径已补齐，具体版本条件见页末。
+| HCCL 权重更新通信组角色（教学示意） | 算式 | 编号 / 规模 |
+| --- | --- | --- |
+| 通信组总规模 | $1\text{ 发送进程} + 2\text{ 推理 worker}$ | **3 个参与者** |
+| 第 1 个推理接收 worker | $0 + 1$ | **rank 1** |
+| 第 2 个推理接收 worker | $1 + 1$ | **rank 2** |
+
+传输的数据还包括参数名称、数据类型和形状。HCCL 的普通路径逐个接收权重、调用模型装载，再释放临时张量；packed 路径把多个张量打包，减少通信调用，打包参数（缓冲大小与缓冲个数）随更新信息由发送端下发，接收端直接取用。NPU IPC 按物理设备标识查找句柄，再由模型装载；“同机”不能代替“同卡”这一前提。早期社区主干的普通 IPC 路径有装载调用，packed 路径却缺少这一步，不能把传输返回成功当作模型已更新；`v0.30.0` 与当前 `main` 的对应路径已补齐，具体版本条件见页末。
 
 
 固定镜像接收并加载权重后会等待相关 NPU 工作完成：HCCL 广播和 packed 传输可异步提交，这里的同步保证该更新流程返回前设备工作已完成。在途请求怎样暂停、何时恢复生成，仍由外层训练与服务流程协调。
@@ -322,29 +330,23 @@ FRACTAL_NZ mode is enabled. This may cause model parameter precision issues in t
 
 ### 版本差异
 
-下面 Worker 权重更新状态机在固定 main 已存在；rc2 的变化在引擎内部：NPU IPC 的 start/finish 从空操作改为 initialize/finalize_layerwise_reload，HCCL 引擎重建前 shutdown 旧组并关闭 communicator。睡眠的额外清理也增加 [HCCL 生命周期锚点](sleep-mode.md#版本差异)，这些都不替代训练端的全 Worker 协调。
+**`v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 均通过 `RlConfig.apply()` 统一收口 RL 默认行为。** 只要 `rl_config.enabled=true`，启动阶段立刻执行三项强制动作：① 若 `weight_nz_mode != 0` 则打 warning 并强制清零为 `0`（关闭 `FRACTAL_NZ` 权重布局）；② 调用 `_disable_expandable_segments()` 从 `PYTORCH_NPU_ALLOC_CONF` 剥离所有 `expandable_segments:*` 片段；③ 写入 `VLLM_SERVER_DEV_MODE="1"` 开启开发端点。三个子开关（`sleep_mode_extra_cleanup`、`enable_training_consistency`、`enable_batch_invariant`）均默认 `false`，不随总开关隐式打开；其中 `enable_batch_invariant=true` 时才写入 `VLLM_BATCH_INVARIANT="1"`。
 
-**NPU IPC packed 装载也存在版本差异。** main `baa023ad` 的 packed 消费者只返回解包后的张量列表；receive_weights 把 model.load_weights 放在非 packed 的 else 分支，packed=true 不会调用模型加载器，上游外层同步也不会补做装载。rc2 `7d825229` 把这一调用移到分支之后，两条路径都会执行。这个源码差异影响是否真正更换了权重，不能只用 HTTP 成功或设备同步完成来验收。
+在权重传输后端上，`v0.30.0` 与 `main` 均修复了早期主干 `baa023ad` 中 NPU IPC `packed=true` 路径漏调 `model.load_weights` 的问题，并补齐 NPU IPC `start/finish` 的逐层重载准备与收尾及 HCCL 重建前关闭旧 communicator；`v0.30.0` 仅注册 `hccl` 与 `npu_ipc`，**`main (8d6180e2)` 进一步注册了 `sparse_hccl` 后端（`sparse_hccl_engine.py`，显式校验 `weight_nz_mode=0` ND 权重）**。Router Replay（`--enable-return-routed-experts`）在 `v0.30.0` 与 `main` 中均强制要求 `VLLM_USE_V2_MODEL_RUNNER=1`。
 
-**v0.30.0rc2 的 RL 总开关与各项能力仍分别控制。** RlConfig 的 enabled、额外 sleep 清理、training consistency、batch invariant 默认都为 false；总开关开启会将 weight_nz_mode 清零、删除 expandable_segments 并开启 SERVER_DEV_MODE，但 batch invariant 仍须单独启用。额外睡眠清理也仍要求总开关与子开关同时为真。
-
-权重更新入口已有明确状态机：start_weight_update 不接收 is_checkpoint_format，先检查引擎、重复 start 与 NZ，成功才标 active；update 要求 active、异常会清除，但不回滚已经写入的权重。finish 要求 active，结束传输和重置 LoRA 都成功后才清除标记；这两步抛异常时，标记仍保留。仅配置 weight_transfer_config 才创建引擎，Ascend 登记 hccl/npu_ipc worker 引擎及 npu_ipc trainer 工厂，不能直接沿用旧 nccl/ipc 名称。这个 Worker 状态机不代替训练端对所有 Worker 和请求边界的协调。
-
-v0.23 列专指维护分支 `2c59ff10`，v0.26 指 `2ed6cbba`，main 指 `baa023ad`，均为钉住的源码快照。GLM 用的是含模型代码的独立提交 `db701c1f`，不属于 v0.23 维护分支；本页核对的 worker 更新逻辑与 v0.23 一致。
-
-| 项目 | v0.23 | v0.26 | rc2（7d825229） | main |
+| 项目 | v0.23.0 (2c59ff10) | v0.26.0rc (2ed6cbba) | v0.30.0 (c09d3e20) | main (8d6180e2) |
 |---|---|---|---|---|
-| RL 总览与统一配置 | 无 rl 特性页、无 RlConfig | 同 v0.23 | 有，四个布尔字段默认 false | 同 rc2 所列字段默认 |
-| 权重更新与默认启用 | 提供传输配置才创建引擎 | 同 v0.23 | 同样须提供配置 | 同样须提供配置 |
-| 跨卡 / 同卡入口 | nccl / ipc 经工厂 patch 映射 | 保留该 patch | 注册 hccl / npu_ipc | 同样注册；指南 ipc 名称不符实现 |
-| NZ 校验 | start 检查环境变量 | 同 v0.23 | 总开关清零布局模式；start 查生效配置 | 同 rc2 所列规则 |
-| 更新 API | start 带 is_checkpoint_format，默认 true；worker 负责重载或复制 | 同 v0.23 | start 无该参数；后端负责重载 | 同一职责拆分；IPC 内部差异见上文 |
-| sleep 额外清理 | top-level 字段，默认 false | 同 v0.23 | 移至 rl_config 子字段，默认 false，且须总开关 | 同 rc2 所列配置条件 |
-| 批不变与训推一致 | 分散设置 | 无统一 RL 配置 | 独立子开关，FA3 有无 PCP 与模型条件 | 同样独立启用，不互相隐式开启 |
+| RL 统一配置 `RlConfig` | 无 `RlConfig` 与统一 RL 指南 | 同 v0.23.0 | 有 `@config` `RlConfig`（4 个布尔字段默认 `false`） | 同 v0.30.0 |
+| `NZ` 关闭与 `expandable_segments` 剥离 | `start` 仅检查旧环境变量 `VLLM_ASCEND_ENABLE_NZ` | 同 v0.23.0 | `RlConfig.apply()` 强制 `weight_nz_mode=0`、调 `_disable_expandable_segments()` 剥离 `PYTORCH_NPU_ALLOC_CONF` 中对应项并开 `VLLM_SERVER_DEV_MODE=1`；`start` 查生效配置 | 同 v0.30.0 |
+| 权重传输后端注册 | `nccl` / `ipc` 经工厂 patch 映射 | 保留该 patch | 注册 `hccl` 与 `npu_ipc`（及 `npu_ipc` trainer 工厂）；补齐 `packed` 装载与逐层重载收尾 | 同 v0.30.0，另新增注册 `sparse_hccl`（要求 ND 权重 `weight_nz_mode=0`） |
+| 更新 API 与 `sleep` 额外清理 | `start` 带 `is_checkpoint_format`；`sleep` 额外清理为顶层字段 | 同 v0.23.0 | `start` 移除该参数由后端负责重载；`sleep` 额外清理移至 `rl_config` 子字段且依赖总开关 | 同 v0.30.0 |
+| 批不变、训推一致与 Router Replay | 分散设置，无统一 RL 开关 | 同 v0.23.0 | 独立子开关（FA3 需无 PCP 且非 MLA/SFA）；Router Replay 校验要求 MRV2 | 同 v0.30.0 |
 
-旧分支已有分散能力，不代表支持新的统一入口；四版的普通服务都不会自动同步权重。main/rc2 应使用 npu_ipc，上游 ipc 不会自动映射为 NPU IPC。升级时要同时迁移配置层级和更新接口，旧训练客户端不能原样假定新版签名；是否使用 sleep 仍单独配置。新版总开关会覆盖布局设置并给 warning，旧版则要手动保持环境与配置一致。表中的统一配置也不证明旧版已有 main 的数据 API 或模型支持。
+固定 GLM 镜像 `db701c1f` 不属于上述发布分支，其 worker 权重更新与 `NZ` 环境变量校验与 `v0.23.0` 同源。四版的普通推理服务都不会自动同步权重；`v0.30.0` 与 `main` 同卡场景须写 `backend="npu_ipc"`，上游 `ipc` 不会自动映射为 NPU IPC。
 
 ### 源码位置
+
+- **`v0.30.0` / `main` 核心锚点**：`RlConfig.apply()` 强制 `weight_nz_mode=0` 与剥离 `expandable_segments` 见 `vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L363-L395`、`platform.py#L1467-L1483`，`main (8d6180e2)` 见 `ascend_config.py#L379-L410`、`platform.py#L1754-L1770`；后端注册与 `sparse_hccl` 见 `c09d3e20:vllm_ascend/distributed/weight_transfer/__init__.py#L24-L40` 与 `8d6180e2:.../__init__.py#L24-L52`、`sparse_hccl_engine.py#L90-L125`。
 
 **官方组合语义。** rollout 分工与部署模式见 [S1]；sleep 顺序、传输生命周期、暂停选择见 [S2]；概率与 Router Replay 的返回格式见 [S3]；tokens-only、工具调用、DP 路由及配置清单见 [S4]；三个可选字段、默认值、旧配置迁移及环境变量保留规则见 [S5]。GLM 的实际双机启动命令见 [S6]。批不变源码构建与 wheel 边界以专门指南 [S19] 为准。
 

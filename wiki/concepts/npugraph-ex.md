@@ -147,9 +147,16 @@ sources:
   - https://github.com/meta-pytorch/tlparse/blob/98b8782b90f076f3d77a4a414316e3c8d0d127d4/README.md
   - 'vllm@0fc695fc:vllm/compilation/decorators.py#L506-L515'
   - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L176-L181'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L112-L170'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1310-L1354'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L119-L177'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1515-L1559'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/compilation/graph_fusion_pass_manager.py#L52-L79'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -206,14 +213,14 @@ file: npugraph-ex-intuition
 file: npugraph-ex
 ```
 
-上半是不融合的走法：中间结果整块进设备显存，下一个算子再整块读回来。下半是融合后的走法，这块中间结果不出算子。
+上半是不融合的走法：中间结果整块进设备显存，下一个算子再整块读回来。下半是融合后的走法，这块中间结果不出算子（示意数，不是 GLM 实测访存；融合后这 128 B 有机会省掉，$x$、$y$ 和最终结果该读该写的仍要读写）：
 
-```calc
-title: 一个中间张量的一写一读（示意数，不是 GLM 实测访存）
-中间张量 = 4 行 × 8 列 × 2 B = 64 B
-写出再读回 = 2 × 64 B = 128 B
-> 融合后这 128 B 有机会省掉；x、y 和最终结果该读该写的还是要读要写
-```
+$$\text{中间张量} = 4 \times 8 \times 2\text{ B} = 64\text{ B}, \qquad \text{写出再读回} = 2 \times 64\text{ B} = 128\text{ B}$$
+
+| 访存分项（4 行 × 8 列，BF16 每数 2 B·示意） | 计算式 | 字节数 |
+| --- | --- | --- |
+| 中间张量大小 | $4 \times 8 \times 2\text{ B}$ | **64 B** |
+| 不融合时的额外一写一读 | $2 \times 64\text{ B}$ | **128 B**（融合后有机会省掉） |
 
 能省到什么程度，要看融合实现自己怎么用近端存储、怎么组织内部流水，所以**少两个图节点不等于少两次任务下发，也推不出一个固定加速比**。代价在另一侧：编译器得先认出这一段、准备好实现，还要验证数值——融合通常会改变浮点运算的先后次序，误差是否仍在允许范围内要单独确认。
 
@@ -221,16 +228,16 @@ title: 一个中间张量的一写一读（示意数，不是 GLM 实测访存�
 
 一条融合规则由三部分组成：要找的计算结构（pattern）、找到之后换上的实现（replacement）、以及适用条件。**匹配看的是图里的算子和依赖关系，不是源码里两行挨着写。** 如果中间结果还有别的消费者，替换必须把它们要的数据照样留下。
 
-最容易在量化模型里出现的是「归一化接量化」这一类。先取其中静态量化的候选：图里先是一个支持偏置输入的「残差加 + RMSNorm」算子，紧跟着一个把结果按系数压成 8 位整数的量化算子，这两步被换成一个同时做完的算子。它一次给出两样东西：量化后的整数张量，和要继续往下传的残差。拿一个位置上的两个数走一遍（偏置不加，设 RMSNorm 的权重全是 1、量化系数 s=0.1，s 怎么来见[量化](quantization.md#一个数怎样压下去再还原回来)）：
+最容易在量化模型里出现的是「归一化接量化」这一类。先取其中静态量化的候选：图里先是一个支持偏置输入的「残差加 + RMSNorm」算子，紧跟着一个把结果按系数压成 8 位整数的量化算子，这两步被换成一个同时做完的算子。它一次给出两样东西：量化后的整数张量，和要继续往下传的残差。拿一个位置上的两个数走一遍（偏置不加，设 RMSNorm 的权重全是 1、量化系数 $s = 0.1$，$s$ 怎么来见[量化](quantization.md#一个数怎样压下去再还原回来)；融合省掉的是第 3 步那个 BF16 中间结果的写出读回，`[4, 6]` 残差与 `[8, 12]` 整数张量仍须写出）：
 
-```calc
-title: 归一化接量化融合前后，哪一步的中间结果消失了（示意数）
-残差加 = [3, 4] + [1, 2] = [4, 6]
-RMS = √((4² + 6²) ÷ 2) = √26 ≈ 5.10
-归一化 = [4, 6] ÷ 5.10 = [0.78, 1.18]
-量化 = round([0.78, 1.18] ÷ 0.1) = [8, 12]
-> 融合省掉的是第三行那个 BF16 中间结果的写出读回；[4, 6] 这个残差和 [8, 12] 这个整数张量都还要写出去
-```
+$$\text{RMS} = \sqrt{\frac{4^2 + 6^2}{2}} = \sqrt{26} \approx 5.10, \qquad q = \text{round}\!\left(\frac{[4, 6] / 5.10}{0.1}\right) = [8, 12]$$
+
+| 阶段（归一化接量化融合前后·示意） | 数值演算 | 融合后是否仍写出到显存 |
+| --- | --- | --- |
+| ① 残差加 | $[3, 4] + [1, 2] = [4, 6]$ | 是（残差继续往下传） |
+| ② 求 RMS | $\sqrt{(4^2 + 6^2) / 2} = \sqrt{26} \approx 5.10$ | 算子内部中间标量 |
+| ③ BF16 归一化输出 | $[4, 6] / 5.10 \approx [0.78, 1.18]$ | **否（融合后省去这趟写出再读回）** |
+| ④ 静态量化输出 | $\text{round}([0.78, 1.18] / 0.1) = [8, 12]$ | 是（送往下一层整数矩阵乘） |
 
 归一化本身怎么算见 [MLP、残差与归一化](mlp-residual-norm.md)。注意上面只是「这条规则在找什么」，图里真的出现同样的算子和连接才算命中——**配置打开、候选已注册、某一层真的匹配上，是三件事**。固定源码里默认开着四条规则：
 
@@ -269,18 +276,24 @@ file: npugraph-ex-flow
 
 ## static kernel：为选定形状提前编译
 
-**static kernel 是给固定形状提前编译好的算子程序，把一部分运行时准备挪到启动阶段。** 它默认关着，而且必须和外部后端一起开——在没有被硬件检查提前关闭的情况下，只开它会在配置阶段断言失败。打开后，编译接口从捕获宽度表里筛出一段范围交给后端：下界是每条请求一步占的位置数（1 + 草稿 token 数），上界是最大并发请求数乘这个长度，只有落在这个闭区间里的宽度才送去静态编译，表里没有的宽度不会被补出来。
+**static kernel 是给固定形状提前编译好的算子程序，把一部分运行时准备挪到启动阶段。** 它默认关着，而且必须满足 `enable_super_kernel -> enable_static_kernel -> enable_npugraph_ex` 的三级依赖链：
+- **A2 / A3 / A5 等支持 `npugraph_ex` 的硬件**：单开 `enable_static_kernel=True`（而 `enable_npugraph_ex=False`），或单开 `enable_super_kernel=True`（而 `enable_static_kernel=False`），都会在配置校验阶段直接抛出 `AssertionError`。
+- **310P 等不支持 `npugraph_ex` 的硬件**：硬件能力检查会先于断言执行，对原本开启的项打印 warning 后将三者**静默刷成 `False`**，不会触发断言失败。
+- **非纯整图模式静默刷回 `False`**：即使在 A2/A3/A5 上合法地双开或三开了 `npugraph_ex` + `static_kernel`（+ `super_kernel`），只要最终 `cudagraph_mode` 是 `NONE`、不受支持的档位，或任何需要分段编译的模式（如 `PIECEWISE`、`FULL_AND_PIECEWISE`，即非 `FULL_DECODE_ONLY` / `FULL`），平台 `_setup_compile_backend` 仍会把 `additional_config["ascend_compilation_config"]` 里的这三项全部**静默刷回 `False`**。
 
-**Super Kernel 合并的是已经编译好的算子二进制。** 2026-11-02 官方指南描述：在 ACL 图捕获期间识别可融合子图，把子 kernel 合成较大的 kernel，并按依赖插入同步，以减少任务下发与调度等待。它依赖 static kernel，后者又依赖 npugraph_ex；不兼容的算子会截断融合范围。这个依赖在本页固定 v0.26 维护分支、main 与 rc2 配置中均有检查；最初的 v0.26.0rc1 tag 和旧 GLM 镜像没有该字段，版本不能只按名称合并，详见 [Super Kernel 版本区别](../params/enable-super-kernel-ce990e186bfa.md)。
+打开并保留生效后，编译接口从捕获宽度表里筛出一段范围交给后端：下界是每条请求一步占的位置数（$1 + \text{草稿数}$），上界是最大并发请求数乘这个长度，只有落在这个闭区间里的宽度才送去静态编译，表里没有的宽度不会被补出来。
 
-用一组独立的示意配置走一遍：捕获宽度表是 2、4、8、16、32，最大并发 4 条请求，草稿数 1。
+**Super Kernel 合并的是已经编译好的算子二进制。** 2026-11-02 官方指南描述：在 ACL 图捕获期间识别可融合子图，把子 kernel 合成较大的 kernel，并按依赖插入同步，以减少任务下发与调度等待。它依赖 static kernel，后者又依赖 npugraph_ex；不兼容的算子会截断融合范围。在 `v0.30.0` 与 `main` 中，若显式给出 `enable_static_kernel` 而省略 `enable_super_kernel`，前置校验会让 `enable_super_kernel` 跟随 `enable_static_kernel`；这个依赖在固定 v0.26 维护分支、`v0.30.0` 与 `main` 配置中均有检查（最初的 v0.26.0rc1 tag 和旧 GLM 镜像没有该字段，详见 [Super Kernel 版本区别](../params/enable-super-kernel-ce990e186bfa.md)）。
 
-```calc
-title: static kernel 的宽度范围怎么筛（示意配置，不是本部署取值）
-每条请求一步占的位置 = 1 + 1 = 2
-范围上界 = 4 条 × 2 个位置 = 8
-送去静态编译的宽度 = 表里满足 2 ≤ x ≤ 8 的项 = 2、4、8
-```
+用一组独立的示意配置走一遍：捕获宽度表是 `2, 4, 8, 16, 32`，最大并发 4 条请求，草稿数 1（示意配置，不是本部署取值）：
+
+$$L_{\text{step}} = 1 + 1 = 2, \qquad U_{\text{static}} = 4 \times 2 = 8, \qquad S_{\text{static}} = \{x \in \{2,4,8,16,32\} \mid 2 \le x \le 8\} = \{2, 4, 8\}$$
+
+| 筛选参数（static kernel 宽度区间·示意） | 计算式 | 结果 |
+| --- | --- | --- |
+| 每条请求一步占的位置（下界） | $1 + 1$ | **2** |
+| 最大并发对应位置数（上界） | $4 \times 2$ | **8** |
+| 送去静态编译的宽度 | 捕获表中满足 $2 \le x \le 8$ 的项 | **`2, 4, 8`** |
 
 草稿数改成 3，范围就变成 4 到 16。它决定的是「哪些形状提前编译」，不是接受了多少草稿，也不是把旧图挪到新形状上用。更多档位可能增加编译与存储成本，而且这条路要跨节点协调：它得先按并行配置推算出本机进程数，建立按节点分组的通信组，再分发安装编译产物。是否能由后续请求节省的时间摊平，要结合实际编译耗时、缓存复用和请求分布比较。这条路径还刻意关掉了原地改写优化，避免某些算子回退到 CPU 引起主机与设备之间的拷贝，所以不能按外部后端的一般能力推断它做了原地复用。
 
@@ -305,15 +318,15 @@ title: static kernel 的宽度范围怎么筛（示意配置，不是本部署�
 
 模型要先给相应组件接上编译入口，开关才有消费者。入口读取与语言主干共享的编译配置，检查组件自己的开关、编译模式与是否应跳过，然后用组件类名隔离缓存。Qwen2.5-VL 的视觉计算块是一个实际例子；它不代表所有视觉模型都已有同样的接入。编译会增加追踪与生成产物的启动成本，是否改善请求时延要看图片处理量和实际执行路径。
 
-编码器的位置数不等于语言主干一次调度的位置预算。因此，固定上游为编码器放宽的是**最后一个编译区间的上界**，前面的区间及最后一段的起点仍保留。用两个区间演一次：
+编码器的位置数不等于语言主干一次调度的位置预算。因此，固定上游为编码器放宽的是**最后一个编译区间的上界**（上界设为 $2^{31} - 1 = 2{,}147{,}483{,}647$；它没有分配这么多位置的内存，也没有提高图片或视频输入限制），前面的区间及最后一段的起点仍保留。用两个区间演一次（示意配置）：
 
-```calc
-title: 视觉组件放宽最后一段编译范围（示意配置）
-原区间 = 1–4、5–8
-视觉编译区间 = 1–4、5–2147483647
-本次 10 个位置 = 进入第二个编译区间
-> 这里的上界是 2³¹−1；它没有分配这么多位置的内存，也没有提高图片或视频输入限制
-```
+$$\text{原区间 } [1, 4],\;[5, 8] \;\longrightarrow\; \text{视觉编译区间 } [1, 4],\;[5, 2^{31} - 1]$$
+
+| 阶段（视觉组件放宽最后一段编译范围·示意） | 区间设定 / 输入 | 命中结果 |
+| --- | --- | --- |
+| 原语言编译区间 | $[1, 4]$、$[5, 8]$ | 上界止于 8 |
+| 放宽后的视觉编译区间 | $[1, 4]$、$[5, 2{,}147{,}483{,}647]$ | 保留前段与末段起点 5，仅放宽末段上界 |
+| 本次输入 10 个视觉位置 | $10 \in [5, 2{,}147{,}483{,}647]$ | **进入第二个编译区间** |
 
 若只有一个从 1 开始的区间，结果才是从 1 到这个上界。这里的“可选择编译区间”仍要经过模型形状、设备内存和具体后端约束；捕获图的 token 预算与视频帧容量按前面的视觉图页面单独判断。
 
@@ -346,7 +359,7 @@ title: 视觉组件放宽最后一段编译范围（示意配置）
 
 ## 对照源码
 
-钉点：v0.23 为 vLLM `0fc695fc` + Ascend `2c59ff10`（维护分支，没有 GLM 代码）；**本页 GLM 行为按专用镜像 Ascend `db701c1f`**，它配的也是 vLLM `0fc695fc`；v0.26 为 Ascend `2ed6cbba`；main 为 Ascend `baa023ad`。
+钉点：`v0.23.0` 为 vLLM `0fc695fc` + Ascend `2c59ff10`（维护分支，没有 GLM 代码；**正文 GLM 绑定算例按专用镜像 Ascend `db701c1f`**）；`v0.26.0rc` 为 Ascend `2ed6cbba`（配套 vLLM `568afb3a`）；`v0.30.0` 为 Ascend `c09d3e20`（配套 vLLM `ced6857a`）；`main` 为 Ascend `8d6180e2`（配套 vLLM `ba15685a`）。
 
 ### 怎么开
 
@@ -416,8 +429,9 @@ Python 的 LLM 将额外关键字传给 EngineArgs，EngineArgs 再把 additiona
 | 子对象写成 null、布尔值或数组 | 固定 GLM / v0.23 / rc 在展开子对象为关键字参数时抛 TypeError；main 也要求有效子配置 | 用 {} 表示默认，用对象内的 false 关闭某项 |
 | 字段拼错或层级写错 | 旧版多数键静默忽略；三项写在外层时管理器仍按缺省 true 读取 | 对照上方 JSON；main 未知子键由配置校验拒绝 |
 | 用字符串 "false" 关规则 | 旧版原始字典中非空字符串为真，规则仍开启；null 则为假，但并非合法布尔配置约定 | 始终写 JSON 布尔 false；main 会按布尔规则转换字符串，并拒绝 null |
-| 只开 static kernel、关掉外部后端 | 若硬件降级未先把 static 关闭，配置构造阶段断言失败 [C7] | 两个一起开，或都不开 |
-| 在 310P 上配了这两项 | 对原本开启的项发 warning，随后自动置假 | 该设备上没有这条路径 |
+| 只开 `static_kernel`（关 `npugraph_ex`）或只开 `super_kernel`（关 `static_kernel`） | A2/A3/A5 等支持 `NPUGRAPH_EX` 的硬件在配置校验阶段抛 `AssertionError`；310P 先由硬件检查静默置假、不抛断言 [C7] | 遵循 `super -> static -> npugraph_ex` 依赖链，或一并关闭 |
+| 已双开/三开 `npugraph_ex` + `static_kernel`（+ `super_kernel`），但图模式不是纯整图（如 `PIECEWISE`、`FULL_AND_PIECEWISE` 或 `NONE`） | 平台 `_setup_compile_backend` 将三项静默刷回 `False`（不抛错） | 需要 static/super kernel 时使用 `FULL_DECODE_ONLY`（或支持的纯整图档位） |
+| 在 310P 上配了这两项/三项 | 对原本开启的项发 warning，随后自动静默置假 | 该设备上没有 `HardwareCapability.NPUGRAPH_EX` 路径 |
 | 没装 npugraph_ex 这个包 | `ImportError` 被接住，落到 torchair 兼容分支 [C6] | 它只兜导入问题，不是任意编译错误的性能兜底 |
 | 图里含 Triton kernel | 跳过编译缓存并打一条 info：索引是进程内的，换进程加载会断言失败 [C6] | 正常现象，下次重新编译 |
 | 设了 `ASCEND_LAUNCH_BLOCKING=1` 又没关图 | 平台抛 `ValueError` [C8] | 属于图那一层，见 [ACL Graph](acl-graph.md#对照源码) |
@@ -436,40 +450,25 @@ Python 的 LLM 将额外关键字传给 EngineArgs，EngineArgs 再把 additiona
 
 ### 版本差异
 
-视觉编译和默认缓存键的共同机制在下列四个上游钉点一致：compile_mm_encoder 默认 false，组件门控读取同一配置；encoder 只把最后一段的上界扩大；默认缓存键包含环境、配置、编译器与追踪文件。模型是否接了入口另列，不能由字段存在推出。
+**`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）统一将 `AscendCompilationConfig` 收口为 Pydantic `@config` 校验模型，声明默认值与最终生效值须结合硬件能力与图模式分别核对：**
+- **依赖链与硬件分化**：`enable_npugraph_ex` 默认 `True`，`enable_static_kernel` / `enable_super_kernel` 默认 `False`；显式传 `enable_static_kernel` 且省略 `enable_super_kernel` 时，前置校验令后者跟随前者。随后后置校验先检查 `HardwareCapability.NPUGRAPH_EX`（310P 不支持，打 warning 后将三者静默刷回 `False`），再在 A2/A3/A5 上以 `assert` 强校验 `super -> static -> npugraph_ex`，单开即抛 `AssertionError`。
+- **非纯整图静默刷回 `False`**：`_setup_compile_backend` 在 `NONE`、`requires_piecewise_compilation()`（含 `PIECEWISE` 与 `FULL_AND_PIECEWISE`）及不受支持档位下，都会将三者全部静默写回 `False`；仅在纯整图（`has_full_cudagraphs()` 且不需要 piecewise，如 `FULL_DECODE_ONLY`）保留并清空 `splitting_ops`。
+- **融合规则演进**：`v0.30.0` 在 `GraphFusionPassManager` 登记 `AddRMSNormQuantFusionPass`、`QKNormRopeFusionPass`（含 Gemma 式 QKVNormRoPE 模式，另要求 `HAS_TRITON`、`GRAPH_QKV_NORM_ROPE_FUSION` 与单 token tile 进 UB）和 `MulsAddFusionPass`；`main` 在此基础上当 `enable_sp(config)` 且支持 `GRAPH_MM_REDUCE_SCATTER_FUSION` 时新增 `MatmulReduceScatterFusionPass`。
 
-| 固定版本 | 本次查到的视觉编译入口 | Ascend 对共享配置的影响 |
-|---|---|---|
-| v0.23：0fc695fc；GLM 执行侧 db701c1f | Qwen2.5-VL VisionBlock 有门控；Qwen3-VL VisionBlock 尚无该装饰器 | 默认选择 AscendCompiler；图 NONE 将编译 mode 也置 NONE |
-| v0.26：568afb3a / 2ed6cbba | 上述两个入口与 v0.23 相同 | 仍按同一方式关闭编译，并关闭 static/super 等相关项 |
-| v0.30.0rc2：ced6857a / 7d825229 | Qwen2.5-VL 保留；Qwen3-VL VisionBlock 新增同样的门控 | 仍按图 NONE 关闭共享编译模式；具体设备走硬件能力分支 |
-| main：84030bbe / baa023ad | 上述 Qwen 入口与 rc2 相同 | 同样保留上述共享配置约束 |
+| 核对项 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
+|---|---|---|---|---|
+| 配置形态与输入检查 | 普通类，未知子键忽略、字符串 `"false"` 按真处理 | 同 `v0.23.0` | Pydantic `@config`（`extra="forbid"`），`"false"` 转 `False`，拒绝 `null` 与未知子键 | 同 `v0.30.0` |
+| `npugraph_ex` / `static` / `super` 默认与联动 | `npugraph_ex=True`、`static=False`；无 `enable_super_kernel` | 新增 `enable_super_kernel`（省略或 `None` 跟随 `static`；最初 `rc1` tag 无此字段） | 声明默认 `True / False / False`；显式给 `static` 省 `super` 时跟随；A2/A3/A5 单开 `AssertionError`，310P 静默关；非 `FULL_DECODE_ONLY` 刷回 `False` | 同 `v0.30.0` |
+| 融合 Pass 清单与开关读取 | 4 条（含 `fuse_allreduce_rms`）+ 2 条 SP 规则；读原始字典、按设备型号判 310P | 删除 `allreduce_rms`；仍读原始字典 | 3 类核心 pass（`norm_quant`、`qknorm_rope`［含 QKVNormRoPE］、`muls_add`）；读配置对象并按 `HardwareCapability` 门控 | 在 3 类之上，SP + `GRAPH_MM_REDUCE_SCATTER_FUSION` 时新增 `MatmulReduceScatterFusionPass` |
+| `fuse_muls_add` 字段 | 仅走 `**kwargs`，非正式字段 | 同 `v0.23.0` | 正式布尔字段（默认 `True`） | 同 `v0.30.0` |
+| 视觉编译入口（`compile_mm_encoder`） | `Qwen2.5-VL` 有门控；`Qwen3-VL` 尚无；图 `NONE` 同步关编译 | 同 `v0.23.0` | `Qwen2.5-VL` 保留，`Qwen3-VL VisionBlock` 新增门控；图 `NONE` 仍同步关共享编译 | 同 `v0.30.0` |
+| 捕获层实现 | 单一 `ACLGraphWrapper` | 同 `v0.23.0` | 扩展 `BreakableACLGraphWrapper` 与 `updatable_graph` | 延续三类实现，MRV2 统一编排 |
 
-这张表列的是已读的实际组件入口，不是所有多模态模型的支持清单。固定 GLM 主线保持原配置；视觉编译在 NPU 上的数值和时延需对应镜像实测。官方多模态编译旧文中的“图捕获组合尚未探索”描述的是那份编译指南的范围，不能代替如今独立视觉图管理器的支持判断。
-
-rc2 在既有 QKNormRoPE pass 内增加 QKVNormRoPE 模式，处理 Gemma 式 Q/K/V norm 加 RoPE；它不是新的第四类 manager pass。该模式还要求 HAS_TRITON、GRAPH_QKV_NORM_ROPE_FUSION 硬件能力及单 token tiles 能放入 UB，不能只看总开关就断言命中。
-
-**v0.30.0rc2 的声明默认与最终有效值仍要分开。** npugraph_ex 默认 true，static/super 默认 false；显式给 static 而省略 super 时，super 才跟随 static。依赖链 super→static→npugraph_ex 及硬件能力检查保留，NONE 与 PIECEWISE 模式会关闭三者。GraphFusionPassManager 实际登记三类融合：norm_quant、muls_add 还检查各自硬件能力，qknorm_rope 按开关登记；目录里的清理 pass 不能全部算成独立融合规则。默认开关不证明当前图命中规则或获得加速。
-
-三列的配置字段逐项核了各分支的 `ascend_config.py`（来源 18–20），规则怎么读核的是各分支的 pass manager（来源 21、28、29）；规则文件按各分支 `compilation/passes` 目录清点。三条布尔规则在四个 Ascend 钉点均存在且默认 true；开关默认一致不代表候选实现、硬件门控或实际命中数一致。
-
-| 项目 | v0.23 / GLM | v0.26 rc | main |
-|---|---|---|---|
-| 配置形态 | 普通 Python 类，310P 降级和依赖检查写在构造里 | 同 | 迁成 pydantic 数据类，降级与依赖检查放进校验器 |
-| `passes/` 里的融合规则 | 四条，另有两条 sequence parallel | 没有 All-Reduce 接归一化那一条 | 也没有那一条，两条 sequence parallel 也不在了 |
-| 外部后端默认 | 真 | 真 | 真 |
-| static 默认 | 假 | 假 | 假 |
-| Super Kernel | 没有这个配置 | 本页维护分支已有 enable_super_kernel，不写或为 None 就跟随 static kernel；最初 v0.26.0rc1 tag 没有 | 字段默认假；显式提供 static 而省略 super 时，前置校验将 super 设为 static；随后校验 super → static → npugraph_ex |
-| `fuse_muls_add` | 只能从额外关键字传，不是正式字段 | 同 | 成为正式字段 |
-| 规则开关怎么读 | 读原始配置字典，310P 按设备型号判断 | 同 | 读配置对象，并按硬件能力标记判断 |
-| 三条开关的输入检查 | Python 类型注解不强制转换；字符串 "false" 仍被当真，未知子键忽略 | 同 | 布尔字段经递归校验；字符串 "false" 转成假，null 和未知子键被拒绝 |
-| 捕获那一层的实现 | 一份图包装器 | 同 | 另多出可打断图与可更新图两套实现（在 `compilation/` 下，不是融合规则） |
-
-官方文档把图模式与编译改写分两层介绍，并列出昇腾支持的档位取值 [S22]。
-
-main 的递归校验由配置装饰器设置未知键拒绝策略（来源 30）；归一化量化的共同精度、W4A4、ε 门控保留，但删去旧 SP 候选，MX 可用性改从硬件能力读取（来源 31）。因此升级后应重新核候选与日志，不沿用旧版候选数量。
+官方文档把图模式与编译改写分两层介绍并列出昇腾支持的档位取值 [S22]。默认开关不证明当前图命中规则或获得加速；视觉编译表列的是已读组件入口，不代表所有多模态模型均已接入；固定 GLM 主线保持原配置，升级后应重新核对候选与日志。
 
 ### 源码位置
+
+- `v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 实核：`AscendCompilationConfig` 依赖链、310P 降级与 A2/A3/A5 `AssertionError` 见 `c09d3e20:ascend_config.py#L112-L170` 与 `8d6180e2:ascend_config.py#L119-L177`；非纯整图静默刷回 `False` 见 `c09d3e20:platform.py#L1310-L1354` 与 `8d6180e2:platform.py#L1515-L1559`；`GraphFusionPassManager`（含 `main` 新增 `MatmulReduceScatterFusionPass`）见 `c09d3e20:compilation/graph_fusion_pass_manager.py#L51-L73` 与 `8d6180e2:compilation/graph_fusion_pass_manager.py#L52-L79` [C92][C95]。
 
 - 选路与两条编译实现：`compiler_interface.py` 的 `AscendCompiler.compile`、`npugraph_ex_compile`、`fusion_pass_compile`；宽度筛选与后端选项在同一文件的 `_compute_decode_cudagraph_batch_sizes`、`_configure_backend`。
 - 规则注册：`passes/base_pattern.py` 的 `register`；pass manager 与四条开关：`graph_fusion_pass_manager.py`；上游实例化与配置它的地方：`vllm/compilation/backends.py` [C14]；自定义 pass 键：`platform.py` [C13]。

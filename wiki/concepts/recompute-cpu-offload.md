@@ -90,10 +90,17 @@ sources:
   - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L252-L292'
   - 'vllm-ascend@7d825229:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L325-L451'
   - 'vllm-ascend@7d825229:vllm_ascend/core/kv_cache_interface.py#L49-L54'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/preempt_offload_connector.py#L41-L115'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L70-L120'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L180-L205'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L293-L345'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L95-L120'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L315-L335'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L522-L538'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -201,25 +208,21 @@ file: recompute-offload-flow
 
 一块的字节，要把这个块号在所有缓存张量里占的空间加起来。沿用 [KV cache 页的示意模型](kv-cache.md#存一份要多少从一个位置一层往上乘)，每个位置 32 层共 128 KiB，一块 4 个位置就是 512 KiB，A 的 3 块是 1.5 MiB：存一趟 1.5 MiB，搬回再一趟 1.5 MiB。
 
-主机预算可以直接写每张卡的预算（推荐），也可以写一个模型并行实例的预算、按其中的卡数平分；都不写时，v0.23、v0.26 和 GLM 快照按该实例 8 GiB 平分，rc2/main 则按主机与显存块数比例配置。这里的卡数是 TP × PP × PCP，也就是[张量并行](tensor-parallel.md)、[流水线并行](pipeline-parallel.md)和 prefill 阶段的 [context parallel](context-parallel.md) 三者的份数相乘，不含 DP。
+主机预算可以直接写每张卡的预算（推荐），也可以写一个模型并行实例的预算、按其中的卡数平分；都不写时，v0.23、v0.26 和 GLM 快照按该实例 8 GiB 平分，`v0.30.0` / `main` 则按主机与显存块数比例配置。这里的卡数是 TP × PP × PCP，也就是[张量并行](tensor-parallel.md)、[流水线并行](pipeline-parallel.md)和 prefill 阶段的 [context parallel](context-parallel.md) 三者的份数相乘，不含 DP。
 
-**每卡预算还要乘上本机实际分配缓存的 worker 数，才能得到本机总占用。** 例如 PP、PCP 都为1，两个 DP 组各有 TP8，给每组写总字节16 GiB，每个 worker 分到2 GiB；若16个 worker 都在同一主机，合计约32 GiB，再考虑块粒度取整和其他进程内存。分到两台主机就按各自本地 worker 数分别求和。本连接器每个 worker 都建自己的锁页张量；它的“前缀共享”是各 rank 内的请求共用块，与[Engram 的本地 DP 共享](deepseek-v4-1-flash.md#engram-为什么把另一笔内存账放到主机上)不同：这里不会让多个 DP 进程共用同一张主机表。公式中有 PCP 不代表支持任意 PCP，本连接器另要求 PCP、DCP 均为1。
+**每卡预算还要乘上本机实际分配缓存的 worker 数，才能得到本机总占用。** 例如 PP、PCP 都为1，两个 DP 组各有 TP8，给每组写总字节16 GiB，每个 worker 分到2 GiB；若16个 worker 都在同一主机，合计约32 GiB，再考虑块粒度取整和其他进程内存。分到两台主机就按各自本地 worker 数分别求和。本连接器每个 worker 都建自己的锁页张量；它的“前缀共享”是各 rank 内的请求共用块，与[Engram 的本地 DP 共享](deepseek-v4-1-flash.md#engram-为什么把另一笔内存账放到主机上)不同：这里不会让多个 DP 进程共用同一张主机表。公式中有 PCP 不代表支持任意 PCP：`v0.30.0` 及以前版本在初始化时断言 `PCP=1` 且 `DCP=1`，`main` 才解除 `DCP` 限制并按 `resolve_dcp_kv_block_size` 核算本地跨度。
 
-算预算要注意口径：每张卡只存这张卡自己那份 KV。上面每个位置 128 KiB，是一张卡跑整个模型时的量；8 张卡按 KV 头切成 TP8 时，每卡每个位置只剩 16 KiB，不写预算时每卡也只分到 1 GiB，两边一起缩小。也有 TP 下每卡各存一整份的缓存，比如 [MLA](mla.md)，那时每卡字节不缩小。下面按单卡实例、不写预算，并假设请求之间没有命中可共享的主机块，算一笔：
+算预算要注意口径：每张卡只存这张卡自己那份 KV。上面每个位置 128 KiB，是一张卡跑整个模型时的量；8 张卡按 KV 头切成 TP8 时，每卡每个位置只剩 16 KiB，不写预算时每卡也只分到 1 GiB，两边一起缩小。也有 TP 下每卡各存一整份的缓存，比如 [MLA](mla.md)，那时每卡字节不缩小。下面按单卡实例、旧版不写预算（默认 8 GiB），并假设请求之间没有命中可共享的主机块，算一笔（第二条需要 8,192 块，但只剩 8,191 块，整条退回重算；TP8 时每卡 1 GiB、每块 64 KiB，块数和位置数都一样）：
 
-```calc
-title: 旧版单卡实例不写预算时，主机能存多少（示意数）
-每卡预算 = 8 GiB ÷ 1 张卡 = 8 GiB
-每块的字节 = 4 位置 × 128 KiB = 512 KiB
-主机块数 = 8 GiB ÷ 512 KiB = 16,384 块
-普通请求可借块数 = 16,384 − 1 个 null block = 16,383 块
-主机能存的位置 = 16,383 块 × 4 = 65,532 个
-一条 32,768 个位置的请求要 = 32,768 ÷ 4 = 8,192 块
-同时存得下 = floor(16,383 ÷ 8,192) = 1 条
-> 第二条需要 8,192 块，但只剩 8,191 块，整条退回重算；TP8 时每卡 1 GiB、每块 64 KiB，块数和位置数都一样
-```
+$$B_{\text{usable}} = \left\lfloor \frac{8\text{ GiB}}{4 \times 128\text{ KiB}} \right\rfloor - 1 = 16{,}384 - 1 = 16{,}383\text{ 块}$$
 
-主机块池在启动时就按这个块数整块开好。rc2/main 不写字节预算且保留默认比例1时，主机块数等于显存块数，等于把整个显存 KV 池在主机上原样再锁一份。
+| 旧版单卡实例不写预算的主机容量核算（示意数） | 算式 | 结果 |
+| --- | --- | --- |
+| 每卡预算与每块字节（每块 4 位置） | $8\text{ GiB} \div 1$；$4 \times 128\text{ KiB}$ | **8 GiB**；**512 KiB/块** |
+| 主机总块数与普通请求可借块数（扣 1 个 null block） | $8\text{ GiB} \div 512\text{ KiB} = 16{,}384$；$16{,}384 - 1$ | **16,383 块**（可存 $16{,}383 \times 4 =$ **65,532 位置**） |
+| 32,768 位置请求所需块数与同时可存条数 | $32{,}768 \div 4 = 8{,}192$ 块；$\lfloor 16{,}383 \div 8{,}192 \rfloor$ | **1 条**（余 8,191 块，不够第 2 条） |
+
+主机块池在启动时就按这个块数整块开好。`v0.30.0` 与 `main` 不写字节预算且保留默认比例 1 时，主机块数等于显存块数，等于把整个显存 KV 池在主机上原样再锁一份。
 
 还有几种块要单独处理：
 
@@ -242,18 +245,15 @@ rc2 又单独处理两类状态。**固定大小的环形缓存**循环使用有
 - **换出换回**：D 付两次停顿；主机付内存。它省去整段历史重算，搬回并收到完成报告后可以继续调度；是否更快仍要比较下面的搬运与计算时间。
 - **退回 P 重算**：没有可复用缓存时，P 付整段 prefill，网络付再一次交接；这条请求自己要在 P、D 各排一次队。代理识别退回标记且重投成功时，客户端同一条流暂停后可以继续；直连 D、重投失败或直接中止时，不能保证这种续流。具体接收时能否与其他计算重叠，还取决于 P/D 连接器。
 
-先比这条请求自己多久能接上。两边都换成时间：换出换回 = 2 × 字节 ÷ 主机与设备之间的有效带宽，重算 = 位置数 ÷ 每秒能 prefill 的位置数。沿用 [KV cache CPU offload 那一页的示意数](kv-cache-cpu-offload.md#搬回和重算各花多少)：每个位置 128 KiB，有效带宽 16 GiB/s，每秒 prefill 16,384 个位置。那一页只搬回一趟，这里存、取各一趟：
+先比这条请求自己多久能接上。两边都换成时间：换出换回 = $2 \times \text{字节} \div \text{有效带宽}$，重算 = $\text{位置数} \div \text{每秒 prefill 位置数}$。沿用 [KV cache CPU offload 那一页的示意数](kv-cache-cpu-offload.md#搬回和重算各花多少)：每个位置 128 KiB，有效带宽 16 GiB/s，每秒 prefill 16,384 个位置（下表字节按 $\text{位置数} \times 128\text{ KiB}$ 计，重算按固定速度估——长开头实际更慢，均未计排队、交接和同步的固定开销）：
 
-```calc
-title: 三种长度下，换出换回和重算各花多少（示意数）
-256 个位置，存 + 取 = 2 × 32 MiB ÷ 16 GiB/s ≈ 3.9 ms
-256 个位置，重算 = 256 ÷ 16,384 个/s ≈ 15.6 ms
-4,096 个位置，存 + 取 = 2 × 512 MiB ÷ 16 GiB/s = 62.5 ms
-4,096 个位置，重算 = 4,096 ÷ 16,384 个/s = 250 ms
-32,768 个位置，存 + 取 = 2 × 4 GiB ÷ 16 GiB/s = 500 ms
-32,768 个位置，重算 = 32,768 ÷ 16,384 个/s = 2,000 ms
-> 字节 = 位置数 × 128 KiB；重算按固定速度估，长开头实际更慢；都没算排队、交接和同步的固定开销
-```
+$$t_{\text{swap}} = \frac{2 \times N \times 128\text{ KiB}}{16\text{ GiB/s}}, \qquad t_{\text{recompute}} = \frac{N}{16{,}384\text{ token/s}}$$
+
+| 序列长度 $N$（示意数） | 换出 + 换回（两趟拷贝） | 重算时间（固定速度估算） |
+| --- | --- | --- |
+| **256 个位置**（32 MiB） | $2 \times 32\text{ MiB} \div 16\text{ GiB/s} \approx$ **3.9 ms** | $256 \div 16{,}384 \approx$ **15.6 ms** |
+| **4,096 个位置**（512 MiB） | $2 \times 512\text{ MiB} \div 16\text{ GiB/s} =$ **62.5 ms** | $4{,}096 \div 16{,}384 =$ **250 ms** |
+| **32,768 个位置**（4 GiB） | $2 \times 4\text{ GiB} \div 16\text{ GiB/s} =$ **500 ms** | $32{,}768 \div 16{,}384 =$ **2,000 ms** |
 
 线性估算下，两边的比例不随长度变，始终是 1 比 4；长短的差别来自不随长度缩短的固定开销、D 被停住的时长和主机容量。按长度读这组数：
 
@@ -298,17 +298,15 @@ title: 三种长度下，换出换回和重算各花多少（示意数）
 
 主线的抢占有多贵，整批账在[多条请求的 KV 块一节](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)：DP 组 0 跑满 32 条、每条走到约 67,000 个位置时池子用光，被抢占的那条每卡还回 120–121 个块号，约 956–964 MiB，排回来要在本机重算约 9 步；prefix caching 关着，没有可复用的前缀，34 层 KDA 的递推状态也随块一起丢掉。换出想省掉的，就是这类重算。
 
-如果把两台机器拆成一 P 一 D，在 D 上开它，先拿默认预算和主线那条请求的大小对照一下量级。这不是这项特性在 GLM 上的效果；1P1D 下 D 的块池多大、什么时候触发抢占，还没有算过：
+如果把两台机器拆成一 P 一 D，在 D 上开它，先拿旧版默认预算（整实例 8 GiB）和主线那条请求的大小对照一下量级（按请求之间没有可共享主机块计算，只够存一条，同时被抢占的第二条只能退回 P；块号字节见部署页，块数见多条请求页；这不是这项特性在 GLM 上的效果，1P1D 下 D 的块池多大、什么时候触发抢占还没有算过）：
 
-```calc
-title: 在 D 上开它：默认预算装得下几条主线那样的请求（对照）
-每卡预算 = 8 GiB ÷ 8 张卡 = 1 GiB，TP8 一个实例
-一个块号每卡 = 8,355,840 B ≈ 7.969 MiB
-主机块数 = 1,024 MiB ÷ 7.969 MiB ≈ 128 个块号
-可借主机块数 = 128 − 1 = 127 个块号
-主线被抢占的那条 = 120~121 个块号 ≤ 127 个块号
-> 按请求之间没有可共享主机块计算，只够存一条；同时被抢占的第二条只能退回 P。块号字节见部署页，块数见多条请求页
-```
+$$B_{\text{usable,GLM}} = \left\lfloor \frac{1{,}024\text{ MiB}}{7.969\text{ MiB}} \right\rfloor - 1 = 128 - 1 = 127\text{ 个块号}$$
+
+| 在 D 上开旧版默认预算的对照项（TP8 一实例） | 算式 | 结果 |
+| --- | --- | --- |
+| 每卡预算与单块字节 | $8\text{ GiB} \div 8 = 1\text{ GiB}$；$8{,}355{,}840\text{ B}$ | **1 GiB**；**约 7.969 MiB/块** |
+| 主机总块数与可借块数（扣 1 个 null block） | $\lfloor 1{,}024 \div 7.969 \rfloor = 128$；$128 - 1$ | **127 个块号** |
+| 主线被抢占的那条请求 | $120\text{–}121 \le 127$ | **仅够存 1 条** |
 
 一个块号的字节见[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)。真要在 GLM 上用，还有几处没有核过：
 
@@ -346,7 +344,7 @@ title: 在 D 上开它：默认预算装得下几条主线那样的请求（对�
 ```
 
 - 两样都要：`recompute_scheduler_enable`（只在 D 上开，各版本写法见 [RecomputeScheduler 的「怎么开」](recompute-scheduler.md#怎么开)）加本连接器。D 上既要从 P 收 KV、又要换出，所以用 `MultiConnector` 把两个连接器串起来；昇腾把注册表里的 `MultiConnector` 换成 `AscendMultiConnector`（登记位置见来源 13），它把 `update_state_before_preempt` 逐个转给子连接器，有一个答「能」就算能 [C12]。
-- 旧版预算 [C2]：`cpu_bytes_to_use_per_rank` 优先，和按实例平分的值对不上时打 warning、仍用它；`cpu_bytes_to_use` 默认 `8 * 1024**3`，除以 `parallel_config.world_size`，后者 = PP × TP × PCP，不含 DP [C17]。官方文档说按 Decode 的 DP 数平分，与代码不一致 [C14][!]。rc2/main 另有 `offload_host_memory_ratio`（默认 1），两个字节参数都不写时按它定块数 [C21]；新版优先级与校验见来源38。
+- 旧版预算 [C2]：`cpu_bytes_to_use_per_rank` 优先，和按实例平分的值对不上时打 warning、仍用它；`cpu_bytes_to_use` 默认 `8 * 1024**3`，除以 `parallel_config.world_size`，后者 = PP × TP × PCP，不含 DP [C17]。官方文档说按 Decode 的 DP 数平分，与代码不一致 [S14][!]。`v0.30.0` / `main` 另有 `offload_host_memory_ratio`（默认 1），两个字节参数都不写时按它定块数 [C21]；新版优先级与校验见来源38。
 - 共用开关 `enable_offload_prefix_caching`：连接器读配置时默认 `False`，不是布尔值就 `ValueError` [C2]；manager 构造参数的默认值写的是 `True`，但连接器总是把配置值显式传进去 [C3]，所以实际默认关。官方标为实验性。
 - 主机块数 [C4]：`max(1, num_gpu_blocks * cpu_capacity_bytes // gpu_total_bytes)`，`gpu_total_bytes` 是所有带 `shared_by` 的显存 KV 张量之和，等价于「预算 ÷ 每块字节」；worker 端按同一块数开 `pin_memory=True` 的 CPU 张量 [C8]。
 - 容器：官方建议 A3 上每卡 16 GiB 时给 Docker `--shm-size=1024g`，给小了启动阶段会出问题。
@@ -363,7 +361,7 @@ title: 在 D 上开它：默认预算装得下几条主线那样的请求（对�
 - **搬回准备失败**：分好显存块以后建不出「主机块 → 新显存块」的对照，`update_state_after_alloc` 抛 `RuntimeError: Failed to prepare recompute H2D load after KV block allocation`。
 - **rc2的状态布局不符合约束**：环形组不是单个有效块、Mamba恢复的源或目标块无效，会在准备映射时抛错；卷积状态须符合规格中的二维形状且每块一行物理缓存。缺少已注册的卷积张量、偏移越界或可恢复历史长度非正，也会抛错，不能仅把主机预算加大来处理。
 - **main 上写旧名**：该注册入口的配置名是 `PreemptOffloadConnector`，对应实现类 `PreemptOffloadConnectorV1` [C25]；启动参数使用配置名，不能把旧的 `RecomputeCPUOffloadConnector` 当成这一入口 [!]。
-- **只配连接器、没开 RecomputeScheduler**：不报错，也不生效，走普通重算 [C15]。
+- **只配连接器、没开 RecomputeScheduler**：不报错，也不生效，走普通重算 [S15]。
 - **官方已知限制**：Qwen3.5 配异步调度尚未完全支持，用它时要关掉异步调度。
 
 ### 开销和什么时候别开
@@ -377,46 +375,35 @@ title: 在 D 上开它：默认预算装得下几条主线那样的请求（对�
 
 ### 版本差异
 
-**v0.30.0rc2 使用 PreemptOffloadConnector，预算优先级为每 rank 字节、实例总字节、主机/显存块数比例。** 两个字节选项都未设置时，offload_host_memory_ratio 默认 1；CPU 前缀块共享默认关闭。它仍面向 PD 分离的 D 侧，并须启用 RecomputeScheduler，不是通用 CPU prefix offload 的同义词。
+**`v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 均使用 `PreemptOffloadConnector`（实现类 `PreemptOffloadConnectorV1`），预算优先级为每 rank 字节、实例总字节、主机/显存块数比例。** 两个字节选项都未设置时，`offload_host_memory_ratio` 默认 `1`；CPU 前缀块共享默认关闭。它仍面向 PD 分离的 D 侧，并须启用 `RecomputeScheduler`，不是通用 CPU prefix offload 的同义词。
 
-rc2 的失败回退还受细粒度 TP 约束：如果 oproj 或 mlp 实际分片大小大于 1，卸载保存失败后调度器会终止请求，不能再按旧路径假定总会回 P 重算；没有这类分片时保留回 P 的分支。部署与排错需同时核对 connector 预算和最终生效的 finegrained_tp_config。
+失败回退还受细粒度 TP 约束：如果 `oproj` 或 `mlp` 实际分片大小大于 1，卸载保存失败后调度器会终止请求，不能再按旧路径假定总会回 P 重算；没有这类分片时保留回 P 的分支。在混合状态恢复上，`v0.30.0` 与 `main` 均保留 Mamba 尾部 `1 + 草稿数` 块的保存方式，恢复时另选接受边界对应的状态块、处理环形私有块和卷积历史偏移，并按保存事件编号去重（实际 D2H/H2D 仍同步）。**`main (8d6180e2)` 进一步解除 `manager.py` 的 `dcp_world_size == 1 and pcp_world_size == 1` 硬断言**，在保存与恢复路径按 `resolve_dcp_kv_block_size` 核算本地 KV 块跨度，并将本地 `cpu_coordinator` 的 `pcp_world_size` 固定为 1（PCP 扩展 worker 数量而非单 worker 块跨度）。
 
-**rc2的混合状态恢复不能简化为“和main同一套代码”。** 它保留Mamba尾部1 + 草稿数块的保存方式，恢复时另选接受边界对应的状态块、处理环形私有块和卷积历史偏移。worker按指针、形状、stride、dtype及是否卷积区分Mamba视图，避免把卷积和递推状态合成同一个张量。固定实现将LINEAR视为无卷积状态、SHORT_CONV视为卷积，MAMBA1/MAMBA2/GDN_ATTN的第0个状态视为卷积；其他未识别类型会报错。
+| 项 | v0.23.0 (2c59ff10) | v0.26.0rc (2ed6cbba) | v0.30.0 (c09d3e20) | main (8d6180e2) |
+|---|---|---|---|---|
+| 目录与连接器名 | `kv_pool/recompute_cpu_offload/`，`RecomputeCPUOffloadConnector` | 同 v0.23.0 | `kv_pool/kv_offload/preempt_offload/`，`PreemptOffloadConnector`（`PreemptOffloadConnectorV1`） [S26] | 同 v0.30.0 |
+| 两个字节参数都不写 | 整实例 8 GiB，除以 `world_size` | 同 v0.23.0 | 按 `offload_host_memory_ratio`（默认 `1`），主机块数 = 显存块数 | 同 v0.30.0 |
+| 递推状态与混合状态恢复 | 和 attention 组一样按已算位置截取块表；含摘掉未写前缀块逻辑 [C19] | 只存最后 `1 + num_spec_tokens` 块，不参与共用；删摘块逻辑 [C20] | 延续尾部保存，新增环形单私有块、接受边界与卷积历史偏移校正及保存事件去重 | 同 v0.30.0 |
+| DCP / PCP 限制 | 断言 `DCP=1` 且 `PCP=1` | 同 v0.23.0 | 仍断言 `dcp_world_size == 1 and pcp_world_size == 1` | 解除 `DCP=1`/`PCP=1` 断言，改用 `resolve_dcp_kv_block_size` 核算块跨度 |
+| 钩子抛异常与细粒度 TP 失败 | 不捕获异常 | 同 v0.23.0 | 捕获异常；普通场景退回 P，细粒度 TP（`oproj`/`mlp` > 1）保存失败直接中止 [C23] | 同 v0.30.0 |
+| 执行器与拷贝方式 | `model_runner_v1`；同步逐块 `copy_` | 同 v0.23.0 | `model_runner_v1` 与 `v2` 均调用 `handle_preemptions` [C24]；拷贝仍同步 | 同 v0.30.0 |
 
-rc2还按保存事件编号去重，防止同一保存任务被重复执行；实际D2H/H2D仍同步。后面的旧对照表列出v0.23、GLM、v0.26和所钉main，rc2差异以上面这些独立分支为准。这些代码处理不等于所有混合模型和异步组合都已通过验证：rc2官方指南仍要求Qwen3.5关闭异步调度，GLM全部状态的对应位置和恢复质量仍需端到端检查。
-
-| 项 | v0.23 维护分支 2c59ff10 | GLM 快照 db701c1f | v0.26 分支 2ed6cbba | main baa023ad | 意味着什么 |
-|---|---|---|---|---|---|
-| 目录与连接器名 | `kv_pool/recompute_cpu_offload/`，`RecomputeCPUOffloadConnector` | 同 v0.23 | 同 v0.23 | `kv_pool/kv_offload/preempt_offload/`，`PreemptOffloadConnector`，9eb752ab 改名 [C26] | 旧名抄到 main 上建不出连接器 [!] |
-| 两个字节参数都不写 | 整实例 8 GiB，除以 `world_size` | 同 v0.23 | 同 v0.23 | 没有字节默认值，按 `offload_host_memory_ratio`（默认 1），主机块数 = 显存块数 | 新版默认占用随设备 KV 池变化，不能继续按旧 8 GiB 预算 |
-| 递推状态组（Mamba 类） | 和 attention 组一样按已算位置截取块表 | 同 v0.23 | 只存最后 `1 + num_spec_tokens` 块，不参与共用 [C20] | 同 v0.26 | 混合模型只有后两列专门处理 [I] |
-| 摘掉没写进去的前缀缓存块 | 有：本步刚打上哈希、前向还没写的显存块，从前缀缓存里摘掉 [C19] | 同 v0.23 | 删了 | 删了 | 只在显存侧开着 prefix caching 时有影响 |
-| 钩子抛异常 | 不兜 | 同 v0.23 | 同 v0.23 | try/except，warning 后退回 P [C23] | 前三列连接器出错会让这一步直接抛异常 |
-| 调 `handle_preemptions` 的执行器 | `model_runner_v1` | 同 v0.23 | 同 v0.23 | v1、v2 两个执行器都调 [C24] | main 的 MRV2 上也能用，这正是改名那个 PR 的主题 |
-| worker 与连接器代码 | 基准 | 与 v0.23 逐字相同 | 与 v0.23 逐字相同 | 改了名和预算入口，拷贝仍是先整卡同步、再逐块 `copy_` | 同步拷贝四个钉点都一样 |
-
-让出哪一条、退回 P 怎样收尾的版本差异，见 [RecomputeScheduler 的「版本差异」](recompute-scheduler.md#版本差异)。
+固定 GLM 镜像 `db701c1f` 的连接器名、预算默认值与实现与 `v0.23.0` 同源；这些代码处理不等于所有混合模型和异步组合都已通过验证（`v0.30.0` 官方指南仍要求 Qwen3.5 关闭异步调度，GLM 全部状态的恢复质量仍需端到端实测）。让出哪一条、退回 P 怎样收尾的版本差异，见 [RecomputeScheduler 的「版本差异」](recompute-scheduler.md#版本差异)。
 
 ### 源码位置
 
-| 看什么 | 在哪（GLM 快照 db701c1f，目录 `vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/`） |
+| 看什么 | 在哪 |
 |---|---|
-| 岔路口：问连接器能不能存走 | `vllm_ascend/core/recompute_scheduler.py` L297–L345 |
-| 连接器入口、预算参数 | `recompute_cpu_offload_connector.py` L40–L96 |
-| 实例卡数、DCP/PCP 断言、集齐计数 | `manager.py` `__init__` L63–L118 |
-| 主机块数 | `manager.py` `_derive_cpu_config` L133–L156 |
-| 能接上多少、抢占钩子 | `manager.py` `get_num_new_matched_tokens`、`update_state_before_preempt` L179–L234 |
-| 挑哪些块、全有或全无、共用 | `manager.py` `_create_preempt_state` L236–L368 |
-| 集齐存好、登记共用块 | `manager.py` `update_connector_output`、`_process_preempt_store_event` L517–L553 |
-| 锁页主机缓冲 | `worker.py` `register_kv_caches` L96–L116 |
-| 存、取、等 | `worker.py` `handle_preemptions`、`start_load_kv`、`wait_for_layer_load` L134–L175；`_submit_transfer` L200–L284 |
-| 执行器调用点 | `vllm_ascend/worker/model_runner_v1.py` L1984–L1989 |
-| 排上时先搬运，完成报告处理后再调度 | `vllm_ascend/core/recompute_scheduler.py` L548–L672（`load_kv_async` → `WAITING_FOR_REMOTE_KVS`）、`_update_waiting_for_remote_kv` L138–L170；`worker.py` `get_finished` L286–L305 |
-| MultiConnector 转问 | `vllm_ascend/distributed/kv_transfer/ascend_multi_connector.py` L65–L77；注册替换在同目录 `__init__.py` L23–L26 |
-| `world_size` 的定义 | `vllm/config/parallel.py` L776–L780（vllm@0fc695fc） |
-| 显存块什么时候有哈希 | `vllm/v1/core/kv_cache_manager.py` L553–L562（vllm@0fc695fc） |
-| 官方说明 | `docs/source/user_guide/feature_guide/recompute_cpu_offload.md`（参数 L40–L61，流程与限制 L226–L274，问答 L276–L307） |
-| main 的新位置 | `kv_pool/kv_offload/preempt_offload/`：预算入口 `preempt_offload_connector.py` L45–L63，递推状态组 `manager.py` L282–L295 |
+| 岔路口：问连接器能不能存走 | `vllm_ascend/core/recompute_scheduler.py`（GLM 快照 L297–L345） |
+| `v0.30.0` / `main` 连接器入口、预算优先级与容量校验 | `vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/preempt_offload_connector.py#L41-L115`；`manager.py#L70-L120`、`#L180-L205`、`#L293-L345` |
+| `main` 解除 DCP/PCP 断言与 `resolve_dcp_kv_block_size` | `vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L95-L120`、`#L315-L335`、`#L522-L538` |
+| 旧版入口、实例卡数、DCP/PCP 断言与块数计算 | `vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/`：`recompute_cpu_offload_connector.py` L40–L96，`manager.py` L63–L156 |
+| 能接上多少、抢占钩子、全有或全无与集齐 | 同目录 `manager.py` L179–L368、L517–L553 |
+| 锁页主机缓冲、存、取、等 | 同目录 `worker.py` L96–L116、L134–L175、L200–L305 |
+| 执行器调用点与排上搬运 | `vllm_ascend/worker/model_runner_v1.py` L1984–L1989；`vllm_ascend/core/recompute_scheduler.py` L548–L672、L138–L170 |
+| MultiConnector 转问与注册 | `vllm_ascend/distributed/kv_transfer/ascend_multi_connector.py` L65–L77；`__init__.py` L23–L26 |
+| `world_size` 与显存块哈希 | `vllm@0fc695fc:vllm/config/parallel.py` L776–L780；`vllm/v1/core/kv_cache_manager.py` L553–L562 |
+| 官方说明 | 旧版 `docs/source/user_guide/feature_guide/recompute_cpu_offload.md`；新版 `preempt_offload_connector.md` |
 
 固定 db701c1f 的官方说明要求 vLLM V1 引擎、RecomputeScheduler 和 P/D 分离的 D 节点（来源 15）；管理器断言 prefill、decode 的上下文并行份数均为 1（来源 3）。这些条件不能代替模型缓存类型与版本支持检查。
 

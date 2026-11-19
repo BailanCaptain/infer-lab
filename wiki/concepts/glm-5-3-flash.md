@@ -79,6 +79,12 @@ sources:
   - >-
     https://huggingface.co/api/models/zai-org/GLM-5.3-Flash/revision/690b705278a3a58e538fcb37c2ca8b5f9511213c
   - 'vllm@0fc695fc:vllm/model_executor/models/deepseek_mtp.py#L43-L60'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/kda.py#L171-L185'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L183-L220'
+  - 'vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L45'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L299-L325'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda_input_projection_tp.py#L18-L45'
+  - 'vllm-ascend@8d6180e2:docs/source/tutorials/models/GLM5.3-Flash.md#L1-L45'
 relations:
   - to: learning-guide
     kind: builds-on
@@ -92,7 +98,11 @@ relations:
   - to: lm-head
     kind: builds-on
     note: 模型页的最终词表打分步骤建立在 lm_head 输出投影机制上，并给出 GLM 的具体权重形状和词表大小。
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 contradicts: []
 updated: '2026-11-03'
@@ -252,11 +262,13 @@ file: glm-flash-indexer-flow
 
 主 attention 的 64 个头随后读取所选位置的 512 维潜向量，输出投影回 4096 维。最新位置最多差 3 个才凑满一池，因此尾部额外预留 3 个位置：
 
-```calc
-title: 一次查询最多读取多少位置
-完整池 = 512 池 × 4 个位置 = 2048 个位置
-加上尾部 = 2048 + 3 = 2051 个位置
-```
+$$\text{单次查询最大读取位置数} = 512\text{ 池} \times 4\text{ 位置/池} + 3\text{ 尾部位置} = 2048 + 3 = 2051\text{ 个位置}$$
+
+| 读取预算分项 | 算式 | 位置数 |
+| --- | --- | --- |
+| 选中的完整池 | $512\text{ 池} \times 4\text{ 个位置}$ | **2,048** |
+| 未凑满一池的尾部预留 | 最多 3 个最新位置 | **+3** |
+| **单次查询读取上限** | $2048 + 3$ | **2,051 个位置** |
 
 历史不到 2051 个 token 时稀疏 MLA 层等于读全部历史，更长才真正挑选：到部署上限 133120 个 token 时只读其中 1/65，推导见[稀疏注意力](sparse-attention.md#稀疏什么时候才真的起作用)。
 
@@ -430,64 +442,56 @@ file: glm-flash-mtp-flow
 
 ### 版本差异
 
-**v0.30.0rc2 已有社区 GLM-5.3-Flash 实现，但不改变本文固定模型配置和旧部署账。** 模型实现位于 models/glm5next；KDA 由模型自己的 Glm5NextLinearAttention 构造，要求 BF16 激活、head_dim=128、卷积宽度 2–4，投机数最多 7，启用投机时卷积宽度须为 4。完成的 KPool 索引缓存用 BF16，未完成池的 K/gate 环形尾状态用 FP32；这与旧镜像中缓存对象的组织不同，显存预算须重新按 rc2 的 spec 计算。
+**社区 `v0.30.0` 与 `main` 已将 GLM-5.3-Flash 重构为 `models/glm5next/` 模块化实现，但不改变本文固定模型配置和例外 B 镜像（`db701c1f`）的双机绑定算例。** 下表对照四版社区分支的模型代码、投影与缓存演进（`v0.23.0` 与 `v0.26.0rc` 维护分支对 `vllm_ascend/models/` 检索均无 GLM-5.3-Flash 模型文件）：
 
-rc2 的模型教程仍标为实验性并要求 Model Runner V1；KPool 后端直接拒绝 PCP/DCP。模型文件存在、通用 CP 支持、某个官方部署配方可运行是三种不同证据，不能相互替代。本页按固定权重配置计算的参数形状保留；rc2 的加载布局、缓存组和运行峰值见各专题新增的版本对照。
-
-教程另提供实验性的 SFA-only DSA-CP：只在 TP 组内分担稀疏 attention 的查询位置，主 KV、索引池和尾缓存继续复制，KDA 仍走 TP，PCP/DCP 两个大小保持 1。它与“按位置分存 KV”的 DCP 是不同路径。
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| 模型目录与类结构 | 无（绑定算例在镜像 `db701c1f` 单文件 `models/glm5_next.py`） | 无 | 模块化拆至 `models/glm5next/`；KDA 由 `Glm5NextLinearAttention` 实现，要求 BF16 激活、`head_dim=128`、卷积宽度 2–4（投机时须为 4，最多 7 候选） | 延续 `models/glm5next/`，新增 `kda_input_projection_tp.py` 与 `recoverssm_*` |
+| KDA / MLA 投影融合 | — | — | KDA 六路输入合并为 `in_proj_qkvbfg_a`（`kda.py#L171-L185`）；MLA 低秩输入改用 `DeepSeekV2FusedQkvAProjLinear` 且 `kv_b_proj` 显式设 `quant_config=None`（`attention.py#L183-L220`）[C40] | `in_proj_qkvbfg_a` 扩展支持细粒度 `qkv_iproj_tensor_parallel_size`（`KDAInputProjectionTP`，`kda.py#L299-L325`）[C43] |
+| 索引器缓存与 Runner 限制 | — | — | 完成 KPool 缓存用 BF16、未完成池尾状态改为 FP32 环形缓冲；官方教程要求 Model Runner V1（`VLLM_USE_V2_MODEL_RUNNER=0`），支持实验性 SFA-only DSA-CP（仅 TP 组内分摊查询，PCP/DCP 仍为 1）[S42] | 官方教程全面切换至 **Model Runner V2**（`VLLM_USE_V2_MODEL_RUNNER=1`），A3 PD Prefill 支持 `PCP8/TP1` 与 BF16 SSM 状态 [S45] |
+| 显存与算例口径边界 | 不适用 | 不适用 | 缓存组与规格已重构，显存预算须按 `v0.30.0` 实际 `KVCacheSpec` 与 profile 重算，不直接沿用旧镜像 3,855 块算例 | 同 `v0.30.0`，须按 MRV2 与新规格另行核定 |
 
 - 模型形状按 `zai-org/GLM-5.3-Flash` 在 revision `690b705278a3a58e538fcb37c2ca8b5f9511213c` 的 `config.json` [S1]，`moe_router_dtype=float32` 也在这份配置里。[来源基线](../sources/glm-5-3-flash-baseline.md)固定的是后来的 revision `eb9eb208`，并把两个 revision 的配置和 glm-flow 母版的副本比对过，三者一致，所以两处引用可以互换。
 - 模型卡标称总参数 320B、激活参数 18B [S2]。本页的 3133 亿、174 亿、3213 亿按配置里的形状逐项相乘得出 [D]；HF 固定快照的参数总数是 321323031390，约 3213 亿，不包含量化缩放数组（来源 38）。18B 对应「主干 173.77 亿 + MTP 3.86 亿 = 177.63 亿」是按数字反推的口径 [I]；换成主干加视觉编码器（173.77 + 5.64 = 179.41 亿）也约等于 18B。模型卡用的是哪种，待核：缺模型卡的口径说明。
 - 量化仓库 `Eco-Tech/GLM-5.3-Flash-w8a8` 在 `9e55cbc8` 的 `text_config` 与原模型一致 [S3]。逐层精度以固定量化描述为准：来源 36 是 `9e55cbc8`，来源 37 是 `3121f187`，两版 12 个稀疏层（含 MTP）的 Q 压缩、KV 压缩、Q 展开和输出投影由 `FLOAT` 改为 `W8A8_DYNAMIC`。`FLOAT` 表示不走该量化方法，不等于一律 FP32；具体类型见构造代码和上表。
 - 执行侧按 `vllm-ascend@db701c1f` 读，控制流按 `vllm@0fc695fc` 读，后者就是 v0.23.0。KDA 层在模型里构造的是上游 vLLM 的 `KimiGatedDeltaNetAttention`，vLLM 为 0.23.0 时被替换成 vllm-ascend 的 `AscendKimiGatedDeltaNetAttention` [C10]，所以本基线执行的是昇腾版。同一个 `glm5_next.py` 里还有一个 `AscendGlm5NextLinearAttention` 类，它不在这条执行路径上，核对 KDA 时读 `kimi_kda.py`。
 - mHC 的 Sinkhorn 迭代、入口权重（sigmoid）、写回权重（2 × sigmoid，Python 侧只看得到系数 2.0）和入口那次不带增益的 RMSNorm，都在融合算子 `npu_hc_pre_v2` 里完成，Python 侧只看得到迭代轮数 20 等参数被传进去。本页按这些运算的定义讲 [I]；待核：该算子的 AscendC 源码。
-- 「每个通道至少保留 e⁻⁵ ≈ 0.7%」由遗忘门公式 `−5 · sigmoid(·)` 的取值范围 (−5, 0) 推出 [D]。
-- DeepSeek-V3.2 技术报告第 2.1 节的 DSA 按 `I = Σⱼ wⱼ · ReLU(qⱼ · k)` 给每个历史 token 打分，按 token 选前 2048 个 [S22]。本基线的 GLM 则走 `ops/glm5_next_lightning_indexer.py`：NPU 上满足输入条件时进入 triton 路径，否则走同一文件的 PyTorch 回退；两条路径都直接合成头加权查询再点乘池 K。补尾固定执行，配置的 `index_kpool_always_select_tail=true` 与这一行为一致；运行时由算子直接决定补尾。
+- 「每个通道至少保留 $e^{-5} \approx 0.7\%$」由遗忘门公式 $-5 \cdot \sigma(\cdot)$ 的取值范围 $(-5, 0)$ 推出 [D]。
+- DeepSeek-V3.2 技术报告第 2.1 节的 DSA 按 $I = \sum_j w_j \cdot \text{ReLU}(q_j \cdot k)$ 给每个历史 token 打分，按 token 选前 2048 个 [S22]。本基线的 GLM 则走 `ops/glm5_next_lightning_indexer.py`：NPU 上满足输入条件时进入 triton 路径，否则走同一文件的 PyTorch 回退；两条路径都直接合成头加权查询再点乘池 K。补尾固定执行，配置的 `index_kpool_always_select_tail=true` 与这一行为一致；运行时由算子直接决定补尾。
 - DeepSeek 原版 MLA 另留一段带 RoPE 的 K，原因见 DeepSeek-V2 技术报告第 2.1.3 节「Decoupled Rotary Position Embedding」[S23]。
 
 **参数量的口径反推。** MTP 层约 74.3 亿，其中 72.5 亿是自己的 288 个路由专家；视觉编码器约 5.6 亿。主干、MTP 与视觉合计约 3213 亿，对应模型卡标称的总参数 320B。
 
-18B 的一种反推按文字 token 计算：主干含 embedding 和 `lm_head`，路由专家只计每层选中的 8 个，再加 MTP 激活部分；视觉编码器只处理图像和视频，文字 token 不经过它。这一解释仍缺模型卡的口径确认，另一种凑近 18B 的口径见上文。
+18B 的一种反推按文字 token 计算：主干含 embedding 和 `lm_head`，路由专家只计每层选中的 8 个，再加 MTP 激活部分；视觉编码器只处理图像和视频，文字 token 不经过它。这一解释仍缺模型卡的口径确认，另一种凑近 18B 的口径见上文（各项先取两位小数再相加，最后一步才取整）：
 
-```calc
-title: 每个 token 激活的参数为何约为 18B
-主干 = 89.21 亿（路由专家以外） + 84.56 亿（42 层 × 8 个专家） = 173.77 亿
-MTP = 74.33 亿 − 72.48 亿（它的全部路由专家） + 2.01 亿（其中 8 个） = 3.86 亿
-合计 = 173.77 亿 + 3.86 亿 = 177.63 亿 ≈ 18B
-> 各项先取两位小数再相加，最后一步才取整
-```
+| 每个 token 激活参数反推分项 | 算式 | 结果 |
+| --- | --- | --- |
+| 主干激活参数 | $89.21\text{ 亿（路由专家以外）} + 84.56\text{ 亿（42 层} \times 8\text{ 个专家）}$ | **173.77 亿** |
+| MTP 激活参数 | $74.33\text{ 亿} - 72.48\text{ 亿（全部路由专家）} + 2.01\text{ 亿（其中 8 个）}$ | **3.86 亿** |
+| **合计** | $173.77\text{ 亿} + 3.86\text{ 亿}$ | **$177.63\text{ 亿} \approx \mathbf{18\text{B}}$** |
 
 对外引用时注明范围：3133 亿 / 174 亿为主干，320B / 18B 为模型卡标称；后者的激活范围尚未确认。
 
-待核：取 4 条 residual 流、20 轮 Sinkhorn、3 层 KDA 配 1 层稀疏 MLA，以及前 3 层使用稠密 MLP 的具体权衡，缺 GLM 官方技术报告；router 选专家的偏置在训练中如何调整，缺官方训练说明。已核实 v0.23 维护分支（2c59ff10）和 v0.26（2ed6cbba）都没有这个模型的代码：对两个提交执行 `git ls-tree -r --name-only <提交> | grep -i glm`，vllm_ascend/ 下只有 GLM 工具调用或推理用量补丁，教程只到 GLM5.2，没有 glm5_next 模型文件；main（baa023ad）在 models/glm5next/ 有实现，逐版对照见 [KV cache 的版本差异](kv-cache.md#版本差异)。main 与本页基线 db701c1f 的完整差异尚未逐项核实，`verified` 保持为空。
+待核：取 4 条 residual 流、20 轮 Sinkhorn、3 层 KDA 配 1 层稀疏 MLA，以及前 3 层使用稠密 MLP 的具体权衡，缺 GLM 官方技术报告；router 选专家的偏置在训练中如何调整，缺官方训练说明。关于社区活跃食谱与绑定镜像的增量对照，另见[部署页增量对照节](glm-5-3-flash-two-node.md#活跃食谱增量对照v0300-与-main-变了什么)。
 
 ### 源码位置
 
 模型形状取自 Hugging Face（存放开源模型权重的平台）上 `zai-org/GLM-5.3-Flash` 在 revision（仓库提交）`690b7052` 的 `config.json.text_config`。GLM 的 11 个稀疏层名为 `deepseek_sparse_attention`，按池选择配置为 `index_kpool=4`、`index_kpool_compress=true`。
 
-indexer 的池分数是 `Σⱼ wⱼ × (qⱼ · 池 K)`；实现先合成 `q̄ = Σⱼ wⱼqⱼ`，再点乘池 K。原版 DSA 在各头点积后先做 ReLU（负值置零），本基线直接加权。压池、选位置分属两个算子；选池、展开和补尾由后一个算子一起完成，调用位置见下表。
+indexer 的池分数是 $\sum_j w_j \times (q_j \cdot \text{池 } K)$；实现先合成 $\bar{q} = \sum_j w_j q_j$，再点乘池 K。原版 DSA 在各头点积后先做 ReLU（负值置零），本基线直接加权。压池、选位置分属两个算子；选池、展开和补尾由后一个算子一起完成，调用位置见下表。
 
 MTP 的量化描述启用旋转时，隐藏输入在 `hnorm` 前经过 `rot`。这里两个 W8A8 revision 都设置了 `is_rot_used=true`，因此该步骤实际纳入它们的代码路径；旋转矩阵的容量在部署账中单列。预测层后的 `SharedHead.forward` 只做 RMSNorm，词表投影由 `compute_logits` 另行调用（来源 24、39）。
 
 | 想核对的结构 | 读哪里 |
 |---|---|
-| 每层的 attention 与 MLP 怎样按层号选，mHC 的两次混合与参数建成 FP32，第 44 层四条流求平均，MTP 层走单条 residual 流 | `vllm_ascend/models/glm5_next.py` 的 `AscendGlm5NextDecoderLayer` [C4] |
-| embedding、逐层循环、最终 RMSNorm | `AscendGlm5NextModel` [C5] |
-| `lm_head`、KDA 状态的形状接口、logits | `AscendGlm5NextForCausalLM` [C6] |
-| KDA 各投影、短卷积（建成 FP32，卷积后接 SiLU）、β、遗忘门和输出门的权重定义 | 上游 vLLM 的 `kimi_gdn_linear_attn.py` [C7] |
-| KDA 的前向：投影、状态更新、输出门与归一化、遗忘门，短卷积权重计算前转回 BF16 | `vllm_ascend/ops/kimi_kda.py` [C8] |
-| 遗忘门的下界 −5 | `vllm_ascend/ops/triton/kda/kda.py` [C9] |
-| MLA 的压缩投影、RoPE 维为 0 时不建位置编码、接入索引器 | `AscendGlm5NextMLAAttention` [C11] |
-| 索引器的 Q、共用的 K、各头权重、两份缓存；池内位置偏置建成 FP32，K 与得分链在 FP32 里算 | `AscendGlm5NextIndexer` [C12] |
-| 写状态、逐通道压池并写入池 K | `ops/glm5_next_kpool_state_compress.py` 的 `glm5_next_kpool_state_compress_and_write_cache`；同文件回退实现列出 softmax 公式 [C13] |
-| 头加权查询、池分数、选池、展开与补尾 | `ops/triton/glm5_next_lightning_indexer.py` 的分数 kernel 与 `glm5_next_lightning_indexer_triton` [C14] |
-| 推理时压池与选择的先后调用 | `AscendSparseAttnIndexerKpool.forward_ascend` [C26] |
-| NPU triton 路径的入口条件与 PyTorch 回退 | `ops/glm5_next_lightning_indexer.py` 的 `glm5_next_lightning_indexer`、`_can_use_triton`、`_bf16_mqa_logits` [C27] |
-| 稠密 MLP、共享专家与 MoE 的构造，router 建成 FP32，各专家都传入 `swiglu_limit` | `AscendGlm5NextMLP`、`AscendGlm5NextMoE` [C15] |
-| sigmoid 打分、偏置只用于挑选、归一后乘 2.5 | 上游参考实现 `grouped_topk` [C16]；昇腾融合算子的调用 [C17] |
-| MTP 层的两路输入与单层结构 | `vllm_ascend/models/glm5_next_mtp.py` [C18] |
-| MTP 的 embedding 共享条件，以及输出头换成主模型的 `lm_head` | `vllm_ascend/spec_decode/llm_base_proposer.py` [C19] |
-| 部署时逐层判断走不走量化实现 | `vllm_ascend/quantization/modelslim_config.py` [C20] |
-| W8A8 的 INT8 权重、每通道缩放、激活量化 | `vllm_ascend/quantization/methods/w8a8_dynamic.py` [C21] |
+| 每层的 attention 与 MLP 怎样按层号选，mHC 的两次混合与参数建成 FP32，第 44 层四条流求平均，MTP 层走单条 residual 流 | `vllm_ascend/models/glm5_next.py` 的 `AscendGlm5NextDecoderLayer`（来源 4）[C4] |
+| embedding、逐层循环、最终 RMSNorm；`lm_head`、KDA 状态的形状接口、logits | `AscendGlm5NextModel`、`AscendGlm5NextForCausalLM`（来源 5–6） |
+| KDA 各投影、短卷积、前向、遗忘门下界 −5 | 上游 `kimi_gdn_linear_attn.py`、`vllm_ascend/ops/kimi_kda.py`、`ops/triton/kda/kda.py`（来源 7–9）[C7] |
+| MLA 的压缩投影、RoPE 维为 0 时不建位置编码、索引器 Q/K/头权重与两份缓存 | `AscendGlm5NextMLAAttention`、`AscendGlm5NextIndexer`（来源 11–12）[C11] |
+| 写状态、逐通道压池并写入池 K；头加权查询、选池、展开与补尾 | `ops/glm5_next_kpool_state_compress.py`、`ops/triton/glm5_next_lightning_indexer.py`、`ops/glm5_next_lightning_indexer.py`、`AscendSparseAttnIndexerKpool.forward_ascend`（来源 13–14、26–27）[C13] |
+| 稠密 MLP、共享专家与 MoE 的构造，router 建成 FP32，sigmoid 打分与 2.5 缩放 | `AscendGlm5NextMLP`、`AscendGlm5NextMoE`、上游 `grouped_topk`、`ops/fused_moe/experts_selector.py`（来源 15–17）[C15] |
+| MTP 层的两路输入与单层结构、embedding 共享条件与 `lm_head` 复用 | `vllm_ascend/models/glm5_next_mtp.py`、`spec_decode/llm_base_proposer.py`（来源 18–19）[C18] |
+| 部署时逐层量化判断与 W8A8 动态量化 | `quantization/modelslim_config.py`、`quantization/methods/w8a8_dynamic.py`（来源 20–21）[C20] |
+| `v0.30.0` / `main` 的 `models/glm5next/` 投影融合与细粒度 TP | `c09d3e20`：`glm5next/kda.py#L171-L185`、`attention.py#L183-L220`；`8d6180e2`：`glm5next/kda.py#L299-L325`、`kda_input_projection_tp.py#L18-L45`（来源 40–41、43–44） |
 
 补充核对：上表来源 27 中，可见完整池数的计算在固定执行侧 `ops/glm5_next_lightning_indexer.py` 244–250 行；此处描述该文件所示路径，不把它推广到全部后端。上表来源 26 中，草拟步骤中实际查询行数与固定缓冲形状的区分在 `models/glm5_next.py` 1191–1199 行：非 FULL 路径取 `min(attn_metadata.num_actual_tokens, positions.shape[0])`，FULL 路径保留捕获形状。

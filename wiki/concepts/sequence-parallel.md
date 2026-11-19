@@ -73,7 +73,18 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L228-L314'
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L642-L648'
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L726-L832'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L739-L828'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1071-L1084'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1437-L1443'
+  - 'vllm@ced6857a:vllm/config/vllm.py#L1877-L1898'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L837-L898'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/utils.py#L1050-L1065'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1724-L1730'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: tensor-parallel
@@ -86,7 +97,7 @@ relations:
     kind: builds-on
     note: 理解逐 token 的归一化和残差
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-19'
 origin: direct
 ---
 
@@ -153,15 +164,16 @@ file: sequence-parallel-steps
 
 **第 1 步 Reduce-Scatter：只把属于自己的行加齐。** 约定 token 0、1 归卡 0，token 2、3 归卡 1。卡 1 把它手里 token 0、1 的部分和 [0, 4]、[4, 0] 发给卡 0，卡 0 加进自己的 [1, 3]、[3, 1]，得到 [1, 7]、[7, 1]；同时卡 0 把 token 2、3 的 [2, 2]、[8, 15] 发给卡 1，卡 1 加出 [5, 5]、[17, 31]。这一步之后，每张卡手里有 2 行**完整**的值；另外 2 行只是已经发出去的输入，不再算作结果（图中第 1 步的结果只画 2 行）。
 
-**第 2 步 本卡计算：各自只做自己的两行。** 以卡 0 的 token 0 为例：
+**第 2 步 本卡计算：各自只做自己的两行。** 以卡 0 的 token 0 为例（$\gamma = 1$、$\varepsilon = 0$，数为示意）：
 
-```calc
-title: 卡 0 对 token 0 做 RMSNorm（γ 取 1，ε 取 0，数为示意）
-token 0 的完整值 = [1, 3] + [0, 4] = [1, 7]
-平方的平均 = (1² + 7²) ÷ 2 = 50 ÷ 2 = 25
-均方根 = √25 = 5
-归一化结果 = [1 ÷ 5, 7 ÷ 5] = [0.2, 1.4]
-```
+$$\text{RMS}(x_0) = \sqrt{\frac{1^2 + 7^2}{2}} = \sqrt{25} = 5, \qquad \text{RMSNorm}(x_0) = \frac{[1,\, 7]}{5} = [0.2,\, 1.4]$$
+
+| 步骤（卡 0 · token 0，示意） | 算式 | 结果 |
+| --- | --- | --- |
+| 完整值（Reduce-Scatter 后） | $[1,\, 3] + [0,\, 4]$ | **$[1,\, 7]$** |
+| 平方的平均 | $(1^2 + 7^2) \div 2 = 50 \div 2$ | **$25$** |
+| 均方根 | $\sqrt{25}$ | **$5$** |
+| 归一化结果 | $[1 \div 5,\, 7 \div 5]$ | **$[0.2,\, 1.4]$** |
 
 同样算，卡 0 得到 token 1 的 [1.4, 0.2]；卡 1 得到 token 2 的 [1, 1]（均方根 5）和 token 3 的 [0.68, 1.24]（(17² + 31²) ÷ 2 = 625，均方根 25）。这一步两张卡之间一个数也不传。
 
@@ -179,15 +191,13 @@ token 0 的完整值 = [1, 3] + [0, 4] = [1, 7]
 
 沿用 token 0 的归一化结果 [0.2, 1.4]，看它交给下一次列切投影后发生什么。设这次完整权重为两列：第一列 [1, 2] 在卡 0，第二列 [3, 1] 在卡 1。每张卡要为全部 4 个 token 计算自己负责的输出列。
 
-All-Gather 之前，token 0 的这一行只在卡 0，卡 1 缺少计算第二列的输入；token 2、3 则相反。收集后，两卡都有全部 4 行，但仍各自只持有自己的权重列：
+All-Gather 之前，token 0 的这一行只在卡 0，卡 1 缺少计算第二列的输入；token 2、3 则相反。收集后，两卡都有全部 4 行，但仍各自只持有自己的权重列（每卡得到自己负责的完整输出列，此处无需把两列相加，也不必马上拼在同一张卡；数为示意）：
 
-```calc
-title: token 0 接入下一次列切投影（示意）
-卡 0 的输出第 0 列 = 0.2 × 1 + 1.4 × 2 = 3.0
-卡 1 的输出第 1 列 = 0.2 × 3 + 1.4 × 1 = 2.0
-两卡共同表示的输出行 = [3.0, 2.0]
-> 每卡得到的是自己负责的完整输出列；此处无需把两列相加，也不必马上拼在同一张卡
-```
+| 参与卡（token 0 接入下一次列切投影） | 本地权重列与点积算式 | 本地输出列 |
+| --- | --- | --- |
+| 卡 0（第 0 列） | $0.2 \times 1 + 1.4 \times 2$ | **$3.0$** |
+| 卡 1（第 1 列） | $0.2 \times 3 + 1.4 \times 1$ | **$2.0$** |
+| 两卡共同表示的输出行 | 逻辑拼接（无须立刻求和或收集） | **$[3.0,\, 2.0]$** |
 
 **收齐行，是这套 TP 权重分工的要求。** 单独看线性投影或 MLP，它们也可以逐 token 计算，并不需要读取别的 token；但这里各卡只存部分权重，需要用全部输入行计算自己的输出通道。换一种权重布局，可以选择不同的通信方式，后文共享专家复制权重就是实例。
 
@@ -214,15 +224,16 @@ file: sequence-parallel-layer
 
 ## 省下了什么，又要付出什么？
 
-**在形状、数据类型相同且不额外补齐时，标准前向的理想通信载荷相同。** 还用上面的例子数一数：卡数 N = 2，每张卡的完整张量 M = 4 行 × 2 = 8 个数（公式口径见[集合通信页](collective-communication.md#通信量里的-n-和-m-到底数什么)）。这里只比较一次 TP 边界的发送载荷，不包括训练的重计算、其他通信或实现额外的缓冲与协议开销。
+**在形状、数据类型相同且不额外补齐时，标准前向的理想通信载荷相同。** 还用上面的例子数一数：卡数 $N = 2$，每张卡的完整张量 $M = 4 \text{ 行} \times 2 = 8$ 个数（公式口径见[集合通信页](collective-communication.md#通信量里的-n-和-m-到底数什么)）。这里只比较一次 TP 边界的发送载荷，不包括训练的重计算、其他通信或实现额外的缓冲与协议开销：
 
-```calc
-title: 两种做法每张卡发出多少个数（N = 2，M = 8 个数，数为示意）
-Reduce-Scatter = (N − 1) × M ÷ N = 1 × 8 ÷ 2 = 4 个数，卡 0 发出 token 2、3 的 4 个部分和
-All-Gather = (N − 1) × M ÷ N = 1 × 8 ÷ 2 = 4 个数，卡 0 发出 token 0、1 的 4 个归一化结果
-SP 合计 = 4 + 4 = 8 个数
-All-Reduce（ring） = 2 × (N − 1) × M ÷ N = 2 × 1 × 8 ÷ 2 = 8 个数
-```
+$$\text{Send}_{\text{RS}} + \text{Send}_{\text{AG}} = \frac{N - 1}{N} M + \frac{N - 1}{N} M = \frac{2(N - 1)}{N} M = \text{Send}_{\text{All-Reduce (ring)}}$$
+
+| 做法与阶段（$N = 2,\; M = 8$ 个数，示意） | 每卡发出算式 | 每卡发出数与内容 |
+| --- | --- | --- |
+| SP · Reduce-Scatter | $(N - 1) \times M \div N = 1 \times 8 \div 2$ | **4 个数**（卡 0 发出 token 2、3 的 4 个部分和） |
+| SP · All-Gather | $(N - 1) \times M \div N = 1 \times 8 \div 2$ | **4 个数**（卡 0 发出 token 0、1 的 4 个归一化结果） |
+| **SP 合计** | $4 + 4$ | **8 个数** |
+| **All-Reduce（ring）** | $2 \times (N - 1) \times M \div N = 2 \times 1 \times 8 \div 2$ | **8 个数** |
 
 All-Gather 传的是归一化后的结果而不是原始的和，但形状一样、数据类型一样，所以字节数也一样。
 
@@ -282,14 +293,15 @@ DeepSpeed Ulysses 的命名也属于 sequence parallelism。一个 attention 头
 
 **假如打开（变体，本部署没有用）。** 下面按源码规则推一遍会变什么，都没有实测过。
 
-GLM 是 MoE 模型，没有 1000 token 门槛；在本次 token 数已提供、FlashComm1 生效的前向中，示例请求 R1 的一步只有 T = 4 个 token（见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)），TP8 要补齐：
+GLM 是 MoE 模型，没有 1000 token 门槛；在本次 token 数已提供、FlashComm1 生效的前向中，示例请求 R1 的一步只有 $T = 4$ 个 token（见[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)），TP8 按源码规则补齐如下（静态推算，未实测）：
 
-```calc
-title: 假如 GLM 双机打开 SP，R1 一步 T = 4 怎样补齐（按源码规则推算，未实测）
-补齐行数 = (8 − 4 mod 8) mod 8 = (8 − 4) mod 8 = 4 行
-补齐后总行数 = 4 + 4 = 8 行
-每张卡 = 8 ÷ 8 = 1 行，8 张卡里有 4 张拿到的是补齐的空行
-```
+$$\text{pad} = (N - T \bmod N) \bmod N = (8 - 4) \bmod 8 = 4\text{ 行}$$
+
+| 假如 GLM 双机打开 SP（R1 一步 $T = 4$，TP8） | 算式 | 结果 |
+| --- | --- | --- |
+| 补齐行数 | $(8 - 4 \bmod 8) \bmod 8$ | **4 行** |
+| 补齐后总行数 | $4 + 4$ | **8 行** |
+| 每张卡分到行数 | $8 \div 8$ | **1 行**（8 张卡里有 4 张拿到补齐空行） |
 
 这么小的批，每卡省下的只是几行激活，却多了补齐和两次调用；有 DP2 时，两组的行数还要先对齐到两组最大值向上取 8 的倍数。其余几处也会跟着变：
 
@@ -349,15 +361,16 @@ FlashComm1 在固定 main 的消费逻辑已经有效；rc2 的变化是移除�
 
 **v0.30.0rc2 仍实际读取 FlashComm1 开关，不能沿用旧 main 的弃用说法。** enable_sp 最终读取上游 use_sequence_parallel_moe，但 AscendConfig 会将 JSON 的 enable_flashcomm1 与环境变量 VLLM_ASCEND_ENABLE_FLASHCOMM1 的 1/true 取或；DSA-CP 也会自动开启 FlashComm。两者均未开时会改写 all2all_backend 以禁用 SP MoE，若配置本身不支持 SP MoE 还会告警关闭 DSA-CP。PCP>1 且 SP 生效时，最大批 token 数向上补齐到 TP×PCP 的倍数；这是一项容量对齐，不是额外的真实 token。
 
-| 项 | v0.23 | v0.26 rc | main |
-|---|---|---|---|
-| 开关 | `enable_flashcomm1` / 环境变量，默认关 | 同 v0.23 | 工厂仍报 deprecated，但 JSON / 环境变量及 DSA-CP 会影响最终 SP MoE 配置，不能按“已忽略”处理[C19] |
-| `enable_shared_expert_dp` 强制打开 SP | 会 | 不再强制 | 只看上游属性 |
-| `enable_sp()` 的含义 | FlashComm1 是否打开 | 同 v0.23 | 等于上游 `use_sequence_parallel_moe`[C20] |
-| 稠密模型 1000 token 门槛 | 有 | 有 | 前向上下文里已没有这项判断 |
-| 打开后的行切投影出口 | `SequenceRowParallelOp`：补齐后 Reduce-Scatter 或融合算子 | 同 v0.23 | 该类已移除；`maybe_pad_and_reduce` 只剩 EP 通信一种用途[C21] |
-| 打开后的词嵌入入口 | 补齐后 Reduce-Scatter | 同 v0.23 | 始终 All-Reduce，见[词嵌入](embedding.md) |
-| 打开后的 GLM 稠密 MLP | 选入普通 SP 线性路径时，升维入口 All-Gather、降维出口 Reduce-Scatter | 同 v0.23 | GLM 构造传入 `is_sequence_parallel=True` 时复制权重、关闭末尾归约；其他模型另核，见[残差、MLP 与归一化](mlp-residual-norm.md) |
+按四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；本文 GLM 双机绑定算例另钉住例外 B 镜像 `db701c1f`（历史快照 `baa023ad` / `7d825229` 见来源清单与上方说明）。
+
+| 核对项 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+|---|---|---|---|---|
+| FlashComm1 开关与派生 | `enable_flashcomm1` / 环境变量，默认关；`enable_shared_expert_dp` 会强制打开 SP | 同 `v0.23.0`，但 `enable_shared_expert_dp` 不再强制开 SP | JSON `enable_flashcomm1` 与 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 取或，`enable_dsa_cp` 自动联动开启；同时驱动 Qwen3.5 稠密族 SP（`ascend_config.py#L747-L780`） | 保留 FlashComm1 JSON / 环境变量与 Qwen3.5 稠密族 SP，不再由 `enable_dsa_cp` 联动开启；`FlashComm1` + `use_sequence_parallel_moe` 同时启用时通过 `logger.warning_once` 告警并将 `quantized_all_reduce_config.enable` 置 `False`（`ascend_config.py#L845-L885`）[C19] |
+| `enable_sp()` 判定与校验 | 判断 FlashComm1 缓存 | 同 `v0.23.0` | `use_sequence_parallel_moe or enable_dense_sp`（`utils.py#L1071-L1084`）；`platform.py#L1437-L1443` 强校验 `tp_size > 1` 且 MoE 须开 EP | 同 `v0.30.0`（`utils.py#L1050-L1065`、`platform.py#L1724-L1730`）[C20] |
+| 上游图改写 `PassConfig.enable_sp` 与 `SP+PP` | 存在，默认关 | 存在，默认关 | 存在；`SP + PP > 1` 时若未显式禁用 `-rms_norm`，上游自动向 `custom_ops` 追加 `+rms_norm`（`vllm@ced6857a:vllm/config/vllm.py#L1877-L1898`） | **上游 `vllm@ba15685a` 已移除 `PassConfig.enable_sp`** |
+| `SP + PCP > 1` 批长对齐 | 固定镜像调整至 `tp * pcp` 倍数 | 延续 | `max_num_batched_tokens` 向上取整至 `tp_size * pcp_size` 倍数并打 warning（`ascend_config.py#L816-L828`） | 同 `v0.30.0`（`ascend_config.py#L886-L897`） |
+| 稠密 1000 token 门槛与行切出口 | 有 1000 token 门槛；`SequenceRowParallelOp` 补齐后 RS 或融合算子 | 同 `v0.23.0` | 已移除 `SequenceRowParallelOp` 与前向上下文 1000 门槛；`maybe_pad_and_reduce` 仅用于 EP 通信；Kimi `o_proj` 新增条件式 MM+RS 融合 | 同 `v0.30.0`（`register_custom_ops.py#L101`）[C21] |
+| 词嵌入入口与 GLM 稠密 MLP | 嵌入补齐后 RS；GLM 稠密 MLP 走普通 SP 线性路径 | 同 `v0.23.0` | 嵌入固定 All-Reduce；GLM 稠密 MLP 传入 `is_sequence_parallel=True` 时复制权重并关末尾归约 | 同 `v0.30.0` |
 
 ### 源码位置
 

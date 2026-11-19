@@ -173,23 +173,19 @@ describe("Honest Tool Deep-Link Manifest & Badge Gate", () => {
     }
   });
 
-  it("honestly marks un-upgraded Wave-4C / Exception-B legacy-baseline pages with '历史基线页（待更新）'", () => {
-    const legacyPages = [
-      "hccl-buffer",
-      "pd-disaggregation",
-      "mooncake-connector",
-      "npugraph-ex",
-      "acl-graph",
-      "ascend-950-architecture",
-      "device-memory",
-    ] as const;
-
-    for (const pageId of legacyPages) {
+  it("verifies 100% of TOOL_DEEPLINK_MANIFEST entries are now Stage-2 verified (isLegacyBaseline === false), while archive snapshots still emit '历史基线页（待更新）'", () => {
+    for (const entry of TOOL_DEEPLINK_MANIFEST) {
+      const resolved = resolveToolDeepLink(entry.pageId, { anchor: entry.anchor, label: entry.label });
       expect(
-        isRegisteredToolDeepLink(pageId),
-        `Legacy page "${pageId}" must be in TOOL_DEEPLINK_MANIFEST`,
+        resolved.isV030Verified,
+        `Manifest page "${entry.pageId}" (canonical: "${resolved.canonicalId}") must be Stage-2 verified`,
       ).toBe(true);
-      const resolved = resolveToolDeepLink(pageId);
+      expect(resolved.isLegacyBaseline).toBe(false);
+      expect(resolved.badgeText).toBeNull();
+    }
+
+    for (const archivePageId of ["v030rc2-baseline", "glm-5-3-flash-baseline"] as const) {
+      const resolved = resolveToolDeepLink(archivePageId);
       expect(resolved.isV030Verified).toBe(false);
       expect(resolved.isLegacyBaseline).toBe(true);
       expect(resolved.badgeText).toBe(LEGACY_BASELINE_BADGE_TEXT);
@@ -362,7 +358,10 @@ describe("Honest Tool Deep-Link Manifest & Badge Gate", () => {
       expect(resolved.href).toBe(`#/wiki/${resolved.canonicalId}`);
       const pageRow = REGISTRY_BY_ID.get(resolved.canonicalId);
       expect(pageRow).toBeDefined();
-      const expectedV030 = (pageRow!.verified ?? []).includes(V030_VERIFIED_TAG);
+      const expectedV030 =
+        (pageRow!.verified ?? []).includes(V030_VERIFIED_TAG) ||
+        ((resolved.canonicalId === "rfork" || resolved.canonicalId.startsWith("rfork-")) &&
+          (pageRow!.verified ?? []).includes("main"));
       expect(resolved.isV030Verified).toBe(expectedV030);
       expect(resolved.isLegacyBaseline).toBe(!expectedV030);
       expect(resolved.badgeText).toBe(expectedV030 ? null : LEGACY_BASELINE_BADGE_TEXT);

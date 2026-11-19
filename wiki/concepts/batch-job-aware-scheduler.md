@@ -72,7 +72,18 @@ sources:
   - 'vllm@568afb3a:vllm/v1/engine/output_processor.py#L649-L696'
   - 'vllm@568afb3a:vllm/v1/engine/async_llm.py#L685-L689'
   - 'vllm@568afb3a:vllm/v1/engine/core.py#L479-L483'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1517-L1555'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1058-L1066'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1380-L1408'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1610-L1648'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1243-L1252'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1586-L1630'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/core/batch_job_aware_scheduler.py#L445-L458'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: vllm-scheduler
@@ -136,23 +147,18 @@ file: batch-job-aware-scheduler
 2. **下一步要走几个位置。** 同样的规则，从这一步走完的位置接着算。
 3. **下一步要几块新块。** 看这一步走完后，手里最后一块还空几格。下一步要走的位置不超过空格，就是 0 块；超出的部分按每块 B 个位置向上取整。
 
-所有 running 请求的新块数加起来记作 R。R 加上安全余量 m（默认 2 块），但不超过上限 M（默认 8 块），就是预留块数 P。空闲块数 F 减去 P，再乘每块的位置数 B，就是这一步接新请求的额度，叫**准入预算**，单位是位置：
+所有 running 请求的新块数加起来记作 $R$。$R$ 加上安全余量 $m$（默认 2 块），但不超过上限 $M$（默认 8 块），就是预留块数 $P$。空闲块数 $F$ 减去 $P$，再乘每块的位置数 $B$，就是这一步接新请求的额度，叫**准入预算**，单位是位置：
 
-**预留 P = min(R + m, M)，准入预算 = max(0, (F − P) × B)**
+$$P = \min(R + m,\; M), \qquad \text{Budget} = \max(0,\; (F - P) \times B)$$
 
-用第一张图的数演一遍（示意：B = 4，不开投机解码）：
+用第一张图的数演一遍（示意：$B = 4$、$F = 6$、$m = 2$、$M = 8$，不开投机解码；对比不预留时为 $6 \times 4 = 24$ 个位置）：
 
-```calc
-title: 预留几块、余额多少（示意）
-A 这一步走完 = 3 + 1 = 4 个位置，手里的块正好写满
-A 下一步要新块 = ceil((1 − 0) ÷ 4) = 1 块，下一步 1 个位置、手里空格 0 个
-B 这一步走完 = 2 + 1 = 3 个位置，块里还空 1 格
-B 下一步要新块 = 0 块，下一步的 1 个位置放得进空格
-R = 1 + 0 = 1 块
-P = min(1 + 2, 8) = 3 块
-准入预算 = (6 − 3) × 4 = 12 个位置
-> 不预留时是 6 × 4 = 24 个位置
-```
+| 预留与余额核算（示意：$B=4$，$F=6$） | 算式 | 结果 |
+| --- | --- | --- |
+| A 本步走完与下一步新块（块已满、空格 0） | $3 + 1 = 4$ 位置；$\lceil (1 - 0) \div 4 \rceil$ | **1 块** |
+| B 本步走完与下一步新块（块内还空 1 格） | $2 + 1 = 3$ 位置；下一步 1 位置放得进空格 | **0 块** |
+| 合计需求 $R$ 与预留块数 $P$ | $R = 1 + 0 = 1$；$P = \min(1 + 2,\; 8)$ | **3 块** |
+| 本步准入预算 | $(6 - 3) \times 4$ | **12 个位置**（不预留为 24） |
 
 这组数背后有几条规则：
 
@@ -174,16 +180,15 @@ P = min(1 + 2, 8) = 3 块
 **每个作业有一个输出长度的估计值：**
 
 - 还没有请求结束时，估计值是 128 个 token。
-- 请求在引擎内因 EOS 或停止 token 编号正常结束时，记下它输出了多少个 token。第一个样本直接当估计值；之后按指数移动平均更新：新估计 = 0.1 × 新样本 + 0.9 × 旧估计。旧样本的分量每更新一次就乘一次 0.9，慢慢淡出。
+- 请求在引擎内因 EOS 或停止 token 编号正常结束时，记下它输出了多少个 token。第一个样本直接当估计值；之后按指数移动平均更新：$\hat{L}_k = 0.1 \times L_k + 0.9 \times \hat{L}_{k-1}$。旧样本的分量每更新一次就乘一次 0.9，慢慢淡出。
 - 每个作业最多记 10 个样本，记满以后估计值不再变。
 - 因为生成长度到了上限才结束的请求不记。前端命中停止字符串、再通知尚未结束的引擎取消时，引擎记录的是取消，也不记进这个估计器；客户端看到的 stop 不等于引擎的正常结束状态。一个作业若一直没有可记录样本，估计值就停在 128；只截断一部分时，估计只从引擎内正常结束的样本里学，可能偏小。
 
-```calc
-title: 一个作业的输出长度估计怎样更新（示意）
-还没有样本 = 128 个 token
-第 1 条自然结束、输出 20 个 = 20 个 token，第一个样本直接当估计
-第 2 条自然结束、输出 40 个 = 0.1 × 40 + 0.9 × 20 = 22 个 token
-```
+| 作业输出长度估计更新步骤（示意） | 算式 | 更新后估计值 |
+| --- | --- | --- |
+| 尚无自然结束样本 | 默认冷启动初值 | **128 token** |
+| 第 1 条自然结束（输出 20 token） | 首样本直接赋值 | **20 token** |
+| 第 2 条自然结束（输出 40 token） | $0.1 \times 40 + 0.9 \times 20$ | **22 token** |
 
 **长作业和短作业。** 用于分类与排序的估计先转成整数，正的移动平均值因此向下取整；这个整数大于 32（默认阈值）的作业算长作业，否则算短作业。例如内部平均值 32.9 会按 32 分类，仍算短作业。新作业没有样本，估计是 128，所以一开始都算长作业。
 
@@ -225,15 +230,14 @@ file: batch-job-aware-scheduler-flow
 
 **它只插在 waiting 那一段。** [场景 M](concurrent-requests.md#示例场景-m-与变体-m) 的第 2 步，DP0（两台机器各是一个 DP 组，各有自己的调度器和块池）先给 12 条 decode 各排 4 个位置（1 个确定的 token 加 3 个 MTP 候选），剩下的 8144 个 token 预算给新到的请求 N；N 的 6000 个位置一步装得下，块也够。整步的账见[第 2 站](concurrent-requests.md#第-2-站-调度一步-8192-个-token-怎样分给-13-条请求)和[多条请求的 KV 块](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)，这里不重算。换成批作业感知调度，running 那一段、8192 的 token 预算、32 条的请求数上限都不变；N 进来之前多了两件事：先估计 12 条 decode 下一步还要几块新块，再按作业标签决定 N 是不是这一步排第一的那条。
 
-**full 组通常隔多步才续块；尾状态组仍逐步借还。** 本部署的块分 5 个缓存组（存储格式和借块规则相同的一组层）。随长度增长的只有 full 组，一块装 640 个位置；三个 KDA 组每条请求固定共 12 块，不随长度变；尾状态组每走 4 个位置借 1 块、还 1 块，手里总在 3–4 块之间，见[块分配](vllm-kv-block-allocation.md#kda-组和尾状态组借法和普通注意力不同)。所以一条 decode 请求要走很多步，才需要一块新的 full 组块：
+**full 组通常隔多步才续块；尾状态组仍逐步借还。** 本部署的块分 5 个缓存组（存储格式和借块规则相同的一组层）。随长度增长的只有 full 组，一块装 640 个位置；三个 KDA 组每条请求固定共 12 块，不随长度变；尾状态组每走 4 个位置借 1 块、还 1 块，手里总在 3–4 块之间，见[块分配](vllm-kv-block-allocation.md#kda-组和尾状态组借法和普通注意力不同)。在候选持续全接受、忽略块内起点与 lookahead 边界的理想示意下，一条 decode 请求要走很多步才需要一块新的 full 组块：
 
-```calc
-title: full 组跨块周期的理想示意（DP0，一条请求，候选持续全接受）
-一块 full 组块能写 = 640 个位置
-每轮通常调度 = 1 + 3 = 4 个验证位置
-候选持续全接受时净推进 = 4 个位置/轮
-忽略块内起点与 lookahead 边界 = 640 ÷ 4 = 160 轮
-```
+$$N_{\text{rounds}} = \frac{640}{1 + 3} = 160\text{ 轮}$$
+
+| full 组跨块周期理想示意（DP0，一条请求，候选持续全接受） | 算式 | 结果 |
+| --- | --- | --- |
+| 一块 full 组块容量与每轮验证位置数 | $640$ 位置；$1 + 3$ | **640 位置**；**4 位置/轮** |
+| 忽略块内起点与 lookahead 边界的跨块周期 | $640 \div 4$ | **160 轮** |
 
 验证位置数不等于净推进数：候选被拒时已算进度要回退，本配置一轮实际推进 1–4 个位置。因此 160 轮不是固定跨块周期；实际申请还要看当前块内偏移和预留位置。
 
@@ -305,33 +309,33 @@ title: full 组跨块周期的理想示意（DP0，一条请求，候选持续�
 
 ### 版本差异
 
-**v0.30.0rc2 的 BatchJobAwareScheduler 与已钉 main 源文件相同。** 作业名仍从 request_id 的 #job_name[...]# 标记提取，未带标记归入 __default__，平台仍按 async 开关选同步或异步变体。它的选类分支位于 profiling_chunk 之后，同时配置时会覆盖前者写入的 scheduler_cls，不是串联两个调度器；与 ShortRequestFirst 同开仍显式报错。类存在也不替代具体 GLM、PCP 组合的验证。
+**`v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 均保留 `BatchJobAwareScheduler` 及其 6 项配置默认值。** 作业名仍从 `request_id` 的 `#job_name[...]#` 标记提取，未带标记归入 `__default__`，平台仍按 `async_scheduling` 选同步或异步变体。在多调度器覆盖优先级上，`v0.30.0` 的 `batch_job_sched_config.enabled` 位于 `recompute_scheduler`、`dyntra_lb`、`profiling_chunk` 之后，同时开启时会静默覆盖前者写入的 `scheduler_cls`；与 `ShortRequestFirst` 同开仍显式报 `ValueError`。**`main (8d6180e2)` 移除了 `profiling_chunk_config`，`batch_job_sched_config.enabled` 仍位于最后并静默覆盖 `recompute_scheduler` / `dyntra_lb` 的 `scheduler_cls`**，同时在 `remove_request` 中修复了移除请求时未清空缓存 `_peeked` 的边界问题（`#L449-L451`），并在 `_swa_bounded_replay_unsupported_mode` 中确认其调用 `super().schedule()` 因而保留 SWA bounded replay 支持。
 
-| 项 | v0.23 | v0.26 | main |
-|---|---|---|---|
-| 调度器与配置 | `2c59ff10`、`db701c1f` 都没有 | 有，行为如上 | 调度器文件与 v0.26 逐行相同；配置类改成 pydantic 写法，默认值与校验不变 [C27] |
-| 与短请求优先、profiling chunk 的关系 | — | 互斥报错；profiling chunk 被覆盖 | 同 v0.26；选调度器那段提成模块级函数，行号不同 |
-| GLM-5.3-Flash | `db701c1f` 有，但没有本调度器 | 没有 | 有，未见与本调度器的组合验证 |
-| 调度器块大小（本调度器的 B） | `db701c1f` 下本部署为 133,120 [C24] | 多组且无上下文并行时交回上游算法 | GLM 路径先过滤私有缓存组再算，实际取值待核 [C25] |
+| 项 | v0.23.0 (2c59ff10) | v0.26.0rc (2ed6cbba) | v0.30.0 (c09d3e20) | main (8d6180e2) |
+|---|---|---|---|---|
+| 调度器与配置类 | 无 | 有；`dict.get` 取参（拼错键静默忽略） | 有；`@config` Pydantic 校验（拼错键拒绝），默认参数不变 | 同 v0.30.0 |
+| 多调度器互斥与覆盖顺序 | — | 与 `ShortRequestFirst` 互斥报错；覆写排在前的 `recompute` / `profiling_chunk` | 同 v0.26.0rc（`platform.py#L1380-L1408`：`recompute` → `dyntra_lb` → `profiling_chunk` → `batch_job_sched`） | 移除 `profiling_chunk`；`batch_job_sched` 仍排最后覆写 `recompute` / `dyntra_lb`（`#L1586-L1602`）；且保留 SWA bounded replay |
+| `remove_request` 清理 `_peeked` | — | 未清理（被移除请求可能残留于 `_peeked`） | 同 v0.26.0rc | 已修复：移除匹配请求时同步清空 `self._peeked = None` |
+| GLM-5.3-Flash 与调度器块大小 $B$ | 维护分支无模型；镜像 `db701c1f` 有模型但无本调度器（$B=133{,}120$ [C24]） | 无 GLM 模型 | 含模型与本调度器，GLM 过滤私有缓存组算 $B$ [C25]；组合性能仍待实测 | 同 v0.30.0 |
 
 ### 源码位置
 
 | 看什么 | 在哪 |
 |---|---|
-| 调度器类、替换 waiting、每步清缓存、记样本 | `vllm_ascend/core/batch_job_aware_scheduler.py` 的 `BatchJobAwareScheduler` |
-| 预留 P 与逐条需求 | 同文件 `RunningBlockReserver` |
+| 调度器类、替换 waiting、每步清缓存、记样本 | `vllm_ascend/core/batch_job_aware_scheduler.py` 的 `BatchJobAwareScheduler`（`main (8d6180e2)` `remove_request` 清 `_peeked` 见 `#L445-L458`） |
+| 预留 $P$ 与逐条需求 | 同文件 `RunningBlockReserver` |
 | 准入预算、冷启动、作业排序、best fit | 同文件 `BatchJobAwareRequestQueue`、`RequestBucket` |
 | 作业名解析、输出长度估计 | 同文件 `JobNameParser`、`JobDecodeEstimator` |
-| 参数与校验 | `vllm_ascend/ascend_config.py` 的 `BatchJobSchedConfig` |
-| 选哪个调度器类、互斥检查 | `vllm_ascend/platform.py` |
+| 参数与校验 | `vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1517-L1555`；`main (8d6180e2)` 见 `#L1610-L1648` |
+| 多调度器互斥、覆盖顺序与 SWA 兼容说明 | `vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1058-L1066`、`#L1380-L1408`；`main (8d6180e2)` 见 `#L1243-L1252`、`#L1586-L1630` |
 | 上游 waiting 循环、挂起队列 | vLLM `vllm/v1/core/sched/scheduler.py` |
 | 调度器块大小怎么定 | 上游 `vllm/v1/core/kv_cache_utils.py` 的 `resolve_kv_cache_block_sizes`；昇腾补丁 `vllm_ascend/patch/platform/patch_kv_cache_utils.py` |
 | 官方说明、端到端测试 | `docs/source/user_guide/feature_guide/batch_job_aware_scheduler.md`；`tests/e2e/pull_request/one_card/test_batch_job_aware_scheduler_e2e.py` |
 
 **待核。**
 
-1. main 上 GLM-5.3-Flash 的 `Scheduler.block_size` 实际取值，以及本调度器在这套模型上的预算是否有意义；缺 main 镜像的启动日志 [!]。
+1. `v0.30.0` / `main` 上 GLM-5.3-Flash 的 `Scheduler.block_size` 实际取值，以及本调度器在这套模型上的预算是否有意义；缺实际镜像启动日志 [!]。
 2. 在 GLM 双机上打开后，抢占次数、吞吐与等待时间的变化；缺实测。
-3. 队列缓存的 `_peeked` 只在 `pop_request` 里清空，`remove_request` 和每步开头都不清。静态阅读推出：上游 peek 之后因借不到块 `break` 时，下一步 `peek_request` 直接返回这条旧的，跳过冷启动、作业排序和 best fit 的重新挑选；它若在两步之间被 abort 移出作业桶，仍可能被 pop 出来。缺实跑确认。
+3. 队列缓存的 `_peeked` 在 `main (8d6180e2)` 已于 `remove_request` 清空，但在上游 `peek` 后因借不到块 `break` 的场景下每步开头仍未主动清空；下一步 `peek_request` 是否跳过重挑需实跑确认。
 
 作业解析器按请求 ID 中的非空标签分组，并缓存解析结果；它不按业务内容自动识别作业。由来源 4 的解析与默认名称规则可知：不同业务若都没有匹配标签，就会共用默认作业的统计，因此要先检查实际请求 ID 再判断分组是否正确。

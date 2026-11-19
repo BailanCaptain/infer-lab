@@ -15,72 +15,72 @@
   <path d="M741 530 L741 582 L450 582 L450 606" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-ah-ink)"/>
   <path d="M450 916 L450 970" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#tensor-parallel-ah-comm)"/>
   <path d="M600 1003 L650 1003" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#tensor-parallel-ah-comm)"/>
-  <rect x="65" y="125" width="150" height="96" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M83.8 125v96M102.5 125v96M121.3 125v96M140 125v96M158.8 125v96M177.5 125v96M196.3 125v96" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="65" y="125" width="150" height="96" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <path d="M83.8 125v96M102.5 125v96M121.3 125v96M140 125v96M158.8 125v96M177.5 125v96M196.3 125v96" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="140" y="241" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">gate [4096,12288]</text>
   <text x="140" y="261" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">每卡 [4096,1536]</text>
-  <rect x="295" y="125" width="150" height="96" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M313.8 125v96M332.5 125v96M351.3 125v96M370 125v96M388.8 125v96M407.5 125v96M426.3 125v96" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="295" y="125" width="150" height="96" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <path d="M313.8 125v96M332.5 125v96M351.3 125v96M370 125v96M388.8 125v96M407.5 125v96M426.3 125v96" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="370" y="241" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">up [4096,12288]</text>
   <text x="370" y="261" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">每卡 [4096,1536]</text>
-  <rect x="682" y="85" width="96" height="150" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M682 103.8h96M682 122.5h96M682 141.3h96M682 160h96M682 178.8h96M682 197.5h96M682 216.3h96" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="682" y="85" width="96" height="150" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <path d="M682 103.8h96M682 122.5h96M682 141.3h96M682 160h96M682 178.8h96M682 197.5h96M682 216.3h96" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="730" y="255" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">down [12288,4096]</text>
   <text x="730" y="275" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">每卡 [1536,4096]</text>
-  <rect x="60" y="664" width="150" height="64" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.5" stroke-width="1.3"/>
-  <path d="M97.5 664v64M135 664v64M172.5 664v64M60 680h150M60 696h150M60 712h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="60" y="664" width="150" height="64" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3"/>
+  <path d="M97.5 664v64M135 664v64M172.5 664v64M60 680h150M60 696h150M60 712h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.28" stroke-width="1" fill="none"/>
   <text x="135" y="748" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">P₀</text>
   <text x="135" y="768" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[4,4096]</text>
-  <rect x="260" y="664" width="150" height="64" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.5" stroke-width="1.3"/>
-  <path d="M297.5 664v64M335 664v64M372.5 664v64M260 680h150M260 696h150M260 712h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="260" y="664" width="150" height="64" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3"/>
+  <path d="M297.5 664v64M335 664v64M372.5 664v64M260 680h150M260 696h150M260 712h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.28" stroke-width="1" fill="none"/>
   <text x="335" y="748" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">P₁</text>
   <text x="335" y="768" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[4,4096]</text>
-  <rect x="460" y="664" width="150" height="64" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.5" stroke-width="1.3"/>
-  <path d="M497.5 664v64M535 664v64M572.5 664v64M460 680h150M460 696h150M460 712h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="460" y="664" width="150" height="64" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3"/>
+  <path d="M497.5 664v64M535 664v64M572.5 664v64M460 680h150M460 696h150M460 712h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.28" stroke-width="1" fill="none"/>
   <text x="535" y="748" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">P₂</text>
   <text x="535" y="768" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[4,4096]</text>
-  <rect x="660" y="664" width="150" height="64" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.5" stroke-width="1.3"/>
-  <path d="M697.5 664v64M735 664v64M772.5 664v64M660 680h150M660 696h150M660 712h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="660" y="664" width="150" height="64" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3"/>
+  <path d="M697.5 664v64M735 664v64M772.5 664v64M660 680h150M660 696h150M660 712h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.28" stroke-width="1" fill="none"/>
   <text x="735" y="748" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">P₃</text>
   <text x="735" y="768" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[4,4096]</text>
-  <rect x="60" y="808" width="150" height="64" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.5" stroke-width="1.3"/>
-  <path d="M97.5 808v64M135 808v64M172.5 808v64M60 824h150M60 840h150M60 856h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="60" y="808" width="150" height="64" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3"/>
+  <path d="M97.5 808v64M135 808v64M172.5 808v64M60 824h150M60 840h150M60 856h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.28" stroke-width="1" fill="none"/>
   <text x="135" y="892" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">P₄</text>
   <text x="135" y="912" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[4,4096]</text>
-  <rect x="260" y="808" width="150" height="64" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.5" stroke-width="1.3"/>
-  <path d="M297.5 808v64M335 808v64M372.5 808v64M260 824h150M260 840h150M260 856h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="260" y="808" width="150" height="64" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3"/>
+  <path d="M297.5 808v64M335 808v64M372.5 808v64M260 824h150M260 840h150M260 856h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.28" stroke-width="1" fill="none"/>
   <text x="335" y="892" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">P₅</text>
   <text x="335" y="912" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[4,4096]</text>
-  <rect x="460" y="808" width="150" height="64" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.5" stroke-width="1.3"/>
-  <path d="M497.5 808v64M535 808v64M572.5 808v64M460 824h150M460 840h150M460 856h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="460" y="808" width="150" height="64" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3"/>
+  <path d="M497.5 808v64M535 808v64M572.5 808v64M460 824h150M460 840h150M460 856h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.28" stroke-width="1" fill="none"/>
   <text x="535" y="892" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">P₆</text>
   <text x="535" y="912" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[4,4096]</text>
-  <rect x="660" y="808" width="150" height="64" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.5" stroke-width="1.3"/>
-  <path d="M697.5 808v64M735 808v64M772.5 808v64M660 824h150M660 840h150M660 856h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="660" y="808" width="150" height="64" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3"/>
+  <path d="M697.5 808v64M735 808v64M772.5 808v64M660 824h150M660 840h150M660 856h150" stroke="var(--color-token, #087f73)" stroke-opacity="0.28" stroke-width="1" fill="none"/>
   <text x="735" y="892" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">P₇</text>
   <text x="735" y="912" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[4,4096]</text>
-  <rect x="40" y="380" width="140" height="66" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="110" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">同一份 X</text>
-  <text x="110" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">[4,4096]</text>
-  <rect x="199" y="374" width="210" height="78" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="304" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">column · gate 与 up</text>
-  <text x="304" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Wᵣ [4096,3072] · 12 MiB</text>
-  <rect x="439" y="380" width="164" height="66" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="521" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本地 SwiGLU</text>
-  <text x="521" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">[4,1536]</text>
-  <rect x="627" y="374" width="229" height="78" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="741.5" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">row · down</text>
-  <text x="741.5" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Wᵣ [1536,4096] · 6 MiB</text>
-  <rect x="200" y="482" width="207" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="40" y="380" width="140" height="66" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="110" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">同一份 X</text>
+  <text x="110" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">[4,4096]</text>
+  <rect x="199" y="374" width="210" height="78" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="304" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">column · gate 与 up</text>
+  <text x="304" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">Wᵣ [4096,3072] · 12 MiB</text>
+  <rect x="439" y="380" width="164" height="66" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="521" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本地 SwiGLU</text>
+  <text x="521" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">[4,1536]</text>
+  <rect x="627" y="374" width="229" height="78" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="741.5" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">row · down</text>
+  <text x="741.5" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">Wᵣ [1536,4096] · 6 MiB</text>
+  <rect x="200" y="482" width="207" height="48" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="303.5" y="511" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">gate 与 up 各 1536 维</text>
-  <rect x="627" y="482" width="229" height="48" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="741.5" y="511" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Pᵣ [4,4096] · 部分和</text>
-  <rect x="300" y="970" width="300" height="66" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="999" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">All-Reduce · SUM</text>
-  <text x="450" y="1018" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每卡输入 32,768 B</text>
-  <rect x="650" y="970" width="222" height="66" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="761" y="999" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每张卡得到同一个 Y</text>
-  <text x="761" y="1018" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">[4,4096] · 完整数值</text>
+  <rect x="627" y="482" width="229" height="48" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="741.5" y="511" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Pᵣ [4,4096] · 部分和</text>
+  <rect x="300" y="970" width="300" height="66" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
+  <text x="450" y="999" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">All-Reduce · SUM</text>
+  <text x="450" y="1018" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">每卡输入 32,768 B</text>
+  <rect x="650" y="970" width="222" height="66" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="761" y="999" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">每张卡得到同一个 Y</text>
+  <text x="761" y="1018" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">[4,4096] · 完整数值</text>
   <text x="24" y="27" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">一台 Atlas 800 A2 · 8 张卡 · R1 的 4 个 token</text>
   <text x="171" y="283" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">column · gate / up 都切输出维</text>
   <text x="480" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">row · down 切输入维</text>

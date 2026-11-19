@@ -9,68 +9,68 @@
   <path d="M685 128 L685 192" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#swa-replay-intuition-ah-token)"/>
   <path d="M265 260 L265 328 L315 328 L315 354" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#swa-replay-intuition-ah-kv)"/>
   <path d="M685 260 L685 328 L735 328 L735 354" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#swa-replay-intuition-ah-weight)"/>
-  <rect x="90" y="90" width="50" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="115" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">0</text>
-  <rect x="140" y="90" width="50" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="165" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">0</text>
-  <rect x="190" y="90" width="50" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="215" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
-  <rect x="240" y="90" width="50" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="265" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
-  <rect x="290" y="90" width="50" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="315" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
-  <path d="M140 90v34M190 90v34M240 90v34M290 90v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="90" y="90" width="250" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="115" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
-  <text x="165" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
-  <text x="215" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
-  <text x="265" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
-  <text x="315" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">9</text>
+  <rect x="90" y="90" width="50" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="115" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">0</text>
+  <rect x="140" y="90" width="50" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="165" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">0</text>
+  <rect x="190" y="90" width="50" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="215" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <rect x="240" y="90" width="50" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="265" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <rect x="290" y="90" width="50" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="315" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <path d="M140 90v34M190 90v34M240 90v34M290 90v34" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="90" y="90" width="250" height="34" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="115" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
+  <text x="165" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
+  <text x="215" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
+  <text x="265" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
+  <text x="315" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">9</text>
   <rect x="510" y="90" width="50" height="34" fill="none"/>
   <rect x="513" y="93" width="44" height="28" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
   <rect x="560" y="90" width="50" height="34" fill="none"/>
   <rect x="563" y="93" width="44" height="28" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
-  <rect x="610" y="90" width="50" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="635" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
-  <rect x="660" y="90" width="50" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="685" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
-  <rect x="710" y="90" width="50" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="735" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
-  <path d="M560 90v34M610 90v34M660 90v34M710 90v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="510" y="90" width="250" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="535" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
-  <text x="585" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
-  <text x="635" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
-  <text x="685" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
-  <text x="735" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">9</text>
-  <rect x="190" y="222" width="50" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <text x="215" y="243.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
-  <rect x="240" y="222" width="50" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <text x="265" y="243.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text>
-  <rect x="290" y="222" width="50" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <text x="315" y="243.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
-  <path d="M240 222v34M290 222v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="190" y="222" width="150" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="215" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
-  <text x="265" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
-  <text x="315" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">9</text>
-  <rect x="610" y="222" width="50" height="34" fill="var(--color-weight, #c78300)"/>
-  <text x="635" y="243.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
-  <rect x="660" y="222" width="50" height="34" fill="var(--color-weight, #c78300)"/>
-  <text x="685" y="243.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
-  <rect x="710" y="222" width="50" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <text x="735" y="243.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
-  <path d="M660 222v34M710 222v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="610" y="222" width="150" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="635" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
-  <text x="685" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
-  <text x="735" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">9</text>
-  <rect x="290" y="358" width="50" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <text x="315" y="379.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text>
-  <rect x="290" y="358" width="50" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="710" y="358" width="50" height="34" fill="var(--color-weight, #c78300)"/>
-  <text x="735" y="379.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
-  <rect x="710" y="358" width="50" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="610" y="90" width="50" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="635" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <rect x="660" y="90" width="50" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="685" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <rect x="710" y="90" width="50" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="735" y="111.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <path d="M560 90v34M610 90v34M660 90v34M710 90v34" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="510" y="90" width="250" height="34" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="535" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
+  <text x="585" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
+  <text x="635" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
+  <text x="685" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
+  <text x="735" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">9</text>
+  <rect x="190" y="222" width="50" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <text x="215" y="243.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">2</text>
+  <rect x="240" y="222" width="50" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <text x="265" y="243.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">4</text>
+  <rect x="290" y="222" width="50" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <text x="315" y="243.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <path d="M240 222v34M290 222v34" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="190" y="222" width="150" height="34" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <text x="215" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
+  <text x="265" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
+  <text x="315" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">9</text>
+  <rect x="610" y="222" width="50" height="34" fill="var(--color-weight-soft, #fff4cf)"/>
+  <text x="635" y="243.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <rect x="660" y="222" width="50" height="34" fill="var(--color-weight-soft, #fff4cf)"/>
+  <text x="685" y="243.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <rect x="710" y="222" width="50" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <text x="735" y="243.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <path d="M660 222v34M710 222v34" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="610" y="222" width="150" height="34" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <text x="635" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
+  <text x="685" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
+  <text x="735" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">9</text>
+  <rect x="290" y="358" width="50" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <text x="315" y="379.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">4</text>
+  <rect x="290" y="358" width="50" height="34" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <rect x="710" y="358" width="50" height="34" fill="var(--color-weight-soft, #fff4cf)"/>
+  <text x="735" y="379.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <rect x="710" y="358" width="50" height="34" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
   <text x="56" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">每层：把窗口内上一层的值取平均</text>
   <text x="476" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">缺少位置 5、6，前两项的均值改变</text>
   <text x="56" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">第一层</text>

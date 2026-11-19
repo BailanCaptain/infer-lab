@@ -11,41 +11,41 @@
   <path d="M390 496 L390 528" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lm-head-flow-ah-ink)"/>
   <path d="M390 588 L390 616" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lm-head-flow-ah-ink)"/>
   <path d="M390 664 L390 692" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lm-head-flow-ah-ink)"/>
-  <rect x="180" y="20" width="420" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="390" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">最后一层之后：四路折回一条 → 最终 RMSNorm</text>
-  <text x="390" y="61" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每卡 [T, 4096]，8 张卡相同</text>
-  <rect x="180" y="104" width="420" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="180" y="20" width="420" height="52" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="390" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">最后一层之后：四路折回一条 → 最终 RMSNorm</text>
+  <text x="390" y="61" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">每卡 [T, 4096]，8 张卡相同</text>
+  <rect x="180" y="104" width="420" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="390" y="126" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">挑出要打分的行</text>
-  <text x="390" y="145" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">prefill 每请求 1 行；带 3 个候选的 decode 每请求 4 行</text>
-  <rect x="180" y="188" width="420" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="390" y="145" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">prefill 每请求 1 行；带 3 个候选的 decode 每请求 4 行</text>
+  <rect x="180" y="188" width="420" height="52" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="390" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">进入 Ascend 版的打分函数</text>
-  <text x="390" y="229" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">先看两个开关，决定走哪条路</text>
-  <rect x="180" y="272" width="420" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="390" y="229" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">先看两个开关，决定走哪条路</text>
+  <rect x="180" y="272" width="420" height="48" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="390" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">细粒度 TP 给输出头单独设了规模吗？</text>
-  <text x="390" y="311" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">默认规模 0</text>
-  <rect x="640" y="266" width="240" height="60" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="390" y="311" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">默认规模 0</text>
+  <rect x="640" y="266" width="240" height="60" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="760" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">收集 hidden → 分段打分</text>
   <text x="760" y="311" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">再用 All-to-All 送回</text>
-  <rect x="180" y="356" width="420" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="390" y="380" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本卡矩阵乘 [n, 4096] × [4096, 19360]</text>
-  <text x="390" y="399" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">得到本卡 19360 个词的分数</text>
-  <rect x="180" y="448" width="420" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="180" y="356" width="420" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="390" y="380" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本卡矩阵乘 [n, 4096] × [4096, 19360]</text>
+  <text x="390" y="399" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">得到本卡 19360 个词的分数</text>
+  <rect x="180" y="448" width="420" height="48" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="390" y="468" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">采样归约开了吗？</text>
-  <text x="390" y="487" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">默认关</text>
-  <rect x="640" y="442" width="240" height="60" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="390" y="487" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">默认关</text>
+  <rect x="640" y="442" width="240" height="60" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="760" y="468" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">不拼齐分数</text>
   <text x="760" y="487" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">各卡留自己那段，采样按分段做</text>
-  <rect x="180" y="532" width="420" height="56" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="390" y="556" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">TP8 All-Gather → [n, 154880]</text>
-  <text x="390" y="575" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">8 张卡都拿到完整分数</text>
-  <rect x="180" y="620" width="420" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="180" y="532" width="420" height="56" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
+  <text x="390" y="556" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">TP8 All-Gather → [n, 154880]</text>
+  <text x="390" y="575" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">8 张卡都拿到完整分数</text>
+  <rect x="180" y="620" width="420" height="44" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="390" y="638" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">去掉词表补齐的列</text>
-  <text x="390" y="657" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">154880 没有补齐，这一步不删任何列</text>
-  <rect x="180" y="696" width="420" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="390" y="718" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">采样：贪心取最大，或按温度抽</text>
-  <text x="390" y="737" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MTP 草拟每遍也走这条路，取最大</text>
-  <text x="618" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">设了</text>
-  <text x="618" y="464" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">开</text>
-  <text x="400" y="342" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">没设（本部署）</text>
-  <text x="400" y="518" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">关（本部署）</text>
+  <text x="390" y="657" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">154880 没有补齐，这一步不删任何列</text>
+  <rect x="180" y="696" width="420" height="52" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="390" y="718" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">采样：贪心取最大，或按温度抽</text>
+  <text x="390" y="737" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">MTP 草拟每遍也走这条路，取最大</text>
+  <text x="618" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">设了</text>
+  <text x="618" y="464" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">开</text>
+  <text x="400" y="342" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">没设（本部署）</text>
+  <text x="400" y="518" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">关（本部署）</text>
 </svg>

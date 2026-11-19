@@ -56,79 +56,79 @@
   <path d="M86 462 L86 455 L500 455 L500 420" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#large-scale-ep-ah-danger)"/>
   <path d="M300 545 L340 545" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#large-scale-ep-ah-comm)"/>
   <path d="M520 545 L560 545" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#large-scale-ep-ah-danger)"/>
-  <rect x="142" y="96" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="250" y="96" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="350" y="96" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="367" y="96" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="384" y="96" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="480" y="96" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="580" y="96" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="788" y="96" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="146" y="366" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="250" y="366" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="354" y="366" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="371" y="366" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="388" y="366" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="480" y="366" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="584" y="366" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="792" y="366" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="24" y="538" width="14" height="14" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="36" y="116" width="84" height="34" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="142" y="96" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="250" y="96" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="350" y="96" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="367" y="96" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="384" y="96" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="480" y="96" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="580" y="96" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="788" y="96" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="146" y="366" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="250" y="366" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="354" y="366" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="371" y="366" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="388" y="366" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="480" y="366" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="584" y="366" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="792" y="366" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="24" y="538" width="14" height="14" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="36" y="116" width="84" height="34" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="78" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E0</text>
-  <rect x="136" y="116" width="84" height="34" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="178" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E1</text>
-  <rect x="244" y="116" width="84" height="34" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="286" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E2</text>
-  <rect x="344" y="116" width="84" height="34" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="386" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E3</text>
-  <rect x="474" y="116" width="84" height="34" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="516" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E4</text>
-  <rect x="574" y="116" width="84" height="34" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="616" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E5</text>
-  <rect x="682" y="116" width="84" height="34" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="136" y="116" width="84" height="34" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="178" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E1</text>
+  <rect x="244" y="116" width="84" height="34" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="286" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E2</text>
+  <rect x="344" y="116" width="84" height="34" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="386" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E3</text>
+  <rect x="474" y="116" width="84" height="34" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="516" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E4</text>
+  <rect x="574" y="116" width="84" height="34" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="616" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E5</text>
+  <rect x="682" y="116" width="84" height="34" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="724" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E6</text>
-  <rect x="782" y="116" width="84" height="34" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="824" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E7</text>
-  <rect x="68" y="192" width="120" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="128" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">我</text>
-  <text x="128" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">选 E3、E4</text>
-  <rect x="276" y="192" width="120" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="336" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">吃</text>
-  <text x="336" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E2 在本卡、E1</text>
-  <rect x="506" y="192" width="120" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="566" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">了</text>
-  <text x="566" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">选 E3、E7</text>
-  <rect x="714" y="192" width="120" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="774" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">苹果</text>
-  <text x="774" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">选 E3、E5</text>
-  <rect x="36" y="386" width="80" height="34" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="782" y="116" width="84" height="34" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="824" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E7</text>
+  <rect x="68" y="192" width="120" height="40" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="128" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">我</text>
+  <text x="128" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">选 E3、E4</text>
+  <rect x="276" y="192" width="120" height="40" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="336" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">吃</text>
+  <text x="336" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">E2 在本卡、E1</text>
+  <rect x="506" y="192" width="120" height="40" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="566" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">了</text>
+  <text x="566" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">选 E3、E7</text>
+  <rect x="714" y="192" width="120" height="40" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="774" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">苹果</text>
+  <text x="774" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">选 E3、E5</text>
+  <rect x="36" y="386" width="80" height="34" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="76" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E0</text>
-  <rect x="140" y="386" width="80" height="34" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="180" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E1</text>
-  <rect x="244" y="386" width="80" height="34" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="284" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E2</text>
-  <rect x="348" y="386" width="80" height="34" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="388" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E3</text>
-  <rect x="474" y="386" width="80" height="34" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="514" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E4</text>
-  <rect x="578" y="386" width="80" height="34" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="618" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E5</text>
-  <rect x="682" y="386" width="80" height="34" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="140" y="386" width="80" height="34" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="180" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E1</text>
+  <rect x="244" y="386" width="80" height="34" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="284" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E2</text>
+  <rect x="348" y="386" width="80" height="34" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="388" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E3</text>
+  <rect x="474" y="386" width="80" height="34" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="514" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E4</text>
+  <rect x="578" y="386" width="80" height="34" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="618" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E5</text>
+  <rect x="682" y="386" width="80" height="34" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="722" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E6</text>
-  <rect x="786" y="386" width="80" height="34" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="826" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E7</text>
-  <rect x="30" y="462" width="92" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="76" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">我</text>
-  <text x="76" y="497" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E3、E4</text>
-  <rect x="238" y="462" width="92" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="284" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">吃</text>
-  <text x="284" y="497" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E2 本卡、E1</text>
-  <rect x="468" y="462" width="92" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="514" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">了</text>
-  <text x="514" y="497" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E3、E7</text>
-  <rect x="676" y="462" width="92" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="722" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">苹果</text>
-  <text x="722" y="497" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E3、E5</text>
+  <rect x="786" y="386" width="80" height="34" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="826" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E7</text>
+  <rect x="30" y="462" width="92" height="40" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="76" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">我</text>
+  <text x="76" y="497" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">E3、E4</text>
+  <rect x="238" y="462" width="92" height="40" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="284" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">吃</text>
+  <text x="284" y="497" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">E2 本卡、E1</text>
+  <rect x="468" y="462" width="92" height="40" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="514" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">了</text>
+  <text x="514" y="497" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">E3、E7</text>
+  <rect x="676" y="462" width="92" height="40" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="722" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">苹果</text>
+  <text x="722" y="497" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">E3、E5</text>
   <text x="24" y="20" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">EP4：一台机器，4 张卡，每卡 2 个专家</text>
   <text x="876" y="20" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">最忙的卡 4 份 · 平均 2 份 · 跨机 0 份</text>
   <text x="24" y="290" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">EP8：两台机器，8 张卡，每卡 1 个专家</text>

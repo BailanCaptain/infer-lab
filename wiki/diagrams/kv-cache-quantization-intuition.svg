@@ -6,32 +6,32 @@
   <rect x="150" y="222" width="644" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="166" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">同样大小的一段显存</text>
   <path d="M472 152 L472 214" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-intuition-ah-kv)"/>
-  <rect x="152" y="76" width="160" height="64" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.5" stroke-width="1.3"/>
-  <path d="M172 76v64M192 76v64M212 76v64M232 76v64M252 76v64M272 76v64M292 76v64M152 92h160M152 108h160M152 124h160" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="312" y="76" width="160" height="64" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.5" stroke-width="1.3"/>
-  <path d="M332 76v64M352 76v64M372 76v64M392 76v64M412 76v64M432 76v64M452 76v64M312 92h160M312 108h160M312 124h160" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="472" y="76" width="160" height="64" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.5" stroke-width="1.3"/>
-  <path d="M492 76v64M512 76v64M532 76v64M552 76v64M572 76v64M592 76v64M612 76v64M472 92h160M472 108h160M472 124h160" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="632" y="76" width="160" height="64" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.5" stroke-width="1.3"/>
-  <path d="M652 76v64M672 76v64M692 76v64M712 76v64M732 76v64M752 76v64M772 76v64M632 92h160M632 108h160M632 124h160" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
-  <rect x="152" y="228" width="80" height="64" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M162 228v64M172 228v64M182 228v64M192 228v64M202 228v64M212 228v64M222 228v64M152 244h80M152 260h80M152 276h80" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="232" y="228" width="80" height="64" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M242 228v64M252 228v64M262 228v64M272 228v64M282 228v64M292 228v64M302 228v64M232 244h80M232 260h80M232 276h80" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="312" y="228" width="80" height="64" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M322 228v64M332 228v64M342 228v64M352 228v64M362 228v64M372 228v64M382 228v64M312 244h80M312 260h80M312 276h80" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="392" y="228" width="80" height="64" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M402 228v64M412 228v64M422 228v64M432 228v64M442 228v64M452 228v64M462 228v64M392 244h80M392 260h80M392 276h80" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="472" y="228" width="80" height="64" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M482 228v64M492 228v64M502 228v64M512 228v64M522 228v64M532 228v64M542 228v64M472 244h80M472 260h80M472 276h80" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="552" y="228" width="80" height="64" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M562 228v64M572 228v64M582 228v64M592 228v64M602 228v64M612 228v64M622 228v64M552 244h80M552 260h80M552 276h80" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="632" y="228" width="80" height="64" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M642 228v64M652 228v64M662 228v64M672 228v64M682 228v64M692 228v64M702 228v64M632 244h80M632 260h80M632 276h80" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="712" y="228" width="80" height="64" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M722 228v64M732 228v64M742 228v64M752 228v64M762 228v64M772 228v64M782 228v64M712 244h80M712 260h80M712 276h80" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="152" y="346" width="80" height="10" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M162 346v10M172 346v10M182 346v10M192 346v10M202 346v10M212 346v10M222 346v10" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="152" y="76" width="160" height="64" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.45" stroke-width="1.3"/>
+  <path d="M172 76v64M192 76v64M212 76v64M232 76v64M252 76v64M272 76v64M292 76v64M152 92h160M152 108h160M152 124h160" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.28" stroke-width="1" fill="none"/>
+  <rect x="312" y="76" width="160" height="64" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.45" stroke-width="1.3"/>
+  <path d="M332 76v64M352 76v64M372 76v64M392 76v64M412 76v64M432 76v64M452 76v64M312 92h160M312 108h160M312 124h160" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.28" stroke-width="1" fill="none"/>
+  <rect x="472" y="76" width="160" height="64" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.45" stroke-width="1.3"/>
+  <path d="M492 76v64M512 76v64M532 76v64M552 76v64M572 76v64M592 76v64M612 76v64M472 92h160M472 108h160M472 124h160" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.28" stroke-width="1" fill="none"/>
+  <rect x="632" y="76" width="160" height="64" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.45" stroke-width="1.3"/>
+  <path d="M652 76v64M672 76v64M692 76v64M712 76v64M732 76v64M752 76v64M772 76v64M632 92h160M632 108h160M632 124h160" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.28" stroke-width="1" fill="none"/>
+  <rect x="152" y="228" width="80" height="64" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <path d="M162 228v64M172 228v64M182 228v64M192 228v64M202 228v64M212 228v64M222 228v64M152 244h80M152 260h80M152 276h80" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="232" y="228" width="80" height="64" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <path d="M242 228v64M252 228v64M262 228v64M272 228v64M282 228v64M292 228v64M302 228v64M232 244h80M232 260h80M232 276h80" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="312" y="228" width="80" height="64" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <path d="M322 228v64M332 228v64M342 228v64M352 228v64M362 228v64M372 228v64M382 228v64M312 244h80M312 260h80M312 276h80" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="392" y="228" width="80" height="64" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <path d="M402 228v64M412 228v64M422 228v64M432 228v64M442 228v64M452 228v64M462 228v64M392 244h80M392 260h80M392 276h80" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="472" y="228" width="80" height="64" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <path d="M482 228v64M492 228v64M502 228v64M512 228v64M522 228v64M532 228v64M542 228v64M472 244h80M472 260h80M472 276h80" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="552" y="228" width="80" height="64" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <path d="M562 228v64M572 228v64M582 228v64M592 228v64M602 228v64M612 228v64M622 228v64M552 244h80M552 260h80M552 276h80" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="632" y="228" width="80" height="64" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <path d="M642 228v64M652 228v64M662 228v64M672 228v64M682 228v64M692 228v64M702 228v64M632 244h80M632 260h80M632 276h80" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="712" y="228" width="80" height="64" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <path d="M722 228v64M732 228v64M742 228v64M752 228v64M762 228v64M772 228v64M782 228v64M712 244h80M712 260h80M712 276h80" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="152" y="346" width="80" height="10" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <path d="M162 346v10M172 346v10M182 346v10M192 346v10M202 346v10M212 346v10M222 346v10" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="24" y="104" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="700" fill="var(--color-ink, #17211f)">BF16</text>
   <text x="24" y="126" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">每个数 2 字节</text>
   <text x="24" y="256" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="700" fill="var(--color-ink, #17211f)">INT8</text>

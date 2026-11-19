@@ -9,30 +9,30 @@
   <path d="M330 253 L450 253 L450 158 L570 158" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#pipeline-parallel-ah-token)"/>
   <path d="M790 181 L790 265" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#pipeline-parallel-ah-token)"/>
   <path d="M680 315 L680 414 L15 414 L15 145 L60 145" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#pipeline-parallel-ah-token)"/>
-  <rect x="60" y="230" width="90" height="46" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="60" y="230" width="90" height="46" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="105" y="257.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">0</text>
-  <rect x="150" y="230" width="90" height="46" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="150" y="230" width="90" height="46" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="195" y="257.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">…</text>
-  <rect x="240" y="230" width="90" height="46" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="240" y="230" width="90" height="46" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="285" y="257.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">22</text>
-  <path d="M150 230v46M240 230v46" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="60" y="230" width="270" height="46" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M150 230v46M240 230v46" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="60" y="230" width="270" height="46" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
   <text x="195" y="298" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">本地层</text>
-  <rect x="570" y="135" width="90" height="46" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="570" y="135" width="90" height="46" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="615" y="162.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">23</text>
-  <rect x="660" y="135" width="90" height="46" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="660" y="135" width="90" height="46" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="705" y="162.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">…</text>
-  <rect x="750" y="135" width="90" height="46" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="750" y="135" width="90" height="46" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="795" y="162.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">44</text>
-  <path d="M660 135v46M750 135v46" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="570" y="135" width="270" height="46" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M660 135v46M750 135v46" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="570" y="135" width="270" height="46" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
   <text x="705" y="203" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">本地层</text>
-  <rect x="60" y="120" width="270" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="195" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">embedding</text>
-  <rect x="570" y="265" width="270" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="705" y="295" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">norm / 词表打分 / 采样</text>
-  <text x="442" y="205" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">隐藏向量</text>
-  <text x="450" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">4 路 × 4096 × 2 字节</text>
-  <text x="450" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">= 32 KiB / token</text>
+  <rect x="60" y="120" width="270" height="50" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="195" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">embedding</text>
+  <rect x="570" y="265" width="270" height="50" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="705" y="295" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">norm / 词表打分 / 采样</text>
+  <text x="442" y="205" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">隐藏向量</text>
+  <text x="450" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">4 路 × 4096 × 2 字节</text>
+  <text x="450" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">= 32 KiB / token</text>
   <text x="450" y="445" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#065f56" text-anchor="middle">下一轮输入依赖本轮 token</text>
 </svg>

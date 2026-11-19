@@ -4,20 +4,20 @@
   <path d="M190 210 L250 210" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kda-evolution-ah-control)"/>
   <path d="M405 210 L465 210" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kda-evolution-ah-control)"/>
   <path d="M620 210 L680 210" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kda-evolution-ah-control)"/>
-  <rect x="60" y="150" width="115" height="115" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M88.8 150v115M117.5 150v115M146.3 150v115M60 178.8h115M60 207.5h115M60 236.3h115" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="60" y="150" width="115" height="115" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <path d="M88.8 150v115M117.5 150v115M146.3 150v115M60 178.8h115M60 207.5h115M60 236.3h115" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="117.5" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">状态 S</text>
   <text x="117.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">无显式衰减</text>
-  <rect x="275" y="150" width="115" height="115" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M303.8 150v115M332.5 150v115M361.3 150v115M275 178.8h115M275 207.5h115M275 236.3h115" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="275" y="150" width="115" height="115" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <path d="M303.8 150v115M332.5 150v115M361.3 150v115M275 178.8h115M275 207.5h115M275 236.3h115" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="332.5" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">状态 S</text>
   <text x="332.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">无显式衰减</text>
-  <rect x="490" y="150" width="115" height="115" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M518.8 150v115M547.5 150v115M576.3 150v115M490 178.8h115M490 207.5h115M490 236.3h115" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="490" y="150" width="115" height="115" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <path d="M518.8 150v115M547.5 150v115M576.3 150v115M490 178.8h115M490 207.5h115M490 236.3h115" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="547.5" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">α S</text>
   <text x="547.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">所有行乘同一 α</text>
-  <rect x="705" y="150" width="115" height="115" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M733.8 150v115M762.5 150v115M791.3 150v115M705 178.8h115M705 207.5h115M705 236.3h115" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="705" y="150" width="115" height="115" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <path d="M733.8 150v115M762.5 150v115M791.3 150v115M705 178.8h115M705 207.5h115M705 236.3h115" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="762.5" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">D S</text>
   <text x="762.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">各行乘 α₁…α₄</text>
   <text x="117" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">累加式</text>

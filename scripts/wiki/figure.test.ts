@@ -1350,7 +1350,9 @@ it("figure 块默认使用柔和矿物浅底、1.4px 同色描边、深墨字色
       texts: [{ at: [20, 120], text: "小字标签", size: 11 }],
     }),
   );
-  expect(svg).toContain('fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"');
+  expect(svg).toContain(
+    'fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"',
+  );
   expect(svg).toContain('fill="var(--color-ink, #17211f)" text-anchor="middle">核心块</text>');
   expect(svg).toContain('font-size="13"');
   expect(svg).not.toContain('font-size="11"');

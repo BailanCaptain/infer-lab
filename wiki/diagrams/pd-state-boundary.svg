@@ -17,57 +17,57 @@
   <path d="M245 420 L260 420 L260 355 L276 355" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#pd-state-boundary-ah-ink)"/>
   <path d="M498 438 L560 438" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#pd-state-boundary-ah-comm)"/>
   <path d="M710 438 L740 438" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#pd-state-boundary-ah-ink)"/>
-  <rect x="45" y="80" width="56" height="34" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="45" y="80" width="56" height="34" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="73" y="101.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">p₀</text>
-  <rect x="101" y="80" width="56" height="34" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="101" y="80" width="56" height="34" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="129" y="101.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">p₁</text>
-  <rect x="157" y="80" width="56" height="34" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="157" y="80" width="56" height="34" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="185" y="101.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">p₂</text>
-  <path d="M101 80v34M157 80v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="45" y="80" width="168" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="560" y="80" width="56" height="34" fill="var(--color-surface-sunken, #ece9df)"/>
+  <path d="M101 80v34M157 80v34" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="45" y="80" width="168" height="34" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <rect x="560" y="80" width="56" height="34" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="588" y="101.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">p₃</text>
-  <rect x="560" y="80" width="56" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="45" y="322" width="50" height="34" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="560" y="80" width="56" height="34" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <rect x="45" y="322" width="50" height="34" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="70" y="343.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">p₀</text>
-  <rect x="95" y="322" width="50" height="34" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="95" y="322" width="50" height="34" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="120" y="343.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">p₁</text>
-  <rect x="145" y="322" width="50" height="34" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="145" y="322" width="50" height="34" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="170" y="343.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">p₂</text>
-  <rect x="195" y="322" width="50" height="34" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="195" y="322" width="50" height="34" fill="var(--color-control-soft, #f1efe8)"/>
   <text x="220" y="343.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">p₃</text>
-  <path d="M95 322v34M145 322v34M195 322v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="45" y="322" width="200" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="45" y="164" width="200" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="145" y="188" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">P 前向</text>
-  <text x="145" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只算 p₀–p₂，也采样 1 个</text>
-  <rect x="276" y="102" width="222" height="52" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="387" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MLA 的前 3 格历史</text>
-  <text x="387" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">另带 indexer 未满池尾状态</text>
-  <rect x="276" y="166" width="222" height="56" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="387" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">KDA 递推与卷积状态</text>
-  <text x="387" y="209" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">处理完 3 个位置的一份</text>
-  <rect x="560" y="164" width="150" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="635" y="188" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D 前向</text>
-  <text x="635" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只算 p₃</text>
-  <rect x="740" y="164" width="120" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="800" y="188" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">y₀</text>
-  <text x="800" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">首 token</text>
-  <rect x="45" y="410" width="200" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="145" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">P 前向</text>
-  <text x="145" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算满 p₀–p₃，采样 1 个</text>
-  <rect x="276" y="410" width="222" height="56" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="387" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">K/V 4 格</text>
-  <text x="387" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">交给 D</text>
-  <rect x="276" y="330" width="222" height="50" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <path d="M95 322v34M145 322v34M195 322v34" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="45" y="322" width="200" height="34" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <rect x="45" y="164" width="200" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="145" y="188" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">P 前向</text>
+  <text x="145" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">只算 p₀–p₂，也采样 1 个</text>
+  <rect x="276" y="102" width="222" height="52" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <text x="387" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">MLA 的前 3 格历史</text>
+  <text x="387" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">另带 indexer 未满池尾状态</text>
+  <rect x="276" y="166" width="222" height="56" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <text x="387" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">KDA 递推与卷积状态</text>
+  <text x="387" y="209" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">处理完 3 个位置的一份</text>
+  <rect x="560" y="164" width="150" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="635" y="188" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">D 前向</text>
+  <text x="635" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">只算 p₃</text>
+  <rect x="740" y="164" width="120" height="56" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="800" y="188" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">y₀</text>
+  <text x="800" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">首 token</text>
+  <rect x="45" y="410" width="200" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="145" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">P 前向</text>
+  <text x="145" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">算满 p₀–p₃，采样 1 个</text>
+  <rect x="276" y="410" width="222" height="56" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <text x="387" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">K/V 4 格</text>
+  <text x="387" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">交给 D</text>
+  <rect x="276" y="330" width="222" height="50" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="387" y="351" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">P 采出的 token</text>
   <text x="387" y="370" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">随交接信息带走，没人读</text>
-  <rect x="560" y="410" width="150" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="635" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D 前向</text>
-  <text x="635" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">退回 1 格，重算 p₃</text>
-  <rect x="740" y="410" width="120" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="800" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">y₀</text>
-  <text x="800" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">首 token</text>
+  <rect x="560" y="410" width="150" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="635" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">D 前向</text>
+  <text x="635" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">退回 1 格，重算 p₃</text>
+  <rect x="740" y="410" width="120" height="56" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="800" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">y₀</text>
+  <text x="800" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">首 token</text>
   <text x="450" y="18" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">交接点：R1 的 4 个提示词 token</text>
   <text x="536" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">交接</text>
   <text x="529" y="430" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">交接</text>

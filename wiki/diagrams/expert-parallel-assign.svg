@@ -7,18 +7,18 @@
   <path d="M628 149 L284 149" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#expert-parallel-assign-ah-comm)"/>
   <path d="M628 264 L284 264" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#expert-parallel-assign-ah-comm)"/>
   <path d="M284 311 L628 311" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#expert-parallel-assign-ah-comm)"/>
-  <rect x="38" y="84" width="246" height="78" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="161" y="119" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">源卡角色</text>
-  <text x="161" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">负责的 token → 发出与收回</text>
-  <rect x="38" y="246" width="246" height="78" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="161" y="281" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">目的卡角色</text>
-  <text x="161" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E0–E17 → 收到工作并计算</text>
-  <rect x="628" y="84" width="236" height="78" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="746" y="119" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">top-8 专家的持有卡</text>
-  <text x="746" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">可在本机或另一台机器</text>
-  <rect x="628" y="246" width="236" height="78" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="746" y="281" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">两个 DP 组的源卡</text>
-  <text x="746" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">token 命中 E0–E17</text>
+  <rect x="38" y="84" width="246" height="78" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="161" y="119" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">源卡角色</text>
+  <text x="161" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">负责的 token → 发出与收回</text>
+  <rect x="38" y="246" width="246" height="78" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="161" y="281" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">目的卡角色</text>
+  <text x="161" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E0–E17 → 收到工作并计算</text>
+  <rect x="628" y="84" width="236" height="78" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="746" y="119" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">top-8 专家的持有卡</text>
+  <text x="746" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">可在本机或另一台机器</text>
+  <rect x="628" y="246" width="236" height="78" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="746" y="281" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">两个 DP 组的源卡</text>
+  <text x="746" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">token 命中 E0–E17</text>
   <text x="580" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">EP16 · 每层每卡 18 个完整专家</text>
   <text x="456" y="87" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">dispatch：INT8 hidden + scale</text>
   <text x="456" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">combine：BF16 结果，回到 rank 0</text>

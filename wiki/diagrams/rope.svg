@@ -10,7 +10,7 @@
   <path d="M188 176 C 185 170, 181 164, 176 159" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
   <text x="248" y="164" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93">k</text>
   <text x="217" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#065f56">q</text>
-  <text x="209" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">30°</text>
+  <text x="209" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">30°</text>
   <circle cx="460" cy="190" r="95" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <path d="M460 190 L549 158" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" stroke-dasharray="7 5"/>
   <path d="M460 190 L521 117" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" stroke-dasharray="7 5"/>
@@ -21,7 +21,7 @@
   <path d="M466 156 C 452 153, 437 160, 430 173" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
   <text x="468" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93" text-anchor="end">k</text>
   <text x="370" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#065f56" text-anchor="end">q</text>
-  <text x="438" y="147" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">70°</text>
+  <text x="438" y="147" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">70°</text>
   <circle cx="770" cy="190" r="95" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <path d="M770 190 L859 158" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" stroke-dasharray="7 5"/>
   <path d="M770 190 L831 117" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" stroke-dasharray="7 5"/>
@@ -30,12 +30,12 @@
   <path d="M776 224 C 791 222, 802 211, 804 196" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
   <text x="794" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93">k</text>
   <text x="872" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#065f56">q</text>
-  <text x="808" y="240" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">70°</text>
+  <text x="808" y="240" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">70°</text>
   <text x="150" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">旋转前：由内容算出</text>
   <text x="460" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">k 在位置 3，q 在位置 5</text>
   <text x="770" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">k 在位置 103，q 在位置 105</text>
-  <text x="295" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">按位置转</text>
-  <text x="605" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">都 +100</text>
+  <text x="295" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">按位置转</text>
+  <text x="605" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">都 +100</text>
   <text x="150" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">夹角 30°，由内容决定</text>
   <text x="460" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">k 转 60°，q 转 100°，夹角 70°</text>
   <text x="770" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">各多转 2000°，夹角仍是 70°</text>

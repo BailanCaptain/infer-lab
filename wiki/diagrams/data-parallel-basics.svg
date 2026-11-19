@@ -7,72 +7,72 @@
   <text x="356" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DP2 · 组 0 · 第 1 份模型</text>
   <rect x="620" y="60" width="260" height="300" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="636" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DP2 · 组 1 · 第 2 份模型</text>
-  <rect x="85" y="88" width="150" height="48" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M103.8 88v48M122.5 88v48M141.3 88v48M160 88v48M178.8 88v48M197.5 88v48M216.3 88v48M85 104h150M85 120h150" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="85" y="88" width="150" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <path d="M103.8 88v48M122.5 88v48M141.3 88v48M160 88v48M178.8 88v48M197.5 88v48M216.3 88v48M85 104h150M85 120h150" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="160" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">整份权重</text>
-  <rect x="395" y="88" width="150" height="48" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M413.8 88v48M432.5 88v48M451.3 88v48M470 88v48M488.8 88v48M507.5 88v48M526.3 88v48M395 104h150M395 120h150" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="395" y="88" width="150" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <path d="M413.8 88v48M432.5 88v48M451.3 88v48M470 88v48M488.8 88v48M507.5 88v48M526.3 88v48M395 104h150M395 120h150" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="470" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">整份权重（副本）</text>
-  <rect x="675" y="88" width="150" height="48" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M693.8 88v48M712.5 88v48M731.3 88v48M750 88v48M768.8 88v48M787.5 88v48M806.3 88v48M675 104h150M675 120h150" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="675" y="88" width="150" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <path d="M693.8 88v48M712.5 88v48M731.3 88v48M750 88v48M768.8 88v48M787.5 88v48M806.3 88v48M675 104h150M675 120h150" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="750" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">整份权重（副本）</text>
-  <rect x="80" y="190" width="40" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="100" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
-  <rect x="120" y="190" width="40" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="140" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">B</text>
-  <rect x="160" y="190" width="40" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="180" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">C</text>
-  <rect x="200" y="190" width="40" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="220" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D</text>
-  <path d="M120 190v34M160 190v34M200 190v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="80" y="190" width="160" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="80" y="190" width="40" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="100" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A</text>
+  <rect x="120" y="190" width="40" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="140" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">B</text>
+  <rect x="160" y="190" width="40" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="180" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C</text>
+  <rect x="200" y="190" width="40" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="220" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">D</text>
+  <path d="M120 190v34M160 190v34M200 190v34" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="80" y="190" width="160" height="34" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
   <text x="160" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">运行中 · 本步在算 4 条</text>
-  <rect x="80" y="270" width="40" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="80" y="270" width="40" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="100" y="291.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">E</text>
-  <rect x="120" y="270" width="40" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="120" y="270" width="40" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="140" y="291.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">F</text>
-  <rect x="160" y="270" width="40" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="160" y="270" width="40" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="180" y="291.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">G</text>
-  <rect x="200" y="270" width="40" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="200" y="270" width="40" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="220" y="291.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">H</text>
-  <path d="M120 270v34M160 270v34M200 270v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="80" y="270" width="160" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M120 270v34M160 270v34M200 270v34" stroke="var(--color-danger, #b54237)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="80" y="270" width="160" height="34" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4"/>
   <text x="160" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">等待中 · 4 条在排队</text>
-  <rect x="390" y="190" width="40" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="410" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
-  <rect x="430" y="190" width="40" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="450" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">C</text>
-  <rect x="470" y="190" width="40" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="490" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E</text>
-  <rect x="510" y="190" width="40" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="530" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">G</text>
-  <path d="M430 190v34M470 190v34M510 190v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="390" y="190" width="160" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="390" y="190" width="40" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="410" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A</text>
+  <rect x="430" y="190" width="40" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="450" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C</text>
+  <rect x="470" y="190" width="40" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="490" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E</text>
+  <rect x="510" y="190" width="40" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="530" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">G</text>
+  <path d="M430 190v34M470 190v34M510 190v34" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="390" y="190" width="160" height="34" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
   <text x="470" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">运行中 · 本步在算 4 条</text>
   <rect x="390" y="270" width="40" height="34" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="430" y="270" width="40" height="34" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="470" y="270" width="40" height="34" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="510" y="270" width="40" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M430 270v34M470 270v34M510 270v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="390" y="270" width="160" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M430 270v34M470 270v34M510 270v34" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="390" y="270" width="160" height="34" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
   <text x="470" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">等待中 · 0 条</text>
-  <rect x="670" y="190" width="40" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="690" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">B</text>
-  <rect x="710" y="190" width="40" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="730" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D</text>
-  <rect x="750" y="190" width="40" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="770" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">F</text>
-  <rect x="790" y="190" width="40" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="810" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">H</text>
-  <path d="M710 190v34M750 190v34M790 190v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="670" y="190" width="160" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="670" y="190" width="40" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="690" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">B</text>
+  <rect x="710" y="190" width="40" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="730" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">D</text>
+  <rect x="750" y="190" width="40" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="770" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">F</text>
+  <rect x="790" y="190" width="40" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="810" y="211.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">H</text>
+  <path d="M710 190v34M750 190v34M790 190v34" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="670" y="190" width="160" height="34" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
   <text x="750" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">运行中 · 本步在算 4 条</text>
   <rect x="670" y="270" width="40" height="34" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="710" y="270" width="40" height="34" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="750" y="270" width="40" height="34" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="790" y="270" width="40" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M710 270v34M750 270v34M790 270v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="670" y="270" width="160" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M710 270v34M750 270v34M790 270v34" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="670" y="270" width="160" height="34" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
   <text x="750" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">等待中 · 0 条</text>
   <text x="450" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">8 条请求同时到来 · 每组每步最多排 4 条（示意）</text>
   <text x="160" y="392" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本步产出 4 个 token</text>

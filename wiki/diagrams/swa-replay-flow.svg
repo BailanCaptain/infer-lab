@@ -4,49 +4,49 @@
   <path d="M394 133 L570 133" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#swa-replay-flow-ah-kv)"/>
   <path d="M394 191 L570 191" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#swa-replay-flow-ah-kv)"/>
   <path d="M394 249 L570 249" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#swa-replay-flow-ah-kv)"/>
-  <rect x="150" y="104" width="48" height="58" fill="var(--color-token, #087f73)"/>
-  <rect x="198" y="104" width="48" height="58" fill="var(--color-token, #087f73)"/>
-  <rect x="246" y="104" width="48" height="58" fill="var(--color-token, #087f73)"/>
-  <rect x="294" y="104" width="48" height="58" fill="var(--color-token, #087f73)"/>
-  <rect x="342" y="104" width="48" height="58" fill="var(--color-token, #087f73)"/>
-  <rect x="150" y="162" width="48" height="58" fill="var(--color-token, #087f73)"/>
-  <rect x="198" y="162" width="48" height="58" fill="var(--color-token, #087f73)"/>
-  <rect x="246" y="162" width="48" height="58" fill="var(--color-token, #087f73)"/>
-  <rect x="294" y="162" width="48" height="58" fill="var(--color-token, #087f73)"/>
-  <rect x="342" y="162" width="48" height="58" fill="var(--color-token, #087f73)"/>
+  <rect x="150" y="104" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="198" y="104" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="246" y="104" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="294" y="104" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="342" y="104" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="150" y="162" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="198" y="162" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="246" y="162" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="294" y="162" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="342" y="162" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
   <rect x="150" y="220" width="48" height="58" fill="none"/>
   <rect x="153" y="223" width="42" height="52" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
   <rect x="198" y="220" width="48" height="58" fill="none"/>
   <rect x="201" y="223" width="42" height="52" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
-  <rect x="246" y="220" width="48" height="58" fill="var(--color-token, #087f73)"/>
-  <rect x="294" y="220" width="48" height="58" fill="var(--color-token, #087f73)"/>
-  <rect x="342" y="220" width="48" height="58" fill="var(--color-token, #087f73)"/>
-  <path d="M198 104v174M246 104v174M294 104v174M342 104v174M150 162h240M150 220h240" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="150" y="104" width="240" height="174" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="246" y="220" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="294" y="220" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="342" y="220" width="48" height="58" fill="var(--color-token-soft, #ddf4ef)"/>
+  <path d="M198 104v174M246 104v174M294 104v174M342 104v174M150 162h240M150 220h240" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="150" y="104" width="240" height="174" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
   <text x="140" y="137.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">off</text>
   <text x="140" y="195.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">mask</text>
   <text x="140" y="253.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">compact</text>
-  <text x="174" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
-  <text x="222" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
-  <text x="270" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
-  <text x="318" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
-  <text x="366" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">9</text>
-  <rect x="574" y="104" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="632" y="104" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="690" y="104" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
+  <text x="174" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
+  <text x="222" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
+  <text x="270" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
+  <text x="318" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
+  <text x="366" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">9</text>
+  <rect x="574" y="104" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="632" y="104" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="690" y="104" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
   <rect x="574" y="162" width="58" height="58" fill="none"/>
   <rect x="577" y="165" width="52" height="52" rx="3" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
-  <rect x="632" y="162" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="690" y="162" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="632" y="162" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="690" y="162" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
   <rect x="574" y="220" width="58" height="58" fill="none"/>
   <rect x="577" y="223" width="52" height="52" rx="3" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
-  <rect x="632" y="220" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="690" y="220" width="58" height="58" fill="var(--color-kv, #4c65b6)"/>
-  <path d="M632 104v174M690 104v174M574 162h174M574 220h174" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="574" y="104" width="174" height="174" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="603" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
-  <text x="661" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
-  <text x="719" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
+  <rect x="632" y="220" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="690" y="220" width="58" height="58" fill="var(--color-kv-soft, #e8edff)"/>
+  <path d="M632 104v174M690 104v174M574 162h174M574 220h174" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="574" y="104" width="174" height="174" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <text x="603" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
+  <text x="661" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
+  <text x="719" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
   <text x="150" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="700" fill="var(--color-ink, #17211f)">后半实际处理的输入位置</text>
   <text x="574" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="700" fill="var(--color-ink, #17211f)">位置 8 可见的 SWA key</text>
   <text x="150" y="320" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">mask 留着所有输入行；compact 移除前部行</text>

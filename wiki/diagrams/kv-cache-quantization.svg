@@ -13,40 +13,40 @@
   <path d="M154 286 L154 368 L310 368" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-ink)"/>
   <path d="M440 286 L440 340" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-ink)"/>
   <path d="M726 286 L726 368 L570 368" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-ink)"/>
-  <rect x="616" y="58" width="36" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="652" y="58" width="36" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="688" y="58" width="36" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="724" y="58" width="36" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="760" y="58" width="36" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="796" y="58" width="36" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="616" y="92" width="36" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="652" y="92" width="36" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="688" y="92" width="36" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="724" y="92" width="36" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="760" y="92" width="36" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="796" y="92" width="36" height="34" fill="var(--color-kv, #4c65b6)"/>
-  <path d="M652 58v68M688 58v68M724 58v68M760 58v68M796 58v68M616 92h216" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="616" y="58" width="216" height="68" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="616" y="58" width="36" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="652" y="58" width="36" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="688" y="58" width="36" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="724" y="58" width="36" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="760" y="58" width="36" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="796" y="58" width="36" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="616" y="92" width="36" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="652" y="92" width="36" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="688" y="92" width="36" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="724" y="92" width="36" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="760" y="92" width="36" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="796" y="92" width="36" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <path d="M652 58v68M688 58v68M724 58v68M760 58v68M796 58v68M616 92h216" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="616" y="58" width="216" height="68" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
   <text x="724" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">分页的 INT8 缓存</text>
-  <rect x="24" y="60" width="150" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="24" y="60" width="150" height="64" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="99" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">新位置的 k、v</text>
-  <text x="99" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">这一层刚算出，BF16</text>
-  <rect x="196" y="60" width="204" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="99" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">这一层刚算出，BF16</text>
+  <rect x="196" y="60" width="204" height="64" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="298" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">压成 INT8</text>
-  <text x="298" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">乘倒数、加偏移、舍入、截断</text>
-  <rect x="424" y="60" width="166" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="298" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">乘倒数、加偏移、舍入、截断</text>
+  <rect x="424" y="60" width="166" height="64" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="507" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按槽位写进块</text>
-  <text x="507" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">块表与槽位来自第 3 站</text>
-  <rect x="24" y="214" width="260" height="72" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="507" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">块表与槽位来自第 3 站</text>
+  <rect x="24" y="214" width="260" height="72" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="154" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">prefill，没有历史</text>
-  <text x="154" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">直接用第 1 步的浮点 k、v</text>
-  <rect x="310" y="214" width="260" height="72" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="154" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">直接用第 1 步的浮点 k、v</text>
+  <rect x="310" y="214" width="260" height="72" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="440" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">prefill，要接历史</text>
-  <text x="440" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">收拢成临时张量，乘回系数得 BF16</text>
-  <rect x="596" y="214" width="260" height="72" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">收拢成临时张量，乘回系数得 BF16</text>
+  <rect x="596" y="214" width="260" height="72" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="726" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">decode：直接读 8 位</text>
-  <text x="726" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">拿块表和系数，边读边乘回</text>
-  <rect x="310" y="340" width="260" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="726" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">拿块表和系数，边读边乘回</text>
+  <rect x="310" y="340" width="260" height="56" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="440" y="373" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">attention：打分、加权求和</text>
   <text x="24" y="36" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">普通 C8、非 PD 的 BF16 示例：第 4 站</text>
   <text x="224" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">浮点那份留给本步</text>

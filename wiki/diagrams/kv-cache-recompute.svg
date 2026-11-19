@@ -1,118 +1,118 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 268" width="880" height="268" role="img" aria-label="prompt 3 个位置、生成 4 个输出（示意）：每行是一步，每格是一个位置，格里写这一步对它做了什么。左边每步都比上一步多重算一个旧位置，右边每步只算一个新位置">
   <title>prompt 3 个位置、生成 4 个输出（示意）：每行是一步，每格是一个位置，格里写这一步对它做了什么。左边每步都比上一步多重算一个旧位置，右边每步只算一个新位置</title>
   <defs></defs>
-  <rect x="110" y="70" width="44" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="132" y="91.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
-  <rect x="154" y="70" width="44" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="176" y="91.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
-  <rect x="198" y="70" width="44" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="220" y="91.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
+  <rect x="110" y="70" width="44" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="132" y="91.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算</text>
+  <rect x="154" y="70" width="44" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="176" y="91.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算</text>
+  <rect x="198" y="70" width="44" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="220" y="91.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算</text>
   <rect x="242" y="70" width="44" height="34" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="286" y="70" width="44" height="34" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="330" y="70" width="44" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="110" y="104" width="44" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="110" y="104" width="44" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="132" y="125.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">重算</text>
-  <rect x="154" y="104" width="44" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="154" y="104" width="44" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="176" y="125.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">重算</text>
-  <rect x="198" y="104" width="44" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="198" y="104" width="44" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="220" y="125.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">重算</text>
-  <rect x="242" y="104" width="44" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="264" y="125.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
+  <rect x="242" y="104" width="44" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="264" y="125.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算</text>
   <rect x="286" y="104" width="44" height="34" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="330" y="104" width="44" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="110" y="138" width="44" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="110" y="138" width="44" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="132" y="159.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">重算</text>
-  <rect x="154" y="138" width="44" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="154" y="138" width="44" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="176" y="159.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">重算</text>
-  <rect x="198" y="138" width="44" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="198" y="138" width="44" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="220" y="159.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">重算</text>
-  <rect x="242" y="138" width="44" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="242" y="138" width="44" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="264" y="159.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">重算</text>
-  <rect x="286" y="138" width="44" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="308" y="159.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
+  <rect x="286" y="138" width="44" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="308" y="159.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算</text>
   <rect x="330" y="138" width="44" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="110" y="172" width="44" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="110" y="172" width="44" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="132" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">重算</text>
-  <rect x="154" y="172" width="44" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="154" y="172" width="44" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="176" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">重算</text>
-  <rect x="198" y="172" width="44" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="198" y="172" width="44" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="220" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">重算</text>
-  <rect x="242" y="172" width="44" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="242" y="172" width="44" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="264" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">重算</text>
-  <rect x="286" y="172" width="44" height="34" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="286" y="172" width="44" height="34" fill="var(--color-danger-soft, #fbe5e2)" fill-opacity="0.45"/>
   <text x="308" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">重算</text>
-  <rect x="330" y="172" width="44" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="352" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
-  <path d="M154 70v136M198 70v136M242 70v136M286 70v136M330 70v136M110 104h264M110 138h264M110 172h264" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="110" y="70" width="264" height="136" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="330" y="172" width="44" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="352" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算</text>
+  <path d="M154 70v136M198 70v136M242 70v136M286 70v136M330 70v136M110 104h264M110 138h264M110 172h264" stroke="var(--color-ink, #17211f)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="110" y="70" width="264" height="136" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
   <text x="100" y="91.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">第 1 步</text>
   <text x="100" y="125.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">第 2 步</text>
   <text x="100" y="159.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">第 3 步</text>
   <text x="100" y="193.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">第 4 步</text>
-  <text x="132" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
-  <text x="176" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">1</text>
-  <text x="220" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">2</text>
-  <text x="264" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">3</text>
-  <text x="308" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4</text>
-  <text x="352" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
-  <rect x="560" y="70" width="44" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="582" y="91.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
-  <rect x="604" y="70" width="44" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="626" y="91.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
-  <rect x="648" y="70" width="44" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="670" y="91.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
+  <text x="132" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
+  <text x="176" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">1</text>
+  <text x="220" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">2</text>
+  <text x="264" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">3</text>
+  <text x="308" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4</text>
+  <text x="352" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
+  <rect x="560" y="70" width="44" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="582" y="91.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算</text>
+  <rect x="604" y="70" width="44" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="626" y="91.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算</text>
+  <rect x="648" y="70" width="44" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="670" y="91.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算</text>
   <rect x="692" y="70" width="44" height="34" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="736" y="70" width="44" height="34" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="780" y="70" width="44" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="560" y="104" width="44" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="560" y="104" width="44" height="34" fill="var(--color-kv-soft, #e8edff)" fill-opacity="0.45"/>
   <text x="582" y="125.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">读</text>
-  <rect x="604" y="104" width="44" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="604" y="104" width="44" height="34" fill="var(--color-kv-soft, #e8edff)" fill-opacity="0.45"/>
   <text x="626" y="125.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">读</text>
-  <rect x="648" y="104" width="44" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="648" y="104" width="44" height="34" fill="var(--color-kv-soft, #e8edff)" fill-opacity="0.45"/>
   <text x="670" y="125.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">读</text>
-  <rect x="692" y="104" width="44" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="714" y="125.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
+  <rect x="692" y="104" width="44" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="714" y="125.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算</text>
   <rect x="736" y="104" width="44" height="34" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="780" y="104" width="44" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="560" y="138" width="44" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="560" y="138" width="44" height="34" fill="var(--color-kv-soft, #e8edff)" fill-opacity="0.45"/>
   <text x="582" y="159.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">读</text>
-  <rect x="604" y="138" width="44" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="604" y="138" width="44" height="34" fill="var(--color-kv-soft, #e8edff)" fill-opacity="0.45"/>
   <text x="626" y="159.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">读</text>
-  <rect x="648" y="138" width="44" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="648" y="138" width="44" height="34" fill="var(--color-kv-soft, #e8edff)" fill-opacity="0.45"/>
   <text x="670" y="159.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">读</text>
-  <rect x="692" y="138" width="44" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="692" y="138" width="44" height="34" fill="var(--color-kv-soft, #e8edff)" fill-opacity="0.45"/>
   <text x="714" y="159.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">读</text>
-  <rect x="736" y="138" width="44" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="758" y="159.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
+  <rect x="736" y="138" width="44" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="758" y="159.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算</text>
   <rect x="780" y="138" width="44" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="560" y="172" width="44" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="560" y="172" width="44" height="34" fill="var(--color-kv-soft, #e8edff)" fill-opacity="0.45"/>
   <text x="582" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">读</text>
-  <rect x="604" y="172" width="44" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="604" y="172" width="44" height="34" fill="var(--color-kv-soft, #e8edff)" fill-opacity="0.45"/>
   <text x="626" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">读</text>
-  <rect x="648" y="172" width="44" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="648" y="172" width="44" height="34" fill="var(--color-kv-soft, #e8edff)" fill-opacity="0.45"/>
   <text x="670" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">读</text>
-  <rect x="692" y="172" width="44" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="692" y="172" width="44" height="34" fill="var(--color-kv-soft, #e8edff)" fill-opacity="0.45"/>
   <text x="714" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">读</text>
-  <rect x="736" y="172" width="44" height="34" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="736" y="172" width="44" height="34" fill="var(--color-kv-soft, #e8edff)" fill-opacity="0.45"/>
   <text x="758" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">读</text>
-  <rect x="780" y="172" width="44" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="802" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
-  <path d="M604 70v136M648 70v136M692 70v136M736 70v136M780 70v136M560 104h264M560 138h264M560 172h264" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="560" y="70" width="264" height="136" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="780" y="172" width="44" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="802" y="193.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算</text>
+  <path d="M604 70v136M648 70v136M692 70v136M736 70v136M780 70v136M560 104h264M560 138h264M560 172h264" stroke="var(--color-ink, #17211f)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="560" y="70" width="264" height="136" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
   <text x="550" y="91.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">第 1 步</text>
   <text x="550" y="125.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">第 2 步</text>
   <text x="550" y="159.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">第 3 步</text>
   <text x="550" y="193.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">第 4 步</text>
-  <text x="582" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
-  <text x="626" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">1</text>
-  <text x="670" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">2</text>
-  <text x="714" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">3</text>
-  <text x="758" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4</text>
-  <text x="802" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
+  <text x="582" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
+  <text x="626" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">1</text>
+  <text x="670" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">2</text>
+  <text x="714" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">3</text>
+  <text x="758" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4</text>
+  <text x="802" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
   <text x="24" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">不存：每步把整段重新过一遍模型</text>
   <text x="474" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">存：每步只算新位置，旧位置从缓存读</text>
-  <text x="60" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置</text>
-  <text x="510" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置</text>
+  <text x="60" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置</text>
+  <text x="510" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">位置</text>
   <text x="110" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="#8f3229">合计 3 + 4 + 5 + 6 = 18 个位置次</text>
   <text x="560" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="#3a4f93">合计 3 + 1 + 1 + 1 = 6 个位置次</text>
 </svg>

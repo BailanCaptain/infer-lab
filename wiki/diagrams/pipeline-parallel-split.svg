@@ -8,40 +8,40 @@
   <path d="M635 174 L635 198" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#pipeline-parallel-split-ah-comm)"/>
   <path d="M635 250 L635 274" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#pipeline-parallel-split-ah-comm)"/>
   <path d="M635 326 L635 350" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#pipeline-parallel-split-ah-comm)"/>
-  <rect x="120" y="140" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="184" y="140" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="248" y="140" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="312" y="140" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="120" y="166" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="184" y="166" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="248" y="166" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="312" y="166" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="120" y="192" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="184" y="192" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="248" y="192" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="312" y="192" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="120" y="218" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="184" y="218" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="248" y="218" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="312" y="218" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="120" y="244" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="184" y="244" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="248" y="244" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="312" y="244" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="120" y="270" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="184" y="270" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="248" y="270" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="312" y="270" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="120" y="296" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="184" y="296" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="248" y="296" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="312" y="296" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="120" y="322" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="184" y="322" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="248" y="322" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="312" y="322" width="64" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <path d="M184 140v208M248 140v208M312 140v208M120 166h256M120 192h256M120 218h256M120 244h256M120 270h256M120 296h256M120 322h256" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="120" y="140" width="256" height="208" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="120" y="140" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="184" y="140" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="248" y="140" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="312" y="140" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="120" y="166" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="184" y="166" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="248" y="166" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="312" y="166" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="120" y="192" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="184" y="192" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="248" y="192" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="312" y="192" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="120" y="218" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="184" y="218" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="248" y="218" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="312" y="218" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="120" y="244" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="184" y="244" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="248" y="244" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="312" y="244" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="120" y="270" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="184" y="270" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="248" y="270" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="312" y="270" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="120" y="296" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="184" y="296" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="248" y="296" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="312" y="296" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="120" y="322" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="184" y="322" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="248" y="322" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="312" y="322" width="64" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <path d="M184 140v208M248 140v208M312 140v208M120 166h256M120 192h256M120 218h256M120 244h256M120 270h256M120 296h256M120 322h256" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="120" y="140" width="256" height="208" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
   <text x="110" y="157.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 0</text>
   <text x="110" y="183.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 1</text>
   <text x="110" y="209.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 2</text>
@@ -50,39 +50,39 @@
   <text x="110" y="287.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 5</text>
   <text x="110" y="313.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 6</text>
   <text x="110" y="339.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 7</text>
-  <text x="152" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 0</text>
-  <text x="216" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 1</text>
-  <text x="280" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 2</text>
-  <text x="344" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 3</text>
-  <rect x="560" y="122" width="150" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="560" y="148" width="150" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <path d="M560 148h150" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="560" y="122" width="150" height="52" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="152" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 0</text>
+  <text x="216" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 1</text>
+  <text x="280" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 2</text>
+  <text x="344" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 3</text>
+  <rect x="560" y="122" width="150" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="560" y="148" width="150" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <path d="M560 148h150" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="560" y="122" width="150" height="52" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
   <text x="550" y="139.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 0</text>
   <text x="550" y="165.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 1</text>
-  <rect x="560" y="198" width="150" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="560" y="224" width="150" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <path d="M560 224h150" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="560" y="198" width="150" height="52" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="560" y="198" width="150" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="560" y="224" width="150" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <path d="M560 224h150" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="560" y="198" width="150" height="52" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
   <text x="550" y="215.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 2</text>
   <text x="550" y="241.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 3</text>
-  <rect x="560" y="274" width="150" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="560" y="300" width="150" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <path d="M560 300h150" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="560" y="274" width="150" height="52" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="560" y="274" width="150" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="560" y="300" width="150" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <path d="M560 300h150" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="560" y="274" width="150" height="52" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
   <text x="550" y="291.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 4</text>
   <text x="550" y="317.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 5</text>
-  <rect x="560" y="350" width="150" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="560" y="376" width="150" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
-  <path d="M560 376h150" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="560" y="350" width="150" height="52" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="560" y="350" width="150" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <rect x="560" y="376" width="150" height="26" fill="var(--color-control-soft, #f1efe8)"/>
+  <path d="M560 376h150" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="560" y="350" width="150" height="52" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
   <text x="550" y="367.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 6</text>
   <text x="550" y="393.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">层 7</text>
   <text x="726" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">卡 0</text>
   <text x="726" y="229" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">卡 1</text>
   <text x="726" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">卡 2</text>
   <text x="726" y="381" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">卡 3</text>
-  <text x="648" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="#7a3a6a">交中间状态</text>
+  <text x="648" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a">交中间状态</text>
   <text x="248" y="385" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">每张卡：8 层 × 每层 1/4 = 2 层的量</text>
   <text x="248" y="410" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">每层合两次：attention 后、MLP 后各一次</text>
   <text x="670" y="435" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">每张卡：完整的 2 层</text>

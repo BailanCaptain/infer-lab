@@ -20,42 +20,42 @@
   <path d="M193 456 L193 612 L264 612" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ascend-950-device-handoff-ah-token)"/>
   <path d="M364 612 L408 612" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ascend-950-device-handoff-ah-token)"/>
   <path d="M534 466 L534 541 L506 541 L506 592" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-950-device-handoff-ah-control)"/>
-  <rect x="369" y="182" width="48" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="369" y="182" width="48" height="36" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
   <text x="393" y="204.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">1</text>
-  <rect x="417" y="182" width="48" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="417" y="182" width="48" height="36" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
   <text x="441" y="204.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">2</text>
-  <path d="M417 182v36" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="369" y="182" width="96" height="36" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="700" y="286" width="48" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <path d="M417 182v36" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="369" y="182" width="96" height="36" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <rect x="700" y="286" width="48" height="36" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
   <text x="724" y="308.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">10</text>
-  <rect x="748" y="286" width="48" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="748" y="286" width="48" height="36" fill="var(--color-token-soft, #ddf4ef)" fill-opacity="0.45"/>
   <text x="772" y="308.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">20</text>
-  <path d="M748 286v36" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="700" y="286" width="96" height="36" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="266" y="594" width="48" height="36" fill="var(--color-token, #087f73)"/>
-  <text x="290" y="616.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">11</text>
-  <rect x="314" y="594" width="48" height="36" fill="var(--color-token, #087f73)"/>
-  <text x="338" y="616.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">22</text>
-  <path d="M314 594v36" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="266" y="594" width="96" height="36" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="188" y="18" width="248" height="34" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M748 286v36" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="700" y="286" width="96" height="36" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <rect x="266" y="594" width="48" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="290" y="616.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">11</text>
+  <rect x="314" y="594" width="48" height="36" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="338" y="616.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">22</text>
+  <path d="M314 594v36" stroke="var(--color-token, #087f73)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <rect x="266" y="594" width="96" height="36" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <rect x="188" y="18" width="248" height="34" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="312" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">主机提交任务与依赖</text>
-  <rect x="68" y="114" width="484" height="38" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="310" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">STARS 2.0：按条件安排设备任务</text>
-  <rect x="68" y="180" width="204" height="40" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="68" y="114" width="484" height="38" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="310" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">STARS 2.0：按条件安排设备任务</text>
+  <rect x="68" y="180" width="204" height="40" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="170" y="205" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">本地计算产出部分结果</text>
-  <rect x="88" y="316" width="446" height="36" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="88" y="316" width="446" height="36" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="311" y="339" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">CCUM：解释 Mission 中的通信指令</text>
-  <rect x="88" y="394" width="210" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="193" y="421" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">CCUA：暂存数据</text>
-  <text x="193" y="440" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Reduce Unit 求和</text>
-  <rect x="356" y="394" width="178" height="62" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="88" y="394" width="210" height="62" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
+  <text x="193" y="421" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">CCUA：暂存数据</text>
+  <text x="193" y="440" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">Reduce Unit 求和</text>
+  <rect x="356" y="394" width="178" height="62" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="445" y="421" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">URMA</text>
   <text x="445" y="440" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">发起数据搬运</text>
-  <rect x="680" y="394" width="138" height="42" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="680" y="394" width="138" height="42" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="749" y="420" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">端口与内存</text>
-  <rect x="410" y="594" width="192" height="36" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="506" y="617" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">下一段使用完整结果</text>
+  <rect x="410" y="594" width="192" height="36" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="506" y="617" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">下一段使用完整结果</text>
   <text x="538" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">通信任务</text>
   <text x="608" y="391" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">远端数据</text>
   <text x="326" y="481" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">搬运、求和与等待按程序分步执行</text>

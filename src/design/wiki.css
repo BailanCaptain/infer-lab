@@ -1296,7 +1296,7 @@ summary.wiki-toc-part-head::-webkit-details-marker {
 }
 
 .wiki-model-settings select,
-.wiki-model-settings input,
+.wiki-model-settings input:not([type="checkbox"]),
 .wiki-model-save {
   width: 100%;
   min-height: 40px;
@@ -1306,6 +1306,21 @@ summary.wiki-toc-part-head::-webkit-details-marker {
   background: var(--color-surface-elevated);
   color: var(--color-ink);
   font: inherit;
+}
+
+.wiki-model-settings label:has(> input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.wiki-model-settings input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--color-reader-accent, #286151);
 }
 
 .wiki-model-save {

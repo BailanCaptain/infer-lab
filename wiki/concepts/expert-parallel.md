@@ -425,10 +425,6 @@ $$y_{\text{MoE}} = \sum_{i=1}^{8} w_i E_{e_i}(x) + E_{\text{shared}}(x) \in \mat
 
 后文的[场景 M](#场景-m多请求时的整批账和负载不均)是 DP0 有 12 条 decode 请求并混入 6000-token prefill、DP1 有 7 条 decode 请求的批次。R1 的 4 行、场景 M 加入 prefill 之前的 64 行都走 MC2；混入长 prefill 后最大值变为 6048，两组都走 AllGather。**切换由宽度越过容量门槛触发**：R1 的短 prefill 仍在容量内。graph mode 是否回放是另一套判断，见[并发页的 capture size 与两组对齐](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)。
 
-```wiki-diagram
-file: expert-parallel-fit
-```
-
 **为什么单机 EP8 只能走 AllGather。** 对同一个 GLM 模型，EP8 每卡要放 36 个路由专家：EP 规模不足 16，同时每卡专家数超过 24，两个条件都不满足。即使 token 很少，也无法进入此 A2 MC2 分支。EP8 的权重与容量对照见[部署页的单双机比较](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)。
 
 **从 GLM 固定门槛 `128` 到 `v0.30.0` 四族硬件动态选路。** 不要把 `128` 当成所有版本或所有昇腾芯片写死的通用常数。在 `vllm-ascend` `v0.30.0` 主基线（`c09d3e20`）中，`select_moe_comm_method` 先过两道全局前置门——未开启 EP 或 `ep_world == 1` 直接返回 `ALLGATHER`；开启 `LoRA + EP` 强制走 `ALLTOALL`（因融合算子不支持挂载 LoRA）。通过前置门后，按 `HardwareProfile.moe_comm_policy` 分派到四族芯片各自的选路器，并与启动时 `set_mc2_tokens_capacity` 按 `enable_prefill_mc2` / MegaMoe、最大图捕获档或 `max_num_reqs × uniform_decode_query_len` 经 `TP` 向上取整限幅算出的动态门槛 `mc2_tokens_capacity` 比较（`A2` 走专家密度与容量判据回退 `ALLGATHER`；`A3` 优先 `FUSED_MC2`、其次容内 `MC2`、超容回退 `ALLTOALL`；`310P` 恒走 `ALLGATHER`；昇腾 `950 / A5` 依次在 `FUSED_MC2`、容内 `MC2`、`world ≤ top_k` 的 `ALLGATHER` 与 `ALLTOALL` 之间切换）：
@@ -539,11 +535,7 @@ AllGather 的 6048 行理想计算量同时包含真实请求与补位。热门�
 
 ## 常见误解
 
-下图先汇总五组最容易踩坑的 EP 直觉误区及 `v0.30.0` 源码判据，随后逐条展开核对：
-
-```wiki-diagram
-file: ep-fig-myths
-```
+下面逐条核对 EP 最常见的直觉误区与 `v0.30.0` 源码及运行真相：
 
 - **“routed experts 就是当前 token 选中的那几个专家？”** 不是。`routed experts`（路由专家）指整池可供 router 挑选的候选专家集合（如 GLM 的 288 个），经 `determine_expert_map` 分放到 EP 各卡常驻；单个 token 本次挑出的 top-k 只是其中的一个子集。
 - **“EP 是把每个 token 都发到所有卡上吗？”** MC2 按选中的专家找目的卡；多个被选专家在同一卡时，工作就送到同一卡。AllGather 则先让全部卡看到输入，再只算本卡专家。EP 定义权重归属，数据怎样搬由通信实现决定。

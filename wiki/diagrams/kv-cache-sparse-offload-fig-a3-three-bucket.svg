@@ -46,7 +46,7 @@
 <text x="30" y="392">• 热缓冲另占定额显存</text>
 <text x="30" y="416" fill="#66716d">• keep_device_kv 仅作调试</text>
 <text x="328" y="342">• 每 DP 默认 dram=110 GiB</text>
-<text x="328" y="367">• 先扣每层 2 MiB 对齐预留</text>
+<text x="328" y="367">• 先扣每层 6 MiB（3×2MiB）预留</text>
 <text x="328" y="392">• 再除以主机页字节得块上限</text>
 <text x="328" y="416" font-weight="600" fill="#7a3a6a">• 比 NPU 紧时日志打印告警</text>
 <text x="626" y="342">• max_blocks×max_seqs + 1</text>

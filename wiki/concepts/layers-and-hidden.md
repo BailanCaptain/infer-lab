@@ -110,7 +110,7 @@ rawSources:
 拿这句话来说：「小明把书借给小红，因为她……」。刚查完表时，「她」这个位置的 hidden 只代表「她」这个词本身，放进哪句话里都一样。往上每过一层，它就多带上一点上下文：先是注意到前面有个「小红」，接着是「她」指的就是小红、而小红刚从小明那里借到了书。到最后一层，这个位置的 hidden 已经攒够了信息，可以拿来猜下一个词。这是打比方，hidden 里的几千个数并不能一个个读出「谁是谁」；但「每层都在上一层交出的结果上接着改」这一点，就是模型实际的算法：
 
 ```wiki-diagram
-file: layers-what.yaml
+file: layers-what
 ```
 
 图里每一层都分两段，每段叫一个子层：
@@ -139,7 +139,7 @@ RMSNorm（均方根归一化）是支路入口的那一步：把向量里每个�
 下面跟着「她」这个位置走完第 1 层。为了能手算，`hidden` 只取 4 个数：`x = [2, 1, 2, 0]`，就是本页第一张图里「她」在 `embedding` 那一行标出的 4 个数（数值为示意，算法与真实模型一致）。这里先演示标准单流残差路径——在固定执行侧里，未启用 `mHC`（Manifold-Constrained Hyper-Connections，多路残差连接）或当前是 `MTP`（Multi-Token Prediction，草拟待验证候选 token 的预测模块）层时就走这条路；启用 `mHC` 的 45 层主干多流走法见后文[四条流](#一层接过什么交出什么glm-为什么在层间传四条)。
 
 ```wiki-diagram
-file: layers-one-layer.yaml
+file: layers-one-layer
 ```
 
 **① 支路先做 RMSNorm。** x 的均方根是 √((2² + 1² + 2² + 0²) ÷ 4) = √2.25 = 1.5，每个数除以 1.5，得到 [1.33, 0.67, 1.33, 0]。旁路上的 x 不做这一步，原样等在出口。这种只在支路入口做归一化的排法叫 pre-norm。
@@ -185,7 +185,7 @@ hidden 是前向过程里逐层传递的中间表示，不是长期保存全部�
 这套连接方式叫 **mHC**（Manifold-Constrained Hyper-Connections）。它的前身 Hyper-Connections（超连接）把上一节那一条 residual 流扩成 n 条并行的流，并规定流之间怎样混合、子层结果怎样写回；mHC 在此基础上给混合加了约束，下一节讲。GLM 取 n = 4。子层本身不变，送进去的仍是一条和普通 hidden 一样宽的向量，所以上面讲的 RMSNorm、attention、MLP 都照旧，变的只是子层外面「从哪读、往哪写」。下面仍用示意数，每条流也按 4 个数算，但图里只画四条流的第 1 维：
 
 ```wiki-diagram
-file: layers-and-hidden-intuition.yaml
+file: layers-and-hidden-intuition
 ```
 
 图里是一段子层（attention 段或 MLP 段）的一次进出。一层有两段，所以一层做两次：
@@ -233,7 +233,7 @@ file: layers-and-hidden-fig-residual-vs-mhc
 **Sinkhorn 迭代怎样做到。** 入口算出的 16 个原始混合系数排成 4×4，先按行做 softmax：每个数取 e 的这个数次方，再除以这一行的总和，得到全是正数、每行和为 1 的矩阵（softmax 的完整演算见 [attention](attention-qkv.md)）。这时列和还不是 1：下图第 ① 张里，新流 1 那一列加起来是 1.3，相当于每次放大 1.3 倍。接着一轮一轮地做：每一行除以这一行的和，每一列除以这一列的和。每做一次，一个方向的和变成 1，另一个方向被轻微打乱；来回几轮后两个方向都接近 1。
 
 ```wiki-diagram
-file: layers-sinkhorn.yaml
+file: layers-sinkhorn
 ```
 
 下表对应图中第 1 行的 softmax 与第 1 轮归一（示意数；第 1 轮里行和原本就是 1，按行那一步什么都不改；第 2 轮后四个行和与 1 的差已不到 0.02）：
@@ -290,7 +290,7 @@ GLM 配置的是 20 轮，和 mHC 论文实验所用的轮数相同。轮数有�
 下图是这一站的先后与分支，文字按图从上往下讲。
 
 ```wiki-diagram
-file: layers-stack.yaml
+file: layers-stack
 ```
 
 1. **embedding。** 4 个编号查表得到 [4, 4096]。TP8 下每张卡只存词表的八分之一，各查一段再做一次 All-Reduce（组内各卡按位置相加并都拿到结果，见[集合通信](collective-communication.md#all-reduce)），8 张卡都得到完整的 [4, 4096]。查表细节见[Embedding 的 GLM 双机一节](embedding.md#放到-glm-双机8-张卡怎么查同一张表)。

@@ -42,5 +42,5 @@ pins:
     symbols: [local_engines_only]
   - source: vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L789-L806
     symbols: [build_prefill_request, do_remote_decode]
-  - source: vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L898-L945
+  - source: vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L895-L945
     symbols: [assign_instances, kv_transfer_params]

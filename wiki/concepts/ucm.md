@@ -319,11 +319,7 @@ UCM 的外部包还提供别的能力，官方文档列了稀疏 attention 的�
 
 **[PD 分离](pd-disaggregation.md)把一条请求的 prefill 和 decode 交给两组实例（P 和 D），中间要把算好的状态交过去。UCM 有两种站法：集中式里，共享存储就是交接点，P 存、D 取；P2P 里，这一次的交接由 Mooncake 直传，UCM 只在 P 上管可复用的前缀。读部署图时要分清两件事：谁保存可复用的前缀，谁把这一次请求的状态从 P 送到 D。**
 
-下面第一张图把两种 PD 拓扑的搬运路径与 `v0.30.0` / `main` 下昇腾 `UCMConnectorV1` 薄转发外壳的演进（双注册类名别名与 `get_loaded_kv_cache_group_ids` 转发）一次对照清，第二张图展示两种拓扑下具体的节点数据流向：
-
-```wiki-diagram
-file: ucm-fig-pd-topologies
-```
+下图展示两种拓扑下具体的节点数据流向（在 `v0.30.0` / `main` 中，昇腾仓内仅保留 `UCMConnectorV1` 薄转发外壳并声明 `SupportsHMA` 避免关闭混合缓存管理器，但接 UCM 不会像 `AscendStore` 那样自动把 KDA 改为 `align`；`main` 新增 `UCMConnector` 与 `UCMConnectorV1` 双注册名并补齐 `get_loaded_kv_cache_group_ids` 转发，多模态编码器缓存则走独立的 `--ec-transfer-config`）：
 
 ```wiki-diagram
 file: ucm

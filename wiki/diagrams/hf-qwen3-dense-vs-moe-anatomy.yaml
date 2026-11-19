@@ -3,7 +3,7 @@ id: hf-qwen3-dense-vs-moe-anatomy
 caption: Qwen3-8B（稠密 36 层）与 Qwen3-30B-A3B（稀疏 MoE 48 层，128 选 8）的注意力分组头、前馈层驻留与激活反差，以及 BF16 权重显存与每 token KV cache 比例对照。
 size: [900, 555]
 pins:
-  - source: 'vllm@ced6857a:vllm/transformers_utils/model_arch_config_convertor.py#L86-L114'
+  - source: 'vllm@ced6857a:vllm/transformers_utils/model_arch_config_convertor.py#L26-L114'
     symbols: ['ModelArchConfigConvertorBase', 'get_head_size', 'head_dim']
   - source: 'vllm@ced6857a:vllm/model_executor/models/qwen3.py#L65-L105'
     symbols: ['Qwen3Attention', 'head_dim', 'total_num_kv_heads']

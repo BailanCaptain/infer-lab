@@ -6,5 +6,5 @@ size: [900, 390]
 pins:
   - source: vllm@ced6857a:vllm/v1/sample/sampler.py#L73-L115
     symbols: [logprobs_mode, raw_logprobs, processed_logprobs, logprob_token_ids]
-  - source: vllm@ced6857a:vllm/entrypoints/generate/beam_search/offline.py#L58-L140
+  - source: vllm@ced6857a:vllm/entrypoints/generate/beam_search/offline.py#L55-L140
     symbols: [BeamSearchOfflineMixin, beam_search, beam_width, length_penalty, create_sort_beams_key_function]

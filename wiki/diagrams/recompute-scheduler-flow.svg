@@ -25,5 +25,5 @@
   <text x="746" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">第7站到代理：重投入口</text>
   <text x="746" y="263" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">续接输入、扣额度、再选P/D</text>
   <text x="24" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">调度的分支与输出的时刻不同，退回不经过本轮前向</text>
-  <text x="24" y="332" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">范围：固定旧版；rc2细粒度TP中止例外见正文</text>
+  <text x="24" y="332" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">范围：固定旧版；v0.30.0/main 细粒度TP中止例外见正文</text>
 </svg>

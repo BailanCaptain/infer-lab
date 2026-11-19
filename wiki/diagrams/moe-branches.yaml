@@ -1,7 +1,7 @@
 layout: figure
 id: moe-branches
 caption: GLM 双机 W8A8、共享专家 TP8、多流关闭的教学基线下，两支都使用同一 token 的隐藏向量，连线不表示同时执行。左侧先打分选 8 个，跨卡派发与回收见专家并行页；右侧所有 token 都过，调用反量化、限幅 SwiGLU、再量化的融合算子。两支输出在出口相加，宽度不变；共享专家复制等条件改变时须另核分片与通信。
-size: [880, 470]
+size: [880, 488]
 frames:
   - { label: 路由专家分支 · 要打分, at: [40, 128], size: [364, 252] }
   - { label: 共享专家分支 · 不打分, at: [468, 128], size: [372, 252] }
@@ -30,9 +30,9 @@ links:
   - { from: [654, 352], to: [459, 412], via: [[654, 412]], tone: token }
 texts:
   - { at: [24, 22], text: 一层 MoE 的两条分支 · W8A8, strong: true }
-  - { at: [40, 396], text: 这 8 个专家可能散在多张卡上, size: 12.5 }
-  - { at: [468, 396], text: 所有 token 都过这一支, size: 12.5 }
-  - { at: [472, 418], text: 这一层的输出，宽度不变, size: 12.5, strong: true }
+  - { at: [40, 398], text: 这 8 个专家可能散在多张卡上, size: 13 }
+  - { at: [674, 398], text: 所有 token 都过这一支, size: 13 }
+  - { at: [440, 464], text: 这一层的输出，宽度不变, anchor: middle, size: 13, strong: true }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1445-L1538
     symbols: [AscendGlm5NextMoE, shared_experts, e_score_correction_bias]

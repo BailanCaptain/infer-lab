@@ -5,16 +5,16 @@
   <!-- Wide 820px Tight-Cropped Transparent Architecture Cutaway -->
   <image href="./wiki-illustrations/hf-moe-layer-cutaway.webp" x="40" y="114" width="820" height="409" preserveAspectRatio="xMidYMid meet"/>
 
-  <!-- Leader Lines & Clean Ring Target Dots (Zero Crossing) -->
-  <!-- 1: Top-Col 1 -> EMBED 3D Slab (98, 247) -->
-  <line x1="135" y1="92" x2="98" y2="247" stroke="#4c65b6" stroke-width="1.7"/>
-  <circle cx="98" cy="247" r="6" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
-  <circle cx="98" cy="247" r="2.8" fill="#4c65b6"/>
+  <!-- Leader Lines & Clean Ring Target Dots (Zero Crossing, Zero Header Cut) -->
+  <!-- 1: Top-Col 1 -> EMBED 3D Slab (clear left of EMBED header) -->
+  <polyline points="66,92 66,247 94,247" fill="none" stroke="#4c65b6" stroke-width="1.7"/>
+  <circle cx="94" cy="247" r="6" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="94" cy="247" r="2.8" fill="#4c65b6"/>
 
-  <!-- 2: Top-Col 2 -> 32Q:4KV Royal Blue GQA Drawers (301, 310) -->
-  <line x1="325" y1="92" x2="301" y2="310" stroke="#b54237" stroke-width="1.7"/>
-  <circle cx="301" cy="310" r="6" fill="#ffffff" stroke="#b54237" stroke-width="2"/>
-  <circle cx="301" cy="310" r="2.8" fill="#b54237"/>
+  <!-- 2: Top-Col 2 -> 32Q:4KV Blue GQA Drawers (clear right of 32Q:4KV header) -->
+  <line x1="334" y1="92" x2="310" y2="306" stroke="#b54237" stroke-width="1.7"/>
+  <circle cx="310" cy="306" r="6" fill="#ffffff" stroke="#b54237" stroke-width="2"/>
+  <circle cx="310" cy="306" r="2.8" fill="#b54237"/>
 
   <!-- 3: Top-Col 3 -> Glowing Teal Active Expert Room (506, 282) -->
   <line x1="502" y1="92" x2="506" y2="282" stroke="#087f73" stroke-width="1.7"/>
@@ -31,15 +31,15 @@
   <circle cx="210" cy="367" r="6" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
   <circle cx="210" cy="367" r="2.8" fill="#4c65b6"/>
 
-  <!-- 6: Bottom-Col 2 -> Glowing ROUTER Beam (352, 314) -->
-  <line x1="395" y1="538" x2="352" y2="314" stroke="#087f73" stroke-width="1.7"/>
-  <circle cx="352" cy="314" r="6" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
-  <circle cx="352" cy="314" r="2.8" fill="#087f73"/>
+  <!-- 6: Bottom-Col 2 -> Glowing ROUTER Beam right of ROUTER text (386, 318) -->
+  <line x1="395" y1="538" x2="386" y2="318" stroke="#087f73" stroke-width="1.7"/>
+  <circle cx="386" cy="318" r="6" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="386" cy="318" r="2.8" fill="#087f73"/>
 
-  <!-- 7: Bottom-Col 3 -> LM_HEAD Slab & tie_word_embeddings Wire (816, 359) -->
-  <line x1="800" y1="538" x2="816" y2="359" stroke="#4c65b6" stroke-width="1.7"/>
-  <circle cx="816" cy="359" r="6" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
-  <circle cx="816" cy="359" r="2.8" fill="#4c65b6"/>
+  <!-- 7: Bottom-Col 3 -> LM_HEAD Slab (routed cleanly right of bottom LM_HEAD & tie wire) -->
+  <polyline points="866,538 866,359 820,359" fill="none" stroke="#4c65b6" stroke-width="1.7"/>
+  <circle cx="820" cy="359" r="6" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="820" cy="359" r="2.8" fill="#4c65b6"/>
 
   <!-- Top Open Band: 4 Borderless Callouts -->
   <g>

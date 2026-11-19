@@ -3,7 +3,7 @@ id: hf-plate-moe-cutaway
 caption: Qwen3-30B-A3B 立体拆解剖面：128 间常驻专家机房与单 token 仅点亮 8 间的显存与算力反差。
 size: [900, 645]
 pins:
-  - source: 'vllm@ced6857a:vllm/transformers_utils/model_arch_config_convertor.py#L86-L114'
+  - source: 'vllm@ced6857a:vllm/transformers_utils/model_arch_config_convertor.py#L26-L114'
     symbols: ['ModelArchConfigConvertorBase', 'get_head_size', 'head_dim']
   - source: 'vllm@ced6857a:vllm/model_executor/models/qwen3.py#L65-L105'
     symbols: ['Qwen3Attention', 'head_dim', 'total_num_kv_heads']

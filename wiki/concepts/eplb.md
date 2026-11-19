@@ -369,7 +369,7 @@ KV cache 的预算怎么来，见[剩下的显存变成多少 KV cache](glm-5-3-
 
 ## 对照源码
 
-本页讲的是本部署用的 model runner v1 那条路（配 vLLM 0.23.0 时 v2 开关会退回 v1）。钉住版本：vLLM v0.23.0 = 0fc695fc；vllm-ascend 的 v0.23 维护分支 = 2c59ff10，含 GLM 代码的快照 = db701c1f，v0.26 rc = 2ed6cbba，main = baa023ad。未注明版本的行为取自 db701c1f；其中专家算子这部分，配 vLLM 0.23.0 时走的是 v0.23 接口的适配文件，实际装的是哪套接口以[来源基线](../sources/glm-5-3-flash-baseline.md)为准。
+本页正文算例对应历史 GLM 双机所用的 model runner v1（配 vLLM 0.23.0 时 v2 开关会退回 v1）；四版本正式基线（含 `v0.30.0` `c09d3e20` 与 `main` `8d6180e2` 的 MRV2 STAIR 路线）对照见下方[版本差异](#版本差异)。未注明版本的旧 V1 行为取自 GLM 绑定快照 `db701c1f`；专家算子配 vLLM 0.23.0 时走 v0.23 接口适配文件，详见[来源基线](../sources/glm-5-3-flash-baseline.md)。
 
 ### 怎么开
 
@@ -433,7 +433,7 @@ vllm serve <教程里的模型与参数> \
 | 控制面与 Runner 路线 | 仅 MRV1 `DYNAMIC_EPLB=true` + `additional_config.eplb_config.dynamic_eplb`（MRV2 开 `dynamic_eplb` 直接报错） | 同 `v0.23.0` | **MRV1 与 MRV2 互斥双轨并存**：MRV1 走 `DYNAMIC_EPLB` + `EplbConfig`（`ascend_config.py#L282-L335`，默认 600/50）；MRV2 走上游 `--enable-eplb` + `AscendEPLBController`（`worker/v2/eplb.py#L37-L85`，支持 `load_collection_phase` 与 STAIR） | **删除 MRV1（`model_runner_v1.py` 退场），运行时全面收敛至 MRV2 控面**：唯一执行路径为 `NPUModelRunner` 中的 `AscendEPLBController`（`worker/v2/model_runner.py#L226-L231`、`worker/v2/eplb.py#L38-L100`），由上游 `--enable-eplb` 驱动 |
 | MRV2 策略与通信后端 | 无 MRV2 EPLB | 无 MRV2 EPLB | 平台补丁将上游默认 policy 改为 `stair`（指南默认 `window_size=1000`、`step_interval=3000`、`use_async=true`）；自动 HIXL 要求全组 binding 一致，否则全组回退 Gloo 并收紧未显式设定的 STAIR 搬运限额为 1 | 延续 `AscendEPLBController`、STAIR 与全组一致 HIXL/Gloo 协商；草稿模型不会因目标模型开启 EPLB 而自动注册（`#L83`） |
 | 无映射文件时的初始副本摆法 | 连续切分后从末卡往前逐卡追加副本 | 改为按 vLLM 权重加载物理序排布：逻辑专家后接副本 `0, 1, 2…` 再按卡切段 [C18] | 同 `v0.26.0rc`（来源 72） | 随 MRV2 交由上游 `EPLBController` / `AscendEplbState` 管理 |
-| 量化格式、冗余专家与强制均衡 | A2 副本未明示禁用；每 die `<= 8` 不建议；无强制均衡 | 同 `v0.23.0` | 新增 `enable_force_eplb`（MoE 下与 `dynamic_eplb` 互斥 [C19]）；指南明示 **A2 不支持冗余专家**，每 die 改为 `> 8` 不建议；MRV2 启用 BF16/FP16、W8A8/Dynamic、W4A8（W4A4/W8A8 MXFP 限 950PR/950DT；拒绝 W4A16/W4A16 MXFP/W4A8 MXFP；回归验证为 W8A8） | 延续 `v0.30.0` 硬件与量化格式支持边界；仓内仍保留历史 `vllm_ascend/eplb/` 目录文件但已不再被唯一 MRV2 执行器调用 |
+| 量化格式、冗余专家与强制均衡 | A2 副本未明示禁用；每 die `<= 8` 不建议；无强制均衡 | 同 `v0.23.0` | 新增 `enable_force_eplb`（MoE 下与 `dynamic_eplb` 互斥 [C19]）；指南明示 **A2 不支持冗余专家**，每 die 改为 `> 8` 不建议；MRV2 启用 BF16/FP16、W8A8/Dynamic、W4A8（950PR/950DT 另含 W4A4/W8A8 MXFP；**`W4A8 MXFP`** 在 `c09d3e20` 官方文档标为 `Enabled` 且 `w4a8/w4a8_mxfp4.py` 设 `supports_eplb = True`，但尚未完成独立 EPLB 验证；拒绝 `W4A16` / `W4A16 MXFP`；回归验证为 W8A8） | 延续 `v0.30.0` 硬件与大部分量化格式边界，但 **`W4A8 MXFP` 出现文档与代码分叉**：`8d6180e2` 官方文档将 `W4A8 MXFP` 改为 `Rejected`，而代码 `w4a8/w4a8_mxfp4.py` 仍保留 `supports_eplb = True` 与 `get_eplb_weight_views`；仓内仍保留历史 `vllm_ascend/eplb/` 目录文件但已不再被唯一 MRV2 执行器调用 |
 
 用 GLM 取 16 个副本位算一下旧 V1 冷启动摆法差别 [D]：`v0.23.0` 式里，卡 $k$ 放原来连续的 18 个专家，再加下一张卡的第 1 个专家（卡 15 加专家 0）；`v0.26.0rc` 式把 304 个位置按「0 到 287，再接 0 到 15」每 19 个切一段，卡 0 放 0 到 18，卡 15 放 285–287 与 0–15。
 
@@ -483,4 +483,4 @@ vllm serve <教程里的模型与参数> \
 
 来源 23 的两卡 Qwen3 MoE 测试使用相同提示词 `What is deeplearning?` 和 `n=1`，比较首个候选的文本。它覆盖的是该测试设定，不能替代 GLM 双机的精度与性能验证。
 
-补充证据对应：来源 60 为编号 0 的测试策略；61 为新旧日志共用估计函数的调用；62–67 与 21、31 串起主/草稿模型加载、MTP MoE 构造、自动登记及 warmup 时序；68–71 与 1、12 串起补齐输入、真实 token 掩码、dispatch 和热度计数。旧默认值见 9、33–35；main 非混放布局见 72；rc2 默认策略补丁的实际执行入口见 73；两张表的测试输入见 74；旧版 V2 拒绝分支见 75–76。上述静态链不提供 NPU 执行时间或 GLM 双机的正确性实测结果。
+补充证据对应：来源 60 为编号 0 的测试策略；61 为新旧日志共用估计函数的调用；62–67 与 21、31 串起主/草稿模型加载、MTP MoE 构造、自动登记及 warmup 时序；68–71 与 1、12 串起补齐输入、真实 token 掩码、dispatch 和热度计数。旧默认值见 9、33–35；非混放布局见 72；`v0.30.0` 周期引入的 STAIR 默认策略补丁入口见 73；两张表的测试输入见 74；旧版 V2 拒绝分支见 75–76。上述静态链不提供 NPU 执行时间或 GLM 双机的正确性实测结果。

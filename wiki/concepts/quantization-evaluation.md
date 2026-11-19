@@ -175,11 +175,7 @@ file: quantization-evaluation-fig-three-gate
 
 先保留[固定部署](glm-5-3-flash-two-node.md#部署前提)的模型来源、TP/DP/EP 配置和输入模板。基线与候选必须能在可比的硬件和资源条件下运行；若浮点版本需要更多卡，应明确区分“固定硬件比较”和“固定模型质量目标下的资源比较”。
 
-```wiki-diagram
-file: quantization-evaluation-flow
-```
-
-按图执行：
+对照上节三道验收闸门，按下面五步顺序执行：
 
 1. 保存 checkpoint、量化描述、工具配方、源码提交与 CANN 版本；逐层确认权重、激活和缓存的实际类型。
 2. 在加载后抽查转置、NZ 和系数对应关系，排除布局及打包错误。

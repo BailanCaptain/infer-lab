@@ -135,22 +135,18 @@ rawSources:
 
 先记住两条工程底线：保存接口答应接单，不等于字节已经从显存搬完；客户端收到结束帧，也不等于引擎完成了全部收尾（早期 GLM 镜像的退回分支只还 KV 块并发帧，未调用完整的引擎结束流程，各版本区别见文末）。两条恢复路线各付各的账：保存占主机内存与拷贝停顿，退回 P 则增加重新排队、长输入重算与再次交接。
 
-看一个具体场景：被挑中的请求原本问题有 4 个 token，回答已经写出 2 个，它占用的 KV 块必须全部交出去。先看 `v0.30.0` / `main` 下 D 节点续块失败后的三路分流全景，再看早期固定部署的具体去向示意：
+看一个具体场景：被挑中的请求原本问题有 4 个 token，回答已经写出 2 个，它占用的 KV 块必须全部交出去。下图把 `v0.30.0` / `main` 下 D 节点续块失败后的三路分流全景与普通上游调度器的本机重算放在一起对照：
 
 ```wiki-diagram
 file: recompute-scheduler-fig-d-exhaustion
 ```
 
-```wiki-diagram
-file: recompute-scheduler
-```
+顺着图中的三路分流与底部对照，被让出的请求一共有四类去向：
 
-把上面两张图合起来看，被让出的请求一共有三条常见去向，加上一条细粒度 TP 例外：
-
-- **在 D 本机恢复计算**（旧图最下面淡色格）：通用[调度器](vllm-scheduler.md)清零进度、排回等待队首，再查可用缓存；没有可复用状态时，才在 D 本机重算「问题 + 已生成回答」。开启 `RecomputeScheduler` 后，普通退回路径把这份重算工作交回给 P。
-- **先存到主机内存，排回来再搬回**（③ 往左）：把它的 KV 搬到主机内存，重新排上时再搬回显存。这需要另配能存 KV 的连接器（`v0.30.0` 与 `main` 为 `PreemptOffloadConnector`），见 [Recompute CPU Offload](recompute-cpu-offload.md)。
-- **退回 P 节点重做 prefill**（③ 往右，接着走 ④–⑦）：D 归还块并发送带 `recomputed` 标记的结束帧，不在本地重做这段 prefill；代理认出标记后把「原问题 + 已生成内容」重投给 P，再由 P 把状态交给 D 继续。旧镜像里客户端结束帧与引擎内部收尾的缺口需要分开核对。
-- **细粒度 TP 保存失败直接中止**（`v0.30.0` / `main` 新增分支）：当 `oproj` 或 `mlp` 的细粒度 TP 实际分片大于 1 时，启动即强制要求配 `PreemptOffloadConnector`；运行时保存失败不再降级退回 P，而是直接置为 `FINISHED_ABORTED`。
+- **路线 A · 先存到主机内存，排回来再搬回**：调用 `update_state_before_preempt()` 询问连接器，主机空闲块足够时把该请求的 KV 搬到主机内存、交还显存块并排回等待队首，稍后恢复免重算。这需要另配能存 KV 的连接器（`v0.30.0` 与 `main` 为 `PreemptOffloadConnector`），见 [Recompute CPU Offload](recompute-cpu-offload.md)。
+- **路线 B · 退回 P 节点重做 prefill**：连接器拒绝保存或未配置卸载器时，D 正式结束引擎请求（早期 GLM 镜像只还块未调完整引擎收尾）、归还块并发送带 `recomputed` 标记的结束帧，不在本地重做这段 prefill；代理认出标记后把「原问题 + 已生成内容」重投给 P，再由 P 把状态交给 D 继续。
+- **路线 C · 细粒度 TP 保存失败直接中止**（`v0.30.0` / `main` 新增分支）：当 `oproj` 或 `mlp` 的细粒度 TP 实际分片大于 1 时，启动即强制要求配 `PreemptOffloadConnector`；运行时保存失败不再降级退回 P，而是直接置为 `FINISHED_ABORTED`。
+- **对照 · 在 D 本机恢复计算**（底部对照条）：未开启 `RecomputeScheduler` 时，通用[调度器](vllm-scheduler.md)会清零进度、排回等待队首，再查可用缓存；没有可复用状态时，只能在 D 本机紧缩的 decode 预算里硬挤重算「问题 + 已生成回答」。
 
 ## 为什么 D 节点不自己重算，退回 P 又要付什么？
 

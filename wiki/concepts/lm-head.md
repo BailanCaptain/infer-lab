@@ -313,7 +313,7 @@ Ascend 在注册表里把 `ParallelLMHead`、`LogitsProcessor` 换成 `AscendPar
 - `LMHead's weights should be used in the sampler.`：RuntimeError。`ParallelLMHead.forward` 故意抛这个错：lm_head 不能像普通层那样直接调用，它的权重只能由 `LogitsProcessor` 通过量化方法的 `apply` 使用。[C4]
 - `Target language model does not expose lm_head required by the MLA MTP draft model.`：AttributeError。MTP 草拟要借主模型的 lm_head，主模型没有这个属性时启动失败。[C15]
 - `The finegrained tp sizes can be enabled only for MOE models.`、`finegrained tp sizes must divide by data_parallel_size.`：AssertionError，给输出头设细粒度 TP 规模时的两条前置检查。[C13]
-- v0.23 维护分支和 main 上，打开 `enable_reduce_sample` 会先打一条实验特性警告；同时设了 `lmhead_tensor_parallel_size` 会抛 ValueError（两者不兼容），在 PD 分离的 KV 发送端打开也会抛 ValueError。`db701c1f` 与 v0.26 的这处配置入口未附上述检查，不能把它当作组合已获支持。[C20][C24]
+- 仅在 `v0.23.0` 维护分支（及早期历史快照 `baa023ad`）上，打开 `enable_reduce_sample` 会先打一条实验特性警告；同时设了 `lmhead_tensor_parallel_size` 会抛 ValueError（两者不兼容），在 PD 分离的 KV 发送端打开也会抛 ValueError。`db701c1f` 与 `v0.26.0rc` 的这处配置入口未附上述检查，不能把它当作组合已获支持；`v0.30.0` 主基线（`c09d3e20`）与当前 `main`（`8d6180e2`）已彻底移除 `enable_reduce_sample` 开关与运行分支。[C20][C24]
 
 ### 开销和什么时候别开
 
@@ -361,6 +361,6 @@ Ascend 在注册表里把 `ParallelLMHead`、`LogitsProcessor` 换成 `AscendPar
 
 来源 23 的 `baa023ad:vllm_ascend/ops/vocab_parallel_embedding.py` L386–L449 显示 `skip_gather` 在选择普通或细粒度输出头路径之前直接返回；后两条路径中的词表裁剪因此都不会执行。未据此扩大其他快照或固定部署的启用范围。
 
-来源 36、37 补充细粒度 LMHead TP 的默认 0 与 main 采样归约默认 false；来源 38 给出固定 db 草拟的分段贪心调用。来源 39–43 对照上游最大值接口、上游调用与 Ascend 实际草拟分支；来源 44 是 rc2 PCP 词表分片的默认值，来源 45 是 GLM 的 MLA 配置适配。上述记录不改变固定部署默认关闭额外采样归约的条件。
+来源 36、37 补充细粒度 LMHead TP 的默认 0 与早期快照（`baa023ad`）采样归约默认 false（`v0.30.0` 与当前 `main` 均已移除 `enable_reduce_sample`）；来源 38 给出固定 db 草拟的分段贪心调用。来源 39–43 对照上游最大值接口、上游调用与 Ascend 实际草拟分支；来源 44 是 `v0.30.0` 周期引入的 PCP 词表分片默认值，来源 45 是 GLM 的 MLA 配置适配。上述记录不改变固定部署默认关闭额外采样归约的条件。
 
 提示词 logprobs 的额外打分见来源 46、47：Ascend runner 调用继承的 `_get_prompt_logprobs_dict`，按提示词分块选取所需 hidden 行并另调 `compute_logits`，所以“只给最后一个位置打分”须限定没有请求提示词 logprobs 的普通生成。

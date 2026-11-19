@@ -17,15 +17,15 @@ items:
   - { at: [500, 298], size: [350, 44], text: 本组的卡持有专家 e4–e7（示意）, style: plain }
   - { at: [30, 424], size: [840, 60], text: 同一步的 MoE 层 · EP 通信, sub: 两组按兼容次序参与，后续计算等待所需结果就绪, tone: comm }
 links:
-  - { from: [450, 90], to: [225, 136], via: [[450, 112], [225, 112]] }
+  - { from: [450, 90], to: [350, 136], via: [[450, 108], [350, 108]] }
   - { from: [400, 312], to: [500, 312], tone: comm }
   - { from: [500, 330], to: [400, 330], tone: comm }
   - { from: [225, 362], to: [225, 424] }
   - { from: [675, 362], to: [675, 424] }
 texts:
-  - { at: [450, 16], text: '2 个 DP 组 · 只示意分工与同步', anchor: middle, strong: true }
-  - { at: [450, 305], text: token→e6, anchor: middle, size: 12, tone: comm }
-  - { at: [450, 348], text: e6 结果, anchor: middle, size: 12, tone: comm }
+  - { at: [450, 18], text: '2 个 DP 组 · 只示意分工与同步', anchor: middle, strong: true }
+  - { at: [450, 304], text: token→e6, anchor: middle, size: 13, tone: comm }
+  - { at: [450, 350], text: e6 结果, anchor: middle, size: 13, tone: comm }
   - { at: [450, 398], text: 同一步，两组都须参与, anchor: middle, tone: comm }
   - { at: [450, 506], text: 示意：选中 e1、e6，e6 在组 1 算完送回, anchor: middle, note: true }
 pins:

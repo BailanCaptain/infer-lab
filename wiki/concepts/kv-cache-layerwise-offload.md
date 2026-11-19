@@ -236,14 +236,10 @@ $$t_{\text{load,layer}} = \frac{4{,}096 \times (128\text{ KiB} \div 32)}{16\text
 
 **搬入以「第 L 层 attention 开算之前到齐」为界，存出以「传输真正完成」为界；交出存出任务不等于这块显存已经可以给别人用。**
 
-请求走到[模型执行](npu-model-runner.md)后，每层的 attention 入口和出口负责交接这些任务。下面第一张图汇总 `v0.30.0` / `main` 的三流并跑时序、共享槽双完成栅栏与代码拆包架构，第二张图展开单层进出 attention 时的事件先后（旧快照等到超时就返回的例外在后面单独说明）：
+请求走到[模型执行](npu-model-runner.md)后，每层的 attention 入口和出口负责交接这些任务。下图汇总 `v0.30.0` / `main` 的三流并跑时序（含单层进出 attention 的事件同步点）、共享槽双完成栅栏与代码拆包架构（旧快照等到超时就返回的例外在后面单独说明）：
 
 ```wiki-diagram
 file: kv-cache-layerwise-offload-fig-pipeline-sync
-```
-
-```wiki-diagram
-file: kv-cache-layerwise-offload-flow
 ```
 
 搬入方向：
@@ -350,7 +346,7 @@ $$B_{\text{MLA,12L}} = 105\text{ 块} \times 7.969\text{ MiB} \approx 836.7\text
 就算要开，钉住的 GLM 快照上还卡在两处（均按代码，未实跑）：
 
 1. **KDA 层不经过逐层入口。** 逐层的「等本层到齐」「交出本层存出」挂在 attention 层上；GLM 快照里 34 层 KDA 的实现没有调用这两个入口，而逐层的层计数只在存出入口加一，MLA 层的计数和实际层号对不上。固定 main 的 KDA 文件补上了这两个入口，但该快照的算子注册表已没有旧 KDA 替换项，不能把“文件里有 hook”当作 GLM 实际会走它；注册与执行的区别见[算子页](ops-and-kernels.md#版本差异)。
-2. **换到 main 也还有两道限制。** Mooncake 后端的逐层遇到带递推状态的混合模型直接报错；memcache 后端一旦配了共享槽，模型里又有 KDA 这类非 attention 状态，也会报不支持。memcache 不配共享槽时能否走通，没有核到。
+2. **换到 `v0.30.0` / `main` 仍有边界限制。** `memcache` 后端一旦配了共享槽，模型里又有 KDA 这类非 attention 状态，构造时会直接报不支持；`Mooncake` 逐层路径虽已在 `v0.30.0` 起放开 `PP > 1` 与混合递推状态（详见[版本差异](#版本差异)），但在早期快照 `baa023ad` 上会拒绝递推状态，且全版本仍要求 P/D 两端 TP 一致、PP 各阶段覆盖全部缓存组（`memcache` 不配共享槽时 GLM 能否端到端走通仍未实跑）。
 
 ## 常见误解
 
@@ -396,7 +392,7 @@ $$B_{\text{MLA,12L}} = 105\text{ 块} \times 7.969\text{ MiB} \approx 836.7\text
 - **混合线性 attention 的缓存模式**：接上 AscendStore 时，vllm-ascend 的补丁把混合模型的 `mamba_cache_mode` 从 none 自动改成 align，不报错 [C29]；手动设成 align 以外的值 → `AssertionError: mamba_cache_mode only support 'align' when kv_transfer enabled now!`。调度侧另有一道要求 align 的 `NotImplementedError` [C14]，自动改写之后不会触发。
 - **共享槽遇到非 attention 状态**（v0.26、main）：`NotImplementedError`，提示逐层复用只支持 attention 类缓存规格 [C5]；同槽各层规格或字节数不一致 → `ValueError`。
 - **共享槽参数不合法**：`layerwise_num_shared_buffers`、`layerwise_prefetch_layers` 小于 1，或独立层号越界 → `ValueError`；传了布尔值 → `TypeError` [C4]。
-- **main 上 Mooncake 后端**：PP、PCP、DCP 任一大于 1 → `ValueError`（只支持纯 TP）；混合模型带递推状态 → `ValueError` [C20]。
+- **Mooncake 逐层后端的并行与混合模型约束**：早期开发快照（`baa023ad`）在 PP、PCP、DCP 任一 `> 1` 或遇到递推状态时直接报 `ValueError` [C20]；**`v0.30.0` 主基线（`c09d3e20`）** 已支持 `PP > 1`（但要求每个 PP 阶段覆盖全部缓存组，且不含仅草稿组）且 `validate_runtime` 不再因 `has_recurrent_state` 报错，仅拒绝 `PCP > 1` / `DCP > 1` 与 P/D TP 不一致；**`main`（`8d6180e2`）** 进一步放开互斥的 `PCP > 1` 或 `DCP > 1`（禁止同时 `PCP > 1` 与 `DCP > 1`，禁止 CP 与 `enable_kvpp` 同开；`DCP > 1` 时另校验 `put_step >= dcp_size` 以及 `validate_dcp_groups` 拒绝 SWA 与非 align Mamba）。
 - **GLM 快照上等太久不报错**：本层搬入或最后一层存出等 10 秒没等到，只打一行 `Layerwise %d load wait timed out` 日志就往下走 [C7]；v0.26、main 改成一直等、后台线程出错时抛出 [C19]。
 - **KDA 层计数对不上**（GLM 快照）：Qwen3.5 那类线性 attention 层用空参数调一次存出入口来推进层计数 [C16]，GLM 快照的 KDA 没有这一步；main 的等待和存出入口分别见来源17、38。GLM 快照上的表现未实跑 [I]。
 - 官方指南说混合 KV cache 会 `NotImplementedError`，GLM 快照的逐层代码里没有这道检查 [!]，改为把各层映射到各自的缓存组；实际能否跑通见上一条。
@@ -412,14 +408,14 @@ $$B_{\text{MLA,12L}} = 105\text{ 块} \times 7.969\text{ MiB} \approx 836.7\text
 
 ### 版本差异
 
-**`v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 清晰区分逐层池存取、P 侧共享槽缓冲复用与 D 侧稀疏卸载。** `AscendStore` 的逐层路径按后端协议分流（memcache 全局地址 vs Mooncake 按块键）；Mooncake 的 block-key 路径已能处理 TP/PP 和混合缓存组，但仍拒绝 CP 与 P/D 两端 TP 不一致，PP 每个阶段必须覆盖各缓存组；递推状态的拷贝必须等该层加载完成后才执行。memcache 预取数取自共享槽布局（`min(槽数, 8)`，槽数默认等于层数），非 GVA 路径默认 2；加载按 10 秒间隔循环等待并检查后台异常，前向末尾先等后台 PUT 队列排空再等末层完成事件。**`main (8d6180e2)` 进一步将逐层池实现从 `ascend_store/` 根目录拆入独立子包 `ascend_store/layerwise/`**（包含 `layerwise_cache_layout.py`、`kv_transfer.py`、`metadata.py`、`pool_scheduler.py`、`pool_worker.py`），并将整趟与逐层逻辑解耦。
+**`v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 清晰区分逐层池存取、P 侧共享槽缓冲复用与 D 侧稀疏卸载。** `AscendStore` 的逐层路径按后端协议分流（memcache 全局地址 vs Mooncake 按块键）；`v0.30.0` 的 Mooncake block-key 路径已支持 TP/PP（要求每 PP 阶段覆盖全部缓存组）与混合缓存组递推状态延后复制，拒绝 `PCP > 1` / `DCP > 1` 与 P/D TP 不一致；`main (8d6180e2)` 进一步放开互斥的 `PCP > 1` 或 `DCP > 1`（禁止 `PCP` 与 `DCP` 同开、禁止 CP 与 `enable_kvpp` 同开，并在 `DCP > 1` 时校验 `put_step >= dcp_size` 与非 SWA / 非 align Mamba 约束）。memcache 预取数取自共享槽布局（`min(槽数, 8)`，槽数默认等于层数），非 GVA 路径默认 2；加载按 10 秒间隔循环等待并检查后台异常，前向末尾先等后台 PUT 队列排空再等末层完成事件。**`main (8d6180e2)` 进一步将逐层池实现从 `ascend_store/` 根目录拆入独立子包 `ascend_store/layerwise/`**（包含 `layerwise_cache_layout.py`、`kv_transfer.py`、`metadata.py`、`pool_scheduler.py`、`pool_worker.py`），并将整趟与逐层逻辑解耦。
 
 与稀疏 decode 卸载组合的官方指南列出 GLM-5.1、GLM-5.2、DeepSeek-V3.2；D 侧稀疏卸载暂不支持 950PR/950DT 且与 `PreemptOffloadConnector` 互斥（见[稀疏卸载版本差异](kv-cache-sparse-offload.md#版本差异)）。本站 A2 的 GLM-5.3-Flash 旧算例不能从该列表自动获得组合支持。
 
 | 项 | v0.23.0 (2c59ff10) | v0.26.0rc (2ed6cbba) | v0.30.0 (c09d3e20) | main (8d6180e2) |
 |---|---|---|---|---|
 | 逐层数据面与代码组织 | 仅 `ascend_store/` 根目录旧实现（与镜像 `db701c1f` 数据面同源） | 新增共享槽布局，等待改为循环并检查异常 | 按后端协议分流（memcache 全局地址 + Mooncake block-key）；末层先排空 PUT 队列再等事件 | 拆出独立子包 `ascend_store/layerwise/`（`layout`/`kv_transfer`/`scheduler`/`worker` 解耦） |
-| 支持的后端与混合模型 | 仅 memcache（官方指南） | 同 v0.23.0 | memcache + Mooncake（block-key 支持 TP/PP 与混合组，拒 CP 与 P/D 不等 TP） | 同 v0.30.0 |
+| 支持的后端与混合模型 | 仅 memcache（官方指南） | 同 v0.23.0 | memcache + Mooncake（block-key 支持 TP/PP 与混合组，拒 PCP/DCP 与 P/D 不等 TP） | memcache + Mooncake（block-key 新增互斥 `PCP` 或 `DCP` 支持，拒 PCP+DCP、CP+KVPP 与 `DCP` 下 SWA/非 align Mamba） |
 | 提前层数默认与共享槽 | 默认 1；无共享槽 | memcache 取 `min(槽数, 8)`，其余 1；memcache 支持共享槽 | memcache 取 `min(槽数, 8)`，非 GVA 默认 2；memcache 共享槽 prefill 按指南配 eager | 同 v0.30.0 |
 | 超时等待与后台异常 | 等 10 秒超时打日志继续（可能读未完数据）[I] | 持续等待，后台异常抛出 | 按 10 秒间隔循环等待并检查后台异常，排空队列后再复用槽 | 同 v0.30.0 |
 | KDA 逐层入口 | `2c59ff10` 无 Ascend Kimi 文件；`db701c1f` 旧替换无 wait/save | 仍注册旧 Kimi 实现，无 wait/save | Kimi K3 decoder 直接构造新类，含读取前 wait 与空参数 save 入口 | 同 v0.30.0 |

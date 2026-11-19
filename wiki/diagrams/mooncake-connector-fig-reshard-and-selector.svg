@@ -51,7 +51,7 @@
 <rect x="606" y="412" width="280" height="102" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
 </g>
 <g font-size="14.5" font-weight="700">
-<text x="26" y="324" fill="#8f3229">✗ GQA + C8 KV 量化 + V1</text>
+<text x="26" y="324" fill="#8f3229">✗ GQA + C8 KV 量化 + V1/V2</text>
 <text x="322" y="324" fill="#065f56">✓ V1 / V2（Pull 拉取）</text>
 <text x="618" y="324" fill="#7a3a6a">✓ Layerwise / Push 推送</text>
 <text x="26" y="438" fill="#936300">△ Hybrid 与 D2RH（两跳）</text>

@@ -210,7 +210,7 @@ $$M_{\text{1 chunk, per rank}} = 256 \times 13{,}056\text{ B} = 3{,}342{,}336\te
 - **「共享开头 500 个位置，就能省 500 个位置」**——按整 chunk 认，上面的例子里只省下 256 个。
 - **「自己生成的内容反正复用不了」**——分两头看：同一条请求（比如被抢占后）重新查询时只拿自己的 prompt 去问，生成的那段确实补不回来（仅核了自带 adapter）；但后来的请求若把这段内容带进 prompt（多轮对话把上轮回答放进历史就是这样），只要它当初被存下（`save_decode_cache`，取值在外部包的配置里），就能像别的内容一样被认出。
 - **「开了它，显存里能多装请求」**——缓存池大小不变，省的是重算。要让缓存少占显存，看 [KV cache 量化](kv-cache-quantization.md)。
-- **「装了 vllm-ascend 就等于有了 LMCache」**——仓库里那层包装只做注册和导入，真正的存储实现在外部软件包里；main 上连注册都移除了。
+- **「装了 vllm-ascend 就等于有了 LMCache」**——仓库里那层包装只做注册和导入，真正的存储实现在外部软件包里；`v0.30.0`（`c09d3e20`）起及 `main`（`8d6180e2`）连仓内注册都已移除。
 - **「混合模型接上就能用」**——GLM 这类模型要靠混合缓存管理器分组，而上游这个连接器没有声明支持它，见上一节。
 
 ## 对照源码
@@ -236,10 +236,10 @@ $$M_{\text{1 chunk, per rank}} = 256 \times 13{,}056\text{ B} = 3{,}342{,}336\te
 ### 会报什么错
 
 - **外部包没装**：包装模块第一行就 `import lmcache_ascend`，装不上直接 `ModuleNotFoundError` [C2]；`use_native` 为假时，上游连接器也要导入 `lmcache` 包 [C3]。
-- **和混合缓存管理器互斥（GLM 上会撞）**：这个连接器没有继承 `SupportsHMA`。没有显式表态时，vLLM 见到不支持的连接器就把混合缓存管理器关掉，只打一条 warning [C10]；而 GLM 的分组要求它开着，关掉就在建缓存组时 `ValueError: ... requires the hybrid KV cache manager` [C12]（main 上同一条检查挪进了模型自己的缓存配置 [C13]）。反过来显式要求开着，建连接器时就 `ValueError: Connector LMCacheConnectorV1 does not support HMA` [C11]。两条都按代码推断，未实跑 [I]。
+- **和混合缓存管理器互斥（GLM 上会撞）**：这个连接器没有继承 `SupportsHMA`。没有显式表态时，vLLM 见到不支持的连接器就把混合缓存管理器关掉，只打一条 warning [C10]；而 GLM 的分组要求它开着，关掉就在建缓存组时 `ValueError: ... requires the hybrid KV cache manager` [C12]（`v0.30.0` 与 `main` 上同一条检查挪进了模型自己的缓存配置 `glm5next/cache_config.py` [C13]）。反过来显式要求开着，建连接器时就 `ValueError: Connector LMCacheConnectorV1 does not support HMA` [C11]。两条都按代码推断，未实跑 [I]。
 - **多个缓存组**：`LMCacheMPConnector` 拿到不止一组的块号会直接 `RuntimeError`，提示要加 `--disable-hybrid-kv-cache-manager` [C16]。
 - **MLA 的两条限制**：远端序列化方式不是 `naive` 时 `ValueError`；MLA 模型打开逐层模式时 `ValueError: layerwise MLA connector is not supported yet` [C9]。
-- **版本不配套**：Ascend 部署材料给的是 LMCache 0.3.12 配 vllm-ascend 0.11.0 的镜像例子 [S14]；main 上这个注册名已经移除，按旧写法启动会是「找不到连接器」 [S15]。
+- **版本不配套**：Ascend 部署材料给的是 LMCache 0.3.12 配 vllm-ascend 0.11.0 的镜像例子 [S14]；`v0.30.0`（`c09d3e20`）起及 `main`（`8d6180e2`）均已移除这个注册名，按旧写法启动会报「找不到连接器」 [S15]。
 
 ### 开销和什么时候别开
 

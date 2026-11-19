@@ -245,7 +245,7 @@ file: kv-cache-sparse-offload-fig-a3-three-bucket
 ```
 
 - **设备上限（`npu`）**：可用显存 ÷ 一个块在设备上占的字节（也就是不含主 KV、只含 indexer 等设备侧缓存的那部分）。
-- **主机上限（`dram`）**：配置给这个 DP rank 的主机内存（`v0.30.0` / `main` 默认 `dram_size_per_dp_GB = 110` GiB），先扣掉每层按 2 MiB 对齐的预留，再除以一个块在主机上占的字节。
+- **主机上限（`dram`）**：配置给这个 DP rank 的主机内存（`v0.30.0` / `main` 默认 `dram_size_per_dp_GB = 110` GiB），先扣掉每主机层 `6 MiB`（`3 × 2 MiB`）的最大对齐预留，再除以一个块在主机上占的字节。
 - **工作负载上限（`workload`）**：一条满长请求要几个块 × 最大并发，再加 1 个空块。
 
 主机上限比设备上限还小时，实现会专门打一条 warning 提示调大它：主机内存给少了，设备显存再多也用不上。在 `v0.30.0` 与 `main` 中，decode 默认走融合 LIM + Copy-SFA 路径（`topk_buffer_size` 默认 `-1`，自动解析为 `(1 + 投机草稿数) × 2048`，并由运行时另加 2 个尾块，满足 256 对齐且不超过 32,512；`main` 另增 `store_port_base = 8500` 区分多服务端口基址），且与 `PreemptOffloadConnector` 互斥。这也说明卸载没有把容量问题变没，只是把它从显存搬到了主机内存：上下文长度和并发仍受最紧的那条约束，只不过约束的对象换了。
@@ -360,7 +360,7 @@ $$M_{\text{hot}} = 12\text{ 层} \times 128\text{ 行} \times (2{,}560 \times 51
 
 **`v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 均以融合 LIM + Copy-SFA 作为默认路径（`use_fused_copy_sfa = enabled and not use_fused_overlap`），并收紧硬件与互斥边界。** 组合部署列出 GLM-5.1、GLM-5.2、DeepSeek-V3.2，D 侧支持 DP/TP，不支持 CP 与 D 侧 PP；启动配置直接拦截 `950PR&950DT`（`is_950()` 报 `ValueError`）以及与 `PreemptOffloadConnector` 同开（经 `MultiConnector` 也拦截），管理器初始化仍只放行 Atlas A3（`RuntimeError: Sparse KV offload is only support on A3`）。主 KV 要求 BF16，不支持 sparse SFA C8；设备上常驻的 LightningIndexer 可以另用 LI C8（`attention_config.indexer_kv_dtype=int8`，不支持 `fp8`）。
 
-在默认参数与三路木桶预算上，`v0.30.0` 与 `main` 将 `topk_buffer_size` 默认改为 `-1`（自动解析为 `(1 + num_speculative_tokens) × 2048`），`dram_size_per_dp_GB` 默认改为 `110` GiB，热槽须满足 256 对齐且不超过 32,512（运行时另自动加 `COPY_SFA_TAIL_BLOCKS` 两个尾块，无需手工多加）；`plan_sparse_kv_offload_memory` 统一按 **NPU 上限、扣除 2 MiB 对齐预留后的 DRAM 上限、工作负载上限（`max_blocks_per_request × max_num_seqs + 1`）** 三路木桶取最小值并打印 `limiting_factor`（DRAM 比 NPU 紧时告警）。`main (8d6180e2)` 另新增 `store_port_base: int = 8500` 以区分共享网络命名空间的多服务端口基址。P 端支持 PP（如 GLM-5.2 的 DP1×PP2×TP8 按 38/40 分层），D 端仍固定 PP=1；开启 DSpark 投机解码须配 Model Runner V2。
+在默认参数与三路木桶预算上，`v0.30.0` 与 `main` 将 `topk_buffer_size` 默认改为 `-1`（自动解析为 `(1 + num_speculative_tokens) × 2048`），`dram_size_per_dp_GB` 默认改为 `110` GiB，热槽须满足 256 对齐且不超过 32,512（运行时另自动加 `COPY_SFA_TAIL_BLOCKS` 两个尾块，无需手工多加）；`plan_sparse_kv_offload_memory` 统一按 **NPU 上限、扣除每主机层 `6 MiB`（`3 × 2 MiB`）最大对齐预留后的 DRAM 上限、工作负载上限（`max_blocks_per_request × max_num_seqs + 1`）** 三路木桶取最小值并打印 `limiting_factor`（DRAM 比 NPU 紧时告警）。`main (8d6180e2)` 另新增 `store_port_base: int = 8500` 以区分共享网络命名空间的多服务端口基址。P 端支持 PP（如 GLM-5.2 的 DP1×PP2×TP8 按 38/40 分层），D 端仍固定 PP=1；开启 DSpark 投机解码须配 Model Runner V2。
 
 | 项 | v0.23.0 (2c59ff10) | v0.26.0rc (2ed6cbba) | v0.30.0 (c09d3e20) | main (8d6180e2) |
 |---|---|---|---|---|

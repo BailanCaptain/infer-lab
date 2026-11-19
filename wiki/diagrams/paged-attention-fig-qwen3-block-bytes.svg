@@ -8,7 +8,7 @@
 
   <!-- 左上：Qwen3-8B 单块解剖 -->
   <text x="18" y="34" font-size="16" font-weight="700" fill="#17211f">Qwen3-8B · 稠密 GQA（36 层 · 8 KV 头）</text>
-  <text x="18" y="64" font-size="13.5" fill="#4d5652">① 1 token 单层：<tspan font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">2(K,V) × 8 × 128 × 2B = 4 KiB</tspan>（全层 144 KiB）</text>
+  <text x="18" y="64" font-size="13.5" fill="#4d5652">① 单词单层：<tspan font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">2 × 8 × 128 × 2B = 4 KiB</tspan>（全层 144 KiB）</text>
 
   <text x="18" y="98" font-size="13.5" font-weight="700" fill="#17211f">② 单层 1 块（<tspan font-family="var(--font-mono)">page_size_bytes</tspan>，128 tok）：</text>
   <rect x="18" y="110" width="256" height="30" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
@@ -50,7 +50,7 @@
   <text x="32" y="436" font-size="13.5" fill="#4d5652">利：末块最多仅空 15 个槽位</text>
   <text x="32" y="462" font-size="13.5" fill="#4d5652">弊：块表宽 8 倍，打碎 NPU 连续访存</text>
   <text x="32" y="490" font-size="13.5" font-weight="700" fill="#b54237">昇腾行为：开 APC 或分块预填充时</text>
-  <text x="32" y="516" font-size="13.5" font-weight="700" fill="#b54237">被静默重置回 128！</text>
+  <text x="32" y="516" font-size="13.5" font-weight="700" fill="#b54237">打印 info 日志后重置回 128！</text>
 
   <!-- 档位 2：128 -->
   <rect x="314" y="362" width="272" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>

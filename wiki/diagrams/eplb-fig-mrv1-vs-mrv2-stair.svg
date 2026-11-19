@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 504" width="900" height="504" role="img" aria-label="EPLB MRV1 动态迁移与 MRV2 STAIR 控面双轨演进对照图" font-family="var(--font-sans)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 526" width="900" height="526" role="img" aria-label="EPLB MRV1 动态迁移与 MRV2 STAIR 控面双轨演进对照图" font-family="var(--font-sans)">
   <title>EPLB 双轨演进：MRV1 动态搬运（v0.23–v0.30.0）vs MRV2 STAIR 控面（v0.30.0–main 唯一路线）</title>
   <desc>上半左右对比两条 EPLB 实现路线：左侧为 MRV1 动态路线（DYNAMIC_EPLB 环境变量、600/50/L 三段计数、dynamic_eplb 独立组异步 D2D 搬运与 expert_map/log2phy 双表替换，main 已删除）；右侧为 MRV2 STAIR 路线（上游 --enable-eplb 与 AscendEPLBController、STAIR 策略、全组一致 HIXL/Gloo 协商及草稿模型不自动注册，main 唯一路线）；下半汇总 A2 冗余专家限制、整除校验、量化格式白名单与 enable_force_eplb 互斥。</desc>
   <defs>
@@ -28,7 +28,7 @@
     <text x="38" y="249">同步切换 <tspan font-family="var(--font-mono)" fill="#936300">expert_map</tspan> + <tspan font-family="var(--font-mono)" fill="#936300">log2phy</tspan> 双表</text>
     <line x1="26" y1="264" x2="412" y2="264" stroke="#c78300" stroke-width="1" stroke-dasharray="4 3"/>
     <text x="26" y="286"><tspan font-weight="700" fill="#8f3229">算法：</tspan>0 Random / 1 Default / 2 Swift / 3 FlashLB</text>
-    <text x="26" y="309"><tspan font-weight="700" fill="#8f3229">状态：</tspan>v0.30.0 仅 MRV1 可用；<tspan font-weight="700" fill="#8f3229">main 删除 MRV1</tspan></text>
+    <text x="26" y="309"><tspan font-weight="700" fill="#8f3229">状态：</tspan>v0.30.0 双轨并存；<tspan font-weight="700" fill="#8f3229">main 删除 MRV1</tspan></text>
     <text x="38" y="330">后，历史 <tspan font-family="var(--font-mono)">vllm_ascend/eplb/</tspan> 不再被运行器调用</text>
   </g>
 
@@ -52,19 +52,21 @@
   <line x1="12" y1="390" x2="888" y2="390" stroke="#b8bcb5" stroke-width="1.4"/>
 
   <g stroke-width="1.5">
-    <rect x="12" y="402" width="430" height="90" rx="9" fill="#fff0e9" stroke="#b54237"/>
-    <rect x="458" y="402" width="430" height="90" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="12" y="402" width="430" height="112" rx="9" fill="#fff0e9" stroke="#b54237"/>
+    <rect x="458" y="402" width="430" height="112" rx="9" fill="#e8edff" stroke="#4c65b6"/>
   </g>
 
   <text x="26" y="428" font-size="14.5" font-weight="700" fill="#8f3229">冗余位整除与 Atlas A2 限制</text>
   <g font-size="13.5" fill="#4d5652">
-    <text x="26" y="453">• 布局须 <tspan font-family="var(--font-mono)" fill="#8f3229">(n_expert + n_redundant) % ep == 0</tspan></text>
-    <text x="26" y="476">• 指南明示 <tspan font-weight="700" fill="#8f3229">A2 不支持冗余专家</tspan>；与 <tspan font-family="var(--font-mono)">force_eplb</tspan> 互斥</text>
+    <text x="26" y="454">• 布局须 <tspan font-family="var(--font-mono)" fill="#8f3229">(n_expert + n_redundant) % ep == 0</tspan></text>
+    <text x="26" y="478">• 指南明示 <tspan font-weight="700" fill="#8f3229">A2 不支持冗余专家</tspan>；与 <tspan font-family="var(--font-mono)">force_eplb</tspan> 互斥</text>
+    <text x="26" y="501">• v0.30.0 下 MRV2 经 <tspan font-family="var(--font-mono)">AscendEPLBController</tspan> 可用</text>
   </g>
 
   <text x="472" y="428" font-size="14.5" font-weight="700" fill="#3a4f93">MRV2 支持与拒绝的量化格式</text>
   <g font-size="13.5" fill="#4d5652">
-    <text x="472" y="453">• 支持 BF16/FP16、W8A8/Dyn、W4A8（950 含 MXFP）</text>
-    <text x="472" y="476">• 拒绝 <tspan font-family="var(--font-mono)" fill="#8f3229">W4A16 / W4A16 MXFP / W4A8 MXFP</tspan>（缺搬运表）</text>
+    <text x="472" y="454">• 支持 BF16/FP16、W8A8/Dyn、W4A8（950 含 MXFP）</text>
+    <text x="472" y="478">• 拒绝 <tspan font-family="var(--font-mono)" fill="#8f3229">W4A16 / W4A16 MXFP</tspan>（缺搬运表）</text>
+    <text x="472" y="501">• <tspan font-family="var(--font-mono)" fill="#936300">W4A8 MXFP</tspan>：v0.30.0 启用；main 文档拒而代码保留</text>
   </g>
 </svg>

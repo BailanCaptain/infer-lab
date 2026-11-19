@@ -1,12 +1,12 @@
 layout: figure
 id: ascend-950-nddma
 caption: 二维地址映射示意。源每行四项，只取前两项；目标每行两项。深绿色是所需数据，淡色是本次不取的数据。行步长从四个元素变成两个，数值本身不变；格数不表示真实内存事务数或指令最小尺寸。
-size: [860, 350]
+size: [860, 376]
 frames:
-  - { at: [20, 55], size: [310, 240], label: GM：行步长 4 }
-  - { at: [610, 55], size: [230, 240], label: UB：行步长 2 }
+  - { at: [20, 80], size: [310, 240], label: GM：行步长 4 }
+  - { at: [610, 80], size: [230, 240], label: UB：行步长 2 }
 grids:
-  - at: [70, 130]
+  - at: [70, 155]
     rows: 2
     cols: 4
     cell: [54, 46]
@@ -23,7 +23,7 @@ grids:
       - { at: [1, 1], text: '21' }
       - { at: [1, 2], text: '22', style: faded }
       - { at: [1, 3], text: '23', style: faded }
-  - at: [670, 130]
+  - at: [670, 155]
     rows: 2
     cols: 2
     cell: [54, 46]
@@ -37,12 +37,12 @@ grids:
       - { at: [1, 0], text: '20' }
       - { at: [1, 1], text: '21' }
 items:
-  - { at: [370, 143], size: [195, 68], text: NDDMA, sub: 按形状和步长生成地址, tone: control, style: solid }
+  - { at: [370, 168], size: [195, 68], text: NDDMA, sub: 按形状和步长生成地址, tone: control, style: solid }
 links:
-  - { from: [334, 176], to: [366, 176], tone: token }
-  - { from: [569, 176], to: [606, 176], tone: token }
+  - { from: [334, 201], to: [366, 201], tone: token }
+  - { from: [569, 201], to: [606, 201], tone: token }
 texts:
   - { at: [20, 28], text: 搬哪些数由地址映射决定，目标布局决定存在哪里, strong: true }
-  - { at: [55, 263], text: 源偏移：0、1、4、5, size: 15 }
-  - { at: [635, 263], text: 目标偏移：0、1、2、3, size: 15 }
-  - { at: [20, 326], text: '反例：若误用源步长 2，第二行会取到 [12,13]，而非 [20,21]。', size: 15 }
+  - { at: [55, 288], text: 源偏移：0、1、4、5, size: 15 }
+  - { at: [635, 288], text: 目标偏移：0、1、2、3, size: 15 }
+  - { at: [20, 352], text: '反例：若误用源步长 2，第二行会取到 [12,13]，而非 [20,21]。', size: 15 }

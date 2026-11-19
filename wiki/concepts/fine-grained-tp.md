@@ -210,7 +210,7 @@ $$\text{score}(A,\, \text{词 } 6) = h_A \cdot w_6 = [1,\, 2] \cdot [1,\, -1] = 
 | 卡 1 上词 6 的权重行 | $[1,\, -1]$ | 本地词段权重 |
 | A 对词 6 的最终分数 | $1 \times 1 + 2 \times (-1) =$ **$-1$** | 经 All-to-All 送回卡 0 |
 
-vllm-ascend 还有一个「按段采样」的开关：打开后不做这次 All-to-All，各卡留着自己那段分数，采样按分段完成，见 [lm_head 页的两个默认关着的开关](lm-head.md#两个默认关着的开关)。
+旧版（`v0.23.0` / `v0.26.0rc` / GLM 快照）`vllm-ascend` 曾提供「按段采样」（`enable_reduce_sample`）实验开关，打开后不做这次 All-to-All、各卡留着自己那段分数按分段完成采样；`v0.30.0` 主基线与当前 `main` 已移除该开关，详见 [lm_head 版本差异](lm-head.md#版本差异)。
 
 ### 稠密 MLP：切法和 TP 一样，只是两头换了通信
 
@@ -233,7 +233,7 @@ attention 的最后一步是输出投影：每个 token 的各头结果拼成一
 | 模块 | 进这一层 | 本卡算出 | 送回 |
 |---|---|---|---|
 | 词表嵌入 | All-Gather 编号 | 本卡那几行的向量，其余填 0 | Reduce-Scatter |
-| lm_head | All-Gather 隐藏向量 | 全组 token 在本卡词段上的最终分数 | All-to-All，或按段采样 |
+| lm_head | All-Gather 隐藏向量 | 全组 token 在本卡词段上的最终分数 | All-to-All（旧版另含按段采样分支） |
 | 稠密 MLP | All-Gather 隐藏向量 | 全组 token 的部分和 | Reduce-Scatter |
 | attention 输出投影 | All-to-All 交换特征段 | 全组 token 的部分和 | Reduce-Scatter |
 
@@ -340,8 +340,8 @@ vllm-ascend 的特性文档给过一组实测数：DeepSeek-R1 W8A8（权重和�
 | 输出投影一项和 FlashComm2 的输出投影分组同时开 | AssertionError：`flashcomm2_oproj_tensor_parallel_size cannot be enabled simultaneously with oproj_tensor_parallel_size` | 平台检查配置 |
 | 词表嵌入一步的 token 数超过静态缓冲区 | ValueError：`embedding_tp static capacity ... < num_tokens ...; increase max_cudagraph_capture_size or max_num_batched_tokens.` | 前向 |
 | DeepSeek-V4 压缩式 attention 的输出投影：本卡的组数不能被分组大小整除 | ValueError：`n_local_groups must be divisible by oproj_tensor_parallel_size, ...` | 前向 |
-| main：分组大小为负 | ValueError：`finegrained_tp_config.<字段> must be non-negative, got ...` | 加载 Ascend 配置 |
-| main：lm_head 的打分行数不能被分组大小整除 | ValueError：`logits.shape[0] (...) must be divisible by world_size (...) for lmhead_all_to_all.` | 前向 |
+| `v0.30.0` / `main`：分组大小为负 | ValueError：`finegrained_tp_config.<字段> must be non-negative, got ...` | 加载 Ascend 配置 |
+| `v0.30.0` / `main`：lm_head 的打分行数不能被分组大小整除 | ValueError：`logits.shape[0] (...) must be divisible by world_size (...) for lmhead_all_to_all.` | 前向 |
 
 ### 开销和什么时候别开
 
@@ -349,17 +349,17 @@ vllm-ascend 的特性文档给过一组实测数：DeepSeek-R1 W8A8（权重和�
 - **DP 小时收益有限**：组大小不能超过 DP 数，DP 为 2 最多两张卡合存。
 - **组跨机时**：组内所有收集、送回都走机间链路。GLM 双机的 DP 组就是跨机的 {i, i+8}。
 - **每层都做的模块要谨慎**：输出投影和稠密 MLP 每层多一轮通信；官方实测里输出投影省了 5.8 GB，却慢了 1.5 ms。
-- **补齐**：词表嵌入和 DeepSeek-V4 attention 内的输出投影路径使用固定大小的静态缓冲区，大小取可能出现的最大 token 数，graph mode 回放要求地址不变；runner 也将这两项列为允许 DP 对齐的条件。普通输出投影算子和稠密 MLP 不在自己的入口自动补任意不等长输入，后者直接收集传入张量，须由调用侧保证形状约定。lm_head 的打分行数固定补到「最多请求数 × 每请求 decode token 数」。rc2 对 oproj/mlp 另加的图模式与步宽门槛见下节。
+- **补齐**：词表嵌入和 DeepSeek-V4 attention 内的输出投影路径使用固定大小的静态缓冲区，大小取可能出现的最大 token 数，graph mode 回放要求地址不变；runner 也将这两项列为允许 DP 对齐的条件。普通输出投影算子和稠密 MLP 不在自己的入口自动补任意不等长输入，后者直接收集传入张量，须由调用侧保证形状约定。lm_head 的打分行数固定补到「最多请求数 × 每请求 decode token 数」。`v0.30.0` 与 `main` 对 `oproj/mlp` 另加的图模式与步宽门槛见下节。
 - **空闲组也要陪跑**：开了 lm_head 分组以后，某个 DP 组这一步没有请求，也要按补齐后的行数跑一遍假的打分，让组内通信凑齐。
 - **适合的场景**：官方建议用在 PD 分离的 decode 实例上，那里常用纯 DP，每卡各存一整份非专家权重。
 
 ### 版本差异
 
-recompute scheduler 的绑定对象也从固定 main 的 oproj/embedding 改为 rc2 的 oproj/mlp；embedding 不再受原先这条绑定要求，仍须满足自身的分组与互斥校验。
+`recompute_scheduler_enable` 的绑定对象自 `v0.30.0`（含 `main`）起由旧版的 `oproj` / `embedding` 改为 `oproj` / `mlp`；`embedding` 不再受这条绑定要求，仍须满足自身的分组与互斥校验。
 
-rc2 的 oproj/mlp 组大小>1 还必须配置 PreemptOffloadConnector（可经 MultiConnector）；缺少它会在平台后置检查中直接 AssertionError。原因是这类分片请求抢占后不能依赖回 P 重算来保持相同精度，这项门槛与下面的 recompute scheduler、图模式条件必须同时满足。
+自 `v0.30.0`（含 `main`）起，`oproj` / `mlp` 组大小 `> 1` 还必须配置 `PreemptOffloadConnector`（可经 `MultiConnector`）；缺少它会在平台后置检查中直接 `AssertionError`。原因是这类分片请求抢占后不能依赖回 P 重算来保持相同精度，这项门槛与下面的 `recompute_scheduler`、图模式条件必须同时满足。
 
-**v0.30.0rc2 保留四个默认 0 的字段，增加了 oproj/mlp 真正分片的前提。** 字段仍须非负、用于 MoE 且能整除 DP；当 oproj 或 mlp 组大小>1 时，还要求 TP=1、非 NONE 图模式、D 侧 KV consumer、PCP=1。图捕获最大档覆盖不了最大可能步宽时会告警并把这两项置 0，所以“参数能解析”不表示实际生效。另一道派生校验在 oproj/mlp 任一>0 时要求 recompute_scheduler_enable=true，不能仅靠开启图或传入字典满足全部条件。
+**`v0.30.0` 主基线保留四个默认 `0` 的字段，并在 `oproj` / `mlp` 真正分片前增设六道硬前提与步宽守卫。** 字段仍须非负、用于 MoE 且能整除 DP；当 `oproj` 或 `mlp` 组大小 `> 1` 时，还要求 `TP=1`、非 `NONE` 图模式、D 侧 `kv_consumer`、`PCP=1`。图捕获最大档覆盖不了最大可能步宽时会告警并静默关闭这两项（`v0.30.0` 置 `0`，`main` 重置为 `1`），所以“参数能解析”不表示实际生效。另一道派生校验在 `oproj` / `mlp` 任一启用时要求 `recompute_scheduler_enable=true`，不能仅靠开启图或传入字典满足全部条件。
 
 按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；GLM 固定镜像 `db701c1f` 的配置类与 `v0.23.0` 逐行一致，上文 `v0.30.0rc2` / `baa023ad` 过渡行为见对应说明。vLLM 上游没有这个特性，只在 `vllm-ascend` 里。
 
@@ -377,9 +377,9 @@ rc2 的 oproj/mlp 组大小>1 还必须配置 PreemptOffloadConnector（可经 M
 file: fine-grained-tp-flow
 ```
 
-- **配置与前提**：`vllm_ascend/ascend_config.py` 的 `FinegrainedTPConfig`（五个字段、MoE 与整除检查、输出投影三条限制、启用日志），以及同文件里把词表嵌入和输出投影绑到 `recompute_scheduler_enable` 的检查；`platform.py` 里 recompute 调度器只许 D 节点的检查；`utils.py` 的 `lmhead_tp_enable()` 等五个判定和 FlashComm2 冲突检查。
+- **配置与前提**：`vllm_ascend/ascend_config.py` 的 `FinegrainedTPConfig` 与 `platform.py` / `utils.py` 校验分版本演进——历史 GLM 快照 `db701c1f`（同 `v0.23.0` / `v0.26.0rc`）有五个默认 `0` 字段（含 `olora`），把 `embedding` 和 `oproj` 绑到 `recompute_scheduler_enable`；`v0.30.0`（`c09d3e20`）收敛为四个默认 `0` 字段（移去 `olora`），改绑 `oproj` 与 `mlp` 并增 `PreemptOffloadConnector` 与图步宽清零守卫；`main`（`8d6180e2`）新增 `qkv_iproj_tensor_parallel_size` 为五个字段且全部默认值改为 `1`。`platform.py` 负责 D 节点与 `PreemptOffloadConnector` 校验，`utils.py` 提供 `lmhead_tp_enable()` 等判定与 FlashComm2 冲突检查。
 - **建组**：`vllm_ascend/distributed/parallel_state.py` 的 `_create_or_get_group`：把全部 rank 排成 PP × DP × TP 的网格，在每个 PP、TP 坐标上沿 DP 每 k 个切一组；同样大小的组只建一次，缓存复用。组名 otp、lmheadtp、emtp、mlptp。
-- **词表嵌入与 lm_head**：`ops/vocab_parallel_embedding.py` 的 `AscendVocabParallelEmbedding.__init__`（按层名换成 `get_embed_tp_group()` 或 `get_lmhead_tp_group()`，词表按新组大小切）、`_forward_embed_tp`（静态缓冲区、`all_gather_into_tensor`、掩码查表、`reduce_scatter_tensor`）、`AscendLogitsProcessor._get_logits_lmheadtp`（收集隐藏向量、打分、`all_to_all`，`enable_reduce_sample` 时跳过）。
+- **词表嵌入与 lm_head**：`ops/vocab_parallel_embedding.py` 的 `AscendVocabParallelEmbedding.__init__`（按层名换成 `get_embed_tp_group()` 或 `get_lmhead_tp_group()`，词表按新组大小切）、`_forward_embed_tp`（静态缓冲区、`all_gather_into_tensor`、掩码查表、`reduce_scatter_tensor`）、`AscendLogitsProcessor._get_logits_lmheadtp`（收集隐藏向量、打分、送回：`v0.30.0` 与 `main` 走单次 `all_to_all_single` 且已移除 `enable_reduce_sample` 分支；仅旧版 `db701c1f` / `v0.23.0` / `v0.26.0rc` 保留旧 `all_to_all` 与 `enable_reduce_sample` 跳过分支）。
 - **线性层**：`ops/linear_op.py` 的 `_get_column_parallel_op` / `_get_row_parallel_op` 按层名挑算子（`gate_up_proj`、`down_proj` 且非 MoE 层 → `MLPColumnParallelOp` / `MLPRowParallelOp`；`o_proj` → `OProjRowParallelOp`；`wo_a` / `wo_b` → DSV4 的两个算子），`is_moe_layer` 按 `first_k_dense_replace` 等判定 MoE 层；`CustomLinearOp` 的通信组同时决定权重切几份。
 - **补齐与陪跑**：`worker/model_runner_v1.py` 里开 lm_head 分组时把 `logits_indices` 补到 `max_num_reqs × uniform_decode_query_len`，空跑时照样算假的打分；输出投影或词表嵌入分组时允许 DP 补齐。
 - **GLM 的层名与后端**：`models/glm5_next.py` 的 `lm_head`、稠密 MLP 的 `gate_up_proj` / `down_proj`；DeepSeek-V4 压缩式 attention 的两段式输出投影分组写在 `attention/dsa_v1.py`。GLM 则由模型显式构造 `AscendIndexerKPoolMLAAttention`，再选择 `AscendIndexerKPoolMLABackend`；实现继承 SFA，但不能仅凭平台后端映射表把它认成普通 SFA 路径。
@@ -394,7 +394,7 @@ file: fine-grained-tp-flow
 - 「每轮固定开销在小批量时占大头」是一般经验，没有在本系统上测过 [I]；官方表里没有给出输出投影退化的分项原因。
 - GLM 双机没开：默认值为 0 [C2]，GLM 的层名 [C23]，DP 组为 {i, i+8} [C25]；打开后的每卡权重与跨机通信量，按上述源码规则和底稿数字推算，未实测 [D]；同机 8 张卡重复计算，由同一 TP 组的卡输入相同推得 [D]；DeepSeek-V4 两段式输出投影的写法见来源 24；来源 27 只是平台默认映射表，GLM 实际显式构造链见新增来源 35–37。
 - 版本差异：配置类在 v0.23 [C18]、v0.26 [C19] 与固定镜像逐行相同，main 的变化 [C20][C21]。
-- 来源 38 是 main 对 oproj/embedding 的 recompute 绑定；rc2 的字段、步宽、recompute 与 PreemptOffload 条件分别对应来源 29–33。来源 16 包含 FlashComm2 正值入口守卫，互斥判断不适用于该功能关闭时。
+- 来源 38 是历史快照 `baa023ad` 对 `oproj/embedding` 的 recompute 绑定；`v0.30.0` 周期引入的字段、步宽、recompute 与 `PreemptOffloadConnector` 条件分别对应来源 29–33。来源 16 包含 FlashComm2 正值入口守卫，互斥判断不适用于该功能关闭时。
 
 待核：
 

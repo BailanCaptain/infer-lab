@@ -1,66 +1,66 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 1040" width="860" height="1040" role="img" aria-label="独立配置脚本在 A0 推理启动前运行；apply 写端点并打印交换机命令，unset 尝试恢复端点并打印 undo。两条分支都需要操作者在交换机完成配置，A4 执行时才由网络按规则服务流量。">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 1064" width="860" height="1064" role="img" aria-label="独立配置脚本在 A0 推理启动前运行；apply 写端点并打印交换机命令，unset 尝试恢复端点并打印 undo。两条分支都需要操作者在交换机完成配置，A4 执行时才由网络按规则服务流量。">
   <title>独立配置脚本在 A0 推理启动前运行；apply 写端点并打印交换机命令，unset 尝试恢复端点并打印 undo。两条分支都需要操作者在交换机完成配置，A4 执行时才由网络按规则服务流量。</title>
   <defs><marker id="ai-qos-flow-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="ai-qos-flow-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="ai-qos-flow-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker><marker id="ai-qos-flow-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
-  <rect x="20" y="115" width="395" height="665" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="36" y="103" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">apply · 应用配置</text>
-  <rect x="445" y="115" width="395" height="665" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="461" y="103" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">unset · 恢复配置</text>
-  <rect x="20" y="840" width="820" height="175" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="36" y="828" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">配置后的请求主线</text>
-  <path d="M340 75 L340 95 L217 95 L217 145" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
-  <path d="M520 75 L520 95 L642 95 L642 145" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
-  <path d="M217 210 L217 255" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
-  <path d="M217 320 L217 365" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
-  <path d="M217 430 L217 475" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
-  <path d="M217 540 L217 660" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ai-qos-flow-ah-comm)"/>
-  <path d="M590 210 L590 240 L547 240 L547 280" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
-  <path d="M705 210 L705 240 L730 240 L730 280" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-danger)"/>
-  <path d="M547 345 L547 395" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
-  <path d="M642 460 L642 505" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
-  <path d="M642 570 L642 660" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ai-qos-flow-ah-comm)"/>
-  <path d="M217 730 L217 807 L205 807 L205 885" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
-  <path d="M642 730 L642 807 L205 807 L205 885" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ai-qos-flow-ah-control)"/>
-  <path d="M350 920 L490 920" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-token)"/>
+  <rect x="20" y="138" width="395" height="665" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="126" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">apply · 应用配置</text>
+  <rect x="445" y="138" width="395" height="665" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="461" y="126" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">unset · 恢复配置</text>
+  <rect x="20" y="864" width="820" height="175" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="852" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">配置后的请求主线</text>
+  <path d="M340 75 L340 95 L217 95 L217 168" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
+  <path d="M520 75 L520 95 L642 95 L642 168" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
+  <path d="M217 233 L217 278" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
+  <path d="M217 343 L217 388" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
+  <path d="M217 453 L217 498" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
+  <path d="M217 563 L217 683" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ai-qos-flow-ah-comm)"/>
+  <path d="M590 233 L590 263 L547 263 L547 303" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
+  <path d="M705 233 L705 263 L730 263 L730 303" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-danger)"/>
+  <path d="M547 368 L547 418" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
+  <path d="M642 483 L642 528" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
+  <path d="M642 593 L642 683" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ai-qos-flow-ah-comm)"/>
+  <path d="M217 753 L217 825 L205 825 L205 908" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-control)"/>
+  <path d="M642 753 L642 825 L205 825 L205 908" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ai-qos-flow-ah-control)"/>
+  <path d="M350 943 L490 943" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-qos-flow-ah-token)"/>
   <rect x="220" y="20" width="420" height="55" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="430" y="43.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A0 启动前 · 运行独立配置脚本</text>
   <text x="430" y="62.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">解析命令后分支</text>
-  <rect x="45" y="145" width="345" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="217.5" y="173.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">AiqosConfig.set_qos</text>
-  <text x="217.5" y="192.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">选择设备 · 读取或补采端点基线</text>
-  <rect x="45" y="255" width="345" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="217.5" y="283.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按流量等级查映射表</text>
-  <text x="217.5" y="302.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算出源标签、目标 VL 和优先级</text>
-  <rect x="45" y="365" width="345" height="65" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="217.5" y="393.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">写入端点配置</text>
-  <text x="217.5" y="412.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">读取失败跳过；写入失败须查日志</text>
-  <rect x="45" y="475" width="345" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="217.5" y="503.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">打印交换机命令 · 保存状态文件</text>
-  <text x="217.5" y="522.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">保存端点基线与本次命令</text>
-  <rect x="45" y="660" width="345" height="70" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="217.5" y="691" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">操作者登录交换机应用并核验</text>
-  <text x="217.5" y="710" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">此步由脚本之外完成</text>
-  <rect x="470" y="145" width="345" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="642.5" y="173.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">run_unset · 读取状态文件</text>
-  <text x="642.5" y="192.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">校验快照是否可恢复</text>
-  <rect x="470" y="280" width="155" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="547.5" y="308.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">有效</text>
-  <text x="547.5" y="327.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">进入恢复</text>
-  <rect x="645" y="280" width="170" height="65" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="730" y="308.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">缺失或损坏</text>
-  <text x="730" y="327.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">提示后退出 1</text>
-  <rect x="470" y="395" width="345" height="65" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="642.5" y="423.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按保存基线恢复端点</text>
-  <text x="642.5" y="442.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">部分失败会继续，须核实返回码</text>
-  <rect x="470" y="505" width="345" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="642.5" y="533.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">打印 undo · 删除状态文件</text>
-  <text x="642.5" y="552.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">未读取交换机当前状态</text>
-  <rect x="470" y="660" width="345" height="70" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="642.5" y="691" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">操作者登录交换机恢复并核验</text>
-  <text x="642.5" y="710" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">与事先备份的原配置对照</text>
-  <rect x="60" y="885" width="290" height="70" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="205" y="916" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A0 · 启动推理并建立通信</text>
-  <text x="205" y="935" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">脚本不进入逐 token 循环</text>
-  <rect x="490" y="885" width="310" height="70" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="645" y="916" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A4 · 逐层计算发生通信</text>
-  <text x="645" y="935" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">交换机按当前规则选择出口队列</text>
+  <rect x="45" y="168" width="345" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="217.5" y="196.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">AiqosConfig.set_qos</text>
+  <text x="217.5" y="215.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">选择设备 · 读取或补采端点基线</text>
+  <rect x="45" y="278" width="345" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="217.5" y="306.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按流量等级查映射表</text>
+  <text x="217.5" y="325.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算出源标签、目标 VL 和优先级</text>
+  <rect x="45" y="388" width="345" height="65" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="217.5" y="416.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">写入端点配置</text>
+  <text x="217.5" y="435.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">读取失败跳过；写入失败须查日志</text>
+  <rect x="45" y="498" width="345" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="217.5" y="526.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">打印交换机命令 · 保存状态文件</text>
+  <text x="217.5" y="545.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">保存端点基线与本次命令</text>
+  <rect x="45" y="683" width="345" height="70" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="217.5" y="714" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">操作者登录交换机应用并核验</text>
+  <text x="217.5" y="733" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">此步由脚本之外完成</text>
+  <rect x="470" y="168" width="345" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="642.5" y="196.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">run_unset · 读取状态文件</text>
+  <text x="642.5" y="215.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">校验快照是否可恢复</text>
+  <rect x="470" y="303" width="155" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="547.5" y="331.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">有效</text>
+  <text x="547.5" y="350.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">进入恢复</text>
+  <rect x="645" y="303" width="170" height="65" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="730" y="331.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">缺失或损坏</text>
+  <text x="730" y="350.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">提示后退出 1</text>
+  <rect x="470" y="418" width="345" height="65" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="642.5" y="446.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按保存基线恢复端点</text>
+  <text x="642.5" y="465.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">部分失败会继续，须核实返回码</text>
+  <rect x="470" y="528" width="345" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="642.5" y="556.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">打印 undo · 删除状态文件</text>
+  <text x="642.5" y="575.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">未读取交换机当前状态</text>
+  <rect x="470" y="683" width="345" height="70" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="642.5" y="714" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">操作者登录交换机恢复并核验</text>
+  <text x="642.5" y="733" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">与事先备份的原配置对照</text>
+  <rect x="60" y="908" width="290" height="70" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="205" y="939" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A0 · 启动推理并建立通信</text>
+  <text x="205" y="958" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">脚本不进入逐 token 循环</text>
+  <rect x="490" y="908" width="310" height="70" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="939" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A4 · 逐层计算发生通信</text>
+  <text x="645" y="958" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">交换机按当前规则选择出口队列</text>
 </svg>

@@ -24,7 +24,7 @@ links:
   - { from: [170, 152], to: [170, 178], tone: control, dashed: true }
   - { from: [272, 200], to: [367, 200], tone: token }
   - { from: [506, 152], to: [506, 314], tone: control, dashed: true }
-  - { from: [417, 218], to: [86, 425], via: [[417, 254], [44, 254], [44, 425]], tone: token }
+  - { from: [417, 218], to: [86, 425], via: [[417, 240], [44, 240], [44, 425]], tone: token }
   - { from: [193, 352], to: [193, 392], tone: control, dashed: true }
   - { from: [445, 352], to: [445, 392], tone: control, dashed: true }
   - { from: [748, 322], to: [748, 392], tone: comm }
@@ -38,4 +38,4 @@ texts:
   - { at: [608, 391], text: 远端数据, anchor: middle, size: 13 }
   - { at: [326, 481], text: 搬运、求和与等待按程序分步执行, anchor: middle, size: 13 }
   - { at: [489, 535], text: 完成条件, anchor: end, size: 13 }
-  - { at: [190, 580], text: 取得完整和后, anchor: middle, size: 13 }
+  - { at: [182, 586], text: 取得完整和后, anchor: end, size: 13 }

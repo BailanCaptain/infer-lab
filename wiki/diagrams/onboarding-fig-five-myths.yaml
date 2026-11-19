@@ -16,7 +16,7 @@ pins:
       - is_950
       - resolve_block_scales
       - _mx_quantize
-  - source: "vllm@ced6857a:vllm/model_executor/models/registry.py#L1318-L1423"
+  - source: "vllm@ced6857a:vllm/model_executor/models/registry.py#L1217-L1526"
     symbols:
       - ModelRegistry
       - resolve_model_cls

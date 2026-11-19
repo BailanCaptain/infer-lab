@@ -61,9 +61,9 @@ contradicts: []
 updated: '2026-11-19'
 ---
 
-**MoE 通信调度状态机是 `vllm-ascend` 在每次前向进入 MoE 层前，依据硬件档案（`HardwareProfile`）、专家并行规模（`ep_world_size`）、当前批 token 数与动态容量门槛（`mc2_tokens_capacity`），实时在 `AllGather`、`MC2`、`Fused MC2 / MegaMoe` 与 `AllToAll` 四类实现间自动选路的决策引擎；`WeightSwitchMixin` 则是配套的运行期权重二次重切分底座，允许线性层静态只存 1/N 分片、前向时按需异步拼全并零拷贝切换。**
+**MoE 通信调度状态机是推理引擎在每次进入 MoE 层前自动“挑路”的决策组件**：它会按当前昇腾芯片型号、专家并行卡数和这一步要算多少个 token，实时在四类卡间通信与融合算子之间切换，让小批低延迟和大批高吞吐都能走最快的通路；配套的**运行期权重动态重切分（`WeightSwitchMixin`）**则让部分线性层平时只存 $1/N$ 权重省显存、算到时再异步拼齐并原地切换视图。
 
-理解了[专家并行（EP）](expert-parallel.md)“选专家 → Dispatch 发往持有卡 → 本地算 FFN → Combine 传回源卡”之后，很快就会遇到一个现实困惑：**同一台昇腾机器跑同一个 MoE 模型（如 `Qwen3-30B-A3B`），为什么 Decode 小批走 `MC2` 或 `FUSED_MC2` 极快，到了 Prefill 大批却自动切走？不同卡型（A2、A3、310P、950DT）为什么走的路完全不一样？** 答案全部收拢在 `v0.30.0` 新抽象出的硬件档案与通信状态机里。
+理解了[专家并行（EP）](expert-parallel.md)“选专家 → Dispatch 发往持有卡 → 本地算 FFN → Combine 传回源卡”之后，很快就会遇到一个现实困惑：**同一台昇腾机器跑同一个 MoE 模型（如 `Qwen3-30B-A3B`），为什么 Decode 小批走 `MC2` 或融合算子极快，到了 Prefill 大批却自动切走？不同卡型（A2、A3、310P、950DT）为什么走的路完全不一样？** 答案全部收拢在 `v0.30.0` 新抽象出的硬件档案（`HardwareProfile`）与选路函数（`select_moe_comm_method`）里。
 
 ## 四类 MoE 通信实现各自做什么？
 
@@ -73,6 +73,20 @@ updated: '2026-11-19'
 | **`ALLTOALL`** | `AlltoAllCommImpl`：`TokenDispatcherWithAll2AllV` 变长点对点 `All-to-All-v` + `npu_grouped_matmul` | 仅把每个 token 发给被选中的目标专家卡，免全量复制 | A3 / 950DT 大批 Prefill（超出 `mc2_tokens_capacity`）及 **LoRA + EP 强制路径** |
 | **`MC2`** | `MC2CommImpl`：`npu_moe_distribute_dispatch` + 分组矩阵乘 + `npu_moe_distribute_combine` | 把 Dispatch/Combine 通信与片上核调度紧耦合，大幅压低小包同步时延 | **小批 Decode 主力**（占用 `HCCL_BUFFSIZE` 缓冲，见 [HCCL buffer](hccl-buffer.md)） |
 | **`FUSED_MC2` / `MegaMoe`** | `FusedMC2CommImpl`：旧融合算子 `dispatch_ffn_combine`（A3 `EP ≤ 32`）或新一代 **`CANN MegaMoe`**（A3 / 950DT `1 < EP ≤ 64`） | 将 Dispatch、门控上投影、SwiGLU 激活、下投影与 Combine 揉进单一超级算子，支持通信计算深度流水重叠 | A3 与 950DT 开启 `enable_fused_mc2=1` 时的高吞吐主力；**MegaMoe 走独立对称内存 `symm buffer`，不吃 `HCCL_BUFFSIZE`** |
+
+## 一笔直觉账：为什么小批选 `MC2`，大批切 `AllToAll`？
+
+先用一组**示意数**算清小批 Decode 和大批 Prefill 的根本差别：假设一台 16 逻辑设备的 Atlas A3 集群运行 `EP = 16`（`Qwen3-30B-A3B` 口径：每 token 激活 `top_k = 8` 个专家，隐藏维 `H = 2048`、BF16 占 `4 KiB/token`；常规 `MC2` 每卡缓冲上限 `L_rank = 512` token）。
+
+$$\text{单卡 AllGather 接收总量} = \text{EP} \times B_{\text{rank}} \times H \times 2\text{ B}, \qquad \text{单卡 AllToAll 发出总量} \le \text{top\_k} \times B_{\text{rank}} \times H \times 2\text{ B}$$
+
+| 场景（`EP = 16`，`top_k = 8`，`4 KiB/token`，示意） | 每卡输入 $B_{\text{rank}}$ | `AllGather` 每卡汇聚整批 | `AllToAll` 每卡只发命中专家 | 状态机选路与直觉原因 |
+| --- | --- | --- | --- | --- |
+| **小批 Decode** | **`8` token/卡**<br>（全组 128 token） | `128 × 4 KiB = 512 KiB` | 至多 `8 × 8 × 4 KiB = 256 KiB` | 数据量极小、瓶颈在多次核间同步与小包启动时延；`8 ≤ 512` 装得进片上/通信缓冲，走 **`MC2`**（或 **`FUSED_MC2`**）把通信与算子紧耦合最快 |
+| **大批 Prefill（未开 MegaMoe）** | **`2,048` token/卡**<br>（全组 32,768 token） | `32,768 × 4 KiB = 128 MiB`<br>（广播全组，大量无用 token） | 至多 `2,048 × 8 × 4 KiB = 64 MiB`<br>（只发去命中的专家卡） | `2,048 > 512` 超出常规 `MC2` 每卡 `HCCL_BUFFSIZE` 上限；大批下带宽占主导，自动切 **`ALLTOALL`** 免去无用广播、流量立省一半以上 |
+| **大批 Prefill（开启 `CANN MegaMoe`）** | **`2,048` token/卡** | — | — | `MegaMoe` 改用独立对称内存 `symm buffer`，每卡上限拉高到 `16,384` token（`2,048 ≤ 16,384`），连大 Prefill 也能留在 **`FUSED_MC2`** 融合流水线内 |
+
+反过来，如果集群极小（例如昇腾 950 上 `world_size <= top_k`，比如 4 张卡却要选 8 个专家），几乎每个 token 的路由目标都覆盖全部卡，`AllToAll` 反而失去了“少发”的优势，因此 950 策略在超限后会回退到 **`ALLGATHER`**。看懂这三笔账，下面四族硬件的状态机分支就一目了然。
 
 ## 四族硬件调度状态机：`hardware_profile.py` + `ascend_forward_context.py`
 

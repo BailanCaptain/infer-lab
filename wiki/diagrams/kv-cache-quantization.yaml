@@ -25,7 +25,7 @@ links:
   - { from: [174, 92], to: [196, 92] }
   - { from: [400, 92], to: [424, 92] }
   - { from: [590, 92], to: [616, 92] }
-  - { from: [160, 124], to: [160, 214], tone: token, dashed: true }
+  - { from: [160, 124], to: [214, 214], via: [[160, 144], [214, 144]], tone: token, dashed: true }
   - { from: [646, 126], to: [440, 214], via: [[646, 194], [440, 194]], tone: kv }
   - { from: [806, 126], to: [806, 214], tone: kv }
   - { from: [154, 286], to: [310, 368], via: [[154, 368]] }
@@ -33,7 +33,7 @@ links:
   - { from: [726, 286], to: [570, 368], via: [[726, 368]] }
 texts:
   - { at: [24, 36], text: 普通 C8、非 PD 的 BF16 示例：第 4 站, size: 13, strong: true }
-  - { at: [170, 150], text: 浮点那份留给本步, size: 13, note: true }
+  - { at: [224, 152], text: 浮点那份留给本步, size: 13, note: true }
   - { at: [310, 306], text: 临时张量另占显存, size: 13, note: true }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L1568-L1643

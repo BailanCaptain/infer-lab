@@ -146,7 +146,7 @@ $$\text{Bytes}_{\text{layer-page}} = 2 \times B \times \frac{n_{\text{kv}}}{T} \
 | 启动配置场景 | `v0.30.0` 生效块长 | 触发条件与运行时行为 |
 | --- | --- | --- |
 | **默认不传 `--block-size`**（BF16 / FP16 / C8 INT8） | **`128`** | `refresh_block_size` 与 `AscendAttentionBackend` 首选块长一致落定 `128`；若启用 `C8 INT8` 还会额外校验 `block_size % 32 == 0` |
-| **显式传 `--block-size 16 / 32 / 64`**（常规模型） | **默认静默改回 `128`** | 只要 `enable_prefix_caching` 或 `enable_chunked_prefill` 任一开启（V1 默认双开），即打印提示并强制重置为 `128`；开启 `xlite` 图模式且 `> 128` 时也会钳回 `128` |
+| **显式传 `--block-size 16 / 32 / 64`**（常规模型） | **默认打印 info 日志并改回 `128`** | 只要 `enable_prefix_caching` 或 `enable_chunked_prefill` 任一开启（V1 默认双开），即打印 `logger.info` 提示并强制重置为 `128`；开启 `xlite` 图模式且 `> 128` 时也会钳回 `128` |
 | **开启 `--kv-cache-dtype mxfp8`**（`C8_MXFP`） | **`512`（或其整数倍）** | QFA 内核要求整 `512`-token 块（`A5_C8_MXFP_KV_CACHE_BLOCK_SIZE = 512`）：未传 `--block-size` 时自动抬升为 `512`；显式错传非 `512` 倍数直接抛 `ValueError` |
 | **特殊模型与混合架构**（`deepseek_v4` / Attention+Mamba） | **按模型规则对齐** | `deepseek_v4` 限定 `{32, 64, 128}`（越界告警改回 `32`）；Attention+Mamba 混合模型跳过通用 `128` 覆盖，交由多缓存组对齐逻辑处理 |
 
@@ -159,7 +159,7 @@ file: paged-attention-fig-myths
 ```
 
 - **“上了 PagedAttention，KV 显存浪费就变成 0 了。”** 错。彻底归零的是物理块之间的**外部碎片**；每条在途请求的最后一块只要没写满，仍留有至多 `block_size - 1` 个位置的**有界内部余量**（投机解码草稿槽位与混合状态页另计）。
-- **“命令行写了 `--block-size 16`，昇腾上就一定按 16 切块。”** 错。V1 引擎默认同时开启前缀缓存与分块预填充，常规非混合模型只要其中任一项开着，`refresh_block_size` 就会把非 `128` 的块长静默改回 `128`。
+- **“命令行写了 `--block-size 16`，昇腾上就一定按 16 切块。”** 错。V1 引擎默认同时开启前缀缓存与分块预填充，常规非混合模型只要其中任一项开着，`refresh_block_size` 就会打印一条 `logger.info` 提示并把非 `128` 的块长自动改回 `128`。
 - **“算注意力前，Worker 会先把分散的物理块拼回一段连续张量。”** 错。若每步都把历史块重拷拼接一遍，分页省下的带宽和显存当场归零；真实算子直接拿整数块表在离散物理块上原地寻址。
 - **“Profiling 里只看到 `FIA` 没看到 `PagedAttention` 算子，说明分页没生效。”** 错。分页是 KV 缓存的存储与寻址机制；昇腾主力算子 `npu_fused_infer_attention_score` 原生接收 `block_table` 完成分页读取，不依赖同名算子。
 - **“请求一结束，`free_blocks` 就会把物理块里的 K、V 清零。”** 错。归还动作只在 CPU 上递减 `ref_cnt` 并把空闲块挂回双向链表（无哈希插队头、带哈希挂队尾作 LRU 候选），HBM 里的数值原封不动留到下次被覆写或直接被后续相同前缀命中复用。

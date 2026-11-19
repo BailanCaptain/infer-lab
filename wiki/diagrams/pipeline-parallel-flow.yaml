@@ -1,12 +1,12 @@
 layout: figure
 id: pipeline-parallel-flow
 caption: 4 个 token × 8 个隐藏通道的整张矩阵依次通过四段，数值与下方 3D 一致。每层加 1 仅示意交接，真实层包含 attention 和 MLP。右边的完整输出就是下一格左边的输入；权重和本层 KV cache 留在所属卡。
-size: [880, 1020]
+size: [880, 1084]
 frames:
-  - { label: '① 卡 0 · 计算第 0、1 层', at: [8, 30], size: [864, 222] }
-  - { label: '② 卡 1 · 接收上一段的整张输出', at: [8, 280], size: [864, 222] }
-  - { label: '③ 卡 2 · 接收上一段的整张输出', at: [8, 530], size: [864, 222] }
-  - { label: '④ 卡 3 · 接收上一段的整张输出', at: [8, 780], size: [864, 222] }
+  - { label: '① 卡 0 · 计算第 0、1 层', at: [8, 30], size: [864, 238] }
+  - { label: '② 卡 1 · 接收上一段的整张输出', at: [8, 296], size: [864, 238] }
+  - { label: '③ 卡 2 · 接收上一段的整张输出', at: [8, 562], size: [864, 238] }
+  - { label: '④ 卡 3 · 接收上一段的整张输出', at: [8, 828], size: [864, 238] }
 grids:
   - at: [76, 88]
     rows: 4
@@ -90,8 +90,8 @@ grids:
       - { at: [3, 5], text: '3' }
       - { at: [3, 6], text: '0' }
       - { at: [3, 7], text: '6' }
-  - { at: [76, 338], rows: 4, cols: 8, cell: [26, 28], gap: 0, rowLabels: [今天, 天气, 很, 好], tone: token, label: 卡 0 的完整输出, cells: *after0 }
-  - at: [592, 338]
+  - { at: [76, 354], rows: 4, cols: 8, cell: [26, 28], gap: 0, rowLabels: [今天, 天气, 很, 好], tone: token, label: 卡 0 的完整输出, cells: *after0 }
+  - at: [592, 354]
     rows: 4
     cols: 8
     cell: [26, 28]
@@ -132,8 +132,8 @@ grids:
       - { at: [3, 5], text: '5' }
       - { at: [3, 6], text: '2' }
       - { at: [3, 7], text: '8' }
-  - { at: [76, 588], rows: 4, cols: 8, cell: [26, 28], gap: 0, rowLabels: [今天, 天气, 很, 好], tone: token, label: 卡 1 的完整输出, cells: *after1 }
-  - at: [592, 588]
+  - { at: [76, 620], rows: 4, cols: 8, cell: [26, 28], gap: 0, rowLabels: [今天, 天气, 很, 好], tone: token, label: 卡 1 的完整输出, cells: *after1 }
+  - at: [592, 620]
     rows: 4
     cols: 8
     cell: [26, 28]
@@ -174,8 +174,8 @@ grids:
       - { at: [3, 5], text: '7' }
       - { at: [3, 6], text: '4' }
       - { at: [3, 7], text: '10' }
-  - { at: [76, 838], rows: 4, cols: 8, cell: [26, 28], gap: 0, rowLabels: [今天, 天气, 很, 好], tone: token, label: 卡 2 的完整输出, cells: *after2 }
-  - at: [592, 838]
+  - { at: [76, 886], rows: 4, cols: 8, cell: [26, 28], gap: 0, rowLabels: [今天, 天气, 很, 好], tone: token, label: 卡 2 的完整输出, cells: *after2 }
+  - at: [592, 886]
     rows: 4
     cols: 8
     cell: [26, 28]
@@ -218,24 +218,24 @@ grids:
       - { at: [3, 7], text: '12' }
 items:
   - { at: [352, 112], size: [176, 64], text: '第 0 → 1 层', sub: '每格 +1，再 +1', tone: weight }
-  - { at: [352, 362], size: [176, 64], text: '第 2 → 3 层', sub: '每格 +1，再 +1', tone: weight }
-  - { at: [352, 612], size: [176, 64], text: '第 4 → 5 层', sub: '每格 +1，再 +1', tone: weight }
-  - { at: [352, 862], size: [176, 64], text: '第 6 → 7 层', sub: '每格 +1，再 +1', tone: weight }
+  - { at: [352, 378], size: [176, 64], text: '第 2 → 3 层', sub: '每格 +1，再 +1', tone: weight }
+  - { at: [352, 644], size: [176, 64], text: '第 4 → 5 层', sub: '每格 +1，再 +1', tone: weight }
+  - { at: [352, 910], size: [176, 64], text: '第 6 → 7 层', sub: '每格 +1，再 +1', tone: weight }
 links:
   - { from: [284, 144], to: [350, 144], tone: token }
   - { from: [528, 144], via: [[542, 144], [542, 74], [696, 74]], to: [696, 86], tone: token }
-  - { from: [284, 394], to: [350, 394], tone: token }
-  - { from: [528, 394], via: [[542, 394], [542, 324], [696, 324]], to: [696, 336], tone: token }
-  - { from: [284, 644], to: [350, 644], tone: token }
-  - { from: [528, 644], via: [[542, 644], [542, 574], [696, 574]], to: [696, 586], tone: token }
-  - { from: [284, 894], to: [350, 894], tone: token }
-  - { from: [528, 894], via: [[542, 894], [542, 824], [696, 824]], to: [696, 836], tone: token }
+  - { from: [284, 410], to: [350, 410], tone: token }
+  - { from: [528, 410], via: [[542, 410], [542, 340], [696, 340]], to: [696, 352], tone: token }
+  - { from: [284, 676], to: [350, 676], tone: token }
+  - { from: [528, 676], via: [[542, 676], [542, 606], [696, 606]], to: [696, 618], tone: token }
+  - { from: [284, 942], to: [350, 942], tone: token }
+  - { from: [528, 942], via: [[542, 942], [542, 872], [696, 872]], to: [696, 884], tone: token }
 texts:
-  - { at: [180, 236], text: '8 个隐藏通道 →', anchor: middle, note: true }
-  - { at: [696, 236], text: '行列顺序保留 · 整张发送', anchor: middle, note: true }
-  - { at: [180, 486], text: '逐格对应上一格的输出', anchor: middle, note: true }
-  - { at: [696, 486], text: '行列顺序保留 · 整张发送', anchor: middle, note: true }
-  - { at: [180, 736], text: '逐格对应上一格的输出', anchor: middle, note: true }
-  - { at: [696, 736], text: '行列顺序保留 · 整张发送', anchor: middle, note: true }
-  - { at: [180, 986], text: '逐格对应上一格的输出', anchor: middle, note: true }
-  - { at: [696, 986], text: '之后还有归一化、打分和采样', anchor: middle, note: true }
+  - { at: [180, 250], text: '8 个隐藏通道 →', anchor: middle, note: true }
+  - { at: [696, 250], text: '行列顺序保留 · 整张发送', anchor: middle, note: true }
+  - { at: [180, 516], text: '逐格对应上一格的输出', anchor: middle, note: true }
+  - { at: [696, 516], text: '行列顺序保留 · 整张发送', anchor: middle, note: true }
+  - { at: [180, 782], text: '逐格对应上一格的输出', anchor: middle, note: true }
+  - { at: [696, 782], text: '行列顺序保留 · 整张发送', anchor: middle, note: true }
+  - { at: [180, 1048], text: '逐格对应上一格的输出', anchor: middle, note: true }
+  - { at: [696, 1048], text: '之后还有归一化、打分和采样', anchor: middle, note: true }

@@ -73,5 +73,5 @@ tags:
   - { at: [700, 412], text: 清不干净：报错终止 }
 
 pins:
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L521-L710
-    symbols: [acquire_seed, transfer_from_seed, prepare_for_fallback, get_model]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L747-L957
+    symbols: [register_destination, acquire_seed, transfer_from_seed, prepare_for_fallback, _load_with_default_loader]

@@ -1,0 +1,14 @@
+mode: native-svg
+id: troubleshooting-fig-first-fault
+caption: >-
+  多卡交错日志分流示意：同一通信组里只要 Rank 3 在前序算子或图捕获阶段先行失败离场，其余正常卡都会停在集合通信屏障处直至触发 EI0006 超时。排障时必须按时间戳与主故障优先级倒查最早报错的 Rank，而不是拿日志末尾的 EI0006 或退出码 137 直接下结论。
+size: [900, 408]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L461-L473
+    symbols: [init_snapshot, requested_memory, gpu_memory_utilization]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L906-L952
+    symbols: [capture_model, non_kv_memory, available_kv_cache_memory_bytes]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L942-L951
+    symbols: [VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS]
+  - source: vllm@ced6857a:vllm/v1/engine/utils.py#L262-L285
+    symbols: [exitcode, finished_procs]

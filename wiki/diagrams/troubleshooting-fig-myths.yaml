@@ -1,0 +1,16 @@
+mode: native-svg
+id: troubleshooting-fig-myths
+caption: >-
+  推理排障五组高频误判 vs v0.30.0 源码真相：拆穿「最后一条 EI0006 就是根因」「退出码 137 等于 NPU HBM OOM」「关掉特性跑通就算修好」「开关没报错就证明已生效」「没有日志等于设备没执行」五类典型排障陷阱。
+size: [900, 508]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L461-L473
+    symbols: [init_snapshot, requested_memory]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L942-L951
+    symbols: [VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L545-L565
+    symbols: [model_config]
+  - source: vllm@ced6857a:vllm/v1/engine/utils.py#L262-L285
+    symbols: [exitcode, finished_procs]
+  - source: vllm@ced6857a:vllm/v1/engine/async_llm.py#L848-L860
+    symbols: [abort, abort_requests_async]

@@ -114,7 +114,8 @@
     "roofline-and-metrics",
     "ascend-flash-attention",
     "low-precision-formats",
-    "core-cli-params"
+    "core-cli-params",
+    "inference-troubleshooting"
   ],
   "skip": {
     "learning-guide": ["source-sections", "diagram-first"]

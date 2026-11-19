@@ -40,7 +40,7 @@ texts:
   - { at: [460, 404], text: 回退加载完的模型同样交出，也照样可以去当 seed, anchor: middle, note: true }
 
 pins:
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L12-L50
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/types.py#L14-L81
     symbols: [TRANSFERRED, READY, SERVING, DEFERRED, can_schedule_seed]
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L296-L347
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L490-L559
     symbols: [start_seed_service, DEFERRED]

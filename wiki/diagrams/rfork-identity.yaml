@@ -92,7 +92,7 @@ texts:
   - { at: [452, 208], text: 一字不差 · 可借, anchor: middle, size: 12, tone: control }
   - { at: [520, 436], text: 指纹不同：编号一样也配不上, anchor: end, tone: danger, strong: true }
 pins:
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/identity.py#L196-L287
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/identity.py#L229-L349
     symbols: [build_compatibility_fingerprint, build_seed_key]
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L441-L463
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L674-L710
     symbols: [_ensure_rfork_session]

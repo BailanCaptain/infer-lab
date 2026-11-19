@@ -43,7 +43,7 @@ texts:
   - { at: [600, 400], text: ③ 停服务、注销成功才回退, tone: danger }
   - { at: [300, 400], text: A 当初也是这样加载的, anchor: end, note: true }
 pins:
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L610-L710
-    symbols: [acquire_seed, transfer_from_seed, prepare_for_fallback, can_schedule_seed]
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L38-L49
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L833-L957
+    symbols: [register_destination, acquire_seed, transfer_from_seed, prepare_for_fallback, can_schedule_seed]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/types.py#L68-L81
     symbols: [RForkFallbackCleanupResult, service_stopped, memory_reset, can_schedule_seed]

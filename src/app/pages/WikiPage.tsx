@@ -502,7 +502,9 @@ function Landing({
       <section className="wt-landing-tools" data-testid="wiki-landing-tools" aria-label="交互工程工作台">
         <div className="wt-landing-tools-head">
           <h2 className="wt-landing-tools-title">交互工程工作台</h2>
-          <p className="wt-landing-tools-note">源码级显存账本与起服务联检，不改阅读路线即可随手验算</p>
+          <p className="wt-landing-tools-note">
+            四大源码级工程实验室，不改阅读路线即可随手算账、体检、排障与对拍
+          </p>
         </div>
         <div className="wt-landing-tools-grid">
           <Link
@@ -525,6 +527,28 @@ function Landing({
             </span>
             <span className="wt-landing-tool-card-desc">
               单机与 P/D 分离双实例规则联检、静默改写与源码锚点
+            </span>
+          </Link>
+          <Link
+            className="wt-landing-tool-card"
+            to="/tools?tab=troubleshoot"
+            data-testid="landing-tool-troubleshoot"
+          >
+            <span className="wt-landing-tool-card-top">
+              <span>③ 交互式排障工作台</span>
+              <ArrowRight size={14} aria-hidden="true" />
+            </span>
+            <span className="wt-landing-tool-card-desc">
+              真实日志与 /metrics 首错 Rank 定位，叠加以物理隔离的 6 故障相对时序沙箱
+            </span>
+          </Link>
+          <Link className="wt-landing-tool-card" to="/tools?tab=aicore" data-testid="landing-tool-aicore">
+            <span className="wt-landing-tool-card-top">
+              <span>④ AI Core 算子实验室</span>
+              <ArrowRight size={14} aria-hidden="true" />
+            </span>
+            <span className="wt-landing-tool-card-desc">
+              QuantMatmul + AddRMSNorm 泳道、910B vs 950 片上直通与跨组离群量化沙箱
             </span>
           </Link>
         </div>

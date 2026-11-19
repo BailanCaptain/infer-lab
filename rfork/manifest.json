@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "seedFile": "wiki/seeds/rfork.yaml",
+  "seedFile": "rfork/archived-seed.yaml",
   "repo": "rfork",
   "ref": "main",
   "label": "RFork 工作版（patch7 完整历史）",

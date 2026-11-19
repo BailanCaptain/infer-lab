@@ -43,7 +43,7 @@
     { "at": [450, 321], "text": "读权重字节", "anchor": "middle", "tone": "comm" }
   ],
   "pins": [
-    { "source": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L364-L392", "symbols": ["seed_port_base", "start_rfork_server", "report_seed_once"] },
-    { "source": "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L220-L229", "symbols": ["get_open_port", "initialize"] }
+    { "source": "vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L588-L625", "symbols": ["seed_port_base", "start_rfork_server", "report_seed_once"] },
+    { "source": "vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L239-L268", "symbols": ["initialize", "get_rpc_port"] }
   ]
 }

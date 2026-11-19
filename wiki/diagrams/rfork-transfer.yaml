@@ -82,13 +82,13 @@ texts:
   - { at: [765, 578], text: 读完：三段填满，和 A 一模一样, anchor: middle, note: true }
 
 pins:
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148
-    symbols: [transfer_from_seed, register_memory_region, fetch_seed_transfer_info, read_weights_from_seed]
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/manifest.py#L164-L252
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L115-L276
+    symbols: [register_destination, register_memory_region, transfer_from_seed, fetch_seed_transfer_info, read_weights_from_seed]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/manifest.py#L87-L214
     symbols: [validate_weight_manifest]
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L121-L152
-    symbols: [iter_transfer_chunks, MAX_TRANSFER_CHUNK_BYTES, MAX_TRANSFER_CHUNK_WEIGHTS]
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L645-L693
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L38-L165
+    symbols: [iter_transfer_chunks, MAX_TRANSFER_CHUNK_BYTES, MAX_TRANSFER_CHUNK_SEGMENTS]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L904-L936
     symbols: [prepare_for_fallback, _reset_process_global_model_state, can_schedule_seed]
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L38-L49
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/types.py#L68-L81
     symbols: [RForkFallbackCleanupResult, service_stopped, memory_reset, can_schedule_seed]

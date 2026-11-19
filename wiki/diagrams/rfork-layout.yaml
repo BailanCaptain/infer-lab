@@ -22,7 +22,7 @@ texts:
   - { at: [40, 185], text: 先读后处理, size: 15 }
 
 pins:
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L584-L644
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L816-L875
     symbols: [process_weights_after_loading, synchronize]
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L503-L519
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L729-L746
     symbols: [_requires_processed_layout_transfer]

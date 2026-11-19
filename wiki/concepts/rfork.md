@@ -1,10 +1,10 @@
 ---
 id: rfork
-title: RFork：工作版机制与排错总览
+title: RFork：权重远端复用机制与排错总览
 type: feature
 summary: >-
-  新实例启动时可按地址读取兼容来源显存中的权重；借不到或读取失败时，停止 seed 服务并安全清理登记内存后可退回默认加载。本页是 RFork
-  工作版的入口：借的步骤、四种「成功」、GLM 双机推演和全章唯一的版本对照。
+  新实例启动时可按地址读取兼容来源显存中的权重；借不到或读取失败时，停止 seed 服务并安全清理登记内存后可退回默认加载。本页是社区上游
+  vllm-ascend main（8d6180e2）RFork 专题的入口：借的步骤、四种「成功」、GLM 双机推演和全章唯一的四版本对照。
 aliases:
   - RFork
   - rfork
@@ -16,63 +16,50 @@ aliases:
 chapters: []
 order: 10
 sources:
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L521-L644'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L732-L793'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L296-L347'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L645-L710'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/identity.py#L196-L287'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L81-L109'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/manifest.py#L198-L252'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L33-L35'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L747-L877'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L115-L276'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L783-L876'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L490-L559'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L878-L957'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/identity.py#L229-L349'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L153-L204'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/manifest.py#L87-L214'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L38-L45'
   - 'https://github.com/vllm-project/vllm-ascend/pull/12995'
   - 'https://github.com/vllm-project/vllm-ascend/pull/15439'
-  - >-
-    vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/transfer_backend.py#L258-L300
-  - >-
-    vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/transfer_backend.py#L149-L246
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L155'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L192-L230'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L469-L484'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L150-L213'
-  - >-
-    vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L230-L295
-  - >-
-    vllm-ascend@2ed6cbba:vllm_ascend/model_loader/rfork/rfork_loader.py#L225-L290
-  - >-
-    vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/rfork_loader.py#L340-L410
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L121-L152'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L373-L383'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L12-L49'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/seed_client.py#L89-L96'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L207-L217'
+  - 'vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/transfer_backend.py#L258-L300'
+  - 'vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/transfer_backend.py#L149-L246'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/planner_client.py#L137-L287'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L207-L288'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L531-L567'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L289-L445'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L230-L295'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/model_loader/rfork/rfork_loader.py#L225-L290'
+  - 'vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/rfork_loader.py#L340-L410'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L128-L165'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/safety.py#L9-L21'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/types.py#L14-L81'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/seed_client.py#L58-L110'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L227-L273'
   - >-
     raw:sha256-9b6dec7112ddc012b981abdc59dde0be677825420760e49b3762f8533a304e33.md#L1-L1185
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/rfork_loader.py#L471-L524'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/rfork_loader.py#L630-L704'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/identity.py#L219-L339'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/tensor_layout.py#L42-L61'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/manifest.py#L64-L214'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L100-L188'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L261-L364'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L495-L554'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/planner_client.py#L117-L245'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/transfer_backend.py#L224-L269'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/rfork_loader.py#L600-L710'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/identity.py#L219-L339'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/local_weights.py#L61-L97'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/tensor_layout.py#L34-L69'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/seed_server.py#L178-L198'
   - 'vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/transfer_backend.py#L298-L459'
   - 'vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/transfer_backend.py#L31-L100'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L40-L51'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/seed_server.py#L141-L167'
   - 'vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/transfer_backend.py#L529-L592'
 verified:
-  - 'rfork:main'
-  - releases/v0.30.0rc2
+  - main
 evidence: C
 relations:
   - to: npu-worker-lifecycle
     kind: builds-on
     note: RFork 在 Worker 加载模型时运行，推理请求开始前就要把权重准备好
 contradicts: []
-updated: '2026-10-25'
+updated: '2026-11-19'
 rawSources:
   - >-
     raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md
@@ -115,7 +102,7 @@ file: rfork-two-paths
 |---|---|
 | 仍要做的事 | B 照样自己搭模型；要转布局的模型（开了量化、权重 NZ 模式为 2 或硬件要求 NZ，见[张量布局](rfork-layout.md#先看-b-要不要转布局)）还要先对空参数跑一遍后处理（转置、转存储格式），让空位的形状、类型、格式和 seed 显存里的一模一样，才能按字节对拷 |
 | 必须同身份 | 配对键中的模型版本、并行切法、精度、量化与布局描述须一致；这些字段不校验权重内容，相同路径下替换了文件仍须由部署方确认内容版本 |
-| 得先有 seed | 没有同身份来源时借不到。工作版在问 Planner 之前已搭空模型，必要时还做了布局后处理；回退会重做这些步骤，增加了启动工作，实际耗时差要测量 |
+| 得先有 seed | 没有同身份来源时借不到。当前主线在问 Planner 之前已搭空模型、准备布局并登记本地显存以绑定结构摘要；回退会重做模型构建与加载，增加了启动工作，实际耗时差要测量 |
 | 多两个依赖 | 外部的 Planner 服务，和提供卡间读取的 YuanRong 传输库 |
 
 所以收益不是「读成功」就自动有的：它取决于原来的存储有多慢、卡间网络多快、后处理要多久、其他启动步骤占多少。要不要用，得在自己的集群上对比两种启动的耗时，测法见[配置与部署](rfork-config.md)。
@@ -126,14 +113,14 @@ file: rfork-two-paths
 
 以 B 上的一个 Worker 为例，顺序如下；每一步的细节在箭头后的子页里。
 
-1. **建会话、算身份。** 先准备传输后端与会话，把模型、版本、精度、量化方式、TP / PP / DP 各组的大小、是否开 EP、存储格式等做成一个哈希，叫兼容性指纹（EP 组大小那一栏实际为空，由前面几项隐含，见[部署指纹里写了什么](rfork-identity.md#部署指纹里写了什么)）；再加上本卡在 TP、PP、EP 组里的编号，以及「是不是投机解码的草稿模型」，合成一把 seed key。此时还没向 Planner 借租约。→ [身份匹配](rfork-identity.md)
-2. **搭空模型。** 在卡上把模型建好，放权重的地方先空着。要转布局的模型还要先对空参数跑后处理，并等卡上异步的格式转换全部做完，再把这些空位交出去。全部可传权重已与主模型共享的草稿可在这里提前返回；下面继续讲需要远端读取的路径。→ [启动路径](rfork-startup.md)、[张量布局](rfork-layout.md)
-3. **向 Planner 借。** 拿 seed key 去问；借到就拿回 seed 的 IP、端口和一张租约，借不到就直接回退。
-4. **登记本地内存。** 把空位所在的显存登记给传输引擎；读写的两端都要先登记过，seed 那边的权重在它当 seed 时就已登记好。→ [传输](rfork-transfer.md)
-5. **要清单。** 向 seed 上的 HTTP 服务要它的传输端点，以及每个张量的名字、地址、形状、类型和字节数。
-6. **核清单。** 两边的张量名字要对得上；逐个核形状、元素个数、每个元素几字节、类型；张量条数和总字节数两边也要相等。
+1. **建会话、算配置指纹。** 先检查绕过条件（sleep mode、在线权重传输或 EPLB），再准备会话对象，把协议版本、模型标识、模型版本、量化配置摘要、架构、RoPE、有效 `kv_role` 与 `mix_placement` 做成兼容性指纹；分片编号（TP / PP / EP、需要时的 DP 分片编号 `sharded_dp_rank`）和主/草稿角色也记进身份，但 `seed_key` 等结构摘要算完才绑定。→ [身份匹配](rfork-identity.md)
+2. **搭空模型与准备布局。** 在卡上把模型建好，恢复 MTP/DSpark 所需的 checkpoint 归属状态并加载 Engram 宿主表（如启用）。全部可传权重已与主模型共享的草稿可在这里提前返回（`source=shared_target`）。要转布局的模型先对空参数跑后处理，并等卡上异步的格式转换全部做完。→ [启动路径](rfork-startup.md)、[张量布局](rfork-layout.md)
+3. **登记本地内存并绑定 `seed_key`。** 先把空位所在的显存登记给传输引擎，并从登记扫描得到的张量清单（稳定 ID、形状、dtype 与 NPU 存储格式）算出结构摘要，结合兼容性指纹和分片角色绑定最终 `seed_key`。这样登记耗时移到了租约有效期之外。→ [传输](rfork-transfer.md)
+4. **向 Planner 借。** 拿已绑定的 `seed_key` 去问；借到就拿回 seed 的 IP、端口、租约编号（及可选的 `LEASE_TTL_SEC`，有 TTL 时启动后台续租线程），借不到就直接回退。
+5. **要清单。** 向 seed 上的 HTTP 服务要协议版本、传输端点、权重五元组与每个张量的 NPU 存储格式清单。
+6. **核清单。** 两边的张量名字（扣除已验证的共享跳过项）要对得上；逐个核形状、元素个数、每个元素几字节、dtype 与 NPU 存储格式；张量条数和总字节数两边也要相等。
 7. **按批读。** 每个张量读「元素个数 × 每元素字节」，装成一批批同步读取，一批读完再读下一批。
-8. **后台还租约，尝试发布，再交回模型。** 数据读完即安排后台归还；启动线程继续完成适用的后处理和 `eval()`，先尝试让 B 成为 seed，再返回模型。租约已经归还时可启动 seed 服务、登记并定时心跳；还没归还时则延期发布，模型仍可交回，后续由后台补办。→ [租约与生命周期](rfork-lifecycle.md)
+8. **后台还租约，尝试发布，再交回模型。** 数据读完即停止续租并安排后台归还；启动线程继续完成适用的后处理（或 processed 路径的 FlatQuant 宿主标量刷新）和 `eval()`，先尝试让 B 成为 seed，再返回模型。租约已经归还时可启动 seed 服务、登记并定时心跳；还没归还时则延期发布，模型仍可交回，后续由后台补办。→ [租约与生命周期](rfork-lifecycle.md)
 
 前述 RFork 加载尝试借不到来源或抛错时，先尝试停止 seed 服务、注销登记内存并恢复模型状态。已有会话返回的清理结果只有满足 `service_stopped && memory_reset`，才允许继续分配默认加载的模型；停服务或内存清理不成功时保留存储持有者并报错，避免旧资源仍被使用时再分配第二份模型。租约尚未归还本身不挡回退，归还仍可由后台重试。默认加载能否成功、加载后能否发布为 seed，还要分别看后续结果。
 
@@ -178,65 +165,65 @@ Planner 和 seed 的 HTTP 接口都不搬权重本身。B 从元数据里拿到 
 | 日志说租约归还被确认 | Planner 对归还请求回了 200（找到并收回），或回了 404（那里已经没有这张租约） | 整段传输期间租约一直有效；回 404 时，连「是按时还上的」都说明不了 |
 | 日志说 seed 服务已启动 | B 上的 seed 服务起来了，并完成第一次登记 | 之后一直健康、下一个实例一定能匹配到它 |
 
-传输成功后，归还租约的 HTTP 请求由后台线程发送，启动线程不等待这次网络归还完成。归还还没被确认时，「B 成为新 seed」这件事先记成延期，模型照常交回；后台默认最多试 3 次、每次隔 30 秒，确认后再补上 seed 服务和登记。Planner 明确拒绝（比如回 400），或者 3 次都没成功，就放弃这次延期的登记：B 照常推理，只是不当 seed。seed 服务没起来，也不会把已经加载好的模型扔掉——模型照样交回，只是 B 暂时不当别人的来源。
+传输成功后，归还租约的 HTTP 请求由后台线程发送，启动线程不等待这次网络归还完成。归还还没被确认时，「B 成为新 seed」这件事先记成延期，模型照常交回；后台默认先进行 3 次快速尝试（每次隔 30 秒），遇到暂态错误（408、429、5xx 或网络异常）在 3 次后转入至少 60 秒间隔的慢速重试，确认后再补上 seed 服务和登记。Planner 明确拒绝（比如回 400）则立即停止并放弃延期登记：B 照常推理，只是不当 seed。seed 服务没起来，也不会把已经加载好的模型扔掉——模型照样交回，只是 B 暂时不当别人的来源。
 
 ## 同一个词分属不同层：软件栈、角色与编号
 
 读 RFork 最容易混的是**同一个词分属不同层**：一个 seed 不是整个模型集群，一个地址不是一个张量的身份，一个 lease 不是内存锁。
 
-先把软件栈分层：**NPU** 是实际存放和计算张量的加速卡；**PyTorch** 提供张量、参数、模块这些模型对象；**torch_npu** 把 PyTorch 接到昇腾设备上；**CANN** 是昇腾的计算软件栈。**YuanRong 数据系统**（Python 包名 yr.datasystem）提供 RFork 用的数据传输能力，不参与逐 token 推理。RFork 用到的传输引擎、内存登记、错误码三样都从这个包导入，导入不到就直接抛导入错误（ImportError），原文见[会报什么错](#会报什么错)——传输本身不是 RFork 自己实现的。所以排错时要分别报上各层的版本，RFork 的 Python 代码决定不了底层设备调用怎么表现。
+先把软件栈分层：**NPU** 是实际存放和计算张量的加速卡；**PyTorch** 提供张量、参数、模块这些模型对象；**torch_npu** 把 PyTorch 接到昇腾设备上；**CANN** 是昇腾的计算软件栈。**YuanRong 数据系统**（Python 包名 `yr.datasystem`）提供 RFork 用的数据传输能力，不参与逐 token 推理。RFork 用到的传输引擎、内存登记、错误码三样都从这个包导入，导入不到就直接抛导入错误（`ImportError`），原文见[会报什么错](#会报什么错)——传输本身不是 RFork 自己实现的。所以排错时要分别报上各层的版本，RFork 的 Python 代码决定不了底层设备调用怎么表现。
 
 **native** 指 Python 往下调用本地库或设备接口的那部分；**同步**指这次调用要等对应操作做完才返回，**异步**指把工作交给后台继续做。它们要带着对象理解：同一条加载流程里，权重读取是同步的，返回就说明这批字节已经到位；归还租约是异步的，只是把请求交给后台线程。两件事的「完成」不在同一个时刻。
 
-角色会复用在同一个 Worker 里：先当接收方（receiver），模型就绪、租约还掉以后又可以当 seed；角色变了不等于另建一个模型。各种编号最后进到[匹配规则](rfork-identity.md)里，但不是每个编号都直接写进 seed key——比如全局 rank 不在 seed key 里，DP 组的大小却在兼容性指纹里。
+角色会复用在同一个 Worker 里：先当接收方（receiver），模型就绪、租约还掉以后又可以当 seed；角色变了不等于另建一个模型。各种编号最后进到[匹配规则](rfork-identity.md)里，但不是每个编号都直接写进 seed key——比如全局 rank 不在 seed key 里，而只在需要区分跨 DP 权重分片（fine-grained TP 或多 DP MoE）时才把 DP rank 写进 `sharded_dp_rank`。
 
 和普通加载比，RFork 只改变权重数据从哪来，本地模型照样要建，另外多出三个条件：两边的模型分片兼容；传输期间地址一直有效；传完或失败后资源能正确回收。其中涉及的[张量与权重](matmul-and-weights.md)、[设备内存](device-memory.md)、[量化](quantization.md)和[并行组](collective-communication.md)沿用基础页的含义。
 
-会话走过的七个阶段、租约归还的三种结果（已收回、可重试、被拒）、seed 服务启动的三种结果（已启动、延期、失败），以及回退前的清理结果，在[生命周期页](rfork-lifecycle.md)按真实调用展开；对应的类名列在本页[源码位置](#源码位置)。日志里看见「延期」（DEFERRED）时，先查延期的是哪件事，不要直接理解成「模型不可用」。
+会话走过的八个阶段（含先登记目的内存的 `REGISTERED`）、租约归还的三种结果（已收回、可重试、被拒）、seed 服务启动的三种结果（已启动、延期、失败），以及回退前的清理结果，在[生命周期页](rfork-lifecycle.md)按真实调用展开；对应的类名列在本页[源码位置](#源码位置)。日志里看见「延期」（`DEFERRED`）时，先查延期的是哪件事，不要直接理解成「模型不可用」。
 
-官方文档的图和量化说明里还会遇到 NIC、RDMA、RoCE、HBM，以及 BF16、W8A8、W4A8，它们的含义和在图里的位置见[官网核读页](../sources/rfork-official-guide.md)，别把网络协议、网卡和内存混成一层。官方文档提到的 **SFA** 是稀疏注意力的实现路径，RFork 不做它的注意力计算，只要保证它推理要用的张量也被收进清单；W_UV、W_UK_T 是这条实现派生出的权重名，分别用于 Value 的上投影和 Key 上投影的转置，不是某条请求的 V/K Cache，为什么不能漏传见[布局页](rfork-layout.md)。
+官方文档的图和量化说明里还会遇到 NIC、RDMA、RoCE、HBM，以及 BF16、W8A8、W4A8，它们的含义和在图里的位置见[官网核读页](../sources/rfork-official-guide.md)，别把网络协议、网卡和内存混成一层。官方文档提到的 **SFA** 是稀疏注意力的实现路径，RFork 不做它的注意力计算，只要保证它推理要用的张量也被收进清单；`W_UV`、`W_UK_T` 是这条实现派生出的权重名，分别用于 Value 的上投影和 Key 上投影的转置，不是某条请求的 V/K Cache，为什么不能漏传见[布局页](rfork-layout.md)。
 
 ## 排错先问三件事：哪个版本、哪个阶段、哪个 rank
 
-**哪个版本。** 本章贯穿讲解的是用户 RFork 工作版；社区版本单独对照，升级社区代码不会自动更新工作版。排错先把三类实现分开：
+**哪个版本。** 本章按社区上游 `vllm-project/vllm-ascend` `main` 主基线（`8d6180e2`）展开，并对照 `v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）与 `v0.30.0`（`c09d3e20`）三个历史版本。早期独立工作分支补丁已陆续合入上游演进为当前实现；排错先把几类代际分开：
 
-- **工作版**由七个补丁加一份衔接差异组成，已经有统一管理借用与清理的会话、身份指纹和张量清单校验。正文里的十步启动和有限次数归还说的是这份实现。
-- **旧社区快照**的 v0.23、v0.26 与固定 main 还没有上述会话结构；只有该 main 合入前三个补丁。其中“等布局转换做完再传”尤其影响量化和 MoE：前两个版本可能在转换完成前开始传输。
-- **社区 v0.30.0rc2** 已有会话、身份与清单模块，并进一步改变了匹配 key、登记顺序、主草端口和租约协议。它要求 Planner 提供租约有效期并处理续期；不能拿旧社区“没有这层代码”或工作版“没有续期”来排查 rc2。
+- **上游 `main`（`8d6180e2`，本章主基线）**：14 个模块，完整包含会话生命周期（`RForkSession`）、配置指纹 + 结构摘要身份匹配、先登记再借租约、双槽 seed 端口 + `EADDRINUSE` 退动态、`get_rpc_port()`、可选 `LEASE_TTL_SEC` 续租与慢速归还重试、`safety.py` 统一绕过（sleep mode / 在线权重传输 / `enable_eplb`）、`local_weights.py` Engram 宿主表加载、MTP/DSpark checkpoint 归属恢复与分层 BFS 扫描去重。
+- **社区 `v0.30.0`（`c09d3e20`）**：13 个模块，已有独立会话、结构摘要、双槽端口与 `LEASE_TTL_SEC` 续租；但尚未合入 Engram 宿主表（`local_weights.py`）、DSpark 归属恢复、BFS 去重与 RoPE 派生缓存排除、新增两项 Planner 配置开关，且仍保留旧 Model Runner V1 EPLB 绕过分支与 `finegrained_tp` 的 `> 0` 判断。
+- **旧社区版本 `v0.23.0`（`2c59ff10`）与 `v0.26.0rc`（`2ed6cbba`）**：旧六文件结构，先问 Planner 再搭模型、明文拼接 seed key、无会话与清单格式校验，也没有等异步布局转换完成、storage 保活与草稿重叠排除；量化和 MoE 模型可能传到未转完的布局。
 
-逐个补丁、逐项行为的对照见本页的[版本差异](#版本差异)，各子页的版本说明以那里为准。
+逐项行为的四版本对照见本页的[版本差异](#版本差异)，各子页的版本说明以那里为准。
 
 **哪个阶段。** 同一句「传输失败」可能出在内存登记、取元数据、核清单，也可能真是读数据时失败。只截最后一行，信息通常不够。要留下第一次 RFork 报错之前的上下文，至少带上：工作版的提交、是主模型还是投机解码的草稿模型、各类 rank、两端的配置，以及 Planner 的相关响应。
 
 **哪个 rank。** 借是按卡配对的：B 的每个 Worker 各自算 seed key、各自借、各自读、各自回退。看日志先确认是哪一张卡、是主模型还是草稿模型的那一套。
 
-排错先读[排错页](rfork-troubleshooting.md)，再顺着里面给的源码位置去核。这一章标着「对源码核过」的结论，意思是对着工作版源码逐行读过，**不代表在真实 NPU 集群上复现过**；涉及网络、数据系统接口或生产环境 Planner 的行为，要用现场证据补齐。
+排错先读[排错页](rfork-troubleshooting.md)，再顺着里面给的源码位置去核。这一章标着「对源码核过」的结论，意思是对着社区上游 `main`（`8d6180e2`）源码逐行读过，**不代表在真实 NPU 集群上复现过**；涉及网络、数据系统接口或生产环境 Planner 的行为，要用现场证据补齐。
 
 ## 这一章其余各页回答什么
 
 | 阅读顺序 | 这一篇回答什么 |
 |---|---|
-| 1. 术语 | seed、rank、layout、storage、MR、manifest、lease 分别指什么：逐词的词表在知识库术语表第五节「RFork 工作版」，分层说明见本页[上面一节](#同一个词分属不同层软件栈角色与编号) |
-| 2. [启动路径](rfork-startup.md) | 从选中加载器到模型返回，先做什么，什么时候申请租约 |
+| 1. 术语 | seed、rank、layout、storage、MR、manifest、lease 分别指什么：逐词的词表在知识库术语表第五节「RFork」，分层说明见本页[上面一节](#同一个词分属不同层软件栈角色与编号) |
+| 2. [启动路径](rfork-startup.md) | 从选中加载器到模型返回，先做什么，什么时候登记与申请租约 |
 | 3. [身份匹配](rfork-identity.md) | 为什么有实例却找不到 seed，怎样避免拿错分片 |
-| 4. [张量布局](rfork-layout.md) | 量化和 NZ 为什么改变传输时机，为什么排除 top-k 索引缓冲区 |
-| 5. [传输](rfork-transfer.md) | 清单怎样验收，一次读取怎样形成，什么叫传完；地址背后的对象谁保活，主模型和草稿模型怎样避免重复登记 |
-| 6. [租约与生命周期](rfork-lifecycle.md) | 为什么传完了还不能成为 seed，什么时候允许回退或销毁 |
-| 7. [配置与部署](rfork-config.md) | 参数放哪、默认值、地址与端口、限制、怎样测启动收益 |
+| 4. [张量布局](rfork-layout.md) | 量化和 NZ 为什么改变传输时机，为什么排除运行期临时缓冲区 |
+| 5. [传输](rfork-transfer.md) | 清单与 NPU 格式怎样验收，一次读取怎样形成；地址背后的对象谁保活，主模型和草稿模型怎样避免重复登记 |
+| 6. [租约与生命周期](rfork-lifecycle.md) | 为什么传完了还不能成为 seed，续租与慢速归还怎样工作，什么时候允许回退或销毁 |
+| 7. [配置与部署](rfork-config.md) | 十三项参数放哪、默认值、四类端口与双槽分配、限制、怎样测启动收益 |
 | 8. [报错排查](rfork-troubleshooting.md) | 按原始日志找阶段，区分证据、候选原因与下一步 |
-| 9. [版本维护](rfork-maintenance.md) | 本地代码在哪，补丁来了怎样更新，怎样留下可核对的历史 |
+| 9. [版本维护](rfork-maintenance.md) | 历史补丁怎样演进并合入社区上游，升级时怎样隔离旧 seed 与核对变更 |
 
 每篇只回答一个问题。专业词先在术语表找入口，到机制页再结合具体的地址、状态和调用展开。
 
-另有一页[官网全文与原图核读](../sources/rfork-official-guide.md)：按英文 latest 指南逐节对照，解释官方架构图、列出官方测试范围，并标出它和工作版在申请时机、key、端口和依赖上的差异。排错时先确认是哪个版本，再用对应的规则。
+另有一页[官网全文与原图核读](../sources/rfork-official-guide.md)：对照社区上游官方指南与原图，解释架构图各层、保留旧模型表记录并标明各版本差异。排错时先确认是哪个版本，再用对应的规则。
 
 ## 放到 GLM 双机：再起一个同构实例，每张卡借多少
 
 先说清前提，这一节是推演，不是实测：
 
 - 我们的部署是一个实例跨两台机器、16 张卡，TP8、DP2、EP16、W8A8（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。教程命令里没有开 RFork，走的是默认加载。[Worker 生命周期](npu-worker-lifecycle.md)中的约 305 GiB 是所列语言权重的张量遍历估算，不是每台机器的实测磁盘读取量，也不是完整文件或加载量的下界；页缓存、加载方式、量化版本和表外张量都要分别核对。
-- 工作版的代码树里没有 GLM-5.3-Flash 的模型实现，GLM 的模型代码只在固定镜像 db701c1f 里。下面是把「工作版的 RFork 加载器」和「固定镜像的 GLM 模型」放在一起推出来的，不对应任何一个能直接运行的提交；真要跑，先确认两边合并后的代码。
-- 官方测过的模型表里有 GLM5-W4A8，没有 GLM-5.3-Flash W8A8。
+- GLM-5.3-Flash 的历史教学模型算例钉在固定镜像 `db701c1f`（显式例外 B），而 RFork 专题主基线为上游 `main`（`8d6180e2`）。下面是把上游 RFork 加载器与固定镜像的 GLM 模型账目放在一起推演的结果，不对应某个单一实跑提交；真要跑，先确认合并运行后的实际清单与日志。
+- 官方早年测过的模型表里有 GLM5-W4A8，没有 GLM-5.3-Flash W8A8。
 
 ### 谁向谁借：16 个 Worker 各借各的，主模型和草稿模型各一套
 
@@ -271,17 +258,14 @@ A 跑完后处理以后，显存里只剩处理后的那一份：int8 的专家�
 ### 这套部署现在能不能受益
 
 - **只有一个实例。** DP2 是这个实例内部的两组，不是两个实例。没有同身份来源的第一次冷启动要回退，还多做一次搭模型和后处理。扩副本或重启时已有同构 seed，才有机会省下读取时间；seed 的 TP8、DP2、EP 开关、W8A8、模型版本描述与 NZ 设定要匹配，同时由部署方确认确实是同一份权重内容。指纹不读取 checkpoint 的每个字节，不能靠它发现同路径文件被替换。EP16 本身不单独写进指纹，由 TP8、DP2 和「开了 EP」隐含（见[部署指纹里写了什么](rfork-identity.md#部署指纹里写了什么)）。
-- **开了 EPLB 就不走 RFork。** 以后命令里如果打开 [EPLB](eplb.md)（专家负载均衡），或者配了它的动态模式、专家分布记录路径，加载器会直接改走默认加载，日志里只有一条 warning。
-
-这里还要区分配置类型和字段值：先判断并行配置中的 EPLB 开关是否为真；否则，只有额外的 EPLB 配置是字典，才继续判断动态模式或专家分布记录路径是否为真。因此，仅出现配置字段名并不足以触发绕过，还要满足对应的类型和值条件。
-
+- **开了 EPLB、sleep mode 或在线权重传输就不走 RFork。** 在 `main` 主基线中，只要启用了 `enable_sleep_mode`、`weight_transfer_config` 或 `parallel_config.enable_eplb`（`safety.py:mutable_weights_bypass_reason`），加载器会直接改走默认加载并打印一条 warning；早期 Model Runner V1 的静态/动态 EPLB 附加字段（`dynamic_eplb`、`expert_map_record_path`、`expert_map_path`）已随 Model Runner V1 一并移除，不再触发绕过。
 - **可能少掉约 38 个 KV 块（按源码推断，未实测）。** 内存登记会让被登记张量的存储一直活着。草稿那两份词表张量登记以后，即使加载结束时草稿换用了主模型的同名张量，这两段显存也释放不了。按源码推，B 作为 seed 期间每卡多占约 302.5 MiB；在其余预算条件不变时，折成块是 302.5 MiB ÷ 每块 8,355,840 B ≈ 38 块。若用假设权重 21 GiB 的教学预算 3,855 块作起点，示意变成约 3,817 块；3,855 不是该权重包的实际容量，真实起点需加载与 profile 日志确认，见[两种块数各在什么时候用](glm-5-3-flash-two-node.md#两种块数各在什么时候用)。
 
 ## 常见误解
 
 - **「fork 就是复制进程。」** 这里复用的只是远端的权重数据。新实例自己搭模型，读进自己的地址。
-- **「同一个模型路径就能互传。」** 还要先通过兼容性指纹和分片身份的匹配，再由清单逐个张量核对元素个数、每个元素几字节和类型，张量条数和总字节数两端也要一致。
-- **「RFork 报警就是启动失败。」** 要看后面有没有回退、最后结果如何。只有旧资源没法安全清理这类情况，加载器才会拒绝再分配模型。
+- **「同一个模型路径就能互传。」** 还要先通过兼容性指纹、结构摘要和分片身份的匹配，再由清单逐个张量核对元素个数、每个元素几字节、dtype 和 NPU 存储格式，张量条数和总字节数两端也要一致。
+- **「RFork 报警就是启动失败。」** 要看后面有没有回退、最后结果如何。配置缺失或非法（`RForkConfigurationError`）会直接中止启动；只有回退清理不通过（旧资源没法安全清理）这类情况，加载器才拒绝再分配模型。
 - **「每张卡读的字节就是常驻的权重。」** 两本账。GLM 算例的 20.91 GiB 读取子账和 20.58 GiB 默认常驻子账都没有包含全部权重；草稿的两份词表在传输时还是它自己的，加载后才换成主模型张量，RFork 登记还可能继续保活旧存储。
 - **「归还租约收到 400，说明租约超时过期了。」** 400 本身证明不了过期。仓库自带的示例 Planner 里，400 只表示归还请求的头信息缺了或格式不对；过期的租约会在处理归还之前被清掉，这时回的是 404。而 B 把 404 也记成「已收回」，日志里会注明 404 只说明不存在、不说明按时归还。生产环境的 Planner 是否同样回码，仓库里没有它的代码，列在页末待核。
 
@@ -289,11 +273,11 @@ A 跑完后处理以后，显存里只剩处理后的那一份：int8 的专家�
 
 ### 怎么开
 
-B 启动时加 `--load-format rfork`；配置写进 `--model-loader-extra-config` 的 JSON，或者用环境变量兜底。三项必填：模型地址 `model_url`（环境变量 `MODEL_URL`）、部署策略名 `model_deploy_strategy_name`（环境变量 `MODEL_DEPLOY_STRATEGY_NAME`）、Planner 地址 `rfork_scheduler_url`（环境变量 `RFORK_SCHEDULER_URL`），缺一项建会话时就报错。默认 seed 每 30 秒心跳一次，租约归还最多试 3 次、每次隔 30 秒；seed 端口按「端口基数 + 全局 rank」算，基数为 0 时由系统随机分配。
+B 启动时加 `--load-format rfork`；配置写进 `--model-loader-extra-config` 的 JSON，或者用环境变量兜底。三项必填：模型地址 `model_url`（环境变量 `MODEL_URL`）、部署策略名 `model_deploy_strategy_name`（环境变量 `MODEL_DEPLOY_STRATEGY_NAME`）、Planner 地址 `rfork_scheduler_url`（环境变量 `RFORK_SCHEDULER_URL`），缺一项在建会话时抛 `RForkConfigurationError` 直接中止启动（不再静默回退）。默认 seed 每 30 秒心跳一次，租约归还先进行 3 次快速重试（每次隔 30 秒），暂态失败后转入至少 60 秒间隔的慢速重试；seed 端口按 `base + 2 × global_rank + model_slot`（主模型 0、草稿 1）算，基数为 0、超界或被占用（`EADDRINUSE`）时回退由系统随机分配。
 
-外部还要两样：每个实例装好 YuanRong 数据系统（`yr.datasystem`）；一个实现了借（`/get_seed`）、还（`/put_seed`）、登记（`/add_seed`）、注销（`/remove_seed`）四条路由的 Planner。仓库里带的是示例实现 `examples/rfork/rfork_planner.py`，默认租约 60 秒过期、seed 60 秒没心跳就摘掉。
+外部还要两样：每个实例装好 YuanRong 数据系统（`yr.datasystem`，且提供 `get_rpc_port` 与 `batch_register_memory_ex`）；一个实现了借（`/get_seed`）、还（`/put_seed`）、登记（`/add_seed`），以及可选续期（`/renew_seed_lease`）与撤销（`/remove_seed`，由 `rfork_seed_removal_supported` 开关控制，默认关闭）路由的 Planner。仓库里带的是示例实现 `examples/rfork/rfork_planner.py`，默认租约 60 秒过期、seed 60 秒没心跳转 draining。
 
-只要开了 EPLB（`enable_eplb`，或额外配置里的 `dynamic_eplb`、`expert_map_record_path` 任一项），加载器就绕过 RFork。参数的完整清单与部署检查见[配置与部署](rfork-config.md)。
+只要命中 `safety.py:mutable_weights_bypass_reason`（`enable_sleep_mode`、`weight_transfer_config` 或 `parallel_config.enable_eplb` 任一项），加载器就绕过 RFork。参数的完整清单与部署检查见[配置与部署](rfork-config.md)。
 
 ### 会报什么错
 
@@ -323,96 +307,52 @@ B 启动时加 `--load-format rfork`；配置写进 `--model-loader-extra-config
 
 ### 版本差异
 
-**贯穿案例是 RFork 工作版 rfork@3284850b；社区 rc2 固定为 vllm-ascend@7d825229。** 钉点与更新方法见[版本维护](rfork-maintenance.md)。原 patch1–6 与 patch7 曾分叉，不能把原七个补丁直接拼接当作工作版。**这一节集中维护全章版本对照**，子页只展开本主题影响。
+**本章主基线已原子重锚至社区上游 `vllm-ascend@8d6180e2`（`main`）。** 早期独立工作分支补丁（0001–0007 与衔接差异，历史脉络见[版本维护](rfork-maintenance.md)）已通过上游 PR `#12995`、`#15439`、`#15935` 陆续合入 `v0.30.0`（`c09d3e20`），并在 `main`（`8d6180e2`）上进一步通过 `#17366`、`#20111`、`#20876`、`#21333`、`#21707` 演进。**这一节集中维护全章四版本核验矩阵**，子页只展开本主题影响。
 
-RFork 最早由社区 PR #7392 引入。先看三个旧快照：v0.23 为 2c59ff10、v0.26 为 2ed6cbba、main 为 baa023ad。下表只比较这三个快照与工作版补丁；rc2 的最终行为另列在后表，不能由旧表的“未合入”推断。
-
-| 补丁 | 它改了什么 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 对用社区版的人意味着什么 |
-|---|---|---|---|---|---|
-| 0001 | 等异步布局转换做完，再登记和传「处理后布局」的缓冲区；回退时只摘掉自己那份进程级注册 | 未合入 | 未合入 | 已合入（PR #12995） | 三个已合入补丁里最该在意的一个。量化模型和 MoE 模型在 v0.23、v0.26 上可能传到还没转完的布局，输出是坏的，回退也可能连带失败 |
-| 0002 | 登记期间一直持有张量 owner，收完一轮不再清掉缓存的引用 | 未合入 | 未合入 | 已合入（PR #15439） | v0.23、v0.26 上「地址还登记着、张量已经被回收」是可能发生的。它表现为传输阶段的地址类报错，查配置查不出来 |
-| 0003 | 草稿模型登记时减掉与主模型重叠的地址区间，seed 清单和接收端跟着对齐 | 未合入 | 未合入 | 已合入（PR #15439） | 只影响开了投机解码的部署：v0.23、v0.26 上草稿模型会撞上 HCCL 拒绝重叠登记。不开投机解码的不受影响 |
-| 0004 | 把租约、登记的存储、seed 服务、回退与关停收进一个会话对象，补上兼容性指纹与清单校验，另拆出八个模块 | 未合入 | 未合入 | 未合入 | 本章的主干在社区版里没有对应代码。[身份匹配](rfork-identity.md)、[传输](rfork-transfer.md)、[租约与生命周期](rfork-lifecycle.md) 这几页只能当背景读，不能照着在社区版上排错 |
-| 0005 | 懒解析硬件 profile，改用 v0.26 里未量化 MoE 方法类的新位置 | 未合入 | 未合入 | 未合入 | 它新建的 compat.py 依附于 0004 的结构，社区版没有这个文件，也用不上 |
-| 0006 | 关停防重入、seed 广播串行化、收窄异常捕获、张量别名去重、Planner 回 404 当幂等 | 未合入 | 未合入 | 未合入 | 它改的 session.py、planner_client.py、tensor_layout.py 社区版一个都没有 |
-| 0007 | seed 端口可按 rank 偏移；top-k 索引缓冲区这类运行期临时张量不跨实例传 | 未合入 | 未合入 | 未合入 | 三个旧快照的 seed 服务都只用动态端口，也没有这份按名字排除的名单。v0.23/v0.26 会扫描模块普通张量属性；main 的 processed 路径仍扫描这些属性，checkpoint 路径则只在参数和缓冲区之外补收 impl 内张量。临时工作区是否进入清单要看具体模型、挂载位置与路径，不能只按版本名判断 |
-| 衔接差异 | patch6 与 patch7 基线之间的实现差异：租约设计文档、回退清理、隔离测试 | 未合入 | 未合入 | 未合入 | 它同样建在 0004 的模块结构上，社区版没有落脚点；这份差异是怎么来的见[版本维护](rfork-maintenance.md) |
-
-旧快照的补丁对应：0001 对应社区提交 bc5a79ede，0002 与 0003 对应 a59dea592；二者均在 baa023ad 的历史中，未进入 2c59ff10、2ed6cbba 的对应实现。后三者的源码还没有 session、identity、manifest 等独立模块，0003 的区间排除可在 baa023ad 的传输后端找到。
-
-这三个旧社区快照的 RFork 目录只有六个文件：`__init__`、rfork_loader、rfork_worker、seed_protocol、seed_server、transfer_backend；工作版是十三个。工作版将旧 worker/protocol 的职责拆到 session、planner_client、seed_client，再补 identity、manifest、config、tensor_layout、types 和 compat。因此旧快照的元数据与 Planner 调用集中在 seed_protocol；rc2 已改用独立模块，不能再按这个六文件结构寻找它的调用链。
-
-下表按行为对照。固定镜像 db701c1f 的 RFork 目录和 v0.23 维护分支 2c59ff10 逐字节相同（两者 diff 为空），所以 v0.23 一列也代表固定镜像；v0.26 相对 v0.23 只改了加载器里的绕过条件。
-
-| 行为 | v0.23（= 固定镜像） | v0.26 | main | 工作版 |
+| 行为 | `v0.23.0` (`2c59ff10`) | `v0.26.0rc` (`2ed6cbba`) | `v0.30.0` (`c09d3e20`) | `main` (`8d6180e2`) |
 |---|---|---|---|---|
-| 什么时候问 Planner | 搭模型之前先问有没有 seed | 同左 | 同左 | 搭完模型、做完后处理之后才借 |
-| 后处理后等异步转换做完 | 不等 | 不等 | 等（0001） | 等 |
-| 绕过 RFork 的条件 | layer_sharding 或 EPLB | 只有 EPLB | 只有 EPLB | 只有 EPLB |
-| seed key | 明文拼接，含节点编号，不含精度、量化、并行大小 | 同左 | 同左 | 兼容性指纹加 TP/PP/EP 编号和是否草稿，做 SHA256；不含节点编号 |
-| 收集张量 | 一种收法，按地址去重 | 同左 | 已分 processed / checkpoint 两种收法，仍按地址去重；普通属性扫描范围不同 | 两种收法；按名字去重，冲突就报错；排除 top-k 索引缓冲区 |
-| 清单校验 | 逐张量核元素个数和每元素字节；已有单独 shape 信息，有有效 shape 时尝试 view | 同左 | 同左 | 另核 dtype、完整名称集合、张量条数和总字节；不能只靠相同元素大小通过 |
-| 装批 | 1 GiB / 512 条，单个张量不切段 | 同左 | 同左 | 先把张量切成不超过 1 GiB 的段再装批 |
-| 内存登记 | 只交地址和长度 | 同左 | 登记期间持有张量引用（0002） | 登记时保活存储对象，每批最多 4,096 项 |
-| 草稿与主模型重叠的地址 | 不排除 | 不排除 | 排除（0003） | 排除；全部重叠时直接复用、不传 |
-| 不转布局时的顺序（社区版只按是否量化判断） | 先起 seed 服务，再做后处理 | 同左 | 同左 | 先做后处理、进推理模式，再发布 seed |
-| 回退清理 | 停传输、重置状态，然后删模型 | 同左 | 同左，登记没清掉时在回退重新登记前再试 | 最多清理 2 次，重置进程级模型状态；清理失败就拒绝回退 |
+| 目录结构 | 旧 6 文件（无独立 session/identity/manifest） | 旧 6 文件 | 13 文件（含 `session`/`identity`/`manifest`/`safety`） | 14 文件（新增 `local_weights.py` 支持 Engram 宿主表） |
+| 什么时候问 Planner | 搭模型之前先问 | 同左 | 搭模型、准备布局、登记目的内存并绑定结构摘要后才借 | 同 `v0.30.0`，新增 MTP/DSpark 状态恢复与 Engram 加载协调 |
+| 绕过条件 | `layer_sharding` 或 V1 EPLB | V1 EPLB（`enable_eplb` / `dynamic_eplb` / `expert_map_record_path`） | `safety.py`（sleep mode / 在线权重传输）+ V1 EPLB 字段 | `safety.py:mutable_weights_bypass_reason` 统一检查 sleep mode、在线权重传输与 `enable_eplb`（移除 V1 EPLB 字段） |
+| `seed_key` | 明文拼接，含节点编号，不含精度/量化/并行大小 | 同左 | 协议+配置指纹 + 结构摘要 + TP/PP/EP/`sharded_dp_rank`（`size > 0`）+ `is_draft_model` | 同 `v0.30.0`，`sharded_dp_rank` 统一为 `size > 1`（`#20111`）；新增 BFS 去重稳定张量 ID 与 RoPE 派生缓存排除 |
+| 清单与端口 | 旧三元组/无格式校验；仅动态 seed 端口 | 同左 | 严格五元组 + NPU format 逐项核对；`base+2×global_rank+slot`（`EADDRINUSE` 退动态）+ `get_rpc_port()` | 同 `v0.30.0`，协议版本 `rfork_protocol_version=1`，错误 key 返回 404；13 项配置、未知键警告与 `RForkConfigurationError` 中止 |
+| 租约续期与归还 | 传完同步归还 1 次，无重试与延期 | 同左 | 要求 `LEASE_TTL_SEC` 并周期调用 `/renew_seed_lease`；3 次快试 + ≥60s 慢试 | `LEASE_TTL_SEC` 改为可选兼容旧 Planner；`/remove_seed` 由 `rfork_seed_removal_supported` 控制（默认关），示例 Planner 支持 draining（409） |
 
-**rc2 的关键变化。** 下表比较 7d825229 与工作版 3284850b。结构摘要是对张量名字、shape、dtype、NPU format 的描述做哈希；它能区分布局，不能证明权重每个字节相同。
-
-| 主题 | 工作版 | 社区 v0.30.0rc2 | 使用者要改变什么 |
-|---|---|---|---|
-| 入口与模块 | RForkConfig、Session、identity、manifest 等十三文件 | 同样已有独立会话与校验模块；仍由 load-format=rfork 进入 | 按实际提交找源码，不按旧六文件目录排错 |
-| seed key | 配置指纹加 TP/PP/EP、主草角色 | 增加协议、RoPE/KV 角色/mix placement 等配置，以及结构摘要；必要时加入 DP 分片编号 | 同模型名不够；两端须使用同一身份规则，详见[身份页](rfork-identity.md#版本差异) |
-| 申请前准备 | 布局准备后先借，再登记目的内存 | 布局准备、目的内存登记、绑定结构摘要之后才借 | 登记耗时也移到租约外；启动图的工作版顺序不能原样套用 |
-| 清单 | 兼容旧 tuple/mapping 与单独 shape 查询 | 要求完整五元组、按名称覆盖的 NPU format 清单，并逐项比较格式 | 旧 metadata 响应未必可直接接入；仍不是内容校验和 |
-| seed HTTP 端口 | base+global_rank，主草同 rank 会撞号 | base+2×global_rank+草稿槽（主模型0、草稿1）；计算结果越界或固定端口被占用（EADDRINUSE）时可回动态端口，其他绑定错误继续失败 | 防火墙与监控按主草分槽；实际端口仍看日志 |
-| TransferEngine 端口 | 先找空闲端口再交给引擎 | 给引擎 port=0，由引擎绑定并用 get_rpc_port 取实际端口 | 数据端点与 seed HTTP 分开检查；依赖须提供新 API |
-| 租约有效期与续期 | 不要求 TTL 响应头，没有续期 | get_seed 必须返回有限正数 LEASE_TTL_SEC；启动周期续期 | Planner 需支持续期接口；只有旧借还接口会导致不兼容 |
-| 后台归还 | 默认三次，次数用完停止 | 默认三次快速尝试后，暂态失败按至少60秒间隔继续；REJECTED 仍停止 | “重试上限”不再等于总次数；未确认归还时仍延期发布 |
-
-rc2 的续期间隔为 TTL/3，再限定到 0.1–30 秒；续期失败会报警，但不能据此认定正在读的 native 操作已经停止。租约到期、后台归还和数据读取是不同的事件，详见[生命周期](rfork-lifecycle.md#版本差异)。这些新行为不改变工作版的钉点和 GLM 推演前提。
+注：固定 GLM 镜像 `db701c1f` 的 RFork 目录与 `v0.23.0`（`2c59ff10`）逐字节相同；旧开发快照 `baa023ad`（Phase 1 归档）已合入 PR `#12995` 与 `#15439`，仍属六文件结构。
 
 ### 源码位置
 
-下表路径相对工作版的 vllm_ascend/model_loader/rfork/，行号按 rfork@3284850b。
+下表路径相对社区上游 `vllm-ascend@8d6180e2` 的 `vllm_ascend/model_loader/rfork/`：
 
 | 入口 | 对照什么 | 意味着什么 |
 |---|---|---|
-| rfork_loader.py，563–644 行 | 搭模型、要转布局的模型先做后处理并同步、借 seed、传输、发布 seed | 先搭后借，借不到前已经花了搭模型的时间 |
-| rfork_loader.py，645–710 行 | 借不到或出错后的清理与回退，清理失败拒绝回退 | 报警不等于启动失败 |
-| rfork_loader.py，373–383 行 | EPLB 绕过条件 | 开 EPLB 就不走 RFork |
-| identity.py，196–287 行 | 兼容性指纹与 seed key | 按卡配对，不含全局 rank |
-| planner_client.py，69–155 行 | 借：404 当作没有 seed，其他错误也当借不到；还：200、404 当已收回，408、429、5xx 可重试，其余被拒 | 404 不说明按时归还 |
-| session.py，103–213 行；seed_client.py，89–96 行 | `transfer_from_seed` 分登记、取元数据、读取三段，取元数据调的是 seed_client 里的 `fetch_seed_transfer_info`；后台归还与重试；被拒或用尽就不发布 seed | 归还与传输的「完成」不在同一时刻 |
-| session.py，296–347 行 | seed 服务启动，归还未确认时延期 | 延期不等于模型不可用 |
-| types.py，12–49 行 | 会话状态 `RForkLifecycleState`（INITIALIZED、LEASED、TRANSFERRED、READY、CLEANUP_REQUIRED、SERVING、FINALIZED）；租约归还结果 `LeaseReleaseResult`（RELEASED、RETRYABLE、REJECTED）；seed 服务启动结果 `RForkSeedServiceStartResult`（STARTED、DEFERRED、FAILED，只有 STARTED 当作真）；回退清理结果 `RForkFallbackCleanupResult`（服务停没停、租约还没还、内存清没清三项，`can_schedule_seed` 只看服务和内存） | 日志里的 DEFERRED 是 seed 服务延期启动；租约没还完不挡回退，服务或内存没清掉才拒绝回退 |
-| manifest.py，198–252 行 | 逐张量核对与条数、总字节核对 | 同路径不等于能互传 |
-| transfer_backend.py，33–35、121–152、732–793 行 | 批上限常量、切段装批、逐批同步读与完成日志 | 批数不能只从总字节算 |
-| 示例 Planner：examples/rfork/rfork_planner.py，192–230、469–484 行 | 借时发租约；归还前先清过期租约，找不到回 404；头信息错回 400 | 示例里过期对应 404，不是 400 |
+| `rfork_loader.py#L747-L877` | 绕过检查、搭模型、MTP/DSpark 状态恢复、Engram 加载、后处理并同步、先登记后借、传输、发布 | 登记耗时移出租约有效期；未命中仍会付出建模型与布局准备 |
+| `rfork_loader.py#L878-L957` | `RForkConfigurationError` 中止、可恢复异常清理与回退、清理失败拒绝回退 | 配置错直接报错中止；资源清理失败拒绝分配第二份模型 |
+| `safety.py#L9-L21` | `mutable_weights_bypass_reason` | sleep mode、在线权重传输或 `enable_eplb` 绕过 RFork |
+| `identity.py#L229-L349` | 兼容性指纹、`_resolve_sharded_dp_rank` 与 `build_seed_key` | 配置指纹 + 结构摘要 + 分片角色共同配对，不含全局 rank |
+| `planner_client.py#L137-L287` | `/get_seed`、`/put_seed`、`/renew_seed_lease` 状态码分支与日志脱敏 | 404 不证明按时归还；`LEASE_TTL_SEC` 存在时启用续租 |
+| `session.py#L115-L276`、`#L289-L445`、`#L490-L559` | `register_destination`、`acquire_seed`、`transfer_from_seed`、后台归还快慢重试与 `DEFERRED` 延期发布 | 登记在借租约之前；归还与模型返回、seed 发布解耦 |
+| `types.py#L14-L81` | 八状态 `RForkLifecycleState`（含 `REGISTERED`）、`LeaseReleaseResult`、`SeedRemovalResult`、`RForkSeedServiceStartResult`、`RForkFallbackCleanupResult` | `can_schedule_seed` 只看 `service_stopped and memory_reset` |
+| `manifest.py#L87-L214`、`seed_client.py#L58-L110` | `rfork_protocol_version`、严格五元组、NPU format 与条数/总字节核对 | 同路径不等于能互传；仍非逐字节内容校验 |
+| `transfer_backend.py#L38-L45`、`#L128-L165`、`#L227-L273`、`#L783-L876` | `get_rpc_port()`、1 GiB / 512 段上限常量、切段装批、逐批同步读与完成日志 | 批数不能只从总字节算；TP0 打 INFO、其余打 DEBUG |
+| `local_weights.py#L61-L97`、`tensor_layout.py#L34-L69` | Engram 宿主表加载/释放、`build_structural_digest` 与 3 项运行期张量排除名单 | 排除 `topk_indices_buffer` 与 RoPE 派生缓存 |
+| `examples/rfork/rfork_planner.py#L207-L288`、`#L531-L567` | 示例 Planner 借/续/还/draining 撤销与 400/404/409 响应 | 示例里过期对应 404，400 来自头解析失败 |
 
 **来源与结论对应：**
 
-- 八步顺序、先搭后借、要转布局的模型先后处理并同步、清理失败拒绝回退，对照第 1、5 项来源。[C1] [C5]
-- 传输分登记、元数据、读取三段，租约在后台归还；归还未确认时 seed 发布延期；seed 服务启动失败只返回 false、模型照样交回，对照第 2、4、7 项来源。[C2] [C4] [C7]
-- 权重由接收方按地址批量同步读，HTTP 不承载权重主体，对照第 3 项来源。[C3]
-- 会话状态与三种结果的类名、枚举值和 can_schedule_seed 的判定，对照第 23 项来源。[C23] 取元数据函数在 seed_client 里，对照第 24 项来源。[C24] 缺 YuanRong 时抛 ImportError，对照第 25 项来源。[C25]
-- 指纹与 seed key 的组成，对照第 6 项来源。[C6] 清单校验的各项，对照第 8 项来源。[C8]
-- 切段装批规则与 1 GiB、512 段上限，对照第 9、21 项来源。[C21] 装批示意数是教学设定。[A]
-- 借与还的状态码分支，对照第 14 项来源；被拒或重试用完就不发布 seed，对照第 17 项来源。[C14] [C17]
-- 示例 Planner 里 400 只来自头信息错误、过期租约先被清掉再回 404，对照第 15、16 项来源。[C15] [C16] 「400 不能证明过期」是由这两处代码得出的判断，生产 Planner 未核。[I]
-- EPLB 绕过条件，对照第 22 项来源。[C22]
-- 补丁表三列：0001–0003 对应社区 PR，对照第 10、11 项来源；0003 在 main 的区间排除、main 按地址去重收集张量，对照第 12、13 项来源。[S10] [S11] [C12] [C13]
-- 行为对照表的社区三列，对照第 18、19、20 项来源。[C18] [C19] [C20]
-- GLM 所列语言张量的每卡读取子账 20.91 GiB、默认常驻子账 20.58 GiB、主模型至少 21 批、整实例同范围 335 GiB，按[部署页的固定量化版本与范围](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)及工作版收集/装批规则推得，不是完整传输量。[D] 32 次借用来自 16 卡乘主、草稿两套身份。[D] 约 38 个 KV 块是其余预算不变时的保活增量推断，未实测。[I]
+- 启动主流程、绕过安全门、配置报错中止与清理回退，对照第 1、5、7、22 项来源。[C1] [C5] [C7] [C22]
+- 先登记再借租约、传输三段、可选续租、后台快慢归还重试与延期发布，对照第 2、4、14、17 项来源。[C2] [C4] [C14] [C17]
+- 权重批量同步读、切段装批（1 GiB / 512 段）与 `get_rpc_port()`，对照第 3、9、21、25 项来源。[C3] [C9] [C21] [C25] 装批示意数是教学设定。[A]
+- 八状态与结果类型定义，对照第 23 项来源。[C23] 元数据协议与严格清单/NPU format 校验，对照第 8、24、31 项来源。[C8] [C24] [C31]
+- 兼容性指纹、`sharded_dp_rank`、结构摘要与 Engram 宿主表，对照第 6、29、30 项来源。[C6] [C29] [C30]
+- 示例 Planner 借/还/draining 与 400/404 行为，对照第 15、16 项来源。[C15] [C16] 「400 不能证明过期」是由此推得的判断，生产 Planner 未核。[I]
+- 四版本差异（`v0.23.0` / `v0.26.0rc` / `v0.30.0` / `main`）及历史 PR `#12995`/`#15439`，对照第 10–13、18–20、27–28、32–34 项来源。[S10] [S11] [C12] [C18] [C19] [C27]
+- GLM 所列语言张量的每卡读取子账 20.91 GiB、默认常驻子账 20.58 GiB、主模型至少 21 批、整实例同范围 335 GiB，按[部署页的固定量化版本与范围](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)及收集/装批规则推得，不是完整传输量。[D] 32 次借用来自 16 卡乘主、草稿两套身份。[D] 约 38 个 KV 块是其余预算不变时的保活增量推断，未实测。[I]
 
 **待核：**
 
-- 生产环境 Planner 的状态码约定，尤其过期租约回什么、400 代表什么：缺生产 Planner 的实现或接口说明，仓库里只有示例 Planner。
-- GLM 双机每卡实际读多少、几批、多快：缺一次同构双实例启动的「weight transfer completed」日志。
+- 生产环境 Planner 的状态码约定、是否支持 `LEASE_TTL_SEC` 续期与 `/remove_seed` 撤销：缺生产 Planner 的实现或接口说明，仓库里只有示例 Planner。
+- GLM 双机每卡实际读多少、几批、多快：缺一次同构双实例启动的 `RFork weight transfer completed` 日志。
 - 草稿的两份词表张量是否一直钉在显存、是否真少约 38 个 KV 块：缺同一配置下 RFork 与默认加载的权重占用和 KV 块数日志对比。
-- 工作版加载器和固定镜像的 GLM 模型合并后能否直接跑：缺合并后的提交。
-- 处理后布局收集的完整张量清单里，有没有该排除却没排除的运行期临时张量（已知只排除 top-k 索引缓冲区）：缺一份实际清单。
-- 现场有没有装 YuanRong、有没有生产用的 Planner、会不会起第二个同构实例：缺部署现场信息。
-
-工作版的 EPLB 绕过检查先看 enable_eplb；否则仅在 eplb_config 是字典时检查 dynamic_eplb 或 expert_map_record_path 的真值（来源 22）。rc2 对照来源依次为追加的 loader、identity、tensor_layout、manifest、session、planner_client 与 transfer_backend：入口及身份在 loader 471–524，登记先后在 630–704，协议与续期在 planner_client 117–245，释放重试在 session 261–364。以上是实现条件；设备结果仍按上方待核项验收。
+- 固定镜像 GLM 模型与上游 `main` RFork 加载器合并运行结果：缺合并后的实跑验证。
+- 现场有没有装满足 `get_rpc_port` 与 `batch_register_memory_ex` 契约的 YuanRong 与生产 Planner：缺部署现场信息。

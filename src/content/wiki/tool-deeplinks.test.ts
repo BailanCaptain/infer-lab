@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import matter from "gray-matter";
 import { describe, expect, it } from "vitest";
+import { AICORE_LAB_WIKI_PAGE_IDS } from "../../sim/aicore/matmulRmsScenario";
 import { DOCTOR_RULE_WIKI_LINKS, getAllDoctorWikiRefs } from "../../sim/doctor/configDoctor";
 import {
   FULL_SINGLE_DOCTOR_PRESETS,
@@ -16,6 +17,9 @@ import {
 } from "../../sim/modelspec/deployCalculator";
 import { MODEL_PRESETS } from "../../sim/modelspec/presets";
 import { ALL_COUPLING_RULES } from "../../sim/rules";
+import { TROUBLESHOOT_FIXTURES } from "../../sim/troubleshoot/fixtures";
+import { analyzeTroubleshootInput } from "../../sim/troubleshoot/logAnalyzer";
+import { TIMELINE_SCENARIOS } from "../../sim/troubleshoot/timelineSandbox";
 import { createSlugger, headingSlug } from "./anchors";
 import registryData from "./registry.json";
 import { resolveCanonicalPageId } from "./schema";
@@ -27,6 +31,7 @@ import {
   runPdConfigDoctorWithLinks,
   runSingleConfigDoctorWithLinks,
   TOOL_DEEPLINK_MANIFEST,
+  V030_VERIFIED_TAG,
 } from "./toolDeeplinks";
 
 interface RegistryPageRow {
@@ -307,6 +312,72 @@ describe("Honest Tool Deep-Link Manifest & Badge Gate", () => {
       expect(resolved.href).toBe(`#/wiki/${resolved.canonicalId}`);
       expect(resolved.isLegacyBaseline).toBe(true);
       expect(resolved.badgeText).toBe(LEGACY_BASELINE_BADGE_TEXT);
+    }
+  });
+
+  it("enforces Wave-4 cross-engine contract: troubleshoot-workbench, aicore-lab, and troubleshooting/rfork manifest pages are 100% registered", () => {
+    // 1. Newly registered Wave-4 troubleshooting & RFork pages resolve cleanly and dynamically match registry verified status.
+    const wave4ManifestPages = [
+      "inference-troubleshooting",
+      "inference-performance-troubleshooting",
+      "inference-correctness-troubleshooting",
+      "inference-benchmarking",
+      "request-call-chain",
+      "rfork",
+    ] as const;
+
+    for (const pageId of wave4ManifestPages) {
+      expect(
+        isRegisteredToolDeepLink(pageId),
+        `Wave-4 page "${pageId}" must be registered in TOOL_DEEPLINK_MANIFEST`,
+      ).toBe(true);
+      const resolved = resolveToolDeepLink(pageId);
+      expect(resolved.href).toBe(`#/wiki/${resolved.canonicalId}`);
+      const pageRow = REGISTRY_BY_ID.get(resolved.canonicalId);
+      expect(pageRow).toBeDefined();
+      const expectedV030 = (pageRow!.verified ?? []).includes(V030_VERIFIED_TAG);
+      expect(resolved.isV030Verified).toBe(expectedV030);
+      expect(resolved.isLegacyBaseline).toBe(!expectedV030);
+      expect(resolved.badgeText).toBe(expectedV030 ? null : LEGACY_BASELINE_BADGE_TEXT);
+    }
+
+    // 2. Every wikiPageId emitted by troubleshoot Panel A (all fixtures) and Panel B (all 6 scenarios) is registered.
+    expect(TROUBLESHOOT_FIXTURES.length).toBeGreaterThanOrEqual(8);
+    for (const fixture of TROUBLESHOOT_FIXTURES) {
+      const report = analyzeTroubleshootInput(fixture.content);
+      expect(report.findings.length).toBeGreaterThan(0);
+      for (const finding of report.findings) {
+        expect(finding.wikiPageIds.length).toBeGreaterThan(0);
+        for (const pageId of finding.wikiPageIds) {
+          expect(
+            isRegisteredToolDeepLink(pageId),
+            `Troubleshoot fixture "${fixture.id}" rule "${finding.ruleId}" wikiPageId "${pageId}" must be in TOOL_DEEPLINK_MANIFEST`,
+          ).toBe(true);
+          expect(resolveToolDeepLink(pageId).href).toMatch(/^#\/wiki\/[a-z0-9-]+$/);
+        }
+      }
+    }
+
+    expect(TIMELINE_SCENARIOS.length).toBe(6);
+    for (const scenario of TIMELINE_SCENARIOS) {
+      expect(scenario.wikiPageIds.length).toBeGreaterThan(0);
+      for (const pageId of scenario.wikiPageIds) {
+        expect(
+          isRegisteredToolDeepLink(pageId),
+          `Timeline scenario "${scenario.id}" wikiPageId "${pageId}" must be in TOOL_DEEPLINK_MANIFEST`,
+        ).toBe(true);
+        expect(resolveToolDeepLink(pageId).href).toMatch(/^#\/wiki\/[a-z0-9-]+$/);
+      }
+    }
+
+    // 3. Every wikiPageId referenced by aicore-lab is registered.
+    expect(AICORE_LAB_WIKI_PAGE_IDS.length).toBeGreaterThanOrEqual(5);
+    for (const pageId of AICORE_LAB_WIKI_PAGE_IDS) {
+      expect(
+        isRegisteredToolDeepLink(pageId),
+        `AiCoreLab wikiPageId "${pageId}" must be in TOOL_DEEPLINK_MANIFEST`,
+      ).toBe(true);
+      expect(resolveToolDeepLink(pageId).href).toMatch(/^#\/wiki\/[a-z0-9-]+$/);
     }
   });
 });

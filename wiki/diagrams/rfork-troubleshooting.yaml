@@ -30,9 +30,9 @@ texts:
   - { at: [145, 134], text: 检查没通过：先记一条具体异常, note: true, width: 190 }
   - { at: [700, 222], text: 任何一步直接抛异常, note: true, tone: danger, width: 170 }
 pins:
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L108-L136
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L115-L276
     symbols: [register_memory_region, fetch_seed_transfer_info, read_weights_from_seed]
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L622-L693
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L833-L936
     symbols: [transfer_from_seed, prepare_for_fallback, can_schedule_seed]
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L38-L49
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/types.py#L68-L81
     symbols: [RForkFallbackCleanupResult, service_stopped, memory_reset, can_schedule_seed]

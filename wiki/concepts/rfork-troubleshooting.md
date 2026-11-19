@@ -20,39 +20,38 @@ aliases:
 chapters: []
 order: 100
 sources:
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L155'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L207-L461'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L463-L614'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L633-L793'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/seed_client.py#L89-L153'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L150-L253'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L335-L501'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L563-L710'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/manifest.py#L164-L252'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L18-L25'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L215-L229'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L251-L286'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L379-L418'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L468-L484'
-  - 'rfork@3284850b:tests/ut/model_loader/rfork/test_rfork_planner.py#L103-L120'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L69-L149'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L536-L548'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L73-L108'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/planner_client.py#L137-L287'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L227-L551'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L552-L694'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L695-L876'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/seed_client.py#L58-L110'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L289-L478'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L490-L864'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L747-L957'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/manifest.py#L87-L214'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/tensor_layout.py#L34-L42'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L254-L288'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L289-L339'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L426-L474'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L531-L567'
+  - 'vllm-ascend@8d6180e2:tests/ut/model_loader/rfork/test_rfork_planner.py#L44-L120'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L115-L276'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/safety.py#L9-L21'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L153-L204'
   - 'vllm@0fc695fc:vllm/envs.py#L796'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/config.py#L11-L15'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L231-L246'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/seed_client.py#L25-L54'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L143-L152'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L121-L176'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L55-L63'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/config.py#L11-L51'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/seed_client.py#L24-L56'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/tensor_layout.py#L410-L444'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L128-L190'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L75-L114'
   - >-
     raw:sha256-3a82c2b420a34567fe8f4c358cea81e2e5df56395a32bdde4c1378a3b6729ffc.md#L1-L1692
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/planner_client.py#L117-L245'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L261-L364'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/transfer_backend.py#L224-L269'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L38-L49'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/planner_client.py#L117-L245'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/session.py#L261-L364'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/transfer_backend.py#L224-L269'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/types.py#L68-L81'
 verified:
-  - 'rfork:main'
+  - main
 evidence: C
 relations:
   - to: rfork-startup
@@ -65,7 +64,7 @@ relations:
     kind: builds-on
     note: 多数定位需要同时拿到两端参数、端口与 Planner 配置，不能只看 receiver
 contradicts: []
-updated: '2026-10-25'
+updated: '2026-11-19'
 rawSources:
   - >-
     raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md
@@ -99,7 +98,7 @@ file: rfork-troubleshooting.yaml
 
 所以拿到汇总，先看它的原因一栏：只写 transfer failed.，就往前找这个 rank 的第一条具体异常；写的是别的内容，那就是异常本身。多数时候那条异常就紧挨着汇总，但有两种例外：登记失败、回滚又没做完时，紧挨着汇总的是「回滚没做完」那条，原始的登记报错还在更前面；多个 rank 的日志混在一起时，中间还会插进别的 rank 的行。
 
-所以排错按三步走：**先固定代码版本，再找第一条具体异常，最后确认失败之后模型、租约和显存各停在哪个状态。** 这页的日志都来自用户的 RFork 工作版；它给的是诊断路径，不预先替某次现场事故认定根因。
+所以排错按三步走：**先固定代码版本，再找第一条具体异常，最后确认失败之后模型、租约和显存各停在哪个状态。** 这页的日志均对照社区上游 `vllm-ascend` `main`（`8d6180e2`）源码；它给的是诊断路径，不预先替某次现场事故认定根因。
 
 ## 为什么不能只看最后那句：同一句话背后是不同的状态
 
@@ -282,9 +281,9 @@ title: 一个 404 是不是租约到期（示意数）
 - **每张卡借两次，一共 32 份租约**：主模型和草稿模型各开一套会话、各一个配对键，16 个 rank 各借各的，只能借来源实例里同号的那个 Worker。一次热启动就是 32 次申请、32 份租约，还租约的结果日志也按这 32 份分别记，用日志里租约那一栏的哈希和 global rank 对号。谁向谁借见[总览页](rfork.md#谁向谁借16-个-worker-各借各的主模型和草稿模型各一套)。
 - **INFO 级别下只有 rank 0 和 rank 8 打「没借到」**：这条只在 TP 序号为 0 的 Worker 上按 INFO 打；TP8 下 rank r 的 TP 序号是 r mod 8，16 个 rank 里只有 0 和 8 满足。其余 14 个 rank 要开 DEBUG 才看得到。
 - **读失败那条日志里的总批数**：主模型所列语言张量的读取子账约为每卡 20,572 MiB，每批不超过 1 GiB，所以仅这部分就至少 21 批。草稿子账约 844 MiB，不能据此保证完整草稿只需一批：还必须确认包括表外项的实际清单不超过 1 GiB、切段数不超过 512。字节范围和未计项目见[每张卡读多少](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)。
-- **工作版默认 60 秒的租约对读速有要求**：主模型语言子账本身就要求平均读速至少约 0.33 GiB/s；表外字节、登记、元数据与归还耗时还要另计，因此高于它不能证明按时归还。推导见[配置 · 默认 60 秒的租约够不够](rfork-config.md#默认-60-秒的租约够不够)。租约到期后，示例 Planner 的下一次清扫或借还请求会收回它；B 归还时收到 404、记成「已归还」，正是前面说的「404 不证明按时」。rc2 的续租行为另见版本差异。
+- **上游 `main` 默认 60 秒租约与可选续租**：在不支持 `LEASE_TTL_SEC` 续期的旧 Planner（默认 60 秒租约）下，主模型语言子账本身就要求平均读速至少约 0.33 GiB/s（表外字节、元数据与归还耗时另计），到期后示例 Planner 会在清扫或借还时收回名额、归还收 404；若 Planner 返回 `LEASE_TTL_SEC` 并支持 `/renew_seed_lease`，客户端会在传输期间周期续租，详见[配置 · 默认 60 秒的租约够不够](rfork-config.md#默认-60-秒的租约够不够)。
 - **这套部署现在第一次启动必然借不到**：只有一个实例，没有来源，日志里「没有可用来源」是正常的，见[这套部署现在能不能受益](rfork.md#这套部署现在能不能受益)。
-- **以后开了动态 EPLB**：RFork 被整体绕开，只留一条「RFork 被禁用、改用默认加载」的警告，日志里根本不会出现借权重的各步。
+- **以后开了 sleep mode、在线权重传输或 EPLB（`--enable-eplb`）**：命中 `safety.py:mutable_weights_bypass_reason`，RFork 被整体绕开，只留一条 `RFork transfer is disabled when %s is enabled; using the default model loader.` 警告，日志里根本不会出现借权重的各步。
 
 ## 常见误解
 
@@ -329,7 +328,7 @@ title: 一个 404 是不是租约到期（示意数）
 | `RFork seed promotion is deferred until the source seed lease is released; the transferred model remains available for inference.` | `session.py#L342-L343`，warning | 「当来源」延后 |
 | `RFork fallback aborted because seed service or registered memory cleanup failed; tensor owners remain retained. Refusing to allocate a second model while old weights are pinned.` | `rfork_loader.py#L669-L670`，`RuntimeError` | 回退被安全门挡下 |
 | `RFork transfer failed: %s, clean up and fall back to default loader` | `rfork_loader.py#L655`，warning | 汇总 |
-| `RFork transfer is disabled when %s is enabled; using the default model loader.` | `rfork_loader.py#L545`，warning | 动态 EPLB 时整体绕开 |
+| `RFork transfer is disabled when %s is enabled; using the default model loader.` | `rfork_loader.py#L769-L772`、`safety.py#L9-L21`，warning | 命中 sleep mode / 在线权重传输 / `enable_eplb` 时整体绕开 |
 
 汇总里的 `%s` 分两种来路。[C16][C8]
 
@@ -380,55 +379,49 @@ title: 一个 404 是不是租约到期（示意数）
 
 日志里的 `lease=` 是 `USER_ID` 的 SHA-256 摘要前 12 位（`lease_log_id`，`planner_client.py#L25-L27`），响应体里的 `USER_ID` 换成 `<lease-id>`、截到 256 字符（`#L22`、`#L140-L141`）。
 
-示例 Planner 一侧（`rfork@3284850b:examples/rfork/rfork_planner.py`）：[C11][C13]
+示例 Planner 一侧（`vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py`）：[C11][C13]
 
 | 情况 | 回应 | 位置 |
 |---|---|---|
-| 请求头缺失或为空 | 400，`missing required header: {key}` | `#L379-L383`、`#L470-L473` |
-| 端口 / rank 不是整数 | 400，`invalid integer header {key}: {value}` | `#L386-L390` |
-| 端口 < 1 或 rank < 0 | 400，`header {key} must be >= {minimum}, got {parsed}` | `#L391-L392`、`#L410-L418` |
-| 租约到期（`put_seed` 先回收到期租约再查） | 404，`lease not found` | `#L218`、`#L276-L286`、`#L481-L482` |
-| 借用编号不存在、来源身份不符、重复归还 | 404，`lease not found` | `#L219-L223`、`#L481-L482` |
-| 来源心跳超时被摘掉，连带删除租约 | 之后再还为 404 | `#L251-L268` |
-| 来源撤销登记（A 进程退出时 `atexit` → `shutdown` → `_stop_seed_service_locked` → `planner.remove_seed()`，`session.py#L62`、`#L477-L486`、`#L427-L450`），`Store.remove_seed` 连带删除借它的租约 | 之后再还为 404 | `#L231-L245` |
-| 正常归还 | 200 | `#L484` |
+| 请求头缺失或为空 | 400，`missing required header: {key}` | `#L426-L431`、`#L457-L464` |
+| 端口 / rank 不是整数或越界 | 400，`invalid integer header` / `must be >= ...` | `#L433-L441`、`#L457-L464` |
+| 租约到期、借用编号不存在、来源身份不符、重复归还 | 404，`lease not found`（`put_seed` 先回收到期租约再查） | `#L254-L270`、`#L320-L332`、`#L531-L547` |
+| 来源心跳超时或主动 `/remove_seed` 且仍有活跃租约 | 标记 `draining`（`/remove_seed` 回 409），停止新分配，待活跃租约归还或到期后再删除记录 | `#L272-L315`、`#L549-L567` |
+| 正常归还 | 200 | `#L547` |
 
-单元测试 `test_put_seed_http_status_and_duplicate_release` 断言到期后归还为 404、重复归还为 404（`tests/ut/model_loader/rfork/test_rfork_planner.py#L103-L120`）。[C15] 示例 Planner 的计时用 `time.time`（`#L145`），租约在 `now - leased_at >= lease_ttl_sec` 时收回（`#L279`）。现场 Planner 的约定待核。
+单元测试覆盖租约到期边界、心跳不续租以及 draining 期间不直接删除活跃租约（`tests/ut/model_loader/rfork/test_rfork_planner.py#L44-L120`）。[C15] 示例 Planner 的计时用 `time.time`，租约在 `now - leased_at >= lease_ttl_sec` 时收回。现场 Planner 的约定待核。
 
-「卡住」相关：release 请求在 session 锁外发出（`session.py#L180-L182` 的注释与调用），注册和同步读取仍在锁内；main 完成后可能开始 draft。[I] `rfork_request_timeout_sec`（10 秒）是 Requests 单次 timeout，不是端到端截止时间。
+「卡住」相关：release 请求在 session 锁外发出（`session.py#L329-L332`），注册和同步读取仍在锁内；main 完成后可能开始 draft。[I] `rfork_request_timeout_sec`（10 秒）是 Requests 单次 timeout，不是端到端截止时间。
 
 ### 开销和什么时候别开
 
-- **开 DEBUG 的代价**：每一批读完都会多一行 `transfer weights chunk %d/%d done, time: %.4fs`（`transfer_backend.py#L776-L780`），16 个 rank、主模型至少 21 批时日志量明显变大；查完就调回 `INFO`。
+- **开 DEBUG 的代价**：每一批读完都会多一行 `transfer weights chunk %d/%d done, time: %.4fs`（`transfer_backend.py#L857-L862`），16 个 rank、主模型至少 21 批时日志量明显变大；查完就调回 `INFO`。
 - **还没核实现场 Planner 的约定之前，别改客户端分类**：把 400 改判 `RELEASED`、或把 404 改成要求重试，都会让「租约账没了结」变得看不见。
-- RFork 本身什么时候不值得开（单实例部署、动态 EPLB 等），见[总览 · 开销和什么时候别开](rfork.md#开销和什么时候别开)。
+- RFork 本身什么时候不值得开（单实例部署、sleep mode / 在线权重传输 / `enable_eplb` 等），见[总览 · 开销和什么时候别开](rfork.md#开销和什么时候别开)。
 
 ### 版本差异
 
-前面的日志和示例 Planner 按工作版 `rfork@3284850b`。旧社区 GLM `db701c1f`、v0.23 `2c59ff10`、v0.26 `2ed6cbba`、main `baa023ad` 仍是六文件结构，没有本页这套 Session 与归还分类；完整对照见[总览](rfork.md#版本差异)。
+| 维度 | `v0.23.0` (`2c59ff10`) / `v0.26.0rc` (`2ed6cbba`) | `v0.30.0` (`c09d3e20`) | `main` (`8d6180e2`) |
+|---|---|---|---|
+| 错误排查模型 | 旧六文件结构，无独立 Session、manifest 校验与归还分类 | 独立 `RForkSession` + 结构摘要 + 必须返回 `LEASE_TTL_SEC` + 3 次快试转 ≥60s 慢试 + `get_rpc_port()` | 同 `v0.30.0`，`LEASE_TTL_SEC` 改为可选；`RForkConfigurationError` 直接中止启动；新增未知键 warning、协议版本 1 校验与错 key 回 404；draining 撤回回 409 |
 
-**rc2 的排错先增加三项检查。** 7d825229 已有 Session 和 Planner 客户端：申请失败先看成功响应是否有合法 LEASE_TTL_SEC，运行中再看 /renew_seed_lease 是否得到成功响应；持续归还日志可能是三次快重试后的慢重试，不等于总次数开关失效；初始化失败还要核 TransferEngine 是否提供 get_rpc_port。新清单与结构摘要也可能拒绝旧 seed，不能通过删除身份或格式校验强行借用。主草 seed HTTP 端口和数据端口分别检查，具体条件见[配置](rfork-config.md#版本差异)、[传输](rfork-transfer.md#版本差异)和[生命周期](rfork-lifecycle.md#版本差异)。
+固定镜像 `db701c1f` 与 `v0.23.0` 一致；旧开发快照 `baa023ad` 仍属六文件结构。[C26][C27][C28] 完整四版本对照见[总览](rfork.md#版本差异)。
 
 ### 源码位置
 
-以下都在 `rfork@3284850b`：
+以下都在社区上游 `vllm-ascend@8d6180e2`（除另注外均在 `vllm_ascend/model_loader/rfork/`）：
 
-- Planner 客户端 `acquire_seed` / `release_seed_once` / `lease_log_id`：`vllm_ascend/model_loader/rfork/planner_client.py#L25-L155`
-- 申请租约计时、传输三段与阶段日志：`session.py#L69-L149`
-- 后台还租约与发布抑制：`session.py#L150-L253`
-- `start_seed_service` 与延期发布、shutdown：`session.py#L335-L501`
-- 创建后端、依赖检查、显存登记与回滚：`transfer_backend.py#L207-L461`
-- 注销、逐地址补查与 finalize：`transfer_backend.py#L463-L614`
-- 取 metadata 之后的清单比对、分批 native read：`transfer_backend.py#L633-L793`
-- seed metadata HTTP 请求：`seed_client.py#L89-L153`
-- loader 主流程、seed miss、失败回退与 pinned 安全门：`rfork_loader.py#L563-L710`；EPLB 绕过 `#L536-L548`；summary rank `#L73-L108`
-- manifest 条目校验：`manifest.py#L164-L252`
-- 运行期临时张量排除名单：`tensor_layout.py#L18-L25`
-- 示例 Planner：`examples/rfork/rfork_planner.py#L215-L229`（`Store.put_seed`）、`#L251-L286`（两种回收）、`#L379-L418`（请求头解析）、`#L468-L484`（`/put_seed` 路由）
-- 示例 Planner 单元测试：`tests/ut/model_loader/rfork/test_rfork_planner.py#L103-L120`
-- 还租约默认值：`vllm_ascend/model_loader/rfork/config.py#L11-L15`
-- 日志级别：`vllm@0fc695fc:vllm/envs.py#L796`
-
-工作版的回退安全门在调用默认加载器之前检查清理结果：结果为 RForkFallbackCleanupResult 且 can_schedule_seed 为假，就保留张量持有者并拒绝再次分配模型（来源8，657–693）。看到这条错误只能说明清理未满足条件，是否已经显存不足还要查更早异常和资源记录。
-
-工作版仅在主响应缺 shape 字段时另发请求；补要遇到 Requests 异常，再检查主清单是否足够。信息不足最终记录错误并返回 None，而不是把原请求异常直接抛出函数（来源5，116–153）。取得元数据与完成权重读取仍是两个阶段。
+- Planner 客户端 `acquire_seed` / `release_seed_once` / `renew_seed_once`：`planner_client.py#L137-L287` [C1]
+- 先登记后借租约、续租与传输三段日志：`session.py#L115-L276` [C16]
+- 后台还租约（快慢重试与 `REJECTED` 停止）、延期推进与回退准备：`session.py#L289-L478` [C6]
+- `start_seed_service`、心跳与 `shutdown`：`session.py#L490-L864` [C7]
+- 后端初始化（`get_rpc_port`）、显存登记与回滚：`transfer_backend.py#L227-L551` [C2]
+- 注销（`kNotFound` 逐地址补查）与 `finalize_transfer_engine`：`transfer_backend.py#L552-L694` [C3]
+- 清单比对、视图调整、稠密布局复验与分批同步读：`transfer_backend.py#L695-L876` [C4]
+- seed URL 校验与元数据请求（协议版本 `1`）：`seed_client.py#L24-L56`、`#L58-L110` [C5][C21]
+- loader 主流程、配置中止、seed miss、失败回退与安全门：`rfork_loader.py#L153-L204`、`#L747-L957`；绕过守卫 `safety.py#L9-L21` [C8][C17][C18]
+- 严格五元组与 NPU format 校验：`manifest.py#L87-L214` [C9]
+- 运行期临时张量排除名单（3 项）与冲突 ID 检测：`tensor_layout.py#L34-L42`、`#L410-L444` [C10][C22]
+- 示例 Planner：`examples/rfork/rfork_planner.py#L254-L339`、`#L426-L474`、`#L531-L567`；单测 `tests/ut/model_loader/rfork/test_rfork_planner.py#L44-L120` [C11][C12][C13][C14][C15]
+- 默认值、已知键与 `RForkConfigurationError`：`config.py#L11-L51`；清理结果：`types.py#L68-L81` [C20][C29]
+- 日志级别：`vllm@0fc695fc:vllm/envs.py#L796` [C19]

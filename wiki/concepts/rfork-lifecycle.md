@@ -3,8 +3,8 @@ id: rfork-lifecycle
 title: RFork 生命周期：传完权重、交出模型、当上 seed、接请求各是一步
 type: feature
 summary: >-
-  B 的一个 Worker 借完权重后，传完、交出模型、还上租约当 seed、整个实例接请求是四个时刻。讲会话七个状态、还租约的三种结果与 400/404
-  各说明什么、发布 seed 的已启动/延期/失败、回退前的清理结果、关停留下什么，以及为什么没有续租。
+  B 的一个 Worker 借完权重后，传完、交出模型、还上租约当 seed、整个实例接请求是四个时刻。讲会话八个状态（含先登记的 REGISTERED）、还租约快慢重试与 400/404
+  各说明什么、可选 LEASE_TTL_SEC 周期续租、发布 seed 的已启动/延期/失败、回退清理与关停留下什么。
 aliases:
   - RFork 生命周期
   - RForkSession
@@ -21,41 +21,39 @@ aliases:
   - RFork seed promotion
   - RFork put_seed
   - RFork TTL
+legacyAnchors:
+  会话的七个状态每个只说明本机这一侧: 会话的八个状态每个只说明本机这一侧
+  五个钟各管各的现在没有续租: 五个钟各管各的可选周期续租
 chapters: []
 order: 80
 sources:
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L12-L52'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L64-L148'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L150-L253'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L296-L425'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L427-L501'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L111-L167'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L169-L267'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L39-L75'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L127-L190'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L192-L286'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L431-L484'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L109'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/config.py#L11-L15'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L83-L110'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L621-L710'
-  - >-
-    rfork@3284850b:docs/source/developer_guide/Design_Documents/rfork_lease_lifecycle.md#L1-L160
-  - >-
-    vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_worker.py#L102-L108
-  - >-
-    vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/seed_protocol.py#L157-L187
-  - >-
-    vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/rfork_loader.py#L393-L405
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L38-L62'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/types.py#L14-L120'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L115-L276'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L289-L445'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L490-L659'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L660-L864'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/planner_client.py#L196-L287'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/planner_client.py#L289-L391'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L40-L80'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L135-L206'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L207-L339'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L475-L567'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/planner_client.py#L137-L195'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/config.py#L11-L16'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L153-L204'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L858-L957'
+  - 'vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/rfork.md#L275-L380'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_worker.py#L102-L108'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/seed_protocol.py#L157-L187'
+  - 'vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/rfork_loader.py#L393-L405'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L75-L114'
   - >-
     raw:sha256-cf79cda8c5def129ae408d6c21bc35fa1f20df5d244b4aa3485fb569d08ba6ed.md#L1-L1300
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/planner_client.py#L117-L245'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L149-L188'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L261-L364'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L495-L504'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/planner_client.py#L117-L245'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/session.py#L149-L188'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/session.py#L261-L364'
 verified:
-  - 'rfork:main'
+  - main
 evidence: C
 relations:
   - to: rfork-transfer
@@ -68,7 +66,7 @@ relations:
     kind: builds-on
     note: 回退怎么拆模型、从存储重读在启动页；这页只讲清理结果怎样决定能不能回退、回退后还能不能当 seed
 contradicts: []
-updated: '2026-10-28'
+updated: '2026-11-19'
 rawSources:
   - >-
     raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md
@@ -107,34 +105,35 @@ file: rfork-lifecycle
 
 「延期」来自两条规矩同时成立：
 
-- **还租约不占启动的时间。** 还租约是发往 Planner 的一次 HTTP 请求，Planner 忙或网络慢时要等、要重试。工作版早先由启动线程自己同步去还，Planner 那边一卡，整个 Worker 的启动就跟着卡。现在传完以后把这件事交给后台线程，启动线程接着做后处理、交模型。
-- **借来的账没了结，不对外当来源。** 会话还拿着一张没还上的租约时，代码直接拒绝起 seed 服务；当前代码只认确认过的归还（Planner 回 200 或 404）；设计文档的续租提案里另提过「Planner 给出明确过期结论」也可以，那一部分还没实现。于是 Planner 账上的 B 要么还是一笔没了结的借用，要么已经是可借的来源，两样不会同时成立。
+- **还租约不占启动的时间。** 还租约是发往 Planner 的一次 HTTP 请求，Planner 忙或网络慢时要等、要重试。早期版本由启动线程自己同步去还，Planner 那边一卡，整个 Worker 的启动就跟着卡。现在传完以后把这件事交给后台线程，启动线程接着做后处理、交模型。
+- **借来的账没了结，不对外当来源。** 会话还拿着一张没还上的租约时，代码直接拒绝起 seed 服务；当前代码只认确认过的归还（Planner 回 200 或 404）。于是 Planner 账上的 B 要么还是一笔没了结的借用，要么已经是可借的来源，两样不会同时成立。
 
-代价也有两个。第一，**当 seed 会晚，甚至当不上。** 还租约至少要等一次 HTTP 往返；遇到 503 这类临时错误，默认隔 30 秒再试、一共试 3 次，最坏要等多久见[配置页的算例](rfork-config.md#超时重试间隔和租约有效期是三个量)。Planner 明确拒绝，或者 3 次都没成，这个 Worker 在本次进程里就不再当 seed：没有别的路径会再去发布，要等下一次重新加载。第二，**「起来了」不能只看一个信号**，四件事要分别拿证据，见[四件事分开验收](#四件事分开验收)。
+代价也有两个。第一，**当 seed 会晚，甚至当不上。** 还租约至少要等一次 HTTP 往返；遇到 503 这类临时错误，默认先按 30 秒间隔快速尝试 3 次，之后转入至少 60 秒间隔的慢速重试，直到确认还上、被永久拒绝或进程关停。只有 Planner 明确拒绝（如 400）或关停时才会永久取消延期发布。第二，**「起来了」不能只看一个信号**，四件事要分别拿证据，见[四件事分开验收](#四件事分开验收)。
 
-## 会话的七个状态：每个只说明本机这一侧
+## 会话的八个状态：每个只说明本机这一侧
 
 一个会话从建好开始，大体按下表从上往下走。每个状态只记本机这边的资源走到了哪一步，读的时候最容易多推一步：
 
 | 状态 | 什么时候进来 | 不能据此推断 |
 |---|---|---|
-| 已建立 | 会话刚建好；或者清理干净、手里也没有租约 | 模型已经装好；Planner 上有可借的来源 |
-| 已借到 | 从 Planner 拿到租约；或者清理干净、租约还没了结 | 显存已经登记、权重已经读到 |
-| 待清理 | 开始登记显存的那一刻；清理没做干净时也停在这里 | 一定出了没法恢复的故障——正常传输当中也处在这个状态 |
-| 已传完 | 登记显存、取清单、读权重全部成功 | 后处理已经做完；租约已经还上 |
-| 就绪 | 当 seed 要用的模型和显存登记都备好了 | 租约已经还上；Planner 已经能找到自己 |
-| 服务中 | seed 服务起来、首次登记成功、心跳线程已启动 | 整个 API 服务就绪；之后每次心跳都成功 |
-| 已收尾 | 进程退出时服务、租约都清了，传输引擎也成功关闭 | 同一进程里另一个会话（主模型或草稿）也收尾了 |
+| 已建立（`INITIALIZED`） | 会话刚建好；或者清理干净、手里也没有租约 | 模型已经装好；Planner 上有可借的来源 |
+| 已登记（`REGISTERED`） | 目的显存登记完成并绑定结构摘要，等待向 Planner 申请租约 | 已经拿到租约或开始读取权重 |
+| 已借到（`LEASED`） | 从 Planner 拿到租约（若有 `LEASE_TTL_SEC` 则已起续租线程） | 权重已经读到 |
+| 待清理（`CLEANUP_REQUIRED`） | 开始登记、开始读权重、开始起服务或清理未干净时 | 一定出了没法恢复的故障——正常执行阶段也会经过这个状态 |
+| 已传完（`TRANSFERRED`） | 取清单、核对与分批读权重全部成功，已安排后台归还 | 后处理已经做完；租约已经还上 |
+| 就绪（`READY`） | 当 seed 要用的模型和显存登记都备好了 | 租约已经还上；Planner 已经能找到自己 |
+| 服务中（`SERVING`） | seed 服务起来、心跳线程已启动（首次上报遇暂态错误也会先进入 `SERVING` 由心跳重试） | 整个 API 服务就绪；之后每次心跳都成功 |
+| 已收尾（`FINALIZED`） | 进程退出时服务与传输引擎成功关闭（含兼容旧无 TTL 租约时的尾次归还尝试） | 同一进程里另一个会话（主模型或草稿）也收尾了 |
 
 「就绪」「服务中」只说 RFork 自己「当 seed」这件事走到了哪，不是 vLLM 的就绪信号。另有三处细节：
 
 - **进「就绪」前要不要重新登记显存，看传的是哪种布局。** 走「转好布局再搬」的模型（开了量化、权重 NZ 模式为 2 或硬件要求 NZ）传的是后处理之后的最终布局，传完时登记的就是最终地址，直接进「就绪」。走「按原形状搬」的模型传的是原始布局，传完还要跑后处理，后处理会换掉一部分存储，所以要按最终的张量重新登记一遍；回退路径从存储读出的模型也一样。重新登记的这段时间会话又处在「待清理」，登记失败就注销、报「失败」，模型照样推理。两种布局的区别见[布局页](rfork-layout.md)。
-- **心跳失败只记一条警告**，状态不变，仍是「服务中」。Planner 那边是否已经因为太久没收到心跳把它摘掉，要看 Planner 自己。
+- **心跳遇暂态错误会继续后台重试**，状态保持「服务中」；若 Planner 返回永久拒绝（`REJECTED`）或本机 seed 服务退出，心跳线程停止并切到「待清理」，再按开关尝试撤回登记。
 - **停掉 seed 服务以后回到「就绪」**；停不干净就停在「待清理」，显存登记继续留着。
 
 ## 按时间走一遍：传完到当上 seed，中间几条线程各干各的
 
-把开头那个例子配上示意数，按时间排开。传完的那一刻记作 0 秒：会话进入「已传完」，同时起一条还租约线程；启动线程不等它，跑完后处理、切到推理模式，第 3 秒去发布 seed，发现租约还在手里，就把模型和发布参数存进会话、返回「延期」，然后把模型交出去。
+把开头那个例子配上示意数，按时间排开。传完的那一刻记作 0 秒：会话进入「已传完」，同时停止续租线程并起一条还租约线程；启动线程不等它，跑完后处理、切到推理模式，第 3 秒去发布 seed，发现租约还在手里，就把模型和发布参数存进会话、返回「延期」，然后把模型交出去。
 
 ```wiki-diagram
 file: rfork-lifecycle-threads
@@ -156,7 +155,7 @@ title: 一个 Worker 从传完到当上 seed（示意数）
 
 ## 还租约：一个后台线程，三种结果
 
-权重传成功后，会话为这张租约起一条后台线程，**一张租约同时只有一条**：线程还活着、或者这张租约已经停止重试，就不再起新的。线程每一轮这样做：
+权重传成功后，会话先停掉续租线程，再为这张租约起一条后台归还线程，**一张租约同时只有一条**：线程还活着、或者这张租约已被永久拒绝，就不再起新的。线程每一轮这样做：
 
 1. 拿会话锁，取出要还的租约，把次数加一；
 2. **放开锁**，向 Planner 发一次归还请求；
@@ -164,13 +163,13 @@ title: 一个 Worker 从传完到当上 seed（示意数）
 
 | Planner 的回应 | 客户端怎么认 | 接下来 |
 |---|---|---|
-| 200 或 404 | 已归还 | 清掉租约；有延期的发布，就接着做完 |
-| 网络出错、408、429、5xx | 可以再试 | 次数没用完就隔一段时间再还 |
-| 400、其他状态、重定向；请求前的准备出错；线程里抛了异常 | 被拒 | 立即停，不等次数用完 |
+| 200 或 404 | 已归还（`RELEASED`） | 清掉租约；有延期的发布，就接着做完 |
+| 网络出错、408、429、5xx | 可以再试（`RETRYABLE`） | 前 3 次按配置间隔（默认 30 秒）快速重试，之后转入至少 60 秒间隔的慢速重试，直到确认还上、被拒或关停 |
+| 400、其他状态、重定向；请求前的准备出错；线程里抛了异常 | 被拒（`REJECTED`） | 立即停，取消延期发布 |
 
-默认一共试 3 次（含第一次），间隔 30 秒，两个数都能在[配置页](rfork-config.md)里改。重定向不跟随，直接算被拒。
+快速重试次数（默认 3，含第一次）和快速重试间隔（默认 30 秒）都能在[配置页](rfork-config.md)里改；超过快速次数后，暂态失败不再放弃，而是自动降频到 `max(配置间隔, 60 秒)` 继续重试。重定向不跟随，直接算被拒。
 
-被拒或次数用完以后：租约留在「没了结」状态；延期的发布任务被取消；日志写明这张租约没了结、不会把自己登记为来源、模型加载和推理可以继续。**已经装好的权重不会重新加载，已经登记的显存也不会因此注销**，一直留到进程退出时的收尾。
+被拒（`REJECTED`）以后：租约留在「没了结」状态；延期的发布任务被取消；日志写明这张租约没了结、不会把自己登记为来源、模型加载和推理可以继续。**已经装好的权重不会重新加载，已经登记的显存也不会因此注销**，一直留到进程退出时的收尾。
 
 还有三点容易漏：
 
@@ -201,21 +200,21 @@ B 和 Planner 之间一共四种请求，参数都放在 HTTP 请求头里，不
 
 所以看到 400，要拿实际响应体、这张租约的日志编号、从借到起算的持有时长，和 Planner 那边的记录一起对，排查顺序见[排错页](rfork-troubleshooting.md)。工作版没有把所有 400 都当成「已经还过了」，这是有意的：把它改判成功，会把真实的账目问题藏起来。
 
-## 五个钟各管各的，现在没有续租
+## 五个钟各管各的，可选周期续租
 
 **TTL**（Time To Live，有效期）指一条记录从起算到被自动作废的时长。RFork 里同时走着好几个钟，谁也不替谁计时：
 
 | 钟 | 谁在计 | 默认值 | 管什么 |
 |---|---|---|---|
 | 心跳间隔 | 来源这边的客户端 | 30 秒 | 上一次心跳请求结束后再等这么久，不是固定频率的定时器 |
-| 心跳 TTL | 示例 Planner | 60 秒 | 来源太久没报平安，就从候选里清掉 |
-| 租约 TTL | 示例 Planner | 60 秒 | 从发出租约起算，到点把名额收回 |
+| 心跳 TTL | 示例 Planner | 60 秒 | 来源太久没报平安，就转入 draining 停止分配新租约 |
+| 租约 TTL | 示例 Planner | 60 秒 | 从发出租约（或最近续租）起算，到点把名额收回 |
 | 单次请求超时 | RFork 客户端 | 10 秒 | 一次 HTTP 的连接、读取各等多久，不是整件事的截止时间 |
 | seed 服务健康检查 | RFork 客户端 | 5 秒 | 起 seed 服务时等它应答的时间 |
 
 客户端这三个数能在配置里改；两个 TTL 是示例 Planner 自己的，客户端改不动。心跳只刷新「这个来源最近一次报平安的时间」，**不碰借用方租约的起算时间**——来源的心跳正常，不等于借来的租约不会过期。
 
-**现在没有续租。** 设计文档讨论过续租方案，但现场的 Planner 暂时改不了，客户端也没有调用任何续租接口。TTL 太短时读到一半名额就会被收回、再借给别人，这几个时长怎样一起评估见[配置页](rfork-config.md#超时重试间隔和租约有效期是三个量)，默认 60 秒对 GLM 每张卡够不够见[配置页的估算](rfork-config.md#默认-60-秒的租约够不够)。
+**当前 `main` 主基线已支持可选续租与慢速归还重试。** 当 Planner 在 `GET /get_seed` 响应头中返回有限正数 `LEASE_TTL_SEC` 时，会话会自动启动 `RForkLeaseRenewal` 后台线程，每等待 `clamp(TTL / 3, 0.1, 30.0)` 秒调用一次 `POST /renew_seed_lease` 续期（例如 TTL = 60 秒时每等 20 秒续一次），并在传输结束进入后台归还或关停时立即停止；若旧 Planner 不返回 `LEASE_TTL_SEC`，则保持兼容不启动续租线程，关停时做一次有界尾次归还尝试。后台归还遇到暂态失败（网络异常、408、429、5xx）时，先按配置的快速次数（默认 3 次）和间隔（默认 30 秒）重试，之后转入至少 60 秒间隔的慢速重试，直到 `RELEASED`、`REJECTED` 或关停；`REJECTED` 仍立即停止并取消延期发布。撤回来源（`POST /remove_seed`）默认关闭，由 `rfork_seed_removal_supported`（`false` / `true` / `null` 自动探测）控制，示例 Planner 在仍有活跃租约时回 409（draining）而不直接删掉正在使用的租约。
 
 ## 发布 seed：已启动、延期、失败
 
@@ -225,7 +224,7 @@ B 和 Planner 之间一共四种请求，参数都放在 HTTP 请求头里，不
 2. 已经在「服务中」→ **已启动**（重复调用不出错）。
 3. 手里有租约，而且它已经停止重试 → **失败**。
 4. 状态不在「已建立、已借到、已传完、就绪」之内，比如还停在「待清理」→ **失败**。
-5. 还没到「就绪」：按需要重新登记显存（见上面[七个状态](#会话的七个状态每个只说明本机这一侧)的第一条细节），成功就进「就绪」，失败就注销、报**失败**。
+5. 还没到「就绪」：按需要重新登记显存（见上面[八个状态](#会话的八个状态每个只说明本机这一侧)的第一条细节），成功就进「就绪」，失败就注销、报**失败**。
 6. 租约还在手里 → 存下模型和发布参数，确认还租约线程在跑，报**延期**。
 7. 都不是 → 真正去发布：算端口、起 seed 服务、到 Planner 首次登记、起心跳线程，全部成功就进「服务中」、报**已启动**，否则报**失败**。
 
@@ -307,11 +306,11 @@ seed 服务个数 = 16 张卡 × 2（主模型、草稿） = 32 个
 > 每次心跳结束后才开始等下一个间隔，实际频率略低于这个数
 ```
 
-固定了 seed 端口基数时，同一张卡上主模型和草稿算出的端口相同，两者里后发布的那个绑不上端口、报「失败」，那张卡就只有一个模型当 seed（按源码推出，缺实机日志），见[配置页](rfork-config.md#固定端口基数会撞)。
+固定了 seed 端口基数时，当前主线采用双槽公式 `base + 2 × global_rank + slot`（主模型槽 0、草稿槽 1），同一张卡上主模型与草稿不再撞号；即使端口被占用（`EADDRINUSE`）也会自动退回系统随机端口，见[配置页](rfork-config.md#固定端口基数怎样按主草分槽)。
 
 **同一张卡上，草稿会话在主模型交出之后才开始。** RFork 的登记、传输、发布都在加载模型的那一次调用里做完，草稿模型要等主模型那次调用返回以后才开始加载。所以主模型的还租约线程在后台跑的同时，草稿会话正在借自己的那份（每卡约 844 MiB，主模型约 20.09 GiB，字节账见[总览](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)）。两份都交出以后，这张卡才去量显存、切 KV cache 块、捕获图；API 服务要等两个 DP 组、两台机器的 16 张卡都做完这些才开始接请求。
 
-**登记的显存在当 seed 期间一直钉着。** 被拒或次数用完的会话也一样，登记要到进程退出才撤。登记会保住被登记张量的存储，大部分本来就是模型在用的权重，不多占；多占的是本该释放却放不掉的那部分，比如草稿后来改用主模型同名张量以后，它自己那两份词表张量。KV cache 预算是在加载之后量的，放不掉的这部分就直接少算进 KV 预算，估算见[总览](rfork.md#这套部署现在能不能受益)。
+**登记的显存在当 seed 期间一直钉着。** 归还被永久拒绝的会话也一样，登记要到进程退出才撤。登记会保住被登记张量的存储，大部分本来就是模型在用的权重，不多占；多占的是本该释放却放不掉的那部分，比如草稿后来改用主模型同名张量以后，它自己那两份词表张量。KV cache 预算是在加载之后量的，放不掉的这部分就直接少算进 KV 预算，估算见[总览](rfork.md#这套部署现在能不能受益)。
 
 **现在只有一个实例。** 如果给它开了 RFork，第一次冷启动时 Planner 上没有来源，32 个会话都走回退，从存储读完以后手里没有租约，直接发布，这个实例就成了以后扩副本的来源。从交出模型到 API 可服务、从借到到当上 seed 各要多久，目前没有实机记录，要收集的日志列在页末。
 
@@ -319,7 +318,7 @@ seed 服务个数 = 16 张卡 × 2（主模型、草稿） = 32 个
 
 - **「日志说 seed 服务已启动，这个实例就能接请求了。」** 发布 seed 和 API 可服务是两件事：前者只说明这个会话能被借，后者要等全部 Worker 做完加载之后的准备。
 - **「延期就是模型不可用。」** 延期的是「当 seed」，模型照样交出、照样推理。
-- **「心跳正常，租约就不会过期。」** 报平安和借用各自计时，心跳不碰租约的起算时间。
+- **「心跳正常，租约就不会过期。」** 报平安和借用各自计时，心跳不碰租约的起算时间；需要续期时应由 Planner 返回 `LEASE_TTL_SEC` 并配合 `/renew_seed_lease`。
 - **「收到 404 说明按时还上了。」** 租约可能早就被回收了；这个回应不能倒回去证明传输期间一直有效。
 - **「收到 400 说明租约过期了。」** 示例 Planner 里过期回的是 404；现场 Planner 的 400 对应什么，要看响应体和服务端记录。
 - **「还租约被拒，显存就释放了。」** 被拒只取消发布，登记的显存留到进程退出。
@@ -334,11 +333,12 @@ seed 服务个数 = 16 张卡 × 2（主模型、草稿） = 32 个
 
 | 键 | 默认 | 管什么 |
 |---|---|---|
-| `rfork_lease_release_max_attempts` | 3 | 还租约总次数，含第一次 |
-| `rfork_lease_release_retry_interval_sec` | 30 秒 | 「可以再试」之后隔多久再还 |
+| `rfork_lease_release_max_attempts` | 3 | 快速阶段还租约次数，含第一次（超次后暂态失败转 ≥60 秒慢试） |
+| `rfork_lease_release_retry_interval_sec` | 30 秒 | 快速阶段「可以再试」之后隔多久再还 |
 | `rfork_heartbeat_interval_sec` | 30 秒 | 心跳间隔，上一次请求结束后起算 |
 | `rfork_request_timeout_sec` | 10 秒 | 单次 HTTP 的连接、读取超时 |
 | `rfork_seed_timeout_sec` | 5 秒 | seed 服务健康检查；也是关停时等心跳线程的下限 |
+| `rfork_seed_removal_supported` | `false` | 控制是否调 `/remove_seed`（`false` 跳过、`true` 确认、`null` 自动探测） |
 
 默认值见 `config.py`。[C13] 两个 TTL 属于 Planner：示例 Planner 用 `--lease-ttl-sec`（环境变量 `RFORK_MOCK_LEASE_TTL_SEC`）和 `--heartbeat-ttl-sec`（`RFORK_MOCK_HEARTBEAT_TTL_SEC`）设，默认都是 60 秒；客户端设置改不了它们。[C8]
 
@@ -348,77 +348,77 @@ seed 服务个数 = 16 张卡 × 2（主模型、草稿） = 32 个
 
 | 本页叫法 | 源码 |
 |---|---|
-| 七个状态 | `RForkLifecycleState`：`INITIALIZED` 已建立、`LEASED` 已借到、`CLEANUP_REQUIRED` 待清理、`TRANSFERRED` 已传完、`READY` 就绪、`SERVING` 服务中、`FINALIZED` 已收尾 |
+| 八个状态 | `RForkLifecycleState`：`INITIALIZED` 已建立、`REGISTERED` 已登记、`LEASED` 已借到、`TRANSFERRED` 已传完、`READY` 就绪、`CLEANUP_REQUIRED` 待清理、`SERVING` 服务中、`FINALIZED` 已收尾 |
 | 还租约结果 | `LeaseReleaseResult`：`RELEASED` 已归还、`RETRYABLE` 可以再试、`REJECTED` 被拒 |
+| 撤回与上报结果 | `SeedRemovalResult`（`REMOVED`/`ABSENT`/`DRAINING`/`UNSUPPORTED`/`UNCONFIRMED`/`RETRYABLE`/`REJECTED`）；`SeedReportStatus`（`ACCEPTED`/`RETRYABLE`/`REJECTED`） |
 | 发布 seed 结果 | `RForkSeedServiceStartResult`：`STARTED`、`DEFERRED`、`FAILED`；只有 `STARTED` 转成布尔值为真 |
 | 回退前清理结果 | `RForkFallbackCleanupResult`：`service_stopped`、`lease_released`、`memory_reset` 三项全真才为真；`can_schedule_seed` 只看 `service_stopped` 和 `memory_reset` |
 
 日志原文，按出现先后：
 
-- 借到：`RFork lease acquired: lease=%s global_rank=%s request_elapsed=%.3fs`
-- 三段耗时：`RFork transfer stages: lease=%s global_rank=%s registration=%.3fs metadata=%.3fs read=%.3fs`；加载器另打 `RFork %s model registration and transfer took %.2f seconds`
-- 延期：`RFork seed promotion is deferred until the source seed lease is released; the transferred model remains available for inference.`
+- 借到（debug）：`RFork lease acquired: lease=%s global_rank=%s request_elapsed=%.3fs`
+- 三段耗时（debug）：`RFork transfer stages: lease=%s global_rank=%s registration=%.3fs metadata=%.3fs read=%.3fs`；加载器另打 `RFork %s model registration and transfer took %.2f seconds`
+- 延期（debug）：`RFork seed promotion is deferred until the source seed lease is released; the transferred model remains available for inference.`
 - 非 200/404 的归还回应：`RFork planner lease release rejected: lease=%s status=%s response=%r`，响应体截前 256 字符、借用编号替换成 `<lease-id>`；503 也打这一条，最终分类看下一条。
-- 每轮结果：`RFork lease release outcome: lease=%s attempt=%d/%d result=%s held_elapsed=%.3fs`，`held_elapsed` 从开始借算起，和 Planner 的租约 TTL 对照时注意两边的钟不是同一个。
-- 停止重试：`RFork lease release stopped: lease=%s attempts=%d; lease remains unresolved, worker will not advertise a seed. Model loading/inference may continue.`
+- 每轮结果（debug）：`RFork lease release outcome: lease=%s attempt=%d/%d result=%s held_elapsed=%.3fs`；暂态慢试阶段按频次打 `RFork planner lease release is temporarily unavailable: ... background retries continue.`，恢复后打 `RFork planner lease release recovered`。
+- 永久拒绝停止：`RFork lease release stopped: lease=%s attempts=%d; lease remains unresolved, worker will not advertise a seed. Model loading/inference may continue.`
 - 线程异常：`RFork background lease release raised; retaining unresolved lease.`（按 `REJECTED` 处理）；线程起不来：`RFork could not start lease release worker; retaining unresolved lease.`
-- 当上 seed：`RFork seed service started for global_rank=%s, port=%s`
-- 发布失败：`RFork seed service startup failed for global_rank=%s: %s`，首次登记不被接受时内层原因是 `planner rejected the initial seed advertisement`；加载器另打 `RFork %s model loaded from %s is ready, but seed service startup failed; inference can continue.`；发布过程抛异常时，加载器改打 error 级带堆栈的 `RFork %s model loaded from %s, but seed service startup raised; inference can continue.`
+- 当上 seed（debug）：`RFork seed service started for global_rank=%s, port=%s`；首次上报 `RETRYABLE` 时打 warning `RFork seed service is running but planner advertisement is pending ... background heartbeats will retry.`
+- 发布失败：`RFork seed service startup failed for global_rank=%s: %s`；加载器另打 `RFork %s model loaded from %s is ready, but seed service startup failed; inference can continue.`
 - 延期发布失败：`RFork deferred seed promotion failed after the source lease was released; the model remains available for inference.`
-- 心跳失败：`RFork heartbeat failed for seed_key=%s`
+- 心跳失败与停跳：`RFork planner seed heartbeat is temporarily unavailable for seed_key=%s: ...`；永久拒绝或服务退出时打 error `RFork seed heartbeat stopped after ...; inference can continue.`
 - 撤销登记重试：`RFork planner seed removal attempt %d/%d returned status=%s`
 - 关停留资源：`RFork shutdown retained registered memory because seed service cleanup is incomplete.`、`RFork shutdown retained TransferEngine state because the source lease is unresolved. …`、`RFork shutdown retained TransferEngine state because finalization did not complete.`
 - 回退中止：`RuntimeError: RFork fallback aborted because seed service or registered memory cleanup failed; tensor owners remain retained. …`
 
 这些日志分别在 `session.py`[C2][C3][C4][C5]、`planner_client.py`[C6][C7] 和 `rfork_loader.py`[C14][C15] 里。
 
-四种 Planner 请求，字段都在 HTTP 请求头：[C12]
+五种 Planner 请求，字段都在 HTTP 请求头：[C12][C6][C7]
 
 | 调用 | 主要请求头 | 客户端怎么认 |
 |---|---|---|
-| GET `/get_seed` | `SEED_KEY` | 200 的响应头必须有 `SEED_IP`、`SEED_PORT`、`USER_ID`、`SEED_RANK`；404 是没有来源 |
-| POST `/put_seed` | `SEED_IP`、`SEED_PORT`、`SEED_RANK`、`USER_ID`，不带 `SEED_KEY` | 200/404 已归还；网络异常、408、429、5xx 可以再试；其余被拒；不跟随重定向 |
-| POST `/add_seed` | 自己的 KEY、IP、PORT、TP RANK，`SEED_REFCNT: 0` | 只认 200；首次登记和心跳共用 |
-| POST `/remove_seed` | `SEED_KEY`、`SEED_IP`、`SEED_PORT`、`SEED_RANK` | 200/404 已撤销；自己最多试 3 次 |
+| GET `/get_seed` | `SEED_KEY` | 200 的响应头必须有 `SEED_IP`、`SEED_PORT`、`USER_ID`、`SEED_RANK`，可选 `LEASE_TTL_SEC`；404 是没有来源 |
+| POST `/renew_seed_lease` | `SEED_IP`、`SEED_PORT`、`SEED_RANK`、`USER_ID` | 仅当 `get_seed` 返回有效 `LEASE_TTL_SEC` 时周期调用；200 为续租成功 |
+| POST `/put_seed` | `SEED_IP`、`SEED_PORT`、`SEED_RANK`、`USER_ID` | 200/404 已归还；网络异常、408、429、5xx 可重试（先快后慢）；其余被拒；不跟随重定向 |
+| POST `/add_seed` | 自己的 KEY、IP、PORT、TP RANK，`SEED_REFCNT: 0` | 200 接受；408/429/5xx 或网络异常为 `RETRYABLE`（后台重试）；其余 `REJECTED` |
+| POST `/remove_seed` | `SEED_KEY`、`SEED_IP`、`SEED_PORT`、`SEED_RANK` | 受 `rfork_seed_removal_supported` 控制；200/已确认 404 为撤回，409 为 draining，405/501 为不支持，最多试 3 次 |
 
-示例 Planner 的 `put_seed` 先清过期租约，查不到或来源身份不符就返回 False，接口转成 404「lease not found」；请求头解析失败才回 400。[C10][C11] 日志里的 `lease=` 是 `USER_ID` 做 SHA256 后的前 12 位，用来关联多次重试而不打印凭据；Planner 日志如果记的是原始编号，要现场换算对应，不能只按时间猜。
+示例 Planner 的 `put_seed` 先清过期租约，查不到或来源身份不符就回 404 `lease not found`；请求头解析失败才回 400。[C10][C11] 日志里的 `lease=` 是 `USER_ID` 做 SHA256 后的前 12 位。
 
 ### 开销和什么时候别开
 
-- 没有续租：`/renew_seed` 只出现在设计文档的提案里，客户端没有调用。[S16] 心跳走 `/add_seed`，只刷新来源记录的 `last_heartbeat_ts`，不碰租约记录的 `leased_at`；租约过期只改名额账本，不会取消进行中的读取。[C9]
-- 设计文档记过一次现场观测：登记加传输约 23 秒。文中没写是哪个模型，它只是一次观测，不是上限；文档同时说明 60 秒的租约在负载高或网络卡顿时照样会过期。[S16]
-- 现场 Planner 的租约 TTL 短于「登记 + 取清单 + 读取 + 还租约」的总时长时，名额会在读完前被收回，再借给别人，两个借用方同时读一张卡。这种情况下先调大 Planner 的 TTL 再开 RFork。[D]
-- 被拒或次数用完以后，登记的显存不注销，要到进程退出的收尾才撤；这段时间被登记保住、本该释放的存储也一直占着，不当 seed 也省不回来。[C3][D]
-- 示例 Planner 把来源、租约放在单进程的内存字典里，多副本共享、重启恢复、保护正在读的借用方都要现场 Planner 自己做。[I]
+- 可选续租与心跳分离：心跳走 `/add_seed` 只刷新 `last_heartbeat_ts` 不续租；当 Planner 返回 `LEASE_TTL_SEC` 时，由独立的 `RForkLeaseRenewal` 线程按 `clamp(TTL / 3, 0.1, 30.0)` 秒调 `/renew_seed_lease` 续期，传输结束或关停即停。[C2][C6][C9][S16]
+- 现场 Planner 若不支持 `LEASE_TTL_SEC` 续期，且租约 TTL 短于「取清单 + 读取 + 还租约」总时长，名额会在读完前被收回引发多读者争抢，应先调大 Planner 的 TTL 或升级支持续期。[D]
+- 归还被 `REJECTED` 后，登记的显存不注销，要到进程退出的收尾才撤；这段时间被保活的存储一直占着。[C3][D]
+- 示例 Planner 把来源、租约放在单进程的内存字典里，多副本共享、重启恢复与生产级排空保护要由现场 Planner 自己负责。[I]
 
 ### 版本差异
 
-- 工作版 `rfork@3284850b`：本页的一切——会话、七个状态、有上限的后台还租约、延期发布、清理结果、关停留资源——都由工作版补丁 0004 引入，逐补丁对照见[总览的版本差异](rfork.md#版本差异)和[版本维护](rfork-maintenance.md)。
-- 社区版 v0.23（2c59ff10，和 db701c1f 这几处一致）、v0.26（2ed6cbba）、main（baa023ad）是另一套：传完以后启动线程同步发一次 `/put_seed`，只认 200，失败只记日志，然后把租约丢掉、照常起 seed 服务；没有重试，没有「没了结」状态，也没有延期。三个版本在这一处的写法相同。[C17][C18][C19]
-- 工作版内部也改过：设计文档记的早先做法，是启动线程同步还租约（最多 3 次 HTTP），之后的后台重试没有总次数、还在会话锁里发请求；现在改成每张租约一条后台线程、锁外发请求、有次数上限。文档注明 NPU 和现场 Planner 上的联调还要验证。[S16]
+| 维度 | `v0.23.0` (`2c59ff10`) / `v0.26.0rc` (`2ed6cbba`) | `v0.30.0` (`c09d3e20`) | `main` (`8d6180e2`) |
+|---|---|---|---|
+| 生命周期与状态机 | 无独立 `RForkSession`；传完同步调 1 次 `/put_seed`，无重试/延期 | 8 状态（含 `REGISTERED`）；后台归还 3 次快试 + ≥60s 慢试，支持 `DEFERRED` 延期发布 | 同 `v0.30.0`，新增 `SeedRemovalResult` 与 `SeedReportStatus`（首次上报 `RETRYABLE` 仍进 `SERVING` 由心跳重试） |
+| 租约续期 | 无续期 | 强制要求 `get_seed` 返回有限正数 `LEASE_TTL_SEC` 并周期调用 `/renew_seed_lease` | `LEASE_TTL_SEC` 改为可选兼容旧 Planner；有 TTL 时按 `clamp(TTL/3, 0.1, 30.0)` 续期，无 TTL 关停时做一次尾次归还 |
+| 撤回与 draining | 无 `/remove_seed` 协议细化 | 撤回直接调用 `/remove_seed` | 默认关闭 `/remove_seed`（由 `rfork_seed_removal_supported` 控制）；示例 Planner 对有活跃租约的 seed 回 409（draining） |
 
-**社区 v0.30.0rc2（7d825229）已经实现续期，不能套用上面的工作版“没有续租”。** get_seed 的200响应必须带有限正数 LEASE_TTL_SEC；缺失或不合法会使申请失败。拿到租约后，会话启动线程，先等待 TTL/3 秒（限制在0.1–30秒），再调用 /renew_seed_lease；每次调用结束后重新等待。比如 TTL=60秒时等待20秒，两次请求起始时刻的间隔还包含续期调用耗时。这不保证 Planner 成功延长；续期失败会记录警告，现有分支也不因此自动证明 native 读取已被停止。
-
-归还也变了：默认三次是快速尝试次数；暂态失败之后，按 max(配置间隔,60秒) 继续尝试，直到成功、永久拒绝或停止条件成立。RELEASED 才清租约并推进延期发布；REJECTED 会停止并压制发布。读取完成后仍由后台归还，因此“读完”“租约已归还”“成为新 seed”继续是三个事件。实现见 planner_client.py 117–245、session.py 149–188、261–364、495–504，固定来源在[总览](rfork.md#版本差异)。工作版的三次总上限、旧日志与示例 Planner 仍只按工作版解释。
+旧开发快照 `baa023ad` 仍沿用同步归还 1 次的旧逻辑。[C17][C18][C19][C22][C23][C24] 完整对照见[总览](rfork.md#版本差异)。
 
 ### 源码位置
 
-- 状态、结果与清理结果类型：`types.py`。
-- 会话构造与退出钩子 `atexit.register(self.shutdown)`：`session.py`。[C20]
-- 借租约 `acquire_seed`、传输 `transfer_from_seed`、进入 `CLEANUP_REQUIRED` 与 `TRANSFERRED`：`session.py`。
-- 后台还租约 `_ensure_lease_release_retry_locked`、`_retry_seed_lease_release`、延期推进 `_promote_deferred_seed_locked`、回退准备 `prepare_for_fallback`：`session.py`。
-- `start_seed_service` 的检查顺序与 `DEFERRED`、`_start_seed_service_locked` 的端口、首次登记与心跳线程：`session.py`。
-- `_stop_seed_service_locked` 的等待上限（`HEARTBEAT_STOP_GRACE_SEC = 1.0`）、`shutdown`：`session.py`。
-- Planner 客户端：`release_seed_once` 的分类与日志、`remove_seed` 重试、`report_seed_once` 与 `run_seed_heartbeat`、`acquire_seed` 的响应头解析：`planner_client.py`。
-- 加载器：`_start_rfork_seed_service` 对三种结果的处理；传输后的后处理、`eval()`、发布、回退准备两轮（`FALLBACK_CLEANUP_MAX_ATTEMPTS = 2`）与回退后发布：`rfork_loader.py`。
-- 示例 Planner：两个 TTL 默认值、`add_seed` 刷新心跳、`get_seed` / `put_seed` / `remove_seed`、过期回收、HTTP 路由与 404/400：`examples/rfork/rfork_planner.py`。
-- 设计文档：`docs/source/developer_guide/Design_Documents/rfork_lease_lifecycle.md`。
-- 社区版：`rfork_worker.py` 的 `post_transfer`、`seed_protocol.py` 的 `release_seed`、`rfork_loader.py` 里传输后的调用顺序。
+以下路径相对社区上游 `vllm-ascend@8d6180e2`（除另注外均在 `vllm_ascend/model_loader/rfork/`）：
+
+- 八状态、归还/撤回/上报/发布与清理结果类型：`types.py#L14-L120`。[C1]
+- 会话构造与退出钩子 `atexit.register`：`session.py#L75-L114`。[C20]
+- 先登记后借租约（`register_destination`、`acquire_seed`）、续租线程（`_start_lease_renewal_locked` / `_renew_seed_lease`）与传输（`transfer_from_seed`）：`session.py#L115-L276`。[C2]
+- 后台还租约快慢重试（`_ensure_lease_release_retry_locked`、`_retry_seed_lease_release`、`_record_lease_release_locked`）、延期推进（`_promote_deferred_seed`）与回退准备（`prepare_for_fallback`）：`session.py#L289-L478`。[C3]
+- `start_seed_service` 与 `_start_seed_service`（双槽端口、首次上报 `RETRYABLE` 后台重试与心跳启动）：`session.py#L490-L659`。[C4]
+- 心跳线程 `_run_seed_heartbeat`、`_stop_seed_service`（等待上限 `HEARTBEAT_STOP_GRACE_SEC = 1.0`）、`_release_legacy_lease_on_shutdown` 与 `shutdown`：`session.py#L660-L864`。[C5]
+- Planner 客户端：`acquire_seed`（`#L137-L195`）、`release_seed_once` 与 `renew_seed_once`（`#L196-L287`）、`remove_seed` 与 `report_seed_once`（`#L289-L391`）：`planner_client.py`。[C6][C7][C12]
+- 加载器：`_start_rfork_seed_service`（`#L174-L204`）与传输后发布/回退两轮清理（`#L858-L957`）：`rfork_loader.py`。[C14][C15]
+- 示例 Planner：两个 TTL 默认值、`add_seed` / `get_seed` / `renew_seed_lease` / `put_seed` / `remove_seed`（409 draining）与过期回收：`examples/rfork/rfork_planner.py#L40-L80`、`#L135-L339`、`#L475-L567`。[C8][C9][C10][C11]
+- 上游指南协议与生命周期说明：`docs/source/user_guide/feature_guide/rfork.md#L275-L380`。[S16]
 
 **待核：**
 
-1. 现场 Planner 对 `/put_seed` 的 400、404 各对应哪些情况，租约 TTL 和心跳摘除时限各是多少；缺现场 Planner 的处理函数源码和一次带响应体的失败日志。
-2. GLM 双机从借到到当上 seed、从交出模型到 API 可服务各要多久；缺一次实机的「lease acquired」「transfer stages」「lease release outcome」「seed service started」日志和 API 就绪时间。
-3. 后台还租约在 NPU 实机和现场 Planner 上的表现；设计文档注明只做过 CPU 上的事件控制测试。
-
-工作版在调用显存登记前就进入 CLEANUP_REQUIRED，登记、元数据或读取任一步失败都要清理，三步成功后才转成 TRANSFERRED（来源2，session.py 113–137）。延期返回仍须先通过关停、状态、登记和租约检查（来源4，303–345）；模型可服务与清理、发布结果分别验收。
+1. 现场 Planner 对 `/put_seed` 的 400/404、是否返回 `LEASE_TTL_SEC` 与支持 `/renew_seed_lease` / `/remove_seed`（409 draining），缺生产 Planner 源码或接口契约。
+2. GLM 双机从借到到当上 seed、从交出模型到 API 可服务各要多久，缺实机日志。
+3. 后台还租约、续租与 draining 撤回在 NPU 实机和现场 Planner 上的表现，缺真机联调记录。

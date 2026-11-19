@@ -227,14 +227,14 @@
   ],
   "pins": [
     {
-      "source": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148",
+      "source": "vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L232-L276",
       "symbols": [
         "transfer_from_seed",
         "fetch_seed_transfer_info"
       ]
     },
     {
-      "source": "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L758-L793",
+      "source": "vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L839-L876",
       "symbols": [
         "batch_transfer_sync_read"
       ]

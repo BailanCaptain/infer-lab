@@ -50,5 +50,5 @@ texts:
   - { at: [550, 542], text: 发布失败，模型也照样交回, size: 12, note: true }
 
 pins:
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L645-L710
-    symbols: [prepare_for_fallback, _reset_process_global_model_state, _make_fallback_load_config, _start_rfork_seed_service]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L904-L957
+    symbols: [prepare_for_fallback, _reset_process_global_model_state, _load_with_default_loader, _start_rfork_seed_service]

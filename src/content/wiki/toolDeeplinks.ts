@@ -12,7 +12,12 @@ import { resolveCanonicalPageId } from "./schema";
 export const LEGACY_BASELINE_BADGE_TEXT = "历史基线页（待更新）" as const;
 export const V030_VERIFIED_TAG = "releases/v0.30.0" as const;
 
-export type ToolDeepLinkOwner = "deploy-calculator" | "config-doctor" | "shared";
+export type ToolDeepLinkOwner =
+  | "deploy-calculator"
+  | "config-doctor"
+  | "troubleshoot-workbench"
+  | "aicore-lab"
+  | "shared";
 
 export interface ToolDeepLinkManifestEntry {
   pageId: string;
@@ -126,6 +131,14 @@ export const TOOL_DEEPLINK_MANIFEST: readonly ToolDeepLinkManifestEntry[] = [
   { pageId: "balance-scheduling", tool: "config-doctor" },
   { pageId: "swa-bounded-replay", tool: "deploy-calculator" },
   { pageId: "kvpp", tool: "config-doctor" },
+
+  // ---- Wave-4 Troubleshooting & RFork deep-links ----
+  { pageId: "inference-troubleshooting", tool: "troubleshoot-workbench" },
+  { pageId: "inference-performance-troubleshooting", tool: "troubleshoot-workbench" },
+  { pageId: "inference-correctness-troubleshooting", tool: "troubleshoot-workbench" },
+  { pageId: "inference-benchmarking", tool: "troubleshoot-workbench" },
+  { pageId: "request-call-chain", tool: "troubleshoot-workbench" },
+  { pageId: "rfork", tool: "shared" },
 ];
 
 function normalizeAnchor(anchor: string | undefined): string {

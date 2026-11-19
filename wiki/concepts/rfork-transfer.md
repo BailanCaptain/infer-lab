@@ -22,37 +22,34 @@ aliases:
 chapters: []
 order: 70
 sources:
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/seed_client.py#L89-L153'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/manifest.py#L50-L111'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/manifest.py#L164-L252'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L633-L730'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L121-L152'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L732-L793'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L28-L47'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/seed_server.py#L165-L193'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L33-L37'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L40-L118'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L155-L175'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L271-L354'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L356-L461'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L463-L561'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L563-L614'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L492-L501'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L584-L591'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L255-L286'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/seed_client.py#L58-L110'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/manifest.py#L17-L86'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/manifest.py#L87-L214'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L695-L806'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L128-L165'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L807-L876'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/tensor_layout.py#L205-L226'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L115-L276'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/seed_server.py#L178-L198'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L38-L45'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L47-L126'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L167-L190'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L338-L410'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L411-L551'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L552-L639'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L641-L694'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L712-L728'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L805-L815'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L446-L478'
   - >-
     raw:sha256-d771f816da47b59060f7a56b0945b2a280aba7cd5e02232825b5f69b7dd9d448.md#L1-L1055
-  - >-
-    rfork@3284850b42f94934dfe6909ed6f1c4c145a7f69c:vllm_ascend/model_loader/rfork/seed_client.py#L111-L150
-  - >-
-    rfork@3284850b42f94934dfe6909ed6f1c4c145a7f69c:vllm_ascend/model_loader/rfork/manifest.py#L168-L204
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/manifest.py#L64-L214'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/tensor_layout.py#L42-L61'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L227-L273'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/manifest.py#L64-L214'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/tensor_layout.py#L30-L61'
   - 'vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/transfer_backend.py#L394-L482'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L38-L49'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/types.py#L68-L81'
 verified:
-  - 'rfork:main'
+  - main
 evidence: C
 relations:
   - to: rfork-layout
@@ -62,7 +59,7 @@ relations:
     kind: builds-on
     note: key 匹配只负责挑候选来源，选中以后仍必须核验逐张量元数据
 contradicts: []
-updated: '2026-10-30'
+updated: '2026-11-19'
 rawSources:
   - >-
     raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md
@@ -166,42 +163,34 @@ Ex 注册是客户端这边的调用约定。现场的 YuanRong 版本能不能�
 
 ## 第二步：用 HTTP 向 A 要清单
 
-登记好以后，B 带着 seed key（身份匹配时算出的那把哈希键，说明「要的是哪一份权重」）向 A 的 seed 服务发一个请求。A 的 seed 服务是 A 上专门回答元数据的 HTTP 服务。回来的说明里有三样东西：
+登记好并绑定结构摘要、拿到租约以后，B 带着 `seed_key`（身份匹配时算出的那把哈希键）向 A 的 seed 服务发一个 HTTP GET 请求（`/get_rfork_transfer_engine_info?seed_key=...`）。回来的 JSON 里包含四项核心内容：
 
 | 内容 | 用在哪一步 |
 |---|---|
-| A 那边传输引擎的会话标识（不能为空） | 真正读数据时要连的远端端点 |
-| 每块权重的名字 → 这块权重的信息 | 和本地清单对照，生成要读的地址列表 |
-| 每块权重的名字 → 形状 | 和上一项里带的形状互相核对 |
+| 协议版本 `rfork_protocol_version`（必须为整数 `1`） | 防止不兼容协议版本混传 |
+| A 那边传输引擎的会话标识（不能为空，格式 `host:rpc_port`） | 真正读数据时要连的远端端点 |
+| 每块权重的名字 → 五元组信息 `(ptr, numel, element_size, shape, dtype)` | 和本地清单对照，生成要读的地址列表 |
+| 每块权重的名字 → NPU 存储格式（`rfork_transfer_engine_format_info`） | 逐项核对 ND/NZ 等底层 NPU 格式是否完全一致 |
 
-新版 seed 服务一次就把三样都返回。老服务的回应里没有形状那一项时，B 会再单独要一次形状。这次补要出问题分两种情况，处理不一样，别混为一谈：
+当前 `main` 主基线一次响应就把协议版本、会话标识、权重五元组和 NPU 存储格式清单全部返回，不再存在老版本单独请求 shape 接口的兼容路径。协议版本不符、响应不是映射、主字段不是两项、会话标识为空、权重或格式清单格式非法，都在读任何数据之前失败。**所以不能只凭 HTTP 端口通了就说这一步完成了。**
 
-- **补要时网络异常**：只有权重信息里每一项已经自带完整的形状和类型，才降级继续，日志里留一条警告；否则整次取清单失败。
-- **补要有回应，但不是成功状态**（比如 404）：B 不再追问，当作这次没有形状信息，交给后面的核对兜底——那里缺形状或缺类型一律拒绝。
-
-清单本身格式不对——整个回应不是一张表、主字段不是恰好两项、会话标识为空、权重信息不是一张表、主响应中的形状字段既不是 None 也不是映射结构——都在读任何数据之前失败。
-
-主响应没有形状字段，与字段存在但值为 None，走的是不同路径：只有缺少字段时，B 才会单独请求形状接口；字段存在但值为 None 时，直接处理这个值，不触发补要。接受 None 只说明此处不因字段类型而拒绝响应，清单是否足以传输仍由后续核对决定。主请求回了非成功状态、网络异常、回应解析失败，也都算取清单失败。**所以不能只凭 HTTP 端口通了就说这一步完成了。**
-
-seed key 不对时的表现容易误判。A 的 seed 服务对取清单的请求**不会**回一个「拒绝」状态，而是照常回应，只是主字段是空的；B 把它当成格式不对，报的也是格式不对。所以看到「seed 回的传输元数据格式不对」，**先核 seed key，别先去查网络**。seed 服务另有两个接口：一个带 key 的健康检查，key 不对才回 400（请求错误）；一个存活检查，只说自己还活着。排错时要记下是哪个接口、回的什么状态、回的什么内容，三个接口的「成功」不能混用。
+`seed_key` 不对时，A 的 seed 服务在 `/get_rfork_transfer_engine_info` 上直接返回 **HTTP 404**（不再返回空字段 JSON）；带 key 的健康检查 `/health_check_with_key` 在 key 不对时返回 **HTTP 400**。排错时要记下接口路径、状态码和内容。
 
 ## 清单上每一项写着五个量，元素个数和字节数要分清
 
-清单里每块权重是一项，一项有五个量：A 那边这块权重的**起始地址**、**元素个数**、**每个元素几字节**、**形状**和**类型**。前三个决定读哪一段字节，后两个决定这串字节该怎么解释。
+清单里每块权重是一项，只接受严格五元组：A 那边这块权重的**起始地址**、**元素个数**、**每个元素几字节**、**形状**和**类型**，并由单独的格式表提供每个名字对应的整数 **NPU 存储格式**。前三个决定读哪一段字节，后两个加 NPU 存储格式决定这串字节该怎么解释。
 
-元素个数 × 每个元素几字节 = 这块要读的字节数。比如前面两项清单里的 W1，是 1024 × 1024 的 float16：元素个数 1,048,576，每个 2 字节，要读 2,097,152 字节。
-
-代码能看懂好几种旧格式的写法，但「能看懂」不等于「会放行」：最后核对要求形状和类型都齐全；老格式里缺类型的那种三元组，不能只凭「每个元素字节数一样」就过关。
+元素个数 × 每个元素几字节 = 这块要读的字节数。比如前面两项清单里的 W1，是 1024 × 1024 的 float16：元素个数 1,048,576，每个 2 字节，要读 2,097,152 字节。不完整或非五元组的旧格式条目会被直接拒绝。
 
 ## 第三步：第一个字节写进来之前，整份清单要过五道门
 
-1. **名字。** 本地和远端的名字都得非空、不重复，名字集合要一致。只有确认完全落在主模型登记范围里的共享项，才按明确规则跳过（见下文[主模型和草稿模型共享地址](#主模型和草稿模型共享地址时谁登记谁来传)）——不能把随便哪个缺了的项都当成共享。
-2. **字段合法。** 地址、元素个数、每个元素几字节都得是正整数，不能拿真/假值冒充数字；形状每一维是非负整数，各维相乘等于元素个数。
-3. **两份形状一致。** 单独给的形状表，名字集合要和权重表一致；同一块权重两份形状对不上，直接失败。
-4. **逐块、总量都对上。** 本地每块权重，远端的元素个数、每个元素几字节、类型都必须一致；两边的总条数和总字节数还要再对一遍。
-5. **整份核完才动手。** 全部通过后，才去调形状、生成读取列表、开始读。不会出现「后面某一项没通过，前面几项已经悄悄传过来了」的情况。
+1. **名字与共享跳过。** 本地和远端的名字都得非空、不重复；扣除已验证完全落在主模型登记范围里的共享项后，两边名字集合必须完全一致，跳过名单里的名字必须在远端存在且已从本地排除。
+2. **字段与格式表合法。** 地址、元素个数、每个元素几字节都得是正整数（排除布尔值）；形状每维非负且乘积等于元素个数；NPU 存储格式表的名字集合必须与远端权重清单完全一致且值为整数。
+3. **逐块核对元素、dtype 与 NPU 格式。** 本地每块权重，远端的元素个数、每个元素几字节、dtype 与 `torch_npu.get_npu_format` 读出的存储格式都必须逐项相等。
+4. **总量核对与稠密布局检查。** 两边的总条数和总字节数必须相等；调完视图后还会在发读之前再次校验所有可传张量均满足连续无间隙、无重叠存储（`is_non_overlapping_dense_tensor`）。
+5. **整份核完才动手。** 全部通过后，才生成读取列表开始分批同步读，不会出现「后面某一项没通过，前面几项已经悄悄传过来了」的情况。
 
-这是一组**结构和类型的核对，不是对权重内容做校验和**。清单里也没有远端完整的步长（stride）信息，所以不能把「通过了这些检查」说成「任何非连续布局都安全」。布局能不能对上，仍然依赖两端的代码、模型和硬件前提一致；这些前提由[身份匹配](rfork-identity.md)的兼容性指纹先筛过一遍。
+这是一组**结构、类型与 NPU 存储格式的核对，不是对权重内容做校验和**。传输只按 `numel × element_size` 读取连续稠密字节段，不隐式搬运分配器余量或描述符 padding；布局与内容相容仍依赖两端配置指纹、结构摘要及硬件/代码前提一致。
 
 ## 形状可以换个看法，元素个数和类型不能变
 
@@ -301,101 +290,73 @@ title: GLM 所列语言张量已经给出的批量读下限
 
 ### 怎么开
 
-本页各步只在接收端用 `--load-format rfork` 启动、且已选中 seed 时发生；参数、默认值与端口见[配置与部署](rfork-config.md)。两个分批上限 `MAX_TRANSFER_CHUNK_BYTES = 1024**3`、`MAX_TRANSFER_CHUNK_WEIGHTS = 512` 是模块常量，不是 CLI 参数。[C10]
+本页各步只在接收端用 `--load-format rfork` 启动、且已完成 `register_destination` 并选中 seed 时发生；参数、默认值与端口见[配置与部署](rfork-config.md)。两个分批上限 `MAX_TRANSFER_CHUNK_BYTES = 1024**3`、`MAX_TRANSFER_CHUNK_SEGMENTS = 512` 是模块常量，不是 CLI 参数。[C10]
 
 ### 会报什么错
 
-登记（第一步，`register_memory_region`）在取清单之前：模型里有非 NPU 张量时报 `RFork does not support mixed-device model state; ...`；传输引擎缺 Ex 注册接口时报 `RFork requires YuanRong TransferEngine with MemoryRegistration and batch_register_memory_ex support.`；其余登记侧报错见本节末段。
+登记（第一步，`register_memory_region`）在申请租约与取清单之前：模型里有未豁免的非 NPU 张量时报 `RFork does not support mixed-device model state; ...`；传输引擎缺 `get_rpc_port` 或 `batch_register_memory_ex` 接口时报 `RFork requires YuanRong TransferEngine with get_rpc_port support.` / `RFork requires YuanRong TransferEngine with MemoryRegistration and batch_register_memory_ex support.`；其余登记侧报错见本节末段。[C13][C14][C21]
 
-取清单（`fetch_seed_transfer_info`）：接收端 GET `/get_rfork_transfer_engine_info?seed_key=...`。[C1]
+取清单（`fetch_seed_transfer_info`）：接收端 GET `/get_rfork_transfer_engine_info?seed_key=...`（`allow_redirects=False`）。[C1]
 
 | 正文说的情况 | 日志原文 |
 |---|---|
-| 主请求非 200 | `RFork seed metadata request returned status=...` |
+| 请求非 200（含 `seed_key` 不匹配时 seed 服务端返回 404） | `RFork seed metadata request returned status=...` |
 | 回应不是 mapping | `RFork seed returned malformed transfer metadata response.` |
-| 主字段不是两项序列（含 key 不匹配时主字段为 `None`） | `RFork seed returned malformed transfer metadata.` |
+| 协议版本缺失或不是整数 `1` | `RFork seed protocol mismatch: expected=1 got=...` |
+| 主字段不是两项序列 | `RFork seed returned malformed transfer metadata.` |
 | session ID 为空或 weight manifest 不是 mapping | `RFork seed returned an invalid session or weight manifest.` |
-| 主响应中的形状字段既不是 `None`，也不是 mapping | `RFork seed returned a malformed shape manifest.` |
-| 补要 `/get_rfork_transfer_engine_shape_info` 时抛网络异常、但权重条目已带 shape 与 dtype | `RFork optional shape metadata request failed; using complete weight metadata` |
-| 其余异常（含上一条不满足降级条件时重新抛出的异常、JSON 解析异常） | `RFork seed metadata request failed for ...` |
+| 格式清单缺失或非法 | `RFork seed returned malformed format metadata.` |
+| 网络或 JSON 解析异常 | `RFork seed metadata request failed for ...` |
 
-三项字段名：`rfork_transfer_engine_info[0]` 是 session ID，`rfork_transfer_engine_info[1]` 是名字 → 权重信息，`rfork_transfer_engine_shape_info` 是名字 → shape（可内嵌）。补要 shape 返回非 200 时 `shapes` 保持 `None`，由 manifest 校验兜底。[C3]
+seed 服务端（`seed_server.py#L178-L198`）仅提供两个路由：`/get_rfork_transfer_engine_info`（key 不匹配返回 404）与 `/health_check_with_key`（key 不匹配返回 400）；不再提供独立的 shape 查询接口。[C9]
 
-seed 服务端：metadata 与 shape 接口在 `seed_key` 不匹配时返回字段为 `None` 的 JSON，不是 HTTP 400；`/health_check_with_key` 不匹配才返回 400；`/rfork_fetch_seed` 只回 `{"status": "ok"}`。[C9]
+清单核对（`manifest.py#L87-L214`）常见报错：`Invalid weight info for ...`（仅接受严格五元组）、`RFork remote format manifest is missing, malformed, or differs from the weight manifest.`、`Weight info mismatch for ...`（`numel` / `element_size`）、`Weight dtype mismatch for ...`、`Weight storage format mismatch for ...`（NPU 存储格式不同）、`RFork manifest count/bytes differ: ...`、`RFork manifest names differ after validated shared skips: ...`。[C2][C3]
 
-清单核对（`manifest.py`）常见报错：`Weight info mismatch for ...`（numel / element size 不一致）、`Weight dtype mismatch for ...`、`RFork manifest entry for ... must include shape and dtype`、`RFork conflicting shape metadata for ...`、`RFork remote shape manifest names differ from weight manifest.`、`RFork manifest count/bytes differ: ...`。条目格式为 `(ptr, numel, element_size, shape, dtype)`；解析器兼容旧 tuple / mapping，但缺 dtype 的老三元组过不了最终校验。[C2] 名称集合与共享项跳过规则、整体校验先于 reshape 与读取见 [C4]；扣掉共享项后名字仍不一致时，`transfer_backend.py` 报 `RFork manifest names differ: local_only=..., remote_only=...`。
+形状调整（`reshape_tensor_to_seed_shape`）：`numel` 不同报 `Weight shape mismatch for ...`；`tensor.data.view(seed_shape)` 抛异常报 `Failed to reshape RFork tensor ...`。[C7] 读取前再经 `_validate_transferable_tensor_layouts` 校验非重叠稠密存储。
 
-形状调整（`reshape_tensor_to_seed_shape`）：numel 不同报 `Weight shape mismatch for ...`；`tensor.data.view(seed_shape)` 抛异常报 `Failed to reshape RFork tensor ...`。[C7]
+读取：每批调 `batch_transfer_sync_read(session_id, client_ptrs, seed_ptrs, lengths)`，本地目标地址在前、远端源地址在后；失败报 `Failed to transfer weights chunk %d/%d, first: %s, last: %s, ret=%s` 后返回 False。[C6]
 
-读取：每批调 `batch_transfer_sync_read(session_id, client_ptrs, seed_ptrs, lengths)`，参数里本地目标地址在前、远端源地址在后，别看反；失败报 `Failed to transfer weights chunk %d/%d, first: %s, last: %s, ret=%s` 后返回 False。[C6]
+内存登记一侧：逻辑范围找不到完整覆盖的支撑块时，打印 `tensor range ... is not fully covered by a registration block` 后失败 [C14]；取不到有效的 storage owner 直接失败 [C12]；看到 `registration rollback is incomplete` 说明注册失败后的回滚没做完；批量注销返回 `kNotFound` 时逐地址重试，单地址 `kNotFound` 视为已不存在 [C15]；`finalize_transfer_engine` 只在返回 `kNotReady` 时重试（最多 10 次、每次隔 1 秒） [C16]；seed HTTP 服务仍被持有时拒绝直接注销 MR，报 `RFork refuses to unregister memory while the seed server is owned.`。[C19]
 
-
-内存登记一侧：逻辑范围找不到完整覆盖的支撑块时，打印 `tensor range ... is not fully covered by a registration block` 后失败，不会把越界范围提交给传输引擎 [C14]；取不到有效的 storage owner 直接失败 [C12]；看到 `registration rollback is incomplete` 说明注册失败后的回滚没做完，要同时检查后面的 `fallback aborted` 和显存状态，不能当作零副作用失败；批量注销返回 `kNotFound` 时逐地址重试，单地址 `kNotFound` 视为该项已不存在，其他错误留在 unresolved addresses [C15]；`finalize_transfer_engine` 只在返回 `kNotReady` 时重试，其他错误或异常直接失败 [C16]；seed HTTP 服务仍被持有时，session 拒绝直接注销 MR [C19]，日志是 `RFork refuses to unregister memory while the seed server is owned.`。
-
-缺少扩展接口的失败还要与“批次已经提交、回滚没完成”区分：只有存在待登记的逻辑范围时，代码才检查扩展接口；缺失时尚未尝试本次原生登记，会清空本次登记状态并返回失败。已经提交批次后的失败，则仍按上文保留未解决地址与存储持有者，不能照此清空。
-
-失败撤销（`rfork_loader.py`）：`transfer_from_seed` 返回 False 时 loader 抛 `transfer failed.`，打印 `RFork transfer failed: ..., clean up and fall back to default loader`，再调 `prepare_for_fallback` 最多 2 次（`FALLBACK_CLEANUP_MAX_ATTEMPTS`）。`prepare_for_fallback`（`session.py` L274–286）依次停 seed 服务、归还租约、服务停掉才注销登记，归还失败交后台重试；`can_schedule_seed` 只看服务已停且登记已注销，租约没还上不挡回退。清理失败时报 `RFork fallback aborted because seed service or registered memory cleanup failed; ...`，拒绝分配第二份模型。
+失败撤销（`rfork_loader.py`）：`transfer_from_seed` 返回 False 时抛 `RuntimeError("transfer failed.")`，打印 `RFork transfer failed: ..., clean up and fall back to default loader`，再调 `prepare_for_fallback` 最多 2 次；`can_schedule_seed` 只看 `service_stopped and memory_reset`，不满足时抛 `RFork fallback aborted ...` 拒绝分配第二份模型。[C19][C25]
 
 ### 开销和什么时候别开
 
-分块：单个 tensor 字节段超过 1 GiB 先拆成不超过 1 GiB 的连续片段，再按累计 ≤ 1 GiB、段数 ≤ 512 分批。[C5] 2.5 GiB 张量切成 1 + 1 + 0.5 GiB 三段、源与目标地址按已传字节偏移，是按该规则的假设例子。[A][D]
+分块：单个 tensor 字节段超过 1 GiB 先拆成不超过 1 GiB 的连续片段，再按累计 ≤ 1 GiB、段数 ≤ 512（`MAX_TRANSFER_CHUNK_SEGMENTS`）分批。[C5] 2.5 GiB 张量切成 1 + 1 + 0.5 GiB 三段是教学例子。[A][D] 别名按逻辑名逐个读，字节统计可能大于去重存储量。
 
-别名重复读：注释明言按逻辑名逐个读、接受 alias 重叠字节的重复读取，只按本地地址合并不安全；`bytes` 统计因此可能大于唯一存储量。
+完成日志 `RFork weight transfer completed: tp_rank=..., weights=..., chunks=..., bytes=... GiB, elapsed=...s, throughput=... GiB/s`（TP0 为 INFO、其余为 DEBUG）只计读取循环；session 另有 `RFork transfer stages` 分段日志（DEBUG）。[C6][C8]
 
-完成日志 `RFork weight transfer completed: weights=..., chunks=..., bytes=... GiB, elapsed=...s, throughput=... GiB/s` 只计这段读取循环；session 另有 registration / metadata / read 分段日志。[C8]
-
-教学字节例推导：W1 = 1024 × 1024 × 2 B = 2,097,152 B；W2 = 1024 × 4 B = 4,096 B；合计 2,101,248 B ÷ 1,048,576 ≈ 2.004 MiB。假设清单，不是 Qwen3-0.6B 或任何真实模型的实际权重清单。[A][D]
-
-wire manifest 不携带完整远端 stride，校验是结构与类型核对而非内容 checksum——这是由条目五元组推出的结论。[D]
-
-
-内存登记一侧：每批注册最多 4096 项，是模块常量、不可配置 [C10]；finalize 最多尝试 10 次、间隔 1 秒，也是模块常量，和 lease release 的三次重试是两个独立设置。张量范围索引靠排序加前缀最大终点，避免逐张量扫描全部分配块 [C11]。同一 backing allocation 上多段逻辑范围的 Ex 注册是客户端约定；现场 YuanRong 版本是否支持、`kNotFound` / 部分成功 / 批量中止的语义，都要在真实 NPU 和实际库上验证，源码阅读与 CPU 测试不能替代。W 被 `W.data = 新张量` 替换后旧地址仍在 TransferEngine 注册表里、只保 W 不能保旧 storage，是由保活实现推出的结论 [D]。
-
-GLM 双机的数是 3121f187 下所列语言张量的子账（推演，未实测）：主模型约 20,572 MiB、至少 21 批，草稿约 844 MiB、至少 1 批；540.75 MiB 是 MTP 所列模块小计，不是完整常驻量。实际量化版本、视觉塔和旋转矩阵等表外项见[部署页](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)，读取推导只维护在[RFork 总览](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)。现场分别核两条 `RFork weight transfer completed` 的完整 bytes/chunks。processed layout 发布沿用接收登记（session.py 317–334），草稿两份旧词表 storage 因此保活；302.5 MiB 及其余预算不变时约 38 块的增量条件也见总览。
+内存登记每批最多 4096 项（`MAX_MEMORY_REGISTRATION_BATCH_ITEMS`），finalize 最多 10 次、间隔 1 秒。[C10][C16] 教学字节例（W1 + W2 ≈ 2.004 MiB）与 GLM 双机子账推导规则同前，详细读取推导仅维护在[RFork 总览](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)。[A][D]
 
 ### 版本差异
 
-本页只讲 RFork 工作版（`verified: rfork:main`，钉 `3284850b`）。社区 v0.23 / v0.26 / main 都没有 `manifest.py`、`seed_client.py`（它们由工作版 patch 0004 新建），社区版的元数据走 `seed_protocol.py`、没有独立的 manifest 校验层；逐补丁对照见 [RFork 总览](rfork.md) 的「版本差异」。
+| 维度 | `v0.23.0` (`2c59ff10`) / `v0.26.0rc` (`2ed6cbba`) | `v0.30.0` (`c09d3e20`) | `main` (`8d6180e2`) |
+|---|---|---|---|
+| 模块与元数据协议 | 旧六文件结构，`seed_protocol.py`；无独立 `manifest.py`、无 dtype/格式校验 | 独立 `manifest.py` 与 `seed_client.py`；严格五元组 + NPU format 逐项比对 | 同 `v0.30.0`，增加 `rfork_protocol_version = 1` 显式校验，错 key 返回 404 |
+| 分块与登记 | 1 GiB / 512 条，单张量不切段；无 storage 保活、无草稿排除区间 | 单张量先切段（≤1 GiB）再按 ≤1 GiB / ≤512 段装批；`batch_register_memory_ex`（≤4096 项）+ `get_rpc_port()` + storage 保活 + 草稿排除 | 同 `v0.30.0`，常量名为 `MAX_TRANSFER_CHUNK_SEGMENTS`，读取前增非重叠稠密布局复验与有界布局摘要 |
 
-旧社区 v0.23 `2c59ff10`、v0.26 `2ed6cbba`、main `baa023ad` 与 GLM `db701c1f` 都是六文件结构，分批上限同为1 GiB / 512条，单个张量不切段，清单不核 dtype、总条数与总字节。登记 API 交地址和长度，不带工作版的支撑范围。v0.23、v0.26、GLM 没有 owner 保活；baa023ad 已保留登记张量的引用、排除主草重叠区间，因此不能把它也说成“完全没有保活”。工作版进一步保存注册时的 storage owner，避免 Parameter 后来换 storage 时失去原登记内存。
-
-**v0.30.0rc2（7d825229）另有独立 manifest/seed_client，不能套用上述六文件结构。** 新清单只接受完整五元组，并要求 NPU format 清单按名称覆盖、逐项比较格式；工作版兼容旧条目与另取 shape 的流程不能当作新协议。名字、形状、dtype 和格式也参与申请前的结构摘要。若旧 seed 只返回少量元数据，即使模型路径相同也未必能通过校验；校验通过仍只证明结构相容，不证明权重内容相同。详见[总览的新版本对照](rfork.md#版本差异)及其 manifest.py 64–214 固定来源。
+固定镜像 `db701c1f` 与 `v0.23.0` 一致；旧开发快照 `baa023ad` 已合入张量引用保活与草稿排除区间，但仍属六文件结构。[C22][C23][C24] 完整对照见 [RFork 总览](rfork.md#版本差异)。
 
 ### 源码位置
 
-工作版 `rfork@3284850b`，路径前缀 `vllm_ascend/model_loader/rfork/`：
+以下均为社区上游 `vllm-ascend@8d6180e2`，路径前缀 `vllm_ascend/model_loader/rfork/`：
 
 | 步骤 | 位置 |
 |---|---|
-| 四步的顺序：登记 → 取清单 → 读，分段耗时日志 | `session.py` L103–148 |
-| 取清单、shape 补要与降级 | `seed_client.py` L89–153 `fetch_seed_transfer_info` |
-| 条目解析与字段合法性 | `manifest.py` L50–111 |
-| 逐张量对照、总条数与总字节 | `manifest.py` L164–252 |
-| 名称集合、共享项跳过、先校验后读 | `transfer_backend.py` L626–730 |
-| 大张量拆段与分批 | `transfer_backend.py` L121–152 |
-| 读列表、批量同步读、完成日志 | `transfer_backend.py` L732–793 |
-| 形状视图调整 | `tensor_layout.py` L28–48 `reshape_tensor_to_seed_shape` |
-| seed 服务端各接口 | `seed_server.py` L162–188 |
-| 分批上限常量 | `transfer_backend.py` L33–37 |
-| 传输失败 → 清理 → 回退或拒绝回退 | `rfork_loader.py` L622–672 |
-| 会话清理顺序：停服务、还租约、注销登记 | `session.py` L274–286；`types.py` L38–49 |
-| seed 发布前是否重新登记 | `session.py` L317–334 |
+| 先登记 → 借租约 → 取清单 → 读，分段耗时日志 | `session.py#L115-L276` [C8] |
+| 取清单与协议版本校验 | `seed_client.py#L58-L110` `fetch_seed_transfer_info` [C1] |
+| 严格五元组条目解析与字段合法性 | `manifest.py#L17-L86` [C2] |
+| 逐张量元素/dtype/NPU format、条数与总字节校验 | `manifest.py#L87-L214` `validate_weight_manifest` [C3] |
+| 名称集合、共享项跳过、视图调整与稠密布局复验 | `transfer_backend.py#L695-L806` [C4] |
+| 大张量拆段与分批（1 GiB / 512 段） | `transfer_backend.py#L38-L45`、`#L128-L165` [C5][C10] |
+| 读列表、批量同步读、完成日志 | `transfer_backend.py#L807-L876` [C6] |
+| 形状视图调整 | `tensor_layout.py#L205-L226` `reshape_tensor_to_seed_shape` [C7] |
+| seed 服务端路由（错 key 回 404 / 400） | `seed_server.py#L178-L198` [C9] |
+| 引擎初始化与 `get_rpc_port()` | `transfer_backend.py#L227-L273` [C21] |
+| 分配块索引、storage 保活与草稿排除 | `transfer_backend.py#L47-L126`、`#L167-L190`、`#L338-L410` [C11][C12][C13] |
+| 完整覆盖、`batch_register_memory_ex` 与失败回滚 | `transfer_backend.py#L411-L551` [C14] |
+| `unregister_memory_region`（`kNotFound` 逐地址重试）与 `finalize_transfer_engine` | `transfer_backend.py#L552-L694` [C15][C16] |
+| draft 排除块与全量共享直接 `eval()` 返回 | `rfork_loader.py#L712-L728`、`#L805-L815` [C17][C18] |
+| 拒绝注销检查、清理顺序与 `can_schedule_seed` | `session.py#L446-L478`、`types.py#L68-L81` [C19][C25] |
 
-内存登记一侧：
-
-| 步骤 | 位置 |
-|---|---|
-| 找相交分配块、张量范围索引 | `transfer_backend.py` L40–118 |
-| 保活列表：Tensor 与注册时的 storage | `transfer_backend.py` L155–175 |
-| 按 `exclude_blocks` 排除 target 已覆盖的 draft 张量 | `transfer_backend.py` L271–354 |
-| 检查完整覆盖、合并逻辑范围、`batch_register_memory_ex` 与失败回滚 | `transfer_backend.py` L356–461 |
-| `unregister_memory_region`，`kNotFound` 逐地址重试 | `transfer_backend.py` L463–561 |
-| `finalize_transfer_engine`，成功才清登记状态与 session ID | `transfer_backend.py` L563–614 |
-| draft 加载器取 `registered_weight_blocks` 当 `exclude_blocks` | `rfork_loader.py` L492–501 |
-| `can_reuse_shared_weights` 为真时直接 eval 返回 | `rfork_loader.py` L584–591 |
-| seed HTTP 服务仍被持有时拒绝注销 MR | `session.py` L255–286 |
-
-工作版只有在 logical_registrations 非空时才要求 MemoryRegistration 与可调用的 batch_register_memory_ex。接口缺失会在批次提交前清登记状态；已提交后遇错则走保留未解决地址的回滚分支（来源14，395–445）。两类失败的资源状态不同，现场仍需检查实际接口兼容性和注销结果。
-
-- 来源 21：rfork@3284850b，vllm_ascend/model_loader/rfork/seed_client.py，L111–L150。
-- 来源 22：rfork@3284850b，vllm_ascend/model_loader/rfork/manifest.py，L168–L204。
+只有在 `logical_registrations` 非空时才要求 `MemoryRegistration` 与可调用的 `batch_register_memory_ex`；接口缺失会在批次提交前清登记状态，已提交后遇错则走保留未解决地址的回滚分支（`transfer_backend.py#L491-L535`）。[C14]

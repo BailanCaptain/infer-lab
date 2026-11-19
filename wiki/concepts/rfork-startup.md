@@ -16,38 +16,34 @@ aliases:
 chapters: []
 order: 30
 sources:
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L414-L418'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L441-L519'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L521-L620'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L622-L710'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L174-L333'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L73-L109'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L274-L286'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L38-L49'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L373-L383'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L64-L91'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L109'
-  - >-
-    rfork@3284850b:docs/source/developer_guide/Design_Documents/rfork_lease_lifecycle.md#L28-L52
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L39-L74'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L192-L212'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L38-L57'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L296-L347'
-  - 'rfork@3284850b:vllm_ascend/ops/fused_moe/fused_moe.py#L508-L511'
-  - >-
-    vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L219-L320
-  - >-
-    vllm-ascend@2ed6cbba:vllm_ascend/model_loader/rfork/rfork_loader.py#L214-L315
-  - >-
-    vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/rfork_loader.py#L330-L440
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L189-L217'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L641-L667'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L674-L746'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L747-L877'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L878-L957'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L309-L560'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L153-L204'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L465-L478'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/types.py#L68-L81'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/safety.py#L9-L21'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L232-L276'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L115-L182'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/planner_client.py#L137-L195'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/local_weights.py#L61-L97'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L40-L80'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L207-L229'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L75-L114'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L490-L559'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L72-L142'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L219-L320'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/model_loader/rfork/rfork_loader.py#L214-L315'
+  - 'vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/rfork_loader.py#L330-L440'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L227-L273'
   - >-
     raw:sha256-b55b32722cce760cf460a51943536138061f6322f2cac46d335a5c783df5da72.md#L1-L1188
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/rfork_loader.py#L630-L682'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L100-L160'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/rfork_loader.py#L600-L710'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/session.py#L100-L160'
 verified:
-  - 'rfork:main'
+  - main
 evidence: C
 relations:
   - to: rfork
@@ -57,7 +53,7 @@ relations:
     kind: builds-on
     note: RFork 只替换 Worker 启动里装权重那一步，先知道前后还有哪些步骤
 contradicts: []
-updated: '2026-10-25'
+updated: '2026-11-19'
 rawSources:
   - >-
     raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md
@@ -101,20 +97,20 @@ RFork 只替换 Worker 启动里装权重的那一步，前后顺序见 [Worker 
 
 | 步 | B 做了什么 | 做完手里有什么 |
 |---|---|---|
-| 1 | 启动参数选了 RFork 加载方式 | 从加载器额外配置里读出的 RFork 配置 |
-| 2 | 检查 EPLB 相关开关 | 命中就直接普通加载，不建会话 |
-| 3 | 建这次加载的会话；主模型和草稿模型各有一个，分开建 | 本卡的身份（兼容性指纹加分片编号）、Planner 客户端、传输引擎；会话处在「已初始化」 |
-| 4 | 先给进程里的全局登记拍快照，再在卡上搭空模型 | 本次尝试的模型对象，放权重的空位已经分配好 |
-| 5 | 看草稿模型是不是整份共用主模型的权重 | 整份共用就直接交回，后面全跳过 |
+| 1 | 启动参数选了 RFork 加载方式，解析 `RForkConfig` 并警告未知键 | 从加载器额外配置里读出的 RFork 配置 |
+| 2 | 调 `mutable_weights_bypass_reason` 检查 sleep mode、在线权重传输或 `enable_eplb` | 命中就直接普通加载，不建会话、不发布 seed |
+| 3 | 建这次加载的会话（主/草稿各一份）、取主模型已登记块并给进程全局登记拍快照 | 配置兼容性指纹、Planner 客户端、传输后端；会话处在 `INITIALIZED` |
+| 4 | 在卡上搭空模型，恢复 MTP/DSpark checkpoint 归属并加载 Engram 宿主表（如启用） | 本次尝试的模型对象，空位和本地宿主表已准备好 |
+| 5 | 看草稿模型是不是整份共用主模型的权重（Engram 开启时经 `_RForkLoadCoordinator` 全员一致确认） | 整份共用就直接 `eval()` 返回（`source=shared_target`），后面全跳过 |
 | 6 | 要转布局的模型先对空参数做布局后处理，并等 NPU 同步完 | 空位已经是 A 对外暴露的最终布局 |
-| 7 | 向 Planner 申请租约 | 一张身份对得上的租约，会话进入「已借到」；或者明确没拿到 |
-| 8 | 登记本地内存、向 A 要清单并核对、分批读 | 权重读进了空位，会话进入「已传完」 |
-| 9 | 先读后处理的路径，到这一步才做适用的后处理；跳过未量化 MoE 的重复后处理，然后切到推理模式 | 可以交回去的模型 |
-| 10 | 交回之前，尝试把 B 发布成 seed | 已启动、延期或失败，三种都不影响模型交回 |
+| 7 | 先登记本地目的显存、算出结构摘要并绑定 `seed_key`，再向 Planner 申请租约 | 会话经 `REGISTERED` 进入 `LEASED`（带可选续租线程）；或明确没拿到 |
+| 8 | 向 A 要清单并逐项核对（含 NPU 存储格式）、分批同步读 | 权重读进了空位，会话进入 `TRANSFERRED`，停止续租并安排后台归还 |
+| 9 | processed 路径刷新 FlatQuant 宿主标量；checkpoint 路径做适用后处理并跳过未量化 MoE 重复转换，然后切到 `eval()` | 可以交回去的模型，打印有界布局摘要 |
+| 10 | 交回之前，尝试把 B 发布成 seed，并打印 `source=transfer` 加载汇总 | 已启动、延期或失败，三种都不影响模型交回 |
 
-第 6 步和第 9 步的后处理二选一，由上面那三个条件决定，判断细节见[张量布局](rfork-layout.md#先看-b-要不要转布局)：任一成立就走「转好布局再搬」，后处理在第 6 步、申请租约之前做完，第 9 步只剩切推理模式；都不成立就走「先读后处理」，第 6 步跳过，读完以后在第 9 步才做适用的后处理。这条路径在代码中叫 checkpoint，但 A 的未量化 MoE 权重也可能已经转置，B 读取后会跳过它的重复后处理，不能把路径名理解成一律按 checkpoint 原形状搬。所以不能拿「量化 / 非量化」代替这三个条件：不量化的模型，只要权重 NZ 模式配成 2 或硬件强制 NZ，也会在第 6 步做后处理。
+第 6 步和第 9 步的后处理二选一，由上面那三个条件决定，判断细节见[张量布局](rfork-layout.md#先看-b-要不要转布局)：任一成立就走「转好布局再搬」，后处理在第 6 步、登记与申请租约之前做完，第 9 步只做 FlatQuant 宿主标量刷新（如存在）并切推理模式；都不成立就走「先读后处理」，第 6 步跳过，读完以后在第 9 步才做适用的后处理。这条路径在代码中叫 checkpoint，但 A 的未量化 MoE 权重也可能已经转置，B 读取后会跳过它的重复后处理，不能把路径名理解成一律按 checkpoint 原形状搬。所以不能拿「量化 / 非量化」代替这三个条件：不量化的模型，只要权重 NZ 模式配成 2 或硬件强制 NZ，也会在第 6 步做后处理。
 
-第 8 步从开始登记那一刻起，会话就被标成「需要清理」，登记、要清单、读数据全部成功才改成「已传完」。所以归还租约的后台线程只有整段读成功之后才会启动；任何一步失败都不走这条路，而是由后面的回退清理去安排归还。第 10 步要让下一个实例能读 B 的显存：转好布局再搬、刚传完的，沿用第 8 步的登记；先读后处理的（第 9 步的适用后处理可能换掉存储）或回退后新加载的模型，要先把整份模型重新登记一遍再发布。租约还没确认归还时，发布先记成延期，等后台确认后再补上。
+第 7 步在 `main` 主基线中把**目的显存登记与结构摘要绑定提前到了向 Planner 申请租约之前**：这样显存登记耗时也移出了租约有效期，且 `seed_key` 带着模型实际的张量清单摘要去匹配。从开始登记那一刻起，会话先切到「需要清理」（`CLEANUP_REQUIRED`），登记成功才进入 `REGISTERED`；随后借到租约进入 `LEASED`，向 A 取清单与分批读期间再次切到 `CLEANUP_REQUIRED`，全部读完才改成 `TRANSFERRED` 并启动后台归还线程。第 10 步要让下一个实例能读 B 的显存：转好布局再搬、刚传完的，沿用第 7 步的登记；先读后处理的（第 9 步的适用后处理可能换掉存储）或回退后新加载的模型，要先把整份模型重新登记一遍再发布。租约还没确认归还时，发布先记成延期，等后台确认后再补上。
 
 把同样的十步放进三种情况，就能看清哪些步一定会做、哪些白做：
 
@@ -126,8 +122,8 @@ RFork 只替换 Worker 启动里装权重的那一步，前后顺序见 [Worker 
 
 ## 两处提前离开，不是漏了步骤
 
-- **开了 EPLB 就整个绕过 RFork。** EPLB 是专家负载均衡：运行中按专家的冷热调整专家放在哪张卡上，见 [EPLB](eplb.md)。判断条件有三个，任何一个成立都算：并行配置里开了 EPLB、vLLM 附加配置的 EPLB 设置里开了动态模式、或者那里填了导出专家分布的记录路径。命中后加载器在建会话之前就直接普通加载，之后也不按 RFork 流程发布 seed。偏偏这时的日志只说「开了动态 EPLB 时关闭 RFork 传输」：只开了普通 EPLB、或者只想导出专家分布的人，照字面读会以为自己不受影响。这条路上普通加载自己失败，会另打一行日志再把异常抛出去。
-- **草稿模型整份共用主模型的权重。** 投机解码的草稿模型（先猜后面几个 token、再交给主模型验证的那部分，见[投机解码](speculative-decoding.md)）和主模型各有一个会话。建完会话，草稿会话先取来主模型已经登记过的显存范围。草稿要传的每个张量都落在这些范围里、也没有不在 NPU 上的张量时，加载器直接复用这些权重、切到推理模式交回：不申请租约，不重复做布局后处理，这一次也不把草稿发布成 seed。只共用一部分的草稿会继续往下走，只传自己独有的张量，见[传输与内存](rfork-transfer.md#主模型和草稿模型共享地址时谁登记谁来传)。
+- **命中可变权重安全守卫就整个绕过 RFork。** 在当前 `main` 主基线中，`safety.py:mutable_weights_bypass_reason` 统一检查三个条件，任一成立都在建会话前直接改走默认加载且不发布 seed：启用 `enable_sleep_mode`（sleep mode）、配置 `weight_transfer_config`（在线权重传输），或启用 `parallel_config.enable_eplb`（[EPLB](eplb.md) 专家负载均衡）。早期 Model Runner V1 的静态/动态 EPLB 附加字段已随 Model Runner V1 移除，不再触发绕过。这条路上普通加载自己失败会直接把异常抛出去。
+- **草稿模型整份共用主模型的权重。** 投机解码的草稿模型（先猜后面几个 token、再交给主模型验证的那部分，见[投机解码](speculative-decoding.md)）和主模型各有一个会话。建完会话，草稿会话先取来主模型已经登记过的显存范围。草稿要传的每个张量都落在这些范围里、也没有未豁免的非 NPU 状态时（开启 Engram 时经全员一致确认），加载器直接复用这些权重、切到推理模式交回并打 `source=shared_target`：不登记、不申请租约、不重复做布局后处理，也不把草稿发布成 seed。只共用一部分的草稿会继续往下走，只传自己独有的张量，见[传输与内存](rfork-transfer.md#主模型和草稿模型共享地址时谁登记谁来传)。
 
 ## 借不到或读失败：先拆干净，再从磁盘重来
 
@@ -145,16 +141,16 @@ file: rfork-startup-fallback
 |---|---|
 | 搭层时登记的前向上下文 | 登记进去的层对象还挂在编译配置上 |
 | 全局的 MoE 层列表 | 列表里还引用着专家层 |
-| 昇腾 EPLB 适配层的 MoE 登记表 | 昇腾的 MoE 层构造时会把自己登记进这张表，不管开没开 EPLB |
-| RoPE（旋转位置编码）的缓存 | 搭模型时新加进去的缓存条目 |
+| vLLM 与昇腾 RoPE（旋转位置编码）缓存 | 搭模型时写入的 `_ROPE_DICT` 与 Ascend `_cos_sin_cache` 缓存条目 |
 | 编译器留下的字节码钩子 | 绑定的方法会把编译包装乃至整个解码器一起保活 |
+| Engram 宿主卸载表（如启用） | 需先由 `release_local_weights` 释放已加载的 CPU 宿主表再重分配 |
 | 传输后端持有的张量和底层存储 | 注销没确认之前，必须保住底层内存 |
 
-前五类由加载器按快照恢复：快照之前就有的条目，比如已经加载成功的主模型留下的，原样保留，只摘掉这次尝试新加的。第三类不能拿「没开 EPLB」当理由跳过：走到 RFork 这条路时 EPLB 一定没开，可表里照样记着这次的层。最后一类由传输后端在注销时自己管。模型构造到一半就抛错、模型变量还没赋上值的情况也要清，所以判断条件是「开始搭过」，而不是「手里有模型」。
+前四类由加载器按快照恢复（已加载成功的主模型条目原样保留，只摘掉这次尝试新加的；早期 Model Runner V1 的 `VllmEplbAdaptor` 登记表快照已随 V1 移除），第五类在清理通过后释放，最后一类由传输后端在注销时自己管。模型构造到一半就抛错、模型变量还没赋上值的情况也要清（若启用 Engram CPU 卸载且构造半途失败，因无法安全关闭部分宿主分配会直接中止要求重启），所以判断条件是「开始搭过」，而不是「手里有模型」。
 
-如果停服务或注销内存仍然失败，加载器直接报错终止，拒绝再分配一份模型：旧权重还被登记钉在显存里，再分配一份就是两份权重同时占卡。这是有意的保护，不是「把错误吞掉继续跑」，**不要为了让回退成功而删掉这个检查**。清理通过以后，加载器回收半成品模型、反复清空 NPU 缓存，再进入下一节的普通加载。
+如果停服务或注销内存仍然失败，加载器直接报错终止，拒绝再分配一份模型：旧权重还被登记钉在显存里，再分配一份就是两份权重同时占卡。这是有意的保护，不是「把错误吞掉继续跑」，**不要为了让回退成功而删掉这个检查**。清理通过以后，加载器回收半成品模型、执行 4 轮垃圾回收并清空 NPU 缓存，再进入下一节的普通加载。
 
-会话根本没建起来时，比如漏填了三项必填配置、实例上没装 YuanRong 传输引擎，既没有内存登记要撤，也没有搭过模型，加载器跳过清理直接普通加载。但没有会话，事后也就不会把自己发布成 seed。
+若因缺少必填配置或严格参数非法抛出 `RForkConfigurationError`，进程会直接中止启动，不会静默落入回退；若是缺少 `yr.datasystem` 等可恢复异常且会话尚未建起，则跳过清理直接普通加载，事后也不会发布成 seed。
 
 ## 重来时，只把加载方式改回普通
 
@@ -190,86 +186,85 @@ file: rfork-startup-fallback
 
 ## 常见误解
 
-- **「借不到 seed 就等于什么都没做」**——申请排在搭模型和布局处理之后，没借到时这些已经做过，冷启动要付两遍。
-- **「回退就是在同一份模型上重新读一遍文件」**——工作版先清理、再重建，避免转了一半的布局和普通加载器的假设冲突。
-- **「只开了普通 EPLB、没开动态模式，RFork 照样会跑」**——三个条件任一成立都会绕过；日志里写的「动态 EPLB」只是统一的说法。
-- **「默认日志里只有几行『没有可用 seed』，其他卡就是借到了」**——这一行只在 TP 组编号为 0 的 Worker 上按 info 打；要确认借到，数「已借到租约」那一行。
+- **「借不到 seed 就等于什么都没做」**——申请排在搭模型、布局处理与本地目的显存登记之后，没借到时这些已经做过，冷启动要付两遍模型准备开销。
+- **「回退就是在同一份模型上重新读一遍文件」**——当前主线先清理、再重建，避免转了一半的布局和普通加载器的假设冲突。
+- **「只配了旧 Model Runner V1 的 EPLB 附加字段（如 `dynamic_eplb`），RFork 还会被绕过」**——Model Runner V1 及相关旧字段已在上游移除；当前主线由 `safety.py:mutable_weights_bypass_reason` 统一检查 `enable_sleep_mode`、`weight_transfer_config` 与 `parallel_config.enable_eplb`。
+- **「默认日志里只有几行『没有可用 seed』，其他卡就是借到了」**——这一行只在 TP 组编号为 0 的 Worker 上按 info 打；要确认结果，看各卡加载汇总的 `source=transfer|local|fallback|shared_target` 或开 `DEBUG` 查逐卡日志。
 - **「看到 seed 启动失败，就得重新加载模型」**——模型已经交回时，seed 只是附加服务；要单独看后面推理是否就绪。
 
 ## 对照源码
 
 ### 怎么开
 
-启动参数 `--load-format rfork` 选中 `RForkModelLoader`，RFork 配置从 `--model-loader-extra-config` 读成 `RForkConfig`。[C1] 三项必填（`model_url`、`model_deploy_strategy_name`、`rfork_scheduler_url`）缺任何一项，`RForkSession` 构造时就抛 `ValueError`；同一个构造函数里还会新建 `RForkTransferBackend`，没装 `yr.datasystem` 就抛 `ImportError`。这两种异常都发生在 `load_model` 的保护区里，落进回退，且此时 `session is None`，回退后不发布 seed。[C16] 各项设置的含义见[配置](rfork-config.md)。
+启动参数 `--load-format rfork` 选中 `RForkModelLoader`，在 `__init__` 里从 `--model-loader-extra-config` 读成 `RForkConfig` 并对未知键发出警告。[C1] 三项必填（`model_url`、`model_deploy_strategy_name`、`rfork_scheduler_url`）缺任何一项，`RForkSession` 构造时抛 `RForkConfigurationError`；该异常特意不继承 `ValueError`/`RuntimeError`，因此会直接中止启动，避免配置错误被静默吞成回退。[C16][C4] 没装 `yr.datasystem` 或传输后端初始化失败属于 `RFORK_FALLBACK_EXCEPTIONS = (ImportError, OSError, RuntimeError, ValueError)`，仍会落进回退；若 `session is None`，回退后不发布 seed。各项设置的含义见[配置](rfork-config.md)。
 
-EPLB 绕过的判定函数叫 `_is_dynamic_eplb_enabled`，但三个条件任一为真都返回 true：`parallel_config.enable_eplb`、`additional_config["eplb_config"]["dynamic_eplb"]`、`additional_config["eplb_config"]["expert_map_record_path"]` 非空。[C9] 所以只加了 `--enable-eplb`，或只设了 `expert_map_record_path`，RFork 同样不跑。
+绕过判定统一收敛在 `safety.py:mutable_weights_bypass_reason`：`enable_sleep_mode`、`weight_transfer_config is not None` 或 `parallel_config.enable_eplb` 任一成立即绕过 RFork 改走默认加载（不发布 seed）。[C9] Model Runner V1 已在上游移除，原 `eplb_config.dynamic_eplb`、`expert_map_record_path` 与 `expert_map_path` 分支已在 PR `#21707` 中删除。
 
-第 6 / 9 步走哪条由 `_requires_processed_layout_transfer` 决定：`model_config.quantization` 非空，或 `get_ascend_config().weight_nz_mode == 2`，或当前硬件 profile 的 `weight_layout_policy` 是 `FORCE_NZ`，任一成立就返回 True（rfork_loader.py L503-L519）。[C2] 为 True 时第 6 步在 `_rfork_pre_transfer_weight_processing` 里跑 `process_weights_after_loading` 并 `torch.npu.synchronize()`；为 False 时第 9 步在 `_rfork_skip_unquantized_moe_post_load_processing` 里跑。
+第 6 / 9 步走哪条由 `_requires_processed_layout_transfer` 决定：`model_config.quantization is not None`，或 `get_ascend_config().weight_nz_mode == 2`，或当前硬件 profile 的 `weight_layout_policy` 是 `FORCE_NZ`，任一成立就返回 True（`rfork_loader.py#L729-L745`）。[C2] 为 True 时第 6 步在 `_rfork_pre_transfer_weight_processing` 里跑 `process_weights_after_loading` 并 `torch.npu.synchronize()`，第 9 步仅刷新 FlatQuant 宿主标量（`_refresh_rfork_flatquant_state`）；为 False 时第 9 步在 `_rfork_skip_unquantized_moe_post_load_processing` 里跑后处理。
 
-回退配置由 `_make_fallback_load_config` 生成：原 `LoadConfig` 的浅拷贝，`load_format` 设成 `"auto"`，`model_loader_extra_config` 清空，再调 vLLM 的 `get_model`。[C5]
+回退配置由 `_make_fallback_load_config` 生成：原 `LoadConfig` 的浅拷贝，`load_format` 设成 `"auto"`，`model_loader_extra_config` 清空，再经 `_load_with_default_loader` 调 vLLM 的 `get_model`。[C5]
 
 ### 会报什么错
 
 | 日志原文 | 级别 | 对应上文哪一段 |
 |---|---|---|
-| `RFork transfer is disabled when dynamic EPLB is enabled; using the default model loader.` | warning | 第 2 步绕过，三个条件任一命中都打这句 |
-| `RFork disabled for dynamic EPLB, but default loader failed.` | exception，随后抛出 | 绕过后普通加载失败 |
-| `RFork planner seed acquisition failed: …` | warning，每个 Worker 都打 | 第 7 步问了但出错，见来源 12 |
-| `RFork seed acquisition requires an initialized session; state=…` | error | 会话状态不对，没去问 |
-| `RFork has no available main/draft seed; loading locally and registering this worker as a seed.` | TP 编号 0 为 info，其余 debug | 第 7 步没拿到租约，三类来源不区分，见来源 4 |
-| `RFork transfer failed: …, clean up and fall back to default loader` | warning | 第 3–9 步抛错，或第 8 步返回失败；第 10 步发布出错不回退 |
+| `RFork transfer is disabled when %s is enabled; using the default model loader.` | warning | 第 2 步绕过（`sleep mode`、`online weight transfer (weight_transfer_config)` 或 `EPLB (enable_eplb)`） |
+| `RFork planner seed acquisition failed: …` | warning，每个 Worker 都打 | 第 7 步向 Planner 申请出错，见来源 12 |
+| `RFork seed acquisition requires registered buffers; state=…` | error | 会话状态不是 `REGISTERED`，没去问 Planner |
+| `RFork %s seed acquisition was unsuccessful; loading locally.` | TP 编号 0 为 info，其余 debug | 第 7 步没拿到租约（`source=local`），三类来源不区分，见来源 4 |
+| `RFork transfer failed: …, clean up and fall back to default loader` | warning | 可恢复异常触发回退（`source=fallback`）；第 10 步发布出错不回退 |
 | `RFork fallback aborted because seed service or registered memory cleanup failed; … Refusing to allocate a second model while old weights are pinned.` | 抛 `RuntimeError` | 清理不干净，拒绝回退 |
-| `RFork fallback default loader failed.` | exception，随后抛出 | 回退后普通加载失败 |
-| `RFork main/draft model loaded from transfer/fallback is ready, but seed service startup failed; inference can continue.` | warning（抛异常时是 exception 级的 `… seed service startup raised; …`） | 第 10 步发布失败，模型照样交回，见来源 6 |
+| `RFork main/draft model loaded from transfer/fallback is ready, but seed service startup failed; inference can continue.` | warning（抛异常时是 exception 级） | 第 10 步发布失败，模型照样交回，见来源 6 |
 | `RFork seed memory registration raised; cleaning up before continuing inference.` | exception | 第 10 步重新登记时出错，随后按发布失败处理 |
-| `RFork seed promotion is deferred until the source seed lease is released; the transferred model remains available for inference.` | warning | 第 10 步租约还没确认归还，发布记成延期 |
-| `RFork cannot prepare a finalized session for fallback.` | error | 会话已经关停（FINALIZED），清理三项都算失败，于是拒绝回退 |
+| `RFork seed promotion is deferred until the source seed lease is released; the transferred model remains available for inference.` | debug | 第 10 步租约还没确认归还，发布记成延期 |
+| `RFork cannot prepare a finalized session for fallback.` | error | 会话已经关停（`FINALIZED`），清理三项都算失败，拒绝回退 |
 
-借到租约的 Worker 会打 info 级的 `RFork lease acquired: lease=… global_rank=… request_elapsed=…`。`session.acquire_seed()` 返回 False 有两处来源：本地自检（归还停止事件已置位、归还线程存活、旧租约仍未还掉、状态不是 `INITIALIZED`），以及 `RForkPlannerClient.acquire_seed` 返回 `None`；后者对 404 只打 debug，对连接异常、200/404 以外的状态、缺响应头、端口或 rank 不能转为整数、端口 ≤0 或 rank <0 打 warning。本地自检见来源 11，HTTP 响应检查见来源 12。端口大于 65535 可以先拿到租约，随后构造来源 URL 时失败，进入[传输失败的汇总与清理](rfork-troubleshooting.md#会报什么错)。
+借到租约的 Worker 在 debug 级别打 `RFork lease acquired: lease=… global_rank=… request_elapsed=…`，最终在 `_log_rfork_load_summary` 打印 `source=transfer|local|fallback|shared_target` 汇总。`session.acquire_seed()` 要求先完成 `register_destination` 进入 `REGISTERED` 状态；`RForkPlannerClient.acquire_seed` 对 404 只打 debug，对连接异常、非 200/404、缺响应头或非法端口（`<=0` 或 `>65535`）/rank/可选 `LEASE_TTL_SEC` 打 warning 并返回 `None`。[C11][C12]
 
-回退清理：session 存在时调 `prepare_for_fallback`，依次停 seed 服务、`_release_seed_locked`（只安排后台归还，不等确认）、注销 MR；加载器最多调 `FALLBACK_CLEANUP_MAX_ATTEMPTS = 2` 轮。`RForkFallbackCleanupResult.can_schedule_seed` 只看 `service_stopped and memory_reset`，不要求 `lease_released`。[C7] 租约的后台归还线程只在 `transfer_from_seed` 整段成功后才启动。[C10] 回退或 checkpoint 布局下，`start_seed_service` 会先重新 `register_memory_region` 再起服务；租约未还时返回 `DEFERRED`。[C17]
+回退清理：session 存在时调 `prepare_for_fallback`，依次停 seed 服务、`_release_seed_locked`、注销 MR；加载器最多调 `FALLBACK_CLEANUP_MAX_ATTEMPTS = 2` 轮，`RForkFallbackCleanupResult.can_schedule_seed` 只看 `service_stopped and memory_reset`。[C7][C8] 随后恢复进程级状态并释放 Engram 本地宿主权重（`release_local_weights`）、执行 4 轮 `gc.collect()` 与 `torch.npu.empty_cache()`。[C4][C13]
 
 ### 开销和什么时候别开
 
-晚申请：`acquire_seed` 排在 `initialize_model`、processed-layout 后处理与 `torch.npu.synchronize()` 之后。工作版设计说明 `rfork_lease_lifecycle.md` 的方案表把它的收益写成把本地准备移出租约有效期，代价写成未命中时丢掉准备好的模型、再跑一遍默认加载。[S13]
+晚申请与先登记：`register_destination` 排在 `initialize_model`、`_prepare_rfork_model_state`、`load_local_weights`、processed-layout 后处理与 `torch.npu.synchronize()` 之后、且在 `acquire_seed` 之前，使本地构图与目的内存登记均移出租约有效期。[C3][C11]
 
-示例 Planner 的 `lease_ttl_sec` 默认 60、`default_resource_points` 默认 1，可用环境变量 `RFORK_MOCK_LEASE_TTL_SEC`、`RFORK_MOCK_DEFAULT_RESOURCE_POINTS` 改；`get_seed` 每借出一次占 1 点，用满就返回空。[C15] 「先借后搭会占住名额、吃掉有效期」是按这两个默认值和设计说明推出的，不是测量结果。[I]
+示例 Planner 的 `lease_ttl_sec` 默认 60、`default_resource_points` 默认 1，可用 `RFORK_MOCK_LEASE_TTL_SEC`、`RFORK_MOCK_DEFAULT_RESOURCE_POINTS` 改；`get_seed` 每借出一次占 1 点。[C14][C15]
 
-耗时日志（每个 Worker 都按 info 打）：`RFork %s model initialization took %.2f seconds`、`RFork %s model layout processing took %.2f seconds`、`RFork %s seed acquisition took %.2f seconds`、`RFork %s model registration and transfer took %.2f seconds`；`transfer_from_seed` 里另有 `RFork transfer stages: lease=… global_rank=… registration=… metadata=… read=…`。[C3]
+分段耗时日志（大多为 debug，设 `VLLM_LOGGING_LEVEL=DEBUG` 可看全量）：`RFork %s model initialization took %.2f seconds`、`RFork %s model layout processing took %.2f seconds`、`RFork %s seed acquisition took %.2f seconds`、`RFork %s model registration and transfer took %.2f seconds`、`RFork transfer stages: lease=… global_rank=… registration=… metadata=… read=…`；INFO 汇总由 `_log_rfork_load_summary` 输出 `source=transfer|local|fallback|shared_target` 与总耗时。[C3][C6][C10]
 
-未命中时，已初始化（`_requires_processed_layout_transfer` 为真时还已转过布局）的模型不会交给 checkpoint loader 去填，而是清掉重建，所以一次没命中的冷启动，模型准备开销要付两遍。只有一个实例的部署第一次启动必然未命中，GLM 双机就是这种情况。[D] 会开 EPLB 的部署（包括只想导出专家分布的），RFork 不生效，见「怎么开」。
+未命中时已初始化的模型清掉重建，冷启动需付两遍模型准备开销；只有一个实例的部署首次必然未命中。[D] 命中 sleep mode、在线权重传输或 `enable_eplb` 时 RFork 自动绕过。[C9]
 
 ### 版本差异
 
-本页的十步图按 RFork 工作版 `rfork@3284850b` 组织。以下三个旧社区快照启动顺序不同，布局判断也只看 quantization 是否非空，没有 NZ 模式和硬件策略两项；rc2 的新顺序另列在后面。
+| 维度 | `v0.23.0` (`2c59ff10`) | `v0.26.0rc` (`2ed6cbba`) | `v0.30.0` (`c09d3e20`) | `main` (`8d6180e2`) |
+|---|---|---|---|---|
+| 申请顺序 | 搭模型前先问 `is_seed_available()` | 同左 | 建模型 → 准备布局 → `register_destination` 绑定结构摘要 → `acquire_seed` | 同 `v0.30.0`，新增 MTP/DSpark 状态恢复、`load_local_weights` 与 `_RForkLoadCoordinator` |
+| 绕过条件 | `layer_sharding` 或 V1 EPLB | V1 EPLB | `safety.py`（sleep mode / 在线权重传输）+ V1 EPLB | `safety.py` 统一检查 sleep mode、在线权重传输与 `enable_eplb`（移除 V1 EPLB） |
+| 配置错误与异常 | 回退保护内捕获 | 同左 | `RForkConfigurationError` 中止启动 | 同 `v0.30.0`，回退异常收窄为 `(ImportError, OSError, RuntimeError, ValueError)` |
+| 回退全局恢复 | 注销内存后 `del model`，不恢复进程级表 | 同左 | 恢复编译上下文、MoE 列表、EPLB 适配表、RoPE 与 Dynamo 钩子 | 移除已废弃 `VllmEplbAdaptor` 快照；新增 Ascend RoPE 缓存恢复与 Engram 宿主表释放 |
 
-- **v0.23**（维护分支 `2c59ff10`，RFork 目录与固定镜像 `db701c1f` 逐字节相同）：搭模型之前先调 `is_seed_available()` 问 Planner；绕过条件是 `layer_sharding` 或同样三个 EPLB 条件；后处理之后不等 NPU 同步；回退时注销内存后 `del model`、清缓存，不恢复进程级登记。[C19]
-- **v0.26**（`2ed6cbba`）：与 v0.23 相同，只是绕过条件去掉了 `layer_sharding`。[C20]
-- **main**（`baa023ad`）：仍是先问后搭；合入了补丁 0001，后处理后等同步，回退时调 `_reset_process_global_model_state` 摘掉本模型的进程级登记；但注销失败只打警告、照常回退，不像工作版那样拒绝。[C21]
-
-- **v0.30.0rc2**（`7d825229`）：先建模型和准备布局，再登记目的内存、把可传张量的结构摘要绑定到身份，最后才申请租约并取清单、读数据。申请要求会话处于 REGISTERED 状态；工作版是先借后登记。因此不能将十步图的第7、8步顺序直接用于 rc2。实际入口在 rfork_loader.py 630–682，登记与申请检查在 session.py 100–160，固定源码链接见[总览](rfork.md#版本差异)。
-
-完整的补丁对照见[总览的版本差异](rfork.md#版本差异)。
+旧开发快照 `baa023ad` 仍是先问后搭（已合入后处理同步与基础状态恢复，但注销失败仅警告）。[C19][C20][C21][C24] 完整对照见[总览的版本差异](rfork.md#版本差异)。
 
 ### 源码位置
 
+以下路径相对 `vllm-ascend@8d6180e2` 的 `vllm_ascend/model_loader/rfork/`：
+
 | 上文的哪一步 | 代码 |
 |---|---|
-| 1 选中加载器 | `RForkModelLoader`，读 `RForkConfig` |
-| 2 EPLB 绕过 | `_is_dynamic_eplb_enabled` |
-| 3 建会话 | `_ensure_rfork_session`：`RForkIdentity`、`RForkSession`（内含 `RForkPlannerClient`、`RForkTransferBackend`） |
-| 4–7 快照、搭模型、草稿全共享判断、布局后处理、申请租约 | `load_model` 前半段：`_snapshot_process_global_model_state` → `initialize_model` → `can_reuse_shared_weights` → `process_weights_after_loading` → `acquire_seed` |
-| 8–10 读权重、后处理与 `model.eval()`、发布 seed | `load_model` 后半段：`transfer_from_seed` → `_start_rfork_seed_service`（`STARTED` / `DEFERRED` / `FAILED`） |
-| 回退清理与重建 | `prepare_for_fallback`、`_reset_process_global_model_state`、`_make_fallback_load_config` |
-| 「没有可用 seed」的来源 | `RForkSession.acquire_seed`、`RForkPlannerClient.acquire_seed` |
+| 1 选中加载器 | `rfork_loader.py#L641-L667`：`RForkModelLoader`，读 `RForkConfig` 并警告未知键 |
+| 2 绕过检查 | `safety.py#L9-L21`：`mutable_weights_bypass_reason` |
+| 3 建会话与快照 | `rfork_loader.py#L674-L728`、`#L775-L781`：`_ensure_rfork_session`、`_get_target_registered_blocks`、`_snapshot_process_global_model_state` |
+| 4–6 搭模型、状态恢复、宿主表、全共享、后处理 | `rfork_loader.py#L782-L832`：`initialize_model` → `_prepare_rfork_model_state` → `load_local_weights` → `can_reuse_shared_weights` → `process_weights_after_loading` + `synchronize` |
+| 7–10 先登记后借、传输、后处理、发布 | `rfork_loader.py#L833-L877`：`register_destination` → `acquire_seed` → `transfer_from_seed` → `_refresh_rfork_flatquant_state` / `process_weights_after_loading` → `_start_rfork_seed_service` → `_log_rfork_load_summary` |
+| 回退清理与重建 | `rfork_loader.py#L878-L957`：`prepare_for_fallback`、`_reset_process_global_model_state`、`release_local_weights`、`_load_with_default_loader` |
+| 「没有可用 seed」与协调器 | `session.py#L144-L182`、`planner_client.py#L137-L195`、`rfork_loader.py#L85-L142` |
 
-回退清理恢复的五类全局引用在代码里的名字：`compilation_config.static_forward_context`、`compilation_config.static_all_moe_layers`、`VllmEplbAdaptor._registered_moe_layers`（`AscendFusedMoE` 构造时无条件登记，[C18]）、`_ROPE_DICT`、Dynamo bytecode hooks；第六类是 TransferEngine 持有的 Tensor / storage owners，由传输后端管理。
+回退清理恢复的进程级全局引用在代码里的名字（`rfork_loader.py#L423-L560`）：`compilation_config.static_forward_context`、`compilation_config.static_all_moe_layers`、`_ROPE_DICT`、`vllm_ascend.ops.rotary_embedding` 缓存、Dynamo bytecode hooks；另由 `local_weights.py:release_local_weights` 释放 Engram 宿主表，由 `transfer_backend` 管显存 owners。
 
-草稿全量共享时，`load_model` 直接 `return model.eval()`：不 `acquire_seed`、不重复布局后处理，也不调 `_start_rfork_seed_service`；部分共享的细节见[传输与内存](rfork-transfer.md)。
+草稿全量共享时，`load_model` 经 `coordinator.reuse_shared_weights(can_reuse)` 确认后直接 `return model.eval()` 并打 `source=shared_target`：不登记、不 `acquire_seed`、不重复布局后处理，也不发布草稿 seed。
 
-**待核：缺什么**（全页的不确定项都集中在这里）
+**待核：缺什么**
 
-1. 生产环境 Planner 的借用名额与租约有效期。上文的 1 个名额、60 秒是仓库示例 Planner 的默认值。
-2. 晚申请实际省下多少租约时间、未命中多付多少准备时间：要在现场用上面的耗时日志量，本页不给估算数。
-3. GLM 双机的走法是「工作版加载器 + 固定镜像 GLM 模型」的组合推演，没有可以直接运行的提交。32 个会话在首次冷启动全部回退、默认日志里只有 4 行「没有可用 seed」，都要在合并后的代码上实跑核对。[D]
-4. 草稿两份词表张量被登记钉住、KV 块变少，是总览里按源码推出的结论，同样缺实测。
+1. 生产环境 Planner 的借用名额、租约有效期与是否支持 `LEASE_TTL_SEC` 续期。上文的 1 个名额、60 秒是示例 Planner 默认值。
+2. 先登记后借在真实集群上省下多少租约时间、未命中多付多少准备时间：要在现场用上面的耗时日志实测。
+3. GLM 双机的走法是推演，没有合并运行提交；首次冷启动全部回退、默认 INFO 汇总行为需实跑核对。[D]
+4. 草稿两份词表张量被登记钉住、KV 块变少，是按源码推出的结论，同样缺实测。

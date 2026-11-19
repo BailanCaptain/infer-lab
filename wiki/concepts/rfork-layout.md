@@ -16,23 +16,23 @@ aliases:
 chapters: []
 order: 50
 sources:
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L503-L519'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L335-L411'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L584-L644'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L18-L55'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L58-L152'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L155-L208'
-  - >-
-    rfork@3284850b:tests/ut/model_loader/rfork/test_tensor_safety_isolated.py#L143-L170
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L317-L345'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L729-L746'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L562-L639'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L805-L877'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/tensor_layout.py#L34-L69'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/tensor_layout.py#L205-L259'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/tensor_layout.py#L260-L458'
+  - 'vllm-ascend@8d6180e2:tests/ut/model_loader/rfork/test_registration_cache_isolated.py#L63-L85'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L490-L559'
   - >-
     raw:sha256-1e7bc5a59579149471bf29de22fff5348fb9d62ebae4d3fe51971e2abf41bcdd.md#L1-L422
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/tensor_layout.py#L42-L61'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/manifest.py#L164-L214'
-  - 'rfork@3284850b:vllm_ascend/ops/fused_moe/fused_moe.py#L132-L161'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L715-L746'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/tensor_layout.py#L30-L61'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/manifest.py#L164-L214'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ops/fused_moe/routed_experts.py#L105-L145'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L780-L828'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/local_weights.py#L61-L97'
 verified:
-  - 'rfork:main'
+  - main
 evidence: C
 relations:
   - to: rfork-startup
@@ -42,7 +42,7 @@ relations:
     kind: builds-on
     note: dtype、量化与 NZ 策略先进入兼容性指纹，再对齐具体张量清单
 contradicts: []
-updated: '2026-10-28'
+updated: '2026-11-19'
 rawSources:
   - >-
     raw/sha256-1e7bc5a59579149471bf29de22fff5348fb9d62ebae4d3fe51971e2abf41bcdd.md
@@ -164,7 +164,7 @@ title: 测试里两份工作区差多少
 
 测试期望排除之后两边的权重清单完全一样，普通权重和打包权重仍然保留。这是测试样例的数，不代表所有模型工作区的实际大小。
 
-**边界：这是一张写明名字的排除名单。** 名单里现在只有这一个名字，它不会自动识别其他临时工作区，也没有证明改任何调度参数都兼容。以后新增工作区要重新审视名单，不能照抄成「排除所有 buffer」。
+**边界：这是一张写明名字的排除名单。** 当前 `main` 主基线的名单包含三项：`topk_indices_buffer`（稀疏注意力 top-k 下标缓冲区）、`_rope_derived_cos_cache` 与 `_rope_derived_sin_cache`（RoPE 派生余弦/正弦缓存）。它不会自动识别其他临时工作区，也没有证明改任何调度参数都兼容。以后新增工作区要重新审视名单，不能照抄成「排除所有 buffer」。
 
 ## 放到 GLM 双机：W8A8 走哪条路，哪些张量要留意
 
@@ -212,58 +212,51 @@ MTP 一份 = 8192 × 2176 × 4 B ≈ 68.0 MiB
 
 ### 怎么开
 
-- 走 processed layout 的判断在 `_requires_processed_layout_transfer`：`model_config.quantization` 非空；或 `get_ascend_config().weight_nz_mode == 2`；或 `get_current_hardware_profile().weight_layout_policy` 为 `FORCE_NZ`。AscendConfig 在早期或纯 CPU 检查时取不到会被忽略，硬件策略取不到时返回 False。[C1]
-- 本页快照的 `weight_nz_mode` 来自 `--additional-config` 的同名键或环境变量 `VLLM_ASCEND_ENABLE_NZ`。0/1/2 控制普通选择函数里的可选转换，不覆盖所有硬件与专家路径；完整边界见 [ND/NZ](tensor-layout.md)。
-- 选中 processed 时打印 `RFork %s model uses post-load tensor layout transfer.`，之后有一行 `RFork %s model layout processing took %.2f seconds` 记布局准备耗时。[C3]
-- 读前那道 MoE 处理要有包装可换：只有 `multistream_overlap_shared_expert` 为真（默认 False；与 fused MC2 同开时会被强制关掉）且该层 `shared_experts is not None` 时，MoE 层才给 `process_weights_after_loading` 包上 `_validate_shared_expert_consistency`。
-- processed：构建模型 → `process_weights_after_loading` → `torch.npu.synchronize`，之后再申请租约和读取；checkpoint：构建后直接申请租约，读完再做后处理。
-- checkpoint 路径成为 seed 前，启动 seed 服务的入口会重新 `register_memory_region`，因为后处理可能替换 storage。[C8]
-- 未量化 MoE 的来源权重同样会转置；接收端先按清单核对并调整视图，再读取最终字节，随后跳过这类 MoE 的重复后处理。视图调整不改变元素个数，也不能完成格式转换。[C12][C13][C4][C2]
+- 走 processed layout 的判断在 `_requires_processed_layout_transfer`：`model_config.quantization is not None`；或 `get_ascend_config().weight_nz_mode == 2`（排除布尔值）；或 `get_current_hardware_profile().weight_layout_policy` 为 `FORCE_NZ`。`AscendConfig` 或硬件策略取不到时按 `False` 处理。[C1]
+- `weight_nz_mode` 定义在 `vllm_ascend/ascend_config.py#L718-L765`（默认 1，仅允许 `0/1/2`）。0/1/2 控制普通选择函数里的可选转换，不覆盖所有硬件与专家路径；完整边界见 [ND/NZ](tensor-layout.md)。
+- 选中 processed 时在 debug 级别打 `RFork %s model uses post-load tensor layout transfer.` 与 `RFork %s model layout processing took %.2f seconds`；登记与读取后另在 INFO 级别输出有界 `RFork tensor layout summary`（含语义/物理摘要与最多 3 个代表张量）。[C3][C6][C13]
+- 读前那道 MoE 处理要有包装可换：只有 `multistream_overlap_shared_expert` 为真（默认 False；与 fused MC2 同开时会被强制关掉）且该层有共享专家时，MoE 层才给 `process_weights_after_loading` 包上校验；processed 路径传输完成后另调 `_refresh_rfork_flatquant_state` 刷新 FlatQuant 宿主标量。[C2][C3]
+- processed：构建模型 → `process_weights_after_loading` → `torch.npu.synchronize` → `register_destination`（绑定结构摘要）→ 借租约并读取；checkpoint：构建后直接登记并借租约，读完再做后处理（跳过未量化 MoE 重复转换），成为 seed 前重新刷新内存登记。[C3][C8][C12]
 
 ### 会报什么错
 
-- 同名张量来源不一致：`RFork encountered conflicting tensor entries for logical name ...`，比较对象身份以及地址、numel、shape、dtype、stride。[C5]
-- 本地与 seed 形状不同时，只在元素个数一致时尝试 `view` 成 seed 形状；元素个数不同打 `Weight shape mismatch for %s: local=%s, seed=%s` 并失败，view 失败打 `Failed to reshape RFork tensor ...`。[C4]
+- 同名张量 ID 冲突或歧义容器键：`RFork encountered conflicting tensor IDs in one model.` / `RFork found distinct container entries with one tensor ID label: ...`。[C6]
+- 非连续/重叠视图：`RFork cannot transfer a tensor with gapped or overlapping storage: ...`（`validate_transferable_tensor_layout`）。[C5]
+- 本地与 seed 形状不同时，只在元素个数一致时尝试 `view` 成 seed 形状；元素个数不同打 `Weight shape mismatch for %s: local=%s, seed=%s` 并失败，`view` 失败打 `Failed to reshape RFork tensor ...`。[C5]
 
 ### 开销和什么时候别开
 
-- 不同逻辑名对应同一 storage 的视图时，传输按逻辑名执行，同一段字节可能被读回多次。[D]
-- 测试工作区 16 MiB / 32 MiB 的来历：`2048 × 2048 × 4 B = 16 MiB`，`4096 × 2048 × 4 B = 32 MiB`。只是测试样例的字节推导。[D]
-- 排除名单 `_RUNTIME_ONLY_TENSOR_NAMES` 目前只有 `topk_indices_buffer` 一项，不能据此推断其他 scratch 或任意 scheduler 参数改动都兼容。[D]
-- 官方文档点名的 `W_UV` / `W_UK_T` 原文出处见[官方核读页](../sources/rfork-official-guide.md)，本页只引工作版源码；工作版不硬编码这两个名字。[C6]
-- SFA 会把原 `kv_b_proj` 拆分、转置成两份算子实际使用的权重，旧 Parameter 的张量随即被 `dispose_layer` 置成 0 元素空张量（`vllm_ascend/attention/sfa_v1.py#L724-L725`、`vllm_ascend/utils.py#L656-L657`）；实现与名词解释见[官方核读中的源码对照](../sources/rfork-official-guide.md)。官网模型表里的测试不能自动算到本工作版上。[I]
+- 不同逻辑名对应同一 storage 的视图时，传输按逻辑名执行，同一段字节可能被读回多次；分层 BFS 扫描（`_collect_shortest_path_tensors`）对完全相同的张量范围做去重，但不同视图仍作为独立条目传输。[C6][D]
+- 测试工作区 16 MiB / 32 MiB 的来历：`2048 × 2048 × 4 B = 16 MiB`，`4096 × 2048 × 4 B = 32 MiB`，仅测试样例字节推导。[D]
+- 排除名单 `_RUNTIME_ONLY_TENSOR_NAMES` 包含 `topk_indices_buffer`、`_rope_derived_cos_cache` 与 `_rope_derived_sin_cache` 三项，不会自动识别其他临时缓冲区。[C4][D]
+- Engram CPU 卸载表经 `local_weights.py` 在本地加载后，由 `get_local_tensor_ids` 豁免非 NPU 状态检查；未完成加载的宿主张量仍会被拒绝。[C14]
+- SFA 会把原 `kv_b_proj` 拆分、转置成 `W_UV`/`W_UK_T`，旧权重随后由 `dispose_layer` 释放；实现与名词解释见[官网核读页](../sources/rfork-official-guide.md)。[I]
 
 ### 版本差异
 
-本页按 RFork 工作版（`rfork@3284850b`）写。社区各版本的 `rfork_loader.py` 也有 processed / checkpoint 两条路，但细节不同：
+| 维度 | `v0.23.0` (`2c59ff10`) / `v0.26.0rc` (`2ed6cbba`) | `v0.30.0` (`c09d3e20`) | `main` (`8d6180e2`) |
+|---|---|---|---|
+| processed 判定 | 仅看 `quantization` 非空；无 NPU 同步与 MoE 临时处理 | 量化 / `weight_nz_mode == 2` / `FORCE_NZ`，含同步与两道 MoE 处理 | 同 `v0.30.0`，新增 FlatQuant 宿主标量刷新 |
+| 张量采集与去重 | 写在 `transfer_backend.py` 中，按 `data_ptr` 去重 | 独立 `tensor_layout.py`，收集 ID/shape/dtype/NPU format 生成结构摘要 | 分层 BFS 去重 + 确定性张量 ID、复用登记扫描清单与摘要（PR `#17366`） |
+| 运行期排除名单 | 无 | 仅 `topk_indices_buffer` | 扩展为 `topk_indices_buffer`、`_rope_derived_cos_cache`、`_rope_derived_sin_cache` |
+| 非 NPU 状态检查 | 无独立检查 | 拒绝所有已物化非 NPU 参数/buffer | 豁免由 `local_weights.py` 完成本地加载的 Engram 宿主表 |
 
-- **v0.23（`2c59ff10`）、v0.26（`2ed6cbba`）、带 GLM 代码的 `db701c1f`**：`_requires_processed_layout_transfer` 只看 `quantization` 是否非空，不看 NZ 模式和硬件策略；日志是 `RFork uses post-load tensor layout transfer for quantized model.`；后处理完直接进传输，没有 `torch.npu.synchronize`，也没有两道 MoE 临时处理。
-- **main（`baa023ad`）**：判断条件仍只有量化；补上了同步、读前换回 `__wrapped__` 和 checkpoint 路径跳过 `AscendUnquantizedFusedMoEMethod` 后处理这两道 MoE 处理。
-- **上述四个旧快照共同**：张量采集写在 `transfer_backend.py` 里，没有 `tensor_layout.py`；按 `data_ptr` 去重、同一起始地址只留第一个名字，没有同名冲突报错；没有运行时排除名单，`topk_indices_buffer` 会照常进清单。
-- **v0.30.0rc2（7d825229）**：已有独立 tensor_layout 模块，收集后的张量名字、shape、dtype、NPU format 参与结构摘要，再绑定到 seed 身份。传输清单还逐项核格式，不能把“元素数相同”理解成 ND/NZ 可以直接互读；这仍没有检查权重内容。源码与身份、清单的关系见[总览对照](rfork.md#版本差异)和[传输页](rfork-transfer.md#版本差异)。
-
-逐补丁对照见[总览](rfork.md)的「版本差异」。
+固定镜像 `db701c1f` 与 `v0.23.0` 一致；旧开发快照 `baa023ad` 已补同步与两道 MoE 处理，但仍无 `tensor_layout.py` 与排除名单。完整对照见[总览](rfork.md#版本差异)。
 
 ### 源码位置
 
-以下均为工作版 `rfork@3284850b`，路径前缀 `vllm_ascend/model_loader/rfork/`（测试除外）：
+以下均为社区上游 `vllm-ascend@8d6180e2`，路径前缀 `vllm_ascend/model_loader/rfork/`（另注除外）：
 
-- `rfork_loader.py#L503-L519`：`_requires_processed_layout_transfer`，量化 / `weight_nz_mode == 2` / `FORCE_NZ` 三个条件。
-- `rfork_loader.py#L335-L411`：`_rfork_pre_transfer_weight_processing`（L354 起，把特定 MoE quant method 的包装后处理临时换成 `__wrapped__`，跳过 shared-expert 包装校验）与 `_rfork_skip_unquantized_moe_post_load_processing`（L386 起，先读后处理路径中只把 `AscendUnquantizedFusedMoEMethod` 的后处理置为 no-op）；两者都在退出时恢复原方法。
-- `rfork_loader.py#L584-L644`：两条路径的分叉与先后顺序，processed 路径的 `process_weights_after_loading` 与 `torch.npu.synchronize`。
-- `tensor_layout.py#L18-L55`：`_RUNTIME_ONLY_TENSOR_NAMES = frozenset({"topk_indices_buffer"})`，`_is_runtime_only_tensor` 按 `rsplit(".", 1)[-1]` 比对；`reshape_tensor_to_seed_shape`；`is_transferable_tensor` 排除 meta、空张量和非 NPU 张量。
-- `tensor_layout.py#L58-L152`：对象扫描与 `_try_collect`（L118 起），循环引用防护、不扫函数 / 方法 / 类，排除运行时张量，同名冲突检查。
-- `tensor_layout.py#L155-L208`：`collect_processed_layout_tensors`（扫 Parameters、buffers、Module 公开属性与 `impl`）、`collect_checkpoint_layout_tensors`（Parameters、buffers 与 `impl`）、统一入口 `collect_transferable_tensors`；注册入口检查已物化的非 NPU Parameters / buffers。
-- `tests/ut/model_loader/rfork/test_tensor_safety_isolated.py#L143-L170`：batching limits 2048 / 4096，topk 张量 `(2048, 2048)` / `(4096, 2048)`、int32，排除后两份清单相同，普通 weight 与 packed weight 保留。
-- `session.py#L317-L345`：启动 seed 服务时重新调用 `register_memory_region` 刷新登记。
-- `vllm_ascend/ops/fused_moe/fused_moe.py#L410-L413`、`#L493-L506`：仅在 `multistream_overlap_shared_expert` 为真且该层有共享专家时，用 `@wraps` 给量化方法的后处理包上共享专家一致性校验。
-- `vllm_ascend/ascend_config.py#L153`（重叠开关默认 False）、`#L194-L195`（与 fused MC2 同开时强制关）、`#L262-L269`（`weight_nz_mode` 的取值与来源）；`vllm_ascend/utils.py#L266-L279`（0 / 1 / 2 三档的转换规则）。
-- `vllm_ascend/quantization/methods/w8a8_dynamic.py#L353-L366`：W8A8 专家权重转置、转 NZ，新建 `w13_weight_scale_fp32`。
-
-GLM 一节另用固定镜像 `vllm-ascend@db701c1f`：
-
-- `vllm_ascend/models/glm5_next.py#L2252-L2259`：`topk_indices_buffer` 形状为 `(max_num_batched_tokens, index_topk + index_kpool - 1)`、int32；`#L1260`、`#L402`：索引器把它存成普通属性。
-- `vllm_ascend/models/glm5_next_mtp.py#L64-L77`：MTP 层另开一份，宽度取到 128 的倍数。
-- 社区版对照：`2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L219-L220`、`#L275-L277`；`baa023ad:…/rfork_loader.py#L175`、`#L202-L206`、`#L330-L331`、`#L390`；`baa023ad:…/transfer_backend.py#L149-L164`（按 `data_ptr` 去重）。
-
-工作版路线选择的精确条件见来源 1：quantization 以是否为 None 判断，NZ 模式则要求不是 bool 且转换后的整数等于2；“未设置”不能替换成一般真值判断。异常与硬件策略继续按“怎么开”的分支执行，实际布局兼容性仍须核对张量与设备结果。
+- `rfork_loader.py#L729-L746`：`_requires_processed_layout_transfer`，量化（`is not None`）/ `weight_nz_mode == 2`（排除 bool）/ `FORCE_NZ` 三条件。[C1]
+- `rfork_loader.py#L562-L639`：`_iter_ascend_moe_quant_methods`、`_rfork_pre_transfer_weight_processing`、`_rfork_skip_unquantized_moe_post_load_processing`、`_refresh_rfork_flatquant_state`。[C2]
+- `rfork_loader.py#L805-L877`：共享复用、processed 后处理 + `torch.npu.synchronize`、先登记后借与传输后收尾。[C3]
+- `tensor_layout.py#L34-L69`：`_RUNTIME_ONLY_TENSOR_NAMES`（3 项）、`_is_runtime_only_tensor`、`build_structural_digest`。[C4]
+- `tensor_layout.py#L205-L259`：`reshape_tensor_to_seed_shape`、`is_transferable_tensor`、`is_non_overlapping_dense_tensor`、`validate_transferable_tensor_layout`。[C5]
+- `tensor_layout.py#L260-L458`：分层 BFS `_collect_shortest_path_tensors`、`collect_transferable_tensors`、`find_non_npu_state_tensors`。[C6]
+- `tests/ut/model_loader/rfork/test_registration_cache_isolated.py#L63-L85`：batching limits 2048 / 4096 排除 `topk_indices_buffer` 单测。[C7]
+- `session.py#L490-L559`：checkpoint 路径成为 seed 前重新 `register_memory_region` 刷新登记。[C8]
+- `vllm_ascend/ops/fused_moe/routed_experts.py#L105-L145`：`AscendUnquantizedFusedMoEMethod.process_weights_after_loading`。[C12]
+- `transfer_backend.py#L780-L828`：接收端 `reshape_tensor_to_seed_shape` 与 `log_tensor_layout_summary`。[C13]
+- `local_weights.py#L61-L97`：Engram 宿主表加载、记录、豁免与释放。[C14]
+- `v0.30.0` 对照：`vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/tensor_layout.py#L30-L61`、`manifest.py#L164-L214`。[C10][C11]
+- GLM 推演参照固定镜像 `vllm-ascend@db701c1f`：`vllm_ascend/models/glm5_next.py#L2252-L2259`、`glm5_next_mtp.py#L64-L77`。

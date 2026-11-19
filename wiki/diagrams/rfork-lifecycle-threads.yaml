@@ -42,7 +42,7 @@ texts:
   - { at: [496, 252], text: ↑ 起服务、首次登记, size: 11.5, tone: comm }
 
 pins:
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L170-L250
-    symbols: [_retry_seed_lease_release, _promote_deferred_seed_locked, RELEASED]
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L237-L267
-    symbols: [run_seed_heartbeat, initial_delay]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L310-L445
+    symbols: [_retry_seed_lease_release, _promote_deferred_seed, RELEASED]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L660-L719
+    symbols: [_run_seed_heartbeat, heartbeat_interval_sec]

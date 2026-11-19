@@ -37,9 +37,9 @@ texts:
   - { at: [457, 270], text: 同一句「没有可用的 seed」, anchor: middle, size: 12 }
   - { at: [350, 382], text: 三种「没借到」都回退，看日志分清是哪一种, anchor: middle, note: true }
 pins:
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L563-L577
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L775-L795
     symbols: [_ensure_rfork_session, initialize_model]
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L109
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/planner_client.py#L137-L195
     symbols: [acquire_seed]
-  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L610-L710
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L840-L955
     symbols: [_RForkSeedUnavailable, _start_rfork_seed_service]

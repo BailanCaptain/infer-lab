@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 508" width="900" height="508" role="img" aria-label="推理排障五组常见误解与 v0.30.0 源码真相对照图" font-family="var(--font-sans)">
+  <title>推理排障五组高频误判 vs v0.30.0 源码真相</title>
+  <desc>init_snapshot, requested_memory, VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS, model_config, exitcode, finished_procs, abort, abort_requests_async</desc>
+  <defs>
+    <marker id="ts-myth-fix" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="30" font-size="16" font-weight="700" fill="#8f3229">✗ 现场排障常见直觉误区（最易走弯路）</text>
+  <text x="388" y="30" font-size="16" font-weight="700" fill="#065f56">✓ v0.30.0 证据链与源码真相（正确动作）</text>
+  <line x1="12" y1="42" x2="888" y2="42" stroke="#b8bcb5" stroke-width="1.4"/>
+  <line x1="374" y1="12" x2="374" y2="496" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <g fill="#fff0e9" stroke="#b54237" stroke-width="1.4">
+    <rect x="12" y="54" width="348" height="78" rx="10"/>
+    <rect x="12" y="144" width="348" height="78" rx="10"/>
+    <rect x="12" y="234" width="348" height="78" rx="10"/>
+    <rect x="12" y="324" width="348" height="78" rx="10"/>
+    <rect x="12" y="414" width="348" height="78" rx="10"/>
+  </g>
+
+  <g fill="#ffffff" stroke="#087f73" stroke-width="1.5">
+    <rect x="388" y="54" width="500" height="78" rx="10"/>
+    <rect x="388" y="144" width="500" height="78" rx="10"/>
+    <rect x="388" y="234" width="500" height="78" rx="10"/>
+    <rect x="388" y="324" width="500" height="78" rx="10"/>
+    <rect x="388" y="414" width="500" height="78" rx="10"/>
+  </g>
+
+  <g fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#ts-myth-fix)">
+    <path d="M 360 93 L 382 93"/>
+    <path d="M 360 183 L 382 183"/>
+    <path d="M 360 273 L 382 273"/>
+    <path d="M 360 363 L 382 363"/>
+    <path d="M 360 453 L 382 453"/>
+  </g>
+
+  <g font-size="15" font-weight="700" fill="#8f3229">
+    <text x="26" y="83">1. 日志最后一条 EI0006 就是根因</text>
+    <text x="26" y="173">2. 退出码 137 就说明 NPU 显存爆了</text>
+    <text x="26" y="263">3. 关掉几个特性后跑通，问题就修好了</text>
+    <text x="26" y="353">4. 配置项没报错，就证明它一定生效了</text>
+    <text x="26" y="443">5. 没看到设备日志，就是设备没有执行</text>
+  </g>
+
+  <g font-size="13.5" fill="#8f3229">
+    <text x="26" y="113">直接去调大 HCCL 超时或盯着 Rank 0 排查</text>
+    <text x="26" y="203">立刻把 gpu_memory_utilization 砍半缩减 KV</text>
+    <text x="26" y="293">跳过逐项加回对照、输出核对与原配置验收</text>
+    <text x="26" y="383">忽略硬件降级、工厂剔除键与安装产物漂移</text>
+    <text x="26" y="473">或只凭乱码表象就断定是量化精度损坏</text>
+  </g>
+
+  <g font-size="15" font-weight="700" fill="#065f56">
+    <text x="404" y="83">先按时间戳反查全组最早出错的「首错 Rank」</text>
+    <text x="404" y="173">137 = SIGKILL，优先查主机 DRAM / cgroup OOM</text>
+    <text x="404" y="263">关闭特性只是缩小范围，须单项对照再验收</text>
+    <text x="404" y="353">核对最终生效配置与实际加载的安装文件路径</text>
+    <text x="404" y="443">先确认采集点覆盖路径，再按最后成功站缩小</text>
+  </g>
+
+  <g font-size="13.5" fill="#66716d">
+    <text x="404" y="113">单卡先挂会让其余卡卡死在 AllReduce；合并各卡 plog 定位首错</text>
+    <text x="404" y="203">先查 dmesg / OOMKilled；NPU HBM 不足会抛 RuntimeError 或 init_snapshot</text>
+    <text x="404" y="293">用 --enforce-eager 隔离后，仍需逐项加回并核对正常配置的吞吐与输出</text>
+    <text x="404" y="383"><tspan font-family="var(--font-mono)">AscendConfig</tspan> 虽严禁未知键，但部分硬件档位会自动降级关特性</text>
+    <text x="404" y="473">缺记录只代表缺证据；乱码也须先对比 token ID、采样参数与解码链路</text>
+  </g>
+</svg>

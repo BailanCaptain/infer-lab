@@ -3,8 +3,8 @@ id: rfork-config
 title: RFork 配置：四类端口、各项超时与可复制的启动示例
 type: feature
 summary: >-
-  想让第二个实例从已有实例借权重，启动命令里要多写什么。这页讲工作版 RFork
-  的十一项客户端设置和四类端口：多数写错为什么不报错、只会退回正常加载；固定端口只固定了哪一个、主模型和草稿模型为什么会撞；单次超时、还租约重试和租约有效期各管什么；GLM
+  想让第二个实例从已有实例借权重，启动命令里要多写什么。这页讲上游 main（8d6180e2）RFork
+  的十三项客户端设置和四类端口：配置错误何时中止启动、未知键为何告警；双槽固定端口与 EADDRINUSE 动态回退；单次超时、快慢重试与可选续租各管什么；GLM
   双机每台开多少端口、默认租约够不够，以及怎样验收。
 aliases:
   - RFork 配置
@@ -15,33 +15,37 @@ aliases:
   - rfork_heartbeat_interval_sec
   - rfork_lease_release_max_attempts
   - rfork_seed_timeout_sec
+  - rfork_model_identity_headers
+  - rfork_seed_removal_supported
+legacyAnchors:
+  十一项设置管什么默认多少什么时候改: 十三项设置管什么默认多少什么时候改
+  键名写错不报错只是悄悄当没填: 键名写错会打警告并按未填处理
+  固定端口基数会撞: 固定端口基数怎样按主草分槽
 chapters: []
 order: 90
 sources:
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/config.py#L11-L139'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L35-L49'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L349-L413'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L207-L233'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L289-L295'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L373-L382'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L539-L561'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L39-L75'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L213-L267'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L395-L614'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/seed_server.py#L127-L377'
-  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L414-L419'
-  - 'rfork@3284850b:docs/source/user_guide/feature_guide/rfork.md#L160-L228'
-  - 'rfork@3284850b:examples/rfork/rfork_planner.py#L542-L582'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/config.py#L11-L192'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L75-L87'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L588-L659'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L227-L273'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L368-L375'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/safety.py#L9-L21'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L747-L774'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L40-L80'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/planner_client.py#L362-L391'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/transfer_backend.py#L491-L694'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/seed_server.py#L128-L373'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L641-L667'
+  - 'vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/rfork.md#L120-L275'
+  - 'vllm-ascend@8d6180e2:examples/rfork/rfork_planner.py#L605-L647'
   - >-
     raw:sha256-854b4facdc4efae646ebb25bcf755d84e408b6f09bfe00f179afec0a39d2d232.md#L1-L933
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/planner_client.py#L117-L245'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L261-L364'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L527-L554'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/transfer_backend.py#L224-L269'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/session.py#L47-L51'
-  - 'vllm-ascend@7d825229:vllm_ascend/model_loader/rfork/seed_server.py#L156-L167'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/planner_client.py#L117-L245'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/session.py#L261-L364'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/transfer_backend.py#L224-L269'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L48-L53'
 verified:
-  - 'rfork:main'
+  - main
 evidence: C
 relations:
   - to: rfork-identity
@@ -51,7 +55,7 @@ relations:
     kind: builds-on
     note: lease 重试、心跳与 seed 启动超时分别作用于不同生命周期
 contradicts: []
-updated: '2026-10-25'
+updated: '2026-11-19'
 rawSources:
   - >-
     raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md
@@ -95,24 +99,24 @@ file: rfork-config-ports.yaml
 3. **seed 元数据端口**：A 上的一个 HTTP 小服务，B 先到这里取一份清单：A 的传输端点在哪，每个张量在什么地址、什么形状。
 4. **传输引擎端点**：真正搬权重字节的通道，两端各有一个。
 
-本页讲的是用户在用的 RFork 工作版。各项行为都对照它的源码逐行核过，但还没有在真实 NPU 上跑通过一次完整加载；示例里的地址、端口和模型路径都要换成现场的。
+本页讲的是社区上游 `vllm-ascend` `main`（`8d6180e2`）的 RFork 实现。各项行为都对照源码逐行核过，但还没有在真实 NPU 上跑通过一次完整加载；示例里的地址、端口和模型路径都要换成现场的。
 
 ## 为什么要专门讲配置：多数写错不会报错
 
-一般的程序，配置写错了会启动失败，你马上就知道。RFork 不一样：它的设计是「借不到就退回正常加载」，这层保护把大部分配置错误也一起吞掉了。B 照样起来、照样能服务，只是启动没变快，也不会当 seed 借给下一个实例。
+一般的程序，配置写错了会启动失败。RFork 的设计兼顾「配置错尽早暴露」与「运行时借不到再回退」两层边界：在当前主线中，**三项必填标识留空或严格项非法会直接中止启动**（抛出 `RForkConfigurationError`，不再静默退回默认加载），而未知键名、两个超时非法或宣告地址不可达则仍可能只记警告或延后到加载/借用阶段才暴露。
 
 把各种写错归一下，后果分四种：
 
 | 后果 | 什么情况会这样 | 你能看到的 |
 |---|---|---|
-| 进程起不来 | 心跳、还租约那三项或端口基数显式填了非法值；设置包不是一个 JSON 对象 | 启动时直接报错 |
-| 退回正常加载，且不当 seed | 身份串、策略名、Planner 地址三项里任一项最后是空的（包括键名写错、放错入口） | 一条 warning，之后照常从存储加载 |
-| 悄悄用默认值 | 两个超时填了非法值；任何一项的键名写错 | 什么都看不到 |
-| 自己照常起来，但当不上 seed，或登记了别人也借不到 | 监听地址填成本机没有的 IP，或固定端口被占用、撞号：seed 服务绑不上端口；宣告地址填成别的机器连不上的 IP：登记成功，来借的实例取不到清单 | 绑不上端口时，本机有一条 seed 服务启动失败的 warning；宣告地址填错，本机看不到，要在来借的那一方看到传输失败、退回默认加载 |
+| 进程起不来 | 身份串、策略名、Planner 地址任一项为空；心跳、还租约、端口基数、身份头开关或撤销开关显式填了非法值；设置包不是 JSON 对象 | 启动时直接抛 `RForkConfigurationError` 中止 |
+| 打警告后按未填处理 | 任何未知键名（含旧短别名或拼写错误） | 一条 `RFork ignored unknown model_loader_extra_config keys` warning，键本身按未填处理 |
+| 悄悄用默认值 | 两个超时填了非法值 | 先查环境变量，没有就回退默认值，不抛错 |
+| 自己照常起来，但当不上 seed，或登记了别人也借不到 | 监听地址填成本机没有的 IP 导致绑定失败；宣告地址填成别的机器连不上的 IP（固定端口被占用时会自动退回 OS 随机端口） | 绑不上地址时本机有一条 seed 服务启动失败 warning；宣告地址填错要到借用方才看到传输失败并回退 |
 
-所以「服务能起来」不说明配对了。要看日志里 RFork 自己报的那几行，做法见[怎样验收](#怎样验收这套配置真的有用)。
+所以「服务能起来」不说明全部配对。要看日志里 RFork 自己报的那几行，做法见[怎样验收](#怎样验收这套配置真的有用)。
 
-代价就在这里：RFork 的设置大多是「可选、带默认值、带环境变量兜底」，写起来宽松，查起来费劲。下面先分清几个容易混的名字，再逐组讲每一项。
+代价就在这里：RFork 既有严格中止项，也有可选默认值与环境变量回退。下面先分清几个容易混的名字，再逐组讲每一项。
 
 ## 四个「名字」各管各的
 
@@ -127,53 +131,51 @@ file: rfork-config-ports.yaml
 
 模型身份串的字段名里带「URL」，很容易让人以为 RFork 会去这个地址下载模型。其实它只被当作一串文字做身份比对；借不到时的正常加载仍按模型路径走。
 
-身份串或策略名留空（也没有设对应的环境变量），RFork 建不起会话：打一条 warning，直接走正常加载，这个实例之后也不会登记成 seed。Planner 地址留空也是同样的结果。更细的匹配规则见[身份与匹配](rfork-identity.md)。
+身份串、策略名或 Planner 地址留空（且没有设对应的环境变量）时，当前主线在建会话时会抛 `RForkConfigurationError` 直接中止启动，避免运维误以为启用了 RFork 却一直在静默走磁盘加载。更细的匹配规则见[身份与匹配](rfork-identity.md)。
 
-## 十一项设置：管什么、默认多少、什么时候改
+## 十三项设置：管什么、默认多少、什么时候改
 
-按用途分四组。「写错会怎样」上一节已经归成四种，这里不再逐行重复。
+按用途分五组。「写错会怎样」上一节已经归成四种，这里不再逐行重复。
 
 | 设置 | 默认值 | 管什么 | 什么时候要改 |
 |---|---|---|---|
 | **身份与找人** | | | |
 | 模型身份串 | 空，必填 | RFork 判断「是不是同一个模型」 | 每个要互借的池子定一个值，池内所有实例一样 |
 | 部署策略名 | 空，必填 | 部署方式的命名空间 | 部署不兼容、需要隔开时换一个新值 |
-| Planner 地址 | 空，必填 | 去哪里借、还、登记、心跳 | 指向现场 Planner 的 IP 和端口 |
+| Planner 地址 | 空，必填 | 去哪里借、还、续期、登记、心跳 | 指向现场 Planner 的 IP 和端口 |
 | **超时** | | | |
 | 来源服务启动预算 | 5 秒 | 本机 seed 服务起来并通过健康检查的总预算；**不是**租约有效期 | 机器很忙、seed 服务启动超时 |
 | 单次请求超时 | 10 秒 | 找 Planner、向 seed 取清单的**每一次** HTTP 请求等连接、等回复的时间 | 网络或 Planner 响应慢 |
 | **地址与端口** | | | |
-| 监听地址 | 0.0.0.0，即所有网卡 | seed 服务在本机哪块网卡上监听 | 只想让某一张网卡对外 |
+| 监听地址 | `0.0.0.0`，即所有网卡 | seed 服务在本机哪块网卡上监听 | 只想让某一张网卡对外 |
 | 对外宣告地址 | 留空，上报时自动取本机 IP | 报给 Planner、让别的机器来连 seed 服务的 IP | 多网卡，自动取到的不是别人连得上的那张 |
-| 端口基数 | 0，即系统随机分配 | 正数时 seed 端口 = 基数 + 本进程的全局 rank | 防火墙只放行固定的端口段 |
+| 端口基数 | 0，即系统随机分配 | 正数时 seed 端口 = `基数 + 2 × 全局 rank + 角色槽`（主 0、草稿 1） | 防火墙只放行固定的端口段 |
 | **心跳与还租约** | | | |
 | 心跳间隔 | 30 秒 | 当上 seed 以后，上一次心跳**结束后**再等多久发下一次 | 要明显短于 Planner 判 seed 掉线的时限 |
-| 还租约总次数 | 3，含第一次 | 归还租约最多试几次 | Planner 偶尔短暂不可用 |
-| 还租约重试间隔 | 30 秒 | 两次可重试的失败之间等多久 | 同上 |
+| 还租约快速重试次数 | 3，含第一次 | 归还租约快速重试几次（超过后遇暂态错误转 ≥60 秒慢速重试） | Planner 偶尔短暂不可用 |
+| 还租约重试间隔 | 30 秒 | 快速阶段两次可重试失败之间等多久 | 同上 |
+| **Planner 协议扩展** | | | |
+| 附带可读模型头 | `false` | 是否在每次 Planner 请求头附带 `MODEL_URL`、`DEPLOY_STRATEGY`、`IS_DRAFT`（开启要求 ASCII） | 现场 Planner 需要按可读元数据观测或审计 |
+| 撤回接口支持开关 | `false` | 控制关停/故障撤回时是否调用 `/remove_seed`（`false` 跳过、`true` 确认支持、`null` 自动探测） | 现场 Planner 实现了 `/remove_seed` 撤回协议时开启 |
 
 表里的**全局 rank** 是本进程在整个分布式组里的编号：每张卡一个 Worker 进程，从 0 往上数，跨机器也连着数。
 
 几处措辞是有意这样写的：
 
-- 心跳间隔从上一次心跳请求**结束**算起，不是固定节拍的定时器，所以 Planner 看到的心跳周期总比 30 秒长一点。仓库自带的示例 Planner 是 60 秒没收到心跳就把这个 seed 摘掉；心跳间隔加上一次请求的耗时，要留在这个时限之内。
-- 宣告地址留空时，每次上报那一刻当场取本机 IP 填进去，不会真的报一个空地址。取的是 vLLM 探测到的本机 IP；多网卡的机器上，它不一定是别的机器连得上的那张网卡。
+- 心跳间隔从上一次心跳请求**结束**算起，不是固定节拍的定时器，所以 Planner 看到的心跳周期总比 30 秒长一点。示例 Planner 是 60 秒没收到心跳就把这个 seed 转入 draining；心跳间隔加上一次请求的耗时，要留在这个时限之内。
+- 宣告地址留空时，每次上报那一刻当场取 `get_ip()`（优先 `VLLM_HOST_IP`，否则按出网路由选网卡）填进去。多网卡的机器上，请显式设置 `rfork_seed_advertise_host` 与 `VLLM_HOST_IP`。
 
-**设置从哪里读。** 前三组的八项里，除了端口基数，其余七项都可以用同名的大写环境变量给；顺序是设置包里的有效值优先，其次环境变量，最后默认值。端口基数和心跳与还租约那三项只认设置包里的值。
+**设置从哪里读。** 上述十三项里，有八项支持同名大写环境变量兜底（三项必填、两个超时、监听/宣告地址与 `RFORK_MODEL_IDENTITY_HEADERS`）；顺序是设置包里的有效值优先，其次环境变量，最后默认值。端口基数、心跳与还租约三项及撤回开关只认设置包里的值。
 
-**四项严格，两项宽松。** 心跳与还租约那三项显式填了非法值（零或负数、字符串、true/false，次数写成小数也算）会直接报错，进程起不来；端口基数填了负数、超过 65535 或 true/false 也一样（它写成带引号的字符串反而不报错，见下一节）。这个检查发生在加载器刚创建的时候，比「RFork 失败就退回正常加载」那层保护更早，所以这里报错**不会**自动改用正常加载，得先把设置改对。两个超时宽松得多：写成带引号的数字（比如字符串的 8）也认；非法值不报错，先去看环境变量，没有就用默认值。
+**严格项直接中止，两个超时宽松回退。** 心跳、还租约、端口基数、可读模型头开关与撤回开关显式填了非法值，以及三项必填项最终为空，都会在初始化或建会话时抛 `RForkConfigurationError` 直接中止进程。两个超时宽松得多：写成带引号的数字字符串也认；非法值不报错，依次回退环境变量和默认值。
 
-## 键名写错不报错，只是悄悄当没填
+## 键名写错会打警告并按未填处理
 
-十一项里只有三项认别名：单次请求超时、监听地址、宣告地址，各有一两个短写法可用。其余每项只认唯一那个键名。
+当前主线共识别十三项固定键名（`KNOWN_EXTRA_CONFIG_KEYS`），**不再支持早期分支的短别名**（如 `request_timeout_sec`、`bind_host`、`advertise_host`）。
 
-键名拼错一个字，程序**不会**提示「未知字段」，而是当作这项没填：先查环境变量，查不到就用默认值或空串。连上一节那四项严格检查的也一样：严格查的是**值**，不是键名；键名写错，照样悄悄用默认值。后果分两种：
+键名拼错或沿用旧短别名时，加载器初始化会打出一条明确 warning（列出所有未识别键并提醒检查拼写），然后把对应字段按未填处理：先查环境变量，查不到就用默认值或空串；若是三项必填键拼错且未设环境变量，建会话时就会抛 `RForkConfigurationError` 中止。
 
-- 把来源服务启动预算的键名少写了前缀：它悄悄按默认 5 秒跑，你以为改了其实没改。
-- 把 Planner 地址的键名少写了前缀：它一路空到加载开始，B 打一条「Planner 地址是必填项」的 warning 就退回正常加载。看不出你其实写了，只是键名不对。
-
-有别名的那三项，看的是**第一个出现的键**，不是挨个找第一个有效的值：写了正式键名就只看它，哪怕它的值无效，也不会改去读短写法。值无效时的处理和上面一样：查环境变量，再退默认值。
-
-端口基数还有一个细节：必须是 JSON 里真正的整数。写成带引号的「"35000"」会被当作 0，也就是退回随机端口，而且不报错；写成 35000.0 这样的小数也一样。
+端口基数必须是 `[0, 65535]` 范围内的严格 JSON 整数（排除 `bool`、小数或带引号的字符串，否则直接抛 `RForkConfigurationError`）。
 
 ## 四类端口：谁监听、谁来连、由什么决定
 
@@ -181,73 +183,74 @@ file: rfork-config-ports.yaml
 
 - **API 端口**：启动命令里写的端口。
 - **Planner 端口**：Planner 自己的启动参数；B 的设置包里只写它的地址。
-- **seed 元数据端口**：默认由系统随机分配；设了端口基数，就是基数 + 全局 rank。
-- **传输引擎端点**：传输引擎初始化时自动取本机 IP 和一个空闲端口，设置里没有它的开关。
+- **seed 元数据端口**：默认由系统随机分配；设了非零端口基数，采用双槽公式 `基数 + 2 × 全局 rank + 角色槽`（主模型槽 0、草稿模型槽 1）。
+- **传输引擎端点**：初始化时向引擎传 `port=0`，由引擎自行绑定并经 `get_rpc_port()` 读回（可通过 YuanRong 环境变量 `YR_TE_RPC_PORT_MIN` / `YR_TE_RPC_PORT_MAX` 限定范围；HIXL 数据面默认基址 `YR_TE_HIXL_BASE_PORT=22000`）。
 
-所以「把端口固定下来」只固定了第三类那一个。宣告地址也只改报给 Planner 的 seed 元数据地址，不会顺带改传输引擎自己选的端点。如果「清单取得到，真正读权重却失败」，要查的是第四类能不能连通。
+所以「把端口固定下来」只固定了第三类那一个。宣告地址也只改报给 Planner 的 seed 元数据地址，不会顺带改传输引擎自己选的端点（后者跟 `VLLM_HOST_IP` / `get_ip()` 走）。如果「清单取得到，真正读权重却失败」，要查的是第四类能不能连通。
 
-固定端口的算法是「基数 + 全局 rank」，超出 65535 就作废：
+双槽固定端口的算法如下，超出 65535 或端口被占用（`EADDRINUSE`）时都会自动退回系统随机端口：
 
 ```calc
-title: 固定 seed 端口怎么算
-基数 35000，rank 3 = 35000 + 3 = 35003
-基数 65530，rank 7 = 65530 + 7 = 65537
-> 第二行超过 65535：打一条 warning，退回系统随机端口
+title: 双槽固定 seed 端口怎么算
+基数 35000，rank 3 主模型（槽 0） = 35000 + 2 × 3 + 0 = 35006
+基数 35000，rank 3 草稿模型（槽 1） = 35000 + 2 × 3 + 1 = 35007
+基数 65530，rank 3 主模型 = 65530 + 6 = 65536
+> 第三行超过 65535：打 warning 退回系统随机端口；指定端口在 Linux 遇 EADDRINUSE 被占用时也会自动退回系统随机端口
 ```
 
-超范围有自动改口，端口**被占用**却没有：被占用时 seed 服务起不来，要去看它的启动报错。被占用最常见的来源是撞号。全局 rank 只在一个分布式组内唯一，同一台机器上两个互不相干的实例各自从 0 数 rank，用了同一个基数就会撞号；更隐蔽的是投机解码：主模型和草稿模型在同一个 Worker 进程里各有一套 RFork 会话，用的是同一个全局 rank，固定基数时两套 seed 服务必然算出同一个端口，后起的那套绑不上，就不当 seed（按源码推断，未实测）。两种撞号的补救不一样：同一台机器上的多个实例，可以把实例隔开，或者给它们错开端口基数；开了投机解码，工作版没有给草稿模型单独错开端口的设置，隔开实例也解决不了同一个 Worker 里的撞号，只能保持端口基数为 0，并确认两个模型角色的 seed 服务都起来了。
+主模型与草稿模型分占相邻偶/奇槽位后，同一 Worker 进程内不再必然撞号；同机多实例共用同一基数碰上 `EADDRINUSE` 时也会退回动态端口（其他绑定错误如监听地址不属于本机仍会失败并记 warning，该角色不当 seed、模型照常交回）。防火墙若要按固定段放行，仍需为同机多实例错开端口基数，并以实际绑定日志为准。
 
 还有两条边界：
 
 - **本机健康检查只证明本机能访问。** seed 服务起来后，本机会轮询它的健康检查接口，通了才算启动成功；连的是实际绑定的地址，监听「所有网卡」时改连本机回环地址。所以健康检查通过，不说明别的机器能连上宣告地址，更不说明传输通道通。
-- **内建的 seed 服务是普通 HTTP。** 用来匹配的那串身份只是匹配用的，不是登录凭据。现场要走 HTTPS，得核对代理、地址和转发怎么配；不能只把地址改成 https 开头就当内建服务支持加密。
+- **内建的 seed 服务是普通 HTTP。** `seed_key` 会出现在日志、URL 查询参数与示例 Planner 的 `/debug/snapshot` 中，必须把整个控制面与日志留在受信网络边界内；现场要走 HTTPS，得核对代理、地址和转发怎么配。
 
 ## 超时、重试间隔和租约有效期是三个量
 
 这三个量常被混成「RFork 的超时」，其实各管一段：
 
 - **单次请求超时**管每一次 HTTP 请求等连接、等回复的时间，不是「从借来源到对外服务」整件事的截止时间。
-- **还租约的次数和间隔**管 B 读完以后在后台还租约时，失败了怎么重试。
-- **租约有效期**是 Planner 那边的：租约从发出那一刻起算，到点就收回。示例 Planner 默认 60 秒，seed 的心跳只报平安、不续租约。它和「一个 seed 同时借给几家」都由启动 Planner 时它自己的命令行决定，B 这边的任何设置都改不了。
+- **还租约的快速次数和间隔**管 B 读完以后在后台还租约时，前几轮快速重试的节奏；超过后遇暂态错误会转入至少 60 秒间隔的慢速重试，直到成功、被永久拒绝或关停。
+- **租约有效期**是 Planner 那边的：租约从发出那一刻起算，到点就收回。示例 Planner 默认 60 秒，seed 的心跳只报平安、不续租约；但当 Planner 在 `GET /get_seed` 返回有限正数 `LEASE_TTL_SEC` 时，客户端会起后台线程按 `clamp(TTL / 3, 0.1, 30.0)` 秒周期调用 `/renew_seed_lease` 续期。
 
-还租约默认最多 3 次、间隔 30 秒。三次都要重试时，光间隔就占 60 秒：
+还租约默认快速阶段最多 3 次、间隔 30 秒，仅快速阶段光间隔就占 60 秒：
 
 ```calc
-title: 还租约最坏要等多久（算例，不是上限）
+title: 还租约快速阶段耗时算例（非总上限，超 3 次后转 ≥60 秒慢试）
 三次请求 = 3 × 10 秒 = 30 秒
 两段间隔 = 2 × 30 秒 = 60 秒
-合计 = 30 + 60 = 90 秒
-> 只是每次请求恰好卡满 10 秒时的算例；还要加上等锁、线程调度，真实耗时还会更长
+快速阶段合计 = 30 + 60 = 90 秒
+> 每次请求恰好卡满 10 秒时的算例；第 4 次起若仍遇暂态错误则每 ≥60 秒继续重试
 ```
 
-来源服务启动那 5 秒也一样不是硬截止：它用来算健康检查的截止时刻，再用剩下的时间限制排队和轮询；失败后的清理另有一份等待预算。整个启动或失败清理的函数并不保证 5 秒内结束。
+来源服务启动那 5 秒也一样不是硬截止：它用来算健康检查的截止时刻，再用剩下的时间限制排队和轮询；失败后的清理另有一份等待预算。
 
-评估租约有效期够不够长时，要把**借到之后的内存登记、取清单、真正读权重、后台还租约**都算进去，再加上重试间隔。租约在读到一半时过期，读取本身不会被打断（seed 一侧不看租约），但 Planner 会把这个 seed 的借用名额收回来，再有新实例来借就会借出去，两个读者同时抢一张卡的带宽；B 之后去还，示例 Planner 回 404。调大单次请求超时不会让 Planner 延长租约。某次借用到底有没有过期，要看 Planner 那边记的租约时间和 B 日志里的持有时长，见[生命周期](rfork-lifecycle.md)。
+评估租约有效期够不够长时，要把**借到之后的取清单、真正读权重、后台还租约**都算进去（当前主线已把本地显存登记提前到借租约之前）。若现场 Planner 不支持 `LEASE_TTL_SEC` 续期且租约读到一半过期，读取本身不会被打断，但 Planner 会提前收回名额引发多读者争抢带宽；某次借用是否过期需对照 Planner 记录与 B 的持有时长日志，见[生命周期](rfork-lifecycle.md)。
 
 ## 设置写对了还不够：依赖和限制要实际核对
 
-- 传输引擎来自 YuanRong 数据系统的 Python 包。光「装了同名包」不够，它还得提供按批登记显存的那个接口，缺了会直接判为不支持。
-- 模型已经落地的参数和缓冲区必须全部在 NPU 上；一部分在 CPU、一部分在 NPU 会被拒绝，转去正常加载。
-- 在并行参数或附加设置里打开动态专家负载均衡（[EPLB](eplb.md)），或者在附加设置里配了专家分布记录路径，RFork 会被整个绕过，日志里只有一条 warning。后两项所在的昇腾插件「附加设置」，恰好是 RFork 自己的设置**不该**放的那个入口。调重试次数改变不了这个限制。
+- 传输引擎来自 YuanRong 数据系统的 Python 包（`yr.datasystem`）。除了安装同名包，它还必须提供 `get_rpc_port` 与 `batch_register_memory_ex` 接口，缺任一项都会直接判为不支持。
+- 模型已经落地的参数和缓冲区必须全部在 NPU 上（经 `local_weights.py` 完成本地加载的 Engram 宿主表除外）；未豁免的混合 CPU/NPU 状态会被拒绝，转去正常加载。
+- 命中 `safety.py:mutable_weights_bypass_reason` 的三类可变权重场景——启用 `enable_sleep_mode`（sleep mode）、配置 `weight_transfer_config`（在线权重传输）或开启 `parallel_config.enable_eplb`（[EPLB](eplb.md)）——时，RFork 会被整体绕过，只留一条 warning 并改走默认加载（不发布 seed）。早期 Model Runner V1 的静态/动态 EPLB 附加字段（`dynamic_eplb`、`expert_map_record_path`、`expert_map_path`）已在上游移除，不再构成绕过条件。
 - 正常加载的路径必须留着：第一个实例冷启动要靠它，借不到时也要退回它。「能从来源加载」不等于可以不要磁盘上的权重文件。
 
-官网写的安装包名和随工作版保存的指南里的包名不一致，见[官方文档核读](../sources/rfork-official-guide.md)。不要在已经在跑的环境里直接把某个同名包升到最新版。先在**真正跑推理进程的那个 Python 环境**里做一次只读检查（脚本在下面「怎么开」），记下模块从哪里加载、包是什么版本，再按部署配套的版本去验证设备上的行为。
+不同时期文档里的安装包名差异见[官方文档核读](../sources/rfork-official-guide.md)。不要在已经在跑的环境里盲目升级同名包，先在**真正跑推理进程的那个 Python 环境**里做一次只读检查（脚本在下面「怎么开」），记下模块路径、包版本与 `get_rpc_port` / `batch_register_memory_ex` 可用性，再验证设备上的行为。
 
 ## 怎样验收这套配置真的有用
 
-在同样的模型、输入和采样设置下，分别记录五种情况：正常加载的基线、第一个实例冷启动、第二个实例借到来源、找不到来源、中途出故障退回正常加载。每种情况都分段记时间：初始化、排布、申请来源、登记内存、取清单、读权重、还租约、自己发布成来源、服务就绪。
+在同样的模型、输入和采样设置下，分别记录五种情况：正常加载的基线、第一个实例冷启动、第二个实例借到来源、找不到来源、中途出故障退回正常加载。每种情况都分段记时间：初始化、排布、登记内存、申请来源、取清单、读权重、还租约、自己发布成来源、服务就绪。
 
-日志里 RFork 会报四种不同含义的「成功」，各自证明什么、不证明什么，见总览页的[四种成功](rfork.md#成功至少有四种不能压成一个开关)；分段耗时和吞吐的日志原文列在下面「开销和什么时候别开」。配置有没有生效，最直接的看法是：借到来源的那一次，有没有出现「权重传完」那一行；只看到「没有可用的 seed、改为本地加载」或「RFork 传输失败、退回默认加载」，说明这次其实走的是正常加载。
+日志里 RFork 会报四种不同含义的「成功」，各自证明什么、不证明什么，见总览页的[四种成功](rfork.md#成功至少有四种不能压成一个开关)；最终加载汇总会输出 `source=transfer` / `local` / `fallback` / `shared_target`，分段耗时和吞吐的日志原文列在下面「开销和什么时候别开」。
 
 比对输出或 logits 时，方法要符合这个模型的确定性和容差要求。同时看两件事：被借的那台机器上，正在跑的推理延迟有没有变差；并发扩容多个实例时，启动耗时的长尾有多长。只测一条小请求正常，不能说明所有模型、量化方式和共享路径都支持。
 
 ## 放到 GLM 双机：每台机器开多少端口，固定端口会不会撞
 
-先说清前提，这一节是推演，不是实测：我们的部署是一个实例跨两台机器、16 张卡，TP8、DP2、EP16、W8A8（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。官方教程没有开 RFork；工作版代码树里也没有 GLM-5.3-Flash 的模型实现，两边合起来的推演和限制见总览页的 [GLM 一节](rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)。这里只看配置层面的三件事。
+先说清前提，这一节是推演，不是实测：我们的部署是一个实例跨两台机器、16 张卡，TP8、DP2、EP16、W8A8（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。官方教程没有开 RFork；GLM-5.3-Flash 的教学模型账目钉在固定镜像 `db701c1f`，下面是把上游 `main` RFork 配置机制套到该双机拓扑上的推演，见总览页的 [GLM 一节](rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)。这里只看配置层面的三件事。
 
 ### 每台机器上 RFork 新开多少个端口
 
-每台机器 8 张卡、8 个 Worker 进程。投机解码的 MTP 草稿模型和主模型在同一个 Worker 里，各有一套 RFork 会话，各自借、各自当 seed。每套会话一建好就有自己的传输引擎端点，当上 seed 以后再开一个 seed 元数据端口：
+每台机器 8 张卡、8 个 Worker 进程。投机解码的 MTP 草稿模型和主模型在同一个 Worker 里，各有一套 RFork 会话，各自借、各自当 seed。每套会话在首次登记时初始化传输引擎端点，当上 seed 以后再开一个 seed 元数据端口：
 
 ```calc
 title: GLM 双机每台机器上 RFork 新开的端口
@@ -256,24 +259,20 @@ title: GLM 双机每台机器上 RFork 新开的端口
 > 另外 node0 还有 1 个 API 端口，node1 以 headless 方式只跑引擎、不开 API；Planner 是实例之外的独立服务，16 个 Worker 的 32 套会话都去连它
 ```
 
-这 32 个端口在默认设置下全是随机的。如果现场防火墙只放行固定端口段，就要先解决下面这个问题。
+这 32 个端口在默认设置下全是随机的。如果现场防火墙只放行固定端口段，需要分别规划 seed HTTP 端口段与 YuanRong 数据面环境变量范围。
 
-### 固定端口基数会撞
+### 固定端口基数怎样按主草分槽
 
-两台机器上的全局 rank 连着数：node0 是 0–7，node1 是 8–15。设基数 35000，node0 的 seed 端口是 35000–35007，node1 是 35008–35015，机器之间不撞。
-
-撞在机器内部：同一个 Worker 里的主模型会话和草稿模型会话，全局 rank 相同，算出的端口也相同。后起的那套 seed 服务绑不上端口，打一条 warning 后就不当 seed。下一个实例来借时，这一套的身份在 Planner 那里没有来源，只能退回正常加载（按源码推断，未实测）。所以这套部署开着 MTP，就保持端口基数为 0；传输引擎端点本来就固定不了，防火墙策略要按随机端口来定。YuanRong 传输除了这个端点是否还另用端口，目前没有资料，列在页末。
+两台机器上的全局 rank 连着数：node0 是 0–7，node1 是 8–15。当前主线采用双槽公式 `base + 2 × global_rank + slot`（主模型槽 0、草稿模型槽 1）：设基数 35000，node0 占用 35000–35015（每卡偶数为 main、奇数为 draft），node1 占用 35016–35031，**同进程内主模型与草稿模型不再撞号**。若某个指定端口被其他进程占用（Linux `EADDRINUSE`），seed 服务还会自动回退到 OS 随机端口。传输引擎 RPC 端口与 HIXL 数据端口则分别需通过 `YR_TE_RPC_PORT_MIN/MAX` 和 `YR_TE_HIXL_BASE_PORT`（默认 22000）规划防火墙放行。
 
 ### 默认 60 秒的租约够不够
 
-主模型会话每张卡所列主要语言张量的读取子账约为 20.09 GiB（逐项及未计项目见总览页的[每张卡读多少](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)）。工作版示例 Planner 的租约默认 60 秒，不续租，仅这一子账就要求平均读速至少约 20.09 GiB ÷ 60 秒 ≈ 0.33 GiB/s。它是必要门槛，不是完整传输的达标值：实际清单还可能包含视觉塔等未计张量，租约时间还要分给显存登记、取清单和归还请求。主模型与草稿各有租约，不能把两者合计的 20.91 GiB 子账当作这一份租约的主模型字节。
-
-若连这份子账都不能在 60 秒内读完，租约到期后，示例 Planner 在下一次清扫或借还请求时便会收回名额。这不会主动打断读取，但新借用可能与它争用带宽。实际判断应结合完整读取字节、各段耗时、归还日志及 Planner 记录；单看「权重传完」的吞吐高于 0.33 GiB/s 还不够。目前缺实机记录；确需更长时间时，调整 Planner 的租约有效期。支持续租的 rc2 另见下方版本差异。
+主模型会话每张卡所列主要语言张量的读取子账约为 20.09 GiB（逐项及未计项目见总览页的[每张卡读多少](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)）。在不支持续期的旧 Planner（默认 60 秒租约）下，仅这一子账就要求平均读速至少约 20.09 GiB ÷ 60 秒 ≈ 0.33 GiB/s；实际清单还可能包含视觉塔等未计张量与元数据/归还开销。若 Planner 返回 `LEASE_TTL_SEC` 并支持 `/renew_seed_lease`，客户端会在传输期间自动周期续租（默认每 20 秒续一次），降低单次大权重传输在 60 秒内过期的风险。主模型与草稿各有租约，不能把两者合计的 20.91 GiB 子账当作同一份租约的字节。
 
 ## 常见误解
 
-- **「服务能起来，RFork 就配好了。」** 多数写错只会让 B 退回正常加载，照样起得来。要看日志里有没有「权重传完」那一行。
-- **「固定了端口基数，RFork 的端口就都固定了。」** 只固定了 seed 元数据端口。传输引擎端点仍是初始化时随机选的，而且开了投机解码时，主模型和草稿模型会算出同一个端口。
+- **「服务能起来，RFork 就配好了。」** 未知键名只打 warning、宣告地址填错要到借用方才暴露；须看日志里是否有 `source=transfer` 与「权重传完」那一行。
+- **「固定了端口基数，RFork 的端口就都固定了。」** 只固定了 seed 元数据端口（主草双槽且遇 `EADDRINUSE` 会回退动态端口）；传输引擎 RPC 端口与 HIXL 数据面端口由 YuanRong 独立管理。
 - **「本机健康检查过了，别的机器就能来借。」** 健康检查连的是本机地址，证明不了宣告地址和传输端点从别的机器连得上。
 - **「把单次请求超时调大，租约就更宽裕。」** 租约有效期归 Planner 管，B 的任何设置都延长不了它。
 - **「设置里写 https 地址就加密了。」** 内建的 seed 服务是普通 HTTP，要加密得靠现场的代理和转发。
@@ -296,21 +295,23 @@ RFork 的设置走 `--model-loader-extra-config`，不是 `--additional-config`�
 
 `model_url` 只作字符串参与身份匹配，fallback 仍使用模型加载配置。[C2]
 
-客户端参数全表（默认值与读取顺序来自 `RForkConfig`）：
+客户端参数全表（13 项已知键 `KNOWN_EXTRA_CONFIG_KEYS`，默认值与读取顺序来自 `RForkConfig`，不再支持旧短别名，未知键打 warning）：
 
-| JSON 字段 | 默认值 | 有效输入与环境回退 | 别名 |
-|---|---|---|---|
-| `model_url` | `""` | `MODEL_URL` | 无 |
-| `model_deploy_strategy_name` | `""` | `MODEL_DEPLOY_STRATEGY_NAME` | 无 |
-| `rfork_scheduler_url` | `""` | `RFORK_SCHEDULER_URL` | 无 |
-| `rfork_seed_timeout_sec` | 5.0 | 有限正数；`RFORK_SEED_TIMEOUT_SEC` | 无 |
-| `rfork_request_timeout_sec` | 10.0 | 有限正数；`RFORK_REQUEST_TIMEOUT_SEC` | `request_timeout_sec` |
-| `rfork_seed_bind_host` | `0.0.0.0` | `RFORK_SEED_BIND_HOST` | `seed_bind_host`、`bind_host` |
-| `rfork_seed_advertise_host` | None，随后自动探测 IP | `RFORK_SEED_ADVERTISE_HOST` | `seed_advertise_host`、`advertise_host` |
-| `rfork_seed_port_base` | 0 | JSON 整数；无环境回退 | 无 |
-| `rfork_heartbeat_interval_sec` | 30.0 | 严格有限正 JSON number；无环境回退 | 无 |
-| `rfork_lease_release_max_attempts` | 3 | 严格正 JSON integer；无环境回退 | 无 |
-| `rfork_lease_release_retry_interval_sec` | 30.0 | 严格有限正 JSON number；无环境回退 | 无 |
+| JSON 字段 | 默认值 | 有效输入与环境回退 |
+|---|---|---|
+| `model_url` | `""` | 必填非空字符串；`MODEL_URL` |
+| `model_deploy_strategy_name` | `""` | 必填非空字符串；`MODEL_DEPLOY_STRATEGY_NAME` |
+| `rfork_scheduler_url` | `""` | 必填非空字符串；`RFORK_SCHEDULER_URL` |
+| `rfork_seed_timeout_sec` | `5.0` | 有限正数（接受数字串）；`RFORK_SEED_TIMEOUT_SEC` |
+| `rfork_request_timeout_sec` | `10.0` | 有限正数（接受数字串）；`RFORK_REQUEST_TIMEOUT_SEC` |
+| `rfork_seed_bind_host` | `"0.0.0.0"` | `RFORK_SEED_BIND_HOST` |
+| `rfork_seed_advertise_host` | `None`（上报时调 `get_ip()`，优先 `VLLM_HOST_IP`） | `RFORK_SEED_ADVERTISE_HOST` |
+| `rfork_seed_port_base` | `0` | 严格 JSON 整数 `[0, 65535]`；无环境回退 |
+| `rfork_heartbeat_interval_sec` | `30.0` | 严格有限正 JSON number；无环境回退 |
+| `rfork_lease_release_max_attempts` | `3` | 严格正 JSON integer（快速重试次数）；无环境回退 |
+| `rfork_lease_release_retry_interval_sec` | `30.0` | 严格有限正 JSON number；无环境回退 |
+| `rfork_model_identity_headers` | `false` | 严格 JSON 布尔值；`RFORK_MODEL_IDENTITY_HEADERS`（`0`/`1`/`true`/`false`），开启后要求 `model_url` 与策略名为 ASCII |
+| `rfork_seed_removal_supported` | `false` | `false`（跳过 `/remove_seed`）/ `true`（确认支持）/ `null`（自动探测）；无环境回退 |
 
 心跳「请求结束后再等」与 advertise 留空时由上报函数当场取本机 IP，见 `planner_client.py`。[C9]
 
@@ -361,7 +362,7 @@ for package in ("openyuanrong-transfer-engine", "openyuanrong-datasystem"):
     except PackageNotFoundError:
         print(package, "distribution metadata not found")
 
-required = ("initialize", "batch_register_memory_ex",
+required = ("initialize", "get_rpc_port", "batch_register_memory_ex",
             "batch_unregister_memory", "batch_transfer_sync_read", "finalize")
 engine_class = getattr(ds, "TransferEngine", None)
 missing = [name for name in required
@@ -379,61 +380,54 @@ print("optional kNotFound:",
 
 ### 会报什么错
 
-- 空 `rfork_scheduler_url`：`RForkSession.__init__` 抛 `ValueError("rfork_scheduler_url is required; …")`；空 `model_url` 或空 strategy：抛 `ValueError("RFork requires non-empty model_url and model_deploy_strategy_name")`。会话是在 `load_model` 的回退保护里创建的，所以这两条**不会**让启动失败，而是被记成 `RFork transfer failed: <上面的原文>, clean up and fall back to default loader` 后走默认加载；因为会话没建成，回退加载完也**不会**登记成 seed。
-- `rfork_scheduler_url` 键名写错（如写成 `scheduler_url`）且无环境变量：就是上一条的第一种，warning 里看不出其实是键名不对。
-- `--model-loader-extra-config` 不是 JSON 对象：加载器 `__init__` 抛 `RuntimeError("RFork requires --model-loader-extra-config to be a JSON object.")`，进程起不来。
-- heartbeat / release attempts / release interval 三个运维字段显式填错：抛 `ValueError`；两个 timeout 对无效输入先试环境值，再退默认值。
-
-两个 timeout 使用的正数解析器接受整数、浮点数以及可转换为浮点数的字符串，但转换结果必须有限且大于零。布尔值、零、负数、无穷大和转换失败的值都属于无效输入，按上述顺序回退。
-- 这些参数在加载器 `__init__` 中解析，早于 `load_model` 内的 RFork 回退保护，所以严格校验抛出的 `ValueError` 不会自动转默认加载。[C12][D]
-- `rfork_seed_port_base`：JSON 输入不是 int 时读取函数先退成 0（`"35000"` 不会成为固定端口）；bool 虽是 int 子类，后续仍明确拒绝；负数或大于 65535 也拒绝。这三种拒绝和上一条一样在 `__init__` 抛 `ValueError("rfork_seed_port_base must be a JSON integer in range [0, 65535]")`，进程起不来。
-- base + global rank 超过 65535：记录 warning 并退回随机端口；端口被占用没有同样的自动改口：`_create_bound_socket` 抛 `OSError("unable to bind RFork seed host … port …")`，日志是 `RFork seed service startup failed for global_rank=…`，这个模型角色不当 seed，已加载的模型照常交回。[C3]
-- TransferEngine 初始化使用 `yr.datasystem` 的 `TransferEngine`、`MemoryRegistration`、`ErrorCode`，传输类型为 `ascend`。 缺 `batch_register_memory_ex` 直接判定不支持。
-- 实际物化的 Parameters / buffers 不全在 NPU（混合 CPU/NPU）：拒绝并尝试默认加载。[C5]
+- 空 `rfork_scheduler_url`、`model_url` 或 `model_deploy_strategy_name`：`RForkSession.__init__` 抛 `RForkConfigurationError`（刻意不继承 `ValueError`/`RuntimeError`），**直接中止启动**，不再静默回退到默认加载。[C2]
+- 未知键名（含旧短别名如 `request_timeout_sec`/`bind_host` 或拼写错误）：加载器 `__init__` 调 `unknown_extra_config_keys` 打 warning `RFork ignored unknown model_loader_extra_config keys: ...; check the spelling.`，键本身仍按未填处理。[C1][C12]
+- `--model-loader-extra-config` 不是 JSON 对象、或 `heartbeat_interval_sec` / `lease_release_max_attempts` / `lease_release_retry_interval_sec` / `rfork_seed_port_base`（`[0, 65535]` 严格 JSON 整数，排除 bool 与字符串）/ `rfork_model_identity_headers`（严格 bool，开启时要求 ASCII）/ `rfork_seed_removal_supported`（`bool | None`）任一项非法：在 `__init__` 抛 `RForkConfigurationError`，进程起不来。[C1][C12]
+- 两个 timeout（`rfork_seed_timeout_sec`、`rfork_request_timeout_sec`）使用有限正数解析器，接受整数、浮点数及可转浮点数的字符串；非法值不报错，依次回退环境变量和默认值。[C1]
+- 双槽端口 `base + 2 × global_rank + slot`（主 0、草稿 1）超过 65535 时记 warning 并退回系统随机端口；指定固定端口被占用（Linux `EADDRINUSE`）时同样自动回退 OS 随机端口；其他绑定错误（如监听地址不属于本机）抛 `OSError`，该角色不当 seed，模型照常交回。[C3][C11][C19]
+- TransferEngine 初始化传 `port=0` 并调 `get_rpc_port()` 读回真实 RPC 端口；缺 `get_rpc_port` 或 `batch_register_memory_ex` 均判为不支持。[C4][C10]
+- 实际物化的 Parameters / buffers 存在未豁免的非 NPU 状态（混合 CPU/NPU）：拒绝并尝试默认加载。[C5]
 - 本地健康检查使用实际绑定地址，监听 `0.0.0.0` / `::` 时改用回环地址；健康检查 200 不证明 advertise 地址远端可达，也不证明 TransferEngine 数据端点连通。[C11]
-- metadata 能拿到、native read 却失败：`rfork_seed_advertise_host` 只改发布给 Planner 的 seed HTTP 地址，TransferEngine 端点由 `get_ip()` + `get_open_port()` 在初始化时选择，要单独查它的可达性。
+- metadata 能拿到、native read 却失败：`rfork_seed_advertise_host` 只改发布给 Planner 的 seed HTTP 地址，TransferEngine 端点由 `get_ip()`（优先 `VLLM_HOST_IP`）+ 引擎绑定 RPC 端口确定（可选 `YR_TE_RPC_PORT_MIN/MAX`），需单独排查其可达性。[C4]
 
 ### 开销和什么时候别开
 
-- `parallel_config.enable_eplb`、`eplb_config.dynamic_eplb` 或 `expert_map_record_path` 命中动态 EPLB 检查时 RFork 被绕过，调重试数不改变这个限制。[C6][C7]
-- `rfork_request_timeout_sec` 传给 Requests，约束连接 / 读等待，不是总截止时间。按 `3 × 10 + 2 × 30 = 90 秒` 计算只是每次 HTTP 恰好耗时 10 秒的算例，不是严格上界。[S13][D]
+- 命中 `safety.py:mutable_weights_bypass_reason`（`enable_sleep_mode`、`weight_transfer_config` 或 `parallel_config.enable_eplb`）时 RFork 被整体绕过，调重试数不改变这个限制。[C6][C7]
+- `rfork_request_timeout_sec` 传给 Requests，约束连接 / 读等待，不是总截止时间。按 `3 × 10 + 2 × 30 = 90 秒` 计算只是三次快速尝试恰好卡满 10 秒的算例；暂态失败超过 3 次后还将按 ≥60 秒间隔慢速重试。[S13][D]
 - seed 启动用单调时钟算健康检查 deadline，用剩余时间限制队列与轮询；失败清理另有等待预算。
-- 固定端口：global rank 取自 `torch.distributed.get_rank()`，在分布式组内唯一，不保证同机多个独立实例之间唯一。main 与 draft 是同一 Worker 进程里的两个 session，global rank 相同，工作版也没有按 draft 偏移端口的逻辑，所以 `rfork_seed_port_base` > 0 时两者必然算出同一端口，后起的一个绑定失败（按源码推断，未实测）。补救：同机多个独立实例可隔离实例或错开 base；main 与 draft 撞号只能保留动态端口（base = 0），并分别验证两个模型角色的 seed 启动结果。[I]
-- 内建 seed 服务以普通 HTTP 启动；seed key 是匹配字段，不是认证凭据；走 HTTPS 要核对代理、URL 与转发配置。
+- 双槽固定端口与 `EADDRINUSE` 回退已解决同进程主/草稿模型撞号问题，实际绑定端口仍以日志为准；内建 seed 服务为普通 HTTP，且 `seed_key` 须留在信任边界内。
 - 验收：只测一条小请求正常，不能宣称所有模型、量化与共享路径都被支持。[I]
-- 分段计时看四行日志：`RFork transfer stages: … registration=… metadata=… read=…`（`session.py#L138-L145`）；`RFork weight transfer completed: weights=…, chunks=…, bytes=… GiB, elapsed=…, throughput=… GiB/s`（`transfer_backend.py#L784-L791`，GLM 一节的 0.33 GiB/s 门槛就拿这里的 throughput 对）；`RFork … model layout processing took … seconds`（`rfork_loader.py#L604-L608`）；`RFork lease release outcome: … held_elapsed=…`（`session.py#L189-L196`，租约持有时长）。
-- 示例 Planner 的租约从 `get_seed` 发出时记 `leased_at`，到 `--lease-ttl-sec`（默认 60）后，由定时清扫（`--heartbeat-sweep-sec`，默认 5 秒）或下一次借、还时清掉，并把 seed 的 `resource_used` 减回去；心跳不更新 `leased_at`。`--default-resource-points` 默认 1，即一个 seed 同时只借给一家。
+- 分段计时看四行日志：`RFork transfer stages: … registration=… metadata=… read=…`（`session.py#L266-L273`，DEBUG）；`RFork weight transfer completed: tp_rank=…, weights=…, chunks=…, bytes=… GiB, elapsed=…, throughput=… GiB/s`（`transfer_backend.py#L866-L875`，TP0 INFO / 其余 DEBUG）；`RFork … model layout processing took … seconds`（`rfork_loader.py#L827-L831`，DEBUG）；`RFork lease release outcome: … held_elapsed=…`（`session.py#L362-L369`，DEBUG）。
+- 示例 Planner 的租约从 `get_seed` 发出时记 `leased_at`，到 `--lease-ttl-sec`（默认 60）后由定时清扫（`--heartbeat-sweep-sec`，默认 5 秒）或借还请求收回；心跳不更新 `leased_at`（支持 `LEASE_TTL_SEC` 时由客户端周期调 `/renew_seed_lease` 续期）。`--default-resource-points` 默认 1。
 
 ### 版本差异
 
-前面的十一项设置与报错均按工作版 `rfork@3284850b`；社区 v0.23、v0.26、固定 main 及 v0.30.0rc2 的总对照见[总览](rfork.md#版本差异)。安装包名与 API 契约分别检查，见[官方指南对照](../sources/rfork-official-guide.md)。
+| 维度 | `v0.23.0` (`2c59ff10`) / `v0.26.0rc` (`2ed6cbba`) | `v0.30.0` (`c09d3e20`) | `main` (`8d6180e2`) |
+|---|---|---|---|
+| 客户端配置项 | 旧简化项，无独立 `RForkConfig` 严格校验 | 11 项配置，`RForkConfigurationError` 中止启动 | 13 项配置（新增 `rfork_model_identity_headers` 与 `rfork_seed_removal_supported`），未知键打 warning（`unknown_extra_config_keys`），无短别名 |
+| seed HTTP 端口 | 仅随机端口 | `base + 2 × global_rank + slot`（主 0 / 草稿 1），超界或 `EADDRINUSE` 退动态端口 | 同 `v0.30.0` |
+| TransferEngine 端口 | `get_open_port()` 预选后传入 | 传 `port=0` 由引擎绑定并调 `get_rpc_port()` 读回（可选 `YR_TE_RPC_PORT_MIN/MAX`） | 同 `v0.30.0` |
+| 租约续期与归还 | 无续期，同步归还 1 次 | 强制 `LEASE_TTL_SEC` + `/renew_seed_lease`；3 次快试 + ≥60s 慢试 | `LEASE_TTL_SEC` 改为可选兼容旧 Planner；`/remove_seed` 默认关闭 |
+| 绕过条件 | `layer_sharding`（仅 v0.23）或 V1 EPLB | `safety.py`（sleep mode / 在线权重传输）+ V1 EPLB | `safety.py:mutable_weights_bypass_reason`（sleep mode / 在线权重传输 / `enable_eplb`，移除 V1 EPLB） |
 
-**rc2 的部署差别不能只靠复制旧 JSON 解决。** 在 `7d825229` 中，Planner 的 get_seed 成功响应还必须提供有限正数 LEASE_TTL_SEC，客户端随后调用 /renew_seed_lease 续期；缺失或无效 TTL 会按获取失败处理，再走本地加载。默认 release_max_attempts=3 只限制快速尝试阶段，暂态失败后仍以至少60秒间隔继续归还，见[生命周期](rfork-lifecycle.md#版本差异)。
-
-非零 seed 端口基数采用 base+2×global_rank+角色槽，主模型槽为0、草稿槽为1。比如 base=35000、global_rank=3，两者分别尝试35006、35007；越界时改用动态端口，指定端口被占用（EADDRINUSE）时也会重试动态端口。其他绑定错误仍会失败，例如监听地址不属于本机。因此部署应读取实际绑定结果。TransferEngine 的数据端口独立：rc2 传入0让引擎直接绑定，再调用 get_rpc_port 获取端口，工作版上方的依赖自检清单不能替代对这个新 API 的检查。端口公式、越界处理、占用回退与传输端点分别对应来源20、18、21、19。
+完整四版本对照见[总览](rfork.md#版本差异)，官网指南对照见[官方指南对照](../sources/rfork-official-guide.md)。
 
 ### 源码位置
 
-以下均为 `rfork@3284850b`，路径省略前缀 `vllm_ascend/model_loader/rfork/`：
+以下均为社区上游 `vllm-ascend@8d6180e2`，路径省略前缀 `vllm_ascend/model_loader/rfork/`：
 
-- `RForkConfig` 默认值：`config.py#L11-L15`；字符串、超时的读取与环境回退：`#L18-L52`；四项严格校验：`#L69-L81`；`from_extra_config` 与别名、端口基数取值：`#L84-L139`
-- 加载器 `__init__` 解析设置：`rfork_loader.py#L416-L418`；会话在回退保护内创建：`#L563-L565`；通用异常转回退与清理失败中止：`#L652-L672`；回退后能否登记 seed 取决于会话是否存在：`#L698-L702`
-- 必填项检查：`session.py#L37-L43`；seed 端口 = 基数 + global rank 与溢出回退：`#L364-L379`；起 seed 服务与首次上报：`#L380-L392`；心跳线程：`#L393-L406`；seed 启动失败的处理：`#L414-L425`；还租约循环：`#L177-L214`
-- global rank 取自 `torch.distributed.get_rank()`：`rfork_loader.py#L446`；动态 EPLB 绕过：`#L373-L383`
-- `yr.datasystem` 导入：`transfer_backend.py#L207-L217`；传输端点 `get_ip()` + `get_open_port()`：`#L220-L229`；`kNotFound` 可选探测：`#L232`；混合 CPU/NPU 检查：`#L289-L295`；`batch_register_memory_ex` 检查：`#L405-L409`
-- advertise 留空时取 `get_ip()`：`planner_client.py#L213-L226`；心跳「请求结束后再等」：`#L237-L267`
-- seed 服务的启动与停止预算：`seed_server.py#L37-L39`；绑定与 `SO_REUSEADDR`：`#L105-L124`；健康检查地址与回环：`#L127-L137`；健康检查 deadline：`#L293-L353`
-- 示例 Planner：默认端口 1223、心跳 TTL 60 秒、租约 TTL 60 秒、名额 1 与 `RFORK_MOCK_*`：`examples/rfork/rfork_planner.py#L39-L75`；租约过期清理：`#L276-L286`；命令行开关：`#L545-L582`
-- 工作版指南中的参数表、超时与重试说明：`docs/source/user_guide/feature_guide/rfork.md#L183-L224` [S13]
-- `get_ip()` 先读 `VLLM_HOST_IP`，没有就取出网路由那张网卡的 IP；`get_open_port()` 设了 `VLLM_PORT` 时从那里往上找空闲端口：`vllm@0fc695fc:vllm/utils/network_utils.py#L33-L69`、`#L150-L221`（工作版现场配套的 vLLM 提交以部署为准）
+- `RForkConfig` 默认值、13 个已知键（`KNOWN_EXTRA_CONFIG_KEYS`）、`RForkConfigurationError`、`unknown_extra_config_keys`、字符串/超时环境回退与严格校验：`config.py#L11-L192`。[C1]
+- 加载器 `__init__` 解析设置并警告未知键：`rfork_loader.py#L641-L667`；绕过安全门：`safety.py#L9-L21`、`rfork_loader.py#L766-L774`。[C6][C7][C12]
+- 必填项 `RForkConfigurationError` 检查：`session.py#L75-L87`；双槽 seed 端口 `_resolve_seed_server_port`：`session.py#L48-L53`；越界回退、起 seed 服务、首次上报与心跳：`session.py#L588-L659`。[C2][C3][C19]
+- `yr.datasystem` 导入、`port=0` + `get_rpc_port()` 与 `kNotFound` 可选探测：`transfer_backend.py#L227-L273`；非 NPU 状态检查：`#L368-L375`；`batch_register_memory_ex` 与 `finalize_transfer_engine`：`#L491-L694`。[C4][C5][C10]
+- advertise 留空取 `get_ip()`（优先 `VLLM_HOST_IP`）：`planner_client.py#L362-L391`。[C9]
+- seed 服务绑定（`EADDRINUSE` 退动态）、健康检查回环与 deadline：`seed_server.py#L128-L373`。[C11]
+- 示例 Planner 默认值、`RFORK_MOCK_*` 环境变量与命令行参数：`examples/rfork/rfork_planner.py#L40-L80`、`#L605-L647`。[C8][C14]
+- 上游官方配置与环境回退指南：`docs/source/user_guide/feature_guide/rfork.md#L120-L275`。[S13]
+- `v0.30.0` 对照：`vllm-ascend@c09d3e20` `planner_client.py#L117-L245`、`session.py#L261-L364`、`transfer_backend.py#L224-L269`。[C16][C17][C18]
 
 **待核：**
 
-1. 生产环境 Planner 的租约有效期、心跳摘除时限、每个 seed 的名额和归还回码；仓库里只有示例 Planner。
-2. GLM 双机完整读取清单及实际各段耗时能否留在租约有效期内；约 0.33 GiB/s 只是语言子账的必要读速，缺实机的传输和归还日志。
-3. 固定端口基数下主模型与草稿模型撞端口：结论按源码推出，缺一次实机日志。
-4. YuanRong 传输引擎除了初始化时的端点，是否还另用端口或 RDMA 通道，防火墙要放行哪些；缺数据系统侧文档。
-
-示例 Planner 的分配策略通过 `--alloc-policy` 选择，允许值与默认读取见来源 8、14 的 rfork_planner.py 39–75、542–582；这份示例的选项不能直接当作生产 Planner 的算法或配置协议。
-
-两个 timeout 的有限正数解析与环境回退见来源 1 的 config.py 30–52；心跳和还租约字段采用前述严格校验，不能套用 timeout 的容错规则。
+1. 生产环境 Planner 的租约有效期、心跳摘除时限、每个 seed 的名额、是否返回 `LEASE_TTL_SEC` 与支持 `/remove_seed`；仓库里只有示例 Planner。
+2. GLM 双机完整读取清单及实际各段耗时；约 0.33 GiB/s 只是语言子账的必要读速，缺实机日志。
+3. YuanRong 传输引擎在现场环境中 `YR_TE_RPC_PORT_MIN/MAX` 与 `YR_TE_HIXL_BASE_PORT`（默认 22000）的实际防火墙放行与端口实测。

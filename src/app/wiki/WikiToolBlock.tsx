@@ -6,8 +6,10 @@ import {
   type WikiToolId,
   type WikiToolSpec,
 } from "../../content/wiki/toolFence";
+import { WikiAiCoreLabBlock } from "../tools/AiCoreLabView";
 import { ConfigDoctorView } from "../tools/ConfigDoctorView";
 import { DeployCalculatorView } from "../tools/DeployCalculatorView";
+import { WikiTroubleshootWorkbenchBlock } from "../tools/TroubleshootWorkbenchView";
 
 export interface WikiToolRenderProps {
   spec: WikiToolSpec;
@@ -43,6 +45,8 @@ function EmbeddedConfigDoctor({ spec }: WikiToolRenderProps) {
 const TOOL_REGISTRY = new Map<WikiToolId, ComponentType<WikiToolRenderProps>>([
   ["deploy-calculator", EmbeddedDeployCalculator],
   ["config-doctor", EmbeddedConfigDoctor],
+  ["troubleshoot-workbench", WikiTroubleshootWorkbenchBlock],
+  ["aicore-lab", WikiAiCoreLabBlock],
 ]);
 
 export function WikiToolBlock({ source }: { source: string }) {

@@ -127,7 +127,7 @@ const sketchShape = z.discriminatedUnion("kind", [
     })
     .strict(),
 ]);
-const SKETCH_TEXT = { small: 12, normal: 13.5, large: 16 } as const;
+const SKETCH_TEXT = { small: 13, normal: 13.5, large: 16 } as const;
 
 export const figureSpecSchema = z
   .object({
@@ -655,10 +655,10 @@ const SOFT: Record<FigureTone, string> = {
   token: "var(--color-token-soft, #ddf4ef)",
   weight: "var(--color-weight-soft, #fff4cf)",
   kv: "var(--color-kv-soft, #e8edff)",
-  comm: "var(--color-comm-soft, #f7e7f2)",
-  control: "var(--color-surface-sunken, #ece9df)",
-  danger: "var(--color-accent-soft, #fff0e9)",
-  ink: "var(--color-surface-sunken, #ece9df)",
+  comm: "var(--color-comm-soft, #f5e6f0)",
+  control: "var(--color-control-soft, #f1efe8)",
+  danger: "var(--color-danger-soft, #fbe5e2)",
+  ink: "var(--color-control-soft, #f1efe8)",
 };
 /** 淡色底上写字要比本色深一档，否则琥珀字压在浅琥珀底上看不清 */
 const DEEP: Record<FigureTone, string> = {
@@ -671,21 +671,21 @@ const DEEP: Record<FigureTone, string> = {
   ink: INK,
 };
 
-/** 新零件的填法。老零件（items / rows / matrices）的画法不动，免得存量 SVG 跟着改写 */
+/** 统一柔和矿物浅底 + 1.4px 同色系描边 + 深墨文字，与 native-svg 风格无缝一致 */
 function look(t: FigureTone, style: Fill): { attrs: string; ink: string } {
   switch (style) {
     case "solid":
-      return { attrs: `fill="${COLOR[t]}" stroke="${INK}" stroke-width="1.3"`, ink: INVERSE };
+      return { attrs: `fill="${SOFT[t]}" stroke="${COLOR[t]}" stroke-width="1.4"`, ink: INK };
     case "faded":
       return {
-        attrs: `fill="${SOFT[t]}" stroke="${COLOR[t]}" stroke-opacity="0.4" stroke-width="1.3"`,
+        attrs: `fill="${SURFACE}" stroke="${COLOR[t]}" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="4 3"`,
         ink: DEEP[t],
       };
     case "plain":
-      return { attrs: `fill="${SOFT.control}" stroke="${INK}" stroke-width="1.3"`, ink: INK };
+      return { attrs: `fill="${SOFT.control}" stroke="${FRAME}" stroke-width="1.4"`, ink: INK };
     case "empty":
       return {
-        attrs: `fill="${SURFACE}" stroke="${INK}" stroke-opacity="0.45" stroke-width="1.2"`,
+        attrs: `fill="${SURFACE}" stroke="${FRAME}" stroke-width="1.2"`,
         ink: INK,
       };
     case "ghost":
@@ -700,7 +700,7 @@ function look(t: FigureTone, style: Fill): { attrs: string; ink: string } {
 
 /** 连成一张表时每格只填色，格线另画 */
 function tableFill(t: FigureTone, style: Fill): string {
-  if (style === "solid") return COLOR[t];
+  if (style === "solid") return SOFT[t];
   if (style === "faded") return SOFT[t];
   if (style === "plain") return SOFT.control;
   if (style === "ghost") return "none";
@@ -907,17 +907,17 @@ function drawMatrix(r: Run, x: number, y: number, m: MatrixShape): void {
   for (let k = 1; k < m.rows; k++) grid.push(`M${x} ${round(y + (m.h * k) / m.rows)}h${m.w}`);
   if (m.style === "faded")
     r.parts.push(
-      `<rect x="${x}" y="${y}" width="${m.w}" height="${m.h}" fill="${SOFT[m.tone]}" stroke="${COLOR[m.tone]}" stroke-opacity="0.5" stroke-width="1.3"/>`,
+      `<rect x="${x}" y="${y}" width="${m.w}" height="${m.h}" fill="${SURFACE}" stroke="${COLOR[m.tone]}" stroke-opacity="0.45" stroke-width="1.3"/>`,
     );
   else
     r.parts.push(
-      `<rect x="${x}" y="${y}" width="${m.w}" height="${m.h}" fill="${COLOR[m.tone]}" stroke="${INK}" stroke-width="1.3"/>`,
+      `<rect x="${x}" y="${y}" width="${m.w}" height="${m.h}" fill="${SOFT[m.tone]}" stroke="${COLOR[m.tone]}" stroke-width="1.4"/>`,
     );
   if (grid.length)
     r.parts.push(
       m.style === "faded"
-        ? `<path d="${grid.join("")}" stroke="${COLOR[m.tone]}" stroke-opacity="0.3" stroke-width="1" fill="none"/>`
-        : `<path d="${grid.join("")}" stroke="${INK}" stroke-opacity="0.35" stroke-width="1" fill="none"/>`,
+        ? `<path d="${grid.join("")}" stroke="${COLOR[m.tone]}" stroke-opacity="0.28" stroke-width="1" fill="none"/>`
+        : `<path d="${grid.join("")}" stroke="${COLOR[m.tone]}" stroke-opacity="0.35" stroke-width="1" fill="none"/>`,
     );
   if (m.mark) {
     const { row, col } = m.mark;
@@ -954,7 +954,7 @@ function axisLabels(
   for (const [k, s] of rowLabels.entries())
     if (s) text(r, x0 - 10, y0 + k * (ch + gap) + ch / 2 + 4.5, s, { size: 13, anchor: "end" });
   for (const [k, s] of colLabels.entries())
-    if (s) text(r, x0 + k * (cw + gap) + cw / 2, y0 - 10, s, { size: 12.5, fill: MUTED, anchor: "middle" });
+    if (s) text(r, x0 + k * (cw + gap) + cw / 2, y0 - 10, s, { size: 13, fill: MUTED, anchor: "middle" });
 }
 
 type ExchangeSpec = FigureSpec["exchanges"][number];
@@ -1524,9 +1524,9 @@ function paint(spec: FigureSpec): Run {
         if (s.text) text(r, x + 16, y + b.h / 2 + 5, s.text, { size: 13, weight: 700, fill: INK });
       } else {
         r.parts.push(
-          `<rect x="${round(x)}" y="${y}" width="${round(w)}" height="${b.h}" rx="4" fill="${COLOR[s.tone]}" stroke="${INK}" stroke-width="1.3"/>`,
+          `<rect x="${round(x)}" y="${y}" width="${round(w)}" height="${b.h}" rx="4" fill="${SOFT[s.tone]}" stroke="${COLOR[s.tone]}" stroke-width="1.4"/>`,
         );
-        if (s.text) text(r, x + 16, y + b.h / 2 + 5, s.text, { size: 13, weight: 700, fill: INVERSE });
+        if (s.text) text(r, x + 16, y + b.h / 2 + 5, s.text, { size: 13, weight: 700, fill: INK });
       }
       box(r, "长条", x, y, w, b.h);
       x += w;
@@ -1556,15 +1556,15 @@ function paint(spec: FigureSpec): Run {
       const y = row.at[1];
       if (ghost.has(k))
         r.parts.push(
-          `<rect x="${round(x)}" y="${y}" width="${row.w}" height="${row.h}" rx="4" fill="none" stroke="${COLOR[row.tone]}" stroke-width="1.5" stroke-dasharray="3 3"/>`,
+          `<rect x="${round(x)}" y="${y}" width="${row.w}" height="${row.h}" rx="4" fill="none" stroke="${COLOR[row.tone]}" stroke-width="1.4" stroke-dasharray="3 3"/>`,
         );
       else if (faded.has(k))
         r.parts.push(
-          `<rect x="${round(x)}" y="${y}" width="${row.w}" height="${row.h}" rx="4" fill="${SOFT[row.tone]}" stroke="${COLOR[row.tone]}" stroke-opacity="0.35" stroke-width="1.2"/>`,
+          `<rect x="${round(x)}" y="${y}" width="${row.w}" height="${row.h}" rx="4" fill="${SURFACE}" stroke="${COLOR[row.tone]}" stroke-opacity="0.4" stroke-width="1.2"/>`,
         );
       else
         r.parts.push(
-          `<rect x="${round(x)}" y="${y}" width="${row.w}" height="${row.h}" rx="4" fill="${COLOR[row.tone]}" stroke="${INK}" stroke-width="1.2"/>`,
+          `<rect x="${round(x)}" y="${y}" width="${row.w}" height="${row.h}" rx="4" fill="${SOFT[row.tone]}" stroke="${COLOR[row.tone]}" stroke-width="1.4"/>`,
         );
     }
     box(r, `${row.count} 个`, row.at[0], row.at[1], row.count * (row.w + row.gap) - row.gap, row.h);
@@ -1627,7 +1627,7 @@ function paint(spec: FigureSpec): Run {
         r.tight.push(`${r.where}：格子 (${c.at[0]}, ${c.at[1]}) 不在 ${g.rows}×${g.cols} 的表里`);
       over.set(`${c.at[0]},${c.at[1]}`, c);
     }
-    const size = ch < 28 ? 12.5 : 13;
+    const size = 13;
     for (let row = 0; row < g.rows; row++)
       for (let col = 0; col < g.cols; col++) {
         const c = over.get(`${row},${col}`);
@@ -1637,8 +1637,9 @@ function paint(spec: FigureSpec): Run {
         const x = x0 + col * (cw + g.gap);
         const y = y0 + row * (ch + g.gap);
         if (joined) {
+          const op = style === "faded" ? ' fill-opacity="0.45"' : "";
           r.parts.push(
-            `<rect x="${round(x)}" y="${round(y)}" width="${cw}" height="${ch}" fill="${tableFill(t, style)}"/>`,
+            `<rect x="${round(x)}" y="${round(y)}" width="${cw}" height="${ch}" fill="${tableFill(t, style)}"${op}/>`,
           );
           // 连成表时空位和空格长得一样，往里缩一圈画虚线框才分得出来
           if (style === "ghost")
@@ -1666,10 +1667,10 @@ function paint(spec: FigureSpec): Run {
       for (let k = 1; k < g.rows; k++) grid.push(`M${x0} ${round(y0 + k * ch)}h${W}`);
       if (grid.length)
         r.parts.push(
-          `<path d="${grid.join("")}" stroke="${INK}" stroke-opacity="0.35" stroke-width="1" fill="none"/>`,
+          `<path d="${grid.join("")}" stroke="${COLOR[g.tone]}" stroke-opacity="0.3" stroke-width="1" fill="none"/>`,
         );
       r.parts.push(
-        `<rect x="${x0}" y="${y0}" width="${round(W)}" height="${round(H)}" fill="none" stroke="${INK}" stroke-width="1.3"/>`,
+        `<rect x="${x0}" y="${y0}" width="${round(W)}" height="${round(H)}" fill="none" stroke="${COLOR[g.tone]}" stroke-width="1.4"/>`,
       );
     }
     box(r, `${g.rows}×${g.cols} 格`, x0, y0, W, H);
@@ -1701,9 +1702,9 @@ function paint(spec: FigureSpec): Run {
         );
         if (hm.showValues) {
           const s = num(v);
-          fitted(r, `${r.where} 格子 (${k}, ${c})`, s, 12, cw - 4);
-          text(r, x + cw / 2, y + ch / 2 + 4.3, s, {
-            size: 12,
+          fitted(r, `${r.where} 格子 (${k}, ${c})`, s, 13, cw - 4);
+          text(r, x + cw / 2, y + ch / 2 + 4.5, s, {
+            size: 13,
             fill: op > 0.55 ? INVERSE : INK,
             anchor: "middle",
             ink: false,
@@ -1725,14 +1726,14 @@ function paint(spec: FigureSpec): Run {
     }
     if (hm.legend) {
       const ly = yb + 14;
-      text(r, x0, ly + 9, hm.legend[0], { size: 12, fill: MUTED });
-      const lx = x0 + textWidth(hm.legend[0], 12) + 8;
+      text(r, x0, ly + 9, hm.legend[0], { size: 13, fill: MUTED });
+      const lx = x0 + textWidth(hm.legend[0], 13) + 8;
       for (let k = 0; k < 5; k++)
         r.parts.push(
           `<rect x="${round(lx + k * 17)}" y="${round(ly)}" width="16" height="10" fill="${COLOR[hm.tone]}" fill-opacity="${Math.round((0.08 + 0.23 * k) * 100) / 100}"/>`,
         );
       box(r, "色阶", lx, ly, 84, 10);
-      text(r, lx + 84 + 8, ly + 9, hm.legend[1], { size: 12, fill: MUTED });
+      text(r, lx + 84 + 8, ly + 9, hm.legend[1], { size: 13, fill: MUTED });
     }
   }
 
@@ -1774,9 +1775,9 @@ function paint(spec: FigureSpec): Run {
           );
         }
         if (sp.text) {
-          fitted(r, `${r.where}.lanes[${k}].spans[${s}]`, sp.text, 12.5, w - 8);
+          fitted(r, `${r.where}.lanes[${k}].spans[${s}]`, sp.text, 13, w - 2);
           text(r, sx + w / 2, y + tl.laneH / 2 + 4.5, sp.text, {
-            size: 12.5,
+            size: 13,
             weight: 700,
             fill: ink,
             anchor: "middle",
@@ -1797,14 +1798,14 @@ function paint(spec: FigureSpec): Run {
       const x = X(t);
       r.parts.push(`<path d="M${round(x)} ${round(yAxis)}v5" stroke="${INK}" stroke-width="1.3"/>`);
       const label = k === ticks.length - 1 && tl.unit ? `${num(t)} ${tl.unit}` : num(t);
-      text(r, x, yAxis + 20, label, { size: 12, fill: MUTED, anchor: "middle" });
+      text(r, x, yAxis + 20, label, { size: 13, fill: MUTED, anchor: "middle" });
     }
     for (const m of tl.marks) {
       const x = X(m.t);
       r.parts.push(
         `<path d="M${round(x)} ${round(ay - 4)}V${round(yAxis)}" stroke="${INK}" stroke-width="1.2" stroke-dasharray="3 4"/>`,
       );
-      if (m.label) text(r, x, ay - 10, m.label, { size: 12.5, weight: 700, anchor: "middle" });
+      if (m.label) text(r, x, ay - 10, m.label, { size: 13, weight: 700, anchor: "middle" });
     }
   }
 
@@ -1824,7 +1825,7 @@ function paint(spec: FigureSpec): Run {
           `<path d="M${X} ${round(sy(t))}h${W}" stroke="${FRAME}" stroke-opacity="0.6" stroke-width="1"/>`,
         );
       r.parts.push(`<path d="M${X} ${round(sy(t))}h-5" stroke="${INK}" stroke-width="1.3"/>`);
-      text(r, X - 9, sy(t) + 4, num(t), { size: 12, fill: MUTED, anchor: "end" });
+      text(r, X - 9, sy(t) + 4, num(t), { size: 13, fill: MUTED, anchor: "end" });
     }
     const xt: [number, string][] = cats
       ? cats.map((s, k) => [k + 1, s])
@@ -1833,7 +1834,7 @@ function paint(spec: FigureSpec): Run {
         : [];
     for (const [v, s] of xt) {
       r.parts.push(`<path d="M${round(sx(v))} ${Y + H}v5" stroke="${INK}" stroke-width="1.3"/>`);
-      text(r, sx(v), Y + H + 19, s, { size: 12, fill: MUTED, anchor: "middle" });
+      text(r, sx(v), Y + H + 19, s, { size: 13, fill: MUTED, anchor: "middle" });
     }
     r.parts.push(`<path d="M${X} ${Y}V${Y + H}H${X + W}" fill="none" stroke="${INK}" stroke-width="1.3"/>`);
     box(r, "绘图区", X, Y, W, H);
@@ -1877,14 +1878,14 @@ function paint(spec: FigureSpec): Run {
           cx = sx(px) + shift;
           top = Math.min(sy(py), base);
           r.parts.push(
-            `<rect x="${round(cx - bw / 2)}" y="${round(top)}" width="${round(bw)}" height="${round(Math.abs(base - sy(py)))}" fill="${COLOR[s.tone]}" stroke="${INK}" stroke-width="1.2"/>`,
+            `<rect x="${round(cx - bw / 2)}" y="${round(top)}" width="${round(bw)}" height="${round(Math.abs(base - sy(py)))}" fill="${SOFT[s.tone]}" stroke="${COLOR[s.tone]}" stroke-width="1.4"/>`,
           );
         }
         if (s.label)
           text(r, cx, top - 8, s.label, { size: 13, weight: 700, fill: DEEP[s.tone], anchor: "middle" });
       }
     }
-    text(r, X, Y + H + 62, `数据：${c.source}`, { size: 12, fill: MUTED, italic: true });
+    text(r, X, Y + H + 62, `数据：${c.source}`, { size: 13, fill: MUTED, italic: true });
   }
 
   // ---- 节点图：设备排成一圈，先画边再画点
@@ -2419,18 +2420,19 @@ function paint(spec: FigureSpec): Run {
       const Y = y + dy;
       // 身后那几份不画虚线：几层虚线错开叠在一起会糊成一团
       if (it.style === "faded" && dx > 0)
-        return `<rect x="${X}" y="${Y}" width="${w}" height="${h}" rx="8" fill="${SOFT[t]}" stroke="${COLOR[t]}" stroke-opacity="0.4" stroke-width="1.5"/>`;
+        return `<rect x="${X}" y="${Y}" width="${w}" height="${h}" rx="8" fill="${SURFACE}" stroke="${COLOR[t]}" stroke-opacity="0.45" stroke-width="1.3"/>`;
       if (it.style === "faded")
-        return `<rect x="${X}" y="${Y}" width="${w}" height="${h}" rx="8" fill="${SOFT[t]}" stroke="${COLOR[t]}" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+        return `<rect x="${X}" y="${Y}" width="${w}" height="${h}" rx="8" fill="${SURFACE}" stroke="${COLOR[t]}" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>`;
       if (it.style === "plain")
-        return `<rect x="${X}" y="${Y}" width="${w}" height="${h}" rx="8" fill="${SOFT.control}" stroke="${INK}" stroke-width="1.5"/>`;
-      return `<rect x="${X}" y="${Y}" width="${w}" height="${h}" rx="8" fill="${COLOR[t]}" stroke="${INK}" stroke-width="1.5"/>`;
+        return `<rect x="${X}" y="${Y}" width="${w}" height="${h}" rx="8" fill="${SOFT.control}" stroke="${FRAME}" stroke-width="1.4"/>`;
+      return `<rect x="${X}" y="${Y}" width="${w}" height="${h}" rx="8" fill="${SOFT[t]}" stroke="${COLOR[t]}" stroke-width="1.4"/>`;
     };
     // 身后叠着的几份：往右上错开，最远的先画
     for (let d = it.depth; d >= 1; d--) r.parts.push(rect(d * 7, -d * 7));
     r.parts.push(rect(0, 0));
     box(r, it.text ?? "物体", x, y - it.depth * 7, w + it.depth * 7, h + it.depth * 7);
-    const fill = it.style === "solid" ? INVERSE : it.style === "faded" ? DEEP[t] : INK;
+    const fill = it.style === "faded" ? DEEP[t] : INK;
+    const subFill = it.style === "faded" ? DEEP[t] : t === "ink" || t === "control" ? MUTED : DEEP[t];
     const weight = it.style === "faded" ? 400 : 700;
     const size = it.style === "faded" ? 13 : 14;
     const cx = x + w / 2;
@@ -2438,7 +2440,7 @@ function paint(spec: FigureSpec): Run {
     const mono = it.font === "mono";
     if (it.text && it.sub) {
       text(r, cx, cy - 4, it.text, { size, weight, fill, mono, anchor: "middle", ink: false });
-      text(r, cx, cy + 15, it.sub, { size: 13, fill, mono, anchor: "middle", ink: false });
+      text(r, cx, cy + 15, it.sub, { size: 13, fill: subFill, mono, anchor: "middle", ink: false });
     } else if (it.text)
       text(r, cx, cy + 5, it.text, { size, weight, fill, mono, anchor: "middle", ink: false });
   }
@@ -2468,10 +2470,11 @@ function paint(spec: FigureSpec): Run {
     r.where = `texts[${i}]`;
     const fill = t.tone ? DEEP[t.tone] : t.note ? MUTED : INK;
     const mono = t.font === "mono";
-    const rows = t.width ? wrap(t.text, t.size, t.width, mono) : [t.text];
+    const fontSize = Math.max(13, t.size);
+    const rows = t.width ? wrap(t.text, fontSize, t.width, mono) : [t.text];
     for (const [k, line] of rows.entries())
-      text(r, t.at[0], t.at[1] + k * t.size * 1.6, line, {
-        size: t.size,
+      text(r, t.at[0], t.at[1] + k * fontSize * 1.6, line, {
+        size: fontSize,
         weight: t.strong ? 700 : 400,
         fill,
         italic: t.note,
@@ -2485,11 +2488,13 @@ function paint(spec: FigureSpec): Run {
     r.where = `tags[${i}]`;
     const w = textWidth(g.text, 13) + 24;
     const [x, y] = g.at;
-    r.parts.push(`<rect x="${x}" y="${y}" width="${round(w)}" height="24" rx="12" fill="${COLOR[g.tone]}"/>`);
+    r.parts.push(
+      `<rect x="${x}" y="${y}" width="${round(w)}" height="24" rx="12" fill="${SOFT[g.tone]}" stroke="${COLOR[g.tone]}" stroke-width="1.4"/>`,
+    );
     text(r, x + w / 2, y + 17, g.text, {
       size: 13,
       weight: 700,
-      fill: INVERSE,
+      fill: DEEP[g.tone],
       anchor: "middle",
       ink: false,
     });

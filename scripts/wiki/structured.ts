@@ -155,7 +155,7 @@ export async function runStructured<T>(
   const attempt = await store.claim(job.id, deps.retry, input.selection);
   const stage = mkdtempSync(join(tmpdir(), "wiki-decision-"));
   let costUsd: number | undefined = 0;
-  let billing: "chatgpt" | undefined;
+  let billing: "chatgpt" | "external" | undefined;
   let usage: Record<string, number | undefined> | undefined;
   try {
     input.signal?.throwIfAborted();
@@ -189,7 +189,7 @@ export async function runStructured<T>(
       JSON.stringify(result),
     );
     input.signal?.throwIfAborted();
-    if (!result.ok || (!attempt.accountingOnly && costUsd === undefined && billing !== "chatgpt"))
+    if (!result.ok || (!attempt.accountingOnly && costUsd === undefined && !billing))
       throw new Error(result.reason ?? "判定失败或费用未知");
     if (readdirSync(stage).length || !result.output || result.output.length > 128_000)
       throw new Error("判定越界或缺少有效输出");

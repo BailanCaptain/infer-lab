@@ -23,7 +23,7 @@
 <text x="32" y="120" font-size="13.5">• register_ascend_customop()</text>
 <text x="32" y="144" font-size="13.5">• 按原类名查 OOT 替换表</text>
 <text x="32" y="168" font-size="13.5">• RMSNorm → AscendRMSNorm</text>
-<text x="32" y="192" font-size="13.5">• FusedMoE → AscendFusedMoE</text>
+<text x="32" y="192" font-size="13.5">• MoERunner / RoutedExperts</text>
 <text x="32" y="218" font-size="13.5" fill="#065f56" font-weight="600">• 310P 命中 COMPATIBILITY 覆写</text>
 <text x="32" y="242" font-size="13.5">→ 实例类别在创建时即锁定</text>
 <text x="332" y="120" font-size="13.5">• CustomOp 检查 custom_ops</text>
@@ -42,7 +42,7 @@
 <text x="30" y="372" font-size="13.5">• 同版 AscendRMSNorm 残差直调 npu_add_rms_norm_bias</text>
 <text x="30" y="396" font-size="13.5">• main：hardware_profile 为 A5 恢复该能力</text>
 <text x="30" y="420" font-size="13.5">• main 同步恢复 enable_custom_op 回退 npu_add_rms_norm</text>
-<text x="474" y="348" font-size="13.5">• FusedMoE/Linear 属 PluggableLayer：整类换权重与子层</text>
+<text x="474" y="348" font-size="13.5">• MoERunner/RoutedExperts/GateLinear 属 PluggableLayer</text>
 <text x="474" y="372" font-size="13.5">• 量化方法（W8A8）与模型硬编码扩展不经 custom_ops</text>
 <text x="474" y="396" font-size="13.5">• 310P 由 COMPATIBILITY 能力覆写为 _310p 兼容实现</text>
 <text x="474" y="420" font-size="13.5">• 排障须核最终类、name 与扩展态，勿仅靠「-op」猜</text>

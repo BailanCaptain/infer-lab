@@ -260,7 +260,7 @@ vllm serve Qwen/Qwen3-0.6B \
   --weight-transfer-config '{"backend":"hccl"}'
 ```
 
-`RlConfig.apply()` 只在 enabled 为真时应用三项默认行为：强制 `weight_nz_mode=0`，关闭 FRACTAL_NZ（为矩阵计算重排的权重布局）；启用开发端点；从 NPU 分配器配置中移除 expandable_segments。三个可选字段都默认 false：sleep_mode_extra_cleanup、enable_training_consistency、enable_batch_invariant。总开关不会自行配置传输引擎，也不会隐式启用 sleep。
+`RlConfig.apply()` 只在 enabled 为真时应用三项默认行为：强制 `weight_nz_mode=0`，关闭 FRACTAL_NZ（为矩阵计算重排的权重布局）；启用开发端点；调用 `_disable_expandable_segments()` 从 NPU 分配器配置 `PYTORCH_NPU_ALLOC_CONF` 中移除 `expandable_segments:*`。**但需注意初始化先后**：如果启动命令**没有**开启 `--enable-sleep-mode`，平台随后在 `check_and_update_config` 尾段的 `_set_pytorch_npu_alloc_env()`（`c09d3e20:platform.py#L542,1445-1464`）会检测到该键缺失并重新追加 `expandable_segments:True`；只有同时开启 `--enable-sleep-mode` 时，`expandable_segments` 才会最终保持移除。三个可选字段都默认 false：sleep_mode_extra_cleanup、enable_training_consistency、enable_batch_invariant。总开关不会自行配置传输引擎，也不会隐式启用 sleep。
 
 同卡方案改用 `backend="npu_ipc"`；这是本页 main 与 rc2 实际注册的 Ascend 后端名，同版本指南中的 ipc 写法没有跟上注册实现。如需 sleep，再加 `--enable-sleep-mode` 并使用 `VLLM_WORKER_MULTIPROC_METHOD=spawn`。HTTP NPU IPC 示例需要 `VLLM_ALLOW_INSECURE_SERIALIZATION=1` 来序列化句柄，只适用于可信环境；开发端点也只能提供给受控的训练系统。level 2 的顺序是 sleep → wake weights → 权重更新 → wake kv_cache → resume，sleep 的 level 与 wake 的 tags 都放在查询参数里。
 
@@ -337,14 +337,14 @@ FRACTAL_NZ mode is enabled. This may cause model parameter precision issues in t
 
 ### 版本差异
 
-**`v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 均通过 `RlConfig.apply()` 统一收口 RL 默认行为。** 只要 `rl_config.enabled=true`，启动阶段立刻执行三项强制动作：① 若 `weight_nz_mode != 0` 则打 warning 并强制清零为 `0`（关闭 `FRACTAL_NZ` 权重布局）；② 调用 `_disable_expandable_segments()` 从 `PYTORCH_NPU_ALLOC_CONF` 剥离所有 `expandable_segments:*` 片段；③ 写入 `VLLM_SERVER_DEV_MODE="1"` 开启开发端点。三个子开关（`sleep_mode_extra_cleanup`、`enable_training_consistency`、`enable_batch_invariant`）均默认 `false`，不随总开关隐式打开；其中 `enable_batch_invariant=true` 时才写入 `VLLM_BATCH_INVARIANT="1"`。
+**`v0.30.0 (c09d3e20)` 与 `main (8d6180e2)` 均通过 `RlConfig.apply()` 统一收口 RL 默认行为。** 只要 `rl_config.enabled=true`，启动阶段立刻执行三项强制动作：① 若 `weight_nz_mode != 0` 则打 warning 并强制清零为 `0`（关闭 `FRACTAL_NZ` 权重布局）；② 调用 `_disable_expandable_segments()` 从 `PYTORCH_NPU_ALLOC_CONF` 剥离所有 `expandable_segments:*` 片段（但若未同时开启 `--enable-sleep-mode`，平台后续的 `_set_pytorch_npu_alloc_env()` 仍会重新补回 `expandable_segments:True`）；③ 写入 `VLLM_SERVER_DEV_MODE="1"` 开启开发端点。三个子开关（`sleep_mode_extra_cleanup`、`enable_training_consistency`、`enable_batch_invariant`）均默认 `false`，不随总开关隐式打开；其中 `enable_batch_invariant=true` 时才写入 `VLLM_BATCH_INVARIANT="1"`。
 
 在权重传输后端上，`v0.30.0` 与 `main` 均修复了早期主干 `baa023ad` 中 NPU IPC `packed=true` 路径漏调 `model.load_weights` 的问题，并补齐 NPU IPC `start/finish` 的逐层重载准备与收尾及 HCCL 重建前关闭旧 communicator；`v0.30.0` 仅注册 `hccl` 与 `npu_ipc`，**`main (8d6180e2)` 进一步注册了 `sparse_hccl` 后端（`sparse_hccl_engine.py`，显式校验 `weight_nz_mode=0` ND 权重）**。Router Replay（`--enable-return-routed-experts`）在 `v0.30.0` 与 `main` 中均强制要求 `VLLM_USE_V2_MODEL_RUNNER=1`。
 
 | 项目 | v0.23.0 (2c59ff10) | v0.26.0rc (2ed6cbba) | v0.30.0 (c09d3e20) | main (8d6180e2) |
 |---|---|---|---|---|
 | RL 统一配置 `RlConfig` | 无 `RlConfig` 与统一 RL 指南 | 同 v0.23.0 | 有 `@config` `RlConfig`（4 个布尔字段默认 `false`） | 同 v0.30.0 |
-| `NZ` 关闭与 `expandable_segments` 剥离 | `start` 仅检查旧环境变量 `VLLM_ASCEND_ENABLE_NZ` | 同 v0.23.0 | `RlConfig.apply()` 强制 `weight_nz_mode=0`、调 `_disable_expandable_segments()` 剥离 `PYTORCH_NPU_ALLOC_CONF` 中对应项并开 `VLLM_SERVER_DEV_MODE=1`；`start` 查生效配置 | 同 v0.30.0 |
+| `NZ` 关闭与 `expandable_segments` 剥离 | `start` 仅检查旧环境变量 `VLLM_ASCEND_ENABLE_NZ` | 同 v0.23.0 | `RlConfig.apply()` 强制 `weight_nz_mode=0`、调 `_disable_expandable_segments()` 剥离对应项并开 `VLLM_SERVER_DEV_MODE=1`（未开 `--enable-sleep-mode` 时随后 `_set_pytorch_npu_alloc_env()` 会重新补回 `expandable_segments:True`）；`start` 查生效配置 | 同 v0.30.0 |
 | 权重传输后端注册 | `nccl` / `ipc` 经工厂 patch 映射 | 保留该 patch | 注册 `hccl` 与 `npu_ipc`（及 `npu_ipc` trainer 工厂）；补齐 `packed` 装载与逐层重载收尾 | 同 v0.30.0，另新增注册 `sparse_hccl`（要求 ND 权重 `weight_nz_mode=0`） |
 | 更新 API 与 `sleep` 额外清理 | `start` 带 `is_checkpoint_format`；`sleep` 额外清理为顶层字段 | 同 v0.23.0 | `start` 移除该参数由后端负责重载；`sleep` 额外清理移至 `rl_config` 子字段且依赖总开关 | 同 v0.30.0 |
 | 批不变、训推一致与 Router Replay | 分散设置，无统一 RL 开关 | 同 v0.23.0 | 独立子开关（FA3 需无 PCP 且非 MLA/SFA）；Router Replay 校验要求 MRV2 | 同 v0.30.0 |

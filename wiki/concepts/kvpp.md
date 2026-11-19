@@ -161,7 +161,7 @@ file: kvpp
 
 **代价是通信，而且是整层的通信。** 常驻卡每次发的是这一层已经分配出去的全部块，不管这一步真正在跑的请求用了其中几块。能装的块多了几倍，每层要搬的字节就跟着多几倍，这是同一件事的两面，具体数在「历史怎样到位」一节演算。
 
-除了通信，还有三笔账：每张卡要多留 2 个暂存区的显存；每层计算前可能要等广播到位；本页固定 main（`baa023ad`）只能用 eager（算子一个一个下发执行），不能用图模式（把一步的算子序列录下来反复回放，见 [ACL Graph](acl-graph.md)）。所以它换来的是容量，不是速度：官方在另一个模型上测到能装的 token 多了五六倍，同时长输入的首 token 时间变长、prefill 吞吐下降，数字和测试条件见文末「开销和什么时候别开」。
+除了通信，还有三笔账：每张卡要多留 2 个暂存区的显存；每层计算前可能要等广播到位；在 `v0.30.0` 主基线与 `main` 上，执行模式只接受 `eager`（算子逐个下发）或 `PIECEWISE` 分段图模式，不支持全图回放（早期开发快照 `baa023ad` 仅支持 `eager`，见 [ACL Graph](acl-graph.md)）。所以它换来的是容量，不是速度：官方在另一个模型上测到能装的 token 多了五六倍，同时长输入的首 token 时间变长、prefill 吞吐下降，数字和测试条件见文末「开销和什么时候别开」。
 
 KVPP 和几种名字相近的做法，改的东西不同：
 
@@ -216,11 +216,7 @@ $$\text{BytesPerBlock}_{\max} = \left(\left\lceil \frac{L}{N} \right\rceil + 2\r
 3. **第一次读写缓存之前，等这一层到位。** 所有卡都要等本层广播任务完成：常驻卡确认广播已读完源数据后使用自己那份，别的卡使用收到的暂存区。
 4. **一等到，就发下一层的广播**，然后算这一层的 attention 和后面的计算。下一层的广播就和这些计算同时在跑。
 
-```wiki-diagram
-file: kvpp-broadcast
-```
-
-图的下半截是卡 3 的时间线（示意）。第 0 层没有上一层的计算可供重叠，但前向开头已发起广播，首次访问缓存之前的计算仍可能遮住一部分；MLA 路径明确允许 Q/KV 投影与广播重叠。从第 1 层起，还可利用上一层等待点之后的计算。到本层等待点时广播尚未完成，才暴露剩余等待；能藏住多少取决于字节数和具体后端的计算路径。
+结合下方流水图中的独立广播流节拍看时间线（示意）：第 0 层没有上一层的计算可供重叠，但前向开头已发起广播，首次访问缓存之前的计算仍可能遮住一部分；MLA 路径明确允许 Q/KV 投影与广播重叠。从第 1 层起，还可利用上一层等待点之后的计算。到本层等待点时广播尚未完成，才暴露剩余等待；能藏住多少取决于字节数和具体后端的计算路径。
 
 广播开始前还要确认缓存数据已经就绪，等待返回前要确认设备传输确实完成；这些同步开销也算在通信一侧。上面的触发与等待顺序能由代码确定，实际暴露多长等待、遮挡多少通信则需要同硬件测量。
 
@@ -240,22 +236,22 @@ file: kvpp-fig-layer-residency
 
 ## 能和 PP、PCP、PD 分离、KV 卸载一起开吗？
 
-**通信组只在一个 DP 请求执行组、一个 PP 段之内（组大小为 `TP × PCP`），不跨 DP 或 PP；与 DCP 严格互斥，且限定非混合 MLA 模型。** 在早期开发快照（`baa023ad`）上只能走 eager 并只放行两种连接器；到了 **`v0.30.0` 主基线与 `main`**，执行模式已放宽至 `eager` 或 `PIECEWISE` 图模式，支持通过 `MultiConnector` 组合连接器，`main` 还新增了 `MooncakePushConnector`（同样拒绝 `kv_consumer`）并明确禁止 Mooncake 逐层 CP 与 `enable_kvpp` 同开（详见文末[版本差异](#版本差异)）。下面先按旧 main 钉点逐项列出基本组合条件：
+**通信组只在一个 DP 请求执行组、一个 PP 段之内（组大小为 `TP × PCP`），不跨 DP 或 PP；与 DCP 严格互斥，且限定非混合 MLA 模型。** 在 **`v0.30.0` 主基线与 `main`** 上，执行模式支持 `eager` 或 `PIECEWISE` 图模式，支持通过 `MultiConnector` 组合连接器，`main` 还新增了 `MooncakePushConnector`（同样拒绝 `kv_consumer`）并明确禁止 Mooncake 逐层 CP 与 `enable_kvpp` 同开（早期快照 `baa023ad` 仅支持 `eager` 与单连接器，差异见文末[版本差异](#版本差异)）。
 
-先认几个词：PCP（prefill 上下文并行）把一条长 prompt 的位置分给几组卡一起算 prefill，DCP 把 decode 时的历史按位置分到几张卡上，两者见 [上下文并行](context-parallel.md)；Model Runner V2 是 vllm-ascend 新版的 model runner（每步准备输入、执行前向的组件，见 [NPU model runner](npu-model-runner.md)）；PD 分离是把 prefill 和 decode 交给两套实例，中间由连接器交接历史。main 版本的情况如下：
+先认几个词：PCP（prefill 上下文并行）把一条长 prompt 的位置分给几组卡一起算 prefill，DCP 把 decode 时的历史按位置分到几张卡上，两者见 [上下文并行](context-parallel.md)；Model Runner V2 是 vllm-ascend 新版的 model runner（每步准备输入、执行前向的组件，见 [NPU model runner](npu-model-runner.md)）；PD 分离是把 prefill 和 decode 交给两套实例，中间由连接器交接历史。`v0.30.0` 主基线与 `main` 的组合边界如下：
 
 | 一起开的是 | 能不能 | 条件 |
 |---|---|---|
 | [PP](pipeline-parallel.md) | 能 | 每一段只把自己那段的层分给段内的卡，各段各建一组、各自广播，组不跨段 |
 | [DP（数据并行）](data-parallel.md) | 能 | 每个 DP 请求执行组分别建组，不跨 DP；这不表示专家权重一定完整复制 |
-| PCP | 能，要新版 model runner | 组扩成 TP × PCP 张卡；main 上 PCP 本身就只能配 Model Runner V2 |
-| DCP | 不能 | 启动报错 |
-| 图模式 | 不能 | 只能 eager |
-| MTP 投机解码 | 只能固定步数 | MTP 层不参与划分，每卡各留一份 |
-| [PD 分离](pd-disaggregation.md) | 能，只用 MooncakeConnectorV2 | 只在 prefill 实例上开，decode 实例必须关 |
-| [外部 KV 池](kv-pool.md) | 能，只用 AscendStoreConnector | memcache、producer 或 both、异步整块加载；不支持按层存取；每卡只存常驻层和自己的 MTP 缓存，完整配置见下文 |
-| PCP 加 PD 分离，或 PCP 加外部 KV 池 | 不能 | 三者同开未支持 |
-| [CPU offload](kv-cache-cpu-offload.md) 等其他连接器 | 按代码会被拒 | 启动检查只放行上面两种连接器 |
+| PCP | 能，要新版 model runner | 组大小为 `size = TP × PCP`（与 `TP` 联合划定复制域）；`PCP > 1` 须配 Model Runner V2 |
+| DCP | 不能 | 启动报错（`KVPP and DCP cannot be enabled at the same time.`） |
+| 图模式 | 仅支持 `eager` 或 `PIECEWISE` | 不支持 `FULL` 全图模式（早期快照 `baa023ad` 仅支持 `eager`） |
+| MTP / DSpark 投机解码 | 只能固定步数 | MTP 层不参与划分，每卡各留一份；拒绝按 batch 动态步数与自适应验证 |
+| [PD 分离](pd-disaggregation.md) | 能（支持 `MultiConnector`） | `v0.30.0` 用 `MooncakeConnectorV2`，`main` 另支持 `MooncakePushConnector`；只在 prefill 实例上开，decode 实例（`kv_consumer`）必须关 |
+| [外部 KV 池](kv-pool.md) | 能（支持 `MultiConnector`） | 用 `AscendStoreConnector`；`main` 明确拒绝 Mooncake 逐层 CP 与 `enable_kvpp` 同开；每卡只存常驻层和自己的 MTP 缓存，完整配置见下文 |
+| PCP 加 PD 分离 / 外部 KV 池 | 以连接器与版本校验为准 | 配置层 `KVPPConfig.size = TP × PCP` 不单独拦截该组合，但早期用户指南未纳入三者同开验证范围，且 `main` 禁止 Mooncake 逐层 CP 与 `enable_kvpp` 同开 |
+| [CPU offload](kv-cache-cpu-offload.md) 等其他连接器 | 启动检查拒绝 | 不在 `_KVPP_SUPPORTED_CONNECTORS` 白名单内，启动直接报 `ValueError` |
 
 和「换出」有关的两条要单独说。接外部 KV 池时，每张卡按块存一份对象，里面只有它常驻的层和它自己那份 MTP 缓存，暂存区不存；读回时装进常驻那份，别的卡照旧在算到这一层时靠广播拿。查池时，要所有常驻卡（跨所有 PP 段）的分片都在，这个前缀才算命中。PD 分离时，prefill 实例各卡只登记自己常驻的层，decode 实例不开 KVPP，从各层的常驻卡分别取。其他连接器（例如 CPU offload 用的那种）会在启动检查里被拒，报错文案写的却是「PD 分离要用 MooncakeConnectorV2」，这是按代码推断的结果，没有实跑。
 
@@ -277,7 +273,7 @@ file: kvpp-flow
 
 ## 放到 GLM 双机：这套部署能开 KVPP 吗？
 
-**不能，也没有开。** 本站的 GLM 双机（2 台 × 8 张 A2，TP8 / DP2 / EP16，W8A8，见 [部署前提](glm-5-3-flash-two-node.md#部署前提)）钉住的执行侧版本里根本没有 KVPP 的代码。就算换到有 KVPP 的 main，也过不了启动检查：GLM 是混合模型，45 层里 34 层是 [KDA](linear-attention.md) 线性 attention，存的是固定大小的递推状态，只有 11 层是稀疏 MLA；固定 main 用户指南将 KVPP 的适用范围限定为非混合 MLA/SFA 模型，因此不包含这里的 GLM 混合结构。这套部署还给 decode 步录了图，而 KVPP 只能 eager。
+**不能，也没有开。** 本站的 GLM 双机（2 台 × 8 张 A2，TP8 / DP2 / EP16，W8A8，见 [部署前提](glm-5-3-flash-two-node.md#部署前提)）钉住的执行侧版本里根本没有 KVPP 的代码。就算换到有 KVPP 的 `v0.30.0` 或 `main`，也过不了启动检查：GLM 是混合模型，45 层里 34 层是 [KDA](linear-attention.md) 线性 attention，存的是固定大小的递推状态，只有 11 层是稀疏 MLA；KVPP 仅接受非混合 MLA/SFA 模型，因此不包含这里的 GLM 混合结构（并且即便在 `v0.30.0` / `main` 放宽至 `eager` 或 `PIECEWISE` 之后，全图 decode 回放同样不被 KVPP 支持）。
 
 下面两小节是**变体推导**：把 KVPP 的规则套到 GLM 的 MLA 尺寸上，看会怎样。没有实现，也没有任何实测，数字只用来理解机制。
 
@@ -327,7 +323,7 @@ file: kvpp-flow
 
 ### 怎么开
 
-已钉 vllm-ascend main（`baa023ad`）与 rc2 都有此实现，一个开关，组大小由配置推导、不用单独配。以下命令沿用 main 的 eager 方式，rc2 的 PIECEWISE 与投机组合边界见[版本差异](#版本差异)：
+`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）均内置 KVPP，只需一个开关，组大小 `size = TP × PCP` 由并行配置推导、不用单独配。下面示例给出 `--enforce-eager` 写法，在 `v0.30.0` / `main` 上也可改为 `PIECEWISE` 分段图模式（投机与连接器边界见[版本差异](#版本差异)）：
 
 ```bash
 vllm serve <非混合的 MLA/SFA 模型> \
@@ -373,12 +369,12 @@ vllm serve <非混合的 MLA/SFA 模型> \
 |---|---|
 | `enable_kvpp` 无法通过 Pydantic 布尔转换 | `additional_config.enable_kvpp must be a boolean, got ...` |
 | `decode_context_parallel_size != 1` | `KVPP and DCP cannot be enabled at the same time.` |
-| 有 `kv_transfer_config`，连接器既不是 `AscendStoreConnector` 也不是 `MooncakeConnectorV2`（CPU offload 等其他连接器按代码会落在这里） | `KVPP PD disaggregation requires MooncakeConnectorV2.` |
-| `MooncakeConnectorV2` 且 `kv_role == "kv_consumer"` | `KVPP must be disabled on the decode-only node.` |
-| 没有 `--enforce-eager`（GLM 主线配置录了 decode 图，会先撞这条） | `KVPP currently supports eager execution only; set --enforce-eager.` |
-| `not use_mla or is_hybrid`（GLM 补上 eager 之后撞这条） | `KVPP currently supports only non-hybrid MLA models.` |
-| 投机解码方法不是 `mtp`（vLLM 会先把 `deepseek_mtp` 等归一成 `mtp`） | `KVPP currently supports speculative decoding only with method='mtp'.` |
-| MTP 步数按批量变化（设了 `num_speculative_tokens_per_batch_size`） | `KVPP currently supports only a fixed number of MTP speculative tokens.` |
+| 有 `kv_transfer_config`，连接器不在支持列表（`v0.30.0` 为 `MooncakeConnectorV2` / `AscendStoreConnector`；`main` 另含 `MooncakePushConnector`；均支持 `MultiConnector`） | `KVPP does not support kv connector <name>.`（早期快照 `baa023ad` 报错为 `KVPP PD disaggregation requires MooncakeConnectorV2.`） |
+| `MooncakeConnectorV2`（及 `main` 的 `MooncakePushConnector`）且 `kv_role == "kv_consumer"` | `KVPP must be disabled on the decode-only node.` |
+| 未设 `--enforce-eager` 且 `cudagraph_mode != CUDAGraphMode.PIECEWISE`（例如 FULL 图模式） | `KVPP supports eager execution or PIECEWISE only.`（早期快照 `baa023ad` 仅支持 eager，报错为 `KVPP currently supports eager execution only; set --enforce-eager.`） |
+| `not use_mla or is_hybrid`（GLM 补上执行模式要求后撞这条） | `KVPP currently supports only non-hybrid MLA models.` |
+| 投机解码方法不受支持（vLLM 会先把 `deepseek_mtp` 等归一成 `mtp`；`v0.30.0`/`main` 接受固定 `K` 的 `mtp`/`dspark` 等） | `KVPP currently supports speculative decoding only with ...` |
+| MTP / DSpark 步数按批量变化或开自适应验证 | `KVPP currently supports only a fixed number of ...` |
 
 还有两条不在 `validate` 里：`create_kvpp_cache_allocation_plan` 要求所有缓存规格都是 `FullAttentionSpec` 且 `block_size` 一致，否则抛 `KVPP requires one full-attention cache group with a common block size.`；main 上用 V1 runner 又设了 PCP > 1，会被通用检查拦下（`PCP (Prefill Context Parallelism) is not supported by vLLM Ascend. ...`），这条不是 KVPP 专有的。
 
@@ -393,7 +389,7 @@ vllm serve <非混合的 MLA/SFA 模型> \
   - 非池化 prefill 吞吐（128K 输入、并发 12）：单机 −2.30%（命中 0%）/ −5.40%（命中约 90%）；双机 −12.40% / −12.77%。
   - 这些是另一个模型（非混合的 SFA）在另一种硬件上的数，不是本站 GLM-5.3-Flash 双机 A2 的数；本部署没有任何 KVPP 实测。
 
-- **什么时候别开**：TP=1 且 PCP=1（没有复制品）；非混合 MLA/SFA 之外的模型（超出固定 main 用户指南所述的适用范围）；要用图模式；已经开了 DCP；显存并不紧、而对首 token 时间或 prefill 吞吐敏感。官方建议先在受 KV 容量限制的负载上，拿真实的输入长度、并发和前缀分布对比开关前后的容量、时延和吞吐。
+- **什么时候别开**：TP=1 且 PCP=1（没有复制品）；非混合 MLA/SFA 之外的模型；需要 `FULL` 全图回放（`v0.30.0`/`main` 仅放行 `eager` 或 `PIECEWISE`，不支持全图）；已经开了 DCP；显存并不紧、而对首 token 时间或 prefill 吞吐敏感。官方建议先在受 KV 容量限制的负载上，拿真实的输入长度、并发和前缀分布对比开关前后的容量、时延和吞吐。
 
 Z.ai 的 LayerSplit 文章报告的是 SGLang、GLM-5.1、90%命中率、40K–120K输入的另一组实验。它用索引器计算遮挡主 KV 广播；本文固定 Ascend 路径按完整 bundle 广播、在首次访问缓存前等待，两者的重叠位置与数据布局并不相同。文章中的吞吐收益不能替换上面的 Ascend 测量，也不能外推到本站 A2 GLM 基线。
 
@@ -405,9 +401,9 @@ Z.ai 的 LayerSplit 文章报告的是 SGLang、GLM-5.1、90%命中率、40K–1
 
 KVPP 的 Mooncake 对象使用独立拓扑命名空间，不能复用普通复制式缓存对象。MultiConnector 还逐个检查子连接器类型与角色：P/D 子连接器用 producer、只在 P 开 KVPP，pool 子连接器另配自身角色与服务；外层角色不能代替子角色。PP 的一般组合声明与上述逐层池化验证范围也不同，且后续 PP 指南仍记录 PP+KVPP 的间歇输出不一致，见 [PP 版本差异](pipeline-parallel.md#版本差异)。
 
-rc2 源码的组合范围也有扩展：允许 eager 或 PIECEWISE，投机方法接受 mtp/dspark，但要求固定 K，拒绝按 batch 动态 K、DSpark adaptive verification 和 dynamic_spec_config 指定的动态长度。旧 main 的“只能 eager”不能沿用；同一 rc2 用户指南仍写 eager，与源码校验存在差异，这里分别记录，不能把指南当成已完成全部 PIECEWISE 组合验证的证明。
+自 `v0.30.0`（含 `main`）起，源码的组合范围已扩展：允许 `eager` 或 `PIECEWISE`（`ValueError("KVPP supports eager execution or PIECEWISE only.")`），投机方法接受 `mtp` / `dspark` 但要求固定 `K`，拒绝按 batch 动态 `K`、DSpark adaptive verification 和 `dynamic_spec_config` 指定的动态长度。早期快照 `baa023ad` 的“只能 eager”不能沿用；若某份用户指南仍只写 eager，需注意指南与源码校验的差异，不能把放宽校验等同于已完成全部 `PIECEWISE` 组合验证。
 
-**v0.30.0rc2 保留 KVPP 的复制域和连接器边界。** 关闭时 size=1，开启后由 TP×PCP 推导，DCP>1 仍被拒绝；共享存储允许 AscendStoreConnector，PD 使用 MooncakeConnectorV2，decode-only consumer 必须关闭 KVPP。它仍限定非 hybrid MLA，不能把 GLM 混合缓存的每一组都按该尺寸均分，也不能把 TP×PCP 当成 DP 或 PP 数。
+**`v0.30.0` 与 `main` 均保留 KVPP 的 `TP × PCP` 复制域与连接器白名单边界。** 关闭时 `size = 1`，开启后由 `TP × PCP` 推导，`DCP > 1` 仍被拒绝；共享存储允许 `AscendStoreConnector`，PD 在 `v0.30.0` 允许 `MooncakeConnectorV2`、`main` 新增 `MooncakePushConnector`（两者均支持 `MultiConnector` 且在 `kv_consumer` 上必须关闭 KVPP）。它仍限定非 hybrid MLA，不能把 GLM 混合缓存的每一组都按该尺寸均分，也不能把 `TP × PCP` 当成 DP 或 PP 数。
 
 按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；例外 B GLM 固定基线 `db701c1f` 同样不含 KVPP 且将 GLM 声明为混合模型，上游 `vllm@0fc695fc` / `vllm@ced6857a` / `vllm@ba15685a` 均不含 KVPP（属 `vllm-ascend` 独有特性）。
 
@@ -418,9 +414,9 @@ rc2 源码的组合范围也有扩展：允许 eager 或 PIECEWISE，投机方�
 | 允许的 KV 连接器与限制 | 无 | 无 | `_KVPP_SUPPORTED_CONNECTORS = ("MooncakeConnectorV2", "AscendStoreConnector")`，支持 `MultiConnector`，`MooncakeConnectorV2` 拒绝 `kv_consumer`（`ascend_config.py#L38, #L87-L100`）；与 `DCP > 1` 互斥 | 新增 `MooncakePushConnector`（同样拒绝 `kv_consumer`，`ascend_config.py#L42, #L91-L108`）；`mooncake_backend.py#L335-L342` 明确拒绝 Mooncake 逐层 CP 与 `enable_kvpp` 同开 |
 | GLM 模型与文档状态 | 无 GLM 代码 | 无 GLM 代码 | GLM 声明为混合模型（被 KVPP 校验拒绝）；含用户指南、设计文档与配置说明 | 同 `v0.30.0` |
 
-main 在2026-09-11随#16094引入KVPP，09-15的#16444加上PD分离、PCP和KV池。表内配置文档为 additional_config.md；用户指南、设计文档和支持矩阵也均有对应入口。
+早期开发快照（`baa023ad`）在 2026-09-11 随 #16094 引入 KVPP，09-15 的 #16444 加上 PD 分离、PCP 和 KV 池。表内配置文档为 `additional_config.md`；用户指南、设计文档和支持矩阵也均有对应入口。
 
-main 的三份官方文档对「能和谁组合」说法不一致：用户指南的支持表写 PCP（需 V2）、PD 分离（MooncakeConnectorV2）、memcache 池化都支持；设计文档第 3 节把 PCP 和 PD 分离列为不支持；`additional_config.md` 写 PCP 可以（需 V2），但不支持 KV 传输连接器。以代码为准：组大小公式乘了 PCP，`validate` 只拦 DCP 和这两种之外的连接器，与用户指南一致；设计文档和 `additional_config.md` 的限制写法与代码不符。
+早期 `baa023ad` 的三份官方文档对「能和谁组合」说法不一致：用户指南的支持表写 PCP（需 V2）、PD 分离（MooncakeConnectorV2）、memcache 池化都支持；设计文档第 3 节把 PCP 和 PD 分离列为不支持；`additional_config.md` 写 PCP 可以（需 V2），但不支持 KV 传输连接器。以代码为准：组大小公式 `size = TP × PCP` 乘了 PCP，`validate` 只拦 DCP 和白名单之外的连接器（在 `v0.30.0`/`main` 还支持 `MultiConnector`，`main` 新增 `MooncakePushConnector`）；设计文档和 `additional_config.md` 的旧限制写法与代码不符。
 
 ### 源码位置
 
@@ -453,7 +449,7 @@ main 的三份官方文档对「能和谁组合」说法不一致：用户指南
 
 广播流通过就绪与完成事件协调工作（来源 9），执行器判断是否存在历史并逐层等待、预取（来源 11、12），attention 的等待点见来源 16、17。实际等待时长与重叠比例仍需硬件 trace。
 
-旧 main 的 PCP 组合要求 V2，组在各 DP/PP 内覆盖 PCP × TP，未开 PCP 时才退化为 TP（来源 2、3、23）；该固定指南禁止再同时叠加 PD 或 KV 池。GLM-5.2 在 950DT 的容量与吞吐是官方报告（来源 25），不证明固定 GLM-5.3-Flash 双机 A2 的支持或收益；后续池化组合的范围见版本差异。
+`KVPPConfig.from_vllm_config` 在各 DP/PP 内始终按 `size = TP × PCP` 推导通信组大小（`PCP = 1` 时退化为 `TP`；来源 2、3、23）；早期快照用户指南未将 PCP 同时叠加 PD 或 KV 池纳入支持范围，而 `main` 代码另在 `mooncake_backend.py` 明确拒绝 Mooncake 逐层 CP 与 `enable_kvpp` 同开。GLM-5.2 在 950DT 的容量与吞吐是官方报告（来源 25），不证明固定 GLM-5.3-Flash 双机 A2 的支持或收益；后续池化组合的范围见版本差异。
 
 - 来源 32、33：vllm-ascend@baa023ad，docs/source/user_guide/feature_guide/kvpp.md，L19–L28、L36–L48。
 

@@ -773,14 +773,22 @@
 
 .wt-env-pill {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 999px;
+  gap: 2px 6px;
+  max-width: 100%;
+  padding: 4px 10px;
+  border-radius: 10px;
   border: 1px solid var(--color-line);
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.wt-env-pill > span:last-child {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .wt-env-pill.is-known {

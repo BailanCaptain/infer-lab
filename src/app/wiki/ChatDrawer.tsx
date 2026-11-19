@@ -625,7 +625,11 @@ export function ChatPane({
                     {m.model.answeredBy
                       ? `作答模型 ${m.model.answeredBy}`
                       : `请求模型 ${m.model.requested}（CLI 未返回实际模型回执）`}
-                    {m.model.provider === "codex" && " · Codex 账户额度"}
+                    {m.model.provider === "codex"
+                      ? " · Codex 账户额度"
+                      : m.model.provider && m.model.provider !== "claude"
+                        ? ` · ${m.model.provider}`
+                        : null}
                   </p>
                 )}
               </details>

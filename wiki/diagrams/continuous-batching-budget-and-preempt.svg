@@ -35,33 +35,33 @@
   <text x="14" y="184" font-size="16" font-weight="700" fill="#b54237">下半场：running 逐词膨胀把 KV 块池借空时 → LIFO 抢占与 RECOMPUTE 恢复</text>
 
   <!-- Box 1: Running grows +1 and hits 0 free blocks -->
-  <rect x="14" y="204" width="244" height="118" rx="7" fill="#fbfaf6" stroke="#b8bcb5" stroke-width="1.4"/>
-  <text x="28" y="230" font-size="14.5" font-weight="700" fill="#17211f">1. running 同时跨块借槽</text>
-  <rect x="28" y="242" width="136" height="28" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
-  <text x="96" y="261" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">R1(+1), R2(+1)</text>
-  <rect x="170" y="242" width="74" height="28" rx="5" fill="#fae1d8" stroke="#b54237" stroke-width="1.4"/>
-  <text x="207" y="261" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">队尾 R3</text>
-  <text x="28" y="294" font-size="13.5" font-weight="700" fill="#b54237">KV 空闲块 = 0（new_blocks=None）</text>
-  <text x="28" y="314" font-size="13.5" fill="#66716d">不让位就会全部卡死在半途</text>
+  <rect x="14" y="204" width="226" height="118" rx="7" fill="#fbfaf6" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="26" y="230" font-size="14.5" font-weight="700" fill="#17211f">1. running 同时跨块借槽</text>
+  <rect x="26" y="242" width="126" height="28" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="89" y="261" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">R1(+1), R2(+1)</text>
+  <rect x="158" y="242" width="70" height="28" rx="5" fill="#fae1d8" stroke="#b54237" stroke-width="1.4"/>
+  <text x="193" y="261" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">队尾 R3</text>
+  <text x="26" y="294" font-size="13.5" font-weight="700" fill="#b54237">空闲块 = 0（分配返回 None）</text>
+  <text x="26" y="314" font-size="13.5" fill="#66716d">不让位就会全部卡死在半途</text>
 
-  <line x1="260" y1="263" x2="298" y2="263" stroke="#b54237" stroke-width="1.8" marker-end="url(#bp-red)"/>
-  <text x="279" y="252" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#b54237">pop()</text>
+  <line x1="242" y1="263" x2="288" y2="263" stroke="#b54237" stroke-width="1.8" marker-end="url(#bp-red)"/>
+  <text x="265" y="252" text-anchor="middle" font-family="var(--font-mono)" font-size="13.5" font-weight="700" fill="#b54237">pop()</text>
 
   <!-- Box 2: Preempt tail victim R3 -->
-  <rect x="304" y="204" width="286" height="118" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
-  <text x="318" y="230" font-size="14.5" font-weight="700" fill="#8f3229">2. _preempt_request 牺牲队尾 R3</text>
-  <text x="318" y="258" font-size="13.5" fill="#4d5652">• _free_request_blocks 释放 R3 的块</text>
-  <text x="318" y="284" font-size="13.5" fill="#4d5652">• 置 PREEMPTED，num_computed_tokens=0</text>
-  <text x="318" y="310" font-size="13.5" font-weight="700" fill="#8f3229">• prepend_request 插回 waiting 队首</text>
+  <rect x="294" y="204" width="308" height="118" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="308" y="230" font-size="14.5" font-weight="700" fill="#8f3229">2. _preempt_request 牺牲队尾 R3</text>
+  <text x="308" y="258" font-size="13.5" fill="#4d5652">• _free_request_blocks 释放 R3 的块</text>
+  <text x="308" y="284" font-size="13.5" fill="#4d5652">• PREEMPTED，num_computed_tokens=0</text>
+  <text x="308" y="310" font-size="13.5" font-weight="700" fill="#8f3229">• prepend_request 插回 waiting 队首</text>
 
-  <line x1="592" y1="263" x2="628" y2="263" stroke="#087f73" stroke-width="1.8" marker-end="url(#bp-teal)"/>
+  <line x1="604" y1="263" x2="634" y2="263" stroke="#087f73" stroke-width="1.8" marker-end="url(#bp-teal)"/>
 
   <!-- Box 3: R1/R2 finish -> R3 recomputes -->
-  <rect x="634" y="204" width="252" height="118" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
-  <text x="648" y="230" font-size="14.5" font-weight="700" fill="#065f56">3. 救急续跑 → 队首重算恢复</text>
-  <text x="648" y="258" font-size="13.5" fill="#4d5652">• R1、R2 借到 R3 吐出的块继续</text>
-  <text x="648" y="284" font-size="13.5" fill="#4d5652">• 本步跳过 waiting 新单准入</text>
-  <text x="648" y="310" font-size="13.5" font-weight="700" fill="#065f56">• 空出块后 R3 整段 Prefill 重算</text>
+  <rect x="640" y="204" width="246" height="118" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="652" y="230" font-size="14.5" font-weight="700" fill="#065f56">3. 救急续跑 → 队首重算恢复</text>
+  <text x="652" y="258" font-size="13.5" fill="#4d5652">• R1、R2 借到 R3 吐出的块继续</text>
+  <text x="652" y="284" font-size="13.5" fill="#4d5652">• 本步跳过 waiting 新单准入</text>
+  <text x="652" y="310" font-size="13.5" font-weight="700" fill="#065f56">• 空出块后 R3 整段 Prefill 重算</text>
 
   <!-- Bottom note -->
   <rect x="14" y="342" width="4" height="52" rx="2" fill="#9a4b86"/>

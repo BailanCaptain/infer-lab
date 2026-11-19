@@ -103,7 +103,7 @@ rawSources:
 ---
 ## size 是什么，由谁算出、为什么不能手写？
 
-`size` 是 `KVPPConfig` 类里唯一的字段（仅表示 `ascend_config.py` 中的 `KVPPConfig.size` 字段身份，与其他类同名字段无关），用于表示 [KVPP](../concepts/kvpp.md) 将**单个 PP stage 上的层缓存划分给多少张卡**。它是整数类型、默认 `1`（即关闭状态），只有 `size > 1` 时才进入 KVPP 建组、校验和分配路径；所在类 `KVPPConfig` 声明为 `frozen=True`，运行时不可修改。
+本页说明的是 **`kvpp_config.size`**（`ascend_config.py` 中 `KVPPConfig` 类的唯一字段，与其他类的同名 `size` 无关）。用一句话建立直觉：多卡跑 MLA 模型时，同组卡原本各存一份相同的历史 KV cache；开启 [KVPP](../concepts/kvpp.md) 后，各层历史 KV 会被平分到组内多张卡上各自常驻，**`kvpp_config.size` 就是单个 PP stage 上参与平分层缓存的卡数**。它是整数类型、默认 `1`（表示每卡存全层、KVPP 关闭），只有 `size > 1` 时才进入 KVPP 建组、校验和分配路径；所在类 `KVPPConfig` 声明为 `frozen=True`，运行时不可修改。
 
 用户**不能也不需要手写 `size`**：启动时只需通过 `additional_config` 里的 `enable_kvpp` 开关启用 KVPP（推荐使用 JSON 布尔值 `true` / `false`，避免布尔解析歧义），`KVPPConfig.from_vllm_config()` 会在 `enable_kvpp` 为真时自动按 `tensor_parallel_size × prefill_context_parallel_size`（即 `TP × PCP`）派生 `size`。如果直接往 `additional_config` 塞 `{"kvpp_config": {"size": 4}}`，工厂函数在构造配置时会把它剔除，无法覆盖真实拓扑（入口规则见 [`kvpp_config`](kvpp-config-0445bd352140.md)）。它划分的是单个 DP 副本、单个 PP stage 内的 `TP × PCP` 复制域，表示的不是 DP 数，也不是 PP stage 数。
 
@@ -119,7 +119,18 @@ rawSources:
 - **触发专属校验**：`platform.py` 在 `size > 1` 时调用 `kvpp_config.validate(vllm_config)`；当 `TP = 1` 且 `PCP = 1` 时，即使 `enable_kvpp` 为真，派生出的 `size` 仍为 `1`，KVPP 建组、专属校验和分配路径都不会启用（但不关闭服务其他参数检查）。
 - **切换缓存分配路径与计算 owner 编号**：`worker.py` 在 `size > 1` 时构建 `KVPPPhysicalCachePlan`，执行侧经 `allocate_kvpp_cache()` 分配常驻层与暂存缓冲。注意 `owner_rank` 的演进：早期 `main`（`baa023ad`）按 `TP rank % size` 建计划，在 `PCP > 1` 时会撞号；`v0.30.0` 与 `main` 改为在 worker 规划阶段计算 `kvpp_rank = pcp_rank × TP + tp_rank`，在 `allocate_kvpp_cache()` 分配阶段直接取 `get_kvpp_group().rank_in_group`——例如 `TP = 2, PCP = 2`（`size = 4`）时，两个 PCP 组的 TP0 分别是 `owner 0` 与 `owner 2`，不再错误地分到同一段。
 
-**`size` 是除法的分母，不等于显存容量放大倍数。** 每卡每个物理块的字节数为「本卡常驻层 bundle 字节 + `KVPP_SCRATCH_BUFFER_COUNT × 最大单层字节`」，其中 `KVPP_SCRATCH_BUFFER_COUNT` 是写死的常数 `2`（一个给当前层计算、一个给下一层预取）。在**各参与分配层每块均占 `b` 字节、无 MTP 等额外常驻缓存、可用显存预算相同且忽略块数向下取整**的简化算例下，设总层数为 $L$，拿层最多的卡持有 $\lceil L / \text{size} \rceil$ 层：
+拿一个 **10 层非混合 MLA 模型、无 MTP、`TP = 2, PCP = 2`** 的小例子把分层除法和 `owner_rank` 算一遍（**示意**）：派生 $\text{size} = 2 \times 2 = 4$，`divmod(10, 4) = (2, 2)`，即前 2 个 rank 各拿 $2 + 1 = 3$ 层、后 2 个 rank 各拿 2 层：
+
+| `(pcp_rank, tp_rank)` | `kvpp_rank = pcp × 2 + tp` | 本卡常驻层索引 | 常驻层数 | 含 2 层 scratch 的物理层数 |
+| --- | --- | --- | --- | --- |
+| `(0, 0)` | `0` | `L0, L1, L2` | `3` | `5` |
+| `(0, 1)` | `1` | `L3, L4, L5` | `3` | `5` |
+| `(1, 0)` | `2` | `L6, L7` | `2` | `4` |
+| `(1, 1)` | `3` | `L8, L9` | `2` | `4` |
+
+全组可分配的逻辑块数受最重卡（`rank 0` 与 `rank 1`，各占 5 层）限制，因此该示意例子的块数容量放大比为 $10 / (3 + 2) = 2\times$，而不是按卡数直觉以为的 $4\times$。
+
+**一般规律下，`size` 是除法的分母，不等于显存容量放大倍数。** 每卡每个物理块的字节数为「本卡常驻层 bundle 字节 + `KVPP_SCRATCH_BUFFER_COUNT × 最大单层字节`」，其中 `KVPP_SCRATCH_BUFFER_COUNT` 是写死的常数 `2`（一个给当前层计算、一个给下一层预取）。在**各参与分配层每块均占 `b` 字节、无 MTP 等额外常驻缓存、可用显存预算相同且忽略块数向下取整**的简化算例下，设总层数为 $L$，拿层最多的卡持有 $\lceil L / \text{size} \rceil$ 层：
 
 | 模式 | 每卡每块物理字节（简化算例） | 相对不开 KVPP 的块数容量比 |
 | --- | --- | --- |

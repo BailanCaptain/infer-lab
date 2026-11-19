@@ -9,19 +9,19 @@
   <g font-family="var(--font-sans)">
     <text x="14" y="26" font-size="16" font-weight="700" fill="#17211f">一、图模式与三级图融合（<tspan font-family="var(--font-mono)" font-size="15" fill="#4c65b6">npugraph_ex → static_kernel → super_kernel</tspan>）</text>
 
-    <rect x="12" y="40" width="434" height="156" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+    <rect x="12" y="40" width="444" height="158" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
     <text x="24" y="67" font-size="14.5" font-weight="700" fill="#065f56">✓ 保留三级融合：<tspan font-family="var(--font-mono)">FULL_DECODE_ONLY / FULL</tspan></text>
     <text x="24" y="95" font-size="13.5" fill="#17211f">• 省略 <tspan font-family="var(--font-mono)">super_kernel</tspan> 时默认跟随 <tspan font-family="var(--font-mono)">static_kernel</tspan></text>
-    <text x="24" y="121" font-size="13.5" fill="#8f3229">• ✗ A2/A3/950 单开 <tspan font-family="var(--font-mono)">super_kernel</tspan>（缺前置）抛 <tspan font-family="var(--font-mono)" font-weight="700">AssertionError</tspan></text>
-    <text x="24" y="147" font-size="13.5" fill="#936300">• ⚠ <tspan font-family="var(--font-mono)">310P</tspan> 无 <tspan font-family="var(--font-mono)">NPUGRAPH_EX</tspan>，三项开关全部静默置 <tspan font-family="var(--font-mono)">False</tspan></text>
-    <text x="24" y="175" font-size="13.5" font-weight="700" fill="#b54237">• ✗ <tspan font-family="var(--font-mono)">FA3</tspan> + <tspan font-family="var(--font-mono)">FULL_DECODE_ONLY</tspan> 抛 <tspan font-family="var(--font-mono)">ValueError</tspan>（须 <tspan font-family="var(--font-mono)">PIECEWISE</tspan>）</text>
+    <text x="24" y="121" font-size="13.5" fill="#8f3229">• ✗ A2/A3/950 单开 <tspan font-family="var(--font-mono)">super_kernel</tspan> 抛 <tspan font-family="var(--font-mono)" font-weight="700">AssertionError</tspan></text>
+    <text x="24" y="147" font-size="13.5" fill="#936300">• ⚠ <tspan font-family="var(--font-mono)">310P</tspan> 无 <tspan font-family="var(--font-mono)">NPUGRAPH_EX</tspan>，三项静默置 <tspan font-family="var(--font-mono)">False</tspan></text>
+    <text x="24" y="175" font-size="13.5" font-weight="700" fill="#b54237">• ✗ <tspan font-family="var(--font-mono)">FA3</tspan> + <tspan font-family="var(--font-mono)">FULL_DECODE_ONLY</tspan> 抛 <tspan font-family="var(--font-mono)">ValueError</tspan></text>
 
-    <rect x="462" y="40" width="424" height="156" rx="10" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
-    <text x="476" y="67" font-size="14.5" font-weight="700" fill="#936300">⚠ 静默刷回：<tspan font-family="var(--font-mono)">NONE / PIECEWISE / FULL_AND_PIECEWISE</tspan></text>
-    <text x="476" y="95" font-size="13.5" fill="#17211f">• 只要命中 <tspan font-family="var(--font-mono)">NONE</tspan> 或分段编译 <tspan font-family="var(--font-mono)">requires_piecewise</tspan>：</text>
-    <text x="476" y="121" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#936300">  enable_npugraph_ex = False</text>
-    <text x="476" y="145" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#936300">  enable_static_kernel = False</text>
-    <text x="476" y="169" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#936300">  enable_super_kernel = False</text>
+    <rect x="468" y="40" width="420" height="158" rx="10" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+    <text x="480" y="67" font-size="14.5" font-weight="700" fill="#936300">⚠ 静默刷回：<tspan font-family="var(--font-mono)">NONE / PIECEWISE / FULL_AND_PW</tspan></text>
+    <text x="480" y="95" font-size="13.5" fill="#17211f">• 命中 <tspan font-family="var(--font-mono)">NONE</tspan> 或分段编译（含 <tspan font-family="var(--font-mono)">FULL_AND_PIECEWISE</tspan>）：</text>
+    <text x="480" y="121" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#936300">  enable_npugraph_ex = False</text>
+    <text x="480" y="145" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#936300">  enable_static_kernel = False</text>
+    <text x="480" y="169" font-family="var(--font-mono)" font-size="13.5" font-weight="600" fill="#936300">  enable_super_kernel = False</text>
 
     <text x="14" y="232" font-size="16" font-weight="700" fill="#17211f">二、扩展调度器 <tspan font-family="var(--font-mono)" font-size="15" fill="#936300">scheduler_cls</tspan> 顺序覆盖链（<tspan font-family="var(--font-mono)" font-size="14.5">v0.30.0</tspan> 后写者静默胜出）</text>
 

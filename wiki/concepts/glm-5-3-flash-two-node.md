@@ -398,7 +398,7 @@ file: glm-5-3-flash-two-node-fig-v030-evolution
 | **A2 双机混部启动项与环境变量** | 2×A2×8、TP8/DP2/EP16、133120、32、8192、0.85、MTP 3、`FULL_DECODE_ONLY`（未显式写 Runner 版本与 prefetch） | 保留上述 A2 双机混部核心参数；**显式设置 `VLLM_USE_V2_MODEL_RUNNER=0`**（当时仅支持 Model Runner V1），新增 `--safetensors-load-strategy prefetch`，并显式列出 `PYTORCH_NPU_ALLOC_CONF=expandable_segments:True`、`HCCL_OP_EXPANSION_MODE=AIV`、`HCCL_BUFFSIZE=1024`、`VLLM_RPC_TIMEOUT=3600000`、`VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=3000`、`HCCL_EXEC_TIMEOUT=3600`、`HCCL_CONNECT_TIMEOUT=1200` 与网卡环境变量 | 同组 A2 双机脚本保留核心参数与超时变量，但 **全面切换至 Model Runner V2（`VLLM_USE_V2_MODEL_RUNNER=1`）** |
 | **硬件覆盖与 PD / KV Pool 形态** | 仅覆盖 A2 双机混部 W8A8 | 扩展 **A3 单机（16 逻辑卡）** 与 **950DT 单机（`GLM-5.3-Flash-w8a8-mxfp8`）**；支持 **W8A8C8 动态 KV 量化**（A3 用 `--kv-cache-dtype int8`、950DT 用 `--kv-cache-dtype fp8`）；新增 4 机 A2 / 2 机 A3 / 2 机 950DT 的 **1P1D PD 分离** 与 DDR KV Cache Pool（`MultiConnector` = `MooncakeConnectorV2` + `AscendStoreConnector`，强制 `use_layerwise: false`、自动设 `--mamba-cache-mode align`） | A3 PD 进一步升级为 Prefill **`PCP8/TP1`** + `--mamba-ssm-cache-dtype bfloat16` + `enable_fused_mc2: 2` + `--enable-eplb`（Decode 保持 `PCP1`）；950DT 与 A2 同步收敛到 MRV2 |
 
-因此，阅读站内第 7 章与冻结 3D 绑定算例时，仍以本文前几节的固定钉点账单为准；若要在现网直接按 `v0.30.0` 或 `main` 启动 GLM-5.3-Flash，必须以对应提交的 `GLM5.3-Flash.md` 镜像、环境变量与实际启动 profile 重新核定 KV 块数。
+因此，阅读站内「09 旗舰异构模型全案」与冻结 3D 绑定算例时，仍以本文前几节的固定钉点账单为准；若要在现网直接按 `v0.30.0` 或 `main` 启动 GLM-5.3-Flash，必须以对应提交的 `GLM5.3-Flash.md` 镜像、环境变量与实际启动 profile 重新核定 KV 块数。
 
 ## 对照源码
 

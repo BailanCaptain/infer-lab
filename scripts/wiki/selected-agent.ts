@@ -5,10 +5,11 @@ import { codexArgs, runCodexChat } from "../../server/codex-chat";
 import type { AgentRequest, AgentResult, RunAgent } from "./batch";
 import { withBudget } from "./budget";
 import { runClaude } from "./claude-cli";
+import { runAnthropicCompatible, runHarnessCommand, runOpenAiCompatible } from "./http-provider";
 import { strayPaths } from "./ingest";
 import { restrictedArgs, runRestrictedClaude } from "./restricted-claude";
 import { localFile } from "./review-files";
-import { selectedModel } from "./sync-config";
+import { readClaudeEnv, selectedModel } from "./sync-config";
 import { atomicText } from "./workflow";
 
 const filesSchema = z
@@ -76,40 +77,110 @@ export const selectedAgent =
     if (!rules || (restricted && JSON.stringify(args) !== JSON.stringify(restrictedArgs(rules, budget))))
       throw new Error("受限编译配置不匹配");
     args[modelIndex + 1] = selection.model;
-    if (selection.provider === "claude")
-      return withBudget(root, purpose, { ...request, ...selection, args }, (req) =>
-        (restricted ? runRestrictedClaude : runClaude)(req, onEvent),
+    if (selection.provider === "claude") {
+      const settingIdx = args.indexOf("--setting-sources");
+      if (settingIdx >= 0 && selection.claudeSettingSources !== undefined) {
+        args[settingIdx + 1] = selection.claudeSettingSources;
+      }
+      const claudeEnv = request.claudeEnv ?? readClaudeEnv(root);
+      return withBudget(
+        root,
+        purpose,
+        {
+          ...request,
+          ...selection,
+          args,
+          ...(claudeEnv ? { claudeEnv } : {}),
+        },
+        (req) => (restricted ? runRestrictedClaude : runClaude)(req, onEvent),
       );
+    }
 
     const prompt = restricted ? request.stdin : filePrompt(request);
+    if (selection.provider === "codex") {
+      const req: AgentRequest = {
+        ...request,
+        ...selection,
+        args: codexArgs(selection.model, false, { allowUserConfig: selection.codexAllowUserConfig }),
+        allowedWrites: [],
+        stdin: `${rules}\n\n${prompt}`,
+      };
+      return withBudget(root, purpose, req, async (bounded): Promise<AgentResult> => {
+        let output = "";
+        const result = await runCodexChat(
+          bounded,
+          {
+            text: (text) => {
+              output += text;
+            },
+          },
+          true,
+        );
+        const base: AgentResult = {
+          ...result,
+          id: request.id,
+          billing: "chatgpt",
+          exitCode: result.ok ? 0 : 1,
+          stderrTail: "",
+        };
+        if (!result.ok) return base;
+        try {
+          if (!output.trim() || Buffer.byteLength(output) > (restricted ? 128 * 1024 : 1024 * 1024))
+            throw new Error("缺少有效输出或结果过大");
+          if (!restricted) {
+            const value = filesSchema.parse(
+              JSON.parse(output.replace(/^\s*```(?:json)?\s*\n([\s\S]*)\n```\s*$/, "$1")),
+            );
+            const paths = value.files.map((f) => f.path);
+            if (new Set(paths).size !== paths.length || strayPaths(paths, request.allowedWrites).length)
+              throw new Error("模型返回了重复或越界文件");
+            // Resolve the complete set before any mutation. localFile rejects traversal and symlinks.
+            const writes = value.files.map((f) => ({ path: localFile(request.cwd, f.path), text: f.text }));
+            for (const file of writes) {
+              mkdirSync(dirname(file.path), { recursive: true });
+              atomicText(file.path, file.text);
+            }
+          }
+          return { ...base, output };
+        } catch (error) {
+          return { ...base, ok: false, exitCode: 1, reason: String(error) };
+        }
+      });
+    }
+
+    // Zero-CLI HTTP API providers ("openai-compatible", "anthropic-compatible") and custom "harness" command.
     const req: AgentRequest = {
       ...request,
       ...selection,
-      args: codexArgs(selection.model, false),
+      args: [],
       allowedWrites: [],
-      stdin: `${rules}\n\n${prompt}`,
+      systemPrompt: rules,
+      stdin: prompt,
     };
     return withBudget(root, purpose, req, async (bounded): Promise<AgentResult> => {
       let output = "";
-      const result = await runCodexChat(
-        bounded,
-        {
-          text: (text) => {
-            output += text;
-          },
+      const callbacks = {
+        text: (text: string) => {
+          output += text;
         },
-        true,
-      );
+      };
+      const result =
+        selection.provider === "openai-compatible"
+          ? await runOpenAiCompatible(bounded, callbacks, { stream: false })
+          : selection.provider === "anthropic-compatible"
+            ? await runAnthropicCompatible(bounded, callbacks, { stream: false })
+            : await runHarnessCommand(bounded, callbacks);
       const base: AgentResult = {
         ...result,
         id: request.id,
-        billing: "chatgpt",
+        billing: "external",
         exitCode: result.ok ? 0 : 1,
         stderrTail: "",
       };
       if (!result.ok) return base;
       try {
-        if (!output.trim() || Buffer.byteLength(output) > (restricted ? 128 * 1024 : 1024 * 1024))
+        // Allow up to 512 KiB for pure-vector native-svg + long page outputs in restricted compilation.
+        if (!output.trim() || Buffer.byteLength(output) > (restricted ? 512 * 1024 : 1024 * 1024))
           throw new Error("缺少有效输出或结果过大");
         if (!restricted) {
           const value = filesSchema.parse(
@@ -118,7 +189,6 @@ export const selectedAgent =
           const paths = value.files.map((f) => f.path);
           if (new Set(paths).size !== paths.length || strayPaths(paths, request.allowedWrites).length)
             throw new Error("模型返回了重复或越界文件");
-          // Resolve the complete set before any mutation. localFile rejects traversal and symlinks.
           const writes = value.files.map((f) => ({ path: localFile(request.cwd, f.path), text: f.text }));
           for (const file of writes) {
             mkdirSync(dirname(file.path), { recursive: true });

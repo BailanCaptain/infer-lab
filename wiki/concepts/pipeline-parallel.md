@@ -262,7 +262,7 @@ PP 最早普及于大模型分布式训练，阅读外部资料时要注意训�
 
 ## GLM 双机为什么没用 PP？
 
-先给结论：本站第 7 章历史绑定的 GLM-5.3-Flash 双机方案（2 台 × 8 张 A2，`TP8 / DP2 / EP16`，`W8A8`，固定 `vllm@0fc695fc + vllm-ascend@db701c1f`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)）**没有开 PP**，采用的是机内 TP8 + 双机 DP2，MoE 路由专家另走跨机 EP16（[DP](data-parallel.md) 把不同请求分给两个执行组，[EP](expert-parallel.md) 把 288 个路由专家分摊到 16 张卡，因此单个 DP 组并不独立持有完整专家）。下面的 GLM 分段属于**源码接口变体推演**：只回答「假如给 GLM 开 PP，固定源码会怎样分层、分界上交什么」，未经真实双机 PP 部署实测，主线的吞吐/时延数字也不能套到 PP 上。
+先给结论：本站 `09 旗舰异构模型全案` 历史绑定的 GLM-5.3-Flash 双机方案（2 台 × 8 张 A2，`TP8 / DP2 / EP16`，`W8A8`，固定 `vllm@0fc695fc + vllm-ascend@db701c1f`，见[部署前提](glm-5-3-flash-two-node.md#部署前提)）**没有开 PP**，采用的是机内 TP8 + 双机 DP2，MoE 路由专家另走跨机 EP16（[DP](data-parallel.md) 把不同请求分给两个执行组，[EP](expert-parallel.md) 把 288 个路由专家分摊到 16 张卡，因此单个 DP 组并不独立持有完整专家）。下面的 GLM 分段属于**源码接口变体推演**：只回答「假如给 GLM 开 PP，固定源码会怎样分层、分界上交什么」，未经真实双机 PP 部署实测，主线的吞吐/时延数字也不能套到 PP 上。
 
 ### 变体：GLM 的 45 层分成 2 段
 
@@ -367,7 +367,7 @@ vllm serve /path/to/model \
 - **动态分块 CPP 的生命周期**：`v0.23.0` 挂在 `ascend_config.profiling_chunk_config`，`v0.26.0rc` 与 `v0.30.0` 迁至 `ascend_config.scheduler_config.profiling_chunk_config`（且 `v0.30.0` 支持在 `VLLM_USE_V2_MODEL_RUNNER=1` 下叠开 `async_scheduling`）；到了 `main (8d6180e2)`，`profiling_chunk_config` 与 CPP 调度器已被整体移除。
 - **投机解码、KVPP、稀疏卸载与跨机 RoCE MoE 组合边界**：官方 PP 指南（含 `921ccc52` 与 `c09d3e20` / `8d6180e2`）明确，V2 runner 可将 PP 与 MTP 组合（草稿模型放在最后阶段，不计入目标隐藏层分段数）；`EAGLE3 + PP` 仅限 MiniMax-M3 sparse，`DFlash + PP` 不支持，`DSpark + PP` 须核对模型与特征抽取限制；`PP + KVPP` 虽可配 eager 或 `PIECEWISE`，但指南记录端到端测试仍有间歇性输出不一致在排查；稀疏 KV 卸载在 `sparse_kv_offload_config` 分支仍拒绝 `PP > 1`，经 layerwise connector 支持 PP 时还须区分 P/D 角色（D 侧限制见[稀疏卸载版本差异](kv-cache-sparse-offload.md#版本差异)）；跨节点 RoCE 的 MoE 路径在 `v0.30.0` 与 `main` 均暂不支持 `PP > 1` 与 `DP > 1` 同开 [S3][S36]。
 
-下表汇总四版本基线（及第 7 章历史绑定钉点 `db701c1f + 0fc695fc`）的核心核验矩阵：
+下表汇总四版本基线（及 `09 旗舰异构模型全案` 历史绑定钉点 `db701c1f + 0fc695fc`）的核心核验矩阵：
 
 | 核验维度 | `v0.23.0 (2c59ff10 / 0fc695fc)` | `v0.26.0rc (2ed6cbba / 568afb3a)` | `v0.30.0 (c09d3e20 / ced6857a)` **[主基线]** | `main (8d6180e2 / ba15685a)` |
 |---|---|---|---|---|

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CHAT_PROVIDERS } from "./chat-models";
 
 const sha = z.string().regex(/^[a-f0-9]{64}$/);
 export const dropBudgetSchema = z
@@ -240,7 +241,18 @@ export const dropBatchSchema = z.object({
   ownerPid: z.number().optional(),
   token: z.string().optional(),
   selection: z
-    .object({ provider: z.enum(["claude", "codex"]), model: z.string(), codexCli: z.string().optional() })
+    .object({
+      provider: z.enum(CHAT_PROVIDERS),
+      model: z.string(),
+      codexCli: z.string().optional(),
+      codexAllowUserConfig: z.boolean().optional(),
+      claudeCli: z.string().optional(),
+      claudeSettingSources: z.string().optional(),
+      apiBaseUrl: z.string().optional(),
+      apiKeyEnv: z.string().optional(),
+      anthropicVersion: z.string().optional(),
+      harnessCommand: z.object({ command: z.string(), args: z.array(z.string()).default([]) }).optional(),
+    })
     .optional(),
   protocol: dropProtocolSchema.optional(),
   budget: dropBudgetSchema.optional(),

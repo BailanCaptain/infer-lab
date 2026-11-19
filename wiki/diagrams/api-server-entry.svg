@@ -17,42 +17,42 @@
   <path d="M600 647 L670 647" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#api-server-entry-ah-comm)"/>
   <path d="M765 616 L765 590" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-server-entry-ah-ink)"/>
   <path d="M670 481 L636 481 L636 555 L600 555" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#api-server-entry-ah-token)"/>
-  <rect x="40" y="64" width="300" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="40" y="64" width="300" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="190" y="91" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">HTTP 请求 · 一段 JSON</text>
-  <text x="190" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">用户说「你好」，要求流式返回</text>
-  <rect x="40" y="156" width="300" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="190" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">用户说「你好」，要求流式返回</text>
+  <rect x="40" y="156" width="300" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="190" y="183" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">① 检查</text>
-  <text x="190" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">模型名 · 模板来源 · 工具选项</text>
-  <rect x="40" y="248" width="300" height="62" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="190" y="275" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">② 套聊天模板</text>
-  <text x="190" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">&lt;|user|&gt;你好&lt;|assistant|&gt;</text>
-  <rect x="40" y="340" width="300" height="62" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="190" y="367" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">③ 分词</text>
-  <text x="190" y="386" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">[7, 31, 1052, 9]：4 个编号</text>
-  <rect x="40" y="432" width="300" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="190" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">模型名 · 模板来源 · 工具选项</text>
+  <rect x="40" y="248" width="300" height="62" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="190" y="275" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">② 套聊天模板</text>
+  <text x="190" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">&lt;|user|&gt;你好&lt;|assistant|&gt;</text>
+  <rect x="40" y="340" width="300" height="62" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="190" y="367" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">③ 分词</text>
+  <text x="190" y="386" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">[7, 31, 1052, 9]：4 个编号</text>
+  <rect x="40" y="432" width="300" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="190" y="459" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">④ 定输出上限和采样参数</text>
-  <text x="190" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">太长就拒；temperature、top-p…</text>
-  <rect x="40" y="524" width="300" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="190" y="551" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑤ 包成 EngineCoreRequest</text>
-  <text x="190" y="570" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">编号 + 采样参数 + 请求 ID</text>
-  <rect x="400" y="156" width="200" height="62" rx="8" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="190" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">太长就拒；temperature、top-p…</text>
+  <rect x="40" y="524" width="300" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="190" y="551" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">⑤ 包成 EngineCoreRequest</text>
+  <text x="190" y="570" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">编号 + 采样参数 + 请求 ID</text>
+  <rect x="400" y="156" width="200" height="62" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="500" y="183" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">返回错误</text>
   <text x="500" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">400 / 404，不进引擎</text>
-  <rect x="400" y="524" width="200" height="62" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="500" y="551" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑥ 登记回程接收点</text>
-  <text x="500" y="570" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">反分词器 + 输出槽</text>
-  <rect x="400" y="616" width="200" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="500" y="643" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑦ 选 DP 组并发送</text>
-  <text x="500" y="662" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">看请求头，没有就打分</text>
-  <rect x="670" y="450" width="190" height="62" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="400" y="524" width="200" height="62" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <text x="500" y="551" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">⑥ 登记回程接收点</text>
+  <text x="500" y="570" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">反分词器 + 输出槽</text>
+  <rect x="400" y="616" width="200" height="62" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
+  <text x="500" y="643" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">⑦ 选 DP 组并发送</text>
+  <text x="500" y="662" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">看请求头，没有就打分</text>
+  <rect x="670" y="450" width="190" height="62" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="765" y="477" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">每一步算出的编号</text>
   <text x="765" y="496" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">之后一批批回来</text>
-  <rect x="670" y="616" width="190" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="670" y="616" width="190" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="765" y="643" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">收下，建 Request</text>
-  <text x="765" y="662" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">输入线程做，与计算并行</text>
-  <rect x="670" y="534" width="190" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="765" y="558" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">waiting 队列</text>
-  <text x="765" y="577" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">下一圈开头由调度器取</text>
+  <text x="765" y="662" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">输入线程做，与计算并行</text>
+  <rect x="670" y="534" width="190" height="56" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="765" y="558" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">waiting 队列</text>
+  <text x="765" y="577" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">下一圈开头由调度器取</text>
   <text x="635" y="637" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">ZMQ</text>
   <text x="512" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">提示词太长</text>
   <text x="636" y="470" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">回程</text>

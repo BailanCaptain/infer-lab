@@ -123,13 +123,7 @@ rawSources:
 
 vllm-ascend 是让 vLLM 跑在昇腾 NPU（华为的 AI 加速芯片）上的一个单独安装的包：请求接入和引擎循环沿用 vLLM 的框架，Worker、模型、算子和通信则通过平台与扩展机制选择适用的实现。它还会调整部分调度配置与资源管理行为，因此两边的分工需要沿实际调用链看。本知识库也叫它「昇腾适配层」。
 
-**平台**（platform）是 vLLM 回答一切硬件问题的对象；**Worker** 是守着一张卡、真正执行模型的进程。
-
-```wiki-diagram
-file: ascend-vs-upstream
-```
-
-实线每一步都走：Scheduler 定下本步算哪些请求、用哪些 KV cache 块，Executor 把计划发给每张卡的 NPUWorker，NPUModelRunner 把它变成 NPU 上的张量，GLM 模型和昇腾算子算完再交回引擎。虚线在请求到来前就完成，其中 patch 伸过边界，换掉上游的部分函数。
+**平台**（platform）是 vLLM 回答一切硬件问题的对象；**Worker** 是守着一张卡、真正执行模型的进程。请求到来前，插件先通过平台钩子、补丁与算子注册把昇腾实现接进主干；请求到来后，每一步主线顺次走过 Scheduler（定下本步算哪些请求、用哪些 KV cache 块）、Executor（把计划发给每张卡的 `NPUWorker`）、`NPUModelRunner`（把计划变成 NPU 上的张量），最终由模型和昇腾算子算完交回引擎（两仓完整边界与五个扩展点见下节架构图）。
 
 ## 为什么做成插件，不直接改一份 vLLM？代价在哪
 

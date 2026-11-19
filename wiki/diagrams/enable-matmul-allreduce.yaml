@@ -1,86 +1,10 @@
-layout: scene
+mode: native-svg
 id: enable-matmul-allreduce
-caption: v0.23 维护分支按顺序选择行并行实现，第一个满足条件的分支返回。本开关排第五，影响未被前四条认领的层；进入该类后还要满足 reduce_results 且 TP>1，才调用融合算子。
-size: [900, 610]
-
-regions:
-  - label: _get_row_parallel_op 从上往下依次判断
-    note: 位置就是优先级。排在上面的先认领，排在下面的只能捡剩下的层。
-    at: [20, 26]
-    size: [860, 418]
-    tone: upstream
-
-bands:
-  - label: 细粒度 o_proj TP（DSV4）
-    sub: "\"wo_b\" in prefix and oproj_tp_enable()"
-    fn: DSV4OProjRowParallelOp
-    at: [136, 88]
-    size: [728, 42]
-    tone: upstream
-  - label: DSA-CP 下被 layer_sharding 切过的 o_proj
-    sub: "enable_dsa_cp_with_layer_shard() and \"o_proj\" in prefix"
-    fn: ShardedCPRowParallelOp
-    at: [136, 134]
-    size: [728, 42]
-    tone: upstream
-  - label: 细粒度 MLP TP
-    sub: down_proj 且开启 MLP TP，且不是 MoE 层
-    fn: MLPRowParallelOp
-    at: [136, 180]
-    size: [728, 42]
-    tone: upstream
-  - label: 细粒度 o_proj TP
-    sub: "\"o_proj\" in prefix and oproj_tp_enable()"
-    fn: OProjRowParallelOp
-    at: [136, 226]
-    size: [728, 42]
-    tone: upstream
-  - label: 本页的开关就在这一条
-    sub: matmul_allreduce_enable()，认领剩余行并行层
-    fn: MatmulAllreduceRowParallelOp
-    at: [136, 272]
-    size: [728, 42]
-    tone: accent
-    icon: bolt
-  - label: FlashComm2 的 o_proj 路径
-    sub: flashcomm2_enable()
-    fn: Flashcomm2OProjRowParallelOp
-    at: [136, 318]
-    size: [728, 42]
-    tone: muted
-  - label: 序列并行的行并行路径
-    sub: enable_sp()，五个 prefix 各自认领
-    fn: SequenceRowParallelOp
-    at: [136, 364]
-    size: [728, 42]
-    tone: muted
-  - label: 一条都不命中，走 vLLM 默认实现
-    sub: 先 matmul 算完，再发 AllReduce，两步串行
-    right: return None
-    at: [136, 410]
-    size: [728, 42]
-    tone: muted
-
-brackets:
-  - { at: [26, 318], span: 134, dir: left, label: 到不了, tone: muted }
-
-notes:
-  - at: [40, 476]
-    text: "被此分支认领的层不再判断后面的 FlashComm2、SP 与默认分支；这不等于关闭这些特性的全部模块。该类内仍会根据 reduce_results 和 TP 大小选择融合或普通调用。"
-    size: 12.5
-    width: 820
-  - at: [40, 530]
-    text: "反过来，排在它上面的四条轮不到它：细粒度 TP 和 layer_sharding 认领掉的那些层，走的是各自的实现。"
-    size: 12.5
-    width: 820
-  - at: [40, 576]
-    text: "融合调用争取重叠计算与通信；该 Python 包装层未给出内部切块策略或通信字节数，实际等待是否缩短需要测量。"
-    size: 12.5
-    width: 820
-    strong: true
-
+caption: >-
+  v0.23.0 行并行派发函数 _get_row_parallel_op 的八分支优先级：enable_matmul_allreduce 排在第五且不过滤 prefix，会截断后面的 FlashComm2、SP 与默认路径；v0.25.1rc1（PR #12119）已移除，v0.30.0 与 main 仅保留三条细粒度 TP 分支。
+size: [900, 624]
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L700-L739
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L700-L739'
     symbols:
       - _get_row_parallel_op
       - DSV4OProjRowParallelOp
@@ -93,5 +17,7 @@ pins:
       - matmul_allreduce_enable
       - flashcomm2_enable
       - enable_sp
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L420-L441
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L420-L441'
     symbols: [npu_mm_all_reduce_base, reduce_results, tp_size]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/linear_op.py#L422-L430'
+    symbols: [_get_row_parallel_op]

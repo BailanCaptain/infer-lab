@@ -1,4 +1,10 @@
-import { ALLOWED_TAGS, allowedAttribute } from "../../src/content/wiki/diagram-sanitize";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import {
+  ALLOWED_TAGS,
+  allowedAttribute,
+  LOCAL_ILLUSTRATION_HREF,
+} from "../../src/content/wiki/diagram-sanitize";
 
 export interface StrictXmlAttr {
   readonly name: string;
@@ -299,7 +305,201 @@ export function parseStrictSvgXml(
   return { ok: true, root: rootRes.el };
 }
 
-export function validateNativeSvg(rawSvg: string, expectedSize: readonly [number, number]): string[] {
+const SIGNED_PX_ATTRS = new Set(["x", "y", "x1", "y1", "x2", "y2", "cx", "cy", "refX", "refY"]);
+const NONNEG_PX_ATTRS = new Set([
+  "font-size",
+  "width",
+  "height",
+  "r",
+  "rx",
+  "ry",
+  "stroke-width",
+  "markerWidth",
+  "markerHeight",
+]);
+const NAMED_PAINT_MAP: Record<string, string> = {
+  white: "#ffffff",
+  black: "#17211f",
+  transparent: "none",
+};
+
+function normalizeAttrValue(name: string, rawValue: string): string {
+  const trimmed = rawValue.trim();
+  if (NONNEG_PX_ATTRS.has(name)) {
+    const m = /^(\d+(?:\.\d+)?)\s*px$/i.exec(trimmed);
+    if (m) return m[1]!;
+    return rawValue;
+  }
+  if (SIGNED_PX_ATTRS.has(name)) {
+    const m = /^(-?\d+(?:\.\d+)?)\s*px$/i.exec(trimmed);
+    if (m) return m[1]!;
+    return rawValue;
+  }
+  if (name === "fill" || name === "stroke") {
+    const mapped = NAMED_PAINT_MAP[trimmed.toLowerCase()];
+    if (mapped) return mapped;
+    return rawValue;
+  }
+  if (name === "font-family") {
+    // Already valid as-is: keep exact bytes untouched.
+    if (allowedAttribute("font-family", rawValue)) return rawValue;
+    const unquoted = trimmed.replace(/&quot;/g, "'").replace(/"/g, "'");
+    const parts = unquoted
+      .split(",")
+      .map((part) => {
+        const p = part.trim();
+        if (/^'[A-Za-z0-9 _-]+'$/.test(p) || /^[A-Za-z0-9_-]+$/.test(p) || /^var\(--font-/.test(p)) {
+          return p;
+        }
+        if (/^[A-Za-z0-9_-]+(?: [A-Za-z0-9_-]+)+$/.test(p)) {
+          return `'${p}'`;
+        }
+        return p;
+      })
+      .join(", ");
+    return allowedAttribute("font-family", parts) ? parts : unquoted;
+  }
+  return rawValue;
+}
+
+/**
+ * 面向开源/纯文本模型的安全 SVG 属性预规范化器（严格在开启标签属性值边界内工作，绝不改动注释、CDATA、文本或已合法字节）：
+ * - 去掉数值属性末尾的 `px` 单位（`font-size="14px"` -> `font-size="14"`、`width`/`height`/`rx`/`stroke-width` 等）
+ * - 常用命名色映射为暖矿物语义值（`white`->`#ffffff`、`black`->`#17211f`、`transparent`->`none`）
+ * - 将 `font-family` 中的双引号 / `&quot;` 或无引号多词字体名规范为单引号
+ * 任何真正的非法标签/脚本/事件/外链/`<style>`/`rgba()` 均原样保留交由严格 `validateNativeSvg` 拦截。
+ */
+export function normalizeNativeSvg(rawSvg: string): string {
+  let out = "";
+  let pos = 0;
+  const len = rawSvg.length;
+  while (pos < len) {
+    const lt = rawSvg.indexOf("<", pos);
+    if (lt < 0) {
+      out += rawSvg.slice(pos);
+      break;
+    }
+    out += rawSvg.slice(pos, lt);
+    pos = lt;
+    if (rawSvg.startsWith("<!--", pos)) {
+      const end = rawSvg.indexOf("-->", pos + 4);
+      if (end < 0) {
+        out += rawSvg.slice(pos);
+        break;
+      }
+      out += rawSvg.slice(pos, end + 3);
+      pos = end + 3;
+      continue;
+    }
+    if (rawSvg.startsWith("<![CDATA[", pos)) {
+      const end = rawSvg.indexOf("]]>", pos + 9);
+      if (end < 0) {
+        out += rawSvg.slice(pos);
+        break;
+      }
+      out += rawSvg.slice(pos, end + 3);
+      pos = end + 3;
+      continue;
+    }
+    if (rawSvg.startsWith("<?", pos)) {
+      const end = rawSvg.indexOf("?>", pos + 2);
+      if (end < 0) {
+        out += rawSvg.slice(pos);
+        break;
+      }
+      out += rawSvg.slice(pos, end + 2);
+      pos = end + 2;
+      continue;
+    }
+    if (rawSvg.startsWith("</", pos) || rawSvg.startsWith("<!", pos)) {
+      const end = rawSvg.indexOf(">", pos + 2);
+      if (end < 0) {
+        out += rawSvg.slice(pos);
+        break;
+      }
+      out += rawSvg.slice(pos, end + 1);
+      pos = end + 1;
+      continue;
+    }
+
+    // Parse opening tag header + attributes without touching well-formed spacing/quotes.
+    let i = pos + 1;
+    while (i < len && /[A-Za-z0-9._:-]/.test(rawSvg[i]!)) i++;
+    if (i === pos + 1) {
+      out += "<";
+      pos++;
+      continue;
+    }
+    let tagOut = rawSvg.slice(pos, i);
+    let aborted = false;
+    while (i < len) {
+      const wsStart = i;
+      while (i < len && isXmlSpace(rawSvg[i])) i++;
+      const ws = rawSvg.slice(wsStart, i);
+      if (rawSvg.startsWith("/>", i)) {
+        tagOut += `${ws}/>`;
+        i += 2;
+        break;
+      }
+      if (rawSvg[i] === ">") {
+        tagOut += `${ws}>`;
+        i++;
+        break;
+      }
+      const nameStart = i;
+      while (i < len && /[A-Za-z0-9._:-]/.test(rawSvg[i]!)) i++;
+      if (i === nameStart) {
+        aborted = true;
+        break;
+      }
+      const attrName = rawSvg.slice(nameStart, i);
+      const eqStart = i;
+      while (i < len && isXmlSpace(rawSvg[i])) i++;
+      if (rawSvg[i] !== "=") {
+        aborted = true;
+        break;
+      }
+      i++;
+      while (i < len && isXmlSpace(rawSvg[i])) i++;
+      const quote = rawSvg[i];
+      if (quote !== '"' && quote !== "'") {
+        aborted = true;
+        break;
+      }
+      const eqPrefix = rawSvg.slice(eqStart, i);
+      const valStart = i + 1;
+      const closeQuote = rawSvg.indexOf(quote, valStart);
+      if (closeQuote < 0) {
+        aborted = true;
+        break;
+      }
+      const rawVal = rawSvg.slice(valStart, closeQuote);
+      const nextVal = normalizeAttrValue(attrName, rawVal);
+      // If a single-quoted font-family now contains single quotes, switch outer delimiter to double quotes.
+      const outQuote = quote === "'" && nextVal.includes("'") && !nextVal.includes('"') ? '"' : quote;
+      tagOut += `${ws}${attrName}${eqPrefix}${outQuote}${nextVal}${outQuote}`;
+      i = closeQuote + 1;
+    }
+    if (aborted) {
+      out += rawSvg.slice(pos);
+      break;
+    }
+    out += tagOut;
+    pos = i;
+  }
+  return out;
+}
+
+export interface ValidateNativeSvgOptions {
+  /** 指定静态资源目录（一般为 `<root>/public`）时，前置核验 `<image href="./wiki-illustrations/...">` 磁盘存在性 */
+  publicRoot?: string;
+}
+
+export function validateNativeSvg(
+  rawSvg: string,
+  expectedSize: readonly [number, number],
+  options: ValidateNativeSvgOptions = {},
+): string[] {
   const parsed = parseStrictSvgXml(rawSvg);
   if (!parsed.ok) return [parsed.error];
   const root = parsed.root;
@@ -355,6 +555,19 @@ export function validateNativeSvg(rawSvg: string, expectedSize: readonly [number
       if (!allowedAttribute(attr.name, attr.value, el.tagName)) {
         issues.push(`不允许的 SVG 属性或值 <${el.tagName} ${attr.name}>`);
         continue;
+      }
+      if (
+        el.tagName === "image" &&
+        attr.name === "href" &&
+        options.publicRoot &&
+        LOCAL_ILLUSTRATION_HREF.test(attr.value)
+      ) {
+        const diskPath = join(options.publicRoot, attr.value.slice(2));
+        if (!existsSync(diskPath)) {
+          issues.push(
+            `引用的静态插画 public/${attr.value.slice(2)} 在磁盘上不存在；自动化 Drop / 纯文本模型严禁虚构 ./wiki-illustrations/ 位图路径，请改用纯矢量 native-svg（等距/分层几何路径 + 暖矿物配色）或 layout: figure 绘制`,
+          );
+        }
       }
       if (attr.name === "id") {
         if (definedIds.has(attr.value)) issues.push(`SVG 内部存在重复 id="${attr.value}"`);

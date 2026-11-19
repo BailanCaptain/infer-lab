@@ -161,11 +161,7 @@ $$M_{\text{before}} = 2 + 3 + 0.25 + 0.75 = 6\text{ GiB}, \qquad M_{\text{freed}
 
 两级睡眠都归还了这 5 GiB，差别在**旧权重的内容是否留在 CPU**。level 1 唤醒权重时，把备份拷回并释放备份；level 2 只恢复权重空间和另存的 buffers，参数值仍需外部重载或更新，不能拿此时的 3 GiB 占用当作模型已就绪。缓存唤醒后，占用回到 6 GiB，旧 KV 内容仍已丢失，要由后续请求重新计算。这个账解释的是给定分配的去向；池外资源与持久分配多少，会直接改变睡后余量，示意的 1 GiB 与前述官方小模型的验收阈值没有对应关系。
 
-```wiki-diagram
-file: sleep-mode-flow
-```
-
-把两级睡眠的内存去向、Level 2 分阶段唤醒顺序，以及 `v0.30.0` / `main` 新增的 HCCL 通信锚点（`sleep_lifecycle_anchor`）与两条硬前提收在一张图里，方便和下面的控制规则对照：
+把两级睡眠的内存去向、暂停调度 → 释放显存 → 分阶段唤醒的完整控制链，以及 `v0.30.0` / `main` 新增的 HCCL 通信锚点（`sleep_lifecycle_anchor`）与两条硬前提收在一张图里，方便和下面的控制规则对照：
 
 ```wiki-diagram
 file: sleep-mode-fig-levels-and-wakeup

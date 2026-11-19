@@ -5,28 +5,28 @@
   <image href="./wiki-illustrations/ascend-four-hardware-cutaway.webp" x="50" y="135" width="800" height="369" preserveAspectRatio="xMidYMid meet"/>
 
   <g fill="none" stroke-width="1.6">
-    <polyline points="86,114 86,248 155,248" stroke="#087f73"/>
-    <polyline points="548,114 548,278 485,278" stroke="#9a4b86"/>
-    <polyline points="780,114 780,295 772,295" stroke="#4c65b6"/>
+    <polyline points="268,114 268,220 218,220" stroke="#087f73"/>
+    <polyline points="558,114 558,286 506,286" stroke="#9a4b86"/>
+    <polyline points="832,114 832,276 772,276" stroke="#4c65b6"/>
     <line x1="165" y1="528" x2="165" y2="422" stroke="#c78300"/>
-    <line x1="437" y1="528" x2="437" y2="426" stroke="#66716d"/>
-    <line x1="713" y1="528" x2="713" y2="456" stroke="#b54237"/>
+    <line x1="434" y1="528" x2="434" y2="382" stroke="#66716d"/>
+    <line x1="696" y1="528" x2="696" y2="434" stroke="#b54237"/>
   </g>
 
   <g fill="#ffffff" stroke-width="2">
-    <circle cx="155" cy="248" r="5.5" stroke="#087f73"/>
-    <circle cx="485" cy="278" r="5.5" stroke="#9a4b86"/>
-    <circle cx="772" cy="295" r="5.5" stroke="#4c65b6"/>
+    <circle cx="218" cy="220" r="5.5" stroke="#087f73"/>
+    <circle cx="506" cy="286" r="5.5" stroke="#9a4b86"/>
+    <circle cx="772" cy="276" r="5.5" stroke="#4c65b6"/>
     <circle cx="165" cy="422" r="5.5" stroke="#c78300"/>
-    <circle cx="437" cy="426" r="5.5" stroke="#66716d"/>
-    <circle cx="713" cy="456" r="5.5" stroke="#b54237"/>
+    <circle cx="434" cy="382" r="5.5" stroke="#66716d"/>
+    <circle cx="696" cy="434" r="5.5" stroke="#b54237"/>
   </g>
-  <circle cx="155" cy="248" r="2.5" fill="#087f73"/>
-  <circle cx="485" cy="278" r="2.5" fill="#9a4b86"/>
-  <circle cx="772" cy="295" r="2.5" fill="#4c65b6"/>
+  <circle cx="218" cy="220" r="2.5" fill="#087f73"/>
+  <circle cx="506" cy="286" r="2.5" fill="#9a4b86"/>
+  <circle cx="772" cy="276" r="2.5" fill="#4c65b6"/>
   <circle cx="165" cy="422" r="2.5" fill="#c78300"/>
-  <circle cx="437" cy="426" r="2.5" fill="#66716d"/>
-  <circle cx="713" cy="456" r="2.5" fill="#b54237"/>
+  <circle cx="434" cy="382" r="2.5" fill="#66716d"/>
+  <circle cx="696" cy="434" r="2.5" fill="#b54237"/>
 
   <g font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">
     <circle cx="24" cy="28" r="12" fill="#087f73"/><text x="24" y="32.5">1</text>

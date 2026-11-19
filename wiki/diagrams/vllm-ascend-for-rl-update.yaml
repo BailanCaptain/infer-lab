@@ -1,14 +1,14 @@
 layout: figure
 id: vllm-ascend-for-rl-update
 caption: main 的权重更新控制流；IPC 分支限未打包路径。主线第 2 站的调度先暂停，第 4 站的模型才可换权重；第 5、7 站产生并返回下一轮训练数据。使用 IPC trainer 时由发送方法包办 start/update/finish，外层不再重复；出错不能直接恢复生成。
-size: [880, 830]
+size: [880, 856]
 frames:
   - { label: 控制面：训练框架协调请求与权重版本, at: [20, 28], size: [840, 250] }
   - { label: 数据面：Worker 与权重传输后端, at: [20, 316], size: [840, 346] }
   - { label: 回到推理主线, at: [20, 704], size: [840, 100] }
 grids:
   - { at: [64, 70], rows: 1, cols: 1, cell: [510, 40], tone: control, style: solid, cells: [{ at: [0, 0], text: init_weight_transfer_engine：先完成传输握手 }] }
-  - { at: [64, 146], rows: 1, cols: 1, cell: [510, 40], tone: control, style: solid, cells: [{ at: [0, 0], text: /pause?mode=wait：等第 2 站排空在途请求 }] }
+  - { at: [64, 146], rows: 1, cols: 1, cell: [510, 40], tone: control, style: solid, cells: [{ at: [0, 0], text: "/pause?mode=wait：等第 2 站排空在途请求" }] }
   - { at: [64, 222], rows: 1, cols: 1, cell: [510, 40], tone: control, style: solid, cells: [{ at: [0, 0], text: start_weight_update：检查已配置、未更新、NZ 关闭 }] }
   - { at: [632, 217], rows: 1, cols: 1, cell: [184, 48], tone: control, style: faded, cells: [{ at: [0, 0], text: 检查失败 → 报错 }] }
   - { at: [210, 362], rows: 1, cols: 1, cell: [460, 48], tone: weight, style: solid, cells: [{ at: [0, 0], text: update_weights：调用后端，按需分多组更新 }] }
@@ -27,7 +27,7 @@ links:
   - { from: [648, 540], to: [530, 588], via: [[648, 564], [530, 564]], tone: comm }
   - { from: [440, 640], to: [440, 740], tone: control }
 texts:
-  - { at: [40, 676], text: 同卡 level 2 sleep：更新前唤醒 weights，更新后唤醒 kv_cache，再恢复生成, size: 13 }
+  - { at: [40, 834], text: 同卡 level 2 sleep：更新前唤醒 weights，更新后唤醒 kv_cache，再恢复生成, size: 13 }
 pins:
   - source: vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L296-L358
     symbols: [init_weight_transfer_engine, start_weight_update, update_weights, finish_weight_update]

@@ -25,7 +25,7 @@ import { PAGE_DIRS, parsePage } from "./pages";
 import { protectedParamSection } from "./params/pages";
 import { readRawSnapshot, saveRawSnapshot, withRawSources } from "./raw";
 import { createReview } from "./review";
-import { isWikiStatePath } from "./review-files";
+import { isWikiStatePath, mirrorPublicIllustrations } from "./review-files";
 import { revisePage } from "./revisions";
 
 function snapshotRefs(file: string, text: string | undefined): string[] {
@@ -170,6 +170,7 @@ async function prepareStagedIntegration(
       recursive: true,
       filter: (path) => !isWikiStatePath(relative(wikiRoot, path).replace(/\\/g, "/")),
     });
+    mirrorPublicIllustrations(root, stagingRoot);
     // A previous batch's decision is never proof that this run finished.
     rmSync(join(stageWiki, "_drafts/_integration.json"), { force: true });
     const result = await deps.prepare(stageWiki);

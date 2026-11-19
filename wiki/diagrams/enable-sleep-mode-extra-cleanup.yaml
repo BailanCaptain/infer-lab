@@ -1,92 +1,21 @@
-layout: scene
+mode: native-svg
 id: enable-sleep-mode-extra-cleanup
-caption: 固定 main baa023ad：额外清理位于分配器睡眠前，恢复位于分配器唤醒后；rc2 的 anchor 流程见正文
-size: [900, 624]
-
-regions:
-  - label: sleep()
-    note: 先清理图和设备通信资源，再释放可睡眠分配
-    at: [20, 44]
-    size: [860, 200]
-    tone: ascend
-  - label: wake_up()
-    note: 先恢复所选标签的内存，再恢复通信与所需的图
-    at: [20, 306]
-    size: [860, 200]
-    tone: neutral
-
-boxes:
-  - at: [40, 138]
-    size: [256, 92]
-    title: ① 作废 ACL 图
-    sub: workspace 置空、列表清空
-    fn: reset_all_graph_params
-    tone: accent
-    icon: graph
-  - at: [318, 138]
-    size: [256, 92]
-    title: ② 销毁 HCCL 通信域
-    sub: 同步之后逐组销毁
-    fn: destroy_hccl
-    tone: accent
-    icon: plug
-  - at: [596, 138]
-    size: [256, 92]
-    title: ③ 分配器换出
-    sub: level 1 只换权重
-    fn: offload_tags
-    tone: muted
-    icon: box
-
-  - at: [40, 400]
-    size: [256, 92]
-    title: ① 分配器还原
-    sub: 重建空间，有备份才拷回
-    fn: CaMemAllocator
-    tone: muted
-    icon: box
-  - at: [318, 400]
-    size: [256, 92]
-    title: ② 重建通信域
-    sub: 逐组恢复 + 刷 MoE 句柄
-    fn: restore_hccl
-    tone: accent
-    icon: plug
-  - at: [596, 400]
-    size: [256, 92]
-    title: ③ 重捕获图
-    sub: tags 为 None 或含 kv_cache
-    fn: capture_model
-    tone: accent
-    icon: graph
-
-arrows:
-  - { from: [300, 184], to: [314, 184], tone: ascend }
-  - { from: [578, 184], to: [592, 184], tone: ascend }
-  - { from: [300, 446], to: [314, 446], tone: neutral }
-  - { from: [578, 446], to: [592, 446], tone: neutral }
-
-brackets:
-  - { at: [40, 256], span: 534, dir: down, label: 开关加出来的只有这两步, tone: accent }
-  - { at: [318, 518], span: 534, dir: down, label: 额外清理带来的恢复工作, tone: accent }
-
-notes:
-  - at: [20, 582]
-    text: "图清理与重捕获还受 use_aclgraph 门控；HCCL 清理要求分布式已初始化。旧 KV 内容不随唤醒恢复。"
-    size: 12.5
-    width: 860
-  - at: [20, 606]
-    text: "两个键少写一个，四个彩色格子一个都不执行：cleanup_enabled = rl_config.enabled and rl_config.sleep_mode_extra_cleanup。"
-    size: 12.5
-    width: 860
-    strong: true
-
+caption: >-
+  v0.30.0 (c09d3e20) 与 main (8d6180e2) 中 rl_config.sleep_mode_extra_cleanup 完整休眠/唤醒次序：sleep 时先清 ACL 图、再建 HCCL lifecycle anchor 保活并销毁业务设备组、最后 CaMemAllocator 换出；wake_up 时先还原显存、再重建业务组、按 tags 重捕获图，最后释放 anchor。
+size: [900, 668]
 pins:
-  - source: vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L241-L258
-    symbols: [rl_config, sleep_mode_extra_cleanup, CaMemAllocator, offload_tags]
-  - source: vllm-ascend@baa023ad:vllm_ascend/device_allocator/sleep_mem_optimized.py#L47-L64
-    symbols: [use_aclgraph, reset_all_graph_params, destroy_hccl, restore_hccl, capture_model]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/device_allocator/camem.py#L195-L249
-    symbols: [CaMemAllocator, cpu_backup_tensor]
-  - source: vllm-ascend@baa023ad:vllm_ascend/device_allocator/sleep_mem_optimized.py#L72-L128
-    symbols: [capture_model, tags]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L259-L303'
+    symbols: [rl_config, sleep_mode_extra_cleanup, CaMemAllocator, offload_tags, sleep_wakeup_manager]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device_allocator/sleep_mem_optimized.py#L48-L71'
+    symbols: [use_aclgraph, release_lifecycle_anchor, tags]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device_allocator/sleep_mem_optimized.py#L73-L135'
+    symbols: [clear_all_attention_workspaces, reset_all_graph_params, capture_model]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device_allocator/sleep_mem_optimized.py#L154-L249'
+    symbols:
+      - _ensure_lifecycle_anchor
+      - release_lifecycle_anchor
+      - destroy_hccl
+      - restore_hccl
+      - prepare_moe_hccl_teardown
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/device_allocator/sleep_mem_optimized.py#L154-L249'
+    symbols: [_ensure_lifecycle_anchor, release_lifecycle_anchor]

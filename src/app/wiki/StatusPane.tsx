@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
-import { CHAT_MODELS } from "../../content/wiki/chat-models";
+import {
+  CHAT_MODELS,
+  CHAT_PROVIDER_LABELS,
+  CHAT_PROVIDERS,
+  type ChatProvider,
+} from "../../content/wiki/chat-models";
 import { wikiRequest } from "./api";
 
 /** 与 server/status.ts 的 readStatus 返回值同形；前端不 import 服务端模块 */
@@ -16,11 +21,20 @@ interface WikiStatus {
   };
   models: {
     chatModel?: string;
-    chatProvider?: "claude" | "codex";
+    chatProvider?: ChatProvider;
     codexCalls?: number;
+    externalCalls?: number;
     workModel: string;
     recorded: number;
     switched: number;
+    apiBaseUrl?: string;
+    apiKeyEnv?: string;
+    hasApiKey?: boolean;
+    anthropicVersion?: string;
+    claudeCli?: string;
+    claudeSettingSources?: string;
+    codexAllowUserConfig?: boolean;
+    harnessCommand?: { command: string; args?: string[] };
     last?: { at: string; purpose: string; event?: string; from: string; to: string; reason?: string };
   };
   nightly?: {
@@ -87,18 +101,50 @@ function Row({
   );
 }
 
-type ModelSelection = { chatProvider: "claude" | "codex"; chatModel: string };
+type ModelSelection = {
+  chatProvider: ChatProvider;
+  chatModel: string;
+  apiBaseUrl?: string;
+  apiKeyEnv?: string;
+  anthropicVersion?: string;
+  claudeCli?: string;
+  claudeSettingSources?: string;
+  codexAllowUserConfig?: boolean;
+  harnessCommand?: { command: string; args: string[] } | null;
+};
+
+function providerNote(provider: ChatProvider): string {
+  switch (provider) {
+    case "codex":
+      return "使用本机 Codex CLI；默认走 ChatGPT 登录，勾选下方开关后可读取本机 ~/.codex 自定义 Harness 配置。";
+    case "claude":
+      return "使用本机 Claude Code CLI（支持 Windows npm .cmd 自动解包、CCR 与 DeepSeek Anthropic 环境变量）。";
+    case "openai-compatible":
+      return "直连 OpenAI 兼容 /v1/chat/completions（DeepSeek / Qwen / GLM / vLLM / Ollama / LiteLLM），无需安装 CLI；密钥仅通过后端终端环境变量读取。";
+    case "anthropic-compatible":
+      return "直连 Anthropic 兼容 /v1/messages（本地 CCR 路由 http://127.0.0.1:3456 或 DeepSeek /anthropic），无需安装 Claude CLI；密钥仅通过后端终端环境变量读取。";
+    case "harness":
+      return "调用自定义本地 Harness 命令（shell: false，stdin 传入 prompt，stdout 返回回复），可对接任意开源 Agent / DeepSeek 封装脚本。";
+  }
+}
 
 function ModelPicker({
   models,
   onSaved,
 }: {
   models: WikiStatus["models"];
-  onSaved: (selection: ModelSelection) => void;
+  onSaved: () => Promise<void> | void;
 }) {
-  const [provider, setProvider] = useState<ModelSelection["chatProvider"]>("claude");
+  const [provider, setProvider] = useState<ChatProvider>("claude");
   const [model, setModel] = useState("");
   const [custom, setCustom] = useState(false);
+  const [apiBaseUrl, setApiBaseUrl] = useState("");
+  const [apiKeyEnv, setApiKeyEnv] = useState("");
+  const [anthropicVersion, setAnthropicVersion] = useState("");
+  const [claudeSettingSources, setClaudeSettingSources] = useState("");
+  const [codexAllowUserConfig, setCodexAllowUserConfig] = useState(false);
+  const [harnessCmd, setHarnessCmd] = useState("");
+  const [harnessArgs, setHarnessArgs] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -108,11 +154,42 @@ function ModelPicker({
     setProvider(savedProvider);
     setModel(savedModel);
     setCustom(!!savedModel && !CHAT_MODELS[savedProvider].includes(savedModel));
-  }, [models.chatProvider, models.chatModel]);
+    setApiBaseUrl(models.apiBaseUrl ?? "");
+    setApiKeyEnv(models.apiKeyEnv ?? "");
+    setAnthropicVersion(models.anthropicVersion ?? "");
+    setClaudeSettingSources(models.claudeSettingSources ?? "");
+    setCodexAllowUserConfig(Boolean(models.codexAllowUserConfig));
+    setHarnessCmd(models.harnessCommand?.command ?? "");
+    setHarnessArgs((models.harnessCommand?.args ?? []).join(" "));
+  }, [
+    models.chatProvider,
+    models.chatModel,
+    models.apiBaseUrl,
+    models.apiKeyEnv,
+    models.anthropicVersion,
+    models.claudeSettingSources,
+    models.codexAllowUserConfig,
+    models.harnessCommand,
+  ]);
   const changed = () => {
     setNotice("");
     setError("");
   };
+  const isHttp = provider === "openai-compatible" || provider === "anthropic-compatible";
+  const parsedHarnessArgs = harnessArgs.trim().split(/\s+/).filter(Boolean);
+  const unchanged =
+    provider === (models.chatProvider ?? "claude") &&
+    model.trim() === (models.chatModel ?? "") &&
+    (!isHttp ||
+      (apiBaseUrl.trim() === (models.apiBaseUrl ?? "") &&
+        apiKeyEnv.trim() === (models.apiKeyEnv ?? "") &&
+        (provider !== "anthropic-compatible" ||
+          anthropicVersion.trim() === (models.anthropicVersion ?? "")))) &&
+    (provider !== "claude" || claudeSettingSources.trim() === (models.claudeSettingSources ?? "")) &&
+    (provider !== "codex" || codexAllowUserConfig === Boolean(models.codexAllowUserConfig)) &&
+    (provider !== "harness" ||
+      (harnessCmd.trim() === (models.harnessCommand?.command ?? "") &&
+        parsedHarnessArgs.join(" ") === (models.harnessCommand?.args ?? []).join(" ")));
   return (
     <form
       className="wiki-model-settings"
@@ -123,11 +200,30 @@ function ModelPicker({
         setError("");
         setNotice("");
         try {
-          const saved = await wikiRequest<ModelSelection>("status/model", {
+          const payload: ModelSelection = {
             chatProvider: provider,
             chatModel: model.trim(),
-          });
-          onSaved(saved);
+            ...(isHttp
+              ? {
+                  apiBaseUrl: apiBaseUrl.trim(),
+                  apiKeyEnv: apiKeyEnv.trim(),
+                  ...(provider === "anthropic-compatible"
+                    ? { anthropicVersion: anthropicVersion.trim() }
+                    : {}),
+                }
+              : {}),
+            ...(provider === "claude" ? { claudeSettingSources: claudeSettingSources.trim() } : {}),
+            ...(provider === "codex" ? { codexAllowUserConfig } : {}),
+            ...(provider === "harness"
+              ? {
+                  harnessCommand: harnessCmd.trim()
+                    ? { command: harnessCmd.trim(), args: parsedHarnessArgs }
+                    : null,
+                }
+              : {}),
+          };
+          await wikiRequest<ModelSelection>("status/model", payload);
+          await onSaved();
           setNotice("已保存，后续所有模型任务生效。");
         } catch (e) {
           setError((e as Error).message);
@@ -142,7 +238,7 @@ function ModelPicker({
           value={provider}
           disabled={busy}
           onChange={(event) => {
-            const next = event.target.value as ModelSelection["chatProvider"];
+            const next = event.target.value as ChatProvider;
             setProvider(next);
             const nextModel =
               next === (models.chatProvider ?? "claude") ? (models.chatModel ?? "") : CHAT_MODELS[next][0]!;
@@ -151,8 +247,11 @@ function ModelPicker({
             changed();
           }}
         >
-          <option value="codex">Codex（GPT）</option>
-          <option value="claude">Claude Code</option>
+          {CHAT_PROVIDERS.map((p) => (
+            <option key={p} value={p}>
+              {CHAT_PROVIDER_LABELS[p]}
+            </option>
+          ))}
         </select>
       </label>
       <label>
@@ -185,7 +284,7 @@ function ModelPicker({
             maxLength={200}
             required
             disabled={busy}
-            placeholder="输入当前账户可用的模型 ID"
+            placeholder="输入当前服务商或路由可用的模型 ID"
             onChange={(event) => {
               setModel(event.target.value);
               changed();
@@ -193,21 +292,128 @@ function ModelPicker({
           />
         </label>
       )}
+      {isHttp && (
+        <>
+          <label>
+            接口地址（apiBaseUrl）
+            <input
+              value={apiBaseUrl}
+              maxLength={300}
+              disabled={busy}
+              placeholder={
+                provider === "openai-compatible"
+                  ? "https://api.deepseek.com/v1 或 http://127.0.0.1:11434/v1"
+                  : "http://127.0.0.1:3456 或 https://api.deepseek.com/anthropic"
+              }
+              onChange={(event) => {
+                setApiBaseUrl(event.target.value);
+                changed();
+              }}
+            />
+          </label>
+          <label>
+            密钥环境变量名（apiKeyEnv，绝不存明文密钥）
+            <input
+              value={apiKeyEnv}
+              maxLength={100}
+              disabled={busy}
+              placeholder={
+                provider === "openai-compatible"
+                  ? "DEEPSEEK_API_KEY 或 OPENAI_API_KEY"
+                  : "ANTHROPIC_AUTH_TOKEN"
+              }
+              onChange={(event) => {
+                setApiKeyEnv(event.target.value);
+                changed();
+              }}
+            />
+          </label>
+          {provider === "anthropic-compatible" && (
+            <label>
+              Anthropic 版本头（可选）
+              <input
+                value={anthropicVersion}
+                maxLength={20}
+                disabled={busy}
+                placeholder="2023-06-01"
+                onChange={(event) => {
+                  setAnthropicVersion(event.target.value);
+                  changed();
+                }}
+              />
+            </label>
+          )}
+        </>
+      )}
+      {provider === "claude" && (
+        <label>
+          Claude setting-sources（可选，如 user,local）
+          <input
+            value={claudeSettingSources}
+            maxLength={100}
+            disabled={busy}
+            placeholder="留空默认隔离；CCR / DeepSeek 可填 user,local"
+            onChange={(event) => {
+              setClaudeSettingSources(event.target.value);
+              changed();
+            }}
+          />
+        </label>
+      )}
+      {provider === "codex" && (
+        <label>
+          <input
+            type="checkbox"
+            checked={codexAllowUserConfig}
+            disabled={busy}
+            onChange={(event) => {
+              setCodexAllowUserConfig(event.target.checked);
+              changed();
+            }}
+          />{" "}
+          允许读取本机 ~/.codex 用户配置（自定义 Codex Harness）
+        </label>
+      )}
+      {provider === "harness" && (
+        <>
+          <label>
+            Harness 可执行命令（command）
+            <input
+              value={harnessCmd}
+              maxLength={300}
+              required
+              disabled={busy}
+              placeholder="例如 node 或 C:/tools/deepseek-harness.exe"
+              onChange={(event) => {
+                setHarnessCmd(event.target.value);
+                changed();
+              }}
+            />
+          </label>
+          <label>
+            命令行参数（空格分隔，可选）
+            <input
+              value={harnessArgs}
+              maxLength={500}
+              disabled={busy}
+              placeholder="例如 scripts/my-harness.mjs --json"
+              onChange={(event) => {
+                setHarnessArgs(event.target.value);
+                changed();
+              }}
+            />
+          </label>
+        </>
+      )}
       <p className="wiki-status-note">
-        {provider === "codex"
-          ? "使用本机 Codex 的 ChatGPT 登录与账户额度。"
-          : "使用本机 Claude Code 登录；当前账户须有模型访问权限。"}
-        列表为常用选项，实际可用性取决于你的账户。保存不调用模型，正在运行的任务不受影响。问答、存入
+        {providerNote(provider)}
+        列表为常用选项，实际可用性取决于你的账户或本地服务。保存不调用模型，正在运行的任务不受影响。问答、存入
         Wiki、导入整合、缺口判定与夜间模型任务都使用此选择。
       </p>
       <button
         className="wiki-model-save"
         type="submit"
-        disabled={
-          busy ||
-          !model.trim() ||
-          (provider === (models.chatProvider ?? "claude") && model.trim() === models.chatModel)
-        }
+        disabled={busy || !model.trim() || (provider === "harness" && !harnessCmd.trim()) || unchanged}
       >
         {busy ? "保存中…" : "保存选择"}
       </button>
@@ -260,14 +466,7 @@ export function StatusPane({
         <>
           <section>
             <h3>全局模型设置</h3>
-            <ModelPicker
-              models={status.models}
-              onSaved={(selection) =>
-                setStatus((current) =>
-                  current ? { ...current, models: { ...current.models, ...selection } } : current,
-                )
-              }
-            />
+            <ModelPicker models={status.models} onSaved={load} />
           </section>
           <section>
             <h3>运行方式</h3>
@@ -319,9 +518,21 @@ export function StatusPane({
             <h3>作答模型</h3>
             <dl>
               <Row label="全局模型">{status.models.chatModel ?? "CLI 默认（没有固定）"}</Row>
-              <Row label="接入方式">
-                {status.models.chatProvider === "codex" ? "Codex · ChatGPT 账户额度" : "Claude Code"}
-              </Row>
+              <Row label="接入方式">{CHAT_PROVIDER_LABELS[status.models.chatProvider ?? "claude"]}</Row>
+              {status.models.apiBaseUrl && <Row label="接口地址">{status.models.apiBaseUrl}</Row>}
+              {status.models.hasApiKey !== undefined && (
+                <Row label="环境变量密钥" tone={status.models.hasApiKey ? "ok" : "warn"}>
+                  {status.models.apiKeyEnv ?? "未指定"} ·{" "}
+                  {status.models.hasApiKey ? "已在服务端环境检测到" : "未在服务端环境设置"}
+                </Row>
+              )}
+              {status.models.harnessCommand && (
+                <Row label="Harness 命令">
+                  {[status.models.harnessCommand.command, ...(status.models.harnessCommand.args ?? [])].join(
+                    " ",
+                  )}
+                </Row>
+              )}
               <Row label="生效范围">问答、编译、导入整合、后台模型任务</Row>
               <Row label="换过模型的调用" tone={status.models.switched ? "warn" : undefined}>
                 {status.models.switched} / {status.models.recorded} 次

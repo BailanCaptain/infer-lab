@@ -10,7 +10,7 @@ const ENTRANCES = [
 
 export function SiteNav() {
   const { pathname } = useLocation();
-  const reading = pathname === "/chapters" || pathname.startsWith("/wiki");
+  const reading = pathname === "/chapters" || pathname.startsWith("/wiki") || pathname.startsWith("/tools");
   const current = reading ? "/wiki" : ["/", "/archive/home"].includes(pathname) ? "/home" : pathname;
   return (
     <nav className="site-nav" aria-label="全站导航">

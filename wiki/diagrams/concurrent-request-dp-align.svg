@@ -1,35 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 526" width="900" height="526" role="img" aria-label="场景 M 中两组对齐后的宽度：实色是真实 token，斜纹是填充。上半第 1 步按每 token 9 px，下半第 2 步按每 token 0.095 px，两半比例不同；M′ 的 DP1 没有请求，只有 4 个空批次 token。其他批次仍按图模式与草拟条件决定是否统一主干宽度，原本 eager 的组可保留本地宽度，MoE 内部另补齐。">
   <title>场景 M 中两组对齐后的宽度：实色是真实 token，斜纹是填充。上半第 1 步按每 token 9 px，下半第 2 步按每 token 0.095 px，两半比例不同；M′ 的 DP1 没有请求，只有 4 个空批次 token。其他批次仍按图模式与草拟条件决定是否统一主干宽度，原本 eager 的组可保留本地宽度，MoE 内部另补齐。</title>
-  <defs><pattern id="concurrent-request-dp-align-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-surface-sunken, #ece9df)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
-  <rect x="180" y="80" width="432" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="196" y="99" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">真实 48</text>
+  <defs><pattern id="concurrent-request-dp-align-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-control-soft, #f1efe8)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
+  <rect x="180" y="80" width="432" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="196" y="99" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">真实 48</text>
   <rect x="612" y="80" width="144" height="28" rx="4" fill="url(#concurrent-request-dp-align-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
   <text x="628" y="99" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">补到图 64</text>
   <rect x="180" y="74" width="576" height="40" rx="7" fill="none" stroke="var(--color-control, #66716d)" stroke-width="2.2"/>
   <text x="756" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-control, #66716d)" text-anchor="end">宽 64</text>
-  <rect x="180" y="146" width="252" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="196" y="165" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">真实 28</text>
+  <rect x="180" y="146" width="252" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="196" y="165" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">真实 28</text>
   <rect x="432" y="146" width="36" height="28" rx="4" fill="url(#concurrent-request-dp-align-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
   <rect x="468" y="146" width="288" height="28" rx="4" fill="url(#concurrent-request-dp-align-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
   <text x="484" y="165" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">对齐补 32</text>
   <rect x="180" y="140" width="576" height="40" rx="7" fill="none" stroke="var(--color-control, #66716d)" stroke-width="2.2"/>
   <text x="756" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-control, #66716d)" text-anchor="end">宽 64</text>
-  <rect x="180" y="212" width="36" height="28" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="180" y="212" width="36" height="28" rx="4" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
   <rect x="216" y="212" width="540" height="28" rx="4" fill="url(#concurrent-request-dp-align-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
   <text x="232" y="231" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">对齐补 60</text>
   <rect x="180" y="206" width="576" height="40" rx="7" fill="none" stroke="var(--color-control, #66716d)" stroke-width="2.2"/>
   <text x="756" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-control, #66716d)" text-anchor="end">宽 64</text>
-  <rect x="180" y="340" width="4.6" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="184.6" y="340" width="570" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="200.6" y="359" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">真实 48 + 6000</text>
+  <rect x="180" y="340" width="4.6" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <rect x="184.6" y="340" width="570" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="200.6" y="359" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">真实 48 + 6000</text>
   <rect x="180" y="334" width="574.6" height="40" rx="7" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="2.2"/>
   <text x="754.6" y="324" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-danger, #b54237)" text-anchor="end">宽 6048</text>
-  <rect x="180" y="406" width="2.7" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="180" y="406" width="2.7" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
   <rect x="182.7" y="406" width="571.9" height="28" rx="4" fill="url(#concurrent-request-dp-align-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
   <text x="198.7" y="425" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">真实 28，对齐补 6020</text>
   <rect x="180" y="400" width="574.6" height="40" rx="7" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="2.2"/>
   <text x="754.6" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-danger, #b54237)" text-anchor="end">宽 6048</text>
-  <rect x="180" y="472" width="0.4" height="28" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="180" y="472" width="0.4" height="28" rx="4" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
   <rect x="180.4" y="472" width="574.2" height="28" rx="4" fill="url(#concurrent-request-dp-align-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
   <text x="196.4" y="491" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">空批次 4，对齐补 6044</text>
   <rect x="180" y="466" width="574.6" height="40" rx="7" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="2.2"/>

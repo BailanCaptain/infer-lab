@@ -233,11 +233,7 @@ file: token-budget
 3. **借块。** 按「已算 + 本步要算 + 为下一步候选预留的位置」，求这条请求每个缓存组还差几块，加起来和空闲块数比，够才一次全部借出。缓存组是存储格式和借块规则相同的一组层，各组各算各的块数；GLM 分 5 组，怎么编的见 [KV cache 规格](kv-cache-spec.md)。
 4. **记账。** 从预算里扣掉本步安排的数。整步排完后，不等 worker 算完，调度器就把每条请求的已算数往前推，下一步从新位置接着排。
 
-```wiki-diagram
-file: vllm-scheduler-flow
-```
-
-把单步四关放进整个 V1 调度与 `v0.30.0` / `main` 双预算演进里看，可以看到为什么调度器无需按 prefill / decode 拆阶段，以及草拟槽位预算、延迟释放抢占止损与昇腾覆写链怎样协同工作：
+把单步四关放进整个 V1 调度与 `v0.30.0` / `main` 双预算演进里看，可以看到 `running → waiting` 漏斗如何无需按 prefill / decode 拆阶段，以及草拟槽位预算、抢占止损与昇腾覆写链怎样协同工作：
 
 ```wiki-diagram
 file: vllm-scheduler-fig-dual-budget
@@ -363,7 +359,7 @@ vllm-ascend 的平台补丁在启动时，把上游的 Scheduler 类整体换成
 
 单轮调度预算还可以单独配置：指定 max_num_scheduled_tokens 时使用该值，否则回退到 max_num_batched_tokens；本页固定部署的示例预算保持不变。
 
-**DP prefill 间隔。** v0.26 及本文所列 rc2/main 上游快照提供启动参数 `--prefill-schedule-interval`，EngineArgs / LLM 与 SchedulerConfig 字段为 prefill_schedule_interval，整数且 ≥1，默认 1，表示不施加这项间隔。比如设为 3，只改变前述 DP 节流条件；它不是单次请求参数，也不是 chunk 长度。0 不表示关闭，会在配置校验中失败。普通 EngineCore 返回不节流，DP EngineCore 根据各 rank 对齐的 step_counter 判定，并在普通 step 与批次队列两条执行路径传给 Scheduler；使用 Ascend 的其他调度器时，仍须核对应版本是否传递和消费该信号。
+**DP prefill 间隔。** `v0.26.0rc`、`v0.30.0` 与 `main` 上游快照均提供启动参数 `--prefill-schedule-interval`，EngineArgs / LLM 与 SchedulerConfig 字段为 prefill_schedule_interval，整数且 ≥1，默认 1，表示不施加这项间隔。比如设为 3，只改变前述 DP 节流条件；它不是单次请求参数，也不是 chunk 长度。0 不表示关闭，会在配置校验中失败。普通 EngineCore 返回不节流，DP EngineCore 根据各 rank 对齐的 step_counter 判定，并在普通 step 与批次队列两条执行路径传给 Scheduler；使用 Ascend 的其他调度器时，仍须核对应版本是否传递和消费该信号。
 
 **分块开关与单条阈值的顺序。** waiting 先按正阈值截断，再检查关闭分块时是否超剩余预算。示意输入长 100、模型最大长度 100、预算 100、阈值 20，即使关闭分块，本步仍可排 20，留下 80。若目标是避免这种分段，需要同时保留阈值 0。running 也受阈值限制：GLM 常规 decode 差值为 4，设成 2 会把它先截成 2，不能把该项理解成只影响长 prefill 的分类标签。
 
@@ -445,10 +441,10 @@ vllm-ascend 的平台补丁在启动时，把上游的 Scheduler 类整体换成
 - 来源 48–51：v0.26 对应字段、阈值边界、partial-prefill 拒绝和异步差异。
 - 来源 52–56：main 的完整字段段落与 CLI、阈值校验、默认派生和异步判定；两项 partial-prefill 已从配置与 CLI 删除。
 - 来源 57–58：v0.26/main 完整输入容量检查与 watermark 的叠加条件；默认 watermark 为 0，字段见来源 48、52。
-- 来源 59–61：rc2 的延迟释放抢占检查、阈值字段和完整输入容量准入。
-- 来源 62–72：rc2 参数与异步判定，Ascend 显存查询、BalanceScheduler 的关闭路径及 batch-job 选类；v0.26 的 Mamba KV producer 临时查找行为也在此组。
-- 来源 73–88、93–96：v0.26、rc2 与固定 main 的 prefill 间隔参数、EngineCore 传递、DP 节拍、运行请求与新请求的节流分支，以及容量受限标记的更新。
+- 来源 59–61：`v0.30.0`（及历史候选快照）的延迟释放抢占检查、阈值字段和完整输入容量准入。
+- 来源 62–72：`v0.30.0`（及历史候选快照）参数与异步判定，Ascend 显存查询、BalanceScheduler 的关闭路径及 batch-job 选类；v0.26 的 Mamba KV producer 临时查找行为也在此组。
+- 来源 73–88、93–96：`v0.26`、`v0.30.0`（及历史候选快照）与 `main` 的 prefill 间隔参数、EngineCore 传递、DP 节拍、运行请求与新请求的节流分支，以及容量受限标记的更新。
 - 来源 89–92：GLM 稀疏 MLA 包装到 SFA 的实际调用和输入处理；KDA 的两条执行路径见来源 33–34。
-- 来源 97–102：rc2/main 的输入容量初值与运行请求的草拟槽位扣减；新请求的容量检查见来源 86、95，两种预算不能混算。
-- 来源 103–105：固定 main 的 short-request 与 profiling 组合限制、profiling/batch-job 选类顺序，以及 rc2 的 profiling 异步 MRV2 门槛。
+- 来源 97–102：`v0.30.0` / `main` 的输入容量初值与运行请求的草拟槽位扣减；新请求的容量检查见来源 86、95，两种预算不能混算。
+- 来源 103–105：历史 `main` 的 short-request 与 profiling 组合限制、profiling/batch-job 选类顺序，以及 `v0.30.0` 的 profiling 异步 MRV2 门槛。
 - `v0.30.0`（`ced6857a` / `c09d3e20`）与 `main`（`ba15685a` / `8d6180e2`）核心入口见文首 `sources` 末尾 9 条（`scheduler.py`、`config/scheduler.py`、`patch_balance_schedule.py`、`platform.py`）。

@@ -6,24 +6,24 @@
   <path d="M580 296 L645 296" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#platform-startup-contract-ah-danger)"/>
   <path d="M330 332 L330 385" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#platform-startup-contract-ah-control)"/>
   <path d="M330 457 L330 510" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#platform-startup-contract-ah-control)"/>
-  <rect x="80" y="50" width="500" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="330" y="77" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">取得当前平台</text>
-  <text x="330" y="96" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">插件发现 → 当前进程的平台对象</text>
-  <rect x="80" y="155" width="500" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="330" y="182" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">平台准备</text>
-  <text x="330" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">参数解析或配置构造前：补丁与类型注册</text>
-  <rect x="80" y="260" width="500" height="72" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="330" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">VllmConfig → 平台校验</text>
-  <text x="330" y="311" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">检查组合、调整配置、选择 Worker 类</text>
-  <rect x="645" y="267" width="205" height="58" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="747.5" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">组合不受支持</text>
-  <text x="747.5" y="311" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">报错并停止启动</text>
-  <rect x="80" y="385" width="500" height="72" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="330" y="417" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">NPUWorker 启动</text>
-  <text x="330" y="436" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">初始化设备与通信 → 加载模型</text>
-  <rect x="80" y="510" width="500" height="62" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="330" y="537" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后端相关配置调整入口</text>
-  <text x="330" y="556" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">之后量显存、建缓存，按模式预热或捕获图</text>
+  <rect x="80" y="50" width="500" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="330" y="77" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">取得当前平台</text>
+  <text x="330" y="96" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">插件发现 → 当前进程的平台对象</text>
+  <rect x="80" y="155" width="500" height="62" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="330" y="182" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">平台准备</text>
+  <text x="330" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">参数解析或配置构造前：补丁与类型注册</text>
+  <rect x="80" y="260" width="500" height="72" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="330" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">VllmConfig → 平台校验</text>
+  <text x="330" y="311" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">检查组合、调整配置、选择 Worker 类</text>
+  <rect x="645" y="267" width="205" height="58" rx="8" fill="var(--color-danger-soft, #fbe5e2)" stroke="var(--color-danger, #b54237)" stroke-width="1.4"/>
+  <text x="747.5" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">组合不受支持</text>
+  <text x="747.5" y="311" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">报错并停止启动</text>
+  <rect x="80" y="385" width="500" height="72" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="330" y="417" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NPUWorker 启动</text>
+  <text x="330" y="436" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">初始化设备与通信 → 加载模型</text>
+  <rect x="80" y="510" width="500" height="62" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <text x="330" y="537" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">后端相关配置调整入口</text>
+  <text x="330" y="556" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">之后量显存、建缓存，按模式预热或捕获图</text>
   <text x="356" y="359" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">通过</text>
   <text x="30" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">A0 部署启动：本图展开平台交接，完整进程链见调用链页</text>
   <text x="30" y="621" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">就绪后 → A1 接收请求 → 调度与准备输入 → A4 模型计算</text>

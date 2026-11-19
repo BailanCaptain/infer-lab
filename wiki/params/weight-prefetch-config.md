@@ -134,9 +134,11 @@ rawSources:
 
 ## 它曾做什么，为什么 v0.24 起已删除？
 
-`weight_prefetch_config` 是 `v0.23.0` 中的 `--additional-config` 子配置（默认 `{}`，即关闭；必须显式写 `{"enabled": true}` 才启用）。开启后，vLLM-Ascend 在一条独立的 NPU stream 上，把下一个 linear 层的权重提前从 HBM 搬进 **L2 cache**，让这段搬运藏在当前正在执行的 vector 算子（quantize、MoE gating `top_k`、RMSNorm、SwiGLU）背后，以降低 linear 计算期间的 MTE 占用、间接提高 Cube 效率（计算与数据搬运分工见[算子怎么落到 AI Core](../concepts/op-to-ai-core.md)）。它面向高吞吐场景，低延迟优先的场景上游明确建议不要开启；子键比例规则见 [prefetch_ratio](prefetch-ratio.md)。
+执行线性层矩阵乘之前，NPU 必须先把权重从容量大但相对较慢的 **HBM（高带宽显存）** 搬进片上更快的 **L2 cache（二级缓存）**；如果等矩阵乘开算才现搬，Cube 计算单元就会在数据路上等待。`weight_prefetch_config` 曾试图趁着前一个轻量向量算子（quantize、MoE gating `top_k`、RMSNorm、SwiGLU）正在运行的空档，在一条独立 NPU stream 上提前把下一个 linear 层的权重搬进 L2 cache，以降低 linear 计算期间的 MTE 占用、间接提高 Cube 效率（计算与数据搬运分工见[算子怎么落到 AI Core](../concepts/op-to-ai-core.md)，各模块比例规则见 [prefetch_ratio](prefetch-ratio.md)）。
 
-**历史血缘与下线现状**：该配置由早期的 `enable_prefetch` 与环境变量 `VLLM_ASCEND_ENABLE_PREFETCH_MLP` 统一而来，在 `v0.23.0` 发版时即被列入「Ready to Deprecate」，自 `v0.24.0rc` 起随 PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949) 整套删除（含 `vllm_ascend/ops/weight_prefetch.py` 与配置字段），**没有等价替代参数**。升级时须从启动命令中删掉该键——同时注意不要把它与三类同名或近名特性混淆：
+**当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**该配置及其整个 HBM→L2 权重预取模块在 `v0.30.0` 与 `main` 中均已彻底移除，且没有等价替代参数。** 它早先由 `enable_prefetch` 与环境变量 `VLLM_ASCEND_ENABLE_PREFETCH_MLP` 统一而来，在 `v0.23.0` 发版时就被列入「Ready to Deprecate」，自 `v0.24.0rc` 起随 PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949) 连同 `vllm_ascend/ops/weight_prefetch.py` 一起删除；若升级到 `v0.30.0` / `main` 时仍把它留在 `--additional-config` 中，普通 Ascend 进程会按 `extra="forbid"` 启动报错（`v0.26.0rc` 静默忽略，发现 `vllm_omni` 时告警过滤）。在仍保留它的历史 **`v0.23.0`（`2c59ff10`）** 中，它是默认 `{}`（关闭）的 `--additional-config` 子配置，须显式写 `{"enabled": true}` 才启用，且仅面向高吞吐场景（低延迟优先场景上游建议不要开启）。
+
+升级清理时须从启动命令中删掉该键，同时注意不要把它与三类同名或近名特性混淆：
 - `vllm_ascend/model_executor/offloader/prefetch.py`（`main` 上仍存在）做的是基于预取的 CPU offloading（HBM 与主机内存之间的权重搬运），不是本页的 HBM→L2 预取；
 - 启动参数 `--safetensors-load-strategy prefetch` 管的是启动时从磁盘预读 safetensors 文件，与本页无关；
 - `v0.30.0` / `main` 中的 kernel/NZ warmup 或 KV cache prefetch 也不是这个配置的等价替代。

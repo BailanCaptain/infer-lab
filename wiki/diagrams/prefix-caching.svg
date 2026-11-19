@@ -26,7 +26,7 @@
   <text x="710" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">B 自己的尾块</text>
   <text x="710" y="245" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">没写满，另一块</text>
   <text x="24" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">开头相同的两条请求：写满的前缀块两边共用，尾巴各写各的</text>
-  <text x="186" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">指同一份</text>
-  <text x="548" y="120" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">各自续写</text>
-  <text x="24" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">只画份数：命中的块不重算也不复制；每条请求从自己的尾块继续。</text>
+  <text x="99" y="164" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">指同一份</text>
+  <text x="710" y="164" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">各自续写</text>
+  <text x="24" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">只画份数：命中的块不重算也不复制；每条请求从自己的尾块继续。</text>
 </svg>

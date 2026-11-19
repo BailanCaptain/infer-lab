@@ -16,15 +16,15 @@
   <circle cx="680" cy="194" r="6" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
   <circle cx="680" cy="194" r="2.8" fill="#087f73"/>
 
-  <!-- 3: 310P Red Barrier Gate -->
-  <line x1="275" y1="544" x2="663" y2="301" stroke="#c78300" stroke-width="1.8"/>
-  <circle cx="663" cy="301" r="6" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
-  <circle cx="663" cy="301" r="2.8" fill="#c78300"/>
+  <!-- 3: 310P Red Barrier Gate (routed cleanly right of BF16 block & above 310P label) -->
+  <polyline points="872,544 872,282 674,282 674,292" fill="none" stroke="#c78300" stroke-width="1.8"/>
+  <circle cx="674" cy="292" r="6" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="674" cy="292" r="2.8" fill="#c78300"/>
 
-  <!-- 4: A2/A3 -> BF16 60GB (2X) Expansion Block -->
-  <line x1="688" y1="544" x2="688" y2="430" stroke="#b54237" stroke-width="2"/>
-  <circle cx="688" cy="430" r="6.5" fill="#ffffff" stroke="#b54237" stroke-width="2"/>
-  <circle cx="688" cy="430" r="3" fill="#b54237"/>
+  <!-- 4: A2/A3 -> BF16 60GB (2X) Expansion Block (clean direct line through open margin) -->
+  <line x1="420" y1="544" x2="598" y2="442" stroke="#b54237" stroke-width="2"/>
+  <circle cx="598" cy="442" r="6.5" fill="#ffffff" stroke="#b54237" stroke-width="2"/>
+  <circle cx="598" cy="442" r="3" fill="#b54237"/>
 
   <!-- Top Open Band: 2 Wide Borderless Callouts -->
   <g>
@@ -43,20 +43,20 @@
     <text x="466" y="88" font-size="13.5" fill="#4d5652">仅 <tspan font-family="var(--font-mono)">kv_b_proj</tspan> 与非 32 倍数层回退浮点</text>
   </g>
 
-  <!-- Bottom Open Band: 2 Wide Borderless Callouts -->
+  <!-- Bottom Open Band: 2 Wide Borderless Callouts (clockwise 4 left, 3 right for zero-crossing leaders) -->
   <g>
-    <circle cx="26" cy="562" r="12" fill="#c78300"/>
-    <text x="26" y="566.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
-    <text x="46" y="568" font-size="15" font-weight="700" fill="#936300">310P (<tspan font-family="var(--font-mono)" font-size="14">COMPATIBILITY</tspan>)：拦截原生 FP8</text>
-    <text x="14" y="596" font-size="13.5" fill="#4d5652">仅注册 <tspan font-family="var(--font-mono)">ModelSlimConfig310</tspan>，不注册 <tspan font-family="var(--font-mono)">Fp8Config</tspan></text>
-    <text x="14" y="622" font-size="14" font-weight="600" fill="#c78300">浮点必传 <tspan font-family="var(--font-mono)">--dtype float16</tspan> 或选 <tspan font-family="var(--font-mono)">W8A8-310P</tspan></text>
+    <circle cx="26" cy="562" r="12" fill="#b54237"/>
+    <text x="26" y="566.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="46" y="568" font-size="15" font-weight="700" fill="#8f3229">A2 / A3 显存翻倍坑：静默反量化回 BF16 (2×)</text>
+    <text x="14" y="596" font-size="14" font-weight="700" fill="#b54237">调 <tspan font-family="var(--font-mono)">resolve_block_scales()</tspan> 展开为 60 GB 驻留</text>
+    <text x="14" y="622" font-size="13.5" fill="#4d5652">真省一半显存请选社区昇腾版 <tspan font-family="var(--font-mono)" font-weight="600">W8A8 / W4A8</tspan> 权重</text>
   </g>
 
   <g>
-    <circle cx="478" cy="562" r="12" fill="#b54237"/>
-    <text x="478" y="566.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
-    <text x="498" y="568" font-size="15" font-weight="700" fill="#8f3229">A2 / A3 显存翻倍坑：静默反量化回 BF16 (2×)</text>
-    <text x="466" y="596" font-size="14" font-weight="700" fill="#b54237">调 <tspan font-family="var(--font-mono)">resolve_block_scales()</tspan> 展开为 60 GB 驻留</text>
-    <text x="466" y="622" font-size="13.5" fill="#4d5652">真省一半显存请选社区昇腾版 <tspan font-family="var(--font-mono)" font-weight="600">W8A8 / W4A8</tspan> 权重</text>
+    <circle cx="478" cy="562" r="12" fill="#c78300"/>
+    <text x="478" y="566.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="498" y="568" font-size="15" font-weight="700" fill="#936300">310P (<tspan font-family="var(--font-mono)" font-size="14">COMPATIBILITY</tspan>)：拦截原生 FP8</text>
+    <text x="466" y="596" font-size="13.5" fill="#4d5652">仅注册 <tspan font-family="var(--font-mono)">ModelSlimConfig310</tspan>，不注册 <tspan font-family="var(--font-mono)">Fp8Config</tspan></text>
+    <text x="466" y="622" font-size="14" font-weight="600" fill="#c78300">浮点必传 <tspan font-family="var(--font-mono)">--dtype float16</tspan> 或选 <tspan font-family="var(--font-mono)">W8A8-310P</tspan></text>
   </g>
 </svg>

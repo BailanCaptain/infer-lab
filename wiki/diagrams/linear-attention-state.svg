@@ -3,7 +3,7 @@
   <defs><marker id="linear-attention-state-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="linear-attention-state-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="linear-attention-state-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
   <path d="M140 160 L215 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-kv)"/>
   <path d="M330 160 L390 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-kv)"/>
-  <path d="M440 210 L440 260 L460 260 L460 300" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-kv)"/>
+  <path d="M490 194 L522 194 L522 268 L460 268 L460 300" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-kv)"/>
   <path d="M490 160 L635 160 L635 330" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-kv)"/>
   <path d="M330 329 L385 329" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-token)"/>
   <path d="M460 360 L460 425" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#linear-attention-state-ah-token)"/>

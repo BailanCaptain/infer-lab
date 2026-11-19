@@ -19,7 +19,7 @@
   <path d="M234 576 L234 604" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-ink)"/>
   <path d="M646 576 L646 604" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-ink)"/>
   <path d="M836 630 L868 630 L868 92 L836 92" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#request-teardown-flow-ah-comm)"/>
-  <path d="M234 656 L234 734" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-control)"/>
+  <path d="M330 656 L330 734" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-control)"/>
   <rect x="44" y="64" width="250" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="169" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">命中停止字符串</text>
   <text x="169" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">还原成文字后才看得出</text>

@@ -33,6 +33,11 @@ const MLA_CONFIG_JSON = JSON.stringify({
 
 describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
   it("renders deploy-calculator in quick-screen, minimal, full and unlocked Wave-4 MLA mode outside RouterProvider", () => {
+    const expectedCalcBadges = {
+      "quick-screen": "快速摸底",
+      minimal: "精简算账",
+      full: "完整模式",
+    } as const;
     for (const mode of ["quick-screen", "minimal", "full"] as const) {
       const html = renderToStaticMarkup(
         createElement(WikiToolBlock, {
@@ -43,7 +48,7 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
       expect(html).toContain('data-testid="deploy-calculator-view"');
       expect(html).toContain(`data-mode="${mode}"`);
       expect(html).toContain(`算账台-${mode}`);
-      expect(html).toContain(`mode: ${mode}`);
+      expect(html).toContain(expectedCalcBadges[mode]);
       expect(html).toContain(`测试 ${mode} 模式`);
     }
 
@@ -81,7 +86,8 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     expect(minimalHtml).toContain('data-testid="config-doctor-view"');
     expect(minimalHtml).toContain('data-mode="minimal"');
     expect(minimalHtml).toContain("最小起服务体检");
-    expect(minimalHtml).toContain("mode: minimal");
+    expect(minimalHtml).toContain("最小起服务");
+    expect(minimalHtml).not.toContain("mode: minimal");
     expect(minimalHtml).toContain("核对单机配置");
     expect(minimalHtml).toContain('data-testid="doctor-cmd-input"');
     expect(minimalHtml).not.toContain('data-testid="doctor-topology-pd"');

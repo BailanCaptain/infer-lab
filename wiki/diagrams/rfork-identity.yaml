@@ -89,7 +89,7 @@ texts:
   - { at: [120, 92], text: 整套部署一不一样, anchor: middle, note: true }
   - { at: [284, 92], text: 要的是哪一份, anchor: middle, note: true }
   - { at: [448, 92], text: 主模型还是草稿模型, anchor: middle, note: true }
-  - { at: [452, 208], text: 一字不差 · 可借, anchor: middle, size: 12, tone: control }
+  - { at: [452, 207], text: 一字不差 · 可借, anchor: middle, size: 13, tone: control }
   - { at: [520, 436], text: 指纹不同：编号一样也配不上, anchor: end, tone: danger, strong: true }
 pins:
   - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/identity.py#L229-L349

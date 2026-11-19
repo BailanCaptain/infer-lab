@@ -17,7 +17,7 @@ links:
   - { from: [550, 248], to: [636, 248], tone: comm }
 texts:
   - { at: [24, 26], text: 调度的分支与输出的时刻不同，退回不经过本轮前向, size: 14, strong: true }
-  - { at: [24, 332], text: 范围：固定旧版；rc2细粒度TP中止例外见正文, size: 12 }
+  - { at: [24, 332], text: 范围：固定旧版；v0.30.0/main 细粒度TP中止例外见正文, size: 13.5 }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/core/recompute_scheduler.py#L280-L345
     symbols: [PreemptedRequestData, RecomputeReqInfo]

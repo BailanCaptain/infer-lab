@@ -5,9 +5,9 @@
  */
 import { type ChildProcess, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import {
   type AgentEvent,
@@ -20,18 +20,79 @@ import { trackModels } from "./model-use";
 
 export interface ClaudeCommand {
   command: string;
+  argsPrefix?: string[];
   shell: boolean;
+  env?: NodeJS.ProcessEnv;
+}
+
+export interface ResolveClaudeOptions {
+  claudeCli?: string;
+  readFile?: (p: string) => string;
+  execPath?: string;
+}
+
+/**
+ * 解析 Windows npm/pnpm `.cmd` / `.bat` 包装器（如 `claude.cmd`、`ccr.cmd`）到底层 Node JS 入口脚本，
+ * 使调用可以 `shell: false` 直接启动 `process.execPath`（避免 `cmd.exe` 吞掉 `--tools ""` 空参数或注入 shell 语义）。
+ */
+export function resolveWindowsCmdShim(
+  cmdPath: string,
+  exists: (p: string) => boolean = existsSync,
+  readFile: (p: string) => string = (p) => readFileSync(p, "utf8"),
+  execPath: string = process.execPath,
+): ClaudeCommand | null {
+  if (!/\.(cmd|bat)$/i.test(cmdPath) || !exists(cmdPath)) return null;
+  let content: string;
+  try {
+    content = readFile(cmdPath);
+  } catch {
+    return null;
+  }
+  const match =
+    /"(?:%dp0%|%~dp0|%basedir%)[\\/]*([^"\r\n]+?\.(?:js|mjs|cjs))"([^\r\n]*)/i.exec(content) ??
+    /(?:%dp0%|%~dp0|%basedir%)[\\/]*([^\s"\r\n]+?\.(?:js|mjs|cjs))([^\r\n]*)/i.exec(content);
+  if (!match) return null;
+  const relScript = match[1]!.replace(/\\/g, "/").replace(/^\/+/, "");
+  const scriptPath = resolve(dirname(cmdPath), relScript);
+  if (!exists(scriptPath)) return null;
+  const tail = (match[2] ?? "").replace(/%\*.*$/, "").trim();
+  const extraArgs = tail
+    ? (tail.match(/"[^"]*"|'[^']*'|\S+/g) ?? [])
+        .map((tok) => tok.replace(/^["']|["']$/g, ""))
+        .filter((tok) => tok && !tok.startsWith("%"))
+    : [];
+  return {
+    command: execPath,
+    argsPrefix: [scriptPath, ...extraArgs],
+    shell: false,
+  };
 }
 
 export function resolveClaudeCommand(
   env: NodeJS.ProcessEnv = process.env,
   exists: (p: string) => boolean = existsSync,
   platform: NodeJS.Platform = process.platform,
+  options: ResolveClaudeOptions = {},
 ): ClaudeCommand {
-  if (env.CLAUDE_CLI && exists(env.CLAUDE_CLI)) return { command: env.CLAUDE_CLI, shell: false };
+  const readFile = options.readFile ?? ((p: string) => readFileSync(p, "utf8"));
+  const execPath = options.execPath ?? process.execPath;
+  const explicit = options.claudeCli ?? env.CLAUDE_CLI;
+  if (explicit && exists(explicit)) {
+    if (/\.(cmd|bat)$/i.test(explicit)) {
+      const unwrapped = resolveWindowsCmdShim(explicit, exists, readFile, execPath);
+      if (unwrapped) return unwrapped;
+      return { command: explicit, shell: true };
+    }
+    return { command: explicit, shell: false };
+  }
   const home = env.USERPROFILE || env.HOME || "";
   const local = `${home.replace(/\\/g, "/")}/.local/bin/claude${platform === "win32" ? ".exe" : ""}`;
   if (home && exists(local)) return { command: local, shell: false };
+  if (platform === "win32" && env.APPDATA) {
+    const npmCmd = join(env.APPDATA, "npm", "claude.cmd");
+    const unwrapped = resolveWindowsCmdShim(npmCmd, exists, readFile, execPath);
+    if (unwrapped) return unwrapped;
+  }
   return { command: "claude", shell: true };
 }
 
@@ -93,8 +154,10 @@ export interface LineOutcome {
 export function spawnClaude(
   req: AgentRequest,
   onLine: (line: string) => LineOutcome | undefined,
-  cmd: ClaudeCommand = resolveClaudeCommand(),
+  cmd?: ClaudeCommand,
 ): Promise<AgentResult> {
+  const effectiveCmd =
+    cmd ?? resolveClaudeCommand(process.env, existsSync, process.platform, { claudeCli: req.claudeCli });
   return new Promise<AgentResult>((resolve) => {
     // 进程没起来就没有花钱：按零费用返回，共享预算账本不能因此以「费用未知」暂停
     const notStarted = (reason: string): AgentResult => ({
@@ -112,8 +175,9 @@ export function spawnClaude(
       return;
     }
     const cleanup = () => rmSync(promptDir, { recursive: true, force: true });
-    const { args } = promptFileArgs(req.args, promptDir);
-    const length = commandLineLength(cmd.command, args);
+    const { args: promptArgs } = promptFileArgs(req.args, promptDir);
+    const args = [...(effectiveCmd.argsPrefix ?? []), ...promptArgs];
+    const length = commandLineLength(effectiveCmd.command, args);
     if (length > WINDOWS_COMMAND_LINE_LIMIT) {
       cleanup();
       resolve(
@@ -121,13 +185,16 @@ export function spawnClaude(
       );
       return;
     }
+    const hasCustomEnv = Boolean(req.claudeEnv || effectiveCmd.env);
+    const spawnEnv = hasCustomEnv ? { ...process.env, ...req.claudeEnv, ...effectiveCmd.env } : undefined;
     let child: ChildProcess & { stdin: NonNullable<ChildProcess["stdin"]> };
     try {
-      child = spawn(cmd.command, args, {
+      child = spawn(effectiveCmd.command, args, {
         cwd: req.cwd,
-        shell: cmd.shell,
+        shell: effectiveCmd.shell,
         stdio: ["pipe", "pipe", "pipe"],
         windowsHide: true,
+        ...(spawnEnv ? { env: spawnEnv } : {}),
       }) as typeof child;
     } catch (error) {
       cleanup();

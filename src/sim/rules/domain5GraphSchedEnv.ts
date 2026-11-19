@@ -48,7 +48,7 @@ export const KNOWN_READ_ENV_SPECS: Readonly<Record<string, KnownEnvSpec>> = {
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L69`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/utils.py#L613`,
     ],
-    note: "Defined in vllm_ascend/envs.py and read in utils.py.",
+    note: "定义于 vllm_ascend/envs.py，在 utils.py 中读取。",
   },
   HCCL_BUFFSIZE: {
     versions: ["v0.30.0", "main", "rfork"],
@@ -56,7 +56,7 @@ export const KNOWN_READ_ENV_SPECS: Readonly<Record<string, KnownEnvSpec>> = {
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp#L28-L66`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/utils.py#L1259-L1264`,
     ],
-    note: "Read in MC2 C++ tiling and governs MC2 PG buffer sizing.",
+    note: "在 MC2 C++ tiling 中读取，控制 MC2 通信域缓冲区大小。",
   },
   HCCL_OP_EXPANSION_MODE: {
     versions: ["v0.30.0", "main", "rfork"],
@@ -64,26 +64,26 @@ export const KNOWN_READ_ENV_SPECS: Readonly<Record<string, KnownEnvSpec>> = {
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/device/device_op.py#L1257`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/patch/platform/patch_minimax_m2_config.py#L118-L120`,
     ],
-    note: "Read/written in device_op.py and patch_minimax_m2_config.py.",
+    note: "在 device_op.py 与 patch_minimax_m2_config.py 中读写。",
   },
   HCCL_DETERMINISTIC: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/batch_invariant.py#L108`],
-    note: "Set to 'strict' by batch_invariant mode.",
+    note: "在 batch_invariant 确定性模式下会被设为 'strict'。",
   },
   HCCL_RDMA_TIMEOUT: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/distributed/kv_transfer/utils/utils.py#L91`,
     ],
-    note: "Read by KV transfer utilities.",
+    note: "由 KV 传输工具模块读取。",
   },
   HCCL_RDMA_RETRY_CNT: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/distributed/kv_transfer/utils/utils.py#L92`,
     ],
-    note: "Read by KV transfer utilities.",
+    note: "由 KV 传输工具模块读取。",
   },
   ASCEND_HOME_PATH: {
     versions: ["v0.30.0", "main", "rfork"],
@@ -91,7 +91,7 @@ export const KNOWN_READ_ENV_SPECS: Readonly<Record<string, KnownEnvSpec>> = {
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L66`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/worker/worker.py#L220`,
     ],
-    note: "Defined in envs.py and read in worker.py / hixl_compat.py.",
+    note: "定义于 envs.py，在 worker.py / hixl_compat.py 中读取。",
   },
   ASCEND_RT_VISIBLE_DEVICES: {
     versions: ["v0.30.0", "main", "rfork"],
@@ -99,100 +99,100 @@ export const KNOWN_READ_ENV_SPECS: Readonly<Record<string, KnownEnvSpec>> = {
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/cpu_binding.py#L25`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/distributed/weight_transfer/npu_ipc_engine.py#L85`,
     ],
-    note: "Read by vllm and vllm-ascend device visibility/CPU binding.",
+    note: "由 vllm 与 vllm-ascend 读取，用于设备可见性与 CPU 绑核。",
   },
   ASCEND_CUSTOM_OPP_PATH: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:csrc/aclnn_torch_adapter/op_api_common.h#L194`],
-    note: "Read by C++ custom op loader.",
+    note: "由 C++ 自定义算子加载器读取。",
   },
   ASCEND_OPP_PATH: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:csrc/aclnn_torch_adapter/op_api_common.h#L216`],
-    note: "Read by C++ op_api_common.h.",
+    note: "由 C++ op_api_common.h 读取。",
   },
   ASCEND_GLOBAL_RESOURCE_CONFIG: {
     versions: ["v0.30.0", "main"],
     sources: [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/distributed/kv_transfer/utils/utils.py#L27`,
     ],
-    note: "Read by Mooncake/KV transfer utilities.",
+    note: "由 Mooncake / KV 传输工具模块读取。",
   },
   ASCEND_ENABLE_USE_FABRIC_MEM: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L202`,
     ],
-    note: "Read by Mooncake backend for fabric memory.",
+    note: "由 Mooncake 后端读取，用于开启 Fabric 内存。",
   },
   ASCEND_TRANSFER_TIMEOUT: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/distributed/kv_transfer/utils/utils.py#L88`,
     ],
-    note: "Read/written in Mooncake and SFA PD workers.",
+    note: "在 Mooncake 与 SFA PD Worker 中读写。",
   },
   ASCEND_LOCAL_COMM_RES: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/utils.py#L721`],
-    note: "Written in vllm_ascend/utils.py.",
+    note: "在 vllm_ascend/utils.py 中写入。",
   },
   ASCEND_BUFFER_POOL: {
     versions: ["main"],
     sources: [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/distributed/ec_transfer/ec_connector/mooncake/store_backend.py#L124-L125`,
     ],
-    note: "Docs-only ('unknown') in v0.30.0; explicitly checked in main ec_transfer store_backend.py.",
+    note: "v0.30.0 下仅见于文档（归类为 unknown）；main 在 ec_transfer store_backend.py 中显式读取。",
   },
   PYTORCH_NPU_ALLOC_CONF: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/platform.py#L1445-L1481`],
-    note: "Read/written by NPUPlatform._set_pytorch_npu_alloc_env() (auto-appends expandable_segments:True unless sleep mode or conflicting flags).",
+    note: "由 NPUPlatform._set_pytorch_npu_alloc_env() 读写（未开启 sleep mode 且无冲突选项时自动追加 expandable_segments:True）。",
   },
   VLLM_USE_MODELSCOPE: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L717-L719`],
-    note: "Read by vllm/envs.py to download model weights from ModelScope instead of Hugging Face Hub.",
+    note: "由 vllm/envs.py 读取，改从 ModelScope 而非 Hugging Face Hub 拉取权重。",
   },
   VLLM_WORKER_MULTIPROC_METHOD: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L930-L932`],
-    note: "Read by vllm/envs.py ('spawn' or 'fork') for MultiprocExecutor worker spawning.",
+    note: "由 vllm/envs.py 读取（'spawn' 或 'fork'），控制 MultiprocExecutor 启动方式。",
   },
   VLLM_HOST_IP: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L705`],
-    note: "Read by vllm/envs.py for distributed host IP binding.",
+    note: "由 vllm/envs.py 读取，用于分布式主机 IP 绑定。",
   },
   VLLM_PORT: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L710`],
-    note: "Read by vllm/envs.py (must be an integer port; Kubernetes tcp:// URI raises ValueError).",
+    note: "由 vllm/envs.py 读取（须为整数端口；Kubernetes 注入 tcp:// URI 会抛 ValueError）。",
   },
   VLLM_USE_V2_MODEL_RUNNER: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L2037-L2038`],
-    note: "Read by vllm/envs.py to enable Model Runner V2 (required for PCP > 1 and TurboQuant Route B in v0.30.0).",
+    note: "由 vllm/envs.py 读取以启用 Model Runner V2（v0.30.0 下 PCP > 1 与 TurboQuant Route B 必需）。",
   },
   VLLM_LOGGING_LEVEL: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L834`],
-    note: "Read by vllm/envs.py to control vLLM log verbosity (e.g. DEBUG).",
+    note: "由 vllm/envs.py 读取，控制 vLLM 日志级别（如 DEBUG）。",
   },
   VLLM_ALLOW_LONG_MAX_MODEL_LEN: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L1097-L1098`],
-    note: "Read by vllm/envs.py to allow --max-model-len above config.json native limit.",
+    note: "由 vllm/envs.py 读取，允许 --max-model-len 超出 config.json 原生上限。",
   },
   VLLM_PP_LAYER_PARTITION: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L864`],
-    note: "Read by vllm/envs.py to customize layer counts across PP stages.",
+    note: "由 vllm/envs.py 读取，自定义各 PP 阶段分配的模型层数。",
   },
   VLLM_BATCH_INVARIANT: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/envs.py#L619`],
-    note: "Read by vllm/envs.py and vllm_ascend/batch_invariant.py for deterministic batch invariance.",
+    note: "由 vllm/envs.py 与 vllm_ascend/batch_invariant.py 读取，开启批不变确定性推理。",
   },
   VLLM_VERSION: {
     versions: ["v0.30.0", "main", "rfork"],
@@ -200,22 +200,22 @@ export const KNOWN_READ_ENV_SPECS: Readonly<Record<string, KnownEnvSpec>> = {
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L76`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/utils.py#L726-L746`,
     ],
-    note: "Defined in vllm_ascend/envs.py and read by vllm_version_is() to override non-standard source builds.",
+    note: "定义于 vllm_ascend/envs.py，由 vllm_version_is() 读取以覆写非标准源码构建版本号。",
   },
   DYNAMIC_EPLB: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/envs.py#L78`],
-    note: "Defined in vllm_ascend/envs.py for dynamic EPLB enablement.",
+    note: "定义于 vllm_ascend/envs.py，用于开启动态专家负载均衡（EPLB）。",
   },
   TASK_QUEUE_ENABLE: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:Dockerfile#L55-L57`],
-    note: "Set to 1 in official vllm-ascend Dockerfile for torch_npu async task dispatch queue.",
+    note: "官方 vllm-ascend Dockerfile 默认设为 1，开启 torch_npu 异步下发队列。",
   },
   OMP_NUM_THREADS: {
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:Dockerfile#L55-L57`],
-    note: "Set to 1 in official vllm-ascend Dockerfile to avoid OpenMP thread contention across workers.",
+    note: "官方 vllm-ascend Dockerfile 默认设为 1，避免多 Worker 间 OpenMP 线程争抢。",
   },
 };
 
@@ -232,8 +232,8 @@ export const RETIRED_ENV_SPECS: Readonly<Record<string, RetiredEnvSpec>> = {
         `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/envs.py#L46-L98`,
       ],
     },
-    replacement: `--additional-config '{"weight_nz_mode": 0}' (0=off, 1=quantized only [default], 2=quantized+float)`,
-    note: "VLLM_ASCEND_ENABLE_NZ was removed in v0.30.0 (0 reads in codebase) and silently does nothing; migrate to additional_config.weight_nz_mode.",
+    replacement: `--additional-config '{"weight_nz_mode": 0}'（0=关闭, 1=仅量化权重[默认], 2=量化+浮点）`,
+    note: "VLLM_ASCEND_ENABLE_NZ 已在 v0.30.0 移除（源码 0 处读取），继续导出会静默无效；请迁移到 additional_config.weight_nz_mode。",
   },
   VLLM_ASCEND_ENABLE_MLAPO: {
     versions: ["v0.30.0", "main"],
@@ -248,7 +248,7 @@ export const RETIRED_ENV_SPECS: Readonly<Record<string, RetiredEnvSpec>> = {
       ],
     },
     replacement: `--additional-config '{"enable_mlapo": true}'`,
-    note: "VLLM_ASCEND_ENABLE_MLAPO was removed in v0.30.0 (0 reads in codebase) and silently does nothing; migrate to additional_config.enable_mlapo.",
+    note: "VLLM_ASCEND_ENABLE_MLAPO 已在 v0.30.0 移除（源码 0 处读取），继续导出会静默无效；请迁移到 additional_config.enable_mlapo。",
   },
   VLLM_ASCEND_ENABLE_FUSED_MC2: {
     versions: ["v0.30.0", "main"],
@@ -262,8 +262,8 @@ export const RETIRED_ENV_SPECS: Readonly<Record<string, RetiredEnvSpec>> = {
         `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/envs.py#L46-L98`,
       ],
     },
-    replacement: `--additional-config '{"enable_fused_mc2": 1}' (0=off, 1=dispatch-FFN-combine, 2=MegaMoe)`,
-    note: "VLLM_ASCEND_ENABLE_FUSED_MC2 was removed in v0.30.0 (0 reads in codebase) and silently does nothing; migrate to additional_config.enable_fused_mc2.",
+    replacement: `--additional-config '{"enable_fused_mc2": 1}' (0=关闭, 1=dispatch_ffn_combine, 2=MegaMoe, 3=MegaMoe+共享专家融合[仅 main])`,
+    note: "VLLM_ASCEND_ENABLE_FUSED_MC2 已在 v0.30.0 移除（源码 0 处读取），继续导出会静默无效；请迁移到 additional_config.enable_fused_mc2。",
   },
   MSMONITOR_USE_DAEMON: {
     versions: ["v0.30.0", "main"],
@@ -278,7 +278,7 @@ export const RETIRED_ENV_SPECS: Readonly<Record<string, RetiredEnvSpec>> = {
       ],
     },
     replacement: `--additional-config '{"msmonitor_use_daemon": true}'`,
-    note: "MSMONITOR_USE_DAEMON was removed in v0.30.0 (0 reads in codebase) and silently does nothing; migrate to additional_config.msmonitor_use_daemon.",
+    note: "MSMONITOR_USE_DAEMON 已在 v0.30.0 移除（源码 0 处读取），继续导出会静默无效；请迁移到 additional_config.msmonitor_use_daemon。",
   },
   VLLM_ASCEND_FUSION_OP_TRANSPOSE_KV_CACHE_BY_BLOCK: {
     versions: ["v0.30.0", "main"],
@@ -293,7 +293,7 @@ export const RETIRED_ENV_SPECS: Readonly<Record<string, RetiredEnvSpec>> = {
       ],
     },
     replacement: `--additional-config '{"enable_transpose_kv_cache_by_block": true}'`,
-    note: "VLLM_ASCEND_FUSION_OP_TRANSPOSE_KV_CACHE_BY_BLOCK was removed in v0.30.0 (0 reads in codebase); migrate to additional_config.enable_transpose_kv_cache_by_block.",
+    note: "VLLM_ASCEND_FUSION_OP_TRANSPOSE_KV_CACHE_BY_BLOCK 已在 v0.30.0 移除（源码 0 处读取）；请迁移到 additional_config.enable_transpose_kv_cache_by_block。",
   },
 };
 
@@ -313,7 +313,7 @@ export const DEPRECATED_FALLBACK_ENV_SPECS: Readonly<Record<string, DeprecatedFa
       ],
     },
     replacement: `--additional-config '{"enable_flashcomm1": true}'`,
-    note: "VLLM_ASCEND_ENABLE_FLASHCOMM1 was removed from vllm_ascend/envs.py in v0.30.0, but STILL has active os.getenv compatibility fallback reads in ascend_config.py & utils.py; migrate to additional_config.enable_flashcomm1.",
+    note: "VLLM_ASCEND_ENABLE_FLASHCOMM1 已于 v0.30.0 从 vllm_ascend/envs.py 移除，但在 ascend_config.py 与 utils.py 中仍保留 os.getenv 兼容兜底；建议迁移至 additional_config.enable_flashcomm1。",
   },
 };
 
@@ -445,7 +445,7 @@ export function classifyEnvVar(
       evidenceLevel: "I",
       sources,
       reason:
-        "HCCL_BUFFSIZE_EP has 0 Python/C++ reads in vllm and vllm-ascend and appears only in docs; CANN/HCCL runtime consumption is unverified without pinned CANN docs -> MUST be 'unknown'.",
+        "HCCL_BUFFSIZE_EP 在 vllm 与 vllm-ascend Python/C++ 源码中 0 处读取，仅见于教程文档；无锁定 CANN 文档前无法证实或证伪 CANN/HCCL 消费，故标为 unknown。",
     };
   }
 
@@ -460,7 +460,7 @@ export function classifyEnvVar(
     ruleJudgment: "unknown",
     evidenceLevel: "I",
     sources: [unknownSource],
-    reason: `${name} has no verified Python/C++ read in pinned vllm/vllm-ascend for ${version}; CANN/runtime effect cannot be disproven and MUST be classified 'unknown'.`,
+    reason: `${name} 在 ${version} 锁定的 vllm / vllm-ascend Python/C++ 源码中无已证实读取点；无法排除 CANN / 底层运行时消费，必须归类为 unknown。`,
   };
 }
 
@@ -468,7 +468,7 @@ export const domain5Rules: readonly CouplingRule[] = [
   {
     id: "d5-fa3-full-decode-only-error",
     domain: "graph-sched-env",
-    title: "FA3 Rejects FULL_DECODE_ONLY (Requires PIECEWISE)",
+    title: "FA3 拒绝 FULL_DECODE_ONLY（要求 PIECEWISE）",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -478,8 +478,8 @@ export const domain5Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/feature_guide/flash_attention.md#L43-L142`,
     ],
     description:
-      "AscendFAImpl (FA3) raises ValueError when cudagraph_mode == FULL_DECODE_ONLY; docs and code require PIECEWISE compilation.",
-    rationale: "flash_attn_with_kvcache tiling is host-side and does not support full ACL graph capture.",
+      "AscendFAImpl (FA3) 在 cudagraph_mode == FULL_DECODE_ONLY 时直接抛 ValueError，文档与源码均要求 PIECEWISE 编译模式。",
+    rationale: "flash_attn_with_kvcache 的 tiling 位于 Host 侧，不支持完整 ACLGraph 捕获。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const fa3Active =
@@ -494,15 +494,15 @@ export const domain5Rules: readonly CouplingRule[] = [
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
         message:
-          "ValueError: AscendFAImpl (FA3) does not support ACL graph capture with FULL_DECODE_ONLY; use PIECEWISE.",
-        remediation: "Set compilation_config.cudagraph_mode = 'PIECEWISE'.",
+          "ValueError: AscendFAImpl (FA3) 不支持 FULL_DECODE_ONLY 模式下的 ACLGraph 捕获，请改用 PIECEWISE。",
+        remediation: "将 compilation_config.cudagraph_mode 设为 'PIECEWISE'。",
       };
     },
   },
   {
     id: "d5-950-custom-ops-disabled-v030",
     domain: "graph-sched-env",
-    title: "Ascend 950 Silently Disables vllm_ascend_C Custom Ops (v0.30.0 / rfork)",
+    title: "Ascend 950 静默关闭 vllm_ascend_C 自定义算子（v0.30.0 / rfork）",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["v0.30.0", "rfork"],
@@ -512,8 +512,8 @@ export const domain5Rules: readonly CouplingRule[] = [
       `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/utils.py#L418-L420`,
     ],
     description:
-      "In v0.30.0 (A5 omits HardwareCapability.RUNTIME_CUSTOM_OPS) and rfork (get_ascend_device_type() == AscendDeviceType.A5), enable_custom_op() silently returns False and disables vllm_ascend_C.",
-    rationale: "Custom op compilation/execution on 950 was temporarily disabled (#7157).",
+      "v0.30.0（A5 不含 HardwareCapability.RUNTIME_CUSTOM_OPS）与 rfork（检测 AscendDeviceType.A5）下，enable_custom_op() 静默返回 False，关闭 vllm_ascend_C。",
+    rationale: "950 上的自定义算子编译/执行在当时被临时关闭（#7157）。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (input.hardwareFamily !== "A5") return null;
@@ -534,8 +534,8 @@ export const domain5Rules: readonly CouplingRule[] = [
         sources,
         message:
           version === "rfork"
-            ? "In rfork, Ascend 950 (A5) directly disables vllm_ascend_C custom ops via AscendDeviceType.A5 check."
-            : "In v0.30.0, Ascend 950 (A5) lacks RUNTIME_CUSTOM_OPS and silently disables vllm_ascend_C custom ops.",
+            ? "rfork 下 Ascend 950 (A5) 通过 AscendDeviceType.A5 判断直接禁用 vllm_ascend_C 自定义算子。"
+            : "v0.30.0 下 Ascend 950 (A5) 缺少 RUNTIME_CUSTOM_OPS 能力标记，静默关闭 vllm_ascend_C 自定义算子。",
         effectiveMutation: { runtimeCustomOpsEnabled: false },
       };
     },
@@ -543,7 +543,7 @@ export const domain5Rules: readonly CouplingRule[] = [
   {
     id: "d5-950-custom-ops-enabled-main",
     domain: "graph-sched-env",
-    title: "Ascend 950 Enables vllm_ascend_C Custom Ops (main)",
+    title: "Ascend 950 已启用 vllm_ascend_C 自定义算子（main）",
     judgment: "warn",
     evidenceLevel: "C",
     versions: ["main"],
@@ -552,8 +552,8 @@ export const domain5Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/utils.py#L583-L590`,
     ],
     description:
-      "In vllm-ascend main (8d6180e2), AscendDeviceType.A5 adds RUNTIME_CUSTOM_OPS and removes the 950 custom-op disable workaround (unless VLLM_BATCH_INVARIANT is set).",
-    rationale: "950 custom ops support landed on main after v0.30.0.",
+      "vllm-ascend main (8d6180e2) 为 AscendDeviceType.A5 补回 RUNTIME_CUSTOM_OPS，移除了 950 禁自定义算子绕过（除非设置 VLLM_BATCH_INVARIANT）。",
+    rationale: "950 自定义算子支持已在 v0.30.0 之后合入 main。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (input.hardwareFamily !== "A5") return null;
@@ -567,8 +567,8 @@ export const domain5Rules: readonly CouplingRule[] = [
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
         message: enabled
-          ? "In main, Ascend 950 (A5) includes RUNTIME_CUSTOM_OPS so vllm_ascend_C custom ops are enabled."
-          : "VLLM_BATCH_INVARIANT disables vllm_ascend_C custom ops on Ascend 950.",
+          ? "main 分支下 Ascend 950 (A5) 已包含 RUNTIME_CUSTOM_OPS，vllm_ascend_C 自定义算子默认启用。"
+          : "已设置 VLLM_BATCH_INVARIANT，Ascend 950 上仍会关闭 vllm_ascend_C 自定义算子。",
         effectiveMutation: { runtimeCustomOpsEnabled: enabled },
       };
     },
@@ -576,7 +576,7 @@ export const domain5Rules: readonly CouplingRule[] = [
   {
     id: "d5-static-kernel-defaults-super-kernel",
     domain: "graph-sched-env",
-    title: "enable_static_kernel=True Silently Defaults Omitted enable_super_kernel=True",
+    title: "开启 enable_static_kernel=True 且省略 enable_super_kernel 时会静默默认开启后者",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main"],
@@ -585,8 +585,8 @@ export const domain5Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L138-L150`,
     ],
     description:
-      "When enable_static_kernel is passed in ascend_compilation_config and enable_super_kernel is omitted (and not overridden by 310P or NONE/PIECEWISE/FULL_AND_PIECEWISE reset), _default_super_kernel_to_static_kernel silently sets enable_super_kernel = enable_static_kernel.",
-    rationale: "Couples static kernel and super kernel enablement by default unless explicitly overridden.",
+      "在 ascend_compilation_config 中启用 enable_static_kernel 且未显式传入 enable_super_kernel（且未被 310P 或 NONE/PIECEWISE/FULL_AND_PIECEWISE 清零）时，_default_super_kernel_to_static_kernel 静默将 enable_super_kernel 置为 True。",
+    rationale: "未显式指定时将 static_kernel 与 super_kernel 联动开启。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (input.enableStaticKernel !== true || input.enableSuperKernel !== undefined) return null;
@@ -602,7 +602,7 @@ export const domain5Rules: readonly CouplingRule[] = [
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
         message:
-          "enable_static_kernel=True with omitted enable_super_kernel silently defaults enable_super_kernel=True.",
+          "开启 enable_static_kernel=True 且未显式指定 enable_super_kernel 时，静默默认 enable_super_kernel=True。",
         effectiveMutation: { enableSuperKernel: true },
       };
     },
@@ -610,7 +610,7 @@ export const domain5Rules: readonly CouplingRule[] = [
   {
     id: "d5-310p-npugraph-ex-downgrade",
     domain: "graph-sched-env",
-    title: "Ascend 310P Silently Disables npugraph_ex, static_kernel, and super_kernel",
+    title: "Ascend 310P 静默关闭 npugraph_ex、static_kernel 与 super_kernel",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -620,8 +620,8 @@ export const domain5Rules: readonly CouplingRule[] = [
       `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/ascend_config.py#L631-L640`,
     ],
     description:
-      "Hardware lacking HardwareCapability.NPUGRAPH_EX / is_310p() (Ascend 310P) logs warnings and silently resets enable_npugraph_ex, enable_static_kernel (and enable_super_kernel in v0.30.0/main) to False.",
-    rationale: "310P lacks NPUGRAPH_EX capability so compilation flags downgrade cleanly.",
+      "缺少 HardwareCapability.NPUGRAPH_EX / is_310p() 的设备（Ascend 310P）会打印告警并静默将 enable_npugraph_ex、enable_static_kernel（v0.30.0/main 还包括 enable_super_kernel）置为 False。",
+    rationale: "310P 不具备 NPUGRAPH_EX 能力，相关图编译开关会自动降级关闭。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (input.hardwareFamily !== "310P") return null;
@@ -635,8 +635,7 @@ export const domain5Rules: readonly CouplingRule[] = [
           judgment: this.judgment,
           evidenceLevel: this.evidenceLevel,
           sources: [`rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/ascend_config.py#L631-L640`],
-          message:
-            "Ascend 310P (rfork) silently resets enable_npugraph_ex and enable_static_kernel to False.",
+          message: "Ascend 310P（rfork）静默将 enable_npugraph_ex 与 enable_static_kernel 重置为 False。",
           effectiveMutation: {
             enableNpugraphEx: false,
             enableStaticKernel: false,
@@ -657,7 +656,7 @@ export const domain5Rules: readonly CouplingRule[] = [
         evidenceLevel: this.evidenceLevel,
         sources: versionSource,
         message:
-          "Ascend 310P lacks NPUGRAPH_EX capability and silently resets enable_npugraph_ex, enable_static_kernel, and enable_super_kernel to False.",
+          "Ascend 310P 缺少 NPUGRAPH_EX 能力，静默将 enable_npugraph_ex、enable_static_kernel 与 enable_super_kernel 重置为 False。",
         effectiveMutation: {
           enableNpugraphEx: false,
           enableStaticKernel: false,
@@ -669,7 +668,7 @@ export const domain5Rules: readonly CouplingRule[] = [
   {
     id: "d5-solo-super-or-static-kernel-error",
     domain: "graph-sched-env",
-    title: "Solo super_kernel or static_kernel Without Prerequisites Raises AssertionError",
+    title: "缺少前置依赖单独开启 super_kernel 或 static_kernel 会抛 AssertionError",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main"],
@@ -678,8 +677,8 @@ export const domain5Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L172-L176`,
     ],
     description:
-      "On A2/A3/950, enabling enable_super_kernel without enable_static_kernel=True (or enable_static_kernel without enable_npugraph_ex=True) raises AssertionError.",
-    rationale: "Strict dependency chain: npugraph_ex -> static_kernel -> super_kernel.",
+      "在 A2/A3/950 上，未开启 enable_static_kernel=True 时启用 enable_super_kernel，或未开启 enable_npugraph_ex=True 时启用 enable_static_kernel，会直接抛 AssertionError。",
+    rationale: "严格依赖链：npugraph_ex -> static_kernel -> super_kernel。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (input.hardwareFamily === "310P") return null;
@@ -688,10 +687,10 @@ export const domain5Rules: readonly CouplingRule[] = [
       const superKernel = input.enableSuperKernel !== undefined ? input.enableSuperKernel : staticKernel;
       const errors: string[] = [];
       if (staticKernel && !npugraphEx) {
-        errors.push("Static kernel generation requires npugraph_ex to be enabled");
+        errors.push("启用 static_kernel 必须先开启 npugraph_ex");
       }
       if (superKernel && !staticKernel) {
-        errors.push("Super kernel generation requires static kernel to be enabled");
+        errors.push("启用 super_kernel 必须先开启 static_kernel");
       }
       if (errors.length === 0) return null;
       return {
@@ -702,14 +701,14 @@ export const domain5Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `AssertionError: ${errors.join("; ")}.`,
+        message: `AssertionError: ${errors.join("；")}。`,
       };
     },
   },
   {
     id: "d5-graph-mode-resets-npugraph-ex",
     domain: "graph-sched-env",
-    title: "NONE / PIECEWISE / FULL_AND_PIECEWISE Reset npugraph_ex, static_kernel, and super_kernel",
+    title: "NONE / PIECEWISE / FULL_AND_PIECEWISE 会静默重置 npugraph_ex / static_kernel / super_kernel",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -720,8 +719,8 @@ export const domain5Rules: readonly CouplingRule[] = [
       `vllm@${VERIFIED_COMMITS.vllmV030}:vllm/config/compilation.py#L77-L91`,
     ],
     description:
-      "In _setup_compile_backend, CUDAGraphMode.NONE, PIECEWISE, and FULL_AND_PIECEWISE (requires_piecewise_compilation()) silently reset enable_npugraph_ex, enable_static_kernel (and enable_super_kernel in v0.30.0/main) to False; only FULL and FULL_DECODE_ONLY preserve them.",
-    rationale: "npugraph_ex full-graph lowering is incompatible with piecewise splitting.",
+      "在 _setup_compile_backend 中，CUDAGraphMode.NONE、PIECEWISE 与 FULL_AND_PIECEWISE 会静默将 enable_npugraph_ex、enable_static_kernel（v0.30.0/main 含 enable_super_kernel）置为 False；仅 FULL 与 FULL_DECODE_ONLY 会保留。",
+    rationale: "npugraph_ex 整图下沉与分段切图（piecewise）不兼容。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (input.hardwareFamily === "310P") return null;
@@ -740,7 +739,7 @@ export const domain5Rules: readonly CouplingRule[] = [
             `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/platform.py#L550-L586`,
             `vllm@${VERIFIED_COMMITS.vllmV030}:vllm/config/compilation.py#L77-L91`,
           ],
-          message: `cudagraph_mode=${mode} (rfork) silently resets enable_npugraph_ex and enable_static_kernel to False.`,
+          message: `cudagraph_mode=${mode}（rfork）会静默将 enable_npugraph_ex 与 enable_static_kernel 重置为 False。`,
           effectiveMutation: {
             enableNpugraphEx: false,
             enableStaticKernel: false,
@@ -769,7 +768,7 @@ export const domain5Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: versionSources,
-        message: `cudagraph_mode=${mode} silently resets enable_npugraph_ex, enable_static_kernel, and enable_super_kernel to False (FULL and FULL_DECODE_ONLY preserve them).`,
+        message: `cudagraph_mode=${mode} 会静默将 enable_npugraph_ex、enable_static_kernel 与 enable_super_kernel 重置为 False（仅 FULL 与 FULL_DECODE_ONLY 会保留）。`,
         effectiveMutation: {
           enableNpugraphEx: false,
           enableStaticKernel: false,
@@ -782,7 +781,7 @@ export const domain5Rules: readonly CouplingRule[] = [
     id: "d5-short-request-first-scheduler-mutex",
     domain: "graph-sched-env",
     title:
-      "short_request_first_config Mutually Exclusive with batch_job_sched, D Nodes (kv_consumer), and profiling_chunk in rfork",
+      "short_request_first_config 与 batch_job_sched、D 节点（kv_consumer）及 rfork profiling_chunk 互斥",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -792,9 +791,8 @@ export const domain5Rules: readonly CouplingRule[] = [
       `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/platform.py#L648-L670`,
     ],
     description:
-      "Enabling short_request_first_config alongside batch_job_sched_config, on PD-disaggregated D nodes (kv_role='kv_consumer'), or alongside profiling_chunk_config in rfork raises ValueError at startup before scheduler_cls override.",
-    rationale:
-      "ShortRequestFirst explicitly rejects incompatible batch-job schedulers, kv_consumer decode nodes, and rfork profiling-chunk schedulers.",
+      "在调度器覆写前，short_request_first_config 若与 batch_job_sched_config 同开、运行在 PD D 节点（kv_role='kv_consumer'），或在 rfork 中与 profiling_chunk_config 同开，启动即抛 ValueError。",
+    rationale: "ShortRequestFirst 明确拒绝不兼容的批任务调度器、Decode 消费节点及 rfork 分块采样调度器。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.shortRequestFirstEnabled) return null;
@@ -817,23 +815,22 @@ export const domain5Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources,
-        message: `ValueError: ShortRequestFirst scheduling cannot be enabled with ${conflicts.join(" / ")}.`,
-        remediation: `Disable short_request_first_config or resolve ${conflicts.join(" / ")}.`,
+        message: `ValueError: ShortRequestFirst 调度不能与 ${conflicts.join(" / ")} 同时启用。`,
+        remediation: `关闭 short_request_first_config，或移除冲突项：${conflicts.join(" / ")}。`,
       };
     },
   },
   {
     id: "d5-dyntra-lb-profiling-chunk-mutex",
     domain: "graph-sched-env",
-    title: "dyntra_lb_config Mutually Exclusive with profiling_chunk_config (v0.30.0)",
+    title: "dyntra_lb_config 与 profiling_chunk_config 互斥（v0.30.0）",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/platform.py#L1086-L1114`],
     description:
-      "In v0.30.0 check_and_update_config, enabling dyntra_lb_config alongside profiling_chunk_config raises ValueError before _setup_worker_and_scheduler runs.",
-    rationale:
-      "DyntraLB and ProfilingChunkScheduler both govern incompatible scheduling modes and are explicitly rejected together at config validation time.",
+      "v0.30.0 的 check_and_update_config 会在进入 _setup_worker_and_scheduler 前拦截同时启用的 dyntra_lb_config 与 profiling_chunk_config，并抛 ValueError。",
+    rationale: "DyntraLB 与 ProfilingChunkScheduler 分别控制互斥的调度模式，启动校验即拒绝同开。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.dyntraLbEnabled || !input.profilingChunkEnabled) return null;
@@ -845,16 +842,15 @@ export const domain5Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: "ValueError: DyntraLB cannot be used with profiling_chunk_config.",
-        remediation: "Disable either dyntra_lb_config or profiling_chunk_config.",
+        message: "ValueError: DyntraLB 不能与 profiling_chunk_config 同时使用。",
+        remediation: "关闭 dyntra_lb_config 或 profiling_chunk_config 中的一项。",
       };
     },
   },
   {
     id: "d5-scheduler-override-chain-v030",
     domain: "graph-sched-env",
-    title:
-      "Scheduler Override Chain: profiling_chunk & batch_job_sched Silently Override Earlier Schedulers (v0.30.0)",
+    title: "调度器覆写链：profiling_chunk 与 batch_job_sched 静默覆盖前置调度器（v0.30.0）",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["v0.30.0", "rfork"],
@@ -864,8 +860,8 @@ export const domain5Rules: readonly CouplingRule[] = [
       `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/platform.py#L671-L719`,
     ],
     description:
-      "In v0.30.0 _setup_worker_and_scheduler, profiling_chunk_config overwrites recompute_scheduler / short_request_first, and batch_job_sched_config (last writer wins) overwrites recompute_scheduler and profiling_chunk_config (when not aborted by ShortRequestFirst or DyntraLB+profiling_chunk ValueError).",
-    rationale: "Sequential unconditional assignment to vllm_config.scheduler_config.scheduler_cls.",
+      "v0.30.0 的 _setup_worker_and_scheduler 顺序覆写 scheduler_cls：profiling_chunk_config 覆盖 recompute_scheduler / short_request_first，batch_job_sched_config 作为最后写入者覆盖前者（未触发互斥 ValueError 时）。",
+    rationale: "对 vllm_config.scheduler_config.scheduler_cls 按顺序无条件赋值，后者生效。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const srfBlockedByValueError =
@@ -907,7 +903,7 @@ export const domain5Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources,
-        message: `Multiple schedulers enabled (${active.join(" -> ")}); last writer wins -> scheduler_cls silently overwritten to ${winner}.`,
+        message: `同时启用了多个调度器（${active.join(" -> ")}）；按最后写入生效原则，scheduler_cls 被静默覆写为 ${winner}。`,
         effectiveMutation: { effectiveSchedulerCls: winner },
       };
     },
@@ -915,14 +911,14 @@ export const domain5Rules: readonly CouplingRule[] = [
   {
     id: "d5-scheduler-override-chain-main",
     domain: "graph-sched-env",
-    title: "Scheduler Override Chain: batch_job_sched Silently Overrides Earlier Schedulers (main)",
+    title: "调度器覆写链：batch_job_sched 静默覆盖前置调度器（main）",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["main"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/platform.py#L1586-L1601`],
     description:
-      "In main (profiling_chunk_config removed), batch_job_sched_config still unconditionally overwrites recompute_scheduler / dyntra_lb as last writer (short_request_first + batch_job_sched raises ValueError instead).",
-    rationale: "Unconditional scheduler_cls overwrite in _setup_worker_and_scheduler.",
+      "main 分支（已移除 profiling_chunk_config）下，batch_job_sched_config 仍会作为最后写入者无条件覆盖 recompute_scheduler / dyntra_lb（与 short_request_first 同开则抛 ValueError）。",
+    rationale: "_setup_worker_and_scheduler 按顺序直接覆写 scheduler_cls。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.batchJobSchedEnabled) return null;
@@ -940,7 +936,7 @@ export const domain5Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `batch_job_sched_config silently overwrites ${earlier.join(", ")} -> BatchJobAwareScheduler.`,
+        message: `batch_job_sched_config 静默覆盖了 ${earlier.join("、")}，最终生效 BatchJobAwareScheduler。`,
         effectiveMutation: { effectiveSchedulerCls: "BatchJobAwareScheduler" },
       };
     },
@@ -948,18 +944,19 @@ export const domain5Rules: readonly CouplingRule[] = [
   {
     id: "d5-rl-config-disables-nz-and-expandable-segments",
     domain: "graph-sched-env",
-    title: "RLConfig Forces weight_nz_mode=0 and Strips expandable_segments",
+    title: "RLConfig 强制 weight_nz_mode=0 并受 Step 10 expandable_segments 回写影响",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main"],
     sources: [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L375-L394`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/platform.py#L541-L542`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/platform.py#L1450-L1481`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L391-L410`,
     ],
     description:
-      "When rl_config.enabled=True, AscendConfig forces weight_nz_mode=0, removes any expandable_segments:* token from PYTORCH_NPU_ALLOC_CONF, and sets VLLM_SERVER_DEV_MODE=1.",
-    rationale: "RL weight refit / sleep mode requires ND weights and non-expandable NPU allocator segments.",
+      "当 rl_config.enabled=True 时，Step 5 的 RLConfig.apply() 会强制 weight_nz_mode=0、剥离 PYTORCH_NPU_ALLOC_CONF 中的 expandable_segments:* 并设置 VLLM_SERVER_DEV_MODE=1；但若未开启 enable_sleep_mode，Step 10 的 _set_pytorch_npu_alloc_env() 在无 max_split_size_mb 或 garbage_collection_threshold 时会重新追加 expandable_segments:True。",
+    rationale: "RL 权重切换 / sleep mode 需要 ND 权重排布并禁用可扩展 NPU 内存段。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.rlEnabled) return null;
@@ -973,6 +970,17 @@ export const domain5Rules: readonly CouplingRule[] = [
         .map((s) => s.trim())
         .filter((s) => s.length > 0 && !s.startsWith("expandable_segments:"))
         .join(",");
+      const hasConflictingAllocOpt =
+        strippedAlloc.includes("max_split_size_mb") || strippedAlloc.includes("garbage_collection_threshold");
+      const step10Reappends = input.enableSleepMode !== true && !hasConflictingAllocOpt;
+      const effectiveAlloc = step10Reappends
+        ? strippedAlloc
+          ? `${strippedAlloc},expandable_segments:True`
+          : "expandable_segments:True"
+        : strippedAlloc;
+      const message = step10Reappends
+        ? `Step 5 RLConfig.apply() 强制将 weight_nz_mode 置为 0${nzChanged ? `（原值 ${input.weightNzMode}）` : ""}并剥离 expandable_segments；但因未开启 --enable-sleep-mode，Step 10 _set_pytorch_npu_alloc_env() 会重新追加 expandable_segments:True，最终生效 PYTORCH_NPU_ALLOC_CONF='${effectiveAlloc}'。`
+        : `RLConfig.apply() 强制将 weight_nz_mode 置为 0${nzChanged ? `（原值 ${input.weightNzMode}）` : ""}并从 PYTORCH_NPU_ALLOC_CONF 剥离 expandable_segments${hasExpandable ? `（'${allocConf}' -> '${strippedAlloc}'）` : ""}（已启用 --enable-sleep-mode 或存在互斥分配器选项，Step 10 不再回写）。`;
       return {
         ruleId: this.id,
         domain: this.domain,
@@ -981,10 +989,16 @@ export const domain5Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `RLConfig forces weight_nz_mode=0${nzChanged ? ` (was ${input.weightNzMode})` : ""} and strips expandable_segments from PYTORCH_NPU_ALLOC_CONF${hasExpandable ? ` ('${allocConf}' -> '${strippedAlloc}')` : ""}.`,
+        message,
+        ...(step10Reappends
+          ? {
+              remediation:
+                "如需在 RL 权重切换/睡眠卸载场景下保持关闭 expandable_segments，请显式传入 --enable-sleep-mode。",
+            }
+          : {}),
         effectiveMutation: {
           weightNzMode: 0,
-          pytorchNpuAllocConf: strippedAlloc,
+          pytorchNpuAllocConf: effectiveAlloc,
         },
       };
     },
@@ -992,7 +1006,7 @@ export const domain5Rules: readonly CouplingRule[] = [
   {
     id: "d5-cann-env-var-classification",
     domain: "graph-sched-env",
-    title: "HCCL_* / ASCEND_* Env Var Read-Point & Unknown Classification (P1-4 #2)",
+    title: "HCCL_* / ASCEND_* 环境变量读取点与未证实分类",
     judgment: "unknown",
     evidenceLevel: "I",
     versions: ["v0.30.0", "main", "rfork"],
@@ -1002,8 +1016,8 @@ export const domain5Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/distributed/ec_transfer/ec_connector/mooncake/store_backend.py#L124-L125`,
     ],
     description:
-      "Classifies HCCL_* and ASCEND_* env vars: variables with 0 Python/C++ reads in vllm/vllm-ascend (including HCCL_BUFFSIZE_EP and 45+ docs-only vars, plus ASCEND_BUFFER_POOL in v0.30.0) MUST be marked 'unknown' (evidenceLevel 'I'), never 'error'.",
-    rationale: "Absence of an in-repo Python/C++ read does not disprove consumption by CANN / libhccl.so.",
+      "对 HCCL_* 与 ASCEND_* 环境变量分类：在 vllm/vllm-ascend Python/C++ 源码中 0 处读取的变量（含 HCCL_BUFFSIZE_EP 等 45+ 仅见文档变量，以及 v0.30.0 下的 ASCEND_BUFFER_POOL）必须标为 unknown（证据级别 I），不得误判为 error。",
+    rationale: "仓内 Python/C++ 未读取并不能证伪 CANN / libhccl.so 底层消费。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.envVars) return null;
@@ -1031,14 +1045,14 @@ export const domain5Rules: readonly CouplingRule[] = [
         judgment: "unknown",
         evidenceLevel: "I",
         sources: [...collectedSources],
-        message: `Unverified CANN/HCCL env var(s) with 0 in-repo reads in ${version}: ${unknownVars.join(", ")}. Classified 'unknown' (NOT 'error') pending pinned CANN documentation.${knownVars.length > 0 ? ` (Verified read vars also present: ${knownVars.join(", ")}.)` : ""}`,
+        message: `未在 ${version} 锁定的 vllm / vllm-ascend 源码中查到读取点的 CANN/HCCL 环境变量：${unknownVars.join("、")}。待 CANN 官方文档核实前归类为 unknown（非 error）。${knownVars.length > 0 ? `（同时检测到已证实读取的变量：${knownVars.join("、")}。）` : ""}`,
       };
     },
   },
   {
     id: "d5-retired-ascend-env-var",
     domain: "graph-sched-env",
-    title: "Retired vllm-ascend Env Var Has 0 Reads in v0.30.0+ (Migrated to --additional-config)",
+    title: "已退役的 vllm-ascend 环境变量在 v0.30.0+ 无读取点（已迁移至 --additional-config）",
     judgment: "warn",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main"],
@@ -1048,9 +1062,9 @@ export const domain5Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:docs/source/user_guide/configuration/additional_config.md#L65-L70`,
     ],
     description:
-      "VLLM_ASCEND_ENABLE_NZ, VLLM_ASCEND_ENABLE_MLAPO, VLLM_ASCEND_ENABLE_FUSED_MC2, MSMONITOR_USE_DAEMON, and VLLM_ASCEND_FUSION_OP_TRANSPOSE_KV_CACHE_BY_BLOCK have 0 reads in v0.30.0 and main; exporting them silently does nothing and must be replaced with --additional-config.",
+      "VLLM_ASCEND_ENABLE_NZ、VLLM_ASCEND_ENABLE_MLAPO、VLLM_ASCEND_ENABLE_FUSED_MC2、MSMONITOR_USE_DAEMON 与 VLLM_ASCEND_FUSION_OP_TRANSPOSE_KV_CACHE_BY_BLOCK 在 v0.30.0 与 main 中均已 0 处读取，继续导出会静默无效，必须改用 --additional-config。",
     rationale:
-      "These legacy v0.23/v0.26 flags were deleted from vllm_ascend/envs.py and consolidated into AscendConfig additional_config fields.",
+      "这些 v0.23/v0.26 旧环境变量已从 vllm_ascend/envs.py 移除并统一收口至 AscendConfig additional_config。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.envVars) return null;
@@ -1065,7 +1079,7 @@ export const domain5Rules: readonly CouplingRule[] = [
         }
       }
       if (hits.length === 0) return null;
-      const details = hits.map((h) => `${h.name} -> ${h.replacement}`).join("; ");
+      const details = hits.map((h) => `${h.name} -> ${h.replacement}`).join("；");
       return {
         ruleId: this.id,
         domain: this.domain,
@@ -1074,15 +1088,15 @@ export const domain5Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: [...collectedSources],
-        message: `Retired env var(s) with 0 reads in ${version} (silently ignored): ${hits.map((h) => h.name).join(", ")}.`,
-        remediation: `Replace via --additional-config: ${details}.`,
+        message: `以下已退役环境变量在 ${version} 中 0 处读取（继续导出将静默忽略）：${hits.map((h) => h.name).join("、")}。`,
+        remediation: `请改用 --additional-config：${details}。`,
       };
     },
   },
   {
     id: "d5-deprecated-flashcomm1-env-fallback",
     domain: "graph-sched-env",
-    title: "VLLM_ASCEND_ENABLE_FLASHCOMM1 Uses Deprecated os.getenv Fallback (Prefer additional_config)",
+    title: "VLLM_ASCEND_ENABLE_FLASHCOMM1 已弃用并走 os.getenv 兼容兜底（建议迁移至 additional_config）",
     judgment: "warn",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main"],
@@ -1093,9 +1107,9 @@ export const domain5Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/patch/worker/patch_qwen3_5.py#L55-L61`,
     ],
     description:
-      "VLLM_ASCEND_ENABLE_FLASHCOMM1 was removed from vllm_ascend/envs.py in v0.30.0, but still has active os.getenv compatibility fallback reads in ascend_config.py and utils.py (patch_qwen3_5.py on main); it is deprecated rather than 0-read dead.",
+      "VLLM_ASCEND_ENABLE_FLASHCOMM1 已于 v0.30.0 从 vllm_ascend/envs.py 移除，但 ascend_config.py 与 utils.py（main 含 patch_qwen3_5.py）仍保留 os.getenv 兼容兜底读取，属于已弃用而非 0 读取失效。",
     rationale:
-      "Distinguishes live os.getenv compatibility fallback from 0-read retired env vars while nudging migration to additional_config.enable_flashcomm1.",
+      "区分仍生效的 os.getenv 兼容兜底与彻底失效的 0 读取退役变量，同时引导迁移至 additional_config.enable_flashcomm1。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.envVars || !Object.hasOwn(input.envVars, "VLLM_ASCEND_ENABLE_FLASHCOMM1")) return null;
@@ -1110,8 +1124,8 @@ export const domain5Rules: readonly CouplingRule[] = [
         evidenceLevel: this.evidenceLevel,
         sources: classified.sources,
         message:
-          "VLLM_ASCEND_ENABLE_FLASHCOMM1 was removed from vllm_ascend/envs.py in v0.30.0, but STILL takes effect via os.getenv compatibility fallback in ascend_config.py / utils.py (not 0-read dead).",
-        remediation: `Migrate to ${classified.replacement ?? `--additional-config '{"enable_flashcomm1": true}'`}.`,
+          "VLLM_ASCEND_ENABLE_FLASHCOMM1 已于 v0.30.0 从 vllm_ascend/envs.py 移除，但在 ascend_config.py / utils.py 中仍通过 os.getenv 兼容兜底生效（并非 0 读取失效）。",
+        remediation: `建议迁移至 ${classified.replacement ?? `--additional-config '{"enable_flashcomm1": true}'`}。`,
       };
     },
   },

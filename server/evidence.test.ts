@@ -248,8 +248,16 @@ describe("离线源码与原文证据构建、安全边界与 HTTP/静态路由�
       .flatMap((d) => d.pins)
       .filter((pin) => !pageSourceSet.has(pin.ref));
     expect(distinctRangePins.length).toBeGreaterThanOrEqual(6);
+    const hasLocalRepos = existsSync(join(repoRoot, "tools/repos/vllm-ascend"));
     for (const pin of distinctRangePins) {
-      expect(parsed.entries[pin.ref]?.status).toBe("ok");
+      const entry = parsed.entries[pin.ref];
+      if (hasLocalRepos) {
+        expect(entry?.status).toBe("ok");
+      } else {
+        // Open-source checkout without multi-GB tools/repos/* clones degrades cleanly to unavailable + externalHref
+        expect(entry).toMatchObject({ kind: "repo", status: "unavailable", reason: "unknown-repo" });
+        if (entry?.kind === "repo") expect(entry.externalHref).toMatch(/^https:\/\//);
+      }
     }
   }, 30_000);
 

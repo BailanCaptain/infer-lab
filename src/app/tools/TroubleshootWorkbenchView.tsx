@@ -1004,7 +1004,15 @@ export function TroubleshootWorkbenchView({
           <header className="wiki-tool-head">
             <div className="wt-embedded-title-group">
               <strong className="wiki-tool-title">{displayTitle}</strong>
-              <span className="wiki-tool-badge">{mode ? `mode: ${mode}` : "troubleshoot-workbench"}</span>
+              <span className="wiki-tool-badge">
+                {mode === "logs"
+                  ? "日志定位"
+                  : mode === "timeline"
+                    ? "时序沙箱"
+                    : mode === "full"
+                      ? "完整排障"
+                      : "故障排障台"}
+              </span>
             </div>
             <a className="wt-open-workbench" href="#/tools?tab=troubleshoot">
               打开完整排障工作台 →

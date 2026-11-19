@@ -228,7 +228,7 @@ file: gqa-fig-qwen3-shapes
 
 ### 变体边界：GLM 双机的稀疏 MLA 与 KDA 为什么不是 GQA
 
-并非所有省 KV cache 的模型都走 GQA。以第 7 章历史绑定案例 [GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)（`TP8 / DP2 / EP16`，示例请求 R1 在[第 4 站逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)穿过 `34` 层 [KDA](linear-attention.md) 与 `11` 层稀疏 [MLA](mla.md) 外加 MTP 草拟层，交替排布见 [GLM-5.3-Flash](glm-5-3-flash.md)）为例，它的 `config.json` 虽然写着 `num_attention_heads = 64` 且 `num_key_value_heads = 64`，但**整座模型没有一层是 MHA，也没有一层是 GQA**，不能套用本页的 GQA 公式估算它的缓存字节与块数（唯一推导见[双机部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）：
+并非所有省 KV cache 的模型都走 GQA。以 `09 旗舰异构模型全案` 的历史绑定案例 [GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md#部署前提)（`TP8 / DP2 / EP16`，示例请求 R1 在[第 4 站逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)穿过 `34` 层 [KDA](linear-attention.md) 与 `11` 层稀疏 [MLA](mla.md) 外加 MTP 草拟层，交替排布见 [GLM-5.3-Flash](glm-5-3-flash.md)）为例，它的 `config.json` 虽然写着 `num_attention_heads = 64` 且 `num_key_value_heads = 64`，但**整座模型没有一层是 MHA，也没有一层是 GQA**，不能套用本页的 GQA 公式估算它的缓存字节与块数（唯一推导见[双机部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）：
 
 ```wiki-diagram
 file: gqa-flow
@@ -293,7 +293,7 @@ GQA 没有运行时命令行开关，完全由模型权重和 `config.json` 的 
 | `AttentionSpec` 页容量与 SDPA `enable_gqa` | `AttentionSpec` 直接按 `2 * block_size * num_kv_heads * head_size` 计字节；`cpu_attn.py` 传 `enable_gqa` | 同 `v0.23.0` 口径 | `AttentionSpec` 泛化 `head_size_v` 与 `num_head_slots`，标准 GQA 页字节不变；CPU 改走原生分页核，`mm_encoder_attention` 等保留 `enable_gqa` | 延续泛化 `AttentionSpec` 与原生核分工 |
 | 昇腾 `FIA` 双头数直读与混合批执行 | `attention_v1.py` 算 `num_queries_per_kv`，向 `FIA` 传双头数，调用前不展开 K/V | 同 `v0.23.0`（`attention_v1.py#L440-L451`） | 保持双头数直传；新增 `VLLM_BATCH_INVARIANT` 或 `950DT` `CHUNKED_PREFILL_PHASE_SPLIT` 时把混合批拆成两段 `FIA` 调用（不改 GQA 数学） | 延续双头数直传与混合批拆段（`attention_v1.py#L595-L618`） |
 | `Mooncake+GQA+C8` 与 `PCP/DCP` 门禁 | 已有 `_check_mooncake_c8_kv_cache_quant` 拦截 GQA+C8 裸传；无独立 GQA `PCP==DCP` 门禁 | 延续 GQA+C8 Mooncake 拦截 | 保留 GQA+C8 拦截（`MooncakeLayerwiseConnector` 分 `int8` 缓冲），新增 `_validate_model_pcp_dcp_config`（`PCP==DCP`）与草稿 GQA `DCP` 校验 | 延续 GQA+C8 拦截与 `PCP==DCP` / 草稿 `DCP` 全套校验 |
-| GLM 稀疏 MLA / KDA 代码归属 | 维护分支无 `glm5next`（第 7 章例外 B 双机案例钉在独立提交 `db701c1f`） | 维护分支无 `glm5next` | 社区仓 `models/glm5next/` 提供 `Glm5NextMLAAttention` 等实现（不等同于历史镜像 `db701c1f`） | 延续 `models/glm5next/` 演进；第 7 章绑定算例仍以 `db701c1f` 为准 |
+| GLM 稀疏 MLA / KDA 代码归属 | 维护分支无 `glm5next`（`09 旗舰异构模型全案` 的例外 B 双机案例钉在独立提交 `db701c1f`） | 维护分支无 `glm5next` | 社区仓 `models/glm5next/` 提供 `Glm5NextMLAAttention` 等实现（不等同于历史镜像 `db701c1f`） | 延续 `models/glm5next/` 演进；`09` 组 GLM 绑定算例仍以 `db701c1f` 为准 |
 
 ### 源码位置
 

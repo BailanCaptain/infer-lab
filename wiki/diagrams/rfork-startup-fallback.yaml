@@ -1,10 +1,10 @@
 layout: figure
 id: rfork-startup-fallback
-caption: 回退这一段在加载器里的先后与分支。会话建起来了，就先停服务、安排还租约、注销登记（最多两轮），再按拍好的快照撤掉半成品模型留下的全局登记；服务没停下或内存没注销，就报错终止，不分配第二份模型。会话根本没建起来（缺配置、没装传输引擎），跳过清理直接普通加载，事后也不发布 seed。普通加载自己失败就抛错；成功后，会话在就尝试把自己发布成 seed，发布失败也照样交回模型。
-size: [900, 580]
+caption: 回退这一段在加载器里的先后与分支。缺少必填配置或严格参数非法会抛 RForkConfigurationError 直接中止启动，不进入此回退流程；只有未借到来源或可恢复异常（ImportError / OSError / RuntimeError / ValueError）才进入回退。会话建起来了，就先停服务、安排还租约、注销登记（最多两轮），再按拍好的快照撤掉半成品模型留下的全局登记；服务没停下或内存没注销，就报错终止，不分配第二份模型。会话没建起来（如没装传输引擎或并行组未初始化），跳过清理直接普通加载，事后也不发布 seed。普通加载自己失败就抛错；成功后，会话在就尝试把自己发布成 seed，发布失败也照样交回模型。
+size: [900, 586]
 
 items:
-  - { at: [220, 20], size: [320, 44], text: ⑦ 没借到，或 ③–⑨ 抛错, tone: danger }
+  - { at: [220, 20], size: [320, 44], text: ⑦ 没借到，或可恢复异常, tone: danger }
   - { at: [220, 82], size: [320, 44], text: 会话建起来了吗？, style: plain }
   - { at: [220, 144], size: [320, 44], text: 停服务 · 安排还租约 · 注销登记, tone: danger, style: faded }
   - { at: [220, 206], size: [320, 44], text: 按快照撤掉半成品留下的全局登记, tone: danger, style: faded }
@@ -14,10 +14,10 @@ items:
   - { at: [220, 454], size: [320, 44], text: 会话在吗？, style: plain }
   - { at: [220, 516], size: [320, 44], text: 尝试发布成 seed，再交回模型, tone: control, style: plain }
   # 分支出口
-  - { at: [20, 76], size: [160, 56], text: 会话没建起来, sub: 缺配置或没装传输引擎, style: plain }
-  - { at: [620, 268], size: [260, 44], text: 报错终止，不分配第二份模型, tone: danger }
-  - { at: [620, 392], size: [260, 44], text: 抛错：两层失败原因都要看, tone: danger }
-  - { at: [620, 454], size: [260, 44], text: 只交回模型，不当 seed, style: plain }
+  - { at: [16, 76], size: [168, 56], text: 会话没建起来, sub: 缺传输库或并行组未建, style: plain }
+  - { at: [620, 268], size: [264, 44], text: 报错终止，不分配第二份模型, tone: danger }
+  - { at: [620, 392], size: [264, 44], text: 抛错：两层失败原因都要看, tone: danger }
+  - { at: [620, 454], size: [264, 44], text: 只交回模型，不当 seed, style: plain }
 
 links:
   - { from: [380, 64], to: [380, 82] }
@@ -29,7 +29,7 @@ links:
   - { from: [380, 436], to: [380, 454] }
   - { from: [380, 498], to: [380, 516] }
   # 会话没建起来：跳过清理
-  - { from: [220, 104], to: [180, 104] }
+  - { from: [220, 104], to: [184, 104] }
   - { from: [100, 132], to: [220, 414], via: [[100, 414]], dashed: true }
   # 报错出口
   - { from: [540, 290], to: [620, 290], tone: danger }
@@ -37,18 +37,18 @@ links:
   - { from: [540, 476], to: [620, 476] }
 
 texts:
-  - { at: [200, 96], text: 否, anchor: middle, size: 12 }
-  - { at: [110, 280], text: 跳过清理, size: 12, note: true }
-  - { at: [392, 140], text: 是, size: 12 }
-  - { at: [550, 166], text: 最多试两轮；租约交给后台去还, size: 12, note: true }
-  - { at: [550, 228], text: 前向上下文、MoE 层表、RoPE 缓存等五类, size: 12, note: true }
-  - { at: [580, 282], text: 否, anchor: middle, size: 12, tone: danger }
-  - { at: [392, 326], text: 是, size: 12 }
-  - { at: [580, 406], text: 失败, anchor: middle, size: 12, tone: danger }
-  - { at: [580, 468], text: 否, anchor: middle, size: 12 }
-  - { at: [392, 512], text: 是, size: 12 }
-  - { at: [550, 542], text: 发布失败，模型也照样交回, size: 12, note: true }
+  - { at: [202, 95], text: 否, anchor: middle, size: 13 }
+  - { at: [110, 280], text: 跳过清理, size: 13, note: true }
+  - { at: [392, 140], text: 是, size: 13 }
+  - { at: [552, 168], text: 最多试两轮；租约交给后台去还, size: 13, note: true }
+  - { at: [552, 230], text: 前向上下文、MoE、RoPE、Dynamo、Engram, size: 13, note: true }
+  - { at: [580, 281], text: 否, anchor: middle, size: 13, tone: danger }
+  - { at: [392, 326], text: 是, size: 13 }
+  - { at: [580, 405], text: 失败, anchor: middle, size: 13, tone: danger }
+  - { at: [580, 467], text: 否, anchor: middle, size: 13 }
+  - { at: [392, 512], text: 是, size: 13 }
+  - { at: [552, 542], text: 发布失败，模型也照样交回, size: 13, note: true }
 
 pins:
-  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L904-L957
-    symbols: [prepare_for_fallback, _reset_process_global_model_state, _load_with_default_loader, _start_rfork_seed_service]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L889-L957
+    symbols: [RForkConfigurationError, prepare_for_fallback, _reset_process_global_model_state, _load_with_default_loader, _start_rfork_seed_service]

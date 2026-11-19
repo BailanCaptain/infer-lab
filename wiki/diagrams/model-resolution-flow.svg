@@ -9,30 +9,30 @@
   <path d="M285 506 L285 548" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#model-resolution-flow-ah-weight)"/>
   <path d="M750 206 L750 248" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#model-resolution-flow-ah-token)"/>
   <path d="M750 306 L750 548" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#model-resolution-flow-ah-token)"/>
-  <rect x="30" y="48" width="840" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="73" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模型来源与修订；可单独指定配置和 tokenizer 来源</text>
-  <text x="450" y="92" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本地目录直接读；远端仓库先查缓存，需要时访问 Hub</text>
-  <rect x="30" y="148" width="510" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="285" y="173" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">读结构说明，选择配置类</text>
-  <text x="285" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">得到层数、宽度和模型类型；还没有装权重</text>
-  <rect x="30" y="248" width="510" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="285" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按架构名称选择执行实现</text>
-  <text x="285" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">原生注册表；符合条件时尝试 Transformers 后端</text>
-  <rect x="30" y="348" width="510" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="285" y="373" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Worker 第③步：构造本卡参数</text>
-  <text x="285" y="392" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">形状由配置与实现决定，随后才填入权重</text>
-  <rect x="30" y="448" width="510" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="285" y="473" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">读取权重，再做布局后处理</text>
-  <text x="285" y="492" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">文件选择看加载格式；张量名称与形状必须匹配</text>
-  <rect x="630" y="148" width="240" height="58" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="750" y="173" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">初始化 tokenizer</text>
-  <text x="750" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">使用自己的来源与修订</text>
-  <rect x="630" y="248" width="240" height="58" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="750" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">文字变成 token 编号</text>
-  <text x="750" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">不会随之重排模型权重</text>
-  <rect x="30" y="548" width="840" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="570" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模型按输入编号查词向量，再执行前向</text>
-  <text x="450" y="589" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">同一个编号的含义，必须与训练时权重的约定一致</text>
+  <rect x="30" y="48" width="840" height="58" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="450" y="73" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">模型来源与修订；可单独指定配置和 tokenizer 来源</text>
+  <text x="450" y="92" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">本地目录直接读；远端仓库先查缓存，需要时访问 Hub</text>
+  <rect x="30" y="148" width="510" height="58" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="285" y="173" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">读结构说明，选择配置类</text>
+  <text x="285" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">得到层数、宽度和模型类型；还没有装权重</text>
+  <rect x="30" y="248" width="510" height="58" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="285" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按架构名称选择执行实现</text>
+  <text x="285" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">原生注册表；符合条件时尝试 Transformers 后端</text>
+  <rect x="30" y="348" width="510" height="58" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="285" y="373" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Worker 第③步：构造本卡参数</text>
+  <text x="285" y="392" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">形状由配置与实现决定，随后才填入权重</text>
+  <rect x="30" y="448" width="510" height="58" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="285" y="473" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">读取权重，再做布局后处理</text>
+  <text x="285" y="492" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">文件选择看加载格式；张量名称与形状必须匹配</text>
+  <rect x="630" y="148" width="240" height="58" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="750" y="173" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">初始化 tokenizer</text>
+  <text x="750" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">使用自己的来源与修订</text>
+  <rect x="630" y="248" width="240" height="58" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="750" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">文字变成 token 编号</text>
+  <text x="750" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">不会随之重排模型权重</text>
+  <rect x="30" y="548" width="840" height="52" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="450" y="570" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">模型按输入编号查词向量，再执行前向</text>
+  <text x="450" y="589" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">同一个编号的含义，必须与训练时权重的约定一致</text>
   <text x="450" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">结构说明、执行代码、权重、分词规则各负责什么</text>
   <text x="762" y="426" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">输入编号</text>
 </svg>

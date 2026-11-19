@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { answerQualitySchema } from "../../content/wiki/answer-quality";
+import { CHAT_PROVIDERS } from "../../content/wiki/chat-models";
 
 export const CHAT_HISTORY_KEY = "wiki-chat-history-v1";
 const strings = z.array(z.string());
@@ -78,7 +79,7 @@ const message = z.object({
   trace: trace.optional(),
   model: z
     .object({
-      provider: z.enum(["claude", "codex"]).optional(),
+      provider: z.enum(CHAT_PROVIDERS).optional(),
       requested: z.string().optional(),
       answeredBy: z.string().optional(),
       switched: z.boolean(),

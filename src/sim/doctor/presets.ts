@@ -97,7 +97,7 @@ export const FULL_SINGLE_DOCTOR_PRESETS: readonly SingleDoctorPreset[] = [
     health: "healthy",
     label: "健康基线：A3 四卡 Qwen3-30B-A3B (W8A8_DYNAMIC + TP4 + EP4)",
     summary:
-      "对照第 6 章完整调优模板：ModelSlim W8A8 + TP=4 + EP + FULL_DECODE_ONLY + npugraph_ex + static_kernel，零硬阻断。",
+      "对照 08 性能与调参篇完整调优模板：ModelSlim W8A8 + TP=4 + EP + FULL_DECODE_ONLY + npugraph_ex + static_kernel，零硬阻断。",
     hardwareFamily: "A3",
     version: "v0.30.0",
     command: `export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3

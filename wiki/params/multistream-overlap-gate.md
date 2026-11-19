@@ -96,9 +96,11 @@ rawSources:
 
 ## 它曾做什么，为什么 v0.24 起已移除？
 
-`multistream_overlap_gate` 是 `v0.23.0` 中的布尔开关（默认 `False`），上游称为 **FlashComm3 multistream-overlap gate**。开启后，vLLM-Ascend 把 MoE 层里的**共享专家前向**（每个 token 都要经过的共享专家及其 TP All-Reduce，见 [MoE 的共享专家](../concepts/moe.md#共享专家每个-token-都要过的那一个)）与 **`select_experts` 路由**（给每个 token 挑专家，见[跟着一个 token 走一遍](../concepts/moe.md#moe-怎么算跟着一个-token-走一遍)）整体搬到一条副流 `gate_stream` 上，让它们与主线里的「动态量化 + EP All-Gather 隐藏态」并行执行。这里的 **stream（流）** 指 NPU 上按顺序执行的任务队列：同一条流中的任务依次执行，不同流上的任务可以在设备上重叠运行；一条流停下来等另一条流完成再继续，本页称为 **join（汇合）**——汇合之后才能安全读取对方的输出。
+推理走到 MoE（混合专家）层时，NPU 既要把本地隐藏态量化并跨卡汇总（`prepare` 准备阶段），又要算每个 token 必经的**共享专家前向**（含 TP All-Reduce，见 [MoE 的共享专家](../concepts/moe.md#共享专家每个-token-都要过的那一个)）和给每个 token 挑专家的 **`select_experts` 路由**（见[跟着一个 token 走一遍](../concepts/moe.md#moe-怎么算跟着一个-token-走一遍)）。`multistream_overlap_gate`（上游称为 **FlashComm3 multistream-overlap gate**）的思路是把这两段工作拆到不同的 NPU **stream（流）**上并行跑：同一条流中的任务按顺序执行，不同流上的任务可以在设备上重叠运行；一条流停下来等另一条流完成再继续称为 **join（汇合）**——汇合之后才能安全读取对方的输出。
 
-**当前状态与迁移建议**：这个开关在 `v0.23.0` 发版时就被列入「Ready to Deprecate」，自 `v0.24.0rc` 起随 PR [#11956](https://github.com/vllm-project/vllm-ascend/pull/11956) 整套删除（连同 `flash_common3_context.py`、`fc3_quant_x` 通信组与 `fc3_all_gather_and_maybe_unpad_impl` 一起移除），`v0.26.0rc`、`v0.30.0` 与 `main` 均不再保留。升级时应直接从启动命令中删掉此键，不要把它和至今仍在的 `multistream_overlap_shared_expert` 混为一谈：
+**当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**这个开关和整套 FlashComm3 多流门控实现在 `v0.30.0` 与 `main` 中均已删除**——它在 `v0.23.0` 发版时就被列入「Ready to Deprecate」，自 `v0.24.0rc` 起随 PR [#11956](https://github.com/vllm-project/vllm-ascend/pull/11956) 整套移除（连同 `flash_common3_context.py`、`fc3_quant_x` 通信组与 `fc3_all_gather_and_maybe_unpad_impl` 一起删除），`v0.26.0rc`、`v0.30.0` 与 `main` 均不再保留。若从旧版迁移时把它残留在 `--additional-config` 里，`v0.30.0` 与 `main` 的普通进程会直接被 `extra="forbid"` 拒收（发现 `vllm_omni` 时告警过滤），升级时应直接删掉此键。
+
+在仍包含它的历史 **`v0.23.0`（`2c59ff10`）** 中，它是默认 `False` 的布尔开关：开启后把共享专家前向与 `select_experts` 路由整体搬到副流 `gate_stream` 上，让它们与主线里的「动态量化 + EP All-Gather 隐藏态」并行执行。迁移时不要把它和至今仍在 `v0.30.0` / `main` 中保留的 `multistream_overlap_shared_expert` 混为一谈：
 
 | 对比维度 | `multistream_overlap_gate`（历史开关） | `multistream_overlap_shared_expert`（现存开关） |
 | --- | --- | --- |

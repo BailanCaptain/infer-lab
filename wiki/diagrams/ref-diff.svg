@@ -7,14 +7,14 @@
   <text x="536" y="43" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">固定提交 B（示意）</text>
   <path d="M350 137 L550 137" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-start="url(#ref-diff-ah-control)" marker-end="url(#ref-diff-ah-control)"/>
   <path d="M350 242 L550 242" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-start="url(#ref-diff-ah-token)" marker-end="url(#ref-diff-ah-token)"/>
-  <rect x="60" y="110" width="290" height="55" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="205" y="142.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">职责与符号</text>
-  <rect x="550" y="110" width="290" height="55" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="695" y="142.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">对应职责与符号</text>
-  <rect x="60" y="215" width="290" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="205" y="247.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">输入 / 条件 / 状态更新</text>
-  <rect x="550" y="215" width="290" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="695" y="247.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">输入 / 条件 / 状态更新</text>
+  <rect x="60" y="110" width="290" height="55" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="205" y="142.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">职责与符号</text>
+  <rect x="550" y="110" width="290" height="55" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="695" y="142.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">对应职责与符号</text>
+  <rect x="60" y="215" width="290" height="55" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="205" y="247.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">输入 / 条件 / 状态更新</text>
+  <rect x="550" y="215" width="290" height="55" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="695" y="247.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">输入 / 条件 / 状态更新</text>
   <text x="450" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">定位</text>
   <text x="450" y="215" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">比较行为</text>
 </svg>

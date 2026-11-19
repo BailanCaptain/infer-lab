@@ -303,7 +303,7 @@ file: kv-pool-flow
 2. **分配。** 调度器把要搬的位置当作「已经算过」处理，照常给请求借本地块（借块规则见 [KV 块分配](vllm-kv-block-allocation.md)），并记下哪几段要从池里取。
 3. **搬运。** 执行侧把本地目标块的显存地址交给存储后端。启动时每张卡已登记 KV cache 的显存区间，存取接口接收一串「地址 + 长度」；某一层某一块的地址 = 这一层缓存的起始地址 + 块号 × 每块跨度。接口传地址不代表整个后端都没有中转缓冲，SSD、主机内存等路径仍有自己的搬运过程。设计文档说，不把存储挂在 [LMCache](lmcache.md)（另一套接在 KV connector 上的外部缓存）后面经它中转，是为了使用贴合昇腾硬件的传输方式。默认同步路径要等加载返回，这一步的前向才能继续。
 4. **使用。** 搬完的位置和本地算出来的没有区别，block table 指向它们，attention 照常读。
-5. **写回。** 这一步的前向把新位置写进显存以后，要存的段交给后台发送线程。默认只存 prompt 部分，包括 chunked prefill（把长 prompt 分几步算）每一步新写满的段；decode 阶段新写满的段要另开开关才存。线程动手前先等一个 NPU 事件，确认前向真的写完了，再往池里写；这一步结束前，还要等发送队列排空（main 上改成了下一步开头再等，见版本差异）。
+5. **写回。** 这一步的前向把新位置写进显存以后，要存的段交给后台发送线程。默认只存 prompt 部分，包括 chunked prefill（把长 prompt 分几步算）每一步新写满的段；decode 阶段新写满的段要另开开关才存。线程动手前先等一个 NPU 事件，确认前向真的写完了，再往池里写；这一步结束前还要等发送队列排空（`v0.30.0` 曾通过 `_previous_save_batch` 将等待后移到下一步开头，而当前 `main` 为防止下一分块复用 SWA 槽位，又在 `wait_for_save` 内恢复了同步排空，见版本差异）。
 
 **搬失败怎么办。** 固定 GLM 镜像的同步加载路径只在单个缓存组时，把失败块标成无效并报给调度器；这时 vLLM 默认让请求报错结束，显式改成重算才走重算策略。多个缓存组加载失败时，该路径只记录错误并跳过无效块回退，不能保证会按默认策略结束。混合注意力模型还被平台禁止使用重算失败策略。所以命中只是计划，不保证数据一定到得了。
 
@@ -501,13 +501,13 @@ vllm serve <模型路径> ... --kv-transfer-config '{
 - 固定旧基线没设 `PYTHONHASHSEED`：初始化的根指纹使用随机字节，独立实例无法稳定复用；使用 CBOR 哈希函数时还会打印不可复现的警告。这不是启动错误。rc2/main 只对缺省随机的 xxhash 系列发出对应警告，SHA-256 系列的默认值已确定，不能把旧版报错判断照搬过去；也不能由没有警告推断模型与缓存身份兼容。
 - 搬运失败：固定镜像的同步加载分支只为单缓存组请求登记无效块，经 `get_block_ids_with_load_errors` 上报；采用默认 `fail` 策略时，请求以错误结束。多缓存组若出现失败块，会记录错误并跳过无效块回退；文档也明确表示，混合注意力模型尚不支持加载失败后重算。
 - 旧逐层路径打印 `Layerwise ... load wait timed out`：v0.23 和固定 GLM 镜像中是等 10 秒未完成后继续返回，不能据此认为该层已加载成功；v0.26 起的 `load not done, keep waiting` 路径会继续等并检查后台异常，两种日志对应的控制流不同。
-- main 上：`qos_priority` 必须是 0–4 的整数，否则启动时 `ValueError`；mooncake 逐层路径在 PP、PCP、DCP 任一 > 1 时 `ValueError`（只支持纯 TP），遇到带递推 Mamba 状态的混合模型也 `ValueError`（GLM 的 KDA 属于这一类），P/D 两端 TP 不一致同样 `ValueError`；非逐层时，混合缓存布局遇到两端 TP 不一致抛 `NotImplementedError`（strided I/O 只假设一个稠密的 KV 组）。
+- `v0.30.0` 与 `main` 上：`qos_priority` 必须是 `0–4` 的整数，否则启动时 `ValueError`；Mooncake 逐层路径在早期快照 `baa023ad` 会对 `PP`/`PCP`/`DCP > 1` 或混合递推状态报 `ValueError`，到了 `v0.30.0`（`c09d3e20`）已支持 `PP > 1`（要求每阶段覆盖各缓存组）与混合递推状态，仅拒绝 `PCP > 1` / `DCP > 1` 与 P/D TP 不一致；`main`（`8d6180e2`）进一步支持互斥的 `PCP` 或 `DCP`（禁止两者同开或叠加 `enable_kvpp`，`DCP > 1` 另要求 `put_step >= dcp_size` 且拒 SWA/非 align Mamba）；非逐层时，混合缓存布局遇到两端 TP 不一致仍抛 `NotImplementedError`（strided I/O 只假设一个稠密的 KV 组）。
 
 ### 开销和什么时候别开
 
 - **短前缀没有查询。** 前缀凑不满一段就不查；GLM 上段长是 640（同时开 prefix caching）或 133,120（不开）。
 - **读默认同步。** `load_async` 不开时，`start_load_kv` 里直接 `m_store.get(...)`，耗时算进这一步前向。
-- **写在后台、有栅栏。** `wait_for_save` 录一个 `torch.npu.Event`，把请求放进发送线程；线程 `put` 之前先 `current_event.synchronize()`。v0.23、db701c1f、v0.26 在本步末尾 `request_queue.join()` 等队列排空；main 挪到下一步开头（见版本差异）。
+- **写在后台、有栅栏。** `wait_for_save` 录一个 `torch.npu.Event`，把请求放进发送线程；线程 `put` 之前先 `current_event.synchronize()`。`v0.23.0`、`db701c1f`、`v0.26.0rc` 在本步末尾 `request_queue.join()` 等队列排空；`v0.30.0`（`c09d3e20:pool_worker.py#L3281-L3305`）通过 `_previous_save_batch` 将等待挪到下一步开头；当前 `main`（`8d6180e2:pool_worker.py#L1566-L1570`）为防止下一分块复用 SWA 槽位，又在 `wait_for_save` 内恢复了同步 `send_thread.request_queue.join()` 与 `send_thread.raise_if_failed()`。
 - **查询本身。** 非逐层模式下，实际发出查询时有一次本机 IPC 往返，再由后台线程批量查询存储后端；不足一段等提前返回的请求不走这笔往返，逐层模式走调度侧客户端。
 - **容量。** `global_segment_size` 是每卡贡献一份的配置，1GB 是文档示例值，不能保证任意模型都够用。按池中保留的不同记录逐项累加有效字节：普通 K/V 可按位置乘长度，压缩缓存按压缩后条目计算，递推状态按留档块数乘每份状态大小；TP 共享同一键的记录只计一次。再给后端元数据、读写缓冲和淘汰过程留空间。并发数也不等于不同前缀数，同一前缀可共享；SSD 缓冲则按 rank 另算，不能混进这个乘法。
 - **混合模型的连带成本。** 接上 AscendStore 会强制 align，线性 attention 的状态从一份变成按块留档；GLM 上还得同时开 prefix caching，那一侧的代价见 [prefix caching](prefix-caching.md#glm-双机上它开着吗)。
@@ -521,7 +521,7 @@ vllm serve <模型路径> ... --kv-transfer-config '{
 |---|---|---|---|---|
 | 块指纹根种子（上游 vLLM） | 未设 `PYTHONHASHSEED` 时全部随机；CBOR 告警 | 同 `v0.23.0` | `sha256/sha256_cbor` 默认固定种子 `vllm-none-hash`；`xxhash` 系列仍默认随机并告警 | 同 `v0.30.0`（`kv_cache_utils.py#L110-L120`） |
 | 上游 `MooncakeStoreConnector` | `embedded` / `standalone-store`；`enable_offload` 选 1,280 MiB 分批预算；`get_finished` 提交 I/O 与断言 `load_async=True` | 同 `v0.23.0` | I/O 拆至 `start_load_kv` / `wait_for_save`，断言前移至 `start_load_kv`；放宽至至少一个前缀可缓存组（拒 CrossAttention 与非 align Mamba） | 同 `v0.30.0`（`worker.py#L1627-L1660` 补 `preferred_segment` / `tenant_id` 与 `enable_offload` 告警校验） |
-| `AscendStoreConnector` 架构与模块 | `config_data.py` / `backend/backend.py`；普通键 `@pcp<n>@dcp<n>@…`；仅 memcache 逐层 GVA；写回在本步 `wait_for_save` 末尾 `join()` | 键改为 `@pcp:<n>@dcp:<n>@…`；逐层保存看 `consumer_is_to_put`；增 P/D 跨 TP 子键；逐层加载改为循环等并查后台异常 | `metadata.py` / `backend/base.py`；键去掉 `pcp` 为 `@dcp:<n>@…`；Mooncake 逐层支持 TP/PP 与 Mamba 延后复制；`handle_preemptions` 按 `released_req_ids` 精确等待即将复用块的写回（`ascend_store_connector.py#L305-L370`） | **逐层逻辑独立拆入 `ascend_store/layerwise/`**，新增 `in_flight_save_blocks.py`、`lookup_key.py` 与 `configure_dspark_prefix_cache`（SFA DSpark P 侧联合外部前缀复用），并对 V2 Mamba 混合模型同时支持逐层与同步整块延后复制（`ascend_store_connector.py#L150-L205`） |
+| `AscendStoreConnector` 架构与模块 | `config_data.py` / `backend/backend.py`；普通键 `@pcp<n>@dcp<n>@…`；仅 memcache 逐层 GVA；写回在本步 `wait_for_save` 末尾 `join()` | 键改为 `@pcp:<n>@dcp:<n>@…`；逐层保存看 `consumer_is_to_put`；增 P/D 跨 TP 子键；逐层加载改为循环等并查后台异常 | `metadata.py` / `backend/base.py`；键去掉 `pcp` 为 `@dcp:<n>@…`；Mooncake 逐层支持 TP/PP 与 Mamba 延后复制（拒 PCP/DCP）；非逐层 `wait_for_save` 通过 `_previous_save_batch` 延后至下一步开头等待，并由 `handle_preemptions` 按 `released_req_ids` 精确等待即将复用块的写回（`ascend_store_connector.py#L305-L370`） | **逐层逻辑独立拆入 `ascend_store/layerwise/`**，新增 `in_flight_save_blocks.py`、`lookup_key.py` 与 `configure_dspark_prefix_cache`；Mooncake 逐层放开互斥 `PCP` 或 `DCP`；非逐层 `wait_for_save` 内**恢复同步 `request_queue.join()` + `raise_if_failed()`**（`pool_worker.py#L1566-L1570`），防止下一分块提前复用 SWA 槽位；V2 Mamba 混合模型同时支持逐层与同步整块延后复制（`ascend_store_connector.py#L150-L205`） |
 | 混合模型 align 与部署边界 | 接 AscendStore 自动改 `align`；逐层 10 秒超时仅记日志（`db701c1f` 同） | 同 `align` 规则；逐层取消 10 秒静默超时 | 同 `align`（保留 `extract_hidden_states` 例外）；`kv_consumer` 仅 `save_decode_cache` 限非逐层；PP 命名空间含层分区与配置摘要（PP=1 不加） | 同 `v0.30.0`，并在构造期显式拒绝 `kv_consumer` 仅 `save_decode_cache + use_layerwise` 组合（`#L150-L159`） |
 
 **后续官方快照 `921ccc52` 的升级与多租户边界。** MLA 池对象在逻辑块含多物理页且页间有空隙时改用分段/按物理页排列格式，与旧连续区间格式不兼容（即使总字节相同也不可混读），升级须同步升级所有读写端并清理旧池或切换命名空间；`cache_salt` 隔离须共享端一致。多租户 `tenant_id` 仅在 Mooncake master 开启严格多租户时生效（否则落 `default`），属命名空间/配额身份而非认证；`enable_ssd_prefetch` 依赖 `enable_offload` 与 SDK `ExistOptions`（默认冷却/去重 5s/30s），启用后新建独立 `TransferEngine`。名字格式与模块路径变更会让旧键不可见或旧 import 失效；写回等待点前移会改变 profiling 归属，但并未取消块复用前完成写回的约束。

@@ -28,8 +28,16 @@ const MEGA_MOE_TOKENS_PER_RANK_LIMIT = 16384;
 const RFORK_MEGA_MOE_TOKENS_PER_RANK_LIMIT = 4096;
 const MC2_TOKENS_PER_RANK_LIMIT = 512;
 
-function isFusedMc2Requested(val: CouplingCheckInput["enableFusedMc2"]): boolean {
-  return val === 1 || val === 2 || val === 3;
+function isMegaMoeRequested(val: CouplingCheckInput["enableFusedMc2"], version: RuleVersion): boolean {
+  if (version === "rfork") return false;
+  if (version === "main") return val === 2 || val === 3;
+  return val === 2;
+}
+
+function isFusedMc2Requested(val: CouplingCheckInput["enableFusedMc2"], version: RuleVersion): boolean {
+  if (version === "rfork") return val === 1;
+  if (version === "main") return val === 1 || val === 2 || val === 3;
+  return val === 1 || val === 2;
 }
 
 export function isMegaMoeActive(input: CouplingCheckInput, version: RuleVersion): boolean {
@@ -41,7 +49,7 @@ export function isMegaMoeActive(input: CouplingCheckInput, version: RuleVersion)
   if (family !== "A3" && family !== "A5") return false;
   if (input.isLoraEnabled) return false;
   if (!input.isMoe || !input.enableExpertParallel) return false;
-  if (!isFusedMc2Requested(input.enableFusedMc2)) return false;
+  if (!isMegaMoeRequested(input.enableFusedMc2, version)) return false;
   if (input.isMegaMoeSupportedByModel === false) return false;
   if (input.isMegaMoeSupportedByConfig === false) return false;
   if (input.cannOpsTransformerAvailable === false) return false;
@@ -62,7 +70,7 @@ export function isMegaMoeActive(input: CouplingCheckInput, version: RuleVersion)
 
 export function isFusedMc2SilentlyReset(input: CouplingCheckInput, version: RuleVersion): boolean {
   if (version === "rfork") return false;
-  if (!isFusedMc2Requested(input.enableFusedMc2)) return false;
+  if (!isMegaMoeRequested(input.enableFusedMc2, version)) return false;
   if (input.cannOpsTransformerAvailable === false) return false;
   if (input.isMegaMoeSupportedByModel === false) return false;
   return input.isMegaMoeSupportedByConfig === false;
@@ -79,7 +87,7 @@ export function calculateMc2TokensCapacity(
 
   const useMegaMoe = isMegaMoeActive(input, version);
   const effectiveFusedMc2 =
-    isFusedMc2Requested(input.enableFusedMc2) && !isFusedMc2SilentlyReset(input, version);
+    isFusedMc2Requested(input.enableFusedMc2, version) && !isFusedMc2SilentlyReset(input, version);
   const cudagraphCaptureEnabled =
     input.cudagraphCaptureSizes === undefined ? true : input.cudagraphCaptureSizes.length > 0;
 
@@ -123,7 +131,7 @@ export function calculateMc2TokensCapacity(
   const mc2TokensCapacity = numTokensPerTpRank * tp;
 
   let dispatchV2TokensCapacity: number | undefined;
-  if (version === "rfork" && isFusedMc2Requested(input.enableFusedMc2)) {
+  if (version === "rfork" && isFusedMc2Requested(input.enableFusedMc2, version)) {
     let dispatchV2MaxTokens: number;
     if (cudagraphCaptureEnabled && input.maxCudagraphCaptureSize !== undefined) {
       dispatchV2MaxTokens = input.maxCudagraphCaptureSize;
@@ -189,7 +197,7 @@ export function selectMoeCommMethod(
     return {
       version,
       method: null,
-      reason: "Model is not MoE; MoE communication strategy is not applicable.",
+      reason: "当前为非 MoE 模型，不适用 MoE 专家通信策略。",
       mc2TokensCapacity: null,
       fusedMc2SilentlyReset: false,
       usedWorldSizeAcrossDpBug: false,
@@ -209,7 +217,7 @@ export function selectMoeCommMethod(
     return {
       version,
       method: "ALLGATHER",
-      reason: "Expert parallelism disabled or ep_world_size == 1 -> ALLGATHER.",
+      reason: "未启用专家并行或 ep_world_size == 1，走 ALLGATHER。",
       mc2TokensCapacity: null,
       fusedMc2SilentlyReset: false,
       usedWorldSizeAcrossDpBug: false,
@@ -229,7 +237,7 @@ export function selectMoeCommMethod(
     return {
       version,
       method: "ALLTOALL",
-      reason: "LoRA + EP forces ALLTOALL.",
+      reason: "启用 LoRA 且开启 EP 时强制回退到 ALLTOALL。",
       mc2TokensCapacity: null,
       fusedMc2SilentlyReset: false,
       usedWorldSizeAcrossDpBug: false,
@@ -253,7 +261,7 @@ export function selectMoeCommMethod(
     return {
       version,
       method: "ALLGATHER",
-      reason: "Ascend 310P MoECommPolicy.ALLGATHER always selects ALLGATHER.",
+      reason: "Ascend 310P 采用 MoECommPolicy.ALLGATHER，始终选择 ALLGATHER。",
       mc2TokensCapacity: null,
       fusedMc2SilentlyReset: false,
       usedWorldSizeAcrossDpBug: false,
@@ -266,7 +274,7 @@ export function selectMoeCommMethod(
   const numTokens = input.numTokens;
   const withinCapacity = numTokens === undefined || numTokens <= capacity;
   const fusedReset = isFusedMc2SilentlyReset(input, version);
-  const effectiveFusedMc2 = isFusedMc2Requested(input.enableFusedMc2) && !fusedReset;
+  const effectiveFusedMc2 = isFusedMc2Requested(input.enableFusedMc2, version) && !fusedReset;
 
   if (family === "A2") {
     const numExperts = input.numExperts ?? 64;
@@ -274,7 +282,7 @@ export function selectMoeCommMethod(
       return {
         version,
         method: "ALLGATHER",
-        reason: "rfork A2 policy falls back to ALLGATHER when num_experts > 512.",
+        reason: "rfork A2 策略在 num_experts > 512 时回退到 ALLGATHER。",
         mc2TokensCapacity: capacity,
         fusedMc2SilentlyReset: fusedReset,
         usedWorldSizeAcrossDpBug: false,
@@ -301,8 +309,8 @@ export function selectMoeCommMethod(
       method,
       reason:
         method === "MC2"
-          ? `A2 CAPACITY_AND_EXPERT_DENSITY: experts/dev=${expertsPerDevice} <= 24, ep=${epWorldSize} >= 16, within capacity (${capacity}) -> MC2.`
-          : `A2 CAPACITY_AND_EXPERT_DENSITY fallback -> ALLGATHER (experts/dev=${expertsPerDevice}, ep=${epWorldSize}, capacity=${capacity}).`,
+          ? `A2 按容量与专家密度判定：单卡专家数=${expertsPerDevice} <= 24、ep=${epWorldSize} >= 16 且未超 mc2_tokens_capacity (${capacity})，选择 MC2。`
+          : `A2 按容量与专家密度回退 ALLGATHER（单卡专家数=${expertsPerDevice}，ep=${epWorldSize}，mc2_tokens_capacity=${capacity}）。`,
       mc2TokensCapacity: capacity,
       fusedMc2SilentlyReset: fusedReset,
       usedWorldSizeAcrossDpBug: false,
@@ -321,16 +329,16 @@ export function selectMoeCommMethod(
     let reason: string;
     if (megaActive) {
       method = "FUSED_MC2";
-      reason = "A3 use_cann_megamoe active -> FUSED_MC2.";
+      reason = `A3 启用 MegaMoe (enable_fused_mc2=${input.enableFusedMc2}) 且 1 < ep=${epWorldSize} <= 64，选择 FUSED_MC2（单 rank 上限 16384）。`;
     } else if (effectiveFusedMc2 && epWorldSize <= 32) {
       method = "FUSED_MC2";
-      reason = `A3 enable_fused_mc2=1 and ep=${epWorldSize} <= 32 -> FUSED_MC2.`;
+      reason = `A3 走 dispatch_ffn_combine (enable_fused_mc2=${input.enableFusedMc2}, _MEGA_MOE_SUPPORTED=False) 且 ep=${epWorldSize} <= 32，选择 FUSED_MC2（单 rank 上限 512）。`;
     } else if (withinA3Capacity) {
       method = "MC2";
-      reason = `A3 within mc2_tokens_capacity (${effectiveA3Capacity}) -> MC2.`;
+      reason = `A3 未超 mc2_tokens_capacity (${effectiveA3Capacity})，选择 MC2。`;
     } else {
       method = "ALLTOALL";
-      reason = `A3 exceeds mc2_tokens_capacity (${numTokens} > ${effectiveA3Capacity}) -> ALLTOALL.`;
+      reason = `A3 超过 mc2_tokens_capacity (${numTokens} > ${effectiveA3Capacity})，回退 ALLTOALL。`;
     }
     const sources =
       version === "main"
@@ -361,9 +369,10 @@ export function selectMoeCommMethod(
     };
   }
 
-  // Ascend A5 / 950
+  // Ascend A5 / 950: only MegaMoe (`enable_fused_mc2 == 2` or `== 3` on main) satisfies `is_mega_moe_supported()`
   const a5MegaAllowed =
-    effectiveFusedMc2 &&
+    isMegaMoeRequested(input.enableFusedMc2, version) &&
+    !fusedReset &&
     input.cannOpsTransformerAvailable !== false &&
     input.isMegaMoeSupportedByModel !== false &&
     input.isMegaMoeSupportedByConfig !== false &&
@@ -386,7 +395,7 @@ export function selectMoeCommMethod(
     return {
       version,
       method: "FUSED_MC2",
-      reason: "A5/950 enable_fused_mc2=1 with MegaMoe supported -> FUSED_MC2.",
+      reason: `A5/950 启用 MegaMoe (enable_fused_mc2=${input.enableFusedMc2}) 且满足模型/配置约束，选择 FUSED_MC2。`,
       mc2TokensCapacity: capacity,
       fusedMc2SilentlyReset: fusedReset,
       usedWorldSizeAcrossDpBug: false,
@@ -402,13 +411,13 @@ export function selectMoeCommMethod(
   let reason: string;
   if (withinCapacity && effectiveWorld > 1) {
     method = "MC2";
-    reason = `A5/950 within mc2_tokens_capacity (${capacity}) and world=${effectiveWorld} > 1 -> MC2.`;
+    reason = `A5/950 未超 mc2_tokens_capacity (${capacity}) 且通信域 world=${effectiveWorld} > 1，选择 MC2。`;
   } else if (effectiveWorld <= topK) {
     method = "ALLGATHER";
-    reason = `A5/950 world=${effectiveWorld} <= top_k=${topK} -> ALLGATHER.`;
+    reason = `A5/950 通信域 world=${effectiveWorld} <= top_k=${topK}，选择 ALLGATHER。`;
   } else {
     method = "ALLTOALL";
-    reason = `A5/950 exceeds capacity (${capacity}) and world=${effectiveWorld} > top_k=${topK} -> ALLTOALL.`;
+    reason = `A5/950 超过容量上限 (${capacity}) 且 world=${effectiveWorld} > top_k=${topK}，选择 ALLTOALL。`;
   }
 
   const sources =

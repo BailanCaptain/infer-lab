@@ -6,24 +6,24 @@
   <path d="M398 206 L422 206 L422 312 L446 312" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#plugin-registration-ah-weight)"/>
   <path d="M632 100 L678 100" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#plugin-registration-ah-control)"/>
   <path d="M632 312 L678 312" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#plugin-registration-ah-weight)"/>
-  <rect x="20" y="168" width="156" height="76" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="98" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">包里的清单</text>
-  <text x="98" y="221" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">entry points</text>
-  <rect x="222" y="168" width="176" height="76" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="310" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按组名去问谁登记了</text>
-  <text x="310" y="221" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">读安装元数据</text>
-  <rect x="446" y="62" width="186" height="76" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="539" y="96" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">平台组 1 个入口</text>
-  <text x="539" y="115" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">交回一个类路径</text>
-  <rect x="446" y="274" width="186" height="76" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="539" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">通用组 4 个入口</text>
-  <text x="539" y="327" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">当场执行登记函数</text>
-  <rect x="678" y="62" width="182" height="76" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="769" y="96" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">当前平台</text>
-  <text x="769" y="115" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">昇腾的平台对象</text>
-  <rect x="678" y="274" width="182" height="76" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="769" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">几张注册表</text>
-  <text x="769" y="327" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">架构名 → 昇腾实现类</text>
+  <rect x="20" y="168" width="156" height="76" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="98" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">包里的清单</text>
+  <text x="98" y="221" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">entry points</text>
+  <rect x="222" y="168" width="176" height="76" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="310" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按组名去问谁登记了</text>
+  <text x="310" y="221" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">读安装元数据</text>
+  <rect x="446" y="62" width="186" height="76" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="539" y="96" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">平台组 1 个入口</text>
+  <text x="539" y="115" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">交回一个类路径</text>
+  <rect x="446" y="274" width="186" height="76" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="539" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">通用组 4 个入口</text>
+  <text x="539" y="327" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">当场执行登记函数</text>
+  <rect x="678" y="62" width="182" height="76" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="769" y="96" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">当前平台</text>
+  <text x="769" y="115" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">昇腾的平台对象</text>
+  <rect x="678" y="274" width="182" height="76" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="769" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">几张注册表</text>
+  <text x="769" y="327" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">架构名 → 昇腾实现类</text>
   <text x="20" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">装包那一刻清单就写好了，启动时才被执行</text>
   <text x="446" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">登记平台</text>
   <text x="446" y="258" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">登记模型（和另外三类）</text>

@@ -284,7 +284,7 @@ origin: direct
 file: speculative-plate-mtp-cutaway
 ```
 
-这里先按每步取最高分 token 的 greedy 情况讲解。随机采样时改用概率接受和补抽，规则在后面的对应小节展开。
+看完物理流向，再拿一个具体的词级算例，把「并排验 $1+K$ 格」到底怎么逐格比对、为什么第一个错位之后全部作废走一遍。这里先按每步取最高分 token 的 greedy 情况讲解，重点看清输入位置与主模型预测位置之间「错开一格」的对应关系；随机采样时改用概率接受和补抽，规则在后面的对应小节展开：
 
 ```wiki-diagram
 file: speculative-decoding

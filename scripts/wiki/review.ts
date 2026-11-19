@@ -23,7 +23,15 @@ import { lineageSection } from "./lineage";
 import { PAGE_DIRS, parsePage } from "./pages";
 import { protectedParamSection } from "./params/pages";
 import { retireReviewTasksInLock } from "./queue";
-import { localFile, optionalText, REGISTRY, readByStamp, replaceText, wikiContents } from "./review-files";
+import {
+  localFile,
+  mirrorPublicIllustrations,
+  optionalText,
+  REGISTRY,
+  readByStamp,
+  replaceText,
+  wikiContents,
+} from "./review-files";
 import { verifyRevision } from "./revisions";
 import { atomicText, digest, jobSchema, WorkflowStore } from "./workflow";
 
@@ -414,15 +422,44 @@ export function reviewDiff(root: string, id: string): string {
 }
 
 /** 在当前正式库上叠加本包、重建派生文件后整体校验：别的包先发布了什么，这里都算进去 */
-function validateCandidate(root: string, review: Review, validate: Validate): void {
+function validateCandidate(root: string, review: Review, validate?: Validate): void {
   withTemp((stage) => {
     for (const [path, text] of wikiContents(root)) replaceText(stage, path, text);
+    mirrorPublicIllustrations(root, stage);
     for (const write of review.payload.writes)
       if (!write.path.startsWith("wiki/_jobs/") && !DERIVED.has(write.path))
         replaceText(stage, write.path, write.after);
     if (review.payload.log) appendLog(stage, review.payload.log);
     if (runBuild(stage).problems) throw new Error("批准校验失败：叠加本包后页面 schema 有错");
-    const issues = validate(stage, review.payload.repoRoots);
+    const touchedPages = review.payload.writes
+      .filter((w) => /^wiki\/(concepts|params|sources)\//.test(w.path))
+      .map((w) => w.path);
+    const touchedDiagrams = [
+      ...new Set(
+        review.payload.writes
+          .filter((w) => /^wiki\/diagrams\/.+\.(yaml|svg)$/.test(w.path))
+          .map((w) =>
+            w.path
+              .split("/")
+              .at(-1)!
+              .replace(/\.(yaml|svg)$/, ""),
+          ),
+      ),
+    ];
+    const preservedRefs = new Map<string, Set<string>>();
+    for (const w of review.payload.writes) {
+      if (!w.before || !/^wiki\/(concepts|params|sources)\//.test(w.path)) continue;
+      const parsed = parsePage(w.path.slice(5), w.before).page;
+      if (parsed?.fm.sources.length) preservedRefs.set(w.path.slice(5), new Set(parsed.fm.sources));
+    }
+    const issues = validate
+      ? validate(stage, review.payload.repoRoots)
+      : validateIntegration(stage, review.payload.repoRoots, {
+          publicRoot: join(root, "public"),
+          touchedPages,
+          touchedDiagrams,
+          preservedRefs,
+        });
     issues.push(
       ...validateDropAssets(
         stage,
@@ -480,7 +517,7 @@ export async function approveReview(
         },
       );
     }
-    validateCandidate(root, review, deps.validate ?? validateIntegration);
+    validateCandidate(root, review, deps.validate);
     checkBase(root, review);
     review.state = "publishing";
     save(root, review);

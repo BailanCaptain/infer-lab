@@ -9,21 +9,21 @@ hardware:
   - {kind: server, at: [50, 100], size: [150, 70], label: P 节点（prefill）}
   - {kind: server, at: [260, 100], size: [150, 70], label: D 节点（decode）}
   - {kind: memory, at: [125, 260], size: [210, 60], label: 共享存储}
-  - {kind: server, at: [490, 100], size: [150, 70], label: P 节点（prefill）}
-  - {kind: server, at: [700, 100], size: [150, 70], label: D 节点（decode）}
-  - {kind: memory, at: [490, 260], size: [190, 60], label: UCM 前缀存储}
+  - {kind: server, at: [480, 100], size: [136, 70], label: P 节点（prefill）}
+  - {kind: server, at: [724, 100], size: [136, 70], label: D 节点（decode）}
+  - {kind: memory, at: [480, 260], size: [190, 60], label: UCM 前缀存储}
 links:
   - {from: [125, 175], to: [180, 255], tone: comm}
   - {from: [280, 255], to: [335, 175], tone: comm}
-  - {from: [642, 135], to: [698, 135], tone: comm}
+  - {from: [618, 135], to: [722, 135], tone: comm}
   - {from: [530, 175], to: [530, 255], tone: comm, ends: both}
 texts:
   - {at: [230, 66], text: 两端都挂 UCM, anchor: middle, note: true}
   - {at: [89, 220], text: 保存, tone: comm}
   - {at: [326, 220], text: 加载, tone: comm}
-  - {at: [670, 112], text: Mooncake 直传, anchor: middle, tone: comm, size: 11, width: 56}
+  - {at: [670, 108], text: Mooncake 直传, anchor: middle, tone: comm, size: 13, width: 96}
   - {at: [542, 220], text: 前缀复用, tone: comm}
-  - {at: [775, 196], text: 只挂 Mooncake, anchor: middle, note: true}
+  - {at: [792, 196], text: 只挂 Mooncake, anchor: middle, note: true}
 pins:
   - source: vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L202-L330
     symbols: [MooncakeConnectorV1, UCMConnector]

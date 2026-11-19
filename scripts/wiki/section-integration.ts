@@ -59,18 +59,23 @@ export async function integrateSections(
   const draft = incoming.page;
   const draftLocation = `_drafts/${input.draftId ?? old.fm.id}.md#body`;
   const standard = loadStandardConfig();
-  const teaching =
-    input.path.startsWith("concepts/") && old.body.split(/\r?\n/).includes(`## ${standard.sourceSection}`);
+  const hasSourceSection = old.body.split(/\r?\n/).includes(`## ${standard.sourceSection}`);
+  const teaching = input.path.startsWith("concepts/");
   const oldMarkedLines = new Set(proseEvidenceLines(old.body, standard));
   const oldProseLines = new Set(citationProse(old.body).split(/\r?\n/));
   const withNotes = (body: string, notes: string[]) => {
     if (!notes.length) return body;
-    return [splitHistory(body).active, ...new Set(notes)].filter(Boolean).join("\n\n");
+    const active = splitHistory(body).active;
+    const unique = [...new Set(notes)];
+    if (teaching && !active.split(/\r?\n/).includes(`## ${standard.sourceSection}`)) {
+      return [active, `## ${standard.sourceSection}`, ...unique].filter(Boolean).join("\n\n");
+    }
+    return [active, ...unique].filter(Boolean).join("\n\n");
   };
   const rules = `${input.rules}
 这次只核对旧页的一个连续片段，不能替换整页。返回严格 JSON {"edits":[{"before":"本片段中唯一连续原文","after":"保留原文并补充后的内容、守恒全部事实与限定条件的重组表达、或有证据的替代说法","kind":"supplement|editorial|supersede","reason":"修改理由","quote":"草稿中支持该改动的连续逐字引文"}]}。
-没有可证实的新内容时 edits=[]；措辞变化不等于事实变化，不为制造差异而改写。只改当前片段所讨论的内容；不可因没看见其他段落就添加全页附录。supplement 必须逐字保留旧页的所有非空行；新增段落应接在完整旧行之后，不能在原有行的中间插入换行或文字。editorial 允许在合并新条件时顺畅重组段落并消除提示词残留，但必须 100% 守恒原有原子事实、代码标识符、数值单位、版本/硬件限定与否定条件（可移至 sourceNote）。supersede 必须有明确相反或修正证据。不得改图、公式、自动生成区、已有标题、出处编号和版本范围；候选正文不得包含机器修订历史。不要把固定部署升级为上游最新版本。quote 取自草稿正文；如果草稿为分段摘录，只能使用 evidence.quote，不能引用 note 当事实。引文与修改的语义支持关系仍待人工审批。
-${teaching ? `本页有「${standard.sourceSection}」：每个 edit 另须返回 sourceNote 字符串，写清该项新增事实的来源对应与证据等级，含适用限制；程序统一放入页末源码区。sourceNote 只写说明段，不写标题或围栏；实现参数和 commit 也放这里。after 中的教学正文不得新增任何证据角标，原有角标随原文保留；不确定条件仍在正文说清，具体 [I]/[D]/[C1] 等标记放 sourceNote。这不是跨片段改正文；不要手动添加全页附录。` : ""}`;
+没有可证实的新内容时 edits=[]；措辞变化不等于事实变化，不为制造差异而改写。只改当前片段所讨论的内容；不可因没看见其他段落就添加全页附录。supplement 必须逐字保留旧页的所有非空行；新增段落应接在完整旧行之后，不能在原有行的中间插入换行或文字。editorial 允许在合并新条件时顺畅重组段落并消除提示词残留，但必须 100% 守恒原有原子事实、代码标识符、数值单位、版本/硬件限定与否定条件（可移至 sourceNote）。supersede 必须有明确相反或修正证据。不得改图、公式、自动生成区、已有标题、出处编号和版本范围；候选正文不得包含机器修订历史；概念页与参数页禁止新增 \`\`\`calc 框或 ASCII 箭头树，算例改用 Markdown 表格与标准 KaTeX（$...$ / $$...$$）。不要把固定部署升级为上游最新版本。quote 取自草稿正文；如果草稿为分段摘录，只能使用 evidence.quote，不能引用 note 当事实。引文与修改的语义支持关系仍待人工审批。
+${teaching ? `本页是概念教学页（${hasSourceSection ? `已有「## ${standard.sourceSection}」` : `程序会在页末统一补出「## ${standard.sourceSection}」`}）：每个 edit 另须返回 sourceNote 字符串，写清该项新增事实的来源对应与证据等级，含适用限制；程序统一放入页末「## ${standard.sourceSection}」核验区。sourceNote 只写说明段，不写标题或围栏；实现参数和 commit 也放这里。after 中的教学正文（对照源码之上）严禁新增任何 [C#]/[S#]/[M#]/[D]/[I]/[A]/[!] 证据角标，原有角标随原文保留；不确定条件仍在正文用自然语言说清，具体 [I]/[D]/[C1] 等标记放 sourceNote。这不是跨片段改正文；不要手动添加全页附录。` : ""}`;
   const budget = inputByteLimit(root, rules);
   const framing = {
     mode: "draft-section-integration",
@@ -84,8 +89,11 @@ ${teaching ? `本页有「${standard.sourceSection}」：每个 edit 另须返�
       index: i + 1,
       source,
     })),
-    citationRule:
-      "sources 给出目标页最终来源编号。旧文编号保持不变；使用带编号的来源引用时按此表编号，不能照搬草稿编号。只有已提供证据确实支持对应性质的结论，才用 [C1]、[S1]、[M1]（1 替换为真实编号）；不能用裸 [1] 或无编号的 [C]。推断、推导、假设、冲突标记 [I]、[D]、[A]、[!] 不带编号。draftEvidence 保留草稿的整体证据状态，逐条依据仍看原文。draftLocation 标识编译草稿正文；draft 中的偏移和行号只属于该草稿，不是原始 raw 文件行号。不得把草稿行号转写为 raw 行号，也不得猜测未提供的原始位置；无法逐字定位时只引用 sources 已提供的范围，并说明依据是草稿转述。只依据未经独立核实的 raw 归档材料时，保留 [I] 及适用限制，归档出处由最终来源列表保留；不要求给 [I] 再配一个编号引用，不能为凑编号改标 S/C/M。已有页含高等级来源也不证明新增材料已核实；代码摘录不是实测结果。",
+    citationRule: `${
+      teaching
+        ? `教学页遵循二阶段 Edition-A 规则：「## ${standard.sourceSection}」之上正文零新增机器角标，所有 [C1]/[S1]/[M1] 与 [I]/[D]/[A]/[!] 仅写入 sourceNote（归入页末「## ${standard.sourceSection}」核验区），正文用自然语言保留适用条件。`
+        : ""
+    }sources 给出目标页最终来源编号。旧文编号保持不变；使用带编号的来源引用时按此表编号，不能照搬草稿编号。只有已提供证据确实支持对应性质的结论，才用 [C1]、[S1]、[M1]（1 替换为真实编号）；不能用裸 [1] 或无编号的 [C]。推断、推导、假设、冲突标记 [I]、[D]、[A]、[!] 不带编号。draftEvidence 保留草稿的整体证据状态，逐条依据仍看原文。draftLocation 标识编译草稿正文；draft 中的偏移和行号只属于该草稿，不是原始 raw 文件行号。不得把草稿行号转写为 raw 行号，也不得猜测未提供的原始位置；无法逐字定位时只引用 sources 已提供的范围，并说明依据是草稿转述。只依据未经独立核实的 raw 归档材料时，保留 [I] 及适用限制，归档出处由最终来源列表保留；不要求给 [I] 再配一个编号引用，不能为凑编号改标 S/C/M。已有页含高等级来源也不证明新增材料已核实；代码摘录不是实测结果。`,
   };
   // Size the entire fixed frame first. Allocating a third of the total to evidence
   // before reserving the source list and prior edits can leave a negative section budget.

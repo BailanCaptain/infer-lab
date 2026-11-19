@@ -334,8 +334,8 @@ $$\text{pad} = (N - T \bmod N) \bmod N = (8 - 4) \bmod 8 = 4\text{ 行}$$
 
 - **FlashComm1**：`--additional-config '{"enable_flashcomm1": true}'`，或环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1=1`。固定版本的 `enable_sp()` 首次初始化缓存或 `additional_config.refresh` 为真时才重新解析：先读 JSON 中的该键，否则读 Ascend 配置，读取配置触发 RuntimeError 时回退到环境变量。没有重算时直接返回缓存；只带一个值为假的 `refresh` 键不会刷新。[C9]
 - **被动打开**：固定版本和 v0.23 上，`enable_shared_expert_dp=True` 且开了 EP、TP > 1 时，配置阶段调用 `enable_sp(..., enable_shared_expert_dp=True)`；在其初始化或刷新分支中，原为假的 SP 会被置真。若已有假缓存且未刷新，该次调用不会重算，配置中的断言会失败。[C11] v0.26 rc 不再用这个兼容参数强制开启 SP。[C18]
-- **上游 `use_sequence_parallel_moe`**：不是开关，而是 vLLM 根据配置算出的属性，要求 all2all 后端在指定名单里、开了 EP、TP > 1、DP > 1；上游用它决定 MoE 层是否按序列并行处理，比如共享专家是否跳过 TP 切分。[C15] main 上 `enable_sp()` 直接等于它（见版本差异）。
-- **图编译改写**：它把「All-Reduce → 残差相加 + RMSNorm」整段换成「Reduce-Scatter → 残差相加 + RMSNorm → All-Gather」，只在不强制 eager（逐算子直接执行）的图模式下生效。`--compilation-config '{"pass_config": {"enable_sp": true}}'`，并且模型不能 `enforce_eager`，这时 `enable_sp_by_pass` 为真。[C14] Ascend 把 `sp_min_token_num` 的默认值设成 MoE 模型 1、稠密模型 1000，编译范围的起点低于它时不改写。[C13]
+- **上游 `use_sequence_parallel_moe`**：不是开关，而是 vLLM 根据配置算出的属性，要求 all2all 后端在指定名单里、开了 EP、TP > 1、DP > 1；上游用它决定 MoE 层是否按序列并行处理，比如共享专家是否跳过 TP 切分。[C15] 在 `v0.30.0` 与当前 `main` 上，`enable_sp()` 统一判定 `use_sequence_parallel_moe or enable_dense_sp`（早期快照 `baa023ad` 曾直接等于 `use_sequence_parallel_moe`，详见版本差异）。
+- **图编译改写（`v0.23.0`–`v0.30.0`）**：在 `v0.23.0` 至 `v0.30.0` 上，它把「All-Reduce → 残差相加 + RMSNorm」整段换成「Reduce-Scatter → 残差相加 + RMSNorm → All-Gather」，只在不强制 eager（逐算子直接执行）的图模式下生效。`--compilation-config '{"pass_config": {"enable_sp": true}}'`，并且模型不能 `enforce_eager`，这时 `enable_sp_by_pass` 为真；[C14] Ascend 把 `sp_min_token_num` 的默认值设成 MoE 模型 1、稠密模型 1000，编译范围的起点低于它时不改写。[C13] **注意：上游 `vllm@ba15685a`（对应当前 `main`）已移除 `PassConfig.enable_sp` 字段。**
 - **和 PCP 一起开**：prefill 上下文并行（PCP）大于 1 且 SP 打开时，`max_num_batched_tokens` 会被上调到 TP × PCP 的倍数。
 
 ### 会报什么错
@@ -345,9 +345,9 @@ $$\text{pad} = (N - T \bmod N) \bmod N = (8 - 4) \bmod 8 = 4\text{ 行}$$
 | 情况 | 日志 | 版本 |
 |---|---|---|
 | `enable_shared_expert_dp` 把 SP 强制打开 | info：`shared_expert_dp requires enable_sp=True. enable_sp has been set to True.` | 固定版本、v0.23 |
-| PCP > 1 且 `max_num_batched_tokens` 不是 TP × PCP 的倍数 | warning：`When using FLASHCOMM1, the max_num_batched_tokens should be divisible by tp_size * pcp_size ...`，随后自动上调 | 固定版本 |
-| 配置里仍写了 `enable_flashcomm1` 或环境变量 | warning：`FlashComm is deprecated; remove enable_flashcomm1 ...` | main |
-| 打开了 FlashComm1，但配置不满足上游 sequence-parallel MoE | warning：`FlashComm1 is enabled, but the current config does not support sp MoE. Disabling` | main |
+| PCP > 1 且 `max_num_batched_tokens` 不是 TP × PCP 的倍数 | warning：`When using FLASHCOMM1 / sequence parallelism, the max_num_batched_tokens should be divisible by tp_size * pcp_size ...`，随后自动上调 | `db701c1f` / `v0.30.0` / `main` |
+| 配置里仍写了 `enable_flashcomm1` 或环境变量 | warning：`FlashComm is deprecated; remove enable_flashcomm1 ...` | 早期快照 `baa023ad`（`v0.30.0` 已移除该弃用告警） |
+| 打开了 FlashComm1，但配置不满足上游 sequence-parallel MoE | warning：`FlashComm1 is enabled, but the current config does not support sp MoE. Disabling` | 早期快照 `baa023ad` / `v0.30.0` / `main` |
 
 ### 开销和什么时候别开
 
@@ -358,11 +358,11 @@ $$\text{pad} = (N - T \bmod N) \bmod N = (8 - 4) \bmod 8 = 4\text{ 行}$$
 
 ### 版本差异
 
-rc2 Kimi O projection 新增有条件的 MM+ReduceScatter 融合，只改变合适纯 prefill 的实现，其他路径仍返回同样的 SP token 片；完整硬件、残差、LoRA 和 dtype 门槛见 [TP 版本对照](tensor-parallel.md#版本差异)，不是 GLM 的通用默认。
+自 `v0.30.0` 起，Kimi O projection 新增有条件的 MM+ReduceScatter 融合，只改变合适纯 prefill 的实现，其他路径仍返回同样的 SP token 片；完整硬件、残差、LoRA 和 dtype 门槛见 [TP 版本对照](tensor-parallel.md#版本差异)，不是 GLM 的通用默认。
 
-FlashComm1 在固定 main 的消费逻辑已经有效；rc2 的变化是移除工厂中的弃用告警，不是重新恢复一项曾被忽略的开关。下面比较开关时，以最终消费者和实际派生结果为准。
+FlashComm1 在历史过渡快照 `baa023ad` 的消费逻辑已经有效；`v0.30.0` 正式版移除了工厂中的弃用告警，并不是重新恢复一项曾被忽略的开关。下面比较开关时，以最终消费者和实际派生结果为准。
 
-**v0.30.0rc2 仍实际读取 FlashComm1 开关，不能沿用旧 main 的弃用说法。** enable_sp 最终读取上游 use_sequence_parallel_moe，但 AscendConfig 会将 JSON 的 enable_flashcomm1 与环境变量 VLLM_ASCEND_ENABLE_FLASHCOMM1 的 1/true 取或；DSA-CP 也会自动开启 FlashComm。两者均未开时会改写 all2all_backend 以禁用 SP MoE，若配置本身不支持 SP MoE 还会告警关闭 DSA-CP。PCP>1 且 SP 生效时，最大批 token 数向上补齐到 TP×PCP 的倍数；这是一项容量对齐，不是额外的真实 token。
+**`v0.30.0` 主基线与 `main` 均实际读取 FlashComm1 开关，不能沿用早期快照 `baa023ad` 的弃用说法。** `enable_sp()` 判定 `use_sequence_parallel_moe or enable_dense_sp`，`AscendConfig` 会将 JSON 的 `enable_flashcomm1` 与环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 的 `1/true` 取或（`v0.30.0` 中 `enable_dsa_cp` 也会自动联动开启 FlashComm，`main` 取消该联动）。未开时会改写 `all2all_backend` 以禁用 SP MoE，若配置本身不支持 SP MoE 还会告警关闭 DSA-CP。`PCP > 1` 且 SP 生效时，最大批 token 数经 `warning_once` 告警后向上补齐到 `TP × PCP` 的倍数；这是一项容量对齐，不是额外的真实 token。
 
 按四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；本文 GLM 双机绑定算例另钉住例外 B 镜像 `db701c1f`（历史快照 `baa023ad` / `7d825229` 见来源清单与上方说明）。
 
@@ -398,10 +398,10 @@ FlashComm1 在固定 main 的消费逻辑已经有效；rc2 的变化是移除�
 
 上述辅助函数的回退条件见来源 4（db701c1f）的第 51–95 行：读取前向上下文触发 AssertionError 时，maybe_all_gather_and_maybe_unpad 原样返回输入，maybe_pad_and_reduce 则执行 TP All-Reduce；这里捕获的是这一种异常。上下文存在时，收集须 label 为真，并且同时满足以下之一：FlashComm1 已启用；或图编译 SP 改写已启用且用于 EP 通信。归约端在这两种路径都未启用，或视觉语言模型的草稿分支且不是 EP 通信时，也回退到 TP All-Reduce。
 
-两版 enable_sp 的接口差异见来源 18、20：2ed6cbba 仍接受 enable_shared_expert_dp 参数，但它只为兼容调用保留，不再改变 FlashComm1 设置；baa023ad 不再接受该参数，返回上游 use_sequence_parallel_moe。后一版本未传配置时会读取当前配置；该读取触发 AssertionError 后仍无配置，就返回 False，不能把这一分支套到前一版本，也不能据此推断其他异常都会被吞掉。
+两版历史 `enable_sp` 的接口差异见来源 18、20：`2ed6cbba` 仍接受 `enable_shared_expert_dp` 参数，但它只为兼容调用保留，不再改变 FlashComm1 设置；早期过渡快照 `baa023ad` 不再接受该参数，仅返回上游 `use_sequence_parallel_moe`（随后 `v0.30.0` `c09d3e20` 与 `main` `8d6180e2` 扩展为 `use_sequence_parallel_moe or enable_dense_sp`）。后一版本未传配置时会读取当前配置；该读取触发 AssertionError 后仍无配置，就返回 False，不能把这一分支套到前一版本，也不能据此推断其他异常都会被吞掉。
 
-- 来源 29、42、43：固定镜像及 v0.23 / v0.26 rc 的 MoE、稠密和草稿前向分支；来源 44 对照 main 的上下文设置。
+- 来源 29、42、43：固定镜像及 `v0.23.0` / `v0.26.0rc` 的 MoE、稠密和草稿前向分支；来源 44 对照过渡快照的上下文设置。
 - 来源 36、37：上游默认优化档位、异步 TP 对 SP 的依赖，以及 TP / 阈值校验；不能只凭 `IS_DENSE` 常量判断任意显式配置。
-- 来源 38、39：main 的 GLM 稠密 MLP 构造及其 `is_sequence_parallel` 调用条件；来源 40、41 是 v0.23 的缓存、共享专家 DP 与 PCP 配置。
-- 来源 45：main 工厂的弃用告警原文；告警与来源 19、33 的实际消费需一起读。
+- 来源 38、39：过渡快照的 GLM 稠密 MLP 构造及其 `is_sequence_parallel` 调用条件；来源 40、41 是 `v0.23.0` 的缓存、共享专家 DP 与 PCP 配置。
+- 来源 45：过渡快照 `baa023ad` 工厂的弃用告警原文；告警与来源 19、33 的实际消费需一起读。
 - 来源 46、47：MC2 的补齐切分门控与调用者传入的 `replace_allreduce`；来源 23、48 分别支持门控多流和独立共享分支的输出归约条件。

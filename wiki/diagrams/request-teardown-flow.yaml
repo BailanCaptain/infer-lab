@@ -32,7 +32,7 @@ links:
   - { from: [234, 576], to: [234, 604] }
   - { from: [646, 576], to: [646, 604] }
   - { from: [836, 630], to: [836, 92], via: [[868, 630], [868, 92]], tone: comm }
-  - { from: [234, 656], to: [234, 734], tone: control }
+  - { from: [330, 656], to: [330, 734], tone: control }
 texts:
   - { at: [550, 322], text: ZMQ · 中止消息, size: 13, tone: comm, anchor: end }
   - { at: [660, 262], text: 否：引擎已释放，到此为止, size: 13 }

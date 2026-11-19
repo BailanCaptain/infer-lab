@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { RAW_SNAPSHOT_RE } from "../../src/content/wiki/schema";
 import { rawSnapshotPath, saveRawSnapshot } from "./raw";
@@ -105,4 +105,24 @@ export function wikiContents(root: string): Map<string, string> {
   const registry = optionalText(root, REGISTRY);
   if (registry !== null) files.set(REGISTRY, registry);
   return files;
+}
+
+/**
+ * Mirror read-only `public/wiki-illustrations/` assets into a staging root so staged
+ * `runLint`, `validateIntegration`, and `stageDropDiagram` resolve PLATE `<image href="./wiki-illustrations/...">`
+ * identically to the live repo without letting reviews mutate `public/`.
+ */
+export function mirrorPublicIllustrations(sourceRoot: string, stageRoot: string): void {
+  const src = join(resolve(sourceRoot), "public", "wiki-illustrations");
+  if (!existsSync(src)) return;
+  const srcStat = lstatSync(src);
+  if (srcStat.isSymbolicLink() || !srcStat.isDirectory()) return;
+  const dest = join(resolve(stageRoot), "public", "wiki-illustrations");
+  mkdirSync(dest, { recursive: true });
+  for (const name of readdirSync(src).sort()) {
+    const from = join(src, name);
+    const stat = lstatSync(from);
+    if (stat.isSymbolicLink() || !stat.isFile()) continue;
+    cpSync(from, join(dest, name));
+  }
 }

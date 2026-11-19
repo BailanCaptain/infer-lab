@@ -1,45 +1,45 @@
 layout: figure
 id: model-runner-layout
 caption: 示意例子：A 本步算 1 个 token，C 是新请求、本步算 3 个。引擎对 model runner 发两次调用。第一次调用里，runner 先按计划改好自己跨步保留的请求记录（①），拼出 4 行输入（②），跑一遍模型（③），只把每条请求最后一行（第 0、3 行）变成词表分数（④），连同计划和隐藏向量一起放进执行状态，这次调用返回空。第二次调用取出并清空执行状态（⑤），采样出 token（⑥），有「允许哪些词」时先按它压掉不许出现的词，按请求交回（⑦）。上方三样东西跨步保留，执行状态只活在两次调用之间。
-size: [900, 540]
+size: [900, 560]
 frames:
   - { at: [16, 36], size: [868, 88], label: 跨步保留：不随哪一次调用清空 }
-  - { at: [16, 172], size: [868, 100], label: 第一次调用：准备并前向，这次返回空 }
-  - { at: [16, 408], size: [868, 100], label: 第二次调用：采样，返回每条请求的新 token }
+  - { at: [16, 178], size: [868, 100], label: 第一次调用：准备并前向，这次返回空 }
+  - { at: [16, 424], size: [868, 100], label: 第二次调用：采样，返回每条请求的新 token }
 items:
   - { at: [40, 52], size: [240, 56], text: 请求记录（持久批次）, sub: 谁坐第几行、已算到第几、块表, tone: control, style: plain }
   - { at: [330, 52], size: [240, 56], text: KV cache, sub: 各层为算过的位置留下的历史, tone: kv, style: plain }
   - { at: [620, 52], size: [240, 56], text: 权重, sub: 普通推理跨步复用, tone: weight, style: plain }
-  - { at: [28, 190], size: [150, 64], text: 调度计划, sub: A 算 1 个 · C 算 3 个, tone: control, style: faded }
-  - { at: [198, 190], size: [150, 64], text: 对账, sub: A 已算 5 · C 新来, tone: control }
-  - { at: [368, 190], size: [150, 64], text: 拼输入, sub: 4 行：a₅ c₀ c₁ c₂, tone: token }
-  - { at: [538, 190], size: [150, 64], text: 跑模型, sub: 4 行进，4 行出, tone: weight }
-  - { at: [708, 190], size: [164, 64], text: 选第 0、3 行, sub: 只这 2 行算词表分数, tone: token }
-  - { at: [300, 306], size: [330, 72], text: 执行状态（暂存）, sub: 计划 · 2 行词表分数 · 隐藏向量 · 元数据, tone: control }
-  - { at: [28, 426], size: [170, 64], text: 允许哪些词, sub: 可选，引擎趁前向时算, tone: control, style: faded }
-  - { at: [228, 426], size: [190, 64], text: 取出并清空, sub: 下次前向前必须取走, tone: control }
-  - { at: [448, 426], size: [190, 64], text: 采样, sub: 每行分数挑 1 个 token, tone: token }
-  - { at: [668, 426], size: [204, 64], text: 按请求交回, sub: A → a₆ · C → c₃, tone: token }
+  - { at: [28, 196], size: [150, 64], text: 调度计划, sub: A 算 1 个 · C 算 3 个, tone: control, style: faded }
+  - { at: [198, 196], size: [150, 64], text: 对账, sub: A 已算 5 · C 新来, tone: control }
+  - { at: [368, 196], size: [150, 64], text: 拼输入, sub: 4 行：a₅ c₀ c₁ c₂, tone: token }
+  - { at: [538, 196], size: [150, 64], text: 跑模型, sub: 4 行进，4 行出, tone: weight }
+  - { at: [708, 196], size: [164, 64], text: 选第 0、3 行, sub: 只这 2 行算词表分数, tone: token }
+  - { at: [300, 312], size: [330, 72], text: 执行状态（暂存）, sub: 计划 · 2 行词表分数 · 隐藏向量 · 元数据, tone: control }
+  - { at: [28, 442], size: [170, 64], text: 允许哪些词, sub: 可选，引擎趁前向时算, tone: control, style: faded }
+  - { at: [228, 442], size: [190, 64], text: 取出并清空, sub: 下次前向前必须取走, tone: control }
+  - { at: [448, 442], size: [190, 64], text: 采样, sub: 每行分数挑 1 个 token, tone: token }
+  - { at: [668, 442], size: [204, 64], text: 按请求交回, sub: A → a₆ · C → c₃, tone: token }
 badges:
-  - { at: [198, 190], n: 1 }
-  - { at: [368, 190], n: 2 }
-  - { at: [538, 190], n: 3 }
-  - { at: [708, 190], n: 4 }
-  - { at: [228, 426], n: 5 }
-  - { at: [448, 426], n: 6 }
-  - { at: [668, 426], n: 7 }
+  - { at: [198, 196], n: 1 }
+  - { at: [368, 196], n: 2 }
+  - { at: [538, 196], n: 3 }
+  - { at: [708, 196], n: 4 }
+  - { at: [228, 442], n: 5 }
+  - { at: [448, 442], n: 6 }
+  - { at: [668, 442], n: 7 }
 links:
-  - { from: [178, 222], to: [198, 222] }
-  - { from: [348, 222], to: [368, 222] }
-  - { from: [518, 222], to: [538, 222] }
-  - { from: [688, 222], to: [708, 222] }
-  - { from: [240, 190], to: [240, 108], ends: both, tone: control, dashed: true }
-  - { from: [560, 190], to: [560, 108], ends: both, tone: kv, dashed: true }
-  - { from: [650, 108], to: [650, 190], tone: weight, dashed: true }
-  - { from: [790, 254], to: [630, 342], via: [[790, 342]], tone: control }
-  - { from: [465, 378], to: [323, 426], via: [[465, 400], [323, 400]], tone: control }
-  - { from: [113, 490], to: [543, 490], via: [[113, 500], [543, 500]], tone: control, dashed: true }
-  - { from: [418, 458], to: [448, 458] }
-  - { from: [638, 458], to: [668, 458] }
+  - { from: [178, 228], to: [198, 228] }
+  - { from: [348, 228], to: [368, 228] }
+  - { from: [518, 228], to: [538, 228] }
+  - { from: [688, 228], to: [708, 228] }
+  - { from: [330, 196], to: [240, 108], via: [[330, 138], [240, 138]], ends: both, tone: control, dashed: true }
+  - { from: [560, 196], to: [560, 108], ends: both, tone: kv, dashed: true }
+  - { from: [650, 108], to: [650, 196], tone: weight, dashed: true }
+  - { from: [790, 260], to: [630, 348], via: [[790, 348]], tone: control }
+  - { from: [465, 384], to: [392, 442], via: [[465, 404], [392, 404]], tone: control }
+  - { from: [113, 506], to: [543, 506], via: [[113, 536], [543, 536]], tone: control, dashed: true }
+  - { from: [418, 474], to: [448, 474] }
+  - { from: [638, 474], to: [668, 474] }
 texts:
-  - { at: [645, 372], text: 这次调用返回空，结果先留在这里, note: true }
+  - { at: [645, 378], text: 这次调用返回空，结果先留在这里, note: true }

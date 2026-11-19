@@ -75,17 +75,17 @@ rawSources:
 file: rfork-startup
 ```
 
-图左边的竖条把十步分成三段。前六步只在本卡做准备，还没向 Planner 要任何东西；第 7 步拿到租约后占用 A 的借用名额。第 8 步读完后不再读取 A 的权重字节，但名额仍要等 Planner 确认归还或回收；后台归还不阻塞模型继续启动，未确认时 B 自己的 seed 发布会延期。右边是两处提前离开和一条失败支路：失败支路先清理、再普通加载，最后汇回第 10 步。
+图左边的竖条把十步分成三段。前六步以及第 7 步前半段的本地显存登记与 `seed_key` 绑定都在本卡做完，还没向 Planner 要任何东西；第 7 步后半段向 Planner 拿到租约后才进入「占着租约」区间。第 8 步读完后不再读取 A 的权重字节，但名额仍要等 Planner 确认归还或回收；后台归还不阻塞模型继续启动，未确认时 B 自己的 seed 发布会延期。右边是两处提前离开和一条失败支路：失败支路先清理、再普通加载，最后汇回第 10 步。
 
-RFork 只替换 Worker 启动里装权重的那一步，前后顺序见 [Worker 生命周期](npu-worker-lifecycle.md#一张卡上的-worker启动时按什么顺序做准备)：建通信组在它之前，量显存预算、建 KV cache 池、录图在它之后，这些步骤照常进行。本页讲的是 RFork 工作版的行为；社区各版本的顺序不一样，放在页末对照。
+RFork 只替换 Worker 启动里装权重的那一步，前后顺序见 [Worker 生命周期](npu-worker-lifecycle.md#一张卡上的-worker启动时按什么顺序做准备)：建通信组在它之前，量显存预算、建 KV cache 池、录图在它之后，这些步骤照常进行。本页讲的是社区上游 `main`（`8d6180e2`）的行为；更早社区版本的顺序不一样，放在页末对照。
 
 ## 为什么不一上来就借
 
-最直觉的做法是 B 一启动就去 Planner 那里借 A，可工作版偏偏把申请放到第 7 步，先干完一大堆自己的活。原因有两层。
+最直觉的做法是 B 一启动就去 Planner 那里借 A，可当前主线偏偏把申请放到第 7 步后半段，先干完本地准备和目的显存登记。原因有两层。
 
-**第一层：B 得先有地方放。** 读权重是按地址把 A 显存里的字节写进 B 显存里的对应位置。B 必须先知道自己有哪些层、每个张量多大、什么数据类型、什么存储布局，才能告诉传输引擎「读到我这里的这些地址」。RFork 没法只拿一个模型名字，就把远端的模型「挂」进 B，所以搭模型这一步的成本照样要付。
+**第一层：B 得先有地方放，并绑定结构摘要。** 读权重是按地址把 A 显存里的字节写进 B 显存里的对应位置。B 必须先知道自己有哪些层、每个张量多大、什么数据类型、什么存储布局，并在登记本地显存时扫出张量清单、算出结构摘要（`structural_digest`）后，才能合成最终 `seed_key` 去问 Planner。RFork 没法只拿一个模型名字，就把远端的模型「挂」进 B，所以搭模型这一步的成本照样要付。
 
-**第二层：租约是有限的名额，还有有效期。** 租约是 Planner 发给 B 的一次借用凭据：借出时，Planner 在 A 名下记一笔占用，B 归还或者有效期到了才划掉。仓库自带的示例 Planner 里，每个 seed 默认只有 1 个借用名额，租约有效期默认 60 秒。如果 B 先借再搭模型，搭模型、布局后处理、等 NPU 同步这些只和 B 自己有关的活全都算进租约时间：在示例 Planner 的默认设置下，这段时间别的实例来借同一个 A，Planner 只能回答「没有」；准备得慢一点，有效期在读权重之前就耗掉了一大截。先准备、后申请，就是为了把本地准备从租约时间里拿掉。晚申请以后，租约覆盖的主要只剩登记内存、要清单、读数据，以及读完后在后台归还。有效期到了以后会发生什么，见[租约与生命周期](rfork-lifecycle.md)。
+**第二层：租约是有限的名额，还有有效期。** 租约是 Planner 发给 B 的一次借用凭据：借出时，Planner 在 A 名下记一笔占用，B 归还或者有效期到了才划掉。仓库自带的示例 Planner 里，每个 seed 默认只有 1 个借用名额，租约有效期默认 60 秒。如果 B 先借再搭模型、转布局、登记显存，这些只和 B 自己有关的活全都算进租约时间：在示例 Planner 的默认设置下，这段时间别的实例来借同一个 A，Planner 只能回答「没有」；准备得慢一点，有效期在读权重之前就耗掉了一大截。先准备并登记、后申请租约，就是为了把本地准备与登记耗时都从租约时间里拿掉。晚申请以后，租约覆盖的主要只剩向 A 要清单、核对清单、分批读数据，以及读完后在后台归还。有效期到了以后会发生什么，见[租约与生命周期](rfork-lifecycle.md)。
 
 **代价是没借到时白准备了一遍。** 第 7 步发现没有可借的 seed 时，B 已经搭过模型；要转布局的模型（开了量化、权重 NZ 模式配成 2、或硬件要求 NZ 格式，三条任一成立）还已经转过布局。工作版不把这份空模型直接交给普通加载器去填，而是清掉重建，所以一次没命中的冷启动，搭模型和布局处理都要做两遍。这是晚申请换来的固定代价。
 
@@ -174,7 +174,7 @@ file: rfork-startup-fallback
 
 ## 放到 GLM 双机：一次冷启动，32 个会话各走一遍
 
-这一节是推演：工作版的代码树里没有 GLM-5.3-Flash 的模型实现，GLM 的模型代码只在固定镜像里，下面把两边放在一起推。每张卡读多少字节、分几批，已经在总览的 [GLM 双机推演](rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)里算过；这里只看十步在这套部署上怎么走。
+这一节是推演：社区上游 `vllm-ascend@8d6180e2` 已包含 GLM-5.3-Flash 的模型实现（`vllm_ascend/models/glm5next/` 下的 `Glm5NextForCausalLM` / `Glm5NextForConditionalGeneration` 与 `Glm5NextMTP`）及官方部署教程（`docs/source/tutorials/models/GLM5.3-Flash.md`），但该教程与上游 RFork 官方指南尚未提供专用的 GLM-5.3-Flash RFork 配方或验收记录（且官方指南提示 `Glm5NextMTP` 暂未纳入自动 checkpoint 归属恢复）；同时，本站的 GLM 双机 W8A8 历史算例钉在固定镜像 `db701c1f`，下面把上游 `main@8d6180e2` RFork 启动路径与该双机部署放在一起推演。每张卡读多少字节、分几批，已经在总览的 [GLM 双机推演](rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)里算过；这里只看十步在这套部署上怎么走。
 
 - **谁走这十步。** 部署是一个实例跨两台机器、16 张卡，TP8、DP2、EP16、W8A8，见[部署前提](glm-5-3-flash-two-node.md#部署前提)。16 个 Worker 各自加载主模型和 MTP 草稿模型（GLM 自带、在投机解码里先猜后面 token 的那一层），各有一个会话，一共 32 个会话，每个都按这十步走一遍。钥匙和租约为什么也是 32 份，见[身份匹配](rfork-identity.md)。
 - **第 2 步不触发。** 教程的两机启动命令没有开 EPLB，也没配专家分布记录路径。以后打开 EPLB，32 个会话都会在第 2 步直接改走普通加载。
@@ -196,13 +196,13 @@ file: rfork-startup-fallback
 
 ### 怎么开
 
-启动参数 `--load-format rfork` 选中 `RForkModelLoader`，在 `__init__` 里从 `--model-loader-extra-config` 读成 `RForkConfig` 并对未知键发出警告。[C1] 三项必填（`model_url`、`model_deploy_strategy_name`、`rfork_scheduler_url`）缺任何一项，`RForkSession` 构造时抛 `RForkConfigurationError`；该异常特意不继承 `ValueError`/`RuntimeError`，因此会直接中止启动，避免配置错误被静默吞成回退。[C16][C4] 没装 `yr.datasystem` 或传输后端初始化失败属于 `RFORK_FALLBACK_EXCEPTIONS = (ImportError, OSError, RuntimeError, ValueError)`，仍会落进回退；若 `session is None`，回退后不发布 seed。各项设置的含义见[配置](rfork-config.md)。
+启动参数 `--load-format rfork` 选中 `RForkModelLoader`，在 `__init__` 里从 `--model-loader-extra-config` 读成 `RForkConfig` 并对未知键发出警告（来源 1）。三项必填（`model_url`、`model_deploy_strategy_name`、`rfork_scheduler_url`）缺任何一项，`RForkSession` 构造时抛 `RForkConfigurationError`；该异常特意不继承 `ValueError`/`RuntimeError`，因此会直接中止启动，避免配置错误被静默吞成回退。[C4] 没装 `yr.datasystem` 或传输后端初始化失败属于 `RFORK_FALLBACK_EXCEPTIONS = (ImportError, OSError, RuntimeError, ValueError)`，仍会落进回退；若 `session is None`，回退后不发布 seed。各项设置的含义见[配置](rfork-config.md)。
 
 绕过判定统一收敛在 `safety.py:mutable_weights_bypass_reason`：`enable_sleep_mode`、`weight_transfer_config is not None` 或 `parallel_config.enable_eplb` 任一成立即绕过 RFork 改走默认加载（不发布 seed）。[C9] Model Runner V1 已在上游移除，原 `eplb_config.dynamic_eplb`、`expert_map_record_path` 与 `expert_map_path` 分支已在 PR `#21707` 中删除。
 
-第 6 / 9 步走哪条由 `_requires_processed_layout_transfer` 决定：`model_config.quantization is not None`，或 `get_ascend_config().weight_nz_mode == 2`，或当前硬件 profile 的 `weight_layout_policy` 是 `FORCE_NZ`，任一成立就返回 True（`rfork_loader.py#L729-L745`）。[C2] 为 True 时第 6 步在 `_rfork_pre_transfer_weight_processing` 里跑 `process_weights_after_loading` 并 `torch.npu.synchronize()`，第 9 步仅刷新 FlatQuant 宿主标量（`_refresh_rfork_flatquant_state`）；为 False 时第 9 步在 `_rfork_skip_unquantized_moe_post_load_processing` 里跑后处理。
+第 6 / 9 步走哪条由 `_requires_processed_layout_transfer` 决定：`model_config.quantization is not None`，或 `get_ascend_config().weight_nz_mode == 2`，或当前硬件 profile 的 `weight_layout_policy` 是 `FORCE_NZ`，任一成立就返回 True（`rfork_loader.py#L729-L745`，来源 2）。为 True 时第 6 步在 `_rfork_pre_transfer_weight_processing` 里跑 `process_weights_after_loading` 并 `torch.npu.synchronize()`，第 9 步仅刷新 FlatQuant 宿主标量（`_refresh_rfork_flatquant_state`）；为 False 时第 9 步在 `_rfork_skip_unquantized_moe_post_load_processing` 里跑后处理。
 
-回退配置由 `_make_fallback_load_config` 生成：原 `LoadConfig` 的浅拷贝，`load_format` 设成 `"auto"`，`model_loader_extra_config` 清空，再经 `_load_with_default_loader` 调 vLLM 的 `get_model`。[C5]
+回退配置由 `_make_fallback_load_config` 生成：原 `LoadConfig` 的浅拷贝，`load_format` 设成 `"auto"`，`model_loader_extra_config` 清空，再经 `_load_with_default_loader` 调 vLLM 的 `get_model`（`rfork_loader.py#L309-L560`，来源 5）。
 
 ### 会报什么错
 
@@ -219,19 +219,19 @@ file: rfork-startup-fallback
 | `RFork seed promotion is deferred until the source seed lease is released; the transferred model remains available for inference.` | debug | 第 10 步租约还没确认归还，发布记成延期 |
 | `RFork cannot prepare a finalized session for fallback.` | error | 会话已经关停（`FINALIZED`），清理三项都算失败，拒绝回退 |
 
-借到租约的 Worker 在 debug 级别打 `RFork lease acquired: lease=… global_rank=… request_elapsed=…`，最终在 `_log_rfork_load_summary` 打印 `source=transfer|local|fallback|shared_target` 汇总。`session.acquire_seed()` 要求先完成 `register_destination` 进入 `REGISTERED` 状态；`RForkPlannerClient.acquire_seed` 对 404 只打 debug，对连接异常、非 200/404、缺响应头或非法端口（`<=0` 或 `>65535`）/rank/可选 `LEASE_TTL_SEC` 打 warning 并返回 `None`。[C11][C12]
+借到租约的 Worker 在 debug 级别打 `RFork lease acquired: lease=… global_rank=… request_elapsed=…`，最终在 `_log_rfork_load_summary` 打印 `source=transfer|local|fallback|shared_target` 汇总。`session.acquire_seed()` 要求先完成 `register_destination` 进入 `REGISTERED` 状态；`RForkPlannerClient.acquire_seed` 对 404 只打 debug，对连接异常、非 200/404、缺响应头或非法端口（`<=0` 或 `>65535`）/rank/可选 `LEASE_TTL_SEC` 打 warning 并返回 `None`。[C11]
 
-回退清理：session 存在时调 `prepare_for_fallback`，依次停 seed 服务、`_release_seed_locked`、注销 MR；加载器最多调 `FALLBACK_CLEANUP_MAX_ATTEMPTS = 2` 轮，`RForkFallbackCleanupResult.can_schedule_seed` 只看 `service_stopped and memory_reset`。[C7][C8] 随后恢复进程级状态并释放 Engram 本地宿主权重（`release_local_weights`）、执行 4 轮 `gc.collect()` 与 `torch.npu.empty_cache()`。[C4][C13]
+回退清理：session 存在时调 `prepare_for_fallback`，依次停 seed 服务、`_release_seed_locked`、注销 MR；加载器最多调 `FALLBACK_CLEANUP_MAX_ATTEMPTS = 2` 轮，`RForkFallbackCleanupResult.can_schedule_seed` 只看 `service_stopped and memory_reset`。[C8] 随后恢复进程级状态并释放 Engram 本地宿主权重（`release_local_weights`）、执行 4 轮 `gc.collect()` 与 `torch.npu.empty_cache()`（来源 4、13）。
 
 ### 开销和什么时候别开
 
-晚申请与先登记：`register_destination` 排在 `initialize_model`、`_prepare_rfork_model_state`、`load_local_weights`、processed-layout 后处理与 `torch.npu.synchronize()` 之后、且在 `acquire_seed` 之前，使本地构图与目的内存登记均移出租约有效期。[C3][C11]
+晚申请与先登记：`register_destination` 排在 `initialize_model`、`_prepare_rfork_model_state`、`load_local_weights`、processed-layout 后处理与 `torch.npu.synchronize()` 之后、且在 `acquire_seed` 之前，使本地构图与目的内存登记均移出租约有效期。[C3]
 
-示例 Planner 的 `lease_ttl_sec` 默认 60、`default_resource_points` 默认 1，可用 `RFORK_MOCK_LEASE_TTL_SEC`、`RFORK_MOCK_DEFAULT_RESOURCE_POINTS` 改；`get_seed` 每借出一次占 1 点。[C14][C15]
+示例 Planner 的 `lease_ttl_sec` 默认 60、`default_resource_points` 默认 1，可用 `RFORK_MOCK_LEASE_TTL_SEC`、`RFORK_MOCK_DEFAULT_RESOURCE_POINTS` 改；`get_seed` 每借出一次占 1 点。[C14]
 
-分段耗时日志（大多为 debug，设 `VLLM_LOGGING_LEVEL=DEBUG` 可看全量）：`RFork %s model initialization took %.2f seconds`、`RFork %s model layout processing took %.2f seconds`、`RFork %s seed acquisition took %.2f seconds`、`RFork %s model registration and transfer took %.2f seconds`、`RFork transfer stages: lease=… global_rank=… registration=… metadata=… read=…`；INFO 汇总由 `_log_rfork_load_summary` 输出 `source=transfer|local|fallback|shared_target` 与总耗时。[C3][C6][C10]
+分段耗时日志（大多为 debug，设 `VLLM_LOGGING_LEVEL=DEBUG` 可看全量）：`RFork %s model initialization took %.2f seconds`、`RFork %s model layout processing took %.2f seconds`、`RFork %s seed acquisition took %.2f seconds`、`RFork %s model registration and transfer took %.2f seconds`、`RFork transfer stages: lease=… global_rank=… registration=… metadata=… read=…`；INFO 汇总由 `_log_rfork_load_summary` 输出 `source=transfer|local|fallback|shared_target` 与总耗时（来源 3、6、10）。
 
-未命中时已初始化的模型清掉重建，冷启动需付两遍模型准备开销；只有一个实例的部署首次必然未命中。[D] 命中 sleep mode、在线权重传输或 `enable_eplb` 时 RFork 自动绕过。[C9]
+未命中时已初始化的模型清掉重建，冷启动需付两遍模型准备开销；只有一个实例的部署首次必然未命中。[D] 命中 sleep mode、在线权重传输或 `enable_eplb` 时 RFork 自动绕过（来源 9）。
 
 ### 版本差异
 
@@ -242,7 +242,7 @@ file: rfork-startup-fallback
 | 配置错误与异常 | 回退保护内捕获 | 同左 | `RForkConfigurationError` 中止启动 | 同 `v0.30.0`，回退异常收窄为 `(ImportError, OSError, RuntimeError, ValueError)` |
 | 回退全局恢复 | 注销内存后 `del model`，不恢复进程级表 | 同左 | 恢复编译上下文、MoE 列表、EPLB 适配表、RoPE 与 Dynamo 钩子 | 移除已废弃 `VllmEplbAdaptor` 快照；新增 Ascend RoPE 缓存恢复与 Engram 宿主表释放 |
 
-旧开发快照 `baa023ad` 仍是先问后搭（已合入后处理同步与基础状态恢复，但注销失败仅警告）。[C19][C20][C21][C24] 完整对照见[总览的版本差异](rfork.md#版本差异)。
+旧开发快照 `baa023ad` 仍是先问后搭（已合入后处理同步与基础状态恢复，但注销失败仅警告；对照来源 19–21、24）。[C24] 完整对照见[总览的版本差异](rfork.md#版本差异)。
 
 ### 源码位置
 

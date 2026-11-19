@@ -97,17 +97,31 @@ function stripMarkdownSection(text: string, level: "##" | "###", heading: string
   return text.replace(pattern, "");
 }
 
-export function stripNonAuthoringStandard(standard: string): string {
+const COMPACT_VISUAL_SPEC_BULLET =
+  '   - **2D 纯矢量视觉与配色铁律（Edition-A 暖纸矿物色板）**：自动化 Drop / 纯文本模型严禁输出 `<image href="./wiki-illustrations/...">` 虚构位图，空间剖面与机制图一律用纯矢量 `mode: "native-svg"`（等距/分层多边形几何）或 `layout: "figure"`；主色 `#087f73`/`#c78300`/`#4c65b6`/`#9a4b86`/`#b54237`/`#66716d`/`#fbfaf6`（浅底 `#ddf4ef`/`#fff4cf`/`#e8edff`/`#f5e6f0`/`#fbe5e2`），字号 `>=13.5px`，画布宽 `<=900`，不画外层边框或仪表盘黑条。\n';
+
+export function stripNonAuthoringStandard(
+  standard: string,
+  options: { keepVisualSpec?: boolean } = {},
+): string {
   let out = standard;
   for (const nonAuthoringHeading of ["审查与修订流程", "样板页", "自动检查", "整理依据"]) {
     out = stripMarkdownSection(out, "##", nonAuthoringHeading);
   }
-  // Pure SVG/webp geometry, hex-palette authoring bullets, and diagram-drawing walkthroughs are not
-  // needed in text-only / non-diagram prompts (and remain reachable via ruleDocuments / diagramContract).
+  let replacedVisual = false;
   out = out
-    .replace(/^[ \t]*-\s+\*\*层[一二]\s*·[^\r\n]*\r?\n?/gm, "")
-    .replace(/^\*\*(?:TP|EP) 直觉图示例：\*\*[^\r\n]*\r?\n?/gm, "")
-    .replace(/\n{3,}/g, "\n\n");
+    .replace(/^[ \t]*-\s+\*\*层[一二]\s*·[^\r\n]*\r?\n?/gm, () => {
+      if (options.keepVisualSpec && !replacedVisual) {
+        replacedVisual = true;
+        return COMPACT_VISUAL_SPEC_BULLET;
+      }
+      return "";
+    })
+    .replace(/^\*\*(?:TP|EP) 直觉图示例：\*\*[^\r\n]*\r?\n?/gm, "");
+  if (options.keepVisualSpec && !replacedVisual) {
+    out = `${out.trimEnd()}\n\n${COMPACT_VISUAL_SPEC_BULLET}`;
+  }
+  out = out.replace(/\n{3,}/g, "\n\n");
   return out;
 }
 

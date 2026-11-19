@@ -364,7 +364,7 @@ hccn_tool -i 0 -ping -g address x.x.x.x
 
 然后核对每节点主机 IP 与所选网卡是否对应。P/D 场景还要按所用教程放通 DP RPC、API、HCCL socket、Mooncake 握手/控制与传输引擎端口；端口集合取决于角色与拓扑，传输引擎也可能通告额外端口。并行规模和进程部署入口见[PP 页的多节点启动说明](pipeline-parallel.md#怎么开)，KV 传输端口与数据路径见[Mooncake](mooncake-connector.md)。
 
-AI QoS 是独立的设备与交换机配置工具。固定快照 `db701c1f` 要先构建并安装 AI QoS 扩展，将 DSMI 头文件与设备管理库挂入容器并按实际路径传给构建命令。文档要求特权容器、Ascend HDK 25.5.2+、UB Switch LingQu Computing Network 1.5.1+。满足适用硬件条件后，在推理任务前运行 `python tools/ai_qos.py` 采用 auto 默认配置；manual 模式可只指定需要修改的流量等级。
+AI QoS 是独立的设备与交换机配置工具。构建并安装 AI QoS 扩展前需将 DSMI 头文件与设备管理库挂入容器并按实际路径传给构建命令；文档要求特权容器、Ascend HDK 25.5.2+、UB Switch LingQu Computing Network 1.5.1+。**注意两套版本的 CLI 差异**：在 **`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）** 上，入口为 `python -m tools.ai_qos`（`manual` 模式仅接受 `--AIV` / `--SDMA` / `--PCIEDMA` 三键，默认 `high / low / high`，恢复命令为 `python -m tools.ai_qos unset`，传入旧五键会直接报 `argparse` 参数错误）；而在固定历史快照 `db701c1f`（及 `v0.23.0` / `v0.26.0rc`）上，入口为 `python tools/ai_qos.py`（`unset` 恢复），使用下表五键分类：
 
 | 固定快照配置键 | 文档对应流量 | 默认等级与可选范围 |
 |---|---|---|
@@ -390,7 +390,7 @@ D2D 指设备到设备，H2D 指主机到设备；该表中 KV 换出还包括�
 
 QoS 的 `unset` 找不到快照时打印 `No state file at ...; nothing to undo.` 并退出。恢复 SDMA 或端点全局配置失败会打印带设备号和返回码的警告；“打印了 undo”只说明生成了交换机恢复指令，不能据此认定交换机已恢复。
 
-main 上 KV 传输的 `qos_priority` 不是 0–4 的整数（布尔值也不行）时，PD 分离连接器或 KV 池后端在启动阶段抛 `ValueError`；环境变量 `ASCEND_GLOBAL_RESOURCE_CONFIG` 里原有的 QoS 值会被覆盖，并打一条 warning。日志 `Injected comm_resource_config.qos=...` 只说明本地环境已写入，不能证明某条传输通道用了这个值。
+`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）上 KV 传输的 `qos_priority` 不是 `0–4` 的整数（布尔值也不行）时，PD 分离连接器或 KV 池后端在启动阶段抛 `ValueError`；环境变量 `ASCEND_GLOBAL_RESOURCE_CONFIG` 里原有的 QoS 值会被覆盖，并打一条 warning。日志 `Injected comm_resource_config.qos=...` 只说明本地环境已写入，不能证明某条传输通道用了这个值。
 
 对上述 PD 分离连接器，`comm_resource_config.qos` 是含点号的顶层 JSON 键，不是嵌套对象路径；合并时保留其他资源设置和 `store` 配置。即使省略 `qos_priority`，默认值 `1` 仍会替换已有的顶层 QoS。[S26]
 
@@ -405,23 +405,23 @@ AI QoS 适用于受支持拓扑上的流量争用。提高关键流量优先级�
 
 ### 版本差异
 
-**安装文档也有自己的版本。** v0.23、v0.26 的固定安装指南均列出 CANN / NNAL 9.1.0、PyTorch 2.10.0、TorchNPU 2.10.0.post4，以及 Triton Ascend 3.2.2 的安装说明。rc2、main 的固定指南改用包含文件和模板变量描述三种安装路径；两份快照的模板仍将发布示例指向 0.23.0，不能因为页面来自 rc2 分支，就把模板展开的镜像叫作 rc2 镜像。实际安装应再对照目标发布行及所用源码提交。
+**安装文档也有自己的版本。** `v0.23.0`、`v0.26.0rc` 的固定安装指南均列出 CANN / NNAL 9.1.0、PyTorch 2.10.0、TorchNPU 2.10.0.post4，以及 Triton Ascend 3.2.2 的安装说明。`v0.30.0` 周期与 `main` 的固定指南改用包含文件和模板变量描述三种安装路径；早期快照的模板仍将发布示例指向 0.23.0，不能仅凭分支名就把模板展开的镜像叫作该分支镜像。实际安装应再对照目标发布行及所用源码提交。
 
-| 核对项 | v0.23 固定指南 | v0.26 固定指南 | v0.30.0rc2 固定指南 | main 固定指南 |
+| 核对项 | `v0.23.0` 固定指南 | `v0.26.0rc` 固定指南 | `v0.30.0` 周期指南 | `main` 固定指南 |
 |---|---|---|---|---|
-| CANN 基础环境与完整推理镜像 | 两者分开，手装路径含 Toolkit / Ops / NNAL | 相同；强调完整配套 | 明列三种路径及组件责任 | 与 rc2 相同 |
-| 无 NPU 的构建说明 | 没有同名 CPU-only 验证节 | 跳过设备验证，仍准备 CANN / 框架依赖 | 仍要求 CANN 头文件和库；关闭自定义算子构建 | 与 rc2 相同 |
+| CANN 基础环境与完整推理镜像 | 两者分开，手装路径含 Toolkit / Ops / NNAL | 相同；强调完整配套 | 明列三种路径及组件责任 | 与 `v0.30.0` 相同 |
+| 无 NPU 的构建说明 | 没有同名 CPU-only 验证节 | 跳过设备验证，仍准备 CANN / 框架依赖 | 仍要求 CANN 头文件和库；关闭自定义算子构建 | 与 `v0.30.0` 相同 |
 | 构建成功能证明什么 | 不等于 NPU 推理成功 | 只证明包构建，运行前另查依赖与设备 | 相同 | 相同 |
 
 较后官方快照 `921ccc52` 将配套升级为另一组版本，并增加上述 FLA NPU 安装要求；它的 main 专用 CPU-only 流程还改为跳过原生扩展，仅验证 Python 打包，允许不安装 CANN、驱动和运行时依赖。这个专用环境预期会被 `pip check` 报缺依赖，不能拿它作为实际推理环境的合格判据。它也不提供 CPU 推理或单元测试环境。这些后续变化均不回填为固定 GLM 部署已经具备的条件。
 
-设备网络预检在 v0.23、v0.26、v0.30.0rc2 和 main 的固定官方安装指南中均存在：A2 用 0–7、A3 用 0–15，均查询链路、健康、地址与配置，再进行跨节点 NPU ping。四版也都有 950 系列的拓扑配置前置项，rc2/main 明确为 950DT。较后的文档快照 `921ccc52` 把结果判据细分为链路 UP、健康 Success、配置逐项核对，并明确探测目标是远端 NPU 地址、需双向覆盖。这是说明的补全，不据此推断驱动或通信实现发生变化。
+设备网络预检在 `v0.23.0`、`v0.26.0rc`、`v0.30.0` 与 `main` 的固定官方安装指南中均存在：A2 用 0–7、A3 用 0–15，均查询链路、健康、地址与配置，再进行跨节点 NPU ping。四版也都有 950 系列的拓扑配置前置项，`v0.30.0` / `main` 明确为 950DT。较后的文档快照 `921ccc52` 把结果判据细分为链路 UP、健康 Success、配置逐项核对，并明确探测目标是远端 NPU 地址、需双向覆盖。这是说明的补全，不据此推断驱动或通信实现发生变化。
 
 HIXL 是另一条配套版本线。上述固定 Ascend 指南中的三文件清单，不能推出所有 CANN 版本永久需要相同文件。HiXLEP 指南分别说明 CANN 9.1.0 与 9.2.0，后者自动生成去掉旧路由文件依赖；本文所读 HIXL 工具文档另固定到 `dcf0027f`，工具只面向 A5。HIXL 接口文档还区分 UB 场景只含 device 端点、只含 host 端点及二者齐全时允许注册和传输的地址类型；升级框架或修改 PP/TP 参数不会自动补齐这些资源。
 
-rc2 额外睡眠清理还增加了 HCCL lifecycle anchor，创建失败时可跳过本轮通信组拆除，恢复后再释放；生命周期与显存影响统一见 [Sleep mode 版本差异](sleep-mode.md#版本差异)。
+自 `v0.30.0` 起，额外睡眠清理增加了 HCCL lifecycle anchor，创建失败时可跳过本轮通信组拆除，恢复后再释放；生命周期与显存影响统一见 [Sleep mode 版本差异](sleep-mode.md#版本差异)。
 
-**v0.30.0rc2 仍用 hccl 初始化分布式环境，但建组和 QoS 要看具体入口。** Engram+PCP 会临时复制配置并清除 Engram 项，避免上游先建 DP-only 组，随后由 Ascend 沿 DP×PCP 维度分组。实际组大小还须对齐每节点的完整执行组数量与 rank 布局，不满足时退回大小 1、不另建组；开启主机共享时这个 Engram 组使用 gloo。整机 AI QoS 工具继续使用 AIV/SDMA/PCIEDMA 三键（high/low/high）；P/D 传输的 inject_qos 则默认 1、严格接受整数 0–4，并合并全局资源配置保留其他字段。常规、layerwise、hybrid Mooncake P2P 都调用后者，这两种 QoS 不是同一个入口，hccl 后端名也不能单独证明实际物理链路或性能。
+**`v0.30.0` 与 `main` 仍用 `hccl` 初始化分布式环境，但建组和 QoS 要看具体入口。** Engram+PCP 会临时复制配置并清除 Engram 项，避免上游先建 DP-only 组，随后由 Ascend 沿 `DP × PCP` 维度分组。实际组大小还须对齐每节点的完整执行组数量与 rank 布局，不满足时退回大小 1、不另建组；开启主机共享时这个 Engram 组使用 `gloo`。整机 AI QoS 工具使用 `AIV / SDMA / PCIEDMA` 三键（`high / low / high`）；P/D 传输的 `inject_qos` 则默认 `1`、严格接受整数 `0–4`，并合并全局资源配置保留其他字段。常规、layerwise、hybrid Mooncake P2P 都调用后者，这两种 QoS 不是同一个入口，`hccl` 后端名也不能单独证明实际物理链路或性能。
 
 下表按四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；固定 GLM 执行快照另为 `db701c1f`，旧快照 `baa023ad` / `7d825229` 的行号线索见上方说明与来源清单。
 
@@ -453,8 +453,8 @@ rc2 额外睡眠清理还增加了 HCCL lifecycle anchor，创建失败时可跳
 - 固定 QoS 映射、端点写入与交换机命令生成、参数默认值、恢复与失败分支，支撑上文的默认配置与恢复边界。[C8][C9][C10][C11]
 - 三版 Worker 均显式选择 hccl 后端（来源 12–14）；三版脚本对应版本表中的五键→三键变化与恢复边界（来源 15–17）。
 - 三版官方指南分别确认构建方式、硬件 / 软件条件与 AIV 驱动限制。[S20][S21][S22]
-- main 的 KV 传输 QoS 入口：P/D 默认值 1 与 0–4 校验、KV 池后端的校验、Mooncake 连接器在建传输引擎前的调用、官方 PD 教程写明的发起端规则与日志含义，以及 Mooncake / Memcache 两种 KV 池后端各自写入的环境变量；v0.23、v0.26 与固定快照中都没有这些调用。[C23][C24][C25][S26][C27][C28]
-- rc2 的 Engram 分组：Ascend 提供 DP×PCP 维度与 TP×PP 执行组大小，上游 helper 用每节点完整执行组数和该维度的最大公约数决定分片，无法整除或节点 rank 不连续时退回 1。[C49][C50]
+- `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）的 KV 传输 QoS 入口：P/D 默认值 1 与 `0–4` 校验、KV 池后端的校验、Mooncake 连接器在建传输引擎前的调用、官方 PD 教程写明的发起端规则与日志含义，以及 Mooncake / Memcache 两种 KV 池后端各自写入的环境变量；`v0.23.0`、`v0.26.0rc` 与固定快照 `db701c1f` 中都没有这些调用。[C23][C24][C25][S26][C27][C28]
+- `v0.30.0` 起引入的 Engram 分组：Ascend 提供 `DP × PCP` 维度与 `TP × PP` 执行组大小，上游 helper 用每节点完整执行组数和该维度的最大公约数决定分片，无法整除或节点 rank 不连续时退回 1。[C49][C50]
 
 上述来源 23 还显示：若 `qos_priority` 无效或 `ASCEND_GLOBAL_RESOURCE_CONFIG` 的 JSON 格式错误，会在修改环境前失败。
 

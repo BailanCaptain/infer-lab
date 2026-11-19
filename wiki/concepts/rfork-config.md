@@ -91,7 +91,7 @@ rawSources:
 为什么要配这么多项？因为借一次权重要连好几个地方。下图是一台 A、一台 B 时，RFork 牵涉的四类端口：
 
 ```wiki-diagram
-file: rfork-config-ports.yaml
+file: rfork-config-ports
 ```
 
 1. **API 端口**：业务方发推理请求的地方；B 在权重加载完之前还不对外服务。
@@ -188,15 +188,13 @@ file: rfork-config-ports.yaml
 
 所以「把端口固定下来」只固定了第三类那一个。宣告地址也只改报给 Planner 的 seed 元数据地址，不会顺带改传输引擎自己选的端点（后者跟 `VLLM_HOST_IP` / `get_ip()` 走）。如果「清单取得到，真正读权重却失败」，要查的是第四类能不能连通。
 
-双槽固定端口的算法如下，超出 65535 或端口被占用（`EADDRINUSE`）时都会自动退回系统随机端口：
+双槽固定端口按 $\text{port} = \text{base} + 2 \times \text{global\_rank} + \text{slot}$ 计算（主模型槽 `0`、草稿槽 `1`），超出 `65535` 或端口被占用（Linux `EADDRINUSE`）时都会自动退回系统随机端口：
 
-```calc
-title: 双槽固定 seed 端口怎么算
-基数 35000，rank 3 主模型（槽 0） = 35000 + 2 × 3 + 0 = 35006
-基数 35000，rank 3 草稿模型（槽 1） = 35000 + 2 × 3 + 1 = 35007
-基数 65530，rank 3 主模型 = 65530 + 6 = 65536
-> 第三行超过 65535：打 warning 退回系统随机端口；指定端口在 Linux 遇 EADDRINUSE 被占用时也会自动退回系统随机端口
-```
+| 基数 `base` | 角色与槽位（`global_rank = 3`） | 算式 | 结果与行为 |
+|---|---|---|---|
+| `35000` | 主模型（槽 `0`） | $35000 + 2 \times 3 + 0$ | `35006` |
+| `35000` | 草稿模型（槽 `1`） | $35000 + 2 \times 3 + 1$ | `35007` |
+| `65530` | 主模型（槽 `0`） | $65530 + 6 = 65536$ | 超过 `65535`：打 warning 退回系统随机端口 |
 
 主模型与草稿模型分占相邻偶/奇槽位后，同一 Worker 进程内不再必然撞号；同机多实例共用同一基数碰上 `EADDRINUSE` 时也会退回动态端口（其他绑定错误如监听地址不属于本机仍会失败并记 warning，该角色不当 seed、模型照常交回）。防火墙若要按固定段放行，仍需为同机多实例错开端口基数，并以实际绑定日志为准。
 
@@ -213,15 +211,9 @@ title: 双槽固定 seed 端口怎么算
 - **还租约的快速次数和间隔**管 B 读完以后在后台还租约时，前几轮快速重试的节奏；超过后遇暂态错误会转入至少 60 秒间隔的慢速重试，直到成功、被永久拒绝或关停。
 - **租约有效期**是 Planner 那边的：租约从发出那一刻起算，到点就收回。示例 Planner 默认 60 秒，seed 的心跳只报平安、不续租约；但当 Planner 在 `GET /get_seed` 返回有限正数 `LEASE_TTL_SEC` 时，客户端会起后台线程按 `clamp(TTL / 3, 0.1, 30.0)` 秒周期调用 `/renew_seed_lease` 续期。
 
-还租约默认快速阶段最多 3 次、间隔 30 秒，仅快速阶段光间隔就占 60 秒：
+还租约默认快速阶段最多 3 次、间隔 30 秒，仅快速阶段光间隔就占 60 秒；若每次请求恰好卡满单次 `10` 秒超时（非总上限，第 4 次起遇暂态错误转每 $\ge 60$ 秒慢速重试）：
 
-```calc
-title: 还租约快速阶段耗时算例（非总上限，超 3 次后转 ≥60 秒慢试）
-三次请求 = 3 × 10 秒 = 30 秒
-两段间隔 = 2 × 30 秒 = 60 秒
-快速阶段合计 = 30 + 60 = 90 秒
-> 每次请求恰好卡满 10 秒时的算例；第 4 次起若仍遇暂态错误则每 ≥60 秒继续重试
-```
+$$\text{快速阶段合计} = 3 \times 10\text{ 秒（三次请求）} + 2 \times 30\text{ 秒（两段间隔）} = 30 + 60 = 90\text{ 秒}$$
 
 来源服务启动那 5 秒也一样不是硬截止：它用来算健康检查的截止时刻，再用剩下的时间限制排队和轮询；失败后的清理另有一份等待预算。
 
@@ -252,12 +244,9 @@ title: 还租约快速阶段耗时算例（非总上限，超 3 次后转 ≥60 
 
 每台机器 8 张卡、8 个 Worker 进程。投机解码的 MTP 草稿模型和主模型在同一个 Worker 里，各有一套 RFork 会话，各自借、各自当 seed。每套会话在首次登记时初始化传输引擎端点，当上 seed 以后再开一个 seed 元数据端口：
 
-```calc
-title: GLM 双机每台机器上 RFork 新开的端口
-每台的 RFork 会话 = 8 个 Worker × 2（主模型、草稿模型） = 16 套
-每台新开的端口 = 16 套 × 2（seed 元数据、传输引擎端点） = 32 个
-> 另外 node0 还有 1 个 API 端口，node1 以 headless 方式只跑引擎、不开 API；Planner 是实例之外的独立服务，16 个 Worker 的 32 套会话都去连它
-```
+$$\text{每台 RFork 会话} = 8\text{ 个 Worker} \times 2\text{（主模型、草稿模型）} = 16\text{ 套}, \qquad \text{每台新开端口} = 16 \times 2\text{（seed 元数据、传输引擎端点）} = 32\text{ 个}$$
+
+另外 `node0` 还有 1 个 API 端口，`node1` 以 headless 方式只跑引擎、不开 API；Planner 是实例之外的独立服务，16 个 Worker 的 32 套会话都去连它。
 
 这 32 个端口在默认设置下全是随机的。如果现场防火墙只放行固定端口段，需要分别规划 seed HTTP 端口段与 YuanRong 数据面环境变量范围。
 
@@ -376,23 +365,23 @@ print("optional kNotFound:",
       hasattr(getattr(ds, "ErrorCode", None), "kNotFound"))
 ```
 
-此检查不实例化引擎、不注册设备内存；通过只说明 API 名称可见。还需核对 `MemoryRegistration` 四参数的语义、部分失败后的注销结果、native 返回对象及 finalize 对活动传输的行为。`kNotFound` 在工作版是可选探测，缺少时不能走对应的「已不存在」确认逻辑；不能擅自补一个猜测错误码。[C4][C10]
+此检查不实例化引擎、不注册设备内存；通过只说明 API 名称可见。还需核对 `MemoryRegistration` 四参数的语义、部分失败后的注销结果、native 返回对象及 finalize 对活动传输的行为。`kNotFound` 在工作版是可选探测，缺少时不能走对应的「已不存在」确认逻辑；不能擅自补一个猜测错误码。[C4]
 
 ### 会报什么错
 
 - 空 `rfork_scheduler_url`、`model_url` 或 `model_deploy_strategy_name`：`RForkSession.__init__` 抛 `RForkConfigurationError`（刻意不继承 `ValueError`/`RuntimeError`），**直接中止启动**，不再静默回退到默认加载。[C2]
-- 未知键名（含旧短别名如 `request_timeout_sec`/`bind_host` 或拼写错误）：加载器 `__init__` 调 `unknown_extra_config_keys` 打 warning `RFork ignored unknown model_loader_extra_config keys: ...; check the spelling.`，键本身仍按未填处理。[C1][C12]
-- `--model-loader-extra-config` 不是 JSON 对象、或 `heartbeat_interval_sec` / `lease_release_max_attempts` / `lease_release_retry_interval_sec` / `rfork_seed_port_base`（`[0, 65535]` 严格 JSON 整数，排除 bool 与字符串）/ `rfork_model_identity_headers`（严格 bool，开启时要求 ASCII）/ `rfork_seed_removal_supported`（`bool | None`）任一项非法：在 `__init__` 抛 `RForkConfigurationError`，进程起不来。[C1][C12]
-- 两个 timeout（`rfork_seed_timeout_sec`、`rfork_request_timeout_sec`）使用有限正数解析器，接受整数、浮点数及可转浮点数的字符串；非法值不报错，依次回退环境变量和默认值。[C1]
-- 双槽端口 `base + 2 × global_rank + slot`（主 0、草稿 1）超过 65535 时记 warning 并退回系统随机端口；指定固定端口被占用（Linux `EADDRINUSE`）时同样自动回退 OS 随机端口；其他绑定错误（如监听地址不属于本机）抛 `OSError`，该角色不当 seed，模型照常交回。[C3][C11][C19]
-- TransferEngine 初始化传 `port=0` 并调 `get_rpc_port()` 读回真实 RPC 端口；缺 `get_rpc_port` 或 `batch_register_memory_ex` 均判为不支持。[C4][C10]
+- 未知键名（含旧短别名如 `request_timeout_sec`/`bind_host` 或拼写错误）：加载器 `__init__` 调 `unknown_extra_config_keys` 打 warning `RFork ignored unknown model_loader_extra_config keys: ...; check the spelling.`，键本身仍按未填处理。[C12]
+- `--model-loader-extra-config` 不是 JSON 对象、或 `heartbeat_interval_sec` / `lease_release_max_attempts` / `lease_release_retry_interval_sec` / `rfork_seed_port_base`（`[0, 65535]` 严格 JSON 整数，排除 bool 与字符串）/ `rfork_model_identity_headers`（严格 bool，开启时要求 ASCII）/ `rfork_seed_removal_supported`（`bool | None`）任一项非法：在 `__init__` 抛 `RForkConfigurationError`，进程起不来。
+- 两个 timeout（`rfork_seed_timeout_sec`、`rfork_request_timeout_sec`）使用有限正数解析器，接受整数、浮点数及可转浮点数的字符串；非法值不报错，依次回退环境变量和默认值。
+- 双槽端口 `base + 2 × global_rank + slot`（主 0、草稿 1）超过 65535 时记 warning 并退回系统随机端口；指定固定端口被占用（Linux `EADDRINUSE`）时同样自动回退 OS 随机端口；其他绑定错误（如监听地址不属于本机）抛 `OSError`，该角色不当 seed，模型照常交回。[C3][C11]
+- TransferEngine 初始化传 `port=0` 并调 `get_rpc_port()` 读回真实 RPC 端口；缺 `get_rpc_port` 或 `batch_register_memory_ex` 均判为不支持。[C10]
 - 实际物化的 Parameters / buffers 存在未豁免的非 NPU 状态（混合 CPU/NPU）：拒绝并尝试默认加载。[C5]
-- 本地健康检查使用实际绑定地址，监听 `0.0.0.0` / `::` 时改用回环地址；健康检查 200 不证明 advertise 地址远端可达，也不证明 TransferEngine 数据端点连通。[C11]
-- metadata 能拿到、native read 却失败：`rfork_seed_advertise_host` 只改发布给 Planner 的 seed HTTP 地址，TransferEngine 端点由 `get_ip()`（优先 `VLLM_HOST_IP`）+ 引擎绑定 RPC 端口确定（可选 `YR_TE_RPC_PORT_MIN/MAX`），需单独排查其可达性。[C4]
+- 本地健康检查使用实际绑定地址，监听 `0.0.0.0` / `::` 时改用回环地址；健康检查 200 不证明 advertise 地址远端可达，也不证明 TransferEngine 数据端点连通。
+- metadata 能拿到、native read 却失败：`rfork_seed_advertise_host` 只改发布给 Planner 的 seed HTTP 地址，TransferEngine 端点由 `get_ip()`（优先 `VLLM_HOST_IP`）+ 引擎绑定 RPC 端口确定（可选 `YR_TE_RPC_PORT_MIN/MAX`），需单独排查其可达性。
 
 ### 开销和什么时候别开
 
-- 命中 `safety.py:mutable_weights_bypass_reason`（`enable_sleep_mode`、`weight_transfer_config` 或 `parallel_config.enable_eplb`）时 RFork 被整体绕过，调重试数不改变这个限制。[C6][C7]
+- 命中 `safety.py:mutable_weights_bypass_reason`（`enable_sleep_mode`、`weight_transfer_config` 或 `parallel_config.enable_eplb`）时 RFork 被整体绕过，调重试数不改变这个限制。[C6]
 - `rfork_request_timeout_sec` 传给 Requests，约束连接 / 读等待，不是总截止时间。按 `3 × 10 + 2 × 30 = 90 秒` 计算只是三次快速尝试恰好卡满 10 秒的算例；暂态失败超过 3 次后还将按 ≥60 秒间隔慢速重试。[S13][D]
 - seed 启动用单调时钟算健康检查 deadline，用剩余时间限制队列与轮询；失败清理另有等待预算。
 - 双槽固定端口与 `EADDRINUSE` 回退已解决同进程主/草稿模型撞号问题，实际绑定端口仍以日志为准；内建 seed 服务为普通 HTTP，且 `seed_key` 须留在信任边界内。
@@ -416,15 +405,15 @@ print("optional kNotFound:",
 
 以下均为社区上游 `vllm-ascend@8d6180e2`，路径省略前缀 `vllm_ascend/model_loader/rfork/`：
 
-- `RForkConfig` 默认值、13 个已知键（`KNOWN_EXTRA_CONFIG_KEYS`）、`RForkConfigurationError`、`unknown_extra_config_keys`、字符串/超时环境回退与严格校验：`config.py#L11-L192`。[C1]
-- 加载器 `__init__` 解析设置并警告未知键：`rfork_loader.py#L641-L667`；绕过安全门：`safety.py#L9-L21`、`rfork_loader.py#L766-L774`。[C6][C7][C12]
-- 必填项 `RForkConfigurationError` 检查：`session.py#L75-L87`；双槽 seed 端口 `_resolve_seed_server_port`：`session.py#L48-L53`；越界回退、起 seed 服务、首次上报与心跳：`session.py#L588-L659`。[C2][C3][C19]
-- `yr.datasystem` 导入、`port=0` + `get_rpc_port()` 与 `kNotFound` 可选探测：`transfer_backend.py#L227-L273`；非 NPU 状态检查：`#L368-L375`；`batch_register_memory_ex` 与 `finalize_transfer_engine`：`#L491-L694`。[C4][C5][C10]
-- advertise 留空取 `get_ip()`（优先 `VLLM_HOST_IP`）：`planner_client.py#L362-L391`。[C9]
-- seed 服务绑定（`EADDRINUSE` 退动态）、健康检查回环与 deadline：`seed_server.py#L128-L373`。[C11]
-- 示例 Planner 默认值、`RFORK_MOCK_*` 环境变量与命令行参数：`examples/rfork/rfork_planner.py#L40-L80`、`#L605-L647`。[C8][C14]
+- `RForkConfig` 默认值、13 个已知键（`KNOWN_EXTRA_CONFIG_KEYS`）、`RForkConfigurationError`、`unknown_extra_config_keys`、字符串/超时环境回退与严格校验：`config.py#L11-L192`。
+- 加载器 `__init__` 解析设置并警告未知键：`rfork_loader.py#L641-L667`；绕过安全门：`safety.py#L9-L21`、`rfork_loader.py#L766-L774`。
+- 必填项 `RForkConfigurationError` 检查：`session.py#L75-L87`；双槽 seed 端口 `_resolve_seed_server_port`：`session.py#L48-L53`；越界回退、起 seed 服务、首次上报与心跳：`session.py#L588-L659`。[C19]
+- `yr.datasystem` 导入、`port=0` + `get_rpc_port()` 与 `kNotFound` 可选探测：`transfer_backend.py#L227-L273`；非 NPU 状态检查：`#L368-L375`；`batch_register_memory_ex` 与 `finalize_transfer_engine`：`#L491-L694`。
+- advertise 留空取 `get_ip()`（优先 `VLLM_HOST_IP`）：`planner_client.py#L362-L391`。
+- seed 服务绑定（`EADDRINUSE` 退动态）、健康检查回环与 deadline：`seed_server.py#L128-L373`。
+- 示例 Planner 默认值、`RFORK_MOCK_*` 环境变量与命令行参数：`examples/rfork/rfork_planner.py#L40-L80`、`#L605-L647`。
 - 上游官方配置与环境回退指南：`docs/source/user_guide/feature_guide/rfork.md#L120-L275`。[S13]
-- `v0.30.0` 对照：`vllm-ascend@c09d3e20` `planner_client.py#L117-L245`、`session.py#L261-L364`、`transfer_backend.py#L224-L269`。[C16][C17][C18]
+- `v0.30.0` 对照：`vllm-ascend@c09d3e20` `planner_client.py#L117-L245`、`session.py#L261-L364`、`transfer_backend.py#L224-L269`。[C16]
 
 **待核：**
 

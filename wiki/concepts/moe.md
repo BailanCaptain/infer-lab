@@ -479,22 +479,22 @@ R1 的 4 个源 token 在 TP8 内切片后，rank 4–7 只有补位；这些卡
 
 ### 版本差异
 
-模块化交接按四个上游固定钉点分别核对：v0.23 为 0fc695fc，v0.26 为 568afb3a，rc2 为 ced6857a，main 为 84030bbe。它没有统一的“开了就默认用某一专家 kernel”的开关；具体组合仍由量化方法、后端选择和支持条件决定。
+模块化交接按四个上游正式钉点分别核对：`v0.23.0` 为 `0fc695fc`，`v0.26.0rc` 为 `568afb3a`，`v0.30.0` 主基线为 `ced6857a`，`main` 为 `ba15685a`（早先过渡比较点 `84030bbe` 见下方来源清单）。它没有统一的“开了就默认用某一专家 kernel”的开关；具体组合仍由量化方法、后端选择和支持条件决定。
 
-| 交接约定 | v0.23 | v0.26 | v0.30.0rc2 | 固定 main |
+| 交接约定 | `v0.23.0` (`0fc695fc`) | `v0.26.0rc` (`568afb3a`) | `v0.30.0` (`ced6857a`) | `main` (`ba15685a`) |
 |---|---|---|---|---|
-| 输入布局与容量 | Standard / BatchedExperts 都存在；后者必须给每端容量与派发端数，有效行元数据单列 | 相同 | 基础约定相同，元数据字段有扩展 | 同 rc2 |
-| 计算端配对检查 | 检查设备、量化、激活、并行、路由、形状和布局；两端单体/模块化类型也要一致 | 相同 | 相同 | 相同 |
-| 工作区与预留形状 | 输入容量与有效行分开；BatchedTriton 采用派发端数×每端容量；部分输出与中间区可复用存储 | 相同 | 这些约定保留；CPU 分支直接分配所需张量，其他平台仍向工作区管理器取空间 | 同 rc2 |
+| 输入布局与容量 | `Standard` / `BatchedExperts` 都存在；后者必须给每端容量与派发端数，有效行元数据单列 | 相同 | 基础约定相同，元数据字段有扩展 | 新增 `FusedMoEActivationFormat.PaddedStandard`（兼容接收 `Standard` 输入）与 `ExpertTokensMetadata.rank_expert_offset`（`modular_kernel.py#L117-L155`） |
+| 计算端配对检查 | 检查设备、量化、激活、并行、路由、形状和布局；两端单体/模块化类型也要一致 | 相同 | 相同 | 相同（兼容 `PaddedStandard` 布局匹配） |
+| 工作区与预留形状 | 输入容量与有效行分开；BatchedTriton 采用派发端数×每端容量；部分输出与中间区可复用存储 | 相同 | 这些约定保留；CPU 分支直接分配所需张量，其他平台仍向工作区管理器取空间 | 新增 `allocate_fused_expert_output` 输出分配接口（`modular_kernel.py#L247`） |
 | DeepEP 两种布局与量化 | 高吞吐 Standard、支持延后输入量化；低延迟 BatchedExperts、拒绝延后量化；两者该参数默认 false | 相同 | 相同 | 相同 |
-| 加权与异步完成 | 已加权归约则跳过，委托 combine 则由回收完成；异步 prepare/finalize 需要完成回调 | 相同 | 相同；NoOP 已有输出与目标为同一对象时省自拷贝 | 同 rc2 |
-| 未量化初始化 | 由选择器筛候选，再组装通信与专家；本类旧 select_gemm_impl 直接报错 | 相同；内核设置保留权重更新时的存储地址 | 设置步骤拆出 _init_moe_kernel；本类不再声明旧 select_gemm_impl；CPU 也进入候选选择 | 同 rc2 |
+| 加权与异步完成 | 已加权归约则跳过，委托 combine 则由回收完成；异步 prepare/finalize 需要完成回调 | 相同 | 相同；NoOP 已有输出与目标为同一对象时省自拷贝 | 新增 `supports_dbo()` 与 `supports_deferred_moe_finalize()` 能力查询，并移除旧 `on_commit` 钩子（`modular_kernel.py#L305-L315`） |
+| 未量化初始化 | 由选择器筛候选，再组装通信与专家；本类旧 select_gemm_impl 直接报错 | 相同；内核设置保留权重更新时的存储地址 | 设置步骤拆出 `_init_moe_kernel`；本类不再声明旧 `select_gemm_impl`；CPU 也进入候选选择 | 同 `v0.30.0` |
 
-这里的“相同”限定表内契约，不表示所有实现文件相同。例如 v0.26 的 prepare 包装另有按补位标记屏蔽专家编号的条件分支，rc2/main 的同一包装不含该分支；每次真实处理的行仍须以所用 runner 和后端为准。旧设计文字的工厂名不能越过量化方法的实际初始化直接套用。下面原有 GLM/Ascend 分支与算例继续使用各自注明的版本。
+这里的“相同”限定表内契约，不表示所有实现文件相同。例如 `v0.26.0rc` 的 prepare 包装另有按补位标记屏蔽专家编号的条件分支，`v0.30.0` / `main` 的同一包装不含该分支；每次真实处理的行仍须以所用 runner 和后端为准。旧设计文字的工厂名不能越过量化方法的实际初始化直接套用。下面原有 GLM/Ascend 分支与算例继续使用各自注明的版本。
 
-rc2 共享专家增加了真正移动执行时点的重叠路径：量化输入准备可提前到 router 之前；Gate-Up 则等待 router_output 事件后提交，与后续 top-k/dispatch 重叠。两者的启动时点不同，仅有实现入口不等于所有模型都会命中，仍受多流配置、LoRA 和量化方法能力等条件控制。正文旧 GLM 关闭多流的图与通信账单保留原范围。
+`v0.30.0` 与 `main` 的共享专家具备真正移动执行时点的重叠路径：量化输入准备可提前到 router 之前；Gate-Up 则等待 `router_output` 事件后提交，与后续 top-k/dispatch 重叠。两者的启动时点不同，仅有实现入口不等于所有模型都会命中，仍受多流配置、LoRA 和量化方法能力等条件控制。正文旧 GLM 关闭多流的图与通信账单保留原范围。
 
-**v0.30.0rc2 的 grouped-topk 仍把选专家分数与输出权重分开。** AscendGroupedTopKRouter 在带 correction bias 的 grouped 分支用加偏置的分数选专家，再从 original_weights 取路由权重，按需归一化并乘 routed_scaling_factor；打分函数还支持 sqrtsoftplus。这个“偏置只影响选择”的结论有 grouped-topk 前提，无 grouped 的分支会直接修改 topk_weights。共享专家由 AscendSharedExperts 执行，是否复制权重由 enable_shared_expert_dp 单独决定，不能仅依据 SP 状态推断。
+**`v0.30.0` 与 `main` 的 grouped-topk 仍把选专家分数与输出权重分开。** `AscendGroupedTopKRouter` 在带 correction bias 的 grouped 分支用加偏置的分数选专家，再从 `original_weights` 取路由权重，按需归一化并乘 `routed_scaling_factor`；打分函数还支持 `sqrtsoftplus`。这个“偏置只影响选择”的结论有 grouped-topk 前提，无 grouped 的分支会直接修改 `topk_weights`。共享专家由 `AscendSharedExperts` 执行，是否复制权重由 `enable_shared_expert_dp` 单独决定，不能仅依据 SP 状态推断。
 
 各版本都可表达本页“偏置选人、原分数算权重”的 grouped 路由规则，但分支选择、缩放次数和执行条件必须分别核对。上述旧原生回退重复缩放在 2c59ff10、2ed6cbba 也存在，不能由单组配置推出所有分支结果相同。
 

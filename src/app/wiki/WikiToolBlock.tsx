@@ -49,6 +49,20 @@ const TOOL_REGISTRY = new Map<WikiToolId, ComponentType<WikiToolRenderProps>>([
   ["aicore-lab", WikiAiCoreLabBlock],
 ]);
 
+const TOOL_MODE_LABELS: Readonly<Record<string, string>> = {
+  single: "单场景",
+  full: "完整模式",
+  "quick-screen": "快速摸底",
+  minimal: "精简模式",
+  logs: "日志定位",
+  timeline: "时序沙箱",
+};
+
+export function formatWikiToolModeBadge(mode: string | undefined, fallback: string): string {
+  if (!mode) return fallback;
+  return TOOL_MODE_LABELS[mode] ?? mode;
+}
+
 export function WikiToolBlock({ source }: { source: string }) {
   const parsed = parseWikiToolFence(source);
   if (!parsed.ok) {
@@ -96,7 +110,7 @@ export function WikiToolBlock({ source }: { source: string }) {
     >
       <header className="wiki-tool-head">
         <strong className="wiki-tool-title">{displayTitle}</strong>
-        <span className="wiki-tool-badge">{spec.mode ? `mode: ${spec.mode}` : spec.tool}</span>
+        <span className="wiki-tool-badge">{formatWikiToolModeBadge(spec.mode, meta.title)}</span>
       </header>
       {spec.summary && <p className="wiki-tool-summary">{spec.summary}</p>}
       <p className="wiki-tool-note">

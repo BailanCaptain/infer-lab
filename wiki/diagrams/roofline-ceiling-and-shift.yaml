@@ -1,7 +1,7 @@
 mode: native-svg
 id: roofline-ceiling-and-shift
 caption: 对数坐标 Roofline 屋顶图：带宽墙斜坡、算力墙平顶、脊点拐点与 W8A8 移位
-size: [900, 460]
+size: [900, 516]
 pins:
   - source: "vllm@ced6857a:vllm/v1/metrics/perf.py#L1740-L1835"
     symbols:

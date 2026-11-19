@@ -5,18 +5,18 @@
   <path d="M620 70 L670 70" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-layout-ah-control)"/>
   <path d="M380 180 L430 180" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-layout-ah-control)"/>
   <path d="M620 180 L670 180" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-layout-ah-control)"/>
-  <rect x="190" y="40" width="190" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="285" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">转布局 + 同步</text>
-  <rect x="430" y="40" width="190" height="60" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="525" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">从 A 读</text>
-  <rect x="670" y="40" width="190" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="190" y="40" width="190" height="60" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="285" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">转布局 + 同步</text>
+  <rect x="430" y="40" width="190" height="60" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
+  <text x="525" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">从 A 读</text>
+  <rect x="670" y="40" width="190" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="765" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">发布判断</text>
-  <rect x="190" y="150" width="190" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="190" y="150" width="190" height="60" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="285" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">只搭骨架</text>
-  <rect x="430" y="150" width="190" height="60" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="525" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">从 A 读</text>
-  <rect x="670" y="150" width="190" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="765" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">适用后处理 · 刷新登记</text>
+  <rect x="430" y="150" width="190" height="60" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
+  <text x="525" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">从 A 读</text>
+  <rect x="670" y="150" width="190" height="60" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="765" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">适用后处理 · 刷新登记</text>
   <text x="40" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">要转布局</text>
   <text x="40" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">先读后处理</text>
 </svg>

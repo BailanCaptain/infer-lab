@@ -24,28 +24,28 @@
   <path d="M727 162 L664 214" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#batch-invariance-ah-comm)"/>
   <path d="M773 162 L664 214" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#batch-invariance-ah-comm)"/>
   <path d="M819 162 L664 214" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#batch-invariance-ah-comm)"/>
-  <rect x="46" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="92" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="138" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="184" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="230" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="276" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="322" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="368" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="476" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="522" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="568" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="614" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="660" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="706" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="752" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="798" y="134" width="42" height="28" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="146" y="292" width="160" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="226" y="310" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结果 A</text>
-  <text x="226" y="329" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">末位 …0110</text>
-  <rect x="584" y="292" width="160" height="44" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="664" y="310" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结果 B</text>
-  <text x="664" y="329" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">末位 …0111</text>
+  <rect x="46" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="92" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="138" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="184" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="230" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="276" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="322" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="368" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="476" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="522" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="568" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="614" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="660" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="706" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="752" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="798" y="134" width="42" height="28" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <rect x="146" y="292" width="160" height="44" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="226" y="310" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">结果 A</text>
+  <text x="226" y="329" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">末位 …0110</text>
+  <rect x="584" y="292" width="160" height="44" rx="8" fill="var(--color-danger-soft, #fbe5e2)" stroke="var(--color-danger, #b54237)" stroke-width="1.4"/>
+  <text x="664" y="310" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">结果 B</text>
+  <text x="664" y="329" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">末位 …0111</text>
   <circle cx="138" cy="236" r="22" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="138" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text>
   <circle cx="320" cy="236" r="22" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
@@ -55,8 +55,8 @@
   <text x="46" y="86" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">一个输出数 = 512 个乘积相加</text>
   <text x="476" y="86" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">同一个输出数，还是这 512 个乘积</text>
   <text x="30" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">输入、权重都没变，变的只是同批的伙伴</text>
-  <rect x="46" y="104" width="192.5" height="24" rx="12" fill="var(--color-control, #66716d)"/>
-  <text x="142.2" y="121" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">示意：K 拆两段，再合并小计</text>
-  <rect x="476" y="104" width="166.5" height="24" rx="12" fill="var(--color-control, #66716d)"/>
-  <text x="559.2" y="121" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">示意：K 按固定次序累加</text>
+  <rect x="46" y="104" width="192.5" height="24" rx="12" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="142.2" y="121" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">示意：K 拆两段，再合并小计</text>
+  <rect x="476" y="104" width="166.5" height="24" rx="12" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="559.2" y="121" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">示意：K 按固定次序累加</text>
 </svg>

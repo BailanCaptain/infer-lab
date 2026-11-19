@@ -5,7 +5,7 @@
   <text x="46" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DP 组 0 · 自己的队列、调度、KV cache</text>
   <rect x="480" y="136" width="390" height="226" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="496" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DP 组 1 · 此刻没有请求</text>
-  <path d="M450 90 L450 112 L225 112 L225 136" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#data-parallel-ah-ink)"/>
+  <path d="M450 90 L450 108 L350 108 L350 136" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#data-parallel-ah-ink)"/>
   <path d="M400 312 L500 312" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#data-parallel-ah-comm)"/>
   <path d="M500 330 L400 330" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#data-parallel-ah-comm)"/>
   <path d="M225 362 L225 424" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#data-parallel-ah-ink)"/>
@@ -34,9 +34,9 @@
   <rect x="30" y="424" width="840" height="60" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="450" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">同一步的 MoE 层 · EP 通信</text>
   <text x="450" y="469" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">两组按兼容次序参与，后续计算等待所需结果就绪</text>
-  <text x="450" y="16" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">2 个 DP 组 · 只示意分工与同步</text>
-  <text x="450" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="#7a3a6a" text-anchor="middle">token→e6</text>
-  <text x="450" y="348" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="#7a3a6a" text-anchor="middle">e6 结果</text>
+  <text x="450" y="18" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">2 个 DP 组 · 只示意分工与同步</text>
+  <text x="450" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">token→e6</text>
+  <text x="450" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">e6 结果</text>
   <text x="450" y="398" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">同一步，两组都须参与</text>
   <text x="450" y="506" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">示意：选中 e1、e6，e6 在组 1 算完送回</text>
 </svg>

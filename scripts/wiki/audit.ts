@@ -9,7 +9,14 @@ import { type BlobRead, resetNegativeCommitCache, warmBlobs } from "./git";
 import type { WikiPage } from "./pages";
 import { isGitRepoRoot } from "./repo-roots";
 
-export type RefVerdict = "ok" | "invalid-commit" | "missing-file" | "out-of-range" | "unknown-repo" | "url";
+export type RefVerdict =
+  | "ok"
+  | "invalid-commit"
+  | "missing-file"
+  | "out-of-range"
+  | "unknown-repo"
+  | "uncloned-repo"
+  | "url";
 
 export interface RefAudit {
   file: string;
@@ -30,6 +37,12 @@ export interface AuditDeps {
   readRaw: (id: string, rawSources?: string[]) => string;
   /** Must verify snapshot hash before returning text. Missing reader fails closed. */
   readSnapshot?: (path: string) => string;
+  /**
+   * 开源无本地克隆模式：当所引仓库在配置中登记但本地目录尚未克隆（`!isGitRepoRoot(root)`）时，
+   * 判为非阻塞 `uncloned-repo` 而非 `invalid-commit`，以便未克隆多 GB 上游仓的用户仍能运行 Drop / Review。
+   * 本地已存在的 git 仓与 `raw:` 快照始终严格校验。
+   */
+  allowUnclonedRepos?: boolean;
 }
 
 export function sourceLines(text: string): string[] {
@@ -97,6 +110,9 @@ export function auditPage(page: WikiPage, deps: AuditDeps): RefAudit[] {
     });
     const root = deps.repoRoots[parsed.repo];
     if (!root) return { file: page.file, ref, verdict: "unknown-repo", inRaw };
+    if (deps.allowUnclonedRepos && !isGitRepoRoot(root)) {
+      return { file: page.file, ref, verdict: "uncloned-repo", inRaw };
+    }
     const blob = deps.readBlob(root, parsed.commit, parsed.path);
     if (blob.kind !== "ok") return { file: page.file, ref, verdict: blob.kind, inRaw };
     const totalLines = sourceLines(blob.text).length;
@@ -114,6 +130,7 @@ export function summarize(audits: RefAudit[]): Record<RefVerdict | "notInRaw", n
     "missing-file": 0,
     "out-of-range": 0,
     "unknown-repo": 0,
+    "uncloned-repo": 0,
     url: 0,
     notInRaw: 0,
   };

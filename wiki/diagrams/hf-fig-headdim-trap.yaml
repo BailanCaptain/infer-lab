@@ -5,5 +5,5 @@ size: [900, 390]
 pins:
   - source: 'vllm@ced6857a:vllm/transformers_utils/model_arch_config_convertor.py#L68-L114'
     symbols: ['get_head_size', 'head_dim', 'get_hidden_size', 'get_total_num_attention_heads']
-  - source: 'vllm@ced6857a:vllm/model_executor/models/qwen3.py#L65-L145'
+  - source: 'vllm@ced6857a:vllm/model_executor/models/qwen3.py#L65-L155'
     symbols: ['Qwen3Attention', 'head_dim', 'q_norm', 'k_norm', 'total_num_kv_heads']

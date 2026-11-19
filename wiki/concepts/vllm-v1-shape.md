@@ -123,19 +123,13 @@ vLLM V1 把推理服务拆成三类角色，绕成一个循环：**前端**把�
 
 这样分工，前端收请求、引擎排计划与设备计算可以交叠。代价是分到不同进程后，要把交接内容编码成消息、经过队列传递，并在各处保存和更新同一请求的相关状态；不是把函数拆开就没有成本。哪些角色实际另起进程，见[引擎进程](engine-processes.md)。
 
-先用一张等距立体拆解图建立空间直觉：左侧 API Server 管文本与分词，中央 EngineCore 维护调度队列，右侧 NPU Worker 就地操作常驻 HBM 的权重与 KV cache，三者之间只过轻消息管道：
+先用一张等距立体拆解图建立三类角色的空间分工：左侧 API Server 管文本与分词，中央 EngineCore 维护调度队列，右侧 NPU Worker 就地操作常驻 HBM 的权重与 KV cache，三者之间只过轻消息管道：
 
 ```wiki-diagram
 file: vllm-v1-plate-cutaway
 ```
 
-把这套分工再摊成一条请求绕圈流转的 2D 循环图，每个环节的交接关系如下：
-
-```wiki-diagram
-file: vllm-v1-shape
-```
-
-图里的方框各管一件事：
+图中三个角色各管一件事：
 
 - **前端**：接 HTTP 请求，套聊天模板，用分词器把文字切成 token 编号，包成一条请求消息交给 EngineCore；结果回来时做反分词，按流式格式一段段吐回客户端。前端里负责这件事的对象叫 AsyncLLM（异步引擎接口：一边收新请求，一边在后台收结果）。进门这几步各做什么、在哪里拒绝请求，见[API server 入口](api-server-entry.md)。
 - **Scheduler**（调度器）：在 EngineCore 里，每一步决定「这一步算哪些请求、每条算几个 token、新借哪些 KV cache 块」。KV cache 是每层为已经算过的位置留下的历史，下一步的注意力要读它；它在卡上按块存放，Scheduler 手里只记块的编号。
@@ -143,7 +137,7 @@ file: vllm-v1-shape
 - **Worker**：每张卡一个。收到计划后，里面的 NPUModelRunner（昇腾版的 model runner，负责把计划翻成张量、组织前向和采样）准备好这一步的输入，跑模型前向，采样出新 token。权重和 KV cache 的张量都在卡上，只有 Worker 碰得到。
 - **按结果更新进度**：还是 Scheduler，把新 token 追加到各条请求上，判断谁该停下，然后开始排下一步。
 
-图里只画了一个 Worker；其余 Worker 收到的是同一份计划，Worker 的个数由并行配置决定。
+图里右侧只画出了一张卡上的 Worker 剖面；多卡部署时，其余 Worker 收到的是同一份调度计划，Worker 的个数由并行配置决定。
 
 不要把「V1 引擎」和「V1 Model Runner」混为一谈，二者属于两个正交层次：V1 引擎规定请求如何经由前端、EngineCore 与 Worker 循环推进；Model Runner 则是 Worker 内部准备输入张量、驱动前向与组织输出的具体实现。在 `v0.30.0` 主基线中，默认仍运行第一代 `NPUModelRunner`（MRV1），显式设置 `VLLM_USE_V2_MODEL_RUNNER` 才会切换到第二代（MRV2），并发批次配置也会据此区分；到了 `main` 分支，MRV1 已退役并全量切换至 `worker/v2/`（MRV2），但外层的 V1 引擎循环本身保持不变。因此，单凭「V1 引擎」这个名字无法断定执行侧跑的是哪一代 Runner，必须结合版本与执行侧开关核对。
 
@@ -363,11 +357,11 @@ prefill 节流并非只挡住新请求：满足混合批次等条件时，已经
 | GLM 稀疏 MLA 的实际执行路径与缓存规格 | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2043-L2051` → `vllm_ascend/ops/indexer_kpool_mla.py#L67-L134` |
 | 三版 Worker 的两次调用 | `vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L611-L679`；`vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L653-L721`；`vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L746-L816` |
 | main 的 Worker 选择与 GLM 模型类 | `vllm-ascend@baa023ad:vllm_ascend/platform.py#L1238-L1246`；`vllm_ascend/models/glm5next/model.py#L839-L841` |
-| 上游 v0.26 与历史 v0.29 的一步 | `vllm@568afb3a:vllm/v1/engine/core.py#L576-L606`；`vllm@98dff2a8:vllm/v1/engine/core.py#L597-L627`；当前 rc2/main 对照见追加来源 |
+| 上游 v0.26 与历史 v0.29 的一步 | `vllm@568afb3a:vllm/v1/engine/core.py#L576-L606`；`vllm@98dff2a8:vllm/v1/engine/core.py#L597-L627`；当前 `v0.30.0` / `main` 对照见追加来源 |
 
 **证据索引。** 三类角色的划分、EngineCore 先建 Executor 再建缓存和 Scheduler、忙循环与一步的顺序见 [C4][C6][C8][S36]；批次队列与异步调度下的回环见 [C7]；两道边界上的消息、完整资料只发一次、结束名单、执行结果用列表以便序列化见 [C3][C16][C17][C18]；前端登记输出队列、EngineCore 为结构化输出加载分词器见 [C1][C19]；Executor 的种类、默认选择、按方法名广播、只收一份回话、DP 组空闲时改跑空批次、超时和失败报错见 [C10][C12][C37]；启动时查询缓存规格、稀疏 MLA 的实际执行路径见 [C5][C27][C28]；昇腾选 Worker、建 Runner 共同对应来源 21、22 [C22]，两次调用见 [C23]；三版差异见 [C30][C31][C34][C35]。
 
-当前四版补证：40、47 是 rc2/main 的完整 step 收尾；41、49 是两版 Runner 开关与限制；42–44、48、50 是硬件档案、Worker 选择和 Runner 构造；45 与既有 32 对照两次调用和 PP 返回分支；46 与既有 33 对照 GLM 文本模型类。相同类名只支持对应职责与命名结论，不代表完整实现相同。
+当前四版补证：40、47 是 `v0.30.0` / `main`（及历史候选快照）的完整 step 收尾；41、49 是两版 Runner 开关与限制；42–44、48、50 是硬件档案、Worker 选择和 Runner 构造；45 与既有 32 对照两次调用和 PP 返回分支；46 与既有 33 对照 GLM 文本模型类。相同类名只支持对应职责与命名结论，不代表完整实现相同。
 
 以下几条由源码和主线底稿推出，或属于本页的理解：R1 第一步计划的主要内容是 4 个 token 和新借的块号，取自底稿 01 的 A2 [D]；8 张卡的输入相同、只差权重分片，取自 A3 [D]；一个 decode 步交回 1 到 4 个 token、结束名单随下一份计划通知 Worker，取自 A7 [D]，片段合并的原始证据与说明统一见流式输出页；20 个进程的账取自 A0.1 [D]；R1 的 4 个 token 是教学设定 [A]；「三件事卡在不同的地方」是本页对拆分动机的归纳，源码里没有这句话 [A]。
 

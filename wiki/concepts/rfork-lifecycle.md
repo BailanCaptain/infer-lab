@@ -139,17 +139,15 @@ file: rfork-lifecycle
 file: rfork-lifecycle-threads
 ```
 
-还租约线程这边：
+还租约线程这边的时间线如下（示意秒数，现场以日志为准；启动线程第 `3` 秒就交出了模型，没等这 `36` 秒）：
 
-```calc
-title: 一个 Worker 从传完到当上 seed（示意数）
-第 1 次还租约 = 0 秒发出，2 秒收到 503 = 2 秒
-第 2 次还租约 = 2 + 30 秒间隔 = 32 秒
-确认还上 = 32 + 2 秒往返，Planner 回 200 = 34 秒
-进入服务中 = 34 + 2 秒起服务、首次登记 = 36 秒
-第一次心跳 = 36 + 30 秒 = 66 秒
-> 启动线程第 3 秒就交出了模型，没等这 36 秒；这些秒数只是示意，现场以日志为准
-```
+| 时刻（示意） | 事件与算式 | 累计时刻 |
+|---|---|---|
+| 第 1 次还租约 | $0\text{ 秒}$ 发出，耗时 $2\text{ 秒}$ 收到 `503` | $2\text{ 秒}$ |
+| 第 2 次还租约 | $2 + 30\text{ 秒}$ 快速重试间隔 | $32\text{ 秒}$ |
+| 确认还上 | $32 + 2\text{ 秒}$ 往返，Planner 回 `200` | $34\text{ 秒}$ |
+| 进入服务中 | $34 + 2\text{ 秒}$ 起服务并首次登记 | $36\text{ 秒}$ |
+| 第一次心跳 | $36 + 30\text{ 秒}$ 心跳间隔 | $66\text{ 秒}$ |
 
 注意两点：发布 seed 是在**还租约线程里**接着做的，不是启动线程回头去做；心跳线程起来后先等满一个间隔才报第一次平安，因为首次登记刚刚报过。
 
@@ -262,14 +260,11 @@ B 和 Planner 之间一共四种请求，参数都放在 HTTP 请求头里，不
 3. 到 Planner 撤销自己的来源登记（自己最多试 3 次，两次间隔 0.1 秒、0.2 秒），再关掉本机的 seed 服务。
 4. 前面都干净、而且手里没有没还的租约，才关闭传输引擎，进「已收尾」。
 
-心跳线程这时也许正等着一次登记请求的回应，而单次请求超时对连接和读取各算一次，所以等它退出的上限取「健康检查时间」和「连接超时 + 读取超时 + 1 秒」里较大的那个。按默认值：
+心跳线程这时也许正等着一次登记请求的回应，而单次请求超时对连接和读取各算一次，所以等它退出的上限取「健康检查时间」和「连接超时 + 读取超时 + 1 秒」里较大的那个。按默认值（连接 `10` 秒、读取 `10` 秒、余量 `1` 秒、健康检查下限 `5` 秒）：
 
-```calc
-title: 关停时最多等心跳线程多久（默认值）
-连接 + 读取 + 余量 = 10 + 10 + 1 = 21 秒
-和健康检查时间比 = max(5, 21) = 21 秒
-> 5 秒只是下限；过了上限心跳线程还没退，就算没停干净，资源留着
-```
+$$\text{等待上限} = \max(5,\ 10 + 10 + 1) = \max(5,\ 21) = 21\text{ 秒}$$
+
+其中 `5` 秒只是下限；过了 `21` 秒上限心跳线程还没退，就算没停干净，资源留着。
 
 收尾函数返回「没清完」时，留下的东西各有原因：心跳没停下或撤销登记失败，本机 seed 服务和显存登记都留着，方便再试；租约没了结，传输引擎的状态留着，正在路上的那次归还还会不会收到确认要看那次请求，否则只能靠 Planner 那边的过期回收；关闭传输引擎没成功，也一样留着。**返回「没清完」不能当成「清理已完成」。**
 
@@ -293,18 +288,15 @@ title: 关停时最多等心跳线程多久（默认值）
 
 ## 放到 GLM 双机：一次热启动是 32 个会话各走各的
 
-先交代前提：官方 GLM 双机教程的启动命令没有开 RFork，工作版代码里也没有 GLM 的模型实现，所以这一节是按「命令里加上 RFork 加载、再起一个同构实例」把工作版加载器和 GLM 模型放在一起推演的，不是现有部署的实测行为，详见[总览](rfork.md#这套部署现在能不能受益)。
+先交代前提：官方 GLM 双机教程的启动命令没有开 RFork；社区上游 `vllm-ascend@8d6180e2` 已包含 GLM-5.3-Flash 的模型实现（`vllm_ascend/models/glm5next/` 下的 `Glm5NextForCausalLM` / `Glm5NextForConditionalGeneration` 与 `Glm5NextMTP`）及官方部署教程（`docs/source/tutorials/models/GLM5.3-Flash.md`），但该教程与上游 RFork 官方指南尚未给出专用的 GLM-5.3-Flash RFork 配方或验收记录（且官方指南提示 `Glm5NextMTP` 暂未纳入自动 checkpoint 归属恢复）。同时本站 GLM 双机 W8A8 历史算例钉在固定镜像 `db701c1f`，因此这一节是按「命令里加上 RFork 加载、再起一个同构实例」把上游 `main@8d6180e2` 加载器机制与 GLM 双机拓扑放在一起推演的，不是现有部署的实测行为，详见[总览](rfork.md#这套部署现在能不能受益)。
 
 GLM 双机是一个实例跨两台机器、16 张卡，TP8、DP2、EP16、W8A8，前提见[部署前提](glm-5-3-flash-two-node.md#部署前提)。如果再起一个同构实例 B 向它借，每张卡的主模型和 MTP 草稿模型各有一个会话，一共 32 个会话、32 张租约，谁向谁借见[总览](rfork.md#谁向谁借16-个-worker-各借各的主模型和草稿模型各一套)。生命周期也是 32 份，各自独立：各有一条还租约线程，各自决定要不要延期，当上 seed 以后各起一个 seed 服务、各有一条心跳线程。
 
-全部当上 seed 以后，Planner 那边每个心跳间隔收到的平安报告是：
+全部当上 seed 以后，按默认 `30` 秒心跳间隔，Planner 收到的平安报告频率为：
 
-```calc
-title: B 全部当上 seed 后，Planner 收到的心跳（默认间隔）
-seed 服务个数 = 16 张卡 × 2（主模型、草稿） = 32 个
-折合频率 = 32 次 ÷ 30 秒 ≈ 1.07 次/秒
-> 每次心跳结束后才开始等下一个间隔，实际频率略低于这个数
-```
+$$\text{seed 服务个数} = 16\text{ 张卡} \times 2\text{（主模型、草稿）} = 32\text{ 个}, \qquad \text{折合频率} = \frac{32}{30\text{ 秒}} \approx 1.07\text{ 次/秒}$$
+
+因为每次心跳请求结束后才开始等下一个间隔，实际频率会略低于 $1.07\text{ 次/秒}$。
 
 固定了 seed 端口基数时，当前主线采用双槽公式 `base + 2 × global_rank + slot`（主模型槽 0、草稿槽 1），同一张卡上主模型与草稿不再撞号；即使端口被占用（`EADDRINUSE`）也会自动退回系统随机端口，见[配置页](rfork-config.md#固定端口基数怎样按主草分槽)。
 
@@ -371,9 +363,9 @@ seed 服务个数 = 16 张卡 × 2（主模型、草稿） = 32 个
 - 关停留资源：`RFork shutdown retained registered memory because seed service cleanup is incomplete.`、`RFork shutdown retained TransferEngine state because the source lease is unresolved. …`、`RFork shutdown retained TransferEngine state because finalization did not complete.`
 - 回退中止：`RuntimeError: RFork fallback aborted because seed service or registered memory cleanup failed; tensor owners remain retained. …`
 
-这些日志分别在 `session.py`[C2][C3][C4][C5]、`planner_client.py`[C6][C7] 和 `rfork_loader.py`[C14][C15] 里。
+这些日志分别在 `session.py`[C2][C3][C4][C5]、`planner_client.py`[C6] 和 `rfork_loader.py`[C15] 里。
 
-五种 Planner 请求，字段都在 HTTP 请求头：[C12][C6][C7]
+五种 Planner 请求，字段都在 HTTP 请求头：[C7][C12]
 
 | 调用 | 主要请求头 | 客户端怎么认 |
 |---|---|---|
@@ -387,9 +379,9 @@ seed 服务个数 = 16 张卡 × 2（主模型、草稿） = 32 个
 
 ### 开销和什么时候别开
 
-- 可选续租与心跳分离：心跳走 `/add_seed` 只刷新 `last_heartbeat_ts` 不续租；当 Planner 返回 `LEASE_TTL_SEC` 时，由独立的 `RForkLeaseRenewal` 线程按 `clamp(TTL / 3, 0.1, 30.0)` 秒调 `/renew_seed_lease` 续期，传输结束或关停即停。[C2][C6][C9][S16]
+- 可选续租与心跳分离：心跳走 `/add_seed` 只刷新 `last_heartbeat_ts` 不续租；当 Planner 返回 `LEASE_TTL_SEC` 时，由独立的 `RForkLeaseRenewal` 线程按 `clamp(TTL / 3, 0.1, 30.0)` 秒调 `/renew_seed_lease` 续期，传输结束或关停即停。[C9][S16]
 - 现场 Planner 若不支持 `LEASE_TTL_SEC` 续期，且租约 TTL 短于「取清单 + 读取 + 还租约」总时长，名额会在读完前被收回引发多读者争抢，应先调大 Planner 的 TTL 或升级支持续期。[D]
-- 归还被 `REJECTED` 后，登记的显存不注销，要到进程退出的收尾才撤；这段时间被保活的存储一直占着。[C3][D]
+- 归还被 `REJECTED` 后，登记的显存不注销，要到进程退出的收尾才撤；这段时间被保活的存储一直占着。[D]
 - 示例 Planner 把来源、租约放在单进程的内存字典里，多副本共享、重启恢复与生产级排空保护要由现场 Planner 自己负责。[I]
 
 ### 版本差异
@@ -400,21 +392,21 @@ seed 服务个数 = 16 张卡 × 2（主模型、草稿） = 32 个
 | 租约续期 | 无续期 | 强制要求 `get_seed` 返回有限正数 `LEASE_TTL_SEC` 并周期调用 `/renew_seed_lease` | `LEASE_TTL_SEC` 改为可选兼容旧 Planner；有 TTL 时按 `clamp(TTL/3, 0.1, 30.0)` 续期，无 TTL 关停时做一次尾次归还 |
 | 撤回与 draining | 无 `/remove_seed` 协议细化 | 撤回直接调用 `/remove_seed` | 默认关闭 `/remove_seed`（由 `rfork_seed_removal_supported` 控制）；示例 Planner 对有活跃租约的 seed 回 409（draining） |
 
-旧开发快照 `baa023ad` 仍沿用同步归还 1 次的旧逻辑。[C17][C18][C19][C22][C23][C24] 完整对照见[总览](rfork.md#版本差异)。
+旧开发快照 `baa023ad` 仍沿用同步归还 1 次的旧逻辑（对照来源 17–19、22–24）。[C17][C22] 完整对照见[总览](rfork.md#版本差异)。
 
 ### 源码位置
 
 以下路径相对社区上游 `vllm-ascend@8d6180e2`（除另注外均在 `vllm_ascend/model_loader/rfork/`）：
 
-- 八状态、归还/撤回/上报/发布与清理结果类型：`types.py#L14-L120`。[C1]
+- 八状态、归还/撤回/上报/发布与清理结果类型：`types.py#L14-L120`。
 - 会话构造与退出钩子 `atexit.register`：`session.py#L75-L114`。[C20]
-- 先登记后借租约（`register_destination`、`acquire_seed`）、续租线程（`_start_lease_renewal_locked` / `_renew_seed_lease`）与传输（`transfer_from_seed`）：`session.py#L115-L276`。[C2]
-- 后台还租约快慢重试（`_ensure_lease_release_retry_locked`、`_retry_seed_lease_release`、`_record_lease_release_locked`）、延期推进（`_promote_deferred_seed`）与回退准备（`prepare_for_fallback`）：`session.py#L289-L478`。[C3]
-- `start_seed_service` 与 `_start_seed_service`（双槽端口、首次上报 `RETRYABLE` 后台重试与心跳启动）：`session.py#L490-L659`。[C4]
-- 心跳线程 `_run_seed_heartbeat`、`_stop_seed_service`（等待上限 `HEARTBEAT_STOP_GRACE_SEC = 1.0`）、`_release_legacy_lease_on_shutdown` 与 `shutdown`：`session.py#L660-L864`。[C5]
-- Planner 客户端：`acquire_seed`（`#L137-L195`）、`release_seed_once` 与 `renew_seed_once`（`#L196-L287`）、`remove_seed` 与 `report_seed_once`（`#L289-L391`）：`planner_client.py`。[C6][C7][C12]
-- 加载器：`_start_rfork_seed_service`（`#L174-L204`）与传输后发布/回退两轮清理（`#L858-L957`）：`rfork_loader.py`。[C14][C15]
-- 示例 Planner：两个 TTL 默认值、`add_seed` / `get_seed` / `renew_seed_lease` / `put_seed` / `remove_seed`（409 draining）与过期回收：`examples/rfork/rfork_planner.py#L40-L80`、`#L135-L339`、`#L475-L567`。[C8][C9][C10][C11]
+- 先登记后借租约（`register_destination`、`acquire_seed`）、续租线程（`_start_lease_renewal_locked` / `_renew_seed_lease`）与传输（`transfer_from_seed`）：`session.py#L115-L276`。
+- 后台还租约快慢重试（`_ensure_lease_release_retry_locked`、`_retry_seed_lease_release`、`_record_lease_release_locked`）、延期推进（`_promote_deferred_seed`）与回退准备（`prepare_for_fallback`）：`session.py#L289-L478`。
+- `start_seed_service` 与 `_start_seed_service`（双槽端口、首次上报 `RETRYABLE` 后台重试与心跳启动）：`session.py#L490-L659`。
+- 心跳线程 `_run_seed_heartbeat`、`_stop_seed_service`（等待上限 `HEARTBEAT_STOP_GRACE_SEC = 1.0`）、`_release_legacy_lease_on_shutdown` 与 `shutdown`：`session.py#L660-L864`。
+- Planner 客户端：`acquire_seed`（`#L137-L195`）、`release_seed_once` 与 `renew_seed_once`（`#L196-L287`）、`remove_seed` 与 `report_seed_once`（`#L289-L391`）：`planner_client.py`。
+- 加载器：`_start_rfork_seed_service`（`#L174-L204`）与传输后发布/回退两轮清理（`#L858-L957`）：`rfork_loader.py`。[C14]
+- 示例 Planner：两个 TTL 默认值、`add_seed` / `get_seed` / `renew_seed_lease` / `put_seed` / `remove_seed`（409 draining）与过期回收：`examples/rfork/rfork_planner.py#L40-L80`、`#L135-L339`、`#L475-L567`。
 - 上游指南协议与生命周期说明：`docs/source/user_guide/feature_guide/rfork.md#L275-L380`。[S16]
 
 **待核：**

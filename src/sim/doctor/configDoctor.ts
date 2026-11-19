@@ -185,6 +185,7 @@ export const DOCTOR_RULE_WIKI_LINKS: Readonly<Record<string, readonly DoctorWiki
     { pageId: "expert-parallel" },
   ],
   "d1-fused-mc2-silent-reset": [{ pageId: "expert-parallel" }, { pageId: "core-cli-params" }],
+  "d1-fused-mc2-3-main-only": [{ pageId: "expert-parallel" }, { pageId: "core-cli-params" }],
   "d1-dp-ep-moe-comm-strategy": [{ pageId: "expert-parallel" }, { pageId: "data-parallel" }],
   "d1-idle-dp-dummy-batch": [{ pageId: "data-parallel" }],
 

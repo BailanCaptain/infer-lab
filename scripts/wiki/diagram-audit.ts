@@ -4,6 +4,7 @@ import { parseRepoRef } from "../../src/content/wiki/schema";
 import type { AuditDeps } from "./audit";
 import { diagramRefs, type LoadedDiagram, specPins } from "./diagrams";
 import type { PageProblem, WikiPage } from "./pages";
+import { isGitRepoRoot } from "./repo-roots";
 
 /**
  * AC11 的图符号来源检查：图上写的标识符必须在所引 commit 的源码里真实存在。
@@ -30,6 +31,18 @@ export function diagramSymbols(body: string) {
 export interface DiagramAuditDeps extends Pick<AuditDeps, "repoRoots" | "readBlob"> {
   /** 由 loadDiagrams 提供；缺省表示这次运行不检查 spec 图 */
   diagrams?: Map<string, LoadedDiagram>;
+  /** 开源无本地克隆模式：允许对未克隆仓库的既有图 pin 降级为跳过/警告而非阻塞 */
+  allowUnclonedRepos?: boolean;
+  /** 本次变更的图 id 集合；若提供，集合内的新增/修改图仍严格要求非空 pin 可验证 */
+  touchedDiagrams?: ReadonlySet<string>;
+  /** 可选回调：记录被降级跳过的未克隆仓库图 pin 警告 */
+  onUnclonedWarning?: (warning: string) => void;
+}
+
+function isUnclonedConfiguredRepo(source: string, repoRoots: Record<string, string>): boolean {
+  const ref = parseRepoRef(source);
+  const root = ref && repoRoots[ref.repo];
+  return Boolean(root && !isGitRepoRoot(root));
 }
 
 function readRef(source: string, deps: DiagramAuditDeps): string | null {
@@ -42,6 +55,15 @@ function readRef(source: string, deps: DiagramAuditDeps): string | null {
 function auditMermaid(page: WikiPage, deps: DiagramAuditDeps) {
   const symbols = diagramSymbols(page.body);
   if (!symbols.length) return [];
+  const repoSources = page.fm.sources.filter((s) => parseRepoRef(s) !== null);
+  if (
+    deps.allowUnclonedRepos &&
+    repoSources.length > 0 &&
+    repoSources.every((s) => isUnclonedConfiguredRepo(s, deps.repoRoots))
+  ) {
+    deps.onUnclonedWarning?.(`${page.file} [uncloned-repo] 跳过未克隆仓库的旧 Mermaid 符号核验`);
+    return [];
+  }
   const texts = page.fm.sources.flatMap((source) => {
     const text = readRef(source, deps);
     return text === null ? [] : [text];
@@ -68,6 +90,7 @@ function auditSpecs(page: WikiPage, deps: DiagramAuditDeps) {
       });
       continue;
     }
+    const diagramUntouched = deps.touchedDiagrams !== undefined && !deps.touchedDiagrams.has(id);
     // 证据面板已能按图独立读取精确 pins，不再要求在页面 sources 重复登记；固定 Git blob 与符号 AC11 继续严格核验
     for (const pin of specPins(diagram.spec)) {
       if (!pin.source) {
@@ -76,6 +99,16 @@ function auditSpecs(page: WikiPage, deps: DiagramAuditDeps) {
           rule: "diagram-symbol",
           message: `${pin.where} 声明了 symbols 却没有 source，无处可查`,
         });
+        continue;
+      }
+      if (
+        (deps.allowUnclonedRepos || diagramUntouched) &&
+        !deps.touchedDiagrams?.has(id) &&
+        isUnclonedConfiguredRepo(pin.source, deps.repoRoots)
+      ) {
+        deps.onUnclonedWarning?.(
+          `${diagram.specFile} [uncloned-repo] 跳过未克隆仓库的既有图 pin：${pin.source}`,
+        );
         continue;
       }
       const text = readRef(pin.source, deps);

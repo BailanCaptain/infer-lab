@@ -108,9 +108,11 @@ rawSources:
 
 ## 它曾如何按层轮放权重，为什么 v0.24 起已删除？
 
-`layer_sharding` 是 `v0.23.0` 中的层名列表配置（默认 `None`，即关闭——注意旧官方表误写成 `dict / {}`，实际是扁平层名列表如 `["o_proj"]` 或 `["q_b_proj", "o_proj"]`，没有子键，`prefetch_step` 写死为 `1`）。它面向旧版 PD 分离的 **P 节点**（`kv_role == "kv_producer"`），把列表中指定的同构 Linear 权重按层号轮流分给一个独立通信组里的 `K` 张卡：第 `i` 层常驻在组内 `rank i % K` 上，其余卡登记时将完整权重替换为单元素占位张量，前向时提前一层通过异步 Broadcast 取回。
+在 60 多层的深层大模型里，某些线性投影（如 `o_proj`、`q_b_proj`）在特定并行模式下需要完整权重；如果每张卡都把全部几十层完整常驻在显存中，单这一项就会重复占用数 GiB 显存。`layer_sharding` 的做法是**把几十层轮流分给一个独立通信组里的 `K` 张卡保管**：第 `i` 层常驻在组内 `rank i % K` 上，其余卡登记时将完整权重替换为单元素占位张量，前向时再提前一层通过异步 Broadcast 把下一层权重广播取回。
 
-**历史与移除现状**：它早在 `v0.13` 系列就已存在，`v0.23` 维护快照（`2c59ff10`）与本站 GLM 基线（`db701c1f`）保留了这条实现。`v0.23.0` 发布说明将其与 FlashComm2 一并列入 Ready to Deprecate，自 `v0.24.0rc` 起随 PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953) 彻底删除，**`v0.26.0rc`、`v0.30.0` 与 `main` 均不再保留旧路径**（旧版文档入口见 [v0.23.0 Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)）。升级迁移时必须删键：`v0.26.0rc` 普通配置类静默忽略它，`v0.30.0` 与 `main` 按 `extra="forbid"` 通常拒收未知顶层键（检测到 `vllm_omni` 时先告警再过滤，同样不恢复旧分片）。同时注意新版 `v0.30.0` / `main` 默认为 `True` 的 [enable_pcp_o_proj_weight_sharding](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md) 是沿 PCP 域切分**同一层**输出投影，**不是**本页「按层号轮流归不同卡」的同义替代。
+**当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**`layer_sharding` 及整套按层轮放广播实现在 `v0.30.0` 与 `main` 中均已彻底移除**——它早在 `v0.13` 系列出现，在 `v0.23.0` 发布说明中被与 FlashComm2 一并列入 Ready to Deprecate，自 `v0.24.0rc` 起随 PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953) 删除，`v0.26.0rc`、`v0.30.0` 与 `main` 均不再保留旧路径。升级迁移时必须删掉该键：`v0.30.0` 与 `main` 按 `extra="forbid"` 通常拒收未知顶层键（检测到 `vllm_omni` 时先告警再过滤，同样不恢复旧分片；`v0.26.0rc` 普通配置类静默忽略它）。同时注意新版 `v0.30.0` / `main` 默认为 `True` 的 [enable_pcp_o_proj_weight_sharding](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md) 是沿 PCP 域切分**同一层**输出投影，**不是**本页「按层号轮流归不同卡」的同义替代。
+
+在仍包含它的历史 **`v0.23.0`（`2c59ff10`）** 维护快照与本站 GLM 基线（`db701c1f`）中，它是一个默认 `None`（关闭）的扁平层名列表（如 `["o_proj"]` 或 `["q_b_proj", "o_proj"]`，没有子键，`prefetch_step` 写死为 `1`——注意旧官方表曾误写成 `dict / {}`），且面向旧版 PD 分离的 **P 节点**（`kv_role == "kv_producer"`；旧版文档入口见 [v0.23.0 Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)）。
 
 | 核心项 | `v0.23.0` 行为 | 说明 |
 | --- | --- | --- |

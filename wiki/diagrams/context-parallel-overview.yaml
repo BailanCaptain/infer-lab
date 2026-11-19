@@ -1,12 +1,12 @@
 layout: figure
 id: context-parallel-overview
-size: [880, 560]
+size: [880, 578]
 caption: 通用 CP 的连续分片示意：两张卡负责同一序列的不同位置。每卡先计算本地 Q/K/V，在 attention 中取得所需远端信息，输出继续留在负责相应查询的卡上。后文再讨论负载均衡与具体通信算法。
 frames:
-  - { at: [20, 150], size: [380, 220], label: '卡 0 · 负责位置 0～3' }
-  - { at: [480, 150], size: [380, 220], label: '卡 1 · 负责位置 4～7' }
+  - { at: [20, 168], size: [380, 220], label: '卡 0 · 负责位置 0～3' }
+  - { at: [480, 168], size: [380, 220], label: '卡 1 · 负责位置 4～7' }
 grids:
-  - at: [180, 80]
+  - at: [180, 74]
     rows: 1
     cols: 8
     cell: [60, 30]
@@ -20,23 +20,23 @@ grids:
       - { at: [0, 5], text: '5' }
       - { at: [0, 6], text: '6' }
       - { at: [0, 7], text: '7' }
-  - { at: [65, 235], rows: 4, cols: 3, cell: [26, 22], tone: token, rowLabels: ['0', '1', '2', '3'], label: '本卡 Q' }
-  - { at: [250, 235], rows: 4, cols: 3, cell: [26, 22], tone: kv, label: '本卡 K/V' }
-  - { at: [525, 235], rows: 4, cols: 3, cell: [26, 22], tone: token, rowLabels: ['4', '5', '6', '7'], label: '本卡 Q' }
-  - { at: [710, 235], rows: 4, cols: 3, cell: [26, 22], tone: kv, label: '本卡 K/V' }
+  - { at: [65, 253], rows: 4, cols: 3, cell: [26, 22], tone: token, rowLabels: ['0', '1', '2', '3'], label: '本卡 Q' }
+  - { at: [250, 253], rows: 4, cols: 3, cell: [26, 22], tone: kv, label: '本卡 K/V' }
+  - { at: [525, 253], rows: 4, cols: 3, cell: [26, 22], tone: token, rowLabels: ['4', '5', '6', '7'], label: '本卡 Q' }
+  - { at: [710, 253], rows: 4, cols: 3, cell: [26, 22], tone: kv, label: '本卡 K/V' }
 items:
-  - { at: [65, 450], size: [280, 58], text: '输出位置 0～3', sub: '继续这些位置的投影与 MLP', tone: token }
-  - { at: [525, 450], size: [280, 58], text: '输出位置 4～7', sub: '继续这些位置的投影与 MLP', tone: token }
+  - { at: [65, 468], size: [280, 58], text: '输出位置 0～3', sub: '继续这些位置的投影与 MLP', tone: token }
+  - { at: [525, 468], size: [280, 58], text: '输出位置 4～7', sub: '继续这些位置的投影与 MLP', tone: token }
 links:
-  - { from: [280, 110], to: [210, 150], tone: token }
-  - { from: [560, 110], to: [670, 150], tone: token }
-  - { from: [400, 280], to: [480, 280], tone: comm }
-  - { from: [480, 315], to: [400, 315], tone: comm }
-  - { from: [205, 370], to: [205, 450], tone: token }
-  - { from: [665, 370], to: [665, 450], tone: token }
+  - { from: [280, 104], to: [280, 168], tone: token }
+  - { from: [560, 104], to: [700, 168], via: [[560, 124], [700, 124]], tone: token }
+  - { from: [400, 298], to: [480, 298], tone: comm }
+  - { from: [480, 333], to: [400, 333], tone: comm }
+  - { from: [205, 388], to: [205, 468], tone: token }
+  - { from: [665, 388], to: [665, 468], tone: token }
 texts:
   - { at: [25, 32], text: '同一条输入序列 · 8 个位置（示意）', strong: true }
-  - { at: [210, 199], text: '本地输入先投影为 Q/K/V', anchor: middle }
-  - { at: [670, 199], text: '本地输入先投影为 Q/K/V', anchor: middle }
-  - { at: [440, 405], text: 'attention 交换所需远端信息；位置 7 仍读取 0～7', anchor: middle, tone: comm, strong: true }
-  - { at: [440, 540], text: '卡号决定由谁执行，原始位置决定因果掩码', anchor: middle, note: true }
+  - { at: [210, 217], text: '本地输入先投影为 Q/K/V', anchor: middle }
+  - { at: [670, 217], text: '本地输入先投影为 Q/K/V', anchor: middle }
+  - { at: [440, 423], text: 'attention 交换所需远端信息；位置 7 仍读取 0～7', anchor: middle, tone: comm, strong: true }
+  - { at: [440, 558], text: '卡号决定由谁执行，原始位置决定因果掩码', anchor: middle, note: true }

@@ -14,7 +14,7 @@ pins:
       - get_soc_version
       - device_type_from_runtime_soc
       - RuntimeError
-  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L153-L160"
+  - source: "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L123-L160"
     symbols:
       - NPUWorker
       - check_ascend_device_type

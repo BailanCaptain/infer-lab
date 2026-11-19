@@ -269,7 +269,7 @@ export function DropPane({
           )}
           <p>
             {current.sources.length} 份资料 · {current.calls.length} 次模型调用
-            {current.selection?.provider === "codex"
+            {current.selection?.provider && current.selection.provider !== "claude"
               ? ` · 已记录输出 ${current.calls.reduce((n, c) => n + (c.usage?.output_tokens ?? 0), 0)} tokens`
               : ` · 已知费用 $${current.calls.reduce((n, c) => n + (c.costUsd ?? 0), 0).toFixed(4)}`}
             {current.calls.some((c) => !c.usage && c.costUsd === undefined) && " · 部分调用用量尚未回传"}

@@ -1,26 +1,27 @@
 layout: figure
 id: rfork-startup
-caption: 新实例 B 的一个 Worker 用 RFork 加载模型，按 ①–⑩ 从上往下走。前六步只在本卡准备，不占租约；④ ⑥ 画成虚线浅框，是因为这时搭的还是空模型，没借到就白做。⑥ 和 ⑨ 的后处理二选一：开了量化、权重 NZ 模式为 2 或硬件要求 NZ 的模型在 ⑥ 做；其他模型到 ⑨ 才做适用的后处理，跳过未量化 MoE 的重复处理。⑦ 向 Planner 借到租约以后，⑧ 才从 A 读权重；读完尝试把自己发布成 seed，再交回模型。两处提前离开：② 开了 EPLB 就直接普通加载；⑤ 草稿模型的权重全落在主模型已登记的显存里，就直接复用、交回。⑦ 没借到、⑧ 读失败，或 ③–⑨ 任何一步抛错，都先清理干净，再从存储普通加载，最后同样尝试发布成 seed；清理不干净就报错终止，不再分配第二份模型。
-size: [900, 530]
+caption: 新实例 B 的一个 Worker 按上游 main（8d6180e2）顺序走 ①–⑩。①–⑥ 与 ⑦ 的前半段（登记本地显存并绑定结构摘要与 seed_key）都在申请租约之前完成，不占租约有效期；④ ⑥ 与登记显存画成浅虚框，因为未命中或失败会清理重建。⑥ 和 ⑨ 的后处理二选一：开了量化、权重 NZ 模式为 2 或硬件要求 NZ 的模型在 ⑥ 做并等 NPU 同步，第 ⑨ 步只刷新 FlatQuant 标量并切 eval()；其他模型到 ⑨ 才做适用的后处理（跳过未量化 MoE 重复处理）。⑦ 后半段向 Planner 拿到租约后才进入「占着租约」区间，⑧ 取清单、核对并按批读；读完后安排后台归还租约，⑨ 收尾进推理模式，⑩ 尝试发布成 seed 再交回模型。两处提前离开：② 命中可变权重守卫（sleep mode / 在线权重传输 / enable_eplb）直接普通加载；⑤ 草稿模型整份共用主模型显存就直接复用交回。登记失败、没借到、读失败或可恢复异常都先清理干净再回退默认加载（缺必填或非法配置抛 RForkConfigurationError 直接中止，不进入回退）。
+size: [900, 590]
 
 items:
-  # 主路径：十步
-  - { at: [130, 20], size: [320, 40], text: 选中 RFork 加载方式, style: plain }
-  - { at: [130, 70], size: [320, 40], text: 查 EPLB 开关, style: plain }
-  - { at: [130, 120], size: [320, 40], text: 建会话：算身份、连 Planner、起传输引擎, style: plain }
-  - { at: [130, 170], size: [320, 40], text: 拍快照，在卡上搭空模型, tone: weight, style: faded }
-  - { at: [130, 220], size: [320, 40], text: 草稿模型整份共用主模型？, style: plain }
-  - { at: [130, 270], size: [320, 40], text: 要转布局时：后处理，等 NPU 同步完, tone: weight, style: faded }
-  - { at: [130, 320], size: [320, 40], text: 向 Planner 申请租约, tone: control }
-  - { at: [130, 370], size: [320, 40], text: 登记内存 · 要清单 · 按批读, tone: comm }
-  - { at: [130, 420], size: [320, 40], text: 读后做适用后处理；进推理模式, tone: weight }
-  - { at: [130, 470], size: [320, 40], text: 尝试发布成 seed，再交回模型, tone: control, style: plain }
+  # 主路径：十步（第 7 步按源码拆成先登记显存、再申请租约两框）
+  - { at: [130, 20], size: [330, 40], text: 选中 RFork 加载方式, style: plain }
+  - { at: [130, 70], size: [330, 40], text: 查可变权重绕过守卫, style: plain }
+  - { at: [130, 120], size: [330, 40], text: 建会话：验配置、算指纹、起传输引擎, style: plain }
+  - { at: [130, 170], size: [330, 40], text: 拍快照，在卡上搭空模型, tone: weight, style: faded }
+  - { at: [130, 220], size: [330, 40], text: 草稿模型整份共用主模型？, style: plain }
+  - { at: [130, 270], size: [330, 40], text: 要转布局时：后处理，等 NPU 同步完, tone: weight, style: faded }
+  - { at: [130, 320], size: [330, 40], text: 登记显存，绑定结构摘要与 seed_key, tone: weight, style: faded }
+  - { at: [130, 370], size: [330, 40], text: 向 Planner 申请租约（acquire_seed）, tone: control }
+  - { at: [130, 420], size: [330, 40], text: 要清单 · 核清单 · 按批读, tone: comm }
+  - { at: [130, 470], size: [330, 40], text: 读后收尾（适用后处理）；进推理模式, tone: weight }
+  - { at: [130, 520], size: [330, 40], text: 尝试发布成 seed，再交回模型, tone: control, style: plain }
   # 提前离开
-  - { at: [530, 70], size: [340, 40], text: 直接普通加载，不建会话, tone: control, style: plain }
-  - { at: [530, 220], size: [340, 40], text: 复用主模型的权重，直接交回, tone: weight, style: plain }
+  - { at: [545, 70], size: [335, 40], text: 直接普通加载，不建会话, tone: control, style: plain }
+  - { at: [545, 220], size: [335, 40], text: 复用主模型的权重，直接交回, tone: weight, style: plain }
   # 失败分支
-  - { at: [530, 316], size: [340, 80], text: 先清理：停服务 · 安排还租约 · 注销登记, sub: 再按快照撤掉半成品模型留下的全局登记, tone: danger, style: faded }
-  - { at: [530, 444], size: [340, 40], text: 从存储普通加载（加载方式改回自动）, tone: weight, style: plain }
+  - { at: [545, 326], size: [335, 126], text: 先清理：停服务 · 安排还租约 · 注销登记, sub: 再按快照撤掉半成品模型留下的全局登记, tone: danger, style: faded }
+  - { at: [545, 514], size: [335, 46], text: 从存储普通加载（加载方式改回自动）, tone: weight, style: plain }
 
 badges:
   - { at: [130, 20], n: 1 }
@@ -30,47 +31,50 @@ badges:
   - { at: [130, 220], n: 5 }
   - { at: [130, 270], n: 6 }
   - { at: [130, 320], n: 7, tone: control }
-  - { at: [130, 370], n: 8, tone: comm }
-  - { at: [130, 420], n: 9, tone: weight }
-  - { at: [130, 470], n: 10, tone: control }
+  - { at: [130, 420], n: 8, tone: comm }
+  - { at: [130, 470], n: 9, tone: weight }
+  - { at: [130, 520], n: 10, tone: control }
 
 links:
   # 主路径往下
-  - { from: [290, 60], to: [290, 70] }
-  - { from: [290, 110], to: [290, 120] }
-  - { from: [290, 160], to: [290, 170] }
-  - { from: [290, 210], to: [290, 220] }
-  - { from: [290, 260], to: [290, 270] }
-  - { from: [290, 310], to: [290, 320] }
-  - { from: [290, 360], to: [290, 370] }
-  - { from: [290, 410], to: [290, 420] }
-  - { from: [290, 460], to: [290, 470] }
+  - { from: [295, 60], to: [295, 70] }
+  - { from: [295, 110], to: [295, 120] }
+  - { from: [295, 160], to: [295, 170] }
+  - { from: [295, 210], to: [295, 220] }
+  - { from: [295, 260], to: [295, 270] }
+  - { from: [295, 310], to: [295, 320] }
+  - { from: [295, 360], to: [295, 370] }
+  - { from: [295, 410], to: [295, 420] }
+  - { from: [295, 460], to: [295, 470] }
+  - { from: [295, 510], to: [295, 520] }
   # 两处提前离开
-  - { from: [450, 90], to: [530, 90], tone: control }
-  - { from: [450, 240], to: [530, 240], tone: weight }
-  # 没借到、读失败 → 清理 → 普通加载 → 回到第 10 步
-  - { from: [450, 340], to: [530, 340], tone: danger, dashed: true }
-  - { from: [450, 390], to: [530, 390], tone: danger, dashed: true }
-  - { from: [600, 396], to: [600, 444], tone: weight }
-  - { from: [780, 396], to: [780, 421], tone: danger }
-  - { from: [530, 464], to: [450, 490], via: [[490, 464], [490, 490]], tone: weight }
-  # 左侧三段：占不占租约
-  - { from: [104, 20], to: [104, 310], ends: none }
-  - { from: [104, 320], to: [104, 410], ends: none, tone: control }
-  - { from: [104, 420], to: [104, 510], ends: none, tone: weight }
+  - { from: [460, 90], to: [545, 90], tone: control }
+  - { from: [460, 240], to: [545, 240], tone: weight }
+  # 登记失败、没借到、读失败 → 清理 → 普通加载 → 回到第 10 步
+  - { from: [460, 340], to: [545, 340], tone: danger, dashed: true }
+  - { from: [460, 390], to: [545, 390], tone: danger, dashed: true }
+  - { from: [460, 440], to: [545, 440], tone: danger, dashed: true }
+  - { from: [615, 452], to: [615, 514], tone: weight }
+  - { from: [790, 452], to: [790, 476], tone: danger }
+  - { from: [545, 540], to: [460, 540], tone: weight }
+  # 左侧三段：先登记显存仍不占租约；acquire_seed 之后才占着租约
+  - { from: [104, 20], to: [104, 360], ends: none }
+  - { from: [104, 370], to: [104, 460], ends: none, tone: control }
+  - { from: [104, 470], to: [104, 560], ends: none, tone: weight }
 
 texts:
-  - { at: [96, 170], text: 不占租约, anchor: end, size: 13 }
-  - { at: [96, 370], text: 占着租约, anchor: end, size: 13, tone: control }
-  - { at: [96, 470], text: 读完之后, anchor: end, size: 13, tone: weight }
-  - { at: [490, 82], text: 开了, anchor: middle, size: 12 }
-  - { at: [490, 232], text: 是, anchor: middle, size: 12 }
-  - { at: [490, 332], text: 没借到, anchor: middle, size: 12, tone: danger }
-  - { at: [490, 382], text: 读失败, anchor: middle, size: 12, tone: danger }
-  - { at: [612, 424], text: 清干净了, size: 12, tone: weight }
+  - { at: [96, 195], text: 不占租约, anchor: end, size: 13 }
+  - { at: [96, 420], text: 占着租约, anchor: end, size: 13, tone: control }
+  - { at: [96, 520], text: 读完之后, anchor: end, size: 13, tone: weight }
+  - { at: [502, 82], text: 命中, anchor: middle, size: 13 }
+  - { at: [502, 232], text: 是, anchor: middle, size: 13 }
+  - { at: [502, 332], text: 登记失败, anchor: middle, size: 13, tone: danger }
+  - { at: [502, 382], text: 没借到, anchor: middle, size: 13, tone: danger }
+  - { at: [502, 432], text: 读失败, anchor: middle, size: 13, tone: danger }
+  - { at: [626, 488], text: 清干净了, size: 13, tone: weight }
 
 tags:
-  - { at: [700, 412], text: 清不干净：报错终止 }
+  - { at: [706, 468], text: 清不干净：报错终止 }
 
 pins:
   - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L747-L957

@@ -264,10 +264,6 @@ model: Qwen3-8B
 
 很多启动异常或输出跑偏并不是 `config.json` 引起的，而是躲在同目录另外几份配置文件里。排查目录时至少要顺手核对下面四个隐形坑：
 
-```wiki-diagram
-file: hf-fig-four-hidden-traps
-```
-
 1. **`chat_template` 的四级回落链**：发送对话请求时，`vllm` 渲染器 `resolve_chat_template` 按固定四级顺序寻找模板——先看命令行显式传入的 `--chat-template`；未传且未开启工具调用时尝试从 `AutoProcessor` 读取；接着再走 `AutoTokenizer` 读取 `tokenizer_config.json` 或独立的 `chat_template.jinja`；最后尝试使用 `vllm` 内置的模型名回落模板。如果四级全为空（常见于只有底座分词配置的裸预训练目录），模型虽然能正常启动，但一收到对话补全请求就会立刻触发模板解析失败。
 2. **`model_max_length` 静音截断 `max_model_len`**：即便 `config.json` 里的 `max_position_embeddings` 写着 `40960`，`vllm` 在 `_get_and_verify_max_len` 里仍会把推导出的最大长度和 `tokenizer_config.json` 中的 `model_max_length` 取一次较小值（$\min(\text{derived\_max\_model\_len}, \text{model\_max\_length})$）。如果打包目录时有人误把 `tokenizer_config.json` 里的 `model_max_length` 填成 `4096` 或 `8192`，服务可接收的最大上下文就会被悄悄压低，只能通过显式传入 `--max-model-len` 或修正该字段绕开。
 3. **`model.safetensors.index.json` 缺片与混合文件陷阱**：对于切分成多个分片的目录，权重加载器会读取 `model.safetensors.index.json` 中的 `weight_map` 字典，统计全部被引用的分片文件名并与磁盘上扫描到的 `.safetensors` 文件集合做差集——只要索引里提到的分片少了一片（比如断点续传中断），会立即抛出 `FileNotFoundError`。反过来，某些上游仓库同时放了 `consolidated*.safetensors` 合并文件与分片文件，vLLM 正是靠 `model.safetensors.index.json` 剔除未入索引的重复文件来避免双倍加载，因此切勿随意删除目录里的 `index.json`。

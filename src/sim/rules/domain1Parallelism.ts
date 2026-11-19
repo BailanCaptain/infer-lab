@@ -19,16 +19,16 @@ function isAscendSpRequested(input: CouplingCheckInput, version: RuleVersion): b
 function isFlashcomm1Supported(input: CouplingCheckInput): boolean {
   const tp = Math.max(1, input.tpSize ?? 1);
   const pp = Math.max(1, input.ppSize ?? 1);
-  const moeSp = Boolean(input.isMoe && input.enableExpertParallel);
+  const moeSp = Boolean(input.isMoe && input.enableExpertParallel && tp > 1);
   const denseSp = Boolean(input.isQwen35Dense && tp > 1 && pp === 1);
-  return tp > 1 && pp === 1 && (moeSp || denseSp);
+  return moeSp || denseSp;
 }
 
 export const domain1Rules: readonly CouplingRule[] = [
   {
     id: "d1-tp-collective-pattern",
     domain: "parallelism-moe",
-    title: "Tensor Parallel AllReduce / AllGather Intra-Node HCCS Coupling",
+    title: "张量并行（TP）All-Reduce / All-Gather 依赖机内 HCCS/UB 互联",
     judgment: "warn",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -39,9 +39,8 @@ export const domain1Rules: readonly CouplingRule[] = [
       `vllm@${VERIFIED_COMMITS.vllmV030}:vllm/model_executor/layers/logits_processor.py#L124-L134`,
     ],
     description:
-      "ColumnParallel/RowParallel layers execute 2 blocking All-Reduces per Transformer block plus vocabulary/logits All-Gather, requiring high-bandwidth intra-node HCCS/UB.",
-    rationale:
-      "High-frequency per-layer collectives stall immediately over cross-node RoCE; TP should remain confined within an HCCS/UB superpod domain.",
+      "ColumnParallel/RowParallel 层每层触发 2 次阻塞式 All-Reduce，并伴随词表与 logits All-Gather，要求高带宽机内 HCCS/UB 互联。",
+    rationale: "每层高频集合通信在跨机 RoCE 下会立即成为瓶颈，TP 应收敛在单机或超节点 HCCS/UB 域内。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const tp = Math.max(1, input.tpSize ?? 1);
@@ -54,22 +53,21 @@ export const domain1Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `TP=${tp} triggers 2x All-Reduce per layer plus vocab/logits All-Gather across TP ranks; keep TP inside intra-node HCCS/UB.`,
+        message: `TP=${tp} 每层触发 2 次阻塞式 All-Reduce 及词表/logits All-Gather，请将 TP 通信域收敛在机内 HCCS/UB 高速互联内。`,
       };
     },
   },
   {
     id: "d1-pp-async-send-recv",
     domain: "parallelism-moe",
-    title: "Pipeline Parallel Async P2P Send/Recv Communication",
+    title: "流水线并行（PP）采用异步 P2P Send/Recv 级间通信",
     judgment: "warn",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
     sources: [`vllm@${VERIFIED_COMMITS.vllmV030}:vllm/distributed/parallel_state.py#L1067-L1346`],
     description:
-      "Pipeline Parallelism exchanges activations between stages via non-blocking torch.distributed isend/irecv tensor dicts.",
-    rationale:
-      "P2P inter-stage transfers tolerate inter-node RoCE far better than TP All-Reduce, but introduce pipeline bubbles unless microbatch/chunking is tuned.",
+      "Pipeline Parallelism 通过非阻塞 torch.distributed isend/irecv 张量字典在相邻 stage 间传递激活。",
+    rationale: "P2P 级间通信比 TP All-Reduce 更耐受跨机 RoCE，但需要合理调优微批与分块以抑制流水线气泡。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const pp = Math.max(1, input.ppSize ?? 1);
@@ -82,14 +80,14 @@ export const domain1Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `PP=${pp} communicates across stages via async isend_tensor_dict/irecv_tensor_dict.`,
+        message: `PP=${pp} 阶段间通过异步 isend_tensor_dict/irecv_tensor_dict 传输激活（适合跨机拓扑，但需留意流水线气泡）。`,
       };
     },
   },
   {
     id: "d1-sp-pp-rms-norm-rewrite",
     domain: "parallelism-moe",
-    title: "SP + PP>1 Forces +rms_norm Custom Op (v0.30.0)",
+    title: "SP + PP>1 静默追加 +rms_norm 自定义算子（v0.30.0）",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["v0.30.0", "rfork"],
@@ -98,9 +96,9 @@ export const domain1Rules: readonly CouplingRule[] = [
       `vllm@${VERIFIED_COMMITS.vllmV030}:vllm/compilation/passes/fusion/sequence_parallelism.py#L162-L179`,
     ],
     description:
-      "In v0.30.0 (vllm@ced6857a), enabling PassConfig.enable_sp with PP>1 silently appends '+rms_norm' to compilation_config.custom_ops (or warns of likely error if '-rms_norm' is explicitly set).",
+      "在 v0.30.0 (vllm@ced6857a) 中，PassConfig.enable_sp 与 PP>1 组合时会静默向 compilation_config.custom_ops 追加 '+rms_norm'（若显式禁用 '-rms_norm' 则告警可能报错）。",
     rationale:
-      "SequenceParallelismPass rewrites all_reduce -> rms_norm into reduce_scatter -> rms_norm -> all_gather and relies on custom rms_norm across PP stages.",
+      "SequenceParallelismPass 将 all_reduce -> rms_norm 改写为 reduce_scatter -> rms_norm -> all_gather，跨 PP 阶段依赖自定义 rms_norm。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const pp = Math.max(1, input.ppSize ?? 1);
@@ -116,8 +114,8 @@ export const domain1Rules: readonly CouplingRule[] = [
           evidenceLevel: this.evidenceLevel,
           sources: this.sources,
           message:
-            "PassConfig.enable_sp with PP>1 and '-rms_norm' in custom_ops logs warning that native rms_norm is unsupported and will likely error.",
-          remediation: "Remove '-rms_norm' from compilation_config.custom_ops or disable SP/PP.",
+            "PassConfig.enable_sp 叠加 PP>1 且 custom_ops 包含 '-rms_norm'，原生 rms_norm 不支持该组合，运行时极可能报错。",
+          remediation: "从 compilation_config.custom_ops 移除 '-rms_norm'，或关闭 SP / PP。",
         };
       }
       return {
@@ -129,7 +127,7 @@ export const domain1Rules: readonly CouplingRule[] = [
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
         message:
-          "PassConfig.enable_sp with PP>1 silently appends '+rms_norm' to compilation_config.custom_ops.",
+          "PassConfig.enable_sp 与 PP>1 组合时，框架会静默向 compilation_config.custom_ops 追加 '+rms_norm'。",
         effectiveMutation: { customOpsAppended: "+rms_norm" },
       };
     },
@@ -137,7 +135,7 @@ export const domain1Rules: readonly CouplingRule[] = [
   {
     id: "d1-sp-pp-removed-in-main",
     domain: "parallelism-moe",
-    title: "Upstream PassConfig.enable_sp Removed in main",
+    title: "上游 PassConfig.enable_sp 已在 main 分支移除",
     judgment: "warn",
     evidenceLevel: "C",
     versions: ["main"],
@@ -146,9 +144,8 @@ export const domain1Rules: readonly CouplingRule[] = [
       `vllm@${VERIFIED_COMMITS.vllmMainVerified}:vllm/config/parallel.py#L859`,
     ],
     description:
-      "In upstream vllm@ba15685a (main), PassConfig.enable_sp and SequenceParallelismPass (+rms_norm rewrite) were removed; only parallel_config.use_sequence_parallel_moe and Ascend FlashComm1 remain.",
-    rationale:
-      "Rules or configs referencing v0.30.0 PassConfig.enable_sp +rms_norm injection do not apply on main.",
+      "上游 vllm@ba15685a (main) 已移除 PassConfig.enable_sp 与 SequenceParallelismPass (+rms_norm 改写)，仅保留 parallel_config.use_sequence_parallel_moe 与昇腾 FlashComm1。",
+    rationale: "v0.30.0 的 PassConfig.enable_sp 及 +rms_norm 注入规则在 main 分支不再适用。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.enableSp) return null;
@@ -161,14 +158,14 @@ export const domain1Rules: readonly CouplingRule[] = [
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
         message:
-          "Upstream vllm main removed PassConfig.enable_sp and the PP>1 '+rms_norm' rewrite; use use_sequence_parallel_moe / Ascend FlashComm1 instead.",
+          "上游 vLLM main 已移除 PassConfig.enable_sp 及 PP>1 下的 '+rms_norm' 改写，请改用 use_sequence_parallel_moe 或昇腾 FlashComm1。",
       };
     },
   },
   {
     id: "d1-ascend-sp-tp-gt-1",
     domain: "parallelism-moe",
-    title: "Ascend Sequence Parallelism Requires tp_size > 1",
+    title: "昇腾序列并行（SP）要求 tp_size > 1",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -181,8 +178,8 @@ export const domain1Rules: readonly CouplingRule[] = [
       `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/utils.py#L861-L889`,
     ],
     description:
-      "NPUPlatform.check_and_update_config raises AssertionError if enable_sp is active with tp_size <= 1.",
-    rationale: "Reduce-Scatter and All-Gather sequence parallelism cannot partition across a single TP rank.",
+      "当启用序列并行且 tp_size <= 1 时，NPUPlatform.check_and_update_config 直接抛出 AssertionError。",
+    rationale: "Reduce-Scatter 与 All-Gather 序列并行无法在单张 TP 卡上切分。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const tp = Math.max(1, input.tpSize ?? 1);
@@ -220,15 +217,15 @@ export const domain1Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources,
-        message: "AssertionError: Sequence parallelism is only supported when tp_size > 1.",
-        remediation: "Set --tensor-parallel-size >= 2 or disable sequence parallelism.",
+        message: "AssertionError: 序列并行（SP）仅支持 tp_size > 1。",
+        remediation: "将 --tensor-parallel-size 设为 >= 2，或关闭序列并行。",
       };
     },
   },
   {
     id: "d1-ascend-sp-moe-requires-ep",
     domain: "parallelism-moe",
-    title: "Ascend Sequence Parallelism on MoE Requires enable_expert_parallel=True",
+    title: "MoE 模型开启昇腾序列并行要求 enable_expert_parallel=True",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -240,10 +237,8 @@ export const domain1Rules: readonly CouplingRule[] = [
       `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/platform.py#L763-L765`,
       `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/utils.py#L861-L889`,
     ],
-    description:
-      "NPUPlatform raises AssertionError when sequence parallelism is active for an MoE model without --enable-expert-parallel.",
-    rationale:
-      "MoE sequence parallelism coordinates expert all-to-all / reduce-scatter boundaries across EP groups.",
+    description: "MoE 模型开启序列并行但未传 --enable-expert-parallel 时，NPUPlatform 抛 AssertionError。",
+    rationale: "MoE 序列并行需要在 EP 通信域边界对齐专家派发与 Reduce-Scatter。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const tp = Math.max(1, input.tpSize ?? 1);
@@ -274,15 +269,15 @@ export const domain1Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources,
-        message: "AssertionError: Sequence parallelism requires enable_expert_parallel=True for MoE models.",
-        remediation: "Add --enable-expert-parallel or disable sequence parallelism.",
+        message: "AssertionError: MoE 模型启用序列并行要求开启 enable_expert_parallel=True。",
+        remediation: "添加 --enable-expert-parallel，或关闭序列并行。",
       };
     },
   },
   {
     id: "d1-flashcomm1-unsupported-disable",
     domain: "parallelism-moe",
-    title: "FlashComm1 Unsupported Config Warning & Disable",
+    title: "FlashComm1 不满足拓扑条件时告警并静默关闭",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main"],
@@ -292,8 +287,8 @@ export const domain1Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L865-L871`,
     ],
     description:
-      "When FlashComm1 is requested without tp_size > 1, pp_size == 1, and an SP-capable model (MoE with EP or dense Qwen3.5), AscendConfig logs a warning and disables it.",
-    rationale: "Prevents unsupported dense or PP>1 models from entering FlashComm1 SP paths.",
+      "FlashComm1 仅在 MoE+EP (tp_size > 1，不限 pp_size) 或 Qwen3.5 Dense (tp_size > 1 且 pp_size == 1) 生效；否则告警并静默关闭。",
+    rationale: "防止不支持的稠密模型或 Qwen3.5 Dense PP>1 拓扑误入 FlashComm1 路径。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.enableFlashcomm1 || isFlashcomm1Supported(input)) return null;
@@ -306,7 +301,7 @@ export const domain1Rules: readonly CouplingRule[] = [
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
         message:
-          "FlashComm1 enabled on unsupported config (requires tp>1, pp==1, and MoE+EP or Qwen3.5 dense); silently disabled.",
+          "当前配置不支持 FlashComm1（需满足 MoE+EP 且 tp>1 [不限 pp]，或 Qwen3.5 Dense 且 tp>1、pp==1），已告警并静默关闭。",
         effectiveMutation: { flashcomm1Active: false },
       };
     },
@@ -314,7 +309,7 @@ export const domain1Rules: readonly CouplingRule[] = [
   {
     id: "d1-flashcomm1-disables-quantized-ar",
     domain: "parallelism-moe",
-    title: "FlashComm1/SP Silently Disables quantized_all_reduce_config (main)",
+    title: "FlashComm1/SP 静默关闭 quantized_all_reduce_config（main）",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["main"],
@@ -326,9 +321,9 @@ export const domain1Rules: readonly CouplingRule[] = [
       `vllm@${VERIFIED_COMMITS.vllmMainFetched}:vllm/config/parallel.py#L332`,
     ],
     description:
-      "In vllm-ascend main (8d6180e2), active FlashComm1 + use_sequence_parallel_moe (enabled by default via all2all_backend='allgather_reducescatter' / 'auto' and patch_parallel_config.py including DP=1) silently forces quantized_all_reduce_config.enable = False (regardless of pp_size).",
+      "vllm-ascend main (8d6180e2) 下激活 FlashComm1 + use_sequence_parallel_moe（含 DP=1，不限 pp_size）会静默将 quantized_all_reduce_config.enable 置为 False。",
     rationale:
-      "Sequence parallelism replaces TP All-Reduce with Reduce-Scatter/All-Gather, so the int8 quantized All-Reduce wrapper would never be invoked.",
+      "序列并行以 Reduce-Scatter/All-Gather 取代 TP All-Reduce，int8 量化 All-Reduce 包装器不会被触发。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const tp = Math.max(1, input.tpSize ?? 1);
@@ -348,7 +343,7 @@ export const domain1Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: "FlashComm1/SP silently sets additional_config.quantized_all_reduce_config.enable = False.",
+        message: "FlashComm1/SP 已静默将 additional_config.quantized_all_reduce_config.enable 置为 False。",
         effectiveMutation: { quantizedAllReduceEnabled: false },
       };
     },
@@ -356,7 +351,7 @@ export const domain1Rules: readonly CouplingRule[] = [
   {
     id: "d1-roce-pp-dp-moe-exclusion",
     domain: "parallelism-moe",
-    title: "Cross-Node RoCE PP>1 + DP>1 MoE Mutual Exclusion (No Startup Guard)",
+    title: "跨机 RoCE 下 MoE 禁止同时开启 PP>1 与 DP>1（无启动校验）",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main"],
@@ -365,9 +360,9 @@ export const domain1Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:docs/source/user_guide/feature_guide/pipeline_parallel.md#L430-L432`,
     ],
     description:
-      "Cross-node MoE deployments over RoCE cannot combine PP > 1 and DP > 1 because MoeDistributeDispatch does not support this combined topology; critically, no Python startup check enforces this.",
+      "跨机 RoCE 部署 MoE 时，MoeDistributeDispatch 不支持同时开启 PP > 1 与 DP > 1，且无 Python 启动期校验。",
     rationale:
-      "Verified in pipeline_parallel.md and confirmed absent from platform.py / ascend_config.py startup assertions, creating a silent runtime hang/failure hazard.",
+      "pipeline_parallel.md 明确限制但 platform.py / ascend_config.py 缺少启动断言，存在静默挂死风险。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const pp = Math.max(1, input.ppSize ?? 1);
@@ -383,26 +378,27 @@ export const domain1Rules: readonly CouplingRule[] = [
         sources: this.sources,
         message:
           input.crossNodeRoce === true
-            ? `Cross-node RoCE MoE deployment with PP=${pp} > 1 and DP=${dp} > 1 is unsupported by MoeDistributeDispatch (and has NO Python startup check!).`
-            : `MoE deployment with PP=${pp} > 1 and DP=${dp} > 1 is unsupported over cross-node RoCE (no Python startup guard exists).`,
-        remediation: "Set either PP=1 or DP=1 for cross-node RoCE MoE deployments.",
+            ? `跨机 RoCE MoE 部署中 PP=${pp} > 1 与 DP=${dp} > 1 不受 MoeDistributeDispatch 支持（且无 Python 启动校验）。`
+            : `MoE 同时开启 PP=${pp} > 1 与 DP=${dp} > 1 在跨机 RoCE 下不受支持（无 Python 启动校验，请确认是否为机内互联）。`,
+        remediation: "跨机 RoCE MoE 部署请将 PP 或 DP 之一设为 1。",
       };
     },
   },
   {
     id: "d1-fused-mc2-silent-reset",
     domain: "parallelism-moe",
-    title: "enable_fused_mc2 Silently Reset to 0 When MegaMoe Config Unsupported",
+    title: "MegaMoe 配置不满足约束时 `enable_fused_mc2` 静默重置为 0",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main"],
     sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L664-L670`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L856-L859`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_forward_context.py#L87-L97`,
     ],
     description:
-      "When is_mega_moe_supported() is true on the model/chip but _is_megamoe_supported_by_config(vc) is false, AscendConfig silently resets enable_fused_mc2 = 0.",
-    rationale: "Prevents fused MC2 kernel dispatch on incompatible config shapes without raising an error.",
+      "当请求 MegaMoe（enable_fused_mc2=2，或 main 分支为 3）且硬件支持 is_mega_moe_supported()，但 _is_megamoe_supported_by_config(vc) 为 False 时，AscendConfig 静默将 enable_fused_mc2 重置为 0。",
+    rationale: "在不兼容配置形态下静默回退 MegaMoe 融合 MC2，避免直接触发启动报错。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!isFusedMc2SilentlyReset(input, version)) return null;
@@ -414,16 +410,47 @@ export const domain1Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message:
-          "enable_fused_mc2=1 was silently reset to 0 because config does not satisfy MegaMoe constraints.",
+        message: `已请求 MegaMoe（enable_fused_mc2=${input.enableFusedMc2}），但当前配置不满足 _is_megamoe_supported_by_config 约束，AscendConfig 已静默将 enable_fused_mc2 重置为 0。`,
         effectiveMutation: { enableFusedMc2: 0 },
+      };
+    },
+  },
+  {
+    id: "d1-fused-mc2-3-main-only",
+    domain: "parallelism-moe",
+    title: "enable_fused_mc2=3 仅限 main 分支（v0.30.0 启动断言报错）",
+    judgment: "error",
+    evidenceLevel: "C",
+    versions: ["v0.30.0", "rfork"],
+    sources: [
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L664-L670`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L841`,
+      `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L774-L789`,
+    ],
+    description:
+      "v0.30.0（c09d3e20）中 enable_fused_mc2 仅允许 0、1（dispatch_ffn_combine）或 2（MegaMoe）；传入 3 会触发 assert self.enable_fused_mc2 in (0, 1)。模式 3（MegaMoe + 共享专家融合）仅在 main@8d6180e2 支持。",
+    rationale: "防止将 main 分支的 enable_fused_mc2=3 配方迁移到 v0.30.0 时在启动阶段抛出 AssertionError。",
+    evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
+      if (!isVersionSupported(this, version)) return null;
+      if (input.enableFusedMc2 !== 3) return null;
+      return {
+        ruleId: this.id,
+        domain: this.domain,
+        title: this.title,
+        version,
+        judgment: this.judgment,
+        evidenceLevel: this.evidenceLevel,
+        sources: this.sources,
+        message: `AssertionError: ${version} 不支持 enable_fused_mc2=3（仅允许 0 / 1[dispatch_ffn_combine] / 2[MegaMoe]，取值 3 的共享专家融合仅限 main@8d6180e2）。`,
+        remediation:
+          "在 v0.30.0 中改用 enable_fused_mc2=2（MegaMoe）或 1（dispatch_ffn_combine），或切换到 main 分支。",
       };
     },
   },
   {
     id: "d1-dp-ep-moe-comm-strategy",
     domain: "parallelism-moe",
-    title: "DP + EP 4-Family Hardware MoE Communication Dispatch",
+    title: "DP + EP 四族昇腾硬件 MoE 通信策略分派",
     judgment: "warn",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -433,9 +460,9 @@ export const domain1Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_forward_context.py#L259-L461`,
     ],
     description:
-      "Selects ALLGATHER / MC2 / FUSED_MC2 / ALLTOALL per hardware family (A2, A3, 310P, A5/950), LoRA override, dynamic MC2 token capacity, and version-specific A5 world_size handling.",
+      "按硬件族（A2 / A3 / 310P / A5）、LoRA 覆写、动态 MC2 容量上限与版本差异选择 ALLGATHER / MC2 / FUSED_MC2 / ALLTOALL。",
     rationale:
-      "In v0.30.0, A5 erroneously checks world_size_across_dp (including PP); main fixes this to world_size_across_dp // pp_size and refines decode_cudagraph_capture_request_sizes.",
+      "v0.30.0 的 A5 误用含 PP 的 world_size_across_dp，main 已修正为 world_size_across_dp // pp_size。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.isMoe) return null;
@@ -449,7 +476,7 @@ export const domain1Rules: readonly CouplingRule[] = [
         evidenceLevel: this.evidenceLevel,
         sources: result.sources,
         message: result.usedWorldSizeAcrossDpBug
-          ? `${result.reason} (Note: v0.30.0 A5 uses world_size_across_dp including PP; fixed to world_size_across_dp // pp_size in main.)`
+          ? `${result.reason}（注意：v0.30.0 A5 误用含 PP 的 world_size_across_dp；main 已修正为 world_size_across_dp // pp_size。）`
           : result.reason,
         effectiveMutation: {
           moeCommMethod: result.method,
@@ -461,7 +488,7 @@ export const domain1Rules: readonly CouplingRule[] = [
   {
     id: "d1-idle-dp-dummy-batch",
     domain: "parallelism-moe",
-    title: "Idle DP Group Must Execute Dummy Batch Synchronization",
+    title: "空闲 DP 组须执行 Dummy Batch 集合通信同步",
     judgment: "warn",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -472,9 +499,8 @@ export const domain1Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L194-L197`,
     ],
     description:
-      "When dp_size > 1 and any DP group has unfinished requests, locally idle DP ranks must execute execute_dummy_batch() (_dummy_run) so EP/DP collectives do not deadlock.",
-    rationale:
-      "DPEngineCoreProc.run_busy_loop and external_launcher coordinate across all DP ranks via all-reduce MAX on unfinished state.",
+      "dp_size > 1 且任一 DP 组存在未完成请求时，空闲 DP rank 必须执行 execute_dummy_batch() (_dummy_run) 以防止 EP/DP 集合通信死锁。",
+    rationale: "DPEngineCoreProc.run_busy_loop 与 external_launcher 通过 all-reduce MAX 协调全组步调。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const dp = Math.max(1, input.dpSize ?? 1);
@@ -487,7 +513,7 @@ export const domain1Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `DP=${dp} > 1: idle DP ranks automatically run execute_dummy_batch() (_dummy_run) whenever any DP rank has active requests.`,
+        message: `DP=${dp} > 1：任一 DP 组存在在途请求时，空闲 DP rank 会自动执行 execute_dummy_batch() (_dummy_run) 保持集合通信同步。`,
       };
     },
   },

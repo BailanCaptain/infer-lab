@@ -1,41 +1,41 @@
 layout: figure
 id: ai-qos-flow
 caption: 独立配置脚本在 A0 推理启动前运行；apply 写端点并打印交换机命令，unset 尝试恢复端点并打印 undo。两条分支都需要操作者在交换机完成配置，A4 执行时才由网络按规则服务流量。
-size: [860, 1040]
+size: [860, 1064]
 pins:
   - { source: 'vllm-ascend@db701c1f:tools/ai_qos.py#L270-L319', symbols: [run_unset] }
   - { source: 'vllm-ascend@db701c1f:tools/ai_qos.py#L322-L474', symbols: [AiqosConfig, set_qos, apply, unset] }
 frames:
-  - { at: [20, 115], size: [395, 665], label: apply · 应用配置 }
-  - { at: [445, 115], size: [395, 665], label: unset · 恢复配置 }
-  - { at: [20, 840], size: [820, 175], label: 配置后的请求主线 }
+  - { at: [20, 138], size: [395, 665], label: apply · 应用配置 }
+  - { at: [445, 138], size: [395, 665], label: unset · 恢复配置 }
+  - { at: [20, 864], size: [820, 175], label: 配置后的请求主线 }
 items:
   - { at: [220, 20], size: [420, 55], text: A0 启动前 · 运行独立配置脚本, sub: 解析命令后分支, tone: control }
-  - { at: [45, 145], size: [345, 65], text: AiqosConfig.set_qos, sub: 选择设备 · 读取或补采端点基线, tone: control }
-  - { at: [45, 255], size: [345, 65], text: 按流量等级查映射表, sub: 算出源标签、目标 VL 和优先级, tone: control }
-  - { at: [45, 365], size: [345, 65], text: 写入端点配置, sub: 读取失败跳过；写入失败须查日志, tone: comm }
-  - { at: [45, 475], size: [345, 65], text: 打印交换机命令 · 保存状态文件, sub: 保存端点基线与本次命令, tone: control }
-  - { at: [45, 660], size: [345, 70], text: 操作者登录交换机应用并核验, sub: 此步由脚本之外完成, tone: comm }
-  - { at: [470, 145], size: [345, 65], text: run_unset · 读取状态文件, sub: 校验快照是否可恢复, tone: control }
-  - { at: [470, 280], size: [155, 65], text: 有效, sub: 进入恢复, tone: control }
-  - { at: [645, 280], size: [170, 65], text: 缺失或损坏, sub: 提示后退出 1, tone: danger }
-  - { at: [470, 395], size: [345, 65], text: 按保存基线恢复端点, sub: 部分失败会继续，须核实返回码, tone: comm }
-  - { at: [470, 505], size: [345, 65], text: 打印 undo · 删除状态文件, sub: 未读取交换机当前状态, tone: control }
-  - { at: [470, 660], size: [345, 70], text: 操作者登录交换机恢复并核验, sub: 与事先备份的原配置对照, tone: comm }
-  - { at: [60, 885], size: [290, 70], text: A0 · 启动推理并建立通信, sub: 脚本不进入逐 token 循环, tone: control }
-  - { at: [490, 885], size: [310, 70], text: A4 · 逐层计算发生通信, sub: 交换机按当前规则选择出口队列, tone: token }
+  - { at: [45, 168], size: [345, 65], text: AiqosConfig.set_qos, sub: 选择设备 · 读取或补采端点基线, tone: control }
+  - { at: [45, 278], size: [345, 65], text: 按流量等级查映射表, sub: 算出源标签、目标 VL 和优先级, tone: control }
+  - { at: [45, 388], size: [345, 65], text: 写入端点配置, sub: 读取失败跳过；写入失败须查日志, tone: comm }
+  - { at: [45, 498], size: [345, 65], text: 打印交换机命令 · 保存状态文件, sub: 保存端点基线与本次命令, tone: control }
+  - { at: [45, 683], size: [345, 70], text: 操作者登录交换机应用并核验, sub: 此步由脚本之外完成, tone: comm }
+  - { at: [470, 168], size: [345, 65], text: run_unset · 读取状态文件, sub: 校验快照是否可恢复, tone: control }
+  - { at: [470, 303], size: [155, 65], text: 有效, sub: 进入恢复, tone: control }
+  - { at: [645, 303], size: [170, 65], text: 缺失或损坏, sub: 提示后退出 1, tone: danger }
+  - { at: [470, 418], size: [345, 65], text: 按保存基线恢复端点, sub: 部分失败会继续，须核实返回码, tone: comm }
+  - { at: [470, 528], size: [345, 65], text: 打印 undo · 删除状态文件, sub: 未读取交换机当前状态, tone: control }
+  - { at: [470, 683], size: [345, 70], text: 操作者登录交换机恢复并核验, sub: 与事先备份的原配置对照, tone: comm }
+  - { at: [60, 908], size: [290, 70], text: A0 · 启动推理并建立通信, sub: 脚本不进入逐 token 循环, tone: control }
+  - { at: [490, 908], size: [310, 70], text: A4 · 逐层计算发生通信, sub: 交换机按当前规则选择出口队列, tone: token }
 links:
-  - { from: [340, 75], to: [217, 145], via: [[340, 95], [217, 95]], tone: control }
-  - { from: [520, 75], to: [642, 145], via: [[520, 95], [642, 95]], tone: control }
-  - { from: [217, 210], to: [217, 255], tone: control }
-  - { from: [217, 320], to: [217, 365], tone: control }
-  - { from: [217, 430], to: [217, 475], tone: control }
-  - { from: [217, 540], to: [217, 660], tone: comm }
-  - { from: [590, 210], to: [547, 280], via: [[590, 240], [547, 240]], tone: control }
-  - { from: [705, 210], to: [730, 280], via: [[705, 240], [730, 240]], tone: danger }
-  - { from: [547, 345], to: [547, 395], tone: control }
-  - { from: [642, 460], to: [642, 505], tone: control }
-  - { from: [642, 570], to: [642, 660], tone: comm }
-  - { from: [217, 730], to: [205, 885], via: [[217, 807], [205, 807]], tone: control }
-  - { from: [642, 730], to: [205, 885], via: [[642, 807], [205, 807]], tone: control, dashed: true }
-  - { from: [350, 920], to: [490, 920], tone: token }
+  - { from: [340, 75], to: [217, 168], via: [[340, 95], [217, 95]], tone: control }
+  - { from: [520, 75], to: [642, 168], via: [[520, 95], [642, 95]], tone: control }
+  - { from: [217, 233], to: [217, 278], tone: control }
+  - { from: [217, 343], to: [217, 388], tone: control }
+  - { from: [217, 453], to: [217, 498], tone: control }
+  - { from: [217, 563], to: [217, 683], tone: comm }
+  - { from: [590, 233], to: [547, 303], via: [[590, 263], [547, 263]], tone: control }
+  - { from: [705, 233], to: [730, 303], via: [[705, 263], [730, 263]], tone: danger }
+  - { from: [547, 368], to: [547, 418], tone: control }
+  - { from: [642, 483], to: [642, 528], tone: control }
+  - { from: [642, 593], to: [642, 683], tone: comm }
+  - { from: [217, 753], to: [205, 908], via: [[217, 825], [205, 825]], tone: control }
+  - { from: [642, 753], to: [205, 908], via: [[642, 825], [205, 825]], tone: control, dashed: true }
+  - { from: [350, 943], to: [490, 943], tone: token }

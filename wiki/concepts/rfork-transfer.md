@@ -3,8 +3,8 @@ id: rfork-transfer
 title: RFork 传输：登记空位、核对清单、分批读字节
 type: feature
 summary: >-
-  借到 seed 后，B 的每个 Worker 先把放权重的空位登记给传输引擎，再用 HTTP 向 seed 要清单、整份逐项核对， 通过后由 B
-  按地址分批把字节读进来；任何一步失败都先注销登记、撤掉半成品再回退。也讲登记怎样保住内存， 以及主模型和草稿模型共享地址时字节怎么分开算。
+  在向 Planner 借租约之前，B 的每个 Worker 先把放权重的空位登记给传输引擎并绑定结构摘要；借到 seed 后，再用 HTTP 向 seed
+  要清单、整份逐项核对，通过后由 B 按地址分批把字节读进来；任何一步失败都先注销登记、撤掉半成品再回退。也讲登记怎样保住内存，以及主模型和草稿模型共享地址时字节怎么分开算。
 aliases:
   - RFork manifest
   - RFork shape mismatch
@@ -79,7 +79,7 @@ rawSources:
 
 ## 找到 seed 以后，B 怎样把 A 显存里的权重搬过来
 
-新实例 B 的每个 Worker 已经通过[身份匹配](rfork-identity.md)借到了一个 seed：实例 A 上跑着同一个模型、同一个分片的那个 Worker。**传输**说的是接下来这一段：把 A 显存里的权重字节搬进 B 的显存。B 先把放权重的空位登记给传输引擎，再向 A 要一份清单、和自己的逐项对上，最后由 B 按地址分批把字节读过来；中间任何一步失败，都先撤销已经做过的事，再回退到默认加载。
+新实例 B 的每个 Worker 先把放权重的空位登记给传输引擎并绑定结构摘要，再通过[身份匹配](rfork-identity.md)向 Planner 借到一个 seed（实例 A 上跑着同一个模型、同一个分片的那个 Worker）。**传输**说的是把登记好的空位与随后的读权重连成闭环：B 完成显存登记并借到 seed 后，向 A 要一份清单、和自己的逐项对上，最后由 B 按地址分批把字节读过来；中间任何一步失败，都先撤销已经做过的事，再回退到默认加载。
 
 拿一个只有三块权重的小模型来看，大小是示意数：A 的第 r 号卡上放着 W1、W2、W3，分别是 0.6、0.3、0.8 GiB；B 的第 r 号卡已经把模型搭好，三块权重的位置都留好了，还空着。
 
@@ -87,20 +87,20 @@ rawSources:
 file: rfork-transfer
 ```
 
-1. **登记空位。** B 把这三段空位所在的显存登记给传输引擎（YuanRong TransferEngine）。读的两端都得登记过，A 那一份在它当 seed 时就登记好了。
-2. **要清单。** B 通过 HTTP 问 A：每块权重叫什么、在 A 显存的哪个地址、有多少个元素、每个元素几字节、什么形状和类型。这份清单（manifest）只是描述，权重本身不走 HTTP。
+1. **登记空位（借租约前）。** B 先把这三段空位所在的显存登记给传输引擎（YuanRong TransferEngine）并绑定结构摘要，再拿算出的 `seed_key` 去借 seed。读的两端都得登记过，A 那一份在它当 seed 时就登记好了。
+2. **要清单（借到 seed 后）。** B 通过 HTTP 问 A：每块权重叫什么、在 A 显存的哪个地址、有多少个元素、每个元素几字节、什么形状和类型。这份清单（manifest）只是描述，权重本身不走 HTTP。
 3. **核清单。** B 拿 A 的清单和自己的逐项对照，三块全部对上才往下走；有一项对不上，一个字节都不读。
 4. **分批读。** 由 B 发起，按「A 的地址 → B 的地址」把字节读过来。一批累计不超过 1 GiB：W1 和 W2 合起来 0.9 GiB 装一批，再放 W3 就是 1.7 GiB，超了，所以 W3 另起一批。
 
 读完以后，B 的三段和 A 的三块一模一样；A 那边什么都没少，这是读、不是搬走，A 照常推理、继续当 seed。
 
-这四步是 [RFork 总览](rfork.md)里那八步的第 4–7 步展开。Planner、HTTP 元数据、权重字节三条通道各管什么，见总览的[三条通道](rfork.md#三条通道协调清单字节各走各的)。
+这四步是 [RFork 总览](rfork.md)里那八步的展开（第 1 步登记发生在借租约之前，第 2–4 步在借到 seed 之后）。Planner、HTTP 元数据、权重字节三条通道各管什么，见总览的[三条通道](rfork.md#三条通道协调清单字节各走各的)。
 
 ## 为什么不直接拷：每一步各防一种事故
 
 B 已经知道要的是哪一份权重，看起来只要「把 A 的那段显存复制过来」就行。实际上上面每一步都在挡一种具体的事故：
 
-- **不登记，传输引擎不碰这段内存。** 传输引擎只按登记过的地址读写。传输引擎的登记表只记地址，不管地址背后的存储死活；所以工作版在登记这一步还另外把这些存储保住，免得它们在传输途中被回收、改分给别的张量（见下文[登记了地址，权重就能活到传输结束吗](#登记了地址权重就能活到传输结束吗)）。
+- **不登记，传输引擎不碰这段内存。** 传输引擎只按登记过的地址读写。传输引擎的登记表只记地址，不管地址背后的存储死活；所以主线实现在登记这一步还另外把这些存储保住，免得它们在传输途中被回收、改分给别的张量（见下文[登记了地址，权重就能活到传输结束吗](#登记了地址权重就能活到传输结束吗)）。
 - **不要清单，B 不知道去哪读。** A 和 B 是两个进程，各自向分配器要显存，同一块权重在两边的地址不一样。A 那边的地址只能问 A。
 - **不先整份核对，字节会被读错意思。** 显存里只是一串字节，怎么解释全靠形状和类型。float16 和 bfloat16 都是每个元素 2 字节，按字节数完全对得上，可把 float16 的字节当 bfloat16 去用，得到的全是错的数。所以核对要在第一个字节写进来之前做完，而且要整份做完：边读边核的话，后面某一项不通过时，前面几块已经被覆盖，模型成了半新半旧。
 - **失败不撤销，卡上会同时有两份模型。** 登记时保住的存储会一直占着显存，半成品模型也还在；不先注销、撤掉，回退时再从存储加载一份，就是两份权重同时占卡。
@@ -113,15 +113,14 @@ B 已经知道要的是哪一份权重，看起来只要「把 A 的那段显存
 
 RFork 在服务接请求之前加载权重，所以要搬的量只由清单决定：每块权重「元素个数 × 每个元素几字节」，全部加起来。请求有多长、KV Cache 每个 token 占多少字节，算的是另一类状态，和这里无关。
 
-用一个只为演示算法的两项清单算一遍：
+用一个只为演示算法的两项示意清单算一遍（不对应任何真实模型）：
 
-```calc
-title: 两项清单要读多少字节（示意清单）
-W1 = 1024 × 1024 个元素 × 2 B（float16） = 2,097,152 B
-W2 = 1024 个元素 × 4 B（float32） = 4,096 B
-合计 = 2,097,152 + 4,096 = 2,101,248 B ≈ 2.004 MiB
-> 这不是任何真实模型的权重清单
-```
+| 权重（示意清单） | 形状与元素数 | dtype 与每元素字节 | 读取字节数 |
+|---|---|---|---|
+| `W1` | $1024 \times 1024 = 1{,}048{,}576$ | `float16`（$2\text{ B}$） | $2{,}097{,}152\text{ B}$ |
+| `W2` | $1024$ | `float32`（$4\text{ B}$） | $4{,}096\text{ B}$ |
+
+$$\text{合计} = 2{,}097{,}152 + 4{,}096 = 2{,}101{,}248\text{ B} \approx 2.004\text{ MiB}$$
 
 GLM 双机每张卡要读多少，见下文[放到 GLM 双机](#放到-glm-双机每张卡传两次字节和批数分开记)。
 
@@ -129,16 +128,14 @@ GLM 双机每张卡要读多少，见下文[放到 GLM 双机](#放到-glm-双�
 
 B 搭好模型以后，先把这次要收的每块权重登记给传输引擎。登记写下的不只是「权重从哪开始、有多长」，还有它所在的那一整块内存。
 
-**用一小段权重看清两种范围。** 分配器给出一块 [1000, 2024) 的内存；权重 W 从 1128 开始，有 64 个 float16 元素。W 自己那一段叫**逻辑范围**，它所在的整块叫**支撑范围**，登记时四个数一起交：
+**用一小段权重看清两种范围。** 分配器给出一块 `[1000, 2024)` 的示意内存（`1000` 不是真实地址）；权重 `W` 从 `1128` 开始，有 `64` 个 `float16` 元素。`W` 自己那一段叫**逻辑范围**，它所在的整块叫**支撑范围**，登记时把四个数一起交：
 
-```calc
-title: 一段权重的两种范围（示意地址）
-W 的长度 = 64 个元素 × 2 B = 128 B
-W 的终点 = 1128 + 128 = 1256
-所在整块的长度 = 2024 − 1000 = 1024 B
-登记的四个数 = (1128, 128, 1000, 1024)
-> 前两个是 W 的逻辑范围（起点、长度），后两个是支撑范围；1000 不是真实地址
-```
+| 量（示意地址） | 算式 | 结果 |
+|---|---|---|
+| `W` 的长度 | $64 \times 2\text{ B}$ | $128\text{ B}$ |
+| `W` 的终点 | $1128 + 128$ | $1256$ |
+| 所在整块（支撑范围）长度 | $2024 - 1000$ | $1024\text{ B}$ |
+| 登记四元组 | `(`逻辑起点, 逻辑长度, 支撑起点, 支撑长度`)` | `(1128, 128, 1000, 1024)` |
 
 传输引擎只读写逻辑范围，不会把整块都当成权重。这里的范围都是半开区间：包含起点、不包含终点，所以相邻的两段可以在同一个端点衔接，不会重复一个字节。
 
@@ -202,16 +199,13 @@ Ex 注册是客户端这边的调用约定。现场的 YuanRong 版本能不能�
 
 读之前先切段：一块权重超过 1 GiB 的，切成若干段、每段不超过 1 GiB。然后按清单顺序把段装批：装下一段会让这批超过 1 GiB，或者这批已经有 512 段，就封批、另起一批。这两个上限写死在代码里，不能从启动选项改。四个张量怎么装成几批，总览里[演过一遍](rfork.md#借一次权重b-的每个-worker-走哪几步)；这里只看切段时地址怎么走。
 
-一块 2.5 GiB 的大权重会切成 1、1、0.5 GiB 三段。每段的源地址和目标地址都按已经切出去的字节往后挪，不是把同一个地址读三遍。设这块权重在 A 那边从 a 开始、在 B 这边从 b 开始：
+一块 $2.5\text{ GiB}$ 的大权重会切成 `1`、`1`、`0.5 GiB` 三段。每段的源地址和目标地址都按已经切出去的字节往后挪，不是把同一个地址读三遍。设这块权重在 A 那边从 $a$ 开始、在 B 这边从 $b$ 开始，取 $1\text{ GiB} = 1024^3\text{ B} = 1{,}073{,}741{,}824\text{ B}$：
 
-```calc
-title: 2.5 GiB 的权重切成三段（示意）
-1 GiB = 1024³ B = 1,073,741,824 B
-第 2 段起点 = a + 1,073,741,824
-第 3 段起点 = a + 2 × 1,073,741,824 = a + 2,147,483,648
-第 3 段长度 = 2.5 GiB − 2 GiB = 0.5 GiB
-> B 这边的目标地址从 b 起按同样的偏移往后挪
-```
+| 切段（示意） | A 侧源起点 | B 侧目标起点 | 段长度 |
+|---|---|---|---|
+| 第 1 段 | $a$ | $b$ | $1\text{ GiB} = 1{,}073{,}741{,}824\text{ B}$ |
+| 第 2 段 | $a + 1{,}073{,}741{,}824$ | $b + 1{,}073{,}741{,}824$ | $1\text{ GiB} = 1{,}073{,}741{,}824\text{ B}$ |
+| 第 3 段 | $a + 2 \times 1{,}073{,}741{,}824 = a + 2{,}147{,}483{,}648$ | $b + 2{,}147{,}483{,}648$ | $2.5 - 2 = 0.5\text{ GiB}$ |
 
 读由接收方 B 发起：一批一次同步读取，B 给出自己的目标地址、A 的源地址和每段长度。任何一批返回错误，都记下是第几批、这批第一块和最后一块权重叫什么、底层返回的错误，然后走下一节的失败撤销。
 
@@ -257,17 +251,14 @@ title: 2.5 GiB 的权重切成三段（示意）
 
 ## 放到 GLM 双机：每张卡传两次，字节和批数分开记
 
-这一节是推演，不是实测：我们的部署（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）按教程命令没有开 RFork，工作版代码树里也没有 GLM-5.3-Flash 的模型实现。沿用总览的[所列语言张量子账](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)，3121f187 快照下主模型约 20,572 MiB、至少 21 批；MTP 草稿模型（负责先猜后面 token 的预测层）子账约 844 MiB；合计约 21,416 MiB，也就是 20.91 GiB。这些数未计视觉塔、MTP 旋转矩阵等表外项，不能当作完整清单。这里只讲传输这一层要分清的三件事。
+这一节是推演，不是实测：我们的部署（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）按教程命令没有开 RFork；社区上游 `vllm-ascend@8d6180e2` 已包含 GLM-5.3-Flash 的模型实现（`vllm_ascend/models/glm5next/` 下的 `Glm5NextForCausalLM` / `Glm5NextForConditionalGeneration` 与 `Glm5NextMTP`）及官方部署教程（`docs/source/tutorials/models/GLM5.3-Flash.md`），但该教程与上游 RFork 官方指南尚未给出专用的 GLM-5.3-Flash RFork 配方或验收表（且官方指南提示 `Glm5NextMTP` 暂未纳入自动 checkpoint 归属恢复），而本站 GLM 双机 W8A8 的历史算例钉在固定镜像 `db701c1f`。沿用总览的[所列语言张量子账](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)，`3121f187` 快照下主模型约 `20,572 MiB`、至少 21 批；MTP 草稿模型（负责先猜后面 token 的预测层）子账约 `844 MiB`；合计约 `21,416 MiB`，也就是 `20.91 GiB`。这些数未计视觉塔、MTP 旋转矩阵等表外项，不能当作完整清单。这里只讲传输这一层要分清的三件事。
 
-**两份清单分两个会话，从不装进同一批。** 主模型和草稿模型各走一遍上面的四步，各有自己的清单和批次。草稿的 844 MiB 只是子账，完整草稿至少需要一批；只有补齐表外项后总字节仍不超过 1 GiB、切段数不超过 512，才能断言一批读完。
+**两份清单分两个会话，从不装进同一批。** 主模型和草稿模型各走一遍上面的四步，各有自己的清单和批次。草稿的 `844 MiB` 只是子账，完整草稿至少需要一批；只有补齐表外项后总字节仍不超过 `1 GiB`、切段数不超过 `512`，才能断言一批读完。
 
-```calc
-title: GLM 所列语言张量已经给出的批量读下限
-分开装批下限 = 21 + 1 = 22 次
-> 主模型子账已至少 21 批；独立草稿会话至少 1 批，完整清单可能更多
-合起来除（错误算法） = ⌈21,416 MiB ÷ 1,024 MiB⌉ = 21 次
-> 两份清单不会装进同一批，合起来除会少算草稿那一批
-```
+| 算法（GLM 所列语言张量下限） | 算式 | 批量读下限 | 说明 |
+|---|---|---|---|
+| **分开装批（正确）** | $21 + 1$ | **22 次** | 主模型子账已至少 21 批；独立草稿会话至少 1 批，完整清单可能更多 |
+| 合起来除（错误） | $\lceil 21{,}416 \div 1{,}024 \rceil$ | 21 次 | 两份清单不会装进同一批，合起来除会少算草稿那一批 |
 
 说是下限，是因为装批还要看张量的大小和顺序，总字节除以 1 GiB 只是最少的批数；实际批数以两条传完日志为准，现场还没有实测。
 
@@ -294,7 +285,7 @@ title: GLM 所列语言张量已经给出的批量读下限
 
 ### 会报什么错
 
-登记（第一步，`register_memory_region`）在申请租约与取清单之前：模型里有未豁免的非 NPU 张量时报 `RFork does not support mixed-device model state; ...`；传输引擎缺 `get_rpc_port` 或 `batch_register_memory_ex` 接口时报 `RFork requires YuanRong TransferEngine with get_rpc_port support.` / `RFork requires YuanRong TransferEngine with MemoryRegistration and batch_register_memory_ex support.`；其余登记侧报错见本节末段。[C13][C14][C21]
+登记（第一步，`register_memory_region`）在申请租约与取清单之前：模型里有未豁免的非 NPU 张量时报 `RFork does not support mixed-device model state; ...`；传输引擎缺 `get_rpc_port` 或 `batch_register_memory_ex` 接口时报 `RFork requires YuanRong TransferEngine with get_rpc_port support.` / `RFork requires YuanRong TransferEngine with MemoryRegistration and batch_register_memory_ex support.`；其余登记侧报错见本节末段。[C14][C21]
 
 取清单（`fetch_seed_transfer_info`）：接收端 GET `/get_rfork_transfer_engine_info?seed_key=...`（`allow_redirects=False`）。[C1]
 
@@ -310,23 +301,23 @@ title: GLM 所列语言张量已经给出的批量读下限
 
 seed 服务端（`seed_server.py#L178-L198`）仅提供两个路由：`/get_rfork_transfer_engine_info`（key 不匹配返回 404）与 `/health_check_with_key`（key 不匹配返回 400）；不再提供独立的 shape 查询接口。[C9]
 
-清单核对（`manifest.py#L87-L214`）常见报错：`Invalid weight info for ...`（仅接受严格五元组）、`RFork remote format manifest is missing, malformed, or differs from the weight manifest.`、`Weight info mismatch for ...`（`numel` / `element_size`）、`Weight dtype mismatch for ...`、`Weight storage format mismatch for ...`（NPU 存储格式不同）、`RFork manifest count/bytes differ: ...`、`RFork manifest names differ after validated shared skips: ...`。[C2][C3]
+清单核对（`manifest.py#L87-L214`）常见报错：`Invalid weight info for ...`（仅接受严格五元组）、`RFork remote format manifest is missing, malformed, or differs from the weight manifest.`、`Weight info mismatch for ...`（`numel` / `element_size`）、`Weight dtype mismatch for ...`、`Weight storage format mismatch for ...`（NPU 存储格式不同）、`RFork manifest count/bytes differ: ...`、`RFork manifest names differ after validated shared skips: ...`。[C3]
 
 形状调整（`reshape_tensor_to_seed_shape`）：`numel` 不同报 `Weight shape mismatch for ...`；`tensor.data.view(seed_shape)` 抛异常报 `Failed to reshape RFork tensor ...`。[C7] 读取前再经 `_validate_transferable_tensor_layouts` 校验非重叠稠密存储。
 
 读取：每批调 `batch_transfer_sync_read(session_id, client_ptrs, seed_ptrs, lengths)`，本地目标地址在前、远端源地址在后；失败报 `Failed to transfer weights chunk %d/%d, first: %s, last: %s, ret=%s` 后返回 False。[C6]
 
-内存登记一侧：逻辑范围找不到完整覆盖的支撑块时，打印 `tensor range ... is not fully covered by a registration block` 后失败 [C14]；取不到有效的 storage owner 直接失败 [C12]；看到 `registration rollback is incomplete` 说明注册失败后的回滚没做完；批量注销返回 `kNotFound` 时逐地址重试，单地址 `kNotFound` 视为已不存在 [C15]；`finalize_transfer_engine` 只在返回 `kNotReady` 时重试（最多 10 次、每次隔 1 秒） [C16]；seed HTTP 服务仍被持有时拒绝直接注销 MR，报 `RFork refuses to unregister memory while the seed server is owned.`。[C19]
+内存登记一侧：逻辑范围找不到完整覆盖的支撑块时，打印 `tensor range ... is not fully covered by a registration block` 后失败；取不到有效的 storage owner 直接失败；看到 `registration rollback is incomplete` 说明注册失败后的回滚没做完；批量注销返回 `kNotFound` 时逐地址重试，单地址 `kNotFound` 视为已不存在 [C15]；`finalize_transfer_engine` 只在返回 `kNotReady` 时重试（最多 10 次、每次隔 1 秒） [C16]；seed HTTP 服务仍被持有时拒绝直接注销 MR，报 `RFork refuses to unregister memory while the seed server is owned.`。[C19]
 
-失败撤销（`rfork_loader.py`）：`transfer_from_seed` 返回 False 时抛 `RuntimeError("transfer failed.")`，打印 `RFork transfer failed: ..., clean up and fall back to default loader`，再调 `prepare_for_fallback` 最多 2 次；`can_schedule_seed` 只看 `service_stopped and memory_reset`，不满足时抛 `RFork fallback aborted ...` 拒绝分配第二份模型。[C19][C25]
+失败撤销（`rfork_loader.py`）：`transfer_from_seed` 返回 False 时抛 `RuntimeError("transfer failed.")`，打印 `RFork transfer failed: ..., clean up and fall back to default loader`，再调 `prepare_for_fallback` 最多 2 次；`can_schedule_seed` 只看 `service_stopped and memory_reset`，不满足时抛 `RFork fallback aborted ...` 拒绝分配第二份模型。[C25]
 
 ### 开销和什么时候别开
 
 分块：单个 tensor 字节段超过 1 GiB 先拆成不超过 1 GiB 的连续片段，再按累计 ≤ 1 GiB、段数 ≤ 512（`MAX_TRANSFER_CHUNK_SEGMENTS`）分批。[C5] 2.5 GiB 张量切成 1 + 1 + 0.5 GiB 三段是教学例子。[A][D] 别名按逻辑名逐个读，字节统计可能大于去重存储量。
 
-完成日志 `RFork weight transfer completed: tp_rank=..., weights=..., chunks=..., bytes=... GiB, elapsed=...s, throughput=... GiB/s`（TP0 为 INFO、其余为 DEBUG）只计读取循环；session 另有 `RFork transfer stages` 分段日志（DEBUG）。[C6][C8]
+完成日志 `RFork weight transfer completed: tp_rank=..., weights=..., chunks=..., bytes=... GiB, elapsed=...s, throughput=... GiB/s`（TP0 为 INFO、其余为 DEBUG）只计读取循环；session 另有 `RFork transfer stages` 分段日志（DEBUG）。[C8]
 
-内存登记每批最多 4096 项（`MAX_MEMORY_REGISTRATION_BATCH_ITEMS`），finalize 最多 10 次、间隔 1 秒。[C10][C16] 教学字节例（W1 + W2 ≈ 2.004 MiB）与 GLM 双机子账推导规则同前，详细读取推导仅维护在[RFork 总览](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)。[A][D]
+内存登记每批最多 4096 项（`MAX_MEMORY_REGISTRATION_BATCH_ITEMS`），finalize 最多 10 次、间隔 1 秒。教学字节例（W1 + W2 ≈ 2.004 MiB）与 GLM 双机子账推导规则同前，详细读取推导仅维护在[RFork 总览](rfork.md#每张卡读多少读的字节和常驻的权重是两本账)。[A][D]
 
 ### 版本差异
 
@@ -335,7 +326,7 @@ seed 服务端（`seed_server.py#L178-L198`）仅提供两个路由：`/get_rfor
 | 模块与元数据协议 | 旧六文件结构，`seed_protocol.py`；无独立 `manifest.py`、无 dtype/格式校验 | 独立 `manifest.py` 与 `seed_client.py`；严格五元组 + NPU format 逐项比对 | 同 `v0.30.0`，增加 `rfork_protocol_version = 1` 显式校验，错 key 返回 404 |
 | 分块与登记 | 1 GiB / 512 条，单张量不切段；无 storage 保活、无草稿排除区间 | 单张量先切段（≤1 GiB）再按 ≤1 GiB / ≤512 段装批；`batch_register_memory_ex`（≤4096 项）+ `get_rpc_port()` + storage 保活 + 草稿排除 | 同 `v0.30.0`，常量名为 `MAX_TRANSFER_CHUNK_SEGMENTS`，读取前增非重叠稠密布局复验与有界布局摘要 |
 
-固定镜像 `db701c1f` 与 `v0.23.0` 一致；旧开发快照 `baa023ad` 已合入张量引用保活与草稿排除区间，但仍属六文件结构。[C22][C23][C24] 完整对照见 [RFork 总览](rfork.md#版本差异)。
+固定镜像 `db701c1f` 与 `v0.23.0` 一致；旧开发快照 `baa023ad` 已合入张量引用保活与草稿排除区间，但仍属六文件结构（对照来源 22–24）。[C22] 完整对照见 [RFork 总览](rfork.md#版本差异)。
 
 ### 源码位置
 
@@ -343,20 +334,20 @@ seed 服务端（`seed_server.py#L178-L198`）仅提供两个路由：`/get_rfor
 
 | 步骤 | 位置 |
 |---|---|
-| 先登记 → 借租约 → 取清单 → 读，分段耗时日志 | `session.py#L115-L276` [C8] |
-| 取清单与协议版本校验 | `seed_client.py#L58-L110` `fetch_seed_transfer_info` [C1] |
-| 严格五元组条目解析与字段合法性 | `manifest.py#L17-L86` [C2] |
-| 逐张量元素/dtype/NPU format、条数与总字节校验 | `manifest.py#L87-L214` `validate_weight_manifest` [C3] |
-| 名称集合、共享项跳过、视图调整与稠密布局复验 | `transfer_backend.py#L695-L806` [C4] |
-| 大张量拆段与分批（1 GiB / 512 段） | `transfer_backend.py#L38-L45`、`#L128-L165` [C5][C10] |
-| 读列表、批量同步读、完成日志 | `transfer_backend.py#L807-L876` [C6] |
-| 形状视图调整 | `tensor_layout.py#L205-L226` `reshape_tensor_to_seed_shape` [C7] |
-| seed 服务端路由（错 key 回 404 / 400） | `seed_server.py#L178-L198` [C9] |
-| 引擎初始化与 `get_rpc_port()` | `transfer_backend.py#L227-L273` [C21] |
-| 分配块索引、storage 保活与草稿排除 | `transfer_backend.py#L47-L126`、`#L167-L190`、`#L338-L410` [C11][C12][C13] |
-| 完整覆盖、`batch_register_memory_ex` 与失败回滚 | `transfer_backend.py#L411-L551` [C14] |
-| `unregister_memory_region`（`kNotFound` 逐地址重试）与 `finalize_transfer_engine` | `transfer_backend.py#L552-L694` [C15][C16] |
-| draft 排除块与全量共享直接 `eval()` 返回 | `rfork_loader.py#L712-L728`、`#L805-L815` [C17][C18] |
-| 拒绝注销检查、清理顺序与 `can_schedule_seed` | `session.py#L446-L478`、`types.py#L68-L81` [C19][C25] |
+| 先登记 → 借租约 → 取清单 → 读，分段耗时日志 | `session.py#L115-L276` |
+| 取清单与协议版本校验 | `seed_client.py#L58-L110` `fetch_seed_transfer_info` |
+| 严格五元组条目解析与字段合法性 | `manifest.py#L17-L86` |
+| 逐张量元素/dtype/NPU format、条数与总字节校验 | `manifest.py#L87-L214` `validate_weight_manifest` |
+| 名称集合、共享项跳过、视图调整与稠密布局复验 | `transfer_backend.py#L695-L806` |
+| 大张量拆段与分批（1 GiB / 512 段） | `transfer_backend.py#L38-L45`、`#L128-L165` |
+| 读列表、批量同步读、完成日志 | `transfer_backend.py#L807-L876` |
+| 形状视图调整 | `tensor_layout.py#L205-L226` `reshape_tensor_to_seed_shape` |
+| seed 服务端路由（错 key 回 404 / 400） | `seed_server.py#L178-L198` |
+| 引擎初始化与 `get_rpc_port()` | `transfer_backend.py#L227-L273` |
+| 分配块索引、storage 保活与草稿排除 | `transfer_backend.py#L47-L126`、`#L167-L190`、`#L338-L410` |
+| 完整覆盖、`batch_register_memory_ex` 与失败回滚 | `transfer_backend.py#L411-L551` |
+| `unregister_memory_region`（`kNotFound` 逐地址重试）与 `finalize_transfer_engine` | `transfer_backend.py#L552-L694` |
+| draft 排除块与全量共享直接 `eval()` 返回 | `rfork_loader.py#L712-L728`、`#L805-L815`（来源 17、18） |
+| 拒绝注销检查、清理顺序与 `can_schedule_seed` | `session.py#L446-L478`、`types.py#L68-L81` |
 
-只有在 `logical_registrations` 非空时才要求 `MemoryRegistration` 与可调用的 `batch_register_memory_ex`；接口缺失会在批次提交前清登记状态，已提交后遇错则走保留未解决地址的回滚分支（`transfer_backend.py#L491-L535`）。[C14]
+只有在 `logical_registrations` 非空时才要求 `MemoryRegistration` 与可调用的 `batch_register_memory_ex`；接口缺失会在批次提交前清登记状态，已提交后遇错则走保留未解决地址的回滚分支（`transfer_backend.py#L491-L535`，来源 14）。

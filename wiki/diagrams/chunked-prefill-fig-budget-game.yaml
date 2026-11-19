@@ -1,7 +1,7 @@
 mode: native-svg
 id: chunked-prefill-fig-budget-game
 caption: >-
-  v0.30.0 单步 token_budget 博弈与昇腾耦合规则：Scheduler.schedule 先扣除 running Decode 请求（每条 1 个或投机 1+K 个 token），再将余量切给 Prefill 分块；昇腾 vllm serve 因初始化前 get_device_total_memory 抛 NotImplementedError 默认回落 2048，开启 SP+PCP 会静默向上取整至 tp×pcp 倍数，而 PP>1 与 CPP 可将预算放大至固定分块的 2~4 倍以减少前缀 KV 重复读取并压缩 TTFT。
+  v0.30.0 单步 token_budget 博弈与昇腾耦合规则：Scheduler.schedule 先扣除 running Decode 请求（每条 1 个或投机 1+K 个 token），再将余量切给 Prefill 分块；昇腾 vllm serve 因初始化前 get_device_total_memory 抛 NotImplementedError 默认回落 2048，开启 SP+PCP 会打印 warning_once 告警后向上取整至 tp×pcp 倍数，而 PP>1 与 CPP 可将预算放大至固定分块的 2~4 倍以减少前缀 KV 重复读取并压缩 TTFT。
 size: [900, 480]
 pins:
   - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L580-L665'

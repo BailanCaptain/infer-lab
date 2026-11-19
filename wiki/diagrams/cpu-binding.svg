@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 420" width="880" height="420" role="img" aria-label="A2 拓扑亲和路径先给这颗卡凑一个 CPU 池：拓扑亲和核与 cpuset 求交，若这些核都落在同一个 NUMA 节点里，就再把编号下一个节点里允许的核补进池，所以池通常横跨两个节点。再把池里的核按位置分角色：最前两个留给这颗 NPU 的中断，最后两个给 ACL 线程和 release 线程，中间归主线程。最后尝试把进程已分配的页迁到池里编号最小的那个核所在的节点。图按亲和节点是节点 0、下一个节点是节点 1、相关设置成功时画，核数是示意，不是服务器规格；A5 使用独立 cluster 路径。">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 458" width="900" height="458" role="img" aria-label="A2 拓扑亲和路径先给这颗卡凑一个 CPU 池：拓扑亲和核与 cpuset 求交，若这些核都落在同一个 NUMA 节点里，就再把编号下一个节点里允许的核补进池，所以池通常横跨两个节点。再把池里的核按位置分角色：最前两个留给这颗 NPU 的中断，最后两个给 ACL 线程和 release 线程，中间归主线程。最后尝试把进程已分配的页迁到池里编号最小的那个核所在的节点。图按亲和节点是节点 0、下一个节点是节点 1、相关设置成功时画，核数是示意，不是服务器规格；A5 使用独立 cluster 路径。">
   <title>A2 拓扑亲和路径先给这颗卡凑一个 CPU 池：拓扑亲和核与 cpuset 求交，若这些核都落在同一个 NUMA 节点里，就再把编号下一个节点里允许的核补进池，所以池通常横跨两个节点。再把池里的核按位置分角色：最前两个留给这颗 NPU 的中断，最后两个给 ACL 线程和 release 线程，中间归主线程。最后尝试把进程已分配的页迁到池里编号最小的那个核所在的节点。图按亲和节点是节点 0、下一个节点是节点 1、相关设置成功时画，核数是示意，不是服务器规格；A5 使用独立 cluster 路径。</title>
   <defs><marker id="cpu-binding-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="cpu-binding-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="cpu-binding-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="cpu-binding-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
-  <rect x="190" y="56" width="330" height="300" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <rect x="190" y="56" width="330" height="332" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="206" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">NUMA 节点 0 · 这颗卡的亲和节点</text>
-  <rect x="548" y="56" width="308" height="300" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <rect x="548" y="56" width="332" height="332" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="564" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">NUMA 节点 1 · 编号下一个节点</text>
   <g data-hardware="chip">
   <rect x="32" y="158" width="114" height="74" rx="5" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
@@ -13,53 +13,53 @@
   <text x="89" y="199" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NPU 0（本卡）</text>
   </g>
   <g data-hardware="memory">
-  <rect x="206" y="270" width="298" height="74" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M211 336h288M211 340h288" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="355" y="311" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本地内存 · 页迁到这里</text>
+  <rect x="206" y="300" width="298" height="74" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M211 366h288M211 370h288" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="355" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本地内存 · 页迁到这里</text>
   </g>
   <g data-hardware="memory">
-  <rect x="566" y="270" width="274" height="74" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M571 336h264M571 340h264" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="703" y="311" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">下一个节点的内存</text>
+  <rect x="566" y="300" width="296" height="74" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M571 366h286M571 370h286" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="714" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">下一个节点的内存</text>
   </g>
   <path d="M154 178 L204 178" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#cpu-binding-ah-comm)"/>
   <path d="M328 110 L348 110" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#cpu-binding-ah-token)"/>
   <path d="M488 110 L564 110" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#cpu-binding-ah-control)"/>
-  <path d="M638 157 L728 157" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#cpu-binding-ah-token)"/>
-  <path d="M610 176 L610 203 L728 203" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#cpu-binding-ah-token)"/>
-  <path d="M267 136 L267 270" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-start="url(#cpu-binding-ah-kv)" marker-end="url(#cpu-binding-ah-kv)"/>
-  <path d="M508 307 L564 307" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" stroke-dasharray="7 5" marker-start="url(#cpu-binding-ah-comm)" marker-end="url(#cpu-binding-ah-comm)"/>
-  <rect x="348" y="96" width="28" height="28" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="379" y="96" width="28" height="28" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="410" y="96" width="28" height="28" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="441" y="96" width="28" height="28" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="566" y="96" width="28" height="28" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="597" y="96" width="28" height="28" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="628" y="96" width="28" height="28" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="348" y="148" width="28" height="28" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="379" y="148" width="28" height="28" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="566" y="148" width="28" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="597" y="148" width="28" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="566" y="220" width="28" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="597" y="220" width="28" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="628" y="220" width="28" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="659" y="220" width="28" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="690" y="220" width="28" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="206" y="92" width="122" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="267" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Worker 主线程</text>
-  <text x="267" y="129" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">准备张量</text>
-  <rect x="730" y="140" width="110" height="34" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="785" y="162" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">ACL 线程</text>
-  <rect x="730" y="186" width="110" height="34" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="785" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">release 线程</text>
-  <text x="440" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">池 = 亲和核 ∩ cpuset ＋ 下一个节点的核</text>
-  <text x="112" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">下发算子</text>
-  <text x="89" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">拓扑给出亲和节点</text>
-  <text x="348" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">主线程池（池的中段，横跨两节点）</text>
-  <text x="348" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">这颗 NPU 的中断 · 池最前 2 核</text>
-  <text x="566" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">ACL / release · 池最后 2 核</text>
-  <text x="566" y="258" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">不在 cpuset 里的核：不进池</text>
-  <text x="272" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">迁页</text>
-  <rect x="566" y="372" width="257.5" height="24" rx="12" fill="var(--color-danger, #b54237)"/>
-  <text x="694.7" y="389" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">池最后两核在节点 1，它们访存仍跨节点</text>
+  <path d="M638 151 L750 151" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#cpu-binding-ah-token)"/>
+  <path d="M610 176 L610 195 L750 195" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#cpu-binding-ah-token)"/>
+  <path d="M267 136 L267 300" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-start="url(#cpu-binding-ah-kv)" marker-end="url(#cpu-binding-ah-kv)"/>
+  <path d="M508 337 L564 337" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" stroke-dasharray="7 5" marker-start="url(#cpu-binding-ah-comm)" marker-end="url(#cpu-binding-ah-comm)"/>
+  <rect x="348" y="96" width="28" height="28" rx="4" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <rect x="379" y="96" width="28" height="28" rx="4" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <rect x="410" y="96" width="28" height="28" rx="4" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <rect x="441" y="96" width="28" height="28" rx="4" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <rect x="566" y="96" width="28" height="28" rx="4" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <rect x="597" y="96" width="28" height="28" rx="4" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <rect x="628" y="96" width="28" height="28" rx="4" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <rect x="348" y="148" width="28" height="28" rx="4" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
+  <rect x="379" y="148" width="28" height="28" rx="4" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
+  <rect x="566" y="148" width="28" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <rect x="597" y="148" width="28" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <rect x="566" y="246" width="28" height="28" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.2"/>
+  <rect x="597" y="246" width="28" height="28" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.2"/>
+  <rect x="628" y="246" width="28" height="28" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.2"/>
+  <rect x="659" y="246" width="28" height="28" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.2"/>
+  <rect x="690" y="246" width="28" height="28" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.2"/>
+  <rect x="206" y="92" width="122" height="44" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="267" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Worker 主线程</text>
+  <text x="267" y="129" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">准备张量</text>
+  <rect x="752" y="134" width="112" height="34" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="808" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">ACL 线程</text>
+  <rect x="752" y="178" width="112" height="34" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="808" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">release 线程</text>
+  <text x="450" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">池 = 亲和核 ∩ cpuset ＋ 下一个节点的核</text>
+  <text x="112" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">下发算子</text>
+  <text x="89" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">拓扑给出亲和节点</text>
+  <text x="348" y="82" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">主线程池（横跨两节点）</text>
+  <text x="348" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">这颗 NPU 中断 · 前 2 核</text>
+  <text x="566" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">ACL / release · 池最后 2 核</text>
+  <text x="566" y="290" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">不在 cpuset 里的核：不进池</text>
+  <text x="272" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">迁页</text>
+  <rect x="566" y="408" width="257.5" height="24" rx="12" fill="var(--color-danger-soft, #fbe5e2)" stroke="var(--color-danger, #b54237)" stroke-width="1.4"/>
+  <text x="694.7" y="425" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">池最后两核在节点 1，它们访存仍跨节点</text>
 </svg>

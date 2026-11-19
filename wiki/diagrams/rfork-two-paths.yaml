@@ -36,8 +36,8 @@ links:
 texts:
   - { at: [44, 160], text: NPU 上已就绪的权重, note: true }
   - { at: [634, 160], text: 先建空模型、开好空位, note: true }
-  - { at: [325, 114], text: 登记, anchor: middle, size: 12 }
-  - { at: [575, 114], text: ① 借, anchor: middle, size: 12, tone: control }
+  - { at: [325, 113], text: 登记, anchor: middle, size: 13 }
+  - { at: [575, 113], text: ① 借, anchor: middle, size: 13, tone: control }
   - { at: [436, 214], text: ② 按地址直接读权重字节, anchor: middle, strong: true, tone: weight }
   - { at: [745, 304], text: 传完、归还租约后可尝试当 seed, anchor: middle, note: true }
   - { at: [600, 400], text: ③ 停服务、注销成功才回退, tone: danger }

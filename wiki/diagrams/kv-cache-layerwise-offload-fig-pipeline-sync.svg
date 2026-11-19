@@ -52,7 +52,7 @@
 <text x="30" y="390">• 门 2：RD2H 远端 D 读完 / P2P 推送完成</text>
 <text x="30" y="414" font-weight="600" fill="#7a3a6a">• 循环 10s 等待并抛后台错（废静默超时）</text>
 <text x="478" y="366">• 默认不共享槽；共享槽须 eager 且拒递推态</text>
-<text x="478" y="390">• Mooncake 逐层支持 TP/PP，拒 CP 与不等 TP</text>
+<text x="478" y="390">• Mooncake：v0.30 支持 TP/PP；main 增互斥 PCP/DCP</text>
 <text x="478" y="414" font-weight="600" fill="#8f3229">• main 拆出 ascend_store/layerwise/ 独立子包</text>
 </g>
 </svg>

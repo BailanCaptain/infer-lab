@@ -78,13 +78,19 @@ describe("Domain 1: Parallelism & 4-Family MoE Strategy", () => {
     ).toBe(true);
 
     const flashDisabled = evaluateDomain1Rules(
-      { tpSize: 4, ppSize: 2, isMoe: true, enableExpertParallel: true, enableFlashcomm1: true },
+      { tpSize: 4, ppSize: 2, isQwen35Dense: true, enableFlashcomm1: true },
       "v0.30.0",
     );
     expect(flashDisabled.some((m) => m.ruleId === "d1-flashcomm1-unsupported-disable")).toBe(true);
     expect(
       evaluateDomain1Rules(
         { tpSize: 4, ppSize: 2, isMoe: true, enableExpertParallel: true, enableFlashcomm1: true },
+        "v0.30.0",
+      ).some((m) => m.ruleId === "d1-flashcomm1-unsupported-disable"),
+    ).toBe(false);
+    expect(
+      evaluateDomain1Rules(
+        { tpSize: 4, ppSize: 2, isQwen35Dense: true, enableFlashcomm1: true },
         "rfork",
       ).some((m) => m.ruleId === "d1-flashcomm1-unsupported-disable"),
     ).toBe(false);
@@ -139,7 +145,7 @@ describe("Domain 1: Parallelism & 4-Family MoE Strategy", () => {
     );
     const err = crossNode.find((m) => m.ruleId === "d1-roce-pp-dp-moe-exclusion");
     expect(err?.judgment).toBe("error");
-    expect(err?.message).toContain("NO Python startup check");
+    expect(err?.message).toContain("无 Python 启动校验");
 
     const singleNode = evaluateDomain1Rules(
       { isMoe: true, ppSize: 2, dpSize: 2, crossNodeRoce: false },
@@ -248,7 +254,7 @@ describe("Domain 1: Parallelism & 4-Family MoE Strategy", () => {
         hardwareFamily: "A3",
         isMoe: true,
         enableExpertParallel: true,
-        enableFusedMc2: 1,
+        enableFusedMc2: 2,
         isMegaMoeSupportedByModel: true,
         isMegaMoeSupportedByConfig: false,
       },
@@ -318,7 +324,7 @@ describe("Domain 1: Parallelism & 4-Family MoE Strategy", () => {
         hardwareFamily: "A3",
         isMoe: true,
         enableExpertParallel: true,
-        enableFusedMc2: 1,
+        enableFusedMc2: 2,
         tpSize: 8,
         dpSize: 2,
         maxNumBatchedTokens: 131072,
@@ -718,12 +724,12 @@ describe("Domain 3: Native FP8 / MXFP8 & Hybrid KV Quantization", () => {
       ).method,
     ).toBe("MC2");
 
-    // P1-B: A5 with enableFusedMc2=1 & isMegaMoeSupportedByConfig=false (omitted isMegaMoeSupportedByModel)
+    // P1-B: A5 with enableFusedMc2=2 (MegaMoe) & isMegaMoeSupportedByConfig=false (omitted isMegaMoeSupportedByModel)
     const a5ResetInput = {
       hardwareFamily: "A5" as const,
       isMoe: true,
       enableExpertParallel: true,
-      enableFusedMc2: 1 as const,
+      enableFusedMc2: 2 as const,
       isMegaMoeSupportedByConfig: false,
       tpSize: 8,
       dpSize: 2,
@@ -953,7 +959,7 @@ describe("Domain 3: Native FP8 / MXFP8 & Hybrid KV Quantization", () => {
       hardwareFamily: "A3" as const,
       isMoe: true,
       enableExpertParallel: true,
-      enableFusedMc2: 1 as const,
+      enableFusedMc2: 2 as const,
       tpSize: 0,
       dpSize: 16,
     };
@@ -1029,5 +1035,129 @@ describe("Domain 3: Native FP8 / MXFP8 & Hybrid KV Quantization", () => {
       "v0.30.0",
     );
     expect(goodC8Block.some((m) => m.ruleId === "d3-gqa-c8-block-size-multiple-32")).toBe(false);
+  });
+
+  it("Audit Wave 6 regressions: separates enable_fused_mc2=1 from MegaMoe (=2/=3), rejects =3 on v0.30.0, and allows MoE+EP FlashComm1 with pp>1", () => {
+    // Bug 1: enable_fused_mc2=1 is dispatch_ffn_combine (_MEGA_MOE_SUPPORTED=False), NOT MegaMoe
+    const mc2OneA3Ep16 = {
+      hardwareFamily: "A3" as const,
+      isMoe: true,
+      enableExpertParallel: true,
+      enableFusedMc2: 1 as const,
+      tpSize: 8,
+      dpSize: 2,
+      maxNumBatchedTokens: 131072,
+    };
+    expect(isMegaMoeActive(mc2OneA3Ep16, "v0.30.0")).toBe(false);
+    expect(isMegaMoeActive(mc2OneA3Ep16, "main")).toBe(false);
+    expect(isFusedMc2SilentlyReset({ ...mc2OneA3Ep16, isMegaMoeSupportedByConfig: false }, "v0.30.0")).toBe(
+      false,
+    );
+    const capOne = calculateMc2TokensCapacity(mc2OneA3Ep16, "v0.30.0");
+    expect(capOne.usedMegaMoeLimit).toBe(false);
+    expect(capOne.perRankLimit).toBe(512);
+    // A3 ep=16 <= 32 -> dispatch_ffn_combine FUSED_MC2; A3 ep=64 > 32 -> falls back to MC2/ALLTOALL (NOT MegaMoe)
+    expect(selectMoeCommMethod(mc2OneA3Ep16, "v0.30.0").method).toBe("FUSED_MC2");
+    expect(
+      selectMoeCommMethod(
+        { ...mc2OneA3Ep16, tpSize: 8, dpSize: 8, maxCudagraphCaptureSize: 128, numTokens: 1024 },
+        "v0.30.0",
+      ).method,
+    ).toBe("ALLTOALL");
+    // A5 with enable_fused_mc2=1: _MEGA_MOE_SUPPORTED=False -> does NOT enter A5 FUSED_MC2
+    expect(
+      selectMoeCommMethod(
+        {
+          hardwareFamily: "A5",
+          isMoe: true,
+          enableExpertParallel: true,
+          enableFusedMc2: 1,
+          tpSize: 4,
+          dpSize: 2,
+          numTokens: 64,
+        },
+        "v0.30.0",
+      ).method,
+    ).toBe("MC2");
+    // MegaMoe (=2 on v0.30.0/main, =3 on main) activates 16384/rank, silent reset, and A5 FUSED_MC2
+    expect(isMegaMoeActive({ ...mc2OneA3Ep16, enableFusedMc2: 2 }, "v0.30.0")).toBe(true);
+    expect(calculateMc2TokensCapacity({ ...mc2OneA3Ep16, enableFusedMc2: 2 }, "v0.30.0").perRankLimit).toBe(
+      16384,
+    );
+    expect(
+      selectMoeCommMethod(
+        {
+          hardwareFamily: "A5",
+          isMoe: true,
+          enableExpertParallel: true,
+          enableFusedMc2: 2,
+          tpSize: 4,
+          dpSize: 2,
+          numTokens: 64,
+        },
+        "v0.30.0",
+      ).method,
+    ).toBe("FUSED_MC2");
+
+    // Bug 3: enable_fused_mc2=3 is main-only; rejected on v0.30.0 (and rfork)
+    const mc2ThreeV030 = evaluateDomain1Rules(
+      {
+        hardwareFamily: "A5",
+        isMoe: true,
+        enableExpertParallel: true,
+        enableFusedMc2: 3,
+        tpSize: 4,
+        dpSize: 2,
+      },
+      "v0.30.0",
+    );
+    expect(mc2ThreeV030.some((m) => m.ruleId === "d1-fused-mc2-3-main-only" && m.judgment === "error")).toBe(
+      true,
+    );
+    expect(
+      isMegaMoeActive(
+        {
+          hardwareFamily: "A5",
+          isMoe: true,
+          enableExpertParallel: true,
+          enableFusedMc2: 3,
+          tpSize: 4,
+          dpSize: 2,
+        },
+        "v0.30.0",
+      ),
+    ).toBe(false);
+    const mc2ThreeMain = evaluateDomain1Rules(
+      {
+        hardwareFamily: "A5",
+        isMoe: true,
+        enableExpertParallel: true,
+        enableFusedMc2: 3,
+        tpSize: 4,
+        dpSize: 2,
+      },
+      "main",
+    );
+    expect(mc2ThreeMain.some((m) => m.ruleId === "d1-fused-mc2-3-main-only")).toBe(false);
+
+    // Bug 6: FlashComm1 on MoE+EP supports pp > 1; only Qwen3.5 dense_sp requires pp === 1
+    expect(
+      evaluateDomain1Rules(
+        { tpSize: 4, ppSize: 2, isMoe: true, enableExpertParallel: true, enableFlashcomm1: true },
+        "v0.30.0",
+      ).some((m) => m.ruleId === "d1-flashcomm1-unsupported-disable"),
+    ).toBe(false);
+    expect(
+      evaluateDomain1Rules(
+        { tpSize: 4, ppSize: 2, isQwen35Dense: true, enableFlashcomm1: true },
+        "v0.30.0",
+      ).some((m) => m.ruleId === "d1-flashcomm1-unsupported-disable"),
+    ).toBe(true);
+    expect(
+      evaluateDomain1Rules(
+        { tpSize: 4, ppSize: 1, isQwen35Dense: true, enableFlashcomm1: true },
+        "v0.30.0",
+      ).some((m) => m.ruleId === "d1-flashcomm1-unsupported-disable"),
+    ).toBe(false);
   });
 });

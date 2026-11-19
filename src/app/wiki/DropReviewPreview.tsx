@@ -43,15 +43,69 @@ export function ReviewMarkdownLink({
 }
 
 type Change = { path: string; before: string | null; after: string | null };
+
+/**
+ * 提取审阅前后公式预览块：同时兼容存量 ```calc 围栏与二阶段标准 KaTeX 块级 `$$...$$` / 行内 `$...$` 公式
+ * （跳过普通代码围栏、行内代码与 `$10` 货币数字）。
+ */
+export function extractReviewFormulas(text: string | null): string {
+  const raw = (text ?? "").split("\n## 已废弃的说法")[0]!;
+  // Strip YAML frontmatter so frontmatter values are never scanned as math.
+  const active = raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
+  const items: { index: number; content: string }[] = [];
+  const fenceRanges: { start: number; end: number }[] = [];
+
+  for (const m of active.matchAll(/^```([^\n]*)\r?\n([\s\S]*?)^```[\t ]*$/gm)) {
+    const start = m.index ?? 0;
+    const end = start + m[0].length;
+    fenceRanges.push({ start, end });
+    const lang = m[1]!.trim();
+    if (lang === "calc" || (["", "text"].includes(lang) && textFenceAsCalc(m[2]!.trim()))) {
+      items.push({ index: start, content: m[0] });
+    }
+  }
+
+  const insideFence = (pos: number) => fenceRanges.some((r) => pos >= r.start && pos < r.end);
+  const blockMathRanges: { start: number; end: number }[] = [];
+
+  // Block KaTeX: $$...$$
+  for (const m of active.matchAll(/(?<!\\)\$\$([\s\S]+?)(?<!\\)\$\$/g)) {
+    const start = m.index ?? 0;
+    if (insideFence(start)) continue;
+    const body = m[1]!.trim();
+    if (!body) continue;
+    const end = start + m[0].length;
+    blockMathRanges.push({ start, end });
+    items.push({ index: start, content: `$$\n${body}\n$$` });
+  }
+
+  const insideBlockOrCode = (pos: number) =>
+    insideFence(pos) || blockMathRanges.some((r) => pos >= r.start && pos < r.end);
+
+  // Inline code spans so `$VAR` inside backticks is never treated as KaTeX.
+  const inlineCodeRanges: { start: number; end: number }[] = [];
+  for (const m of active.matchAll(/`[^`\r\n]+`/g)) {
+    const start = m.index ?? 0;
+    if (!insideFence(start)) inlineCodeRanges.push({ start, end: start + m[0].length });
+  }
+  const insideInlineCode = (pos: number) => inlineCodeRanges.some((r) => pos >= r.start && pos < r.end);
+
+  // Inline KaTeX: $...$ (single line, non-empty, neither leading/trailing space nor plain currency `$10`).
+  for (const m of active.matchAll(/(?<!\\|\$)\$(?!\$|\s)([^$\r\n]+?)(?<!\\|\s)\$(?!\$)/g)) {
+    const start = m.index ?? 0;
+    if (insideBlockOrCode(start) || insideInlineCode(start)) continue;
+    const inner = m[1]!;
+    // Skip simple currency / numeric literals without math operators or LaTeX commands.
+    if (/^\d+(?:[.,]\d+)?$/.test(inner)) continue;
+    items.push({ index: start, content: `- $${inner}$` });
+  }
+
+  items.sort((a, b) => a.index - b.index);
+  return items.map((item) => item.content).join("\n\n");
+}
+
 function formulas(text: string | null) {
-  const active = (text ?? "").split("\n## 已废弃的说法")[0]!;
-  return [...active.matchAll(/^```([^\n]*)\r?\n([\s\S]*?)^```[\t ]*$/gm)]
-    .filter(
-      (m) =>
-        m[1]!.trim() === "calc" || (["", "text"].includes(m[1]!.trim()) && textFenceAsCalc(m[2]!.trim())),
-    )
-    .map((m) => m[0])
-    .join("\n\n");
+  return extractReviewFormulas(text);
 }
 export function DropReviewPreview({ writes, placements }: { writes: Change[]; placements: Change[] }) {
   return (

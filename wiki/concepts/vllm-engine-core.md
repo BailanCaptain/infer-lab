@@ -210,13 +210,7 @@ $$N_{\text{pos}} = 3 + 1 = 4\text{ 个位置}, \qquad N_{\text{steps}} = 2 \div 
 
 ## 源码里的一圈：等活、选分支、交回结果
 
-把上面的顺序对到源码上，`EngineCoreProc` 进程的主线程只跑一个不停转的**忙循环**（busy loop），而前端通信交给后台收发线程处理。它有两处关键分支：没活时去等，有活时按有没有建「批次队列」走两条路之一。
-
-```wiki-diagram
-file: engine-core-flow
-```
-
-下面这张图进一步把队列解耦、同步 `step()` 与带队列 `step_with_batch_queue()` 的执行差异，以及多卡 DP 陪跑与 `v0.30.0` / `main` 的昇腾入口补丁收在一处，便于对照后文逐条核对：
+把上面的顺序对到源码上，`EngineCoreProc` 进程的主线程只跑一个不停转的**忙循环**（busy loop），而前端通信交给后台收发线程处理。它有两处关键分支：没活时去等，有活时按有没有建「批次队列」走两条路之一。下面这张图把队列解耦、同步 `step()` 与带队列 `step_with_batch_queue()` 的执行差异，以及多卡 DP 陪跑与 `v0.30.0` / `main` 的昇腾入口补丁收在一处，便于对照后文逐条核对：
 
 ```wiki-diagram
 file: vllm-engine-core-fig-queue-loop

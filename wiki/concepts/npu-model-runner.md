@@ -419,8 +419,8 @@ model runner 没有开关：每个 Worker 在 `init_device` 选好卡之后一�
 **版本判断的边界。** 固定 db701c1f 的 0.23.0 是 Worker 回退分支的版本匹配值；配置补丁另按环境值控制 V2 Runner，未设置时返回 False。这些分支不能证明其他版本完整支持 V2，实际选路与设备行为还须按安装版本验证。[来源 19](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/worker/worker.py#L159-L163)、[来源 20](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L20)
 
 - 来源 41：vllm-ascend@db701c1f，vllm_ascend/worker/model_runner_v1.py，L2914–L2940。
-- 来源 51–56：rc2 V1 的 12 项执行状态、两次调用和异步防护；CPU 语法处理也在来源 54。
-- 来源 57–60：rc2 Worker 与环境开关、V1 初始化和接受数判断；PCP 的启动拒绝条件回到[输入准备版本表](prepare-inputs-flow.md#版本差异)。
+- 来源 51–56：`v0.30.0`（及历史候选快照）V1 的 12 项执行状态、两次调用和异步防护；CPU 语法处理也在来源 54。
+- 来源 57–60：`v0.30.0`（及历史候选快照）Worker 与环境开关、V1 初始化和接受数判断；PCP 的启动拒绝条件回到[输入准备版本表](prepare-inputs-flow.md#版本差异)。
 - 来源 61：固定上游 MRV2 设计全文，支撑固定请求状态、本步 gather、pinned 快照、StagedWriteTensor 和捕获/回放边界；其中设备实现不能直接推广成 NPU 能力 [S61]。
 - 来源 62：小正数温度的下限修正及 temperature=0 的贪心判定 [D]。
 - 来源 63–67：`v0.30.0`（`c09d3e20`）Worker 默认实例化 MRV1（`worker.py#L498-L521`）、`patch_use_v2_model_runner.py#L18-L31`、`model_runner_v1.py` 的 `ExecuteModelState`（L353）、`execute_model`（L2227）与 `has_mamba_layers`（L4608）。

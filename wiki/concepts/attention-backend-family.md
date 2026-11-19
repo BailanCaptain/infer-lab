@@ -246,7 +246,7 @@ file: attention-backend-family-fig-selector-tree
 
 **"一个模型用一个后端。"** 后端按层挂。GLM 的一次前向里，34 层报 GDN 后端，12 层报稀疏 MLA 后端，另外还有只管缓存的两种后端，Runner 因此建出多个注意力组。
 
-**"看平台的后端选择表就知道 GLM 走哪个后端。"** 旧部署的那张表按"是不是 MLA、是不是稀疏、是不是压缩"三个布尔量挑后端；旧 GLM 缓存层直接返回自身后端类，绕过这张表。main 与 rc2 的 GLM 已改接可替换 MLA 包装层，实际 attention 后端会经过通用选择。想读懂路径，要从对应版本模型构造的对象出发，再查注册替换、后端元数据与算子调用。
+**"看平台的后端选择表就知道 GLM 走哪个后端。"** 旧部署的那张表按"是不是 MLA、是不是稀疏、是不是压缩"三个布尔量挑后端；旧 GLM 缓存层直接返回自身后端类，绕过这张表。`v0.30.0` 与 `main` 的 GLM 已改接可替换 MLA 包装层，实际 attention 后端会经过通用选择。想读懂路径，要从对应版本模型构造的对象出发，再查注册替换、后端元数据与算子调用。
 
 **"`indexer_kpool_mla_v1.py` 里那段 PyTorch 稀疏注意力就是推理时跑的东西。"** 那段参考实现没有生产调用点，只有单元测试调用它；它里面 query 按 16 个一块的分块常量，是单测参考实现的写法，不能用来描述 NPU 推理的 tiling。推理实际走的是同文件里的重写方法，再进设备算子。
 
@@ -260,7 +260,7 @@ file: attention-backend-family-fig-selector-tree
 
 ### 怎么开
 
-旧 GLM 部署先按配置的层类型判断装配对象，缓存层直接返回后端类；通用 attention backend 参数不能把这些层统一换成另一种机制。上游通用路径使用 `AttentionConfig.backend`（`"auto"` 或不填表示自动选择），最终传给平台的 `get_attn_backend_cls`。旧版 FA3 还要求显式选择 `FLASH_ATTN` 且 `VLLM_BATCH_INVARIANT` 已启用。main 与 rc2 的 GLM 包装层及 FA3 条件另见版本差异。
+旧 GLM 部署先按配置的层类型判断装配对象，缓存层直接返回后端类；通用 attention backend 参数不能把这些层统一换成另一种机制。上游通用路径使用 `AttentionConfig.backend`（`"auto"` 或不填表示自动选择），最终传给平台的 `get_attn_backend_cls`。旧版 FA3 还要求显式选择 `FLASH_ATTN` 且 `VLLM_BATCH_INVARIANT` 已启用。`v0.30.0` 与 `main` 的 GLM 包装层及 FA3 条件另见版本差异。
 
 ### 会报什么错
 

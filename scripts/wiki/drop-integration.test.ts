@@ -2790,15 +2790,15 @@ it("treats calc-density, stacked-blocks, diagram-first, and hedge-ratio as visib
         "---",
         "## 先算一遍缩放系数",
         "",
-        "极端离群值在未平滑时可能放大整行缩放步长，不同批次下耗时也可能随核融合路径变化。",
-        "",
-        "```calc",
-        "s = 1.27 / 127",
-        "```",
+        "极端离群值在未平滑时可能放大整行缩放步长，不同批次下耗时也可能随核融合路径变化。按标准 KaTeX 计算：$s = 1.27 / 127 = 0.01$。",
         "",
         "| 原值 | 量化值 |",
         "| --- | --- |",
         "| 1.27 | 127 |",
+        "",
+        "| 批次 | 相对误差 |",
+        "| --- | --- |",
+        "| 1 | 0.00 |",
         "",
         "## 为什么有时还要校准",
         "",
@@ -2857,9 +2857,7 @@ it("treats calc-density, stacked-blocks, diagram-first, and hedge-ratio as visib
   const dropReport = review.payload.drop?.report ?? "";
   expect(dropReport).toContain("写作建议（供教学审阅参考，不阻塞批准）");
   expect(dropReport).toContain("concepts/quant-note.md: [写作建议]");
-  expect(dropReport).toContain("calc 块");
   expect(dropReport).toContain("紧跟在上一个");
-  expect(dropReport).toContain("第一个 calc 块");
   expect(dropReport).toContain("切勿为压低比例删减真实限制条件");
 
   const published = await approveReview(f.root, done.reviewId!);

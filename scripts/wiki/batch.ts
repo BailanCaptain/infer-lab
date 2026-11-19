@@ -1,4 +1,5 @@
 import { setImmediate } from "node:timers/promises";
+import type { ChatProvider } from "../../src/content/wiki/chat-models";
 import type { ModelUse } from "./model-use";
 
 /** Shared execution contract. Entry adapters own prompts and artifact validation. */
@@ -7,9 +8,20 @@ export interface AgentRequest {
   accountingOnly?: boolean;
   signal?: AbortSignal;
   /** Omitted means the existing Claude runner and USD accounting. */
-  provider?: "claude" | "codex";
+  provider?: ChatProvider;
   model?: string;
   codexCli?: string;
+  codexAllowUserConfig?: boolean;
+  claudeCli?: string;
+  claudeSettingSources?: string;
+  /** Runtime-only env overrides for Claude CLI (e.g., ANTHROPIC_BASE_URL / API_TIMEOUT_MS). */
+  claudeEnv?: Record<string, string>;
+  apiBaseUrl?: string;
+  apiKeyEnv?: string;
+  anthropicVersion?: string;
+  harnessCommand?: { command: string; args?: string[] };
+  /** Separate system prompt for HTTP / harness providers (avoids re-parsing CLI args). */
+  systemPrompt?: string;
   /** Explicit evidence files for tool-free file generation; relative paths follow staged cwd. */
   evidenceFiles?: { label: string; path: string; allowMissing?: boolean; numbered?: boolean }[];
   id: string;
@@ -33,7 +45,7 @@ export interface AgentResult {
   exitCode: number | null;
   sessionId?: string;
   costUsd?: number;
-  billing?: "chatgpt";
+  billing?: "chatgpt" | "external";
   usage?: Record<string, number | undefined>;
   /** 实际作答模型与换手记录，启动器从 stream-json 里认出来的 */
   models?: ModelUse;
@@ -110,7 +122,7 @@ export async function runBatch(
     results,
     costUsd: results.reduce((sum, result) => sum + (result.costUsd ?? 0), 0),
     unknownCostIds: results
-      .filter((result) => result.costUsd === undefined && result.billing !== "chatgpt")
+      .filter((result) => result.costUsd === undefined && !result.billing)
       .map((result) => result.id),
   };
 }

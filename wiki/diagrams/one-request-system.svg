@@ -17,31 +17,31 @@
   <path d="M348 417 L245 417" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-system-ah-ink)"/>
   <path d="M446 390 L556 358 L556 195 L446 195 L446 156" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-system-ah-ink)"/>
   <path d="M866 274 L888 274 L888 602 L847 602" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" stroke-dasharray="7 5" marker-start="url(#one-request-system-ah-comm)" marker-end="url(#one-request-system-ah-comm)"/>
-  <rect x="49" y="101" width="196" height="55" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="49" y="101" width="196" height="55" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="147" y="124.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">入口</text>
-  <text x="147" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">模板、分词、选 DP 组</text>
-  <rect x="348" y="101" width="196" height="55" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="147" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">模板、分词、选 DP 组</text>
+  <rect x="348" y="101" width="196" height="55" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="446" y="124.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">调度</text>
-  <text x="446" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">4 个 token · 15 个块号</text>
-  <rect x="651" y="101" width="196" height="55" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="446" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4 个 token · 15 个块号</text>
+  <rect x="651" y="101" width="196" height="55" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="749" y="124.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">准备输入</text>
-  <text x="749" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">同一份计划发给 8 张卡</text>
-  <rect x="672" y="225" width="196" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <rect x="665" y="232" width="196" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <rect x="658" y="239" width="196" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <rect x="651" y="246" width="196" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="749" y="269.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">45 层前向</text>
-  <text x="749" y="288.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">8 张卡并行 · 218 次通信</text>
-  <rect x="651" y="390" width="196" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="749" y="413.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">采样与 MTP 草拟</text>
-  <text x="749" y="432.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1 个 token + 3 个候选</text>
-  <rect x="348" y="390" width="196" height="55" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="749" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">同一份计划发给 8 张卡</text>
+  <rect x="672" y="225" width="196" height="55" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <rect x="665" y="232" width="196" height="55" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <rect x="658" y="239" width="196" height="55" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <rect x="651" y="246" width="196" height="55" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="749" y="269.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">45 层前向</text>
+  <text x="749" y="288.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">8 张卡并行 · 218 次通信</text>
+  <rect x="651" y="390" width="196" height="55" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="749" y="413.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">采样与 MTP 草拟</text>
+  <text x="749" y="432.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">1 个 token + 3 个候选</text>
+  <rect x="348" y="390" width="196" height="55" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="446" y="413.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">结果更新</text>
-  <text x="446" y="432.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">追加、回退、检查停止</text>
-  <rect x="49" y="390" width="196" height="55" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="446" y="432.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">追加、回退、检查停止</text>
+  <rect x="49" y="390" width="196" height="55" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="147" y="413.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">还原文字并返回</text>
-  <text x="147" y="432.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">token 编号 → 文字</text>
-  <rect x="651" y="575" width="196" height="55" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="147" y="432.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">token 编号 → 文字</text>
+  <rect x="651" y="575" width="196" height="55" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="749" y="598.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">8 个 worker 陪跑</text>
   <text x="749" y="617.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">每步 4 个 token 的空批次</text>
   <text x="363" y="256" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">未结束 → 带候选进下一步</text>

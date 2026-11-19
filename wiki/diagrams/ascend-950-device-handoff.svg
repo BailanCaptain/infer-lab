@@ -11,7 +11,7 @@
   <path d="M170 152 L170 178" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-950-device-handoff-ah-control)"/>
   <path d="M272 200 L367 200" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ascend-950-device-handoff-ah-token)"/>
   <path d="M506 152 L506 314" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-950-device-handoff-ah-control)"/>
-  <path d="M417 218 L417 254 L44 254 L44 425 L86 425" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ascend-950-device-handoff-ah-token)"/>
+  <path d="M417 218 L417 240 L44 240 L44 425 L86 425" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ascend-950-device-handoff-ah-token)"/>
   <path d="M193 352 L193 392" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-950-device-handoff-ah-control)"/>
   <path d="M445 352 L445 392" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ascend-950-device-handoff-ah-control)"/>
   <path d="M748 322 L748 392" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ascend-950-device-handoff-ah-comm)"/>
@@ -60,5 +60,5 @@
   <text x="608" y="391" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">远端数据</text>
   <text x="326" y="481" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">搬运、求和与等待按程序分步执行</text>
   <text x="489" y="535" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">完成条件</text>
-  <text x="190" y="580" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">取得完整和后</text>
+  <text x="182" y="586" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">取得完整和后</text>
 </svg>

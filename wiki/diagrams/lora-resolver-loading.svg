@@ -8,28 +8,28 @@
   <path d="M670 360 L670 435" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lora-resolver-loading-ah-ink)"/>
   <path d="M510 472 L350 472" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lora-resolver-loading-ah-ink)"/>
   <path d="M670 510 L670 585" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#lora-resolver-loading-ah-ink)"/>
-  <rect x="250" y="25" width="360" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="430" y="51" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求选择一个模型或适配器名</text>
-  <text x="430" y="70" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">先检查基座和已登记名字</text>
-  <rect x="30" y="135" width="320" height="75" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="190" y="168.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">基座或已登记的适配器</text>
-  <text x="190" y="187.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">直接按已有记录继续请求</text>
-  <rect x="510" y="135" width="320" height="75" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="670" y="168.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">尚未登记的名字</text>
-  <text x="670" y="187.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">允许运行时更新才继续查找</text>
-  <rect x="510" y="285" width="320" height="75" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="670" y="318.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">resolver 定位并检查配置</text>
-  <text x="670" y="337.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本地目录，或允许的 Hub 仓库</text>
-  <rect x="30" y="285" width="320" height="75" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="250" y="25" width="360" height="60" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="430" y="51" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">请求选择一个模型或适配器名</text>
+  <text x="430" y="70" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">先检查基座和已登记名字</text>
+  <rect x="30" y="135" width="320" height="75" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="190" y="168.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">基座或已登记的适配器</text>
+  <text x="190" y="187.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">直接按已有记录继续请求</text>
+  <rect x="510" y="135" width="320" height="75" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="670" y="168.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">尚未登记的名字</text>
+  <text x="670" y="187.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">允许运行时更新才继续查找</text>
+  <rect x="510" y="285" width="320" height="75" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="670" y="318.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">resolver 定位并检查配置</text>
+  <text x="670" y="337.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">本地目录，或允许的 Hub 仓库</text>
+  <rect x="30" y="285" width="320" height="75" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="190" y="318.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">没有匹配候选</text>
   <text x="190" y="337.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">尝试下一项；全部没有则 404</text>
-  <rect x="510" y="435" width="320" height="75" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="670" y="468.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">引擎真正加载适配器</text>
-  <text x="670" y="487.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">此时才读权重并检查兼容性</text>
-  <rect x="30" y="435" width="320" height="75" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="510" y="435" width="320" height="75" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="670" y="468.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">引擎真正加载适配器</text>
+  <text x="670" y="487.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">此时才读权重并检查兼容性</text>
+  <rect x="30" y="435" width="320" height="75" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="190" y="468.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">候选加载失败</text>
   <text x="190" y="487.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">可尝试下一项；全部失败则 400</text>
-  <rect x="510" y="585" width="320" height="75" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="670" y="618.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">登记成功，再继续这条请求</text>
-  <text x="670" y="637.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后续同名前端请求复用已有记录</text>
+  <rect x="510" y="585" width="320" height="75" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="670" y="618.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">登记成功，再继续这条请求</text>
+  <text x="670" y="637.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">后续同名前端请求复用已有记录</text>
 </svg>

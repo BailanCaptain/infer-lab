@@ -228,11 +228,7 @@ vllm-ascend 的官方设计文档对 patch 的态度很直白：patch 不是让�
 
 ## 两类 patch 各在什么时候、哪个进程里生效
 
-patch 没有统一的总开关或逐条启停接口，主要靠模块导入时执行赋值或调用安装函数生效。两个目录入口按条件导入文件；补丁内部还可能有自己的判断，其他代码也能直接调用补丁函数。因此要同时看导入顺序、内部安装条件和后来是否又被覆盖。分流函数 `adapt_patch` 很短：`is_global_patch` 为真导入 patch/platform，否则导入 patch/worker。
-
-```wiki-diagram
-file: patch-timing
-```
+patch 没有统一的总开关或逐条启停接口，主要靠模块导入时执行赋值或调用安装函数生效。两个目录入口按条件导入文件；补丁内部还可能有自己的判断，其他代码也能直接调用补丁函数。因此要同时看导入顺序、内部安装条件和后来是否又被覆盖。分流函数 `adapt_patch` 很短：`is_global_patch` 为真导入 `patch/platform`，否则导入 `patch/worker`。两阶段导入时机、进程落点、`from-import` 副本陷阱以及 `v0.30.0` 到 `main` 的补丁收敛对照见下方全景图。
 
 **global patch 有两个入口。** 一个是平台准备钩子：vLLM 在解析命令行参数、建配置时调用 NPUPlatform 的这个钩子，钩子第一行就调 adapt_patch 打 global patch。本例的命令行路径在 node0 的 API server 和 node1 带 headless 参数的启动进程中触发；离线调用创建引擎配置时也会经过这个钩子。另一个是通用插件入口：vLLM 在前端解析参数时、EngineCore 初始化时、Worker 初始化时各加载一次通用插件；vllm-ascend 注册的四个通用入口里，连接器、加载器、采集三个的第一件事都是确认本进程打过 global patch，没打过就打，模型入口不打，见[平台注册页](platform-plugin-registration.md#三个通用入口先补一次全局补丁)。
 

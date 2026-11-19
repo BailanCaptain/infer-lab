@@ -1,51 +1,61 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" width="900" height="610" role="img" aria-label="v0.23 中，融合 pass 命中的子图不能再交给后续 SP 改写；其余区间与子图仍须分别检查。main 已删除这两条旧改图入口。">
-  <title>v0.23 中，融合 pass 命中的子图不能再交给后续 SP 改写；其余区间与子图仍须分别检查。main 已删除这两条旧改图入口。</title>
-  <rect width="900" height="610" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="26" width="860" height="254" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="40" width="227.7" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">torch.compile 拿到的原始子图</text>
-  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">普通残差模型中的候选形态；须实际形成完整 pattern，并满足编译区间门槛。</text>
-  <rect x="150" y="96" width="714" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="150" y="96" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
-  <g transform="translate(173.8 106.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
-  <text x="208" y="122" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">本 rank 的矩阵乘</text>
-  <rect x="707" y="104.5" width="138" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="776" y="122" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">unquantized_gemm</text>
-  <rect x="150" y="142" width="714" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="150" y="142" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
-  <g transform="translate(173.8 152.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
-  <text x="208" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">TP 规约成完整 hidden</text>
-  <rect x="587" y="150.5" width="258" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="716" y="168" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">tensor_model_parallel_all_reduce</text>
-  <rect x="150" y="188" width="714" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="150" y="188" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
-  <g transform="translate(173.8 198.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z M3 13l9 5 9-5"/></g>
-  <text x="208" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">对齐残差</text>
-  <rect x="677" y="196.5" width="168" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="761" y="214" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">maybe_chunk_residual</text>
-  <rect x="150" y="234" width="714" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="150" y="234" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
-  <g transform="translate(173.8 244.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
-  <text x="208" y="260" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">加残差 + RMSNorm</text>
-  <rect x="669.5" y="242.5" width="175.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="757.3" y="260" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">npu_add_rms_norm_bias</text>
-  <line x1="20" y1="302" x2="880" y2="302" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="876" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">一个 GraphFusionPassManager 按 self.passes 的列表顺序逐个改图</text>
-  <rect x="36" y="336" width="408" height="96" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="48" y="368" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(54.4 374.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
-  <text x="88" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">完整匹配时，四步换一个算子</text>
-  <text x="88" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">分块归约 → 加残差与 norm → AG</text>
-  <text x="88" y="407" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">matmul_allreduce_add_rmsnorm</text>
-  <rect x="456" y="336" width="408" height="96" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
-  <rect x="468" y="368" width="32" height="32" rx="9" fill="var(--color-canvas, #f5f2ea)"/><g transform="translate(474.4 374.4) scale(0.8)" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V9M12 19V5M19 19v-7M3 21h18"/></g>
-  <text x="508" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">SP 不再匹配已被替换的这一处</text>
-  <text x="508" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">其余子图仍须检查，不代表全模型为 0</text>
-  <text x="508" y="407" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-ink-faint, #8a928f)">MiddleAllReduceRMSNormPattern</text>
-  <path d="M240 332 L240 306" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
-  <path d="M240 306 l-5.5 11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
-  <path d="M660 306 L660 332" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8" stroke-dasharray="6 4"/>
-  <path d="M660 332 l-5.5 -11 l11 0 z" fill="var(--color-ink-faint, #8a928f)"/>
-  <path d="M38 96 l-8 0 L30 276 l8 0" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.4" opacity="0.75"/>
-  <text x="44" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-weight, #b87a00)">融合 pass</text>
-  <path d="M108 142 l-8 0 L100 276 l8 0" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" opacity="0.75"/>
-  <text x="114" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-kv, #4c65b6)">SP 目标</text>
-  <rect x="313" y="452.5" width="274" height="27" rx="13.5" fill="var(--color-accent, #e85b32)"/><text x="324" y="471" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">注册顺序决定重叠节点先由哪条规则改写</text>
-  <text x="40" y="516" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两条规则都包含 All-Reduce 与残差归一化，不能重复改写同一批节点。所引 SP pattern 在分片上做 norm 后也立即 All-Gather；冲突来自重叠</text>
-  <text x="40" y="534.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">的改图目标，不能概括为通信目标相反。官方参数表因此建议默认关闭这条融合。</text>
-  <text x="40" y="586" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">融合 pass 仅适用于 compile_range.start &gt; 512；这是编译区间条件，不是按 prefill/decode 划分收益。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="v0.23.0 中 fuse_allreduce_rms 融合 pass 与序列并行 SP pass 的子图重叠冲突及 v0.30.0/main 移除演化" font-family="var(--font-sans)">
+  <title>v0.23.0 中 GraphFusionPassManager 的子图冲突：融合 pass 排在 SP pass 之前，命中 compile_range.start &gt; 512 的四步子图后替换为单算子，后续 SP 不再匹配已替换处；v0.25.1rc1（PR #12119）整体删除，v0.30.0 与 main 严检报错。</title>
+  <desc>Subgraph overlap between MatmulAllReduceAddRMSNormPass and MiddleAllReduceRMSNormPattern in v0.23.0, execution priority in GraphFusionPassManager, and removal in v0.30.0/main.</desc>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">v0.23.0 融合 pass 与序列并行（SP）的子图重叠冲突</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">torch.compile 拿到的普通残差四步原始子图：两条规则覆盖同一批通信与归一化节点，不能重复改写</text>
+
+  <!-- Left brackets showing exact overlap -->
+  <path d="M90 74 h-8 V256 h8" fill="none" stroke="#087f73" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="16" y="160" font-size="13.5" font-weight="700" fill="#065f56">融合 pass</text>
+  <text x="16" y="179" font-size="13" fill="#065f56">吃掉 4 步</text>
+
+  <path d="M162 122 h-8 V256 h8" fill="none" stroke="#4c65b6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="98" y="185" font-size="13.5" font-weight="700" fill="#3a4f93">SP 目标</text>
+  <text x="98" y="204" font-size="13" fill="#3a4f93">后 3 步</text>
+
+  <!-- 4 contiguous original subgraph bands -->
+  <rect x="172" y="72" width="712" height="42" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="188" y="98" font-size="14" font-weight="700" fill="#17211f">1. 本 rank 矩阵乘（部分和）</text>
+  <text x="868" y="98" font-size="13.5" fill="#3a4f93" font-family="var(--font-mono)" text-anchor="end">unquantized_gemm</text>
+
+  <rect x="172" y="120" width="712" height="42" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="188" y="146" font-size="14" font-weight="700" fill="#17211f">2. TP 归约合齐完整 hidden</text>
+  <text x="868" y="146" font-size="13.5" fill="#7a3a6a" font-family="var(--font-mono)" text-anchor="end">tensor_model_parallel_all_reduce</text>
+
+  <rect x="172" y="168" width="712" height="42" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="188" y="194" font-size="14" font-weight="700" fill="#17211f">3. 对齐残差张量</text>
+  <text x="868" y="194" font-size="13.5" fill="#4d5652" font-family="var(--font-mono)" text-anchor="end">maybe_chunk_residual</text>
+
+  <rect x="172" y="216" width="712" height="42" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="188" y="242" font-size="14" font-weight="700" fill="#17211f">4. 加残差 + RMSNorm</text>
+  <text x="868" y="242" font-size="13.5" fill="#936300" font-family="var(--font-mono)" text-anchor="end">npu_add_rms_norm_bias</text>
+
+  <!-- PassManager order divider -->
+  <line x1="16" y1="286" x2="884" y2="286" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="6 4"/>
+  <rect x="150" y="272" width="600" height="28" rx="14" fill="#fbfaf6" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="450" y="291" font-size="13.5" font-weight="700" fill="#17211f" text-anchor="middle">GraphFusionPassManager 按 self.passes 顺序执行：融合 pass 排在 SP 之前</text>
+
+  <!-- Arrows down to outcome cards -->
+  <path d="M228 300 V318 m-5-5 l5 5 5-5" fill="none" stroke="#087f73" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M672 300 V318 m-5-5 l5 5 5-5" fill="none" stroke="#c78300" stroke-width="1.7" stroke-dasharray="4 3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Outcome cards -->
+  <rect x="16" y="322" width="424" height="114" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="30" y="348" font-size="14.5" font-weight="700" fill="#065f56">① 融合 pass 抢先命中（start &gt; 512）</text>
+  <text x="30" y="372" font-size="13.5" fill="#4d5652">• 四步换单算子：ReduceScatter → norm → AG</text>
+  <text x="30" y="395" font-size="13" fill="#065f56" font-family="var(--font-mono)">matmul_allreduce_add_rmsnorm</text>
+  <text x="30" y="418" font-size="13.5" fill="#66716d">区间条件仅看 start &gt; 512，并非按 prefill / decode 区分</text>
+
+  <rect x="460" y="322" width="424" height="114" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="474" y="348" font-size="14.5" font-weight="700" fill="#936300">② 后续 SP pass 不再匹配已被替换的子图</text>
+  <text x="474" y="372" font-size="13.5" fill="#4d5652">• 原 All-Reduce 节点已被移除，此处不再触发 SP 改写</text>
+  <text x="474" y="395" font-size="13" fill="#936300" font-family="var(--font-mono)">MiddleAllReduceRMSNormPattern</text>
+  <text x="474" y="418" font-size="13.5" fill="#66716d">其余子图与 ≤ 512 区间仍须分别检查；官方因此默认关闭</text>
+
+  <!-- Bottom removal / evolution banner -->
+  <rect x="16" y="452" width="868" height="92" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="30" y="476" font-size="14.5" font-weight="700" fill="#8f3229">版本演化：v0.25.1rc1（PR #12119）整体删除；v0.30.0 (c09d3e20) / main (8d6180e2) 严检报错</text>
+  <text x="30" y="500" font-size="13.5" fill="#4d5652">• v0.26.0rc 因 **kwargs 静默吞掉旧键；v0.30.0 / main 启用 extra="forbid"，vllm_omni 顶层豁免不放过嵌套子键</text>
+  <text x="30" y="524" font-size="13.5" fill="#4d5652">• Ascend 侧旧 SP pass 也已撤走改由上游 vLLM 承接；main 在 enable_sp 且硬件支持时新增 MatmulReduceScatterFusionPass</text>
 </svg>

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { parse, stringify } from "yaml";
 import { diagramRefs, diagramSpecSchema, isNativeSvgSpec, loadDiagrams, renderDiagram } from "./diagrams";
 import { figureProblems } from "./figure";
-import { validateNativeSvg } from "./native-svg";
+import { normalizeNativeSvg, validateNativeSvg } from "./native-svg";
 import { loadPages } from "./pages";
 import { replaceText } from "./review-files";
 import { sceneCollisions, sceneOverflows } from "./scene";
@@ -19,7 +19,13 @@ export function diagramMaterialPaths(id: string, yamlText: string): string[] {
   return isNativeSvgSpec(spec) ? [`diagrams/${id}.yaml`, `diagrams/${id}.svg`] : [`diagrams/${id}.yaml`];
 }
 
-export function stageDropDiagram(root: string, id: string, yaml: string, svg?: string) {
+export function stageDropDiagram(
+  root: string,
+  id: string,
+  yaml: string,
+  svg?: string,
+  options: { publicRoot?: string } = {},
+) {
   let spec: ReturnType<typeof diagramSpecSchema.parse>;
   try {
     spec = diagramSpecSchema.parse(parse(yaml));
@@ -33,10 +39,13 @@ export function stageDropDiagram(root: string, id: string, yaml: string, svg?: s
   if (isNativeSvgSpec(spec)) {
     if (typeof svg !== "string" || !svg.trim())
       throw new Error("图规格校验失败：native-svg 必须同时提供同名 SVG 纯数据");
-    const svgIssues = validateNativeSvg(svg, spec.size);
+    const normalizedSvg = normalizeNativeSvg(svg);
+    const svgIssues = validateNativeSvg(normalizedSvg, spec.size, {
+      publicRoot: options.publicRoot ?? join(root, "public"),
+    });
     if (svgIssues.length) throw new Error(`原生 SVG 校验失败：${svgIssues.join("；")}`);
     replaceText(root, `wiki/diagrams/${id}.yaml`, stringify(spec));
-    replaceText(root, `wiki/diagrams/${id}.svg`, svg);
+    replaceText(root, `wiki/diagrams/${id}.svg`, normalizedSvg);
     return;
   }
   if (svg !== undefined)
@@ -85,7 +94,18 @@ export function validateDropAssets(root: string, paths: string[], enforceTeachin
           : [...sceneOverflows(spec), ...sceneCollisions(spec)]
       ).map((p) => `${id}: ${p}`),
     );
-    if (!isNativeSvgSpec(spec)) {
+    if (isNativeSvgSpec(spec)) {
+      try {
+        const rawSvg = readFileSync(join(root, "wiki", d.svgFile), "utf8");
+        issues.push(
+          ...validateNativeSvg(rawSvg, spec.size, { publicRoot: join(root, "public") }).map(
+            (p) => `${id}: ${p}`,
+          ),
+        );
+      } catch {
+        issues.push(`缺少 SVG：${id}`);
+      }
+    } else {
       try {
         if (readFileSync(join(root, "wiki", d.svgFile), "utf8") !== renderDiagram(spec))
           issues.push(`图规格与 SVG 不一致：${id}`);

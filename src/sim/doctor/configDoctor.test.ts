@@ -408,4 +408,52 @@ describe("Wave 3 Review Remediations (P2-2, P2-3, P2-4, P3-2, P3-3)", () => {
     expect(parsed.couplingInput.maxNumBatchedTokens).toBe(16384);
     expect(parsed.gpuMemoryUtilization).toBe(0.9);
   });
+
+  it("Audit Wave 6 regressions: forwards enableSleepMode, rejects enable_fused_mc2=3 on v0.30.0, and does not tag GLM-4.5/4.7 as MLA", () => {
+    // Bug 2: cliParser forwards enableSleepMode to couplingInput
+    const withSleep = parseVllmServeCommand(
+      `PYTORCH_NPU_ALLOC_CONF=page_size:1g,expandable_segments:True vllm serve /models/Qwen3-8B --enable-sleep-mode --additional-config '{"rl_config":{"enabled":true}}'`,
+    );
+    expect(withSleep.enableSleepMode).toBe(true);
+    expect(withSleep.couplingInput.enableSleepMode).toBe(true);
+
+    const noSleep = parseVllmServeCommand(
+      `PYTORCH_NPU_ALLOC_CONF=page_size:1g,expandable_segments:True vllm serve /models/Qwen3-8B --additional-config '{"rl_config":{"enabled":true}}'`,
+    );
+    expect(noSleep.enableSleepMode).toBe(false);
+    expect(noSleep.couplingInput.enableSleepMode).toBe(false);
+
+    // Bug 3: enable_fused_mc2=3 rejected on v0.30.0, accepted on main
+    const cmd3 = `vllm serve /models/Qwen3-30B-A3B-W8A8 -tp 4 --enable-expert-parallel --quantization ascend --additional-config '{"enable_fused_mc2": 3}'`;
+    const rV030 = runSingleConfigDoctor(cmd3, { mode: "full", hardwareFamily: "A5", version: "v0.30.0" });
+    expect(rV030.errors.some((f) => f.id === "d1-fused-mc2-3-main-only")).toBe(true);
+    const rMain = runSingleConfigDoctor(cmd3, { mode: "full", hardwareFamily: "A5", version: "main" });
+    expect(rMain.errors.some((f) => f.id === "d1-fused-mc2-3-main-only")).toBe(false);
+    expect(rMain.moeCommSelection?.method).toBe("FUSED_MC2");
+
+    // Bug 4: GLM-4.5 / GLM-4.7 are GQA/MHA (useMla: false), while GLM-5 / GLM-5.3-Flash are MLA (useMla: true)
+    const glm45 = inferModelHints("zai-org/GLM-4.5");
+    expect(glm45.isMoe).toBe(true);
+    expect(glm45.useMla).toBe(false);
+
+    const glm47 = inferModelHints("/models/GLM-4.7-W8A8");
+    expect(glm47.isMoe).toBe(true);
+    expect(glm47.useMla).toBe(false);
+
+    const glm5 = inferModelHints("zai-org/GLM-5");
+    expect(glm5.isMoe).toBe(true);
+    expect(glm5.useMla).toBe(true);
+
+    const glm53 = inferModelHints("/models/GLM-5.3-Flash");
+    expect(glm53.isMoe).toBe(true);
+    expect(glm53.useMla).toBe(true);
+
+    // GLM-4.5 with GQA C8 int8 without --quantization ascend MUST NOT skip d3-gqa-c8-requires-quant-weights
+    const glm45C8 = runSingleConfigDoctor(`vllm serve /models/GLM-4.5 -tp 4 --kv-cache-dtype int8`, {
+      mode: "full",
+      hardwareFamily: "A3",
+      version: "v0.30.0",
+    });
+    expect(glm45C8.errors.some((f) => f.id === "d3-gqa-c8-requires-quant-weights")).toBe(true);
+  });
 });

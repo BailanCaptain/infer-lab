@@ -1,55 +1,70 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700" role="img" aria-label="固定 main baa023ad 的启动模型预测路径；历史模型拟合成功后改用带前缀特征的方程。只有满足动态分支条件的 prefill 请求才使用预测，失效处理见正文。">
-  <title>固定 main baa023ad 的启动模型预测路径；历史模型拟合成功后改用带前缀特征的方程。只有满足动态分支条件的 prefill 请求才使用预测，失效处理见正文。</title>
-  <rect width="900" height="700" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="26" width="860" height="170" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="40" width="132.7" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">启动期 · 只做一次</text>
-  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">测量本机延迟后拟合；换硬件仍需重做测量，并比较基准块大小和实际负载。</text>
-  <rect x="20" y="216" width="860" height="412" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="230" width="256.1" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="248.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">每个 prefill 步 · 算出这一步切多少</text>
-  <text x="38" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">目标是让各块耗时接近，减少等待；实际切块仍受拟合误差、下限和调度预算限制。</text>
-  <rect x="52" y="292" width="828" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="52" y="292" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
-  <g transform="translate(75.8 309.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
-  <text x="110" y="317" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">① 定目标时间</text>
-  <text x="110" y="337" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">初始目标为 f(base_chunk_size) − f(0)；求根用本批剩余预算 T</text>
-  <rect x="738" y="307.5" width="123" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="799.5" y="325" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">target_latency</text>
-  <rect x="52" y="356" width="828" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="52" y="356" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
-  <g transform="translate(75.8 373.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
-  <text x="110" y="381" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">② 解二次方程取正根</text>
-  <text x="110" y="401" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">a·x² + (2aL + b)·x − T = 0，L 是这条请求已经算过的前缀长度</text>
-  <rect x="753" y="371.5" width="108" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="807" y="389" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">discriminant</text>
-  <rect x="52" y="420" width="828" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="52" y="420" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
-  <g transform="translate(75.8 437.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v14M18 7v14M6 7c0 6 12 2 12 8"/></g>
-  <text x="110" y="445" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">③ 平滑</text>
-  <text x="110" y="465" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">smoothed = base_chunk_size + smooth_factor × (x − base_chunk_size)</text>
-  <rect x="745.5" y="435.5" width="115.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="803.3" y="453" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">smooth_factor</text>
-  <rect x="52" y="484" width="828" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="52" y="484" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
-  <g transform="translate(75.8 501.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g>
-  <text x="110" y="509" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">④ 下限 + 对齐</text>
-  <text x="110" y="529" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">max(int(smoothed), min_chunk)，再向上取整到 max(page_size, 64) 的倍数</text>
-  <rect x="775.5" y="499.5" width="85.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="818.3" y="517" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">min_chunk</text>
-  <rect x="52" y="548" width="828" height="56" rx="10" fill="var(--color-accent-soft, #fff0e9)"/>
-  <rect x="52" y="548" width="5" height="56" rx="2.5" fill="var(--color-accent, #e85b32)"/>
-  <g transform="translate(75.8 565.8) scale(0.85)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
-  <text x="110" y="573" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">⑤ 截断</text>
-  <text x="110" y="593" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">有效预测与原 token 预算取较小值；失败按校准状态与剩余时间预算处理</text>
-  <rect x="708" y="563.5" width="153" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="784.5" y="581" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">predict_chunk_size</text>
-  <rect x="36" y="112" width="266" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <text x="52" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">尝试采集 64 个有效点</text>
-  <text x="52" y="161.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">另有一次预热；失败点跳过</text>
-  <rect x="318" y="112" width="250" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <text x="334" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">每个都真跑一次 forward</text>
-  <text x="334" y="161.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">量毫秒级延迟</text>
-  <rect x="584" y="112" width="274" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <text x="600" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">最小二乘拟合二次模型</text>
-  <text x="600" y="161.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">f(l) = a·l² + b·l + c</text>
-  <path d="M304 147 L316 147" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
-  <path d="M316 147 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
-  <path d="M570 147 L582 147" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
-  <path d="M582 147 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
-  <text x="20" y="646" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">关闭动态切块后沿用普通调度约束：token 预算、剩余请求长度、缓存及其他资源限制。</text>
-  <text x="20" y="670" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">PP &gt; 1，按指南启用 chunked prefill，与 balance scheduling 互斥；启动测量增加真实 forward。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 652" width="900" height="652" role="img" aria-label="v0.30.0 profiling_chunk_config（CPP）启动拟合与每步动态截断流程，以及 main PR #21310 移除说明" font-family="var(--font-sans)">
+  <title>v0.30.0 (c09d3e20) 动态切块（CPP）工作流：启动期实测拟合二次曲线并设目标时延，运行期按已算前缀反解正根、平滑、向上对齐并仅收窄 token 预算（在线校准完成后切至非负最小二乘历史模型）；main (8d6180e2) 已随 PR #21310（839f53831）整体移除。</title>
+  <desc>Startup quadratic latency profiling and per-step prefill chunk prediction pipeline in v0.30.0 (c09d3e20), including history-aware calibration model and PR #21310 removal on main (8d6180e2).</desc>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">v0.30.0 (c09d3e20) 动态切块（CPP）：启动拟合与每步预算截断流</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">先量出本机延迟曲线，再按每条请求已有前缀长度反解本步 token 切块大小，缓解 PP 多阶段等待气泡</text>
+
+  <!-- Phase 1: Startup profiling -->
+  <text x="16" y="76" font-size="14.5" font-weight="700" fill="#3a4f93">阶段一 · 启动期（只做一次，复用 dummy_run 实测延迟）</text>
+
+  <rect x="16" y="88" width="270" height="74" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="30" y="112" font-size="14.5" font-weight="700" fill="#3a4f93">1. 预热 + 采点实测</text>
+  <text x="30" y="134" font-size="13.5" fill="#4d5652">1 次预热 + 尝试 64 个点</text>
+  <text x="30" y="153" font-size="13" fill="#66716d">跳过失败点，至少 8 个有效点</text>
+
+  <path d="M286 125 H310 m-5-5 l5 5 -5 5" fill="none" stroke="#4c65b6" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="315" y="88" width="270" height="74" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="329" y="112" font-size="14.5" font-weight="700" fill="#3a4f93">2. 拟合启动延迟曲线</text>
+  <text x="329" y="134" font-size="13.5" fill="#4d5652" font-family="var(--font-mono)">f(l) = a*l^2 + b*l + c</text>
+  <text x="329" y="153" font-size="13" fill="#66716d">最小二乘拟合单块耗时关系</text>
+
+  <path d="M585 125 H609 m-5-5 l5 5 -5 5" fill="none" stroke="#4c65b6" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="614" y="88" width="270" height="74" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="628" y="112" font-size="14.5" font-weight="700" fill="#3a4f93">3. 设定初始目标耗时</text>
+  <text x="628" y="134" font-size="13.5" fill="#4d5652" font-family="var(--font-mono)">f(base_chunk) - f(0)</text>
+  <text x="628" y="153" font-size="13" fill="#66716d">基准块来自 max_num_batched_tokens</text>
+
+  <!-- Phase 2: Per-step runtime calculation -->
+  <text x="16" y="192" font-size="14.5" font-weight="700" fill="#065f56">阶段二 · 每个 prefill 步（对满足条件的续算请求反解块长并截断预算）</text>
+
+  <rect x="16" y="204" width="868" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="32" y="227" font-size="14" font-weight="700" fill="#065f56">① 取本批剩余时间预算 T（并按在线校准状态选方程）</text>
+  <text x="868" y="227" font-size="13" fill="#065f56" font-family="var(--font-mono)" text-anchor="end">target_latency / predict_with_history</text>
+  <text x="32" y="248" font-size="13.5" fill="#4d5652">在线校准（need_timing 默认开）攒够 3 次零历史 + 超过 max_fit_chunk 个历史样本后，切至 v0.30.0 非负最小二乘历史模型</text>
+
+  <rect x="16" y="266" width="868" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="32" y="289" font-size="14" font-weight="700" fill="#065f56">② 按请求已有前缀长度 L（或 H）解二次方程正根 x</text>
+  <text x="868" y="289" font-size="13" fill="#065f56" font-family="var(--font-mono)" text-anchor="end">discriminant = B*B - 4*A*C</text>
+  <text x="32" y="310" font-size="13.5" fill="#4d5652">启动模型解 a·x² + (2aL + b)·x − T = 0；v0.30.0 历史模型 f(C,H) = a·C(C+H) + b·C + c 解 a·x² + (aH + b)·x + (c − T) = 0</text>
+
+  <rect x="16" y="328" width="868" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="32" y="351" font-size="14" font-weight="700" fill="#065f56">③ 按 smooth_factor 在基准块与预测值间线性平滑</text>
+  <text x="868" y="351" font-size="13" fill="#065f56" font-family="var(--font-mono)" text-anchor="end">smooth_factor ∈ (0, 1]</text>
+  <text x="32" y="372" font-size="13.5" fill="#4d5652">smoothed = base_chunk_size + smooth_factor × (x − base_chunk_size)（源码拒绝 0；默认 1.0 直接用原始预测）</text>
+
+  <rect x="16" y="390" width="868" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="32" y="413" font-size="14" font-weight="700" fill="#065f56">④ 下限钳制并向上对齐块粒度</text>
+  <text x="868" y="413" font-size="13" fill="#065f56" font-family="var(--font-mono)" text-anchor="end">min_chunk / max(page_size, 64)</text>
+  <text x="32" y="434" font-size="13.5" fill="#4d5652">先取 max(int(smoothed), min_chunk)，再向上取整到 align = max(page_size, 64) 的倍数（设计文档误写向下取整）</text>
+
+  <rect x="16" y="452" width="868" height="54" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="32" y="475" font-size="14" font-weight="700" fill="#936300">⑤ 截断调度器原有 token 预算（只收窄、不放大）</text>
+  <text x="868" y="475" font-size="13" fill="#936300" font-family="var(--font-mono)" text-anchor="end">predict_chunk_size → min(predicted, budget)</text>
+  <text x="32" y="496" font-size="13.5" fill="#4d5652">num_new_tokens = min(predicted_chunk, num_new_tokens)；求根失败时按校准态与剩余时间预算回退或停止继续装入</text>
+
+  <!-- Phase 3: Active v0.30.0 vs Removed main -->
+  <rect x="16" y="524" width="424" height="112" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="30" y="548" font-size="14.5" font-weight="700" fill="#17211f">v0.30.0 (c09d3e20) 有效入口与硬前提</text>
+  <text x="30" y="572" font-size="13.5" fill="#4d5652">• 推荐 scheduler_config.profiling_chunk_config</text>
+  <text x="30" y="594" font-size="13.5" fill="#4d5652">• 必开 PP &gt; 1；互斥 balance_scheduling / DyntraLB</text>
+  <text x="30" y="616" font-size="13.5" fill="#4d5652">• 支持 SRF；开 async_scheduling 须配 MRv2</text>
+
+  <rect x="460" y="524" width="424" height="112" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="474" y="548" font-size="14.5" font-weight="700" fill="#8f3229">main (8d6180e2) 已整体移除（PR #21310）</text>
+  <text x="474" y="572" font-size="13.5" fill="#4d5652">• 提交 839f53831 删除整套 CPP 功能、配置与文档</text>
+  <text x="474" y="594" font-size="13.5" fill="#4d5652">• 升级 main 须删此键，否则按 extra="forbid" 拒收</text>
+  <text x="474" y="616" font-size="13.5" fill="#66716d">• 仅环境可发现 vllm_omni 时告警并过滤未知顶层键</text>
 </svg>

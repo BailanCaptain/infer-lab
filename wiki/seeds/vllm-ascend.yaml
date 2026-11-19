@@ -12,8 +12,7 @@ repos:
       main: "8d6180e28e0941fcfc85999bf2aafe194e98f8f6"
       "releases/v0.23.0": "2c59ff10"   # 分支 tip，2026-09-09；layer_sharding 的完整形态所在分支
       "releases/v0.26.0rc": "2ed6cbba"   # 分支 tip，2026-09-17；还在 rc 阶段（tag 到 v0.26.0rc2），与 vLLM v0.26.0 配套。2026-09-21 用户定：v0.23 与 v0.26 长期并存
-      "releases/v0.30.0rc2": "7d825229c77025cfb185a010c25819c1214b9450" # 过渡期保留：35 页 verified 与 2 页 rc2 移除参数仍引用
-      "releases/v0.30.0": "c09d3e20b9c45c80b34ae3781440d90904a44023"   # Stage 2 全站默认主基线
+      "releases/v0.30.0": "c09d3e20b9c45c80b34ae3781440d90904a44023"   # Stage 2 全站默认主基线（历史 v0.30.0rc2 仅保留在下方 pins.v0-30-0rc2-tip）
     pins:
       main-baseline: "8d6180e28e0941fcfc85999bf2aafe194e98f8f6"
       main-phase1-archive: "baa023ada41a5b889cac6249845a688aab130892"

@@ -359,13 +359,7 @@ file: structured-output
 
 **官方双机命令没有为结构化输出加任何参数，它按请求开启：请求里带了 JSON schema 这类约束，这个请求才走下面的路径。同一批里不带约束的请求不受屏蔽，照常从全部候选里采样；但本部署开着异步调度，它们的采样要跟着受约束的请求一起推迟，见[下文](#异步调度本部署开着整批采样要等上一步)。** 部署设定见[部署前提](glm-5-3-flash-two-node.md#部署前提)。下面设想主线的示例请求 R1（prompt 为 4 个 token 的那条请求，见[一次请求](one-request.md)）带上一个 JSON schema，看它多走了哪几步。这些步骤挂在主线[第 5 站](one-request.md#第-5-站-采样与-mtp-草拟选出-y₀再猜-3-个)：前向算出 logits 之后、采样之前。
 
-```wiki-diagram
-file: structured-output-flow
-```
-
-图分三列。左列是 node0 上接收 HTTP 请求的 API server 进程；中列是 **EngineCore**，负责调度的引擎进程，每台机器一个；右列是每张卡上的 worker 进程，一台机器 8 个。文法状态和 bitmask 都在中列的 CPU 上，右列只负责把 bitmask 作用到 logits 再采样。
-
-在看 5 个分步细节前，先用下面这张架构图把「单后端编译与 32 位打包 → MTP 临时推进回滚 → 昇腾 V1 CPU 往返慢路径 vs V2/main NPU 原地 Triton 快路径 → 思考段与异步调度边界」一次串通：
+在看 5 个分步细节前，先用下面这张架构图把三个进程角色（node0 上收 HTTP 请求的 API server、每台机器一个负责文法状态与 bitmask 的 **EngineCore**、每张卡一个负责把 bitmask 作用到 logits 再采样的 worker）以及「单后端编译与 32 位打包 → MTP 临时推进回滚 → 昇腾 V1 CPU 往返慢路径 vs V2/main NPU 原地 Triton 快路径 → 思考段与异步调度边界」一次串通：
 
 ```wiki-diagram
 file: structured-output-fig-bitmask-pipeline

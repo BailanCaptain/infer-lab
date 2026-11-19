@@ -18,9 +18,9 @@ links:
   - { from: [506, 176], to: [620, 230], via: [[566, 176], [566, 230]], tone: token }
 texts:
   - { at: [24, 24], text: 开头相同的两条请求：写满的前缀块两边共用，尾巴各写各的, size: 13, strong: true }
-  - { at: [186, 130], text: 指同一份, size: 12 }
-  - { at: [548, 120], text: 各自续写, size: 12 }
-  - { at: [24, 292], text: 只画份数：命中的块不重算也不复制；每条请求从自己的尾块继续。, size: 12 }
+  - { at: [99, 164], text: 指同一份, anchor: middle, size: 13 }
+  - { at: [710, 164], text: 各自续写, anchor: middle, size: 13 }
+  - { at: [24, 292], text: 只画份数：命中的块不重算也不复制；每条请求从自己的尾块继续。, size: 13 }
 pins:
   - source: vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L563-L590
     symbols: [hash_block_tokens]

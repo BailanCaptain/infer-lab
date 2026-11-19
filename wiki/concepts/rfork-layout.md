@@ -152,15 +152,16 @@ file: rfork-layout
 
 所以工作版有一张「只属于运行时」的张量名单，两条路共用的采集入口按名字最后一段比对，把名单里的都排除掉。不管它挂在直接属性、buffer 还是 impl 对象下面，都进不了清单。
 
-批处理上限不在兼容性指纹里，所以 A 和 B 可以配得不一样、照样被 Planner 配到一起。随修复一起加的测试就是这个场景：造两个批处理上限分别为 2048 和 4096 的模型，工作区的行数等于批处理上限，每行 2048 个下标，每个下标是 4 字节的 int32。
+批处理上限不在兼容性指纹里，所以 A 和 B 可以配得不一样、照样被 Planner 配到一起。随修复一起加的测试就是这个场景：造两个批处理上限分别为 `2048` 和 `4096` 的模型，工作区的行数等于批处理上限，每行 `2048` 个下标，每个下标是 `4` 字节的 `int32`：
 
-```calc
-title: 测试里两份工作区差多少
-上限 2048 = 2048 × 2048 × 4 B = 16 MiB
-上限 4096 = 4096 × 2048 × 4 B = 32 MiB
-相差 = 32 MiB − 16 MiB = 16 MiB
-> 元素个数不同，不排除的话，核清单时就会因形状对不上而失败
-```
+| 批处理上限（测试样例） | 工作区字节算式 | 大小 |
+|---|---|---|
+| `2048` | $2048 \times 2048 \times 4\text{ B}$ | $16\text{ MiB}$ |
+| `4096` | $4096 \times 2048 \times 4\text{ B}$ | $32\text{ MiB}$ |
+
+$$\text{差额} = 32\text{ MiB} - 16\text{ MiB} = 16\text{ MiB}$$
+
+两边元素个数不同，不排除的话，核清单时就会因形状对不上而失败。
 
 测试期望排除之后两边的权重清单完全一样，普通权重和打包权重仍然保留。这是测试样例的数，不代表所有模型工作区的实际大小。
 
@@ -168,7 +169,7 @@ title: 测试里两份工作区差多少
 
 ## 放到 GLM 双机：W8A8 走哪条路，哪些张量要留意
 
-先说清前提：这一节的结论全部按源码推出，没有在部署上实测，下面各小节不再逐处重复。我们的部署是一个实例跨两台机器、16 张卡，TP8、DP2、EP16、W8A8（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。工作版代码树里没有 GLM-5.3-Flash 的模型实现，下面是把工作版的 RFork 加载器和固定镜像 db701c1f 里的 GLM 模型放在一起推出来的；官方 GLM 双机教程也没有开 RFork。谁向谁借、每张卡读多少字节，见[总览的 GLM 双机一节](rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)，这里不重算。
+先说清前提：这一节的结论全部按源码推出，没有在部署上实测，下面各小节不再逐处重复。我们的部署是一个实例跨两台机器、16 张卡，TP8、DP2、EP16、W8A8（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。社区上游 `vllm-ascend@8d6180e2` 已包含 GLM-5.3-Flash 的模型实现（`vllm_ascend/models/glm5next/` 下的 `Glm5NextForCausalLM` / `Glm5NextForConditionalGeneration` 与 `Glm5NextMTP`）及官方部署教程（`docs/source/tutorials/models/GLM5.3-Flash.md`），但该教程与上游 RFork 官方指南尚未给出专用的 GLM-5.3-Flash RFork 配方或验收表（且官方指南提示 `Glm5NextMTP` 暂未纳入自动 checkpoint 归属恢复）；同时，本站的 GLM 双机 W8A8 历史算例钉在固定镜像 `db701c1f`，下面是把上游 `main@8d6180e2` 的 RFork 加载器规则和固定镜像里的 GLM 模型放在一起推出来的。谁向谁借、每张卡读多少字节，见[总览的 GLM 双机一节](rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)，这里不重算。
 
 ### 走哪条路：量化这一条就够了
 
@@ -183,15 +184,14 @@ title: 测试里两份工作区差多少
 
 ### top-k 下标缓冲：正是排除名单要防的情况
 
-GLM 的 MLA 层带一个[稀疏注意力](sparse-attention.md)索引器，它要为这一批里的每个 token 存下选中的历史位置，于是模型初始化时开了一块工作区：行数是这一批最多的 token 数 8192，每行 2048 + 4 − 1 = 2051 个下标，int32。主干 11 个 MLA 层共用这一块；MTP 层（投机解码里负责先猜后面几个 token 的那一层，见[投机解码](speculative-decoding.md)）自己另开一块，宽度向上取到 128 的倍数，是 2176。
+GLM 的 MLA 层带一个[稀疏注意力](sparse-attention.md)索引器，它要为这一批里的每个 token 存下选中的历史位置，于是模型初始化时开了一块工作区：行数是这一批最多的 token 数 `8192`，每行 $2048 + 4 - 1 = 2051$ 个下标，`int32`。主干 11 个 MLA 层共用这一块；MTP 层（投机解码里负责先猜后面几个 token 的那一层，见[投机解码](speculative-decoding.md)）自己另开一块，宽度向上取到 128 的倍数，是 `2176`：
 
-```calc
-title: GLM 每张卡上的 top-k 下标缓冲
-主干一份 = 8192 × 2051 × 4 B = 67,207,168 B ≈ 64.09 MiB
-MTP 一份 = 8192 × 2176 × 4 B ≈ 68.0 MiB
-合计 = 64.09 MiB + 68.0 MiB ≈ 132.1 MiB
-> 大小跟着「这一批最多多少 token」走，不是权重
-```
+| 缓冲归属（每张卡，随最大批 token 数变化） | 字节算式（`int32`，每元素 4 B） | 占用大小 |
+|---|---|---|
+| 主干 11 层共用一份 | $8192 \times 2051 \times 4\text{ B} = 67{,}207{,}168\text{ B}$ | $\approx 64.09\text{ MiB}$ |
+| MTP 草稿一份（宽度对齐 128 倍数） | $8192 \times 2176 \times 4\text{ B}$ | $\approx 68.0\text{ MiB}$ |
+
+$$\text{合计} = 64.09 + 68.0 \approx 132.1\text{ MiB（运行期工作区，不是权重）}$$
 
 这块缓冲作为普通属性挂在每个 MLA 层的索引器上，走「转好布局再搬」时会被扫到，而且每挂一处就是一个不同的逻辑名字。不排除的话，会有两个问题：
 
@@ -214,19 +214,19 @@ MTP 一份 = 8192 × 2176 × 4 B ≈ 68.0 MiB
 
 - 走 processed layout 的判断在 `_requires_processed_layout_transfer`：`model_config.quantization is not None`；或 `get_ascend_config().weight_nz_mode == 2`（排除布尔值）；或 `get_current_hardware_profile().weight_layout_policy` 为 `FORCE_NZ`。`AscendConfig` 或硬件策略取不到时按 `False` 处理。[C1]
 - `weight_nz_mode` 定义在 `vllm_ascend/ascend_config.py#L718-L765`（默认 1，仅允许 `0/1/2`）。0/1/2 控制普通选择函数里的可选转换，不覆盖所有硬件与专家路径；完整边界见 [ND/NZ](tensor-layout.md)。
-- 选中 processed 时在 debug 级别打 `RFork %s model uses post-load tensor layout transfer.` 与 `RFork %s model layout processing took %.2f seconds`；登记与读取后另在 INFO 级别输出有界 `RFork tensor layout summary`（含语义/物理摘要与最多 3 个代表张量）。[C3][C6][C13]
-- 读前那道 MoE 处理要有包装可换：只有 `multistream_overlap_shared_expert` 为真（默认 False；与 fused MC2 同开时会被强制关掉）且该层有共享专家时，MoE 层才给 `process_weights_after_loading` 包上校验；processed 路径传输完成后另调 `_refresh_rfork_flatquant_state` 刷新 FlatQuant 宿主标量。[C2][C3]
-- processed：构建模型 → `process_weights_after_loading` → `torch.npu.synchronize` → `register_destination`（绑定结构摘要）→ 借租约并读取；checkpoint：构建后直接登记并借租约，读完再做后处理（跳过未量化 MoE 重复转换），成为 seed 前重新刷新内存登记。[C3][C8][C12]
+- 选中 processed 时在 debug 级别打 `RFork %s model uses post-load tensor layout transfer.` 与 `RFork %s model layout processing took %.2f seconds`；登记与读取后另在 INFO 级别输出有界 `RFork tensor layout summary`（含语义/物理摘要与最多 3 个代表张量）。[C3]
+- 读前那道 MoE 处理要有包装可换：只有 `multistream_overlap_shared_expert` 为真（默认 False；与 fused MC2 同开时会被强制关掉）且该层有共享专家时，MoE 层才给 `process_weights_after_loading` 包上校验；processed 路径传输完成后另调 `_refresh_rfork_flatquant_state` 刷新 FlatQuant 宿主标量。[C2]
+- processed：构建模型 → `process_weights_after_loading` → `torch.npu.synchronize` → `register_destination`（绑定结构摘要）→ 借租约并读取；checkpoint：构建后直接登记并借租约，读完再做后处理（跳过未量化 MoE 重复转换），成为 seed 前重新刷新内存登记。[C8][C12]
 
 ### 会报什么错
 
 - 同名张量 ID 冲突或歧义容器键：`RFork encountered conflicting tensor IDs in one model.` / `RFork found distinct container entries with one tensor ID label: ...`。[C6]
 - 非连续/重叠视图：`RFork cannot transfer a tensor with gapped or overlapping storage: ...`（`validate_transferable_tensor_layout`）。[C5]
-- 本地与 seed 形状不同时，只在元素个数一致时尝试 `view` 成 seed 形状；元素个数不同打 `Weight shape mismatch for %s: local=%s, seed=%s` 并失败，`view` 失败打 `Failed to reshape RFork tensor ...`。[C5]
+- 本地与 seed 形状不同时，只在元素个数一致时尝试 `view` 成 seed 形状；元素个数不同打 `Weight shape mismatch for %s: local=%s, seed=%s` 并失败，`view` 失败打 `Failed to reshape RFork tensor ...`。
 
 ### 开销和什么时候别开
 
-- 不同逻辑名对应同一 storage 的视图时，传输按逻辑名执行，同一段字节可能被读回多次；分层 BFS 扫描（`_collect_shortest_path_tensors`）对完全相同的张量范围做去重，但不同视图仍作为独立条目传输。[C6][D]
+- 不同逻辑名对应同一 storage 的视图时，传输按逻辑名执行，同一段字节可能被读回多次；分层 BFS 扫描（`_collect_shortest_path_tensors`）对完全相同的张量范围做去重，但不同视图仍作为独立条目传输。[D]
 - 测试工作区 16 MiB / 32 MiB 的来历：`2048 × 2048 × 4 B = 16 MiB`，`4096 × 2048 × 4 B = 32 MiB`，仅测试样例字节推导。[D]
 - 排除名单 `_RUNTIME_ONLY_TENSOR_NAMES` 包含 `topk_indices_buffer`、`_rope_derived_cos_cache` 与 `_rope_derived_sin_cache` 三项，不会自动识别其他临时缓冲区。[C4][D]
 - Engram CPU 卸载表经 `local_weights.py` 在本地加载后，由 `get_local_tensor_ids` 豁免非 NPU 状态检查；未完成加载的宿主张量仍会被拒绝。[C14]
@@ -247,16 +247,16 @@ MTP 一份 = 8192 × 2176 × 4 B ≈ 68.0 MiB
 
 以下均为社区上游 `vllm-ascend@8d6180e2`，路径前缀 `vllm_ascend/model_loader/rfork/`（另注除外）：
 
-- `rfork_loader.py#L729-L746`：`_requires_processed_layout_transfer`，量化（`is not None`）/ `weight_nz_mode == 2`（排除 bool）/ `FORCE_NZ` 三条件。[C1]
-- `rfork_loader.py#L562-L639`：`_iter_ascend_moe_quant_methods`、`_rfork_pre_transfer_weight_processing`、`_rfork_skip_unquantized_moe_post_load_processing`、`_refresh_rfork_flatquant_state`。[C2]
-- `rfork_loader.py#L805-L877`：共享复用、processed 后处理 + `torch.npu.synchronize`、先登记后借与传输后收尾。[C3]
-- `tensor_layout.py#L34-L69`：`_RUNTIME_ONLY_TENSOR_NAMES`（3 项）、`_is_runtime_only_tensor`、`build_structural_digest`。[C4]
-- `tensor_layout.py#L205-L259`：`reshape_tensor_to_seed_shape`、`is_transferable_tensor`、`is_non_overlapping_dense_tensor`、`validate_transferable_tensor_layout`。[C5]
-- `tensor_layout.py#L260-L458`：分层 BFS `_collect_shortest_path_tensors`、`collect_transferable_tensors`、`find_non_npu_state_tensors`。[C6]
+- `rfork_loader.py#L729-L746`：`_requires_processed_layout_transfer`，量化（`is not None`）/ `weight_nz_mode == 2`（排除 bool）/ `FORCE_NZ` 三条件。
+- `rfork_loader.py#L562-L639`：`_iter_ascend_moe_quant_methods`、`_rfork_pre_transfer_weight_processing`、`_rfork_skip_unquantized_moe_post_load_processing`、`_refresh_rfork_flatquant_state`。
+- `rfork_loader.py#L805-L877`：共享复用、processed 后处理 + `torch.npu.synchronize`、先登记后借与传输后收尾。
+- `tensor_layout.py#L34-L69`：`_RUNTIME_ONLY_TENSOR_NAMES`（3 项）、`_is_runtime_only_tensor`、`build_structural_digest`。
+- `tensor_layout.py#L205-L259`：`reshape_tensor_to_seed_shape`、`is_transferable_tensor`、`is_non_overlapping_dense_tensor`、`validate_transferable_tensor_layout`。
+- `tensor_layout.py#L260-L458`：分层 BFS `_collect_shortest_path_tensors`、`collect_transferable_tensors`、`find_non_npu_state_tensors`。
 - `tests/ut/model_loader/rfork/test_registration_cache_isolated.py#L63-L85`：batching limits 2048 / 4096 排除 `topk_indices_buffer` 单测。[C7]
-- `session.py#L490-L559`：checkpoint 路径成为 seed 前重新 `register_memory_region` 刷新登记。[C8]
-- `vllm_ascend/ops/fused_moe/routed_experts.py#L105-L145`：`AscendUnquantizedFusedMoEMethod.process_weights_after_loading`。[C12]
+- `session.py#L490-L559`：checkpoint 路径成为 seed 前重新 `register_memory_region` 刷新登记。
+- `vllm_ascend/ops/fused_moe/routed_experts.py#L105-L145`：`AscendUnquantizedFusedMoEMethod.process_weights_after_loading`。
 - `transfer_backend.py#L780-L828`：接收端 `reshape_tensor_to_seed_shape` 与 `log_tensor_layout_summary`。[C13]
-- `local_weights.py#L61-L97`：Engram 宿主表加载、记录、豁免与释放。[C14]
-- `v0.30.0` 对照：`vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/tensor_layout.py#L30-L61`、`manifest.py#L164-L214`。[C10][C11]
+- `local_weights.py#L61-L97`：Engram 宿主表加载、记录、豁免与释放。
+- `v0.30.0` 对照：`vllm-ascend@c09d3e20:vllm_ascend/model_loader/rfork/tensor_layout.py#L30-L61`、`manifest.py#L164-L214`。[C10]
 - GLM 推演参照固定镜像 `vllm-ascend@db701c1f`：`vllm_ascend/models/glm5_next.py#L2252-L2259`、`glm5_next_mtp.py#L64-L77`。

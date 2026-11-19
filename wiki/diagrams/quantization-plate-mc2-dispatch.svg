@@ -5,21 +5,21 @@
   <!-- 紧裁透明底等距拆解剖面主图（零底框、零内层网格笼，大尺寸直浮画布） -->
   <image href="./wiki-illustrations/quantization-mc2-dispatch-cutaway.webp" x="40" y="130" width="820" height="400" preserveAspectRatio="xMidYMid meet"/>
 
-  <!-- 引线与靶点双环圆点（顺时针四站零交叉，精准锚定立体部件） -->
-  <!-- 1 -> SOURCE NPU 的 MC2 DISPATCH 选路入口块 -->
-  <line x1="212" y1="116" x2="241" y2="280" stroke="#4c65b6" stroke-width="1.6"/>
-  <circle cx="241" cy="280" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
-  <circle cx="241" cy="280" r="2.5" fill="#4c65b6"/>
+  <!-- 引线与靶点双环圆点（顺时针四站零交叉，精准锚定立体部件空白处不遮字） -->
+  <!-- 1 -> SOURCE NPU 的 MC2 DISPATCH 选路入口块左上角（避开 MC2 文字） -->
+  <line x1="212" y1="116" x2="216" y2="266" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="216" cy="266" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="216" cy="266" r="2.5" fill="#4c65b6"/>
 
-  <!-- 2 -> 上方 DISPATCH · INT8 桥上的 INT8 + SCALE 数据包 -->
-  <line x1="560" y1="116" x2="550" y2="226" stroke="#087f73" stroke-width="1.6"/>
-  <circle cx="550" cy="226" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
-  <circle cx="550" cy="226" r="2.5" fill="#087f73"/>
+  <!-- 2 -> 上方 DISPATCH · INT8 桥上的 INT8 数据包顶角（避开 INT8 文字） -->
+  <line x1="560" y1="116" x2="554" y2="210" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="554" cy="210" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="554" cy="210" r="2.5" fill="#087f73"/>
 
-  <!-- 3 -> 右侧 EXPERT NPU 的本地 W8 分组矩阵乘模块 -->
-  <line x1="665" y1="540" x2="665" y2="346" stroke="#c78300" stroke-width="1.6"/>
-  <circle cx="665" cy="346" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
-  <circle cx="665" cy="346" r="2.5" fill="#c78300"/>
+  <!-- 3 -> 右侧 EXPERT NPU 的本地 W8 分组矩阵乘块下方金色侧面（避开 W8 文字） -->
+  <line x1="665" y1="540" x2="665" y2="366" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="665" cy="366" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="665" cy="366" r="2.5" fill="#c78300"/>
 
   <!-- 4 -> 下方 COMBINE · BF16 返程宽体通道 -->
   <line x1="365" y1="540" x2="421" y2="454" stroke="#4c65b6" stroke-width="1.6"/>

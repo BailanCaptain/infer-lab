@@ -1,38 +1,52 @@
 layout: figure
 id: rfork-troubleshooting
-caption: 新实例 B 的一个 Worker 借到来源以后，要依次登记显存、向 A 要清单、核对清单、分批读权重。失败有两种走法。一种是某一步的检查没通过：源码先在出错的地方记一条具体异常（第二排），再汇成一句汇总警告，汇总的原因一栏四种情况一字不差，都只有 transfer failed.，所以要往前找这个 rank 的那条具体异常。另一种是某一步直接抛了异常（比如来源地址不合法、传输引擎的读取调用抛错）：前面没有单独的具体日志，汇总的原因一栏就是那条异常原文。两种最后都尝试清理；服务停止且登记内存清理通过才改走默认加载，否则保活旧存储并报错，拒绝分配第二份模型。仅租约尚未归还不阻止回退，可继续后台归还。建传输后端、建会话、造模型或读完后跑后处理时出错，走的也是第二种。没借到来源不打汇总；读完后还租约失败不回退，模型照常推理，只是不当来源。
-size: [900, 430]
+caption: 按社区上游 main（8d6180e2）顺序，新实例 B 的 Worker 先在借租约之前登记本地显存并绑定结构摘要（register_destination），失败时先记登记侧具体错误，汇总原因写 destination registration failed.；随后向 Planner 申请租约（没借到直接本地加载，不打汇总）；借到来源后再依次走取清单、核清单、分批读权重三步（transfer_from_seed），这三步检查不通过先记具体异常，再汇成一字不差的 transfer failed.，排查时要往前找该 rank 的具体报错。任一步直接抛可恢复异常时，前面没有单独日志，汇总原因就是异常原文（若因缺必填配置抛 RForkConfigurationError，则直接中止启动、不走回退）。可恢复失败都先尝试清理：服务停止且登记内存注销完成才改走默认加载，否则保活旧存储并报错终止。
+size: [900, 470]
 frames:
-  - { label: B 借到来源以后的四步, at: [30, 46], size: [840, 70] }
+  - { label: 借租约前 · 登记显存, at: [20, 44], size: [228, 76] }
+  - { label: 借到来源后的三步（transfer_from_seed）, at: [264, 44], size: [604, 76] }
 items:
-  - { at: [40, 58], size: [190, 48], text: 登记显存, sub: 把 B 的空位告诉传输引擎, tone: weight, style: plain }
-  - { at: [250, 58], size: [190, 48], text: 向 A 要清单, sub: HTTP 控制通道, tone: control, style: plain }
-  - { at: [460, 58], size: [190, 48], text: 核对清单, sub: 名字、形状、类型、大小, tone: control, style: plain }
-  - { at: [670, 58], size: [190, 48], text: 分批读权重, sub: 每批不超过 1 GiB, tone: comm, style: plain }
-  - { at: [40, 150], size: [190, 52], text: 登记报错, sub: 接口缺失 / 范围没覆盖, tone: danger, style: faded }
-  - { at: [250, 150], size: [190, 52], text: 要清单失败, sub: 状态码不是 200 / 连不上, tone: danger, style: faded }
-  - { at: [460, 150], size: [190, 52], text: 清单对不上, sub: 名字差集 / 类型 / 大小, tone: danger, style: faded }
-  - { at: [670, 150], size: [190, 52], text: 第 k 批读失败, sub: 批次、首末权重名、返回码, tone: danger, style: faded }
-  - { at: [40, 256], size: [440, 56], text: 汇总：原因只写 transfer failed., sub: 四种检查失败一字不差，要往前找一行, tone: danger, style: solid }
-  - { at: [520, 256], size: [340, 56], text: 汇总：原因就是异常原文, sub: 前面没有单独的具体日志, tone: danger, style: solid }
-  - { at: [300, 360], size: [300, 46], text: 停服务且注销完成才回退, sub: 停服务或注销失败：保活并报错, tone: ink, style: plain }
+  # 第一排：登记在借租约前；取清单/核清单/分批读在借到后
+  - { at: [30, 58], size: [208, 50], text: 登记显存, sub: 绑结构摘要 · 算 seed_key, tone: weight, style: plain }
+  - { at: [274, 58], size: [184, 50], text: 向 A 要清单, sub: HTTP 控制通道, tone: control, style: plain }
+  - { at: [474, 58], size: [184, 50], text: 核对清单, sub: 五元组 + NPU 格式, tone: control, style: plain }
+  - { at: [674, 58], size: [184, 50], text: 分批读权重, sub: 每批不超过 1 GiB, tone: comm, style: plain }
+  # 第二排：检查失败先记具体日志
+  - { at: [30, 158], size: [208, 52], text: 登记报错, sub: 接口缺失 / 范围没覆盖, tone: danger, style: faded }
+  - { at: [274, 158], size: [184, 52], text: 要清单失败, sub: 非 200 / 协议 / 连不上, tone: danger, style: faded }
+  - { at: [474, 158], size: [184, 52], text: 清单对不上, sub: 名字 / 类型 / NPU 格式, tone: danger, style: faded }
+  - { at: [674, 158], size: [184, 52], text: 第 k 批读失败, sub: 批次、首末权重名、返回码, tone: danger, style: faded }
+  # 第三排：三类汇总
+  - { at: [20, 282], size: [262, 58], text: 汇总：登记失败, sub: destination registration failed., tone: danger, style: solid }
+  - { at: [298, 282], size: [322, 58], text: 汇总：原因只写 transfer failed., sub: 三种检查失败一字不差，要往前找一行, tone: danger, style: solid }
+  - { at: [636, 282], size: [244, 58], text: 汇总：原因就是异常原文, sub: 前面没有单独的具体日志, tone: danger, style: solid }
+  # 第四排：清理安全门
+  - { at: [280, 396], size: [336, 52], text: 停服务且注销完成才回退, sub: 停服务或注销失败：保活并报错, tone: ink, style: plain }
 links:
-  - { from: [135, 108], to: [135, 148], tone: danger }
-  - { from: [345, 108], to: [345, 148], tone: danger }
-  - { from: [555, 108], to: [555, 148], tone: danger }
-  - { from: [765, 108], to: [765, 148], tone: danger }
-  - { from: [872, 82], to: [690, 254], via: [[886, 82], [886, 232], [690, 232]], tone: danger, dashed: true }
-  - { from: [260, 314], to: [400, 358] }
-  - { from: [690, 314], to: [500, 358] }
-fans:
-  - { from: [[135, 204], [345, 204], [555, 204], [765, 204]], to: [260, 254], tone: danger }
+  # 第一排 → 第二排
+  - { from: [134, 108], to: [134, 158], tone: danger }
+  - { from: [366, 108], to: [366, 158], tone: danger }
+  - { from: [566, 108], to: [566, 158], tone: danger }
+  - { from: [766, 108], to: [766, 158], tone: danger }
+  # 登记报错 → 登记失败汇总
+  - { from: [134, 210], to: [134, 282], tone: danger }
+  # 三步检查失败 → 统一汇总为 transfer failed.
+  - { from: [366, 210], to: [366, 282], tone: danger }
+  - { from: [566, 210], to: [566, 282], tone: danger }
+  - { from: [766, 210], to: [600, 282], via: [[766, 228], [600, 228]], tone: danger }
+  # 任一步直接抛异常 → 异常原文汇总
+  - { from: [868, 82], to: [852, 282], via: [[886, 82], [886, 256], [852, 256]], tone: danger, dashed: true }
+  # 三类汇总 → 安全门
+  - { from: [151, 340], to: [360, 396], via: [[151, 368], [360, 368]] }
+  - { from: [459, 340], to: [459, 396] }
+  - { from: [758, 340], to: [536, 396], via: [[758, 368], [536, 368]] }
 texts:
-  - { at: [145, 134], text: 检查没通过：先记一条具体异常, note: true, width: 190 }
-  - { at: [700, 222], text: 任何一步直接抛异常, note: true, tone: danger, width: 170 }
+  - { at: [250, 142], text: 检查没通过：先记具体异常, anchor: middle, note: true, size: 13 }
+  - { at: [734, 260], text: 任一步直接抛可恢复异常, anchor: middle, note: true, tone: danger, size: 13 }
 pins:
   - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L115-L276
-    symbols: [register_memory_region, fetch_seed_transfer_info, read_weights_from_seed]
+    symbols: [register_destination, register_memory_region, fetch_seed_transfer_info, read_weights_from_seed]
   - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L833-L936
-    symbols: [transfer_from_seed, prepare_for_fallback, can_schedule_seed]
+    symbols: [register_destination, acquire_seed, transfer_from_seed, prepare_for_fallback, can_schedule_seed]
   - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/types.py#L68-L81
     symbols: [RForkFallbackCleanupResult, service_stopped, memory_reset, can_schedule_seed]

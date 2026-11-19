@@ -1,9 +1,15 @@
+import { existsSync } from "node:fs";
 import type { AgentRequest, RunAgent } from "./batch";
 import { resolveClaudeCommand, spawnClaude } from "./claude-cli";
 import { MODEL_ID, WORK_MODEL } from "./model-use";
 
 export const RESTRICTED_PROFILE = "restricted-text-v1";
-export function restrictedArgs(rules: string, budget?: number, model = WORK_MODEL): string[] {
+export function restrictedArgs(
+  rules: string,
+  budget?: number,
+  model = WORK_MODEL,
+  settingSources = "",
+): string[] {
   return [
     "-p",
     "--output-format",
@@ -18,7 +24,7 @@ export function restrictedArgs(rules: string, budget?: number, model = WORK_MODE
     "--disable-slash-commands",
     "--no-session-persistence",
     "--setting-sources",
-    "",
+    settingSources,
     "--model",
     model,
     "--system-prompt",
@@ -31,6 +37,7 @@ export function restrictedArgs(rules: string, budget?: number, model = WORK_MODE
 export const runRestrictedClaude: RunAgent = async (req: AgentRequest) => {
   const budget = req.accountingOnly ? undefined : Number(req.args[req.args.indexOf("--max-budget-usd") + 1]);
   const rules = req.args[req.args.indexOf("--system-prompt") + 1] ?? "";
+  const settingSources = req.claudeSettingSources ?? "";
   const reject = (reason: string) => ({
     id: req.id,
     ok: false,
@@ -44,41 +51,51 @@ export const runRestrictedClaude: RunAgent = async (req: AgentRequest) => {
     !MODEL_ID.test(req.model ?? WORK_MODEL) ||
     (!req.accountingOnly && (!Number.isFinite(budget) || budget! <= 0)) ||
     req.allowedWrites.length ||
-    JSON.stringify(req.args) !== JSON.stringify(restrictedArgs(rules, budget, req.model ?? WORK_MODEL))
+    JSON.stringify(req.args) !==
+      JSON.stringify(restrictedArgs(rules, budget, req.model ?? WORK_MODEL, settingSources))
   )
     return reject("受限编译配置不匹配");
   // Empty --tools argv must survive Windows quoting exactly. Never use shell fallback.
-  if (resolveClaudeCommand().shell) return reject("受限编译需要可直接执行的 claude 二进制路径（CLAUDE_CLI）");
+  const cmd = req.claudeCli
+    ? resolveClaudeCommand(process.env, existsSync, process.platform, { claudeCli: req.claudeCli })
+    : resolveClaudeCommand();
+  if (cmd.shell)
+    return reject("受限编译需要可直接执行的 claude 二进制或 npm .cmd 路径（CLAUDE_CLI / claudeCli）");
   let results = 0;
   let output: string | undefined;
   let invalid = false;
   let diagnostic: string | undefined;
-  const result = await spawnClaude(req, (line) => {
-    let value: Record<string, unknown>;
-    try {
-      value = JSON.parse(line);
-    } catch {
-      return;
-    }
-    if (!value || typeof value !== "object") return;
-    const message = value.message as { content?: { type?: string }[] } | undefined;
-    if (Array.isArray(message?.content) && message.content.some((c) => !c || c.type === "tool_use"))
-      invalid = true;
-    if (value.type !== "result") return;
-    results++;
-    if (value.is_error === true && typeof value.result === "string") diagnostic = value.result.slice(0, 2000);
-    if (
-      value.is_error !== false ||
-      typeof value.result !== "string" ||
-      Buffer.byteLength(value.result, "utf8") > 128 * 1024
-    )
-      invalid = true;
-    else output = value.result;
-    return {
-      isError: invalid,
-      costUsd: typeof value.total_cost_usd === "number" ? value.total_cost_usd : undefined,
-    };
-  });
+  const result = await spawnClaude(
+    req,
+    (line) => {
+      let value: Record<string, unknown>;
+      try {
+        value = JSON.parse(line);
+      } catch {
+        return;
+      }
+      if (!value || typeof value !== "object") return;
+      const message = value.message as { content?: { type?: string }[] } | undefined;
+      if (Array.isArray(message?.content) && message.content.some((c) => !c || c.type === "tool_use"))
+        invalid = true;
+      if (value.type !== "result") return;
+      results++;
+      if (value.is_error === true && typeof value.result === "string")
+        diagnostic = value.result.slice(0, 2000);
+      if (
+        value.is_error !== false ||
+        typeof value.result !== "string" ||
+        Buffer.byteLength(value.result, "utf8") > 128 * 1024
+      )
+        invalid = true;
+      else output = value.result;
+      return {
+        isError: invalid,
+        costUsd: typeof value.total_cost_usd === "number" ? value.total_cost_usd : undefined,
+      };
+    },
+    req.claudeCli ? cmd : undefined,
+  );
   if (!result.ok || invalid || results !== 1 || !output?.trim())
     return {
       ...result,

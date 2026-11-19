@@ -129,22 +129,22 @@ B 从 A 读过来的是显存里的原始字节，读完直接拿来推理，中
 两次都用 SHA256。它是一种哈希算法：把任意一段文字压成固定 64 位的十六进制串。同样的输入永远得到同样的输出；输入哪怕只改一个字，输出也会整个变样，而且从输出看不出原来写的是什么。
 
 1. **第一次，算部署指纹。** 把部署配置写成一段固定格式的 JSON（一种用花括号和「键: 值」记录数据的文本格式），算一次 SHA256。
-2. **第二次，算 seed key。** 把指纹、模型地址、部署策略名、三个分片编号和「是不是草稿」再写成一段 JSON，再算一次 SHA256。
+2. **第二次，算 seed key。** 待空模型建好并完成目的显存登记、绑定结构摘要（`structural_digest`）后，把配置指纹、结构摘要、模型地址、部署策略名、分片编号和「是不是草稿」再写成一段 JSON，再算一次 SHA256。
 
-下面用一份只保留三项的简化配置演示一遍。哈希值是真的算出来的，只截前 12 位：
+下面用一份只保留三项的简化配置演示一遍（省略结构摘要等其余字段，哈希值按真实输入算出，截前 12 位）：
 
-```calc
-title: 改一处配置，哈希整个变样（简化描述，SHA256 前 12 位）
-A 的指纹 = SHA256(数值类型 bfloat16，模型地址 demo/model，TP 大小 2) = 「89f742e1f557…」
-只换数值类型 = SHA256(float16，demo/model，2) = 「12e7efe7fe5f…」
-只换 TP 大小 = SHA256(bfloat16，demo/model，4) = 「9de863023bcd…」
-> A 的描述原文是 {"dtype":"torch.bfloat16","model_url":"demo/model","tensor_world_size":2}，键名排序、不留空格
+| 场景（简化描述，键名排序、不留空格） | 输入变化 | SHA256 前 12 位 |
+|---|---|---|
+| A 的指纹 | `{"dtype":"torch.bfloat16","model_url":"demo/model","tensor_world_size":2}` | `89f742e1f557…` |
+| 只换数值类型 | `dtype` 改为 `float16`（其余同 A） | `12e7efe7fe5f…` |
+| 只换 TP 大小 | `tensor_world_size` 改为 `4`（其余同 A） | `9de863023bcd…` |
+| A 卡 0 主模型钥匙 | 代入 A 完整 64 位指纹 + `tp_rank=0` + `is_draft_model=false` | `da8d663a9e46…` |
+| A 卡 1 主模型钥匙 | 同上，`tp_rank=1` | `b7065bcaeda3…` |
+| 只把角色换成草稿 | 同卡 0，`is_draft_model=true` | `8334f814aba1…` |
 
-A 卡 0 主模型的钥匙 = SHA256(A 的指纹，TP 编号 0，不是草稿) = 「da8d663a9e46…」
-A 卡 1 主模型的钥匙 = SHA256(A 的指纹，TP 编号 1，不是草稿) = 「b7065bcaeda3…」
-只把角色换成草稿 = SHA256(A 的指纹，TP 编号 0，是草稿) = 「8334f814aba1…」
-> 钥匙这三行的示意描述键名是 compatibility_fingerprint、tp_rank、is_draft_model（当前主线正式键名，另含 structural_digest 等字段），指纹按完整 64 位代入
-```
+$$\text{seed\_key} = \text{SHA256}(\text{canonical\_json}(\text{compatibility\_fingerprint},\ \text{structural\_digest},\ \text{ranks},\ \text{is\_draft\_model},\ \dots))$$
+
+上表钥匙三行示意描述使用的键名为 `compatibility_fingerprint`、`tp_rank`、`is_draft_model`（当前主线正式键名，另含 `structural_digest`、`model_url`、`model_deploy_strategy_name` 等字段），其中指纹按完整 64 位代入。
 
 从这几行能看出三件事。第一，同样的输入必然得到同样的钥匙，所以 A 和 B 不用商量，各算各的就能对上。第二，改任何一项，结果都完全不同，没有「差不多」：B 用 float16、A 用 bfloat16，哪怕两种类型每个数都占 2 字节，也配不上。第三，从两串哈希值看不出差在哪一项。日志里只打印哈希值、不打印描述原文，排错时想知道差在哪，得把两边的配置逐项摆出来比。
 
@@ -183,7 +183,7 @@ A 卡 1 主模型的钥匙 = SHA256(A 的指纹，TP 编号 1，不是草稿) = 
 | 全局编号（`global_rank`） | 不进；seed 服务的端口用它算（设了非零基础端口时为 `base + 2 × global_rank + 角色槽`，主模型 0、草稿 1，基数为 0 时由系统随机分配），日志里也用它标卡 | 不该拿「是第几号进程」限制跨实例借用 |
 | 节点 IP | 不进 | 同配置跨节点实例可以互借；有效 `kv_role` 已进入兼容性指纹 |
 
-取 PP 编号或 EP 编号时，如果对应的并行组还没建好，会抛出报错，不会悄悄记成空。这个报错会被 RFork 加载器接住，和建会话时查出缺配置走的是同一条路：打一条「传输失败、清理后回退到默认加载」的警告，改从存储加载，启动不会停下。因为这时连会话都还没建起来，这张卡回退后不会登记成 seed。
+取 PP 编号或 EP 编号时，如果对应的并行组还没建好，会抛出 `RuntimeError`，不会悄悄记成空。这类可恢复异常会被 RFork 加载器接住：打一条「传输失败、清理后回退到默认加载」的警告，改从存储加载，启动不会停下；因为这时会话还没建起来，这张卡回退后不会登记成 seed。注意这与建会话时缺少三项必填配置不同——后者会抛 `RForkConfigurationError` 直接中止启动，不走回退。
 
 **怎么判断自己是草稿。** 模型配置里的运行类型写明是草稿，或者模型类型以「_mtp」结尾、架构名以「MTPModel」结尾，满足一条就算。主模型和草稿模型在同一个 Worker 里各开一个会话，各算各的指纹和钥匙。有一个例外：草稿模型的权重如果全都和已经加载好的主模型共用，草稿就直接复用主模型那一份，不去问 Planner，也不多借一次。GLM 的 MTP 层有自己的权重，不属于这种情况。
 
@@ -209,43 +209,41 @@ A 卡 1 主模型的钥匙 = SHA256(A 的指纹，TP 编号 1，不是草稿) = 
 file: rfork-identity-flow
 ```
 
-B 的一个 Worker 先算钥匙，再搭空模型，然后只带这一把钥匙去问 Planner。结果一共四种，没借到的占三种（图里第二排从左往右）：
+B 的一个 Worker 在当前上游 `main`（`8d6180e2`）里按四步前进：先**建会话并算配置指纹**（`_ensure_rfork_session`），再**搭空模型并按需准备布局**（`initialize_model` 等），然后**登记本地目的显存、绑定结构摘要并算出最终 `seed_key`**（`session.register_destination()` → `bind_structural_digest` → `self.planner.seed_key`），**最后**才带着这把 `seed_key` 调用 `session.acquire_seed()` 去问 Planner。整个过程中没有借到权重的情况要分成四类看（图里第二排从左往右）：
 
-- **钥匙没算出来**：没配 Planner 地址、缺模型地址或部署策略名（这三项在建会话时先查，任何一项为空就报错，钥匙还来不及算），PP 或 EP 组还没建好，或者描述里有容器引用了自己。RFork 加载器接住这个报错，打一条「传输失败、清理后回退到默认加载」的警告，警告里带着原始报错；这张卡改从存储加载，启动不会停下，但回退后不登记成 seed。
-- **没问成**：Planner 地址配了，但网络出错，Planner 回了别的状态码，或者回复缺项、格式不对。
-- **匹配不到**：Planner 明确说这把钥匙下没有可用的 seed。示例 Planner 在两种情况下这么回答：没有任何 seed 登记过这把钥匙；或者登记过的 seed 名额都被占满了。它每次挑之前，还会先把超过 60 秒没报平安（心跳）的 seed 清掉，所以 A 卡住或退出后，它的钥匙很快也会查不到。
-- **借到了**：Planner 回了 seed 的 IP、端口、本次租约的编号和 seed 那张卡的编号，四项齐全，端口和编号也是合法整数，B 就去读权重。
+- **缺必填或非法配置（直接中止，不回退）**：`model_url`、`model_deploy_strategy_name`、`rfork_scheduler_url` 三项必填配置缺任一项，或严格配置项非法，会在初始化或建会话时抛出 `RForkConfigurationError`。加载器明确 `except RForkConfigurationError: raise` 直接中止启动，**不会**静默回退到默认加载。
+- **会话或登记阶段的可恢复报错**：PP/EP 并行组未初始化、指纹描述自引用或歧义键（建会话阶段），或者目的显存登记失败（`RuntimeError("destination registration failed.")`）。这类异常属于 `RFORK_FALLBACK_EXCEPTIONS`，加载器接住后打一条「传输失败、清理后回退到默认加载」的警告并走清理与默认加载；若是建会话阶段失败（会话还没建起来），这张卡回退后不会登记成 seed。
+- **没问成**：Planner 地址配了，但网络出错，Planner 回了非 200/404 的状态码，或者回复缺项、端口/rank/可选 `LEASE_TTL_SEC` 非法。
+- **匹配不到**：Planner 明确回 404，表示这把钥匙下没有可用的 seed。示例 Planner 在两种情况下这么回答：没有任何 seed 登记过这把钥匙；或者登记过的 seed 名额都被占满了。它还会把超过 60 秒没报平安（心跳）的 seed 转入 `draining` 停止分配新租约，所以 A 卡住或退出后，它的钥匙很快也会查不到。
+- **借到了**：Planner 回了 200 且响应头带齐 seed 的 IP、端口、本次租约编号和 seed rank（外加可选 `LEASE_TTL_SEC`），四项齐全且取值合法，B 就进入取清单与读权重。
 
-没问成和匹配不到最后打的是同一句日志：没有可用的 seed，改从本地加载，加载完把自己登记成 seed。表面一样，原因却完全不同：匹配不到是钥匙或 seed 的问题，没问成是连接或 Planner 本身的问题，后者在更早的位置会多一条「向 Planner 要 seed 失败」的警告。排查时按这个顺序走：
+没问成和匹配不到最后打的是同一句日志（`RFork %s seed acquisition was unsuccessful; loading locally.`），随后从本地加载并在清理通过后把自己登记成 seed。表面一样，原因却完全不同：匹配不到是钥匙或 seed 的问题，没问成是连接或 Planner 本身的问题，后者在更早的位置会多一条「向 Planner 要 seed 失败」的警告。排查时按这个顺序走：
 
-1. 先找「传输失败、回退」的警告。这句警告在借到以后真正传输出错时也会出现，所以要看它带的原始报错：如果是没配 Planner 地址、缺模型地址或策略名、并行组没建好、描述里有容器引用了自己这几种（原文见[会报什么错](#会报什么错)），就是钥匙没算出来，这张卡也没去问 Planner。
-2. 再找「向 Planner 要 seed 失败」的警告。有，就是没问成，先查网络和 Planner 本身；地址填错了但不为空，也落在这一类。
-3. 把两边的指纹拿出来比。每个 TP 组里编号为 0 的那个 Worker 会在启动时打印本组的指纹；指纹不同，就把两边配置按上面六组逐项比。
-4. 指纹相同，再确认 A 那一侧确实登记成功、还在按时报平安。
-5. 看同一把钥匙下的 seed 是不是都被别的实例占着。
-6. 看两边是不是连到了同一个 Planner、同一份状态存储。
-7. 以上都没问题，才当成正常的冷启动：本来就还没有任何 seed。
+1. 先看进程是否直接抛 `RForkConfigurationError` 中止：是，就先补齐 `model_url`、`model_deploy_strategy_name`、`rfork_scheduler_url` 或修正严格配置项。
+2. 进程没中止时，先找「传输失败、回退」的警告。看它带的原始报错：如果是并行组没建好、描述自引用/歧义键（会话未建，回退不登 seed），或是 `destination registration failed.`（登记显存失败，还没问 Planner），都发生在申请租约之前（原文见[会报什么错](#会报什么错)）。
+3. 再找「向 Planner 要 seed 失败」的警告。有，就是没问成，先查网络、Planner 响应和端口/rank/TTL 格式；地址填错了但不为空，也落在这一类。
+4. 把两边的指纹与结构摘要拿出来比。每个 TP 组里编号为 0 的那个 Worker 在建会话时打 `fingerprint`，在登记显存绑定后打 `RFork %s seed identity bound: seed_key=..., structural_digest=...`；指纹不同就按上表逐项比配置，指纹同而结构摘要不同就查两边实际张量布局。
+5. 指纹和结构摘要都相同，再确认 A 那一侧确实登记成功、还在按时报平安。
+6. 看同一把钥匙下的 seed 是不是都被别的实例占着。
+7. 看两边是不是连到了同一个 Planner、同一份状态存储。
+8. 以上都没问题，才当成正常的冷启动：本来就还没有任何 seed。
 
 更完整的排错路线见[排错页](rfork-troubleshooting.md)。
 
 ## 放到 GLM 双机：一次热启动要配 32 把钥匙
 
-这一节是推演，不是实测。工作版的代码树里没有 GLM-5.3-Flash 的模型实现，下面是把工作版的 RFork 加载器和固定镜像里的 GLM 模型放在一起推出来的，前提见[总览的 GLM 一节](rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)。我们的部署是一个实例、两台机器、16 张卡，TP8 / DP2 / EP16 / W8A8（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。
+这一节是推演，不是实测。社区上游 `vllm-ascend@8d6180e2` 已包含 GLM-5.3-Flash 的模型实现（`vllm_ascend/models/glm5next/` 下的 `Glm5NextForCausalLM` / `Glm5NextForConditionalGeneration` 与 `Glm5NextMTP`）及官方部署教程（`docs/source/tutorials/models/GLM5.3-Flash.md`），但该教程与上游 RFork 官方指南尚未给出专用的 GLM-5.3-Flash RFork 配方或已测列表（且官方指南明确提示 `Glm5NextMTP` 暂未纳入自动 checkpoint 归属恢复，草稿复用须实机单独验收）；同时，本站的 GLM-5.3-Flash 双机 W8A8 历史算例钉在固定镜像 `db701c1f`（显式例外 B）。下面是把上游 `main@8d6180e2` 的 RFork 加载器规则与固定镜像的 GLM 双机拓扑放在一起推出来的，前提见[总览的 GLM 一节](rfork.md#放到-glm-双机再起一个同构实例每张卡借多少)。我们的部署是一个实例、两台机器、16 张卡，TP8 / DP2 / EP16 / W8A8（见[部署前提](glm-5-3-flash-two-node.md#部署前提)）。
 
 **部署指纹里写了什么。** 切分那一组是：TP 大小 8，PP 大小 1，DP 大小 2，开了 EP，是 MoE 模型；EP 组大小那一栏照样是空的，16 这个数由 DP 2 × TP 8 隐含（prefill context parallel 我们的启动命令没设，取默认 1）。数值那一组里，量化方式记的是启动参数给的 ascend。所以要借给 B 的 seed 实例，必须同样是 TP8 / DP2 / EP16 / W8A8，用同一份 checkpoint，NZ 模式也相同（我们的启动命令没设，取默认值 1，即只有量化权重转成 NZ），否则指纹不同，Planner 配不上。
 
-**每张卡的钥匙里写什么编号。** EP 组正好是全部 16 张卡、按全局编号排，所以组内编号就等于全局编号（分组见[16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)）。PP 只有一段，PP 编号记为空。
+**每张卡的钥匙里写什么编号。** EP 组正好是全部 16 张卡、按全局编号排，所以组内编号就等于全局编号（分组见[16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)）。PP 只有一段，PP 编号记为空。对全局第 $r$ 号卡（$r \in \{0, 1, \dots, 15\}$）：
 
-```calc
-title: GLM 双机上，全局第 r 号卡的钥匙里写什么编号
-TP 编号 = r mod 8
-EP 编号 = r
-PP 编号 = 空（PP 大小为 1）
+$$\text{tp\_rank} = r \bmod 8, \qquad \text{ep\_rank} = r, \qquad \text{pp\_rank} = \text{None}\ (\text{PP}=1)$$
 
-第 9 号卡的 TP 编号 = 9 mod 8 = 1
-第 9 号卡的 EP 编号 = 9
-> 第 1 号卡是 TP 编号 1、EP 编号 1：两张卡 TP 编号相同，钥匙仍然不同
-```
+| 全局卡号 $r$ | $\text{tp\_rank} = r \bmod 8$ | $\text{ep\_rank} = r$ | $\text{pp\_rank}$ | 钥匙是否相同 |
+|---|---|---|---|---|
+| 第 1 号卡 | `1` | `1` | 空 | 基准 |
+| 第 9 号卡 | `1` | `9` | 空 | **不同**（TP 编号相同，但 EP 编号不同） |
 
 第 1 号卡和第 9 号卡的 TP 编号都是 1，attention 和稠密层存的是同一份切片；可它们各放 18 个不同的专家，EP 编号一个是 1、一个是 9，钥匙就不同。这正是 EP 编号要进钥匙的原因：要是只看 TP 编号，B 的第 9 号卡就可能借到 A 第 1 号卡上的专家。两张卡上专家张量的形状一样，后面的清单核对不一定拦得住（按代码推断）。所以 B 的第 r 号卡只能借 A 的第 r 号卡。
 
@@ -268,7 +266,7 @@ PP 编号 = 空（PP 大小为 1）
 
 ### 怎么开
 
-身份匹配本身没有开关，用 `--load-format rfork` 加载就会算。它需要三项配置：`model_url`（或环境变量 `MODEL_URL`）、`model_deploy_strategy_name`（`MODEL_DEPLOY_STRATEGY_NAME`）与 `rfork_scheduler_url`（`RFORK_SCHEDULER_URL`）。三项默认空串；建会话时任何一项为空均抛 `RForkConfigurationError`，该异常不被回退保护吞掉，直接中止启动。[C28][C29][C23] 全部客户端设置见[配置页](rfork-config.md)。
+身份匹配本身没有开关，用 `--load-format rfork` 加载就会算。它需要三项配置：`model_url`（或环境变量 `MODEL_URL`）、`model_deploy_strategy_name`（`MODEL_DEPLOY_STRATEGY_NAME`）与 `rfork_scheduler_url`（`RFORK_SCHEDULER_URL`）。三项默认空串；建会话时任何一项为空均抛 `RForkConfigurationError`，该异常不被回退保护吞掉，直接中止启动。[C28][C23] 全部客户端设置见[配置页](rfork-config.md)。
 
 想让某批实例单独成池（例如改了传输协议或张量采集规则后隔离旧 seed），换一个新的 `model_deploy_strategy_name` 即可，它同时进配置指纹和 `seed_key`。[C3][I] 若需在 Planner 请求头里附带可读模型元数据，可设 `rfork_model_identity_headers: true`（或 `RFORK_MODEL_IDENTITY_HEADERS=1`），向每次请求附加 `MODEL_URL`、`DEPLOY_STRATEGY`、`IS_DRAFT`（要求 ASCII）。
 
@@ -311,22 +309,22 @@ PP 编号 = 空（PP 大小为 1）
 
 以下路径相对 `vllm-ascend@8d6180e2`（除另注外均在 `vllm_ascend/model_loader/rfork/`）：
 
-- 配置指纹（`build_compatibility_fingerprint`，`identity.py#L229-L264`）：`rfork_protocol_version`、`model_url`、`model_deploy_strategy_name`、`model_revision`、`quantization_config`、`architecture`、`rope`、`weight_layout`（`kv_role` + `mix_placement`），规范化 JSON 后取 SHA256。[C3]
-- 结构摘要（`build_structural_digest`，`tensor_layout.py#L43-L69`）：对登记扫描得到的全部可传张量（ID、shape、dtype、NPU format）取 SHA256；经 `session.register_destination`（`session.py#L115-L143`）绑定到 `planner_client.bind_structural_digest`。[C27][C24]
-- `seed_key`（`build_seed_key`，`identity.py#L306-L349`）：`compatibility_fingerprint`、`structural_digest`、`model_url`、`model_deploy_strategy_name`、`tp_rank`、`pp_rank`、`ep_rank`、`sharded_dp_rank`、`is_draft_model` 九项，规范化 JSON 后取 SHA256。[C4]
+- 配置指纹（`build_compatibility_fingerprint`，`identity.py#L229-L264`）：`rfork_protocol_version`、`model_url`、`model_deploy_strategy_name`、`model_revision`、`quantization_config`、`architecture`、`rope`、`weight_layout`（`kv_role` + `mix_placement`），规范化 JSON 后取 SHA256。
+- 结构摘要（`build_structural_digest`，`tensor_layout.py#L43-L69`）：对登记扫描得到的全部可传张量（ID、shape、dtype、NPU format）取 SHA256；经 `session.register_destination`（`session.py#L115-L143`）绑定到 `planner_client.bind_structural_digest`。[C24][C27]
+- `seed_key`（`build_seed_key`，`identity.py#L306-L349`）：`compatibility_fingerprint`、`structural_digest`、`model_url`、`model_deploy_strategy_name`、`tp_rank`、`pp_rank`、`ep_rank`、`sharded_dp_rank`、`is_draft_model` 九项，规范化 JSON 后取 SHA256。
 
 | 位置 | 内容 |
 |---|---|
-| `identity.py#L33-L108` | `_canonicalize_fingerprint_value`：排序、定序、类型规范化、自引用与歧义键抛 `ValueError` [C1] |
-| `identity.py#L111-L180` | `_get_architectures_descriptor`、`_get_rope_config_descriptor`、`_get_model_revision` [C2] |
-| `identity.py#L182-L226` | `_get_effective_kv_role`、`_get_quantization_config_digest` [C3] |
-| `identity.py#L267-L303` | `_resolve_sharded_dp_rank`：fine-grained TP（`size > 1`）或 MoE 且 `DP > 1` 时取 `data_parallel_rank` [C4] |
-| `rfork_loader.py#L153-L204`、`#L206-L307` | 汇总 rank（`tp_rank == 0`）、草稿判定、`_build_rfork_identity`、`_get_ep_rank` / `_get_pp_rank` [C5][C21] |
-| `rfork_loader.py#L674-L746`、`#L775-L957` | `_ensure_rfork_session`、先登记绑定结构摘要后申请租约、共享复用与回退保护 [C6][C20][C22][C23] |
-| `session.py#L48-L53`、`#L75-L87`、`#L588-L719` | 双槽端口 `_resolve_seed_server_port`、必填项 `RForkConfigurationError`、首次登记与心跳重试 [C9][C28][C11][C31] |
-| `planner_client.py#L38-L114`、`#L137-L195` | `bind_structural_digest`、`seed_key`、`acquire_seed` 与可读身份头 [C7][C10] |
-| `examples/rfork/rfork_planner.py#L44-L80`、`#L117-L133`、`#L207-L229`、`#L289-L333`、`#L497-L516` | 示例 Planner 默认值、`fifo`/`lru` 挑选、draining 清理与 400/404 [C8][C12][C13][C14][C15][C25] |
-| `vllm_ascend/ascend_config.py#L718-L765`、`Dockerfile#L34-L35` | `weight_nz_mode` 默认 1、上游主线 Dockerfile 配套 `VLLM_TAG=v0.33.0` [C16][C26] |
+| `identity.py#L33-L108` | `_canonicalize_fingerprint_value`：排序、定序、类型规范化、自引用与歧义键抛 `ValueError`（来源 1） |
+| `identity.py#L111-L180` | `_get_architectures_descriptor`、`_get_rope_config_descriptor`、`_get_model_revision`（来源 2） |
+| `identity.py#L182-L226` | `_get_effective_kv_role`、`_get_quantization_config_digest`（来源 3） |
+| `identity.py#L267-L303` | `_resolve_sharded_dp_rank`：fine-grained TP（`size > 1`）或 MoE 且 `DP > 1` 时取 `data_parallel_rank`（来源 4） |
+| `rfork_loader.py#L153-L204`、`#L206-L307` | 汇总 rank（`tp_rank == 0`）、草稿判定、`_build_rfork_identity`、`_get_ep_rank` / `_get_pp_rank` [C5] |
+| `rfork_loader.py#L674-L746`、`#L775-L957` | `_ensure_rfork_session`、先建模型再登记绑定结构摘要后申请租约、`RForkConfigurationError` 中止与可恢复回退保护 [C20] |
+| `session.py#L48-L53`、`#L75-L87`、`#L588-L719` | 双槽端口 `_resolve_seed_server_port`、必填项 `RForkConfigurationError`、首次登记与心跳重试（来源 9、11、28、31） |
+| `planner_client.py#L38-L114`、`#L137-L195` | `bind_structural_digest`、`seed_key`、`acquire_seed` 与可读身份头（来源 7、10） |
+| `examples/rfork/rfork_planner.py#L44-L80`、`#L117-L133`、`#L207-L229`、`#L289-L333`、`#L497-L516` | 示例 Planner 默认值、`fifo`/`lru` 挑选、draining 清理与 400/404 [C8] |
+| `vllm_ascend/ascend_config.py#L718-L765`、`Dockerfile#L34-L35` | `weight_nz_mode` 默认 1、上游主线 Dockerfile 配套 `VLLM_TAG=v0.33.0`（来源 16、26） |
 
 待核：
 

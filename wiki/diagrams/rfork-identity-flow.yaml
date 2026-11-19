@@ -1,45 +1,54 @@
 layout: figure
 id: rfork-identity-flow
-caption: B 的一个 Worker 先算钥匙，再搭空模型，然后只带这一把钥匙去问 Planner。算钥匙这几步里任何一处报错（没配 Planner 地址、缺模型地址或策略名、并行组没建好），钥匙就没算出来，加载器接住报错后回退。问 Planner 回来有三种结果：借到了，就拿着租约去读权重；Planner 说这把钥匙下没有可用的 seed，是真的匹配不到；地址配了但网络出错、回了别的状态码或者回复缺项，是没问成。三种没借到都改从存储加载、启动不会停下，但日志不同：钥匙没算出来打的是「传输失败、回退」的警告，回退后这张卡不登记成 seed；没问成和匹配不到打的是同一句「没有可用的 seed」，回退后登记成 seed。
-size: [900, 400]
+caption: B 的一个 Worker 按上游 main（8d6180e2）顺序先建会话与算配置指纹，再搭空模型并按需转布局，随后登记本地显存并绑定结构摘要算出 seed_key，最后才带这把钥匙向 Planner 申请租约。建会话时若缺必填配置（model_url、model_deploy_strategy_name、rfork_scheduler_url）或严格参数非法，抛 RForkConfigurationError 直接中止启动、不走回退；若是并行组未初始化、指纹冲突或登记显存失败，则由回退保护接住并改走默认加载（会话未建时回退后不登记成 seed）。向 Planner 问回来有三种结果：借到租约就去核清单读权重；404 是匹配不到；网络错、非 200/404 或响应头缺项/越界是没问成，后两种同打「seed acquisition was unsuccessful」并回退本地加载后登记成 seed。
+size: [900, 430]
 items:
-  - { at: [20, 40], size: [150, 56], text: 取编号和角色, sub: 分片编号 · 主或草稿, tone: control, style: plain }
-  - { at: [195, 40], size: [150, 56], text: 算部署指纹, sub: 配置描述 → SHA256, tone: control, style: plain }
-  - { at: [370, 40], size: [150, 56], text: 算 seed key, sub: 指纹 + 编号 + 角色, tone: control, style: plain }
-  - { at: [545, 40], size: [150, 56], text: 搭空模型, sub: 先开好放权重的空位, tone: control, style: plain }
-  - { at: [720, 40], size: [160, 56], text: 向 Planner 借, sub: 只带这一把钥匙, tone: control }
-  - { at: [20, 180], size: [190, 56], text: 钥匙没算出来, sub: 缺配置 · 并行组没建好, tone: danger, style: plain }
-  - { at: [240, 180], size: [200, 56], text: 没问成, sub: 网络错 · 别的状态码 · 缺项, tone: danger, style: plain }
-  - { at: [470, 180], size: [210, 56], text: Planner 说没有, sub: 无 seed 或名额都占满, tone: control, style: plain }
-  - { at: [720, 180], size: [160, 56], text: 借到：拿到租约, sub: 回复里四项齐全, tone: control }
-  - { at: [20, 300], size: [660, 56], text: 改从存储加载，启动不停, sub: 先清理已登记的内存和半成品模型，再走默认路径, tone: control, style: faded }
-  - { at: [720, 300], size: [160, 56], text: 按地址读权重, sub: 读前先核清单, tone: weight }
+  # 第一排：8d6180e2 真实先后顺序
+  - { at: [20, 36], size: [196, 58], text: 建会话 · 算配置指纹, sub: 验三项必填 · 分片 · 指纹, tone: control, style: plain }
+  - { at: [242, 36], size: [172, 58], text: 搭空模型与布局, sub: 先开空位 · 按需后处理, tone: weight, style: faded }
+  - { at: [440, 36], size: [202, 58], text: 登记显存 · 算 seed_key, sub: 绑结构摘要 → seed_key, tone: control, style: plain }
+  - { at: [668, 36], size: [212, 58], text: 向 Planner 申请租约, sub: 只带这把 seed_key, tone: control }
+  # 第二排：五类出口
+  - { at: [20, 186], size: [196, 60], text: 缺必填或非法配置, sub: RForkConfigurationError, tone: danger, style: solid }
+  - { at: [232, 186], size: [182, 60], text: 会话或登记报错, sub: 并行组未建 · 登记失败, tone: danger, style: plain }
+  - { at: [430, 186], size: [140, 60], text: 没问成, sub: 网络 · 非200/404, tone: danger, style: plain }
+  - { at: [586, 186], size: [140, 60], text: Planner 说没有, sub: 404：无源或满额, tone: control, style: plain }
+  - { at: [742, 186], size: [138, 60], text: 借到：拿租约, sub: 响应四项齐全, tone: control }
+  # 第三排：最终后果
+  - { at: [20, 322], size: [196, 58], text: 直接中止启动, sub: 不静默回退默认加载, tone: danger, style: faded }
+  - { at: [232, 322], size: [494, 58], text: 先清理，再改从存储加载（启动不停）, sub: 会话未建不登 seed；登记失败或未借到回退后可登 seed, tone: control, style: faded }
+  - { at: [742, 322], size: [138, 58], text: 按地址读权重, sub: 先取并核清单, tone: weight }
 links:
-  - { from: [170, 68], to: [195, 68], tone: control }
-  - { from: [345, 68], to: [370, 68], tone: control }
-  - { from: [520, 68], to: [545, 68], tone: control }
-  - { from: [695, 68], to: [720, 68], tone: control }
-  # 算钥匙的三步报错：都落到「钥匙没算出来」
-  - { from: [95, 96], to: [95, 180], tone: danger, dashed: true }
-  - { from: [270, 96], to: [150, 180], via: [[270, 122], [150, 122]], tone: danger, dashed: true }
-  - { from: [445, 96], to: [270, 122], via: [[445, 122]], ends: none, tone: danger, dashed: true }
+  # 第一排顺序流
+  - { from: [216, 65], to: [242, 65], tone: control }
+  - { from: [414, 65], to: [440, 65], tone: control }
+  - { from: [642, 65], to: [668, 65], tone: control }
+  # 建会话出错分支：配置错直接中止；可恢复错进回退
+  - { from: [86, 94], to: [86, 186], tone: danger }
+  - { from: [176, 94], to: [286, 186], via: [[176, 126], [286, 126]], tone: danger, dashed: true }
+  # 登记显存失败：同样进会话/登记报错
+  - { from: [541, 94], to: [360, 186], via: [[541, 126], [360, 126]], tone: danger, dashed: true }
   # 问 Planner 的三种结果
-  - { from: [800, 96], to: [800, 180], tone: control }
-  - { from: [800, 150], to: [575, 180], via: [[575, 150]], tone: control }
-  - { from: [800, 150], to: [340, 180], via: [[340, 150]], tone: danger, dashed: true }
-  # 回退与读权重
-  - { from: [115, 236], to: [115, 300], tone: danger, dashed: true }
-  - { from: [340, 236], to: [340, 300], tone: danger, dashed: true }
-  - { from: [575, 236], to: [575, 300], tone: control }
-  - { from: [800, 236], to: [800, 300], tone: weight }
+  - { from: [811, 94], to: [811, 186], tone: control }
+  - { from: [760, 94], to: [656, 186], via: [[760, 148], [656, 148]], tone: control }
+  - { from: [760, 148], to: [500, 186], via: [[500, 148]], tone: danger, dashed: true }
+  # 第三排归宿
+  - { from: [118, 246], to: [118, 322], tone: danger }
+  - { from: [323, 246], to: [323, 322], tone: danger, dashed: true }
+  - { from: [500, 246], to: [500, 322], tone: danger, dashed: true }
+  - { from: [656, 246], to: [656, 322], tone: control }
+  - { from: [811, 246], to: [811, 322], tone: weight }
 texts:
-  - { at: [125, 272], text: 回退后不登记成 seed, size: 12, tone: danger }
-  - { at: [457, 270], text: 同一句「没有可用的 seed」, anchor: middle, size: 12 }
-  - { at: [350, 382], text: 三种「没借到」都回退，看日志分清是哪一种, anchor: middle, note: true }
+  - { at: [128, 288], text: 抛错中止, size: 13, tone: danger }
+  - { at: [332, 288], text: 打 transfer failed, size: 13, tone: danger }
+  - { at: [578, 288], text: 同打「没有可用 seed」, anchor: middle, size: 13 }
+  - { at: [450, 410], text: 缺必填配置直接中止；仅可恢复错误与未借到走清理后默认加载, anchor: middle, note: true, size: 13 }
 pins:
-  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L775-L795
-    symbols: [_ensure_rfork_session, initialize_model]
-  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/planner_client.py#L137-L195
-    symbols: [acquire_seed]
-  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L840-L955
-    symbols: [_RForkSeedUnavailable, _start_rfork_seed_service]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L775-L848
+    symbols: [_ensure_rfork_session, initialize_model, register_destination, acquire_seed]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/session.py#L115-L143
+    symbols: [register_destination, bind_structural_digest, seed_key]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/planner_client.py#L97-L195
+    symbols: [seed_key, acquire_seed]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/rfork_loader.py#L880-L957
+    symbols: [_RForkSeedUnavailable, RForkConfigurationError, _start_rfork_seed_service]

@@ -242,7 +242,7 @@ origin: direct
 file: pd-plate-mooncake-cutaway
 ```
 
-再把「混部」与「PD 分离」放到同一条时间线上对比，就能一眼看出拆分消除了哪段等待、又多出了哪根搬运箭头：
+上面这张集群示意图画的是「物理部署在哪里分开」，它最终要换取的是运行时间线上的批处理隔离。在传统混部模式里，新来的长提示词必须与正在逐词生成的请求塞进同一个 batch 一起前向，把在跑请求的这一步硬生生拉重；拆成 P、D 两套独立实例后，D 端时间线上不再出现外来 prefill 尖刺，但每条请求在进入 D 之前必须多付一次跨实例 KV 搬运等待。把「混部」与「PD 分离」放到同一条时间线上对比，就能一眼看出拆分消除了哪段等待、又多出了哪根搬运箭头：
 
 ```wiki-diagram
 file: pd-disaggregation-intuition
@@ -538,7 +538,7 @@ Score 管理器通过 `--ec-manager-config` 选择类名 `vllm_ascend.ec_manager
 - **缺 `prefill` / `decode` 里的 `tp_size` 或 `dp_size`**：worker 初始化逐个断言，启动即 `AssertionError`。
 - **P 的 TP 小于 D 的 TP**：`ValueError: prefill_tp_size: ... must be greater than or equal to the decode_tp_size: ...`。设计文档的限制更严：TP 不相等时只支持 P_tp > D_tp 且能整除；P、D 也不能是异构硬件，比如 P 在 A2、D 在 A3。
 - **KDA 这类递推状态组的 TP 不匹配**：断言 `Mamba prefill TP size must be >= decode TP size.` 或 `Mamba prefill TP size must be divisible by decode TP size.`。
-- **`kv_both` 配 Mooncake V1** [!]：上游把 `kv_both` 同时算作生产者和消费者，但 V1 判断角色用字符串相等，`kv_both` 落进「只起接收线程」那一支，完成上报的两个集合都是空的。启动正常，请求永远等不到「传完了」，排查时只看得到请求卡住。main 的 `MooncakeConnectorV2` 在初始化时就拦下：`ValueError: Mooncake scheduler requires exactly one KV transfer role, got 'kv_both'`。
+- **`kv_both` 配 Mooncake V1** [!]：上游把 `kv_both` 同时算作生产者和消费者，但 V1 判断角色用字符串相等，`kv_both` 落进「只起接收线程」那一支，完成上报的两个集合都是空的。启动正常，请求永远等不到「传完了」，排查时只看得到请求卡住。`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）的 `MooncakeConnectorV2` 在初始化时就拦下：`ValueError: Mooncake scheduler requires exactly one KV transfer role, got 'kv_both'`。
 - **GLM 长提示词少传块**：`_get_group_transfer_info` 对 full 组取到压缩比 4，`tokens_per_block` 成了 2,560。D 端 `_get_kernel_block_ids` 先断言 `remote_block_size % kernel_size == 0`（`#L2602-L2604`），再用 `min(len(kernel_remote), len(kernel_local))` 截齐；截齐这一步没有报错或日志提示，前面那道断言会不会先失败见下方待核。
 - **收发线程起不来**：线程已退出报 `RuntimeError: KV Cache sending/receiving thread failed to start.`，5 分钟内没就绪报 `RuntimeError: Timeout waiting for KV Cache thread to be ready.`。
 - **读取失败**：日志 `Mooncake transfer failed for request...`，随后按 `kv_load_failure_policy` 处理；默认策略下请求以 `FINISHED_ERROR` 结束。
@@ -555,17 +555,17 @@ Score 管理器通过 `--ec-manager-config` 选择类名 `vllm_ascend.ec_manager
 
 ### 版本差异
 
-上游 NIXL 的读回保护也在演变，下表只比较其拉取路径，和下方 Ascend Mooncake 表分别使用。`84030bbe` 是本站固定的上游 main 比较点，不据此认定它就是每个 Ascend main 镜像安装的上游版本。
+上游 NIXL 的读回保护也在演变，下表按四版本上游正式钉点只比较其拉取路径，和下方 Ascend Mooncake 表分别使用（早期过渡比较点 `84030bbe` 见下方来源清单）。
 
-| NIXL 条件 | v0.23.0（0fc695fc） | v0.26.0rc 配套（568afb3a） | v0.30.0 配套（ced6857a） | main 比较点（84030bbe） |
+| NIXL 条件 | `v0.23.0`（`0fc695fc`） | `v0.26.0rc` 配套（`568afb3a`） | `v0.30.0` 配套（`ced6857a`） | `main`（`ba15685a`） |
 | --- | --- | --- | --- | --- |
-| D 返回跨轮块的到期时刻 | 未导出该字段 | 导出到期时刻 | 保留 | 保留 |
-| P 开始读回前检查寿命 | 没有这道到期保护 | 转换远端时钟后，预留 5 秒；即将到期则拒绝读回 | 保留 | 保留 |
-| 调度侧到 worker 的租约时钟 | 直接传到期时刻 | 同类路径 | 用剩余 TTL 换算到 worker 自己的时钟 | 同左 |
-| 本表所说的连接器 | NIXL 拉取实现 | 拉取实现 | Pull 别名；不外推到 Push | 拉取实现 |
-| D 的输入与交接信息 | 命中数读取 D 的 prompt 长度；交接字典不携带替代 prompt 的 token 序列 | 保留；拉取调度移到 `pull_scheduler.py` | 同 v0.26；新增拓扑字段不改变这一点 | 同 v0.26 |
+| D 返回跨轮块的到期时刻 | 未导出该字段 | 导出到期时刻 | 保留 | 保留（`pull_scheduler.py` 导出 `remote_blocks_expiry_time`） |
+| P 开始读回前检查寿命 | 没有这道到期保护 | 转换远端时钟后，预留 5 秒；即将到期则拒绝读回 | 保留 | 保留（`_KV_BLOCKS_EXPIRY_SAFETY_MARGIN = 5.0`） |
+| 调度侧到 worker 的租约时钟 | 直接传到期时刻 | 同类路径 | 用剩余 TTL 换算到 worker 自己的时钟 | 同 `v0.30.0`（`base_scheduler.py` 传 `scheduler_clock`，`pull_worker.py` 折算剩余 TTL） |
+| 本表所说的连接器 | NIXL 拉取实现 | 拉取实现 | `NixlPullConnector` 别名；不外推到 Push | `NixlConnector = NixlPullConnector` 别名（另有独立 `NixlPushConnector`，不外推） |
+| D 的输入与交接信息 | 命中数读取 D 的 prompt 长度；交接字典不携带替代 prompt 的 token 序列 | 保留；拉取调度移到 `pull_scheduler.py` | 同 `v0.26.0rc`；新增拓扑字段不改变这一点 | 同 `v0.30.0` |
 
-跨轮到期字段名是 `remote_blocks_expiry_time`；`v0.30.0` 配套上游与历史 main 比较点另传 `scheduler_clock`，据此把剩余 TTL 换算到 worker 自己的时钟。这里的 `NixlConnector` 在基线指拉取实现，在 `v0.30.0` 配套上游是 `NixlPullConnector` 的别名，不把这些结论外推到 Push。
+跨轮到期字段名是 `remote_blocks_expiry_time`；`v0.30.0` 配套上游与 `main`（`ba15685a`）另传 `scheduler_clock`，据此把剩余 TTL 换算到 worker 自己的时钟。这里的 `NixlConnector` 在基线指拉取实现，在 `v0.30.0` 配套上游与 `main` 均为 `NixlPullConnector` 的别名，不把这些结论外推到 Push。
 
 较新的到期保护仍依赖代理传回该字段；缺失时沿原读取路径继续。拒绝临近到期的读回会进入传输失败处理，能否重算由失败策略和模型条件决定，不保证一律自动恢复。**寿命检查也不检查 token 内容**，所以不能替代上面关于聊天模板和推理历史的一致性条件。
 
@@ -588,8 +588,8 @@ Score 管理器通过 `--ec-manager-config` 选择类名 `vllm_ascend.ec_manager
 
 GLM 绑定镜像 `db701c1f` 是含模型代码的独立提交（不属于上表发布分支），其 V1 主流程、状态组选块、`kv_both` 及点对点/池注册入口与 `v0.23.0` 一致，但已包含 GLM 从而暴露 V1 full 组少传块问题。表中 V2 的选块结论只说明不再额外乘压缩比；本页 $N>1$、PCP=DCP=1 的算例因此修正该处块数，不能据此断言 D 端恢复或整条链路已通过。
 
-- max_num_partial_prefills 那条限制从文档里删掉，并不表示放开了：四份 Ascend 快照的平台层都在发现该属性非 1 时才重置为 1，这和 PD 角色无关。正常 v0.23/v0.26 启动入口更早就拒绝非默认值；固定 main 的上游已删除该字段，平台用缺省 1 读取时不会再写入。入口先后、版本与完整参数参考见 [Scheduler](vllm-scheduler.md#怎么开)。
-- LMCache 从 main 的注册表里去掉了：按 v0.23 或 v0.26 配 LMCache 的部署升到 main，会报连接器不存在。
+- `max_num_partial_prefills` 那条限制从文档里删掉，并不表示放开了：四份 Ascend 快照的平台层都在发现该属性非 1 时才重置为 1，这和 PD 角色无关。正常 `v0.23.0` / `v0.26.0rc` 启动入口更早就拒绝非默认值；自 `v0.30.0` 配套上游（`ced6857a`）起及 `main`（`ba15685a`）均已删除该字段，平台用缺省 1 读取时不会再写入。入口先后、版本与完整参数参考见 [Scheduler](vllm-scheduler.md#怎么开)。
+- `LMCacheAscendConnector` 已自 `v0.30.0`（`c09d3e20`）起及 `main`（`8d6180e2`）从仓内注册表移除：按 `v0.23.0` 或 `v0.26.0rc` 配 `LMCacheAscendConnector` 的部署升级后会报连接器不存在，需改用插件包注册入口。
 - 上游 vLLM 的相关行为在 v0.23.0（0fc695fc）与 v0.26 分支一致：整段命中时退回 1 格重算，`kv_load_failure_policy` 默认 `"fail"`。
 
 ### 源码位置

@@ -1983,7 +1983,15 @@ export function DeployCalculatorView({
           <header className="wiki-tool-head">
             <div className="wt-embedded-title-group">
               <strong className="wiki-tool-title">{displayTitle}</strong>
-              <span className="wiki-tool-badge">{mode ? `mode: ${mode}` : "deploy-calculator"}</span>
+              <span className="wiki-tool-badge">
+                {mode === "quick-screen"
+                  ? "快速摸底"
+                  : mode === "minimal"
+                    ? "精简算账"
+                    : mode === "full"
+                      ? "完整模式"
+                      : "部署算账台"}
+              </span>
             </div>
             <a className="wt-open-workbench" href="#/tools?tab=calculator">
               打开完整算账工作台 →

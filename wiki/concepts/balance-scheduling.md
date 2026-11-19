@@ -188,6 +188,12 @@ file: balance-scheduling-flow
 
 互报为什么不放进调度器？All-Gather 要求所有组都参加，缺一个，其余的就一直等下去。可是 MoE 模型开 DP 时，手上没有请求的那组**不进调度器**：只要全局还有活，它就用一份假输入陪别的组跑一步，叫 dummy batch（见[空闲的组由谁叫起来陪跑](data-parallel.md#空闲的组由谁叫起来陪跑陪跑时算什么)）。交换要是放在调度器里，忙的组会等一个永远不来的参与者，整个服务卡住。所以交换挂在「全局还有没有活」那次判断之后：不管这一步是真算还是陪跑，每组每一圈都经过这里。那次判断本身每 32 步才真正跨组同步一次，但 Balance Scheduling 的交换每一步都做。
 
+```wiki-diagram
+file: balance-scheduling-fig-gate-vs-width
+```
+
+**落到 `v0.30.0` 主基线与 `main`，这套闸门语义保持不变，外围接线则已完成收口：** 引擎侧改为仅在开启开关时条件替换 `DPEngineCoreProc`（与按 KV 块数调节的 `DyntraLB` 互斥且后者优先），原环境变量 `VLLM_ASCEND_BALANCE_SCHEDULING` 已彻底删除（配置统一写在 `scheduler_config.enable_balance_scheduling`），稠密模型配多 DP 组时不再启动断言崩溃而是静默不生效（详见文末[版本差异](#版本差异)）。
+
 ## 什么时候它不起作用：单组、dense 模型与只数条数
 
 **只有一个 DP 组时它什么也不做；模型不是 MoE 时它挂不上去；它只数请求条数，看不见每条请求有多重。**

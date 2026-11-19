@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 504" width="900" height="504" role="img" aria-label="EPLB MRV1 动态迁移与 MRV2 STAIR 控面双轨演进对照图" font-family="var(--font-sans)">
+  <title>EPLB 双轨演进：MRV1 动态搬运（v0.23–v0.30.0）vs MRV2 STAIR 控面（v0.30.0–main 唯一路线）</title>
+  <desc>上半左右对比两条 EPLB 实现路线：左侧为 MRV1 动态路线（DYNAMIC_EPLB 环境变量、600/50/L 三段计数、dynamic_eplb 独立组异步 D2D 搬运与 expert_map/log2phy 双表替换，main 已删除）；右侧为 MRV2 STAIR 路线（上游 --enable-eplb 与 AscendEPLBController、STAIR 策略、全组一致 HIXL/Gloo 协商及草稿模型不自动注册，main 唯一路线）；下半汇总 A2 冗余专家限制、整除校验、量化格式白名单与 enable_force_eplb 互斥。</desc>
+  <defs>
+    <marker id="eplb-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、v0.30.0 互斥双轨 vs main 全面收敛至 MRV2：两条 EPLB 控制面对比</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="54" width="414" height="292" rx="9" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="462" y="54" width="426" height="292" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+  </g>
+  <path d="M 426 200 L 456 200" fill="none" stroke="#087f73" stroke-width="2.2" marker-end="url(#eplb-arr-teal)"/>
+
+  <text x="26" y="80" font-size="15" font-weight="700" fill="#936300">MRV1 历史动态轨（v0.23–v0.30.0；main 退场）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="106"><tspan font-weight="700" fill="#17211f">触发入口：</tspan><tspan font-family="var(--font-mono)" fill="#936300">DYNAMIC_EPLB=true</tspan>（改非守护进程）</text>
+    <text x="38" y="127">+ <tspan font-family="var(--font-mono)">eplb_config.dynamic_eplb=true</tspan></text>
+    <line x1="26" y1="140" x2="412" y2="140" stroke="#c78300" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="26" y="162"><tspan font-weight="700" fill="#17211f">三段周期：</tspan>600 步数配对 → 50 步 CPU 子进程算</text>
+    <text x="38" y="183">→ L 步逐层搬（每步 1 层，如 GLM 43 层 = 693）</text>
+    <text x="26" y="207"><tspan font-weight="700" fill="#17211f">搬运与换表：</tspan>独立 <tspan font-family="var(--font-mono)" fill="#7a3a6a">dynamic_eplb</tspan>（100 MB）组</text>
+    <text x="38" y="228">步初异步 D2D 收发至常驻接收区 → 步末等待并</text>
+    <text x="38" y="249">同步切换 <tspan font-family="var(--font-mono)" fill="#936300">expert_map</tspan> + <tspan font-family="var(--font-mono)" fill="#936300">log2phy</tspan> 双表</text>
+    <line x1="26" y1="264" x2="412" y2="264" stroke="#c78300" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="26" y="286"><tspan font-weight="700" fill="#8f3229">算法：</tspan>0 Random / 1 Default / 2 Swift / 3 FlashLB</text>
+    <text x="26" y="309"><tspan font-weight="700" fill="#8f3229">状态：</tspan>v0.30.0 仅 MRV1 可用；<tspan font-weight="700" fill="#8f3229">main 删除 MRV1</tspan></text>
+    <text x="38" y="330">后，历史 <tspan font-family="var(--font-mono)">vllm_ascend/eplb/</tspan> 不再被运行器调用</text>
+  </g>
+
+  <text x="476" y="80" font-size="15" font-weight="700" fill="#065f56">MRV2 STAIR 控面（v0.30.0 起；main 唯一路线）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="476" y="106"><tspan font-weight="700" fill="#17211f">触发入口：</tspan>上游 <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">--enable-eplb</tspan></text>
+    <text x="488" y="127">+ <tspan font-family="var(--font-mono)">AscendEPLBController</tspan> + <tspan font-family="var(--font-mono)">stair_config</tspan></text>
+    <line x1="476" y1="140" x2="874" y2="140" stroke="#087f73" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="476" y="162"><tspan font-weight="700" fill="#17211f">默认策略：</tspan>平台补丁默认改用 <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">stair</tspan> 策略</text>
+    <text x="488" y="183">指南默认 <tspan font-family="var(--font-mono)">window=1000 / interval=3000 / async</tspan></text>
+    <text x="476" y="207"><tspan font-weight="700" fill="#17211f">全组通信协商：</tspan><tspan font-family="var(--font-mono)" fill="#3a4f93">resolve_ascend_eplb_communicator</tspan></text>
+    <text x="488" y="228">要求全组 HIXL binding 一致；任一不一致则全组</text>
+    <text x="488" y="249">回退 <tspan font-family="var(--font-mono)" fill="#7a3a6a">Gloo</tspan> 并收紧未显式设定的 STAIR 搬运限额=1</text>
+    <line x1="476" y1="264" x2="874" y2="264" stroke="#087f73" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="476" y="286"><tspan font-weight="700" fill="#17211f">过滤：</tspan><tspan font-family="var(--font-mono)" fill="#065f56">load_collection_phase</tspan>（all/P/D）</text>
+    <text x="476" y="309"><tspan font-weight="700" fill="#17211f">草稿隔离：</tspan><tspan font-family="var(--font-mono)">maybe_register_speculator</tspan> 不因目标</text>
+    <text x="488" y="330">模型开 EPLB 而自动注册草稿模型</text>
+  </g>
+
+  <text x="14" y="378" font-size="16" font-weight="700" fill="#17211f">二、冗余专家、硬件代际与量化格式硬边界（开启前必核）</text>
+  <line x1="12" y1="390" x2="888" y2="390" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="402" width="430" height="90" rx="9" fill="#fff0e9" stroke="#b54237"/>
+    <rect x="458" y="402" width="430" height="90" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+  </g>
+
+  <text x="26" y="428" font-size="14.5" font-weight="700" fill="#8f3229">冗余位整除与 Atlas A2 限制</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="453">• 布局须 <tspan font-family="var(--font-mono)" fill="#8f3229">(n_expert + n_redundant) % ep == 0</tspan></text>
+    <text x="26" y="476">• 指南明示 <tspan font-weight="700" fill="#8f3229">A2 不支持冗余专家</tspan>；与 <tspan font-family="var(--font-mono)">force_eplb</tspan> 互斥</text>
+  </g>
+
+  <text x="472" y="428" font-size="14.5" font-weight="700" fill="#3a4f93">MRV2 支持与拒绝的量化格式</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="472" y="453">• 支持 BF16/FP16、W8A8/Dyn、W4A8（950 含 MXFP）</text>
+    <text x="472" y="476">• 拒绝 <tspan font-family="var(--font-mono)" fill="#8f3229">W4A16 / W4A16 MXFP / W4A8 MXFP</tspan>（缺搬运表）</text>
+  </g>
+</svg>

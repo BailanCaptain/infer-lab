@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 450" width="900" height="450" role="img" aria-label="CPU 持久批次到异步 H2D 与 CommonAttentionMetadata 分组打包流" font-family="var(--font-sans)">
+<title>CPU Pinned Buffer 到异步 H2D 与 CommonAttentionMetadata 按缓存组装配</title>
+<desc>MRV1 host persistent batch packing, async H2D copy, NPU slot mapping, per-group metadata, and MRV2 contrast</desc>
+<g stroke-width="1.4">
+<rect x="16" y="64" width="256" height="270" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="304" y="64" width="268" height="122" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="304" y="212" width="268" height="122" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="604" y="64" width="280" height="122" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="604" y="212" width="280" height="122" rx="8" fill="#fff0e9" stroke="#b54237"/>
+<rect x="16" y="356" width="868" height="78" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+</g>
+<path d="M272 125h30m-5-4l5 4-5 4M272 273h30m-5-4l5 4-5 4M438 186v24m-4-5l4 5 4-5M572 125h30m-5-4l5 4-5 4M572 273h30m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-weight="700">
+<text x="16" y="30" font-size="16" fill="#17211f">Host 持久批次 → 异步 H2D → CommonAttentionMetadata 分组装配</text>
+<text x="32" y="92" font-size="15" fill="#936300">1. CPU 持久批次 &amp; Pinned 缓冲</text>
+<text x="320" y="92" font-size="15" fill="#3a4f93">2. 异步 H2D &amp; 槽位核</text>
+<text x="320" y="240" font-size="15" fill="#065f56">3. 公共底稿（全层共享）</text>
+<text x="620" y="92" font-size="15" fill="#7a3a6a">4A. 稀疏 MLA / 常规组</text>
+<text x="620" y="240" font-size="15" fill="#8f3229">4B. 线性注意力（KDA / GDN）</text>
+<text x="32" y="382" font-size="14.5" fill="#17211f">版本演进：v0.30.0 默认走上方 MRV1 宿主整排，main 收口至 MRV2 常驻设备缓冲</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="50" font-size="13.5">三套编号严禁混用：批次行号（每步重排） ≠ 请求内位置（跨步累加） ≠ 缓存池槽位（查块表换算）</text>
+<text x="32" y="120" font-size="13.5">• _update_states 增量增删改</text>
+<text x="32" y="144" font-size="13.5">• 恢复请求替换 block_ids</text>
+<text x="32" y="168" font-size="13.5">• 按 decode 阈值四段重排</text>
+<text x="32" y="194" font-size="13.5" fill="#936300" font-weight="600">NumPy 展平一排新 token：</text>
+<text x="32" y="218" font-size="13.5">• req_indices（np.repeat）</text>
+<text x="32" y="242" font-size="13.5">• positions = 已算 + 组内序号</text>
+<text x="32" y="266" font-size="13.5">• query_start_loc（前缀和）</text>
+<text x="32" y="290" font-size="13.5">• seq_lens / logits_indices</text>
+<text x="32" y="316" font-size="13.5">• 异步调度下仍按差值判定 H2D</text>
+<text x="320" y="118" font-size="13.5">• 首行非阻塞 commit_block_table</text>
+<text x="320" y="142" font-size="13.5">• NPU 核 compute_slot_mapping</text>
+<text x="320" y="166" font-size="13.5">• 补齐尾部槽位填 -1（不写 KV）</text>
+<text x="320" y="266" font-size="13.5">• AscendCommonAttentionMetadata</text>
+<text x="320" y="290" font-size="13.5">• 含 num_reqs / actual_tokens</text>
+<text x="320" y="314" font-size="13.5">• 含 attn_state 与公共边界/长度</text>
+<text x="620" y="118" font-size="13.5">• 复制底稿 + 换入本组块表与槽位</text>
+<text x="620" y="142" font-size="13.5">• _pad_query_start_loc_for_fia</text>
+<text x="620" y="166" font-size="13.5">• 末尾补假请求对齐总行数</text>
+<text x="620" y="266" font-size="13.5">• 块号直接当固定状态页编号</text>
+<text x="620" y="290" font-size="13.5">• 不算逐位置 slot_mapping</text>
+<text x="620" y="314" font-size="13.5">• 专用边界：不含假请求，重复末位</text>
+<text x="32" y="405" font-size="13.5">• v0.30.0 (c09d3e20)：MRV1 位于 model_runner_v1.py#L1279（拒绝 PCP &gt; 1）；VLLM_USE_V2_MODEL_RUNNER=1 可切 V2</text>
+<text x="32" y="425" font-size="13.5">• main (8d6180e2)：移除 V1，统一由 worker/v2/input_batch.py 的 AscendInputBuffers 直接切片更新，减少 Host 重排搬运</text>
+</g>
+</svg>

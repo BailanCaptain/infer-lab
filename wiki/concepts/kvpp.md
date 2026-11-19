@@ -199,7 +199,7 @@ $$\text{BytesPerBlock}_{\max} = \left(\left\lceil \frac{L}{N} \right\rceil + 2\r
 
 分配时均分的是层索引数量，不会按缓存字节数重新平衡所有权。各层大小不同时，在各卡可用缓存预算相同的条件下，每块实际占用最多的卡可分块数最少，未必是常驻层数最多的卡；若各卡可用预算也不同，则分别算出块数，再取最小值。
 
-层太少时，两暂存区甚至会让容量下降。例如一个 PP 段只有两个同大小目标层、组内四卡、没有 MTP，满卡要留一层常驻加两个暂存区，共三份，反而多于不开时的两份。按每层每块1MiB、有效预算48MiB，块数会从24变为16，对齐余量另计。因此长模型切成较短PP段后，要重新算每段，不能把增容视为必然结果。
+层太少时，两暂存区甚至会让容量下降。例如一个 PP 段只有两个同大小目标层、组内四卡、没有 MTP，满卡要留一层常驻加两个暂存区，共三份，反而多于不开时的两份。按每层每块 1 MiB、有效预算 48 MiB，块数会从 24 变为 16，对齐余量另计。因此长模型切成较短 PP 段后，要重新算每段，不能把增容视为必然结果。
 
 **调度器那一侧的逻辑规格不变。** 每张卡算出块数后，把它乘回「不开 KVPP 时一个块号要占的字节」报给引擎。所以引擎和调度器看到的仍是原来那套块规格、块号和块表（见 [KV cache 规格](kv-cache-spec.md)），只是块数从 6 变成了 12；[前缀缓存](prefix-caching.md)和[块分配](vllm-kv-block-allocation.md)沿用这些逻辑块。调度器眼里每张卡放着 12 × 8 MiB = 96 MiB 的历史，本例每卡有效缓存张量合计 48 MiB，差的那部分靠广播从别的卡借。DCP 则不同，它真的把同一层的历史按位置分开存，每张卡上只有一部分位置。
 
@@ -234,9 +234,13 @@ file: kvpp-broadcast
 | 本步短请求真正用到的部分 | $3\text{ 块} \times 1\text{ MiB}$ | **3 MiB** |
 | 每张卡每步需要接收的总量 | $(8\text{ 层} - 2\text{ 常驻层}) \times 12\text{ MiB}$ | **72 MiB** |
 
+```wiki-diagram
+file: kvpp-fig-layer-residency
+```
+
 ## 能和 PP、PCP、PD 分离、KV 卸载一起开吗？
 
-**本节按旧 main 钉点说明组合条件：通信组只在一个 DP 请求执行组、一个 PP 段之内；和 DCP、图模式互斥；接外部存储只放行两种连接器。** rc2 及后续快照扩展的图模式和池化组合见页末版本差异。
+**通信组只在一个 DP 请求执行组、一个 PP 段之内（组大小为 `TP × PCP`），不跨 DP 或 PP；与 DCP 严格互斥，且限定非混合 MLA 模型。** 在早期开发快照（`baa023ad`）上只能走 eager 并只放行两种连接器；到了 **`v0.30.0` 主基线与 `main`**，执行模式已放宽至 `eager` 或 `PIECEWISE` 图模式，支持通过 `MultiConnector` 组合连接器，`main` 还新增了 `MooncakePushConnector`（同样拒绝 `kv_consumer`）并明确禁止 Mooncake 逐层 CP 与 `enable_kvpp` 同开（详见文末[版本差异](#版本差异)）。下面先按旧 main 钉点逐项列出基本组合条件：
 
 先认几个词：PCP（prefill 上下文并行）把一条长 prompt 的位置分给几组卡一起算 prefill，DCP 把 decode 时的历史按位置分到几张卡上，两者见 [上下文并行](context-parallel.md)；Model Runner V2 是 vllm-ascend 新版的 model runner（每步准备输入、执行前向的组件，见 [NPU model runner](npu-model-runner.md)）；PD 分离是把 prefill 和 decode 交给两套实例，中间由连接器交接历史。main 版本的情况如下：
 

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="ND与FRACTAL_NZ分形对齐块、补齐代价及maybe_trans_nz决策闸门图" font-family="var(--font-sans)">
+  <title>ND 与 FRACTAL_NZ：Cube 16×16 / 16×32 分形块对齐、补齐空间与加载期转换策略</title>
+  <desc>关联源码符号：_should_trans_nz, maybe_trans_nz, maybe_trans_nz_with_scale, ACL_FORMAT_FRACTAL_NZ, weight_nz_mode, WeightLayoutPolicy, FORCE_NZ, AscendDeviceType</desc>
+  <defs>
+    <marker id="tl-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="tl-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1: ND vs FRACTAL_NZ Cube block alignment -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① ND 行优先 vs FRACTAL_NZ 分形块（数值与逻辑坐标不变，物理顺序重排）</text>
+
+  <rect x="16" y="44" width="256" height="146" rx="8" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
+  <text x="30" y="70" font-size="14.5" font-weight="700" fill="#17211f">ND（N-Dimension 行优先）</text>
+  <text x="30" y="96" font-size="13.5" fill="#4d5652">先存完第 1 行，再存第 2 行</text>
+  <text x="30" y="120" font-size="13.5" fill="#4d5652">通用框架默认视图（含 stride）</text>
+  <text x="30" y="144" font-size="13.5" fill="#4d5652">无分形尾部补齐空间</text>
+  <text x="30" y="170" font-size="13.5" font-weight="700" fill="#66716d">注意：ND 也可存 INT8 量化值</text>
+
+  <line x1="276" y1="116" x2="314" y2="116" stroke="#087f73" stroke-width="2" marker-end="url(#tl-arr)"/>
+  <text x="295" y="104" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">转 NZ</text>
+
+  <rect x="318" y="44" width="318" height="146" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="332" y="70" font-size="14.5" font-weight="700" fill="#065f56">FRACTAL_NZ（块间大 N，块内小 z）</text>
+  <text x="332" y="96" font-size="13.5" fill="#065f56">维度顺序：(N₁, M₁, m₀, n₀)</text>
+  <text x="332" y="120" font-size="13.5" fill="#4d5652">ATB 尺寸：FP16/BF16 用 16×16</text>
+  <text x="332" y="144" font-size="13.5" fill="#4d5652">INT8 用 16×32，贴合 Cube 搬入</text>
+  <text x="332" y="170" font-size="13.5" font-weight="700" fill="#065f56">加载期一次性整理，移出前向热路径</text>
+
+  <rect x="650" y="44" width="234" height="146" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="664" y="70" font-size="14.5" font-weight="700" fill="#8f3229">未对齐补齐与转换代价</text>
+  <text x="664" y="96" font-size="13.5" fill="#4d5652">17×17 FP16 → 补齐 32×32</text>
+  <text x="664" y="120" font-size="13.5" font-weight="700" fill="#8f3229">578 B → 2,048 B（+1,470 B）</text>
+  <text x="664" y="144" font-size="13.5" fill="#4d5652">加载期另有搬运与临时峰值</text>
+  <text x="664" y="170" font-size="13.5" fill="#8f3229">NZ 不等于一定省内存</text>
+
+  <line x1="16" y1="208" x2="884" y2="208" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: _should_trans_nz decision gate -->
+  <text x="16" y="236" font-size="16" font-weight="700" fill="#17211f">② v0.30.0 加载期普通权重转换闸门（_should_trans_nz → npu_format_cast）</text>
+
+  <rect x="16" y="252" width="194" height="102" rx="7" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
+  <text x="113" y="278" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">1. 硬排除项</text>
+  <text x="113" y="302" text-anchor="middle" font-size="13.5" fill="#4d5652">FP32 或 meta 张量</text>
+  <text x="113" y="324" text-anchor="middle" font-size="13.5" fill="#4d5652">≥2D 且末两维含 1</text>
+  <text x="113" y="345" text-anchor="middle" font-size="13.5" fill="#66716d">直接原样返回 ND</text>
+
+  <line x1="212" y1="303" x2="236" y2="303" stroke="#4d5652" stroke-width="1.7" marker-end="url(#tl-arr-g)"/>
+
+  <rect x="240" y="252" width="206" height="102" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="343" y="278" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">2. 硬件强制优先</text>
+  <text x="343" y="302" text-anchor="middle" font-size="13.5" fill="#4d5652">310P 档案设 FORCE_NZ</text>
+  <text x="343" y="324" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">先于 weight_nz_mode</text>
+  <text x="343" y="345" text-anchor="middle" font-size="13.5" fill="#4d5652">模式 0 也强制转 NZ</text>
+
+  <line x1="448" y1="303" x2="472" y2="303" stroke="#4d5652" stroke-width="1.7" marker-end="url(#tl-arr-g)"/>
+
+  <rect x="476" y="252" width="210" height="102" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="581" y="278" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">3. weight_nz_mode</text>
+  <text x="581" y="302" text-anchor="middle" font-size="13.5" fill="#4d5652">0：本入口不转（不还原）</text>
+  <text x="581" y="324" text-anchor="middle" font-size="13.5" fill="#4d5652">1（默认）：仅量化/INT8</text>
+  <text x="581" y="345" text-anchor="middle" font-size="13.5" fill="#3a4f93">2：加转 BF16/FP16</text>
+
+  <line x1="688" y1="303" x2="712" y2="303" stroke="#4d5652" stroke-width="1.7" marker-end="url(#tl-arr-g)"/>
+
+  <rect x="716" y="252" width="168" height="102" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="800" y="278" text-anchor="middle" font-size="14" font-weight="700" fill="#7a3a6a">独立特例分支</text>
+  <text x="800" y="302" text-anchor="middle" font-size="13.5" fill="#4d5652">W8A8 专家层直接转</text>
+  <text x="800" y="324" text-anchor="middle" font-size="13.5" fill="#4d5652">KV NZ 独立开关控制</text>
+  <text x="800" y="345" text-anchor="middle" font-size="13.5" fill="#7a3a6a">RL 模式覆写为 0</text>
+
+  <line x1="16" y1="372" x2="884" y2="372" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 3: 4 orthogonal layers -->
+  <text x="16" y="398" font-size="16" font-weight="700" fill="#17211f">③ 正交概念边界：四个维度互不替代，核对时须四项齐查</text>
+  <rect x="16" y="410" width="206" height="48" rx="6" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
+  <text x="119" y="439" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">shape / stride（视图）</text>
+  <rect x="236" y="410" width="206" height="48" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="339" y="439" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">dtype / scale（精度编码）</text>
+  <rect x="456" y="410" width="206" height="48" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="559" y="439" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">INT4 打包（字节内位序）</text>
+  <rect x="676" y="410" width="208" height="48" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="780" y="439" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">ND / NZ（设备分形排布）</text>
+</svg>

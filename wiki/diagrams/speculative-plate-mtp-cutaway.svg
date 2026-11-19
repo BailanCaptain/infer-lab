@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" width="900" height="610" role="img" aria-label="Speculative Decoding 投机解码 MTP 立体拆解直觉图：展示左侧 MTP DRAFT 草稿层与 D1..D3 候选盘、中央主模型一次并行验证 T0 与 D1..D3 四格、右侧 ACCEPTED 蓝块前缀与首个错位 RESAMPLED 陶红重采样块" font-family="var(--font-sans)">
+  <title>Speculative Decoding（MTP 投机解码）立体拆解直觉：轻量 MTP 草稿层连续猜出 K=3 个候选 token（D1, D2, D3）；主模型把已确认的 T0 与 3 个候选拼成 1+K=4 个位置一次并行前向验证，借一次权重读取服务 4 行；从左往右错格比对，接受连续命中的前缀（T0, D1, D2），在首个错位处用主模型分布当场重采样（RESAMPLED）并截断后续猜测。</title>
+  <desc>关联源码符号：SpeculativeConfig, num_speculative_tokens, method, bonus_token_ids, rejection_sample, get_spec_decode_method, AscendEagleProposer, is_multi_kv_cache_group_mtp</desc>
+
+  <!-- 紧裁透明底等距拆解剖面主图（零外层底框、零网格笼，大尺寸直浮画布） -->
+  <image href="./wiki-illustrations/speculative-mtp-cutaway.webp" x="60" y="132" width="780" height="328" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- 零交叉垂直引线与双环靶点 -->
+  <!-- 1 -> 左侧青色 MTP DRAFT 草稿头机身 -->
+  <line x1="182" y1="112" x2="182" y2="232" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="182" cy="232" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="182" cy="232" r="2.5" fill="#087f73"/>
+
+  <!-- 2 -> 中央琥珀色主模型并行验证引擎（T0 + D1..D3） -->
+  <line x1="505" y1="112" x2="505" y2="212" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="505" cy="212" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="505" cy="212" r="2.5" fill="#c78300"/>
+
+  <!-- 3 -> 右下靛蓝 ACCEPTED 接受前缀 (T0, D1, D2) -->
+  <line x1="696" y1="112" x2="696" y2="346" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="696" cy="346" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="696" cy="346" r="2.5" fill="#4c65b6"/>
+
+  <!-- 4 -> 左下候选托盘 (D1, D2, D3) -->
+  <line x1="292" y1="478" x2="292" y2="380" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="292" cy="380" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="292" cy="380" r="2.5" fill="#087f73"/>
+
+  <!-- 5 -> 右侧陶红 RESAMPLED 首个错位重采样块 -->
+  <line x1="765" y1="478" x2="765" y2="326" stroke="#b54237" stroke-width="1.6"/>
+  <circle cx="765" cy="326" r="5.5" fill="#ffffff" stroke="#b54237" stroke-width="2"/>
+  <circle cx="765" cy="326" r="2.5" fill="#b54237"/>
+
+  <!-- 顶部开放式无边框矢量编号直标（标题 15px，说明 13.5px） -->
+  <g id="callout-mtp">
+    <circle cx="24" cy="28" r="12" fill="#087f73"/>
+    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="15" font-weight="700" fill="#17211f">MTP 轻量草稿头 (<tspan font-family="var(--font-mono)">method="mtp"</tspan>)</text>
+    <text x="44" y="58" font-size="13.5" fill="#4d5652">复用主模型隐状态便宜猜出后续词</text>
+    <text x="44" y="81" font-size="13.5" fill="#4d5652">昇腾经 <tspan font-family="var(--font-mono)" font-weight="700">AscendEagleProposer</tspan> 调度</text>
+    <text x="44" y="104" font-size="13.5" fill="#065f56">顺序铁律：先验本轮，再猜下轮候选</text>
+  </g>
+
+  <g id="callout-verify">
+    <circle cx="316" cy="28" r="12" fill="#c78300"/>
+    <text x="316" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="336" y="33" font-size="15" font-weight="700" fill="#17211f">主模型单步并行验 1 + K 格</text>
+    <text x="336" y="58" font-size="13.5" fill="#4d5652">将已定 T0 与 D1..D3 共 4 格并排送入</text>
+    <text x="336" y="81" font-size="13.5" fill="#4d5652">让一次权重读取同时服务 1 + K 行</text>
+    <text x="336" y="104" font-size="13.5" fill="#936300">每格输出预测其后一位，错一格比对</text>
+  </g>
+
+  <g id="callout-accepted">
+    <circle cx="608" cy="28" r="12" fill="#4c65b6"/>
+    <text x="608" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="628" y="33" font-size="15" font-weight="700" fill="#17211f">前缀接受 (ACCEPTED · 1 至 K+1)</text>
+    <text x="628" y="58" font-size="13.5" fill="#4d5652">从左往右逐位核验，对上则批量留用</text>
+    <text x="628" y="81" font-size="13.5" fill="#4d5652">全对时额外收获 1 个 <tspan font-family="var(--font-mono)" font-weight="700">bonus</tspan> token</text>
+    <text x="628" y="104" font-size="13.5" fill="#3a4f93">写下什么永远由主模型分布严格决定</text>
+  </g>
+
+  <!-- 底部开放式无边框矢量编号直标 -->
+  <g id="callout-drafts">
+    <circle cx="28" cy="498" r="12" fill="#087f73"/>
+    <text x="28" y="502.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="48" y="503" font-size="15" font-weight="700" fill="#17211f">候选草稿盘 (<tspan font-family="var(--font-mono)">num_speculative_tokens = 3</tspan>)</text>
+    <text x="48" y="529" font-size="14" fill="#4d5652">由上一轮末尾连续猜出 K = 3 个草稿（D1, D2, D3）</text>
+    <text x="48" y="554" font-size="14" fill="#4d5652">候选位同样占用 KV 槽位，被拒位置留待下轮原地覆写</text>
+    <text x="48" y="579" font-size="13.5" fill="#065f56">K 越大猜错浪费与草稿串行开销越高，高并发下可能反拖慢</text>
+  </g>
+
+  <g id="callout-resampled">
+    <circle cx="472" cy="498" r="12" fill="#b54237"/>
+    <text x="472" y="502.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="492" y="503" font-size="15" font-weight="700" fill="#17211f">首个错位当场重采样 (RESAMPLED) 并截断</text>
+    <text x="492" y="529" font-size="14" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">rejection_sample</tspan> 在首个不符格写主模型答案并停下</text>
+    <text x="492" y="554" font-size="14" fill="#4d5652">其后读了错误候选，预测全部作废，每步保底产出 1 词</text>
+    <text x="492" y="579" font-size="13.5" fill="#8f3229">确保随机采样输出分布与纯主模型逐词解码在数学上严格等价</text>
+  </g>
+</svg>

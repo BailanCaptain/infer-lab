@@ -1,0 +1,9 @@
+mode: native-svg
+id: fine-grained-tp-fig-dp-group-guard
+caption: 细粒度 TP 与全局 TP 的分组方向及四个模块入口/出口通信对照，以及 Ascend v0.30.0 与 main 对 oproj/mlp 施加的六项硬前提和图捕获尺寸不足静默清零/置 1 守卫。
+size: [900, 502]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1352-L1415'
+    symbols: ['_validate_preconditions', 'oproj_tensor_parallel_size', 'mlp_tensor_parallel_size', 'max_cudagraph_capture_size', 'cudagraph_capture_sizes']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L830-L840'
+    symbols: ['finegrained_tp_config', 'oproj_tensor_parallel_size', 'mlp_tensor_parallel_size']

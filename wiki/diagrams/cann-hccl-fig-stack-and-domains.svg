@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="昇腾四层软件栈与 GLM 双机 16 卡通信域分工图" font-family="var(--font-sans)">
+<title>昇腾四层软件栈与 GLM 双机 16 卡通信域分工</title>
+<desc>_init_worker_distributed_environment, init_ascend_model_parallel, _ENGRAM_DP, _KVPP</desc>
+<defs>
+<marker id="ch-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#9a4b86"/></marker>
+</defs>
+<text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">1. 昇腾推理四层软件栈：每层各司其职，单包安装成功 ≠ 可直接推理</text>
+<path d="M14 38H886M14 254H886" stroke="#b8bcb5" stroke-width="1.4"/>
+<g stroke-width="1.4">
+<rect x="14" y="48" width="872" height="42" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="14" y="98" width="872" height="42" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="14" y="148" width="872" height="42" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="14" y="198" width="872" height="42" rx="7" fill="#ece9df" stroke="#b8bcb5"/>
+</g>
+<g font-size="14" font-weight="700">
+<text x="28" y="74" fill="#065f56">④ 推理引擎层</text>
+<text x="28" y="124" fill="#3a4f93">③ 框架适配层</text>
+<text x="28" y="174" fill="#936300">② 昇腾计算栈</text>
+<text x="28" y="224" fill="#17211f">① 宿主机底座</text>
+</g>
+<g font-size="13.5" fill="#17211f">
+<text x="158" y="74">vLLM + vllm-ascend：请求调度、Worker 选 hccl 建组、NPUCommunicator / MC2 算子入口</text>
+<text x="158" y="124">PyTorch + TorchNPU + Triton Ascend（3.2.1+ 覆盖社区包）+ 硬件对应 FLA NPU 算子包</text>
+<text x="158" y="174">CANN Toolkit（运行/开发）+ 硬件 Ops + NNAL（ATB 加速库）+ HCCL（集合与 P2P 通信）</text>
+<text x="158" y="224">宿主机驱动与固件 + 容器设备节点映射（A3 映射双 DIE 节点，950DT 含额外专属设备节点）</text>
+</g>
+<text x="16" y="280" font-size="16" font-weight="700" fill="#17211f">2. GLM 双机 16 卡（TP8 / DP2 / EP16）多通信域与真实通信精度</text>
+<rect x="14" y="294" width="428" height="214" rx="10" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+<rect x="28" y="308" width="170" height="110" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+<rect x="258" y="308" width="170" height="110" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+<path d="M198 352H252" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#ch-a)"/>
+<path d="M258 372H204" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#ch-a)"/>
+<rect x="28" y="430" width="400" height="66" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+<g text-anchor="middle">
+<text x="113" y="332" font-size="14.5" font-weight="700" fill="#065f56">Node 0（rank 0–7）</text>
+<text x="113" y="356" font-size="13.5" fill="#17211f">TP 组 {0…7}</text>
+<text x="113" y="378" font-size="13.5" fill="#66716d">机内 HCCS / UB</text>
+<text x="113" y="400" font-size="13.5" font-weight="600" fill="#065f56">EngineCore 0</text>
+<text x="343" y="332" font-size="14.5" font-weight="700" fill="#065f56">Node 1（rank 8–15）</text>
+<text x="343" y="356" font-size="13.5" fill="#17211f">TP 组 {8…15}</text>
+<text x="343" y="378" font-size="13.5" fill="#66716d">机内 HCCS / UB</text>
+<text x="343" y="400" font-size="13.5" font-weight="600" fill="#065f56">EngineCore 1</text>
+<text x="228" y="342" font-size="13.5" font-weight="700" fill="#7a3a6a">RoCE</text>
+<text x="228" y="394" font-size="13.5" fill="#66716d">跨机</text>
+</g>
+<text x="42" y="454" font-size="14" font-weight="700" fill="#7a3a6a">EP 组 {0…15}（16 卡拼 288 专家；MC2 / AllGather）</text>
+<text x="42" y="479" font-size="13.5" fill="#17211f">DP 组 {0,8}…{7,15} 跨机配对；CPU gloo 同步 2×int32 控制</text>
+<g stroke-width="1.4">
+<rect x="458" y="294" width="428" height="66" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="458" y="368" width="428" height="66" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="458" y="442" width="428" height="66" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+</g>
+<g font-size="14" font-weight="700">
+<text x="472" y="318" fill="#936300">TP8 归约载荷：BF16（W8A8 不把所有通信减半）</text>
+<text x="472" y="392" fill="#7a3a6a">EP16 MoE 载荷：Dispatch 发 int8+scale，Combine 收 BF16</text>
+<text x="472" y="466" fill="#3a4f93">v0.30.0 / main Ascend 扩展通信域</text>
+</g>
+<g font-size="13.5" fill="#17211f">
+<text x="472" y="344">每元素 2 B；R1 [4,4096] 每次 32 KiB/卡；mHC 仍归约 1 次</text>
+<text x="472" y="418">单 token 单专家副本：4096 B + 4 B FP32 = 4,100 B；收回 BF16</text>
+<text x="472" y="492">v0.30 增 edp(Engram DP×PCP)、kvpp(TP×PCP)；main 增 etp</text>
+</g>
+</svg>

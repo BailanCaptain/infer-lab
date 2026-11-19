@@ -1,0 +1,14 @@
+mode: native-svg
+id: mooncake-connector-fig-reshard-and-selector
+caption: >-
+  Mooncake 连接器非对称 TP KV 头拼装机制与 v0.30.0 / main 家族选型决策图：上半幅以 8 KV 头、P=TP4 对 D=TP2 为例，说明按实际持有头计算的有效头比 r_head = min(TP_P, H_kv) / min(TP_D, H_kv)，对照 V1（D 拉后重排）与 Layerwise（P 发前重排）以及 MLA/DCP 约束；下半幅汇总 GQA + C8 禁用普通 MooncakeConnector、V1/V2/Layerwise/Hybrid/D2RH/AscendStore 选型及 256 登记段上限。
+size: [900, 526]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L880-L899
+    symbols: [pd_tp_ratio, pd_head_ratio, num_head_replica]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1020-L1044
+    symbols: [_check_mooncake_c8_kv_cache_quant]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1410-L1427
+    symbols: [_validate_sfa_dcp_kv_sp, cp_kv_cache_interleave_size]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/__init__.py#L45-L90
+    symbols: [register_connector, KVConnectorFactory]

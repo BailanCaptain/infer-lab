@@ -1,0 +1,22 @@
+mode: native-svg
+id: lora-fig-punica-paths
+caption: >-
+  Multi-LoRA 槽号混批与昇腾 PunicaWrapperNPU 执行路径分派：同一批不同请求共享一份基座权重 W，按逐行槽号表（如 [0, 1, 0, -1]）叠加已折入缩放 s 的低秩旁路 A×B；v0.30.0 起按配置名额 max_loras、HardwareProfile 能力位 LORA_CUSTOM_OPS、秩上限 128 与 310P 图捕获条件在 Triton 融合快路、AscendC SGMV/BGMV 与 PyTorch 退路间切换，且 LoRA + EP>1 强制走 ALLTOALL。
+size: [900, 480]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/lora/punica_npu.py#L16-L70'
+    symbols:
+      - PunicaWrapperNPU
+      - LORA_CUSTOM_OPS
+      - max_loras
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/lora/punica_npu.py#L216-L255'
+    symbols:
+      - _use_sgmv
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/lora/lora_ops.py#L30-L70'
+    symbols:
+      - bgmv_shrink
+      - bgmv_expand
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L396-L406'
+    symbols:
+      - lora_config
+      - ALLTOALL

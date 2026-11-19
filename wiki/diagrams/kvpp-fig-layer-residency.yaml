@@ -1,0 +1,9 @@
+mode: native-svg
+id: kvpp-fig-layer-residency
+caption: KVPP 的 MLA 按层常驻与提前一层整层广播机制（每卡仅存 ⌈L/N⌉ 常驻层 + 2 暂存区 + 复制 MTP 层，在独立流上把第 i+1 层整层广播与第 i 层投影/计算重叠），以及 v0.30.0 与 main 的模式/连接器边界。
+size: [900, 496]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L38-L110'
+    symbols: ['_KVPP_SUPPORTED_CONNECTORS', 'KVPPConfig', 'from_vllm_config', 'validate']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/core/kv_cache_placement.py#L21-L55'
+    symbols: ['KVPP_SCRATCH_BUFFER_COUNT', 'KVPPPhysicalCachePlan', 'get_num_blocks', 'build_layer_cache_bundles']

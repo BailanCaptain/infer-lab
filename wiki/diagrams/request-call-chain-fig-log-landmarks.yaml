@@ -1,0 +1,14 @@
+mode: native-svg
+id: request-call-chain-fig-log-landmarks
+caption: >-
+  跨进程日志地标、三层超时边界与异常回传地图：沿 API server → EngineCore_DP0 → Worker_DP0/DP1 四条泳道标出日志前缀、RPC/HCCL 超时作用域、原始异常向上冒泡顺序，以及 v0.30.0（MRV1 默认）与 main（MRV2 唯一）在第 3–5 站栈帧入口的差异。
+size: [900, 470]
+pins:
+  - source: vllm@ced6857a:vllm/v1/engine/core.py#L589-L640
+    symbols: [step, step_with_batch_queue]
+  - source: vllm@ced6857a:vllm/v1/executor/multiproc_executor.py#L375-L448
+    symbols: [collective_rpc]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L498-L518
+    symbols: [init_device]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L589-L618
+    symbols: [init_device, MMEncoderModelRunner]

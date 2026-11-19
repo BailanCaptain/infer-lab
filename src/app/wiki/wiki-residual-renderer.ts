@@ -708,6 +708,9 @@ export function mountResidualScene(host: HTMLDivElement, step: number, signal: A
         g.dispose();
       });
       renderer.dispose();
+      try {
+        renderer.forceContextLoss();
+      } catch {}
       stage.remove();
       delete host.dataset.compute;
     },

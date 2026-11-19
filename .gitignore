@@ -36,6 +36,7 @@ tools/corpus/
 /wiki/warnings/params-*
 /wiki/warnings/patrol-*
 /wiki/warnings/reconcile-*
+/wiki/warnings/_archived-pre-v030/
 # Reproducible local parameter scan/review output (fixed inputs remain in seeds).
 wiki/lineage/params-*.json
 

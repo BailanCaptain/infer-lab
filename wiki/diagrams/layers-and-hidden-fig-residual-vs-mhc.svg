@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="标准 Pre-Norm 单残差高速路对比 GLM 四流 mHC 与 90 次连乘防爆标尺" font-family="var(--font-sans)">
+  <title>标准 Pre-Norm 单残差高速路与 GLM-5.3-Flash 四流 mHC 架构对比，以及 45 层 90 次串行连乘下 Sinkhorn 双随机约束防幅值爆炸的原理标尺。</title>
+  <desc>左侧展示标准 Pre-Norm 单残差流恒等直通（x + Δ）；右侧展示 GLM-5.3-Flash 45 层主干的 4 路 mHC 残差流、npu_hc_pre_v2 合成、20 轮 Sinkhorn 与 npu_hc_post 写回；底部对比 90 次串行连乘时放大 1.1 倍、缩小 0.9 倍与双随机守恒 1.0 倍的幅值差异。</desc>
+  <defs>
+    <marker id="lh-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="lh-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#065f56">A. 标准 Pre-Norm 单残差高速路（如 Qwen3 / MTP 层）</text>
+  <text x="466" y="28" font-size="16" font-weight="700" fill="#7a3a6a">B. GLM-5.3-Flash 四流 mHC 主干（45 层 × 2 段）</text>
+  <line x1="450" y1="14" x2="450" y2="342" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="5 4"/>
+
+  <!-- Left: Standard Pre-Norm -->
+  <rect x="14" y="44" width="420" height="46" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="224" y="72" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">单条残差流 x：[T, 4096]（8 KiB/token，BF16）</text>
+
+  <!-- Highway line on left side -->
+  <path d="M 76 90 L 76 266" fill="none" stroke="#087f73" stroke-width="3" marker-end="url(#lh-arr-t)"/>
+  <rect x="20" y="148" width="112" height="58" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.3"/>
+  <text x="76" y="172" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">恒等旁路 ×1</text>
+  <text x="76" y="194" text-anchor="middle" font-size="13.5" fill="#4d5652">不做归一化</text>
+
+  <!-- Branch on right of left panel -->
+  <path d="M 276 90 L 276 114" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#lh-arr-t)"/>
+  <rect x="160" y="120" width="268" height="44" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="294" y="147" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">支路入口 RMSNorm（带 γ）</text>
+
+  <path d="M 294 164 L 294 184" fill="none" stroke="#087f73" stroke-width="1.8" marker-end="url(#lh-arr-t)"/>
+  <rect x="160" y="190" width="268" height="48" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="294" y="219" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">子层（Attention 或 MLP）→ Δ</text>
+
+  <path d="M 294 238 L 294 282 L 106 282" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#lh-arr-t)"/>
+  <circle cx="76" cy="282" r="18" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8"/>
+  <text x="76" y="288" text-anchor="middle" font-size="18" font-weight="700" fill="#065f56">+</text>
+
+  <rect x="14" y="308" width="420" height="34" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="224" y="330" text-anchor="middle" font-size="13.5" fill="#17211f">末层直出：<tspan font-family="var(--font-mono)" font-weight="700">x₀ + Δ₁ + … + Δ₂L</tspan> → 最终 RMSNorm</text>
+
+  <!-- Right: GLM 4-stream mHC -->
+  <rect x="466" y="44" width="420" height="46" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="676" y="72" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">四条残差流：[T, 4, 4096]（32 KiB/token，4×）</text>
+
+  <path d="M 676 90 L 676 108" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#lh-arr-p)"/>
+
+  <rect x="466" y="114" width="420" height="58" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="676" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">1. <tspan font-family="var(--font-mono)">npu_hc_pre_v2</tspan>（16384 无 γ 归一化 → 24 系数）</text>
+  <text x="676" y="161" text-anchor="middle" font-size="13.5" fill="#17211f">4→1 加权合成 [T, 4096]；20 轮 Sinkhorn 产出 4×4 双随机矩阵</text>
+
+  <path d="M 676 172 L 676 188" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#lh-arr-p)"/>
+
+  <rect x="466" y="194" width="420" height="44" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="676" y="221" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">2. 子层带 γ RMSNorm → KDA / 稀疏 MLA / MoE → [T, 4096]</text>
+
+  <path d="M 676 238 L 676 254" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#lh-arr-p)"/>
+
+  <rect x="466" y="260" width="420" height="42" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="676" y="286" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">3. <tspan font-family="var(--font-mono)">npu_hc_post</tspan>：旧 4 流 × 双随机 4×4 + 写回权重 × 输出</text>
+
+  <rect x="466" y="308" width="420" height="34" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="676" y="330" text-anchor="middle" font-size="13.5" fill="#17211f">L0 复制 1→4；L44 无权重求均值 4→1；每卡独算无通信</text>
+
+  <line x1="14" y1="358" x2="886" y2="358" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <text x="14" y="386" font-size="16" font-weight="700" fill="#17211f">二、为什么必须加 Sinkhorn 约束？45 层 × 2 段 = 90 次串行连乘的幅值标尺</text>
+
+  <rect x="14" y="402" width="280" height="104" rx="9" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="28" y="428" font-size="15" font-weight="700" fill="#8f3229">✗ 无约束放大（每段 ×1.1）</text>
+  <text x="28" y="458" font-size="15" font-family="var(--font-mono)" font-weight="700" fill="#8f3229">1.1⁹⁰ ≈ 5,313×</text>
+  <text x="28" y="486" font-size="13.5" fill="#4d5652">残差幅值逐层指数爆炸，难以训稳</text>
+
+  <rect x="310" y="402" width="280" height="104" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="324" y="428" font-size="15" font-weight="700" fill="#936300">✗ 无约束缩小（每段 ×0.9）</text>
+  <text x="324" y="458" font-size="15" font-family="var(--font-mono)" font-weight="700" fill="#936300">0.9⁹⁰ ≈ 0.000076</text>
+  <text x="324" y="486" font-size="13.5" fill="#4d5652">浅层信息与梯度传到末尾几乎归零</text>
+
+  <rect x="606" y="402" width="280" height="104" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="620" y="428" font-size="15" font-weight="700" fill="#065f56">✓ Sinkhorn 双随机（行列和 ≈ 1）</text>
+  <text x="620" y="458" font-size="15" font-family="var(--font-mono)" font-weight="700" fill="#065f56">1⁹⁰ = 1（1,800 轮/前向）</text>
+  <text x="620" y="486" font-size="13.5" fill="#4d5652">每卡主矩阵 135 MiB FP32，换取稳态</text>
+</svg>

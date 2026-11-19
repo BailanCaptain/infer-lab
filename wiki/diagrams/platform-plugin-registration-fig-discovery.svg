@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 454" width="900" height="454" role="img" aria-label="entry_points 发现、VLLM_PLUGINS 白名单与三组六入口故障边界图" font-family="var(--font-sans)">
+  <title>vLLM 插件发现、VLLM_PLUGINS 过滤与四阶段故障边界</title>
+  <desc>4-stage entry_points discovery, VLLM_PLUGINS exact-name whitelist, load vs call error handling, and 3-group 6-entry inventory</desc>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">entry_points 发现、VLLM_PLUGINS 过滤与故障传播边界</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">「装包能 import」≠「插件已加载」≠「入口执行成功」≠「NPU 设备已就绪」</text>
+
+  <!-- 4 Pipeline Stages -->
+  <rect x="16" y="64" width="196" height="176" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="28" y="90" font-size="14.5" font-weight="700" fill="#17211f">1. 读安装元数据</text>
+  <text x="28" y="114" font-size="13.5" fill="#4d5652">importlib.metadata</text>
+  <text x="28" y="136" font-size="13.5" fill="#4d5652">按 group 查清单</text>
+  <text x="28" y="160" font-size="13.5" fill="#4d5652">此时不导入任何代码</text>
+  <text x="28" y="186" font-size="13.5" fill="#66716d">只读 dist-info 表</text>
+  <text x="28" y="214" font-size="13.5" fill="#17211f" font-weight="600">环境错则查不到</text>
+
+  <path d="M214 152h22m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="240" y="64" width="196" height="176" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="252" y="90" font-size="14.5" font-weight="700" fill="#936300">2. VLLM_PLUGINS</text>
+  <text x="252" y="114" font-size="13.5" fill="#4d5652">未设 = 全部放行</text>
+  <text x="252" y="136" font-size="13.5" fill="#4d5652">精确匹配入口名</text>
+  <text x="252" y="160" font-size="13.5" fill="#4d5652">如 ascend / model</text>
+  <text x="252" y="186" font-size="13.5" fill="#8f3229">注意：不认包名</text>
+  <text x="252" y="214" font-size="13.5" fill="#8f3229" font-weight="600">写 =all 会滤掉全部</text>
+
+  <path d="M438 152h22m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="464" y="64" width="196" height="176" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="476" y="90" font-size="14.5" font-weight="700" fill="#3a4f93">3. plugin.load()</text>
+  <text x="476" y="114" font-size="13.5" fill="#4d5652">导入模块取函数</text>
+  <text x="476" y="136" font-size="13.5" fill="#4d5652">异常被捕获并跳过</text>
+  <text x="476" y="160" font-size="13.5" fill="#4d5652">只记一条日志继续跑</text>
+  <text x="476" y="186" font-size="13.5" fill="#3a4f93" font-weight="600">→ 静默退回其他平台</text>
+  <text x="476" y="214" font-size="13.5" fill="#4d5652">平台入口仅交类路径</text>
+
+  <path d="M662 152h22m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="688" y="64" width="196" height="176" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="700" y="90" font-size="14.5" font-weight="700" fill="#8f3229">4. 调用入口函数</text>
+  <text x="700" y="114" font-size="13.5" fill="#4d5652">通用组先置守卫：</text>
+  <text x="700" y="136" font-size="13.5" fill="#4d5652">plugins_loaded = True</text>
+  <text x="700" y="160" font-size="13.5" fill="#4d5652">不包 try，抛错即中断</text>
+  <text x="700" y="186" font-size="13.5" fill="#8f3229" font-weight="600">→ 同进程无自动重试</text>
+  <text x="700" y="214" font-size="13.5" fill="#4d5652">平台入口不探测硬件</text>
+
+  <!-- Bottom strip -->
+  <rect x="16" y="260" width="528" height="178" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="32" y="286" font-size="14.5" font-weight="700" fill="#065f56">vllm-ascend setup.py（v0.30.0 / main 均 3 组 6 入口）</text>
+  <text x="32" y="314" font-size="13.5" fill="#17211f" font-weight="600">• platform_plugins（1）</text>
+  <text x="218" y="314" font-size="13.5" fill="#4d5652">ascend → 返回 NPUPlatform 类路径</text>
+  <text x="32" y="340" font-size="13.5" fill="#17211f" font-weight="600">• general_plugins（4）</text>
+  <text x="218" y="340" font-size="13.5" fill="#4d5652">connector / loader / profiling 补 patch</text>
+  <text x="218" y="362" font-size="13.5" fill="#4d5652">ascend_model 仅登记架构名 → 类</text>
+  <text x="32" y="388" font-size="13.5" fill="#17211f" font-weight="600">• service_metric（1）</text>
+  <text x="218" y="388" font-size="13.5" fill="#4d5652">v0.30.0 新增指标口（main 迁子模块）</text>
+  <text x="32" y="420" font-size="13.5" fill="#065f56">注：main 补丁入口先锁 MRV2；connector 新增 ec_transfer</text>
+
+  <rect x="560" y="260" width="324" height="178" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="576" y="286" font-size="14.5" font-weight="700" fill="#7a3a6a">平台仲裁与 v0.30.0 CPU 直通</text>
+  <text x="576" y="314" font-size="13.5" fill="#4d5652">• 单外部激活 → 压过内置平台</text>
+  <text x="576" y="340" font-size="13.5" fill="#4d5652">• ≥2 外部激活 → RuntimeError</text>
+  <text x="576" y="366" font-size="13.5" fill="#4d5652">• v0.30.0+ 支持显式 CPU 直通</text>
+  <text x="576" y="392" font-size="13.5" fill="#4d5652">• current_platform 首次懒加载</text>
+  <text x="576" y="420" font-size="13.5" fill="#7a3a6a" font-weight="600">→ 切换硬件须卸包或白名单排除</text>
+</svg>

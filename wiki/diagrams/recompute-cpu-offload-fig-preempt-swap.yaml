@@ -1,0 +1,12 @@
+mode: native-svg
+id: recompute-cpu-offload-fig-preempt-swap
+caption: >-
+  PreemptOffloadConnector（v0.30.0 / main）的同步换出换回协同与三档预算优先级：调度侧通过 AscendMultiConnector 记账并等齐全部 world_size 卡的保存完成事件，Worker 侧在覆写显存块前同步 D2H、排回前向前同步 H2D；右侧列出三档预算口径与 main 解除 DCP/PCP 断言的演进。
+size: [900, 446]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/preempt_offload_connector.py#L41-L115
+    symbols: [PreemptOffloadConnectorV1, _resolve_offload_capacity, offload_host_memory_ratio, cpu_bytes_to_use_per_rank]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L95-L140
+    symbols: [dcp_world_size, pcp_world_size, _get_group_is_sliding_window]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L315-L335
+    symbols: [resolve_dcp_kv_block_size]

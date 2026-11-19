@@ -1,0 +1,11 @@
+mode: native-svg
+id: matmul-and-weights-fig-layout-boundary
+caption: 权重从数学形状 [H, F] 到内存创建 [F, H]、昇腾加载后转置与 FRACTAL_NZ 分块及动态 W8A8 执行链的三道形态边界，以及四组常见误解对照。
+size: [900, 512]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py#L60-L144'
+    symbols: ['AscendW8A8DynamicLinearMethod', 'get_weight', 'process_weights_after_loading', 'maybe_trans_nz', 'npu_dynamic_quant', 'npu_quant_matmul']
+  - source: 'vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1388-L1395'
+    symbols: ['RowParallelLinear']
+  - source: 'vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1537-L1558'
+    symbols: ['reduce_results']

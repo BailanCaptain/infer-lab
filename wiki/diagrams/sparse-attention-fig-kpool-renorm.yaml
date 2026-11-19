@@ -1,0 +1,9 @@
+mode: native-svg
+id: sparse-attention-fig-kpool-renorm
+caption: DSA 与 GLM KPool 稀疏注意力选池与重归一化机制：每 4 位置压池打分、取 Top-512 池展开并补 0–3 尾得至多 2051 名额，对比稀疏重归一化与错误删项，并区分主干跨层 IndexCache 复用与 MTP 步间复用。
+size: [900, 456]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/indexer_kpool.py#L484-L525'
+    symbols: ['Glm5NextKPoolIndexerBackend', 'topk_tokens', 'index_kpool', 'topk_indices_buffer']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/sfa_v1.py#L820-L875'
+    symbols: ['use_index_cache', 'skip_topk', 'skip_indexer_pre_process', 'topk_indices_buffer']

@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -265,7 +265,11 @@ describe("1160 AST migration read-only planner & disambiguation", () => {
   });
 
   it("verifies all 5 real 1100 disambiguation cases and runs default dry-run CLI with zero file mutations", () => {
-    const netloader = readFileSync(new URL("../../wiki/concepts/netloader-guide.md", import.meta.url));
+    const repoRoot = join(import.meta.dirname, "../..");
+    const readPreMigration1100 = (rel: string) =>
+      execFileSync("git", ["show", `8327b37:wiki/${rel}`], { cwd: repoRoot });
+
+    const netloader = readPreMigration1100("concepts/netloader-guide.md");
     const netPlan = planPageAstMigration("concepts/netloader-guide.md", netloader);
     // 来源 13，262–274 行 -> 仅识别来源 13，绝不把 262..274 当作越界来源号
     expect(netPlan.manualItems.some((m) => m.kind === "invalid-source-ordinal")).toBe(false);
@@ -278,7 +282,7 @@ describe("1160 AST migration read-only planner & disambiguation", () => {
       "concepts/rfork-transfer.md",
       "concepts/rfork-troubleshooting.md",
     ]) {
-      const buf = readFileSync(new URL(`../../wiki/${rel}`, import.meta.url));
+      const buf = readPreMigration1100(rel);
       const p = planPageAstMigration(rel, buf);
       expect(p.manualItems.some((m) => m.kind === "invalid-source-ordinal")).toBe(false);
       expect(p.manualItems.some((m) => m.kind === "ambiguous-code-line-context")).toBe(true);

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 496" width="900" height="496" role="img" aria-label="DP 请求路由优先级、打分公式演进与 MoE 同步陪跑代价图" font-family="var(--font-sans)">
+  <title>DP 请求路由：四级选组优先级、打分演进与 MoE 同步代价</title>
+  <desc>上半展示前端 get_core_engine_for_request 的选组优先级与 v0.23/v0.26 对照 v0.30.0/main 的打分公式演进（含在途条数兜底、KV 利用率大于 50% 罚分与 main 流式会话亲和）；下半展示 100 ms 协调器滞后与偏斜路由引发的四项代价（排队、KV 池挤出、MoE 按最宽对齐与空闲组陪跑、前缀缓存未命中）。</desc>
+  <defs>
+    <marker id="dpr-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="dpr-arr-gray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#66716d"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、前端选组优先级与打分公式演进（v0.23/v0.26 → v0.30.0 / main）</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="52" width="194" height="74" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="232" y="52" width="196" height="74" rx="8" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="454" y="52" width="206" height="74" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="686" y="52" width="202" height="74" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+  </g>
+
+  <g fill="none" stroke-width="1.8" marker-end="url(#dpr-arr-gray)">
+    <path d="M 206 89 L 226 89" stroke="#66716d"/>
+    <path d="M 428 89 L 448 89" stroke="#66716d"/>
+    <path d="M 660 89 L 680 89" stroke="#087f73" marker-end="url(#dpr-arr-teal)"/>
+  </g>
+
+  <g font-size="14" font-weight="700">
+    <text x="24" y="78" fill="#3a4f93">1. 流式会话亲和</text>
+    <text x="244" y="78" fill="#936300">2. 显式请求头指定</text>
+    <text x="466" y="78" fill="#7a3a6a">3. Late Interaction</text>
+    <text x="698" y="78" fill="#065f56">4. 负载打分挑最小</text>
+  </g>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="24" y="103">main 复用 <tspan font-family="var(--font-mono)">in_flight</tspan></text>
+    <text x="244" y="103"><tspan font-family="var(--font-mono)" fill="#936300">X-data-parallel-rank</tspan></text>
+    <text x="466" y="103">池化键 <tspan font-family="var(--font-mono)" fill="#7a3a6a">CRC32(key)%N</tspan></text>
+    <text x="698" y="103">派定后不迁移，终生留组</text>
+  </g>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="142" width="388" height="126" rx="9" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="424" y="142" width="464" height="126" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+  </g>
+  <path d="M 400 205 L 418 205" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#dpr-arr-teal)"/>
+
+  <text x="26" y="168" font-size="14.5" font-weight="700" fill="#17211f">旧版打分（v0.23.0 / v0.26.0rc / GLM 基线）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="196" font-family="var(--font-mono)" font-weight="700" fill="#17211f">score = waiting × 4 + running</text>
+    <text x="26" y="220">• 仅靠本地 <tspan font-family="var(--font-mono)">waiting += N_api</tspan> 补记，推送覆盖即清零</text>
+    <text x="26" y="242">• 显式请求头跳过本地补记；v0.26 起旋转扫描起点</text>
+    <text x="26" y="261">（v0.23 单前端平分固定落 DP0）</text>
+  </g>
+
+  <text x="438" y="168" font-size="14.5" font-weight="700" fill="#065f56">新版打分（v0.30.0 主基线 / main）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="438" y="196" font-family="var(--font-mono)" font-weight="700" fill="#065f56">max(N_api×inflight, W+R) + W×6×max(0, u_KV-0.5)</text>
+    <text x="438" y="220">• <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">engine_inflight</tspan> 在途兜底：不被协调器推送抹掉，</text>
+    <text x="450" y="241">且显式请求头指定的请求也纳入在途计数</text>
+    <text x="438" y="261">• KV 占用 ≤50% 不罚分；至 100% 时 waiting 权升回 4×</text>
+  </g>
+
+  <text x="14" y="302" font-size="16" font-weight="700" fill="#17211f">二、100 ms 推送盲区与偏斜路由引发的四项代价（MoE 尤其敏感）</text>
+  <line x1="12" y1="314" x2="888" y2="314" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="328" width="430" height="72" rx="9" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="458" y="328" width="430" height="72" rx="9" fill="#fff0e9" stroke="#b54237"/>
+    <rect x="12" y="412" width="430" height="72" rx="9" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="458" y="412" width="430" height="72" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+  </g>
+
+  <g font-size="14.5" font-weight="700">
+    <text x="26" y="354" fill="#936300">1. 统计滞后 = 单步时长 + 100 ms 量级</text>
+    <text x="472" y="354" fill="#8f3229">2. MoE 按最宽对齐 + 空闲组陪跑（Dummy Batch）</text>
+    <text x="26" y="438" fill="#7a3a6a">3. 独立 KV 池挤出与排队放大</text>
+    <text x="472" y="438" fill="#3a4f93">4. 前缀缓存隔离（默认不看共同前缀）</text>
+  </g>
+
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="381">步前后报数；协调器 100 ms 间隔 + 50 ms 聚合等待</text>
+    <text x="472" y="381">步宽取 <tspan font-family="var(--font-mono)" fill="#8f3229">max(W_DP0, W_DP1)</tspan>；空闲组须造假批陪走 MoE</text>
+    <text x="26" y="465">长请求扎堆先耗尽单组 KV 池并触发抢占，空组池子帮不上</text>
+    <text x="472" y="465">相同前缀落进不同组需各算各存；须靠外部路由或请求头亲和</text>
+  </g>
+</svg>

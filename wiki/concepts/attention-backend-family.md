@@ -232,7 +232,15 @@ FlashAttention 把 Q、K、V 分块装进更靠近计算单元的存储，在处
 
 混合批经过适配层时，实现按元数据把 query 和序列信息切成两段分别调用，再按原来的顺序拼接：decode 分支传 `causal=False`，prefill 传 `causal=True`。对每请求只有一个查询 token 的普通 decode，合法历史范围可由有效长度界定；多查询 token 的投机 decode 还需要逐查询因果约束，不能从这个固定 false 推出它同样适用。
 
-这条路径是密集 MHA/GQA 的扩展阅读。在昇腾平台选择树里，标准密集注意力（`use_mla=False, use_sparse=False, use_compress=False`）默认落入 `AscendAttentionBackend`，内部按阶段与硬件能力在 **FIA**（`npu_fused_infer_attention_score` / `v2`）与 **PA**（`_npu_paged_attention`）等算子之间分流；**MLA / SFA / DSA** 分别对应 `(True, False, False)` / `(True, True, False)` / `(True, False, True)`；**Linear（线性注意力 / KDA / GDN）**则不经过通用注意力后端表，由模型层直接报出 GDN 等线性后端。至于 **FA3（`AscendFABackend` / `AscendFAImpl`）**：在 `v0.23.0` / `v0.26.0rc` 须显式选 `FLASH_ATTN` 且开批不变，在 `v0.30.0` 与 `main` 改为未开 PCP 且 `rl_config.enabled` 与 `rl_config.enable_training_consistency` 同为真时优先命中（同时要求图模式用 `PIECEWISE` 或 eager，拒绝 `FULL_DECODE_ONLY` 与滑动窗口）；`main` 还为特定草稿/模型增加了 CANN **FA**（`fa_v1`）与 A2/A3 `flash_attn_npu_3`（`flash_attention_v3`）两条前置验证分支。各算子族的片上 Tiling、Online Softmax 与 FA/FIA/PA/FA3 详细分流见[FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)；具体拒绝条件见下面的[会报什么错](#会报什么错)。
+这条路径是密集 MHA/GQA 的扩展阅读。把 `v0.30.0` 与 `main` 里的整张昇腾平台选择树摊开来看，共有「模型层直报旁路」与「平台 `get_attn_backend_cls` 三级门控」两条主线：
+
+```wiki-diagram
+file: attention-backend-family-fig-selector-tree
+```
+
+- **标准密集注意力与 MLA / SFA / DSA（通用四元组查表）**：`(use_mla, use_sparse, use_compress)` 为 `(False, False, False)` 默认落入 `AscendAttentionBackend`，内部按阶段与硬件能力在 **FIA**（`npu_fused_infer_attention_score` / `v2`）与 **PA**（`_npu_paged_attention`）等算子之间分流；**MLA / SFA / DSA** 分别对应 `(True, False, False)` / `(True, True, False)` / `(True, False, True)`；310P 由 `COMPATIBILITY` 硬件族落到 `AscendAttentionBackend310`，开启上下文并行 `use_pcp` 则查独立 MRV2 PCP 映射表。
+- **Linear（线性注意力 / KDA / GDN）**：不经过通用注意力后端表，由模型层直接报出 `AscendGDNAttentionBackend` 等线性后端。
+- **FA3（`AscendFABackend` / `AscendFAImpl`）与 `main` 新增前置分支**：在 `v0.23.0` / `v0.26.0rc` 须显式选 `FLASH_ATTN` 且开批不变，在 `v0.30.0` 与 `main` 改为未开 PCP 且 `rl_config.enabled` 与 `rl_config.enable_training_consistency` 同为真时优先命中（同时要求图模式用 `PIECEWISE` 或 eager，拒绝 `FULL_DECODE_ONLY` 与滑动窗口）；`main` 还为特定草稿/模型增加了 CANN **FA**（`fa_v1`）与 A2/A3 `flash_attn_npu_3`（`flash_attention_v3`）两条前置验证分支。各算子族的片上 Tiling、Online Softmax 与 FA/FIA/PA/FA3 详细分流见[FlashAttention 与昇腾注意力算子族](ascend-flash-attention.md)；具体拒绝条件见下面的[会报什么错](#会报什么错)。
 
 ## 常见误解
 

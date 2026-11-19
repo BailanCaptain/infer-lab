@@ -1,0 +1,18 @@
+mode: native-svg
+id: vllm-scheduler-fig-dual-budget
+caption: >-
+  vLLM V1 统一 Scheduler 的单步预算闭环与 v0.30.0 双预算演进：调度器不区分 prefill 与 decode 阶段，一律按「应算 − 已算」先后扫描 running 与 waiting，借块失败时 running 从队尾抢占、waiting 直接停止接纳；v0.30.0 起拆分调度位置预算与输入容量预算（计入草拟槽位）并加入延迟释放抢占止损。
+size: [900, 480]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L595'
+    symbols:
+      - schedule
+      - max_num_scheduled_tokens
+      - max_num_new_slots_for_drafting
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1477-L1525'
+    symbols:
+      - _preempt_request
+      - _update_after_schedule
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_balance_schedule.py#L880-L899'
+    symbols:
+      - BalanceScheduler

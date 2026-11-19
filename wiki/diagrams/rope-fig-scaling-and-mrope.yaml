@@ -1,0 +1,11 @@
+mode: native-svg
+id: rope-fig-scaling-and-mrope
+caption: RoPE 长上下文扩展的三种缩放策略（PI、NTK-aware、YaRN）按快慢频段对比，以及分量配对布局（NeoX vs GPT-J）、多模态 M-RoPE 与 GLM NoPE 边界。
+size: [900, 512]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/rotary_embedding/__init__.py#L32-L71'
+    symbols: ['get_rope', 'rope_theta', 'rope_type', 'partial_rotary_factor']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/rotary_embedding.py#L257-L310'
+    symbols: ['AscendRotaryEmbedding', 'cos_sin_cache', 'is_neox_style']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/rotary_embedding.py#L601-L645'
+    symbols: ['AscendMRotaryEmbedding', 'mrope_section', 'triton_mrope']

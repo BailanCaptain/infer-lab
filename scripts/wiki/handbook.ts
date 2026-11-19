@@ -102,6 +102,12 @@ export function stripNonAuthoringStandard(standard: string): string {
   for (const nonAuthoringHeading of ["审查与修订流程", "样板页", "自动检查", "整理依据"]) {
     out = stripMarkdownSection(out, "##", nonAuthoringHeading);
   }
+  // Pure SVG/webp geometry, hex-palette authoring bullets, and diagram-drawing walkthroughs are not
+  // needed in text-only / non-diagram prompts (and remain reachable via ruleDocuments / diagramContract).
+  out = out
+    .replace(/^[ \t]*-\s+\*\*层[一二]\s*·[^\r\n]*\r?\n?/gm, "")
+    .replace(/^\*\*(?:TP|EP) 直觉图示例：\*\*[^\r\n]*\r?\n?/gm, "")
+    .replace(/\n{3,}/g, "\n\n");
   return out;
 }
 

@@ -5,7 +5,7 @@
 ## 概念（concept）
 - [AI Core：计算单元与数据搬运](concepts/ai-core.md) — 从矩阵乘与逐项/归约运算出发，拆解昇腾 AI Core 内 Cube、Vector、Scalar 三类执行单元与各级片上缓冲（L1、L0A/L0B/L0C、UB）及搬运引擎（MTE、FixPipe）的分工；对照三级流水重叠与双缓冲条件，辨析 910B（A2/A3）AIC/AIV 经核外 GM 交接与昇腾 950（A5）L0C→UB 片上直通的架构差异。 `04`
 - [AISBench 与 EvalScope 实战：压测模式、指标口径对齐与精度基线评测](concepts/aisbench-and-evalscope.md) — 系统拆解在昇腾 vLLM Ascend 上使用 AISBench 与 EvalScope 开展性能压测和数据集精度评测的完整规范，厘清固定并发与到达率模式差异、冷启动预热与前缀缓存污染剔除、客户端与服务端 Prometheus /metrics 的 TTFT/TPOT/ITL 口径对齐，以及推理模型思维链剥离与长度截断避坑要点。 `19`
-- [API server 入口：一个 HTTP 请求怎样变成引擎里的请求](concepts/api-server-entry.md) — vLLM 前端进程从收到 HTTP 请求到交给某个 EngineCore 之间做的事：检查、套聊天模板、分词、定输出上限和采样参数、包成 EngineCoreRequest、先在本进程登记反分词器和输出槽，再选 DP 组经 ZMQ 发出。讲清每一步在哪里拒绝请求、流式与非流式的差别、CPU 开销，以及 GLM 双机上 node0 一个前端接全部请求。 `10`
+- [API server 入口：一个 HTTP 请求怎样变成引擎里的请求](concepts/api-server-entry.md) — vLLM 前端进程从收到 HTTP 请求到交给某个 EngineCore 之间做的事：检查、套聊天模板、分词、定输出上限和采样参数、包成 EngineCoreRequest、先在本进程登记反分词器和输出槽，再选 DP 组经 ZMQ 发出。讲清每一步在哪里拒绝请求、流式与非流式的差别、独立 CPU renderer、工具解析插件，以及 GLM 双机上 node0 一个前端接全部请求。 `10`
 - [昇腾 950：一块数据怎样少绕路、少等候](concepts/ascend-950-architecture.md) — 沿矩阵结果交给向量计算的小例，理解昇腾 950 的 Cube/Vector 直通、多维搬运与缓冲同步；再区分 SIMD/SIMT、存储层次、低精度和 PR/DT 规格，把硬件能力变成可验证的推理分析假设。 `07 19`
 - [昇腾 950：两张卡怎样接着把工作做完](concepts/ascend-950-execution-interconnect.md) — 沿两张卡的部分结果走过本地计算、交换求和和下一段计算，理解 STARS 2.0 如何安排设备任务、CCU 如何承担通信，以及 URMA、UB Memory 和 UBoE 分别改变哪一段交接；用一组时间记录区分下发开销、参与者迟到与传输等待。 `16`
 - [容器镜像、核心环境变量与 vllm serve 最小起服务清单](concepts/ascend-env-and-serve.md) — 锁死镜像并读懂模型目录后，把昇腾容器挂载（/dev/davinci*、驱动库、--shm-size 与 A3 双裸片成对映射）、四层环境变量真伪甄别与单机 vllm serve 最小启动及三步冒烟测试一次跑通。 `01`
@@ -56,12 +56,12 @@
 - [MoE：一层里放很多专家，每个 token 只用几个](concepts/moe.md) — MoE 把一层的前馈网络换成一池专家，router 给每个 token 打分，只交给其中 k 个去算，输出按组合权重相加：参数随专家数涨，每个 token 的计算只随 k 涨。本页先讲它是什么、为什么需要，再用 6 选 2 的示意数演一遍打分、偏置选人、归一化与加权相加，讲清分组选择、共享专家和负载不均，最后落到 GLM 的 288 选 8。 `06`
 - [MoE 通信调度状态机与运行期权重重切分：AllGather / MC2 / Fused MC2 / MegaMoe / AllToAll 与 WeightSwitchMixin](concepts/moe-comm-dispatch.md) — vllm-ascend v0.30.0 将四族昇腾硬件的 MoE 通信收拢进 HardwareProfile 与 select_moe_comm_method 状态机，依动态 mc2_tokens_capacity 切换 AllGather / MC2 / MegaMoe / AllToAll，并以 WeightSwitchMixin 实现运行期权重零拷贝重切分。 `14`
 - [msprobe 逐层精度对齐与输出异常定位：从张量转储到算子分歧隔离](concepts/msprobe-accuracy-debug.md) — 介绍在昇腾上用 MindStudio msprobe 定位乱码、NaN 与量化掉点的逐层精度比对方法，厘清 Eager 与图模式接入、L0/L1/mix 采集、四类算子分歧指纹及与 Runtime Guard、batch_invariant 的分工。 `19`
-- [多模态推理与视觉编码基础：Patch 展开、M-RoPE、ViT 数据并行与两级编码缓存](concepts/multimodal-inference.md) — 多模态推理先将图像与视频切块展开为占位 token，经 ViT 编码并原地覆写进文本嵌入，再以三维 M-RoPE 注入时空坐标；本页讲清 Patch 展开、ViT --mm-encoder-tp-mode data 并行与 v0.30.0 两级 ScoreEncoderCacheManager 缓存。 `01`
+- [多模态推理与视觉编码基础：Patch 展开、M-RoPE、ViT 数据并行与两级编码缓存](concepts/multimodal-inference.md) — 多模态推理先在前端完成媒体下载、CPU 预处理与占位展开，再经 ViT 编码原地覆写进文本嵌入并以三维 M-RoPE 注入时空坐标；本页讲清前端预处理、四级缓存分工、ViT --mm-encoder-tp-mode data 并行与 v0.30.0 两级 ScoreEncoderCacheManager。 `01`
 - [NPUModelRunner：每张卡上把一步计划跑成 token 的执行者](concepts/npu-model-runner.md) — model runner 是每张卡的 Worker 里执行一步的对象：按调度计划对账跨步保留的请求记录，拼输入、定执行方式、跑前向，只把每条请求要预测的那几行变成词表分数，暂存进执行状态；引擎第二次调用时再取出来采样、草拟候选，按请求交回 token。前向和采样拆成两次调用，中间靠执行状态交接。 `09`
 - [一条请求：在官方双机部署上从提示词走到回答结束](concepts/one-request.md) — 沿一条 4 个 token 的示例请求 R1，在两台 Atlas 800 A2、DP2×TP8、EP16、MTP 草拟 3 个的官方部署上走完七站：入口、调度、准备输入、45 层前向、采样与草拟、结果更新、返回收尾；每站给出每张卡上的形状、次数和字节数。 `00`
 - [从算子到 AI Core：分工、融合与分块](concepts/op-to-ai-core.md) — 在 A4 逐层前向中，算子怎样分成矩阵与向量执行段，Host 怎样划分工作，设备怎样搬入、计算、写回；以 GLM 实际 RMSNorm 路径和可选残差融合分支对照说明。 `16`
 - [PagedAttention（分页注意力）](concepts/paged-attention.md) — 借鉴操作系统虚拟内存分页思想，把 KV cache 显存池切成固定长度（昇腾默认 128 token）的物理块按需借还，通过块表把连续逻辑位置映射到离散物理块，彻底消灭外部显存碎片、支持相同前缀零拷贝共享，并将单序列内部预留浪费严格收敛到最后一块以内。 `03`
-- [Pooling 与非自回归推理：Embedding / Reranker / Reward 池化头与 Encoder-Decoder（Whisper ASR）](concepts/pooling-and-non-ar.md) — 本页拆解 --runner pooling（Embedding / Reranker / Reward）跳过采样的单轮池化路径、双向与因果掩码在 A2/A3/950DT 与 310P 上的硬件分岔、CLS / LAST / MEAN 池化头边界，以及 Whisper Encoder-Decoder 的跨注意力 KV 与图模式约束。 `05`
+- [Pooling 与非自回归推理：Embedding / Reranker / 生成式评分与 Whisper ASR](concepts/pooling-and-non-ar.md) — 本页拆解 --runner pooling（Embedding / Reranker / Reward）单轮池化路径、双向与因果掩码硬件分岔、CLS / LAST / MEAN 池化头、生成式评分（/generative_scoring）概率比较，以及 Whisper Encoder-Decoder 与语音上传/实时转写入口。 `05`
 - [Prefill 与 Decode：提示词怎样处理，回答怎样接着往下写](concepts/prefill.md) — Prefill 并行处理提示词中尚未计算的位置并写入 KV 历史（可单轮或跨多轮分块完成），完结当步仅切出最后一个位置的隐藏向量经 lm_head 选出第 1 个输出 token；随后 Decode 每轮送入新位置、复用全量历史逐词续写。两者共享同一套模型权重，但在算术强度、显存带宽压力与执行分支上截然相反。 `03`
 - [准备输入：把一步的请求计划拼成模型能吃的几张表](concepts/prepare-inputs-flow.md) — 调度器每步只说「哪些请求、各算几个 token、新借了哪些块」；worker 里的 model runner 把这些 token 首尾相接排成一排，逐个 token 配上 token id、位置和 KV 槽位，再按请求记下边界、长度和选行，按缓存组组装成注意力元数据交给各层后端。批次行号、位置、槽位是三套不同的编号。 `09`
 - [量化验收：怎样判断省了内存、保住质量、真正提速](concepts/quantization-evaluation.md) — 把量化验收拆成产物一致性、中间数值、任务质量、实际内存和服务性能；用误差与耗时小例子解释为什么文件变小不等于推理变快，并给出固定 GLM 双机可复核的对照流程。 `11 19`
@@ -72,8 +72,8 @@
 - [请求收尾：一条请求结束或被中止后，它占的东西怎样一件件还回去](concepts/request-teardown.md) — 请求收尾是一条请求停下后，前端、引擎和 worker 各自删掉为它存的记录、还回它对 KV 块的引用。先分清引擎判停、停止字符串、客户端断开、出错四条路谁先动手，再分清还块（引用计数减 1）和清空前缀缓存（抹掉全部登记），最后看 GLM 双机上 R1 结束时还了什么。 `09`
 - [Roofline 模型与性能三角：算力墙 vs 带宽墙与算术强度拐点](concepts/roofline-and-metrics.md) — 连接第三章的请求调度与第四章的昇腾硬件：先拆清首字时延 TTFT、流式间隔 ITL、每词均值 TPOT 与系统吞吐组成的性能三角，再用算术强度与 Roofline 折线解释为什么单请求 Decode 卡在 HBM 带宽斜坡、Prefill 撞上 Cube 算力屋顶，以及批处理与 W8A8 量化如何移动工作点。 `04`
 - [RoPE：把位置变成旋转，让注意力分数只看相隔多远](concepts/rope.md) — RoPE 在 q、k 点积之前按各自的位置编号旋转它们的二维分量对，点积里只剩两者的位置差；频率基数和 YaRN 等缩放决定能覆盖多长。固定部署的 GLM-5.3-Flash 把 RoPE 维数设为 0：稀疏 MLA 与索引器都不旋转，KDA 层本来就不用 RoPE。 `04`
-- [Sampling：从词表分数里定下一个 token](concepts/sampling.md) — 模型给词表里每个词打完分，sampling（采样）按请求的设置从中定下一个 token。本页用 6 个词的小例子手算 temperature、softmax、top-k、top-p 和按概率抽取，对照 greedy，再讲停止条件；最后落到 GLM 双机：8 张卡各采一遍、只交回一份，MTP 候选怎样验证。 `05`
-- [高阶采样、惩罚项、Beam Search 与 Logprobs：vLLM V1 采样流水线与昇腾快慢路径](concepts/sampling-advanced.md) — 本页讲清 vLLM V1 Sampler 的 9 步严格顺序、Top-k / Top-p / min_p 与三类重复惩罚公式、四模式 Logprobs 与外置 Beam Search，以及 vllm-ascend v0.30.0 昇腾快慢路径分流与 MRV2 演进。 `05`
+- [Sampling：从词表分数里定下一个 token](concepts/sampling.md) — 模型给词表里每个词打完分，sampling（采样）按请求的设置从中定下一个 token。本页用 6 个词的小例子手算 temperature、softmax、top-k、top-p 和按概率抽取，对照 greedy，再讲参数优先级与停止条件；最后落到 GLM 双机：8 张卡各采一遍、只交回一份，MTP 候选怎样验证。 `05`
+- [高阶采样、惩罚项、Beam Search 与 Logprobs：vLLM V1 采样流水线与昇腾快慢路径](concepts/sampling-advanced.md) — 本页讲清 vLLM V1 Sampler 的 9 步严格顺序、白名单/禁词/偏置、三类重复惩罚、自定义 LogitsProcessor、Top-k/Top-p/min_p 重归一差异、思考预算、四模式 Logprobs 与外置 Beam Search，以及 vllm-ascend v0.30.0 昇腾快慢路径分流与 MRV2 演进。 `05`
 - [稀疏注意力：先挑位置，再只读这些位置](concepts/sparse-attention.md) — 稀疏注意力让每个查询只在因果范围内挑出的少量历史位置上做 attention；GLM 用 indexer 按 4 个位置一池打分，每个查询最多读 2051 个位置，没选中的历史仍须全部保留。 `04`
 - [流式输出：token 编号怎样变成一段段推给客户端的文字](concepts/streaming-output.md) — 流式输出让客户端边生成边看到文字：引擎每步交回新的 token 编号，前端的增量反分词把它们接上已有字节、还原出新增文字，查过停止字符串后包成一个 SSE 片段推出。先分清 token 与文本增量，再沿 GLM 双机看一步 1–4 个 token 怎样变成片段、在哪里判停和收尾。 `09`
 - [ND 与 NZ：张量的数值没变，内存里怎样重新排列](concepts/tensor-layout.md) — ND 是 N-Dimension，NZ 按块间大 N、块内小 z 的遍历形状命名；用同一张矩阵演示分块重排、补齐和地址变化，再区分 shape、stride、dtype、量化打包与设备格式，核对昇腾权重和 KV cache 的布局边界。 `07 11`
@@ -91,7 +91,7 @@
 - [ACL Graph：捕获、批形状与重复执行](concepts/acl-graph.md) — 昇腾上把一步前向的设备任务连同地址录成一张图、之后整串一次提交的那套实现。讲清 decode 为什么等的是 Host、一张图里存了什么、什么进不了图，以及 GLM 双机上录的 7 张图，以及视觉编码器按输出容量另行捕获的条件。 `16`
 - [AI QoS：共享链路拥塞时，哪类流量先走](concepts/ai-qos.md) — AI QoS 在受支持的 A3 网络上给流量分类、映射虚拟通道并设置服务先后。理解关键通信与 KV 搬运的争用，再核对端点和交换机两步配置、恢复边界及各版本差异。 `07 09`
 - [Ascend 配置：三个地方能写，哪个值真的生效](concepts/ascend-config-system.md) — 昇腾开关有三个入口——命令行通用参数、启动命令附带的那段 JSON、环境变量。本页讲它们怎样汇进每个进程各自的 AscendConfig，谁覆盖谁，构造与平台两道检查会怎样改写，以及官方 GLM 双机为什么一个 JSON 键都没传。 `10`
-- [Patch 机制：昇腾怎样在运行时换掉 vLLM 的函数和类](concepts/ascend-patch-system.md) — patch 是 vllm-ascend 在进程里把上游模块中的名字改指向昇腾实现的做法。global patch 由平台准备钩子和通用插件 入口加载，worker patch 在 Worker 构造时加载；正常成功导入由标记和缓存去重。本页按固定 GLM 条件区分导入与 实际调用，并对照 v0.23 / v0.26 rc / main / rc2 的入口与清单。 `10`
+- [Patch 机制：昇腾怎样在运行时换掉 vLLM 的函数和类](concepts/ascend-patch-system.md) — patch 是 vllm-ascend 在进程里把上游模块中的名字改指向昇腾实现的做法。global patch 由平台准备钩子和通用插件 入口加载，worker patch 在 Worker 构造时加载；正常成功导入由标记和缓存去重。本页按固定 GLM 条件区分导入与 实际调用，并对照 v0.23.0 / v0.26.0rc / v0.30.0 / main 的入口与清单。 `10`
 - [Async scheduling：趁卡在算，先把下一步排好](concepts/async-scheduling.md) — 异步调度让 CPU 在 NPU 算这一步时就排好下一步：调度器用输出占位记下还没回来的 token，Worker 在卡上补真值，结果回来再销账。讲清收益与代价、投机解码下先按全接受排再改正、在途结果怎样收尾、换调度器的特性为何要备异步版，以及 GLM 双机上 R1 每一步的占位账。 `12`
 - [Balance Scheduling：一组顶满，各组一起停收新请求](concepts/balance-scheduling.md) — MoE 模型的多个 DP 组每步互报 running 条数，最满的一组顶到上限时所有组暂停接纳 waiting；讲清为什么需要、闸门与互报放在哪、只数条数的局限，以及 GLM 双机未启用时的对照。 `12`
 - [批不变性：相同输入为何会随同批请求改变结果](concepts/batch-invariance.md) — 同一条请求换了同批的伙伴，浮点加法的分组就可能变，末位随之变化。本页先讲这件事怎么发生，再讲把加法顺序钉死的做法、要付的代价，以及 GLM 双机上的启用状态与缺口。 `16`
@@ -151,39 +151,39 @@
 - [vLLM-Ascend for RL：生成样本后，怎样安全换上新权重](concepts/vllm-ascend-for-rl.md) — RL 训练框架用 vLLM-Ascend 生成样本，再把新权重交回推理端。本页串起暂停、同卡与跨卡权重传输、训练数据返回和数值一致性，并区分 main 的统一配置与 GLM 固定版本。 `19`
 
 ## 参数（param）
-- [absolute_balance_threshold](params/absolute-balance-threshold-71578a0c428d.md) — STAIR 判断某层要不要重排的绝对门槛：均衡度（峰均比的倒数）跌到 0.90 及以下就进规划。rc2 已接入 MRV2 的 EPLB；早期扫描快照 4d1412d1 尚未接入服务。
-- [block_table_no_commit_optimize](params/block-table-no-commit-optimize-8328d0d2d00d.md) — 已不存在的键：曾是 MRv1 块表优化的回退开关，只在 main 上存在过一天（09-23 引入，09-24 随优化一起回退），钉住的各版本都没有它。当时默认 0 用只提交脏行区间的 OptimizedBlockTable，写 1 换回整行 H2D 拷贝的老实现——名字容易读反，它是关优化的。
-- [c8_enable_reshape_optim](params/c8-enable-reshape-optim-8bd7e5f82c6c.md) — 让 LightningIndexer 的 C8 缓存由 scatter 更新改走 StoreKVBlock 分组写入。旧 v0.23/v0.26 快照默认 false；固定 main 与 rc2 默认 true，但还须满足模型、索引 C8 和 PD 的 P 节点条件。本站旧 GLM 双机部署没开，旧后端会拒绝启用；新版 kpool 模型在派生条件中被排除。 `17`
-- [combine_quant_mode](params/combine-quant-mode-2a3f7cd47997.md) — MoE 的 MC2 combine 阶段（专家算完把结果收回来的那次 all-to-all）通信时用哪种量化：非 0 就强行覆盖模型自己推出来的模式，只认 0/2/3/4，默认 0 不干预。固定 main 与 rc2 有此键，v0.23 与 v0.26 两个旧发布分支上配了会被静默忽略；rc2 最终模式还受硬件能力与消费者约束。 `14 17`
-- [cross_node_transfer_limit](params/cross-node-transfer-limit-06ee92260b7a.md) — STAIR 一次层规划里每个节点跨节点发出、接收的专家搬运各自的上限：-1 不限、0 禁止跨节点。rc2 已接入 MRV2，声明默认 -1；自动回退 Gloo 时仅把未显式配置的限额收紧为 1。早期扫描快照默认 1。
-- [enable_async_exponential](params/enable-async-exponential.md) — 把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，v0.25.1rc 起已整体删除，残留的这个键在 v0.26 上被静默忽略、在 main 通常拒收，能发现 vLLM-Omni 时会警告并过滤未知顶层键。 `19`
-- [enable_force_eplb](params/enable-force-eplb-b7ec3661121f.md) — 把 MoE 路由算出来的 topk_ids 整个丢掉，换成一张按 ep_size / ep_rank 算出来的轮转表，让每张卡收到的 token 分布更可控——压测和算子调优用，会改变模型路由语义，不能拿其输出测原模型精度。默认 false，固定 main 与 rc2 有此键；GLM 双机部署用的旧版本里没有，没开。 `14`
-- [enable_matmul_allreduce](params/enable-matmul-allreduce.md) — 把 RowParallelLinear 的「矩阵乘完再 AllReduce」换成 MC2 融合算子 npu_mm_all_reduce_base，让通信藏进计算里；v0.23.0 与 v0.24.0rc 有，v0.25.1rc 起整体移除，v0.26 上配了被静默忽略、main 通常拒收（可发现 vllm_omni 时告警过滤）。GLM 双机部署没开，W8A8 下按源码看开了也走不通。 `13`
-- [enable_pcp_embedding_lmhead_weight_sharding](params/enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9.md) — PCP>1 且模块匹配时，把 embedding 与 LM Head 补齐后的词表权重按 TP×PCP 网格切分。bool 默认 true，要旧行为得显式写 false；与细粒度 TP 的 embedding/lmhead 两键互斥。旧 v0.23、v0.26、固定 main 没有，rc2 已有；GLM 双机不开 PCP 也用不到。
-- [enable_pcp_o_proj_weight_sharding](params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md) — 加载期按 PCP 组切 o_proj 权重，常驻留 1/pcp_size；prefill all-gather 全量，decode 用本地片。本文讲 baa023ad 的 SFA-PCP：静态默认 false，v0.23/v0.26 无，对 DSA-CP 无效。rc2 已有且声明默认 true，实际启用仍须满足 PCP 与 runner 条件；GLM 双机不开 PCP，用不到。 `15`
-- [enable_sleep_mode_extra_cleanup](params/enable-sleep-mode-extra-cleanup.md) — sleep 时额外释放 HCCL 设备侧通信组、清空 ACL 图工作区；默认关闭，因为唤醒要重建通信域并重新捕获图。v0.23 与 v0.26 使用顶层键，固定 main 与 rc2 使用 rl_config。rc2 还用跨休眠周期的 HCCL anchor 保护通信域清理与恢复。 `19`
-- [enable_super_kernel](params/enable-super-kernel-ce990e186bfa.md) — ascend_compilation_config 中的 Super Kernel 优化开关：在编译与图捕获时提交优化选项和 scope。固定 v0.26 维护快照及 main 中可用，省略时跟随 enable_static_kernel；实际生效还受图模式和硬件限制。 `16`
-- [fuse_allreduce_rms](params/fuse-allreduce-rms.md) — 把 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成一个算子；因与序列并行争抢同一段子图而默认关闭，v0.25.1rc 起已整体删除，v0.26 上配了被静默吞掉、main 上直接报错。 `13`
-- [fused_op_type](params/fused-op-type-fc0f5fcd7be0.md) — Sparse KV Offload 的 decode 用不用融合算子：默认 none 走原来四步，fused_copy_sfa 换成 LIM 与 Copy_SFA 两个融合算子。rc2 已有并接入 V1/V2，支持 LI C8 的 int8 路径；早期固定 v0.23、v0.26 与 main 快照没有此键。
-- [kvpp_config](params/kvpp-config-0445bd352140.md) — AscendConfig 上的 KVPP 子配置，只有 size 一个字段，由 enable_kvpp 与 TP × PCP 算出而不是用户填；写进 additional_config 会被静默剔掉。固定 main 与 rc2 有此派生对象；旧 GLM 部署没有。rc2 新增 PIECEWISE 与固定候选数 mtp/dspark 组合，仍须满足完整 KVPP 检查。 `11`
-- [layer_sharding](params/layer-sharding.md) — 点名一组同构 Linear，让第 i 层的权重常驻在通信组内第 i % K 张卡上，其他卡前向时通过窗口接收广播。 v0.23 固定代码只允许 P 节点使用非空列表；v0.26、rc2 与 main 固定代码已删除旧路径。 GLM 双机基线是混部，非空配置会触发启动校验。 `13`
-- [load_risk_quantile](params/load-risk-quantile-d89a080ba048.md) — STAIR 估负载时按多悲观的分位数算：专家与每张卡的负载记作均值加 z 倍标准差，z 由这个分位数换算，默认 0.75 即 z 约 0.674。rc2 已接入 MRV2 的 EPLB；早期扫描快照尚未接入服务。
-- [load_window_bins](params/load-window-bins-cc21068b082d.md) — STAIR 把上游 EPLB 负载窗口按时间顺序压成至多这么多段再算均衡度、方差与协方差：默认 64，范围 2 到 256。rc2 保留压缩含义并已接入 MRV2；早期快照 4d1412d1 的规划器尚未接入服务。
-- [multistream_overlap_gate](params/multistream-overlap-gate.md) — v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare 里的动态量化 + all-gather 并行；v0.24.0rc 起整套实现已删除，键留在启动命令里 v0.26 上被静默忽略、main 通常拒收，能发现 vLLM-Omni 时会警告并过滤未知顶层键。 `14`
-- [placement_search_backtrack_limit](params/placement-search-backtrack-limit-82b03cef98b0.md) — STAIR 为每个候选限制接受可行替代摆放的次数：默认 32，范围 0 到 64；0 仍允许每个决策的首个可行选择及跳过不可行试放，只禁止接受替代可行选择。 rc2 已接入 MRV2 的 EPLB；历史走读使用的 4d1412d1 规划器尚未接入服务。
-- [prefetch_ratio](params/prefetch-ratio.md) — weight_prefetch_config 下的嵌套 dict，按 attn/moe/mlp 三组、五个权重分别指定「预取权重的前百分之几」；v0.23.0 维护分支上可用，v0.24.0rc 起随整个 weight prefetch 特性一起删除，v0.26 上被静默忽略、main 与 rc2 通常拒收，Omni 环境告警过滤，没有等价替代键。 `19`
-- [动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md) — Ascend 中称为 CPP 的动态切块：启动时量出 prefill 延迟曲线，运行时反解每步该切多少 token，减少 PP 流水线因各块耗时不均产生的等待。默认关闭，要求 PP>1 且与负载均衡调度互斥；官方定位是 PD 分离里 P 节点的长序列优化。 `12 13`
-- [rank_transfer_limit](params/rank-transfer-limit-99529b37d91d.md) — STAIR 的每卡搬运上限：一层一次规划里限制每卡换入专家与充当搬运来源的次数，也约束副本数调整步数。rc2 声明默认 -1 表示不限；自动回退 Gloo 时仅将未显式配置的限额收紧为 1。历史扫描快照默认 1。
-- [relative_balance_threshold](params/relative-balance-threshold-bcbc40e7dc87.md) — STAIR 的相对重排门槛：某层当前平衡度 ÷ 上次提交新摆法时预测的平衡度 ≤ 本值（默认 0.95）就重新规划这一层，与绝对门槛是「或」的关系；从没提交过的层不看门槛。rc2 已接入 MRV2 的 EPLB；早期扫描快照尚未接入服务。
-- [replica_search_beam_size](params/replica-search-beam-size-6556d1650a62.md) — STAIR 副本数搜索的束宽：每一段只留这么多个最好的候选往下走，最终至多这么多组副本份数进入带约束的摆放；默认 64，合法 1–128。写 1 时唯一的候选会被换成「份数不变」，副本数不调。rc2 保留这一含义并已接入 MRV2；历史走读使用早期扫描快照 4d1412d1。
-- [replica_search_num_stages](params/replica-search-num-stages-e4b10925ff97.md) — STAIR 搜「每个专家放几份副本」时分几段做决定：专家按风险从高到低切成这么多组，前面每组各选一次「这组多拿几个副本位」，最后一组贪心补齐；默认 4，合法 1–8，写 1 时目标只剩贪心那一个。rc2 保留这一含义并已接入 MRV2；历史走读使用早期扫描快照 4d1412d1。
-- [replica_search_radius](params/replica-search-radius-cd3118b5aae5.md) — STAIR 副本数搜索每一段的试探范围：以贪心给这一组的额外副本位个数为中心，向两边各试多少个取值；默认 8，合法 0–32，写 0 时目标只剩贪心那一个。rc2 保留这一含义并已接入 MRV2；历史走读使用早期扫描快照 4d1412d1。
-- [sfa_dcp_force_tmajor_restore](params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md) — DCP 解码路径上 query gather 之后，是否要求恢复为 t-major 连续存储；只有恢复视图尚不连续时才额外复制。 这是布局对照开关，默认 false 保留视图。固定 main 与 rc2 都有；它只影响命中该分支的 SFA-DCP 布局恢复。 `15`
-- [size](params/size-40a1c2ca47b8.md) — KVPPConfig 里唯一的字段：KVPP 把层分成几份的那个除数，int、默认 1（即关闭），开了 KVPP 后等于 TP × PCP，用户不能直接写。固定 main 与 rc2 都有；rc2 保留派生规则，运行组合的变化见 KVPP 页。 `11`
-- [stair_config](params/stair-config-cca9e594a052.md) — eplb_config 下给 STAIR（vllm-ascend 为 model runner v2 写的 EPLB 规划算法）调参的嵌套 dict，十个键分管负载窗口、重排门槛、副本数搜索、搬运上限与回退次数。rc2 已接入 MRV2 且默认策略为 stair；旧 v0.23、GLM 镜像、v0.26 和固定 main baa023ad 没有这个键。
-- [use_fused_overlap](params/use-fused-overlap-75a180fff6ab.md) — Sparse KV Offload 的融合重叠 decode 开关，位于 sparse_kv_offload_config，默认 false；融合路径把未命中 KV 的主机到设备搬运与 attention 计算流水化，并更新设备选择缓存。固定 main 与 rc2 都有，rc2 还与 fused_copy_sfa 互斥，仍受硬件和执行阶段条件限制。 `11`
-- [use_layerwise](params/use-layerwise-b475778cd352.md) — KV 池连接器的逐层开关：把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬一次」。它不在 additional_config 里，真正的入口是 --kv-transfer-config 的 kv_connector_extra_config；v0.23、v0.26、固定 main 与 rc2 都有，默认 false。GLM 双机没开；连接器在含整图的配置下要求改用 PIECEWISE。 `11`
-- [weight_prefetch_config](params/weight-prefetch-config.md) — v0.23.0 的 additional_config 开关，把 linear 层权重提前搬进 L2 cache，藏在 vector 计算背后；v0.24.0rc 起整套机制已删除，v0.26 上传这个键被静默忽略，main 上通常报错。GLM 双机默认没开；手动开启后 MoE 路径取不到权重，两份固定量化目录均不进入静态 attn 预取；稀疏 MLA 仍有不读比例的独立预取。 `19`
+- [absolute_balance_threshold](params/absolute-balance-threshold-71578a0c428d.md) — STAIR 判断某层是否重新规划的绝对滞回门槛：当前均衡度（平均峰均比的倒数）跌至本值（默认 0.90，约合峰均比 1.11，合法范围 (0, 1]）及以下即放行该层进入规划，与相对门槛为“或”关系。v0.30.0 与 main 已在 MRv2 STAIR 中生效。
+- [block_table_no_commit_optimize](params/block-table-no-commit-optimize-8328d0d2d00d.md) — 已移除的历史回退键：曾在 main 短暂存在一天（2026-09-23 随 MRv1 脏区提交优化引入、09-24 随该优化整体回退），v0.23.0、v0.26.0rc、v0.30.0 与 main 均无此键。当时默认 0 用增量提交的 OptimizedBlockTable，设 1 才退回整行 H2D 拷贝；新版保留该键通常启动报错。
+- [c8_enable_reshape_optim](params/c8-enable-reshape-optim-8bd7e5f82c6c.md) — 曾用于将 LightningIndexer C8 缓存写入由 scatter 切换为 StoreKVBlock 的开关。v0.23/v0.26 默认 false，v0.30.0rc2 改为默认 true 并限 P 节点；v0.30.0 与 main 已移除（PR #18128），统一走 scatter。 `17`
+- [combine_quant_mode](params/combine-quant-mode-2a3f7cd47997.md) — MoE MC2 combine 阶段通信量化强制覆盖开关：仅认整数 0/2/3/4，默认 0 不干预（沿用模型 comm_quant_mode 或 W8A8MXFP 默认模式 4）。v0.30.0 与 main 可用，v0.23/v0.26 忽略，受硬件与非融合 MC2 路径约束。 `14 17`
+- [cross_node_transfer_limit](params/cross-node-transfer-limit-06ee92260b7a.md) — STAIR 单层一轮规划里每个节点跨节点发出与接收专家搬运的各自上限：-1 不限，0 禁止跨节点，正整数按节点双向封顶。v0.30.0 与 main 已接入 MRv2，声明默认 -1；未显式指定通信器而自动回退 torch_gloo 时，仅将未显式配置的限额收紧为 1。
+- [enable_async_exponential](params/enable-async-exponential.md) — 旧版采样优化开关：将随机采样用的指数分布随机数 q 提前到副流与 model forward 重叠生成。v0.23.0 默认关闭并已标记待废弃，自 v0.25.1rc1 起整体移除；v0.26.0rc 静默忽略，v0.30.0 与 main 通常拒收（可发现 vllm_omni 时告警过滤）。 `19`
+- [enable_force_eplb](params/enable-force-eplb-b7ec3661121f.md) — 压测与上限分析专用开关：开启后丢弃 MoE 路由器算出的真实 topk_ids，改为按 ep_size / ep_rank 确定的轮转专家编号，保留原 topk_weights（模型精度失效，严禁用于生产或精度评估）。默认 false，v0.30.0 与 main 均支持，与 dynamic_eplb 互斥。 `14`
+- [enable_matmul_allreduce](params/enable-matmul-allreduce.md) — 旧版行并行线性通算融合开关：将 RowParallelLinear 的「矩阵乘 + AllReduce」换为 npu_mm_all_reduce_base。 v0.23.0/v0.24.0rc 可用，v0.25.1rc1 起移除；v0.26 忽略，v0.30.0 与 main 通常拒收（vllm_omni 告警过滤）。 `13`
+- [enable_pcp_embedding_lmhead_weight_sharding](params/enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9.md) — PCP>1 且模块匹配 embed_tokens/head 且未禁用 TP 时，按 TP×PCP 网格切分词表权重；默认 true，与同模块细粒度 TP 互斥，main 还互斥 enable_batch_sharded_sampling。
+- [enable_pcp_o_proj_weight_sharding](params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md) — PCP>1 时在加载期按 PCP 组切分输出投影权重，每卡常驻 1/pcp_size；prefill 临时 all-gather，decode 用本地片加 PCP all-reduce。v0.30.0 与 main 默认 true，覆盖 SFA-PCP 与 DSA-PCP。 `15`
+- [enable_sleep_mode_extra_cleanup](params/enable-sleep-mode-extra-cleanup.md) — sleep 时额外释放 HCCL 设备侧通信组并清空 ACL 图工作区，默认关闭；v0.23/v0.26 用顶层键，v0.30.0 与 main 迁至 rl_config.sleep_mode_extra_cleanup 并引入 HCCL anchor。 `19`
+- [enable_super_kernel](params/enable-super-kernel-ce990e186bfa.md) — ascend_compilation_config 中的 Super Kernel 优化开关：在编译与 ACL Graph 捕获时提交优化选项与 scope，把符合条件的静态子 kernel 合并。v0.26 维护快照、v0.30.0 及 main 可用，省略时跟随 enable_static_kernel；实际生效还受图模式与硬件能力限制。 `16`
+- [fuse_allreduce_rms](params/fuse-allreduce-rms.md) — 旧版 ascend_compilation_config 开关：将 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成单算子；因与序列并行争抢子图而官方默认关闭（v0.23.0 实际注册逻辑存在默认值分裂），自 v0.25.1rc1 起已整体移除，v0.26 静默吞掉、v0.30.0 与 main 严格校验直接报错。 `13`
+- [fused_op_type](params/fused-op-type-fc0f5fcd7be0.md) — 曾用于切换 Sparse KV Offload decode 路径的子键（none 走四步、fused_copy_sfa 走 LIM + Copy-SFA）。仅见于 v0.30.0rc2 等过渡快照；v0.30.0 与 main 已移除该键并默认启用融合路径，传入旧键会报错。
+- [kvpp_config](params/kvpp-config-0445bd352140.md) — AscendConfig 上的冻结 KVPP 派生子配置，仅含 size 字段，由 enable_kvpp 与 TP×PCP 自动算出而非用户输入；直接写进 additional_config 会被静默剔除，v0.30.0 与 main 均支持。 `11`
+- [layer_sharding](params/layer-sharding.md) — v0.23.0 的层间权重分片列表，将同构 Linear 按层号轮流常驻在组内 rank i % K，其余卡前向异步 broadcast 取回；仅限 P 节点，v0.24.0rc 起已删，v0.26 忽略、v0.30.0 与 main 拒收。 `13`
+- [load_risk_quantile](params/load-risk-quantile-d89a080ba048.md) — STAIR 评估专家与卡负载风险时所用的单侧标准正态分位数：把负载记为均值 + z × 标准差（卡级风险计入同卡专家协方差），默认 0.75（z ≈ 0.674），合法范围 (0.5, 1)。只影响候选生成（副本数与摆放），不影响门槛和最终优胜筛选。v0.30.0 与 main 已接入 MRv2。
+- [load_window_bins](params/load-window-bins-cc21068b082d.md) — STAIR 在分析上游 EPLB 负载窗口前按时间顺序压缩的最多分段数：默认 64，合法范围 2–256。每段保留段均负载与步数权重，后续均衡度、p95 峰均比、方差与协方差均基于压缩后的分段计算。v0.30.0 与 main 已在 MRv2 STAIR 中实际读取。
+- [multistream_overlap_gate](params/multistream-overlap-gate.md) — v0.23.0 的 FlashComm3 门控多流重叠开关，把 MoE 共享专家前向与 select_experts 路由放到副流，与 prepare 阶段的动态量化及 EP All-Gather 并行；v0.24.0rc 起整套实现已删除，v0.26 静默忽略，v0.30.0 与 main 通常拒收未知键（发现 vLLM-Omni 时告警并过滤）。 `14`
+- [placement_search_backtrack_limit](params/placement-search-backtrack-limit-82b03cef98b0.md) — STAIR 用带约束 LPT 为单个候选摆放专家副本时允许接受替代可行分支的回溯预算上限：默认 32，合法范围 0–64，每个候选单独计数；设为 0 只禁止接受替代可行选择，仍会执行首个可行选择及跳过来源不可行的试放。v0.30.0 与 main 已接入 MRv2。
+- [prefetch_ratio](params/prefetch-ratio.md) — weight_prefetch_config 下的嵌套 dict，按 attn、moe、mlp 三组共五个权重分别指定「预取权重前百分之几」；仅在 v0.23.0 维护分支可用，v0.24.0rc 起随整个 weight prefetch 特性一起删除，v0.26 静默忽略，v0.30.0 与 main 通常拒收未知键（Omni 环境告警过滤），没有等价替代键。 `19`
+- [动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md) — 动态切块配置（CPP）：启动期实测 prefill 延迟曲线，运行时按前缀长度反解每步 token 切块大小以缓解 PP 流水等待。默认关闭，要求 PP>1 且互斥 balance scheduling，v0.30.0 仍支持，main 已于 PR #21310 移除。 `12 13`
+- [rank_transfer_limit](params/rank-transfer-limit-99529b37d91d.md) — STAIR 单层一轮规划里每张卡换入专家与充当搬运来源的次数上限（两方向分别计数），同时截断一轮副本数调整步数。v0.30.0 与 main 声明默认 -1（不限），合法值为 -1 或正整数；未显式指定通信器而自动回退 torch_gloo 时，未显式填写的限额会自动收紧为 1。
+- [relative_balance_threshold](params/relative-balance-threshold-bcbc40e7dc87.md) — STAIR 判断某层是否重新规划的相对滞回门槛：当前平衡度 ÷ 上次提交摆法时预测的平衡度 ≤ 本值（默认 0.95，合法范围 (0, 1]）即放行该层，与绝对门槛为“或”关系；从未提交过或锚点为空/NaN 的非零负载层直接放行。v0.30.0 与 main 已在 MRv2 STAIR 中生效。
+- [replica_search_beam_size](params/replica-search-beam-size-6556d1650a62.md) — STAIR 副本数搜索的束宽：每段展开后保留的最多候选状态数、最终生成的目标副本数上限，以及真正进入带约束 LPT 摆放的候选上限；默认 64，合法范围 1–128。注意设为 1 时唯一位置会被强制保留的“份数不变”占满，等于关闭副本数调整。v0.30.0 与 main 已接入 MRv2。
+- [replica_search_num_stages](params/replica-search-num-stages-e4b10925ff97.md) — STAIR 分阶段副本数搜索把按风险降序排列的专家切成的阶段组数：前面各组逐段探索额外副本预算，最后一组贪心补齐；默认 4，合法范围 1–8，实际组数取配置值与专家数的较小者，设为 1 时目标退化为纯贪心。v0.30.0 与 main 已接入 MRv2。
+- [replica_search_radius](params/replica-search-radius-cd3118b5aae5.md) — STAIR 分阶段副本数搜索中每段的预算试探半径：以贪心分配给该组的额外副本位个数为中心，向少与多两侧各试至多本值个取值并按可行区间裁剪；默认 8，合法范围 0–32，设为 0 只试贪心中心预算（不关闭 EPLB）。v0.30.0 与 main 已接入 MRv2。
+- [sfa_dcp_force_tmajor_restore](params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md) — SFA-DCP 解码路径上 query gather 后的布局对照/回退开关：默认 false 保留 strided view，设 true 在恢复视图尚不连续时强制调用 .contiguous() 还原 t-major 连续存储。v0.30.0 与 main 保留，v0.23.0 与 v0.26.0rc 静默忽略；含 prefill 批次或开启 DSA-CP 时不生效。 `15`
+- [size](params/size-40a1c2ca47b8.md) — KVPPConfig 唯一字段：KVPP 将单个 PP stage 上的层缓存划分给多少张卡，int 类型、默认 1（关闭），开启 enable_kvpp 后按 TP × PCP 自动推导且对象冻结，用户不能直接写入。v0.23.0 与 v0.26.0rc 无此字段，v0.30.0 与 main 保留并由 PCP × TP 组内 rank 判定层归属。 `11`
+- [stair_config](params/stair-config-cca9e594a052.md) — additional_config.eplb_config 下给 MRv2 STAIR（StairEplbPolicy）调参的嵌套字典，十个数值键分管负载窗口压缩、滞回重排门槛、风险分位数、副本数搜索、搬运上限与有界回溯。v0.30.0 与 main 已接入 MRv2 并默认启用 stair 策略，未指定通信器回退 Gloo 时自动收紧未显式配置的搬运限额。
+- [use_fused_overlap](params/use-fused-overlap-75a180fff6ab.md) — Sparse KV Offload 的融合重叠 decode 开关，位于 additional_config.sparse_kv_offload_config，默认 false；开启后把未命中 KV 的 H2D 搬运与 SFA 注意力计算放进同一流水线，并更新设备侧选择缓存。v0.23/v0.26 无此键，v0.30.0 与 main 上开启时自动切离默认的 Copy-SFA 路径。 `11`
+- [use_layerwise](params/use-layerwise-b475778cd352.md) — AscendStoreConnector 的逐层 KV 存取开关，位于 --kv-transfer-config 的 kv_connector_extra_config，默认 false；开启后按层搬运 KV，并在含整图配置下改用 PIECEWISE。 `11`
+- [weight_prefetch_config](params/weight-prefetch-config.md) — v0.23.0 的权重预取子配置，在独立流上把 linear 权重提前从 HBM 搬进 L2 cache 与 vector 计算重叠；v0.24.0rc 起已删除，v0.26 忽略，v0.30.0 与 main 通常拒收（Omni 告警过滤）。 `19`
 
 ## 来源（source）
 - [问答记录：Block Table 里的块什么时候分配、什么时候回收](sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md) — 一次问答的归档：块表里既不分配也不回收，分配与回收在上游 EngineCore 进程的 KVCacheManager / BlockPool 里，块表只事后记账。算例是当时的 Qwen3-0.6B 单卡旧例，不是 GLM 双机实测；机制说法已按钉住源码补核。 `11`
@@ -387,7 +387,7 @@
 ### 05 Prefill 与 Decode
 - [KV cache 显存预算：启动时怎样一项项扣出来](concepts/kv-cache-memory-profiling.md)
 - [NPUWorker 启动：一张卡按什么顺序准备好接请求](concepts/npu-worker-lifecycle.md)
-- [Pooling 与非自回归推理：Embedding / Reranker / Reward 池化头与 Encoder-Decoder（Whisper ASR）](concepts/pooling-and-non-ar.md)
+- [Pooling 与非自回归推理：Embedding / Reranker / 生成式评分与 Whisper ASR](concepts/pooling-and-non-ar.md)
 - [Sampling：从词表分数里定下一个 token](concepts/sampling.md)
 - [高阶采样、惩罚项、Beam Search 与 Logprobs：vLLM V1 采样流水线与昇腾快慢路径](concepts/sampling-advanced.md)
 

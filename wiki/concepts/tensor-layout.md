@@ -188,6 +188,12 @@ $$M_{\text{pad}} = \lceil 17 \div 16 \rceil \times 16 = 32, \qquad N_{\text{pad}
 
 模式 1 和 2 的差别在于是否将半精度权重也送去转换，不会把 INT8 权重变成 BF16，也不会把所有激活与缓存一并改格式。开关的覆盖范围必须沿具体层的后处理入口确认，下面的专家层就是例外。
 
+把前面的分形块对齐尺寸、加载期 `_should_trans_nz` 决策闸门以及四个正交概念边界放在同一张图里对照：
+
+```wiki-diagram
+file: tensor-layout-fig-nd-nz-cube
+```
+
 ## 放到 GLM 双机，权重和 KV cache 分别怎样处理？
 
 按[固定双机部署](glm-5-3-flash-two-node.md#部署前提)，模型使用 W8A8 权重包；W、A 分别指权重与激活。**对于实际选中动态 W8A8 方法的线性层**，固定源码先在加载后将权重转到算子方向，再按策略转换成 NZ；前向对输入激活量化，执行矩阵乘，并按输入类型输出，本部署对应 BF16。两个固定量化描述中，MLP 都使用 W8A8_DYNAMIC；12 个 MLA 层的 q_a、kv_a、q_b、o 四组权重则从旧 `9e55cbc8` 的 FLOAT 改为新 `3121f187` 的 W8A8_DYNAMIC，KDA 等保留浮点的层不能套用整条量化路径。逐层配方与执行类选择应一起核对；版本明细见[双机量化账](glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)，计算方法见 [W8A8 页](quantization.md)。

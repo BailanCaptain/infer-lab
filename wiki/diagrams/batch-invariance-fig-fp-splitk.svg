@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="浮点加法非结合律、动态 split-K 批形状变化与昇腾 VLLM_BATCH_INVARIANT 锁定机制图" font-family="var(--font-sans)">
+  <title>浮点非结合律在 split-K / 混批中的放大与昇腾批不变锁定链</title>
+  <desc>Floating-point non-associativity in split-K and ragged batching vs Ascend VLLM_BATCH_INVARIANT lock-down and coverage gaps</desc>
+  <defs>
+    <marker id="bi-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 同一条请求换了同伴，为什么贪心输出也会分叉（浮点非结合律 + 动态 split-K）</text>
+
+  <!-- Left box: FP32 non-associativity -->
+  <rect x="16" y="46" width="424" height="168" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="32" y="72" font-size="14.5" font-weight="700" fill="#8f3229">根源：FP32 舍入破坏结合律（同一批三个数）</text>
+  <text x="32" y="98" font-size="13.5" fill="#4d5652">a = 16,777,216 (2²⁴) · b = 1 · c = −16,777,216</text>
+  <rect x="32" y="112" width="392" height="40" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="44" y="137" font-size="13.5" fill="#17211f">分组 1：fl(a + b) + c = 16,777,216 − 16,777,216 = <tspan font-weight="700" fill="#8f3229">0</tspan></text>
+  <rect x="32" y="160" width="392" height="40" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="44" y="185" font-size="13.5" fill="#17211f">分组 2：a + fl(b + c) = 16,777,216 − 16,777,215 = <tspan font-weight="700" fill="#065f56">1</tspan></text>
+
+  <!-- Right box: Ragged batch / split-K -->
+  <rect x="460" y="46" width="424" height="168" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="476" y="72" font-size="14.5" font-weight="700" fill="#936300">放大：批行数 M 变动 → 矩阵乘切换 K 归约分组</text>
+  <text x="476" y="98" font-size="13.5" fill="#4d5652">• 单请求小批（如 M=1）：库可能拆 split-K 并行再合并</text>
+  <text x="476" y="122" font-size="13.5" fill="#4d5652">• 混批大形状（如 M=6048）：改为沿 K 顺序单块累加</text>
+  <text x="476" y="146" font-size="13.5" fill="#8f3229">• 结果：微小差值翻转 logits 前两名 → 贪心整段分叉</text>
+  <text x="476" y="176" font-size="13.5" font-weight="700" fill="#936300">▸ 固定随机种子管不住 logits 分数本身的变化</text>
+  <text x="476" y="198" font-size="13.5" fill="#4d5652">▸ 必须把每个输出块的 K 方向归约链写死（如固定 8 段）</text>
+
+  <line x1="16" y1="234" x2="884" y2="234" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <text x="16" y="264" font-size="16" font-weight="700" fill="#17211f">② 昇腾 VLLM_BATCH_INVARIANT=1 锁定链、版本演进与混合模型缺口</text>
+
+  <!-- Step 1: Gate & Env -->
+  <rect x="16" y="282" width="278" height="182" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="30" y="308" font-size="14.5" font-weight="700" fill="#3a4f93">1. 全局门禁与通信确定性</text>
+  <text x="30" y="334" font-size="13.5" fill="#4d5652">• enable_custom_op() → False</text>
+  <text x="30" y="357" font-size="13.5" fill="#4d5652">　禁用 vllm_ascend_C 扩展</text>
+  <text x="30" y="381" font-size="13.5" fill="#4d5652">• weight_nz_mode = 0</text>
+  <text x="30" y="404" font-size="13.5" fill="#4d5652">• HCCL_DETERMINISTIC=strict</text>
+  <text x="30" y="427" font-size="13.5" fill="#3a4f93">• v0.30.0: warn_only 确定性</text>
+  <text x="30" y="450" font-size="13.5" fill="#3a4f93">• main: deterministic_level(3)</text>
+
+  <line x1="294" y1="373" x2="310" y2="373" stroke="#4d5652" stroke-width="1.5" marker-end="url(#bi-arr)"/>
+
+  <!-- Step 2: Operator dispatch -->
+  <rect x="312" y="282" width="278" height="182" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="326" y="308" font-size="14.5" font-weight="700" fill="#065f56">2. 双供应链算子替换优先级</text>
+  <text x="326" y="334" font-size="13.5" fill="#4d5652">• AscendC 优先：mm / matmul /</text>
+  <text x="326" y="357" font-size="13.5" fill="#4d5652">　sum、FIA 与 npu_add_rms_norm</text>
+  <text x="326" y="381" font-size="13.5" fill="#4d5652">• Triton 叠加：addmm / bmm /</text>
+  <text x="326" y="404" font-size="13.5" fill="#4d5652">　softmax（无 AscendC 补 mm）</text>
+  <text x="326" y="427" font-size="13.5" fill="#065f56">• v0.30.0 FIA 拆分混批 P/D</text>
+  <text x="326" y="450" font-size="13.5" fill="#065f56">• main 无条件拆残差归一化</text>
+
+  <line x1="590" y1="373" x2="606" y2="373" stroke="#4d5652" stroke-width="1.5" marker-end="url(#bi-arr)"/>
+
+  <!-- Step 3: Limits & Gaps -->
+  <rect x="608" y="282" width="276" height="182" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="622" y="308" font-size="14.5" font-weight="700" fill="#7a3a6a">3. 调度约束与 GLM 覆盖缺口</text>
+  <text x="622" y="334" font-size="13.5" fill="#4d5652">• 需显式关分块与前缀缓存</text>
+  <text x="622" y="357" font-size="13.5" fill="#4d5652">• 需 PIECEWISE 图、防抢占</text>
+  <text x="622" y="381" font-size="13.5" fill="#8f3229">• GLM 缺口①：34 层 KDA 未替换</text>
+  <text x="622" y="404" font-size="13.5" fill="#8f3229">• GLM 缺口②：mHC 绕过门禁</text>
+  <text x="622" y="427" font-size="13.5" fill="#7a3a6a">• 验法区分：文本 ≠ token/logprob</text>
+  <text x="622" y="450" font-size="13.5" fill="#7a3a6a">　≠ 完整 logits 逐位一致</text>
+</svg>

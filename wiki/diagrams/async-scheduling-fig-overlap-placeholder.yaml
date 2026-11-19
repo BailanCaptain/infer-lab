@@ -1,0 +1,18 @@
+mode: native-svg
+id: async-scheduling-fig-overlap-placeholder
+caption: >-
+  Async scheduling 时序重叠与输出占位闭环：CPU 在 NPU 计算第 k 步时提前排好第 k+1 步计划并记入 num_output_placeholders，Worker 在主机写 -1、在卡上就地把上步采样真值抄进下步输入，结果异步回传后再按「先扣被拒、再扣实收」销账；底栏给出 v0.30.0 并发批数、profiling_chunk 强制 MRV2 与 Ascend 重置 DBO 的三条关键边界。
+size: [900, 470]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/async_scheduler.py#L10-L70'
+    symbols:
+      - AsyncScheduler
+      - _update_after_schedule
+      - _update_request_with_output
+      - num_output_placeholders
+      - _spec_token_placeholders
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1386-L1407'
+    symbols:
+      - profiling_chunk_config
+      - ProfilingChunkAsyncScheduler
+      - batch_job_sched_config

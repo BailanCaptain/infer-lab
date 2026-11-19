@@ -1,0 +1,19 @@
+mode: native-svg
+id: inference-performance-troubleshooting-fig-funnel
+caption: >-
+  性能排障决策漏斗：从 TTFT 飙高与 TPOT/ITL 抖动两类核心现象出发，先拿最小首取证据把慢切进 6 条证据分支（未轮到排队 / 单步长批 / 主机空隙 / KV 抢占 / 多卡迟到 / 算完返慢），再对照各自的可证伪动作与必检代价边界。
+size: [900, 490]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L555-L625'
+    symbols:
+      - schedule
+      - token_budget
+      - max_num_scheduled_tokens
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L495-L670'
+    symbols:
+      - determine_available_memory
+      - use_v2_model_runner
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1225-L1260'
+    symbols:
+      - profile
+      - TorchNPUProfilerWrapper

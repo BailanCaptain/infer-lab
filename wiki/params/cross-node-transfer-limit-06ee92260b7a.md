@@ -3,11 +3,20 @@ id: cross-node-transfer-limit-06ee92260b7a
 title: cross_node_transfer_limit
 type: param
 summary: >-
-  STAIR 一次层规划里每个节点跨节点发出、接收的专家搬运各自的上限：-1 不限、0 禁止跨节点。rc2 已接入 MRV2，声明默认 -1；自动回退
-  Gloo 时仅把未显式配置的限额收紧为 1。早期扫描快照默认 1。
+  STAIR 单层一轮规划里每个节点跨节点发出与接收专家搬运的各自上限：-1 不限，0 禁止跨节点，正整数按节点双向封顶。v0.30.0 与 main 已接入 MRv2，声明默认 -1；未显式指定通信器而自动回退 torch_gloo 时，仅将未显式配置的限额收紧为 1。
 origin: seed
 evidence: C
-updated: 2026-11-03T00:00:00.000Z
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
+updated: 2026-11-19T00:00:00.000Z
+legacyAnchors:
+  一句话: 它管什么声明默认与-gloo-回退收紧的区别
+  事实表: 它管什么声明默认与-gloo-回退收紧的区别
+  为什么存在: 为什么按节点双向封顶与打平排序规则
+  开了的代价: 调紧放宽的代价与放到-glm-双机
 sources:
   - >-
     vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L223
@@ -54,6 +63,14 @@ sources:
     vllm-ascend@01741ac93f1c3c6241a90b19c14dc58b093eb49c:vllm_ascend/ascend_config.py#L224
   - >-
     vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L221
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L221-L252'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L680-L738'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L739-L842'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L1183-L1217'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_eplb.py#L152-L240'
+  - 'vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/expert_parallelism_load_balancer.md#L437-L465'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L228-L259'
+  - 'vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/expert_parallelism_load_balancer.md#L233-L261'
 rawSources:
   - >-
     raw/sha256-1aa8655fe7ae8108619083e6d270af174771aee2760cba56fafd6c548c5514f8.md
@@ -76,19 +93,64 @@ rawSources:
   - >-
     raw/sha256-ebc514e0f60b58ff8115eb677ddc78fa222976b6c86c214942a1d9f8502a3fe7.md
 ---
-## 一句话
+## 它管什么，声明默认与 Gloo 回退收紧的区别？
 
-**v0.30.0rc2 对照：** STAIR 已接入 MRV2，跨节点搬运上限的声明默认从下面旧快照的 1 改为 -1；-1 不限，0 禁止跨节点，分别限制节点的发送和接收数量。自动选择 HIXL 失败而回退 torch_gloo 时，仅把用户未显式设置的限制收紧到 1；显式 0 或其他值保留。不能将“声明默认 -1”解释为任何现场都无限搬运。
+`cross_node_transfer_limit` 是 [stair_config](stair-config-cca9e594a052.md) 下的整数参数，控制 STAIR 给单层重排专家时**每个节点（每台机器）往外发出与往里接收跨节点专家搬运的各自次数上限**。所谓“一次搬运”指新摆法中某槽位要放入原卡没有的专家、须从当前持有该专家的某张源卡拷贝权重；当源卡与目标卡的节点编号不同（节点编号由调用方按卡传入，编号相同即为同节点）时，计为一次跨节点搬运。
 
-`cross_node_transfer_limit` 管 STAIR 每次给一层重排专家时，**有多少个专家可以跨机器搬**：每个节点（一台机器）往外发的跨节点搬运、往里收的跨节点搬运，各自不能超过这个数。历史 `4d1412d1` 默认 `1`，rc2 声明默认 `-1`；`-1` 表示不限；`0` 表示完全不许跨节点搬 [C1][C2][C24]。
+`-1` 表示取消这道跨节点次数限制，`0` 表示完全禁止跨节点搬运，正整数则按节点双向封顶。**声明默认与运行时有效值须结合通信器核对**：早期快照 `4d1412d1`（随 PR #17512 引入）声明默认为 `1`；到了 `v0.30.0` 与 `main`，声明默认改为 `-1`，但当用户未显式指定 `eplb_config.communicator` 而全组 HIXL 探查失败（任一 rank 不可用或绑定类型不一致）自动回退 `torch_gloo` 时，系统仅把**未显式配置**的限额收紧为 `1`（显式写的 `0`、`-1` 或其他正整数都会保留；显式指定 `communicator` 也跳过自动回退与收紧）。因此不能把“声明默认 `-1`”理解为所有现场都不限跨节点搬运。`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f` 没有此键，写入即启动失败。
 
-这里的「一次搬运」是指：新摆法里某个槽位要放一个它原来没有的专家，权重得从**当前持有这个专家**的某张卡拷过来；源卡和目标卡不在同一个节点，就算一次跨节点搬运 [C4]。哪些卡算同一个节点，由调用方给每张卡传的节点编号决定，编号相同就是同一节点 [C6]。
+| 维度 | 行为与约束 | 工程含义 |
+| --- | --- | --- |
+| 配置路径与默认 | `additional_config["eplb_config"]["stair_config"]["cross_node_transfer_limit"]`，`int`，`v0.30.0`/`main` 声明默认 `-1` | 只配这一项时其余 STAIR 字段取默认；自动回退 Gloo 时未显式设置项收紧为 `1` |
+| 合法取值 | 整数且 `≥ -1`；小于 `-1` 报 `stair_config.cross_node_transfer_limit must be at least -1`，布尔值报 `STAIR numeric fields must not be booleans` | 与 [rank_transfer_limit](rank-transfer-limit-99529b37d91d.md) 不同，这里 `0` 合法（禁跨节点） |
+| 计数单位与全局上界 | 按**节点**分别计“跨节点发出”和“跨节点接收”；非负上限下单层一轮全局最多 `节点数 × 上限` 次跨节点搬运 | 例如有效限额为 `1`、两台机器时，单层一轮至多 2 次跨节点搬运；`-1` 仅取消跨节点次数上限，仍受来源卡额度与总待搬运数制约 |
+| 单节点部署 | 所有卡节点编号相同，不存在跨节点搬运 | 本参数在单节点部署中不起作用 |
+| 超出上限与平局偏好 | 摆放每一步都须能在限额内凑出搬运来源，回溯耗尽仍无解则作废该候选；全部作废则本层本轮不出计划；在平均峰均比打平（差在 `1e-9` 以内）的合法候选中，先挑跨节点搬运更少的 | 即使写 `-1`，规划器在效果打平时仍优先少跨机器 |
 
-STAIR 是 vllm-ascend 为 Model Runner V2（MRv2）写的 EPLB 规划算法（总介绍见 [stair_config](stair-config-cca9e594a052.md)），两道门决定哪几层要重排（见 [absolute_balance_threshold](absolute-balance-threshold-71578a0c428d.md)），本页这个数则约束**进了规划的那一层最多能怎么改**。
+## 为什么按节点双向封顶，与打平排序规则
 
-**旧版本范围**：v0.23、GLM 快照 `db701c1f`、v0.26 和固定 main `baa023ad` 没有此键，写入会启动报错。它在 2026-09-26 随约束摆放 `eb31db4d`（[PR #17512](https://github.com/vllm-project/vllm-ascend/pull/17512)）加入，比多数 STAIR 字段晚一个 PR；10-02 的 `4ebb3090` 仍默认 `1`。下文按 `4d1412d1` 讲历史行为，该快照尚无服务运行时消费，次日 `a32719ef` 才接入 MRV2，见 [接入说明](absolute-balance-threshold-71578a0c428d.md#开了的代价)。当前参数定义取 rc2，谱系 main 仍指旧钉点，rc2 单列；显式指定 communicator 时会跳过本页开头所述自动回退与限额收紧。
+同机卡间互联与跨机网络链路带宽差距显著（见 [硬件页官方带宽规格](../concepts/hardware-devices.md#官方带宽规格能说明什么)），同样一份专家权重跨机拷贝耗时更长。STAIR 在按卡封顶的 [rank_transfer_limit](rank-transfer-limit-99529b37d91d.md) 之外单独增设跨节点上限，并按**节点**而非按单卡计数——因为跨机流量最终汇集到整台机器对外的那几条机间链路，具体由本机哪张卡发出并不改变跨机出口拥塞（源码注释只说明了按节点双向计数的规则，未展开说明设计取舍及早期默认 `1` 的标定来源）。
 
-**GLM 双机这套部署上它不存在，也用不上**：本部署[没开 EPLB](../concepts/eplb.md#放到-glm-双机本部署没开-eplb)，GLM 代码所在的 `db701c1f` 不认 `stair_config`。但 GLM 恰好是两台机器，这个数如果真跑起来会卡得很紧，推演见下面「开了的代价」。
+即使未触碰跨节点上限，STAIR 在候选裁决中依然把跨机器搬运视为成本最高的一类迁移：
+1. 先淘汰预测平均峰均比或加权 p95 峰均比（各段峰均比升序按段样本数累计取 95% 位置）劣于现状的候选；
+2. 对预测平均峰均比距最小值不超过内部绝对容差 `1e-9` 的近似并列候选，依次按**跨节点迁移次数**、同节点跨卡迁移次数、目标专家编号、来源 rank（分布式执行成员编号）、来源槽位编号取较小者。这组规则保证了同等均衡度下的确定性偏好，不构成不同链路的实测耗时数据。
+
+## 调紧放宽的代价与放到 GLM 双机
+
+以下方向与上界分析基于源码规则推导，尚无不同跨节点限额下的实际搬运耗时与均衡度实测对照。
+
+- **调小（往 `0` 靠）**：可选摆法收窄，均衡度收敛变慢，甚至该层本轮找不到合法摆法而保持不动。设为 `0` 时，每台机器上持有的专家集合被彻底锁死——只能在机内卡间换位置，新增副本也只能拷贝本机已有专家；如果最热的几个专家都挤在同一台机器上，`0` 会导致这台机器的高负载永远无法分摊出去。
+- **调大（或写 `-1`）**：放宽的是一轮允许跨节点搬运的范围；实际搬运量与均衡度变化仍取决于其他约束及最终选出的摆法。若最终多搬了专家，机间链路的字节传输与同步等待也随之增加。注意 `-1` 仅取消跨节点次数封顶，来源卡的 [rank_transfer_limit](rank-transfer-limit-99529b37d91d.md) 额度与可行摆放约束依然生效，同时受本层待搬运总数的自然上界制约。
+- **与其他 STAIR 字段的耦合**：本键与 [rank_transfer_limit](rank-transfer-limit-99529b37d91d.md) 同时生效、须双双满足；副本数搜索（[replica_search_beam_size](replica-search-beam-size-6556d1650a62.md) 等）产出的候选若在摆放阶段无法凑出合法来源就会被淘汰。限额越紧，LPT 摆放的首选卡越容易撞墙，[placement_search_backtrack_limit](placement-search-backtrack-limit-82b03cef98b0.md) 回溯预算越易耗尽。
+- **放到 GLM 双机部署**（[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)：两台机器 16 张卡、EP16，每卡每层 18 个路由专家，零冗余）：
+  - 当前部署[未开 EPLB](../concepts/eplb.md#放到-glm-双机本部署没开-eplb)，固定镜像 `db701c1f` 不认 `stair_config`，写入直接报 `Config has no attribute 'stair_config'`。
+  - 若迁移到已接入 STAIR 的 `v0.30.0`/`main` 并沿用当前零冗余摆法（16 卡 × 18 槽刚好装下 288 个专家各 1 份，无副本增减余地，只能换位置）：当**显式设为 `1`，或自动回退 Gloo 收紧为 `1` 时**，跨机器对调一对专家会使两台机器各发 1 个、各收 1 个，恰好用满上限——即**每层每轮最多跨机器对调一对专家**（声明默认 `-1` 本身不保证此上界）。按[每个专家每层 24 MiB](../concepts/glm-5-3-flash-two-node.md#为什么是两台机器不是一台) 估算，一对专家相当于每层每轮至多 `48 MiB` 过机间链路；若热点集中在同一台机器上，靠逐对交换需多轮才能摊开。
+
+## 对照源码
+
+下表对照 `stair_config.cross_node_transfer_limit` 在四个固定版本快照上的声明默认、Gloo 回退收紧与跨节点约束：
+
+| 项 | v0.23.0 (`2c59ff10`) | v0.26.0rc (`2ed6cbba`) | v0.30.0 (`c09d3e20`) | main (`8d6180e2`) | 意味着什么 |
+| --- | --- | --- | --- | --- | --- |
+| 字段与默认 | 无（报缺属性）[C7] | 无 | `StairConfig.cross_node_transfer_limit: int = -1`，合法 `≥ -1`（`0` 禁跨机）[C26][C27] | 同左 [C33] | 小于 `-1` 或布尔值均抛 `ValueError` |
+| Gloo 自动回退收紧 | — | — | 未显式指定 `communicator` 且 HIXL 共识失败回退 `torch_gloo` 时，仅将未显式填写的限额收紧为 `1` [C31] | 同左 | 显式 `0`/`-1` 或显式 `communicator` 均不被覆盖 [!] |
+| 约束检查与打平排序 | — | — | `_has_feasible_migration_sources` / `_migration_sources` 分别核对卡与节点额度；`plan_layer` 容差 `1e-9` 内优先少跨节点 [C28][C29][C30] | 同左（`stair.py` 零 diff） | 写 `-1` 不跳过来源卡额度，打平时仍偏向少跨机 |
+
+- **算法与推演核对**：`v0.30.0` 与 `main` 共用 `stair.py#L680-L842`（双向卡/节点额度匹配，[C28][C29]）与 `#L1183-L1217`（mean/p95 过滤与 `1e-9` 并列排序，[C30]）。全局上界 `节点数 × 上限`、单节点不生效、写 `0` 锁死本机专家集合以及 GLM 双机每层至多对调一对（`48 MiB`）均为静态推导 [D]；按节点而非按卡计数的出口链路解释为工程推断 [I]。
+- **官方文档**：`v0.30.0`（`expert_parallelism_load_balancer.md#L437-L465`，[S32]）与 `main`（`#L233-L261`，[S34]）均列出默认 `-1`、范围 `-1` 或非负整数，并给出 `cross_node_transfer_limit: 0` 示例。
+- **待核**：本工作区无 NPU 实机环境，尚无不同跨节点限额下的实际跨机传输耗时与均衡度实测对照。
+
+## 版本谱系
+
+范围限定为 `vllm_ascend/ascend_config.py` 中的 `StairConfig.cross_node_transfer_limit` 字段定义。定义存在不等于配置可写或运行时可用；行为条件见本页正文。未核定字段的精确引入／移除提交，不以同名文本的历史代替。
+
+| 版本 | 定义是否存在 | 固定提交 |
+| --- | --- | --- |
+| main | 有 | `8d6180e2` |
+| releases/v0.23.0 | 无 | `2c59ff10` |
+| releases/v0.26.0rc | 无 | `2ed6cbba` |
+| releases/v0.30.0rc2 | 有 | `7d825229` |
+| releases/v0.30.0 | 有 | `c09d3e20` |
 
 ## 参数定义（自动生成）
 
@@ -113,57 +175,3 @@ STAIR 是 vllm-ascend 为 Model Runner V2（MRv2）写的 EPLB 规划算法（�
 if self.cross_node_transfer_limit < -1:
     raise ValueError('stair_config.cross_node_transfer_limit must be at least -1')
 ````
-
-## 事实表
-
-| 项 | 值 | 意味着什么 |
-|---|---|---|
-| 四个旧快照 | 都没有；v0.23 / GLM 快照 / v0.26 报 `Config has no attribute 'stair_config'` [C7]，main `baa023ad` 被 `extra="forbid"` 拒收 [C8] | 服务起不来，不是静默忽略 |
-| 完整路径与默认值（`4d1412d1`） | `additional_config["eplb_config"]["stair_config"]["cross_node_transfer_limit"]`，`int`，默认 `1` | 只写这一个子键时，其余 STAIR 字段取默认值 |
-| 合法取值 | 整数且 `≥ -1`；小于 -1 报 `stair_config.cross_node_transfer_limit must be at least -1` [C3]；写成布尔值报 `STAIR numeric fields must not be booleans` [C9] | 和 [rank_transfer_limit](rank-transfer-limit-99529b37d91d.md) 不同，这里 `0` 合法 [C10] |
-| 计数单位 | 按**节点**计，一次层规划里每个节点「发出」和「收进」的跨节点搬运各算各的 | 不是全局总数，也不是每张卡 |
-| 全局上限 | 非负上限下，一层一次最多 `节点数 × 上限` 次跨节点搬运；`-1` 只取消这道跨节点次数限制，仍受来源卡的搬运额度和可行摆放约束，且不超过这一层待搬运的总数 | 有效限额为 1、两个节点时，一层一次最多 2 次 [D] |
-| 超出上限的摆法 | 摆放时每一步都要能在上限内找到搬运来源，回溯也找不到就作废这个候选；所有候选都作废，这一层这次不出计划 | 上限越紧，能选的摆法越少 |
-| 不碰上限时 | 平均峰均比打平（差在 1e-9 以内）的候选里，先挑跨节点搬运更少的，再比同节点跨卡搬运 [C5] | 即使写 `-1`，规划器也偏向少跨机器 |
-| 单节点部署 | 所有卡节点编号相同，任何搬运都不跨节点 | 这个值不起作用 [D] |
-| 运行时谁读它（`4d1412d1`） | 没有调用方，只做解析和校验 | 在这个快照上改它，不改变任何行为 |
-
-## 为什么存在
-
-EPLB 重排专家，本质是把专家权重从一张卡拷到另一张卡。同一台机器里的卡之间和两台机器之间走的是不同的链路，带宽差一截（[硬件页的官方带宽规格](../concepts/hardware-devices.md#官方带宽规格能说明什么)），同样一个专家，跨机器拷要慢得多。所以 STAIR 在「每张卡最多搬几个」（[rank_transfer_limit](rank-transfer-limit-99529b37d91d.md)）之外，单独给跨节点搬运设了一道上限。
-
-上限按**节点**而不是按卡来数，一个说得通的理由是：跨机器的流量最终都要挤过这台机器对外的那几条链路，同一台机器上哪张卡在发并不重要 [I]。源码注释只写了「每个节点、一次层规划里发出和收进的跨节点搬运上限」，没有解释为什么这样设计。
-
-旧快照 `4d1412d1` 的默认值取得很紧（`1`），效果是每次只许每台机器跨机器换进换出一个专家，大的调整要分好几轮完成；这个旧默认取舍的来由源码与 PR 说明都没有写。rc2 要在显式设为 1，或自动回退 Gloo 将未设值收紧为 1 后，才有同样的限额。即使不碰上限，规划器在效果打平时也会挑跨节点搬运更少的摆法——跨机器搬运被当成最贵的那一种 [C5]。
-
-进入事实表所说的并列比较之前，候选的平均峰均比和 p95 峰均比都不能比当前摆法更差。p95 将各段的峰均比排序，按每段代表的样本数累计，取达到总样本数 95% 的位置对应的值。通过筛选后，预测平均比率距最小值不超过 1e-9 的候选按表中搬运次数比较；仍打平时，依次按目标专家编号、来源 rank 编号和来源槽位编号确定顺序。rank 是分布式执行中的成员编号。这是规划器的确定性排序规则，不是不同链路实际搬运耗时的测量。
-
-## 开了的代价
-
-**先说清楚本页有什么、没有什么**：下面是配置值和按规划器源码推出来的上界，不是测出来的效果。上游没有公开不同取值下的搬运耗时与均衡度对照；而在 `4d1412d1` 上这个值根本不被读，也没法测。
-
-**调小（往 `0` 靠）**：能选的摆法越来越少，均衡度改进得慢，甚至这一层这一轮找不到合法摆法、干脆不动。写 `0` 时，每台机器上有哪些专家就被锁死了：只能在机器内部换位置，新加的副本也只能拷本机已有的专家 [D]。如果最热的几个专家都挤在同一台机器上，`0` 就意味着这台机器的负载永远分不出去 [D]。
-
-**调大（或写 `-1`）**：放宽的是一次规划所允许的跨机器搬运范围；实际搬运和均衡度是否改变，还取决于其他限制及选出的摆法。若最终多搬了专家，机间链路上的字节和等待开销也会增加。`-1` 不再施加这道跨节点次数限制，但来源卡的搬运额度和可行摆放约束仍在；这一层待搬运的总数只是额外的自然上界。
-
-**和其他字段的关系**：它与 [rank_transfer_limit](rank-transfer-limit-99529b37d91d.md) 同时生效，两个都满足才算合法；放不下的候选在摆放阶段就被作废，所以副本数搜索（[replica_search_beam_size](replica-search-beam-size-6556d1650a62.md) 等）留下的候选里，有一部分可能因为这道上限被淘汰。摆放阶段的回溯次数由 [placement_search_backtrack_limit](placement-search-backtrack-limit-82b03cef98b0.md) 控制，上限越紧，第一选择越常走不通，回溯越容易用完 [D]。
-
-**放到 GLM 双机上会怎样**（[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)：两台机器 16 张卡、EP16，每卡每层 18 个路由专家，没有冗余专家）：
-
-- 本部署[没开 EPLB](../concepts/eplb.md#放到-glm-双机本部署没开-eplb)，GLM 代码所在的 `db701c1f` 也不认这个键，照 `4d1412d1` 的写法配进去启动就报 `Config has no attribute 'stair_config'`。下面两条只是按规划器源码推演「如果这套摆法交给 STAIR」。
-- 没有冗余专家时，16 卡 × 18 槽正好装下 288 个专家各一份，副本数没有调整余地，重排只能是**换位置** [D]。**显式设为 1，或自动回退 Gloo 后有效限额为 1 时**，跨机器换一对专家，两台机器各发一个、各收一个，正好用满上限：**每层每次最多跨机器对调一对专家** [D]。rc2 的声明默认 -1 本身不保证这个上界。
-- 按[每个专家每层 24 MiB](../concepts/glm-5-3-flash-two-node.md#为什么是两台机器不是一台)算，这一对就是每层每次最多 48 MiB 过机间链路 [D]。负载要是整体偏在一台机器上，靠这样一对一对地换，需要很多轮才能摊开。
-
-4d1412d1分别检查每卡与跨节点额度，取消跨节点限制不会跳过来源rank的额度检查（来源4，479–512）。最终候选按951–983行的次序比较，内部绝对容差为1e-9，p95由样本计数确定（来源17–19）。这是旧算法快照的条件，真实调用版本及rc2默认按前文区分。
-
-## 版本谱系
-
-范围限定为 `vllm_ascend/ascend_config.py` 中的 `StairConfig.cross_node_transfer_limit` 字段定义。定义存在不等于配置可写或运行时可用；行为条件见本页正文。未核定字段的精确引入／移除提交，不以同名文本的历史代替。
-
-| 版本 | 定义是否存在 | 固定提交 |
-| --- | --- | --- |
-| main | 有 | `8d6180e2` |
-| releases/v0.23.0 | 无 | `2c59ff10` |
-| releases/v0.26.0rc | 无 | `2ed6cbba` |
-| releases/v0.30.0rc2 | 有 | `7d825229` |
-| releases/v0.30.0 | 有 | `c09d3e20` |

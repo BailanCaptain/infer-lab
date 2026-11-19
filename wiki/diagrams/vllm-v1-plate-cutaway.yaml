@@ -1,0 +1,14 @@
+mode: native-svg
+id: vllm-v1-plate-cutaway
+caption: >-
+  vLLM V1 三角色立体拆解直觉：左侧 API Server（AsyncLLM）负责文本分词与流式反分词，经 ZMQ IPC 轻消息管道与中央 EngineCore（Scheduler）交接请求与新 token；EngineCore 维护 WAITING / RUNNING 队列并按步排出轻量差量计划，右侧 NPU Worker（NPUModelRunner）直接操作常驻 HBM 的模型权重与 KV cache 完成前向和采样。
+size: [900, 600]
+pins:
+  - source: vllm@ced6857a:vllm/v1/engine/async_llm.py#L78-L175
+    symbols: [AsyncLLM, InputProcessor, OutputProcessor, EngineCoreClient]
+  - source: vllm@ced6857a:vllm/v1/engine/core.py#L589-L635
+    symbols: [step, schedule, execute_model, sample_tokens, update_from_output]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L505-L522
+    symbols: [NPUModelRunner, model_runner]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L774-L850
+    symbols: [execute_model, sample_tokens]

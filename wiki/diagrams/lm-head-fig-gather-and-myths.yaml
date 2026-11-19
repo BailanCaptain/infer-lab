@@ -1,0 +1,11 @@
+mode: native-svg
+id: lm-head-fig-gather-and-myths
+caption: lm_head 运行时经 logits_indices 精选打分行（避免全序列词表投影）、TP8 列切 All-Gather 拼回流程，以及 tie_word_embeddings 共享边界与三组高频误解对照。
+size: [900, 516]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/logits_processor.py#L180-L195'
+    symbols: ['_get_logits', '_apply_head', 'skip_gather', '_gather_logits']
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/vocab_parallel_embedding.py#L568-L629'
+    symbols: ['ParallelLMHead', 'tie_weights']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/vocab_parallel_embedding.py#L459-L515'
+    symbols: ['AscendParallelLMHead', 'lmhead_all_to_all']

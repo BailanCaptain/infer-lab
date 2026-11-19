@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="npugraph_ex 三级依赖链与双路融合 Pass 门控" font-family="var(--font-sans)">
+<title>npugraph_ex → static_kernel → super_kernel 三级依赖与双路融合 Pass 架构</title>
+<desc>Three-tier compilation acceleration chain, hardware and graph-mode guards, and dual-path fusion passes</desc>
+<g stroke-width="1.4">
+<rect x="16" y="64" width="424" height="72" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="156" width="424" height="72" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="16" y="248" width="424" height="72" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="16" y="344" width="424" height="110" rx="8" fill="#fff0e9" stroke="#b54237"/>
+<rect x="466" y="64" width="418" height="164" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="466" y="248" width="418" height="206" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+</g>
+<path d="M228 136v18m-4-5l4 5 4-5M228 228v18m-4-5l4 5 4-5M228 320v22m-4-5l4 5 4-5" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M675 228v18m-4-5l4 5 4-5" fill="none" stroke="#c78300" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-weight="700">
+<text x="16" y="30" font-size="16" fill="#17211f">三级编译加速依赖链（npugraph_ex → static → super）与双路融合 Pass</text>
+<text x="30" y="92" font-size="15" fill="#065f56">第 1 级：enable_npugraph_ex（默认 True）</text>
+<text x="30" y="184" font-size="15" fill="#3a4f93">第 2 级：enable_static_kernel（默认 False）</text>
+<text x="30" y="276" font-size="15" fill="#7a3a6a">第 3 级：enable_super_kernel（默认 False）</text>
+<text x="30" y="370" font-size="14.5" fill="#8f3229">两道铁门：硬件能力门控 + 非纯整图静默刷回</text>
+<text x="480" y="92" font-size="15" fill="#936300">规则注册一次，两条编译路各自消费</text>
+<text x="480" y="276" font-size="14.5" fill="#17211f">v0.30.0 / main 融合 Pass 清单与生效边界</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="50" font-size="13.5">上级关闭即下级不可开；v0.30.0+ Pydantic 强校验：显式传 static 且省 super 时，super 自动跟随 static</text>
+<text x="30" y="118" font-size="13.5">外部编译后端改写算子图（关闭切 fusion_pass_compile）</text>
+<text x="30" y="210" font-size="13.5">按 [1+草稿, 并发×(1+草稿)] 筛捕获表，提前编译核</text>
+<text x="30" y="302" font-size="13.5">ACL 捕获期合并算子二进制为大 kernel，减少下发</text>
+<text x="30" y="396" font-size="13.5">• A2/A3/A5：违背依赖链直接抛 AssertionError</text>
+<text x="30" y="418" font-size="13.5">• 310P（缺 NPUGRAPH_EX）：告警后三项静默刷 False</text>
+<text x="30" y="440" font-size="13.5">• NONE / PIECEWISE / FULL_AND_PIECEWISE：静默刷 False</text>
+<text x="480" y="118" font-size="13.5">• BasePattern 同时登记 PyTorch 与 npugraph_ex</text>
+<text x="480" y="142" font-size="13.5">• 路 1（开）：npugraph_ex_compile 消费</text>
+<text x="480" y="166" font-size="13.5">  （含 Triton 跳过缓存；缺包退 torchair）</text>
+<text x="480" y="190" font-size="13.5">• 路 2（关）：fusion_pass_compile 本地 FX 改写</text>
+<text x="480" y="212" font-size="13.5" fill="#936300" font-weight="600">→ 关 npugraph_ex ≠ 关融合，仅切换改图执行者</text>
+<text x="480" y="302" font-size="13.5">• AddRMSNormQuant（排 310P 与 W4A4 动态）</text>
+<text x="480" y="326" font-size="13.5">• QKNormRope（BF16/head=128，含 Gemma）</text>
+<text x="480" y="350" font-size="13.5">• MulsAdd（匹配路由缩放常数，排除 310P）</text>
+<text x="480" y="374" font-size="13.5">• main 新增：MatmulReduceScatter（SP 门控）</text>
+<text x="480" y="402" font-size="13.5">• 关原地改写，防算子回退 CPU 引起 H2D/D2H</text>
+<text x="480" y="426" font-size="13.5">• 开启 ≠ 注册 ≠ 命中，须核日志与 profiler</text>
+</g>
+</svg>

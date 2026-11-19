@@ -1,0 +1,14 @@
+mode: native-svg
+id: ascend-config-system-fig-pydantic-flow
+caption: >-
+  vllm-ascend v0.30.0 与 main 的 --additional-config 严格解析流水线：从工厂剥离旧调度键与 vllm_omni 顶层过滤、Pydantic extra="forbid" 拒收未知键、derive_and_validate（仅留 VLLM_ASCEND_ENABLE_FLASHCOMM1 逻辑或兜底，退役 NZ/MLAPO/FUSED_MC2 等旧环境变量）到校验通过后原子发布进程内单例 _ASCEND_CONFIG。
+size: [900, 444]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L562-L625'
+    symbols: [model_config, ConfigDict]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L678-L756'
+    symbols: [derive_and_validate, VLLM_ASCEND_ENABLE_FLASHCOMM1]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1795-L1951'
+    symbols: [init_ascend_config, _ASCEND_CONFIG, clear_enable_sp, get_ascend_config]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/envs.py#L38-L90'
+    symbols: [env_variables, DYNAMIC_EPLB]

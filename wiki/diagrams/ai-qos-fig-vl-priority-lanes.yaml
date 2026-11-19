@@ -1,0 +1,18 @@
+mode: native-svg
+id: ai-qos-fig-vl-priority-lanes
+caption: >-
+  AI QoS 端点打标、UB 交换机重映射与严格优先级（SP）队列仲裁对比：上半部对比 v0.23/v0.26 五键方向映射（共享 SDMA 源标签 2 + 初始 VL 0/1 分进目标 VL 2/3）与 v0.30.0/main 三键（AIV/PCIEDMA/SDMA 各自独立标签 4/5/6，两路 cacheable/noncacheable 初始 VL 汇入同类目标 VL 2/3/4）；下半部提示 AIV 驱动限制、A3 硬件前提与 unset 仅覆盖末次交换机清单的运维边界。
+size: [900, 470]
+pins:
+  - source: 'vllm-ascend@c09d3e20:tools/ai_qos.py#L322-L337'
+    symbols:
+      - AiqosConfig
+      - aiqos_table
+      - masterid_table
+      - MASTER_ID_SDMA
+      - MASTER_ID_PCIEDMA
+  - source: 'vllm-ascend@c09d3e20:tools/ai_qos.py#L433-L473'
+    symbols:
+      - _create_parser
+      - run_unset
+      - set_qos

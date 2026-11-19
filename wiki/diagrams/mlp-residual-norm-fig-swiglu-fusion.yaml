@@ -1,0 +1,11 @@
+mode: native-svg
+id: mlp-residual-norm-fig-swiglu-fusion
+caption: GLM 限幅 SwiGLU（gate 单边截断与 up 双边截断）的数据流，以及单流残差融合 AddRMSNorm 与 GLM 四流 mHC 分离 RMSNorm 的执行边界对照。
+size: [900, 520]
+pins:
+  - source: 'vllm@0fc695fc:vllm/model_executor/layers/activation.py#L154-L184'
+    symbols: ['SiluAndMulWithClamp', 'swiglu_limit', 'forward_native']
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L28-L88'
+    symbols: ['AscendRMSNorm', 'npu_add_rms_norm_bias', 'npu_add_rms_norm', 'npu_rms_norm']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L495-L548'
+    symbols: ['npu_hc_pre_v2', 'npu_hc_post', 'hc_post_pre']

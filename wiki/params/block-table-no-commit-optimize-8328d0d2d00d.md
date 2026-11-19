@@ -1,19 +1,27 @@
 ---
 id: block-table-no-commit-optimize-8328d0d2d00d
+legacyAnchors:
+  一句话: 它曾经控制什么，为什么只存在了一天？
+  事实表: 对照源码
+  为什么存在: 脏区提交与整行 H2D 拷贝的区别，以及 GLM 双机现状
+  开了的代价: 在不同版本中残留这个键会发生什么？
 title: block_table_no_commit_optimize
 type: param
 summary: >-
-  已不存在的键：曾是 MRv1 块表优化的回退开关，只在 main 上存在过一天（09-23 引入，09-24
-  随优化一起回退），钉住的各版本都没有它。当时默认 0 用只提交脏行区间的 OptimizedBlockTable，写 1 换回整行 H2D
-  拷贝的老实现——名字容易读反，它是关优化的。
+  已移除的历史回退键：曾在 main 短暂存在一天（2026-09-23 随 MRv1 脏区提交优化引入、09-24
+  随该优化整体回退），v0.23.0、v0.26.0rc、v0.30.0 与 main 均无此键。当时默认 0 用增量提交的
+  OptimizedBlockTable，设 1 才退回整行 H2D 拷贝；新版保留该键通常启动报错。
 aliases:
   - block_table_no_commit_optimize
   - 块表脏区提交回退
   - OptimizedBlockTable
 origin: seed
 evidence: C
-updated: 2026-11-03T00:00:00.000Z
+updated: 2026-11-19T00:00:00.000Z
 verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 relations:
   - to: block-table
@@ -48,6 +56,10 @@ sources:
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L351'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L359'
   - 'vllm@ced6857a:vllm/v1/utils.py#L110-L143'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L298-L306'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L519-L522'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1895-L1910'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L2018-L2033'
 rawSources:
   - >-
     raw/sha256-14331f991ef69f23ae795740671c89327f10e6f4babb7a526b2eb46799d9ad01.md
@@ -56,15 +68,51 @@ rawSources:
   - >-
     raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md
 ---
-## 一句话
+## 它曾经控制什么，为什么只存在了一天？
 
-**v0.30.0rc2 对照：** 不提供这个历史用户键。MRV1 的 BlockTable 直接通过 copy_to_gpu 提交，MultiGroupBlockTable 遍历各组，没有按此键选择实现的分支。下面的 0/1 语义只属于历史提交；在 rc2 把它传作顶层键通常被拒收，能发现 vllm_omni 时仅告警过滤，不会形成回退开关。这不表示 rc2 没有其他块表优化。
+**这个键在所有四个核验版本（`v0.23.0`、`v0.26.0rc`、`v0.30.0`、`main`）以及 GLM 固定镜像 `db701c1f` 中均不存在。** 它是 2026-09-23 随 PR #17066（`39fef3f8` / `ad7a731b`）合入 `main` 的 MRv1 临时回退开关，次日（2026-09-24）PR #17470 就把整项块表优化连同这个键一起回退——官方参数表原本将其标为“MRv1 退役时删除的临时兼容项”，实际只存活了一天，切勿写进任何部署模板。
 
-**这个键已经不存在了。** 它是 2026-09-23 随 PR #17066 合进 main 的回退开关，第二天（09-24）PR #17470 就把那项优化连同它一起回退（见版本谱系）。钉住的 main（`baa023ad`，09-21）早于它合入，v0.23、v0.26 和 GLM 双机用的 `db701c1f` 也都没有它——这些版本里块表一律走整行拷贝的老路，没有可切换的东西。
+块表记录每个请求的逻辑 KV 缓存块映射到哪些物理块；“提交”指把主机侧的块表数据复制到设备侧（H2D，Host-to-Device）供模型执行使用；MRv1、MRv2 指两代模型执行器实现。在它存在的那一天里，PR #17066 将 MRv1 的[块表](../concepts/block-table.md)默认切换为只提交脏行区间的 `OptimizedBlockTable`，而 `block_table_no_commit_optimize` 用来**关闭这项优化、退回旧实现**——**名字极易读反**：
 
-它存在的那一天里：PR #17066 把 MRv1 的[块表](../concepts/block-table.md)默认换成**只把脏行区间提交到 NPU** 的 `OptimizedBlockTable`，这个键管回退——`0`（默认）用优化实现，写 `1` 换回原来整行 H2D 拷贝的 `BlockTable` [C2]。**名字容易读反**——它当时不是「开优化」，是「关优化」：写 1 才是退回老路。字段注释写明只对 MRv1 有效 [C1]。
+- 当时配置路径为顶层 `additional_config["block_table_no_commit_optimize"]`，类型 `Literal[0, 1]`，默认 `0`（启用脏区增量提交的 `OptimizedBlockTable`），填 `1` 才退回整行 H2D 拷贝的旧 `BlockTable`（字段注释明确 `MRv1 only`，MRv2 自带分段增量更新、无视此键）；
+- 当时也不支持环境变量 `VLLM_ASCEND_BLOCK_TABLE_NO_COMMIT_OPTIMIZE`，只能通过 `additional_config` 传整数 `0` / `1`；选择函数 `_get_block_table_cls()` 仅在构造各 KV cache group 的块表时调用一次，已创建的块表不随配置改变重新选类，且回退时不打印提示日志。
 
-块表记录请求的逻辑缓存块对应哪些物理块。这里的“提交”指把主机侧的块表信息复制到设备侧，供模型执行使用；H2D 即从主机到设备的数据传输。开关改变的是这份映射表的提交方式。材料中的 MRv1、MRv2 指两代模型执行实现。[I]
+## 脏区提交与整行 H2D 拷贝的区别，以及 GLM 双机现状
+
+decode 阶段一条请求每步通常只新增 0 到 1 个物理块号，而 MRv1 的普通 `BlockTable.commit_block_table(num_reqs)` 每步都经 `copy_to_gpu(num_reqs)` 把前 `num_reqs` 行**整行**拷往 NPU（行宽由最大序列长度决定，无论这一步是否改写过大部分槽位）；`MultiGroupBlockTable` 则逐组遍历调用。PR #17066 为每行维护一对脏区边界 `_dirty_begin` / `_dirty_end`（提交后以哨兵值复位），每步只搬真正修改过的片段，一行未动则整步跳过。回退开关本意是刚上线遇到问题时不用回滚镜像即可切回整行拷贝，最终因整个优化次日即被回退而一并消失。
+
+需注意：在它存在的那一天，设 `1` 退回整行拷贝会在只有少量槽位改动时复制更多表项，但实际耗时仍受脏区整理、提交调度与小块传输开销影响，不能仅凭拷贝字节数断言整行一定更慢。
+
+**放到 GLM 双机部署（历史例外 B 算例）**：固定镜像 `db701c1f` 运行 MRv1 runner，每步准备输入时整行提交块表（见[准备输入页](../concepts/prepare-inputs-flow.md#放到-glm-双机r1-这一步每张卡拼出什么)与[块表显存和拷贝账](../concepts/block-table.md#表本身占多少每步花多少)），没有此键也没有脏区提交优化；PR #17066 在其他模型负载下给出的性能记录不能移作本部署收益，本站也未实机复现该历史开关的差异。
+
+## 在不同版本中残留这个键会发生什么？
+
+- **`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f`**：配置类逐键读取，多写的顶层键被静默忽略；块表均走普通整行拷贝。
+- **`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）**：均无此键；`v0.30.0` 的 MRv1 `BlockTable` 直接调 `copy_to_gpu(num_reqs)`（`main` 则已退役 MRv1 `worker/block_table.py`，转用 `worker/v2/block_table.py`；这不代表新版没有其他块表优化）。在这两版里残留 `block_table_no_commit_optimize` 通常会被 `@config(extra="forbid")` 直接拒收报错；仅当环境可发现 `vllm_omni` 时才告警并过滤未知顶层键，不会形成回退开关。历史脚本迁往新版时必须删掉此键。
+
+## 对照源码
+
+下表对照历史回退键 `block_table_no_commit_optimize` 在四个固定版本快照中的缺席状态与块表提交路径：
+
+| 项 | v0.23.0 (`2c59ff10`) | v0.26.0rc (`2ed6cbba`) | v0.30.0 (`c09d3e20`) | main (`8d6180e2`) |
+|---|---|---|---|---|
+| 开关是否存在 | 无，逐键读取静默忽略 [C14] | 无，逐键读取静默忽略 [C15] | 无，通常拒收；可发现 `vllm_omni` 时告警过滤 [C19][!] | 无，通常拒收；可发现 `vllm_omni` 时告警过滤 [C20] |
+| 块表提交实现 | 普通 `BlockTable` 整行提交 | 普通 `BlockTable` 整行提交 | MRv1 `BlockTable` / `MultiGroupBlockTable` 直接 `copy_to_gpu(num_reqs)` [C17][C18] | MRv1 `worker/block_table.py` 已退役，转向 `worker/v2/block_table.py` |
+
+- **单日历史快照（PR #17066 引入于 09-23 `39fef3f8`，PR #17470 回退于 09-24）**：字段 `Literal[0, 1] = 0`（`MRv1 only`）与 docstring 示例见来源 1、3；`_get_block_table_cls()` 及 `OptimizedBlockTable` 的 `_dirty_begin` / `_dirty_end` 脏区逻辑见来源 2、4 [C2]；官方旧表注明“MRv2 无视、MRv1 退役时删除、不支持环境变量”见来源 5、6 [S5][S6]。
+- **普通整行拷贝与待核**：`db701c1f` 整行提交及旧配置读取见来源 8、13；上游 `vllm@ced6857a` `copy_to_gpu` 实现见来源 16；MRv1/MRv2 术语及块表提交语义为结合代码上下文概括 [I]。**待核**：本仓库无该单日优化在真实 NPU 负载下的端到端时延复测。
+
+## 版本谱系
+
+范围限定为 `vllm_ascend/ascend_config.py` 中的 `AscendConfig.block_table_no_commit_optimize` 字段定义。定义存在不等于配置可写或运行时可用；行为条件见本页正文。未核定字段的精确引入／移除提交，不以同名文本的历史代替。
+
+| 版本 | 定义是否存在 | 固定提交 |
+| --- | --- | --- |
+| main | 无 | `8d6180e2` |
+| releases/v0.23.0 | 无 | `2c59ff10` |
+| releases/v0.26.0rc | 无 | `2ed6cbba` |
+| releases/v0.30.0rc2 | 无 | `7d825229` |
+| releases/v0.30.0 | 无 | `c09d3e20` |
 
 ## 参数定义（自动生成）
 
@@ -83,42 +131,3 @@ rawSources:
 MRv1 only: 0 uses dirty-range commits; 1 restores a full-table H2D copy.
 
 约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：
-
-## 事实表
-
-前六行记的是它存在那一天（09-23 的 main，`ad7a731b` 起）的行为，最后两行才是现在的情况。
-
-| 项 | 值 | 意味着什么 |
-|---|---|---|
-| 当时的配置路径 | `additional_config["block_table_no_commit_optimize"]` [C1] | 顶层键；当时配置类 docstring 的全量键示例里列着它，默认 `0` [C3] |
-| 当时的类型与默认 | `Literal[0, 1]`，默认 `0`（用优化实现） | 当时只认 0 / 1，别的值在配置校验就被拒 |
-| 当时的选择点 | `_get_block_table_cls()`：`1` 返回 `BlockTable`，其余返回 `OptimizedBlockTable` [C2] | 构造各 KV cache group 的块表时选类；已经创建的块表不随配置变更重新选类 |
-| 当时的适用范围 | 字段注释：MRv1 only [C1]；官方参数表写明 MRv2 有自己的分段增量更新、**无视这个键** [S5] | 当时只对 MRv1 生效；本页钉住的四版和 GLM 基线均不提供此开关 |
-| 寿命 | 官方参数表把它标成临时的 MRv1 兼容项，**MRv1 退役时会被删掉** [S5] | 实际没等到那天：一天后就随回退删掉了，别把它写进部署模板 |
-| 当时的环境变量 | `VLLM_ASCEND_BLOCK_TABLE_NO_COMMIT_OPTIMIZE` **不被支持**，只认 additional-config 里的 0/1 [S6] | 当时设环境变量也等于没设 |
-| 覆盖版本 | 该实现由 09-23 的 PR #17066 引入、09-24 的 #17470 回退；钉住的 v0.23、v0.26、v0.30.0rc2、main `baa023ad` 与 GLM 用的 `db701c1f` 都没有 | 版本表中的“无”只描述所核快照；提交存在于 tag 的历史中，不代表该 tag 仍保留开关 |
-| 在没有它的版本里写它 | v0.23、v0.26、`db701c1f` 的配置类逐键读取，多写的这个键被静默忽略；rc2 与 main 拒绝未知键，能发现 vllm_omni 时才告警并过滤 [C7][C12] | 旧脚本迁往 rc2 或 main 时应删掉此键，不能依赖旧版的忽略行为 |
-
-## 为什么存在
-
-decode 时一条请求一步通常只多出零到一个块号，老实现却每步把这一批前 `num_reqs` 行**整行**拷去 NPU [C8]——一行有多宽由最大长度决定，和这一步改没改无关。PR #17066 给每行记一段脏区（`_dirty_begin` / `_dirty_end`，提交后用哨兵值复位 [C4]），每步只搬真动过的那几段，一行都没动就整步不拷。回退开关和优化同一个 PR 进来——刚落地的性能改动出问题时，用户写一个键就能退回旧行为，不用回滚版本；结果这项优化自己第二天就被回退了。
-
-放到 GLM 双机：它用的 `db701c1f` 走 MRv1 runner，每步准备输入时整行提交块表（[准备输入页](../concepts/prepare-inputs-flow.md#放到-glm-双机r1-这一步每张卡拼出什么)），没有这个键，也没有这里的脏区优化；每步拷多少字节见[块表页](../concepts/block-table.md#表本身占多少每步花多少)。PR #17066 提供过另一模型负载下的性能记录，不能把它移作本部署收益；本站尚未实机复现这一开关的性能差异。
-
-## 开了的代价
-
-在它存在的那一天里：写 `1` 就放弃增量提交、回到整行拷贝，选择函数本身不打印回退提示。只有少量位置改变时，整行路径会复制更多表项；具体耗时还取决于整理脏区、提交和算子调度的开销，不能仅凭复制字节数断言总会更慢。什么都不写则采用当时的优化默认值。
-
-旧脚本保留此键的后果取决于版本：本页钉住的 v0.23、v0.26 与 GLM 基线忽略它；rc2 与 main 通常拒收，能发现 vllm_omni 时告警过滤。上述版本的 MRv1 提交路径都不由它选择，无需设置这个键。旧配置读取见来源 13–15；rc2 的前若干行复制还可沿来源 16 核对，不能把“忽略未知键”推广到所有发布分支。
-
-## 版本谱系
-
-范围限定为 `vllm_ascend/ascend_config.py` 中的 `AscendConfig.block_table_no_commit_optimize` 字段定义。定义存在不等于配置可写或运行时可用；行为条件见本页正文。未核定字段的精确引入／移除提交，不以同名文本的历史代替。
-
-| 版本 | 定义是否存在 | 固定提交 |
-| --- | --- | --- |
-| main | 无 | `8d6180e2` |
-| releases/v0.23.0 | 无 | `2c59ff10` |
-| releases/v0.26.0rc | 无 | `2ed6cbba` |
-| releases/v0.30.0rc2 | 无 | `7d825229` |
-| releases/v0.30.0 | 无 | `c09d3e20` |

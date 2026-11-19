@@ -1,0 +1,16 @@
+mode: native-svg
+id: deepseek-serving-case-fig-topology-compare
+caption: >-
+  DeepSeek 生产 E/P/D + 3FS 分离拓扑与 vLLM-Ascend 跨代硬件（A2 / A3 / 950DT）演进图：上半对照 DeepInfer 生产形态（E 单卡、P 侧 EP2–8 四层按长度分流、D 侧 EP64–128 双维分流与 3FS Block KV + 本机 SWA），下半呈现 v0.30.0 到 main 昇腾 A2/A3/950DT 配方演进及统一 MRV2 与 Mooncake/Memcache 池化路径。
+size: [900, 480]
+pins:
+  - source: 'vllm-ascend@c09d3e20:docs/source/tutorials/models/DeepSeek-V4.1-Flash.md#L1-L65'
+    symbols:
+      - DeepSeek-V4.1-Flash
+  - source: 'vllm-ascend@8d6180e2:docs/source/tutorials/models/DeepSeek-V4.1-Flash.md#L1-L65'
+    symbols:
+      - DeepSeek-V4.1-Flash
+      - V2
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/cache_config.py#L1-L55'
+    symbols:
+      - uses_a5_packed_cache

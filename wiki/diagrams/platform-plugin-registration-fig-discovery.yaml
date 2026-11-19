@@ -1,0 +1,14 @@
+mode: native-svg
+id: platform-plugin-registration-fig-discovery
+caption: >-
+  vLLM entry_points 插件发现、VLLM_PLUGINS 精确入口名白名单筛选与异常传播边界：区分导入失败跳过（load_plugins_by_group）与执行抛错中断（load_general_plugins，plugins_loaded 在执行前已置真、不自动重试），下方列出 v0.30.0 / main 三组六入口清单及显式 CPU 目标直通规则。
+size: [900, 454]
+pins:
+  - source: 'vllm@ced6857a:vllm/plugins/__init__.py#L36-L90'
+    symbols: [load_plugins_by_group, load_general_plugins, plugins_loaded]
+  - source: 'vllm@ced6857a:vllm/platforms/__init__.py#L233-L315'
+    symbols: [resolve_current_platform_cls_qualname, _current_platform]
+  - source: 'vllm-ascend@c09d3e20:setup.py#L506-L517'
+    symbols: [vllm, platform_plugins, general_plugins, ms_service_metric]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/__init__.py#L55-L110'
+    symbols: [_ensure_global_patch, register, register_connector, register_model]

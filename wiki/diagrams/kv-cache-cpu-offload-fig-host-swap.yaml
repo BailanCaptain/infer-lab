@@ -1,0 +1,13 @@
+mode: native-svg
+id: kv-cache-cpu-offload-fig-host-swap
+caption: KV Cache CPU Offload 的异步双流主机换出/换入生命周期（计算流同步、按段 D2H 备份、显存回收后经 WAITING_FOR_REMOTE_KVS 挂起并 H2D 搬回），以及搬回与重算盈亏平衡带宽与 v0.30.0 私有锁页/共享 mmap 双布局对比。
+size: [900, 456]
+pins:
+  - source: 'vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L537-L567'
+    symbols: ['get_num_new_matched_tokens']
+  - source: 'vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L721-L806'
+    symbols: ['_build_store_jobs']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L41-L65'
+    symbols: ['NPUOffloadingSpec', 'NPUTieringOffloadingSpec', 'create_worker']
+  - source: 'vllm@ced6857a:vllm/v1/kv_offload/cpu/spec.py#L94-L135'
+    symbols: ['cpu_bytes_to_use', 'blocks_per_chunk', 'num_chunks']

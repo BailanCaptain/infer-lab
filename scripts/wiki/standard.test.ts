@@ -150,6 +150,27 @@ describe("c. 对照源码 sections", () => {
       [],
     );
   });
+  it("allows protected auto-generated param H2 sections after 对照源码 without counting their marks as prose", () => {
+    const paramTail = [
+      sourceTail.trimEnd(),
+      "",
+      "## 版本谱系",
+      "",
+      "| 版本 | 状态 |",
+      "|---|---|",
+      "| v0.30.0 | 已定义 |",
+      "",
+      "## 参数定义（自动生成）",
+      "",
+      "默认值：`False` [C1]。",
+      "",
+    ].join("\n");
+    const m = measureStandard(goodBody({ tail: paramTail }), cfg);
+    expect(m.sourceSections).toBeNull();
+    expect(m.marks).toBe(0);
+    expect(rules(goodBody({ tail: paramTail }))).toEqual([]);
+    expect(rules(goodBody({ tail: `${paramTail}\n## 延伸阅读\n` }))).toEqual(["source-sections"]);
+  });
 });
 
 describe("d. calc density (advisory, non-blocking)", () => {

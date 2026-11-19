@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="INT8 C8、MXFP8 C8、FA量化与TurboQuant 4-bit及按层跳过对比图" font-family="var(--font-sans)">
+  <title>KV cache 量化四路对比：INT8 C8、MXFP8 C8（512 对齐）、FA 量化、TurboQuant 4-bit 与按层跳过</title>
+  <desc>关联源码符号：AscendC8MXFPAttentionBackend, get_supported_kernel_block_sizes, AscendC8MXFPMetadataBuilder, _validate_turboquant_sfa, _validate_turboquant_dsa, TURBOQUANT_CACHE_DTYPE, kv_cache_dtype_skip_layers, gqa_layer_ids</desc>
+
+  <!-- Zone 1: 4 KV quantization routes -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① v0.30.0 昇腾 KV cache 量化四条主流路径（各有独立入口、页约束与硬件边界）</text>
+
+  <!-- Col 1: INT8 C8 -->
+  <rect x="16" y="44" width="206" height="198" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="30" y="70" font-size="14.5" font-weight="700" fill="#065f56">1. INT8 C8（GQA）</text>
+  <text x="30" y="96" font-size="13.5" fill="#4d5652">入口：权重描述 C8</text>
+  <text x="30" y="120" font-size="13.5" fill="#4d5652">精度：K/V 均 INT8</text>
+  <text x="30" y="144" font-size="13.5" font-weight="700" fill="#065f56">页长：32 的倍数</text>
+  <text x="30" y="168" font-size="13.5" fill="#4d5652">Decode 直读；Prefill</text>
+  <text x="30" y="190" font-size="13.5" fill="#4d5652">接史须收拢展开 BF16</text>
+  <text x="30" y="222" font-size="13.5" fill="#8f3229">读回不减偏移须零偏</text>
+
+  <!-- Col 2: MXFP8 C8 -->
+  <rect x="236" y="44" width="210" height="198" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="250" y="70" font-size="14.5" font-weight="700" fill="#3a4f93">2. MXFP8 C8</text>
+  <text x="250" y="96" font-size="13.5" fill="#4d5652">入口：kv-cache mxfp8</text>
+  <text x="250" y="120" font-size="13.5" fill="#4d5652">K 动态 + V 静态 E8M0</text>
+  <text x="250" y="144" font-size="13.5" font-weight="700" fill="#3a4f93">页长：强制 512 倍数</text>
+  <text x="250" y="168" font-size="13.5" fill="#4d5652">统一走 QFA 双算子</text>
+  <text x="250" y="190" font-size="13.5" fill="#4d5652">仅标准 full Attention</text>
+  <text x="250" y="222" font-size="13.5" fill="#8f3229">拒 PCP/DCP 与滑窗</text>
+
+  <!-- Col 3: FA Quant -->
+  <rect x="460" y="44" width="206" height="198" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="474" y="70" font-size="14.5" font-weight="700" fill="#936300">3. FA 量化（MLA）</text>
+  <text x="474" y="96" font-size="13.5" fill="#4d5652">入口：描述 fa_quant</text>
+  <text x="474" y="120" font-size="13.5" fill="#4d5652">与 kv-cache fp8/int8</text>
+  <text x="474" y="144" font-size="13.5" font-weight="700" fill="#936300">只压潜向量，保 RoPE</text>
+  <text x="474" y="168" font-size="13.5" fill="#4d5652">A5：FP8 全实例生效</text>
+  <text x="474" y="190" font-size="13.5" fill="#4d5652">A2/A3：仅 PD D 端</text>
+  <text x="474" y="222" font-size="13.5" fill="#66716d">每层一组静态 scale</text>
+
+  <!-- Col 4: TurboQuant 4-bit -->
+  <rect x="680" y="44" width="204" height="198" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="694" y="70" font-size="14.5" font-weight="700" fill="#7a3a6a">4. TurboQuant 4-bit</text>
+  <text x="694" y="96" font-size="13.5" fill="#4d5652">turboquant_4bit_nc</text>
+  <text x="694" y="120" font-size="13.5" font-weight="700" fill="#7a3a6a">仅 A2/A3 支持</text>
+  <text x="694" y="144" font-size="13.5" fill="#4d5652">SFA 路：lora=512,r=64</text>
+  <text x="694" y="168" font-size="13.5" fill="#4d5652">DSV4 路：须 MRV2 +</text>
+  <text x="694" y="190" font-size="13.5" fill="#4d5652">indexer int8 压缩缓存</text>
+  <text x="694" y="222" font-size="13.5" fill="#8f3229">与 sfa_c8/xLite 互斥</text>
+
+  <line x1="16" y1="260" x2="884" y2="260" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: Per-layer skip & PD mismatch guard -->
+  <text x="16" y="288" font-size="16" font-weight="700" fill="#17211f">② 按层回退开关与 PD 分离两端格式边界</text>
+
+  <rect x="16" y="304" width="424" height="86" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="30" y="330" font-size="14.5" font-weight="700" fill="#065f56">--kv-cache-dtype-skip-layers（按层/类型保精度）</text>
+  <text x="30" y="355" font-size="13.5" fill="#4d5652">上游允许指定跳过 KV 量化的层号或注意力类型</text>
+  <text x="30" y="378" font-size="13.5" fill="#065f56">Ascend A5 自动将 MiniMax-M3 GQA 层加入跳过保 BF16</text>
+
+  <rect x="460" y="304" width="424" height="86" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="474" y="330" font-size="14.5" font-weight="700" fill="#8f3229">PD 分离两端口径不同（禁整块直搬）</text>
+  <text x="474" y="355" font-size="13.5" fill="#4d5652">GQA C8：P 端写 BF16，D 端配 INT8（两套格式）</text>
+  <text x="474" y="378" font-size="13.5" fill="#8f3229">拦截整块 MooncakeConnector，须换逐层 Layerwise</text>
+
+  <!-- Zone 3: Bottom reminder -->
+  <rect x="16" y="408" width="868" height="58" rx="7" fill="#ece9df" stroke="#8a928f" stroke-width="1.2"/>
+  <text x="30" y="432" font-size="14" font-weight="700" fill="#17211f">容量防坑提醒：字节减半 ≠ 块数简单翻倍</text>
+  <text x="30" y="454" font-size="13.5" fill="#4d5652">混合模型须按最长状态页对齐（如 GLM 代入 1 B 推演后逻辑块从 640 变 1,152）；固定 GLM db701c1f 未开 KV 量化</text>
+</svg>

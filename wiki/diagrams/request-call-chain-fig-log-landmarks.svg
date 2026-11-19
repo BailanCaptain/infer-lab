@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="跨进程日志地标、三层超时与异常回传地图" font-family="var(--font-sans)">
+<title>从 HTTP 到 execute_model 的跨进程日志地标、超时与异常回传</title>
+<desc>Process lanes, log prefixes, timeout scopes, exception bubbling, and MRV1 vs MRV2 frame landmarks</desc>
+<g stroke-width="1.4">
+<rect x="16" y="64" width="202" height="196" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="238" y="64" width="204" height="196" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="462" y="64" width="204" height="196" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="686" y="64" width="198" height="196" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="16" y="284" width="426" height="82" rx="8" fill="#fff0e9" stroke="#b54237"/>
+<rect x="462" y="284" width="422" height="82" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+<rect x="16" y="382" width="868" height="74" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+</g>
+<path d="M218 118h18m-5-4l5 4-5 4M442 118h18m-5-4l5 4-5 4M666 118h18m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M564 260v22m-4-5l4 5 4-5M462 325H444m5-4l-5 4 5 4" fill="none" stroke="#b54237" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-weight="700">
+<text x="16" y="30" font-size="16" fill="#17211f">跨进程日志地标、三层超时边界与异常回传地图</text>
+<text x="117" y="90" text-anchor="middle" font-size="15" fill="#065f56">①⑦ API server</text>
+<text x="340" y="90" text-anchor="middle" font-size="15" fill="#3a4f93">②⑥ EngineCore_DP0</text>
+<text x="564" y="90" text-anchor="middle" font-size="15" fill="#936300">③④⑤ Worker_DP0</text>
+<text x="785" y="90" text-anchor="middle" font-size="15" fill="#7a3a6a">陪跑 Worker_DP1</text>
+<text x="30" y="310" font-size="14.5" fill="#8f3229">异常回传（反向追根因，勿把转报当起点）</text>
+<text x="476" y="310" font-size="14.5" fill="#17211f">三层超时作用域（各管一段，互不等价）</text>
+<text x="32" y="408" font-size="14.5" fill="#065f56">第 3–5 站读栈先认版本：v0.30.0 默认 MRV1 vs main 唯一 MRV2</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="50" font-size="13.5">先按进程前缀缩范围，再按最内层 traceback 认站；异步调度下须按步号配对旧清单</text>
+<text x="28" y="116" font-size="13.5">• 进程：APIServer</text>
+<text x="28" y="140" font-size="13.5">• 入口：AsyncLLM</text>
+<text x="28" y="164" font-size="13.5">• 通道：ZMQ TCP</text>
+<text x="28" y="188" font-size="13.5">• 收尾：detokenizer</text>
+<text x="28" y="214" font-size="13.5" fill="#8f3229">转报：EngineDeadError</text>
+<text x="28" y="240" font-size="13.5">只指路，不藏根因</text>
+<text x="250" y="116" font-size="13.5">• 前缀：EngineCore_DP0</text>
+<text x="250" y="140" font-size="13.5">• 入口：schedule()</text>
+<text x="250" y="164" font-size="13.5">• 通道：共享内存 MQ</text>
+<text x="250" y="188" font-size="13.5">• 补丁：patch/platform/</text>
+<text x="250" y="214" font-size="13.5" fill="#8f3229">前兆：Dumping input</text>
+<text x="250" y="240" font-size="13.5">再报 fatal error</text>
+<text x="474" y="116" font-size="13.5">• Worker_DP0_TP*_EP*</text>
+<text x="474" y="140" font-size="13.5">• execute_model (③④)</text>
+<text x="474" y="164" font-size="13.5">• sample_tokens (⑤)</text>
+<text x="474" y="188" font-size="13.5">• 仅 0 号卡回传结果</text>
+<text x="474" y="214" font-size="13.5" fill="#8f3229">源头：WorkerProc hit</text>
+<text x="474" y="240" font-size="13.5">an exception（首查）</text>
+<text x="698" y="116" font-size="13.5">• Worker_DP1_TP*_EP*</text>
+<text x="698" y="140" font-size="13.5">• 调度空，走陪跑分支</text>
+<text x="698" y="164" font-size="13.5">• execute_dummy_batch</text>
+<text x="698" y="188" font-size="13.5">• → _dummy_run()</text>
+<text x="698" y="214" font-size="13.5" fill="#7a3a6a">对齐宽度，凑齐 EP16</text>
+<text x="698" y="240" font-size="13.5">见到属正常，非错收</text>
+<text x="30" y="335" font-size="13.5">WorkerProc 异常 → EngineCore 转报 → EngineDeadError</text>
+<text x="30" y="356" font-size="13.5">同步调试：ASCEND_LAUNCH_BLOCKING=1（关图）+ plog</text>
+<text x="476" y="335" font-size="13.5">• RPC：VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS（单次）</text>
+<text x="476" y="356" font-size="13.5">• HCCL：CONNECT 建链 / EXEC 同步（AIV 上限 1091s）</text>
+<text x="32" y="432" font-size="13.5">• v0.30.0 (c09d3e20)：默认 worker/model_runner_v1.py（设 VLLM_USE_V2_MODEL_RUNNER=1 切 V2）</text>
+<text x="32" y="449" font-size="13.5">• main (8d6180e2)：删去 V1，统一 worker/v2/model_runner.py + spec_decode/（旧 VLLM_RPC_TIMEOUT 失效）</text>
+</g>
+</svg>

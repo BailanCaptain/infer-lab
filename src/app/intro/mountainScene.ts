@@ -56,6 +56,8 @@ export function createMountainScene(host: HTMLDivElement, callbacks: Callbacks):
   let disposed = false;
   let dirty = true;
   let loaded = false;
+  let initialized = false;
+  let userMoved = false;
   let tween: {
     from: THREE.Vector3;
     target: THREE.Vector3;
@@ -216,7 +218,10 @@ export function createMountainScene(host: HTMLDivElement, callbacks: Callbacks):
       const distance = camera.aspect < 0.85 ? 23 : 17;
       move(look.clone().add(new THREE.Vector3(3, 5, distance)), look);
       marker.position.set(x, z + 0.3, -y);
-    } else move(homePosition.clone(), homeTarget.clone());
+    } else {
+      userMoved = false;
+      move(homePosition.clone(), homeTarget.clone());
+    }
     host.dataset.chapter = id ?? "overview";
   }
   const resize = () => {
@@ -226,10 +231,11 @@ export function createMountainScene(host: HTMLDivElement, callbacks: Callbacks):
     renderer.setSize(width, height);
     const factor = Math.max(1, 1.08 / camera.aspect);
     homePosition.copy(homeTarget).add(new THREE.Vector3(17, 20, 57).multiplyScalar(factor));
-    if (!selected) {
+    if (!initialized || (!selected && !userMoved && !controls.autoRotate)) {
       camera.position.copy(homePosition);
       controls.target.copy(homeTarget);
       tween = null;
+      initialized = true;
     }
     dirty = true;
   };
@@ -260,6 +266,7 @@ export function createMountainScene(host: HTMLDivElement, callbacks: Callbacks):
     renderer.domElement.style.cursor = event.buttons ? "grabbing" : hit(event) ? "pointer" : "grab";
   };
   const interactionStart = () => {
+    userMoved = true;
     tween = null;
     controls.autoRotate = false;
     callbacks.onInteract();
@@ -319,6 +326,7 @@ export function createMountainScene(host: HTMLDivElement, callbacks: Callbacks):
     tour: (enabled) => {
       if (enabled) {
         selected = null;
+        userMoved = false;
         marker.visible = false;
         tween = null;
         camera.position.copy(homePosition);
@@ -346,6 +354,9 @@ export function createMountainScene(host: HTMLDivElement, callbacks: Callbacks):
       cloudTexture.dispose();
       cloudMaterial.dispose();
       renderer.dispose();
+      try {
+        renderer.forceContextLoss();
+      } catch {}
       renderer.domElement.remove();
       delete host.dataset.sceneReady;
     },

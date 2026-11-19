@@ -1,0 +1,9 @@
+mode: native-svg
+id: layers-and-hidden-fig-residual-vs-mhc
+caption: 标准 Pre-Norm 单残差高速路与 GLM-5.3-Flash 四流 mHC 架构对比，以及 45 层 90 次串行连乘下 Sinkhorn 双随机约束防幅值爆炸的原理标尺。
+size: [900, 520]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L495-L548'
+    symbols: ['npu_hc_pre_v2', 'npu_hc_post', 'hc_post_pre', 'npu_rms_norm']
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/ops/mhc.py#L5-L37'
+    symbols: ['hc_split_sinkhorn_ref', 'sinkhorn_iters', 'hc_mult']

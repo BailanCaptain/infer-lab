@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="MLA 潜向量压缩、矩阵吸收与 RoPE 零宽分支对照图" font-family="var(--font-sans)">
+  <title>MLA 潜向量压缩与矩阵吸收执行流</title>
+  <desc>上半区对比 MHA 与 MLA 的单位置主缓存宽度压缩（32,768 对 512，64倍）及 TP8 逐卡复制特性；下半区展示 Decode 吸收路径如何将 W_UK 吸收进查询侧、W_UV 延后到汇合后，使内核直接以 512 维潜缓存兼任 K 与 V，并区分不旋转切片与零宽 NoPE。</desc>
+  <defs>
+    <marker id="mlaf-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="mlaf-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="mlaf-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、历史怎样存：把所有头的 K/V 压成一条潜向量（64× 宽度压缩，TP8 逐卡全存）</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="54" width="430" height="148" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="26" y="78" font-size="14.5" font-weight="700" fill="#3a4f93">主缓存宽度对比（以 64 头 × 256 维为例）</text>
+  <rect x="26" y="92" width="388" height="28" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="36" y="111" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">MHA: 64 × (256K + 256V) = 32,768 数/位置</text>
+  <rect x="26" y="128" width="98" height="28" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="34" y="147" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">c_kv 512</text>
+  <rect x="132" y="128" width="96" height="28" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="140" y="147" font-size="13.5" font-family="var(--font-mono)" fill="#936300">k_pe 0/64</text>
+  <text x="240" y="147" font-size="13.5" font-weight="700" fill="#065f56">省 64× 主缓存</text>
+  <text x="26" y="182" font-size="13.5" fill="#4d5652">vLLM 记为 1 个 KV 头，宽 d_c + d_h^R（无 K/V 两倍项）</text>
+
+  <rect x="458" y="54" width="430" height="148" rx="8" fill="#ffffff" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="472" y="78" font-size="14.5" font-weight="700" fill="#7a3a6a">两项关键架构边界（别和 GQA / 显存总账混淆）</text>
+  <text x="472" y="106" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#7a3a6a">TP 切不开潜向量</tspan>：每卡分 8 个查询头，但存完整 c_kv</text>
+  <text x="472" y="132" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#3a4f93">q_lora_rank 不进缓存</tspan>：1536 维 Q 中间表示用完即丢</text>
+  <text x="472" y="158" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#936300">RoPE 双分支有别</tspan>：<tspan font-family="var(--font-mono)">_exec_kv_no_rope</tspan> 仍存未旋切片</text>
+  <text x="472" y="182" font-size="13.5" fill="#4d5652">  <tspan font-family="var(--font-mono)">_exec_kv_mla_nope</tspan> 为零宽（GLM qk_rope_head_dim=0）</text>
+
+  <text x="14" y="236" font-size="16" font-weight="700" fill="#17211f">二、吸收路径：不把历史展开回 K/V，直接用潜向量兼任 K 与 V（保持地址稳定）</text>
+  <line x1="12" y1="248" x2="888" y2="248" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="264" width="186" height="104" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="26" y="290" font-size="14.5" font-weight="700" fill="#065f56">1. 查询吸收 W_UK</text>
+  <text x="26" y="314" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">q̃ = q_i · W_UK_i^T</text>
+  <text x="26" y="338" font-size="13.5" fill="#4d5652">每头 256 → 512 维</text>
+  <text x="26" y="358" font-size="13.5" fill="#4d5652">本轮新 token 算一次</text>
+
+  <path d="M 198 316 L 224 316" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#mlaf-arr-t)"/>
+
+  <rect x="230" y="264" width="236" height="104" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="244" y="290" font-size="14.5" font-weight="700" fill="#3a4f93">2. 内核直读打包潜缓存 C</text>
+  <text x="244" y="314" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">p = softmax(q̃·C^T / √d_h)</text>
+  <text x="244" y="338" font-size="13.5" fill="#17211f">同一份 C 同时当 K 与 V 读</text>
+  <text x="244" y="358" font-size="13.5" fill="#4d5652">缩放除 √256，不除 √512</text>
+
+  <path d="M 466 316 L 492 316" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#mlaf-arr-b)"/>
+
+  <rect x="498" y="264" width="188" height="104" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="512" y="290" font-size="14.5" font-weight="700" fill="#936300">3. 汇合后乘 W_UV</text>
+  <text x="512" y="314" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">o = (p·C) · W_UV_i</text>
+  <text x="512" y="338" font-size="13.5" fill="#4d5652">512 → 256 维再过 o_proj</text>
+  <text x="512" y="358" font-size="13.5" fill="#4d5652">省去逐历史位置展开</text>
+
+  <path d="M 686 316 L 712 316" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#mlaf-arr-a)"/>
+
+  <rect x="718" y="264" width="170" height="104" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="732" y="290" font-size="14.5" font-weight="700" fill="#8f3229">4. 加载拆分与保址</text>
+  <text x="732" y="314" font-size="13.5" fill="#17211f">kv_b_proj 拆后释放</text>
+  <text x="732" y="336" font-size="13.5" font-family="var(--font-mono)" fill="#8f3229">replace_parameter</text>
+  <text x="732" y="358" font-size="13.5" fill="#4d5652">保障图捕获地址稳定</text>
+
+  <rect x="12" y="384" width="876" height="58" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="26" y="408" font-size="13.5" fill="#17211f"><tspan font-size="14" font-weight="700" fill="#17211f">Prefill 与 Decode 路径分岔：</tspan>通用 MLA 后端（如 DeepSeek）在长 Prefill 可先展开 K/V、Decode 走吸收；</text>
+  <text x="26" y="430" font-size="13.5" fill="#4d5652">GLM 稀疏 MLA 加载即释放 kv_b_proj，Prefill 与 Decode 全程走吸收；叠加稀疏选择时需另计 indexer 压缩缓存与尾状态。</text>
+</svg>

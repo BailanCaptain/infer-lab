@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 518" width="900" height="518" role="img" aria-label="Balance Scheduling 互报挂载点、共同落闸逻辑与只数条数边界对比图" font-family="var(--font-sans)">
+  <title>Balance Scheduling：主循环互报防死锁、统一准入闸门与管得到/管不到边界</title>
+  <desc>上半展示为何每步 Gloo All-Gather(running 条数) 必须挂在引擎主循环 _has_global_unfinished_reqs 之后（确保无请求的陪跑组也参加，避免调度器内死锁），再驱动下一步 waiting 准入闸门；下半对照高并发顶满时有效落闸与场景 M 长 prefill 宽度浪费（12 小于 32 不落闸）及 v0.30.0/main 与 DyntraLB 的互斥边界。</desc>
+  <defs>
+    <marker id="bs-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="bs-arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、为什么互报必须挂在主循环而非调度器？两环节闭环防止陪跑死锁</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="54" width="248" height="148" rx="9" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="292" y="54" width="286" height="148" rx="9" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="610" y="54" width="278" height="148" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+  </g>
+
+  <g fill="none" stroke-width="2">
+    <path d="M 260 128 L 286 128" stroke="#9a4b86" marker-end="url(#bs-arr-plum)"/>
+    <path d="M 578 128 L 604 128" stroke="#087f73" marker-end="url(#bs-arr-teal)"/>
+  </g>
+
+  <text x="26" y="80" font-size="15" font-weight="700" fill="#936300">1. 各 DP 组单步执行</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="106">• 有活组：进调度器跑真实批</text>
+    <text x="26" y="128">• <tspan font-weight="700" fill="#8f3229">空闲组不进调度器</tspan>：</text>
+    <text x="38" y="149">造 <tspan font-family="var(--font-mono)" fill="#936300">dummy batch</tspan> 陪走 MoE</text>
+    <text x="26" y="174">若把 All-Gather 放调度器内，</text>
+    <text x="26" y="193">忙组将永远苦等空闲组而死锁</text>
+  </g>
+
+  <text x="306" y="80" font-size="15" font-weight="700" fill="#7a3a6a">2. 步末互报（CPU gloo）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="306" y="106">挂在 <tspan font-family="var(--font-mono)" fill="#7a3a6a">_has_global_unfinished_reqs</tspan></text>
+    <text x="306" y="128">之后：真算组与陪跑组<tspan font-weight="700" fill="#17211f">每圈必到</tspan></text>
+    <text x="306" y="152">每步 <tspan font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">All-Gather(len(running))</tspan></text>
+    <text x="306" y="174">每组交 1 个 int32，人人拿到相同</text>
+    <text x="306" y="193"><tspan font-family="var(--font-mono)">balance_queue</tspan>（如 <tspan font-family="var(--font-mono)">[8, 3, 5, 2]</tspan>）</text>
+  </g>
+
+  <text x="624" y="80" font-size="15" font-weight="700" fill="#065f56">3. 下步 waiting 共同闸门</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="624" y="106" font-family="var(--font-mono)" font-weight="700" fill="#065f56">max(balance_queue) == cap</text>
+    <text x="624" y="130">• <tspan font-weight="700" fill="#8f3229">顶满落闸</tspan>：全组停接 waiting，</text>
+    <text x="636" y="151">已在跑的 running 照常推进</text>
+    <text x="624" y="174">• <tspan font-weight="700" fill="#065f56">未顶满放行</tspan>：各组走本地检查</text>
+    <text x="624" y="193">（不搬请求、不“追平”条数）</text>
+  </g>
+
+  <text x="14" y="238" font-size="16" font-weight="700" fill="#17211f">二、只数 running 条数的能力边界：管得到什么 vs 管不到什么？</text>
+  <line x1="12" y1="250" x2="888" y2="250" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="264" width="430" height="130" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="458" y="264" width="430" height="130" rx="9" fill="#fff0e9" stroke="#b54237"/>
+    <rect x="12" y="408" width="876" height="96" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+  </g>
+
+  <text x="26" y="290" font-size="15" font-weight="700" fill="#065f56">✓ 管得到：高并发接近 DP×max_num_seqs 时防差距扩大</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="316">• 例：4 组上限 8，当前 <tspan font-family="var(--font-mono)" fill="#065f56">[8, 3, 5, 2]</tspan> → 共同停收</text>
+    <text x="26" y="339">• 避免闲组继续接入新 prefill 拉宽全组步长，</text>
+    <text x="38" y="360">让顶满的第 0 组先把手上请求排空至 7</text>
+    <text x="26" y="383">• 代价：落闸期间闲组 14 个名额空置，首字时延上升</text>
+  </g>
+
+  <text x="472" y="290" font-size="15" font-weight="700" fill="#8f3229">✗ 管不到：条数未满但长度极偏（如 GLM 场景 M）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="472" y="316">• 场景 M：DP0 跑 12 条 + 6000 新请求，DP1 跑 7 条</text>
+    <text x="472" y="339">• 判定 <tspan font-family="var(--font-mono)" font-weight="700" fill="#8f3229">max(12, 7) = 12 &lt; 32</tspan> → 闸门完全不落！</text>
+    <text x="472" y="362">• DP1 仍被拉宽至 6048 退回 eager；只看条数看不见</text>
+    <text x="484" y="383">提示词长短、KV 块压力与路由专家热点</text>
+  </g>
+
+  <text x="26" y="434" font-size="14.5" font-weight="700" fill="#3a4f93">三、v0.30.0 主基线与 main 接线及互斥规则（patch_engine_core.py）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="460">• 仅支持 <tspan font-weight="700" fill="#17211f">PD 混部 + MoE + DP &gt; 1</tspan>；与 <tspan font-family="var(--font-mono)" fill="#3a4f93">DyntraLB</tspan>（按 KV 块数调节，优先接线）互斥</text>
+    <text x="26" y="484">• 与 <tspan font-family="var(--font-mono)">profiling_chunk_config</tspan>（main 已移除）互斥；原环境变量 <tspan font-family="var(--font-mono)" fill="#8f3229">VLLM_ASCEND_BALANCE_SCHEDULING</tspan> 已删除</text>
+  </g>
+</svg>

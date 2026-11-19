@@ -1,0 +1,16 @@
+mode: native-svg
+id: npu-platform-fig-override-cascade
+caption: >-
+  NPUPlatform.check_and_update_config 改写级联与默认 token 预算回退链路：上半部分展示 v0.30.0（L478）与 main（L606 首行锁 MRV2）的六段前置校验与就地改写顺序（含混合模型保留 640 逻辑块例外）；下半部分完整呈现未初始化时 get_device_total_memory 抛 NotImplementedError → arg_utils 落小档起点 2048，以及显式参数闸门互不干扰的规则。
+size: [900, 444]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L232-L245'
+    symbols: [get_device_total_memory, NotImplementedError, mem_get_info]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L478-L525'
+    symbols: [check_and_update_config, init_ascend_config]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1365-L1375'
+    symbols: [default_worker_cls, STANDARD_WORKER_PATCHES]
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L606-L625'
+    symbols: [check_and_update_config, apply_v2_model_runner_config_patch]
+  - source: 'vllm@ced6857a:vllm/engine/arg_utils.py#L2700-L2740'
+    symbols: [get_batch_defaults]

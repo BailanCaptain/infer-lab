@@ -1,0 +1,20 @@
+mode: native-svg
+id: vllm-engine-core-fig-queue-loop
+caption: >-
+  EngineCoreProc 双队列解耦与步函数并发对比：后台线程收发 input_queue 与 output_queue，取消消息同时入主队列与独立取消队列并在更新前清空；主循环在空闲时阻塞等待（外部 KV 等待时休眠 1 ms），有活时按 max_concurrent_batches 选择同步 step() 或带批次队列的 step_with_batch_queue() 将第 k+1 步调度与第 k 步 NPU 计算重叠。
+size: [900, 472]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L584-L710'
+    symbols:
+      - step
+      - step_with_batch_queue
+      - batch_queue
+  - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L1403-L1435'
+    symbols:
+      - run_busy_loop
+      - _process_input_queue
+      - output_queue
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_engine_core.py#L32-L74'
+    symbols:
+      - DyntraLBDPEngineCoreProc
+      - BalanceDPEngineCoreProc

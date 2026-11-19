@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 516" width="900" height="516" role="img" aria-label="lm_head 精选打分行流程、tie_word_embeddings 共享对照与三组排雷" font-family="var(--font-sans)">
+  <title>lm_head 运行时经 logits_indices 精选打分行（避免全序列词表投影）、TP8 列切 All-Gather 拼回流程，以及 tie_word_embeddings 共享边界与三组高频误解对照。</title>
+  <desc>上半部分展示从末层隐藏态经 logits_indices 精选需要打分的行（prefill 1 行或 MTP decode 4 行）、各卡列切打分再 All-Gather 拼回完整词表分数的流程；下半部分对比权重共享开关与三组常见误解。</desc>
+  <defs>
+    <marker id="lm-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+    <marker id="lm-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="lm-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、先挑行、再打分：为什么绝不对整段 Prefill 全部位置做大词表投影？</text>
+
+  <rect x="14" y="46" width="194" height="164" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="111" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#3a4f93">1. 末层归一化输出</text>
+  <text x="111" y="99" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">[T_all, 4096]</text>
+  <text x="111" y="126" text-anchor="middle" font-size="13.5" fill="#17211f">含本步全部位置</text>
+  <text x="111" y="150" text-anchor="middle" font-size="13.5" fill="#8f3229">若全投 154,880 词：</text>
+  <text x="111" y="174" text-anchor="middle" font-size="13.5" fill="#8f3229">长 Prompt 显存爆炸</text>
+  <text x="111" y="196" text-anchor="middle" font-size="13.5" fill="#4d5652">且前段位置无需采样</text>
+
+  <path d="M 208 128 L 230 128" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#lm-arr-a)"/>
+
+  <rect x="236" y="46" width="224" height="164" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="348" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#936300">2. logits_indices 挑行</text>
+  <rect x="246" y="84" width="204" height="50" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+  <text x="348" y="104" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">普通 Prefill：仅末位 1 行</text>
+  <text x="348" y="125" text-anchor="middle" font-size="13.5" fill="#4d5652">R1: 4 进 1（除 prompt 概率）</text>
+  <rect x="246" y="144" width="204" height="54" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+  <text x="348" y="166" text-anchor="middle" font-size="13.5" font-weight="700" fill="#17211f">MTP Decode：1+3 = 4 行</text>
+  <text x="348" y="187" text-anchor="middle" font-size="13.5" fill="#4d5652">验 3 候选 + 全对多出 1 位</text>
+
+  <path d="M 460 128 L 482 128" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#lm-arr-t)"/>
+
+  <rect x="488" y="46" width="188" height="164" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="582" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">3. 本卡列切打分</text>
+  <text x="582" y="99" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">[N, 19360] 真值</text>
+  <text x="582" y="126" text-anchor="middle" font-size="13.5" fill="#17211f">每卡 151.25 MiB BF16</text>
+  <text x="582" y="150" text-anchor="middle" font-size="13.5" fill="#4d5652">R1 4 行约 4 FLOP/B</text>
+  <text x="582" y="174" text-anchor="middle" font-size="13.5" fill="#4d5652">易对显存带宽敏感</text>
+  <text x="582" y="196" text-anchor="middle" font-size="13.5" fill="#065f56">非部分和，无需相加</text>
+
+  <path d="M 676 128 L 698 128" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#lm-arr-p)"/>
+
+  <rect x="704" y="46" width="182" height="164" rx="9" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="795" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#7a3a6a">4. TP8 All-Gather</text>
+  <text x="795" y="99" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">[N, 154880]</text>
+  <text x="795" y="126" text-anchor="middle" font-size="13.5" fill="#17211f">8 段按词号首尾拼接</text>
+  <text x="795" y="150" text-anchor="middle" font-size="13.5" fill="#4d5652">8 卡均拿完整 logits</text>
+  <text x="795" y="174" text-anchor="middle" font-size="13.5" fill="#4d5652">裁掉补齐列再送采样</text>
+  <text x="795" y="196" text-anchor="middle" font-size="13.5" fill="#7a3a6a">R1 decode 约 1.18 MiB</text>
+
+  <rect x="14" y="218" width="872" height="54" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="28" y="240" font-size="13.5" fill="#17211f"><tspan font-weight="700" fill="#7a3a6a">v0.30.0 特殊分支：</tspan><tspan font-family="var(--font-mono)" font-weight="700">skip_gather=True</tspan> 提前返回未拼未裁本卡片；</text>
+  <text x="28" y="261" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)" font-weight="700">PCP&gt;1</tspan> 走先 PCP 后 TP 两级词表 All-Gather；细粒度头走 <tspan font-family="var(--font-mono)" font-weight="700">lmhead_all_to_all</tspan></text>
+
+  <line x1="14" y1="283" x2="886" y2="283" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <text x="14" y="309" font-size="16" font-weight="700" fill="#17211f">二、权重共享边界（tie_word_embeddings）与三组高频误解排雷</text>
+
+  <rect x="14" y="324" width="424" height="178" rx="9" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="28" y="350" font-size="15" font-weight="700" fill="#065f56">入口与出口是否共享一张表？（训练前定死）</text>
+  <rect x="28" y="364" width="396" height="54" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+  <text x="42" y="386" font-size="13.5" font-weight="700" fill="#065f56"><tspan font-family="var(--font-mono)">tie_word_embeddings=true</tspan>（权重共享）</text>
+  <text x="42" y="407" font-size="13.5" fill="#17211f">经 <tspan font-family="var(--font-mono)">tie_weights</tspan> 复用嵌入表，加载跳过 lm_head 省一份显存</text>
+  <rect x="28" y="428" width="396" height="62" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+  <text x="42" y="450" font-size="13.5" font-weight="700" fill="#936300"><tspan font-family="var(--font-mono)">tie_word_embeddings=false</tspan>（GLM-5.3-Flash）</text>
+  <text x="42" y="471" font-size="13.5" fill="#17211f">入口/出口各占 151.25 MiB/卡 BF16；<tspan font-weight="700" fill="#065f56">MTP 复用主 lm_head</tspan></text>
+
+  <rect x="462" y="324" width="424" height="178" rx="9" fill="#ffffff" stroke="#b54237" stroke-width="1.4"/>
+  <text x="476" y="350" font-size="15" font-weight="700" fill="#8f3229">三组高频误解对照</text>
+  <text x="476" y="380" font-size="13.5" font-weight="700" fill="#8f3229">✗ logits 就是概率</text>
+  <text x="476" y="401" font-size="13.5" fill="#065f56">✓ 未归一化实数（可负），贪心直接取最大免算 softmax</text>
+  <text x="476" y="430" font-size="13.5" font-weight="700" fill="#8f3229">✗ 切词表像 embedding 一样要做 All-Reduce 相加</text>
+  <text x="476" y="451" font-size="13.5" fill="#065f56">✓ 入口按输入维切须相加；出口按输出维列切须 All-Gather</text>
+  <text x="476" y="480" font-size="13.5" font-weight="700" fill="#8f3229">✗ W8A8 下 lm_head 也量化 → <tspan fill="#065f56">✓ 描述标 FLOAT，按 BF16 算</tspan></text>
+</svg>

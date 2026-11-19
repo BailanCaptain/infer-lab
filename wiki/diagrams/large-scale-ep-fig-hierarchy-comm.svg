@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 526" width="900" height="526" role="img" aria-label="大规模 EP 跨机三平面架构、分层通信与跳过 DP 同步守卫图" font-family="var(--font-sans)">
+  <title>大规模 EP：外置路由、跨机分层专家通信与跳过逐步 DP 同步守卫</title>
+  <desc>分三层展示大规模 EP 架构：顶层外置 Proxy 按估分/请求体长分派至独立 P 域（多组 EP16）与 D 域（大组 EP64）；中层对比机内 HCCS 与跨机 RDMA/HCCS 派发、A2 MC2 三条件门槛及分层通信约束；底层列出 v0.30.0/main 跳过每步 DP 元数据同步的组合守卫与 Mooncake 端口偏移。</desc>
+  <defs>
+    <marker id="lsep-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="lsep-arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、三平面解耦：外置入口路由 × 独立 P/D 专家域 × Mooncake KV 交接</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="52" width="234" height="122" rx="9" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="274" y="52" width="286" height="122" rx="9" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="588" y="52" width="300" height="122" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+  </g>
+
+  <g fill="none" stroke-width="2">
+    <path d="M 246 92 L 268 92" stroke="#087f73" marker-end="url(#lsep-arr-teal)"/>
+    <path d="M 560 112 L 582 112" stroke="#9a4b86" marker-end="url(#lsep-arr-plum)"/>
+  </g>
+
+  <text x="26" y="78" font-size="15" font-weight="700" fill="#17211f">外置 LB Proxy</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="102">每个 DP rank 独立端口</text>
+    <text x="26" y="124">P 侧比 <tspan font-family="var(--font-mono)" fill="#936300">L/4×0.0345+120</tspan></text>
+    <text x="26" y="146">D 侧比 <tspan font-family="var(--font-mono)" fill="#065f56">len(req_body)</tspan></text>
+    <text x="26" y="166">仅管入口，不搬 KV 数据</text>
+  </g>
+
+  <text x="288" y="78" font-size="15" font-weight="700" fill="#936300">Prefill 域（4 × 独立 EP16）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="288" y="102">• 每台自成 EP 域，各当主节点</text>
+    <text x="288" y="124">• 大批高吞吐（16k / 关图模式）</text>
+    <text x="288" y="146">• 只产 1 token + 返 KV 参数</text>
+    <text x="288" y="166">• 避免长 prefill 拖离 MC2</text>
+  </g>
+
+  <text x="602" y="78" font-size="15" font-weight="700" fill="#065f56">Decode 专家域（如 4 台合 EP64）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="602" y="102">• 跨多机大 EP 域，每卡仅存极少专家</text>
+    <text x="602" y="124">• 小批低时延（256 token / 开图模式）</text>
+    <text x="602" y="146">• 直连 P 侧拉 KV（端口按 rank 偏移）</text>
+    <text x="602" y="166">• 每层 MoE 全域同步，需防最慢卡拖尾</text>
+  </g>
+
+  <text x="14" y="206" font-size="16" font-weight="700" fill="#17211f">二、跨机 MoE 通信选路与分层汇合（Dispatch / Combine）</text>
+  <line x1="12" y1="218" x2="888" y2="218" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="230" width="430" height="114" rx="9" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="458" y="230" width="430" height="114" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+  </g>
+
+  <text x="26" y="256" font-size="15" font-weight="700" fill="#7a3a6a">1. 跨机比例与 A2 分层通信（Hierarchy）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="281">• M 台均分时，跨机派发占比约 <tspan font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">(M-1)/M</tspan>（8 台达 7/8）</text>
+    <text x="26" y="303">• A2 机内 HCCS / 机间 RDMA；A3 机内机外均为 HCCS</text>
+    <text x="26" y="325">• 分层通信先机内汇合再跨机，须 <tspan font-family="var(--font-mono)" fill="#7a3a6a">global_bs=0</tspan> 等长</text>
+  </g>
+
+  <text x="472" y="256" font-size="15" font-weight="700" fill="#3a4f93">2. 全组按 max(tokens) 选路与 A2 三门槛</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="472" y="281">• 1 卡塞长 prefill，64 卡组 96% 步被拖离小批路</text>
+    <text x="472" y="303">• A2 MC2：<tspan font-family="var(--font-mono)" fill="#3a4f93">experts/卡≤24</tspan>、<tspan font-family="var(--font-mono)" fill="#3a4f93">EP≥16</tspan>、<tspan font-family="var(--font-mono)" fill="#3a4f93">tokens≤cap</tspan></text>
+    <text x="472" y="325">• v0.30.0+ 收敛 <tspan font-family="var(--font-mono)">select_moe_comm_method</tspan>（LoRA→A2A）</text>
+  </g>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="360" width="876" height="154" rx="9" fill="#fff0e9" stroke="#b54237"/>
+  </g>
+
+  <text x="26" y="386" font-size="15" font-weight="700" fill="#8f3229">三、decode 侧跳过每步 DP 同步（should_skip_allreduce_across_dp_group）组合守卫</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="412">• <tspan font-weight="700" fill="#17211f">角色与互斥</tspan>：须 MoE <tspan font-family="var(--font-mono)" fill="#8f3229">kv_consumer</tspan>，关 <tspan font-family="var(--font-mono)">hierarchy</tspan> 与 <tspan font-family="var(--font-mono)">MegaMoe</tspan>（main 另排 <tspan font-family="var(--font-mono)">qkv_iproj_tp&gt;1</tspan>）</text>
+    <text x="26" y="438">• <tspan font-weight="700" fill="#17211f">路径锁定</tspan>：decode 最大批须走 <tspan font-family="var(--font-mono)" fill="#065f56">MC2 / FUSED_MC2</tspan>，且（prefill 走 MC2 且图不区分 P/D）</text>
+    <text x="38" y="460">或（开 <tspan font-family="var(--font-mono)" fill="#065f56">recompute_scheduler</tspan>），才跳过每步 DP 对齐并改用真实 <tspan font-family="var(--font-mono)">global_bs</tspan></text>
+    <text x="26" y="488">• <tspan font-weight="700" fill="#17211f">KV 端口偏移</tspan>：<tspan font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">kv_port + dp_rank × TP × PP × PCP + device_index</tspan>（支持同机独立监听）</text>
+  </g>
+</svg>

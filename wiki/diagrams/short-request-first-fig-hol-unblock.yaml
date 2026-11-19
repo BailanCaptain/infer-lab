@@ -1,0 +1,19 @@
+mode: native-svg
+id: short-request-first-fig-hol-unblock
+caption: >-
+  短请求优先（ShortRequestFirst）解队头阻塞与三车道挑选顺序：左侧对比 FCFS 下 8+8 长提示词挡住 2+2 短请求（平均首字 1.5 步），开启 SRF 后短请求在第 1 步先出字（平均 1.25 步）；中部标出挂起队列之后的四级挑选次序（恢复车道 → 达 long_max_wait_ms 的长队头 → 短车道 → 长车道）；底部汇总钉住候选、连插 3 次退化警告与只改 waiting 不动 running 三条护栏。
+size: [900, 460]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/core/short_request_first_scheduler.py#L148-L195'
+    symbols:
+      - _long_head_wait_ms
+      - _select_schedulable_queue
+      - _immediate_queue
+      - _short_queue
+      - _long_queue
+      - long_max_wait_ms
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1049-L1085'
+    symbols:
+      - short_request_first_config
+      - batch_job_sched_config
+      - profiling_chunk_config

@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 486" width="900" height="486" role="img" aria-label="结构化输出 FSM/CFG 文法编译、32位打包 bitmask 与昇腾 V1 CPU 往返 vs V2 Triton 原地快路径图" font-family="var(--font-sans)">
+  <title>结构化输出：文法编译与 32 位打包 bitmask、昇腾 V1 慢路径 vs V2/main NPU 原地快路径</title>
+  <desc>关联源码符号：StructuredOutputManager, all_stop_token_ids, grammar_bitmask, apply_grammar_bitmask, grammar_output, _apply_grammar_bitmask_kernel_impl, bitmask_ptr</desc>
+  <defs>
+    <marker id="so-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+    <marker id="so-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1: Compile & bitmask packing -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① CPU 侧：单后端编译 FSM/CFG 文法 → 趁前向填 32 位打包 bitmask</text>
+
+  <rect x="16" y="44" width="268" height="118" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="30" y="70" font-size="14.5" font-weight="700" fill="#936300">1. 编译文法（线程池异步）</text>
+  <text x="30" y="94" font-size="13.5" fill="#4d5652">JSON / Regex / EBNF → 状态机</text>
+  <text x="30" y="116" font-size="13.5" fill="#4d5652">昇腾补丁锁单引擎唯一后端</text>
+  <text x="30" y="138" font-size="13.5" fill="#936300">编好前留等待队列（单查 ≤100 μs）</text>
+  <text x="30" y="156" font-size="13.5" fill="#4d5652">v0.30.0 传 all_stop_token_ids</text>
+
+  <line x1="286" y1="103" x2="314" y2="103" stroke="#c78300" stroke-width="1.8" marker-end="url(#so-arr-a)"/>
+
+  <rect x="318" y="44" width="268" height="118" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="332" y="70" font-size="14.5" font-weight="700" fill="#3a4f93">2. 每步填 32 位打包 bitmask</text>
+  <text x="332" y="94" font-size="13.5" fill="#4d5652">每 32 个 token 打包 1 个 int32</text>
+  <text x="332" y="116" font-size="13.5" fill="#4d5652">1=允许，0=改 −∞（全1不限）</text>
+  <text x="332" y="138" font-size="13.5" fill="#3a4f93">GLM：154880÷32 = 4,840 int32</text>
+  <text x="332" y="156" font-size="13.5" fill="#4d5652">满载 128 行 ≈ 2.36 MiB 缓冲</text>
+
+  <line x1="588" y1="103" x2="616" y2="103" stroke="#087f73" stroke-width="1.8" marker-end="url(#so-arr-t)"/>
+
+  <rect x="620" y="44" width="264" height="118" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="634" y="70" font-size="14.5" font-weight="700" fill="#7a3a6a">3. MTP 投机草稿逐位填表</text>
+  <text x="634" y="94" font-size="13.5" fill="#4d5652">1 确定 + 3 草稿各占 1 行（4 行）</text>
+  <text x="634" y="116" font-size="13.5" fill="#4d5652">临时接受草稿填完后全部回滚</text>
+  <text x="634" y="138" font-size="13.5" fill="#7a3a6a">越界草稿截断补 −1（后续全1）</text>
+  <text x="634" y="156" font-size="13.5" fill="#4d5652">开 MTP 时退回主线程串行填</text>
+
+  <line x1="16" y1="180" x2="884" y2="180" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: V1 slow path vs V2/main fast path -->
+  <text x="16" y="208" font-size="16" font-weight="700" fill="#17211f">② Worker 侧施加掩码对比：昇腾 V1 整张 logits 往返 CPU vs V2 / main NPU 原地改写</text>
+
+  <rect x="16" y="224" width="424" height="128" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="30" y="250" font-size="14.5" font-weight="700" fill="#8f3229">慢路 · 昇腾 V1 默认路径（v0.23 ~ v0.30.0）</text>
+  <text x="30" y="274" font-size="13.5" fill="#4d5652">• NPU 整张 logits (BF16) → 拷到 CPU 转 FP32</text>
+  <text x="30" y="296" font-size="13.5" fill="#4d5652">• 调 xgrammar CPU 改 −∞ → 拷回 NPU 再转原精度</text>
+  <text x="30" y="318" font-size="13.5" fill="#8f3229" font-weight="600">• 哪怕仅 1 条带 schema，仍搬全批 128 行（8 卡各搬）</text>
+  <text x="30" y="340" font-size="13.5" fill="#8f3229">• 满载单步双向搬运：37.8 + 75.6 ≈ 113.4 MiB / 卡</text>
+
+  <rect x="460" y="224" width="424" height="128" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="474" y="250" font-size="14.5" font-weight="700" fill="#065f56">快路 · 昇腾 V2 NPU 原地 Triton 核（main 默认）</text>
+  <text x="474" y="274" font-size="13.5" fill="#4d5652">• v0.30.0 设 VLLM_USE_V2_MODEL_RUNNER=1 启用</text>
+  <text x="474" y="296" font-size="13.5" fill="#4d5652">• main 删除 V1 后全量默认走 NPU 原地 Triton 核</text>
+  <text x="474" y="318" font-size="13.5" fill="#065f56" font-weight="600">• 直接在 NPU 上按 bitmask_ptr 展开位图原地写 −∞</text>
+  <text x="474" y="340" font-size="13.5" fill="#065f56">• 消除整张 logits 主机往返与 FP32 临时拷贝开销</text>
+
+  <line x1="16" y1="370" x2="884" y2="370" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 3: Reasoning & Async boundaries -->
+  <text x="16" y="396" font-size="16" font-weight="700" fill="#17211f">③ 三条极易误判的运行边界（思考段、异步调度与非文法停止）</text>
+
+  <rect x="16" y="410" width="276" height="64" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="30" y="434" font-size="14" font-weight="700" fill="#936300">未配 reasoning parser</text>
+  <text x="30" y="458" font-size="13.5" fill="#4d5652">从第 1 个输出 token 就约束思考段</text>
+
+  <rect x="312" y="410" width="276" height="64" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="326" y="434" font-size="14" font-weight="700" fill="#3a4f93">异步调度推迟整批采样</text>
+  <text x="326" y="458" font-size="13.5" fill="#4d5652">前向照常发，同批无约束也一起等</text>
+
+  <rect x="608" y="410" width="276" height="64" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="622" y="434" font-size="14" font-weight="700" fill="#17211f">外部停止可提前截断</text>
+  <text x="622" y="458" font-size="13.5" fill="#4d5652">max_tokens/停止串不经文法校验</text>
+</svg>

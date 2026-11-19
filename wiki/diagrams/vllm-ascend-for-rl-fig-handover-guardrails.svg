@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="vLLM-Ascend RL Actor Rollout 与 Trainer 显存权重交接及 RlConfig 护栏图" font-family="var(--font-sans)">
+  <title>vLLM-Ascend for RL：同卡与跨卡交接路径及 RlConfig.apply() 三项强制护栏</title>
+  <desc>关联源码符号：RlConfig, apply, weight_nz_mode, sleep_mode_extra_cleanup, _disable_expandable_segments, register_engine, HCCLWeightTransferEngine, NPUIPCWeightTransferEngine</desc>
+
+  <!-- Zone 1: Two deployment handover patterns -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① Actor Rollout ↔ Trainer 交接双路径（看物理 NPU 是否共用，不只看同机）</text>
+
+  <rect x="16" y="44" width="424" height="136" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="30" y="70" font-size="14.5" font-weight="700" fill="#3a4f93">同物理卡轮占：Sleep Mode + backend="npu_ipc"</text>
+  <text x="30" y="94" font-size="13.5" fill="#4d5652">1. rollout 暂停并 sleep(level=2) 让出 HBM 给训练端</text>
+  <text x="30" y="116" font-size="13.5" fill="#4d5652">2. 训练完让回空间 → wake_up(weights) → IPC 句柄装载</text>
+  <text x="30" y="138" font-size="13.5" fill="#4d5652">3. wake_up(kv_cache) → resume 开始下一轮 rollout</text>
+  <text x="30" y="162" font-size="13.5" font-weight="700" fill="#3a4f93">注：须填 npu_ipc（非 ipc），补齐 packed 装载</text>
+
+  <rect x="460" y="44" width="424" height="136" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="474" y="70" font-size="14.5" font-weight="700" fill="#065f56">不同物理卡常驻：Pause + backend="hccl"</text>
+  <text x="474" y="94" font-size="13.5" fill="#4d5652">1. 训练与推理各自独享设备，通常无需 sleep 释放显存</text>
+  <text x="474" y="116" font-size="13.5" fill="#4d5652">2. 建通信组（world_size = 1 发送方 + N 推理 worker）</text>
+  <text x="474" y="138" font-size="13.5" fill="#4d5652">3. pause → start / update / finish → resume</text>
+  <text x="474" y="162" font-size="13.5" font-weight="700" fill="#065f56">注：main 新增 sparse_hccl（仅未量化 ND 权重，关 EPLB）</text>
+
+  <line x1="16" y1="198" x2="884" y2="198" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: RlConfig.apply() Guardrails -->
+  <text x="16" y="226" font-size="16" font-weight="700" fill="#17211f">② RlConfig.apply() 护栏机制（v0.30.0 / main）：总开关触发三项强制，三项子开关默认关</text>
+
+  <rect x="16" y="242" width="424" height="122" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="30" y="268" font-size="14.5" font-weight="700" fill="#8f3229">开启 rl_config.enabled=true 立刻强制执行（3 项）</text>
+  <text x="30" y="294" font-size="13.5" fill="#4d5652">1. 强制 weight_nz_mode = 0（关闭 FRACTAL_NZ 防精度错）</text>
+  <text x="30" y="318" font-size="13.5" fill="#4d5652">2. 调 _disable_expandable_segments() 剥离分配器冲突段</text>
+  <text x="30" y="342" font-size="13.5" fill="#8f3229" font-weight="600">3. 写入 VLLM_SERVER_DEV_MODE="1" 开放控制与更新端点</text>
+
+  <rect x="460" y="242" width="424" height="122" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="474" y="268" font-size="14.5" font-weight="700" fill="#936300">三个独立子开关默认 false（不随总开关隐式开启）</text>
+  <text x="474" y="294" font-size="13.5" fill="#4d5652">• sleep_mode_extra_cleanup：睡时清 HCCL 组与图工作区</text>
+  <text x="474" y="318" font-size="13.5" fill="#4d5652">• enable_training_consistency：切 FA3（拒 MLA / SFA）</text>
+  <text x="474" y="342" font-size="13.5" fill="#936300" font-weight="600">• enable_batch_invariant：置 BATCH_INVARIANT</text>
+
+  <line x1="16" y1="382" x2="884" y2="382" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 3: Pause modes & Training signals -->
+  <text x="16" y="408" font-size="16" font-weight="700" fill="#17211f">③ 暂停语义与训练信号边界（防跨版权重混写，按算法挑返回字段）</text>
+
+  <rect x="16" y="422" width="424" height="48" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="30" y="451" font-size="13.5" fill="#7a3a6a" font-weight="600">同版权重选 abort/wait；keep 会混接新旧 KV</text>
+
+  <rect x="460" y="422" width="424" height="48" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.3"/>
+  <text x="474" y="451" font-size="13.5" fill="#17211f">信号：logprobs / tokens-only / R3（须 MRV2）</text>
+</svg>

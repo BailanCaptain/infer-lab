@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="混合模型 KVCacheSpec 两档页对齐与 block_size 五义换算图" font-family="var(--font-sans)">
+  <title>混合模型 KVCacheSpec 两档物理页对齐与 block_size 五种含义</title>
+  <desc>上半区展示 GLM 四种状态如何对齐成 655,360 B 大页与 40,960 B 小页两档，进而编入 5 个缓存组共享 24 片显存；下半区以卡片和公式链清晰区分 block_size 的五种含义（640 / 128 / 4 / 133,120 / lcm 与回写最小值 4）。</desc>
+  <defs>
+    <marker id="kvsp-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="kvsp-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、四类状态对齐成两档物理页（24 片显存），而不是强行统一到同一档</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="54" width="424" height="156" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="26" y="78" font-size="14.5" font-weight="700" fill="#3a4f93">大页档：655,360 B（12 片大页显存共用）</text>
+  <rect x="26" y="92" width="396" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="38" y="112" font-size="13.5" font-weight="700" fill="#3a4f93">MLA 主潜向量（无填充基准）</text>
+  <text x="38" y="130" font-size="13.5" fill="#17211f">640×512×2B = 655,360 B（拆 5 个 128 内核块）</text>
+  <rect x="26" y="144" width="338" height="44" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <rect x="364" y="144" width="58" height="44" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="38" y="164" font-size="13.5" font-weight="700" fill="#065f56">KDA 状态（34 层分 3 组：12/11/11）</text>
+  <text x="38" y="182" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">有效 561,152 B（85.6%）</text>
+  <text x="393" y="170" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">+14%</text>
+
+  <rect x="454" y="54" width="434" height="156" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.5"/>
+  <text x="468" y="78" font-size="14.5" font-weight="700" fill="#936300">小页档：40,960 B（12 片小页显存，大页的 1/16）</text>
+  <rect x="468" y="92" width="406" height="44" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="480" y="112" font-size="13.5" font-weight="700" fill="#936300">indexer 压缩 K（与 MLA 同进 full 组共享块号）</text>
+  <text x="480" y="130" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">(640÷4)=160 条 × 128 × 2B = 40,960 B</text>
+  <rect x="468" y="144" width="66" height="44" rx="6" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+  <rect x="534" y="144" width="340" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="501" y="170" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">4 KiB</text>
+  <text x="546" y="164" font-size="13.5" font-weight="700" fill="#17211f">indexer 尾状态（FP32，独立滑窗组）</text>
+  <text x="546" y="182" font-size="13.5" fill="#4d5652">有效 4,096 B（10%），补齐 90% 共享小页槽</text>
+
+  <text x="14" y="246" font-size="16" font-weight="700" fill="#17211f">二、block_size 的五种含义与启动回写陷阱（勿混读日志与代码字段）</text>
+  <line x1="12" y1="258" x2="888" y2="258" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="272" width="166" height="106" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="24" y="296" font-size="14.5" font-weight="700" fill="#3a4f93">1. 逻辑块 640</text>
+  <text x="24" y="320" font-size="13.5" fill="#17211f">KV 池与 full 组</text>
+  <text x="24" y="342" font-size="13.5" fill="#4d5652">倒推装下 KDA</text>
+  <text x="24" y="364" font-size="13.5" fill="#4d5652">取 128 整数倍</text>
+
+  <rect x="190" y="272" width="166" height="106" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="202" y="296" font-size="14.5" font-weight="700" fill="#065f56">2. 内核块 128</text>
+  <text x="202" y="320" font-size="13.5" fill="#17211f">SFA 算子读取</text>
+  <text x="202" y="342" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">640 ÷ 128 = 5</text>
+  <text x="202" y="364" font-size="13.5" fill="#4d5652">每逻辑块展 5 块</text>
+
+  <rect x="368" y="272" width="166" height="106" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="380" y="296" font-size="14.5" font-weight="700" fill="#936300">3. 尾状态块 4</text>
+  <text x="380" y="320" font-size="13.5" fill="#17211f">indexer 压缩比</text>
+  <text x="380" y="342" font-size="13.5" font-family="var(--font-mono)" fill="#936300">640 ÷ 4 = 160</text>
+  <text x="380" y="364" font-size="13.5" fill="#4d5652">滑窗宽固定 4</text>
+
+  <rect x="546" y="272" width="166" height="106" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="558" y="296" font-size="14.5" font-weight="700" fill="#7a3a6a">4. KDA 组块</text>
+  <text x="558" y="320" font-size="13.5" font-family="var(--font-mono)" fill="#7a3a6a">133,120 pos</text>
+  <text x="558" y="342" font-size="13.5" fill="#17211f">1 页覆盖整请求</text>
+  <text x="558" y="364" font-size="13.5" fill="#4d5652">开 APC 改 640</text>
+
+  <rect x="724" y="272" width="164" height="106" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="736" y="296" font-size="14.5" font-weight="700" fill="#8f3229">5. 调度器 lcm</text>
+  <text x="736" y="320" font-size="13.5" font-family="var(--font-mono)" fill="#8f3229">133,120 pos</text>
+  <text x="736" y="342" font-size="13.5" fill="#17211f">各组最小公倍数</text>
+  <text x="736" y="364" font-size="13.5" fill="#4d5652">非每步步长上限</text>
+
+  <rect x="12" y="390" width="876" height="54" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="26" y="413" font-size="13.5" fill="#17211f"><tspan font-size="14" font-weight="700" fill="#8f3229">字段回写与 v0.30.0 演进：</tspan>旧镜像初始化后将 cache_config.block_size 回写为 min(640, 4, 133120) = 4（非逻辑块）；</text>
+  <text x="26" y="434" font-size="13.5" fill="#4d5652">v0.30.0 / main 先按 is_prefix_cacheable 剔除私有尾状态组再算回写与哈希粒度，避免被 4 干扰。</text>
+</svg>

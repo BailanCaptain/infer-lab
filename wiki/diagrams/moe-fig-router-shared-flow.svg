@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 444" width="900" height="444" role="img" aria-label="MoE 路由分支、共享专家与模块化交接布局示意图" font-family="var(--font-sans)">
+  <title>MoE 路由专家与共享专家双支执行流及模块化交接三笔账</title>
+  <desc>上半区展示单 token 进入 MoE 层后分走路由专家（FP32 打分、偏置只选人、原分数归一化并缩放）与共享专家（不经路由直接相加）两条支路；下半区对比模块化 MoE 的 Standard 与 BatchedExperts 交接布局及容量、有效工作量、存活缓冲三笔账。</desc>
+  <defs>
+    <marker id="moef-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="moef-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+    <marker id="moef-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、单层双支主干：路由专家（选 k 算加权和）与共享专家（全过直加）</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="96" width="126" height="84" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="75" y="126" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">输入隐藏态</text>
+  <text x="75" y="150" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">x [T, H]</text>
+  <text x="75" y="170" text-anchor="middle" font-size="13.5" fill="#4d5652">同份送两支</text>
+
+  <path d="M 138 118 L 166 92 L 182 92" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#moef-arr-a)"/>
+  <path d="M 138 158 L 166 202 L 182 202" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#moef-arr-t)"/>
+
+  <rect x="188" y="54" width="236" height="100" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="202" y="78" font-size="14.5" font-weight="700" fill="#936300">1. FP32 Router 分离两笔分数</text>
+  <text x="202" y="102" font-size="13.5" fill="#17211f">选人：按 <tspan font-family="var(--font-mono)" fill="#936300">s + bias</tspan> 取 Top-k</text>
+  <text x="202" y="124" font-size="13.5" fill="#17211f">算权：回原始 <tspan font-family="var(--font-mono)" fill="#065f56">s</tspan> 归一再乘 <tspan font-family="var(--font-mono)" fill="#936300">r</tspan></text>
+  <text x="202" y="144" font-size="13.5" fill="#66716d">偏置只改入选集合，不直接进权重</text>
+
+  <path d="M 424 104 L 450 104" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#moef-arr-a)"/>
+
+  <rect x="456" y="54" width="246" height="100" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="470" y="78" font-size="14.5" font-weight="700" fill="#7a3a6a">2. 路由专家池（EP 跨卡驻留）</text>
+  <text x="470" y="102" font-size="13.5" fill="#17211f">Dispatch 按专家归拢行并计算</text>
+  <text x="470" y="124" font-size="13.5" fill="#17211f">Combine 按组合权重 <tspan font-family="var(--font-mono)" fill="#7a3a6a">α_j</tspan> 加和</text>
+  <text x="470" y="144" font-size="13.5" fill="#66716d">未选中专家权重仍常驻显存</text>
+
+  <rect x="188" y="168" width="514" height="68" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="202" y="194" font-size="14.5" font-weight="700" fill="#3a4f93">共享专家支路（不经 Router，全部 token 必过）</text>
+  <text x="202" y="218" font-size="13.5" fill="#17211f">机内按 TP 切分或 <tspan font-family="var(--font-mono)" fill="#3a4f93">A8_INT_FUSED</tspan> 融合算子；输出不乘路由权重，直接叠加</text>
+
+  <path d="M 702 104 L 732 132" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#moef-arr-p)"/>
+  <path d="M 702 202 L 732 168" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#moef-arr-t)"/>
+
+  <rect x="738" y="96" width="150" height="96" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.6"/>
+  <text x="813" y="124" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">层出口汇合</text>
+  <text x="813" y="148" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">y_routed</text>
+  <text x="813" y="168" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">+ y_shared</text>
+  <text x="813" y="186" text-anchor="middle" font-size="13.5" fill="#4d5652">保持形状 [T, H]</text>
+
+  <text x="14" y="274" font-size="16" font-weight="700" fill="#17211f">二、通信与计算交接的两种布局：容量、有效工作量、存活缓冲是三笔账</text>
+  <line x1="12" y1="286" x2="888" y2="286" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="300" width="276" height="130" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="26" y="326" font-size="14.5" font-weight="700" fill="#3a4f93">Standard 布局：[M, K]</text>
+  <text x="26" y="352" font-size="13.5" fill="#17211f">• 按二维 token 行交接</text>
+  <text x="26" y="376" font-size="13.5" fill="#17211f">• 另带 topk_ids 与本地专家映射</text>
+  <text x="26" y="400" font-size="13.5" fill="#4d5652">• 常见于高吞吐路径，可支持延后量化</text>
+
+  <rect x="306" y="300" width="286" height="130" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <text x="320" y="326" font-size="14.5" font-weight="700" fill="#936300">BatchedExperts：[E, T, K]</text>
+  <text x="320" y="352" font-size="13.5" fill="#17211f">• 每专家预留最大容量 T 行</text>
+  <text x="320" y="376" font-size="13.5" fill="#17211f">• 有效行数单列元数据，空位不算负载</text>
+  <text x="320" y="400" font-size="13.5" fill="#4d5652">• 低延迟路径使用，明确拒绝延后量化</text>
+
+  <rect x="610" y="300" width="278" height="130" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="624" y="326" font-size="14.5" font-weight="700" fill="#8f3229">核对三笔账，切勿混算</text>
+  <text x="624" y="352" font-size="13.5" fill="#17211f">1. 预留容量：E × T（按上限分配）</text>
+  <text x="624" y="376" font-size="13.5" fill="#17211f">2. 有效工作：实际命中的配对行数</text>
+  <text x="624" y="400" font-size="13.5" fill="#8f3229">3. 存活缓冲：临时区可按寿命复用</text>
+</svg>

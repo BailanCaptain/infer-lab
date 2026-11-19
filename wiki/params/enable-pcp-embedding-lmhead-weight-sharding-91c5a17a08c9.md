@@ -3,16 +3,23 @@ id: enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9
 title: enable_pcp_embedding_lmhead_weight_sharding
 type: param
 summary: >-
-  PCP>1 且模块匹配时，把 embedding 与 LM Head 补齐后的词表权重按 TP×PCP 网格切分。bool 默认 true，要旧行为得显式写
-  false；与细粒度 TP 的 embedding/lmhead 两键互斥。旧 v0.23、v0.26、固定 main 没有，rc2 已有；GLM 双机不开
-  PCP 也用不到。
+  PCP>1 且模块匹配 embed_tokens/head 且未禁用 TP 时，按 TP×PCP 网格切分词表权重；默认 true，与同模块细粒度
+  TP 互斥，main 还互斥 enable_batch_sharded_sampling。
 aliases:
   - enable_pcp_embedding_lmhead_weight_sharding
   - PCP embedding/LM-head 权重切分
+legacyAnchors:
+  一句话: 它怎么按 TP×PCP 切分词表，生效门是什么？
+  事实表: 它怎么按 TP×PCP 切分词表，生效门是什么？
+  为什么存在: 网格切分示例与两侧新增通信
+  开了的代价: 互斥规则、静态缓冲容量与版本与 GLM 边界
 origin: seed
 evidence: C
-updated: 2026-11-03T00:00:00.000Z
+updated: 2026-11-19T00:00:00.000Z
 verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 relations:
   - to: context-parallel
@@ -90,6 +97,12 @@ sources:
     vllm-ascend@01741ac93f1c3c6241a90b19c14dc58b093eb49c:vllm_ascend/ascend_config.py#L590
   - >-
     vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L582
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/vocab_parallel_embedding.py#L92-L133'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1652-L1658'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L675-L675'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1037-L1053'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ops/vocab_parallel_embedding.py#L92-L133'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L2107-L2113'
 rawSources:
   - >-
     raw/sha256-1aa8655fe7ae8108619083e6d270af174771aee2760cba56fafd6c548c5514f8.md
@@ -126,13 +139,57 @@ rawSources:
   - >-
     raw/sha256-ebc514e0f60b58ff8115eb677ddc78fa222976b6c86c214942a1d9f8502a3fe7.md
 ---
-## 一句话
+## 它怎么按 TP×PCP 切分词表，生效门是什么？
 
-**v0.30.0rc2 对照：** 已提供此键，默认 True；PCP>1 且匹配 embed_tokens/head 的模块才采用 TP×PCP 词表分片。关闭时回到普通 TP 或适用的细粒度 TP。显式 disable_tp=True 的 ParallelLMHead 优先保持完整复制，不会仅因名字含 head 被切开；PCP 词表分片与对应 embedding/lmhead 细粒度 TP 同开会报错。rc2 还要求使用 V2 model runner 才允许 PCP>1。早期快照的 enable_reduce_sample 互斥检查不再适用于 rc2：rc2 已没有该旧键，正常严格配置会将它作为未知顶层键拒收，Omni 兼容分支则告警过滤。
+开启 PCP（`prefill_context_parallel_size > 1`，见 [Context Parallel](../concepts/context-parallel.md)）后，embedding 与 LM Head 通常是「词表 × hidden」的大矩阵。传统做法仅按 TP 切词表维，PCP 组内各卡仍重复保存同一份 TP 切片；`enable_pcp_embedding_lmhead_weight_sharding`（`bool`，默认 `True`）在模块未禁用 TP 且名称匹配 `embed_tokens` 或 `head` 时，改把补齐后的词表权重沿 **TP × PCP 网格**（PCP 为内维）进一步切分，使每卡词表行数降到补齐总行数的 `1 / (TP × PCP)`（例如相同补齐与格式下 `PCP = 4` 可少存 `3/4` 词表权重；量化辅助张量与 token 交换缓冲另计）。若要恢复 PCP 组内各卡保留完整 TP 切片的旧行为，须显式配置 `false`。
 
-开了 PCP（prefill_context_parallel_size > 1，见 [Context Parallel](../concepts/context-parallel.md)）后，未禁用 TP 且名称匹配的 embedding 和 LM Head 默认按 **TP × PCP 网格**切开词表权重（PCP 是内维）。每卡的词表行数是补齐后总行数的 1/(TP×PCP)，还须满足分片整除条件；量化辅助张量和通信缓冲另计。这个键默认 true，要保持 PCP 组内各卡保存完整 TP 切片的旧行为，需显式写 false。PCP=1 时不会进入这条 PCP 分片路径。
+| 关键项 | 行为与约束 | 说明 |
+| --- | --- | --- |
+| 真实路径与默认 | `additional_config["enable_pcp_embedding_lmhead_weight_sharding"]`，`bool = True` | 顶层键；读取访问函数缓存结果，配置工厂发布新单例或清理配置时会清缓存（直接改旧对象不会刷新，也不重建已建权重布局） |
+| 生效门与优先级 | 先判 `disable_tp`：为真时优先走复制模式（如显式 `disable_tp=True` 的 `ParallelLMHead` / `markov_head`）；否则要求 `prefix` 字符串包含 `embed_tokens` 或 `head`、本键为真且 `PCP > 1` | `PCP = 1` 时不进入 PCP 分片路径，关闭本键则回退普通 TP 或适用的细粒度 TP |
+| 互斥规则 | 与同模块细粒度 TP（`embedding_tensor_parallel_size` / `lmhead_tensor_parallel_size`）在模块构建期互斥抛 `ValueError`；`main` 另新增与 `enable_batch_sharded_sampling`（在 `PCP > 1` 时）的互斥 | 早期 `39fef3f8` 曾与 `enable_reduce_sample` 互斥；`v0.30.0` 与 `main` 已无 `enable_reduce_sample` 旧键（传入按未知顶层键拒收或 Omni 告警过滤） |
+| 版本与 runner 门槛 | PR #17159（2026-09-23）引入；`v0.23.0`、`v0.26.0rc`（及早期 `baa023ad`）无此键；`v0.30.0` 与 `main` 均有且要求 V2 model runner 才允许 `PCP > 1` | 旧普通构造器忽略该键；严格配置版本拒收未知顶层键（发现 `vllm_omni` 时告警过滤） |
 
-**旧 v0.23、v0.26 与固定 main 没有，rc2 已有。** 它在 2026-09-23 随 PR #17159 进入上游 main（见[版本谱系](#版本谱系)），比固定 main `baa023ad` 晚两天；旧发布分支 `2c59ff10`、`2ed6cbba` 也没有 [D]。历史机制走读使用扫描时的 `4d1412d1`，当前自动参数定义已换成 rc2。GLM 双机主线不开 PCP，这个键在原部署上不生效也开不起来（见事实表「GLM 双机」）。
+## 网格切分示例与两侧新增通信
+
+用一个整数示意观察切分与通信：假设补齐后的词表共 8 行、`hidden = 2`、`TP = 2`、`PCP = 2`。只按 TP 切时每卡存 4 行（8 个数）；开启 PCP 分片后，四个逻辑分片分别保存词表行 `0–1`、`2–3`、`4–5`、`6–7`，每卡只存 2 行（4 个数）。查询 token 5 时，只有保存行 `4–5` 的分片给出有效向量、其余分片贡献 0，再通过后续归约把结果送回需要 token 5 的位置（此例只计权重元素，不含交换缓冲）。
+
+**权重省下来，两侧都会多出 PCP 组内通信**：
+- **embedding 一侧多两次 PCP 通信**：先在 PCP 组内 All-Gather 收齐各卡的 token ID，再查本卡那片词表，查完在 PCP 组内 Reduce-Scatter 把结果送回各自的 token 行，最后才在 TP 组内 All-Reduce 补齐词表维（这次 TP 归约仅携带本 PCP rank 的 token 行）。
+- **LM Head 一侧常规取 logits 多一次 PCP All-Gather**：常规路径改走先在 PCP 组、再在 TP 组 All-Gather 词表分片，拼回完整 logits（仅切 TP 时只在 TP 组 gather 一次）；而 spec-decode 等传 `skip_gather` 的调用方两条路径都不 gather，不受此影响。
+
+## 互斥规则、静态缓冲容量与版本与 GLM 边界
+
+- **何时应显式关闭（写 `false`）**：需要为同一模块开启细粒度 TP（`embedding_tensor_parallel_size` / `lmhead_tensor_parallel_size`）、在 `main` 上同时开启 `enable_batch_sharded_sampling` 与 `PCP > 1`、在仍保留 `enable_reduce_sample` 的历史快照上使用该旧功能，或在升级对照中需要保持旧权重布局时。关闭本键只停用 PCP 词表分片，不跳过其他配置检查。
+- **静态 token 交换缓冲容量限制**：embedding 侧的 token 交换路径受静态缓冲容量上限约束，输入 token 数超过缓冲容量会直接报错并提示检查图捕获上限与批次 token 预算——权重显存放得下并不代表交换缓冲足够。
+- **放到 GLM 双机（`db701c1f` 固定基线）**：该部署 `PCP = 1`、`DCP = 1`，不满足生效门；且固定 GLM 源码的 34 层 KDA 在 `PCP > 1` 的 prefill 路径直接抛 `NotImplementedError`（详见 [CP 页 GLM 一节](../concepts/context-parallel.md#放到-glm-双机这套部署开了-cp-吗)）。因此主线上它既不生效也无法开启，每卡 embedding 与 `lm_head` 仍各存一份完整 TP 切片（份额见[每张卡上放了什么](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)）。
+
+## 对照源码
+
+下表汇总 `enable_pcp_embedding_lmhead_weight_sharding` 在四个基线版本的字段、复制分支与互斥规则对照，其后列出核心源码锚点：
+
+| 项 | v0.23.0 (`2c59ff10`) | v0.26.0rc (`2ed6cbba`) | v0.30.0 (`c09d3e20`) | main (`8d6180e2`) | 意味着什么 |
+| --- | --- | --- | --- | --- | --- |
+| 字段与默认 | 无（旧构造器忽略） | 无（旧构造器忽略） | `bool = True` [C36] | `bool = True` [C39] | 要回退旧布局须显式设 `false` [S8] |
+| 复制分支与模块匹配 | — | — | `disable_tp` 优先；匹配 `embed_tokens` / `head` 且 `PCP > 1` [C37] | 同 `v0.30.0` [C41] | 显式 `disable_tp=True` 的 `ParallelLMHead` 保持复制不被切开 |
+| 互斥与 runner 门槛 | — | — | 互斥同模块细粒度 TP；`PCP > 1` 需 V2 runner [C37][C38] | 同左并新增与 `enable_batch_sharded_sampling` 互斥 [C40][C42] | 早期 `enable_reduce_sample` 旧键已在 `v0.30.0` / `main` 移除 [!] |
+
+- **配置定义、互斥与缓存清理**：`v0.30.0` 见 `c09d3e20:ascend_config.py#L582`、`vocab_parallel_embedding.py#L92-L133` 与 `platform.py#L1652-L1658`（来源 36–38）；`main` 见 `8d6180e2:ascend_config.py#L675, #L1037-L1053`、`vocab_parallel_embedding.py#L92-L133` 与 `platform.py#L2107-L2113`（来源 39–42）。历史引入快照（`39fef3f8`、`4d1412d1`、`7d825229`）、缓存清理与官方文档见来源 1–8、23–27、30–32 [S7][D]。
+- **切分、通信顺序与缓冲容量**：`4d1412d1:vocab_parallel_embedding.py#L185-L263, #L299-L400, #L536-L568`（来源 11–12、24、29）对应词表补齐、分片行数、缓冲容量拒绝条件、LM Head 两级 gather（及 `skip_gather` 例外）与 embedding token gather → PCP reduce-scatter → 条件 TP all-reduce [C11][C12]；GLM KDA 拒绝 `PCP > 1` 与旧 Omni 过滤见来源 33–34。
+- **待核**：`1/PCP` 为同格式同补齐条件下的权重分片比例，实际整卡显存（含交换缓冲）、时延与精度对照在本工作区尚无 NPU 实机验证 [D]。
+
+
+## 版本谱系
+
+范围限定为 `vllm_ascend/ascend_config.py` 中的 `AscendConfig.enable_pcp_embedding_lmhead_weight_sharding` 字段定义。定义存在不等于配置可写或运行时可用；行为条件见本页正文。未核定字段的精确引入／移除提交，不以同名文本的历史代替。
+
+| 版本 | 定义是否存在 | 固定提交 |
+| --- | --- | --- |
+| main | 有 | `8d6180e2` |
+| releases/v0.23.0 | 无 | `2c59ff10` |
+| releases/v0.26.0rc | 无 | `2ed6cbba` |
+| releases/v0.30.0rc2 | 有 | `7d825229` |
+| releases/v0.30.0 | 有 | `c09d3e20` |
 
 ## 参数定义（自动生成）
 
@@ -152,53 +209,3 @@ rawSources:
 源码未提供字段注释。
 
 约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：
-
-## 事实表
-
-| 项 | 值 | 意味着什么 |
-|---|---|---|
-| 真实配置路径 | `additional_config["enable_pcp_embedding_lmhead_weight_sharding"]` [C1] | 顶层键；配置类 docstring 的全量键示例里列着它，默认 `true` [C3] |
-| 类型与默认 | bool，默认 True | 关闭需要显式写 false；默认开启仍受模块与 PCP 条件约束 |
-| 生效门 | prefix 字符串包含 embed_tokens 或 head、这个键为真、PCP>1，且未先进入复制分支 [C2] | 判断是字符串包含关系；PCP=1 不安装这条分片路径 |
-| 优先生效的复制分支 | 先检查 `disable_tp`；为真时直接选择复制模式 | 该判断先于 PCP 权重分片选择，需确认模块未显式禁用 TP |
-| 与细粒度 TP | 逐模块判：embedding 匹配其细粒度 TP，head 匹配 LM Head 的细粒度 TP，冲突即 ValueError [C2] | 在实际构建对应模块且选择 PCP 分片时检查；显式复制分支优先返回 |
-| 与 enable_reduce_sample | 39fef3f8 中，同开且 PCP>1 会抛 ValueError [C4] | rc2 已移除该旧键，见开头的版本说明 |
-| 读取方式 | 访问函数缓存结果 [C5]；配置工厂发布新单例和清理配置时会清缓存 | 直接改旧对象不会更新已缓存结果，也不能自动重建权重布局 |
-| 官方文档 | 39fef3f8 参数表和 CP 指南写明默认开、PCP>1 及当时的互斥条件 [S7] | 按该快照理解；关闭方式是写 false [S8]，不能把旧互斥检查套到 rc2 |
-| 覆盖版本 | 固定 rc2 有；旧 v0.23 2c59ff10、v0.26 2ed6cbba、main baa023ad 无 | 旧普通构造器不消费该键；baa 通常拒收未知键，能发现 Omni 时告警过滤；rc2 还受 runner 条件限制 |
-| GLM 双机 | 这套部署 PCP=1、DCP=1，生效门的 PCP 条件不成立；34 层 KDA 的 prefill 在 PCP > 1 时直接抛 `NotImplementedError`，见 [CP 页的 GLM 一节](../concepts/context-parallel.md#放到-glm-双机这套部署开了-cp-吗) | 主线上它既不生效、也开不起来；每卡 embedding 与 `lm_head` 仍是各一份完整 TP 切片，份额见[每张卡上放了什么](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)（本页不重算） |
-
-## 为什么存在
-
-embedding 和 LM Head 通常是「词表 × hidden」的大矩阵。TP 已按词表维切分，而 PCP 组内原本各卡保存相同的 TP 切片。本实现把 TP×PCP 网格线性化后再分词表行；在相同补齐规则、可整除且格式一致的条件下，单个矩阵每卡的行数缩到原来的 1/PCP，PCP=4 时该矩阵少存 3/4。显式 disable_tp 的复制权重仍走复制分支。
-
-示意取补齐后的词表 8 行、hidden=2、TP=2、PCP=2。只按 TP 分时，每卡保存 4 行，即 8 个数；加入 PCP 分片后，四个逻辑分片分别保存词表行 0–1、2–3、4–5、6–7，每卡 2 行、4 个数。查询 token 5 时，只有保存行 4–5 的分片提供有效 embedding，其余分片贡献零；后面的归约把这份结果送回需要 token 5 的行。这里计算的是权重元素数，token 交换缓冲需要另算。
-
-## 开了的代价
-
-它默认开，需要关闭的常见情况包括：选择同一模块的细粒度 TP；在仍保留 enable_reduce_sample 的 39fef3f8 快照使用该功能；或在升级对照中先保留旧权重布局。关闭此键只控制这条 PCP 权重分片，不能替代其他配置检查。
-
-**两侧都多出 PCP 组内通信。** embedding 一侧多两次：先在 PCP 组 all-gather 把组里的 token ID 收齐，再拿它们查本卡那片词表，查完在 PCP 组 reduce-scatter 把结果送回各自的 token 行，最后才在 TP 组 all-reduce 补齐词表维——这次 TP 归约只带本 PCP rank 的那些 token 行 [C12]。LM Head 一侧虽然不设这两个组，但常规取分数改走专门的路径：先在 PCP 组、再在 TP 组 all-gather 词表分片，才拼回完整 logits；只切 TP 时只在 TP 组 gather 一次 [C11]。所以常规取一次 logits 比不开它时多一次 PCP 组 all-gather；spec-decode 这类传 `skip_gather` 的调用方两条路径都不 gather，不在此列 [C11]。
-
-**适用边界。** 上面的通信顺序使用 4d1412d1 走读，rc2 的配置入口、选择分支和 runner 限制另列在开头。1/PCP 是同格式、相同词表补齐条件下的分片比例；实际显存还包括交换缓冲，时延和精度需做设备对照。未知键处理是固定配置代码的推导，未提供真实启动日志。
-
-token 交换路径还受静态容量限制：输入 token 数超过缓冲容量会直接报错，并提示检查图捕获上限和批次 token 预算。因此，权重放得下不代表 token 交换缓冲也足够。
-
-
-## 版本谱系
-
-范围限定为 `vllm_ascend/ascend_config.py` 中的 `AscendConfig.enable_pcp_embedding_lmhead_weight_sharding` 字段定义。定义存在不等于配置可写或运行时可用；行为条件见本页正文。未核定字段的精确引入／移除提交，不以同名文本的历史代替。
-
-| 版本 | 定义是否存在 | 固定提交 |
-| --- | --- | --- |
-| main | 有 | `8d6180e2` |
-| releases/v0.23.0 | 无 | `2c59ff10` |
-| releases/v0.26.0rc | 无 | `2ed6cbba` |
-| releases/v0.30.0rc2 | 有 | `7d825229` |
-| releases/v0.30.0 | 有 | `c09d3e20` |
-
-## 对照源码
-
-来源 2、23、27 对应复制分支优先、模块匹配与 TP×PCP 分片编号。来源 11、12 对应 logits 的两级 gather 与 embedding 的 token gather → PCP reduce-scatter → 条件 TP all-reduce；来源 24 是静态 token 容量拒绝条件，来源 29 给出词表补齐、分片行数和缓冲容量来源。
-
-来源 4 的 reduce_sample 互斥属于 39fef3f8；rc2 没有该字段及执行消费者，来源 31 给出未知键过滤/拒收入口。来源 30 解释配置单例发布后的缓存清理；来源 32 是 rc2 的 V2 runner 条件，33 是固定 GLM KDA 的 PCP 拒绝，34 是旧 main 的 Omni 兼容过滤。设备占用和启动效果仍未实测。

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 514" width="900" height="514" role="img" aria-label="PD 分离非对称实例配比与源块释放协议对照图" font-family="var(--font-sans)">
+<title>PD 分离非对称实例配比约束与 Mooncake 超时 / NIXL 租约对照</title>
+<desc>is_kv_producer, is_kv_consumer, _decode_pp_size, _kv_lease_duration, _heartbeat_interval</desc>
+<defs>
+<marker id="pd-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#9a4b86"/></marker>
+</defs>
+<text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">1. P / D 非对称实例画像、并行约束与 GLM 双机直拆代价</text>
+<path d="M14 38H886M14 262H886" stroke="#b8bcb5" stroke-width="1.4"/>
+<rect x="14" y="48" width="356" height="202" rx="10" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+<rect x="530" y="48" width="356" height="202" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+<rect x="382" y="140" width="136" height="110" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4" stroke-dasharray="4 3"/>
+<path d="M372 96H524" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#pd-a)"/>
+<g text-anchor="middle">
+<text x="450" y="84" font-size="14" font-weight="700" fill="#7a3a6a">P2P 交接 KV</text>
+<text x="450" y="116" font-size="13.5" fill="#66716d">双边暂占显存</text>
+<text x="450" y="164" font-size="14" font-weight="700" fill="#8f3229">GLM 1P1D 代价</text>
+<text x="450" y="188" font-size="13.5" fill="#8f3229">EP16 → EP8</text>
+<text x="450" y="210" font-size="13.5" fill="#17211f">失 MC2 退 AllGather</text>
+<text x="450" y="234" font-size="13.5" fill="#66716d">块数 3908→1577</text>
+</g>
+<text x="28" y="75" font-size="15" font-weight="700" fill="#936300">P 实例（kv_producer · 算力受限）</text>
+<text x="544" y="75" font-size="15" font-weight="700" fill="#065f56">D 实例（kv_consumer · 带宽受限）</text>
+<g font-size="13.5" fill="#17211f">
+<text x="28" y="104">• 并行：选 TP / PP / PCP 压低首字 TTFT</text>
+<text x="28" y="130">• 约束：非 MLA / 递推态须 TP_P ≥ TP_D 整除</text>
+<text x="28" y="156">• 交棒：min=max=1 按长度上限结束才触发</text>
+<text x="28" y="182">• 混合模型（N&gt;1）：少算末位交出 S_(N-1)</text>
+<text x="28" y="208">• 块池：V1 押源块至收完/超时，不可抢占</text>
+<text x="28" y="234" fill="#936300" font-weight="600">• 角色：V2 禁用 kv_both，须严格二选一</text>
+<text x="544" y="104">• 并行：选大 DP / EP 且 V1 强制 PP = 1</text>
+<text x="544" y="130">• 挂起：先分目的块进 WAITING_FOR_REMOTE_KVS</text>
+<text x="544" y="156">• 调度：等待期排 0 token，他请求照常算</text>
+<text x="544" y="182">• 纯图：隔离长 prefill，稳留 decode 图模式</text>
+<text x="544" y="208">• 抢占：V1 不重拉旧 P 块；可配 Recompute 退路</text>
+<text x="544" y="234" fill="#065f56" font-weight="600">• 采样：D 补算末位并自采首 token（弃 P 采样）</text>
+</g>
+<text x="16" y="288" font-size="16" font-weight="700" fill="#17211f">2. 源块何时释放：Mooncake V1 固定超时 vs 上游 NIXL 动态心跳租约</text>
+<rect x="14" y="302" width="424" height="200" rx="10" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+<rect x="462" y="302" width="424" height="200" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+<text x="28" y="330" font-size="15" font-weight="700" fill="#7a3a6a">Mooncake V1 固定押块超时（昇腾基线）</text>
+<text x="476" y="330" font-size="15" font-weight="700" fill="#3a4f93">上游 NIXL 动态租约（CUDA 拉取机制对照）</text>
+<g font-size="13.5" fill="#17211f">
+<text x="28" y="360">• 正常：D 读完发完成通知 → P 立即释放源块</text>
+<text x="28" y="386">• 失败：D 读失败仍发通知释块；默认策略 fail</text>
+<text x="28" y="412">• 兜底：VLLM_MOONCAKE_ABORT_REQUEST_TIMEOUT</text>
+<text x="28" y="436">  默认 480 s 无回音后强放并打错误日志</text>
+<text x="28" y="464" fill="#7a3a6a" font-weight="600">• 权衡：D 失联时 P 源块最长占 480 s 且禁抢占</text>
+<text x="28" y="488" fill="#66716d">  （D2RH 先落 D 主机 DRAM，首跳完即可早释 P）</text>
+<text x="476" y="360">• 初始租约 30 s；D 入 waiting 队列即开始续约</text>
+<text x="476" y="386">• 心跳 5 s（30÷6），续约窗口 20 s（30×2÷3）</text>
+<text x="476" y="412">• 更新公式：t'_expire = max(t_expire, t_hb + 20)</text>
+<text x="476" y="436">• 消费齐即早放；D 失联到期由执行循环回收</text>
+<text x="476" y="464" fill="#3a4f93" font-weight="600">• 双向多轮：D 留块 480 s 固定 TTL（不随心跳续）</text>
+<text x="476" y="488" fill="#66716d">  （v0.26+ P 读回前预留 5 s 检查，不替代前缀核验）</text>
+</g>
+</svg>

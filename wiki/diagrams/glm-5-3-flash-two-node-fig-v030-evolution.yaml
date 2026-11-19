@@ -1,0 +1,20 @@
+mode: native-svg
+id: glm-5-3-flash-two-node-fig-v030-evolution
+caption: >-
+  GLM-5.3-Flash 三代部署食谱增量演进图：横向并置例外 B 历史绑定镜像（db701c1f，用于全站 19 篇冻结 3D 与 3,855/3,908 块统一算例）、v0.30.0 活跃食谱（c09d3e20，models/glm5next 模块化 + KDA 六路融合投影 + A3/950DT 与 W8A8C8/PD/KV Pool）及 main 活跃食谱（8d6180e2，全量切至 MRV2 + KDAInputProjectionTP + A3 PD PCP8/TP1）。
+size: [900, 440]
+pins:
+  - source: 'vllm-ascend@c09d3e20:docs/source/tutorials/models/GLM5.3-Flash.md#L15-L45'
+    symbols:
+      - GLM-5.3-Flash
+      - W8A8C8
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/kda.py#L165-L195'
+    symbols:
+      - in_proj_qkvbfg_a
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L180-L225'
+    symbols:
+      - DeepSeekV2FusedQkvAProjLinear
+      - kv_b_proj
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda_input_projection_tp.py#L15-L50'
+    symbols:
+      - KDAInputProjectionTP

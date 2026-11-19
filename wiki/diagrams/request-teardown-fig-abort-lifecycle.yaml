@@ -1,0 +1,11 @@
+mode: native-svg
+id: request-teardown-fig-abort-lifecycle
+caption: 请求跨进程中止与收尾时序（ZMQ 双队列 ABORT、调度器倒序还块与异步调度下的 Worker 延迟删行），以及收尾、抢占与重置前缀缓存三者边界对照。
+size: [900, 520]
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/engine/core.py#L600-L612'
+    symbols: ['_process_aborts_queue', 'aborts_queue', 'abort_requests']
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2561-L2646'
+    symbols: ['finished_req_ids', '_free_blocks', '_free_request_blocks', 'deferred_frees']
+  - source: 'vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L442'
+    symbols: ['free_blocks', 'ref_cnt', 'free_block_queue']

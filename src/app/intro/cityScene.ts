@@ -56,6 +56,8 @@ export function createCityScene(host: HTMLDivElement, callbacks: Callbacks): Cit
   let renderCount = 0;
   let width = 1;
   let height = 1;
+  let initialized = false;
+  let userMoved = false;
   const hemi = new THREE.HemisphereLight(city.palette.fog, city.palette.dark, 2.3);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight(city.palette.light, 3.3);
@@ -95,12 +97,14 @@ export function createCityScene(host: HTMLDivElement, callbacks: Callbacks): Cit
       host.dataset.renderCount = String(++renderCount);
       host.dataset.drawCalls = String(renderer.info.render.calls);
       host.dataset.triangles = String(renderer.info.render.triangles);
+      host.dataset.cameraPosition = `${camera.position.x.toFixed(2)},${camera.position.y.toFixed(2)},${camera.position.z.toFixed(2)}`;
       dirty = false;
     }
     inFrame = false;
     if (controls.autoRotate) frame = requestAnimationFrame(draw);
   }
   function reset() {
+    userMoved = false;
     controls.autoRotate = false;
     camera.position.copy(homePosition);
     controls.target.copy(homeTarget);
@@ -119,8 +123,11 @@ export function createCityScene(host: HTMLDivElement, callbacks: Callbacks): Cit
     homePosition
       .copy(homeTarget)
       .add(new THREE.Vector3(...city.camera.offset).multiplyScalar(Math.max(1, 0.9 / camera.aspect)));
-    camera.position.copy(homePosition);
-    controls.target.copy(homeTarget);
+    if (!initialized || (!userMoved && !controls.autoRotate)) {
+      camera.position.copy(homePosition);
+      controls.target.copy(homeTarget);
+      initialized = true;
+    }
     invalidate();
   };
   const observer = new ResizeObserver(resize);
@@ -178,6 +185,7 @@ export function createCityScene(host: HTMLDivElement, callbacks: Callbacks): Cit
   );
 
   const interact = () => {
+    userMoved = true;
     controls.autoRotate = false;
     callbacks.onInteract();
     invalidate();
@@ -247,8 +255,12 @@ export function createCityScene(host: HTMLDivElement, callbacks: Callbacks): Cit
       disposeModel(scene);
       sun.shadow.dispose();
       renderer.dispose();
+      try {
+        renderer.forceContextLoss();
+      } catch {}
       renderer.domElement.remove();
       delete host.dataset.sceneReady;
+      delete host.dataset.cameraPosition;
     },
   };
 }

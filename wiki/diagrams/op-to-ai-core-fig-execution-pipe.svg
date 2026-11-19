@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 450" width="900" height="450" role="img" aria-label="Python 算子经 torch_npu 与 CANN Host Tiling 落到 AI Core 任务队列" font-family="var(--font-sans)">
+<title>Python Op → ACLNN 适配 → CANN Host Tiling → AI Core 任务队列与片上流水</title>
+<desc>Four-stage execution pipeline from Python operator to AI Core CopyIn, Vector Compute, and CopyOut</desc>
+<g stroke-width="1.4">
+<rect x="16" y="64" width="198" height="248" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="240" y="64" width="206" height="248" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="472" y="64" width="176" height="248" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="674" y="64" width="210" height="248" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="16" y="338" width="868" height="96" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+</g>
+<path d="M214 188h24m-5-4l5 4-5 4M446 188h24m-5-4l5 4-5 4M648 188h24m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-weight="700">
+<text x="16" y="30" font-size="16" fill="#17211f">从 Python 算子到 AI Core：ACL 适配 → Host Tiling → 任务队列 → 片上执行</text>
+<text x="115" y="92" text-anchor="middle" font-size="15" fill="#065f56">1. Python / ACL 适配</text>
+<text x="343" y="92" text-anchor="middle" font-size="15" fill="#3a4f93">2. CANN Host Tiling</text>
+<text x="560" y="92" text-anchor="middle" font-size="15" fill="#936300">3. 设备任务队列</text>
+<text x="779" y="92" text-anchor="middle" font-size="15" fill="#7a3a6a">4. AI Core 片上流水</text>
+<text x="32" y="365" font-size="14.5" fill="#17211f">两条关键边界：不要把「算子调用」「Cube / Vector 分工」与「KV Block」混为一谈</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="50" font-size="13.5">以带残差融合扩展 npu_add_rms_norm_bias 为例（GLM 子层无 residual 时直调 torch_npu.npu_rms_norm）</text>
+<text x="28" y="120" font-size="13.5">• AscendRMSNorm</text>
+<text x="28" y="144" font-size="13.5">• 进入 C++ 适配层</text>
+<text x="28" y="168" font-size="13.5">• 预分配 3 份输出：</text>
+<text x="28" y="192" font-size="13.5">  y（归一化）</text>
+<text x="28" y="214" font-size="13.5">  rstd（缩放统计）</text>
+<text x="28" y="236" font-size="13.5">  s（更新后残差）</text>
+<text x="28" y="264" font-size="13.5" fill="#065f56" font-weight="600">EXEC_NPU_CMD</text>
+<text x="28" y="288" font-size="13.5">aclnnAddRmsNormBias</text>
+<text x="252" y="120" font-size="13.5">• 读 Vector 核数与 UB</text>
+<text x="252" y="144" font-size="13.5">• 扣除 UB 预留空间</text>
+<text x="252" y="168" font-size="13.5">• 分核：former / tail</text>
+<text x="252" y="192" font-size="13.5">• 示意：10 行 ÷ 4 核</text>
+<text x="252" y="214" font-size="13.5">  → 3+3+3+1 行</text>
+<text x="252" y="238" font-size="13.5">• 按精度/宽度/bias</text>
+<text x="252" y="264" font-size="13.5" fill="#3a4f93" font-weight="600">生成 tiling key</text>
+<text x="252" y="288" font-size="13.5">与每轮 UB 搬入行数</text>
+<text x="484" y="120" font-size="13.5">• 设置 BlockDim</text>
+<text x="484" y="144" font-size="13.5">• 打包 tiling 结构体</text>
+<text x="484" y="168" font-size="13.5">• 异步入队 Stream</text>
+<text x="484" y="194" font-size="13.5" fill="#936300" font-weight="600">按 key 路由模板：</text>
+<text x="484" y="218" font-size="13.5">• 普通逐行模板</text>
+<text x="484" y="242" font-size="13.5">• 沿宽度切分模板</text>
+<text x="484" y="266" font-size="13.5">• 合并多行模板</text>
+<text x="484" y="290" font-size="13.5">→ 启动设备 kernel</text>
+<text x="686" y="120" font-size="13.5">• CopyIn：GM → UB</text>
+<text x="686" y="144" font-size="13.5">  x+res，写回残差 s</text>
+<text x="686" y="170" font-size="13.5" fill="#7a3a6a" font-weight="600">• Vector Compute：</text>
+<text x="686" y="194" font-size="13.5">  平方和归约 + 屏障</text>
+<text x="686" y="218" font-size="13.5">  倒数平方根再缩放</text>
+<text x="686" y="244" font-size="13.5">• CopyOutY / Rstd</text>
+<text x="686" y="268" font-size="13.5">  结果写回全局内存</text>
+<text x="686" y="292" font-size="13.5">• 核内循环至尾行</text>
+<text x="32" y="390" font-size="13.5">• Cube vs Vector：RMSNorm 主体在 Vector；稠密/MoE 矩阵乘进 Cube，SwiGLU 激活回到 Vector 协作交接</text>
+<text x="32" y="414" font-size="13.5">• Tiling ≠ KV Block：Tiling 只划分当前算子给哪些核与每轮搬入 UB 的行数；KV 块号由 A3 块表决定，互不改写</text>
+</g>
+</svg>

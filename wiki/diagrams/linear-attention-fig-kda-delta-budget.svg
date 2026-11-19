@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="KDA 固定状态矩阵更新流程与三笔显存记账拆解图" font-family="var(--font-sans)">
+  <title>KDA 固定二维状态更新五步法与显存三笔账</title>
+  <desc>上半区展示 KDA 每步对固定 [d_k, d_v] 状态矩阵执行按 key 通道衰减、预测、误差、Delta 写入与查询读出五步，以及 Prefill 分段 64 与 Decode 递推的等价双路径；下半区按比例对比固定状态与线性增长 KV，并拆解单请求 18.2 / 85.0 / 95.6 MiB 三笔显存账。</desc>
+  <defs>
+    <marker id="kdaf-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="kdaf-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+    <marker id="kdaf-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、KDA 固定状态更新五步法：用 [d_k, d_v] 矩阵压缩全部历史（不随序列拉长）</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="56" width="152" height="114" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="24" y="82" font-size="14.5" font-weight="700" fill="#3a4f93">1. 通道级衰减</text>
+  <text x="24" y="106" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">S̄ = Diag(α)·S</text>
+  <text x="24" y="130" font-size="13.5" fill="#4d5652">按 key 通道独立</text>
+  <text x="24" y="152" font-size="13.5" fill="#4d5652">决定旧记忆留多少</text>
+
+  <path d="M 164 113 L 186 113" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#kdaf-arr-b)"/>
+
+  <rect x="192" y="56" width="152" height="114" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="204" y="82" font-size="14.5" font-weight="700" fill="#936300">2. 旧状态预测</text>
+  <text x="204" y="106" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">v̂ = S̄^T · k</text>
+  <text x="204" y="130" font-size="13.5" fill="#4d5652">先查当前键 k 在</text>
+  <text x="204" y="152" font-size="13.5" fill="#4d5652">旧状态里存了什么</text>
+
+  <path d="M 344 113 L 366 113" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#kdaf-arr-a)"/>
+
+  <rect x="372" y="56" width="152" height="114" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.5"/>
+  <text x="384" y="82" font-size="14.5" font-weight="700" fill="#8f3229">3. 计算预测误差</text>
+  <text x="384" y="106" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">e = v − v̂</text>
+  <text x="384" y="130" font-size="13.5" fill="#4d5652">只保留新值相对</text>
+  <text x="384" y="152" font-size="13.5" fill="#4d5652">旧预测的偏差</text>
+
+  <path d="M 524 113 L 546 113" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#kdaf-arr-a)"/>
+
+  <rect x="552" y="56" width="160" height="114" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="564" y="82" font-size="14.5" font-weight="700" fill="#065f56">4. Delta 纠错写入</text>
+  <text x="564" y="106" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">S_t = S̄ + β·k·e^T</text>
+  <text x="564" y="130" font-size="13.5" fill="#4d5652">避免重复键反复累加</text>
+  <text x="564" y="152" font-size="13.5" fill="#4d5652">写坏同一行状态</text>
+
+  <path d="M 712 113 L 734 113" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#kdaf-arr-t)"/>
+
+  <rect x="740" y="56" width="148" height="114" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="752" y="82" font-size="14.5" font-weight="700" fill="#7a3a6a">5. 查询读出</text>
+  <text x="752" y="106" font-size="13.5" font-family="var(--font-mono)" fill="#17211f">o = S_t^T · q</text>
+  <text x="752" y="130" font-size="13.5" fill="#4d5652">固定常数访存</text>
+  <text x="752" y="152" font-size="13.5" fill="#4d5652">段长 64 / 递推等价</text>
+
+  <text x="14" y="208" font-size="16" font-weight="700" fill="#17211f">二、固定状态 ≠ 不占显存：GLM 单请求 34 层 KDA（每卡 8 头）的三笔显存账</text>
+  <line x1="12" y1="220" x2="888" y2="220" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="236" width="554" height="206" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="26" y="262" font-size="14.5" font-weight="700" fill="#3a4f93">三种记账口径对比（与请求长度无关：4 token 与 13 万 token 同价）</text>
+
+  <text x="26" y="294" font-size="13.5" font-weight="700" fill="#17211f">① 单份有效净载荷（34 层 × 561,152 B）</text>
+  <rect x="26" y="302" width="64" height="22" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="100" y="318" font-size="13.5" font-weight="700" fill="#065f56">18.2 MiB（512 KiB 递推 FP32 + 36 KiB 卷积 BF16）</text>
+
+  <text x="26" y="352" font-size="13.5" font-weight="700" fill="#17211f">② 页容量（1 当前 + 3 草稿 = 4 页 × 655,360 B）</text>
+  <rect x="26" y="360" width="298" height="22" rx="4" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <rect x="281" y="360" width="43" height="22" rx="3" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="334" y="376" font-size="13.5" font-weight="700" fill="#3a4f93">85.0 MiB（含 14.4% 页填充）</text>
+
+  <text x="26" y="410" font-size="13.5" font-weight="700" fill="#17211f">③ 块池记账（3 组 × 4 块 = 12 块号 × 7.969 MiB）</text>
+  <rect x="26" y="418" width="336" height="18" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="372" y="432" font-size="13.5" font-weight="700" fill="#7a3a6a">95.6 MiB</text>
+
+  <rect x="582" y="236" width="306" height="206" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="596" y="262" font-size="14.5" font-weight="700" fill="#8f3229">为何比 85.0 MiB 多出 10.6 MiB？</text>
+  <text x="596" y="290" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#8f3229">空主槽 5.0 MiB</tspan>：11 层两组</text>
+  <text x="596" y="312" font-size="13.5" fill="#4d5652">  各空 1 个主槽（2×4 块）</text>
+  <text x="596" y="340" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#8f3229">闲置小槽 5.6 MiB</tspan>：每块号绑</text>
+  <text x="596" y="362" font-size="13.5" fill="#4d5652">  12 个索引小槽，KDA 不用</text>
+  <text x="596" y="392" font-size="13.5" font-weight="700" fill="#17211f">抢占代价边界：</text>
+  <text x="596" y="414" font-size="13.5" fill="#4d5652">状态覆盖不可逆，被回收须重扫</text>
+  <text x="596" y="432" font-size="13.5" fill="#4d5652">整段提示词才能重建</text>
+</svg>

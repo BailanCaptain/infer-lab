@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 444" width="900" height="444" role="img" aria-label="NPUPlatform 配置改写级联与 get_device_total_memory 预算回退链" font-family="var(--font-sans)">
+  <title>NPUPlatform.check_and_update_config 改写级联与默认预算回退链</title>
+  <desc>6-stage check_and_update_config override cascade in v0.30.0/main and get_device_total_memory fallback to 2048 batched tokens</desc>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">NPUPlatform 配置改写级联与「拒答显存 → 2048 默认预算」链路</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">命令写入值 ≠ 最终生效值：平台校验与就地改写穿插进行，后续仍有后端与消费者二次改写</text>
+
+  <!-- Top Band: 3x2 Cascade -->
+  <rect x="16" y="64" width="276" height="86" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="30" y="88" font-size="14.5" font-weight="700" fill="#17211f">1. 入口锁版与早退</text>
+  <text x="30" y="112" font-size="13.5" fill="#4d5652">• 非 npu / 无 model_config 退出</text>
+  <text x="30" y="134" font-size="13.5" fill="#4d5652">• main 首行锁死 MRV2 补丁</text>
+
+  <path d="M294 107h16m-5-4l5 4-5 4" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="312" y="64" width="276" height="86" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="326" y="88" font-size="14.5" font-weight="700" fill="#8f3229">2. 前置组合校验与量化</text>
+  <text x="326" y="112" font-size="13.5" fill="#4d5652">• v0.30.0 跑 7 项前置校验</text>
+  <text x="326" y="134" font-size="13.5" fill="#4d5652">• 自动识别量化与 FP8 能力断言</text>
+
+  <path d="M590 107h16m-5-4l5 4-5 4" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="608" y="64" width="276" height="86" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="622" y="88" font-size="14.5" font-weight="700" fill="#936300">3. 修正与建 AscendConfig</text>
+  <text x="622" y="112" font-size="13.5" fill="#4d5652">• 先修正已知不兼容组合</text>
+  <text x="622" y="134" font-size="13.5" fill="#4d5652">• init_ascend_config 发布单例</text>
+
+  <path d="M746 150v18m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="608" y="170" width="276" height="86" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="622" y="194" font-size="14.5" font-weight="700" fill="#065f56">4. 编译 / 图模式与缓存精度</text>
+  <text x="622" y="218" font-size="13.5" fill="#4d5652">• 关 Inductor，独立控 ACLGraph</text>
+  <text x="622" y="240" font-size="13.5" fill="#4d5652">• 含 indexer top-k 改写缓存精度</text>
+
+  <path d="M606 213h-16m5-4l-5 4 5 4" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="312" y="170" width="276" height="86" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="326" y="194" font-size="14.5" font-weight="700" fill="#3a4f93">5. Worker 类与块大小改写</text>
+  <text x="326" y="218" font-size="13.5" fill="#4d5652">• auto 取硬件档案默认 Worker</text>
+  <text x="326" y="240" font-size="13.5" fill="#4d5652">• 常规归 128；混合模型保 640</text>
+
+  <path d="M310 213h-16m5-4l-5 4 5 4" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="16" y="170" width="276" height="86" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="30" y="194" font-size="14.5" font-weight="700" fill="#7a3a6a">6. PD 角色收口校验</text>
+  <text x="30" y="218" font-size="13.5" fill="#4d5652">• 均衡调度仅许 PD 混合或无 KV</text>
+  <text x="30" y="240" font-size="13.5" fill="#4d5652">• 重算调度在 producer 静默置关</text>
+
+  <!-- Bottom Band -->
+  <line x1="16" y1="274" x2="884" y2="274" stroke="#b8bcb5" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <text x="16" y="298" font-size="15" font-weight="700" fill="#17211f">更早一步的隐藏链条：EngineArgs 问总显存被拒 → 默认预算回落 2048</text>
+
+  <rect x="16" y="312" width="268" height="118" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="30" y="336" font-size="14.5" font-weight="700" fill="#8f3229">A. get_device_total_memory</text>
+  <text x="30" y="360" font-size="13.5" fill="#4d5652">• 旧版一律抛不支持异常</text>
+  <text x="30" y="384" font-size="13.5" fill="#4d5652">• v0.30.0/main 未初始化仍抛错</text>
+  <text x="30" y="408" font-size="13.5" fill="#8f3229">防过早拉起 torch_npu 运行库</text>
+
+  <path d="M286 371h26m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="316" y="312" width="268" height="118" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="330" y="336" font-size="14.5" font-weight="700" fill="#936300">B. arg_utils 吞错选小档</text>
+  <text x="330" y="360" font-size="13.5" fill="#4d5652">• 捕获异常置容量 0 → 落小档</text>
+  <text x="330" y="384" font-size="13.5" fill="#4d5652">• API 服务起点 2048（库 8192）</text>
+  <text x="330" y="408" font-size="13.5" fill="#936300">批式 DP MoE 另走 256 常量</text>
+
+  <path d="M586 371h26m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="616" y="312" width="268" height="118" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="630" y="336" font-size="14.5" font-weight="700" fill="#065f56">C. 两道独立参数闸门</text>
+  <text x="630" y="360" font-size="13.5" fill="#4d5652">• 显式参数保留原值（如 8192）</text>
+  <text x="630" y="384" font-size="13.5" fill="#4d5652">• 未显式项经翻倍/抬升/收窄</text>
+  <text x="630" y="408" font-size="13.5" fill="#065f56">真实显存由 Worker 起卡后实测</text>
+</svg>

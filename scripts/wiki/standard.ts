@@ -91,6 +91,8 @@ function blocksOf(body: string, lineOffset: number): Block[] {
 const INLINE_CODE_RE = /`[^`\n]+`/g;
 const HAN_RE = /\p{Script=Han}/gu;
 const LATIN_WORD_RE = /[A-Za-z][A-Za-z0-9_]*/g;
+/** 参数页文末由脚本生成的受保护 H2，可位于「## 对照源码」之后且不计入正文 */
+const PROTECTED_PARAM_TRAILING_H2 = new Set(["版本谱系", "参数定义（自动生成）"]);
 
 /** Keep existing prose intact while refusing newly introduced teaching citations. */
 export function proseEvidenceLines(body: string, cfg: StandardConfig): string[] {
@@ -169,7 +171,10 @@ export function measureStandard(
   else {
     const h2 = blocks
       .slice(cut + 1)
-      .filter((b): b is Extract<Block, { kind: "heading" }> => b.kind === "heading" && b.level === 2)
+      .filter(
+        (b): b is Extract<Block, { kind: "heading" }> =>
+          b.kind === "heading" && b.level === 2 && !PROTECTED_PARAM_TRAILING_H2.has(b.text),
+      )
       .map((b) => b.text);
     if (h2.length) sourceSections = `「## ${cfg.sourceSection}」之后不应再有 H2，实际有 ${h2.join(" / ")}`;
   }

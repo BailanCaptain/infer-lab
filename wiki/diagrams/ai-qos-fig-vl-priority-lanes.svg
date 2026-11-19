@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="AI QoS 虚拟通道优先级车道映射与版本三键/五键演进对比图" font-family="var(--font-sans)">
+  <title>AI QoS：端点打标 → UB 交换机重映射 → 严格优先级 VL 车道与 v0.30.0 三键演进</title>
+  <desc>关联源码符号：AiqosConfig, aiqos_table, masterid_table, MASTER_ID_SDMA, MASTER_ID_PCIEDMA, _create_parser, run_unset, set_qos</desc>
+  <defs>
+    <marker id="qos-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+    <marker id="qos-arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1: Endpoint -> Switch -> SP Arbitration -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 共享出口拥塞隔离：端点打标签 + 交换机 VL 映射 + 严格优先级（SP）仲裁</text>
+
+  <rect x="16" y="46" width="232" height="122" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="30" y="72" font-size="14.5" font-weight="700" fill="#936300">步骤 1：端点写源标签</text>
+  <text x="30" y="98" font-size="13.5" fill="#4d5652">按 DMA/AIV 硬件通道打标</text>
+  <text x="30" y="122" font-size="13.5" fill="#4d5652">经 DSMI 驱动写入设备</text>
+  <text x="30" y="146" font-size="13.5" fill="#936300">不识别用户与请求优先级</text>
+
+  <line x1="250" y1="107" x2="278" y2="107" stroke="#4d5652" stroke-width="1.8" marker-end="url(#qos-arr)"/>
+
+  <rect x="282" y="46" width="290" height="122" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="296" y="72" font-size="14.5" font-weight="700" fill="#3a4f93">步骤 2：UB 交换机映射到目标 VL</text>
+  <text x="296" y="98" font-size="13.5" fill="#4d5652">匹配（源标签 + 初始 VL）规则</text>
+  <text x="296" y="122" font-size="13.5" fill="#065f56">高优车道：优先级 3（high）先发</text>
+  <text x="296" y="146" font-size="13.5" fill="#8f3229">低优车道：优先级 1（low）让路</text>
+
+  <line x1="574" y1="107" x2="602" y2="107" stroke="#087f73" stroke-width="1.8" marker-end="url(#qos-arr-g)"/>
+
+  <rect x="606" y="46" width="278" height="122" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="620" y="72" font-size="14.5" font-weight="700" fill="#065f56">步骤 3：SP 仲裁效果与代价</text>
+  <text x="620" y="98" font-size="13.5" fill="#065f56">关键通信：4 → 1 时隙（省 3 隙）</text>
+  <text x="620" y="122" font-size="13.5" fill="#4d5652">末份后台 KV 预取：额外多等 1 隙</text>
+  <text x="620" y="146" font-size="13.5" fill="#8f3229">总时长仍为 4 隙（只挪等待）</text>
+
+  <line x1="16" y1="186" x2="884" y2="186" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: v0.23/v0.26 5-key vs v0.30.0/main 3-key -->
+  <text x="16" y="214" font-size="16" font-weight="700" fill="#17211f">② 版本映射演进：旧五键分方向（v0.23 / v0.26）vs 新三键分通道（v0.30.0 / main）</text>
+
+  <rect x="16" y="232" width="424" height="124" rx="7" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
+  <text x="30" y="258" font-size="14.5" font-weight="700" fill="#17211f">v0.23 / v0.26 / db701c1f：五键 CLI</text>
+  <text x="30" y="284" font-size="13.5" fill="#4d5652">SDMA_D2D (默认 high) + SDMA_H2D (默认 low)</text>
+  <text x="30" y="308" font-size="13.5" fill="#4d5652">共用源标签 min(6,2)=2，靠初始 VL 0/1 拆 VL 2/3</text>
+  <text x="30" y="332" font-size="13.5" fill="#66716d">入口：python tools/ai_qos.py（PCIEDMA 仅高/低）</text>
+
+  <rect x="460" y="232" width="424" height="124" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="474" y="258" font-size="14.5" font-weight="700" fill="#7a3a6a">v0.30.0 / main：三键收敛（python -m tools.ai_qos）</text>
+  <text x="474" y="284" font-size="13.5" fill="#4d5652">AIV (high) 标签4→VL2；PCIEDMA (high) 标签5→VL3</text>
+  <text x="474" y="308" font-size="13.5" fill="#4d5652">SDMA (整类默认 low) 标签6→VL4；全支持 3 档</text>
+  <text x="474" y="332" font-size="13.5" fill="#7a3a6a">初始 VL 改 cacheable 0 / noncacheable 1 汇同目标</text>
+
+  <line x1="16" y1="374" x2="884" y2="374" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 3: Operational guardrails -->
+  <text x="16" y="400" font-size="16" font-weight="700" fill="#17211f">③ 三条不可越过的运维与生效边界</text>
+
+  <rect x="16" y="412" width="278" height="48" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="155" y="441" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">AIV 参数受驱动限制当前不生效</text>
+
+  <rect x="311" y="412" width="278" height="48" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="450" y="441" text-anchor="middle" font-size="13.5" font-weight="700" fill="#936300">仅限 A3 拓扑，A2 GLM 未启用</text>
+
+  <rect x="606" y="412" width="278" height="48" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="745" y="441" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">unset 在执行交换机回滚前删快照</text>
+</svg>

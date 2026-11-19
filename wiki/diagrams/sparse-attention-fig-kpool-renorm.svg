@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="DSA/KPool 轻量索引器选池、重归一化与 IndexCache 复用对比图" font-family="var(--font-sans)">
+  <title>DSA 与 GLM KPool 选池流、稀疏重归一化与 IndexCache 复用边界</title>
+  <desc>上半区展示 GLM KPool 轻量索引器将历史每 4 位置压池、打分选 Top-512 池并追加 0-3 尾部形成最多 2051 个位置清单，再送入稀疏 FlashAttention 按 block_table 读取打包潜向量；下半区左栏对比稀疏重归一化与错误删项，右栏区分主干 F/S 跨层复用与 MTP 步间复用。</desc>
+  <defs>
+    <marker id="saf-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="saf-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+    <marker id="saf-arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、KPool 轻量索引器与稀疏主注意力：先挑位置清单，再只读选中历史</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="56" width="194" height="126" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="26" y="82" font-size="14.5" font-weight="700" fill="#065f56">1. 完整池粗打分</text>
+  <text x="26" y="106" font-size="13.5" fill="#17211f">每 4 位置压 1 条池 Key</text>
+  <text x="26" y="128" font-size="13.5" fill="#17211f">仅给因果完整池打分</text>
+  <text x="26" y="150" font-size="13.5" fill="#4d5652">未满池与未来池记 −∞</text>
+  <text x="26" y="172" font-size="13.5" fill="#66716d">扫描量仍随历史增长</text>
+
+  <path d="M 206 119 L 232 119" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#saf-arr-t)"/>
+
+  <rect x="238" y="56" width="210" height="126" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="252" y="82" font-size="14.5" font-weight="700" fill="#936300">2. Top-512 池 + 补尾</text>
+  <text x="252" y="106" font-size="13.5" fill="#17211f">最多选 512 池 × 4 = 2048</text>
+  <text x="252" y="128" font-size="13.5" fill="#17211f">再补未满池 0–3 个尾部</text>
+  <text x="252" y="150" font-size="13.5" font-family="var(--font-mono)" fill="#936300">宽 2051（空位填 -1）</text>
+  <text x="252" y="172" font-size="13.5" fill="#66716d">历史 ≤ 2051 退化为全读</text>
+
+  <path d="M 448 119 L 474 119" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#saf-arr-a)"/>
+
+  <rect x="480" y="56" width="206" height="126" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="494" y="82" font-size="14.5" font-weight="700" fill="#3a4f93">3. 按清单收集潜向量</text>
+  <text x="494" y="106" font-size="13.5" fill="#17211f">SFA 经 block_table 直读</text>
+  <text x="494" y="128" font-size="13.5" fill="#17211f">打包 512 维潜缓存</text>
+  <text x="494" y="150" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">sparse_mode = 3</text>
+  <text x="494" y="172" font-size="13.5" fill="#66716d">未选中历史仍须全留存</text>
+
+  <path d="M 686 119 L 712 119" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#saf-arr-b)"/>
+
+  <rect x="718" y="56" width="170" height="126" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="732" y="82" font-size="14.5" font-weight="700" fill="#7a3a6a">4. 重归一化汇合</text>
+  <text x="732" y="106" font-size="13.5" fill="#17211f">仅对 J(t) 重新打分</text>
+  <text x="732" y="128" font-size="13.5" fill="#17211f">重算 softmax 与汇合</text>
+  <text x="732" y="150" font-size="13.5" fill="#7a3a6a">V 上投影 + 输出投影</text>
+  <text x="732" y="172" font-size="13.5" fill="#66716d">再做 TP All-Reduce</text>
+
+  <text x="14" y="220" font-size="16" font-weight="700" fill="#17211f">二、两个核心易错点：为什么必须重归一化，以及两种位置清单复用有何不同</text>
+  <line x1="12" y1="232" x2="888" y2="232" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="246" width="430" height="196" rx="8" fill="#ffffff" stroke="#b54237" stroke-width="1.4"/>
+  <text x="26" y="272" font-size="15" font-weight="700" fill="#17211f">A. ✗ 密集后删项 vs ✓ 集合 J(t) 内重归一化</text>
+  <text x="26" y="298" font-size="13.5" fill="#4d5652">示例 4 位置分数 [ln 2, 0, 0, 0]，仅选位置 0 与 3：</text>
+  <rect x="26" y="312" width="402" height="52" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="38" y="334" font-size="13.5" font-weight="700" fill="#8f3229">✗ 误解：沿用密集分母 5 后直接删去 1、2</text>
+  <text x="38" y="355" font-size="13.5" fill="#17211f">权重 0.4 + 0.2 = 0.6 ≠ 1.0（分布已破坏）</text>
+  <rect x="26" y="374" width="402" height="54" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="38" y="396" font-size="13.5" font-weight="700" fill="#065f56">✓ 源码：分母只含选中集 J(t)（e^ln2 + e^0 = 3）</text>
+  <text x="38" y="418" font-size="13.5" fill="#17211f">权重 2/3 + 1/3 = 1.0（需按稀疏目标训练适配）</text>
+
+  <rect x="458" y="246" width="430" height="196" rx="8" fill="#ffffff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="472" y="272" font-size="15" font-weight="700" fill="#3a4f93">B. 位置清单复用的两条独立轴（仍需维护历史 Key）</text>
+  <rect x="472" y="288" width="402" height="68" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="484" y="310" font-size="13.5" font-weight="700" fill="#3a4f93">主干跨层复用（IndexCache：F 选 / S 复用）</text>
+  <text x="484" y="332" font-size="13.5" fill="#17211f">S 层省去 top-k，仍拿本层 Q/K/V 跑完整主 attention</text>
+  <text x="484" y="350" font-size="13.5" fill="#4d5652">DeepSeek 经 use_index_cache 控制；GLM 主干不跳</text>
+  <rect x="472" y="366" width="402" height="62" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.2"/>
+  <text x="484" y="388" font-size="13.5" font-weight="700" fill="#936300">MTP 草稿步间复用（第 0 步选，后续步沿用）</text>
+  <text x="484" y="410" font-size="13.5" fill="#17211f">新版 GLM 经 set_skip_topk 接通，仍持续更新池 Key 与尾</text>
+</svg>

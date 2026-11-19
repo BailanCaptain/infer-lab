@@ -288,7 +288,7 @@ file: context-parallel-ulysses
 
 现在每卡能独立完成自己两个头的完整 attention，并按原始位置应用因果掩码。输出再做一次反向的 All-to-All：卡 0 收回位置 0～3 的头 2、3，卡 1 收回位置 4～7 的头 0、1，恢复 [4, 4, d] 的位置分片，继续本卡这些位置的后续计算。交换的是激活，不需要在这里移动模型权重。
 
-基本的均分方案要求头数能被并行度整除；GQA 的多个 Q 头共享较少的 KV 头，实际实现还可能受到 KV 头数约束。Ring 按 K/V 位置块轮换，Ulysses 按头重排，两者也能在不同子组组合；Megatron 的层次 CP 就提供组内 All-to-All、组间 Ring 的方式。具体约束取决于后端及 TP 分片，不能只看序列长度选卡数。
+基本的均分方案要求头数能被并行度整除；GQA 的多个 Q 头共享较少的 KV 头，实际实现还可能受到 KV 头数约束；而 [MLA](mla.md) 把全部头的历史压成 **1 条共用潜向量**，按头重排时直接撞上“单潜头无法跨卡切分”的墙壁。Ring 按 K/V 位置块轮换，Ulysses 按头重排，两者也能在不同子组组合；Megatron 的层次 CP 就提供组内 All-to-All、组间 Ring 的方式。具体约束取决于后端及 TP 分片，不能只看序列长度选卡数。
 
 ## CP、SP 和 chunked prefill 分别改变什么？
 
@@ -329,7 +329,13 @@ file: context-parallel-paths
 parallel-mechanism:3
 ```
 
-该固定 Ascend 设计选择了收集/交换与合并方案，评估后没有采用 Ring Attention；文档给出的理由是开发复杂度与预期重叠收益。这是该实现的取舍，不能据此断言 Ring 对其他模型、硬件或长序列训练无效。
+该固定 Ascend 设计选择了收集/交换与合并方案，评估后没有采用 Ring Attention；文档给出的理由是开发复杂度与预期重叠收益。这是该实现的取舍，不能据此断言 Ring 对其他模型、硬件或长序列训练无效。把前面讲过的三条路线与 Ascend 在 `v0.30.0` / `main` 上的组合门槛放在一张对照板里看：
+
+```wiki-diagram
+file: context-parallel-fig-matrix
+```
+
+**落到 `v0.30.0` 主基线与 `main`，组合部署前需要特别核对四条门槛：** 第一，`PCP > 1` 强制要求 Model Runner V2，并拒绝 encoder-decoder、LoRA 与 `FULL` 图模式（投机解码白名单在 `v0.30.0` 为 `mtp / eagle3 / dspark`，`main` 扩至 `dflash`）；第二，SFA 复制索引路径允许 `DCP` 取 `PCP` 或 `TP × PCP`，而 GQA/MQA 同时开 PCP+DCP 时要求 `PCP == DCP`（`main` 上非 MLA/SFA 的 GQA 模型 DCP 已进入弃用告警）；第三，交错缓存的虚拟块大小在 `v0.30.0` 起按 `physical_block_size × dcp_world_size` 计算，不再重复乘 PCP；第四，GLM KPool 后端在 `v0.30.0` 仍明确拒绝 PCP 与 DCP，直到 `main` 才新增 KPool 的 PCP 支持而继续拒绝 DCP（完整四版对照见文末[版本差异](#版本差异)）。
 
 ## 历史位置怎么分着存？
 

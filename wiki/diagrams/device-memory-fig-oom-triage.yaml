@@ -1,0 +1,12 @@
+mode: native-svg
+id: device-memory-fig-oom-triage
+caption: >-
+  主机容器 OOM/变慢与 NPU 显存启动报错的分层排障地图：左侧区分 Docker 退出码 137（含主动 SIGKILL）、cgroup v2 memory.high 回收节流与 memory.max 硬上限，以及 memory.events.local 嵌套归属误区；右侧对照启动空闲校验、试跑快照断言与分配器/平台提前查询报错；底部辨析 UVA 与 MemFabric“可访问 ≠ 本地容量”边界。
+size: [900, 472]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L464-L474
+    symbols: [init_snapshot, gpu_memory_utilization, requested_memory]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L231-L244
+    symbols: [get_device_total_memory, mem_get_info]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L377-L388
+    symbols: [_disable_expandable_segments, weight_nz_mode]

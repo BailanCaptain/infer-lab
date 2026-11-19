@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 446" width="900" height="446" role="img" aria-label="LMCache 连接器边界演进与 chunk 对齐查询" font-family="var(--font-sans)">
+<title>LMCache 连接器边界演进与 chunk 对齐查询</title>
+<desc>vLLM engine to LMCacheConnectorV1 boundary, use_native split, removal of in-repo LMCacheAscendConnector in v0.30.0 and main, chunk-aligned lookup, and HMA exclusion</desc>
+<line x1="16" y1="248" x2="884" y2="248" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g stroke-width="1.4">
+<rect x="16" y="54" width="272" height="172" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="314" y="54" width="272" height="172" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="612" y="54" width="272" height="172" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="294" width="420" height="136" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="464" y="294" width="420" height="136" rx="8" fill="#fff0e9" stroke="#b54237"/>
+</g>
+<path d="M288 140h24m-5-4l5 4-5 4M586 140h24m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="28" cy="24" r="13" fill="#4c65b6"/>
+<circle cx="28" cy="270" r="13" fill="#c78300"/>
+<g font-weight="700">
+<text x="28" y="29" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
+<text x="48" y="30" font-size="16" fill="#17211f">交接边界：引擎管调度与显存块，LMCache 管外部 chunk 分层存储</text>
+<text x="30" y="80" font-size="15" fill="#3a4f93">vLLM 推理引擎侧</text>
+<text x="328" y="80" font-size="15" fill="#7a3a6a">LMCacheConnectorV1 插口</text>
+<text x="626" y="80" font-size="15" fill="#065f56">外部 LMCache 分层存储</text>
+<text x="28" y="275" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
+<text x="48" y="276" font-size="16" fill="#17211f">昇腾模块演进（v0.23 → v0.30.0 / main）与混合模型约束</text>
+<text x="30" y="320" font-size="15" fill="#936300">仓内注册演进与生命周期更新</text>
+<text x="478" y="320" font-size="15" fill="#8f3229">Chunk 取整与混合模型拦截边界</text>
+</g>
+<g fill="#4d5652" font-size="13.5">
+<text x="30" y="108">• Scheduler 问外部额外命中数</text>
+<text x="30" y="133">• 照常借本地显存块与排队</text>
+<text x="30" y="158">• Worker 传入显存槽位地址</text>
+<text x="30" y="183">• 前向前拉入，算完交出写回</text>
+<text x="30" y="208" fill="#3a4f93">• 请求结束暂缓还块防误覆写</text>
+<text x="328" y="108">• use_native=false（默认）</text>
+<text x="328" y="133">  → 调外部 lmcache 包 adapter</text>
+<text x="328" y="158">• use_native=true</text>
+<text x="328" y="183">  → 走 vLLM 自带 v1 adapter</text>
+<text x="328" y="208" fill="#7a3a6a">• 逐层模式要求 piecewise 录图</text>
+<text x="626" y="108">• 按 chunk_size 整块算哈希</text>
+<text x="626" y="133">• 任一 token 不同则整块失配</text>
+<text x="626" y="158">• 独立配置：主机内存 / 磁盘</text>
+<text x="626" y="183">  / 远端存储（逐级回源）</text>
+<text x="626" y="208" font-weight="600" fill="#065f56">• 全中留 1 位给引擎采样</text>
+<text x="30" y="346">• v0.23/v0.26：仓内注册 LMCacheAscendConnector</text>
+<text x="30" y="371" font-weight="600" fill="#936300">• v0.30.0/main：已移除仓内注册，插件包自注册</text>
+<text x="30" y="396">• main 增 bind_connector_metadata 适配延迟加载</text>
+<text x="30" y="420" fill="#66716d">• 须固定 vLLM / Ascend / LMCache / 插件四版</text>
+<text x="478" y="346">• 仅拿 prompt 查询（自带 adapter 补不回生成段）</text>
+<text x="478" y="371">• 未实现 SupportsHMA：与 GLM 混合管理器互斥</text>
+<text x="478" y="396">• MLA 逐层模式报错不支持；非 naive 序列化报错</text>
+<text x="478" y="420" font-weight="600" fill="#8f3229">• 对比 AscendStore：不注册显存直传，靠外部包</text>
+</g>
+</svg>

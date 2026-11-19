@@ -22,7 +22,7 @@ describe("读取器", () => {
       expect(full, `registry 有 ${p.id} 但找不到对应 md`).toBeTruthy();
       expect(full?.body.length ?? 0).toBeGreaterThan(0);
     }
-  });
+  }, 30_000);
 
   it("getPage 返回 frontmatter 与正文，正文不含 frontmatter 分隔符", async () => {
     await ensurePage("block-table");

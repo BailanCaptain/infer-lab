@@ -1,0 +1,14 @@
+mode: native-svg
+id: glm-5-3-flash-fig-param-budget
+caption: >-
+  GLM-5.3-Flash 参数构成与加载精度全景（例外 B 绑定标尺）：上半按比例展示主干 3,133 亿参数中路由专家占 97.2%（3,044.1 亿），而单 token 实际激活约 174 亿中半数以上来自全算的 attention / 词表 / 共享专家（89.2 亿），揭示为何不能按 8/288 估算计算量；下半对比 HF FP8、W8A8 两版量化目录与加载后常驻 FP32 模块。
+size: [900, 440]
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2053-L2242'
+    symbols:
+      - AscendGlm5NextDecoderLayer
+      - AscendGlm5NextMoE
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L180-L225'
+    symbols:
+      - DeepSeekV2FusedQkvAProjLinear
+      - kv_b_proj

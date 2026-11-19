@@ -2270,6 +2270,9 @@ export async function mountParallelMechanism(host: HTMLDivElement, kind: number,
         r.dispose();
       });
       renderer.dispose();
+      try {
+        renderer.forceContextLoss();
+      } catch {}
       renderer.domElement.remove();
       overlay.remove();
     },

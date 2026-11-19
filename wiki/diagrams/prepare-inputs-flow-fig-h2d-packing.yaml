@@ -1,0 +1,14 @@
+mode: native-svg
+id: prepare-inputs-flow-fig-h2d-packing
+caption: >-
+  Host 持久批次到设备张量打包流：从 CPU Pinned Buffer 与持久批次增量更新出发，并行发起非阻塞块表 H2D 拷贝与行展平计算，经 NPU 槽位核写入 slot_mapping（补齐行填 -1），最后按 KV 缓存组复制 CommonAttentionMetadata 并区分 SFA 补假请求与 KDA 不含假请求两份边界。
+size: [900, 450]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1279-L1340
+    symbols: [_prepare_inputs]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1058-L1095
+    symbols: [_pad_query_start_loc_for_fia]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L151-L185
+    symbols: [compute_slot_mapping]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/worker/v2/input_batch.py#L29-L85
+    symbols: [AscendInputBuffers, AscendInputBatch]

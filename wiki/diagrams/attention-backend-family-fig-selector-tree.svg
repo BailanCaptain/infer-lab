@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="昇腾注意力后端选择决策树" font-family="var(--font-sans)">
+<title>AscendAttentionBackend / MLA / SFA / DSA / Linear / FA3(PIECEWISE) 选择决策树</title>
+<desc>Attention backend selector tree in NPUPlatform.get_attn_backend_cls vs layer-direct Linear GDN/KDA path</desc>
+<g stroke-width="1.4">
+<rect x="16" y="64" width="236" height="104" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="276" y="64" width="608" height="104" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="196" width="276" height="134" rx="8" fill="#fff0e9" stroke="#b54237"/>
+<rect x="312" y="196" width="276" height="134" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="608" y="196" width="276" height="134" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="16" y="354" width="868" height="100" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+</g>
+<path d="M580 168v14H154v12m-4-5l4 5 4-5M580 182H450v12m-4-5l4 5 4-5M580 182h166v12m-4-5l4 5 4-5" fill="none" stroke="#17211f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M746 330v22m-4-5l4 5 4-5" fill="none" stroke="#4c65b6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-weight="700">
+<text x="16" y="30" font-size="16" fill="#17211f">昇腾注意力后端选择树：层直报（Linear）vs 平台 get_attn_backend_cls</text>
+<text x="30" y="92" font-size="15" fill="#7a3a6a">旁路：Linear（KDA / GDN）</text>
+<text x="292" y="92" font-size="15" fill="#065f56">通用入口：get_attn_backend_cls(use_mla, use_sparse, use_compress)</text>
+<text x="30" y="224" font-size="14.5" fill="#8f3229">1. 前置特判：FA3 / CANN FA</text>
+<text x="326" y="224" font-size="14.5" fill="#936300">2. 硬件与上下文并行分支</text>
+<text x="622" y="224" font-size="14.5" fill="#3a4f93">3. 通用四元组查表（默认主干）</text>
+<text x="30" y="380" font-size="14.5" fill="#17211f">Runner 按「后端完整类名 + KV 缓存规格」把层归拢成组（GLM 混合层示例）</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="50" font-size="13.5">后端按层挂载，不存在「整模型唯一后端」；同一前向可同时运行 KDA、稀疏 MLA 与只管缓存的后端</text>
+<text x="30" y="118" font-size="13.5">• 不查平台后端表</text>
+<text x="30" y="140" font-size="13.5">• 层直报 AscendGDNAttention</text>
+<text x="30" y="158" font-size="13.5">  Backend（拒 PCP &gt; 1）</text>
+<text x="292" y="118" font-size="13.5">• 门控顺序：前置特判（FA3 / main FA）→ 310P 兼容族 → MRV2 PCP → 四元组表</text>
+<text x="292" y="142" font-size="13.5">• v0.30.0 / main 下 GLM 稀疏层拆出 MLA 包装层，经通用表命中 AscendSFABackend</text>
+<text x="30" y="250" font-size="13.5">• FA3（AscendFABackend）：</text>
+<text x="30" y="272" font-size="13.5">  !use_pcp + rl 训推一致(0.30+)</text>
+<text x="30" y="294" font-size="13.5">  须 PIECEWISE，拒 FULL_DECODE</text>
+<text x="30" y="316" font-size="13.5">• main：fa_v1 / flash_attn_npu_3</text>
+<text x="326" y="250" font-size="13.5">• 310P（COMPATIBILITY 族）：</text>
+<text x="326" y="272" font-size="13.5">  → AscendAttentionBackend310</text>
+<text x="326" y="294" font-size="13.5">• use_pcp=True（MRV2 PCP）：</text>
+<text x="326" y="316" font-size="13.5">  → 查独立 PCP 表，缺项抛错</text>
+<text x="622" y="250" font-size="13.5">• (F,F,F) → AscendAttention</text>
+<text x="622" y="272" font-size="13.5">• (T,F,F) → AscendMLABackend</text>
+<text x="622" y="294" font-size="13.5">• (T,T,F) → AscendSFABackend</text>
+<text x="622" y="316" font-size="13.5">• (T,F,T) → AscendDSABackend</text>
+<text x="30" y="406" font-size="13.5">• 同次前向：34 层 KDA 进 GDN 组；11 层主干 + 1 层 MTP 稀疏 MLA 进 SFA 组（各附 2 个 cache-only 后端）</text>
+<text x="30" y="430" font-size="13.5">• 切换后端须同时对齐五项：机制语义 / 状态布局 / dtype / head 形状 / 并行与图等级，缺一即结果错</text>
+</g>
+</svg>

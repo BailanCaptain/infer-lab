@@ -1,0 +1,20 @@
+mode: native-svg
+id: inference-capacity-fig-sla-knee-metrics
+caption: >-
+  单实例 SLO 拐点、双层监控放行指标与 N+1 故障积压消退曲线：左上方演示到达率从 3→5 条/秒稳态到 6 条/秒队列发散的拐点选择；右上方对齐 /metrics 与昇腾 ms_service_metric 监控入口；下半给出 3 套实例少 1 套后 120 秒积压 240 条、恢复后再经 80 秒消退的完整时间轴。
+size: [900, 490]
+pins:
+  - source: 'vllm@ced6857a:vllm/entrypoints/serve/instrumentator/metrics.py#L56-L82'
+    symbols:
+      - attach_router
+      - make_asgi_app
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/observability/provider.py#L1-L21'
+    symbols:
+      - MetricProvider
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/observability/config/base_metrics.yaml#L1-L45'
+    symbols:
+      - execute_model
+      - _prepare_inputs
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2498-L2535'
+    symbols:
+      - finish_requests

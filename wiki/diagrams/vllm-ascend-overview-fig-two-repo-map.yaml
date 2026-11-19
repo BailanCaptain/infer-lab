@@ -1,0 +1,14 @@
+mode: native-svg
+id: vllm-ascend-overview-fig-two-repo-map
+caption: >-
+  vLLM 与 vllm-ascend 两仓解耦架构全景：上方展示上游请求/调度框架与昇腾五大扩展点（Platform、Patch、Model Registry、CustomOp/Backend、AscendConfig）的职责与状态边界；下方标注 v0.30.0 引入的 HardwareProfile 四家族抽象，以及 v0.30.0（65 补丁、MRV1+MRV2 并存）到 main（59 补丁、全量 MRV2）的收敛演进。
+size: [900, 454]
+pins:
+  - source: 'vllm-ascend@c09d3e20:setup.py#L506-L517'
+    symbols: [vllm, platform_plugins, general_plugins, ms_service_metric]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L279-L355'
+    symbols: [_HARDWARE_PROFILES, HardwareProfile, AscendDeviceType, HardwareCapability]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/__init__.py#L17-L56'
+    symbols: [patch_use_v2_model_runner, patch_engine_core, STANDARD_MAMBA_PATCH]
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L72'
+    symbols: [use_v2_model_runner, apply_v2_model_runner_config_patch]

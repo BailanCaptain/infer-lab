@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460" role="img" aria-label="torch.compile FX 图切分对照：PIECEWISE 分段 vs FULL 整图" font-family="var(--font-sans)">
+<title>PIECEWISE 分段切分 FX 图 vs FULL / FULL_DECODE_ONLY 清空 splitting_ops 整图捕获</title>
+<desc>Comparison of torch.compile FX graph splitting in PIECEWISE vs FULL modes with AscendCompiler and ACLGraphWrapper</desc>
+<line x1="450" y1="62" x2="450" y2="346" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g stroke-width="1.4">
+<rect x="16" y="102" width="126" height="62" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="156" y="102" width="134" height="62" rx="7" fill="#fff0e9" stroke="#b54237" stroke-dasharray="5 3"/>
+<rect x="304" y="102" width="124" height="62" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="192" width="412" height="66" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="16" y="280" width="412" height="62" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="472" y="102" width="412" height="62" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="472" y="192" width="412" height="66" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="472" y="280" width="412" height="62" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="366" width="868" height="80" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+</g>
+<path d="M79 164v26m-4-5l4 5 4-5M366 164v26m-4-5l4 5 4-5M222 258v20m-4-5l4 5 4-5" fill="none" stroke="#4c65b6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M678 164v26m-4-5l4 5 4-5M678 258v20m-4-5l4 5 4-5" fill="none" stroke="#087f73" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-weight="700">
+<text x="16" y="30" font-size="16" fill="#17211f">torch.compile FX 图切分：PIECEWISE 绕开注意力 vs FULL 清空切分表</text>
+<text x="16" y="88" font-size="15" fill="#8f3229">路径 A：PIECEWISE / FULL_AND_PIECEWISE（分段）</text>
+<text x="472" y="88" font-size="15" fill="#065f56">路径 B：FULL / FULL_DECODE_ONLY（纯整图）</text>
+<text x="79" y="128" text-anchor="middle" font-size="14.5" fill="#065f56">子图 1</text>
+<text x="223" y="128" text-anchor="middle" font-size="14.5" fill="#8f3229">Attention 切口</text>
+<text x="366" y="128" text-anchor="middle" font-size="14.5" fill="#065f56">子图 2</text>
+<text x="222" y="218" text-anchor="middle" font-size="14.5" fill="#3a4f93">AscendCompiler → fusion_pass_compile</text>
+<text x="222" y="306" text-anchor="middle" font-size="14.5" fill="#936300">各子图分别捕获，Attention 切口逐轮提交</text>
+<text x="678" y="128" text-anchor="middle" font-size="14.5" fill="#065f56">整段 FX 单图（splitting_ops = [] 清空）</text>
+<text x="678" y="218" text-anchor="middle" font-size="14.5" fill="#7a3a6a">AscendCompiler → npugraph_ex_compile</text>
+<text x="678" y="306" text-anchor="middle" font-size="14.5" fill="#065f56">ACLGraphWrapper 整趟捕获，单次提交回放</text>
+<text x="32" y="392" font-size="14.5" fill="#17211f">排查切记：--enforce-eager 与 cudagraph_mode=NONE 会把编译与捕获两层一起关掉</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="50" font-size="13.5">三层各司其职：torch.compile 管前端切分 → AscendCompiler 管融合改写 → ACLGraphWrapper 管捕获回放</text>
+<text x="79" y="150" text-anchor="middle" font-size="13.5">Norm / QKV</text>
+<text x="223" y="150" text-anchor="middle" font-size="13.5">图外 eager</text>
+<text x="366" y="150" text-anchor="middle" font-size="13.5">OProj / MLP</text>
+<text x="222" y="242" text-anchor="middle" font-size="13.5">切分 unified_attention / mla / dsa；关 npugraph_ex</text>
+<text x="222" y="328" text-anchor="middle" font-size="13.5">适合 FA3（主机 tiling）或混合批不满足整图时</text>
+<text x="678" y="150" text-anchor="middle" font-size="13.5">Norm → QKV → Attention → MLP/MoE 同一区间</text>
+<text x="678" y="242" text-anchor="middle" font-size="13.5">可叠 static / super kernel；ImportError 退 torchair</text>
+<text x="678" y="328" text-anchor="middle" font-size="13.5">整齐 decode + DP 对齐命中；混入 prefill 退 eager</text>
+<text x="32" y="416" font-size="13.5">• 昇腾平台设 simple_compile_backend="eager" 关掉上游 Inductor，换用 AscendCompiler + ACLGraphWrapper</text>
+<text x="32" y="436" font-size="13.5">• 独立隔离实验：先分清关的是 npugraph_ex（切本地 pass）、图档位还是融合子开关，勿把强制 eager 当单一变量</text>
+</g>
+</svg>

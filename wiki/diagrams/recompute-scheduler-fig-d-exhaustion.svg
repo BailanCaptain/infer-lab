@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 446" width="900" height="446" role="img" aria-label="RecomputeScheduler D 节点 KV 耗尽三路处置漏斗" font-family="var(--font-sans)">
+<title>RecomputeScheduler D 节点 KV 耗尽三路处置漏斗</title>
+<desc>D-node KV allocation failure decision branches in v0.30.0 and main: offload via PreemptOffloadConnector vs finish and return to P vs fine-grained TP abort, compared against vanilla local recompute</desc>
+<line x1="16" y1="300" x2="884" y2="300" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g stroke-width="1.4">
+<rect x="16" y="48" width="868" height="72" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="16" y="148" width="276" height="132" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="312" y="148" width="276" height="132" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="608" y="148" width="276" height="132" rx="8" fill="#fff0e9" stroke="#b54237"/>
+<rect x="16" y="344" width="868" height="86" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+</g>
+<path d="M154 120v26m-4-5l4 5 4-5M450 120v26m-4-5l4 5 4-5M746 120v26m-4-5l4 5 4-5" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="28" cy="22" r="13" fill="#4c65b6"/>
+<circle cx="28" cy="322" r="13" fill="#66716d"/>
+<g font-weight="700">
+<text x="28" y="27" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
+<text x="48" y="28" font-size="16" fill="#17211f">D 节点续块失败（allocate_slots 返回 None）后的三路分流（v0.30.0 / main）</text>
+<text x="32" y="74" font-size="15" fill="#3a4f93">前置守门：检查 pending frees 与即时可还块 → 按调度策略（含 PRIORITY）选出待让出请求</text>
+<text x="30" y="174" font-size="15" fill="#065f56">路线 A：卸载到主机内存</text>
+<text x="326" y="174" font-size="15" fill="#936300">路线 B：退回 P 节点重算</text>
+<text x="622" y="174" font-size="15" fill="#8f3229">路线 C：细粒度 TP 直接中止</text>
+<text x="28" y="327" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
+<text x="48" y="328" font-size="16" fill="#17211f">对照：普通上游 Scheduler 本机重算 &amp; 开启前提</text>
+</g>
+<g fill="#4d5652" font-size="13.5">
+<text x="32" y="102">调用 update_state_before_preempt()（异常捕获按失败处理）；若无可即时释放块则停止本轮抢占</text>
+<text x="30" y="200">• 钩子返回 True（主机块够）</text>
+<text x="30" y="224">• 记 PreemptedRequestData</text>
+<text x="30" y="248">• 还显存块、排回 waiting 队首</text>
+<text x="30" y="269" font-weight="600" fill="#065f56">• 步内禁接新单，恢复免重算</text>
+<text x="326" y="200">• 钩子返回 False / 无卸载器</text>
+<text x="326" y="224">• 正式 finish 引擎请求并还块</text>
+<text x="326" y="248">• 发 STOP + recomputed 标记</text>
+<text x="326" y="269" font-weight="600" fill="#936300">• 代理拼「原问题+已生成」投 P</text>
+<text x="622" y="200">• oproj 或 mlp 细粒度 TP &gt; 1</text>
+<text x="622" y="224">• 启动即强制配 PreemptOffload</text>
+<text x="622" y="248">• 运行时保存失败不走回 P 降级</text>
+<text x="622" y="269" font-weight="600" fill="#8f3229">• 直接置 FINISHED_ABORTED</text>
+<text x="32" y="370">• 上游默认（无本调度器）：还块清零排回 D 本地 waiting，挤占 D 端紧缩的 decode 步预算（拖慢或 OOM）</text>
+<text x="32" y="394">• 仅 PD 分离 D 节点（kv_consumer）；P 端误开警告关闭，混部报 ValueError；与 DyntraLB 组 4 专用类</text>
+<text x="32" y="418" fill="#66716d">• 静默覆写：v0.30.0 排后的 profiling_chunk / batch_job_sched 覆写调度类；main 去 profiling_chunk 并关 SWA</text>
+</g>
+</svg>

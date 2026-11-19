@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 496" width="900" height="496" role="img" aria-label="KVPP MLA 按层常驻布局、双暂存区提前广播与 v0.30.0/main 约束图" font-family="var(--font-sans)">
+  <title>KVPP：MLA 按层常驻、双暂存区提前一层整层广播与版本边界</title>
+  <desc>上半对比普通 TP 逐卡复制全部 L 层 MLA KV 与 KVPP 按层常驻（⌈L/N⌉ 常驻层 + 2 暂存区 + 复制 MTP），展示计算流与独立广播流的重叠节拍；下半列出 v0.30.0 与 main 对执行模式（eager/PIECEWISE）、非混合 MLA、DCP 互斥与连接器白名单的限制。</desc>
+  <defs>
+    <marker id="kvpp-arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="kvpp-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、单卡显存账对比（MLA 潜向量）：从每卡存全层 → 常驻层 + 2 暂存区</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="52" width="380" height="122" rx="9" fill="#fff0e9" stroke="#b54237"/>
+    <rect x="424" y="52" width="464" height="122" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+  </g>
+  <path d="M 392 113 L 418 113" fill="none" stroke="#087f73" stroke-width="2.2" marker-end="url(#kvpp-arr-teal)"/>
+
+  <text x="26" y="78" font-size="15" font-weight="700" fill="#8f3229">不开 KVPP（普通 TP 组 N 张卡）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="103">MLA 潜向量所有头共用，无法随头切分：</text>
+    <text x="26" y="126">每卡存 <tspan font-weight="700" fill="#8f3229">全部 L 层 + MTP</tspan>（N 份一模一样）</text>
+    <text x="26" y="152">8 层 4 卡示意：每块占 <tspan font-family="var(--font-mono)" fill="#8f3229">8 × B</tspan> → 仅分 <tspan font-weight="700" fill="#8f3229">6 块</tspan></text>
+  </g>
+
+  <text x="438" y="78" font-size="15" font-weight="700" fill="#065f56">开启 KVPP（组大小 = TP × PCP，不跨 DP/PP）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="438" y="103">每卡常驻 <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">⌈L/N⌉</tspan> 连续层 + <tspan font-weight="700" fill="#936300">2 暂存区</tspan> + 复制 MTP 层</text>
+    <text x="438" y="126">单块物理成本：<tspan font-family="var(--font-mono)" fill="#065f56">persistent + 2 × max_bundle</tspan></text>
+    <text x="438" y="152">8 层 4 卡示意：每块 <tspan font-family="var(--font-mono)" fill="#065f56">(2+2)×B</tspan> → 翻倍至 <tspan font-weight="700" fill="#065f56">12 块</tspan>（取各卡最小）</text>
+  </g>
+
+  <text x="14" y="206" font-size="16" font-weight="700" fill="#17211f">二、前向流水节拍：独立广播流提前一层发整层 bundle（双暂存区交替复用）</text>
+  <line x1="12" y1="218" x2="888" y2="218" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.4">
+    <rect x="12" y="232" width="124" height="46" rx="7" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="148" y="232" width="234" height="46" rx="7" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="394" y="232" width="238" height="46" rx="7" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="644" y="232" width="244" height="46" rx="7" fill="#fff4cf" stroke="#c78300"/>
+
+    <rect x="12" y="290" width="124" height="46" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="148" y="290" width="234" height="46" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="394" y="290" width="238" height="46" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="644" y="290" width="244" height="46" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+  </g>
+
+  <g font-size="13.5" font-weight="700" text-anchor="middle">
+    <text x="74" y="260" fill="#17211f">NPU 计算流</text>
+    <text x="265" y="253" fill="#936300">第 0 层：Q/KV 投影 → 等 L0</text>
+    <text x="513" y="253" fill="#936300">第 0 层 Attn + 第 1 层投影</text>
+    <text x="766" y="253" fill="#936300">等 L1 → 第 1 层 Attn + 写回</text>
+
+    <text x="74" y="318" fill="#7a3a6a">独立广播流</text>
+    <text x="265" y="311" fill="#7a3a6a">发 L0 整层广播 → 暂存 0</text>
+    <text x="513" y="311" fill="#3a4f93">一等完 L0 立刻预发 L1 → 暂存 1</text>
+    <text x="766" y="311" fill="#7a3a6a">一等完 L1 立刻预发 L2 → 暂存 0</text>
+  </g>
+
+  <g font-size="13.5" fill="#4d5652" text-anchor="middle">
+    <text x="265" y="271">（仅本批含历史时广播）</text>
+    <text x="513" y="271">（与 L1 广播并行遮挡）</text>
+    <text x="766" y="271">（常驻卡保新 KV，暂存区被覆盖）</text>
+
+    <text x="265" y="329">按整层已分配块全发，不挑活跃块</text>
+    <text x="513" y="329">双暂存区按层号 % 2 轮换</text>
+    <text x="766" y="329">全新 prefill / 试跑整步零广播</text>
+  </g>
+
+  <text x="14" y="370" font-size="16" font-weight="700" fill="#17211f">三、v0.30.0 主基线与 main 准入边界（启动期 KVPPConfig.validate）</text>
+  <line x1="12" y1="382" x2="888" y2="382" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="394" width="430" height="90" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="458" y="394" width="430" height="90" rx="9" fill="#fff0e9" stroke="#b54237"/>
+  </g>
+
+  <text x="26" y="420" font-size="14.5" font-weight="700" fill="#3a4f93">模型、模式与并行约束</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="445">• 仅限<tspan font-weight="700" fill="#17211f">非混合 MLA</tspan>（拒 GLM 混合架构）与单组全注意力</text>
+    <text x="26" y="468">• 放行 <tspan font-family="var(--font-mono)" fill="#3a4f93">eager</tspan> 或 <tspan font-family="var(--font-mono)" fill="#3a4f93">PIECEWISE</tspan>；与 <tspan font-family="var(--font-mono)" fill="#8f3229">DCP &gt; 1</tspan> 互斥</text>
+  </g>
+
+  <text x="472" y="420" font-size="14.5" font-weight="700" fill="#8f3229">KV 连接器白名单（v0.30.0 vs main）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="472" y="445">• v0.30.0：<tspan font-family="var(--font-mono)">MooncakeConnectorV2</tspan>（仅 P）、<tspan font-family="var(--font-mono)">AscendStore</tspan></text>
+    <text x="472" y="468">• main 增 <tspan font-family="var(--font-mono)">MooncakePush</tspan>（拒 D）；拒逐层 CP</text>
+  </g>
+</svg>

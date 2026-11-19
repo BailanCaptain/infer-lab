@@ -1,0 +1,14 @@
+mode: native-svg
+id: ascend-patch-system-fig-lifecycle
+caption: >-
+  vllm-ascend 两阶段补丁生命周期与演进全景：阶段一在平台准备钩子与三个通用插件入口（经 _ensure_global_patch）导入 patch/platform（v0.30.0 为 32 个文件），阶段二在 NPUWorker 构造开头导入 patch/worker 与 patch_v2（v0.30.0 为 19+14 个文件）；下方对照 from-import 副本陷阱与 v0.30.0（65 补丁、HardwareProfile 能力门控）至 main（59 补丁、退役 patch_v2/）的收敛。
+size: [900, 444]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/__init__.py#L17-L62'
+    symbols: [patch_use_v2_model_runner, patch_engine_core, STANDARD_MAMBA_PATCH]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/worker/__init__.py#L18-L85'
+    symbols: [HAS_TRITON, STANDARD_WORKER_PATCHES, patch_distributed, patch_rejection_sampler]
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L7'
+    symbols: [apply_v2_model_runner_config_patch]
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L72'
+    symbols: [use_v2_model_runner, apply_v2_model_runner_config_patch]

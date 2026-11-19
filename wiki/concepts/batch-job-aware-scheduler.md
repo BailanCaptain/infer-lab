@@ -223,6 +223,13 @@ file: batch-job-aware-scheduler-flow
 - **只换了 waiting 这一条队列。** 上游另有一条挂起队列，放暂时不能排的请求，先来先服务模式下上游先从它取，进了这条队列的请求不经过预留、冷启动、作业排序和 best fit。带结构化输出（structured output，比如按 JSON schema 生成）的请求**一到达就进挂起队列**，等语法编译好，直接从那里排上，整条绕过本调度器；只有它后来被抢占，才退回作业桶。等远端传来的 KV、LoRA 个数已满这类请求，则是这一步排到时临时放进去的。离线批处理里用 JSON schema 做抽取、分类很常见，这类负载上本调度器新增的逻辑基本不起作用。
 - **估计不准照样会抢占。** 预留只看下一步，R 又被 M 封顶；最终还是由上游在借块时决定抢不抢。
 - **不看被抢占请求的真实工作量。** best fit 比的是提示词长度；被抢占退回的请求要重算的还包括它已经生成的部分，实际比提示词长。
+- **多调度器同时开启时存在静默覆盖顺序。** 在 `v0.30.0` 的平台初始化流程中，与[短请求优先](short-request-first.md)同开会直接抛 `ValueError` 显式互斥；但与其他扩展调度器（`recompute_scheduler`、`dyntra_lb`、`profiling_chunk`）同开时，平台按先后顺序依次改写 `scheduler_cls`，`batch_job_sched_config` 排在最末位，会静默覆盖前面已经选好的调度器类（`main` 移除 `profiling_chunk` 后仍排在 `recompute_scheduler` 与 `dyntra_lb` 之后）。
+
+下图把两级准入闸门、多调度器静默覆盖链和两类易踩空的边界合到同一视图里：
+
+```wiki-diagram
+file: batch-job-aware-scheduler-fig-override-priority
+```
 
 ## 放到 GLM 双机：本部署没有它，场景 M 里它会多问什么
 

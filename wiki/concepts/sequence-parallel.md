@@ -257,14 +257,17 @@ DeepSpeed Ulysses 的命名也属于 sequence parallelism。一个 attention 头
 
 ## vllm-ascend 里的 SP 是怎样接进去的？
 
-以下按本页固定镜像 `db701c1f` 解释 FlashComm1。它是 Ascend 的一条 SP 路径，开关是 `enable_flashcomm1`，也可以用环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1`，该开关默认关；共享专家配置还可能间接开启它，见[怎么开](#怎么开)。每一步前向开始时先判断这一步走不走 SP，再为选中的投影路径改三处。细粒度 TP、FlashComm2、视觉编码器和模型专用路径另有分支，不能把下面的入口出口替换套到所有线性层。
+以下先按本页固定镜像 `db701c1f` 解释 FlashComm1，再补充 `v0.30.0` 与 `main` 的路径收口。FlashComm1 是 Ascend 的一条 SP 路径，开关是 `enable_flashcomm1`，也可以用环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1`，该开关默认关闭；在旧版中共享专家配置还可能间接开启它，见[怎么开](#怎么开)。每一步前向开始时先判断这一步走不走 SP，再为选中的投影路径改动三处；细粒度 TP、FlashComm2、视觉编码器和模型专用路径另有分支，不能把下面的入口出口替换套到所有线性层。
 
-
-固定镜像的 MoE 上下文除了检查 SP 开关，还要求本次 token 数不为空；进入这条分支时会关闭单独的矩阵乘加 Reduce-Scatter 融合标志。这是该 MoE 分支的组合条件，不能只凭全局开关推断所有层的通信融合。
-
-1. **这一步走不走。** MoE 模型（前馈层由多个专家网络组成的模型，见 [MoE](moe.md)）要求开关打开且本次 `num_tokens` 不是 `None`，没有 1000 token 门槛；稠密模型（没有专家、每层就是普通 MLP 的模型）还要求这一步 token 数超过 1000；稠密的草稿模型（投机解码里负责先猜几个 token 的小模型）不走这条路径。决定走 SP 时，同时算好要补几行：补齐行数 = (N − T mod N) mod N。
+1. **这一步走不走。** MoE 模型（前馈层由多个专家网络组成的模型，见 [MoE](moe.md)）要求开关打开且本次 `num_tokens` 不是 `None`，没有 1000 token 门槛；进入这条 MoE 上下文分支时会同步关闭单独的「矩阵乘 + Reduce-Scatter」融合标志（这是 MoE 分支的组合条件，不能只凭全局开关推断所有层的融合状态）。稠密模型（没有专家、每层就是普通 MLP 的模型）还要求这一步 token 数超过 1000；稠密的草稿模型（投机解码里负责先猜几个 token 的小模型）不走这条路径。决定走 SP 时，同时算好要补几行：补齐行数 = (N − T mod N) mod N。
 2. **行切投影的出口换成 Reduce-Scatter。** 进入 `SequenceRowParallelOp` 且需要 TP 归约的 attention 输出、MLP 降维等投影，不再做 All-Reduce，而是补齐后 Reduce-Scatter。非 MoE 模型且 TP 不超过 8 时，未量化或所支持的静态 W8A8 方法还能把矩阵乘与归约融合；动态 W8A8 等其他方法仍分开执行。静态 W8A8 融合输出显式设成 BF16（量化精度见[量化页](quantization.md)）。本次 FlashComm1 未生效时，这个归约分支仍执行 All-Reduce。
 3. **列切投影的入口先 All-Gather。** 选入 `SequenceColumnParallelOp` 的投影在矩阵乘之前收集输入、去掉补齐行，拿到该 TP 组的全部行再算；视觉语言模型首层 attention 已持有完整嵌入输入时会跳过这次收集。
+
+```wiki-diagram
+file: sequence-parallel-fig-rs-ag-pcp
+```
+
+**落到 `v0.30.0` 主基线与 `main`，这套接线有四处显式变化：** 第一，`v0.30.0` 已移除 `SequenceRowParallelOp` 和前向上下文中的稠密 1000 token 门槛，将 `enable_sp()` 统一收敛为「MoE 序列并行或 Qwen3.5 稠密族 SP」，并强校验 `tp_size > 1` 且 MoE 须开 EP；第二，开启 `SP + PCP > 1` 时，若 `max_num_batched_tokens` 不能整除 `tp_size × pcp_size`，配置阶段会自动向上取整并打出 warning（这是容量对齐，不是额外真实 token）；第三，在 `v0.30.0` 中若通过上游图编译改写同时启用 `SP + PP > 1` 且未显式禁用 `-rms_norm`，上游会自动向 `custom_ops` 追加 `+rms_norm` 以避开追踪报错，而 `main` 配套上游已整体移除 `PassConfig.enable_sp`；第四，`main` 不再由 `enable_dsa_cp` 联动开启 FlashComm1，并在 `FlashComm1` 与 `use_sequence_parallel_moe` 同时启用时自动关闭量化归约以免冲突（完整四版对照见文末[版本差异](#版本差异)）。
 
 共享专家（MoE 里每个 token 都会经过的那个专家）另有安排：固定版本的 `shared_expert_dp_enabled()` 在共享专家 DP、FlashComm1 或图改写 SP 任一开启时为真；匹配共享专家前缀的线性层便**不再按 TP 切**。在本页正常 FlashComm1 前向中，每张卡存一整份共享专家权重，只算本卡那几行 token，输出也不再为共享权重切片做 TP All-Reduce。这是这种实现里「权重反而变多」的地方；共享专家直接在本卡已有的 token 行上算，不用先 All-Gather。其他模型的共享分支和新版实现仍需分别核对。
 

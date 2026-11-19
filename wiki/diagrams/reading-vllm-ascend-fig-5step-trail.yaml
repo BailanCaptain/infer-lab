@@ -1,0 +1,22 @@
+mode: native-svg
+id: reading-vllm-ascend-fig-5step-trail
+caption: >-
+  从入口到设备核函数的 5 步源码走读路径：先锁定双仓库 commit 与 HardwareProfile，再依次穿过「入口点与平台注册 → 配置合并与平台改写 → Runner 输入准备与设备迁移 → 6 类扩展点与分派解析 → 底层算子与图回放同步边界」，将任意问题写成可核验的输入输出与生效条件。
+size: [900, 474]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/__init__.py#L72-L110'
+    symbols:
+      - register
+      - register_model
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L218-L401'
+    symbols:
+      - HardwareProfile
+      - get_current_hardware_profile
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L819-L905'
+    symbols:
+      - register_ascend_customop
+      - REGISTERED_ASCEND_OPS
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L35'
+    symbols:
+      - _patched_use_v2_model_runner
+      - VLLM_USE_V2_MODEL_RUNNER

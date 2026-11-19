@@ -1,0 +1,9 @@
+mode: native-svg
+id: mla-fig-latent-absorb
+caption: MLA 潜向量压缩与 Decode 矩阵吸收路径：对比普通 MHA 的 64 倍宽度压缩、TP8 全量复制，以及把 W_UK/W_UV 吸收到查询与汇合两侧以直读打包潜缓存，并区分不旋转位置切片与零宽 NoPE 分支。
+size: [900, 456]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/mla_v1.py#L1270-L1320'
+    symbols: ['process_weights_after_loading', 'W_UK', 'W_UV', 'W_UK_T', 'replace_parameter']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/mla_v1.py#L1765-L1840'
+    symbols: ['_exec_kv_no_rope', '_exec_kv_mla_nope', 'kv_lora_rank', 'qk_rope_head_dim']

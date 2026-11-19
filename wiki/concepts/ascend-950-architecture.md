@@ -149,7 +149,15 @@ file: ascend-950-buffer
 
 白皮书同时描述了 L0C 到 UB 的随路格式转换：把结果送给 Vector 时，可以完成支持的数值转换与数据排列转换。例如累加结果与下一段输入可以使用不同类型，软件须按这条路径约定准备缩放和布局。若原来有独立转换，合并后就少一道执行段；若转换后的类型更小，也会减少交接字节。具体采用哪条路径要看实际 **kernel**，即设备上执行该算子的程序。
 
-把“磁盘权重是 FP8”“设备中权重是 FP8”“矩阵乘采用 FP8”“累加结果是 FP8”混在一起，会同时算错容量和误差。诊断时分别记录文件、加载后张量、算子输入、累加和输出类型；已有 A2/A3 文件兼容与实际计算的对照在格式页，本页不再复制。在 vLLM Ascend `v0.30.0` 与 `main` 源码中，昇腾 950 对应 `AscendDeviceType.A5` 硬件档案（`HardwareProfile`）：原生 `W8A8_MXFP8` 与 block-wise FP8 在 A5 上走 `MXFP8` 动态量化矩阵乘路径（并声明 `FP8_ATTENTION`、`CANN_MEGAMOE_MXFP`、`DYNAMIC_MX_QUANT_FUSION` 等能力），但需要注意 `v0.30.0` 的 A5 档案尚未开启 `RUNTIME_CUSTOM_OPS`（导致 `enable_custom_op()` 在该版直接返回关闭），`main` 才将该能力补回 A5 档案。
+把“磁盘权重是 FP8”“设备中权重是 FP8”“矩阵乘采用 FP8”“累加结果是 FP8”混在一起，会同时算错容量和误差。诊断时分别记录文件、加载后张量、算子输入、累加和输出类型；已有 A2/A3 文件兼容与实际计算的对照在格式页，本页不再复制。
+
+在 vLLM Ascend `v0.30.0` 与 `main` 源码中，昇腾 950 对应 `AscendDeviceType.A5` 硬件档案（`HardwareProfile`）：原生 `W8A8_MXFP8` 与 block-wise FP8 在 A5 上走 `MXFP8` 动态量化矩阵乘路径（并声明 `FP8_ATTENTION`、`CANN_MEGAMOE_MXFP`、`DYNAMIC_MX_QUANT_FUSION` 等能力），但需要注意 `v0.30.0` 的 A5 档案尚未开启 `RUNTIME_CUSTOM_OPS`（导致 `enable_custom_op()` 在该版直接返回关闭），`main` 才将该能力补回 A5 档案。
+
+下面用一张全景图把 910B 分离核与 950 CV 融合子系统的片上通路、950PR/DT 规格档位以及 `v0.30.0` A5 软件档案收拢对照：
+
+```wiki-diagram
+file: ascend-950-architecture-fig-cv-vs-910b
+```
 
 ## PR 与 DT 的规格，怎样读才不串成一款产品
 

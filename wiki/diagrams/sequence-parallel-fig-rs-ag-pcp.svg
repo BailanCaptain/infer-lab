@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 486" width="900" height="486" role="img" aria-label="序列并行 All-Reduce 拆分与 Ascend v0.30.0/main 约束总览图" font-family="var(--font-sans)">
+  <title>序列并行：All-Reduce 拆成 Reduce-Scatter 与 All-Gather 及 Ascend v0.30.0/main 边界</title>
+  <desc>上半展示 TP 边界 All-Reduce 拆分为 Reduce-Scatter、本卡 T/N 行 RMSNorm/残差与 All-Gather 的张量形状流转及等价 Ring 通信量；下半展示 Ascend v0.30.0 与 main 四项核心边界：SP+PP 自动追加 +rms_norm、SP+PCP 批长向上补齐、v0.30.0 移除 1000 token 门槛与共享专家每卡复制。</desc>
+  <defs>
+    <marker id="sp-arr-plum" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+    <marker id="sp-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、TP 边界拆分：一次 All-Reduce → Reduce-Scatter + 本卡逐行区 + All-Gather</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="54" width="166" height="86" rx="9" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="206" y="54" width="176" height="86" rx="9" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="410" y="54" width="186" height="86" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="624" y="54" width="144" height="86" rx="9" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="794" y="54" width="94" height="86" rx="9" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="12" y="152" width="876" height="44" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+  </g>
+
+  <g fill="none" stroke-width="2">
+    <path d="M 178 97 L 200 97" stroke="#9a4b86" marker-end="url(#sp-arr-plum)"/>
+    <path d="M 382 97 L 404 97" stroke="#087f73" marker-end="url(#sp-arr-teal)"/>
+    <path d="M 596 97 L 618 97" stroke="#9a4b86" marker-end="url(#sp-arr-plum)"/>
+    <path d="M 768 97 L 788 97" stroke="#087f73" marker-end="url(#sp-arr-teal)"/>
+  </g>
+
+  <g font-size="14.5" font-weight="700" text-anchor="middle">
+    <text x="95" y="82" fill="#936300">行切投影出口</text>
+    <text x="294" y="82" fill="#7a3a6a">Reduce-Scatter</text>
+    <text x="503" y="82" fill="#065f56">SP 逐行计算区</text>
+    <text x="696" y="82" fill="#7a3a6a">All-Gather</text>
+    <text x="841" y="82" fill="#936300">列切入口</text>
+  </g>
+
+  <g font-size="13.5" text-anchor="middle">
+    <text x="95" y="106" fill="#4d5652">每卡完整形状部分和</text>
+    <text x="95" y="128" font-family="var(--font-mono)" fill="#936300">[T, H] 部分和</text>
+
+    <text x="294" y="106" fill="#4d5652">先按行相加、再分片</text>
+    <text x="294" y="128" font-family="var(--font-mono)" fill="#7a3a6a">发 (N-1)/N × M</text>
+
+    <text x="503" y="106" fill="#4d5652">RMSNorm + 残差相加</text>
+    <text x="503" y="128" font-family="var(--font-mono)" fill="#065f56">[T/N, H] 完整 H 维</text>
+
+    <text x="696" y="106" fill="#4d5652">收齐行、去补齐</text>
+    <text x="696" y="128" font-family="var(--font-mono)" fill="#7a3a6a">发 (N-1)/N × M</text>
+
+    <text x="841" y="106" fill="#4d5652">QKV / 升维</text>
+    <text x="841" y="128" font-family="var(--font-mono)" fill="#936300">[T, H]</text>
+  </g>
+
+  <text x="26" y="179" font-size="13.5" fill="#17211f">理想 Ring 总发送量：<tspan font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">RS + AG = 2(N-1)/N × M = All-Reduce</tspan>；省下分片区激活与重复计算，但多 1 次调用与对齐补行</text>
+
+  <text x="14" y="226" font-size="16" font-weight="700" fill="#17211f">二、vllm-ascend 关键工程边界与版本演进（v0.30.0 主基线 vs main）</text>
+  <line x1="12" y1="238" x2="888" y2="238" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="252" width="430" height="102" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="458" y="252" width="430" height="102" rx="9" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="12" y="368" width="430" height="106" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="458" y="368" width="430" height="106" rx="9" fill="#fff0e9" stroke="#b54237"/>
+  </g>
+
+  <g font-size="15" font-weight="700">
+    <text x="26" y="278" fill="#3a4f93">1. SP + PP &gt; 1：自动追加 +rms_norm</text>
+    <text x="472" y="278" fill="#936300">2. SP + PCP &gt; 1：静默上调批长上限</text>
+    <text x="26" y="394" fill="#065f56">3. v0.30.0 移除 1000 token 门槛与旧封装</text>
+    <text x="472" y="394" fill="#8f3229">4. 共享专家与组合冲突约束</text>
+  </g>
+
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="305">v0.30.0 图改写 <tspan font-family="var(--font-mono)" fill="#3a4f93">PassConfig.enable_sp</tspan> 遇 <tspan font-family="var(--font-mono)" fill="#3a4f93">PP &gt; 1</tspan> 时，</text>
+    <text x="26" y="327">若未显式写 <tspan font-family="var(--font-mono)" fill="#8f3229">-rms_norm</tspan>，自动追加 <tspan font-family="var(--font-mono)" font-weight="700" fill="#3a4f93">+rms_norm</tspan> 避追踪报错；</text>
+    <text x="26" y="346"><tspan font-weight="700" fill="#17211f">main</tspan> 上游已移除 <tspan font-family="var(--font-mono)">PassConfig.enable_sp</tspan></text>
+
+    <text x="472" y="305"><tspan font-family="var(--font-mono)" fill="#936300">PCP &gt; 1</tspan> 且 <tspan font-family="var(--font-mono)" fill="#936300">enable_sp()</tspan> 为真时，若批长不能整除，</text>
+    <text x="472" y="327"><tspan font-family="var(--font-mono)" font-weight="700" fill="#936300">max_num_batched_tokens</tspan> 自动向上取整至</text>
+    <text x="472" y="346"><tspan font-family="var(--font-mono)" font-weight="700" fill="#936300">tp_size × pcp_size</tspan> 倍数并打印 warning（容量对齐）</text>
+
+    <text x="26" y="421"><tspan font-family="var(--font-mono)" fill="#065f56">enable_sp()</tspan> 收敛为 <tspan font-family="var(--font-mono)" fill="#065f56">use_sequence_parallel_moe</tspan></text>
+    <text x="26" y="443"><tspan font-family="var(--font-mono)" fill="#065f56">or enable_dense_sp</tspan>（覆盖 Qwen3.5 稠密族）；</text>
+    <text x="26" y="463">移除旧 <tspan font-family="var(--font-mono)">SequenceRowParallelOp</tspan> 与稠密 1000 门槛</text>
+
+    <text x="472" y="421">SP / 共享专家 DP 下每卡常驻<tspan font-weight="700" fill="#8f3229">整份共享专家权重</tspan>、</text>
+    <text x="472" y="443">只算本卡分片行并省略末尾 TP All-Reduce；</text>
+    <text x="472" y="463"><tspan font-weight="700" fill="#17211f">main</tspan> 下与量化归约冲突时会告警关闭量化归约</text>
+  </g>
+</svg>

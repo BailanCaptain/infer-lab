@@ -425,6 +425,9 @@ export async function inferenceSceneKit(
         r.dispose();
       });
       renderer.dispose();
+      try {
+        renderer.forceContextLoss();
+      } catch {}
       renderer.domElement.remove();
       overlay.remove();
     },

@@ -1,0 +1,14 @@
+mode: native-svg
+id: vllm-platform-interface-fig-contract
+caption: >-
+  上游 Platform 硬件适配契约的四阶段钩子与 OOT 优先仲裁树：左侧展示首次访问 current_platform 时的惰性仲裁规则（含 v0.30.0 显式 CPU 目标直通），右侧梳理 Platform 基类从身份属性、配置钩子到执行类路径的四类核心契约及四版接口扩张规模（78 → 84 → 92 方法）。
+size: [900, 444]
+pins:
+  - source: 'vllm@ced6857a:vllm/platforms/__init__.py#L233-L320'
+    symbols: [resolve_current_platform_cls_qualname, _current_platform]
+  - source: 'vllm@ced6857a:vllm/platforms/interface.py#L134-L160'
+    symbols: [Platform]
+  - source: 'vllm@ced6857a:vllm/platforms/interface.py#L506-L586'
+    symbols: [get_device_total_memory, pre_register_and_update, check_and_update_config]
+  - source: 'vllm@ced6857a:vllm/platforms/interface.py#L1065-L1075'
+    symbols: [get_device_communicator_cls]

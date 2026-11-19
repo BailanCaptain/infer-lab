@@ -1,0 +1,12 @@
+mode: native-svg
+id: device-memory-fig-host-vs-hbm
+caption: >-
+  主机内存（Host DRAM）与昇腾设备显存（NPU HBM）双账隔离及启动显存预算拆分：上半幅展示模型文件页缓存、调度状态与 UVA 锁页内存驻留主机侧，权重按本卡分片经 H2D 一次搬入设备后常驻复用，而激活、HCCL 缓冲、KV 池与录图各自计入单卡 HBM；下半幅展示 gpu_memory_utilization 自动预算与预算外余量的分配边界及 PYTORCH_NPU_ALLOC_CONF 约束。
+size: [900, 504]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L558-L598
+    symbols: [determine_available_memory, _apply_kvpp_memory_budget]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1445-L1464
+    symbols: [_set_pytorch_npu_alloc_env]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/patch/worker/patch_v2/patch_uva.py#L29-L55
+    symbols: [check_triton_ascend_version_valid, is_uva_available]

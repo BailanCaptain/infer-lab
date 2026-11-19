@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 504" width="900" height="504" role="img" aria-label="主机内存与 NPU HBM 双账隔离及启动显存预算拆分图" font-family="var(--font-sans)">
+<title>主机内存（Host DRAM）与 NPU HBM 双账及启动显存预算</title>
+<desc>determine_available_memory, _set_pytorch_npu_alloc_env, is_uva_available</desc>
+<defs>
+<marker id="dm-a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#c78300"/></marker>
+<marker id="dm-a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#9a4b86"/></marker>
+</defs>
+<text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">1. Host DRAM 与 NPU HBM 双账隔离：权重一次 H2D 常驻，远端寻址不增 HBM</text>
+<path d="M14 38H886M14 256H886" stroke="#b8bcb5" stroke-width="1.4"/>
+<rect x="14" y="48" width="364" height="196" rx="10" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.5"/>
+<rect x="522" y="48" width="364" height="196" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+<text x="28" y="74" font-size="15" font-weight="700" fill="#17211f">主机侧 Host DRAM（CPU 与容器共享）</text>
+<text x="536" y="74" font-size="15" font-weight="700" fill="#3a4f93">设备侧 NPU HBM（逐卡独立记账）</text>
+<g stroke-width="1.4">
+<rect x="28" y="86" width="336" height="42" rx="7" fill="#ffffff" stroke="#b8bcb5"/>
+<rect x="28" y="136" width="336" height="42" rx="7" fill="#ffffff" stroke="#4c65b6"/>
+<rect x="28" y="186" width="336" height="46" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="536" y="86" width="336" height="42" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="536" y="136" width="336" height="42" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="536" y="186" width="336" height="46" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+</g>
+<g font-size="13.5" font-weight="600">
+<text x="40" y="112" fill="#17211f">模型文件页缓存 &amp; 加载中 CPU 张量</text>
+<text x="40" y="162" fill="#3a4f93">token 编号 / 请求队列 / 调度块号表</text>
+<text x="40" y="206" fill="#936300">锁页内存 / UVA（aclrtHostRegister）</text>
+<text x="548" y="112" fill="#936300">本卡权重分片 + 量化后处理布局</text>
+<text x="548" y="162" fill="#7a3a6a">试跑激活峰值 + 临时工作区 + HCCL 缓冲</text>
+<text x="548" y="206" fill="#065f56">KV / 状态池 + 录图资源（先切 KV 后录图）</text>
+</g>
+<g font-size="13.5" fill="#66716d">
+<text x="40" y="225">物理仍留主机，不计入本卡 HBM 容量</text>
+<text x="548" y="225">请求归还块入池复用，已用显存不即降</text>
+</g>
+<path d="M380 107H516" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#dm-a1)"/>
+<path d="M380 208H516" fill="none" stroke="#9a4b86" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#dm-a2)"/>
+<g text-anchor="middle">
+<text x="450" y="96" font-size="14" font-weight="700" fill="#936300">H2D 搬入</text>
+<text x="450" y="128" font-size="13.5" fill="#66716d">启动一次复制</text>
+<text x="450" y="148" font-size="13.5" fill="#66716d">推理期权重 0 次</text>
+<text x="450" y="196" font-size="14" font-weight="700" fill="#7a3a6a">UVA / 卸载</text>
+<text x="450" y="229" font-size="13.5" fill="#66716d">跨链路有代价</text>
+</g>
+<text x="16" y="282" font-size="16" font-weight="700" fill="#17211f">2. 单卡 HBM 启动预算拆分（默认 0.92，GLM 双机教程 0.85；64 GiB 教学示意）</text>
+<g stroke-width="1.5">
+<rect x="14" y="298" width="284" height="52" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="302" y="298" width="112" height="52" rx="6" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="418" y="298" width="320" height="52" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="742" y="298" width="144" height="52" rx="6" fill="#fff0e9" stroke="#b54237"/>
+</g>
+<g text-anchor="middle" font-size="14" font-weight="700">
+<text x="156" y="321" fill="#936300">常驻权重（~21 GiB）</text>
+<text x="358" y="321" fill="#7a3a6a">试跑 3.4 GiB</text>
+<text x="578" y="321" fill="#065f56">自动预算余量 → KV 池（~30 GiB）</text>
+<text x="814" y="321" fill="#8f3229">预留余量</text>
+</g>
+<g text-anchor="middle" font-size="13.5" fill="#66716d">
+<text x="156" y="341">子账 20.58 + 表外项</text>
+<text x="358" y="341">激活+非PyTorch</text>
+<text x="578" y="341">3,855 / 3,908 块（教学预算）</text>
+<text x="814" y="341">9.6 GiB（15%）</text>
+</g>
+<g stroke-width="1.4">
+<rect x="14" y="368" width="276" height="122" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="312" y="368" width="276" height="122" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="610" y="368" width="276" height="122" rx="8" fill="#fff0e9" stroke="#b54237"/>
+</g>
+<g font-size="14.5" font-weight="700">
+<text x="28" y="394" fill="#065f56">分配器 expandable_segments</text>
+<text x="326" y="394" fill="#3a4f93">显式 kv_cache_memory_bytes</text>
+<text x="624" y="394" fill="#8f3229">晚于预算的“预算外”开销</text>
+</g>
+<g font-size="13.5" fill="#17211f">
+<text x="28" y="420">• 平台非 sleep 默认自动注入 True</text>
+<text x="28" y="444">• 减碎片但不增总 HBM 容量</text>
+<text x="28" y="468">• 冲突键不追加；RL 模式主动移除</text>
+<text x="326" y="420">• 仍执行 profile_run 准备模型</text>
+<text x="326" y="444">• 跳过自动公式，直接取指定字节</text>
+<text x="326" y="468">• v0.30 再叠 offload / KVPP 修正</text>
+<text x="624" y="420">• 图捕获在切完 KV 之后才发生</text>
+<text x="624" y="444">• 索引器首跑建 54 MiB/卡 FP32</text>
+<text x="624" y="468">• 权重装得下 ≠ 启动一定不 OOM</text>
+</g>
+</svg>

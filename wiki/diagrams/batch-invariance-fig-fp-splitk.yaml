@@ -1,0 +1,22 @@
+mode: native-svg
+id: batch-invariance-fig-fp-splitk
+caption: >-
+  批不变性的数学根源与昇腾锁定机制：上半用 FP32 加法结合律失效（(16,777,216+1)-16,777,216=0 vs 16,777,216+(1-16,777,216)=1）展示为何混批/动态 split-K 改变 K 维归约分组并翻转 top-2 候选排序；下半给出 VLLM_BATCH_INVARIANT=1 在昇腾上的确定性锁定链、v0.30.0 与 main 演进及 GLM 混合模型缺口。
+size: [900, 480]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/batch_invariant.py#L68-L189'
+    symbols:
+      - enable_batch_invariant_mode
+      - override_envs_for_invariance
+      - init_batch_invariance
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L544-L590'
+    symbols:
+      - enable_custom_op
+      - VLLM_BATCH_INVARIANT
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L975-L1085'
+    symbols:
+      - npu_fused_infer_attention_score
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/batch_invariant.py#L68-L194'
+    symbols:
+      - set_deterministic_level
+      - enable_batch_invariant_mode

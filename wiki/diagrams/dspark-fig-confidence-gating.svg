@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="DSpark 置信度累乘预算门控、耗时盈亏对比与昇腾路径对照图" font-family="var(--font-sans)">
+  <title>DSpark 动态置信度累乘预算门控与昇腾变长验证路径区分</title>
+  <desc>上半区展示两条请求 A 与 B 按连续前缀存活概率累乘排序分配 3 个验证名额（选 A1、A2、B1），并对比少验（4.22/10ms=422 tok/s）与全验（4.868/20ms=243.4 tok/s，盈亏平衡 11.54ms）；下半区区分半自回归草稿的三大组件，并对照昇腾 MRV1/MRV2 置信变长、按批大小 K 与草稿滑动窗口四类独立路径。</desc>
+  <defs>
+    <marker id="dsp-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="dsp-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、置信度累乘门控：按连续存活概率分预算，再用“期望输出 ÷ 整轮耗时”拍板</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="54" width="468" height="176" rx="8" fill="#ffffff" stroke="#087f73" stroke-width="1.4"/>
+  <text x="26" y="78" font-size="14.5" font-weight="700" fill="#065f56">A. 连续存活概率 P(k) = ∏ p_j，给 3 个验证名额（Top-3）</text>
+
+  <text x="26" y="106" font-size="13.5" font-weight="700" fill="#17211f">请求 A</text>
+  <rect x="86" y="88" width="114" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="143" y="109" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">A1: 0.90 ✓</text>
+  <rect x="208" y="88" width="114" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="265" y="109" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">A2: 0.72 ✓</text>
+  <rect x="330" y="88" width="136" height="32" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="398" y="109" text-anchor="middle" font-size="13.5" fill="#66716d">A3: 0.36（省）</text>
+
+  <text x="26" y="148" font-size="13.5" font-weight="700" fill="#17211f">请求 B</text>
+  <rect x="86" y="130" width="114" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="143" y="151" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">B1: 0.60 ✓</text>
+  <rect x="208" y="130" width="114" height="32" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="265" y="151" text-anchor="middle" font-size="13.5" fill="#66716d">B2: 0.24</text>
+  <rect x="330" y="130" width="136" height="32" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="398" y="151" text-anchor="middle" font-size="13.5" fill="#66716d">B3: 0.048</text>
+
+  <text x="26" y="188" font-size="13.5" fill="#17211f">累乘单调不增 → Top-3 天然形成连续前缀（A 验 2、B 验 1）</text>
+  <text x="26" y="212" font-size="13.5" fill="#4d5652">总输入 = 2 基础位置 + 3 候选 = 5 行（主模型决定最终接受）</text>
+
+  <rect x="496" y="54" width="392" height="176" rx="8" fill="#ffffff" stroke="#c78300" stroke-width="1.4"/>
+  <text x="510" y="78" font-size="14.5" font-weight="700" fill="#936300">B. 期望输出率对比（教学耗时假设）</text>
+  <rect x="510" y="92" width="364" height="46" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="522" y="112" font-size="13.5" font-weight="700" fill="#065f56">少验（5 行，10 ms）：期望 4.22 token</text>
+  <text x="522" y="132" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">4.22 ÷ 0.010 s = 422.0 token/s（更优）</text>
+  <rect x="510" y="146" width="364" height="46" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.2"/>
+  <text x="522" y="166" font-size="13.5" font-weight="700" fill="#8f3229">全验（8 行，20 ms）：期望 4.868 token</text>
+  <text x="522" y="186" font-size="13.5" font-family="var(--font-mono)" fill="#8f3229">4.868 ÷ 0.020 s = 243.4 token/s</text>
+  <text x="510" y="216" font-size="13.5" font-weight="700" fill="#936300">盈亏平衡点：全验须 &lt; 11.54 ms 才反超少验</text>
+
+  <text x="14" y="264" font-size="16" font-weight="700" fill="#17211f">二、半自回归草稿三组件，以及昇腾侧四类“变长 / 窗口”机制辨析</text>
+  <line x1="12" y1="276" x2="888" y2="276" stroke="#b8bcb5" stroke-width="1.3"/>
+
+  <rect x="12" y="290" width="280" height="152" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="26" y="314" font-size="14.5" font-weight="700" fill="#3a4f93">半自回归草稿三分工</text>
+  <text x="26" y="340" font-size="13.5" fill="#17211f">1. <tspan font-weight="700" fill="#3a4f93">并行主干</tspan>：一次算多位置基础分</text>
+  <text x="26" y="366" font-size="13.5" fill="#17211f">2. <tspan font-weight="700" fill="#936300">Markov head</tspan>：短串行改猜测内容</text>
+  <text x="26" y="392" font-size="13.5" fill="#17211f">3. <tspan font-weight="700" fill="#065f56">Confidence head</tspan>：估接受概率</text>
+  <text x="26" y="422" font-size="13.5" fill="#4d5652">注：异步调度时 CPU 定总预算，</text>
+  <text x="26" y="438" font-size="13.5" fill="#4d5652">设备拿到新置信值后修正逐请求长</text>
+
+  <rect x="308" y="290" width="284" height="152" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="322" y="314" font-size="14.5" font-weight="700" fill="#936300">Ascend 置信变长（逐请求不同）</text>
+  <text x="322" y="340" font-size="13.5" fill="#17211f">• <tspan font-weight="700">v0.30.0 MRV1</tspan>：dynamic_spec_config</text>
+  <text x="322" y="364" font-size="13.5" fill="#4d5652">  （dspark 置信头 / dflash 概率代理）</text>
+  <text x="322" y="390" font-size="13.5" fill="#17211f">• <tspan font-weight="700">MRV2 / main</tspan>：统一收敛至</text>
+  <text x="322" y="412" font-size="13.5" font-family="var(--font-mono)" fill="#936300">enable_adaptive_verification</text>
+  <text x="322" y="434" font-size="13.5" fill="#8f3229">  A5 跑 V4.1 DSpark 强制 MRV2</text>
+
+  <rect x="608" y="290" width="280" height="152" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="622" y="314" font-size="14.5" font-weight="700" fill="#7a3a6a">勿与另外两根独立轴混淆</text>
+  <text x="622" y="340" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#7a3a6a">按批大小选 K</tspan>：整批共用一个 K</text>
+  <text x="622" y="364" font-size="13.5" fill="#4d5652">  不看逐请求置信度（不配 DSpark）</text>
+  <text x="622" y="392" font-size="13.5" fill="#17211f">• <tspan font-weight="700" fill="#3a4f93">草稿滑动窗口</tspan>：限制草稿回读</text>
+  <text x="622" y="414" font-size="13.5" fill="#4d5652">  历史长度（写槽位保持完整）</text>
+  <text x="622" y="434" font-size="13.5" fill="#4d5652">  仅 MRV1 支持，MTP 强制忽略</text>
+</svg>

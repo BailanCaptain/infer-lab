@@ -1,0 +1,11 @@
+mode: native-svg
+id: sequence-parallel-fig-rs-ag-pcp
+caption: 序列并行（SP）把 TP 边界的 All-Reduce 拆成 Reduce-Scatter + 本卡逐行计算 + All-Gather 的形状与载荷等价关系，以及 Ascend v0.30.0 与 main 上 SP+PP（自动追加 +rms_norm）、SP+PCP（批长向上取整至 tp×pcp 倍数）和稠密/共享专家边界。
+size: [900, 486]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L747-L780'
+    symbols: ['enable_flashcomm1', 'enable_dense_sp', 'use_sequence_parallel_moe']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L816-L828'
+    symbols: ['prefill_context_parallel_size', 'enable_sp', 'max_num_batched_tokens']
+  - source: 'vllm@ced6857a:vllm/config/vllm.py#L1877-L1898'
+    symbols: ['enable_sp', 'pipeline_parallel_size', 'custom_ops']

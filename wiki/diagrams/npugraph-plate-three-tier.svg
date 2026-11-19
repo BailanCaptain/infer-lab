@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 596" width="900" height="596" role="img" aria-label="昇腾编译图融合三级递进立体拆解直觉图：展示 1. NPUGRAPH_EX 算子图融合托盘、2. STATIC KERNEL 选定形状预编译瓦片盘与 3. SUPER KERNEL 二进制大核剖面舱" font-family="var(--font-sans)">
+  <title>昇腾编译图三级递进立体拆解：第 1 级 npugraph_ex 改写 FX 计算图把相邻算子合为融合实现以减少中间张量读写；第 2 级 Static Kernel 针对筛入范围的固定捕获宽度提前编译算子程序；第 3 级 Super Kernel 在整图捕获期将已编译子核进一步合并为大 kernel 并插同步，三者受硬件能力与整图模式严格逐级门控。</title>
+  <desc>关联源码符号：AscendCompilationConfig, enable_npugraph_ex, enable_static_kernel, enable_super_kernel, GraphFusionPassManager, fuse_norm_quant, fuse_qknorm_rope, fuse_muls_add</desc>
+
+  <!-- 紧裁透明底等距拆解剖面主图（零外层底框、零网格笼，大尺寸直浮画布） -->
+  <image href="./wiki-illustrations/npugraph-three-tier-cutaway.webp" x="45" y="136" width="810" height="305" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- 零交叉垂直引线与双环靶点（顶部指向三级立体主体，底部直指两道递增箭头门控，零穿字） -->
+  <!-- 1 -> 1. NPUGRAPH_EX 中央融合算子节点 -->
+  <line x1="190" y1="112" x2="190" y2="268" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="190" cy="268" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="190" cy="268" r="2.5" fill="#087f73"/>
+
+  <!-- 2 -> 2. STATIC KERNEL 顶部预编译瓦片 -->
+  <line x1="482" y1="112" x2="482" y2="234" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="482" cy="234" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="482" cy="234" r="2.5" fill="#c78300"/>
+
+  <!-- 3 -> 3. SUPER KERNEL 舱内合并大核块 -->
+  <line x1="725" y1="112" x2="725" y2="215" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="725" cy="215" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="725" cy="215" r="2.5" fill="#4c65b6"/>
+
+  <!-- 4 -> 第一道依赖门控箭头 (1. NPUGRAPH_EX -> 2. STATIC KERNEL) -->
+  <line x1="310" y1="472" x2="310" y2="424" stroke="#b54237" stroke-width="1.6"/>
+  <circle cx="310" cy="424" r="5.5" fill="#ffffff" stroke="#b54237" stroke-width="2"/>
+  <circle cx="310" cy="424" r="2.5" fill="#b54237"/>
+
+  <!-- 5 -> 第二道依赖门控箭头 (2. STATIC KERNEL -> 3. SUPER KERNEL) -->
+  <line x1="585" y1="472" x2="585" y2="424" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="585" cy="424" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="585" cy="424" r="2.5" fill="#9a4b86"/>
+
+  <!-- 顶部开放式无边框矢量编号直标（标题 15px，说明 13.5px） -->
+  <g id="callout-npugraph">
+    <circle cx="24" cy="28" r="12" fill="#087f73"/>
+    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="15" font-weight="700" fill="#17211f">第 1 级：npugraph_ex 图融合</text>
+    <text x="44" y="58" font-size="13.5" fill="#4d5652">把相邻算子改写为融合实现省读写</text>
+    <text x="44" y="81" font-size="13.5" fill="#4d5652">默认开启 <tspan font-family="var(--font-mono)" font-weight="700">enable_npugraph_ex</tspan></text>
+    <text x="44" y="104" font-size="13.5" fill="#065f56">关闭则回落本地 FX Pass 改图路径</text>
+  </g>
+
+  <g id="callout-static">
+    <circle cx="316" cy="28" r="12" fill="#c78300"/>
+    <text x="316" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="336" y="33" font-size="15" font-weight="700" fill="#17211f">第 2 级：Static Kernel 预编译</text>
+    <text x="336" y="58" font-size="13.5" fill="#4d5652">按步长与并发筛出区间提前编核</text>
+    <text x="336" y="81" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">enable_static_kernel</tspan> 默认关闭</text>
+    <text x="336" y="104" font-size="13.5" fill="#936300">空槽代表区间外形状不纳入静态编译</text>
+  </g>
+
+  <g id="callout-super">
+    <circle cx="608" cy="28" r="12" fill="#4c65b6"/>
+    <text x="608" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="628" y="33" font-size="15" font-weight="700" fill="#17211f">第 3 级：Super Kernel 二进制大核</text>
+    <text x="628" y="58" font-size="13.5" fill="#4d5652">在 ACL 图捕获期合并已编译子 kernel</text>
+    <text x="628" y="81" font-size="13.5" fill="#4d5652">按依赖插入中间同步条（梅紫横梁）</text>
+    <text x="628" y="104" font-size="13.5" fill="#3a4f93">进一步压低任务下发与核间调度等待</text>
+  </g>
+
+  <!-- 底部开放式无边框矢量编号直标 -->
+  <g id="callout-gate1">
+    <circle cx="28" cy="492" r="12" fill="#b54237"/>
+    <text x="28" y="496.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="48" y="497" font-size="15" font-weight="700" fill="#17211f">严格依赖链与硬件门控 (<tspan font-family="var(--font-mono)">AscendCompilationConfig</tspan>)</text>
+    <text x="48" y="523" font-size="14" fill="#4d5652">A2/A3/A5 上越级单开 static 或 super 直接断言报错</text>
+    <text x="48" y="548" font-size="14" fill="#4d5652">310P 等不支持硬件告警并将三级开关静默刷回 False</text>
+    <text x="48" y="573" font-size="13.5" fill="#8f3229">规则一次注册双路消费，命中仍须满足精度与图结构条件</text>
+  </g>
+
+  <g id="callout-gate2">
+    <circle cx="472" cy="492" r="12" fill="#9a4b86"/>
+    <text x="472" y="496.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="492" y="497" font-size="15" font-weight="700" fill="#17211f">整图档位门控与跟随语义 (非整图静默回落)</text>
+    <text x="492" y="523" font-size="14" fill="#4d5652">须在整图模式 (FULL_DECODE_ONLY)，分段全刷 False</text>
+    <text x="492" y="548" font-size="14" fill="#4d5652">v0.30.0 传 <tspan font-family="var(--font-mono)" font-weight="700">enable_static_kernel</tspan> 时 super 跟随</text>
+    <text x="492" y="573" font-size="13.5" fill="#7a3a6a">融合改「算什么」，ACL Graph 改「怎么提交」，先合后录</text>
+  </g>
+</svg>

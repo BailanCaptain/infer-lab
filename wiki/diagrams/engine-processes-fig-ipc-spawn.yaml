@@ -1,0 +1,14 @@
+mode: native-svg
+id: engine-processes-fig-ipc-spawn
+caption: >-
+  vLLM V1 进程拓扑的通信通道与子进程启动差异：多 API 前端通过 SharedAdmissionStats 汇总在途准入并经 ZMQ IPC/TCP 连至 EngineCore，多进程执行器用共享内存广播队列 rpc_broadcast_mq 驱动 Worker（单卡 uni 则留在进程内）；下方对照 fork 与 spawn 启动方式对全局补丁与 AscendConfig 缓存的影响。
+size: [900, 454]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/engine/admission_control.py#L13-L52'
+    symbols: [SharedAdmissionStats, set_num_requests, get_num_requests]
+  - source: 'vllm@ced6857a:vllm/v1/executor/multiproc_executor.py#L140-L198'
+    symbols: [rpc_broadcast_mq, make_worker_process]
+  - source: 'vllm@ced6857a:vllm/v1/executor/uniproc_executor.py#L51-L65'
+    symbols: [UniProcExecutor, _init_executor]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_engine_core.py#L45-L60'
+    symbols: [_run_engine_core_patch_func, init_ascend_config]

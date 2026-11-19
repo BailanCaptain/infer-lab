@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 502" width="900" height="502" role="img" aria-label="细粒度 TP 四模块跨 DP 通信矩阵与图尺寸静默退回守卫" font-family="var(--font-sans)">
+  <title>细粒度 TP：四模块跨 DP 通信对照与 v0.30.0/main 捕获尺寸守卫</title>
+  <desc>上半对比四个细粒度 TP 模块沿 DP 组队的入口通信、本地计算与出口送回方式；下半展示 v0.30.0 与 main 对 oproj/mlp 分片的六项硬前提，以及 max_cudagraph_capture_size 小于最大步宽时静默清零（v0.30.0）或重置为 1（main）的死锁防护逻辑。</desc>
+  <defs>
+    <marker id="fgtp-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#66716d"/>
+    </marker>
+    <marker id="fgtp-arr-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#b54237"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、沿 DP 方向借卡：四类模块的入口收集、本地计算与出口送回</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g font-size="14" font-weight="700" fill="#66716d">
+    <text x="24" y="64">模块与配置字段</text>
+    <text x="250" y="64">入口交换（跨 DP 组）</text>
+    <text x="488" y="64">本卡分片计算</text>
+    <text x="700" y="64">出口送回原请求卡</text>
+  </g>
+
+  <g stroke-width="1.4">
+    <rect x="12" y="74" width="222" height="44" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="244" y="74" width="226" height="44" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="480" y="74" width="204" height="44" rx="8" fill="#ffffff" stroke="#b8bcb5"/>
+    <rect x="694" y="74" width="194" height="44" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+
+    <rect x="12" y="126" width="222" height="44" rx="8" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="244" y="126" width="226" height="44" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="480" y="126" width="204" height="44" rx="8" fill="#ffffff" stroke="#b8bcb5"/>
+    <rect x="694" y="126" width="194" height="44" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+
+    <rect x="12" y="178" width="222" height="44" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="244" y="178" width="226" height="44" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="480" y="178" width="204" height="44" rx="8" fill="#ffffff" stroke="#b8bcb5"/>
+    <rect x="694" y="178" width="194" height="44" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+
+    <rect x="12" y="230" width="222" height="44" rx="8" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="244" y="230" width="226" height="44" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="480" y="230" width="204" height="44" rx="8" fill="#ffffff" stroke="#b8bcb5"/>
+    <rect x="694" y="230" width="194" height="44" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+  </g>
+
+  <g font-size="14" font-weight="700">
+    <text x="24" y="101" fill="#065f56">词表嵌入 <tspan font-family="var(--font-mono)" font-size="13.5">embedding</tspan></text>
+    <text x="24" y="153" fill="#936300">输出打分 <tspan font-family="var(--font-mono)" font-size="13.5">lm_head</tspan></text>
+    <text x="24" y="205" fill="#065f56">稠密层 <tspan font-family="var(--font-mono)" font-size="13.5">dense MLP</tspan></text>
+    <text x="24" y="257" fill="#936300">注意力 <tspan font-family="var(--font-mono)" font-size="13.5">o_proj</tspan></text>
+  </g>
+
+  <g font-size="13.5" fill="#4d5652">
+    <text x="256" y="101"><tspan font-weight="700" fill="#7a3a6a">All-Gather</tspan> 整组 token 编号</text>
+    <text x="492" y="101">查本卡词段，余行填 0</text>
+    <text x="706" y="101"><tspan font-weight="700" fill="#3a4f93">Reduce-Scatter</tspan> 归约向量</text>
+
+    <text x="256" y="153"><tspan font-weight="700" fill="#7a3a6a">All-Gather</tspan> 整组隐藏向量</text>
+    <text x="492" y="153">算本卡词段最终分数</text>
+    <text x="706" y="153"><tspan font-weight="700" fill="#3a4f93">All-to-All</tspan>（或分段采样）</text>
+
+    <text x="256" y="205"><tspan font-weight="700" fill="#7a3a6a">All-Gather</tspan> 整组隐藏向量</text>
+    <text x="492" y="205">先列切激活再行切部分和</text>
+    <text x="706" y="205"><tspan font-weight="700" fill="#3a4f93">Reduce-Scatter</tspan> 归约送回</text>
+
+    <text x="256" y="257"><tspan font-weight="700" fill="#7a3a6a">All-to-All</tspan> 仅换本卡特征段</text>
+    <text x="492" y="257">乘本段权重行得部分和</text>
+    <text x="706" y="257"><tspan font-weight="700" fill="#3a4f93">Reduce-Scatter</tspan> 归约送回</text>
+  </g>
+
+  <text x="14" y="310" font-size="16" font-weight="700" fill="#17211f">二、v0.30.0 / main 中 oproj 与 mlp 的生效前提与图尺寸静默退回守卫</text>
+  <line x1="12" y1="322" x2="888" y2="322" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="336" width="374" height="152" rx="9" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="414" y="336" width="234" height="152" rx="9" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="676" y="336" width="212" height="152" rx="9" fill="#fff0e9" stroke="#b54237"/>
+  </g>
+
+  <g fill="none" stroke-width="2">
+    <path d="M 386 412 L 408 412" stroke="#66716d" marker-end="url(#fgtp-arr)"/>
+    <path d="M 648 412 L 670 412" stroke="#b54237" marker-end="url(#fgtp-arr-red)"/>
+  </g>
+
+  <text x="26" y="362" font-size="14.5" font-weight="700" fill="#17211f">1. 六道硬前提（任一不满足直接报错）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="388">• 仅支持 <tspan font-weight="700" fill="#17211f">MoE</tspan> 模型，且分组大小整除 <tspan font-family="var(--font-mono)">DP</tspan></text>
+    <text x="26" y="411">• 全局 <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">TP == 1</tspan> 且 <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">PCP == 1</tspan></text>
+    <text x="26" y="434">• 非 <tspan font-family="var(--font-mono)">NONE</tspan> 图模式 + PD 分离 <tspan font-family="var(--font-mono)">kv_consumer</tspan></text>
+    <text x="26" y="457">• 开 <tspan font-family="var(--font-mono)">recompute_scheduler</tspan> + <tspan font-family="var(--font-mono)">PreemptOffload</tspan></text>
+    <text x="26" y="478">（新组替换原 TP 组，不是在原 TP 上叠加）</text>
+  </g>
+
+  <text x="428" y="362" font-size="14.5" font-weight="700" fill="#936300">2. 图捕获尺寸核对</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="428" y="389">计算最大可能单步宽度：</text>
+    <text x="428" y="412" font-family="var(--font-mono)" fill="#936300">max_step = min(</text>
+    <text x="436" y="432" font-family="var(--font-mono)" fill="#936300">max_batched_tokens,</text>
+    <text x="436" y="452" font-family="var(--font-mono)" fill="#936300">max_seqs × query_len)</text>
+    <text x="428" y="476">若 <tspan font-family="var(--font-mono)" font-weight="700" fill="#8f3229">capture &lt; max_step</tspan></text>
+  </g>
+
+  <text x="690" y="362" font-size="14.5" font-weight="700" fill="#8f3229">3. 不足时静默关闭</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="690" y="389">防超宽步落入 eager 导致</text>
+    <text x="690" y="410">跨 DP 集合通信死锁：</text>
+    <text x="690" y="436">• <tspan font-weight="700" fill="#8f3229">v0.30.0</tspan>：告警清零为 <tspan font-family="var(--font-mono)" font-weight="700" fill="#8f3229">0</tspan></text>
+    <text x="690" y="459">• <tspan font-weight="700" fill="#8f3229">main</tspan>：告警重置为 <tspan font-family="var(--font-mono)" font-weight="700" fill="#8f3229">1</tspan></text>
+    <text x="690" y="478">（字段全默认 1，含 KDA）</text>
+  </g>
+</svg>

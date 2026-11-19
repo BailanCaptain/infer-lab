@@ -185,3 +185,38 @@ test("持续拖动跟随浏览器刷新，松手后停止绘制", async ({ page 
   await page.waitForTimeout(500);
   expect(await scene.getAttribute("data-render-count")).toBe(idle);
 });
+
+test("视口 Resize 保留用户旋转缩放后的相机机位，Escape 仍可复位", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/#/home");
+  const scene = page.getByTestId("city-scene");
+  await expect(scene).toHaveAttribute("data-scene-ready", "true", { timeout: 60_000 });
+  await page.keyboard.press("Escape");
+  await expect(scene).toHaveAttribute("data-camera-position", /^-?\d+\.\d+,-?\d+\.\d+,-?\d+\.\d+$/);
+  const homePosition = await scene.getAttribute("data-camera-position");
+
+  // Rotate and zoom the city camera as a user would.
+  await page.mouse.move(960, 520);
+  await page.mouse.down();
+  await page.mouse.move(760, 440, { steps: 8 });
+  await page.mouse.up();
+  await page.mouse.wheel(0, -240);
+  await expect.poll(() => scene.getAttribute("data-camera-position")).not.toBe(homePosition);
+  const rotatedPosition = await scene.getAttribute("data-camera-position");
+
+  // Resize viewport to another desktop size and back: camera must stay at the user's pose.
+  await page.setViewportSize({ width: 1120, height: 760 });
+  await page.waitForTimeout(200);
+  expect(await scene.getAttribute("data-camera-position")).toBe(rotatedPosition);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.waitForTimeout(200);
+  expect(await scene.getAttribute("data-camera-position")).toBe(rotatedPosition);
+
+  // Explicit reset via Escape still returns to homePosition.
+  await page.keyboard.press("Escape");
+  await expect.poll(() => scene.getAttribute("data-camera-position")).toBe(homePosition);
+  expect(errors).toEqual([]);
+});

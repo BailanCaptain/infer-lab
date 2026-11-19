@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 496" width="900" height="496" role="img" aria-label="HCCL buffer 按通信域配置比例条、注册表去重与显存记账规则图" font-family="var(--font-sans)">
+  <title>HCCL buffer：逐通信域预留分派条与不重复计数显存账本</title>
+  <desc>上半以按比例横向条展示 get_hccl_config_for_pg_options 五条分派（默认 200 MB、dynamic_eplb 100 MB、dp 下限 50 MB、v0.30.0 新增 sleep_lifecycle_anchor 1 MB，以及 mc2 返回 None 改由环境变量 HCCL_BUFFSIZE 接管）；下半总结注册表去重不重复计数、非 torch 增量扣除 KV 预算及 HCCL_BUFFSIZE_EP 零代码读取三项防踩坑规则。</desc>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、逐通信域 HCCL buffer 配置分派（v0.30.0 / main 五条分支）</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g font-size="14" font-weight="700">
+    <text x="16" y="76" fill="#3a4f93">默认组（world / tp / ep / etp…）</text>
+    <text x="16" y="122" fill="#7a3a6a">动态均衡组（dynamic_eplb）</text>
+    <text x="16" y="168" fill="#065f56">DP 元数据组（dp）</text>
+    <text x="16" y="214" fill="#66716d">睡眠锚点组（sleep_lifecycle）</text>
+    <text x="16" y="262" fill="#936300">MC2 通信组（名含 mc2）</text>
+  </g>
+
+  <g stroke-width="1.4">
+    <rect x="272" y="54" width="320" height="32" rx="6" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="272" y="100" width="160" height="32" rx="6" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="272" y="146" width="80" height="32" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="272" y="192" width="16" height="32" rx="4" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="272" y="240" width="320" height="32" rx="6" fill="#fff4cf" stroke="#c78300" stroke-dasharray="6 4"/>
+  </g>
+
+  <g font-size="13.5" font-weight="700">
+    <text x="284" y="75" font-family="var(--font-mono)" fill="#3a4f93">200 MB（常量 _DEFAULT_BUFFER_SIZE）</text>
+    <text x="284" y="121" font-family="var(--font-mono)" fill="#7a3a6a">100 MB</text>
+    <text x="284" y="167" font-family="var(--font-mono)" fill="#065f56">50 MB</text>
+    <text x="298" y="213" font-family="var(--font-mono)" fill="#66716d">1 MB（v0.30.0+ 新增）</text>
+    <text x="284" y="261" font-family="var(--font-mono)" fill="#936300">返回 None → 读环境变量 HCCL_BUFFSIZE</text>
+  </g>
+
+  <g font-size="13.5" fill="#4d5652">
+    <text x="606" y="75">未单独命名的 HCCL 组一律落此</text>
+    <text x="446" y="121">仅在开启 MRV1 动态 EPLB 建组时使用</text>
+    <text x="366" y="167"><tspan font-family="var(--font-mono)">max(⌈(dp+1)×4/1M⌉, 50)</tspan>；默认走 CPU gloo</text>
+    <text x="488" y="213">不代表每次启动必建或必占 1 MB</text>
+    <text x="606" y="261">防 Options 与算子窗口划分错位</text>
+  </g>
+
+  <text x="14" y="314" font-size="16" font-weight="700" fill="#17211f">二、严禁把「逻辑组数 × 配置 MB」当实占显存：三条记账铁律</text>
+  <line x1="12" y1="326" x2="888" y2="326" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="338" width="280" height="146" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+    <rect x="310" y="338" width="280" height="146" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="608" y="338" width="280" height="146" rx="9" fill="#fff0e9" stroke="#b54237"/>
+  </g>
+
+  <text x="26" y="364" font-size="14.5" font-weight="700" fill="#065f56">1. 注册表去重（不重复计数）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="390">按四元组算复用键：</text>
+    <text x="26" y="412" font-family="var(--font-mono)" fill="#065f56">(有序 ranks, backend,</text>
+    <text x="26" y="432" font-family="var(--font-mono)" fill="#065f56"> options, reuse_domain)</text>
+    <text x="26" y="456">键相同仅加引用，不新建底层域；</text>
+    <text x="26" y="476">eplb / mc2 各自独立复用域</text>
+  </g>
+
+  <text x="324" y="364" font-size="14.5" font-weight="700" fill="#3a4f93">2. KV 预算只扣非 torch 增量</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="324" y="390">建组前先拍 <tspan font-family="var(--font-mono)" fill="#3a4f93">before_create</tspan> 快照；</text>
+    <text x="324" y="412">试算后把新增非 torch 占用从</text>
+    <text x="324" y="434">KV 预算扣除，不按配置值累加；</text>
+    <text x="324" y="456">CANN 收发各 1 份（1024 →</text>
+    <text x="324" y="476">单域 2 GiB 预算，须实机计量）</text>
+  </g>
+
+  <text x="622" y="364" font-size="14.5" font-weight="700" fill="#8f3229">3. 环境变量与 MC2 窗口边界</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="622" y="390">• 逐域 <tspan font-family="var(--font-mono)">hccl_buffer_size</tspan> 覆盖环境值</text>
+    <text x="622" y="412">• 融合 <tspan font-family="var(--font-mono)" fill="#8f3229">DispatchFFNCombine</tspan> 校验</text>
+    <text x="634" y="432" font-family="var(--font-mono)" fill="#8f3229">(m×k×topK×1B)×3 + 10 MiB</text>
+    <text x="622" y="456">• <tspan font-family="var(--font-mono)" font-weight="700" fill="#8f3229">HCCL_BUFFSIZE_EP</tspan> 在仓内</text>
+    <text x="634" y="476">vllm_ascend / csrc 零代码读取</text>
+  </g>
+</svg>

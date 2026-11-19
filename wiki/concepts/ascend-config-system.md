@@ -106,7 +106,7 @@ relations:
     kind: builds-on
     note: Worker 初始化时建立本进程的配置状态
 contradicts: []
-updated: 2026-11-10T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -196,6 +196,14 @@ file: config-flow
 图从上往下是固定旧 GLM 的调用先后。平台和 Worker 构造函数调的是同一个建配置函数，先问缓存能不能复用——已经有一份、绑定的还是同一个总配置对象、`refresh` 值为假、已有对象带着检查所要求的两个子配置属性，四条都成立才复用。这项完整性守卫只检查 `ascend_compilation_config` 与 `eplb_config` 是否存在，不能代替所有业务校验。新建对象若没通过该守卫，只打警告、不更新旧缓存，但仍返回给调用方。修改同一个总配置对象里的字典而不触发重建，也不会自动重新解析这些字段。
 
 取的一侧从缓存拿对象并检查那两个必要属性。**缓存为空或缺少必要属性，会报配置还没初始化**；先核对本进程的初始化顺序。JSON 内容错误另由语法、类型或具体配置检查处理，旧版未知键静默忽略只是其中一种情况。
+
+### `v0.30.0` 与 `main` 的严格校验与环境变量收口
+
+进入 `v0.30.0` 主基线与 `main` 后，配置解析从旧版手写 `.get()` 升级为 **Pydantic dataclass（`ConfigDict(extra="forbid")`）严格校验流水线**：构造前由 `init_ascend_config` 工厂先剥离 4 个旧顶层调度兼容键（装有 `vllm_omni` 时对未知顶层键先告警后过滤），再由 Pydantic 立即拦截拼写错误与非法类型并拆分 12 组（`main` 扩至 13 组）子配置；随后顺序执行 `derive_and_validate`、RL/细粒度 TP/Xlite 前置校验，全部通过后才原子发布 `_ASCEND_CONFIG` 并清理派生的序列并行缓存（`clear_enable_sp()`），失败时保留旧单例。与此同时，`VLLM_ASCEND_ENABLE_NZ`、`VLLM_ASCEND_ENABLE_MLAPO`、`VLLM_ASCEND_ENABLE_FUSED_MC2`、`MSMONITOR_USE_DAEMON` 等旧兼容环境变量均已从 `envs.py` 退役并收归 `additional_config`，仅留 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 在 `derive_and_validate` 里与 JSON 字段做逻辑或兜底（因此 JSON 显式写 `false` 盖不掉该环境变量的开启值）：
+
+```wiki-diagram
+file: ascend-config-system-fig-pydantic-flow
+```
 
 ## 落到 GLM 双机：一个 JSON 键都没传
 

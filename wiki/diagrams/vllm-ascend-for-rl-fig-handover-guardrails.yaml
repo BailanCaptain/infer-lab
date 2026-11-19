@@ -1,0 +1,20 @@
+mode: native-svg
+id: vllm-ascend-for-rl-fig-handover-guardrails
+caption: >-
+  vLLM-Ascend RL 训推显存与权重交接双模式及 RlConfig.apply() 护栏：同卡轮占（sleep + npu_ipc）与跨卡常驻（pause + hccl / main sparse_hccl）各自遵循「暂停 → 传输/装载 → 恢复」边界；v0.30.0 与 main 启用 rl_config.enabled=true 即自动执行三项强制护栏（清零 weight_nz_mode、剥离 expandable_segments、开开发端点），三项高代价子开关仍默认关闭。
+size: [900, 480]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L363-L395'
+    symbols:
+      - RlConfig
+      - apply
+      - weight_nz_mode
+      - sleep_mode_extra_cleanup
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1467-L1483'
+    symbols:
+      - _disable_expandable_segments
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/distributed/weight_transfer/__init__.py#L23-L40'
+    symbols:
+      - register_engine
+      - HCCLWeightTransferEngine
+      - NPUIPCWeightTransferEngine

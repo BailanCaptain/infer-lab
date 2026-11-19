@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460" role="img" aria-label="CustomOp 与 PluggableLayer 双层分派及 Ascend 950 能力门控" font-family="var(--font-sans)">
+<title>CustomOp / PluggableLayer 分派与 Ascend 950 vllm_ascend_C 禁用分支</title>
+<desc>Two-layer class replacement and forward dispatch plus runtime enable_custom_op gate for A2/A3, 950(A5), and 310P</desc>
+<g stroke-width="1.4">
+<rect x="16" y="64" width="268" height="196" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="316" y="64" width="268" height="196" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="616" y="64" width="268" height="196" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="16" y="292" width="424" height="152" rx="8" fill="#fff0e9" stroke="#b54237"/>
+<rect x="460" y="292" width="424" height="152" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+</g>
+<path d="M284 162h30m-5-4l5 4-5 4M584 162h30m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M750 260v16H228v14m-4-5l4 5 4-5M750 276H672v14m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-weight="700">
+<text x="16" y="30" font-size="16" fill="#17211f">CustomOp / PluggableLayer 双层分派与 A5 / 310P 能力门控</text>
+<text x="32" y="92" font-size="15" fill="#065f56">第一关：OOT 换类（__new__）</text>
+<text x="332" y="92" font-size="15" fill="#3a4f93">第二关：绑方法（__init__）</text>
+<text x="632" y="92" font-size="15" fill="#936300">第三关：扩展门控（运行期）</text>
+<text x="30" y="320" font-size="14.5" fill="#8f3229">Ascend 950（A5）：v0.30.0 禁用 vs main 恢复</text>
+<text x="474" y="320" font-size="14.5" fill="#7a3a6a">PluggableLayer 与 310P 兼容分支对照</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="50" font-size="13.5">启动注册一次，构造期定死前向属性；区分「换 Python 类」「选前向方法」「加载 C++ 扩展」三件事</text>
+<text x="32" y="120" font-size="13.5">• register_ascend_customop()</text>
+<text x="32" y="144" font-size="13.5">• 按原类名查 OOT 替换表</text>
+<text x="32" y="168" font-size="13.5">• RMSNorm → AscendRMSNorm</text>
+<text x="32" y="192" font-size="13.5">• FusedMoE → AscendFusedMoE</text>
+<text x="32" y="218" font-size="13.5" fill="#065f56" font-weight="600">• 310P 命中 COMPATIBILITY 覆写</text>
+<text x="32" y="242" font-size="13.5">→ 实例类别在创建时即锁定</text>
+<text x="332" y="120" font-size="13.5">• CustomOp 检查 custom_ops</text>
+<text x="332" y="144" font-size="13.5">• 平台 AUTO_ENABLE 置 ["all"]</text>
+<text x="332" y="168" font-size="13.5">• 启用 → 绑定 forward_oot</text>
+<text x="332" y="192" font-size="13.5">• 禁用 → forward_native / IR</text>
+<text x="332" y="218" font-size="13.5" fill="#3a4f93" font-weight="600">• PluggableLayer 无此开关</text>
+<text x="332" y="242" font-size="13.5">→ 每次 forward 直接属性调用</text>
+<text x="632" y="120" font-size="13.5">• 惰性调用 enable_custom_op()</text>
+<text x="632" y="144" font-size="13.5">• 关断 1：VLLM_BATCH_INVARIANT</text>
+<text x="632" y="168" font-size="13.5">• 关断 2：缺 RUNTIME_CUSTOM_OPS</text>
+<text x="632" y="192" font-size="13.5">• 通过 → 加载 vllm_ascend_C</text>
+<text x="632" y="218" font-size="13.5" fill="#936300" font-weight="600">• 失败 → 仅部分算子退回 torch_npu</text>
+<text x="632" y="242" font-size="13.5">→ KDA prefill 无回退，直接报错</text>
+<text x="30" y="348" font-size="13.5">• v0.30.0：A5 缺 RUNTIME_CUSTOM_OPS → 返回 False</text>
+<text x="30" y="372" font-size="13.5">• 同版 AscendRMSNorm 残差直调 npu_add_rms_norm_bias</text>
+<text x="30" y="396" font-size="13.5">• main：hardware_profile 为 A5 恢复该能力</text>
+<text x="30" y="420" font-size="13.5">• main 同步恢复 enable_custom_op 回退 npu_add_rms_norm</text>
+<text x="474" y="348" font-size="13.5">• FusedMoE/Linear 属 PluggableLayer：整类换权重与子层</text>
+<text x="474" y="372" font-size="13.5">• 量化方法（W8A8）与模型硬编码扩展不经 custom_ops</text>
+<text x="474" y="396" font-size="13.5">• 310P 由 COMPATIBILITY 能力覆写为 _310p 兼容实现</text>
+<text x="474" y="420" font-size="13.5">• 排障须核最终类、name 与扩展态，勿仅靠「-op」猜</text>
+</g>
+</svg>

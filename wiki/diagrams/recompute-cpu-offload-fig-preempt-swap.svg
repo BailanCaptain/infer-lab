@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 446" width="900" height="446" role="img" aria-label="PreemptOffloadConnector 同步换出换回与预算优先级" font-family="var(--font-sans)">
+<title>PreemptOffloadConnector 同步换出换回与预算优先级</title>
+<desc>PreemptOffloadConnectorV1 synchronous D2H before block reuse, world_size ack aggregation, synchronous H2D on resume, budget resolution priority, and main DCP/PCP evolution</desc>
+<line x1="16" y1="252" x2="884" y2="252" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g stroke-width="1.4">
+<rect x="16" y="54" width="272" height="176" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="314" y="54" width="272" height="176" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="612" y="54" width="272" height="176" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="300" width="420" height="130" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+<rect x="464" y="300" width="420" height="130" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+</g>
+<path d="M288 142h24m-5-4l5 4-5 4M586 142h24m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="28" cy="24" r="13" fill="#4c65b6"/>
+<circle cx="28" cy="276" r="13" fill="#9a4b86"/>
+<g font-weight="700">
+<text x="28" y="29" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
+<text x="48" y="30" font-size="16" fill="#17211f">PreemptOffloadConnectorV1 换出与换回时序（全有或全无 + 两趟同步拷）</text>
+<text x="30" y="80" font-size="15" fill="#3a4f93">① 抢占记账（调度侧）</text>
+<text x="328" y="80" font-size="15" fill="#936300">② 同步 D2H + 集齐确认</text>
+<text x="626" y="80" font-size="15" fill="#065f56">③ 排回挂起 + 同步 H2D</text>
+<text x="28" y="281" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
+<text x="48" y="282" font-size="16" fill="#17211f">主机预算三档优先级 &amp; 混合状态/并行演进（v0.30.0 → main）</text>
+<text x="30" y="326" font-size="15" fill="#17211f">_resolve_offload_capacity 预算规则</text>
+<text x="478" y="326" font-size="15" fill="#7a3a6a">状态对齐与并行解除（v0.30.0 / main）</text>
+</g>
+<g fill="#4d5652" font-size="13.5">
+<text x="30" y="108">• AscendMultiConnector 转问</text>
+<text x="30" y="133">• 查主机空闲块是否够整条请求</text>
+<text x="30" y="158">• 够：锁主机块，记 GPU→CPU 表</text>
+<text x="30" y="183">• 还显存块，原单排回 waiting 队首</text>
+<text x="30" y="208" fill="#8f3229">• 不够：拒存 → 退 P 或细粒度中止</text>
+<text x="328" y="108">• _update_states() 前先同步 D2H</text>
+<text x="328" y="133">• 防新单复用同块号覆盖旧 KV</text>
+<text x="328" y="158">• 逐块逐张量 copy_，整步阻塞等</text>
+<text x="328" y="183">• 须集齐 world_size 张卡回报</text>
+<text x="328" y="208" fill="#936300">• 未集齐返回 None，本步跳过</text>
+<text x="626" y="108">• ready 后答 (命中数, True)</text>
+<text x="626" y="133">• 分新显存块，挂 WAITING_REMOTE</text>
+<text x="626" y="158">• 前向前 start_load_kv 同步 H2D</text>
+<text x="626" y="183">• finished_recving 后下一步续算</text>
+<text x="626" y="208" font-weight="600" fill="#065f56">• 收齐后交还主机块（含生成段）</text>
+<text x="30" y="352">• ① 优先 cpu_bytes_to_use_per_rank（不易误算）</text>
+<text x="30" y="377">• ② 次选 cpu_bytes_to_use ÷ (TP×PP×PCP)（无 DP）</text>
+<text x="30" y="402">• ③ 都不写：按 host_memory_ratio（默认 1=同显存）</text>
+<text x="478" y="352">• 每 worker 独立锁页（本机总占 = 单卡 × worker 数）</text>
+<text x="478" y="377">• Mamba 存末 1+草稿块，校验环形私有与卷积偏移</text>
+<text x="478" y="402" font-weight="600" fill="#7a3a6a">• main 去 DCP/PCP=1 断言，按 resolve_dcp 算块长</text>
+</g>
+</svg>

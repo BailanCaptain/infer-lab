@@ -1,0 +1,22 @@
+mode: native-svg
+id: vllm-kv-block-allocation-fig-lru-queue
+caption: >-
+  BlockPool 与 FreeKVCacheBlockQueue 双向链表 LRU 及引用计数生命周期：0 号 null_block 启动即摘出隔离；get_new_blocks 从队头取块并驱逐旧哈希；touch() 命中 ref_cnt==0 的缓存块须先移出空闲队列并计入本次容量需求；free_blocks() 按倒序归还，已登记前缀块排队尾（LRU 留最久），未登记或关缓存的块插队头（LIFO 优先复用）；v0.30.0/main 支持跨池归还与弱引用防环。
+size: [900, 470]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/core/block_pool.py#L143-L198'
+    symbols:
+      - BlockPool
+      - free_block_queue
+      - null_block
+  - source: 'vllm@ced6857a:vllm/v1/core/block_pool.py#L749-L800'
+    symbols:
+      - touch
+      - free_blocks
+  - source: 'vllm@ced6857a:vllm/v1/core/kv_cache_utils.py#L246-L438'
+    symbols:
+      - FreeKVCacheBlockQueue
+      - popleft_n
+      - remove
+      - prepend_n
+      - append_n

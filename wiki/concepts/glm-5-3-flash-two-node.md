@@ -387,6 +387,10 @@ file: glm-two-node-startup
 
 上文全篇算例、16 卡容量子账与 3,855 / 3,908 块预算属于**例外 B 历史绑定算例**，严格钉在 `vllm@0fc695fc + vllm-ascend@db701c1f`（教程提交 `0576b647`）以确保与全站 19 篇冻结 3D 算例页数字自洽。若直接部署社区正式版 `v0.30.0`（`vllm-ascend@c09d3e20`）或开发主线 `main`（`vllm-ascend@8d6180e2`）中的活跃 `GLM5.3-Flash.md` 食谱，核心架构与参数有以下四类增量演进，不可直接把旧镜像字节账套回新版本：
 
+```wiki-diagram
+file: glm-5-3-flash-two-node-fig-v030-evolution
+```
+
 | 演进维度 | 历史绑定镜像（`db701c1f` / 教程 `0576b647`） | `v0.30.0` 活跃食谱（`c09d3e20`） | `main` 活跃食谱（`8d6180e2`） |
 | --- | --- | --- | --- |
 | **模型目录与缓存重构** | 单文件 `models/glm5_next.py` + `glm5_next_mtp.py` + `glm5_next_multimodal.py`；依赖 `patch/platform/` 改写块长与 5 组 KV | 重构为模块化目录 `models/glm5next/`（`model.py`、`attention.py`、`kda.py`、`mtp.py`、`cache_config.py`、`kv_cache.py`、`sparse_attn_indexer_kpool.py`、`ops/`）；尾状态改用每请求 1 格的环形缓冲规格 | 延续 `models/glm5next/`，新增 `kda_input_projection_tp.py`、`recoverssm_config.py`、`recoverssm_metadata.py` |

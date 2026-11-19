@@ -146,6 +146,12 @@ file: netloader-guide-intuition
 file: netloader-guide-flow
 ```
 
+下面这张全景图把主节点到新实例的 rank 对 rank P2P 权重搬运、`INT8_CACHE`（`v0.30.0` / `main` 默认推理布局直传 vs 原始 int8 缓存）以及失败时经 `disk_fallback_loader_extra_config` 保留多线程键回退磁盘的全链路收在一处：
+
+```wiki-diagram
+file: netloader-guide-fig-p2p-broadcast
+```
+
 接收过程可以用一个很小的张量账说明。假设同一分片有一个形状为 [2, 3] 的 int8 权重矩阵，即 2 行、每行 3 个一字节整数，还有长度为 2 的 FP16 缩放参数，即两个两字节浮点数。两端都按“矩阵、缩放参数”遍历，先把矩阵送进同形状空位，再送缩放参数；以下仅演示数据量，模型与形状均为教学假设。
 
 ```wiki-diagram

@@ -196,6 +196,12 @@ file: hccl-buffer-flow
 
 还有一处细节值得记住：顶层 group_name 字段被有意排除在键之外，但构造函数还把组名写进 hccl_config；如果 Options 保留了这个值，名字不同的组就会算出不同的键。证明跨组名复用的那项单元测试使用模拟 Options，hccl_config 只带缓冲大小；它说明相同键会复用，不能代替现场 Options 的行为。这一条也列在页末。
 
+```wiki-diagram
+file: hccl-buffer-fig-domain-ledger
+```
+
+**落到 `v0.30.0` 主基线与 `main`，四条基础分派保持不变，另有三处增量需要注意：** 第一，新增 `sleep_lifecycle_anchor = 1 MB` 专用分派（仅规定该组名的缓冲字段，不表示每次启动必建）；第二，在 `v0.30.0` 新增 `edp`、`main` 补建 `etp` 扩展组时，只要后端走 `hccl` 都会自动落入默认 `200 MB` 分派；第三，某模型教程脚本里导出的 `HCCL_BUFFSIZE_EP` 在 `vllm_ascend/` 与 `csrc/` 全仓代码中**没有任何读取逻辑**，不要误以为 `vllm-ascend` 会按它单独覆盖 EP 组缓冲（详见文末[版本差异](#版本差异)）。
+
 ## MC2 组为什么不按组配？
 
 `mc2` 那条分支返回 None，外层仍构造带组名的 Options，只不写缓冲字段。源码注释给了理由：MC2 算子按环境变量 `HCCL_BUFFSIZE` 划分通信空间，再单独给这个组覆盖缓冲大小，两边划分可能不一致。

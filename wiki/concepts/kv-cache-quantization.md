@@ -233,6 +233,12 @@ file: kv-cache-quantization
 - **`MXFP8 C8`（`--kv-cache-dtype mxfp8`）** 面向标准 full Attention（K 动态量化、V 静态 E8M0 scale），其 `AscendC8MXFPAttentionBackend` 强制 kernel 页大小为 **512 的倍数**（`get_supported_kernel_block_sizes()` 返回 `[512]`），且拒绝 PCP/DCP、非因果与滑窗；
 - **`TurboQuant`（`--kv-cache-dtype turboquant_4bit_nc`）** 仅支持 A2/A3，按模型家族分为 SFA 打包主缓存与 DeepSeek V4 压缩缓存两路（后者要求 `VLLM_USE_V2_MODEL_RUNNER=1` 与 `indexer_kv_dtype='int8'`）；同时上游提供 **`--kv-cache-dtype-skip-layers`** 按层号或注意力类型跳过 KV 量化（例如 Ascend 在 A5 上自动将 MiniMax-M3 的 GQA 层写入该跳过列表以保持 BF16）。
 
+下图把 `v0.30.0` 昇腾上四条 KV cache 量化路径（`INT8 C8`、`MXFP8 C8`、FA 量化、`TurboQuant 4-bit`）的入口、页大小对齐与 `--kv-cache-dtype-skip-layers` / PD 边界并排对照：
+
+```wiki-diagram
+file: kv-cache-quantization-fig-c8-mxfp8-turboquant
+```
+
 FA 量化在 A2、A3 上还有一道门槛：实例必须是 [PD 分离](pd-disaggregation.md)里做 decode、接收缓存的那一端（KV consumer），普通部署在描述文件里写了它也不会压缓存；`v0.30.0` / `main` 上 FA 量化另要求 `--kv-cache-dtype` 设成 `fp8` 或 `int8`，见[版本差异](#版本差异)。MLA 那一行只压潜向量，是因为 vllm-ascend 的 MLA 缓存把潜向量放在 K 一侧、RoPE 段放在 V 一侧，而 FA 量化对 MLA 模型只压 K 一侧，源码注释说这样做是为了保精度。个别模型在自己的代码里另定缓存精度，例如 DeepSeek-V4 在 A5 上直接把缓存建成 FP8，不属于这三条路。
 
 ### PD 分离时，两端的缓存格式不一样
@@ -296,7 +302,7 @@ $$n_{\text{kblk}} = \left\lceil \frac{561{,}152}{128 \times 512} \right\rceil = 
 - **「读 8 位缓存要先把整段历史还原成 BF16。」** 旧普通 C8 的 decode 融合算子直接读 8 位、边读边乘回系数；prefill 接历史，或没有可直接使用的浮点 K/V 时，才收拢并展开临时副本。新版 C8-MXFP 的分页读取路径见版本差异。
 - **「量化误差只影响当前这一步。」** 一个位置写入量化缓存后，后续读取它时使用的仍是近似值，误差会继续影响相关打分与加权求和；窗口或稀疏选择不再读取它时，访问范围又不同。
 - **「只有前缀缓存命中才有反量化开销。」** 分块 prefill 的后面几段同样要读前面几段的历史，也走展开这条路。
-- **「名字里带 C8 的配置，这套部署也能照开。」** 例如 main 快照有 GLM-5.1-W8A8C8 多机测试配置，但模型名称、后端和版本要一起核对。旧镜像 db701c1f 的 GLM-5.3-Flash 将稀疏 C8 强制关闭、主缓存固定为 BF16；rc2 的变化另见版本差异。
+- **「名字里带 C8 的配置，这套部署也能照开。」** 例如 `main` 快照有 GLM-5.1-W8A8C8 多机测试配置，但模型名称、后端和版本要一起核对。旧镜像 `db701c1f` 的 GLM-5.3-Flash 将稀疏 C8 强制关闭、主缓存固定为 BF16；`v0.30.0` 与 `main` 的变化另见[版本差异](#版本差异)。
 - **「系数和缓存块一起增长。」** 要看是哪条路：C8 和 FA 量化的系数每层一组、随权重加载，和历史长短无关；稀疏 C8 把系数打包进缓存块，随块一起分配。
 
 ## 对照源码

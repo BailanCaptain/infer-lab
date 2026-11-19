@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 446" width="900" height="446" role="img" aria-label="A3 D 节点 Sparse KV offload 缺失补搬与三路木桶规划" font-family="var(--font-sans)">
+<title>A3 D 节点 Sparse KV offload 缺失补搬与三路木桶规划</title>
+<desc>A3 D-node sparse KV offload top-k indexer selection, hot buffer lookup and missing-row H2D copy, plus 3-way capacity bucket min(NPU, DRAM, Workload) in v0.30.0 and main</desc>
+<line x1="16" y1="242" x2="884" y2="242" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g stroke-width="1.4">
+<rect x="16" y="54" width="272" height="166" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="314" y="54" width="272" height="166" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="612" y="54" width="272" height="166" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="290" width="272" height="140" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+<rect x="314" y="290" width="272" height="140" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="612" y="290" width="272" height="140" rx="8" fill="#fff0e9" stroke="#b54237"/>
+</g>
+<path d="M288 137h24m-5-4l5 4-5 4M586 137h24m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="28" cy="24" r="13" fill="#4c65b6"/>
+<circle cx="28" cy="266" r="13" fill="#b54237"/>
+<g font-weight="700">
+<text x="28" y="29" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
+<text x="48" y="30" font-size="16" fill="#17211f">Atlas A3 D 节点稀疏补搬路径（完整主 KV 放主机，设备只留 indexer + 热槽）</text>
+<text x="30" y="80" font-size="15" fill="#3a4f93">① NPU 常驻 Indexer 选行</text>
+<text x="328" y="80" font-size="15" fill="#936300">② CPU 查热槽 + 仅搬缺失行</text>
+<text x="626" y="80" font-size="15" fill="#065f56">③ 默认融合 Copy-SFA 执行</text>
+<text x="28" y="271" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
+<text x="48" y="272" font-size="16" fill="#17211f">三路木桶容量上限（plan_sparse_kv_offload_memory 取 min）与硬约束</text>
+<text x="30" y="316" font-size="15" fill="#17211f">木桶 1：NPU 显存上限</text>
+<text x="328" y="316" font-size="15" fill="#7a3a6a">木桶 2：DRAM 主机上限</text>
+<text x="626" y="316" font-size="15" fill="#8f3229">木桶 3：工作负载 + 硬门槛</text>
+</g>
+<g fill="#4d5652" font-size="13.5">
+<text x="30" y="108">• 全量 indexer cache 留显存</text>
+<text x="30" y="133">• 可用 LI C8（int8，拒 fp8）</text>
+<text x="30" y="158">• 每查询从全历史挑 top-k 行</text>
+<text x="30" y="183">• 新算 K/V 经临时张量写主机</text>
+<text x="30" y="208" fill="#3a4f93">• 同 DP 组内 TP 各卡共享主机池</text>
+<text x="328" y="108">• 查热槽命中与缺失清单（CPU）</text>
+<text x="328" y="133">• 命中直接复用，缺行按 LRU 换出</text>
+<text x="328" y="158">• 作废超稳定前缀的 MTP 草稿槽</text>
+<text x="328" y="183">• TP&gt;1 等 rank 0 写完再各自搬</text>
+<text x="328" y="208" fill="#936300">• MemFabric H2D 只搬缺失行</text>
+<text x="626" y="108">• 默认 use_fused_copy_sfa 路径</text>
+<text x="626" y="133">• topk_buffer_size 默认 -1</text>
+<text x="626" y="158">  → (1+spec)×2048 + 2 尾块</text>
+<text x="626" y="183">• 主 KV 须 BF16（拒 SFA C8）</text>
+<text x="626" y="208" font-weight="600" fill="#065f56">• main 增 store_port_base=8500</text>
+<text x="30" y="342">• 可用显存 ÷ 设备页字节</text>
+<text x="30" y="367">• 不含主 KV（仅 indexer 等）</text>
+<text x="30" y="392">• 热缓冲另占定额显存</text>
+<text x="30" y="416" fill="#66716d">• keep_device_kv 仅作调试</text>
+<text x="328" y="342">• 每 DP 默认 dram=110 GiB</text>
+<text x="328" y="367">• 先扣每层 2 MiB 对齐预留</text>
+<text x="328" y="392">• 再除以主机页字节得块上限</text>
+<text x="328" y="416" font-weight="600" fill="#7a3a6a">• 比 NPU 紧时日志打印告警</text>
+<text x="626" y="342">• max_blocks×max_seqs + 1</text>
+<text x="626" y="367">• 仅放行 A3（拦截 A2 与 950）</text>
+<text x="626" y="392">• 仅 D 节点（拒 CP/D 侧 PP）</text>
+<text x="626" y="416" font-weight="600" fill="#8f3229">• 与 PreemptOffload 互斥</text>
+</g>
+</svg>

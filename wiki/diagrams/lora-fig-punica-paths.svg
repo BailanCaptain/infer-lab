@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="Multi-LoRA 槽号混批与昇腾 PunicaWrapperNPU 快慢路径及 310P 与 EP 边界图" font-family="var(--font-sans)">
+  <title>Multi-LoRA 混批原理与昇腾 PunicaWrapperNPU 执行路径、310P 退路及 EP 约束</title>
+  <desc>关联源码符号：PunicaWrapperNPU, LORA_CUSTOM_OPS, max_loras, _use_sgmv, bgmv_shrink, bgmv_expand, lora_config, ALLTOALL</desc>
+  <defs>
+    <marker id="lr-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="lr-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1: Multi-LoRA batching via slot index -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 同一批混算多适配器：基座 W 只存一份，逐行槽号表决定叠加哪一对 A×B</text>
+
+  <rect x="16" y="44" width="248" height="114" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="30" y="70" font-size="14.5" font-weight="700" fill="#17211f">批内 4 行输入 + 槽号表</text>
+  <text x="30" y="96" font-size="13.5" fill="#065f56" font-weight="600">行 1 → 槽 0（适配器 A）</text>
+  <text x="30" y="116" font-size="13.5" fill="#936300" font-weight="600">行 2 → 槽 1（适配器 B）</text>
+  <text x="30" y="136" font-size="13.5" fill="#065f56" font-weight="600">行 3 → 槽 0；行 4 → −1（无）</text>
+
+  <line x1="266" y1="101" x2="296" y2="101" stroke="#c78300" stroke-width="1.8" marker-end="url(#lr-arr-a)"/>
+
+  <rect x="300" y="44" width="270" height="114" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="314" y="70" font-size="14.5" font-weight="700" fill="#936300">两路并行叠加（加载期 s 已乘入 B）</text>
+  <text x="314" y="96" font-size="13.5" fill="#4d5652">主路：全 4 行共用一份基座 xWᵀ</text>
+  <text x="314" y="118" font-size="13.5" fill="#4d5652">旁路：按槽号取 (xAᵀ)Bᵀ 加回</text>
+  <text x="314" y="142" font-size="13.5" fill="#936300">槽 −1 跳过或置零，互不阻塞</text>
+
+  <line x1="572" y1="101" x2="602" y2="101" stroke="#087f73" stroke-width="1.8" marker-end="url(#lr-arr-t)"/>
+
+  <rect x="606" y="44" width="278" height="114" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="620" y="70" font-size="14.5" font-weight="700" fill="#3a4f93">显存按名额预付，超名额调度跳过</text>
+  <text x="620" y="96" font-size="13.5" fill="#4d5652">槽位 = max_loras × max_lora_rank</text>
+  <text x="620" y="118" font-size="13.5" fill="#4d5652">默认名额仅 1、最大秩仅 16</text>
+  <text x="620" y="142" font-size="13.5" fill="#3a4f93">CPU 缓存满按 LRU 换出重读</text>
+
+  <line x1="16" y1="176" x2="884" y2="176" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: PunicaWrapperNPU 3 paths -->
+  <text x="16" y="204" font-size="16" font-weight="700" fill="#17211f">② 昇腾 PunicaWrapperNPU 执行路径分派（v0.30.0 / main）</text>
+
+  <rect x="16" y="220" width="276" height="134" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="30" y="246" font-size="14.5" font-weight="700" fill="#065f56">快路 · 单槽融合 / Matmul</text>
+  <text x="30" y="270" font-size="13.5" fill="#4d5652">• 条件：配置 max_loras == 1</text>
+  <text x="30" y="292" font-size="13.5" fill="#4d5652">• 未开 fully_sharded_loras</text>
+  <text x="30" y="314" font-size="13.5" fill="#4d5652">• A2/A3 BF16、r∈{8,16,32,64}、</text>
+  <text x="30" y="336" font-size="13.5" font-weight="700" fill="#065f56">  T≤128 优先 Triton，否退 matmul</text>
+
+  <rect x="312" y="220" width="276" height="134" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="326" y="246" font-size="14.5" font-weight="700" fill="#3a4f93">标准路 · AscendC SGMV / BGMV</text>
+  <text x="326" y="270" font-size="13.5" fill="#4d5652">• 四个 AscendC 核函数（压/抬）</text>
+  <text x="326" y="292" font-size="13.5" fill="#4d5652">• 普通线性层：按段 SGMV 合并同槽</text>
+  <text x="326" y="314" font-size="13.5" fill="#4d5652">• MoE 与 logits：直调按行 BGMV</text>
+  <text x="326" y="336" font-size="13.5" font-weight="700" fill="#3a4f93">• main 增分类头 FP32 einsum 入口</text>
+
+  <rect x="608" y="220" width="276" height="134" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="622" y="246" font-size="14.5" font-weight="700" fill="#8f3229">慢路与边界 · 310P / 大秩退路</text>
+  <text x="622" y="270" font-size="13.5" fill="#4d5652">• 无 LORA_CUSTOM_OPS 能力位，或</text>
+  <text x="622" y="292" font-size="13.5" fill="#4d5652">  rank ≥ 128 静默退 PyTorch</text>
+  <text x="622" y="314" font-size="13.5" fill="#4d5652">• 310P 图捕获经 _use_sgmv 切 BGMV</text>
+  <text x="622" y="336" font-size="13.5" font-weight="700" fill="#8f3229">• 退回纯 PyTorch 时无专门提示日志</text>
+
+  <line x1="16" y1="372" x2="884" y2="372" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 3: EP + Quantization boundary -->
+  <text x="16" y="398" font-size="16" font-weight="700" fill="#17211f">③ MoE 挂 LoRA 关键限制：MC2 无法插旁路，EP &gt; 1 强制切换通信</text>
+
+  <rect x="16" y="412" width="424" height="58" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="30" y="436" font-size="14" font-weight="700" fill="#7a3a6a">LoRA + EP &gt; 1 强制 MoECommType.ALLTOALL</text>
+  <text x="30" y="458" font-size="13.5" fill="#4d5652">MC2 融合核无法插旁路；EP=1 仍走 AllGather</text>
+
+  <rect x="460" y="412" width="424" height="58" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="474" y="436" font-size="14" font-weight="700" fill="#936300">v0.30.0 放开 W8A8 动态量化 + All-to-All</text>
+  <text x="474" y="458" font-size="13.5" fill="#4d5652">其他量化、MC2 与动态 EPLB 仍不支持（GLM 未开）</text>
+</svg>

@@ -1,0 +1,21 @@
+mode: native-svg
+id: inference-performance-analysis-fig-four-quadrants
+caption: >-
+  推理性能四象限归因地图：按时间线空隙、Roofline 算术强度与多卡到达时刻，将慢步切分为 Host-bound（主机准备与下发空隙）、Compute-bound（高算术强度大批矩阵乘）、HBM-bound（低算术强度小批权重复用不足与 KV 读取）与 Comm/Straggler-bound（迟到卡等待与真实链路拥塞），并对齐每类象限的首取证据与验证杠杆。
+size: [900, 480]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L625-L715'
+    symbols:
+      - step_with_batch_queue
+      - execute_model
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1225-L1260'
+    symbols:
+      - profile
+      - TorchNPUProfilerWrapper
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/profiler/torch_npu_profiler.py#L25-L75'
+    symbols:
+      - TorchNPUProfilerWrapper
+  - source: 'vllm@ced6857a:vllm/v1/metrics/loggers.py#L805-L905'
+    symbols:
+      - histogram_time_to_first_token
+      - histogram_inter_token_latency

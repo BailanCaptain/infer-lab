@@ -3,21 +3,29 @@ id: use-fused-overlap-75a180fff6ab
 title: use_fused_overlap
 type: param
 summary: >-
-  Sparse KV Offload 的融合重叠 decode 开关，位于 sparse_kv_offload_config，默认
-  false；融合路径把未命中 KV 的主机到设备搬运与 attention 计算流水化，并更新设备选择缓存。固定 main 与 rc2 都有，rc2 还与
-  fused_copy_sfa 互斥，仍受硬件和执行阶段条件限制。
+  Sparse KV Offload 的融合重叠 decode 开关，位于 additional_config.sparse_kv_offload_config，默认
+  false；开启后把未命中 KV 的 H2D 搬运与 SFA 注意力计算放进同一流水线，并更新设备侧选择缓存。v0.23/v0.26 无此键，v0.30.0
+  与 main 上开启时自动切离默认的 Copy-SFA 路径。
 aliases:
   - sparse_kv_offload_config.use_fused_overlap
   - 融合重叠 decode
   - npu_fused_sparse_attention_overlap
   - fused_overlap decode
+legacyAnchors:
+  一句话: 它控制哪条 decode 路径，和 Copy-SFA 是什么关系？
+  事实表: 它控制哪条 decode 路径，和 Copy-SFA 是什么关系？
+  为什么存在: 分段流水、TP 分工与对象常驻开销
+  开了的代价: 报错陷阱、容量边界与版本演进
 chapters:
   - '11'
 origin: seed
 verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
-updated: 2026-11-03T00:00:00.000Z
+updated: 2026-11-19T00:00:00.000Z
 relations:
   - to: kv-cache-sparse-offload
     kind: builds-on
@@ -122,6 +130,15 @@ sources:
     vllm-ascend@01741ac93f1c3c6241a90b19c14dc58b093eb49c:vllm_ascend/ascend_config.py#L1670
   - >-
     vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L1695
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1684-L1708'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/attention/sfa_kv_offload.py#L535-L545'
+  - >-
+    vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L658-L665
+  - >-
+    vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L718-L725
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1775-L1805'
+  - >-
+    vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L686-L693
 rawSources:
   - >-
     raw/sha256-1a21571011dc2c27f03bfdbdc8f176aede00683bea89eba8fb984adc97bc1c50.md
@@ -180,74 +197,53 @@ rawSources:
   - >-
     raw/sha256-fe2af26a94621251f96093e5a90716b5df4e857765b404015df03057b65063a0.md
 ---
-## 一句话
+## 它控制哪条 decode 路径，和 Copy-SFA 是什么关系？
 
-**v0.30.0rc2 对照。** rc2 保留 sparse_kv_offload_config.use_fused_overlap，默认 false，decode 分支仍可调用融合 overlap offload。它与 fused_op_type=fused_copy_sfa 硬互斥，不能同时开启。纯 prefill 和 mixed batch 的非 decode 部分仍有自己的处理路径，因此这个键不能解释成整次前向都换成同一个融合核；模型、精度和 CPU pool 注册条件仍见 Sparse KV Offload 主页面。
+[Sparse KV Offload](../concepts/kv-cache-sparse-offload.md) 把完整历史 KV 保存在主机内存，decode 每步只取索引器选出的部分行。默认路径会先把热缓冲里缺失的行从主机搬回 NPU，再运行 SFA 注意力；把 `use_fused_overlap`（`bool`，默认 `false`）打开后，融合算子把**未命中 KV 的主机到设备搬运和注意力计算放进同一条流水**，同时在流水中把未命中行写入设备侧 Selection KV Cache（保存选中行的缓存），供后续步骤继续复用。
 
-[Sparse KV Offload](../concepts/kv-cache-sparse-offload.md) 把完整历史 KV 放在主机内存，decode 每步只使用索引器选出的部分行。固定 main 的默认路径先把未命中的行搬进 NPU 热缓冲，再算 SFA；`use_fused_overlap` 打开后，融合算子把**未命中 KV 的搬运和 attention 计算放进同一条流水**。设备上仍有 Selection KV Cache（保存选中行的缓存），未命中行仍要从主机拷入，并留下供后续步骤复用 [S49]。字段是 `bool`，默认 `false`。
+以三行选择作示意：本步选中位置 4、8、9，设备选择缓存已有 4、8 即可直接复用，位置 9 仍须从主机拷入并写入选择缓存，供后续计算及下一步命中复用（三行仅为概念示意，实际按模型 TopK 与容量约束运行）。
 
-**它不在 `additional_config` 顶层。** 它是 `SparseKVOffloadConfig` 的字段，真实路径是 `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`（见文末「参数定义」），必须写在 `sparse_kv_offload_config` 这个嵌套块里。固定 main 普通 vLLM 环境会拒绝顶层未知键；安装了 vLLM-Omni 时，工厂会先警告并过滤这些顶层未知键，因此写错位置也不会启用它 [C6]。
+**配置位置与生效边界**：这个开关**不在 `additional_config` 顶层**，而是 `SparseKVOffloadConfig` 的嵌套字段，完整路径是 `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`。在普通 vLLM-Ascend 环境中把它误写到顶层会被未知键校验拒收；若进程装有 `vllm_omni`，工厂会先打告警再过滤未知顶层键，同样不会启用它。另外，必须先分清配置解析与执行选择：工厂总是先校验嵌套块（拼错嵌套键照样报错），而 `AscendSFABackend` 只有在主开关 `sparse_kv_offload_config.enabled` 为真时才会把 metadata builder 与 impl 换成卸载实现。
 
-**存在范围。** 固定 main 与 rc2 有此键；此前核对的 v0.28.0rc、v0.29.0rc 分支也有。旧 v0.26 快照的 `SparseKVOffloadConfig` 是普通类，逐个 `user_config.get(...)` 读取，只认 `enabled` / `topk_buffer_size` / `dram_size_per_dp_GB` / `keep_device_kv_cache` 四个键 [C19]，写上它会被静默忽略；v0.23 维护分支上整套 Sparse KV Offload 都不存在。
+| 关键项 | 运行时行为 | 说明 |
+| --- | --- | --- |
+| 真实路径与默认 | `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`，`bool = False` | 与主开关 `enabled` 独立；嵌套块里拼错键会被 `SparseKVOffloadConfig` 拒绝 |
+| 与 Copy-SFA 的关系 | `v0.30.0` 与 `main` 上 `use_fused_copy_sfa` 是只读派生属性 `enabled and not use_fused_overlap` | 开 `use_fused_overlap` 即切离默认 Copy-SFA 路径；过渡期 `v0.30.0rc2` / `b64b4d71` 曾设独立 `fused_op_type` 字段并与之硬互斥（见 [Copy-SFA 路径](fused-op-type-fc0f5fcd7be0.md)） |
+| decode / prefill 分叉 | 在 `AscendSFAKVOffloadImpl._execute_sparse_flash_attention_process` 中仅把 decode 分叉到 `_execute_fused_overlap_offload_decode` | 不改调度或 connector 层；纯 decode 补齐到输入 token 数后返回，含 prefill 的混批在算完 decode 后仍须先执行 `_check_device_kv_cache_exist()` 再把 prefill 交回父类 SFA |
+| 版本支持 | `v0.23.0` 无整套特性；`v0.26.0rc` 静默忽略此键；`v0.30.0` 与 `main` 均支持 | `v0.26.0rc` 的 `SparseKVOffloadConfig` 只 `.get()` 四个旧键（`enabled` / `topk_buffer_size` / `dram_size_per_dp_GB` / `keep_device_kv_cache`），不识别本键 |
 
-## 事实表
+## 分段流水、TP 分工与对象常驻开销
 
-| 项 | 值 | 意味着什么 |
-|---|---|---|
-| 真实配置路径 | `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]` | 必须嵌在 `sparse_kv_offload_config` 块里；顶层未知键的拒绝或 Omni 过滤见上文 |
-| 类型与默认 | `bool`，默认 `False` | 不写就是老路径；它和 `enabled` 是两个独立的开关 |
-| 生效前提 | `AscendSFABackend` 只在 `sparse_kv_offload_config.enabled` 为真时才把 metadata builder 与 impl 换成卸载类 [C24] | 主开关关闭时不会选择融合后端，但配置工厂仍会解析嵌套字段，拼错键仍可能报错 |
-| 文档入口 | 固定 main 的部署示例未列此键，原生算子的 README 另有机制和形状说明 [S17][S49] | 部署示例不是全部字段与算子约束的清单 |
-| 报错信息里的名字 | `kv_offload_decode_config.use_fused_overlap=true` | 除了这两条报错字符串本身，仓里再无这个配置块名，按它去配会找不到地方写 [!] |
-| decode 走哪条路 | `if self.use_fused_overlap:` 换成 `_execute_fused_overlap_offload_decode` | 分叉在注意力后端的 Impl 里，不在调度或 connector 层 |
-| 同一步里有 prefill 时 | prefill 部分仍走原来的 sparse flash attention，并先 `_check_device_kv_cache_exist()` | 它只改 decode 那一半；chunked prefill 混批时两条路同时在跑 |
-| TP 的分工 | 只有 `tp_rank == 0` 预热外部 LRU planner；捕获且无 prefill 时也由它用副 stream 存当前 KV | 非 0 rank 恢复共享 CPU 池的 GVA 视图；CPU 池由 rank 0 分配是整套卸载的分工，不是本开关才引入的 |
-| 额外常驻对象 | 两条 NPU stream + 一块 `1 + max_num_topk_rows` 的 int32 计划元数据 | 开了就常驻，和实际有没有走到 fused 路径无关 |
-| 覆盖版本 | 固定 main `baa023ad` 与 rc2 有；历史扫描 `b64b4d71` 晚于固定 main [C25]，当前自动定义取 rc2 | v0.26 静默忽略，v0.23 没有整套特性；fixed main 无融合互斥项，rc2 已有 |
+**重叠同时发生在算子内部与框架侧计划流**：在 arch22 原生算子实现里，任务沿选出的 KV 维度分段推进——当前段合并 KV 并发出就绪信号，计算核等待就绪后执行第一次矩阵乘；前一段同步推进归一化与第二次矩阵乘，更早段处理输出，选择缓存更新也嵌在流水中。它是按依赖交错的流水线，而不是整层搬完再整层算，但也并不消除所有等待。在 Python 框架侧，图捕获条件下会用副流提交外部 LRU 计划并广播元数据；非捕获路径则在 rank 0 同步准备计划，不能把两者都概括为全异步。
 
-融合分支按批次内容继续分流：只有 decode 时，将输出补齐到输入 token 数后返回；混有 prefill 时，算完 decode 仍需检查设备 KV cache，再处理 prefill 部分。因此，启用融合 decode 路径并没有消除混合批次对设备 KV cache 的需要。
+**配置被两处各自读取并带来常驻对象**：`AscendSFAKVOffloadImpl.__init__` 与 `SparseKVOffloadManager.__init__` 都会各自读取 `sparse_kv_offload_config.use_fused_overlap`——前者在 `_execute_sparse_flash_attention_process` 里决定 decode 是否进入融合分支（源码中没有 `_forward_decode` 这个入口名），后者在 `register_kv_caches` 中据此建立额外常驻资源：
 
+- **两条 NPU stream 与一块计划元数据**：开启即常驻 `current_kv_save_stream`、`fused_plan_stream` 以及一块长度为 `1 + max_num_topk_rows` 的 int32 计划张量（再切出状态与槽位表），无论实际前向是否走到融合分支。此外，首次准备融合选择状态时还会分配块表、驻留状态、membership map 与请求标识，不能把全部额外占用只算成那块 int32 张量。
+- **沿用并扩展 TP 组的主机池分工**：主机 CPU 池本就由 TP rank 0 分配、其余 rank 共享，不是本开关才引入的；开启 `use_fused_overlap` 后，`tp_rank == 0` 额外负责预热外部 LRU planner 的 OpenMP 线程池（判据 `if not (self.use_fused_overlap and self.tp_rank == 0): return 0`），并在「`tp_rank == 0` + 正在捕获 + 本步无 prefill」三个条件同时满足时用副流保存当前步 KV；其余 rank 则在初始化末尾按广播形状恢复共享 CPU 池的非拥有 GVA 视图，供融合算子直接读取。
 
-## 为什么存在
+## 报错陷阱、容量边界与版本演进
 
-**先分清配置解析与执行选择。** 工厂先读取并校验嵌套配置；`AscendSFABackend` 再按主开关选择普通 SFA 或卸载实现。主开关关闭时，use_fused_overlap 不会选择融合后端，并不意味着这个字段不经过解析。固定 main 有默认与 overlap 两条 decode 路径；rc2 还增加了互斥的 [Copy-SFA 路径](fused-op-type-fc0f5fcd7be0.md)。
+- **报错字符串指向不存在的配置块名**：membership map 分配与获取主机侧 CPU KV 输入两个专用入口都把 `use_fused_overlap` 当作硬前提（关闭即报错，不是静默降级），且报错原文至今仍是 `mapped membership allocation requires kv_offload_decode_config.use_fused_overlap=true` 与 `get_fused_overlap_cpu_kv_inputs requires kv_offload_decode_config.use_fused_overlap=true`。但除了这两条字符串本身，全仓并不存在 `kv_offload_decode_config` 这个配置块——真正该写的是 `sparse_kv_offload_config`。另外，membership map 的行容量也必须为正，零或负容量会被分配入口直接拒绝。
+- **选择缓存容量、图捕获时机与上层前提**：Python 执行路径要求单个 TopK head，并检查所需块数不超过热缓存容量；原生算子 README 还限定 token 级选择、TopK 最大 2048，并要求状态行与映射行按规定对齐。选择状态必须在图捕获前按足够容量分配，捕获期间若触发重新分配会直接报错。同时，原生算子的产品与数据类型表不能替代整套服务的支持范围：上层卸载注册仍要求 BF16 主 KV，硬件门槛（例如不支持 950PR/950DT 以及历史只放行 Atlas A3 的检查）依然生效。
+- **不接管 prefill、慎配 `keep_device_kv_cache=false`**：混批（如 chunked prefill）时只有 decode 走融合路径，prefill 部分交回父类 `super()._execute_sparse_flash_attention_process`，并先调用 `_check_device_kv_cache_exist()` 确认设备主 KV 仍在；在非纯 decode 场景同时关闭 `keep_device_kv_cache` 容易撞上这道检查。
+- **文档示例与版本差异**：该字段于 2026-09-07 随 [PR #14957](https://github.com/vllm-project/vllm-ascend/pull/14957) 引入，早先的 Decode 启动示例只列了 `enabled`、`topk_buffer_size`、`dram_size_per_dp_GB` 三项，不能据此误判没有本键（参考[官方指南](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html)与原生算子 README）。历史演进上：早期 `baa023ad` 没有 Copy-SFA 互斥项；过渡快照 `b64b4d71` 与 `v0.30.0rc2` 引入 `fused_op_type` 并在同时启用 `fused_copy_sfa` 与 `use_fused_overlap` 时报错；到了 `v0.30.0` 正式版（`c09d3e20`）与 `main`（`8d6180e2`），`fused_op_type` 已简化移除，`use_fused_copy_sfa` 改为只读属性 `self.enabled and not self.use_fused_overlap`，`main` 另新增 `store_port_base`（默认 `8500`）用于多服务隔离 MemFabric 端口。
+- **放到 GLM 双机（`db701c1f` 固定基线）与效果边界**：GLM 双机固定快照 `db701c1f` 连 `SparseKVOffloadConfig` 类都没有，写进 `additional_config` 只会被忽略；即使换到 `v0.30.0` 或 `main`，该双机部署（2×A2×8、TP8/DP2/EP16、W8A8，见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)）仍过不了硬件等前置门槛（详见 [Sparse KV Offload 的 GLM 双机分析](../concepts/kv-cache-sparse-offload.md#放到-glm-双机硬件这一关就过不去)）。效果上，原生实现仍存在 KV 搬运、缓存更新与流水依赖，实际能隐藏多少搬运耗时取决于命中率、输入规模与硬件，本页无固定部署下的时延、搬运字节与峰值显存对照实测。
 
-默认 decode 路径在 top-k 选完后，先把热缓冲缺少的行 H2D 搬回 NPU，再运行常驻 SFA。overlap 路径将这两项工作合并调度。例如用三行作示意：本次选择位置 4、8、9，设备选择缓存已有 4、8，就可复用这两行，而位置 9 仍须从主机读取并写入选择缓存。后续计算使用这些 KV 行，下一步再次选中 9 时才有机会命中缓存。这里的三行只是解释命中与未命中，实际模型按自己的 TopK 和容量约束运行。
+## 对照源码
 
-**重叠发生在算子内的 KV 分段流水，也有框架侧的计划流。** arch22 实现沿选出的 KV 维度划分任务：当前任务合并 KV 并发出就绪信号，计算核等待对应数据后做第一次矩阵乘；前一任务继续归一化及第二次矩阵乘，更早任务处理输出。选择缓存的更新也在该流水中执行。它按依赖交错各段工作，不是整层搬完之后才开始整层计算，也不意味着所有等待都消失 [C50][C55]。Python 侧还在图捕获条件下用副流提交外部 LRU 计划并广播元数据；非捕获路径在 rank 0 同步准备计划，二者不能都概括为全异步 [C51]。
+下表汇总 `sparse_kv_offload_config.use_fused_overlap` 在四个基线版本的字段与 Copy-SFA 关系对照，其后列出核心源码锚点：
 
-**配置被读两次，落在两个对象上。** `AscendSFAKVOffloadImpl.__init__` 从 `get_ascend_config().sparse_kv_offload_config` 取一份存成 `self.use_fused_overlap` [C9]，`SparseKVOffloadManager` 在自己的构造里另取一份，两边各判各的。真正的分叉在 `AscendSFAKVOffloadImpl` 覆盖的 `_execute_sparse_flash_attention_process` 里，就是那句 `if self.use_fused_overlap:` [C10]（源码里没有 `_forward_decode` 这个名字）；manager 那边则用它决定要不要建 `current_kv_save_stream` / `fused_plan_stream` 这两条流和那块计划元数据 [C14]。
+| 项 | v0.23.0 (`2c59ff10`) | v0.26.0rc (`2ed6cbba`) | v0.30.0 (`c09d3e20`) | main (`8d6180e2`) | 意味着什么 |
+| --- | --- | --- | --- | --- | --- |
+| 字段存在与默认 | 无整套 Sparse KV Offload | 类仅读 4 个旧键，静默忽略本键 [C19] | `SparseKVOffloadConfig.use_fused_overlap: bool = False` [C59] | 同 `v0.30.0`（另增 `store_port_base=8500`）[C63] | 必须写在 `sparse_kv_offload_config` 嵌套块内 |
+| 与 Copy-SFA 关系 | — | — | `@property use_fused_copy_sfa = enabled and not use_fused_overlap` [C59] | 同 `v0.30.0` [C63] | 过渡期 `rc2` 的 `fused_op_type` 互斥已收拢为二选一属性 [D] |
+| 报错配置块名 | — | — | 仍写 `kv_offload_decode_config.use_fused_overlap=true` [C61] | 同 `v0.30.0` [C64] | 全仓无此块名，配置仍须写 `sparse_kv_offload_config` [!] |
+| 顶层误写处理 | 忽略 | 忽略 | 普通环境拒收，`vllm_omni` 告警过滤 | 同 `v0.30.0` | 嵌套拼错键始终被 `SparseKVOffloadConfig` 拒绝 |
 
-**融合路径沿用 TP 组内的主机池分工，并增加计划处理：**
-
-- `tp_rank == 0` 负责预热外部 LRU planner 的 OpenMP 线程池——判据写成 `if not (self.use_fused_overlap and self.tp_rank == 0): return 0` [C13]；
-- 存当前步 KV 时，只有 `tp_rank == 0` 且正在捕获、且这一步没有 prefill，才走副 stream [C16]；
-- 其余 rank 在初始化末尾把共享 CPU 池按广播来的形状**恢复成非拥有的 GVA 视图** [C15]。
-
-CPU 池本来就由 TP rank 0 分配，其他 rank 共享；开启融合路径后，其他 rank 还会恢复供算子读取的非拥有 CPU tensor 视图 [C54]。两个专用入口——membership map 分配与 CPU KV 输入获取——要求本开关为真，关闭时直接报错。这是接口的调用前提，不代表普通卸载没有 TP 共享池。
-
-## 开了的代价
-
-**报错信息会把你指向一个不存在的配置块。** 那两处 `RuntimeError` 的原话逐字是 `mapped membership allocation requires kv_offload_decode_config.use_fused_overlap=true` [C11] 和 `get_fused_overlap_cpu_kv_inputs requires kv_offload_decode_config.use_fused_overlap=true` [C12]，但除了这两条报错字符串本身，`kv_offload_decode_config` 在 `vllm_ascend/` 和 `docs/` 里再无一处 [D]。真正要写的是 `sparse_kv_offload_config`。看到这条报错别去搜那个名字 [!]。抛错的两个函数正是 fused 路径自己要用的（一个分配选择用的 membership map，一个取主机侧那份 KV 输入），所以它们是防误用的硬前提，不是「开关没开就降级」的分叉点。
-
-
-membership map 的行容量还必须为正；分配入口会拒绝零或负容量。开启融合路径只是进入该分配入口的一个条件。
-
-**文档要按快照读。** 固定 main 的 Decode 启动示例只列 enabled、topk_buffer_size、dram_size_per_dp_GB 三项；该示例的遗漏不能推成没有此功能。字段在 2026-09-07 随 [PR #14957](https://github.com/vllm-project/vllm-ascend/pull/14957) 引入，rc2 也已有；使用时仍须核对硬件、阶段及互斥条件。
-
-**注册缓存时多建两条 stream 和一块计划元数据。** register_kv_caches 在融合分支里额外建 current_kv_save_stream、fused_plan_stream，以及一块长度为 1 + max_num_topk_rows 的 int32 张量，再从中切出状态与槽位表。它们按规划规模建立；此外，第一次准备融合选择状态时还会分配块表、驻留状态、membership map 与请求标识，不能把全部额外占用只算成这块 int32 张量。
-
-**选择缓存也有容量和捕获时机的要求。** Python 执行路径要求单个 TopK head，并检查所需块数不超过热缓存可容纳的块数；membership map 的行容量必须为正。原生 README 还限定 token 级选择、TopK 最大 2048，并要求状态行和映射行按规定对齐。选择状态必须在图捕获前按足够容量分配，捕获时发现要重新分配会报错 [C52][C53][S49]。原生算子的产品表与数据类型表不等于整个服务支持范围：上层卸载注册仍要求 BF16 主 KV，服务的硬件门槛也仍适用。
-
-**它不接管 prefill。** 同一步里既有 decode 又有 prefill 时，decode 走 fused 路径、prefill 那一半交回父类的同名实现（`super()._execute_sparse_flash_attention_process`），而且先要 `_check_device_kv_cache_exist()` 确认设备上还有主 KV。也就是说在 `keep_device_kv_cache=false` 的纯 decode 部署之外用它，容易撞上这道检查。
-
-**版本切换时要重新核对键的消费位置。** 固定 main 普通环境拒绝顶层未知键，Omni 环境的顶层过滤例外见开篇；嵌套块里的拼错键仍由 SparseKVOffloadConfig 拒绝 [C4][C7]。旧 v0.26 对该键的顶层和嵌套写法均不消费，不会因此启用融合路径。正确配置在支持它的版本间迁移，并不必然要改键值。
-
-**固定 main、历史扫描与当前参数定义各有范围。** `baa023ad` 的 `SparseKVOffloadConfig` 只有 `enabled` / `topk_buffer_size` / `dram_size_per_dp_GB` / `keep_device_kv_cache` / `topk` / `use_fused_overlap` 六个字段，没有互斥键。历史扫描 `b64b4d714484feaa6ca71edc99b98318fe6d2f0d` 已多出 `fused_op_type`（默认 `none`）及派生值 `use_fused_copy_sfa`，同时启用时报 `fused_copy_sfa and use_fused_overlap are mutually exclusive` [C25]。当前自动定义来自 rc2，也保留这道互斥；不能用旧固定 main 无此检查来放行 rc2 的组合。
-
-**GLM 双机上它开不起来，也没有重叠收益的实测数。** 主线跑的 GLM 代码线是快照 `db701c1f`，那份 `AscendConfig` 里连 `SparseKVOffloadConfig` 这个类都没有，各块配置是逐块 `additional_config.get(...)` 取的，整个 `sparse_kv_offload_config` 块写上去既不读也不报 [C26]。换到 main 也仍然开不了：这套部署（2×A2×8、TP8/DP2/EP16、W8A8，见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)）要先过五道拦路条件，第一道是设备型号只放行 Atlas A3，逐条见 [Sparse KV Offload 放到 GLM 双机](../concepts/kv-cache-sparse-offload.md#放到-glm-双机硬件这一关就过不去)。
-
-**效果边界：** 原生代码证明仍有 KV 搬运、缓存更新与流水依赖；实际能遮住多少搬运时间，取决于命中率、输入规模和硬件。本页没有固定部署下两条路径的 decode 时延、实际搬运字节与显存峰值对照数据。
+- **配置与演化锚点**：`v0.30.0` 定义与派生属性见 `c09d3e20:ascend_config.py#L1684-L1708`（来源 58–59）及 `sfa_kv_offload.py#L535-L545`（来源 60）[C60]；`main` 见 `8d6180e2:ascend_config.py#L1775-L1805`（来源 63）。历史快照演进（`baa023ad`、`b64b4d71`、`7d825229` 与 `db701c1f`）见来源 1–7、25–26、45–47；部署文档示例见 `layerwise_and_sparse_kv_cache_offloading.md#L219-L238`（来源 17–18）[S17]。
+- **执行分叉、分段流水与 TP 共享池**：后端选择见 `sfa_v1.py#L284-L309`（来源 24）；decode 分叉、混批 prefill 回退、选择状态分配见 `sfa_kv_offload.py#L202-L205, #L500-L582, #L865-L999, #L1035-L1060`（来源 8–10、42、52–53）；manager 双流、计划流、TP rank 0 预热与非拥有 GVA 视图见 `sparse_kv_offload_manager.py#L473-L559, #L650-L667, #L714-L788, #L851-L855, #L1090-L1093, #L1338-L1477`（来源 11–16、43、51、54；`c09d3e20` 报错见来源 61–62，`8d6180e2` 见来源 64）[C51]。
+- **原生算子流水与容量约束**：README 与 arch22 kernel/service 实现见 `csrc/attention/fused_sparse_attention_overlap/README.md#L14-L192`（来源 49）[S49]、`fused_sparse_attention_overlap_kernel_mla.h#L795-L907`（来源 50）[C50] 与 `fused_sparse_attention_overlap_service_vector_mla.h#L2493-L2683`（来源 55）；引入记录见 PR #14957（来源 56，作者测试记录非本项目实测）[D]。
+- **待核**：缺固定部署下开启与关闭 `use_fused_overlap` 的 decode 时延、实际 H2D 搬运字节与显存峰值实机对照 [!] 。
 
 ## 版本谱系
 
@@ -279,10 +275,3 @@ membership map 的行容量还必须为正；分配入口会拒绝零或负容�
 源码未提供字段注释。
 
 约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：
-
-## 对照源码
-
-- 来源 42：vllm-ascend@baa023ad，vllm_ascend/attention/sfa_kv_offload.py，L1035–L1060。
-- 来源 43：vllm-ascend@baa023ad，vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py，L652–L667。
-- 来源 49–55：原生机制与容量、arch22 分段流水、计划流、实际算子输入、选择状态分配及共享主机池。它们支持上述执行机制，不代替 NPU 性能测量。
-- 来源 56：引入 PR 的目的与作者测试记录；不是本项目执行过的测试结果。

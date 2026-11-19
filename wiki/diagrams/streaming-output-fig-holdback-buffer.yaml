@@ -1,0 +1,11 @@
+mode: native-svg
+id: streaming-output-fig-holdback-buffer
+caption: 流式输出前端三道缓冲与合并闸门（UTF-8 半字暂扣、停止串尾字扣留、单槽收集器合并），以及跨进程判停分工与 include_reasoning=false 隐藏副作用对照。
+size: [900, 516]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/engine/detokenizer.py#L108-L150'
+    symbols: ['skipped_stop_token_id', 'decode_next', 'check_stop_strings', 'get_next_output_text']
+  - source: 'vllm@ced6857a:vllm/v1/engine/detokenizer.py#L310-L362'
+    symbols: ['check_stop_strings', 'output_text', 'new_char_count']
+  - source: 'vllm@ced6857a:vllm/v1/engine/output_processor.py#L51-L102'
+    symbols: ['RequestOutputCollector', 'aggregate', 'put']

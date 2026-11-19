@@ -1,0 +1,14 @@
+mode: native-svg
+id: vllm-v1-shape-fig-separation
+caption: >-
+  vLLM V1 三角色职责边界与两道跨进程消息契约：前端 AsyncLLM 只碰文字与流式输出，EngineCore 仅持整数账本与块号，Worker 驻守卡上权重、KV cache 与请求缓存并通过差量 SchedulerOutput 同步状态；底部标出 V1 引擎循环与 MRV1/MRV2 执行侧在 v0.30.0 与 main 上的正交演进。
+size: [900, 454]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L589-L630'
+    symbols: [step, execute_model, sample_tokens, step_with_batch_queue]
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/output.py#L225-L260'
+    symbols: [SchedulerOutput, scheduled_new_reqs, scheduled_cached_reqs, finished_req_ids]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L774-L855'
+    symbols: [execute_model, sample_tokens]
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L72'
+    symbols: [use_v2_model_runner, apply_v2_model_runner_config_patch]

@@ -1,0 +1,10 @@
+mode: native-svg
+id: cann-hccl-fig-qos-and-netcheck
+caption: >-
+  多机启动前 4 层设备网络预检漏斗与两套易混 QoS 边界对照：上半幅按“本机光口健康 → NPU IP/路由 → 跨节点双向 hccn_tool ping → 推理进程端口与 HIXL LocalCommRes 端点”四步定位连通性；下半幅严格区分 A3 SuperPoD 整机交换机 AI QoS（tools/ai_qos.py，VL 优先级与手动交换机 remap/undo）与引擎内 KV 传输 qos_priority（0–4 注入 ASCEND_GLOBAL_RESOURCE_CONFIG）。
+size: [900, 484]
+pins:
+  - source: vllm-ascend@c09d3e20:tools/ai_qos.py#L453-L473
+    symbols: [main, run_unset, AiqosConfig]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/utils/utils.py#L18-L47
+    symbols: [QOS_KEY, PD_QOS_DEFAULT, QOS_MAX, inject_qos]

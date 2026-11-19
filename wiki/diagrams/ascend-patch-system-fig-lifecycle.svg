@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 444" width="900" height="444" role="img" aria-label="vllm-ascend 两阶段补丁导入时序、from-import 陷阱与四版数量收敛图" font-family="var(--font-sans)">
+  <title>vllm-ascend 两阶段 patch/platform 与 patch/worker 时序及演进</title>
+  <desc>Two-stage patch_platform vs patch_worker import timeline, from-import stale binding pitfall, and 59-64-65-59 evolution</desc>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">两阶段补丁导入时序、from-import 副本陷阱与四版收敛</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">patch/platform 与 patch/worker 按「生效时机与所在进程」分工，而非按改写对象类型分工</text>
+
+  <!-- Stage 1 -->
+  <rect x="16" y="64" width="414" height="176" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="32" y="90" font-size="15" font-weight="700" fill="#065f56">阶段一：global patch（patch/platform/）</text>
+  <text x="32" y="114" font-size="13.5" fill="#4d5652">• 入口 A：平台准备钩子 → adapt_patch(True)</text>
+  <text x="32" y="138" font-size="13.5" fill="#4d5652">• 入口 B：3 个通用插件 → _ensure_global_patch</text>
+  <text x="32" y="162" font-size="13.5" fill="#4d5652">• 覆盖进程：API Server、EngineCore 与 Worker</text>
+  <text x="32" y="186" font-size="13.5" fill="#4d5652">• 替换目标：配置解析、KV 分组、调度与引擎入口</text>
+  <text x="32" y="216" font-size="13.5" fill="#065f56" font-weight="600">→ 早于 Worker 出生；按能力表与 EPLB 门控</text>
+
+  <path d="M432 152h34m-6-5l6 5-6 5" fill="none" stroke="#66716d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Stage 2 -->
+  <rect x="470" y="64" width="414" height="176" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="486" y="90" font-size="15" font-weight="700" fill="#3a4f93">阶段二：worker patch（patch/worker/）</text>
+  <text x="486" y="114" font-size="13.5" fill="#4d5652">• 入口：NPUWorker 构造开头 → adapt_patch()</text>
+  <text x="486" y="138" font-size="13.5" fill="#4d5652">• 紧接：CustomOp 登记 → init_ascend_config</text>
+  <text x="486" y="162" font-size="13.5" fill="#4d5652">• 覆盖：各 Worker（单卡 uni 落引擎进程内）</text>
+  <text x="486" y="186" font-size="13.5" fill="#4d5652">• 目标：通信组、权重后处理、KV 绑定、图与采样</text>
+  <text x="486" y="216" font-size="13.5" fill="#3a4f93" font-weight="600">→ 须早于建通信域，否则通信组沿用旧类</text>
+
+  <!-- Bottom left -->
+  <rect x="16" y="260" width="424" height="170" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="32" y="286" font-size="14.5" font-weight="700" fill="#8f3229">三大陷阱：导入≠生效、from-import 与幂等</text>
+  <text x="32" y="312" font-size="13.5" fill="#4d5652">• 副本陷阱：上游 from mod import fn 拷走引用后，</text>
+  <text x="32" y="334" font-size="13.5" fill="#4d5652">  仅改源模块无效，必须同步改消费模块绑定</text>
+  <text x="32" y="358" font-size="13.5" fill="#4d5652">• 导入≠调用：内部开关关闭或子类覆写前向，</text>
+  <text x="32" y="380" font-size="13.5" fill="#4d5652">  都会让已导入补丁不进入实际请求热路径</text>
+  <text x="32" y="406" font-size="13.5" fill="#8f3229" font-weight="600">• 幂等风险：包装型补丁重跑会把原函数存成自己</text>
+
+  <!-- Bottom right -->
+  <rect x="460" y="260" width="424" height="170" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="476" y="286" font-size="14.5" font-weight="700" fill="#936300">四版 patch_*.py（platform / worker / v2）</text>
+  <text x="476" y="312" font-size="13.5" fill="#4d5652">• v0.23.0：28 / 24 / 7 = 59（按版本+310P 分支）</text>
+  <text x="476" y="336" font-size="13.5" fill="#4d5652">• v0.26.0rc：31 / 24 / 9 = 64（去版本分支）</text>
+  <text x="476" y="360" font-size="13.5" fill="#17211f" font-weight="600">• v0.30.0：32 / 19 / 14 = 65（能力表门控）</text>
+  <text x="476" y="384" font-size="13.5" fill="#7a3a6a" font-weight="600">• main：29 / 30 / 0 = 59（patch_v2 退役合入）</text>
+  <text x="476" y="410" font-size="13.5" fill="#4d5652">• main 把 V2 开关缩为 7 行调 mrv2_utils 锁 V2</text>
+</svg>

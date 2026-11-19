@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 446" width="900" height="446" role="img" aria-label="AscendStoreConnector 多实例共享 KV 池架构与双连接器对照" font-family="var(--font-sans)">
+<title>AscendStoreConnector 多实例共享 KV 池架构与双连接器对照</title>
+<desc>Multi-instance AscendStoreConnector architecture with Rank-0 LookupKeyServer IPC, registered NPU buffers, Mooncake/Memcache/Yuanrong shared pool, key naming, and upstream MooncakeStoreConnector comparison</desc>
+<line x1="16" y1="252" x2="884" y2="252" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g stroke-width="1.4">
+<rect x="16" y="54" width="272" height="176" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="314" y="54" width="272" height="176" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="612" y="54" width="272" height="176" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="16" y="298" width="420" height="132" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+<rect x="464" y="298" width="420" height="132" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+</g>
+<path d="M288 122h24m-5-4l5 4-5 4M312 162h-24m5-4l-5 4 5 4M586 122h24m-5-4l5 4-5 4M610 162h-24m5-4l-5 4 5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="28" cy="24" r="13" fill="#087f73"/>
+<circle cx="28" cy="274" r="13" fill="#9a4b86"/>
+<g font-weight="700">
+<text x="28" y="29" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
+<text x="48" y="30" font-size="16" fill="#17211f">AscendStoreConnector 多实例共享 KV 层（只补本地缺的整段，按段读写）</text>
+<text x="30" y="80" font-size="15" fill="#3a4f93">实例 1（写入方 / P 侧）</text>
+<text x="328" y="80" font-size="15" fill="#065f56">共享外部 KV 池（多后端）</text>
+<text x="626" y="80" font-size="15" fill="#936300">实例 2（跨机命中方）</text>
+<text x="28" y="279" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
+<text x="48" y="280" font-size="16" fill="#17211f">键构成、混合模型规则 &amp; 上游 MooncakeStoreConnector 分工</text>
+<text x="30" y="324" font-size="15" fill="#17211f">AscendStore 记录键与 v0.30.0 / main 演进</text>
+<text x="478" y="324" font-size="15" fill="#7a3a6a">上游 MooncakeStoreConnector（独立入口）</text>
+</g>
+<g fill="#4d5652" font-size="13.5">
+<text x="30" y="108">• 计算完 prompt 写满整段</text>
+<text x="30" y="133">• wait_for_save 记 NPU Event</text>
+<text x="30" y="158">• 后台线程按块号×跨度写出</text>
+<text x="30" y="183">• 单头 MLA 跨卡轮流分摊写</text>
+<text x="30" y="208" fill="#3a4f93">• SupportsHMA（自动 align）</text>
+<text x="328" y="108">• 后端：Mooncake / Memcache</text>
+<text x="328" y="133">  / Yuanrong + 可选 SSD 卸载</text>
+<text x="328" y="158">• 每卡 global_segment_size 拼池</text>
+<text x="328" y="183">• 按段长 lcm(各组块长) 对齐</text>
+<text x="328" y="208" font-weight="600" fill="#065f56">• 全中留 1 位给引擎采样</text>
+<text x="626" y="108">• Rank-0 LookupKeyServer IPC</text>
+<text x="626" y="133">• 查池连续命中 − 本地命中</text>
+<text x="626" y="158">• 按显存注册区间直拉缺失段</text>
+<text x="626" y="183">• 只算未命中尾巴，省 prefill</text>
+<text x="626" y="208" fill="#936300">• 逐层模式走调度侧直查重搬</text>
+<text x="30" y="350">• 键 = 末级目录 + dcp + 头/卡号 + 组 + 状态 + 指纹</text>
+<text x="30" y="375">• 不含权重版本与 TP 总数：换权重/改 TP 须清空</text>
+<text x="30" y="400">• main 拆出 layerwise/ 子包并增 DSpark 复用</text>
+<text x="478" y="350">• embedded 默认：vLLM rank 贡献 segment_size</text>
+<text x="478" y="375">• standalone-store：池贡献 0，仍配 local_buffer</text>
+<text x="478" y="400" font-weight="600" fill="#7a3a6a">• enable_offload 按 1,280 MiB 分批，强 load_async</text>
+</g>
+</svg>

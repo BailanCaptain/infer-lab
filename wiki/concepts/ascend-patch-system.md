@@ -5,7 +5,7 @@ type: feature
 summary: >-
   patch 是 vllm-ascend 在进程里把上游模块中的名字改指向昇腾实现的做法。global patch 由平台准备钩子和通用插件
   入口加载，worker patch 在 Worker 构造时加载；正常成功导入由标记和缓存去重。本页按固定 GLM 条件区分导入与
-  实际调用，并对照 v0.23 / v0.26 rc / main / rc2 的入口与清单。
+  实际调用，并对照 v0.23.0 / v0.26.0rc / v0.30.0 / main 的入口与清单。
 aliases:
   - patch
   - adapt_patch
@@ -246,7 +246,11 @@ file: patch-timing
 | 本部署在哪些进程 | API server、2 个 EngineCore、16 个 Worker | 16 个 Worker |
 | 换哪类名字 | Worker 出生前就要用的：配置校验、KV 分组、调度器、引擎入口 | 只在 Worker 里用的：通信组、权重后处理、图尺寸、采样 |
 
-两类的区别在**时机和进程**，不在改的对象种类：两个目录里都有叫 patch_distributed 的文件，platform 下那个在 310P 芯片上改 PyTorch 的集合通信函数，worker 下那个换 vLLM 的通信组类。
+两类的区别在**时机和进程**，不在改的对象种类：两个目录里都有叫 `patch_distributed` 的文件，`platform` 下那个在 310P 芯片上改 PyTorch 的集合通信函数，`worker` 下那个换 vLLM 的通信组类。把两阶段导入入口、`from-import` 副本陷阱，以及从旧基线到 `v0.30.0`（`32 / 19 / 14 = 65` 个 `patch_*.py`，按 `HardwareProfile` 能力表门控）再到 `main`（`29 / 30 / 0 = 59` 个，退役 `patch_v2/` 并通过 `mrv2_utils` 锁定 MRV2）的演进收在一张图里对照：
+
+```wiki-diagram
+file: ascend-patch-system-fig-lifecycle
+```
 
 两个目录也不是全部入口。还有少数 patch 由别处按配置导入：检查配置时，只有打开 profiling 分块功能才导入对应的 patch；model runner 加载 EAGLE-3 草稿模型且流水线并行大于 1 时，才调另一个 patch 函数。判断某个 patch 在不在，要从调用入口一路核到条件分支，文件在目录里并不够。每个进程从哪个入口拿到补丁、fork 和 spawn 两种启动方法下子进程是否带着父进程已换好的名字，归[引擎有哪几个进程](engine-processes.md#补丁和配置为什么要每个进程各做一遍)讲；动态 EPLB 为什么要靠环境变量在 global patch 里换掉多进程执行器，见[同页后文](engine-processes.md#进程怎么摆直接决定要打哪些补丁)。
 

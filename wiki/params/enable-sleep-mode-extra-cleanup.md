@@ -3,11 +3,16 @@ id: enable-sleep-mode-extra-cleanup
 title: enable_sleep_mode_extra_cleanup
 type: param
 summary: >-
-  sleep 时额外释放 HCCL 设备侧通信组、清空 ACL 图工作区；默认关闭，因为唤醒要重建通信域并重新捕获图。v0.23 与 v0.26
-  使用顶层键，固定 main 与 rc2 使用 rl_config。rc2 还用跨休眠周期的 HCCL anchor 保护通信域清理与恢复。
+  sleep 时额外释放 HCCL 设备侧通信组并清空 ACL 图工作区，默认关闭；v0.23/v0.26 用顶层键，v0.30.0 与 main
+  迁至 rl_config.sleep_mode_extra_cleanup 并引入 HCCL anchor。
 aliases:
   - sleep 模式额外清理
   - rl_config.sleep_mode_extra_cleanup
+legacyAnchors:
+  一句话: 它额外清理什么，两代配置入口怎么迁？
+  事实表: 它额外清理什么，两代配置入口怎么迁？
+  为什么存在: 休眠与唤醒的清理次序及 HCCL 生命周期锚点
+  开了的代价: 唤醒代价、常见踩坑、日志定位与启动命令
 chapters:
   - '19'
 sources:
@@ -83,10 +88,21 @@ sources:
   - 'https://github.com/vllm-project/vllm-ascend/pull/9585'
   - 'https://github.com/vllm-project/vllm-ascend/pull/13838'
   - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L681-L692'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L363-L394'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L259-L301'
+  - >-
+    vllm-ascend@c09d3e20:vllm_ascend/device_allocator/sleep_mem_optimized.py#L35-L72
+  - >-
+    vllm-ascend@c09d3e20:vllm_ascend/device_allocator/sleep_mem_optimized.py#L154-L248
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L379-L410'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L324-L373'
+  - >-
+    vllm-ascend@8d6180e2:vllm_ascend/device_allocator/sleep_mem_optimized.py#L154-L248
 verified:
-  - main
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: S
 relations:
   - to: npu-worker-lifecycle
@@ -94,9 +110,9 @@ relations:
     note: 清理插在 NPUWorker.sleep() / wake_up() 这一层，管的是 worker 启动时建起来的那些通信域和已捕获的图
   - to: ascend-config-system
     kind: builds-on
-    note: 这个键从顶层搬进 rl_config 子配置，旧写法在 main 上会撞上 extra="forbid"——搬家的机制在那一页
+    note: 这个键从顶层搬进 rl_config 子配置，旧写法在 v0.30.0 与 main 上会撞上 extra="forbid"——搬家的机制在那一页
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: 2026-11-19T00:00:00.000Z
 rawSources:
   - >-
     raw/sha256-024d8bdfc8e0a81cafa0b07e205478201aefcd1adf86c717b31c22e7c02f74cf.md
@@ -108,82 +124,49 @@ rawSources:
     raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
 ---
 
-## 一句话
+## 它额外清理什么，两代配置入口怎么迁？
 
-**v0.30.0rc2 对照：** 旧顶层键不存在，有效入口仍是 rl_config.sleep_mode_extra_cleanup，默认 False。Worker 的 sleep、wake_up 都同时检查 rl_config.enabled 与此清理子键；只开子键而不启用 RL 配置不会调用额外清理管理器。旧键移除与清理功能移除是两回事。
+在同卡（same-device）强化学习后训练工作流里，同一张 NPU 要在自回归生成与模型训练之间交替运行，因此推理引擎在进入训练阶段时需要通过 sleep mode 尽可能让出显存（整体流程见 [vLLM-Ascend for RL](../concepts/vllm-ascend-for-rl.md)）。基本 sleep mode（基于 `CaMemAllocator`）主要释放可睡眠内存池中的分配（level 1 将权重备份到 CPU、丢弃旧 KV；level 2 丢弃权重池内容、仅留运行期持久 buffer）；但池外的 **HCCL 设备侧通信组缓冲**与 **ACL 图的 attention workspace** 仍会残留显存。开启本开关后，sleep 时会尝试进一步释放 HCCL 设备侧通信组（保留 `cpu_group`）并清空 ACL 图工作区、作废已捕获的图，在唤醒时再重建设备侧通信域并按标签重捕获图。
 
-rc2 的清理管理器新增跨休眠周期的 HCCL anchor：多 rank 下先创建保活通信组并用 barrier 实际初始化，再清理业务通信组；创建或初始化失败、MoE 拆卸准备失败时会跳过本轮 HCCL 清理，单 rank 也跳过。唤醒先恢复业务通信组与图，再释放 anchor；分阶段只唤醒 weights 时先保留它，等 kv_cache 恢复后再收尾。下文关于清理顺序及“没有 try/except”的走读仅对应旧快照，不能外推到 rc2；完整新流程见 [sleep mode 版本差异](../concepts/sleep-mode.md#版本差异)。
+**两代配置入口的迁移（旧键移除 ≠ 清理功能移除）**：该开关全版本均默认 `False`，并在 `v0.27+`（PR #13838 迁移 pydantic）后收归 `rl_config` 一键模式子配置：
 
-同卡 RL 后训练里，推理引擎需要在训练阶段让出显存。基本 sleep mode 释放可睡眠池中的分配；打开额外清理后，还会尝试释放 HCCL 的设备侧通信组，并清空 ACL 图的 attention workspace、作废已捕获的图。通信组的 CPU 侧保留，设备侧在唤醒时重建 [S8]。默认关闭；它适合需要进一步降低睡眠占用、能够接受恢复开销的同卡工作流。
+| 对比维度 | `v0.23.0` 与 `v0.26.0rc`（含 GLM `db701c1f`） | `v0.30.0` 与 `main` |
+| --- | --- | --- |
+| 配置键路径与默认 | 顶层 `additional_config["enable_sleep_mode_extra_cleanup"]`，`bool = False` | 嵌套 `additional_config["rl_config"]["sleep_mode_extra_cleanup"]`，`bool = False` |
+| 生效守卫 | 仅查本开关为真（`getattr` 守卫） | 必须 **`rl_config.enabled` 与 `rl_config.sleep_mode_extra_cleanup` 同时为真**；漏写 `enabled: true` 等于没开 |
+| 字符串 `"false"` 与未知键 | `.get()` 取原值，JSON 写字符串 `"false"` 会反向判真 | pydantic 宽松强转 `"false"` → `False`；旧顶层键通常被 `extra="forbid"` 拒收（装 `vllm_omni` 时告警过滤并静默无效） |
+| 联动前置项 | 须手工配 `weight_nz_mode: 0`、设 `VLLM_SERVER_DEV_MODE=1` 并移除 `expandable_segments` | `rl_config.enabled: true` 自动强制 `weight_nz_mode=0`（打 warning）、设 `VLLM_SERVER_DEV_MODE=1` 并移除 `PYTORCH_NPU_ALLOC_CONF` 里的 `expandable_segments` |
+| 适用部署与前置条件 | 须实际调用 `sleep(level >= 1)`（`level < 1` 在 EngineCore 即返回）；文档未限同卡 | 同左；官方明确限**同卡模式**（异卡训练/rollout 靠 pause/resume + HCCL 权重传输，通常不需 sleep mode） |
 
-配置入口分两代：v0.23维护快照2c59ff10、GLM db701c1f和v0.26 2ed6cbba使用顶层enable_sleep_mode_extra_cleanup，默认False；固定main baa023ad及rc2移到rl_config.sleep_mode_extra_cleanup，还须启用rl_config.enabled。旧三版sleep/wake_up的守卫相同，rc2清理与唤醒内部已增加前述anchor流程，不能因配置名相同就套旧实现。[C9][C32]
+**GLM 双机与历史 PR 显存数字的边界**：本站固定 GLM 双机在线推理流程未开启睡眠或额外清理（启动命令见 [Worker 启动](../concepts/npu-worker-lifecycle.md#怎么开)），没有同卡训练交替阶段。公开的 [PR #9585](https://github.com/vllm-project/vllm-ascend/pull/9585) 作者报告过开启 EP 时睡后占用从约 3.2 GB 降至约 0.7 GB、未开 EP 时从约 1.26 GB 降至约 0.72 GB（原单位 GB），但该报告未给全模型硬件条件且包含 rotary cache 清理，不能把总差值直接归因于本页两项动作或套用到 GLM 双机；官方参数表入口见 [v0.23.0](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html) 与 [latest](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html)。
 
-做清理的 `sleep_mem_optimized.py` 在 2c59ff10、db701c1f 和 main 上逐字相同；v0.26 只差两处写法（4 增 6 删）：那一版把 ACL 图参数按「带不带 LoRA」存成两份 dict，不管实际用不用 LoRA 都建两份 [C29]，所以清理改成用 `acl_graph.iter_graph_params()` 逐份遍历 [C28]；v0.23 与 main 的图参数只有一份，清理动作一样。
+## 休眠与唤醒的清理次序及 HCCL 生命周期锚点
 
-**GLM 双机的固定在线推理流程没有启用它。** 教程两机命令没有睡眠开关或额外清理配置，流程中也没有同卡训练阶段与 sleep 调用，因而不会为每次生成执行这些清理；部署前提与启动命令统一见 [Worker 启动](../concepts/npu-worker-lifecycle.md#怎么开)。如要改成同卡训练与推理交替，需要一起设计暂停请求、权重更新和唤醒流程。
-
-**公开历史报告有显存数字，但不是固定 GLM 双机的效果。** [PR #9585](https://github.com/vllm-project/vllm-ascend/pull/9585) 作者报告：启用 EP 的测试中，睡后占用从约 3.2 GB 降到约 0.7 GB；未启用 EP 时从约 1.26 GB 降到约 0.72 GB。单位沿用作者的 GB，正文未给出足以复现该数值的完整模型与硬件条件，而且该 PR 的描述还包含 rotary cache 清理，不能把总差值归给本页固定实现的两项动作。固定 GLM 双机的释放量和唤醒时延仍需对应环境测量。
-
-## 事实表
-
-| 项 | v0.23.0 与 v0.26.0rc | main | 意味着什么 |
-|---|---|---|---|
-| 配置键 | 顶层 `enable_sleep_mode_extra_cleanup`（2c59ff10 / db701c1f / 2ed6cbba） | `rl_config.sleep_mode_extra_cleanup`（baa023ad） | v0.23 → v0.26 不需改键；main 通常拒绝未知键，但检测到 vllm_omni 时会先过滤未知键并告警。旧键被过滤不代表清理功能已开启；升级应使用 main 的嵌套键 |
-| 类型 / 默认值 | bool / `False`：2c59ff10 与 db701c1f 的 `ascend_config.py:163`、2ed6cbba 的 `:175` [C1] [C24]；三版官方参数表也都写 `False` | bool / `False`：`RlConfig` 字段默认 | 四个钉住版本上**默认都是关**；不显式打开就永远不走这条路径 |
-| 生效条件 | 本开关为真（`getattr(ascend_config, ..., False)` 守卫） | `rl_config.enabled` **与**本开关同时为真 [C10] | main 上只写子键、漏掉 `enabled: true`，等于没开 |
-| 取值解析 | `additional_config.get` 取原值，字符串 `"false"` 也是真 | pydantic lax 强转，`"false"` → `False` [C19] | v0.23 与 v0.26 上用字符串传 `"false"` 都会**反向打开**开关 [D] |
-| 前置条件 | 得有人真去调 `sleep(level≥1)`：`level<1` 在 EngineCore 就返回，到不了 Worker [C31] | 同左 | Worker 的清理守卫不读取睡眠开关，但正常使用仍应开启专用池。旧平台未启用睡眠时可能注入 expandable_segments:True；若分配器首次构造时该配置仍在，会触发断言。仅凭这些片段不能推导发生概率；main 的平台注入、RL 配置移除相对于分配器首次构造的顺序及最终环境值仍缺核定证据 [C35][C36] |
-| sleep 时释放 | HCCL 设备侧通信组 + ACL 图 workspace | 同左 | HCCL 清理要求分布式已初始化；正常完成 Worker 初始化时会满足，包括单 rank。ACL 图清理另要求 use_aclgraph 为真。rc2 即使已初始化，也可能因 anchor 策略跳过 HCCL 清理，见开篇 |
-| wake_up 时补偿 | 重建 HCCL + 刷新 MoE 通信域 + `capture_model()` | 同左 | 唤醒延迟上升，量级取决于图捕获耗时 |
-| 分标签唤醒（含空列表） | 仅当 `tags` 为 `None` 或含 `"kv_cache"` 时重捕获图 | 同左 | `wake_up(tags=["weights"])` 与 `tags=[]` 都跳过重捕获；空列表不等于None（来源5）。设备恢复仍须核实际结果 |
-| 适用部署 | 文档只说面向 RL 负载，没限同卡 | 明确限「同卡（same-device）模式」[S13] | 官方表格写明：训练与 rollout 用不同 NPU 时靠 pause/resume + `hccl` 权重传输，通常不需要 sleep mode [S33] |
-| 已知缺陷 | 所列 v0.26 发布说明记录 DeepSeek-V4 开启额外清理后，可能在唤醒后无法恢复（#15648） | 本页来源没有给出 main 是否修复的结论 | 在这些已记录风险的快照上，DeepSeek-V4 应避免开启；其他提交须查修复范围 |
-
-官方参数表：[v0.23.0](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html) / [latest](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html)。
-
-## 为什么存在
-
-同卡训练工作流可能交替执行生成与训练：生成阶段用 vLLM 跑自回归，训练阶段要在同一张 NPU 上做前反向，因而需要推理引擎暂时让出显存。level 1 把权重池内容备份到 CPU、丢弃旧 KV；level 2 也不保留权重池内容，但 Worker 会另存运行所需的 buffers，持久分配仍保留。生成与训练怎样交替、新权重怎样换回推理端，见 [vLLM-Ascend for RL](../concepts/vllm-ascend-for-rl.md)。
-
-基本睡眠主要管理 CaMemAllocator 的可睡眠分配；分配器首次构造时还会拒绝 expandable_segments:True。启用专用池的正常启动路径会在权重分配阶段使用它，因此冲突可能先在启动时暴露。池外的 HCCL 通信缓冲与 ACL 图 attention workspace 仍可能驻留。额外清理尝试释放这些资源，实际差值取决于通信组、图尺寸及分配器状态，不能直接套用前述历史 PR 数字。
+清理发生在 `CaMemAllocator` 释放内存映射**之前**；唤醒时分配器先按 `tags` 重新映射设备内存并仅对有 CPU 备份的部分拷回数据（旧 KV 无备份只恢复空间，level 2 权重仍须外部灌入），随后再执行通信域恢复、刷新 MoE token dispatcher 句柄并按 `tags` 决定是否重捕获 ACL 图。注意 `CaMemAllocator` 首次构造时会拒绝 `expandable_segments:True`（旧平台未启睡眠时可能注入它，正常开启专用池会在权重分配阶段暴露该冲突）。
 
 ```wiki-diagram
 file: enable-sleep-mode-extra-cleanup
 ```
 
-清理发生在分配器释放映射之前；唤醒时，分配器先按标签重新映射设备内存，并仅对有 CPU 备份的分配拷回内容。旧 KV 没有备份，只恢复空间；level 2 的权重仍须外部更新。随后重建通信域、刷新 MoE dispatcher 的句柄，最后按 tags 决定是否重捕获图 [C23][C47]。
+具体清理动作分两半执行（`v0.23` 与 `v0.26` 仅差 `v0.26` 按带/不带 LoRA 存两份图参数dict、用 `acl_graph.iter_graph_params()` 遍历，其余动作相同）：
+- **ACL 图清理（仅 `use_aclgraph` 为真时执行）**：将主图、草稿图、草稿 prefill 图三套参数中按 token 数保存的 `workspaces` 逐个置 `None`，清空列表字段，清空各 graph wrapper 的 `concrete_aclgraph_entries` 并把 `first_run_finished` 置回 `False`，最后清空 `model_runner.cudagraph_manager` 的图并将 `_graphs_captured` 置回 `False`（等于回到从未捕获状态）。
+- **HCCL 通信组清理**：先对未完成的 PP 发送句柄执行 `wait()`、清空发送记录并调用 `torch.npu.synchronize()`，再销毁 device communicator、按引用计数退还共享 HCCL 组、销毁非共享组并将 `device_group` 置 `None`（保留 `cpu_group`）；唤醒时 `restore_hccl()` 就地重建设备组（`create_cpu_group=False`，对存活组返回 `False` 防止重复创建）并刷新 MoE dispatcher 句柄。
+- **`v0.30.0` 与 `main` 新增跨休眠周期 HCCL lifecycle anchor**：为了防止销毁全部设备通信组时拉崩多卡 HCCL 控制面，新版 `HcclSleepWakeupManager` 在多 rank 下先创建临时保活通信组并通过 `barrier` 完成物理初始化，再清理业务通信组；若单 rank、anchor 创建/初始化失败或 MoE 拆卸准备失败，则跳过本轮 HCCL 清理（记 `sleep_hccl_policy=skip`）。唤醒时先恢复业务通信组并完成图重捕获，再释放 anchor——分阶段仅唤醒 `weights` 时会继续保留 anchor，直到 `kv_cache` 恢复并完成重捕获后再收尾（完整新版流程见 [sleep mode 版本差异](../concepts/sleep-mode.md#版本差异)）。
 
-照源码点一遍，睡下去时按这个次序做两半：
+## 唤醒代价、常见踩坑、日志定位与启动命令
 
-- **先是 ACL 图半边**：把三套图参数（主图、草稿图、草稿 prefill 图）里按 token 数存的 `workspaces` 逐个置 `None`，把参数里成列表的字段清空，再清掉每个 graph wrapper 的 `concrete_aclgraph_entries` 并把 `first_run_finished` 置回 `False`，最后清掉 `model_runner.cudagraph_manager` 里的图并把 `_graphs_captured` 置 `False` [C21]。也就是说，已捕获的图不是「暂时失效」，而是被当作从没捕获过。
-- **再是 HCCL 半边**：先 `wait()` 掉 Worker 手里还没完成的 PP 发送句柄，再 `torch.npu.synchronize()`，然后逐个通信组释放设备侧资源——销毁 device communicator、按引用计数退还共享的 HCCL 组、销毁不共享的那些组，最后把 `device_group` 置 `None`；`cpu_group` 不动 [C27]。唤醒时 `restore_hccl()` 就地重建设备组（`create_cpu_group=False`）并重建 communicator，再刷新 MoE token dispatcher 持有的组句柄。
+开启额外清理后，唤醒阶段需要重建已拆除的 HCCL 设备侧通信域并重捕获 ACL 图（耗时取决于释放的组数、图尺寸与唤醒标签），因此官方建议唤醒时延优先时保持关闭。实战中需留意以下五类常见坑：
 
-在分布式可用且已初始化时，HCCL清理先等待全部流水线发送句柄，再清空发送记录、同步NPU、销毁通信组（来源6，2c59ff10 sleep_mem_optimized.py 172–178）。顺序说明何时可清理，实际释放量和唤醒时延仍要测量。
+- **新版必须同时写两个键**：`v0.30.0` 与 `main` 上 `rl_config.enabled` 与 `rl_config.sleep_mode_extra_cleanup` 是与关系，漏写 `enabled: true` 不会调用清理管理器（单测里的 `enabled=False` + 子键 `True` 组合仅测权重布局与分配器，不代表启用额外清理）。同时若把旧顶层键留在 `v0.30.0`/`main` 里，普通环境会直接被 `extra="forbid"` 拒收；若装有 `vllm_omni`，旧顶层键只会告警过滤并静默失效。
+- **分标签唤醒与空列表语义**：仅当 `tags` 为 `None` 或包含 `"kv_cache"` 时才会调用 `capture_model()`；`wake_up(tags=["weights"])` 与 `tags=[]`（空列表不等同于 `None`）都会跳过图捕获。按 `weights` → 灌入新权重 → `kv_cache` 两段式唤醒时，图只在第二步捕获；但若重复传 `None` 或含 `"kv_cache"`，管理器会再次执行 `capture_model()`，没有「每轮只捕获一次」的额外守卫，切勿在权重未就绪前提前进入捕获阶段。
+- **eager 模式与异常传播**：未开启 ACL 图时会跳过图清理与重捕获，是否拆除 HCCL 取决于分布式初始化状态（以及新版 anchor / MoE 拆卸准备是否成功）。在旧版（`v0.23` / `v0.26` / 早期 `baa023ad`）里清理与恢复没有外层 `try/except`，中途报错会直接冒给 `sleep()` / `wake_up()` 调用方；新版则在 anchor 初始化失败时记告警并跳过本轮 HCCL 清理。
+- **旧版字符串坑与 DeepSeek-V4 风险提示**：`v0.23` 与 `v0.26` 切勿用字符串 `"false"` 传值（会反向判真）；且 `v0.26` 发布说明记录了 DeepSeek-V4 开启额外清理后可能在唤醒后无法恢复的已知问题（#15648），对应版本应避免在 DeepSeek-V4 上开启（后续版本须单独核对修复范围）。
+- **日志观测口径**：日志里的 GiB 是整张卡清理前后空闲显存的差值（受同期其他进程分配影响，并非单个通信组精确归因）：
+  - `Sleep mode released HCCL and attention workspace memory: %.3f GiB.`（清理结束时记录整卡空闲显存变化）
+  - `Destroyed %d HCCL process groups for sleep mode.`（正常完成且至少拆掉一个组时打印；缺行不直接等于零释放）
+  - `Restored %d HCCL process groups after sleep mode.`（唤醒时打印，即使恢复数为 0 也会打）
 
-main 把这个开关收进 `rl_config` 这个「RL 一键模式」子配置，不只是改了个名字。`rl_config.enabled` 为真会连带强制 `weight_nz_mode=0`、设 `VLLM_SERVER_DEV_MODE=1`、从 `PYTORCH_NPU_ALLOC_CONF` 里摘掉 `expandable_segments`（它与 sleep-mode 内存池不兼容）[S17]。覆盖 `weight_nz_mode` 时会打一条 warning：`RL config requires weight_nz_mode=0; overriding AscendConfig.weight_nz_mode from %s to 0.` [C9]旧写法要用户自己逐项配的那些 RL 前置项，现在由 `enabled: true` 一次给全；逐字对照见官方迁移表。
-
-## 开了的代价
-
-**恢复通信域和重捕获图增加唤醒工作。** ACL 图启用且 tags 为 None 或包含 kv_cache 时，唤醒会调用 capture_model；只唤醒 weights 时跳过图捕获。此前实际拆除的 HCCL 组也需要重建。官方建议唤醒时延优先时保持额外清理关闭 [S15]；具体增量取决于实际释放的组、图尺寸及唤醒标签。
-
-几个容易踩的点：
-
-- **main 上必须写两个键。** rl_config.enabled 与清理子键是与关系，只给子键不会调用清理管理器。现有 wake_up 单元测试用主开关 False、子键 True 的组合，核对的是权重布局与 allocator 调用；它不是此组合全部行为的设备验证 [C16]。
-- **v0.23 与 v0.26 上别用字符串传值。** 这几版都是直接 `additional_config.get(...)` 取原值再当布尔用，JSON 里写 `"false"`（带引号）在 Python 里是真值，结果是**想关反而开了**。main 的 `RlConfig` 是 pydantic 模型，`"false"` 会被强转成 `False`，不吃这个亏；顺带，写错子键名在 main 上直接报验证错。
-- **DeepSeek-V4 在所列 v0.26 快照上应避免开启。** 对应 Known Issues 记录：sleep mode 配合额外清理后可能无法从唤醒中恢复，并说明 sleep mode 主要面向训练。这里保留该快照的风险提示；发布说明没有给出修复提交，不能据此断言整个后续分支都受影响或 main 已修复。
-
-- **旧写法在 main 上基本是硬错误（v0.26 上则不用改）。** 顶层未知键不在豁免名单里，会原样进入 `extra="forbid"` 的 `AscendConfig`，构造阶段就抛验证错误 [!]。唯一的例外是装了 `vllm_omni`：那种环境下未知键只打一条 warning 然后被悄悄丢掉，`enable_sleep_mode_extra_cleanup` 就成了真正的静默无效。所以「起不来」反而是好消息，「起来了但没省显存」才要去查是不是撞上了这条豁免。
-- **两段式唤醒把图捕获放在 KV 阶段。** 按 weights → 外部灌新权重 → kv_cache 的顺序各调用一次时，图只在第二次调用捕获；如果重复传 None 或含 kv_cache 的标签，管理器仍会再次调用 capture_model，并没有“一个睡眠周期只捕获一次”的额外守卫。不要在权重未就绪时提前进入捕获阶段。
-- **ACL 图没开时会跳过图清理和重捕获。** HCCL 是否实际拆除仍取决于初始化状态；rc2 还取决于 anchor 与 MoE 拆卸准备是否成功。不能据此保证每次 eager 睡眠都释放了某个固定大小的通信域。
-- **清理中途报错不会被吞掉。** 这两条路径上没有 `try`/`except`，销毁、重建、重捕获里任何一步抛错都会原样冒到 `sleep()` / `wake_up()` 的调用方。好的一面是 `restore_hccl()` 对还活着的组返回 `False`，重复唤醒不会把组建两遍。
-
-**日志可以定位执行步骤，并给出显存变化的观测值。** 下面的 GiB 是整张卡清理前后空闲显存的差，不是某个通信组的精确归因；其他进程同期分配或释放也会影响它。可结合设备监测与调用耗时验证。源码里的日志模板是：
-
-- `Sleep mode released HCCL and attention workspace memory: %.3f GiB.`（清理结束时记录整卡空闲显存变化）
-- `Destroyed %d HCCL process groups for sleep mode.`（正常完成且至少拆掉一个组时才打；没看到它还可能是日志级别或中途异常，不能单凭缺行判定零释放）
-- `Restored %d HCCL process groups after sleep mode.`（唤醒时打，哪怕恢复数是 0 也会打）
-
-官方 RL 指南给的启动命令（main，同卡模式；本项目没有跑过这条命令，照搬前自己核一遍模型和环境）：
+**启动命令示例**（`v0.30.0` 与 `main` 同卡 RL 写法，本工作区未实机运行，照搬前须核对模型与环境）：
 
 ```bash
 VLLM_WORKER_MULTIPROC_METHOD=spawn \
@@ -192,7 +175,21 @@ vllm serve Qwen/Qwen3-0.6B \
     --additional-config '{"rl_config": {"enabled": true, "sleep_mode_extra_cleanup": true}}'
 ```
 
-旧 v0.23.0 与 v0.26 的清理键写成 `--additional-config '{"enable_sleep_mode_extra_cleanup": true, "weight_nz_mode": 0}'`，并显式设置 `VLLM_SERVER_DEV_MODE=1` 才能使用在线管理接口；睡眠开关与 spawn 仍保留。旧清理键不会像 rl_config.enabled 那样自动关闭 NZ，非零 NZ 会在 wake_up 入口被拒绝 [C48]。启动前还须移除不兼容的 expandable_segments 配置，完整小模型流程见 [sleep mode](../concepts/sleep-mode.md#怎么开)。
+若停留在 `v0.23.0` 或 `v0.26.0rc`，需手动写成 `--additional-config '{"enable_sleep_mode_extra_cleanup": true, "weight_nz_mode": 0}'`（非零 NZ 会在 `wake_up` 入口被拒绝），并显式设置 `VLLM_SERVER_DEV_MODE=1` 及清除 `expandable_segments`（完整小模型流程见 [sleep mode](../concepts/sleep-mode.md#怎么开)）。
+
+## 对照源码
+
+下表汇总 `enable_sleep_mode_extra_cleanup` 与 `rl_config.sleep_mode_extra_cleanup` 在四个基线版本的入口与 HCCL anchor 演化，其后列出核心源码锚点：
+
+| 项 | v0.23.0 (`2c59ff10`) | v0.26.0rc (`2ed6cbba`) | v0.30.0 (`c09d3e20`) | main (`8d6180e2`) | 意味着什么 |
+| --- | --- | --- | --- | --- | --- |
+| 配置入口与默认 | 顶层 `enable_sleep_mode_extra_cleanup = False` [C1] | 同左 [C24] | `rl_config.sleep_mode_extra_cleanup = False`（须同开 `rl_config.enabled`）[C53][C54] | 同 `v0.30.0` [C57][C58] | 旧键移除不等于清理功能移除；升级须迁到 `rl_config` [!] |
+| 布尔强转与未知键 | `.get()` 取原值（`"false"` 为真） | 同左；发布说明记 DeepSeek-V4 #15648 [S26] | pydantic 强转；旧顶层键拒收（Omni 告警过滤） | 同 `v0.30.0` | 新版避免字符串反转坑，并自动处理 NZ / dev mode / `expandable_segments` [S17] |
+| HCCL 清理与恢复机制 | 直接销毁/重建设备组（无 anchor） | 同左（ACL 图按双 dict `iter_graph_params()` 遍历） | 新增跨休眠周期 HCCL lifecycle anchor；单 rank 或初始化失败跳过 [C55][C56] | 同 `v0.30.0` [C59] | 分阶段唤醒 `weights` 时保留 anchor 至 `kv_cache` 恢复并重捕获完成 [D] |
+
+- **两代配置与 Worker 守卫**：`v0.23` / `db701c1f` / `v0.26` 见 `ascend_config.py` 与 `worker.py`（来源 1–3、18、24–25、32、34、48、52）；`v0.30.0` 与 `main` 见 `c09d3e20:ascend_config.py#L363-L394, worker.py#L259-L301`（来源 53–54）与 `8d6180e2:ascend_config.py#L379-L410, worker.py#L324-L373`（来源 57–58）；历史 `baa023ad`/`7d825229` 及单测见来源 9–12、16、19、23、38、40–43。
+- **清理管理器、分配器与官方文档**：`sleep_mem_optimized.py` 见 `2c59ff10`（来源 4–6）、`2ed6cbba`（来源 28–29）、`baa023ad`（来源 20–22）、`7d825229`（来源 44–46）、`c09d3e20`（来源 55–56）与 `8d6180e2`（来源 59）；`patch_distributed.py`、`camem.py`、`platform.py` 与 `vllm@0fc695fc`（EngineCore `level < 1` 早退与 dev mode 接口）见来源 27、31、35–36、47、49；官方文档与 PR 见来源 7–8、13–15、17、26、30、33、39、50–51 [S8][S13][S15][S33]。
+- **待核**：本仓库无目标 NPU 上开启与关闭额外清理的精确显存释放量、唤醒重捕获耗时对照，以及新版 `expandable_segments` 移除与分配器首次构造顺序的端到端实测验证 [D]。
 
 ## 版本谱系
 
@@ -240,8 +237,3 @@ vllm serve Qwen/Qwen3-0.6B \
 源码未提供字段注释。
 
 约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：
-
-## 对照源码
-
-- 来源 38：vllm-ascend@baa023ad，vllm_ascend/ascend_config.py，L1659–L1673。
-- 来源 39：vllm-ascend@2ed6cbba，docs/source/user_guide/release_notes.md，L120–L120。

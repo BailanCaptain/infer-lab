@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 444" width="900" height="444" role="img" aria-label="上游 Platform 契约四类核心钩子与 current_platform 惰性仲裁树" font-family="var(--font-sans)">
+  <title>vLLM Platform 抽象契约四类钩子与 OOT 仲裁规则</title>
+  <desc>Lazy current_platform arbitration decision tree and 4 categories of Platform contract hooks across v0.23 to main</desc>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">Platform 契约：惰性仲裁选出当前平台，再用四类钩子解耦硬件差异</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">上游只写「提问」不写具体硬件答案；首次访问 current_platform 时按优先级惰性解析并缓存</text>
+
+  <!-- Left panel: Arbitration decision tree -->
+  <rect x="16" y="64" width="406" height="364" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="32" y="92" font-size="15" font-weight="700" fill="#17211f">左侧：current_platform 惰性仲裁树</text>
+
+  <rect x="32" y="108" width="374" height="54" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="46" y="131" font-size="14" font-weight="700" fill="#936300">① 逐一探测外部插件 + 5 个内置候选</text>
+  <text x="46" y="152" font-size="13.5" fill="#4d5652">tpu/cuda/rocm/xpu/cpu；返回非 None 即激活</text>
+
+  <path d="M219 162v18m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="32" y="182" width="374" height="54" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="46" y="205" font-size="14" font-weight="700" fill="#065f56">② 恰好 1 个外部 OOT 激活 → 直接胜出</text>
+  <text x="46" y="226" font-size="13.5" fill="#4d5652">压过内置候选（v0.30.0 起显式 CPU 可直通）</text>
+
+  <path d="M219 236v18m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="32" y="256" width="374" height="54" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="46" y="279" font-size="14" font-weight="700" fill="#8f3229">③ 同级 ≥2 个候选激活 → RuntimeError</text>
+  <text x="46" y="300" font-size="13.5" fill="#4d5652">多外部插件立即冲突；无外部才查内置冲突</text>
+
+  <path d="M219 310v18m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="32" y="330" width="374" height="82" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="46" y="354" font-size="14" font-weight="700" fill="#7a3a6a">④ 1 内置胜出；0 激活 → Unspecified</text>
+  <text x="46" y="378" font-size="13.5" fill="#4d5652">选定后再调入口取类路径并实例化缓存</text>
+  <text x="46" y="400" font-size="13.5" fill="#7a3a6a" font-weight="600">注意：选中平台仅代表类加载，非硬件就绪</text>
+
+  <!-- Right panel: 4 Hook Categories -->
+  <rect x="442" y="64" width="442" height="72" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="458" y="90" font-size="14.5" font-weight="700" fill="#065f56">契约 1 · 设备身份与环境变量属性</text>
+  <text x="458" y="116" font-size="13.5" fill="#4d5652">npu · PrivateUse1 · ASCEND_RT_VISIBLE_DEVICES</text>
+
+  <rect x="442" y="148" width="442" height="72" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="458" y="174" font-size="14.5" font-weight="700" fill="#936300">契约 2 · 启动准备与就地配置改写钩子</text>
+  <text x="458" y="200" font-size="13.5" fill="#4d5652">pre_register_and_update → check_and_update_config</text>
+
+  <rect x="442" y="232" width="442" height="72" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="458" y="258" font-size="14.5" font-weight="700" fill="#3a4f93">契约 3 · 执行组件与后端类路径回答</text>
+  <text x="458" y="284" font-size="13.5" fill="#4d5652">worker_cls · 注意力后端 · 设备通信器类路径</text>
+
+  <rect x="442" y="316" width="442" height="112" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="458" y="342" font-size="14.5" font-weight="700" fill="#7a3a6a">契约 4 · 容量查询与接口持续扩张规模</text>
+  <text x="458" y="366" font-size="13.5" fill="#4d5652">• 设备总显存查询 ≠ Worker 实测显存与预算</text>
+  <text x="458" y="390" font-size="13.5" fill="#4d5652">• 方法数：v0.23(78) → v0.30(84) → main(92)</text>
+  <text x="458" y="414" font-size="13.5" fill="#7a3a6a" font-weight="600">• current_platform 引用：873 → 1,498 → 1,902 行</text>
+</svg>

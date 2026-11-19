@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 526" width="900" height="526" role="img" aria-label="Mooncake 非对称 TP KV 头拼装与连接器家族选型决策图" font-family="var(--font-sans)">
+<title>Mooncake 非对称 TP KV 头拼装与连接器家族选型决策</title>
+<desc>pd_tp_ratio, pd_head_ratio, _check_mooncake_c8_kv_cache_quant, _validate_sfa_dcp_kv_sp, register_connector</desc>
+<defs>
+<marker id="mc-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#4c65b6"/></marker>
+</defs>
+<text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">1. 非对称 TP 下谁拼 KV 头：按实际持有头算 r_head，不按裸 TP 比</text>
+<path d="M14 38H886M14 260H886" stroke="#b8bcb5" stroke-width="1.4"/>
+<rect x="14" y="48" width="424" height="200" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+<text x="28" y="70" font-size="14.5" font-weight="700" fill="#3a4f93">示意：8 个 KV 头，P=TP4（2 头/卡）→ D=TP2（4 头/卡）</text>
+<g stroke-width="1.4">
+<rect x="28" y="79" width="166" height="46" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="28" y="130" width="166" height="46" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="252" y="95" width="172" height="64" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+</g>
+<path d="M194 102L246 118M194 153L246 136" fill="none" stroke="#4c65b6" stroke-width="1.8" marker-end="url(#mc-a)"/>
+<g text-anchor="middle" font-size="13.5">
+<text x="111" y="98" font-weight="700" fill="#936300">P rank 0（头 0–1）</text>
+<text x="111" y="118" fill="#66716d">每块每层 32 KiB</text>
+<text x="111" y="149" font-weight="700" fill="#936300">P rank 1（头 2–3）</text>
+<text x="111" y="169" fill="#66716d">每块每层 32 KiB</text>
+<text x="338" y="119" font-weight="700" fill="#065f56">D rank 0（头 0–3）</text>
+<text x="338" y="143" fill="#17211f">合并重排 64 KiB</text>
+</g>
+<rect x="28" y="182" width="396" height="56" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.2"/>
+<text x="40" y="204" font-size="13.5" font-weight="600" fill="#3a4f93">r_head = min(TP_P, H_kv) ÷ min(TP_D, H_kv)</text>
+<text x="40" y="227" font-size="13.5" fill="#4d5652">例：TP16→TP8 遇 8 头得 1（按实际持有头，非裸 TP 比）</text>
+<g stroke-width="1.4">
+<rect x="454" y="48" width="432" height="54" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="454" y="110" width="432" height="54" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="454" y="172" width="432" height="76" rx="8" fill="#fff4cf" stroke="#c78300"/>
+</g>
+<g font-size="14" font-weight="700">
+<text x="468" y="70" fill="#065f56">V1 整批拉：D 各读半块，读完后在 D 本地重排</text>
+<text x="468" y="132" fill="#7a3a6a">Layerwise 逐层推：P 发前交换重排（增重排流与缓冲）</text>
+<text x="468" y="194" fill="#936300">启动硬检与 MLA 特例（v0.30.0 / main）</text>
+</g>
+<g font-size="13.5" fill="#17211f">
+<text x="468" y="92">按连续块合并段数，跨 P rank 分批提交批量读</text>
+<text x="468" y="154">仅在 r_head &gt; 1 或需量化路径时建立重排流与缓冲</text>
+<text x="468" y="216">非 MLA 须 TP_P % TP_D == 0 且 PP_D = 1</text>
+<text x="468" y="237">DCP &gt; 1 须满足 interleave == block</text>
+</g>
+<text x="16" y="286" font-size="16" font-weight="700" fill="#17211f">2. Mooncake 连接器家族选型与禁配边界（v0.30.0 / main）</text>
+<g stroke-width="1.4">
+<rect x="14" y="298" width="280" height="102" rx="8" fill="#fff0e9" stroke="#b54237"/>
+<rect x="310" y="298" width="280" height="102" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="606" y="298" width="280" height="102" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="14" y="412" width="280" height="102" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="310" y="412" width="280" height="102" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="606" y="412" width="280" height="102" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+</g>
+<g font-size="14.5" font-weight="700">
+<text x="26" y="324" fill="#8f3229">✗ GQA + C8 KV 量化 + V1</text>
+<text x="322" y="324" fill="#065f56">✓ V1 / V2（Pull 拉取）</text>
+<text x="618" y="324" fill="#7a3a6a">✓ Layerwise / Push 推送</text>
+<text x="26" y="438" fill="#936300">△ Hybrid 与 D2RH（两跳）</text>
+<text x="322" y="438" fill="#3a4f93">✓ AscendStore（共享 KV 池）</text>
+<text x="618" y="438" fill="#17211f">! 角色与登记段数硬限制</text>
+</g>
+<g font-size="13.5" fill="#17211f">
+<text x="26" y="350">P 留 bf16、D 分 int8 致错读，</text>
+<text x="26" y="372">启动即抛 ValueError → 须关 C8</text>
+<text x="26" y="392" font-weight="600" fill="#8f3229">或改用 MooncakeLayerwise</text>
+<text x="322" y="350">V1 整批拉押块；V2 解除 PCP=1</text>
+<text x="322" y="372">并上报 failed_recving 失败集合；</text>
+<text x="322" y="392">main V2 按 use_layerwise 分流</text>
+<text x="618" y="350">D 先分块 P 逐层推，隐藏 L-1 层；</text>
+<text x="618" y="372">旧 Layerwise 限 D 侧 PCP=1 且</text>
+<text x="618" y="392">单层单模块名（main 增 Push）</text>
+<text x="26" y="464">Hybrid 遇递推态要求 TP 相同；</text>
+<text x="26" y="486">D2RH 走 P HBM→D DRAM→D HBM，</text>
+<text x="26" y="506">首跳完即释放 P 源块</text>
+<text x="322" y="464">别名 MooncakeConnectorStoreV1；</text>
+<text x="322" y="486">按内容指纹存取，不配对 P/D，</text>
+<text x="322" y="506">JSON 不与上游 Store 互换</text>
+<text x="618" y="464">V1/Hybrid 写 kv_both 静默卡死，</text>
+<text x="618" y="486">V2 启动即拒；每进程登记上限</text>
+<text x="618" y="506">256 段（固定 GLM 静态 24 段）</text>
+</g>
+</svg>

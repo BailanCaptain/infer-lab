@@ -1,0 +1,11 @@
+mode: native-svg
+id: hccl-buffer-fig-domain-ledger
+caption: HCCL buffer 逐通信域配置分派比例条（200 MB 默认域、100 MB dynamic_eplb、max(..., 50 MB) dp 域、1 MB sleep_lifecycle_anchor 与不写逐组字段的 mc2 域）及去重不重复计数、非 torch 增量记账与 HCCL_BUFFSIZE 边界。
+size: [900, 496]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L73-L77'
+    symbols: ['_DEFAULT_BUFFER_SIZE', '_MIN_DP_BUFFER_SIZE', 'SLEEP_LIFECYCLE_ANCHOR_BUFFER_SIZE', '_DYNAMIC_EPLB_BUFFER_SIZE']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1249-L1289'
+    symbols: ['get_hccl_config_for_pg_options', 'calculate_dp_buffer_size', 'get_default_buffer_config']
+  - source: 'vllm-ascend@c09d3e20:csrc/mc2/dispatch_ffn_combine/op_host/dispatch_ffn_combine_tiling.cpp#L63-L85'
+    symbols: ['GetMaxWindowSize', 'HCCL_BUFFSIZE']

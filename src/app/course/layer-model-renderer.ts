@@ -579,6 +579,9 @@ export function mountFixedJourney(
         m.dispose();
       });
       renderer.dispose();
+      try {
+        renderer.forceContextLoss();
+      } catch {}
       renderer.domElement.remove();
       labels.remove();
     },

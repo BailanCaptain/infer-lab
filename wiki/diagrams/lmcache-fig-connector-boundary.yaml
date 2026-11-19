@@ -1,0 +1,12 @@
+mode: native-svg
+id: lmcache-fig-connector-boundary
+caption: >-
+  LMCache 在 vLLM 与昇腾上的连接器边界演进（v0.23/v0.26 → v0.30.0/main）及 chunk 对齐查询：vLLM 经 LMCacheConnectorV1 负责调度与借块，按 use_native 在外部 LMCache 包与自带 adapter 间切换；v0.30.0 起 vllm-ascend 移除仓内 LMCacheAscendConnector 包装注册，改由 LMCache-Ascend 插件自注册，且连接器未实现 SupportsHMA。
+size: [900, 446]
+pins:
+  - source: vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L72-L140
+    symbols: [LMCacheConnectorV1, requires_piecewise_for_cudagraph, register_kv_caches, bind_connector_metadata]
+  - source: vllm@ba15685a:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L68-L140
+    symbols: [LMCacheConnectorV1, bind_connector_metadata]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L135
+    symbols: [register_connector]

@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 484" width="900" height="484" role="img" aria-label="多机 4 层网络预检漏斗与两套 QoS 边界对照图" font-family="var(--font-sans)">
+<title>多机设备网络 4 层预检与 AI QoS / KV 传输 qos_priority 区分</title>
+<desc>AiqosConfig, run_unset, inject_qos, QOS_KEY, PD_QOS_DEFAULT</desc>
+<defs>
+<marker id="cq-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 1.5L8.5 5L0 8.5z" fill="#17211f"/></marker>
+</defs>
+<text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">1. 启动多机前 4 层网络预检（主机可 SSH ≠ NPU 数据面互通）</text>
+<path d="M14 38H886M14 226H886" stroke="#b8bcb5" stroke-width="1.4"/>
+<g stroke-width="1.4">
+<rect x="14" y="50" width="202" height="162" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="237" y="50" width="202" height="162" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="460" y="50" width="202" height="162" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="684" y="50" width="202" height="162" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+</g>
+<path d="M216 130H232M439 130H455M662 130H679" fill="none" stroke="#17211f" stroke-width="1.8" marker-end="url(#cq-a)"/>
+<g font-size="14.5" font-weight="700">
+<text x="26" y="76" fill="#065f56">① 本机链路与健康</text>
+<text x="249" y="76" fill="#3a4f93">② 设备 IP 与路由</text>
+<text x="472" y="76" fill="#936300">③ 跨机双向 Ping</text>
+<text x="696" y="76" fill="#7a3a6a">④ 进程与 HIXL 端点</text>
+</g>
+<g font-size="13.5" fill="#17211f">
+<text x="26" y="104">hccn_tool -link -g</text>
+<text x="26" y="126">→ link status: UP</text>
+<text x="26" y="152">-net_health -g</text>
+<text x="26" y="174">→ status: Success</text>
+<text x="26" y="198" fill="#66716d">异常查驱动与光模块</text>
+<text x="249" y="104">-ip / -lldp -g</text>
+<text x="249" y="126">-gateway / -netdetect</text>
+<text x="249" y="152">cat /etc/hccn.conf</text>
+<text x="249" y="174">逐项对集群规划表</text>
+<text x="249" y="198" fill="#66716d">勿把主机 IP 当 NPU IP</text>
+<text x="472" y="104">-i 0 -ping -g address</text>
+<text x="472" y="126">→ 填远端 NPU IP</text>
+<text x="472" y="152">收发等包、0 丢包</text>
+<text x="472" y="174">覆盖所有卡对与反向</text>
+<text x="472" y="198" fill="#66716d">单对通过 ≠ 全互联通</text>
+<text x="696" y="104">API/DP RPC/HCCL</text>
+<text x="696" y="126">与 Mooncake 端口</text>
+<text x="696" y="152">rank/shape 次序对齐</text>
+<text x="696" y="174">HIXL 核 LocalCommRes</text>
+<text x="696" y="198" fill="#66716d">9.1 vs 9.2 端点不同</text>
+</g>
+<text x="16" y="252" font-size="16" font-weight="700" fill="#17211f">2. 两套容易混淆的 QoS：整机交换机 AI QoS vs 引擎内 KV 传输 qos_priority</text>
+<rect x="14" y="266" width="424" height="206" rx="10" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+<rect x="462" y="266" width="424" height="206" rx="10" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+<text x="28" y="294" font-size="15" font-weight="700" fill="#936300">整机交换机 AI QoS（tools/ai_qos.py）</text>
+<text x="476" y="294" font-size="15" font-weight="700" fill="#3a4f93">引擎内 KV 传输 qos_priority（v0.30 / main）</text>
+<g font-size="13.5" fill="#17211f">
+<text x="28" y="324">• 适用：Atlas 800T/900 A3 SuperPoD（UB VL 调度）</text>
+<text x="28" y="349">• 键位：v0.23/v0.26 五键 → v0.30/main 收敛三键</text>
+<text x="28" y="374">  AIV(high) / SDMA(low) / PCIEDMA(high)</text>
+<text x="28" y="399">• 边界：脚本写端点并打印 hccs qos remap 命令，</text>
+<text x="28" y="423">  须手动登交换机执行；退出后仍生效，需 unset+undo</text>
+<text x="28" y="451" fill="#8f3229" font-weight="600">• 注意：A2 双机未启用；AIV 受驱动限制当前不生效</text>
+<text x="476" y="324">• 适用：PD 三套 Mooncake 连接器与 KV 池后端</text>
+<text x="476" y="349">• 键位：kv_connector_extra_config.qos_priority</text>
+<text x="476" y="374">  严格接受整数 0–4（布尔亦报错），PD 默认 1</text>
+<text x="476" y="399">• 写入：inject_qos 合并顶层键 comm_resource_config.qos</text>
+<text x="476" y="423">  至 ASCEND_GLOBAL_RESOURCE_CONFIG（不覆其余）</text>
+<text x="476" y="451" fill="#3a4f93" font-weight="600">• 规则：HIXL C/S 按发起端取值（pull 用 D，push 用 P）</text>
+</g>
+</svg>

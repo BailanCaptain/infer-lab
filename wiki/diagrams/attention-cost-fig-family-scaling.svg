@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 492" width="900" height="492" role="img" aria-label="MHA、GQA、MLA、稀疏MLA与KDA五类注意力容量访存算力及GLM长文拐点对比图" font-family="var(--font-sans)">
+  <title>注意力代价全景：MHA / GQA / MLA / 稀疏 MLA / KDA 增长阶与 GLM 133K 长文账</title>
+  <desc>关联源码符号：append_causal_tail, topk_tokens, pool_size, create_kv_cache_group_specs, KVCacheConfig</desc>
+
+  <!-- Zone 1: 5 Attention families scaling matrix -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 五类注意力机制增长阶与 TP 切分对照（随历史长度 n 变化）</text>
+
+  <!-- Header bar -->
+  <rect x="16" y="42" width="868" height="30" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1"/>
+  <text x="28" y="62" font-size="13.5" font-weight="700" fill="#17211f">注意力家族</text>
+  <text x="184" y="62" font-size="13.5" font-weight="700" fill="#17211f">每层 KV 逻辑容量</text>
+  <text x="386" y="62" font-size="13.5" font-weight="700" fill="#17211f">Decode 单步逻辑读</text>
+  <text x="582" y="62" font-size="13.5" font-weight="700" fill="#17211f">Prefill 算力</text>
+  <text x="724" y="62" font-size="13.5" font-weight="700" fill="#17211f">TP 切分单卡 KV</text>
+
+  <!-- Row 1: MHA -->
+  <rect x="16" y="76" width="868" height="34" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.1"/>
+  <text x="28" y="98" font-size="14" font-weight="700" fill="#8f3229">MHA 标准多头</text>
+  <text x="184" y="98" font-size="13.5" fill="#4d5652">O(n · n_q) 最大</text>
+  <text x="386" y="98" font-size="13.5" fill="#8f3229">O(n) 全扫（带宽最紧）</text>
+  <text x="582" y="98" font-size="13.5" fill="#4d5652">O(n²)</text>
+  <text x="724" y="98" font-size="13.5" fill="#4d5652">随 TP 均分</text>
+
+  <!-- Row 2: GQA -->
+  <rect x="16" y="114" width="868" height="34" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.1"/>
+  <text x="28" y="136" font-size="14" font-weight="700" fill="#936300">GQA 分组查询</text>
+  <text x="184" y="136" font-size="13.5" fill="#4d5652">O(n · n_kv) 缩 n_kv/n_q</text>
+  <text x="386" y="136" font-size="13.5" fill="#936300">O(n) 按组缩减</text>
+  <text x="582" y="136" font-size="13.5" fill="#4d5652">O(n²)</text>
+  <text x="724" y="136" font-size="13.5" fill="#4d5652">触底 1 头后复制</text>
+
+  <!-- Row 3: MLA -->
+  <rect x="16" y="152" width="868" height="34" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="28" y="174" font-size="14" font-weight="700" fill="#3a4f93">MLA 潜向量吸收</text>
+  <text x="184" y="174" font-size="13.5" fill="#4d5652">O(n · d_c) 压至潜向量</text>
+  <text x="386" y="174" font-size="13.5" fill="#3a4f93">O(n) 潜空间直读</text>
+  <text x="582" y="174" font-size="13.5" fill="#4d5652">O(n²)</text>
+  <text x="724" y="174" font-size="13.5" fill="#3a4f93">全卡复制（除 DCP）</text>
+
+  <!-- Row 4: Sparse MLA -->
+  <rect x="16" y="190" width="868" height="34" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="28" y="212" font-size="14" font-weight="700" fill="#7a3a6a">内容选取稀疏 MLA</text>
+  <text x="184" y="212" font-size="13.5" fill="#4d5652">O(n) 仍存全史 + 索引</text>
+  <text x="386" y="212" font-size="13.5" fill="#7a3a6a">主 O(K) 封顶；索引 O(n)</text>
+  <text x="582" y="212" font-size="13.5" fill="#4d5652">主 O(nK)；索 O(n²/p)</text>
+  <text x="724" y="212" font-size="13.5" fill="#7a3a6a">潜向量/索引全复制</text>
+
+  <!-- Row 5: KDA -->
+  <rect x="16" y="228" width="868" height="34" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.2"/>
+  <text x="28" y="250" font-size="14" font-weight="700" fill="#065f56">KDA 线性固定状态</text>
+  <text x="184" y="250" font-size="13.5" fill="#065f56">O(1) 固定矩阵 + 短卷积</text>
+  <text x="386" y="250" font-size="13.5" fill="#065f56">O(1) 与历史长度无关</text>
+  <text x="582" y="250" font-size="13.5" fill="#065f56">O(n) 线性</text>
+  <text x="724" y="250" font-size="13.5" fill="#065f56">随头均分不通信</text>
+
+  <line x1="16" y1="278" x2="884" y2="278" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: GLM 133,120-token visual proportional bars + capacity crossover -->
+  <text x="16" y="306" font-size="16" font-weight="700" fill="#17211f">② GLM 11 层稀疏 MLA 在 133,120 位置处的单卡单步逻辑读（反直觉：索引扫量反超主读 4×）</text>
+
+  <!-- Proportional bar visual (non-linear / clearly labeled) -->
+  <text x="16" y="338" font-size="13.5" font-weight="700" fill="#065f56">主 attention（≤2048 位置）</text>
+  <rect x="218" y="320" width="54" height="24" rx="4" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="282" y="338" font-size="13.5" font-weight="700" fill="#065f56">22.0 MiB（历史再长也不涨，占全史 1/65）</text>
+
+  <text x="16" y="372" font-size="13.5" font-weight="700" fill="#7a3a6a">Indexer 扫 33,280 完整池</text>
+  <rect x="218" y="354" width="218" height="24" rx="4" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="446" y="372" font-size="13.5" font-weight="700" fill="#7a3a6a">89.4 MiB（约主读 4×，仍随 n 线性涨）</text>
+
+  <text x="16" y="406" font-size="13.5" font-weight="700" fill="#8f3229">若 11 层改密集全扫对照</text>
+  <rect x="218" y="388" width="540" height="24" rx="4" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="768" y="406" font-size="13.5" font-weight="700" fill="#8f3229">1.40 GiB</text>
+
+  <!-- Bottom note strip: Capacity crossover -->
+  <rect x="16" y="424" width="868" height="56" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="30" y="447" font-size="13.5" font-weight="700" fill="#3a4f93">容量交点（GLM 单卡）：KDA 分配页固定 85 MiB vs MLA 每 token 13,056 B → 约 6,827 token 处持平</text>
+  <text x="30" y="468" font-size="13.5" fill="#4d5652">结论：短文时 KDA 固定页占大头，超过约 6,827 token 后 MLA 按位置线性增长成为显存主导</text>
+</svg>

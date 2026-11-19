@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="vLLM V1 统一调度器 token 预算闭环与 v0.30.0 双预算及抢占止损图" font-family="var(--font-sans)">
+  <title>vLLM V1 统一调度器：先续 running、后接 waiting、双预算与抢占边界</title>
+  <desc>关联源码符号：Scheduler, schedule, _update_after_schedule, _preempt_request, max_num_scheduled_tokens, max_num_new_slots_for_drafting, BalanceScheduler</desc>
+  <defs>
+    <marker id="sc-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="sc-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1: Unified schedule() pipeline -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① V1 统一调度：不拆 prefill / decode 阶段，每步走同一套四关漏斗</text>
+  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">核心减法：差值 = 应算 − 已算</text>
+
+  <rect x="16" y="44" width="268" height="122" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="30" y="70" font-size="14.5" font-weight="700" fill="#936300">1. 先扫 running（续跑优先）</text>
+  <text x="30" y="94" font-size="13.5" fill="#4d5652">差值含待验草稿 + 异步占位</text>
+  <text x="30" y="116" font-size="13.5" fill="#4d5652">依次受单条阈值、预算与长度截断</text>
+  <text x="30" y="138" font-size="13.5" fill="#8f3229" font-weight="600">缺块：按策略抢占退 waiting 队首</text>
+  <text x="30" y="158" font-size="13.5" fill="#936300">只要发生抢占，本步不再接新请求</text>
+
+  <line x1="286" y1="105" x2="314" y2="105" stroke="#c78300" stroke-width="1.8" marker-end="url(#sc-arr-a)"/>
+
+  <rect x="318" y="44" width="276" height="122" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="332" y="70" font-size="14.5" font-weight="700" fill="#065f56">2. 余量扫 waiting（准入接新）</text>
+  <text x="332" y="94" font-size="13.5" fill="#4d5652">前提：未抢占、未暂停、未满条数上限</text>
+  <text x="332" y="116" font-size="13.5" fill="#4d5652">默认检查完整输入能否放下（不预分）</text>
+  <text x="332" y="138" font-size="13.5" fill="#4d5652">关分块且超剩余预算 → 直接 break</text>
+  <text x="332" y="158" font-size="13.5" fill="#065f56" font-weight="600">缺块不抢占任何人，停止接纳等下步</text>
+
+  <line x1="596" y1="105" x2="624" y2="105" stroke="#087f73" stroke-width="1.8" marker-end="url(#sc-arr-t)"/>
+
+  <rect x="628" y="44" width="256" height="122" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="642" y="70" font-size="14.5" font-weight="700" fill="#3a4f93">3. 排完即记账并下发计划</text>
+  <text x="642" y="94" font-size="13.5" fill="#4d5652">_update_after_schedule() 立刻</text>
+  <text x="642" y="116" font-size="13.5" fill="#4d5652">前推 num_computed_tokens</text>
+  <text x="642" y="138" font-size="13.5" fill="#4d5652">输出回传后按被拒草稿回退</text>
+  <text x="642" y="158" font-size="13.5" fill="#3a4f93" font-weight="600">不决定算子分路或图模式回放</text>
+
+  <line x1="16" y1="184" x2="884" y2="184" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: v0.30.0 dual budget & Ascend hooks -->
+  <text x="16" y="212" font-size="16" font-weight="700" fill="#17211f">② v0.30.0 / main 演进：双预算分离、抢占止损与昇腾调度器覆写链</text>
+
+  <rect x="16" y="228" width="424" height="118" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="30" y="254" font-size="14.5" font-weight="700" fill="#7a3a6a">两本预算分开记（防草拟槽位挤爆缓冲）</text>
+  <text x="30" y="278" font-size="13.5" fill="#4d5652">• 调度位置预算：max_num_scheduled_tokens</text>
+  <text x="30" y="300" font-size="13.5" fill="#4d5652">• 输入容量预算：max_num_batched_tokens 含草拟</text>
+  <text x="30" y="324" font-size="13.5" fill="#7a3a6a" font-weight="600">• 延迟释放止损：抢占只产延迟释放块即停止</text>
+
+  <rect x="460" y="228" width="424" height="118" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="474" y="254" font-size="14.5" font-weight="700" fill="#17211f">DP 节拍与昇腾 BalanceScheduler 覆写</text>
+  <text x="474" y="278" font-size="13.5" fill="#4d5652">• prefill_schedule_interval：有 decode 才暂缓</text>
+  <text x="474" y="300" font-size="13.5" fill="#4d5652">• 昇腾替换 BalanceScheduler，关闭时直走上游</text>
+  <text x="474" y="324" font-size="13.5" fill="#4d5652">• main 删 profiling_chunk，留 short / batch-job</text>
+
+  <line x1="16" y1="364" x2="884" y2="364" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 3: Myth vs Truth -->
+  <text x="16" y="390" font-size="16" font-weight="700" fill="#17211f">③ 预算与条数上限直觉校准（以 GLM 单组 8192 token / 32 条为例）</text>
+
+  <rect x="16" y="404" width="424" height="64" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="30" y="429" font-size="14" font-weight="700" fill="#8f3229">✗ 常见误解：预算 8192 没用满就是浪费</text>
+  <text x="30" y="453" font-size="13.5" fill="#4d5652">纯 decode 32 条仅占 128（约 1.6%），先碰条数上限</text>
+
+  <rect x="460" y="404" width="424" height="64" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="474" y="429" font-size="14" font-weight="700" fill="#065f56">✓ 源码真相：余量留给长提示词分块，互不卡死</text>
+  <text x="474" y="453" font-size="13.5" fill="#4d5652">新提示词超 8192 − 4×running（最低 8068）才分步切块</text>
+</svg>

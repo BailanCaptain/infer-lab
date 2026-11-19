@@ -1,0 +1,14 @@
+mode: native-svg
+id: npugraph-ex-fig-three-tier-fusion
+caption: >-
+  三级编译加速依赖链（npugraph_ex → static_kernel → super_kernel）与双路融合 Pass 门控：左侧展示三项配置在 A2/A3/A5、310P 与非纯整图档位下的强制断言或静默刷回规则；右侧对比规则一次注册、双路消费（npugraph_ex_compile 与本地 fusion_pass_compile）及 main 新增 MatmulReduceScatterFusionPass。
+size: [900, 470]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L112-L170
+    symbols: [AscendCompilationConfig, enable_npugraph_ex, enable_static_kernel, enable_super_kernel]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1310-L1354
+    symbols: [enable_npugraph_ex, enable_static_kernel]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/compiler_interface.py#L48-L70
+    symbols: [fusion_pass_compile]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/compilation/graph_fusion_pass_manager.py#L52-L79
+    symbols: [AddRMSNormQuantFusionPass, QKNormRopeFusionPass, MulsAddFusionPass, MatmulReduceScatterFusionPass]

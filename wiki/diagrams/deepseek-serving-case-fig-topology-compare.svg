@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="DeepSeek E/P/D + 3FS 生产拓扑与 vLLM-Ascend A2/A3/950DT 跨代部署对照图" font-family="var(--font-sans)">
+  <title>DeepSeek 生产 E/P/D 分离拓扑 vs 昇腾 A2 / A3 / 950DT 跨代部署配方</title>
+  <desc>Production E/P/D + 3FS architecture compared against vLLM-Ascend cross-generation A2, A3, and 950DT deployment topologies across v0.30.0 and main</desc>
+  <defs>
+    <marker id="dsc-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① DeepSeek 生产 E/P/D + 3FS 架构：按阶段独立配卡与按工作量分流</text>
+  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">均不以“请求条数”作为单一调度依据</text>
+
+  <!-- E Pool -->
+  <rect x="16" y="46" width="174" height="122" rx="8" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
+  <text x="103" y="72" text-anchor="middle" font-size="14.5" font-weight="700" fill="#17211f">E · 图像编码池</text>
+  <text x="30" y="98" font-size="13.5" fill="#4d5652">• 每实例通常 1 卡</text>
+  <text x="30" y="122" font-size="13.5" fill="#4d5652">• 按切块 patch 计载</text>
+  <text x="30" y="146" font-size="13.5" fill="#66716d">• 交出特征非原图</text>
+
+  <line x1="190" y1="107" x2="210" y2="107" stroke="#4d5652" stroke-width="1.5" marker-end="url(#dsc-arr)"/>
+
+  <!-- P Pool -->
+  <rect x="212" y="46" width="234" height="122" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="329" y="72" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">P · Prefill（EP2–8 / DP2–8）</text>
+  <text x="226" y="98" font-size="13.5" fill="#4d5652">• 4 档分流（&lt;16K..≥256K）</text>
+  <text x="226" y="122" font-size="13.5" fill="#4d5652">• 按未命中量 + 历史长拟合预算</text>
+  <text x="226" y="146" font-size="13.5" fill="#065f56">• 独立存储免前缀亲和路由</text>
+
+  <line x1="446" y1="107" x2="466" y2="107" stroke="#4d5652" stroke-width="1.5" marker-end="url(#dsc-arr)"/>
+
+  <!-- D Pool -->
+  <rect x="468" y="46" width="234" height="122" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="585" y="72" text-anchor="middle" font-size="14.5" font-weight="700" fill="#3a4f93">D · Decode 池（EP64–128）</text>
+  <text x="482" y="98" font-size="13.5" fill="#4d5652">• 双维均衡：在算条数 + KV 总长</text>
+  <text x="482" y="122" font-size="13.5" fill="#4d5652">• 大 EP 单通信域 + EPLB 护热</text>
+  <text x="482" y="146" font-size="13.5" fill="#3a4f93">• 高效建议单位约 64P + 64D</text>
+
+  <!-- 3FS + SWA box -->
+  <rect x="716" y="46" width="168" height="122" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="800" y="72" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">三态分层存储</text>
+  <text x="730" y="98" font-size="13.5" fill="#4d5652">• Block KV → 3FS</text>
+  <text x="730" y="122" font-size="13.5" fill="#4d5652">• SWA → 本机内存</text>
+  <text x="730" y="146" font-size="13.5" fill="#936300">• 命中≠数据已到卡</text>
+
+  <text x="16" y="196" font-size="13.5" fill="#8f3229">▸ 首字三完成点边界：前缀匹配 → 远端读到主机 → 主机换入设备；开算时刻 = max(排到引擎, 缓存到卡)</text>
+
+  <line x1="16" y1="214" x2="884" y2="214" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <text x="16" y="244" font-size="16" font-weight="700" fill="#17211f">② vLLM-Ascend 跨代硬件（A2 / A3 / 950DT）DeepSeek-V4.1-Flash 部署演进</text>
+
+  <!-- A2 Card -->
+  <rect x="16" y="262" width="278" height="202" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="30" y="288" font-size="14.5" font-weight="700" fill="#8f3229">Atlas 800 A2（4 台 1P1D）</text>
+  <text x="30" y="314" font-size="13.5" fill="#4d5652">• 1P1D 跨 4 机：P 占 2 机、D 占 2 机</text>
+  <text x="30" y="338" font-size="13.5" fill="#4d5652">• v0.30.0：W8A8 + Runner V1</text>
+  <text x="30" y="362" font-size="13.5" fill="#4d5652">• main：统一切至 Runner V2</text>
+  <text x="30" y="386" font-size="13.5" fill="#4d5652">• 支持 Mooncake / Memcache 池化</text>
+  <rect x="30" y="406" width="250" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="155" y="433" text-anchor="middle" font-size="13.5" fill="#17211f">CED 须设 use_layerwise=false</text>
+
+  <!-- A3 Card -->
+  <rect x="311" y="262" width="278" height="202" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="325" y="288" font-size="14.5" font-weight="700" fill="#065f56">Atlas A3（2 台 32 逻辑卡 1P1D）</text>
+  <text x="325" y="314" font-size="13.5" fill="#4d5652">• v0.30.0（V1）：P DP4/TP4 +</text>
+  <text x="325" y="336" font-size="13.5" fill="#4d5652">　D DP8/TP2 · W8A8 + INT8 Engram</text>
+  <text x="325" y="362" font-size="13.5" fill="#065f56" font-weight="700">• main（V2 升级）：W4A8 +</text>
+  <text x="325" y="384" font-size="13.5" fill="#065f56">　P DP4/PCP4/TP1 + D DP16/TP1</text>
+  <rect x="325" y="406" width="250" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="450" y="423" text-anchor="middle" font-size="13.5" fill="#17211f">SWA 有界回放 + MegaMoE</text>
+  <text x="450" y="442" text-anchor="middle" font-size="13.5" fill="#17211f">+ 共享 Engram</text>
+
+  <!-- 950DT Card -->
+  <rect x="606" y="262" width="278" height="202" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="620" y="288" font-size="14.5" font-weight="700" fill="#7a3a6a">昇腾 950DT（原生 V2 + MXFP）</text>
+  <text x="620" y="314" font-size="13.5" fill="#4d5652">• v0.30.0：直接启 Model Runner V2</text>
+  <text x="620" y="338" font-size="13.5" fill="#4d5652">• 典型并行：DP8 / TP1 / EP8</text>
+  <text x="620" y="362" font-size="13.5" fill="#4d5652">• 量化路径：MXFP 低精度 + A5 打包缓存</text>
+  <text x="620" y="386" font-size="13.5" fill="#7a3a6a">• main：延续 V2 + Memcache 池化</text>
+  <rect x="620" y="406" width="250" height="44" rx="5" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="745" y="433" text-anchor="middle" font-size="13.5" fill="#17211f">勿将 A5/V2 边界外推给 A2/A3 V1</text>
+</svg>

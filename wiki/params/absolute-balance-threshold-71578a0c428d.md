@@ -3,11 +3,20 @@ id: absolute-balance-threshold-71578a0c428d
 title: absolute_balance_threshold
 type: param
 summary: >-
-  STAIR 判断某层要不要重排的绝对门槛：均衡度（峰均比的倒数）跌到 0.90 及以下就进规划。rc2 已接入 MRV2 的 EPLB；早期扫描快照
-  4d1412d1 尚未接入服务。
+  STAIR 判断某层是否重新规划的绝对滞回门槛：当前均衡度（平均峰均比的倒数）跌至本值（默认 0.90，约合峰均比 1.11，合法范围 (0, 1]）及以下即放行该层进入规划，与相对门槛为“或”关系。v0.30.0 与 main 已在 MRv2 STAIR 中生效。
 origin: seed
 evidence: C
-updated: 2026-11-03T00:00:00.000Z
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
+updated: 2026-11-19T00:00:00.000Z
+legacyAnchors:
+  一句话: 它管什么绝对门槛与相对门槛怎么配合
+  事实表: 它管什么绝对门槛与相对门槛怎么配合
+  为什么存在: 为什么仅有相对门槛还不够
+  开了的代价: 调高调低的边界与放到-glm-双机
 sources:
   - >-
     vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L221
@@ -57,6 +66,14 @@ sources:
     vllm-ascend@01741ac93f1c3c6241a90b19c14dc58b093eb49c:vllm_ascend/ascend_config.py#L222
   - >-
     vllm-ascend@c09d3e20b9c45c80b34ae3781440d90904a44023:vllm_ascend/ascend_config.py#L219
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L218-L248'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L348-L377'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L398-L435'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/eplb/policy/stair.py#L1183-L1217'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/v2/eplb.py#L37-L60'
+  - 'vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/expert_parallelism_load_balancer.md#L437-L468'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L225-L255'
+  - 'vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/expert_parallelism_load_balancer.md#L233-L265'
 rawSources:
   - >-
     raw/sha256-0086ec9731534b60a962917a3a760e0469472d148be11dc2ff09ea283fa3720e.md
@@ -88,21 +105,64 @@ relations:
       该参数通过 AscendConfig 的 JSON 子配置层级解析，能否配置取决于对应版本的 EPLB 配置是否识别
       stair_config；旧版本会拒绝这个未知键。
 ---
-## 一句话
+## 它管什么，绝对门槛与相对门槛怎么配合？
 
-**v0.30.0rc2 对照：** 默认仍是 0.90，范围 (0,1]；MRV2 已把 STAIR controller 接到实际策略，旧扫描快照“尚无运行时消费”的限制不适用于 rc2。非零负载且没有已提交锚点时直接评估；已有锚点时，绝对或相对门槛任一满足即可规划，零负载窗口跳过。须启用 EPLB 且最终 policy 为 stair；rc2 的默认策略已是 stair，显式选 default 则不消费 STAIR 配置，字段存在本身不会启动搬运。策略入口统一见 [stair_config](stair-config-cca9e594a052.md#一句话)。
+`absolute_balance_threshold` 是 [stair_config](stair-config-cca9e594a052.md) 下的浮点参数，为 STAIR（vllm-ascend 为 Model Runner V2 编写的 EPLB 规划算法）设定每一层 MoE 的**绝对滞回门槛**：当该层当前均衡度跌至本值及以下时，直接把该层送入本轮重排规划。默认值 `0.90`，合法范围 `0 < 值 ≤ 1`。
 
-`absolute_balance_threshold` 是 STAIR（vllm-ascend 为 Model Runner V2——下文简称 MRv2——写的一套 EPLB 规划算法，总介绍见 [stair_config](stair-config-cca9e594a052.md)）给每一层 MoE 设的**绝对门槛**：这一层当前的**均衡度**跌到这个数或更低，就把这一层送去重新规划专家摆放。默认 `0.90`，合法范围是 `0 < 值 ≤ 1` [C1]。
+均衡度是 [EPLB 峰均比](../concepts/eplb.md#怎么算数配对比峰均换位置)的倒数：先在压缩后的每个负载时间段计算“最忙卡负载 ÷ 各卡平均负载”，按各段样本步数加权平均后再取倒数（完全均匀为 `1`，越不均越小）。默认 `0.90` 换算回峰均比约 `1.11`——按窗口加权平均，最忙卡比各卡均值高出约 11% 时即触发本门槛。STAIR 判断“本轮重排哪些层”靠两道门：本键看**现在有多不均**，[relative_balance_threshold](relative-balance-threshold-bcbc40e7dc87.md) 看**比上次提交时差了多少**，二者为逻辑“或”，任一满足即进入规划。`v0.30.0` 与 `main` 已在 MRv2 STAIR 中实际读取该键（需启用 `--enable-eplb` 且最终 `policy == "stair"`，默认策略已是 `stair`，显式选 `default` 则不消费 `stair_config`）；`v0.23.0`、`v0.26.0rc` 与 GLM 固定镜像 `db701c1f` 均无此键，写入会直接启动报错。
 
-均衡度就是 [EPLB 用的峰均比](../concepts/eplb.md#怎么算数配对比峰均换位置)倒过来：先在负载窗口的每个时间段里算「最忙那张卡的负载 ÷ 各卡平均负载」，按每段的样本数加权平均，再取倒数 [C4]。完全均匀是 1，越不均越小。默认的 0.90 换回峰均比约是 1.11——按窗口平均，最忙的卡比各卡均值多出约 11% 时，这道门就开 [D]。
+| 维度 | 行为与约束 | 工程含义 |
+| --- | --- | --- |
+| 配置路径与默认 | `additional_config["eplb_config"]["stair_config"]["absolute_balance_threshold"]`，`float`，默认 `0.90` | 只配这一项时其余 STAIR 字段取默认；字段存在本身不启动搬运，须开启 EPLB 且走 `stair` |
+| 合法取值 | 有限数且 `0 < 值 ≤ 1`；越界报 `stair_config.absolute_balance_threshold must be between zero and one`，布尔值报 `STAIR numeric fields must not be booleans` | 写 `0` 会启动失败；想让绝对门几乎不触发只能写极小正数（单测下边界用 `0.000001`） |
+| 门控前置顺序 | 全零窗口先返回 `None` 跳过；非零负载且无上次提交锚点（`None` 或 `NaN`）时直接放行、不比较两道门槛；有有效锚点后按“相对或绝对（含等号 `≤`）”判断 | 首轮所有非零负载层均进规划；极小绝对阈值既关不掉相对门，也拦不住无锚点层 |
+| 均衡度口径 | 按压缩窗口各段“最忙卡负载 ÷ 各卡均值”做步数加权平均，再取倒数 | 衡量的是整窗平均状态，段内短时尖峰或最忙卡轮换会被均值摊薄 |
+| 进规划不等于一定搬 | 候选的平均峰均比或按样本计数累计的加权 p95 峰均比只要有一项差于现状就剔除；最终胜出与现状相同则不出迁移计划 | 在同一窗口与锚点下，调高绝对阈值只保持或扩大进入规划的层集合，不一定增加实际搬运 |
 
-STAIR 决定「这一轮重排哪几层」靠两道门：本页这道看**现在有多不均**，另一道 [relative_balance_threshold](relative-balance-threshold-bcbc40e7dc87.md) 看**比上次落定时差了多少**；任意一道开，这一层就进规划 [C3]。
+## 为什么仅有相对门槛还不够？
 
-源码把“没有上次落定锚点”表示为 `None` 或 NaN：窗口负载非零时，这两种情况都直接返回当前不均衡信息，不比较阈值；全零窗口则先返回 `None`。因此，小的合法绝对阈值不能关闭相对条件，也不能阻止无锚点时进入规划。这里核对的是固定 `4d1412d1` 的判断分支；完整触发情形见下方事实表。
+每次 EPLB 重排都要跨卡拷贝专家权重并等待同步（代价见 [EPLB 页代价一节](../concepts/eplb.md#代价多占的显存搬运和等待)），不能随小抖动反复搬运；STAIR 将双门滞回（hysteresis）作为策略固有行为、无法关闭，仅开放两个阈值调节松紧。
 
-**旧版本范围**：v0.23 维护分支 `2c59ff10`、GLM 快照 `db701c1f`、v0.26 `2ed6cbba`、固定 main `baa023ad` 没有 `stair_config`，写入会启动报错。该字段在 2026-09-26 随 `bbb5672a`（[PR #17511](https://github.com/vllm-project/vllm-ascend/pull/17511)）进入 main，10-02 的 `4ebb3090` 仍默认 `0.90`。下文算法走读保留 `4d1412d1` 范围；**那时仅解析和校验，没有服务运行时代码消费**，全仓命中配置、规划器及两份单测，次日 `a32719ef` 才接入 MRV2。当前参数定义取 rc2，谱系 main 仍指旧钉点 `baa023ad`，rc2 单列。
+如果只设相对门槛（默认当前平衡度跌到上次提交预测值的 `0.95` 倍才触发），就会留下一个盲区：当某层上一轮因 [rank_transfer_limit](rank-transfer-limit-99529b37d91d.md) 或 [cross_node_transfer_limit](cross-node-transfer-limit-06ee92260b7a.md) 等搬运限额所限，落定时的预测平衡度本身就不高（假设只有 `0.85`），相对门要等到它继续跌到 `0.85 × 0.95 ≈ 0.81` 才放行，导致该层长期停在明显不均状态无人继续逼近最优。绝对门槛补的正是这个缺口：不管历史锚点是多少，只要当前平衡度在 `0.90` 及以下，每一轮都会放行该层继续尝试改进。
 
-**GLM 双机这套部署上它不存在，也用不上。** 本部署[没开 EPLB](../concepts/eplb.md#放到-glm-双机本部署没开-eplb)，走的是 model runner v1；GLM 代码所在的 `db701c1f` 也不认这个键。
+源码注释与 PR #17511 未公开 `0.90` 的标定场景或推导过程；官方特性文档建议一般负载保持 STAIR 默认值，仅在实测需要时再调整。
+
+## 调高调低的边界与放到 GLM 双机
+
+它是一道触发阈值而非开关；以下方向分析由配置校验和规划源码推导，尚无不同阈值下的端到端时延或吞吐实测对照。
+
+- **调高（往 `1` 靠）**：在同一负载窗口和落定锚点下，可能让更多层进入规划，也可能因相对门槛早已触发而保持不变（不能仅凭阈值推算未来运行中的规划频率）。进入规划的层数越多，CPU 上执行副本数搜索与有界回溯 LPT 摆放的开销越高；采纳新摆法后还会触发权重拷贝。写 `1` 是极端情况：均衡度上限就是 `1`，`≤ 1` 恒成立，只要负载窗口非全零，每层每轮都会进入规划，相当于拆掉了绝对侧滞回。
+- **调低（往 `0` 靠）**：绝对门槛越来越难触发，最终主要剩相对门槛起作用，上一节所述“落定时就较不均的层”可能持续停留在低均衡状态。由于合法范围不含 `0`，若想近似关闭绝对门只能填极小正数（单测以 `0.000001` 作下边界）。
+- **门开了也不一定搬，且筛选与窗口压缩会改变结果**：
+  - 候选须同时满足预测平均峰均比与加权 p95 峰均比都不差于现状（加权 p95 将各段峰均比升序排列并按每段样本数累计，取达到总样本数 95% 位置的值，描述分布较差一侧的位置，而非保证最差 5% 的每一步都不退化）。通过筛选后按平均峰均比选优，在内部绝对容差并列时再依次比较跨节点迁移数、同节点跨 rank 迁移数及确定性排序键（用于在可行候选间破平局，不是把迁移数直接加进峰均比）；若最终与现状相同仍不搬运。
+  - 均衡度基于压缩后的至多 [load_window_bins](load-window-bins-cc21068b082d.md) 段计算：若最忙卡在段内不同步轮换，段内平均会抹平差距、使算出的均衡度偏高，从而让本门槛更难打开。
+- **放到 GLM 双机部署**（[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)：两台机器 16 张卡、TP8 / DP2 / EP16）：当前部署[只开 EP、未开 EPLB](../concepts/eplb.md#放到-glm-双机本部署没开-eplb)，专家摆放固定不变且走 [model runner v1](../concepts/eplb.md#对照源码)；GLM 固定镜像 `db701c1f` 的 `eplb_config` 不认 `stair_config`，写入启动即报 `Config has no attribute 'stair_config'`。在已接入 MRv2 STAIR 的 `v0.30.0` 与 `main` 上，策略入口与启用条件统一见 [stair_config](stair-config-cca9e594a052.md)。
+
+## 对照源码
+
+下表对照 `stair_config.absolute_balance_threshold` 在四个固定版本快照上的阈值校验、滞回放行与候选筛选：
+
+| 项 | v0.23.0 (`2c59ff10`) | v0.26.0rc (`2ed6cbba`) | v0.30.0 (`c09d3e20`) | main (`8d6180e2`) | 意味着什么 |
+| --- | --- | --- | --- | --- | --- |
+| 字段与范围 | 无（报 `Config has no attribute 'stair_config'`）[C12] | 无 [C13] | `StairConfig.absolute_balance_threshold: float = 0.90`，有限且 `(0, 1]` [C26][C27] | 同左 [C33] | 写 `0` 或布尔值均在建配置时抛 `ValueError` |
+| 门控与运行时接入 | — | — | MRv2 controller 接入，`gated_layer_imbalance` 按全零跳过 → 无锚点/`NaN` 放行 → 绝对或相对门控执行 [C29][C31] | 同左（`stair.py` 零 diff） | 早期 `4d1412d1` 未接入服务的限制不适用于 `v0.30.0`/`main` [!] |
+| 候选筛选与平局 | — | — | `plan_layer` 按加权 mean + p95 过滤，再按迁移数与确定键破平局 [C28][C30] | 同左 | 放行后仍可能无候选胜出而不搬运 |
+
+- **公式与边界核对**：`v0.30.0` 与 `main` 共用 `stair.py#L348-L377`（`placement_imbalance` 加权 mean 与最近秩 p95，[C28]）、`#L398-L435`（`gated_layer_imbalance`，[C29]）与 `#L1183-L1217`（`plan_layer` 筛选与平局排序，[C30]）；默认 `0.90 ≈ 1.11` 峰均比换算、上次 `0.85` 需跌至 `0.81` 才开相对门、写 `1` 恒触发以及段内轮换平均使均衡度偏高均为公式推导 [D]。
+- **官方文档**：`v0.30.0`（`expert_parallelism_load_balancer.md#L437-L468`，[S32]）与 `main`（`#L233-L265`，[S34]）均列出默认 `0.90`、范围 `(0, 1]`，并指出一般负载保持默认即可、单改 `step_interval` 不会绕过滞回门槛 [S10]。
+- **待核**：本工作区无 NPU 实机环境，尚无不同 `absolute_balance_threshold` 取值下的实际重排频率与端到端吞吐实测对照。
+
+## 版本谱系
+
+范围限定为 `vllm_ascend/ascend_config.py` 中的 `StairConfig.absolute_balance_threshold` 字段定义。定义存在不等于配置可写或运行时可用；行为条件见本页正文。未核定字段的精确引入／移除提交，不以同名文本的历史代替。
+
+| 版本 | 定义是否存在 | 固定提交 |
+| --- | --- | --- |
+| main | 有 | `8d6180e2` |
+| releases/v0.23.0 | 无 | `2c59ff10` |
+| releases/v0.26.0rc | 无 | `2ed6cbba` |
+| releases/v0.30.0rc2 | 有 | `7d825229` |
+| releases/v0.30.0 | 有 | `c09d3e20` |
 
 ## 参数定义（自动生成）
 
@@ -122,69 +182,3 @@ STAIR 决定「这一轮重排哪几层」靠两道门：本页这道看**现在
 源码未提供字段注释。
 
 约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：
-
-## 事实表
-
-| 项 | 值 | 意味着什么 |
-|---|---|---|
-| 旧版本的存在范围 | v0.23 维护分支、GLM 快照、v0.26、main `baa023ad` 都没有；09-26 起的 main 才有，下表按 `4d1412d1` 描述 | rc2 已有并接入服务，见本页开头；谱系按固定快照列示 |
-| v0.23 / GLM 快照 / v0.26 上写了会怎样 | `EplbConfig` 逐键比对已知键，不认识就抛 `ValueError`，原文 `Config has no attribute 'stair_config'`（GLM 快照 [C5]；v0.23 [C12]、v0.26 [C13] 是同一行代码） | 服务直接起不来，不是静默忽略 |
-| main `baa023ad` 上写了会怎样 | `EplbConfig` 已改成 pydantic dataclass，未知键由 `extra="forbid"` 拒收 [C6] | 同样起不来；报错文本由 pydantic 生成，不在 vllm-ascend 源码里 |
-| 完整路径与默认值（`4d1412d1`） | `additional_config["eplb_config"]["stair_config"]["absolute_balance_threshold"]`，`float`，默认 `0.90` | 只写这一个子键时，其余 STAIR 字段取默认值 |
-| 合法范围 | 有限值且 `0 < 值 ≤ 1`；越界报 `stair_config.absolute_balance_threshold must be between zero and one` [C2]；写成布尔值报 `STAIR numeric fields must not be booleans` [C11] | 写 `0` 想「关掉这道门」会起不来；要它几乎不触发，只能写一个很小的正数 |
-| 均衡度怎么算 | 每个时间段「最忙卡负载 ÷ 各卡平均负载」，按样本数加权平均，再取倒数（源码注释原话是 mean max-to-average rank-load ratio 的倒数 [C8]） | 看的是整个窗口的平均，短时尖峰会被摊薄 |
-| 判据与相对门的关系 | 当前均衡度 `≤` 阈值就触发，等号也算；和相对门是「或」，任一触发这一层就进规划 | 在同一负载窗口和落定锚点下，调高绝对门槛不会缩小触发集合；相对门可能早已触发，所以进入规划的层数可能增加，也可能不变 |
-| 什么时候不看它 | 窗口负载全为 0：不规划；这一层还没有「上次落定」的锚点：只要负载非零就直接进规划，两道门都不看 | 第一轮所有有负载的层都会进规划 |
-| 进了规划不等于一定搬 | 候选摆法的平均峰均比或 p95 峰均比只要有一项比当前差就丢掉；最后选中的和当前摆法一样，也不出计划 [C7] | 按窗口里的负载算，不会被搬到更差；多花的主要是规划算力 |
-| 运行时谁读它（`4d1412d1`） | 没有调用方，只做解析和校验 | 在这个快照上改它，不改变任何行为 |
-
-## 为什么存在
-
-EPLB 要定期决定：哪些层值得把专家重新摆一遍。搬专家不是免费的——要搬权重、要等搬完（见 [EPLB 页的代价一节](../concepts/eplb.md#代价多占的显存搬运和等待)）——所以不能负载一波动就搬。STAIR 给每层设两道门，负载坏到一定程度才动，动完以后要再坏一截才再动；源码注释把这种「滞回」（hysteresis）写成策略的固定行为，不能关，只能调这两个阈值 [C8]。
-
-**只有相对门为什么不够。** 相对门比的是「现在 ÷ 上次落定时预测的均衡度」，默认要跌到 0.95 倍才开。如果上次落定的摆法本身就不太好——每卡、每节点能搬几个专家都有上限（[rank_transfer_limit](rank-transfer-limit-99529b37d91d.md)、[cross_node_transfer_limit](cross-node-transfer-limit-06ee92260b7a.md)），假设规划出来只有 0.85——那么相对门要等它跌到 0.85 × 0.95 ≈ 0.81 才开，这一层会一直停在明显不均的状态里没人管 [D]。绝对门补的就是这个口子：不看历史，只要均衡度在 0.90 及以下，每次规划都会把这一层重新算一遍 [D]。
-
-**0.90 这个数从哪来**，源码注释和 PR 说明都没有给推导，也没有公开标定场景。在 `4d1412d1` 次日把 STAIR 接进 MRv2 的那个提交里，官方文档写的是 STAIR 的默认值不需要调 [S10]。
-
-## 开了的代价
-
-**先说清楚本页有什么、没有什么**：它不是开关，是一道阈值。本页的数都是配置值和由公式换算出来的值，不是测出来的效果。上游没有公开不同阈值下的时延、吞吐对照；而在 `4d1412d1` 上它根本不被读，也没法测。
-
-**调高（往 1 靠）**：在同一负载窗口和落定锚点下，可能让更多层进规划，也可能因相对门已触发而不变；不能仅据阈值推出未来运行中的规划频率。规划是 CPU 上的搜索——先搜每个专家放几份，再在搬运上限内找摆法——层越多算得越久；接入运行时以后，被采纳的新摆法还意味着真的搬权重。写 `1` 是极端：均衡度最大就是 1，`≤ 1` 恒成立，只要窗口里有负载，每层每次都会进规划，等于把绝对这一侧的滞回拆掉 [D]。
-
-**调低（往 0 靠）**：绝对门越来越难开，最后只剩相对门起作用，上一节说的「落定时就不太好的层」会一直留着 [D]。合法范围不含 0，想让它几乎不触发只能写很小的正数，单测里用作下边界的是 `0.000001`。
-
-**门开了也不一定搬。** 见事实表倒数第二行：比当前差的候选一律丢掉，选中的和当前一样就不出计划。所以把阈值调高，多花的首先是规划算力；搬不搬、搬多少，还要看这一层的负载有没有改进空间、以及每次规划的搬运上限 [D]。
-
-
-候选先按平均峰均比筛选；落在最优值的近似并列容差内时，再依次比较跨节点迁移数、节点内跨 rank 迁移数及确定性排序键。这是在可行候选之间打破并列，不是把两类迁移数直接加进平均峰均比。
-
-这里的 p95 峰均比把各段的峰均比从小到大排列，按每段代表的样本计数累计，取达到总样本数 95% 的位置所对应的值。它描述负载分布较差一侧的位置，不是最差 5% 样本逐个都不得变差的保证。
-
-**均衡度受窗口压缩方式影响。** 负载窗口会先被压成至多 [load_window_bins](load-window-bins-cc21068b082d.md) 段，每段先把负载平均掉再算峰均比。最忙的卡如果在不同时刻轮换，平均之后差距会被抹平，算出来的均衡度偏高，这道门就更难开 [D]。
-
-**放到 GLM 双机上会怎样**（[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)：两台机器 16 张卡、TP8 / DP2 / EP16）：
-
-- 本部署[只开了 EP、没开 EPLB](../concepts/eplb.md#放到-glm-双机本部署没开-eplb)，专家摆法从启动起固定不变，没有任何重排策略在跑。
-- GLM 代码所在的 `db701c1f` 上，`eplb_config` 不认 `stair_config`：照着 `4d1412d1` 的写法配进去，启动时就报 `Config has no attribute 'stair_config'`。
-- STAIR 是 MRv2 的策略，而本部署走的是 [model runner v1](../concepts/eplb.md#对照源码)；就算换到 `4d1412d1`，上面已经说过，那里也没有代码读这个值。
-
-**之后的版本。** 次日的 `a32719ef`（PR #17514）把 STAIR 接进 MRV2：`policy` 为 `stair` 时由工厂函数创建 STAIR 规划器 [C9]。rc2 已包含接入后的实现，启用条件与默认策略见本页开头及 [stair_config](stair-config-cca9e594a052.md#一句话)。
-
-4d1412d1先处理全零窗口与无锚点情形，再以相对条件或绝对条件放行规划（来源3，209–223）。固定同一窗口和锚点，提高绝对阈值只会保持或扩大触发集合；这不保证最终搬运。p95按排序后的累计样本数确定（来源4，157–168），最终候选还要按均值和p95筛选（来源7，951–983）。历史算法快照没有服务调用，rc2接入范围见前文，设备收益另测。
-
-## 版本谱系
-
-范围限定为 `vllm_ascend/ascend_config.py` 中的 `StairConfig.absolute_balance_threshold` 字段定义。定义存在不等于配置可写或运行时可用；行为条件见本页正文。未核定字段的精确引入／移除提交，不以同名文本的历史代替。
-
-| 版本 | 定义是否存在 | 固定提交 |
-| --- | --- | --- |
-| main | 有 | `8d6180e2` |
-| releases/v0.23.0 | 无 | `2c59ff10` |
-| releases/v0.26.0rc | 无 | `2ed6cbba` |
-| releases/v0.30.0rc2 | 有 | `7d825229` |
-| releases/v0.30.0 | 有 | `c09d3e20` |
-
-## 对照源码
-
-- 来源 19：vllm-ascend@4d1412d1，vllm_ascend/distributed/eplb/policy/stair.py，L950–L983。

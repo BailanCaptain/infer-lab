@@ -3,13 +3,17 @@ id: weight-prefetch-config
 title: weight_prefetch_config
 type: param
 summary: >-
-  v0.23.0 的 additional_config 开关，把 linear 层权重提前搬进 L2 cache，藏在 vector
-  计算背后；v0.24.0rc 起整套机制已删除，v0.26 上传这个键被静默忽略，main 上通常报错。GLM 双机默认没开；手动开启后 MoE
-  路径取不到权重，两份固定量化目录均不进入静态 attn 预取；稀疏 MLA 仍有不读比例的独立预取。
+  v0.23.0 的权重预取子配置，在独立流上把 linear 权重提前从 HBM 搬进 L2 cache 与 vector 计算重叠；v0.24.0rc
+  起已删除，v0.26 忽略，v0.30.0 与 main 通常拒收（Omni 告警过滤）。
 aliases:
   - 权重预取配置
   - weight prefetch
   - enable_prefetch
+legacyAnchors:
+  一句话: 它曾做什么，为什么 v0.24 起已删除？
+  事实表: 它曾做什么，为什么 v0.24 起已删除？
+  为什么存在: 四类比例钩子、MLA 独立预取与切流同步
+  开了的代价: 触发门槛、代价与 GLM 双机逐项推演
 chapters:
   - '19'
 sources:
@@ -98,21 +102,23 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L632-L736'
   - 'vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L48-L125'
   - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_multimodal.py#L664-L706'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1849-L1907'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1972-L2030'
 verified:
-  - main
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: ascend-config-system
     kind: builds-on
-    note: 它只是 additional_config 里的一个子配置对象；main 上通常被 extra="forbid" 当未知键拒收的机制在那一页
+    note: 它只是 additional_config 里的一个子配置对象；v0.30.0 与 main 上通常被 extra="forbid" 当未知键拒收的机制在那一页
   - to: ai-core
     kind: builds-on
     note: 权重预取建立在计算单元与数据搬运配合的基础上，通过提前把权重搬入 L2 并与向量计算重叠，减少矩阵计算等待数据的时间。
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: 2026-11-19T00:00:00.000Z
 rawSources:
   - >-
     raw/sha256-03a47659756fa092cca4e20a1677217bd9da69cd038f5e54121938ea1c077bd9.md
@@ -126,92 +132,75 @@ rawSources:
     raw/sha256-ba02d66e6627402c73c96eee60edcd5c70237363f540b371869fddb11c239baa.md
 ---
 
-## 一句话
+## 它曾做什么，为什么 v0.24 起已删除？
 
-**v0.30.0rc2 对照。** rc2 未恢复这个旧权重预取配置：字段、运行时消费和工厂兼容名单中都没有它，普通 Ascend 进程会按未知顶层键拒收，Omni 环境只告警过滤。下文把 Linear 权重提前搬进 L2 的机制与 GLM 失败分析保留原 v0.23/db701c1f 范围；rc2 的 kernel/NZ warmup 和 KV cache prefetch 不能当成这个配置的等价替代。
+`weight_prefetch_config` 是 `v0.23.0` 中的 `--additional-config` 子配置（默认 `{}`，即关闭；必须显式写 `{"enabled": true}` 才启用）。开启后，vLLM-Ascend 在一条独立的 NPU stream 上，把下一个 linear 层的权重提前从 HBM 搬进 **L2 cache**，让这段搬运藏在当前正在执行的 vector 算子（quantize、MoE gating `top_k`、RMSNorm、SwiGLU）背后，以降低 linear 计算期间的 MTE 占用、间接提高 Cube 效率（计算与数据搬运分工见[算子怎么落到 AI Core](../concepts/op-to-ai-core.md)）。它面向高吞吐场景，低延迟优先的场景上游明确建议不要开启；子键比例规则见 [prefetch_ratio](prefetch-ratio.md)。
 
-`weight_prefetch_config` 是 v0.23.0 的 `--additional-config` 子配置：开了之后 vllm-ascend 在一条独立的 NPU stream 上，把下一个 linear 层的权重提前从 HBM 搬进 **L2 cache**，让这段搬运藏在当前正在跑的 vector 算子（quantize、MoE gating top_k、RMSNorm、SwiGLU）背后，压低 linear 计算时的 MTE 占用 [S1]。默认 `{}`，等于关闭；该碰它的是高吞吐场景，低延迟优先的场景上游直接说别开。
+**历史血缘与下线现状**：该配置由早期的 `enable_prefetch` 与环境变量 `VLLM_ASCEND_ENABLE_PREFETCH_MLP` 统一而来，在 `v0.23.0` 发版时即被列入「Ready to Deprecate」，自 `v0.24.0rc` 起随 PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949) 整套删除（含 `vllm_ascend/ops/weight_prefetch.py` 与配置字段），**没有等价替代参数**。升级时须从启动命令中删掉该键——同时注意不要把它与三类同名或近名特性混淆：
+- `vllm_ascend/model_executor/offloader/prefetch.py`（`main` 上仍存在）做的是基于预取的 CPU offloading（HBM 与主机内存之间的权重搬运），不是本页的 HBM→L2 预取；
+- 启动参数 `--safetensors-load-strategy prefetch` 管的是启动时从磁盘预读 safetensors 文件，与本页无关；
+- `v0.30.0` / `main` 中的 kernel/NZ warmup 或 KV cache prefetch 也不是这个配置的等价替代。
 
-**存在范围**：它到 v0.23 维护分支为止能用，v0.24.0rc 起整套 `vllm_ascend/ops/weight_prefetch.py` 和配置字段已被删除，v0.26 分支（2026-09-17 的源码快照）与 main 开发主线上都没有这个键——引入与移除的 PR 见下面「版本谱系」。**两边删得不一样** [!]：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C31]；main 的顶层配置通常拒绝未知键，装有 vllm_omni 时 warning 后丢弃 [C23]。两者均不会启用本特性。比例子键单独见 [prefetch_ratio](prefetch-ratio.md)。
+| 核心维度 | `v0.23.0` 行为 | 说明 |
+| --- | --- | --- |
+| 字段与默认 | `dict`，默认 `{}`；`enabled` 默认 `False` | 只写 `"weight_prefetch_config": {}` 等于关闭；子键 `prefetch_ratio` 规则见 [prefetch_ratio](prefetch-ratio.md) |
+| 预取目标与尺寸限制 | 目标为 L2 cache；Python 封装无权重副本；MLP 正字节请求在 Python 侧截断到 18 MiB | `attn` / `moe` 无此 Python 截断；零字节在公共封装中转为整块请求，后端是否统一截断仍待核 |
+| 方向相反的 token 门槛 | MoE：`select_experts` 入口行数 `>= 96`；MLP：补齐后的 `num_tokens < 500` 且层索引非空 | 门槛仅是必要条件：MoE 还须取到权重，MLP `gate_up` 还须走自定义行并行算子，`down` 从激活算子进入 |
+| `attn` 路径与 `mlp`/`moe` 互斥 | `attn` 仅在静态 W8A8 `apply`、输入非 int8 且类名精确匹配 `AscendQKVParallelLinear` / `AscendRowParallelLinear` 时触发；`mlp` 与 `moe` 依模型是否 MoE 互斥 | `attn` 不看 token 门槛且按类名而非层语义路由（`o` 可能覆盖 MLP `down_proj`）；构造时两组比例都过滤，执行时至多开一组 |
+| MLA / SFA 独立预取 | 到达调用点只看 `enabled`，不读 `prefetch_ratio`、无 token 门槛；融合 QKV 整块预取，`o_proj` 最多请求 16 MiB（静态 W8A8 时跳过） | 普通 MLA 与稀疏 MLA 均有；SFA 缺 attention metadata 时提前返回 |
+| 越界或零 ratio | 越界值静默丢弃；过滤后整组全零或为空则关闭该组 | 组仍开启时单项缺失或为零会回填为整块请求；缺整个模块或给空 dict 则回填默认值（详见 [prefetch_ratio](prefetch-ratio.md)） |
 
-**放到 GLM 双机：关着的。** [官方双机部署](../concepts/glm-5-3-flash-two-node.md#部署前提)的启动命令里没有传 `additional_config`，而 `WeightPrefetchConfig.enabled` 默认就是 `False`——v0.23 维护分支和含 GLM 代码的那份快照都一样 [C33]，这条预取流水一次都不会起来。那条命令里另有一个带 prefetch 字样的开关 `--safetensors-load-strategy prefetch`，管的是启动时从磁盘预读 safetensors 文件，和本页的 HBM→L2 预取是两件事，细节在 [prefetch_ratio](prefetch-ratio.md)。要是在含 GLM 代码的那份快照上手动开起来，哪几项落得上、哪一道门槛会挡住它，见下面「开了的代价」末尾。
+## 四类比例钩子、MLA 独立预取与切流同步
 
-本页还留着一条**旧模型记录**（Qwen3-0.6B 稠密模型、单卡 bf16，不是 GLM 双机，也不是实测）：短 prefill 和 decode 可以通过 MLP 的行数门槛，但默认未开自定义行并行路径时，只有 down 有预取入口，gate_up 不会发。权重有多大与本次有没有发预取是两回事；完整判据见页末「源码位置」。
+配置由 `NPUModelRunner` 初始化为进程内单例。受比例控制的插桩共分四类：静态 W8A8 量化前后（`attn.qkv` / `attn.o`）、MoE 选专家（`moe.gate_up`）、attention 自定义行并行算子结束后预取**本层 MLP** 的 `gate_up`，以及 SwiGLU 激活前预取 `down`；此外普通 MLA 与 SFA 各有不读比例的融合 QKV 与 `o_proj` 两处调用。
 
-## 事实表
+切流与同步由预处理、后处理一对算子完成：预处理先让预取流等待计算流，再切到惰性创建的独立 NPU stream 提交请求；后处理让计算流等待预取流。注意 MLA / SFA 里的辅助函数虽然名字带有 `in_current_stream`，实际调用的仍是这个切流算子，且这两处没有紧接着调用同一对后处理，不能按函数名误判为在本流搬运。
 
-| 项 | v0.23.0 | v0.26.0rc | main | 意味着什么 |
-|---|---|---|---|---|
-| 字段本身 | `dict`，默认 `{}` | 已删除，未知键被静默忽略 | 已删除，通常被拒绝；装有 vllm_omni 时 warning 后丢弃 | 升级时从启动命令删除；main 的例外也不会重新启用预取 |
-| `enabled` | `bool`，默认 `False` [C7] | — | — | 只写 `"weight_prefetch_config": {}` 等于没开；必须显式 `{"enabled": true}` |
-| `prefetch_ratio` | 比例子键，五个权重各一个比例，见 [prefetch_ratio](prefetch-ratio.md) | — | — | 默认值的标定场景与比例解释统一见该页，不能保证换模型、换并发后仍最优 |
-| 预取目的地 | L2 cache | — | — | Python 封装没有分配权重副本；总运行时开销仍需实测 [D] |
-| 预取尺寸限制 | MLP 两路先把正的请求字节数截到 18 MiB | — | — | attn / moe 没有这道 Python 截断；零字节会在公共封装中改为整块，不能把 18 MiB 写成全路径硬上限；尺寸语义见 [prefetch_ratio](prefetch-ratio.md)，后端上限待核 |
-| 两道方向相反的 token 门槛 | MoE：进 `select_experts` 的行数 ≥96；MLP：上下文中补齐后的 num_tokens <500，且层索引非空 | — | — | 门槛只是必要条件：MoE 还须取得权重；MLP gate_up 还须经过自定义行并行算子，down 则从激活算子进入 |
-| `attn` 的 qkv/o 路径 | 静态 W8A8 的 apply，输入非 int8，且类名匹配 AscendQKVParallelLinear / AscendRowParallelLinear | — | — | 不看 token 门槛；按类名选比例，不按层的语义命名，o 也可能作用于 MLP down_proj |
-| `mlp` / `moe` 互斥 | `mlp` 只在非 MoE 模型开，`moe` 只在 MoE 模型开 | — | — | 构造时两组比例都会读取和过滤，执行时至多启用其中一组的预取 |
-| MLA / SFA 层预取 | 走到调用点后只看 enabled，不读 ratio、无 token 门槛；融合 QKV 整块，o_proj 最多请求 16 MiB、静态 W8A8 时跳过 | — | — | 普通 MLA 与稀疏 MLA 都有；融合 QKV 须存在且进入相应分支，SFA 无 attention metadata 时提前返回 |
-| 越界或零 ratio | 范围外的值丢弃；过滤后整组全零或为空，该组关闭 | — | — | 组仍开启时，单项缺失或为零反而会请求整块；缺整个模块或给空 dict 会回填默认，详见 [prefetch_ratio](prefetch-ratio.md) |
+几处容易误解的钩子边界：
+- **`gate_up` 的触发点在 attention 之后**：它要求当前层前缀的倒数第二段为 `self_attn`，在自定义行并行算子算完 attention 输出投影后，才按前缀中的层号取同一层 MLP 的 `gate_up_proj`——此时 attention 已结束，不能说提前量覆盖整个 attention。
+- **RMSNorm 无 residual 分支只有后处理**：它既不发起 MoE 预取，也不递增层索引（与[算子怎么落到 AI Core](../concepts/op-to-ai-core.md#版本差异)的钩子口径一致）。
+- **配置本身有三个常见坑**：① 子键名是 `enabled` 而非 `enable`——残留的 suffix speculative decoding 教程里仍写着 `{"enable":true}`，在 `v0.23.0` 会被 `.get("enabled", False)` 读成关闭；② `prefetch_ratio` 是整体替换而非逐键合并，缺失或空模块回填默认，而非空组内漏项或写零会经零尺寸转成整块请求，不能笼统当成安全省略；③ 旧文档曾称 MLP `down` 依赖 sequence parallel，但 `v0.23` 源码里 `down` 的激活钩子不查 SP，真正需要自定义行并行路径的是 `gate_up`（SP 只是选中自定义行并行路径的一种方式）。
 
-## 为什么存在
+## 触发门槛、代价与 GLM 双机逐项推演
 
-Linear 层在昇腾上的瓶颈常常不在 Cube 而在 MTE（负责在片外内存与片上缓存之间搬数据的搬运单元；一个算子在卡里怎么分成搬入、矩阵、向量这几段执行，见[算子怎么落到 AI Core](../concepts/op-to-ai-core.md)）——权重从 HBM 搬到片上的带宽没喂饱，Cube 就在等数据。官方文档把这件事说得很直白：linear 层的 MTE 利用率偏高，于是上游专门开了一条预取流水，与原有的 vector 计算流水并行跑，把权重提前搬到 L2，降低 linear 计算期间的 MTE 占用，间接提高 Cube 效率。
+**代价与验证方法（均无本仓实测对照）**：用 vector 计算掩盖预取流水会反过来与计算争用 MTE 与 L2 带宽，因此低延迟优先或低并发场景建议调小 ratio 或关闭；封装虽不创建权重副本，但新增 stream、同步与缓存竞争仍是真实成本。官方建议通过 profiling 检查独立 stream 上的 CMO 操作是否落在并行 vector 算子（如 SwiGLU）窗口内且不晚于其结束，再对比端到端执行时间。
 
-配置由 NPUModelRunner 初始化为进程内单例。按调用职责分，有四类受比例控制的插桩：静态 W8A8 的量化前后、MoE 选专家、attention 自定义行并行算子结束后取**本层 MLP** 的 gate_up，以及 SwiGLU 激活前取 down。前三类中的 attn 没有 token 门槛；MLP 和 MoE 各有门槛，还须满足下文的路径与取权重条件。普通 MLA 和 SFA 另有不读比例的两处调用。
+**触发门槛与旧 Qwen3-0.6B 单卡静态记录**：开启 `enabled` 后，MLP 要求非 MoE 模型、有效层索引与上下文行数 `< 500`（该行数由 runner 传入，可能经过图尺寸补齐而非原始请求 token 总数），因此短 prefill、混批和 decode 都可能通过，长 prefill 仅被挡在 MLP 两路外；MoE 要求选专家入口行数 `>= 96`、存在模型实例、正层索引且取到 `w13_weight`（开启多流 gate 等配置会改变选专家与 prepare 顺序，不可照搬固定调度行数）。
 
-预处理算子让预取流等待计算流，然后切换到一个惰性创建的 NPU stream 发请求；后处理让计算流等待预取流。MLA / SFA 的辅助函数虽然叫「in_current_stream」，实际也调用这个切流算子，不能据函数名说它在本流搬运；这两处没有紧接着调用同一对后处理。这里只描述源码提交预取请求的行为，缓存命中与收益需要设备实测。
+以旧稠密模型 Qwen3-0.6B（28 层、单卡 TP1、bf16 每元素 2 B，hidden=1024、MLP 中间维 3072、Q 16 头、K/V 各 8 头、每头 128 维，按「输出维 × 输入维」计算 $\text{字节数} = \text{out} \times \text{in} \times 2\,\text{B}$）为例：
 
-gate_up 的起点还要求当前层前缀的倒数第二段为 self_attn。自定义行并行算子算完 attention 输出投影后，才按前缀中的层号去取同一层 MLP 的权重。此时 attention 已经算完，不能说提前量接近整个 attention；RMSNorm 的无 residual 分支只有预取**后处理**，既不发起 MoE 预取，也不推进层索引。这与[算子怎么落到 AI Core](../concepts/op-to-ai-core.md#版本差异)的钩子口径一致。
+| 权重块 | 矩阵形状（输出 × 输入） | 单卡体积（bf16） | 仅开本参数且其余默认关闭时是否触发 |
+| --- | --- | --- | --- |
+| `gate_up` | `[6144, 1024]` | 12,582,912 B（12 MiB） | 不触发：默认未走自定义行并行算子（开 FlashComm1 / SP 等可进入，仍须满足全部 MLP 判据） |
+| `down` | `[1024, 3072]` | 6,291,456 B（6 MiB） | 满足门槛时请求整块 6 MiB（默认比例 1.0，低于 18 MiB 截断） |
+| `qkv` | `[4096, 1024]` | 8,388,608 B（8 MiB） | 不触发：bf16 不走静态 W8A8 路径 |
+| `o` | `[1024, 2048]` | 4,194,304 B（4 MiB） | 不触发：bf16 不走静态 W8A8 路径 |
 
-这个开关的血缘可以一直追到 `enable_prefetch` 与环境变量 `VLLM_ASCEND_ENABLE_PREFETCH_MLP`；v0.23.0 是它统一成 `weight_prefetch_config` 之后的形态 [I]。但同一份 v0.23.0 release notes 已经把 Weight prefetch 列进「Ready to Deprecate」[S24]，PR #11949 随后把它整体摘掉，v0.26.0rc1 的发布说明里记着这一笔 [S27]。**没有等价替代参数**——去向是直接下线，不是改名。
+请求字节数不等于实际搬运收益，换成 TP > 1 须按分片重算；GLM 权重数字统一取[每卡权重账](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)与[哪些矩阵是 8 位](../concepts/matmul-and-weights.md#双机前提与-w8a8哪些矩阵是-8-位)，不重算也不当预取流量。
 
-别认错门：main 上确实还有个 `vllm_ascend/model_executor/offloader/prefetch.py`，但它自己第一行就写明是「prefetch-based CPU offloading」，搬的是权重在 HBM 与主机内存之间的进出，和这里的 L2 预取不是一回事 [C29]。
+**放到 GLM 双机（`db701c1f` 固定基线：2×A2×8、TP8/DP2/EP16、W8A8）**：[官方双机部署](../concepts/glm-5-3-flash-two-node.md#部署前提)未传 `additional_config`，预取默认关闭（主线吞吐时延数字均为关闭态）。若在 `db701c1f` 手动开启，按源码逐项推演（未实跑）：
+1. **MLP 两路关闭**：模块开关按整体是否 MoE 判定，GLM 前几层稠密 MLP 同样不启用。
+2. **MoE 路径取不到权重**：上下文默认层索引为 `None`，仅当传入对象具备 `model.start_layer` 时才赋值（GLM 多模态外层挂 `language_model`，即使按语言模型对象看 PP=1 起点也是 0）；MLP 关闭导致 `down` 钩子不递增索引，`None` 或 0 过不了正索引要求，预处理清 `active` 后退出且不做后处理等待。MTP proposer 未传 `model_instance`，在更早检查返回且未清 `active`（不能据「未发请求」外推其无后处理等待）。
+3. **调度行数仅判第一道门槛**：固定部署先 prepare 再选专家，MC2 容量 128 见[单请求 MoE 站](../concepts/one-request.md#moe-通信走-mc2-还是-allgather)，MC2 补齐后按 TP 切片使固定纯 decode 达不到 96（并发算例 52 → 64 见[两组最大值补齐](../concepts/concurrent-requests.md#再补到两组的最大值)）；超容量转 AllGather 能过 96，但仍因第 2 条取不到权重而不发请求，短 prefill 也不必超 MC2 容量。
+4. **两份固定量化目录（`9e55cbc8` / `3121f187`）均不进入 `attn` 比例路径**：GLM 的 KDA 与 MLA 融合 QKV 不匹配 `AscendQKVParallelLinear`；两份目录权重只标 `FLOAT` 或 `W8A8_DYNAMIC`（旧目录 MLA 输出为 `FLOAT`、新目录改为动态 W8A8，稠密 MLP `down` 均为动态 W8A8，视觉塔 `quant_config=None`，详见[唯一权重账](../concepts/glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)），不派发静态 W8A8，故 `attn.o` 也不发。
+5. **MLA / SFA 独立预取仍可触发**：GLM 子类关闭两种融合前处理、走 SFA native 分支；存在 attention metadata 时融合 QKV 会整块请求预取（构成见 [MLA](../concepts/mla.md#放到-glm-双机一个-token-走过一层稀疏-mla)），输出投影最多请求 16 MiB 且两份目录均非静态 W8A8 故不跳过（换静态 W8A8 目录会跳过此路，但不代表静态挂钩已发请求）；profile run 缺 metadata 时在两处之前返回。
 
-## 开了的代价
+**升级清理提醒**：`v0.26.0rc` 静默忽略旧键，`v0.30.0` 与 `main` 通常拒收（装 `vllm_omni` 时告警过滤），均不启用旧功能；上游仓库残留的 suffix speculative decoding 教程与 Qwen3 稠密模型教程仍含 `weight_prefetch_config`，照抄同样受未知键规则处理。
 
-**先说清楚本页有什么、没有什么**：下面是配置值和由权重字节算出来的推导值，不是测出来的效果。钉住的提交上我们没有预取开与不开的时延、吞吐对照；GLM 双机主线里的那些数字是预取**关着**的那套部署的数字，不能拿来当这个开关的收益。
+## 对照源码
 
-**先看它到底会不会被触发。** enabled 为真之后，还要依次检查模块开关、调用点、运行时条件与权重取得是否成功。MLP 要求非 MoE 模型、有效层索引和上下文行数小于 500；这个数由 runner 传入，可能已经过图尺寸补齐，不等于原始请求 token 总数。gate_up 还要求 attention 输出投影实际走自定义行并行算子；down 则要求走带钩子的 SwiGLU 激活。短 prefill、混合步和 decode 都可能通过，长 prefill 只是被挡在这两条 MLP 路径外，不能推断整个首 token 延迟不受预取影响。
+下表汇总 `weight_prefetch_config` 在四个基线版本的存在状态与下线处理，其后列出核心源码锚点：
 
-MoE 的 96 比较的是选专家入口张量的行数。在固定 GLM 部署的默认调度分支里，这个张量来自 MoE prepare；该门槛通过后，还要有模型实例、正的层索引，并能取得对应专家的 w13_weight。GLM 主干恰恰在取权重这一步被挡住。打开多流 gate 等其他调度配置会改变选专家与 prepare 的顺序，不可照搬固定部署的行数结论。
+| 项 | v0.23.0 (`2c59ff10`) | v0.26.0rc (`2ed6cbba`) | v0.30.0 (`c09d3e20`) | main (`8d6180e2`) | 意味着什么 |
+| --- | --- | --- | --- | --- | --- |
+| 字段存在与默认 | `dict = {}`，`enabled = False` [C7] | 已删除，`.get()` 静默忽略 [C31] | 已删除，通常拒收（`vllm_omni` 告警过滤）[C74] | 同 `v0.30.0` [C75] | 升级必须删键，无等价替代参数 [!] |
+| 权重预取模块 | `ops/weight_prefetch.py` 完整实现 [C10] | PR #11949 已删 [S27] | 已删 | 已删 | `main` 上的 `offloader/prefetch.py` 是 HBM↔CPU 卸载，非本特性 [C29] |
+| 废弃与文档残留 | 发版列入 Ready to Deprecate [S24] | 教程仍残余旧命令 | 需避免照抄过期教程 [S25] | 同左 | 文档残留不代表功能恢复 |
 
-**再看旧模型记录该怎样读。** Qwen3-0.6B 的单卡 bf16 记录只能说明 dense 模型的路径区别：只开本参数、其余相关开关默认关闭时，attention 输出投影没有自定义行并行算子，gate_up 没有预取调用；带钩子的 SwiGLU 仍会请求 down，静态 W8A8 的 attn 路径不会进入。FlashComm1 / SP 等配置可让输出投影选中自定义算子，但仍须逐项满足上述 MLP 判据，不能把「开 SP」当成所有模型都充分的条件。
-
-**旧模型记录：每层权重有多大。** 这是 Qwen3-0.6B 稠密模型、单卡 TP1、bf16 的静态推导，非实测：模型有 28 层，hidden 为 1024，MLP 中间维度为 3072；Q 有 16 个头，K/V 各有 8 个头，每头 128 维。以下形状按权重存储的「输出维 × 输入维」写：gate_up 合并两路 3072 维，形状 [6144, 1024]；down 为 [1024, 3072]；qkv 合并 Q/K/V，输出维为 (16 + 8 + 8) × 128，形状 [4096, 1024]；o 将 16 × 128 维的 Q 头输出投影回 hidden，形状 [1024, 2048]。
-
-```calc
-title: 旧 Qwen3-0.6B 每层四块权重体积（单卡 bf16，每元素 2 B）
-gate_up = 6144 × 1024 × 2 B = 12,582,912 B = 12 MiB
-down = 1024 × 3072 × 2 B = 6,291,456 B = 6 MiB
-qkv = 4096 × 1024 × 2 B = 8,388,608 B = 8 MiB
-o = 1024 × 2048 × 2 B = 4,194,304 B = 4 MiB
-```
-
-只开本参数、使用默认比例且其余相关开关关闭时，满足上文 MLP 门槛并能取得权重的每层会请求 **down 的整块 6 MiB**（比例 1.0，低于 18 MiB 截断值）；gate_up 虽有 12 MiB，默认没有预取入口；qkv 的 8 MiB 和 o 的 4 MiB 则因 bf16 不走静态 W8A8 路径而不发预取。请求字节数不等于实际收益，设备搬运、缓存命中及性能仍须实测。换成 TP>1 时须按各矩阵的实际分片重新计算每卡体积，不能沿用本例的单卡数。
-
-比例、零值与尺寸规则见 [prefetch_ratio](prefetch-ratio.md)。GLM 权重数字只取[每卡权重账](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)与[哪些矩阵是 8 位](../concepts/matmul-and-weights.md#双机前提与-w8a8哪些矩阵是-8-位)两处，不把它们算成预取流量。
-
-**代价。** 官方把话说在前面：既然是拿 vector 计算来掩盖预取流水，预取就**会反过来影响计算**；优先低延迟而非高吞吐的场景，最好不要开 [S1]。低并发下预取往往没有收益，应该调小 ratio 或干脆关掉。判断方法也给了：抓 profiling，看预取（timeline 上表现为单条 stream 上的 CMO 操作）是否与并行的 vector 算子（如 SwiGlu）真的重叠、且不晚于该算子结束 [S2]。封装没有创建权重副本；新增的 stream、同步以及 L2 / 搬运带宽竞争仍是成本，不能把「没有权重副本」说成总开销为零。
-
-**配置本身的三个坑。**
-
-1. 子键是 `enabled` 不是 `enable`。main 上残留的 suffix speculative decoding 教程还写着 `{"enable":true}` [S25]，在 v0.23.0 上它会被 `.get("enabled", False)` 读成关闭、静默无效；main 已删掉整个配置项，按上述未知键规则处理。
-2. `prefetch_ratio` 是**整体替换**而非逐键合并；`WeightPrefetchMethod` 对缺失或空的模块回填默认值 [C10]。因此只写 mlp 不会关闭 attn / moe；非空组里漏一项或单项写零，又会通过零尺寸转成整块请求，不能笼统称这种省略「安全」。
-3. 官方旧文档称 MLP down 依赖 sequence parallel；钉住的 v0.23 源码里，down 的激活钩子不检查 SP。需要自定义行并行路径的是 gate_up，SP 只是选中该路径的一种方式。这里以源码为准。
-
-**要是在含 GLM 代码的那份快照上手动开起来（按源码推演，未实跑）。** 部署前提是两台机器 16 张卡、TP8 / DP2 / EP16、权重 W8A8（见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)；这套部署默认是关着的，见上面「一句话」）：
-
-1. **MLP 两路关闭。** 模块开关按整个模型是否为 MoE 判断，GLM 前面的稠密层也不会启用 mlp 预取。这里是方法入口返回，不是权重太大，也不是模型没有这些层。
-2. **MoE 路径取不到权重，token 门槛不足以使它发起。** 上下文先把层索引设为 None，只有传入对象具有 model.start_layer 才赋值；GLM 多模态外层挂的是 language_model，不能直接把外层等同于语言模型内部的 model。即使以直接暴露 model.start_layer 的语言模型对象分析，PP=1 时起点也是 0。GLM 的 mlp 预取模块关闭，不会通过 MLP down 的钩子递增索引；None 或 0 均过不了 MoE 的正索引要求。取不到权重时预处理清 active 并返回，既不发请求，也不执行该路径的后处理等待。MTP proposer 则未传 model_instance，在更早检查处返回；这个分支没有清 active，不能据“未发请求”额外推出它没有后处理等待。
-3. **调度行数只能判断第一道门槛。** 固定部署未开 FlashComm1、shared-expert DP 与多流 gate，先 prepare 再选专家。MC2 容量 **128** 的来源只见[单请求 MoE 站](../concepts/one-request.md#moe-通信走-mc2-还是-allgather)；MC2 在补齐后按 TP 切 token 行，固定纯 decode 因而达不到 96。已有并发算例的 **52 → 64** 只见[两组最大值补齐](../concepts/concurrent-requests.md#再补到两组的最大值)，本页不重算切片。执行宽度超过 MC2 容量时，AllGather 把两组补到同宽再汇齐，能过 96；但它仍然取不到权重，不会发 MoE 预取。短 prefill 不必超过 MC2 容量，不能按「是否 prefill」替代宽度判据。
-4. **两份固定量化目录都不进入 attn 比例路径。** GLM 语言主干的 KDA 使用分开的列并行投影，MLA 融合 QKV 使用合并列并行层，不匹配所需的 QKVParallelLinear 类。更直接的限制来自量化目录：9e55cbc8 与 3121f187 的权重只标 FLOAT 或 W8A8_DYNAMIC，均不派发到带预取钩子的静态 W8A8 方法，故 attn.o 也不发。旧目录的 MLA 输出投影为 FLOAT，新目录改为动态 W8A8；稠密 MLP down 两版均为动态 W8A8，视觉塔构造还明确传 quant_config=None。这里已能按固定清单判断，不需要再假设缺少量化文件；具体版本差别见[唯一权重账](../concepts/glm-5-3-flash-two-node.md#量化版本和视觉塔怎样补进这份账)。
-5. **普通 MLA / SFA 两路独立于上述比例与层索引。** GLM 子类强制关闭两种融合前处理，进入 SFA native 分支；有 attention metadata 时，融合 QKV 权重会被整块请求预取，权重构成只见 [MLA](../concepts/mla.md#放到-glm-双机一个-token-走过一层稀疏-mla)。输出投影最多请求 16 MiB；两份固定目录都不是静态 W8A8，因此不触发这一路的静态方法跳过。换成其他量化目录时，若其包装方法属于静态 W8A8 则返回；这并不证明静态挂钩已经发过请求，后者仍受 attn 组开关和输入是否 int8 限制。普通 MLA 也有相同的两类调用，融合 QKV 入口另要求该投影存在且走 native 前处理；SFA 的 profile run 缺 metadata 时在两处调用之前返回。
-
-这五条都是配置值与源码分支，分层说清「哪一项还有机会生效」而已；这套部署上预取的实际收益**没有实测数**。
-
-**升级时删除旧键。** 固定 v0.26 的配置类忽略这个键，固定 main 与 rc2 通常拒收；装有 `vllm_omni` 时例外，会 warning 后过滤 [C28]。忽略或过滤均不会启用本特性，也不保证整条命令通过其他部署检查。
-
-**要删的不止你自己的脚本。** 上游仓库里还留着过期示例：suffix speculative decoding 教程 [S25] 和 Qwen3 稠密模型教程 [S30] 都还写着 `weight_prefetch_config`，v0.26 分支上同一条命令也仍在。照抄也按上述未知键规则处理；图模式、算子融合等需分别评估，这个参数本身没有替代键。
+- **机制、配置与比例链路（`2c59ff10` 与 `db701c1f` 两份 `weight_prefetch.py` 逐字一致）**：官方文档见 `weight_prefetch.md#L1-L5, #L25-L32`（来源 1–3）[S1][S2]、`additional_config.md#L66-L69, #L117-L122`（来源 4–5）；配置解析与默认回填见 `ascend_config.py`（来源 6–7、26、33）与 `weight_prefetch.py#L1-L238`（来源 8–15、34–35、39）；切流与同步见 `register_custom_ops.py` 与 `utils.py`（来源 16–17、45）[D]。早期引入提交 `ff375759` 仅含 attn 比例路径，不能外推后来的 MLP/MoE 门槛（血缘溯源见来源 4–7）[I]。
+- **四类钩子与 GLM 五条推演锚点（未另注均属 `db701c1f`）**：MLP 门槛与补齐行数见 `model_runner_v1.py`、`ascend_forward_context.py`（来源 18、40、54）；`gate_up` 自定义行并行与 `down` 激活钩子见 `linear.py`、`linear_op.py`、`activation.py`（来源 20–21、41–43）；MoE 索引起点、RMSNorm 后处理与 MTP 见 `layernorm.py`、`glm5_next.py`、`glm5_next_multimodal.py`、`llm_base_proposer.py`、`utils.py` 及 `vllm@0fc695fc`（来源 44、52–57、73）；调度先 prepare 后选专家与 MC2/AllGather 见 `fused_moe_0_23_0.py`、`w8a8_dynamic.py`、`experts_selector.py`、`prepare_finalize.py`（来源 22、37、48–49、59、61）；两份固定量化目录及静态/动态派发见来源 60、68–72；MLA / SFA 独立预取见 `mla_v1.py`、`sfa_v1.py`、`indexer_kpool_mla_v1.py`（来源 36、46–47、58、62）；Qwen3-0.6B 维度来自 HF `config.json`（来源 63）。
+- **未知键处理与过期教程**：`v0.26` 见来源 31–32，`v0.30.0` 与 `main` 见来源 74–75（历史 `baa023ad`/`7d825229` 见来源 23–25、27–30、65–67）。
+- **待核**：MoE / attn 是否在底层被统一截断到 18 MiB（当前 `csrc` 无所用 `npu_prefetch` 实现；[TorchNPU 7.0.0 `npu_prefetch` 文档](https://www.hiascend.com/document/detail/zh/Pytorch/700/apiref/apilist/ptaoplist_001247.html)不代表部署镜像版本后端证据），以及同负载开关性能实测对照，均待实机核验。
 
 ## 版本谱系
 
@@ -259,40 +248,3 @@ o = 1024 × 2048 × 2 B = 4,194,304 B = 4 MiB
 源码未提供字段注释。
 
 约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：
-
-## 对照源码
-
-### 版本差异
-
-本页执行结论分别核对 v0.23 维护分支 2c59ff10 和 GLM 独立快照 db701c1f；两者的 weight_prefetch.py 完整内容相同，GLM 模型与调度结论只适用于后者。v0.26 的 2ed6cbba 与 main 的 baa023ad 已无该文件及配置字段。早期引入提交 ff375759 只有 attn 比例路径，不能用它解释后来的 MLP / MoE 门槛；移除提交 e77502ef 的父提交仍有完整旧实现。谱系中的「包含引入提交」只表示 Git 祖先关系。
-
-### 源码位置
-
-下表逐项对应事实表、运行条件与 GLM 五条结论。路径均相对 vllm_ascend/；未另注明时是 **db701c1f**。源码能确定的是是否走到提交预取请求的调用，设备上的搬运完成、缓存驻留和收益仍需实测。
-
-| 页面结论 | 文件与行号 |
-|---|---|
-| 默认关闭；enable 拼错无效；比例整体替换 | ascend_config.py 52–53、685–701；维护分支 2c59ff10 同文件 704–720（来源 6、7、33） |
-| 模块默认回填、过滤、全零关闭、MLP / MoE 互斥 | weight_prefetch.py 26–69（来源 9、10、39）。单项零或缺失经 79、103、169–184、235–238 变成全量请求，正值 MLP 才受该处 18 MiB 截断 |
-| MLP 共用门槛与补齐后的行数 | weight_prefetch.py 134–156；worker/model_runner_v1.py 2265–2273；ascend_forward_context.py 136–157（来源 39、40、54） |
-| gate_up 需要自定义行并行路径；默认单卡相关开关全关时没有入口 | ops/linear.py 363–371；ops/linear_op.py 153–158、709–790；维护分支对应选择函数为 700–781（来源 20、41–43）。SP 是其中一个选择条件，不是唯一方式 |
-| gate_up 取本层、起点在 attention 输出计算之后 | ops/linear_op.py 153–158；weight_prefetch.py 158–175（来源 20、39）：层号取前缀第 3 段，倒数第 2 段须为 self_attn；模型还须具备代码访问的 layers/mlp/gate_up_proj 结构 |
-| down 从激活进入、不查 SP；成功提交后递增索引 | ops/activation.py 37–55；weight_prefetch.py 177–200（来源 21、39）；要求当前 layers 索引可取到 mlp.down_proj，代码没有通用模型结构适配 |
-| MoE 过 ≥96 后仍会因取不到权重退出 | weight_prefetch.py 88–131（来源 39）：需要模型实例、layer_idx >0，且索引减一对应层具有 mlp / moe / block_sparse_moe 下的 experts.w13_weight；98–101 明确在空权重时清 active 并返回 |
-| GLM 没有可供 MoE 预取使用的正层索引；RMSNorm 不递增它 | ascend_forward_context.py 149–157；utils.py 1305–1312；多模态外层的 language_model 结构见来源 73。直接语言模型的 start_layer 见 models/glm5_next.py 2282–2286，并由 vllm@0fc695fc 的 models/utils.py 632–663 → distributed/utils.py 109–154 算得 PP=1 时为 0（来源 52、55–57）。weight_prefetch.py 65–69、134–139、186 的 MLP 推进在 GLM 关闭，layernorm.py 63–88 只有后处理（来源 39、40、44） |
-| MTP 同样没有 MoE 预取请求 | spec_decode/llm_base_proposer.py 1118–1135 未传 model_instance；ascend_forward_context.py 67、149–157 将其保留为空；weight_prefetch.py 94–96 返回（来源 39、40、53） |
-| 默认调度先 prepare 后选专家；96 看入口张量，不看 dispatch 后专家行数 | ops/fused_moe/fused_moe_0_23_0.py 479–502 → quantization/methods/w8a8_dynamic.py 262–287 → ops/fused_moe/experts_selector.py 71–74（来源 22、37、61） |
-| MC2 容量和分片、AllGather 汇齐 | ascend_forward_context.py 97–101、202–217、240–252；ops/fused_moe/prepare_finalize.py 249–314、355–373、440–469（来源 40、48–49、59）。MC2 切片要求 replace_allreduce 与 enable_shared_expert_dp 都关闭；不能移植到所有调度变体 |
-| attn 同时检查静态 W8A8、非 int8 输入及精确类名，无行数门槛 | quantization/methods/w8a8_static.py 74–122；weight_prefetch.py 50–56、71–86（来源 39、60）。GLM 的列并行与合并列并行投影见 models/glm5_next.py 1577–1597、1916–1963（来源 50–51），因此 qkv 比例没有匹配层 |
-| 普通 MLA 与 SFA 的融合 QKV 入口不同；GLM 确定走 native | attention/mla_v1.py 1655–1659；attention/sfa_v1.py 1703–1761；attention/indexer_kpool_mla_v1.py 557–579（来源 36、46–47）。SFA 无 metadata 的提前返回在 1650–1666（来源 58） |
-| MLA / SFA 的 o_proj 条件与独立尺寸 | attention/mla_v1.py 73、1795–1803；attention/sfa_v1.py 2004–2011；weight_prefetch.py 202–227（来源 35、36、46、62）。静态方法判据是 isinstance，不核输入 dtype，也不核 attn.enable |
-| 预取流与同步边界；零字节不代表关闭 | ops/register_custom_ops.py 137–156；utils.py 509–528；weight_prefetch.py 230–238（来源 17、39、45）。MLA / SFA 也调用切流预处理；这里只提交请求，没有创建权重副本的代码 |
-| 删除之后未知键的两种处理 | 2ed6cbba ascend_config.py 56–73；baa023ad 同文件 455、1660–1678（来源 23、28、31）。main 装有 vllm_omni 的例外会 warning 后丢弃，不能称无日志的静默忽略 |
-
-旧模型记录的维度来自 [Qwen3-0.6B 官方配置](https://huggingface.co/Qwen/Qwen3-0.6B/blob/167b8104f88905a951069f5f95f9776908da5f68/config.json)（来源 63，commit 167b8104，config.json 第 9–19、25 行）；四块体积按形状与 bf16 每元素 2 B 推导。请求是否发出及其尺寸，对照上表的 MLP 门槛、gate_up/down 入口和静态 W8A8 条件。
-
-比例与尺寸见 [prefetch_ratio](prefetch-ratio.md)。GLM 的 MoE 在计算请求字节数前即返回；18 MiB 的 Python 截断只在 MLP 正字节路径，MoE / attn 的后端上限仍待核。
-
-来源 68、69 为两份固定量化清单；70、71 给出按层派发与 FLOAT 跳过；72 的动态 Linear 不含静态预取钩子；73 说明视觉塔构造禁用量化。这些证据支持上述目录与执行快照下的路径结论，换目录或代码后须重新核对。
-
-**待核：缺什么。** MoE / attn 是否被后端统一截到 18 MiB，缺与部署镜像对应的底层实现或算子 trace；当前仓库 csrc 没有本调用所用 npu_prefetch 的实现。性能收益仍缺同负载开关对照。[官方 npu_prefetch 接口说明](https://www.hiascend.com/document/detail/zh/Pytorch/700/apiref/apilist/ptaoplist_001247.html)介绍 TorchNPU 7.0.0 / PyTorch 2.1 的 max_size、依赖及图模式约束，不能代替本镜像版本的后端证据。

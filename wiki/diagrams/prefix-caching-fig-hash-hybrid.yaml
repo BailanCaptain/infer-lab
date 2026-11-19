@@ -1,0 +1,11 @@
+mode: native-svg
+id: prefix-caching-fig-hash-hybrid
+caption: Prefix Caching（APC）的链式块指纹构造（前块哈希 + 额外身份键 + 本块 token）、共享池引用计数与倒序淘汰机制，以及混合模型在多缓存组间取公共恢复边界的“只砍不涨”循环。
+size: [900, 456]
+pins:
+  - source: 'vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L525-L590'
+    symbols: ['generate_block_hash_extra_keys', 'hash_block_tokens']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L84-L140'
+    symbols: ['_ascend_resolve_kv_cache_block_sizes', 'is_prefix_cacheable']
+  - source: 'vllm@ced6857a:vllm/v1/core/kv_cache_coordinator.py#L600-L680'
+    symbols: ['HybridKVCacheCoordinator']

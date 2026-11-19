@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="Async scheduling CPU与NPU时序重叠、输出占位记账闭环与v0.30.0边界图" font-family="var(--font-sans)">
+  <title>Async scheduling：Host CPU 提前排下一步隐藏启动气泡、输出占位加减闭环与 v0.30.0 边界</title>
+  <desc>关联源码符号：AsyncScheduler, _update_after_schedule, _update_request_with_output, num_output_placeholders, _spec_token_placeholders, profiling_chunk_config, ProfilingChunkAsyncScheduler, batch_job_sched_config</desc>
+  <defs>
+    <marker id="as-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="as-arr-am" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1: Timeline comparison -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 步间气泡消除：只提前排计划，NPU 前向仍按序等卡上补真值</text>
+  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">示意格：CPU 1 格 / NPU 3 格</text>
+
+  <!-- Sync row -->
+  <text x="16" y="66" font-size="14" font-weight="700" fill="#8f3229">同步排步</text>
+  <rect x="96" y="44" width="76" height="34" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="134" y="66" text-anchor="middle" font-size="13.5" fill="#936300">CPU 排k</text>
+  <rect x="176" y="44" width="166" height="34" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="259" y="66" text-anchor="middle" font-size="13.5" fill="#3a4f93">NPU 算第 k 步</text>
+  <rect x="346" y="44" width="84" height="34" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="388" y="66" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">NPU 空等</text>
+  <rect x="434" y="44" width="166" height="34" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="517" y="66" text-anchor="middle" font-size="13.5" fill="#3a4f93">NPU 算第 k+1 步</text>
+  <rect x="604" y="44" width="84" height="34" rx="5" fill="#fff0e9" stroke="#b54237" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="646" y="66" text-anchor="middle" font-size="13.5" font-weight="700" fill="#8f3229">NPU 空等</text>
+  <text x="702" y="66" font-size="13.5" fill="#8f3229">3 步共 13 格（气泡反复）</text>
+
+  <!-- Async rows -->
+  <text x="16" y="114" font-size="14" font-weight="700" fill="#065f56">异步 CPU</text>
+  <rect x="96" y="92" width="76" height="32" rx="5" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="134" y="113" text-anchor="middle" font-size="13.5" fill="#936300">CPU 排k</text>
+  <rect x="180" y="92" width="96" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="228" y="113" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">提前排 k+1</text>
+  <rect x="350" y="92" width="120" height="32" rx="5" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="410" y="113" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">收 k + 排 k+2</text>
+  <rect x="520" y="92" width="104" height="32" rx="5" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="572" y="113" text-anchor="middle" font-size="13.5" fill="#7a3a6a">收 k+1 销账</text>
+  <text x="638" y="113" font-size="13.5" fill="#065f56">隐藏启动与回传等待</text>
+
+  <text x="16" y="156" font-size="14" font-weight="700" fill="#3a4f93">异步 NPU</text>
+  <rect x="176" y="134" width="166" height="34" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="259" y="156" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">NPU 算第 k 步</text>
+  <rect x="346" y="134" width="166" height="34" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="429" y="156" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">NPU 紧接算 k+1</text>
+  <rect x="516" y="134" width="166" height="34" rx="5" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="599" y="156" text-anchor="middle" font-size="13.5" font-weight="700" fill="#3a4f93">NPU 紧接算 k+2</text>
+  <text x="696" y="156" font-size="13.5" font-weight="700" fill="#065f56">3 步缩至 11 格（连续）</text>
+
+  <line x1="16" y1="184" x2="884" y2="184" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: Placeholder accounting loop -->
+  <text x="16" y="212" font-size="16" font-weight="700" fill="#17211f">② 输出占位与卡上补值闭环（AsyncScheduler + NPUModelRunner）</text>
+
+  <rect x="16" y="230" width="268" height="106" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="30" y="256" font-size="14.5" font-weight="700" fill="#936300">1. 排步记占位（Host CPU）</text>
+  <text x="30" y="282" font-size="13.5" fill="#4d5652">占位 += 1（投机加 1 + K）</text>
+  <text x="30" y="304" font-size="13.5" fill="#4d5652">候选槽填 -1，不传真值</text>
+  <text x="30" y="326" font-size="13.5" fill="#936300">分块 prefill 中间段不记占位</text>
+
+  <line x1="286" y1="283" x2="314" y2="283" stroke="#c78300" stroke-width="1.8" marker-end="url(#as-arr-am)"/>
+
+  <rect x="318" y="230" width="264" height="106" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="332" y="256" font-size="14.5" font-weight="700" fill="#065f56">2. 卡上就地补真值（NPU）</text>
+  <text x="332" y="282" font-size="13.5" fill="#4d5652">主机表写 -1，真 token 留卡上</text>
+  <text x="332" y="304" font-size="13.5" fill="#4d5652">备下步输入时卡内直接抄入</text>
+  <text x="332" y="326" font-size="13.5" fill="#065f56">另走拷贝流异步回传主机</text>
+
+  <line x1="584" y1="283" x2="612" y2="283" stroke="#087f73" stroke-width="1.8" marker-end="url(#as-arr)"/>
+
+  <rect x="616" y="230" width="268" height="106" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="630" y="256" font-size="14.5" font-weight="700" fill="#7a3a6a">3. 结果回传销账与建缓存</text>
+  <text x="630" y="282" font-size="13.5" fill="#4d5652">先减被拒数，再减实收 token 数</text>
+  <text x="630" y="304" font-size="13.5" fill="#4d5652">前缀缓存上限 = 已算 - 占位</text>
+  <text x="630" y="326" font-size="13.5" fill="#7a3a6a">强制清空抢占时转待丢弃计数</text>
+
+  <line x1="16" y1="354" x2="884" y2="354" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 3: Boundaries -->
+  <text x="16" y="380" font-size="16" font-weight="700" fill="#17211f">③ v0.30.0 并发批数、自定义调度器与 Ascend 平台边界</text>
+
+  <rect x="16" y="394" width="278" height="64" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="30" y="420" font-size="14" font-weight="700" fill="#3a4f93">并发在途批数上限</text>
+  <text x="30" y="445" font-size="13.5" fill="#4d5652">V1 PP=1 为 2 批；V2 为 pp+1</text>
+
+  <rect x="311" y="394" width="278" height="64" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="325" y="420" font-size="14" font-weight="700" fill="#936300">CPP + 异步强制要求 MRV2</text>
+  <text x="325" y="445" font-size="13.5" fill="#4d5652">自定义调度器须自带异步占位类</text>
+
+  <rect x="606" y="394" width="278" height="64" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="620" y="420" font-size="14" font-weight="700" fill="#8f3229">DBO 在 Ascend 被重置关闭</text>
+  <text x="620" y="445" font-size="13.5" fill="#4d5652">平台清空 enable_dbo，另看 MC2</text>
+</svg>

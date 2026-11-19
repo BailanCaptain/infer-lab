@@ -246,6 +246,9 @@ export async function mountHardwareStage(
       for (const g of geometries) g.dispose();
       for (const m of materials) m.dispose();
       renderer.dispose();
+      try {
+        renderer.forceContextLoss();
+      } catch {}
       renderer.domElement.remove();
       overlay.remove();
     },

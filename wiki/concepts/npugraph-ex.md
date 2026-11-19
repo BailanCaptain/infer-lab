@@ -203,6 +203,12 @@ file: npugraph-ex-intuition
 
 录下来的是任务的组织方式，不是上一轮的答案——每一轮都照新数据重算一遍。本页挂靠多请求主线的 B4：[进入前向之前的图尺寸补齐](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)。
 
+站在昇腾编译栈全景看，本页会逐层拆解的三级递进——`npugraph_ex` 算子图融合 → `Static Kernel` 选定形状预编译 → `Super Kernel` 二进制大核合并——在执行层级与门控关系上对应下面这张立体拆解图：
+
+```wiki-diagram
+file: npugraph-plate-three-tier
+```
+
 ## 为什么值得合：中间张量也要写出再读回
 
 一个[算子](ops-and-kernels.md)最终要由设备上的 kernel 执行。算完一个算子，结果落在设备显存里；下一个算子再把它整块读出来。数学运算一次都没省，多出来的是这趟存取，以及把多个任务分别交给设备的开销。**融合省的是这些边界成本，不是计算量本身。**
@@ -280,6 +286,12 @@ file: npugraph-ex-flow
 - **A2 / A3 / A5 等支持 `npugraph_ex` 的硬件**：单开 `enable_static_kernel=True`（而 `enable_npugraph_ex=False`），或单开 `enable_super_kernel=True`（而 `enable_static_kernel=False`），都会在配置校验阶段直接抛出 `AssertionError`。
 - **310P 等不支持 `npugraph_ex` 的硬件**：硬件能力检查会先于断言执行，对原本开启的项打印 warning 后将三者**静默刷成 `False`**，不会触发断言失败。
 - **非纯整图模式静默刷回 `False`**：即使在 A2/A3/A5 上合法地双开或三开了 `npugraph_ex` + `static_kernel`（+ `super_kernel`），只要最终 `cudagraph_mode` 是 `NONE`、不受支持的档位，或任何需要分段编译的模式（如 `PIECEWISE`、`FULL_AND_PIECEWISE`，即非 `FULL_DECODE_ONLY` / `FULL`），平台 `_setup_compile_backend` 仍会把 `additional_config["ascend_compilation_config"]` 里的这三项全部**静默刷回 `False`**。
+
+下面这张架构图把「`npugraph_ex` → `static_kernel` → `super_kernel` 三级依赖与两道门控」以及「规则一次注册、双路消费（外部后端 vs 本地 FX pass）」整合到同一视图里：
+
+```wiki-diagram
+file: npugraph-ex-fig-three-tier-fusion
+```
 
 打开并保留生效后，编译接口从捕获宽度表里筛出一段范围交给后端：下界是每条请求一步占的位置数（$1 + \text{草稿数}$），上界是最大并发请求数乘这个长度，只有落在这个闭区间里的宽度才送去静态编译，表里没有的宽度不会被补出来。
 

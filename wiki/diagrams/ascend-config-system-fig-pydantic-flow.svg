@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 444" width="900" height="444" role="img" aria-label="v0.30.0 与 main 的 AscendConfig Pydantic 严格校验流与环境变量收口" font-family="var(--font-sans)">
+  <title>v0.30.0 / main AscendConfig Pydantic 严格解析与原子发布流水线</title>
+  <desc>Strict Pydantic extra=forbid validation pipeline, retired env vars vs FLASHCOMM1 OR fallback, and atomic _ASCEND_CONFIG publish</desc>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">v0.30.0 / main 的 AscendConfig 严格校验与原子发布流</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">告别旧版逐键 .get() 静默忽略：先预处理兼容键，再由 Pydantic 拦截拼写与类型错误，最后发布进程单例</text>
+
+  <!-- 4 horizontal pipeline boxes -->
+  <rect x="16" y="64" width="196" height="176" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
+  <text x="28" y="90" font-size="14.5" font-weight="700" fill="#17211f">1. 工厂预处理</text>
+  <text x="28" y="114" font-size="13.5" fill="#4d5652">init_ascend_config</text>
+  <text x="28" y="138" font-size="13.5" fill="#4d5652">• 剥离 4 个旧顶层</text>
+  <text x="28" y="160" font-size="13.5" fill="#4d5652">  调度键交子配置</text>
+  <text x="28" y="184" font-size="13.5" fill="#4d5652">• 装有 vllm_omni 时</text>
+  <text x="28" y="206" font-size="13.5" fill="#4d5652">  未知顶层键告警过滤</text>
+
+  <path d="M214 152h22m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="240" y="64" width="196" height="176" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="252" y="90" font-size="14.5" font-weight="700" fill="#8f3229">2. Pydantic 严检</text>
+  <text x="252" y="114" font-size="13.5" fill="#4d5652">extra="forbid"</text>
+  <text x="252" y="138" font-size="13.5" fill="#4d5652">• 拼错键名直接报错</text>
+  <text x="252" y="162" font-size="13.5" fill="#4d5652">• 类型与范围即刻拦截</text>
+  <text x="252" y="186" font-size="13.5" fill="#4d5652">• 拆 12 组子配置</text>
+  <text x="252" y="210" font-size="13.5" fill="#8f3229" font-weight="600">（main 扩至 13 组）</text>
+
+  <path d="M438 152h22m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="464" y="64" width="196" height="176" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="476" y="90" font-size="14.5" font-weight="700" fill="#936300">3. 派生与组合校验</text>
+  <text x="476" y="114" font-size="13.5" fill="#4d5652">derive_and_validate</text>
+  <text x="476" y="138" font-size="13.5" fill="#4d5652">• 合并 FLASHCOMM1</text>
+  <text x="476" y="160" font-size="13.5" fill="#4d5652">  环境变量（逻辑或）</text>
+  <text x="476" y="184" font-size="13.5" fill="#4d5652">• 串联 RL / 细粒度 TP</text>
+  <text x="476" y="208" font-size="13.5" fill="#4d5652">  与 Xlite 能力校验</text>
+
+  <path d="M662 152h22m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="688" y="64" width="196" height="176" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="700" y="90" font-size="14.5" font-weight="700" fill="#065f56">4. 原子发布单例</text>
+  <text x="700" y="114" font-size="13.5" fill="#4d5652">_ASCEND_CONFIG</text>
+  <text x="700" y="138" font-size="13.5" fill="#4d5652">• 全部通过才写缓存</text>
+  <text x="700" y="162" font-size="13.5" fill="#4d5652">• clear_enable_sp()</text>
+  <text x="700" y="186" font-size="13.5" fill="#4d5652">• 失败保留旧单例</text>
+  <text x="700" y="210" font-size="13.5" fill="#065f56" font-weight="600">→ 仅限当前进程有效</text>
+
+  <!-- Bottom two cards -->
+  <rect x="16" y="260" width="424" height="170" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="32" y="286" font-size="14.5" font-weight="700" fill="#3a4f93">环境变量收口：从 9 对兼容回退到字段统一</text>
+  <text x="32" y="312" font-size="13.5" fill="#4d5652">• 已从 envs.py 退役：ENABLE_NZ / ENABLE_MLAPO /</text>
+  <text x="32" y="334" font-size="13.5" fill="#4d5652">  FUSED_MC2 / MSMONITOR_USE_DAEMON 等旧变量</text>
+  <text x="32" y="358" font-size="13.5" fill="#4d5652">• 唯一留存兜底：VLLM_ASCEND_ENABLE_FLASHCOMM1</text>
+  <text x="32" y="382" font-size="13.5" fill="#3a4f93" font-weight="600">  与 JSON 做逻辑或（写 false 盖不掉环境真值）</text>
+  <text x="32" y="408" font-size="13.5" fill="#4d5652">• envs 表条数：v0.23(21) → v0.30(14) → main(12)</text>
+
+  <rect x="460" y="260" width="424" height="170" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="476" y="286" font-size="14.5" font-weight="700" fill="#7a3a6a">旧版（v0.23 / v0.26）vs v0.30.0 / main 排障差异</text>
+  <text x="476" y="312" font-size="13.5" fill="#4d5652">• 拼错键名：旧版多静默走默认（EPLB 除外），</text>
+  <text x="476" y="334" font-size="13.5" fill="#4d5652">  v0.30.0 起构造即报 ValidationError</text>
+  <text x="476" y="358" font-size="13.5" fill="#4d5652">• 编译缓存：非空 JSON 整段算进 VllmConfig hash</text>
+  <text x="476" y="382" font-size="13.5" fill="#4d5652">• 未初始化错：取配置查缓存非空与属性完整</text>
+  <text x="476" y="408" font-size="13.5" fill="#7a3a6a" font-weight="600">→ 写对值 ≠ 已生效，仍须核对平台改写与消费者</text>
+</svg>

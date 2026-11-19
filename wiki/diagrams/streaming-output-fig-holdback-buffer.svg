@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 516" width="900" height="516" role="img" aria-label="流式输出前端三道暂扣与合并闸门及判停与隐藏思考边界图" font-family="var(--font-sans)">
+  <title>流式输出前端三道缓冲与合并闸门（UTF-8 半字暂扣、停止串尾字扣留、单槽收集器合并），以及跨进程判停分工与 include_reasoning=false 隐藏副作用对照。</title>
+  <desc>上半部分展示新 token 进入前端后的三道闸门：UTF-8 半字缓冲、停止字符串 len(stop)-1 尾字扣留、RequestOutputCollector 单槽合并与 stream_interval 门控；下半部分对比跨进程判停位置及隐藏思考开关的副作用。</desc>
+  <defs>
+    <marker id="st-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="st-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、为什么「1 步 ≠ 1 token ≠ 1 个字 ≠ 1 个 SSE 片段」？前端三道暂扣与合并闸门</text>
+
+  <rect x="14" y="46" width="268" height="224" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="148" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#3a4f93">闸门 1：UTF-8 半字缓冲</text>
+  <text x="148" y="96" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">decode_next(token_id)</text>
+  <rect x="26" y="110" width="244" height="62" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="38" y="133" font-size="13.5" fill="#17211f">步 2 到 <tspan font-family="var(--font-mono)" font-weight="700">E7 8A</tspan>（半个「犇」）</text>
+  <text x="38" y="156" font-size="13.5" fill="#8f3229">凑不成字 → 暂存，发空增量 ""</text>
+  <rect x="26" y="182" width="244" height="62" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+  <text x="38" y="205" font-size="13.5" fill="#17211f">步 3 到 <tspan font-family="var(--font-mono)" font-weight="700">87</tspan>（与前 2 字节拼齐）</text>
+  <text x="38" y="228" font-size="13.5" font-weight="700" fill="#065f56">✓ 一次性推出完整汉字「犇」</text>
+  <text x="148" y="262" text-anchor="middle" font-size="13.5" fill="#4d5652">默认不解码末尾停止/EOS 编号</text>
+
+  <path d="M 282 158 L 306 158" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#st-arr-i)"/>
+
+  <rect x="312" y="46" width="286" height="224" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="455" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#936300">闸门 2：停止串尾字扣留</text>
+  <text x="455" y="96" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#936300">check_stop_strings</text>
+  <rect x="324" y="110" width="262" height="62" rx="6" fill="#ffffff" stroke="#c78300" stroke-width="1.1"/>
+  <text x="336" y="133" font-size="13.5" fill="#17211f">设 <tspan font-family="var(--font-mono)" font-weight="700">stop=["###"]</tspan>（长度 3）</text>
+  <text x="336" y="156" font-size="13.5" fill="#936300">每步扣留末尾 3−1 = 2 字防泄露</text>
+  <rect x="324" y="182" width="262" height="62" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.1"/>
+  <text x="336" y="205" font-size="13.5" font-weight="700" fill="#8f3229">命中后截断 + 发 ZMQ ABORT</text>
+  <text x="336" y="228" font-size="13.5" fill="#4d5652">v0.30.0 多串取文本中最早完成者</text>
+  <text x="455" y="262" text-anchor="middle" font-size="13.5" fill="#4d5652">include_stop_str_in_output=true 免扣</text>
+
+  <path d="M 598 158 L 622 158" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#st-arr-a)"/>
+
+  <rect x="628" y="46" width="258" height="224" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="757" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">闸门 3：单槽合并与间隔</text>
+  <text x="757" y="96" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#065f56">RequestOutputCollector</text>
+  <rect x="640" y="110" width="234" height="62" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+  <text x="652" y="133" font-size="13.5" font-weight="700" fill="#065f56">HTTP 消费慢于后台任务：</text>
+  <text x="652" y="156" font-size="13.5" fill="#17211f">DELTA 自动拼接多步（不丢字）</text>
+  <rect x="640" y="182" width="234" height="62" rx="6" fill="#ffffff" stroke="#087f73" stroke-width="1.1"/>
+  <text x="652" y="205" font-size="13.5" font-weight="700" fill="#065f56">--stream-interval N：</text>
+  <text x="652" y="228" font-size="13.5" fill="#17211f">按新增 token 计数攒批再推</text>
+  <text x="757" y="262" text-anchor="middle" font-size="13.5" fill="#4d5652">MTP 单圈也可直出 1–4 枚文字</text>
+
+  <line x1="14" y1="288" x2="886" y2="288" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <text x="14" y="316" font-size="16" font-weight="700" fill="#17211f">二、两类高频排障边界：判停跨进程分工 &amp; 隐藏思考开关的副作用</text>
+
+  <rect x="14" y="334" width="424" height="168" rx="9" fill="#ffffff" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="28" y="360" font-size="15" font-weight="700" fill="#7a3a6a">停止条件分在两个进程（响应延迟完全不同）</text>
+  <rect x="28" y="374" width="396" height="52" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+  <text x="42" y="396" font-size="13.5" font-weight="700" fill="#065f56">引擎侧（EngineCore）当步即停：</text>
+  <text x="42" y="417" font-size="13.5" fill="#17211f">模型 EOS、<tspan font-family="var(--font-mono)">stop_token_ids</tspan>、<tspan font-family="var(--font-mono)">max_tokens</tspan> 逐枚拦截</text>
+  <rect x="28" y="436" width="396" height="54" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.1"/>
+  <text x="42" y="458" font-size="13.5" font-weight="700" fill="#8f3229">前端侧（API Server）事后追停：</text>
+  <text x="42" y="479" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)">stop</tspan> 字符串须反分词后命中，再发中止，引擎会多算 1–2 步</text>
+
+  <rect x="462" y="334" width="424" height="168" rx="9" fill="#ffffff" stroke="#b54237" stroke-width="1.4"/>
+  <text x="476" y="357" font-size="15" font-weight="700" fill="#8f3229">include_reasoning=false ≠ 不思考（注意两个副作用）</text>
+  <text x="476" y="383" font-size="13.5" fill="#17211f">• <tspan font-weight="700">不省计算：</tspan>仅过滤已解析思考字段，无解析器全进 content</text>
+  <text x="476" y="407" font-size="13.5" fill="#8f3229">• <tspan font-weight="700">副作用 1：</tspan>新版有解析器时连带清空答案段的</text>
+  <text x="488" y="428" font-size="13.5" fill="#8f3229"><tspan font-family="var(--font-mono)">logprobs</tspan> 与 <tspan font-family="var(--font-mono)">token_ids</tspan></text>
+  <text x="476" y="453" font-size="13.5" fill="#8f3229">• <tspan font-weight="700">副作用 2：</tspan>叠加结构化输出会传 <tspan font-family="var(--font-mono)" font-weight="700">reasoning_ended=True</tspan></text>
+  <text x="476" y="481" font-size="13.5" fill="#4d5652">（真正少思考要走模板开关或思考预算，见采样页）</text>
+</svg>

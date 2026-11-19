@@ -318,7 +318,7 @@ file: kv-pool-flow
 
 **一条记录对应一个缓存组里的一块，名字 = 模型名 + 这张卡在各并行维度里的编号 + 缓存组 + 状态种类 + 这一块的内容指纹。前面几项区分数据属于哪一组、哪一份，但并没有完整验证权重与布局的身份；部署者仍须保证读写端兼容。**
 
-**内容指纹**沿用 prefix caching 的块指纹：由这一块的 token 和前一块的指纹一起算出来，所以同一段文字接在不同的开头后面，指纹不同，只有从第 0 个位置起相同的前缀才可能匹配。第一块的「前一块」由种子生成。固定 GLM 的上游基线及 v0.26 在没有显式设置种子时，各进程取随机值，不能靠默认值保证跨实例命中；它们连接同一个池时须显式使用一致种子。rc2/main 的 SHA-256 系列已使用确定的缺省种子，另一类 xxhash 算法仍默认随机，详见[版本差异](#版本差异)。
+**内容指纹**沿用 prefix caching 的块指纹：由这一块的 token 和前一块的指纹一起算出来，所以同一段文字接在不同的开头后面，指纹不同，只有从第 0 个位置起相同的前缀才可能匹配。第一块的「前一块」由种子生成。固定 GLM 的上游基线及 v0.26 在没有显式设置种子时，各进程取随机值，不能靠默认值保证跨实例命中；它们连接同一个池时须显式使用一致种子。`v0.30.0` 与 `main` 的 SHA-256 系列已使用确定的缺省种子，另一类 xxhash 算法仍默认随机，详见[版本差异](#版本差异)。
 
 种子一致只是指纹对齐的一项条件。算法、序列化方式、token 前缀和缓存隔离标识也要一致；模型与缓存布局的兼容性仍由下面这些规则检查，不能把一个相同种子当成完整的数据身份。
 
@@ -343,7 +343,7 @@ file: kv-pool-flow
 | 什么时候存 | prompt 每写满一段就存；decode 部分默认不存 | 抢占发生时 | 持续保存完整段 |
 | 什么时候取回 | 任何请求的开头指纹对上、本地又没有 | 这条请求被重新调度 | 本实例上的请求前缀命中备份 |
 
-CPU备份在rc2/main还可按严格条件保存部分尾状态，包含状态组、段长、哈希及交接条件，见[页和段](kv-cache-cpu-offload.md#按多大的单位存页和段)；上表的整段示例不覆盖这条新路径。
+CPU 备份在 `v0.30.0` / `main` 还可按严格条件保存部分尾状态，包含状态组、段长、哈希及交接条件，见[页和段](kv-cache-cpu-offload.md#按多大的单位存页和段)；上表的整段示例不覆盖这条新路径。
 
 表里最容易混的是 KV Pool 和换出，关键在「恢复条件」。被抢占的请求退回队列后，算过的进度清零，下一次调度会像新请求一样去池里查；可查询只按 prompt 的长度取整，它已经生成出来的那部分 token 不在查询范围内，何况 decode 阶段写满的段默认也不进池。所以池最多补回它 prompt 里的整段，生成部分仍要重算；换出存的是这条请求当时的全部状态，恢复不需要任何「开头相同」的条件。
 
@@ -353,7 +353,13 @@ CPU备份在rc2/main还可按严格条件保存部分尾状态，包含状态组
 
 ## 上游 MooncakeStore：池跟着推理进程，还是独立持有？
 
-上游 vLLM 也有一个连接 Mooncake Store 的 **`MooncakeStoreConnector`**。它和前文 AscendStore 都通过共享池复用缓存，但不是同一个连接器；昇腾注册名 `MooncakeConnectorStoreV1` 指向的是 AscendStore，不能因名字相近就替换成上游配置。名称与参数的对应见 [Mooncake 连接器](mooncake-connector.md#kv-池里也用-mooncake按名字存取不和某个对端配对)。
+先把昇腾 `AscendStoreConnector` 的多实例共享池架构、记录键组成，与上游 vLLM 的 `MooncakeStoreConnector`（`embedded` vs `standalone-store`）放在同一张图里划清边界：
+
+```wiki-diagram
+file: kv-pool-fig-ascendstore-tier
+```
+
+上游 vLLM 也有一个连接 Mooncake Store 的 **`MooncakeStoreConnector`**。它和前文 `AscendStore` 都通过共享池复用缓存，但不是同一个连接器；昇腾注册名 `MooncakeConnectorStoreV1` 指向的是 `AscendStore`，不能因名字相近就替换成上游配置。名称与参数的对应见 [Mooncake 连接器](mooncake-connector.md#kv-池里也用-mooncake按名字存取不和某个对端配对)。
 
 上游 Store 的 `mode` 先决定**谁贡献主机内存、谁持有池数据**。master 管对象元数据与协调，不因启动了一个 master 就自动获得一块够用的缓存池。
 
@@ -389,7 +395,7 @@ SSD 把容量扩到磁盘，读取时仍要经过存储端的暂存区。它与 
 
 Mooncake 自己的新 SDK 文档还使用“嵌入 Real Client”和“独立 Real Client + DummyClient”这组名称。它们描述 SDK 客户端如何运行，不能与上表 `mode` 一一换名：固定上游 vLLM 的 `standalone-store` 仍调用普通 `setup`，只是池贡献为 0；SDK 的 DummyClient 则有单独的 `setup_dummy`。Mooncake `4da33e5b` 快照用于解释这层区别，不代表旧 vLLM 部署锁定安装了该提交。
 
-昇腾也有自己的 SSD 调用方式：rc2 的 AscendStore 后端检查已安装 SDK 是否接受 `enable_ssd_offload`，将 SSD 参数交给贡献池内存的 worker，并按全局 rank 建子目录；调度器客户端不贡献池内存，也不注册 SSD。根目录必须是绝对路径，协议按该后端要求使用 `ascend`。这条 NPU 路径不能从上游 `enable_offload` 的预算分支反推，后续部署条件另见下方配置表。
+昇腾也有自己的 SSD 调用方式：`v0.30.0` 与 `main` 的 `AscendStore` 后端检查已安装 SDK 是否接受 `enable_ssd_offload`，将 SSD 参数交给贡献池内存的 worker，并按全局 rank 建子目录；调度器客户端不贡献池内存，也不注册 SSD。根目录必须是绝对路径，协议按该后端要求使用 `ascend`。这条 NPU 路径不能从上游 `enable_offload` 的预算分支反推，后续部署条件另见下方配置表。
 
 ## 放到 GLM 双机：这套部署没有开 KV Pool
 

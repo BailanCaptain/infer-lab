@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="Ulysses、Ring Attention 与 Ascend PCP+DCP 三路上下文并行对照矩阵" font-family="var(--font-sans)">
+  <title>上下文并行三路对照：Ulysses、Ring Attention 与 Ascend PCP(MRV2)+DCP</title>
+  <desc>上半以三列开放卡片对比 DeepSpeed Ulysses（All-to-All 换头受限 MLA 单潜头）、Ring Attention（环传 K/V 与在线 softmax）和 Ascend PCP+DCP（头尾配对、交错 KV 存储与 O+LSE 合并）；下半列出 v0.30.0 与 main 对 MRV2 PCP、虚拟块公式、SFA/GQA 及 GLM KPool 的校验边界。</desc>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、三条上下文并行路线对照：通信搬什么、撞什么墙？</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="52" width="280" height="220" rx="9" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="310" y="52" width="280" height="220" rx="9" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="608" y="52" width="280" height="220" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+  </g>
+
+  <text x="26" y="78" font-size="15" font-weight="700" fill="#7a3a6a">1. DeepSpeed Ulysses</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="103"><tspan font-weight="700" fill="#17211f">核心通信：</tspan>2 次 <tspan font-family="var(--font-mono)" fill="#7a3a6a">All-to-All</tspan></text>
+    <text x="26" y="126"><tspan font-weight="700" fill="#17211f">布局变换：</tspan><tspan font-family="var(--font-mono)">[T/N,H,d] ↔ [T,H/N,d]</tspan></text>
+    <text x="26" y="149">每卡算完整序列的一部分头，</text>
+    <text x="26" y="170">算完再反向 All-to-All 归位</text>
+    <line x1="26" y1="184" x2="278" y2="184" stroke="#9a4b86" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="26" y="206" font-weight="700" fill="#8f3229">撞墙点：受限于头数整除</text>
+    <text x="26" y="228">MLA 仅 <tspan font-weight="700" fill="#8f3229">1 条共用潜向量</tspan>切不开；</text>
+    <text x="26" y="250">GQA 也受 KV 头数地板制约</text>
+  </g>
+
+  <text x="324" y="78" font-size="15" font-weight="700" fill="#936300">2. Ring Attention</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="324" y="103"><tspan font-weight="700" fill="#17211f">核心通信：</tspan>沿逻辑环轮传 K/V 块</text>
+    <text x="324" y="126"><tspan font-weight="700" fill="#17211f">合并方式：</tspan>在线 softmax <tspan font-family="var(--font-mono)">(m, ℓ, u)</tspan></text>
+    <text x="324" y="149">本卡 Q 原地不动，边算当前块</text>
+    <text x="324" y="170">边收发下一块（不存完整 K/V）</text>
+    <line x1="324" y1="184" x2="576" y2="184" stroke="#c78300" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="324" y="206" font-weight="700" fill="#936300">Ascend 取舍：未采用 Ring</text>
+    <text x="324" y="228">设计文档评估开发复杂度与</text>
+    <text x="324" y="250">计算/通信重叠收益后未采用</text>
+  </g>
+
+  <text x="622" y="78" font-size="15" font-weight="700" fill="#065f56">3. Ascend PCP + DCP</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="622" y="103"><tspan font-weight="700" fill="#17211f">PCP prefill：</tspan>头尾配对 + <tspan font-family="var(--font-mono)" fill="#065f56">AG K/V</tspan></text>
+    <text x="622" y="126"><tspan font-weight="700" fill="#17211f">DCP decode：</tspan>收 Q + 换 <tspan font-family="var(--font-mono)" fill="#065f56">O &amp; LSE</tspan></text>
+    <text x="622" y="149">分块 prefill：GQA 走 O/LSE，</text>
+    <text x="622" y="170">MLA 收上下文 KV（稀疏仅收选中）</text>
+    <line x1="622" y1="184" x2="874" y2="184" stroke="#087f73" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="622" y="206" font-weight="700" fill="#065f56">存储解耦：按位置交错分存</text>
+    <text x="622" y="228">不归本卡的槽位填 <tspan font-family="var(--font-mono)" fill="#065f56">-1</tspan> 跳过写入，</text>
+    <text x="622" y="250">破解 MLA 逐卡复制冗余</text>
+  </g>
+
+  <text x="14" y="306" font-size="16" font-weight="700" fill="#17211f">二、Ascend v0.30.0 主基线与 main 硬约束（避开旧版公式与错配坑）</text>
+  <line x1="12" y1="318" x2="888" y2="318" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="330" width="430" height="156" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="458" y="330" width="430" height="156" rx="9" fill="#fff0e9" stroke="#b54237"/>
+  </g>
+
+  <text x="26" y="356" font-size="15" font-weight="700" fill="#3a4f93">PCP 门槛与虚拟块公式修正（v0.30.0+）</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="382">• <tspan font-weight="700" fill="#17211f">PCP &gt; 1 强绑 MRV2</tspan>：非 V2 执行器启动直接报错</text>
+    <text x="26" y="405">• 拒 encoder-decoder / LoRA / <tspan font-family="var(--font-mono)">FULL</tspan> 图；</text>
+    <text x="38" y="426">投机限 <tspan font-family="var(--font-mono)" fill="#3a4f93">mtp/eagle3/dspark</tspan>（<tspan font-weight="700">main</tspan> 增 <tspan font-family="var(--font-mono)">dflash</tspan>）</text>
+    <text x="26" y="451">• <tspan font-weight="700" fill="#3a4f93">虚拟块不重复乘 PCP</tspan>：<tspan font-family="var(--font-mono)" fill="#3a4f93">block_size × dcp_world_size</tspan></text>
+    <text x="38" y="472">（DCP 组已包含 PCP 时不可再沿用旧版 ×PCP×DCP）</text>
+  </g>
+
+  <text x="472" y="356" font-size="15" font-weight="700" fill="#8f3229">后端匹配与 GLM KPool 边界</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="472" y="382">• <tspan font-weight="700" fill="#17211f">SFA 复制索引</tspan>：允许 <tspan font-family="var(--font-mono)" fill="#065f56">DCP ∈ {PCP, TP×PCP}</tspan>，</text>
+    <text x="484" y="403">主 KV 按位置分片，索引器缓存每卡各留整份</text>
+    <text x="472" y="427">• <tspan font-weight="700" fill="#17211f">GQA/MQA</tspan>：同开 PCP+DCP 须 <tspan font-family="var(--font-mono)">PCP == DCP</tspan>；</text>
+    <text x="484" y="448"><tspan font-weight="700" fill="#8f3229">main</tspan> 非 MLA/SFA 的 GQA DCP 进入弃用告警</text>
+    <text x="472" y="472">• <tspan font-weight="700" fill="#8f3229">GLM KPool</tspan>：v0.30.0 拒 PCP/DCP；<tspan font-weight="700">main</tspan> 仅开放 PCP</text>
+  </g>
+</svg>

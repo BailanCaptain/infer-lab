@@ -319,6 +319,12 @@ UCM 的外部包还提供别的能力，官方文档列了稀疏 attention 的�
 
 **[PD 分离](pd-disaggregation.md)把一条请求的 prefill 和 decode 交给两组实例（P 和 D），中间要把算好的状态交过去。UCM 有两种站法：集中式里，共享存储就是交接点，P 存、D 取；P2P 里，这一次的交接由 Mooncake 直传，UCM 只在 P 上管可复用的前缀。读部署图时要分清两件事：谁保存可复用的前缀，谁把这一次请求的状态从 P 送到 D。**
 
+下面第一张图把两种 PD 拓扑的搬运路径与 `v0.30.0` / `main` 下昇腾 `UCMConnectorV1` 薄转发外壳的演进（双注册类名别名与 `get_loaded_kv_cache_group_ids` 转发）一次对照清，第二张图展示两种拓扑下具体的节点数据流向：
+
+```wiki-diagram
+file: ucm-fig-pd-topologies
+```
+
 ```wiki-diagram
 file: ucm
 ```
@@ -347,9 +353,9 @@ file: ucm
 
 ### 放进 Kubernetes 后，实例和 Pod 怎样数
 
-Kubernetes 把容器安排到节点上运行；Pod 是一起调度的一组容器。UCM 官方另提供 Helm Chart，也就是一套生成部署配置的模板。它先区分独立服务组、组里的P/D逻辑实例，以及每个实例额外带的worker Pod，再由引擎参数决定各进程怎样并行。
+Kubernetes 把容器安排到节点上运行；Pod 是一起调度的一组容器。UCM 官方另提供 Helm Chart，也就是一套生成部署配置的模板。它先区分独立服务组、组里的 P/D 逻辑实例，以及每个实例额外带的 worker Pod，再由引擎参数决定各进程怎样并行。
 
-例如官方 Qwen3-0.6B 的多节点 2P2D 模板，在一个服务组里有两个 P 实例、两个 D 实例，每个实例由一个入口 Pod 加一个 worker Pod 组成。因而这里的“2P2D”并不是四个 Pod：
+例如官方 Qwen3-0.6B 的多节点 2P2D 模板，在一个服务组里有两个 P 实例、两个 D 实例，每个实例由一个入口 Pod 加一个 worker Pod 组成。因而这里的「2P2D」并不是四个 Pod：
 
 $$N_{\text{Pod}} = 2 \times (1 + 1)_{\text{P}} + 2 \times (1 + 1)_{\text{D}} = 4 + 4 = 8\text{ 个引擎 Pod}$$
 
@@ -359,9 +365,9 @@ $$N_{\text{Pod}} = 2 \times (1 + 1)_{\text{P}} + 2 \times (1 + 1)_{\text{D}} = 4
 | D 侧引擎 Pod | $2 \times (1\text{ 入口} + 1\text{ worker})$ | **4** |
 | **引擎 Pod 总数** | $4 + 4$ | **8** |
 
-该模板每个引擎Pod申请一个NPU资源，合计申请八个NPU资源；路由器、Mooncake master等控制组件另计。每个逻辑实例又配置DP2、每Pod本地DP1、TP1、PP1。因此，Chart的两个P逻辑实例不能当成只有两个DP rank；worker的存在也不能单独证明开了PP。节点数还受主机端口占用和反亲和调度约束，不由文件名里的“2”直接决定。
+该模板每个引擎 Pod 申请一个 NPU 资源，合计申请八个 NPU 资源；路由器、Mooncake master 等控制组件另计。每个逻辑实例又配置 DP2、每 Pod 本地 DP1、TP1、PP1。因此，Chart 的两个 P 逻辑实例不能当成只有两个 DP rank；worker 的存在也不能单独证明开了 PP。节点数还受主机端口占用和反亲和调度约束，不由文件名里的「2」直接决定。
 
-**谁接HTTP请求还受服务模式控制。** 该模板使用混合负载均衡，让入口和worker都提供HTTP，由路由器选择；普通模式则只有入口接HTTP，worker以headless运行。Chart会生成相应启动参数。UCM在P侧复用前缀，P→D仍由传输连接器交接；增加D实例不会自动增加UCM读取方。
+**谁接 HTTP 请求还受服务模式控制。** 该模板使用混合负载均衡，让入口和 worker 都提供 HTTP，由路由器选择；普通模式则只有入口接 HTTP，worker 以 headless 运行。Chart 会生成相应启动参数。UCM 在 P 侧复用前缀，P→D 仍由传输连接器交接；增加 D 实例不会自动增加 UCM 读取方。
 
 ## 多模态还有一份编码结果可以复用
 

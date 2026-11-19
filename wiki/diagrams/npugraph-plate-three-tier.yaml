@@ -1,0 +1,12 @@
+mode: native-svg
+id: npugraph-plate-three-tier
+caption: >-
+  昇腾编译图三级递进立体拆解：第 1 级 npugraph_ex 改写算子图合并相邻步骤以减少中间张量读写；第 2 级 Static Kernel 针对筛入范围的固定宽度提前编译算子程序；第 3 级 Super Kernel 在整图捕获期把已编译子 kernel 进一步合并为大核并插同步，受 super → static → npugraph_ex 依赖链与硬件/整图模式严格门控。
+size: [900, 596]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L113-L170
+    symbols: [AscendCompilationConfig, enable_npugraph_ex, enable_static_kernel, enable_super_kernel]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/compilation/graph_fusion_pass_manager.py#L27-L73
+    symbols: [GraphFusionPassManager, fuse_norm_quant, fuse_qknorm_rope, fuse_muls_add]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1310-L1355
+    symbols: [enable_npugraph_ex, enable_static_kernel, enable_super_kernel]

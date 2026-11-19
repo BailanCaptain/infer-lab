@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="DyntraLB D 端 KV 水位均衡闭环与边界" font-family="var(--font-sans)">
+<title>DyntraLB D 端 KV 水位均衡闭环与边界</title>
+<desc>Step-end KV-block All-Gather, deterministic 4-step planner, local pause retaining KV vs preemption, and D-node MoE DP constraints in v0.30.0 and main</desc>
+<line x1="16" y1="246" x2="884" y2="246" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g stroke-width="1.4">
+<rect x="16" y="54" width="272" height="170" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="314" y="54" width="272" height="170" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="612" y="54" width="272" height="170" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="294" width="420" height="130" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="464" y="294" width="420" height="130" rx="8" fill="#fff0e9" stroke="#b54237"/>
+</g>
+<path d="M288 139h24m-5-4l5 4-5 4M586 139h24m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="28" cy="24" r="13" fill="#4c65b6"/>
+<circle cx="28" cy="270" r="13" fill="#c78300"/>
+<g font-weight="700">
+<text x="28" y="29" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
+<text x="48" y="30" font-size="16" fill="#17211f">步末 KV 水位均衡闭环（仅在组内换人，不跨组搬请求）</text>
+<text x="30" y="80" font-size="15" fill="#3a4f93">① 步末预取与块数上报</text>
+<text x="328" y="80" font-size="15" fill="#7a3a6a">② All-Gather 与四步规划</text>
+<text x="626" y="80" font-size="15" fill="#065f56">③ 下一步开头对号落地</text>
+<text x="28" y="275" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
+<text x="48" y="276" font-size="16" fill="#17211f">触发门槛与硬性约束（v0.30.0 / main 核验边界）</text>
+<text x="30" y="320" font-size="15" fill="#936300">激活条件与状态区分</text>
+<text x="478" y="320" font-size="15" fill="#8f3229">不适用与启动拦截边界</text>
+</g>
+<g fill="#4d5652" font-size="13.5">
+<text x="30" y="108">• prepare_dyntra_lb_step()</text>
+<text x="30" y="133">• 刷新阻塞队列并预取远端 KV</text>
+<text x="30" y="158">• 按全量 token ÷ 块长估块</text>
+<text x="30" y="183">• 打包定长 int32 向量</text>
+<text x="30" y="208" fill="#3a4f93">  (2×max_num_seqs + 2 格)</text>
+<text x="328" y="108">• 全 DP 组 All-Gather 同表</text>
+<text x="328" y="133">• 补空位 → 最轻换重 → 最重换轻</text>
+<text x="328" y="158">• 换不动才算启发式吞吐停一条</text>
+<text x="328" y="183">• bubble_threshold 默认 5.0 块</text>
+<text x="328" y="208" fill="#7a3a6a">  (≥1 按块差，&lt;1 按比例)</text>
+<text x="626" y="108">• 下步 schedule 开头落地计划</text>
+<text x="626" y="133">• _lb_pause_request 退回队首</text>
+<text x="626" y="158" font-weight="600" fill="#065f56">• 暂停不还 KV 块，进度保留</text>
+<text x="626" y="183">• 仅点名候选准入，无进则冻结</text>
+<text x="626" y="208">• 真抢占先移出暂停集再全还块</text>
+<text x="30" y="346">• dynamic：&gt;700 块长单激活，256 步无新长单关</text>
+<text x="30" y="371">• start_step=250（每波归零），块大可能达不到</text>
+<text x="30" y="396">• 压平 dispatch 前注意力等（EPLB 管 combine）</text>
+<text x="478" y="346">• 仅 PD 分离 D 节点（kv_consumer）+ 单机 DP&gt;1</text>
+<text x="478" y="371">• 仅 MoE 走 DPEngineCoreProc；Dense 不跑均衡</text>
+<text x="478" y="396">• 互斥 Balance；main 去 profiling_chunk 并关 SWA</text>
+</g>
+</svg>

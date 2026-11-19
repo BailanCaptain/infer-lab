@@ -255,6 +255,12 @@ AsyncScheduler（上游专门用于异步的调度器）的办法，是在请求
 - **分段算的提示词先不记。** 被 [chunked prefill](chunked-prefill.md)（分块预填充：长提示词分几步算完）切开的提示词，前几段不产出 token，不记占位；最后一段算完才产出第一个 token，这时记 1 个。
 - **快到长度上限时不多排。** 请求自带一个最多生成多少 token 的上限。异步下排下一步时，在途的那一步也许已经把长度用满了；只要能确定「就算候选全被拒，在途那一步回来后也到上限了」，调度器就跳过这条请求，不再多排一步。
 
+把「CPU 提前排步隐藏气泡」「输出占位与卡上补真值闭环」以及 `v0.30.0` 下的并发批数与平台边界合到一张总览图里，后续各节逐块拆开看：
+
+```wiki-diagram
+file: async-scheduling-fig-overlap-placeholder
+```
+
 ## 真 token 怎样到卡上：Worker 在卡上补值
 
 计划里只有个数，第 k+1 步的输入却要真 token。这件事交给 Worker 进程里的 model runner（按计划准备输入、跑前向和采样的那段代码），它让 token 的值根本不用经过 CPU：
@@ -310,7 +316,7 @@ AsyncScheduler 只在没人指定调度器类时才会被选上。某个特性�
 
 - [Recompute Scheduler](recompute-scheduler.md)：各版本都有同步、异步两版。
 - [ShortRequestFirst](short-request-first.md)、[BatchJobAwareScheduler](batch-job-aware-scheduler.md)：本页 v0.26 rc 快照带异步版；main 上的 [DyntraLB](dyntra-lb.md) 也带异步版。
-- SchedulerDynamicBatch（按服务的时延目标动态调每步预算）在本页旧版快照中，以及 ProfilingChunkScheduler（先测 prefill 耗时，再定长提示词每段切多长）在 db、v0.23、v0.26 rc 与 main 快照中，平台直接选择同步类。rc2 已增加 profiling 的异步组合，不能沿用这条旧限制，见[版本差异](#版本差异)。固定 main 的[动态分块 PP](dynamic-chunked-pp.md) 教程显式关掉 async scheduling，并说明 P 节点的 prefill 性能考虑。
+- `SchedulerDynamicBatch`（按服务的时延目标动态调每步预算）在旧版快照中，以及 `ProfilingChunkScheduler`（先测 prefill 耗时，再定长提示词每段切多长）在 `db`、`v0.23`、`v0.26 rc` 与旧 `main` 快照中，平台直接选择同步类。`v0.30.0` 已增加异步版 `ProfilingChunkAsyncScheduler`（要求同时开启 MRV2，`VLLM_USE_V2_MODEL_RUNNER=1`），当前 `main` 则全面收敛至 MRV2，不能沿用早期纯同步限制，见[版本差异](#版本差异)。固定旧 `main` 的[动态分块 PP](dynamic-chunked-pp.md) 教程显式关掉 async scheduling，并说明 P 节点的 prefill 性能考虑。
 
 若调度还依赖草稿的置信预测，异步也会影响“这次决定用了哪一轮信息”。[DSpark 的 CPU/设备分工](dspark.md#cpu-已经排下一步新的置信度还没回来怎么办)把总预算与逐请求长度分开讲，示范怎样记录步号和请求映射；它不是 GLM 占位机制的另一个名称。
 

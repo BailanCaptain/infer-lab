@@ -1,0 +1,22 @@
+mode: native-svg
+id: inference-performance-walkthrough-fig-msprof-map
+caption: >-
+  msprof / Ascend PyTorch Profiler 与服务记录的三层时间线拼接图：用 request_id、step 与 rank 将客户端 SSE、EngineCore 调度/批次队列（注意异步调度下 CPU 准备第 N+1 步与 NPU 执行第 N 步交错）和设备 trace_view.json 严密对齐，一眼区分没轮到计算、混合步变长与设备算完后返回阻塞三类等待。
+size: [900, 470]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L555-L625'
+    symbols:
+      - schedule
+      - token_budget
+      - max_num_scheduled_tokens
+  - source: 'vllm@ced6857a:vllm/v1/engine/core.py#L625-L715'
+    symbols:
+      - step_with_batch_queue
+      - execute_model
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1225-L1260'
+    symbols:
+      - profile
+      - TorchNPUProfilerWrapper
+  - source: 'vllm@ced6857a:vllm/v1/engine/output_processor.py#L629-L690'
+    symbols:
+      - process_outputs

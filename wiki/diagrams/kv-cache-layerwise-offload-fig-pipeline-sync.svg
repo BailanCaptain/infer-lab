@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 446" width="900" height="446" role="img" aria-label="Layerwise KV offload 逐层流水线与共享槽双栅栏" font-family="var(--font-sans)">
+<title>Layerwise KV offload 逐层流水线与共享槽双栅栏</title>
+<desc>Multi-stream layerwise H2D prefetch gate, compute overlap, async D2H save event, and dual completion barriers for shared-slot reuse across AscendStore and RD2H/P2P</desc>
+<line x1="16" y1="268" x2="884" y2="268" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g stroke-width="1.4">
+<rect x="16" y="54" width="154" height="52" rx="6" fill="#ece9df" stroke="#b8bcb5"/>
+<rect x="16" y="122" width="154" height="52" rx="6" fill="#ece9df" stroke="#b8bcb5"/>
+<rect x="16" y="190" width="154" height="52" rx="6" fill="#ece9df" stroke="#b8bcb5"/>
+<rect x="190" y="54" width="160" height="52" rx="6" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="370" y="54" width="160" height="52" rx="6" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="550" y="54" width="160" height="52" rx="6" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="370" y="122" width="160" height="52" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="550" y="122" width="160" height="52" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="730" y="122" width="154" height="52" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="550" y="190" width="160" height="52" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="730" y="190" width="154" height="52" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="314" width="420" height="116" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="464" y="314" width="420" height="116" rx="8" fill="#fff0e9" stroke="#b54237"/>
+</g>
+<path d="M350 80l18 68M530 80l18 68M530 148l18 68M710 148l18 68" fill="none" stroke="#17211f" stroke-width="1.5" stroke-dasharray="4 3"/>
+<circle cx="28" cy="24" r="13" fill="#4c65b6"/>
+<circle cx="28" cy="290" r="13" fill="#9a4b86"/>
+<g font-weight="700">
+<text x="28" y="29" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
+<text x="48" y="30" font-size="16" fill="#17211f">三流并跑时序（预取层数 ≥ 2 时，将 H2D / D2H 隐藏在相邻层计算内）</text>
+<text x="93" y="85" text-anchor="middle" font-size="14.5" fill="#17211f">后台 H2D 接收流</text>
+<text x="93" y="153" text-anchor="middle" font-size="14.5" fill="#17211f">NPU 计算流</text>
+<text x="93" y="221" text-anchor="middle" font-size="14.5" fill="#17211f">后台 D2H 发送流</text>
+<text x="270" y="76" text-anchor="middle" font-size="14" fill="#3a4f93">搬入 L0 历史</text>
+<text x="450" y="76" text-anchor="middle" font-size="14" fill="#3a4f93">预取 L1 历史</text>
+<text x="630" y="76" text-anchor="middle" font-size="14" fill="#3a4f93">预取 L2 历史</text>
+<text x="450" y="144" text-anchor="middle" font-size="14" fill="#936300">算 L0（等 L0 到）</text>
+<text x="630" y="144" text-anchor="middle" font-size="14" fill="#936300">算 L1（等 L1 到）</text>
+<text x="807" y="144" text-anchor="middle" font-size="14" fill="#936300">算 L2 …</text>
+<text x="630" y="212" text-anchor="middle" font-size="14" fill="#065f56">存出 L0 新 KV</text>
+<text x="807" y="212" text-anchor="middle" font-size="14" fill="#065f56">存出 L1 新 KV</text>
+<text x="28" y="295" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
+<text x="48" y="296" font-size="16" fill="#17211f">共享槽复用的双完成栅栏 &amp; 版本架构演进（v0.30.0 → main）</text>
+<text x="30" y="340" font-size="15" fill="#7a3a6a">联合部署覆写槽前须同时等齐两道门</text>
+<text x="478" y="340" font-size="15" fill="#8f3229">开启条件与代码拆包（v0.30.0 / main）</text>
+</g>
+<g fill="#4d5652" font-size="13.5">
+<text x="270" y="96" text-anchor="middle">第 0 层立刻发起</text>
+<text x="450" y="96" text-anchor="middle">由 L0 开算事件放行</text>
+<text x="630" y="96" text-anchor="middle">由 L1 开算事件放行</text>
+<text x="450" y="164" text-anchor="middle">写完记 NPU Event</text>
+<text x="630" y="164" text-anchor="middle">写完记 NPU Event</text>
+<text x="807" y="164" text-anchor="middle">末层排空 PUT 队列</text>
+<text x="630" y="232" text-anchor="middle">等 L0 写完事件</text>
+<text x="807" y="232" text-anchor="middle">等 L1 写完事件</text>
+<text x="30" y="366">• 门 1：AscendStore 本层存出完成（防混写）</text>
+<text x="30" y="390">• 门 2：RD2H 远端 D 读完 / P2P 推送完成</text>
+<text x="30" y="414" font-weight="600" fill="#7a3a6a">• 循环 10s 等待并抛后台错（废静默超时）</text>
+<text x="478" y="366">• 默认不共享槽；共享槽须 eager 且拒递推态</text>
+<text x="478" y="390">• Mooncake 逐层支持 TP/PP，拒 CP 与不等 TP</text>
+<text x="478" y="414" font-weight="600" fill="#8f3229">• main 拆出 ascend_store/layerwise/ 独立子包</text>
+</g>
+</svg>

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="限幅 SwiGLU 门控流转与单流融合 AddRMSNorm 对比 GLM mHC 分离 RMSNorm" font-family="var(--font-sans)">
+  <title>GLM 限幅 SwiGLU（gate 单边截断与 up 双边截断）的数据流，以及单流残差融合 AddRMSNorm 与 GLM 四流 mHC 分离 RMSNorm 的执行边界对照。</title>
+  <desc>上半部分展示合并 gate_up_proj 输出拆分后的不对称限幅（gate 仅限上界 10、up 双边限 [-10, 10]）、SiLU 逐维相乘和 down_proj；下半部分对比标准单流残差的 npu_add_rms_norm 融合算子与 GLM 四流 mHC 的分离调用边界。</desc>
+  <defs>
+    <marker id="mlp-arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#c78300"/>
+    </marker>
+    <marker id="mlp-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#4c65b6"/>
+    </marker>
+    <marker id="mlp-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、限幅 SwiGLU（swiglu_limit = 10）：夹的是激活前两路输入，不是最终输出</text>
+
+  <rect x="14" y="54" width="154" height="176" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="91" y="84" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">合并列切投影</text>
+  <text x="91" y="110" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#936300">gate_up_proj</text>
+  <text x="91" y="138" text-anchor="middle" font-size="13.5" fill="#17211f">输出 [T, 2F]</text>
+  <text x="91" y="164" text-anchor="middle" font-size="13.5" fill="#4d5652">TP8 每卡 3072 列</text>
+  <text x="91" y="190" text-anchor="middle" font-size="13.5" fill="#4d5652">前一半 gate</text>
+  <text x="91" y="212" text-anchor="middle" font-size="13.5" fill="#4d5652">后一半 up</text>
+
+  <path d="M 168 100 L 198 100" fill="none" stroke="#c78300" stroke-width="2" marker-end="url(#mlp-arr-a)"/>
+  <path d="M 168 186 L 198 186" fill="none" stroke="#4c65b6" stroke-width="2" marker-end="url(#mlp-arr-i)"/>
+
+  <rect x="204" y="50" width="248" height="84" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="218" y="76" font-size="14.5" font-weight="700" fill="#8f3229">gate 路：只限上界 min(g, 10)</text>
+  <text x="218" y="100" font-size="13.5" fill="#17211f">再算 <tspan font-family="var(--font-mono)" font-weight="700">SiLU(gate)</tspan>（连续缩放系数）</text>
+  <text x="218" y="122" font-size="13.5" fill="#4d5652">负半轴天然有界 ≥ −0.28，无需下界</text>
+
+  <rect x="204" y="148" width="248" height="84" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="218" y="174" font-size="14.5" font-weight="700" fill="#3a4f93">up 路：双边夹持 [-10, +10]</text>
+  <text x="218" y="198" font-size="13.5" fill="#17211f"><tspan font-family="var(--font-mono)" font-weight="700">clamp(up, -10, 10)</tspan>（内容分支）</text>
+  <text x="218" y="220" font-size="13.5" fill="#4d5652">防止正负大值相乘溢出（如 −156）</text>
+
+  <path d="M 452 92 L 486 124" fill="none" stroke="#c78300" stroke-width="2"/>
+  <path d="M 452 190 L 486 158" fill="none" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="496" cy="141" r="20" fill="#ddf4ef" stroke="#087f73" stroke-width="1.8"/>
+  <text x="496" y="147" text-anchor="middle" font-size="18" font-weight="700" fill="#065f56">⊙</text>
+
+  <path d="M 516 141 L 542 141" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#mlp-arr-t)"/>
+
+  <rect x="548" y="68" width="150" height="146" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="623" y="96" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">逐维门控结果 z</text>
+  <text x="623" y="124" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#065f56">[T, F]（1536 列）</text>
+  <text x="623" y="152" text-anchor="middle" font-size="13.5" fill="#17211f">单元素 |z| ≤ ~100</text>
+  <text x="623" y="178" text-anchor="middle" font-size="13.5" fill="#4d5652">本卡独立算完</text>
+  <text x="623" y="200" text-anchor="middle" font-size="13.5" fill="#4d5652">无需跨卡通信</text>
+
+  <path d="M 698 141 L 724 141" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#mlp-arr-t)"/>
+
+  <rect x="730" y="68" width="156" height="146" rx="9" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="808" y="96" text-anchor="middle" font-size="14.5" font-weight="700" fill="#7a3a6a">降维行切投影</text>
+  <text x="808" y="124" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" font-weight="700" fill="#7a3a6a">down_proj</text>
+  <text x="808" y="152" text-anchor="middle" font-size="13.5" fill="#17211f">输出 [T, H] 部分和</text>
+  <text x="808" y="178" text-anchor="middle" font-size="13.5" fill="#4d5652">TP8 All-Reduce</text>
+  <text x="808" y="200" text-anchor="middle" font-size="13.5" fill="#4d5652">合齐后写回残差</text>
+
+  <line x1="14" y1="256" x2="886" y2="256" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <text x="14" y="284" font-size="16" font-weight="700" fill="#17211f">二、Ascend RMSNorm 融合边界：单流残差融合 AddRMSNorm vs GLM 四流 mHC 分离调用</text>
+
+  <rect x="14" y="302" width="424" height="204" rx="10" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="30" y="330" font-size="15" font-weight="700" fill="#065f56">路径 A：单流 Pre-Norm（标准模型 / GLM MTP 层）</text>
+  <text x="30" y="356" font-size="13.5" fill="#17211f">调用 <tspan font-family="var(--font-mono)" font-weight="700">AscendRMSNorm(x, residual=r)</tspan></text>
+  <rect x="30" y="370" width="392" height="58" rx="7" fill="#ffffff" stroke="#087f73" stroke-width="1.2"/>
+  <text x="44" y="394" font-size="13.5" font-weight="700" fill="#065f56">✓ 走单次融合算子（少一次 HBM 读写）</text>
+  <text x="44" y="416" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">npu_add_rms_norm / npu_add_rms_norm_bias</text>
+  <text x="30" y="454" font-size="13.5" fill="#17211f">• 同时返回归一化后的 <tspan font-family="var(--font-mono)">x</tspan> 与更新后的旁路 <tspan font-family="var(--font-mono)">residual</tspan></text>
+  <text x="30" y="480" font-size="13.5" fill="#4d5652">• MTP 块外另有 enorm / hnorm 与出块后最终 RMSNorm</text>
+
+  <rect x="462" y="302" width="424" height="204" rx="10" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="478" y="330" font-size="15" font-weight="700" fill="#7a3a6a">路径 B：GLM 45 层主干（四流 mHC 结构）</text>
+  <text x="478" y="356" font-size="13.5" fill="#17211f">残差相加已在 <tspan font-family="var(--font-mono)" font-weight="700">npu_hc_post</tspan> 4 路写回里完成</text>
+  <rect x="478" y="370" width="392" height="58" rx="7" fill="#ffffff" stroke="#9a4b86" stroke-width="1.2"/>
+  <text x="492" y="394" font-size="13.5" font-weight="700" fill="#7a3a6a">✓ 子层入口不传 residual，走独立 RMSNorm</text>
+  <text x="492" y="416" font-size="13.5" font-family="var(--font-mono)" fill="#4d5652">npu_hc_pre_v2 → npu_rms_norm(x, weight, eps)</text>
+  <text x="478" y="454" font-size="13.5" fill="#17211f">• mHC 入口另有 16384 维无 γ 归一化（仅算混合系数）</text>
+  <text x="478" y="480" font-size="13.5" fill="#4d5652">• 第 44 层四流求平均回到 [T, 4096] 后再补最终 RMSNorm</text>
+</svg>

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="推理性能四象限归因图：Host-bound、Compute-bound、HBM-bound 与 Comm/Straggler-bound 的证据与动作对照" font-family="var(--font-sans)">
+  <title>设备到底在算还是在等：四象限瓶颈归因与首取证据地图</title>
+  <desc>Four-quadrant inference bottleneck attribution: Host-bound vs Compute-bound vs HBM-bound vs Comm/Straggler-bound with first-grab evidence and actions</desc>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">性能归因四象限：先凭时间线与算术强度判象限，再选可证伪实验</text>
+  <text x="884" y="28" text-anchor="end" font-size="13.5" fill="#66716d">切忌仅凭单卡利用率盲目加卡或调参</text>
+
+  <!-- Quadrant 1: Host-bound -->
+  <rect x="16" y="46" width="424" height="196" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="32" y="74" font-size="15" font-weight="700" fill="#8f3229">① Host-bound（主机供给不足 / 调度空隙）</text>
+  <text x="32" y="100" font-size="13.5" fill="#4d5652">• 时间线特征：设备算子间频繁出现空白，单算子不长</text>
+  <text x="32" y="124" font-size="13.5" fill="#4d5652">• 典型原因：Python 准备输入、逐算子下发、CPU 争抢</text>
+  <text x="32" y="148" font-size="13.5" fill="#8f3229">• 关键核对：主机提交时刻 vs 设备开始时刻（防误判）</text>
+  <rect x="32" y="168" width="392" height="58" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="44" y="191" font-size="13.5" font-weight="700" fill="#17211f">首取证据：trace_view 主机/设备双轨 + _prepare_inputs</text>
+  <text x="44" y="213" font-size="13.5" fill="#4d5652">优先杠杆：ACLGraph 回放 · CPU 绑定 · 异步调度</text>
+
+  <!-- Quadrant 2: Compute-bound -->
+  <rect x="460" y="46" width="424" height="196" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="476" y="74" font-size="15" font-weight="700" fill="#936300">② Compute-bound（算力受限 · AI 高于脊点）</text>
+  <text x="476" y="100" font-size="13.5" fill="#4d5652">• 时间线特征：各卡持续满算至步尾，大矩阵乘占主导</text>
+  <text x="476" y="124" font-size="13.5" fill="#4d5652">• 典型场景：长提示词 Prefill（如 T=2048，权重充分复用）</text>
+  <text x="476" y="148" font-size="13.5" fill="#936300">• 关键核对：单步实际有效 token 数 vs 图补齐填充行数</text>
+  <rect x="476" y="168" width="392" height="58" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="488" y="191" font-size="13.5" font-weight="700" fill="#17211f">首取证据：kernel_details.csv Cube/GEMM 占比与步长</text>
+  <text x="488" y="213" font-size="13.5" fill="#4d5652">优先杠杆：分块控预算 · 低精度量化 · P/D 分离</text>
+
+  <!-- Quadrant 3: HBM-bound -->
+  <rect x="16" y="260" width="424" height="202" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="32" y="288" font-size="15" font-weight="700" fill="#3a4f93">③ HBM-bound（访存带宽受限 · AI 低于脊点）</text>
+  <text x="32" y="314" font-size="13.5" fill="#4d5652">• 时间线特征：算力远未打满，耗时由搬权重或 KV 决定</text>
+  <text x="32" y="338" font-size="13.5" fill="#4d5652">• 典型场景：小批 Decode（如 T=1）、长上下文读历史</text>
+  <text x="32" y="362" font-size="13.5" fill="#3a4f93">• 关键核对：显存没满 ≠ 非内存瓶颈（容量与带宽分账）</text>
+  <rect x="32" y="382" width="392" height="64" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="44" y="406" font-size="13.5" font-weight="700" fill="#17211f">首取证据：batch 有效宽度 + 历史长度 + 量化位宽</text>
+  <text x="44" y="429" font-size="13.5" fill="#4d5652">优先杠杆：合批摊薄权重读 · W8A8/KV 压缩 · MTP/投机</text>
+
+  <!-- Quadrant 4: Comm / Straggler-bound -->
+  <rect x="460" y="260" width="424" height="202" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.4"/>
+  <text x="476" y="288" font-size="15" font-weight="700" fill="#7a3a6a">④ Comm / Straggler-bound（通信与偏斜等待）</text>
+  <text x="476" y="314" font-size="13.5" fill="#4d5652">• 时间线特征：HCCL/MC2 区间异常拉长且卡在关键路径</text>
+  <text x="476" y="338" font-size="13.5" fill="#4d5652">• 必须先拆：某 rank 迟到（如 rank 0 等 rank 1 150 ms）</text>
+  <text x="476" y="362" font-size="13.5" fill="#7a3a6a">　vs 全卡已齐备但实际交换慢（切 AllGather / 链路拥塞）</text>
+  <rect x="476" y="382" width="392" height="64" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="488" y="406" font-size="13.5" font-weight="700" fill="#17211f">首取证据：全 rank 对齐的通信开始/结束 + 专家 token 分布</text>
+  <text x="488" y="429" font-size="13.5" fill="#4d5652">优先杠杆：DP 均衡路由 · EPLB · 控制 MC2/通信重叠</text>
+</svg>

@@ -1,0 +1,10 @@
+mode: native-svg
+id: cann-hccl-fig-stack-and-domains
+caption: >-
+  昇腾四层软件栈与 GLM 双机 16 卡（TP8 / DP2 / EP16）通信域分工：上半幅区分宿主机驱动固件、CANN（Toolkit/Ops/NNAL/HCCL）、PyTorch/TorchNPU/Triton 适配与 vLLM/vllm-ascend 引擎四层责任；下半幅对照机内 TP8（HCCS/UB）、跨机 DP 配对（RoCE）、全 16 卡 EP16 及 CPU gloo 控制组，并标明 W8A8 下 TP（BF16）与 MoE dispatch（int8+FP32 scale）的真实通信载荷。
+size: [900, 520]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1283-L1305
+    symbols: [_init_worker_distributed_environment, init_distributed_environment, ensure_model_parallel_initialized, init_ascend_model_parallel]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/parallel_state.py#L63-L115
+    symbols: [_ENGRAM_DP, _KVPP, init_model_parallel_group]

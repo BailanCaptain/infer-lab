@@ -143,7 +143,7 @@ file: sparse-attention-intuition
 
 图里用 12 个历史位置、k = 4 做示意。第一行是缓存里全部可见的历史，每个位置存着一份 K/V。indexer 给每个位置打一个分，深色的是分数最高的 4 个。主 attention 只读这 4 个位置的 K/V，softmax 也只在这 4 项之间分配权重。虚线格这次没被选中，但仍留在缓存里：后续重新选择时，这次落选的位置仍有机会被选中。
 
-位置选择与主 attention 的执行是两个环节，一次调用不一定重新评分。SFA 是执行稀疏 attention 的实现路径：跳过本次 top-k 计算时，会从索引缓存取得已有的位置清单；不跳过时，由 indexer 参与本次选择。复用位置的调用仍可能更新 indexer 的历史 key，所以“跳过选择”不能概括成“整个 indexer 都不执行”。跨层复用和 GLM 的实际边界见[下面的 IndexCache](#相邻层能否沿用同一份位置清单indexcache)。
+需要把「挑位置」和「算主 attention」拆成两步来看：在执行稀疏 attention 的 SFA（Sparse FlashAttention）路径中，并不是每一次调用都必须重跑 top-k 评分——如果开启了索引复用，本层可以从索引缓存直接取用已有的位置清单，但仍可能继续更新 indexer 的历史 key，因此「跳过选择」不等于「整个 indexer 都不执行」。跨层复用与 GLM 的实际边界见[下面的 IndexCache](#相邻层能否沿用同一份位置清单indexcache)。
 
 ## 为什么能省，代价在哪？
 
@@ -218,6 +218,12 @@ j 遍历 indexer 的各个头；ReLU 把负数置零；wₜ,ⱼ 决定每个头�
 DSA 建在 [MLA](mla.md) 上：每个位置只存一条潜向量，所有查询头读的都是这一条，报告称之为 MLA 的 MQA 模式（多个 query 头共用同一份 K/V）。因此一次选择由全部头共用。
 
 **GLM 在 DSA 上主要改了三处**：按池选，相邻 4 个位置的 indexer key 压成一条池 key（**kpool**），原版逐个位置挑；打分不做 ReLU，直接对带符号的点积加权求和；还没凑满一池的最新位置叫**尾部**，不打分、直接补进清单。压池门控和完整五步见[模型页的稀疏 MLA](glm-5-3-flash.md#稀疏-mla先把历史压短再挑着读)。
+
+```wiki-diagram
+file: sparse-attention-fig-kpool-renorm
+```
+
+上图把 KPool 从压池打分、Top-512 池加补尾到主注意力重归一化的全链路，与最容易混淆的两条边界（稀疏重归一化 vs 密集删项、主干 F/S 跨层复用 vs MTP 步间复用）并排展示。下面先把跨层复用的 IndexCache 机制拆开来看。
 
 ## 相邻层能否沿用同一份位置清单：IndexCache
 

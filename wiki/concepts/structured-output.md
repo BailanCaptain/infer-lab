@@ -365,6 +365,12 @@ file: structured-output-flow
 
 图分三列。左列是 node0 上接收 HTTP 请求的 API server 进程；中列是 **EngineCore**，负责调度的引擎进程，每台机器一个；右列是每张卡上的 worker 进程，一台机器 8 个。文法状态和 bitmask 都在中列的 CPU 上，右列只负责把 bitmask 作用到 logits 再采样。
 
+在看 5 个分步细节前，先用下面这张架构图把「单后端编译与 32 位打包 → MTP 临时推进回滚 → 昇腾 V1 CPU 往返慢路径 vs V2/main NPU 原地 Triton 快路径 → 思考段与异步调度边界」一次串通：
+
+```wiki-diagram
+file: structured-output-fig-bitmask-pipeline
+```
+
 ### 1. 入口：API server 校验请求、定下后端
 
 请求把 response_format 设成 json_schema，或者在扩展字段里给出正则、固定选项、语法，API server 就把它转成结构化输出参数，并校验能不能编译。

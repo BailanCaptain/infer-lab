@@ -1,0 +1,11 @@
+mode: native-svg
+id: context-parallel-fig-matrix
+caption: 上下文并行三条路线（DeepSpeed Ulysses、Ring Attention 与 Ascend PCP+DCP）的通信对象、MLA 单潜头限制及 Ascend v0.30.0/main 约束总览（含 MRV2 PCP 门槛、虚拟块不重复乘 PCP 公式与 GQA/SFA/GLM KPool 边界）。
+size: [900, 500]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1650-L1705'
+    symbols: ['_validate_parallel_config', '_validate_model_pcp_dcp_config', 'enable_sfa_dcp_replicated_indexer']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/v2/pcp_manager.py#L225-L250'
+    symbols: ['validate_config', 'CUDAGraphMode']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/block_table.py#L251-L275'
+    symbols: ['_compute_dcp_slot_mapping', 'dcp_world_size', 'cp_kv_cache_interleave_size']

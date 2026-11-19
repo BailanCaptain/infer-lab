@@ -1,0 +1,23 @@
+mode: native-svg
+id: structured-output-fig-bitmask-pipeline
+caption: >-
+  结构化输出 bitmask 编译、打包与昇腾快慢路径对比：API 入口与单后端锁先定下 xgrammar/guidance，EngineCore 异步编译文法并按每 32 token 打包为 1 个 int32（GLM 154880 词表每行 19,360 B，MTP 1+3 位置临时推进再回滚）；Worker 侧对比昇腾 V1 整张 logits 往返 CPU 改写（满载 113.4 MiB/卡/步）与 V2/main 默认的 NPU 原地 Triton 快路径，底栏标注思考阶段与异步调度整批采样等待边界。
+size: [900, 486]
+pins:
+  - source: 'vllm@ced6857a:vllm/v1/structured_output/__init__.py#L36-L70'
+    symbols:
+      - StructuredOutputManager
+  - source: 'vllm@ced6857a:vllm/v1/structured_output/__init__.py#L180-L200'
+    symbols:
+      - all_stop_token_ids
+  - source: 'vllm@ced6857a:vllm/v1/structured_output/__init__.py#L310-L345'
+    symbols:
+      - grammar_bitmask
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2803-L2810'
+    symbols:
+      - apply_grammar_bitmask
+      - grammar_output
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/triton/v2/apply_grammar_bitmask.py#L28-L60'
+    symbols:
+      - _apply_grammar_bitmask_kernel_impl
+      - bitmask_ptr

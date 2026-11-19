@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600" role="img" aria-label="vLLM V1 三进程立体拆解直觉图：展示左侧 API SERVER 前端分词、中央 ENGINE CORE 等待/运行队列调度、右侧 NPU WORKER 权重与 HBM 显存，以及进程间 ZMQ IPC 轻消息双管通道" font-family="var(--font-sans)">
+  <title>vLLM V1 三角色立体拆解直觉：API Server（AsyncLLM）承接文本收发与分词反分词，经 ZMQ IPC 轻消息双管与 EngineCore（Scheduler）解耦；EngineCore 维护 WAITING / RUNNING 队列并按步产出轻量调度计划，交由各卡 NPU Worker（NPUModelRunner）就地操作常驻 HBM 的权重与 KV cache。</title>
+  <desc>关联源码符号：AsyncLLM, InputProcessor, OutputProcessor, EngineCoreClient, step, schedule, execute_model, sample_tokens, update_from_output, NPUModelRunner</desc>
+
+  <!-- 紧裁透明底等距拆解剖面主图（零外层底框、零网格笼，大尺寸直浮画布） -->
+  <image href="./wiki-illustrations/vllm-v1-three-process-cutaway.webp" x="50" y="132" width="800" height="324" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- 零交叉垂直引线与双环靶点 -->
+  <!-- 1 -> API SERVER 顶部剖面 -->
+  <line x1="248" y1="112" x2="248" y2="206" stroke="#087f73" stroke-width="1.6"/>
+  <circle cx="248" cy="206" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
+  <circle cx="248" cy="206" r="2.5" fill="#087f73"/>
+
+  <!-- 2 -> ENGINE CORE WAITING / RUNNING 调度仓 -->
+  <line x1="508" y1="112" x2="508" y2="216" stroke="#c78300" stroke-width="1.6"/>
+  <circle cx="508" cy="216" r="5.5" fill="#ffffff" stroke="#c78300" stroke-width="2"/>
+  <circle cx="508" cy="216" r="2.5" fill="#c78300"/>
+
+  <!-- 3 -> NPU WORKER 顶盖 -->
+  <line x1="718" y1="112" x2="718" y2="265" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="718" cy="265" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="718" cy="265" r="2.5" fill="#4c65b6"/>
+
+  <!-- 4 -> ZMQ IPC 双向轻消息管道 -->
+  <line x1="380" y1="474" x2="380" y2="360" stroke="#9a4b86" stroke-width="1.6"/>
+  <circle cx="380" cy="360" r="5.5" fill="#ffffff" stroke="#9a4b86" stroke-width="2"/>
+  <circle cx="380" cy="360" r="2.5" fill="#9a4b86"/>
+
+  <!-- 5 -> NPU WORKER HBM 显存抽屉 -->
+  <line x1="732" y1="474" x2="732" y2="378" stroke="#4c65b6" stroke-width="1.6"/>
+  <circle cx="732" cy="378" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
+  <circle cx="732" cy="378" r="2.5" fill="#4c65b6"/>
+
+  <!-- 顶部开放式无边框矢量编号直标（标题 15px，说明 13.5px） -->
+  <g id="callout-frontend">
+    <circle cx="24" cy="28" r="12" fill="#087f73"/>
+    <text x="24" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">1</text>
+    <text x="44" y="33" font-size="15" font-weight="700" fill="#17211f">API Server 前端 (<tspan font-family="var(--font-mono)">AsyncLLM</tspan>)</text>
+    <text x="44" y="58" font-size="13.5" fill="#4d5652">承接 HTTP 请求与流式反分词吐出</text>
+    <text x="44" y="81" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">InputProcessor</tspan> 将文本切为编号</text>
+    <text x="44" y="104" font-size="13.5" fill="#065f56">前端只管文字，不碰卡上任何张量</text>
+  </g>
+
+  <g id="callout-engine-core">
+    <circle cx="316" cy="28" r="12" fill="#c78300"/>
+    <text x="316" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">2</text>
+    <text x="336" y="33" font-size="15" font-weight="700" fill="#17211f">EngineCore 调度忙循环</text>
+    <text x="336" y="58" font-size="13.5" fill="#4d5652">维护 WAITING 与 RUNNING 队列</text>
+    <text x="336" y="81" font-size="13.5" fill="#4d5652"><tspan font-family="var(--font-mono)" font-weight="700">step</tspan> 每步排计划并管 KV 整数块号</text>
+    <text x="336" y="104" font-size="13.5" fill="#936300">拿回新 token 经 <tspan font-family="var(--font-mono)" font-weight="700">update_from_output</tspan></text>
+  </g>
+
+  <g id="callout-worker">
+    <circle cx="608" cy="28" r="12" fill="#4c65b6"/>
+    <text x="608" y="32.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">3</text>
+    <text x="628" y="33" font-size="15" font-weight="700" fill="#17211f">NPU Worker 执行侧 (每卡一个)</text>
+    <text x="628" y="58" font-size="13.5" fill="#4d5652">经 <tspan font-family="var(--font-mono)" font-weight="700">NPUModelRunner</tspan> 展开输入张量</text>
+    <text x="628" y="81" font-size="13.5" fill="#4d5652">按步执行 <tspan font-family="var(--font-mono)" font-weight="700">execute_model</tspan> 与采样</text>
+    <text x="628" y="104" font-size="13.5" fill="#3a4f93">vllm-ascend 主体接在执行边界之下</text>
+  </g>
+
+  <!-- 底部开放式无边框矢量编号直标 -->
+  <g id="callout-ipc">
+    <circle cx="28" cy="494" r="12" fill="#9a4b86"/>
+    <text x="28" y="498.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">4</text>
+    <text x="48" y="499" font-size="15" font-weight="700" fill="#17211f">轻消息双管边界 (ZMQ IPC · 共享内存广播)</text>
+    <text x="48" y="525" font-size="14" fill="#4d5652">前端 ↔ EngineCore 走 ZMQ 传请求编号与新 token 列表</text>
+    <text x="48" y="550" font-size="14" fill="#4d5652">EngineCore → Worker 广播轻量差量计划，首步外免重发提示词</text>
+    <text x="48" y="575" font-size="13.5" fill="#7a3a6a">收请求、排计划与卡上计算三路交叠，代价是跨进程打包与双份缓存</text>
+  </g>
+
+  <g id="callout-hbm">
+    <circle cx="472" cy="494" r="12" fill="#4c65b6"/>
+    <text x="472" y="498.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">5</text>
+    <text x="492" y="499" font-size="15" font-weight="700" fill="#17211f">重资产留卡不动 (HBM MEMORY 权重与 KV 池)</text>
+    <text x="492" y="525" font-size="14" fill="#4d5652">启动时即装好权重并切出物理 KV 张量，跨请求全程常驻</text>
+    <text x="492" y="550" font-size="14" fill="#4d5652">EngineCore 只握整数块号，Worker 查块表落到实际显存格</text>
+    <text x="492" y="575" font-size="13.5" fill="#3a4f93">每步只交接轻账本与采样结果，避免 GB 级权重跨越进程边界</text>
+  </g>
+</svg>

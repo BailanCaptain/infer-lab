@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="BlockPool 与 FreeKVCacheBlockQueue 双向链表 LRU、引用计数与前缀驱逐顺序图" font-family="var(--font-sans)">
+  <title>BlockPool 与 FreeKVCacheBlockQueue：null_block 隔离、LRU/LIFO 队首队尾规则与跨池归还</title>
+  <desc>关联源码符号：BlockPool, FreeKVCacheBlockQueue, null_block, popleft_n, touch, remove, free_blocks, prepend_n, append_n</desc>
+  <defs>
+    <marker id="kv-arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#087f73"/>
+    </marker>
+    <marker id="kv-arr-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#b54237"/>
+    </marker>
+    <marker id="kv-arr-i" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4c65b6"/>
+    </marker>
+  </defs>
+
+  <!-- Zone 1: Doubly-linked free queue & null block -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① FreeKVCacheBlockQueue 双向链表：队头最先被借走（驱逐），队尾留得最久</text>
+
+  <!-- null block isolated on left -->
+  <rect x="16" y="46" width="144" height="82" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="88" y="72" text-anchor="middle" font-size="14" font-weight="700" fill="#17211f">0 号 null_block</text>
+  <text x="88" y="95" text-anchor="middle" font-size="13.5" fill="#66716d">启动 popleft 摘出</text>
+  <text x="88" y="116" text-anchor="middle" font-size="13.5" fill="#66716d">永不参与借还计数</text>
+
+  <!-- Queue blocks -->
+  <text x="184" y="64" font-size="13.5" font-weight="700" fill="#8f3229">队头 Head（popleft 优先借出 / 驱逐）</text>
+  <text x="884" y="64" text-anchor="end" font-size="13.5" font-weight="700" fill="#065f56">队尾 Tail（LRU 保护前缀）</text>
+
+  <rect x="184" y="74" width="148" height="54" rx="6" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="258" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#8f3229">未登记 / 关 APC 块</text>
+  <text x="258" y="119" text-anchor="middle" font-size="13.5" fill="#4d5652">prepend_n 插队头</text>
+
+  <line x1="334" y1="101" x2="360" y2="101" stroke="#66716d" stroke-width="1.6"/>
+
+  <rect x="362" y="74" width="156" height="54" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="440" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#936300">较旧尾块（已登记）</text>
+  <text x="440" y="119" text-anchor="middle" font-size="13.5" fill="#4d5652">ref_cnt=0，仍可命中</text>
+
+  <line x1="520" y1="101" x2="546" y2="101" stroke="#66716d" stroke-width="1.6"/>
+
+  <rect x="548" y="74" width="156" height="54" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="626" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">中间前缀块（已登记）</text>
+  <text x="626" y="119" text-anchor="middle" font-size="13.5" fill="#4d5652">ref_cnt=0，后驱逐</text>
+
+  <line x1="706" y1="101" x2="732" y2="101" stroke="#66716d" stroke-width="1.6"/>
+
+  <rect x="734" y="74" width="150" height="54" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="809" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">序列第 1 块</text>
+  <text x="809" y="119" text-anchor="middle" font-size="13.5" fill="#4d5652">倒序最后 append_n</text>
+
+  <line x1="16" y1="150" x2="884" y2="150" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: 3 operations -->
+  <text x="16" y="178" font-size="16" font-weight="700" fill="#17211f">② 三类核心记账操作（全程只在 CPU 改编号与链表指针，不擦写显存数据）</text>
+
+  <rect x="16" y="194" width="276" height="134" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="30" y="220" font-size="14.5" font-weight="700" fill="#8f3229">1. 借新块 get_new_blocks()</text>
+  <text x="30" y="246" font-size="13.5" fill="#4d5652">• 5 组总缺口 ≤ 空闲数才一起借</text>
+  <text x="30" y="268" font-size="13.5" fill="#4d5652">• popleft_n() 从队头摘取块号</text>
+  <text x="30" y="290" font-size="13.5" fill="#4d5652">• 若带旧哈希：先抹除登记再驱逐</text>
+  <text x="30" y="314" font-size="13.5" font-weight="700" fill="#8f3229">• ref_cnt：0 → 1（不借一半）</text>
+
+  <rect x="312" y="194" width="276" height="134" rx="7" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="326" y="220" font-size="14.5" font-weight="700" fill="#3a4f93">2. 前缀命中共享 touch()</text>
+  <text x="326" y="246" font-size="13.5" fill="#4d5652">• 已在用（ref_cnt ≥ 1）：直接 +1</text>
+  <text x="326" y="268" font-size="13.5" fill="#4d5652">• 在队列中（ref_cnt == 0）：</text>
+  <text x="326" y="290" font-size="13.5" fill="#4d5652">  先 remove() 摘出链表再 +1</text>
+  <text x="326" y="314" font-size="13.5" font-weight="700" fill="#3a4f93">• 省重算，但摘出块仍计本次容量</text>
+
+  <rect x="608" y="194" width="276" height="134" rx="7" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="622" y="220" font-size="14.5" font-weight="700" fill="#065f56">3. 倒序归还 free_blocks()</text>
+  <text x="622" y="246" font-size="13.5" fill="#4d5652">• 按 reversed(req_blocks) 减计数</text>
+  <text x="622" y="268" font-size="13.5" fill="#4d5652">• 仅 ref_cnt 减回 0 且非 null 入队</text>
+  <text x="622" y="290" font-size="13.5" fill="#4d5652">• 已登记尾块先入队，首块最后入尾</text>
+  <text x="622" y="314" font-size="13.5" font-weight="700" fill="#065f56">• 未登记 / 关缓存插队头 LIFO 复用</text>
+
+  <line x1="16" y1="348" x2="884" y2="348" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 3: Multi-group & v0.30.0 / main -->
+  <text x="16" y="376" font-size="16" font-weight="700" fill="#17211f">③ 多组共享特例与 v0.30.0 / main 跨池归还演进</text>
+
+  <rect x="16" y="392" width="424" height="68" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="30" y="418" font-size="14" font-weight="700" fill="#936300">滑窗组先还后借 + 昇腾 KDA 多报 1 块</text>
+  <text x="30" y="444" font-size="13.5" fill="#4d5652">先还窗外块换 null；KDA 三组多报 3 块不真借</text>
+
+  <rect x="460" y="392" width="424" height="68" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="474" y="418" font-size="14" font-weight="700" fill="#7a3a6a">v0.30.0 跨池归还 → main 弱引用 + MRV2 清零</text>
+  <text x="474" y="444" font-size="13.5" fill="#4d5652">HiSparse 按 block.pool（main 改弱引用）归还</text>
+</svg>

@@ -14,14 +14,14 @@ export const codexUsageSchema = z.object({
   output_tokens: z.number().int().nonnegative(),
 });
 export type CodexUsage = z.infer<typeof codexUsageSchema>;
-export const CODEX_EVIDENCE_LIMIT = 128_000;
+export const CODEX_EVIDENCE_LIMIT = 160_000;
 
 /** Whole pages only, in retrieval order; the same window governs citation validation. */
 export function codexEvidencePages(candidates: NonNullable<ChatContext["pages"]>) {
   const pages: typeof candidates = [];
   let size = 0;
   for (const page of candidates) {
-    // The three directly named TP / collectives / MLP pages already exceed 80k.
+    // The four directly named TP / collectives / SP / MLP pages exceed 128k.
     // Retain whole pages (also used by immutable answer receipts), with a bounded window.
     if (size + page.text.length > CODEX_EVIDENCE_LIMIT) continue;
     pages.push(page);

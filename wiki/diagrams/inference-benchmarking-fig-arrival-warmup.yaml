@@ -1,0 +1,22 @@
+mode: native-svg
+id: inference-benchmarking-fig-arrival-warmup
+caption: >-
+  压测可比性两道防线：上半对比闭环固定并发（掩盖协调遗漏与真实排队）与开环到达率（暴露突发积压，须同时保存计划发送、实际发送与服务到达三时刻）；下半对照冷启动预热未剔除与自动前缀缓存复用导致的吞吐虚高陷阱。
+size: [900, 470]
+pins:
+  - source: 'vllm@ced6857a:vllm/benchmarks/serve.py#L450-L640'
+    symbols:
+      - benchmark
+      - calculate_metrics
+      - request_rate
+      - burstiness
+      - goodput
+  - source: 'vllm@ced6857a:vllm/benchmarks/lib/endpoint_request_func.py#L402-L434'
+    symbols:
+      - ttft
+      - itl
+  - source: 'vllm@ced6857a:vllm/v1/metrics/stats.py#L430-L584'
+    symbols:
+      - queued_time
+      - prefill_time
+      - decode_time

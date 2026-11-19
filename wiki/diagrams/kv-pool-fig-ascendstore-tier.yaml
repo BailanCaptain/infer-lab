@@ -1,0 +1,12 @@
+mode: native-svg
+id: kv-pool-fig-ascendstore-tier
+caption: >-
+  AscendStoreConnector 多实例共享外部 KV 池架构与双连接器边界（v0.30.0 / main）：同池多实例经 Rank-0 LookupKeyServer IPC 查池并按段补缺、以显存注册区间直传 Mooncake / Memcache / Yuanrong 后端；底部对比 AscendStore 命名要素与上游 MooncakeStoreConnector（embedded vs standalone-store）的分工。
+size: [900, 446]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L99-L175
+    symbols: [AscendStoreConnector, SupportsHMA, requires_piecewise_for_cudagraph, configure_dspark_prefix_cache]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L161-L205
+    symbols: [configure_dspark_prefix_cache, DSparkPrefixKeys]
+  - source: vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/connector.py#L125-L170
+    symbols: [MooncakeStoreConnector, _validate_kv_cache_config]

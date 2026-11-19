@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 446" width="900" height="446" role="img" aria-label="UCM 集中式与 P2P 双拓扑及昇腾外壳演进" font-family="var(--font-sans)">
+<title>UCM 集中式与 P2P 双拓扑及昇腾外壳演进</title>
+<desc>Comparison of UCM centralized shared-storage PD vs Mooncake P2P plus UCM prefix reuse on P, alongside vllm-ascend UCMConnectorV1 forwarding shell evolution in v0.30.0 and main</desc>
+<line x1="16" y1="256" x2="884" y2="256" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g stroke-width="1.4">
+<rect x="16" y="54" width="420" height="180" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="464" y="54" width="420" height="180" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="302" width="420" height="128" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="464" y="302" width="420" height="128" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+</g>
+<circle cx="28" cy="24" r="13" fill="#4c65b6"/>
+<circle cx="28" cy="278" r="13" fill="#9a4b86"/>
+<g font-weight="700">
+<text x="28" y="29" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
+<text x="48" y="30" font-size="16" fill="#17211f">PD 分离的两种站法：谁传本次状态，谁管历史前缀复用</text>
+<text x="30" y="80" font-size="15" fill="#3a4f93">模式 A：集中式共享存储 PD（两趟搬运，解耦）</text>
+<text x="478" y="80" font-size="15" fill="#065f56">模式 B：Mooncake P2P + P 侧 UCM（一趟直传）</text>
+<text x="28" y="283" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
+<text x="48" y="284" font-size="16" fill="#17211f">昇腾 UCMConnectorV1 薄转发外壳演进（v0.30.0 → main）与 EC 隔离</text>
+<text x="30" y="328" font-size="15" fill="#936300">三层存储与外壳能力（SupportsHMA）</text>
+<text x="478" y="328" font-size="15" fill="#7a3a6a">v0.30.0 / main 仓内演进与多模态 EC</text>
+</g>
+<g fill="#4d5652" font-size="13.5">
+<text x="30" y="108">• 路径：P 写共享存储（Cache|Posix）→ D 拉回</text>
+<text x="30" y="133">• 角色：P、D 都挂 UCMConnector，共用同 YAML</text>
+<text x="30" y="158">• 数据量（示意 64 MiB）：写 64 + 读 64 = 128 MiB</text>
+<text x="30" y="183">• 示例设 use_layerwise: false；代理不查落盘回执</text>
+<text x="30" y="208" font-weight="600" fill="#3a4f93">• 优点：无状态解耦、跨机同挂载共享，易扩缩</text>
+<text x="478" y="108">• 路径：P 先向 UCM 复用前缀 → Mooncake 直传 D</text>
+<text x="478" y="133">• 角色：P 组合 Mooncake+UCM；D 只挂 Mooncake</text>
+<text x="478" y="158">• 数据量（示意 64 MiB）：P→D 直传仅 64 MiB</text>
+<text x="478" y="183">• 大规模 EP 示例（GLM-5.1）开启 P 侧逐层传输</text>
+<text x="478" y="208" font-weight="600" fill="#065f56">• 优点：省 TTFT 且交接低时延，增 D 不增 UCM 压</text>
+<text x="30" y="354">• L1 NPU 显存 ↔ L2 主机快取 ↔ L3 共享文件</text>
+<text x="30" y="379">• 外壳实现 SupportsHMA，不关闭混合缓存管理器</text>
+<text x="30" y="404">• 接 UCM 不自动把 KDA 改 align（只认 AscendStore）</text>
+<text x="478" y="354">• v0.30.0：子包 ucm_connector 导出 V1 外壳</text>
+<text x="478" y="379">• main：双注册 UCMConnector + V1 防指标报错</text>
+<text x="478" y="404" font-weight="600" fill="#7a3a6a">• main 增 loaded_group_ids；EC 另配 --ec-transfer</text>
+</g>
+</svg>

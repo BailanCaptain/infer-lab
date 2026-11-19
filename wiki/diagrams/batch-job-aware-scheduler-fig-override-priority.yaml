@@ -1,0 +1,20 @@
+mode: native-svg
+id: batch-job-aware-scheduler-fig-override-priority
+caption: >-
+  Batch-Job-Aware Scheduler 两级准入闸门与 v0.30.0 多调度器静默覆盖链：上半部展示先由 RunningBlockReserver 按 P = min(R + m, M) 扣留 running 下一步新块、再经冷启动前 3 条与 4096 阈值翻转（宽裕走 LPT、紧张走短作业）+ best-fit 挑请求；下半部还原 platform.py 源码中 recompute → dyntra_lb → profiling_chunk → batch_job_sched 的静默覆盖顺序（后者覆写前者 scheduler_cls），以及与 ShortRequestFirst 的显式互斥报错。
+size: [900, 470]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/core/batch_job_aware_scheduler.py#L238-L290'
+    symbols:
+      - _finalize_reserve
+      - _compute_one
+      - reserve_margin_blocks
+      - reserve_max_blocks
+      - num_lookahead_tokens
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1379-L1408'
+    symbols:
+      - dyntra_lb_config
+      - recompute_scheduler_enable
+      - profiling_chunk_config
+      - batch_job_sched_config
+      - BatchJobAwareAsyncScheduler

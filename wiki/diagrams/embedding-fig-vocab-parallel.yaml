@@ -1,0 +1,9 @@
+mode: native-svg
+id: embedding-fig-vocab-parallel
+caption: 词表并行 Embedding 从输入编号广播、区间掩码置零、All-Reduce 求和到输出 [S, H] 的完整流转，以及四组高频概念误区对照。
+size: [900, 512]
+pins:
+  - source: 'vllm@ced6857a:vllm/model_executor/layers/vocab_parallel_embedding.py#L510-L555'
+    symbols: ['get_masked_input_and_mask', 'masked_fill_', 'tensor_model_parallel_all_reduce']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/vocab_parallel_embedding.py#L301-L345'
+    symbols: ['_forward_standard', '_forward_with_token_exchange', 'token_exchange_group']

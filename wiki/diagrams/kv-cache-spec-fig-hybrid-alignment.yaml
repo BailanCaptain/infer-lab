@@ -1,0 +1,9 @@
+mode: native-svg
+id: kv-cache-spec-fig-hybrid-alignment
+caption: 混合模型 KVCacheSpec 多组页对齐与 block_size 五义对照：展示 GLM 四类状态如何对齐成大页(655,360 B)与小页(40,960 B)两档并编成 5 个缓存组，以及逻辑块 640、kernel 块 128、尾状态块 4 与调度器 lcm 133,120 之间的换算关系。
+size: [900, 456]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/cache_config.py#L90-L130'
+    symbols: ['_align_glm5_next_cache_specs', '_create_glm5_next_attention_groups', 'page_size_padded']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L84-L140'
+    symbols: ['_ascend_resolve_kv_cache_block_sizes', 'is_prefix_cacheable']

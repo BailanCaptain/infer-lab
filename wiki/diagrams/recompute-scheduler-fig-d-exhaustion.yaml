@@ -1,0 +1,10 @@
+mode: native-svg
+id: recompute-scheduler-fig-d-exhaustion
+caption: >-
+  RecomputeScheduler 在 D 节点 KV 块耗尽时的三路处置漏斗（v0.30.0 / main）：先确认存在可即时释放块，再按连接器能否接受保存与细粒度 TP 分片条件，在主机卸载恢复、正式 finish 后发 recomputed 帧退回 P、以及直接 FINISHED_ABORTED 之间分流，并对照普通混部的本机重算路径。
+size: [900, 446]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/core/recompute_scheduler.py#L85-L180
+    symbols: [RecomputeScheduler, _preempt_or_recompute, update_state_before_preempt, _finish_recomputed_request, FINISHED_ABORTED]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1116-L1157
+    symbols: [recompute_scheduler_enable, RecomputeSchedulerConfig, PreemptOffloadConnector]

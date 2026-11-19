@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 512" width="900" height="512" role="img" aria-label="词表并行 Embedding 掩码查表求和流转与四组高频误区对照" font-family="var(--font-sans)">
+  <title>词表并行 Embedding 从输入编号广播、区间掩码置零、All-Reduce 求和到输出 [S, H] 的完整流转，以及四组高频概念误区对照。</title>
+  <desc>上半部分展示 TP 切表后各卡按词表区间查表、越界整行置零、再经 All-Reduce 还原完整 [S, H] 向量的四步流程；下半部分对比四组常见误解与源码真相。</desc>
+  <defs>
+    <marker id="emb-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="emb-arr-p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#9a4b86"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、TP 词表并行查表：各卡只查本区间，越界整行置零，求和拼出完整向量</text>
+
+  <rect x="14" y="46" width="174" height="156" rx="9" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="101" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#3a4f93">1. 编号广播</text>
+  <text x="101" y="98" text-anchor="middle" font-size="13.5" fill="#17211f">切表不切输入编号</text>
+  <rect x="26" y="112" width="150" height="36" rx="6" fill="#ffffff" stroke="#4c65b6" stroke-width="1.1"/>
+  <text x="101" y="135" text-anchor="middle" font-size="13.5" font-family="var(--font-mono)" fill="#3a4f93">[8, 9, 312, 8]</text>
+  <text x="101" y="170" text-anchor="middle" font-size="13.5" fill="#4d5652">同组 8 卡拿同一份</text>
+  <text x="101" y="190" text-anchor="middle" font-size="13.5" fill="#4d5652">形状 [S]（R1: S=4）</text>
+
+  <path d="M 188 124 L 212 124" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#emb-arr)"/>
+
+  <rect x="218" y="46" width="242" height="156" rx="9" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="339" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#936300">2. 区间掩码 + 本地查表</text>
+  <text x="339" y="96" text-anchor="middle" font-size="13.5" fill="#17211f">每卡仅存 19,360 行（TP8）</text>
+  <rect x="230" y="108" width="218" height="36" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.1"/>
+  <text x="339" y="131" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f56">落在本卡区间 → 原样抄出该行</text>
+  <rect x="230" y="152" width="218" height="36" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.1"/>
+  <text x="339" y="175" text-anchor="middle" font-size="13.5" fill="#4d5652">不在区间 → <tspan font-family="var(--font-mono)" font-weight="700">masked_fill_</tspan> 置 0</text>
+
+  <path d="M 460 124 L 484 124" fill="none" stroke="#9a4b86" stroke-width="2" marker-end="url(#emb-arr-p)"/>
+
+  <rect x="490" y="46" width="186" height="156" rx="9" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.5"/>
+  <text x="583" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#7a3a6a">3. All-Reduce 求和</text>
+  <text x="583" y="98" text-anchor="middle" font-size="13.5" fill="#17211f">每位置恰 1 卡非零</text>
+  <text x="583" y="122" text-anchor="middle" font-size="13.5" fill="#17211f">其余 7 卡全为 0</text>
+  <rect x="502" y="136" width="162" height="52" rx="6" fill="#ffffff" stroke="#9a4b86" stroke-width="1.1"/>
+  <text x="583" y="158" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a3a6a">逐格相加即真值</text>
+  <text x="583" y="179" text-anchor="middle" font-size="13.5" fill="#4d5652">R1 载荷 32 KiB</text>
+
+  <path d="M 676 124 L 700 124" fill="none" stroke="#087f73" stroke-width="2" marker-end="url(#emb-arr)"/>
+
+  <rect x="706" y="46" width="180" height="156" rx="9" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="796" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="#065f56">4. 完整初始向量</text>
+  <text x="796" y="100" text-anchor="middle" font-size="14" font-family="var(--font-mono)" font-weight="700" fill="#065f56">[S, H] BF16</text>
+  <text x="796" y="126" text-anchor="middle" font-size="13.5" fill="#17211f">GLM R1: [4, 4096]</text>
+  <text x="796" y="152" text-anchor="middle" font-size="13.5" fill="#4d5652">8 卡结果完全一致</text>
+  <text x="796" y="178" text-anchor="middle" font-size="13.5" fill="#4d5652">直接送入第 1 层</text>
+
+  <rect x="14" y="214" width="872" height="44" rx="7" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="28" y="241" font-size="13.5" fill="#17211f"><tspan font-weight="700" fill="#7a3a6a">v0.30.0 分支边界：</tspan>标准 TP 固定走 <tspan font-family="var(--font-mono)" font-weight="700">_forward_standard</tspan>（All-Reduce）；<tspan font-family="var(--font-mono)" font-weight="700">PCP&gt;1</tspan> 词表分片改走 PCP Reduce-Scatter + TP All-Reduce</text>
+
+  <line x1="14" y1="274" x2="886" y2="274" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 4"/>
+
+  <text x="14" y="302" font-size="16" font-weight="700" fill="#17211f">二、四组高频误区排雷（✗ 错误直觉 vs ✓ 实现真相）</text>
+
+  <rect x="14" y="316" width="424" height="84" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="28" y="342" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误解：编号越近越相似，且查表是一次矩阵乘</text>
+  <text x="28" y="368" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：编号只是座位号；实现按行号直接抄出</text>
+  <text x="28" y="390" font-size="13.5" fill="#4d5652">等价于 one-hot 乘法，但免掉 99.99% 乘 0，入口无乘法</text>
+
+  <rect x="462" y="316" width="424" height="84" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="476" y="342" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误解：[154880, 4096] 整表 1.18 GiB 占单卡显存</text>
+  <text x="476" y="368" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：那是逻辑整表；TP8 每卡仅存 151.25 MiB</text>
+  <text x="476" y="390" font-size="13.5" fill="#4d5652">154880 恰被 64 与 8 整除，每卡 19,360 行且不走 W8A8</text>
+
+  <rect x="14" y="414" width="424" height="84" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="28" y="440" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误解：同词出现两次向量一样，decode 不再查表</text>
+  <text x="28" y="466" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：入口相同，后续层靠位置与上下文彻底分开</text>
+  <text x="28" y="488" font-size="13.5" fill="#4d5652">每步新 token 必查表（普通 1 行；MTP 1+3 查 4 行）</text>
+
+  <rect x="462" y="414" width="424" height="84" rx="8" fill="#ffffff" stroke="#d8d8cf" stroke-width="1.3"/>
+  <text x="476" y="440" font-size="14.5" font-weight="700" fill="#8f3229">✗ 误解：embedding 与 lm_head 必然共用同一张表</text>
+  <text x="476" y="466" font-size="13.5" font-weight="700" fill="#065f56">✓ 真相：方向相反，是否共用看 tie_word_embeddings</text>
+  <text x="476" y="488" font-size="13.5" fill="#4d5652">GLM 该开关为 false，入口与出口各占 151.25 MiB/卡</text>
+</svg>

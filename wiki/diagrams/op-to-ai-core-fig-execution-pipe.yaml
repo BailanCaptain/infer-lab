@@ -1,0 +1,12 @@
+mode: native-svg
+id: op-to-ai-core-fig-execution-pipe
+caption: >-
+  Python 算子到 AI Core 硬件执行四段流水：以 npu_add_rms_norm_bias 为例，展示 Python/C++ 适配层通过 EXEC_NPU_CMD 分配三份输出并下发 CANN，Host Tiling 读取可用 Vector 核数与扣除预留后的 UB 生成分核参数与 tiling key，经任务队列送达各 AI Core 完成 CopyIn（同时写回残差）→ Vector 归约缩放 → CopyOut。
+size: [900, 450]
+pins:
+  - source: vllm-ascend@c09d3e20:csrc/moe/add_rms_norm_bias/add_rms_norm_bias_torch_adpt.h#L21-L53
+    symbols: [EXEC_NPU_CMD, aclnnAddRmsNormBias]
+  - source: vllm-ascend@c09d3e20:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L250-L290
+    symbols: [CalculateBlockParameters, DetermineModeParameters]
+  - source: vllm-ascend@c09d3e20:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155
+    symbols: [CopyIn, Compute, CopyOutY]

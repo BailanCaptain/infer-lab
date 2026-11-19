@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 492" width="900" height="492" role="img" aria-label="动态分块流水线二次气泡压缩、反解流程与版本演进图" font-family="var(--font-sans)">
+  <title>动态分块流水线（CPP）：等长块气泡压缩、二次方程反解与 v0.30.0/main 生命周期</title>
+  <desc>上半展示等长块 1:3:5:7 导致阶段 1 空等 6 格（23 格完成）与按耗时反解为 16 块每块 1 格压至 17 格的对比；下半展示反解公式与三道后处理流水线，以及 v0.30.0 nnls/MRV2 异步支持与 main 整体移除的边界。</desc>
+  <defs>
+    <marker id="cpp-arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#087f73"/>
+    </marker>
+    <marker id="cpp-arr-gray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#66716d"/>
+    </marker>
+  </defs>
+
+  <text x="14" y="28" font-size="16" font-weight="700" fill="#17211f">一、为什么等长块越算越慢，按耗时反解如何压掉阶段 1 的空等气泡？</text>
+  <line x1="12" y1="40" x2="888" y2="40" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.4">
+    <rect x="12" y="52" width="430" height="148" rx="9" fill="#fff0e9" stroke="#b54237"/>
+    <rect x="458" y="52" width="430" height="148" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+  </g>
+
+  <text x="26" y="77" font-size="15" font-weight="700" fill="#8f3229">等长分块（4 × 100 token）：耗时呈 1 : 3 : 5 : 7</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="102">阶段 0（总活 16 格）：</text>
+    <rect x="180" y="86" width="16" height="22" rx="3" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="198" y="86" width="48" height="22" rx="3" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="248" y="86" width="80" height="22" rx="3" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="330" y="86" width="102" height="22" rx="3" fill="#fff4cf" stroke="#c78300"/>
+    <text x="184" y="102" font-family="var(--font-mono)" fill="#936300">1</text>
+    <text x="217" y="102" font-family="var(--font-mono)" fill="#936300">3</text>
+    <text x="283" y="102" font-family="var(--font-mono)" fill="#936300">5</text>
+    <text x="376" y="102" font-family="var(--font-mono)" fill="#936300">7</text>
+
+    <text x="26" y="138">阶段 1（多等 6 格）：</text>
+    <rect x="180" y="122" width="16" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="198" y="122" width="16" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="216" y="122" width="30" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="248" y="122" width="48" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="298" y="122" width="30" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="330" y="122" width="102" height="22" rx="3" fill="#e8edff" stroke="#4c65b6"/>
+    <text x="26" y="168">每块差值（3-1、5-3、7-5）变成气泡，共 <tspan font-weight="700" fill="#8f3229">23 格完成</tspan></text>
+    <text x="26" y="190">第 k 块 Q–K 对 ≈ <tspan font-family="var(--font-mono)" fill="#8f3229">x·L + x(x+1)/2</tspan>，越往后越重</text>
+  </g>
+
+  <text x="472" y="77" font-size="15" font-weight="700" fill="#065f56">按耗时反解（100→41→32→…→13）：每块 1 格</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="472" y="102">阶段 0（16 块 × 1）：</text>
+    <rect x="626" y="86" width="236" height="22" rx="4" fill="#fff4cf" stroke="#c78300"/>
+    <text x="652" y="102" font-family="var(--font-mono)" fill="#936300">1|1|1|1|…（16 块紧挨送出）</text>
+
+    <text x="472" y="138">阶段 1（仅首块等 1）：</text>
+    <rect x="626" y="122" width="16" height="22" rx="3" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="644" y="122" width="234" height="22" rx="4" fill="#e8edff" stroke="#4c65b6"/>
+    <text x="668" y="138" font-family="var(--font-mono)" fill="#3a4f93">1|1|1|1|…（零中间气泡）</text>
+
+    <text x="472" y="168">总计算量仍为 16 格/段，压缩至 <tspan font-weight="700" fill="#065f56">17 格完成（-26%）</tspan></text>
+    <text x="472" y="190">代价：步数 4→16 增固定开销，且仍受块对齐与预算截断</text>
+  </g>
+
+  <text x="14" y="232" font-size="16" font-weight="700" fill="#17211f">二、单步块长反解流水线（只截小、不切大）与版本生命周期</text>
+  <line x1="12" y1="244" x2="888" y2="244" stroke="#b8bcb5" stroke-width="1.4"/>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="258" width="212" height="96" rx="9" fill="#e8edff" stroke="#4c65b6"/>
+    <rect x="248" y="258" width="194" height="96" rx="9" fill="#fff4cf" stroke="#c78300"/>
+    <rect x="466" y="258" width="196" height="96" rx="9" fill="#f7e7f2" stroke="#9a4b86"/>
+    <rect x="686" y="258" width="202" height="96" rx="9" fill="#ddf4ef" stroke="#087f73"/>
+  </g>
+
+  <g fill="none" stroke-width="2">
+    <path d="M 224 306 L 242 306" stroke="#66716d" marker-end="url(#cpp-arr-gray)"/>
+    <path d="M 442 306 L 460 306" stroke="#66716d" marker-end="url(#cpp-arr-gray)"/>
+    <path d="M 662 306 L 680 306" stroke="#087f73" marker-end="url(#cpp-arr-teal)"/>
+  </g>
+
+  <g font-size="14.5" font-weight="700">
+    <text x="26" y="284" fill="#3a4f93">1. 二次方程求正根</text>
+    <text x="262" y="284" fill="#936300">2. 平滑与下限保护</text>
+    <text x="480" y="284" fill="#7a3a6a">3. 向上凑整对齐</text>
+    <text x="700" y="284" fill="#065f56">4. 预算取小 + 扣时间账</text>
+  </g>
+
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="309" font-family="var(--font-mono)" fill="#3a4f93">ax²+(2aL+b)x = τ_rem</text>
+    <text x="26" y="331">开机 1 热身 + 64 试跑</text>
+    <text x="26" y="348">（&lt;8 有效点退固定块）</text>
+
+    <text x="262" y="309">按 <tspan font-family="var(--font-mono)" fill="#936300">smooth_factor</tspan> 平滑</text>
+    <text x="262" y="331">下限 <tspan font-family="var(--font-mono)" fill="#936300">min_chunk=4096</tspan></text>
+    <text x="262" y="348">防块太碎算子效率塌缩</text>
+
+    <text x="480" y="309">向上取整至</text>
+    <text x="480" y="331" font-family="var(--font-mono)" fill="#7a3a6a">max(block_size, 64)</text>
+    <text x="480" y="348">整数倍（源码向上取整）</text>
+
+    <text x="700" y="309"><tspan font-family="var(--font-mono)" fill="#065f56">min(x, token_budget)</tspan></text>
+    <text x="700" y="331">只把块切小、不超上限</text>
+    <text x="700" y="348">decode 不扣时间账</text>
+  </g>
+
+  <g stroke-width="1.5">
+    <rect x="12" y="372" width="430" height="106" rx="9" fill="#ece9df" stroke="#b8bcb5"/>
+    <rect x="458" y="372" width="430" height="106" rx="9" fill="#fff0e9" stroke="#b54237"/>
+  </g>
+
+  <text x="26" y="398" font-size="15" font-weight="700" fill="#17211f">v0.30.0（c09d3e20，主基线）保留并增强</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="26" y="423">• 历史拟合改用非负最小二乘 <tspan font-family="var(--font-mono)" font-weight="700" fill="#065f56">nnls</tspan>：<tspan font-family="var(--font-mono)">a∑C(C+H)+b∑C+c</tspan></text>
+    <text x="26" y="445">• 新增 <tspan font-family="var(--font-mono)" fill="#3a4f93">ProfilingChunkAsyncScheduler</tspan>（仅限 MRV2）</text>
+    <text x="26" y="467">• 须 <tspan font-family="var(--font-mono)">PP &gt; 1</tspan>；与 <tspan font-family="var(--font-mono)">balance_scheduling</tspan> / <tspan font-family="var(--font-mono)">DyntraLB</tspan> 互斥</text>
+  </g>
+
+  <text x="472" y="398" font-size="15" font-weight="700" fill="#8f3229">main（8d6180e2）已整体移除 CPP</text>
+  <g font-size="13.5" fill="#4d5652">
+    <text x="472" y="423">• 继 PR #21317 弃用告警后，PR #21310 完整移除全部源码</text>
+    <text x="472" y="445">• 含 <tspan font-family="var(--font-mono)">ProfilingChunkConfig</tspan>、调度器、预测器与引擎钩子</text>
+    <text x="472" y="467">• 升级至 <tspan font-weight="700" fill="#8f3229">main</tspan> 的部署不能再依赖 <tspan font-family="var(--font-mono)">profiling_chunk_config</tspan></text>
+  </g>
+</svg>

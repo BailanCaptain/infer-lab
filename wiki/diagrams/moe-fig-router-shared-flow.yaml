@@ -1,0 +1,9 @@
+mode: native-svg
+id: moe-fig-router-shared-flow
+caption: MoE 路由专家与共享专家双支执行流（校正偏置仅用于 Top-k 选人、归一化仍取原始 sigmoid 分数并乘缩放系数），以及模块化交接中 Standard 与 BatchedExperts 两种布局的三笔账区分。
+size: [900, 444]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/router/grouped_topk_router.py#L80-L127'
+    symbols: ['_compute_routing', 'e_score_correction_bias', '_native_grouped_topk', '_renormalize_topk_weights', 'routed_scaling_factor']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/shared_experts.py#L64-L130'
+    symbols: ['AscendSharedExperts', 'PreparedSharedExpertExecution', 'SubmittedSharedExpertGateUp']

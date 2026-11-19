@@ -1,0 +1,14 @@
+mode: native-svg
+id: dyntra-lb-fig-watermark-routing
+caption: >-
+  DyntraLB 在 PD 分离 D 节点（MoE + DP>1）上的 KV 水位均衡闭环：步末先做候选预取与全组 All-Gather 交换块数向量，各组同步跑同一套四步规划器并只做本地暂停或接纳（不搬请求、暂停不还 KV 块），以及 v0.30.0 / main 的触发门槛与约束边界。
+size: [900, 440]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1579-L1635
+    symbols: [DyntraLBConfig, bubble_threshold, long_req_block_threshold, dynamic_max_step]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/core/dyntra_lb_scheduler.py#L140-L245
+    symbols: [prepare_dyntra_lb_step, _run_lb_kv_prefetch, _refresh_blocked_waiting_requests]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/core/dyntra_lb_scheduler.py#L363-L420
+    symbols: [_lb_pause_request, _preempt_request, DyntraLBScheduler]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L121-L200
+    symbols: [DyntraLBDPEngineCoreProc, _balance_load, calc_bubble, fill_running_from_waiting, find_best_swap]

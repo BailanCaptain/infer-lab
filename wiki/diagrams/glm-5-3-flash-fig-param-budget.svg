@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="GLM-5.3-Flash 3133 亿主干参数占比、174 亿激活参数构成与加载精度分层图" font-family="var(--font-sans)">
+  <title>GLM-5.3-Flash 主干总参数（3,133 亿）vs 单 token 激活参数（174 亿）与加载后精度分层</title>
+  <desc>Proportional breakdown of GLM-5.3-Flash 313.3B backbone parameters vs 17.4B per-token active parameters and post-load weight dtypes</desc>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 主干总参数（3,133 亿）vs 每 token 激活参数（174 亿）：为什么不能用 8/288 估计算量</text>
+
+  <!-- Bar 1: Total 3133B -->
+  <text x="16" y="58" font-size="14" font-weight="700" fill="#17211f">主干总参数：约 3,133 亿（含 MTP 74.3 亿 + 视觉 5.6 亿合计约 3,213 亿）</text>
+  <rect x="16" y="68" width="844" height="42" rx="6" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>
+  <text x="438" y="94" text-anchor="middle" font-size="14.5" font-weight="700" fill="#936300">路由专家（42 层 × 288 专家）：3,044.1 亿（占 97.2%）→ EP16 存在的根本理由</text>
+  <rect x="860" y="68" width="24" height="42" rx="4" fill="#4c65b6" stroke="#3a4f93" stroke-width="1.2"/>
+  <text x="884" y="128" text-anchor="end" font-size="13.5" fill="#3a4f93">▲ 其余全部部件（KDA 46.8 + MLA 12.9 + 词表 12.7 + 共享 10.6 + 稠密 4.5 + 其他 1.7）合计仅 89.2 亿（2.8%）</text>
+
+  <!-- Bar 2: Active 174B -->
+  <text x="16" y="160" font-size="14" font-weight="700" fill="#17211f">单 token 激活参数：主干约 174 亿（扣仅查表的 embedding 约 167 亿）</text>
+  <rect x="16" y="170" width="445" height="42" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="238" y="196" text-anchor="middle" font-size="14" font-weight="700" fill="#3a4f93">非路由专家全算部分：89.2 亿（占 51.3%）</text>
+  <rect x="461" y="170" width="423" height="42" rx="6" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="672" y="196" text-anchor="middle" font-size="14" font-weight="700" fill="#065f56">每层选中 8 个路由专家：84.6 亿（占 48.7%）</text>
+  <text x="16" y="232" font-size="13.5" fill="#8f3229">▸ 结论：路由专家虽占 97.2% 显存，但单 token 激活里一半以上是非专家层——显存账与计算账必须分开算</text>
+
+  <line x1="16" y1="250" x2="884" y2="250" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <text x="16" y="280" font-size="16" font-weight="700" fill="#17211f">② 文件存储精度 ≠ 显存驻留精度：加载后哪些关键小模块会被强制升为 FP32</text>
+
+  <rect x="16" y="298" width="278" height="126" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="30" y="324" font-size="14.5" font-weight="700" fill="#065f56">INT8 / FP8（大矩阵主体）</text>
+  <text x="30" y="350" font-size="13.5" fill="#4d5652">• MLP 通路（稠密/路由/共享专家）</text>
+  <text x="30" y="374" font-size="13.5" fill="#4d5652">• MLA 四个大投影按 revision 分化：</text>
+  <text x="30" y="398" font-size="13.5" fill="#065f56">　3121f187→INT8 · 9e55cbc8→BF16</text>
+
+  <rect x="311" y="298" width="278" height="126" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.4"/>
+  <text x="325" y="324" font-size="14.5" font-weight="700" fill="#3a4f93">BF16（保持原精度的主通道）</text>
+  <text x="325" y="350" font-size="13.5" fill="#4d5652">• embedding、lm_head 与各处 Norm</text>
+  <text x="325" y="374" font-size="13.5" fill="#4d5652">• KDA Q/K/V/输出投影与双门控</text>
+  <text x="325" y="398" font-size="13.5" fill="#3a4f93">• MLA kv_b_proj 解压与索引器 Q</text>
+
+  <rect x="606" y="298" width="278" height="126" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
+  <text x="620" y="324" font-size="14.5" font-weight="700" fill="#8f3229">FP32（加载/首跑升精度保护）</text>
+  <text x="620" y="350" font-size="13.5" fill="#4d5652">• router 权重与偏置（防路由抖动）</text>
+  <text x="620" y="374" font-size="13.5" fill="#4d5652">• mHC 混合矩阵、KDA 短卷积与衰减</text>
+  <text x="620" y="398" font-size="13.5" fill="#8f3229">• 索引器 K/压池首跑建 54 MiB 副本</text>
+</svg>

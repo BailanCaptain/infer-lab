@@ -237,7 +237,13 @@ attention 的最后一步是输出投影：每个 token 的各头结果拼成一
 | 稠密 MLP | All-Gather 隐藏向量 | 全组 token 的部分和 | Reduce-Scatter |
 | attention 输出投影 | All-to-All 交换特征段 | 全组 token 的部分和 | Reduce-Scatter |
 
-这张表是 vllm-ascend 里这几条代码路径的做法，不等于每个模型都会走到。源码按层的名字决定换不换：MLP 只换非 MoE 层；输出投影这一项碰到 DeepSeek-V4 压缩式 attention 的两段式投影（先投到较小的维度、再投回隐藏维度）时另有一套写法，交换放在 attention 实现内部；第五项「低秩输出投影」也只在这一类实现里生效。某个模型到底走没走，要看启动日志和模型的层名，见页末对照源码。
+```wiki-diagram
+file: fine-grained-tp-fig-dp-group-guard
+```
+
+这张表是 vllm-ascend 里这几条代码路径的做法，不等于每个模型都会走到。源码按层的名字决定换不换：MLP 只换非 MoE 层；输出投影这一项碰到 DeepSeek-V4 压缩式 attention 的两段式投影（先投到较小的维度、再投回隐藏维度）时另有一套写法，交换放在 attention 实现内部；旧版第五项「低秩输出投影」也只在这一类实现里生效。
+
+**在 `v0.30.0` 主基线与 `main` 上，开启 `oproj` 或 `mlp` 分片前还要跨过六道硬前提与一道静默退回守卫：** 除了模型必须是 MoE 且分组大小整除 DP 数之外，这两项还同时要求全局 `TP == 1`、`PCP == 1`、启用非 `NONE` 图模式、位于 PD 分离的 D 节点（`kv_consumer`），并同时开启 `recompute_scheduler_enable=true` 与 `PreemptOffloadConnector`（`embedding` 则不再绑定重算调度器）。更重要的是图捕获尺寸守卫：系统会计算单步最大可能宽度 `max_step = min(max_num_batched_tokens, max_num_seqs × decode_query_len)`，若最大图捕获尺寸小于该宽度，超宽步落入 eager 会令跨 DP 集合通信失去对齐甚至死锁，因此启动阶段会直接告警并静默关闭这两项（`v0.30.0` 清零为 `0`，`main` 重置为 `1`；`main` 同时将全部字段默认值改为 `1` 并新增面向 KDA 的 `qkv_iproj_tensor_parallel_size`）。某个模型到底走没走，要看启动日志和各层的替换日志，见页末[对照源码](#对照源码)。
 
 ## 省下的和多付的：怎样比？
 

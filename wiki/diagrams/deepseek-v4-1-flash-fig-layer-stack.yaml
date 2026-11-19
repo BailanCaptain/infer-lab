@@ -1,0 +1,17 @@
+mode: native-svg
+id: deepseek-v4-1-flash-fig-layer-stack
+caption: >-
+  DeepSeek-V4.1-Flash 异构层栈与三笔独立内存账全景：40 层 CED 语言主干（L0–19 前半编码 + L20–39 后半解码）仅由 L2/L8/L14/L20 四个主 KV 来源支撑分页全局历史（128 位置载荷 113,920 B ≈ 890 B/pos），与各层 128 窗 SWA、384+1 MoE、3 层 DSpark 草稿及主机侧 INT8 Engram（24 头卸载并由同机 DP 共享 4E→E）分账管理。
+size: [900, 490]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/cache_config.py#L1-L55'
+    symbols:
+      - uses_a5_packed_cache
+      - make_swa_cache_spec
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/model.py#L20-L55'
+    symbols:
+      - get_engram_dp_size
+      - EngramLayout
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/decoder_replay_layers.py#L1-L40'
+    symbols:
+      - AscendDecoderReplayLayers

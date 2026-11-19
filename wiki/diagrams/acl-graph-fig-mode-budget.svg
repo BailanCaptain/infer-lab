@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="ACL Graph 模式矩阵、侧流参数更新与显存流资源预算" font-family="var(--font-sans)">
+<title>FULL vs FULL_DECODE_ONLY vs FULL_AND_PIECEWISE 捕获回放、流同步与 1-u 显存预算</title>
+<desc>ACL Graph mode matrix, side-stream Event update handoff, and HBM 1-u headroom plus stream budget</desc>
+<g stroke-width="1.4">
+<rect x="16" y="64" width="276" height="148" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="312" y="64" width="276" height="148" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="608" y="64" width="276" height="148" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="16" y="238" width="424" height="216" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="460" y="238" width="424" height="216" rx="8" fill="#fff0e9" stroke="#b54237"/>
+<rect x="478" y="302" width="268" height="36" rx="5" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="746" y="302" width="120" height="36" rx="5" fill="#fff4cf" stroke="#c78300"/>
+</g>
+<g font-weight="700">
+<text x="16" y="30" font-size="16" fill="#17211f">ACL Graph 捕获档位对照、侧流参数更新与显存 / 流资源预算</text>
+<text x="30" y="92" font-size="15" fill="#065f56">FULL（全批整图）</text>
+<text x="326" y="92" font-size="15" fill="#936300">FULL_DECODE_ONLY（GLM）</text>
+<text x="622" y="92" font-size="15" fill="#3a4f93">FULL_AND_PIECEWISE（O2）</text>
+<text x="30" y="266" font-size="14.5" fill="#7a3a6a">变参回放保真：固定缓冲 + 侧流 Event 同步</text>
+<text x="474" y="266" font-size="14.5" fill="#8f3229">显存与流资源硬约束（防录图 OOM / 207008）</text>
+<text x="612" y="325" text-anchor="middle" font-size="13.5" fill="#3a4f93">u × HBM（权重 + 激活 + KV 池）</text>
+<text x="806" y="325" text-anchor="middle" font-size="13.5" fill="#936300">(1 − u) 余量</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="50" font-size="13.5">档位与后端支持等级取最低值；v0.30.0 / main 并存 ACLGraph、BreakableACLGraph 与 XliteWorker 三路实现</text>
+<text x="30" y="118" font-size="13.5">• 整齐 decode：整图回放</text>
+<text x="30" y="142" font-size="13.5">• 混合 / prefill：整图回放</text>
+<text x="30" y="166" font-size="13.5">• 要求：后端全支持混合批</text>
+<text x="30" y="190" font-size="13.5">• 不满足则自动降级并告警</text>
+<text x="326" y="118" font-size="13.5">• 整齐 decode：整图回放</text>
+<text x="326" y="142" font-size="13.5">• 混合 / prefill：退回 eager</text>
+<text x="326" y="166" font-size="13.5">• 清切分表，可叠 npugraph_ex</text>
+<text x="326" y="190" font-size="13.5">• GLM 7 档：4/8/16/32/64/96/128</text>
+<text x="622" y="118" font-size="13.5">• 整齐 decode：整图回放</text>
+<text x="622" y="142" font-size="13.5">• 混合 / prefill：分段图回放</text>
+<text x="622" y="166" font-size="13.5">• 留切分表 → 关 npugraph_ex</text>
+<text x="622" y="190" font-size="13.5">• Breakable 支持动态点打断</text>
+<text x="30" y="294" font-size="13.5">• 方式 1（固定缓冲）：原地写位置/块表/状态索引</text>
+<text x="30" y="318" font-size="13.5">  （GLM 稀疏 MLA 与 KDA 均走此路，不进侧流）</text>
+<text x="30" y="346" font-size="13.5">• 方式 2（可更新图）：PA/FIA 捕获插 Wait Event</text>
+<text x="30" y="370" font-size="13.5">  非 ENPU：先 replay，侧流 update + Record 放行</text>
+<text x="30" y="394" font-size="13.5">  ENPU：先 update 再 replay，防异步调度踩旧参</text>
+<text x="30" y="422" font-size="13.5" fill="#7a3a6a" font-weight="600">• 整图回放前同步当前流（ENPU / EAGLE 跳过）</text>
+<text x="474" y="290" font-size="13.5">先分 KV 池，再 capture_model()（吃 1−u 余量）：</text>
+<text x="474" y="362" font-size="13.5">• npugraph_memory_bytes 吃干 (1−u) 即录图 OOM</text>
+<text x="474" y="386" font-size="13.5">• v0.30.0+ 扣 150 MiB 输出推荐 --kv-cache-memory</text>
+<text x="474" y="410" font-size="13.5">• 流不足：含 207008 + stream resource → 缩档位</text>
+<text x="474" y="434" font-size="13.5">• main 收口为 MRV2 ModelAclGraphManager 编排</text>
+</g>
+</svg>

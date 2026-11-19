@@ -116,6 +116,8 @@ export function WikiScene({ id, section }: { id: SceneLessonId; section?: number
   }, [spatialInference]);
   const [reloadModule, setReloadModule] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const expandedRef = useRef(false);
+  expandedRef.current = expanded;
   const workbench = useRef<HTMLDivElement>(null);
   const host = useRef<HTMLDivElement>(null);
   const readingHost = useRef<HTMLDivElement>(null);
@@ -135,12 +137,12 @@ export function WikiScene({ id, section }: { id: SceneLessonId; section?: number
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [expanded]);
-  const latest = useRef({ rank, fixedStep });
-  latest.current = { rank, fixedStep };
+  const latest = useRef({ rank, fixedStep, total });
+  latest.current = { rank, fixedStep, total };
   const locate = (seconds: number) => {
     return journey
       ? requestJourneyPosition(seconds)
-      : clipPosition(seconds, lesson.steps.length, latest.current.fixedStep, hardware, total);
+      : clipPosition(seconds, lesson.steps.length, latest.current.fixedStep, hardware, latest.current.total);
   };
   const seek = (seconds: number) => {
     const next = locate(seconds);
@@ -162,96 +164,151 @@ export function WikiScene({ id, section }: { id: SceneLessonId; section?: number
   // biome-ignore lint/correctness/useExhaustiveDependencies: attempt intentionally retries failed dynamic imports and WebGL.
   useEffect(() => {
     const element = host.current!;
-    const abort = new AbortController();
+    let effectDisposed = false;
+    let disposing = false;
+    let mounted = false;
+    let mountAbort: AbortController | null = null;
+    let activeView: View | null = null;
     const lost = (event: Event) => {
+      if (disposing || effectDisposed || !activeView) return;
+      if (event.target instanceof Node && !element.contains(event.target)) return;
       event.preventDefault();
       setStatus("error");
     };
     element.addEventListener("webglcontextlost", lost, true);
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) return;
-        observer.disconnect();
-        setStatus("loading");
-        let imported = false;
-        const mount = async (): Promise<View | null> => {
-          if (collective) {
-            const { mountCollectiveScene } = await import("./wiki-collective-renderer");
-            imported = true;
-            return mountCollectiveScene(element, abort.signal);
-          }
-          if (inference) {
-            if ((section ?? 0) >= 4) {
-              const { mountOptimizationScene } = await import("./wiki-optimization-renderer");
-              imported = true;
-              return mountOptimizationScene(element, section! - 4, abort.signal);
-            }
-            const { mountInferenceScene } = await import("./wiki-inference-renderer");
-            imported = true;
-            return mountInferenceScene(element, section ?? 0, abort.signal);
-          }
-          if (id === "parallel-strategy") {
-            const { mountParallelScene } = await import("./wiki-hardware-renderer");
-            imported = true;
-            return mountParallelScene(element, setRank, abort.signal);
-          }
-          if (mechanism) {
-            const { mountParallelMechanism } = await import("./wiki-parallel-mechanism-renderer");
-            imported = true;
-            return mountParallelMechanism(element, section ?? 0, abort.signal);
-          }
-          if (id === "token-flow") {
-            const { mountRequestScene } = await import("./wiki-request-renderer");
-            imported = true;
-            return mountRequestScene(element, abort.signal);
-          }
-          if (residual) {
-            const { mountResidualScene } = await import("./wiki-residual-renderer");
-            imported = true;
-            return mountResidualScene(element, section!, abort.signal);
-          }
-          if (id === "model-compute" && (section === 1 || section === 2)) {
-            const { mountWikiModel } = await import("./wiki-scene-renderer");
-            const result = await mountWikiModel(element, abort.signal, readingHost.current!, (p) =>
-              seek(p * total),
-            );
-            // Native modules also cache failed imports until the document reloads.
-            imported = true;
-            return result;
-          }
-          const { mountDataScene } = await import("./wiki-data-renderer");
-          imported = true;
-          return mountDataScene(element, id, abort.signal);
-        };
-        void mount()
-          .then((result) => {
-            if (!result) return;
-            if (abort.signal.aborted) {
-              result.dispose();
-              return;
-            }
-            view.current = result;
-            const next = locate(position.current);
-            result.update(next.step, latest.current.rank);
-            result.animate(next.progress);
-            setStatus("ready");
-          })
-          .catch(() => {
-            if (!abort.signal.aborted) {
-              setReloadModule(!imported);
-              setStatus("error");
-            }
-          });
-      },
-      { rootMargin: "100px" },
-    );
-    observer.observe(element);
-    return () => {
-      abort.abort();
-      observer.disconnect();
-      element.removeEventListener("webglcontextlost", lost, true);
-      view.current?.dispose();
+    const teardown = (resetStatus: boolean) => {
+      if (!mounted && !mountAbort && !activeView) return;
+      disposing = true;
+      mounted = false;
+      mountAbort?.abort();
+      mountAbort = null;
+      const previous = activeView;
+      activeView = null;
       view.current = null;
+      try {
+        previous?.dispose();
+      } finally {
+        disposing = false;
+      }
+      if (resetStatus && !effectDisposed) {
+        setStatus((current) => (current === "error" ? current : "waiting"));
+      }
+    };
+    const startMount = () => {
+      if (effectDisposed || mounted || mountAbort) return;
+      mounted = true;
+      const controller = new AbortController();
+      mountAbort = controller;
+      setStatus("loading");
+      let imported = false;
+      const mount = async (): Promise<View | null> => {
+        if (collective) {
+          const { mountCollectiveScene } = await import("./wiki-collective-renderer");
+          imported = true;
+          return mountCollectiveScene(element, controller.signal);
+        }
+        if (inference) {
+          if ((section ?? 0) >= 4) {
+            const { mountOptimizationScene } = await import("./wiki-optimization-renderer");
+            imported = true;
+            return mountOptimizationScene(element, section! - 4, controller.signal);
+          }
+          const { mountInferenceScene } = await import("./wiki-inference-renderer");
+          imported = true;
+          return mountInferenceScene(element, section ?? 0, controller.signal);
+        }
+        if (id === "parallel-strategy") {
+          const { mountParallelScene } = await import("./wiki-hardware-renderer");
+          imported = true;
+          return mountParallelScene(element, setRank, controller.signal);
+        }
+        if (mechanism) {
+          const { mountParallelMechanism } = await import("./wiki-parallel-mechanism-renderer");
+          imported = true;
+          return mountParallelMechanism(element, section ?? 0, controller.signal);
+        }
+        if (id === "token-flow") {
+          const { mountRequestScene } = await import("./wiki-request-renderer");
+          imported = true;
+          return mountRequestScene(element, controller.signal);
+        }
+        if (residual) {
+          const { mountResidualScene } = await import("./wiki-residual-renderer");
+          imported = true;
+          return mountResidualScene(element, section!, controller.signal);
+        }
+        if (id === "model-compute" && (section === 1 || section === 2)) {
+          const { mountWikiModel } = await import("./wiki-scene-renderer");
+          const result = await mountWikiModel(element, controller.signal, readingHost.current!, (p) =>
+            seek(p * latest.current.total),
+          );
+          // Native modules also cache failed imports until the document reloads.
+          imported = true;
+          return result;
+        }
+        const { mountDataScene } = await import("./wiki-data-renderer");
+        imported = true;
+        return mountDataScene(element, id, controller.signal);
+      };
+      void mount()
+        .then((result) => {
+          if (!result) {
+            if (mountAbort === controller) {
+              mountAbort = null;
+              mounted = false;
+            }
+            return;
+          }
+          if (controller.signal.aborted || effectDisposed) {
+            disposing = true;
+            try {
+              result.dispose();
+            } finally {
+              disposing = false;
+            }
+            return;
+          }
+          mountAbort = null;
+          activeView = result;
+          view.current = result;
+          const next = locate(position.current);
+          result.update(next.step, latest.current.rank);
+          result.animate(next.progress);
+          setStatus("ready");
+        })
+        .catch(() => {
+          if (mountAbort === controller) {
+            mountAbort = null;
+            mounted = false;
+          }
+          if (!controller.signal.aborted && !effectDisposed) {
+            setReloadModule(!imported);
+            setStatus("error");
+          }
+        });
+    };
+    const preloadObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) startMount();
+      },
+      { rootMargin: "900px 0px" },
+    );
+    const keepaliveObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry && !entry.isIntersecting && !expandedRef.current) {
+          teardown(true);
+        }
+      },
+      { rootMargin: "1500px 0px" },
+    );
+    preloadObserver.observe(element);
+    keepaliveObserver.observe(element);
+    return () => {
+      effectDisposed = true;
+      preloadObserver.disconnect();
+      keepaliveObserver.disconnect();
+      element.removeEventListener("webglcontextlost", lost, true);
+      teardown(false);
     };
   }, [id, attempt, section]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: locate uses the current section ref; time is advanced independently by the player.

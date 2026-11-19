@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="量化验收三道闸门：精度质量、显存四笔账与吞吐Goodput图" font-family="var(--font-sans)">
+  <title>量化验收三道闸门：产物与质量精度 × 显存四笔账 × 吞吐与 Goodput</title>
+  <desc>关联源码符号：calculate_metrics, goodput_config_dict, good_completed, tpots, ttfts, resolve_block_scales, model_dtype, maybe_trans_nz</desc>
+  <defs>
+    <marker id="qe-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">① 量化上线三道顺序闸门（前闸不通过，不得用后闸的容量或吞吐数字替代结论）</text>
+
+  <!-- Gate 1: Accuracy & Correctness -->
+  <rect x="16" y="46" width="272" height="256" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.5"/>
+  <text x="30" y="74" font-size="15" font-weight="700" fill="#065f56">闸门 1：产物与质量精度</text>
+  <line x1="30" y1="86" x2="274" y2="86" stroke="#087f73" stroke-width="1.1" opacity="0.45"/>
+  <text x="30" y="110" font-size="13.5" font-weight="700" fill="#17211f">1) 先排错再谈误差</text>
+  <text x="30" y="132" font-size="13.5" fill="#4d5652">抽查 scale/零点轴向与 NZ</text>
+  <text x="30" y="156" font-size="13.5" font-weight="700" fill="#17211f">2) 中间张量诊断</text>
+  <text x="30" y="178" font-size="13.5" fill="#4d5652">MSE / 相对 L2 / SQNR / 饱和率</text>
+  <text x="30" y="202" font-size="13.5" font-weight="700" fill="#17211f">3) 独立集任务验收</text>
+  <text x="30" y="224" font-size="13.5" fill="#4d5652">与校准集隔离，分语言/长文</text>
+  <text x="30" y="248" font-size="13.5" fill="#4d5652">PPL 不可替数学/代码正确率</text>
+  <text x="30" y="284" font-size="13.5" font-weight="700" fill="#065f56">工具：AISBench / EvalScope</text>
+
+  <line x1="290" y1="174" x2="310" y2="174" stroke="#4d5652" stroke-width="1.8" marker-end="url(#qe-arr)"/>
+
+  <!-- Gate 2: 4-Account HBM -->
+  <rect x="314" y="46" width="272" height="256" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="328" y="74" font-size="15" font-weight="700" fill="#3a4f93">闸门 2：显存四笔账</text>
+  <line x1="328" y1="86" x2="572" y2="86" stroke="#4c65b6" stroke-width="1.1" opacity="0.45"/>
+  <text x="328" y="110" font-size="13.5" font-weight="700" fill="#17211f">1) 磁盘文件大小</text>
+  <text x="328" y="132" font-size="13.5" fill="#4d5652">≠ 驻留显存（可能反量化）</text>
+  <text x="328" y="156" font-size="13.5" font-weight="700" fill="#17211f">2) 加载后实际驻留</text>
+  <text x="328" y="178" font-size="13.5" fill="#4d5652">含 scale、未量化层、NZ 补齐</text>
+  <text x="328" y="202" font-size="13.5" font-weight="700" fill="#17211f">3) 启动与运行峰值</text>
+  <text x="328" y="224" font-size="13.5" fill="#4d5652">转换双副本 + 图工作区/通信</text>
+  <text x="328" y="248" font-size="13.5" font-weight="700" fill="#17211f">4) 净增可用 KV 块数</text>
+  <text x="328" y="284" font-size="13.5" font-weight="700" fill="#8f3229">防坑：A2 FP8 v0.30 回退 BF16</text>
+
+  <line x1="588" y1="174" x2="608" y2="174" stroke="#4d5652" stroke-width="1.8" marker-end="url(#qe-arr)"/>
+
+  <!-- Gate 3: Throughput & Goodput -->
+  <rect x="612" y="46" width="272" height="256" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="626" y="74" font-size="15" font-weight="700" fill="#936300">闸门 3：加速与 Goodput</text>
+  <line x1="626" y1="86" x2="870" y2="86" stroke="#c78300" stroke-width="1.1" opacity="0.45"/>
+  <text x="626" y="110" font-size="13.5" font-weight="700" fill="#17211f">1) Amdahl 耗时拆账</text>
+  <text x="626" y="132" font-size="13.5" fill="#4d5652">读权 60→30 + 新增转 10 + 余 40</text>
+  <text x="626" y="154" font-size="13.5" font-weight="700" fill="#936300">100 ms → 80 ms（1.25× 非 2×）</text>
+  <text x="626" y="182" font-size="13.5" font-weight="700" fill="#17211f">2) 双端指标齐报</text>
+  <text x="626" y="204" font-size="13.5" fill="#4d5652">TTFT / TPOT / ITL / P95·P99</text>
+  <text x="626" y="228" font-size="13.5" font-weight="700" fill="#17211f">3) 达标吞吐 Goodput</text>
+  <text x="626" y="250" font-size="13.5" fill="#4d5652">全目标满足才计数（剔除预热）</text>
+  <text x="626" y="284" font-size="13.5" fill="#8f3229">单 token 请求 TPOT=0 仅统计约定</text>
+
+  <line x1="16" y1="322" x2="884" y2="322" stroke="#b8bcb5" stroke-width="1.4" stroke-dasharray="6 5"/>
+
+  <!-- Zone 2: Failure routing -->
+  <text x="16" y="350" font-size="16" font-weight="700" fill="#17211f">② 未过闸时的单变量排查流向（先锁死模型、模板、采样与版本提交，再每次改一项）</text>
+
+  <rect x="16" y="366" width="424" height="90" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="30" y="392" font-size="14.5" font-weight="700" fill="#8f3229">质量不达标 → 查产物 / 敏感层 / 校准覆盖</text>
+  <text x="30" y="417" font-size="13.5" fill="#4d5652">1) 核对首次分歧层与 scale/NZ 是否读错</text>
+  <text x="30" y="441" font-size="13.5" fill="#4d5652">2) 敏感层回退原高精度权重（非改回浮点 dtype）</text>
+
+  <rect x="460" y="366" width="424" height="90" rx="7" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="474" y="392" font-size="14.5" font-weight="700" fill="#7a3a6a">速度或显存不达标 → 查实际算子与时间线</text>
+  <text x="474" y="417" font-size="13.5" fill="#4d5652">1) 查日志确认走低精度融合核，未回退反量化 GEMM</text>
+  <text x="474" y="441" font-size="13.5" fill="#4d5652">2) 拆开加载转换与稳态前向，区分计算/通信/排队</text>
+</svg>

@@ -1,0 +1,18 @@
+mode: native-svg
+id: tensor-layout-fig-nd-nz-cube
+caption: >-
+  ND 行优先与分形 FRACTAL_NZ（16×16 / 16×32 Cube 对齐块）及加载期 maybe_trans_nz 决策闸门：上半部展示 FP16/BF16 按 16×16、INT8 按 16×32 切块后「块间大 N 列优先、块内小 z 行优先」的物理重排与未对齐补齐开销（17×17 FP16 载荷从 578 B 增至 2,048 B）；下半部还原 v0.30.0 _should_trans_nz 决策链，310P 的 FORCE_NZ 先于 weight_nz_mode=0 生效，W8A8 专家层则另走直接转置+转 NZ 分支。
+size: [900, 470]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L352-L412'
+    symbols:
+      - _should_trans_nz
+      - maybe_trans_nz
+      - maybe_trans_nz_with_scale
+      - ACL_FORMAT_FRACTAL_NZ
+      - weight_nz_mode
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L325'
+    symbols:
+      - WeightLayoutPolicy
+      - FORCE_NZ
+      - AscendDeviceType

@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 490" width="900" height="490" role="img" aria-label="TTFT 飙高与 TPOT/ITL 抖动六分支性能排障决策漏斗图" font-family="var(--font-sans)">
+  <title>性能排障决策漏斗：从 TTFT 飙高与 TPOT/ITL 抖动落入六条证据路径</title>
+  <desc>Decision funnel separating TTFT spikes vs TPOT/ITL jitter into six evidence-backed troubleshooting branches and tradeoffs</desc>
+  <defs>
+    <marker id="ipt-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4d5652"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">性能排障决策漏斗：先用首取证据切阶段，再按六分支做单变量对照</text>
+
+  <!-- Row 1: Two main symptom gates -->
+  <rect x="16" y="44" width="424" height="62" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.5"/>
+  <text x="228" y="70" text-anchor="middle" font-size="15" font-weight="700" fill="#936300">现象 A：TTFT 首字慢（提交到首个 token 久）</text>
+  <text x="228" y="94" text-anchor="middle" font-size="13.5" fill="#4d5652">先看 waiting 队列与各 DP 组负载，再查 Prefill 步长</text>
+
+  <rect x="460" y="44" width="424" height="62" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.5"/>
+  <text x="672" y="70" text-anchor="middle" font-size="15" font-weight="700" fill="#3a4f93">现象 B：TPOT / ITL 抖动（回答到一半卡顿）</text>
+  <text x="672" y="94" text-anchor="middle" font-size="13.5" fill="#4d5652">先看混合步/抢占/主机空隙/卡间迟到，再查返回链路</text>
+
+  <!-- Down arrows to Stage 2 -->
+  <line x1="228" y1="106" x2="228" y2="128" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ipt-arr)"/>
+  <line x1="672" y1="106" x2="672" y2="128" stroke="#4d5652" stroke-width="1.5" marker-end="url(#ipt-arr)"/>
+
+  <!-- 6 branches in 2 rows of 3 cards -->
+  <!-- Branch 1 -->
+  <rect x="16" y="132" width="278" height="128" rx="8" fill="#fff4cf" stroke="#c78300" stroke-width="1.3"/>
+  <text x="30" y="158" font-size="14.5" font-weight="700" fill="#936300">① 还没轮到计算（排队主导）</text>
+  <text x="30" y="182" font-size="13.5" fill="#4d5652">证据：入队→首调占比最高</text>
+  <text x="30" y="205" font-size="13.5" fill="#4d5652">区分：降到达率 + 按组查偏斜</text>
+  <text x="30" y="229" font-size="13.5" fill="#936300">杠杆：限流 / DP 路由 / 扩容</text>
+  <text x="30" y="250" font-size="13.5" fill="#66716d">边界：降压改善 ≠ 引擎加速</text>
+
+  <!-- Branch 2 -->
+  <rect x="311" y="132" width="278" height="128" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.3"/>
+  <text x="325" y="158" font-size="14.5" font-weight="700" fill="#065f56">② 已经安排但单步很长</text>
+  <text x="325" y="182" font-size="13.5" fill="#4d5652">证据：混合步/长历史算子耗时</text>
+  <text x="325" y="205" font-size="13.5" fill="#4d5652">区分：调步预算看是否实际切块</text>
+  <text x="325" y="229" font-size="13.5" fill="#065f56">杠杆：Chunked Prefill / 量化 / MTP</text>
+  <text x="325" y="250" font-size="13.5" fill="#66716d">边界：小预算保 ITL 但拖长 TTFT</text>
+
+  <!-- Branch 3 -->
+  <rect x="606" y="132" width="278" height="128" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="620" y="158" font-size="14.5" font-weight="700" fill="#8f3229">③ 设备算子间反复空着</text>
+  <text x="620" y="182" font-size="13.5" fill="#4d5652">证据：trace 空白多、单算子不长</text>
+  <text x="620" y="205" font-size="13.5" fill="#4d5652">区分：CPU 迟交 vs 设备等前序</text>
+  <text x="620" y="229" font-size="13.5" fill="#8f3229">杠杆：ACLGraph / CPU 绑核 / 异步</text>
+  <text x="620" y="250" font-size="13.5" fill="#66716d">边界：核实图命中与 MRV1/MRV2</text>
+
+  <!-- Branch 4 -->
+  <rect x="16" y="276" width="278" height="128" rx="8" fill="#e8edff" stroke="#4c65b6" stroke-width="1.3"/>
+  <text x="30" y="302" font-size="14.5" font-weight="700" fill="#3a4f93">④ 缓存紧张与频繁抢占</text>
+  <text x="30" y="326" font-size="13.5" fill="#4d5652">证据：空闲块枯竭、暂停/重算增</text>
+  <text x="30" y="349" font-size="13.5" fill="#4d5652">区分：控并发/长文看抢占消退</text>
+  <text x="30" y="373" font-size="13.5" fill="#3a4f93">杠杆：控并发 / KV 精度 / 分层卸载</text>
+  <text x="30" y="394" font-size="13.5" fill="#66716d">边界：放宽 KV 会挤占图与缓冲</text>
+
+  <!-- Branch 5 -->
+  <rect x="311" y="276" width="278" height="128" rx="8" fill="#f7e7f2" stroke="#9a4b86" stroke-width="1.3"/>
+  <text x="325" y="302" font-size="14.5" font-weight="700" fill="#7a3a6a">⑤ 多卡一起慢（通信区间长）</text>
+  <text x="325" y="326" font-size="13.5" fill="#4d5652">证据：全 rank 对齐通信到达时刻</text>
+  <text x="325" y="349" font-size="13.5" fill="#4d5652">区分：单卡迟到 vs 链路交换慢</text>
+  <text x="325" y="373" font-size="13.5" fill="#7a3a6a">杠杆：DP 路由 / EPLB / 换并行</text>
+  <text x="325" y="394" font-size="13.5" fill="#66716d">边界：跨过门槛会牵动 MC2/AllGather</text>
+
+  <!-- Branch 6 -->
+  <rect x="606" y="276" width="278" height="128" rx="8" fill="#ece9df" stroke="#8a928f" stroke-width="1.3"/>
+  <text x="620" y="302" font-size="14.5" font-weight="700" fill="#17211f">⑥ 设备算完了，客户端还在等</text>
+  <text x="620" y="326" font-size="13.5" fill="#4d5652">证据：设备早结束但首字/块晚到</text>
+  <text x="620" y="349" font-size="13.5" fill="#4d5652">区分：直连 vs 反代、停止串缓冲</text>
+  <text x="620" y="373" font-size="13.5" fill="#17211f">杠杆：关反代缓冲 / 查前端解析</text>
+  <text x="620" y="394" font-size="13.5" fill="#66716d">边界：勿拿继续调步预算治返回慢</text>
+
+  <!-- Bottom acceptance bar -->
+  <rect x="16" y="422" width="868" height="54" rx="8" fill="#ddf4ef" stroke="#087f73" stroke-width="1.4"/>
+  <text x="450" y="446" text-anchor="middle" font-size="14.5" font-weight="700" fill="#065f56">验收铁律：关闭 Profiler / 恢复目标配置复测 → 同报 Goodput、TTFT/ITL、失败数、峰值显存与输出质量</text>
+  <text x="450" y="467" text-anchor="middle" font-size="13.5" fill="#4d5652">单变量联动提醒：改预算或并发时，须一并记录最终 Runner（MRV1/MRV2）、图模式、MC2 通信路径与 KV 预算后处理</text>
+</svg>

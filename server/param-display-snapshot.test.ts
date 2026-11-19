@@ -41,7 +41,7 @@ const ORACLE_ROWS = [
   {
     id: "size-40a1c2ca47b8",
     file: "params/size-40a1c2ca47b8.md",
-    sha256: "384440db2e88ce794cbc9bde5cac9efcb7d31ae508cb4f8e3b5af36aa4b85ca3",
+    sha256: "d5be4723dff0db35c1875324cd2d1d150f06a20e1fca72e9f2063f15aa99ea21",
     expectedDisplay: "KVPPConfig.size",
   },
   {

@@ -100,7 +100,7 @@ test("主章节入口呈现主题目录，全文与章节翻页使用知识库",
     page.getByTestId("wiki-body").getByRole("heading", { name: "对照源码", exact: true }),
   ).toBeVisible();
   await expect(page.getByTestId("wiki-body").locator("figure svg").first()).toBeVisible();
-  await expect(page.locator(".wiki-calc").first()).toBeVisible();
+  await expect(page.getByTestId("wiki-body").locator(".katex").first()).toBeVisible();
   await expect(directory.getByRole("link", { name: /^Embedding/ })).toHaveAttribute("aria-current", "page");
   await page
     .getByRole("navigation", { name: "章节翻页" })

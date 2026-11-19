@@ -56,7 +56,8 @@ describe("WikiAssistantProvider & WikiToolBlock", () => {
     );
     expect(okHtml).toContain('data-testid="wiki-tool-config-doctor"');
     expect(okHtml).toContain("最小起服务体检");
-    expect(okHtml).toContain("mode: minimal");
+    expect(okHtml).toContain("最小起服务");
+    expect(okHtml).toContain('data-mode="minimal"');
     expect(okHtml).toContain("核对单机配置");
 
     const badHtml = renderToStaticMarkup(createElement(WikiToolBlock, { source: "tool: nonexistent" }));

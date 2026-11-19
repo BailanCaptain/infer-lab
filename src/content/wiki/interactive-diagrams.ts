@@ -95,7 +95,7 @@ export interface InteractiveDiagramRegistration {
 const VALID_DIAGRAM_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export const QUANTIZATION_INTUITION_APPROVED_SHA256 =
-  "1def4a3114ad4757dd3e8e6486778cd5e214f21c0829914ee9fba48f91ddc953";
+  "7c355dcfe62defe58f6d552e27f070edefc836edc4131fdc21ba9ad9b405b1eb";
 
 /**
  * 人工代码审查的编译期静态白名单注册表：

@@ -662,6 +662,49 @@ describe("Wave 4 异构注意力与条件记忆账本（MLA / CSA2 / KDA / Engra
       offloaded.hcclEstimate.totalMaterializedMiB,
     );
   });
+
+  it("Audit Wave 6 回归：kvCacheDtype=mxfp8 仅对非 MLA 全注意力按 33/32 B 计价，MLA 回退模型 dtype (2 B) 且 CSA2/DSA 硬阻断", () => {
+    // Non-MLA full attention (Qwen3-8B) on 950DT: 33/32 B/elem
+    const gqaMxfp8 = evaluateDeployPlan({
+      model: "qwen3-8b",
+      cardId: "950dt-128g",
+      kvCacheDtype: "mxfp8",
+      blockSize: 512,
+    });
+    // 36 layers * 2 * 8 kv_heads * 128 head_dim * (33/32) = 76,032 B/tok
+    expect(gqaMxfp8.fourQuestions.q2Capacity.kvBytesPerTokenPerRank).toBe(36 * 2 * 8 * 128 * (33 / 32));
+
+    // Standard MLA (DeepSeek-V3) on 950DT with kvCacheDtype="mxfp8": falls back to 2 B/elem (1152 B/tok/layer) + surfaces caveat
+    const mlaMxfp8 = evaluateDeployPlan({
+      model: mlaPreset.config,
+      cardId: "950dt-128g",
+      weightPrecision: "w8a8_dynamic",
+      kvCacheDtype: "mxfp8",
+      blockSize: 512,
+      tpSize: 8,
+      enableEp: true,
+    });
+    expect(mlaMxfp8.wave4Arch.mla?.latentBytesPerTokenPerLayer).toBe(1152);
+    expect(mlaMxfp8.fourQuestions.q2Capacity.kvBytesPerTokenPerRank).toBe(61 * 1152);
+    expect(
+      mlaMxfp8.fourQuestions.q1Fit.silentRewrites.some((r) => r.id === "calc-mxfp8-kv-mla-fallback"),
+    ).toBe(true);
+
+    // CSA2 / DSA sparse MLA on 950DT with kvCacheDtype="mxfp8": rejects mxfp8 (blocker) + does NOT price at 33/32 B
+    const csa2Mxfp8 = evaluateDeployPlan({
+      model: csa2Preset.config,
+      cardId: "950dt-128g",
+      weightPrecision: "w8a8_dynamic",
+      kvCacheDtype: "mxfp8",
+      blockSize: 512,
+      tpSize: 8,
+      enableEp: true,
+    });
+    expect(csa2Mxfp8.wave4Arch.mla?.latentBytesPerTokenPerLayer).toBe(1152);
+    expect(csa2Mxfp8.fourQuestions.q1Fit.blockers.some((b) => b.id === "calc-mxfp8-kv-unsupported-dsa")).toBe(
+      true,
+    );
+  });
 });
 
 describe("Wiki Deep-Link Canonical ID 契约校验", () => {

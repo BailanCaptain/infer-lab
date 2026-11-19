@@ -23,7 +23,7 @@ export const domain4Rules: readonly CouplingRule[] = [
   {
     id: "d4-ulysses-ring-no-runtime-flags",
     domain: "cp-pd",
-    title: "Ulysses / Ring CP Have Zero Runtime Flags in vllm / vllm-ascend",
+    title: "Ulysses / Ring CP 在 vllm / vllm-ascend 中无对应运行时参数",
     judgment: "warn",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -31,8 +31,8 @@ export const domain4Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/feature_guide/context_parallel.md#L18-L61`,
     ],
     description:
-      "Ulysses and Ring Attention are architectural comparison routes only (zero runtime flags in vllm or vllm-ascend); Ascend implements Context Parallelism via PCP + DCP.",
-    rationale: "Prevents configuring non-existent CLI flags for Ulysses/Ring CP.",
+      "Ulysses 与 Ring Attention 仅作为架构对比概念（vllm 与 vllm-ascend 中无对应运行时开关）；昇腾通过 PCP + DCP 实现上下文并行。",
+    rationale: "避免尝试配置并不存在的 Ulysses/Ring CP 命令行参数。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (input.cpRoute !== "ulysses" && input.cpRoute !== "ring") return null;
@@ -44,14 +44,14 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `CP route '${input.cpRoute}' has 0 runtime flags in vllm/vllm-ascend; Ascend implements context parallelism via PCP + DCP.`,
+        message: `CP 路线 '${input.cpRoute}' 在 vllm / vllm-ascend 中没有运行时参数；昇腾通过 PCP + DCP 实现上下文并行。`,
       };
     },
   },
   {
     id: "d4-pcp-requires-mrv2",
     domain: "cp-pd",
-    title: "PCP > 1 Without ModelRunner V2 Raises ValueError (Not Silent Force)",
+    title: "PCP > 1 未启用 ModelRunner V2 会直接抛 ValueError（不会静默强制开启）",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -61,8 +61,8 @@ export const domain4Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/feature_guide/context_parallel.md#L54-L61`,
     ],
     description:
-      "Prefill Context Parallelism (PCP > 1) requires VLLM_USE_V2_MODEL_RUNNER=1 (use_v2_model_runner=True) and raises ValueError otherwise; it does NOT silently enable MRV2.",
-    rationale: "Upstream v1 model runner lacks Ascend PCP support without MRV2.",
+      "Prefill 上下文并行（PCP > 1）要求 VLLM_USE_V2_MODEL_RUNNER=1（use_v2_model_runner=True），否则直接抛 ValueError，不会静默启用 MRV2。",
+    rationale: "旧版 V1 ModelRunner 不支持昇腾 PCP。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const pcp = input.pcpSize ?? 1;
@@ -75,23 +75,23 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `ValueError: PCP=${pcp} > 1 requires use_v2_model_runner (VLLM_USE_V2_MODEL_RUNNER=1); platform.py does NOT silently force MRV2.`,
-        remediation: "Export VLLM_USE_V2_MODEL_RUNNER=1 or set --prefill-context-parallel-size 1.",
+        message: `ValueError: PCP=${pcp} > 1 要求启用 use_v2_model_runner（VLLM_USE_V2_MODEL_RUNNER=1）；platform.py 不会静默强制开启 MRV2。`,
+        remediation: "导出 VLLM_USE_V2_MODEL_RUNNER=1，或将 --prefill-context-parallel-size 设为 1。",
       };
     },
   },
   {
     id: "d4-pcp-full-cudagraph-unsupported",
     domain: "cp-pd",
-    title: "PCP > 1 Does Not Support FULL CUDAGraph Mode",
+    title: "PCP > 1 不支持 FULL CUDAGraph 模式",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
     sources: [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/feature_guide/context_parallel.md#L22-L26`,
     ],
-    description: "context_parallel.md specifies that FULL cudagraph mode is unsupported when PCP > 1.",
-    rationale: "PCP graph capture is only partially compatible with ACLGraph modes.",
+    description: "context_parallel.md 明确说明 PCP > 1 时不支持 FULL cudagraph 模式。",
+    rationale: "PCP 图捕获仅与部分 ACLGraph 模式兼容。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const pcp = input.pcpSize ?? 1;
@@ -104,22 +104,22 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `FULL cudagraph_mode is unsupported with PCP=${pcp} > 1.`,
-        remediation: "Use PIECEWISE or FULL_DECODE_ONLY instead of FULL when PCP > 1.",
+        message: `PCP=${pcp} > 1 时不支持 cudagraph_mode=FULL。`,
+        remediation: "在 PCP > 1 场景改用 PIECEWISE 或 FULL_DECODE_ONLY。",
       };
     },
   },
   {
     id: "d4-dsa-cp-pcp-mutex",
     domain: "cp-pd",
-    title: "enable_dsa_cp Mutually Exclusive with PCP > 1 (v0.30.0)",
+    title: "enable_dsa_cp 与 PCP > 1 互斥（v0.30.0）",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L697-L702`],
     description:
-      "In v0.30.0, AscendConfig raises ValueError when enable_dsa_cp and prefill_context_parallel_size > 1 are both enabled (enable_dsa_cp was removed in main).",
-    rationale: "DSA-CP and PCP manage context partitioning independently.",
+      "v0.30.0 下同时开启 enable_dsa_cp 与 prefill_context_parallel_size > 1 时，AscendConfig 直接抛 ValueError（main 已移除 enable_dsa_cp）。",
+    rationale: "DSA-CP 与 PCP 分别管理上下文切分，不能同时生效。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const pcp = input.pcpSize ?? 1;
@@ -132,22 +132,22 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: "ValueError: DSA-CP and PCP > 1 cannot be enabled at the same time.",
-        remediation: "Remove enable_dsa_cp when using PCP > 1.",
+        message: "ValueError: DSA-CP 与 PCP > 1 不能同时启用。",
+        remediation: "使用 PCP > 1 时请移除 enable_dsa_cp。",
       };
     },
   },
   {
     id: "d4-dsa-cp-mrv2-v030",
     domain: "cp-pd",
-    title: "DSA-CP Rejected on ModelRunner V2 (v0.30.0 Only)",
+    title: "v0.30.0 下 DSA-CP 不支持 ModelRunner V2",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L703-L708`],
     description:
-      "In v0.30.0, enable_dsa_cp with use_v2_model_runner raises ValueError; this rejection (and enable_dsa_cp) was removed in main.",
-    rationale: "MRV2 support / DSA-CP deprecation landed after v0.30.0.",
+      "v0.30.0 中 enable_dsa_cp 与 use_v2_model_runner 同开会抛 ValueError；main 分支已移除该限制与 enable_dsa_cp。",
+    rationale: "MRV2 兼容与 DSA-CP 下线发生在 v0.30.0 之后。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.enableDsaCp || !input.useV2ModelRunner) return null;
@@ -159,15 +159,15 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: "ValueError: In v0.30.0, DSA-CP is not supported by Model Runner V2.",
-        remediation: "Disable VLLM_USE_V2_MODEL_RUNNER or use PCP instead of DSA-CP on v0.30.0.",
+        message: "ValueError: v0.30.0 下 Model Runner V2 不支持 DSA-CP。",
+        remediation: "在 v0.30.0 上关闭 VLLM_USE_V2_MODEL_RUNNER，或改用 PCP 替代 DSA-CP。",
       };
     },
   },
   {
     id: "d4-pcp-dcp-sizing",
     domain: "cp-pd",
-    title: "PCP + DCP Group Sizing & GQA/SFA Divisibility Constraints",
+    title: "PCP + DCP 分组尺寸与 GQA/SFA 整除约束",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -178,9 +178,8 @@ export const domain4Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/platform.py#L2153-L2166`,
     ],
     description:
-      "Enforces pcp==1 -> tp%dcp==0; pcp>1 -> dcp in {1, pcp, tp*pcp}; GQA/MQA pcp>1 & dcp>1 -> pcp==dcp plus KV head divisibility; and SFA replicated indexer -> dcp in {pcp, tp*pcp}.",
-    rationale:
-      "KV cache interleave/layout between prefill and decode requires compatible PCP/DCP/TP/KV-head multiples.",
+      "强制校验：pcp==1 时 tp%dcp==0；pcp>1 时 dcp ∈ {1, pcp, tp*pcp}；GQA/MQA 下 pcp>1 且 dcp>1 时 pcp==dcp 及 KV 头整除；SFA 副本索引器下 dcp ∈ {pcp, tp*pcp}。",
+    rationale: "Prefill 与 Decode 间 KV Cache 交织布局要求 PCP / DCP / TP / KV 头满足整除匹配。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const tp = Math.max(1, input.tpSize ?? 1);
@@ -189,34 +188,32 @@ export const domain4Rules: readonly CouplingRule[] = [
       const errors: string[] = [];
 
       if (pcp === 1 && dcp > 1 && tp % dcp !== 0) {
-        errors.push(`when pcp=1, tp (${tp}) must be divisible by dcp (${dcp})`);
+        errors.push(`pcp=1 时 tp (${tp}) 必须能被 dcp (${dcp}) 整除`);
       }
       if (pcp > 1 && dcp !== 1 && dcp !== pcp && dcp !== tp * pcp) {
-        errors.push(`when pcp=${pcp} > 1, dcp (${dcp}) must be in {1, ${pcp}, ${tp * pcp}}`);
+        errors.push(`pcp=${pcp} > 1 时 dcp (${dcp}) 必须属于 {1, ${pcp}, ${tp * pcp}}`);
       }
 
       const isGqaMqa = !input.useMla;
       if (isGqaMqa && dcp > 1) {
         if (pcp > 1 && pcp !== dcp) {
-          errors.push(`GQA/MQA PCP+DCP requires pcp (${pcp}) == dcp (${dcp})`);
+          errors.push(`GQA/MQA 开启 PCP+DCP 时要求 pcp (${pcp}) == dcp (${dcp})`);
         }
         if (input.numKvHeads !== undefined) {
           if (input.numKvHeads <= 0) {
-            errors.push(`GQA/MQA requires total_num_kv_heads > 0 (got ${input.numKvHeads})`);
+            errors.push(`GQA/MQA 要求 total_num_kv_heads > 0（当前 ${input.numKvHeads}）`);
           } else {
             if (tp <= input.numKvHeads) {
-              errors.push(
-                `GQA/MQA with dcp>1 requires tp (${tp}) > total_num_kv_heads (${input.numKvHeads})`,
-              );
+              errors.push(`GQA/MQA 开启 dcp>1 时要求 tp (${tp}) > total_num_kv_heads (${input.numKvHeads})`);
             } else if (dcp > Math.floor(tp / input.numKvHeads)) {
               errors.push(
-                `GQA/MQA requires dcp (${dcp}) <= tp // total_num_kv_heads (${Math.floor(tp / input.numKvHeads)})`,
+                `GQA/MQA 要求 dcp (${dcp}) <= tp // total_num_kv_heads (${Math.floor(tp / input.numKvHeads)})`,
               );
             }
             if (input.numAttentionHeads !== undefined) {
               const groupSize = Math.floor(input.numAttentionHeads / input.numKvHeads);
               if (groupSize % dcp !== 0) {
-                errors.push(`GQA/MQA requires (num_heads / num_kv_heads = ${groupSize}) % dcp (${dcp}) == 0`);
+                errors.push(`GQA/MQA 要求 (num_heads / num_kv_heads = ${groupSize}) % dcp (${dcp}) == 0`);
               }
             }
           }
@@ -226,13 +223,13 @@ export const domain4Rules: readonly CouplingRule[] = [
       if (input.sfaDcpReplicatedIndexer) {
         if (version === "rfork") {
           if (dcp !== tp) {
-            errors.push(`rfork SFA replicated indexer requires dcp (${dcp}) == tp (${tp})`);
+            errors.push(`rfork SFA 副本索引器要求 dcp (${dcp}) == tp (${tp})`);
           }
           if (input.hardwareFamily === "A5") {
-            errors.push("rfork SFA DCP with replicated indexer is not supported on A5");
+            errors.push("rfork SFA DCP（副本索引器）不支持 A5");
           }
         } else if (dcp !== pcp && dcp !== tp * pcp) {
-          errors.push(`SFA replicated indexer requires dcp (${dcp}) in {${pcp}, ${tp * pcp}}`);
+          errors.push(`SFA 副本索引器要求 dcp (${dcp}) 属于 {${pcp}, ${tp * pcp}}`);
         }
       }
 
@@ -245,14 +242,14 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `ValueError / AssertionError: PCP/DCP sizing invalid: ${errors.join("; ")}.`,
+        message: `ValueError / AssertionError: PCP/DCP 分组尺寸非法：${errors.join("；")}。`,
       };
     },
   },
   {
     id: "d4-mooncake-decode-pp-eq-1",
     domain: "cp-pd",
-    title: "MooncakeConnector Requires D-Node PP == 1",
+    title: "MooncakeConnector 要求 D 节点 PP == 1",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -260,8 +257,8 @@ export const domain4Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2240-L2241`,
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/feature_guide/pipeline_parallel.md#L437`,
     ],
-    description: "MooncakeConnector / MooncakeConnectorV1 asserts decode_parallel_config['pp_size'] == 1.",
-    rationale: "Cross-engine KV pull mapping does not support multi-stage PP on the decode consumer.",
+    description: "MooncakeConnector / MooncakeConnectorV1 断言 decode_parallel_config['pp_size'] == 1。",
+    rationale: "跨引擎 KV 拉取映射不支持 Decode 消费端开启多阶段 PP。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!isAnyMooncakeConnector(input.kvConnector)) return null;
@@ -275,23 +272,23 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `AssertionError: ${input.kvConnector} requires D-node (kv_consumer) PP == 1 (got PP=${pp}).`,
-        remediation: "Set --pipeline-parallel-size 1 on the Decode node.",
+        message: `AssertionError: ${input.kvConnector} 要求 D 节点（kv_consumer）PP == 1（当前 PP=${pp}）。`,
+        remediation: "在 Decode 节点上设置 --pipeline-parallel-size 1。",
       };
     },
   },
   {
     id: "d4-mooncake-decode-pcp-eq-1",
     domain: "cp-pd",
-    title: "MooncakeConnector Requires D-Node PCP == 1",
+    title: "MooncakeConnector 要求 D 节点 PCP == 1",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
     sources: [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2153-L2157`,
     ],
-    description: "MooncakeConnector raises ValueError if kv_role == 'kv_consumer' and pcp_size > 1.",
-    rationale: "Mooncake supports PCP only on the prefill (kv_producer) engine.",
+    description: "当 kv_role == 'kv_consumer' 且 pcp_size > 1 时，MooncakeConnector 直接抛 ValueError。",
+    rationale: "Mooncake 仅在 Prefill 端（kv_producer）支持 PCP。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!isAnyMooncakeConnector(input.kvConnector)) return null;
@@ -305,22 +302,22 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `ValueError: ${input.kvConnector} supports PCP only on P-node; D-node PCP must be 1 (got PCP=${pcp}).`,
+        message: `ValueError: ${input.kvConnector} 仅在 P 节点支持 PCP，D 节点 PCP 必须为 1（当前 PCP=${pcp}）。`,
       };
     },
   },
   {
     id: "d4-mooncake-pp-pcp-mutex",
     domain: "cp-pd",
-    title: "MooncakeConnector Forbids PP > 1 and PCP > 1 Simultaneously",
+    title: "MooncakeConnector 禁止同时开启 PP > 1 与 PCP > 1",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
     sources: [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2146`,
     ],
-    description: "MooncakeConnector asserts not (pp_size > 1 and pcp_size > 1).",
-    rationale: "Combined PP and PCP rank mapping is unimplemented in MooncakeConnector.",
+    description: "MooncakeConnector 断言 not (pp_size > 1 and pcp_size > 1)。",
+    rationale: "MooncakeConnector 尚未实现 PP 与 PCP 联合 rank 映射。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!isAnyMooncakeConnector(input.kvConnector)) return null;
@@ -335,14 +332,14 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `AssertionError: ${input.kvConnector} cannot enable PP (${pp} > 1) and PCP (${pcp} > 1) simultaneously.`,
+        message: `AssertionError: ${input.kvConnector} 不能同时启用 PP（${pp} > 1）与 PCP（${pcp} > 1）。`,
       };
     },
   },
   {
     id: "d4-mooncake-tp-p-divisible-tp-d",
     domain: "cp-pd",
-    title: "MooncakeConnector Requires TP_P % TP_D == 0",
+    title: "MooncakeConnector 要求 TP_P % TP_D == 0",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -352,9 +349,8 @@ export const domain4Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L4041`,
     ],
     description:
-      "MooncakeConnector requires prefill_tp_size % decode_tp_size == 0 (explicitly asserted for Hybrid Mamba and assumed in GQA non-replicated KV pull group_size = prefill_tp_size // decode_tp_size).",
-    rationale:
-      "KV cache head-slice pull assumes each Decode TP rank maps cleanly onto an integer group of Prefill TP ranks.",
+      "MooncakeConnector 要求 prefill_tp_size % decode_tp_size == 0（Hybrid Mamba 显式断言，GQA 非复制 KV 拉取亦按 group_size = prefill_tp_size // decode_tp_size 假设）。",
+    rationale: "KV Cache 头切片拉取要求每个 Decode TP rank 整除映射到若干 Prefill TP rank。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!isAnyMooncakeConnector(input.kvConnector)) return null;
@@ -368,15 +364,15 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `MooncakeConnector requires TP_P (${input.prefillTpSize}) % TP_D (${input.decodeTpSize}) == 0.`,
-        remediation: "Choose TP_P as an integer multiple of TP_D.",
+        message: `MooncakeConnector 要求 TP_P (${input.prefillTpSize}) % TP_D (${input.decodeTpSize}) == 0。`,
+        remediation: "将 TP_P 调整为 TP_D 的整数倍。",
       };
     },
   },
   {
     id: "d4-mooncake-gqa-c8-forbidden",
     domain: "cp-pd",
-    title: "MooncakeConnector + GQA + C8 KV Quantization Forbidden (Use MooncakeLayerwiseConnector)",
+    title: "MooncakeConnector + GQA 禁止直接开 C8 KV 量化（请改用 MooncakeLayerwiseConnector）",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -385,9 +381,8 @@ export const domain4Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/utils.py#L1629`,
     ],
     description:
-      "MooncakeConnector / MooncakeConnectorV1 / MooncakeConnectorV2 with GQA and enable_c8_quant=True raises ValueError because producer stores bf16 while consumer allocates int8; must use MooncakeLayerwiseConnector or disable C8.",
-    rationale:
-      "Raw Mooncake P2P transfer would reinterpret bf16 bytes as int8 without layerwise pre-transfer quantization.",
+      "GQA 模型使用 MooncakeConnector / V1 / V2 并开启 enable_c8_quant=True 时直接抛 ValueError（P 端存 BF16 而 D 端分配 INT8）；必须改用 MooncakeLayerwiseConnector 或关闭 C8。",
+    rationale: "普通 Mooncake P2P 传输未经逐层量化转换，会把 BF16 字节误当 INT8 读取。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.kvConnector || !MOONCAKE_NON_LAYERWISE_CONNECTORS.has(input.kvConnector)) return null;
@@ -405,15 +400,15 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `ValueError: ${input.kvConnector} does not support C8 KV cache quantization on GQA models.`,
-        remediation: "Switch to MooncakeLayerwiseConnector or disable C8 KV cache quantization.",
+        message: `ValueError: ${input.kvConnector} 不支持在 GQA 模型上开启 C8 KV Cache 量化。`,
+        remediation: "改用 MooncakeLayerwiseConnector，或关闭 C8 KV Cache 量化。",
       };
     },
   },
   {
     id: "d4-recompute-scheduler-p-node-disable",
     domain: "cp-pd",
-    title: "recompute_scheduler_enable Silently Disabled on P-Node",
+    title: "P 节点上 recompute_scheduler_enable 会被静默关闭",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -422,9 +417,8 @@ export const domain4Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/platform.py#L1288-L1305`,
     ],
     description:
-      "When recompute_scheduler_enable=True on a P-node (kv_role='kv_producer'), NPUPlatform logs a warning and silently sets recompute_scheduler_enable=False.",
-    rationale:
-      "Recompute scheduling is only meaningful for decode nodes handling KV preemption/recomputation.",
+      "在 P 节点（kv_role='kv_producer'）开启 recompute_scheduler_enable=True 时，NPUPlatform 打印告警并静默改写为 False。",
+    rationale: "重计算调度仅对处理 KV 抢占与重算的 Decode 节点有意义。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.recomputeSchedulerEnable || input.kvRole !== "kv_producer") return null;
@@ -436,7 +430,7 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: "recompute_scheduler_enable=True on P-node (kv_producer) is silently disabled to False.",
+        message: "P 节点（kv_producer）上的 recompute_scheduler_enable=True 会被静默关闭为 False。",
         effectiveMutation: { recomputeSchedulerEnable: false },
       };
     },
@@ -444,7 +438,7 @@ export const domain4Rules: readonly CouplingRule[] = [
   {
     id: "d4-recompute-scheduler-non-d-node-error",
     domain: "cp-pd",
-    title: "recompute_scheduler_enable Rejected on Non-PD or kv_both Instances",
+    title: "非 PD 分离或 kv_both 实例禁止开启 recompute_scheduler_enable",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -453,9 +447,8 @@ export const domain4Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/platform.py#L1306-L1318`,
     ],
     description:
-      "When recompute_scheduler_enable=True with no kv_transfer_config or kv_role='kv_both' (PD-mixed), NPUPlatform raises ValueError.",
-    rationale:
-      "RecomputeSchedulerConfig is restricted exclusively to PD-disaggregated D-nodes (kv_consumer).",
+      "未配置 kv_transfer_config 或 kv_role='kv_both'（PD 混部）时开启 recompute_scheduler_enable=True，NPUPlatform 直接抛 ValueError。",
+    rationale: "RecomputeSchedulerConfig 仅限 PD 分离架构的 D 节点（kv_consumer）使用。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.recomputeSchedulerEnable) return null;
@@ -468,14 +461,14 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `ValueError: recompute_scheduler_enable is only supported on PD-disaggregated D-nodes (kv_role='kv_consumer'), got kv_role=${input.kvRole ?? "None"}.`,
+        message: `ValueError: recompute_scheduler_enable 仅支持 PD 分离的 D 节点（kv_role='kv_consumer'），当前 kv_role=${input.kvRole ?? "None"}。`,
       };
     },
   },
   {
     id: "d4-finegrained-tp-requires-recompute",
     domain: "cp-pd",
-    title: "finegrained_tp_config Requires recompute_scheduler_enable=True",
+    title: "finegrained_tp_config 要求开启 recompute_scheduler_enable=True",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -485,8 +478,8 @@ export const domain4Rules: readonly CouplingRule[] = [
       `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/ascend_config.py#L164-L173`,
     ],
     description:
-      "Enabling finegrained_tp_config (oproj/mlp > 0 in v0.30.0, > 1 in main; oproj/embedding > 0 in rfork) raises AssertionError unless recompute_scheduler_enable=True.",
-    rationale: "Recompute scheduler keeps decode-node steps decode-shaped for fine-grained TP.",
+      "开启 finegrained_tp_config（v0.30.0 中 oproj/mlp > 0，main 中 > 1；rfork 中 oproj/embedding > 0）且未启用 recompute_scheduler_enable=True 时，直接抛 AssertionError。",
+    rationale: "细粒度 TP 依赖重计算调度器维持 Decode 节点的纯解码步形态。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const oproj = input.oprojTensorParallelSize ?? 0;
@@ -516,16 +509,16 @@ export const domain4Rules: readonly CouplingRule[] = [
         sources: versionSource,
         message:
           version === "rfork"
-            ? "AssertionError: finegrained_tp_config (oproj_tensor_parallel_size / embedding_tensor_parallel_size) requires recompute_scheduler_enable=True."
-            : "AssertionError: finegrained_tp_config (oproj_tensor_parallel_size / mlp_tensor_parallel_size) requires recompute_scheduler_enable=True.",
-        remediation: "Enable recompute_scheduler_enable=True on a D-node.",
+            ? "AssertionError: finegrained_tp_config（oproj_tensor_parallel_size / embedding_tensor_parallel_size）要求 recompute_scheduler_enable=True。"
+            : "AssertionError: finegrained_tp_config（oproj_tensor_parallel_size / mlp_tensor_parallel_size）要求 recompute_scheduler_enable=True。",
+        remediation: "在 D 节点上开启 recompute_scheduler_enable=True。",
       };
     },
   },
   {
     id: "d4-sparse-kv-offload-constraints",
     domain: "cp-pd",
-    title: "sparse_kv_offload_config D-Node & Topology Exclusions",
+    title: "sparse_kv_offload_config 的 D 节点与拓扑互斥约束",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main"],
@@ -535,36 +528,35 @@ export const domain4Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/ascend_config.py#L1821-L1867`,
     ],
     description:
-      "sparse_kv_offload_config (default keep_device_kv_cache=False) asserts D-node (kv_consumer) only, and rejects Ascend 950, PP>1, PCP*DCP>1, PreemptOffloadConnector, compress_ratios, non-sparse models, DSpark without MRV2, topk_buffer_size < topk, and packed SFA C8/TQ4.",
-    rationale:
-      "Sparse KV offload alters device cache residency and depends on D-node-only remote KV staging.",
+      "sparse_kv_offload_config（默认 keep_device_kv_cache=False）仅限 D 节点（kv_consumer），且拒绝 Ascend 950、PP>1、PCP*DCP>1、PreemptOffloadConnector、compress_ratios、非稀疏模型、未开 MRV2 的 DSpark、topk_buffer_size < topk 及打包 SFA C8/TQ4。",
+    rationale: "稀疏 KV 卸载会改变设备端缓存驻留并依赖 D 节点专属远端 KV 暂存。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.sparseKvOffloadEnabled) return null;
       const errors: string[] = [];
-      if (input.hardwareFamily === "A5") errors.push("not supported on Ascend 950 (A5)");
-      if (input.hasPreemptOffloadConnector) errors.push("incompatible with PreemptOffloadConnector");
-      if (input.hasCompressRatios) errors.push("incompatible with compress_ratios");
+      if (input.hardwareFamily === "A5") errors.push("不支持 Ascend 950 (A5)");
+      if (input.hasPreemptOffloadConnector) errors.push("与 PreemptOffloadConnector 互斥");
+      if (input.hasCompressRatios) errors.push("与 compress_ratios 互斥");
       if (input.indexTopk === undefined && !input.usesSfaSparse) {
-        errors.push("requires sparse attention model with index_topk");
+        errors.push("要求具备 index_topk 的稀疏注意力模型");
       }
-      if ((input.pcpSize ?? 1) * (input.dcpSize ?? 1) > 1) errors.push("incompatible with PCP/DCP > 1");
-      if ((input.ppSize ?? 1) > 1) errors.push("incompatible with PP > 1");
+      if ((input.pcpSize ?? 1) * (input.dcpSize ?? 1) > 1) errors.push("与 PCP/DCP > 1 互斥");
+      if ((input.ppSize ?? 1) > 1) errors.push("与 PP > 1 互斥");
       if (!input.keepDeviceKvCache && input.kvRole !== "kv_consumer") {
-        errors.push("default keep_device_kv_cache=False requires PD D-node (kv_role='kv_consumer')");
+        errors.push("默认 keep_device_kv_cache=False 仅支持 PD D 节点（kv_role='kv_consumer'）");
       }
       if (input.speculativeMethod === "dspark" && !input.useV2ModelRunner) {
-        errors.push("DSpark speculative decoding with sparse KV offload requires use_v2_model_runner=True");
+        errors.push("稀疏 KV 卸载配合 DSpark 投机解码要求 use_v2_model_runner=True");
       }
       if (
         input.topkBufferSize !== undefined &&
         input.indexTopk !== undefined &&
         input.topkBufferSize < input.indexTopk
       ) {
-        errors.push(`topk_buffer_size (${input.topkBufferSize}) must be >= index_topk (${input.indexTopk})`);
+        errors.push(`topk_buffer_size (${input.topkBufferSize}) 必须 >= index_topk (${input.indexTopk})`);
       }
       if (input.usesSfaSparse && (input.enableSparseSfaC8 || input.cacheDtype === "turboquant_4bit_nc")) {
-        errors.push("incompatible with packed SFA C8 or TurboQuant 4-bit caches");
+        errors.push("与打包 SFA C8 或 TurboQuant 4-bit 缓存互斥");
       }
       if (errors.length === 0) return null;
       return {
@@ -575,7 +567,7 @@ export const domain4Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `ValueError / AssertionError: sparse_kv_offload_config invalid: ${errors.join("; ")}.`,
+        message: `ValueError / AssertionError: sparse_kv_offload_config 校验失败：${errors.join("；")}。`,
       };
     },
   },

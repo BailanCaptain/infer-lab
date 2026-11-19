@@ -56,7 +56,7 @@ describe("buildToc · 184 篇零倒挂知识主题目录", () => {
     ]);
   });
 
-  it("第 7 章 cases 承载旗舰异构全案，独立于基础分布式并行与架构章节", () => {
+  it("09 旗舰异构模型全案 cases 承载双机与百万上下文全案，独立于基础分布式并行与架构章节", () => {
     const rows = locations([
       page("glm-5-3-flash-two-node"),
       page("collective-communication"),
@@ -81,7 +81,7 @@ describe("buildToc · 184 篇零倒挂知识主题目录", () => {
     });
   });
 
-  it("阅读指南与 Wave 1 概览页排在最前，缺失的 🆕 规划页不会阻断 buildToc", () => {
+  it("阅读指南与 Wave 1 概览页排在最前，Ch1 拆分为「概念起步」与「新模型上线速查」（hf-model-anatomy 在 ascend-model-onboarding 之前）", () => {
     const input = [page("vllm-v1-shape"), page("learning-guide"), page("sampling")];
     const rows = locations(input);
     expect(rows.filter((p) => p.part === "guide").map((p) => p.id)).toEqual(["learning-guide"]);
@@ -89,11 +89,19 @@ describe("buildToc · 184 篇零倒挂知识主题目录", () => {
       { id: "vllm-v1-shape", part: "architecture", section: "主线走廊", track: "mainline" },
     ]);
 
-    const withOverview = locations([...input, page("request-overview"), page("hf-model-anatomy")]);
-    expect(withOverview.filter((p) => p.part === "guide").map((p) => p.id)).toEqual([
-      "learning-guide",
-      "request-overview",
-      "hf-model-anatomy",
+    const withOverview = locations([
+      ...input,
+      page("request-overview"),
+      page("ascend-model-onboarding"),
+      page("hf-model-anatomy"),
+      page("ascend-env-and-serve"),
+    ]);
+    expect(withOverview.filter((p) => p.part === "guide")).toEqual([
+      { id: "learning-guide", part: "guide", section: "概念起步", track: "mainline" },
+      { id: "request-overview", part: "guide", section: "概念起步", track: "mainline" },
+      { id: "hf-model-anatomy", part: "guide", section: "新模型上线速查", track: "mainline" },
+      { id: "ascend-model-onboarding", part: "guide", section: "新模型上线速查", track: "mainline" },
+      { id: "ascend-env-and-serve", part: "guide", section: "新模型上线速查", track: "mainline" },
     ]);
   });
 
@@ -245,7 +253,7 @@ describe("buildToc · 184 篇零倒挂知识主题目录", () => {
     }
   });
 
-  it("Core-26 显式冻结名单恰好 26 篇，三层阅读轨道与 184 篇策划目录无重复且覆盖真实知识库全量 163 页", () => {
+  it("Core-26 显式冻结名单恰好 26 篇，现有 175 篇非 RFork 页均已编排，且允许未来 origin='drop' 新页落入待编排区", () => {
     expect(CORE_26_IDS).toHaveLength(26);
     expect(new Set(CORE_26_IDS).size).toBe(26);
     for (const id of CORE_26_IDS) {
@@ -259,11 +267,30 @@ describe("buildToc · 184 篇零倒挂知识主题目录", () => {
     const toc = buildToc(registry.pages);
     expect(toc).toHaveLength(12);
     const rows = locations(registry.pages);
+    const registryById = new Map(registry.pages.map((p) => [p.id, p]));
     expect(rows.map((p) => p.id).sort()).toEqual(registry.pages.map((p) => p.id).sort());
     expect(new Set(rows.map((p) => p.id)).size).toBe(rows.length);
-    expect(rows.filter((p) => p.section === "新增教学页（待编排）")).toEqual([]);
+    for (const id of CURATED_PAGE_IDS) {
+      expect(registryById.has(id), `curated id missing from registry: ${id}`).toBe(true);
+    }
+    // Current non-drop pages must all be curated; future origin === "drop" uncurated pages are allowed in 新增教学页（待编排）
+    expect(
+      rows.filter((p) => p.section === "新增教学页（待编排）" && registryById.get(p.id)?.origin !== "drop"),
+    ).toEqual([]);
     expect(toc.every((p) => p.sections.every((s) => s.title.length > 0 && s.pages.length > 0))).toBe(true);
     expect(buildToc([])).toEqual([]);
+
+    // Verify a synthetic future origin === "drop" page lands cleanly in 新增教学页（待编排）
+    const withDrop = locations([
+      ...registry.pages,
+      { ...page("dropped-external-note", "concept"), origin: "drop" },
+    ]);
+    expect(withDrop.find((p) => p.id === "dropped-external-note")).toEqual({
+      id: "dropped-external-note",
+      part: "references",
+      section: "新增教学页（待编排）",
+      track: "advanced",
+    });
   });
 });
 

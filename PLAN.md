@@ -1,5 +1,12 @@
 # infer-lab 总体计划（大模型推理交互式教学平台 · vLLM-Ascend 主线）
 
+## 2026-11-19 当前状态（Stage 2 完工与全库审校收尾）
+
+Stage 2（Waves 0–6）已落地并持续收尾：
+- **默认基线与主线模型**：全站以 `vllm-ascend v0.30.0 (c09d3e20)` 为默认基线（同步对照 `releases/v0.23.0`、`releases/v0.26.0rc`、`main (8d6180e2)`），主线教学以 `Qwen3-8B` / `Qwen3-30B-A3B` 为例，第 `09` 篇「旗舰异构模型全案」承载 `GLM-5.3-Flash` 与 `DeepSeek-V4.1-Flash`。写作与视觉规范以 `docs/wiki-writing-standard.md` 为唯一真相源。
+- **站内结构**：`src/content/wiki/toc.ts` 编排 `01..12` 共 12 个主题目录（184 篇正式页）；`/#/tools` 提供 4 套交互式工程工作台（部署计算器、配置体检、故障排查工作台、AI Core 执行实验室），与知识页双向深链；19 篇正式概念页通过 `wiki-scene` 内嵌交互 3D 场景（3D 实现当前保持冻结）。
+- **下方历史章节说明**：§一–§五中的 22 章课程大纲、M1–M7 与 Spike S1 均为 2026-09 历史归档，已被 2026-10-14「知识库就是主章节」及 Stage 2 取代，仅作背景留史。
+
 ## 2026-10-21 推理分析与工程实践补全
 
 在现有知识库与“性能与工程优化”分组内补齐分析和实践能力，保留学习者与从业者两种入口，复用已有机制页。四级顺序为：测量与诊断基础 → 生产系统 → 新模型与推理策略 → 昇腾 950 架构映射。具体页面职责、复用范围、学习路线、任务和验收统一记录在[知识补全计划](docs/superpowers/plans/2026-10-21-inference-knowledge-completion.md)，本处不复制任务清单。
@@ -330,7 +337,7 @@ M1 = 地基 + 样板章 `03` + 工作台 v1。
 
 每个里程碑结束：typecheck + 单测 + 内容校验 + Playwright 截图，把截图发给用户目测验收后再进下一个。
 
-**当前位置：M1，第 8 项之前，阻塞在 Spike S1。**
+**历史位置记录（2026-09 归档，已由顶部 2026-10-14 与 2026-11-19 Stage 2 取代）：** 当时处于 M1 第 8 项之前、阻塞在 Spike S1；当前最新状态见文件顶部「2026-11-19 当前状态」。
 
 ---
 
@@ -350,7 +357,8 @@ M1 = 地基 + 样板章 `03` + 工作台 v1。
 | F002 | 参数清单与版本谱系 | [F002](docs/features/F002-param-lineage.md) | [计划](docs/plans/param-lineage-plan.md) |
 | F003 | GitHub 语料与报错溯源 | [F003](docs/features/F003-github-corpus.md) | [计划](docs/plans/github-corpus-plan.md) |
 | F004 | 使用驱动的知识积累闭环 | [F004](docs/features/F004-knowledge-loop.md) | [计划](docs/plans/knowledge-loop-plan.md) |
+| F005 | 资料投递（Drop）与整合 | [F005](docs/features/F005-wiki-drop.md) | [验收记录](docs/plans/wiki-drop-acceptance.md) |
 
-**验收状态只看上表四份 feature 里的验收表**；「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](HANDOFF-LLM-WIKI.md)；页数、预算这类会变的数字按它 §2 的命令现查。本索引不复制状态和数字。
+**验收状态只看上表五份 feature 里的验收表**；「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](HANDOFF-LLM-WIKI.md)；页数、预算这类会变的数字按它 §2 的命令现查。本索引不复制状态和数字。
 
 F001 同时给 §2.6 内容管线提供 Term 注册表：`<Term id>` 的 id 与摘要来自 `src/content/wiki/registry.json`（由 `wiki/concepts/` 派生），不再另建 terms 表。

@@ -587,7 +587,9 @@ export function ConfigDoctorView({
           <header className="wiki-tool-head">
             <div className="wt-embedded-title-group">
               <strong className="wiki-tool-title">{displayTitle}</strong>
-              <span className="wiki-tool-badge">{mode ? `mode: ${mode}` : "config-doctor"}</span>
+              <span className="wiki-tool-badge">
+                {mode === "minimal" ? "最小起服务" : mode === "full" ? "完整体检" : "配置体检器"}
+              </span>
             </div>
             <a className="wt-open-workbench" href="#/tools?tab=doctor">
               打开完整体检工作台 →

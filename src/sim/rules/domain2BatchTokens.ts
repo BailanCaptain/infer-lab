@@ -201,7 +201,7 @@ export const domain2Rules: readonly CouplingRule[] = [
   {
     id: "d2-default-batch-tokens-early-fallback",
     domain: "batch-tokens",
-    title: "Ascend max_num_batched_tokens Early NotImplementedError Fallback (P1-4 #1)",
+    title: "昇腾 max_num_batched_tokens 启动早期探测回落 2048/8192 基线",
     judgment: "warn",
     evidenceLevel: "I",
     versions: ["v0.30.0", "main", "rfork"],
@@ -212,9 +212,9 @@ export const domain2Rules: readonly CouplingRule[] = [
       `vllm@${VERIFIED_COMMITS.vllmV030}:vllm/config/scheduler.py#L42-L44`,
     ],
     description:
-      "NPUPlatform.get_device_total_memory() raises NotImplementedError before torch_npu initialization, forcing device_memory=0 so ALL Ascend cards (including 950DT) fall back to 2048 (vllm serve) or 8192 (LLM class), before batched-DP-MoE, throughput x2, chunked-prefill, multimodal prefix-LM, and max_num_seqs*max_model_len rules.",
+      "NPUPlatform.get_device_total_memory() 在 torch_npu 初始化前抛出 NotImplementedError 使 device_memory=0，全系列昇腾卡（含 950DT）默认回落 2048 (vllm serve) 或 8192 (LLM 类)。",
     rationale:
-      "Static source reading confirms NotImplementedError -> device_memory=0 -> 2048/8192 [C]; whether a launcher pre-initializes torch_npu before EngineArgs resolution must be verified via runtime debug log 'Defaulting max_num_batched_tokens to %d for %s usage context.' [I].",
+      "源码实证 NotImplementedError -> device_memory=0 -> 2048/8192 [C]；启动器是否提前初始化 torch_npu 需核对运行日志 'Defaulting max_num_batched_tokens...' [I]。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (input.maxNumBatchedTokens !== undefined) return null;
@@ -227,7 +227,7 @@ export const domain2Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: resolved.sources,
-        message: `Auto-resolved max_num_batched_tokens=${resolved.finalMaxNumBatchedTokens} (max_num_seqs=${resolved.finalMaxNumSeqs}) via device_memory=${resolved.deviceMemoryBytes} fallback for ${input.hardwareFamily ?? "Ascend"} (${input.usageContext ?? "vllm_serve"}). Verify on hardware with debug log 'Defaulting max_num_batched_tokens...'.`,
+        message: `未显式传 --max-num-batched-tokens：因 torch_npu 尚未初始化导致 device_memory=${resolved.deviceMemoryBytes} 回落，${input.hardwareFamily ?? "Ascend"} (${input.usageContext ?? "vllm_serve"}) 自动推导为 max_num_batched_tokens=${resolved.finalMaxNumBatchedTokens}（max_num_seqs=${resolved.finalMaxNumSeqs}）。实机请核对调试日志 'Defaulting max_num_batched_tokens...'。`,
         effectiveMutation: {
           maxNumBatchedTokens: resolved.finalMaxNumBatchedTokens,
           maxNumSeqs: resolved.finalMaxNumSeqs,
@@ -238,7 +238,7 @@ export const domain2Rules: readonly CouplingRule[] = [
   {
     id: "d2-sp-pcp-batch-tokens-ceiling",
     domain: "batch-tokens",
-    title: "SP + PCP Silently Rounds max_num_batched_tokens Up to tp * pcp Multiple",
+    title: "SP + PCP 静默将 max_num_batched_tokens 向上取整至 tp * pcp 整数倍",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -258,8 +258,8 @@ export const domain2Rules: readonly CouplingRule[] = [
       `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/utils.py#L861-L889`,
     ],
     description:
-      "When prefill_context_parallel_size > 1 and SP is enabled, AscendConfig silently rounds max_num_batched_tokens up to a multiple of tp_size * pcp_size.",
-    rationale: "Sequence and prefill-context sharding require equal token chunk slices across tp*pcp ranks.",
+      "当 prefill_context_parallel_size > 1 且开启 SP 时，AscendConfig 静默将 max_num_batched_tokens 向上取整为 tp_size * pcp_size 的整数倍。",
+    rationale: "序列并行与 Prefill 上下文并行要求每步 token 分片在 tp*pcp 张卡间均分。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const pcp = Math.max(1, input.pcpSize ?? 1);
@@ -296,7 +296,7 @@ export const domain2Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: versionSource,
-        message: `SP + PCP>${1} silently rounded max_num_batched_tokens up to ${resolved.finalMaxNumBatchedTokens} (multiple of tp*pcp=${resolved.spPcpDivisor}).`,
+        message: `SP 与 PCP>1 叠加时，AscendConfig 已静默将 max_num_batched_tokens 向上取整至 ${resolved.finalMaxNumBatchedTokens}（tp*pcp=${resolved.spPcpDivisor} 的整数倍）。`,
         effectiveMutation: {
           maxNumBatchedTokens: resolved.finalMaxNumBatchedTokens,
         },
@@ -306,7 +306,7 @@ export const domain2Rules: readonly CouplingRule[] = [
   {
     id: "d2-chunked-prefill-decode-budget",
     domain: "batch-tokens",
-    title: "Chunked Prefill Per-Step Decode Token Budget Deduction",
+    title: "Chunked Prefill 每步先扣除在跑 Decode 请求的 Token 预算",
     judgment: "warn",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -317,9 +317,8 @@ export const domain2Rules: readonly CouplingRule[] = [
       `vllm@${VERIFIED_COMMITS.vllmV030}:vllm/v1/request.py#L292-L293`,
     ],
     description:
-      "V1 Scheduler initializes step token_budget=max_num_scheduled_tokens (default max_num_batched_tokens) and deducts 1 token (or 1 + num_spec_tokens) per running decode request before admitting prefill chunks.",
-    rationale:
-      "High running concurrency or large speculative draft counts shrink remaining prefill chunk capacity per step.",
+      "V1 调度器每步初始化 token_budget=max_num_batched_tokens，先为每条运行中 Decode 请求扣除 1（或 1 + num_spec_tokens）个 token，剩余预算才用于 Prefill 分块。",
+    rationale: "高并发 Decode 或大投机步数会显著压缩单步剩余 Prefill 分块容量。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (input.enableChunkedPrefill === false) return null;
@@ -335,7 +334,7 @@ export const domain2Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `Chunked-prefill step budget (${resolved.finalMaxNumBatchedTokens}) deducts ${perDecodeCost} token(s) per running decode request (1 + ${spec} spec token(s)).`,
+        message: `Chunked Prefill 单步总预算 ${resolved.finalMaxNumBatchedTokens} 会先按每条在跑 Decode 请求扣除 ${perDecodeCost} 个 token（1 + ${spec} 个投机 token），剩余额度再分配给 Prefill 分块。`,
         effectiveMutation: { perDecodeTokenDeduction: perDecodeCost },
       };
     },
@@ -343,7 +342,7 @@ export const domain2Rules: readonly CouplingRule[] = [
   {
     id: "d2-pp-non-last-stage-memory-reduction",
     domain: "batch-tokens",
-    title: "PP>1 Stage Memory & Logits Peak Reduction on Non-Last Stages",
+    title: "PP>1 切分层与 KV，且非末段免除 lm_head / logits 峰值显存",
     judgment: "warn",
     evidenceLevel: "C",
     versions: ["v0.30.0", "main", "rfork"],
@@ -354,9 +353,8 @@ export const domain2Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/feature_guide/pipeline_parallel.md#L180-L257`,
     ],
     description:
-      "PP>1 splits Transformer layers and KV cache across stages via get_pp_indices and replaces lm_head with PPMissingLayer on non-last stages, avoiding logits/sampler peaks there.",
-    rationale:
-      "Lower per-card layer weights, KV footprint, and non-last logits peak allow larger max_num_batched_tokens budgets under PP.",
+      "PP>1 通过 get_pp_indices 切分 Transformer 层与 KV，并在非末阶段将 lm_head 替换为 PPMissingLayer。",
+    rationale: "非末卡单卡权重、KV 与 logits 峰值下降，可承载更高的 max_num_batched_tokens。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const pp = Math.max(1, input.ppSize ?? 1);
@@ -369,22 +367,21 @@ export const domain2Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `PP=${pp} shards layers/KV across stages and replaces lm_head with PPMissingLayer on stages 0..${pp - 2}, removing logits peak on non-last ranks.`,
+        message: `PP=${pp} 将层与 KV 切分至各阶段，并在阶段 0..${pp - 2} 以 PPMissingLayer 替换 lm_head，消除非末卡 logits/采样显存峰值。`,
       };
     },
   },
   {
     id: "d2-cpp-requires-pp-gt-1",
     domain: "batch-tokens",
-    title: "CPP (profiling_chunk_config) Requires PP > 1 (v0.30.0)",
+    title: "动态分块流水线 CPP（profiling_chunk_config）要求 PP > 1（v0.30.0）",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "rfork"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L724-L729`],
     description:
-      "Enabling profiling_chunk_config with pipeline_parallel_size <= 1 raises ValueError in v0.30.0.",
-    rationale:
-      "Dynamic Chunked Pipeline Parallelism (CPP) exists solely to balance PP stage execution times.",
+      "在 v0.30.0 中，pipeline_parallel_size <= 1 时开启 profiling_chunk_config 启动即抛 ValueError。",
+    rationale: "动态分块流水线并行（CPP）专用于均衡多 PP 阶段耗时。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const pp = Math.max(1, input.ppSize ?? 1);
@@ -397,22 +394,21 @@ export const domain2Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: "ValueError: profiling_chunk_config requires pipeline parallelism (pp > 1).",
-        remediation: "Set --pipeline-parallel-size >= 2 or disable profiling_chunk_config.",
+        message: "ValueError: profiling_chunk_config 要求启用流水线并行（pp > 1）。",
+        remediation: "设置 --pipeline-parallel-size >= 2，或关闭 profiling_chunk_config。",
       };
     },
   },
   {
     id: "d2-cpp-balance-mutex",
     domain: "batch-tokens",
-    title: "CPP Mutually Exclusive with enable_balance_scheduling (v0.30.0)",
+    title: "CPP 与 enable_balance_scheduling 互斥（v0.30.0）",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["v0.30.0", "rfork"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/ascend_config.py#L731-L736`],
-    description:
-      "Enabling profiling_chunk_config alongside enable_balance_scheduling raises ValueError in v0.30.0.",
-    rationale: "Both policies rewrite chunk sizing/scheduling independently and conflict.",
+    description: "v0.30.0 同时开启 profiling_chunk_config 与 enable_balance_scheduling 抛 ValueError。",
+    rationale: "两套策略独立改写分块与调度逻辑，存在冲突。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.profilingChunkEnabled || !input.enableBalanceScheduling) return null;
@@ -424,16 +420,15 @@ export const domain2Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message:
-          "ValueError: profiling_chunk_config and enable_balance_scheduling cannot be enabled together.",
-        remediation: "Disable either profiling_chunk_config or enable_balance_scheduling.",
+        message: "ValueError: profiling_chunk_config 与 enable_balance_scheduling 不可同时开启。",
+        remediation: "关闭 profiling_chunk_config 或 enable_balance_scheduling 之一。",
       };
     },
   },
   {
     id: "d2-cpp-min-chunk-clamp",
     domain: "batch-tokens",
-    title: "CPP min_chunk Silently Clamped to max_num_batched_tokens (v0.30.0)",
+    title: "CPP min_chunk 超过 max_num_batched_tokens 时静默截断（v0.30.0）",
     judgment: "silent-rewrite",
     evidenceLevel: "C",
     versions: ["v0.30.0", "rfork"],
@@ -442,8 +437,8 @@ export const domain2Rules: readonly CouplingRule[] = [
       `rfork@${VERIFIED_COMMITS.rforkMain}:vllm_ascend/ascend_config.py#L87-L98`,
     ],
     description:
-      "When max_num_batched_tokens < profiling_chunk_config.min_chunk (evaluated before SP+PCP writeback), AscendConfig logs a warning and clamps min_chunk down to max_num_batched_tokens.",
-    rationale: "Prevents min_chunk from exceeding the scheduler's per-step token ceiling.",
+      "在 SP+PCP 回写之前，若 max_num_batched_tokens < profiling_chunk_config.min_chunk，AscendConfig 告警并将 min_chunk 静默截断至 max_num_batched_tokens。",
+    rationale: "避免最小分块超过调度器单步 token 上限。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.profilingChunkEnabled || input.profilingMinChunk === undefined) return null;
@@ -462,7 +457,7 @@ export const domain2Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources,
-        message: `max_num_batched_tokens (${preSpBatched}) < profiling_chunk_config.min_chunk (${input.profilingMinChunk}); silently clamped min_chunk to ${preSpBatched}.`,
+        message: `max_num_batched_tokens (${preSpBatched}) < profiling_chunk_config.min_chunk (${input.profilingMinChunk})，框架已将 min_chunk 静默截断为 ${preSpBatched}。`,
         effectiveMutation: { profilingMinChunk: preSpBatched },
       };
     },
@@ -470,7 +465,7 @@ export const domain2Rules: readonly CouplingRule[] = [
   {
     id: "d2-cpp-quadratic-chunk-2x-4x",
     domain: "batch-tokens",
-    title: "CPP Equal-Time Quadratic First Chunk Recommends 2~4x max_num_batched_tokens (v0.30.0)",
+    title: "CPP 二次等时首块建议将 max_num_batched_tokens 调高 2~4×（v0.30.0）",
     judgment: "warn",
     evidenceLevel: "C",
     versions: ["v0.30.0", "rfork"],
@@ -480,8 +475,8 @@ export const domain2Rules: readonly CouplingRule[] = [
       `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L196-L208`,
     ],
     description:
-      "CPP uses max_num_batched_tokens as base_chunk_size to fit quadratic latency f(l)=a*l^2+b*l+c and solve equal-time subsequent chunks; official tuning guide recommends 2~4x higher max_num_batched_tokens than fixed chunking.",
-    rationale: "Default 2048 under-utilizes quadratic attention early chunks when CPP is active.",
+      "CPP 以 max_num_batched_tokens 作为二次耗时模型 f(l)=a*l^2+b*l+c 的首块基准，官方调优指南建议较固定分块放大 2~4 倍。",
+    rationale: "默认 2048 在开启 CPP 时无法充分喂饱早期二次注意力块。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       const pp = Math.max(1, input.ppSize ?? 1);
@@ -495,22 +490,20 @@ export const domain2Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message: `CPP uses max_num_batched_tokens=${resolved.finalMaxNumBatchedTokens} as the quadratic equal-time first chunk; official guide recommends 2~4x fixed chunk size (e.g. 20480 for 64k, 32768 for 128k).`,
+        message: `CPP 以 max_num_batched_tokens=${resolved.finalMaxNumBatchedTokens} 作为等时首块基准；官方建议调至固定分块的 2~4×（如 64k 配 20480、128k 配 32768）。`,
       };
     },
   },
   {
     id: "d2-cpp-removed-in-main",
     domain: "batch-tokens",
-    title: "CPP (profiling_chunk_config) Removed in main (PR #21310)",
+    title: "CPP（profiling_chunk_config）已在 main 分支移除（PR #21310）",
     judgment: "error",
     evidenceLevel: "C",
     versions: ["main"],
     sources: [`vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/platform.py#L1585-L1601`],
-    description:
-      "profiling_chunk_config and Dynamic Chunked Pipeline Parallelism (CPP) were completely removed in vllm-ascend main (commit 839f53831 / PR #21310).",
-    rationale:
-      "Passing profiling_chunk_config on main is rejected/invalid because the config & scheduler classes were deleted.",
+    description: "profiling_chunk_config 与动态分块流水线并行已在 vllm-ascend main (PR #21310) 彻底移除。",
+    rationale: "在 main 上继续配置 profiling_chunk_config 会因字段与调度器类已删除而报错。",
     evaluate(input, version = DEFAULT_RULE_VERSION): RuleMatch | null {
       if (!isVersionSupported(this, version)) return null;
       if (!input.profilingChunkEnabled) return null;
@@ -522,9 +515,8 @@ export const domain2Rules: readonly CouplingRule[] = [
         judgment: this.judgment,
         evidenceLevel: this.evidenceLevel,
         sources: this.sources,
-        message:
-          "profiling_chunk_config (CPP) was removed in vllm-ascend main (PR #21310); configuring it is invalid on main.",
-        remediation: "Remove profiling_chunk_config from additional_config.scheduler_config.",
+        message: "profiling_chunk_config (CPP) 已在 vllm-ascend main (PR #21310) 移除，在 main 上配置无效。",
+        remediation: "从 additional_config.scheduler_config 移除 profiling_chunk_config。",
       };
     },
   },

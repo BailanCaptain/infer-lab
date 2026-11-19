@@ -1,3 +1,5 @@
+> **2026-11-19 Stage 2 主站与全库审校收尾：** 全站已稳定在 Stage 2 基线（`vllm-ascend v0.30.0 c09d3e20` + `main 8d6180e2`，12 主题目录 / 184 篇正式页，含 `db0776d` 与 `2f788ac` 交付的 Edition-A 排版、双层教学图与 `#/tools` 四套工程工作台）。本轮同步收口 `src/sim/` 6 项引擎/规则缺陷、诊断规则中文体验、第 `01` 篇目录拆分、`biome.json` 2.5.12 升级与顶层文档对齐。全量状态与现查命令：`pnpm check`、`pnpm lint`、`pnpm wiki:lint`、`pnpm wiki:diagrams --check`、`pnpm wiki:audit`。下方 2026-11-02 及更早条目均为历史交接留档。
+
 > **2026-11-02 00:32 八条既有 Wiki 警告已局部处理并验收收尾。** 四页整理重复引用与固定来源映射，一页合并分标签唤醒表格（保留 None、空列表、weights/kv_cache 条件及未实测边界）；另精确登记 DeepSeek 官方 Q&A 引用的单篇知乎文章与 Berkeley Lab 单个 Roofline 页面，未放开整站域名。五页经修订包 `208cfd470c7cb06028d0156d16ab3df4432eb9b6b4b4a21dcaff28e58434b683` 发布，未调用模型或整批重跑。
 >
 > **本次证据：** `tools/wiki-runtime/eight-warning-cleanup-20261102/completion.json`；独立复审 0 P1/P2，81 项相关测试、项目构建/类型、所改来源文件格式检查及 helper 严格类型通过。发布后实际 IAB 五页与截图通过，最终快照合法、Wiki Lint 0 error / 0 warning、待审 0 / 发布中 0、租约 inactive。815 份原审阅记录、423 个原任务及 1843 份受保护知识文件未改；来源顺序、raw、历史与生成区保留。全项目 `pnpm lint` 仍有另外四个共享 3D 文件格式错误（非本次改动，未覆盖），不据此声称全项目 Lint 通过。完整限制与日志见回执。

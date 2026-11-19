@@ -139,15 +139,14 @@ type CuratedSection = {
 const CURATED: Partial<Record<TocPart<never>["id"], CuratedSection[]>> = {
   guide: [
     {
-      title: "主线走廊",
+      title: "概念起步",
       track: "mainline",
-      pages: [
-        "learning-guide",
-        "request-overview",
-        "ascend-model-onboarding",
-        "hf-model-anatomy",
-        "ascend-env-and-serve",
-      ],
+      pages: ["learning-guide", "request-overview"],
+    },
+    {
+      title: "新模型上线速查",
+      track: "mainline",
+      pages: ["hf-model-anatomy", "ascend-model-onboarding", "ascend-env-and-serve"],
     },
   ],
   models: [

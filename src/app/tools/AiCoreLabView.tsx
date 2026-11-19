@@ -908,7 +908,9 @@ export function AiCoreLabView({ mode, title, summary, embedded = false }: AiCore
           <header className="wiki-tool-head">
             <div className="wt-embedded-title-group">
               <strong className="wiki-tool-title">{displayTitle}</strong>
-              <span className="wiki-tool-badge">{mode ? `mode: ${mode}` : "aicore-lab"}</span>
+              <span className="wiki-tool-badge">
+                {mode === "single" ? "单场景对照" : mode === "full" ? "完整实验室" : "算子实验室"}
+              </span>
               <span
                 className="wt-baseline-pill"
                 data-testid="aicore-schematic-badge"

@@ -178,6 +178,7 @@ export interface CouplingCheckInput {
   enableNpugraphEx?: boolean;
   enableStaticKernel?: boolean;
   enableSuperKernel?: boolean;
+  enableSleepMode?: boolean;
   rlEnabled?: boolean;
   rlTrainingConsistency?: boolean;
   weightNzMode?: number;

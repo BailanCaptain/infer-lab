@@ -260,6 +260,7 @@ describe("Domain 5: Graph Compilation, Scheduler Overrides, RLConfig & P1-4 #2 E
     const rl = evaluateDomain5Rules(
       {
         rlEnabled: true,
+        enableSleepMode: true,
         weightNzMode: 1,
         pytorchNpuAllocConf: "page_size:1g,expandable_segments:True",
       },
@@ -552,5 +553,47 @@ describe("P1-4 #3: Full HCCL Domain Accounting & profile_run Overlap", () => {
     expect(
       srfRecomputeChain.find((m) => m.ruleId === "d5-scheduler-override-chain-v030")?.message ?? "",
     ).not.toContain("short_request_first");
+  });
+
+  it("Audit Wave 6 regressions: RLConfig Step 10 re-appends expandable_segments when !enableSleepMode, and fused_mc2 hint mentions 3 (main)", () => {
+    // Bug 2: enableSleepMode=true keeps expandable_segments stripped
+    const rlWithSleep = evaluateDomain5Rules(
+      {
+        rlEnabled: true,
+        enableSleepMode: true,
+        weightNzMode: 1,
+        pytorchNpuAllocConf: "page_size:1g,expandable_segments:True",
+      },
+      "v0.30.0",
+    );
+    const matchSleep = rlWithSleep.find(
+      (m) => m.ruleId === "d5-rl-config-disables-nz-and-expandable-segments",
+    );
+    expect(matchSleep?.effectiveMutation?.weightNzMode).toBe(0);
+    expect(matchSleep?.effectiveMutation?.pytorchNpuAllocConf).toBe("page_size:1g");
+
+    // Bug 2: enableSleepMode=false -> Step 10 _set_pytorch_npu_alloc_env() re-appends expandable_segments:True
+    const rlNoSleep = evaluateDomain5Rules(
+      {
+        rlEnabled: true,
+        enableSleepMode: false,
+        weightNzMode: 1,
+        pytorchNpuAllocConf: "page_size:1g,expandable_segments:True",
+      },
+      "v0.30.0",
+    );
+    const matchNoSleep = rlNoSleep.find(
+      (m) => m.ruleId === "d5-rl-config-disables-nz-and-expandable-segments",
+    );
+    expect(matchNoSleep?.effectiveMutation?.weightNzMode).toBe(0);
+    expect(matchNoSleep?.effectiveMutation?.pytorchNpuAllocConf).toBe(
+      "page_size:1g,expandable_segments:True",
+    );
+    expect(matchNoSleep?.message).toContain("_set_pytorch_npu_alloc_env");
+
+    // Bug 3: retired VLLM_ASCEND_ENABLE_FUSED_MC2 hint includes 3 (main)
+    const retiredFused = classifyEnvVar("VLLM_ASCEND_ENABLE_FUSED_MC2", "v0.30.0");
+    expect(retiredFused.replacement).toContain("3");
+    expect(retiredFused.replacement).toContain("main");
   });
 });

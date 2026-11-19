@@ -2070,7 +2070,7 @@ function collectQ1Findings(params: {
     });
   }
 
-  // 4. MXFP8 KV hardware check
+  // 4. MXFP8 KV hardware & MLA/DSA attention check
   if (kvCacheDtype === "mxfp8" && card.family !== "A5") {
     blockers.push({
       id: "calc-mxfp8-kv-requires-a5",
@@ -2082,6 +2082,39 @@ function collectQ1Findings(params: {
         `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/quantization/methods/kv_cache/mxfp_c8.py#L51-L103`,
       ],
     });
+  }
+  if (kvCacheDtype === "mxfp8" && hasMla) {
+    if (hasCsa2) {
+      blockers.push({
+        id: "calc-mxfp8-kv-unsupported-dsa",
+        severity: "error",
+        title: "DSA / CSA2 稀疏 MLA 不支持 MXFP8 KV Cache",
+        message:
+          "vllm-ascend 的 C8-MXFP (33/32 B/elem) 仅限非 MLA 全注意力 (FullAttentionSpec)；DSA 后端的 supported_kv_cache_dtypes 明确排除 mxfp8，因此本账本不按 33/32 B 计价（仍按模型 dtype 2 B/elem 估算）。",
+        remediation: "将 KV 精度切换为 auto / bfloat16，或按 DSA 硬件能力选用 fp8 (A5) / int8 (A3)。",
+        sources: [
+          `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/worker/model_runner_v1.py#L4699-L4700`,
+          `vllm-ascend@${VERIFIED_COMMITS.vllmAscendMain}:vllm_ascend/attention/dsa_v1.py#L252-L282`,
+          "wiki:kv-cache-quantization",
+        ],
+      });
+    } else {
+      silentRewrites.push({
+        id: "calc-mxfp8-kv-mla-fallback",
+        title: "MXFP8 (C8_MXFP) 仅适用非 MLA 全注意力，MLA 潜向量 KV 回退模型 dtype",
+        param: "kv_cache_dtype",
+        fromValue: "mxfp8",
+        toValue: `${card.family === "310P" ? "float16" : "bfloat16"} (2 B/elem)`,
+        message:
+          "model_runner_v1.py 仅对 FullAttentionSpec 启用 C8-MXFP (33/32 B/elem)，MLA 潜向量不满足该分支，mla_v1.py 会回退到 model_config.dtype (2 B/elem)；本账本已按 2 B/elem 计价。",
+        sources: [
+          `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/worker/model_runner_v1.py#L4699-L4700`,
+          `vllm-ascend@${VERIFIED_COMMITS.vllmAscendV030}:vllm_ascend/attention/mla_v1.py#L1044-L1049`,
+          "wiki:kv-cache-quantization",
+          "wiki:mla",
+        ],
+      });
+    }
   }
 
   // 5. TP head divisibility checks & Wave 4 MLA/CSA2/KDA/Engram architecture advisories
@@ -2464,8 +2497,15 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
   const prefillTokens = Math.max(1, Math.round(input.prefillTokens ?? 512));
   const decodeContextLen = Math.max(1, Math.round(input.decodeContextLen ?? Math.min(maxModelLen, 4096)));
 
+  const activeWave4Features = extractWave4FeaturesFromSpec(spec);
+  const hasMla = activeWave4Features.includes("MLA");
+  const hasCsa2 = activeWave4Features.includes("CSA2");
+  const hasKda = activeWave4Features.includes("KDA");
+  const hasEngram = activeWave4Features.includes("Engram");
+
   const localLayersPerRank = Math.ceil(spec.numLayers / ppSize);
-  const kvElemBytes = kvCacheDtype === "auto" ? 2 : kvCacheDtype === "int8" ? 1 : 33 / 32;
+  // C8-MXFP (33/32 B/elem) is restricted to non-MLA FullAttentionSpec; MLA falls back to model dtype (2 B/elem)
+  const kvElemBytes = kvCacheDtype === "auto" ? 2 : kvCacheDtype === "int8" ? 1 : hasMla ? 2 : 33 / 32;
   const kvState = computePerRankKvAndState({
     spec,
     tpSize,
@@ -2475,11 +2515,6 @@ export function evaluateDeployPlan(input: DeployPlanInput): DeployPlanReport {
     maxNumSeqs,
   });
   const localKvHeadsPerRank = kvState.localKvHeadsPerRank;
-  const activeWave4Features = extractWave4FeaturesFromSpec(spec);
-  const hasMla = activeWave4Features.includes("MLA");
-  const hasCsa2 = activeWave4Features.includes("CSA2");
-  const hasKda = activeWave4Features.includes("KDA");
-  const hasEngram = activeWave4Features.includes("Engram");
 
   // Stage 1 & 2
   const totalHbmBytes = card.hbmGiB * GIB;

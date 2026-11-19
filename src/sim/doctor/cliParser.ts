@@ -486,10 +486,20 @@ export function inferModelHints(modelPath: string | null): InferredModelHints {
     hints.kvLoraRank = 512;
     hints.qkRopeHeadDim = 64;
     hints.defaultModelDtype = "bfloat16";
-  } else if (/glm[-_.]?(5|4\.5|4\.7)/.test(s)) {
-    hints.matchedPresetName = "GLM-MoE";
+  } else if (/glm[-_.]?5/.test(s)) {
+    hints.matchedPresetName = "GLM-5-MoE";
     hints.isMoe = true;
     hints.useMla = true;
+    hints.defaultModelDtype = "bfloat16";
+  } else if (/glm[-_.]?4\.7[-_.]?flash/.test(s)) {
+    hints.matchedPresetName = "GLM-4.7-Flash";
+    hints.isMoe = true;
+    hints.useMla = true;
+    hints.defaultModelDtype = "bfloat16";
+  } else if (/glm[-_.]?(4\.5|4\.6|4\.7)/.test(s)) {
+    hints.matchedPresetName = "GLM-4.5/4.7-MoE";
+    hints.isMoe = true;
+    hints.useMla = false;
     hints.defaultModelDtype = "bfloat16";
   }
 
@@ -1058,6 +1068,7 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
     pcpSize: pcpSize ?? 1,
     dcpSize: dcpSize ?? 1,
     userSpecifiedBlockSize,
+    enableSleepMode,
     envVars,
   };
 
@@ -1210,7 +1221,7 @@ export function parseVllmServeCommand(rawText: string): ParsedVllmServeCommand {
         code: "parse-invalid-range",
         severity: "error",
         flag: "additional_config.enable_fused_mc2",
-        message: `additional_config.enable_fused_mc2 仅允许 0 / 1 / 2 (MegaMoE) / 3 (main A5 共享专家融合)，收到 ${fusedMc2}。`,
+        message: `additional_config.enable_fused_mc2 仅允许 0 / 1 (dispatch_ffn_combine) / 2 (MegaMoe) / 3 (MegaMoe+共享专家融合，仅 main；v0.30.0 仅支持 0/1/2)，收到 ${fusedMc2}。`,
       });
     }
     const prefillMc2 = parseBoolLike(additionalConfig.enable_prefill_mc2);

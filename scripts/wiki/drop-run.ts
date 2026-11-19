@@ -14,7 +14,7 @@ import { readBatch, saveBatch } from "./drop-batch";
 import { integrateDrop } from "./drop-integration";
 import { restrictedArgs } from "./restricted-claude";
 import { listReviews, rejectReview } from "./review";
-import { localFile, replaceText, wikiContents } from "./review-files";
+import { localFile, mirrorPublicIllustrations, replaceText, wikiContents } from "./review-files";
 import { sanitizeRawInput } from "./sanitize";
 import { selectedAgent } from "./selected-agent";
 import { PAGE_TEXT_TIMEOUT_MS, parseStructuredJson } from "./structured";
@@ -240,6 +240,7 @@ async function executeDrop(
       return files;
     });
     for (const [path, text] of base) replaceText(stageRoot, path, text);
+    mirrorPublicIllustrations(root, stageRoot);
     const repairsFile = join(dir, "repairs.json");
     const repairs = new Map<string, { repair: string; previousOutput?: unknown }>(
       existsSync(repairsFile) ? JSON.parse(readFileSync(repairsFile, "utf8")) : [],
@@ -449,6 +450,7 @@ async function executeDrop(
         for (const [path] of wikiContents(stageRoot))
           if (!base.has(path) && !path.startsWith("wiki/raw/")) replaceText(stageRoot, path, null);
         for (const [path, text] of base) replaceText(stageRoot, path, text);
+        mirrorPublicIllustrations(root, stageRoot);
       }
     }
     check();

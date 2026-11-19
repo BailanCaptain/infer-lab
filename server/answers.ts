@@ -118,12 +118,9 @@ function evaluateExistingMapping(
   const { id: basePlannedJobId } = workIdentity(basePlanned.work);
   const limits = oldJob && "maxAttempts" in oldJob.policy ? oldJob.policy : undefined;
   const charged = oldJob
-    ? oldJob.attempts.reduce(
-        (sum, a) => sum + (a.billing === "chatgpt" ? 0 : (a.costUsd ?? a.reservedUsd)),
-        0,
-      )
+    ? oldJob.attempts.reduce((sum, a) => sum + (a.billing ? 0 : (a.costUsd ?? a.reservedUsd)), 0)
     : 0;
-  const subscription = selectedModel(root).provider === "codex";
+  const subscription = selectedModel(root).provider !== "claude";
   const attemptsExhausted = Boolean(limits && oldJob && oldJob.attempts.length >= limits.maxAttempts);
   const budgetExhausted = Boolean(
     limits && oldJob && !subscription && charged + limits.reserveUsd > limits.maxCostUsd + 1e-9,

@@ -847,13 +847,57 @@ describe("legacy-anchor & invalid-wiki-tool：阻塞级门禁", () => {
     expect(badModeRes.errors.some((p) => p.rule === "invalid-wiki-tool")).toBe(true);
   });
 
-  it("二阶段 v0.30.0 页面拦截灰底 calc 框与 ASCII 箭头树，存量未换轨页保留兼容", () => {
+  it("所有 concepts/ 与 params/ 页面（含 verified 为空或旧版本）均拦截灰底 calc 框与 ASCII 箭头树，sources/ 不受此限", () => {
     const legacyWithCalc = mk(
       "legacy-page",
       { verified: ["releases/v0.26.0rc"] },
       "## 算账\n\n```calc\ntitle: 旧账\n每层 = 2 × 4 = 8\n```\n",
     );
-    expect(lintPages([legacyWithCalc], opts)).toEqual([]);
+    expect(splitProblems(lintPages([legacyWithCalc], opts)).errors.map((p) => p.rule)).toContain(
+      "stage2-no-calc",
+    );
+
+    const droppedUnverifiedWithCalc = mk(
+      "dropped-page",
+      { verified: [] },
+      "## 算账\n\n```calc\ntitle: 新投喂页\n每层 = 2 × 4 = 8\n```\n",
+    );
+    expect(splitProblems(lintPages([droppedUnverifiedWithCalc], opts)).errors.map((p) => p.rule)).toContain(
+      "stage2-no-calc",
+    );
+
+    const droppedUnverifiedWithAscii = mk(
+      "dropped-ascii",
+      { verified: [] },
+      "## 分流\n\n```text\n入口\n ├─► 路径 A\n └─► 路径 B\n```\n",
+    );
+    expect(splitProblems(lintPages([droppedUnverifiedWithAscii], opts)).errors.map((p) => p.rule)).toContain(
+      "stage2-no-ascii-diagram",
+    );
+
+    const paramWithCalc = {
+      ...mk(
+        "demo-param",
+        { type: "param", verified: [] },
+        "## 算账\n\n```calc\ntitle: 参数算例\n每层 = 2 × 4 = 8\n```\n",
+      ),
+      file: "params/demo-param.md",
+    };
+    expect(splitProblems(lintPages([paramWithCalc], opts)).errors.map((p) => p.rule)).toContain(
+      "stage2-no-calc",
+    );
+
+    const sourceWithCalc = {
+      ...mk(
+        "raw-source-note",
+        { type: "source", verified: [] },
+        "## 归档摘录\n\n```calc\ntitle: 原始笔记\n每层 = 2 × 4 = 8\n```\n",
+      ),
+      file: "sources/raw-source-note.md",
+    };
+    expect(splitProblems(lintPages([sourceWithCalc], opts)).errors.map((p) => p.rule)).not.toContain(
+      "stage2-no-calc",
+    );
 
     const stage2WithCalc = mk(
       "stage2-page",

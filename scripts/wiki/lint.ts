@@ -771,22 +771,22 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
       });
     }
 
-    // 二阶段 1+3 视觉优先准则：已换轨至 v0.30.0 主基线的页面停用灰底 ```calc 围栏与 ASCII 流程图，
-    // 统一改用 2D wiki-diagram（native-svg / figure）+ 清爽表格 + 标准 KaTeX 公式。
-    const isStage2V030Page = p.fm.verified.some((v) => v === "releases/v0.30.0" || v === "v0.30.0");
-    if (isStage2V030Page && /(?:^|\r?\n) {0,3}(?:`{3,}|~{3,})calc\b/.test(p.body)) {
+    // 二阶段 1+3 视觉优先准则：所有概念教学页与参数页全面停用灰底 ```calc 围栏与 ASCII 流程图
+    // （含新 Drop 外部文档 verified: []），统一改用 2D wiki-diagram（native-svg / figure）+ 清爽表格 + 标准 KaTeX 公式。
+    const isStage2ContentPage = p.file.startsWith("concepts/") || p.file.startsWith("params/");
+    if (isStage2ContentPage && /(?:^|\r?\n) {0,3}(?:`{3,}|~{3,})calc\b/.test(p.body)) {
       problems.push({
         file: p.file,
         rule: "stage2-no-calc",
         message:
-          "二阶段 v0.30.0 页面停用灰底 ```calc 框——请改用 2D 图（mode: native-svg / layout: figure）+ 清爽表格 + 标准 KaTeX 公式",
+          "概念页与参数页已全面停用灰底 ```calc 框——请改用 2D 图（mode: native-svg / layout: figure）+ 清爽表格 + 标准 KaTeX 公式（$...$ / $$...$$）",
       });
     }
-    if (isStage2V030Page && /```(?:text|plaintext)?\r?\n[\s\S]*?[├└]─+[►>][\s\S]*?```/.test(p.body)) {
+    if (isStage2ContentPage && /```(?:text|plaintext)?\r?\n[\s\S]*?[├└]─+[►>][\s\S]*?```/.test(p.body)) {
       problems.push({
         file: p.file,
         rule: "stage2-no-ascii-diagram",
-        message: "二阶段 v0.30.0 页面禁止用代码块 ASCII 箭头树代替 2D 图——请画成正式 wiki-diagram 矢量图",
+        message: "概念页与参数页禁止用代码块 ASCII 箭头树代替 2D 图——请画成正式 wiki-diagram 矢量图",
       });
     }
 
@@ -933,9 +933,10 @@ export function collectStepTerms(): string[] {
 
 export function runLint(
   rootDir: string,
-  flags: { terms: boolean; repoRoots?: Record<string, string> },
+  flags: { terms: boolean; repoRoots?: Record<string, string>; publicRoot?: string },
 ): PageProblem[] {
   const wikiRoot = join(rootDir, "wiki");
+  const publicBase = flags.publicRoot ?? join(rootDir, "public");
   const { pages, problems } = loadPages(wikiRoot);
   const { diagrams, problems: diagramProblems } = loadDiagrams(wikiRoot);
   problems.push(...diagramProblems);
@@ -944,9 +945,11 @@ export function runLint(
     const svgAbs = join(wikiRoot, diag.svgFile);
     if (!existsSync(svgAbs)) continue;
     const svgText = readFileSync(svgAbs, "utf8");
-    for (const m of svgText.matchAll(/\bhref="(\.\/wiki-illustrations\/[a-z0-9-]+\.(?:webp|jpg|png))"/g)) {
-      const rel = m[1]!;
-      if (!existsSync(join(rootDir, "public", rel.slice(2)))) {
+    for (const m of svgText.matchAll(
+      /\bhref=(?:"(\.\/wiki-illustrations\/[a-z0-9-]+\.(?:webp|jpg|png))"|'(\.\/wiki-illustrations\/[a-z0-9-]+\.(?:webp|jpg|png))')/g,
+    )) {
+      const rel = (m[1] ?? m[2])!;
+      if (!existsSync(join(publicBase, rel.slice(2)))) {
         problems.push({
           file: diag.svgFile,
           rule: "missing-diagram-illustration",

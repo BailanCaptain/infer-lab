@@ -2144,16 +2144,27 @@ class DropSession {
             ...allPacked,
           };
           const legacyV4Key = digest(JSON.stringify(legacyV4Round0Frame));
-          if (
-            !seenInputs.has(legacyV4Key) &&
-            Buffer.byteLength(JSON.stringify(legacyV4Round0Frame)) <= this.context.limit(legacyV4Protocol)
-          ) {
-            const cached = this.ask.cached(
-              stage,
-              legacyV4Round0Frame,
-              legacyV4Protocol,
-              z.union([requestSchema, schema]),
-            );
+          const legacyTocProtocol = legacyV4Protocol.replace(
+            "toc.part 可为 guide/models/inference/hardware/distributed/disaggregation/architecture/performance/cases/references/rfork/params。",
+            "toc.part 可为 guide/models/inference/architecture/hardware/distributed/performance/serving/rfork/params/references。",
+          );
+          const legacyCandidates =
+            legacyTocProtocol !== legacyV4Protocol
+              ? [legacyV4Protocol, legacyTocProtocol]
+              : [legacyV4Protocol];
+          if (!seenInputs.has(legacyV4Key)) {
+            let cached: z.infer<typeof requestSchema> | T | undefined;
+            for (const candidateProto of legacyCandidates) {
+              if (Buffer.byteLength(JSON.stringify(legacyV4Round0Frame)) > this.context.limit(candidateProto))
+                continue;
+              cached = this.ask.cached(
+                stage,
+                legacyV4Round0Frame,
+                candidateProto,
+                z.union([requestSchema, schema]),
+              );
+              if (cached !== undefined) break;
+            }
             if (cached !== undefined) {
               seenInputs.add(legacyV4Key);
               const nextInspected = cloneWithMaterials(stageInspected, allPacked.materials);
@@ -3788,7 +3799,7 @@ export async function integrateDrop(
         `${jsonOnly}
 你在整合一整批资料中的当前原文段。materials 是实际原文；notes 是导航提取记录，ref 是可引用行号。catalog 只是首页，不代表全库；用 request.catalog 翻页或 request.wikiSearch 查正文、别名和一跳关系。suggestions 是每个主题的全文检索建议，不是自动合并依据。read 填现存页面 id 请求全文；可沿新线索继续读取，无总数上限。共享图/公式/依赖页也要纳入。必要时 fetch 官方文档 URL 或 search 官方 GitHub 仓库相关讨论，讨论标明未证实。搜索摘要只用于定位，实际证据需原文。
 返回 {"read":["页id"],"fetch":[{"url":"https://...","purpose":"补何证据"}],"search":[{"repo":"vllm-project/vllm","query":"术语","purpose":"目的"}],"pages":[{"path":"concepts/stable-id.md","reason":"页面用途、独立价值、与其他目标分工","toc":{"part":"inference","section":"主题"},"evidence":["raw:...#L1-L2"],"comparisons":[{"page":"实际比较的旧页id","quote":"旧页逐字引文","reason":"重合、增量及条件"}]}],"outcome":{"kind":"integrate|covered|out-of-scope|unresolved","reason":"当前段每个主题如何处理","comparisons":[]},"question":"仅阻碍正确整合的关键歧义，否则空串","report":"知识增益、建链、冲突、未核范围","done":false}。
-需要多新概念则提出多个稳定 id，核对已有定义不重复建页。pages 仅在 done=true 时给最终完整影响范围；只允许修改 read 过的旧页；新页 id 不从文件 hash 派生。path 只能是 concepts/id.md、sources/id.md、params/id.md；来源页用 sources/，references 仅是目录 part，不是文件夹。id 只能包含小写字母、数字及单个连字符，版本 v0.10.0 在 id 中写 v0-10-0。无需知识变更时 pages=[]，说明理由。toc.part 可为 guide/models/inference/architecture/hardware/distributed/performance/serving/rfork/params/references。不要求逐页审批。未核事实不可当作确定替代。`,
+需要多新概念则提出多个稳定 id，核对已有定义不重复建页。pages 仅在 done=true 时给最终完整影响范围；只允许修改 read 过的旧页；新页 id 不从文件 hash 派生。path 只能是 concepts/id.md、sources/id.md、params/id.md；来源页用 sources/，references 仅是目录 part，不是文件夹。id 只能包含小写字母、数字及单个连字符，版本 v0.10.0 在 id 中写 v0-10-0。无需知识变更时 pages=[]，说明理由。toc.part 可为 ${session.protocol === 3 ? "guide/models/inference/architecture/hardware/distributed/performance/serving/rfork/params/references" : "guide/models/inference/hardware/distributed/disaggregation/architecture/performance/cases/references/rfork/params"}。不要求逐页审批。未核事实不可当作确定替代。`,
         discoverySchema,
         { discoverState },
       );
@@ -4027,7 +4038,6 @@ export async function integrateDrop(
     "utf8",
   );
   const { pages: _standardPages, skip: _standardSkips, ...currentWritingChecks } = loadStandardConfig();
-  const currentCalc = readFileSync(new URL("../../docs/wiki-calc-syntax.md", import.meta.url), "utf8");
   const legacyDiagramContract = readFileSync(new URL("./figure.ts", import.meta.url), "utf8").split(
     "export type FigureSpec",
   )[0]!;
@@ -4051,6 +4061,23 @@ export async function integrateDrop(
     "// diagrams[]: Array<{ id: string; yaml: string; svg?: string }>（严格 schema，禁止未知字段、组件代码、模块路径或动态 import）：",
     '// - layout: "figure" | "scene" 只收 yaml，严禁传 svg；',
     '// - mode: "native-svg" 必须同时提交伴生 yaml 与同名严格 XML 1.0 svg 纯数据。',
+    "//",
+    "// ---------- Edition-A 暖纸矿物色板与排版铁律（纯矢量 SVG / figure 共用）----------",
+    "// - 7 色暖矿物主色（描边/强调）：Token青 #087f73、权重琥珀 #c78300、KV靛蓝 #4c65b6、通信梅紫 #9a4b86、错误陶红 #b54237、次级灰 #66716d、暖纸底 #fbfaf6（主墨 #17211f、暖分隔线 #d8d8cf / #b8bcb5）",
+    "// - 柔和浅底（soft fills）：青 #ddf4ef、琥珀 #fff4cf、靛蓝 #e8edff、梅紫 #f5e6f0、陶红 #fbe5e2、沉底灰 #ece9df（深字 #065f56 / #936300 / #3a4f93 / #7a3a6a / #8f3229）",
+    "// - 严禁混用高饱和冷调 Tailwind 蓝/玫红/冷板岩灰（如 #1D4ED8 / #EFF6FF / #BE123C / #334155）；",
+    "// - 字号 >= 13.5px（标题 15-16、主标签 14.5-15、辅助/等宽 13.5-14，严禁 <13px）；",
+    "// - 严禁画整幅外层底板框、内层网格框或 PLATE/FIG 仪表盘黑条，画布宽度 <= 900 且开放式浮在暖白纸面上。",
+    "//",
+    "// ---------- 纯文本 / 开源模型纯矢量防幻觉铁律 ----------",
+    '// - 自动化 Drop 与无位图生成能力的纯文本/开源模型【严禁输出 <image href="./wiki-illustrations/..."> 或虚构任何 .webp/.png/.jpg 位图路径】；',
+    "//   磁盘不存在的 ./wiki-illustrations/ 路径会被宿主在 stageDropDiagram 前置校验直接拒收。",
+    '// - 需要表达空间剖面、硬件分层或复杂架构时，一律使用纯矢量 mode: "native-svg"（等距/分层多边形几何路径 + 上述暖矿物配色）或 layout: "figure" 绘制。',
+    "//",
+    "// ---------- SVG Forbidden Syntax Checklist（以下写法必被严格白名单拒收，切勿使用）----------",
+    "// - 禁用标签：<style>、<linearGradient>、<radialGradient>、<stop>、<clipPath>、<mask>、<filter>、<use>、<symbol>、<script>、<foreignObject>",
+    '// - 禁用属性与值：style="..."、dx、dy、letter-spacing、clip-path、fill-rule、rgba(...)、rgb(...)、width="100%" 等百分比数值',
+    '// - 正确写法：颜色只用 6 位 hex / var(--color-...) / url(#内部id) / none / currentColor；数值用纯数字（如 font-size="14"，不带 px）；多词 font-family 用单引号或 var(--font-sans) / var(--font-mono)。',
     sliceContract(diagramsSource, "export const nativeSvgSpecSchema", "export const DIAGRAM_DIR"),
     sliceContract(sanitizeSource, "export const ALLOWED_TAGS", "function hasControlChar"),
     sliceContract(nativeSvgSource, "export function validateNativeSvg"),
@@ -4060,7 +4087,7 @@ export async function integrateDrop(
     if (existsSync(snapshotFile)) {
       const snap = JSON.parse(readFileSync(snapshotFile, "utf8")) as {
         standard: string;
-        calc: string;
+        calc?: string;
         diagramContract: string;
         writingChecks: Record<string, unknown>;
         runDate: string;
@@ -4118,9 +4145,16 @@ export async function integrateDrop(
     }
     const nativeSvgContract =
       sealedNativeSvgContract ?? (sealedStandard === undefined && sealedWritingChecks === undefined);
-    const out = {
+    const out: {
+      standard: string;
+      calc?: string;
+      diagramContract: string;
+      writingChecks: Record<string, unknown>;
+      runDate: string;
+      nativeSvgContract: boolean;
+    } = {
       standard: sealedStandard ?? currentStandard,
-      calc: sealedCalc ?? currentCalc,
+      ...(!nativeSvgContract && sealedCalc ? { calc: sealedCalc } : {}),
       diagramContract:
         sealedDiagramContract ??
         (nativeSvgContract ? `${legacyDiagramContract}${nativeSvgContractDoc}` : legacyDiagramContract),
@@ -4138,7 +4172,9 @@ export async function integrateDrop(
   const ruleDocuments = {
     handbook: session.context.add("@rules/HANDBOOK.md", "rule", handbookText),
     standard: session.context.add("@rules/wiki-writing-standard.md", "rule", standard),
-    calc: session.context.add("@rules/wiki-calc-syntax.md", "rule", calc),
+    ...(!nativeSvgContract && calc
+      ? { calc: session.context.add("@rules/wiki-calc-syntax.md", "rule", calc) }
+      : {}),
     terms: existsSync(join(wiki, "TERMS.md"))
       ? session.context.add("@rules/TERMS.md", "rule", readFileSync(join(wiki, "TERMS.md"), "utf8"))
       : undefined,
@@ -4206,11 +4242,11 @@ export async function integrateDrop(
     const targetStandard = target.path.startsWith("concepts/")
       ? session.protocol === 3
         ? standard
-        : stripNonAuthoringStandard(standard)
+        : stripNonAuthoringStandard(standard, { keepVisualSpec: true })
       : "";
     const diagramOutputClause = nativeSvgContract
       ? `返回 {"text":"完整 Markdown 含 frontmatter","revision":null 或 {"id":"旧页id","kind":"supplement|editorial|supersede","reason":"理由"...(supersede claims)},"diagrams":[{"id":"图id","yaml":"YAML","svg":"仅native-svg必填"}]}。
-ruleDocuments 含手册、正式标准（适用 concepts 页）、calc 与 terms；写图先读 diagramContract，按范围 request.materials，不猜未展示内容。图优先 figure（figure/scene 只收 yaml 禁传 svg）；mode:"native-svg" 须同传同名严格 XML SVG 纯数据；严禁代码、组件、模块路径、动态 import 或外链。公式、图数字和目录同步。`
+ruleDocuments 含手册、正式标准（适用 concepts 页）与 terms；写图先读 diagramContract，按范围 request.materials，不猜未展示内容。概念/参数页停用 \`\`\`calc 与 ASCII 树，改用 2D 图 + 表格 + KaTeX（$...$/$$...$$）。图支持 layout:"figure"（只收 yaml 禁传 svg）与 mode:"native-svg"（yaml + 严格 XML 1.0 纯矢量 svg）；禁输出 <image href="./wiki-illustrations/..."> 虚构位图，禁 <style>/<linearGradient>/<clipPath>/<filter>/style=/rgba()/dx/dy、代码、组件、模块路径、动态 import 或外链，暖矿物配色与禁项清单见 diagramContract。公式、图数字和目录同步。`
       : `返回 {"text":"完整 Markdown 含 frontmatter","revision":null 或 {"id":"旧页id","kind":"supplement|editorial|supersede","reason":"理由"...(supersede claims)},"diagrams":[{"id":"图id","yaml":"完整 YAML"}]}。
 ruleDocuments 提供完整手册、正式标准、公式语法和术语表。正式标准适用 concepts 教学页，其他类型依各自格式规则。写专业术语前按需查 terms；生成或修改图时先读 handbook 的图节及 diagramContract 实际 schema，写计算公式前先读 calc。支持 request.materials 按范围读取，不猜字段或把未展示当成不存在。图格式优先 figure；禁止提供 SVG 或任意代码。公式、图数字和目录都要同步。`;
     const rules = `${jsonOnly}\n${targetFormat}\n${handbook.integrate}\n${targetStandard}
@@ -4456,7 +4492,9 @@ ${diagramOutputClause}`;
       diagramIds.add(diagram.id);
       const users = loaded.pages.filter((p) => diagramRefs(p.body).includes(diagram.id));
       for (const user of users) await session.ensurePage(user.fm.id);
-      stageDropDiagram(stage, diagram.id, diagram.yaml, diagram.svg);
+      stageDropDiagram(stage, diagram.id, diagram.yaml, diagram.svg, {
+        publicRoot: join(root, "public"),
+      });
     }
   }
   const sortedGenerated = [...generated].sort((a, b) => `wiki/${a.path}`.localeCompare(`wiki/${b.path}`));
@@ -4470,8 +4508,22 @@ ${diagramOutputClause}`;
     .map((p) => `wiki/${p}`)
     .concat([...diagramIds].flatMap((d) => [`wiki/diagrams/${d}.yaml`, `wiki/diagrams/${d}.svg`]));
   const roots = configuredRepoRoots(root);
+  const preservedRefs = new Map<string, Set<string>>();
+  for (const targetPath of targets) {
+    const oldText = base.get(`wiki/${targetPath}`);
+    if (!oldText) continue;
+    const oldParsed = parsePage(targetPath, oldText).page;
+    if (oldParsed?.fm.sources.length) preservedRefs.set(targetPath, new Set(oldParsed.fm.sources));
+  }
   const issues = [
-    ...(deps.validate ? deps.validate(stage) : validateIntegration(stage, roots)),
+    ...(deps.validate
+      ? deps.validate(stage)
+      : validateIntegration(stage, roots, {
+          publicRoot: join(root, "public"),
+          touchedPages: [...targets],
+          touchedDiagrams: [...diagramIds],
+          preservedRefs,
+        })),
     ...validateDropAssets(stage, assetPaths, true),
   ];
   if (issues.length) throw new Error(`整合校验失败：\n${issues.join("\n")}`);

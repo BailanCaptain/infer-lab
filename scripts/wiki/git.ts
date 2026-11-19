@@ -69,6 +69,19 @@ function resolveGitCommonDir(root: string): string {
   return resolved;
 }
 
+/** Guard missing or uncloned local repo paths so commit probes degrade cleanly instead of throwing uncaught GitError. */
+function tryResolveGitCommonDir(root: string): string | null {
+  const cached = commonDirs.get(root);
+  if (cached && existsSync(cached) && existsSync(root)) return cached;
+  if (!existsSync(root)) return null;
+  try {
+    return resolveGitCommonDir(root);
+  } catch (error) {
+    if (error instanceof GitError && (error.status === 128 || error.status === null)) return null;
+    throw error;
+  }
+}
+
 function safeReadText(path: string): string {
   try {
     return existsSync(path) ? readFileSync(path, "utf8") : "";
@@ -116,7 +129,8 @@ function rememberMissingCommit(key: string, stamp: string): void {
 function commitExists(root: string, commit: string): boolean {
   const key = [root, commit].join(SEP);
   if (commits.has(key) && existsSync(root)) return true;
-  const commonDir = resolveGitCommonDir(root);
+  const commonDir = tryResolveGitCommonDir(root);
+  if (!commonDir) return false;
   const stamp = repoStateStamp(commonDir);
   if (missingCommits.get(key) === stamp) return false;
   try {

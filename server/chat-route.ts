@@ -7,7 +7,7 @@ import { attachCorpusProvenance, corpusDocuments } from "../scripts/wiki/corpus-
 import { judgeGapIdentity } from "../scripts/wiki/gap-identity";
 import { recordGapObservation } from "../scripts/wiki/gap-ledger";
 import { answeredBy, modelSwitched } from "../scripts/wiki/model-use";
-import { selectedModel as readSelectedModel } from "../scripts/wiki/sync-config";
+import { readClaudeEnv, selectedModel as readSelectedModel } from "../scripts/wiki/sync-config";
 import type { AnswerQuality } from "../src/content/wiki/answer-quality";
 import type { CorpusDocument } from "../src/content/wiki/corpus-retrieve";
 import { neighborhood } from "../src/content/wiki/relations";
@@ -113,7 +113,8 @@ export async function handleChat(
     const snapshot = await readKnowledgeSnapshot(root);
     cancel.signal.throwIfAborted();
     const selectedModel = readSelectedModel(root);
-    // Codex receives immutable page text and runs in its own empty cwd; only Claude reads files.
+    const claudeEnv = selectedModel.provider === "claude" ? readClaudeEnv(root) : undefined;
+    // Codex / HTTP API / custom harness receive immutable page text directly; only Claude reads snapshot files.
     const location =
       selectedModel.provider === "claude" ? await materializeSnapshot(root, snapshot) : undefined;
     lease = await beginChat(
@@ -124,12 +125,13 @@ export async function handleChat(
     );
     cancel.signal.throwIfAborted();
     const retrievalQuery =
-      selectedModel.provider === "codex"
+      selectedModel.provider !== "claude"
         ? [message, ...lease.contextQuestions.slice(-2)].join("\n")
         : message;
     const context = retrieveChatContext(retrievalQuery, snapshot, corpusDocuments(root));
     const hits = attachCorpusProvenance(root, context.hits);
     const graph = context.graph;
+    const online = chatOnline({ provider: selectedModel.provider });
     res.writeHead(200, {
       "content-type": "text/event-stream",
       "cache-control": "no-cache",
@@ -140,8 +142,8 @@ export async function handleChat(
       sessionId: lease.id,
       resetReason: lease.resetReason,
       maxTurns: MAX_SESSION_TURNS,
-      // 网页问答永远给联网工具（离线对照只走内部评测）；界面照实标出来
-      online: chatOnline({}),
+      // 界面按实际接入方式照实标出本轮是否有联网工具
+      online,
       provider: selectedModel.provider,
     });
     emit("hits", { hits });
@@ -158,7 +160,7 @@ export async function handleChat(
     }
     cancel.signal.throwIfAborted();
     const evidencePages =
-      selectedModel.provider === "codex"
+      selectedModel.provider !== "claude"
         ? codexEvidencePages(
             [
               ...new Set([
@@ -196,6 +198,7 @@ export async function handleChat(
         revision: snapshot.revision,
         timeoutMs: CHAT_TIMEOUT_MS,
         ...selectedModel,
+        ...(claudeEnv ? { claudeEnv } : {}),
         pages: evidencePages,
       },
     );
@@ -221,7 +224,7 @@ export async function handleChat(
         provider: selectedModel.provider,
         ...(outcome.models.requested ? { requested: outcome.models.requested } : {}),
         answeredBy:
-          selectedModel.provider === "codex" ? outcome.models.answered.at(-1) : answeredBy(outcome.models),
+          selectedModel.provider !== "claude" ? outcome.models.answered.at(-1) : answeredBy(outcome.models),
         switched: modelSwitched(outcome.models),
         switches: outcome.models.switches,
       });
@@ -231,7 +234,7 @@ export async function handleChat(
     if (outcome.ok) citations = checkAnswerCitations(answer, evidencePages);
     if (outcome.ok && citations.cited) emit("related", { pages: relatedReading(answer, snapshot) });
     // 给了联网工具、一次没用、却说自己联不了网：读者得知道这条回答没有联网核对
-    if (outcome.ok && chatOnline({}) && webTools.length === 0 && claimsOffline(answer))
+    if (outcome.ok && online && webTools.length === 0 && claimsOffline(answer))
       emit("notice", {
         kind: "offline-claim",
         message:

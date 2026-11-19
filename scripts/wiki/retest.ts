@@ -13,6 +13,7 @@ import {
   verifySnapshot,
 } from "../../server/snapshot";
 import type { AnswerQuality } from "../../src/content/wiki/answer-quality";
+import { CHAT_PROVIDERS } from "../../src/content/wiki/chat-models";
 import { withBudget } from "./budget";
 import { listGaps } from "./gap-ledger";
 import { MODEL_ID, WORK_MODEL } from "./model-use";
@@ -36,7 +37,7 @@ const planSchema = z
     beforeRevision: z.string(),
     /** 前测与后测必须同一个模型，所以冻结在计划里；不写就用 WORK_MODEL */
     model: z.string().regex(MODEL_ID).default(WORK_MODEL),
-    provider: z.enum(["claude", "codex"]).optional(),
+    provider: z.enum(CHAT_PROVIDERS).optional(),
     reserveUsd: z.number().positive().finite(),
     cases: caseSchema.array().length(4),
   })
@@ -157,7 +158,7 @@ export async function runRetest(
     }
     const context = retrieveChatContext(c.question, snapshot);
     const pages =
-      selection.provider === "codex"
+      selection.provider !== "claude"
         ? codexEvidencePages(
             snapshot.pageTexts.filter((p) =>
               snapshot.registry.pages.some(

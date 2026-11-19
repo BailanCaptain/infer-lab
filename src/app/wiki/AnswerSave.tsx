@@ -1,10 +1,11 @@
 import { useMemo, useRef, useSyncExternalStore } from "react";
+import type { ChatProvider } from "../../content/wiki/chat-models";
 import { wikiRequest } from "./api";
 import type { ReviewState } from "./ReviewPane";
 
 export interface AnswerSaveState {
   open: boolean;
-  provider?: "claude" | "codex";
+  provider?: ChatProvider;
   budget: string;
   lockedBudget?: number;
   started: boolean;
@@ -33,7 +34,7 @@ export function createAnswerSaveController({
 }) {
   let disposed = false;
   let open = false;
-  let provider: "claude" | "codex" | undefined;
+  let provider: ChatProvider | undefined;
   let budget = "";
   let lockedBudget: number | undefined;
   let started = false;
@@ -79,7 +80,7 @@ export function createAnswerSaveController({
     if (provider || loadingStatus) return;
     loadingStatus = true;
     try {
-      const value = await request<{ models: { chatProvider: "claude" | "codex" } }>("status");
+      const value = await request<{ models: { chatProvider: ChatProvider } }>("status");
       if (disposed) return;
       provider = value.models.chatProvider;
       sync();
@@ -244,12 +245,16 @@ export function AnswerSaveView({ state, actions }: { state: AnswerSaveState; act
         {state.canNewAttempt
           ? state.provider === "codex"
             ? "重新生成待审稿会消耗 Codex 的 ChatGPT 账户额度（最多尝试两次）；仅查看或刷新不会自动重跑。"
-            : state.lockedBudget !== undefined
-              ? `重新生成待审稿会沿用原总预算（${state.lockedBudget} 美元，最多尝试两次）并可能产生费用；仅查看或刷新不会自动重跑。`
-              : "重新生成待审稿会沿用原预算（最多尝试两次）并可能产生费用；仅查看或刷新不会自动重跑。"
+            : state.provider && state.provider !== "claude"
+              ? `重新生成待审稿会调用当前 ${state.provider} 接口（最多尝试两次）；仅查看或刷新不会自动重跑。`
+              : state.lockedBudget !== undefined
+                ? `重新生成待审稿会沿用原总预算（${state.lockedBudget} 美元，最多尝试两次）并可能产生费用；仅查看或刷新不会自动重跑。`
+                : "重新生成待审稿会沿用原预算（最多尝试两次）并可能产生费用；仅查看或刷新不会自动重跑。"
           : state.provider === "codex"
             ? "使用 Codex 的 ChatGPT 账户额度，最多尝试两次；重试也会消耗额度。"
-            : "最多尝试两次，每次上限为总预算的一半；重试沿用预算，可能产生费用。"}
+            : state.provider && state.provider !== "claude"
+              ? `使用当前配置的 ${state.provider} 模型接口，最多尝试两次；重试也会调用模型。`
+              : "最多尝试两次，每次上限为总预算的一半；重试沿用预算，可能产生费用。"}
       </small>
       {state.error && <p role="alert">{state.error}</p>}
       <div className="wiki-save-actions">

@@ -13,6 +13,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
+import { CHAT_PROVIDERS } from "../../src/content/wiki/chat-models";
 import { ID_RE, PAGE_ORIGINS } from "../../src/content/wiki/schema";
 import { parsePage } from "./pages";
 import { type Screening, screeningSchema } from "./screening";
@@ -35,8 +36,8 @@ const attemptSchema = z.object({
   revalidatedAt: z.string().optional(),
   reservedUsd: z.number().finite().nonnegative(),
   accountingOnly: z.boolean().optional(),
-  billing: z.literal("chatgpt").optional(),
-  selection: z.object({ provider: z.enum(["claude", "codex"]), model: z.string() }).optional(),
+  billing: z.enum(["chatgpt", "external"]).optional(),
+  selection: z.object({ provider: z.enum(CHAT_PROVIDERS), model: z.string() }).optional(),
   usage: z.record(z.number().int().nonnegative()).optional(),
   costUsd: z.number().finite().nonnegative().optional(),
   state: z.enum(["running", "draft", "failed"]),
@@ -305,10 +306,11 @@ export class WorkflowStore {
       if (!accountingOnly && limits && job.attempts.length >= limits.maxAttempts)
         throw new Error("已达到尝试次数上限");
       const selection = pinnedSelection ?? selectedModel(this.root);
-      const subscription = selection.provider === "codex";
+      const nonClaudeBilling: "chatgpt" | "external" | undefined =
+        selection.provider === "codex" ? "chatgpt" : selection.provider !== "claude" ? "external" : undefined;
+      const subscription = nonClaudeBilling !== undefined;
       const charged = job.attempts.reduce(
-        (sum, attempt) =>
-          sum + (attempt.billing === "chatgpt" ? 0 : (attempt.costUsd ?? attempt.reservedUsd)),
+        (sum, attempt) => sum + (attempt.billing ? 0 : (attempt.costUsd ?? attempt.reservedUsd)),
         0,
       );
       if (
@@ -324,8 +326,8 @@ export class WorkflowStore {
         startedAt: new Date().toISOString(),
         reservedUsd: accountingOnly || subscription ? 0 : limits!.reserveUsd,
         ...(accountingOnly ? { accountingOnly: true } : {}),
-        selection,
-        ...(subscription ? { billing: "chatgpt" as const } : {}),
+        selection: { provider: selection.provider, model: selection.model },
+        ...(nonClaudeBilling ? { billing: nonClaudeBilling } : {}),
         state: "running" as const,
       };
       job.attempts.push(attempt);
@@ -340,7 +342,7 @@ export class WorkflowStore {
     result: {
       ok: boolean;
       costUsd?: number;
-      billing?: "chatgpt";
+      billing?: "chatgpt" | "external";
       usage?: Record<string, number | undefined>;
       reason?: string;
       artifacts?: Record<string, string>;
@@ -358,7 +360,7 @@ export class WorkflowStore {
         delete attempt.costUsd;
       }
       if (result.usage) attempt.usage = z.record(z.number().int().nonnegative()).parse(result.usage);
-      const cost = attempt.billing === "chatgpt" ? undefined : result.costUsd;
+      const cost = attempt.billing ? undefined : result.costUsd;
       if (cost !== undefined && Number.isFinite(cost) && cost >= 0) attempt.costUsd = cost;
       let reason = result.ok ? undefined : (result.reason ?? "执行失败");
       if (cost !== undefined && (!Number.isFinite(cost) || cost < 0)) reason = "费用非法，实际消耗待核对";

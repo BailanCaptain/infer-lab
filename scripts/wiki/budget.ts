@@ -29,7 +29,7 @@ const callSchema = z.object({
   reason: z.string().optional(),
   /** 实际作答模型；2026-09-23 晚加这项之前的账目没有 */
   models: modelUseSchema.optional(),
-  billing: z.literal("chatgpt").optional(),
+  billing: z.enum(["chatgpt", "external"]).optional(),
   accountingOnly: z.boolean().optional(),
   usage: z.record(z.number().int().nonnegative()).optional(),
 });
@@ -164,7 +164,15 @@ export async function withBudget<
       ),
     };
   const store = new WorkflowStore(root);
-  const subscription = request.provider === "codex";
+  const nonClaudeBilling: "chatgpt" | "external" | undefined =
+    request.provider === "codex"
+      ? "chatgpt"
+      : request.provider === "openai-compatible" ||
+          request.provider === "anthropic-compatible" ||
+          request.provider === "harness"
+        ? "external"
+        : undefined;
+  const subscription = nonClaudeBilling !== undefined;
   const claim = await store.locked(() => {
     const state = read(root);
     for (const call of state.calls.filter((c) => c.state === "running")) {
@@ -179,7 +187,7 @@ export async function withBudget<
       if (!alive) {
         call.state = "unknown";
         call.reason = "调用所属进程已退出或旧回执无所属进程，保留全部预留等待账单核对";
-        if (call.billing !== "chatgpt" && !call.accountingOnly) state.paused = true;
+        if (!call.billing && !call.accountingOnly) state.paused = true;
       }
     }
     if (state.paused) atomicText(pathOf(root), JSON.stringify(state));
@@ -203,7 +211,7 @@ export async function withBudget<
       throw new Error("共享剩余预算不足，未启动模型");
     const args = [...request.args];
     const index = args.indexOf("--max-budget-usd");
-    if (subscription && index >= 0) throw new Error("Codex 账户额度不能使用美元调用限额");
+    if (subscription && index >= 0) throw new Error("非 Claude 接入方式不能使用美元调用限额");
     if (!request.accountingOnly && !subscription && index < 0) args.push("--max-budget-usd", String(reserve));
     else if (!request.accountingOnly && !subscription) args[index + 1] = String(reserve);
     const req = { ...request, args };
@@ -216,7 +224,7 @@ export async function withBudget<
       ownerPid: process.pid,
       state: "running" as const,
       ...(request.accountingOnly ? { accountingOnly: true } : {}),
-      ...(subscription ? { billing: "chatgpt" as const } : {}),
+      ...(nonClaudeBilling ? { billing: nonClaudeBilling } : {}),
     };
     state.calls.push(call);
     atomicText(pathOf(root), JSON.stringify(state));

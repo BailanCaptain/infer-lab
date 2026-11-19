@@ -185,11 +185,15 @@ sources:
   - "https://github.com/kvcache-ai/Mooncake/blob/4da33e5b44c28aec262dff63458c0bdb1c9bc8b0/mooncake-store/src/real_client.cpp#L1585-L1645"
   - "https://github.com/kvcache-ai/Mooncake/blob/4da33e5b44c28aec262dff63458c0bdb1c9bc8b0/mooncake-store/src/master.cpp#L234-L245"
   - "https://github.com/kvcache-ai/Mooncake/blob/4da33e5b44c28aec262dff63458c0bdb1c9bc8b0/mooncake-store/src/master.cpp#L938-L948"
+  - "vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L305-L370"
+  - "vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L150-L205"
+  - "vllm@ba15685a:vllm/v1/core/kv_cache_utils.py#L110-L120"
+  - "vllm@ba15685a:vllm/distributed/kv_transfer/kv_connector/v1/mooncake/store/worker.py#L1627-L1660"
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
-  - releases/v0.30.0rc2
 evidence: C
 relations:
   - to: prefix-caching
@@ -262,14 +266,15 @@ file: kv-pool-intuition
 
 设请求 A 的 prompt 有 24 个位置，一段 4 个位置；本地命中前 8 个，池里有前 20 个（都是示意数）：
 
-```calc
-title: 请求 A 的一次查询（示意：一段 4 个位置）
-可查长度 = floor(24 ÷ 4) × 4 = 24 个位置
-本地 prefix caching 命中 = 8 个位置（前 2 段）
-池命中 = 20 个位置（前 5 段）
-要从池里搬 = 20 − 8 = 12 个位置（第 8–19 个）
-还要自己算 = 24 − 20 = 4 个位置（第 20–23 个）
-```
+$$L_{\text{query}} = \left\lfloor \frac{24}{4} \right\rfloor \times 4 = 24, \qquad N_{\text{load}} = 20 - 8 = 12, \qquad N_{\text{compute}} = 24 - 20 = 4$$
+
+| 核算项（请求 A 示意，一段 4 个位置） | 算式 | 结果与位置区间 |
+| --- | --- | --- |
+| 可查长度（向下取整到整段） | $\lfloor 24 \div 4 \rfloor \times 4$ | **24 个位置** |
+| 本地 prefix caching 命中 | 前 2 段 | **8 个位置**（第 0–7 个） |
+| 池连续命中 | 前 5 段 | **20 个位置**（第 0–19 个） |
+| 要从池里搬回 | $20 - 8$ | **12 个位置**（第 8–19 个） |
+| 还要自己算 | $24 - 20$ | **4 个位置**（第 20–23 个） |
 
 ```wiki-diagram
 file: kv-pool
@@ -357,17 +362,14 @@ CPU备份在rc2/main还可按严格条件保存部分尾状态，包含状态组
 | `embedded`，默认 | 各 vLLM worker/rank 在自己进程中贡献 | 每 rank 配一份正容量 | 每 rank 仍需正的 `local_buffer_size` |
 | `standalone-store` | 外部 `mooncake_client` 存储进程 | 必须为 0；vLLM 是请求数据的一方 | 仍需 `local_buffer_size`，不能随池贡献一起清零 |
 
-用 4 个 rank 举例，每个 rank 配 8 GiB 池和 1 GiB 私有缓冲，先把两笔容量分开相加；换成独立池后，池容量的账转移到外部存储进程。
+用 4 个 rank 举例，每个 rank 配 8 GiB 池和 1 GiB 私有缓冲，先把两笔容量分开相加；换成独立池后，池容量的账转移到外部存储进程（示意配置，非进程内存实测；另计元数据、传输、外部存储进程的池与 SSD 暂存区等开销，$0$ 不表示整机不占主机内存）：
 
-```calc
-title: 4 个 rank 的主机容量怎么加（示意配置，非进程内存实测）
-embedded：每 rank 贡献 8 GiB 池 + 1 GiB 私有缓冲
-池容量 = 4 × 8 = 32 GiB
-vLLM 私有缓冲 = 4 × 1 = 4 GiB
-这两项合计 = 36 GiB，另计元数据、传输与其他运行开销
-standalone-store：vLLM 贡献 0，私有缓冲仍为 4 GiB
-外部存储进程的池、SSD 暂存区和其他缓冲另算；0 不表示整机不占主机内存
-```
+$$M_{\text{embedded}} = 4 \times (8 + 1)\text{ GiB} = 36\text{ GiB}, \qquad M_{\text{standalone,vLLM}} = 4 \times (0 + 1)\text{ GiB} = 4\text{ GiB}$$
+
+| 上游 Store 模式（4 rank 示意） | vLLM 贡献池容量 | vLLM 私有缓冲 | vLLM 侧两项合计 |
+| --- | --- | --- | --- |
+| `embedded`（每 rank 8 GiB 池 + 1 GiB 缓冲） | $4 \times 8 = \mathbf{32\text{ GiB}}$ | $4 \times 1 = \mathbf{4\text{ GiB}}$ | **36 GiB** |
+| `standalone-store`（池归外部存储进程） | **0 GiB** | $4 \times 1 = \mathbf{4\text{ GiB}}$ | **4 GiB**（外部池与暂存区另算） |
 
 独立持有的好处是推理进程退出时，不必连带释放由外部存储进程持有的那段内存；代价是多维护一套存储服务、容量与网络。它仍是会淘汰数据的缓存，存储进程是否存活、对象是否被淘汰以及后端的恢复协议，都决定旧数据能否取回；“独立”本身不承诺持久保存。
 
@@ -395,14 +397,15 @@ Mooncake 自己的新 SDK 文档还使用“嵌入 Real Client”和“独立 Re
 
 ### 只加 KV Pool、不开 prefix caching：短于最长长度的 prompt 不会查询
 
-GLM 在每张卡上有 5 个缓存组：full 组（稀疏 MLA 的潜向量和 indexer 缓存，块长 640；indexer 是稀疏 MLA 里给历史位置打分、挑出要细读哪些位置的小模块，见 [sparse attention](sparse-attention.md)）、尾状态组（块长 4）和 3 个 KDA 组，分组见 [KV cache 规格](kv-cache-spec.md#对齐成两档页编成五个组)。KDA 是 GLM 用的线性 attention，每层只存一份固定大小的递推状态（见 [linear attention](linear-attention.md)）。打开 AscendStore 时，镜像会把 KDA 的缓存模式从「不留档」自动改成按块对齐（align）；可 KDA 组的块长只有在 prefix caching 也开着时才落到 640，否则仍盖住整条最长长度 133,120。把各组块长代进上面的段长规则：
+GLM 在每张卡上有 5 个缓存组：full 组（稀疏 MLA 的潜向量和 indexer 缓存，块长 640；indexer 是稀疏 MLA 里给历史位置打分、挑出要细读哪些位置的小模块，见 [sparse attention](sparse-attention.md)）、尾状态组（块长 4）和 3 个 KDA 组，分组见 [KV cache 规格](kv-cache-spec.md#对齐成两档页编成五个组)。KDA 是 GLM 用的线性 attention，每层只存一份固定大小的递推状态（见 [linear attention](linear-attention.md)）。打开 AscendStore 时，镜像会把 KDA 的缓存模式从「不留档」自动改成按块对齐（align）；可 KDA 组的块长只有在 prefix caching 也开着时才落到 640，否则仍盖住整条最长长度 133,120。把各组块长代进上面的段长规则（照镜像源码推演，不是部署状态）：
 
-```calc
-title: GLM 上的段长（照镜像源码推演，不是部署状态）
-只加 KV Pool 的段长 = lcm(640, 4, 133,120) = 133,120 个位置
-再开 prefix caching 的段长 = lcm(640, 4, 640) = 640 个位置
-R1 的可查长度 = floor(4 ÷ 640) × 640 = 0
-```
+$$G_{\text{no-pc}} = \text{lcm}(640,\; 4,\; 133{,}120) = 133{,}120, \qquad G_{\text{with-pc}} = \text{lcm}(640,\; 4,\; 640) = 640$$
+
+| 配置组合（GLM 源码推演） | 段长或可查长度算式 | 结果 |
+| --- | --- | --- |
+| 只加 KV Pool（不开 prefix caching） | $\text{lcm}(640,\; 4,\; 133{,}120)$ | **133,120 个位置** |
+| KV Pool + prefix caching | $\text{lcm}(640,\; 4,\; 640)$ | **640 个位置** |
+| R1（prompt 4 token）在 640 段长下的可查长度 | $\lfloor 4 \div 640 \rfloor \times 640$ | **0**（凑不满一段，不查询） |
 
 按这条推演，只加 KV Pool 时段长等于最长长度 133,120：任何短于它的 prompt 取整后都是 0，查询在第一步就被挡掉，写入也凑不满一段，池形同虚设。要让池起作用，必须再显式打开 prefix caching，段长才落到 640。即便如此，[R1](one-request.md#示例请求-r1-与官方双机部署)（教学设定，prompt 为 4 个 token 的示例请求）凑不满一段，照样不查；只有 prompt 不短于 640 个 token 的请求才会发出查询，而且开头相同的部分要达到 640 个 token 以上，才取得回整段。这和 prefix caching 在 GLM 上「共享开头不足 640 就没用」同源：KDA 只在 640 的边界上留状态，从两个边界之间接不上。
 
@@ -506,50 +509,16 @@ vllm serve <模型路径> ... --kv-transfer-config '{
 
 ### 版本差异
 
-块指纹的根种子由上游 vLLM 决定，先与存储后端版本分开核对：
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**本文 GLM 双机推演沿用例外 B 专用镜像 `db701c1f`（配套 `vllm@0fc695fc`）**。
 
-| 种子条件 | v0.23 / 固定 GLM（0fc695fc） | v0.26（568afb3a） | rc2（ced6857a） | 固定 main（84030bbe） |
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 |---|---|---|---|---|
-| 显式设置 PYTHONHASHSEED | 用配置值生成根指纹 | 相同 | 相同，优先于默认策略 | 同 rc2 |
-| 未设置，sha256 / sha256_cbor | 使用随机根指纹 | 相同 | 以固定字符串 vllm-none-hash 为种子计算 | 同 rc2 |
-| 未设置，xxhash / xxhash_cbor | 使用随机根指纹 | 相同 | 仍为每进程随机种子 | 同 rc2 |
-| 缺省警告 | CBOR 系列提醒不能跨进程复现 | 相同 | 随机的 xxhash 系列提醒需共享种子或改用 sha256 | 同 rc2 |
+| 块指纹根种子（上游 vLLM） | 未设 `PYTHONHASHSEED` 时全部随机；CBOR 告警 | 同 `v0.23.0` | `sha256/sha256_cbor` 默认固定种子 `vllm-none-hash`；`xxhash` 系列仍默认随机并告警 | 同 `v0.30.0`（`kv_cache_utils.py#L110-L120`） |
+| 上游 `MooncakeStoreConnector` | `embedded` / `standalone-store`；`enable_offload` 选 1,280 MiB 分批预算；`get_finished` 提交 I/O 与断言 `load_async=True` | 同 `v0.23.0` | I/O 拆至 `start_load_kv` / `wait_for_save`，断言前移至 `start_load_kv`；放宽至至少一个前缀可缓存组（拒 CrossAttention 与非 align Mamba） | 同 `v0.30.0`（`worker.py#L1627-L1660` 补 `preferred_segment` / `tenant_id` 与 `enable_offload` 告警校验） |
+| `AscendStoreConnector` 架构与模块 | `config_data.py` / `backend/backend.py`；普通键 `@pcp<n>@dcp<n>@…`；仅 memcache 逐层 GVA；写回在本步 `wait_for_save` 末尾 `join()` | 键改为 `@pcp:<n>@dcp:<n>@…`；逐层保存看 `consumer_is_to_put`；增 P/D 跨 TP 子键；逐层加载改为循环等并查后台异常 | `metadata.py` / `backend/base.py`；键去掉 `pcp` 为 `@dcp:<n>@…`；Mooncake 逐层支持 TP/PP 与 Mamba 延后复制；`handle_preemptions` 按 `released_req_ids` 精确等待即将复用块的写回（`ascend_store_connector.py#L305-L370`） | **逐层逻辑独立拆入 `ascend_store/layerwise/`**，新增 `in_flight_save_blocks.py`、`lookup_key.py` 与 `configure_dspark_prefix_cache`（SFA DSpark P 侧联合外部前缀复用），并对 V2 Mamba 混合模型同时支持逐层与同步整块延后复制（`ascend_store_connector.py#L150-L205`） |
+| 混合模型 align 与部署边界 | 接 AscendStore 自动改 `align`；逐层 10 秒超时仅记日志（`db701c1f` 同） | 同 `align` 规则；逐层取消 10 秒静默超时 | 同 `align`（保留 `extract_hidden_states` 例外）；`kv_consumer` 仅 `save_decode_cache` 限非逐层；PP 命名空间含层分区与配置摘要（PP=1 不加） | 同 `v0.30.0`，并在构造期显式拒绝 `kv_consumer` 仅 `save_decode_cache + use_layerwise` 组合（`#L150-L159`） |
 
-新版的确定默认值解决了这一项跨进程对齐条件，未替代模型、权重、布局与 cache_salt 的检查。混合新旧版本、混合算法或显式覆盖了种子的服务仍需确认实际根指纹相同；不能由“都没设置环境变量”推断兼容。
-
-上游 Store 把请求的 `block_hashes` 转成十六进制，再与模型名、rank 和组号拼成存储键。这里要追的是“根指纹 → 块指纹 → 存储键”这条链；Python 对进程内 `PoolKey` 对象做字典散列，是另一件事。
-
-| 上游 Store 条件 | v0.23（0fc695fc） | v0.26（568afb3a） | main 比较点（84030bbe） | rc2 配套（ced6857a） |
-| --- | --- | --- | --- | --- |
-| `mode` 与容量 | embedded 贡献池；standalone-store 贡献为 0，私有缓冲为正 | 相同 | 相同 | 相同 |
-| vLLM `enable_offload` | 选择 1,280 MiB 读取分批预算；不单独启动存储端 SSD | 相同 | 相同 | 相同 |
-| 异步加载检查位置 | `get_finished` 断言 true | 同左 | `start_load_kv` 断言 true；仅贡献容量的分支提前返回 | 同 main 比较点 |
-| 主要读写接口 | I/O 在 `get_finished` 提交 | 同类路径 | 加载与保存分别由 `start_load_kv`、`wait_for_save` 提交 | 同 main 比较点 |
-
-模型与并行校验另有变化：旧上游 Store 对多个缓存组与 PCP×DCP>1 的组合直接拒绝；rc2 的实际读写模式要求至少一个可做前缀缓存的组，拒绝其中的 CrossAttention 和非 align 的 Mamba，并限制多组与 PCP>1 的组合。仅贡献容量、不查不写的模式另有分支。共享池这一架构不能证明任意混合模型、DCP 或 P/D 配方都兼容，固定 GLM 仍按 AscendStore 的条件推演。这里的上游 main 同样只是固定比较点，不代替 Ascend 镜像的安装清单。
-
-**v0.30.0rc2 的 Mooncake 逐层池已超出旧 main 的“仅纯 TP、不支持递推状态”。** block-key 数据通路支持 TP/PP；PP 专用命名空间包含层分区、TP、模型配置、缓存配置和投机配置的摘要，PP=1 时不加这个前缀。PP 必须让每个阶段拥有各缓存组的层，不支持只有 draft 层的组，仍拒绝 CP 和 P/D TP 不一致。AscendStore 还把 Mamba 状态复制延后到每层加载完成之后，防止读到半加载状态。配置摘要不是权重文件校验，不能由它取消前面的兼容性要求。
-
-**后续官方快照 `921ccc52`：MLA 池对象升级必须隔离旧格式。** 一个逻辑块包含多个物理页、页间有空隙时，新格式只传每个物理页内的有效分量，不复制填充。旧连续区间格式与修正后的分段格式不兼容；后续完整块快路径又从“按分量排列”改成“按物理页排列”。即使记录总字节数相同，也不能混读。所有读写端须一起升级，并清除受影响池对象或启用新的缓存命名空间；请求用 cache_salt 隔离时，共享前缀的请求须一致。只重启 vLLM 不会清除持久池对象。新 bulk 对象也不能交给逐层读取或分量布局不同的实例。这是该后续快照的升级要求，不改写上面的 rc2 与固定 GLM 算例。
-
-**同一后续快照中，租户隔离和 SSD 预取要分别配置。** Mooncake master 没有启用严格多租户模式时，客户端 tenant_id 被忽略，对象仍落在 default 命名空间；开启后，各实例使用的租户都须在配额策略注册。tenant_id 是命名空间与配额身份，不是身份认证，模型、权重和 KV 布局不同仍需分池或分命名空间。SSD offload 负责落盘，enable_ssd_prefetch 才负责在查询存在性时把 SSD 对象预取回 DRAM；后者要求启用 offload 且 Mooncake 提供 ExistOptions，缺少接口时会警告并关闭预取。未显式设置时，冷却与去重时间沿用 Mooncake 的 5 秒和 30 秒。配置预取字段后，Store 使用配置字典形式的 setup，另建 TransferEngine；不能再假定它与 PD 通路共享全局引擎。完整配置见本页 sources 中固定的后续官方部署指南。
-
-下表对照 v0.23 维护分支（`2c59ff10`）、v0.26 分支（`2ed6cbba`）、main（`baa023ad`）和 rc2（`7d825229`）。含 GLM 代码的镜像提交 `db701c1f` 在表中前四项上与 v0.23 维护分支相同。上游 GLM 基线按 `0fc695fc`（v0.23.0）读。
-
-| 项 | v0.23 维护分支 | v0.26 分支 | main | v0.30.0rc2 |
-|---|---|---|---|---|
-| 普通 PoolKey 名字开头 | `@pcp<n>@dcp<n>@…` | `@pcp:<n>@dcp:<n>@…` | 去掉 pcp，只剩 `@dcp:<n>@…` | 同 main；逐层 PP 另有上文的命名空间 |
-| 逐层保存的角色门槛 | consumer 一律不写 | 看 `consumer_is_to_put` | 同 v0.26，抽成 `is_kv_save_role()` | 同 main；通过门槛不等于所有模型/后端组合均获部署支持 |
-| Mooncake 逐层 | 没有这条路，逐层 GVA 路径只认 memcache | 同 v0.23 | 新增按块逐层路径：只支持纯 TP，不支持递推状态 | 支持 TP/PP，按上文检查各组；不再统一拒绝递推状态，仍拒绝 CP 与 P/D TP 不一致 |
-| 非逐层写回等在哪一步 | 本步 `wait_for_save` 末尾等发送队列排空 | 同 v0.23 | 登记 save batch 后返回，下一步 `handle_preemptions` 等上一整批 | 按即将复用块的已结束/被抢占请求 ID，等待这些请求的待写块；不再每步等整批 |
-| 逐层加载等待 | 等 10 秒，超时仅记日志并返回；db701c1f 相同 | 循环等待，每次超时检查后台异常 | 循环等待，完成后再次检查后台与 hybrid 错误，异常清理并重抛 | 同 main 的等待与错误检查原则 |
-| 混合模型自动改 align | 有，须满足混合管理器与连接器条件 | 同 v0.23 | 同 v0.23 | 同条件，保留 extract_hidden_states 例外 |
-| 文件名 | `config_data.py`、`backend/backend.py` | 同 v0.23 | `metadata.py`、`backend/base.py` | 同 main |
-| P/D 两端 TP 不同 | 没有后续子键路径 | 用 `prefill_tp_size` / `decode_tp_size` 声明对端，按头拆子键；MLA 与混合布局除外，KV 头数须不少于较大 TP 且被其整除 | 同 v0.26 | 同样的子键启用条件；逐层路径仍拒绝 TP 不一致 |
-
-名字格式变化会让旧键不再命中，但不会删除后端对象；文件重构也会使旧 import 路径失效。普通注意力满足条件时的跨 TP 取用，不适用于 GLM 的 MLA 加混合布局。写回等待点的移动会改变 profiling 的归属，不能用旧版本的步末耗时直接比较新版本；rc2 也没有取消块复用前必须完成相关写回的约束。
-
-旧指南的逐层参数表要求 memcache；main 的新指南已增加 Mooncake。表中的代码分支与官方验证范围须同时满足，不能只看保存角色返回 true 就推断 D 逐层部署受支持。
+**后续官方快照 `921ccc52` 的升级与多租户边界。** MLA 池对象在逻辑块含多物理页且页间有空隙时改用分段/按物理页排列格式，与旧连续区间格式不兼容（即使总字节相同也不可混读），升级须同步升级所有读写端并清理旧池或切换命名空间；`cache_salt` 隔离须共享端一致。多租户 `tenant_id` 仅在 Mooncake master 开启严格多租户时生效（否则落 `default`），属命名空间/配额身份而非认证；`enable_ssd_prefetch` 依赖 `enable_offload` 与 SDK `ExistOptions`（默认冷却/去重 5s/30s），启用后新建独立 `TransferEngine`。名字格式与模块路径变更会让旧键不可见或旧 import 失效；写回等待点前移会改变 profiling 归属，但并未取消块复用前完成写回的约束。
 
 
 ### 源码位置

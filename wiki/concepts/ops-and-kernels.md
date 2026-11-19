@@ -129,7 +129,26 @@ sources:
   - 'vllm@84030bbe:vllm/config/compilation.py#L1004-L1025'
   - 'vllm@84030bbe:vllm/config/vllm.py#L1514-L1521'
   - 'vllm@568afb3a:vllm/config/compilation.py#L907-L910'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L544-L588'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L819-L955'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L250-L382'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/layernorm.py#L81-L102'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1376-L1378'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/utils.py#L574-L618'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/utils.py#L846-L982'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L430-L501'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ops/layernorm.py#L81-L120'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1582-L1584'
+  - 'vllm@ba15685a:vllm/model_executor/custom_op.py#L102-L356'
+  - 'vllm@ba15685a:vllm/config/compilation.py#L1168-L1190'
+  - 'vllm@ba15685a:vllm/config/vllm.py#L1978-L1995'
+  - 'vllm@ba15685a:vllm/ir/op.py#L321-L360'
+  - 'vllm@ba15685a:vllm/config/kernel.py#L498-L523'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: matmul-and-weights
@@ -183,7 +202,7 @@ file: ops-layers
 
 **同一个模块可以有好几种算法。** 量化就是典型：同样是 Linear，不量化时走一条路，W8A8（权重 8 位整数、激活 8 位整数）时走另一条。这个选择不在替换表里，而在层的量化方法对象上，按启动时读到的量化配置决定，细节见 [quantization](quantization.md)。
 
-**成熟实现和自己写的实现可以并存。** 普通算子用 torch_npu 的现成实现，融合算子、新模型的特殊结构则自己写。GLM 的残差混合、KDA 的分块递推，就是仓库自己编译出来的。
+**成熟实现和自己写的实现可以并存。** 普通算子用 torch_npu 的现成实现，融合算子、新模型的特殊结构则自己写。GLM 的残差混合、KDA 的分块递推，就是仓库自己编译出来的。从 `v0.30.0` 起，替换表与运行时扩展进一步改由 `HardwareProfile` 硬件能力门控驱动：310P 通过兼容能力覆写为 `_310p` 专用实现，运行时扩展按 `RUNTIME_CUSTOM_OPS` 能力开关判定（`v0.30.0` 在 A5 上禁用，到了 `main` 重新对 A5 开放）。若要接入新模型或新增自定义算子，开发选型与硬件能力门控规范见 [新模型与自定义算子开发指南](dev-new-model-and-custom-op.md)。
 
 代价有四条，读代码和排障时都会撞上：
 
@@ -289,7 +308,7 @@ MC2 路线下，分发和合并各是一次 torch_npu 的 MC2 算子调用：一
 
 - 替换表的注册没有开关，Worker 初始化时必定跑一次：先 `register_dummy_fusion_op()`，再 `register_ascend_customop(vllm_config)`，最后才初始化昇腾配置。[C5]
 - 自编译扩展是懒加载的：`enable_custom_op()` 第一次被调用时才 `import vllm_ascend.vllm_ascend_C`，把算子注册进 torch 库，同时导入 meta 实现；结果缓存在进程内的全局变量里。这样设计是为了让 `ASCEND_RT_VISIBLE_DEVICES` 在设置设备之前还能改。[C6]
-- 两个会让扩展整体关掉的条件：环境变量 `VLLM_BATCH_INVARIANT` 打开（批不变模式下部分自定义算子没有实现），或芯片是 A5。
+- 两个会让扩展整体关掉的条件：环境变量 `VLLM_BATCH_INVARIANT` 打开（批不变模式下部分自定义算子没有实现），或当前硬件配置未声明 `RUNTIME_CUSTOM_OPS` 能力（`v0.23.0`/`v0.26.0rc` 对 A5 禁用，`v0.30.0` 的 A5 硬件档案仍不含该能力，`main` 已为 A5 恢复该能力）。310P 则通过 `COMPATIBILITY_OP_IMPLEMENTATIONS` 能力在 `register_ascend_customop` 阶段覆盖为 `_310p` 兼容算子实现。
 - 环境变量 `COMPILE_CUSTOM_KERNELS` 设为假时，Worker 只打印一条警告说「多数场景下不装自定义算子 vllm-ascend 不能正常工作」，不会阻止启动。
 - 上游 `CustomOp` 自己还有一层开关：`compilation_config` 的 `custom_ops` 列表决定某个算子是否启用，禁用时回落到 `forward_native`，启用且平台是 out-of-tree 时才返回 `forward_oot`。[C2]
 - KDA 与 FusedMoE 这两项是版本门控注册的：只有 `vllm_version_is("0.23.0")` 为真时才加进替换表。[C3]
@@ -335,41 +354,21 @@ IR 优先级中的名字必须是已注册的实现；拼错名称会在安装�
 
 ### 版本差异
 
-CustomOp 的名字与默认规则也要分版本看。下表的上游钉点依次是 0fc695fc、568afb3a、ced6857a、84030bbe；Ascend 随后的覆盖条件仍见后面的执行路径表。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）。**本页 GLM-5.3-Flash 算例读的是专用镜像 `db701c1f`（独立 orphan commit，不含在 `2c59ff10` 维护分支里，也不混入 `v0.30.0` 主基线）。**
 
-| 机制 | v0.23 | v0.26 | v0.30.0rc2 | 固定 main |
-|---|---|---|---|---|
-| 整类替换与方法分派 | PluggableLayer 负责整类替换；CustomOp 再选择方法；OOT 登记可改写 name | 相同 | 相同 | 相同 |
-| 未指定 all/none | 启用编译且 backend=inductor 时补 none，否则补 all；按完整元素匹配名字 | 相同 | 相同 | 相同 |
-| 合并字符串与语法检查 | all,-op 不合法；+op1,+op2 不会拆成两项；单独的 + 可通过这一层语法检查 | 相同 | 仍不拆逗号；额外拒绝空串或只有正负号的元素 | 同 rc2 |
-| 默认规则或同名冲突 | all/none 计数、具体类正负冲突使用断言 | 相同 | 配置阶段明确检查重复默认模式及正负冲突；类启用判断也抛 ValueError | 同 rc2 |
+先看上游 CustomOp / IR 契约与 Ascend 执行路径四版对照：
 
-这些差异改变的是配置检查与分派契约，不能从某个 CustomOp 的行为推出所有可替换层都接受同一个开关。
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| 上游 `CustomOp` / `PluggableLayer` 与 `custom_ops` 校验 | `PluggableLayer` 换整类、`CustomOp` 选方法；未指定 `all`/`none` 时编译+inductor 补 `none` 否则补 `all`；冲突靠断言 | 同 `v0.23.0` | 配置阶段显式拒绝空串/仅正负号元素与重复默认模式，正负冲突抛 `ValueError` | 同 `v0.30.0`（`compilation.py#L1168-L1190`、`vllm.py#L1978-L1995`） |
+| 上游 IR 分派与 `ir_enable_torch_wrap` | 注册、按参数选择、用户优先级在前/平台默认在后；缺省仅 `VLLM_COMPILE` + `inductor` 包装 | 同 `v0.23.0` | 同 `v0.23.0` | 同 `v0.23.0`（`ir/op.py#L321-L360`、`kernel.py#L498-L523`） |
+| `register_ascend_customop` 与 310P 兼容派发 | 在 `utils.py#L690-L821` 登记并按芯片分支覆盖 310P；无 KDA 项（镜像 `db701c1f` 版本门控含 KDA） | 基础映射直接登记 `KimiGatedDeltaNetAttention` | `utils.py#L819-L955` 由 `HardwareCapability.COMPATIBILITY_OP_IMPLEMENTATIONS` 统一触发 310P `_310p` 实现覆盖；无旧 KDA 项 | `utils.py#L846-L982` 延续能力门控 310P 覆盖与 `CustomOp.register_oot` 统一注册 |
+| `enable_custom_op` 与 A5 `RUNTIME_CUSTOM_OPS` | 批不变模式或 A5 芯片禁用扩展 | 同 `v0.23.0` | `utils.py#L544-L588` 改查 `RUNTIME_CUSTOM_OPS`；`hardware_profile.py#L250-L382` 对 A2/A3/310P 开启、**A5 仍禁用** | `utils.py#L574-L618` 查 `RUNTIME_CUSTOM_OPS`；`hardware_profile.py#L490` **为 A5 恢复 `RUNTIME_CUSTOM_OPS`** |
+| Ascend 覆盖 `custom_ops = ["all"]` | 非 310P 路径强制设为 `["all"]` | 同 `v0.23.0` | `platform.py#L1376-L1378` 按 `AUTO_ENABLE_CUSTOM_OPS` 能力设为 `["all"]` | `platform.py#L1582-L1584` 同 `v0.30.0` |
+| `AscendRMSNorm` 带残差分支 | `maybe_chunk_residual` 后按 `enable_custom_op()` 在自编译融合与 `torch_npu.npu_add_rms_norm` 间二选一 | 同 `v0.23.0` | `layernorm.py#L88-L95` 直接导入 `vllm_ascend_C` 调 `npu_add_rms_norm_bias`，**无 `torch_npu` 回退** | `layernorm.py#L88-L99` **恢复 `if enable_custom_op()` 分支**，关闭时（如 `VLLM_BATCH_INVARIANT`）回退 `torch_npu.npu_add_rms_norm` + 逐元素 `bias` |
+| GLM-5.3-Flash / W8A8 目录演进 | 维护分支无 GLM 代码（在镜像 `db701c1f`） | 无 GLM 代码（有 Kimi K3） | GLM 在 `models/glm5next/`；W8A8 动态线性迁入 `quantization/methods/w8a8/w8a8_dynamic.py`；新增 Gemma QKVNorm/RoPE 融合与共享专家预量化 | 延续 `models/glm5next/` 与 `w8a8/` 布局；`AscendGemmaRMSNorm` 无残差改走 `DeviceOperator.npu_gemma_rms_norm` |
 
-IR 的注册、按参数选择和 Inductor lowering 在四个固定上游版本中使用同一套实现，用户优先级在前、平台默认在后这一合并规则也相同。默认只在 VLLM_COMPILE + inductor 下启用 IR 包装。下表区分这套共有机制与 Ascend 的正常 RMSNorm 执行路径。
-
-| 版本 | 正常 Ascend RMSNorm 方法 | CustomOp 最终开关 |
-|---|---|---|
-| v0.23 / 固定 GLM | 使用 Ascend 类的 NPU 方法；有 residual 时按扩展可用性选择实现 | 固定 GLM 非 310P 路径设为 all |
-| v0.26 | 仍直接使用 NPU 方法，有 residual 的两路实现保留 | 非 310P 路径设为 all |
-| v0.30.0rc2 | 仍直接使用 NPU 方法；residual 分支直接依赖扩展 | 按 AUTO_ENABLE_CUSTOM_OPS 硬件能力设为 all |
-| main | 上述正常路径与 rc2 一致 | 同样按硬件能力处理 |
-
-因此 IR 配置是否影响某个模型，要沿该模型的实际方法判断。此表没有把其他硬件配置都等同于固定 A2 路径；原表中扩展依赖、KDA 和模型文件布局差异继续适用。
-
-rc2 的新增融合候选包括 [Gemma 式 QKVNorm/RoPE](npugraph-ex.md#版本差异)，共享专家也有 [预量化与 Gate-Up 提前提交](moe.md#版本差异) 的新重叠次序；具体硬件、UB、LoRA 等条件由各专题说明。下面 RMSNorm residual 分支和目录布局已经存在于固定 main，相比的是旧 GLM 镜像，不是 rc2 首次引入。
-
-**v0.30.0rc2 仍把 Python 分派登记和二进制扩展加载分开。** register_ascend_customop 进程内一次性登记 linear、RMSNorm、MoE 等实现；enable_custom_op 另行延迟加载并检查批不变、硬件能力。只有 ImportError 包含 libcust_opapi.so 才尝试 include_vendor_lib 的环境补救，不是无条件修改库路径。AscendRMSNorm 有 residual 的分支已直接调用扩展，W8A8 线性则迁入 w8a8 子目录并可复用预量化输入；该注册表没有旧 KimiGatedDeltaNetAttention 项。注册表或目录中存在某实现不等于当前请求实际执行了它。
-
-执行侧按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26 列是 2ed6cbba，main 列是 baa023ad。**本页的 GLM 算例读的是本部署专用镜像 db701c1f，它是另一个 orphan commit，不算进 v0.23 列：2c59ff10 上未含本页 GLM-5.3-Flash 的模型文件，也没有 KDA 的算子文件。**
-
-| 项目 | v0.23 | v0.26 | main |
-|---|---|---|---|
-| 替换表与注册入口 | `register_ascend_customop` 在 `utils.py`，结尾统一 `CustomOp.register_oot`（该分支 `#L690` 起、`#L818` 注册；各版登记条目分别核对）[C28] | 同 v0.23 | 同 v0.23 |
-| 替换表是否登记 KimiGatedDeltaNetAttention | 没有；`kimi_kda.py` 也不存在 | 有，基础映射直接登记；适配文件的 prefill 缺算子报错与镜像一致 [C29] | 没有旧项；目录中有 KDA 实现不等于沿用这条注册路径 |
-| 带残差的 RMSNorm | 先 `maybe_chunk_residual`，再按 `enable_custom_op()` 在自编译融合算子和 torch_npu 加法融合之间二选一（镜像同）[C7] | 同 v0.23 | 不再二选一：直接导入扩展并调自编译融合算子，没有 torch_npu 回退分支 [C30] |
-| GLM-5.3-Flash 适配代码 | 没有 | 没有（有 Kimi K3，没有 GLM） | 在 `models/glm5next/` 包里，残差混合仍调 `npu_hc_pre_v2` [C31] |
-| 按芯片选实现 | `DeviceOperator` 在 `device/device_op.py`，A2 选基础适配类 | 同 v0.23 | 同 v0.23（同目录另有硬件描述文件） |
+以上比较明确区分了**注册表登记（Python 类替换）**与**二进制扩展加载（`enable_custom_op`）**两层机制：注册表或目录里存在某实现不等于当前请求实际命中它；IR 优先级也只在模块进入原生 IR 路径时生效，而 Ascend 正常 `forward_oot` 直接调用 NPU 算子，详见 [新模型与自定义算子开发指南](dev-new-model-and-custom-op.md#950a5与-310p-的硬件能力门控千万别硬编码芯片名) 与 [Gemma 式 QKVNorm/RoPE](npugraph-ex.md#版本差异)、[共享专家预量化](moe.md#版本差异) [C106][C110]。
 
 ### 源码位置
 
@@ -409,7 +408,8 @@ CustomOp 与整层替换的贯穿例子使用固定上游 0fc695fc，四版共�
 | MC2 分发与合并、v2 算子的属性探测 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L108-L120`；`#L225-L240`；`#L329-L340` |
 | 专家计算的三步算子及条件 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L113-L215` |
 | 专家权重转置并转 NZ | `vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L353-L366` |
-| v0.23 / v0.26 / main 列对照的四处 | `vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L821`；`vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda.py#L148-L166`；`vllm-ascend@baa023ad:vllm_ascend/ops/layernorm.py#L64-L82`；`vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L495-L505` |
+| 四版 `register_ascend_customop`、A5 能力门控与 RMSNorm 残差演进 | `vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L821`；`vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda.py#L148-L166`；`vllm-ascend@c09d3e20:vllm_ascend/utils.py#L544-L588`、`#L819-L955`、`device/hardware_profile.py#L250-L382`、`ops/layernorm.py#L81-L102`、`platform.py#L1376-L1378`；`vllm-ascend@8d6180e2:vllm_ascend/utils.py#L574-L618`、`#L846-L982`、`device/hardware_profile.py#L430-L501`、`ops/layernorm.py#L81-L120`、`platform.py#L1582-L1584` |
+| `main` 配套上游 `CustomOp` / IR / `custom_ops` 校验 | `vllm@ba15685a:vllm/model_executor/custom_op.py#L102-L356`、`config/compilation.py#L1168-L1190`、`config/vllm.py#L1978-L1995`、`ir/op.py#L321-L360`、`config/kernel.py#L498-L523` |
 
 **证据索引。** 本页每条结论的出处逐条列在上面的表里，表的行序就是来源清单的顺序：前九行对应四层结构与三套换实现的机制，中间十一行对应 GLM 一层里各站的算子，后四行是三个版本的对照点。
 

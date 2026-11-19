@@ -572,13 +572,28 @@ sources:
   - vllm@568afb3a:vllm/entrypoints/openai/responses/serving.py#L608-L631
   - vllm@ced6857a:vllm/entrypoints/openai/responses/serving.py#L273-L298
   - vllm@84030bbe:vllm/entrypoints/openai/responses/serving.py#L273-L298
+  - 'vllm@ced6857a:vllm/config/vllm.py#L450-L462'
+  - 'vllm@ced6857a:vllm/entrypoints/launchers/launcher.py#L120-L185'
+  - 'vllm@ced6857a:vllm/entrypoints/launchers/api_server/entry.py#L105-L202'
+  - 'vllm@ba15685a:vllm/config/vllm.py#L475-L490'
+  - 'vllm@ba15685a:vllm/entrypoints/launchers/launcher.py#L151-L165'
+  - 'vllm@ba15685a:vllm/entrypoints/launchers/launcher.py#L251-L310'
+  - 'vllm@ba15685a:vllm/entrypoints/launchers/api_server/entry.py#L105-L202'
+  - 'vllm@ba15685a:vllm/renderers/online_renderer.py#L161-L210'
+  - 'vllm@ba15685a:vllm/v1/engine/admission_control.py#L13-L52'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
+  - to: pooling-and-non-ar
+    kind: builds-on
+    note: Generate、Pooling 与 Encoder-Decoder 三条执行主线及池化头与 ASR 路径
+  - to: cluster-serving
+    kind: builds-on
+    note: 多实例代理、前缀感知路由、/health 探针与 --shutdown-timeout 优雅停机护栏
   - to: engine-processes
     kind: builds-on
     note: API server 是哪个进程、和 EngineCore 与 worker 怎样分工、各自跨步留着什么
@@ -667,13 +682,14 @@ file: api-server-entry
 生成模型还提供独立的[生成式评分入口](sampling.md#生成式评分用下一个-token-的概率比较候选)：为每个候选构造输入，只读取下一位置的标签分数。它使用自己的请求字段与拼接规则，不能把下方 Chat 的自动模板和超长拒绝规则直接套过去。
 
 
-```calc
-title: 总长度上限 100 时，入口怎样检查和定输出上限（示意数）
-请求要 30 个输出，输入最多 = 100 − 30 = 70 个
-提示词其实有 75 个编号，比允许的多 = 75 − 70 = 5 个
-> 分词结果只保留到第 71 个，够判超长就回 400，错误信息写「输入至少 71 个」
-不写输出数、提示词 12 个，输出上限 = 100 − 12 = 88 个
-```
+设总长度上限 $L_{\max} = 100$，按上述减法做长度预算核验（示意数）：
+
+$$L_{\text{in,allow}} = L_{\max} - L_{\text{out}} = 100 - 30 = 70, \qquad L_{\text{out,default}} = 100 - 12 = 88$$
+
+| 请求场景（示意：$L_{\max} = 100$） | 长度核算 | 入口处理结果 |
+| --- | --- | --- |
+| 请求输出 $30$，实际提示词 $75$ 个编号 | 允许输入 $100 - 30 = 70$，超出 $75 - 70 = 5$ | 分词保留到第 71 个即判超长，回 400（「输入至少 71 个」） |
+| 不写输出数，实际提示词 $12$ 个编号 | 输出上限 $100 - 12 =$ **88** | 合法放行，按 88 补齐输出预算 |
 
 注意这里的「提示词」是套完模板以后的整串编号，模板加进来的标记也算在内。默认分词路径只保留到允许的输入数再多 1 个，避免为注定被拒的长文本继续编码；多出的这 1 个足以判定超长，所以错误信息只能写「至少多少个」。truncate_prompt_tokens 非 None 且显式选择 truncation_side 时，会关闭这层 tokenizer 截短，先保留完整编号和位置，再按指定方向处理；不能把示意里的“只切到 71”推广到全部截断设置。提示词本身超过总长度，或者恰好顶满、没有输出位置，也受入口长度检查，截断规则见 [token 参数参考](token.md#怎么开)。
 
@@ -749,7 +765,7 @@ file: api-server-entry-flow
 
 对于一次前向输出向量、类别或分割结果的 pooling 模型，还可以用[输入输出插件](platform-plugin-registration.md#输入输出插件为什么能把一张图拆成多个请求)接收应用自定义数据。一份输入可以展开成多个模型子请求，收齐后再合并为一份结果；因此这里也不能用 HTTP 请求数直接代替模型计算的任务数。
 
-如果输入由 Python 脚本分批准备，希望最后统一取回结果，可以继续读[离线请求队列](request-call-chain.md#离线脚本能先提交几组请求再一起取结果吗)。提交先返回请求编号；默认后台引擎收到输入即可开始计算，等待接口再收齐结果。
+如果输入由 Python 脚本分批准备，希望最后统一取回结果，可以继续读[离线请求队列](request-call-chain.md#离线脚本能先提交几组请求再一起取结果吗)。提交先返回请求编号；默认后台引擎收到输入即可开始计算，等待接口再收齐结果。在生产集群滚动发布或缩容时，前端入口的优雅停机钩子会接管退出信号并按 `--shutdown-timeout`（默认 0）决定等待在途请求的窗口，先停引擎再停 HTTP server，详见 [集群部署与优雅停机](cluster-serving.md#滚动发布与缩容别被默认---shutdown-timeout-0-直接掐断请求)。
 
 ## Responses、Messages 和 pooling，为什么不能只换接口地址？
 
@@ -764,7 +780,7 @@ file: api-server-entry-flow
 | Score / rerank | 两侧待比较的输入，或一条 query 与候选 documents | 分数，或带原候选序号的排序结果 |
 | 通用 pooling | 支持的输入与 pooling 任务；插件可定义自己的数据 | 由任务或插件决定结果结构，包括向量、矩阵等 |
 
-pooling 在这里指把模型的输出表示整理成应用需要的结果，例如一句话的向量。它通过 encode 路径取结果，不会为了得到一个向量再逐 token 生成一段答案。自定义输入怎样展开、合并，沿用前面的[输入输出插件](platform-plugin-registration.md#输入输出插件为什么能把一张图拆成多个请求)解释。
+pooling 在这里指把模型的输出表示整理成应用需要的结果，例如一句话的向量。它通过 encode 路径取结果，不会为了得到一个向量再逐 token 生成一段答案，三条执行主线（Generate / Pooling / Encoder-Decoder）及池化头细节见 [Pooling 与非自回归路径](pooling-and-non-ar.md)。自定义输入怎样展开、合并，沿用前面的[输入输出插件](platform-plugin-registration.md#输入输出插件为什么能把一张图拆成多个请求)解释。
 
 Responses 的“继续上一轮”还涉及**会话记录**：服务保存上次输入与输出，下一次可用上次响应 ID 找回它们。它与 [prefix caching](prefix-caching.md) 不同：前者保存可重建对话的记录，后者复用模型算过的历史状态；有响应 ID 不代表 KV 一定命中。示意地说，第一次问“甲方案是什么”得到响应甲，第二次问“它的代价呢”并引用响应甲，服务必须能找到响应甲的记录，才能准备第二轮输入。
 
@@ -782,10 +798,12 @@ Anthropic Messages 的固定入口则先把消息、系统说明和工具定义�
 
 实时入口使用 WebSocket：客户端和服务可以在同一条连接上持续互发事件。固定协议要求 PCM16、16 kHz、单声道，再把字节编码为 base64 文本。PCM16 表示每个采样点用 16 位、即 2 字节表示；它不是把 MP3 文件直接做一次 base64。示意取一秒、单个连续缓冲区：
 
-```calc
-title: 一秒实时音频的原始字节数（示意）
-原始 PCM 字节数 = 16000 × 1 × 2 = 32000 B
-```
+$$B_{\text{PCM,1s}} = 16{,}000\text{ Hz} \times 1\text{ 声道} \times 2\text{ B} = 32{,}000\text{ B}$$
+
+| 1 秒实时音频（示意，单连续缓冲） | 参数与算式 | 数据量 |
+| --- | --- | --- |
+| 原始 PCM16 字节数 | $16{,}000 \times 1 \times 2\text{ B}$ | **32,000 B** |
+| base64 编码后文本 | $\lceil 32{,}000 \div 3 \rceil \times 4$ | **42,668 字符**（另计 JSON 与分块补齐） |
 
 base64 还会把这份数据扩展成 42,668 个字符，之外另有 JSON 与连接开销；分成多块时各块的补齐也要计入。服务还要暂存队列里的音频并生成文字，所以“分段发送”不等于没有主机内存开销，也不是模型输出每个 token 都对应一个网络包。
 
@@ -815,16 +833,19 @@ file: api-renderer-services
 
 调用方应保留原始请求及输入计数。比如输入是上述 4 个编号，生成了 2 个编号，后处理时要同时交回输入计数 4：
 
-```calc
-title: 后处理怎样恢复输入与输出用量（示意）
-输入与输出总量 = 4 + 2 = 6 个 token
-```
+$$N_{\text{total}} = N_{\text{prompt}} + N_{\text{output}} = 4 + 2 = 6\text{ 个 token}$$
+
+| 用量分项（示意） | 来源 | 数量 |
+| --- | --- | --- |
+| 输入计数 $N_{\text{prompt}}$ | 调用方随原请求交回（缺失时旧协议记为 0） | **4** |
+| 输出计数 $N_{\text{output}}$ | 本次生成服务返回的编号数 | **2** |
+| 总用量 $N_{\text{total}}$ | $4 + 2$ | **6 个 token** |
 
 只交生成结果时，旧后处理协议把缺失的输入计数当作 0。工具与思考解析还需要原始请求中的工具定义和选择方式，不能仅凭输出文字恢复全部上下文。
 
 多模态输入还要带上 render 返回的媒体特征、占位范围等完整数据。这里的特征可能仍是设备编码器的输入，不表示图片已经在 CPU 上完成模型编码。Chat render 会跳过依赖该服务缓存命中的媒体传递方式，返回可供下游继续处理的数据；调用方若只转发文字编号，下游就缺少媒体内容。
 
-较新版本另支持逐片段 derender：调用方每收到一段生成编号，就向同一个后处理地址提交一次，并将上次返回的反分词状态带到下一次。**每次后处理调用返回一份 JSON，状态由调用方传递；它自身不是一条自动持续推送的 SSE 连接。** rc2 与固定 main 的这条 Chat 分支遇到已配置的思考或工具解析器会拒绝，单次片段也至多包含一个 choice。需要这些解析时走完整结果后处理；完整结果与逐片段路径的能力不能互推。具体入口及四版差异见页末。
+较新版本另支持逐片段 derender：调用方每收到一段生成编号，就向同一个后处理地址提交一次，并将上次返回的反分词状态带到下一次。**每次后处理调用返回一份 JSON，状态由调用方传递；它自身不是一条自动持续推送的 SSE 连接。** `v0.30.0` 与 `main` 的这条 Chat 分支遇到已配置的思考或工具解析器会拒绝，单次片段也至多包含一个 choice。需要这些解析时走完整结果后处理；完整结果与逐片段路径的能力不能互推。具体入口及四版差异见页末。
 
 ## 已经算好的向量怎样进门，谁负责套模板？
 
@@ -853,7 +874,7 @@ Completions 的嵌入输入不能同时要求 echo 或 prompt_logprobs；开关�
 
 ## 一张图片进来，怎样和文字一起交给模型？
 
-**多模态预处理把图像、视频或音频整理成模型可读的张量，并标明它们对应输入序列的哪些位置。** 它发生在前面的入口准备阶段；之后，媒体编码器才把这些张量变成特征向量，交给语言模型。CPU 解码、缩放和整理需要时间与主机内存，编码器计算与输出又需要设备资源；媒体展开的位置还会增加语言模型的输入长度。
+**多模态预处理把图像、视频或音频整理成模型可读的张量，并标明它们对应输入序列的哪些位置。** 它发生在前面的入口准备阶段；之后，媒体编码器才把这些张量变成特征向量，交给语言模型（媒体进入模型后的 ViT 编码、M-RoPE 旋转角与 `EncoderCacheManager` 机制见 [多模态推理架构](multimodal-inference.md)）。CPU 解码、缩放和整理需要时间与主机内存，编码器计算与输出又需要设备资源；媒体展开的位置还会增加语言模型的输入长度。
 
 下面以“把媒体特征放进文字序列”的生成模型为例。不同模型的媒体编码器、位置表示和输入字段各有约定；encoder-decoder 的交叉注意力结构还须按模型实现区分。
 
@@ -889,7 +910,7 @@ EC 的本机共享、跨实例交接及资源边界见[编码器分离与缓存]
 
 UUID 在这里是调用方给某份媒体内容的稳定身份，不要求它是一串特定格式的随机数。默认可以按媒体内容计算缓存身份；主动提供身份时，调用方必须保证同一身份对应同一内容及兼容的处理方式。换了图片还沿用旧身份，会有复用错内容的风险。
 
-以上面的图片 A 为例，第一次提交实际内容和身份，之后才可以在预期命中的请求中只带身份、把图片留空。**省略内容依赖实际缓存命中，也依赖该版本的模态解析器接受空项**：条目可能被淘汰、落在另一 API 进程或尚未建立；缺内容又未命中会报错。多张图片的身份列表须与数据顺序和数量对应，某项没有自定义身份时可以让该项按内容生成。旧版音频解析器不能照搬这个省略写法，版本表另列。主机预处理缓存和前缀缓存都关闭时，显式身份的处理在 rc2 与其他固定快照不同；保留身份本身也不会创建一份不存在的缓存。
+以上面的图片 A 为例，第一次提交实际内容和身份，之后才可以在预期命中的请求中只带身份、把图片留空。**省略内容依赖实际缓存命中，也依赖该版本的模态解析器接受空项**：条目可能被淘汰、落在另一 API 进程或尚未建立；缺内容又未命中会报错。多张图片的身份列表须与数据顺序和数量对应，某项没有自定义身份时可以让该项按内容生成。旧版音频解析器不能照搬这个省略写法，版本表另列。主机预处理缓存和前缀缓存都关闭时，显式身份的处理在 `v0.30.0` 与早期快照不同；保留身份本身也不会创建一份不存在的缓存。
 
 ### 已有媒体向量，还需要哪些布局信息？
 
@@ -940,13 +961,13 @@ DeepSeek Recipe 把 Messages、Chat Completions、Responses 等接口格式先�
 
 **长度上限。** 启动命令把总长度上限设为 133120。主线的示例请求 R1 约定套完模板、分词后是 4 个编号（演示设定，见 [示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)），输出上限沿用主线 [第 7 站](one-request.md#第-7-站-返回与收尾) 的设定，max_tokens 为 200。按第 ③ ④ 步的规则：
 
-```calc
-title: R1 进门时的长度账（max_tokens 取第 7 站设定的 200）
-允许的输入 = 133120 − 200 = 132920 个
-R1 的提示词 = 4 个编号，在允许范围内
-输出上限 = min(133120 − 4, 200) = 200 个
-> 聊天请求两项输出上限都不写，本部署的输出上限就是 133120 − 4 = 133116 个
-```
+$$L_{\text{in,allow}} = 133{,}120 - 200 = 132{,}920, \qquad L_{\text{out}} = \min(133{,}120 - 4,\; 200) = 200$$
+
+| R1 入口长度核验（$L_{\max} = 133{,}120$） | 算式 | 结果与说明 |
+| --- | --- | --- |
+| 允许的最大输入（取 `max_tokens=200`） | $133{,}120 - 200$ | **132,920 个**（R1 提示词 4 个在允许范围内） |
+| R1 有效输出上限 | $\min(133{,}120 - 4,\; 200)$ | **200 个** |
+| 若聊天请求两项输出上限都不写 | $133{,}120 - 4$ | **133,116 个**（本部署按剩余上下文补齐） |
 
 **工具调用要配解析器与模板。** 主线的启动命令没有指定工具调用解析器，也没有指定把思考过程单独拆出来的推理解析器。所以把 tool_choice 设为 auto 的请求，会在第 ① 步被拒。对本页普通 HF tokenizer 路径，required 或指定函数名同样要求 tool-call parser；它们不要求打开自动工具选择。auto 则还要 enable-auto-tool-choice，不能用“只有 auto 需要解析器”来理解。教程的常见问题给的是工具解析器 glm47、推理解析器 glm45，再打开自动工具选择；还写明这个模型不支持关闭思考的开关（enable_thinking）。旧 glm47 的解析与参数约束要分开，具体边界和 strict 的版本条件见[工具调用与文法](structured-output.md#工具调用能解析出来就说明参数符合-schema-吗)；解析出的调用要由应用校验参数、执行并回填工具结果。
 
@@ -1202,7 +1223,20 @@ DEBUG 输入详情会增加格式化与日志 I/O，还可能保存用户原文�
 
 ### 版本差异
 
-| 接口与包装层契约 | v0.23（0fc695fc） | v0.26（568afb3a） | rc2（ced6857a） | 固定 main（84030bbe） |
+按知识库四版本正式钉点核对上游入口与昇腾适配：`v0.23.0`（`vllm@0fc695fc` / `vllm-ascend@2c59ff10`）、`v0.26.0rc`（`vllm@568afb3a` / `vllm-ascend@2ed6cbba`）、`v0.30.0` 主基线（`vllm@ced6857a` / `vllm-ascend@c09d3e20`）与 `main`（`vllm@ba15685a` / `vllm-ascend@8d6180e2`；部分早期细分协议核对仍保留历史 `84030bbe` 源码行对照，并在下表注明 `ba15685a` 核验结果）。
+
+先看 **OpenAI API 入口、预处理器与优雅停机钩子** 的四版核心演进：
+
+| 核验维度 | `v0.23.0`（`0fc695fc` / `2c59ff10`） | `v0.26.0rc`（`568afb3a` / `2ed6cbba`） | `v0.30.0`（`ced6857a` / `c09d3e20`，主基线） | `main`（`ba15685a` / `8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| OpenAI API 服务启动与入口组织 | `entrypoints/openai/api_server.py` 与 `entrypoints/launcher.py` | 延续 `api_server.py`；新增 `scale_out` render/derender 路由 | 启动器迁入 `entrypoints/launchers/api_server/entry.py` 与 `launchers/launcher.py`，CLI 选项在 `launchers/cli_args.py` | 延续 `launchers/api_server/entry.py` 与 `launchers/launcher.py`；原 `launchers/cli_args.py` 已进一步拆分重构 |
+| 预处理器与多进程准入控制 | `serve/render/serving.py`，2 ms 微批（最多 32 条）共用 1 线程；单进程在途计数 | 迁至 `renderers/online_renderer.py`，逐条交线程池（默认 1 线程） | 延续 `OnlineRenderer`（多模态预处理另用 1 线程）；新增 `admission_control.py` 共享槽位汇总多 API 进程在途数 | 延续 `OnlineRenderer`（890 行）与 `SharedAdmissionStats` 共享准入计数 |
+| 优雅停机钩子（`--shutdown-timeout`） | `entrypoints/launcher.py` 协调 HTTP 停机与引擎死亡退出 | 同 `v0.23.0` | `vllm.py#L456` 定义 `shutdown_timeout=0`；`launchers/launcher.py#L124-L182` 事件循环接管停机信号，先按超时停 `engine_client` 再关 FastAPI/Uvicorn，防被 Uvicorn 默认处理器竞态覆盖 | `vllm.py#L482` 延续 `shutdown_timeout=0`；`launchers/launcher.py#L151-L165`、`#L251-L310` 细化 `Server.shutdown()` 与 `handle_shutdown()` 协调流程，详见 [集群部署与优雅停机](cluster-serving.md#滚动发布与缩容别被默认---shutdown-timeout-0-直接掐断请求) |
+| 昇腾入口补丁边界 | 仅动输出分段与空 `tool_calls`；不改入口分词与选组 | 另包装 `render_chat` 承接重算恢复 token 列表 | `vllm-ascend@c09d3e20` 延续上游入口，仅针对特定推理/模板边界打轻量补丁 | `vllm-ascend@8d6180e2` 继续完全复用上游 OpenAI API 入口与预处理器 |
+
+以下保留各细分协议、工具插件、独立 renderer、多模态与长度/日志参数的逐项核对矩阵（`v0.30.0` 列对应 `ced6857a`，`main` 历史细分行仍附 `84030bbe` 源码对照）：
+
+| 接口与包装层契约 | `v0.23.0`（`0fc695fc`） | `v0.26.0rc`（`568afb3a`） | `v0.30.0`（`ced6857a`） | `main`（`84030bbe` / `ba15685a`） |
 |---|---|---|---|---|
 | Responses 保存 | 接口已有；store=true，但服务保存默认 0；开启后保存在进程内字典 | 相同 | 相同 | 相同 |
 | Messages 的基本处理链 | 消息转换为 Chat，生成后转回 Messages；stream=false | 相同 | 基本处理链相同，转换入口更名 | 同 rc2 |
@@ -1354,3 +1388,4 @@ Recipe 的调用方职责、协议转换、输出预算与约束选择，见来�
 - 总长度参数证据：71–73 是字段默认、模型长度推导与最终正整数检查；74–75 是 CLI 数字/auto 解析；76–77 是逐 worker 容量搜索及其在块数覆盖之后、容量检查之前的位置；78–79 是 v0.26 与固定 main 的长度推导对照；80–84 对照新版容量搜索、main 保留块与单位解析；85 限定 tokenizer_config 参与长度推导的入口为 pooling 且使用绝对位置编码，普通 GLM 生成不经此入口。133120 的教程来源沿用 44。
 - 常用入口证据：86–88 是模板、监听和 config 选项定义；89–90 是公开 parse_args 的 --model 兼容改写、配置合并与值转换；91–93 是模型字段、对外别名和位置模型赋值；94 是模型名匹配；95 是内容格式自动判断及显式值直接返回。96–101 核对新版字段、配置转换与默认模型名称；模板守卫复用来源 8，基座响应首名复用来源 2，指标首名依据来源 92 的字段契约。
 - 来源 102 对应普通 TCP 路径的实际绑定，103 对应 main 的内容格式检测与显式值告警。
+- `v0.30.0`（`ced6857a`）与 `main`（`ba15685a`）的 `shutdown_timeout`、优雅停机钩子、`OnlineRenderer` 与共享准入计数见文首 `sources` 末尾 9 条（`vllm/config/vllm.py`、`vllm/entrypoints/launchers/launcher.py`、`vllm/entrypoints/launchers/api_server/entry.py`、`vllm/renderers/online_renderer.py`、`vllm/v1/engine/admission_control.py`）。

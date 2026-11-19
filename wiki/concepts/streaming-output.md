@@ -176,10 +176,17 @@ sources:
   - "vllm@84030bbe:vllm/entrypoints/openai/chat_completion/serving.py#L732-L734"
   - "vllm@84030bbe:vllm/entrypoints/openai/chat_completion/serving.py#L968-L988"
   - "vllm@84030bbe:vllm/entrypoints/openai/chat_completion/serving.py#L1082-L1100"
+  - "vllm@ba15685a:vllm/v1/engine/output_processor.py#L286-L350"
+  - "vllm@ba15685a:vllm/v1/engine/output_processor.py#L731-L925"
+  - "vllm@ba15685a:vllm/v1/engine/detokenizer.py#L98-L270"
+  - "vllm@ba15685a:vllm/v1/engine/detokenizer.py#L340-L360"
+  - "vllm@ba15685a:vllm/entrypoints/serve/utils/sse_keep_alive.py#L1-L55"
+  - "vllm-ascend@c09d3e20:vllm_ascend/patch/platform/__init__.py#L19-L55"
+  - "vllm-ascend@8d6180e2:vllm_ascend/patch/platform/__init__.py#L19-L55"
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -205,7 +212,7 @@ relations:
     kind: builds-on
     note: 本部署异步调度开着，引擎这一步的结果在下一步开跑后才回收、发往前端
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: 2026-11-19T00:00:00.000Z
 origin: direct
 ---
 
@@ -237,15 +244,12 @@ file: streaming-output-intuition
 
 **不流式时，客户端要等整段结果；流式时，服务可以在生成途中交付已有内容，通常更早看到开头。** 第一次模型输出不保证立刻成为可见文字：反分词、停止字符串缓冲、推理或工具解析、发送间隔和网络都会影响交付时间。流式不减少模型本身需要生成的位置数，传输与处理开销也可能改变总时延。
 
-大模型逐步生成回答；普通 decode 每步生成一个 token，投机解码则可能一轮确定多个。服务若等全部写完再返回，用户此前看不到生成内容；流式允许把已可交付的内容分段送出。衡量这件事常用 **TTFT**（从发出请求到收到第一个输出 token 的时间）和 **token 间隔**（相邻两次收到新 token 的时间差），它们还要与第一段可见文字的时间分开。第一个输出 token 要等提示词的 prefill 阶段完成：该阶段处理提示词并建立历史状态，可以分多轮执行（见 [prefill](prefill.md)）。用一组忽略额外缓冲与传输差异、每步生成一枚可见 token 的示意数看差别：
+大模型逐步生成回答；普通 decode 每步生成一个 token，投机解码则可能一轮确定多个。服务若等全部写完再返回，用户此前看不到生成内容；流式允许把已可交付的内容分段送出。衡量这件事常用 **TTFT**（从发出请求到收到第一个输出 token 的时间）和 **token 间隔**（相邻两次收到新 token 的时间差），它们还要与第一段可见文字的时间分开。第一个输出 token 要等提示词的 prefill 阶段完成：该阶段处理提示词并建立历史状态，可以分多轮执行（见 [prefill](prefill.md)）。用一组忽略额外缓冲与传输差异、每步生成一枚可见 token 的示意数看差别（设首 token prefill 为 $200\text{ ms}$，之后每 token $30\text{ ms}$，共 $200$ 个 token）：
 
-```calc
-title: 一段 200 个 token 的回答，多久看到第一个字（示意数）
-第 1 个 token（prefill 一步） = 200 ms
-之后每个 token = 30 ms
-不流式时整段写完才返回 = 200 ms + 199 × 30 ms = 6,170 ms
-流式时第一段到达 = 200 ms，之后约每 30 ms 再推一段
-```
+| 交付方式（200 个 token 回答，示意数） | 首段可见时刻 | 整段完成时刻 |
+| --- | --- | --- |
+| 不流式（整段写完再返回） | $200 + 199 \times 30 =$ **$6{,}170\text{ ms}$** | $6{,}170\text{ ms}$ |
+| 流式（`stream: true`） | **$200\text{ ms}$**（之后约每 $30\text{ ms}$ 推一段） | 同样约 $6{,}170\text{ ms}$ |
 
 两种方式的最后一个字都在 6,170 ms 左右到达，流式只是把前面的字提前交出去，生成本身没有变快。
 
@@ -290,16 +294,14 @@ vLLM 有两种实现。分词器是 Hugging Face tokenizers 库的快速分词�
 
 停止字符串（请求参数 stop）的意思是「输出里出现这段文字就停」。它和停止 token 不同，按文字比对，只能在反分词之后做，所以放在前端（停止判断怎样分在两处，见[第 7 站](one-request.md#第-7-站-返回与收尾)）。每次只在新增的文字和它前面紧挨的一小段里找，不重扫整段输出。
 
-为什么要扣字？设停止字符串是 ###，沿用默认的排除设置。某一步的新文字以一个 # 结尾，前端还不知道下一步会不会再来两个 #：如果马上把这个 # 推出去，等后面凑成 ### 时它已经显示在用户屏幕上，撤不回来。所以每次都少推结尾 3 − 1 = 2 个字；请求结束时不再扣，剩下的字一次推完。用示意数走一遍：
+为什么要扣字？设停止字符串是 `###`，沿用默认的排除设置。某一步的新文字以一个 `#` 结尾，前端还不知道下一步会不会再来两个 `#`：如果马上把这个 `#` 推出去，等后面凑成 `###` 时它已经显示在用户屏幕上，撤不回来。所以每次都少推结尾 $3 - 1 = 2$ 个字；请求结束时不再扣，剩下的字一次推完（示意数）：
 
-```calc
-title: 停止字符串是 ### 时，每步推出哪几个字（示意数）
-每次扣住 = 3 − 1 = 2 个字
-第 1 步后可推（已有「答案」） = 2 − 2 = 0 个字，什么都不推
-第 2 步后可推（已有「答案是42」） = 5 − 2 = 3 个字，推出「答案是」
-第 3 步后可推（已有「答案是42#」） = 6 − 2 = 4 个字，再推出「4」
-第 4 步后可推（截掉 ### 剩「答案是42」，已结束不扣） = 5 − 0 = 5 个字，再推出「2」
-```
+| 步次（停止串 `###`，每次扣住 $3 - 1 = 2$ 字） | 当前已有文本 | 累计可推字数算式 | 本步推出增量 |
+| --- | --- | --- | --- |
+| 第 1 步 | 「答案」 | $2 - 2 = 0$ | 空（什么都不推） |
+| 第 2 步 | 「答案是42」 | $5 - 2 = 3$ | 「答案是」 |
+| 第 3 步 | 「答案是42#」 | $6 - 2 = 4$ | 「4」 |
+| 第 4 步（命中 `###` 并截掉，已结束不扣） | 截后剩「答案是42」 | $5 - 0 = 5$ | 「2」 |
 
 第 4 步时，引擎其实不知道该停：它只看编号，停止字符串是前端发现的。所以前端截断之后，还要通知引擎终止这条请求，引擎随即归还它占的显存块，也就是流程图里标着「终止」的那条线。如果请求要求把停止字符串留在输出里（include_stop_str_in_output），前端就不扣字，截断位置也挪到停止字符串之后。一圈交回好几个 token 时，新文字里有时同时出现几个停止字符串，取哪一个各版本不同，见[版本差异](#版本差异)。
 
@@ -386,15 +388,14 @@ DeepSeek Recipe 的流处理器既能接 token 编号，也能接已经还原好
 
 ### R1 前三圈：每个片段由几个 token 还原
 
-前端只收到引擎确定下来的 token。MTP 的候选在引擎里验完，被拒的那些从来不离开引擎，前端看不到「先显示、再撤回」的文字。沿用一条请求页[三步的账](one-request.md#三步的账)里的假设：
+前端只收到引擎确定下来的 token。MTP 的候选在引擎里验完，被拒的那些从来不离开引擎，前端看不到「先显示、再撤回」的文字。沿用一条请求页[三步的账](one-request.md#三步的账)里的假设（三圈合计 $1 + 2 + 4 = 7$ 个 token）：
 
-```calc
-title: R1 前三圈交给前端的 token 数（接受几个是假设）
-prefill 一圈 = 1 个 token，即 y₀
-decode 1（3 个候选接受 1 个） = 1 + 1 = 2 个 token，即 y₁ y₂
-decode 2（3 个候选全接受） = 3 + 1 = 4 个 token，即 y₃ 到 y₆
-三圈合计 = 1 + 2 + 4 = 7 个 token
-```
+| 步次（接受几个为教学假设） | 交给前端的 token 数 | 对应 token |
+| --- | --- | --- |
+| prefill 一圈 | $1$ | $y_0$ |
+| decode 1（3 个候选接受 1 个） | $1 + 1 = 2$ | $y_1,\; y_2$ |
+| decode 2（3 个候选全接受） | $3 + 1 = 4$ | $y_3 \text{ 到 } y_6$ |
+| **前三圈合计** | $1 + 2 + 4 =$ **$7$** | $y_0 \text{ 到 } y_6$ |
 
 HTTP 任务每圈都及时取走的话，客户端在角色片段之后收到 3 个内容片段，分别由 1、2、4 个 token 还原而来。每个片段有几个字，要看这些编号代表哪些字节：常用词一个 token 就是两个字，少见的字要两个 token 才出一个字，不能按 token 数换算。接受几个是为了把账走通设的例子，不是实测的接受率。
 
@@ -559,56 +560,58 @@ VLLM_V1_OUTPUT_PROC_CHUNK_SIZE 默认 128，控制后台任务一片处理多少
 
 ### 版本差异
 
-下表限定普通 Chat 的解析分支；Harmony 等专门协议有自己的消费者，不能从一条分支推广所有接口。固定上游钉点仍为 0fc695fc、568afb3a、ced6857a、84030bbe。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；GLM 双机算例固定在例外 B 专用镜像 `vllm-ascend@db701c1f` + `vllm@0fc695fc`。
 
-| 关闭思考返回后的行为 | v0.23 / GLM 基线上游 | v0.26 | rc2 | 固定 main |
+下表限定普通 Chat 的思考过滤解析分支；Harmony 等专门协议有自己的消费者，不能从一条分支推广所有接口：
+
+| 关闭思考返回后的行为 | `v0.23.0`（`0fc695fc`） | `v0.26.0rc`（`568afb3a`） | `v0.30.0`（`ced6857a`，主基线） | `main`（`ba15685a`） |
 |---|---|---|---|---|
-| include_reasoning 默认 | true | 相同 | 相同 | 相同 |
-| 普通流式解析 | parse_delta 没有按该字段清除 reasoning，不能承诺隐藏 | 清除 reasoning；只有思考且没有正文/工具时跳过该片段 | 相同 | 相同 |
+| `include_reasoning` 默认 | `true` | 相同 | 相同 | 相同 |
+| 普通流式解析 | `parse_delta` 没有按该字段清除 reasoning，不能承诺隐藏 | 清除 reasoning；只有思考且没有正文/工具时跳过该片段 | 相同 | 相同 |
 | 有解析器的完整返回 | 清除 reasoning | 相同 | 相同 | 相同 |
-| 有解析器时逐 token 元数据 | 不因该字段统一清除 logprobs/token_ids | 清除整段 logprobs、停止返回 token_ids，包括答案段 | 相同 | 相同 |
-| 普通非 beam 请求送引擎 | false 时送 reasoning_ended=True | 相同 | 相同；结构化管理器用约束起点计算 | 同目的，结构化管理器实现另有差异 |
+| 有解析器时逐 token 元数据 | 不因该字段统一清除 `logprobs`/`token_ids` | 清除整段 `logprobs`、停止返回 `token_ids`，包括答案段 | 相同 | 相同 |
+| 普通非 beam 请求送引擎 | `false` 时送 `reasoning_ended=True` | 相同 | 相同；结构化管理器用约束起点计算 | 相同 |
 
-基线 Harmony 的 analysis 通道另有显式 include_reasoning 判断，不属于表中缺少过滤的普通 parse_delta 分支。Responses 也有独立协议和返回构造，不能将这张 Chat 表当成其全部流式、工具及会话行为的说明。
+基线 Harmony 的 analysis 通道另有显式 `include_reasoning` 判断，不属于表中缺少过滤的普通 `parse_delta` 分支。Responses 也有独立协议和返回构造，不能将这张 Chat 表当成其全部流式、工具及会话行为的说明。
 
-**v0.30.0rc2 配套上游迁移了 SSE 保活文件，没有删除保活机制。** 入口从 entrypoints/openai/sse_keep_alive.py 移到 entrypoints/serve/utils/sse_keep_alive.py，ChatCompletion 仍用 with_sse_keep_alive 包装异步生成器后交给 StreamingResponse。OutputProcessor 还在新增、取消与完成请求时更新共享准入计数；它统计前端负载，stream_interval 控制输出节奏，两者不能互相替代。
+`v0.30.0`（`ced6857a`）与 `main`（`ba15685a`）均将 SSE 保活入口放在 `entrypoints/serve/utils/sse_keep_alive.py`（`ChatCompletion` 仍用 `with_sse_keep_alive` 包装异步生成器后交给 `StreamingResponse`），并在 `OutputProcessor` 新增、取消与完成请求时更新共享准入计数；它统计前端负载，`stream_interval` 控制输出节奏，两者不能互相替代。
 
 Recipe 的编号/文本路径与结束行为仅核对 `935817c6`，不属于下方 vLLM 四版表。Rust 使用 `InferenceChunk::Tokens`、`Text`、`Finish`；Python 用 `push` 处理块，再用 `finish` 完成响应处理。未绑定 tokenizer 的编号流会失败。
 
-本页的控制流和前端代码在上游 vLLM，引的是 v0.23 的 `0fc695fc`；昇腾只在聊天接口上加补丁，引的是含 GLM 代码的 `db701c1f`。本部署实际装的是哪一对，按[来源基线](../sources/glm-5-3-flash-baseline.md)核对。
+本页的控制流和前端代码在上游 vLLM，GLM 绑定算例引 `vllm@0fc695fc` 配 `vllm-ascend@db701c1f`；实际安装组合按[来源基线](../sources/glm-5-3-flash-baseline.md)核对。
 
-**上游 vLLM**（v0.23 = `0fc695fc`，v0.26 = `568afb3a`，rc2 配套 = `ced6857a`，main = `84030bbe`）：
+**上游 vLLM 四版对照（增量反分词、推送节奏与 SSE 保活）：**
 
-| 项 | v0.23 | v0.26 | rc2 | main |
+| 项 | `v0.23.0`（`0fc695fc`） | `v0.26.0rc`（`568afb3a`） | `v0.30.0`（`ced6857a`，主基线） | `main`（`ba15685a`） |
 | --- | --- | --- | --- | --- |
-| 快速反分词类 | `PreTrainedTokenizerFast` | `TokenizersBackend` | 同 v0.26 | 同 v0.26 |
-| 同轮命中多个停止串 | 按请求列表，取第一个找到的 | 同 v0.23 | 取文字里最先完成者，并列按列表顺序 | 同 rc2 |
-| 请求级 stream_interval | 无 | 无 | 默认 None；有值时与服务设置取大 | 同 rc2 |
-| 推理与工具解析 | 已为每个候选创建组合解析器并调用 parse_delta；另有推理边界辅助状态 | 继续使用组合解析器 | 继续使用组合解析器 | 继续使用组合解析器 |
-| 角色、增量、结束、用量、[DONE] | 均有 | 相同 | 相同 | 相同 |
-| 收集器合并、每片 128 条、服务间隔默认 1 | 有 | 相同 | 相同 | 相同 |
-| HTTP stream / stream_options / 两项用量默认 | false / None / false / false | 相同 | 相同 | 相同 |
-| n 默认、下界、环境默认上限 | 1 / 1 / 16384 | 相同 | 相同 | 相同 |
-| detokenize / 包含停止串 / 隐藏特殊项 / 特殊项间空格 | true / false / true / true | 相同 | 相同 | 相同 |
-| Python / HTTP 输出模式 | CUMULATIVE；DELTA 或 FINAL_ONLY | 相同 | 相同 | 相同 |
-| SSE 注释保活选项 | 无 | 无 | 有；0 关闭，正整数秒 | 相同 |
+| 快速反分词类与增量更新 | `PreTrainedTokenizerFast` | `TokenizersBackend` | 同 `v0.26.0rc`（`detokenizer.py#L310-L362`） | 同 `v0.30.0`（`detokenizer.py#L98-L270`） |
+| 同轮命中多个停止串 | 按请求列表，取第一个找到的 | 同 `v0.23.0` | 取文字里最先完成者，并列按列表顺序 | 同 `v0.30.0`（`detokenizer.py#L340-L360`） |
+| 请求级 `stream_interval` | 无 | 无 | 默认 `None`；有值时与服务设置取大（`output_processor.py#L286-L324`） | 同 `v0.30.0`（`output_processor.py#L286-L350`） |
+| 推理与工具解析 | 已为每个候选创建组合解析器并调用 `parse_delta` | 继续使用组合解析器 | 继续使用组合解析器 | 继续使用组合解析器 |
+| 角色、增量、结束、用量、`[DONE]` | 均有 | 相同 | 相同 | 相同 |
+| 收集器合并、每片 128 条、服务间隔默认 1 | 有 | 相同 | 相同（`output_processor.py#L51-L102`） | 相同（`output_processor.py#L731-L925`） |
+| HTTP `stream` / `stream_options` / 两项用量默认 | `false` / `None` / `false` / `false` | 相同 | 相同 | 相同 |
+| `n` 默认、下界、环境默认上限 | `1` / `1` / `16384` | 相同 | 相同 | 相同 |
+| `detokenize` / 包含停止串 / 隐藏特殊项 / 特殊项间空格 | `true` / `false` / `true` / `true` | 相同 | 相同 | 相同 |
+| Python / HTTP 输出模式 | `CUMULATIVE`；`DELTA` 或 `FINAL_ONLY` | 相同 | 相同 | 相同 |
+| SSE 注释保活选项 | 无 | 无 | 有；`0` 关闭，正整数秒（`serve/utils/sse_keep_alive.py#L1-L65`） | 同 `v0.30.0`（`serve/utils/sse_keep_alive.py#L1-L55`） |
 
 停止串的差异在一步交回多个 token 时尤其明显：旧版按请求列表取命中串，结果会受列表顺序影响，未必等于逐 token 检查时先遇到的停止位置；rc2/main 选择文字里最先完成的串，使这一点与逐 token 检查保持一致，并列时才使用列表顺序。
 
 四版的连续用量均要求 include_usage，服务强制用量可覆盖请求；贪心要求 n=1，Chat 的 n 可空并按 1，Completion 不声明可空。文字格式表中的 detokenize 只在 Python，其余三项也在 HTTP 顶层。累计模式不按间隔限频，最终模式只在结束返回。字段相同不表示解析器的模型适配或所有结束片段都相同，工具调用还须按前文的 named 与 auto/required 分支处理。
 
-**vllm-ascend**（v0.23 = 维护分支 `2c59ff10`；`db701c1f` = 含 GLM 模型实现的快照；v0.26 = `2ed6cbba`；rc2 = `7d825229`；main = `baa023ad`）：
+**vllm-ascend 四版平台补丁对照**（GLM 绑定算例另见专用镜像 `db701c1f`，其工具调用末片段拆分与去空 `tool_calls` 列表行为同 `v0.23.0`）：
 
-| 所列平台补丁 | v0.23 维护分支 | db701c1f | v0.26 | rc2 | main |
-| --- | --- | --- | --- | --- | --- |
-| GLM 工具调用末片段拆分 | 有，无条件加载 | 相同 | 无 | 无 | 无 |
-| 去掉响应里空 tool_calls 列表 | 有 | 有；只删空列表，不开启工具解析 | 无 | 无 | 无 |
-| GLM 推理 token 用量 | 无 | 无 | 有，只绑到配了 GLM 解析器的服务 | 无该旧补丁 | 无该旧补丁 |
-| GLM5.3 思考模板参数修正 | 无 | 无 | 无 | 有；匹配特定模板签名与关闭思考参数时调整解析器副本 | 无该补丁 |
-| 其他相关分支 | MiniMax 用量；GLM 不经过 | 相同 | Kimi 解析及 Recompute 恢复输入包装 | 按该版本平台导入链 | 未导入这些旧聊天包装 |
-| 本页反分词器、输出处理器 | 复用上游 | 复用上游 | 复用上游 | 复用上游 | 复用上游 |
+| 所列平台补丁 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| GLM 工具调用末片段拆分 | 有，无条件加载（镜像 `db701c1f` 同） | 无 | 无 | 无 |
+| 去掉响应里空 `tool_calls` 列表 | 有（镜像 `db701c1f` 同） | 无 | 无 | 无 |
+| GLM 推理 token 用量 | 无 | 有，只绑到配了 GLM 解析器的服务 | 无该旧补丁 | 无该旧补丁 |
+| GLM5.3 思考模板参数修正 | 无 | 无 | 有（`patch_glm53_reasoning`，`patch/platform/__init__.py#L21`） | 有（`patch_glm53_reasoning`，`patch/platform/__init__.py#L20`） |
+| 其他相关分支 | MiniMax 用量；GLM 不经过 | Kimi 解析及 Recompute 恢复输入包装 | 按 `patch/platform/__init__.py#L19-L55` 导入链 | 按 `patch/platform/__init__.py#L19-L55` 导入链 |
+| 本页反分词器、输出处理器 | 复用上游 | 复用上游 | 复用上游 | 复用上游 |
 
-rc2 的 GLM5.3 修正只在模板特征与 thinking/enable_thinking=false 条件匹配时改解析器使用的 kwargs 副本，且在上游已有对应辅助能力或已经打补丁时跳过；它不证明旧 GLM 镜像支持关闭思考。v0.26 的恢复输入分支仅针对带私有 token 列表的恢复请求，见[入口版本说明](api-server-entry.md#版本差异)。表中“无”限定于所核平台补丁导入，不概括额外插件。
+`v0.30.0` 与 `main` 的 `patch_glm53_reasoning` 修正只在模板特征与 `thinking`/`enable_thinking=false` 条件匹配时改解析器使用的 kwargs 副本，且在上游已有对应辅助能力或已经打补丁时跳过；它不证明旧 GLM 镜像支持关闭思考。`v0.26.0rc` 的恢复输入分支仅针对带私有 token 列表的恢复请求，见[入口版本说明](api-server-entry.md#版本差异)。表中“无”限定于所核平台补丁导入，不概括额外插件。
 
 v0.26 的用量补丁针对的是：GLM 从提示词里的 `<think>` 就进入思考，输出里可能只出现 `</think>`，上游解析器按「从没进入思考」计数，聊天接口也还没有给出按解析器统计的推理 token 用量。补丁注明上游修好后删除。
 

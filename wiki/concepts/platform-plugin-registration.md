@@ -136,10 +136,17 @@ sources:
   - "https://github.com/vllm-project/bart-plugin/blob/77673541bd7ebdb67a83fa72fd8f72c6aafea17c/README.md#L1-L250"
   - "https://github.com/vllm-project/bart-plugin/blob/77673541bd7ebdb67a83fa72fd8f72c6aafea17c/pyproject.toml#L27-L48"
   - "https://github.com/vllm-project/bart-plugin/blob/77673541bd7ebdb67a83fa72fd8f72c6aafea17c/vllm_bart_plugin/__init__.py#L21-L57"
+  - 'vllm-ascend@c09d3e20:setup.py#L506-L517'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/__init__.py#L52-L110'
+  - 'vllm-ascend@8d6180e2:setup.py#L506-L517'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/__init__.py#L52-L118'
+  - 'vllm@ba15685a:vllm/plugins/__init__.py#L36-L90'
+  - 'vllm@ba15685a:vllm/platforms/__init__.py#L240-L315'
 verified:
-  - main
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: glm-5-3-flash
@@ -149,7 +156,7 @@ relations:
     kind: builds-on
     note: 注册完成之后，worker 才真正建设备、建模型、装权重
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -225,12 +232,12 @@ file: plugin-io-processing
 
 图中用一张 512×512 像素的方图做示意，每块 256×256，按 A、B、C、D 的位置切开。假设模型结果按 C、A、D、B 的顺序到达，在线服务先按输入编号放回对应位置，收齐后才交给插件拼图；不能照到达先后把右下角拼到左上角。
 
-```calc
-title: 一张图展开成几个模型输入（方形切片示意）
-每边切片数 = 512 ÷ 256 = 2 块
-模型子输入数 = 2 × 2 = 4 个
-> 四份模型结果按原位置合并，应用收到一张完整结果图
-```
+$$N_{\text{tiles}} = \left(\frac{512}{256}\right) \times \left(\frac{512}{256}\right) = 2 \times 2 = 4\text{ 个模型子输入}$$
+
+| 切片核算项（示意：512×512 方图，256×256 切片） | 算式 | 结果 |
+|---|---|---|
+| 每边切片数 | $512 \div 256$ | **2 块** |
+| 模型子输入总数 | $2 \times 2$ | **4 个**（结果按原位合并为一张完整结果图） |
 
 官方 TerraTorch 示例采用的正是地理影像切片与拼回流程，还会补齐边缘、在拼回后裁掉补齐区域。具体切片尺寸由其配置决定，图中的尺寸只帮助理解数量。在线返回的是插件自己的结果数据；离线入口则把合并结果放在一个输出对象里。这个过程与聊天模型识别图片的媒体处理、[独立 renderer](api-server-entry.md#模板和分词能否拆成一个独立的-cpu-服务) 分工不同：后两者面向生成请求的模板、媒体表示与编号转换。
 
@@ -287,14 +294,14 @@ file: plugin-registration-flow
 
 按 CLI 未预设启动方式时采用 spawn、入口允许加载且执行成功的假设，这些核心角色分别完成通用插件登记，共 19 次。20 是核心功能角色的进程示意账，不含启动器和运行时辅助进程；19 数的是其中参与这条登记链的次数，差的那一个是 DP 协调器——它在前端和各个 EngineCore 之间转发负载统计，不建模型，这三个登记调用点不在它的路径上。
 
-```calc
-title: 通用组登记在本部署执行几次
-前端进程（解析启动参数时） = 1 次
-EngineCore 进程 = 2 个 × 1 次 = 2 次
-worker 进程 = 16 个 × 1 次 = 16 次
-合计 = 1 + 2 + 16 = 19 次
-> 按默认 spawn 与入口正常执行计；进程内守卫会阻止重复尝试，不代表失败会自动重试
-```
+$$N_{\text{reg}} = 1_{\text{前端}} + 2_{\text{EngineCore}} + 16_{\text{Worker}} = 19\text{ 次}$$
+
+| 核心角色进程（按默认 `spawn` 与入口正常执行计） | 调用点与次数 | 小计 |
+|---|---|---|
+| 前端进程（解析启动参数时） | $1 \times 1$ | **1 次** |
+| EngineCore 进程（各 DP 组初始化） | $2 \times 1$ | **2 次** |
+| Worker 进程（每卡独立解释器） | $16 \times 1$ | **16 次** |
+| **合计**（进程内守卫防重，不提供失败自动重试） | $1 + 2 + 16$ | **19 次** |
 
 平台组的时机不一样：它不在这三个调用点上，而是本进程需要当前平台、缓存又为空时才解析；成功建立缓存后，后续访问复用同一个对象。解析或构造失败、缓存仍为空时，后续访问会重新尝试。
 
@@ -381,37 +388,31 @@ IO 插件的代价还发生在每次请求：展开的输入越多，引擎需�
 
 ### 版本差异
 
-输入输出与统计接口按固定上游 0fc695fc、568afb3a、ced6857a、84030bbe 对照；最后一个是独立 main 比较点，不据此建立与 Ascend main 的精确配套关系。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`，GLM 专用镜像 `db701c1f` 的入口声明与 `v0.23.0` 逐字相同）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）。**四版 `vllm-ascend` 的入口点清单均声明在 `setup.py` 的 `entry_points` 字段（尚未迁入 `pyproject.toml`）；`v0.30.0` 与 `main` 均保持三组六个入口，`main` 将第三组指标入口迁至 `observability.ms_metrics`，并在 `_ensure_global_patch()` 与 `register_connector()` 中分别加入 MRV2 配置强制补丁与 EC 连接器注册。**
 
-| IO／统计核对项 | v0.23 | v0.26 | v0.30.0rc2 | 固定 main |
+下表先对照上游 IO Processor 与 Stat Logger 接口在四版中的演进：
+
+| IO／统计核对项 | `v0.23.0`（`0fc695fc`） | `v0.26.0rc`（`568afb3a`） | `v0.30.0`（`ced6857a`，主基线） | `main`（`ba15685a`） |
 |---|---|---|---|---|
-| IO 名称默认与选择 | None；非空显式名称优先，否则读模型配置 | 相同 | 相同 | 相同 |
+| IO 名称默认与选择 | `None`；非空显式名称优先，否则读模型配置 | 相同 | 相同 | 相同 |
 | 在线插件方法与结果顺序 | 同步方法；按输入编号收齐再后处理 | 相同 | 相同 | 相同 |
-| 在线前处理执行位置 | 同步前处理在线程池 | 同 v0.23 | 插件工厂同步执行，再等待异步渲染 | 同 rc2 |
-| 旧 parse_request／参数验证兼容入口 | 仍有兼容转接 | 相同 | 移除这两个旧转接；输出包装兼容仍在 | 同 rc2 |
-| 离线切片提交 | 渲染并加入请求，再运行引擎 | 改为分批加入，以 max_num_seqs×2 为核心请求数目标 | 沿用，并显式拒绝零个输入 | 同 rc2 |
-| 统计入口类型与关闭默认日志 | 要求 StatLoggerBase 子类；自定义记录器可保持统计启用 | 相同 | 相同 | 相同 |
+| 在线前处理执行位置 | 同步前处理在线程池 | 同 `v0.23.0` | 插件工厂同步执行，再等待异步渲染 | 同 `v0.30.0` |
+| 旧 `parse_request`／参数验证兼容入口 | 仍有兼容转接 | 相同 | 移除这两个旧转接；输出包装兼容仍在 | 同 `v0.30.0` |
+| 离线切片提交 | 渲染并加入请求，再运行引擎 | 改为分批加入，以 `max_num_seqs×2` 为核心请求数目标 | 沿用，并显式拒绝零个输入 | 同 `v0.30.0` |
+| 统计入口类型与关闭默认日志 | 要求 `StatLoggerBase` 子类；自定义记录器可保持统计启用 | 相同 | 相同 | 相同 |
 
-注册接口有兼容承诺，插件内部实现仍须匹配所用 vLLM。官方外链的 BART 插件就是独立版本的例子：本次固定外部快照要求 vLLM ≥0.24，并接入新 model runner 的配置。它的 README 将 VLLM_PLUGINS=all 写成全部加载，但本页四版上游实际只匹配入口名字；正确的“不过滤”方式是未设置该变量。外部示例中的值不能替代当前加载器的规则。
+注册接口有兼容承诺，插件内部实现仍须匹配所用 vLLM。官方外链的 BART 插件就是独立版本的例子：本次固定外部快照要求 vLLM ≥0.24，并接入新 model runner 的配置。它的 README 将 `VLLM_PLUGINS=all` 写成全部加载，但四版上游实际只匹配入口名字；正确的“不过滤”方式是未设置该变量。
 
-**v0.30.0rc2 的安装声明仍是三组 entry points、六个入口。** platform 一项、general 四项、指标 provider 一项；register 只返回 NPUPlatform 路径，register_model 只登记模型，connector/model_loader/profiling 则先执行带进程内守卫的全局 patch。配套上游仍通过 importlib.metadata 发现插件、按 VLLM_PLUGINS 筛选，并以一次性守卫调用 general 插件。
+再对照 Ascend 侧 `setup.py` `entry_points` 与插件加载链在四版正式钉点上的演进：
 
-平台选择先处理显式 CPU target 的直通，再逐个探测：一个 OOT 优先，多个 OOT 报错，没有 OOT 再检查内置冲突，没有候选则 UnspecifiedPlatform，探测异常记录 debug traceback。“外部平台优先”因此有 CPU 例外，安装声明也不能替代实际子进程加载成功的证据。
-
-固定快照：v0.23 维护分支 = Ascend `2c59ff10`（配套 `vllm@0fc695fc`）；v0.26 rc = Ascend `2ed6cbba`；main = Ascend `baa023ad`。本页 GLM 算例用的专用镜像是 Ascend `db701c1f`，它的入口声明与 v0.23 维护分支逐字相同 [来源 1](https://github.com/vllm-project/vllm-ascend/blob/db701c1f/setup.py#L543-L551)、[来源 20](https://github.com/vllm-project/vllm-ascend/blob/2c59ff10/setup.py#L543-L551)。
-
-| 项 | v0.23 维护分支 | v0.26 rc 分支 | main 开发主线 | 意味着什么 |
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 |---|---|---|---|---|
-| `vllm.platform_plugins` | `ascend`，1 个 | 同 v0.23 | 同 v0.23 | 平台入口三边一样，认这一个名字就够 |
-| `vllm.general_plugins` | 4 个 | 同四个入口名与声明顺序 | 同 v0.23 | 不约定第三方插件间的全局执行顺序 |
-| 第三组入口 | 没有 | 没有 | 多一个指标 provider 组 | 表中三版只有 main 有此组；rc2 已保留 |
-| `register_model` 的函数体 | 只登记模型 | 先处理 Kimi/HunyuanVL 兼容，再登记模型 | 同 v0.23 | v0.26 额外导入 processor 类 |
+| `setup.py` 入口点清单（未迁至 `pyproject.toml`） | 2 组 5 个（`#L543-L551`，GLM `db701c1f` 同） | 2 组 5 个（`#L543-L551`） | 3 组 6 个（`#L506-L517`）：新增 `ms_service_metric.providers` -> `vllm_ascend.observability:get_metric_provider` | 3 组 6 个（`#L506-L517`）：指标入口迁至 `vllm_ascend.observability.ms_metrics:get_metric_provider` |
+| `vllm.platform_plugins` | `ascend = vllm_ascend:register`，返回 `NPUPlatform` 路径 | 同 `v0.23.0` | 同 `v0.23.0` | 同 `v0.23.0` |
+| `vllm.general_plugins`（4 项） | 三个入口调 `_ensure_global_patch()`；`register_model` 只登记模型 | `register_model` 先注册 Kimi-K3 与 HunyuanVL processor 兼容补丁再登记模型 [C23] | `register_model` 回归仅登记模型（`__init__.py#L52-L110`）；`register_connector` 注册 KV + 权重传输 | `_ensure_global_patch()` 先调 `apply_v2_model_runner_config_patch()` 再打全局 patch；`register_connector` 新增 `ec_transfer.register_connector()`（`__init__.py#L52-L118`） |
+| 上游插件加载与平台选择 | `importlib.metadata` + `VLLM_PLUGINS` + 一次性守卫；单 OOT 优先 | 相同 | 新增显式 CPU target 直通与探测异常 debug 日志（`platforms/__init__.py#L233-L286`） | 延续 `v0.30.0`（`plugins/__init__.py#L36-L90`、`platforms/__init__.py#L240-L315`） |
 
-main 的第三组名为 `ms_service_metric.providers`，入口指向 `vllm_ascend.observability:get_metric_provider` [C25]，由指标框架发现；表中 v0.23/v0.26 没有这组入口，rc2 已保留它。
-
-v0.23 与固定 main 的模型入口只调 `.models.register_model()`；v0.26 则先注册 kimi-k3 的 config，再装 HunyuanVL processor 兼容补丁，最后登记模型 [C23]。来源 24 的补丁模块顶部导入 HunYuanVLProcessor（`from transformers import HunYuanVLProcessor`），所以模型入口执行时会把 transformers 的这个 processor 类导进本进程。
-
-配套上游的通用加载函数在 v0.26 rc 的 568afb3a 与 main 的 84030bbe 中仍按“发现、筛选、加载、执行”分步处理，守卫仍先于执行置位。平台选择在 v0.26 rc 中与旧基线采用同一套外部优先规则；main 已有显式 CPU target 直通与探测异常的 debug 日志，rc2 延续这一点（来源 33、34、40–43）。这些比较仅针对本页的加载与选择流程。
+`v0.26.0rc` 的模型入口额外导入 `HunYuanVLProcessor`（来源 24），`v0.30.0` 与 `main` 恢复轻量化登记；`v0.30.0` 起的上游平台选择对显式 CPU target 开了直通例外，因此“外部平台优先”不再无条件覆盖 CPU 目标。安装声明本身仍不能替代实际子进程加载成功的证据。
 
 ### 源码位置
 

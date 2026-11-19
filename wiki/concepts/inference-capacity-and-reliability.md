@@ -17,6 +17,15 @@ sources:
   - 'vllm@dfb7dd92a406f5dc8c963fd274e59e55ae648fc4:vllm/distributed/kv_transfer/kv_connector/v1/nixl/pull_worker.py#L47-L138'
   - 'vllm@dfb7dd92a406f5dc8c963fd274e59e55ae648fc4:vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_worker.py#L1257-L1351'
   - 'vllm@dfb7dd92a406f5dc8c963fd274e59e55ae648fc4:vllm/distributed/kv_transfer/kv_connector/v1/nixl/base_worker.py#L2825-L2964'
+  - 'vllm@ced6857a:vllm/entrypoints/serve/instrumentator/metrics.py#L60-L82'
+  - 'vllm@ba15685a:vllm/entrypoints/serve/instrumentator/metrics.py#L60-L81'
+  - 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2498-L2535'
+  - 'vllm@ba15685a:vllm/v1/core/sched/scheduler.py#L3132-L3168'
+  - 'vllm-ascend@c09d3e20:docs/source/user_guide/ms_service_metric.md#L1-L67'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/observability/provider.py#L1-L21'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/observability/config/base_metrics.yaml#L1-L45'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/observability/ms_metrics/provider.py#L1-L21'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/observability/ms_metrics/config/base_metrics.yaml#L1-L43'
 relations:
   - { to: deepseek-serving-case, kind: builds-on, note: 先看独立计算阶段与缓存存储之间怎样接力 }
   - { to: inference-benchmarking, kind: builds-on, note: 用相同负载与延迟口径测可用容量 }
@@ -24,10 +33,14 @@ relations:
   - { to: request-teardown, kind: builds-on, note: 查结束、取消和迁移后是否真正释放请求资源 }
   - { to: large-scale-ep, kind: builds-on, note: 故障范围与可替换单位要按通信组核实 }
   - { to: npu-worker-lifecycle, kind: builds-on, note: 启动进程到设备可执行之间还有哪些准备步骤 }
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: I
 contradicts: []
-updated: "2026-11-08"
+updated: "2026-11-19"
 ---
 
 **容量规划要回答：服务在规定等待时间内能接住多少工作，少掉一部分资源后还能不能接住。** 恢复则继续追问：补回资源之前积了多少工作，补回后还要多久才能处理完。
@@ -67,14 +80,15 @@ file: inference-capacity-intuition
 
 ## 按这个运行点，正常和容错各要几套
 
-沿用上表的工作组合，假设多套独立完整实例能保持每套 5 条/秒的能力，流量可以合理分配，共享存储和网络还未成为瓶颈。外部持续到达 12 条/秒，要先满足正常容量，再检查少掉一套之后是否仍够。这是计算下界，部署时还应为波动保留余量。算式中的 ceil 表示向上取整数，因为不能部署 2.4 套完整实例。
+沿用上表的工作组合，假设多套独立完整实例能保持每套 5 条/秒的能力，流量可以合理分配，共享存储和网络还未成为瓶颈。外部持续到达 12 条/秒，要先满足正常容量，再检查少掉一套之后是否仍够。这是计算下界，部署时还应为波动保留余量。算式中的 $\lceil \cdot \rceil$（`ceil`）表示向上取整数，因为不能部署 2.4 套完整实例：
 
-```calc
-title: 满足平时负载与少一套后的负载（示意）
-平时所需的实例数 = ceil(12 ÷ 5) = 3 套
-少一套后仍够用所需的在线实例数 = ceil(12 ÷ 5) + 1 = 4 套
-四套中失去一套后的能力 = (4 − 1) × 5 = 15 条/秒
-```
+$$N_{\text{normal}} = \lceil 12 \div 5 \rceil = 3\text{ 套}, \qquad N_{\text{HA}} = N_{\text{normal}} + 1 = 4\text{ 套}$$
+
+| 容量目标（示意） | 计算口径 | 结果 |
+| --- | --- | --- |
+| 平时所需实例数 | $\lceil 12 \div 5 \rceil$ | **3 套**（总能力 15 条/秒） |
+| 少一套后仍够用的在线实例数 | $\lceil 12 \div 5 \rceil + 1$ | **4 套**（含 1 套即时热备） |
+| 四套中失去一套后的剩余能力 | $(4 - 1) \times 5$ | **15 条/秒**（仍高于 12 条/秒） |
 
 三套能承接正常流量，但并不满足少一套的目标；第四套必须已经能接单，才有这份即时余量。若为了节约资源仍只运行三套，就要明确接受替代实例就绪前的容量缺口。下一节算它带来的后果。
 
@@ -82,17 +96,18 @@ title: 满足平时负载与少一套后的负载（示意）
 
 继续上面的**教学示意，不是 DeepSeek 实测**。为方便算积压，先假设每套始终以 5 条/秒的速度处理，外部每秒到达 12 条；这里暂时采用只运行三套的方案。三套健康时合计能力为 15 条/秒，平均负载占这份能力的 80%。这个比例只描述算术关系，现场是否达到 SLO 仍需测量。
 
-假设一套故障，替代实例 120 秒后才能接单。为隔离容量影响，暂不计故障瞬间丢失的在途工作，不计重试和突发；排队请求暂不超时退出，剩余两套能力不变。替代实例就绪后也立即达到原来的能力。
+假设一套故障，替代实例 120 秒后才能接单。为隔离容量影响，暂不计故障瞬间丢失的在途工作，不计重试和突发；排队请求暂不超时退出，剩余两套能力不变。替代实例就绪后也立即达到原来的能力。设故障期净积压速率为 $\Delta_{\text{in}} = 12 - 10 = 2\text{ 条/秒}$、恢复后净消化速率为 $\Delta_{\text{out}} = 15 - 12 = 3\text{ 条/秒}$：
 
-```calc
-title: 少一套实例后积多少，再用多少余量消化（示意）
-健康时总处理能力 = 3 × 5 = 15 条/秒
-故障后总处理能力 = 2 × 5 = 10 条/秒
-每秒新增积压 = 12 − 10 = 2 条/秒
-替代实例就绪前的积压 = 2 × 120 = 240 条
-恢复三套后的净消化能力 = 15 − 12 = 3 条/秒
-理想积压消退时间 = 240 ÷ 3 = 80 秒
-```
+$$Q_{\text{peak}} = (12 - 2 \times 5) \times 120 = 240\text{ 条}, \qquad T_{\text{drain}} = \frac{240}{3 \times 5 - 12} = 80\text{ 秒}$$
+
+| 积压与恢复核算项（示意） | 算式 | 数值结果 |
+| --- | --- | --- |
+| 健康时总处理能力 | $3 \times 5$ | **15 条/秒** |
+| 故障后总处理能力（剩 2 套） | $2 \times 5$ | **10 条/秒** |
+| 每秒新增积压 | $12 - 10$ | **2 条/秒** |
+| 替代实例就绪前累计积压（120 秒） | $2 \times 120$ | **240 条** |
+| 恢复三套后的净消化能力 | $15 - 12$ | **3 条/秒** |
+| 理想积压消退时间 | $240 \div 3$ | **80 秒** |
 
 在这个模型里，120 秒是资源补回的时间；再过 80 秒才处理完积压。可以用队列记录检查这份判断：故障后第 60 秒应积压约 120 条，第 120 秒约 240 条；能力补回后每秒净减少 3 条，到第 160 秒应剩约 120 条，到第 200 秒才清空。这些是同一简化模型的预测，现场可以拿它与实际趋势对照。
 
@@ -104,7 +119,7 @@ title: 少一套实例后积多少，再用多少余量消化（示意）
 
 一台机器空闲，与一个实例已经能接单，是两个不同状态。**冷启动**包括创建进程、加载模型、建立多卡通信等准备；**预热**用代表性输入走过必要的编译、执行图和运行路径，避免把这些首次开销全部留给用户。进程启动成功只是其中一个里程碑。
 
-新实例还要完成健康检查、进入路由的可选集合，并逐步承接负载。**缓存变冷**则是另一件事：即使计算预热已完成，业务常用前缀仍可能需要重新获取。多个新实例同时取缓存，会增加存储和网络的压力；若连缓存命中也下降，P 还会额外承担重算。
+新实例还要完成健康检查、进入路由的可选集合，并逐步承接负载（多实例外部拉起、覆盖长冷启动图捕获期的 `/health` 探针与 `--shutdown-timeout` 优雅摘流配置见[昇腾多实例集群部署与路由](cluster-serving.md)）。**缓存变冷**则是另一件事：即使计算预热已完成，业务常用前缀仍可能需要重新获取。多个新实例同时取缓存，会增加存储和网络的压力；若连缓存命中也下降，P 还会额外承担重算。
 
 把前面的“120 秒后就绪”展开成一份示意记录：故障为起点，30 秒拿到机器，90 秒加载完成，100 秒通信建立，110 秒预热和代表性健康检查通过，120 秒注册生效并开始正常接单。**应该从 120 秒开始计入新增处理能力。** 若监控在 30 秒就把机器数加回来，会高估之后 90 秒的可用容量。
 
@@ -185,7 +200,9 @@ DeepSeek 的大 EP 生产实践也明确指出：一个实例的卡构成单一�
 
 ### 怎么开
 
-这是一套容量与恢复分析方法，没有统一的“高可用开关”。从同口径基准开始，建立实例就绪、请求归属与完成状态的记录；启动准备可沿 [NPU worker 生命周期](npu-worker-lifecycle.md)检查，停止与资源释放可沿[请求收尾](request-teardown.md)检查。上图给出服务侧应核对的分支，不能把它当作 DeepInfer 已发布的恢复控制代码。
+这是一套容量与恢复分析方法，没有统一的“高可用开关”。从同口径基准开始，建立实例就绪、请求归属与完成状态的记录；启动准备可沿 [NPU worker 生命周期](npu-worker-lifecycle.md)检查，停止与资源释放可沿[请求收尾](request-teardown.md)检查，多实例拉起、`/health` 启动探针、`/load` 负载感知与 `--shutdown-timeout` 优雅摘流配置见[昇腾多实例集群部署与路由](cluster-serving.md)。上图给出服务侧应核对的分支，不能把它当作 DeepInfer 已发布的恢复控制代码。
+
+**监控指标采集入口：`/metrics` 与 `ms_service_metric`。** vLLM 在线服务通过 `mount_metrics` 挂载 `/metrics`（Prometheus ASGI 端点），暴露排队数、KV 占用、TTFT/ITL 与请求完成计数（详解见[性能分析的指标采集](inference-performance-analysis.md#先读监控面板再选择一条慢请求)）。昇腾侧另提供 `ms_service_metric` 集成（需单独安装，推理本身不强依赖）：启动前设置独立的 `PROMETHEUS_MULTIPROC_DIR` 并执行 `ms-service-metric on` 后，由 `vllm_ascend` 注册的 `MetricProvider` 按 YAML 钩子补充调度器、`execute_model` / `_prepare_inputs` 耗时以及 8 项 `engine:memory:*` 显存分项 Gauge，并汇入同一 `/metrics` 端点供 Prometheus 抓取（`ms-service-metric off` 关闭）。
 
 ### 会报什么错
 
@@ -197,17 +214,20 @@ DeepSeek 的大 EP 生产实践也明确指出：一个实例的卡构成单一�
 
 ### 版本差异
 
-| 范围 | 已知行为或方法 | 默认值与验证边界 |
-| --- | --- | --- |
-| DeepInfer `774ce244` 的部署问答 | 分阶段扩缩容、冗余配额、计划下线宽限期、大 EP 故障范围 | 属于官方生产实践说明；README 未交付完整在线控制系统 |
-| v0.23 控制流 `0fc695fc` / GLM 执行侧 `db701c1f` | 请求结束与资源释放按本站机制页核对 | GLM 基线不开 PD；不能认为内置了本例的整套迁移和自动恢复 |
-| v0.26 | 容量、积压与恢复的分析方法不变 | 生命周期及连接器实现按对应机制页版本表；本页无集群故障实测 |
-| main | 仍须验证就绪、交接与客户端语义 | 不将新接口存在视为默认开启或端到端恢复保证 |
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；**本文 GLM 双机故障域对照沿用例外 B 专用镜像钉点 `db701c1f`（配套 `vllm@0fc695fc`），DeepSeek 生产实践取自 DeepInfer `774ce244`。**
+
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| 请求收尾与资源释放 | `Scheduler.finish_requests` 释放块；GLM 镜像不开 PD，不内置端到端自动迁移 | 延续同口径收尾，具体连接器按机制页核对 | `vllm/v1/core/sched/scheduler.py#L2498-L2535` 延续结束/取消释放；集群优雅摘流见[集群部署页](cluster-serving.md) | `vllm/v1/core/sched/scheduler.py#L3132-L3168` 延续同机制，须实测端到端恢复语义 |
+| `/metrics` 指标端点 | `entrypoints/serve/instrumentator/metrics.py` 挂载 `/metrics`（Prometheus） | 相同 | `vllm/entrypoints/serve/instrumentator/metrics.py#L60-L82` 保持 `/metrics` ASGI 挂载并兼容多进程目录 | `vllm/entrypoints/serve/instrumentator/metrics.py#L60-L81` 相同 |
+| 昇腾 `ms_service_metric` 钩子 | 无内置 `vllm_ascend/observability` provider | 无内置 `vllm_ascend/observability` provider | 新增 `vllm_ascend/observability/provider.py` + `config/base_metrics.yaml`（`execute_model` / `_prepare_inputs` 耗时与 `engine:memory:*` 显存分项）[S15] | 迁至 `vllm_ascend/observability/ms_metrics/provider.py` 与 `config/base_metrics.yaml`，并扩展 `runtime_guard` / `schedule_execute` 指标配置 |
+| 外部容错实践与跨重启证据 | DeepInfer `774ce244` 部署问答给出分阶段扩缩容、1 分钟宽限期、0.8 缩容保护与大 EP 故障域 [S1] | 同左；v0.25.0/v0.25.1 社区报告 NIXL P 重启后 D 崩溃（issue #49238） | 同左；PR #50047（`dfb7dd92`）在 pull 模式识别同地址换引擎标识，现场须核实镜像产物 | 仍须逐项验证就绪、交接与客户端续传语义，不把接口存在当默认保证 |
 
 ### 源码位置
 
 - DeepSeek 的扩缩容信号、1 分钟宽限期、0.8 缩容保护和大 EP 重启策略，以固定部署问答的 `Autoscaling & fault tolerance` 为依据 [S1]；发布边界见 README [S3]。生产文章 [S2] 的用户提供文字副本也明确写出这些规则；原网页未能直接访问，副本不含线上统计与离线基准图，不能据此补出本页未测的容量、收入或恢复时延。
-- vLLM 侧沿 `Scheduler` 的结束与资源释放方法阅读，具体函数、连接器完成通知及行号统一由[请求收尾页](request-teardown.md#源码位置)维护；本页不另写一套调用链。
+- `/metrics` 端点挂载与请求收尾：`vllm@ced6857a:vllm/entrypoints/serve/instrumentator/metrics.py#L60-L82`、`vllm@ba15685a:vllm/entrypoints/serve/instrumentator/metrics.py#L60-L81`；`Scheduler.finish_requests` 见 `vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L2498-L2535` 与 `vllm@ba15685a:vllm/v1/core/sched/scheduler.py#L3132-L3168`，完整调用链统一由[请求收尾页](request-teardown.md#源码位置)维护。
+- 昇腾 `ms_service_metric` 集成：使用说明见 `vllm-ascend@c09d3e20:docs/source/user_guide/ms_service_metric.md#L1-L67` [S15]；`v0.30.0` 注册与默认指标点见 `vllm-ascend@c09d3e20:vllm_ascend/observability/provider.py#L1-L21`、`vllm-ascend@c09d3e20:vllm_ascend/observability/config/base_metrics.yaml#L1-L45` [C16]；`main` 迁入子包后见 `vllm-ascend@8d6180e2:vllm_ascend/observability/ms_metrics/provider.py#L1-L21`、`vllm-ascend@8d6180e2:vllm_ascend/observability/ms_metrics/config/base_metrics.yaml#L1-L43` [C18]。
 - **跨重启交接的公开证据。** 来源 4 的 [issue #49238](https://github.com/vllm-project/vllm/issues/49238) 记录 H200、vLLM v0.25.0/v0.25.1、NIXL 1.3.1 的 P 重启后 D 原生崩溃，P 为 TP1、D 为 TP4；它说明单端 ready 不足以证明交接恢复，报告者提出的具体内存竞争原因仍属假设。正文的两代实例记录与三组对照是本站分析 [I]，不是本项目的设备实验。
 - **清理范围与版本边界。** 截至 2026-11-03，来源 5 的 [PR #50047](https://github.com/vllm-project/vllm/pull/50047) 已于 2026-09-27 合并，最终 head 为 `dfb7dd92a406f5dc8c963fd274e59e55ae648fc4`，merge 为 `fff03267dae61d03615225c2f48a06082d842e2d`。该 head 的补丁只在 pull 模式下识别同地址换引擎标识：新握手成功后更新地址记录，在结果处理时检查是否还存在握手或使用旧对端的请求，满足清理条件才释放旧状态；已排队请求若遇到已被释放的对端，则重新握手 [C6][C7][C8][C9]。作者的两卡实验报告新请求成功，被强制中断的请求失败且未续传。早期评论曾讨论更广的链路恢复，不能当成最终补丁范围；这也不证明原 issue 的底层原生崩溃已由该 PR 修复。现场镜像及 NIXL/UCX 依赖是否包含相应修复，需另核实际产物，不能仅看 vLLM 版本号。
 - 逐档压测表、12 条/秒、每实例 5 条/秒、就绪时间线及流式重试记录均为教学假设 [A]；实例数量、240 条积压与 80 秒理想消退时间为推导 [D]。就绪检查、迁移确认、重试与演练步骤属于本站工程分析 [I]，不是对 DeepInfer 未公开实现的描述。

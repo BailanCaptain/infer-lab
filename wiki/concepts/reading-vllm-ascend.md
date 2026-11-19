@@ -57,7 +57,24 @@ sources:
   - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L1793-L1933'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L84-L89'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L109-L114'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L218-L401'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L272-L519'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L44'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L7'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L1-L89'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L135-L180'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L144-L190'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L746-L760'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L844-L855'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L267-L290'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L295-L320'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L866-L952'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/utils.py#L893-L979'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: vllm-ascend-overview
@@ -176,7 +193,7 @@ file: ref-diff
 
 [R1](one-request.md#示例请求-r1-与官方双机部署) 是为了手算设的示例请求，提示词 4 个 token；它从入口走到返回，每一站的入口文件和函数在[一条请求的代码路径](request-call-chain.md#源码位置)已经按阅读顺序列好。在官方双机部署上照上面三条路线读，会先碰到下面几件事。
 
-- **先定版本。** 控制流按 vLLM v0.23.0 读，执行侧按 GLM 专用镜像对应的固定提交读，它与社区版本表列出的快照不同。固定 v0.23 维护版和 v0.26 rc 的模型目录里没有本页 GLM-5.3-Flash 的实现；main 和 v0.30.0rc2 则把它放在 glm5next 目录，拿错版本就找不到同名文件。部署条件见[部署前提](glm-5-3-flash-two-node.md#部署前提)，基线提交见[来源基线](../sources/glm-5-3-flash-baseline.md)。
+- **先定版本。** 控制流按 vLLM v0.23.0 读，执行侧按 GLM 专用镜像对应的固定提交读，它与社区版本表列出的快照不同。固定 v0.23 维护版和 v0.26 rc 的模型目录里没有本页 GLM-5.3-Flash 的实现；`v0.30.0` 与 `main` 则把它放在 `glm5next` 目录，拿错版本就找不到同名文件；此外在 `v0.30.0` 起硬件能力查 `HardwareProfile`，到 `main` 已移除 `model_runner_v1.py` 并全量迁入 `worker/v2/`。部署条件见[部署前提](glm-5-3-flash-two-node.md#部署前提)，基线提交见[来源基线](../sources/glm-5-3-flash-baseline.md)。
 - **路线一。** R1 被分到 DP0，第 3 站由 node0 的 8 个 worker 各拼一份一模一样的输入，因为 TP8 下它们算的是同一批 token，只是各持一部分权重；逐卡走读见[输入准备在双机上](prepare-inputs-flow.md#放到-glm-双机r1-这一步每张卡拼出什么)。
 - **路线二。** 官方命令没有传 FlashComm1 的 JSON 键；若环境中也未设置对应变量，这个配置字段默认关闭。但判断 SP 的函数在首次初始化或刷新时，还可能因共享专家 DP 的调用条件把结果改成开启。本页沿用[教学基线](../sources/glm-5-3-flash-baseline.md#双机示例与教学视图)的 SP 关闭假设，不能仅凭命令缺少开关就认定实际部署也关闭。读到任何开关，都要继续追[字段合并后的覆盖条件](ascend-config-system.md#解析完还会被改写生效值不是你写的值)。
 - **路线三。** GLM 的解码层在 vllm-ascend 自己的模型文件里，RMSNorm 经 custom op 登记换成昇腾实现。GLM 的稀疏 MLA 却不查平台那张「按注意力类型选后端」的表，由层自己给出后端；照「先查平台表」的习惯读，读到的就不是 GLM 实际用的后端，见[六个口子](request-call-chain.md#vllm-ascend-从六个口子接进-vllm)第 3 条。
@@ -222,19 +239,19 @@ file: ref-diff
 
 ### 版本差异
 
-固定 main 的 FlashComm1 消费链本来就有效；rc2 移除旧工厂的弃用告警，而非重新实现开关。阅读版本差异时，应把“出现告警”和“运行时是否使用这个值”分别核对。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；**本文 GLM-5.3-Flash 走读算例沿用例外 B 专用镜像钉点 `db701c1f`（配套 `vllm@0fc695fc`），与四版社区分支分别核对。**
 
-**v0.30.0rc2 更能说明为什么要追到同一提交的消费者。** FlashComm1 的 JSON 开启值与环境 1/true 是“或”，DSA-CP 还会自动开启；旧 GLM 的“JSON 存在就覆盖环境”和旧 main 的“弃用”均不能套用。之后还要追到 use_sequence_parallel_moe 与 PCP×TP 补齐，区分输入、派生配置、实际执行。GLM 入口移到 glm5next 目录，RMSNorm residual 分支直接导入扩展且没有旧 false 回退；runner 又由 Ascend 补丁显式选择、默认 V1。本文阅读方法继续有效，旧例子的具体行为仍保留原钉点。
+**升级到 `v0.30.0` 与 `main` 后，读源码最先变化的是走读入口与硬件判断。** 硬件分支从旧版散落的卡型硬编码收口到 `vllm_ascend/device/hardware_profile.py` 的 `HardwareProfile` 与 `get_current_hardware_profile()`；FlashComm1 在 `v0.30.0` 与 `main` 中已移出旧合并函数，由 `derive_and_validate` 对 JSON 开关与 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 取“或”（`v0.30.0` 还含 DSA-CP 自动开启），并预先从原始字典剔除以通过 `extra="forbid"` 校验；模型运行器在 `v0.30.0` 仍默认 V1（`VLLM_USE_V2_MODEL_RUNNER=1` 切到 `worker/v2/model_runner.py`），而到 `main`（`8d6180e2`）已删除 `worker/model_runner_v1.py`，`patch_use_v2_model_runner.py` 通过 `mrv2_utils.apply_v2_model_runner_config_patch()` 固定启用 `worker/v2/`，显式传 `VLLM_USE_V2_MODEL_RUNNER=0` 会直接抛错。历史 GLM 基线的完整接入对比（entry point、patch 文件数等）见 [vllm-ascend 如何接入 vLLM](vllm-ascend-overview.md#版本差异)。
 
-GLM 基线的完整版本表（entry point、patch 文件数等）见[vllm-ascend 如何接入 vLLM](vllm-ascend-overview.md#版本差异)。和上面三条路线直接相关的是下面三项：
+| 走读核验项 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| Model Runner 走读入口 | `worker/model_runner_v1.py`（V1 为唯一主路径） | `worker/model_runner_v1.py` 为默认，并存早期 `worker/v2/` | `worker/model_runner_v1.py` 为默认；`patch_use_v2_model_runner.py#L18-L44` 按 `VLLM_USE_V2_MODEL_RUNNER` 切 `worker/v2/model_runner.py#L135` | 移除 `model_runner_v1.py`，全量收口至 `worker/v2/model_runner.py#L144`；`patch_use_v2_model_runner.py#L1-L7` + `mrv2_utils.py` 锁定 V2，设 `=0` 直接报错 |
+| 硬件能力与分支判断 | 按芯片型号直接判断（无 `HardwareProfile`） | 沿用芯片型号分支 | 引入 `device/hardware_profile.py#L218-L401`（`HardwareProfile` 能力位与模式表统一分派） | 延续并扩展 `device/hardware_profile.py#L272-L519` |
+| GLM-5.3-Flash 模型代码落点 | 维护分支无此模型（绑定算例在镜像 `db701c1f` 的 `models/glm5_next.py` `AscendGlm5NextDecoderLayer` [C16]） | 维护分支无此模型 | 迁入 `models/glm5next/model.py#L267`（类 `Glm5NextDecoderLayer`） | 延续 `models/glm5next/model.py#L295`（类 `Glm5NextDecoderLayer`） |
+| FlashComm1 字段合并（路线二） | `AscendConfig._get_config_value`：JSON 键存在即优先，显式 `false` 覆盖环境 | 与 `v0.23.0` 相同 | `ascend_config.py#L746-L760` 在 `derive_and_validate` 中与环境取“或”（DSA-CP 自动开启），构造前剔除键（`#L1861`） | `ascend_config.py#L844-L855` 延续“或”逻辑与构造前剔除（`#L1984`），并衔接 `use_sequence_parallel_moe` 校验 |
+| 标准 RMSNorm 登记（路线三） | `REGISTERED_ASCEND_OPS` 映射 `RMSNorm -> AscendRMSNorm` | 与 `v0.23.0` 相同 | `utils.py#L866-L952` 延续主表映射，并按硬件能力覆盖 310P 等兼容实现 | `utils.py#L893-L979` 延续同类主表登记与覆盖机制 |
 
-| 项 | v0.23 维护 `2c59ff10` | GLM 基线 `db701c1f` | v0.26 rc `2ed6cbba` | main `baa023ad` |
-|---|---|---|---|---|
-| GLM-5.3-Flash 模型代码（路线一、三的落点） | 模型目录无此实现 | `models/glm5_next.py` 中的解码层类 `AscendGlm5NextDecoderLayer` [C16] | 模型目录无此实现 | 目录 `models/glm5next/`，解码层类 `Glm5NextDecoderLayer` 在 `model.py` [C15] |
-| FlashComm1 字段合并（路线二） | 与基线相同，显式 false 也优先于环境 | `AscendConfig._get_config_value`：JSON 键优先，否则取环境读取值 | 与基线相同，显式 false 也优先于环境 | 不再经旧合并函数；`enable_flashcomm1` 已标弃用，写了会打警告 [C13]，构造配置对象前从传入的键中剔除 [C17]；原始 JSON 仍保留它，派生校验读取它与环境变量，判断是否开启 [C14] |
-| 标准 RMSNorm 登记（路线三） | 与基线相同 | `REGISTERED_ASCEND_OPS` 把 `RMSNorm` 映射到 `AscendRMSNorm` | 与基线相同 | 与基线相同 |
-
-上表只比较 FlashComm1 这个字段的合并与标准 RMSNorm 登记，不表示所有配置或算子在各版都相同。v0.23 与 v0.26 rc 的调用点及合并函数见来源 30、31、36、37；三版标准登记及硬件兼容实现的覆盖分支见来源 32–34。main 把开关的读取点从旧构造流程移到派生校验，GLM 的类名也去掉了 Ascend 前缀；rc2 的工厂入口见来源 35。模型目录的版本差异统一见[目录地图](vllm-ascend-repo-map.md#版本差异)。
+上表只比较走读主线涉及的入口、配置合并与标准算子登记，不表示所有配置或算子在各版都相同。`v0.23.0` 与 `v0.26.0rc` 的合并与登记入口见来源 30–34、36–37；历史 `baa023ad` 过渡期曾经历 `enable_flashcomm1` 弃用告警与迁移（来源 13–17），现已由 `v0.30.0` 与 `main` 的 `derive_and_validate` 路径取代。模型目录的完整版本差异统一见[目录地图](vllm-ascend-repo-map.md#版本差异)。
 
 ### 源码位置
 
@@ -250,16 +267,18 @@ GLM 基线的完整版本表（entry point、patch 文件数等）见[vllm-ascen
 以下命令在 vllm-ascend 仓库里运行。已检出目标版本的工作树可以直接用 rg 搜文本；工作树不是目标版本时，改用固定提交查询，避免混进另一分支的结果：
 
 ```sh
-git grep -n enable_flashcomm1 db701c1f -- vllm_ascend
-git show db701c1f:vllm_ascend/ascend_config.py
-git diff db701c1f baa023ad -- vllm_ascend/ascend_config.py
+git grep -n enable_flashcomm1 c09d3e20 -- vllm_ascend
+git show c09d3e20:vllm_ascend/device/hardware_profile.py
+git diff c09d3e20 8d6180e2 -- vllm_ascend/patch/platform/patch_use_v2_model_runner.py
 ```
+
+- `v0.30.0` 与 `main` 新增走读入口：`HardwareProfile` 见 `vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L218-L401` 与 `vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L272-L519`；V2 Runner 入口与强制切换见 `vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L44`、`vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L135-L180`、`vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L7`、`vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L1-L89` 及 `vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L144-L190`；两版 FlashComm1 与 `REGISTERED_ASCEND_OPS` 核验见来源 45–50。
 
 阅读固定 db701c1f 实现时，以下条件决定同一个名字是否真的触发所述行为：
 
-- **数据往返。** 仅 grammar_output 非空时移到 CPU 转 float、施加掩码，再以 FP32 移回设备后恢复原 dtype；这不是所有采样路径都会发生的往返，见来源 6。
-- **配置优先级与有效性。** 按键是否存在选择值，因此显式 false 仍覆盖环境读取值。Balance 开启且传输角色不是 kv_both 时会拒绝；重算开启而角色是 kv_producer 时则警告并关闭重算。字段合并后还要经过这些有效性判断，不能把它当成 main 的迁移规则，见来源 1–3。
+- **数据往返。** 仅 `grammar_output` 非空时移到 CPU 转 float、施加掩码，再以 FP32 移回设备后恢复原 dtype；这不是所有采样路径都会发生的往返，见来源 6（在 `main` 全量切至 V2 Runner 后已默认由 NPU Triton kernel 原地处理，见[结构化输出](structured-output.md#版本差异)）。
+- **配置优先级与有效性。** 按键是否存在选择值，因此显式 false 仍覆盖环境读取值。Balance 开启且传输角色不是 kv_both 时会拒绝；重算开启而角色是 kv_producer 时则警告并关闭重算。字段合并后还要经过这些有效性判断，不能把它当成 `v0.30.0` / `main` 的迁移规则，见来源 1–3。
 - **回放等待。** 所列等待分支要求 FULL 图、不是 EAGLE 草稿模型路径、且未启用 enpu 三者同时成立；enpu 的更新与回放顺序由 model runner 安排。不能由此认定其他路径没有同步，也不能据一处等待直接判定异常根因，见来源 7。
 - **登记条件的范围。** 来源 4 中的版本条件只控制追加的 FusedMoE 与 KimiGatedDeltaNetAttention，不控制已包含 RMSNorm 的主体登记表；后续还可能按硬件选择兼容实现。登记也不等于实际选中并调用。
 
-以上为静态读源范围；没有采集设备迁移耗时、部署日志或设备运行结果，也没有据此新增社区版本的 verified 记录。具体调用链仍须核对同一版本的调用位置和分派条件，阅读方法本身不构成运行证明。
+以上为静态读源核验范围；没有采集设备迁移耗时、部署日志或设备运行结果，具体调用链仍须核对同一版本的调用位置和分派条件，阅读方法本身不构成运行证明。[I]

@@ -252,9 +252,22 @@ sources:
   - 'vllm@ced6857a:vllm/parser/engine/adapters.py#L193-L198'
   - 'vllm@ced6857a:vllm/renderers/online_renderer.py#L716-L746'
   - 'vllm@ced6857a:vllm/tool_parsers/abstract_tool_parser.py#L118-L149'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2803-L2810'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L1090-L1100'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/triton/v2/apply_grammar_bitmask.py#L28-L133'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_structured_output.py#L20-L163'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L44'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L1205-L1218'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ops/triton/apply_grammar_bitmask.py#L28-L129'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_structured_output.py#L160-L202'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L7'
+  - 'vllm@ba15685a:vllm/config/structured_outputs.py#L20-L75'
+  - 'vllm@ba15685a:vllm/v1/structured_output/__init__.py#L51-L120'
+  - 'vllm@ba15685a:vllm/v1/structured_output/__init__.py#L387-L445'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -368,16 +381,16 @@ EngineCore 收到请求就开始建文法。编译交给一个线程池异步完
 
 有一种启动方式叫 external_launcher，每个 TP rank（[张量并行](tensor-parallel.md)组里一张卡对应的那个进程）各带一个调度器。异步编译会让各 rank 在不同时刻把请求放行，调度就对不齐了，所以这种方式下改为同步编译。官方双机命令用的是一个 EngineCore 带 8 个 worker 的多进程方式，不受影响。
 
-bitmask 的宽度按模型配置里的词表大小建，也就是 logits 的列数 154880，而不是分词器实际会产出的 154856 个编号。154880 恰好是 32 的整数倍，所以每一行正好装满，与 logits 逐列对应，不需要截断或补位：
+bitmask 的宽度按模型配置里的词表大小建，也就是 logits 的列数 154880，而不是分词器实际会产出的 154856 个编号。154880 恰好是 32 的整数倍，所以每一行正好装满，与 logits 逐列对应，不需要截断或补位（在 EngineCore 进程的 CPU 内存里，第一次有带约束的请求时分配）：
 
-```calc
-title: GLM 的一行 bitmask 和整块缓冲
-一行的整数个数 = 154880 ÷ 32 = 4840 个 32 位整数
-一行字节数 = 4840 × 4 B = 19,360 B
-缓冲行数 = 32 个请求 × (1 + 3 个草稿位) = 128 行
-整块缓冲 = 128 × 19,360 B = 2,478,080 B ≈ 2.36 MiB
-> 在 EngineCore 进程的 CPU 内存里，第一次有带约束的请求时分配
-```
+$$\text{Buffer}_{\text{bitmask}} = \underbrace{32 \times (1 + 3)}_{128\text{ 行}} \times \underbrace{\frac{154880}{32} \times 4\text{ B}}_{19{,}360\text{ B/行}} = 2{,}478{,}080\text{ B} \approx 2.36\text{ MiB}$$
+
+| GLM bitmask 缓冲核算项（EngineCore CPU 内存） | 算式 | 数值结果 |
+| --- | --- | --- |
+| 一行的 32 位整数个数 | $154880 \div 32$ | **4,840 个 `int32`** |
+| 一行字节数 | $4840 \times 4\text{ B}$ | **19,360 B** |
+| 满载缓冲行数（32 请求 × 含 3 草稿位） | $32 \times (1 + 3)$ | **128 行** |
+| 整块 bitmask 缓冲大小 | $128 \times 19{,}360\text{ B}$ | $2{,}478{,}080\text{ B} \approx$ **2.36 MiB** |
 
 每个执行组一步最多 32 个请求、每步 3 个草稿，都是官方命令里的设定，见[关键参数](glm-5-3-flash-two-node.md#关键参数各管哪一步)。多出来的 24 个编号 154856–154879 分词器从不产出（见 [token](token.md#编号要落在-154880-行之内)）。按固定 GLM 文件走 XGrammar v0.2.0 的 Hugging Face fast 分词器入口时，词表先补到 154880 项，这 24 项是空字符串；库把它们归入特殊编号，正常文法掩码将它们屏蔽。这是该固定库的源码结论；思考段或文法终态若由 vLLM 直接填全 1，就没有应用这份掩码，不能把屏蔽范围扩成服务的全部阶段。
 
@@ -395,14 +408,15 @@ title: GLM 的一行 bitmask 和整块缓冲
 
 采样调用发给这台机器的全部 8 个 worker，只有 0 号卡回报结果。前向结束时，每张卡都已经通过 TP 组内的 [All-Gather](collective-communication.md#all-gather)（每张卡交出自己算的那一段，拼成完整的一份发给所有卡）拿到完整的 logits；R1 的一个 decode 步是 4 行 × 154880 列。worker 先按请求 ID 把 bitmask 重新排成本卡 logits 的行序，不受约束的请求那几行填全 1。请求进入、退出、重排，都不会让约束对错行。
 
-**vllm-ascend 默认的 V1 model runner 在这里和 GPU 版不同：它把整张 logits 拷到 CPU、转成 fp32，调用 xgrammar 的 CPU 函数把禁止的位置改成 −∞，再拷回 NPU、转回原来的精度。** 源码注释给的原因是：GPU 版用 torch.compile 优化这一步，昇腾当前不支持。但固定上游里的这个函数已经不用 torch.compile，GPU 路径直接调用 xgrammar 的原地改写函数，所以注释的理由和上游对不上；昇腾改走 CPU 的实际原因，源码里没有写，列入页末待核。搬的是这次调用的整张 logits，不是只有受约束请求那几行；满载时 32 个请求里哪怕只有 R1 带 schema，也要搬全部 128 行，而且 8 张卡各搬一遍。R1 一个 decode 步的 logits 是 4 行、约 1.18 MiB，推导见[主线第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)；满载时按同样口径：
+**vllm-ascend 默认的 V1 model runner 在这里和 GPU 版不同：它把整张 logits 拷到 CPU、转成 fp32，调用 xgrammar 的 CPU 函数把禁止的位置改成 −∞，再拷回 NPU、转回原来的精度。** 源码注释给的原因是：GPU 版用 torch.compile 优化这一步，昇腾当前不支持。但固定上游里的这个函数已经不用 torch.compile，GPU 路径直接调用 xgrammar 的原地改写函数，所以注释的理由和上游对不上；昇腾改走 CPU 的实际原因，源码里没有写，列入页末待核。搬的是这次调用的整张 logits，不是只有受约束请求那几行；满载时 32 个请求里哪怕只有 R1 带 schema，也要搬全部 128 行，而且 8 张卡各搬一遍。R1 一个 decode 步的 logits 是 4 行、约 1.18 MiB，推导见[主线第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)；满载时按同样口径（NPU→CPU 为 BF16，CPU→NPU 时仍为 FP32，传回后再转回原精度；两方向合计约 113.4 MiB/卡/步，不含其他搬运，实际链路流量、耗时和 CPU 改写耗时未实测）：
 
-```calc
-title: 昇腾 V1 每张卡为 bitmask 搬的 logits
-满载 decode = 128 × 154880 × 2 B = 39,649,280 B ≈ 37.8 MiB
-满载时 CPU 上的 fp32 副本 = 128 × 154880 × 4 B = 79,298,560 B ≈ 75.6 MiB
-> NPU→CPU 为 BF16，约 37.8 MiB；CPU→NPU 时仍为 FP32，约 75.6 MiB，传回后才转回原精度。两方向张量数据量合计约 113.4 MiB/卡/步，不含其他搬运；实际链路流量、耗时和 CPU 改写耗时没有实测
-```
+$$V_{\text{roundtrip}} = \underbrace{128 \times 154880 \times 2\text{ B}}_{\approx 37.8\text{ MiB (BF16)}} + \underbrace{128 \times 154880 \times 4\text{ B}}_{\approx 75.6\text{ MiB (FP32)}} \approx 113.4\text{ MiB/卡/步}$$
+
+| 昇腾 V1 每张卡为 bitmask 搬运的满载 logits（128 行 × 154880 列） | 算式 | 单步数据量 |
+| --- | --- | --- |
+| NPU → CPU（满载 decode，BF16） | $128 \times 154880 \times 2\text{ B}$ | $39{,}649{,}280\text{ B} \approx$ **37.8 MiB** |
+| CPU → NPU（CPU 上转 FP32 改写后回传） | $128 \times 154880 \times 4\text{ B}$ | $79{,}298{,}560\text{ B} \approx$ **75.6 MiB** |
+| 单步双向张量搬运合计（每张卡） | $37.8 + 75.6\text{ MiB}$ | 约 **113.4 MiB/卡/步** |
 
 V2 model runner 带一个在 NPU 上直接改 logits 的 Triton kernel，把打包的位展开后写入 −∞。固定版本的补丁默认不选 V2，要显式设环境变量才会切换；打开它只改变选用哪个 runner，不能说明 GLM、MTP 和图模式的组合都兼容。
 
@@ -714,56 +728,24 @@ rc2/main 还在前置校验拒绝空 JSON schema 字符串、json_object=false�
 
 ### 版本差异
 
-**v0.30.0rc2 配套上游调整了推理结束与草稿约束的交界。** StructuredOutputManager 统一计算从哪个草稿 token 开始施加 grammar，校验时先去掉 -1 padding，保留尚不受约束的推理前缀，再返回合法的约束前缀。逐草稿填 mask 时，一旦遇到 padding 或 grammar 拒绝，后续及 bonus 行不再越过该边界推进状态；临时推进最终 rollback。旧 should_fill_bitmask/should_advance 调用名不能原样用于定位 rc2。这里核对的是配套上游的控制流，具体 GLM reasoning parser 与约束后端仍须做组合精度验证。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；**本文 GLM-5.3-Flash 双机算例沿用例外 B 专用镜像钉点 `db701c1f`（配套 `vllm@0fc695fc`），与四版社区分支分别核对。**
 
-Recipe 段落只核对独立库 `935817c6` 的 `OutputConstraint` 选择与调用方职责；不代表下表的任一 vLLM 版本已完成 Recipe 接入，也不代表已经运行格式正确率测试。
+**`v0.30.0` 与 `main` 的两处关键跃迁：上游统一约束起点并传递完整停止集合，昇腾 `main` 全量切入 V2 NPU 原地 Triton 快路径。** `v0.30.0` 配套 `vllm@ced6857a` 在 `StructuredOutputManager` 中统一计算从哪个草稿 token 起施加 grammar（先去 `-1` padding、保留推理前缀、遇拒绝不再越界推进并最终 rollback），且将 `all_stop_token_ids` 传入 `xgrammar` 编译入口覆盖 matcher 停止集合；昇腾侧 `v0.30.0` 仍默认 V1 CPU 往返慢路径（`VLLM_USE_V2_MODEL_RUNNER=1` 才开 V2 Triton kernel），到 `main`（`8d6180e2`）已删除 `model_runner_v1.py` 并通过 `patch_use_v2_model_runner.py` 固定启用 V2，使 `vllm_ascend/ops/triton/apply_grammar_bitmask.py` 成为默认在 NPU 上原地施加 bitmask 的快路径，同时在 `patch_structured_output.py#L160-L202` 新增 `_patch_xgrammar_disable_any_whitespace()` 强制 `separators=None` 以规避 `xgrammar 0.2.7/0.2.8` 在 `disable_any_whitespace=True` 下的逗号循环截断问题。Recipe 段落仅核对独立库 `935817c6` 的 `OutputConstraint` 选择与调用方职责。
 
-| 项 | v0.23 | v0.26 | v0.30.0rc2 | 固定 main |
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 | --- | --- | --- | --- | --- |
-| 分支 commit（vllm-ascend / vLLM） | `2c59ff10` / `0fc695fc` | `2ed6cbba` / `568afb3a` | `7d825229` / `ced6857a` | `baa023ad` / `84030bbe` |
-| 上游控制流 | 并行填表门槛 128；缓冲行数 = 请求上限 ×（1 + 草稿数）；并行填表还要求无草稿 | 相同 | 相同 | 相同 |
-| V1 runner 施加 bitmask | logits 拷到 CPU、转 fp32、改完拷回原设备和 dtype | 相同 | 相同 | 相同 |
-| V2 kernel 与默认值 | worker/v2 下的 structured_outputs.py，默认不选 V2 | 相同 | kernel 位于 ops/triton/v2，默认不选 | 同 rc2 的位置和默认 |
-| 单后端检查补丁 | 有，与执行快照 db701c1f 是同一份文件 | 有 | 有 | 有 |
-| 其他结构化输出补丁 | 无 | 配 vLLM 0.26.0 时另替换 grammar_bitmask 与 should_advance，按思考结束位置处理 | 不再替换这两处；修正 outlines 终态接受结束编号 | 与 rc2 同类修正 |
+| 昇腾 bitmask 施加路径（慢路径 vs 快路径） | 默认 V1：整张 logits NPU→CPU(BF16)→FP32 改写→CPU→NPU(FP32)；V2 Triton kernel 在 `worker/v2/structured_outputs.py`，默认不选 | 同 `v0.23.0` | 默认仍为 V1 CPU 往返（`model_runner_v1.py#L2803-L2810`）；V2 Triton 快路径迁至 `ops/triton/v2/apply_grammar_bitmask.py#L28-L133`（由 `VLLM_USE_V2_MODEL_RUNNER` 控制，默认关） | 移除 V1，全量锁定 V2（`patch_use_v2_model_runner.py#L1-L7`），默认走 NPU 原地 Triton 快路径（`ops/triton/apply_grammar_bitmask.py#L28-L129`、`worker/v2/model_runner.py#L1205-L1218`） |
+| 昇腾平台补丁（单后端 / 兼容性） | 单后端拒绝补丁（与 `db701c1f` 同文件） | 单后端补丁 + 替换 `grammar_bitmask`/`should_advance` 适配思考边界 | 单后端补丁 + 修正 `outlines` 终态接受结束编号（`patch_structured_output.py#L20-L163`） | 延续单后端与 `outlines` 修正；新增 `_patch_xgrammar_disable_any_whitespace()` 强制 `separators=None`（`#L160-L202`） |
+| `xgrammar` / `guidance` 控制流与停止集合 | 并行填表门槛 128 且要求无草稿；不传请求停止集合给 `xgrammar` matcher | 相同；正则增编译超时保护；前置拒绝 `json_object=false` 与空白 JSON 串 | 统一约束起点计算（取代旧 `should_fill_bitmask`/`should_advance`）；传 `all_stop_token_ids` 覆盖 matcher 停止集合；前置拒绝含 NUL 正则与无效标签 payload | 延续 `v0.30.0` 契约与四后端配置（`vllm/config/structured_outputs.py#L20-L75`、`vllm/v1/structured_output/__init__.py#L51-L120`、`#L387-L445`） |
+| `response_format` / `structured_outputs` 协议与辅助开关 | Chat/Completion 均默认 `None`；6 类约束恰选 1 种；请求侧 `disable_any_whitespace`/`disable_additional_properties`/`whitespace_pattern` 未进入编译，须在服务配置设置；`VLLM_XGRAMMAR_CACHE_MB=512` | 公共转换抽到 `engine/protocol`；服务限制与请求辅助字段行为不变 | 协议迁至 `generate/base/protocol`；互斥报错用 `VLLMValidationError`；服务开关 `disable_any_whitespace`（仅 `xgrammar`/`guidance`）与 `disable_additional_properties`（仅 `guidance`）限制不变 | 同 `v0.30.0` |
+| 工具 `function.strict` 与 `glm47` | 未显式声明 `strict`；`VLLM_ENFORCE_STRICT_TOOL_CALLING` 默认 `0`；旧 `glm47` 继承 `glm4`、无结构标签入口 | 显式 `strict: bool \| None`；环境开关默认 `True`；`glm47` 改用 adapter 声明 `glm_4_7` 结构标签，`auto` 需至少一个 `strict=True` | 同 `v0.26.0rc`；既有结构标签不被通用 JSON 覆盖 | 同 `v0.30.0` |
 
-四版都是按请求开启、默认不选 V2、V1 在 CPU 上施加 bitmask。本页 GLM 的调用顺序按执行快照 `db701c1f` 与 `vllm@0fc695fc` 读；v0.26 的思考边界处理与旧基线的“结束那一步先不推进”不同，rc2 又改用上文的约束起点计算，升级后要重新核对思考阶段。main 两个提交各作独立固定对照，不据此推定它们精确配套。
-
-参数差异按下面四份固定上游比较；v0.23 一列也是 GLM 控制流基线。相同的默认并不代表所有错误都会在同一阶段报出。
-
-| 参数 / 行为 | v0.23 / GLM：0fc695fc | v0.26：568afb3a | rc2：ced6857a | main：84030bbe |
-|---|---|---|---|---|
-| response_format | Chat/Completion 默认 None；四种格式；同名约束替换 | 相同；转换抽到 engine/protocol 公共函数 | 相同；结构与转换迁到 generate/base/protocol | 同 rc2 |
-| structured_outputs | 默认 None；六类恰好一种；空/多约束拒绝 | 相同 | 同样拒绝；互斥错误用 VLLMValidationError | 同 rc2 |
-| json | str/dict/None，默认 None；后端验证 schema | 相同；增加空白 JSON 字符串前置拒绝 | 同 v0.26 | 同 v0.26 |
-| json_object | bool/None，默认 None；false 后续找不到有效约束类型 | 显式前置拒绝 false，提示省略字段 | 同 v0.26 | 同 v0.26 |
-| choice | list[str]/None，默认 None；[] 显式拒绝 | 相同 | 相同 | 相同 |
-| regex | str/None，默认 None；xgrammar 直接校验 | 增加编译超时保护 | 保留保护；前置拒绝 NUL 字符 | 同 rc2 |
-| grammar | str/None，默认 None；拒绝空白；xgrammar Lark 转 EBNF | 相同 | 相同 | 相同 |
-| structural_tag 与 begin/end/schema | str/None，默认 None；新/旧结构并存；旧 begin/end 必填，schema 别名、默认 None | 字段、别名和后端新旧限制相同 | 协议迁移；HTTP 两种约束入口均前置校验标签 payload | 同 rc2 |
-| 请求两个 disable_* / whitespace_pattern | False / False / None；未进入编译，不覆盖服务值 | 相同 | 相同 | 相同 |
-| structured_outputs_config / backend | 缺省配置对象，backend=auto，四种显式后端；LLM 接受配置字典 | 相同 | 相同 | 相同 |
-| 服务 disable_any_whitespace | False；true 限显式 xgrammar/guidance | 相同 | 相同 | 相同 |
-| 服务 disable_additional_properties | False；true 限 guidance；只补缺失的 additionalProperties=false | 相同 | 相同 | 相同 |
-| enable_in_reasoning | False；结合 parser 和思考结束状态 | 默认相同；Ascend 边界变化见上表 | 默认相同；采用约束起点计算 | 默认相同；按固定实现理解 |
-| VLLM_XGRAMMAR_CACHE_MB | int，默认 512，乘 1024²；创建 compiler 时使用 | 相同 | 相同 | 相同 |
-| XGrammar matcher 的停止集合 | 不传请求停止集合，沿用 tokenizer 信息 | 相同 | 将 all_stop_token_ids 传入编译，非空时覆盖 matcher 停止集合 | 同 rc2 |
-
-工具 strict 的版本差异再单独看，不能从上表回答格式的 strict 推断工具行为：
-
-| 工具约束入口 | v0.23 / GLM | v0.26 | rc2 | 固定 main |
-|---|---|---|---|---|
-| function.strict | 未显式声明；协议允许额外字段 | bool/None，默认 None | 相同 | 相同 |
-| 严格工具环境开关 | 默认 0；int 转 bool | 默认 True；仅 true/1 为真 | 同 v0.26 | 同 v0.26 |
-| glm47 解析器 | 继承 glm4；required/named 跳过通用 JSON；无自身结构标签入口 | 改用 parser-engine adapter，声明 glm_4_7 结构标签模型 | 同 v0.26 | 同 v0.26 |
-| auto 派生模型结构标签 | 旧 glm47 不具备此路径 | 支持模型、环境为真、有工具，且至少一个 strict=True | 相同 | 相同 |
-| required/named 与既有标签 | 旧 glm47 保留 XML 格式，不能承诺工具 schema 约束 | 模型标签先派生；不经过 auto 的 strict 条件 | 同类路径；既有标签不被通用 JSON 覆盖 | 同 rc2 |
-
-XGrammar 新 format、词表补位与结束集合分别按 v0.2.0 固定提交 5433fdbe 的实际消费者解释；基线依赖允许 >=0.2.0 且 <1.0.0，并未锁定镜像中的唯一版本。因此“协议默认和 vLLM 传参一致”与“不同 XGrammar 安装版本接受所有同样的 schema”是两件事；升级库后仍需验证实际用到的 schema。四份固定上游均保留前述后端能力边界和 LM Format Enforcer 的正草稿数限制。XGrammar 默认分隔符与自由空白的区别见来源 91。
+XGrammar 新 `format`、词表补位（154856–154879 共 24 项空槽）与结束集合分别按 `v0.2.0` 固定提交 `5433fdbe` 的实际消费者解释；基线依赖为 `>=0.2.0,<1.0.0`，升级 XGrammar 后仍需验证实际 schema。四版均保留四后端能力边界及 `lm-format-enforcer` 不支持正草稿数的限制。
 
 ### 源码位置
 
-Recipe 的 schema 验证、提示词渲染、工具约束优先选择与后端决定是否强制，见固定 README（来源第 42 条）。
+- `v0.30.0` 与 `main` 昇腾快慢路径及补丁：`vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2803-L2810`（V1 CPU 往返）、`vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L1090-L1100` 与 `ops/triton/v2/apply_grammar_bitmask.py#L28-L133`（V2 NPU Triton）、`vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L1205-L1218` 与 `ops/triton/apply_grammar_bitmask.py#L28-L129`（`main` 默认 V2 NPU Triton）、两版 `patch_structured_output.py` 与 `patch_use_v2_model_runner.py`；上游 `main` 见 `vllm@ba15685a:vllm/config/structured_outputs.py#L20-L75` 与 `vllm/v1/structured_output/__init__.py#L51-L120`、`#L387-L445`。
+- Recipe 的 schema 验证、提示词渲染、工具约束优先选择与后端决定是否强制，见固定 README（来源第 42 条）。
 
 按"谁定后端 → 谁编译 → 谁填表 → 谁施加 → 谁推进"读，能把本页流程对回实现。
 

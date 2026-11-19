@@ -65,9 +65,19 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/__init__.py#L38-L41'
   - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L693-L719'
   - 'vllm@0fc695fc:vllm/platforms/interface.py#L1055-L1057'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L232-L245'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L478-L525'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1365-L1375'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L260-L273'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L606-L683'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1570-L1580'
+  - 'vllm@ba15685a:vllm/platforms/__init__.py#L240-L315'
+  - 'vllm@ba15685a:vllm/platforms/interface.py#L137-L1511'
+  - 'vllm@ba15685a:vllm/engine/arg_utils.py#L2985-L3030'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -87,7 +97,7 @@ relations:
     kind: builds-on
     note: A0 启动顺序、卡数与显存预算以双机部署页为准
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -241,26 +251,22 @@ Platform 是框架基础设施，没有独立的性能开关。安装与上游�
 
 ### 版本差异
 
-**v0.30.0rc2 保留 OOT/NPU 身份，按硬件画像选择默认 worker。** 总显存查询在 NPU 未初始化时仍抛 NotImplementedError，初始化后读取 mem_get_info；自动 worker 取 HardwareProfile.default_worker_cls，Xlite 另受启用项与硬件能力双重门控。配套上游的显式 CPU 直通、OOT 探测与异常日志规则延续已钉 main，不能忽略 CPU 例外而写成外部平台总优先。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`，GLM 专用镜像 `db701c1f` 同属此分支期）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）。**`v0.30.0` 与 `main` 均保留 `PlatformEnum.OOT` / `npu` 身份与 `HardwareProfile.default_worker_cls` 选类逻辑；上游 `Platform` 抽象接口在 `v0.30.0` 扩至 84 个方法，在 `main` 进一步扩至 92 个方法、`current_platform.` 引用达 1,902 行 / 636 个文件。**
 
-按本页既定统计口径，配套 vLLM ced6857a 的 Platform 类四空格 def 为 84，vllm Python 文件中 current_platform. 出现于 1,498 行、496 个文件。这说明接口使用规模，不代表 84 个方法已逐一完成兼容认证。
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+|---|---|---|---|---|
+| 平台身份与核心契约 | OOT / `npu`；准备与配置钩子 | 相同契约 | 相同契约；配置校验拆分至辅助函数（`platform.py#L478-L525`） | 相同契约；入口先调 `apply_v2_model_runner_config_patch()` 与 `sync_v2_extra_kwargs`（`platform.py#L606-L683`） |
+| 自动 Worker 选择 | 按设备和 Xlite 分支；常规 A2 用 `NPUWorker` | 同左 | 取 `HardwareProfile.default_worker_cls`（`#L1365-L1375`）；Xlite 受能力与开关双门控 | 延续 `HardwareProfile.default_worker_cls`（`#L1570-L1580`） |
+| 设备总内存查询 | 无条件抛 `NotImplementedError` | 无条件抛 `NotImplementedError` | 未初始化抛 `NotImplementedError`，初始化后读 `torch.npu.mem_get_info`（`#L232-L245`） | 延续守卫式查询（`#L260-L273`） |
+| 查询失败后的默认预算 | 走回退档（API 服务起点 2048），推导见 [NPUPlatform 页](npu-platform.md#默认预算为何不能只看一个数字) | 相同 | 上游新增 ≥160 GiB 大档（16384），但查询失败仍落回 `else` 小档（API 服务起点 2048） | 延续三档结构（另增 GB10 判断），未初始化查询失败仍回落 `else` 小档（`arg_utils.py#L2985-L3030`） |
+| 当前平台选择规则 | 逐个探测，单 OOT 优先；同类冲突报错，无候选落 `UnspecifiedPlatform` | 相同 | 新增显式 CPU 目标直通与探测异常 debug 日志（`platforms/__init__.py#L233-L286`） | 延续显式 CPU 目标直通与探测日志（`platforms/__init__.py#L240-L315`） |
+| `Platform` 类体方法数 | 78 | 82 | **84**（`interface.py#L134-L1337`） | **92**（`interface.py#L137-L1511`） |
+| `vllm/` 下 `current_platform.` 引用规模 | 873 行、311 个文件 | 1,069 行、362 个文件 | **1,498 行、496 个文件** | **1,902 行、636 个文件** |
+| 独立平台开关 | 无；当前平台随运行环境懒解析 | 相同 | 相同 | 相同 |
 
-固定 GLM 执行侧为 `db701c1f`，控制流参考 `vllm@0fc695fc`。社区对照采用钉住的版本：v0.23 为 `2c59ff10 / 0fc695fc`，v0.26 rc 为 `2ed6cbba / 568afb3a`，main 为 `baa023ad / 84030bbe`（斜线前为 Ascend，后为上游）。下表核对的是接口与本页选择路径，GLM 模型能否部署仍按[来源基线](../sources/glm-5-3-flash-baseline.md)判断。
+方法数与引用数为静态源码计数：方法数统计 `class Platform:` 到 `class UnspecifiedPlatform` 之间四空格缩进 `def` 数量；引用数按 `git grep 'current_platform\.' -- 'vllm/*.py'` 统计行数与文件数 [D]。接口持续扩张而非冻结，“相同契约”只说明本页核对的核心方法未变，不代表 84 / 92 个方法全部逐一冻结。
 
-| 核对项 | v0.23 | v0.26 rc | main |
-|---|---|---|---|
-| 平台身份与核心契约 | 有 OOT/NPU；准备与配置钩子 | 相同契约 | 相同契约；配置工作拆到辅助函数 |
-| 自动 Worker 选择 | 按设备和 Xlite 分支；常规 A2 用 NPUWorker | 同左 | 从硬件能力档案取默认类；常规 A2 仍用 NPUWorker，Xlite 另判条件 |
-| 设备总内存查询 | 无条件抛错 | 无条件抛错 | 未初始化时抛错；已初始化时返回设备总显存 |
-| 查询失败后的默认预算 | 走回退档，推导见 [NPUPlatform 页](npu-platform.md#默认预算为何不能只看一个数字) | 相同 | 相同；成功查询则按容量、设备名选档 |
-| 当前平台的选择规则 | 逐个探测，外部插件优先；同类冲突报错，无候选落到 `UnspecifiedPlatform` | 相同 | 相同，另加显式 CPU 目标直通与探测失败记日志 |
-| `Platform` 类体的方法数 | 78 | 82 | 84 |
-| `vllm/` 下引用 `current_platform.` 的行数 | 873 行、311 个文件 | 1069 行、362 个文件 | 1457 行、478 个文件 |
-| 独立平台开关 | 无；当前平台随运行环境解析 | 相同 | 相同 |
-
-方法数与引用数是源码静态计数：方法数数的是 `class Platform:` 到 `class UnspecifiedPlatform` 之间缩进四格的 `def`；引用数用 `git grep 'current_platform\.' -- 'vllm/*.py'` 统计行数与文件数，三列分别对应上游 `0fc695fc`、`568afb3a`、`84030bbe`。[D] 接口在扩大而不是冻结，所以“相同契约”只说明本页核对的这几个方法没变，不等于整套接口没动。
-
-三版都保留通用后端选择入口；后端映射的完整能力表见[注意力后端页](attention-backend-family.md)。固定镜像的内存查询、A2 Worker 选择与本页所述 v0.23 路径一致，main 的守卫式查询不能倒套到固定镜像。
+四版都保留通用后端选择入口（`main` 的 `get_attn_backend_cls` 进一步校核 `supports_kv_cache_dtype`）；完整后端能力表见[注意力后端页](attention-backend-family.md)。固定 GLM 镜像 `db701c1f` 的内存无条件拒答与 A2 Worker 选择与 `v0.23.0` 一致，不能把 `v0.30.0` / `main` 的守卫式查询倒套回固定镜像。
 
 ### 源码位置
 

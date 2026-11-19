@@ -3,7 +3,7 @@ id: learning-guide
 title: "阅读指南：这个知识库讲什么，按什么顺序读"
 type: concept
 origin: direct
-summary: 知识库入口：模型固定为 GLM-5.3-Flash、部署固定为官方双机 16 卡，沿「一条请求」读完五页主线，再按问题展开各分组；另有术语、证据角标与问答侧栏的用法。
+summary: 知识库总导览：串联服务冷启动与请求执行两条生命线，说明 Core-26 三层阅读轨道、四族昇腾硬件、四大交互工程实验室与三级版本基线契约，并保留 GLM-5.3-Flash 五页全案主线入口。
 aliases: [学习路线, 阅读顺序, 入门指南, 无设备学习]
 chapters: ["00"]
 order: 1
@@ -12,17 +12,30 @@ sources:
   - https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md
   - https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/doc/inference_deployment_qa.md
 relations: []
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: I
 contradicts: []
-updated: "2026-10-30"
+updated: "2026-11-19"
 ---
 
 ## 这个知识库讲什么
 
-一段文字交给一套真实的推理服务，它被怎样算成了回答——这个知识库只讲这一件事，从模型里的一次乘法一直讲到进程之间的一条消息。
+一段文字交给一套真实的昇腾推理服务，它被怎样算成了回答——这个知识库围绕这一件事，串联起**两条生命线**：
 
-主线例子用同一套模型、部署和源码前提，换页时可以接着前面的背景读。生产实践等对照案例会说明自己的模型与来源，再与主线比较。
+- **服务冷启动线（启动期）**：从 `vllm serve` 命令起服出发，依次经过平台插件注册与双阶段 Patch（[插件注册](platform-plugin-registration.md)、[Patch 机制](ascend-patch-system.md)）、权重加载与 7 级显存预算体检（[NPU Worker 生命周期](npu-worker-lifecycle.md)、[KV 缓存显存画像](kv-cache-memory-profiling.md)），直到 ACLGraph / NPU 图编译就绪（[图模式分层](graph-mode-layer.md)）。
+- **请求执行线（运行期）**：一条请求进门分词（[请求入口](api-server-entry.md)、[token](token.md)），进入调度与分页 KV 分配（[vLLM 调度器](vllm-scheduler.md)、[KV 块分配](vllm-kv-block-allocation.md)），沿逐层前向与多卡并行完成计算（[请求全景](request-overview.md)、[Tensor Parallel](tensor-parallel.md)），最后经过采样、流式反分词与请求收尾把结果送回客户端并释放显存块（[Sampling](sampling.md)、[流式输出](streaming-output.md)、[请求收尾](request-teardown.md)）。
+
+为了兼顾最新社区演进与完整案例自洽，全站统一遵守**三级版本基线契约**：
+
+1. **全站默认主基线（`v0.30.0`）**：对齐 `vllm-ascend@c09d3e20` + 配套 `vllm@ced6857a`，标准教学标尺采用 `Qwen3-8B`（Dense GQA）与 `Qwen3-30B-A3B`（MoE），覆盖新模型上线、单卡与多卡机制、显存画像与排障（起步见[请求全景](request-overview.md)、[新模型上线](ascend-model-onboarding.md)与[核心 CLI 参数](core-cli-params.md)）。
+2. **显式例外 A（`RFork` 权重快载专题）**：独立演进的权重快载实现，目标主基线对齐上游 `vllm-ascend@8d6180e2`（`main`），详情见[RFork 总览](rfork.md)。
+3. **显式例外 B（历史 GLM-5.3-Flash 绑定算例）**：五页全案主线与 19 篇含冻结 3D 场景的历史绑定算例继续钉住原审定镜像 `vllm@0fc695fc + vllm-ascend@db701c1f`（双机 2×A2×8 TP8/DP2/EP16 W8A8），确保跨页形状、字节与通信总账 100% 自洽，不与 `v0.30.0` 的 Qwen3 数字混算。
+
+五页全案主线使用下面这套固定前提，换页时可直接延续背景；生产实践与标准主基线页会在各自开头交代模型与来源：
 
 | 固定的前提 | 一句话结论 | 展开在哪一页 |
 | --- | --- | --- |
@@ -39,6 +52,16 @@ updated: "2026-10-30"
 具体哪些层量化、每卡放什么，继续读[部署页](glm-5-3-flash-two-node.md#每张卡上放了什么)。
 
 用纸笔就能跟着例子复算形状、次数和字节数；需要 NPU（neural processing unit，昇腾的计算设备）实测才能确定的事项，列在页末「对照源码」的**待核**条目里。
+
+## 三层阅读轨道与新模型上线起步
+
+左侧目录把全站页面分成**三层阅读轨道**，初学者不必一上来通读全部专题：
+
+| 阅读轨道 | 覆盖什么 | 适合什么时候读 |
+| --- | --- | --- |
+| `🔥 Core-26` | 全站 26 篇核心基石页：从[请求全景](request-overview.md)、[新模型上线](ascend-model-onboarding.md)、[HF 模型文件解剖](hf-model-anatomy.md)到单层计算、分页 KV、四族硬件与量化、四维基础并行、冷启动显存画像与[核心 CLI 参数](core-cli-params.md) | 首次系统学习或需要按 `v0.30.0` 标准主基线把推理链路从头贯通时，优先打通这 26 篇 |
+| `🎯 主线支撑` | 各章主线走廊页面：补齐 Embedding/RoPE/lm_head、采样与流式收尾、两仓插件与图编译、评测基准与排障入口 | 读完 `Core-26` 后，或遇到具体链路断点需要补齐上下游因果时 |
+| `🌿 同章进阶` | 深入机制与工程专题：MoE 与多模态、MLA/稀疏/线性注意力、高阶并行耦合链、PD/EPD 分离与外置缓存池、RFork 权重快载、参数字典与历史快照 | 已有主线直觉，面向特定模型架构、多机扩展或专项排障时按需查阅 |
 
 ## 按顺序读的五页主线
 
@@ -90,6 +113,15 @@ file: learning-guide-route
 从业者可按现象查：缓存命中后仍要重算看第 2 篇；接受率高但不提速看第 3 篇；降低精度后异常或变慢看第 4 篇。输入模板、协议转换与流式字段仍分别由 [token](token.md)、[请求入口](api-server-entry.md)、[流式输出](streaming-output.md)、[结构化输出](structured-output.md)解释，避免为新模型再复制一套服务基础知识。
 
 ## 继续看硬件怎样承接这些计算
+
+全站围绕**四族昇腾硬件**展开设备能力与代码适配对照（完整硬件与软件栈总览见[昇腾硬件设备](hardware-devices.md)与 [CANN 与 HCCL](cann-hccl.md)）：
+
+| 硬件族 | 核心形态与定位 | 在知识库里看哪几页 |
+| --- | --- | --- |
+| **Atlas 800I/T A2**（910B 家族） | 单卡/单机 8 卡主力推理与双机部署基线，机内 HCCS、跨机 RoCE | [昇腾硬件设备](hardware-devices.md)、[AI Core](ai-core.md)、[GLM 双机部署](glm-5-3-flash-two-node.md) |
+| **Atlas 800I A3 双 Die** | 双计算 Die 封装与高带宽超节点互连形态，面向大规模 EP 与高并发 | [昇腾硬件设备](hardware-devices.md)、[大规模 EP](large-scale-ep.md)、[MoE 通信派发](moe-comm-dispatch.md) |
+| **昇腾 950** | 新一代计算/搬运融合、任务执行卸载、超节点互联与内存池架构 | [昇腾 950：计算与数据搬运](ascend-950-architecture.md)、[昇腾 950：任务执行与互联](ascend-950-execution-interconnect.md) |
+| **Atlas 300I Duo / 310P** | 轻量推理卡族，在算子、量化与采样/Runner 侧有独立 `_310p` 适配边界 | [昇腾硬件设备](hardware-devices.md)、[昇腾 FlashAttention](ascend-flash-attention.md)、[NPU Model Runner](npu-model-runner.md) |
 
 读新硬件白皮书时，先跟一块数据走，不急着记核数和峰值。还不熟悉设备内部的读者，先看 [AI Core](ai-core.md) 的矩阵计算与逐项计算；还不熟悉跨卡交换的读者，先看[集合通信](collective-communication.md)的两卡相加。
 
@@ -145,22 +177,31 @@ file: learning-guide-route
 
 **角标是什么意思。** 来源处的角标说明结论的依据：S 官方文档或论文、C 固定 commit 的源码、M 离线可复现实测、D 推导、A 教学假设、I 推断或本站编排、! 版本冲突、实验状态或当前禁配。悬停可看说明；点击带编号的 S、C、M 可打开来源。页头的证据等级概括整页的依据。
 
+**四大交互工程实验室。** 除了阅读概念与源码，站点顶部导航的「工程实验室」提供四套与源码规则联动的交互工具：
+
+| 工程实验室 | 解决什么工程问题 | 建议配合阅读 |
+| --- | --- | --- |
+| **① 部署算账台** | 「立项四问」双模算账：输入模型、硬件族与并发目标，估算权重、7 级显存余量、KV 块预算与并行拓扑 | [KV 缓存显存画像](kv-cache-memory-profiling.md)、[Tensor Parallel](tensor-parallel.md) |
+| **② `vllm serve` 配置体检器** | 静态联检单实例或 P/D 分离的 CLI 与 `additional_config` 组合，提前发现版本互斥、图融合与内存风险 | [核心 CLI 参数](core-cli-params.md)、[AscendConfig 配置系统](ascend-config-system.md) |
+| **③ 交互式排障工作台** | 按报错日志与相对时序做现象分流，给出最小首取证据与对照实验 | [通用排障](inference-troubleshooting.md)、[性能排障](inference-performance-troubleshooting.md) |
+| **④ AI Core 算子实验室** | 对比 910B 与 950 的 Cube/Vector 算子流水线与数据搬运重叠泳道 | [AI Core](ai-core.md)、[昇腾 950：计算与数据搬运](ascend-950-architecture.md) |
+
 **接着看与问答侧栏。** 每页底部的「接着看」列出相关页面，悬停可预览标题、摘要和证据等级。遇到不熟悉的名词或报错，可以打开右侧「问答」侧栏，输入问题或粘贴报错；回答附有来源角标和相关阅读链接。窄屏上点击「问答」打开抽屉。
 
 ## 对照源码
 
 ### 版本差异
 
-模型总览、双机部署、一条请求、多个请求和调用链这五页主线，以官方 GLM-5.3-Flash 教程所用的镜像为基线：执行侧源码已核到 **`vllm-ascend@db701c1f`**；控制流按镜像元数据中的 `VLLM_TAG=v0.23.0`，取 **vLLM v0.23.0（`vllm@0fc695fc`）** 讲解。**待核：**容器内最终安装的上游 vLLM 代码，需逐项比对安装产物。镜像与源码的对应见[来源基线](../sources/glm-5-3-flash-baseline.md#镜像固定与源码对应)，控制流的代码入口见[调用链](request-call-chain.md)。[!]
+全站遵守三级版本基线契约：标准主基线页面对齐 `v0.30.0`（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）；`RFork` 专题按独立工作版对照上游 `main`；而 GLM-5.3-Flash 五页全案主线及历史 3D 绑定算例沿用例外 B 专用镜像钉点——执行侧源码核到 **`vllm-ascend@db701c1f`**，控制流按镜像元数据中的 `VLLM_TAG=v0.23.0` 取 **vLLM v0.23.0（`vllm@0fc695fc`）**。**待核：**容器内最终安装的上游 vLLM 代码，需逐项比对安装产物。镜像与源码的对应见[来源基线](../sources/glm-5-3-flash-baseline.md#镜像固定与源码对应)，控制流的代码入口见[调用链](request-call-chain.md)。[!]
 
-知识库同时跟踪以下四条分支；下表列出版本登记中的固定快照，读源码时可按 commit 切到同一份代码。
+知识库各机制页统一在文末对照以下四条正式固定快照，读源码时可按 commit 切到同一份代码（历史过渡期快照 `v0.30.0rc2` `7d825229` 归档于[rc2 基线档案](../sources/v030rc2-baseline.md)）：
 
 | 分支 | 固定的代码版本 | 阅读时怎么用 |
 | --- | --- | --- |
-| v0.23 | vllm-ascend `releases/v0.23.0`：[2c59ff10](https://github.com/vllm-project/vllm-ascend/commit/2c59ff10)；配套 vLLM v0.23.0：[0fc695fc](https://github.com/vllm-project/vllm/commit/0fc695fc) | 查维护分支的特性；主线的 GLM 执行侧使用上面的专用镜像提交 |
-| v0.26 | vllm-ascend `releases/v0.26.0rc`：[2ed6cbba](https://github.com/vllm-project/vllm-ascend/commit/2ed6cbba)；配套 vLLM v0.26.0：[568afb3a](https://github.com/vllm-project/vllm/commit/568afb3a) | 查这一发布分支的特性、默认值与行为 |
-| v0.30.0rc2 | vllm-ascend `releases/v0.30.0rc2`：[7d825229](https://github.com/vllm-project/vllm-ascend/commit/7d825229)；配套 vLLM v0.30.0：[ced6857a](https://github.com/vllm-project/vllm/commit/ced6857a) | 查用户指定 rc2 分支的固定快照，不混入 v0.30.0 正式版后续修复 |
-| main | vllm-ascend：[baa023ad](https://github.com/vllm-project/vllm-ascend/commit/baa023ad) | 查知识库固定的开发分支快照 |
+| `v0.23.0` | `vllm-ascend@2c59ff10`（`releases/v0.23.0`）；配套 `vllm@0fc695fc` | 查旧维护分支特性与默认值；GLM 全案主线执行侧另见专用镜像 `db701c1f` |
+| `v0.26.0rc` | `vllm-ascend@2ed6cbba`（`releases/v0.26.0rc`）；配套 `vllm@568afb3a` | 查 v0.26 发布分支的特性、默认值与演进分叉 |
+| `v0.30.0`（主基线） | `vllm-ascend@c09d3e20`（`releases/v0.30.0`）；配套 `vllm@ced6857a` | **全站默认主基线**：查当前正式版行为、配置入口与 Qwen3 标尺 |
+| `main` | `vllm-ascend@8d6180e2`；配套 `vllm@ba15685a` | 查上游最新开发分支演进（含 MRV2 迁移与最新特性），不反向覆盖 `v0.30.0` 正式版行为 |
 
 读到具体特性时，到特性页的「对照源码」一节里查「版本差异」小节：哪条分支有这个特性、默认值是什么、行为有什么不同。各页正按这个结构补齐；阅读尚在整理的页面时，可先沿来源链接核对固定版本。
 

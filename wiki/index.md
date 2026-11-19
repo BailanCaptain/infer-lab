@@ -45,7 +45,7 @@
 - [KV cache 显存预算：启动时怎样一项项扣出来](concepts/kv-cache-memory-profiling.md) — 每张 NPU 在启动期按「总显存 × 显存比例」划定实例预算，加载权重后通过一次最大批量的 profile run 量出激活峰值与包含 HCCL 缓冲在内的非 Torch 增量，三项扣完后将剩余预算按每块字节数切成物理 KV 块；ACLGraph 录图与运行期新增缓冲由预算外 1−u 余量支付，切出的块数也不等于固定并发请求数。 `05`
 - [KV cache 规格：每层的状态怎样换算成页、编进缓存组](concepts/kv-cache-spec.md) — KV cache 规格（KVCacheSpec）是每个要存状态的层交给缓存管理器的说明：一块覆盖多少个位置、每个位置或每份状态占多少字节。管理器据此算出一页多大，再把能共用块号清单、管理方式兼容的层编成缓存组。GLM 的四类状态被对齐成两档页、编成 5 个组；本页也是 block_size 五种含义的唯一出处。 `11`
 - [层与隐藏表示：GLM 的 45 层如何连接](concepts/layers-and-hidden.md) — hidden 是模型为每个输入位置维护、逐层改写的向量。GLM-5.3-Flash 的 45 层之间用 mHC 传四条残差流：每个子层把四条加权合成一条去算，再把输出写回，旧流经 Sinkhorn 约束的 4×4 矩阵混合；每层两次，一次前向 90 次、1,800 轮 Sinkhorn，末层求平均回到一条。 `03`
-- [阅读指南：这个知识库讲什么，按什么顺序读](concepts/learning-guide.md) — 知识库入口：模型固定为 GLM-5.3-Flash、部署固定为官方双机 16 卡，沿「一条请求」读完五页主线，再按问题展开各分组；另有术语、证据角标与问答侧栏的用法。 `00`
+- [阅读指南：这个知识库讲什么，按什么顺序读](concepts/learning-guide.md) — 知识库总导览：串联服务冷启动与请求执行两条生命线，说明 Core-26 三层阅读轨道、四族昇腾硬件、四大交互工程实验室与三级版本基线契约，并保留 GLM-5.3-Flash 五页全案主线入口。 `00`
 - [KDA：用一个固定大小的状态代替逐位置历史](concepts/linear-attention.md) — linear attention 去掉逐位置的 softmax，让历史先合成一个形状固定的状态矩阵；KDA 在此之上加按 key 通道的衰减和 delta 规则的纠错写入。本页先讲机制，再落到 GLM-5.3-Flash 的 34 层 KDA：每卡状态多大、为什么固定占 12 个块号、prefill 与 decode 两条执行路径差在哪。 `04`
 - [lm_head：把最后的隐藏向量变成每个 token 的分数](concepts/lm-head.md) — lm_head 是模型最后一步的输出投影：把最后一层交出的隐藏向量乘一张每个词一列的权重，给词表里每个 token 打一个分数（logits），再交给采样挑下一个 token。本页先用 4 维、6 个词的小例子演示一个分数怎么算，再看 GLM 双机上它按词表切成 8 段、各卡算一段、All-Gather 拼回 154880 个分数。 `03`
 - [BF16、INT8、FP8 与 FP4：位数一样，数值为什么不一样](concepts/low-precision-formats.md) — 从 FP32、FP16、BF16 与 INT8 出发，拆解 FP8、HiF8、NF4、MXFP8、MXFP4 与 NVFP4 的位域分配和块级缩放；区分权重文件精度、加载后 HBM 驻留格式与 Cube 实际计算类型，对照 vllm-ascend v0.30.0 下 A2/A3、310P 与 Ascend 950 的四族选路边界。 `04`

@@ -130,9 +130,21 @@ sources:
   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L104-L160'
   - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L849-L879'
   - 'vllm-ascend@baa023ad:vllm_ascend/compilation/acl_graph.py#L227-L244'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L93-L100'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1275-L1355'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/compilation/acl_graph.py#L225-L310'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/compilation/compiler_interface.py#L179-L340'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L106-L112'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1505-L1560'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/compilation/acl_graph.py#L230-L315'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/compilation/compiler_interface.py#L189-L350'
+  - 'vllm@ced6857a:vllm/config/compilation.py#L1147-L1190'
+  - 'vllm@ba15685a:vllm/config/compilation.py#L1317-L1360'
+  - 'vllm@ba15685a:vllm/config/vllm.py#L2540-L2580'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -229,11 +241,13 @@ file: graph-mode
 
 尺寸为什么最大到 128，由这套部署的两个上限决定：
 
-```calc
-title: 最大的那张图为什么是 128 个 token
-一条请求一轮占几个位置 = 1 个已确定的 token + 3 个草稿 = 4
-最大捕获尺寸 = 32 条请求 × 每条 4 个位置 = 128
-```
+$$T_{\max} = N_{\text{seq}} \times (1 + k_{\text{draft}}) = 32 \times (1 + 3) = 128\text{ 个 token 位}$$
+
+| 决定因素（GLM 双机部署上限） | 数值与算式 | 含义 |
+| --- | --- | --- |
+| 单请求单轮位置数 | $1 + 3 = 4$ | 1 个已确定 token + 3 个 MTP 草稿 |
+| 单组最大并发请求数 | $32$ 条 | 每组同时在跑的 decode 请求上限 |
+| 最大捕获尺寸 | $32 \times 4 =$ **128** | 7 档尺寸中的最大一档 |
 
 这里的 3 个草稿来自 MTP（模型自带的多 token 预测层，每轮先猜 3 个再一起验证），32 是同时在跑的请求数上限；这两个数和同一笔账在[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)里也出现过，本页不另立一套。于是 7 个尺寸对应的不是 7 个请求数区间，而是整齐的 7 档并发：
 
@@ -261,7 +275,7 @@ title: 最大的那张图为什么是 128 个 token
 
 ## 包装器内部：透传、回放还是现录
 
-上面那套判断做完，才轮到真正管捕获和回放的那层包装——昇腾上的这套实现叫 [ACL Graph](acl-graph.md)。它包在整个模型外面，每一轮只做三件事，自己不判断这一轮该不该用图。下图是固定旧 GLM 的录放路径；rc2 在 ENPU、草稿合图和可更新图上的同步与更新顺序例外见[版本差异](#版本差异)。
+上面那套判断做完，才轮到真正管捕获和回放的那层包装——昇腾上的这套实现叫 [ACL Graph](acl-graph.md)。它包在整个模型外面，每一轮只做三件事，自己不判断这一轮该不该用图。下图是固定旧 GLM 的录放路径；`v0.30.0` 与 `main` 在 ENPU、草稿合图和可更新图上的同步与更新顺序例外见[版本差异](#版本差异)。
 
 ```wiki-diagram
 file: graph-mode-wrapper-flow
@@ -293,7 +307,7 @@ Runner 里有一条「在侧流上刷新整图注意力参数」的通用路径�
 
 ## 旁边的另外两条路：一条默认开着，一条默认关着
 
-- **编译期优化按固定源码是开着的**，而且和本页讲的回放叠在一起用。官方命令没有关它，这一档配置又不需要分段编译，模型也带着编译装饰器进来，于是编译走昇腾自己的后端。它改写运算表示和实现，回放减少重复提交，两者互不替代。npugraph_ex 与关闭该开关后使用的 Ascend pass manager 是两条不同路径，不能假定应用完全相同的规则或默认值；具体消费者和开关范围见 [npugraph-ex](npugraph-ex.md)。实际匹配的算子及收益要由编译记录和同负载测量确认。
+- **编译期优化（`npugraph_ex`）与 `torch.compile` 分段图、`ACLGraph` 构成三层分工。** 最上层是上游 `torch.compile` 分段图框架（在 `PIECEWISE` 档按 `splitting_ops` 切开 FX 图，而在昇腾 `FULL` / `FULL_DECODE_ONLY` 档主动清空 `splitting_ops`）；中间层是昇腾的编译后端 `AscendCompiler`——开启 `enable_npugraph_ex` 时走 `npugraph_ex` 做编译期图改写与算子融合（含静态 kernel 与跳过含 Triton kernel 的图缓存），关掉时改走昇腾 `fusion_pass_compile`（`NONE` 与 `PIECEWISE` 档会主动关闭 `npugraph_ex`）；最底层是 [ACL Graph](acl-graph.md)（`ACLGraphWrapper`），负责把最终定型的算子序列按固定尺寸捕获成静态图并在运行期整串回放。官方命令没有关编译期优化，这一档又走 `FULL_DECODE_ONLY` 清空分段，模型也带着编译装饰器进来，于是三层叠加工作：融合改写运算组织，回放减少重复提交，两者互不替代。`npugraph_ex` 与关闭该开关后使用的 Ascend pass manager 是两条不同路径，不能假定应用完全相同的规则或默认值；具体消费者和开关范围见 [npugraph-ex](npugraph-ex.md)，实际匹配的算子及收益要由编译记录和同负载测量确认。
 - **torchair** 是 npugraph_ex 编译路径的兼容退路：包导入、选项适配、后端构建或编译调用所在的 try 块抛出 ImportError 时进入它；其他异常不会因这条 except 自动回退。
 - **xlite** 才是默认关着的那条：要在额外配置里单独打开；它的执行进程和模型运行器只是在昇腾原有的两个上薄薄包一层。打开后平台会把主模型的档位降到 `FULL_DECODE_ONLY`，或者干脆关掉图。
 
@@ -396,36 +410,16 @@ v0.28 之前 decode-only 按 attention state 排除含 prefill 的批，不能�
 
 ### 版本差异
 
-**v0.30.0rc2 调整了图档位生成，仍须区分输入默认、平台注入和上游重算。** 用户同时未指定最大档与 sizes 时，Ascend 提前注入 min(最大请求数×(1+投机 token 数),512)。后续将 reduced_cg_cap 按最大批 token 数截断、补入候选列表，再清临时 max 并调用上游重算，避免漏掉非步长整倍数的上限档。TP>1 且非 NONE/非 eager 时，只要 SP、共享专家 DP、DSA-CP 任一生效，就筛为 TP 倍数；空表报错，发生筛减则同步更新最大档与列表。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）。**本页 GLM 双机七档算例用含 GLM 代码的专用镜像 `db701c1f`（与维护分支 `2c59ff10` 分别核对）。**
 
-NONE 与 PIECEWISE 仍关闭 npugraph_ex/static/super，FULL 清空 splitting_ops。可更新图的同步与 update/replay 顺序另有 ENPU/EAGLE draft 条件，见 [ACL graph](acl-graph.md#版本差异)；图模式名本身不能证明所有后端具有同一录放行为。
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| `torch.compile` 分段图 / `ACLGraph` / `npugraph_ex` 三层 | `simple_compile_backend="eager"`；`AscendCompiler` 路由 `npugraph_ex` / `fusion_pass`；`ACLGraphWrapper` 录放；`FULL` 清空 `splitting_ops` | 同 `v0.23.0`；热身与捕获间新增 kernel warmup 与 super kernel 选项 [C27][C28] | `platform.py#L1315-L1355` 延续 `NONE`/`PIECEWISE` 关 `npugraph_ex`、`FULL` 清空 `splitting_ops`；`compiler_interface.py` 支持 Triton 图跳过缓存与静态核黑名单 | `platform.py#L1520-L1560`、`compiler_interface.py#L189-L350` 延续三层关系与 `NONE` 同步关闭 `static_kernel`/`super_kernel` |
+| `cudagraph_mode` 与可更新图 | 五档，默认 O2 填 `FULL_AND_PIECEWISE`；固定 `replay()` | 同 `v0.23.0`；捕获报错多识别旧 HDK `Alloc sq cq fail` | `acl_graph.py#L297` 在 `FULL` + `use_updatable_graph(attn_backend)` 下启用可更新图；`breakable` 路径放宽部分分段限制 | `acl_graph.py#L305` 延续可更新图（仅限 `AscendAttentionBackend` 子类，SFA/GDN 不满足）与 ENPU/EAGLE 顺序条件 |
+| `cudagraph_capture_sizes` 与上限注入 | Ascend 注入 `min(N×q, 512)`；显式表过滤排序；整趟 decode 做 MTP 对齐 | 后端解析新增非 V2 Runner 才做 MTP 对齐 | 注入 `reduced_cg_cap` 后截断补入并交上游重算；TP>1 且开 SP/共享专家 DP/DSA-CP 时筛为 TP 倍数 | `platform.py#L1505-L1515` 延续 TP 倍数筛选；上游自动上限对 Blackwell 截断 1024，Ascend 仍维持 `min(N×q, 512)` |
+| `enforce_eager` 与 GLM 草稿禁图 | `enforce_eager=True` 同时置编译与图为 `NONE` 并关 `npugraph_ex`；社区有 GLM 草稿禁图保护 | 同 `v0.23.0` | 同 `v0.23.0`；`NONE` 分支同时关闭 `npugraph_ex` / `static_kernel` / `super_kernel` | 同 `v0.30.0`；三层关闭与 GLM 草稿保护一致 |
 
-按知识库固定快照核对：v0.23 维护分支为 Ascend 2c59ff10 / vLLM 0fc695fc；v0.26 指 2026-09-17 的 rc 快照 Ascend 2ed6cbba；main 为 Ascend baa023ad。本页 GLM 算例用含 GLM 代码的专用镜像 Ascend db701c1f，与 v0.23 维护快照分别核对（该维护分支不含本站 GLM5.3 模型代码）。
-
-参数表对应的上游 v0.26 rc 为 568afb3a，固定 main 为 84030bbe；以下逐项区分输入默认、自动派生和平台结果。
-
-| 本页参数 | v0.23 基线 | v0.26 rc | 固定 main |
-|---|---|---|---|
-| compilation_config | 有，缺省新建配置；CLI JSON / -cc / 点号字段，LLM 另兼容整数编译 mode | 入口与覆盖规则相同 | 相同；新增编译能力不改变容器与图档位的区别 |
-| cudagraph_mode | 五档，初始 None；默认 O2 填 FULL_AND_PIECEWISE；显式值再受平台/后端检查 | 相同 | 相同；breakable 图路径可豁免部分 PIECEWISE 对编译模式的限制，不能套回基线 |
-| cudagraph_capture_sizes | None 自动生成；显式表去重、预算过滤、排序及一致性检查；整趟 decode 的 MTP 对齐 | 同前；后端解析函数新增非 V2 Runner 条件，才做该 MTP 对齐 | 同 rc；未显式给上限的上游自动分支还补统一 decode 请求档，动态草稿宽度按各档查询长度补齐 |
-| max_cudagraph_capture_size | None；上游自动上限含 ×2、截到 512；Ascend 提前注入不含 ×2 的 512 截断值 | 相同 | 上游 Blackwell 设备族的自动截断改为 1024，其他仍为 512；Ascend 注入规则仍是 min(N×q,512)，不继承 Blackwell 默认 |
-| 主模型 enforce_eager | False；True 将编译、图均置 NONE，尺寸表空、上限 0；Ascend 同时关 npugraph_ex | 相同 | 同前，Ascend 的 NONE 分支还明确关闭 static_kernel 与 super_kernel |
-
-尺寸分支见来源 48–51，main Ascend 调整见来源 52、53；新版入口、优化默认与 eager 覆盖见来源 61–68、71、72，社区与 rc 的提前注入见来源 69、70。Ascend 先注入最大值时，上游 main 的“最大值仍为 None”分支不会执行，因而不能把新增 decode 补档直接当成本部署的新默认。main Ascend 的 TP 尺寸筛选还从 enable_sp 扩展到共享专家 DP、DSA 上下文并行开启的情况；本页七档配方仍按固定 GLM 基线解释。
-
-| 检查项 | v0.23 | v0.26 | main |
-|---|---|---|---|
-| 两个接入点与 `simple_compile_backend` | 有，三处逐行一致 | 相同 | 相同 |
-| 包装层的四步流程（透传 / 查索引 / 录 / 放） | 有 | 有，行号后移 | 有，另加可更新图分支 |
-| 捕获失败的提示 | 只识别 stream 资源不足一种 | 多识别旧 HDK 的 `Alloc sq cq fail`，提示升级到 25.5.1 | 与 v0.26 同 |
-| 捕获时的 super kernel 优化 | 无 | 新增，按昇腾编译配置开关[C27] | 有 |
-| 热身与捕获之间 | 跑完空批次直接捕获 | 中间多一步 kernel warmup[C28] | 与 v0.26 同 |
-| 回放路径 | 固定 `replay()` | 相同 | 某些注意力后端改走可更新图；回放日志文案也换了[C29] |
-| GLM 系列草稿强制 eager 保护 | 社区分支有保护；本站 GLM5.3 专用路径另核 db701c1f | 有 | 有；三版保护不等于三版都能运行本站模型 |
-| `enable_npugraph_ex` 输入默认值 | 真，仍受硬件和图模式限制 | 真，仍受硬件和图模式限制 | 真，硬件 profile 与平台可再关闭 |
-
-固定 main 的 `use_updatable_graph` 明确要求传入后端是 AscendAttentionBackend 的子类。该快照的 AscendSFABackend 直接继承 AttentionBackend，AscendGDNAttentionBackend 经上游 GDNAttentionBackend 也继承 AttentionBackend；这两个类不满足该判据。升级时应检查实际传给包装器的后端类，不能从模型名或 FULL 模式推断一定使用可更新图。
+`v0.30.0` 与 `main` 中，用户同时未指定最大档与 `cudagraph_capture_sizes` 时，Ascend 提前注入 `min(N×q, 512)`，将 `reduced_cg_cap` 截断并补入候选列表后再清临时上限交上游重算，避免漏掉非步长整倍数的上限档；因 Ascend 先行注入，上游「上限仍为 `None`」分支的额外自动补档不会直接套用到本部署。可更新图的同步与 `update`/`replay` 顺序在 ENPU / EAGLE draft 下的条件见 [ACL graph](acl-graph.md#版本差异)；固定 `use_updatable_graph` 明确要求传入后端是 `AscendAttentionBackend` 的子类，而 `AscendSFABackend` 与 `AscendGDNAttentionBackend` 继承的是上游基类，不满足该判据 [D]。
 
 ### 源码位置
 
@@ -460,4 +454,4 @@ NONE 与 PIECEWISE 仍关闭 npugraph_ex/static/super，FULL 清空 splitting_op
 
 - 来源 38：vllm-ascend@db701c1f，vllm_ascend/compilation/acl_graph.py，L138–L158。
 
-参数参考的补充来源：39 为图字段与默认；40、41 为 CLI 注册和尺寸入口互斥；42 为 Python LLM 的整数兼容；43 为基线完整尺寸派生；44 为主 eager 默认；45、46 为点号参数与 JSON 类型解析；47 为 GLM Ascend 提前注入上限；48、49 为新版尺寸分支；50、51 为新版后端解析与 MTP 对齐；52、53 为 main Ascend 调整；54 为基线对齐；55 为优化预设只填缺省字段。来源 56–58 核对社区三版的 GLM 系列草稿禁图保护，主模型与草稿设置仍分别解释。
+参数参考的补充来源：39 为图字段与默认；40、41 为 CLI 注册和尺寸入口互斥；42 为 Python LLM 的整数兼容；43 为基线完整尺寸派生；44 为主 eager 默认；45、46 为点号参数与 JSON 类型解析；47 为 GLM Ascend 提前注入上限；48、49 为新版尺寸分支；50、51 为新版后端解析与 MTP 对齐；52、53 为 main Ascend 调整；54 为基线对齐；55 为优化预设只填缺省字段。来源 56–58 核对社区三版的 GLM 系列草稿禁图保护，主模型与草稿设置仍分别解释。来源 94–104 分别核验 `v0.30.0`（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）的 `platform.py`、`acl_graph.py`、`compiler_interface.py` 及上游 `compilation.py` / `vllm.py`。

@@ -82,6 +82,14 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L78-L84'
   - 'vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L14-L101'
   - 'vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L329-L387'
+  - 'vllm-ascend@c09d3e20:setup.py#L506-L517'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/__init__.py#L52-L110'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L278-L355'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L42'
+  - 'vllm-ascend@8d6180e2:setup.py#L506-L517'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/__init__.py#L52-L118'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L372-L465'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L65'
 relations:
   - to: vllm-v1-shape
     kind: builds-on
@@ -98,10 +106,11 @@ relations:
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -196,22 +205,19 @@ NPUPlatform 继承上游 Platform [来源 6](https://github.com/vllm-project/vll
 
 ### 版本差异
 
-GLM5Next 的目录化登记延续固定 main；与本站旧 GLM 单文件镜像相比，阅读路径不同。多版本文档、多个上游快照和包内两个 runner 是三种不同的数量口径。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10`，GLM 双机绑定算例专用镜像 `db701c1f` 同属此分支期并自带单文件 GLM5Next 实现）、`v0.26.0rc`（`vllm-ascend@2ed6cbba`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20`）与 `main`（`vllm-ascend@8d6180e2`）。**`v0.30.0` 引入 `HardwareProfile` 四家族（`A2` / `A3` / `_310P` / `A5`）统一封装硬件能力与默认 Worker 类，并保留 MRV1 与 `worker/v2` 并存（未设 `VLLM_USE_V2_MODEL_RUNNER` 时默认 MRV1）；`main` 则正式移除 MRV1（`model_runner_v1.py`），将全部执行路径收束至 `worker/v2/`（MRV2），并将 `patch/worker/patch_v2/` 合并回 `patch/worker/`。**
 
-**v0.30.0rc2 仍是一套 Ascend 插件代码，包内并存不同执行实现。** 安装保持三组 entry points、六个入口；GLM5Next 文本与条件生成类都登记到 models/glm5next/model.py，MTP 在同目录 mtp.py，另有 GLM5 DSpark 登记。包内同时有 MRV1 与 worker/v2，实际只按 VLLM_USE_V2_MODEL_RUNNER 选择，缺省 false；同一请求不会因为两个目录都存在而同时跑两套 runner。
+下表按四版本正式钉点核对（`patch_*.py` 计数按 `patch/platform` + `patch/worker` + `patch/worker/patch_v2` 三个目录的直接文件统计，不等于单次启动全部执行数量）：
 
-按 platform、worker、worker/patch_v2 三个目录中直接的 patch_*.py 文件计数，rc2 有 30+19+14=63 份，实际加载受分支门控。配置继续集中在 AscendConfig 工厂派生和校验。这里比较固定源码快照，不能把 rc2 的行为直接套回旧 GLM 镜像；准确基线见 [rc2 对照基线](../sources/v030rc2-baseline.md)。
-
-GLM 基线是 glm-5.3-flash-0902-1 分支上的固定提交，配 vLLM 0.23.0，见[来源基线](../sources/glm-5-3-flash-baseline.md)。下表模型项专指本页 GLM-5.3-Flash；文件数沿用上述三个目录的 patch_*.py 口径，不是每次启动实际执行的数量：
-
-| 项 | GLM 基线 db701c1f | v0.23 维护 2c59ff10 | v0.26 rc 2ed6cbba | main baa023ad |
+| 核验维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 |---|---|---|---|---|
-| GLM 模型代码 | models 下 glm5_next 等三个文件 | 无 | 无 | 移到 models/glm5next/，模型、MTP、KDA、稀疏索引器等分文件 |
-| GLM 配置 patch 与专用算子 | 有 | 无 | 无 | 有 |
-| patch 文件数 | 59 | 59 | 64 | 60 |
-| entry point | 2 组 5 个 [C1] | 2 组 5 个 [C31] | 2 组 5 个 [C32] | 3 组 6 个 [C33] |
+| 硬件抽象 `HardwareProfile` | 按设备判断分支散落在平台与算子处 | 同 `v0.23.0` | `device/hardware_profile.py#L278-L355` 收敛为 `A2` / `A3` / `_310P`（`NPUWorker310`）/ `A5` 四家族档案与 `HardwareCapability` 能力集 | `device/hardware_profile.py#L372-L465` 延续四家族档案，新增 `WeightFormat` 枚举统一权重排布策略 |
+| Model Runner 演进（MRV1 → MRV2） | 默认 MRV1，显式开关切 MRV2 | 同左 | MRV1 与 `worker/v2/` 并存；`patch_use_v2_model_runner.py#L18-L42` 未设环境变量仍默认 `False`（MRV1） | **移除 MRV1**；`mrv2_utils.py#L29-L65` 固定返回 `True`（显式 `=0` 报错），全量走 `worker/v2/` |
+| `patch_*.py` 文件分布 | 59（GLM 镜像 `db701c1f` 同为 59） | 64 | **65**（`platform` 32 + `worker` 19 + `worker/patch_v2` 14） | **59**（`platform` 29 + `worker` 30，`patch_v2/` 已退役并合入 `patch/worker/`） |
+| `setup.py` entry points | 2 组 5 个 [C31]（GLM `db701c1f` 同 [C1]） | 2 组 5 个 [C32] | 3 组 6 个（新增 `ms_service_metric.providers` -> `observability:get_metric_provider`，`#L506-L517`） | 3 组 6 个（指标入口迁至 `observability.ms_metrics:get_metric_provider`，`register_connector` 新增 `ec_transfer` 注册，`__init__.py#L52-L118`） |
+| GLM-5.3-Flash 模型代码 | 维护分支无（专用镜像 `db701c1f` 在 `models/glm5_next.py` 等 3 文件） | 无 | 目录化至 `models/glm5next/`（模型、MTP、KDA、稀疏索引器分文件，含 GLM5 DSpark 登记） | 延续 `models/glm5next/` 目录化结构 |
 
-main 多出的一组是 `ms_service_metric.providers`。固定 v0.23 维护版与 v0.26 rc 的补丁目录中有 GLM 工具调用或推理用量的适配，并不等同于有本页模型实现。GLM 基线的 A2 Dockerfile 明确在构建时应用 Transformers 补丁（来源 47）；根目录的 vllm_patch 文件是否进入所用镜像，还需要对应构建记录，不能当成已执行的运行时 patch。其他目录见[目录地图](vllm-ascend-repo-map.md)，官方定位见 [S34][S35]。
+`v0.23.0` 维护版与 `v0.26.0rc` 的补丁目录中有 GLM 工具调用或推理用量的适配，并不等同于包含本页 GLM5Next 模型实现。GLM 基线的 A2 Dockerfile 明确在构建时应用 Transformers 补丁（来源 47）；根目录的 `vllm_patch` 文件是否进入所用镜像，还需要对应构建记录，不能当成已执行的运行时 patch。其他目录见[目录地图](vllm-ascend-repo-map.md)，官方定位见 [S34][S35]。
 
 ### 源码位置
 

@@ -85,9 +85,18 @@ sources:
   - 'vllm@0fc695fc:vllm/config/vllm.py#L372-L377'
   - 'vllm@0fc695fc:vllm/config/speculative.py#L674-L694'
   - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L230-L244'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L232-L245'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L478-L525'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1365-L1375'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L260-L273'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L606-L683'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1570-L1580'
+  - 'vllm@ced6857a:vllm/engine/arg_utils.py#L2700-L2740'
+  - 'vllm@ba15685a:vllm/engine/arg_utils.py#L2985-L3030'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -104,7 +113,7 @@ relations:
     kind: builds-on
     note: 选出的 Worker 类接着做起卡、量显存、切块
 contradicts: []
-updated: '2026-11-03'
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -266,20 +275,17 @@ FA3 验证还限制了配置组合：请求 FlashAttention 后端、进入该验
 
 ### 版本差异
 
-**v0.30.0rc2 增加了组合条件，不能只沿用旧表的“支持 PCP/DCP”。** 平台继续在 MRV1 上拒绝 PCP；MRV2 另走后端与 PCP 管理器校验。SFA 复制索引允许 DCP 等于 PCP 或 TP×PCP，但 C8 还必须具备相应硬件能力；GQA/MQA 同时启用 PCP、DCP 时两者必须相等。主模型和独立草稿模型分别校验，不能用主模型通过启动证明草稿拓扑合法。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`，GLM 专用镜像 `db701c1f` 同属此分支期）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）。**`v0.30.0` 与 `main` 均对 `get_device_total_memory` 实行守卫式查询：在 `EngineArgs` 解析默认值阶段 `torch_npu` 尚未初始化，仍抛出 `NotImplementedError("NPU total memory is unavailable before torch_npu initialization")`，使未显式设置 `--max-num-batched-tokens` 的在线 API 服务继续回落到小档起点 `2048`；`main` 在 `check_and_update_config` 入口首行直接调用 `apply_v2_model_runner_config_patch()` 锁定 MRV2。**
 
-rc2 还在入口拒绝 MRV1 的 routed-experts 返回请求，要求改用 V2；KVPP 大于 1 时交给 KVPPConfig 校验。DCP 大于 1 时，非空的 `num_speculative_tokens_per_batch_size` 会在检查草稿是否 MLA 之前被拒绝，MLA 草稿也不能绕过这项限制。平台仍负责把用户配置变成可执行配置，具体规则已扩展，排错应读取最终配置与实际后端。[CP 页](context-parallel.md#版本差异)列出这一批核对的模型边界。
-
-按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26 rc 列是 2ed6cbba，main 列是 baa023ad。**GLM 专用镜像 db701c1f 单独作为教学基线，不算进 v0.23 列；GLM 模型文件与配置补丁的差异见[源码阅读页](reading-vllm-ascend.md#版本差异)。**下表 v0.23 列按 2c59ff10 写；两份平台文件的差异是编译开关复位和重算调度复位，表中四个前置校验的顺序、查询拒绝和 Worker 分支一致，不能据此称整份实现相同。
-
-| 项 | v0.23 | v0.26 rc | main | 意味着什么 |
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 |---|---|---|---|---|
-| 建配置前的校验 | 四个类方法：层切分 → 投机 + DCP → 并行 → PD+PP+MTP | 两个：投机 + DCP → 并行 | 三个：一个类方法（索引器与流水线并行）加两个模块级函数（投机 + DCP、并行） | 拿一个版本的报错去另一个版本搜函数名会扑空 |
-| 层切分这个键 | 有，只许在 producer 一侧 | 平台这一侧已无此校验 | 同样已无 | 同一个键，一个版本被拦、另一个版本压根不存在 |
-| 设备总显存查询 | 无条件抛不支持 | 无条件抛不支持 | 运行库已初始化就返回真实容量，否则照抛 | main 在未初始化的启动路径中回退；不能推广到已初始化的调用方 |
-| 并行那条校验拦什么 | 数据并行大于 1 且 prefill 侧上下文并行大于 1 才抛 | 只要没开 v2 model runner，prefill 侧上下文并行大于 1 就抛 | 条件同 v0.26 rc，另加一条 KVPP 检查 | 同一个参数在新版本上更早被拦，和 DP 开不开无关 |
-| 自动选 Worker | 三条分支写在方法里：310P / xlite / NPUWorker | 同左结构 | 常规分支改由硬件画像给出默认 Worker 类，xlite 仍是单独分支 | main 上「常规选哪个 Worker」要先看硬件画像 |
-| `check_and_update_config` 的起始行 | 450 | 408 | 457 | 行号三版都不同，所以本页来源一律写成「仓库@commit:路径#行号区间」 |
+| `check_and_update_config` 起始行与前置校验 | L450；4 个类方法（层切分 → 投机+DCP → 并行 → PD+PP+MTP） | L408；2 个类方法（投机+DCP → 并行），已移除层切分校验 | **L478**（`#L478-L525`）：先 `_validate_model_runner_config` / `indexer_pp` / `routing_replay` / `pcp_dcp` / `draft_dcp` / `parallel` / `engram`，再自动识别量化、`validate_turboquant` 与 FP8 能力断言 | **L606**（`#L606-L683`）：首行调用 `apply_v2_model_runner_config_patch()` 与 `sync_v2_extra_kwargs`，补齐 `compress_ratios` 兼容，新增 `_validate_glm5next_dflash2_pp_config`，退役 MRV1 专属校验 |
+| 设备总显存查询 `get_device_total_memory` | 无条件抛 `NotImplementedError` | 无条件抛 `NotImplementedError` | 未初始化抛 `NotImplementedError`，初始化后读 `torch.npu.mem_get_info`（`#L232-L245`） | 延续守卫式查询（`#L260-L273`） |
+| 未初始化抛错对默认 `max_num_batched_tokens` 的影响 | `arg_utils` 捕获异常置 `device_memory=0`，在线 API 服务默认回落小档起点 `2048` | 相同 | 上游新增 ≥160 GiB 档，但 `EngineArgs` 仍早于 `torch_npu` 初始化，抛错回落 `2048` 行为不变 | 延续回落 `2048`（`arg_utils.py#L2985-L3030`） |
+| 并行与 CP 校验边界 | `DP > 1` 且 `PCP > 1` 才抛 | 未开 V2 runner 时 `PCP > 1` 即抛 | 延续 MRV1 拒绝 `PCP > 1` 与 routed-experts 返回；SFA C8 核对硬件能力，GQA/MQA 要求 `PCP == DCP`；非空 `num_speculative_tokens_per_batch_size` 在 MLA 放行前被拒；KVPP>1 交 `KVPPConfig` | 全量 MRV2 下走后端与 PCP 管理器校验；延续 PCP/DCP、草稿与 KVPP 约束 |
+| 自动选 Worker | 方法内硬编码 310P / Xlite / `NPUWorker` | 同左 | 常规分支取 `HardwareProfile.default_worker_cls`（`#L1365-L1375`），Xlite 受能力与开关双门控 | 延续 `HardwareProfile.default_worker_cls`（`#L1570-L1580`） |
+
+`v0.30.0` 与 `main` 对主模型和独立草稿模型分别校验，不能用主模型通过启动证明草稿拓扑合法；更多上下文并行边界见 [CP 页](context-parallel.md#版本差异)。GLM 专用镜像 `db701c1f` 的四个前置校验顺序、显存无条件拒答与 A2 Worker 选择与 `v0.23.0`（`2c59ff10`）一致，具体编译开关复位与重算调度复位细节见源码对照。
 
 ### 源码位置
 

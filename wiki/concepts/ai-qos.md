@@ -55,9 +55,14 @@ sources:
     https://docs.vllm.ai/projects/ascend/en/v0.27.1rc1/user_guide/feature_guide/Ai_QoS_introduction_en.html
   - 'vllm-ascend@7d825229:tools/ai_qos.py#L320-L335'
   - 'vllm-ascend@7d825229:tools/ai_qos.py#L436-L449'
+  - 'vllm-ascend@c09d3e20:tools/ai_qos.py#L322-L337'
+  - 'vllm-ascend@c09d3e20:tools/ai_qos.py#L433-L473'
+  - 'vllm-ascend@8d6180e2:tools/ai_qos.py#L322-L337'
+  - 'vllm-ascend@8d6180e2:tools/ai_qos.py#L433-L473'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -113,16 +118,16 @@ file: ai-qos-intuition
 
 **QoS 改变的是排队顺序，收益和代价必须放在同一段时间里看。** 用一个可手算的示意：出口刚空闲，队列中已有三份状态搬运数据，关键通信紧接着到达。每份数据占一个发送时隙，一个时隙只是这里假设的时间单位；四份数据都尚未发送，后面也不再来新数据。
 
-如果按到达顺序共用一个队列，先发三份状态，再发关键通信；如果关键通信在高优先级 VL，状态在低优先级 VL，就先发关键通信，再发三份状态。这里用先到先服务作对照，只为解释排队，并不声称关闭工具后的所有交换机都采用这一策略。
+如果按到达顺序共用一个队列，先发三份状态，再发关键通信；如果关键通信在高优先级 VL，状态在低优先级 VL，就先发关键通信，再发三份状态。这里用先到先服务作对照，只为解释排队，并不声称关闭工具后的所有交换机都采用这一策略（等长时隙为教学假设）：
 
-```calc
-title: 相同四份数据，调整服务次序（等长时隙为教学假设）
-按到达顺序时关键通信完成 = 3 个状态时隙 + 1 个通信时隙 = 4 时隙
-关键通信优先时完成 = 0 个等待时隙 + 1 个通信时隙 = 1 时隙
-关键通信少等待 = 4 − 1 = 3 时隙
-最后一份状态额外等待 = 4 − 3 = 1 时隙
-两种顺序全部发送完 = 3 + 1 = 4 时隙
-```
+$$T_{\text{saved}} = T_{\text{FIFO}} - T_{\text{SP}} = 4 - 1 = 3\text{ 时隙}, \qquad T_{\text{total}} = 3 + 1 = 4\text{ 时隙}$$
+
+| 指标（相同 4 份等长数据，教学假设） | 算式 | 结果 |
+|---|---|---|
+| 按到达顺序时关键通信完成时刻 | $3\text{ 个状态时隙} + 1\text{ 个通信时隙}$ | **4 时隙** |
+| 关键通信优先时完成时刻 | $0\text{ 个等待时隙} + 1\text{ 个通信时隙}$ | **1 时隙**（少等 $4 - 1 = \mathbf{3\text{ 时隙}}$） |
+| 最后一份状态额外等待 | $4 - 3$ | **1 时隙** |
+| 两种顺序全部发送完总时长 | $3 + 1$ | **4 时隙**（总工作量不变） |
 
 总工作量没变，只把关键通信的完成时刻提前了。真实数据包有不同长度，流量还会继续到达；如果低优先级数据已经开始发送，这个例子也没有证明它能被中途打断。要把时隙换成毫秒，需要具体交换机行为和实测数据。
 
@@ -200,12 +205,9 @@ All-Reduce 是各卡合齐归约结果，All-Gather 是各卡收齐分片；它�
 
 实现里 `mode` 被保存，但没有按 auto/manual 切换计算分支：两种模式都把最终解析出的等级交给同一张表。手动参数也不因 mode 保持 auto 而自动被忽略；使用 manual 是表达意图的文档写法。
 
-**旧版映射为什么能让 SDMA 的两种方向分开？** 表项依次是源 QoS 标签、交换机重映射后的 QoS、目标 VL、严格优先级。默认设备间通信取 (6,5,2,3)，主机搬运取 (2,0,3,1)，共享 SDMA 端点标签取两个源标签的较小值。
+**旧版映射为什么能让 SDMA 的两种方向分开？** 表项依次是源 QoS 标签、交换机重映射后的 QoS、目标 VL、严格优先级。默认设备间通信取 $(6, 5, 2, 3)$，主机搬运取 $(2, 0, 3, 1)$，共享 SDMA 端点标签取两个源标签的较小值（来自映射表，不是时延测量）：
 
-```calc
-title: 固定快照默认 SDMA 端点标签（来自映射表，不是时延测量）
-共享 SDMA 源标签 = min(6, 2) = 2
-```
+$$\text{tag}_{\text{SDMA,src}} = \min(6,\; 2) = 2$$
 
 交换机再用“源标签 + 初始 VL”区分这两类：设备间以初始 VL 0 进入，映射到 QoS 5、目标 VL 2、优先级 3；主机搬运以初始 VL 1 进入，映射到 QoS 0、目标 VL 3、优先级 1。优先级 3 在这张表中表示 high，1 表示 low，数值比例不代表带宽比例。main 改了这套映射，见版本表。
 
@@ -260,23 +262,17 @@ AI QoS 的工具开销在配置阶段：枚举设备、读写驱动状态、保�
 
 ### 版本差异
 
-**v0.30.0rc2 的工具参数和映射保持一致。** AIV/SDMA/PCIEDMA 默认分别 high/low/high，三者都接受 low/middle/high；command 默认 apply，mode 默认 auto。AIV 标签 4→VL2、PCIEDMA 标签 5→VL3、SDMA 标签 6→VL4，等级改变优先级 1/2/3，不改变类别的目标 VL。脚本不会由推理启动自动执行，设备驱动限制仍须满足；实际优先级与收益需要设备和交换机两侧验证。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；包含 GLM 实现的 `db701c1f` 为独立 orphan 快照，其 `tools/ai_qos.py` 与 `v0.23.0` / `v0.26.0rc` 逐字节一致。经 `git diff c09d3e20 8d6180e2 -- tools/ai_qos.py` 核实，`v0.30.0` 与 `main` 的 `tools/ai_qos.py` 实现完全一致（`AiqosConfig` 表项在 `#L322-L337`，CLI 入口在 `#L433-L473`）。
 
-v0.23 一列指维护分支 **2c59ff10**；v0.26 指 **2026-09-17 的 v0.26.0rc 源码快照 2ed6cbba**；main 固定为 **baa023ad**。包含 GLM 实现的 **db701c1f** 是独立 orphan 快照，不能据它声称维护分支已有 GLM。就本特性而言，db701c1f、v0.23、v0.26 的 Python 工具内容完全一致。
+| 核验维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+|---|---|---|---|---|
+| 特性与默认执行 | 均有 `tools/ai_qos.py`；默认 `apply`、`auto`（不随 vLLM 自动开启） | 同 `v0.23.0` | 默认 `apply`、`auto`（`tools/ai_qos.py#L439-L446`）；仍须手动运行 | 同 `v0.30.0` |
+| 官方调用入口与参数分类 | `python tools/ai_qos.py`；五键 `AIV_D2D / AIV_H2D / SDMA_D2D / SDMA_H2D / PCIEDMA_H2D` | 同 `v0.23.0` | `python -m tools.ai_qos`；收敛为三键 `AIV / SDMA / PCIEDMA`（`#L447-L449`），旧五键不可原样传入 | 同 `v0.30.0` |
+| 默认与可选等级 | `high / high / high / low / high`；`PCIEDMA_H2D` 仅 `high/low` | 同 `v0.23.0` | `high / low / high`（`SDMA` 整类默认 `low`）；三项均支持 `low / middle / high` | 同 `v0.30.0` |
+| 源标签、初始 VL 与目标 VL | 查旧方向表，共用源标签配合初始 VL（D2D 0 / H2D 1）区分目标 VL | 同 `v0.23.0` | `AIV` 标签 4 → VL 2、`PCIEDMA` 标签 5 → VL 3、`SDMA` 标签 6 → VL 4（`#L326-L330`）；初始 VL 改为 `cacheable 0 / noncacheable 1` 两路映射并汇到同类目标 VL，等级只改优先级 `1/2/3` | 同 `v0.30.0` |
+| AIV 限制与软硬件前提 | AIV 设置受驱动限制不生效；A3 两类产品、特权容器、HDK 25.5.2+、交换机 1.5.1+；端点快照 + 打印 `undo` | 同 `v0.23.0` | 合并后的 `AIV` 同样不生效；软硬件与恢复边界不变 | 同 `v0.30.0` |
 
-| 核对项 | v0.23 / v0.26 / GLM 固定快照 | main | 对使用者意味着什么 |
-|---|---|---|---|
-| 特性与默认执行 | 均有工具；默认 apply、auto | 相同 | 默认值只在运行工具时应用，并非启动 vLLM 就自动开启 |
-| 官方调用入口 | python tools/ai_qos.py | python -m tools.ai_qos | 使用对应源码版本的入口 |
-| 参数分类 | AIV_D2D、AIV_H2D、SDMA_D2D、SDMA_H2D、PCIEDMA_H2D | AIV、SDMA、PCIEDMA | 五键不能原样传给 main；不再按旧版两个方向分别设等级 |
-| 默认等级 | 依上列顺序 high / high / high / low / high | high / low / high | main 的 SDMA 整类为 low，包含指南归入其中的设备间通信 |
-| 可选等级 | 前四项有 high/middle/low；PCIEDMA_H2D 只有 high/low | 三项都有 high/middle/low | main 的 PCIe DMA 新增 middle |
-| 源标签、目标 VL | 依类别和等级查旧表，共用源标签再结合初始 VL 区分 | AIV 标签 4 → VL 2；PCIEDMA 标签 5 → VL 3；SDMA 标签 6 → VL 4 | main 改等级只改优先级 1/2/3，不改这三个类别的标签和目标 VL |
-| 初始 VL 的含义 | D2D 0、H2D 1 | cacheable 0、noncacheable 1；每类都生成两路映射 | main 两类缓存属性都汇到该类别的同一目标 VL，不能沿用旧方向表 |
-| AIV 设置生效限制 | 两项 AIV 受驱动限制不生效 | 合并后的 AIV 同样不生效 | 文档没有声明 main 已解除限制 |
-| 硬件、软件与恢复 | A3 两类产品、特权容器、HDK 25.5.2+、交换机 1.5.1+；端点快照 + 打印 undo | 相同 | 升级入口不等于扩大支持范围或自动恢复交换机 |
-
-main 的 cacheable / noncacheable 是源码给初始流量的缓存属性命名，不是把“有无 KV cache”分成两类。三版都把已解析的等级交给同一配置过程，auto 也都不是在线自适应策略。
+`v0.30.0` 与 `main` 中的 `cacheable / noncacheable` 是源码给初始流量的缓存属性命名，不是把“有无 KV cache”分成两类。四版都把已解析的等级交给同一配置过程，`auto` 也都不是在线自适应策略。
 
 ### 源码位置
 

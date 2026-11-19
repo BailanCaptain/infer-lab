@@ -75,10 +75,17 @@ sources:
   - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L63'
   - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L488-L508'
   - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1641-L1648'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1279-L1340'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1633-L1645'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1706-L1735'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L42'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L1141-L1168'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/input_batch.py#L29-L90'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L65'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -95,7 +102,7 @@ relations:
     kind: builds-on
     note: 13 条请求拼成 6048 行，以及补到图尺寸、两组对齐的账
 contradicts: []
-updated: 2026-11-10T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -161,22 +168,19 @@ A 的那个 token 行号 0、位置 5、槽位 9；C 的第一个 token 行号 1
 
 这一节把上图那四列一格一格填出来。填表的原料有两份：调度器这一步的计划（每条请求本步几个 token），和持久批次里记着的东西（每条请求已经算了几个位置、全部 token、块表）。设 A 坐持久批次的第 0 行，C 坐第 1 行；持久批次用一张二维表存每条请求的全部 token，一条请求一行，每行留的格数等于最大长度，这里按 8 格示意，A 那一行存着 a₀ 到 a₅，C 那一行存着 c₀、c₁、c₂；块长按 4 个位置，A 的块表是 [7, 2]，C 的是 [9]。
 
-```calc
-title: 两条请求怎样拼成四行
-本步 token 数 = [1, 3]
-每行属于谁 = [0, 1, 1, 1]
-> 持久批次的行号：A 重复 1 次，C 重复 3 次
-组内序号 = [0, 0, 1, 2]
-位置 = 已算数 + 组内序号 = [5+0, 0+0, 0+1, 0+2] = [5, 0, 1, 2]
-token 表下标 = 行号 × 8 + 位置 = [0×8+5, 1×8+0, 1×8+1, 1×8+2] = [5, 8, 9, 10]
-token id = [a₅, c₀, c₁, c₂]
-边界 = [0, 0+1, 0+1+3] = [0, 1, 4]
-长度 = 已算数 + 本步 token 数 = [5+1, 0+3] = [6, 3]
-块序号 = 位置 ÷ 4 的商 = [5÷4, 0÷4, 1÷4, 2÷4] = [1, 0, 0, 0]
-块号 = 查各自的块表 = [A 表第 1 格, C 表第 0 格, C 表第 0 格, C 表第 0 格] = [2, 9, 9, 9]
-槽位 = 块号 × 4 + 位置 % 4 = [2×4+1, 9×4+0, 9×4+1, 9×4+2] = [9, 36, 37, 38]
-选行 = 每段末尾 = [1−1, 4−1] = [0, 3]
-```
+$$\text{slot} = \text{block\_table}\!\left[r,\; \lfloor p / 4 \rfloor\right] \times 4 + (p \bmod 4), \qquad \text{token\_idx} = r \times 8 + p$$
+
+| 推导字段（示意：本步 token 数 `[1, 3]`，行宽 8，块长 4） | 计算规则 | 本步结果 |
+|---|---|---|
+| 每行属于谁（持久批次行号） | A 重复 1 次，C 重复 3 次 | `[0, 1, 1, 1]` |
+| 组内序号 | 每条请求从 0 递增 | `[0, 0, 1, 2]` |
+| 位置（`positions`） | 已算数 `[5, 0]` + 组内序号：`[5+0, 0+0, 0+1, 0+2]` | `[5, 0, 1, 2]` |
+| token 表下标 / `input_ids` | `行号 × 8 + 位置 = [5, 8, 9, 10]` | `[a₅, c₀, c₁, c₂]` |
+| 边界（`query_start_loc`） | 前缀和 `[0, 0+1, 0+1+3]` | `[0, 1, 4]` |
+| 长度（`seq_lens`） | 已算数 + 本步 token 数 `[5+1, 0+3]` | `[6, 3]` |
+| 块序号 / 块号 | $\lfloor p / 4 \rfloor = [1, 0, 0, 0]$；查 A 表 `[7, 2]`、C 表 `[9]` | 块号 `[2, 9, 9, 9]` |
+| 槽位（`slot_mapping`） | `[2×4+1, 9×4+0, 9×4+1, 9×4+2]` | `[9, 36, 37, 38]` |
+| 选行（`logits_indices`） | 每段末尾 `[1-1, 4-1]` | `[0, 3]` |
 
 逐行对着看：
 
@@ -212,7 +216,7 @@ file: prepare-inputs-code-flow
 
 所以**一条请求坐第几行不是终身的**：别的请求结束、新请求加入、重排，都会让它换行。按请求找结果要靠持久批次里「请求 ID → 行号」的对照表，不能把行号记死。如果这一步的计划里一个 token 都没有，就不进入本页这套常规输入准备；按配置仍可能先做 DP 陪跑或 KV 传输协作，再返回相应结果。
 
-这描述的是本页固定的 V1 runner。新版上游把请求的长期存储行与本步计算顺序进一步分开：用索引把本步需要的行取出来，避免为了每一步排列而搬动整份状态。固定行、异步快照与增量写入怎样配合，见 [Model Runner V2 的状态组织](npu-model-runner.md#model-runner-v2-为什么要重新组织状态)。
+这描述的是本页固定的 V1 runner。新版上游把请求的长期存储行与本步计算顺序进一步分开：用索引把本步需要的行取出来，避免为了每一步排列而搬动整份状态。固定行、异步快照与增量写入怎样配合，见 [Model Runner V2 专页](model-runner-v2.md) 与 [NPU Model Runner 中的 V2 状态组织](npu-model-runner.md#model-runner-v2-为什么要重新组织状态)。
 
 ### 再给这一步贴一个形态标签
 
@@ -260,19 +264,10 @@ A、C 那一步里 A 有历史、C 本步 3 个 token，前三条都不满足，
 
 **8 个 worker 各拼一份一模一样的输入。** TP8 下这 8 张卡算的是同一批 token，只是各持 1/8 的矩阵，所以输入必须完全相同。DP0 的引擎把同一份计划经一块共享内存的广播队列一次发给 8 个 worker，每个 worker 自己把上面的流程走一遍；算完只有其中一个把结果交回引擎。R1 第一步每张卡拼出 4 行、位置 0 到 3、边界 [0, 4]，已列在[第 3 站](one-request.md#第-3-站-准备输入一份计划发给-8-个-worker)。本页流程里另外几样按同样的规则算出来，和第二步放在一起看：
 
-```calc
-title: R1 前两步的长度、选行和形态
-第一步长度 = 已算 0 + 本步 4 = 4
-第一步选行 = [4 − 1] = [3]
-> 这一步没有草稿，只取唯一一段的最后一行
-第一步形态 = PrefillNoCache
-> 这一批的请求都还没算过任何位置
-第二步长度 = 已算 4 + 本步 4 = 8
-第二步选行 = [0, 1, 2, 3]
-> 4 行是 y₀ 和 3 个草稿，1 + 3 行全选
-第二步形态 = SpecDecoding
-> 4 个 token 去掉 3 个草稿剩 1 个
-```
+| 步骤（示例请求 R1） | 长度 `seq_lens` | 选行 `logits_indices` | 形态 `attn_state` 与判据 |
+|---|---|---|---|
+| **第一步（prefill）** | $0 + 4 = \mathbf{4}$ | $[4 - 1] = \mathbf{[3]}$（无草稿，只取唯一段末行） | **`PrefillNoCache`**（本批请求均未算过任何位置） |
+| **第二步（decode + 3 草稿）** | $4 + 4 = \mathbf{8}$ | $\mathbf{[0, 1, 2, 3]}$（$y_0$ 加 3 个草稿，$1+3$ 行全选） | **`SpecDecoding`**（4 个 token 去掉 3 个草稿剩 1 个） |
 
 第一步带 prefill，拿不到只为 decode 录好的计算图，按 eager 方式逐个下发算子。第二步送进来的 4 行，是第一步确定下来的 y₀ 加上 MTP（多 token 预测，每步草拟 3 个候选 token 的草稿层）接着猜的 3 个候选，位置 4 到 7，逐项见[第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。4 行都要拿去验证，所以全选。GLM 双机会自动打开[异步调度](async-scheduling.md)（调度器不等上一步的结果回到 CPU，就先排下一步），所以这一步 y₀ 和 3 个草稿的 token id 不从 CPU 上的 token 表里抓，而是从上一步留在 NPU 上的输出直接拷进输入；长度也先按「上一步的草稿全被接受」乐观地算，需要时再校正。
 
@@ -329,19 +324,17 @@ title: R1 前两步的长度、选行和形态
 
 ### 版本差异
 
-**v0.30.0rc2 的 MRV1 仍按本文的行归属与位置规则展平输入。** _prepare_inputs 先提交 block table，再按每请求调度量 repeat 行归属、计算有效 token 和 attention state，最后把已计算位置与批内偏移相加。入口已移到 model_runner_v1.py 的 1281 行附近，旧 db701c1f 行号不能用于查 rc2。MRV2 由显式开关选择并使用另一套 runner，这一段输入走读只对应 MRV1。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`，GLM 专用镜像 `db701c1f` 同属此分支期，`_prepare_inputs` 从 L814 起）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）。**`v0.30.0` 的 MRV1 仍按本文的持久批次与行展平规则在 `model_runner_v1.py` 中拼装输入（`_prepare_inputs` 位于 L1279）；`main` 已彻底移除 `model_runner_v1.py`，全量切入 `worker/v2/`（`worker/v2/model_runner.py#L1141` `prepare_inputs` 与 `worker/v2/input_batch.py` `AscendInputBuffers` / `AscendInputBatch`），常驻设备缓冲与 V2 输入拼装详参 [Model Runner V2](model-runner-v2.md)。**
 
-钉点：v0.23 为 Ascend `2c59ff10` / vLLM `0fc695fc`，v0.26 为 Ascend `2ed6cbba`，main 为 Ascend `baa023ad`。**本页 GLM 行为按专用镜像 Ascend `db701c1f`**；v0.23 与 v0.26 没有 GLM 的模型文件，下表这两列只比准备输入流程本身。
-
-| 项 | v0.23 | v0.26 | rc2 | main |
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 |---|---|---|---|---|
-| _prepare_inputs | L862 | L890 | L1281 | L1228 |
-| _build_attn_state | L1477 | L1327 | L1708 | L1662 |
-| 无草稿时的选行 | L1310 | L1276 | L1645 | L1599 |
-| KDA 专用边界缓冲 | 有 | 有 | 有 | 有 |
-| runner 默认与选择 | 默认 V1；已有 V2 目录，0.23.0 有回退门槛 | 默认 V1，环境开关选择 V2 | 默认 V1；V1 拒绝 PCP >1，V2 单独校验 | 默认 V1；补丁另有 V2 能力校验 |
+| 输入准备入口 | `model_runner_v1.py` `_prepare_inputs` L862（镜像 `db701c1f` L814） | `model_runner_v1.py` `_prepare_inputs` L890 | `model_runner_v1.py` `_prepare_inputs` **L1279**（`#L1279-L1340`） | **`model_runner_v1.py` 已移除**；统一为 `worker/v2/model_runner.py#L1141` `prepare_inputs` → `_prepare_inputs_impl` |
+| 形态标签 `_build_attn_state` | L1477 | L1327 | **L1706**（`#L1706-L1735`） | 迁移至 `worker/v2/` 元数据与 `AscendInputBatch`（`worker/v2/input_batch.py#L29-L90`） |
+| 无草稿选行 `logits_indices` | L1310 | L1276 | **L1643**（`query_start_loc.gpu[1:num_reqs+1] - 1`，`#L1633-L1645`） | 由 `worker/v2/` 持久设备缓冲与 `sample` 侧统一组织 |
+| KDA 专用边界缓冲 | 有（尾部重复最后真实边界，不含假请求） | 有 | 有 | 迁入 `worker/v2/model_states/mamba_hybrid.py` |
+| Runner 默认与选择 | 默认 MRV1；已有 V2 目录，0.23.0 有回退门槛 | 默认 MRV1，环境开关切 MRV2 | `patch_use_v2_model_runner.py#L18-L42` 默认 MRV1；MRV1 拒绝 `PCP > 1`，MRV2 另行校验 | **仅保留 MRV2**；`mrv2_utils.py#L29-L65` 恒返 `True`（显式 `=0` 报错），详参 [Model Runner V2](model-runner-v2.md) |
 
-rc2 的执行侧为 Ascend 7d825229。GLM 镜像的输入入口是 L814；表中四个社区钉点均先提交块表，再算行归属、形态、位置。主要形态判断顺序保留，非 MTP 投机时，返回标签和写入 self.attn_state 的标签须分开看；v0.26/main 的旧比较还只删了几行 PCP 注释。无草稿选行都用“每个请求的结束边界减 1”，KDA 专用缓冲的尾部重复最后一个真实边界，不包含假请求。rc2 这段 V1 选行没有旧 GLM 的 CP 分支，且平台入口拒绝 V1 的 PCP >1；旧分支不能据此推广为新版本能力。V2 的输入准备另走一套实现。
+`v0.23.0`、`v0.26.0rc` 与 `v0.30.0` 三个 MRV1 钉点均保持“先非阻塞提交块表 → 按请求 repeat 行归属 → 计算形态与位置 → 无草稿取段末行减 1”的主干顺序，主要形态判据与 KDA 不含假请求的专用边界缓冲一致；`v0.30.0` 的 MRV1 入口不再带旧 GLM 的 CP 分支，且平台入口直接拒绝 MRV1 下 `PCP > 1`。`main` 全面切入 `worker/v2/` 后，旧 MRV1 行号不再适用，需转看 `worker/v2/` 与 [Model Runner V2](model-runner-v2.md)。
 
 ### 源码位置
 

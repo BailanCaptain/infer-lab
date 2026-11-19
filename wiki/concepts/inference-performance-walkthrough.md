@@ -37,6 +37,17 @@ sources:
   - 'vllm-ascend@7d825229:vllm_ascend/worker/worker.py#L1223-L1251'
   - 'vllm-ascend@7d825229:vllm_ascend/profiler/torch_npu_profiler.py#L36-L77'
   - 'vllm@ced6857a:vllm/benchmarks/lib/endpoint_request_func.py#L526-L561'
+  - 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L620'
+  - 'vllm@ced6857a:vllm/v1/engine/core.py#L630-L710'
+  - 'vllm@ced6857a:vllm/v1/engine/output_processor.py#L629-L690'
+  - 'vllm@ba15685a:vllm/v1/core/sched/scheduler.py#L721-L780'
+  - 'vllm@ba15685a:vllm/v1/engine/core.py#L754-L820'
+  - 'vllm@ba15685a:vllm/v1/engine/output_processor.py#L731-L790'
+  - 'vllm@ba15685a:vllm/benchmarks/lib/endpoint_request_func.py#L416-L460'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1230-L1260'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/profiler/torch_npu_profiler.py#L29-L74'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1317-L1350'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L144-L190'
 relations:
   - to: concurrent-requests
     kind: builds-on
@@ -53,10 +64,14 @@ relations:
   - to: dp-request-routing
     kind: builds-on
     note: 核对长请求为何进入某个执行组，并区分路由偏斜与跨组等待
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: I
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: 2026-11-19T00:00:00.000Z
 ---
 
 **推理性能分析，是找出一次请求的时间花在哪里，再验证怎样让它更快。** 这篇从一次“回答到一半停住”的现象开始，走完记录、定位和验证的过程。
@@ -85,15 +100,16 @@ D 自己的问题虽然没变，同批要做的工作却变了。服务每一步
 
 D 在 0 ms 发出请求，五个输出 token 依次在 **300、350、410、650、700 ms** 到达。前两个间隔分别是 50 ms 和 60 ms，第三个间隔却拉长到 240 ms。我们要解释的，就是 **410–650 ms 之间发生了什么**。
 
-这些等待有各自的指标名称。**TTFT** 记录发出请求后，等多久收到第一个 token；**ITL** 记录相邻两个输出 token 相隔多久。把首个到末个 token 之间的时间平均分给后续 token，就得到这里使用的请求级 **TPOT**。
+这些等待有各自的指标名称。**TTFT** 记录发出请求后，等多久收到第一个 token；**ITL** 记录相邻两个输出 token 相隔多久。把首个到末个 token 之间的时间平均分给后续 token，就得到这里使用的请求级 **TPOT**：
 
-```calc
-title: D 等了多久（示意）
-首个 token 的等待 TTFT = 300 − 0 = 300 ms
-相邻 token 的间隔 ITL = 50、60、240、50 ms
-平均间隔 TPOT = (700 − 300) ÷ (5 − 1) = 100 ms
-这次要调查的停顿 = 650 − 410 = 240 ms
-```
+$$\text{TPOT} = \frac{t_{\text{last}} - t_{\text{first}}}{N_{\text{out}} - 1} = \frac{700 - 300}{5 - 1} = 100\text{ ms}$$
+
+| 指标（D 的教学示意） | 算式 | 数值结果 |
+| --- | --- | --- |
+| 首个 token 等待（TTFT） | $300 - 0$ | **300 ms** |
+| 相邻 token 间隔（ITL 序列） | $350 - 300,\; 410 - 350,\; 650 - 410,\; 700 - 650$ | **50、60、240、50 ms** |
+| 请求级平均输出间隔（TPOT） | $(700 - 300) \div (5 - 1)$ | **100 ms** |
+| 本次要调查的长停顿 | $650 - 410$ | **240 ms** |
 
 只看“平均每 100 ms 收到一个 token”，很难知道第三个 token 后面曾停了 240 ms。保留每次到达时间，我们才能把这次停顿与服务里的计算对应起来。TTFT 也要留下：后面若用一种办法改善输出间隔，还要检查它会不会让第一个 token 等得更久。
 
@@ -154,16 +170,17 @@ D 在 B 的第二个混合步后已经生成完，所以第三步只有 N。每�
 file: inference-performance-ab-timeline
 ```
 
-图中条形是设备工作，圆点是客户端收到输出，两者之间还隔着结果处理与传输。A 中 D 在 410 ms 收到一个输出后，一直等到 650 ms；B 把下一次到达提前到 530 ms。N 的首字则从 650 ms 推迟到 690 ms。下面的 max 表示从各个间隔中取最大值。
+图中条形是设备工作，圆点是客户端收到输出，两者之间还隔着结果处理与传输。A 中 D 在 410 ms 收到一个输出后，一直等到 650 ms；B 把下一次到达提前到 530 ms。N 的首字则从 650 ms 推迟到 690 ms。设 $\Delta \text{ITL}_{\max}$ 与 $\Delta \text{TTFT}_N$ 分别表示 D 的最长输出间隔缩减量与 N 的首字等待增量：
 
-```calc
-title: 分块把等待从谁身上移到了谁身上（示意）
-B 中 D 最长的输出间隔 = max(50, 60, 120, 80) = 120 ms
-D 的最长间隔减少 = 240 − 120 = 120 ms
-A 中 N 的首字等待 = 650 − 400 = 250 ms
-B 中 N 的首字等待 = 690 − 400 = 290 ms
-N 多等的首字时间 = 290 − 250 = 40 ms
-```
+$$\Delta \text{ITL}_{\max} = 240 - \max(50, 60, 120, 80) = 120\text{ ms}, \qquad \Delta \text{TTFT}_N = (690 - 400) - (650 - 400) = 40\text{ ms}$$
+
+| 分块前后等待变化（示意） | 算式 | 数值结果 |
+| --- | --- | --- |
+| B 中 D 最长输出间隔 | $\max(50, 60, 120, 80)$ | **120 ms** |
+| D 的最长间隔减少量 | $240 - 120$ | **减少 120 ms** |
+| A 中 N 的首字等待（TTFT） | $650 - 400$ | **250 ms** |
+| B 中 N 的首字等待（TTFT） | $690 - 400$ | **290 ms** |
+| N 多等的首字时间 | $290 - 250$ | **增加 40 ms** |
 
 三项证据连上了：N 每步处理的内容变少，D 所在步变短，D 的长停顿也缩短。这支持采用 B 缓解**这类负载下**的中途停顿。它没有说明“输入减到三分之一，任何设备就会快三倍”：执行效率、准备次数和路径都可能变化，[性能分析](inference-performance-analysis.md)会接着拆解这笔成本。
 
@@ -372,25 +389,27 @@ profiler、细粒度日志和数值转储都会增加工作或改变时序。先
 
 ### 版本差异
 
-**v0.30.0rc2 的时间线分析须补上客户端计时口径。** 配套 ChatCompletion/audio 压测由带非空 choices 的块推进计时，尾部仅含 usage 的块不推进结束时间；choices 块的 content 仍可为空，因此该统计也不等于“有效文本消息间隔”（来源 11、14）。同一服务换客户端后，端到端数值可能变化，不能据此断言服务加速。Worker 仍可采 CPU/NPU 时间线，但 profiler 须显式启用，首次 start 才创建对象，后续沿用 trace 名；跨 rank 的请求、批次关联仍须保留外部记录。本文 D/N 和场景 M、240 ms 演示继续是原固定部署的示意，不改称 rc2 实测；只有消息事件时，应明确自己数的是上述 choices 块，还是另行筛选的有效文本消息。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；**本文 D/N 240 ms 与场景 M 走读沿用例外 B 专用镜像钉点 `db701c1f`（配套 `vllm@0fc695fc`），与四版社区分支分别核对。**
 
-| 版本范围 | 本页可采用的结论 | 使用边界 |
-| --- | --- | --- |
-| GLM 教程镜像执行侧 `db701c1f`，控制流阅读基线 `0fc695fc` | 场景 M 的预算、MTP、图和 MoE 分支沿用现有主线 | 镜像内最终安装产物仍须按[来源基线](../sources/glm-5-3-flash-baseline.md#镜像固定与源码对应)核对；本页无硬件计时实测 |
-| 社区 v0.23，Ascend `2c59ff10` | 可以沿用按时间、请求和批次取证的方法 | 不等同于 GLM 专用执行侧；分块/图默认值和限制查相应机制页，本页未逐项验证 |
-| 社区 v0.26，Ascend `2ed6cbba` | 可以沿用分析流程 | 调度、配置和采集接口须按该版核对，本页未逐项验证 |
-| 社区 main，知识库快照 Ascend `baa023ad` | 可以沿用分析流程 | 在线 profiler 指南是滚动文档，不能当作快照或旧镜像的开关保证；本页未逐项验证 |
+**`v0.30.0` 及 `main` 的时间线分析须区分客户端计时口径与 Runner 入口变化。** 配套 ChatCompletion/audio 压测由带非空 `choices` 的块推进计时，尾部仅含 `usage` 的块不推进结束时间；`choices` 块的 `content` 仍可为空，因此该统计也不等于“有效文本消息间隔”（`endpoint_request_func.py`）。Worker 侧 profiler 须显式启用、首次 `start` 惰性创建对象并沿用首次 `trace_name`，跨 rank 的请求与批次关联仍须保留外部记录；只有消息事件时，应明确自己数的是上述 `choices` 块还是另行筛选的有效文本消息。
+
+| 取证与执行维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| 调度与批次队列入口 | `scheduler.py#L340-L416`、`core.py#L484-L598`、`output_processor.py#L576-L663` | 沿用按请求/批次关联取证，具体字段按该版核对 | `scheduler.py#L561-L620`、`core.py#L630-L710`、`output_processor.py#L629-L690` | `scheduler.py#L721-L780`、`core.py#L754-L820`、`output_processor.py#L731-L790` |
+| Ascend 执行侧 Runner 定位 | `worker/model_runner_v1.py`（GLM 镜像 `db701c1f` 对应场景 M 走读） | `worker/model_runner_v1.py` 为默认 | `worker/model_runner_v1.py` 为默认，可选 `worker/v2/model_runner.py` | 移除 `model_runner_v1.py`，执行与图模式追踪统一落在 `worker/v2/model_runner.py#L144-L190` |
+| Worker 设备 Profiler 入口 | 按现场版本指南核对，不把滚动指南当旧镜像保证 | 按该版配置与采集接口核对 | `worker.py#L1230-L1260` + `TorchNPUProfilerWrapper`（`torch_npu_profiler.py#L29-L74`）惰性创建 | `worker.py#L1317-L1350` 延续同类惰性 `TorchNPUProfilerWrapper` 入口 |
+| 压测客户端流式计时口径 | 按客户端实际读取口径记录 | 同左 | `endpoint_request_func.py#L402-L434`、`#L526-L561` 按非空 `choices` 推进（忽略纯 `usage` 尾块） | `endpoint_request_func.py#L416-L460` 延续同类非空 `choices` 推进口径 |
 
 ### 源码位置
 
 | 需要核对的证据 | 固定来源及对应结论 |
 | --- | --- |
-| 调度为何按位置分配工作 | `Scheduler.schedule` 的已算位置、目标位置和预算分配 [C1]；详细分块分支见现有 chunked prefill 页 |
-| CPU 与设备不一定在处理同一批 | `EngineCore` 的批次队列执行路径 [C2]；跨进程、结果更新及日志认站复用请求调用链 |
-| 图与执行尺寸为什么要看现场记录 | runner 的图分派、padding 和跨 DP 协调 [C3]；具体数字只在多请求页推导 |
-| 大批为什么切换 MoE 路径 | forward context 的执行条件和通信策略 [C4]；门槛解释复用单/多请求页 |
-| 新请求为什么进某个组 | 客户端负载评分及指定组路径 [C5]；复用 DP 请求路由页 |
-| 分块预算需要同时看 ITL、TTFT 与吞吐 | 固定版优化文档的预算取舍 [S6] |
+| 调度为何按位置分配工作 | `Scheduler.schedule` 的已算位置、目标位置和预算分配（`vllm@0fc695fc#L340-L416`、`ced6857a#L561-L620`、`ba15685a#L721-L780`）[C1]；详细分块分支见 [chunked prefill](chunked-prefill.md) |
+| CPU 与设备不一定在处理同一批 | `EngineCore` 的批次队列执行路径（`vllm@0fc695fc#L484-L598`、`ced6857a#L630-L710`、`ba15685a#L754-L820`）[C2]；跨进程与日志认站复用[请求调用链](request-call-chain.md) |
+| 图与执行尺寸为什么要看现场记录 | runner 的图分派、padding 和跨 DP 协调（GLM 镜像 `db701c1f:model_runner_v1.py#L2898-L2996`，`main` 迁至 `8d6180e2:worker/v2/model_runner.py#L144-L190`）[C3]；具体数字只在[多请求页](concurrent-requests.md)推导 |
+| 大批为什么切换 MoE 路径 | forward context 的执行条件和通信策略（`db701c1f:ascend_forward_context.py#L200-L282`）[C4]；门槛解释复用单/多请求页 |
+| 新请求为什么进某个组 | 客户端负载评分及指定组路径（`0fc695fc:core_client.py#L1398-L1426`）[C5]；复用[DP 请求路由](dp-request-routing.md) |
+| Profiler 入口与客户端流式计时 | `vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1230-L1260` / `vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1317-L1350`、`torch_npu_profiler.py#L29-L74`；`vllm@ced6857a` / `ba15685a` 的 `endpoint_request_func.py`；分块预算取舍见优化文档 [S6] |
 
 D/N 的 A/B 到达时刻、输入份额、设备时间线及服务目标均为教学假设 [A]；延迟与取舍演算为这些假设下的推导 [D]。候选分支、三份记录和实验步骤是依据上述机制组织的分析方法 [I]，不构成已完成的现场诊断。
 

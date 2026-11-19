@@ -150,7 +150,20 @@ sources:
   - "vllm@0fc695fc:vllm/entrypoints/offline_utils.py#L523-L550"
   - "vllm@568afb3a:vllm/config/lora.py#L49-L86"
   - "vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/serving.py#L258-L267"
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/lora/punica_npu.py#L23-L75'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/lora/punica_npu.py#L216-L236'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L396-L406'
+  - 'vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/lora.md#L1-L45'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/lora/punica_npu.py#L23-L75'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/lora/punica_npu.py#L648-L672'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L443-L453'
+  - 'vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/lora.md#L1-L45'
+  - 'vllm@ba15685a:vllm/config/lora.py#L31-L55'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: matmul-and-weights
@@ -373,54 +386,23 @@ Hub 方式有额外门槛：除非仓库列表非空，且 VLLM_PLUGINS 显式�
 
 ### 版本差异
 
-默认多模态选择、MoE 布局与目标层筛选按固定上游分别核对，不能用同一份用法文档代替实现对照：
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；**本文 GLM-5.3-Flash 双机对照沿用例外 B 专用镜像钉点 `db701c1f`（配套 `vllm@0fc695fc`），与四版社区分支分别核对。**
 
-| 上游比较点 | 本节机制与变化 | 使用时的条件 |
-|---|---|---|
-| v0.23 / 0fc695fc | 默认项按模态选一个，显式项优先；混合格式默认关闭；tower 按编码器/连接层计数接口准备容量 | HTTP type 前缀匹配与离线占位类型匹配不同；格式标志由调用者保证正确 |
-| v0.26 / 568afb3a | 默认选择规则相同；公共 HTTP 入口迁移；MoE 转换改从包装对象取专家信息 | 新增的 shared-outer 专家布局开关是另一种权重契约，不等于混合格式开关 |
-| v0.30.0rc2 / ced6857a | 默认选择和所列 MoE 转换规则保持；tower 改看模型能力声明，并按模态取得编码器/连接层计数 | 显式目标层筛选与默认支持层筛选分开，最终仍须有可替换的层实现 |
-| main / 84030bbe | 本表所读选择、转换与 tower 消费者同 rc2 | 同文只覆盖这些消费者，不扩展为所有模型和设备支持相同 |
+| 昇腾与上游核验项 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| 硬件支持与 PyTorch 退路 | 写死判 `310P` 或 `max_lora_rank >= 128` 退回 PyTorch [C8] | 同 `v0.23.0` [C15] | 指南标明支持 Atlas 300I Duo（310P）/ A2 / A3；`punica_npu.py#L32-L50` 改查 `HardwareProfile` 能力位 `LORA_CUSTOM_OPS` 或 `max_lora_rank >= 128` 退回 PyTorch；310P 图捕获经 `_use_sgmv()`（`#L216-L219`）改走 BGMV | 同 `v0.30.0`；`punica_npu.py#L648-L672` 新增 `apply_lora_full_linear`（FP32 einsum 适配分类头，避开 BGMV shrink 的精度与维度限制） |
+| MoE 挂 LoRA 的 EP 与量化 | 官方文档标明 EP 与量化均不支持 [S12] | 同 `v0.23.0` [S14] | 非量化与 W8A8 动态量化 × AllGather / All-to-All 四格均标 Supported；其他量化、Fused MC2 与动态 EPLB 仍不支持 [S16] | 同 `v0.30.0`（`docs/source/user_guide/feature_guide/lora.md#L1-L45`） |
+| `LoRA + EP` 通信强制路径 | 无 LoRA 特判，按硬件默认选择 | `ep_size > 1` 且开 LoRA + EP 时在硬件选择前强制 `ALLTOALL`（`ep_size == 1` 走 AllGather），因 MC2/FusedMC2 无法插入低秩旁路 [C24] | 延续强制 `MoECommType.ALLTOALL`（`ascend_forward_context.py#L396-L406`） | 延续强制 `MoECommType.ALLTOALL`（`ascend_forward_context.py#L443-L453`） |
+| 单适配器快路（`max_loras=1`） | 无快路，统一走 SGMV/BGMV | A2/A3 且配置 `max_loras=1`、未开 `fully_sharded_loras` 时切普通 matmul + 掩码 [C18] | 抽为自定义算子并优先 Triton 融合（A2/A3、BF16、`r in {8,16,32,64}`、`T <= 128`，大输出宽度更严门槛；分类输出宽 `< rank` 退 matmul）[C20] | 同 `v0.30.0`（均按配置名额 `max_loras=1` 判定，非当前批恰好 1 个适配器） |
+| ACL Graph 参数表 | 1 份 `GraphParams` [C21] | 按 `has_lora` 拆成两份（仅 FULL 图按批描述符选） [C22] | 合并回 1 份，不再按 `has_lora` 拆分 [C23] | 同 `v0.30.0` |
+| 上游多模态/MoE 格式与 Resolver | 默认多模态按模态选 1 个（显式优先）；混合 2D/3D 默认关；内置文件/Hub resolver 与同名锁 | 公共 HTTP 入口迁至 `serve/engine`；MoE 转换改从包装对象取专家信息；新增 `shared-outer` 开关 | tower 改查模型能力声明并按模态取计数；显式目标层与默认支持层分开筛选；Resolver 规则一致 | 延续 `v0.30.0` 契约（`vllm@ba15685a:vllm/config/lora.py#L31-L55` 保持默认 `max_loras=1`、`max_lora_rank=16`） |
 
-四个固定点的 LoRA 用法母文相同，但 rc2 的 tower 能力与计数消费者已经变化。本站 GLM 双机未启用 LoRA，下面保留其原有硬件、EP、量化与图执行边界。
-
-自动查找链按固定上游 v0.23（0fc695fc）、v0.26（568afb3a）、rc2（ced6857a）与 main 比较点（84030bbe）核对。四版的两个内置 resolver 文件及注册表实现一致；它们说明前端如何找到并加载适配器，设备端是否支持具体模型仍按后面的 Ascend 条件判断。
-
-| Resolver 核对项 | v0.23 / GLM 基线上游 | v0.26 | rc2 | 固定 main |
-|---|---|---|---|---|
-| 未知名触发 | 运行时更新默认关闭；开启后，非基座且非已登记名字才查找 | 相同，公共入口迁到 serve/engine | 同 v0.26 | 同 v0.26 |
-| 本地匹配 | 配置类型与实际基座字符串匹配；找到候选后另调引擎加载 | 相同 | 相同 | 相同 |
-| Hub 登记与下载 | 仓库名单与显式插件名缺一不可；下载未传 revision | 相同 | 相同 | 相同 |
-| 并发与失败 | 单前端对象同名锁；加载成功才登记；引擎加载失败可试下一项 | 相同 | 相同 | 相同 |
-| 名字与清单复用 | 已登记名字直接复用；Hub 子目录清单缓存在 resolver 内 | 相同 | 相同 | 相同 |
-
-固定 main 是独立上游对照，未据此声明与 Ascend main 的精确配套关系。GLM 原教程没有启用 LoRA 或这套动态查找；前端规则相同不改变原配方的模型、EP 与量化限制。
-
-921ccc52 官方指南概括的单槽融合快路条件是：A2/A3、配置 max_loras=1、未完全分片、BF16、秩在 8/16/32/64 且本步不超过 128 个 token。代码还有进一步筛选：Triton 可用、处于图捕获上下文、输入/输出/A/B 都是连续的 BF16 张量；多个投影分片还要求已打包 A、B，且输出宽度与分片之和一致。Shrink 沿输入维分成 4 份计算，Expand 再归约部分和、应用掩码与缩放、乘 B 并加回基座输出。
-
-大输出宽度还有更严格的 token 门槛：输出宽度 ≥8192 时，秩 ≤16 最多 32 token，较大秩最多 64 token；输出宽度 ≥5120 且秩 ≥16 时也最多 64 token。这些条件不满足时，已经满足单槽与打包条件的请求退到 matmul；不满足单槽或打包条件才选一般 SGMV/BGMV 路径。图捕获会记录选中的计算，重放时执行已捕获的图。指南将最大秩选项限定为上述四档，而旧上游字段允许更大集合；旧字段能解析 128 不表示融合快路支持 128。这些新条件不适用于旧 GLM 镜像。
-
-rc2 wrapper 的兼容修复还包括：310P 图捕获时改走 BGMV；分类输出宽度小于 LoRA rank 时改用 matmul，非 fp16/bf16 输出先按权重 dtype 算 delta 再加回，以保留基础 fp32 logits。MoE 支持矩阵与固定 main 指南相同，仍须同时核对 EP、量化和 MC2 组合，不能只看单适配器快路条件。
-
-**v0.30.0rc2 保留按硬件与 rank 选择 LoRA 实现的条件。** LORA_CUSTOM_OPS 能力不满足或 max_lora_rank≥128 时走原生 torch 退路；单适配器快路仍要求 A2/A3、配置 max_loras=1 且未启用 fully_sharded_loras。这里检查的是配置容量，不是“当前批碰巧只有一个适配器”。EP、量化和 MC2 等组合还要同时满足 LoRA 指南条件，不能从 wrapper 存在推断所有模型都支持。
-
-| 项 | v0.23（含 GLM 代码的 db701c1f） | v0.26（2ed6cbba） | main（baa023ad） |
-|---|---|---|---|
-| MoE 挂 LoRA 时的 EP 与量化 | 都不支持 [S12] | 同 v0.23 [S14] | 非量化与 W8A8 动态量化 × AllGather 与 All-to-All 四格都标 Supported；其他量化方法、Fused MC2、动态 EPLB 仍不支持 [S16] |
-| 哪些卡退回 PyTorch 实现 | 写死判 310P，或最大秩 ≥ 128 [C8] | 同 v0.23 [C15] | 改成查硬件画像上的能力位，不再写死卡型 [C17] |
-| MoE + EP 时挑哪种通信 | 没有 LoRA 特判，照硬件挑 | EP 组大于 1 时，开着 LoRA 又开 EP 就在硬件选择之前强制 All-to-All；EP 组为 1 先走 AllGather。注释解释 MC2 / FusedMC2 融合路径不能插入低秩旁路 [C24] | 同 v0.26 |
-| 只挂一个适配器时怎么算 | 没有快路，照走按段 / 按行那套 | A2、A3 上且名额为 1、又没开 `fully_sharded_loras` 时切成普通 matmul 加一条掩码 [C18][C19] | 条件同 v0.26，实现抽成一个自定义算子，并先试 Triton 版本 [C20] |
-| ACL Graph 的参数表 | 一份 `GraphParams` [C21] | 按 `has_lora` 拆成两份；只在 FULL 图模式下才按批描述符选带 LoRA 的那份，其他图模式一律取不带的 [C22] | 又并回一份，文件里不再出现 LoRA [C23] |
-
-表里对本部署最要紧的是「MoE 挂 LoRA 时的 EP 与量化」「MoE + EP 时挑哪种通信」这两行：本部署 EP16 满足组大于 1，v0.26 与 main 上一开 LoRA，MoE 通信就改为 All-to-All。「只挂一个适配器时怎么算」一行说明新版本会按条件选择不同执行路径。v0.23 维护分支 2c59ff10 上也有 `vllm_ascend/lora/`，但那条分支不含 GLM 代码，本页 v0.23 一列一律读 db701c1f；两份固定旧代码的 wrapper 与图参数文件都没有上述单槽快路和按 `has_lora` 拆参数表。
-
-表中的单适配器快路按配置选择：名额必须设为 1，当前批次恰好只用一个适配器不算满足这个条件。其余硬件和配置条件仍按表中所列；完全分片 LoRA 是进一步把适配器计算及权重分片到多个设备的执行方式。
+单槽融合快路的精细门槛（如输出宽度 $\ge 8192$ 时秩 $\le 16$ 最多 32 token、较大秩最多 64 token；输出宽度 $\ge 5120$ 且秩 $\ge 16$ 时最多 64 token；以及需 Triton 可用、处于图捕获上下文、连续 BF16 张量与打包 A/B）以 `vllm_ascend/lora/lora_ops.py` 实际入口为准，不满足时按单槽/打包条件依次退回 matmul 或常规 SGMV/BGMV。历史 `v0.23.0` 维护分支 `2c59ff10` 不含 GLM 模型，本页 GLM 走读仍按 `db701c1f` 与 `vllm@0fc695fc` 核对；两份旧代码的 wrapper 与图参数文件均无上述单槽快路与按 `has_lora` 拆表。
 
 ### 源码位置
 
-默认多模态、格式声明、lineage 与目标模块的官方用法见来源 87，配置默认见 88。离线选择四版依次为 89–92；HTTP 匹配与显式优先四版为 93–96；默认项注册见 97，模型卡展示与记录基座名的条件见 98。混合模式选择与转换入口见 99–100，四版转换函数为 101–104。tower / connector 四版消费者为 105–108；目标模块及融合父子名匹配见 109–111。共享离线入队入口也调用默认选择（112），因此指南所列接口不等于所有内部调用者的枚举；shared-outer 新字段见 113，chat 显式开启默认选择见 114。这里只核对机制与固定版本，没有执行适配器训练、真实媒体模型或设备推理。
-
-自动查找的旧基线文件/Hub/注册表、真正加载与未知名入口见来源 49–54；插件过滤和环境默认见 55–56。v0.26、rc2、固定 main 的同组消费者依次见 57–64、65–72、73–80。关闭模型名校验的提前返回见 81–82；真实插件入口名见 83，旧基线权重格式和缺文件错误见 84；官方完整 resolver 设计与 LoRA 用法见 85–86。前端查找与加载机制按这些固定版本说明，设备支持与性能仍按对应模型和平台确认。
+- `v0.30.0` 与 `main` 昇腾核心入口：`vllm-ascend@c09d3e20:vllm_ascend/lora/punica_npu.py#L23-L75`、`#L216-L236`（`HardwareProfile` 能力判定、单槽掩码、310P `_use_sgmv`），`vllm-ascend@8d6180e2:vllm_ascend/lora/punica_npu.py#L648-L672`（`apply_lora_full_linear`），`vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L396-L406` 与 `vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L443-L453`（`LoRA + EP` 强制 `ALLTOALL`），官方文档见两版 `docs/source/user_guide/feature_guide/lora.md#L1-L45`；上游最新配置见 `vllm@ba15685a:vllm/config/lora.py#L31-L55`。
+- 默认多模态、格式声明、lineage 与目标模块的官方用法见来源 87，配置默认见 88；离线选择四版依次为 89–92，HTTP 匹配与显式优先为 93–96，混合 MoE 转换与 tower/connector 消费者为 99–108；Resolver 自动查找四版消费者见来源 49–86。这里只核对机制与固定版本，没有执行适配器训练、真实媒体模型或设备推理。
 
 | 看什么 | 在哪 |
 |---|---|

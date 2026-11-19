@@ -56,9 +56,17 @@ sources:
     https://github.com/vllm-project/vllm-ascend/blob/7d825229/docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L1-L24
   - 'vllm@568afb3a:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L72-L115'
   - 'vllm@84030bbe:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L72-L115'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L135'
+  - 'vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L1-L24'
+  - 'vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L70-L72'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L162'
+  - 'vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L70-L72'
+  - 'vllm@ced6857a:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L72-L115'
+  - 'vllm@ba15685a:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L68-L140'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -69,7 +77,7 @@ relations:
     kind: builds-on
     note: 外部前缀复用要求一致的数据身份
 contradicts: []
-updated: '2026-11-03'
+updated: '2026-11-19'
 origin: direct
 ---
 
@@ -105,16 +113,16 @@ file: lmcache
 
 **外部这层按 chunk 记账：一个 chunk 是固定个数的连续位置。chunk 有多长、凑不满的尾巴存不存，都由 LMCache 自己的配置决定（`chunk_size`、`save_unfull_chunk`），外部软件包里的默认取值本页没有核到。下面的示意取 chunk = 256 个位置，并假设只存写满的整 chunk。**
 
-这条规则最反直觉的后果是：**两条请求共享的开头有多长，和能省下多少并不相等。** 设一个 chunk 是 256 个位置，A、B 的 prompt 各有 600 个位置，两者共享开头的 500 个：
+这条规则最反直觉的后果是：**两条请求共享的开头有多长，和能省下多少并不相等。** 设一个 chunk 是 256 个位置，A、B 的 prompt 各有 600 个位置，两者共享开头的 500 个（示意：只存写满的整 chunk）：
 
-```calc
-title: B 能省下多少（示意：chunk = 256 个位置，且只存写满的整 chunk）
-A 存进去 = floor(600 ÷ 256) = 2 个 chunk = 512 个位置，剩 88 个凑不满，不存
-B 的第 1 个 chunk = 第 0–255 个位置，和 A 逐字相同 → 命中
-B 的第 2 个 chunk = 第 256–511 个位置，其中第 500–511 个已经不同 → 不命中
-B 外部命中 = 256 个位置
-B 还要自己算 = 600 − 256 = 344 个位置
-```
+$$\text{A 存进去} = \lfloor 600 \div 256 \rfloor \times 256 = 2 \times 256 = 512\text{ 个位置}$$
+
+| 阶段（示意：chunk = 256 个位置） | 区间与核对 | 结果 |
+|---|---|---|
+| A 写入外部缓存 | $\lfloor 600 \div 256 \rfloor = 2$ 个整 chunk，剩 88 个位置凑不满不存 | 存入 **512 个位置** |
+| B 的第 1 个 chunk（第 0–255 位） | 与 A 逐字相同 | **命中**（256 个位置） |
+| B 的第 2 个 chunk（第 256–511 位） | 第 500–511 位已与 A 不同，整块不认 | **不命中** |
+| B 最终外部命中 / 仍须自算 | 外部命中 256 个；自算 $600 - 256$ | 省 **256 个**，自算 **344 个位置** |
 
 共享 500 个位置，实际只省下 256 个：chunk 按内容整块认，一个 chunk 里只要有一个位置不同，整块就认不出来（查找这一步在外部包里，这里按它以 chunk 为单位、按内容识别的设计推，本页没有读它的实现）。chunk 越大，一次搬得越多、管理项越少，命中也越粗；chunk 越小则相反。
 
@@ -138,7 +146,7 @@ Ascend 上这条链由四段代码拼起来，来自三方，各管一件事：
 
 | 这一层 | 谁提供 | 决定什么 |
 |---|---|---|
-| 连接器注册名 | vllm-ascend（main 上已移除） | 启动参数写的名字能不能找到类 |
+| 连接器注册名 | vllm-ascend（`v0.30.0` 与 `main` 已移除） | 启动参数写的名字能不能找到类 |
 | 包装模块 | vllm-ascend，只有几行 | 先加载昇腾插件包，再把上游的类导出去 |
 | 上游连接器 | vLLM | 选哪套 adapter（`use_native`），并把三个交接点转交给它 |
 | adapter 与存储实现 | 外部 LMCache 软件包 | chunk 多大、存在哪一层、怎么淘汰、名字怎么拼、失败怎么办 |
@@ -173,20 +181,21 @@ Ascend 上这条链由四段代码拼起来，来自三方，各管一件事：
 - **形状对不上。** 上游自带的 adapter 按「模型的每一层 × 每个位置」开缓冲，每层一格（MLA 这样只有一份潜向量的）或两格（普通 attention 的 K 和 V）。GLM 有两样塞不进这个形状：34 层 [KDA](linear-attention.md) 的状态是「到某个位置为止」累积出来的一整份，根本不按位置逐格存；[稀疏 MLA](mla.md) 每层除了潜向量还多一份索引器缓存，这个形状里没有它的位置。
 - **逐层这条路对 MLA 直接关着。** 用 MLA 的模型打开逐层模式，上游 adapter 会直接抛「尚不支持」。
 
-**真开起来最多能省什么。** 这套部署块不够时会抢占，被抢占的请求全部重算：在[多条请求](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)的场景里，那条请求约 67,000 个位置的 prefill 要重来，按 8,192 的预算要 9 步。外部这层最多补回它 prompt 里整 chunk 的部分（查询只拿 prompt 的 token 去问），能补多少取决于 prompt 和生成部分各占多长。搬回来的字节按每卡每个位置 13,056 B 算（12 层稀疏 MLA 加索引器压缩缓存，见[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)）：
+**真开起来最多能省什么。** 这套部署块不够时会抢占，被抢占的请求全部重算：在[多条请求](concurrent-requests.md#kv-块一组的请求共用一个池子不够时最后进来的让位)的场景里，那条请求约 67,000 个位置的 prefill 要重来，按 8,192 的预算要 9 步。外部这层最多补回它 prompt 里整 chunk 的部分（查询只拿 prompt 的 token 去问），能补多少取决于 prompt 和生成部分各占多长。搬回来的字节按每卡每个位置 13,056 B 算（12 层稀疏 MLA 加索引器压缩缓存，见[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)），假如补回 1 个 chunk（示意：chunk = 256 个位置）：
 
-```calc
-title: 假如补回 1 个 chunk，要往显存里搬多少（示意：chunk = 256 个位置）
-每卡每个位置 = 13,056 B（12 层稀疏 MLA + 索引器压缩缓存）
-1 个 chunk 每卡 = 256 × 13,056 = 3,342,336 B ≈ 3.19 MiB
-一个 DP 组 8 张卡 = 8 × 3.19 MiB ≈ 25.5 MiB
-> 这是 8 张卡显存侧要填进去的总量，只算随长度增长的那部分；KDA 的递推状态是每条请求一份的固定开销，不按位置累加
-> 外部存储侧存的是多少字节另说：格式、元数据、对齐、压缩，以及各卡相同的数据会不会只存一份，都由 LMCache 决定，本页未核
-```
+$$M_{\text{1 chunk, per rank}} = 256 \times 13{,}056\text{ B} = 3{,}342{,}336\text{ B} \approx 3.19\text{ MiB}$$
+
+| 统计口径（示意：chunk = 256 个位置） | 算式 | 显存侧待填入总量 |
+|---|---|---|
+| 每卡每个位置（12 层稀疏 MLA + 索引器压缩缓存） | 部署页单位置口径 | **13,056 B** |
+| 1 个 chunk 每卡显存写入量 | $256 \times 13{,}056\text{ B} = 3{,}342{,}336\text{ B}$ | 约 **3.19 MiB** |
+| 一个 DP 组 8 张卡合计 | $8 \times 3.19\text{ MiB}$ | 约 **25.5 MiB** |
+
+上表只算随长度增长的那部分显存填充量；KDA 的递推状态是每条请求一份的固定开销，不按位置累加。外部存储侧实际占多少字节另说：格式、元数据、对齐、压缩，以及各卡相同的数据会不会只存一份，都由 LMCache 决定，本页未核。
 
 没有实测：本节的互斥结论按钉住源码推断、未实跑，这里也没有命中率、吞吐、时延的任何实跑数据；上面的字节数是部署页的缓存布局换算，不是 LMCache 的效果。
 
-**版本组合也要自己钉。** 官方的 Ascend 部署材料依赖社区维护的 LMCache-Ascend 插件，给的镜像例子是一组更早的版本组合（LMCache 0.3.12 配 vllm-ascend 0.11.0），文档存在不等于这组组合验证过 GLM 主线；main 上 vllm-ascend 已经不再注册这个连接器名，要改用插件包自己的注册方式。
+**版本组合也要自己钉。** 官方的 Ascend 部署材料依赖社区维护的 LMCache-Ascend 插件，给的镜像例子是一组更早的版本组合（LMCache 0.3.12 配 vllm-ascend 0.11.0），文档存在不等于这组组合验证过 GLM 主线；`v0.30.0` 起及 `main` 上 vllm-ascend 已经不再注册这个连接器名，要改用插件包自己的注册方式。
 
 ## 常见误解
 
@@ -237,16 +246,16 @@ title: 假如补回 1 个 chunk，要往显存里搬多少（示意：chunk = 25
 
 ### 版本差异
 
-**v0.30.0rc2 的 Ascend 注册表仍未重新引入旧 LMCache 包装入口。** 接入依赖外部 LMCache-Ascend 插件及其安装、注册约定，不能把旧维护分支的仓库注册名直接当成 rc2 内置能力。rc2 保留的部署文档仍有 LMCache 0.3.12、Ascend v0.11.0 的旧镜像示例；这些文字能说明接入方法，不能证明其二进制组合与 rc2 兼容。实际采用时须同时固定插件、LMCache、vLLM 和 Ascend 版本，本文不把旧 Docker tag 改成未经验证的 rc2 配方。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`，GLM 绑定算例镜像 `db701c1f` 同此分支结构）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）。**`v0.30.0` 与 `main` 均已移除仓内 `LMCacheAscendConnector` 注册与薄包装模块**，接入统一依赖外部 LMCache-Ascend 插件包的注册与配置；部署文档中仍保留 LMCache 0.3.12 配 vllm-ascend v0.11.0 的旧 Docker 示例，仅说明构建方法，不代表该二进制组合与 `v0.30.0` / `main` 兼容。
 
-| 项 | v0.23 维护分支 2c59ff10 | GLM 快照 db701c1f | v0.26 分支 2ed6cbba | main baa023ad |
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 |---|---|---|---|---|
-| 仓库是否注册这个名字 | 是 [C17] | 是 [C1] | 是 [C18] | 否，改用插件包自己的注册 [S15] |
-| 包装模块 | 几行的导入加导出 | 同左 | 同左 | 已删除 |
-| 上游连接器选择入口 | `LMCacheConnectorV1`，`use_native` 二选一 [C3] | 同左 | 此选择入口相同（来源 23） | 此选择入口相同（来源 24） |
-| 部署材料 | 给出在线与离线两种写法 [S14] | 同左 | 同左 | 只留一句「改用插件包的配置」 [S15] |
+| 仓内是否注册 `LMCacheAscendConnector` | 是（`kv_transfer/__init__.py#L61-L65`，GLM 快照 `db701c1f` 同） | 是（`kv_transfer/__init__.py#L61-L65`） | 否，已移除注册，改由插件包自注册（`kv_transfer/__init__.py#L21-L135`） | 否，同样未注册（`kv_transfer/__init__.py#L57-L162`） |
+| Ascend 包装模块 `lmcache_ascend_connector.py` | 保留（先 `import lmcache_ascend` 再导出上游类） | 同左 | 已删除 | 已删除 |
+| 上游 `LMCacheConnectorV1` 选择与生命周期 | `use_native` 二选一（默认 `False` 走外部包） | 相同（`lmcache_connector.py#L72-L115`） | 延续 `use_native`；新增 `requires_piecewise_for_cudagraph`（逐层模式强制 piecewise 图，`#L72-L115`） | 延续上述能力；新增 `bind_connector_metadata` 兼容钩子，适配 `SchedulerOutput.has_sync_kv_loads` 延迟加载时序（`#L68-L140`） |
+| Ascend 部署文档 `lmcache_ascend_deployment.md` | 给出在线与离线配置示例 [S14] | 同左 | 用法段改为提示“不再由 vllm-ascend 注册，改用 LMCache-Ascend 文档”，旧 Docker 示例行保留（`#L1-L24`、`#L70-L72`） [S27] | 同 `v0.30.0`（`#L70-L72`） |
 
-意味着什么：前三列按仓库注册名启动，main 上要换写法；已对照的 adapter 选择入口相同，不代表整个 adapter、上游调用生命周期和外部软件包都逐字相同。运行行为还须固定三者的版本 [D]。
+意味着什么：`v0.23.0` 与 `v0.26.0rc`（及 GLM 镜像 `db701c1f`）可按仓内注册名启动，`v0.30.0` 与 `main` 必须换用 LMCache-Ascend 插件自己的注册入口；上游 `use_native` 入口保持不变，但逐层图模式约束与 `bind_connector_metadata` 生命周期已演进，运行行为仍须同时固定 vLLM、vllm-ascend、LMCache 与 LMCache-Ascend 四者版本 [D]。
 
 ### 源码位置
 

@@ -93,12 +93,23 @@ sources:
   - 'vllm@ced6857a:vllm/entrypoints/cli/serve.py#L105-L154'
   - 'vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L659-L677'
   - 'vllm@0fc695fc:vllm/config/parallel.py#L447-L450'
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "releases/v0.30.0rc2", "main"]
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L375-L426'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L1385-L1435'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L420-L455'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/utils.py#L1389-L1445'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: expert-parallel
     kind: builds-on
     note: 理解专家放置和派发组合
+  - to: moe-comm-dispatch
+    kind: builds-on
+    note: 四族硬件 MoE 通信路径状态机、动态 mc2_tokens_capacity 与权重重切分见该专章
   - to: data-parallel
     kind: builds-on
     note: 理解请求副本与 EP 组的关系
@@ -157,13 +168,13 @@ file: large-scale-ep
 
 为什么专家要全部常驻，EP 页讲过（见[为什么需要 EP](expert-parallel.md#为什么需要-ep)）：下一个 token 选谁事先不知道，每层每个路由专家都得随时可用。接着那里的示意模型：40 层，每层 128 个专家，一个专家 12 MiB，专家权重一共 60 GiB。组越大，每卡分到的越少：
 
-```calc
-title: 示意模型每卡要存多少专家权重（数为示意）
-全部专家 = 40 层 × 128 个 × 12 MiB = 61,440 MiB = 60 GiB
-EP4 每卡 = 60 GiB ÷ 4 = 15 GiB，每层 32 个专家
-EP16 每卡 = 60 GiB ÷ 16 = 3.75 GiB，每层 8 个专家
-EP64 每卡 = 60 GiB ÷ 64 = 960 MiB，每层 2 个专家
-```
+$$M_{\text{all}} = 40 \times 128 \times 12\text{ MiB} = 61{,}440\text{ MiB} = 60\text{ GiB}, \qquad M_{\text{rank}} = \frac{M_{\text{all}}}{\text{EP}}$$
+
+| 并行档位（示意模型，共 60 GiB 专家权重） | 每卡每层专家数 | 每卡常驻专家权重算式与结果 |
+| --- | --- | --- |
+| EP4 | $128 \div 4 = \mathbf{32\text{ 个}}$ | $60\text{ GiB} \div 4 = \mathbf{15\text{ GiB}}$ |
+| EP16 | $128 \div 16 = \mathbf{8\text{ 个}}$ | $60\text{ GiB} \div 16 = \mathbf{3.75\text{ GiB}}$ |
+| EP64 | $128 \div 64 = \mathbf{2\text{ 个}}$ | $60\text{ GiB} \div 64 = \mathbf{960\text{ MiB}}$ |
 
 省下来的显存有两处潜在用场。**一是放KV cache**：普通注意力层为已处理的位置保存K、V，MLA和KDA的状态形式另见[KV cache](kv-cache.md)。其他占用不变时，权重少占的容量可以留给更多或更长的请求。**二是减少单卡的专家工作**：若decode小批次受读取权重的带宽限制，分散专家后应比较每卡本步实际选中的专家和读取量；这些量由路由、缓存与算子组织共同决定，不能按驻留容量的下降比例推加速。组里更多token选中同一专家时，还能增加权重复用机会（见[矩阵乘和权重](matmul-and-weights.md#同一片权重为什么能处理多行输入)）。只有这部分节省超过新增通信和等待，decode才会更快。
 
@@ -198,14 +209,14 @@ EP64 每卡 = 60 GiB ÷ 64 = 960 MiB，每层 2 个专家
 file: large-scale-ep-flow
 ```
 
-**外部路由怎么挑。** 分派交出去以后，谁去哪个 rank 由外部程序决定。vllm-ascend 仓库里的示例 proxy 不是轮流发，而是给每个后端记一本账：每派出一条请求，按请求体的长度（字节数，不是 token 数）估一笔负载记上，处理完再减掉。decode 端记的就是请求体长度；prefill 端记的是由长度折算出的估分。挑 prefill 端时比各自手上的估分之和，挑 decode 端时比各自手上的请求体长度之和，都取最小的：
+**外部路由怎么挑。** 分派交出去以后，谁去哪个 rank 由外部程序决定。vllm-ascend 仓库里的示例 proxy 不是轮流发，而是给每个后端记一本账：每派出一条请求，按请求体的长度（字节数，不是 token 数）估一笔负载记上，处理完再减掉。decode 端记的就是请求体长度；prefill 端记的是由长度折算出的估分。挑 prefill 端时比各自手上的估分之和，挑 decode 端时比各自手上的请求体长度之和，都取最小的（请求体长度为示意；请求体长 10 倍，估分只约 3 倍，因为常数项 $120.0745$ 占了大头，更接近在数手上还有几条请求）：
 
-```calc
-title: 示例 proxy 给 prefill 端记的估分（请求体长度为示意）
-短请求 = 4,000 ÷ 4 × 0.0345 + 120.0745 ≈ 154.6
-长请求 = 40,000 ÷ 4 × 0.0345 + 120.0745 ≈ 465.1
-> 请求体长了 10 倍，估分只约 3 倍：常数 120 占了大头，更接近在数手上还有几条请求
-```
+$$\text{Score}_{\text{prefill}}(L) = \frac{L}{4} \times 0.0345 + 120.0745$$
+
+| 请求类型（示例 proxy 估分，示意） | 请求体长度 $L$ | 算式 | Prefill 估分 |
+| --- | --- | --- | --- |
+| 短请求 | $4{,}000$ B | $4{,}000 \div 4 \times 0.0345 + 120.0745$ | **约 154.6** |
+| 长请求 | $40{,}000$ B | $40{,}000 \div 4 \times 0.0345 + 120.0745$ | **约 465.1** |
 
 这本账是 proxy 自己在派出和结束时加减的估算，不是从设备上实时读出的利用率；换一个外部路由，规则也可以完全不同。一条请求的走法见上图右半：proxy 先把请求发给挑中的 prefill 端，并限定它只生成 1 个 token；prefill 端返回 KV 传输参数，proxy 把参数交给挑中的 decode 端，decode 端再通过连接器直接从 prefill 端取 KV cache，proxy 本身不搬 KV。
 
@@ -217,15 +228,15 @@ PD 分离把一条请求的 prefill 和 decode 交给两组不同的机器：pre
 
 为什么和大规模 EP 特别搭，要看 MoE 层怎么选通信方式。先看本页固定旧版、A2 规模条件已满足且 A3 融合模式按默认关闭的情形：每一步取 DP 组里各 rank 的 token 数**最大值**，不超过容量门槛就走 MC2（通算融合：把跨卡收发和计算协同执行的一类昇腾实现，只把被选中的 token 副本发到专家所在的卡），超过了就换成先收齐整批 token 的 All-Gather 路径（A2）或按目的地整批交换的 All-to-All 路径（A3）。按最大值选，意味着**全组用同一种方式**：只要有一个 rank 这一步塞进了一段长 prefill，其余只做 decode 的 rank 也一起换路，还要把各自的输入补齐到同样的行数（见[并发请求的第 4 站](concurrent-requests.md#第-4-站-moe-通信6048-个-token-把两台机器一起推过-128-的门槛)）。A3 开融合模式后有例外：模式 1 且 EP 不超过 32 时，超容量仍可选融合 MC2，具体分支见后面的源码说明。
 
-组越大，这种被一个 rank 拖走的步就越多。示意：假设每个 rank 每一步有 5% 的机会带着长 prefill，各 rank 互不相干：
+组越大，这种被一个 rank 拖走的步就越多（四族硬件如何依据 token 数、EP 规模与硬件档位选择 `MC2 / FUSED_MC2 / ALLTOALL / ALLGATHER`，详查 [MoE 通信派发](moe-comm-dispatch.md#四族硬件调度状态机hardware_profilepy--ascend_forward_contextpy)）。示意：假设每个 rank 每一步有 $p = 5\%$ 的机会带着长 prefill，各 rank 互不相干（组越大，几乎每一步都有 rank 在做 prefill）：
 
-```calc
-title: 至少一个 rank 带长 prefill 的机会（p = 5% 为示意）
-2 个 rank = 1 − 0.95² = 0.0975 ≈ 10%
-16 个 rank = 1 − 0.95¹⁶ ≈ 56%
-64 个 rank = 1 − 0.95⁶⁴ ≈ 96%
-> 组越大，几乎每一步都有 rank 在做 prefill
-```
+$$P(\text{至少 1 个 rank 带长 prefill}) = 1 - (1 - p)^R$$
+
+| DP Rank 总数 $R$（示意，$p = 5\%$） | 算式 | 至少 1 个 rank 带长 prefill 的概率 |
+| --- | --- | --- |
+| $R = 2$ | $1 - 0.95^2 = 0.0975$ | **约 10%** |
+| $R = 16$ | $1 - 0.95^{16}$ | **约 56%** |
+| $R = 64$ | $1 - 0.95^{64}$ | **约 96%** |
 
 拆成 P、D 两侧以后，decode 一侧的每一步只有 decode 的 token，能稳定留在小批次的路子上；prefill 一侧专门处理大批次。两侧还能各选各的参数：prefill 一侧一步收很多 token、同时处理的请求少；decode 一侧一步收的 token 少、同时处理的请求多，还能用 graph mode（把一步的算子序列录下来整段重放）省掉逐个下发算子的开销。上游 vLLM 的 EP 部署文档也是这样配的：prefill 实例用面向吞吐的通信后端，decode 实例用面向低延迟的后端。
 
@@ -256,14 +267,14 @@ file: large-scale-ep-deploy
 
 每个 DP rank 是一个服务。数一数一共有多少个服务、每个逻辑设备放多少专家：
 
-```calc
-title: 官方示例的服务数与每个逻辑设备的专家数
-P 一侧服务 = 4 台 × 2 个 rank = 8
-D 一侧服务 = 4 台 × 16 个 rank = 64
-服务合计 = 8 + 64 = 72
-P 每个逻辑设备的路由专家 = 256 ÷ 16 = 16
-D 每个逻辑设备的路由专家 = 256 ÷ 64 = 4
-```
+$$N_{\text{services}} = (4 \times 2)_{P} + (4 \times 16)_{D} = 8 + 64 = 72$$
+
+| 统计项（官方 8 台 A3 部署 DeepSeek-R1 256 专家示例） | 算式 | 结果 |
+| --- | --- | --- |
+| P 侧服务数（4 台 × 2 rank/台） | $4 \times 2$ | **8 个服务** |
+| D 侧服务数（4 台 × 16 rank/台） | $4 \times 16$ | **64 个服务**（P+D 合计 **72 个**） |
+| P 侧每逻辑设备路由专家数（每台 EP16） | $256 \div 16$ | **16 个专家** |
+| D 侧每逻辑设备路由专家数（4 台合 EP64） | $256 \div 64$ | **4 个专家** |
 
 每个服务的 HTTP 端口从 9000 起，按本机的 rank 依次加一。72 只数外面能访问的服务，没有算服务里面的进程：P 一侧每个 rank 占 8 个逻辑设备，就有 8 个 Worker。
 
@@ -376,21 +387,16 @@ D 每个逻辑设备的路由专家 = 256 ÷ 64 = 4
 
 ### 版本差异
 
-**v0.30.0rc2 延续已钉 main 的 MoE 跳过逐步 DP 同步条件。** hierarchy、MegaMoE 支持路径和 use_cann_megamoe 不跳过；MoE 必须处于 KV consumer，最大 decode 步宽须命中 MC2/FUSED_MC2。prefill 还要求最大 batch 命中 MC2 且图模式不区分 prefill/decode，或者开启 recompute scheduler。这个完整谓词在 baa023ad 已存在；下文固定旧 GLM 的简化条件不能用于概括 main 或 rc2。跳过的是这次元数据同步，专家数据通信仍在；旧 GLM 容量 128 和 EP16 算例保留原钉点。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**本文 GLM 双机 EP16 算例沿用例外 B 专用镜像 `db701c1f`**（其文档与示例与 `v0.23.0` 一致）。四族硬件动态选路细节见 [MoE 通信派发](moe-comm-dispatch.md#四族硬件调度状态机hardware_profilepy--ascend_forward_contextpy)。
 
-对照的是 vllm-ascend 的 v0.23 维护分支 `2c59ff10`、v0.26 `2ed6cbba`、main `baa023ad`、v0.30.0rc2 `7d825229`，以及配套的 vLLM `0fc695fc`、`568afb3a`、`84030bbe`、`ced6857a`；GLM 算例用的 `db701c1f` 在本页涉及的文档与示例上和 v0.23 维护分支一致。
-
-| 项 | v0.23 | v0.26 | main | v0.30.0rc2 |
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 | --- | --- | --- | --- | --- |
-| 官方文档 | MyST 的 tab 写法 | 换成 mkdocs-material 的写法，另加一处提示框；参数和脚本不变 | 删掉 4 处 JSON 尾逗号和 proxy 命令末尾多余的续行符 [S29] | 该文档与 main 相同；其他旧模板问题仍须按上文处理 |
-| 纯 DP 外置分派的 proxy 示例 | 有 `dp_load_balance_proxy_server.py`，按请求长度挑后端 | 该文件已删除 | 该文件已删除 | 该文件已删除 |
-| PD 示例 proxy 的挑法 | prefill 比估分账，decode 比长度账 | 相同 | 相同 | 两种估分和优先级规则相同 |
-| Mooncake V1 端口偏移 | 按 DP rank × TP × PP × PCP，加 rank 内设备索引 | 相同 | V1 相同；另有 V2 子目录实现 | V1 仍在旧文件，公式相同；V2 单独注册 |
-| 上游外置分派 | 给编号即外置；本地 DP 个数不对时 AssertionError | 相同 | 改为 ValueError；fault tolerance 只能在外置分派下开 | 同 main；external 本身仍须 DP>1，API 默认 1 个、可显式多开 |
-| 附加配置里不认识的顶层键 | 忽略，不报错 | 忽略，不报错 | 默认严格拒绝；检测到 vllm_omni 时先过滤未知顶层键 | 同 main 的严格校验与 Omni 过滤分支 [C46] |
-| A2 / A3 的 MoE 通信选择 | 见 EP 页 | 见 EP 页 | 见 EP 页 | 见 EP 页；融合配置值 2 的含义已变，不能照搬旧 GLM 的模式 2 [C54] |
+| 跨机 EP MoE 选路 | A2 按 `<=24` / `>=16` / `<=capacity` 判 MC2 否则 ALLGATHER；A3 按容量与融合模式选 MC2/ALLTOALL | 同 `v0.23.0` | 收敛为硬件画像驱动的 `select_moe_comm_method`（`ascend_forward_context.py#L375-L426`），LoRA+EP 强制 `ALLTOALL`；融合配置值 2 语义调整，不可照搬旧 GLM 模式 2 [C54] | 延续 `select_moe_comm_method`（`#L420-L455`）与动态 `mc2_tokens_capacity`（见 [MoE 通信派发](moe-comm-dispatch.md#动态-mc2_tokens_capacity-怎样算为什么会多跑一次-profile-dummy-run)） |
+| 跳过逐步 DP 元数据同步 | KV consumer 且关分层通信，decode 须 MC2 且（prefill 须 MC2 或开 recompute） | 同 `v0.23.0` | `utils.py#L1385-L1435` 补齐 `hierarchy`、`is_mega_moe_supported()` 与 `use_cann_megamoe` 排除项，且 prefill 侧额外要求图模式不区分 prefill/decode | `utils.py#L1389-L1445` 进一步排除细粒度 `qkv_iproj_tensor_parallel_size > 1`，并在派发层与 `not requires_lmhead_dp_sync` 联合判断 |
+| 外置分派与附加配置校验 | 给 rank 即外置（要求 `DP>1`）；本地 DP 非 1 报 `AssertionError`；附加配置忽略未知顶层键 | 同 `v0.23.0`；删除纯 DP 示例 `dp_load_balance_proxy_server.py` | 本地 DP 非 1 改报 `ValueError`；`fault tolerance` 限外置分派；附加配置默认严格拒绝未知顶层键（检测到 `vllm_omni` 时告警过滤）[C46]；文档已删尾逗号 [S29] | 同 `v0.30.0` 外置校验与严格附加配置；PD 示例 proxy 保持估分/长度账 |
+| Mooncake V1/V2 端口与注册 | V1 端口按 `DP rank × TP × PP × PCP + device_index` 偏移 | 同 `v0.23.0` | V1 端口公式不变；V2 在独立子目录单独注册 | 同 `v0.30.0` |
 
-v0.26 起，上述目录不再提供那个纯 DP proxy 文件；需要自行提供外部路由，不能继续照抄其路径。官方文档里「推荐在 v0.9.1 正式版上使用」这句在四个钉点里都没改，不能把它当成当前版本选择依据。四版的这套 MoE 专家域示例都显式打开 EP，外置 DP 分派均要求 DP>1。
+v0.26 起目录不再提供纯 DP proxy 文件，需自行提供外部路由。官方文档里「推荐在 v0.9.1 正式版上使用」这句未随版本刷新，不能当作版本选择依据。四版的这套 MoE 专家域示例均显式打开 EP，外置 DP 分派均要求 `DP > 1`。
 
 ### 源码位置
 

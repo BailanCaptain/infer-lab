@@ -91,13 +91,25 @@ sources:
   - 'vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L4604-L4616'
   - 'vllm@ced6857a:docs/design/model_runner_v2.md#L1-L206'
   - 'vllm@0fc695fc:vllm/sampling_params.py#L424-L480'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L498-L521'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L31'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L353-L375'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2227-L2245'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4604-L4615'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L589-L618'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L89'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L7'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L144-L160'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
+  - to: model-runner-v2
+    kind: variant-of
+    note: V2 执行器的常驻设备缓冲、独立状态组织，以及 main 全面收敛至 MRV2 的架构演进
   - to: prepare-inputs-flow
     kind: builds-on
     note: 对账之后怎样拼出 token id、位置、槽位和选行，逐行算法在那一页
@@ -182,20 +194,16 @@ file: model-runner-layout
 4. 2 行分数连同计划等一起存进执行状态，第一次调用返回空。
 5. 第二次调用取出分数，逐行采样，再按「第 0 行是 A、第 3 行是 C」交回。
 
-```calc
-title: A、C 这一步：4 行输出怎样变成 2 个 token（词表按 5 个词示意）
-前向输出 = 4 行
-> 第 0 行属于 A，第 1–3 行属于 C
-过输出头的行 = 2 行（第 0、3 行）
-词表分数 = 2 行 × 5 个词 = 10 个
-> 4 行全过要 20 个；前向本身 4 行照算，省的只是输出头这一步
-A 这一行 = [0.3, 2.1, −0.5, 1.4, 0.2]
-A 取的词 = 分数最大的位置 = 第 1 个（从 0 数）
-C 这一行 = [1.2, −0.3, 0.8, 3.0, 0.1]
-C 取的词 = 分数最大的位置 = 第 3 个
-交回 = {A: 第 1 个词, C: 第 3 个词}
-> 就是图里的 a₆ 和 c₃；10 个分数在两次调用之间一直存在执行状态里
-```
+按 5 词示意词表，前向 4 行全部照算，但只有选中行进入输出头，省下 $(4 - 2) \times 5 = 10$ 个词表分数（$\text{greedy}$ 采样直接取最大分数的下标）：
+
+$$\text{logits\_count} = 2\text{ 行} \times 5\text{ 词} = 10 \quad (\text{全过输出头需 } 4 \times 5 = 20)$$
+
+| 步骤与对象 | 示意数值（5 词表，下标 `0..4`） | 选词与去向 |
+| --- | --- | --- |
+| 前向输出 | 4 行（第 0 行属 A，第 1–3 行属 C） | 仅选第 `0, 3` 行过 `lm_head` |
+| A（第 0 行 logits） | `[0.3, 2.1, -0.5, 1.4, 0.2]` | $\text{argmax} = 1$（即 $a_6$） |
+| C（第 3 行 logits） | `[1.2, -0.3, 0.8, 3.0, 0.1]` | $\text{argmax} = 3$（即 $c_3$） |
+| 暂存与交回 | 10 个分数暂存在执行状态，第二次调用按请求拆回 | `{A: 第 1 个词, C: 第 3 个词}` |
 
 **为什么第 1、2 行不过输出头？** 每一行输出预测的是「它后面那个 token」。第 1 行是 c₀ 的输出，预测的是 c₁，而 c₁ 就在提示词里，答案早就知道；只有最后一行预测的是还没人写出来的那个 token。第 1、2 行也不是白算：前向时它们在每一层留下了 c₀、c₁ 的历史，C 之后每生成一个 token 都要读。所以省下的只是输出头那一次乘法，词表越大省得越多。
 
@@ -281,7 +289,7 @@ MRV2 改的是每步执行器怎样保存状态、准备输入和组织设备工
 
 上游设计也把采样、图管理和试跑职责拆开。采样用独立的设备实现管理随机数与概率；试跑委托正常执行入口，录图有单独路径。将多次草拟合在一张图里时，注意力后端还必须正确更新随位置变化的派生元数据；更新函数的 Python 部分在捕获时执行，回放依靠录下来的设备操作，不能假定每次回放都会重新执行 Python。
 
-这段解释对应固定上游 MRV2 设计。Ascend 另有自己的 V2 适配与限制；上述 GPU、UVA 或 Triton 路径不能仅因开启环境变量就当作 NPU 已支持。本站 GLM 旧配方仍用 V1，后面的执行状态与两次调用算例保持该前提；迁移时先看[版本差异](#版本差异)，再核实际 runner 的输入、图和模型限制。
+这段解释对应固定上游 MRV2 设计。在昇腾侧，**`v0.30.0` 默认仍走 `model_runner_v1.py` 的 MRV1 执行器**，按环境变量 `VLLM_USE_V2_MODEL_RUNNER` 可切换至 `worker/v2/model_runner.py`；到了 **`main` 分支，仓库已物理删除 `model_runner_v1.py`，全面收敛至 `worker/v2/model_runner.py`**（仅多模态编码器专用模型改走 `MMEncoderModelRunner`），详细设计、常驻缓冲与异步配合见 [Model Runner V2](model-runner-v2.md) 与 [v0.30.0 与 main 演进](model-runner-v2.md#v0300-按需开启-vs-main-彻底统一)。上述 GPU、UVA 或 Triton 路径不能仅因开启环境变量就当作 NPU 已支持；本站 GLM 旧配方仍用 V1，后面的执行状态与两次调用算例保持该前提，迁移时先看[版本差异](#版本差异)，再核实际 runner 的输入、图和模型限制。
 
 ## 放到 GLM 双机：16 个 runner，R1 的两步各做了什么？
 
@@ -297,17 +305,16 @@ MRV2 改的是每步执行器怎样保存状态、准备输入和组织设备工
 
 第二次调用走拒绝采样器，前 3 行逐位验证 3 个候选，第 4 行在候选全对时多给一个 token，所以这一步交回 1 到 4 个 token。runner 随后整理采样结果，并草拟下一轮 3 个候选，再更新接受数。GLM 的 45 层主干里有 34 层 KDA，属于线性注意力，模型类又声明了自己是混合模型，所以还要数出 R1 接受了几个、写进接受数表，第三步 KDA 从对应的那份候选状态接着算。
 
-这一步执行状态里最大的几样，每张卡：
+这一步执行状态里最大的几样，每张卡（4 行全被选中，词表分数 `[4, 154880]` BF16 推导见一条请求第二圈）：
 
-```calc
-title: R1 第二步，每张卡的执行状态里最大的几样
-词表分数 = 1,239,040 B
-> [4, 154880]，BF16；推导见一条请求第二圈
-全部行的隐藏向量 = 4 × 4,096 × 2 B = 32,768 B
-选中行的隐藏向量 = 4 × 4,096 × 2 B = 32,768 B
-> 4 行全被选中，所以和上一行一样大
-合计 = 1,239,040 B + 32,768 B + 32,768 B = 1,304,576 B ≈ 1.24 MiB
-```
+$$M_{\text{state,top3}} = 1{,}239{,}040 + 32{,}768 + 32{,}768 = 1{,}304{,}576\text{ B} \approx 1.24\text{ MiB}$$
+
+| 暂存张量（R1 第二步，单卡） | 形状与精度 | 字节算式与大小 |
+| --- | --- | --- |
+| 词表分数（logits） | `[4, 154880]`，BF16 | $4 \times 154{,}880 \times 2\text{ B} =$ **1,239,040 B** |
+| 全部行的隐藏向量 | `[4, 4096]`，BF16 | $4 \times 4{,}096 \times 2\text{ B} =$ **32,768 B** |
+| 选中行的隐藏向量 | `[4, 4096]`，BF16（4 行全选中） | $4 \times 4{,}096 \times 2\text{ B} =$ **32,768 B** |
+| **三项合计** | 存引用不拷贝，活到第二次调用开头清空 | **1,304,576 B ≈ 1.24 MiB** |
 
 这个单请求算例的暂存较小，仍必须留到第二次调用用完，下一次前向才能开始；批次扩大时暂存量也随之改变。这里首先要理解的是这道顺序约束。词表分数那一项的推导在[一条请求的第二圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)。
 
@@ -332,7 +339,7 @@ title: R1 第二步，每张卡的执行状态里最大的几样
 
 model runner 没有开关：每个 Worker 在 `init_device` 选好卡之后一定建一个。决定它走哪条路的是这几样：
 
-- **v1 还是 v2。** `use_v2_model_runner` 为真时建 `vllm_ascend/worker/v2/model_runner.py` 里的实现，否则建 `vllm_ascend/worker/model_runner_v1.py` 的 `NPUModelRunner`，它继承上游 `GPUModelRunner` [C17]。昇腾补丁让这个开关只看环境变量 `VLLM_USE_V2_MODEL_RUNNER`，不设就是 v1 [C20]。本页 GLM 执行走读是 v1；V2 的状态组织另见前文，实际支持条件按下表区分版本。
+- **v1 还是 v2。** 在 `v0.30.0`（`c09d3e20`）及之前版本，`use_v2_model_runner` 为真时建 `vllm_ascend/worker/v2/model_runner.py` 里的实现，否则默认建 `vllm_ascend/worker/model_runner_v1.py` 的 `NPUModelRunner`（继承上游 `GPUModelRunner`）[C17]；昇腾补丁让该开关只读环境变量 `VLLM_USE_V2_MODEL_RUNNER`，未设时默认返回 `False`（走 V1）[C20]。到了 `main`（`8d6180e2`），`model_runner_v1.py` 已物理删除，`mrv2_utils.use_v2_model_runner` 恒返回 `True`，普通模型统一实例化 `worker/v2/model_runner.py` 的 `NPUModelRunner`（多模态编码器专用模型改走 `MMEncoderModelRunner`），详解见 [Model Runner V2](model-runner-v2.md) [C68]。本页 GLM 执行走读是 V1；实际支持条件按下表区分版本。
 
 - **投机解码。** 配了 `speculative_config` 时，`sample_tokens` 在 `_bookkeeping_sync` 之后调 `propose_draft_token_ids` 草拟 [C12]。异步调度下，上游 `_update_states` 按「上一步草稿全接受」先记账，返回一个修正函数；`execute_model` 存完 `ExecuteModelState`、返回之前才调用它 [C24]。
 - **混合模型的接受数。** `need_accepted_tokens` 在 `initialize_kv_cache` 里按「注意力分组里有没有 `MambaSpec`」定 [C15]；上游 `_update_states_after_model_execute` 只在开了投机解码且 `model_config.is_hybrid` 时才数接受数 [C22]。GLM 的 KDA 层类继承 `MambaBase`，报出的是 `MambaSpec`，模型类 `AscendGlm5NextForCausalLM` 声明了 `IsHybrid`，所以 GLM 双机每步采样后都会数 [D]。
@@ -343,7 +350,8 @@ model runner 没有开关：每个 Worker 在 `init_device` 选好卡之后一�
 
 - `RuntimeError("State error: sample_tokens() must be called after execute_model() returns None.")`：第一次调用进来时执行状态还没被取走 [C3]。说明两次调用的交替被打乱，要查调用方，不是模型算错。
 - `RuntimeError("unexpected error")`：批次队列路径上第二次调用返回了 `None`。引擎把它当作第一次调用出了错，先去取第一次调用的异常重新抛出，取不到才抛这一句 [C26]。
-- `VLLM_USE_V2_MODEL_RUNNER is not supported on vllm 0.23.0; falling back to v1 model runner.`：配套 vLLM 是 0.23.0 时设了 v2 开关，打这条 warning 后仍用 v1 [C19]。真正选上 v2 时另打 `npu model runner v2 is in developing, some features doesn't work for now.`。
+- `VLLM_USE_V2_MODEL_RUNNER is not supported on vllm 0.23.0; falling back to v1 model runner.`：配套 vLLM 是 0.23.0 时设了 v2 开关，打这条 warning 后仍用 v1 [C19]。`v0.26.0rc` 与 `v0.30.0` 选上 v2 时另打 `npu model runner v2 is in developing, some features doesn't work for now.`。
+- `ValueError("Model Runner V1 has been removed from vllm-ascend, so VLLM_USE_V2_MODEL_RUNNER=0 cannot be honored. Unset it to run Model Runner V2.")`：`main`（`8d6180e2`）已删除 V1 执行器，`mrv2_utils.apply_v2_model_runner_config_patch` 显式拦截遗留脚本中的 `VLLM_USE_V2_MODEL_RUNNER=0`（避免被静默忽略）[C69]。
 - 异步调度下，上一步被丢弃或因 KV 加载失败要重算的请求：不报错。昇腾先把它们的 `prev_num_draft_len` 清零，重算回退的在 `_update_states` 里清 [C2]，被丢弃的在 `execute_model` 对账之前清 [C4]。按源码注释，被丢弃的那类不清零，父类 `_update_states` 会在 `prev_req_id_to_index` 里查不到而抛 `KeyError`。
 
 ### 开销和什么时候别开
@@ -360,23 +368,20 @@ model runner 没有开关：每个 Worker 在 `init_device` 选好卡之后一�
 
 ### 版本差异
 
-**v0.30.0rc2 的 V1 与 V2 必须分开读。** Worker 按最终 use_v2_model_runner 选择原 NPUModelRunner 或 worker/v2/model_runner.py 的实现。配套上游快照的原属性会结合平台和功能条件决定 runner；Ascend 的平台补丁替换了该属性，只读 VLLM_USE_V2_MODEL_RUNNER，未设置时返回 false、使用 V1。模型兼容性随后交给 NPU runner 校验，不能用文件名里有 v2 推断现场已启用它。rc2 的 GLM-5.3-Flash 教程明确要求 V1。本文的旧 V1 执行状态、两次调用和逐行行号不作为 V2 的内部状态表。
+**`v0.30.0` 保留 V1 默认 + V2 可选，`main` 已物理删除 `model_runner_v1.py` 全面收敛至 MRV2。** 在 `v0.30.0`（`c09d3e20`），`worker.py#L510-L516` 按 `self.use_v2_model_runner` 选择 `model_runner_v1.py` 或 `worker/v2/model_runner.py`；配套上游 `VllmConfig.use_v2_model_runner` 原属性结合平台与功能白名单判断，Ascend 的 `patch_use_v2_model_runner.py#L18-L31` 覆写为纯读 `VLLM_USE_V2_MODEL_RUNNER`（未设即 `False`，默认走 MRV1），模型兼容性交由 NPU runner 自身校验。到了 `main`（`8d6180e2`），`vllm_ascend/worker/model_runner_v1.py` 已被物理删除，新增 `vllm_ascend/mrv2_utils.py#L29-L89` 将 `VllmConfig.use_v2_model_runner` 固定返回 `True`，并在 `worker.py#L603-L613` 直接实例化 `worker/v2/model_runner.py`（或针对多模态编码器专用模型实例化 `MMEncoderModelRunner`），若仍传入 `VLLM_USE_V2_MODEL_RUNNER=0` 则直接抛 `ValueError`。V2 的常驻缓冲、PCP 与 EPLB 集成详见 [Model Runner V2](model-runner-v2.md) 与 [CP 版本差异](context-parallel.md#版本差异)。
 
-V2 已接入 PCP 管理器、独立的 model_states 与投机处理；相应组合限制由 V2 的校验决定。V1 中仍保留执行与采样的分工，但旧表的文件长度和函数起始行只能定位旧提交。迁移时先核 Worker 实际创建的类，再按该实现追输入准备、前向和采样；rc2 的 PCP 与 GLM 边界见 [CP 版本差异](context-parallel.md#版本差异)。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `vllm@0fc695fc`，无 GLM 代码；本文 GLM 绑定算例另钉专用镜像 `db701c1f`）、`v0.26.0rc`（`2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `vllm@ced6857a`）与 `main`（`8d6180e2` / `vllm@ba15685a`）：
 
-按知识库固定快照核对：v0.23 维护分支 Ascend 2c59ff10（配 vLLM 0fc695fc，没有 GLM 代码）；GLM 专用镜像 Ascend db701c1f 单列；v0.26 rc 分支 Ascend 2ed6cbba（没有 GLM 代码）；main 为 Ascend baa023ad（GLM 在 `models/glm5next/`）。
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| 默认执行器与 `model_runner_v1.py` | 默认 MRV1（`model_runner_v1.py`，5251 行；GLM 镜像 `db701c1f` 为 5480 行） | 默认 MRV1（5314 行）；删除 0.23.0 V2 退回分支，按开关选 V1/V2 | 默认 MRV1（6771 行，L2227 `execute_model` / L2763 `sample_tokens`）；未设 `VLLM_USE_V2_MODEL_RUNNER` 即走 V1 | **物理删除 `model_runner_v1.py`**；全面收敛至 `worker/v2/model_runner.py`（1690 行，L691 `execute_model` / L363 `sample_tokens`；纯编码器走 `MMEncoderModelRunner`） |
+| `VLLM_USE_V2_MODEL_RUNNER` 开关行为 | 0.23.0 上设 V2 警告并退回 V1 | 按环境变量开关走 V1/V2，未设走 V1 | `patch_use_v2_model_runner.py#L18-L31` 只读环境变量，未设返回 `False`（走 V1） | `mrv2_utils.py#L29-L89` 恒返回 `True`；显式传 `=0` 直接抛 `ValueError` |
+| V1 两次调用、12 项状态与 `State error` | 有（GLM 镜像同） | 有 | 有（`ExecuteModelState` 位于 L353），采样取出并清空状态 | V1 已移除；由 `worker/v2/model_runner.py` 的 V2 状态组织替代 |
+| V1 CPU 语法掩码与异步调度防护 | 有（logits 拷回 CPU 套允许词表；异步两处清零） | 有 | 有 | V1 已移除；V2 另按设备采样与状态模型处理 |
+| 父类初始化前为 PCP 临时加大批 token 上限 | 有（GLM 镜像为 `8192 + 1×2×32 = 8256`） | 已删 | 已删（V1 启动期直接拒绝 `PCP > 1`） | 已删；PCP 统一由 `worker/v2/pcp_manager.py` 承接 |
+| 判断是否计数接受数（混合模型） | 扫注意力分组找 `MambaSpec` | 同 `v0.23.0` | 直接读 `kv_cache_config.has_mamba_layers`（L4608） | V2 独立 `model_states/mamba_hybrid.py` 承接 |
 
-| 项 | v0.23 / GLM 镜像 | v0.26 | rc2（7d825229） | 固定 main |
-|---|---|---|---|---|
-| V1 两次调用、12 项状态、State error | 两者都有 | 有 | 有，采样取出并清空状态 | 有，所列状态内容相同 |
-| V1 logits 拷到 CPU 套允许词表 | 两者都有 | 有 | 有 | 有 |
-| V1 异步调度下的两处防护 | 两者都有 | 有 | 有 | 有 |
-| 在 vLLM 0.23.0 上设 v2 开关 | 两者均警告并退回 v1 | 退回已删，按开关走 | 同 v0.26；默认仍 V1 | 同 v0.26 |
-| 父类初始化前为 PCP 临时加大批 token 上限 | 两者都有 | 已删 | 已删，V1 还拒绝 PCP >1 | 已删 |
-| 判断要不要数接受数 | 扫注意力分组找 MambaSpec | 同左 | 直接读 has_mamba_layers | 同 rc2 所列判断 |
-| 文件行数 / execute_model 起始行 | 维护版 5251 / L1950；镜像 5480 / L1917 | 5314 / L1799 | 6594 / L2229 | 6242 / L2183 |
-
-rc2/main 改读 `has_mamba_layers`，main 注释说明新的打包布局把递推状态规格放进统一类型的组里，旧的「看每组第一个规格」认不出来 [C38]；v0.26 的 Worker 构造器已没有 0.23.0 的退回分支，`init_device` 按最终开关选类（来源 37、50）。PCP 那段在 db701c1f 里仍在：父类初始化前把批 token 上限加上「PCP 大小 × 2 × 最大并发请求数」，初始化完再减回去，本部署是 8192 临时加 1 × 2 × 32 = 64 [C33]。rc2 的列只比较 V1 所列分支，不说明与 main 整个文件相同；两份 runner 的内容不同。
+`v0.30.0` 改读 `has_mamba_layers` 是因为新的打包布局把递推状态规格放进统一类型的组里，旧的「看每组第一个规格」认不出来 [D]；`v0.26.0rc` 的 Worker 构造器已删除 0.23.0 的退回分支，`init_device` 按最终开关选类。PCP 临时加宽那段在 GLM 镜像 `db701c1f` 里仍在（`8192 + 1 × 2 × 32`）[C33]。`main` 收敛后本文旧 V1 的 12 项状态与逐行行号仅适用于 `v0.30.0` 及之前的 MRV1 路径，不再作为 `main` 的内部状态表 [I]。
 
 和上游 GPUModelRunner 比，昇腾 V1 有两处行为不同：上游在设备上原地套允许词表，昇腾在 CPU 上做；上游用设备上的采样结果草拟时不等整理结果，先草拟再整理 [C32]，昇腾先整理再草拟。本页的 GLM 算例基于 db701c1f 的执行代码；上游安装、有效默认值和设备实测，以[来源基线](../sources/glm-5-3-flash-baseline.md)的核实范围为准。
 
@@ -412,5 +417,7 @@ rc2/main 改读 `has_mamba_layers`，main 注释说明新的打包布局把递�
 - 来源 41：vllm-ascend@db701c1f，vllm_ascend/worker/model_runner_v1.py，L2914–L2940。
 - 来源 51–56：rc2 V1 的 12 项执行状态、两次调用和异步防护；CPU 语法处理也在来源 54。
 - 来源 57–60：rc2 Worker 与环境开关、V1 初始化和接受数判断；PCP 的启动拒绝条件回到[输入准备版本表](prepare-inputs-flow.md#版本差异)。
-- 来源 61：固定上游 MRV2 设计全文，支撑固定请求状态、本步 gather、pinned 快照、StagedWriteTensor 和捕获/回放边界；其中设备实现不能直接推广成 NPU 能力。
-- 来源 62：小正数温度的下限修正及 temperature=0 的贪心判定。
+- 来源 61：固定上游 MRV2 设计全文，支撑固定请求状态、本步 gather、pinned 快照、StagedWriteTensor 和捕获/回放边界；其中设备实现不能直接推广成 NPU 能力 [S61]。
+- 来源 62：小正数温度的下限修正及 temperature=0 的贪心判定 [D]。
+- 来源 63–67：`v0.30.0`（`c09d3e20`）Worker 默认实例化 MRV1（`worker.py#L498-L521`）、`patch_use_v2_model_runner.py#L18-L31`、`model_runner_v1.py` 的 `ExecuteModelState`（L353）、`execute_model`（L2227）与 `has_mamba_layers`（L4608）。
+- 来源 68–71：`main`（`8d6180e2`）删除 `model_runner_v1.py` 后的 `worker.py#L589-L618`、`mrv2_utils.py#L29-L89`、`patch_use_v2_model_runner.py#L1-L7` 与 `worker/v2/model_runner.py#L144-L160`。

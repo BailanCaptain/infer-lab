@@ -74,9 +74,25 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_config.py#L14-L30'
   - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2738-L2742'
   - 'vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L5399-L5501'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/vocab_parallel_embedding.py#L459-L630'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L582-L583'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1334-L1335'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/model.py#L849-L860'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/mtp.py#L184-L197'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ops/vocab_parallel_embedding.py#L420-L590'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L1440-L1452'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/model.py#L945-L958'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/mtp.py#L219-L232'
+  - >-
+    vllm@ced6857a:vllm/model_executor/layers/vocab_parallel_embedding.py#L568-L629
+  - 'vllm@ced6857a:vllm/model_executor/layers/logits_processor.py#L180-L195'
+  - >-
+    vllm@ba15685a:vllm/model_executor/layers/vocab_parallel_embedding.py#L582-L647
+  - 'vllm@ba15685a:vllm/model_executor/layers/logits_processor.py#L180-L195'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -93,7 +109,7 @@ relations:
     kind: builds-on
     note: 按词表切 lm_head 是列切的一个实例，分数各卡算完即真值，用 All-Gather 拼接
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: 2026-11-19T00:00:00.000Z
 origin: gap
 rawSources:
   - >-
@@ -153,14 +169,12 @@ file: lm-head-score
 
 **③ 加起来。** 0.6 + 0.1 + 0.4 + 1.0 = 2.1，这就是「猫」的分数。
 
-**④ 其余 5 列照做。** 6 个分数依次是 [−0.4, −0.5, 0.2, 2.1, 0.8, 1.0]，对应「我」「你」「喜欢」「猫」「看」「。」。「我」这一列和 h 大体不同向，分数是负的：
+**④ 其余 5 列照做。** 6 个分数依次是 $[-0.4, -0.5, 0.2, 2.1, 0.8, 1.0]$，对应「我」「你」「喜欢」「猫」「看」「。」。「我」这一列和 $h$ 大体不同向，分数是负的（你、喜欢、看、「。」四列的权重未逐一列出，分数按同样点积算法得出，示意）：
 
-```calc
-title: 两个分数怎么来
-「猫」的分数 = 1.0 × 0.6 + 0.5 × 0.2 + (−1.0) × (−0.4) + 2.0 × 0.5 = 0.6 + 0.1 + 0.4 + 1.0 = 2.1
-「我」的分数 = 1.0 × 0.2 + 0.5 × (−0.4) + (−1.0) × 0.6 + 2.0 × 0.1 = 0.2 − 0.2 − 0.6 + 0.2 = −0.4
-> 你、喜欢、看、。四列的权重未逐一列出，分数按同样算法得出（示意）
-```
+| 候选词 | 与隐藏向量 $h = [1.0,\; 0.5,\; -1.0,\; 2.0]$ 的点积算式 | 得分（logit） |
+| --- | --- | --- |
+| 「猫」 | $1.0 \times 0.6 + 0.5 \times 0.2 + (-1.0) \times (-0.4) + 2.0 \times 0.5 = 0.6 + 0.1 + 0.4 + 1.0$ | **$2.1$** |
+| 「我」 | $1.0 \times 0.2 + 0.5 \times (-0.4) + (-1.0) \times 0.6 + 2.0 \times 0.1 = 0.2 - 0.2 - 0.6 + 0.2$ | **$-0.4$** |
 
 一次送进 n 行（几个位置，或几条请求各自的位置）时，就是 [n, 4] × [4, 6] → [n, 6]：每行各得 6 个分数，同一张权重被这 n 行共用。按一次乘和一次加各计一次运算，计算量约为 2nVH；权重元素数量不随 n 增长。若已读取的权重能在批内充分复用，增加输入行就能摊薄读取成本，但真实读取次数取决于缓存和内核分块。见[点积](matmul-and-weights.md#输出里的一个数是怎么算出来的)与[权重复用](matmul-and-weights.md#一步有多少行权重被复用几次)。
 
@@ -170,15 +184,14 @@ title: 两个分数怎么来
 
 **logits 尚未归一化，接下来由 sampling（采样）把这排分数变成一个确定的编号：greedy（贪心）直接挑分数最大的词；随机采样先用 softmax（归一化指数：每个分数取指数、再除以总和）把分数换成一组加起来等于 1 的概率，再按概率抽。采样本身另有专页，这里只看本页那 6 个分数会变成什么。**
 
-```calc
-title: 6 个分数经过 softmax
-指数之和 = e^(−0.4) + e^(−0.5) + e^(0.2) + e^(2.1) + e^(0.8) + e^(1.0) = 0.670 + 0.607 + 1.221 + 8.166 + 2.226 + 2.718 = 15.608
-「猫」的概率 = 8.166 ÷ 15.608 ≈ 52.3%
-「。」的概率 = 2.718 ÷ 15.608 ≈ 17.4%
-「看」的概率 = 2.226 ÷ 15.608 ≈ 14.3%
-其余三个合计 = (0.670 + 0.607 + 1.221) ÷ 15.608 ≈ 16.0%
-> 指数值保留 3 位小数
-```
+$$Z = e^{-0.4} + e^{-0.5} + e^{0.2} + e^{2.1} + e^{0.8} + e^{1.0} = 0.670 + 0.607 + 1.221 + 8.166 + 2.226 + 2.718 = 15.608$$
+
+| 候选词（指数值保留 3 位小数） | 指数值与归一化算式 | 概率 |
+| --- | --- | --- |
+| 「猫」 | $8.166 \div 15.608$ | $\approx$ **52.3%** |
+| 「。」 | $2.718 \div 15.608$ | $\approx$ **17.4%** |
+| 「看」 | $2.226 \div 15.608$ | $\approx$ **14.3%** |
+| 其余三个（「我」「你」「喜欢」）合计 | $(0.670 + 0.607 + 1.221) \div 15.608$ | $\approx$ **16.0%** |
 
 取指数让分数全变成正数，也把差距放大：「猫」只比「。」高 1.1 分，概率却差不多是它的 3 倍。贪心挑的就是「猫」——softmax 不改变大小次序，贪心不必真算它，在 logits 上找最大值就行；随机抽时「猫」也占一半多的机会，「。」和「看」还有希望。temperature、top-k / top-p 这些让抽取更稳或更活的设置都作用在这排分数上，逐项讲解见 [sampling](sampling.md)；GLM 双机上采样在哪一步、由谁做，见 [sampling 的 GLM 一节](sampling.md#放到-glm-双机采样在哪一步谁来做)。
 
@@ -242,14 +255,15 @@ TP 组 {0…7} 和 {8…15} 各在一台机器里，两台机器各服务自己�
 
 ### 为什么这一步「算得少、读得多」
 
-**R1 decode 一步里，每张卡为 4 行分数做约 0.63 GFLOP 运算，参与计算的本卡 lm_head 权重为 151.25 MiB。** 按权重从显存恰读一次的理想复用口径，每字节对应 4 次运算；是否受带宽限制，还要结合设备带宽、算力和实测轨迹判断，不能只凭这个比值下结论。
+**R1 decode 一步里，每张卡为 4 行分数做约 0.63 GFLOP 运算，参与计算的本卡 `lm_head` 权重为 151.25 MiB。** 按权重从显存恰读一次的理想复用口径，每字节对应 4 次运算；是否受带宽限制，还要结合设备带宽、算力和实测轨迹判断，不能只凭这个比值下结论：
 
-```calc
-title: R1 decode 每卡 lm_head：按权重从显存读一次估算
-每卡运算次数（乘和加各算 1 次） = 2 × 4 × 4096 × 19360 = 634,388,480 次 ≈ 0.63 GFLOP
-参与计算的权重元素载荷 = 158,597,120 B ≈ 151.25 MiB
-每读 1 字节做的运算 = 634,388,480 ÷ 158,597,120 = 4 次
-```
+$$\text{算术强度} = \frac{2 \times 4 \times 4{,}096 \times 19{,}360}{19{,}360 \times 4{,}096 \times 2\text{ B}} = \frac{634{,}388{,}480}{158{,}597{,}120\text{ B}} = 4\text{ FLOP/B}$$
+
+| R1 decode 每卡 `lm_head` 核算项（按权重从显存读一次估算） | 算式 | 结果 |
+| --- | --- | --- |
+| 每卡运算次数（乘和加各计 1 次） | $2 \times 4 \times 4{,}096 \times 19{,}360$ | $634{,}388{,}480\text{ 次} \approx$ **0.63 GFLOP** |
+| 参与计算的权重元素载荷（BF16） | $19{,}360 \times 4{,}096 \times 2\text{ B}$ | $158{,}597{,}120\text{ B} \approx$ **151.25 MiB** |
+| 每读 1 字节做的运算 | $634{,}388{,}480 \div 158{,}597{,}120$ | **4 次（4 FLOP/B）** |
 
 每个权重数占 2 字节，被 4 行各用一次，每次一乘一加，所以在这个估算口径下每字节对应 4 次运算。输入输出流量、片上缓存命中和重复加载都未计入；实际耗时还需看设备轨迹。行数变多时有更多批内复用机会，见[权重被复用几次](matmul-and-weights.md#一步有多少行权重被复用几次)。
 
@@ -306,22 +320,23 @@ Ascend 在注册表里把 `ParallelLMHead`、`LogitsProcessor` 换成 `AscendPar
 
 ### 版本差异
 
-**v0.30.0rc2 要区分标准 TP、PCP 词表分片与细粒度 LMHead。** 标准路径仍本卡打分、TP>1 才拼 logits、最后裁原词表；skip_gather 提前返回未拼且未裁的本卡结果。PCP×TP 分片先做 PCP 词表 All-Gather，再做 TP All-Gather，最后去 padding，这时 PCPManager 已恢复 token 顺序，拼的是词表轴。默认分片开关为 true 也须 PCP>1 和模块匹配才生效；disable_tp 优先返回复制头，避免 DSpark Markov head 被误切。细粒度路径仍交换 hidden 行并 All-to-All 重排 logits，与 PCP 分片互斥；MRV2 batch-sharded sampling 也与非零细粒度 LMHead TP 互斥。固定 GLM PCP=1 的 TP8 数字继续保留。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**正文 GLM 双机绑定算例采用例外 B 专用镜像 `vllm-ascend@db701c1f` + `vllm@0fc695fc`，与四版社区分支分别核对。**
 
-核对的是 Ascend 侧的打分路径和 GLM 模型代码。GLM 双机的数字固定在执行侧 `db701c1f`（含 GLM 代码的独立提交）和控制流 `0fc695fc`；下表的 main 是仓库约定的固定提交。
+**`v0.30.0` 与 `main` 要区分标准 TP、PCP 词表分片与细粒度 LMHead。** 标准路径仍本卡打分、`TP > 1` 才拼 logits、最后裁原词表；`skip_gather` 提前返回未拼且未裁的本卡结果（上游 `logits_processor.py#L180-L195` 与 Ascend `vocab_parallel_embedding.py` 一致）。`PCP × TP` 分片先做 PCP 词表 All-Gather，再做 TP All-Gather，最后去 padding，这时 PCPManager 已恢复 token 顺序，拼的是词表轴。默认分片开关 `enable_pcp_embedding_lmhead_weight_sharding` 为 `true` 也须 `PCP > 1` 和模块匹配才生效；`disable_tp` 优先返回复制头，避免 DSpark Markov head 被误切。细粒度路径仍交换 hidden 行并 All-to-All 重排 logits，与 PCP 分片互斥；MRV2 batch-sharded sampling 也与启用细粒度 LMHead TP 互斥。固定 GLM `PCP = 1` 的 TP8 数字继续保留。
 
-| 核对项 | v0.23：2c59ff10 | v0.26：2ed6cbba | main：baa023ad | 对使用者意味着什么 |
+| 核对项 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 | --- | --- | --- | --- | --- |
-| GLM 模型代码 | 无 | 无 | 在 `models/glm5next/`，同样建 `ParallelLMHead`，`logit_scale` 从配置读[C25] | 这组三版加专用镜像的对照中，仅 `db701c1f` 和 main 含 GLM；rc2 的模型入口与分片条件见上文 |
-| 默认打分路径 | 本卡乘 → All-Gather → 去补齐[C19] | 同上，多出 `_apply_head` 钩子[C21] | 同上；输出头没切（每组 1 卡）时跳过 All-Gather，另有 `skip_gather` 参数让调用方拿本卡未拼的结果[C23] | TP8 下三版的通信一样 |
-| 采样归约开关 | 默认关，带实验警告和两条互斥检查 | 默认关，没有检查[C22] | 默认关，检查同 v0.23[C24] | 固定部署三版都不开 |
-| MTP 草拟取最大 | 无 GLM | 无 GLM | GLM 的 MTP 模块提供按分段取最大的接口：各卡本地取最大，再交换每行 2 × TP 个值与编号，不拼齐完整分数[C26] | 接口存在不证明 Ascend 草拟路径调用它，见下段条件 |
+| 默认打分与 `skip_gather` | 本卡乘 → All-Gather → 去补齐[C19] | 同 `v0.23.0`，多出 `_apply_head` 钩子[C21] | 新增 `skip_gather` 提前返回未拼未裁本卡结果；`PCP > 1` 时支持 `_get_logits_pcp_weight_sharding`（`vocab_parallel_embedding.py#L459-L630`） | 延续 `skip_gather`、PCP 词表分片与标准 TP All-Gather（`vocab_parallel_embedding.py#L420-L590`） |
+| 细粒度 LMHead TP 开关 | `lmhead_tensor_parallel_size` 默认 `0` | 默认 `0` | 默认 `0`（`ascend_config.py#L1334`），与 PCP 分片及 MRV2 batch-sharded sampling 互斥 | 对齐 `ParallelConfig` 语义：默认改为 `1`（仅 `> 1` 启用，`0` 作为旧配置禁用别名兼容，`ascend_config.py#L1440-L1452`） |
+| 采样归约开关 `enable_reduce_sample` | 默认关，带实验警告与互斥检查 | 默认关，无额外检查[C22] | 已移除该配置开关与旧分支 | 延续已移除状态 |
+| `ParallelLMHead` 与 `tie_weights` | 上游 `ParallelLMHead.tie_weights` 绑定或返回嵌入层[C4] | 同 `v0.23.0` | 同形（`vocab_parallel_embedding.py#L568-L629`） | 同形（`vocab_parallel_embedding.py#L582-L647`） |
+| GLM 模型与 MTP `get_top_tokens` | 维护分支无（镜像 `db701c1f` 单独包含） | 维护分支无 | `models/glm5next/model.py#L849-L860` 建 `ParallelLMHead`；`mtp.py#L184-L197` 提供 `get_top_tokens` | 延续 `models/glm5next/model.py#L945-L958` 与 `mtp.py#L219-L232` |
 
-`db701c1f` 的默认路径与 v0.23 相同，采样归约没有检查；MTP 草拟默认先拼齐分数再取最大，只有打开采样归约才改走分段取最大。[C16]
+`db701c1f` 的默认路径与 `v0.23.0` 相同，采样归约没有检查；MTP 草拟默认先拼齐分数再取最大，只有打开采样归约才改走分段取最大。[C16]
 
-固定 main `baa023ad` 的 `skip_gather` 分支直接返回 `_apply_head` 结果，也绕过后面的 `org_vocab_size` 裁剪。因此，调用方除了确认分数是否已跨设备拼齐，还要确认是否保留了为分片计算补齐的词表位置，不能直接把该返回结果当成原始词表的完整分数。这一条件只针对该分支，不改变前面固定部署的默认路径。
+`skip_gather` 分支直接返回 `_apply_head` 结果，也绕过后面的 `org_vocab_size` 裁剪。因此，调用方除了确认分数是否已跨设备拼齐，还要确认是否保留了为分片计算补齐的词表位置，不能直接把该返回结果当成原始词表的完整分数。这一条件只针对该分支，不改变前面固定部署的默认路径。
 
-还须区分**模型提供的接口与执行侧实际调用**。配套上游 `84030bbe` 的 `_greedy_sample` 在 use_local_argmax_reduction 为真时调用 get_top_tokens；该接口先屏蔽补齐项，再收集最大值与全局词编号。所读 Ascend `baa023ad` 的 `_run_merged_draft` 中，MTP 首轮及后续默认路径则先 compute_logits，再从 logits 采样；开启 enable_reduce_sample 时调用的 compute_draft_token_ids 也是另一条实现。因此不能把这两个开关视为同一个机制，也不能仅凭模型存在 get_top_tokens 就承诺当前 Ascend 路径省掉完整 logits 的通信。
+还须区分**模型提供的接口与执行侧实际调用**。上游 `_greedy_sample` 在 `use_local_argmax_reduction` 为真时调用 `get_top_tokens`；该接口先屏蔽补齐项，再收集最大值与全局词编号。所读 Ascend 的 `_run_merged_draft` 中，MTP 首轮及后续默认路径则先 `compute_logits`，再从 logits 采样；旧版开启 `enable_reduce_sample` 时调用的 `compute_draft_token_ids` 也是另一条实现。因此不能把这两个开关视为同一个机制，也不能仅凭模型存在 `get_top_tokens` 就承诺当前 Ascend 路径省掉完整 logits 的通信。
 
 ### 源码位置
 

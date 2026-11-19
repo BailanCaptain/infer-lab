@@ -163,9 +163,18 @@ sources:
   - 'vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_kv_delivery_preemption.py#L794-L828'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_kv_delivery_preemption.py#L889-L976'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_kv_delivery_preemption.py#L1171-L1230'
+  - 'vllm@ba15685a:vllm/v1/core/sched/scheduler.py#L3132-L3275'
+  - 'vllm@ba15685a:vllm/v1/core/sched/scheduler.py#L3356-L3410'
+  - 'vllm@ba15685a:vllm/v1/core/block_pool.py#L861-L900'
+  - 'vllm@ba15685a:vllm/v1/engine/output_processor.py#L602-L620'
+  - 'vllm@ba15685a:vllm/v1/engine/output_processor.py#L920-L932'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L959-L996'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1580-L1636'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L144-L165'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -194,7 +203,7 @@ relations:
     kind: builds-on
     note: 池子不够时抢占的整批推导在那一页；本页只讲抢占和收尾的区别
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: 2026-11-19T00:00:00.000Z
 origin: direct
 ---
 
@@ -312,18 +321,13 @@ file: request-teardown-flow
 
 **还块只是把这条请求对每个块的引用减 1：减到 0 的块排回空闲队列，块里的数据、以及开着 prefix caching 时块的指纹登记都还留着。清空前缀缓存是另一个动作：一次抹掉所有块的指纹登记，让以前算过的开头再也查不到。**
 
-每个块身上记着一个引用计数，表示现在有几条请求在用它；借出时从 0 变 1，几条请求共用时大于 1。池子、空闲队列和计数的来龙去脉见 [KV 块分配](vllm-kv-block-allocation.md#请求要存-kv-时块从哪里来用完去哪里)。收尾时，引擎把这条请求手里的块倒过来逐个交回：
+每个块身上记着一个引用计数，表示现在有几条请求在用它；借出时从 0 变 1，几条请求共用时大于 1。池子、空闲队列和计数的来龙去脉见 [KV 块分配](vllm-kv-block-allocation.md#请求要存-kv-时块从哪里来用完去哪里)。收尾时，A 借块顺序是「块 9 → 块 2 → 块 5」，引擎把它们**倒过来**按「块 5 → 块 2 → 块 9」逐个交回（示意；空闲队列由 `3, 4, 6, 7` 变为 `3, 4, 6, 7, 5, 2`，空闲块数 $4 + 2 = 6$ 块）：
 
-```calc
-title: A 结束时三个块怎样还（示意）
-A 手里的块（借的顺序） = 块 9、块 2、块 5
-交回的顺序（倒过来） = 块 5、块 2、块 9
-块 5 的计数 = 1 − 1 = 0，排回空闲队列尾
-块 2 的计数 = 1 − 1 = 0，排回空闲队列尾
-块 9 的计数 = 2 − 1 = 1，B 还在用，不回队列
-空闲块数 = 4 + 2 = 6 块
-> 空闲队列从 3、4、6、7 变成 3、4、6、7、5、2
-```
+| 倒序交回顺序 | 释放前引用计数 | 减 $1$ 后计数 | 去向 |
+| --- | --- | --- | --- |
+| 第 1 个：块 5 | $1$ | $1 - 1 = \mathbf{0}$ | 排回空闲队列队尾 |
+| 第 2 个：块 2 | $1$ | $1 - 1 = \mathbf{0}$ | 排回空闲队列队尾 |
+| 第 3 个：块 9 | $2$（A 与 B 共享） | $2 - 1 = \mathbf{1}$ | B 仍在使用，不回空闲队列 |
 
 为什么倒着还：空闲队列从队头往外借，排在前面的块先被借走。倒着还，一条序列的尾巴排在前面、开头排在后面；开着 prefix caching 时，开头那几块最常被别的请求共用，这样留得最久，驱逐顺序见 [prefix caching「池子满了怎么办」](prefix-caching.md#池子的预算怎么分满了怎么办)。只记最近几个位置的那类缓存组（滑动窗口）是例外：没有指纹登记的块直接插回队头，先被重用。
 
@@ -517,52 +521,28 @@ print(outputs[0].outputs[0].token_ids)
 
 ### 版本差异
 
-离线入口及其上游消费者按四个固定快照核对；插件改写的调度器仍须结合下面的 Ascend 表判断：
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；GLM 双机算例固定在例外 B 专用镜像 `vllm-ascend@db701c1f` + `vllm@0fc695fc`。
 
-| 离线重置行为 | v0.23（0fc695fc） | v0.26（568afb3a） | v0.30.0rc2（ced6857a） | main（84030bbe） |
-|---|---|---|---|---|
-| Python 两入口与默认 | reset_prefix_cache 返回 bool；两参数均 False；reset_mm_cache 返回 None | 相同 | 相同 | 相同 |
-| 清前缀的实际块池 | 直接重置共享 block_pool，检查占用后清指纹与采样状态 | 同一入口；另清反向 hash 索引 | 经 coordinator 对各 manager 的不同池各重置一次；另通知 reuse watchers | 返回直接重置 block_pool；保留反向索引清理，没有 rc2 的 watcher 分支 |
-| 强制抢占后的在途结果 | reset 路径记录需丢弃的异步输出，再重置前缀 | 相同 | 交给 _preempt_request 的 drop_stale_output 参数处理 | 同 rc2 的 reset 调用方式 |
-| MM 重置与并发 | 在途请求只警告；MM 与 encoder 输出重置分开 | 相同 | 引擎路径另等待后台 MM warmup；仍不隔离任意在途请求 | 同 rc2 |
+**上游 vLLM 四版对照（请求收尾、abort、块回收与离线缓存重置）：**
 
-rc2 的各池重置会逐个执行，再合并成功状态；返回 False 不意味着其他池的成功重置已经回滚。四版的 MM 重置都不能替代 encoder 输出重置：所核 MRV1 是两条不同方法，MRV2 的 MM helper 也不会清 encoder_outputs。上表比较调用契约与列出的消费者，没有将它们扩大为所有外部 connector 的清理能力。
-
-**v0.30.0rc2 配套上游把共享准入计数纳入请求生命周期。** OutputProcessor 在新增、abort 和完成清理时都更新计数，因此不能仅从本地 request_states 判断全局负载是否已释放。设备侧仍保留 deferred_frees：存在在途执行或 KV 传输占用时，请求状态结束与物理块可安全重用不是同一时刻。FINISHED_ABORTED 也不意味着网络、设备和块池资源立即全部释放，仍须经过相应 fence 与 connector 的回收条件。
-
-上游 vLLM（v0.23 = `vllm@0fc695fc`，v0.26 = `vllm@568afb3a`，main = `vllm@84030bbe`）：
-
-| 项 | v0.23 | v0.26 | main |
-| --- | --- | --- | --- |
-| 判停或中止 → 记进已结束清单 → 还块 → 删请求表项 | 有 | 同 v0.23；释放函数另返回编码侧 connector 的参数 | 同 v0.26 |
-| 有 KV consumer connector、又有多批在途（异步调度或流水线并行）时推后还块 | 没有 | 有：在途那一步处理完才把块交回池子，因为 connector 往块里加载 KV 和在途那一步的写入没有先后保证 | 同 v0.26 |
-| 中止进两个队列、前向算完先处理；在途结果跳过 | 有 | 同 v0.23 | 同 v0.23 |
-| 断开检测、生成函数被取消即中止、上面几条日志原文 | 有 | 同 v0.23 | 同 v0.23 |
-| 清空前缀缓存要求除 null 占位块以外的块都空闲 | 有 | 同 v0.23 | 同 v0.23 |
-
-没有 KV connector 的部署（包括本部署）三版的释放主流程一致；下面这些判停细节仍有版本差异。
-
-| 停止参数核对项 | v0.23 | v0.26 | 固定 main |
-|---|---|---|---|
-| stop、stop_token_ids、ignore_eos 的入口与默认 | 三项都有；HTTP []、[]、false；Python 前两项 None 初始化成 [] | 相同 | 相同 |
-| 忽略自动 EOS；手工编号仍有效；最少长度内部保留 EOS | 有 | 相同 | 相同 |
-| 入口合并 default_sampling_params 中额外 stop_token_ids | 不做这次合并；输入处理仍合并生成配置 EOS | Chat、Completions 均合并，保留手工编号；请求 [] 不能清掉这些默认编号 | 同 v0.26 |
-| 手工停止编号范围 | 构造时查整数，未增加词表范围检查 | 相同 | verify 按模型词表检查 0 ≤ ID < vocab_size |
-| HTTP stop 列表条数 | 无该条数限制 | 相同 | StopParam 默认最多 4 条，由 VLLM_MAX_STOP_STRINGS 控制；这是协议层检查，不是离线 SamplingParams 的统一限制 |
-| 同一次文本更新匹配多个停止串 | 按列表顺序，选第一个有匹配的串 | 相同 | 选结束位置最早的串，结束位置相同再按列表顺序 |
-| 引擎最少长度保护的位置 | EOS、编号、长度之前 | 相同 | 移到这些条件之后；EOS/编号的最少长度依赖采样屏蔽，见[采样页](sampling.md#版本差异) |
-
-多串选择差异可用一组示意看清：stop 列表为 [END, X]，同一次更新新得到「A X B END」。不包含标记时，旧版先匹配 END，保留「A X B 」；固定 main 先取结束位置更早的 X，保留「A 」。前提是这些文字同批到达前端；若 X 在上一批就触发了停止，后面的 END 根本不会继续参与匹配。主线 MTP 一步能交回多个 token，所以不能把“每次只看一个 token”的直觉套进多串选择。
-
-vllm-ascend（v0.23 = 维护分支 `2c59ff10`，不含 GLM 代码；`db701c1f` = 含 GLM 代码的快照；v0.26 = `2ed6cbba`；main = `baa023ad`）：
-
-| 项 | v0.23 维护分支 | db701c1f | v0.26 | main |
+| 核对项 | `v0.23.0`（`0fc695fc`） | `v0.26.0rc`（`568afb3a`） | `v0.30.0`（`ced6857a`，主基线） | `main`（`ba15685a`） |
 | --- | --- | --- | --- | --- |
-| 调度器的收尾路径 | 用上游；可选的均衡调度另写了清空前缀缓存，默认不开 | 用上游 | 整个调度器类换成 `KVDeliveryScheduler`，区分普通容量抢占、KV 可靠交付与强制重置的在途结果，改写抢占、结果更新和清空前缀缓存；判停后的释放函数沿用上游 | 用上游；可选的 DyntraLB 调度器改写释放函数，默认不开 |
-| worker 删行 | 先做异步调度下的回退保护，再转交上游，删行由上游做 | 同 v0.23 | 同 v0.23 | 同 v0.23，转交前另处理流水线并行的采样结果和块拷贝 |
-| 可选的批任务感知调度器 | 没有 | 没有 | 有，改写释放函数，要显式开 | 同 v0.26 |
+| 判停/abort → `finished_req_ids` → 还块 → 删表项 | 有（`scheduler.py#L1825-L1910`） | 释放另返回编码侧 connector 参数 | 延续；`OutputProcessor` 新增、abort 与完成同步更新共享准入计数（`output_processor.py#L550-L778`、`scheduler.py#L2561-L2646`） | 同 `v0.30.0`（`scheduler.py#L3132-L3275`、`output_processor.py#L602-L620`、`L920-L932`） |
+| 有 KV consumer connector 且多批在途时延迟还块 | 无 | 有（`deferred_frees` 等待在途步完成再还块） | 保留 `deferred_frees` 与 fence/connector 回收条件 | 保留 `deferred_frees` 延迟还块保护 |
+| 离线 `reset_prefix_cache` 清池与强制抢占 | 直接清共享 `block_pool`；记录待丢弃异步输出 | 另清反向 hash 索引 | 经 coordinator 逐池重置并通知 `reuse_watchers`（`block_pool.py#L821-L859`、`scheduler.py#L2688-L2750`）；抢占经 `drop_stale_output` | 延续逐池清理、`reuse_watchers` 通知与 `drop_stale_output`（`block_pool.py#L861-L900`、`scheduler.py#L3356-L3410`） |
+| `reset_mm_cache` 与并发 | 在途请求只警告；MM 与 encoder 输出重置分开 | 相同 | 引擎路径另等待后台 MM warmup；仍不隔离任意在途请求 | 同 `v0.30.0` |
+| 停止参数与多串匹配 | 合并生成配置 EOS；手工编号仅查整数；多串按列表顺序；引擎先查 `min_tokens` | Chat/Completions 另合并默认 `stop_token_ids` | 新增手工编号词表范围校验、`VLLM_MAX_STOP_STRINGS`（默认 4）、多串选最早结束位置、引擎先查 EOS/长度 | 同 `v0.30.0` |
 
-v0.26 换调度器类以后，没有 KV connector 时判停、中止和还块的顺序与上游一致；抢占后的旧结果则要按触发原因区分。普通容量抢占把 `requires_kv_delivery` 传给丢弃开关：没有 connector 时该值为 False，采用保留旧输出的模式；有 connector 时还要看它是否要求 KV 可靠交付。已经处于丢弃模式且旧结果尚未排空的请求继续丢弃，不能由下一次普通抢占恢复成保留。
+`v0.30.0` 与 `main` 的 `OutputProcessor` 均把共享准入计数纳入请求生命周期，不能仅从本地 `request_states` 判断全局负载是否已释放；`FINISHED_ABORTED` 也不意味着网络、设备和块池资源立即全部释放，仍须经过相应 fence 与 connector 回收条件。四版的 MM 重置都不能替代 encoder 输出重置；逐池重置返回 `False` 不意味着其他池的成功重置已回滚。多串选择差异可用一组示意看清：`stop` 列表为 `[END, X]`，同一次更新新得到「A X B END」，不包含标记时 `v0.23.0`/`v0.26.0rc` 先匹配 `END`（保留「A X B 」），`v0.30.0`/`main` 先取结束位置更早的 `X`（保留「A 」）。
+
+**vllm-ascend 四版对照**（GLM 绑定算例另见专用镜像 `db701c1f`，其调度器收尾与 worker 删行逻辑同 `v0.23.0`）：
+
+| 核对项 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| 调度器收尾与重置路径 | 用上游；可选均衡调度另写 `reset_prefix_cache`（默认关） | 换为 `KVDeliveryScheduler`，区分普通容量抢占、KV 可靠交付与强制重置在途结果；判停释放沿用上游 | 回归上游主调度器；提供可选 `dyntra_lb_config`（默认关，`ascend_config.py#L1580-L1636`）与可选批任务感知调度器 | 延续上游主调度器与可选 DyntraLB / 批任务感知调度器 |
+| worker 批次删行 | 异步回退保护后转交上游 `_update_states` | 同 `v0.23.0` | MRV1 保留 `model_runner_v1.py#L959-L996`（`_update_states`），同步提供 MRV2 路径 | 移除 MRV1 `model_runner_v1.py`，统一走 MRV2 `worker/v2/model_runner.py#L144-L165`（继承上游 `GPUModelRunner`） |
+
+`v0.26.0rc` 换调度器类以后，没有 KV connector 时判停、中止和还块的顺序与上游一致；抢占后的旧结果则要按触发原因区分。普通容量抢占把 `requires_kv_delivery` 传给丢弃开关：没有 connector 时该值为 `False`，采用保留旧输出的模式；有 connector 时还要看它是否要求 KV 可靠交付。已经处于丢弃模式且旧结果尚未排空的请求继续丢弃，不能由下一次普通抢占恢复成保留。
 
 保留模式下，等待队列先等旧结果排空再恢复请求；旧结果返回时仍经过加载失败、请求已结束等检查，有效 token 才追加，旧的投机拒绝数不会再次回滚已重置的计算进度。调用 `reset_prefix_cache(reset_running_requests=True)` 则明确按丢弃模式强制抢占，旧结果返回时跳过输出，避免立即恢复后交出乱序 token。上述分支、计数和调用点见来源 109–114；强制重置与普通容量抢占不能共用“结果一律保留”的结论。
 
@@ -586,7 +566,7 @@ v0.26 换调度器类以后，没有 KV connector 时判停、中止和还块的
 
 **正文证据归档。** 判停条件和先后 [C5]；语法拒绝记 error [C3]；判停的同一步释放、随后才打结果 [C4]；释放时记清单、connector 推后、还块与删请求表项 [C2]。外部中止跳过不认识或已结束的 ID、移出两条队列 [C1]；中止进两个队列、前向算完先处理 [C8]；在途结果跳过 [C10]。
 
-前端：取消即中止、引擎已死不中止、意外异常先中止 [C11]；先删前端记录再发引擎 [C12]；停止字符串进中止名单 [C13]；补一份 abort 结果、子请求一起中止 [C14]；断开的两种检测方式 [C16]；按路由表发中止 [C18]。worker：清单不空就再走一步 [C22]；删缓存状态和批次行 [C23]；没排上的只移出批次 [C24]。
+前端：取消即中止、引擎已死不中止、意外异常先中止 [C11]；先删前端记录再发引擎 [C12]；停止字符串进中止名单 [C13]；补一份 abort 结果、子请求一起中止 [C14]；断开的两种检测方式 [C16]；按路由表发中止 [C18]。worker：清单不空就再走一步 [C22]；删缓存状态、批次行与未排上请求的移出均在同文件（来源 23、24）。
 
 还块：计数减到 0 才回队列 [C29]；滑动窗口组没有指纹登记的块插队头 [C28]；清空前缀缓存要求除 null 占位块以外的块都空闲 [C30]。抢占保留请求、清零计算进度 [C33]；重新调度时匹配本地及外部缓存 [C71]；已确认输出加入已知编号历史 [C72]。先排下一步、再处理上一步 [C34]；长度到限不多排 [C35]。
 

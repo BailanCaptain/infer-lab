@@ -80,10 +80,18 @@ sources:
   - 'vllm@568afb3a:vllm/config/cache.py#L93-L110'
   - 'vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_mamba_config.py#L100-L135'
   - 'vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L413-L434'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L84-L140'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_mamba_config.py#L122-L176'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_kv_cache_coordinator.py#L205-L295'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_kv_cache_coordinator.py#L361-L405'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_mamba_config.py#L122-L176'
+  - 'vllm@ba15685a:vllm/v1/core/kv_cache_manager.py#L288-L350'
+  - 'vllm@ba15685a:vllm/v1/core/kv_cache_coordinator.py#L806-L860'
+  - 'vllm@ba15685a:vllm/engine/arg_utils.py#L3106-L3142'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -109,7 +117,7 @@ relations:
     kind: builds-on
     note: KDA 递推状态没有逐 token 的 K/V，只能按档恢复
 contradicts: []
-updated: 2026-11-10T00:00:00.000Z
+updated: 2026-11-19T00:00:00.000Z
 origin: direct
 ---
 
@@ -123,13 +131,12 @@ origin: direct
 file: prefix-caching
 ```
 
-图里画普通整块命中：请求A先来，开头两块已经算完且登记还在；请求B通过输入身份检查后共享这两块，各自不同的尾巴继续写自己的块。为看清省掉多少计算，假设一块装4个位置，B有10个输入位置，其中前8个命中：
+图里画普通整块命中：请求 A 先来，开头两块已经算完且登记还在；请求 B 通过输入身份检查后共享这两块，各自不同的尾巴继续写自己的块。为看清省掉多少计算，假设一块装 $4$ 个位置，B 有 $10$ 个输入位置，其中前 $2$ 块（$8$ 个位置）命中：
 
-```calc
-title: 两块共享前缀省去多少输入计算
-命中的位置 = 2 × 4 = 8 个
-本次仍要计算的位置 = 10 − 8 = 2 个
-```
+| 两块共享前缀核算项（示意：每块 $4$ 位置，共 $10$ 位置） | 算式 | 结果 |
+| --- | --- | --- |
+| 命中的前缀位置数 | $2 \times 4$ | **$8$ 个**（跳过重算） |
+| 本次仍须计算的位置数 | $10 - 8$ | **$2$ 个** |
 
 这里还有2个未命中位置，能够正常计算下一token所需的输出；整段输入都命中时仍有末token重算规则，见后文。新版在满足特定边界条件时可复用部分物理尾块，完整条件在[哪些块能被共享](#哪些块能被共享)。
 
@@ -247,22 +254,20 @@ file: prefix-caching-flow
 
 ### 版本差异
 
-**v0.30.0rc2配套上游放宽了部分hybrid cache的DCP条件。** HybridKVCacheCoordinator在DCP>1时只接受FullAttentionSpec/MambaSpec组合：前者历史分片，后者状态复制；PCP仍要求1，滑窗等其他spec仍拒绝。指纹粒度整除检查只针对prefix_cacheable组，GLM KPool tail等私有临时状态不纳入。Ascend GLM KPool自身仍拒绝PCP/DCP；上游这个放宽不改变模型后端的限制（来源26–29）。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**正文 GLM 双机绑定算例固定在例外 B 专用镜像 `vllm-ascend@db701c1f` + `vllm@0fc695fc`，不代表 `v0.23.0` 发布分支包含 GLM 代码。** 前两个 Ascend 发布钉点没有该模型，`v0.30.0` 与 `main` 在 `models/glm5next/` 下提供实现。
 
-钉点沿用[块分配页](vllm-kv-block-allocation.md#版本差异)：v0.23为Ascend `2c59ff10` / vLLM `0fc695fc`，v0.26为 `2ed6cbba` / `568afb3a`，rc2为 `7d825229` / `ced6857a`，main为 `baa023ad` / `84030bbe`。**正文的GLM数字来自专用镜像Ascend `db701c1f`配vLLM `0fc695fc`，不代表v0.23发布分支包含GLM代码。** 前两个Ascend发布钉点没有该模型，rc2/main在 `models/glm5next/` 下有实现。
+`v0.30.0` 与 `main` 配套上游放宽了部分 hybrid cache 的 DCP 条件：`HybridKVCacheCoordinator` 在 `DCP > 1` 时只接受 `FullAttentionSpec` / `MambaSpec` 组合（前者历史分片，后者状态复制），`PCP` 仍要求 1，滑窗等其他 spec 仍拒绝。指纹粒度整除检查只针对 `is_prefix_cacheable` 组，GLM KPool tail 等私有临时状态不纳入。Ascend GLM KPool 自身仍拒绝 PCP/DCP；上游这个放宽不改变模型后端的限制（来源 26–29）。
 
-| 项 | v0.23 | v0.26 | v0.30.0rc2 | main |
+| 核对项 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 |---|---|---|---|---|
-| 生成式hybrid的APC默认值 | 关：模型判定不支持，未显式配置时取该值 | 关：虽判支持，hybrid仍要求手动打开 | 开：按模型支持取默认 | 开：按模型支持取默认 |
-| GLM模型 | 发布钉点无；正文旧镜像单独存在 | 无 | 有，默认APC与模型对齐逻辑共同生效 | 有，同左；默认打开不保证实际有命中 |
-| 从none启用Mamba缓存 | 支持all的模型选all，否则align；旧GLM选align | 同左 | GLM最终align，Mamba块长跟随逻辑块 | 上游默认直接选align；显式all仍检查模型能力 |
-| GLM输入指纹粒度 | 旧镜像APC开启时所有组参与，得到4；发布分支无该GLM路径 | 无该GLM路径 | 排除私有尾状态组，再按上游解析 | 同左；DeepSeek V4.1另走专用分支 |
-| 细匹配配置入口 | 内部字段hash_block_size | CLI `--prefix-match-unit`，默认不指定 | 同左，并检查各可缓存组整除与状态压缩边界 | 同左 |
-| 默认哈希算法 | sha256；另有sha256_cbor、xxhash、xxhash_cbor | 同左 | 同左 | 同左 |
+| 生成式 hybrid 的 APC 默认值 | 关：模型判定不支持，未显式配置时取该值 | 关：虽判支持，hybrid 仍要求手动打开 | 开：按模型支持取默认（`arg_utils.py#L2794-L2834`） | 开：按模型支持取默认（`arg_utils.py#L3106-L3142`） |
+| GLM 模型与 Mamba `align` 模式 | 发布分支无 GLM；旧镜像 `db701c1f` 显式开 APC 后走 `align` | 发布分支无 GLM；支持 `all` 选 `all`，否则 `align` | 有 `models/glm5next/`；`patch_mamba_config.py#L122-L176` 对齐逻辑块并走 `align` | 同 `v0.30.0`（`patch_mamba_config.py#L122-L176`）；默认打开不保证实际有命中 |
+| 混合注意力缓存组过滤与指纹粒度 | 旧镜像 APC 开启时全部组参与得 4；发布分支无 GLM 路径 | 无 GLM 路径 | `patch_kv_cache_utils.py#L84-L140` 用 `is_prefix_cacheable` 排除私有尾状态组再按上游解析 | 由 `patch_kv_cache_coordinator.py#L205-L295`、`L361-L405` 统一筛 `is_prefix_cacheable` 并协同 `find_longest_cache_hit`（上游见 `kv_cache_coordinator.py#L806-L860`） |
+| 细匹配配置入口与哈希算法 | 内部字段 `hash_block_size`；默认 `sha256`（含 `sha256_cbor`、`xxhash`、`xxhash_cbor`） | CLI `--prefix-match-unit`，默认不指定；哈希算法同左 | 同 `v0.26.0rc`，并检查各可缓存组整除与状态压缩边界；算法同左 | 同 `v0.30.0`（`kv_cache_manager.py#L288-L350`） |
 
-默认开关链见来源6、8、20–22、28、52；模式与模型见7、19、24、40–41、47–48、51。算法四版分别见35、53–54、56。旧版“整块才可登记”也已变化：v0.26起的部分尾块路径及full/Mamba各自的条件，统一见[块分配版本表](vllm-kv-block-allocation.md#版本差异)。
+默认开关链见来源 6、8、20–22、28、52；模式与模型见 7、19、24、40–41、47–48、51；算法见 35、53–54、56。旧版“整块才可登记”也已变化：`v0.26.0rc` 起的部分尾块路径及 full/Mamba 各自的条件，统一见[块分配版本表](vllm-kv-block-allocation.md#版本差异)。
 
-rc2/main下，保持这套GLM模型配置、未显式放大块长、不开上下文并行、不指定更小匹配单元且APC走align时：full和KDA组的逻辑块都为640，私有tail组被排除，默认哈希粒度由剩余组最大公约数得到640。它不同于旧镜像的4，不能混用。依据是模型规格、尾状态不可缓存标志、Mamba块长设定与最终解析调用（来源23、43–50、57）。显式减小匹配单元还须满足整除与状态压缩对齐，能够实际复用多细要看各组留下的状态；本页没有新版GLM设备运行证据。[I]
+`v0.30.0` / `main` 下，保持这套 GLM 模型配置、未显式放大块长、不开上下文并行、不指定更小匹配单元且 APC 走 `align` 时：full 和 KDA 组的逻辑块都为 640，私有 tail 组被排除，默认哈希粒度由剩余组最大公约数得到 640。它不同于旧镜像的 4，不能混用。依据是模型规格、尾状态不可缓存标志、Mamba 块长设定与最终解析调用（来源 23、43–50、57）。显式减小匹配单元还须满足整除与状态压缩对齐，能够实际复用多细要看各组留下的状态；本页没有新版 GLM 设备运行证据。[I]
 
 ### 源码位置
 

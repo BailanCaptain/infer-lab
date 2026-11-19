@@ -63,7 +63,21 @@ sources:
     vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L225-L349
   - >-
     vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L29-L107
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ops/layernorm.py#L81-L102'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/utils.py#L544-L588'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L250-L382'
+  - >-
+    vllm-ascend@c09d3e20:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L19-L108
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ops/layernorm.py#L81-L120'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/utils.py#L574-L618'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L430-L501'
+  - >-
+    vllm-ascend@8d6180e2:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L19-L108
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: ops-and-kernels
@@ -128,15 +142,16 @@ y[j] = s[j] × r × γ[j] + bias[j]   # 没有 bias 时省去末项
 
 **不传 residual 时，令 s = x，仍按上面的 r、y 两式归一化；接口只返回 y，不返回更新后的残差。** 后文 GLM 子层入口走的就是这一分支。
 
-用两元素向量走一次数据交接（数为示意）：x=[1,3]，residual=[1,−1]，γ=[1,1]，无 bias。为便于手算，这个非零输入取 ε=0，真实模型使用自己的 ε。先得到 s，再由整行算出同一个 r，最后逐元素缩放：
+用两元素向量走一次数据交接（数为示意）：$x=[1,3]$、$\text{residual}=[1,-1]$、$\gamma=[1,1]$，无 bias。为便于手算，这个非零输入取 $\varepsilon=0$，真实模型使用自己的 $\varepsilon$。先得到 $s$，再由整行算出同一个 $r$，最后逐元素缩放：
 
-```calc
-title: 融合残差归一化仍要交付两份结果（示意）
-更新后残差 = [1 + 1, 3 − 1] = [2, 2]
-整行均方 = (2² + 2²) ÷ 2 = 4
-缩放因子 = 1 ÷ √4 = 0.5
-归一化输出 = [2 × 0.5 × 1, 2 × 0.5 × 1] = [1, 1]
-```
+$$s = x + \text{residual} = [2, 2], \qquad r = \frac{1}{\sqrt{(2^2 + 2^2)/2}} = 0.5, \qquad y = s \cdot r \cdot \gamma = [1, 1]$$
+
+| 步骤（示意，无 bias，$\varepsilon=0$） | 算式 | 产出与去向 |
+| --- | --- | --- |
+| 更新后残差 $s$ | $[1 + 1,\; 3 - 1]$ | **`[2, 2]`**（须写回全局内存供后续层复用） |
+| 整行均方 | $(2^2 + 2^2) \div 2$ | **$4$** |
+| 缩放因子 $r$ | $1 \div \sqrt{4}$ | **$0.5$** |
+| 归一化输出 $y$ | $[2 \times 0.5 \times 1,\; 2 \times 0.5 \times 1]$ | **`[1, 1]`**（交给下一算子） |
 
 后续计算收到的 y 是 [1,1]，保留的残差 s 是 [2,2]。它们用途不同，不能拿其中一份替代另一份。上面的式子表达数学语义，真实低精度执行还要核对中间转换和舍入误差。
 
@@ -152,14 +167,15 @@ title: 融合残差归一化仍要交付两份结果（示意）
 
 资源信息有两种取得方式：没有编译信息对象时查询平台，已有编译信息时读取其中记录的资源。取得 UB 容量后，还要扣除预留空间，剩余部分才用于本次分块规划。因此，平台提供的容量不能直接当作当前数据块可用的空间。
 
-先看行如何分给核。该实现先将“总行数 ÷ 可用向量核数”向上取整，作为普通核的行配额，再按这个配额求实际使用核数；最后一个核处理剩余行。假设有 10 行、4 个可用向量核，宽度与精度满足后续模板条件：
+先看行如何分给核。该实现先将「总行数 $\div$ 可用向量核数」向上取整，作为普通核的行配额，再按这个配额求实际使用核数；最后一个核处理剩余行。假设有 10 行、4 个可用向量核，宽度与精度满足后续模板条件：
 
-```calc
-title: 行任务先分给核，最后一个核处理尾部（示意）
-普通核配额 = ceil(10 ÷ 4) = 3 行
-实际使用核数 = ceil(10 ÷ 3) = 4
-尾核行数 = 10 − 3 × (4 − 1) = 1 行
-```
+$$\text{former} = \lceil 10 \div 4 \rceil = 3\text{ 行}, \qquad \text{used\_cores} = \lceil 10 \div 3 \rceil = 4, \qquad \text{tail} = 10 - 3 \times (4 - 1) = 1\text{ 行}$$
+
+| 分核参数（示意：10 行，4 个可用向量核） | 计算公式 | 结果 |
+| --- | --- | --- |
+| 普通核行配额 | $\lceil 10 \div 4 \rceil$ | **3 行**（前 3 个核各领 3 行） |
+| 实际使用核数 | $\lceil 10 \div 3 \rceil$ | **4 个核** |
+| 尾核行数 | $10 - 3 \times (4 - 1)$ | **1 行**（第 4 个核处理第 9 行） |
 
 因此四个核依次处理第 0–2、3–5、6–8、9 行。行数少时也不必用满所有核：2 行分给 4 个可用核，普通配额为 1，实际只使用 2 个核。**每核分到几行，与每轮搬入几行是两次划分。** 后者还要看行宽、精度、偏置与 UB 可用空间；普通设备模板按自己的行范围循环，最后一轮只处理余下的行。
 
@@ -173,7 +189,7 @@ title: 行任务先分给核，最后一个核处理尾部（示意）
 
 沿用上节 [2,2] 的残差和：两元素都参与均方计算，缩放因子准备好后，才能分别得到输出的两个 1。归约结果尚未就绪时，后面的缩放必须等它；代码中的同步屏障和事件保证这种先后关系。低精度模板还会在局部缓冲中做精度转换，片上空间不只是输入张量的大小。
 
-这里是 Vector 上的归约与逐元素运算。矩阵乘后的激活融合则包含不同计算单元的协作；两种情况都要检查数据交接，不能把一个算子接口等同于一个硬件单元。Scalar 负责标量与控制，搬运单元负责存储之间的数据传输，完整路径见 [AI Core](ai-core.md)。
+这里是 Vector 上的归约与逐元素运算。矩阵乘后的激活融合则包含不同计算单元的协作；两种情况都要检查数据交接，不能把一个算子接口等同于一个硬件单元。Scalar 负责标量与控制，搬运单元负责存储之间的数据传输，完整硬件路径与数据流拆解见 [AI Core 算子实验室](ai-core.md#一块数据怎样经过矩阵计算和逐项计算)。
 
 ## 怎样判断优化是否成立
 
@@ -207,11 +223,12 @@ file: op-to-ai-core
 
 **宽度和精度决定逻辑数据量，是否能省掉访问要看结果是否还被使用。** 取本部署隐藏宽度 4096，BF16 每个数 2 B。仅考虑一个 token 的一行中间结果，假设它原先要单独写出再读回：
 
-```calc
-title: 一行 BF16 中间结果的逻辑读写量
-一行大小 = 4096 × 2 B = 8192 B = 8 KiB
-写出再读回 = 8 KiB + 8 KiB = 16 KiB
-```
+$$M_{\text{row}} = 4096 \times 2\text{ B} = 8{,}192\text{ B} = 8\text{ KiB}, \qquad M_{\text{rw}} = 8\text{ KiB} + 8\text{ KiB} = 16\text{ KiB}$$
+
+| 逻辑访问项（单 token，隐藏宽 4096，BF16） | 算式 | 逻辑数据量 |
+| --- | --- | --- |
+| 单行张量大小 | $4096 \times 2\text{ B}$ | **8,192 B（8 KiB）** |
+| 写出 + 读回一次往返 | $8\text{ KiB} + 8\text{ KiB}$ | **16 KiB** |
 
 16 KiB 的统计范围仅为这一份中间张量的逻辑读写；其他输入输出另计，总线访问还受缓存命中和访问合并影响。只有相应的写出与重读都被消除，这笔逻辑流量才会省下；残差融合扩展仍须写回更新后的残差。R1 整批的形状、字节和通信次数仍以 [A4 主线](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)为唯一出处。
 
@@ -247,21 +264,17 @@ C++ 适配层通过 `EXEC_NPU_CMD(aclnnAddRmsNormBias, ...)` 交给运行库。�
 
 ### 版本差异
 
-下述 RMSNorm residual 行为与固定 main 完整文件相同，版本差别针对旧 GLM 的 fallback；rc2 新增的预量化输入复用应另看 [共享专家的调用时点](moe.md#版本差异)。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）。**`v0.30.0` 的 `AscendRMSNorm` 残差分支曾去掉 `torch_npu.npu_add_rms_norm` 回退并直接调用 `npu_add_rms_norm_bias`，到了 `main` 又重新恢复了 `if enable_custom_op()` 的回退分支**（以便 `VLLM_BATCH_INVARIANT` 下走 `batch_invariant.py` 补丁版 `npu_add_rms_norm`）。四版 `csrc/moe/add_rms_norm_bias/` 的 AscendC Host tiling 与 `aclnnAddRmsNormBias` 下发链路保持连续；新增预量化输入复用见 [共享专家调用时点](moe.md#版本差异)。
 
-**v0.30.0rc2 的 AscendRMSNorm 残差分支不能再按旧 fallback 推演。** 无 residual 时仍调用 torch_npu.npu_rms_norm，再加已加载的 bias；有 residual 时直接导入 vllm_ascend_C 并调用 npu_add_rms_norm_bias，没有旧 enable_custom_op 返回 false 后的回退。通用扩展加载函数仍受批不变和硬件能力门控，但不能拿这个布尔函数代替该分支的真实调用条件。W8A8 动态线性已迁入 w8a8 子目录并支持 PreparedLinearInput；本文旧 Host tiling/kernel 走读仍限 db701c1f，实际 kernel、流量和延迟需要设备 trace。
+| 核验维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| 无 `residual` 路径 | `torch_npu.npu_rms_norm`，有已加载 `bias` 再相加 | 同 `v0.23.0` | 同 `v0.23.0`（`layernorm.py#L97-L101`） | 同 `v0.23.0`（`layernorm.py#L101-L105`） |
+| 有 `residual` 分支 | 按 `enable_custom_op()` 在 `npu_add_rms_norm_bias` 与 `torch_npu.npu_add_rms_norm` + `bias` 间二选一 | 同 `v0.23.0` | `layernorm.py#L88-L95` 直接导入 `vllm_ascend_C` 调 `npu_add_rms_norm_bias`，**无 `false` 回退** | `layernorm.py#L88-L99` **恢复 `if enable_custom_op()` 分支**，关闭时回退 `torch_npu.npu_add_rms_norm` + 逐元素 `bias` |
+| 扩展能力门控（`enable_custom_op`） | 延迟加载；批不变或 A5 禁用 | 同 `v0.23.0` | `utils.py#L544-L588` 查 `HardwareCapability.RUNTIME_CUSTOM_OPS`；`hardware_profile.py` 对 A5 仍禁用 | `utils.py#L574-L618` 查 `RUNTIME_CUSTOM_OPS`；`hardware_profile.py#L490` 为 A5 恢复该能力 |
+| 无 `residual` 后权重预取钩子 | 调用预取后处理方法 | 已移除 | 无此钩子 | 无此钩子 |
+| AscendC Host tiling 与 GLM 代码位置 | 含 `csrc/moe/add_rms_norm_bias/`；维护分支不含 GLM5 代码 | 同 `v0.23.0` | 保留 `add_rms_norm_bias_tiling.cpp`（457 行）；GLM 位于 `models/glm5next/`；W8A8 迁入 `quantization/methods/w8a8/` | 延续 `add_rms_norm_bias_tiling.cpp`（457 行）与 `models/glm5next/`；`AscendGemmaRMSNorm` 改为直接调用 `npu_add_rms_norm` / `DeviceOperator` |
 
-下表逐项比较 AscendRMSNorm 的无 residual 路径、残差融合条件和回退；“尝试启用”都以实际环境加载成功为条件。
-
-| 项目 | v0.23 维护分支 `2c59ff10` | v0.26 `2ed6cbba` | main `baa023ad` |
-|---|---|---|---|
-| 无 residual | `npu_rms_norm`，已加载 bias 再相加 | 相同 | 相同 |
-| 有 residual | 扩展可用则融合，否则已有接口加可选 bias | 相同 | 先直接导入扩展，再调用融合接口；这里没有同样的 false 回退 |
-| 扩展默认判断 | 延迟尝试加载；批不变性或 A5 禁用 | 相同 | 批不变性或硬件配置不支持运行时扩展则禁用；该布尔值不构成上一行的回退 |
-| 无 residual 后的权重预取钩子 | 调用预取后处理方法，是否实际预取由方法决定 | 该处无此钩子 | 该处无此钩子 |
-| GLM 专用模型代码 | 此提交不含 GLM5 代码 | 此提交不含 GLM5 代码 | 位于 models/glm5next/ |
-
-固定双机执行使用的 `db701c1f` 是含 GLM 专用代码的独立 orphan commit，不能写成维护分支版本号。它在本表所述 RMSNorm 分派、扩展门控及预取钩子方面与 v0.23 列一致。控制侧另钉 `vllm@0fc695fc`；本页没有把 main 的直接扩展调用套进固定双机路径。
+固定双机执行使用的 `db701c1f` 是含 GLM 专用代码的独立 orphan commit，不能写成维护分支版本号；它在 RMSNorm 分派、扩展门控及预取钩子方面与 `v0.23.0` 列一致。控制侧另钉 `vllm@0fc695fc`；本文 Host tiling / kernel 逐行走读以 `db701c1f` 源码为准，实际 kernel 数量、总线流量和延迟仍需设备 trace 核定。
 
 ### 源码位置
 
@@ -277,7 +290,7 @@ C++ 适配层通过 `EXEC_NPU_CMD(aclnnAddRmsNormBias, ...)` 交给运行库。�
 | 三份输出、搬入时残差写回、归约与缩放顺序 | 来源 9–11：add_rms_norm_bias.h 96–155、167–208；add_rms_norm_bias_torch_adpt.h 21–50。[C9] |
 | W8A8 线性层动态量化与矩阵乘分支 | 来源 16：quantization/methods/w8a8_dynamic.py 75–126。[C16] |
 | MC2 专家路径：已有量化结果复用、融合/拆分、第二组矩阵乘 | 来源 17：ops/fused_moe/moe_mlp.py 113–220。[C17] |
-| 三版本残差分支与预取钩子、扩展门控/失败处理 | 来源 18–23，分别对应三版 layernorm.py 与 utils.py；固定提交加载失败的完整逻辑在来源 6 的 utils.py 409–467。[C20] |
+| 四版本残差分支、预取钩子、扩展门控与 tiling 核验 | 来源 18–23（`v0.23.0`/`v0.26.0rc`）；来源 30–33（`v0.30.0` `c09d3e20` `layernorm.py#L81-L102`、`utils.py#L544-L588`、`hardware_profile.py#L250-L382`、`add_rms_norm_bias_tiling.cpp#L19-L108`）；来源 34–37（`main` `8d6180e2` 对应四处）；固定提交加载失败完整逻辑见来源 6。[C34] |
 
 **待核：** 固定镜像中稠密 MLP 实际命中的 apply 分支、是否采用激活融合，以及 MoE 的实际融合/拆分路径、设备 kernel 数量、流量和加速幅度，仍缺 NPU profiling。CANN 架构文档说明单元职责，不提供本部署的核数、缓冲容量或性能实测。
 

@@ -24,12 +24,21 @@ sources:
   - 'vllm-ascend@921ccc52:vllm_ascend/worker/v1/spec_decode/llm_base_proposer.py#L416-L453'
   - https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/worker/worker.py#L191-L258
   - 'vllm-ascend@921ccc52:vllm_ascend/worker/v1/spec_decode/utils.py#L26-L112'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L952-L959'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1295-L1319'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/dspark.py#L143-L175'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/dspark.py#L151-L180'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/spec_decode/dspark/speculator.py#L60-L90'
 relations:
   - { to: speculative-decoding, kind: builds-on, note: 接受、拒绝和补出下一个 token 的基本规则由原页解释 }
   - { to: async-scheduling, kind: builds-on, note: 调度与设备执行重叠会改变置信信息何时可用 }
   - { to: deepseek-v4-1-flash, kind: builds-on, note: 模型页维护草稿层数与配置的唯一出处 }
   - { to: inference-benchmarking, kind: builds-on, note: 用实际交付和服务目标验证候选调度是否有收益 }
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: I
 contradicts: []
 updated: "2026-11-03"
@@ -61,13 +70,14 @@ DSpark 要解决的是：主模型这轮应给 A、B 各分多少验证工作？
 
 沿用每条请求三个候选的例子，给出一组教学概率。请求 A 的条件接受概率为 0.9、0.8、0.5；B 为 0.6、0.4、0.2。“条件”指前面的候选已经接受后，这一个能否接着被接受。
 
-要估计第 k 个候选最终留下来的概率，需要把前面各项一起乘进去。第一个被拒绝时，后面再好也不能沿用这一串草稿。
+要估计第 $k$ 个候选最终留下来的概率，需要把前面各项一起乘进去（第一个被拒绝时，后面再好也不能沿用这一串草稿）：
 
-```calc
-title: 从条件概率得到连续前缀的存活概率（示意）
-A 的前缀存活概率 = (0.9, 0.9 × 0.8, 0.9 × 0.8 × 0.5) = (0.9, 0.72, 0.36)
-B 的前缀存活概率 = (0.6, 0.6 × 0.4, 0.6 × 0.4 × 0.2) = (0.6, 0.24, 0.048)
-```
+$$P_{\text{survive}}(k) = \prod_{j=1}^{k} p_j$$
+
+| 请求（教学示意，3 个候选） | 逐位条件接受概率 $(p_1, p_2, p_3)$ | 连续前缀存活概率算式 | 存活概率结果 |
+| --- | --- | --- | --- |
+| 请求 A | $(0.9,\; 0.8,\; 0.5)$ | $(0.9,\; 0.9 \times 0.8,\; 0.9 \times 0.8 \times 0.5)$ | **$(0.9,\; 0.72,\; 0.36)$** |
+| 请求 B | $(0.6,\; 0.4,\; 0.2)$ | $(0.6,\; 0.6 \times 0.4,\; 0.6 \times 0.4 \times 0.2)$ | **$(0.6,\; 0.24,\; 0.048)$** |
 
 若本轮只多给三个草稿验证位置，最高的三项是 A1 的 0.9、A2 的 0.72、B1 的 0.6。因此 A 验两个、B 验一个，正好得到首节的方案。每条请求那个已确定、仍要送主模型的末尾 token，称为本轮的**基础位置**。两条请求各占一个基础位置，再加三个候选，共五行输入。
 
@@ -84,14 +94,15 @@ B 的前缀存活概率 = (0.6, 0.6 × 0.4, 0.6 × 0.4 × 0.2) = (0.6, 0.24, 0.0
 | A 验 2、B 验 1 | 2 个基础 + 3 个候选 = 5 | 2 + 0.9 + 0.72 + 0.6 = 4.22 | 10 ms |
 | 两边各验 3 | 2 个基础 + 6 个候选 = 8 | 2 + 0.9 + 0.72 + 0.36 + 0.6 + 0.24 + 0.048 = 4.868 | 20 ms |
 
-全验每轮预计多产出一些，但多出的概率较低，时间却明显增长。换成相同时间口径，才能看出哪个方案更值得。
+全验每轮预计多产出一些，但多出的概率较低，时间却明显增长。换成相同时间口径（每秒实际可能留下多少输出，示意），才能看出哪个方案更值得：
 
-```calc
-title: 比较每秒实际可能留下多少输出（示意）
-少验的期望输出率 = 4.22 ÷ 0.010 = 422 token/s
-全验的期望输出率 = 4.868 ÷ 0.020 = 243.4 token/s
-全验与少验持平的整轮耗时 = 4.868 ÷ 422 × 1000 ≈ 11.54 ms
-```
+$$\text{Rate} = \frac{E[\text{tokens}]}{t_{\text{step}}}, \qquad t_{\text{break-even}} = \frac{E[\text{tokens}_{\text{full}}]}{\text{Rate}_{\text{partial}}}$$
+
+| 比较项（教学耗时假设） | 算式 | 结果 |
+| --- | --- | --- |
+| 少验的期望输出率 | $4.22 \div 0.010\text{ s}$ | **422 token/s** |
+| 全验的期望输出率 | $4.868 \div 0.020\text{ s}$ | **243.4 token/s** |
+| 全验与少验持平的整轮耗时 | $4.868 \div 422 \times 1000\text{ ms}$ | **约 11.54 ms** |
 
 在这组概率与停止条件不变时，全验必须比约 11.54 ms 更短，期望输出率才高于少验。因此，全验若也只需 10 ms，就更划算；若需要 12 ms，虽然比表中的 20 ms 快了许多，仍不及少验方案。读者可以用同样的方法，把自己测到的输出量和整轮耗时放在一起比较。
 
@@ -109,13 +120,14 @@ DSpark 因而需要实际硬件的吞吐曲线，不能只按固定概率阈值�
 
 现在再看这些猜测怎样产生。DSpark 先并行算出多个候选位置的基础分数，再用一个很小的 **Markov head**，根据前一个候选的编号修正下一个位置的分数。多个位置共同完成较重的草稿主干计算，最后只串行做一段较小的修正，这就是这里的半自回归。源码仍沿用 DFlash 的模块命名，不能只按文件名判断它没有 DSpark 的这些部分。
 
-用一个**教学分数**理解修正。假设上一候选是“猫”，下一位置基础分数为“坐”3.0、“跑”3.2，局部修正分别加 0.4 和 0.1。这里只演示分数变化，不代表真实模型权重或词元切分。
+用一个**教学分数**理解修正。假设上一候选是「猫」，下一位置基础分数为「坐」$3.0$、「跑」$3.2$，局部修正分别加 $0.4$ 和 $0.1$（这里只演示分数变化，不代表真实模型权重或词元切分）：
 
-```calc
-title: 小修正怎样改变草稿候选（示意）
-坐的修正后分数 = 3.0 + 0.4 = 3.4
-跑的修正后分数 = 3.2 + 0.1 = 3.3
-```
+$$s_{\text{final}}(w) = s_{\text{base}}(w) + \Delta_{\text{Markov}}(w \mid w_{\text{prev}})$$
+
+| 候选词（教学示意） | 基础分数 | 局部修正 | 修正后分数 |
+| --- | --- | --- | --- |
+| 「坐」 | $3.0$ | $+0.4$ | $3.0 + 0.4 = \mathbf{3.4}$ |
+| 「跑」 | $3.2$ | $+0.1$ | $3.2 + 0.1 = \mathbf{3.3}$ |
 
 若本例按最高分选草稿，结果从“跑”变为“坐”。Markov head 改变猜测内容；Confidence head 预测猜测能留下来的机会；主模型验证才决定实际输出。这三件事要分开。草稿主干、短串行修正、置信预测与额外状态都有成本，必须算进前节的整轮耗时。
 
@@ -209,25 +221,24 @@ Ascend 的草稿窗口入口为 `--additional-config '{"draft_window_size":2048}
 
 ### 版本差异
 
-新增 Ascend 草稿窗口说明固定在 `921ccc52`，只描述该功能的 runner/方法组合；默认 runner 在不同教程和版本中可能不同，部署该路径时应显式核对 `VLLM_USE_V2_MODEL_RUNNER=0`。原表中 DeepInfer 的置信调度与旧 Ascend 按批大小变长仍分别解释，不能由方法名相同认定三者等价。[S9][S10]
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；DeepInfer `774ce244` 作为论文原版变长验证与异步分工对照，Ascend 草稿窗口文档边界另核 `921ccc52`。[S9][S10]
 
-| 范围 | 支持与默认值 |
-| --- | --- |
-| DeepInfer `774ce244` | DSpark、变长验证与异步配合的本页依据；最大草稿默认 5，变长验证需显式启用 |
-| vLLM-Ascend v0.23 | GLM 的 MTP 规则见原页；本页未核 DSpark 同等实现与默认值 |
-| vLLM-Ascend v0.26 `2ed6cbba` | 已有 `dspark` 草稿分支；上游有按批大小设候选长度的配置，昇腾侧该快照未见引用 |
-| vLLM-Ascend v0.30.0rc2 `7d825229` | 有 `DynamicSpecConfig`，method 默认 None；注释明确 DSpark 使用置信头，method_params 按方法解释；配置定义本身不证明所有 runner/模型组合已可用 |
-| vLLM-Ascend main `baa023ad` | 已有同类置信度 `dynamic_spec_config`，面向 dspark/dflash，默认 method=None；它与上游按批大小选择 K 是两个入口 |
+| 核验维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| DSpark 草稿模型与入口 | 无 DSpark 同等实现（GLM 按 MTP 走） | 新增 `dspark` 草稿分支；上游新增按批大小设 `K` 配置，Ascend 未引用 | 注册 `DeepseekV41DSparkModel`（`models/deepseek_v41/dspark.py#L143-L175`）、`Qwen3DSparkModel`、`Glm5DSparkForCausalLM` 等；**MRV1/MRV2 双轨并存** | 延续 `DeepseekV41DSparkModel`（`#L151-L180`）并扩展 `MiniMax` / `Kimi K3` DSpark；**删除 MRV1，统一由 MRV2 `AscendDSparkSpeculator`（`worker/v2/spec_decode/dspark/speculator.py#L60-L90`）承接** |
+| Ascend A5 与 Runner 约束 | 仅 MRV1 | 仅 MRV1 | `platform.py#L952-L959` 强校验：**`DeepseekV41ForCausalLM` 与 `DeepseekV41DSparkModel` 在支持 `DSV41_PACKED_CACHE` 的 Ascend A5 上强制要求 MRV2（`VLLM_USE_V2_MODEL_RUNNER=1`）**，否则启动报错 | 全仓仅保留 MRV2（显式设 `VLLM_USE_V2_MODEL_RUNNER=0` 即报错）；`AscendDSparkSpeculator` 支持 DCP 与 LM-head TP 补齐，但 `lmhead TP` 仍拒绝 `enable_adaptive_verification` |
+| 置信度动态变长配置 | 无 | 无 `dynamic_spec_config` | `ascend_config.py#L1295-L1319` 定义 MRV1 `DynamicSpecConfig`（`method` 默认 `None`，支持 `dspark/dflash`）；MRV2 另提供 `speculative_config.enable_adaptive_verification` | 随 MRV1 退场移除 `DynamicSpecConfig`，变长验证收敛至 MRV2 `enable_adaptive_verification` |
+| 草稿 KV 滑动窗口 | 无 | 从 `additional_config` 直读，不分方法 | MRV1 支持 `draft_window_size`（`eagle3/dflash/dspark`，MTP 强制忽略），MRV2 未接入 | 随 MRV1 退场移除旧 `draft_window_size` 入口 |
 
-上游按批大小配置及旧草稿分派见[推测解码的版本核对](speculative-decoding.md#版本差异)。上述 main 和 rc2 的置信配置已核对定义 [C11][C12]；现行 runner 支持与方法范围依据官方指南 [S9]。它们各自有实现，不能把 DeepInfer 的耗时预算公式或收益直接移植为 Ascend 的保证。
+DeepInfer `774ce244` 为本页变长验证与异步分工对照（最大草稿默认 5，变长验证需显式开启）；上游按批大小配置及旧草稿分派见[推测解码的版本核对](speculative-decoding.md#版本差异)。上述 `v0.30.0` 与 `main` 的配置与模型类均已按固定 commit 核对 [C11][C12]；各实现独立，不能把 DeepInfer 的耗时预算公式或收益直接移植为 Ascend 的保证。
 
 ### 源码位置
 
+- `v0.30.0` A5 强制 MRV2 校验在 `vllm-ascend@c09d3e20:vllm_ascend/platform.py#L952-L959`，`DynamicSpecConfig` 在 `ascend_config.py#L1295-L1319`，`DeepseekV41DSparkModel` 在 `models/deepseek_v41/dspark.py#L143-L175`；`main` 收敛后的 `DeepseekV41DSparkModel` 与 MRV2 `AscendDSparkSpeculator` 分别在 `vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/dspark.py#L151-L180` 与 `worker/v2/spec_decode/dspark/speculator.py#L60-L90`。
 - Ascend 草稿窗口的配置、MRV1/MRV2 与 MTP 边界见官方投机指南 [S9]；读取窗口与完整写槽位的设计见 [S10]。10,000/2,048/5 是区分三个长度的教学示意，不是性能测试。
-
 - 半自回归草稿与置信调度见 DSpark 论文 [S1]、V4.1 报告 §2.4.3 [S2]；草稿结构和 `ConfidenceHead` 见实现 [C3]。
-- CPU 预算、历史置信轮次、前向/采样运行时估计在 `MTPVarlen::schedule` [C4]。代码说明预算使用 N−2 轮信息，逐请求分配使用更新信息；异步路径在设备修正。
+- CPU 预算、历史置信轮次、前向/采样运行时估计在 `MTPVarlen::schedule` [C4]。代码说明预算使用 $N-2$ 轮信息，逐请求分配使用更新信息；异步路径在设备修正。
 - 设备端累乘、全局排名、稳定并列排序和请求映射在 `compute_seqlens_q_by_confidence_rates_tl` [C5]。
 - 上一批请求映射、变长开关及异步回写消费者见 DeepInfer worker [C15]；Ascend 草稿窗口的读块表裁剪、主机/设备长度与完整写槽位见适配器 [C16]。
-- `examples/benchmark.py` 的 decode 报告按“每步每请求 1+nextn 全接受”换算输出率；稳态窗口剔除 flush 区间。它不能替代在线实际接受量 [C6]。
+- `examples/benchmark.py` 的 decode 报告按“每步每请求 `1+nextn` 全接受”换算输出率；稳态窗口剔除 flush 区间。它不能替代在线实际接受量 [C6]。
 - 开关及 NVIDIA 确定性条件见 README [S7]、环境定义 [C8]；本页分数、概率、耗时是教学假设 [A]，422/243.4 为推导 [D]，未做设备性能或采样分布实测。

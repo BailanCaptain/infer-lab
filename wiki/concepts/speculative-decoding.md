@@ -240,9 +240,21 @@ sources:
   - "vllm@84030bbe:vllm/entrypoints/serve/utils/api_utils.py#L289-L301"
   - "vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L509-L512"
   - "vllm@ced6857a:vllm/entrypoints/openai/completion/serving.py#L301-L304"
+  - "vllm-ascend@c09d3e20:vllm_ascend/spec_decode/__init__.py#L41-L70"
+  - "vllm-ascend@c09d3e20:vllm_ascend/spec_decode/multi_kv_cache_group_proposer.py#L40-L55"
+  - "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/spec_decode/__init__.py#L25-L78"
+  - "vllm-ascend@c09d3e20:vllm_ascend/attention/sfa_v1.py#L529-L538"
+  - "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/spec_decode/__init__.py#L29-L112"
+  - "vllm-ascend@8d6180e2:vllm_ascend/attention/sfa_v1.py#L555-L565"
+  - "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1045-L1060"
+  - "vllm@ced6857a:vllm/config/compilation.py#L1545-L1570"
+  - "vllm@ba15685a:vllm/config/speculative.py#L540-L585"
+  - "vllm@ba15685a:vllm/v1/core/sched/scheduler.py#L1365-L1380"
+  - "vllm@ba15685a:vllm/config/compilation.py#L1688-L1715"
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -285,14 +297,15 @@ file: speculative-decoding
 
 主模型每步都要使用**权重**（模型学到的矩阵，见[权重与矩阵乘](matmul-and-weights.md)）。普通 decode 每条请求只送进一个新位置，请求少时，同一份权重服务的输入行很少，读取权重可能成为主要开销。这里说的是本步实际使用的权重；MoE 并不会为每个 token 读取全部专家。实际瓶颈还可能是历史状态读取、通信或主机下发，需要时间轨迹确认。
 
-若内核能在批内复用已读入的权重，乘 4 行就不必重复支付 4 次完整读取成本。speculative decoding 利用这种复用机会，把 1 个已确定的位置和 3 个候选位置一起验证；真实字节数仍受内核分块、缓存及候选选中哪些专家影响。猜得准，一步能写下多个 token，步数减少。下文把每轮猜几个记作 K，例子里 K = 3。
+若内核能在批内复用已读入的权重，乘 4 行就不必重复支付 4 次完整读取成本。speculative decoding 利用这种复用机会，把 1 个已确定的位置和 3 个候选位置一起验证；真实字节数仍受内核分块、缓存及候选选中哪些专家影响。猜得准，一步能写下多个 token，步数减少。下文把每轮猜几个记作 $K$，例子里 $K = 3$。
 
-```calc
-title: 一个 200 个 token 的回答要走几步（示意，K = 3）
-不开 = 200 ÷ 1 = 200 步
-每轮 3 个候选全对 = ⌈200 ÷ 4⌉ = 50 步，每步写下 3 + 1 个
-每轮第 1 个候选就错 = 200 ÷ 1 = 200 步，每步只写下主模型自己那 1 个
-```
+$$\text{Steps}_{\text{best}} = \left\lceil \frac{200}{1 + K} \right\rceil = \left\lceil \frac{200}{4} \right\rceil = 50\text{ 步}$$
+
+| 情景（200 个 token 回答，示意，$K = 3$） | 每步写下 token 数 | 总步数算式与结果 |
+|---|---|---|
+| 不开投机解码 | 1 个 | $200 \div 1 = \mathbf{200\text{ 步}}$ |
+| 每轮 3 个候选全对 | $3 + 1 = 4$ 个 | $\lceil 200 \div 4 \rceil = \mathbf{50\text{ 步}}$ |
+| 每轮第 1 个候选就错 | 1 个（仅主模型自己那 1 个） | $200 \div 1 = \mathbf{200\text{ 步}}$ |
 
 步数不会比不开更多，但这不等于不会更慢，因为每一步都多付了几笔账：
 
@@ -343,17 +356,16 @@ title: 一个 200 个 token 的回答要走几步（示意，K = 3）
 - **接受**：草稿抽到 x，以 min(1, p(x) ÷ q(x)) 的概率留下它。主模型比草稿更看好 x（p 不小于 q），一定留下；没那么看好，就按比例留。
 - **补抽**：被拒时，从 max(0, p − q) 归一化后的分布里抽一个，写在这一格，然后停止。这份分布只保留「主模型比草稿更看好」的那部分词。
 
-用 3 个词的小例子验算一遍。主模型的概率是猫 0.6、你 0.3、看 0.1；草稿的概率是猫 0.8、你 0.1、看 0.1。
+用 3 个词的小例子验算一遍。主模型的概率是猫 0.6、你 0.3、看 0.1；草稿的概率是猫 0.8、你 0.1、看 0.1：
 
-```calc
-title: 接受加补抽，输出概率正好等于主模型的 p（示意）
-草稿抽到猫时留下的机会 = min(1, 0.6 ÷ 0.8) = 0.75
-这一格被拒的总机会 = 0.8 × (1 − 0.75) + 0.1 × 0 + 0.1 × 0 = 0.2
-补抽用的分布 = max(0, p − q) = (0, 0.2, 0)，归一化后只剩「你」
-最终输出猫 = 0.8 × 0.75 = 0.6
-最终输出你 = 0.1 × 1 + 0.2 × 1 = 0.3
-最终输出看 = 0.1 × 1 + 0.2 × 0 = 0.1
-```
+$$P_{\text{accept}}(x) = \min\!\left(1,\; \frac{p(x)}{q(x)}\right), \qquad p'(x) = \frac{\max(0,\; p(x) - q(x))}{\sum_y \max(0,\; p(y) - q(y))}$$
+
+| 核算步骤（3 词教学示意） | 算式 | 结果 |
+|---|---|---|
+| 草稿抽到「猫」时留下的机会 | $\min(1,\; 0.6 \div 0.8)$ | **0.75** |
+| 这一格被拒的总机会 | $0.8 \times (1 - 0.75) + 0.1 \times 0 + 0.1 \times 0$ | **0.2** |
+| 补抽分布 $\max(0, p - q)$ 归一化 | $(0,\; 0.2,\; 0) \to (0,\; 1,\; 0)$ | 补抽只剩「你」 |
+| 最终输出「猫 / 你 / 看」的概率 | $0.8 \times 0.75$；$0.1 \times 1 + 0.2 \times 1$；$0.1 \times 1 + 0.2 \times 0$ | **0.6 / 0.3 / 0.1**（与 $p$ 完全一致） |
 
 三个结果正好是主模型的 0.6、0.3、0.1：草稿猜得偏，影响的只是一轮能留下几个，不改变输出的概率。greedy 是这条规则的特例：主模型的概率全压在最高分的那个词上，候选是它就一定留下，不是它就一定被拒，补抽出来的正是最高分的词。
 
@@ -423,17 +435,15 @@ GLM 的 MTP 层长什么样、两路输入为什么差一个位置，见 [GLM-5.
 
 **按位置存的 KV：不擦，下一步原地覆盖。** 调度器记着每条请求「已经算到第几个位置」。排这一步时，它先按 K + 1 个位置全算完记账；结果回来，有几个候选被拒，就把这个数退回几格。下一步从退回后的位置接着往后写，而一个位置写进哪一格，是按位置号查 [block table](block-table.md)（块表）得出的，所以写的正是上一步被拒的那几格，旧内容直接被盖掉。不存在专门「回收」被拒 KV 的动作。
 
-用图里的例子记一遍账：「猫」在位置 5，此前位置 0–4 已经算完。
+用图里的例子记一遍账：「猫」在位置 5，此前位置 0–4 已经算完（示意，$K = 3$，位置 8 原存的「床」的 KV 在下一步会被「垫子」的 KV 原地盖掉）：
 
-```calc
-title: 被拒 1 个时，已算位置怎样退回（示意，K = 3）
-这一步送进 = 猫、坐、在、床，位置 5–8
-排的时候先记成全算完 = 5 + 4 = 9 个位置
-被拒的候选 = 3 − 2 = 1 个，即位置 8 的「床」
-结果回来后退回 = 9 − 1 = 8 个位置
-下一步从位置 8 写起 = 垫子 + 3 个新候选，位置 8–11
-> 位置 8 那一格原来存的是「床」的 KV，被「垫子」的直接盖掉
-```
+| 记账阶段 | 位置或算式 | 结果 |
+|---|---|---|
+| 这一步送进主模型 | 猫、坐、在、床 | 位置 5–8（共 4 个） |
+| 排步时先按全算完记账 | $5 + 4$ | **9 个位置** |
+| 被拒的候选数 | $3 - 2$ | **1 个**（位置 8 的「床」） |
+| 结果回来后退回已算位置 | $9 - 1$ | **8 个位置** |
+| 下一步写起的位置 | 垫子 + 3 个新候选 | 位置 8–11（位置 8 原地覆盖） |
 
 **只有验证过的 token 才登记进 prefix caching。** 多条请求开头相同时，KV 可以按块共享（[prefix caching](prefix-caching.md)）。登记可共享的块时只算到已经验证的 token 为止，没验证的候选不会被别的请求读到。
 
@@ -447,15 +457,14 @@ title: 被拒 1 个时，已算位置怎样退回（示意，K = 3）
 
 一轮能写下几个 token，取决于候选有多准。为了估算，假设在前面候选都已接受的条件下，每个位置的接受概率都为 α（接受率），且不提前遇到停止条件；真实的逐位置条件接受率可以不同。一轮猜 K 个，平均每轮写下的 token 数是 (1 − α 的 K + 1 次方) ÷ (1 − α)。α 越接近 1，结果越接近 K + 1；α 为 0 时正好是 1，α = 1 时直接取 K + 1。
 
-但开了以后，每一步本身也更贵：本站 GLM 草稿要接连跑 K 遍，主模型每条请求多算 K 行，还要准备验证用的下标和状态。其他方法会改变草稿这一项的成本；并行草稿也仍有主模型验证开销。把「每步贵了多少」算进去，才是实际的快慢。下面按开了以后每步耗时是不开时的 1.3 倍来演算，这个倍数是编的，实际会随批次大小、模型和设备变。
+但开了以后，每一步本身也更贵：本站 GLM 草稿要接连跑 $K$ 遍，主模型每条请求多算 $K$ 行，还要准备验证用的下标和状态。其他方法会改变草稿这一项的成本；并行草稿也仍有主模型验证开销。把「每步贵了多少」算进去，才是实际的快慢。下面按开了以后每步耗时是不开时的 $1.3$ 倍来演算，这个倍数是编的，实际会随批次大小、模型和设备变：
 
-```calc
-title: 接受率决定赚不赚得回来（示意，K = 3，每步耗时按 1.3 倍算）
-α = 0.6 时每轮平均写下 = (1 − 0.6⁴) ÷ (1 − 0.6) ≈ 2.18 个 token
-折合加速 = 2.18 ÷ 1.3 ≈ 1.68 倍
-α = 0.2 时每轮平均写下 = (1 − 0.2⁴) ÷ (1 − 0.2) ≈ 1.25 个 token
-折合加速 = 1.25 ÷ 1.3 ≈ 0.96 倍，比不开还慢
-```
+$$E[\text{tokens}] = \frac{1 - \alpha^{K+1}}{1 - \alpha}, \qquad \text{Speedup} = \frac{E[\text{tokens}]}{c_{\text{step}}}$$
+
+| 接受率 $\alpha$（示意，$K = 3$，$c_{\text{step}} = 1.3$） | 每轮平均写下 token 数 | 折合加速比 |
+|---|---|---|
+| $\alpha = 0.6$ | $(1 - 0.6^4) \div (1 - 0.6) \approx \mathbf{2.18\text{ 个}}$ | $2.18 \div 1.3 \approx \mathbf{1.68\text{ 倍}}$ |
+| $\alpha = 0.2$ | $(1 - 0.2^4) \div (1 - 0.2) \approx \mathbf{1.25\text{ 个}}$ | $1.25 \div 1.3 \approx \mathbf{0.96\text{ 倍}}$（比不开还慢） |
 
 所以「每步至少写下 1 个 token，最差也不会比不开慢」不成立：步数确实不会更多，但每一步更贵，接受率低时总时间反而更长。下面几种情形会让收益缩水：
 
@@ -471,17 +480,16 @@ title: 接受率决定赚不赚得回来（示意，K = 3，每步耗时按 1.3 
 
 ### 日志里的“接受率”应该怎样读？
 
-先把三个计数分开：R 是参与统计的验证轮数，D 是提出的候选总数，A 是其中接受的候选总数。这里 A 不含拒绝处补抽或全部接受后的额外 token。普通自回归投机路径的草稿接受率是 A ÷ D；日志的平均接受长度则是 1 + A ÷ R，把每轮的那个额外 token 也算进去。
+先把三个计数分开：$R$ 是参与统计的验证轮数，$D$ 是提出的候选总数，$A$ 是其中接受的候选总数。这里 $A$ 不含拒绝处补抽或全部接受后的额外 token。普通自回归投机路径的草稿接受率是 $A \div D$；日志的平均接受长度则是 $1 + A \div R$，把每轮的那个额外 token 也算进去：
 
-```calc
-title: 同一批验证结果，两个指标为什么不同（示意，K = 3）
-两轮提出的候选 = 3 + 3 = 6 个
-两轮接受的候选 = 0 + 2 = 2 个
-草稿接受率 = 2 ÷ 6 ≈ 33.3%
-日志平均接受长度 = 1 + 2 ÷ 2 = 2 个
-第 1、2、3 个位置被接受的轮数 = 1、1、0
-按全部两轮归一后的逐位置比例 = 50%、50%、0%
-```
+$$\text{AcceptanceRate} = \frac{A}{D}, \qquad \text{MeanAcceptanceLength} = 1 + \frac{A}{R}$$
+
+| 统计项（两轮验证示意，$K = 3$） | 算式 | 结果 |
+|---|---|---|
+| 两轮提出的候选总数 $D$ / 接受数 $A$ | $D = 3 + 3$；$A = 0 + 2$ | $D = \mathbf{6\text{ 个}}$；$A = \mathbf{2\text{ 个}}$ |
+| 草稿接受率 $A \div D$ | $2 \div 6$ | **约 33.3%** |
+| 日志平均接受长度 $1 + A \div R$ | $1 + 2 \div 2$ | **2 个** |
+| 第 1、2、3 位置被接受轮数与按两轮归一比例 | $1, 1, 0$ 轮分别除以 $R = 2$ | **50%、50%、0%** |
 
 这个例子里第二位置的 50% 是除以全部两轮；如果只看第一位置已经通过的那一轮，第二位置的条件接受率反而是 100%。因此不能把日志逐位置比例直接代入前面假设“各位置条件概率都为 α”的公式。
 
@@ -515,17 +523,16 @@ file: speculative-decoding-flow
 
 **MTP 层是什么样的。** 它在 45 层主干之外，结构和主干里的稀疏 MLA + MoE 层相同，只有单条残差；嵌入表和最后的词表投影（lm_head）与主模型共用同一份。它在每张卡上占多少权重，账在[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)。
 
-**一个 decode 步。** 用 R1 来看（贯穿全库的示例请求，提示词 4 个 token，见[一条请求](one-request.md)）。R1 每步送进主模型 1 个已确定的 token 和 3 个候选，主模型 45 层都按 4 行算，词表投影出 4 行分数：前 3 行验候选，第 4 行留作 bonus token。验完以后，草稿层接着跑 3 遍。
+**一个 decode 步。** 用 R1 来看（贯穿全库的示例请求，提示词 4 个 token，见[一条请求](one-request.md)）。R1 每步送进主模型 1 个已确定的 token 和 3 个候选，主模型 45 层都按 4 行算，词表投影出 4 行分数：前 3 行验候选，第 4 行留作 bonus token。验完以后，草稿层接着跑 3 遍（主干 45 层，另把 1 个 MTP 层接连跑 3 遍）：
 
-```calc
-title: GLM 双机一个 decode 步多做了多少
-每步前向的层次 = 45 + 3 × 1 = 48 层
-> 主干 45 层，另把 1 个 MTP 层接连跑 3 遍
-R1 每步送进主模型 = 1 + 3 = 4 个位置
-一个 DP 组满载一步 = 32 条 × 4 = 128 个位置，正好是最大的录图尺寸
-满载一步最少交回 = 32 × 1 = 32 个 token
-满载一步最多交回 = 32 × 4 = 128 个 token
-```
+$$\text{Layers}_{\text{step}} = 45 + 3 \times 1 = 48\text{ 层}, \qquad W_{\text{full}} = 32 \times (1 + 3) = 128\text{ 个位置}$$
+
+| GLM 双机 decode 步统计项 | 算式 | 结果 |
+|---|---|---|
+| 每步前向层次 | $45 + 3 \times 1$ | **48 层**（主干 45 层 + MTP 连跑 3 遍） |
+| R1 每步送进主模型 | $1 + 3$ | **4 个位置** |
+| 一个 DP 组满载一步宽度 | $32 \times 4$ | **128 个位置**（正好是最大录图尺寸） |
+| 满载一步最少 / 最多交回 | $32 \times 1$ / $32 \times 4$ | 最少 **32 个** / 最多 **128 个** token |
 
 一步交回的这 1 到 4 个 token 还只是词表编号。它们回到前端后，由反分词接上已有的文字，拼成一段新增文字再推给客户端，所以客户端一次看到的可能是几个字，见[流式输出](streaming-output.md)。
 
@@ -662,43 +669,16 @@ Suffix 的固定上游校验在缺少依赖时提示安装 `arctic-inference==0.
 
 ### 版本差异
 
-**v0.30.0rc2 的 MRV1 继续使用已钉 main 的统一草稿分派。** get_spec_decode_method 除 ngram、suffix、medusa、dspark、eagle、mtp 外，还处理 dflash、draft_model、extract_hidden_states；dflash 分支再按草稿配置选择 DFlash 或 DFlash2 实现，不能直接把 dflash2 当作这个工厂接受的方法名。GLM 多 KV 组 MTP 使用专用 proposer。rc2 的实际新增是该 proposer 声明草稿图支持，跳过基类对 GLM 统一强制 eager 的门槛，仍受 runner 图可用性及显式 enforce_eager 限制。与 structured output 组合时，配套上游先去掉草稿的 -1 占位，再按 reasoning 结束位置验证 grammar。这不改变保持目标分布的要求，也不等于所有模型、Runner、PP、PCP 组合均可用。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**本文 GLM 双机绑定算例采用例外 B 专用镜像钉点 `vllm-ascend@db701c1f` + `vllm@0fc695fc`**。普通逐位验证流程（`1 + K` 预算扣减、首个不符即停、被拒位置原地覆盖）与注意力 `decode_threshold <= 16` 断言（`sfa_v1.py#L529-L538`、`#L555-L565`）在四版保持一致；显式开启 `block / entropy verify` 时按前文另一套接受边界理解。
 
-五个参数按 vLLM `0fc695fc` / `568afb3a` / `ced6857a` / `84030bbe` 对照，分别为在册 v0.23、v0.26、v0.30.0rc2 与固定 main 的比较点，不是浮动最新版，也不单凭这张表确定 Ascend 的安装组合。
-
-| 参数 | v0.23 基线 | v0.26 rc | v0.30.0rc2 | 固定 main |
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 |---|---|---|---|---|
-| 配置容器与快捷入口 | None 默认关闭；逐字段合并，同字段互斥；{} 不等于 None | 合并后再归一键名 | 同 v0.26 | 同 v0.26 |
-| 方法推断 | None 后推断；旧 MTP 名归一 | 增加 DSpark 等名称 | 增加更多 MTP 名 | 本页列出的集合与 rc2 相同 |
-| 同模型草稿路径 | 取 target.model | 仍取 target.model | 优先 model_weights，否则 model | 同 rc2 |
-| 自定义类路径 | 含点裸字符串可覆盖显式方法 | 仅未给方法时推断，各段须为 Python 标识符 | 同 v0.26 | 同 v0.26 |
-| K 的缺省与校验 | 输入 None；正数；MTP 比较先于回填 | 相同；另有按批大小配置 | 相同；另有动态方法分支 | 同 rc2 |
-| 草稿 eager | 默认 None；True 禁图，仍看 Runner/模型保护 | 相同 | GLM 专用子类可声明图支持 | GLM 强制 eager 保护仍在 |
+| 投机分派与 Runner 形态 | MRV1 `get_spec_decode_method`；`mtp` 与 `eagle` 共用 `AscendEagleProposer`（无 `glm5_next`） | 同 MRV1，新增 `dspark` 分支 | **MRV1/MRV2 双轨并存**：MRV1 `spec_decode/__init__.py#L41-L70` 覆盖 `ngram/suffix/medusa/dspark/gemma4/step3p5/multi_kv_cache_group/dflash/dflash2/draft_model/extract_hidden_states`；MRV2 `worker/v2/spec_decode/__init__.py#L25-L78` 统一 `init_speculator`（`AscendMTPSpeculator`、`AscendEagleSpeculator`、`AscendDSparkSpeculator`、`AscendDFlash/2`） | **删除 MRV1，全面收敛至 MRV2 统一 `spec_decode`**（`worker/v2/spec_decode/__init__.py#L29-L112`），补齐 `NgramGPUSpeculator`、`AscendLiLiCorrSpeculator`、`AscendGemma4Speculator`、`AscendMultiModuleMTPSpeculator` 与 `AscendStandaloneARSpeculator` |
+| `1 + K` 预算、录图与 GLM 草稿图 | 录图尺寸按 `1 + K` 向上凑整；GLM 草稿强制 eager（`db701c1f` 同样） | 同 `v0.23.0`；上游新增按批大小 `num_speculative_tokens_per_batch_size` | 调度器按 `1 + num_spec_tokens` 核算统一 decode 宽度（`scheduler.py#L1045-L1060`），`adjust_cudagraph_sizes_for_spec_decode`（`compilation.py#L1545-L1570`）联动 ACLGraph；MRV1 GLM 专用子类 `AscendMultiKVCacheGroupMTPProposer` 声明 `_glm_draft_graph_supported = True`（`#L40-L55`）跳过强制 eager，仍受显式 `enforce_eager` 约束 | 延续 `1 + num_spec_tokens` 预算与录图对齐（`scheduler.py#L1365-L1380`、`compilation.py#L1688-L1715`）；`enforce_eager` 在 MRV2 `init_speculator` 内通过拷贝 `compilation_config` 置 `CompilationMode.NONE` 生效 |
+| 配置入口、Speculators 与请求级指标 | 容器 `None` 关、`{}` 报错；旧 MTP 名归一；无请求级统计；Speculators 重建配置不合并覆盖项 | 合并后归一键名；自定义类仅未给方法时推断；增 `dspark` 等方法名 | 优先 `model_weights`；Speculators 先转后合并并锁定 `model/method`；新增 `--per-request-spec-decode-metrics`（`none/summary/detailed`）与 `use_heterogeneous_vocab`（Ascend MRV1 未接）；structured output 去 `-1` 占位校验 | 延续 `v0.30.0` 字段与 `use_heterogeneous_vocab` / `num_speculative_tokens_per_batch_size`（`speculative.py#L540-L585`）；MRV2 工厂仍无 `mlp_speculator` 分支 |
+| 草稿滑动窗口、动态变长与验证判法 | 无滑动窗口；固定 `K`；`block / entropy verify` 默认关；文档 16/15 口径混用（代码为 16） | 从 `additional_config` 直读窗口（不分方法，MTP 亦受影响）；文档改为 `<= 16` | `AscendConfig` 纳管 `draft_window_size`（MTP 告警忽略）与 `dynamic_spec_config`（`dspark/dflash`）；MRV2 另提供 `enable_adaptive_verification`；`block / entropy verify` 默认关并改为数据类 | MRV1 退场后草稿变长收敛至 MRV2 `enable_adaptive_verification`（与 `AscendDSparkSpeculator` 联动，见 [DSpark](dspark.md#ascend-的变长验证要先分清依据和执行器)）；文档与代码上限均保持 `<= 16` |
 
-键名归一指把配置对象键中的连字符换成下划线。v0.26、rc2、main 都先检查快捷入口与规范字段是否重复，再做归一；别名碰撞不能按规范字段互斥规则推断。方法集合中，v0.26 相比基线增加 `dspark`、`minimax_m3_mtp`、`bailing_hybrid_mtp`、`inkling_mtp`；rc2 与固定 main 还增加 `dots3_note_mtp`、`qwen4_exp_mtp`、`bailing_hybrid_v3_mtp`、`kimi_k3_mtp`、`hy_v4_mtp`、`glm5_next_mtp`。这些是合法名称，不是所有 NPU 模型的可用清单。GLM 仍显式给 K=3；动态能力的存在不把该配方自动改成变长草拟。草稿 eager 与主模型 eager 仍是两个字段。
-
-| 本页补充能力 | v0.23 / v0.26 固定点 | rc2 / 固定 main |
-|---|---|---|
-| ngram 与 Suffix 缺省 | 上表窗口、树缓存缺省及 Suffix 的 K 回填 | 本页所列规则相同 |
-| Speculators 短入口 | 从检查点重建投机对象，传入的投机对象不会作为覆盖项合并 | 先由检查点转换，再合并用户对象；最后锁定草稿 model 和 method，不能用覆盖项更换这两者 |
-| 请求级投机统计 | 无此请求级开关；有聚合统计 | 新增 none / summary / detailed 和响应消费者 |
-| MLP 草稿 | Ascend 工厂没有接线 | Ascend 工厂仍没有接线；不因方法名合法就可运行 |
-
-Speculators 的区别只针对“把 Speculators 检查点作为主 model 输入”的快捷识别流程；显式提供 verifier 和独立草稿配置时仍按普通入口处理。并行草稿在四个 Ascend 比较点都能找到专门分支，但分支存在不能代替具体检查点、图模式和注意力组合的设备验证。
-
-来源 47–55 对应新版字段、初始化顺序与快捷入口，58、59 对应 Python LLM 快捷参数，60–63 对应新版 Ascend 的草稿图门控及检查先后。版本间合法方法集合的增加只说明配置能接受这些名称，具体昇腾接线仍看下面的执行侧表。
-
-下表 v0.23 指维护分支 `2c59ff10`，v0.26 指 `2ed6cbba`，main 指 2026-09-21 的快照 `baa023ad`；在该表的四个钉点中，只有孤立提交 `db701c1f`（本知识库的固定镜像）和 main 含 GLM-5.3-Flash 模型代码，因此将固定镜像单列一栏。rc2 `7d825229` 的 GLM proposer 另见上文。普通逐位验证的核心流程（排 1 + K 个位置、第一个不符就停、被拒位置原地覆盖）四处一致，`assert decode_threshold <= 16` 也一致；显式开启 block / entropy verify 后应按前面的另一套接受边界理解。
-
-| 项 | v0.23 | db701c1f（GLM） | v0.26 | main |
-|---|---|---|---|---|
-| GLM-5.3-Flash 的 MTP 层 | 无此模型 | `glm5_next_mtp.py` | 无此模型 | 挪到 `glm5next/mtp.py`，首位清零与两路归一化、拼接改为融合算子调用 |
-| GLM 系列草稿强制 eager | 有 | 有 | 有 | 有 |
-| `mtp` 落到哪个草稿类 | 与 `eagle` 共用 `AscendEagleProposer` | 同 v0.23 | 同 v0.23，另多一个 `dspark` 分支 | `glm5_next_mtp` 走 `AscendMultiKVCacheGroupMTPProposer`，按物理 KV cache 组重写 eager 下的元数据；Gemma4 的 MTP 也单独分出 |
-| 文档写的 1 + K 上限 | 文档同一句先说算子最多 16 个，又写 ≤ 15；代码是 16 | 代码 16 | 文档改成 ≤ 16 | 文档 ≤ 16 |
-| block / entropy verify | 默认关 | 默认关 | 默认关 | 默认关，配置改成数据类 |
-| 草稿滑动窗口 | 无 | 无 | 从 `additional_config` 直接读，不分方法，MTP 也会被套上 | 进 `AscendConfig`，草稿是 MTP 时警告并忽略 |
-| 动态候选与验证长度 | 固定 K | 固定 K | 上游配置多了按批大小的 `num_speculative_tokens_per_batch_size`，昇腾侧未见引用 | `dynamic_spec_config` 是另一个基于置信度的入口，只认 `dspark`、`dflash`；按批大小的配置仍另受 DCP 约束。两类入口与现行 runner 条件见 [DSpark](dspark.md#ascend-的变长验证要先分清依据和执行器) |
+键名归一指把配置对象键中的连字符换成下划线。v0.26 起相比基线增加 `dspark`、`minimax_m3_mtp`、`bailing_hybrid_mtp`、`inkling_mtp`；`v0.30.0` 与 `main` 还增加 `dots3_note_mtp`、`qwen4_exp_mtp`、`bailing_hybrid_v3_mtp`、`kimi_k3_mtp`、`hy_v4_mtp`、`glm5_next_mtp` 等合法名称（不等于所有 NPU 模型的可用清单）。固定镜像 `db701c1f` 的 GLM MTP 位于 `glm5_next_mtp.py`，`v0.30.0` 与 `main` 迁移至 `models/glm5next/mtp.py` 并将首位清零与两路归一化、拼接改为融合算子调用；`dflash` 分支按草稿配置分派 DFlash/DFlash2，`dflash2` 不是顶层工厂方法名。并行草稿在各版均有专门分支，但须与具体检查点、图模式和注意力组合匹配。来源 47–63 与新增 `c09d3e20` / `8d6180e2` / `ced6857a` / `ba15685a` 锚点对应上述版本分派与预算校验。
 
 ### 源码位置
 

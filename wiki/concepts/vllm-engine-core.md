@@ -68,10 +68,18 @@ sources:
     vllm@0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665:vllm/v1/engine/core.py#L1264-L1279
   - 'vllm@ced6857a:vllm/v1/engine/core.py#L584-L619'
   - 'vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_engine_core.py#L32-L56'
+  - 'vllm@ced6857a:vllm/v1/engine/core.py#L630-L710'
+  - 'vllm@ced6857a:vllm/v1/engine/core.py#L1403-L1425'
+  - 'vllm@ced6857a:vllm/config/vllm.py#L589-L610'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_engine_core.py#L32-L74'
+  - 'vllm@ba15685a:vllm/v1/engine/core.py#L709-L800'
+  - 'vllm@ba15685a:vllm/v1/engine/core.py#L1764-L1785'
+  - 'vllm@ba15685a:vllm/config/vllm.py#L616-L635'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_engine_core.py#L31-L68'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -169,14 +177,15 @@ file: engine-core-rounds
 
 两圈里走的四格完全一样，差别在计划里装了什么。第 1 圈 R 第一次上场，计划带着它的 3 个提示词编号，Worker 把这份资料缓存在自己进程里。第 2 圈计划里只剩「R 这一步算 1 个位置」和需要时新借的块号：第 1 圈选出的 5 本来就是 Worker 自己采样出来的，它手里已经有，不用 EngineCore 再发一遍。EngineCore 这边始终记着 R 的全部编号和算到了第几个位置；前端每圈只收到新 token。R 结束后，EngineCore 在下一份计划里带上「R 已结束」，Worker 才删掉自己那份缓存。
 
-```calc
-title: 示意请求 R 转了几圈
-第 1 圈算的位置 = 3 个，整段提示词
-第 2 圈算的位置 = 1 个，第 1 圈交回的 token
-两圈一共算的位置 = 3 + 1 = 4 个
-圈数 = 回答 2 个 token ÷ 每圈交回 1 个 = 2 圈
-> 不分块、不复用已算前缀、不开投机解码时，回答 n 个 token 就转 n 圈
-```
+在不分块、不复用已算前缀、不开投机解码的前提下，示意请求 R 共算 4 个位置、循环转 2 圈（回答 $n$ 个 token 即转 $n$ 圈）：
+
+$$N_{\text{pos}} = 3 + 1 = 4\text{ 个位置}, \qquad N_{\text{steps}} = 2 \div 1 = 2\text{ 圈}$$
+
+| 示意请求 R 的执行圈 | 本圈算的位置 | 本圈交回 |
+| --- | --- | --- |
+| 第 1 圈（完整 prefill） | 3 个（整段提示词） | 回答的第 1 个 token |
+| 第 2 圈（普通 decode） | 1 个（第 1 圈交回的 token） | 第 2 个 token（结束记号） |
+| **两圈合计** | **4 个位置** | **2 个 token（2 圈）** |
 
 ## 一圈交回几个 token？看这一圈安排的是什么活
 
@@ -197,7 +206,7 @@ title: 示意请求 R 转了几圈
 
 多条请求时，一圈的结果按请求分开记账。同一批里，A 这一圈交回 1 个 token，B 这一圈还在算提示词的中间一段、什么也不交回；调度器按各自的结果推进各自的进度，不是把同一个 token 发给整批请求。批里有谁也每圈在变：比如 A、B 先一起跑了两圈，第 2 圈 A 交回结束记号；第 3 圈开头 C 到了，这一圈就是 B、C 一起算；B 结束后，第 4 圈只剩 C。循环始终是这一个，变的是每圈那一批的成员；模型权重一直留在卡上，没结束的请求的进度和块号也一直留着。
 
-所以不能拿回答长度直接换算引擎转了几圈，更不能换算耗时。长提示词要多转几圈才交回第 1 个 token；开了投机解码，一圈能交回好几个；请求还会在等待队列里排队、被抢占后重算、被取消。回答 n 个 token 转 n 圈，只是上面那个 calc 的假设条件下的结论。
+所以不能拿回答长度直接换算引擎转了几圈，更不能换算耗时。长提示词要多转几圈才交回第 1 个 token；开了投机解码，一圈能交回好几个；请求还会在等待队列里排队、被抢占后重算、被取消。回答 n 个 token 转 n 圈，只是上面那个算例假设条件下的结论。
 
 ## 源码里的一圈：等活、选分支、交回结果
 
@@ -256,11 +265,12 @@ file: engine-core-flow
 
 一个 DP 组跑满 32 条 decode 请求时，每条算 4 个位置，一步共 128 个位置（见[关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)）。这一步交回多少 token，取决于候选被接受了几个：
 
-```calc
-title: 一个 DP 组 32 条请求都在 decode 时，一步交回多少 token
-一步最少交回 = 32 条 × 1 = 32 个 token，3 个候选全被拒
-一步最多交回 = 32 条 × (1 + 3) = 128 个 token，3 个候选全被接受
-```
+$$N_{\text{out,min}} = 32 \times 1 = 32, \qquad N_{\text{out,max}} = 32 \times (1 + 3) = 128$$
+
+| 满载 32 条 decode 步（每条 1 确定 + 3 候选） | 算式 | 单步交回 token 数 |
+| --- | --- | --- |
+| 3 个候选全被拒（下界） | $32 \times 1$ | **32 个 token** |
+| 3 个候选全被接受（上界） | $32 \times (1 + 3)$ | **128 个 token** |
 
 所以在 GLM 双机上，「引擎转了几圈」和「交回了多少 token」差得更远：同样转一圈，交回的 token 数能差 4 倍。
 
@@ -307,11 +317,15 @@ title: 一个 DP 组 32 条请求都在 decode 时，一步交回多少 token
 
 ### 版本差异
 
-**v0.30.0rc2 的核心循环与已钉 main 一致。** 配套 vLLM 的 core.py 与 84030bbe 完整文件相同：普通 step 仍依次调度、执行、必要时采样，再先处理执行期间到达的 abort，最后按输出更新请求并附上迭代明细。Ascend 的 patch_engine_core.py 与 baa023ad 也相同，仍条件式选择 DyntraLB/Balance DP 引擎，并在 profiling_chunk 开启时安装子进程初始化补丁；其余情况返回原始入口。这是这些文件的版本一致性，不把固定 GLM 算例变成 rc2 实测。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm@0fc695fc` / `vllm-ascend@2c59ff10`，GLM 绑定算例另钉专用镜像 `db701c1f`）、`v0.26.0rc`（`vllm@568afb3a` / `vllm-ascend@2ed6cbba`）、`v0.30.0` 主基线（`vllm@ced6857a` / `vllm-ascend@c09d3e20`）与 `main`（`vllm@ba15685a` / `vllm-ascend@8d6180e2`）。各钉点与部署的对应关系见[来源基线](../sources/glm-5-3-flash-baseline.md)。
 
-- **v0.23（`vllm@0fc695fc`）。** 本页的行为和行号都以它为准：`step()` 在 `core.py` 第 443–473 行，`step_with_batch_queue()` 在第 484–598 行，`run_busy_loop` 在第 1223–1231 行。vllm-ascend 的 v0.23 维护分支（`2c59ff10`）与含 GLM 代码的 `db701c1f` 都用同一套条件式入口补丁，均衡调度不开时走上游循环。各钉点与部署的对应关系见[来源基线](../sources/glm-5-3-flash-baseline.md)。
-- **v0.26（`vllm@568afb3a`，配 `vllm-ascend@2ed6cbba`）。** 骨架不变。`schedule()` 多传一个 `self._should_throttle_prefills()`，DP 引擎按 prefill_schedule_interval 提供节拍，默认 1。实际是否推迟 prefill 还受容量与运行请求的条件限制，已经进入 running 的 prefill 也可能推迟，详见[DP prefill 节奏](vllm-scheduler.md#多个-dp-组怎样对齐-prefill-的节奏)。`step()` 另用 capture_iteration_details / _attach_iteration_details 把每步明细挂到输出上。异步调度的 info 日志仍在；Ascend 的补丁改成只在均衡调度打开时把 DPEngineCoreProc 换成 BalanceDPEngineCoreProc。
-- **main（上游比较点 `vllm@84030bbe`；Ascend 比较点 `vllm-ascend@baa023ad`）。** 这两份快照分别用于比较，不据此认定它们是精确配套的安装组合。`step()` 与 v0.26 相同；非 DP 的 `run_busy_loop` 也在每圈前后调用 `_maybe_publish_request_counts()`，没开 DP 负载统计时它直接返回。异步调度自动判定相比 v0.23 还放行 draft_model、dspark，并增加 ROCm DeepEP 高吞吐 DBO 的闸。旧版显式启用时允许 draft_model，不等于旧版自动默认也会放行它。`Asynchronous scheduling is %s.` 这行 info 日志被删掉了，DP 大于 1 的 MoE 模型打开异步调度时改打 `Disabling NCCL for DP synchronization when using async scheduling.`，可以当作旁证。vllm-ascend 把入口补丁集中到 `patch_engine_core.py`：DyntraLB 或均衡调度打开时才换 DP 引擎类，剖析分块打开时才包初始化，另给 `post_step` 包了一层 PP 与 MTP 同开时的特例，其余情况都调原函数。
+| 核验维度 | `v0.23.0`（`0fc695fc` / `2c59ff10`） | `v0.26.0rc`（`568afb3a` / `2ed6cbba`） | `v0.30.0`（`ced6857a` / `c09d3e20`，主基线） | `main`（`ba15685a` / `8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| `EngineCore` 主循环与步函数位置 | `step()` L443、`step_with_batch_queue()` L484、`run_busy_loop()` L1223 | `schedule()` 新增 `_should_throttle_prefills()` 节拍参数；`step()` 挂接 `capture_iteration_details` | `step()` L589、`step_with_batch_queue()` L630、`run_busy_loop()` L1403；非 DP 循环前后亦调 `_maybe_publish_request_counts()` | `step()` L709、`step_with_batch_queue()` L754、`run_busy_loop()` L1764；骨架与节拍/统计挂接一致 |
+| 异步调度自动判定与日志 | 放行 EAGLE/MTP/NGram GPU；启动打 `Asynchronous scheduling is enabled/disabled.` info 日志 | 延续 info 日志与同套判定 | 放行扩展至 `draft_model`/`dspark`（增 ROCm DeepEP 闸）；删除该 info 日志，DP>1 MoE 改打禁用 NCCL DP 同步提示 | `vllm.py#L616-L635` 延续 `max_concurrent_batches` 与异步调度自动判定规则 |
+| 昇腾 `patch_engine_core.py` 演进 | 条件式入口补丁分散在 `patch_balance_schedule.py`（仅开均衡调度时换 `BalanceDPEngineCoreProc`） | 仅均衡调度开启时替换 `DPEngineCoreProc` 为 `BalanceDPEngineCoreProc` | 集中至 `patch_engine_core.py#L32-L74`（74 行）：按需选 `DyntraLBDPEngineCoreProc` / `BalanceDPEngineCoreProc`、开 `profiling_chunk` 时调 `_apply_profiling_patches()`，并挂 `pp_mtp` `post_step` 补丁 | `patch_engine_core.py#L31-L68`（68 行）：**移除 `patch_profiling_chunk` / `_apply_profiling_patches()` 调用**，保留 DyntraLB / BalanceDP 选择与 `pp_mtp` `post_step` 补丁 |
+
+`v0.26.0rc` 起引入的 `_should_throttle_prefills()` 受 `prefill_schedule_interval`（默认 1）、容量与运行请求条件共同制约，详见 [DP prefill 节奏](vllm-scheduler.md#多个-dp-组怎样对齐-prefill-的节奏)。在四版中，未开启 DyntraLB、均衡调度与 PP+MTP 特例时，昇腾均原样运行上游 `EngineCore` 循环；上述一致性仅说明源码路径，不将固定 GLM 绑定算例改写为 `v0.30.0` / `main` 实测。
 
 ### 源码位置
 
@@ -331,7 +345,8 @@ title: 一个 DP 组 32 条请求都在 decode 时，一步交回多少 token
 | 前端与 EngineCore 之间的请求和输出 | `vllm@0fc695fc:vllm/v1/engine/__init__.py#L83-L92`；`#L170-L185` |
 | 最多并发批数、异步调度的判定与日志 | `vllm@0fc695fc:vllm/config/vllm.py#L497-L507`；`#L931-L1002` |
 | 异步调度的占位 | `vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L19-L36` |
-| vllm-ascend 的入口补丁 | `vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L666`；`vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_engine_core.py#L32-L73` |
+| vllm-ascend 的入口补丁（四版演进） | `vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L666`；`vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_engine_core.py#L32-L74`；`vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_engine_core.py#L31-L68` |
+| `v0.30.0` / `main` 上游主循环与并发批数 | `vllm@ced6857a:vllm/v1/engine/core.py#L584-L710`、`#L1403-L1425`、`config/vllm.py#L589-L610`；`vllm@ba15685a:vllm/v1/engine/core.py#L709-L800`、`#L1764-L1785`、`config/vllm.py#L616-L635` |
 
 **正文证据归档。** 一圈先收完已到的消息、没活时阻塞在输入队列上 [C1]，「有活」看调度器、批次队列和 DP 运行状态三样 [C6]；只有弹性 EP 扩缩容时改为不阻塞 [C24]。一圈的顺序（调度、交出执行、准备结构化输出的表、等结果、先处理取消再更新）见 `step()` [C2]，结果进输出队列在 [C7]。取消同时进输入队列和取消队列 [C8]，更新时跳过已结束的请求 [C5]；「取消不打断卡上正在算的这一批」由这两处推出 [D]。新请求在收消息线程里转换成调度器的请求对象 [C23]；它最早排进到达之后那一圈的计划，由「先收消息、再调度」的顺序推出 [D]。
 

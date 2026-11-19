@@ -67,10 +67,18 @@ sources:
   - >-
     vllm-ascend@7d825229:vllm_ascend/device_allocator/sleep_mem_optimized.py#L257-L302
   - 'vllm@ced6857a:vllm/config/model.py#L342-L344'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L247-L306'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device_allocator/sleep_mem_optimized.py#L48-L298'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L371-L375'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L309-L382'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/device_allocator/sleep_mem_optimized.py#L48-L298'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/device_allocator/camem.py#L159-L290'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L387-L392'
+  - 'vllm@ba15685a:vllm/config/model.py#L375-L380'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -137,18 +145,19 @@ level 1 先给权重池建立 CPU 备份，再释放权重与缓存的可睡眠�
 
 level 2 不备份权重池，适合马上要接收更新后权重的训练循环。Worker 仍单独保存模型注册的 buffers（不作为训练参数管理、但运行时要用的辅助张量），唤醒后恢复它们；因此“丢弃权重”不等于 CPU 内存占用归零。分配器中标为持久的内存也会跨睡眠保留，池外的其他常驻资源同样不因基本睡眠自动消失。
 
-**用一张卡的示意账看清空间怎样交接：数是示意，公式按分配器的行为计算。** 假设权重标签下可释放的分配为 2 GiB，其中包括 16 MiB 的模型 buffers；缓存标签下可释放的分配为 3 GiB，持久分配为 0.25 GiB，池外常驻资源为 0.75 GiB。这里按实际分配空间记账，已包含分配对齐；只算推理端这几类占用，额外清理关闭，其他占用与分配规格保持不变。训练使用借出的空间后，须先归还，才进入下面的唤醒步骤。
+**用一张卡的示意账看清空间怎样交接：数是示意，公式按分配器的行为计算。** 假设权重标签下可释放的分配为 2 GiB，其中包括 16 MiB 的模型 buffers；缓存标签下可释放的分配为 3 GiB，持久分配为 0.25 GiB，池外常驻资源为 0.75 GiB。这里按实际分配空间记账，已包含分配对齐；只算推理端这几类占用，额外清理关闭，其他占用与分配规格保持不变。训练使用借出的空间后，须先归还，才进入下面的唤醒步骤：
 
-```calc
-title: 同一组分配的睡眠与分阶段唤醒（数为示意，每卡）
-睡前显存 = 2 GiB + 3 GiB + 0.25 GiB + 0.75 GiB = 6 GiB
-两级睡后显存 = 0.25 GiB + 0.75 GiB = 1 GiB
-两级释放显存 = 6 GiB − 1 GiB = 5 GiB
-level 1 新增 CPU 备份 = 2 × 1024 MiB = 2048 MiB
-level 2 新增 CPU 备份 = 0 MiB（权重池整份备份） + 16 MiB（单存 buffers） = 16 MiB
-只唤醒权重后的显存 = 1 GiB + 2 GiB = 3 GiB
-再唤醒缓存后的显存 = 3 GiB + 3 GiB = 6 GiB
-```
+$$M_{\text{before}} = 2 + 3 + 0.25 + 0.75 = 6\text{ GiB}, \qquad M_{\text{freed}} = 6 - (0.25 + 0.75) = 5\text{ GiB}$$
+
+| 阶段与内存项（每卡示意账） | 算式 | 占用 / 释放结果 |
+| --- | --- | --- |
+| 睡前显存总占用 | $2 + 3 + 0.25 + 0.75\text{ GiB}$ | **6 GiB** |
+| 两级睡后显存余量（持久 + 池外常驻） | $0.25 + 0.75\text{ GiB}$ | **1 GiB** |
+| 两级释放显存 | $6 - 1\text{ GiB}$ | **5 GiB** |
+| level 1 新增 CPU 备份 | $2 \times 1024\text{ MiB}$ | **2,048 MiB** |
+| level 2 新增 CPU 备份（仅单存 buffers） | $0 + 16\text{ MiB}$ | **16 MiB** |
+| 仅唤醒 `weights` 后的显存 | $1 + 2\text{ GiB}$ | **3 GiB** |
+| 再唤醒 `kv_cache` 后的显存 | $3 + 3\text{ GiB}$ | **6 GiB** |
 
 两级睡眠都归还了这 5 GiB，差别在**旧权重的内容是否留在 CPU**。level 1 唤醒权重时，把备份拷回并释放备份；level 2 只恢复权重空间和另存的 buffers，参数值仍需外部重载或更新，不能拿此时的 3 GiB 占用当作模型已就绪。缓存唤醒后，占用回到 6 GiB，旧 KV 内容仍已丢失，要由后续请求重新计算。这个账解释的是给定分配的去向；池外资源与持久分配多少，会直接改变睡后余量，示意的 1 GiB 与前述官方小模型的验收阈值没有对应关系。
 
@@ -188,7 +197,7 @@ file: sleep-mode-flow
 
 ### 怎么开
 
-离线通过 LLM 构造参数 `enable_sleep_mode=True`，服务启动通过 `--enable-sleep-mode`。v0.23、v0.26、v0.30.0rc2 与 main 所配套的 vLLM 钉点，默认值均为 `False`。分配器依赖 AscendCL（昇腾底层运行时接口）扩展；官方指南要求按安装文档源码构建，额外的旧版本编译环境变量说明只针对早于 v0.12.0rc1 的版本。
+离线通过 LLM 构造参数 `enable_sleep_mode=True`，服务启动通过 `--enable-sleep-mode`。`v0.23.0`、`v0.26.0rc`、`v0.30.0` 与 `main` 所配套的 vLLM 钉点，默认值均为 `False`。分配器依赖 AscendCL（昇腾底层运行时接口）扩展；官方指南要求按安装文档源码构建，额外的旧版本编译环境变量说明只针对早于 v0.12.0rc1 的版本。
 
 上述旧版本编译设置为 `COMPILE_CUSTOM_KERNELS=1`，仅适用于低于 v0.12.0rc1 的版本；其他版本的完整安装要求仍以对应安装指南为准。
 
@@ -236,44 +245,25 @@ CPU 备份按分配器记录的实际字节数申请 pinned memory（便于设�
 
 ### 版本差异
 
-若分阶段唤醒，锚点保留到 kv_cache 阶段完成业务组、MoE runtime 与图的恢复，而不是在只恢复权重后立即释放。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；**本文 GLM-5.3-Flash 双机对照沿用例外 B 专用镜像钉点 `db701c1f`（配套 `vllm@0fc695fc`），与四版社区分支分别核对。**
 
-rc2 的额外清理新增 HCCL lifecycle anchor：多 rank 在拆业务通信组前创建锚点并以 barrier 初始化；若锚点初始化或 MoE prepare 失败，本轮跳过 HCCL teardown。恢复业务组、MoE runtime 和图后才释放锚点，避免先销毁最后一个 HCCL 组。该流程仍受 [额外清理配置](../params/enable-sleep-mode-extra-cleanup.md) 的双开关门控。
+**`v0.30.0` 与 `main` 引入并延续了 HCCL 通信锚点（`sleep_lifecycle_anchor`）与双开关额外清理门控。** 当 `rl_config.enabled` 与 `rl_config.sleep_mode_extra_cleanup` 同时为真时，多 rank 在拆业务通信组前通过 `_ensure_lifecycle_anchor` 创建锚点通信组并以 barrier 初始化；若锚点初始化或 MoE prepare 失败，本轮跳过 HCCL teardown。分阶段唤醒时，锚点保留到 `kv_cache` 阶段完成业务组、MoE runtime 与 ACL Graph 的恢复后才调用 `release_lifecycle_anchor()` 释放，避免提前销毁最后一个 HCCL 组。`wake_up` 明确拒绝非零 `weight_nz_mode`（要求设为 0 或开启会自动关 NZ 的 `rl_config`）。到 `main`（`8d6180e2`），level 2 进一步增加 `_save_sleep_parameters` / `_restore_sleep_parameters`（仅在 `weights` 阶段唤醒时恢复发送方省略的参数）以及睡眠/唤醒时对 `global_te` 缓冲区的反注册与重注册（`worker.py#L309-L382`）。
 
-**v0.30.0rc2 的睡眠级别继续区分权重备份和 buffer 保存。** level 1 只备份 weights 池到 CPU，并清掉旧 saved_buffers 记录；level 2 另存 named_buffers，权重不备份，唤醒时再恢复这些 buffer。池外额外清理仍须 rl_config.enabled 与 sleep_mode_extra_cleanup 同时为真。wake_up 会明确拒绝非零 weight_nz_mode，要求设为 0 或启用会禁用 NZ 的 RL 配置，不能只核旧环境变量；实际释放量和恢复精度仍需 NPU 验证。
-
-v0.23 列使用维护分支 2c59ff10；GLM 镜像执行侧另列 db701c1f，两者的 sleep/wake 方法和分配器在本页相关部分一致，但维护分支没有 GLM 模型实现。v0.26 为 2ed6cbba，main 为 baa023ad；控制配置默认值分别核对 vLLM 0fc695fc、568afb3a、84030bbe。表中的 main 不是固定镜像行为。
-
-| 核对项 | v0.23 / GLM orphan | v0.26 | main | 对使用者的意义 |
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 | --- | --- | --- | --- | --- |
-| 是否支持、是否默认启用 | 支持，默认 False | 支持，默认 False | 支持，默认 False | 升级本身不等于已启用睡眠 |
-| level 1 / 2 内容去向 | 权重备份 / 丢弃；两者丢弃缓存；level 2 另存 buffers | 同左 | 同一语义；level 1 显式清空 buffers 备份记录 | level 2 仍须补权重 |
-| 唤醒的模型附加处理 | 非量化专家权重符合形状条件时，重新交换两个维度 | 无该专家转置分支；恢复缓存标签时调用缓存恢复钩子 | 无前述转置分支及该显式钩子 | 不把旧版模型后处理外推到所有版本；GLM W8A8 不走非量化转置分支 |
-| 缓存池边界 | Worker 包住整个缓存初始化 | 同 v0.23 | 只把缓存本体分配放进可丢弃池，持久元数据留在外面 | 细节见 [KV cache spec](../concepts/kv-cache-spec.md) |
-| 分配器释放前同步 | 分配器自身没有新增同步步骤 | 与 v0.23 同一文件内容 | 释放映射前新增设备同步 | main 注释针对 verl 的 rtMemcpy 问题给出绕过，未确认根因；不能倒推旧版一定失败 |
-| 官方在线调用示例 | JSON body 传 level；与钉住路由不符 | 改为查询参数，并补全 level 2 重载顺序 | 延续查询参数；NZ 用 additional-config 配置 | 本页示例按实际路由传参 |
-| 池外额外清理 | 默认关，顶层清理键 | 默认关，沿用顶层键 | 默认关，迁入 RL 子配置 | 完整迁移和已知问题见[参数页](../params/enable-sleep-mode-extra-cleanup.md) |
+| 开关与默认值 | 支持，默认 `False`（`model.py#L297`） | 支持，默认 `False`（`model.py#L306`） | 支持，默认 `False`（`model.py#L342-L344`） | 支持，默认 `False`（`model.py#L375-L380`） |
+| Level 1 / Level 2 内容与恢复 | level 1 备权重、level 2 丢权重并另存 `named_buffers`；非量化专家符合形状时转置 | 无旧专家转置分支；缓存恢复调恢复钩子 | level 1 显式清 `_sleep_saved_buffers`；level 2 存 `named_buffers` 并在 `wake_up` 恢复（`worker.py#L247-L306`）；拒非零 `weight_nz_mode` | 延续 `v0.30.0`；level 2 新增 `_save_sleep_parameters`/`_restore_sleep_parameters`（仅 `weights` 唤醒时恢复），睡眠/唤醒增 `global_te` 缓冲反注册与重注册（`worker.py#L309-L382`） |
+| `enable_sleep_mode_extra_cleanup` 与通信锚点 | 默认关，顶层清理键，无 `sleep_lifecycle_anchor` | 默认关，顶层清理键 | 迁入 `rl_config.sleep_mode_extra_cleanup`（须与 `rl_config.enabled` 同真，`ascend_config.py#L371`）；新增 `sleep_mem_optimized.py#L48-L298` 的 `_lifecycle_anchor_group` 通信锚点 | 同 `v0.30.0`（`ascend_config.py#L387`、`sleep_mem_optimized.py#L48-L298`） |
+| 缓存池边界与释放前同步 | 包住整个缓存初始化；分配器无新增同步 | 同 `v0.23.0` | 仅将缓存本体放入可丢弃池（持久元数据留池外）；释放映射前增设备同步 | 延续池外持久元数据，并重构 `camem.py#L159-L290` |
+| 官方在线调用示例 | JSON body 传 `level`（与实际路由查询参数不符） | 改为 URL 查询参数并补全 level 2 重载顺序 | 延续 URL 查询参数与 `weight_nz_mode` 额外配置 | 同 `v0.30.0` |
 
 ### 源码位置
 
-以下来源按配置、请求控制、内存分配和版本差异对应正文。
+以下来源按配置、请求控制、内存分配和四版本差异对应正文。
 
-- **定义、级别和构建前提**：官方 feature_guide/sleep_mode.md:3–26。[S1]
-- **分阶段恢复与旧版专家转置说明**：同文档 60–81；权重必须先补回，专家布局分支只适用于非量化模型。[S2]
-- **真实示例的验证条件**：同文档 100–137；1 GiB 是示例阈值，文本一致性是断言。[S3]
-- **官方示例的版本修订**：旧文档 140–184 使用 JSON level；v0.26 文档 126–172 与 main 文档 92–180 改用查询参数并给出重载次序及 NZ 配置。[S28] [S4] [S5]
-- **GLM 部署事实**：教程 237–341，尤其 256、305 的分配器环境和两段启动命令。[S6]
-- **入口与状态控制**：api_router.py:21–48、core.py:688–783、executor/abstract.py:318–356；前者读查询参数，中间先暂停后释放，后者广播调用并记录剩余标签；在线引擎对 wait 的实现见 core.py:1621–1668。[C8] [C9] [C10] [C27]
-- **显存内容的实际去向**：GLM Worker 216–280 与 camem.py:135–249；备份、丢弃、持久标签、重映射与错误表的来源。[C11] [C12]
-- **启动时入池**：Worker 668–679、894–905；先开配置再加载，不能运行途中补上池的归属。来源 29、30 给出维护分支和 v0.26 的缓存初始化范围。[C13] [C14]
-- **版本实现**：维护分支 Worker 216–280、v0.26 Worker 222–270、main Worker 241–294、1122–1138，以及 main camem.py:197–222。[C15] [C16] [C17] [C18] [C19]
-- **默认值、接口和布局**：四版 model.py 的配置字段分别见来源 7、20、21、38；开发路由守卫见来源 22，Python API 的级别与标签约定见来源 23，GLM 侧布局配置读取见来源 24。[C7] [C20] [C21] [C22] [C23] [C24]
-- **双机状态协作**：core.py:1771–1787 和 1805–1828，等待各数据并行组进入暂停，再同步恢复。[C25] [C26]
+- **定义、示例与官方版本修订**：`docs/source/user_guide/feature_guide/sleep_mode.md`（来源 1–5、28）；GLM 双机未启用事实见教程 `237-341` 行（来源 6）[S1][S6]。
+- **上游入口、状态控制与双机协作**：`api_router.py:21-48`、`core.py:688-783`、`1621-1668`（`mode=wait`）、`1771-1828`（DP 暂停共识与恢复同步）、`executor/abstract.py:318-356` [C8][C9][C10][C25]。
+- **显存去向与旧版实现**：GLM 镜像 `db701c1f` 的 `worker.py:216-280`、`668-679`、`894-905` 与 `camem.py:135-249` [C11][C12]；`v0.23.0`（`2c59ff10`）与 `v0.26.0rc`（`2ed6cbba`）见来源 15–16、29–30。
+- **`v0.30.0` 与 `main` 核心实现**：`vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L247-L306`、`vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L309-L382`、`vllm_ascend/device_allocator/sleep_mem_optimized.py#L48-L298`（两版一致）、`vllm-ascend@8d6180e2:vllm_ascend/device_allocator/camem.py#L159-L290`、`ascend_config.py`（`c09d3e20#L371-L375`、`8d6180e2#L387-L392`），以及四版上游 `vllm/config/model.py`（`0fc695fc`、`568afb3a`、`ced6857a`、`ba15685a`）。
 
-待核：缺少固定 GLM 双机在调整分配选项、NZ 布局及流量控制后的 level 1 / level 2 实测，需核对混合注意力状态、权重重载、输出一致性、释放显存和恢复耗时。当前只确认默认未开及静态分支；本页示例尚未在 NPU 上运行。
-
-来源 8 的 api_router.py 27–28、40–41 行保留一项仅针对 v0 frontend multiprocessing 的注释：控制请求返回时操作可能尚未完成。该旧路径的可用性及固定 GLM 控制时序未实测；交接仍应确认实际完成、流量暂停、标签与权重恢复，不能只看 HTTP 成功。[I]
-
-来源 1 的 sleep_mode.md 第 26 行将 COMPILE_CUSTOM_KERNELS=1 限定于低于 v0.12.0rc1 的构建，不是所有在册版本和固定 GLM 镜像的统一要求。
-
-- **rc2 的恢复顺序**：来源 34 给出 Worker 的权重、buffer 和 NZ 条件；来源 35–37 给出业务组恢复、MoE runtime 刷新、图恢复和最后释放锚点的顺序。来源 32、33 与前述 DP 暂停共识、恢复入口属于同一固定实现。
+**待核与边界：** 缺少固定 GLM 双机在调整分配选项、NZ 布局及流量控制后的 level 1 / level 2 实测，需核对混合注意力状态、权重重载、输出一致性、释放显存和恢复耗时。来源 8 的 `api_router.py` 27–28、40–41 行保留仅针对旧 v0 frontend multiprocessing 的异步返回注释，交接仍应确认实际完成、流量暂停与权重恢复，不能只看 HTTP 成功 [I]。来源 1 第 26 行将 `COMPILE_CUSTOM_KERNELS=1` 限定于低于 v0.12.0rc1 的构建。正文每卡 6 GiB→1 GiB→3 GiB→6 GiB 的空间交接为教学示意假设 [A] 与分配器语义推导 [D]。

@@ -56,10 +56,14 @@ sources:
     vllm@0fc695fc:vllm/distributed/device_communicators/shm_broadcast.py#L665-L717
   - >-
     https://www.hiascend.com/doc_center/source/zh/canncommercial/900/API/hcclug/hcclenvref_07_0005.html
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/netloader/utils.py#L24-L46'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/model_loader/netloader/netloader.py#L741-L765'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/netloader/utils.py#L24-L46'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/netloader/netloader.py#L741-L765'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -148,12 +152,15 @@ file: netloader-guide-flow
 file: netloader-guide-tensors
 ```
 
-```calc
-title: 同一分片按张量顺序搬运的有效载荷（教学示意）
-权重矩阵 = 2 × 3 × 1 B = 6 B
-缩放参数 = 2 × 2 B = 4 B
-有效载荷合计 = 6 B + 4 B = 10 B
-```
+按张量顺序搬运两个张量时，有效载荷等于各张量元素个数乘各自字节宽度之和（教学示意）：
+
+$$V_{\text{payload}} = (2 \times 3 \times 1\text{ B}) + (2 \times 2\text{ B}) = 6\text{ B} + 4\text{ B} = 10\text{ B}$$
+
+| 搬运张量（同一分片示意） | 形状与精度 | 有效载荷 |
+| --- | --- | --- |
+| 权重矩阵 | `[2, 3]`，int8（1 B/数） | $2 \times 3 \times 1\text{ B} =$ **6 B** |
+| 缩放参数 | `[2]`，FP16（2 B/数） | $2 \times 2\text{ B} =$ **4 B** |
+| **有效载荷合计** | 按遍历顺序依次收发 | **10 B** |
 
 这里的 10 B 只是两个张量的有效载荷，连接状态、传输协议和通信缓冲另外占资源。接收不会改变矩阵值，也不把矩阵切成另一种形状。实际旧版发送器跳过名字含特定输入缩放标识的参数，接收器跳过零维参数；双方过滤规则不同，因此还依赖模型加载前后的参数集合与顺序相容。
 
@@ -252,52 +259,31 @@ vllm serve /models/example --tensor-parallel-size 1 --enforce-eager \
 
 ### 版本差异
 
-**v0.30.0rc2 延续固定 main 的后处理布局传输与 manifest 握手，另修正磁盘回退配置。** 当网络加载失败或种子从磁盘加载时，不再清空全部 model_loader_extra_config，而是保留 enable_multithread_load、num_threads、enable_weights_track 三项默认 loader 认识的设置，剔除 SOURCE、LISTEN_PORT 等 Netloader 专用键。这样回退不会静默丢掉用户的并行加载设置，也不会让默认 loader 因未知网络键失败。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）；**本文 GLM-5.3-Flash 双机算例沿用例外 B 专用镜像钉点 `db701c1f`（与 `2c59ff10`、`2ed6cbba` 的 `netloader` 目录树及官方指南文件逐文件相同），与四版社区分支分别核对。**
 
-此变化不使旧版的原始权重传输协议自动兼容新版。供方与接收方仍应匹配 Netloader 协议、缓存模式和实际权重布局；本页 main 所述 no/hbm/dram 区别继续适用于 rc2。
+**`v0.30.0` 与 `main` 的 Netloader 实现完全一致**：均采用后处理布局传输（`INT8_CACHE=no`）、transfer manifest 与缓存模式握手，并在磁盘回退时通过 `disk_fallback_loader_extra_config`（`utils.py#L24-L46`、`netloader.py#L741-L765`）保留 `enable_multithread_load`、`num_threads`、`enable_weights_track` 三项 `DefaultModelLoader` 认识的参数、剔除 `SOURCE` / `LISTEN_PORT` 等 Netloader 专用键，避免回退时静默丢失多线程加载配置或触发未知键报错。与同属网络快载方案的 [RFork](rfork.md) 相比，Netloader 靠静态显式配置 `SOURCE` 地址并为每对供需 rank 建立 2 进程临时 HCCL 通信组逐参数收发，而 RFork 由 Planner 撮合 seed 租约、登记内存并按地址分批直读，两者加载协议与排障路径独立。
 
-下表的 v0.23 指维护分支，不拿它冒充含 GLM 代码的固定镜像。四个提交中前三个的 **Netloader 源码目录树和官方指南文件完全相同**；整个仓库与 GLM 模型支持范围并不因此相同。
+| 核验维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| 默认加载与 `INT8_CACHE` | 显式 `--load-format netloader`；`SOURCE` 默认无、`INT8_CACHE=no` | 同 `v0.23.0`（与 `db701c1f` 逐文件相同） | 入口与默认值不变；`no` 改为传输后处理后的推理布局（`hbm`/`dram` 仍走原始 int8 缓存） | 与 `v0.30.0` 逐文件一致 |
+| 握手校验与清单 | 仅核 rank、模型路径字符串、TP、PP；无缓存模式核对与张量清单 | 同 `v0.23.0` | 增加缓存模式核对（客户端非 `None` 时比较）与 `transfer manifest`（名称与元素数校验，仍非内容哈希） | 与 `v0.30.0` 逐文件一致 |
+| 失败回退与配置保留 | 仅清理少量上下文；回退时清空额外配置 | 同 `v0.23.0` | 快照清理新增注册/引用并回收显存；主模型失败后 draft 跳过网络加载；`disk_fallback_loader_extra_config`（`utils.py#L24-L46`）保留 3 项多线程加载键 | 与 `v0.30.0` 逐文件一致（`netloader.py#L741-L765`） |
+| 同步组与端口校验 | 主模型到 draft 做全局 barrier；基础端口判 `range(1024, 65535)` 不复核加偏移后越界 | 同 `v0.23.0` | 改为本地进程组同步（无效时回全局）；新增 draft 来源端口、最终监听端口越界检查与随机端口重试 | 与 `v0.30.0` 逐文件一致 |
 
-| 版本 / 提交 | 是否有、默认值 | 行为及这对使用者意味着什么 |
-| --- | --- | --- |
-| v0.23 / 2c59ff10 | 有，显式选择 netloader；SOURCE 默认无、INT8_CACHE 默认 no | 按参数遍历发送；接收后做后处理；主模型到 draft 之间全局 barrier；此维护分支没有本部署的 GLM 模型实现 |
-| GLM 固定执行侧 / db701c1f | 有，同上 | Netloader 与 v0.23 维护分支逐文件相同；GLM 教程仍未选择它 |
-| v0.26 / 2ed6cbba | 有，同上 | 本特性源码、配置默认值和指南与上两行相同；不能把默认 no 理解成后处理布局传输 |
-| main / baa023ad | 有，入口和上述默认值不变 | no 改为传输后处理布局；增加缓存模式核对和张量清单检查，回退清理与 draft 同步也改变；新旧协议与权重处理路径不可假定可混接 |
+新旧协议（`v0.23.0`/`v0.26.0rc` 原始参数顺序 vs `v0.30.0`/`main` 后处理布局与 manifest 握手）不可假定可跨版混接。新版指南已测模型列表（DeepSeek-V3.1-w8a8-mtp、Deepseekv4-flash-w8a8-mtp、DeepSeek-V4-Pro-w4a8、GLM-5.1-w4a8、GLM-5.1-w8a8）仍不含 GLM-5.3-Flash，列表中的 GLM-5.1 不能替代本部署验证。
 
-main 的变化要分四处看：
-
-1. **no 路径变了。** 接收端先做加载后处理以准备最终布局，供方也在后处理后登记 transfer manifest（传输张量清单）。清单收集参数、buffer（模型注册的非参数张量）及部分模块属性上的运行时张量，并按数据地址去重。收完后不再重复执行那次后处理。hbm、dram 仍走原始 int8 缓存路径。
-2. **握手变了。** 新客户端发送缓存模式；服务端先核 rank、模型路径、TP、PP，再在客户端字段非 None 时比较缓存模式，省略该字段不会触发这项拒绝。no 路径回复张量形状清单。有非空清单时，接收端在 HCCL 前检查各待收张量的名称与元素数量；清单为空时该检查直接放行。这仍不是模型权重内容哈希。
-
-3. **回退变了。** 失败时按初始化前的快照清理新增注册和模型引用，并尝试回收显存；同一 rank 的主模型网络加载已经失败回退后，draft 跳过另一次网络尝试。旧版只清理静态前向上下文等较少状态。
-4. **同步与端口变了。** 主模型到 draft 的等待改为按本地进程组；本地大小无效时回到全局组口径。增加 draft 来源端口和最终监听端口越界检查、随机端口重试。
-
-main 指南还新增已测模型列表：DeepSeek-V3.1-w8a8-mtp、Deepseekv4-flash-w8a8-mtp、DeepSeek-V4-Pro-w4a8、GLM-5.1-w4a8、GLM-5.1-w8a8。这里没有 GLM-5.3-Flash；列表中的 GLM-5.1 不能替代本部署的验证。
-
-**指南中的空闲等待开关已过时。** vLLM PR #16226 在 2025 年引入 VLLM_SLEEP_WHEN_IDLE，让共享内存消息队列的读端在长时间无活动时降低轮询频率；它处理的是 CPU 忙等，不是 Netloader 传输协议。后续 PR #28053 删除该开关，并将空闲读端改为等待 ZeroMQ（进程间消息通信库）的通知。GLM 固定 vLLM 已包含此更改：读端先短暂轮询，空闲后等待通知，取消或超时也可以结束等待。继续设置旧变量不会重新选择一条 Netloader 路径，也不能从旧 PR 推出本部署的 HCCL 建链收益。
+**指南中的空闲等待开关已过时。** vLLM PR #16226 在 2025 年引入 `VLLM_SLEEP_WHEN_IDLE`，让共享内存消息队列读端在空闲时降低轮询频率；后续 PR #28053（`6f0dd938`）删除该开关并改为等待 ZeroMQ 通知。固定 vLLM 已包含此更改，继续设置旧变量不会改变 Netloader 路径。
 
 ### 源码位置
 
 下面编号对应 frontmatter 的 sources，文档与源码结论分开保留。
 
-- [S1] v0.23 官方指南 netloader.md:7–30 定义与场景；36–46 配置表；54–89 两端示例和输出比较；95–97 缓冲与空闲等待建议。相同文件也存在于 GLM 固定提交和 v0.26。
-- [S2] main 官方指南 netloader.md:42 新增 draft 端口说明；98 列出已测模型。在线入口为[官方 Netloader Guide](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/netloader.html)，版本结论仍以钉住文件为准。
-- [S3] GLM 教程:237–341 是双机启动命令：269–291、318–341 均使用文件预取，未选择 Netloader。
-- [C4] 固定提交 netloader.py:58–125 配置解析；140–155 draft 识别与同步；230–309 来源分支与回退；311–394 监听、后处理与返回，其中 360 行将非 no 的 draft 供方缓存模式强制设为 hbm；419–437 默认加载路径。
-- [C5] interaction/elastic.py:61–101 顺序尝试来源；173–214 注册协议；264–284 原始 int8 缓存；310–325 单监听线程；376–421 身份核对与发送。
-- [C6] executor/elastic_load.py:67–98 两端临时组中的接收、逐参数等待和最终同步；134–161 发送、缓存优先和清理。
-- [C7] load.py:50–77 当前 rank 来源筛选、一次 P2P 加载和失败返回；没有 HCCL 失败后遍历其他来源的循环。
-- [C8] vLLM config/load.py:29–34 默认 auto 及文件格式选择，支撑 GLM 未启用结论。
-- [C9] v0.23 netloader.py:58–437 与固定提交相同；[C10] v0.26 同范围也相同，配置和回退行为一致。
-- [C11] main netloader.py:206–240 本地同步；463–617 新加载和回退路径；626–724 端口检查、监听、后处理与同步。
-- [C12] main interaction/elastic.py:459–483 缓存模式核对及形状清单；[C13] main executor/elastic_load.py:93–155 收集和缓存推理张量，435–445 在建 HCCL 前检查清单。
-- [C15] rc2 utils.py:24–46 定义磁盘回退允许保留的三项配置；[C16] rc2 netloader.py:753–759 是实际调用位置。两固定版本的 Netloader 目录差异仅涉及该辅助函数与调用，布局传输行为保持一致。
-- [S17] PR #16226 的最终补丁引入旧空闲开关；[S18] 提交 6f0dd938 删除它及旧计时器，该提交是固定 vLLM 的祖先。[C19] 固定共享内存消息队列的 SpinCondition 定义；[C20] 实际读循环调用其等待方法。原始 issue #16660 反映旧版本空闲 CPU 占用，不提供当前 Netloader 性能数据。
-- [S21] CANN 9.0 HCCL_BUFFSIZE 全文给出拼写、默认值、收发缓冲与域级覆盖规则；来源 3 的双机命令给出实际教程设置。这不证明所有 CANN 版本或模型进程只有同样的总分配量。
+- [S1] `v0.23.0` 官方指南 `netloader.md:7-30` 定义与场景，`36-46` 配置表，`54-89` 示例，`95-97` 缓冲与空闲等待建议（同文件也存在于 `db701c1f` 与 `v0.26.0rc`）；[S2] 新版指南 `netloader.md:42` draft 端口说明与 `98` 已测模型列表（在线入口：[官方 Netloader Guide](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/netloader.html)）。
+- [S3] GLM 教程 `237-341` 行双机启动命令均使用文件预取，未选择 Netloader。
+- [C4]–[C8] 固定提交 `db701c1f` 的 `netloader.py`（配置解析、draft 识别、来源回退、360 行强制 draft 非 `no` 缓存为 `hbm`）、`interaction/elastic.py`、`executor/elastic_load.py`、`load.py` 及 `vllm@0fc695fc:vllm/config/load.py#L29-L34`；[C9]–[C10] 确认 `v0.23.0`（`2c59ff10`）与 `v0.26.0rc`（`2ed6cbba`）同范围一致。
+- [C11]–[C13] 覆盖后处理布局、缓存模式与 manifest 握手、快照回退及端口检查；`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）的磁盘回退配置过滤一致，见 `vllm_ascend/model_loader/netloader/utils.py#L24-L46` 与 `netloader.py#L741-L765`。
+- [S17][S18] `VLLM_SLEEP_WHEN_IDLE` 引入与删除提交 `6f0dd938` 及 `shm_broadcast.py` 等待循环（来源 19–20）；[S21] CANN 9.0 `HCCL_BUFFSIZE` 文档规定拼写、默认 200 MB、双倍收发缓冲与域级覆盖规则。
 
 **待核：** 缺固定 GLM 双机在 Netloader 下主模型及 MTP 的实机输出一致性、逐阶段加载耗时和显存峰值；缺供方同时推理与服务多个接收实例时的干扰测量，以及目标镜像的通信域数量、域级覆盖与实际缓冲分配。
 
-**配置和传输边界的定位。** 路径比较是字符串相等（来源 5）；缺少 sources 字段的读取位于异常捕获之外（来源 7），不能保证回退；配置不逐键合并及 draft 非 no 缓存改为 hbm 见来源 4、11。
-
-main 的后处理布局发送要求先登记清单，缺少时抛出 `Processed-layout P2P send requires registered transfer items.`（来源 13，262–274 行）。同文件 231–259 行检查名称及元素数量；数量相同仍可能在后续 view 调整失败（173–228 行），因此这些检查都不等于权重内容校验。缓存模式字段省略的放行条件见来源 12 的 457–483 行，只适用于该固定 main 握手协议。
+**配置和传输边界的定位。** 路径比较是字符串相等（来源 5）；缺少 `sources` 字段的读取位于异常捕获之外（来源 7），不能保证回退；配置不逐键合并及 draft 非 `no` 缓存改为 `hbm` 见来源 4、11。后处理布局发送要求先登记清单，缺少时抛出 `Processed-layout P2P send requires registered transfer items.`（来源 13，262–274 行），且名称与元素数量检查不等于权重内容哈希，后续 view 调整仍可能失败（173–228 行）；缓存模式省略放行见来源 12（457–483 行）。[I]

@@ -140,7 +140,21 @@ sources:
   - 'vllm@84030bbe:vllm/entrypoints/llm.py#L228-L229'
   - 'vllm@84030bbe:vllm/entrypoints/llm.py#L843-L853'
   - 'vllm@84030bbe:vllm/v1/engine/llm_engine.py#L304-L342'
+  - 'vllm@ba15685a:vllm/envs.py#L900-L924'
+  - 'vllm@ba15685a:vllm/logger.py#L207-L240'
+  - 'vllm@ba15685a:vllm/v1/engine/async_llm.py#L258-L300'
+  - 'vllm@ba15685a:vllm/v1/metrics/loggers.py#L473-L520'
+  - 'vllm@ba15685a:vllm/config/observability.py#L20-L72'
+  - 'vllm@ba15685a:vllm/entrypoints/llm.py#L897-L915'
+  - 'vllm@ba15685a:vllm/v1/engine/llm_engine.py#L319-L360'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1230-L1260'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/profiler/torch_npu_profiler.py#L29-L74'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1317-L1350'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/profiler/torch_npu_profiler.py#L29-L74'
 relations:
+  - to: roofline-and-metrics
+    kind: builds-on
+    note: 算力墙、带宽墙、算术强度脊点与性能三角的系统推导见该基础页
   - to: inference-benchmarking
     kind: builds-on
     note: 先保证被比较的延迟、负载和输出口径一致
@@ -153,10 +167,14 @@ relations:
   - to: collective-communication
     kind: builds-on
     note: 核对多卡交换的具体操作和依赖
-verified: []
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: I
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: 2026-11-19T00:00:00.000Z
 ---
 
 **性能分析要找的是：下一步为什么还不能开始，以及哪一段工作真正决定了完成时间。** 计算更快、搬运更快和请求更快，之间要靠执行依赖联系起来。
@@ -187,22 +205,20 @@ file: inference-analysis-intuition
 
 以下是**教学示意**：权重采用每个数 2 字节的 BF16 浮点格式。按一次乘法加一次加法记 2 次浮点运算，计算量约为 2×T×4096×4096。先只计权重从设备内存读取一次的字节，不计输入、输出、其他中间结果和缓存复用变化。这是简化的权重流量模型。
 
-**算术强度**表示每搬运一字节，完成多少次浮点运算，单位是 FLOP/B。这里的“搬运”指定为设备内存到计算单元这一层；换成主机到设备或卡间通信，要另列账，不能混用带宽。
+**算术强度**表示每搬运一字节，完成多少次浮点运算，单位是 FLOP/B。这里的“搬运”指定为设备内存到计算单元这一层；换成主机到设备或卡间通信，要另列账，不能混用带宽。仅计权重读取一次时，单次矩阵乘的算术强度随输入行数 $T$ 线性放大：
 
-```calc
-title: 同一份权重服务多少行输入（示意）
-权重读取量 = 4096 × 4096 × 2 = 33554432 B
-一行输入的运算量 = 2 × 1 × 4096 × 4096 = 33554432 FLOP
-一行输入的权重流量强度 = 33554432 ÷ 33554432 = 1 FLOP/B
-2048 行输入的运算量 = 2 × 2048 × 4096 × 4096 = 68719476736 FLOP
-2048 行输入的权重流量强度 = 68719476736 ÷ 33554432 = 2048 FLOP/B
-```
+$$I_{\text{weight}}(T) = \frac{2 \times T \times 4096 \times 4096}{4096 \times 4096 \times 2\text{ B}} = T\text{ FLOP/B}$$
+
+| 输入规模（BF16，权重 `4096×4096` 示意） | 权重读取量 | 乘加运算量 | 仅权重流量算术强度 |
+| --- | --- | --- | --- |
+| $T = 1$ 行 | $4096 \times 4096 \times 2\text{ B} = 33{,}554{,}432\text{ B}$ | $2 \times 1 \times 4096^2 = 33{,}554{,}432\text{ FLOP}$ | **1 FLOP/B** |
+| $T = 2048$ 行 | $33{,}554{,}432\text{ B}$（32 MiB，同份权重复用） | $2 \times 2048 \times 4096^2 = 68{,}719{,}476{,}736\text{ FLOP}$ | **2048 FLOP/B** |
 
 权重读入后能供更多行使用，才有上面的摊薄效果。若输入和输出也按 BF16、每个数 2 字节，2048 行时两者各占 16 MiB（1 MiB 为 2²⁰ 字节），已经不能忽略；再计输入读一次、输出写一次，总流量约 64 MiB，强度就降到约 1024 FLOP/B。缓存、分块和实际实现还会改变流量。**算子**是设备执行的一项运算；比较真实算子时，应使用同一存储层的实测字节数，或明确的流量估算。
 
 ## Roofline 给的是哪一种上限
 
-**Roofline** 把算力和内存带宽放在一起，估计这段工作最高能跑多快。计算吞吐的上界取两者较小值：设备算力，以及内存带宽乘以算术强度。等价地，执行时间至少要容纳计算量除以算力、数据量除以带宽这两个时间中的较大值。
+**Roofline** 把算力和内存带宽放在一起，估计这段工作最高能跑多快；关于算力墙、带宽墙、算术强度拐点（脊点）与性能三角的系统推导，可直接回看[Roofline 模型与性能三角](roofline-and-metrics.md)。计算吞吐的上界取两者较小值：设备算力，以及内存带宽乘以算术强度。等价地，执行时间至少要容纳计算量除以算力、数据量除以带宽这两个时间中的较大值。
 
 仍用上述简化模型，再假设设备在该精度下能提供 100 TFLOP/s 算力、1 TB/s 内存带宽；1 TFLOP/s 为每秒 10¹² 次浮点运算，1 TB/s 为每秒 10¹² 字节。这组能力是教学假设，**不是 A2 或昇腾 950 的规格**。算力与带宽的比值为 100 FLOP/B：低于它时，简化模型的带宽约束更紧；高于它时，计算约束更紧。
 
@@ -294,14 +310,13 @@ Counter 从 100 增至 140，要再知道经历了多久才能换成每秒产量
 
 占用高不说明保留的历史很快会再次使用。需要进一步研究时，可以抽样记录**块的保留时间**：从分配到淘汰有多久，淘汰前有多久未被再次引用，两次引用相隔多久。固定实现的“访问”在块池 touch 路径记录，例如把命中的块用于请求；它不是每次 attention 读取设备内存。默认只抽样 1% 的分配，且这组指标整体默认关闭。
 
-用启用 prefix caching 的普通块池举例：一个被抽中的块在 0 秒分配，在 2 秒与 5 秒被 touch，9 秒淘汰。请求释放引用、把块放回可复用队列时，历史仍能保留；真正淘汰时才发布这笔事件。
+用启用 prefix caching 的普通块池举例：一个被抽中的块在 $t_0 = 0\text{ s}$ 分配，在 $t_1 = 2\text{ s}$ 与 $t_2 = 5\text{ s}$ 被 touch，于 $t_{\text{evict}} = 9\text{ s}$ 淘汰。请求释放引用、把块放回可复用队列时，历史仍能保留；真正淘汰时才发布这笔事件：
 
-```calc
-title: 一个被抽中块的三种时间（示意）
-保留时间 = 9 − 0 = 9 秒
-淘汰前空闲时间 = 9 − 5 = 4 秒
-两次已记录访问的间隔 = 5 − 2 = 3 秒
-```
+| 被抽中块的生命周期指标（示意） | 算式 | 数值结果 |
+| --- | --- | --- |
+| 保留时间（Lifetime） | $t_{\text{evict}} - t_0 = 9 - 0$ | **9 秒** |
+| 淘汰前空闲时间（Idle） | $t_{\text{evict}} - t_2 = 9 - 5$ | **4 秒** |
+| 两次已记录访问的间隔（Interval） | $t_2 - t_1 = 5 - 2$ | **3 秒** |
 
 没有被淘汰的块尚未成为保留时间样本，所以面板暂时没有新观测，不能解释为所有块的保留时间都是零。每个样本只保存最近 4 次访问，最多报告其中 3 个间隔；重置缓存会清空未发布的状态。采样与淘汰时点决定了这个分布的适用范围，不能拿它代替整卡内存带宽测量。块何时可复用见[块的释放与回收](vllm-kv-block-allocation.md)。
 
@@ -473,55 +488,23 @@ DEBUG、大量请求正文及过短统计周期会增加主机格式化、汇总
 
 ### 版本差异
 
-新增监控讲解按四个固定上游快照核对；这张表比较基础发布、离线统计快照、块保留采样与请求 span，设备 profiler 的兼容性另按对应工具确认。
+按知识库四版本正式钉点核对：`v0.23.0`（`2c59ff10` / `0fc695fc`）、`v0.26.0rc`（`2ed6cbba` / `568afb3a`）、`v0.30.0` 主基线（`c09d3e20` / `ced6857a`）与 `main`（`8d6180e2` / `ba15685a`）；**本文 GLM 双机执行图与批次队列对照沿用例外 B 专用镜像钉点 `db701c1f`（配套 `vllm@0fc695fc`），与四版社区分支分别核对。**
 
-| 行为 | v0.23（0fc695fc） | v0.26（568afb3a） | v0.30.0rc2（ced6857a） | main（84030bbe） |
-|---|---|---|---|---|
-| 基础标签与统计口径 | model_name/engine；按状态设置 Gauge、累计 Counter、按事件观测 Histogram | 相同 | 相同；另加每请求抢占次数分布 | 与 rc2 相同 |
-| KV 保留采样默认 | false；采样比例 0.01，范围 (0,1] | 相同 | 相同 | 相同 |
-| 采样记录与发布 | 分配抽样、touch 更新、淘汰发事件；最近 4 次访问；释放引用本身不观测淘汰 | 相同；块池哈希管理有变化 | 同一采样契约；块池另有跨池释放与复用通知 | 同一采样契约，不套用 rc2 的跨池释放实现 |
-| 基础 OTLP 请求 span | endpoint=None；协议默认 grpc；结束时使用请求统计，保留 stats | 相同 | 相同 | 相同 |
-| 详细 trace 配置 | 默认 None；指定 detailed 但无 endpoint 会报错 | 相同 | 相同 | 相同 |
-| 离线 LLM 默认与快照 | 省略 disable_log_stats 时为 true；显式 false 后 get_metrics 返回带标签对象列表 | 相同 | 相同 | 相同 |
-| 离线每步统计更新 | 有 scheduler_stats 且本步产生请求输出时记录 | 相同 | 只有 scheduler_stats、没有请求输出的步也记录；这一步不触发周期文字打印 | 同 rc2 |
+| 监控与性能采集项 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+| --- | --- | --- | --- | --- |
+| 基础标签与统计口径 | `model_name`/`engine`；Gauge / Counter / Histogram | 相同 | 相同；新增每请求抢占次数分布 | 与 `v0.30.0` 相同（`loggers.py#L473-L520`） |
+| KV 保留采样与发布 | 默认 `false`、采样 0.01、范围 `(0, 1]`；分配抽样、touch 更新、淘汰发事件（近 4 次访问） | 相同；块池哈希管理变化 | 同一采样契约；块池增跨池释放与复用通知 | 同一采样契约（`observability.py#L20-L72`），不套用旧跨池细节 |
+| OTLP 请求 span 与详细 trace | `endpoint=None`、协议默认 `grpc`；指定 detailed 无 endpoint 报错 | 相同 | 相同 | 相同 |
+| 离线 `LLM.get_metrics` 与每步更新 | 省略 `disable_log_stats` 默认 `true`；有 `scheduler_stats` 且产出请求输出时更新 | 相同 | 仅有 `scheduler_stats`、无请求输出的步也记录（不触发周期文字打印） | 同 `v0.30.0`（`llm.py#L897`、`llm_engine.py#L319`） |
+| 六项在线日志/统计默认 | `INFO` / `CONFIGURE=1` / `CONFIG_PATH=None` / `disable_log_stats=false` / `INTERVAL=10s` / `aggregate=false` | 相同 | 相同；非正间隔回退 10s，JSON 与 `configure=0` 冲突检查保留 | 相同（`envs.py#L900-L924`、`logger.py#L207`、`async_llm.py#L258`）；周期任务在 `launchers/utils` |
+| Ascend Worker Profiler 入口 | 依赖外部指南，GLM 镜像走旧 `model_runner_v1` 路径 | 延续旧入口，按现场版本核对 | `worker.py#L1230-L1260` + `TorchNPUProfilerWrapper`（`torch_npu_profiler.py#L29-L74`）惰性创建，须 `profiler=torch` 且互斥 `msmonitor_use_daemon` | `worker.py#L1317-L1350` 延续 `TorchNPUProfilerWrapper`，模型执行全量迁入 `worker/v2/` |
 
-**v0.30.0rc2 配套上游的六项在线日志默认保持，但统计插件与 profiler 要分别看。** 日志级别仍 INFO、配置日志为 1、路径 None、统计间隔 10 秒（非正回退），普通在线的 disable_log_stats 与 aggregate_engine_logging 默认 false；JSON 配置与 configure=0 冲突检查保留。关闭默认 stats 不阻止在线自定义 logger，多 API 客户端仍关闭默认文字汇总，避免把不完整统计当全局量。
-
-Ascend Worker 的 profiler 使用 ProfilerConfig 与惰性 TorchNPUProfilerWrapper，须指定 profiler=torch 和输出目录，CPU/NPU 同时采集，不能与 msmonitor_use_daemon 同开；后续 start 沿用首次 trace_name。Roofline 与关键路径方法保留，但函数位置要按实际 runner 查，正式收益数据也应在关闭额外 stack/memory 采集后重新测量。
-
-六项日志参数另按固定上游源码逐项核对，范围不扩展为后文 profiler 的整条路径验证：
-
-| 参数 | v0.23（0fc695fc） | v0.26 rc（568afb3a） | main（84030bbe） |
-|---|---|---|---|
-| VLLM_LOGGING_LEVEL | INFO；默认配置中使用 | 相同 | 相同 |
-| VLLM_CONFIGURE_LOGGING | 1；0 跳过安装配置 | 相同 | 相同 |
-| VLLM_LOGGING_CONFIG_PATH | None；JSON 替换默认；与 configure=0 冲突 | 相同 | 相同 |
-| disable_log_stats（普通在线） | false；无插件时影响整个默认统计管理器 | 相同 | 相同 |
-| VLLM_LOG_STATS_INTERVAL | 10 秒；正浮点，非正回退 | 相同 | 相同；服务周期任务移到 launchers/utils |
-| aggregate_engine_logging | false；true 汇总文字日志，多前端另禁用默认文字统计 | 相同 | 相同 |
-
-| 范围 | 本页分析方法 | 实现边界 |
-| --- | --- | --- |
-| v0.23 控制流 `0fc695fc` / GLM 执行侧 `db701c1f` | 结合引擎批次队列、runner 的图选择分析主机与设备交错 | 这里只核对所列入口；镜像安装产物仍按部署基线核对 |
-| v0.26 | 成本和依赖分析适用 | 本页未核对该版 runner 与采集字段，按机制页及现场源码定位 |
-| main | 同样先判断资源成本与关键路径 | 在线 profiler 文档不是固定快照的支持保证 |
+Roofline 与关键路径分析方法在四版保持不变（基础原理回链[Roofline 模型与性能三角](roofline-and-metrics.md)），但函数定位须按实际 runner 版本核对，正式吞吐/时延验收须关闭 `stack`/`memory` 采集后重测；多前端（API server > 1）仍禁用默认文字统计汇总以避免不完整统计被误当全局量，离线关闭默认 stats 也不阻止在线自定义 logger。
 
 ### 源码位置
 
-- 离线快照：来源 84–89 对应构造默认、公开 getter、统计管理器创建、开关传递、每步更新和关闭时的断言；90 是实际读取器，保留标签并区分四种对象，不调用等待或重置。91–93、94–96、97–99 分别对照 v0.26、rc2、main；四版读取器内容相同，rc2/main 的无输出统计更新另列。前后 100→140 是累计量差分示意，不是设备采集结果。
-
-- 来源 38–40 给出基础指标的真实类型、标签、单位与桶；41–44 是四版发布消费者。time_to_first_token、inter_token 与请求阶段定义回链测量页，不以历史设计图中的“最近一次调度”替代当前首次调度规则。来源 65 的完成原因枚举说明 request_success 名字不等于业务成功验收。
-- 来源 45–49 是四版采集默认值与校验；50 是四版同内容的块采样器，51–58 是各版分配、淘汰、touch 与释放调用方，59 给出 KV usage 的空闲队列公式。60–62 接通配置创建、块管理器和调度统计发布；63、64 区分文字窗口、本地 token 查询与抢占查询。9/4/3 秒是本页示意事件的推导。
-- 来源 66–68 是指标路由与多 API 进程目录；69–76 是 OTLP 协议、四版基础请求 span、统计状态前提和实际 CLI。这里没有用配置字段存在推定详细 NPU kernel 采集已打通。
-- 来源 77–80 为固定官方部署示例及完整 Grafana 配置，Queue Time 的 sum 增长率按原查询解释。来源 81 的 Prometheus 函数文档使用 histogram_quantile/rate 两节，82 为多进程说明，83 为直方图与均值原始说明；本页 PromQL 依照这些规则组合实际 vLLM 指标，现场仍需核对抓取标签与样本。
-
-- 来源 9–11 是三版环境 getter，12–14 是日志配置消费者，15–17 是两项引擎布尔默认，18–20 是 AsyncLLM 的统计创建条件。来源 21 给出合并公式，22–24 给出三版默认文字与 Prometheus logger 分工，25–27 给出实际周期任务；三版核对只覆盖上述六项，未据此扩大整页 verified。
-- 来源 28–34 给出 rc2 对应的日志配置、统计条件和 NPU profiler 入口。来源 36 是固定上游的 profile 路由注册条件，来源 37 补充 disable_log_stats 取反后传入 AsyncLLM 的调用位置。
-
-- Roofline 的强度、计算/带宽约束和实际低于上界的原因，参见 [Berkeley Lab 原作者团队说明](https://amcr.lbl.gov/departments/computer-science-department/ppan/roofline-performance-model/) [S1]。
-- 批次队列的调度、执行和结果交接见 `EngineCore` [C2]；执行图选择与尺寸协调见 GLM runner [C3]。这两处用于判断采集应覆盖哪些交接，不提供硬件耗时。
-- 服务与设备的采集入口见[官方服务 Profiling 指南](https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html) [S4]。
+- 离线快照与四版对照：来源 84–99 核对 `v0.23.0`、`v0.26.0rc`、`v0.30.0`（`ced6857a`）与早期快照的构造默认、`get_metrics`、统计更新与读取器；`main`（`ba15685a`）最新入口见 `vllm@ba15685a:vllm/entrypoints/llm.py#L897-L915` 与 `vllm@ba15685a:vllm/v1/engine/llm_engine.py#L319-L360`。前后 100→140 是累计量差分示意，不是设备采集结果。
+- 基础指标、KV 保留采样与 OTLP：来源 38–83 覆盖四版指标定义、发布消费者、块池采样与 Prometheus/Grafana/OTLP 规则；`main`（`ba15685a`）对应见 `vllm@ba15685a:vllm/v1/metrics/loggers.py#L473-L520` 与 `vllm@ba15685a:vllm/config/observability.py#L20-L72`。9/4/3 秒是本页示意事件的推导。
+- 在线六项日志参数与 Ascend Profiler：来源 9–37 覆盖 `v0.23.0` / `v0.26.0rc` / `v0.30.0`（`ced6857a`）；`v0.30.0` 主基线与 `main` 的 Ascend Profiler 入口见 `vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L1230-L1260`、`vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L1317-L1350` 与两版 `vllm_ascend/profiler/torch_npu_profiler.py#L29-L74`，`main` 日志/统计见 `vllm@ba15685a:vllm/envs.py#L900-L924`、`vllm@ba15685a:vllm/logger.py#L207-L240` 与 `vllm@ba15685a:vllm/v1/engine/async_llm.py#L258-L300`。
+- Roofline 理论、引擎批次队列与采集指南：参见 [Berkeley Lab 原作者团队说明](https://amcr.lbl.gov/departments/computer-science-department/ppan/roofline-performance-model/) [S1]、`EngineCore`（`vllm@0fc695fc:vllm/v1/engine/core.py#L538-L546`、`#L574-L577`）[C2]、GLM runner（`vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2914-L2940`）[C3] 与[官方服务 Profiling 指南](https://docs.vllm.ai/projects/ascend/en/main/developer_guide/performance_and_debug/service_profiling_guide.html) [S4]。
 - 矩阵尺寸、设备能力和重叠时间均为教学假设 [A]，相应流量与时间为推导 [D]；现场假设的组织方法为本站编排 [I]。当前没有目标设备计数器与 A/B 实测。
-
-- 来源 6、7：vllm@0fc695fc，vllm/v1/engine/core.py，L538–L546、L574–L577。
-- 来源 8：vllm-ascend@db701c1f，vllm_ascend/worker/model_runner_v1.py，L2914–L2940。

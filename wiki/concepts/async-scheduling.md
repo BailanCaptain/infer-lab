@@ -133,10 +133,23 @@ sources:
   - "vllm@0fc695fc:vllm/v1/worker/gpu_ubatch_wrapper.py#L431-L527"
   - "vllm@0fc695fc:vllm/model_executor/layers/fused_moe/modular_kernel.py#L1124-L1186"
   - "vllm@0fc695fc:vllm/config/parallel.py#L506-L512"
+  - "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1075-L1085"
+  - "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1386-L1407"
+  - "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L919-L923"
+  - "vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L42"
+  - "vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L36"
+  - "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1083-L1087"
+  - "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L37-L37"
+  - "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L890-L976"
+  - "vllm@ced6857a:vllm/config/scheduler.py#L190-L220"
+  - "vllm@ced6857a:vllm/config/vllm.py#L589-L605"
+  - "vllm@ba15685a:vllm/config/scheduler.py#L247-L275"
+  - "vllm@ba15685a:vllm/config/vllm.py#L616-L635"
+  - "vllm@ba15685a:vllm/config/vllm.py#L1799-L1851"
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -184,15 +197,16 @@ file: async-scheduling
 
 这些活的耗时受请求条数、输入表大小、采样约束和所用后端等影响。模型前向的长短也有差别：prefill（处理提示词、可分多轮完成的阶段）的一轮可能算成百上千个位置，CPU 准备时间的相对占比会较小；decode（在已有历史上往后生成）一步里每条请求只算 1 个或几个位置，前向较短时 CPU 那一段的占比就大了。一条回答可能有几百步 decode，同步等待会反复出现，实际占比仍须按批次和模型测量。
 
-按图里的示意格数，把步数拉长来看 NPU 有多少时间在干活：
+按图里的示意格数（CPU 一段 1 格，NPU 一步 3 格），把步数拉长来看 NPU 有多少时间在干活：
 
-```calc
-title: 示意格数下 NPU 忙碌的比例（CPU 一段 1 格，NPU 一步 3 格）
-同步 3 步 = 1 + 3 × 3 + 2 × 1 + 1 = 13 格，步与步之间 NPU 各空等 1 格
-异步 3 步 = 1 + 3 × 3 + 1 = 11 格
-同步 200 步的 NPU 忙碌比例 = 600 ÷ (1 + 600 + 199 + 1) = 600 ÷ 801 ≈ 75%
-异步 200 步的 NPU 忙碌比例 = 600 ÷ (1 + 600 + 1) = 600 ÷ 602 ≈ 99.7%
-```
+$$\text{Util}_{\text{sync}}(S) = \frac{3S}{1 + 3S + (S - 1) + 1}, \qquad \text{Util}_{\text{async}}(S) = \frac{3S}{1 + 3S + 1}$$
+
+| 调度方式与步数（示意格数） | 总格数或忙碌比例算式 | 结果 |
+|---|---|---|
+| 同步 3 步（步间 NPU 各空等 1 格） | $1 + 3 \times 3 + 2 \times 1 + 1$ | **13 格** |
+| 异步 3 步 | $1 + 3 \times 3 + 1$ | **11 格** |
+| 同步 200 步的 NPU 忙碌比例 | $600 \div (1 + 600 + 199 + 1) = 600 \div 801$ | **约 75%** |
+| 异步 200 步的 NPU 忙碌比例 | $600 \div (1 + 600 + 1) = 600 \div 602$ | **约 99.7%** |
 
 这个算法有个前提：CPU 一段活不比 NPU 一步长。要是 CPU 一段要 4 格、NPU 一步只要 3 格，异步之后每步的节奏由 CPU 定，NPU 仍会等，只是比同步等得少。格数只说明原理，不是任何部署的实测。
 
@@ -216,13 +230,14 @@ title: 示意格数下 NPU 忙碌的比例（CPU 一段 1 格，NPU 一步 3 格
 
 调度器给一条请求排几个位置，用的是[同一道减法](vllm-scheduler.md#调度器怎样排一步还差几个--截断--借块--记账)：应算减已算。「已算」在排完一步时就当场往前推，不等卡上真算完，这样下一步能接着往后排。
 
-麻烦出在 decode 请求上。取一组示意数：一条请求已知 8 个 token；第 k 步已经排出去、还在卡上算，排完那一刻已算记成 8，前 8 个位置都算进去了。第 k 步要采出的第 9 个 token 还在卡上，调度器这边的已知仍是 8。这时排第 k+1 步：
+麻烦出在 decode 请求上。取一组示意数：一条请求已知 8 个 token；第 $k$ 步已经排出去、还在卡上算，排完那一刻已算记成 8，前 8 个位置都算进去了。第 $k$ 步要采出的第 9 个 token 还在卡上，调度器这边的已知仍是 8。这时排第 $k+1$ 步（不带投机解码）：
 
-```calc
-title: 排下一步时这条请求还差几个位置（示意数，不带投机解码）
-不记占位 = 已知 8 − 已算 8 = 0 个，这条请求会被当成这一步没活
-记 1 个输出占位 = 已知 8 + 输出占位 1 − 已算 8 = 1 个，和同步时每步 1 个一样
-```
+$$\Delta_{\text{new}} = N_{\text{known}} + N_{\text{placeholder}} - N_{\text{computed}}$$
+
+| 记账方式（示意数，不带投机解码） | 算式 | 结果与调度后果 |
+|---|---|---|
+| 不记输出占位 | $8 - 8 = \mathbf{0\text{ 个}}$ | 这条请求会被当成这一步没活 |
+| 记 1 个输出占位 | $8 + 1 - 8 = \mathbf{1\text{ 个}}$ | 与同步时每步 1 个位置一致 |
 
 AsyncScheduler（上游专门用于异步的调度器）的办法，是在请求上多记一个数，叫**输出占位**：每排完一步，就给会产出 token 的请求记上「这一步会产出 1 个，只是还没回来」。减法多加这一项，结果就和同步时一样。这里的 1 只是**个数**，不说明是词表里的哪个 token；调度器排计划用不着值，值由 Worker 在卡上补，见下一节。
 
@@ -266,15 +281,16 @@ file: async-scheduling-flow
 - **调度器这边。** 排一步，输出占位加「1 + 候选数」，因为这一步最多产出这么多 token；调度器手里的候选列表也换成候选数个 −1 占位，排下一步时照常把它们排进计划。结果回来，先按被拒的个数把已算和输出占位各减一次，再按实际收到的 token 数把输出占位减一次。
 - **Worker 这边。** 先按全接受准备乐观的长度，再用上一步实际的「有效 token 数」纠正。本页固定 NPU runner 在设备上修正已算数，并据此计算位置；只有注意力后端需要 CPU 长度时，才另用拷回主机的有效数修正 CPU 长度。主机读取前会等待完成事件，拷贝提前发起有利于重叠，但不保证等待耗时为零。
 
-用示意数（每步 2 个候选，这一步接受了 1 个）走一遍一步的占位怎样加、怎样销：
+用示意数（每步 2 个候选，这一步接受了 1 个）走一遍一步的输出占位怎样加、怎样销：
 
-```calc
-title: 一步的输出占位怎样记、怎样销（示意：每步 2 个候选，接受 1 个）
-排这一步时加 = 1 + 2 = 3 个，1 个确定位置加 2 个候选
-结果回来先减被拒的 = 2 − 1 = 1 个，已算同样减 1
-再减实际收到的 = 1 + 1 = 2 个，接受的 1 个候选加 1 个新 token
-合计减 = 1 + 2 = 3 个，和排的时候加的相等
-```
+$$\Delta_{\text{cancel}} = (K - A) + (1 + A) = 1 + K = \Delta_{\text{add}}$$
+
+| 记账时刻（示意：$K = 2$，接受 $A = 1$ 个） | 算式 | 变化结果 |
+|---|---|---|
+| 排这一步时加占位 | $1 + 2$ | **+3 个**（1 个确定位置 + 2 个候选） |
+| 结果回来先减被拒数 | $2 - 1$ | **-1 个**（已算同样减 1） |
+| 再减实际收到 token 数 | $1 + 1$ | **-2 个**（接受的 1 个候选 + 1 个新 token） |
+| 合计销账 | $1 + 2$ | **-3 个**（与排步时所加相等） |
 
 在候选数固定、预算足够、请求未触发停止或抢占的这段连续 decode 示例中，每步排 `1 + 候选数` 个位置；实际接受多少仍会变化，占位数和最终输出数不能画等号。真实调度还会受预算、长度上限与状态变化影响。被拒候选写进注意力 KV 的位置不作为有效历史继续使用，后续从修正后的位置覆盖；混合模型的循环状态另有恢复规则，见[投机解码](speculative-decoding.md)。
 
@@ -348,15 +364,16 @@ AsyncScheduler 只在没人指定调度器类时才会被选上。某个特性�
 
 表里有三处规律。一是每一步排的都是 4 个位置。二是两次结果之间，输出占位稳定在 4，正好是还在卡上算的那一步最多能产出的个数。三是这里的已算总比[一条请求](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)里按同步记的逻辑值多 4：那一页的已算是 4 → 6 → 10，正是这里的 8 − 4、10 − 4、14 − 4，多出来的就是已经排出去、结果还在路上的那一步。候选占位排完第 1 步就换成了 3 个 −1，真的候选一直留在 Worker 那边。
 
-第 2 步有候选被拒，最能看出两次减账：
+第 2 步有候选被拒（接受 1 个候选、拒 2 个），最能看出两次减账：
 
-```calc
-title: R1 第 2 步的结果回来时怎样销账（接受 1 个候选、拒 2 个）
-已算 = 12 − 2 = 10 个位置，被拒的 2 个退回
-输出占位 = 8 − 2 − 2 = 4 个，先减被拒的 2 个，再减收到的 2 个 token
-算完且回来了的位置 = 10 − 4 = 6 个，与同步记法下第 2 步之后的已算一致
-排第 4 步 = 7 + 3 + 4 − 10 = 4 个位置
-```
+$$\text{已算}_{\text{new}} = 12 - 2 = 10, \qquad \text{输出占位}_{\text{new}} = 8 - 2 - 2 = 4$$
+
+| 销账分项（R1 第 2 步回来：接受 1 个、拒 2 个） | 算式 | 结果与含义 |
+|---|---|---|
+| 已算位置回退 | $12 - 2$ | **10 个位置**（被拒的 2 个退回） |
+| 输出占位两次减账 | $8 - 2 - 2$ | **4 个**（先减被拒 2 个，再减收到 2 个 token） |
+| 算完且回来了的位置 | $10 - 4$ | **6 个**（与同步记法下第 2 步之后一致） |
+| 排第 4 步的新增位置 | $7 + 3 + 4 - 10$ | **4 个位置** |
 
 Worker 那边也要改一次。第 3 步排出时，第 2 步的结果尚未被 EngineCore 处理，调度器按全接受将位置前推到 8–11。准备输入时，Worker 用设备上保存的有效 token 数 2（接受 1 个）修正已算数，位置回退 2 格，实际算 6–9，和[第二圈和第三圈](one-request.md#第二圈和第三圈decode-步一次验证-1--3-个-token)一致。CPU 长度是否另外修正，取决于前述后端条件。第 2 步在位置 6、7 写下的注意力 KV 会被后续有效计算覆盖。本部署 prefix caching 默认关着（见 [prefix caching](prefix-caching.md#glm-双机上它开着吗)），「算完且回来了的位置」这条线只在显式打开时用于登记缓存。
 
@@ -421,44 +438,16 @@ Ascend 上看到 `Parameter is currently ignored on Ascend. parameter=enable_dbo
 
 ### 版本差异
 
-DBO 相关条件单列四版。上游比较点依次为 0fc695fc、568afb3a、ced6857a、84030bbe；Ascend 依次为 2c59ff10、2ed6cbba、7d825229、baa023ad，固定 GLM 另核 db701c1f。main 比较点不意味着已验证两仓库是精确配套的安装组合。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）；**本文 GLM 双机绑定算例采用例外 B 专用镜像 `vllm-ascend@db701c1f` + `vllm@0fc695fc`**。主线机制（默认自动判定、输出占位与批次队列循环）在四版保持一致。
 
-| DBO 核对项 | v0.23 | v0.26 | rc2 | 固定 main |
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 |---|---|---|---|---|
-| 上游 enable_dbo 默认 | false | 相同 | 相同 | 相同 |
-| decode / 其他批次门槛 | 32 / 512；实际比较为 ≥ | 相同 | 相同 | 相同 |
-| DP 是否可各自拆分 | 不可；须全组同意，补齐后末微批不能为空 | 相同 | 相同 | 相同 |
-| Ascend 对上游开关的处理 | 重置 false；固定 GLM 镜像相同 | 相同 | 相同 | 相同 |
-| Ascend 对显式 ubatch_size 的处理 | 重置 0；固定 GLM 镜像相同 | 相同 | 相同 | 相同 |
+| 上游 `async_scheduling` 判定与占位 | `None` 自动分支不放行 `draft_model`；占位加 `1 + K`；无 `max_in_flight_tokens`；V1 PP=1 并发 2 批、V2 为 `pp_size + 1` | 新增 `max_in_flight_tokens` 与 `dspark`；占位改为 `num_sampled_tokens_per_step + K`；自定义 `Scheduler` 告警提醒失去异步 | `None` 自动分支放行 `draft_model`（`scheduler.py#L190-L220`、`vllm.py#L589-L605`）；并发批数公式延续 | 延续 `pp_size + 1` 并发批数与 `max_in_flight_tokens`（`vllm.py#L616-L635`）；V1 不兼容列表单列集中校验（`#L1799-L1851`），Ascend 端不再受 V1 限制 |
+| `profiling_chunk`（CPP）与 MRV2 约束 | 平台无条件选同步 `ProfilingChunkScheduler`（`db701c1f` 同样） | 仍无条件选同步 `ProfilingChunkScheduler`；`ShortRequestFirst` 与 `profiling_chunk_config` 直接互斥 | **`async_scheduling` + `profiling_chunk_config`（CPP）强制要求 MRV2**（`platform.py#L1075-L1085` 校验 `VLLM_USE_V2_MODEL_RUNNER=1`，否则 `ValueError`）；满足时分派 `ProfilingChunkAsyncScheduler`（`#L1386-L1407`）；`patch_use_v2_model_runner.py#L18-L42` 按 env 开关决定 V1/V2 | **删除 MRV1，全仓唯一保留 MRV2**（`mrv2_utils.py#L29-L36`，设 `VLLM_USE_V2_MODEL_RUNNER=0` 直接报错）；CPP 与异步调度默认直接在 MRV2 上组合 |
+| 昇腾异步调度器族与 V1 PP 采样传递 | 仅 `RecomputeScheduler` 备异步版；V1 非 PD-P 异步 PP 走继承广播 `_pp_broadcast_prev_sampled_token_ids` | `ShortRequestFirst`、`BatchJobAware` 新增异步版；V1 PP 改为经调度输出 IPC 传递 token | 新增 `DyntraLB` 异步版及 `ProfilingChunkAsyncScheduler`；V1 PP 延续调度输出 IPC；MRV2 独立走 V2 PP 传输 | 移除 V1 路径，所有异步调度器与 PP 传输收敛至 MRV2 体系 |
+| Worker 异步拷贝与 DBO 开关 | MRV1 主机写 `-1`、采样值留卡上、异步拷贝流回传；Ascend 将上游 `enable_dbo` 重置 `False`、`ubatch_size` 置 `0` | 延续 MRV1 异步拷贝与 DBO 重置 | MRV1 延续旧异步拷贝；MRV2 接入 `async_tensor_h2d` 异步 H2D 拷贝；`platform.py#L919-L923` 仍将 `enable_dbo` 重置 `False` | **MRV2 全面采用 `vllm.utils.torch_utils.async_tensor_h2d` 异步 H2D 拷贝**（`worker/v2/model_runner.py#L37`、`#L890-L976`，覆盖 `idx_mapping`、`cu_num_logits`、`query_start_loc` 等输入缓冲）；`platform.py#L1083-L1087` 仍重置 `enable_dbo=False` |
 
-本页 DBO 的线程、DeepEP 后端名单与整图/eager 分支沿固定上游 0fc695fc 解释；没有据同名开关推断新版 GPU runner 的所有组合，也没有为 Ascend 宣称该 GPU 路径可用。
-
-**v0.30.0rc2 新增 profiling_chunk 与异步调度的 MRV2 组合。** 平台在 MRV1 下仍拒绝这两者同开，MRV2 则放行并按 async 开关选择 ProfilingChunkAsyncScheduler 或 ProfilingChunkScheduler；旧 main 的“只能同步”限制不能延伸到 rc2。Ascend 的 runner 补丁仍直接读取 VLLM_USE_V2_MODEL_RUNNER，未设时为 false，所以不会仅因升级 rc2 就自动进入这条 V2 路径。其他异步功能组合仍各有自己的检查。
-
-主线行为——默认自动判定、输出占位、带批次队列的那条循环——在三个版本上一致。机制在上游，按配套的 vLLM 快照分；接线在昇腾，按 vllm-ascend 的快照分。正文的 EngineCore 与调度器一侧引的是上游 v0.23，Worker 一侧引的是含 GLM 代码的 `db701c1f`；本部署实际装的是哪一对，按[来源基线](../sources/glm-5-3-flash-baseline.md)核对。
-
-**上游 vLLM**（v0.23 = `vllm@0fc695fc`，v0.26 rc = `vllm@568afb3a`，main = `vllm@84030bbe`）：
-
-| 项 | v0.23 | v0.26 rc | main | 意味着什么 |
-|---|---|---|---|---|
-| 显式开的硬失败项 | 投机方法不在名单、关掉候选批次补齐、执行器不支持 | 多一条 ROCm DeepEP 高吞吐 DBO；`dspark` 进投机名单（自动分支同样处理这两项） | 同 v0.26 | 昇腾碰不到 ROCm 那条；能多开一种投机方法 |
-| 每步加多少输出占位 | `1 + 候选数` | `num_sampled_tokens_per_step + 候选数` | 同 v0.26 | 给没有 bonus token 的扩散式模型留口子，自回归模型上两者相等 |
-| 在途 token 的块预留 | 无 | 新增 `max_in_flight_tokens` | 同 v0.26 | 滑窗类 KV 规格多留一份 |
-| 自定义 `scheduler_cls` 的 warning | 只说接口不公开 | 多一句：继承 `Scheduler` 而不是 `AsyncScheduler` 会失去异步 | 同 v0.26 | 同一段自定义调度器，v0.23 上不提醒 |
-| draft_model 在自动分支的判定 | None 自动关闭，显式 True 在满足其他条件时允许 | 同 v0.23 | None 也允许，仍检查补齐和执行器条件 | 不能把显式开启的允许名单当成旧版自动开启名单；固定 GLM 使用 MTP，不受此差异影响 |
-| `max_concurrent_batches` | V1 且 PP=1 为 2，V2 为 `pp_size + 1` | 同 v0.23 | 同 v0.23 | 批次队列长度不变 |
-
-**vllm-ascend**（v0.23 = 维护分支 `2c59ff10`，不含 GLM 代码；`db701c1f` = 含 GLM 代码的快照；v0.26 rc = `2ed6cbba`；main = `baa023ad`）：
-
-| 项 | v0.23 维护分支 | db701c1f | v0.26 rc | main |
-|---|---|---|---|---|
-| 平台层按异步开关挑调度器 | 只有 `RecomputeSchedulerConfig` 自己挑 `AsyncRecomputeScheduler` | 同 v0.23 | ShortRequestFirst、BatchJobAware 各多一个 Async 版 | 抽成 `_get_recompute_scheduler_cls`、`_get_dyntra_lb_scheduler_cls`，DyntraLB 也有 Async 版 |
-| 只有同步版、平台无条件换上的调度器 | `SchedulerDynamicBatch`、`ProfilingChunkScheduler` | 同 v0.23 | `ProfilingChunkScheduler` | `ProfilingChunkScheduler` |
-| ShortRequestFirst + profiling chunk | 没有 ShortRequestFirst | 没有 ShortRequestFirst | 直接 `ValueError` 互斥 | 允许，但必须关异步 |
-| Worker 侧（主机写 `-1`、采样值留卡上、异步拷回、按全接受算长度再改正、FULL 图回放前同步） | 有 | 有 | 有 | 有 |
-| V1 的异步 PP 采样值传递 | 非 PD-P 路径调用继承的 `_pp_broadcast_prev_sampled_token_ids`；要求单列采样值，纯中间 prefill 批跳过 | 同左 | 非 PD-P 的 V1 PP 经调度输出携带 token，非末段 Worker 重建设备输入；同一请求产出结果前暂停再次 decode | 同 v0.26 rc 的这条 IPC 路径；不能套到 V2 |
-
-- 文档叫法：固定 main 的支持特性表写 `Async output`（🟢 Functional，备注 CI needed），互斥表写 `Async Scheduling`。后者是三角矩阵，必须同时看对应行、列和图例，不能把当前行的留白当作与所有功能都兼容；表内组合标签也不替代具体模型、runner 和参数检查。
+上表同时覆盖上游 DBO（`enable_dbo` 默认 `false`、decode/prefill 门槛 `32 / 512` 且实际比较为 `≥`、DP 全组须共同同意拆分且末微批非空，四版上游均一致；Ascend 四版均重置 `enable_dbo=False` 与 `ubatch_size=0`）。文档叫法方面：支持特性表写作 `Async output`（🟢 Functional，备注 CI needed），互斥三角矩阵写作 `Async Scheduling`，须同时对照行、列、图例及上述代码硬检查。
 
 ### 源码位置
 

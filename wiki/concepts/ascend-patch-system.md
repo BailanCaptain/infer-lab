@@ -143,9 +143,17 @@ sources:
   - 'vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_balance_schedule.py#L72-L104'
   - 'vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_balance_schedule.py#L906-L911'
   - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L672-L683'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/__init__.py#L17-L62'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/worker/__init__.py#L18-L85'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L42'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/__init__.py#L17-L55'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/worker/__init__.py#L18-L75'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L7'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L65'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -168,7 +176,7 @@ relations:
     kind: builds-on
     note: KDA 的数学机制；设备实现走 CustomOp 登记，不走 patch
 contradicts: []
-updated: 2026-11-03T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -358,27 +366,22 @@ patch 没有统一的总开关；下面列的是本页主要入口和消费者�
 
 ### 版本差异
 
-**v0.30.0rc2 继续按进程入口与能力加载补丁。** platform 的 Mamba 分支按硬件能力选择，multiproc 补丁则按 DYNAMIC_EPLB 或 EXPERT_MAP_RECORD 环境值导入；worker 由 HAS_TRITON 与 STANDARD_WORKER_PATCHES 等条件选择导入。新增对照里最容易误判的是 use_v2_model_runner 补丁：它直接尊重 VLLM_USE_V2_MODEL_RUNNER，未设时 false，不能按上游自动架构检测推断 Ascend 默认 V2。connector、model_loader、profiling 通用插件还会先调用一次性的全局 patch，覆盖 EngineCore 子进程初始化。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10`，GLM 双机专用镜像 `db701c1f` 同属此分支期并含 GLM5Next 专用补丁）、`v0.26.0rc`（`vllm-ascend@2ed6cbba`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20`）与 `main`（`vllm-ascend@8d6180e2`）。**`v0.30.0` 仍保持 `patch/platform` + `patch/worker` + `patch/worker/patch_v2` 三层并存（`patch_use_v2_model_runner` 未设环境变量默认 `False` 走 MRV1）；`main` 退役 MRV1 后，将 `patch_v2/` 全部并入 `patch/worker/`，并把 `patch_use_v2_model_runner.py` 缩为 7 行薄封装，统一委托 `vllm_ascend.mrv2_utils.apply_v2_model_runner_config_patch()` 锁定 MRV2。**
 
-按本文相同的三个直接目录 patch_*.py 口径，rc2 为 platform 30、worker 19、worker/patch_v2 14，共 63 份；这是固定源码目录计数，不是某进程实际执行的补丁数量。
-
-「本部署」是 GLM 专用镜像 `db701c1f`，它不是社区 v0.23 维护分支的某个提交；三个社区分支的钉点与 vLLM 配套版本见[来源基线](../sources/glm-5-3-flash-baseline.md)。
-
-| 项 | 本部署 `db701c1f` | v0.23 `2c59ff10` | v0.26 rc `2ed6cbba` | main `baa023ad` |
+| 核验维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 |---|---|---|---|---|
-| 入口机制：adapt_patch 分流、平台准备钩子、三个通用入口经 `_ensure_global_patch`、NPUWorker 构造开头 | 有 | 相同 | 相同 | 相同 |
-| patch 文件数：platform / worker / patch_v2 | 28 / 24 / 7 | 28 / 24 / 7 | 31 / 24 / 9 | 28 / 19 / 13 |
-| 入口文件的导入条件 | 310P、vLLM 0.23.0、Triton、EPLB 环境变量 | 同本部署 | 不再判断 vLLM 版本，只剩 310P、Triton、EPLB 环境变量；patch_v2 组不再整体跳过 | 310P 判断换成硬件能力表（`STANDARD_MAMBA_PATCH`、`STANDARD_WORKER_PATCHES`）；Triton、EPLB 环境变量不变 |
-| GLM 专用 patch | `patch_glm5_next_config`、`patch_glm5_next_mamba_scheduler` | 无 | 无 | `patch_glm5next_config`；对齐切分改由 `patch_mamba_block_aligned_split` 换 |
-| 调度器类被换成 | BalanceScheduler，父类是上游 Scheduler | BalanceScheduler，父类是上游 Scheduler；直通条件多一个：PD 分离的 P 节点（`kv_producer`）上即使均衡开关关着也不回上游，改走禁抢占分支 | 两层：先换成 KVDeliveryScheduler，BalanceScheduler 再从它派生；开关关着时走 KVDeliveryScheduler 重写的 `schedule()`，不回上游 | BalanceScheduler，父类是上游 Scheduler；替换 EngineCore 入口函数挪到 `patch_engine_core` |
+| 入口机制 | `adapt_patch` 分流、平台准备钩子、三通用入口经 `_ensure_global_patch`、`NPUWorker` 构造开头 | 相同 | 相同 | 相同；`_ensure_global_patch` 先调 `apply_v2_model_runner_config_patch()` 再打全局 patch |
+| `patch_*.py` 文件分布（`platform / worker / patch_v2`） | 28 / 24 / 7（共 59；GLM `db701c1f` 同数异项） | 31 / 24 / 9（共 64） | **32 / 19 / 14**（共 **65**；`#L17-L62`、`#L18-L85`） | **29 / 30 / 0**（共 **59**；`patch_v2/` 退役并扁平合入 `patch/worker/`，`#L17-L55`、`#L18-L75`） |
+| 入口条件与版本门控 | 310P、`vllm_version_is("0.23.0")`、Triton、EPLB 环境变量 | 去除了 vLLM 版本分支；留 310P、Triton、EPLB；`patch_v2` 不再跳过 | 310P 改由 `HardwareProfile` 能力表门控（`STANDARD_MAMBA_PATCH`、`STANDARD_WORKER_PATCHES`）；留 Triton 与 EPLB | 延续能力表 + Triton + EPLB；在 `patch/worker/__init__.py#L73` 仅对 `patch_adaptive_verification` 保留 `vllm_version_is("0.33.0")` 门控 |
+| MRV1 / MRV2 补丁入口 | `patch_use_v2_model_runner` 未设环境变量默认 `False`（MRV1） | 相同 | `patch/platform/patch_use_v2_model_runner.py#L18-L42` 仍默认 `False`（MRV1），另增支持特性白名单与投机 PP 校验 | 缩为 7 行调用 `mrv2_utils.apply_v2_model_runner_config_patch()`（`mrv2_utils.py#L29-L65` 恒返 `True`，显式 `=0` 报错）；移除 MRV1 专属 `patch_rejection_sampler`、`patch_cudagraph`，新增 `patch_ascend_ops`、`patch_staged_writes` |
+| GLM 专用与调度器补丁 | 维护分支无 GLM 模型补丁（镜像 `db701c1f` 含 `glm5_next_config`/`mamba_scheduler`）；`BalanceScheduler` 在 `kv_producer` 走禁抢占 | 调度器两层继承：`KVDeliveryScheduler` → `BalanceScheduler` | `patch_glm5next_config` + `patch_mamba_block_aligned_split`；EngineCore 入口包装独立到 `patch_engine_core.py` | 延续 `patch_glm5next_config` / `patch_mamba_block_aligned_split` / `patch_engine_core`；新增 `patch_kv_cache_admission`、`patch_swa_bounded_replay` |
 
-文件清单按固定提交的三个直接目录逐一对照。表中只数 `patch_` 开头的 Python 文件，不含 `__init__.py` 和其他辅助模块；嵌套目录单独计数，不把文件数当实际调用数。
+文件清单按各固定提交的 `patch/platform`、`patch/worker`、`patch/worker/patch_v2` 三个直接目录统计 `patch_*.py`（不含 `__init__.py` 及非 `patch_` 辅助模块），目录文件数不等于单次启动实际执行次数。
 
-- **本部署 vs v0.23**：文件数相同，内容不同。本部署多了两个 GLM 专用 patch；少了 `patch_async_swa_kv_lifetime`、`patch_shm_broadcast`，这两个在 v0.23 里都挂在 vLLM 0.23.0 分支下。worker 与 patch_v2 两组的文件名完全一致。同名的 `patch_balance_schedule` 内容也不同：v0.23 在 vLLM 0.23.0 且 KV 传输角色是 `kv_producer`（PD 分离的 P 节点）时禁止抢占，所以 schedule 第一行的直通条件是「均衡开关关着且不在 P 节点」，P 节点上即使开关关着也不交回上游，而是走 BalanceScheduler 自己的调度循环，块不够时停下而不是抢占别的请求；本部署的这份没有这段逻辑，开关关着就一律交回上游。
-- **v0.23 → v0.26 rc**：platform 去掉 7 个（`patch_async_swa_kv_lifetime`、DeepSeek-V4 / GLM-4.7 / MiniMax-M2 工具调用解析、GLM 工具调用流式、MiniMax 用量统计、tool_choice 为 none 时的内容），新增 10 个（异步调度、DeepSeek-V4 思考与工具流式、GLM 推理用量统计、Kimi-K3 解析与渲染、`patch_kv_delivery_preemption`、多模态连接器、重算对话、停止 token 校验）；worker 去掉 `patch_gqa_c8` 与 `patch_weight_utils`，`patch_deepseek_v2` 本身仍在，新增 MoE runner 与 Step3.5；patch_v2 新增 DFlash 与 EAGLE 两个投机草稿器。这里描述文件清单，不据名称判断每个模型是否经过其中的共享函数。
-- **v0.23 → main**：platform 去掉 10 个（v0.26 去掉的那 7 个 main 上也都没有，另外还去掉了 `patch_shm_broadcast`、睡眠模式分配器、权重同步），新增 10 个（DeepSeek-V4 视觉、EngineCore、EPLB 与动态负载均衡、Engram 配置、GLM 配置、索引器与 KV cache 数据类型、对齐切分、并行配置）；worker 去掉 8 个，其中包括本部署在请求路径上用到的权重后处理 patch 和带 bind_kv_cache 的 `patch_qwen3_next_mtp`，新增 `patch_bind_kv_cache`、KV cache 数据类型与 Step3.5；patch_v2 新增 6 个，多为投机解码相关。
+- **GLM 镜像 `db701c1f` vs `v0.23.0`（`2c59ff10`）**：文件数同为 59 但内容有别：镜像多出两个 GLM 专用 patch、少 `patch_async_swa_kv_lifetime` 与 `patch_shm_broadcast`；且 `2c59ff10` 的 `patch_balance_schedule` 在 `kv_producer` 角色下即使均衡开关关闭也不交回上游，而镜像 `db701c1f` 开关关闭即直通上游。
+- **`v0.23.0` → `v0.26.0rc` → `v0.30.0` → `main` 演进主线**：`v0.26.0rc` 去掉 7 个 v0.23 工具解析补丁并引入 `patch_kv_delivery_preemption`；`v0.30.0` 将芯片判断收敛至 `HardwareProfile` 能力表、把 EngineCore 入口包装拆到 `patch_engine_core.py` 并并存 14 个 `patch_v2` 文件；`main` 退役 MRV1 后彻底移除 `patch_v2/` 子目录（连同 `patch_rejection_sampler`、`patch_cudagraph` 退役），并将 V2 补丁直接扁平化进 `patch/worker/`。
 
-本页 GLM 清单是 `db701c1f` 在所列条件下的静态路径判断；v0.26 rc、main 与 rc2 的入口和文件都变了，需按对应版本重核，不能视作目标环境的执行日志。
+本页 GLM 清单是 `db701c1f` 在所列条件下的静态路径判断；`v0.26.0rc`、`v0.30.0` 与 `main` 的入口和文件均已演进，需按对应版本重核，不能视作目标环境的执行日志。
 
 ### 源码位置
 

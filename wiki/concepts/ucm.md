@@ -143,7 +143,17 @@ sources:
   - 'https://github.com/ModelEngine-Group/unified-cache-management/blob/4b9acbc8dede919ae17b14c3a23903e89623d5e8/charts/unified-cache-chart/values.yaml'
   - 'https://github.com/ModelEngine-Group/unified-cache-management/blob/4b9acbc8dede919ae17b14c3a23903e89623d5e8/docs/docs-site/docs/en/toolkit/kv-cache-calculator.md'
   - 'https://github.com/ModelEngine-Group/unified-cache-management/blob/4b9acbc8dede919ae17b14c3a23903e89623d5e8/docs/docs-site/docs/assets/calculator.js#L963-L1396'
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/__init__.py#L91-L95'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector/connector.py#L37-L70'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L22-L55'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/__init__.py#L133-L137'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector/connector.py#L290-L297'
+  - 'vllm@ba15685a:vllm/distributed/ec_transfer/ec_connector/cpu/common.py#L71-L95'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: kv-pool
@@ -165,7 +175,7 @@ relations:
     kind: builds-on
     note: P2P 模式由 Mooncake 承担 P 到 D 的传输
 contradicts: []
-updated: '2026-11-10'
+updated: '2026-11-19'
 origin: direct
 ---
 
@@ -232,12 +242,13 @@ file: ucm-flow
 
 设一条请求的 prompt 有 1,000 个位置，缓存按每段 32 个位置存，本地命中前 256 个，UCM 连续存着前 800 个（都是示意数）：
 
-```calc
-title: 开始前，哪些位置要算（示意）
-UCM 再供 = 800 − 256 = 544 个位置
-视为已算 = 256 + 544 = 800 个位置
-这一步要算 = 1,000 − 800 = 200 个位置
-```
+$$T_{\text{compute}} = 1{,}000 - \bigl(256 + (800 - 256)\bigr) = 1{,}000 - 800 = 200\text{ 个位置}$$
+
+| 阶段（示意：prompt 1,000 位置，每段 32 位置） | 算式 | 位置数 |
+|---|---|---|
+| UCM 在本地之后再补供 | $800 - 256$ | **544 个位置**（第 256–799 位） |
+| 合并视为已算 | $256 + 544$ | **800 个位置**（第 0–799 位） |
+| 这一步引擎仍须自算 | $1{,}000 - 800$ | **200 个位置**（第 800–999 位） |
 
 UCM 回的是「本地命中之后还能多供几个」，不是它一共存了多少：第 0–255 个位置用本地显存里的块，第 256–799 个从 UCM 搬，第 800–999 个自己算。普通路径按完整块生成身份，只把本地之后连续可用的外部块计入；查找返回“最后命中的块下标”，还要加 1 才是块数。全中也会给引擎留下重算尾部：本固定外部实现中，普通整块至少留 1 个位置，普通逐层无投机时至少留 2 个，有投机时留草稿数加 2 个，以保留需要执行的计算和调用点。混合状态还需按各组共同边界取整。
 
@@ -321,13 +332,12 @@ file: ucm
 
 **P2P 里 UCM 管什么。** 搬这一次请求状态的是 Mooncake（机制见 [Mooncake 连接器](mooncake-connector.md)）；UCM 管的是「P 下次遇到同样的开头时少算一段」。P 可以先从 UCM 取回共享前缀、少算一段，再把这条请求需要的全部状态经 Mooncake 交给 D。官方那个 MoE 大规模 EP 例子（上文对比数的出处）用的就是这种站法：P 上同时挂 Mooncake 和 UCM，D 只挂 Mooncake。
 
-设这一次 P→D 要交的状态是 64 MiB（示意数），不计压缩、共享命中和元数据：
+设这一次 P→D 要交的状态是 64 MiB（示意数），不计压缩、共享命中和元数据，两种模式单次交接经过的数据总量对比如下：
 
-```calc
-title: 交接一次，数据要走几趟（示意）
-集中式 = 64 MiB 写进存储 + 64 MiB 从存储读出 = 128 MiB
-P2P = 64 MiB 从 P 直传到 D = 64 MiB
-```
+| 交接模式（示意：状态 64 MiB） | 数据流动路径 | 总搬运量 |
+|---|---|---|
+| **集中式** | $64\text{ MiB}$ 写进共享存储 + $64\text{ MiB}$ 从共享存储读出 | **128 MiB**（两趟） |
+| **P2P** | $64\text{ MiB}$ 从 P 直传到 D | **64 MiB**（一趟） |
 
 集中式要走两趟，P2P 一趟，但推不出集中式的时延就翻倍：命中复用、写读重叠、存储布局和链路拓扑都会改变实际开销。官方文档对两者的定位是：集中式架构简单、实例彼此完全解耦、不带状态；P2P 时延更低，适合 P、D 节点同构的场景。
 
@@ -339,14 +349,15 @@ P2P = 64 MiB 从 P 直传到 D = 64 MiB
 
 Kubernetes 把容器安排到节点上运行；Pod 是一起调度的一组容器。UCM 官方另提供 Helm Chart，也就是一套生成部署配置的模板。它先区分独立服务组、组里的P/D逻辑实例，以及每个实例额外带的worker Pod，再由引擎参数决定各进程怎样并行。
 
-例如官方 Qwen3-0.6B 的多节点2P2D模板，在一个服务组里有两个P实例、两个D实例，每个实例由一个入口Pod加一个worker Pod组成。因而这里的“2P2D”并不是四个Pod：
+例如官方 Qwen3-0.6B 的多节点 2P2D 模板，在一个服务组里有两个 P 实例、两个 D 实例，每个实例由一个入口 Pod 加一个 worker Pod 组成。因而这里的“2P2D”并不是四个 Pod：
 
-```calc
-title: 一个服务组的2P2D包含多少引擎Pod（官方模板）
-P 侧 Pod = 2 × (1 + 1) = 4
-D 侧 Pod = 2 × (1 + 1) = 4
-引擎 Pod 总数 = 4 + 4 = 8
-```
+$$N_{\text{Pod}} = 2 \times (1 + 1)_{\text{P}} + 2 \times (1 + 1)_{\text{D}} = 4 + 4 = 8\text{ 个引擎 Pod}$$
+
+| 角色（官方 2P2D 模板，单个服务组） | 计算式（逻辑实例 × 每实例 Pod 数） | 引擎 Pod 数 |
+|---|---|---|
+| P 侧引擎 Pod | $2 \times (1\text{ 入口} + 1\text{ worker})$ | **4** |
+| D 侧引擎 Pod | $2 \times (1\text{ 入口} + 1\text{ worker})$ | **4** |
+| **引擎 Pod 总数** | $4 + 4$ | **8** |
 
 该模板每个引擎Pod申请一个NPU资源，合计申请八个NPU资源；路由器、Mooncake master等控制组件另计。每个逻辑实例又配置DP2、每Pod本地DP1、TP1、PP1。因此，Chart的两个P逻辑实例不能当成只有两个DP rank；worker的存在也不能单独证明开了PP。节点数还受主机端口占用和反亲和调度约束，不由文件名里的“2”直接决定。
 
@@ -362,14 +373,15 @@ D 侧 Pod = 2 × (1 + 1) = 4
 file: ucm-encoder-chunks
 ```
 
-读取端先分配能放三整块的矩阵，等加载完成后，把前 5 行交给模型。这个较短的视图仍引用原分配，补零行的空间也仍被占着。以每个数 2 B 的 BF16 为例：
+读取端先分配能放三整块的矩阵，等加载完成后，把前 5 行交给模型。这个较短的视图仍引用原分配，补零行的空间也仍被占着。以每个数 2 B 的 BF16 为例（示意：5 行 × 2 列、每块 2 行）：
 
-```calc
-title: 五行编码结果怎样占成三块（示意）
-有效数据 = 5 × 2 × 2 B = 20 B
-分块分配 = 3 × 2 × 2 × 2 B = 24 B
-末块补齐 = 24 B - 20 B = 4 B
-```
+$$B_{\text{pad}} = (3 \times 2 - 5) \times 2 \times 2\text{ B} = 24\text{ B} - 20\text{ B} = 4\text{ B}$$
+
+| 口径（示意：5 行 × 2 列，每块 2 行，BF16 每数 2 B） | 算式 | 字节数 |
+|---|---|---|
+| 有效编码数据 | $5 \times 2 \times 2\text{ B}$ | **20 B** |
+| 三整块分块分配 | $3 \times 2 \times 2 \times 2\text{ B}$ | **24 B** |
+| 末块补零开销 | $24\text{ B} - 20\text{ B}$ | **4 B** |
 
 这是逻辑张量的字节账，文件层的最小对齐还要另算。块太小会增加查找和任务数，块太大则增加尾块浪费；是否值得存，还取决于重复媒体的比例以及读取与重新编码谁更快。
 
@@ -530,23 +542,21 @@ EC 初始化会拒绝多模态 pruning：这类裁剪会改变编码输出及位
 
 ### 版本差异
 
-**v0.30.0rc2 在本仓的 UCM 外壳与固定 main 相同。** 注册名仍为 UCMConnector，模块仍是 kv_pool.ucm_connector.connector，UCMConnectorV1 继续实现 SupportsHMA；保留接口优先委托外部 dispatcher 的显式实现，否则寻找其内部 connector，避免基类空实现遮住真正钩子。这里的“不变”经目录 diff 核对，只覆盖 Ascend 包装层；外部 ucm 包、存储后端与模型的能力仍需按实际安装版本核实。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`，GLM 镜像 `db701c1f` 同此结构）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）。**`v0.30.0` 在本仓的 UCM 外壳沿用子包结构与 `SupportsHMA` + 保留钩子委托逻辑；`main` 新增类名别名注册（防 `MultiConnector` 指标重建报错）以及 `get_loaded_kv_cache_group_ids` 钩子转发。**
 
-下表对照 v0.23 维护分支（`2c59ff10`）、含 GLM 代码的镜像 `db701c1f`、v0.26 分支（`2ed6cbba`）和 main（`baa023ad`）；上游 vLLM 的接口按 `0fc695fc`（v0.23.0）读。
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
+|---|---|---|---|---|
+| 注册名与别名 | `UCMConnector`（GLM `db701c1f` 同） | `UCMConnector` | `UCMConnector`（`kv_transfer/__init__.py#L91-L95`） | `_register_with_class_name_alias` 同时注册配置名 `UCMConnector` 与类名别名 `UCMConnectorV1`（`#L22-L55`、`#L133-L137`），避免 `MultiConnector` 按类名重建指标时报 `ValueError` |
+| 外壳模块路径 | `kv_pool.ucm_connector`（单文件） | `kv_pool.ucm_connector`（单文件） | `kv_pool.ucm_connector.connector`（子包导出 `UCMConnectorV1`） | `kv_pool.ucm_connector.connector`（子包导出 `UCMConnectorV1`） |
+| 外壳能力与保留钩子 | 实现 `SupportsHMA`，保留接口优先委托外部分发器，否则回落内部 connector | 同左 | 同左（`connector.py#L37-L70`） | 延续左列，新增 `get_loaded_kv_cache_group_ids` 委托（`connector.py#L290-L297`），对接上游 `skip_zeroing_group_ids` |
+| KDA 自动改 `align` | `patch_mamba_config` 只认 `AscendStoreConnector` | 同左 | 仍只认 `AscendStoreConnector`（接 UCM 不自动改 `align`） | 同左 |
+| 上游 EC 编码宽度依赖 | `0fc695fc` 无 `ec_connector.cpu.common` | `568afb3a` 提供 `_get_encoder_cache_hidden_dim` | `ced6857a` 提供 `_get_encoder_cache_hidden_dim` | `ba15685a` 移除该私有辅助函数，改为 `model_config.get_inputs_embeds_size()`（`common.py#L71-L95`），固定外部 UCM `4b9acbc8` 的 EC 导入须同步适配 |
 
-| 项 | v0.23 维护分支 / db701c1f / v0.26 | main | 意味着什么 |
-|---|---|---|---|
-| 注册名 | `UCMConnector` | `UCMConnector` | 配置写法不变 |
-| 外壳模块 | `kv_pool.ucm_connector`（单文件） | `kv_pool.ucm_connector.connector`（子包，`__init__` 导出 `UCMConnectorV1`） | 自己 import 内部模块时要留意路径 |
-| 外壳内容 | 324 行，逐字相同 | 与左边逐字相同 | 四个提交行为一致：都实现 `SupportsHMA`，都有保留接口的委托逻辑 |
-| 部署文档 | v0.23 与 db701c1f 逐字相同 | v0.26 与 main 相同，和左边只差空白和长度标签 K/k 大小写 | 示例、前提、对比数一致 |
-| KDA 自动改 align | 只认 AscendStore | 只认 AscendStore | 接 UCM 时 KDA 都不会被自动改成按块留档 |
+四个提交的部署文档前提都写 vLLM 与 vllm-ascend 的 main 分支，UCM 本身按外部指南另装。上面的核对只覆盖本仓的入口、外壳和部署说明，不证明任意 UCM 版本都能配任一发布分支；确定组合时要同时固定外部 UCM 版本、存储后端和 vLLM / vllm-ascend 版本。
 
-四个提交的部署文档，前提都写 vLLM 与 vllm-ascend 的 main 分支，UCM 本身按外部指南另装。上面的核对只覆盖本仓的入口、外壳和部署说明，不证明任意 UCM 版本都能配任一发布分支；确定组合时要同时固定外部 UCM 版本、存储后端和 vLLM / vllm-ascend 版本。
+本页外部实现固定为 UCM `4b9acbc8`，独立于上述 Ascend 钉点。`v0.30.0` 与 `main` 的 Ascend 指南修复了 UCM 安装、支持表、PipelineStore 的链接，旧指南正文与示例基本不变。外部默认值必须看实际安装库：Cache 核心版本 1 或至少 2 的路径以默认 160 GiB 总预算进入分配，旧未版本化库的共享路径仍补 128 GiB；当前官网配置表还列旧 native 256/私有 32 GiB，不能当作所有安装包的统一默认。
 
-本页外部实现固定为 UCM `4b9acbc8`，独立于上述 Ascend 钉点。rc2 与后续 Ascend 指南修复了 UCM 安装、支持表、PipelineStore 的链接，旧指南正文与示例基本不变。外部默认值必须看实际安装库：Cache 核心版本 1 或至少 2 的路径以默认 160 GiB 总预算进入分配，旧未版本化库的共享路径仍补 128 GiB；当前官网配置表还列旧 native 256/私有 32 GiB，不能当作所有安装包的统一默认。
-
-EC 属于此外部固定版本的新入口，不经过上表的 Ascend KV 外壳。它无条件导入上游 `ec_connector.cpu.common._get_encoder_cache_hidden_dim`；v0.23 基线 `0fc695fc` 没有该模块，未经回移依赖不能直接使用这份 EC 实现。v0.26 配套 `568afb3a` 与 rc2 配套 `ced6857a` 已有该解析函数；整套 EC 调度、重置接口与 NPU 行为仍须在所选组合验证。Ascend main 的 KV 外壳不提供这项依赖，须另固定其配套上游，不能由外壳相同推定支持。GLM 双机的原启动参数也没有启用 EC。
+EC 属于此外部固定版本的新入口，不经过上表的 Ascend KV 外壳。它无条件导入上游 `ec_connector.cpu.common._get_encoder_cache_hidden_dim`：`v0.23.0` 基线 `0fc695fc` 没有该模块；`v0.26.0rc` 配套 `568afb3a` 与 `v0.30.0` 配套 `ced6857a` 具备该解析函数；`main` 配套 `ba15685a` 已改由 `model_config.get_inputs_embeds_size()` 获取编码宽度。整套 EC 调度、重置接口与 NPU 行为仍须在所选组合验证。GLM 双机的原启动参数也没有启用 EC。
 
 ### 源码位置
 

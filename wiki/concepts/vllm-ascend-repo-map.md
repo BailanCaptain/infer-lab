@@ -41,7 +41,19 @@ sources:
   - 'vllm-ascend@7d825229:vllm_ascend/worker/v2/eplb.py#L37-L83'
   - >-
     vllm-ascend@7d825229:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L42
-verified: []
+  - 'vllm-ascend@c09d3e20:vllm_ascend/ec_manager/score_ec_manager.py#L1-L40'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L250-L382'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L1-L40'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/__init__.py#L70-L100'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_guard/__init__.py#L1-L16'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L89'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L144-L165'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/core/kv_cache_config_builder.py#L1-L40'
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - releases/v0.30.0
+  - main
 evidence: C
 relations:
   - to: vllm-ascend-overview
@@ -108,10 +120,11 @@ Ascend 的 core/ 提供部分调度或资源机制适配，不能因名称相同
 | model_loader/、quantization/ | 前者选择权重加载方式；后者解释量化权重的精度与布局 | 实际加载器与量化实现 |
 | spec_decode/、sample/ | 前者生成供后续验证的草稿候选；后者实现采样与候选验证 | 对应生成模式的执行路径 |
 | kv_offload/、simple_kv_offload/ | 状态在设备内外怎样搬运 | 所选卸载与缓存机制 |
-| \_310p/、device/、device_allocator/ | 设备专用实现与资源分配 | 硬件条件和分配器选择 |
-| 根目录 csrc/ | 自定义设备扩展如何构建与计算 | torch.ops 等扩展调用 |
+| \_310p/、device/、device_allocator/ | 设备专用实现、硬件能力档案（`hardware_profile.py`）与资源分配 | 硬件条件、能力门控与分配器选择 |
+| ec_manager/、observability/（`v0.30.0` 起） | 编码器缓存管理（`score_ec_manager.py`）与指标/运行时守护（`main` 扩出 `runtime_guard/` 与 `ms_metrics/`） | 多模态 EC 与运行期观测钩子 |
+| 根目录 csrc/ | 自定义设备扩展如何构建与计算（`main` 移除旧 `sparse_attention_score/` / `msa_index_score/` 并新增 `engram_hixl/`） | `torch.ops` 等扩展调用 |
 
-同一目录可包含互斥的实现，需沿当前配置实际选择的分支继续读。
+同一目录可包含互斥的实现，需沿当前配置实际选择的分支继续读；在 `main` 分支中，`worker/model_runner_v1.py` 已物理删除并由 `mrv2_utils.py` 全面收敛至 `worker/v2/model_runner.py`，详见[版本差异](#版本差异)。
 
 ## 沿 GLM 执行路径读一组文件
 
@@ -155,24 +168,17 @@ Ascend 的 core/ 提供部分调度或资源机制适配，不能因名称相同
 
 ### 版本差异
 
-这里的目录化入口已存在于固定 main，对照端是旧 GLM 单文件布局；列出 rc2 的准确路径不表示这些目录都在 rc2 首次出现。
+按知识库四版本正式钉点核对 `vllm_ascend/` 顶层目录与 `csrc/` 结构：`v0.23.0`（`2c59ff10`）、`v0.26.0rc`（`2ed6cbba`）、`v0.30.0` 主基线（`c09d3e20`）与 `main`（`8d6180e2`）。**本页 GLM-5.3-Flash 绑定算例读的是专用镜像 `db701c1f`（单文件 `models/glm5_next.py`），与社区四版目录化演进分别核对**，完整钉点见 [GLM 固定来源基线](../sources/glm-5-3-flash-baseline.md)。
 
-**v0.30.0rc2 的阅读地图沿用目录化入口。** GLM5Next 沿 models/glm5next/model.py、mtp.py 进入，文本和条件生成类均已登记；旧镜像 models/glm5_next.py 的行号不适用于 rc2。动态 W8A8 在 quantization/methods/w8a8/w8a8_dynamic.py，grouped-topk 在 ops/fused_moe/router，MRV2 EPLB 控制器在 worker/v2/eplb.py。先核 VLLM_USE_V2_MODEL_RUNNER 再选执行路径：Ascend 缺省仍为 V1，看到 v2 或 patch_v2 目录不等于运行时默认使用它。
+| 目录与演进维度 | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| 顶层目录概览 | 36 项：含 `_310p/`、`device/`、`kv_offload/`、`simple_kv_offload/`、`flash_common3_context.py` | 36 项：新增 `transformers_utils/`，删 `flash_common3_context.py` | 36 项：**新增 `ec_manager/`、`observability/`、`weight_switch/`、`config_utils.py`**；移出 `kv_offload/`、`simple_kv_offload/`、`memcache_comm_fence.py` | 39 项：**新增 `observability/runtime_guard/`（及 `ms_metrics/`、`runtime_config/`）、`mrv2_utils.py`、`hisparse/`、`kv_trace/`、`shared_engram*.py`** |
+| `worker/` 与 Model Runner | `worker/model_runner_v1.py`（MRV1） | 同 `v0.23.0` | **新增 `worker/v2/`**（与 `model_runner_v1.py` 并存，未设 `VLLM_USE_V2_MODEL_RUNNER` 默认走 MRV1） | **物理删除 `worker/model_runner_v1.py`**，由 `mrv2_utils.py` 全面收敛至 `worker/v2/model_runner.py` |
+| `device/`、`ec_manager/` 与 `core/` | `device/device_op.py`；无 `ec_manager/`；`core/` 含 `scheduler_dynamic_batch.py` / `scheduler_profiling_chunk.py` | `core/` 删 `scheduler_dynamic_batch.py`，增 `batch_job_aware_scheduler.py` / `short_request_first_scheduler.py` | `device/hardware_profile.py` 硬件能力档案；`ec_manager/score_ec_manager.py`；`core/` 含 `dyntra_lb_scheduler.py` 与 `scheduler_profiling_chunk.py` | `core/` **删除 `scheduler_profiling_chunk.py` 与 `profiling_chunk_predictor.py`**，新增 `kv_cache_config_builder.py`、`kv_cache_dtype_handlers.py` |
+| `models/`、`quantization/` 与 `ops/` | 维护分支无 GLM（镜像 `db701c1f` 为 `models/glm5_next.py`）；W8A8 在 `quantization/methods/w8a8_dynamic.py` | 无 GLM（有 Kimi K3） | 目录化拆出 `models/glm5next/`、`quantization/methods/w8a8/`、`ops/fused_moe/router/` | 延续目录化拆分与 `models/glm5next/`、`quantization/methods/w8a8/` 结构 |
+| 根目录 `csrc/` 扩展 | 含 `batch_matmul_transpose/`、`moe/`、`attention/` 等 | 删 `batch_matmul_transpose/`，增 `attention/sparse_attention_score/` CPP | 含 `attention/sparse_attention_score/` 与 `attention/msa_index_score/` CPP | **删除 `csrc/attention/sparse_attention_score/` 与 `msa_index_score/` 等 score CPP 目录**，新增 `csrc/engram_hixl/` |
 
-本页按[GLM 固定来源基线](../sources/glm-5-3-flash-baseline.md)定位 Ascend 专用代码，通用上游作为明确标记的参考。部署使用的已安装代码、源码工作树和某个社区发布分支不自动等价。
-
-先确认正在读哪份代码，再用目录地图找文件：
-
-| Ascend 代码快照 | 本页 GLM 模型入口在哪里 | 阅读时怎样处理 |
-|---|---|---|
-| v0.23 维护分支，2c59ff10 | 无 GLM 模型实现 | 保留职责划分，但不能在这里找专用 GLM 文件 |
-| v0.26，2ed6cbba | 无 GLM 模型实现 | 同上，不能把版本号接近当成文件相同 |
-| main，baa023ad | models/glm5next/，按模型、注意力等拆分 | 按类与调用关系重新定位 |
-| GLM 专用提交，db701c1f | models/glm5_next.py | 本页图和文件入口采用这一份 |
-
-表中是逐提交的目录差异；目录导航没有运行开关或默认值。插件注册和执行行为的版本对照见[Ascend 总览](vllm-ascend-overview.md#版本差异)，不以 main 的文件布局推断固定部署的行为。
-
-版本变化可能迁移文件或改变同名函数。稳定的阅读线索是职责、符号、输入输出与调用关系；行号用于定位某份固定快照。下一页给出[问题驱动的阅读方法](reading-vllm-ascend.md)，包括配置追踪、异常边界和版本对照。
+表中对比的是逐提交源码树变化；目录导航本身没有运行开关或默认值。读代码时先确认所读快照，再按职责、符号与调用关系定位；插件注册和执行行为的版本对照见 [Ascend 总览](vllm-ascend-overview.md#版本差异)，下一页给出 [问题驱动的阅读方法](reading-vllm-ascend.md)。
 
 ### 源码位置
 
@@ -190,10 +196,11 @@ Ascend 的 core/ 提供部分调度或资源机制适配，不能因名称相同
 | ops 层绑定 attention 后端 | ops/indexer_kpool_mla.py 第 78–84 行；attention/indexer_kpool_mla_v1.py 第 521–545 行（来源 10、11） |
 | 草稿候选生成与采样、验证的分工 | spec_decode/draft_proposer.py 第 1–16 行；worker/model_runner_v1.py 第 2585–2607 行按是否有草稿元数据选择 sampler 或 rejection_sampler（来源 13、12） |
 
-待核：实际部署环境中安装包是否与这些 Git 快照一致，仍需镜像内的提交和文件证据；本页只核对源码快照，不提供硬件运行结果。
+待核：实际部署环境中安装包是否与这些 Git 快照一致，仍需镜像内的提交和文件证据；本页只核对源码快照，不提供硬件运行结果 [!]。
 
-固定 GLM Worker 会直接返回普通输出、异步输出或 None；中间张量则要求不是 external_launcher 且不是最后一个 PP rank，再发给下一段。没有连接器输出时返回 None；连接器的两种完成集合均空时返回共享空输出，否则复制空输出并携带连接器信息。异步输出的 get_output 会等待就绪且只能调用一次，不能把“拿到异步对象”当成“设备已完成”。[C3][C15]
+固定 GLM Worker 会直接返回普通输出、异步输出或 None（见来源 3、15）；中间张量则要求不是 external_launcher 且不是最后一个 PP rank，再发给下一段。没有连接器输出时返回 None；连接器的两种完成集合均空时返回共享空输出，否则复制空输出并携带连接器信息。异步输出的 get_output 会等待就绪且只能调用一次，不能把“拿到异步对象”当成“设备已完成”。
 
-固定 GLM 的平台配置更新遇到已指定其他设备，或尚无 model_config 时会提前返回。阅读该函数时，应先判断是否经过这两道条件，不能把函数里所有改写都当作每次启动必然发生。[C2]
+固定 GLM 的平台配置更新遇到已指定其他设备，或尚无 model_config 时会提前返回（见来源 2）。阅读该函数时，应先判断是否经过这两道条件，不能把函数里所有改写都当作每次启动必然发生。
 
 - 来源 17：vllm@0fc695fc，vllm/v1/engine/core.py，L450–L463。
+- `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）新增目录与文件锚点见文首 `sources` 末尾 8 条（`ec_manager/score_ec_manager.py`、`device/hardware_profile.py`、`worker/v2/model_runner.py`、`models/__init__.py`、`observability/runtime_guard/__init__.py`、`mrv2_utils.py`、`core/kv_cache_config_builder.py`）。

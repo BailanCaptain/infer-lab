@@ -211,10 +211,27 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L894-L910'
   - 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L33-L46'
   - "vllm@0fc695fc:docs/configuration/env_vars.md#L1-L12"
+  - 'vllm-ascend@c09d3e20:vllm_ascend/__init__.py#L55-L103'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L309-L315'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L515-L525'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L140-L157'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/__init__.py#L41-L46'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_balance_schedule.py#L892-L899'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_engine_core.py#L31-L72'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/__init__.py#L55-L110'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L394-L398'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L675-L682'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L169-L190'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/__init__.py#L41-L47'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_balance_schedule.py#L922-L928'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_engine_core.py#L31-L68'
+  - 'vllm@ba15685a:vllm/v1/engine/admission_control.py#L13-L25'
+  - 'vllm@ba15685a:vllm/config/parallel.py#L165-L175'
+  - 'vllm@ba15685a:vllm/entrypoints/cli/serve.py#L54-L190'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -240,7 +257,7 @@ relations:
     kind: builds-on
     note: 本页用示例请求 R1 说明清单只发差量；R1 每一站的数字和块号怎么来，在那一页
 contradicts: []
-updated: 2026-11-10T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -352,12 +369,12 @@ file: engine-processes
 
 官方双机部署落在第二条：
 
-```calc
-title: 双机部署为什么每个 EngineCore 起 8 个 Worker 进程
-一组内的卡数 = PP 1 × TP 8 × PCP 1 = 8
-整个服务的卡数 = 8 × DP 2 = 16
-> 16 大于 1，又没有手动指定 executor，所以用多进程 executor；本机 8 张卡，起 8 个 Worker 进程
-```
+$$\text{world\_size} = \text{PP } 1 \times \text{TP } 8 \times \text{PCP } 1 = 8, \qquad \text{world\_size\_across\_dp} = 8 \times \text{DP } 2 = 16$$
+
+| 维度（双机 GLM 部署） | 计算式 | 结果与执行器选择 |
+|---|---|---|
+| 一组内的卡数（`world_size`） | $\text{PP } 1 \times \text{TP } 8 \times \text{PCP } 1$ | **8 张卡**（本机起 8 个 Worker 进程） |
+| 整个服务的卡数（`world_size_across_dp`） | $8 \times \text{DP } 2$ | **16 张卡**（$> 1$ 且未指定执行器，默认选多进程执行器 `mp`） |
 
 PP 是流水线并行，PCP 是 prefill 阶段的上下文并行，这套部署都没开，取 1。
 
@@ -600,47 +617,38 @@ RPC 地址相同不代表通信已畅通；端口不可绑定、两端地址不�
 
 ### 版本差异
 
-**v0.30.0rc2 配套上游增加前端间共享的准入统计，进程职责没有合并。** 多 API 进程各写一个间隔 64 字节的槽位，读时汇总在途请求数；它只是共享负载信息，API、EngineCore 与 Worker 仍各司其职。请求数上限据此做近似全局检查，token 阈值仍读取当前 AsyncLLM 的计数，不能把两类预算都当成跨前端共享；具体拒绝条件与并发边界见[API 准入解释](api-server-entry.md#版本差异)。Ascend 的 EngineCore 子进程继续通过平台补丁重新初始化 AscendConfig，再按配置接入 profiling_chunk、DyntraLB 或 Balance；主进程已有配置不能省略子进程初始化。正文通信库环境变量的有效性仍取决于实际 Gloo/HCCL 等依赖版本。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`，GLM 专用镜像 `db701c1f` 同此分支期）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）。**`v0.30.0` 与 `main` 配套上游均保留多前端共享准入统计（`SharedAdmissionStats`），API Server / EngineCore / Worker 三进程 ZMQ IPC 边界与角色职责没有合并。** 多 API 进程各写一个间隔 64 字节的槽位、读时汇总在途请求数；请求数上限据此做近似全局检查，token 阈值仍读取当前 `AsyncLLM` 计数（详见[API 准入解释](api-server-entry.md#版本差异)）。Ascend 的 EngineCore 子进程继续通过平台补丁重新初始化 `AscendConfig`；通信库环境变量的有效性仍取决于实际 Gloo/HCCL 等依赖版本。
 
-通信变量的默认与语法由依赖决定：固定部署的 torch 2.10.0 / torch_npu 2.10.0.post2 和 CANN 9.1.X A2 文档支持上表；vLLM v0.23（0fc695fc）、v0.26（568afb3a）、Ascend rc2 配套上游（ced6857a）、main（84030bbe）及 Ascend 对应分支名称，不能单独证明安装了同一通信运行时。四版都应按所安装的 Gloo/HCCL 版本核这些外部变量，不能把 A2 的 HOST 默认套到 A3/950，也不能由 main 文档倒推固定镜像。TP_SOCKET_IFNAME 的“不参与主路径”结论仅对本页固定包及教程成立。
+下表对照十二个启动参数与环境入口在四个正式钉点上的演进（`v0.30.0` 与 `main` 分别以 `ced6857a` / `c09d3e20` 和 `ba15685a` / `8d6180e2` 为准）：
 
-下表十二个启动参数与环境入口对照上面的四个 vLLM 快照；Ascend 设备入口按 db701c1f / 2ed6cbba / 7d825229 / baa023ad 区分。main 的上游快照用于代码比较，不表示已确认它与 Ascend main 镜像的实际配套关系。表中只比较列出的选路、默认值和检查条件。
-
-| 参数或规则 | v0.23 基线 | v0.26 rc | v0.30.0rc2 | 固定 main |
+| 参数或规则 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 |---|---|---|---|---|
-| distributed_executor_backend | None 后派生；mp/uni/ray/external_launcher/自定义 Executor 子类 | 默认选择规则同构 | 所列默认选路同构 | 所列默认选路同构 |
-| headless / api_server_count | False / None；普通 Python 前端按 LB 派生，headless 拒正数并取 0 | 相同 | 同样派生；定义迁到 launchers/cli_args.py，Rust 还须显式环境开关 | 与 rc2 所列规则相同 |
-| data_parallel_address | 输入 None；mp 取 master_addr 或 127.0.0.1，Ray 取 get_ip | 相同 | 相同 | 相同 |
-| data_parallel_rpc_port | 输入 None→29550；int 字段没有额外上下界 | 相同 | 仍默认 29550，字段增加 1–65535 约束 | 与 rc2 相同 |
-| data_parallel_rank | 输入 None；显式值选择外部 LB，本地数限 1/None，最终编号须在范围内 | 相同 | 核心语义相同；多项组合 assert 改成 ValueError | 与 rc2 相同 |
-| data_parallel_start_rank | local 已给、非零值且非 headless 才推断 hybrid；rank 回填使用 or | 相同 | 改为 is not None，显式 0 也参与 hybrid 推断且回填保留 0；多节点推断计入 PCP | 与 rc2 相同 |
-| ASCEND_RT_VISIBLE_DEVICES | 平台选作设备控制变量；基线辅助映射按非空列表位置取编号 | 上游映射增加已分配物理设备列表优先 | Ascend 用 CANN 算子将可见编号转物理编号 | 与 rc2 所列映射相同 |
-| VLLM_HOST_IP | 空串后探测；非空显式值优先，旧 HOST_IP 忽略 | 相同 | 相同 | 相同 |
-| VLLM_PORT | None/整数起点；多个动态端口向上找。显式起点的多端口列表没有避开 DP 保留区 | 相同 | 解析与起点相同；单端口、多端口统一跳过 DP 保留区 | 与 rc2 相同 |
-| Kubernetes 注入同名服务变量 | VLLM_PORT 收到 tcp:// URI 会拒绝，并提示服务发现变量冲突 | 相同 | 相同 | 相同 |
-| VLLM_ENABLE_V1_MULTIPROCESSING | 默认 1，经 bool(int)；离线客户端开关，external_launcher 会写 0 | 相同 | 相同 | 相同 |
-| VLLM_WORKER_MULTIPROC_METHOD | 库默认 fork；CLI 未设时写 spawn，强制条件可覆盖 | 相同 | 相同 | 相同 |
+| `distributed_executor_backend` | `None` 后派生；`mp`/`uni`/`ray`/`external_launcher`/自定义 Executor 子类 | 默认选择规则同构 | 所列默认选路同构 | 所列默认选路同构 |
+| `headless` / `api_server_count` | `False` / `None`；普通 Python 前端按 LB 派生，`headless` 拒正数并取 0 | 相同 | 同样派生；定义迁至 `launchers/cli_args.py`，Rust 前端须显式开关 `VLLM_USE_RUST_FRONTEND` | 与 `v0.30.0` 相同（`serve.py#L54-L190`） |
+| `data_parallel_address` | 输入 `None`；`mp` 取 `master_addr` 或 `127.0.0.1`，Ray 取 `get_ip` | 相同 | 相同 | 相同 |
+| `data_parallel_rpc_port` | 输入 `None`→`29550`；`int` 无额外上下界 | 相同 | 默认 `29550`，增加 `1–65535` 字段约束 | 同 `v0.30.0`（`parallel.py#L165-L175`） |
+| `data_parallel_rank` | 输入 `None`；显式值选外部 LB，本地数限 `1`/`None` | 相同 | 核心语义相同；多项组合 `assert` 改为 `ValueError` | 同 `v0.30.0` |
+| `data_parallel_start_rank` | `local` 已给、非零且非 `headless` 才推断 hybrid；回填用 `or` | 相同 | 改为 `is not None`，显式 `0` 也参与 hybrid 推断且回填保留 `0`；多节点计入 PCP | 同 `v0.30.0` |
+| `ASCEND_RT_VISIBLE_DEVICES` | 平台选作设备控制变量；辅助映射按列表位置取编号 | 上游映射增加已分配物理设备列表优先 | Ascend 用 CANN 算子将可见编号转物理编号 | 同 `v0.30.0` |
+| `VLLM_HOST_IP` | 空串后探测；非空显式值优先，旧 `HOST_IP` 忽略 | 相同 | 相同 | 相同 |
+| `VLLM_PORT` | `None`/整数起点；多动态端口向上找，显式起点列表未避开 DP 保留区 | 相同 | 单端口、多端口统一跳过 DP 保留区；`tcp://` URI 报错提示服务发现冲突 | 同 `v0.30.0` |
+| `VLLM_ENABLE_V1_MULTIPROCESSING` | 默认 `1`，经 `bool(int)`；离线客户端开关，`external_launcher` 写 `0` | 相同 | 相同 | 相同 |
+| `VLLM_WORKER_MULTIPROC_METHOD` | 库默认 `fork`；CLI 未设时写 `spawn`，强制条件可覆盖 | 相同 | 相同 | 相同 |
+| 多 API 进程准入统计 | 各进程独立计数 | 相同 | `SharedAdmissionStats` 跨前端共享请求槽位（64B 对齐） | 延续 `SharedAdmissionStats`（`admission_control.py#L13-L25`） |
 
-rc2/main 表中的 Rust 开关是 VLLM_USE_RUST_FRONTEND；没有开启时不能按 Rust 的前端数量规则推算 Python 服务。新设备映射通过运行时查询，不能继续只用旧版本的可见设备字符串位置推断物理卡号。rc2 还有弹性 EP 等其他配置变化，表中的“同构”不代表整个 ParallelConfig 实现逐字相同。
+再按四版本正式钉点对照 Ascend 侧各进程补丁与配置初始化入口行号（本页 GLM 算例正文读专用镜像 `db701c1f`，除 scheduler 类替换在 `:718` 外其余与 `v0.23.0` `2c59ff10` 相同）：
 
-新版本证据：来源 71、72 核 DP 派生，73、74、90 核前端入口，75–84 核 CLI 与环境读取，85、86 核 main RPC 范围及执行器选择，87、88 核设备映射变化，89、91 核端口保留区。表中的默认一致不表示模型、设备支持或整个进程实现完全相同。
-
-按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26rc 列是 2ed6cbba，v0.30.0rc2 列是 7d825229，main 列是 baa023ad。**本页正文读的是本部署专用镜像 db701c1f，它是另一个 orphan commit，不算进 v0.23 列：该镜像包含 GLM 模型代码与配置 patch，2c59ff10 上只有两个 GLM 工具调用 patch。**下表 v0.23 列的行号读自 2c59ff10；镜像上除 scheduler 类替换在 `:718` 外，其余行号与 2c59ff10 相同。
-
-| 项 | v0.23 | v0.26rc | v0.30.0rc2 | main |
+| Ascend 进程入口（行号） | `v0.23.0`（`2c59ff10`） | `v0.26.0rc`（`2ed6cbba`） | `v0.30.0`（`c09d3e20`，主基线） | `main`（`8d6180e2`） |
 |---|---|---|---|---|
-| 全局 patch 定义 / 三处调用 | 21 / 45、55、65 | 同左 | 55 / 79、89、99 | 同 rc2 |
-| 平台打全局 patch | 188 | 187 | 311 | 304 |
-| 平台初始化 Ascend 配置 | 475 | 431 | 520 | 492 |
-| Worker 打 patch / 初始化配置 | 110 / 120 | 119 / 129 | 143 / 153 | 138 / 148 |
-| EPLB 启动补丁导入 | 47–48 | 45–46，条件相同 | 40–41，导入条件相同；MRV2 另拒旧环境开关 | 39–40，导入条件相同 |
-| scheduler 类替换 | 745 | 936 | 897 | 911 |
+| 全局 patch 定义 / 三处调用（`__init__.py`） | 21 / 45、55、65 | 同左 | 55 / 79、89、99 | 55 / 81、97、107 |
+| 平台打全局 patch（`platform.py`） | 188 | 187 | 311 | 396 |
+| 平台初始化 Ascend 配置（`platform.py`） | 475 | 431 | 520 | 678 |
+| Worker 打 patch / 初始化配置（`worker.py`） | 110 / 120 | 119 / 129 | 144 / 154 | 173 / 187 |
+| EPLB 启动补丁导入（`patch/platform/__init__.py`） | 47–48 | 45–46，条件相同 | 42–43，导入条件相同；MRV2 另拒旧环境开关 | 41–42，条件相同（全量 MRV2 下仍拒旧环境开关） |
+| scheduler 类替换（`patch_balance_schedule.py`） | 745（直接赋 `Scheduler`） | 936（`_sched_mod.Scheduler`） | 897（`_sched_mod.Scheduler`） | 926（`_sched_mod.Scheduler`） |
+| EngineCore 入口包装（`patch_engine_core.py`） | 位于 `patch_balance_schedule` | 同左 | `#L31-L72`：先 `init_ascend_config`，按需挂 `profiling_chunk`、DyntraLB 或 Balance | `#L31-L68`：移除 `_apply_profiling_patches`，保留 `init_ascend_config` 与 DyntraLB/Balance 分派 |
 
-表中数字是各固定版本的行号：全局 patch 在包根的 \_\_init\_\_.py，平台两行在 platform.py，Worker 在 worker/worker.py，EPLB 导入在 patch/platform/\_\_init\_\_.py，调度器替换在 patch/platform/patch_balance_schedule.py。对应入口分别是 _ensure_global_patch、adapt_patch(is_global_patch=True)、init_ascend_config，以及 Worker 的 adapt_patch / init_ascend_config。调度器赋值从 v0.23 的 vllm.v1.core.sched.scheduler.Scheduler = BalanceScheduler，改为其余三版的 _sched_mod.Scheduler = BalanceScheduler；改变的是模块引用写法，替换的目标相同。
-
-三类进程仍分别拥有补丁入口；表中位置变化不等于全部启动行为不变。rc2 将 EngineCore 入口包装移到 patch_engine_core.py，先初始化 AscendConfig，再按配置接入 profiling、DyntraLB 或 Balance，最后调用原入口。rc2 的 MRV2 还会拒绝 DYNAMIC_EPLB / EXPERT_MAP_RECORD，要求使用 --enable-eplb；旧补丁的导入条件与新 runner 允许的配置是两层检查。旧 v0.23、v0.26rc 和 main 的 daemon=False 位置均为 patch_multiproc_executor.py:199；不能用这一行推断所有 EPLB 路径都按旧方式另起子进程。
-
-上游 vLLM 的 v0.23.0（0fc695fc）与 v0.26 rc（568afb3a）仍由 EngineCore 初始化加载通用插件；单 API server 仍在启动进程里运行，headless 仍留启动进程监视引擎；没配 KV connector、PP 为 1 时，executor 仍只读 TP 0 号 Worker 的结果，Worker 进程标题拼法相同。executor 默认规则同构，rc 位置见来源 44 [C44]。固定 main 的参数与 CLI 默认以 84030bbe 为准，见上表；这部分比较的范围是配置入口，main 其余进程通信、补丁与状态行为见页末待核。
+三类进程在四版中始终分别保留补丁入口；`v0.30.0` 将 EngineCore 入口包装收束到 `patch_engine_core.py`，先初始化 `AscendConfig` 再按配置接入 `profiling_chunk`、DyntraLB 或 Balance，`main` 进一步移除 `_apply_profiling_patches`。上游四版在 EngineCore 初始化加载通用插件、单 API server 复用启动进程、`headless` 守护引擎、无 KV connector 且 `PP=1` 时只收 TP0 结果等 ZMQ IPC 与进程边界上保持一致 [C44]。
 
 ### 源码位置
 

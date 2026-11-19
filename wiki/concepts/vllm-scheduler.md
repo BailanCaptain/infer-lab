@@ -159,10 +159,19 @@ sources:
   - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L954-L982'
   - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1254-L1279'
   - 'vllm-ascend@7d825229:vllm_ascend/platform.py#L1041-L1076'
+  - 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L561-L595'
+  - 'vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L1477-L1510'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_balance_schedule.py#L880-L899'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1395-L1415'
+  - 'vllm@ba15685a:vllm/v1/core/sched/scheduler.py#L721-L760'
+  - 'vllm@ba15685a:vllm/config/scheduler.py#L90-L115'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_balance_schedule.py#L910-L928'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1240-L1320'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1585-L1630'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -272,10 +281,12 @@ running 里的请求借不到块时，调度器按先来先服务，从 running 
 
 一个 DP 组跑满 32 条 decode 请求时，每条 4 个，一步共 128 个 token（见[关键参数各管哪一步](glm-5-3-flash-two-node.md#关键参数各管哪一步)），只用掉预算的一小部分：
 
-```calc
-title: 纯 decode 步最多用掉多少预算
-占一步预算 = 128 ÷ 8192 ≈ 1.6%
-```
+$$\text{ratio}_{\text{decode}} = \frac{32 \times 4}{8192} = \frac{128}{8192} \approx 1.6\%$$
+
+| 纯 decode 满载步（单 DP 组） | 算式 | 结果 |
+| --- | --- | --- |
+| 本步 token 总数 | $32\text{ 条} \times (1 + 3)$ | **128 个 token**（恰为最大图捕获尺寸） |
+| 占单步预算比例 | $128 \div 8192$ | **约 1.6%**（剩余 8,064 个留给新提示词） |
 
 所以纯 decode 步先碰到的是 32 条的上限，不是预算；128 也正是本部署最大的图捕获尺寸。以下只讨论已有 running 全在 decode 的场景：先按每条 4 个扣，剩下的给新提示词。running 也可能包含上一步没算完的 prefill，那时须按实际差值扣，不能每条都算 4。[场景 M](concurrent-requests.md#示例场景-m-与变体-m) 里 DP0 有 12 条 decode，新来的 6000 个提示词一步装得下，这一步合计 6048 个 token、13 条请求；逐项账见[第 2 站 调度](concurrent-requests.md#第-2-站-调度一步-8192-个-token-怎样分给-13-条请求)。
 
@@ -385,42 +396,20 @@ vllm-ascend 的平台补丁在启动时，把上游的 Scheduler 类整体换成
 
 ### 版本差异
 
-**v0.30.0rc2 配套上游避免“连续抢占却没有块可用”。** 分配失败后先检查 connector 的待释放块，并在移出受害请求前确认其块能否立即释放；如果抢占只会产生延迟释放，本轮就停止继续抢占。long_prefill_token_threshold 仍默认 0，原 main 已移除的两个 partial-prefill 数量参数没有恢复。完整输入容量准入仍先算 full_sequence_must_fit；watermark 仅在本步已有请求、候选为 WAITING/PREEMPTED 时追加，不能把它理解成所有请求一律少用同一比例显存。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm@0fc695fc` / `vllm-ascend@2c59ff10`，无 GLM 代码；**本页 GLM 行为按专用镜像 `db701c1f`**，配套 `vllm@0fc695fc`）、`v0.26.0rc`（`vllm@568afb3a` / `vllm-ascend@2ed6cbba`）、`v0.30.0` 主基线（`vllm@ced6857a` / `vllm-ascend@c09d3e20`）与 `main`（`vllm@ba15685a` / `vllm-ascend@8d6180e2`）。
 
-钉点：v0.23 为 vLLM `0fc695fc` + Ascend `2c59ff10`（维护分支，没有 GLM 代码）；**本页 GLM 行为按专用镜像 Ascend `db701c1f`**，它配的也是 vLLM `0fc695fc`；v0.26 为 vLLM `568afb3a` + Ascend `2ed6cbba`；rc2 为配套上游 `ced6857a` + Ascend `7d825229`；main 比较点为 vLLM `84030bbe` 与 Ascend `baa023ad`，不据此推定某镜像的实际安装组合。
+**`v0.30.0` 起上游避免“连续抢占却无块可用”，并拆分“调度位置预算”与“输入容量预算”**：分配失败后先检查 connector 的待释放块，若抢占只会产生延迟释放则本轮停止继续抢占；`watermark` 仅在本步已有请求且候选为 `WAITING`/`PREEMPTED` 时追加。到了 `main`，上游在 `SchedulerConfig` 新增 `long_prefill_token_threshold_adaptive`（默认 `False`），而昇腾侧移除旧 `profiling_chunk` 调度器、保留 `ShortRequestFirst` / `Recompute` / `DyntraLB` / `BatchJobAware` 与 `BalanceScheduler` 覆写链。
 
-| 项 | v0.23 | v0.26 | rc2 | 固定 main |
-|---|---|---|---|---|
-| 统一位置进度，先 running 后 waiting | 有；没有全局 prefill/decode 阶段切换 | 保留；另有条件性 prefill 节流 | 保留，并增加候选输入容量等检查 | 保留；不能等同于所有分支都相同 |
-| 单条阈值 / 分块 / 完整输入准入 | 0 / 生成模型按支持条件开启 / 开启容量检查 | 所列默认相同 | 所列默认相同 | 所列默认相同 |
-| 自动预算表 | ≥70 GiB 且非 A100：serve 8192、1024 条；否则 2048、256 条 | 同左 | 增加 ≥160 GiB 档：LLM 与 serve 都为 16384、1024 条 | 同 rc2 所列档位 |
-| Ascend 显存查询 | 抛 NotImplementedError，落小档 | 同左 | 初始化后返回实值，之前仍抛异常 | 同 rc2；正常 CLI 的早期查询仍落小档 |
-| BalanceScheduler | 无条件替换，默认关，关时回上游 | 仍替换；关闭时仅 Mamba KV producer 临时改全组命中查找 | 默认关；关闭直接回上游，入口读 scheduler_config | 同 rc2 所列关闭路径 |
-| 其他调度器变体 | recompute、dynamic batch、profiling chunk | 无 dynamic batch，增加 short-request-first | 保留 short-request；profiling 按异步开关选类，batch-job 可后选 | 保留 short-request；profiling 为同步类，batch-job 可后选 |
+| 核验维度 | `v0.23.0`（`0fc695fc` / `2c59ff10`） | `v0.26.0rc`（`568afb3a` / `2ed6cbba`） | `v0.30.0`（`ced6857a` / `c09d3e20`，主基线） | `main`（`ba15685a` / `8d6180e2`） |
+| --- | --- | --- | --- | --- |
+| V1 `Scheduler` 核心循环与预算 | 统一位置进度，先 running 后 waiting；无阶段切换 | 新增条件性 `prefill_schedule_interval`（默认 1）节流 | `scheduler.py#L561` 拆分调度位置预算与输入容量预算（含草拟预留槽位），加延迟释放抢占止损 | `scheduler.py#L721` 延续双预算与止损机制；`config/scheduler.py#L99` 新增 `long_prefill_token_threshold_adaptive`（默认 `False`） |
+| 自动预算表与显存查询 | ≥70 GiB 非 A100：serve 8192/1024；否则 2048/256；Ascend 显存查询抛 `NotImplementedError` 落小档 | 同 `v0.23.0` | 增加 ≥160 GiB 档（LLM/serve 均为 16384/1024）；Ascend 初始化后返回实值、早期 CLI 仍落小档 | 同 `v0.30.0` 档位与早期查询规则 |
+| 阈值、partial-prefill 与 `scheduler_reserve_full_isl` | `long_prefill_token_threshold=0`（允许负值）；两项 partial-prefill 默认 1 但入口拒绝；完整输入准入默认 True | 阈值加 `≥0`；完整输入准入新增 `watermark`（默认 0） | 阈值强制 `0 ≤ v ≤ max_model_len`，删 4% 派生；**删除两项 partial-prefill 参数** | 同 `v0.30.0`；另增自适应阈值开关 |
+| `async_scheduling` 与 `scheduler_cls` | `draft_model` 仅显式 True 允许、自动关闭；`scheduler_cls=None` 自动选类 | 增 DSpark / ROCm DeepEP 闸；显式同步子类加提示 | `draft_model` 自动判定亦可开；`scheduler_cls` 选类规则不变 | 同 `v0.30.0` |
+| 昇腾 `BalanceScheduler` 覆写链 | 无条件替换 `Scheduler`；关闭时直接回上游 | 关闭时仅 Mamba KV producer 临时关 `has_mamba_layers` 查全组命中 | `patch_balance_schedule.py#L897` 仍做 `_sched_mod.Scheduler = BalanceScheduler` 覆写；关闭直接回上游 | `patch_balance_schedule.py#L926` 延续类覆写，关闭直接回上游 |
+| 昇腾扩展调度器变体 | recompute、dynamic batch、profiling chunk | 删 dynamic batch，增 short-request-first | 保留 short-request / recompute / DyntraLB / profiling（支持异步+MRV2）/ batch-job | `platform.py#L1240-L1320`、`#L1585-L1630`：**移除 `profiling_chunk` 调度器**，保留 short-request、recompute、DyntraLB、batch-job（并显式互斥 short-request 与 batch-job） |
 
-v0.26 的临时处理只在 KV producer 且有 Mamba 层时发生：暂把 has_mamba_layers 置假，让上游做全组 prefix caching 命中查找，调用结束再恢复；普通混合部署与 KV consumer 不走这个条件。rc2/main 的关闭路径直接调用上游，不能保留这项旧推断。类赋值由旧完整模块路径改成 _sched_mod.Scheduler，目标相同；新开关主要进入 Ascend 的 scheduler_config，默认仍为 False。short-request-first 与 [batch-job](batch-job-aware-scheduler.md#版本差异) 的适用关系见各自页面，不能把表里的名字当成多个调度器同时叠加生效。
-
-rc2 中 profiling 与异步调度同开还要求 MRV2；固定 main 的 short-request 与 profiling 组合只允许同步调度。选类与组合校验要一起看，不能只找到一个异步类名就推断整个配置可用。下面逐参数比较固定快照；v0.26 指 rc 分支钉点，不代表之后的分支头。
-
-| 参数 | v0.23 | v0.26 rc | rc2 | 固定 main |
-|---|---|---|---|---|
-| max_num_batched_tokens | 输入 None / 配置兜底 2048，≥1；按默认表和四步派生 | 相同 | 字段与派生相同，默认表多 ≥160 GiB 档 | 同 rc2 所列规则 |
-| max_num_seqs | 输入 None / 配置兜底 128，≥1；自动值最终不超过预算 | 相同 | 相同 | 相同 |
-| enable_chunked_prefill | 输入 None 自动 / 配置兜底 True；encoder-decoder 强制关闭 | 相同 | 相同 | 相同 |
-| long_prefill_token_threshold | 默认 0；负值可进入且不截；上界仅在 partial 并发 >1 时检查 | 默认 0，新增 ≥0；上界仍有该条件 | 默认 0、≥0、始终 ≤max_model_len；删除 4% 自动派生 | 同 rc2 |
-| max_num_partial_prefills | 默认 1，≥1；标准入口拒非 1 | 相同 | 配置、EngineArgs、CLI 均删除 | 同 rc2 |
-| max_long_partial_prefills | 默认 1，≥1 且 ≤总 partial 并发；入口拒非 1 | 相同 | 同上删除 | 同 rc2 |
-| scheduling_policy | 默认 fcfs，另有 priority；小数值优先 | 相同 | 相同 | 相同 |
-| scheduler_reserve_full_isl | 默认 True，waiting 完整输入容量检查 | 开关相同；增加 watermark，默认 0 | 同 v0.26 所列条件 | 同 v0.26 所列条件 |
-| prefill_schedule_interval | 无字段及对应消费者 | 默认 1，≥1；DP 条件性节流 | 同样默认与节流条件 | 同样默认与节流条件 |
-| async_scheduling | None 自动；draft_model 显式 True 允许，自动关闭 | 默认不变；多 DSpark / ROCm DeepEP 高吞吐 DBO 条件；draft_model 仍自动关闭 | 默认不变；draft_model 自动也可开 | 同 rc2 所列差异 |
-| scheduler_cls | None 自动选；显式类优先，warning 提醒接口不公开 | 选类不变，增加同步子类失去异步能力提示 | 同 v0.26 | 同 v0.26 |
-
-这些差异各有具体影响。GLM 显式给出的 8192、32 保持不变，配置字段兜底不等于 serve 默认，请求数上限也不是 waiting 队列长度；分块默认仍按模型能力判断。旧版能构造的负阈值或过长阈值，升级后可能失败，两个 partial 字段不能作为可用的并发调优开关，更不能从其旧说明推断短请求插队已经生效。
-
-rc2/main 还分别记**调度位置预算**与**输入容量预算**。前者从 max_num_scheduled_tokens 开始，后者从 max_num_batched_tokens 开始；给请求安排新位置时，还要给草拟阶段预留输入槽位。比如示意输入容量还剩 10，本次安排 4 个新位置、草拟需要 2 个槽位，输入容量消耗 6、剩 4，而调度位置只消耗 4。运行队列据此限制本次能安排的位置数，接纳新请求也要检查剩余输入容量。草拟预留取配置计算出的 max_num_new_slots_for_drafting，不是固定填入本页 GLM 的候选数 3；这也不是 KV 管理器为未来位置借块的 lookahead 计数。
-
-四版的完整输入检查都不是全输入或全部输出预分配；watermark 非零且本步已有安排时，才按相应 waiting/preempted 条件增加准入余量。策略仍分别控制 waiting 排序与缺块时的受抢占者。异步的 draft_model 变化不改变本页 GLM MTP 结论，详见[完整异步版本表](async-scheduling.md#版本差异)；自定义类的 warning 也不会替用户把同步 Scheduler 换成 AsyncScheduler。
+`v0.30.0` 与 `main` 分别记**调度位置预算**（初值 `max_num_scheduled_tokens`）与**输入容量预算**（初值 `max_num_batched_tokens`）：给请求安排新位置时，还需为草拟阶段扣除 `max_num_new_slots_for_drafting`（例如示意输入容量剩 10，安排 4 个新位置且草拟需 2 槽，输入容量扣 6 剩 4、调度位置只扣 4；它与 KV 管理器的 lookahead 计数是两回事）。`v0.26.0rc` 对 Mamba KV producer 的临时全组命中查找仅在该版本成立，`v0.30.0`/`main` 的 `BalanceScheduler` 关闭路径直接回上游；short-request-first 与 [batch-job](batch-job-aware-scheduler.md#版本差异) 不能同时开启，也不等于多个自定义调度器叠加生效。完整异步参数对照见[异步调度版本表](async-scheduling.md#版本差异)。
 
 ### 源码位置
 
@@ -459,3 +448,4 @@ rc2/main 还分别记**调度位置预算**与**输入容量预算**。前者从
 - 来源 89–92：GLM 稀疏 MLA 包装到 SFA 的实际调用和输入处理；KDA 的两条执行路径见来源 33–34。
 - 来源 97–102：rc2/main 的输入容量初值与运行请求的草拟槽位扣减；新请求的容量检查见来源 86、95，两种预算不能混算。
 - 来源 103–105：固定 main 的 short-request 与 profiling 组合限制、profiling/batch-job 选类顺序，以及 rc2 的 profiling 异步 MRV2 门槛。
+- `v0.30.0`（`ced6857a` / `c09d3e20`）与 `main`（`ba15685a` / `8d6180e2`）核心入口见文首 `sources` 末尾 9 条（`scheduler.py`、`config/scheduler.py`、`patch_balance_schedule.py`、`platform.py`）。

@@ -139,7 +139,12 @@
     "quantization-evaluation",
     "quantization-methods",
     "swa-bounded-replay",
-    "tensor-layout"
+    "tensor-layout",
+    "dspark",
+    "inference-capacity-and-reliability",
+    "inference-performance-analysis",
+    "inference-performance-walkthrough",
+    "vllm-ascend-overview"
   ],
   "skip": {
     "learning-guide": ["source-sections", "diagram-first"]

@@ -76,6 +76,15 @@ sources:
   - 'vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L255-L315'
   - 'vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L26-L51'
   - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L483-L501'
+  - 'vllm@ba15685a:vllm/v1/engine/core.py#L709-L753'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1365-L1375'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L42'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L498-L520'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L774-L820'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1570-L1580'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L65'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L589-L618'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/worker/worker.py#L894-L935'
 relations:
   - to: one-request
     kind: builds-on
@@ -95,11 +104,11 @@ relations:
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 contradicts: []
-updated: 2026-11-10T00:00:00.000Z
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -302,19 +311,17 @@ R1 结束时，它手里的块号一次还回 DP0 的池子，还多少块见 [R
 
 ### 版本差异
 
-**v0.30.0rc2 的 Model Runner V2 与本文的 V1 引擎架构不是同一层版本。** EngineCore 仍承担调度、执行、采样和更新的基本循环；Ascend 未设置 VLLM_USE_V2_MODEL_RUNNER 时明确选择 MRV1，显式启用 MRV2 只切换执行侧实现，不把 EngineCore 改成另一套所谓“V2 引擎”。因此正文的职责划分保留，具体 Worker/Runner 栈则必须按实际开关定位。
+按知识库四版本正式钉点核对：`v0.23.0`（`vllm-ascend@2c59ff10` / `vllm@0fc695fc`，GLM 专用镜像 `db701c1f` 同属此分支期并含 `models/glm5_next.py`）、`v0.26.0rc`（`vllm-ascend@2ed6cbba` / `vllm@568afb3a`）、`v0.30.0` 主基线（`vllm-ascend@c09d3e20` / `vllm@ced6857a`）与 `main`（`vllm-ascend@8d6180e2` / `vllm@ba15685a`）。**`v0.30.0` 与 `main` 的 Model Runner V2 仍运行在 V1 引擎循环之内**：EngineCore 依然承担调度、执行、采样与更新，区别在于 `v0.30.0` 默认走 MRV1（显式设置 `VLLM_USE_V2_MODEL_RUNNER` 切 MRV2），而 **`main` 已移除 `model_runner_v1.py`，全量切换至 `worker/v2/`（MRV2）**。
 
-上游控制流按 vLLM v0.23 的 `0fc695fc`、v0.26 分支 `568afb3a`、rc2 配套 `ced6857a` 和固定 main `84030bbe` 比较。执行侧分别采用 Ascend `2c59ff10`、`2ed6cbba`、`7d825229`、`baa023ad`；固定上游 main 只是明确的比较快照，不据此声明它是 Ascend main 镜像中的精确配套。**本页 GLM 部分仍读专用镜像 db701c1f：它包含 GLM-5.3-Flash 模型代码，2c59ff10 上没有。**镜像和 2c59ff10 在本页涉及的 Worker 选择、两次调用、Runner 选择上核心分工相同，维护分支还增加了调试日志，不能把整段实现视为逐字相同（`NPUWorker.execute_model` 在 2c59ff10 从第 611 行起，镜像从第 599 行起）。
-
-| 项目 | v0.23 | v0.26 | rc2 | 固定 main |
+| 核验维度 | `v0.23.0`（`2c59ff10` / `0fc695fc`） | `v0.26.0rc`（`2ed6cbba` / `568afb3a`） | `v0.30.0`（`c09d3e20` / `ced6857a`，主基线） | `main`（`8d6180e2` / `ba15685a`） |
 |---|---|---|---|---|
-| 所列上游普通文本 step | 排计划 → execute_model → 无直接结果时 sample_tokens → 处理取消 → 更新 | 顺序相同；排计划增加 prefill 节流输入，由 DP 引擎使用 | 所列顺序保留 | 84030bbe 所列 step 与 rc2 相同 |
-| 平台选的 Worker 类 | `NPUWorker`（开 Xlite 图时 `XliteWorker`，310P 另有一类） | 同 v0.23 | 硬件档案给默认值；标准 A2/A3/A5 为 `NPUWorker`，310P 另选；Xlite 还需档案支持 | 同样按硬件档案与 Xlite 条件选择 |
-| Worker 的前向与采样入口 | `execute_model` + `sample_tokens` | 一致 | 一致；实际返回仍区分 pooling、PP 和 connector | 一致 |
-| Runner | 环境未设时默认 v1 `NPUModelRunner`（继承上游 GPU 版）；显式选择时才用 V2 | 一致 | 未设仍默认 V1，Worker 按开关构造相应 Runner | 默认值一致；另改写 V1 / V2 各自不支持特性的校验 |
-| GLM-5.3-Flash 模型代码 | 无（专用镜像 db701c1f 在 `models/glm5_next.py`） | 无 | `models/glm5next/` 目录，文本类 `Glm5NextForCausalLM` | 同样目录与文本类名，不表示完整实现逐字相同 |
+| 上游普通文本 `step` 循环 | 排计划 → `execute_model` → 无直接结果时 `sample_tokens` → 处理取消 → 更新 | 顺序相同；排计划新增 prefill 节流参数，供 DP 引擎使用 | 保留同一循环顺序（`core.py#L589-L628`） | 保留同一循环顺序；抽离 `_wait_for_output` 并挂载权重版本 `_attach_weight_version`（`core.py#L709-L753`） |
+| 平台选定的 Worker 类 | `NPUWorker`（开 Xlite 图时 `XliteWorker`，310P 另选） | 同 `v0.23.0` | 由 `HardwareProfile.default_worker_cls` 给出（`platform.py#L1365-L1375`）：标准 A2/A3/A5 为 `NPUWorker`，310P 另选；Xlite 须档案支持 | 延续 `HardwareProfile.default_worker_cls` 与 Xlite 判定（`platform.py#L1570-L1580`） |
+| Worker 的前向与采样入口 | `execute_model` + `sample_tokens`（`worker.py#L611-L679`，镜像 `db701c1f` 从 L599 起） | 一致（`worker.py#L653-L721`） | 一致（`worker.py#L774-L820`）；返回区分 pooling、PP 与 KV connector | 一致（`worker.py#L894-L935`）；非末尾 PP 节点统一走 V2 返回分支 |
+| Model Runner 选择 | 环境变量未设时默认 MRV1 `NPUModelRunner`；显式设置时切 MRV2 | 一致 | `patch_use_v2_model_runner.py#L18-L42` 未设仍默认 `False`（MRV1）；`init_device` 按开关构造 MRV1 或 MRV2（`worker.py#L498-L520`） | **已移除 MRV1**；`mrv2_utils.py#L29-L65` 固定返回 `True`（显式 `VLLM_USE_V2_MODEL_RUNNER=0` 报错），`init_device` 直建 `worker/v2/model_runner.py`（纯多模态编码器走 `MMEncoderModelRunner`，`worker.py#L589-L618`） |
+| GLM-5.3-Flash 模型代码 | 维护分支无（专用镜像 `db701c1f` 在 `models/glm5_next.py`） | 无 | `models/glm5next/` 目录，文本类 `Glm5NextForCausalLM` | 延续 `models/glm5next/` 与 `Glm5NextForCausalLM` |
 
-rc2 与固定 Ascend main 的非末尾 PP 成员发送中间张量后，还按 Model Runner 版本分流：V2 直接返回空值，V1 继续处理需要上报的 KV connector 结果。因此，“发送完中间张量就返回”只适用于该 V2 分支。源码表保留的 98dff2a8 是旧的 vLLM 0.29 历史对照，曾用于理解对应分支的版本判断；当前四版表的 main 行以 84030bbe 实际源码为准，不能用版本判断字符串代替安装记录。
+`v0.30.0` 中非末尾 PP 成员发送中间张量后仍按 Model Runner 版本分流（V2 直接返回空值，V1 继续处理需要上报的 KV connector 结果）；`main` 退役 MRV1 后全量归入 V2 路径。
 
 prefill 节流并非只挡住新请求：满足混合批次等条件时，已经在运行的 prefill chunk 也会暂缓。完整条件与代价见[调度器](vllm-scheduler.md)，不能仅从 step 的一个布尔入参推导“每隔固定步数才允许新 prefill”。
 

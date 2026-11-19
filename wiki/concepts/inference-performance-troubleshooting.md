@@ -128,13 +128,7 @@ $$T_{\text{原}} = 800 + 50 + 10 = 860\text{ ms}, \qquad T_{\text{算减半}} = 
 
 每次实验都保留输入、输出要求、缓存条件及实际路径；主动改变一个条件，再回原条件复测，才能发现机器负载漂移或伴随变化。下面六条路径各从一个已观察到的阶段进入：只读符合现场记录的一条，再沿链接查机制即可。
 
-下图沿同一条被排查的请求取证，阶段与[一条请求的七站](one-request.md#一条请求要走过七站)一致；ModelRunner 是整理输入、组织模型执行的组件，worker 是管理设备执行的进程，Scheduler 是安排每步工作的调度器。图中“抢占”是缓存紧张时暂停请求、先让出缓存，后续再恢复或重算。现场关联字段按[采集清单](inference-performance-walkthrough.md#现场怎样拿到这些记录)取得，再进入下列分支。
-
-```wiki-diagram
-file: inference-performance-evidence
-```
-
-下方的六分支排障漏斗把上述阶段映射到最小首取证据、区分实验与必检代价边界，现场可直接按现象对号入座：
+排查沿同一条请求的阶段顺次取证（阶段与[一条请求的七站](one-request.md#一条请求要走过七站)一致；ModelRunner 是整理输入、组织模型执行的组件，worker 是管理设备执行的进程，Scheduler 是安排每步工作的调度器，“抢占”是缓存紧张时暂停请求、先让出缓存后续再恢复或重算；阶段证据流示意图见[性能排障实战](inference-performance-walkthrough.md#现场怎样拿到这些记录)）。下方的六分支排障漏斗把上述阶段映射到最小首取证据、区分实验与必检代价边界，现场可直接按现象对号入座：
 
 ```wiki-diagram
 file: inference-performance-troubleshooting-fig-funnel

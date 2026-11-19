@@ -18,8 +18,8 @@ links:
   - { from: [715, 142], to: [715, 294], tone: token }
   - { from: [618, 320], to: [526, 320], tone: weight }
   - { from: [332, 320], to: [240, 320], tone: comm }
-  - { from: [143, 294], to: [429, 142], via: [[143, 222], [429, 222]], tone: control }
+  - { from: [143, 294], to: [429, 142], via: [[143, 226], [429, 226]], tone: control }
 texts:
-  - { at: [337, 170], text: rollout：用模型生成训练样本, size: 13 }
-  - { at: [160, 213], text: 恢复生成，进入下一轮, size: 13 }
+  - { at: [220, 174], text: rollout：用模型生成训练样本, size: 13 }
+  - { at: [160, 212], text: 恢复生成，进入下一轮, size: 13 }
   - { at: [48, 381], text: 装载期间暂停生成：请求不能读到更新了一半的权重, strong: true }

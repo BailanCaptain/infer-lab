@@ -7,27 +7,27 @@
   <path d="M790 134 L790 170 L124 170 L124 206" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-two-node-startup-ah-ink)"/>
   <path d="M222 238 L248 238" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-two-node-startup-ah-ink)"/>
   <path d="M444 238 L470 238" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-two-node-startup-ah-ink)"/>
-  <rect x="26" y="70" width="196" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="26" y="70" width="196" height="64" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="124" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">两机各起引擎进程</text>
-  <text x="124" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">机器 0 还有前端和协调器</text>
-  <rect x="248" y="70" width="196" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="124" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">机器 0 还有前端和协调器</text>
+  <rect x="248" y="70" width="196" height="64" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="346" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">每张卡一个 worker</text>
-  <text x="346" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">两机共 16 个</text>
-  <rect x="470" y="70" width="196" height="64" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="568" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">建 process group</text>
-  <text x="568" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">TP 8 · DP 2 · EP 16</text>
-  <rect x="692" y="70" width="196" height="64" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="790" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">加载 W8A8 权重</text>
-  <text x="790" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算例假设占 21 GiB</text>
-  <rect x="26" y="206" width="196" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="346" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">两机共 16 个</text>
+  <rect x="470" y="70" width="196" height="64" rx="8" fill="var(--color-comm-soft, #f5e6f0)" stroke="var(--color-comm, #9a4b86)" stroke-width="1.4"/>
+  <text x="568" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">建 process group</text>
+  <text x="568" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">TP 8 · DP 2 · EP 16</text>
+  <rect x="692" y="70" width="196" height="64" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="790" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">加载 W8A8 权重</text>
+  <text x="790" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">算例假设占 21 GiB</text>
+  <rect x="26" y="206" width="196" height="64" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.4"/>
   <text x="124" y="234" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">量出剩余显存</text>
-  <text x="124" y="253" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">剩 30.0 GiB 给 KV</text>
-  <rect x="248" y="206" width="196" height="64" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="346" y="234" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">切 KV cache 块</text>
-  <text x="346" y="253" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3,855 块 × 7.969 MiB</text>
-  <rect x="470" y="206" width="196" height="64" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="568" y="234" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">捕获 decode 图</text>
-  <text x="568" y="253" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">7 个尺寸：4 到 128</text>
+  <text x="124" y="253" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">剩 30.0 GiB 给 KV</text>
+  <rect x="248" y="206" width="196" height="64" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
+  <text x="346" y="234" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">切 KV cache 块</text>
+  <text x="346" y="253" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">3,855 块 × 7.969 MiB</text>
+  <rect x="470" y="206" width="196" height="64" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="568" y="234" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">捕获 decode 图</text>
+  <text x="568" y="253" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">7 个尺寸：4 到 128</text>
   <text x="450" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">启动时按顺序做的七件事</text>
   <text x="692" y="232" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">第 2–7 步两台机器各自执行</text>
   <text x="450" y="320" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">第 4–6 步算例：21（假设）→ 30.0 → 3,855</text>

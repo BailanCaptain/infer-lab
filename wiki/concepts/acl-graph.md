@@ -227,7 +227,7 @@ $$T_{\text{eager}} = 6 \times 2 + 1.5 = 13.5\text{ 格}, \qquad T_{\text{replay}
 
 ## 一张图里录下来的是什么
 
-录下来的不是算出来的数，而是两样东西：**一串设备任务的次序**，以及**每个任务读写哪块地址**。下面的地址与录放图按固定旧 GLM 实现展开；rc2 可更新图的条件性同步及 update/replay 次序见[版本差异](#版本差异)。
+录下来的不是算出来的数，而是两样东西：**一串设备任务的次序**，以及**每个任务读写哪块地址**。下面的地址与录放图按固定旧 GLM 实现展开；`v0.30.0` 与 `main` 可更新图的条件性同步及 `update`/`replay` 次序见[版本差异](#版本差异)。
 
 ```wiki-diagram
 file: acl-graph-buffers
@@ -355,7 +355,7 @@ Model Runner V1 的 Ascend 接入会换成专用的视觉图管理器：把本�
 - **开了投机解码要对齐倍数。** 整趟 decode 图加上草稿时，宽度表整体向上取整到「1 + 草稿数」的倍数；只有同时开了上游的 sequence parallel 且 TP > 1，倍数才改成它与 TP 的较大值。本部署是 MoE 模型，那个开关取假，倍数就是 4。
 
 在这条整趟 decode 路径中，若统一查询长度大于 1，并且同时启用上游的 sequence parallel、TP 大于 1，取出的较大值还必须同时被查询长度和 TP 大小整除；不满足就抛错。这一步没有自动改用最小公倍数，因此较大值并不总能成为合法的对齐倍数。
-- **宽度表还会被筛选。** 上游 sequence parallel 开着时，不是 TP 倍数的宽度被筛掉；若同时指定了捕获列表与最大宽度，而过滤后列表的最大值与该上限不一致，会先抛错。通过一致性检查后，最终最大宽度才取有效表的最大值。昇腾 A5 在分段编译路径上，对超过 4 档的表按索引等距采样到 4 档（首尾必留），并发出 warning。
+- **宽度表还会被筛选。** 上游 sequence parallel 开着时，不是 TP 倍数的宽度被筛掉；若同时指定了捕获列表与最大宽度，而过滤后列表的最大值与该上限不一致，会先抛错。通过一致性检查后，最终最大宽度才取有效表的最大值。早期版本（`v0.23.0` / `v0.26.0rc`）中，昇腾 A5 在分段编译路径上对超过 4 档的表按索引等距采样到 4 档（首尾必留）并发出 warning；`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）已移除该 4 档裁剪逻辑。
 - **档位还会被后端等级压低。** 运行器扫过所有 KV cache 组的注意力后端取最低等级，交给上游解析：要求混合批走整趟图而最低等级不是「混合批也支持」时，降到分段档或只给 decode 的整趟档并打 warning；最低等级是「完全不支持」时，混合批整趟图直接抛 ValueError，decode 整趟图退到分段档或不录图。四个等级的定义在上游枚举里；GLM 的稀疏 MLA 后端与 KDA 走的 GDN 构建器分别见来源 12、13，两者声明的都是「一批里每条位置数一样才支持」。
 
 ### 会报什么错
@@ -366,7 +366,7 @@ Model Runner V1 的 Ascend 接入会换成专用的视觉图管理器：把本�
 
 | 条件 | 报错或检查点 | 怎么处理 |
 |---|---|---|
-| 设了 `ASCEND_LAUNCH_BLOCKING=1` 又没关图 | 平台在配置阶段抛 `ValueError`，说明两者不兼容，建议改用别的调试手段 | 要同步执行先关图 |
+| 早期版本（`v0.23.0` / `v0.26.0rc`）设了 `ASCEND_LAUNCH_BLOCKING=1` 又没关图 | 平台在配置阶段抛 `ValueError`，说明两者不兼容，建议改用别的调试手段（`v0.30.0` 与 `main` 平台层已移除该显式拒绝） | 要同步执行先关图 |
 | 捕获时设备流资源不足 | 明确的流资源不足文本，或 `207008` 同时带 `stream resource` 文本，才命中这项错误包装；单有错误码不够 [C3] | 按提示减宽度，并确认 HDK / CANN 版本 |
 | 混合结构模型开整趟图，并发上限超过状态缓存块数 | 上游在配置阶段抛 `ValueError`，提示调小并发或提高显存占用比 | 每条 decode 请求要占一块状态缓存 |
 | 捕获已被上游禁用时又触发捕获 | 合法性检查抛 `RuntimeError` [C1][C28] | 检查调用时机以及描述符是否已经捕获 |
@@ -389,7 +389,7 @@ Model Runner V1 的 Ascend 接入会换成专用的视觉图管理器：把本�
 | 图捕获核对项 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
 |---|---|---|---|---|
 | 三类图实现（`ACLGraph` / `Breakable` / `XliteGraph`） | 仅 `ACLGraphWrapper` 与独立 `XliteWorker`；无 `BreakableACLGraphWrapper` | 同 `v0.23.0`（行号后移） | 齐备 `ACLGraphWrapper`、`updatable_graph`、`BreakableACLGraphWrapper` 与 `XliteWorker` | 同左，且 MRV2 经 `worker/v2/aclgraph_utils.py` 的 `ModelAclGraphManager` 统一管理整图/可打断图与可更新图 |
-| 捕获失败识别与 `ASCEND_LAUNCH_BLOCKING` | 只识别设备流资源不足；`ASCEND_LAUNCH_BLOCKING=1` 撞图模式抛 `ValueError` | 新增识别旧 HDK `Alloc sq cq fail` 并提示升级 HDK 25.5.1+；同左抛 `ValueError` | 保留 `Alloc sq cq fail` 提示；A5 砍档改按 `HardwareProfile` 能力标记 | 同 `v0.30.0`；平台图配置不再单独对 `ASCEND_LAUNCH_BLOCKING=1` 做拒绝（不代表所有组合均支持） |
+| 捕获失败识别与 `ASCEND_LAUNCH_BLOCKING` | 只识别设备流资源不足；A5 分段砍至 4 档；`ASCEND_LAUNCH_BLOCKING=1` 撞图模式抛 `ValueError` | 新增识别旧 HDK `Alloc sq cq fail` 并提示升级 HDK 25.5.1+；同左保留 A5 4 档裁剪与 `ValueError` 拒绝 | 保留 `Alloc sq cq fail` 提示；已移除 A5 4 档裁剪（`prune_capture_sizes_for_950`）与平台对 `ASCEND_LAUNCH_BLOCKING=1` 的显式拒绝（不代表所有组合均支持） | 同 `v0.30.0`（均无 A5 4 档裁剪与 `ASCEND_LAUNCH_BLOCKING=1` 显式拒绝） |
 | 录图预算与 `1 - u` 余量 | 录图显存落在 `gpu_memory_utilization`（$u$）之外的 $(1 - u)$ 设备余量 | 同 `v0.23.0` | 同左；录图后汇总 `non_kv_memory`（含 `npugraph_memory_bytes`）并扣 150 MiB 输出推荐 `--kv-cache-memory` | 同 `v0.30.0`（改经 `_get_gpu_memory_utilization()` 与 HiSparse 非 KV 显存分支计算） |
 | 可更新图 `update` / `replay` 次序 | 普通 paged attention 经侧流事件同步，非 ENPU 先调模型再调通用更新 | 同 `v0.23.0` | `FULL` 加特定后端进入可更新分支：`enable_enpu` 先 update 后 replay，其余先 replay 后 update；`FULL` 通常回放前同步流（ENPU/EAGLE 合图跳过） | 延续可更新图条件次序，由 `ModelAclGraphManager._updatable_graph_replay` 承接 |
 | 视觉图（`cudagraph_mm_encoder`）与多模态 | 单路径预算，Ascend V1 换用 `EncoderAclGraphManager`；`db701c1f` GLM 无视觉图协议；平台重置 `mm_encoder_attn_backend` 为 `None` | 上游增加全局/局部双路径；NPU FIA 仍按 `token_budget` 建账 | 通用多路径；NPU 拒绝非空 `capture axes` 抛 `NotImplementedError`；`GLM5Next` 补齐协议适配（去掉 `pos_embeds`） | 同 `v0.30.0`；MRV2 分开判断视觉图与语言图入口，Qwen3-VL 裁剪仍置空图模态 |
@@ -407,7 +407,7 @@ Model Runner V1 的 Ascend 接入会换成专用的视觉图管理器：把本�
 | 地址核对、回放前同步、回放 | 来源 2：同一包装器的回放分支 |
 | 捕获失败的错误重抛 | 来源 3：错误码判定；v0.26 的 HDK 提示见 20、26，main 对应分支见 35 |
 | 整模型包装、最低后端等级、通用更新条件与顺序 | 来源 14–17：model_runner_v1 |
-| 换已录任务入参：事件等待与参数更新 | 来源 18、31：attention_v1 的捕获与 update_graph_params；rc2 可更新图见 27 |
+| 换已录任务入参：事件等待与参数更新 | 来源 18、31：attention_v1 的捕获与 update_graph_params；`v0.30.0` / `main` 可更新图见来源 27、130 |
 | 默认最大捕获宽度、A5 砍档、调试变量互斥 | 来源 4–6、29：旧 platform；main 的能力声明与消费见 22、30，v0.26 分支见 36 |
 | 宽度表生成、截断与 SP 过滤 | 来源 7、33：上游 config/vllm.py |
 | 投机倍数、后端降级链、状态缓存块校验 | 来源 8–10：上游 config/compilation.py |

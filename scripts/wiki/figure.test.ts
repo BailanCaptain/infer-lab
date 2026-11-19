@@ -188,7 +188,7 @@ it("多行格子：前 fill 格实色、格子里能写字；字放不下、格�
     grids: [{ at: [60, 40], rows: 2, cols: 4, cell: [40, 30], fill: 5, cells: [{ at: [0, 0], text: "0" }] }],
   });
   const svg = renderFigure(ok);
-  expect(svg.match(/fill="var\(--color-kv, #4c65b6\)"/g)?.length).toBe(5);
+  expect(svg.match(/fill="var\(--color-kv-soft, #e8edff\)"/g)?.length).toBe(5);
   expect(svg).toContain(">0</text>");
   expect(figureProblems(ok)).toEqual([]);
 
@@ -1341,4 +1341,17 @@ it("显式等宽文本（font: mono）：SVG 字体与碰撞/框宽/断行估宽
   expect(wrappedMono.match(/font-family="'JetBrains Mono',ui-monospace,monospace"/g)?.length).toBeGreaterThan(
     1,
   );
+});
+
+it("figure 块默认使用柔和矿物浅底、1.4px 同色描边、深墨字色，并将标签字号抬升至至少 13px", () => {
+  const svg = renderFigure(
+    fig({
+      items: [{ at: [20, 20], size: [140, 44], text: "核心块", tone: "token" }],
+      texts: [{ at: [20, 120], text: "小字标签", size: 11 }],
+    }),
+  );
+  expect(svg).toContain('fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"');
+  expect(svg).toContain('fill="var(--color-ink, #17211f)" text-anchor="middle">核心块</text>');
+  expect(svg).toContain('font-size="13"');
+  expect(svg).not.toContain('font-size="11"');
 });

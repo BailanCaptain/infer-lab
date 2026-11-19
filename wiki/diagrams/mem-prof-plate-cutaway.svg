@@ -5,9 +5,9 @@
   <line x1="119" y1="114" x2="119" y2="285" stroke="#4c65b6" stroke-width="1.6"/>
   <circle cx="119" cy="285" r="5.5" fill="#ffffff" stroke="#4c65b6" stroke-width="2"/>
   <circle cx="119" cy="285" r="2.5" fill="#4c65b6"/>
-  <line x1="442" y1="114" x2="426" y2="355" stroke="#b54237" stroke-width="1.6"/>
-  <circle cx="426" cy="355" r="5.5" fill="#ffffff" stroke="#b54237" stroke-width="2"/>
-  <circle cx="426" cy="355" r="2.5" fill="#b54237"/>
+  <line x1="442" y1="114" x2="344" y2="256" stroke="#b54237" stroke-width="1.6"/>
+  <circle cx="344" cy="256" r="5.5" fill="#ffffff" stroke="#b54237" stroke-width="2"/>
+  <circle cx="344" cy="256" r="2.5" fill="#b54237"/>
   <line x1="762" y1="114" x2="726" y2="229" stroke="#087f73" stroke-width="1.6"/>
   <circle cx="726" cy="229" r="5.5" fill="#ffffff" stroke="#087f73" stroke-width="2"/>
   <circle cx="726" cy="229" r="2.5" fill="#087f73"/>

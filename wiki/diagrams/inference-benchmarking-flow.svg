@@ -11,17 +11,17 @@
   <path d="M598 304 L664 304" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-benchmarking-flow-ah-token)"/>
   <path d="M756 282 L756 126" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#inference-benchmarking-flow-ah-token)"/>
   <path d="M311 208 L756 208" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5"/>
-  <rect x="52" y="84" width="130" height="42" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="52" y="84" width="130" height="42" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="117" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">计划发送</text>
-  <rect x="246" y="84" width="130" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="311" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">实际发送</text>
-  <rect x="686" y="84" width="140" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="756" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收到首个输出</text>
-  <rect x="246" y="282" width="132" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="246" y="84" width="130" height="42" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="311" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">实际发送</text>
+  <rect x="686" y="84" width="140" height="42" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="756" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">收到首个输出</text>
+  <rect x="246" y="282" width="132" height="44" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="312" y="309" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">入口 → 调度</text>
-  <rect x="444" y="282" width="154" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="521" y="309" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模型执行</text>
-  <rect x="664" y="282" width="162" height="44" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="444" y="282" width="154" height="44" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-width="1.4"/>
+  <text x="521" y="309" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">模型执行</text>
+  <rect x="664" y="282" width="162" height="44" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="745" y="309" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">处理 → 发送</text>
   <text x="214" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">迟发另记</text>
   <text x="534" y="199" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">TTFT：实际发送 → 首个输出</text>

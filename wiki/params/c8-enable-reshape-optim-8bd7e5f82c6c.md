@@ -132,9 +132,11 @@ rawSources:
 ---
 ## 它曾经切换哪两种 C8 缓存写入算子，为什么在 v0.30.0 移除？
 
-`c8_enable_reshape_optim` 曾只控制一件事：**LightningIndexer 将自己的 C8 量化缓存写入显存时选用哪条算子路径**（索引器缓存的 C8 属于「稀疏 C8」路线，见 [KV cache 量化](../concepts/kv-cache-quantization.md#ascend-上的三条-kv-cache-量化路)）。关闭时走按整批 slot 索引更新的 scatter 路径（旧分支与早期 `main` 直接调 `npu_scatter_nd_update_`，`v0.30.0rc2` 起经设备适配层 `DeviceOperator.scatter_cache` 再回退到 `npu_scatter_nd_update_`）；开启且满足派生条件时，改走 AscendC 的 `store_kv_block_metadata` + `store_kv_block` 按连续块分组写入。
+在长上下文稀疏注意力（例如 DeepSeek-V3.2 / SFA）里，每一层除了主注意力之外，还会带一个轻量的「索引器」（**LightningIndexer**），专门快速扫描历史 token、打分并挑出最关键的少数缓存块供主注意力读取。为了省显存，索引器自己缓存的历史 Key 向量也会被压成 8 位整数再配一份缩放因子，这就是 **C8 量化缓存**（属于「稀疏 C8」路线，见 [KV cache 量化](../concepts/kv-cache-quantization.md#ascend-上的三条-kv-cache-量化路)）。
 
-**在 `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）中，`StoreKVBlock` 优化连同 `c8_enable_reshape_optim` 开关已被整体移除（PR #18128）**：
+**在当前的 `v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）中，`c8_enable_reshape_optim` 开关连同其背后的 `StoreKVBlock` 优化已随 PR #18128 整体移除**，`LightningIndexer.write_cache` 统一经设备适配层 `DeviceOperator.scatter_cache` 写入 K 缓存与量化 scale 缓存；若升级后仍在 `additional_config` 中保留该键，会被 `@config(extra="forbid")` 拒收报错（仅环境可发现 `vllm_omni` 时才会告警并过滤未知顶层键）。在仍保留该键的历史版本里，`c8_enable_reshape_optim` 只控制一件事：**往显存里写这份 C8 量化缓存时，用按整批 slot 索引直接写入的 scatter 路径（旧分支与早期 `main` 直接调 `npu_scatter_nd_update_`，`v0.30.0rc2` 起经 `DeviceOperator.scatter_cache` 回退），还是改走 AscendC 的 `store_kv_block_metadata` + `store_kv_block` 按连续块分组写入。**
+
+不同版本的开关状态与演化如下：
 
 - **`v0.23.0` 与 `v0.26.0rc`**：它是 `additional_config` 顶层用户键，默认 `False`，实际取值等于 `enable_sparse_li_c8 and additional_config.get(..., False)`（索引器不走 C8 量化时怎么配都为假）；官方参数表提示 PD 分离时只在 P 节点开启，但代码未做强制拦截，混部部署也能打开；消费点位于 `sfa_v1.py`。
 - **过渡快照（`v0.28.0.rc1` 空窗期 → 早期 `main` `baa023ad` 与 `v0.30.0rc2` `7d825229`）**：PR #15752（2026-09-07）曾删掉用户键改为自动判定，随后 PR #16952（2026-09-20）把开关恢复为可写字段并将默认值反转为 `True`（因此历史 `v0.28.0.rc1` tag 不含此用户键）。恢复后的消费点搬到 `attention/indexer.py`（经只读属性 `c8_reshape_optim_enabled` 读取），且在代码里硬性叠加了 PD 角色条件：`c8_enable_reshape_optim and enable_sparse_li_c8 and is_prefill_node`，其中 `enable_sparse_li_c8` 改为由 `attention_config.indexer_kv_dtype` 为 `fp8`/`int8` 且模型满足稀疏条件派生；即使全局条件为真，每个 indexer 层仍会经 `is_sparse_li_c8_layer` 检查是否在模型量化配置范围内。
@@ -144,9 +146,24 @@ rawSources:
 
 在未走优化的 scatter 路径下，indexer 的 K 缓存通过 slot 定位每个 token：`npu_scatter_nd_update_`（或 `DeviceOperator.scatter_cache`）接收形状为 `(-1, head_dim)` 的整批 `k_li` 与 `(-1, 1)` 的整批 `slot_mapping` 一次调用完成更新（并非每个 token 发起一次 Python 算子调用）；C8 量化另需写入独立的 scale 缓存，因此 K 与 scale 各更新一次。
 
-在仍包含 `StoreKVBlock` 优化的版本里，`store_kv_block_metadata` 沿 `slot_mapping` 顺序扫描，跳过负 slot，只把**目标 slot 连续且属于同一缓存块**的相邻输入归为一组，产出三个分组描述符 `group_len`（每组长度）、`group_key_idx`（源数据起始位置）、`group_key_cache_idx`（目标缓存起始位置）；它既不预先排序，也不跨块合并。例如块长为 4、slot 序列为 `[2, 3, 4, 7, -1, 8, 9]` 时，会形成 `[2, 3]`、`[4]`、`[7]`、`[8, 9]` 四组——`3` 与 `4` 虽然相邻，但分属不同缓存块，因此不会合并。随后 `store_kv_block` 读取分组描述符（调用前会断言索引器注意力元数据非空）并结合块大小，对 K 缓存和量化 scale 共用同一组描述符成段复制。分组越长成段复制机会越多，不能由打开开关直接保证加速。
+在仍包含 `StoreKVBlock` 优化的版本里，`store_kv_block_metadata` 沿 `slot_mapping` 顺序扫描，跳过负 slot，只把**目标 slot 连续且属于同一缓存块**的相邻输入归为一组，产出三个分组描述符 `group_len`（每组长度）、`group_key_idx`（源数据起始位置）、`group_key_cache_idx`（目标缓存起始位置）；它既不预先排序，也不跨块合并。
 
-分组辅助缓冲在两代实现里也有差异：`v0.23.0` / `v0.26.0rc` 在 builder 初始化时按 `max_num_batched_tokens` 分配三个 int32 数组；过渡期 `main` / `v0.30.0rc2` 改为按 `max(max_num_batched_tokens × PCP, 按 TP 对齐后的 max_num_batched_tokens)` 在首次使用对应 buffer key 时分配，每步取前「本步 slot 数」切片，并在每次获取（含复用已有缓冲）时校验容量，超出即抛 `Indexer C8 group metadata buffer is too small: capacity=..., required=...`（排查时需对比 `required` 与上述容量公式）。虽然派生开关在配置构造时计算，但消费者每次查询当前配置、配置工厂也支持 `refresh` 重建，因此既不是逐请求切换接口，也不能说整个进程只决定一次。
+拿一组具体数字走一遍（**示意**：设缓存块长 `block_size = 4`，本步输入 7 个 token 的 `slot_mapping = [2, 3, 4, 7, -1, 8, 9]`，块号为 $\lfloor \text{slot} / 4 \rfloor$）：
+
+| 分组编号 | 源输入下标 `group_key_idx` | 对应 `slot_mapping` | 所属块号（$\lfloor \text{slot}/4 \rfloor$） | 目标起始 `group_key_cache_idx` | 组长 `group_len` | 切分原因 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 第 0 组 | `0` | `[2, 3]` | 块 `0` | `2` | `2` | 同块且 slot 连续，合并成段 |
+| 第 1 组 | `2` | `[4]` | 块 `1` | `4` | `1` | `3 → 4` 虽数值相邻，但跨过块 `0`/`1` 边界，**不合并** |
+| 第 2 组 | `3` | `[7]` | 块 `1` | `7` | `1` | 同在块 `1` 但 `4 → 7` 不连续；紧随的 `-1` 直接跳过 |
+| 第 3 组 | `5` | `[8, 9]` | 块 `2` | `8` | `2` | 跳过下标 `4`（`-1`）后，块 `2` 内连续成段 |
+
+随后 `store_kv_block` 读取这三组描述符（调用前会断言索引器注意力元数据非空）并结合块大小，对 K 缓存和量化 scale 共用同一套分组结果成段复制。分组越长成段复制机会越多，不能由打开开关直接保证加速。
+
+分组辅助缓冲在两代实现里也有差异：`v0.23.0` / `v0.26.0rc` 在 builder 初始化时按 `max_num_batched_tokens` 分配三个 int32 数组；过渡期 `main` / `v0.30.0rc2` 改为在首次使用对应 buffer key 时按容量公式分配：
+
+$$\text{capacity} = \max\bigl(\text{max\_num\_batched\_tokens} \times \text{PCP},\ \text{按 TP 对齐后的 max\_num\_batched\_tokens}\bigr)$$
+
+例如（**示意**）`max_num_batched_tokens = 2048`、`PCP = 2`、`TP = 8` 时，辅助缓冲容量为 $\max(2048 \times 2,\ 2048) = 4096$ 个 int32 槽位。每步取前「本步 slot 数」切片，并在每次获取（含复用已有缓冲）时校验容量，超出即抛 `Indexer C8 group metadata buffer is too small: capacity=..., required=...`（排查时需对比 `required` 与上述容量公式）。虽然派生开关在配置构造时计算，但消费者每次查询当前配置、配置工厂也支持 `refresh` 重建，因此既不是逐请求切换接口，也不能说整个进程只决定一次。
 
 **为什么过渡期默认开启后还一度保留关闭开关**：PR #16952 恢复该开关的直接动机是让用户能禁用 `StoreKVBlock` 写入优化。关联的 [issue #15896](https://github.com/vllm-project/vllm-ascend/issues/15896) 报告了 HDK 25.1 上 pooling 与自定义 AICPU Tiling 在同一进程组合时挂起（作者随后将影响范围限定在 HDK 26.0 之前、不含 26.0，属于特定环境问题而非普遍现象）；关闭优化既可作为排查对照，也可用于速度与数值比较。最终 `v0.30.0` 直接移除了整套 `StoreKVBlock` 路径与该开关。
 
@@ -179,8 +196,8 @@ rawSources:
 | 版本 | 定义是否存在 | 固定提交 |
 | --- | --- | --- |
 | main | 无 | `8d6180e2` |
-| releases/v0.23.0 | 无 | `2c59ff10` |
-| releases/v0.26.0rc | 无 | `2ed6cbba` |
+| releases/v0.23.0 | 有 | `2c59ff10` |
+| releases/v0.26.0rc | 有 | `2ed6cbba` |
 | releases/v0.30.0rc2 | 有 | `7d825229` |
 | releases/v0.30.0 | 无 | `c09d3e20` |
 

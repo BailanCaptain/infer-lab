@@ -1,54 +1,64 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" width="900" height="610" role="img" aria-label="v0.23 维护分支按顺序选择行并行实现，第一个满足条件的分支返回。本开关排第五，影响未被前四条认领的层；进入该类后还要满足 reduce_results 且 TP&gt;1，才调用融合算子。">
-  <title>v0.23 维护分支按顺序选择行并行实现，第一个满足条件的分支返回。本开关排第五，影响未被前四条认领的层；进入该类后还要满足 reduce_results 且 TP&gt;1，才调用融合算子。</title>
-  <rect width="900" height="610" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="26" width="860" height="418" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="40" width="302.8" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">_get_row_parallel_op 从上往下依次判断</text>
-  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">位置就是优先级。排在上面的先认领，排在下面的只能捡剩下的层。</text>
-  <rect x="136" y="88" width="728" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="136" y="88" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
-  <text x="158" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">细粒度 o_proj TP（DSV4）</text>
-  <text x="158" y="126" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">&quot;wo_b&quot; in prefix and oproj_tp_enable()</text>
-  <rect x="662" y="96.5" width="183" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="753.5" y="114" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">DSV4OProjRowParallelOp</text>
-  <rect x="136" y="134" width="728" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="136" y="134" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
-  <text x="158" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DSA-CP 下被 layer_sharding 切过的 o_proj</text>
-  <text x="158" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">enable_dsa_cp_with_layer_shard() and &quot;o_proj&quot; in prefix</text>
-  <rect x="662" y="142.5" width="183" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="753.5" y="160" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">ShardedCPRowParallelOp</text>
-  <rect x="136" y="180" width="728" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="136" y="180" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
-  <text x="158" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">细粒度 MLP TP</text>
-  <text x="158" y="218" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">down_proj 且开启 MLP TP，且不是 MoE 层</text>
-  <rect x="707" y="188.5" width="138" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="776" y="206" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">MLPRowParallelOp</text>
-  <rect x="136" y="226" width="728" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="136" y="226" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
-  <text x="158" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">细粒度 o_proj TP</text>
-  <text x="158" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">&quot;o_proj&quot; in prefix and oproj_tp_enable()</text>
-  <rect x="692" y="234.5" width="153" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="768.5" y="252" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">OProjRowParallelOp</text>
-  <rect x="136" y="272" width="728" height="42" rx="10" fill="var(--color-accent-soft, #fff0e9)"/>
-  <rect x="136" y="272" width="5" height="42" rx="2.5" fill="var(--color-accent, #e85b32)"/>
-  <g transform="translate(159.8 282.8) scale(0.85)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
-  <text x="194" y="290" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">本页的开关就在这一条</text>
-  <text x="194" y="310" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">matmul_allreduce_enable()，认领剩余行并行层</text>
-  <rect x="617" y="280.5" width="228" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="731" y="298" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">MatmulAllreduceRowParallelOp</text>
-  <rect x="136" y="318" width="728" height="42" rx="10" fill="var(--color-canvas, #f5f2ea)"/>
-  <rect x="136" y="318" width="5" height="42" rx="2.5" fill="var(--color-ink-faint, #8a928f)"/>
-  <text x="158" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">FlashComm2 的 o_proj 路径</text>
-  <text x="158" y="356" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">flashcomm2_enable()</text>
-  <rect x="617" y="326.5" width="228" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1"/><text x="731" y="344" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">Flashcomm2OProjRowParallelOp</text>
-  <rect x="136" y="364" width="728" height="42" rx="10" fill="var(--color-canvas, #f5f2ea)"/>
-  <rect x="136" y="364" width="5" height="42" rx="2.5" fill="var(--color-ink-faint, #8a928f)"/>
-  <text x="158" y="382" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">序列并行的行并行路径</text>
-  <text x="158" y="402" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">enable_sp()，五个 prefix 各自认领</text>
-  <rect x="669.5" y="372.5" width="175.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1"/><text x="757.3" y="390" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">SequenceRowParallelOp</text>
-  <rect x="136" y="410" width="728" height="42" rx="10" fill="var(--color-canvas, #f5f2ea)"/>
-  <rect x="136" y="410" width="5" height="42" rx="2.5" fill="var(--color-ink-faint, #8a928f)"/>
-  <text x="158" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">一条都不命中，走 vLLM 默认实现</text>
-  <text x="158" y="448" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">先 matmul 算完，再发 AllReduce，两步串行</text>
-  <text x="848" y="436" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">return None</text>
-  <path d="M34 318 l-8 0 L26 452 l8 0" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.4" opacity="0.75"/>
-  <text x="40" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-faint, #8a928f)">到不了</text>
-  <text x="40" y="476" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">被此分支认领的层不再判断后面的 FlashComm2、SP 与默认分支；这不等于关闭这些特性的全部模块。该类内仍会根据 reduce_results 和 TP 大</text>
-  <text x="40" y="494.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">小选择融合或普通调用。</text>
-  <text x="40" y="530" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">反过来，排在它上面的四条轮不到它：细粒度 TP 和 layer_sharding 认领掉的那些层，走的是各自的实现。</text>
-  <text x="40" y="576" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">融合调用争取重叠计算与通信；该 Python 包装层未给出内部切块策略或通信字节数，实际等待是否缩短需要测量。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 624" width="900" height="624" role="img" aria-label="v0.23.0 行并行实现派发优先级（_get_row_parallel_op）与 enable_matmul_allreduce 截断关系" font-family="var(--font-sans)">
+  <title>v0.23.0 行并行派发函数 _get_row_parallel_op 的八分支优先级：enable_matmul_allreduce 排在第五且不过滤 prefix，会截断后面的 FlashComm2、SP 与默认路径；v0.25.1rc1（PR #12119）已移除，v0.30.0 与 main 仅保留三条细粒度 TP 分支。</title>
+  <desc>Eight-branch priority order in v0.23.0 _get_row_parallel_op showing branches 1-4 preceding MatmulAllreduceRowParallelOp, branch 5 shadowing branches 6-8, and removal in v0.30.0/main.</desc>
+
+  <text x="16" y="28" font-size="16" font-weight="700" fill="#17211f">v0.23.0 _get_row_parallel_op 从上往下的 8 条派发优先级</text>
+  <text x="16" y="48" font-size="13.5" fill="#66716d">首个命中的分支直接返回：排在前面的先认领特定层，第 5 条本开关不做 prefix 过滤、认领全部剩余行并行层</text>
+
+  <!-- Left tier indicators -->
+  <rect x="142" y="72" width="4" height="196" rx="2" fill="#4c65b6"/>
+  <text x="16" y="162" font-size="14" font-weight="700" fill="#3a4f93">第 1–4 条</text>
+  <text x="16" y="182" font-size="13.5" fill="#66716d">优先认领</text>
+  <text x="16" y="200" font-size="13.5" fill="#66716d">轮不到本开关</text>
+
+  <rect x="142" y="278" width="4" height="62" rx="2" fill="#c78300"/>
+  <text x="16" y="305" font-size="14" font-weight="700" fill="#936300">第 5 条</text>
+  <text x="16" y="325" font-size="13.5" font-weight="600" fill="#936300">本页开关</text>
+
+  <rect x="142" y="350" width="4" height="146" rx="2" fill="#b8bcb5"/>
+  <text x="16" y="414" font-size="14" font-weight="700" fill="#66716d">第 6–8 条</text>
+  <text x="16" y="434" font-size="13.5" fill="#66716d">已认领层</text>
+  <text x="16" y="452" font-size="13.5" fill="#66716d">到不了这里</text>
+
+  <!-- Tier 1: Rows 1-4 -->
+  <rect x="158" y="72" width="726" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="174" y="99" font-size="13.5" font-weight="700" fill="#17211f">1. 细粒度 o_proj TP（DSV4）："wo_b" in prefix 且 oproj_tp_enable()</text>
+  <text x="868" y="99" font-size="13" fill="#3a4f93" font-family="var(--font-mono)" text-anchor="end">DSV4OProjRowParallelOp</text>
+
+  <rect x="158" y="122" width="726" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="174" y="149" font-size="13.5" font-weight="700" fill="#17211f">2. DSA-CP P 侧 o_proj：enable_dsa_cp_with_layer_shard()</text>
+  <text x="868" y="149" font-size="13" fill="#3a4f93" font-family="var(--font-mono)" text-anchor="end">ShardedCPRowParallelOp</text>
+
+  <rect x="158" y="172" width="726" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="174" y="199" font-size="13.5" font-weight="700" fill="#17211f">3. 细粒度 MLP TP：down_proj 且开启 MLP TP，且非 MoE 层</text>
+  <text x="868" y="199" font-size="13" fill="#3a4f93" font-family="var(--font-mono)" text-anchor="end">MLPRowParallelOp</text>
+
+  <rect x="158" y="222" width="726" height="44" rx="6" fill="#e8edff" stroke="#4c65b6" stroke-width="1.2"/>
+  <text x="174" y="249" font-size="13.5" font-weight="700" fill="#17211f">4. 细粒度 o_proj TP："o_proj" in prefix 且 oproj_tp_enable()</text>
+  <text x="868" y="249" font-size="13" fill="#3a4f93" font-family="var(--font-mono)" text-anchor="end">OProjRowParallelOp</text>
+
+  <!-- Tier 2: Row 5 (Highlighted) -->
+  <rect x="158" y="278" width="726" height="62" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="2"/>
+  <text x="174" y="303" font-size="14.5" font-weight="700" fill="#936300">5. matmul_allreduce_enable() — 认领剩余行并行层</text>
+  <text x="868" y="303" font-size="13" font-weight="700" fill="#936300" font-family="var(--font-mono)" text-anchor="end">MatmulAllreduceRowParallelOp</text>
+  <text x="174" y="326" font-size="13.5" fill="#4d5652">进入类内仍检查 reduce_results 且 tp_size &gt; 1 才调 npu_mm_all_reduce_base，否则退回普通路径</text>
+
+  <!-- Tier 3: Rows 6-8 (Shadowed) -->
+  <rect x="158" y="350" width="726" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="174" y="377" font-size="13.5" fill="#4d5652">6. FlashComm2 的 o_proj 路径：flashcomm2_enable()</text>
+  <text x="868" y="377" font-size="13" fill="#66716d" font-family="var(--font-mono)" text-anchor="end">Flashcomm2OProjRowParallelOp</text>
+
+  <rect x="158" y="400" width="726" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="174" y="427" font-size="13.5" fill="#4d5652">7. 序列并行的行并行路径：enable_sp()（5 个 prefix 各自认领）</text>
+  <text x="868" y="427" font-size="13" fill="#66716d" font-family="var(--font-mono)" text-anchor="end">SequenceRowParallelOp</text>
+
+  <rect x="158" y="450" width="726" height="44" rx="6" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.2"/>
+  <text x="174" y="477" font-size="13.5" fill="#4d5652">8. 均不命中：走 vLLM 默认串行 Matmul + All-Reduce</text>
+  <text x="868" y="477" font-size="13" fill="#66716d" font-family="var(--font-mono)" text-anchor="end">return None</text>
+
+  <!-- Bottom removal notice -->
+  <rect x="16" y="512" width="868" height="96" rx="8" fill="#fff0e9" stroke="#b54237" stroke-width="1.3"/>
+  <text x="30" y="536" font-size="14.5" font-weight="700" fill="#8f3229">v0.25.1rc1（PR #12119）删除；v0.30.0 (c09d3e20) / main (8d6180e2) 仅留 3 条细粒度 TP 分支</text>
+  <text x="30" y="560" font-size="13.5" fill="#4d5652">• 被第 5 条认领只影响这些行并行层，不等于关掉全模型 SP / FlashComm2；实际等待是否缩短须实测</text>
+  <text x="30" y="584" font-size="13.5" fill="#4d5652">• 升级 v0.30.0 / main 须删此键与环境变量；残留顶层键按 extra="forbid" 拒收（装 vllm_omni 告警过滤）</text>
 </svg>

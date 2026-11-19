@@ -1,109 +1,20 @@
-layout: scene
+mode: native-svg
 id: prefetch-ratio
-caption: 满足开关与调用条件后，比例乘本地权重字节数；MLP 正请求尺寸在 Python 截到 18 MiB，零尺寸在公共封装改为整块。attn / moe 后端上限待核（v0.23 维护分支）
-size: [900, 786]
-
-regions:
-  - label: 三组比例，四个各自的入口
-    note: mlp 与 moe 按模型类型互斥；attn 要求当前层走静态 W8A8 且输入不是 int8
-    at: [20, 44]
-    size: [860, 300]
-    tone: ascend
-  - label: 写进去的小数怎么变成搬运字节数
-    note: 三组共用这条算式，差别在于截不截、由谁来截
-    at: [20, 372]
-    size: [860, 208]
-    tone: neutral
-
-boxes:
-  - at: [40, 108]
-    size: [390, 96]
-    title: attn.qkv / attn.o
-    sub: 静态 W8A8 的 apply 内，按类名精确匹配
-    fn: AscendW8A8LinearMethod
-    tone: ascend
-    icon: chip
-  - at: [460, 108]
-    size: [390, 96]
-    title: moe.gate_up
-    sub: token ≥ 96，还要取得到 w13_weight
-    fn: select_experts
-    tone: ascend
-    icon: pick
-  - at: [40, 220]
-    size: [390, 96]
-    title: mlp.gate_up
-    sub: 稠密模型、token < 500，入口在行并行 apply
-    fn: CustomRowParallelOp
-    tone: ascend
-    icon: layers
-  - at: [460, 220]
-    size: [390, 96]
-    title: mlp.down
-    sub: 同样的门槛，走带钩子的 SwiGLU
-    fn: AscendSiluAndMul
-    tone: ascend
-    icon: layers
-
-  - at: [40, 466]
-    size: [258, 96]
-    title: ① 乘成字节数
-    sub: 单卡权重字节 × 这一项的比例
-    fn: prefetch_ratio
-    tone: neutral
-    icon: calc
-  - at: [320, 466]
-    size: [258, 96]
-    title: ② 看要不要截
-    sub: MLP 正值截到 18 MiB
-    fn: MAX_PREFETCH_WEIGHT_SIZE
-    tone: neutral
-    icon: gear
-  - at: [600, 466]
-    size: [258, 96]
-    title: ③ 副流上发预取
-    sub: 计算流在 postprocess 处等回来
-    fn: npu_prefetch
-    tone: accent
-    icon: bolt
-
-  - at: [40, 630]
-    size: [820, 84]
-    title: "组仍启用且走到调用时，单项零值会请求整块"
-    sub: 缺项按 0 算；公共封装把非正尺寸改为整块请求，不代表实际缓存驻留或收益
-    fn: maybe_npu_prefetch
-    tone: accent
-    icon: bolt
-
-arrows:
-  - { from: [298, 514], to: [318, 514], tone: neutral }
-  - { from: [578, 514], to: [598, 514], tone: neutral }
-  - { from: [445, 320], to: [445, 370], tone: ascend }
-
-brackets:
-  - { at: [320, 588], span: 258, dir: down, label: "mlp 这一侧超过 18 MiB 就被截平，0.8 与 1.0 可能等价；attn / moe 要等后端上限核实", tone: accent }
-
-notes:
-  - at: [20, 744]
-    text: "整组全零会关闭该组；过滤后无有效非零项也会关闭。空 dict 或整组省略则回填默认；父开关关闭时均不发预取。"
-    size: 12.5
-    width: 860
-  - at: [20, 770]
-    text: "越界值（1.2、-0.5）在构造时丢弃；剩余同组仍有非零项且实际进入调用，缺项才会按零尺寸处理。"
-    size: 12.5
-    width: 860
-    strong: true
-
+caption: >-
+  v0.23.0 维护分支中 prefetch_ratio 换算为预取字节数的流程：四处入口共享乘法公式，MLP 正值在 Python 侧截断到 18 MiB，启用组内缺项或写 0 会在 maybe_npu_prefetch 中转为整块请求；v0.24.0rc（PR #11949）起随父配置删除，v0.30.0 与 main 无等价替代键。
+size: [900, 624]
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L13-L34
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L13-L34'
     symbols: [MAX_PREFETCH_WEIGHT_SIZE, prefetch_ratio]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L230-L238
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L230-L238'
     symbols: [maybe_npu_prefetch, npu_prefetch]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L74-L89
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L74-L89'
     symbols: [AscendW8A8LinearMethod]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L71-L74
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L71-L74'
     symbols: [select_experts]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/activation.py#L37-L43
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/activation.py#L37-L43'
     symbols: [AscendSiluAndMul]
-  - source: vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L153-L158
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L153-L158'
     symbols: [CustomRowParallelOp]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1849-L1907'
+    symbols: [unknown_keys]

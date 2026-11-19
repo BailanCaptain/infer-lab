@@ -1,18 +1,18 @@
 layout: figure
 id: rfork-patch-history
-caption: 补丁 3 之后分成两路：原来六份补丁走上面一路，补丁 7 建在下面一路上。在补丁 6 上直接打补丁 7 打不上；先补一份衔接差异，才能一步步重放出现在运行的代码
-size: [900, 320]
+caption: 早期独立分支的七份历史补丁演进关系：补丁 3 之后分成两路，原来六份补丁走上面一路，补丁 7 建在下面一路上；在补丁 6 上直接打补丁 7 打不上，当年需补一份衔接差异才能重放。目前全章已演进并原子重锚至社区上游 vllm-ascend main（8d6180e2），这七份早期补丁均已退役归档，仅用于追溯历史演进。
+size: [900, 350]
 
 items:
-  - { at: [20, 132], size: [110, 56], text: 社区基线, sub: v0.26 分支, tone: control, style: faded }
+  - { at: [20, 132], size: [110, 56], text: 社区基线, sub: 旧 v0.26 分支, tone: control, style: faded }
   - { at: [160, 135], size: [80, 50], text: 补丁 1, tone: control, style: faded }
   - { at: [270, 135], size: [80, 50], text: 补丁 2, tone: control, style: faded }
   - { at: [380, 135], size: [80, 50], text: 补丁 3, tone: control, style: faded }
   - { at: [530, 37], size: [80, 50], text: 补丁 4, tone: control, style: faded }
   - { at: [640, 37], size: [80, 50], text: 补丁 5, tone: control, style: faded }
   - { at: [750, 34], size: [130, 56], text: 补丁 6, sub: 原六份的终点, tone: control, style: faded }
-  - { at: [530, 230], size: [190, 56], text: 另外三次提交, sub: 补丁 7 当初的底, tone: control, style: faded }
-  - { at: [750, 230], size: [130, 56], text: 补丁 7, sub: 现在运行的代码, tone: weight }
+  - { at: [530, 230], size: [180, 56], text: 另外三次提交, sub: 补丁 7 当初的底, tone: control, style: faded }
+  - { at: [740, 230], size: [142, 56], text: 补丁 7, sub: 历史终点（已退役）, tone: control, style: plain }
 
 links:
   - { from: [130, 160], to: [160, 160], tone: control }
@@ -22,15 +22,16 @@ links:
   - { from: [610, 62], to: [640, 62], tone: control }
   - { from: [720, 62], to: [750, 62], tone: control }
   - { from: [460, 170], to: [530, 258], via: [[495, 170], [495, 258]], tone: control }
-  - { from: [720, 258], to: [750, 258], tone: weight }
-  - { from: [750, 76], to: [700, 230], via: [[735, 76], [735, 200], [700, 200]], tone: control, dashed: true }
+  - { from: [710, 258], to: [740, 258], tone: control }
+  - { from: [750, 76], to: [690, 230], via: [[735, 76], [735, 200], [690, 200]], tone: control, dashed: true }
   - { from: [850, 90], to: [850, 230], tone: danger, dashed: true }
 
 texts:
-  - { at: [530, 22], text: 原来六份补丁这一路, size: 13, note: true }
-  - { at: [530, 310], text: 补丁 7 这一路, size: 13, note: true }
+  - { at: [530, 22], text: 原来六份补丁这一路（历史归档）, size: 13, note: true }
+  - { at: [530, 306], text: 补丁 7 这一路（历史归档）, size: 13, note: true }
   - { at: [520, 168], text: 衔接差异：两路终点之间的差, size: 13, tone: control }
   - { at: [520, 188], text: 另外导出，单独存放, size: 13, tone: control }
+  - { at: [450, 336], text: 现行代码基线已合入并切换至社区上游 vllm-ascend main（8d6180e2），以上 7 份早期补丁均已退役, anchor: middle, size: 13, strong: true, tone: weight }
 
 tags:
   - { at: [762, 150], text: 直接打不上, tone: danger }

@@ -216,10 +216,6 @@ decode（每轮往后续写的阶段）的形状高度重复，录一次能用�
 
 ## 录多少：NONE、PIECEWISE、FULL 和两个组合档
 
-```wiki-diagram
-file: graph-mode
-```
-
 按「一趟前向录多少」分成三档：
 
 - **NONE**：这条路径上不录也不放，全程逐个提交，也就是 eager。
@@ -395,7 +391,7 @@ v0.28 之前 decode-only 按 attention state 排除含 prefill 的批，不能�
 | 显式上限与经预算过滤、去重及 SP 处理后的表不一致 | ValueError，含 should be consistent with the max value | 按有效表的最大档设置，或只给表让它派生上限；来源 43 |
 | 图档位拼错，或 CLI 容器传整数 | 图档位按枚举名查找失败；CLI JSON 对象验证不接受 LLM 的整数快捷形式 | 使用五个合法字符串之一与 JSON 对象；来源 39、46 |
 | 整趟 decode 的 MTP 对齐后无有效档，或 q 与 TP 的较大值不能同时整除两者 | ValueError；对齐不会自动求最小公倍数 | 调整草稿数/尺寸或关闭 sequence parallel；来源 54 |
-| 设成 `ASCEND_LAUNCH_BLOCKING=1` 又没关图 | 平台在配置阶段抛 `ValueError`，说明两者不兼容，并建议改看 plog | 调试用同步执行时先关图，或改用日志 [C14] |
+| 早期版本（`v0.23.0` / `v0.26.0rc`）设成 `ASCEND_LAUNCH_BLOCKING=1` 又没关图 | 平台在配置阶段抛 `ValueError`，说明两者不兼容，并建议改看 plog（`v0.30.0` 与 `main` 平台层已移除该显式拒绝） | 调试用同步执行时先关图，或改用日志 [C14] |
 | 捕获错误含 `Insufficient_Stream_Resources` 或 `Stream resources are insufficient`，或同时含 `207008` 与 `stream resource` 文本 | 包装层忽略大小写匹配这些特征并重新包装错误，提示缩小捕获尺寸表、降低最大尺寸或改用 `FULL_DECODE_ONLY`；仅有错误码不足以匹配 | 按提示减尺寸；同时确认 HDK / CANN 版本 [C15] |
 | 启动窗口之外触发捕获 | 上游的捕获合法性检查抛 `RuntimeError`，说「在不合适的时机捕获」 | 正常路径不会遇到；遇到说明分派器交出了没录过的描述符 [C8] |
 | DEBUG 级别下回放，直接位置参数中的 Tensor 地址和录制时不同 | 包装层断言失败，打印期望与实际地址；不覆盖所有输入结构 | 检查调用方是否换了这些输入缓冲 [C17] |

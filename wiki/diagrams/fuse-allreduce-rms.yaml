@@ -1,97 +1,23 @@
-layout: scene
+mode: native-svg
 id: fuse-allreduce-rms
-caption: v0.23 中，融合 pass 命中的子图不能再交给后续 SP 改写；其余区间与子图仍须分别检查。main 已删除这两条旧改图入口。
-size: [900, 610]
-
-regions:
-  - label: torch.compile 拿到的原始子图
-    note: 普通残差模型中的候选形态；须实际形成完整 pattern，并满足编译区间门槛。
-    at: [20, 26]
-    size: [860, 254]
-    tone: upstream
-
-bands:
-  - label: 本 rank 的矩阵乘
-    at: [150, 96]
-    size: [714, 42]
-    fn: unquantized_gemm
-    tone: upstream
-    icon: calc
-  - label: TP 规约成完整 hidden
-    at: [150, 142]
-    size: [714, 42]
-    fn: tensor_model_parallel_all_reduce
-    tone: upstream
-    icon: split
-  - label: 对齐残差
-    at: [150, 188]
-    size: [714, 42]
-    fn: maybe_chunk_residual
-    tone: upstream
-    icon: layers
-  - label: 加残差 + RMSNorm
-    at: [150, 234]
-    size: [714, 42]
-    fn: npu_add_rms_norm_bias
-    tone: upstream
-    icon: bolt
-
-brackets:
-  - { at: [30, 96], span: 180, dir: left, label: 融合 pass, tone: ascend }
-  - { at: [100, 142], span: 134, dir: left, label: SP 目标, tone: neutral }
-
-boundaries:
-  - at: 302
-    from: 20
-    to: 880
-    vertical: false
-    label: 一个 GraphFusionPassManager 按 self.passes 的列表顺序逐个改图
-
-boxes:
-  - at: [36, 336]
-    size: [408, 96]
-    title: 完整匹配时，四步换一个算子
-    sub: 分块归约 → 加残差与 norm → AG
-    fn: matmul_allreduce_add_rmsnorm
-    tone: ascend
-    icon: chip
-  - at: [456, 336]
-    size: [408, 96]
-    title: SP 不再匹配已被替换的这一处
-    sub: 其余子图仍须检查，不代表全模型为 0
-    fn: MiddleAllReduceRMSNormPattern
-    tone: muted
-    icon: graph
-
-arrows:
-  - { from: [240, 332], to: [240, 306], tone: ascend }
-  - { from: [660, 306], to: [660, 332], tone: muted, style: dashed }
-
-pills:
-  - { at: [450, 466], text: 注册顺序决定重叠节点先由哪条规则改写, tone: accent }
-
-notes:
-  - at: [40, 516]
-    text: "两条规则都包含 All-Reduce 与残差归一化，不能重复改写同一批节点。所引 SP pattern 在分片上做 norm 后也立即 All-Gather；冲突来自重叠的改图目标，不能概括为通信目标相反。官方参数表因此建议默认关闭这条融合。"
-    size: 12.5
-    width: 820
-  - at: [40, 586]
-    text: "融合 pass 仅适用于 compile_range.start > 512；这是编译区间条件，不是按 prefill/decode 划分收益。"
-    size: 12.5
-    width: 820
-    strong: true
-
+caption: >-
+  v0.23.0 中 GraphFusionPassManager 的子图冲突：融合 pass 排在 SP pass 之前，命中 compile_range.start > 512 的四步子图后替换为单算子，后续 SP 不再匹配已替换处；v0.25.1rc1（PR #12119）整体删除，v0.30.0 与 main 严检报错。
+size: [900, 560]
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L56-L84
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L56-L84'
     symbols:
       - unquantized_gemm
       - tensor_model_parallel_all_reduce
       - maybe_chunk_residual
       - npu_add_rms_norm_bias
       - matmul_allreduce_add_rmsnorm
-  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L134-L159
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L134-L159'
     symbols: [MatmulAllReduceAddRMSNormPass, is_applicable_for_range]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/sequence_parallelism.py#L56-L99
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/sequence_parallelism.py#L56-L99'
     symbols: [MiddleAllReduceRMSNormPattern]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/graph_fusion_pass_manager.py#L36-L79
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/compilation/graph_fusion_pass_manager.py#L36-L79'
     symbols: [GraphFusionPassManager, fuse_allreduce_rms, SequenceParallelismPass]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L112-L130'
+    symbols: [AscendCompilationConfig]
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/compilation/graph_fusion_pass_manager.py#L52-L79'
+    symbols: [GraphFusionPassManager]

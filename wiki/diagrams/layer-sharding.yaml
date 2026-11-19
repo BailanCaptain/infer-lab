@@ -1,105 +1,26 @@
-layout: scene
+mode: native-svg
 id: layer-sharding
-caption: 第 i 层权重常驻在组内 rank i % K；其他卡通过两份窗口接收预取广播。下面是从层 0 开始、每层 112 MiB 的示意预算，旧路径限非空配置的 P 实例。
-size: [900, 660]
-
-regions:
-  - label: 加载期 · 分配常驻权重，再建立预取窗口
-    note: 非本卡权重登记后改成单元素占位，参数加载函数不再写入；文件仍可能读取。加载后处理还会临时恢复完整张量做广播和量化处理。
-    at: [20, 26]
-    size: [860, 250]
-    tone: ascend
-  - label: 前向期 · 提前一层广播，使用投影前等待
-    note: 预取入口由注意力后端调用，下面是 MLA 路径的顺序；能否隐藏广播耗时取决于调用间隔、计算量和通信带宽。
-    at: [20, 320]
-    size: [860, 242]
-    tone: neutral
-
-strips:
-  - at: [40, 150]
-    cells: 61
-    cell: 12
-    h: 30
-    gap: 2
-    highlights: [0, 16, 32, 48]
-    tone: ascend
-    label: "示意：61 层 o_proj，从 0 编号，每层 112 MiB"
-  - at: [40, 232]
-    cells: 4
-    cell: 12
-    h: 16
-    gap: 2
-    highlights: [0, 1, 2, 3]
-    tone: ascend
-    label: "K=16 时 rank 0 常驻 4 层 = 448 MiB；其他层通过窗口取回"
-
-boxes:
-  - at: [576, 206]
-    size: [284, 58]
-    title: 另加 2 份整权重窗口
-    sub: 本例 224 MiB，合计 672 MiB
-    fn: ShardWindowMetadata
-    tone: muted
-    icon: box
-
-boundaries:
-  - at: 296
-    from: 20
-    to: 880
-    vertical: false
-    label: rank 0 的常驻归属是 4 层；窗口还会保存当前或即将使用的其他层
-
-bands:
-  - label: ① 为第 i+1 层发异步 broadcast
-    sub: 常驻卡是组内 rank (i+1) % K，其他卡写入窗口
-    fn: reach_layer
-    at: [80, 378]
-    size: [776, 52]
-    tone: neutral
-    icon: bolt
-  - label: ② 第 i 层继续计算
-    sub: 计算与下一层的广播有机会重叠
-    right: 不保证完全隐藏
-    at: [80, 436]
-    size: [776, 52]
-    tone: neutral
-    icon: calc
-  - label: ③ 当前投影执行前检查权重到位
-    sub: 等待第 i 层的工作句柄，窗口层号必须匹配
-    fn: wait_weight
-    at: [80, 494]
-    size: [776, 52]
-    tone: ascend
-    icon: clock
-
-brackets:
-  - { at: [20, 378], span: 168, label: 每层, dir: left, tone: neutral }
-
-notes:
-  - at: [40, 574]
-    text: "每次前向：持有 4 层的卡接收 57 × 112 = 6384 MiB；持有 3 层的卡接收 58 × 112 = 6496 MiB。每个非本地层搬整份 112 MiB，不能把全组平均量当成每卡预算。"
-    size: 12.5
-    width: 840
-  - at: [40, 622]
-    text: "省下的是常驻容量，增加的是广播和窗口；batch 小、序列短时通常更难隐藏通信，实际时延须按工作负载测量。"
-    size: 12.5
-    width: 840
-    strong: true
-
+caption: >-
+  v0.23.0 层间权重分片（layer_sharding）：第 i 层常驻在组内 rank i % K，非 owner 卡经两份整层窗口提前一层异步 Broadcast 取回（示意：61 层 o_proj、每层 112 MiB、K=16，仅限 P 节点）；v0.24.0rc（PR #11953）已删除，v0.30.0 与 main 拒收旧键。
+size: [900, 628]
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L39-L58
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L39-L58'
     symbols: [SeriesMetadata, ShardWindowMetadata, prefetch_step, is_source]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L211-L253
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L211-L253'
     symbols: [register_layer_to_shard_weight_series, dispose_tensor, weight_loader]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L122-L152
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L122-L152'
     symbols: [reach_layer, wait_weight, async_op]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L346
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L346'
     symbols: [_validate_layer_sharding_config, kv_producer]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L15-L16
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L15-L16'
     symbols: [dispose_tensor]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L58-L120
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L58-L120'
     symbols: [post_process_after_loading, shard_windows]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1672-L1688
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1672-L1688'
     symbols: [reach_layer_for_shard_weight_series]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L168-L174
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L168-L174'
     symbols: [_create_forward_wrapper, wait_weight]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L581-L582'
+    symbols: [enable_pcp_o_proj_weight_sharding]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1849-L1907'
+    symbols: [unknown_keys]

@@ -9,8 +9,8 @@
   <rect x="16" y="64" width="196" height="176" rx="8" fill="#ece9df" stroke="#b8bcb5" stroke-width="1.4"/>
   <text x="28" y="90" font-size="14.5" font-weight="700" fill="#17211f">1. 工厂预处理</text>
   <text x="28" y="114" font-size="13.5" fill="#4d5652">init_ascend_config</text>
-  <text x="28" y="138" font-size="13.5" fill="#4d5652">• 剥离 4 个旧顶层</text>
-  <text x="28" y="160" font-size="13.5" fill="#4d5652">  调度键交子配置</text>
+  <text x="28" y="138" font-size="13.5" fill="#4d5652">• 剥离 5 个旧调度键</text>
+  <text x="28" y="160" font-size="13.5" fill="#4d5652">  （main 删分块后 4 个）</text>
   <text x="28" y="184" font-size="13.5" fill="#4d5652">• 装有 vllm_omni 时</text>
   <text x="28" y="206" font-size="13.5" fill="#4d5652">  未知顶层键告警过滤</text>
 
@@ -22,7 +22,7 @@
   <text x="252" y="138" font-size="13.5" fill="#4d5652">• 拼错键名直接报错</text>
   <text x="252" y="162" font-size="13.5" fill="#4d5652">• 类型与范围即刻拦截</text>
   <text x="252" y="186" font-size="13.5" fill="#4d5652">• 拆 12 组子配置</text>
-  <text x="252" y="210" font-size="13.5" fill="#8f3229" font-weight="600">（main 扩至 13 组）</text>
+  <text x="252" y="210" font-size="13.5" fill="#8f3229" font-weight="600">（main 扩至 14 组）</text>
 
   <path d="M438 152h22m-5-5l5 5-5 5" fill="none" stroke="#66716d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
 

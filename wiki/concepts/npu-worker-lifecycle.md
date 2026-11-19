@@ -184,13 +184,7 @@ file: model-resolution-flow
 
 ## 拆解 v0.30.0 冷启动六步、权重分形转换与 7 类预热
 
-把冷启动六步落回 `v0.30.0` 实际调用链，前三步由多进程执行器的 `WorkerProc` 在拉起子进程时顺次调用，后三步由 `EngineCore._initialize_kv_caches` 通过跨进程广播统一驱动：
-
-```wiki-diagram
-file: worker-lifecycle-flow
-```
-
-以单卡 `Atlas A2/A3` 运行 **`Qwen3-8B`（`BF16`）** 与单机四卡运行 **`Qwen3-30B-A3B`（`TP4 + EP`、`ModelSlim W8A8`）** 为主线标尺，逐站拆开每一步的动作、关键日志与显存账单：
+把前面两张图中的冷启动六步落回 `v0.30.0` 实际调用链，前三步由多进程执行器的 `WorkerProc` 在拉起子进程时顺次调用，后三步由 `EngineCore._initialize_kv_caches` 通过跨进程广播统一驱动。以单卡 `Atlas A2/A3` 运行 **`Qwen3-8B`（`BF16`）** 与单机四卡运行 **`Qwen3-30B-A3B`（`TP4 + EP`、`ModelSlim W8A8`）** 为主线标尺，逐站拆开每一步的动作、关键日志与显存账单：
 
 ### ① 构造函数 `__init__`：进程内打补丁、注算子与卡型门禁
 
@@ -252,7 +246,7 @@ $$N_{\text{blocks}} = \min_{r}\,\bigl\lfloor M_{\text{KV}}^{(r)} / B_{\text{page
 不同昇腾硬件族与多机异构模型不会推翻六步顺序，但会在特定阶段改写内部行为：
 
 - **`NPUWorker310`（`Atlas 300I DUO / 200I Pro`）的五处专属定制**：① 第②步 `_init_device` 在主从共享内存的 Root Complex（RC）模式下改用 `psutil.virtual_memory().available` 读取系统可用内存，且 `init_device` 显式设 `torch_npu.npu.set_compile_mode(jit_compile=False)` 并创建专属 `NPUModelRunner310`（或 `NPUModelRunner310V2`）；② 第③步硬件档案设为 `FORCE_NZ`，强制将支持的二维及以上矩阵权重转为 `FRACTAL_NZ`（同时该卡不支持 `BF16`，浮点须传 `--dtype float16`）；③ 第④步 `determine_available_memory` 把扣减后的可用 KV 显存**直接整除 `2`（`// 2`）**，打出 `Available KV cache memory: ... GiB (halved for workspace)` 为运行期算子工作区留出一半安全余量，并对可复用的同构 Mamba 缓存槽位免除额外预算缩放；④ 第⑥步因环境不含 Triton 且不支持 `npugraph_ex`，`kernel_warmup` 直接返回并须关闭 `enable_npugraph_ex`；⑤ `_warm_up_atb` 覆写为空操作并打印跳过提示。
-- **双机 16 卡异构全案对照（回链第 7 章 [GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md)）**：在本站双机 `2×A2×8`（`TP8 / DP2 / EP16`、`W8A8`、共 `20` 个进程与 `16` 个 Worker，见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)与[16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)）历史绑定算例中，六步呈现出鲜明的异构特征：历史专属镜像在构造函数中用 worker 补丁把自定义稀疏 [MLA](mla.md) 类加进后处理名单（`v0.30.0` 已改为上游通用遍历子模块，另见[稀疏注意力](sparse-attention.md)与[线性注意力](linear-attention.md)）；加载阶段开启 `--safetensors-load-strategy prefetch` 后台预读页缓存，主模型与 MTP 草稿层各扫一遍权重文件（按语言权重子账 `20.58 GiB`/卡重建整份语言部分约 `304.8 GiB`，两次遍历表达的是 `2 × 304.8 ≈ 609.6 GiB` 逻辑过手倍数而非磁盘实测流量，分片口径见 [TP 页](tensor-parallel.md#先区分哪些权重归-tp哪些已经由-ep-分走)与[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)）；试跑阶段先跑 `128` token 覆盖 MoE 的 MC2 融合通信（见 [MoE 通信选路](one-request.md#moe-通信走-mc2-还是-allgather)），再跑 `8192` 上限（预算算例切出 `3,855` 块、每块号占 `7.969 MiB` 的唯一推导见[剩下的显存变成多少 KV cache](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）；录图阶段 `--speculative-config` 里的 `"enforce_eager": true` 仅作用于草稿模型，主模型仍按 `FULL_DECODE_ONLY` 捕获 `4、8、16、32、64、96、128` 共 7 个 decode 档位（MTP 每请求一步算 `4` 个 token，对应 `1～32` 并发请求；请求运行期借块还块见 [R1 从借块到还块](vllm-kv-block-allocation.md#放到-glm-双机r1-从借块到还块)）。
+- **双机 16 卡异构全案对照（回链「09 旗舰异构模型全案」[GLM-5.3-Flash 双机部署](glm-5-3-flash-two-node.md)）**：在本站双机 `2×A2×8`（`TP8 / DP2 / EP16`、`W8A8`、共 `20` 个进程与 `16` 个 Worker，见[启动时发生了什么](glm-5-3-flash-two-node.md#启动时发生了什么)与[16 张卡怎样分组](glm-5-3-flash-two-node.md#16-张卡怎样分组)）历史绑定算例中，六步呈现出鲜明的异构特征：历史专属镜像在构造函数中用 worker 补丁把自定义稀疏 [MLA](mla.md) 类加进后处理名单（`v0.30.0` 已改为上游通用遍历子模块，另见[稀疏注意力](sparse-attention.md)与[线性注意力](linear-attention.md)）；加载阶段开启 `--safetensors-load-strategy prefetch` 后台预读页缓存，主模型与 MTP 草稿层各扫一遍权重文件（按语言权重子账 `20.58 GiB`/卡重建整份语言部分约 `304.8 GiB`，两次遍历表达的是 `2 × 304.8 ≈ 609.6 GiB` 逻辑过手倍数而非磁盘实测流量，分片口径见 [TP 页](tensor-parallel.md#先区分哪些权重归-tp哪些已经由-ep-分走)与[每张卡上放了什么](glm-5-3-flash-two-node.md#每张卡上放了什么)）；试跑阶段先跑 `128` token 覆盖 MoE 的 MC2 融合通信（见 [MoE 通信选路](one-request.md#moe-通信走-mc2-还是-allgather)），再跑 `8192` 上限（预算算例切出 `3,855` 块、每块号占 `7.969 MiB` 的唯一推导见[剩下的显存变成多少 KV cache](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)）；录图阶段 `--speculative-config` 里的 `"enforce_eager": true` 仅作用于草稿模型，主模型仍按 `FULL_DECODE_ONLY` 捕获 `4、8、16、32、64、96、128` 共 7 个 decode 档位（MTP 每请求一步算 `4` 个 token，对应 `1～32` 并发请求；请求运行期借块还块见 [R1 从借块到还块](vllm-kv-block-allocation.md#放到-glm-双机r1-从借块到还块)）。
 
 ## 常见误解
 
@@ -358,6 +352,6 @@ grep -E "Checkpoint size:|Loading model weights took|Model loading took|Availabl
 
 - **来源 1–15（`v0.30.0` 插件源码）**：`worker.py` 六步主体与 HCCL 建组（来源 1–6）、`NPUWorker310` 子类定制（来源 7）、`model_runner_v1.py` 权重加载计量与图捕获委托（来源 8–9）、`kernel_warmup.py` / `early_kernel_warmup.py` / `nz_warmup.py` 预热实现（来源 10–12）、`AscendConfig` 预热与 `weight_nz_mode` 定义（来源 13–14）及 `utils.py` 中 `maybe_trans_nz` 分形转换（来源 15）。
 - **来源 16–31（`v0.30.0` 配套上游 `vllm@ced6857a`）**：`WorkerProc`、`EngineCore._initialize_kv_caches`、`Executor` 调用顺序与 `min_num_blocks` 同步收缩（来源 16–19）、加载与录图标准日志（来源 20–21）、`LoadConfig` / `ModelConfig` / 加载器注册表 / `safetensors` 预读与 `process_weights_after_loading`（来源 22–28）以及配置、模型、分词器解析注册表（来源 29–31）。
-- **来源 32–38（官方文档与食谱）**：`Qwen3-Dense`[S32] 与 `Qwen3-30B-A3B` 启动指南、`additional_config.md`、`sleep_mode.md`、上游模型解析与 HF 集成文档，以及第 7 章 GLM 双机历史食谱（来源 38）。
+- **来源 32–38（官方文档与食谱）**：`Qwen3-Dense`[S32] 与 `Qwen3-30B-A3B` 启动指南、`additional_config.md`、`sleep_mode.md`、上游模型解析与 HF 集成文档，以及「09 旗舰异构模型全案」GLM 双机历史食谱（来源 38）。
 - **来源 39–48（跨版本与历史快照）**：`v0.23.0`（来源 39–40，上游 `enable_ep_weight_filter` 见来源 45）、`v0.26.0rc`（来源 41–42）、社区 `main` `JitWarmupRegistry` 重构与上游加载器（来源 43–44、46）、GLM 历史镜像后处理补丁（来源 47）及存档原文快照（来源 48）。
 - **未实测边界说明**：标尺表中的 `15.3 GiB` / `30.0 GiB` 与 `15～19 秒` 首次 `NZ` 转换开销分别来自静态参数字节换算与源码注释说明，具体机器上的实际耗时、`Compile and warming up model for size` 实际触发档位以及开启 `enable_ep_weight_filter` 在昇腾非 EPLB 场景下的可用性，均需以目标硬件实跑启动日志核实为准。

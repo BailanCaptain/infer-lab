@@ -11,29 +11,29 @@
   <rect x="480" y="80" width="330" height="65" fill="none"/>
   <rect x="483" y="83" width="324" height="59" rx="3" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
   <text x="645" y="117.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">在线入口与跨实例分流</text>
-  <rect x="480" y="80" width="330" height="65" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="480" y="80" width="330" height="65" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
   <rect x="480" y="185" width="330" height="65" fill="none"/>
   <rect x="483" y="188" width="324" height="59" rx="3" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
   <text x="645" y="222.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">E/P/D 部署编排</text>
-  <rect x="480" y="185" width="330" height="65" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="480" y="185" width="330" height="65" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
   <rect x="480" y="290" width="330" height="65" fill="none"/>
   <rect x="483" y="293" width="324" height="59" rx="3" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
   <text x="645" y="327.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">完整 KV 存储系统</text>
-  <rect x="480" y="290" width="330" height="65" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="480" y="290" width="330" height="65" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
   <rect x="480" y="395" width="330" height="65" fill="none"/>
   <rect x="483" y="398" width="324" height="59" rx="3" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
   <text x="645" y="432.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">伸缩、迁移与恢复控制</text>
-  <rect x="480" y="395" width="330" height="65" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="50" y="80" width="340" height="65" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="480" y="395" width="330" height="65" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <rect x="50" y="80" width="340" height="65" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #66716d)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="220" y="108.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">offline_inference.py</text>
   <text x="220" y="127.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">创建引擎，准备样例，再生成</text>
-  <rect x="50" y="185" width="340" height="65" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="50" y="185" width="340" height="65" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-token, #087f73)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="220" y="213.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">LLMEngine / EngineType</text>
   <text x="220" y="232.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">配置、请求进入与 P/D 类型</text>
-  <rect x="50" y="290" width="340" height="65" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="50" y="290" width="340" height="65" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="220" y="318.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">LLMEngine.step</text>
   <text x="220" y="337.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">调度、执行、结果处理</text>
-  <rect x="50" y="395" width="340" height="65" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="50" y="395" width="340" height="65" rx="8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.45" stroke-width="1.3" stroke-dasharray="5 4"/>
   <text x="220" y="423.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">cache_engine.py</text>
   <text x="220" y="442.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">设备内缓存分配与状态布局</text>
   <text x="430" y="520" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">引擎支持某种类型，只证明有这段能力；还要核对跨实例的数据与控制协议</text>

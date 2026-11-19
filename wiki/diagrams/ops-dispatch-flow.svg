@@ -11,23 +11,23 @@
   <path d="M555 320 L555 345 L655 345 L655 375" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ops-dispatch-flow-ah-control)"/>
   <path d="M200 455 L200 550 L360 550 L360 570" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ops-dispatch-flow-ah-token)"/>
   <path d="M655 455 L655 550 L520 550 L520 570" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ops-dispatch-flow-ah-token)"/>
-  <rect x="50" y="85" width="235" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="167.5" y="113.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Ascend 注册实现类</text>
-  <text x="167.5" y="132.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">名字 → 平台提供的类</text>
-  <rect x="375" y="85" width="435" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="592.5" y="113.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">CustomOp.__new__ 查 OOT 表</text>
-  <text x="592.5" y="132.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">有对应项用注册类；否则保留原类</text>
-  <rect x="275" y="265" width="330" height="55" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="440" y="297.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">enforce_enable 或 enabled()？</text>
-  <rect x="50" y="375" width="300" height="80" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="200" y="411" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">forward_native</text>
-  <text x="200" y="430" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">maybe_compile 按 compile_native 处理</text>
-  <rect x="500" y="375" width="310" height="80" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="655" y="411" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按平台选方法</text>
-  <text x="655" y="430" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">OOT 平台选择 forward_oot</text>
-  <rect x="250" y="570" width="380" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="440" y="596" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">forward 调用 _forward_method</text>
-  <text x="440" y="615" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">此层不再每次重新查表选方法</text>
+  <rect x="50" y="85" width="235" height="65" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="167.5" y="113.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Ascend 注册实现类</text>
+  <text x="167.5" y="132.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">名字 → 平台提供的类</text>
+  <rect x="375" y="85" width="435" height="65" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="592.5" y="113.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">CustomOp.__new__ 查 OOT 表</text>
+  <text x="592.5" y="132.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">有对应项用注册类；否则保留原类</text>
+  <rect x="275" y="265" width="330" height="55" rx="8" fill="var(--color-control-soft, #f1efe8)" stroke="var(--color-control, #66716d)" stroke-width="1.4"/>
+  <text x="440" y="297.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">enforce_enable 或 enabled()？</text>
+  <rect x="50" y="375" width="300" height="80" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="200" y="411" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">forward_native</text>
+  <text x="200" y="430" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">maybe_compile 按 compile_native 处理</text>
+  <rect x="500" y="375" width="310" height="80" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="655" y="411" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按平台选方法</text>
+  <text x="655" y="430" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">OOT 平台选择 forward_oot</text>
+  <rect x="250" y="570" width="380" height="60" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-width="1.4"/>
+  <text x="440" y="596" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">forward 调用 _forward_method</text>
+  <text x="440" y="615" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">此层不再每次重新查表选方法</text>
   <text x="180" y="335" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
   <text x="680" y="335" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
   <text x="50" y="655" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">OOT：框架主仓外的平台实现；设备方法内仍可有其他分支</text>

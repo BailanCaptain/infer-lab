@@ -101,9 +101,11 @@ rawSources:
 
 ## 这组比例控制什么，为什么 v0.24 起已删除？
 
-`prefetch_ratio` 是 `v0.23.0` 中 [weight_prefetch_config](weight-prefetch-config.md) 下的嵌套字典，用于按 `attn`、`moe`、`mlp` 三组共五个权重分别指定「预取权重的前百分之几」（最终请求尺寸还受取整、分组开关和路径规则影响）。`v0.23.0` 的默认值为 `{"attn": {"qkv": 1.0, "o": 1.0}, "moe": {"gate_up": 0.8}, "mlp": {"gate_up": 1.0, "down": 1.0}}`。官方定性报告这套默认值在 `Qwen3-235B-A22B-W8A8`（`--max-num-seqs 144`）与 `Qwen3-32B-W8A8`（`--max-num-seqs 72`）两档并发上限下表现良好（`max-num-seqs` 只是并发上限，不代表运行时始终满载，也没有给出默认值的数学推导；调参前应先抓 profiling，不能因模型或并发相近就套用）。
+提前把权重从 HBM 搬进 L2 cache 并非搬得越多越好：搬太少挡不住后面的矩阵乘等待，搬太多反而会挤占片上缓存与数据搬运通道（MTE），拖慢正在运行的向量算子。`prefetch_ratio` 曾作为 [weight_prefetch_config](weight-prefetch-config.md) 下的嵌套字典，按 `attn`、`moe`、`mlp` 三组共五个权重分别指定「只预取每块权重的前百分之几」（最终请求尺寸还受取整、分组开关和路径规则影响）。
 
-**版本与去向**：该子键仅在 `v0.23` 维护分支可用，`v0.23.0` 发布说明已将其列入待废弃清单，自 `v0.24.0rc` 起随 PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949) 连同父配置 `weight_prefetch_config` 一起删除，**没有等价替代键**。`v0.26.0rc` 的普通配置类逐键 `.get()` 会静默忽略旧父键（不代表整条启动命令一定通过），`v0.30.0` 与 `main` 通常按 `extra="forbid"` 拒收（装有 `vllm_omni` 时告警后过滤），把子键移到顶层同样不会生效，其他 KV/pool 预取机制也不沿用这组比例。
+**当前状态（`v0.30.0` `c09d3e20` 与 `main` `8d6180e2`）**：**`prefetch_ratio` 已随父配置 `weight_prefetch_config` 在 `v0.30.0` 与 `main` 中整体移除，且没有等价替代键**——它在 `v0.23.0` 发布说明中就已列入待废弃清单，自 `v0.24.0rc` 起随 PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949) 彻底删除。升级后若旧命令里还留着它，`v0.30.0` 与 `main` 通常会按 `extra="forbid"` 拒收（装有 `vllm_omni` 时告警过滤；`v0.26.0rc` 的普通配置类逐键 `.get()` 静默忽略，但不代表整条启动命令一定通过），把子键移到顶层同样不会生效，其他 KV/pool 预取机制也不沿用这组比例。
+
+在仍包含它的历史 **`v0.23.0`（`2c59ff10`）** 维护分支中，`prefetch_ratio` 的默认值为 `{"attn": {"qkv": 1.0, "o": 1.0}, "moe": {"gate_up": 0.8}, "mlp": {"gate_up": 1.0, "down": 1.0}}`。官方定性报告这套默认值在 `Qwen3-235B-A22B-W8A8`（`--max-num-seqs 144`）与 `Qwen3-32B-W8A8`（`--max-num-seqs 72`）两档并发上限下表现良好（`max-num-seqs` 只是并发上限，不代表运行时始终满载，也没有给出默认值的数学推导；调参前应先抓 profiling，不能因模型或并发相近就套用）。
 
 | 配置规则 | `v0.23.0` 行为 | 说明 |
 | --- | --- | --- |

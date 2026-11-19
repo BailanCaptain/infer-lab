@@ -27,7 +27,7 @@
   <rect x="16" y="242" width="424" height="122" rx="7" fill="#fff0e9" stroke="#b54237" stroke-width="1.4"/>
   <text x="30" y="268" font-size="14.5" font-weight="700" fill="#8f3229">开启 rl_config.enabled=true 立刻强制执行（3 项）</text>
   <text x="30" y="294" font-size="13.5" fill="#4d5652">1. 强制 weight_nz_mode = 0（关闭 FRACTAL_NZ 防精度错）</text>
-  <text x="30" y="318" font-size="13.5" fill="#4d5652">2. 调 _disable_expandable_segments() 剥离分配器冲突段</text>
+  <text x="30" y="318" font-size="13.5" fill="#4d5652">2. 剥离 expandable_segments（未开 sleep 后续补回 True）</text>
   <text x="30" y="342" font-size="13.5" fill="#8f3229" font-weight="600">3. 写入 VLLM_SERVER_DEV_MODE="1" 开放控制与更新端点</text>
 
   <rect x="460" y="242" width="424" height="122" rx="7" fill="#fff4cf" stroke="#c78300" stroke-width="1.4"/>

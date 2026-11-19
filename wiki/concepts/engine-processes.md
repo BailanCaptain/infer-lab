@@ -656,7 +656,7 @@ Kubernetes Service 命名与环境冲突的官方说明见来源 142；四版 VL
 
 通信参数的来源 95–97 连接 vLLM 的 Gloo 建组入口、PyTorch 2.10 文档与实际 getter；106 核接口精确匹配。98–100 是 CANN 9.1.X 三个环境变量的官方说明，101–102 锚定固定依赖与 A2 构建版本。103–105 对照 TensorPipe 两套消费者与后端注册/实例化的区别；固定两运行包的完整文本检索未发现 TensorPipe 初始化，不能把这种有范围的负向结论扩张到用户另装的插件。
 
-rc2 补证：107–111 连接共享准入计数的建立、检查和请求结束扣减；112–117 支持两种 headless 分支及 CLI、DP 参数派生；118–127 对照设备与环境入口；128–135 对照各进程补丁、MRV2 的 EPLB 校验和 EngineCore 提前初始化。固定 GLM 的配置缓存顺序见 136–140，旧 Balance 的早期回退见 141。
+`v0.30.0`（及历史 `v0.30.0rc2` 快照）补证：107–111 连接共享准入计数的建立、检查和请求结束扣减；112–117 支持两种 headless 分支及 CLI、DP 参数派生；118–127 对照设备与环境入口；128–135 对照各进程补丁、MRV2 的 EPLB 校验和 EngineCore 提前初始化。固定 GLM 的配置缓存顺序见 136–140，旧 Balance 的早期回退见 141。
 
 - 两台机器各起什么：vllm/entrypoints/cli/serve.py:138-148（单 API server 就是本进程）、:173-253（headless）；vllm/v1/engine/utils.py:121-170（CoreEngineProcManager）、:1084-1100（是否建 DP coordinator）；vllm/v1/engine/coordinator.py:80-157。
 - 进程标题：EngineCore 在 vllm/v1/engine/core.py:1118-1137，Worker 在 vllm/v1/executor/multiproc_executor.py:997-1031（依次拼上 _DP、_PP、_PCP、_TP、_DCP、_EP），标题前缀 VLLM 与 setproctitle 的使用在 vllm/utils/system_utils.py:184-198。

@@ -381,7 +381,7 @@ vllm serve /models/my-model \
   --chat-template /srv/templates/my-model-tools.jinja
 ```
 
-- 独立 CPU renderer 用 `vllm launch render MODEL` 启动，提供 `POST /v1/chat/completions/render` 与 `/v1/completions/render`，配合生成端 `POST /inference/v1/generate` 与 `/derender`（`v0.30.0` 普通 `serve` 需 `--enable-scale-out`，`main` 改由 `VLLM_ENABLE_SCALE_OUT_ENDPOINTS=1` 控制）。
+- 独立 CPU renderer 用 `vllm launch render MODEL` 启动，提供 `POST /v1/chat/completions/render` 与 `/v1/completions/render`，配合生成端 `POST /inference/v1/generate` 与 `/derender`（`v0.30.0` 与 `main` 普通 `serve` 均通过 `--enable-scale-out` 开启；早期历史快照 `84030bbe` 曾短暂使用环境变量 `VLLM_ENABLE_SCALE_OUT_ENDPOINTS` 控制）。
 - 其余前端与请求头开关：`--api-server-count`（internal LB 默认等于 DP 组数；node0 为 `1`、node1 `--headless`）、`--renderer-num-workers`（默认 `1`）、请求头 `X-Request-Id` 与 `X-data-parallel-rank`、环境变量 `VLLM_SKIP_MODEL_NAME_VALIDATION`、`VLLM_DISABLE_REQUEST_ID_RANDOMIZATION`（已标记将移除）、`VLLM_KEEP_ALIVE_ON_ENGINE_DEATH`、`VLLM_ENABLE_RESPONSES_API_STORE`（默认 `0`）。
 
 **思考强度进入模板**：Chat 顶层 `reasoning_effort`（默认 `None`，枚举 `none`/`minimal`/`low`/`medium`/`high`/`xhigh`/`max`）显式传入且 `chat_template_kwargs` 未含 `enable_thinking` 时，自动补入 `enable_thinking`（`none -> false`，其余 `-> true`），顶层字段优先覆盖 `kwargs` 同名键，最终结果仍按模板声明过滤。
@@ -431,7 +431,7 @@ trust-request-chat-template: false
 | API 服务启动与入口组织 | `entrypoints/openai/api_server.py` 与 `launcher.py` | 延续 `api_server.py`；新增 `scale_out` 路由 | 迁入 `entrypoints/launchers/api_server/entry.py`、`launchers/launcher.py` 与 `launchers/cli_args.py` | 延续 `launchers/`；原 `cli_args.py` 进一步拆分 |
 | 预处理器与多进程准入控制 | `serve/render/serving.py`，2 ms 微批（最多 32 条）共用 1 线程；单进程在途计数 | 迁至 `renderers/online_renderer.py`，逐条交线程池（默认 1 线程） | 延续 `OnlineRenderer`（多模态另 1 线程）；新增 `admission_control.py` 共享槽位近似汇总多 API 进程在途数（`n>1` 占 `n` 槽，HTTP 503 与 `max_num_seqs` 分层） | 延续 `OnlineRenderer` 与 `SharedAdmissionStats` |
 | 优雅停机（`--shutdown-timeout`） | `entrypoints/launcher.py` 协调 HTTP 与引擎死亡退出 | 同 `v0.23.0` | `shutdown_timeout=0`；事件循环接管停机信号，先按超时停 `engine_client` 再关 Uvicorn | 细化 `Server.shutdown()` 与 `handle_shutdown()` 协调 |
-| 拆分 render / derender 接口 | 生成任务直接挂 render 与 token-in/out；无 derender | 直接注册 render / 完整 derender；`launch render` 初始化后处理 | 普通 `serve` 需 `--enable-scale-out`；同一 `/derender` 新增 `stream=true` 逐片段后处理（Chat 拒 parser 与多 choice） | 普通 `serve` 改由 `VLLM_ENABLE_SCALE_OUT_ENDPOINTS` 三态开关控制（专用入口显式设 `0` 报错） |
+| 拆分 render / derender 接口 | 生成任务直接挂 render 与 token-in/out；无 derender | 直接注册 render / 完整 derender；`launch render` 初始化后处理 | 普通 `serve` 需 `--enable-scale-out`；同一 `/derender` 新增 `stream=true` 逐片段后处理（Chat 拒 parser 与多 choice） | 延续 `--enable-scale-out` 与 `stream=true` 逐片段后处理（`VLLM_ENABLE_SCALE_OUT_ENDPOINTS` 仅见于更早祖先快照 `84030bbe`，`ced6857a` 与 `ba15685a` 均已改用 CLI 开关） |
 | 工具插件与 YAML / 内容格式 | 插件仅按文件路径导入；YAML 略过 `false`；显式内容格式不告警 | 同 `v0.23.0` | 插件先按模块名导入再回退文件路径；YAML `false` 在有负开关时转 `--no-`；显式内容格式与模板检测不符时告警 | 同 `v0.30.0` |
 | `max_model_len` 与 `prompt_embeds` | KV 搜索不扣 null block；`prompt_embeds` 直接稠密化 | 稀疏不变量检查加进程锁 | KV 搜索先扣 1 个保留 null block；`yarn` 按已缩放处理；`prompt_embeds` 拒 encoder-decoder 并增 `VLLM_MAX_EMBED_DECODE_BYTES`（默认 `2 GiB`） | 延续 null block 与 `2 GiB` 保护（历史快照 `84030bbe` 的 `yarn` 仍重乘 `factor`，升级须核对） |
 | 昇腾入口补丁边界 | 仅动流式输出分段与空 `tool_calls` | 另包装 `render_chat` 承接重算恢复 token 列表 | 仅留特定模板/思考边界轻量补丁，入口主体完全复用上游 | 完全复用上游 OpenAI API 入口与预处理器 |

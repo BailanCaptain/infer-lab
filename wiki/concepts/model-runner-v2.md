@@ -66,13 +66,15 @@ contradicts: []
 updated: '2026-11-19'
 ---
 
-**Model Runner V2（简称 MRV2）**是 vLLM 与 vLLM Ascend 新一代单卡执行器，用来替代长期承担所有职责的单体式 `NPUModelRunner`（Model Runner V1，简称 MRV1）。在每一步推理中，**Model Runner（模型执行器）**负责把调度器下发的请求计划翻译成设备张量、运行模型前向并交给采样器产出 token；当并发拉高、解码步长压进毫秒级后，MRV1 在 CPU 侧反复整排请求表与同步拷贝输入张量的开销会盖过计算本身，而 MRV2 的核心改造就是把**持久化请求状态**、**常驻设备输入缓冲**以及 **PCP / EPLB / 投机解码**等横切能力拆成独立模块，把大量搬运与索引计算下沉到 NPU 设备侧。
+**Model Runner V2（简称 MRV2）**是 vLLM 与 vLLM Ascend 新一代单卡执行器，用来替代长期把所有职责塞在一个大文件里的第一代执行器（Model Runner V1，简称 MRV1）。每一步推理里，执行器都要把调度器发来的“本轮算哪些请求、各算几个 token”翻译成 NPU 上的张量、跑完前向并采样出新 token；当并发拉高、单步时间压到毫秒级时，旧版每步在 CPU 上反复重排整张请求表再同步拷给 NPU 的开销，很容易超过设备本身的计算时间。MRV2 的核心思路是**“状态常驻、缓冲预留、横切拆分”**：把输入缓冲和块表映射直接常驻在 NPU 侧，只每步送入少量变更索引，同时把上下文并行、专家负载均衡与投机解码拆成边界清晰的独立模块。
 
-在 `vLLM Ascend v0.30.0` 主基线上，MRV1 仍是未设环境变量时的默认执行器，而 MRV2 通过 `VLLM_USE_V2_MODEL_RUNNER=1` 按需开启；但 PCP 上下文并行、DeepSeek V4.1（Ascend 950/A5）、路由专家回传与 CPP 异步调度等新特性已强制要求 MRV2，且上游 `main` 分支已经彻底删除 MRV1 代码并统一到 `vllm_ascend/worker/v2/`。
+以一轮 **4 条并发请求各解 1 个 token 的示意 decode 步**来体会差别：在旧版 MRV1 里，CPU 需要先维护大表增删改，再把这 4 条请求的输入编号、位置编码和整批块表重新打包成连续数组拷贝到 NPU；而在 MRV2 里，输入张量与块表缓冲在启动时就已经常驻 NPU，CPU 每步只需异步写入 4 个槽位索引，由 NPU 上的轻量核函数就地填好有效区间，随后直接沿固定显存地址回放图。
+
+在 `vLLM Ascend v0.30.0` 主基线上，MRV1 仍是默认执行器，MRV2 需通过环境变量 `VLLM_USE_V2_MODEL_RUNNER=1` 按需开启；但 PCP 上下文并行、DeepSeek V4.1（Ascend 950/A5）、路由专家回传与 CPP 异步调度等新特性已强制要求 MRV2，且上游 `main` 分支已经彻底删除旧版执行器并统一收口到 MRV2 模块目录。
 
 ## 为什么需要从 MRV1 演进到 MRV2？
 
-先看同一轮解码 step 在两代执行器里的工作差异。在 [NPUModelRunner](npu-model-runner.md)（MRV1）中，数千行代码集中在 `vllm_ascend/worker/model_runner_v1.py`，宿主 CPU 通过 `NPUInputBatch` 维护一张大表，每步先在 `_update_states` 里增删改请求行，再在 `_prepare_inputs` 里串行打包输入编号、位置编码与块表后拷贝到 NPU（细节见 [输入拼装流程](prepare-inputs-flow.md)）。当引入 **PCP**（Prefill Context Parallelism，预填充上下文并行）、**EPLB**（Expert Parallelism Load Balancer，专家并行负载均衡）或混合状态模型时，所有分支都得挤进同一个巨型类里打补丁。
+先对照同一轮解码 step 在两代执行器里的工程分工。在 [NPUModelRunner](npu-model-runner.md)（MRV1）中，数千行逻辑集中在 `vllm_ascend/worker/model_runner_v1.py`，宿主 CPU 通过 `NPUInputBatch` 维护一张大表，每步先在 `_update_states` 里增删改请求行，再在 `_prepare_inputs` 里串行打包输入编号、位置编码与块表后拷贝到 NPU（细节见 [输入拼装流程](prepare-inputs-flow.md)）。当引入 **PCP**（Prefill Context Parallelism，预填充上下文并行）、**EPLB**（Expert Parallelism Load Balancer，专家并行负载均衡）或混合状态模型时，所有分支都得挤进同一个巨型类里打补丁。
 
 MRV2 把这条路径拆成了职责清晰的组件目录 `vllm_ascend/worker/v2/`，直接继承上游 vLLM 的 V2 `GPUModelRunner`，只在昇腾硬件语义确实不同的边界做子类覆写：
 

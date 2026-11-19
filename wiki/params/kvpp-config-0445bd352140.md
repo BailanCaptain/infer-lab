@@ -145,9 +145,13 @@ rawSources:
 ---
 ## 为什么它是派生对象而非用户输入键？
 
-`kvpp_config` 是 `AscendConfig` 上一个冻结的（`frozen=True`）子配置对象，**里面只有 `size: int = 1` 一个字段**，表示 KVPP 通信组的卡数。[KVPP](../concepts/kvpp.md#kvpp-是什么) 把同一组卡上原本各存一份的 MLA 历史 KV cache 按层分配给组内各卡，每层仅由一张常驻卡保存，层按几张卡平分除的就是这个 `size`。
+多卡部署 MLA（多头潜在注意力）模型时，同组各张卡原本都要保存一份**完全相同的全部层历史 KV cache**，显存重复占用了好几倍。[KVPP（KV Cache 流水线并行）](../concepts/kvpp.md#kvpp-是什么)把这些重复保存的层按卡分工——每一层历史 KV 只由组内一张卡常驻保存，算到哪一层再通过广播临时发给同组其他卡。`kvpp_config` 就是 `v0.30.0` 与 `main` 中 `AscendConfig` 用来保存这份分工结果的内部只读对象（冻结子配置 `frozen=True`，**里面只有 `size: int = 1` 一个字段**，表示一共由多少张卡来平分各层历史 KV）。
 
-最重要的边界是：**它不是用户填写的配置键，真正的开关是 `enable_kvpp`**。配置工厂调用 `KVPPConfig.from_vllm_config(vllm_config)`，读取 `additional_config["enable_kvpp"]`（默认为 `False`）并结合并行度自动计算 `size`，再作为关键字参数注入 `AscendConfig`；而 `"kvpp_config"` 这个名字直接列在 `_NON_USER_INPUT_KEYS` 中，用户在 `additional_config` 里硬写 `"kvpp_config": {"size": 4}` 会在进入 pydantic 校验之前就被静默剔除（没有任何针对该键的告警），既不会覆盖派生结果，也不会像其他未知顶层键那样触发 `extra="forbid"` 报错。
+最重要的边界是：**`kvpp_config` 不是用户填写的配置键，真正的开关是 `enable_kvpp`**。配置工厂调用 `KVPPConfig.from_vllm_config(vllm_config)`，读取 `additional_config["enable_kvpp"]`（默认为 `False`）并结合并行度自动计算 `size`，再作为关键字参数注入 `AscendConfig`；而 `"kvpp_config"` 这个名字直接列在 `_NON_USER_INPUT_KEYS` 中，用户在 `additional_config` 里硬写 `"kvpp_config": {"size": 4}` 会在进入 pydantic 校验之前就被静默剔除（没有任何针对该键的告警），既不会覆盖派生结果，也不会像其他未知顶层键那样触发 `extra="forbid"` 报错。
+
+拿一个具体数字看它怎样工作（**示意**：设 60 层非混合 MLA 模型、无 MTP，跑在 `TP = 8, PCP = 1` 上）：
+- 不开 `enable_kvpp` 时，派生出 `kvpp_config.size = 1`，8 张卡各自常驻全部 60 层历史 KV；
+- 写 `"enable_kvpp": true` 后，工厂自动派生 $\text{size} = \text{TP} \times \text{PCP} = 8 \times 1 = 8$，按 `divmod(60, 8) = (7, 4)` 把层分给 8 张卡——前 4 张卡各常驻 8 层、后 4 张卡各常驻 7 层，每卡另留 2 层复用的暂存缓冲（scratch buffer），单卡单块物理占用从 60 层降到最多 $8 + 2 = 10$ 层（完整放大比与天花板见 [`kvpp_config.size`](size-40a1c2ca47b8.md)）。
 
 | 维度 | 规则与取值 | 意味着什么 |
 | --- | --- | --- |

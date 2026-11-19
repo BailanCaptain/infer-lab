@@ -228,7 +228,7 @@ A 的最高候选是 41，B 的最高候选是 52；两边领先幅度都只有 
 
 例如原始流依次只发出增量“今天”“下雨”，客户端却显示“今天今天下雨”。用保存的这两个片段离线重放到客户端，仍得到重复文本；修正拼接后显示“今天下雨”，再对照整段原始流确认没有漏片段。在这个示意中，设备与生成参数都无需改变，重复发生在展示路径。若原始流里本来就有重复内容，则应继续向服务端追，不能沿用这个结论。
 
-**空输出**先保留结束原因、输出编号与原始流全部字段。模型直接选择结束编号、停止字符串截掉内容、内容进入思考或工具字段、生成过程出错，都有不同证据。启用 `tool_parser`（工具调用解析器）或 `reasoning_parser`（思考过程解析器）时，服务端会把特定标签之间的 token 拆进 `tool_calls` 或 `reasoning_content` 而令正文 `content` 看似为空；部分模型模板还自带思考开关或常驻思考（如 `main` 中 `patch_glm53_reasoning` 针对含 `Reasoning Effort:` 且不含 `enable_thinking` 的 GLM-5.3 模板做专门识别）。没有收到非空答案文本不等于设备没有执行。先按[采样的停止规则](sampling.md)与[返回处理](streaming-output.md)确认是哪一种。
+**空输出**先保留结束原因、输出编号与原始流全部字段。模型直接选择结束编号、停止字符串截掉内容、内容进入思考或工具字段、生成过程出错，都有不同证据。启用 `tool_parser`（工具调用解析器）或 `reasoning_parser`（思考过程解析器）时，服务端会把特定标签之间的 token 拆进 `tool_calls` 或 `reasoning_content` 而令正文 `content` 看似为空；部分模型模板还自带思考开关或常驻思考（如 `v0.30.0` 及 `main` 中的 `patch_glm53_reasoning` 针对含 `Reasoning Effort:` 且不含 `enable_thinking` 的 GLM-5.3 模板做专门识别）。没有收到非空答案文本不等于设备没有执行。先按[采样的停止规则](sampling.md)与[返回处理](streaming-output.md)确认是哪一种。
 
 停止字符串也会影响可见输出的时机：配置了停止字符串且不把它包含在输出中时，实现缓冲末尾的“最长停止字符串长度减一”个字符，其他情况缓冲长度为零。客户端暂时没看到文字，可能只是这段尾部仍在缓冲。
 
@@ -325,7 +325,7 @@ Runtime Guard 报告的 `dump_attempted` 表示动作被请求，不表示异步
 | 正确性取证核对项 | `v0.23.0 (2c59ff10)` / `vllm@0fc695fc` | `v0.26.0rc (2ed6cbba)` / `vllm@568afb3a` | `v0.30.0 (c09d3e20)` / `vllm@ced6857a` | `main (8d6180e2)` / `vllm@ba15685a` |
 |---|---|---|---|---|
 | `Runtime Guard` 在线监测与 KV 转储 | 无 | 无 | 无（`observability/` 仅含 metrics 基础配置，未含 `runtime_guard` 与 `runtime_config` 键） | 正式落地 `observability/runtime_guard/`（`hooks.py` 明确 MRV2-only），提供 `token_repeat`、`logits_finite`、`spec_acceptance` 三类检测器与热更新 KV 转储 |
-| Tool / Reasoning Parser 演进 | 上游 `OpenAIServingChat` 接入 `tool_parser` / `reasoning_parser`；按请求与模板分别核对 | 延续上游解析器扩展 | `vllm@ced6857a` 具备 53 个 `tool_parsers` / 34 个 `reasoning` 模块，`serving.py` 向引擎透传 `reasoning_parser_kwargs` | `vllm@ba15685a` 扩展至 64 个 `tool_parsers` / 44 个 `reasoning` 模块；`vllm-ascend@8d6180e2` 补齐 `patch_glm53_reasoning.py` 识别 GLM-5.3 常驻思考模板 |
+| Tool / Reasoning Parser 演进 | 上游 `OpenAIServingChat` 接入 `tool_parser` / `reasoning_parser`；按请求与模板分别核对 | 延续上游解析器扩展 | `vllm@ced6857a` 具备 53 个 `tool_parsers` / 34 个 `reasoning` `.py` 模块，`serving.py` 向引擎透传 `reasoning_parser_kwargs`；`vllm-ascend@c09d3e20` 已含 `patch_glm53_reasoning.py` 识别 GLM-5.3 常驻思考模板 | `vllm@ba15685a` 扩展至 63 个 `tool_parsers` / 43 个 `reasoning` `.py` 模块（目录另各含 1 份 `AGENTS.md`）；`vllm-ascend@8d6180e2` 原样保留 `patch_glm53_reasoning.py` |
 | 批不变性（`VLLM_BATCH_INVARIANT`） | 仅环境变量，注册依赖 Triton / AscendC；`reduce_sum` 维度过宽 | 同 `v0.23.0` | `attention_v1` FIA 无 sink/因果/非滑窗时拆分混合批；`reduce_sum` 支持 `axis`/`dtype` 保护；预编译 wheel 不含 csrc | 改用 `torch_npu.npu.set_deterministic_level(3)` 并无条件拆分 `npu_add_rms_norm`；详见 [批不变性版本表](batch-invariance.md#版本差异) |
 | MSProbe 与首次分歧排查 | 前缀对齐、贪心阈值 `1e-5`、停止串缓冲与逐层对比方法适用 | 相同 | 相同；同时记录主 KV 与 indexer 精度、MRV1/MRV2 | 相同；MSProbe 逐层对齐与图对比详见[msprobe 逐层精度对齐与输出异常定位](msprobe-accuracy-debug.md) |
 
@@ -334,7 +334,7 @@ Runtime Guard 报告的 `dump_attempted` 表示动作被请求，不表示异步
 
 ### 源码位置
 
-- `main (8d6180e2)` `Runtime Guard` 与 Reasoning Parser 实核：`vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_guard/hooks.py#L18-L145`（`runtime_guard_step` / `runtime_guard_sample_tokens`，明确 MRV2-only）、`detector/manager.py#L57-L95`（三类检测器注册）、`patch/platform/patch_glm53_reasoning.py#L21-L66`；上游 Tool / Reasoning Parser 透传与采样/反分词实核见 `vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L131-L165` 与 `vllm@ba15685a:vllm/entrypoints/openai/chat_completion/serving.py#L137-L175`、`v1/sample/sampler.py#L299-L365`、`v1/engine/detokenizer.py#L84-L170` [C31][C35]。
+- `v0.30.0` / `main` Reasoning Parser 与 `main (8d6180e2)` `Runtime Guard` 实核：`vllm-ascend@c09d3e20` / `8d6180e2:vllm_ascend/patch/platform/patch_glm53_reasoning.py#L21-L66`（已于 `v0.30.0` 入口 `patch/platform/__init__.py#L21` 导入）；`vllm-ascend@8d6180e2:vllm_ascend/observability/runtime_guard/hooks.py#L18-L145`（`runtime_guard_step` / `runtime_guard_sample_tokens`，明确 MRV2-only）、`detector/manager.py#L57-L95`（三类检测器注册）；上游 Tool / Reasoning Parser 透传与采样/反分词实核见 `vllm@ced6857a:vllm/entrypoints/openai/chat_completion/serving.py#L131-L165` 与 `vllm@ba15685a:vllm/entrypoints/openai/chat_completion/serving.py#L137-L175`、`v1/sample/sampler.py#L299-L365`、`v1/engine/detokenizer.py#L84-L170` [C31][C35]。
 - 四版 `batch_invariant.py` 与 `v0.30.0` FIA 混合批拆分实核见来源 27–30（`2c59ff10` / `2ed6cbba` / `c09d3e20`）；Runtime Guard 文档入口、热更新水位、配额及有限性同步语义见 [S16][S17]；MSProbe 详尽实操见[msprobe 逐层精度对齐与输出异常定位](msprobe-accuracy-debug.md)。
 
 - Runtime Guard 的检测阶段、V2 接线、报告与 KV 转储范围见 [S16]；启动 overlay、热更新、水位、配额、日志及有限性同步语义见 [S17]。它是收集证据的入口，不作为已定位根因的证明。

@@ -76,8 +76,8 @@ texts:
   - { at: [580, 166], text: 整份一致，才读第一个字节, size: 13 }
   - { at: [580, 190], text: 有一格不一致：一个字节都不读, size: 13, tone: danger }
   - { at: [318, 301], text: B 发起，把 A 的字节读进自己的地址 }
-  - { at: [450, 360], text: 批 1 = W1 + W2 = 0.9 GiB, size: 12.5, anchor: middle, tone: comm }
-  - { at: [450, 472], text: 批 2 = W3 = 0.8 GiB, size: 12.5, anchor: middle, tone: comm }
+  - { at: [450, 360], text: 批 1 = W1 + W2 = 0.9 GiB, size: 13, anchor: middle, tone: comm }
+  - { at: [450, 472], text: 批 2 = W3 = 0.8 GiB, size: 13, anchor: middle, tone: comm }
   - { at: [135, 578], text: 读完：三块原样还在，继续当 seed, anchor: middle, note: true }
   - { at: [765, 578], text: 读完：三段填满，和 A 一模一样, anchor: middle, note: true }
 

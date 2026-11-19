@@ -1,114 +1,20 @@
-layout: scene
+mode: native-svg
 id: enable-async-exponential
-caption: vllm-ascend v0.23 维护分支把 q 的生成从 softmax 之后提前提交到 forward 之前，争取与前向计算重叠；采样前仍须等待事件完成。图中的重叠不代表生成必定早于 forward 完成，投机解码的行数限制见正文。
-size: [900, 630]
-
-regions:
-  - label: 关（默认）：q 在 softmax 之后才填
-    note: 两条路径都在 global_stream 上填 q。差别只有一个：这一条填在主流已经算到采样的时候。
-    at: [20, 26]
-    size: [860, 214]
-    tone: upstream
-  - label: 开：forward 前提交 q 的生成
-    note: 副流先提交 exponential_，与前向有机会重叠；到采样时仍等待事件，完成先后由实际耗时决定。
-    at: [20, 262]
-    size: [860, 320]
-    tone: ascend
-
-boxes:
-  - at: [36, 128]
-    size: [186, 84]
-    title: 各层 model forward
-    sub: 主流自己算
-    fn: execute_model
-    tone: upstream
-  - at: [248, 128]
-    size: [186, 84]
-    title: softmax 出 probs
-    sub: fp32，宽 = 词表
-    fn: logits.softmax
-    tone: upstream
-  - at: [460, 128]
-    size: [186, 84]
-    title: 现在才填 q
-    sub: 主流停在这儿等
-    fn: exponential_
-    tone: accent
-    icon: clock
-  - at: [672, 128]
-    size: [186, 84]
-    title: 除 q 后取 argmax
-    sub: 这才出 token id
-    fn: random_sample
-    tone: upstream
-
-  - at: [36, 352]
-    size: [420, 84]
-    title: 各层 model forward
-    sub: 主流一路算下去，一眼都不看 q
-    fn: execute_model
-    tone: ascend
-    icon: layers
-  - at: [478, 352]
-    size: [140, 84]
-    title: softmax
-    sub: 宽 = 词表
-    tone: ascend
-  - at: [636, 352]
-    size: [222, 84]
-    title: 同步一下，取 argmax
-    fn: async_event.synchronize
-    tone: accent
-
-  - at: [36, 470]
-    size: [420, 84]
-    title: 副流先把 q 填满
-    sub: b_s × 词表宽的 float32，b_s = logits_indices 行数
-    fn: do_async_exponential
-    tone: accent
-    icon: bolt
-  - at: [478, 470]
-    size: [380, 84]
-    title: 记一个事件，等着被取用
-    sub: q 与 event 一起交给 sampler
-    fn: set_q_event
-    tone: accent
-    icon: slot
-
-arrows:
-  - { from: [224, 170], to: [246, 170], tone: upstream }
-  - { from: [436, 170], to: [458, 170], tone: upstream }
-  - { from: [648, 170], to: [670, 170], tone: upstream }
-  - { from: [458, 394], to: [476, 394], tone: ascend }
-  - { from: [620, 394], to: [634, 394], tone: ascend }
-  - { from: [458, 512], to: [476, 512], tone: accent }
-  - { from: [747, 468], to: [747, 440], tone: accent, label: 等 q 完成 }
-
-notes:
-  - at: [36, 344]
-    text: 默认流：这一步的主线
-    size: 12.5
-  - at: [36, 462]
-    text: global_stream：进程级的那条副流，不是本特性独占
-    size: 12.5
-  - at: [36, 572]
-    text: 是否缩短等待要看实际重叠；这块 float32 从 forward 开头一直占到采样结束。
-    size: 12.5
-    width: 824
-  - at: [20, 606]
-    text: main（baa023ad）上这条路径整段没了：do_async_exponential、set_q_event、事件对象和取用分支一并删除，采样只剩同步的 random_sample。
-    size: 12.5
-    width: 860
-    strong: true
-
+caption: >-
+  v0.23.0 将指数随机数 q 的生成从 softmax 之后提前到 forward 之前提交至 global_stream 争取重叠，采样前仍须 host 侧同步；v0.25.1rc1（PR #12306）起整体删除，v0.30.0 仅保留同步 random_sample（补 record_stream），main 退役 MRV1 采样器。
+size: [900, 544]
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L20-L43
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L20-L43'
     symbols: [random_sample, exponential_, argmax]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L90-L103
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L90-L103'
     symbols: [do_async_exponential, set_q_event, b_s, float32]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L146-L191
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L146-L191'
     symbols: [logits.softmax, async_event.synchronize]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2278-L2322
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2278-L2322'
     symbols: [execute_model, enable_async_exponential]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L531-L537
+  - source: 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L531-L537'
     symbols: [global_stream]
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/sample/sampler.py#L18-L42'
+    symbols: [random_sample, record_stream]
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L2018-L2033'
+    symbols: [unknown_keys]

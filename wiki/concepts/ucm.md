@@ -18,7 +18,6 @@ aliases:
   - 集中式 KV 存储
   - 存算分离
   - UCMECConnector
-  - 多模态编码缓存
 chapters:
   - '11'
 sources:

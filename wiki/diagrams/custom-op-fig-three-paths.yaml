@@ -1,0 +1,14 @@
+mode: native-svg
+id: custom-op-fig-three-paths
+caption: >-
+  昇腾三条自定义算子实现路径与硬件能力门控对照：第一优先调用 torch_npu 内置 ACLNN/ATB 算子；其次针对融合或非标算子选用 Triton-Ascend（需顾及 UB 容量与 CANN 扩展）或 AscendC 编译进 vllm_ascend_C（需补齐 Meta 推导）；底部标出 v0.30.0 下 950 禁用 vllm_ascend_C 与 310P 走兼容算子的硬件门控。
+size: [900, 440]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/utils.py#L540-L585
+    symbols: [enable_custom_op, RUNTIME_CUSTOM_OPS, VLLM_BATCH_INVARIANT]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/triton/triton_utils.py#L13-L65
+    symbols: [DEFAULT_UB_SIZE_BYTES, HAS_TRITON, _resolve_triton_ascend_op]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L382
+    symbols: [HardwareProfile, AscendDeviceType, COMPATIBILITY_OP_IMPLEMENTATIONS, RUNTIME_CUSTOM_OPS]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L430-L500
+    symbols: [RUNTIME_CUSTOM_OPS]

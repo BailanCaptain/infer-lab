@@ -1,0 +1,12 @@
+mode: native-svg
+id: pooling-fig-ar-vs-pooling
+caption: >-
+  自回归生成（--runner generate）、池化非自回归（--runner pooling：Embedding / Reranker / Reward）与编解码器（Encoder-Decoder / Whisper ASR）三条执行路径对比：Pooling 在单轮前向后跳过 lm_head 与 Sampler 直入 _pool() 输出向量或分数；Encoder-Decoder 则先算音频/源文本编码器写入跨注意力 KV，并受 platform.py 限制仅支持 PIECEWISE 或 Eager 图模式。
+size: [900, 440]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2624-L2638
+    symbols: [is_pooling_model, _pool, compute_logits]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1231-L1247
+    symbols: [is_encoder_decoder, cudagraph_mode, PIECEWISE, VLLM_COMPILE]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1189-L1194
+    symbols: [ENCODER_DECODER, num_actual_tokens, slots_to_cache]

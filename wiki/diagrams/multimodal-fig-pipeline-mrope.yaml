@@ -1,0 +1,12 @@
+mode: native-svg
+id: multimodal-fig-pipeline-mrope
+caption: >-
+  多模态请求从图像/视频切块（Patch）到语言主干（LLM）的数据流：前端预处理先把每张图展开为固定数量占位 token，视觉编码器（ViT）可按 --mm-encoder-tp-mode 在 weights（每层 All-Reduce）与 data（样本级分卡 + 尾部一次 All-Gather）间切换，随后经 _merge_multimodal_embeddings 原地覆写占位向量，并在语言主干用 M-RoPE 为每个视觉 token 注入 (T, H, W) 三维位置编码。
+size: [900, 470]
+pins:
+  - source: vllm@ced6857a:vllm/model_executor/models/utils.py#L689-L725
+    symbols: [_merge_multimodal_embeddings, inputs_embeds, multimodal_embeddings, is_multimodal]
+  - source: vllm@ced6857a:vllm/model_executor/models/vision.py#L295-L325
+    symbols: [run_dp_sharded_vision_model, tensor_model_parallel_all_gather]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ops/rotary_embedding.py#L601-L683
+    symbols: [AscendMRotaryEmbedding, forward_triton, triton_mrope, npu_mrope, mrope_section]

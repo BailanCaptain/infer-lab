@@ -1,0 +1,14 @@
+mode: native-svg
+id: cluster-fig-routing-and-probes
+caption: >-
+  昇腾多实例生产服务集群架构：对比外部 DP 协同模式（共享跨机 EP/DP 通信域与 DPSupervisor 聚合就绪）与独立多实例网关代理模式（结合 /load、KVEventsConfig 前缀事件与动态分桶路由），并在底部标出长冷启动录图期探针配置与 --shutdown-timeout 优雅摘流时序。
+size: [900, 440]
+pins:
+  - source: vllm@ced6857a:vllm/entrypoints/serve/instrumentator/health.py#L22-L33
+    symbols: [health, check_health, EngineDeadError]
+  - source: vllm@ced6857a:vllm/entrypoints/serve/instrumentator/basic.py#L30-L51
+    symbols: [get_server_load_metrics]
+  - source: vllm@ced6857a:vllm/entrypoints/launchers/launcher.py#L138-L163
+    symbols: [handle_shutdown, shutdown_timeout]
+  - source: vllm@ced6857a:vllm/config/kv_events.py#L11-L52
+    symbols: [KVEventsConfig, enable_kv_cache_events]

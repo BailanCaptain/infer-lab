@@ -1,0 +1,14 @@
+mode: native-svg
+id: mrv2-fig-v1-vs-v2
+caption: >-
+  Model Runner V1 与 Model Runner V2 的状态持有与每步输入流转对比：V1 每步由 Host 侧 NPUInputBatch 重整并搬运输入，而 V2 通过常驻设备侧 AscendInputBuffers 与 UVA/零拷贝共享的 AscendRequestState 直接切片更新，并在 main（8d6180e2）统一替代 V1。
+size: [900, 440]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/v2/input_batch.py#L29-L85
+    symbols: [AscendInputBuffers, AscendInputBatch, query_start_loc, seq_lens_cpu]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/v2/states.py#L24-L46
+    symbols: [AscendRequestState, num_computed_tokens_cpu]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L135-L170
+    symbols: [NPUModelRunner, GPUModelRunner, supports_standardized_shared_kv_backing]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L89
+    symbols: [use_v2_model_runner, apply_v2_model_runner_config_patch]

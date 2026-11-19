@@ -98,16 +98,26 @@ export const TOOL_DEEPLINK_MANIFEST: readonly ToolDeepLinkManifestEntry[] = [
   { pageId: "data-parallel", tool: "shared" },
   { pageId: "expert-parallel", tool: "shared" },
 
-  // ---- Un-upgraded Wave-4 / legacy-baseline pages (verified lacks "releases/v0.30.0") ----
-  { pageId: "hccl-buffer", tool: "shared" },
+  // ---- Wave-4B upgraded v0.30.0 attention/memory & newly authored pages ----
   { pageId: "kv-cache-spec", tool: "deploy-calculator" },
+  { pageId: "mla", tool: "deploy-calculator" },
+  { pageId: "linear-attention", label: "KDA（线性注意力）", tool: "deploy-calculator" },
+  { pageId: "sparse-attention", tool: "shared" },
+  { pageId: "engram-conditional-memory", tool: "deploy-calculator" },
+  { pageId: "moe-comm-dispatch", tool: "shared" },
+  { pageId: "epd-disaggregation", tool: "config-doctor" },
+  { pageId: "model-runner-v2", tool: "config-doctor" },
+  { pageId: "v030-release-baseline", tool: "config-doctor" },
+  { pageId: "aisbench-and-evalscope", tool: "troubleshoot-workbench" },
+  { pageId: "msprobe-accuracy-debug", tool: "troubleshoot-workbench" },
+  { pageId: "cluster-serving", tool: "config-doctor" },
+
+  // ---- Un-upgraded Wave-4C / Exception-B legacy-baseline pages (verified lacks "releases/v0.30.0") ----
+  { pageId: "hccl-buffer", tool: "shared" },
   { pageId: "pd-disaggregation", tool: "config-doctor" },
   { pageId: "mooncake-connector", tool: "config-doctor" },
   { pageId: "npugraph-ex", tool: "config-doctor" },
   { pageId: "acl-graph", tool: "shared" },
-  { pageId: "mla", tool: "deploy-calculator" },
-  { pageId: "linear-attention", label: "KDA（线性注意力）", tool: "deploy-calculator" },
-  { pageId: "sparse-attention", tool: "shared" },
   { pageId: "attention-backend-family", tool: "shared" },
   { pageId: "ascend-950-architecture", tool: "shared" },
   { pageId: "device-memory", tool: "deploy-calculator" },

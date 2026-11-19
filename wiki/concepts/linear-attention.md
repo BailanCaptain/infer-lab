@@ -58,9 +58,14 @@ sources:
   - >-
     raw:sha256-f1eb696b50d5560664ed320075d8c1a7bbd054b35e5f158fbd2b78fc2047b335.md#L1-L1026
   - 'vllm-ascend@7d825229:vllm_ascend/models/glm5next/kda.py#L108-L187'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/kda.py#L107-L190'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L211-L310'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda_input_projection_tp.py#L18-L62'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/recoverssm_config.py#L13-L44'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -80,7 +85,7 @@ relations:
     kind: alternative-to
     note: 每 4 层里那 1 层用另一条路线，保留按位置访问的历史
 contradicts: []
-updated: '2026-11-03'
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -177,16 +182,15 @@ file: linear-attention-state
 
 图画的是单个头、单个位置的递推。真实一层还要多几步：模型先从隐藏向量投影出 q、k、v，以及写入强度和两个门；q、k、v 各过一个短卷积，q、k 再各自归一到长度 1（L2 归一化），这一步让 (I − β k kᵀ) 不会把状态放大；多个头各自维护自己的状态，读出结果最后经输出门、归一化和输出投影回到隐藏宽度。
 
-把这五步在两维上走一遍就能看清各项的作用。取旧状态为单位矩阵，衰减取 diag(0.5, 1)，也就是第一个通道每步只保留一半、第二个通道全保留；再取 k 和 q 都等于 (1, 0)，v 等于 (3, 2)，写入强度 β 为 0.5：
+把这五步在两维上走一遍就能看清各项的作用（示意数，用来检查五步公式，不是 GLM 的实际激活值）。取旧状态 $S_{t-1} = I$，按通道衰减 $D = \text{diag}(0.5, 1)$（第一通道每步只留一半、第二通道全保留），再取 $k = q = (1, 0)^\top$、$v = (3, 2)^\top$、写入强度 $\beta = 0.5$：
 
-```calc
-title: 一次更新的二维教学算例
-衰减后的预测 v̂ = S̄ᵀ k = (0.5, 0)
-误差 e = (3, 2) − (0.5, 0) = (2.5, 2)
-更新后状态 Sₜ = S̄ + 0.5 × k eᵀ = [[1.75, 1], [0, 1]]
-读出 o = Sₜᵀ q = (1.75, 1)
-> 这几个数只用来检查上面五步，不是 GLM 的实际激活值
-```
+| 步骤 | 算式 | 结果 |
+|---|---|---|
+| 1. 衰减 $\bar{S}$ | $D S_{t-1} = \text{diag}(0.5, 1) \cdot I$ | $\begin{bmatrix}0.5 & 0 \\ 0 & 1\end{bmatrix}$ |
+| 2. 预测 $\hat{v}$ | $\bar{S}^\top k$ | $(0.5,\; 0)^\top$ |
+| 3. 误差 $e$ | $v - \hat{v} = (3, 2)^\top - (0.5, 0)^\top$ | $(2.5,\; 2)^\top$ |
+| 4. 更新 $S_t$ | $\bar{S} + 0.5\, k e^\top$ | $\begin{bmatrix}1.75 & 1 \\ 0 & 1\end{bmatrix}$ |
+| 5. 读出 $o$ | $S_t^\top q$ | $(1.75,\; 1)^\top$ |
 
 每步改写的是这条请求的状态，投影权重始终不变。所以同一份权重服务很多请求，各请求的状态互不相干；而状态一旦被覆盖，就没有别处能把它算回来，这也是抢占（把请求的缓存收回、以后重算）在这类层上代价更高的原因。
 
@@ -224,15 +228,15 @@ title: 一次更新的二维教学算例
 
 **12 个块号折成显存约 95.6 MiB，比上一节的 85 MiB 多，因为两个数算的东西不同。** 85 MiB 只计 34 层对应的已补齐页面。块池却按整个块号记账：一个块号在每张卡上对应 12 个 655,360 B 的主槽和 12 个 40,960 B 的索引器小槽，合 7.969 MiB；同一时刻一个块号只归一个组，所以哪个组拿到它，这 7.969 MiB 就整份算被占住，推导见[部署页](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)。KDA 组拿到块号后用不满：12 层那组占用 12 个主槽，11 层的两组各空一个；索引器小槽给稀疏 MLA 使用，KDA 组不用。
 
-```calc
-title: 一条请求的 KDA 状态，两种口径
-KDA 对应页容量（含页内填充） = 89,128,960 B = 85.0 MiB，34 层 × 4 页 × 655,360 B
-按块号记账 = 12 × 8,355,840 B = 100,270,080 B ≈ 95.6 MiB
-差额 = 100,270,080 B − 89,128,960 B = 11,141,120 B ≈ 10.6 MiB
+一条请求的 KDA 状态在两种记账口径下相差约 $10.6\text{ MiB}$，拆解如下：
 
-11 层的两组空出的主槽 = 2 组 × 4 块 × 655,360 B = 5,242,880 B = 5.0 MiB
-KDA 用不上的索引器小槽 = 12 块 × 12 × 40,960 B = 5,898,240 B ≈ 5.6 MiB
-```
+| 记账项 | 算式 | 字节数 | MiB |
+|---|---|---|---|
+| KDA 对应页容量（含页内填充） | $34\text{ 层} \times 4\text{ 页} \times 655{,}360\text{ B}$ | $89{,}128{,}960\text{ B}$ | $85.0\text{ MiB}$ |
+| 按块号记账（12 个块号） | $12 \times 8{,}355{,}840\text{ B}$ | $100{,}270{,}080\text{ B}$ | $\approx 95.6\text{ MiB}$ |
+| 差额合计 | $100{,}270{,}080 - 89{,}128{,}960$ | $11{,}141{,}120\text{ B}$ | $\approx 10.6\text{ MiB}$ |
+| ↳ 差额 1：11 层两组空出的主槽 | $2\text{ 组} \times 4\text{ 块} \times 655{,}360\text{ B}$ | $5{,}242{,}880\text{ B}$ | $5.0\text{ MiB}$ |
+| ↳ 差额 2：KDA 用不上的索引器小槽 | $12\text{ 块} \times 12 \times 40{,}960\text{ B}$ | $5{,}898{,}240\text{ B}$ | $\approx 5.6\text{ MiB}$ |
 
 问单份有效状态看前面的 561,152 B/层；含投机份数和页内填充的页面容量看 85 MiB；估算块池还能放多少请求，则按 12 个块号、约 95.6 MiB。部署页短请求的「15 块约 119.5 MiB」也是块号口径。这三者都不直接给出每步访存流量。
 
@@ -318,22 +322,22 @@ KDA 不能关：去掉它，模型就不是这个模型。它省掉的是随长�
 
 ### 版本差异
 
-**v0.30.0rc2 沿用 GLM 自带的 KDA 实现，并明确了构造限制与 TP 投影布局。** Glm5NextLinearAttention 继承 GatedDeltaNetAttention，状态形状交给上游 kda_state_shape，并传入 num_spec 为投机保留卷积状态空间；激活须 BF16、head_dim=128，卷积宽度在 2–4，投机数不超过 7，开启投机时卷积宽度须为 4，门的下界在 [-5,0)。
+**`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）沿用 GLM 自带的 `Glm5NextLinearAttention`，并在 `main` 上进一步新增细粒度输入投影 TP（`KDAInputProjectionTP`）、PCP 列切与 RecoverSSM 开关。** `Glm5NextLinearAttention` 继承 `GatedDeltaNetAttention`，状态形状交给上游 `MambaStateShapeCalculator.kda_state_shape` 并传入 `num_spec` 为投机保留卷积状态空间；构造期强校验 `BF16` 激活、`head_dim=128`、卷积宽度在 2–4、投机数不超过 7（开启投机时核宽须为 4）及门下界在 `[-5, 0)`。
 
-与本页旧镜像分别构造投影的路径相比，rc2 将 q、k、v、b、f_a、g_a 合并成一次投影；其中 f_a、g_a 的分片在 TP rank 间复制，其余按相应输出分片加载。递推公式、历史状态的含义没有因这次合并而改变，但旧的 GEMM 次数与逐参数存储布局不能直接用于 rc2 的性能或显存账。KDA 构造通过也不解除同一模型 KPool 对 CP 的限制。
+与旧镜像 `db701c1f` 分别构造投影的路径相比，`v0.30.0` 与 `main` 将 `q, k, v, b, f_a, g_a` 合并为一次 `in_proj_qkvbfg_a`（`f_a, g_a` 在 TP rank 间复制，其余按输出分片加载）。`main` 还额外引入两条新能力：① `KDAInputProjectionTP`（配 `finegrained_tp_config.qkv_iproj_tensor_parallel_size`），通过异步 `all_to_all_single` 与本地 `f_b_proj` / `g_b_proj` 上投影重叠；② `use_glm_recoverssm`（借上游 `cache_config.use_replayssm` 开关，要求开启投机解码、`PP=1`、`DCP=1`，`PCP>1` 时须 `TP=1` 且为 `kv_producer`）。递推公式、历史状态的数学含义没有因合并投影而改变，但旧镜像的 GEMM 次数与逐参数显存账不能直接套用到 `v0.30.0` / `main`。
 
-三个分支按知识库钉住的提交读：v0.23 维护分支 Ascend `2c59ff10`、v0.26 的 rc 快照 `2ed6cbba`、main `baa023ad`。**本页 GLM 的数字取自专用镜像 `db701c1f`（控制流仍按 vLLM `0fc695fc`），它和 v0.23 维护分支不是同一提交。**
+**四版本核验矩阵（本页 GLM 双机数字固定于专用镜像 `db701c1f` + vLLM `0fc695fc`）：**
 
-| 项目 | v0.23 | v0.26 | main |
-|---|---|---|---|
-| KDA 层实现 | 维护快照只有 triton 版的 KDA 算子，没有 `kimi_kda.py`，也没有 GLM 模型文件；本页数字取自镜像 `db701c1f` | 有 `kimi_kda.py` 与状态形状函数，但没有 GLM-5.3-Flash 的模型文件，组不起这个模型 | GLM 自带 `models/glm5next/kda.py` 里的 linear attention 层，不再借用 Kimi 的替换类 |
-| 替换时机 | 镜像里按 vLLM 版本判断，只在 0.23.0 时替换 | 无条件登记在替换表里，不再判版本 | 模型自己构造，不走替换表 |
-| 卷积状态留投机位 | 维护快照无此文件 | 与镜像同一算法：核长减 1 再加投机数 | 走上游的通用形状函数，同样传投机数 |
-| 分段段长 | triton 实现里的分段算法 | AscendC 分段算子，段长常数 64 | 仍按 64 的段描述符 |
-| 投机上限与构造检查 | 无 | 只在运行路径检查元数据 | 构造时就限制投机数不超过 7，并检查维度、精度、核宽与门下界 |
-| 状态布局转置 | 无此文件 | 与镜像相同：缓存按「头、dᵥ、dₖ」，算子边界转一次 | 转置改在卷积状态一侧，另有算子自己的维度约定 |
+| 项目 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
+|---|---|---|---|---|
+| KDA 层实现 | 维护快照仅有 triton 版算子，无 `kimi_kda.py` 与 GLM 模型（本页算例取镜像 `db701c1f`） | 有 `kimi_kda.py` 与状态形状函数，仍无 GLM-5.3-Flash 模型文件 | `models/glm5next/kda.py` 自带 `Glm5NextLinearAttention`，合并 `in_proj_qkvbfg_a` | 同 `v0.30.0`，新增 `PCPGlm5NextMergedColumnParallelLinear`、细粒度 `KDAInputProjectionTP` 与 `use_glm_recoverssm` |
+| 替换时机 | 镜像仅在 vLLM 0.23.0 时走替换表 | 无条件登记替换表 | 模型直接构造，不走替换表 | 同 `v0.30.0` |
+| 卷积状态留投机位 | 维护快照无此文件（镜像手动加 `num_spec`） | 核长减 1 加投机数 | 交上游 `kda_state_shape(..., num_spec=self.num_spec)` | 同 `v0.30.0` |
+| 分段段长 | triton 分段算法 | AscendC 分段算子，段长 64 | 段长 64 | 同 `v0.30.0` |
+| 投机上限与构造检查 | 无构造期检查 | 仅运行期查元数据 | 构造期强校验 `BF16`、`head_dim=128`、投机数 $\le 7$、核宽 2–4（投机须为 4） | 同 `v0.30.0`，另增 `validate_glm_recoverssm` 拓扑校验 |
+| 状态布局转置 | 维护快照无此文件 | 缓存按「头、$d_v$、$d_k$」，算子边界转置 | 转置改在卷积状态侧，按 AscendC 算子维度约定 | 同 `v0.30.0` |
 
-哪一版有 GLM 代码，是用 `git ls-tree` 列出各提交的文件后检索得到的（2026-09-28）。`2ed6cbba` 虽然已经有 KDA 算子和状态形状函数，却没有这个模型的文件，这一点在 [KV cache 的版本差异](kv-cache.md#版本差异)已经核过；`baa023ad` 才出现 `models/glm5next/` 目录。三版能否整套跑本文部署，未做运行验证；各分支与镜像的对应、部署侧已核与未核的范围见[来源基线](../sources/glm-5-3-flash-baseline.md)。表中各项的位置分别是：v0.23 只有 triton 版算子，[C25] v0.26 的替换表与状态形状函数，[C26][C27] main 的构造检查、布局与算子封装。[C28][C29][C30]
+四版能否在双机上整套跑通本页部署未做实机验证；各分支与镜像的对应见[来源基线](../sources/glm-5-3-flash-baseline.md)。表中各版本证据位置：`v0.23.0` 见来源 25、`v0.26.0rc` 见来源 26–27、`rc2`/旧 `main` 见来源 28–30 与 32、`v0.30.0`（`c09d3e20`）`Glm5NextLinearAttention` 见来源 33、`main`（`8d6180e2`）`KDAInputProjectionTP` 与 `recoverssm_config` 见来源 34–36。
 
 ### 源码位置
 

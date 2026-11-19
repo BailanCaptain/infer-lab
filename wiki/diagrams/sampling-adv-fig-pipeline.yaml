@@ -1,0 +1,12 @@
+mode: native-svg
+id: sampling-adv-fig-pipeline
+caption: >-
+  vLLM V1 Sampler 的严格执行顺序与 vllm-ascend v0.30.0 昇腾快慢路径分流：先按 logprobs_mode 抓取原始概率，再依次执行不可保序规则（白名单/禁词/MinTokens/偏置）、三类重复惩罚、温度缩放、可保序规则（min_p）与 Top-k/Top-p 截断；昇腾侧用 Triton 加速惩罚、用 sort+mask 规避混合 k 下 npu_top_k_top_p 的 5~28ms 退化，并用独立流 Gumbel-max 消除 torch.multinomial 的 CPU-NPU 同步。
+size: [900, 490]
+pins:
+  - source: vllm@ced6857a:vllm/v1/sample/sampler.py#L73-L150
+    symbols: [raw_logprobs, apply_logits_processors, gather_specific_token_logprobs, gather_logprobs]
+  - source: vllm@ced6857a:vllm/v1/sample/sampler.py#L244-L300
+    symbols: [sample, all_greedy, apply_temperature, argmax_invariant, topk_topp_sampler]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/sample/sampler.py#L18-L167
+    symbols: [AscendSampler, AscendTopKTopPSampler, random_sample, apply_penalties, _apply_top_k_top_p_pytorch, VLLM_BATCH_INVARIANT]

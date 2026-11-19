@@ -148,7 +148,9 @@ test("2. 站内 4 处内嵌 wiki-tool 围栏真实交互与零知识倒挂", asy
   expect(errors).toEqual([]);
 });
 
-test("3. /#/tools?tab=calculator Mode A、Wave-4 拦截与 Mode B 日志对账", async ({ page }) => {
+test("3. /#/tools?tab=calculator Mode A、Wave-4 异构架构解锁（MLA/KDA/CSA2/Engram）与 Mode B 日志对账", async ({
+  page,
+}) => {
   const errors = attachErrorCollector(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/#/tools?tab=calculator");
@@ -185,21 +187,42 @@ test("3. /#/tools?tab=calculator Mode A、Wave-4 拦截与 Mode B 日志对账",
 
   await page.screenshot({ path: join(EVIDENCE_DIR, "05-workbench-calc-mode-a.png"), fullPage: true });
 
-  // Wave-4 MLA interception demo
-  await calc.getByRole("button", { name: /DeepSeek-V3 MLA/ }).click();
-  const intercept = calc.getByTestId("wave3-arch-intercept");
-  await expect(intercept).toBeVisible();
-  const mlaLink = intercept.getByTestId("tool-deeplink-mla");
+  // Wave-4 MLA unlocked preset demo
+  await calc.getByTestId("wave4-demo-deepseek-v3-mla").click();
+  const wave4Banner = calc.getByTestId("wave4-arch-active");
+  await expect(wave4Banner).toBeVisible();
+  await expect(wave4Banner).toContainText("Wave 4 异构注意力/记忆账本已激活");
+  await expect(wave4Banner).toContainText("MLA");
+  await expect(wave4Banner).toContainText("1152 B/tok/层");
+  await expect(calc.getByTestId("wave3-arch-intercept")).toHaveCount(0);
+  const mlaLink = wave4Banner.getByTestId("tool-deeplink-mla");
   await expect(mlaLink).toBeVisible();
-  await expect(mlaLink).toHaveAttribute("data-legacy-baseline", "true");
-  await expect(mlaLink.getByTestId("legacy-baseline-badge")).toHaveText("历史基线页（待更新）");
-  await page.screenshot({ path: join(EVIDENCE_DIR, "06-workbench-calc-wave4-intercept.png") });
+  await expect(mlaLink).toHaveAttribute("data-legacy-baseline", "false");
+  await expect(mlaLink.getByTestId("legacy-baseline-badge")).toHaveCount(0);
+  await assertRooflineSvgTextsInsideViewBox(page);
+  await page.screenshot({ path: join(EVIDENCE_DIR, "06-workbench-calc-wave4-mla-unlocked.png") });
+
+  // Wave-4 Hybrid KDA + GQA preset demo
+  await calc.getByTestId("wave4-demo-hybrid-kda-gqa").click();
+  await expect(wave4Banner).toBeVisible();
+  await expect(wave4Banner).toContainText("KDA");
+  await expect(wave4Banner).toContainText("MiB/seq");
+  const kdaLink = wave4Banner.getByTestId("tool-deeplink-linear-attention");
+  await expect(kdaLink).toBeVisible();
+  await expect(kdaLink).toHaveAttribute("data-legacy-baseline", "false");
+  await assertRooflineSvgTextsInsideViewBox(page);
+
+  // Wave-4 Engram preset demo
+  await calc.getByTestId("wave4-demo-engram-conditional").click();
+  await expect(wave4Banner).toBeVisible();
+  await expect(wave4Banner).toContainText("Engram");
+  const engramLink = wave4Banner.getByTestId("tool-deeplink-engram-conditional-memory");
+  await expect(engramLink).toBeVisible();
+  await expect(engramLink).toHaveAttribute("data-legacy-baseline", "false");
+  await assertRooflineSvgTextsInsideViewBox(page);
 
   // Reset back to standard model, switch to Mode B reconcile
-  await intercept
-    .getByRole("button", { name: /切回|恢复|Qwen3-8B/ })
-    .first()
-    .click();
+  await calc.getByRole("button", { name: "恢复内置预设" }).click();
   await calc.getByTestId("calc-submode-reconcile").click();
   await expect(calc.getByTestId("calc-submode-reconcile")).toHaveAttribute("aria-selected", "true");
 

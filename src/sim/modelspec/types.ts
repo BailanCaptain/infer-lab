@@ -14,12 +14,35 @@ export interface AttentionSpec {
   qkNorm: boolean;
   bias: boolean;
   ropeTheta: number;
-  /** MLA 专用（M2） */
+  /** MLA 专用（Wave 4 解锁） */
   qLoraRank?: number;
   kvLoraRank?: number;
   qkRopeHeadDim?: number;
   qkNopeHeadDim?: number;
   vHeadDim?: number;
+  /** CSA2 / DSA 稀疏索引器专用（Wave 4 解锁） */
+  sparseTopK?: number;
+  indexHeadDim?: number;
+  indexNumHeads?: number;
+  indexerKvElemBytes?: number;
+  /** KDA / 线性注意力递推状态专用（Wave 4 解锁） */
+  linearNumKeyHeads?: number;
+  linearNumValueHeads?: number;
+  linearKeyHeadDim?: number;
+  linearValueHeadDim?: number;
+  linearConvKernelDim?: number;
+  linearStateDtypeBytes?: number;
+  linearConvDtypeBytes?: number;
+}
+
+export interface EngramSpec {
+  enabled: boolean;
+  vocabSize: number;
+  hiddenSize: number;
+  layerIds: number[];
+  dpSharedMemory: boolean;
+  etpSize?: number;
+  dtypeBytes: number;
 }
 
 export type MlpSpec =
@@ -62,6 +85,8 @@ export interface ModelSpec {
   layers: LayerSpec[];
   /** MTP / NextN 预测层数 */
   numMtpLayers: number;
+  /** Engram 外挂条件记忆配置（Wave 4 解锁） */
+  engram?: EngramSpec;
   /** config 中存在但解析器未使用的字段，页面上显式列出 */
   unrecognized: string[];
   source: { url?: string; note?: string };

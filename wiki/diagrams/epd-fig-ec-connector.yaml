@@ -1,0 +1,12 @@
+mode: native-svg
+id: epd-fig-ec-connector
+caption: >-
+  ECConnector 调度侧与 Worker 侧双角色协同及三代连接器演进：Scheduler 角色按 mm_hash 查验远端缓存命中并决定加载/保存清单，Worker 角色通过数据面完成嵌入读写；vllm-ascend v0.30.0 新增基于 Memcache 与注册 NPU recv_buffer 的 ECMemcacheConnector，社区 main 进一步补齐原生 AscendECMooncakeConnector 与 CPU ECConnector。
+size: [900, 410]
+pins:
+  - source: vllm@ced6857a:vllm/distributed/ec_transfer/ec_connector/base.py#L44-L90
+    symbols: [ECConnectorRole, ECConnectorMetadata, ECConnectorBase, is_ec_producer, is_ec_consumer]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/distributed/ec_transfer/ec_memcache_connector.py#L52-L130
+    symbols: [ECMemcacheConnector, MIN_RECV_BUFFER_TOKENS, DEFAULT_RECV_BUFFER_TOKENS, _get_recv_buffer_tokens, MemcacheBackend, register_buffer]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/distributed/ec_transfer/ec_connector/mooncake/connector.py#L29-L48
+    symbols: [AscendECMooncakeConnector, AscendECMooncakeScheduler, AscendECMooncakeWorker]

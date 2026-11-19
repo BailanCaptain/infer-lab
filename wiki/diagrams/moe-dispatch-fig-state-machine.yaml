@@ -1,0 +1,12 @@
+mode: native-svg
+id: moe-dispatch-fig-state-machine
+caption: >-
+  vllm-ascend v0.30.0 MoE 四族硬件通信调度状态机（hardware_profile.py + ascend_forward_context.py）：先经 EP=1 退回 AllGather 与 LoRA+EP 强走 AllToAll 两道全局前置闸门，再按 A2 / A3 / 310P / 950DT(A5) 四套 HardwareProfile 策略结合动态 mc2_tokens_capacity（普通 MC2/Fused 每卡上限 512，MegaMoe 每卡上限 16,384）在 AllGather、MC2、Fused MC2/MegaMoe 与 AllToAll 间实时选路。
+size: [900, 500]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L279-L383
+    symbols: [AscendDeviceType, HardwareProfile, MoECommPolicy, CAPACITY_AND_EXPERT_DENSITY, FUSED_OR_CAPACITY, CAPACITY_AND_WORLD_SIZE, CANN_MEGAMOE]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L27-L40
+    symbols: [MoECommType, _MEGA_MOE_TOKENS_PER_RANK_LIMIT, _DISPATCH_FFN_COMBINE_TOKENS_PER_RANK_LIMIT, _MC2_TOKENS_PER_RANK_LIMIT]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L243-L425
+    symbols: [set_mc2_tokens_capacity, select_moe_comm_method, _select_capacity_and_expert_density_moe_comm_method, _select_fused_or_capacity_moe_comm_method, _select_capacity_and_world_size_moe_comm_method]

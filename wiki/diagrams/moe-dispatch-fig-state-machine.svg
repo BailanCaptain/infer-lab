@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="vllm-ascend v0.30.0 四族昇腾硬件 MoE 通信调度状态机" font-family="var(--font-sans)">
+<title>MoE 四族硬件通信调度状态机（AllGather / MC2 / Fused MC2 / MegaMoe / AllToAll）</title>
+<desc>select_moe_comm_method state machine across A2, A3, 310P, and A5 with mc2_tokens_capacity limits</desc>
+<g stroke-width="1.4">
+<rect x="16" y="52" width="420" height="66" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+<rect x="464" y="52" width="420" height="66" rx="8" fill="#fff0e9" stroke="#b54237"/>
+<rect x="16" y="150" width="204" height="224" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="236" y="150" width="212" height="224" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="464" y="150" width="234" height="224" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="714" y="150" width="170" height="224" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="16" y="394" width="868" height="92" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+</g>
+<path d="M226 118v30m-4-5l4 5 4-5M342 118v30m-4-5l4 5 4-5M581 118v30m-4-5l4 5 4-5M799 118v30m-4-5l4 5 4-5" fill="none" stroke="#17211f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="28" cy="24" r="12.5" fill="#9a4b86"/>
+<g font-weight="700">
+<text x="28" y="28.5" text-anchor="middle" font-size="13" fill="#ffffff">1</text>
+<text x="48" y="30" font-size="16" fill="#17211f">select_moe_comm_method 四族硬件路由状态机（v0.30.0）</text>
+<text x="30" y="76" font-size="14.5" fill="#17211f">全局闸门 ①：未开 EP 或 ep_world_size == 1</text>
+<text x="478" y="76" font-size="14.5" fill="#8f3229">全局闸门 ②：开启 LoRA 且启用 EP</text>
+<text x="118" y="176" text-anchor="middle" font-size="15" fill="#936300">Atlas A2（910B）</text>
+<text x="342" y="176" text-anchor="middle" font-size="15" fill="#065f56">Atlas A3（双 Die）</text>
+<text x="581" y="176" text-anchor="middle" font-size="15" fill="#3a4f93">昇腾 950（A5）</text>
+<text x="799" y="176" text-anchor="middle" font-size="15" fill="#7a3a6a">Atlas 310P</text>
+<text x="30" y="420" font-size="15" fill="#17211f">动态 mc2_tokens_capacity 门槛（每卡上限 × tp_size）</text>
+</g>
+<g fill="#4d5652" font-size="13.5">
+<text x="30" y="102">直接返回 MoECommType.ALLGATHER（免跨卡专家派发）</text>
+<text x="478" y="102">强走 MoECommType.ALLTOALL（融合 C++ MC2 无法插 LoRA）</text>
+<text x="28" y="200" font-weight="600" fill="#936300">CAPACITY_AND_</text>
+<text x="28" y="218" font-weight="600" fill="#936300">EXPERT_DENSITY</text>
+<text x="28" y="246">同时满足 3 条件：</text>
+<text x="28" y="270">• 每卡专家数 ≤ 24</text>
+<text x="28" y="294">• ep_world_size ≥ 16</text>
+<text x="28" y="318">• tokens ≤ mc2_cap</text>
+<text x="28" y="344" font-weight="600" fill="#087f73">→ 走 MC2</text>
+<text x="28" y="364" font-weight="600" fill="#4d5652">否则 → ALLGATHER</text>
+<text x="248" y="200" font-weight="600" fill="#065f56">FUSED_OR_CAPACITY</text>
+<text x="248" y="228">① use_cann_megamoe</text>
+<text x="248" y="250">或 fused_mc2=1 且 ep≤32</text>
+<text x="248" y="272" font-weight="600" fill="#087f73">→ 走 FUSED_MC2</text>
+<text x="248" y="302">② tokens ≤ mc2_cap</text>
+<text x="248" y="324" font-weight="600" fill="#4c65b6">→ 走 MC2</text>
+<text x="248" y="354" font-weight="600" fill="#9a4b86">③ 否则 → ALLTOALL</text>
+<text x="476" y="200" font-weight="600" fill="#3a4f93">CAPACITY_AND_WORLD_SIZE</text>
+<text x="476" y="228">① fused_mc2=1 + MegaMoe</text>
+<text x="476" y="250">（排除不兼容量化草稿层）</text>
+<text x="476" y="272" font-weight="600" fill="#087f73">→ 走 FUSED_MC2</text>
+<text x="476" y="298">② tokens ≤ mc2_cap &amp; ws&gt;1</text>
+<text x="476" y="318" font-weight="600" fill="#4c65b6">→ 走 MC2</text>
+<text x="476" y="342">③ ws ≤ top_k → ALLGATHER</text>
+<text x="476" y="364" font-weight="600" fill="#9a4b86">否则 → ALLTOALL</text>
+<text x="726" y="200" font-weight="600" fill="#7a3a6a">ALLGATHER</text>
+<text x="726" y="246">兼容硬件族</text>
+<text x="726" y="274">固定走：</text>
+<text x="726" y="302" font-weight="600" fill="#7a3a6a">AllGather</text>
+<text x="726" y="330">CommImpl310</text>
+<text x="30" y="446">• 常规 MC2（走 HCCL_BUFFSIZE）与旧 dispatch_ffn_combine：每 TP 卡上限 512 token → TP=8 时上限 4,096</text>
+<text x="30" y="470">• CANN MegaMoe（独立 symm buffer，EP ∈ (1, 64]）：每 TP 卡上限 16,384 token，可直接覆盖大 Prefill 批</text>
+</g>
+</svg>

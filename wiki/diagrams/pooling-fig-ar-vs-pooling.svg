@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="自回归生成、Pooling 池化与 Encoder-Decoder 三条执行路径对比" font-family="var(--font-sans)">
+<title>Generate、Pooling 与 Encoder-Decoder 三条执行路径对比</title>
+<desc>Comparison of autoregressive generation, pooling runner, and encoder-decoder Whisper ASR execution pipelines</desc>
+<g stroke-width="1.4">
+<rect x="16" y="54" width="868" height="108" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+<rect x="16" y="182" width="868" height="114" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="316" width="868" height="110" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="196" y="88" width="154" height="58" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="374" y="88" width="154" height="58" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="552" y="88" width="144" height="58" rx="6" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="720" y="88" width="148" height="58" rx="6" fill="#fff0e9" stroke="#b54237"/>
+<rect x="196" y="218" width="194" height="62" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="416" y="218" width="212" height="62" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="654" y="218" width="214" height="62" rx="6" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="196" y="352" width="184" height="58" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="406" y="352" width="222" height="58" rx="6" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="654" y="352" width="214" height="58" rx="6" fill="#fff0e9" stroke="#b54237"/>
+</g>
+<path d="M350 117h22m-5-4l5 4-5 4M528 117h22m-5-4l5 4-5 4M696 117h22m-5-4l5 4-5 4M390 249h24m-5-4l5 4-5 4M628 249h24m-5-4l5 4-5 4M380 381h24m-5-4l5 4-5 4M628 381h24m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="28" cy="24" r="12.5" fill="#087f73"/>
+<g font-weight="700">
+<text x="28" y="28.5" text-anchor="middle" font-size="13" fill="#ffffff">1</text>
+<text x="48" y="30" font-size="16" fill="#17211f">三条运行主线：Generate（自回归） vs Pooling（单轮池化） vs Encoder-Decoder</text>
+<text x="30" y="78" font-size="15" fill="#17211f">路径 A · --runner generate（标准生成）</text>
+<text x="30" y="206" font-size="15" fill="#065f56">路径 B · --runner pooling（Embedding / Reranker / Reward）</text>
+<text x="30" y="340" font-size="15" fill="#3a4f93">路径 C · is_encoder_decoder（Whisper ASR / 编解码器）</text>
+<text x="273" y="112" text-anchor="middle" font-size="14" fill="#936300">因果 Prefill + KV</text>
+<text x="451" y="112" text-anchor="middle" font-size="14" fill="#936300">多轮 Decode 循环</text>
+<text x="624" y="112" text-anchor="middle" font-size="14" fill="#7a3a6a">lm_head 投影</text>
+<text x="794" y="112" text-anchor="middle" font-size="14" fill="#8f3229">Sampler 采词</text>
+<text x="293" y="242" text-anchor="middle" font-size="14" fill="#936300">单轮前向（双向或因果）</text>
+<text x="522" y="242" text-anchor="middle" font-size="14" fill="#065f56">跳过 lm_head 与 Sampler</text>
+<text x="761" y="242" text-anchor="middle" font-size="14" fill="#3a4f93">Pooler 归约 + 激活</text>
+<text x="288" y="376" text-anchor="middle" font-size="14" fill="#936300">Encoder 编码音频/源文</text>
+<text x="517" y="376" text-anchor="middle" font-size="14" fill="#7a3a6a">Cross-Attn 写入整段 KV</text>
+<text x="761" y="376" text-anchor="middle" font-size="14" fill="#8f3229">Decoder 自回归解码</text>
+</g>
+<g fill="#4d5652" font-size="13.5">
+<text x="30" y="114">持续写入并复用</text>
+<text x="30" y="136">分页 KV Cache</text>
+<text x="273" y="135" text-anchor="middle">上三角因果掩码</text>
+<text x="451" y="135" text-anchor="middle">每步吐 1 个 token</text>
+<text x="624" y="135" text-anchor="middle">[B, V] 词表分数</text>
+<text x="794" y="135" text-anchor="middle">支持全图捕获</text>
+<text x="30" y="242">一次前向直接结束</text>
+<text x="30" y="264">无 Decode 迭代</text>
+<text x="293" y="266" text-anchor="middle">双向模型免写历史 KV</text>
+<text x="522" y="266" text-anchor="middle">model_runner 直调 _pool()</text>
+<text x="761" y="266" text-anchor="middle">CLS/LAST/MEAN → 向量/分</text>
+<text x="30" y="376">音频先转特征</text>
+<text x="30" y="398">再跨注意力解码</text>
+<text x="288" y="399" text-anchor="middle">无因果约束全互看</text>
+<text x="517" y="399" text-anchor="middle">ENCODER_DECODER 专用槽</text>
+<text x="761" y="399" text-anchor="middle">图模式限 PIECEWISE/NONE</text>
+</g>
+</svg>

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 435" width="900" height="435" role="img" aria-label="msprobe 逐层精度定位漏斗与 Runtime Guard、batch_invariant 工具分工" font-family="var(--font-sans)">
+<title>三类精度排障工具分工与 msprobe 逐层定位首次分歧路径</title>
+<desc>Runtime Guard vs batch_invariant vs msprobe PrecisionDebugger and AclGraphDumper</desc>
+<g stroke-width="1.4">
+<rect x="16" y="58" width="276" height="106" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="312" y="58" width="276" height="106" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="608" y="58" width="276" height="106" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="210" width="200" height="84" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="238" y="210" width="200" height="84" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="460" y="210" width="200" height="84" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="682" y="210" width="202" height="84" rx="7" fill="#fff0e9" stroke="#b54237"/>
+<rect x="16" y="320" width="868" height="98" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+</g>
+<path d="M216 252h20m-5-4l5 4-5 4M438 252h20m-5-4l5 4-5 4M660 252h20m-5-4l5 4-5 4M746 164v9H6v79h10m-5-4l5 4-5 4M783 294v24m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-weight="700">
+<text x="16" y="28" font-size="16" fill="#17211f">第一层：按排障场景选工具（线上检测 vs 确定性收敛 vs 逐层对账）</text>
+<text x="30" y="84" font-size="14.5" fill="#3a4f93">Runtime Guard（main 线上）</text>
+<text x="326" y="84" font-size="14.5" fill="#936300">batch_invariant（确定性）</text>
+<text x="622" y="84" font-size="14.5" fill="#065f56">msprobe（离线逐层对齐）</text>
+<text x="16" y="196" font-size="16" fill="#17211f">第二层：msprobe 由粗到细四步锁定首个分歧算子</text>
+<text x="116" y="236" text-anchor="middle" font-size="14.5" fill="#065f56">1. 锁输入与 Eager/图</text>
+<text x="338" y="236" text-anchor="middle" font-size="14.5" fill="#936300">2. L0/L1 统计初筛</text>
+<text x="560" y="236" text-anchor="middle" font-size="14.5" fill="#7a3a6a">3. 缩小 scope / list</text>
+<text x="783" y="236" text-anchor="middle" font-size="14.5" fill="#8f3229">4. 真实张量定根因</text>
+<text x="32" y="347" font-size="14.5" fill="#17211f">四类高频首分歧算子特征指纹（对照标杆 GPU / BF16 基准）：</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="48" font-size="13.5">不要一上来就开全量 tensor dump；先用低开销工具缩小怀疑面，再进 msprobe</text>
+<text x="30" y="109" font-size="13.5">• 抓偶发复读、乱码与 NaN/Inf</text>
+<text x="30" y="131" font-size="13.5">• 触发时写报告并可选 dump_kv</text>
+<text x="30" y="153" font-size="13.5">• 默认关闭，支持热更新配置</text>
+<text x="326" y="109" font-size="13.5">• VLLM_BATCH_INVARIANT=1</text>
+<text x="326" y="131" font-size="13.5">• 排除动态批大小导致的浮点漂移</text>
+<text x="326" y="153" font-size="13.5">• 会关闭 vllm_ascend_C 自定义核</text>
+<text x="622" y="109" font-size="13.5">• additional_config.dump_config</text>
+<text x="622" y="131" font-size="13.5">• Eager: PrecisionDebugger</text>
+<text x="622" y="153" font-size="13.5">• Graph: AclGraphDumper</text>
+<text x="116" y="261" text-anchor="middle" font-size="13.5">temperature=0 单请求</text>
+<text x="116" y="282" text-anchor="middle" font-size="13.5">先排模板与分词差异</text>
+<text x="338" y="261" text-anchor="middle" font-size="13.5">task="statistics"</text>
+<text x="338" y="282" text-anchor="middle" font-size="13.5">看 max/min/mean/NaN</text>
+<text x="560" y="261" text-anchor="middle" font-size="13.5">定位首错层与首错步</text>
+<text x="560" y="282" text-anchor="middle" font-size="13.5">切 task="tensor"</text>
+<text x="783" y="261" text-anchor="middle" font-size="13.5">余弦相似度 / 最大绝对误差</text>
+<text x="783" y="282" text-anchor="middle" font-size="13.5">锁定单一算子或权重</text>
+<text x="32" y="374" font-size="13.5">• RoPE：首层 Q/K 旋转偏离（查 cos/sin 与交错布局）</text>
+<text x="460" y="374" font-size="13.5">• QuantMatmul：线性输出缩放偏斜（查 scale / NZ）</text>
+<text x="32" y="399" font-size="13.5">• MoE：top-k 索引分叉（查 gating / EP / 专家映射）</text>
+<text x="460" y="399" font-size="13.5">• FA/PagedAttn：Decode 步漂移（查 slot_mapping / C8）</text>
+</g>
+</svg>

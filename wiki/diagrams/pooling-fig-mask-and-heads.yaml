@@ -1,0 +1,12 @@
+mode: native-svg
+id: pooling-fig-mask-and-heads
+caption: >-
+  昇腾 Pooling 模型的注意力掩码硬件分岔与序列池化头机制：A2/A3/950DT 双向模型在 attention_mask.py 必须返回 None 并走 npu_fusion_attention（避免 FIA defaultMask 误遮上三角），而 310P 须显式构造 FRACTAL_NZ 全零非屏蔽掩码；右侧对照 CLS、LAST、MEAN 三类池化头对 chunked partial prefill 的约束边界。
+size: [900, 420]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/attention/attention_mask.py#L57-L70
+    symbols: [get_attention_mask, causal, runner_type, get_attn_mask, get_splitfuse_attn_mask]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/_310p/attention/attention_mask.py#L139-L168
+    symbols: [runner_type, _get_causal_mask, _get_non_causal_mask, ACL_FORMAT_FRACTAL_NZ]
+  - source: vllm@ced6857a:vllm/model_executor/layers/pooler/seqwise/methods.py#L37-L119
+    symbols: [CLSPool, LastPool, MeanPool, is_partial_prefill, get_seq_pooling_method]

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="多模态视觉编码展开、ViT 数据并行与 M-RoPE 三维位置编码流程" font-family="var(--font-sans)">
+<title>多模态视觉 Patch 展开、ViT TP 模式对比与 M-RoPE 注入</title>
+<desc>Patch expansion, mm_encoder_tp_mode weights vs data, _merge_multimodal_embeddings, and 3D M-RoPE</desc>
+<line x1="16" y1="248" x2="884" y2="248" stroke="#d8d8cf" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g stroke-width="1.4">
+<rect x="16" y="54" width="184" height="106" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+<rect x="226" y="54" width="218" height="106" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="470" y="54" width="204" height="106" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="700" y="54" width="184" height="106" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="16" y="176" width="868" height="54" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="16" y="294" width="420" height="160" rx="8" fill="#fff0e9" stroke="#b54237"/>
+<rect x="464" y="294" width="420" height="160" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+</g>
+<path d="M200 107h24m-5-4l5 4-5 4M444 107h24m-5-4l5 4-5 4M674 107h24m-5-4l5 4-5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="28" cy="24" r="12.5" fill="#087f73"/>
+<circle cx="28" cy="274" r="12.5" fill="#4c65b6"/>
+<g font-weight="700">
+<text x="28" y="28.5" text-anchor="middle" font-size="13" fill="#ffffff">1</text>
+<text x="48" y="30" font-size="16" fill="#17211f">视觉 Patch 展开、占位覆写与 M-RoPE 三维位置编码</text>
+<text x="108" y="79" text-anchor="middle" font-size="14.5" fill="#17211f">预处理与占位展开</text>
+<text x="335" y="79" text-anchor="middle" font-size="14.5" fill="#936300">ViT 视觉编码器</text>
+<text x="572" y="79" text-anchor="middle" font-size="14.5" fill="#065f56">多模态嵌入原地融合</text>
+<text x="792" y="79" text-anchor="middle" font-size="14.5" fill="#3a4f93">LLM 主干 + M-RoPE</text>
+<text x="28" y="200" font-size="14.5" fill="#7a3a6a">三维位置坐标 positions [3, N] 与 mrope_section（如 [16, 24, 24]）：</text>
+<text x="28" y="278.5" text-anchor="middle" font-size="13" fill="#ffffff">2</text>
+<text x="48" y="280" font-size="16" fill="#17211f">ViT 跨卡模式对比：weights（张量切分） vs data（样本分卡）</text>
+<text x="30" y="320" font-size="15" fill="#8f3229">weights 模式（默认）：按头切分 ViT 权重</text>
+<text x="478" y="320" font-size="15" fill="#065f56">data 模式（--mm-encoder-tp-mode data）</text>
+</g>
+<g fill="#4d5652" font-size="13.5">
+<text x="108" y="104" text-anchor="middle">图像切块 + 2×2 合并</text>
+<text x="108" y="126" text-anchor="middle">448×448, p=14 →</text>
+<text x="108" y="146" text-anchor="middle" font-weight="600" fill="#17211f">256 个占位 token</text>
+<text x="335" y="104" text-anchor="middle">embed_multimodal()</text>
+<text x="335" y="126" text-anchor="middle">命中 Encoder Cache 则跳过</text>
+<text x="335" y="146" text-anchor="middle" font-weight="600" fill="#936300">输出 [N_mm, D_llm]</text>
+<text x="572" y="104" text-anchor="middle">_merge_multimodal_</text>
+<text x="572" y="126" text-anchor="middle">embeddings 原地覆写</text>
+<text x="572" y="146" text-anchor="middle" font-weight="600" fill="#065f56">inputs[is_mm] = mm</text>
+<text x="792" y="104" text-anchor="middle">AscendMRotaryEmbedding</text>
+<text x="792" y="126" text-anchor="middle">npu_mrope / triton_mrope</text>
+<text x="792" y="146" text-anchor="middle" font-weight="600" fill="#3a4f93">进入标准 Prefill/KV</text>
+<text x="28" y="221" fill="#4d5652">纯文本位置 T=H=W 退化为 1D RoPE；视觉 Patch 写入真实 (帧 t, 行 y, 列 x)，切分 head_dim/2 分别旋转</text>
+<text x="30" y="348">• 每层 ViT 注意力与 MLP 均触发 TP All-Reduce</text>
+<text x="30" y="373">• ViT 隐维小但层数多（如 27~32 层），小包同步放大时延</text>
+<text x="30" y="398">• 若视觉头数不能被 TP 整除（如 16 头配 TP=6）</text>
+<text x="30" y="423" font-weight="600" fill="#b54237">  → vision.py 自动告警并静默回退到 data 模式</text>
+<text x="30" y="444" fill="#66716d">适用：单图分辨率极大、并发图数极少且头数可整除</text>
+<text x="478" y="348">• 每卡保完整 ViT 权重，run_dp_sharded_vision_model 按图切分</text>
+<text x="478" y="373">• ViT 全部 27~32 层零跨卡通信，仅结尾 1 次 TP All-Gather</text>
+<text x="478" y="398">• 多图/视频帧按样本总 Patch 数贪心均衡分配到各卡</text>
+<text x="478" y="423" font-weight="600" fill="#087f73">  → 省去 54~64 次小包同步，显著压低多图首字时延 TTFT</text>
+<text x="478" y="444" fill="#66716d">代价：每卡多存一份小体量 ViT 权重（通常仅数百 MB~1 GiB）</text>
+</g>
+</svg>

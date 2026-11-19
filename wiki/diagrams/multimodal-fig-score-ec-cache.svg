@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 410" width="900" height="410" role="img" aria-label="ScoreEncoderCacheManager 两级 NPU 与 CPU 多模态编码缓存晋升与淘汰机制" font-family="var(--font-sans)">
+<title>ScoreEncoderCacheManager 两级编码缓存（NPU + CPU）与评分晋升</title>
+<desc>Two-level NPU and CPU encoder cache with score-based promotion and watermark eviction</desc>
+<g stroke-width="1.4">
+<rect x="16" y="54" width="212" height="122" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="266" y="54" width="270" height="122" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="574" y="54" width="310" height="122" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="218" width="420" height="176" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="464" y="218" width="420" height="176" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+</g>
+<path d="M228 115h36m-5-4l5 4-5 4M536 92h36m-5-4l5 4-5 4M574 140h-36m5-4l-5 4 5 4" fill="none" stroke="#17211f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="28" cy="24" r="12.5" fill="#9a4b86"/>
+<g font-weight="700">
+<text x="28" y="28.5" text-anchor="middle" font-size="13" fill="#ffffff">1</text>
+<text x="48" y="30" font-size="16" fill="#17211f">ScoreEncoderCacheManager 两级缓存：CPU 大池兜底 + NPU 热点晋升</text>
+<text x="122" y="80" text-anchor="middle" font-size="14.5" fill="#936300">首次未命中（Miss）</text>
+<text x="401" y="80" text-anchor="middle" font-size="14.5" fill="#3a4f93">Level 2：CPU Pinned 缓存</text>
+<text x="729" y="80" text-anchor="middle" font-size="14.5" fill="#065f56">Level 1：NPU HBM 常驻缓存</text>
+<text x="30" y="244" font-size="15" fill="#7a3a6a">热点评分与晋升 / 淘汰判据（score_ec_manager.py）</text>
+<text x="478" y="244" font-size="15" fill="#17211f">Worker 侧异步零阻塞搬运（model_runner_v1.py）</text>
+</g>
+<g fill="#4d5652" font-size="13.5">
+<text x="122" y="106" text-anchor="middle">ViT 执行计算产出嵌入</text>
+<text x="122" y="130" text-anchor="middle">当步写入 tmp_encoder_cache</text>
+<text x="122" y="154" text-anchor="middle" font-weight="600" fill="#936300">并异步落入 CPU 缓存</text>
+<text x="401" y="106" text-anchor="middle">默认 cpu_cache_slots = 100,000</text>
+<text x="401" y="130" text-anchor="middle">OrderedDict FIFO 淘汰零引用项</text>
+<text x="401" y="154" text-anchor="middle" font-weight="600" fill="#3a4f93">命中且未晋升：临时 H2D 拷入 tmp</text>
+<text x="729" y="106" text-anchor="middle">encoder_cache（HBM 小容量快池）</text>
+<text x="729" y="130" text-anchor="middle">仅存放高频高代价热点 mm_hash</text>
+<text x="729" y="154" text-anchor="middle" font-weight="600" fill="#065f56">命中直读零拷贝，跳过 ViT + H2D</text>
+<text x="555" y="84" text-anchor="middle" font-size="13.5" font-weight="600" fill="#087f73">晋升</text>
+<text x="555" y="158" text-anchor="middle" font-size="13.5" font-weight="600" fill="#b54237">淘汰</text>
+<text x="30" y="272" font-weight="600" fill="#17211f">• score = (freq + clock) × cal_cost</text>
+<text x="30" y="297">• cal_cost ∝ L_vis · (α·s + β)（单位槽重算代价）</text>
+<text x="30" y="322">• clock 老化：每 64 次衰减，上限 max_clock = 15</text>
+<text x="30" y="347">• 晋升门槛：超越 npu_freeable 低 20% 分位</text>
+<text x="30" y="372">• 淘汰水位：一次腾空至 watermark = 20% 余量</text>
+<text x="478" y="272">• 写回 CPU：pin_memory + non_blocking=True</text>
+<text x="478" y="297">• 异步 H2D：torch.npu.Event 跨流跟踪就绪态</text>
+<text x="478" y="322">• 热点晋升入 encoder_cache；普通命中入 tmp</text>
+<text x="478" y="347">• tmp_encoder_cache 按引用计数当步即时释放</text>
+<text x="478" y="372">• 防御兜底：tmp 缺失时同步 H2D 补拷防 Miss</text>
+</g>
+</svg>

@@ -1,0 +1,12 @@
+mode: native-svg
+id: mrv2-fig-pcp-eplb
+caption: >-
+  MRV2 内的 PCP 与 EPLB 协同边界：左侧 AscendPCPManager 在全局批与 PCP 局部批之间维护索引与还原映射，并在非末段 PP 采样前还原全局批；右侧 AscendEPLBController 复用上游 EPLBController 控制面，仅在批级按 load_collection_phase 过滤并借助 HIXL/Gloo 异步搬迁专家权重。
+size: [900, 390]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/v2/pcp_manager.py#L44-L70
+    symbols: [AscendPCPAttentionContext, AscendPCPManager]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/worker/v2/eplb.py#L20-L70
+    symbols: [AscendEPLBController, is_eplb_load_collection_phase_matched, AscendEplbState]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/platform.py#L974-L999
+    symbols: [use_v2_model_runner, load_collection_phase, stair_config]

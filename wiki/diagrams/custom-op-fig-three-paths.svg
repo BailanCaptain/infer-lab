@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="昇腾三条自定义算子路径与 950/310P 硬件能力门控" font-family="var(--font-sans)">
+<title>torch_npu ACLNN/ATB vs AscendC vllm_ascend_C vs Triton-Ascend 三条算子路径</title>
+<desc>Three operator paths and HardwareProfile guards for A2/A3, 950(A5), and 310P</desc>
+<g stroke-width="1.4">
+<rect x="16" y="64" width="276" height="224" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="312" y="64" width="276" height="224" rx="8" fill="#fff4cf" stroke="#c78300"/>
+<rect x="608" y="64" width="276" height="224" rx="8" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="16" y="316" width="424" height="108" rx="8" fill="#fff0e9" stroke="#b54237"/>
+<rect x="460" y="316" width="424" height="108" rx="8" fill="#f7e7f2" stroke="#9a4b86"/>
+</g>
+<path d="M154 288v26m-4-5l4 5 4-5M450 288v14H228v12m-4-5l4 5 4-5M450 302h222v12m-4-5l4 5 4-5M746 288v26m-4-5l4 5 4-5" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-weight="700">
+<text x="16" y="30" font-size="16" fill="#17211f">昇腾自定义算子三条实现路径选型与硬件能力门控</text>
+<text x="32" y="92" font-size="15" fill="#065f56">路径 1：torch_npu（ACLNN / ATB）</text>
+<text x="328" y="92" font-size="15" fill="#936300">路径 2：AscendC 自定义核</text>
+<text x="624" y="92" font-size="15" fill="#3a4f93">路径 3：Triton-Ascend</text>
+<text x="32" y="343" font-size="14.5" fill="#8f3229">950（A5）门控：v0.30.0 关 vllm_ascend_C，main 恢复</text>
+<text x="476" y="343" font-size="14.5" fill="#7a3a6a">310P 门控：COMPATIBILITY_OP_IMPLEMENTATIONS</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="50" font-size="13.5">按「运维成本由低到高、控制粒度由粗到细」分层选型，严禁绕开 HardwareProfile 硬编码芯片型号</text>
+<text x="32" y="120" font-size="13.5">• 入口：torch_npu.npu_* / ATB 扩展</text>
+<text x="32" y="144" font-size="13.5">• 优势：免 C++ 编译，跨卡兼容性最好</text>
+<text x="32" y="168" font-size="13.5">• 适用：RMSNorm、FIA、标准量化乘</text>
+<text x="32" y="192" font-size="13.5">• 图兼容：原生支持 ACL Graph 捕获</text>
+<text x="32" y="218" font-size="13.5" fill="#065f56" font-weight="600">→ 首选基线，能调库绝不自写核</text>
+<text x="32" y="246" font-size="13.5">代表：npu_rms_norm / add_rms_norm</text>
+<text x="32" y="268" font-size="13.5">局限：无法自定义跨层融合数据流</text>
+<text x="328" y="120" font-size="13.5">• 入口：csrc/ → torch.ops._C_ascend</text>
+<text x="328" y="144" font-size="13.5">• 优势：极致 Cube/Vector 融合与流水</text>
+<text x="328" y="168" font-size="13.5">• 必配：binding_meta 形状推导</text>
+<text x="328" y="192" font-size="13.5">• 开关：惰性 enable_custom_op() 加载</text>
+<text x="328" y="218" font-size="13.5" fill="#936300" font-weight="600">→ 仅用于热点融合与非标量化/稀疏核</text>
+<text x="328" y="246" font-size="13.5">代表：npu_add_rms_norm_bias / SFA</text>
+<text x="328" y="268" font-size="13.5">代价：绑定 SoC 编译链与构建缓存</text>
+<text x="624" y="120" font-size="13.5">• 入口：vllm_ascend/ops/triton/</text>
+<text x="624" y="144" font-size="13.5">• 优势：纯 Python 快速迭代，易对齐上游</text>
+<text x="624" y="168" font-size="13.5">• UB 上限：A2/A3 192KB · 310P 128KB</text>
+<text x="624" y="192" font-size="13.5">• 扩展：triton.language.extra.cann</text>
+<text x="624" y="218" font-size="13.5" fill="#3a4f93" font-weight="600">→ 中小算子融合、块表与批不变核首选</text>
+<text x="624" y="246" font-size="13.5">代表：slot_mapping / split_qkv_rope</text>
+<text x="624" y="268" font-size="13.5">前提：依赖 HAS_TRITON（310P 常缺失）</text>
+<text x="32" y="369" font-size="13.5">• v0.30.0 A5 缺 RUNTIME_CUSTOM_OPS → 返回 False</text>
+<text x="32" y="391" font-size="13.5">• VLLM_BATCH_INVARIANT=1 同样关闭 vllm_ascend_C</text>
+<text x="32" y="412" font-size="13.5">• main (8d6180e2) A5 补回自定义算子库加载</text>
+<text x="476" y="369" font-size="13.5">• register_ascend_customop 自动切 Ascend*310 类</text>
+<text x="476" y="391" font-size="13.5">• 310P 强制 FRACTAL_NZ，切忌假定 HAS_TRITON=True</text>
+<text x="476" y="412" font-size="13.5">• 独立维护于 _310p/ops/ 与 worker_310p.py</text>
+</g>
+</svg>

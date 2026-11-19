@@ -1,0 +1,14 @@
+mode: native-svg
+id: custom-op-fig-model-onboarding
+caption: >-
+  新 HuggingFace 模型接入 vLLM 与 vLLM Ascend 的四段扩展链路：先通过 ModelRegistry.register_model 登记架构名，再用 WeightsMapper 归一权重命名、用 @register_scheme 挂接量化方法，最后由 register_ascend_customop 按硬件能力档案分发标准或 310P 兼容 OOT 算子。
+size: [900, 390]
+pins:
+  - source: vllm-ascend@c09d3e20:vllm_ascend/models/__init__.py#L1-L45
+    symbols: [register_model, ModelRegistry]
+  - source: vllm@ced6857a:vllm/model_executor/models/utils.py#L47-L60
+    symbols: [WeightsMapper]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/registry.py#L20-L62
+    symbols: [register_scheme, get_scheme_class]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/utils.py#L815-L955
+    symbols: [REGISTERED_ASCEND_OPS, CustomOp, COMPATIBILITY_OP_IMPLEMENTATIONS]

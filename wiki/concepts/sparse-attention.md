@@ -90,10 +90,18 @@ sources:
   - "vllm@84030bbe:vllm/models/deepseek_v32/__init__.py#L15-L29"
   - "vllm-ascend@7d825229:vllm_ascend/attention/indexer.py#L175-L193"
   - "vllm-ascend@baa023ad:vllm_ascend/attention/indexer.py#L161-L179"
+  - "vllm-ascend@c09d3e20:vllm_ascend/attention/sfa_v1.py#L820-L875"
+  - "vllm-ascend@c09d3e20:vllm_ascend/attention/sfa_v1.py#L2105-L2140"
+  - "vllm-ascend@c09d3e20:vllm_ascend/attention/indexer_kpool.py#L484-L525"
+  - "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/mtp.py#L127-L160"
+  - "vllm-ascend@8d6180e2:vllm_ascend/attention/sfa_v1.py#L820-L880"
+  - "vllm-ascend@8d6180e2:vllm_ascend/attention/sfa_v1.py#L2175-L2215"
+  - "vllm-ascend@8d6180e2:vllm_ascend/attention/indexer_kpool.py#L775-L820"
+  - "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/mtp.py#L165-L195"
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -110,7 +118,7 @@ relations:
     kind: builds-on
     note: R1 在第 4 站的位置清单（4 行 × 2051）逐行内容与 11 层稀疏 MLA 的形状
 contradicts: []
-updated: '2026-11-10'
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -169,18 +177,13 @@ pⱼ = exp(sⱼ) / Σ_{u∈J(t)} exp(sᵤ)
 oₜ = Σ_{j∈J(t)} pⱼ vⱼ
 ```
 
-softmax 的分母也只包含 J(t)，所以限制位置通常会改变输出。这和「先算完密集 attention、再把几项结果删掉」不一样：删掉以后剩下的权重加起来不到 1，稀疏 attention 则在选中的位置之间重新归一化。看一个 4 个位置的教学例子，分数为 [ln2, 0, 0, 0]，只保留位置 0 和 3：
+softmax 的分母也只包含 $J(t)$，所以限制位置通常会改变输出。这和「先算完密集 attention、再把几项结果删掉」不一样：删掉以后剩下的权重加起来不到 1，稀疏 attention 则在选中的位置之间重新归一化。看一个 4 个位置的教学例子，分数为 $[\ln 2,\; 0,\; 0,\; 0]$，只保留位置 0 和 3：
 
-```calc
-title: 只留两个位置，权重怎样重新分配
-密集的分母 = e^ln2 + 3 × e⁰ = 2 + 3 = 5
-密集时位置 0 的权重 = 2 ÷ 5 = 0.4
-密集时其余每个位置 = 1 ÷ 5 = 0.2
-稀疏的分母 = e^ln2 + e⁰ = 2 + 1 = 3
-稀疏时位置 0 的权重 = 2 ÷ 3 ≈ 0.667
-稀疏时位置 3 的权重 = 1 ÷ 3 ≈ 0.333
-> 若从密集结果里直接删掉位置 1 和 2，剩下 0.4 + 0.2 = 0.6，不到 1
-```
+| 路径 | 分母计算 | 位置 0 权重 | 位置 1 / 2 权重 | 位置 3 权重 | 权重之和 |
+|---|---|---|---|---|---|
+| 密集 attention | $e^{\ln 2} + 3 e^0 = 2 + 3 = 5$ | $2 \div 5 = 0.4$ | 各 $1 \div 5 = 0.2$ | $1 \div 5 = 0.2$ | $1.0$ |
+| 稀疏 attention（保留 0、3） | $e^{\ln 2} + e^0 = 2 + 1 = 3$ | $2 \div 3 \approx 0.667$ | 不参与 | $1 \div 3 \approx 0.333$ | $1.0$ |
+| 反例：密集结果直删 1、2 | 沿用原分母 $5$ | $0.4$ | 删去 | $0.2$ | $0.6$（不到 1） |
 
 下图换个角度看同一件事：每一行是一个查询，每一列是一个键，有颜色的格表示这对位置参与计算。
 
@@ -264,16 +267,14 @@ TP8 下有两样东西不按卡切：indexer 在每张卡上各算一遍，512 �
 
 历史更长时才开始真正挑选。以本部署允许的最长上下文 133120 个位置为例，最后一个查询面前有 33280 个完整池，只选其中 512 个，约占 1.5%；这时尾部为 0，读 2048 个位置，即全部历史的 1/65。
 
-按长历史的上界，一个查询在一层里做多少打分和汇合，可以直接从清单宽度算出来：
+按长历史的上界，一个查询在一层稀疏 MLA 里每张卡要做多少打分和汇合，可以直接从清单宽度算出来（不含 softmax、各投影和内核补齐；短历史按实际选中的位置数算）：
 
-```calc
-title: 一个查询在一层稀疏 MLA 里的计算上界（每卡）
-QK 打分的乘加次数 = 8 个头 × 2051 个位置 × 512 维 ≈ 8.40 M
-PV 汇合的乘加次数 = 8 个头 × 2051 个位置 × 512 维 ≈ 8.40 M
-一层合计 = (8.40 M + 8.40 M) 次乘加 × 2 FLOP ≈ 33.6 MFLOP
-主干 11 层 = 11 × 33.6 MFLOP ≈ 370 MFLOP
-> 不含 softmax、各投影和内核补齐；短历史按实际选中的位置数算
-```
+| 统计项（每卡 8 头、512 维潜向量） | 算式 | 上界结果 |
+|---|---|---|
+| $QK$ 打分乘加次数 | $8 \times 2051 \times 512$ | $\approx 8.40\text{ M}$ 次乘加 |
+| $PV$ 汇合乘加次数 | $8 \times 2051 \times 512$ | $\approx 8.40\text{ M}$ 次乘加 |
+| 单层合计浮点运算量 | $(8.40\text{ M} + 8.40\text{ M}) \times 2\text{ FLOP}$ | $\approx 33.6\text{ MFLOP}$ |
+| 主干 11 层合计 | $11 \times 33.6\text{ MFLOP}$ | $\approx 370\text{ MFLOP}$ |
 
 同样按上界，选中潜向量的逻辑读取量是 2051 × 512 × 2 B ≈ 2.00 MiB（每个 token、每层、每卡），主干 11 层 22.0 MiB，加上 [MTP](speculative-decoding.md) 层（生成投机草稿的配套层，也是稀疏 MLA）共 12 层 24.0 MiB。潜向量在 TP 组内每卡各存一份，所以每张卡都要读这些。这是逻辑数据量，没有计入内核的分块、重复加载和缓存复用，也没有实测。
 
@@ -306,17 +307,15 @@ PV 汇合的乘加次数 = 8 个头 × 2051 个位置 × 512 维 ≈ 8.40 M
 | index_skip_topk_offset | 2 | 频率方式中先保留的完整选择层数；官方简表未列这个消费者默认 |
 | index_topk_pattern | None | 一旦非 None，就优先于频率；对应位置为大写 S 时复用，其余情况不跳过 |
 
-频率不是简单地从第 0 层开始写 F、S、S、S。默认偏移为 2、频率为 4 时，前十层的行为可以直接演算：
+频率不是简单地从第 0 层开始写 F、S、S、S。默认偏移为 2、频率为 4 时，判定整数按 $\max(\text{层号} - 2 + 1,\; 0) = \max(\text{层号} - 1,\; 0)$ 计算，除以 4 余数为 0 才重新选择（层号从 0 数）：
 
-```calc
-title: 频率 4 加上默认偏移 2：前十层怎样选
-判定整数 = max(层号 − 2 + 1, 0) = max(层号 − 1, 0)
-第 0 到 9 层的判定整数 = [0, 0, 1, 2, 3, 4, 5, 6, 7, 8]
-除以 4 的余数 = [0, 0, 1, 2, 3, 0, 1, 2, 3, 0]
-余数为 0 才重新选择 = 第 0、1、5、9 层 = 4 次
-其余层复用 = 10 − 4 = 6 次
-> 层号从 0 数；序列是 F、F、S、S、S、F、S、S、S、F
-```
+| 层号（从 0 数） | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 判定整数 $\max(l - 1, 0)$ | 0 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+| 除以 4 的余数 | 0 | 0 | 1 | 2 | 3 | 0 | 1 | 2 | 3 | 0 |
+| 行为（`F` 重选 / `S` 复用） | F | F | S | S | S | F | S | S | S | F |
+
+前十层合计重新选择 4 次（第 0、1、5、9 层）、复用 6 次（$10 - 4 = 6$）。
 
 显式模式应使用与主干层对应的 F/S 字符串，并在需要共享的一段前先安排 F，让清单先被写入。所核消费者没有替用户完整校验模式：小写 s 不会触发共享，超出字符串长度的层恢复为完整选择；长度、首层和质量都需要调用方检查。模型选出 S 层与后端保存清单是两件事：DeepSeek 构造函数读取频率与模式时没有用 use_index_cache 作守卫，这不意味着可以省去负责发布清单的开关。
 
@@ -344,41 +343,38 @@ IndexCache 还有两处初始化检查：没有 indexer 却要求完整选择会
 这个模型不能关掉稀疏：它的权重是按稀疏方式训练的。能看的是开销落在哪里。
 
 - **固定 GLM 镜像的 indexer 每层都跑。** 11 个稀疏 MLA 层，每层的每个查询都要给全部完整池打分，工作量随历史长度增长，TP8 下每张卡还各算一遍。历史不超过 2051 个位置时，主 attention 没省下任何读取，indexer 这一份就是纯开销。前面的 DeepSeek 跨层共享配置不能改变这个专用 GLM 构造路径。
-- **读取量和计算量有上界。** 见[稀疏什么时候才真的起作用](#稀疏什么时候才真的起作用)里的 calc。
-- **位置清单要常驻显存。** 主干 11 层共用一块，MTP 层另开一块：
+- **读取量和计算量有上界。** 见[稀疏什么时候才真的起作用](#稀疏什么时候才真的起作用)里的表格算例。
+- **位置清单要常驻显存。** 主干 11 层共用一块，MTP 层另开一块（8192 是调度上限；MTP 把宽度 2051 向上取到 128 的倍数 2176，编号为 `int32` 各占 4 B）：
 
-```calc
-title: 位置清单的常驻缓冲
-主干一块 = 8192 行 × 2051 列 × 4 B = 67,207,168 B ≈ 64.09 MiB
-MTP 一块 = 8192 行 × 2176 列 × 4 B = 71,303,168 B ≈ 68.0 MiB
-合计 = 64.09 MiB + 68.0 MiB ≈ 132.1 MiB
-> 8192 是调度上限；MTP 把宽度 2051 向上取到 128 的倍数 2176
-```
+| 缓冲归属 | 形状与元素字节 | 字节数 | MiB |
+|---|---|---|---|
+| 主干 11 层共用 | $8192 \times 2051 \times 4\text{ B}$ | $67{,}207{,}168\text{ B}$ | $\approx 64.09\text{ MiB}$ |
+| MTP 草稿层 | $8192 \times 2176 \times 4\text{ B}$ | $71{,}303{,}168\text{ B}$ | $\approx 68.0\text{ MiB}$ |
+| 合计 | $64.09\text{ MiB} + 68.0\text{ MiB}$ | $138{,}510{,}336\text{ B}$ | $\approx 132.1\text{ MiB}$ |
 
 这两块缓冲算在模型常驻显存里，KV cache 能分到多少块见[部署页的 KV 预算](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)。
 
 ### 版本差异
 
-**v0.30.0rc2 的 GLM KPool 继续先选池、再展开位置，但缓存职责更明确。** models/glm5next/attention.py 为完成池构造 BF16 的索引缓存，为未完成池构造 FP32 的 K/gate 环形尾状态；indexer_kpool.py 的模型侧后端独立于标准 SFA indexer，要求 NoPE 查询并拒绝 PCP/DCP。普通 SFA 的复制索引 DCP 路径不能据此推广到 GLM KPool。
+**`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）的 GLM KPool 继续先选池、再展开位置，缓存职责明确拆离。** `models/glm5next/attention.py` 为完成池构造 BF16 的索引缓存，为未完成池构造 FP32 的 K/gate 环形尾状态；`indexer_kpool.py` 的 `Glm5NextKPoolIndexerBackend` 独立于标准 SFA indexer，要求 NoPE 查询（`qk_rope_head_dim == 0`）。关键演进在于上下文并行：**`v0.30.0` 明确拒绝 PCP 与 DCP；`main` 放开了 PCP（支持行分片通信与 `pcp_local_token_count`，并在建层阶段为行交换预留共享工作区、保持 `wk_weights_proj` 为 ND 不转 NZ），目前仅继续拒绝 DCP。** 普通 SFA 的复制索引 DCP 路径仍不能推广到 GLM KPool。
 
-因此，本文“先筛候选、再对候选算 attention”的推演仍适用；旧镜像的缓存类名、槽位组织与每 token 预算需要保留版本标签。rc2 模型侧索引调用经 IndexerWrapper 进入专用后端，不能直接调用模型 Indexer.forward，它会抛出明确错误。
+因此，本文“先筛候选、再对候选算 attention”的推演仍适用；旧镜像 `db701c1f` 的缓存类名、槽位组织与每 token 预算保留历史绑定版本标签。新版模型侧索引调用经 `IndexerWrapper` 进入专用后端，不能直接调用模型 `Indexer.forward`。
 
-**选位置、读位置的思路一致；GLM 专用路径和共享入口须分别核对。** Ascend 四个比较快照依次为 2c59ff10、2ed6cbba、7d825229、baa023ad；上游消费者依次比较 0fc695fc、568afb3a、ced6857a、84030bbe。固定 main 是源码比较点，不据此保证它与 Ascend main 是同一安装包的精确配套；本页 GLM 算例仍用专用镜像 db701c1f。
+**四版本核验矩阵（本页 GLM 双机算例固定于专用镜像 `db701c1f`；上游 DeepSeek 消费者对照 `0fc695fc` / `568afb3a` / `ced6857a` / `84030bbe`）：**
 
-| 检查项 | v0.23 | v0.26 | rc2 | 固定 main |
+| 检查项 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
 |---|---|---|---|---|
-| DeepSeek-V3.2 式逐位置选择 | 有：设备层调用 lightning indexer，配置预算 2048、掩码模式 3 | 同 v0.23 | 有通用 DSA 路径 | 有通用 DSA 路径 |
-| GLM 的按池 indexer 与 2051 宽清单 | 维护快照没有；专用镜像 db701c1f 有 | 没有 GLM 模型文件，也没有按池 indexer | 有：模型侧独立 indexer 后端 | 有：attention/indexer_kpool.py，宽度仍为位置预算 + 每池位置数 − 1 |
-| 稀疏 attention 内核调用 | 镜像：子类入口到设备算子，逐位置读取、无 RoPE、掩码模式 3 | 通用路径，掩码模式默认 3 | 模型 indexer 与 SFA 执行分开，见本节开头 | sfa_v1.py 的 sparse_mla 保留所列内核参数 |
-| GLM 模型文件 | 镜像为 models/glm5_next.py | 无 | models/glm5next/ | 同 rc2；专用后端为 Glm5NextKPoolIndexerBackend |
-| Ascend DeepSeek 的 F/S 生成 | 频率 1、偏移 2、模式 None；模式优先 | 相同 | 相同；NPU 入口回到 deepseek_v2 消费者 | 同 rc2 |
-| DeepSeek 主干 S 层是否构造 indexer | 仍构造，选择时跳过 | 不构造；MTP 保留 indexer 且初始不跳 | 同 v0.26 | 同 v0.26 |
-| SFA 保存与读取共享位置 | 完整选择按 use_index_cache 保存，S 层读取 | 相同 | 保留；区分静态共享层和运行时 MTP 共享 | 同 rc2 |
-| GLM 主干能否靠 DeepSeek 的频率/模式跨层复用 | 专用镜像未接入，默认不跳 top-k | 无此 GLM 路径 | 构造时明确不跳，不读取这组主干模式 | 同 rc2 |
-| GLM MTP 步间共享 | 专用模型没有切换入口，proposer 的条件不会成立 | 无此 GLM 路径 | 草稿配置默认 false；开启后第 0 步重选，后续步复用并整理行 | 同 rc2 |
-| GLM MTP 共享时是否仍更新 indexer 历史 | 无这条共享入口 | 无此 GLM 路径 | 仍更新压缩 key 与尾部，再读取共享清单 | 同 rc2 |
+| DeepSeek-V3.2 式逐位置选择 | 设备层调用 lightning indexer，预算 2048、掩码模式 3 | 同 `v0.23.0` | 通用 DSA 路径 + `sfa_v1.py` | 同 `v0.30.0` |
+| GLM 按池 indexer 与 CP 边界 | 维护快照无；镜像 `db701c1f` 有 2051 宽清单 | 无 GLM 模型与按池 indexer | `Glm5NextKPoolIndexerBackend`，拒绝 PCP 与 DCP | 同后端但**新增 PCP 行分片支持**，仅拒绝 DCP，且 `wk_weights_proj` 跳过转 NZ |
+| 稀疏 attention 内核调用 | 镜像经子类入口到设备算子，无 RoPE、掩码模式 3 | 通用路径，掩码模式默认 3 | 模型 indexer 与 SFA 执行分离（`sparse_mode=3`） | 同 `v0.30.0` |
+| GLM 模型文件 | 镜像为 `models/glm5_next.py` | 无 | `models/glm5next/` | 同 `v0.30.0` |
+| Ascend DeepSeek 的 F/S 生成 | 频率 1、偏移 2、模式 None；模式优先 | 同 `v0.23.0` | 同 `v0.23.0`；NPU 入口回到 `deepseek_v2` 消费者 | 同 `v0.30.0` |
+| DeepSeek 主干 S 层是否构造 indexer | 仍构造，选择时跳过 | 不构造；MTP 保留 indexer 且初始不跳 | 同 `v0.26.0rc` | 同 `v0.26.0rc` |
+| SFA 保存与读取共享位置 | 按 `use_index_cache` 保存，S 层读取 | 同 `v0.23.0` | 保留；区分静态共享层与运行时 MTP 共享（`skip_indexer_pre_process`） | 同 `v0.30.0` |
+| GLM 主干跨层复用 | 镜像未接入，默认不跳 top-k | 无此路径 | 构造时明确不跳，不读取 DeepSeek 主干模式 | 同 `v0.30.0` |
+| GLM MTP 步间共享 | 镜像无切换入口 | 无此路径 | `set_skip_topk` 接通：默认 false，开启后第 0 步重选、后续步复用并整理行，仍更新压缩 key 与尾部 | 同 `v0.30.0` |
 
-rc2/main 的上游 DeepSeek 注册入口会按平台选择实现：CUDA 使用新的模型目录，其余平台回到 deepseek_v2；所列 Ascend 平台使用后者。因此这张表的频率、模式和构造结论明确针对 Ascend 消费链，不由遗留文件仍存在推断所有 GPU 也走同一路。各版本能否在固定双机整套跑通、共享后的精度和性能，仍需设备验证。
+`v0.30.0` 与 `main` 的上游 DeepSeek 注册入口会按平台选择实现：CUDA 使用新的模型目录，其余平台回到 `deepseek_v2`；所列 Ascend 平台使用后者。各版本能否在固定双机整套跑通、共享后的精度和性能，仍需设备验证。
 
 两个维护快照在通用稀疏路径上都按实际 KV 数据类型选择量化算子。v0.23 维护分支的量化路径委托对应算子后直接返回；非量化路径得到元组时，才解包并调用格式化辅助函数。v0.26 分支则把量化或非量化算子的结果交给共同的返回逻辑：结果为元组时，按调用方是否请求 LSE（注意力归一化所用指数和的对数）返回整个元组或首项。两处所述返回逻辑遇到非元组时，若请求了 LSE 就报错，未请求才直接返回。这些分支条件只描述所列快照的通用路径，不决定 GLM 按池路径的支持范围或默认值，也不等于两个版本的输出语义不同。
 
@@ -431,3 +427,4 @@ IndexCache 的官方入口见来源 25；DeepSeek 四版频率、偏移、模式
 固定 GLM 的 MTP 位置清单缓冲区按 index_topk + index_kpool − 1 计算宽度，再向上对齐到 128 的整数倍（来源 14）。对齐增加的是分配宽度，不是多选了历史位置；该规则只对应这里的专用实现。
 
 - 来源 22：vllm-ascend@baa023ad，vllm_ascend/attention/sfa_v1.py，L125–L139。
+- `v0.30.0`（`c09d3e20`）的 SFA 守卫、前向跳过/保存分支、`Glm5NextKPoolIndexerBackend` 拒绝 PCP/DCP 与 MTP `set_skip_topk` 见来源 63–66；`main`（`8d6180e2`）的对应入口及放开 PCP、保留 ND 与行交换缓冲预留见来源 67–70。

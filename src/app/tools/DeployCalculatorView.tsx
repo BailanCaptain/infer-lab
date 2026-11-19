@@ -13,14 +13,19 @@ import {
   type CalcEvidenceLevel,
   DEFAULT_GPU_MEMORY_UTILIZATION,
   DEFAULT_MAX_NUM_BATCHED_TOKENS,
+  DEFAULT_MAX_NUM_SEQS,
   type DeployPlanInput,
   type DeployPlanReport,
   evaluateDeployPlan,
   evaluateWave3ModelGate,
   GIB,
   type KvCacheDtype,
+  MIB,
   type RooflineAnalysis,
+  WAVE4_DEMO_PRESETS,
   type Wave3ModelGateResult,
+  type Wave4ArchitectureSummary,
+  type Wave4DemoPreset,
   type WeightPrecision,
 } from "../../sim/modelspec/deployCalculator";
 import { MODEL_PRESETS } from "../../sim/modelspec/presets";
@@ -62,37 +67,7 @@ const CUDAGRAPH_OPTIONS: readonly { value: CudaGraphMode; label: string }[] = [
   { value: "NONE", label: "NONE（纯 Eager 不录图）" },
 ];
 
-const WAVE4_MLA_DEMO_JSON = JSON.stringify(
-  {
-    model_type: "deepseek_v3",
-    architectures: ["DeepseekV3ForCausalLM"],
-    hidden_size: 7168,
-    num_hidden_layers: 61,
-    num_attention_heads: 128,
-    kv_lora_rank: 512,
-    q_lora_rank: 1536,
-    qk_rope_head_dim: 64,
-    v_head_dim: 128,
-    vocab_size: 129280,
-  },
-  null,
-  2,
-);
-
-const WAVE4_KDA_DEMO_JSON = JSON.stringify(
-  {
-    model_type: "kimi_linear",
-    architectures: ["KimiLinearForCausalLM"],
-    hidden_size: 4096,
-    num_hidden_layers: 32,
-    num_attention_heads: 32,
-    num_key_value_heads: 8,
-    linear_kda: true,
-    layer_types: ["linear_kda", "full_attention"],
-  },
-  null,
-  2,
-);
+const DEFAULT_WAVE4_MLA_JSON = JSON.stringify(WAVE4_DEMO_PRESETS[0]!.config, null, 2);
 
 const WAVE4_WIKI_FALLBACK: Record<string, { id: string; label?: string }> = {
   kda: { id: "linear-attention", label: "KDA（线性注意力）" },
@@ -244,6 +219,141 @@ function SourceRefList({ sources }: { sources: readonly string[] }) {
           </code>
         );
       })}
+    </div>
+  );
+}
+
+function Wave4ArchActiveBanner({
+  arch,
+  tpSize,
+  maxNumSeqs,
+}: {
+  arch: Wave4ArchitectureSummary;
+  tpSize: number;
+  maxNumSeqs: number;
+}) {
+  if (arch.activeFeatures.length === 0) return null;
+  const wikiIds = new Set<string>();
+  if (arch.hasMla) wikiIds.add("mla");
+  if (arch.hasCsa2) wikiIds.add("sparse-attention");
+  if (arch.hasKda) wikiIds.add("linear-attention");
+  if (arch.hasEngram) wikiIds.add("engram-conditional-memory");
+  wikiIds.add("kv-cache-spec");
+
+  return (
+    <div
+      className="wt-calc-wave4-banner"
+      data-testid="wave4-arch-active"
+      role="status"
+      style={{
+        padding: "14px 16px",
+        borderRadius: "var(--radius-card)",
+        border: "1.5px solid color-mix(in srgb, var(--color-token) 58%, var(--color-line))",
+        background: "color-mix(in srgb, var(--color-token-soft) 68%, var(--color-surface-elevated))",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+        <span
+          style={{
+            padding: "3px 10px",
+            borderRadius: 999,
+            background: "var(--color-token)",
+            color: "var(--color-ink-inverse)",
+            fontSize: 13,
+            fontWeight: 700,
+          }}
+        >
+          Wave 4 异构注意力/记忆账本已激活 · 检测到 {arch.activeFeatures.join(" / ")}
+        </span>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 5,
+          fontSize: 13.5,
+          color: "var(--color-ink)",
+          lineHeight: 1.6,
+        }}
+      >
+        {arch.mla && (
+          <div>
+            <strong>MLA 潜向量压缩与 TP/DCP 守恒：</strong>
+            单层潜向量 ({arch.mla.kvLoraRank} + {arch.mla.qkRopeHeadDim}) 维 →{" "}
+            <code style={{ fontFamily: "var(--font-mono)" }}>
+              {arch.mla.latentBytesPerTokenPerLayer} B/tok/层
+            </code>
+            （较等效 MHA 压缩 <strong>{arch.mla.compressionRatio.toFixed(1)}×</strong>）。因单潜向量头（
+            <code>num_kv_heads_effective=1</code>）无法被 TP={tpSize} 切分，每张 TP 卡均全量复制潜向量，
+            {arch.mla.dcpSize > 1
+              ? `已通过 DCP=${arch.mla.dcpSize} 沿序列轴分摊为 1/${arch.mla.dcpSize}`
+              : "仅开启 DCP > 1 可沿序列轴切分"}
+            ；Decode 矩阵吸收（<code>mlapo</code>）显著抬升注意力算术强度。
+          </div>
+        )}
+
+        {arch.csa2 && (
+          <div>
+            <strong>CSA2 / DSA 稀疏索引器：</strong>
+            除主 KV/潜向量外，每层每 token 额外存储{" "}
+            <code style={{ fontFamily: "var(--font-mono)" }}>{arch.csa2.indexerBytesPerTokenPerLayer} B</code>{" "}
+            稀疏索引器缓存（<code>index_head_dim={arch.csa2.indexHeadDim}</code>,{" "}
+            <code>index_n_heads={arch.csa2.indexNumHeads}</code>），Decode 主 KV 读取从全上下文骤降至{" "}
+            <strong>top-{arch.csa2.indexTopk}</strong>（有效读取{" "}
+            <code>{arch.csa2.effectiveDecodeContextLen}</code> tok，综合读取压缩约{" "}
+            <strong>{arch.csa2.decodeBandwidthSavingsRatio.toFixed(1)}×</strong>）。
+          </div>
+        )}
+
+        {arch.kda && (
+          <div>
+            <strong>KDA / 线性注意力混合栈：</strong>共 {arch.kda.linearLayerCount} 层线性注意力 +{" "}
+            {arch.kda.fullAttnLayerCount} 层全注意力。线性层采用{" "}
+            <strong>O(1) 固定递推状态 S + 短卷积态</strong>（每并发序列{" "}
+            <code style={{ fontFamily: "var(--font-mono)" }}>
+              {(arch.kda.perSeqFixedLinearStateBytes / MIB).toFixed(2)} MiB/seq
+            </code>
+            ，按 <code>max_num_seqs={maxNumSeqs}</code> 预留{" "}
+            <strong>{fmtGiB(arch.kda.totalFixedLinearStateBytes)}</strong>，与上下文长度无关）；仅{" "}
+            {arch.kda.fullAttnLayerCount} 层全注意力消耗按 token 分页 KV（
+            <code style={{ fontFamily: "var(--font-mono)" }}>
+              {fmtBytes(arch.kda.perTokenPagedKvBytes)}/tok
+            </code>
+            ）。
+          </div>
+        )}
+
+        {arch.engram && (
+          <div>
+            <strong>Engram 条件记忆（{arch.engram.layerCount} 层）：</strong>
+            {arch.engram.dpSharedMemory ? (
+              <>
+                已启用 <code>engram_dp_shared_memory=true</code>（Host DRAM / <code>/dev/shm</code>{" "}
+                卸载共享）：单卡 NPU 权重 HBM 占用 <strong>0 B</strong>，单节点需预留{" "}
+                <strong>{fmtGiB(arch.engram.hostDramBytesPerNode)}</strong> Host DRAM，Stage 5 中{" "}
+                <code>edp</code> 走 Gloo 通信不占 HCCL 显存。
+              </>
+            ) : (
+              <>
+                <code>engram_dp_shared_memory=false</code>（NPU HBM 常驻）：按{" "}
+                <code>ETP={arch.engram.etpSize}</code> 切分，单卡常驻权重增加{" "}
+                <strong>{fmtGiB(arch.engram.npuWeightBytesPerRank)}</strong>，并已纳入 Stage 5 HCCL{" "}
+                <code>etp/edp</code> 域核算。
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+        {Array.from(wikiIds).map((id) => (
+          <ToolDeepLinkChip key={id} link={resolveSafeDeepLink(id)} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -779,9 +889,9 @@ function MinimalRooflineBody({ plan }: { plan: DeployPlanReport }) {
           tone="weight"
         />
         <MetricTile
-          label={`GQA Decode KV（组=${roofline.gqaGroupSize}）`}
+          label={roofline.attentionModeLabel}
           value={`${roofline.decodeKvAttnIntensityFlopsPerByte.toFixed(1)} FLOP/B`}
-          sub={`单步 KV 流量 ${fmtBytes(roofline.decodeKvTrafficBytesPerStep)}（ctx=${roofline.decodeContextLen}）`}
+          sub={`单步 KV/态流量 ${fmtBytes(roofline.decodeKvTrafficBytesPerStep)}（有效 ctx=${roofline.effectiveDecodeContextLen}）`}
           tone="kv"
         />
       </div>
@@ -912,8 +1022,13 @@ function FourQuestionsGrid({ plan }: { plan: DeployPlanReport }) {
             {q2Capacity.minPhysicalCardsRecommended} 物理卡）
           </span>
           <span>
-            单 token KV：<strong>{fmtBytes(q2Capacity.kvBytesPerTokenPerRank)}</strong>
+            单 token 分页 KV：<strong>{fmtBytes(q2Capacity.perTokenPagedKvBytes)}</strong>
           </span>
+          {q2Capacity.perSeqFixedLinearStateBytes > 0 && (
+            <span>
+              单序列线性状态：<strong>{fmtBytes(q2Capacity.perSeqFixedLinearStateBytes)}</strong>
+            </span>
+          )}
           <span>
             KV 块（{q2Capacity.effectiveBlockSize} tok）：
             <strong>{fmtBytes(q2Capacity.kvBytesPerBlock)}</strong>
@@ -1391,10 +1506,12 @@ interface CalcState {
   tpSize: number;
   ppSize: number;
   dpSize: number;
+  dcpSize: number;
   enableEp: boolean;
   gpuMemoryUtilization: number;
   maxModelLen: number;
   maxNumBatchedTokens: number;
+  maxNumSeqs: number;
   cudagraphMode: CudaGraphMode;
   prefillTokens: number;
   decodeBatchSize: number;
@@ -1582,6 +1699,21 @@ function CalcControlsBar({
             </select>
           </label>
 
+          <label className="wt-field" style={{ minWidth: 96 }}>
+            <span className="wt-field-label">DCP（序列切分）</span>
+            <select
+              className="wt-select"
+              value={state.dcpSize}
+              onChange={(e) => onPatch({ dcpSize: Number(e.target.value) })}
+            >
+              {[1, 2, 4, 8].map((n) => (
+                <option key={n} value={n}>
+                  DCP={n}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="wt-field" style={{ minWidth: 180 }}>
             <span className="wt-field-label">
               gpu_memory_utilization = {state.gpuMemoryUtilization.toFixed(2)}
@@ -1625,6 +1757,23 @@ function CalcControlsBar({
                     256,
                     Number(e.target.value) || DEFAULT_MAX_NUM_BATCHED_TOKENS,
                   ),
+                })
+              }
+            />
+          </label>
+
+          <label className="wt-field" style={{ minWidth: 120 }}>
+            <span className="wt-field-label">max_num_seqs</span>
+            <input
+              className="wt-input"
+              type="number"
+              min={1}
+              max={4096}
+              step={16}
+              value={state.maxNumSeqs}
+              onChange={(e) =>
+                onPatch({
+                  maxNumSeqs: Math.max(1, Number(e.target.value) || DEFAULT_MAX_NUM_SEQS),
                 })
               }
             />
@@ -1701,8 +1850,9 @@ export function DeployCalculatorView({
   const [presetId, setPresetId] = useState<string>(defaultPreset);
   const [useCustomJson, setUseCustomJson] = useState(startsWithJson);
   const [customJsonText, setCustomJsonText] = useState<string>(
-    startsWithJson ? initialTrimmed : WAVE4_MLA_DEMO_JSON,
+    startsWithJson ? initialTrimmed : DEFAULT_WAVE4_MLA_JSON,
   );
+  const [activeWave4DemoId, setActiveWave4DemoId] = useState<string | null>(null);
   const prevInitialModelRef = useRef<string | undefined>(initialModel);
   useEffect(() => {
     if (prevInitialModelRef.current === initialModel) return;
@@ -1730,10 +1880,12 @@ export function DeployCalculatorView({
     tpSize: 1,
     ppSize: 1,
     dpSize: 1,
+    dcpSize: 1,
     enableEp: false,
     gpuMemoryUtilization: DEFAULT_GPU_MEMORY_UTILIZATION,
     maxModelLen: 32768,
     maxNumBatchedTokens: DEFAULT_MAX_NUM_BATCHED_TOKENS,
+    maxNumSeqs: DEFAULT_MAX_NUM_SEQS,
     cudagraphMode: "PIECEWISE",
     prefillTokens: 512,
     decodeBatchSize: 16,
@@ -1759,10 +1911,12 @@ export function DeployCalculatorView({
       tpSize: state.tpSize,
       ppSize: state.ppSize,
       dpSize: state.dpSize,
+      dcpSize: state.dcpSize,
       enableEp: state.enableEp,
       gpuMemoryUtilization: state.gpuMemoryUtilization,
       maxModelLen: state.maxModelLen,
       maxNumBatchedTokens: state.maxNumBatchedTokens,
+      maxNumSeqs: state.maxNumSeqs,
       cudagraphMode: state.cudagraphMode,
       enforceEager: state.cudagraphMode === "NONE",
       prefillTokens: state.prefillTokens,
@@ -1798,7 +1952,22 @@ export function DeployCalculatorView({
 
   const resetToStandard = () => {
     setUseCustomJson(false);
+    setActiveWave4DemoId(null);
     setPresetId("qwen3-8b");
+  };
+
+  const applyWave4Demo = (demo: Wave4DemoPreset) => {
+    setCustomJsonText(JSON.stringify(demo.config, null, 2));
+    setUseCustomJson(true);
+    setActiveWave4DemoId(demo.id);
+    patchState({
+      tpSize: demo.recommendedTp,
+      ppSize: demo.recommendedPp,
+      dpSize: demo.recommendedDp,
+      dcpSize: 1,
+      enableEp: demo.recommendedEnableEp,
+      weightPrecision: demo.recommendedPrecision,
+    });
   };
 
   const displayTitle = title ?? "「立项四问」双模部署算账台";
@@ -1870,6 +2039,7 @@ export function DeployCalculatorView({
             className={`wt-preset-btn${!useCustomJson && presetId === p.id ? " is-active" : ""}`}
             onClick={() => {
               setUseCustomJson(false);
+              setActiveWave4DemoId(null);
               setPresetId(p.id);
               if (p.id === "qwen3-30b-a3b" && state.tpSize === 1) {
                 patchState({ tpSize: 4, enableEp: true });
@@ -1881,41 +2051,34 @@ export function DeployCalculatorView({
         ))}
         <button
           type="button"
-          className={`wt-preset-btn${useCustomJson ? " is-active" : ""}`}
-          onClick={() => setUseCustomJson(true)}
+          className={`wt-preset-btn${useCustomJson && activeWave4DemoId === null ? " is-active" : ""}`}
+          onClick={() => {
+            setActiveWave4DemoId(null);
+            setUseCustomJson(true);
+          }}
         >
           粘贴 config.json
         </button>
-        {mode === "full" && (
-          <>
+        {mode === "full" &&
+          WAVE4_DEMO_PRESETS.map((demo) => (
             <button
+              key={demo.id}
               type="button"
-              className="wt-preset-btn"
-              onClick={() => {
-                setCustomJsonText(WAVE4_MLA_DEMO_JSON);
-                setUseCustomJson(true);
-              }}
+              data-testid={`wave4-demo-${demo.id}`}
+              className={`wt-preset-btn${useCustomJson && activeWave4DemoId === demo.id ? " is-active" : ""}`}
+              onClick={() => applyWave4Demo(demo)}
             >
-              测试 MLA/KDA 拦截样例（DeepSeek-V3 MLA）
+              {demo.label}
             </button>
-            <button
-              type="button"
-              className="wt-preset-btn"
-              onClick={() => {
-                setCustomJsonText(WAVE4_KDA_DEMO_JSON);
-                setUseCustomJson(true);
-              }}
-            >
-              测试 KDA 拦截样例
-            </button>
-          </>
-        )}
+          ))}
       </div>
 
       {useCustomJson && (
         <div className="wt-editor-card">
           <div className="wt-editor-head">
-            <span className="wt-editor-title">自定义 HuggingFace config.json（经 Wave 3 门禁校验）</span>
+            <span className="wt-editor-title">
+              自定义 HuggingFace config.json（支持 GQA / MoE / MLA / CSA2 / KDA / Engram 全架构解析）
+            </span>
             <button
               type="button"
               className="wt-preset-btn"
@@ -1929,7 +2092,10 @@ export function DeployCalculatorView({
             className="wt-textarea wt-textarea-compact"
             data-testid="calc-custom-config-input"
             value={customJsonText}
-            onChange={(e) => setCustomJsonText(e.target.value)}
+            onChange={(e) => {
+              setActiveWave4DemoId(null);
+              setCustomJsonText(e.target.value);
+            }}
             placeholder="粘贴 HuggingFace config.json 原文..."
           />
         </div>
@@ -1961,6 +2127,14 @@ export function DeployCalculatorView({
 
       {plan && (
         <>
+          {plan.wave4Arch.activeFeatures.length > 0 && (
+            <Wave4ArchActiveBanner
+              arch={plan.wave4Arch}
+              tpSize={plan.inputSummary.tpSize}
+              maxNumSeqs={plan.inputSummary.maxNumSeqs}
+            />
+          )}
+
           {(mode !== "full" || subMode === "static") && (
             <CalcControlsBar mode={mode} state={state} isMoe={plan.isMoe} onPatch={patchState} />
           )}

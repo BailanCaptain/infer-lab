@@ -275,6 +275,16 @@
           "note": "v0.23 / v0.26 指南明确不支持 FULL 与 FULL_DECODE_ONLY，并用分段捕获举例；这与 GLM 双机的整趟 decode 图配置冲突，不能外推为与所有 ACL Graph 模式互斥。"
         },
         {
+          "from": "pooling-and-non-ar",
+          "kind": "conflicts-with",
+          "note": "Encoder-Decoder 模型受限于交叉注意力与动态编码长度，与全图捕获冲突并自动降级为 PIECEWISE 或 Eager"
+        },
+        {
+          "from": "dev-new-model-and-custom-op",
+          "kind": "enables",
+          "note": "新算子要进入完整图回放必须补齐 Meta 形状推导，图捕获与回放边界见该页"
+        },
+        {
           "from": "enable-force-eplb-b7ec3661121f",
           "kind": "enables",
           "note": "旧 model runner 在非捕获 dummy run 预建 capture size 对应表，减少捕获时缓存未命中的分配；完整缓存键仍须匹配"
@@ -288,6 +298,11 @@
           "from": "lora",
           "kind": "enables",
           "note": "适配器状态参与捕获图分派。"
+        },
+        {
+          "from": "msprobe-accuracy-debug",
+          "kind": "enables",
+          "note": "若 Eager 模式正常、开启 ACL Graph 后异常，需按本页切换到 AclGraphDumper 捕图侧张量"
         },
         {
           "from": "npugraph-ex",
@@ -525,6 +540,82 @@
       ]
     },
     {
+      "id": "aisbench-and-evalscope",
+      "title": "AISBench 与 EvalScope 实战：压测模式、指标口径对齐与精度基线评测",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "系统拆解在昇腾 vLLM Ascend 上使用 AISBench 与 EvalScope 开展性能压测和数据集精度评测的完整规范，厘清固定并发与到达率模式差异、冷启动预热与前缀缓存污染剔除、客户端与服务端 Prometheus /metrics 的 TTFT/TPOT/ITL 口径对齐，以及推理模型思维链剥离与长度截断避坑要点。",
+      "aliases": [
+        "AISBench",
+        "EvalScope",
+        "ais_bench",
+        "evalscope eval",
+        "evalscope perf",
+        "并发模式与到达率模式",
+        "TTFT TPOT ITL 口径对齐",
+        "数据集精度基线"
+      ],
+      "chapters": [
+        "19"
+      ],
+      "order": 4,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/evaluation/using_ais_bench.md#L1-L245",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/evaluation/using_evalscope.md#L1-L120",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/performance_and_debug/performance_benchmark.md#L70-L230",
+        "vllm@ced6857a:vllm/benchmarks/serve.py#L403-L466",
+        "vllm@ced6857a:vllm/benchmarks/serve.py#L568-L640",
+        "vllm@ced6857a:vllm/v1/metrics/stats.py#L438-L475",
+        "vllm@ced6857a:vllm/v1/metrics/stats.py#L540-L580",
+        "vllm@ced6857a:vllm/v1/metrics/loggers.py#L811-L839",
+        "vllm@ced6857a:vllm/v1/metrics/loggers.py#L1133-L1175",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/evaluation/using_ais_bench.md#L1-L50",
+        "vllm-ascend@2ed6cbba:docs/source/developer_guide/evaluation/using_evalscope.md#L1-L50",
+        "vllm-ascend@8d6180e2:docs/source/developer_guide/evaluation/using_ais_bench.md#L1-L50"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "inference-benchmarking",
+          "kind": "builds-on",
+          "note": "先掌握吞吐与时延基准测试的一般实验设计原则，再在本页落地 AISBench 与 EvalScope 工具选型"
+        },
+        {
+          "to": "inference-capacity-and-reliability",
+          "kind": "builds-on",
+          "note": "结合该页的 Prometheus /metrics 指标字典与容量边界，把单次压测数字换算成线上并发容量"
+        },
+        {
+          "to": "prefix-caching",
+          "kind": "builds-on",
+          "note": "压测重复 prompt 时自动前缀缓存会虚高吞吐，理解块级前缀复用机制有助于避免测试污染"
+        },
+        {
+          "to": "core-cli-params",
+          "kind": "builds-on",
+          "note": "评测长思维链数据集时需按本页与该页联动调整 --max-model-len 与批预算，避免答案截断"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-19",
+      "file": "concepts/aisbench-and-evalscope.md",
+      "backlinks": [
+        {
+          "from": "msprobe-accuracy-debug",
+          "kind": "enables",
+          "note": "通常先由 AISBench 或 EvalScope 发现评测集掉点，再挑出单条典型错题送入本页排查"
+        }
+      ]
+    },
+    {
       "id": "answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad",
       "title": "问答记录：Block Table 里的块什么时候分配、什么时候回收",
       "type": "source",
@@ -631,13 +722,11 @@
         "enable-prompt-embeds",
         "预计算嵌入输入",
         "多模态预处理",
-        "multimodal inputs",
         "mm_processor_cache_gb",
         "mm_processor_cache_type",
         "multi_modal_uuids",
         "enable_mm_embeds",
         "image_embeds",
-        "image_grid_thw",
         "media_io_kwargs",
         "VLLM_MAX_EMBED_DECODE_BYTES",
         "API server",
@@ -1237,6 +1326,11 @@
       "file": "concepts/api-server-entry.md",
       "backlinks": [
         {
+          "from": "multimodal-inference",
+          "kind": "enables",
+          "note": "前端进程在进入引擎前完成图片解码、Processor 切块缓存与多模态哈希生成"
+        },
+        {
           "from": "request-teardown",
           "kind": "enables",
           "note": "请求进门时登记的前端记录和输出槽在那一页；本页讲它们在结束时怎样被删"
@@ -1656,6 +1750,11 @@
           "note": "这个键是 additional_config.eplb_config 里的嵌套 dict；钉点上写了为什么会起不来（逐键报错与 extra=\"forbid\"）在那一页"
         },
         {
+          "from": "v030-release-baseline",
+          "kind": "enables",
+          "note": "理解退役环境变量迁移进 additional_config 后的 Pydantic 校验链与优先级"
+        },
+        {
           "from": "weight-prefetch-config",
           "kind": "enables",
           "note": "它只是 additional_config 里的一个子配置对象；main 上通常被 extra=\"forbid\" 当未知键拒收的机制在那一页"
@@ -1936,7 +2035,13 @@
       "contradicts": [],
       "updated": "2026-11-19",
       "file": "concepts/ascend-flash-attention.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "pooling-and-non-ar",
+          "kind": "enables",
+          "note": "双向编码器与因果池化模型在昇腾上分别落入 npu_fusion_attention 与标准 FIA 算子分支"
+        }
+      ]
     },
     {
       "id": "ascend-model-onboarding",
@@ -2419,6 +2524,11 @@
           "from": "dspark",
           "kind": "enables",
           "note": "调度与设备执行重叠会改变置信信息何时可用"
+        },
+        {
+          "from": "model-runner-v2",
+          "kind": "enables",
+          "note": "异步调度让主机提前准备下一步，本页说明为什么 CPP 异步与部分新特性必须建立在 MRV2 之上"
         },
         {
           "from": "request-call-chain",
@@ -3188,9 +3298,19 @@
           "note": "输入与采样固定后，检查批形状对数值及输出的影响"
         },
         {
+          "from": "msprobe-accuracy-debug",
+          "kind": "enables",
+          "note": "理解批大小变动引起的浮点归约漂移与确定性核替换，再决定是否先用批不变模式做对照"
+        },
+        {
           "from": "vllm-ascend-for-rl",
           "kind": "enables",
           "note": "需要稳定 rollout 时继续核对批不变的算子与调度限制"
+        },
+        {
+          "from": "sampling-advanced",
+          "kind": "has-variant",
+          "note": "开启批不变模式 VLLM_BATCH_INVARIANT 时，昇腾 Top-k/Top-p 会退回上游确定性原生路径"
         }
       ]
     },
@@ -3779,6 +3899,11 @@
           "note": "区分软件通信库、集合通信语义与实际互联链路"
         },
         {
+          "from": "engram-conditional-memory",
+          "kind": "enables",
+          "note": "HCCL 设备通信与 Gloo 主机协调组在 ETP / EDP 分组中的职责差异"
+        },
+        {
           "from": "hccl-buffer",
           "kind": "enables",
           "note": "通信组怎么分、走哪条物理链路在那页"
@@ -3989,6 +4114,94 @@
           "note": "动态分块流水线是用于 PP 部署的 prefill 分块变体，在普通 token 预算约束内，按已算进度和预计耗时进一步缩小块大小。"
         }
       ]
+    },
+    {
+      "id": "cluster-serving",
+      "title": "昇腾多实例集群部署与路由：DP 外部拉起、前缀感知分发与优雅摘流",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "面向昇腾多机多卡生产在线服务，系统对比 DP 外部协同拉起与独立多实例代理两种集群架构，拆解基于 /load、动态长度分桶与 ZMQ KVEventsConfig 的 KV 感知路由，并给出覆盖长冷启动图捕获期的 /health 探针设计与 --shutdown-timeout 优雅摘流规范。",
+      "aliases": [
+        "集群部署",
+        "多实例路由",
+        "DP 外部拉起",
+        "外部负载均衡",
+        "前缀感知路由",
+        "KVEventsConfig",
+        "优雅摘流",
+        "graceful drain",
+        "shutdown-timeout",
+        "startupProbe"
+      ],
+      "chapters": [
+        "13",
+        "19"
+      ],
+      "order": 25,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20:examples/external_online_dp/README.md#L1-L41",
+        "vllm-ascend@c09d3e20:examples/external_online_dp/launch_online_dp.py#L8-L55",
+        "vllm-ascend@c09d3e20:examples/external_online_dp/run_dp_template.sh#L1-L32",
+        "vllm-ascend@c09d3e20:examples/dynamic_bucket_load_balancer/README.md#L1-L45",
+        "vllm@ced6857a:vllm/entrypoints/cli/serve.py#L67-L100",
+        "vllm@ced6857a:vllm/entrypoints/cli/serve.py#L179-L240",
+        "vllm@ced6857a:vllm/entrypoints/launchers/dp_supervisor.py#L220-L240",
+        "vllm@ced6857a:vllm/entrypoints/launchers/api_server/entry.py#L180-L202",
+        "vllm@ced6857a:vllm/entrypoints/launchers/launcher.py#L124-L185",
+        "vllm@ced6857a:vllm/config/vllm.py#L455-L460",
+        "vllm@ced6857a:vllm/entrypoints/serve/instrumentator/health.py#L22-L33",
+        "vllm@ced6857a:vllm/entrypoints/serve/instrumentator/basic.py#L30-L51",
+        "vllm@ced6857a:vllm/entrypoints/serve/dev/rlhf/api_router.py#L29-L65",
+        "vllm@ced6857a:vllm/config/kv_events.py#L10-L52",
+        "vllm-ascend@2c59ff10:examples/external_online_dp/README.md#L1-L41",
+        "vllm-ascend@2ed6cbba:examples/dynamic_bucket_load_balancer/README.md#L1-L40",
+        "vllm-ascend@8d6180e2:examples/external_online_dp/README.md#L1-L41"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "data-parallel",
+          "kind": "builds-on",
+          "note": "先理解 DP 组内通信与 MoE 跨 DP 共享 EP 的基本机制，再在本页决策采用外部 DP 还是独立副本"
+        },
+        {
+          "to": "dp-request-routing",
+          "kind": "builds-on",
+          "note": "单个多 DP 引擎内部的请求分配策略见该页，本页面向跨进程/跨节点集群级代理与健康探测"
+        },
+        {
+          "to": "prefix-caching",
+          "kind": "builds-on",
+          "note": "结合块级自动前缀缓存机制，理解为什么集群路由需要前缀亲和与 KVEventsConfig 事件同步"
+        },
+        {
+          "to": "npu-worker-lifecycle",
+          "kind": "builds-on",
+          "note": "了解昇腾权重转 NZ 与 ACL Graph 录图耗时来源，才能合理设置 K8s startupProbe 宽限窗口"
+        },
+        {
+          "to": "pd-disaggregation",
+          "kind": "builds-on",
+          "note": "超大规模集群进一步把 Prefill 与 Decode 拆池路由时，接续阅读该页与 Mooncake 连接器"
+        },
+        {
+          "to": "inference-capacity-and-reliability",
+          "kind": "builds-on",
+          "note": "结合该页的 SLA 与监控指标字典，建立集群级扩缩容与告警联动"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-19",
+      "file": "concepts/cluster-serving.md",
+      "backlinks": []
     },
     {
       "id": "collective-communication",
@@ -4702,6 +4915,11 @@
           "note": "baa023ad 由 SFA-PCP 接手，rc2 还覆盖 DSA-PCP；均须先满足 PCP 后端和 runner 条件，序列切法见该页"
         },
         {
+          "from": "model-runner-v2",
+          "kind": "enables",
+          "note": "理解 PCP 预填充上下文并行的序列切分原理后，回看本页的 AscendPCPManager 局部/全局批映射"
+        },
+        {
           "from": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
           "kind": "enables",
           "note": "只有 decode_context_parallel_size > 1 且模型走 SFA 稀疏注意力时才有实现类读它，DCP 怎么切 KV 在那一页"
@@ -4922,7 +5140,18 @@
       "contradicts": [],
       "updated": "2026-11-18",
       "file": "concepts/core-cli-params.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "aisbench-and-evalscope",
+          "kind": "enables",
+          "note": "评测长思维链数据集时需按本页与该页联动调整 --max-model-len 与批预算，避免答案截断"
+        },
+        {
+          "from": "v030-release-baseline",
+          "kind": "enables",
+          "note": "升级后同时核对四大核心启动旋钮、批预算 6 分支与跨子系统静默改写规则"
+        }
+      ]
     },
     {
       "id": "cpu-binding",
@@ -5252,6 +5481,11 @@
           "note": "区分 DP 执行组与跨机 DP 设备通信组，需要先理解 DP 如何分配请求，以及执行组内部如何使用 TP。"
         },
         {
+          "from": "cluster-serving",
+          "kind": "enables",
+          "note": "先理解 DP 组内通信与 MoE 跨 DP 共享 EP 的基本机制，再在本页决策采用外部 DP 还是独立副本"
+        },
+        {
           "from": "dp-request-routing",
           "kind": "enables",
           "note": "DP 组是什么、各组各有 scheduler 与 KV 池、waiting 为什么按 4 倍算、请求派定不迁移"
@@ -5358,6 +5592,11 @@
           "note": "生产页说明状态在服务间怎样移动，本页说明这些状态为什么不同"
         },
         {
+          "from": "engram-conditional-memory",
+          "kind": "enables",
+          "note": "跨实例 P/D 部署下 Engram 与 KV 传输、连接器拓扑如何配合"
+        },
+        {
           "from": "inference-capacity-and-reliability",
           "kind": "enables",
           "note": "先看独立计算阶段与缓存存储之间怎样接力"
@@ -5377,11 +5616,7 @@
         "CSA2",
         "Hierarchical Sparse Indexer",
         "DeepSeek 状态布局",
-        "DeepInfer 模型配置",
-        "Engram",
-        "Engram CPU offload",
-        "dp_shared_memory",
-        "engram-config"
+        "DeepInfer 模型配置"
       ],
       "chapters": [
         "19"
@@ -5429,9 +5664,103 @@
           "note": "模型页维护草稿层数与配置的唯一出处"
         },
         {
+          "from": "engram-conditional-memory",
+          "kind": "enables",
+          "note": "DeepSeek-V4.1-Flash 整机结构与 CED / CSA2 / Engram 三笔内存账的分工背景"
+        },
+        {
           "from": "swa-bounded-replay",
           "kind": "enables",
           "note": "先理解全局历史与逐层窗口为何分开"
+        }
+      ]
+    },
+    {
+      "id": "dev-new-model-and-custom-op",
+      "title": "新模型适配与自定义算子开发实战：权重映射、量化注册与三条 NPU 算子路径",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "串通新 HuggingFace 模型接入 vLLM Ascend 的架构注册、WeightsMapper、@register_scheme 量化注册与 OOT 分发，对比 torch_npu、AscendC 与 Triton-Ascend 三条算子路径及 950/310P 能力门控。",
+      "aliases": [
+        "自定义算子开发",
+        "新模型接入与算子开发",
+        "WeightsMapper",
+        "register_scheme",
+        "enable_custom_op",
+        "vllm_ascend_C",
+        "triton-ascend",
+        "AscendC 算子接入",
+        "HardwareProfile 能力门控"
+      ],
+      "chapters": [
+        "16",
+        "20"
+      ],
+      "order": 35,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20:vllm_ascend/__init__.py#L106-L110",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/__init__.py#L1-L85",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_mtp.py#L80-L95",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/registry.py#L20-L62",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L540-L585",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L815-L955",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/__init__.py#L18-L55",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/layernorm.py#L47-L124",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/triton/triton_utils.py#L13-L65",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L382",
+        "vllm-ascend@c09d3e20:csrc/build_aclnn.sh#L35-L55",
+        "vllm-ascend@c09d3e20:csrc/torch_binding_meta.cpp#L9-L55",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md#L1-L33",
+        "vllm@ced6857a:vllm/model_executor/models/utils.py#L47-L60",
+        "vllm@ced6857a:vllm/model_executor/custom_op.py#L84-L105",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/registry.py#L20-L50",
+        "vllm-ascend@2ed6cbba:vllm_ascend/quantization/methods/registry.py#L20-L50",
+        "vllm-ascend@8d6180e2:vllm_ascend/device/hardware_profile.py#L430-L500"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "ops-and-kernels",
+          "kind": "builds-on",
+          "note": "先理解 vLLM CustomOp 与昇腾 OOT 算子拦截的运行时机制，再按本页动手接入新算子"
+        },
+        {
+          "to": "op-to-ai-core",
+          "kind": "builds-on",
+          "note": "了解 Cube 与 Vector 核外搬运代价后，才能判断何时值得投入开发 AscendC 融合算子"
+        },
+        {
+          "to": "platform-plugin-registration",
+          "kind": "builds-on",
+          "note": "插件入口如何被 vLLM 发现并回调 register_model 与平台钩子见该页"
+        },
+        {
+          "to": "quantization-methods",
+          "kind": "builds-on",
+          "note": "常见昇腾量化格式（W8A8、MXFP8、FP8）的数学与权重布局见该页，本页聚焦方法注册接口"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "builds-on",
+          "note": "新算子要进入完整图回放必须补齐 Meta 形状推导，图捕获与回放边界见该页"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-19",
+      "file": "concepts/dev-new-model-and-custom-op.md",
+      "backlinks": [
+        {
+          "from": "v030-release-baseline",
+          "kind": "enables",
+          "note": "若维护自研模型或算子，需按本页 HardwareProfile 四家族能力档案迁移芯片分支判断"
         }
       ]
     },
@@ -5715,6 +6044,11 @@
           "from": "api-server-entry",
           "kind": "enables",
           "note": "入口最后一步派给哪一组的打分规则，计数从哪来、为什么会过时"
+        },
+        {
+          "from": "cluster-serving",
+          "kind": "enables",
+          "note": "单个多 DP 引擎内部的请求分配策略见该页，本页面向跨进程/跨节点集群级代理与健康探测"
         },
         {
           "from": "deepseek-serving-case",
@@ -6147,6 +6481,11 @@
           "from": "matmul-and-weights",
           "kind": "enables",
           "note": "先按 token 编号查出向量，再用矩阵乘变换它"
+        },
+        {
+          "from": "multimodal-inference",
+          "kind": "enables",
+          "note": "视觉编码器输出的嵌入张量最终按占位掩码原地覆写进标准词向量表查出的 inputs_embeds"
         }
       ]
     },
@@ -7126,6 +7465,178 @@
       ]
     },
     {
+      "id": "engram-conditional-memory",
+      "title": "Engram 条件记忆：N-gram 哈希查表与 Host DRAM / RDMA 共享",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "Engram 是模型自带的只读条件记忆表：按相邻短 token 序列的 N-gram 哈希稀疏查表，反量化后经门控融入残差流。因整表体积可达数百 GiB 且每步仅随机读取命中行，昇腾推理将其卸载到 Host DRAM（经 ACL 钉页直读与 POSIX 机内共享）或跨实例 MemFabric / HIXL 共享池，把宝贵的 NPU HBM 留给权重主干与动态 KV cache。",
+      "aliases": [
+        "Engram",
+        "Engram CPU offload",
+        "dp_shared_memory",
+        "engram-config",
+        "条件记忆表",
+        "Engram 条件记忆",
+        "Conditional Memory",
+        "N-gram 哈希记忆",
+        "shared_engram",
+        "Shared Engram",
+        "EngramConfig",
+        "embedding_across_dp",
+        "ETP",
+        "EDP"
+      ],
+      "chapters": [
+        "07"
+      ],
+      "order": 1,
+      "prerequisites": [],
+      "sources": [
+        "https://arxiv.org/html/2609.19969v1",
+        "vllm@ced6857a:vllm/config/engram.py#L18-L115",
+        "vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_engram_config.py#L19-L45",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/parallel_state.py#L79-L107",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/hash_state.py#L31-L105",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/parallel.py#L22-L96",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/embedding.py#L51-L120",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/embedding.py#L345-L405",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/layer.py#L14-L57",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/triton/docs/engram.md#L1-L36",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/parallel_state.py#L80-L137",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/npu.py#L25-L69",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/npu.py#L156-L215",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/npu.py#L296-L360",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/embedding.py#L100-L175",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/embedding.py#L220-L335",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L457-L491",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L795-L819",
+        "vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/local_weights.py#L1-L97",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/shared_engram.md#L1-L189",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/shared_engram_rdma.md#L1-L86"
+      ],
+      "verified": [
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "deepseek-v4-1-flash",
+          "kind": "builds-on",
+          "note": "DeepSeek-V4.1-Flash 整机结构与 CED / CSA2 / Engram 三笔内存账的分工背景"
+        },
+        {
+          "to": "deepseek-serving-case",
+          "kind": "builds-on",
+          "note": "跨实例 P/D 部署下 Engram 与 KV 传输、连接器拓扑如何配合"
+        },
+        {
+          "to": "kv-cache-cpu-offload",
+          "kind": "alternative-to",
+          "note": "同样占用主机 DRAM，但一个是只读模型参数表、一个是每请求动态 KV 历史"
+        },
+        {
+          "to": "rfork",
+          "kind": "builds-on",
+          "note": "main 上 RFork 快载如何单独加载、豁免并释放 Engram Host DRAM 表"
+        },
+        {
+          "to": "cann-hccl",
+          "kind": "builds-on",
+          "note": "HCCL 设备通信与 Gloo 主机协调组在 ETP / EDP 分组中的职责差异"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-19",
+      "file": "concepts/engram-conditional-memory.md",
+      "backlinks": []
+    },
+    {
+      "id": "epd-disaggregation",
+      "title": "EPD 分离（多模态编码器 / Prefill / Decode 三池解耦）：ECConnector 缓存交接与独立扩缩",
+      "type": "feature",
+      "origin": "direct",
+      "summary": "EPD 分离把多模态视觉编码器拆为独立 E 节点池，经 ECConnector（ECExampleConnector / v0.30.0 ECMemcacheConnector / main AscendECMooncakeConnector）跨进程交接编码缓存，并与 MooncakeLayerwise PD 分离组成独立扩缩的 E/P/D 三池集群。",
+      "aliases": [
+        "EPD",
+        "EPD 分离",
+        "EPD Disaggregation",
+        "Disaggregated-encoder",
+        "分离式编码器",
+        "编码器分离",
+        "E 实例",
+        "E 节点",
+        "ec_transfer_config",
+        "ec_role",
+        "ECConnector",
+        "ECExampleConnector",
+        "ECMemcacheConnector",
+        "AscendECMooncakeConnector",
+        "encoder cache",
+        "EC 连接器"
+      ],
+      "chapters": [
+        "18"
+      ],
+      "order": 25,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/epd_disaggregation.md#L1-L36",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/epd_disaggregation.md#L39-L85",
+        "vllm@ced6857a:vllm/distributed/ec_transfer/ec_connector/base.py#L1-L90",
+        "vllm@ced6857a:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L50-L65",
+        "vllm@ced6857a:vllm/v1/core/sched/scheduler.py#L646-L652",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2311-L2320",
+        "vllm-ascend@c09d3e20:vllm_ascend/distributed/ec_transfer/ec_memcache_connector.py#L1-L130",
+        "vllm-ascend@c09d3e20:examples/disaggregated_encoder/disagg_1e1pd_example.sh#L86-L140",
+        "vllm-ascend@c09d3e20:examples/disaggregated_encoder/disagg_epd_proxy.py#L402-L436",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/epd_disaggregation.md#L1-L40",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/epd_disaggregation.md#L1-L40",
+        "vllm-ascend@8d6180e2:vllm_ascend/distributed/ec_transfer/ec_connector/mooncake/connector.py#L1-L48"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "pd-disaggregation",
+          "kind": "builds-on",
+          "note": "先理解 Prefill 与 Decode 分离及两池交接 KV 的基本原理，再把视觉编码器抽离为第三池 E"
+        },
+        {
+          "to": "multimodal-inference",
+          "kind": "builds-on",
+          "note": "掌握单实例内 ViT 视觉编码、占位覆写与编码缓存概念，才能看懂跨进程 EC 缓存交接在传什么"
+        },
+        {
+          "to": "mooncake-connector",
+          "kind": "builds-on",
+          "note": "完整 E/P/D 三池部署中，P→D 段由 MooncakeLayerwise 逐层推 KV，社区 main 起 E→P 段亦对接 Mooncake EC 底座"
+        },
+        {
+          "to": "ucm",
+          "kind": "alternative-to",
+          "note": "外部集中式缓存（如 UCM / Memcache）同样可作为跨实例复用编码嵌入的共享存储层"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-19",
+      "file": "concepts/epd-disaggregation.md",
+      "backlinks": [
+        {
+          "from": "multimodal-inference",
+          "kind": "alternative-to",
+          "note": "当多图或高分辨率视频把视觉编码器推成瓶颈时，可把单实例内置编码器切换为独立 E 节点池的 EPD 分离架构"
+        }
+      ]
+    },
+    {
       "id": "eplb",
       "title": "EPLB：按实测热度调整专家放在哪张卡",
       "type": "feature",
@@ -7270,6 +7781,11 @@
           "from": "large-scale-ep",
           "kind": "enables",
           "note": "每卡专家变少后，热门专家的负载怎样调整"
+        },
+        {
+          "from": "model-runner-v2",
+          "kind": "enables",
+          "note": "专家负载均衡策略与搬迁参数见该页，本页划清 MRV1 环境变量控面与 MRV2 上游控制面的互斥边界"
         },
         {
           "from": "rank-transfer-limit-99529b37d91d",
@@ -7478,6 +7994,11 @@
           "from": "mlp-residual-norm",
           "kind": "enables",
           "note": "路由专家怎样按 EP16 分到 16 张卡、token 怎样派发与收回"
+        },
+        {
+          "from": "moe-comm-dispatch",
+          "kind": "enables",
+          "note": "先掌握专家并行中路由专家跨卡分散与 Dispatch/Combine 的基本逻辑，再看不同硬件与批长下的选路状态机"
         },
         {
           "from": "one-request",
@@ -8890,7 +9411,13 @@
       "contradicts": [],
       "updated": "2026-11-03",
       "file": "concepts/hccl-buffer.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "moe-comm-dispatch",
+          "kind": "enables",
+          "note": "常规 MC2 占用 HCCL_BUFFSIZE 通信缓冲，而 MegaMoe 改走独立对称内存缓冲 symm buffer"
+        }
+      ]
     },
     {
       "id": "hf-model-anatomy",
@@ -9076,6 +9603,11 @@
       "file": "concepts/inference-benchmarking.md",
       "backlinks": [
         {
+          "from": "aisbench-and-evalscope",
+          "kind": "enables",
+          "note": "先掌握吞吐与时延基准测试的一般实验设计原则，再在本页落地 AISBench 与 EvalScope 工具选型"
+        },
+        {
           "from": "dspark",
           "kind": "enables",
           "note": "用实际交付和服务目标验证候选调度是否有收益"
@@ -9171,7 +9703,18 @@
       "contradicts": [],
       "updated": "2026-11-08",
       "file": "concepts/inference-capacity-and-reliability.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "aisbench-and-evalscope",
+          "kind": "enables",
+          "note": "结合该页的 Prometheus /metrics 指标字典与容量边界，把单次压测数字换算成线上并发容量"
+        },
+        {
+          "from": "cluster-serving",
+          "kind": "enables",
+          "note": "结合该页的 SLA 与监控指标字典，建立集群级扩缩容与告警联动"
+        }
+      ]
     },
     {
       "id": "inference-correctness-troubleshooting",
@@ -9270,6 +9813,11 @@
       "updated": "2026-11-03",
       "file": "concepts/inference-correctness-troubleshooting.md",
       "backlinks": [
+        {
+          "from": "msprobe-accuracy-debug",
+          "kind": "enables",
+          "note": "先按该页排除聊天模板、分词与采样差异并锁定同输入首分歧，再进本页做逐层张量对账"
+        },
         {
           "from": "quantization-evaluation",
           "kind": "enables",
@@ -10092,6 +10640,11 @@
       "file": "concepts/kv-cache-cpu-offload.md",
       "backlinks": [
         {
+          "from": "engram-conditional-memory",
+          "kind": "alternative-to",
+          "note": "同样占用主机 DRAM，但一个是只读模型参数表、一个是每请求动态 KV 历史"
+        },
+        {
           "from": "kv-cache-sparse-offload",
           "kind": "alternative-to",
           "note": "同样用主机内存，但那边是多存一份副本、按段取回"
@@ -10806,12 +11359,20 @@
         "vllm-ascend@7d825229:vllm_ascend/worker/model_runner_v1.py#L5720-L5762",
         "vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L554-L579",
         "vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L648-L660",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L293-L338"
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L293-L338",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/cache_config.py#L90-L120",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/cache_config.py#L342-L430",
+        "vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L84-L135",
+        "vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_mamba_config.py#L42-L175",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/cache_config.py#L100-L155",
+        "vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L223-L315",
+        "vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L534-L610",
+        "vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_mamba_config.py#L42-L175"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "releases/v0.30.0rc2",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -10839,7 +11400,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-10",
+      "updated": "2026-11-19",
       "file": "concepts/kv-cache-spec.md",
       "backlinks": [
         {
@@ -11514,6 +12075,11 @@
           "from": "mooncake-connector",
           "kind": "enables",
           "note": "多个 DP rank 共用一个握手端口基址时，每个 rank 的端口怎样排"
+        },
+        {
+          "from": "moe-comm-dispatch",
+          "kind": "has-variant",
+          "note": "跨机大规模 EP 部署中，MC2、MegaMoe 与 AllToAll 的切换直接决定 Prefill 与 Decode 两阶段吞吐"
         }
       ]
     },
@@ -11858,11 +12424,16 @@
         "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L348-L395",
         "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/ops/kda.py#L1-L60",
         "raw:sha256-f1eb696b50d5560664ed320075d8c1a7bbd054b35e5f158fbd2b78fc2047b335.md#L1-L1026",
-        "vllm-ascend@7d825229:vllm_ascend/models/glm5next/kda.py#L108-L187"
+        "vllm-ascend@7d825229:vllm_ascend/models/glm5next/kda.py#L108-L187",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/kda.py#L107-L190",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda.py#L211-L310",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/kda_input_projection_tp.py#L18-L62",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/recoverssm_config.py#L13-L44"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -11899,7 +12470,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/linear-attention.md",
       "backlinks": [
         {
@@ -12068,6 +12639,11 @@
           "from": "sampling",
           "kind": "enables",
           "note": "采样吃的那排分数由 lm_head 算出，按词表切 8 份和 All-Gather 拼回以 lm_head 页为准"
+        },
+        {
+          "from": "sampling-advanced",
+          "kind": "enables",
+          "note": "采样器直接消费 lm_head 投影产出的全词表原始 logits 张量 [batch_size, vocab_size]"
         },
         {
           "from": "structured-output",
@@ -12846,11 +13422,19 @@
         "vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L1052-L1070",
         "vllm-ascend@7d825229:vllm_ascend/attention/mla_v1.py#L1487-L1575",
         "vllm@ced6857a:vllm/model_executor/utils.py#L70-L143",
-        "vllm@0fc695fc:vllm/envs.py#L1281-L1282"
+        "vllm@0fc695fc:vllm/envs.py#L1281-L1282",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/mla_v1.py#L1270-L1320",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/mla_v1.py#L1765-L1860",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/attention.py#L140-L230",
+        "vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_glm5next_config.py#L34-L51",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/mla_v1.py#L1241-L1285",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/mla_v1.py#L1704-L1800",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/attention.py#L151-L240"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -12888,7 +13472,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-03",
+      "updated": "2026-11-19",
       "file": "concepts/mla.md",
       "backlinks": [
         {
@@ -13089,6 +13673,102 @@
           "from": "sequence-parallel",
           "kind": "enables",
           "note": "理解逐 token 的归一化和残差"
+        }
+      ]
+    },
+    {
+      "id": "model-runner-v2",
+      "title": "Model Runner V2：常驻设备缓冲、异步调度与从可选到统一的执行引擎演进",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "解析 vLLM Ascend 从单文件 Model Runner V1 演进到模块化 Model Runner V2 的核心动因，拆解常驻设备侧缓冲 AscendInputBuffers、UVA 请求状态、异步调度兼容性、PCP 与 EPLB V2 集成边界，以及 v0.30.0 显式开关到 main 彻底统一的版本切换路径。",
+      "aliases": [
+        "MRV2",
+        "NPUModelRunnerV2",
+        "VLLM_USE_V2_MODEL_RUNNER",
+        "AscendInputBuffers",
+        "AscendRequestState",
+        "AscendPCPManager",
+        "AscendEPLBController",
+        "apply_v2_model_runner_config_patch"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 42,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L193-L195",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/worker.py#L509-L517",
+        "vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L49",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L135-L170",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L349-L393",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L789-L845",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/input_batch.py#L29-L85",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/states.py#L24-L46",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/block_table.py#L29-L60",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/pcp_manager.py#L44-L70",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/eplb.py#L20-L70",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L952-L999",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1075-L1085",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1639-L1658",
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/Design_Documents/model_runner_v2_eplb.md#L16-L90",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/release_notes.md#L9-L10",
+        "vllm@ced6857a:vllm/config/vllm.py#L674-L724",
+        "vllm@ced6857a:vllm/v1/worker/gpu/input_batch.py#L19-L41",
+        "vllm@ced6857a:vllm/v1/worker/gpu/states.py#L9-L51",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L160-L164",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L498-L501",
+        "vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L89"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "npu-model-runner",
+          "kind": "builds-on",
+          "note": "先理解单卡每步前向与采样拆成两次调用的基本骨架，再对照本页看 V2 如何重写状态与缓冲层"
+        },
+        {
+          "to": "prepare-inputs-flow",
+          "kind": "builds-on",
+          "note": "V1 在宿主侧组装输入批与注意力元数据的逐项步骤见该页，本页展开 V2 常驻缓冲的替代路径"
+        },
+        {
+          "to": "async-scheduling",
+          "kind": "builds-on",
+          "note": "异步调度让主机提前准备下一步，本页说明为什么 CPP 异步与部分新特性必须建立在 MRV2 之上"
+        },
+        {
+          "to": "context-parallel",
+          "kind": "builds-on",
+          "note": "理解 PCP 预填充上下文并行的序列切分原理后，回看本页的 AscendPCPManager 局部/全局批映射"
+        },
+        {
+          "to": "eplb",
+          "kind": "builds-on",
+          "note": "专家负载均衡策略与搬迁参数见该页，本页划清 MRV1 环境变量控面与 MRV2 上游控制面的互斥边界"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-19",
+      "file": "concepts/model-runner-v2.md",
+      "backlinks": [
+        {
+          "from": "msprobe-accuracy-debug",
+          "kind": "enables",
+          "note": "MRV1 与 MRV2 在 load_model 与 sample_tokens/pool 均内建了等价的 msprobe 启停钩子"
+        },
+        {
+          "from": "v030-release-baseline",
+          "kind": "enables",
+          "note": "深入查看 v0.30.0 按需开启 MRV2 与 main 强制统一 MRV2 的执行器内部变化"
         }
       ]
     },
@@ -13299,6 +13979,84 @@
           "note": "MoE 解释 router 选专家与加权输出，本页解释这些专家分布到多卡后的执行"
         }
       ]
+    },
+    {
+      "id": "moe-comm-dispatch",
+      "title": "MoE 通信调度状态机与运行期权重重切分：AllGather / MC2 / Fused MC2 / MegaMoe / AllToAll 与 WeightSwitchMixin",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "vllm-ascend v0.30.0 将四族昇腾硬件的 MoE 通信收拢进 HardwareProfile 与 select_moe_comm_method 状态机，依动态 mc2_tokens_capacity 切换 AllGather / MC2 / MegaMoe / AllToAll，并以 WeightSwitchMixin 实现运行期权重零拷贝重切分。",
+      "aliases": [
+        "MoE 通信状态机",
+        "MoECommType",
+        "MoECommPolicy",
+        "select_moe_comm_method",
+        "MC2",
+        "Fused MC2",
+        "FUSED_MC2",
+        "MegaMoe",
+        "CANN_MEGAMOE",
+        "mc2_tokens_capacity",
+        "set_mc2_tokens_capacity",
+        "WeightSwitchMixin",
+        "OProjWeightSwitchMixin",
+        "运行期权重重切分"
+      ],
+      "chapters": [
+        "14"
+      ],
+      "order": 35,
+      "prerequisites": [],
+      "sources": [
+        "https://arxiv.org/abs/2412.19437",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/large_scale_ep.md#L1-L30",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L279-L383",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L27-L98",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L239-L371",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_forward_context.py#L373-L426",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/fused_moe/moe_comm_method.py#L211-L323",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L4336-L4346",
+        "vllm-ascend@c09d3e20:vllm_ascend/weight_switch/linear.py#L146-L285",
+        "vllm-ascend@c09d3e20:vllm_ascend/weight_switch/linear.py#L446-L565",
+        "vllm-ascend@c09d3e20:vllm_ascend/weight_switch/o_proj.py#L13-L80",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L303-L355",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L451-L512",
+        "vllm-ascend@8d6180e2:vllm_ascend/ascend_forward_context.py#L378-L412"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "expert-parallel",
+          "kind": "builds-on",
+          "note": "先掌握专家并行中路由专家跨卡分散与 Dispatch/Combine 的基本逻辑，再看不同硬件与批长下的选路状态机"
+        },
+        {
+          "to": "hccl-buffer",
+          "kind": "builds-on",
+          "note": "常规 MC2 占用 HCCL_BUFFSIZE 通信缓冲，而 MegaMoe 改走独立对称内存缓冲 symm buffer"
+        },
+        {
+          "to": "large-scale-ep",
+          "kind": "variant-of",
+          "note": "跨机大规模 EP 部署中，MC2、MegaMoe 与 AllToAll 的切换直接决定 Prefill 与 Decode 两阶段吞吐"
+        },
+        {
+          "to": "one-request",
+          "kind": "alternative-to",
+          "note": "历史 GLM-5.3-Flash 双机算例中的固定 MC2 容量门槛 128 推导见该页单一出处，本页聚焦 v0.30.0 动态容量体系"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-19",
+      "file": "concepts/moe-comm-dispatch.md",
+      "backlinks": []
     },
     {
       "id": "mooncake-connector",
@@ -13528,9 +14286,179 @@
       "file": "concepts/mooncake-connector.md",
       "backlinks": [
         {
+          "from": "epd-disaggregation",
+          "kind": "enables",
+          "note": "完整 E/P/D 三池部署中，P→D 段由 MooncakeLayerwise 逐层推 KV，社区 main 起 E→P 段亦对接 Mooncake EC 底座"
+        },
+        {
           "from": "ucm",
           "kind": "enables",
           "note": "P2P 模式由 Mooncake 承担 P 到 D 的传输"
+        }
+      ]
+    },
+    {
+      "id": "msprobe-accuracy-debug",
+      "title": "msprobe 逐层精度对齐与输出异常定位：从张量转储到算子分歧隔离",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "介绍在昇腾上用 MindStudio msprobe 定位乱码、NaN 与量化掉点的逐层精度比对方法，厘清 Eager 与图模式接入、L0/L1/mix 采集、四类算子分歧指纹及与 Runtime Guard、batch_invariant 的分工。",
+      "aliases": [
+        "msprobe",
+        "MindStudio msprobe",
+        "PrecisionDebugger",
+        "AclGraphDumper",
+        "dump_config",
+        "dump_config_path",
+        "逐层精度对齐",
+        "张量转储",
+        "精度比对排障"
+      ],
+      "chapters": [
+        "19"
+      ],
+      "order": 7,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20:docs/source/developer_guide/performance_and_debug/msprobe_guide.md#L1-L170",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L1163-L1190",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L430-L450",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L279-L312",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/v2/model_runner.py#L379-L393",
+        "vllm-ascend@c09d3e20:vllm_ascend/batch_invariant.py#L166-L189",
+        "vllm-ascend@c09d3e20:vllm_ascend/utils.py#L556-L565",
+        "vllm-ascend@c09d3e20:docs/source/user_guide/feature_guide/batch_invariance.md#L1-L45",
+        "vllm-ascend@8d6180e2:docs/source/user_guide/feature_guide/runtime_guard.md#L1-L60",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L345-L360",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L358-L372",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/model_runner.py#L296-L315"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "inference-correctness-troubleshooting",
+          "kind": "builds-on",
+          "note": "先按该页排除聊天模板、分词与采样差异并锁定同输入首分歧，再进本页做逐层张量对账"
+        },
+        {
+          "to": "batch-invariance",
+          "kind": "builds-on",
+          "note": "理解批大小变动引起的浮点归约漂移与确定性核替换，再决定是否先用批不变模式做对照"
+        },
+        {
+          "to": "aisbench-and-evalscope",
+          "kind": "builds-on",
+          "note": "通常先由 AISBench 或 EvalScope 发现评测集掉点，再挑出单条典型错题送入本页排查"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "builds-on",
+          "note": "若 Eager 模式正常、开启 ACL Graph 后异常，需按本页切换到 AclGraphDumper 捕图侧张量"
+        },
+        {
+          "to": "model-runner-v2",
+          "kind": "builds-on",
+          "note": "MRV1 与 MRV2 在 load_model 与 sample_tokens/pool 均内建了等价的 msprobe 启停钩子"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-19",
+      "file": "concepts/msprobe-accuracy-debug.md",
+      "backlinks": []
+    },
+    {
+      "id": "multimodal-inference",
+      "title": "多模态推理与视觉编码基础：Patch 展开、M-RoPE、ViT 数据并行与两级编码缓存",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "多模态推理先将图像与视频切块展开为占位 token，经 ViT 编码并原地覆写进文本嵌入，再以三维 M-RoPE 注入时空坐标；本页讲清 Patch 展开、ViT --mm-encoder-tp-mode data 并行与 v0.30.0 两级 ScoreEncoderCacheManager 缓存。",
+      "aliases": [
+        "多模态推理",
+        "视觉编码",
+        "VLM 推理",
+        "multimodal inputs",
+        "image_grid_thw",
+        "视觉 Patch 展开",
+        "M-RoPE",
+        "MRoPE",
+        "MRotaryEmbedding",
+        "AscendMRotaryEmbedding",
+        "mm-encoder-tp-mode",
+        "mm_encoder_tp_mode",
+        "run_dp_sharded_vision_model",
+        "EncoderCacheManager",
+        "ScoreEncoderCacheManager",
+        "多模态编码缓存"
+      ],
+      "chapters": [
+        "01"
+      ],
+      "order": 70,
+      "prerequisites": [],
+      "sources": [
+        "https://arxiv.org/abs/2409.12191",
+        "vllm@ced6857a:vllm/model_executor/models/utils.py#L689-L725",
+        "vllm@ced6857a:vllm/model_executor/models/vision.py#L146-L162",
+        "vllm@ced6857a:vllm/model_executor/models/vision.py#L295-L326",
+        "vllm@ced6857a:vllm/model_executor/layers/rotary_embedding/mrope.py#L15-L88",
+        "vllm@ced6857a:vllm/v1/core/encoder_cache_manager.py#L19-L101",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/rotary_embedding.py#L601-L684",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/triton/linearnorm/split_qkv_rmsnorm_mrope.py#L282-L335",
+        "vllm-ascend@c09d3e20:vllm_ascend/_310p/ops/rotary_embedding.py#L51-L92",
+        "vllm-ascend@c09d3e20:vllm_ascend/ec_manager/score_ec_manager.py#L31-L150",
+        "vllm-ascend@c09d3e20:vllm_ascend/ec_manager/score_ec_manager.py#L151-L240",
+        "vllm-ascend@c09d3e20:vllm_ascend/ec_manager/score_ec_manager.py#L345-L439",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L1142-L1278",
+        "vllm-ascend@c09d3e20:vllm_ascend/ops/triton/docs/rope.md#L1-L20",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/rotary_embedding.py#L472-L520",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ops/rotary_embedding.py#L487-L535",
+        "vllm-ascend@8d6180e2:vllm_ascend/ops/rotary_embedding.py#L647-L695"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "embedding",
+          "kind": "builds-on",
+          "note": "视觉编码器输出的嵌入张量最终按占位掩码原地覆写进标准词向量表查出的 inputs_embeds"
+        },
+        {
+          "to": "rope",
+          "kind": "builds-on",
+          "note": "M-RoPE 把一维位置索引扩展为 (T, H, W) 三维时空坐标并分段旋转头维度"
+        },
+        {
+          "to": "epd-disaggregation",
+          "kind": "alternative-to",
+          "note": "当多图或高分辨率视频把视觉编码器推成瓶颈时，可把单实例内置编码器切换为独立 E 节点池的 EPD 分离架构"
+        },
+        {
+          "to": "api-server-entry",
+          "kind": "builds-on",
+          "note": "前端进程在进入引擎前完成图片解码、Processor 切块缓存与多模态哈希生成"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-19",
+      "file": "concepts/multimodal-inference.md",
+      "backlinks": [
+        {
+          "from": "epd-disaggregation",
+          "kind": "enables",
+          "note": "掌握单实例内 ViT 视觉编码、占位覆写与编码缓存概念，才能看懂跨进程 EC 缓存交接在传什么"
         }
       ]
     },
@@ -13878,6 +14806,11 @@
           "note": "Runner 决定本轮张量、模式与描述符"
         },
         {
+          "from": "model-runner-v2",
+          "kind": "enables",
+          "note": "先理解单卡每步前向与采样拆成两次调用的基本骨架，再对照本页看 V2 如何重写状态与缓冲层"
+        },
+        {
           "from": "mooncake-connector",
           "kind": "enables",
           "note": "前向开始前把请求交给后台线程，逐层接口挂在注意力前后"
@@ -14170,6 +15103,11 @@
           "from": "ascend-model-onboarding",
           "kind": "enables",
           "note": "接续上线校验之后 NPUWorker 的设备检查、模型加载后处理与显存探测流程"
+        },
+        {
+          "from": "cluster-serving",
+          "kind": "enables",
+          "note": "了解昇腾权重转 NZ 与 ACL Graph 录图耗时来源，才能合理设置 K8s startupProbe 宽限窗口"
         },
         {
           "from": "enable-sleep-mode-extra-cleanup",
@@ -14555,6 +15493,11 @@
       "file": "concepts/one-request.md",
       "backlinks": [
         {
+          "from": "moe-comm-dispatch",
+          "kind": "alternative-to",
+          "note": "历史 GLM-5.3-Flash 双机算例中的固定 MC2 容量门槛 128 推导见该页单一出处，本页聚焦 v0.30.0 动态容量体系"
+        },
+        {
           "from": "answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad",
           "kind": "enables",
           "note": "回答里第 1 步、第 92 步、199 步只分一次这些数，全部取自该页并入的旧算例设定"
@@ -14783,6 +15726,11 @@
           "from": "batch-invariance",
           "kind": "enables",
           "note": "批不变矩阵乘通过固定分块和 K 方向的累加顺序消除批形状影响；算子的分块规划与设备工作划分为理解这种约束提供基础。"
+        },
+        {
+          "from": "dev-new-model-and-custom-op",
+          "kind": "enables",
+          "note": "了解 Cube 与 Vector 核外搬运代价后，才能判断何时值得投入开发 AscendC 融合算子"
         }
       ]
     },
@@ -14950,6 +15898,11 @@
           "note": "同一个算子可以有多种 kernel 实现。"
         },
         {
+          "from": "dev-new-model-and-custom-op",
+          "kind": "enables",
+          "note": "先理解 vLLM CustomOp 与昇腾 OOT 算子拦截的运行时机制，再按本页动手接入新算子"
+        },
+        {
           "from": "graph-mode-layer",
           "kind": "enables",
           "note": "先理解算子和设备任务的提交"
@@ -15081,19 +16034,6 @@
         "kv_producer",
         "kv_consumer",
         "MooncakeConnectorV1",
-        "EPD 分离",
-        "EPD Disaggregation",
-        "Disaggregated-encoder",
-        "分离式编码器",
-        "编码器分离",
-        "E 实例",
-        "E 节点",
-        "ec_transfer_config",
-        "ec_role",
-        "ECConnector",
-        "ECExampleConnector",
-        "encoder cache",
-        "EC 连接器",
         "NixlConnector",
         "KV 租约",
         "双向 KV 传输"
@@ -15275,6 +16215,11 @@
           "note": "先理解 PD 的 KV 传输，再区分其 qos_priority 与本页流量等级表"
         },
         {
+          "from": "cluster-serving",
+          "kind": "enables",
+          "note": "超大规模集群进一步把 Prefill 与 Decode 拆池路由时，接续阅读该页与 Mooncake 连接器"
+        },
+        {
           "from": "core-cli-params",
           "kind": "enables",
           "note": "P/D 分离两侧不对称并行目标与 Mooncake 传输约束是双实例联检的架构前提"
@@ -15288,6 +16233,11 @@
           "from": "dyntra-lb",
           "kind": "enables",
           "note": "D 节点是什么，候选请求的 KV 怎样从 P 拉过来"
+        },
+        {
+          "from": "epd-disaggregation",
+          "kind": "enables",
+          "note": "先理解 Prefill 与 Decode 分离及两池交接 KV 的基本原理，再把视觉编码器抽离为第三池 E"
         },
         {
           "from": "kv-cache-layerwise-offload",
@@ -15683,6 +16633,11 @@
           "note": "插件怎样被发现、四个通用入口里哪三个先补 global patch，在那一页"
         },
         {
+          "from": "dev-new-model-and-custom-op",
+          "kind": "enables",
+          "note": "插件入口如何被 vLLM 发现并回调 register_model 与平台钩子见该页"
+        },
+        {
           "from": "engine-processes",
           "kind": "enables",
           "note": "三类进程都会加载通用插件；插件怎样被发现、平台怎样被选中，在那一页"
@@ -15703,6 +16658,87 @@
           "note": "继续追踪当前平台如何从已安装插件中被发现和选中"
         }
       ]
+    },
+    {
+      "id": "pooling-and-non-ar",
+      "title": "Pooling 与非自回归推理：Embedding / Reranker / Reward 池化头与 Encoder-Decoder（Whisper ASR）",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "本页拆解 --runner pooling（Embedding / Reranker / Reward）跳过采样的单轮池化路径、双向与因果掩码在 A2/A3/950DT 与 310P 上的硬件分岔、CLS / LAST / MEAN 池化头边界，以及 Whisper Encoder-Decoder 的跨注意力 KV 与图模式约束。",
+      "aliases": [
+        "Pooling",
+        "pooling runner",
+        "--runner pooling",
+        "非自回归推理",
+        "Embedding 模型推理",
+        "Reranker",
+        "Reward 模型",
+        "Pooler",
+        "CLSPool",
+        "LastPool",
+        "MeanPool",
+        "Encoder-Decoder",
+        "Whisper ASR",
+        "is_encoder_decoder",
+        "AttentionType.ENCODER_DECODER"
+      ],
+      "chapters": [
+        "05"
+      ],
+      "order": 85,
+      "prerequisites": [],
+      "sources": [
+        "https://arxiv.org/abs/1810.04805",
+        "https://arxiv.org/abs/2212.04356",
+        "vllm@ced6857a:vllm/config/pooler.py#L16-L65",
+        "vllm@ced6857a:vllm/model_executor/layers/pooler/seqwise/methods.py#L21-L119",
+        "vllm@ced6857a:vllm/model_executor/layers/pooler/activations.py#L79-L125",
+        "vllm@ced6857a:vllm/config/model.py#L668-L686",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_mask.py#L57-L70",
+        "vllm-ascend@c09d3e20:vllm_ascend/_310p/attention/attention_mask.py#L139-L168",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1123-L1146",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1189-L1196",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/attention_v1.py#L1329-L1339",
+        "vllm-ascend@c09d3e20:vllm_ascend/worker/model_runner_v1.py#L2624-L2638",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L1231-L1247",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_mask.py#L70-L82",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_mask.py#L72-L84",
+        "vllm-ascend@8d6180e2:vllm_ascend/platform.py#L1408-L1424"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "prefill",
+          "kind": "builds-on",
+          "note": "Pooling 模型只跑等价于 Prefill 的单轮全序列前向，没有后续逐词 Decode 循环"
+        },
+        {
+          "to": "sampling",
+          "kind": "alternative-to",
+          "note": "Pooling 路径完全绕过 lm_head 词表投影与 Sampler 采词，直接把末层隐藏状态送入 Pooler"
+        },
+        {
+          "to": "ascend-flash-attention",
+          "kind": "builds-on",
+          "note": "双向编码器与因果池化模型在昇腾上分别落入 npu_fusion_attention 与标准 FIA 算子分支"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "conflicts-with",
+          "note": "Encoder-Decoder 模型受限于交叉注意力与动态编码长度，与全图捕获冲突并自动降级为 PIECEWISE 或 Eager"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-19",
+      "file": "concepts/pooling-and-non-ar.md",
+      "backlinks": []
     },
     {
       "id": "pr-11953",
@@ -15990,6 +17026,11 @@
           "note": "P 实例做的就是整段提示词的 prefill；混合步为什么拖慢 decode 也在那页"
         },
         {
+          "from": "pooling-and-non-ar",
+          "kind": "enables",
+          "note": "Pooling 模型只跑等价于 Prefill 的单轮全序列前向，没有后续逐词 Decode 循环"
+        },
+        {
           "from": "roofline-and-metrics",
           "kind": "enables",
           "note": "Prefill 一次并行算完提示词、Decode 每步只进一个新词，两阶段行数差异直接决定了它们在 Roofline 上的落点"
@@ -16136,9 +17177,19 @@
       "file": "concepts/prefix-caching.md",
       "backlinks": [
         {
+          "from": "aisbench-and-evalscope",
+          "kind": "enables",
+          "note": "压测重复 prompt 时自动前缀缓存会虚高吞吐，理解块级前缀复用机制有助于避免测试污染"
+        },
+        {
           "from": "answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad",
           "kind": "enables",
           "note": "问答记录对 GLM 双机缓存块不登记、不能被前缀复用的说明，依赖前缀缓存页对本部署默认关闭 APC 的判定。"
+        },
+        {
+          "from": "cluster-serving",
+          "kind": "enables",
+          "note": "结合块级自动前缀缓存机制，理解为什么集群路由需要前缀亲和与 KVEventsConfig 事件同步"
         },
         {
           "from": "deepseek-serving-case",
@@ -16174,6 +17225,11 @@
           "from": "request-teardown",
           "kind": "enables",
           "note": "块的登记和驱逐在那一页；本页区分还块和清空前缀缓存这两个动作"
+        },
+        {
+          "from": "sampling-advanced",
+          "kind": "enables",
+          "note": "V1 外置 Beam Search 每轮以 max_tokens=1 扩展候选束，极度依赖前缀缓存复用共同历史 KV"
         },
         {
           "from": "swa-bounded-replay",
@@ -16300,6 +17356,11 @@
       "updated": "2026-11-10",
       "file": "concepts/prepare-inputs-flow.md",
       "backlinks": [
+        {
+          "from": "model-runner-v2",
+          "kind": "enables",
+          "note": "V1 在宿主侧组装输入批与注意力元数据的逐项步骤见该页，本页展开 V2 常驻缓冲的替代路径"
+        },
         {
           "from": "npu-model-runner",
           "kind": "enables",
@@ -16840,9 +17901,19 @@
       "file": "concepts/quantization-methods.md",
       "backlinks": [
         {
+          "from": "dev-new-model-and-custom-op",
+          "kind": "enables",
+          "note": "常见昇腾量化格式（W8A8、MXFP8、FP8）的数学与权重布局见该页，本页聚焦方法注册接口"
+        },
+        {
           "from": "quantization-evaluation",
           "kind": "enables",
           "note": "确定量化对象、方法与校准之后，用同一标准比较候选产物"
+        },
+        {
+          "from": "v030-release-baseline",
+          "kind": "enables",
+          "note": "查阅 W8A8_MIX、W8A8_DYNAMIC、MXFP8 与原生分块 FP8 的量化权重格式差异"
         }
       ]
     },
@@ -18295,6 +19366,11 @@
           "note": "对比显式来源地址与 RFork 的 seed 发现和租约机制"
         },
         {
+          "from": "engram-conditional-memory",
+          "kind": "enables",
+          "note": "main 上 RFork 快载如何单独加载、豁免并释放 Engram Host DRAM 表"
+        },
+        {
           "from": "rfork-identity",
           "kind": "enables",
           "note": "先知道 seed、Planner 和借一次权重的几步，再看两边凭什么配对"
@@ -19365,6 +20441,11 @@
           "from": "attention-backend-family",
           "kind": "enables",
           "note": "稀疏 MLA 后端的缓存视图与维度检查依赖潜向量和 RoPE 段的布局约定；GLM 固定配置的 RoPE 段宽度为 0。"
+        },
+        {
+          "from": "multimodal-inference",
+          "kind": "enables",
+          "note": "M-RoPE 把一维位置索引扩展为 (T, H, W) 三维时空坐标并分段旋转头维度"
         }
       ]
     },
@@ -19399,11 +20480,9 @@
         "reasoning-config",
         "采样参数",
         "停止条件",
-        "min_p",
         "top_p",
         "top_k",
         "top-k 采样",
-        "min-p",
         "seed",
         "请求随机种子",
         "全局随机种子",
@@ -19413,16 +20492,10 @@
         "override_generation_config",
         "override-generation-config",
         "生成配置覆盖",
-        "presence_penalty",
         "presence penalty",
-        "存在惩罚",
         "出现惩罚",
-        "frequency_penalty",
         "frequency penalty",
-        "频率惩罚",
-        "repetition_penalty",
         "repetition penalty",
-        "重复惩罚",
         "logit_bias",
         "logit bias",
         "分数偏置",
@@ -19438,18 +20511,14 @@
         "min tokens",
         "最少输出 token 数",
         "最少输出数",
-        "logprobs",
         "top_logprobs",
-        "logprob_token_ids",
         "flat_logprobs",
-        "logprobs_mode",
         "logprobs-mode",
         "--logprobs-mode",
         "max_logprobs",
         "max-logprobs",
         "--max-logprobs",
         "概率记录",
-        "对数概率",
         "指定 token 概率"
       ],
       "chapters": [
@@ -19855,6 +20924,11 @@
       "file": "concepts/sampling.md",
       "backlinks": [
         {
+          "from": "pooling-and-non-ar",
+          "kind": "alternative-to",
+          "note": "Pooling 路径完全绕过 lm_head 词表投影与 Sampler 采词，直接把末层隐藏状态送入 Pooler"
+        },
+        {
           "from": "enable-async-exponential",
           "kind": "enables",
           "note": "它挪动的是采样里「按概率抽」那一步要用的指数分布随机数 q；q 为什么能代替按概率抽，见 sampling"
@@ -19865,11 +20939,98 @@
           "note": "对齐采样与停止条件，区分随机选择和计算分歧"
         },
         {
+          "from": "sampling-advanced",
+          "kind": "enables",
+          "note": "先掌握基础温度缩放、Softmax 与贪心解码概念，再深入高阶过滤、惩罚与昇腾快慢路径"
+        },
+        {
           "from": "streaming-output",
           "kind": "enables",
           "note": "结束 token、停止 token 和长度上限在引擎侧判断，见那一页；本页只讲前端的停止字符串"
         }
       ]
+    },
+    {
+      "id": "sampling-advanced",
+      "title": "高阶采样、惩罚项、Beam Search 与 Logprobs：vLLM V1 采样流水线与昇腾快慢路径",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "本页讲清 vLLM V1 Sampler 的 9 步严格顺序、Top-k / Top-p / min_p 与三类重复惩罚公式、四模式 Logprobs 与外置 Beam Search，以及 vllm-ascend v0.30.0 昇腾快慢路径分流与 MRV2 演进。",
+      "aliases": [
+        "高阶采样",
+        "Beam Search",
+        "束搜索",
+        "BeamSearchParams",
+        "min_p",
+        "min-p",
+        "presence_penalty",
+        "frequency_penalty",
+        "repetition_penalty",
+        "重复惩罚",
+        "频率惩罚",
+        "存在惩罚",
+        "logprobs",
+        "logprobs_mode",
+        "logprob_token_ids",
+        "对数概率",
+        "AscendSampler",
+        "AscendTopKTopPSampler"
+      ],
+      "chapters": [
+        "05"
+      ],
+      "order": 80,
+      "prerequisites": [],
+      "sources": [
+        "https://arxiv.org/abs/1904.09751",
+        "https://arxiv.org/abs/2407.01082",
+        "vllm@ced6857a:vllm/v1/sample/sampler.py#L21-L150",
+        "vllm@ced6857a:vllm/v1/sample/sampler.py#L152-L300",
+        "vllm@ced6857a:vllm/model_executor/layers/utils.py#L43-L82",
+        "vllm@ced6857a:vllm/v1/sample/ops/penalties.py#L10-L56",
+        "vllm@ced6857a:vllm/v1/sample/logits_processor/builtin.py#L23-L117",
+        "vllm@ced6857a:vllm/entrypoints/generate/beam_search/offline.py#L55-L145",
+        "vllm@ced6857a:vllm/entrypoints/generate/beam_search/utils.py#L137-L163",
+        "vllm-ascend@c09d3e20:vllm_ascend/sample/sampler.py#L18-L167",
+        "vllm-ascend@c09d3e20:vllm_ascend/sample/penalties.py#L13-L45",
+        "vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L128-L192",
+        "vllm-ascend@2ed6cbba:vllm_ascend/sample/sampler.py#L122-L160",
+        "vllm-ascend@8d6180e2:vllm_ascend/worker/v2/sample/apply_top_k_top_p.py#L8-L38"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "sampling",
+          "kind": "builds-on",
+          "note": "先掌握基础温度缩放、Softmax 与贪心解码概念，再深入高阶过滤、惩罚与昇腾快慢路径"
+        },
+        {
+          "to": "lm-head",
+          "kind": "builds-on",
+          "note": "采样器直接消费 lm_head 投影产出的全词表原始 logits 张量 [batch_size, vocab_size]"
+        },
+        {
+          "to": "prefix-caching",
+          "kind": "builds-on",
+          "note": "V1 外置 Beam Search 每轮以 max_tokens=1 扩展候选束，极度依赖前缀缓存复用共同历史 KV"
+        },
+        {
+          "to": "batch-invariance",
+          "kind": "variant-of",
+          "note": "开启批不变模式 VLLM_BATCH_INVARIANT 时，昇腾 Top-k/Top-p 会退回上游确定性原生路径"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-19",
+      "file": "concepts/sampling-advanced.md",
+      "backlinks": []
     },
     {
       "id": "sequence-parallel",
@@ -20472,12 +21633,20 @@
         "vllm@ced6857a:vllm/models/deepseek_v32/__init__.py#L15-L29",
         "vllm@84030bbe:vllm/models/deepseek_v32/__init__.py#L15-L29",
         "vllm-ascend@7d825229:vllm_ascend/attention/indexer.py#L175-L193",
-        "vllm-ascend@baa023ad:vllm_ascend/attention/indexer.py#L161-L179"
+        "vllm-ascend@baa023ad:vllm_ascend/attention/indexer.py#L161-L179",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/sfa_v1.py#L820-L875",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/sfa_v1.py#L2105-L2140",
+        "vllm-ascend@c09d3e20:vllm_ascend/attention/indexer_kpool.py#L484-L525",
+        "vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/mtp.py#L127-L160",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/sfa_v1.py#L820-L880",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/sfa_v1.py#L2175-L2215",
+        "vllm-ascend@8d6180e2:vllm_ascend/attention/indexer_kpool.py#L775-L820",
+        "vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/mtp.py#L165-L195"
       ],
       "verified": [
         "releases/v0.23.0",
         "releases/v0.26.0rc",
-        "releases/v0.30.0rc2",
+        "releases/v0.30.0",
         "main"
       ],
       "evidence": "C",
@@ -20509,7 +21678,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-11-10",
+      "updated": "2026-11-19",
       "file": "concepts/sparse-attention.md",
       "backlinks": [
         {
@@ -22055,8 +23224,7 @@
         "PipelineStore",
         "集中式 KV 存储",
         "存算分离",
-        "UCMECConnector",
-        "多模态编码缓存"
+        "UCMECConnector"
       ],
       "chapters": [
         "11"
@@ -22201,7 +23369,13 @@
       "contradicts": [],
       "updated": "2026-11-10",
       "file": "concepts/ucm.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "epd-disaggregation",
+          "kind": "alternative-to",
+          "note": "外部集中式缓存（如 UCM / Memcache）同样可作为跨实例复用编码嵌入的共享存储层"
+        }
+      ]
     },
     {
       "id": "use-fused-overlap-75a180fff6ab",
@@ -22427,6 +23601,95 @@
       "backlinks": []
     },
     {
+      "id": "v030-release-baseline",
+      "title": "v0.30.0 正式版升级与避坑清单：废弃环境变量、默认行为变更与迁移对照",
+      "type": "concept",
+      "origin": "direct",
+      "summary": "从 v0.26 / rc2 升级至 v0.30.0 正式版（c09d3e20 + ced6857a）的生产迁移清单：涵盖退役环境变量、FLASHCOMM1 兜底、W8A8_MIX、显存默认 0.92、HardwareProfile、原生 FP8_BLOCK 与 MRV2 切换。",
+      "aliases": [
+        "v0.30.0 升级清单",
+        "v0.30.0 迁移指南",
+        "v0.30.0 避坑清单",
+        "VLLM_ASCEND_ENABLE_MLAPO",
+        "VLLM_ASCEND_ENABLE_FUSED_MC2",
+        "MSMONITOR_USE_DAEMON",
+        "VLLM_ASCEND_ENABLE_FLASHCOMM1",
+        "HardwareProfile 四家族重构"
+      ],
+      "chapters": [
+        "19"
+      ],
+      "order": 2,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c09d3e20:docs/source/user_guide/release_notes.md#L1-L25",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L375-L390",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L604-L620",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L654-L672",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L745-L756",
+        "vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L840-L872",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L35-L50",
+        "vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L17-L34",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L1-L75",
+        "vllm-ascend@c09d3e20:vllm_ascend/device/hardware_profile.py#L310-L382",
+        "vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L18-L32",
+        "vllm-ascend@c09d3e20:vllm_ascend/platform.py#L952-L995",
+        "vllm-ascend@c09d3e20:docs/source/faqs.md#L146-L150",
+        "vllm@ced6857a:vllm/config/cache.py#L103-L115",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_pdmix.py#L35-L95",
+        "vllm-ascend@2ed6cbba:vllm_ascend/envs.py#L70-L99",
+        "vllm-ascend@2ed6cbba:vllm_ascend/quantization/methods/w8a8_pdmix.py#L85-L98",
+        "vllm-ascend@7d825229:vllm_ascend/ascend_config.py#L750-L760",
+        "vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L130",
+        "vllm-ascend@8d6180e2:vllm_ascend/mrv2_utils.py#L29-L89",
+        "vllm@ba15685a:vllm/config/cache.py#L216-L228"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "releases/v0.30.0",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "core-cli-params",
+          "kind": "builds-on",
+          "note": "升级后同时核对四大核心启动旋钮、批预算 6 分支与跨子系统静默改写规则"
+        },
+        {
+          "to": "model-runner-v2",
+          "kind": "builds-on",
+          "note": "深入查看 v0.30.0 按需开启 MRV2 与 main 强制统一 MRV2 的执行器内部变化"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "理解退役环境变量迁移进 additional_config 后的 Pydantic 校验链与优先级"
+        },
+        {
+          "to": "quantization-methods",
+          "kind": "builds-on",
+          "note": "查阅 W8A8_MIX、W8A8_DYNAMIC、MXFP8 与原生分块 FP8 的量化权重格式差异"
+        },
+        {
+          "to": "dev-new-model-and-custom-op",
+          "kind": "builds-on",
+          "note": "若维护自研模型或算子，需按本页 HardwareProfile 四家族能力档案迁移芯片分支判断"
+        },
+        {
+          "to": "vllm-ascend-for-rl",
+          "kind": "builds-on",
+          "note": "强化学习权重回写需保持 weight_nz_mode=0，详细配置见该页"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-11-19",
+      "file": "concepts/v030-release-baseline.md",
+      "backlinks": []
+    },
+    {
       "id": "v030rc2-baseline",
       "title": "v0.30.0rc2 的版本基线与阅读边界",
       "type": "source",
@@ -22622,7 +23885,13 @@
       "contradicts": [],
       "updated": "2026-11-03",
       "file": "concepts/vllm-ascend-for-rl.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "v030-release-baseline",
+          "kind": "enables",
+          "note": "强化学习权重回写需保持 weight_nz_mode=0，详细配置见该页"
+        }
+      ]
     },
     {
       "id": "vllm-ascend-overview",

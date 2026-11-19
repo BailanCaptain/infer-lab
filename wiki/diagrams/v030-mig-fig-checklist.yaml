@@ -1,0 +1,14 @@
+mode: native-svg
+id: v030-mig-fig-checklist
+caption: >-
+  从 v0.26 / v0.30.0rc2 升级至 v0.30.0 正式版（c09d3e20 + ced6857a）及面向 main（8d6180e2）的六项核心迁移变化：左侧为已退役环境变量与旧写法，中间为 v0.30.0 生效替代项与默认行为变化，右侧标出 main 分支的进一步收紧红线。
+size: [900, 445]
+pins:
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/envs.py#L70-L99
+    symbols: [VLLM_ASCEND_ENABLE_FLASHCOMM1, MSMONITOR_USE_DAEMON, VLLM_ASCEND_ENABLE_MLAPO, VLLM_ASCEND_ENABLE_NZ, VLLM_ASCEND_ENABLE_FUSED_MC2]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/ascend_config.py#L604-L620
+    symbols: [enable_fused_mc2, enable_mlapo, msmonitor_use_daemon, weight_nz_mode]
+  - source: vllm-ascend@c09d3e20:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L35-L45
+    symbols: [AscendW8A8PDMixLinearMethod]
+  - source: vllm-ascend@8d6180e2:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L114-L130
+    symbols: [_require_fp8_weight_matmul]

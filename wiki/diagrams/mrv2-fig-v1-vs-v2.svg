@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="Model Runner V1 与 Model Runner V2 架构演进对比" font-family="var(--font-sans)">
+<title>Model Runner V1 宿主拼装模式 vs Model Runner V2 常驻缓冲模式</title>
+<desc>vllm_ascend/worker/model_runner_v1.py vs vllm_ascend/worker/v2/model_runner.py</desc>
+<line x1="450" y1="14" x2="450" y2="428" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g stroke-width="1.4">
+<rect x="16" y="68" width="404" height="62" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="16" y="154" width="404" height="70" rx="7" fill="#fff0e9" stroke="#b54237"/>
+<rect x="16" y="248" width="194" height="66" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="226" y="248" width="194" height="66" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="16" y="338" width="404" height="84" rx="8" fill="#ece9df" stroke="#b8bcb5"/>
+<rect x="480" y="68" width="404" height="62" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="480" y="154" width="194" height="70" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="690" y="154" width="194" height="70" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="480" y="248" width="404" height="66" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="480" y="338" width="404" height="84" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+</g>
+<path d="M218 130v22m-4-5l4 5 4-5M113 224v22m-4-5l4 5 4-5M323 224v22m-4-5l4 5 4-5" fill="none" stroke="#b54237" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M577 130v22m-4-5l4 5 4-5M787 130v22m-4-5l4 5 4-5M682 224v22m-4-5l4 5 4-5M682 314v22m-4-5l4 5 4-5" fill="none" stroke="#087f73" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="28" cy="28" r="12" fill="#b54237"/>
+<circle cx="492" cy="28" r="12" fill="#087f73"/>
+<g font-weight="700">
+<text x="28" y="33" text-anchor="middle" font-size="13.5" fill="#ffffff">1</text>
+<text x="46" y="34" font-size="16" fill="#17211f">MRV1（v0.30.0 默认，main 已移除）</text>
+<text x="218" y="92" text-anchor="middle" font-size="14.5" fill="#936300">Host 侧 NPUInputBatch 维护全量请求表</text>
+<text x="218" y="180" text-anchor="middle" font-size="14.5" fill="#8f3229">每步 _update_states + _prepare_inputs</text>
+<text x="113" y="274" text-anchor="middle" font-size="14.5" fill="#3a4f93">旧版 EPLB 路径</text>
+<text x="323" y="274" text-anchor="middle" font-size="14.5" fill="#7a3a6a">同步/特化异步补丁</text>
+<text x="28" y="365" font-size="14.5" fill="#17211f">版本去向：v0.30.0 兜底默认，main 彻底退役</text>
+<text x="492" y="33" text-anchor="middle" font-size="13.5" fill="#ffffff">2</text>
+<text x="510" y="34" font-size="16" fill="#17211f">MRV2（v0.30.0 按需开启，main 唯一主干）</text>
+<text x="682" y="92" text-anchor="middle" font-size="14.5" fill="#065f56">AscendRequestState：UVA 承接大词表 + 零拷贝 CPU 视图</text>
+<text x="577" y="180" text-anchor="middle" font-size="14.5" fill="#3a4f93">AscendInputBuffers</text>
+<text x="787" y="180" text-anchor="middle" font-size="14.5" fill="#065f56">AscendBlockTables</text>
+<text x="682" y="274" text-anchor="middle" font-size="14.5" fill="#936300">直接切片构建 AscendInputBatch 与共享 KV 底板</text>
+<text x="492" y="365" font-size="14.5" fill="#065f56">能力底座：PCP / 上游 EPLB / 异步调度 / DSV4.1 A5</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="55" font-size="13.5">单文件 model_runner_v1.py 承担状态、块表与执行拼装</text>
+<text x="218" y="116" text-anchor="middle" font-size="13.5">NumPy 增量增删请求，再组装输入张量</text>
+<text x="218" y="206" text-anchor="middle" font-size="13.5">Host 侧串行整排后反复 H2D 拷贝，CPU 瓶颈突出</text>
+<text x="113" y="298" text-anchor="middle" font-size="13.5">DYNAMIC_EPLB 独立控面</text>
+<text x="323" y="298" text-anchor="middle" font-size="13.5">不支持 PCP / R3 / CPP 异步</text>
+<text x="28" y="390" font-size="13.5">v0.30.0 经 patch_use_v2_model_runner 默认 False</text>
+<text x="28" y="411" font-size="13.5">main 删去 model_runner_v1.py，设 =0 直接报 ValueError</text>
+<text x="480" y="55" font-size="13.5">继承上游 GPUModelRunner，模块化拆分状态与常驻缓冲</text>
+<text x="682" y="116" text-anchor="middle" font-size="13.5">all_token_ids 驻 UVA；长度缓冲共享 NumPy</text>
+<text x="577" y="206" text-anchor="middle" font-size="13.5">常驻 NPU 缓冲（q_loc +2）</text>
+<text x="787" y="206" text-anchor="middle" font-size="13.5">Triton 计算 slot_mapping</text>
+<text x="682" y="298" text-anchor="middle" font-size="13.5">async_tensor_h2d 异步拷贝索引 + seq_lens_cpu</text>
+<text x="492" y="390" font-size="13.5">v0.30.0 需显式导出 VLLM_USE_V2_MODEL_RUNNER=1 开启</text>
+<text x="492" y="411" font-size="13.5">main 由 apply_v2_model_runner_config_patch 恒定启用</text>
+</g>
+</svg>

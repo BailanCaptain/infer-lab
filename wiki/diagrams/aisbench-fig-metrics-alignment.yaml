@@ -1,0 +1,12 @@
+mode: native-svg
+id: aisbench-fig-metrics-alignment
+caption: >-
+  客户端压测（AISBench / EvalScope / vllm bench serve）与服务端 Prometheus /metrics 的口径对齐图：客户端计时横跨 HTTP 网络、队列等待与 SSE 拆包，而服务端按 arrival → queued → scheduled → first_token → last_token 拆段记录，并指出并发模式与到达率模式以及预热剔除的差异。
+size: [900, 420]
+pins:
+  - source: vllm@ced6857a:vllm/benchmarks/serve.py#L568-L635
+    symbols: [calculate_metrics, ttfts, tpots, itls]
+  - source: vllm@ced6857a:vllm/v1/metrics/stats.py#L540-L580
+    symbols: [queued_time, prefill_time, decode_time, mean_time_per_output_token]
+  - source: vllm@ced6857a:vllm/v1/metrics/loggers.py#L811-L839
+    symbols: [histogram_time_to_first_token, histogram_inter_token_latency, histogram_request_time_per_output_token]

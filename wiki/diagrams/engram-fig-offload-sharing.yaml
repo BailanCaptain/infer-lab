@@ -1,0 +1,15 @@
+mode: native-svg
+id: engram-fig-offload-sharing
+caption: Engram 四种表放置与共享模式对照（HBM 分片 / Host UVA / 机内 dp_shared_memory + Gloo / 跨实例 shared_engram MemFabric BM 与 HIXL RDMA）及 4×A3 超节点表底存实测对比（824 GiB 降至 208 GiB）。
+size: [900, 500]
+pins:
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/distributed/parallel_state.py#L88-L136'
+    symbols: ['_ETP', '_ENGRAM_DP', 'etp', 'edp', 'dp_shared_memory', 'gloo']
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/npu.py#L156-L195'
+    symbols: ['HostUvaBuffer', 'aclrtHostRegisterV2', 'aclrtHostGetDevicePointer']
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/models/deepseek_v41/engram/npu.py#L296-L355'
+    symbols: ['SharedUvaBuffer', 'SharedMemory', 'aclrtHostRegisterV2', 'aclrtHostGetDevicePointer']
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/ascend_config.py#L457-L490'
+    symbols: ['SharedEngramConfig', 'backend', 'endpoint', 'capacity', 'local_comm_res']
+  - source: 'vllm-ascend@8d6180e2:vllm_ascend/model_loader/rfork/local_weights.py#L61-L97'
+    symbols: ['load_local_weights', 'get_local_tensor_ids', 'release_local_weights']

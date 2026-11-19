@@ -1,0 +1,13 @@
+mode: native-svg
+id: engram-fig-lookup-flow
+caption: Engram 条件记忆单步执行链：从历史 token 拼接 N-gram 哈希（遇图片/死标记截断），经按头分片查表与分组反量化，再通过 EDP/TP 归集并经 wkv 投影与门控残差融入隐藏状态。
+size: [900, 440]
+pins:
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/hash_state.py#L50-L99'
+    symbols: ['engram_dead_mask', 'AscendNgramHashState', 'forward']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/embedding.py#L345-L405'
+    symbols: ['exchange_engram_rows', 'tensor_model_parallel_all_gather', 'gather_engram_hashes', 'gather_dequantize_host_uva']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/parallel.py#L56-L95'
+    symbols: ['gather_engram_hashes', 'exchange_engram_rows', 'all_to_all_single']
+  - source: 'vllm-ascend@c09d3e20:vllm_ascend/models/deepseek_v41/engram/layer.py#L14-L54'
+    symbols: ['AscendEngram', 'wkv', 'fused_engram_gate', 'engram_gate']

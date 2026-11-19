@@ -166,10 +166,18 @@ sources:
   - 'vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L554-L579'
   - 'vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L648-L660'
   - 'vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L293-L338'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/cache_config.py#L90-L120'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/models/glm5next/cache_config.py#L342-L430'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L84-L135'
+  - 'vllm-ascend@c09d3e20:vllm_ascend/patch/platform/patch_mamba_config.py#L42-L175'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/models/glm5next/cache_config.py#L100-L155'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L223-L315'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L534-L610'
+  - 'vllm-ascend@8d6180e2:vllm_ascend/patch/platform/patch_mamba_config.py#L42-L175'
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
-  - releases/v0.30.0rc2
+  - releases/v0.30.0
   - main
 evidence: C
 relations:
@@ -183,7 +191,7 @@ relations:
     kind: builds-on
     note: KDA 一份状态有多大、为什么每组每请求 4 块，在线性注意力页推导
 contradicts: []
-updated: '2026-11-10'
+updated: '2026-11-19'
 origin: gap
 rawSources:
   - >-
@@ -282,16 +290,14 @@ GLM 不能直接套上游这套做法。它的 indexer 页和尾状态页远小�
 file: kv-cache-spec-stride
 ```
 
-读到块号 1，应该去第二页找这 20 个数。地址先按字节计算；交给张量视图的步长再换成元素数。
+读到块号 1，应该去第二页找这 20 个数。地址先按字节计算，交给张量视图的步长再换成元素数（若误用有效数据 $40\text{ B}$ 作为步长，就会落进第 0 页的空白区）：
 
-```calc
-title: 有效数据与物理页步长（示意）
-有效数据 = 20 × 2 B = 40 B
-页内空白 = 64 B − 40 B = 24 B
-块步长 = 64 B ÷ 2 B = 32 个元素
-块号 1 的起点 = 0 B + 1 × 64 B = 64 B
-> 若误用 40 B 作为步长，会落进第 0 页的空白
-```
+| 寻址量（FP16 示意，物理页 64 B） | 算式 | 结果 |
+|---|---|---|
+| 有效数据 | $20 \times 2\text{ B}$ | $40\text{ B}$ |
+| 页内空白 | $64\text{ B} - 40\text{ B}$ | $24\text{ B}$ |
+| 块步长（元素数） | $64\text{ B} \div 2\text{ B}$ | $32$ 个元素 |
+| 块号 1 的字节起点 | $0\text{ B} + 1 \times 64\text{ B}$ | $64\text{ B}$ |
 
 官方的 non-contiguous KV cache 方案让 Model Runner V1 在现有分配上建立带步长的视图，保持块号不变，跳过页内空白，避免为了得到连续视图再复制整池。K、V 与 Mamba 的卷积、递推状态可以有不同的视图、起始偏移和底层缓冲，并不要求全都相邻。需要连续状态行的算子仍有按行搬运：先按请求索引收集要用的行，算完再写回原来的页；省去的是整池复制。
 
@@ -348,16 +354,14 @@ MLA 层的三份缓存不走普通注意力的收集路径。它们各自挂着�
 
 ### 对齐成两档页，编成五个组
 
-**四份规格被对齐成两档：MLA 和 KDA 共用大页，indexer K 和尾状态共用小页。** 分组补丁先按角色把规格分成两类，每类取最大的页，写进各自的「补齐后页大小」：
+**四份规格被对齐成两档：MLA 和 KDA 共用大页，indexer K 和尾状态共用小页。** 分组补丁先按角色把规格分成两类，每类取最大的页，写进各自的「补齐后页大小」（$561{,}152\text{ B}$ 是一层一份每卡 KDA 状态，由来见[线性注意力](linear-attention.md#矩阵状态之外还有短卷积历史)）：
 
-```calc
-title: 四份规格对齐成两档页
-MLA 一页 = 640 × 512 × 2 B = 655,360 B
-KDA 一页 = max(655,360 B, 561,152 B) = 655,360 B
-indexer K 一页 = 640 ÷ 4 × 128 × 2 B = 40,960 B
-尾状态一页 = max(40,960 B, 4 × 256 × 4 B) = 40,960 B
-> 561,152 B 是一层一份 KDA 状态（每卡），由来见线性注意力页
-```
+| 规格类别 | 对齐前单页字节 | 对齐算式 | 最终单页字节 | 所属档位 |
+|---|---|---|---|---|
+| MLA latent | $640 \times 512 \times 2\text{ B} = 655{,}360\text{ B}$ | 本身即大页基准 | $655{,}360\text{ B}$ | 大页 |
+| KDA 状态 | $561{,}152\text{ B}$ | $\max(655{,}360,\; 561{,}152)$ | $655{,}360\text{ B}$ | 大页（补齐） |
+| indexer K | $(640 \div 4) \times 128 \times 2\text{ B} = 40{,}960\text{ B}$ | 本身即小页基准 | $40{,}960\text{ B}$ | 小页 |
+| indexer 尾状态 | $4 \times 256 \times 4\text{ B} = 4{,}096\text{ B}$ | $\max(40{,}960,\; 4{,}096)$ | $40{,}960\text{ B}$ | 小页（补齐） |
 
 对齐之后编组，共 5 个：
 
@@ -401,16 +405,14 @@ indexer K 一页 = 640 ÷ 4 × 128 × 2 B = 40,960 B
 
 **第六个数不是新含义，而是被改写后的字段。** 引擎算完 KV 配置、让各卡初始化之前，会把配置里的 block_size 字段改写成各组块大小的最小值，本部署是尾状态组的 4。所以这一步之后再读这个字段，拿到的是 4，不是 640。昇腾补丁算调度粒度时特意不用这个回写值，而是直接取各组块大小的最小公倍数：按上游的兜底逻辑，4 会被当成缓存块大小，细粒度哈希随之被关掉。
 
-五种值之间的换算只有下面几步：
+五种值之间的换算只有下面几步（$133{,}120 = 208 \times 640$，同时也是 $4$ 的倍数，所以最小公倍数就是 KDA 组的块）：
 
-```calc
-title: 五种 block_size 之间怎样换算
-逻辑块里有几个 kernel 块 = 640 ÷ 128 = 5
-逻辑块压成几条 indexer K = 640 ÷ 4 = 160
-调度器的块 = lcm(640, 4, 133120) = 133,120
-引擎回写的字段值 = min(640, 4, 133120) = 4
-> 133,120 = 208 × 640，也是 4 的倍数，所以最小公倍数就是 KDA 组的块
-```
+| 换算关系 | 算式 | 结果 |
+|---|---|---|
+| 1 个逻辑块含几个 kernel 块 | $640 \div 128$ | $5$ 个 |
+| 1 个逻辑块压成几条 indexer K | $640 \div 4$ | $160$ 条 |
+| 调度器的对齐块 | $\text{lcm}(640,\; 4,\; 133{,}120)$ | $133{,}120$ |
+| 引擎回写的 `block_size` 字段 | $\min(640,\; 4,\; 133{,}120)$ | $4$ |
 
 还有两个容易混进来的数不算 block_size：160 是 indexer 页里的条数，源码叫存储块长；16 是配置对象的默认值，GLM 补丁生效后就不再出现。
 
@@ -506,45 +508,45 @@ Padding mamba page size by 14.38% to ensure that mamba page size and attention p
 
 ### 版本差异
 
-**v0.30.0rc2 的 GLM 分组在 models/glm5next/cache_config.py 实现。** 主 MLA 与压缩索引共享调度块编号，尾状态与各 Mamba 组独立分配；规格按两档物理页对齐。索引缓存显式声明不按普通 attention/Mamba 页做统一对齐，尾状态使用环形规格并按每请求固定环管理。这里的“小页”不是把每一层都填充成 KDA 大页。
+**`v0.30.0`（`c09d3e20`）与 `main`（`8d6180e2`）的 GLM 分组均在 `models/glm5next/cache_config.py` 实现，并同步支持 DeepSeek-V4.1 专用缓存规划。** 主 MLA 与压缩索引共享调度块编号，尾状态与各 Mamba 组独立分配，规格按两档物理页对齐；索引缓存显式声明不按普通 attention/Mamba 页做统一对齐，尾状态使用环形规格并按每请求固定环管理。在 `patch_kv_cache_utils.py` 中，`v0.30.0` 仍携带 `_ascend_resolve_kv_cache_block_sizes` 与 `_get_kimi_k3_dspark_mixed_kv_cache_groups`；`main` 则将这两项补丁退场，并新增 `_ascend_annotate_eagle_groups` 与 `_uses_qwen4_exp_mtp` 适配。
 
-Worker 还会按实际多组布局修正可用逻辑预算，并在层复用、稀疏卸载、KVPP 开启时继续调整。旧镜像的块长 640 与预算块数是旧配置的计算结果，不是 rc2 全模型默认值；迁移须重新读取各组的 block_size、page_size_bytes 和实际分配张量。
+Worker 还会按实际多组布局修正可用逻辑预算，并在层复用、稀疏卸载、KVPP 开启时继续调整。旧镜像 `db701c1f` 的块长 640 与预算块数是旧配置的计算结果，不是 `v0.30.0` 全模型默认值；迁移须重新读取各组的 `block_size`、`page_size_bytes` 和实际分配张量。
 
-钉点同 [KV cache 的版本差异](kv-cache.md#版本差异)：v0.23 为 Ascend 2c59ff10 / vLLM 0fc695fc，v0.26 为 Ascend 2ed6cbba / vLLM 568afb3a，rc2 为 Ascend 7d825229 / vLLM ced6857a，main 为 Ascend baa023ad / vLLM 84030bbe。**本页 GLM 数字取自专用镜像 Ascend db701c1f，控制流仍按 vLLM 0fc695fc。** v0.23 和 v0.26 里没有 GLM-5.3-Flash 的模型文件，下表这两列只说明混合模型在那两版上走哪条路径。
+**四版本核验矩阵**（vLLM 对应 `0fc695fc` / `568afb3a` / `ced6857a` / `84030bbe`；本页 GLM 绑定算例固定于专用镜像 `db701c1f`，`v0.23.0` 与 `v0.26.0rc` 维护快照不含 GLM 模型）：
 
-| 项 | v0.23 | v0.26 | v0.30.0rc2 | main | 本页镜像 db701c1f |
+| 项 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` | 本页镜像 `db701c1f` |
 |---|---|---|---|---|---|
-| 上游规格家族 | MLA 带 compress_ratio 和模型版本字段 | 同 v0.23 | 压缩比例由 tokens_per_state 表达；尾状态专用规格每请求固定1块、不参与前缀复用 | 同类重构；尾状态固定1块 | 同 v0.23 |
-| 逻辑块怎样定 | 通用混合对齐取128倍数，使单K页对上递推页，凑不齐报错 | 同 v0.23 | GLM 按 lcm(kernel, kpool×16) 对齐；SFA C8按打包后的字节规划，并把过大的输入封顶到覆盖状态的对齐下限 | GLM按lcm对齐；固定BF16形状静态推得640 | GLM分支让MLA页装下KDA整份状态，按128取整，得到640 |
-| GLM分组 | 无该模型布局 | 无该模型布局；通用路径另有整块分配兜底 | 模型目录内对齐两档页、主/索引共块号、尾状态独立，KDA按层分组 | 同类模型专用规划 | patch中的五组布局 |
-| 调度粒度 | CP分支取lcm×DCP×PCP，其余走上游 | CP分支只处理DCP | 对GLM先剔除不能复用的私有组，再算调度/哈希；DeepSeek V4.1另有分支 | 同样区分私有组与DeepSeek V4.1 | GLM取lcm×DCP×PCP，前缀或connector启用时另算哈希 |
-| 块大小字段回写 | 取所有组最小值 | 取所有组最小值 | 先选可用于前缀复用的组取最小；没有才退回全部组 | 同rc2 | 取所有组最小值，得到4 |
+| 上游规格家族 | MLA 带 `compress_ratio` 与模型版本字段 | 同 `v0.23.0` | 压缩比改由 `tokens_per_state` 表达；尾状态专用规格每请求固定 1 块、不参与前缀复用 | 同 `v0.30.0` | 同 `v0.23.0` |
+| 逻辑块怎样定 | 通用混合对齐取 128 倍数，使单 K 页对上递推页，凑不齐报错 | 同 `v0.23.0` | GLM 按 `lcm(kernel, kpool×16)` 对齐；SFA C8 按打包字节规划并封顶到覆盖状态的对齐下限 | 同 `v0.30.0`（`patch_mamba_config.py` 对齐规则一致） | GLM 分支让 MLA 页装下 KDA 整份状态，按 128 取整得 640 |
+| 异构模型分组 | 无 GLM 布局 | 无 GLM 布局；通用路径具整块分配兜底 | `glm5next/cache_config.py` 与 `deepseek_v41/cache_config.py` 双专线规划 | 同 `v0.30.0`，新增 EAGLE 组标注与 `qwen4_exp` MTP 分支 | patch 中的五组布局 |
+| 调度粒度 | CP 分支取 `lcm×DCP×PCP`，其余走上游 | CP 分支只处理 DCP | 对 GLM 先剔除私有组再算调度/哈希（`_ascend_resolve_kv_cache_block_sizes`）；DeepSeek-V4.1 单独处理 | 退役 `_ascend_resolve_kv_cache_block_sizes`，由上游与各模型配置承接 | GLM 取 `lcm×DCP×PCP`，前缀或 connector 启用时另算哈希 |
+| 块大小字段回写 | 取所有组最小值 | 取所有组最小值 | 先选可用于前缀复用的组取最小；无此类组才退回全部组 | 同 `v0.30.0` | 取所有组最小值，得 4 |
 
-参数定义与模式默认还要分开核对；下表 v0.26 指已登记的 rc 分支源码快照，main 指上表固定钉点：
+参数定义与模式默认对照：
 
-| 参数 | v0.23 | v0.26 | v0.30.0rc2 | main | 迁移时注意 |
+| 参数 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` | 迁移时注意 |
 |---|---|---|---|---|---|
-| block_size | 输入None，构造补16，正整数 | 相同 | 相同 | 相同 | 模型可改写，640保留旧GLM条件 |
-| kv_cache_dtype | auto；枚举如上 | 加int4_per_token_head | 再有nvfp4_ds_mla、nvfp4_4over6 | 与rc2列出的枚举相同 | 枚举存在不证明Ascend GLM可用 |
-| mamba_block_size | None；正整数及后端约束 | 相同 | 相同 | 相同 | 最终赋值还取决于模型补丁 |
-| mamba_cache_mode | 字段none；开前缀且输入none时按能力选all/align | 相同 | 开前缀且输入none时统一选align | 同rc2 | 显式all仍需模型支持，不能只查字段默认 |
-| disable_hybrid_kv_cache_manager | None，按运行配置决定；可显式布尔 | 相同 | 相同 | 相同 | None不代表恒定False |
+| `block_size` | 输入 None，构造补 16，正整数 | 相同 | 相同 | 相同 | 模型可改写，640 保留旧 GLM 条件 |
+| `kv_cache_dtype` | auto；枚举见上文 | 加 `int4_per_token_head` | 再增 `nvfp4_ds_mla`、`nvfp4_4over6` | 同 `v0.30.0` | 枚举存在不证明 Ascend GLM 可用 |
+| `mamba_block_size` | None；正整数及后端约束 | 相同 | 相同 | 相同 | 最终赋值取决于模型补丁 |
+| `mamba_cache_mode` | 字段 none；开前缀且输入 none 时按能力选 all/align | 相同 | 开前缀且输入 none 时统一选 align | 同 `v0.30.0` | 显式 all 仍需模型支持，不可只看字段默认 |
+| `disable_hybrid_kv_cache_manager` | None，按运行配置决定；可显式布尔 | 相同 | 相同 | 相同 | None 不代表恒定 False |
 
-日志有助于辨认对齐分支：旧通用分支使用`…to ensure that attention page size is >= mamba page size.`，专用镜像使用`Setting GLM-5 logical attention block size…`，rc2/main的模型分支使用`…to align MLA, recurrent-state, and compressed indexer cache pages.`。多个提交可以沿用同一句话，定位版本仍要同时保存安装提交与有效配置。
+日志有助于辨认对齐分支：旧通用分支使用 `…to ensure that attention page size is >= mamba page size.`，专用镜像使用 `Setting GLM-5 logical attention block size…`，`v0.30.0` 与 `main` 的模型分支使用 `…to align MLA, recurrent-state, and compressed indexer cache pages.`。多个提交可沿用同一句话，定位版本仍须同时保存安装提交与有效配置。
 
-分配侧还有几处跨版本差异，主要影响普通注意力和稀疏 MLA，GLM 专用路径不经过它们；db701c1f 在这几项上与 v0.23 相同：
+分配侧的跨版本差异（主要影响普通注意力与稀疏 MLA，GLM 专用路径不经过它们；`db701c1f` 与 `v0.23.0` 一致）：
 
-| 项 | v0.23 | v0.26 | v0.30.0rc2 | main |
+| 项 | `v0.23.0 (2c59ff10)` | `v0.26.0rc (2ed6cbba)` | `v0.30.0 (c09d3e20)` | `main (8d6180e2)` |
 |---|---|---|---|---|
-| 普通路径每层字节预算 | KVCacheTensor.size再按K/V切分 | 同v0.23 | num_blocks×该层page_size_bytes，再按布局切分 | 同rc2 |
-| sleep mode的KV内存池边界 | 包住整个KV初始化 | 同v0.23 | 只包原始缓冲申请，reshape/绑定及持久元数据留在外面 | 同rc2 |
-| 普通注意力块张量布局 | 固定轴序 | 同v0.23 | HND/LBHNC布局调换块内位置轴与头轴 | 同rc2 |
-| 稀疏MLA的indexer | 不单独报规格，由IndexerWrapper顶替 | 独立AscendSFAIndexerCacheSpec | 保留独立规格；indexer视图按该规格block_size塑形 | 同rc2；不要混用主MLA的存储块长 |
-| 昇腾主MLA页字节属性 | 覆写page_size_bytes | 覆写real_page_size_bytes | 真实页以get_storage_block_size及精度/缩放字段计 | 同类规则；属性和存储块字段须按版本读取 |
-| 主机驻留标记 | 此规格无store_on_host字段 | 有，默认False | 有，默认False | 有，默认False |
-| 普通Mamba的页视图 | 这里的普通分支按连续区域切状态 | 同v0.23 | 共享填充页分支保留按页步长；另对不共享原始张量的hybrid Mamba建按页步长视图 | 共享填充页分支按物理页步长；其余普通分支仍连续切片 |
+| 普通路径每层字节预算 | `KVCacheTensor.size` 再按 K/V 切分 | 同 `v0.23.0` | `num_blocks × page_size_bytes`，再按布局切分 | 同 `v0.30.0` |
+| sleep mode 的 KV 内存池边界 | 包住整个 KV 初始化 | 同 `v0.23.0` | 只包原始缓冲申请，reshape/绑定及持久元数据留在外面 | 同 `v0.30.0` |
+| 普通注意力块张量布局 | 固定轴序 | 同 `v0.23.0` | HND/LBHNC 布局调换块内位置轴与头轴 | 同 `v0.30.0` |
+| 稀疏 MLA 的 indexer | 不单独报规格，由 `IndexerWrapper` 顶替 | 独立 `AscendSFAIndexerCacheSpec` | 保留独立规格；indexer 视图按该规格 `block_size` 塑形 | 同 `v0.30.0`；勿混用主 MLA 存储块长 |
+| 昇腾主 MLA 页字节属性 | 覆写 `page_size_bytes` | 覆写 `real_page_size_bytes` | 真实页以 `get_storage_block_size` 及精度/缩放字段计 | 同 `v0.30.0` |
+| 主机驻留标记 | 无 `store_on_host` 字段 | 有，默认 False | 有，默认 False | 有，默认 False |
+| 普通 Mamba 页视图 | 普通分支按连续区域切状态 | 同 `v0.23.0` | 共享填充页与不共享原始张量的 hybrid Mamba 均建按页步长视图 | 保留共享填充页按页步长视图 |
 
-最后一行比较的是Mamba具体分支，不是判断整个版本“有没有非连续张量”。rc2的combined K/V路径还在形状为五维、首维为2且元素数匹配时建立block-first视图，保留原分配和步长；不满足条件则继续走其他分支。页内有填充时要核对实际shape、stride和offset，不能根据版本名把所有缓存当成同一种布局。
+最后一行比较的是 Mamba 具体分支，不等于判断整个版本“有没有非连续张量”。`v0.30.0`（含前置 `rc2`）的 combined K/V 路径还在形状为五维、首维为 2 且元素数匹配时建立 block-first 视图，保留原分配和步长；页内有填充时须核对实际 `shape`、`stride` 和 `offset`。
 
 ### 源码位置
 
@@ -588,3 +590,4 @@ Worker 还会按实际多组布局修正可用逻辑预算，并在层复用、�
 - 分配版本表的补充依据：79–82对应普通路径的每层字节预算；83–86对应旧版整段初始化与新版仅原始分配进入sleep内存池；87–91对应主MLA属性、主机驻留与独立indexer规格，92–93对应main/rc2实际indexer视图。普通布局轴序与跨层共享另见[KV cache版本表](kv-cache.md#版本差异)。
 - 来源94补足上游Mamba块长不同于配置块长时退回调度粒度的分支；95落实KV传输开启后才做首地址对齐；96是布尔参数生成正、反两个CLI开关的实现。97核对v0.26仍取全部组最小块长；98给出rc2按排序后的KDA清单分组的实际调用；99补足main的MLA规格字段与合并条件。
 - 100–104对照四版Mamba视图与rc2 combined K/V视图分支；105–106显示共同粒度用于缓存留存和命中对齐，107是Mamba align的另行分块，并跳过普通decode。
+- `v0.30.0`（`c09d3e20`）的 GLM 两档页对齐与组规划、`_ascend_resolve_kv_cache_block_sizes` 与 `patch_mamba_config` 见来源 108–111；`main`（`8d6180e2`）的对应规划、EAGLE/`qwen4_exp` MTP 扩展及 `deepseek_v41` 专线分流见来源 112–115。

@@ -19,13 +19,20 @@ const MLA_CONFIG_JSON = JSON.stringify({
   num_attention_heads: 128,
   kv_lora_rank: 512,
   q_lora_rank: 1536,
+  qk_nope_head_dim: 128,
   qk_rope_head_dim: 64,
   v_head_dim: 128,
+  intermediate_size: 18432,
+  moe_intermediate_size: 2048,
+  n_routed_experts: 256,
+  num_experts_per_tok: 8,
+  n_shared_experts: 1,
+  first_k_dense_replace: 3,
   vocab_size: 129280,
 });
 
-describe("Wave 3 interactive tools SSR & honest deep-link gate", () => {
-  it("renders deploy-calculator in quick-screen, minimal, full and MLA Wave-4 intercept outside RouterProvider", () => {
+describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
+  it("renders deploy-calculator in quick-screen, minimal, full and unlocked Wave-4 MLA mode outside RouterProvider", () => {
     for (const mode of ["quick-screen", "minimal", "full"] as const) {
       const html = renderToStaticMarkup(
         createElement(WikiToolBlock, {
@@ -47,19 +54,21 @@ describe("Wave 3 interactive tools SSR & honest deep-link gate", () => {
         embedded: true,
       }),
     );
-    expect(mlaDirectHtml).toContain('data-testid="wave3-arch-intercept"');
+    expect(mlaDirectHtml).toContain('data-testid="wave4-arch-active"');
+    expect(mlaDirectHtml).not.toContain('data-testid="wave3-arch-intercept"');
+    expect(mlaDirectHtml).toContain("1152 B/tok/层");
     expect(mlaDirectHtml).toContain('data-testid="tool-deeplink-mla"');
-    expect(mlaDirectHtml).toContain('data-legacy-baseline="true"');
-    expect(mlaDirectHtml).toContain(LEGACY_BASELINE_BADGE_TEXT);
+    expect(mlaDirectHtml).toContain('data-legacy-baseline="false"');
 
     const mlaFenceHtml = renderToStaticMarkup(
       createElement(WikiToolBlock, {
         source: `tool: deploy-calculator\nmode: quick-screen\nmodel: ${MLA_CONFIG_JSON}`,
       }),
     );
-    expect(mlaFenceHtml).toContain('data-testid="wave3-arch-intercept"');
+    expect(mlaFenceHtml).toContain('data-testid="wave4-arch-active"');
+    expect(mlaFenceHtml).not.toContain('data-testid="wave3-arch-intercept"');
     expect(mlaFenceHtml).toContain('data-testid="tool-deeplink-mla"');
-    expect(mlaFenceHtml).toContain('data-legacy-baseline="true"');
+    expect(mlaFenceHtml).toContain('data-legacy-baseline="false"');
   });
 
   it("renders config-doctor in minimal (zero DAG inversion) and full/PD modes outside RouterProvider", () => {
@@ -177,8 +186,8 @@ describe("Wave 3 interactive tools SSR & honest deep-link gate", () => {
     expect(fullHtml).toContain('data-testid="tool-deeplink-ai-core"');
   });
 
-  it("enforces honest legacy-baseline badge on un-upgraded pages and omits it on v0.30.0 Core-26 pages", () => {
-    for (const legacyId of ["hccl-buffer", "pd-disaggregation", "mla", "mooncake-connector", "npugraph-ex"]) {
+  it("enforces honest legacy-baseline badge on un-upgraded pages and omits it on v0.30.0 Core-26 / Wave-4B pages", () => {
+    for (const legacyId of ["hccl-buffer", "pd-disaggregation", "mooncake-connector", "npugraph-ex"]) {
       const html = renderToStaticMarkup(createElement(ToolDeepLinkById, { pageId: legacyId }));
       expect(html).toContain(`data-testid="tool-deeplink-${legacyId}"`);
       expect(html).toContain('data-legacy-baseline="true"');
@@ -192,6 +201,10 @@ describe("Wave 3 interactive tools SSR & honest deep-link gate", () => {
       "tensor-parallel",
       "kv-cache",
       "quantization",
+      "mla",
+      "linear-attention",
+      "kv-cache-spec",
+      "engram-conditional-memory",
     ]) {
       const html = renderToStaticMarkup(createElement(ToolDeepLinkById, { pageId: upgradedId }));
       expect(html).toContain(`data-testid="tool-deeplink-${upgradedId}"`);

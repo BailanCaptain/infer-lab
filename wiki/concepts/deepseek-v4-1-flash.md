@@ -12,10 +12,6 @@ aliases:
   - Hierarchical Sparse Indexer
   - DeepSeek 状态布局
   - DeepInfer 模型配置
-  - Engram
-  - Engram CPU offload
-  - dp_shared_memory
-  - engram-config
 chapters:
   - '19'
 order: 1

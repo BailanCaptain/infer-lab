@@ -14,6 +14,7 @@ import {
   ASCEND_CALC_CARDS,
   evaluateDeployPlan,
   evaluateWave3ModelGate,
+  WAVE4_DEMO_PRESETS,
 } from "../../sim/modelspec/deployCalculator";
 import { MODEL_PRESETS } from "../../sim/modelspec/presets";
 import { ALL_COUPLING_RULES } from "../../sim/rules";
@@ -144,16 +145,41 @@ describe("Honest Tool Deep-Link Manifest & Badge Gate", () => {
     }
   });
 
-  it("honestly marks un-upgraded Wave-4 / legacy-baseline pages with '历史基线页（待更新）'", () => {
+  it("classifies Wave-4B upgraded v0.30.0 attention/memory & newly authored pages as verified (isLegacyBaseline === false)", () => {
+    const wave4bVerifiedPages = [
+      "mla",
+      "sparse-attention",
+      "linear-attention",
+      "kv-cache-spec",
+      "engram-conditional-memory",
+      "moe-comm-dispatch",
+      "epd-disaggregation",
+      "model-runner-v2",
+      "v030-release-baseline",
+      "aisbench-and-evalscope",
+      "msprobe-accuracy-debug",
+      "cluster-serving",
+    ] as const;
+
+    for (const pageId of wave4bVerifiedPages) {
+      expect(
+        isRegisteredToolDeepLink(pageId),
+        `Wave-4B page "${pageId}" must be in TOOL_DEEPLINK_MANIFEST`,
+      ).toBe(true);
+      const resolved = resolveToolDeepLink(pageId);
+      expect(resolved.isV030Verified, `Wave-4B page "${pageId}" must include releases/v0.30.0`).toBe(true);
+      expect(resolved.isLegacyBaseline).toBe(false);
+      expect(resolved.badgeText).toBeNull();
+    }
+  });
+
+  it("honestly marks un-upgraded Wave-4C / Exception-B legacy-baseline pages with '历史基线页（待更新）'", () => {
     const legacyPages = [
       "hccl-buffer",
-      "kv-cache-spec",
       "pd-disaggregation",
       "mooncake-connector",
       "npugraph-ex",
       "acl-graph",
-      "mla",
-      "linear-attention",
       "ascend-950-architecture",
       "device-memory",
     ] as const;
@@ -283,35 +309,36 @@ describe("Honest Tool Deep-Link Manifest & Badge Gate", () => {
       }
     }
 
-    // 3. Wave-4 gate blocked targets for MLA / CSA2 / KDA / Engram are 100% registered & honestly badged
-    const wave4Fixtures: ReadonlyArray<{
-      label: "MLA" | "CSA2" | "KDA" | "Engram";
-      config: Record<string, unknown>;
-    }> = [
-      { label: "MLA", config: { model_type: "deepseek_v3", kv_lora_rank: 512 } },
-      { label: "CSA2", config: { model_type: "qwen3", use_csa2: true } },
-      { label: "KDA", config: { model_type: "kimi_linear", use_kda: true } },
-      { label: "Engram", config: { model_type: "deepseek_v4", use_engram: true } },
-    ];
-
-    for (const fixture of wave4Fixtures) {
-      const gate = evaluateWave3ModelGate(fixture.config);
-      expect(gate.ok, `Wave-4 gate fixture ${fixture.label} must succeed`).toBe(true);
+    // 3. Wave-4 unlocked MLA / CSA2 / KDA / Engram presets parse cleanly and emit 100% registered relatedWikiIds
+    expect(WAVE4_DEMO_PRESETS.length).toBeGreaterThanOrEqual(4);
+    for (const demo of WAVE4_DEMO_PRESETS) {
+      const gate = evaluateWave3ModelGate(demo.config);
+      expect(gate.ok, `Wave-4 preset ${demo.id} must parse cleanly`).toBe(true);
       if (!gate.ok) continue;
-      expect(
-        gate.supportedInWave3,
-        `Wave-4 gate fixture ${fixture.label} must be blocked (supportedInWave3 === false)`,
-      ).toBe(false);
-      if (gate.supportedInWave3) continue;
-      expect(gate.blockedFeature).toBe(fixture.label);
-      expect(
-        isRegisteredToolDeepLink(gate.targetWikiId),
-        `Wave-4 gate ${fixture.label} targetWikiId "${gate.targetWikiId}" must be in TOOL_DEEPLINK_MANIFEST`,
-      ).toBe(true);
-      const resolved = resolveToolDeepLink(gate.targetWikiId);
-      expect(resolved.href).toBe(`#/wiki/${resolved.canonicalId}`);
-      expect(resolved.isLegacyBaseline).toBe(true);
-      expect(resolved.badgeText).toBe(LEGACY_BASELINE_BADGE_TEXT);
+      expect(gate.supportedInWave3, `Wave-4 preset ${demo.id} must be unlocked in Wave 4`).toBe(true);
+      if (!gate.supportedInWave3) continue;
+      expect(gate.wave4Features).toEqual(expect.arrayContaining([...demo.features]));
+
+      const plan = evaluateDeployPlan({
+        model: gate.spec,
+        cardId: "950dt-128g",
+        tpSize: demo.recommendedTp,
+        ppSize: demo.recommendedPp,
+        dpSize: demo.recommendedDp,
+        dcpSize: 2,
+        enableEp: demo.recommendedEnableEp,
+        weightPrecision: demo.recommendedPrecision,
+      });
+      expect(plan.wave4Arch.activeFeatures).toEqual(expect.arrayContaining([...demo.features]));
+      expect(plan.fourQuestions.q4Recommendation.relatedWikiIds.length).toBeGreaterThan(0);
+      for (const pageId of plan.fourQuestions.q4Recommendation.relatedWikiIds) {
+        expect(
+          isRegisteredToolDeepLink(pageId),
+          `Wave-4 preset ${demo.id} relatedWikiId "${pageId}" must be in TOOL_DEEPLINK_MANIFEST`,
+        ).toBe(true);
+        const resolved = resolveToolDeepLink(pageId);
+        expect(resolved.href).toBe(`#/wiki/${resolved.canonicalId}`);
+      }
     }
   });
 

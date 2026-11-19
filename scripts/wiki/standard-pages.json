@@ -115,7 +115,19 @@
     "ascend-flash-attention",
     "low-precision-formats",
     "core-cli-params",
-    "inference-troubleshooting"
+    "inference-troubleshooting",
+    "engram-conditional-memory",
+    "multimodal-inference",
+    "sampling-advanced",
+    "pooling-and-non-ar",
+    "moe-comm-dispatch",
+    "epd-disaggregation",
+    "model-runner-v2",
+    "dev-new-model-and-custom-op",
+    "v030-release-baseline",
+    "aisbench-and-evalscope",
+    "msprobe-accuracy-debug",
+    "cluster-serving"
   ],
   "skip": {
     "learning-guide": ["source-sections", "diagram-first"]

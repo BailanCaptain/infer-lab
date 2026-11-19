@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" role="img" aria-label="客户端压测指标与服务端 Prometheus /metrics 时延口径对齐" font-family="var(--font-sans)">
+<title>客户端压测（AISBench / EvalScope）与服务端 /metrics 的 TTFT、TPOT、ITL 边界对齐</title>
+<desc>Client-side vs server-side timing spans for TTFT, TPOT, and ITL</desc>
+<g stroke-width="1.4">
+<rect x="16" y="78" width="128" height="58" rx="6" fill="#ece9df" stroke="#b8bcb5"/>
+<rect x="158" y="78" width="156" height="58" rx="6" fill="#fff0e9" stroke="#b54237"/>
+<rect x="328" y="78" width="166" height="58" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="508" y="78" width="236" height="58" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="758" y="78" width="126" height="58" rx="6" fill="#ece9df" stroke="#b8bcb5"/>
+<rect x="16" y="162" width="478" height="44" rx="6" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="508" y="162" width="376" height="44" rx="6" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="158" y="220" width="336" height="44" rx="6" fill="#fff4cf" stroke="#c78300"/>
+<rect x="508" y="220" width="236" height="44" rx="6" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="294" width="424" height="110" rx="8" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="460" y="294" width="424" height="110" rx="8" fill="#fff0e9" stroke="#b54237"/>
+</g>
+<path d="M144 107h12m-4-4l4 4-4 4M314 107h12m-4-4l4 4-4 4M494 107h12m-4-4l4 4-4 4M744 107h12m-4-4l4 4-4 4" fill="none" stroke="#66716d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-weight="700">
+<text x="16" y="28" font-size="16" fill="#17211f">一条流式请求从发出到结束：客户端口径 vs 服务端 /metrics 口径</text>
+<text x="80" y="102" text-anchor="middle" font-size="14" fill="#17211f">网络 + API 解析</text>
+<text x="236" y="102" text-anchor="middle" font-size="14" fill="#8f3229">queued_time</text>
+<text x="411" y="102" text-anchor="middle" font-size="14" fill="#936300">prefill_time</text>
+<text x="626" y="102" text-anchor="middle" font-size="14" fill="#065f56">decode_time（逐词生成）</text>
+<text x="821" y="102" text-anchor="middle" font-size="14" fill="#17211f">SSE 回传尾包</text>
+<text x="255" y="189" text-anchor="middle" font-size="14" fill="#3a4f93">客户端 TTFT = 收到首块 SSE 时刻 − 请求发出时刻（含网络与排队）</text>
+<text x="696" y="189" text-anchor="middle" font-size="14" fill="#7a3a6a">客户端 TPOT = (E2E − TTFT) / (N_out − 1)</text>
+<text x="326" y="247" text-anchor="middle" font-size="14" fill="#936300">服务端 TTFT 直方图（排队 + Prefill）</text>
+<text x="626" y="247" text-anchor="middle" font-size="14" fill="#065f56">服务端 ITL / TPOT</text>
+<text x="30" y="320" font-size="14.5" fill="#065f56">并发模式（Closed-loop）vs 到达率模式（Open-loop）</text>
+<text x="474" y="320" font-size="14.5" fill="#8f3229">最易造成数据失真的三类压测污染</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="50" font-size="13.5">客户端看到的时延天然大于或等于服务端直方图；排障时须先切分「网络/反代」与「引擎内部」</text>
+<text x="80" y="124" text-anchor="middle" font-size="13.5">客户端发出 → 进引擎</text>
+<text x="236" y="124" text-anchor="middle" font-size="13.5">入队 → 首次调度</text>
+<text x="411" y="124" text-anchor="middle" font-size="13.5">首次调度 → 首词</text>
+<text x="626" y="124" text-anchor="middle" font-size="13.5">首词 → 末词（N_out − 1 步）</text>
+<text x="821" y="124" text-anchor="middle" font-size="13.5">出引擎 → 客户端</text>
+<text x="30" y="346" font-size="13.5">• 固定并发（parallel / batch_size）：打满系统测吞吐上限</text>
+<text x="30" y="369" font-size="13.5">• 到达率（request_rate + burstiness）：模拟真实线上流量排队</text>
+<text x="30" y="391" font-size="13.5">• 固定并发会掩盖协调遗漏（Coordinated Omission）尾部时延</text>
+<text x="474" y="346" font-size="13.5">• 未剔除冷启动预热（首次图回放、ATB 缓存与动态形状编译）</text>
+<text x="474" y="369" font-size="13.5">• 客户端按本地分词回算 output_len，或非流式导致 TTFT=E2E</text>
+<text x="474" y="391" font-size="13.5">• 开启自动前缀缓存却用相同 prompt 重复打压测，虚高吞吐</text>
+</g>
+</svg>

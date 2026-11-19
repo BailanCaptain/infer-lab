@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="Model Runner V2 的 PCP 与 EPLB 协同边界" font-family="var(--font-sans)">
+<title>MRV2 的 PCP 局部/全局批映射与 EPLB 上游控制面复用</title>
+<desc>AscendPCPManager and AscendEPLBController in vllm_ascend/worker/v2/</desc>
+<line x1="450" y1="14" x2="450" y2="378" stroke="#b8bcb5" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g stroke-width="1.4">
+<rect x="16" y="64" width="404" height="58" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="16" y="146" width="404" height="68" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="16" y="238" width="404" height="58" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="16" y="316" width="404" height="58" rx="7" fill="#fff0e9" stroke="#b54237"/>
+<rect x="480" y="64" width="404" height="58" rx="7" fill="#fff4cf" stroke="#c78300"/>
+<rect x="480" y="146" width="194" height="68" rx="7" fill="#ddf4ef" stroke="#087f73"/>
+<rect x="690" y="146" width="194" height="68" rx="7" fill="#f7e7f2" stroke="#9a4b86"/>
+<rect x="480" y="238" width="404" height="58" rx="7" fill="#e8edff" stroke="#4c65b6"/>
+<rect x="480" y="316" width="404" height="58" rx="7" fill="#fff0e9" stroke="#b54237"/>
+</g>
+<path d="M218 122v22m-4-5l4 5 4-5M218 214v22m-4-5l4 5 4-5" fill="none" stroke="#4c65b6" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M577 122v22m-4-5l4 5 4-5M787 122v22m-4-5l4 5 4-5M682 214v22m-4-5l4 5 4-5" fill="none" stroke="#087f73" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-weight="700">
+<text x="16" y="32" font-size="16" fill="#17211f">A. PCP 集成（AscendPCPManager）</text>
+<text x="218" y="87" text-anchor="middle" font-size="14.5" fill="#3a4f93">全局批规划：get_global_graph_num_reqs</text>
+<text x="218" y="172" text-anchor="middle" font-size="14.5" fill="#7a3a6a">AscendPCPAttentionContext 双向映射</text>
+<text x="218" y="261" text-anchor="middle" font-size="14.5" fill="#065f56">采样前还原：global_batch 对齐</text>
+<text x="28" y="339" font-size="14.5" fill="#8f3229">门禁：PCP &gt; 1 须设 VLLM_USE_V2_MODEL_RUNNER=1</text>
+<text x="480" y="32" font-size="16" fill="#17211f">B. EPLB 集成（AscendEPLBController）</text>
+<text x="682" y="87" text-anchor="middle" font-size="14.5" fill="#936300">批级采样过滤：load_collection_phase</text>
+<text x="577" y="172" text-anchor="middle" font-size="14.5" fill="#065f56">数据面：物理专家查表</text>
+<text x="787" y="172" text-anchor="middle" font-size="14.5" fill="#7a3a6a">搬迁面：HIXL / Gloo</text>
+<text x="682" y="261" text-anchor="middle" font-size="14.5" fill="#3a4f93">主线程步间提交 AscendEplbState</text>
+<text x="492" y="339" font-size="14.5" fill="#8f3229">互斥红线：严禁混用 V1 环境变量与 V2 控面</text>
+</g>
+<g fill="#4d5652">
+<text x="16" y="52" font-size="13.5">按上下文并行切分 Prefill 序列，同时保留全局块表视图</text>
+<text x="218" y="110" text-anchor="middle" font-size="13.5">先算出跨 PCP 秩一致的图档位与补齐 token 数</text>
+<text x="218" y="198" text-anchor="middle" font-size="13.5">持有 global_slot_mappings 与 hidden_restore_idx</text>
+<text x="218" y="284" text-anchor="middle" font-size="13.5">非末段 PP 也在 sample_tokens 切回 global_batch</text>
+<text x="28" y="362" font-size="13.5">V1 路径在 _validate_parallel_config 直接抛 ValueError</text>
+<text x="480" y="52" font-size="13.5">复用上游 EPLBController，仅在边界做昇腾适配</text>
+<text x="682" y="110" text-anchor="middle" font-size="13.5">每批判一次 all / prefill / decode（供 STAIR 策略）</text>
+<text x="577" y="198" text-anchor="middle" font-size="13.5">逻辑 ID 映为本地物理 ID</text>
+<text x="787" y="198" text-anchor="middle" font-size="13.5">默认 HIXL，回退 torch_gloo</text>
+<text x="682" y="284" text-anchor="middle" font-size="13.5">后台搬完后原地刷新设备查找表，不打断前向</text>
+<text x="492" y="362" font-size="13.5">MRV2 仅接 load_collection_phase 与 stair_config</text>
+</g>
+</svg>

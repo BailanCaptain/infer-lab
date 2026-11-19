@@ -1,8 +1,10 @@
 import { lazy, Suspense } from "react";
 import { createHashRouter, RouterProvider } from "react-router";
 import { AppShell } from "./AppShell";
-import { ExperiencePage } from "./pages/ExperiencePage";
 
+const ExperiencePage = lazy(async () => ({
+  default: (await import("./pages/ExperiencePage")).ExperiencePage,
+}));
 const WikiPage = lazy(async () => ({ default: (await import("./pages/WikiPage")).WikiPage }));
 const HomePage = lazy(async () => ({ default: (await import("./pages/HomePage")).HomePage }));
 const ToolsPage = lazy(async () => ({ default: (await import("./pages/ToolsPage")).ToolsPage }));
@@ -48,6 +50,20 @@ const toolsRoute = {
   ),
 };
 
+const experienceRoute = (kind: "model" | "hardware") => ({
+  element: (
+    <Suspense
+      fallback={
+        <p className="reader-loading" role="status">
+          正在载入交互演示…
+        </p>
+      }
+    >
+      <ExperiencePage kind={kind} />
+    </Suspense>
+  ),
+});
+
 // 旧链接仍可读；主阅读入口不加载历史课程及 3D。
 const legacyCourseRoute = {
   HydrateFallback: () => (
@@ -67,8 +83,8 @@ const router = createHashRouter([
       { path: "home", ...homeRoute },
       { path: "chapters", ...wikiRoute },
       { path: "chapters/:id", ...legacyCourseRoute },
-      { path: "model", element: <ExperiencePage kind="model" /> },
-      { path: "hardware", element: <ExperiencePage kind="hardware" /> },
+      { path: "model", ...experienceRoute("model") },
+      { path: "hardware", ...experienceRoute("hardware") },
       { path: "wiki", ...wikiRoute },
       { path: "wiki/:id", ...wikiRoute },
       { path: "tools", ...toolsRoute },

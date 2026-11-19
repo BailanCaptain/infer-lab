@@ -50,6 +50,62 @@ export default defineConfig({
       },
     },
   },
-  build: { target: "es2022", chunkSizeWarningLimit: 1500 },
+  build: {
+    target: "es2022",
+    chunkSizeWarningLimit: 1500,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "react-vendor",
+              test: /node_modules[\\/](?:react|react-dom|react-router|scheduler)[\\/]/,
+              priority: 40,
+            },
+            {
+              name: "three-vendor",
+              test: /node_modules[\\/]three[\\/]/,
+              priority: 35,
+            },
+            {
+              name: "markdown-katex",
+              test: /node_modules[\\/](?:katex|rehype-katex|remark-|rehype-|unified|react-markdown|micromark|mdast-|hast-|unist-|vfile|property-information|space-separated-tokens|comma-separated-tokens|html-url-attributes|decode-named-character-reference|character-entities|zwitch|longest-streak|ccount|markdown-table|bail|trough|devlop|is-plain-obj|trim-lines|escape-string-regexp)/,
+              priority: 30,
+            },
+            {
+              name: "wiki-snapshot",
+              test: /virtual:wiki-reader-snapshot/,
+              priority: 28,
+            },
+            {
+              name: "sim-rules",
+              test: /[\\/]src[\\/]sim[\\/]rules[\\/]/,
+              priority: 22,
+            },
+            {
+              name: "sim-modelspec",
+              test: /[\\/]src[\\/]sim[\\/]modelspec[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "sim-doctor",
+              test: /[\\/]src[\\/]sim[\\/]doctor[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "sim-troubleshoot",
+              test: /[\\/]src[\\/]sim[\\/]troubleshoot[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "sim-aicore",
+              test: /[\\/]src[\\/]sim[\\/]aicore[\\/]/,
+              priority: 20,
+            },
+          ],
+        },
+      },
+    },
+  },
   worker: { format: "es" },
 });

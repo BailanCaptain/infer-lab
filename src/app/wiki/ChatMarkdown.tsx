@@ -60,6 +60,7 @@ export const ChatMarkdown = memo(function ChatMarkdown({
           {children}
         </WikiContentLink>
       ),
+      img: ({ node: _node, alt = "", ...props }) => <img alt={alt} decoding="async" {...props} />,
       pre: ({ children, node }) => {
         const code = node?.children.find((child) => child.type === "element" && child.tagName === "code");
         const classes = code?.type === "element" ? code.properties.className : undefined;

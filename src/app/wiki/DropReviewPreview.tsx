@@ -142,6 +142,9 @@ export function DropReviewPreview({ writes, placements }: { writes: Change[]; pl
                           {children}
                         </ReviewMarkdownLink>
                       ),
+                      img: ({ node: _node, alt = "", ...props }) => (
+                        <img alt={alt} decoding="async" {...props} />
+                      ),
                       pre: ({ node, children }) => {
                         const code = (node as HastNode | undefined)?.children?.[0];
                         const source = code ? textOf(code).trim() : "";

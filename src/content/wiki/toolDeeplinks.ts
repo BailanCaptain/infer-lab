@@ -6,8 +6,8 @@ import {
   type SingleConfigDoctorReport,
   type SingleDoctorOptions,
 } from "../../sim/doctor/configDoctor";
-import registryData from "./registry.json";
-import { resolveCanonicalPageId } from "./schema";
+import { getReaderState } from "./index";
+import { type RegistryEntry, resolveCanonicalPageId } from "./schema";
 
 export const LEGACY_BASELINE_BADGE_TEXT = "历史基线页（待更新）" as const;
 export const V030_VERIFIED_TAG = "releases/v0.30.0" as const;
@@ -37,18 +37,21 @@ export interface ResolvedToolDeepLink {
   badgeText: typeof LEGACY_BASELINE_BADGE_TEXT | null;
 }
 
-interface RegistryPageMinimal {
-  id: string;
-  title: string;
-  file: string;
-  legacyIds?: string[] | undefined;
-  verified?: string[] | undefined;
+let cachedPagesRef: readonly RegistryEntry[] | null = null;
+let cachedRegistryById: ReadonlyMap<string, RegistryEntry> = new Map();
+
+function getRegistryPages(): readonly RegistryEntry[] {
+  return getReaderState().pages;
 }
 
-const REGISTRY_PAGES: readonly RegistryPageMinimal[] = registryData.pages as readonly RegistryPageMinimal[];
-const REGISTRY_BY_ID: ReadonlyMap<string, RegistryPageMinimal> = new Map(
-  REGISTRY_PAGES.map((page) => [page.id, page]),
-);
+function getRegistryById(): ReadonlyMap<string, RegistryEntry> {
+  const pages = getRegistryPages();
+  if (pages !== cachedPagesRef) {
+    cachedPagesRef = pages;
+    cachedRegistryById = new Map(pages.map((page) => [page.id, page]));
+  }
+  return cachedRegistryById;
+}
 
 /**
  * Single-source manifest of every Wiki deep-link emitted by Tool ① (`deploy-calculator`)
@@ -157,17 +160,20 @@ function normalizeAnchor(anchor: string | undefined): string {
 }
 
 export const TOOL_DEEPLINK_PAGE_ID_SET: ReadonlySet<string> = new Set(
-  TOOL_DEEPLINK_MANIFEST.map((entry) => resolveCanonicalPageId(REGISTRY_PAGES, entry.pageId) ?? entry.pageId),
+  TOOL_DEEPLINK_MANIFEST.map(
+    (entry) => resolveCanonicalPageId(getRegistryPages(), entry.pageId) ?? entry.pageId,
+  ),
 );
 
 export function isRegisteredToolDeepLink(pageId: string, anchor?: string): boolean {
-  const canonical = resolveCanonicalPageId(REGISTRY_PAGES, pageId) ?? pageId;
+  const pages = getRegistryPages();
+  const canonical = resolveCanonicalPageId(pages, pageId) ?? pageId;
   const cleanAnchor = normalizeAnchor(anchor);
   if (!cleanAnchor) {
     return TOOL_DEEPLINK_PAGE_ID_SET.has(canonical);
   }
   return TOOL_DEEPLINK_MANIFEST.some((entry) => {
-    const entryCanonical = resolveCanonicalPageId(REGISTRY_PAGES, entry.pageId) ?? entry.pageId;
+    const entryCanonical = resolveCanonicalPageId(pages, entry.pageId) ?? entry.pageId;
     return entryCanonical === canonical && normalizeAnchor(entry.anchor) === cleanAnchor;
   });
 }
@@ -176,11 +182,12 @@ export function resolveToolDeepLink(
   pageId: string,
   opts?: { anchor?: string | undefined; label?: string | undefined },
 ): ResolvedToolDeepLink {
-  const canonicalId = resolveCanonicalPageId(REGISTRY_PAGES, pageId);
+  const pages = getRegistryPages();
+  const canonicalId = resolveCanonicalPageId(pages, pageId);
   if (!canonicalId) {
     throw new Error(`Unknown wiki page id in tool deep-link: "${pageId}"`);
   }
-  const entry = REGISTRY_BY_ID.get(canonicalId);
+  const entry = getRegistryById().get(canonicalId);
   if (!entry) {
     throw new Error(`Resolved wiki page "${canonicalId}" missing from registry.json`);
   }
@@ -195,7 +202,7 @@ export function resolveToolDeepLink(
   const badgeText = isLegacyBaseline ? LEGACY_BASELINE_BADGE_TEXT : null;
 
   const manifestEntry = TOOL_DEEPLINK_MANIFEST.find((m) => {
-    const mCanonical = resolveCanonicalPageId(REGISTRY_PAGES, m.pageId) ?? m.pageId;
+    const mCanonical = resolveCanonicalPageId(pages, m.pageId) ?? m.pageId;
     return mCanonical === canonicalId && normalizeAnchor(m.anchor) === cleanAnchor;
   });
   const label = opts?.label?.trim() || manifestEntry?.label?.trim() || entry.title;

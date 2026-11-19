@@ -1,16 +1,43 @@
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import type { CorpusDocument } from "../../src/content/wiki/corpus-retrieve";
 import type { Hit } from "../../src/content/wiki/retrieve";
-import { type CorpusRecord, readCorpus } from "./corpus";
+import { type CorpusRecord, corpusDir, readCorpus } from "./corpus";
 import { gitText } from "./git";
 import { parseSeeds } from "./ingest";
 import { containingRefs } from "./lineage-git";
-import { localFile } from "./review-files";
+import { fileStamp, localFile } from "./review-files";
 import { sanitizeRawInput } from "./sanitize";
 
+const CORPUS_CACHE_LIMIT = 64;
+const corpusDocumentsCache = new Map<string, { stamp: string; docs: CorpusDocument[] }>();
+
+function corpusStamp(root: string, repo: string): string {
+  const base = corpusDir(root, repo);
+  const parts: string[] = [];
+  for (const folder of ["issues", "prs"] as const) {
+    const dir = join(base, folder);
+    if (!existsSync(dir)) continue;
+    if (lstatSync(dir).isSymbolicLink()) {
+      throw new Error(`审阅路径不接受符号链接：tools/corpus/${repo.split("/")[1]}/${folder}`);
+    }
+    for (const name of readdirSync(dir)
+      .filter((n) => /^\d+\.md$/.test(n))
+      .sort()) {
+      parts.push(`${folder}/${name}=${fileStamp(join(dir, name))}`);
+    }
+  }
+  return parts.join("\0");
+}
+
 export function corpusDocuments(root: string, repo = "vllm-project/vllm-ascend"): CorpusDocument[] {
-  return readCorpus(root, repo)
+  const key = `${resolve(root)}:${repo}`;
+  const stamp = corpusStamp(root, repo);
+  const cached = corpusDocumentsCache.get(key);
+  if (cached && cached.stamp === stamp) {
+    return cached.docs.map((doc) => ({ ...doc }));
+  }
+  const docs: CorpusDocument[] = readCorpus(root, repo)
     .map((r) => ({
       id: `github-${r.kind}-${r.number}`,
       title: `${r.kind} #${r.number}: ${r.title}`,
@@ -22,6 +49,12 @@ export function corpusDocuments(root: string, repo = "vllm-project/vllm-ascend")
       const clean = sanitizeRawInput(r.text);
       return clean.blocked ? [] : [{ ...r, title: sanitizeRawInput(r.title).text, text: clean.text }];
     });
+  if (corpusDocumentsCache.size >= CORPUS_CACHE_LIMIT && !corpusDocumentsCache.has(key)) {
+    const oldest = corpusDocumentsCache.keys().next().value;
+    if (oldest !== undefined) corpusDocumentsCache.delete(oldest);
+  }
+  corpusDocumentsCache.set(key, { stamp, docs });
+  return docs.map((doc) => ({ ...doc }));
 }
 export function traceIssue(records: CorpusRecord[], number: number, localRepo: string) {
   const issue = records.find((r) => r.number === number && r.kind === "issue");

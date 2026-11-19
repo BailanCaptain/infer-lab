@@ -1,14 +1,27 @@
 import { MessageSquare, RefreshCw, X } from "lucide-react";
-import { type KeyboardEvent, type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  lazy,
+  type RefObject,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { createEvidenceViewController } from "../../content/wiki/evidence-schema";
 import { wikiRequest } from "./api";
-import { ChatPane, type ChatState, useChat } from "./ChatDrawer";
-import { DropPane } from "./DropPane";
-import { EvidencePane, type EvidenceViewController } from "./EvidencePane";
+import { type ChatState, useChat } from "./chat-controller";
+import type { EvidenceViewController } from "./EvidencePane";
 import { ReaderResizeHandle } from "./ReaderResizeHandle";
-import { ReviewPane, type ReviewSummary } from "./ReviewPane";
-import { StatusPane } from "./StatusPane";
+import type { ReviewSummary } from "./ReviewPane";
 import { tabIndexAfterKey } from "./tablist";
+
+const ChatPane = lazy(async () => ({ default: (await import("./ChatDrawer")).ChatPane }));
+const EvidencePane = lazy(async () => ({ default: (await import("./EvidencePane")).EvidencePane }));
+const DropPane = lazy(async () => ({ default: (await import("./DropPane")).DropPane }));
+const ReviewPane = lazy(async () => ({ default: (await import("./ReviewPane")).ReviewPane }));
+const StatusPane = lazy(async () => ({ default: (await import("./StatusPane")).StatusPane }));
 
 export type WikiPanelTab = "chat" | "evidence" | "drop" | "review" | "status";
 const TABS: { id: WikiPanelTab; label: string }[] = [
@@ -71,6 +84,16 @@ function WikiPanelView({
   const controlled = layout !== undefined;
   const open = controlled ? layout !== "closed" : uncontrolledOpen;
   const tab = controlled && layout !== "closed" ? layout : lastTab;
+  const [openedTabs, setOpenedTabs] = useState<ReadonlySet<WikiPanelTab>>(() =>
+    open ? new Set([tab]) : new Set(),
+  );
+  if (!open && openedTabs.size > 0) {
+    setOpenedTabs(new Set());
+  } else if (open && !openedTabs.has(tab)) {
+    const next = new Set(openedTabs);
+    next.add(tab);
+    setOpenedTabs(next);
+  }
   const [reviews, setReviews] = useState<ReviewSummary[]>([]);
   const [listError, setListError] = useState("");
   const [selected, setSelected] = useState<string>();
@@ -245,34 +268,64 @@ function WikiPanelView({
         </button>
       </div>
 
-      <ChatPane
-        id={panelIdOf("chat")}
-        chat={chat}
-        currentId={currentId}
-        hidden={tab !== "chat"}
-        onReview={openReview}
-      />
-      <EvidencePane id={panelIdOf("evidence")} hidden={tab !== "evidence"} controller={activeEvidence} />
-      <DropPane id={panelIdOf("drop")} hidden={tab !== "drop"} onReview={openReview} />
-      <ReviewPane
-        id={panelIdOf("review")}
-        hidden={tab !== "review"}
-        reviews={reviews}
-        listError={listError}
-        selected={selected}
-        onSelect={setSelected}
-        onChanged={(r) => setReviews((items) => items.map((x) => (x.id === r.id ? { ...x, ...r } : x)))}
-        onPublished={async () => {
-          // false means a newer refresh superseded this one; actual read failures reject.
-          // Reload the list too: a batch publishes its parent receipt as well as its children.
-          await Promise.all([onRefresh(), loadReviews()]);
-        }}
-      />
-      <StatusPane
-        id={panelIdOf("status")}
-        hidden={tab !== "status"}
-        onOpenReview={() => openPanel("review")}
-      />
+      {openedTabs.has("chat") ? (
+        <Suspense fallback={<div id={panelIdOf("chat")} role="tabpanel" hidden={tab !== "chat"} />}>
+          <ChatPane
+            id={panelIdOf("chat")}
+            chat={chat}
+            currentId={currentId}
+            hidden={tab !== "chat"}
+            onReview={openReview}
+          />
+        </Suspense>
+      ) : (
+        <div id={panelIdOf("chat")} role="tabpanel" hidden />
+      )}
+      {openedTabs.has("evidence") ? (
+        <Suspense fallback={<div id={panelIdOf("evidence")} role="tabpanel" hidden={tab !== "evidence"} />}>
+          <EvidencePane id={panelIdOf("evidence")} hidden={tab !== "evidence"} controller={activeEvidence} />
+        </Suspense>
+      ) : (
+        <div id={panelIdOf("evidence")} role="tabpanel" hidden />
+      )}
+      {openedTabs.has("drop") ? (
+        <Suspense fallback={<div id={panelIdOf("drop")} role="tabpanel" hidden={tab !== "drop"} />}>
+          <DropPane id={panelIdOf("drop")} hidden={tab !== "drop"} onReview={openReview} />
+        </Suspense>
+      ) : (
+        <div id={panelIdOf("drop")} role="tabpanel" hidden />
+      )}
+      {openedTabs.has("review") ? (
+        <Suspense fallback={<div id={panelIdOf("review")} role="tabpanel" hidden={tab !== "review"} />}>
+          <ReviewPane
+            id={panelIdOf("review")}
+            hidden={tab !== "review"}
+            reviews={reviews}
+            listError={listError}
+            selected={selected}
+            onSelect={setSelected}
+            onChanged={(r) => setReviews((items) => items.map((x) => (x.id === r.id ? { ...x, ...r } : x)))}
+            onPublished={async () => {
+              // false means a newer refresh superseded this one; actual read failures reject.
+              // Reload the list too: a batch publishes its parent receipt as well as its children.
+              await Promise.all([onRefresh(), loadReviews()]);
+            }}
+          />
+        </Suspense>
+      ) : (
+        <div id={panelIdOf("review")} role="tabpanel" hidden />
+      )}
+      {openedTabs.has("status") ? (
+        <Suspense fallback={<div id={panelIdOf("status")} role="tabpanel" hidden={tab !== "status"} />}>
+          <StatusPane
+            id={panelIdOf("status")}
+            hidden={tab !== "status"}
+            onOpenReview={() => openPanel("review")}
+          />
+        </Suspense>
+      ) : (
+        <div id={panelIdOf("status")} role="tabpanel" hidden />
+      )}
     </aside>
   );
 }

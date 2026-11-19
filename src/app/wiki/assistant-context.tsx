@@ -12,7 +12,7 @@ import {
 } from "react";
 import { getReaderState, refreshReaderSnapshot } from "../../content/wiki/index";
 import { requestReaderSnapshot } from "./api";
-import { type ChatState, useChat } from "./ChatDrawer";
+import { type ChatState, useChat } from "./chat-controller";
 import type { EvidenceViewController } from "./EvidencePane";
 import type { WikiPanelTab } from "./WikiPanel";
 

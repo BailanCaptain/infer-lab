@@ -780,6 +780,7 @@ export const Article = memo(function Article({
               {children}
             </WikiContentLink>
           ),
+          img: ({ node: _node, alt = "", ...props }) => <img alt={alt} decoding="async" {...props} />,
         }}
       >
         {compiled ? "" : body}

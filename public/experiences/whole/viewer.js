@@ -1002,7 +1002,7 @@ camera.position.set(24.5,21.5,35.5);
 controls.target.set(0,9.2,0);
 
 const loader=new GLTFLoader(),pendingTemplates=new Map();
-let modelLoadSeq=0;
+let modelLoadSeq=0,hasLoadedOnce=false;
 const retryLoad=document.createElement('button');
 retryLoad.textContent='重试加载';
 retryLoad.hidden=true;
@@ -1030,22 +1030,31 @@ async function loadModel(nextKey){
  if(!MODELS[nextKey])return;
  if(ready&&nextKey===currentModel)return;
  const request=++modelLoadSeq;
+ const loadingEl=$('#loading');
+ const cached=Boolean(templates.cabinet&&templates[nextKey]);
  ready=false;
- $('#loading').hidden=false;
- $('#loading b').textContent='正在载入硬件';
- $('#loading span').textContent=MODELS[nextKey].name;
- retryLoad.hidden=true;
+ if(!cached){
+  loadingEl.dataset.mode=hasLoadedOnce?'switching':'initial';
+  loadingEl.hidden=false;
+  $('#loading b').textContent=hasLoadedOnce?'正在切换硬件':'正在载入硬件';
+  $('#loading span').textContent=MODELS[nextKey].name;
+  retryLoad.hidden=true;
+ }
  try{
-  await Promise.all([loadTemplate('cabinet'),loadTemplate(nextKey)]);
+  if(!cached)await Promise.all([loadTemplate('cabinet'),loadTemplate(nextKey)]);
   if(request!==modelLoadSeq)return;
   currentModel=nextKey;
   if(MODELS[nextKey].vendor==='ascend')lastAscendModel=nextKey;
   platform=MODELS[nextKey].vendor;
   rebuild();
   ready=true;
-  $('#loading').hidden=true;
+  hasLoadedOnce=true;
+  delete loadingEl.dataset.mode;
+  loadingEl.hidden=true;
  }catch(error){
   if(request!==modelLoadSeq)return;
+  loadingEl.dataset.mode='error';
+  loadingEl.hidden=false;
   $('#loading b').textContent='模型载入失败';
   $('#loading span').textContent=error.message;
   retryLoad.hidden=false;

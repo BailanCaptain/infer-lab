@@ -636,15 +636,147 @@
   color: white;
 }
 .experience-viewport {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--color-reader-sidebar, #f4f5f1);
 }
-.experience-frame {
+.experience-model .experience-viewport {
+  background-color: #f6f7f4;
+  background-image: radial-gradient(rgba(40, 97, 81, 0.065) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.experience-hardware .experience-viewport {
+  background: var(--color-reader-sidebar, #f4f5f1);
+}
+.experience-frame,
+.experience-frame-outgoing {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
+}
+.experience-frame-outgoing {
+  z-index: 1;
+  pointer-events: none;
+  opacity: 1;
+  filter: saturate(0.9);
+  transition: filter 0.16s ease;
+}
+.experience-frame {
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.experience-frame[data-ready="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+.experience-loading-veil,
+.experience-transition-bar {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.experience-loading-veil {
+  display: grid;
+  place-items: center;
+}
+.experience-transition-bar {
+  background: rgba(246, 247, 244, 0.1);
+}
+.experience-hardware .experience-transition-bar {
+  background: rgba(244, 245, 241, 0.12);
+}
+.experience-switch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border: 1px solid rgba(40, 97, 81, 0.18);
+  border-radius: 999px;
+  background: var(--color-reader-active, #e6eee7);
+  color: var(--color-reader-accent, #286151);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.experience-progress-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  overflow: hidden;
+  background: rgba(40, 97, 81, 0.12);
+}
+.experience-progress-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -35%;
+  width: 38%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--color-reader-accent, #286151), transparent);
+  animation: experience-progress-slide 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.experience-loading-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid rgba(40, 97, 81, 0.18);
+  border-radius: 999px;
+  background: rgba(252, 252, 250, 0.94);
+  box-shadow: 0 6px 20px rgba(21, 30, 28, 0.08);
+  color: #24332d;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(8px);
+}
+.experience-loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-reader-accent, #286151);
+  animation: experience-dot-pulse 1s ease-in-out infinite;
+}
+@keyframes experience-progress-slide {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(360%);
+  }
+}
+@keyframes experience-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .experience-frame,
+  .experience-frame-outgoing {
+    transition: none;
+  }
+  .experience-progress-fill,
+  .experience-loading-dot {
+    animation: none;
+  }
 }
 @media (max-width: 1250px) {
   .lesson-layout {

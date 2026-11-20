@@ -23,10 +23,8 @@
   margin: 0;
   text-decoration: none;
 }
-.reader-experience .experience-viewport {
-  background: var(--color-reader-sidebar);
-}
-.reader-experience .experience-model .experience-frame {
+.reader-experience .experience-model .experience-frame,
+.reader-experience .experience-model .experience-frame-outgoing {
   min-width: 0;
 }
 @media (max-width: 640px) {

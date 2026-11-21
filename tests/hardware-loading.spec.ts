@@ -79,3 +79,59 @@ test("昇腾四款机型按需懒加载，并支持从机柜连续深入到第�
   await expect(hardware.locator("#title")).toContainText("昇腾 950DT 白皮书 UMA 封装示意");
   await expect(hardware.locator("#callouts .callout-tag")).toHaveCount(4);
 });
+
+test("NVIDIA 四机型谱系按需加载并支持五层封装晶粒透视与平台记忆", async ({ page }) => {
+  const models: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().endsWith(".glb")) models.push(request.url().split("/").at(-1)!);
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/#/hardware?vendor=nvidia");
+  const hardware = page.frameLocator(".experience-frame");
+  await expect(hardware.locator("#loading")).toBeHidden();
+  await expect(hardware.locator("body")).toHaveAttribute("data-platform", "nvidia");
+  await expect(hardware.locator("body")).toHaveAttribute("data-model", "dgx-h100");
+  await expect(hardware.locator("#modelpicker")).toBeVisible();
+  await expect(hardware.locator("#modelgrid button")).toHaveCount(4);
+  expect(models.sort()).toEqual(["cabinet-42u.glb", "dgx-h100.glb"]);
+
+  await hardware.locator('[data-model-key="dgx-b200"]').click();
+  await expect(hardware.locator("#loading")).toBeHidden();
+  await expect(hardware.locator("body")).toHaveAttribute("data-model", "dgx-b200");
+  await expect(hardware.locator("#title")).toHaveText("NVIDIA DGX B200");
+  await expect(hardware.locator('#wikilinks a[href="/#/wiki/tensor-parallel"]')).toBeVisible();
+  await hardware.locator('[data-level="1"]').click();
+  await expect(hardware.locator("#facts")).toContainText("2 × NVLink 5 NVSwitch");
+  expect(models).toContain("dgx-b200.glb");
+
+  await hardware.locator('[data-model-key="gb200-nvl72"]').click();
+  await expect(hardware.locator("#loading")).toBeHidden();
+  await expect(hardware.locator("body")).toHaveAttribute("data-model", "gb200-nvl72");
+  await expect(hardware.locator("#title")).toHaveText("NVIDIA GB200 NVL72 计算托盘");
+  await expect(hardware.locator('#wikilinks a[href="/#/wiki/expert-parallel"]')).toBeVisible();
+  await hardware.locator('[data-level="2"]').click();
+  await expect(hardware.locator("#facts")).toContainText("CPU/GPU 液冷 · 网卡/存储风冷");
+  await expect(hardware.locator("#components")).toContainText("1U 外围辅助风冷风扇排");
+  await hardware.locator("#spread").fill("1");
+  await page.screenshot({
+    path: "tools/wiki-runtime/perf-and-visual-audit-20261122/spread100-gb200-nvl72.png",
+  });
+  expect(models).toContain("gb200-nvl72.glb");
+
+  await hardware.locator('[data-model-key="h100-nvl-pcie"]').click();
+  await expect(hardware.locator("#loading")).toBeHidden();
+  await expect(hardware.locator("body")).toHaveAttribute("data-model", "h100-nvl-pcie");
+  await expect(hardware.locator("#status")).toContainText("H100 NVL PCIe");
+  await expect(hardware.locator('#wikilinks a[href="/#/wiki/pipeline-parallel"]')).toBeVisible();
+  expect(models).toContain("h100-nvl-pcie.glb");
+
+  // Enter Level 4 (封装晶粒) on H100 NVL PCIe and verify 4 callout tags + real Wiki jump
+  await hardware.locator('[data-level="4"]').click();
+  await expect(hardware.locator("body")).toHaveAttribute("data-level", "4");
+  await expect(hardware.locator("#title")).toContainText("H100 NVL PCIe");
+  await expect(hardware.locator("#callouts .callout-tag")).toHaveCount(4);
+
+  await hardware.locator('#wikilinks a[href="/#/wiki/pipeline-parallel"]').click();
+  await expect(page).toHaveURL(/#\/wiki\/pipeline-parallel$/);
+  await expect(page.locator("article h1, main h1").first()).toContainText("流水线并行");
+});

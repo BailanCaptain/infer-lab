@@ -1,4 +1,4 @@
-"""Builds all 6 high-detail hardware .glb models into public/experiences/whole/assets/."""
+"""Builds all 9 high-detail hardware .glb models into public/experiences/whole/assets/."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import json
 import math
 import pathlib
 import struct
-from typing import Dict, List, Sequence
+from typing import Dict, List, Optional, Sequence
 import numpy as np
 
 from glb_core import (
@@ -30,12 +30,15 @@ from glb_core import (
     export_glb,
 )
 from parts_lib import (
+    add_osfp_bank,
     add_qsfp_bank,
     build_drive_bay,
+    build_grace_superchip_cpu,
     build_host_board,
     build_oam_module,
     build_open_fan_wall,
     build_pcie_300i_duo_card,
+    build_pcie_h100_nvl_card,
     build_psu_bank,
 )
 
@@ -116,6 +119,42 @@ def _add_chassis_shell(
         root.add_chamfer_box(M_CHARCOAL, -1.45, height * 0.84, fz + 0.052, 1.15, 0.22, 0.024, bevel=0.006)
         root.add_text(M_CHAMPAGNE, "DGX H100", -1.45, height * 0.84, fz + 0.064, height=0.095, thickness=0.008, plane="xy")
         root.add_box(M_MOSS, 1.92, height * 0.84, fz + 0.046, 0.14, 0.055, 0.014)
+    elif front_style == "dgx_b200_10u":
+        # Tall 10U DGX B200 three-tier champagne-gold geometric honeycomb fascia
+        root.add_chamfer_box(M_CHARCOAL, 0.0, height * 0.51, fz - 0.03, width - 0.22, height * 0.94, 0.08, bevel=0.014)
+        for zy, zh in ((height * 0.77, height * 0.34), (height * 0.36, height * 0.34)):
+            root.add_chamfer_box(M_CHAMPAGNE, 0.0, zy, fz + 0.022, width - 0.30, zh, 0.026, bevel=0.010)
+            pts = [
+                [x + (0.11 if r % 2 else 0.0), y, fz + 0.041]
+                for r, y in enumerate(np.linspace(zy - zh * 0.36, zy + zh * 0.36, 5))
+                for x in np.linspace(-hw + 0.44, hw - 0.44, 15)
+            ]
+            root.add_boxes_grid(M_RECESS, np.asarray(pts, dtype=np.float32), 0.175, 0.135, 0.010)
+        mid_y = height * 0.565
+        root.add_chamfer_box(M_CHARCOAL, 0.0, mid_y, fz + 0.032, width - 0.28, 0.30, 0.042, bevel=0.008)
+        root.add_box(M_MOSS, 0.0, mid_y + 0.125, fz + 0.059, width - 0.36, 0.024, 0.012)
+        root.add_text(M_CHAMPAGNE, "NVIDIA DGX B200", -0.88, mid_y, fz + 0.053, height=0.102, thickness=0.008, plane="xy")
+        root.add_text(M_CREAM, "BLACKWELL NVLINK 5", 1.18, mid_y, fz + 0.053, height=0.066, thickness=0.008, plane="xy")
+    elif front_style == "gb200_1u":
+        # Ultra-dense 1U GB200 NVL72 Compute Tray header strip (leaves lower/side front open for QDCs, OSFP & E1.S)
+        root.add_chamfer_box(M_CHARCOAL, 0.0, height * 0.80, fz + 0.012, width - 0.24, 0.16, 0.055, bevel=0.006)
+        root.add_box(M_CHAMPAGNE, 0.0, height * 0.90, fz + 0.046, width - 0.32, 0.020, 0.012)
+        root.add_text(M_CHAMPAGNE, "GB200 NVL72 TRAY", -1.12, height * 0.77, fz + 0.040, height=0.058, thickness=0.007, plane="xy")
+        root.add_text(M_CREAM, "2X GRACE + 4X B200 DLC", 1.05, height * 0.77, fz + 0.040, height=0.050, thickness=0.007, plane="xy")
+    elif front_style == "nvidia_4u_pcie":
+        # Enterprise 4U NVIDIA-certified H100 NVL PCIe inference server bezel
+        root.add_chamfer_box(M_CHARCOAL, 0.0, height * 0.63, fz - 0.02, width - 0.24, height * 0.60, 0.07, bevel=0.012)
+        root.add_chamfer_box(M_SILVER, 0.0, height * 0.61, fz + 0.025, width - 0.34, height * 0.44, 0.022, bevel=0.008)
+        pts = [
+            [x, y, fz + 0.042]
+            for y in np.linspace(height * 0.45, height * 0.77, 4)
+            for x in np.linspace(-hw + 0.40, hw - 0.40, 15)
+            if not (x < -0.42 and abs(y - height * 0.62) < 0.16)
+        ]
+        root.add_boxes_grid(M_RECESS, np.asarray(pts, dtype=np.float32), 0.18, 0.090, 0.010)
+        root.add_box(M_CHAMPAGNE, 0.0, height * 0.90, fz + 0.024, width - 0.32, 0.030, 0.016)
+        root.add_chamfer_box(M_CHARCOAL, -1.20, height * 0.62, fz + 0.048, 1.56, 0.22, 0.024, bevel=0.006)
+        root.add_text(M_CHAMPAGNE, "H100 NVL PCIE", -1.20, height * 0.62, fz + 0.060, height=0.082, thickness=0.008, plane="xy")
     elif front_style == "atlas_10u":
         # Tall 10U Atlas 800I A3 Supernode fascia: upper LAAC condenser intake + middle telemetry bar + lower accelerator intake
         root.add_chamfer_box(M_CHARCOAL, 0.0, height * 0.50, fz - 0.03, width - 0.22, height * 0.94, 0.08, bevel=0.014)
@@ -1092,12 +1131,38 @@ def build_dgx_h100() -> Dict:
     for ni, nx in enumerate((-1.38, -0.46, 0.46, 1.38)):
         nvs.add_chamfer_box(M_SUBSTRATE, nx, 0.052, 0.0, 0.56, 0.026, 0.52, bevel=0.006)
         nvs.add_chamfer_box(M_SILICON, nx, 0.078, 0.0, 0.28, 0.026, 0.26, bevel=0.004)
-        # Low-profile copper + satin finned NVSwitch cooler
+        # Low-profile copper + dual-heatpipe satin finned NVSwitch Gen3 cooler
         nvs.add_chamfer_box(M_COPPER, nx, 0.105, 0.0, 0.62, 0.024, 0.58, bevel=0.006)
+        for hp_x in (-0.16, 0.16):
+            nvs.add_tube(
+                M_COPPER,
+                [(nx + hp_x, 0.112, -0.26), (nx + hp_x, 0.22, -0.29), (nx + hp_x, 0.22, 0.29), (nx + hp_x, 0.112, 0.26)],
+                radius=0.014,
+                segs=8,
+            )
         fins = np.array([[nx + x, 0.207, 0.0] for x in np.linspace(-0.29, 0.29, 14)], dtype=np.float32)
         nvs.add_boxes_grid(M_SILVER, fins, 0.011, 0.18, 0.58)
         nvs.add_chamfer_box(M_CHAMPAGNE, nx, 0.308, 0.0, 0.58, 0.022, 0.22, bevel=0.005)
         nvs.add_text(M_CHARCOAL, f"NVS{ni + 1}", nx, 0.319, 0.0, height=0.048, thickness=0.008, plane="xz")
+
+    # Laminated 54V DC Copper Busbar Shelf bridging rear PSUs to Delta GPU Tray (kind='bus')
+    bus = root.child(
+        "DGX_H100_busbar",
+        translation=[0.0, 0.88, -2.85],
+        extras={
+            "kind": "bus",
+            "label": "54V 层叠紫铜供电母排",
+            "explodeZ": 1.72,
+            "explodeY": 0.95,
+            "description": "连接后部 6 颗 3.3 kW 电源与前仓 GPU 托盘的 54V 大电流层叠紫铜汇流母排与绝缘夹具。",
+            "source": src,
+        },
+    )
+    bus.add_chamfer_box(M_CHARCOAL, 0.0, 0.016, 0.0, 3.62, 0.032, 0.38, bevel=0.006)
+    for bi, bz_off in enumerate((-0.09, 0.09)):
+        bus.add_chamfer_box(M_COPPER if bi == 0 else M_BRASS, 0.0, 0.052, bz_off, 3.48, 0.026, 0.095, bevel=0.004)
+    for sx in (-1.35, -0.45, 0.45, 1.35):
+        bus.add_chamfer_box(M_IVORY, sx, 0.076, 0.0, 0.12, 0.018, 0.30, bevel=0.004)
 
     # 8x U.2 NVMe Cache Drives in lower front bay
     build_drive_bay(
@@ -1111,7 +1176,7 @@ def build_dgx_h100() -> Dict:
         desc="8 个前部热插拔 U.2 NVMe 数据缓存盘位与背板。",
         accent_mat=M_CHAMPAGNE,
         explode_z=0.10,
-        explode_y=-2.80,
+        explode_y=-3.20,
     )
 
     # 12x Dual-Stage Hot-Swap Fans in Open-Lattice Cage (4 columns x 3 rows)
@@ -1132,7 +1197,7 @@ def build_dgx_h100() -> Dict:
         desc="12 个高风量热插拔风扇模组（4×3 镂空阵列），分别覆盖 GPU 托盘仓与下部主机/网络仓。",
         top_latch_mat=M_CHAMPAGNE,
         explode_z=0.65,
-        explode_y=-2.25,
+        explode_y=-2.55,
     )
 
     # Upper/Rear Dual-Socket Xeon + 32 DDR5 Host Tray
@@ -1163,7 +1228,7 @@ def build_dgx_h100() -> Dict:
         },
     )
     net.add_chamfer_box(M_PCB, 0.0, 0.0, 0.14, 3.88, 0.048, 0.68, bevel=0.008)
-    add_qsfp_bank(net, np.linspace(-1.58, 1.58, 8), [0.12], z_face=-0.66, port_w=0.28, port_h=0.13, depth=0.38, tab_mat=M_CHAMPAGNE)
+    add_osfp_bank(net, np.linspace(-1.58, 1.58, 8), [0.14], z_face=-0.66, port_w=0.28, port_h=0.13, depth=0.38, tab_mat=M_CHAMPAGNE)
     for cx in (-1.2, -0.4, 0.4, 1.2):
         net.add_chamfer_box(M_SILVER, cx, 0.068, 0.18, 0.34, 0.075, 0.28, bevel=0.006)
 
@@ -1177,13 +1242,387 @@ def build_dgx_h100() -> Dict:
         psu_h=0.48,
         psu_d=0.96,
         source=src,
-        desc="6 个 3.3 kW 热插拔钛金电源模块，通过母排向 GPU 托盘与主机仓供电。",
+        desc="6 个 3.3 kW 热插拔钛金电源模块，通过 54V 层叠母排向 GPU 托盘与主机仓供电。",
         latch_mat=M_MOSS,
         explode_z=0.25,
         explode_y=2.05,
     )
 
     return export_glb(root, ASSETS_DIR / "dgx-h100.glb")
+
+
+def build_dgx_b200() -> Dict:
+    """Builds NEW 10U NVIDIA DGX B200 with 8x B200 dual-reticle SXM, 2x 5th-Gen NVSwitch, 8x OSFP, 2x Xeon 8570, 15 fans, 6 PSUs."""
+    src = "https://docs.nvidia.com/dgx/dgxb200-user-guide/introduction-to-dgxb200.html"
+    root = NodeBuilder(
+        "DGX_B200",
+        extras={
+            "label": "NVIDIA DGX B200",
+            "scope": "whole exterior / stylized",
+            "source": src,
+            "platform": "nvidia",
+            "cpuCount": 2,
+            "dimmCount": 32,
+            "acceleratorCount": 8,
+            "nvswitchCount": 2,
+            "fanCount": 15,
+            "psuCount": 6,
+            "driveCount": 8,
+        },
+    )
+    _add_chassis_shell(root, "DGX_B200", width=4.81, height=4.42, depth=9.20, lid_label_text="NVIDIA DGX B200 10U", accent_mat=M_CHAMPAGNE, front_style="dgx_b200_10u")
+
+    board = root.child(
+        "DGX_B200_accelerator_board",
+        translation=[0.0, 0.24, 0.92],
+        extras={
+            "kind": "board",
+            "label": "Blackwell GPU 基板托盘",
+            "explodeZ": 0.72,
+            "explodeY": 0,
+            "description": "DGX B200 高功率 GPU 托盘：承载 8 颗 B200 双光罩模组（整机 1,440 GB HBM3e），单卡 NVLink 5 双向带宽 1.8 TB/s。",
+            "source": src,
+        },
+    )
+    board.add_chamfer_box(M_PCB, 0.0, 0.025, 0.0, 4.18, 0.068, 3.92, bevel=0.014)
+    for tx in (-1.5, -0.5, 0.5, 1.5):
+        board.add_box(M_CHAMPAGNE, tx, 0.063, 0.0, 0.072, 0.008, 3.56)
+
+    for i, (gx, gz) in enumerate([(-1.5, 0.98), (-0.5, 0.98), (0.5, 0.98), (1.5, 0.98), (-1.5, -0.98), (-0.5, -0.98), (0.5, -0.98), (1.5, -0.98)]):
+        build_oam_module(
+            board,
+            f"DGX_B200_gpu{i}",
+            "gpu",
+            f"B200 GPU 模组 {i + 1}",
+            gx,
+            0.092,
+            gz,
+            variant="b200_sxm",
+            desc="NVIDIA Blackwell B200 模组（180 GB HBM3e，8 TB/s）：采用 CoWoS-L 双光罩计算晶粒 + 10 TB/s NV-HBI 片间桥接与 8 颗 HBM3e 堆栈。",
+            source=src,
+            idx_1based=i + 1,
+        )
+
+    # 2x NVLink 5 Switch Modules (NVSwitch) delivering 14.4 TB/s aggregate NVLink 5 bandwidth
+    nvs = root.child(
+        "DGX_B200_nvswitch",
+        translation=[0.0, 0.28, -1.55],
+        extras={
+            "kind": "nvswitch",
+            "label": "NVLink 5 交换芯片模组（NVSwitch）×2",
+            "explodeZ": 1.35,
+            "explodeY": 0.55,
+            "description": "2 颗 NVLink 5 交换芯片（NVSwitch）模组，支撑整机 8 颗 B200 达成 14.4 TB/s 全互连聚合带宽。",
+            "source": src,
+        },
+    )
+    nvs.add_chamfer_box(M_PCB, 0.0, 0.020, 0.0, 3.86, 0.044, 0.84, bevel=0.008)
+    for ni, nx in enumerate((-0.95, 0.95)):
+        nvs.add_chamfer_box(M_SUBSTRATE, nx, 0.056, 0.0, 0.88, 0.028, 0.62, bevel=0.006)
+        nvs.add_chamfer_box(M_SILICON, nx, 0.084, 0.0, 0.46, 0.026, 0.34, bevel=0.004)
+        nvs.add_chamfer_box(M_COPPER, nx, 0.114, 0.0, 0.96, 0.026, 0.66, bevel=0.006)
+        fins = np.array([[nx + x, 0.232, 0.0] for x in np.linspace(-0.45, 0.45, 20)], dtype=np.float32)
+        nvs.add_boxes_grid(M_SILVER, fins, 0.012, 0.21, 0.64)
+        nvs.add_chamfer_box(M_CHAMPAGNE, nx, 0.348, 0.0, 0.86, 0.022, 0.28, bevel=0.005)
+        nvs.add_text(M_CHARCOAL, f"NVLINK5 SW {ni + 1}", nx, 0.359, 0.0, height=0.046, thickness=0.008, plane="xz")
+
+    bus = root.child(
+        "DGX_B200_busbar",
+        translation=[0.0, 0.98, -2.85],
+        extras={"kind": "bus", "label": "54V 高功率供电母排", "explodeZ": 1.85, "explodeY": 0.95, "description": "承载千瓦级 B200 模组瞬态负载的 54V 层叠紫铜供电汇流排。", "source": src},
+    )
+    bus.add_chamfer_box(M_CHARCOAL, 0.0, 0.016, 0.0, 3.68, 0.032, 0.40, bevel=0.006)
+    for bi, bz_off in enumerate((-0.095, 0.095)):
+        bus.add_chamfer_box(M_COPPER if bi == 0 else M_BRASS, 0.0, 0.052, bz_off, 3.54, 0.028, 0.10, bevel=0.004)
+
+    build_drive_bay(root, "DGX_B200", [0.0, 0.20, 4.10], count=8, total_w=3.68, caddy_h=0.24, source=src, desc="前部 8 个热插拔 U.2 / E.3 NVMe 高速缓存盘位。", accent_mat=M_CHAMPAGNE, explode_z=0.08, explode_y=-3.20)
+    build_open_fan_wall(
+        root,
+        "DGX_B200_fans",
+        "三层镂空风扇墙",
+        [0.0, 0.38, 3.52],
+        col_xs=[float(x) for x in np.linspace(-1.48, 1.48, 5)],
+        row_ys=(0.98, 1.90, 2.82),
+        cage_w=3.96,
+        cage_y0=0.46,
+        cage_h=2.88,
+        cage_d=0.48,
+        rotor_size=0.66,
+        rotor_depth=0.42,
+        source=src,
+        desc="15 个热插拔对旋风扇模组（5×3 镂空阵列），为 10U 风冷 B200 散热塔与双路 Xeon 仓提供贯穿高风压。",
+        top_latch_mat=M_CHAMPAGNE,
+        lower_latch_mat=M_MOSS,
+        explode_z=0.55,
+        explode_y=-2.55,
+    )
+    build_host_board(root, "DGX_B200", [0.0, 2.25, -2.05], cpu_count=2, source=src, cpu_tag="XEON 8570", cpu_desc="2 颗 Intel Xeon Platinum 8570 处理器与 32 条 DDR5 主机内存。", ddr5=True, explode_z=2.95, explode_y=1.35)
+
+    net = root.child(
+        "DGX_B200_network",
+        translation=[0.0, 1.28, -3.82],
+        extras={"kind": "network", "label": "ConnectX-7 OSFP + BlueField-3 网络仓", "explodeZ": 1.42, "explodeY": 2.05, "description": "8 路 ConnectX-7 400Gb/s InfiniBand/以太网计算通道（OSFP 带散热齿光笼）与双 BlueField-3 DPU。", "source": src},
+    )
+    net.add_chamfer_box(M_PCB, 0.0, 0.0, 0.14, 3.90, 0.048, 0.68, bevel=0.008)
+    add_osfp_bank(net, np.linspace(-1.58, 1.58, 8), [0.14], z_face=-0.66, port_w=0.28, port_h=0.13, depth=0.38, tab_mat=M_CHAMPAGNE)
+    for cx in (-1.35, -0.45, 0.45, 1.35):
+        net.add_chamfer_box(M_COPPER, cx, 0.070, 0.18, 0.36, 0.078, 0.30, bevel=0.006)
+
+    build_psu_bank(root, "DGX_B200", [0.0, 0.16, -3.96], count=6, total_w=3.96, psu_h=0.50, psu_d=0.96, source=src, desc="6 个 3.3 kW 热插拔钛金电源模块，支撑 10U Blackwell 整机高功耗运行。", latch_mat=M_MOSS, explode_z=0.25, explode_y=2.05)
+    return export_glb(root, ASSETS_DIR / "dgx-b200.glb")
+
+
+def build_gb200_nvl72() -> Dict:
+    """Builds NEW 1U Liquid-Cooled NVIDIA GB200 NVL72 Compute Tray (2x Grace CPU + 4x B200 + NVLink-C2C + DLC + Blind-Mate NVLink 5)."""
+    src = "https://www.nvidia.com/en-us/data-center/gb200-nvl72/"
+    root = NodeBuilder(
+        "GB200_NVL72",
+        extras={
+            "label": "NVIDIA GB200 NVL72 计算托盘",
+            "scope": "whole exterior / stylized",
+            "source": src,
+            "platform": "nvidia",
+            "cpuCount": 2,
+            "dimmCount": 0,
+            "acceleratorCount": 4,
+            "fanCount": 4,
+            "psuCount": 2,
+            "driveCount": 8,
+        },
+    )
+    _add_chassis_shell(root, "GB200_NVL72", width=4.81, height=0.52, depth=8.60, lid_label_text="GB200 NVL72 1U COMPUTE TRAY", accent_mat=M_CHAMPAGNE, front_style="gb200_1u")
+
+    # Front Dual-Grace Superchip CPU & Soldered LPDDR5X Host Section + NVLink-C2C golden lanes
+    host = root.child(
+        "GB200_NVL72_host",
+        translation=[0.0, 0.085, 1.48],
+        extras={
+            "kind": "host",
+            "label": "双路 Grace CPU 与 LPDDR5X 基板",
+            "explodeZ": 0.90,
+            "explodeY": -0.55,
+            "description": "2 颗 72 核 NVIDIA Grace CPU 与板载焊装 LPDDR5X 高速内存（单托盘最高约 960 GB），经 900 GB/s NVLink-C2C 一致性互连直通后排 B200 GPU。",
+            "source": src,
+        },
+    )
+    host.add_chamfer_box(M_PCB, 0.0, 0.022, 0.0, 4.14, 0.044, 1.96, bevel=0.010)
+    for gx_i, gx_pos in enumerate((-1.02, 1.02)):
+        build_grace_superchip_cpu(host, "GB200", gx_i + 1, gx_pos, 0.046, 0.06, src)
+        # Golden 900 GB/s NVLink-C2C trace bundles heading -Z toward paired B200 GPUs
+        for off in (-0.28, -0.10, 0.10, 0.28):
+            host.add_box(M_CHAMPAGNE, gx_pos + off, 0.048, -0.68, 0.036, 0.008, 0.52)
+
+    # Rear Quad-B200 GPU Liquid-Cooled Baseboard (2x GB200 Superchip compute domains = 4x B200 GPUs)
+    board = root.child(
+        "GB200_NVL72_accelerator_board",
+        translation=[0.0, 0.085, -1.12],
+        extras={
+            "kind": "board",
+            "label": "4×B200 液冷加速载板",
+            "explodeZ": 1.75,
+            "explodeY": 0.15,
+            "description": "单台 1U 托盘集成 2 组 GB200 Superchip 共 4 颗 Blackwell B200 GPU（整柜 18 台计算托盘共 72 颗 B200），由直接芯片液冷冷板直冷。",
+            "source": src,
+        },
+    )
+    board.add_chamfer_box(M_PCB, 0.0, 0.022, 0.0, 4.16, 0.046, 2.04, bevel=0.010)
+    for tx in (-1.50, -0.50, 0.50, 1.50):
+        board.add_box(M_BRASS, tx, 0.049, -0.68, 0.068, 0.008, 0.56)
+    for i, gx in enumerate((-1.50, -0.50, 0.50, 1.50)):
+        build_oam_module(
+            board,
+            f"GB200_NVL72_gpu{i}",
+            "gpu",
+            f"B200 液冷模组 {i + 1}",
+            gx,
+            0.052,
+            0.04,
+            variant="b200_coldplate",
+            desc="GB200 NVL72 液冷 B200 GPU 模组：单颗配备 8 堆栈 HBM3e（8 TB/s），由微通道紫铜冷板直接带走热量，经背部盲插连接器汇入机柜 9 台 NVLink Switch 托盘。",
+            source=src,
+            idx_1based=i + 1,
+        )
+
+    # Direct-to-Chip Liquid Cooling Loop + Front Blind-Mate Quick-Disconnect Couplings (QDC)
+    cool = root.child(
+        "GB200_NVL72_cooling",
+        translation=[0.0, 0.28, 0.72],
+        extras={
+            "kind": "cooling",
+            "label": "DLC 液冷分液管路与免滴漏快换头",
+            "explodeZ": 2.65,
+            "explodeY": -0.45,
+            "description": "直接芯片液冷（DLC）管网：前部红/蓝免滴漏快换接头（QDC）接入机柜竖装液冷歧管，并联直冷高功耗的 2 颗 Grace CPU 与 4 颗 B200 GPU。",
+            "source": src,
+        },
+    )
+    cool.add_cylinder(M_VERMILION, 0.0, 0.08, -0.95, 0.032, 0.032, 3.56, axis="x", segs=10)
+    cool.add_cylinder(M_COOLANT, 0.0, 0.13, -0.78, 0.032, 0.032, 3.56, axis="x", segs=10)
+    cool.add_tube(M_VERMILION, [(-1.82, 0.08, 3.45), (-1.82, 0.08, -0.95)], radius=0.034, segs=10)
+    cool.add_tube(M_COOLANT, [(-1.58, 0.13, 3.45), (-1.58, 0.13, -0.78)], radius=0.034, segs=10)
+    for qx, qmat in ((-1.82, M_VERMILION), (-1.58, M_COOLANT)):
+        cool.add_cylinder(M_SILVER, qx, 0.10, 3.54, 0.048, 0.048, 0.12, axis="z", segs=12)
+        cool.add_cylinder(qmat, qx, 0.10, 3.63, 0.054, 0.054, 0.04, axis="z", segs=12)
+
+    # 1U Auxiliary Fan Row behind front NICs & E1.S NVMe drives (per DGX GB Rack Scale User Guide: NICs & storage are air-cooled!)
+    build_open_fan_wall(
+        root,
+        "GB200_NVL72_fans",
+        "1U 外围辅助风冷风扇排",
+        [0.35, 0.08, 2.92],
+        col_xs=[-1.05, -0.35, 0.35, 1.05],
+        row_ys=(0.18,),
+        cage_w=2.92,
+        cage_y0=0.0,
+        cage_h=0.36,
+        cage_d=0.34,
+        rotor_size=0.22,
+        rotor_depth=0.28,
+        source=src,
+        desc="依据 NVIDIA DGX GB 机柜用户指南，高热流密度的 Grace CPU 与 B200 GPU 由液冷冷板直冷，前仓 ConnectX-7/BlueField-3 网卡与 E1.S NVMe 存储仍由托盘内置风扇推动风道散热。",
+        top_latch_mat=M_CHAMPAGNE,
+        explode_z=1.65,
+        explode_y=-1.05,
+    )
+
+    # Front-accessible ConnectX-7 / BlueField-3 OSFP I/O Mezzanine (left-center) + 8x E1.S NVMe drives (right)
+    net = root.child(
+        "GB200_NVL72_front_net",
+        translation=[-0.42, 0.12, 3.72],
+        extras={
+            "kind": "network",
+            "label": "前置 ConnectX-7 / BlueField-3 光口",
+            "explodeZ": 0.95,
+            "explodeY": -1.55,
+            "description": "前置冷通道可维护的 4 口 400G/800G OSFP 计算网接口与双口 BlueField-3 DPU 管理/存储高速口。",
+            "source": src,
+        },
+    )
+    net.add_chamfer_box(M_PCB, 0.0, 0.02, -0.14, 1.56, 0.038, 0.56, bevel=0.006)
+    add_osfp_bank(net, [-0.54, -0.18, 0.18, 0.54], [0.11], z_face=0.46, port_w=0.25, port_h=0.11, depth=0.34, tab_mat=M_CHAMPAGNE, facing_front=True)
+
+    build_drive_bay(root, "GB200_NVL72", [1.32, 0.18, 3.92], count=8, total_w=1.52, caddy_h=0.20, source=src, desc="前置 8 个 E1.S NVMe 固态盘位，承载操作系统与本地高速快照。", accent_mat=M_CHAMPAGNE, explode_z=0.95, explode_y=-2.45)
+
+    # Rear Blind-Mate NVLink 5 Cable Cartridge Backplane (7.2 TB/s per compute tray into rack NVLink spine!)
+    nvs = root.child(
+        "GB200_NVL72_nvlink_cartridge",
+        translation=[-0.62, 0.09, -3.86],
+        extras={
+            "kind": "nvswitch",
+            "label": "NVLink 5 盲插背板卡匣",
+            "explodeZ": 0.95,
+            "explodeY": 1.55,
+            "description": "背部高密度 NVLink 5 盲插连接器阵列（单托盘聚合 7.2 TB/s），推入机柜即与背部 5,000+ 根同轴铜缆背板盲插导通，直连中置 9 台 NVLink Switch 交换托盘。",
+            "source": src,
+        },
+    )
+    nvs.add_chamfer_box(M_SILVER, 0.0, 0.13, 0.0, 2.52, 0.24, 0.52, bevel=0.008)
+    for kx in np.linspace(-1.02, 1.02, 8):
+        nvs.add_box(M_CHARCOAL, kx, 0.13, -0.268, 0.22, 0.18, 0.016)
+        nvs.add_box(M_BRASS, kx, 0.13, -0.282, 0.16, 0.12, 0.012)
+
+    build_psu_bank(root, "GB200_NVL72", [1.42, 0.09, -3.84], count=2, total_w=1.18, psu_h=0.26, psu_d=0.68, source=src, desc="背部 50V 机柜直流母排盲插供电与稳压转换模块。", latch_mat=M_MOSS, explode_z=0.95, explode_y=1.55)
+    return export_glb(root, ASSETS_DIR / "gb200-nvl72.glb")
+
+
+def build_h100_nvl_pcie() -> Dict:
+    """Builds NEW 4U NVIDIA H100 NVL PCIe Inference Node (4x Dual-Slot 94GB H100 NVL PCIe Gen5 + 2x 3-Way NVLink 4 Bridges)."""
+    src = "https://www.nvidia.com/en-us/data-center/h100/"
+    root = NodeBuilder(
+        "H100_NVL_PCIe",
+        extras={
+            "label": "NVIDIA H100 NVL PCIe 推理节点",
+            "scope": "whole exterior / stylized",
+            "source": src,
+            "platform": "nvidia",
+            "cpuCount": 2,
+            "dimmCount": 32,
+            "acceleratorCount": 4,
+            "nvswitchCount": 2,
+            "fanCount": 8,
+            "psuCount": 4,
+            "driveCount": 10,
+        },
+    )
+    _add_chassis_shell(root, "H100_NVL", width=4.81, height=1.75, depth=8.40, lid_label_text="NVIDIA H100 NVL PCIE 4U", accent_mat=M_CHAMPAGNE, front_style="nvidia_4u_pcie")
+
+    build_drive_bay(root, "H100_NVL", [0.0, 0.22, 3.82], count=10, total_w=3.86, caddy_h=0.26, source=src, desc="前部 10 个 2.5 英寸 U.2 NVMe 热插拔盘位与高速缓存背板。", accent_mat=M_CHAMPAGNE, explode_z=0.10, explode_y=-2.80)
+    build_open_fan_wall(
+        root,
+        "H100_NVL_fans",
+        "4U 对旋风扇墙",
+        [0.0, 0.26, 2.92],
+        col_xs=(-1.32, -0.44, 0.44, 1.32),
+        row_ys=(0.34, 0.94),
+        cage_w=3.74,
+        cage_y0=0.0,
+        cage_h=1.28,
+        cage_d=0.44,
+        rotor_size=0.58,
+        rotor_depth=0.38,
+        source=src,
+        desc="8 个 4U 高静压热插拔风扇模组（4×2 镂空阵列），强力吹透后仓 4 张双槽被动散热 H100 NVL PCIe 卡。",
+        top_latch_mat=M_CHAMPAGNE,
+        lower_latch_mat=M_MOSS,
+        explode_z=0.65,
+        explode_y=-2.45,
+    )
+    build_host_board(root, "H100_NVL", [0.0, 0.14, 1.02], cpu_count=2, source=src, cpu_tag="XEON GEN5", cpu_desc="2 颗 PCIe 5.0 双路处理器与 32 条 DDR5 内存，提供高吞吐 PCIe 5.0×16 根复合体通道。", ddr5=True, explode_z=2.35, explode_y=-0.15, board_z=2.32, cooler_h=0.26)
+
+    riser = root.child(
+        "H100_NVL_riser_board",
+        translation=[0.0, 0.14, -1.58],
+        extras={
+            "kind": "board",
+            "label": "PCIe 5.0 Riser 扩展模组",
+            "explodeZ": 0.85,
+            "explodeY": 0.55,
+            "description": "双组 4U PCIe 5.0×16 Riser 扩展笼，水平层叠装载 4 张双槽全高全长 H100 NVL（2 对桥接卡组，整机 376 GB HBM3）。",
+            "source": src,
+        },
+    )
+    for rx in (-1.92, 0.08):
+        riser.add_chamfer_box(M_PCB, rx, 0.52, 0.16, 0.056, 0.96, 2.02, bevel=0.006)
+        riser.add_chamfer_box(M_SILVER, rx - 0.03, 1.02, 0.16, 0.11, 0.034, 2.04, bevel=0.005)
+        for ry in (0.11, 0.71):
+            riser.add_box(M_CHARCOAL, rx + 0.056, ry, 0.04, 0.056, 0.068, 0.88)
+            riser.add_box(M_BRASS, rx + 0.090, ry, 0.04, 0.012, 0.040, 0.80)
+
+    card_slots = [(-1.24, 0.08, -0.16), (-1.24, 0.68, -0.16), (0.76, 0.08, -0.16), (0.76, 0.68, -0.16)]
+    for ci, (cx, cy, cz) in enumerate(card_slots):
+        c_node = build_pcie_h100_nvl_card(riser, f"H100_NVL_card{ci}", ci + 1, cx, cy, cz, source=src)
+        c_node.extras["explodeZ"] = 0.35 if cy < 0.40 else 0.95
+
+    # Paired 3-Slot NVLink 4 Bridge Clamps spanning each pair of H100 NVL PCIe cards (600 GB/s bidirectional per pair!)
+    br = root.child(
+        "H100_NVL_bridges",
+        translation=[0.0, 0.14, -1.58],
+        extras={
+            "kind": "nvswitch",
+            "label": "三路 NVLink 4 桥接器 ×2组",
+            "explodeZ": 3.55,
+            "explodeY": 0.55,
+            "description": "每对 H100 NVL 顶部跨接 3 组 NVLink 4 桥接夹具，在标准 PCIe 服务器内拼出 600 GB/s 双向带宽（约为 PCIe 5.0 的近 5 倍）与 188 GB 合并显存池。",
+            "source": src,
+        },
+    )
+    for pair_idx, bx in enumerate((-0.64, 1.36)):
+        br.add_chamfer_box(M_CHAMPAGNE, bx, 0.41, -0.26, 0.092, 0.70, 0.84, bevel=0.008)
+        br.add_chamfer_box(M_SILVER, bx + 0.054, 0.41, -0.26, 0.016, 0.56, 0.72, bevel=0.004)
+        for tz_tab in (-0.58, -0.26, 0.06):
+            br.add_box(M_SILVER, bx - 0.055, 0.41, tz_tab, 0.018, 0.64, 0.19)
+        br.add_text(M_CHARCOAL, f"NVLINK X3 P{pair_idx + 1}", bx + 0.062, 0.41, -0.26, height=0.040, thickness=0.007, plane="yz")
+
+    net = root.child(
+        "H100_NVL_network",
+        translation=[-1.08, 0.18, -3.72],
+        extras={"kind": "network", "label": "ConnectX-7 RoCE/IB 与管理口", "explodeZ": 1.85, "explodeY": 2.35, "description": "4 口 ConnectX-7 400G QSFP112 / OSFP 高速网卡与 OCP 3.0 带外管理接口。", "source": src},
+    )
+    net.add_chamfer_box(M_PCB, 0.0, 0.03, 0.10, 1.56, 0.042, 0.56, bevel=0.006)
+    add_qsfp_bank(net, [-0.54, -0.18, 0.18, 0.54], [0.11], z_face=-0.46, port_w=0.22, port_h=0.105, depth=0.30, tab_mat=M_CHAMPAGNE)
+
+    build_psu_bank(root, "H100_NVL", [1.08, 0.14, -3.70], count=4, total_w=1.96, psu_h=0.44, psu_d=0.90, source=src, desc="4 个 2.4 kW 热插拔钛金冗余电源模块（2+2 冗余），支撑 4 张 400W H100 NVL 满载推理。", latch_mat=M_MOSS, explode_z=0.25, explode_y=2.35)
+    return export_glb(root, ASSETS_DIR / "h100-nvl-pcie.glb")
 
 
 def verify_glb(path: pathlib.Path, expected_accel_kind: Optional[str], expected_accel_count: int) -> Dict:
@@ -1247,6 +1686,9 @@ def main() -> None:
         build_atlas_800_3000(),
         build_ascend_950dt(),
         build_dgx_h100(),
+        build_dgx_b200(),
+        build_gb200_nvl72(),
+        build_h100_nvl_pcie(),
     ]
     checks = [
         verify_glb(ASSETS_DIR / "cabinet-42u.glb", "rack", 1),
@@ -1255,6 +1697,9 @@ def main() -> None:
         verify_glb(ASSETS_DIR / "atlas-800-3000.glb", "npu", 4),
         verify_glb(ASSETS_DIR / "ascend-950dt.glb", "npu", 8),
         verify_glb(ASSETS_DIR / "dgx-h100.glb", "gpu", 8),
+        verify_glb(ASSETS_DIR / "dgx-b200.glb", "gpu", 8),
+        verify_glb(ASSETS_DIR / "gb200-nvl72.glb", "gpu", 4),
+        verify_glb(ASSETS_DIR / "h100-nvl-pcie.glb", "gpu", 4),
     ]
     sync_manifest()
     for s, c in zip(summaries, checks):

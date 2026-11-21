@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { expect, it } from "vitest";
@@ -130,7 +130,7 @@ it("三维模型直接启用精修定稿，对齐 MTP 末列输入、MLA 低秩�
   expect(kvStep.merged).not.toContain("省 64 倍显存");
 });
 
-it("全部六套硬件三维 GLB 资产登记在案，具备合法二进制头与分层语义节点", () => {
+it("全部九套硬件三维 GLB 资产登记在案，具备合法二进制头与分层语义节点", () => {
   const root = "public/experiences";
   const manifest = JSON.parse(readFileSync(join(root, "manifest.json"), "utf8")) as {
     files: { path: string; bytes: number; sha256: string }[];
@@ -142,6 +142,9 @@ it("全部六套硬件三维 GLB 资产登记在案，具备合法二进制头�
     ["whole/assets/atlas-800-3000.glb", "npu", 4],
     ["whole/assets/ascend-950dt.glb", "npu", 8],
     ["whole/assets/dgx-h100.glb", "gpu", 8],
+    ["whole/assets/dgx-b200.glb", "gpu", 8],
+    ["whole/assets/gb200-nvl72.glb", "gpu", 4],
+    ["whole/assets/h100-nvl-pcie.glb", "gpu", 4],
   ];
   for (const [relPath, accelKind, accelCount] of expected) {
     expect(
@@ -162,6 +165,12 @@ it("全部六套硬件三维 GLB 资产登记在案，具备合法二进制头�
     if (accelKind !== "rack") {
       expect(gltf.nodes.filter((n) => n.extras?.kind === "ihs").length, `${relPath} ihs`).toBe(accelCount);
     }
+    const totalPrimitives =
+      (gltf as { meshes?: { primitives: unknown[] }[] }).meshes?.reduce(
+        (sum, m) => sum + m.primitives.length,
+        0,
+      ) ?? 0;
+    expect(totalPrimitives, `${relPath} batched draw-call primitives <= 250`).toBeLessThanOrEqual(250);
   }
 });
 
@@ -202,6 +211,27 @@ it("所有整机风扇墙笼架采用镂空蜂巢框架，不以实心平板遮�
       [
         [-1.34, 0.38],
         [0.45, 1.9],
+      ],
+    ],
+    [
+      "whole/assets/dgx-b200.glb",
+      [
+        [-1.48, 0.98],
+        [0, 2.82],
+      ],
+    ],
+    [
+      "whole/assets/gb200-nvl72.glb",
+      [
+        [-1.05, 0.18],
+        [0.35, 0.18],
+      ],
+    ],
+    [
+      "whole/assets/h100-nvl-pcie.glb",
+      [
+        [-1.32, 0.34],
+        [0.44, 0.94],
       ],
     ],
   ];
@@ -267,7 +297,7 @@ it("所有整机风扇墙笼架采用镂空蜂巢框架，不以实心平板遮�
   }
 });
 
-it("六套硬件 GLB 在闭合与展开态（65% / 100%）无子部件穿模、机箱壁卡死或异材质共面闪烁", () => {
+it("九套硬件 GLB 在闭合与展开态（65% / 100%）无子部件穿模、机箱壁卡死或异材质共面闪烁", () => {
   const root = "public/experiences/whole/assets";
   const files = [
     "cabinet-42u.glb",
@@ -276,6 +306,9 @@ it("六套硬件 GLB 在闭合与展开态（65% / 100%）无子部件穿模、�
     "atlas-800-3000.glb",
     "ascend-950dt.glb",
     "dgx-h100.glb",
+    "dgx-b200.glb",
+    "gb200-nvl72.glb",
+    "h100-nvl-pcie.glb",
   ];
 
   type GltfDoc = {
@@ -538,4 +571,22 @@ it("三维矿物色盘与二维架构令牌 1:1 对齐，激活/权重保持严�
   expect(playJs).not.toContain("bNow.lesson.comp");
   expect(playJs).toContain("activeComp = outId ? B[id(s, outId)]?.comp : null;");
   expect(playJs).toContain("wName: p0.X.t.name, xName: p0.W.t.name");
+});
+
+it("全套八款硬件演示的延伸阅读 Wiki 路由均真实存在，杜绝 404 断链", () => {
+  const viewerJs = readFileSync("public/experiences/whole/viewer.js", "utf8");
+  const wikiFiles = readdirSync("wiki", { recursive: true })
+    .map((p) => String(p).replace(/\\/g, "/"))
+    .filter((p) => p.endsWith(".md") && !p.startsWith("_drafts/") && !p.startsWith("raw/"));
+  const validSlugs = new Set(wikiFiles.map((p) => p.split("/").pop()!.replace(/\.md$/, "")));
+
+  const wikiBlocks = [...viewerJs.matchAll(/wiki:\s*\[([^\n]+)\]/g)];
+  expect(wikiBlocks.length).toBe(8);
+  const missing: string[] = [];
+  for (const [, inner] of wikiBlocks) {
+    for (const [, slug] of inner!.matchAll(/\[\s*'([^']+)'\s*,/g)) {
+      if (!validSlugs.has(slug!)) missing.push(slug!);
+    }
+  }
+  expect(missing).toEqual([]);
 });

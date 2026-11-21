@@ -181,13 +181,120 @@ const MODELS={
    {title:'多相高流 VRM 供电阵',sub:'支撑 SXM5 模组最高 700 W 功耗预算',pos:[-.36,.10,.15],side:[-1,1]},
    {title:'SXM5 板间高密连接器',sub:'直通基板 4 颗第三代 NVSwitch',pos:[.25,.11,.79],side:[1,1]}
   ],
-  boundary:'8U 双仓布局、8×H100 SXM5、4×NVSwitch、Cedar-7 网络与 6 电源依据 NVIDIA DGX H100 官方用户指南；内部走线与封装晶粒为风格化教学示意。',
+  boundary:'8U 双仓布局、8×H100 SXM5、4×NVSwitch、54V 供电母排、Cedar-7 网络与 6 电源依据 NVIDIA DGX H100 官方用户指南；内部走线与封装晶粒为风格化教学示意。',
   wiki:[['hardware-devices','设备层级与互联对照'],['collective-communication','集合通信基础']],
   url:'https://docs.nvidia.com/dgx/dgxh100-user-guide/introduction-to-dgxh100.html'
+ },
+ 'dgx-b200':{
+  vendor:'nvidia',
+  file:'dgx-b200',
+  short:'DGX B200',
+  tag:'10U · 8×B200 双光罩',
+  badge:'10U 风冷 Blackwell 旗舰',
+  name:'NVIDIA DGX B200',
+  chip:'GPU',
+  moduleNav:'GPU 模组',
+  u:10,height:4.42,slots:3,cpu:2,dimm:32,fan:15,psu:6,drive:8,
+  accelSummary:'每台 8 颗 B200 SXM + 2 颗 NVLink 5 交换芯片（NVSwitch）',
+  accelNodeLabel:'B200 SXM 模组 ×8',
+  interconnectShort:'2×NVLink 5 交换芯片 · 聚合 14.4 TB/s',
+  netShort:'CX-7 + BF-3',
+  netSub:'8×400G OSFP + 双 DPU',
+  psuSub:'6×3.3kW 钛金电源',
+  dieShort:'双光罩晶粒 + NV-HBI + 8×HBM3e',
+  hasCooling:false,
+  rackFacts:[['机柜规格','42U'],['展示整机','3 台 (10U)'],['每机 GPU','8 × B200']],
+  serverFacts:[
+   ['加速模组','8 × B200 SXM'],['单卡显存','180 GB HBM3e'],['整机显存','1,440 GB HBM3e'],
+   ['机内互联','14.4 TB/s NVLink 5'],['交换芯片','2 × NVLink 5 NVSwitch'],['主机处理器','2 × Xeon 8570']
+  ],
+  dieTitle:'NVIDIA Blackwell B200 双光罩 CoWoS-L 封装示意',
+  dieDesc:'掀开 1000W 级加高 6 热管散热塔与均热顶盖，可见 CoWoS-L 中介层上并排拼接的 2 颗光罩极限计算晶粒、中央 10 TB/s NV-HBI 高密桥接缝及左右两侧共 8 颗 HBM3e 堆栈（单卡 180 GB、8 TB/s）。',
+  dieCallouts:[
+   {title:'双光罩计算晶粒 (2×Die)',sub:'共享统一缓存一致性，软件呈单一 GPU',pos:[-.04,.13,-.12],side:[-1,-1]},
+   {title:'10 TB/s NV-HBI 片间桥接',sub:'高带宽超低开销跨晶粒直连缝',pos:[.04,.13,-.02],side:[1,-1]},
+   {title:'8×HBM3e 显存堆栈',sub:'单模组 180 GB 容量 · 8 TB/s 带宽',pos:[-.17,.12,.14],side:[-1,1]},
+   {title:'NVLink 5 板间高速引出',sub:'单卡 1.8 TB/s 直通 2 颗 NVLink 5 交换芯片',pos:[.25,.11,.79],side:[1,1]}
+  ],
+  boundary:'10U 机箱规格、8×B200（1,440 GB HBM3e）、2 颗 NVLink 5 交换芯片（NVSwitch）、8×OSFP 与 6×3.3kW 电源依据 NVIDIA DGX B200 用户指南；散热塔与晶粒网格为教学示意。',
+  wiki:[['hardware-devices','设备层级与互联对照'],['low-precision-formats','FP4 / FP8 低精度格式'],['tensor-parallel','张量并行基础']],
+  url:'https://docs.nvidia.com/dgx/dgxb200-user-guide/introduction-to-dgxb200.html'
+ },
+ 'gb200-nvl72':{
+  vendor:'nvidia',
+  file:'gb200-nvl72',
+  short:'GB200 NVL72',
+  tag:'1U 液冷直冷 · 2×Grace+4×B200',
+  badge:'1U 液冷超节点计算托盘',
+  name:'NVIDIA GB200 NVL72 计算托盘',
+  chip:'GPU',
+  moduleNav:'液冷 B200',
+  u:1,height:0.52,slots:18,cpu:2,dimm:0,fan:4,psu:2,drive:8,
+  accelSummary:'单托盘 2×Grace CPU + 4×B200 液冷冷板直冷',
+  accelNodeLabel:'液冷 B200 模组 ×4',
+  interconnectShort:'NVLink-C2C + 机柜 72 卡 NVLink 5 域',
+  netShort:'前置 CX-7/BF-3',
+  netSub:'4×OSFP + E1.S ×8',
+  psuSub:'50V 母排盲插供电',
+  dieShort:'DLC 冷板 + 双光罩 B200 + 8×HBM3e',
+  hasCooling:true,
+  coolingLabel:'DLC 冷板 + 辅助风冷',
+  rackFacts:[['超节点编排','18 计算 + 9 交换'],['整柜 GPU','72 × B200'],['互联域带宽','130 TB/s NVLink']],
+  serverFacts:[
+   ['托盘规格','1U 液冷冷板 + 辅助风冷'],['计算配置','2×Grace + 4×B200'],['C2C 带宽','900 GB/s NVLink-C2C'],
+   ['单托盘盲插','7.2 TB/s NVLink 5'],['主机内存','焊装 LPDDR5X'],['散热分工','CPU/GPU 液冷 · 网卡/存储风冷']
+  ],
+  dieTitle:'GB200 液冷模组与双光罩 B200 封装示意',
+  dieDesc:'抬起 1U 超薄微通道紫铜液冷板与金属均热盖，可见内部双光罩 B200 计算晶粒、中央 10 TB/s NV-HBI 桥接缝与两侧 8 颗 HBM3e 堆栈；Grace CPU 与 B200 GPU 由直接芯片液冷冷板（DLC）吸热，前置网卡与 E1.S 存储仍由托盘内部风扇辅助风冷。',
+  dieCallouts:[
+   {title:'双光罩 B200 计算晶粒',sub:'与前仓 Grace CPU 经 900 GB/s C2C 互联',pos:[-.04,.13,-.12],side:[-1,-1]},
+   {title:'NV-HBI 跨晶粒高速缝',sub:'10 TB/s 裸片间一致性互连',pos:[.04,.13,-.02],side:[1,-1]},
+   {title:'8×HBM3e 显存堆栈',sub:'由 1U 微通道铜冷板统一覆盖导热',pos:[-.17,.12,.14],side:[-1,1]},
+   {title:'盲插 NVLink 5 引出端',sub:'汇入机柜中置 9 台 NVLink Switch 托盘',pos:[.20,.10,-.58],side:[1,1]}
+  ],
+  boundary:'18 台 1U 计算托盘（每台 2×Grace + 4×B200 液冷冷板直冷，网卡与 NVMe 存储由托盘风扇风冷）、中置 9 台 NVLink Switch 托盘、前置免滴漏快换头及背部盲插依据 NVIDIA DGX GB 机柜用户指南示意，非机房施工图。',
+  wiki:[['hardware-devices','超节点与单机边界对照'],['expert-parallel','大规模专家并行 EP'],['collective-communication','机柜级集合通信']],
+  url:'https://www.nvidia.com/en-us/data-center/gb200-nvl72/'
+ },
+ 'h100-nvl-pcie':{
+  vendor:'nvidia',
+  file:'h100-nvl-pcie',
+  short:'H100 NVL PCIe',
+  tag:'4U · 双槽 PCIe + 三桥接',
+  badge:'4U 中心推理 · 双卡桥接标卡',
+  name:'NVIDIA H100 NVL PCIe 推理节点',
+  chip:'GPU',
+  moduleNav:'PCIe 推理卡',
+  u:4,height:1.75,slots:8,cpu:2,dimm:32,fan:8,psu:4,drive:10,
+  accelSummary:'4 张双槽 94GB PCIe 卡（两对三路 NVLink 桥接）',
+  accelNodeLabel:'H100 NVL 双槽卡 ×4',
+  interconnectShort:'成对 3 槽 NVLink 4 桥接 · 600 GB/s/对',
+  netShort:'ConnectX-7 ×4',
+  netSub:'400G RoCE / IB',
+  psuSub:'4×2.4kW (2+2 冗余)',
+  dieShort:'GH100 + 全启用 6×HBM3 (94 GB)',
+  hasCooling:false,
+  rackFacts:[['机柜规格','42U'],['展示整机','8 台 (4U)'],['每机推理卡','4 张 (2 对桥接)']],
+  serverFacts:[
+   ['板卡形态','双槽全高全长 PCIe 5.0'],['单卡显存','94 GB HBM3 (6 栈全开)'],['单卡带宽','3.9 TB/s HBM3'],
+   ['双卡合池','188 GB / 对'],['桥接带宽','600 GB/s (3×NVLink 桥)'],['单卡功耗','350–400 W (12VHPWR)']
+  ],
+  dieTitle:'NVIDIA H100 NVL PCIe (94 GB 全栈 HBM3) 板卡示意',
+  dieDesc:'拆下双槽被动导流铝合金散热罩与均热盖，可见 PCIe 5.0×16 金手指、尾部 16-pin 供电座、顶部 3 组 NVLink 4 桥接金手指，以及启用全部 6 颗 HBM3 堆栈（94 GB、3.9 TB/s）的 GH100 CoWoS 封装。',
+  dieCallouts:[
+   {title:'GH100 计算晶粒 (8×GPC)',sub:'双槽 350–400W 推理调优频率与张量核',pos:[0,.12,-.10],side:[-1,-1]},
+   {title:'6×全启用 HBM3 堆栈',sub:'单卡满配 94 GB · 3.9 TB/s（双卡 188 GB）',pos:[.16,.11,-.21],side:[1,-1]},
+   {title:'顶部 3 组 NVLink 4 金手指',sub:'跨接三槽桥接器提供 600 GB/s 双向带宽',pos:[.48,.05,-.10],side:[1,1]},
+   {title:'PCIe 5.0 ×16 + 12VHPWR',sub:'兼容标准企业风冷 Riser 仓与 16-pin 供电',pos:[-.48,.05,.20],side:[-1,1]}
+  ],
+  boundary:'双槽 PCIe 5.0 形态、94 GB（6 栈 HBM3 全启用）、3.9 TB/s 显存带宽及每对 3 个 NVLink 桥接器（600 GB/s）依据 NVIDIA H100 NVL 官方规格；4U 整机为通用企业服务器承载示意。',
+  wiki:[['hardware-devices','PCIe 标卡与模组形态对照'],['pipeline-parallel','流水线并行与跨对通信']],
+  url:'https://www.nvidia.com/en-us/data-center/h100/'
  }
 };
 
 const ASCEND_KEYS=['atlas-800t-a2','atlas-800i-a3','atlas-800-3000','ascend-950dt'];
+const NVIDIA_KEYS=['dgx-h100','dgx-b200','gb200-nvl72','h100-nvl-pcie'];
 
 const scene=new THREE.Scene();
 scene.background=new THREE.Color('#dce2da');
@@ -198,14 +305,14 @@ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.autoUpdate=false;
 renderer.shadowMap.needsUpdate=true;
-renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.shadowMap.type=THREE.PCFShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.14;
 $('#stage').prepend(renderer.domElement);
 
 // Soft studio environment gives satin aluminum, copper heatpipes, brass pins and silicon dies natural specular sheen.
 const pmrem=new THREE.PMREMGenerator(renderer);
-const envRT=pmrem.fromScene(new RoomEnvironment(),0.045);
+const envRT=pmrem.fromScene(new RoomEnvironment(),0.04);
 scene.environment=envRT.texture;
 scene.environmentIntensity=0.34;
 pmrem.dispose();
@@ -276,7 +383,10 @@ if(SITE){
 const requestedVendor=entry.get('vendor')==='ascend'?'ascend':entry.get('vendor')==='nvidia'?'nvidia':(SITE?'ascend':'nvidia');
 const requestedModel=entry.get('model');
 let lastAscendModel=ASCEND_KEYS.includes(requestedModel)?requestedModel:'atlas-800t-a2';
-let currentModel=requestedVendor==='nvidia'?'dgx-h100':lastAscendModel;
+let lastNvidiaModel=NVIDIA_KEYS.includes(requestedModel)?requestedModel:'dgx-h100';
+let currentModel=ASCEND_KEYS.includes(requestedModel)||NVIDIA_KEYS.includes(requestedModel)
+ ?requestedModel
+ :(requestedVendor==='nvidia'?lastNvidiaModel:lastAscendModel);
 let platform=MODELS[currentModel].vendor;
 let level=Math.max(0,Math.min(4,Number(entry.get('level'))||0));
 let spread=.65,
@@ -308,17 +418,28 @@ document.addEventListener('visibilitychange',()=>{
  else invalidate();
 });
 
-// Populate Ascend 4-model switcher cards
+// Populate 4-model switcher cards for active platform (Ascend or NVIDIA)
 const modelGrid=$('#modelgrid');
-for(const keyName of ASCEND_KEYS){
- const m=MODELS[keyName];
- const btn=document.createElement('button');
- btn.type='button';
- btn.dataset.modelKey=keyName;
- btn.innerHTML=`<b>${m.short}</b><small>${m.tag}</small>`;
- btn.onclick=()=>loadModel(keyName);
- modelGrid.append(btn);
+let renderedGridPlatform=null;
+function renderModelGrid(vendorKey){
+ if(renderedGridPlatform===vendorKey)return;
+ renderedGridPlatform=vendorKey;
+ modelGrid.replaceChildren();
+ const keys=vendorKey==='nvidia'?NVIDIA_KEYS:ASCEND_KEYS;
+ $('#modelpickerlabel').textContent=vendorKey==='nvidia'
+  ?'NVIDIA 硬件谱系 · 选择机型对照形态与架构'
+  :'昇腾硬件谱系 · 选择机型对照形态与架构';
+ for(const keyName of keys){
+  const m=MODELS[keyName];
+  const btn=document.createElement('button');
+  btn.type='button';
+  btn.dataset.modelKey=keyName;
+  btn.innerHTML=`<b>${m.short}</b><small>${m.tag}</small>`;
+  btn.onclick=()=>loadModel(keyName);
+  modelGrid.append(btn);
+ }
 }
+renderModelGrid(platform);
 
 const doorButton=document.createElement('button');
 doorButton.id='door';
@@ -366,17 +487,21 @@ function frame(reset=true){
  if(level===1){
   target.y=p.height*.5+.2;
   if(p.u>=8)pos.multiplyScalar(1.16);
+  else if(p.u<=1)pos.multiplyScalar(.92);
  }else if(level===2){
-  target.y=Math.max(1.8,p.height*.62+.9);
+  target.y=Math.max(1.5,p.height*.62+.9);
   if(p.u>=8)pos.multiplyScalar(1.18);
+  else if(p.u<=1)pos.multiplyScalar(.94);
  }else if((level===3||level===4)&&focused){
   const bounds=new THREE.Box3().setFromObject(focused),
    size=bounds.getSize(new THREE.Vector3()),
    extent=Math.max(size.x,size.y,size.z);
   bounds.getCenter(target);
   if(level===4){
-   target.set(0,.33,p.file==='atlas-800-3000'?-.06:p.file==='dgx-h100'?.05:-.02);
-   const dist=p.file==='atlas-800-3000'?2.55:p.file==='dgx-h100'?2.32:1.95;
+   const isPcie=p.file==='atlas-800-3000'||p.file==='h100-nvl-pcie';
+   const isSxm=p.file==='dgx-h100'||p.file==='dgx-b200';
+   target.set(0,.33,isPcie?-.08:isSxm?.04:-.02);
+   const dist=isPcie?2.58:isSxm?2.28:1.95;
    pos.copy(target).add(new THREE.Vector3(.72,1.08,1.22).normalize().multiplyScalar(dist));
   }else{
    pos.copy(target).add(new THREE.Vector3(1,1.08,1.48).normalize().multiplyScalar(Math.max(2.6,extent*2.85)));
@@ -396,11 +521,18 @@ function frame(reset=true){
  }
 }
 
-function configure(o){
+function configure(o,castMajorOnly=false){
  o.traverse(n=>{
   if(n.isMesh){
-   n.castShadow=true;
    n.receiveShadow=true;
+   if(castMajorOnly&&n.geometry){
+    if(!n.geometry.boundingBox)n.geometry.computeBoundingBox();
+    const bb=n.geometry.boundingBox;
+    const sx=bb.max.x-bb.min.x,sy=bb.max.y-bb.min.y,sz=bb.max.z-bb.min.z;
+    n.castShadow=Math.max(sx,sy,sz)>0.14&&Math.min(sx,sy,sz)>0.014;
+   }else{
+    n.castShadow=true;
+   }
    if(n.material)n.material.side=THREE.DoubleSide;
   }
   if(n.userData.kind){
@@ -421,13 +553,48 @@ function pruneShell(o){
 
 function disposeGroup(g){
  g.traverse(o=>{
-  if(o.userData?.disposable){
-   o.geometry?.dispose();
+  if(o.userData?.ownGeo)o.geometry?.dispose();
+  if(o.userData?.ownMat){
    if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());
    else o.material?.dispose();
   }
  });
  g.clear();
+}
+
+const RACK_MATS={
+ dark:new THREE.MeshStandardMaterial({color:'#1c2622',roughness:.62,metalness:.16}),
+ sage:new THREE.MeshStandardMaterial({color:'#43594c',roughness:.64,metalness:.16}),
+ silver:new THREE.MeshStandardMaterial({color:'#8c9388',roughness:.45,metalness:.38}),
+ portDark:new THREE.MeshStandardMaterial({color:'#0e1513',roughness:.72}),
+ copper:new THREE.MeshStandardMaterial({color:'#9b573b',roughness:.42,metalness:.52}),
+ slate:new THREE.MeshStandardMaterial({color:'#416876',roughness:.48,metalness:.25}),
+ led:new THREE.MeshStandardMaterial({color:'#859d67',roughness:.5}),
+ champagne:new THREE.MeshStandardMaterial({color:'#8b7b48',roughness:.44,metalness:.36}),
+ vermilion:new THREE.MeshStandardMaterial({color:'#8a3023',roughness:.46,metalness:.22})
+};
+const UNIT_BOX=new THREE.BoxGeometry(1,1,1);
+const GUIDE_DOT_GEO=new THREE.SphereGeometry(.038,8,8);
+const GUIDE_DOT_MAT=new THREE.MeshBasicMaterial({color:'#8b6a47'});
+const GUIDE_LINE_MAT=new THREE.LineDashedMaterial({color:'#6c7f72',dashSize:.14,gapSize:.10,transparent:true,opacity:.68});
+const _tmpM4=new THREE.Matrix4(),_tmpPos=new THREE.Vector3(),_tmpQuat=new THREE.Quaternion(),_tmpScl=new THREE.Vector3();
+
+function addInstancedBoxes(parent,mat,specs,castShadow=false){
+ if(!specs.length)return;
+ const im=new THREE.InstancedMesh(UNIT_BOX,mat,specs.length);
+ im.castShadow=castShadow;
+ im.receiveShadow=true;
+ for(let i=0;i<specs.length;i++){
+  const [px,py,pz,sx,sy,sz]=specs[i];
+  _tmpPos.set(px,py,pz);
+  _tmpScl.set(sx,sy,sz);
+  _tmpM4.compose(_tmpPos,_tmpQuat,_tmpScl);
+  im.setMatrixAt(i,_tmpM4);
+ }
+ im.instanceMatrix.needsUpdate=true;
+ im.userData.ownGeo=false;
+ im.userData.ownMat=false;
+ parent.add(im);
 }
 
 function addDisposableMesh(parent,geom,mat,pos,rot){
@@ -436,51 +603,63 @@ function addDisposableMesh(parent,geom,mat,pos,rot){
  if(rot)m.rotation.set(...rot);
  m.castShadow=true;
  m.receiveShadow=true;
- m.userData.disposable=true;
+ m.userData.ownGeo=true;
+ m.userData.ownMat=false;
  parent.add(m);
  return m;
 }
 
 function buildRackAccessories(p){
  const acc=new THREE.Group();
- const darkMat=new THREE.MeshStandardMaterial({color:'#1c2622',roughness:.62,metalness:.16});
- const sageMat=new THREE.MeshStandardMaterial({color:'#43594c',roughness:.64,metalness:.16});
- const silverMat=new THREE.MeshStandardMaterial({color:'#8c9388',roughness:.45,metalness:.38});
- const portDark=new THREE.MeshStandardMaterial({color:'#0e1513',roughness:.72});
- const copperMat=new THREE.MeshStandardMaterial({color:'#9b573b',roughness:.42,metalness:.52});
- const slateMat=new THREE.MeshStandardMaterial({color:'#416876',roughness:.48,metalness:.25});
- const ledMat=new THREE.MeshStandardMaterial({color:'#859d67',roughness:.5});
+ const bDark=[],bSage=[],bSilver=[],bPort=[],bCopper=[],bSlate=[],bLed=[],bChamp=[];
 
- // Fill unused U-space between top of servers and ToR switches with sleek 2U tool-less blanking panels
- // Mounted cleanly in front of the EIA rail face (z = 4.308) so rail cage-nut pockets never Z-fight
- const stackTop=0.75+p.slots*p.u*0.4445;
- for(let y=stackTop+0.44;y<16.85;y+=0.889){
-  addDisposableMesh(acc,new THREE.BoxGeometry(5.02,.82,.04),darkMat,[0,y,4.34]);
-  addDisposableMesh(acc,new THREE.BoxGeometry(4.42,.05,.02),silverMat,[0,y,4.375]);
+ if(p.file==='gb200-nvl72'){
+  for(let j=0;j<9;j++){
+   const sy=6.62+j*0.52;
+   (j%2?bDark:bSage).push([0,sy,0,4.78,.42,8.4]);
+   bChamp.push([0,sy,4.28,5.02,.40,.04]);
+   bPort.push([0,sy,4.315,3.60,.10,.02]);
+   bLed.push([2.18,sy,4.315,.10,.10,.02]);
+  }
+  bSilver.push([-0.62,8.42,-4.48,2.60,15.3,.36]);
+  addDisposableMesh(acc,new THREE.CylinderGeometry(.09,.09,16.2,12),RACK_MATS.vermilion,[-2.24,8.6,-4.52]);
+  addDisposableMesh(acc,new THREE.CylinderGeometry(.09,.09,16.2,12),RACK_MATS.slate,[-1.98,8.6,-4.52]);
+ }else{
+  const stackTop=0.75+p.slots*p.u*0.4445;
+  for(let y=stackTop+0.44;y<16.85;y+=0.889){
+   bDark.push([0,y,4.34,5.02,.82,.04]);
+   bSilver.push([0,y,4.375,4.42,.05,.02]);
+  }
  }
 
- // Two detailed 1U Top-of-Rack Leaf / Management Switches + QSFP-DD cages + rear optical patch trunks
  for(let i=0;i<2;i++){
   const sy=17.45+i*0.82;
-  addDisposableMesh(acc,new THREE.BoxGeometry(4.62,.40,6.1),i===0?sageMat:darkMat,[0,sy,1.22]);
-  addDisposableMesh(acc,new THREE.BoxGeometry(5.06,.40,.04),silverMat,[0,sy,4.34]);
+  (i===0?bSage:bDark).push([0,sy,1.22,4.62,.40,6.1]);
+  bSilver.push([0,sy,4.34,5.06,.40,.04]);
   for(let j=0;j<16;j++){
    const px=-2.05+j*0.273;
-   addDisposableMesh(acc,new THREE.BoxGeometry(.20,.14,.04),silverMat,[px,sy,4.38]);
-   addDisposableMesh(acc,new THREE.BoxGeometry(.15,.08,.02),portDark,[px,sy,4.41]);
-   addDisposableMesh(acc,new THREE.BoxGeometry(.025,.08,.03),j%2?copperMat:slateMat,[px+.08,sy,4.435]);
-   if(j%3===0)addDisposableMesh(acc,new THREE.BoxGeometry(.03,.03,.016),ledMat,[px-.07,sy+.105,4.41]);
+   bSilver.push([px,sy,4.38,.20,.14,.04]);
+   bPort.push([px,sy,4.41,.15,.08,.02]);
+   (j%2?bCopper:bSlate).push([px+.08,sy,4.435,.025,.08,.03]);
+   if(j%3===0)bLed.push([px-.07,sy+.105,4.41,.03,.03,.016]);
   }
-  // Graceful optical trunk loops from rear of ToR switches into left & right rear cable raceways
   for(const side of [-1,1]){
    const curve=new THREE.CatmullRomCurve3([
     new THREE.Vector3(side*1.45,sy,-1.95),
     new THREE.Vector3(side*2.15,sy-.18,-3.35),
     new THREE.Vector3(side*2.58,sy-.85,-4.42)
    ]);
-   addDisposableMesh(acc,new THREE.TubeGeometry(curve,14,.038,8,false),side<0?copperMat:slateMat);
+   addDisposableMesh(acc,new THREE.TubeGeometry(curve,14,.038,8,false),side<0?RACK_MATS.copper:RACK_MATS.slate);
   }
  }
+ addInstancedBoxes(acc,RACK_MATS.dark,bDark,true);
+ addInstancedBoxes(acc,RACK_MATS.sage,bSage,true);
+ addInstancedBoxes(acc,RACK_MATS.silver,bSilver,false);
+ addInstancedBoxes(acc,RACK_MATS.portDark,bPort,false);
+ addInstancedBoxes(acc,RACK_MATS.copper,bCopper,false);
+ addInstancedBoxes(acc,RACK_MATS.slate,bSlate,false);
+ addInstancedBoxes(acc,RACK_MATS.led,bLed,false);
+ addInstancedBoxes(acc,RACK_MATS.champagne,bChamp,false);
  return acc;
 }
 
@@ -516,7 +695,8 @@ function setHover(part,clientX,clientY){
      if(o.userData.origEmissive===undefined){
       o.material=o.material.clone();
       o.userData.origEmissive=o.material.emissive.getHex();
-      o.userData.disposable=true;
+      o.userData.ownMat=true;
+      o.userData.ownGeo=false;
      }
      o.material.emissive.setHex(0x1f362a);
     }
@@ -535,33 +715,53 @@ function setHover(part,clientX,clientY){
  }
 }
 
+const GUIDE_KINDS=new Set(['host','board','cooling','nvswitch','fans','drives','network','psu','bus']);
+let guideDotsMesh=null,guideLinesObj=null;
 function rebuildGuides(){
- disposeGroup(guideRoot);
- if(level!==2||spread<.04||!server)return;
- const positions=[];
- const guideKinds=new Set(['host','board','cooling','nvswitch','fans','drives','network','psu','bus']);
- const mat=new THREE.LineDashedMaterial({color:'#6c7f72',dashSize:.14,gapSize:.10,transparent:true,opacity:.68});
- mat.userData={disposable:true};
+ if(level!==2||spread<.04||!server){
+  if(guideDotsMesh)guideDotsMesh.visible=false;
+  if(guideLinesObj)guideLinesObj.visible=false;
+  return;
+ }
+ if(!guideDotsMesh){
+  guideDotsMesh=new THREE.InstancedMesh(GUIDE_DOT_GEO,GUIDE_DOT_MAT,24);
+  guideDotsMesh.castShadow=false;
+  guideDotsMesh.receiveShadow=false;
+  guideRoot.add(guideDotsMesh);
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(24*6),3));
+  guideLinesObj=new THREE.LineSegments(g,GUIDE_LINE_MAT);
+  guideLinesObj.frustumCulled=false;
+  guideRoot.add(guideLinesObj);
+ }
  server.updateMatrixWorld(true);
+ const posAttr=guideLinesObj.geometry.getAttribute('position');
+ const arr=posAttr.array;
+ let count=0;
+ _tmpScl.set(1,1,1);
  for(const part of parts){
-  if(!guideKinds.has(part.userData.kind))continue;
+  if(!GUIDE_KINDS.has(part.userData.kind)||count>=24)continue;
   const u=part.userData,h=u.home;
   if(!h||(!(u.explodeZ||0)&&!(u.explodeY||0)))continue;
   const parentWorld=part.parent.matrixWorld;
   const pHome=h.clone().applyMatrix4(parentWorld);
   const pCur=part.position.clone().applyMatrix4(parentWorld);
   if(pHome.distanceTo(pCur)<.08)continue;
-  positions.push(pHome.x,pHome.y,pHome.z,pCur.x,pCur.y,pCur.z);
-  const dotMat=new THREE.MeshBasicMaterial({color:'#8b6a47'});
-  addDisposableMesh(guideRoot,new THREE.SphereGeometry(.038,8,8),dotMat,[pHome.x,pHome.y,pHome.z]);
+  const base=count*6;
+  arr[base]=pHome.x;arr[base+1]=pHome.y;arr[base+2]=pHome.z;
+  arr[base+3]=pCur.x;arr[base+4]=pCur.y;arr[base+5]=pCur.z;
+  _tmpM4.compose(pHome,_tmpQuat,_tmpScl);
+  guideDotsMesh.setMatrixAt(count,_tmpM4);
+  count++;
  }
- if(positions.length){
-  const g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-  const lines=new THREE.LineSegments(g,mat);
-  lines.computeLineDistances();
-  lines.userData.disposable=true;
-  guideRoot.add(lines);
+ guideDotsMesh.count=count;
+ guideDotsMesh.visible=count>0;
+ guideLinesObj.visible=count>0;
+ if(count>0){
+  guideDotsMesh.instanceMatrix.needsUpdate=true;
+  posAttr.needsUpdate=true;
+  guideLinesObj.geometry.setDrawRange(0,count*2);
+  guideLinesObj.computeLineDistances();
  }
 }
 
@@ -569,10 +769,11 @@ function rebuild(){
  clearHover();
  disposeGroup(cabinetRoot);
  disposeGroup(serverRoot);
- disposeGroup(guideRoot);
  disposeGroup(focusRoot);
+ if(guideDotsMesh)guideDotsMesh.visible=false;
+ if(guideLinesObj)guideLinesObj.visible=false;
  const p=MODELS[currentModel];
- cabinet=configure(templates.cabinet.clone(true));
+ cabinet=configure(templates.cabinet.clone(true),true);
  cabinetRoot.add(cabinet);
  cabinetDoor=null;
  cabinet.traverse(o=>{if(o.userData.kind==='door')cabinetDoor=o;});
@@ -584,13 +785,16 @@ function rebuild(){
  cabinetRoot.add(servers);
  for(let i=0;i<p.slots;i++){
   const shell=pruneShell(templates[currentModel].clone(true));
-  shell.position.set(0,.75+i*p.u*.4445,0);
-  configure(shell);
+  const trayY=p.file==='gb200-nvl72'
+   ?(i<10?0.75+i*0.56:11.45+(i-10)*0.56)
+   :(0.75+i*p.u*.4445);
+  shell.position.set(0,trayY,0);
+  configure(shell,true);
   servers.add(shell);
  }
  cabinetRoot.add(buildRackAccessories(p));
 
- server=configure(templates[currentModel].clone(true));
+ server=configure(templates[currentModel].clone(true),true);
  server.position.y=.23;
  serverRoot.add(server);
  collect();
@@ -647,10 +851,17 @@ function applySpread(){
 function setFocus(part){
  selection=part;
  disposeGroup(focusRoot);
- focused=configure(part.clone(true));
+ focused=configure(part.clone(true),true);
  focused.position.set(0,.23,0);
  focusRoot.add(focused);
  focused.traverse(o=>{
+  if(o.isMesh){
+   o.userData.ownGeo=false;
+   if(o.userData.ownMat){
+    o.material=o.material.clone();
+    if(o.userData.origEmissive!==undefined)o.material.emissive?.setHex(o.userData.origEmissive);
+   }
+  }
   if(o.userData.kind==='cooler'||o.userData.kind==='ihs'){
    o.userData.home=o.position.clone();
    o.userData.homeRotX=o.rotation.x;
@@ -778,7 +989,8 @@ function updateUI(){
   b.classList.toggle('active',on);
   b.setAttribute('aria-pressed',String(on));
  });
- $('#modelpicker').hidden=platform!=='ascend';
+ renderModelGrid(platform);
+ $('#modelpicker').hidden=false;
  $$('[data-model-key]').forEach(b=>{
   const on=b.dataset.modelKey===currentModel;
   b.classList.toggle('active',on);
@@ -900,7 +1112,7 @@ $$('[data-level]').forEach(b=>b.onclick=()=>{
 
 $$('[data-vendor]').forEach(b=>b.onclick=()=>{
  const v=b.dataset.vendor;
- loadModel(v==='nvidia'?'dgx-h100':lastAscendModel);
+ loadModel(v==='nvidia'?lastNvidiaModel:lastAscendModel);
 });
 
 $('#spread').oninput=e=>{
@@ -1045,6 +1257,7 @@ async function loadModel(nextKey){
   if(request!==modelLoadSeq)return;
   currentModel=nextKey;
   if(MODELS[nextKey].vendor==='ascend')lastAscendModel=nextKey;
+  else lastNvidiaModel=nextKey;
   platform=MODELS[nextKey].vendor;
   rebuild();
   ready=true;

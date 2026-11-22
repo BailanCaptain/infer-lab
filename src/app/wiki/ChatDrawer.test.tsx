@@ -335,4 +335,67 @@ describe("ChatDrawer 会话早期持久化与卸载刷盘", () => {
     expect(html).not.toContain('href="#/wiki/chunked-prefill');
     expect(html).toContain('href="https://docs.vllm.ai/en/latest/" target="_blank" rel="noreferrer"');
   });
+
+  it("P2-7: ChatDrawer 表单提交与 Enter 快捷键在离线态直接拦截，绝不触发 send()", () => {
+    const mod = ChatDrawerModule as unknown as {
+      handleChatFormSubmit?: (
+        e: { preventDefault: () => void },
+        isOffline: boolean,
+        send: () => void,
+      ) => void;
+      handleChatInputKeyDown?: (
+        e: {
+          key: string;
+          shiftKey: boolean;
+          nativeEvent: { isComposing: boolean };
+          preventDefault: () => void;
+        },
+        isOffline: boolean,
+        send: () => void,
+      ) => void;
+    };
+    expect(mod.handleChatFormSubmit).toBeTypeOf("function");
+    expect(mod.handleChatInputKeyDown).toBeTypeOf("function");
+
+    let sendCalls = 0;
+    let prevented = 0;
+    const send = () => {
+      sendCalls += 1;
+    };
+    const preventDefault = () => {
+      prevented += 1;
+    };
+
+    // 离线态表单提交与 Enter：阻止默认提交但不调用 send
+    mod.handleChatFormSubmit!({ preventDefault }, true, send);
+    mod.handleChatInputKeyDown!(
+      { key: "Enter", shiftKey: false, nativeEvent: { isComposing: false }, preventDefault },
+      true,
+      send,
+    );
+    expect(prevented).toBe(2);
+    expect(sendCalls).toBe(0);
+
+    // Shift+Enter 或 IME 输入法组合态不触发发送
+    mod.handleChatInputKeyDown!(
+      { key: "Enter", shiftKey: true, nativeEvent: { isComposing: false }, preventDefault },
+      false,
+      send,
+    );
+    mod.handleChatInputKeyDown!(
+      { key: "Enter", shiftKey: false, nativeEvent: { isComposing: true }, preventDefault },
+      false,
+      send,
+    );
+    expect(sendCalls).toBe(0);
+
+    // 在线态 Enter 与表单提交正常触发 send
+    mod.handleChatInputKeyDown!(
+      { key: "Enter", shiftKey: false, nativeEvent: { isComposing: false }, preventDefault },
+      false,
+      send,
+    );
+    mod.handleChatFormSubmit!({ preventDefault }, false, send);
+    expect(sendCalls).toBe(2);
+  });
 });

@@ -599,6 +599,50 @@
   font-size: var(--text-lead);
   font-weight: 500;
 }
+.experience-toolbar-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.experience-model-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--color-reader-line);
+  border-radius: 6px;
+  background: var(--color-reader-sidebar);
+  max-width: 100%;
+}
+.experience-model-switch a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--color-ink);
+  font-size: var(--text-compact);
+  font-weight: 500;
+  line-height: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.experience-model-switch a:hover {
+  border-color: var(--color-reader-accent);
+  background: var(--color-reader-active);
+  color: var(--color-reader-accent);
+}
+.experience-model-switch a[aria-current] {
+  background: var(--color-surface);
+  border-color: var(--color-reader-accent);
+  color: var(--color-reader-accent);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(21, 30, 28, 0.06);
+}
 .experience-tabs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -687,6 +731,41 @@
 .experience-loading-veil {
   display: grid;
   place-items: center;
+}
+.experience-loading-veil-interactive {
+  pointer-events: auto;
+  background: rgba(246, 247, 244, 0.56);
+}
+.experience-retry-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px 9px 16px;
+  border: 1px solid rgba(40, 97, 81, 0.24);
+  border-radius: 999px;
+  background: rgba(252, 252, 250, 0.98);
+  box-shadow: 0 10px 26px rgba(21, 30, 28, 0.1);
+  color: #24332d;
+  font-size: 13px;
+  font-weight: 500;
+}
+.experience-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--color-reader-accent, #286151);
+  border-radius: 999px;
+  background: var(--color-reader-accent, #286151);
+  color: #ffffff;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.experience-retry-btn:hover {
+  background: #1f4d40;
+  border-color: #1f4d40;
 }
 .experience-transition-bar {
   background: rgba(246, 247, 244, 0.1);
@@ -891,8 +970,25 @@
     padding: 12px 16px;
     gap: 12px;
   }
+  .experience-toolbar-controls {
+    width: 100%;
+    gap: 8px;
+  }
+  .experience-model-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .experience-model-switch a {
+    min-width: 0;
+    padding: 6px 6px;
+    font-size: var(--text-label);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .experience-tabs {
     order: 3;
+    width: 100%;
   }
   .experience-tabs a {
     padding-inline: 8px;

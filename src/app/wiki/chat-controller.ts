@@ -1,11 +1,15 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { AnswerQuality } from "../../content/wiki/answer-quality";
+import type { AscendCalcCardId, KvCacheDtype, WeightPrecision } from "../../sim/modelspec/deployCalculator";
+import type { AscendFamily, CudaGraphMode, RuleVersion } from "../../sim/rules/types";
+import { type BackendAvailability, getBackendAvailability, setBackendAvailability } from "./api";
 import {
   chatHttpError,
   interruptMessage,
   type Msg,
   readChatHistory,
   settleCompletedMessage,
+  settleFailedMessage,
   type TraceView,
   writeChatHistory,
 } from "./chat-history";
@@ -13,15 +17,74 @@ import { textBatch } from "./text-batch";
 
 type ModelView = NonNullable<Msg["model"]>;
 
+export const STATIC_CHAT_UNAVAILABLE = "当前静态环境未连接本地问答服务，请使用顶部搜索（Ctrl+K）查阅知识库。";
+
+export type ChatAnalysisPayload =
+  | {
+      kind: "deploy";
+      model: string | Record<string, unknown>;
+      cardId: AscendCalcCardId;
+      version?: RuleVersion | undefined;
+      weightPrecision?: WeightPrecision | undefined;
+      kvCacheDtype?: KvCacheDtype | undefined;
+      blockSize?: number | undefined;
+      userSpecifiedBlockSize?: boolean | undefined;
+      weightNzMode?: 0 | 1 | 2 | undefined;
+      tpSize?: number | undefined;
+      ppSize?: number | undefined;
+      dpSize?: number | undefined;
+      pcpSize?: number | undefined;
+      dcpSize?: number | undefined;
+      enableEp?: boolean | undefined;
+      enableEplb?: boolean | undefined;
+      dynamicEplb?: boolean | undefined;
+      engramCpuOffload?: boolean | undefined;
+      numSpecTokens?: number | undefined;
+      gpuMemoryUtilization?: number | undefined;
+      maxModelLen?: number | undefined;
+      maxNumBatchedTokens?: number | undefined;
+      maxNumSeqs?: number | undefined;
+      cudagraphMode?: CudaGraphMode | undefined;
+      cudagraphCaptureCount?: number | undefined;
+      enforceEager?: boolean | undefined;
+      decodeBatchSize?: number | undefined;
+      prefillTokens?: number | undefined;
+      decodeContextLen?: number | undefined;
+    }
+  | {
+      kind: "doctor";
+      command: string;
+      decodeCommand?: string | undefined;
+      mode?: "minimal" | "full" | undefined;
+      hardwareFamily?: AscendFamily | undefined;
+      decodeHardwareFamily?: AscendFamily | undefined;
+      version?: RuleVersion | undefined;
+      crossNodeRoce?: boolean | undefined;
+    }
+  | {
+      kind: "troubleshoot";
+      rawInput: string;
+    };
+
+export interface PendingChatAttachment {
+  title: string;
+  summary: string;
+  sanitizedBlock: string;
+  redactionCount?: number | undefined;
+  suggestedQuestion?: string | undefined;
+  analysis?: ChatAnalysisPayload | undefined;
+}
+
 /** 一次 SSE 请求。把帧回调出去，UI 只管渲染。 */
 async function streamChat(
-  body: { message: string; sessionId?: string },
+  body: { message: string; sessionId?: string; analysis?: ChatAnalysisPayload },
   on: {
     text: (t: string) => void;
     tool: (target?: string) => void;
+    toolEvidence?: (v: Record<string, unknown>) => void;
     cite: (v: { cited: boolean; selfDeclaredUncovered: boolean; reason?: string }) => void;
-    persisted: (v: { sessionId?: string; revision?: string }) => void;
-    done: (sessionId?: string, answerId?: string) => void;
+    persisted: (v: { sessionId?: string; revision?: string; finalText?: string }) => void;
+    done: (sessionId?: string, answerId?: string, finalText?: string) => void;
     related: (pages: NonNullable<Msg["related"]>) => void;
     trace: (v: TraceView) => void;
     error: (m: string) => void;
@@ -50,9 +113,24 @@ async function streamChat(
     body: JSON.stringify(body),
     signal,
   });
+  const contentType = res.headers?.get?.("content-type")?.trim() ?? "";
   if (!res.ok || !res.body) {
-    on.error(chatHttpError(res.status, await res.text().catch(() => "")));
+    const rawBody = await res.text().catch(() => "");
+    if (res.status === 404 && !contentType.toLowerCase().includes("application/json")) {
+      setBackendAvailability("offline");
+      on.error(STATIC_CHAT_UNAVAILABLE);
+      return;
+    }
+    on.error(chatHttpError(res.status, rawBody));
     return;
+  }
+  if (contentType && !contentType.toLowerCase().includes("text/event-stream")) {
+    setBackendAvailability("offline");
+    on.error(STATIC_CHAT_UNAVAILABLE);
+    return;
+  }
+  if (contentType.toLowerCase().includes("text/event-stream")) {
+    setBackendAvailability("online");
   }
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -75,11 +153,13 @@ async function streamChat(
       }
       if (ev === "text") on.text(String(data.text ?? ""));
       else if (ev === "tool") on.tool(data.target as string | undefined);
+      else if (ev === "toolEvidence") on.toolEvidence?.(data);
       else if (ev === "cite") on.cite(data as never);
       else if (ev === "persisted") {
-        const payload: { sessionId?: string; revision?: string } = {};
+        const payload: { sessionId?: string; revision?: string; finalText?: string } = {};
         if (typeof data.sessionId === "string") payload.sessionId = data.sessionId;
         if (typeof data.revision === "string") payload.revision = data.revision;
+        if (typeof data.finalText === "string") payload.finalText = data.finalText;
         on.persisted(payload);
       } else if (ev === "error") on.error(String(data.message ?? "未知错误"));
       else if (ev === "knowledge") on.knowledge(data as never);
@@ -91,7 +171,11 @@ async function streamChat(
       else if (ev === "related" && Array.isArray(data.pages))
         on.related(data.pages as NonNullable<Msg["related"]>);
       else if (ev === "done")
-        on.done(data.sessionId as string | undefined, data.answerId as string | undefined);
+        on.done(
+          data.sessionId as string | undefined,
+          data.answerId as string | undefined,
+          typeof data.finalText === "string" ? data.finalText : undefined,
+        );
     }
   }
 }
@@ -102,6 +186,8 @@ export interface ChatState {
   msgs: Msg[];
   input: string;
   setInput: (value: string) => void;
+  pendingAttachment?: PendingChatAttachment | null | undefined;
+  setPendingAttachment?: ((attachment: PendingChatAttachment | null) => void) | undefined;
   busy: boolean;
   send: (preset?: string) => Promise<void>;
   stop: () => void;
@@ -111,9 +197,11 @@ export interface ChatState {
 export interface ChatControllerDeps {
   storage?: Pick<Storage, "getItem" | "setItem">;
   fetchImpl?: typeof fetch;
+  getBackendAvailability?: () => BackendAvailability;
 }
 
 interface ActiveTurn {
+  readonly turnId: number;
   abort: AbortController;
   persisted: boolean;
   settled: boolean;
@@ -124,15 +212,19 @@ interface ActiveTurn {
 export function createChatController(deps: ChatControllerDeps = {}) {
   const storage = deps.storage ?? (typeof localStorage !== "undefined" ? localStorage : undefined);
   const fetchImpl = deps.fetchImpl ?? fetch;
+  const readBackendAvailability = deps.getBackendAvailability ?? getBackendAvailability;
 
   let msgs: Msg[] = [];
   let input = "";
+  let ephemeralQuestion = "";
+  let pendingAttachment: PendingChatAttachment | null = null;
   let sessionId: string | undefined;
   let storageError = "";
   let busy = false;
   let dirty = false;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let activeTurn: ActiveTurn | null = null;
+  let latestTurnId = 0;
   const listeners = new Set<() => void>();
 
   if (storage) {
@@ -146,14 +238,18 @@ export function createChatController(deps: ChatControllerDeps = {}) {
     }
   }
 
+  const effectiveInput = () => (input.trim() ? input : ephemeralQuestion || input);
+
   const notify = () => {
     for (const listener of listeners) listener();
   };
 
   let snapshot: ChatState = {
     msgs,
-    input,
+    input: effectiveInput(),
     setInput,
+    pendingAttachment,
+    setPendingAttachment,
     busy,
     send,
     stop,
@@ -163,8 +259,10 @@ export function createChatController(deps: ChatControllerDeps = {}) {
   const syncSnapshot = () => {
     snapshot = {
       msgs,
-      input,
+      input: effectiveInput(),
       setInput,
+      pendingAttachment,
+      setPendingAttachment,
       busy,
       send,
       stop,
@@ -209,26 +307,65 @@ export function createChatController(deps: ChatControllerDeps = {}) {
   };
 
   function setInput(value: string) {
-    if (input === value) return;
+    ephemeralQuestion = "";
+    if (input === value) {
+      syncSnapshot();
+      notify();
+      return;
+    }
     input = value;
     syncSnapshot();
     scheduleSave();
     notify();
   }
 
+  function setPendingAttachment(attachment: PendingChatAttachment | null) {
+    pendingAttachment = attachment;
+    ephemeralQuestion = attachment?.suggestedQuestion?.trim() ?? "";
+    syncSnapshot();
+    notify();
+  }
+
   function stop() {
-    activeTurn?.abort.abort();
+    const turn = activeTurn;
+    if (!turn) return;
+    turn.settle();
+    activeTurn = null;
+    busy = false;
+    syncSnapshot();
+    notify();
+    turn.abort.abort();
   }
 
   async function send(preset?: string): Promise<void> {
-    const message = (preset ?? input).trim();
-    if (!message) return;
+    if (readBackendAvailability() === "offline") return;
+    const isPreset = preset !== undefined;
+    const attachment = isPreset ? null : pendingAttachment;
+    const rawDraft = (preset ?? effectiveInput()).trim();
+    if (!rawDraft && !attachment) return;
     if (busy || activeTurn) {
-      if (preset !== undefined) setInput(preset);
+      if (isPreset && !input.trim()) setInput(preset);
       return;
     }
-    input = "";
+
+    const analysis = attachment?.analysis;
+    let message = rawDraft;
+    if (attachment) {
+      if (!message) {
+        message = `${attachment.title}\n\n${attachment.sanitizedBlock}`;
+      } else if (!message.includes(attachment.sanitizedBlock)) {
+        message = `${message}\n\n${attachment.sanitizedBlock}`;
+      }
+      pendingAttachment = null;
+    }
+    if (!isPreset) {
+      ephemeralQuestion = "";
+      input = "";
+    }
     busy = true;
+
+    const turnId = ++latestTurnId;
+    const priorSessionId = sessionId;
     const turn = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const agentKey = `${turn}-a`;
     msgs = [
@@ -246,11 +383,16 @@ export function createChatController(deps: ChatControllerDeps = {}) {
       scheduleSave();
       notify();
     };
-    const text = textBatch((chunk) => patch((l) => ({ ...l, text: l.text + chunk })));
+    const text = textBatch((chunk) => {
+      if (latestTurnId !== turnId) return;
+      patch((l) => ({ ...l, text: l.text + chunk }));
+    });
     const abortController = new AbortController();
-    let finished = false;
+    let doneReceived = false;
+    let errored = false;
 
     const turnState: ActiveTurn = {
+      turnId,
       abort: abortController,
       persisted: false,
       settled: false,
@@ -261,10 +403,17 @@ export function createChatController(deps: ChatControllerDeps = {}) {
         if (turnState.settled) return;
         turnState.settled = true;
         text.flush();
-        if (turnState.persisted || finished) {
+        if (turnState.persisted || (doneReceived && !errored)) {
           msgs = msgs.map((item) => (item.key === agentKey ? settleCompletedMessage(item) : item));
+        } else if (errored) {
+          if (latestTurnId === turnId) {
+            sessionId = priorSessionId;
+          }
+          msgs = msgs.map((item) => (item.key === agentKey ? settleFailedMessage(item) : item));
         } else {
-          sessionId = undefined;
+          if (latestTurnId === turnId) {
+            sessionId = undefined;
+          }
           msgs = msgs.map((item) => (item.key === agentKey ? interruptMessage(item) : item));
         }
         dirty = true;
@@ -274,31 +423,49 @@ export function createChatController(deps: ChatControllerDeps = {}) {
       },
     };
     activeTurn = turnState;
+    const isCurrentTurn = () => latestTurnId === turnId && activeTurn === turnState;
 
-    const requestBody: { message: string; sessionId?: string } =
-      sessionId !== undefined ? { message, sessionId } : { message };
+    const requestBody: { message: string; sessionId?: string; analysis?: ChatAnalysisPayload } = {
+      message,
+      ...(sessionId !== undefined ? { sessionId } : {}),
+      ...(analysis !== undefined ? { analysis } : {}),
+    };
 
     try {
       await streamChat(
         requestBody,
         {
-          text: text.push,
-          related: (pages) => patch((l) => ({ ...l, related: pages })),
-          trace: (v) => patch((l) => ({ ...l, trace: v })),
-          tool: (target) =>
+          text: (chunk) => {
+            if (!isCurrentTurn()) return;
+            text.push(chunk);
+          },
+          related: (pages) => {
+            if (!isCurrentTurn()) return;
+            patch((l) => ({ ...l, related: pages }));
+          },
+          trace: (v) => {
+            if (!isCurrentTurn()) return;
+            patch((l) => ({ ...l, trace: v }));
+          },
+          tool: (target) => {
+            if (!isCurrentTurn()) return;
             patch((l) => {
               if (!target) return l;
               const name = target.split(/[\\/]/).pop() ?? target;
               return l.reading?.includes(name) ? l : { ...l, reading: [...(l.reading ?? []), name] };
-            }),
-          cite: (v) =>
+            });
+          },
+          cite: (v) => {
+            if (!isCurrentTurn() || errored) return;
             patch((l) => ({
               ...l,
               uncited: !v.cited && !v.selfDeclaredUncovered,
               uncovered: v.selfDeclaredUncovered,
               citationReason: v.reason ?? "没有可核对的知识库引用",
-            })),
+            }));
+          },
           persisted: (v) => {
+            if (!isCurrentTurn() || errored) return;
             text.flush();
             turnState.persisted = true;
             if (v.sessionId) sessionId = v.sessionId;
@@ -306,6 +473,7 @@ export function createChatController(deps: ChatControllerDeps = {}) {
               item.key === agentKey
                 ? {
                     ...item,
+                    ...(typeof v.finalText === "string" ? { text: v.finalText } : {}),
                     status: "complete",
                     ...(v.revision ? { revision: v.revision } : {}),
                   }
@@ -316,7 +484,8 @@ export function createChatController(deps: ChatControllerDeps = {}) {
             flushSave();
             notify();
           },
-          gap: (v) =>
+          gap: (v) => {
+            if (!isCurrentTurn()) return;
             patch((l) => ({
               ...l,
               gapNotice:
@@ -327,11 +496,22 @@ export function createChatController(deps: ChatControllerDeps = {}) {
                     : v.state === "awaiting-assessment"
                       ? `缺口信号已记录（${v.count} 次），已排进补写队列。夜间任务要在自动补写打开后才处理，还要先写好复测计划才会生成待审草稿。`
                       : `缺口信号已记录（${v.count}/${v.threshold}）；尚未确认知识缺失，也未启动补写。`,
-            })),
-          notice: (v) => patch((l) => ({ ...l, toolNotice: v.message })),
-          quality: (v) => patch((l) => ({ ...l, quality: v })),
-          model: (v) => patch((l) => ({ ...l, model: v })),
+            }));
+          },
+          notice: (v) => {
+            if (!isCurrentTurn()) return;
+            patch((l) => ({ ...l, toolNotice: v.message }));
+          },
+          quality: (v) => {
+            if (!isCurrentTurn()) return;
+            patch((l) => ({ ...l, quality: v }));
+          },
+          model: (v) => {
+            if (!isCurrentTurn()) return;
+            patch((l) => ({ ...l, model: v }));
+          },
           knowledge: (v) => {
+            if (!isCurrentTurn()) return;
             sessionId = v.sessionId;
             patch((l) => ({
               ...l,
@@ -352,33 +532,46 @@ export function createChatController(deps: ChatControllerDeps = {}) {
             }));
           },
           error: (m) => {
+            if (!isCurrentTurn() || turnState.persisted) return;
             text.flush();
-            finished = true;
+            errored = true;
             patch((l) => ({ ...l, text: `${l.text}\n\n**出错了**：${m}` }));
           },
-          done: (sid, answerId) => {
+          done: (sid, answerId, finalText) => {
+            if (!isCurrentTurn() || errored) return;
             text.flush();
-            finished = true;
-            turnState.persisted = true;
+            doneReceived = true;
             if (sid) sessionId = sid;
-            if (answerId) patch((l) => ({ ...l, answerId }));
-            else scheduleSave();
+            if (answerId || finalText !== undefined) {
+              patch((l) => ({
+                ...l,
+                ...(finalText !== undefined ? { text: finalText } : {}),
+                ...(answerId ? { answerId } : {}),
+              }));
+            } else {
+              scheduleSave();
+            }
           },
         },
         abortController.signal,
         fetchImpl,
       );
     } catch (err) {
-      text.flush();
-      if ((err as Error).name !== "AbortError") {
-        patch((l) => ({ ...l, text: `${l.text}\n\n**连接失败**：${String(err)}` }));
+      if (isCurrentTurn() && !turnState.persisted) {
+        text.flush();
+        if ((err as Error).name !== "AbortError") {
+          errored = true;
+          patch((l) => ({ ...l, text: `${l.text}\n\n**连接失败**：${String(err)}` }));
+        }
       }
     } finally {
-      turnState.settle();
-      if (activeTurn === turnState) activeTurn = null;
-      busy = false;
-      syncSnapshot();
-      notify();
+      if (latestTurnId === turnId) {
+        turnState.settle();
+        if (activeTurn === turnState) activeTurn = null;
+        busy = false;
+        syncSnapshot();
+        notify();
+      }
     }
   }
 
@@ -408,6 +601,7 @@ export function createChatController(deps: ChatControllerDeps = {}) {
       };
     },
     setInput,
+    setPendingAttachment,
     send,
     stop,
     flush,

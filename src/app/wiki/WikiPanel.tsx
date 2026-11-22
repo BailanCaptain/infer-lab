@@ -8,9 +8,16 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { createEvidenceViewController } from "../../content/wiki/evidence-schema";
-import { wikiRequest } from "./api";
+import {
+  type BackendAvailability,
+  getBackendAvailability,
+  isStaticOfflineError,
+  subscribeBackendAvailability,
+  wikiRequest,
+} from "./api";
 import { type ChatState, useChat } from "./chat-controller";
 import type { EvidenceViewController } from "./EvidencePane";
 import { ReaderResizeHandle } from "./ReaderResizeHandle";
@@ -24,15 +31,16 @@ const ReviewPane = lazy(async () => ({ default: (await import("./ReviewPane")).R
 const StatusPane = lazy(async () => ({ default: (await import("./StatusPane")).StatusPane }));
 
 export type WikiPanelTab = "chat" | "evidence" | "drop" | "review" | "status";
-const TABS: { id: WikiPanelTab; label: string }[] = [
+const TABS: { id: WikiPanelTab; label: string; backendOnly?: boolean }[] = [
   { id: "chat", label: "问答" },
   { id: "evidence", label: "证据" },
-  { id: "drop", label: "Drop" },
-  { id: "review", label: "审阅" },
-  { id: "status", label: "状态" },
+  { id: "drop", label: "Drop", backendOnly: true },
+  { id: "review", label: "审阅", backendOnly: true },
+  { id: "status", label: "状态", backendOnly: true },
 ];
 const tabIdOf = (tab: WikiPanelTab) => `wiki-panel-tab-${tab}`;
 const panelIdOf = (tab: WikiPanelTab) => `wiki-panel-${tab}`;
+const getServerBackendAvailability = (): BackendAvailability => "unknown";
 
 export function shouldStopChatOnPanelClose(tab: WikiPanelTab): boolean {
   return tab === "chat";
@@ -45,6 +53,7 @@ export function shouldStopChatOnPanelClose(tab: WikiPanelTab): boolean {
 export interface WikiPanelProps {
   revision: string;
   mode: "build" | "local";
+  backendAvailable?: BackendAvailability | undefined;
   currentId?: string | undefined;
   chat?: ChatState | undefined;
   evidenceController?: EvidenceViewController | undefined;
@@ -71,6 +80,7 @@ function WikiPanelStandalone(props: WikiPanelProps) {
 function WikiPanelView({
   revision,
   mode,
+  backendAvailable: backendAvailableProp,
   currentId,
   chat,
   evidenceController,
@@ -79,11 +89,23 @@ function WikiPanelView({
   onRefresh,
   onLayout,
 }: Omit<WikiPanelProps, "chat"> & { chat: ChatState }) {
+  const storeBackendAvailable = useSyncExternalStore(
+    subscribeBackendAvailability,
+    getBackendAvailability,
+    getServerBackendAvailability,
+  );
+  const effectiveBackend = backendAvailableProp ?? storeBackendAvailable;
+  const isOffline = effectiveBackend === "offline";
+  const visibleTabs = isOffline ? TABS.filter((t) => !t.backendOnly) : TABS;
+
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [lastTab, setLastTab] = useState<WikiPanelTab>("chat");
   const controlled = layout !== undefined;
   const open = controlled ? layout !== "closed" : uncontrolledOpen;
-  const tab = controlled && layout !== "closed" ? layout : lastTab;
+  const rawTab = controlled && layout !== "closed" ? layout : lastTab;
+  const tab: WikiPanelTab =
+    isOffline && (rawTab === "drop" || rawTab === "review" || rawTab === "status") ? "chat" : rawTab;
+
   const [openedTabs, setOpenedTabs] = useState<ReadonlySet<WikiPanelTab>>(() =>
     open ? new Set([tab]) : new Set(),
   );
@@ -111,21 +133,31 @@ function WikiPanelView({
   const wasOpen = useRef(open);
 
   const loadReviews = useCallback(async () => {
+    if (isOffline) {
+      setReviews([]);
+      setListError("");
+      return;
+    }
     try {
       setReviews((await wikiRequest<{ reviews: ReviewSummary[] }>("reviews")).reviews);
       setListError("");
     } catch (e) {
+      if (isStaticOfflineError(e)) {
+        setReviews([]);
+        setListError("");
+        return;
+      }
       setListError((e as Error).message);
     }
-  }, []);
+  }, [isOffline]);
 
   // 待审数要挂在入口上，所以面板没打开也要先取一次
   useEffect(() => {
     void loadReviews();
   }, [loadReviews]);
   useEffect(() => {
-    if (open && tab === "review") void loadReviews();
-  }, [open, tab, loadReviews]);
+    if (open && tab === "review" && !isOffline) void loadReviews();
+  }, [open, tab, isOffline, loadReviews]);
   useEffect(() => {
     if (layout && layout !== "closed") setLastTab(layout);
   }, [layout]);
@@ -149,16 +181,22 @@ function WikiPanelView({
     }
   }, [open, lastTriggerRef]);
 
-  const pending = reviews.filter((r) => r.state === "pending" || r.state === "publishing").length;
+  const pending = isOffline
+    ? 0
+    : reviews.filter((r) => r.state === "pending" || r.state === "publishing").length;
 
   const openPanel = useCallback(
     (nextTab?: WikiPanelTab) => {
-      const target = nextTab ?? currentTab.current;
+      const candidate = nextTab ?? currentTab.current;
+      const target: WikiPanelTab =
+        isOffline && (candidate === "drop" || candidate === "review" || candidate === "status")
+          ? "chat"
+          : candidate;
       setLastTab(target);
       if (controlled) onLayout(target);
       else setUncontrolledOpen(true);
     },
-    [controlled, onLayout],
+    [controlled, isOffline, onLayout],
   );
 
   const closePanel = useCallback(() => {
@@ -168,20 +206,21 @@ function WikiPanelView({
 
   const openReview = useCallback(
     (id: string) => {
+      if (isOffline) return;
       void loadReviews();
       setSelected(id);
       openPanel("review");
     },
-    [loadReviews, openPanel],
+    [isOffline, loadReviews, openPanel],
   );
 
   function onTabKey(e: KeyboardEvent) {
     const index = tabIndexAfterKey(
       e.key,
-      TABS.findIndex((t) => t.id === tab),
-      TABS.length,
+      visibleTabs.findIndex((t) => t.id === tab),
+      visibleTabs.length,
     );
-    const next = index === undefined ? undefined : TABS[index];
+    const next = index === undefined ? undefined : visibleTabs[index];
     if (!next) return;
     e.preventDefault();
     openPanel(next.id);
@@ -214,7 +253,7 @@ function WikiPanelView({
       <ReaderResizeHandle side="assistant" />
       <header className="wiki-panel-head">
         <div className="wiki-panel-tabs" role="tablist" aria-label="知识库助手" onKeyDown={onTabKey}>
-          {TABS.map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t.id}
               ref={(el) => {
@@ -252,20 +291,26 @@ function WikiPanelView({
         <span title={revision}>
           {mode === "build" ? "构建版本" : "知识版本"} <code>{revision.slice(0, 12)}</code>
         </span>
-        <button
-          type="button"
-          disabled={refreshing}
-          onClick={() => {
-            setRefreshing(true);
-            void onRefresh()
-              .catch(() => false)
-              .finally(() => setRefreshing(false));
-            void loadReviews();
-          }}
-        >
-          <RefreshCw size={12} className={refreshing ? "is-spinning" : undefined} />
-          刷新知识库
-        </button>
+        {isOffline ? (
+          <span className="wiki-static-mode-pill" data-testid="wiki-static-mode-pill">
+            纯静态离线浏览
+          </span>
+        ) : (
+          <button
+            type="button"
+            disabled={refreshing}
+            onClick={() => {
+              setRefreshing(true);
+              void onRefresh()
+                .catch(() => false)
+                .finally(() => setRefreshing(false));
+              void loadReviews();
+            }}
+          >
+            <RefreshCw size={12} className={refreshing ? "is-spinning" : undefined} />
+            刷新知识库
+          </button>
+        )}
       </div>
 
       {openedTabs.has("chat") ? (
@@ -273,6 +318,7 @@ function WikiPanelView({
           <ChatPane
             id={panelIdOf("chat")}
             chat={chat}
+            backendAvailable={effectiveBackend}
             currentId={currentId}
             hidden={tab !== "chat"}
             onReview={openReview}
@@ -288,44 +334,52 @@ function WikiPanelView({
       ) : (
         <div id={panelIdOf("evidence")} role="tabpanel" hidden />
       )}
-      {openedTabs.has("drop") ? (
-        <Suspense fallback={<div id={panelIdOf("drop")} role="tabpanel" hidden={tab !== "drop"} />}>
-          <DropPane id={panelIdOf("drop")} hidden={tab !== "drop"} onReview={openReview} />
-        </Suspense>
-      ) : (
-        <div id={panelIdOf("drop")} role="tabpanel" hidden />
-      )}
-      {openedTabs.has("review") ? (
-        <Suspense fallback={<div id={panelIdOf("review")} role="tabpanel" hidden={tab !== "review"} />}>
-          <ReviewPane
-            id={panelIdOf("review")}
-            hidden={tab !== "review"}
-            reviews={reviews}
-            listError={listError}
-            selected={selected}
-            onSelect={setSelected}
-            onChanged={(r) => setReviews((items) => items.map((x) => (x.id === r.id ? { ...x, ...r } : x)))}
-            onPublished={async () => {
-              // false means a newer refresh superseded this one; actual read failures reject.
-              // Reload the list too: a batch publishes its parent receipt as well as its children.
-              await Promise.all([onRefresh(), loadReviews()]);
-            }}
-          />
-        </Suspense>
-      ) : (
-        <div id={panelIdOf("review")} role="tabpanel" hidden />
-      )}
-      {openedTabs.has("status") ? (
-        <Suspense fallback={<div id={panelIdOf("status")} role="tabpanel" hidden={tab !== "status"} />}>
-          <StatusPane
-            id={panelIdOf("status")}
-            hidden={tab !== "status"}
-            onOpenReview={() => openPanel("review")}
-          />
-        </Suspense>
-      ) : (
-        <div id={panelIdOf("status")} role="tabpanel" hidden />
-      )}
+      {!isOffline &&
+        (openedTabs.has("drop") ? (
+          <Suspense fallback={<div id={panelIdOf("drop")} role="tabpanel" hidden={tab !== "drop"} />}>
+            <DropPane
+              id={panelIdOf("drop")}
+              backendAvailable={effectiveBackend}
+              hidden={tab !== "drop"}
+              onReview={openReview}
+            />
+          </Suspense>
+        ) : (
+          <div id={panelIdOf("drop")} role="tabpanel" hidden />
+        ))}
+      {!isOffline &&
+        (openedTabs.has("review") ? (
+          <Suspense fallback={<div id={panelIdOf("review")} role="tabpanel" hidden={tab !== "review"} />}>
+            <ReviewPane
+              id={panelIdOf("review")}
+              hidden={tab !== "review"}
+              reviews={reviews}
+              listError={listError}
+              selected={selected}
+              onSelect={setSelected}
+              onChanged={(r) => setReviews((items) => items.map((x) => (x.id === r.id ? { ...x, ...r } : x)))}
+              onPublished={async () => {
+                // false means a newer refresh superseded this one; actual read failures reject.
+                // Reload the list too: a batch publishes its parent receipt as well as its children.
+                await Promise.all([onRefresh(), loadReviews()]);
+              }}
+            />
+          </Suspense>
+        ) : (
+          <div id={panelIdOf("review")} role="tabpanel" hidden />
+        ))}
+      {!isOffline &&
+        (openedTabs.has("status") ? (
+          <Suspense fallback={<div id={panelIdOf("status")} role="tabpanel" hidden={tab !== "status"} />}>
+            <StatusPane
+              id={panelIdOf("status")}
+              hidden={tab !== "status"}
+              onOpenReview={() => openPanel("review")}
+            />
+          </Suspense>
+        ) : (
+          <div id={panelIdOf("status")} role="tabpanel" hidden />
+        ))}
     </aside>
   );
 }

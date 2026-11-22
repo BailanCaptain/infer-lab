@@ -3,6 +3,7 @@ import { Link, useInRouterContext } from "react-router";
 import { fragmentId } from "../../content/wiki/anchors";
 import { findByAlias, resolvePageId, rewriteRelativeLink, routePathOf } from "../../content/wiki/index";
 import { pageDisplayTitle } from "../../content/wiki/param-display";
+import { appendFromPageToExperienceRoute } from "../model/qwen-frame";
 
 export function expandAncestorDetails(target: Element): void {
   for (let el: Element | null = target; el; el = el.parentElement) {
@@ -73,6 +74,7 @@ export function WikiContentLink({
   const inRouter = useInRouterContext();
   const to = rewriteRelativeLink(href ?? "", currentId);
   const route = routePathOf(to);
+  const effectiveRoute = route ? appendFromPageToExperienceRoute(route, currentId) : null;
   const routePageRawId = route?.startsWith("/wiki/")
     ? route.slice("/wiki/".length).split(/[?#]/)[0]
     : undefined;
@@ -82,10 +84,10 @@ export function WikiContentLink({
   const effectiveTitle = title ?? (resolvedTarget ? pageDisplayTitle(resolvedTarget) : undefined);
   const fragmentIndex = to.startsWith("#/") ? to.indexOf("#", 1) : -1;
   const targetFragment = fragmentIndex > 0 ? to.slice(fragmentIndex) : "";
-  if (route && inRouter) {
+  if (effectiveRoute && inRouter) {
     return (
       <Link
-        to={route}
+        to={effectiveRoute}
         title={effectiveTitle}
         onClick={(event) => {
           if (!isPlainPrimaryLinkClick(event)) return;

@@ -72,6 +72,7 @@ it("每个演示文档独立加载共享字体，字体样式及 WOFF2 资产可
     "glm-flow/master/model.html",
     "glm-flow/master/flow.html",
     "glm-flow/master/arch.html",
+    "qwen-flow/master/index.html",
   ]) {
     const html = readFileSync(join(root, path), "utf8");
     expect(html, path).toMatch(/<link rel="stylesheet" href="(?:\.\.\/)+typography\.css">/);
@@ -589,4 +590,68 @@ it("全套八款硬件演示的延伸阅读 Wiki 路由均真实存在，杜绝 
     }
   }
   expect(missing).toEqual([]);
+});
+
+it("Qwen3-8B 与 Qwen3-30B-A3B 四视图母版满足规格、无重叠几何与零调试残留契约", async () => {
+  const root = "public/experiences";
+  const html = readFileSync(join(root, "qwen-flow/master/index.html"), "utf8");
+  expect(html).toContain("../../reader-theme.css");
+  expect(html).not.toMatch(/tunebar|tunepop|input\[type="color"\]|pal=|heads=/i);
+
+  const [{ QWEN_MODELS, QWEN_SEGMENTS }, { layoutQwenLayer, layoutQwenModel }] = await Promise.all([
+    import(pathToFileURL(resolve(root, "qwen-flow/master/qwen-spec.js")).href),
+    import(pathToFileURL(resolve(root, "qwen-flow/master/qwen-layout.js")).href),
+  ]);
+
+  expect(QWEN_MODELS["8b"]).toMatchObject({
+    numLayers: 36,
+    hidden: 4096,
+    intermediate: 12288,
+    numHeads: 32,
+    numKvHeads: 8,
+    headDim: 128,
+    qkNorm: true,
+    ropeTheta: 1_000_000,
+    vocab: 151_936,
+    tieWordEmbeddings: false,
+    kvKiBPerTokenTotal: 144,
+  });
+  expect(QWEN_MODELS["30b-a3b"]).toMatchObject({
+    numLayers: 48,
+    hidden: 2048,
+    intermediate: 768,
+    numHeads: 32,
+    numKvHeads: 4,
+    numExperts: 128,
+    topK: 8,
+    numSharedExperts: 0,
+    normTopkProb: true,
+    kvKiBPerTokenTotal: 96,
+  });
+  expect(QWEN_SEGMENTS.length).toBeGreaterThanOrEqual(12);
+  expect(QWEN_SEGMENTS.length).toBeLessThanOrEqual(16);
+
+  for (const variant of ["8b", "30b-a3b"] as const) {
+    const layer = layoutQwenLayer(variant);
+    const model = layoutQwenModel(variant);
+    expect(layer.blocks.length).toBeGreaterThanOrEqual(18);
+    expect(model.blocks.length).toBeGreaterThan(layer.blocks.length);
+    expect(model.arrows.length).toBeGreaterThan(layer.arrows.length);
+    for (const b of model.blocks) {
+      expect(Number.isFinite(b.x0) && b.x1 > b.x0, `${variant}:${b.id} x`).toBe(true);
+      expect(Number.isFinite(b.y0) && b.y1 > b.y0, `${variant}:${b.id} y`).toBe(true);
+      expect(Number.isFinite(b.z0) && b.z1 > b.z0, `${variant}:${b.id} z`).toBe(true);
+    }
+    // Verify no 3D overlap between any pair of blocks in the model layout
+    for (let i = 0; i < model.blocks.length; i++) {
+      for (let j = i + 1; j < model.blocks.length; j++) {
+        const a = model.blocks[i]!;
+        const b = model.blocks[j]!;
+        const ox = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+        const oy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+        const oz = Math.min(a.z1, b.z1) - Math.max(a.z0, b.z0);
+        expect(ox > 0.05 && oy > 0.05 && oz > 0.05, `${variant} overlap ${a.id} vs ${b.id}`).toBe(false);
+      }
+    }
+  }
 });

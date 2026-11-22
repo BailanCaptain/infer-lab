@@ -29,8 +29,7 @@ test("切换测量：共享页头，硬件静止时不持续绘制", async ({ pa
   const modelReadyMs = Date.now() - beginSwitch;
   const modelPixels = await page
     .frameLocator(".experience-frame")
-    .frameLocator("#stage")
-    .locator("canvas")
+    .locator("#stage canvas")
     .evaluate((canvas: HTMLCanvasElement) => ({
       pixels: canvas.width * canvas.height,
       css: canvas.clientWidth * canvas.clientHeight,
@@ -163,7 +162,7 @@ test("模型四种视图沿用统一顶栏，手机切换不挤出横向页面",
     await expect(page.locator(".reader-header")).toBeInViewport();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
-  const mobileModel = page.frameLocator(".experience-frame").frameLocator("#stage").locator("canvas");
+  const mobileModel = page.frameLocator(".experience-frame").locator("#stage canvas");
   await expect(mobileModel).toBeVisible();
   const modelBox = (await mobileModel.boundingBox())!;
   expect(modelBox.x + modelBox.width).toBeLessThanOrEqual(390);

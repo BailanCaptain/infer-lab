@@ -386,6 +386,36 @@
       "sha256": "bb8f01c42cb92a52ca72e65afb4d5bd8d11aef083cd210e8de25dfb904f23e9f"
     },
     {
+      "path": "qwen-flow/master/index.html",
+      "bytes": 20859,
+      "sourceSha256": "d2be6097e9dfd8afe40b15d22e8173be111650701eac670dc26276e608589790",
+      "sha256": "d2be6097e9dfd8afe40b15d22e8173be111650701eac670dc26276e608589790"
+    },
+    {
+      "path": "qwen-flow/master/qwen-arch.js",
+      "bytes": 11243,
+      "sourceSha256": "eb78a157558327a26512412b295cd9366923429ce1d57b7558265bedb59ec36b",
+      "sha256": "eb78a157558327a26512412b295cd9366923429ce1d57b7558265bedb59ec36b"
+    },
+    {
+      "path": "qwen-flow/master/qwen-layout.js",
+      "bytes": 21978,
+      "sourceSha256": "bb42fd03dd7ddf220bd978718c801a324af89203d92b7ae91f08a8036de03d88",
+      "sha256": "bb42fd03dd7ddf220bd978718c801a324af89203d92b7ae91f08a8036de03d88"
+    },
+    {
+      "path": "qwen-flow/master/qwen-spec.js",
+      "bytes": 16233,
+      "sourceSha256": "e4808aa0a7ba9ce0008045fcd098dacd3ba1255259b7dd2fdcb6c2f1988a9b8b",
+      "sha256": "e4808aa0a7ba9ce0008045fcd098dacd3ba1255259b7dd2fdcb6c2f1988a9b8b"
+    },
+    {
+      "path": "qwen-flow/master/qwen-stage.js",
+      "bytes": 16428,
+      "sourceSha256": "9ae4d0a8c86d063b0336036a89decb0364fd4ef9d1a9d1d277e4fa933fc69ed1",
+      "sha256": "9ae4d0a8c86d063b0336036a89decb0364fd4ef9d1a9d1d277e4fa933fc69ed1"
+    },
+    {
       "path": "vendor/build/three.core.js",
       "bytes": 1443056,
       "sourceSha256": "3718df126d69c125362a03340913204470d8c50238605150e57f808840fb7759",
@@ -1707,9 +1737,9 @@
     },
     {
       "path": "whole/assets/dgx-b200.glb",
-      "bytes": 3702016,
-      "sourceSha256": "efeb595b28c93f4741494cabb980903b0b64812faf8d52a59b68a77772e07139",
-      "sha256": "efeb595b28c93f4741494cabb980903b0b64812faf8d52a59b68a77772e07139"
+      "bytes": 3701604,
+      "sourceSha256": "41abc12b62d3d14672e4dceae2ac9e897f3c7fac3e6bf49ca8bde5a402c6ef7b",
+      "sha256": "41abc12b62d3d14672e4dceae2ac9e897f3c7fac3e6bf49ca8bde5a402c6ef7b"
     },
     {
       "path": "whole/assets/dgx-h100.glb",
@@ -1719,21 +1749,21 @@
     },
     {
       "path": "whole/assets/gb200-nvl72.glb",
-      "bytes": 1441460,
-      "sourceSha256": "2f413a8b29ba9829cc86f0d63aff577fe318ccb00faf87f179778c60512c0e26",
-      "sha256": "2f413a8b29ba9829cc86f0d63aff577fe318ccb00faf87f179778c60512c0e26"
+      "bytes": 1441748,
+      "sourceSha256": "6f004f14ba156deaf3122d736108323897b115feb5e7ca95a2aca222d8e6457f",
+      "sha256": "6f004f14ba156deaf3122d736108323897b115feb5e7ca95a2aca222d8e6457f"
     },
     {
       "path": "whole/assets/h100-nvl-pcie.glb",
-      "bytes": 2055288,
-      "sourceSha256": "3dfe38957e8972fe4e8758820a5bb31f5e6da0b52d63560ded5cd266676fe2c0",
-      "sha256": "3dfe38957e8972fe4e8758820a5bb31f5e6da0b52d63560ded5cd266676fe2c0"
+      "bytes": 2055684,
+      "sourceSha256": "39d9872773cf4c66bb8f759e876d306afa857560213e62e40f0452f1db84574f",
+      "sha256": "39d9872773cf4c66bb8f759e876d306afa857560213e62e40f0452f1db84574f"
     },
     {
       "path": "whole/explain.js",
-      "bytes": 8978,
-      "sourceSha256": "68caabdd0ef2b389e6b85c23df1e6d5fc0318f254343458dd3f72df7076442a3",
-      "sha256": "68caabdd0ef2b389e6b85c23df1e6d5fc0318f254343458dd3f72df7076442a3"
+      "bytes": 9123,
+      "sourceSha256": "dc95b6da784b3000aada540bc0284bdf28a9ab760b901ed13892018ebc6b0c0f",
+      "sha256": "dc95b6da784b3000aada540bc0284bdf28a9ab760b901ed13892018ebc6b0c0f"
     },
     {
       "path": "whole/index.html",
@@ -1749,15 +1779,15 @@
     },
     {
       "path": "whole/README.md",
-      "bytes": 5111,
-      "sourceSha256": "8925ad3318a27545ba80a2d5a72dda4fcec3d68e4714fc4e64a644c9ac0883bf",
-      "sha256": "8925ad3318a27545ba80a2d5a72dda4fcec3d68e4714fc4e64a644c9ac0883bf"
+      "bytes": 5301,
+      "sourceSha256": "b22a85bbbc1e483bd59acbe6af05813e09db856831174d0ce7a0a136b24ec8e2",
+      "sha256": "b22a85bbbc1e483bd59acbe6af05813e09db856831174d0ce7a0a136b24ec8e2"
     },
     {
       "path": "whole/viewer.js",
-      "bytes": 52777,
+      "bytes": 53029,
       "sourceSha256": "0d42479a8c5585f7cc2b9032bd7305257f053e6ac70e293f77216a4c8e758fff",
-      "sha256": "056d8162a324357558b612d49bcbc4630c2a87e0ab974e37b63a67d0bbc52505"
+      "sha256": "060ebaa214c5ea2642bbbcb8612da6f70907c80f48c984167d7e182591ff9680"
     }
   ]
 }

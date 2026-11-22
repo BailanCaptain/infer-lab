@@ -1,0 +1,348 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Qwen3 模型计算演示</title>
+<script type="importmap">{"imports":{"three":"../../vendor/build/three.module.js","three/addons/":"../../vendor/examples/jsm/"}}</script>
+<link rel="stylesheet" href="../../typography.css">
+<link rel="stylesheet" href="../../reader-theme.css">
+<style>
+:root{--page:#f6f7f4;--card:#fcfcfa;--line:#dce1da;--line2:#b8c1b8;--ink:#1b2421;--ink2:#3d4a45;--muted:#626f69;--accent:#286151;--mono:var(--journey-font-mono)}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;background:var(--page);color:var(--ink);font-family:var(--journey-font-sans);overflow:hidden}
+#app{display:grid;grid-template-columns:minmax(380px,38%) 1fr;width:100%;height:100%}
+html[data-site] #app.solo,#app.solo{grid-template-columns:1fr;grid-template-rows:1fr}
+#left{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line);background:var(--card)}
+#scroll{flex:1;overflow-y:auto;padding:20px 22px 40px;scroll-behavior:smooth}
+#right,#solo-stage{position:relative;min-width:0;min-height:0;width:100%;height:100%;overflow:hidden}
+#stage{position:relative;width:100%;height:100%;overflow:hidden;background:radial-gradient(circle at 52% 38%,#ffffff 0%,#fcfcfa 66%,#f2f4f0 100%)}
+#stage canvas{position:absolute;inset:0;display:block}
+.kicker{font:700 12px var(--mono);color:var(--accent);letter-spacing:.05em;text-transform:uppercase}
+h1.head{font-size:21px;font-weight:800;margin:4px 0 6px;line-height:1.3;letter-spacing:-.02em}
+p.sub{color:var(--ink2);font-size:13.5px;line-height:1.65;margin:0 0 10px}
+.var-bar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+#map{border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:10px;background:var(--card);padding:10px 12px;margin-bottom:10px}
+#map .mh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;font-size:12.5px}
+.mgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.mbox{border:1px solid rgba(21,30,28,.18);border-radius:6px;padding:4px 5px;font-size:11.5px;font-weight:600;color:#17211f;text-align:center;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mbox.cur{border:2px solid #17211f;box-shadow:0 2px 6px rgba(21,30,28,.14)}
+.part{margin:20px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line);font-size:15px;font-weight:800;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.part span{font:700 11.5px var(--mono);color:var(--accent);background:#e6eee7;padding:1px 7px;border-radius:4px}
+.seg{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:8px 0;scroll-margin-top:10px}
+.seg.cur{border-color:var(--accent);border-left:4px solid var(--accent);box-shadow:0 6px 18px rgba(23,33,31,.07)}
+.seg .hd{display:flex;align-items:baseline;gap:8px;cursor:pointer}
+.seg .n{font:700 12px var(--mono);color:var(--accent);flex:none;width:22px}
+.seg .t{font-weight:700;font-size:15px;flex:1}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:8px 0 6px 28px;font-size:12px}
+.flow span{background:#f1f4f0;border:1px solid #d7e0d6;border-radius:5px;padding:2px 7px;font-family:var(--mono);font-size:11.5px;color:#24332d}
+.flow em{font-style:normal;color:var(--muted)}
+.seg p{font-size:13.5px;line-height:1.68;margin:6px 0 6px 28px;color:var(--ink)}
+.beats{list-style:none;margin:8px 0 6px 28px;padding:0;counter-reset:b}
+.beats li{counter-increment:b;font-size:13px;line-height:1.48;padding:4px 8px 4px 28px;position:relative;border-radius:6px;color:var(--muted);cursor:pointer}
+.beats li:hover{background:#eef3ee;color:var(--ink)}
+.beats li::before{content:counter(b);position:absolute;left:5px;top:4px;width:17px;height:17px;border-radius:50%;border:1px solid var(--line2);font:600 10px/15px var(--mono);text-align:center}
+.beats li.now{color:#15241e;background:#e6eee7;font-weight:700}
+.beats li.now::before{background:var(--accent);border-color:var(--accent);color:#fff}
+.go{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 0 28px}
+.btn,.vbtn{font:inherit;font-size:12.5px;font-weight:500;border:1px solid var(--line2);border-radius:999px;padding:4px 11px;background:var(--card);color:var(--ink2);cursor:pointer;transition:border-color .15s,background .15s,color .15s}
+.btn:hover,.vbtn:hover{border-color:var(--accent);color:var(--accent);background:#f2f7f3}
+.btn.on,.btn.primary,.vbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+#bar{border-top:1px solid var(--line);background:var(--card);padding:10px 14px 11px}
+#bar .r{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+#bar .now{flex:1;min-width:130px;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#bar .now i{font:700 11.5px var(--mono);font-style:normal;color:var(--accent);margin-right:6px}
+#bar .say{font-size:13px;color:var(--ink2);min-height:19px;margin:5px 0 4px}
+#prog{height:6px;background:#e4eae3;border-radius:999px;margin:6px 0 4px;position:relative;cursor:pointer;overflow:hidden}
+#prog i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:999px}
+#time{font:500 12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.l{position:absolute;white-space:nowrap;font-size:12px;line-height:1.3;color:#1e2824;pointer-events:none;text-shadow:0 0 4px #fcfcfa,0 1px 2px #fcfcfa}
+.l.t{transform:translate(-50%,-100%)}.l.c{transform:translate(-50%,-50%)}.l.rr{transform:translate(-100%,-50%)}.l.r{transform:translate(0,-50%)}.l.off{display:none}
+.l b{font-weight:700;color:#151e1c}.l i{font-style:normal;color:#52605a;font-size:11px;font-family:var(--mono)}
+#title{position:absolute;left:14px;top:10px;font-size:17px;font-weight:700;max-width:calc(100% - 340px);background:rgba(252,252,250,.94);border:1px solid #dce2d8;border-left:3.5px solid var(--accent);border-radius:8px;padding:7px 12px;z-index:3}
+#title i{display:block;font-style:normal;font-size:12.5px;line-height:1.4;font-weight:400;color:#4a5852;margin-top:2px}
+#views{position:absolute;right:14px;top:10px;text-align:right;z-index:3;display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+#views div{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
+#legend{position:absolute;left:0;right:0;bottom:0;font-size:12px;line-height:1.55;background:rgba(252,252,250,.94);padding:6px 16px;border-top:1px solid #dce2d8;color:#35433f;z-index:3}
+#legend h1{display:inline;font-size:12.5px;margin:0 8px 0 0}
+#legend .k{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid rgba(21,30,28,.22);margin:0 4px -1px 8px}
+.tok-strip{position:absolute;left:14px;bottom:54px;display:flex;gap:5px;flex-wrap:wrap;z-index:4;pointer-events:none}
+.tok-badge{font:600 11px/1.2 var(--journey-font-sans);color:#1a2b34;background:rgba(255,255,254,.96);border:1px solid #b8cbd8;border-radius:5px;padding:2px 6px;text-align:center}
+.tok-badge i{display:block;font:600 9.5px/1.2 var(--mono);color:#426072}
+.tok-badge.active{border-color:var(--accent);border-width:1.6px;background:#eef5f1;color:#132a22}
+#dotcard{position:absolute;left:14px;top:86px;max-width:min(420px,calc(100% - 28px));background:rgba(255,255,254,.96);border:1px solid #ccd6cb;border-top:3px solid var(--dot-accent,var(--accent));border-radius:10px;padding:9px 13px;z-index:5;box-shadow:0 8px 22px rgba(21,30,28,.08)}
+.dot-tag{font:700 13px/1.35 var(--journey-font-sans);color:#151e1c}
+.dot-shape{font:12px/1.5 var(--journey-font-sans);color:#485650;margin-top:4px}
+.dot-shape>i{display:inline-block;padding:0 5px;margin-right:5px;font-style:normal;font-weight:700;font-size:10.5px;color:var(--accent);background:#eaf1ec;border-radius:3px}
+.dot-shape b{font:600 11.5px var(--mono);color:#151e1c}
+#dotpill{position:absolute;right:14px;bottom:54px;max-width:min(520px,calc(100% - 28px));background:rgba(255,255,254,.97);border:1px solid #bfccc0;border-radius:8px;padding:6px 11px;z-index:5;box-shadow:0 6px 16px rgba(21,30,28,.08)}
+.dot-formula{font:600 12px var(--mono);color:#1e2824}
+#webgl-lost{position:absolute;inset:0;display:grid;place-items:center;background:rgba(246,247,244,.94);z-index:20}
+#webgl-lost[hidden]{display:none}
+.lost-box{max-width:340px;background:#fff;border:1px solid #ccd6cb;border-radius:12px;padding:18px 20px;text-align:center;box-shadow:0 10px 28px rgba(21,30,28,.1)}
+.qwen-arch-shell{display:flex;flex-direction:column;height:100%;padding:12px 16px;gap:10px;overflow:auto;background:var(--page)}
+.qwen-arch-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.qwen-arch-head #title,.qwen-arch-head #views{position:static;max-width:none}
+.qwen-arch-canvas{flex:1;min-height:300px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;align-items:center;justify-content:center}
+.qwen-arch-canvas svg{width:100%;max-width:1240px;height:auto;display:block}
+.qwen-arch-canvas .box{cursor:pointer}.qwen-arch-canvas .box.sel rect{stroke:#151e1c;stroke-width:2.6}
+.arch-group-title{font:700 13px var(--journey-font-sans);fill:#24332d}
+.box-title{font:700 13px var(--journey-font-sans);fill:#17211f}
+.box-sub{font:500 11px var(--mono);fill:#35433f}
+.qwen-arch-inspect{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px 14px;font-size:13px}
+.ins-tag{border:1px solid;border-radius:6px;padding:2px 8px;font-weight:700}
+.ins-shape{font-family:var(--mono);font-size:12px;background:#f1f4f0;padding:2px 7px;border-radius:4px}
+@media(max-width:920px){
+  #app:not(.solo){grid-template-columns:1fr;grid-template-rows:minmax(260px,46%) minmax(0,1fr)}
+  #right{grid-row:1}#left{grid-row:2;border-right:0;border-top:1px solid var(--line)}
+  #stage>#title{position:relative;left:auto;top:auto;max-width:none;width:calc(100% - 16px);margin:8px 8px 0;padding:6px 10px;font-size:15px}
+  #stage>#title i{font-size:11.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  #stage>#views{position:relative;right:auto;top:auto;margin:6px 8px 0;align-items:flex-start}
+  #stage>#views div{justify-content:flex-start}
+  #dotcard{top:auto;bottom:86px;max-width:calc(100% - 20px)}
+  #dotpill{display:none}
+}
+@media(max-width:640px){
+  .tok-strip:not(.is-focus){display:none}
+}
+</style>
+<script>if(new URLSearchParams(location.search).get("site")==="1"||window.frameElement?.classList.contains("experience-frame"))document.documentElement.dataset.site="true";</script>
+</head><body><div id="root"></div>
+<script type="module">
+import { ACCENTS, PALETTES, mix } from '../../glm-flow/master/flow-colors.js';
+import { renderQwenArch } from './qwen-arch.js';
+import { QWEN_MODELS, QWEN_PARTS, QWEN_SEGMENTS, TOTAL_DURATION, getQwenVariant, segDuration } from './qwen-spec.js';
+import { mountQwenStage } from './qwen-stage.js';
+
+const params = new URLSearchParams(location.search);
+const viewId = ['play', 'model', 'layer', 'arch'].includes(params.get('view')) ? params.get('view') : 'play';
+let variant = getQwenVariant(params.get('variant'));
+const root = document.getElementById('root');
+root.style.width = '100%';
+root.style.height = '100%';
+
+const fmt = (sec) => {
+  const s = Math.max(0, Math.floor(sec));
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+};
+
+let activeStage = null;
+function unmountStage() {
+  if (activeStage) { activeStage.dispose(); activeStage = null; }
+}
+
+function setVariant(next) {
+  const nv = getQwenVariant(next);
+  if (nv === variant) return;
+  variant = nv;
+  const u = new URL(location.href);
+  u.searchParams.set('variant', variant);
+  history.replaceState(null, '', u.toString());
+  boot();
+}
+
+function bootArch() {
+  unmountStage();
+  root.innerHTML = '<div id="arch-root" style="width:100%;height:100%"></div>';
+  renderQwenArch(document.getElementById('arch-root'), { variant, onVariantChange: setVariant });
+}
+
+function bootSolo(mode) {
+  unmountStage();
+  root.innerHTML = '<div id="app" class="solo"><div id="solo-stage"><div id="stage"></div></div></div>';
+  window.__truth = { ready: false, variant, mode };
+  activeStage = mountQwenStage({
+    host: document.getElementById('stage'),
+    mode,
+    variant,
+    onVariantChange: setVariant,
+    onFirstFrame() { window.__truth = { ready: true, variant, mode }; },
+  });
+}
+
+function bootPlay() {
+  unmountStage();
+  const spec = QWEN_MODELS[variant];
+  const P = PALETTES.user;
+  root.innerHTML = `<div id="app"><div id="left"><div id="scroll"></div><div id="bar"></div></div><div id="right"><div id="stage"></div></div></div>`;
+  const scroll = document.getElementById('scroll');
+  const bar = document.getElementById('bar');
+
+  const mapBoxes = QWEN_SEGMENTS.map((s) =>
+    `<div class="mbox" data-n="${s.n}" style="background:${mix(P[s.comp][0], '#fcfcfa', 0.34)};border-color:${mix(P[s.comp][0], ACCENTS[s.comp] || '#4a5852', 0.44)}">${String(s.n).padStart(2, '0')} ${s.title.slice(0, 6)}</div>`
+  ).join('');
+
+  const partsHtml = QWEN_PARTS.map((p) => {
+    const segs = QWEN_SEGMENTS.filter((s) => s.part === p.id).map((s) => {
+      const flow = variant === '30b-a3b' ? s.flow30b : s.flow8b;
+      const beatsHtml = s.beats.map((b, bi) => `<li data-seg="${s.n}" data-beat="${bi}">${b.text}</li>`).join('');
+      return `<article class="seg" id="s${s.n}" data-n="${s.n}">
+        <div class="hd" data-show="${s.n}"><span class="n">${String(s.n).padStart(2, '0')}</span><span class="t">${s.title}</span></div>
+        <div class="flow">${flow.map((f) => `<span>${f}</span>`).join('<em>→</em>')}</div>
+        <p>${s.summary}</p>
+        <ol class="beats">${beatsHtml}</ol>
+        <div class="go"><button type="button" class="btn primary" data-play="${s.n}">播放本段</button><button type="button" class="btn" data-show="${s.n}">定位张量</button></div>
+      </article>`;
+    }).join('');
+    return `<h2 class="part"><span>${p.tag}</span>${p.title}</h2>${segs}`;
+  }).join('');
+
+  scroll.innerHTML = `
+    <div class="kicker">${spec.badge} · ${spec.name}</div>
+    <h1 class="head">${spec.name} 完整前向推理演示</h1>
+    <p class="sub">${spec.tagline}；KV Cache ${spec.kvKiBPerTokenTotal} KiB/token。</p>
+    <div class="var-bar">
+      <button type="button" class="btn ${variant === '8b' ? 'on' : ''}" data-variant="8b">Qwen3-8B (Dense)</button>
+      <button type="button" class="btn ${variant === '30b-a3b' ? 'on' : ''}" data-variant="30b-a3b">Qwen3-30B-A3B (MoE 对照)</button>
+    </div>
+    <section id="map"><div class="mh"><b>16 步计算导航</b><span>点击任意步骤聚焦三维张量</span></div><div class="mgrid">${mapBoxes}</div></section>
+    ${partsHtml}
+  `;
+
+  bar.innerHTML = `
+    <div class="r">
+      <button type="button" class="btn primary" id="play">播放</button>
+      <button type="button" class="btn" id="prev">上一段</button>
+      <button type="button" class="btn" id="next">下一段</button>
+      <button type="button" class="btn" id="whole">整模型</button>
+      <div class="now" id="bar-now"><i>00</i>整模型总览</div>
+      <span id="time">00:00 / ${fmt(TOTAL_DURATION)}</span>
+    </div>
+    <div class="say" id="bar-say">点击任意段落或「播放」，观察单路残差、GQA、QK-Norm、RoPE 与前馈计算。</div>
+    <div id="prog"><i id="prog-fill" style="width:0%"></i></div>
+  `;
+
+  let curSeg = 0; // 0 = whole model overview
+  let curBeat = 0;
+  let elapsed = 0;
+  let playing = false;
+  let lastTs = 0;
+  let clockRaf = 0;
+
+  const segStarts = [];
+  let acc = 0;
+  for (const s of QWEN_SEGMENTS) { segStarts.push(acc); acc += segDuration(s); }
+
+  const state = { ready: false, playing: false, seg: 0, variant };
+  const pause = () => {
+    playing = false;
+    state.playing = false;
+    cancelAnimationFrame(clockRaf);
+    const playBtn = document.getElementById('play');
+    if (playBtn) playBtn.textContent = '播放';
+  };
+  window.__chapter = { state, send(msg) { if (msg?.cmd === 'pause') pause(); } };
+
+  function syncUI(beatFrac = 0.5) {
+    document.querySelectorAll('.seg').forEach((el) => el.classList.toggle('cur', Number(el.dataset.n) === curSeg));
+    document.querySelectorAll('.mbox').forEach((el) => el.classList.toggle('cur', Number(el.dataset.n) === curSeg));
+    document.querySelectorAll('.beats li').forEach((el) => {
+      el.classList.toggle('now', Number(el.dataset.seg) === curSeg && Number(el.dataset.beat) === curBeat);
+    });
+    const seg = QWEN_SEGMENTS[curSeg - 1] || null;
+    document.getElementById('bar-now').innerHTML = seg ? `<i>${String(seg.n).padStart(2, '0')}</i>${seg.title}` : '<i>00</i>整模型总览';
+    document.getElementById('bar-say').textContent = seg ? (seg.beats[curBeat]?.text || seg.summary) : '整模型总览：可拖拽旋转，或点击段落聚焦计算。';
+    document.getElementById('time').textContent = `${fmt(elapsed)} / ${fmt(TOTAL_DURATION)}`;
+    document.getElementById('prog-fill').style.width = `${Math.min(100, (elapsed / TOTAL_DURATION) * 100)}%`;
+    state.seg = curSeg;
+    if (activeStage) {
+      if (seg) activeStage.focusSegment(seg, curBeat, beatFrac);
+      else activeStage.showWhole();
+    }
+  }
+
+  function locateTime(t) {
+    elapsed = Math.max(0, Math.min(TOTAL_DURATION, t));
+    for (let i = 0; i < QWEN_SEGMENTS.length; i++) {
+      const s = QWEN_SEGMENTS[i];
+      const d = segDuration(s);
+      if (elapsed <= segStarts[i] + d || i === QWEN_SEGMENTS.length - 1) {
+        curSeg = s.n;
+        let rem = elapsed - segStarts[i];
+        curBeat = 0;
+        let bf = 0;
+        for (let b = 0; b < s.beats.length; b++) {
+          if (rem <= s.beats[b].dur || b === s.beats.length - 1) {
+            curBeat = b;
+            bf = Math.min(1, Math.max(0, rem / s.beats[b].dur));
+            break;
+          }
+          rem -= s.beats[b].dur;
+        }
+        syncUI(bf);
+        return;
+      }
+    }
+  }
+
+  function tick(ts) {
+    if (!playing) return;
+    const dt = lastTs ? Math.min(0.12, (ts - lastTs) / 1000) : 0.016;
+    lastTs = ts;
+    if (elapsed + dt >= TOTAL_DURATION) { locateTime(TOTAL_DURATION); pause(); return; }
+    locateTime(elapsed + dt);
+    clockRaf = requestAnimationFrame(tick);
+  }
+
+  function startPlay(fromSeg = null) {
+    if (fromSeg !== null) {
+      elapsed = segStarts[fromSeg - 1] ?? 0;
+      locateTime(elapsed);
+    } else if (curSeg === 0 || elapsed >= TOTAL_DURATION - 0.05) {
+      elapsed = 0;
+      locateTime(0);
+    }
+    playing = true;
+    state.playing = true;
+    lastTs = 0;
+    document.getElementById('play').textContent = '暂停';
+    clockRaf = requestAnimationFrame(tick);
+  }
+
+  scroll.addEventListener('click', (ev) => {
+    const vbtn = ev.target.closest('button[data-variant]');
+    if (vbtn) { pause(); setVariant(vbtn.dataset.variant); return; }
+    const playEl = ev.target.closest('[data-play]');
+    if (playEl) { startPlay(Number(playEl.dataset.play)); return; }
+    const showEl = ev.target.closest('[data-show], .mbox');
+    if (showEl) {
+      pause();
+      const n = Number(showEl.dataset.show || showEl.dataset.n);
+      locateTime(segStarts[n - 1] ?? 0);
+      document.getElementById(`s${n}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
+    const beatEl = ev.target.closest('.beats li');
+    if (beatEl) {
+      pause();
+      const n = Number(beatEl.dataset.seg);
+      const bi = Number(beatEl.dataset.beat);
+      const seg = QWEN_SEGMENTS[n - 1];
+      let t = segStarts[n - 1] ?? 0;
+      for (let i = 0; i < bi; i++) t += seg.beats[i].dur;
+      locateTime(t + 0.05);
+    }
+  });
+
+  document.getElementById('play').addEventListener('click', () => (playing ? pause() : startPlay()));
+  document.getElementById('whole').addEventListener('click', () => { pause(); curSeg = 0; curBeat = 0; elapsed = 0; syncUI(0); });
+  document.getElementById('prev').addEventListener('click', () => { const n = Math.max(1, (curSeg || 1) - 1); pause(); locateTime(segStarts[n - 1]); });
+  document.getElementById('next').addEventListener('click', () => { const n = Math.min(QWEN_SEGMENTS.length, curSeg + 1); startPlay(n); });
+  document.getElementById('prog').addEventListener('click', (ev) => {
+    const r = ev.currentTarget.getBoundingClientRect();
+    const frac = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
+    locateTime(frac * TOTAL_DURATION);
+  });
+
+  activeStage = mountQwenStage({
+    host: document.getElementById('stage'),
+    mode: 'play',
+    variant,
+    onVariantChange: (v) => { pause(); setVariant(v); },
+    onFirstFrame() { state.ready = true; },
+  });
+}
+
+function boot() {
+  if (viewId === 'arch') bootArch();
+  else if (viewId === 'model') bootSolo('model');
+  else if (viewId === 'layer') bootSolo('layer');
+  else bootPlay();
+}
+boot();
+</script></body></html>

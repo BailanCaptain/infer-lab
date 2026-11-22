@@ -16,6 +16,7 @@ import {
 } from "../../sim/aicore/matmulRmsScenario";
 import { useOptionalWikiAssistant } from "../wiki/assistant-context";
 import { ToolDeepLinkById } from "./ToolDeepLinkChip";
+import { sanitizeDiagnosticText } from "./workbenchHandoff";
 
 export interface AiCoreLabViewProps {
   mode?: "single" | "full" | undefined;
@@ -884,8 +885,17 @@ export function AiCoreLabView({ mode, title, summary, embedded = false }: AiCore
 
   const handleAskAssistant = (event: MouseEvent<HTMLButtonElement>) => {
     if (!assistant) return;
+    const rawPrompt = buildAssistantPrompt(result);
+    const { sanitized, redactionCount } = sanitizeDiagnosticText(rawPrompt);
+    const archLabel = result.input.arch === "950" ? "Ascend 950" : "Ascend 910B";
     assistant.openChat({
-      prompt: buildAssistantPrompt(result),
+      pendingAttachment: {
+        title: `AI Core 算子流水线脱敏快照（${archLabel}）`,
+        summary: `算术强度 ${result.gmBytes.arithmeticIntensity.toFixed(2)} FLOP/B · 总 GM/L2 ${result.gmBytes.totalGmBytes.toLocaleString("en-US")} B`,
+        sanitizedBlock: sanitized,
+        redactionCount,
+        suggestedQuestion: `请结合 ${archLabel} AI Core 泳道与 Roofline 数据，解释当前配置下的搬运与融合收益边界。`,
+      },
       submit: false,
       trigger: event.currentTarget,
     });

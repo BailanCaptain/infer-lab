@@ -1,5 +1,5 @@
 import "../../design/tools.css";
-import { type MouseEvent, useId, useMemo, useState } from "react";
+import { type MouseEvent, useEffect, useId, useMemo, useState } from "react";
 import { sourceUrl } from "../../content/wiki/index";
 import { parseRepoRef } from "../../content/wiki/schema";
 import { runPdConfigDoctorWithLinks, runSingleConfigDoctorWithLinks } from "../../content/wiki/toolDeeplinks";
@@ -28,6 +28,7 @@ import type {
 } from "../../sim/rules";
 import { useOptionalWikiAssistant } from "../wiki/assistant-context";
 import { ToolDeepLinkChip } from "./ToolDeepLinkChip";
+import { buildDoctorChatAnalysis, sanitizeDiagnosticText, workbenchHandoffStore } from "./workbenchHandoff";
 
 type DoctorTopology = "single" | "pd";
 type ModelHintKey = "auto" | "qwen3-8b" | "qwen3-30b-a3b";
@@ -444,6 +445,24 @@ export function ConfigDoctorView({
   const [prefillCommandText, setPrefillCommandText] = useState<string>(initial.prefillCommandText);
   const [decodeCommandText, setDecodeCommandText] = useState<string>(initial.decodeCommandText);
   const [findingFilter, setFindingFilter] = useState<FindingFilter>("all");
+  const [handoffSourceLabel, setHandoffSourceLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (embedded) return;
+    const applyPending = () => {
+      const payload = workbenchHandoffStore.consumeDoctor();
+      if (!payload) return;
+      setTopology("single");
+      setActivePresetId("");
+      setHardwareFamily(payload.hardwareFamily);
+      setVersion(payload.version);
+      setCommandText(payload.commandText);
+      setFindingFilter("all");
+      setHandoffSourceLabel(payload.sourceLabel);
+    };
+    applyPending();
+    return workbenchHandoffStore.subscribe(applyPending);
+  }, [embedded]);
 
   const effectiveTopology: DoctorTopology = effectiveMode === "minimal" ? "single" : topology;
   const effectiveVersion: RuleVersion = effectiveMode === "minimal" ? "v0.30.0" : version;
@@ -558,7 +577,7 @@ export function ConfigDoctorView({
 
   const handleAskAssistant = (event: MouseEvent<HTMLButtonElement>) => {
     if (!assistant) return;
-    const prompt = buildAssistantPrompt({
+    const rawPrompt = buildAssistantPrompt({
       mode: effectiveMode,
       topology: effectiveTopology,
       hardwareFamily,
@@ -569,7 +588,29 @@ export function ConfigDoctorView({
       decodeCommandText,
       findings: allFindings,
     });
-    assistant.openChat({ prompt, submit: false, trigger: event.currentTarget });
+    const { sanitized, redactionCount } = sanitizeDiagnosticText(rawPrompt);
+    const mooncakeHint = sanitized.includes("MooncakeConnectorV1") ? "（含 MooncakeConnectorV1）" : "";
+    const suggestedQuestion = `请结合 vllm-ascend ${effectiveVersion} 源码深究这套 vllm serve${mooncakeHint} 配置体检结果，并给出最小可行修改命令。`;
+    const analysis = buildDoctorChatAnalysis({
+      command: effectiveTopology === "pd" ? prefillCommandText : commandText,
+      ...(effectiveTopology === "pd" ? { decodeCommand: decodeCommandText, decodeHardwareFamily } : {}),
+      mode: effectiveMode,
+      hardwareFamily,
+      version: effectiveVersion,
+      ...(effectiveMode === "full" ? { crossNodeRoce } : {}),
+    });
+    assistant.openChat({
+      pendingAttachment: {
+        title: `vllm serve 配置体检脱敏快照（${effectiveTopology === "pd" ? "P/D 双实例" : hardwareFamily}）`,
+        summary: `共 ${errors.length} 项硬报错 · ${silentRewrites.length} 项静默改写 · ${warnings.length} 项告警`,
+        sanitizedBlock: sanitized,
+        redactionCount,
+        suggestedQuestion,
+        ...(analysis ? { analysis } : {}),
+      },
+      submit: false,
+      trigger: event.currentTarget,
+    });
   };
 
   const displayTitle =
@@ -621,6 +662,18 @@ export function ConfigDoctorView({
             </div>
           )}
         </header>
+      )}
+
+      {handoffSourceLabel && (
+        <div className="wt-handoff-banner" data-testid="doctor-handoff-banner" role="status">
+          <span>
+            已从部署算账台（<strong>{handoffSourceLabel}</strong>
+            ）带入推荐起服务命令与芯片族，正在执行源码规则体检。
+          </span>
+          <button type="button" className="wt-preset-btn" onClick={() => setHandoffSourceLabel(null)}>
+            知道了
+          </button>
+        </div>
       )}
 
       {effectiveMode === "full" && (

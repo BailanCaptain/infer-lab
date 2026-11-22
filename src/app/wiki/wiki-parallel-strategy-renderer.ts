@@ -77,12 +77,17 @@ export type StrategyKit = {
   header: HTMLElement;
   footer: HTMLElement;
   payloads: T.InstancedMesh[];
+  chips?: T.Mesh<T.BoxGeometry, T.MeshStandardMaterial>[];
   hardwareGroup: T.Group;
   boardCenters: number[];
+  orb?: (color: string, radius?: number) => T.Mesh<T.SphereGeometry, T.MeshStandardMaterial>;
+  pick?: (object: T.Object3D, action: () => void) => void;
+  seek?: (progress: number) => void;
 };
 export type StrategyContent = {
   animate(p: number): void;
   glow(card: number, p: number): boolean;
+  glowColor?: (card: number, p: number) => string | undefined;
   result: string;
   camera: { half: number; targetY: number; footerY: number };
 };
@@ -631,12 +636,15 @@ function dataParallel(kit: StrategyKit): StrategyContent {
 
 function expertParallel(kit: StrategyKit): StrategyContent {
   const { ports, grid, paintGrid, header, footer } = kit;
-  const palette = { ...kit.palette, data: "#287fb5" };
-  const weightColor = "#b58a45";
+  const palette = { data: "#3e629c", result: kit.palette.result };
+  const weightColor = "#b8761e";
+  const sharedColor = "#7b587d";
+  const intraArcColor = "#3e629c";
+  const crossArcColor = "#c4492f";
   const label = flagged(kit);
   const { show, move, solid, dashed, operator, travel } = shared(kit);
   kit.boardCenters.forEach((x, b) => {
-    label(`服务器${b} · 卡${b * 8}–${b * 8 + 7}`, kit.hardwareGroup, v(x, 0.5, -2.65), "name");
+    label(`服务器${b} · 卡${b * 8}–${b * 8 + 7}`, kit.root, v(x * 0.86, 5.24, 0.25), "name");
   });
   const above = (card: number, dx = 0) => ports[card]!.clone().add(v(dx, 0.42, 0.2));
   const slotX = (expert: number) => (expert % 18 === 1 ? 0.3 : expert % 18 === 0 && expert > 0 ? -0.3 : -0.3);
@@ -646,12 +654,12 @@ function expertParallel(kit: StrategyKit): StrategyContent {
     axis: "4 个通道（实际 4096）→",
     focusRow: 0,
   });
-  const rowCuts = [0, 1, 2].map(() => dashed("#ae774d"));
+  const rowCuts = [0, 1, 2].map(() => dashed(weightColor));
   const rowsOut = SAMPLE_TOKENS.map((name) =>
     grid("", H0, palette.data, { rows: 1, cols: 4, rowNames: [name], axis: false, focusRow: 0 }),
   );
   const rowRoutes = SAMPLE_TOKENS.map(() => solid(palette.data));
-  const padTags = [4, 5, 6, 7].map((i) => label("补位", kit.root, above(i), "note"));
+  const padTags = [4, 5, 6, 7].map((i) => label("补位", kit.root, v(ports[i]!.x, 1.62, 0.35), "note"));
   // The focused source row, then the router's score / weight per selected expert.
   const focusHome = v(-5.45, -0.2, 0.5);
   const focus = grid("卡0 · 今天", focusHome, palette.data, {
@@ -672,18 +680,53 @@ function expertParallel(kit: StrategyKit): StrategyContent {
     focusRow: -1,
   });
   const marks = EP_EXPERTS.map((e, i) => {
+    const firstOnCard = EP_EXPERTS.findIndex((other) => other.rank === e.rank) === i;
+    const isLower = e.rank % 8 >= 4;
+    const isRemote = e.rank >= 8;
     const point = above(e.rank, slotX(e.expert)).add(v(0, -0.62, 0));
     const mark = kit.socket(kit.root, point, 1, 0.32);
+    const tagPoint = isLower ? v(ports[e.rank]!.x, 1.62, 0.35) : v(ports[e.rank]!.x, 4.54, 0.35);
     const tag = label(
       EP_EXPERTS.filter((other) => other.rank === e.rank)
         .map((other) => `E${other.expert}`)
         .join(" · "),
       kit.root,
-      above(e.rank).add(v(0, 0.42, 0)),
-      "name small",
+      tagPoint,
+      isRemote ? "expert-pill remote" : "expert-pill",
     );
-    return { mark, tag, firstOnCard: EP_EXPERTS.findIndex((other) => other.rank === e.rank) === i };
+    const stem = firstOnCard ? dashed(isRemote ? crossArcColor : intraArcColor) : null;
+    if (stem) {
+      stem.visible = false;
+      const cardEdge = isLower
+        ? v(ports[e.rank]!.x, 2.34, 0.25)
+        : ports[e.rank]!.clone().add(v(0, -0.08, 0.2));
+      const pillEdge = isLower ? v(ports[e.rank]!.x, 1.88, 0.35) : v(ports[e.rank]!.x, 4.3, 0.35);
+      kit.connect(stem, [pillEdge, cardEdge]);
+    }
+    return { mark, tag, stem, firstOnCard, rank: e.rank };
   });
+  // Physical card-to-card HCCS (Server 0) and cross-server RDMA (Server 0 -> Server 1) 3D arcs.
+  const remoteRanks = [...new Set(EP_EXPERTS.map((e) => e.rank).filter((r) => r !== EP_SOURCE))];
+  const hwArcs = new Map(
+    remoteRanks.map((rank) => {
+      const isCross = rank >= 8;
+      const from = ports[EP_SOURCE]!.clone().add(v(0, -0.26, 0.35));
+      const to = ports[rank]!.clone().add(v(0, -0.26, 0.35));
+      const mid = from.clone().lerp(to, 0.5);
+      mid.y =
+        Math.max(from.y, to.y) +
+        (isCross ? (rank === 8 ? 0.72 : rank === 11 ? 0.94 : 0.56) : rank === 5 ? 0.32 : 0.48);
+      mid.z = isCross ? 1.45 : 0.95;
+      const curve = new T.QuadraticBezierCurve3(from, mid, to);
+      const wire = kit.line(isCross ? crossArcColor : intraArcColor, false, isCross ? 2.4 : 2.1);
+      wire.visible = false;
+      kit.connect(wire, curve.getPoints(28));
+      return [rank, { rank, isCross, curve, wire }] as const;
+    }),
+  );
+  const packetOrb = kit.orb?.(intraArcColor, 0.14) ?? null;
+  const bridgeBadge = label("", kit.root, v(0, 1.62, 0.4), "bridge-pill");
+  setOn(bridgeBadge, false);
   const bankHome = v(3.6, -3.1, 0.5);
   const bankRow = (i: number) => v(bankHome.x, bankHome.y + (3.5 - i) * 0.5, bankHome.z);
   const bank = grid("专家接收区 · 同一行的 8 份副本", bankHome, palette.data, {
@@ -792,7 +835,7 @@ function expertParallel(kit: StrategyKit): StrategyContent {
     axis: false,
     focusRow: 0,
   });
-  const sharedOut = grid("共享专家输出（TP8 合算）", v(0, finalY, 0.5), "#7794b4", {
+  const sharedOut = grid("共享专家输出（TP8 合算）", v(0, finalY, 0.5), sharedColor, {
     cols: 4,
     wide: 2.2,
     rowNames: [],
@@ -832,6 +875,36 @@ function expertParallel(kit: StrategyKit): StrategyContent {
   const returnRoute = solid(palette.result);
   const retained = label("TP8 · 每卡保留整批输出", kit.root, v(-3.5, 0.15, 0.5), "name");
   const blankRow = ["", "", "", ""];
+  if (kit.pick && kit.seek) {
+    const seekCard: Record<number, number> = {
+      0: 0.24,
+      1: 0.1,
+      2: 0.52,
+      3: 0.1,
+      5: 0.37,
+      8: 0.39,
+      11: 0.43,
+      14: 0.45,
+    };
+    kit.chips?.forEach((chip, rank) => {
+      kit.pick!(chip, () => kit.seek!(seekCard[rank] ?? (rank < 8 ? 0.1 : 0.39)));
+    });
+    kit.payloads.forEach((payload, rank) => {
+      kit.pick!(payload, () => kit.seek!(seekCard[rank] ?? (rank < 8 ? 0.1 : 0.39)));
+    });
+    kit.pick(hidden.group, () => kit.seek!(0.1));
+    kit.pick(focus.group, () => kit.seek!(0.24));
+    kit.pick(router.group, () => kit.seek!(0.27));
+    kit.pick(bank.group, () => kit.seek!(0.39));
+    kit.pick(expertIn.group, () => kit.seek!(0.52));
+    kit.pick(expertOut.group, () => kit.seek!(0.52));
+    kit.pick(weights.group, () => kit.seek!(0.74));
+    kit.pick(outputs.group, () => kit.seek!(0.74));
+    kit.pick(routed.group, () => kit.seek!(0.76));
+    kit.pick(gathered.group, () => kit.seek!(0.92));
+    kit.pick(sharedOut.group, () => kit.seek!(0.92));
+    kit.pick(output.group, () => kit.seek!(0.96));
+  }
   return {
     glow: (i, p) => {
       const m = epMotion(p);
@@ -845,6 +918,14 @@ function expertParallel(kit: StrategyKit): StrategyContent {
             : Math.min(7, Math.floor((m.local / 0.42) * 8));
       if (m.weigh === 0) return i === EP_SOURCE || i === EP_EXPERTS[active]!.rank;
       return i === EP_SOURCE || EP_EXPERTS.some((e) => e.rank === i);
+    },
+    glowColor: (i, p) => {
+      const m = epMotion(p);
+      if (m.phase === 0) return intraArcColor;
+      if (m.phase === 1) return weightColor;
+      if (m.phase === 5) return palette.result;
+      if (i === EP_SOURCE) return m.phase >= 4 ? palette.result : intraArcColor;
+      return i >= 8 ? crossArcColor : intraArcColor;
     },
     result: `routed=${EP_ROUTED.join(",")};out=${EP_OUTPUT[0]!.join(",")}`,
     camera: { half: 7.4, targetY: -0.6, footerY: -6.75 },
@@ -862,9 +943,9 @@ function expertParallel(kit: StrategyKit): StrategyContent {
       ][m.phase]!;
       footer.textContent =
         m.phase === 0
-          ? "每卡顶部的蓝格是常驻的 18 位专家；专家权重不搬动"
+          ? "每卡顶部的 18 个小格是常驻路由专家（机0 靛蓝 · 机1 梅紫）；权重从不搬动"
           : m.phase === 2
-            ? "下方展开各卡的专家接收行 · 逐路展示，实际可并行 · 虚线对应当前卡"
+            ? "下方展开各卡接收行 · 蓝弧为机内 HCCS，红弧为跨机 RDMA · 虚线连向当前持有卡"
             : m.phase <= 4
               ? "卡1–3 同时为自己的行做同样的事；专家 E 在卡 ⌊E ÷ 18⌋"
               : "8 个组合权重之和为 2.5；共享专家不经过 router、不参与 EP";
@@ -888,14 +969,19 @@ function expertParallel(kit: StrategyKit): StrategyContent {
         paintGrid(t, [EP_HIDDEN[r]!], palette.data, 1, 1, 0);
       });
       padTags.forEach((el) => {
-        setOn(el, !!((m.phase === 0 && m.split === 1) || m.phase === 1));
+        setOn(el, !!((m.phase === 0 && m.split === 1) || (m.phase === 1 && m.pick === 0)));
       });
       // Phase 1: the source row expands; the router scores and keeps eight experts.
       const routing = m.phase >= 1 && m.phase <= 4;
       show(focus, m.phase === 1 || m.phase === 2);
       paintGrid(focus, [EP_HIDDEN[0]!], palette.data, 1, m.phase === 1 ? clamp01(m.local / 0.12) : 1, 0);
       extract.visible = m.phase >= 1 && m.phase <= 2;
-      kit.connect(extract, [ports[0]!, v(-7.1, ports[0]!.y, 1.2), v(-7.1, 0.55, 1.2), v(-5.45, 0.55, 0.6)]);
+      kit.connect(extract, [
+        ports[0]!,
+        v(-7.2, ports[0]!.y, 0.5),
+        v(-7.2, focusHome.y, 0.5),
+        v(-6.68, focusHome.y, 0.5),
+      ]);
       show(router, m.phase === 1 || m.phase === 2);
       paintGrid(
         router,
@@ -905,10 +991,11 @@ function expertParallel(kit: StrategyKit): StrategyContent {
         1,
         -1,
       );
-      marks.forEach(({ mark, tag, firstOnCard }, i) => {
+      marks.forEach(({ mark, tag, stem, firstOnCard }, i) => {
         const on = routing && (m.phase > 1 || m.pick > (i + 0.5) / 8);
         mark.visible = on;
         setOn(tag, !!on && firstOnCard);
+        if (stem) stem.visible = !!on && firstOnCard;
       });
       // The same eight slots receive, compute and hand back their rows; only one route is active.
       const p3 = m.phase === 3;
@@ -950,18 +1037,61 @@ function expertParallel(kit: StrategyKit): StrategyContent {
       });
       bankTags.forEach((el, i) => {
         setOn(el, bankVisible);
-        el.style.opacity = i === activeExpert ? "1" : "0.55";
+        el.style.opacity = i === activeExpert ? "1" : "0.52";
+        el.style.fontWeight = i === activeExpert ? "700" : "500";
       });
+      const activeRank = EP_EXPERTS[activeExpert]!.rank;
       bankOwner.visible = bankVisible;
-      const ownerPort = ports[EP_EXPERTS[activeExpert]!.rank]!;
+      const ownerPort = ports[activeRank]!;
+      const ownerStart = activeRank % 8 >= 4 ? v(ownerPort.x, 1.32, 0.25) : ownerPort;
       kit.connect(bankOwner, [
-        ownerPort,
-        v(ownerPort.x, 0.65, 0.1),
-        v(6.9, 0.65, 0.1),
-        v(6.9, bankRow(activeExpert).y + 0.25, 0.1),
-        bankRow(activeExpert).add(v(1.25, 0.25, -0.4)),
-        bankRow(activeExpert).add(v(1.25, 0, -0.4)),
+        ownerStart,
+        v(ownerStart.x, 0.92, 0.2),
+        v(7.08, 0.92, 0.2),
+        v(7.08, bankRow(activeExpert).y, 0.2),
+        v(6.58, bankRow(activeExpert).y, 0.2),
       ]);
+      // Animate 3D HCCS / RDMA hardware arcs, luminous token orb, and inter-server bridge summary.
+      const showBridge = m.phase >= 2 && m.phase <= 4;
+      setOn(bridgeBadge, showBridge);
+      if (showBridge) {
+        bridgeBadge.textContent =
+          m.phase === 2
+            ? "本卡直取 2 份 · 机内 HCCS 2 份 · 跨机 RDMA 4 份"
+            : p3
+              ? "6 张命中卡并行跑 SwiGLU · 专家权重常驻不搬动"
+              : m.weigh === 0
+                ? "远端 6 份输出沿 HCCS / RDMA 返回源卡 0"
+                : "源卡 0 本地按组合权重 wᵢ 加权求和";
+      }
+      hwArcs.forEach(({ rank, isCross, wire }) => {
+        const dispatched = EP_EXPERTS.some((e, i) => e.rank === rank && m.dispatch[i]! > 0);
+        const visible = (m.phase === 2 && dispatched) || p3 || (m.phase === 4 && m.weigh === 0);
+        wire.visible = visible;
+        if (!visible) return;
+        const isCurrent = rank === activeRank && (m.phase === 2 || p3 || (m.phase === 4 && m.weigh === 0));
+        wire.material.color.set(isCross ? crossArcColor : intraArcColor);
+        wire.material.opacity = isCurrent ? 0.95 : p3 ? 0.36 : 0.42;
+        wire.material.linewidth = isCurrent ? 3.1 : isCross ? 2.1 : 1.9;
+      });
+      if (packetOrb) {
+        const flight =
+          m.phase === 2
+            ? m.dispatch[activeExpert]!
+            : m.phase === 4 && m.weigh === 0
+              ? m.combine[activeExpert]!
+              : 0;
+        const activeArc = hwArcs.get(activeRank);
+        const moving = !!activeArc && flight > 0 && flight < 1;
+        packetOrb.visible = moving;
+        if (moving && activeArc) {
+          const t = m.phase === 2 ? flight : 1 - flight;
+          packetOrb.position.copy(activeArc.curve.getPoint(t));
+          const orbColor = m.phase === 4 ? palette.result : activeArc.isCross ? crossArcColor : intraArcColor;
+          packetOrb.material.color.set(orbColor);
+          packetOrb.material.emissive.set(orbColor);
+        }
+      }
       copies.forEach((t, i) => {
         const d = m.dispatch[i]!;
         show(t, m.phase === 2 && d > 0 && d < 1);
@@ -983,10 +1113,9 @@ function expertParallel(kit: StrategyKit): StrategyContent {
       combineExtract.visible = m.phase === 4;
       kit.connect(combineExtract, [
         ports[0]!,
-        v(-6.6, ports[0]!.y, 0.1),
-        v(-6.6, -0.6, 0.1),
-        v(-0.6, -0.6, 0.1),
-        v(-0.6, -1.05, 0.1),
+        v(-6.6, ports[0]!.y, 0.2),
+        v(-6.6, -0.42, 0.2),
+        v(-0.6, -0.42, 0.2),
       ]);
       show(weights, m.phase === 4);
       paintGrid(
@@ -1052,7 +1181,7 @@ function expertParallel(kit: StrategyKit): StrategyContent {
         paintGrid(t, [EP_ROUTED_ROWS[r]!], palette.result, 1, 1, 0);
       });
       show(sharedOut, p5 && m.shared > 0);
-      paintGrid(sharedOut, EP_SHARED, "#7794b4", m.shared, 1, -1);
+      paintGrid(sharedOut, EP_SHARED, sharedColor, m.shared, 1, -1);
       show(output, p5 && m.add > 0);
       paintGrid(output, EP_OUTPUT, palette.result, m.add, 1, 0);
       setOn(finalOps[0]!, !!(p5 && m.shared > 0));

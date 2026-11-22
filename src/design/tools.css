@@ -1304,3 +1304,22 @@
     grid-template-columns: 1fr;
   }
 }
+
+.wt-workbench-pane[hidden] {
+  display: none !important;
+}
+
+.wt-handoff-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-field);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 42%, var(--color-line));
+  background: var(--color-accent-soft);
+  color: var(--color-ink);
+  font-size: 13.5px;
+  line-height: 1.55;
+}

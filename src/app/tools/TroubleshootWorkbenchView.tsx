@@ -23,6 +23,12 @@ import {
 } from "../../sim/troubleshoot/timelineSandbox";
 import { useOptionalWikiAssistant } from "../wiki/assistant-context";
 import { ToolDeepLinkById } from "./ToolDeepLinkChip";
+import {
+  buildTroubleshootChatAnalysis,
+  hasReconcilableStartupMetrics,
+  sanitizeDiagnosticText,
+  workbenchHandoffStore,
+} from "./workbenchHandoff";
 
 export type TroubleshootMode = "logs" | "timeline" | "full";
 type ActiveWorkbenchPanel = "logs" | "timeline";
@@ -371,10 +377,12 @@ function DiagnosisFindingCard({ finding }: { finding: LogDiagnosisFinding }) {
 function RealLogAnalyzerPanel({
   initialPresetId,
   onAskAssistant,
+  onHandoffToReconcile,
   hasAssistant,
 }: {
   initialPresetId?: string | undefined;
-  onAskAssistant: (report: LogAnalysisReport, trigger: HTMLButtonElement) => void;
+  onAskAssistant: (report: LogAnalysisReport, rawInput: string, trigger: HTMLButtonElement) => void;
+  onHandoffToReconcile: (rawInput: string, report: LogAnalysisReport) => void;
   hasAssistant: boolean;
 }) {
   const idPrefix = useId();
@@ -383,6 +391,7 @@ function RealLogAnalyzerPanel({
   const [rawInput, setRawInput] = useState<string>(initialFixture.content);
 
   const report = useMemo(() => analyzeTroubleshootInput(rawInput), [rawInput]);
+  const canReconcile = useMemo(() => hasReconcilableStartupMetrics(rawInput), [rawInput]);
   const activeFixture = TROUBLESHOOT_FIXTURES.find((f) => f.id === activeFixtureId);
 
   const handleSelectFixture = (fixtureId: string) => {
@@ -468,16 +477,30 @@ function RealLogAnalyzerPanel({
           )}
           {report.metrics.hasMetrics && <span className="wt-stat-pill is-unknown">/metrics 已解析</span>}
         </div>
-        {hasAssistant && (
-          <button
-            type="button"
-            className="wt-assistant-btn"
-            data-testid="troubleshoot-ask-assistant"
-            onClick={(e: MouseEvent<HTMLButtonElement>) => onAskAssistant(report, e.currentTarget)}
-          >
-            打包首错与证据送入问答助手
-          </button>
-        )}
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+          {canReconcile && (
+            <button
+              type="button"
+              className="wt-preset-btn"
+              data-testid="handoff-to-reconcile"
+              onClick={() => onHandoffToReconcile(rawInput, report)}
+            >
+              送去启动对账 →
+            </button>
+          )}
+          {hasAssistant && (
+            <button
+              type="button"
+              className="wt-assistant-btn"
+              data-testid="troubleshoot-ask-assistant"
+              onClick={(e: MouseEvent<HTMLButtonElement>) =>
+                onAskAssistant(report, rawInput, e.currentTarget)
+              }
+            >
+              打包首错与证据送入问答助手
+            </button>
+          )}
+        </div>
       </div>
 
       {report.inputKind !== "metrics" && <FirstFaultVerdictCard report={report} />}
@@ -953,6 +976,7 @@ export interface TroubleshootWorkbenchViewProps {
   embedded?: boolean | undefined;
   initialPresetId?: string | undefined;
   initialTab?: ActiveWorkbenchPanel | undefined;
+  onNavigateToReconcile?: (() => void) | undefined;
 }
 
 export function TroubleshootWorkbenchView({
@@ -962,6 +986,7 @@ export function TroubleshootWorkbenchView({
   embedded = false,
   initialPresetId,
   initialTab,
+  onNavigateToReconcile,
 }: TroubleshootWorkbenchViewProps) {
   const effectiveMode: TroubleshootMode = mode === "logs" || mode === "timeline" ? mode : "full";
   const assistant = useOptionalWikiAssistant();
@@ -986,10 +1011,42 @@ export function TroubleshootWorkbenchView({
         ? "示意相对时序排障沙箱"
         : "双模交互式排障工作台");
 
-  const handleAskAssistant = (report: LogAnalysisReport, trigger: HTMLButtonElement) => {
+  const handleAskAssistant = (report: LogAnalysisReport, rawInput: string, trigger: HTMLButtonElement) => {
     if (!assistant) return;
-    const prompt = buildTroubleshootAssistantPrompt(report);
-    assistant.openChat({ prompt, submit: false, trigger });
+    const rawPrompt = buildTroubleshootAssistantPrompt(report);
+    const { sanitized, redactionCount } = sanitizeDiagnosticText(rawPrompt);
+    const analysis = buildTroubleshootChatAnalysis(rawInput);
+    const rankTag =
+      report.firstFaultVerdict.rank !== null ? `首错 Rank ${report.firstFaultVerdict.rank}` : "排障日志/指标";
+    const suggestedQuestion =
+      report.firstFaultVerdict.rank !== null
+        ? `请结合排障工作台锁定的首错 Rank ${report.firstFaultVerdict.rank} 与脱敏证据，确认优先根因并给出最小对照实验。`
+        : "请结合排障工作台的脱敏日志与 /metrics 证据，确认优先根因并给出下一步取证命令。";
+    assistant.openChat({
+      pendingAttachment: {
+        title: `排障工作台脱敏快照（${rankTag}）`,
+        summary: `命中 ${report.findings.length} 条规则 · ${CONFIDENCE_META[report.firstFaultVerdict.confidence].label}`,
+        sanitizedBlock: sanitized,
+        redactionCount,
+        suggestedQuestion,
+        ...(analysis ? { analysis } : {}),
+      },
+      submit: false,
+      trigger,
+    });
+  };
+
+  const handleHandoffToReconcile = (rawInput: string, report: LogAnalysisReport) => {
+    const sourceLabel =
+      report.firstFaultVerdict.rank !== null
+        ? `排障工作台 · 首错 Rank ${report.firstFaultVerdict.rank}`
+        : "排障工作台日志";
+    workbenchHandoffStore.sendToReconcile({ logText: rawInput, sourceLabel });
+    if (onNavigateToReconcile) {
+      onNavigateToReconcile();
+    } else if (typeof window !== "undefined") {
+      window.location.hash = "#/tools?tab=calculator&panel=reconcile";
+    }
   };
 
   return (
@@ -1066,6 +1123,7 @@ export function TroubleshootWorkbenchView({
         <RealLogAnalyzerPanel
           initialPresetId={initialPresetId}
           onAskAssistant={handleAskAssistant}
+          onHandoffToReconcile={handleHandoffToReconcile}
           hasAssistant={assistant !== null}
         />
       ) : (

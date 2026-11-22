@@ -40,6 +40,15 @@ import {
 import type { CudaGraphMode, RuleVersion } from "../../sim/rules/types";
 import { useOptionalWikiAssistant } from "../wiki/assistant-context";
 import { ToolDeepLinkChip } from "./ToolDeepLinkChip";
+import {
+  buildCalculatorQueryParams,
+  buildDeployChatAnalysis,
+  cardIdToHardwareFamily,
+  type DeployChatAnalysisPayload,
+  parseCalculatorQueryParams,
+  sanitizeDiagnosticText,
+  workbenchHandoffStore,
+} from "./workbenchHandoff";
 
 export interface DeployCalculatorViewProps {
   mode?: "quick-screen" | "minimal" | "full" | undefined;
@@ -47,6 +56,8 @@ export interface DeployCalculatorViewProps {
   summary?: string | undefined;
   initialModel?: string | undefined;
   embedded?: boolean | undefined;
+  searchParams?: URLSearchParams | undefined;
+  onNavigateToDoctor?: (() => void) | undefined;
 }
 
 const PRECISION_OPTIONS: readonly { value: WeightPrecision; label: string }[] = [
@@ -931,7 +942,13 @@ function MinimalRooflineBody({ plan }: { plan: DeployPlanReport }) {
   );
 }
 
-function FourQuestionsGrid({ plan }: { plan: DeployPlanReport }) {
+function FourQuestionsGrid({
+  plan,
+  onHandoffToDoctor,
+}: {
+  plan: DeployPlanReport;
+  onHandoffToDoctor?: (() => void) | undefined;
+}) {
   const [copied, setCopied] = useState(false);
   const { q1Fit, q2Capacity, q3Roofline, q4Recommendation } = plan.fourQuestions;
   const q1Tone =
@@ -1055,11 +1072,31 @@ function FourQuestionsGrid({ plan }: { plan: DeployPlanReport }) {
       </article>
 
       <article className="wt-card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
           <strong style={{ fontSize: 15 }}>Q4 · 推荐起步拓扑与命令提示</strong>
-          <button type="button" className="wt-preset-btn" onClick={handleCopyCli}>
-            {copied ? "已复制命令" : "复制命令"}
-          </button>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <button type="button" className="wt-preset-btn" onClick={handleCopyCli}>
+              {copied ? "已复制命令" : "复制命令"}
+            </button>
+            {onHandoffToDoctor && (
+              <button
+                type="button"
+                className="wt-assistant-btn"
+                data-testid="handoff-to-doctor"
+                onClick={onHandoffToDoctor}
+              >
+                送去配置体检 →
+              </button>
+            )}
+          </div>
         </div>
         <p style={{ margin: 0, fontSize: 13.5, color: "var(--color-ink)" }}>{q4Recommendation.rationale}</p>
         <pre
@@ -1285,12 +1322,14 @@ function formatReconcileDelta(delta: number | null, unit: "GiB" | "tokens"): str
 
 function ReconcileLogSection({
   plan,
+  deployAnalysis,
   logText,
   onLogTextChange,
   activeTemplateId,
   onApplyTemplate,
 }: {
   plan: DeployPlanReport;
+  deployAnalysis?: DeployChatAnalysisPayload | undefined;
   logText: string;
   onLogTextChange: (next: string) => void;
   activeTemplateId: string | null;
@@ -1300,7 +1339,7 @@ function ReconcileLogSection({
   const parsed = useMemo(() => parseAscendStartupLog(logText), [logText]);
   const recon: LogReconciliationReport = useMemo(() => reconcileStartupLog(plan, parsed), [plan, parsed]);
 
-  const handleAskAssistant = () => {
+  const handleAskAssistant = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (!assistant) return;
     const lines = recon.items
       .filter((it) => it.status !== "missing")
@@ -1309,13 +1348,25 @@ function ReconcileLogSection({
           `- ${it.title}: 实测 ${formatReconcileValue(it.measured, it.unit)} vs 预测 [${it.predictedLow}, ${it.predictedHigh}] ${it.unit}（${RECON_STATUS_META[it.status].label}，Δ=${formatReconcileDelta(it.delta, it.unit)}）`,
       )
       .join("\n");
-    const prompt = [
+    const rawPrompt = [
       `我在昇腾 ${plan.card.name} 上用 ${plan.spec.name}（${plan.inputSummary.weightPrecision}，TP=${plan.inputSummary.tpSize}，PP=${plan.inputSummary.ppSize}，EP=${plan.inputSummary.enableEp ? plan.inputSummary.epWorldSize : "关"}，u=${plan.inputSummary.gpuMemoryUtilization}）做 Mode B 启动日志对账：`,
       recon.summary,
       lines,
       "请结合 vLLM-Ascend 7 级显存账目与 HCCL 不二次扣减守恒，帮我分析偏差根因和调参建议。",
     ].join("\n\n");
-    assistant.openChat({ prompt });
+    const { sanitized, redactionCount } = sanitizeDiagnosticText(rawPrompt);
+    assistant.openChat({
+      pendingAttachment: {
+        title: `启动日志对账脱敏快照（${plan.spec.name} · ${plan.card.shortName}）`,
+        summary: recon.summary,
+        sanitizedBlock: sanitized,
+        redactionCount,
+        suggestedQuestion: `请结合 ${plan.spec.name} 在 ${plan.card.shortName} 上的 7 级显存对账结果，分析偏差根因与调参建议。`,
+        ...(deployAnalysis ? { analysis: deployAnalysis } : {}),
+      },
+      submit: false,
+      trigger: event.currentTarget,
+    });
   };
 
   return (
@@ -1843,16 +1894,34 @@ export function DeployCalculatorView({
   summary,
   initialModel,
   embedded = false,
+  searchParams,
+  onNavigateToDoctor,
 }: DeployCalculatorViewProps) {
+  const initialQuery = useMemo(
+    () => (!embedded && searchParams ? parseCalculatorQueryParams(searchParams) : {}),
+    [embedded, searchParams],
+  );
+  const initialWave4Demo = useMemo(
+    () =>
+      initialQuery.presetId ? WAVE4_DEMO_PRESETS.find((d) => d.id === initialQuery.presetId) : undefined,
+    [initialQuery.presetId],
+  );
   const initialTrimmed = initialModel?.trim() ?? "";
-  const startsWithJson = initialTrimmed.startsWith("{");
-  const defaultPreset = matchInitialPresetId(startsWithJson ? undefined : initialModel);
+  const startsWithJson = initialTrimmed.startsWith("{") || Boolean(initialWave4Demo);
+  const defaultPreset =
+    !initialWave4Demo && initialQuery.presetId
+      ? matchInitialPresetId(initialQuery.presetId)
+      : matchInitialPresetId(startsWithJson ? undefined : initialModel);
   const [presetId, setPresetId] = useState<string>(defaultPreset);
   const [useCustomJson, setUseCustomJson] = useState(startsWithJson);
   const [customJsonText, setCustomJsonText] = useState<string>(
-    startsWithJson ? initialTrimmed : DEFAULT_WAVE4_MLA_JSON,
+    initialWave4Demo
+      ? JSON.stringify(initialWave4Demo.config, null, 2)
+      : startsWithJson
+        ? initialTrimmed
+        : DEFAULT_WAVE4_MLA_JSON,
   );
-  const [activeWave4DemoId, setActiveWave4DemoId] = useState<string | null>(null);
+  const [activeWave4DemoId, setActiveWave4DemoId] = useState<string | null>(initialWave4Demo?.id ?? null);
   const prevInitialModelRef = useRef<string | undefined>(initialModel);
   useEffect(() => {
     if (prevInitialModelRef.current === initialModel) return;
@@ -1866,24 +1935,27 @@ export function DeployCalculatorView({
       setPresetId(matchInitialPresetId(initialModel));
     }
   }, [initialModel]);
-  const [subMode, setSubMode] = useState<"static" | "reconcile">("static");
+  const [subMode, setSubMode] = useState<"static" | "reconcile">(initialQuery.subMode ?? "static");
   const [logText, setLogText] = useState<string>(SAMPLE_ASCEND_STARTUP_LOGS[0]?.logText ?? "");
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(
     SAMPLE_ASCEND_STARTUP_LOGS[0]?.id ?? null,
   );
+  const [reconcileHandoffSource, setReconcileHandoffSource] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+
   const [state, setState] = useState<CalcState>({
-    version: "v0.30.0",
-    cardId: "a2-64g",
-    weightPrecision: "bf16",
-    kvCacheDtype: "auto",
+    version: initialQuery.version ?? "v0.30.0",
+    cardId: initialQuery.cardId ?? "a2-64g",
+    weightPrecision: initialQuery.weightPrecision ?? initialWave4Demo?.recommendedPrecision ?? "bf16",
+    kvCacheDtype: initialQuery.kvCacheDtype ?? "auto",
     weightNzMode: 1,
-    tpSize: 1,
-    ppSize: 1,
-    dpSize: 1,
-    dcpSize: 1,
-    enableEp: false,
-    gpuMemoryUtilization: DEFAULT_GPU_MEMORY_UTILIZATION,
-    maxModelLen: 32768,
+    tpSize: initialQuery.tpSize ?? initialWave4Demo?.recommendedTp ?? 1,
+    ppSize: initialQuery.ppSize ?? initialWave4Demo?.recommendedPp ?? 1,
+    dpSize: initialQuery.dpSize ?? initialWave4Demo?.recommendedDp ?? 1,
+    dcpSize: initialQuery.dcpSize ?? 1,
+    enableEp: initialQuery.enableEp ?? initialWave4Demo?.recommendedEnableEp ?? false,
+    gpuMemoryUtilization: initialQuery.gpuMemoryUtilization ?? DEFAULT_GPU_MEMORY_UTILIZATION,
+    maxModelLen: initialQuery.maxModelLen ?? 32768,
     maxNumBatchedTokens: DEFAULT_MAX_NUM_BATCHED_TOKENS,
     maxNumSeqs: DEFAULT_MAX_NUM_SEQS,
     cudagraphMode: "PIECEWISE",
@@ -1891,6 +1963,28 @@ export function DeployCalculatorView({
     decodeBatchSize: 16,
     decodeContextLen: 4096,
   });
+
+  const panelQuery = searchParams?.get("panel");
+  useEffect(() => {
+    if (embedded) return;
+    if (panelQuery === "reconcile" || panelQuery === "static") {
+      setSubMode(panelQuery);
+    }
+  }, [embedded, panelQuery]);
+
+  useEffect(() => {
+    if (embedded) return;
+    const applyPending = () => {
+      const payload = workbenchHandoffStore.consumeReconcile();
+      if (!payload) return;
+      setSubMode("reconcile");
+      setLogText(payload.logText);
+      setActiveTemplateId(null);
+      setReconcileHandoffSource(payload.sourceLabel);
+    };
+    applyPending();
+    return workbenchHandoffStore.subscribe(applyPending);
+  }, [embedded]);
 
   const patchState = (patch: Partial<CalcState>) => {
     setState((prev) => ({ ...prev, ...patch }));
@@ -1925,6 +2019,48 @@ export function DeployCalculatorView({
     };
     return evaluateDeployPlan(input);
   }, [gate, state]);
+
+  const deployAnalysis = useMemo(() => {
+    if (!plan) return undefined;
+    let modelRef: string | Record<string, unknown> | undefined;
+    if (!useCustomJson) {
+      modelRef = presetId;
+    } else if (activeWave4DemoId) {
+      modelRef = activeWave4DemoId;
+    } else {
+      try {
+        const parsed: unknown = JSON.parse(customJsonText);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          modelRef = parsed as Record<string, unknown>;
+        }
+      } catch {
+        modelRef = undefined;
+      }
+    }
+    if (!modelRef) return undefined;
+    return buildDeployChatAnalysis({
+      model: modelRef,
+      cardId: state.cardId,
+      version: state.version,
+      weightPrecision: state.weightPrecision,
+      kvCacheDtype: state.kvCacheDtype,
+      weightNzMode: state.weightNzMode,
+      tpSize: state.tpSize,
+      ppSize: state.ppSize,
+      dpSize: state.dpSize,
+      dcpSize: state.dcpSize,
+      enableEp: state.enableEp,
+      gpuMemoryUtilization: state.gpuMemoryUtilization,
+      maxModelLen: state.maxModelLen,
+      maxNumBatchedTokens: state.maxNumBatchedTokens,
+      maxNumSeqs: state.maxNumSeqs,
+      cudagraphMode: state.cudagraphMode,
+      enforceEager: state.cudagraphMode === "NONE",
+      prefillTokens: state.prefillTokens,
+      decodeBatchSize: state.decodeBatchSize,
+      decodeContextLen: state.decodeContextLen,
+    });
+  }, [plan, useCustomJson, presetId, activeWave4DemoId, customJsonText, state]);
 
   const handleApplyTemplate = (tpl: SampleStartupLogTemplate) => {
     setLogText(tpl.logText);
@@ -1970,6 +2106,48 @@ export function DeployCalculatorView({
     });
   };
 
+  const handleHandoffToDoctor = () => {
+    if (!plan) return;
+    workbenchHandoffStore.sendToDoctor({
+      commandText: plan.fourQuestions.q4Recommendation.cliHint,
+      hardwareFamily: cardIdToHardwareFamily(plan.card.id),
+      version: state.version === "main" ? "main" : "v0.30.0",
+      sourceLabel: `${plan.spec.name} · ${plan.card.shortName}`,
+    });
+    if (onNavigateToDoctor) {
+      onNavigateToDoctor();
+    } else if (typeof window !== "undefined") {
+      window.location.hash = "#/tools?tab=doctor";
+    }
+  };
+
+  const handleCopyShareLink = () => {
+    if (typeof window === "undefined" || !navigator.clipboard) return;
+    const shareParams = buildCalculatorQueryParams(
+      {
+        subMode,
+        presetId: useCustomJson ? (activeWave4DemoId ?? undefined) : presetId,
+        cardId: state.cardId,
+        weightPrecision: state.weightPrecision,
+        kvCacheDtype: state.kvCacheDtype,
+        tpSize: state.tpSize,
+        ppSize: state.ppSize,
+        dpSize: state.dpSize,
+        dcpSize: state.dcpSize,
+        enableEp: state.enableEp,
+        gpuMemoryUtilization: state.gpuMemoryUtilization,
+        maxModelLen: state.maxModelLen,
+        version: state.version === "main" ? "main" : "v0.30.0",
+      },
+      searchParams,
+    );
+    const url = `${window.location.origin}${window.location.pathname}#/tools?${shareParams.toString()}`;
+    void navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 1800);
+    });
+  };
+
   const displayTitle = title ?? "「立项四问」双模部署算账台";
 
   return (
@@ -2005,6 +2183,17 @@ export function DeployCalculatorView({
             <div className="wt-title-row">
               <h2 className="wt-title">{displayTitle}</h2>
               <span className="wt-baseline-pill">vllm-ascend {state.version}</span>
+              {mode === "full" && (
+                <button
+                  type="button"
+                  className="wt-preset-btn"
+                  style={{ padding: "2px 10px", fontSize: 12.5 }}
+                  data-testid="calc-copy-share-link"
+                  onClick={handleCopyShareLink}
+                >
+                  {linkCopied ? "已复制参数链接" : "复制参数链接"}
+                </button>
+              )}
             </div>
             <p className="wt-subtitle">
               {summary ??
@@ -2152,7 +2341,7 @@ export function DeployCalculatorView({
 
           {mode === "full" && subMode === "static" && (
             <>
-              <FourQuestionsGrid plan={plan} />
+              <FourQuestionsGrid plan={plan} onHandoffToDoctor={handleHandoffToDoctor} />
               <SevenStageSection plan={plan} />
               <section className="wt-section">
                 <div className="wt-section-head">
@@ -2174,16 +2363,34 @@ export function DeployCalculatorView({
           )}
 
           {mode === "full" && subMode === "reconcile" && (
-            <ReconcileLogSection
-              plan={plan}
-              logText={logText}
-              onLogTextChange={(next) => {
-                setLogText(next);
-                setActiveTemplateId(null);
-              }}
-              activeTemplateId={activeTemplateId}
-              onApplyTemplate={handleApplyTemplate}
-            />
+            <>
+              {reconcileHandoffSource && (
+                <div className="wt-handoff-banner" data-testid="reconcile-handoff-banner" role="status">
+                  <span>
+                    已从「<strong>{reconcileHandoffSource}</strong>
+                    」带入启动日志与显存快照，可结合上方模型/卡型逐项对账。
+                  </span>
+                  <button
+                    type="button"
+                    className="wt-preset-btn"
+                    onClick={() => setReconcileHandoffSource(null)}
+                  >
+                    知道了
+                  </button>
+                </div>
+              )}
+              <ReconcileLogSection
+                plan={plan}
+                deployAnalysis={deployAnalysis}
+                logText={logText}
+                onLogTextChange={(next) => {
+                  setLogText(next);
+                  setActiveTemplateId(null);
+                }}
+                activeTemplateId={activeTemplateId}
+                onApplyTemplate={handleApplyTemplate}
+              />
+            </>
           )}
         </>
       )}

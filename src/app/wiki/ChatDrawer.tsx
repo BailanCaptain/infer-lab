@@ -1,19 +1,51 @@
-import { ArrowUp, BookOpen, Square } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ArrowUp, BookOpen, Check, Copy, Square, X } from "lucide-react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { QUALITY_LABELS } from "../../content/wiki/answer-quality";
 import { AnswerSave } from "./AnswerSave";
+import {
+  type BackendAvailability,
+  getBackendAvailability,
+  STATIC_OFFLINE_HINT,
+  subscribeBackendAvailability,
+} from "./api";
 import { ChatMarkdown } from "./ChatMarkdown";
-import type { ChatState } from "./chat-controller";
+import type { ChatState, PendingChatAttachment } from "./chat-controller";
 import type { Msg, TraceVersions, TraceView } from "./chat-history";
 import { WikiContentLink } from "./WikiLink";
 
 export {
   bindPageHideFlush,
+  type ChatAnalysisPayload,
   type ChatControllerDeps,
   type ChatState,
   createChatController,
+  type PendingChatAttachment,
   useChat,
 } from "./chat-controller";
+
+export function handleChatFormSubmit(
+  e: { preventDefault: () => void },
+  isOffline: boolean,
+  send: () => void,
+): void {
+  e.preventDefault();
+  if (isOffline) return;
+  send();
+}
+
+export function handleChatInputKeyDown(
+  e: { key: string; shiftKey: boolean; nativeEvent: { isComposing: boolean }; preventDefault: () => void },
+  isOffline: boolean,
+  send: () => void,
+): void {
+  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+    e.preventDefault();
+    if (isOffline) return;
+    send();
+  }
+}
+
+const getServerBackendAvailability = (): BackendAvailability => "unknown";
 
 const repoName = (repo: string) => repo.split("/").pop() ?? repo;
 const refName = (ref: string) => ref.replace(/^releases\//, "");
@@ -119,23 +151,97 @@ function modelNotice(m: ModelView): string {
   return `本轮换了模型：${lead}，改由 ${m.answeredBy ?? "另一个模型"} 作答。`;
 }
 
+function PendingAttachmentCard({
+  attachment,
+  onDismiss,
+}: {
+  attachment: PendingChatAttachment;
+  onDismiss?: (() => void) | undefined;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const payload = `${attachment.title}\n${attachment.summary}\n\n${attachment.sanitizedBlock}`;
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(payload).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      });
+    }
+  };
+
+  return (
+    <div className="wiki-chat-attachment" data-testid="chat-pending-attachment">
+      <div className="wiki-chat-attachment-head">
+        <div className="wiki-chat-attachment-meta">
+          <strong>{attachment.title}</strong>
+          <small>
+            {attachment.summary}
+            {attachment.redactionCount && attachment.redactionCount > 0
+              ? ` · 已脱敏 ${attachment.redactionCount} 处敏感凭据/内网地址`
+              : " · 仅驻留内存，发送前不写本机存储"}
+          </small>
+        </div>
+        <div className="wiki-chat-attachment-actions">
+          <button
+            type="button"
+            className="wiki-chat-attachment-btn"
+            data-testid="chat-copy-attachment"
+            onClick={handleCopy}
+          >
+            {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+            <span>{copied ? "已复制" : "复制诊断摘要"}</span>
+          </button>
+          {onDismiss && (
+            <button
+              type="button"
+              className="wiki-chat-attachment-dismiss"
+              data-testid="chat-dismiss-attachment"
+              aria-label="移除诊断附件"
+              title="移除诊断附件（保留已敲草稿）"
+              onClick={onDismiss}
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      </div>
+      <details className="wiki-chat-attachment-preview">
+        <summary>预览待附带的脱敏快照</summary>
+        <pre>{attachment.sanitizedBlock}</pre>
+      </details>
+    </div>
+  );
+}
+
 /** 引导新读者的三个问题：一个名词、一组对比、一个具体时刻 */
 const STARTERS = ["KV Cache 是什么", "prefill 和 decode 有什么区别", "序列并行省下了哪些显存"];
 
 export function ChatPane({
   id,
   chat,
+  backendAvailable: backendAvailableProp,
   currentId,
   hidden,
   onReview,
 }: {
   id: string;
   chat: ChatState;
+  backendAvailable?: BackendAvailability | undefined;
   currentId?: string | undefined;
   hidden: boolean;
   onReview: (id: string) => void;
 }) {
-  const { msgs, input, setInput, busy, send, stop, storageError } = chat;
+  const storeBackendAvailable = useSyncExternalStore(
+    subscribeBackendAvailability,
+    getBackendAvailability,
+    getServerBackendAvailability,
+  );
+  const effectiveBackend = backendAvailableProp ?? storeBackendAvailable;
+  const isOffline = effectiveBackend === "offline";
+
+  const { msgs, input, setInput, pendingAttachment, setPendingAttachment, busy, send, stop, storageError } =
+    chat;
   const log = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
   useEffect(() => {
@@ -150,6 +256,11 @@ export function ChatPane({
         </span>
         <small role="status">{storageError || "对话保存在此浏览器"}</small>
       </div>
+      {isOffline && (
+        <p className="wiki-chat-offline-banner" role="status" data-testid="chat-static-offline-notice">
+          {STATIC_OFFLINE_HINT}
+        </p>
+      )}
       <div
         className="wiki-chat-log"
         data-testid="chat-log"
@@ -168,15 +279,17 @@ export function ChatPane({
               把报错查明白。
             </strong>
             <p className="wiki-chat-hint">查知识库、对照来源，也可以贴出异常，追踪 GitHub 上的相关讨论。</p>
-            <ul>
-              {STARTERS.map((q) => (
-                <li key={q}>
-                  <button type="button" disabled={busy} onClick={() => void send(q)}>
-                    {q}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {!isOffline && (
+              <ul>
+                {STARTERS.map((q) => (
+                  <li key={q}>
+                    <button type="button" disabled={busy} onClick={() => void send(q)}>
+                      {q}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
         {msgs.map((m) => (
@@ -229,7 +342,7 @@ export function ChatPane({
             {m.role === "agent" ? (
               m.text ? (
                 <ChatMarkdown text={m.text} currentId={currentId} />
-              ) : m.status !== "interrupted" ? (
+              ) : m.status !== "interrupted" && m.status !== "failed" ? (
                 <p className="wiki-chat-thinking" aria-hidden="true">
                   <span />
                   <span />
@@ -278,7 +391,7 @@ export function ChatPane({
                     : `独立核对：${QUALITY_LABELS[m.quality.decision.classification]}。${m.quality.decision.reason}（模型判断，仅限所查材料）`}
               </p>
             )}
-            {m.answerId && <AnswerSave answerId={m.answerId} onReview={onReview} />}
+            {!isOffline && m.answerId && <AnswerSave answerId={m.answerId} onReview={onReview} />}
             {!!m.related?.length && (
               <nav data-testid="chat-related" aria-label="接着可以看">
                 <strong>接着可以看</strong>
@@ -298,35 +411,45 @@ export function ChatPane({
         ))}
       </div>
 
+      {pendingAttachment && (
+        <PendingAttachmentCard
+          attachment={pendingAttachment}
+          onDismiss={setPendingAttachment ? () => setPendingAttachment(null) : undefined}
+        />
+      )}
+
       <form
         className="wiki-chat-input"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void send();
-        }}
+        onSubmit={(e) => handleChatFormSubmit(e, isOffline, () => void send())}
       >
         <textarea
           value={input}
           aria-label="输入问题"
           data-testid="chat-input"
-          placeholder={busy ? "回答中…" : "问一个概念，或粘贴异常 / traceback"}
+          placeholder={
+            isOffline
+              ? "当前为静态离线模式，请按 Ctrl+K 检索或复制上方诊断摘要"
+              : busy
+                ? "回答中…"
+                : "问一个概念，或粘贴异常 / traceback"
+          }
           rows={2}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-              e.preventDefault();
-              void send();
-            }
-          }}
+          onKeyDown={(e) => handleChatInputKeyDown(e, isOffline, () => void send())}
         />
         <div className="wiki-chat-compose-foot">
-          <small>Enter 发送 · Shift + Enter 换行</small>
+          <small>{isOffline ? "可使用 Ctrl+K 全站检索知识库" : "Enter 发送 · Shift + Enter 换行"}</small>
           {busy ? (
             <button type="button" aria-label="停止回答" onClick={stop}>
               <Square size={16} />
             </button>
           ) : (
-            <button type="submit" data-testid="chat-send" aria-label="发送" disabled={!input.trim()}>
+            <button
+              type="submit"
+              data-testid="chat-send"
+              aria-label="发送"
+              disabled={isOffline || (!input.trim() && !pendingAttachment)}
+            >
               <ArrowUp size={18} />
             </button>
           )}

@@ -65,7 +65,7 @@ const message = z.object({
   key: z.string(),
   role: z.enum(["user", "agent"]),
   text: z.string(),
-  status: z.enum(["pending", "complete", "interrupted"]).optional(),
+  status: z.enum(["pending", "complete", "interrupted", "failed"]).optional(),
   uncited: z.boolean().optional(),
   uncovered: z.boolean().optional(),
   citationReason: z.string().optional(),
@@ -143,6 +143,22 @@ export function interruptMessage(msg: Msg): Msg {
   };
 }
 
+export function settleFailedMessage(msg: Msg): Msg {
+  const { answerId: _unusedAnswerId, ...rest } = msg;
+  return {
+    ...rest,
+    status: "failed",
+    trace:
+      msg.trace?.status === "searching"
+        ? { status: "failed", reason: "回答出错，未收到搜索结果" }
+        : msg.trace,
+    quality:
+      msg.quality?.status === "checking"
+        ? { status: "unavailable", reason: "回答出错，未收到核对结果" }
+        : msg.quality,
+  };
+}
+
 export function settleCompletedMessage(msg: Msg): Msg {
   return {
     ...msg,
@@ -169,9 +185,13 @@ export function readChatHistory(storage: Pick<Storage, "getItem">): ChatHistory 
     msgs: saved.msgs.map((msg) =>
       msg.status === "pending"
         ? interruptMessage(msg)
-        : msg.quality?.status === "checking" || msg.trace?.status === "searching"
-          ? settleCompletedMessage(msg)
-          : msg,
+        : msg.status === "failed"
+          ? settleFailedMessage(msg)
+          : msg.status === "interrupted"
+            ? interruptMessage(msg)
+            : msg.quality?.status === "checking" || msg.trace?.status === "searching"
+              ? settleCompletedMessage(msg)
+              : msg,
     ),
   };
 }

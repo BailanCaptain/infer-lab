@@ -244,12 +244,29 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     expect(calcHtml).toContain('data-testid="tools-workbench"');
     expect(calcHtml).toContain('data-testid="deploy-calculator-view"');
     expect(calcHtml).toContain('data-mode="full"');
+    expect(calcHtml).toContain('data-testid="handoff-to-doctor"');
     expect(calcHtml).toContain('data-testid="tools-tab-troubleshoot"');
     expect(calcHtml).toContain('data-testid="tools-tab-aicore"');
     expect(calcHtml).not.toContain('data-testid="tools-tab-troubleshoot-preview"');
     expect(calcHtml).not.toContain('data-testid="tools-tab-aicore-preview"');
     expect(calcHtml).toContain("返回主章节");
     expect(calcHtml).toContain('data-testid="chat-open"');
+
+    // 验证 ?fromPage + ?preset + ?panel 白名单参数桥接与返回锚点
+    const deepQueryCtx = await handler.query(
+      new Request(
+        "http://localhost/tools?tab=calculator&panel=reconcile&preset=qwen3-30b-a3b&tp=4&fromPage=kv-cache-memory-profiling&fromAnchor=7-级冷启动显存账目",
+      ),
+    );
+    if (deepQueryCtx instanceof Response) throw new Error("unexpected redirect on deep query");
+    const deepQueryRouter = createStaticRouter(handler.dataRoutes, deepQueryCtx);
+    const deepQueryHtml = renderToStaticMarkup(
+      createElement(StaticRouterProvider, { router: deepQueryRouter, context: deepQueryCtx }),
+    );
+    expect(deepQueryHtml).toContain("返回主章节 · kv-cache-memory-profiling");
+    expect(deepQueryHtml).toContain('href="/wiki/kv-cache-memory-profiling#');
+    expect(deepQueryHtml).toContain('data-testid="calc-log-input"');
+    expect(deepQueryHtml).toContain("TP=4");
 
     const doctorHtml = await renderTab("doctor");
     expect(doctorHtml).toContain('data-testid="tools-workbench"');
@@ -264,6 +281,7 @@ describe("Wave 3/4 interactive tools SSR & honest deep-link gate", () => {
     expect(troubleshootHtml).toContain('data-testid="troubleshoot-tab-logs"');
     expect(troubleshootHtml).toContain('data-testid="troubleshoot-tab-timeline"');
     expect(troubleshootHtml).toContain('data-testid="troubleshoot-ask-assistant"');
+    expect(troubleshootHtml).toContain('data-testid="handoff-to-reconcile"');
 
     const aicoreHtml = await renderTab("aicore");
     expect(aicoreHtml).toContain('data-testid="tools-workbench"');

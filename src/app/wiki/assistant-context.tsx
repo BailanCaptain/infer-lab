@@ -11,13 +11,21 @@ import {
   useSyncExternalStore,
 } from "react";
 import { getReaderState, refreshReaderSnapshot } from "../../content/wiki/index";
-import { requestReaderSnapshot } from "./api";
-import { type ChatState, useChat } from "./chat-controller";
+import {
+  type BackendAvailability,
+  getBackendAvailability,
+  isStaticOfflineError,
+  requestReaderSnapshot,
+  setBackendAvailability,
+  subscribeBackendAvailability,
+} from "./api";
+import { type ChatState, type PendingChatAttachment, useChat } from "./chat-controller";
 import type { EvidenceViewController } from "./EvidencePane";
 import type { WikiPanelTab } from "./WikiPanel";
 
 export interface OpenChatOptions {
   prompt?: string | undefined;
+  pendingAttachment?: PendingChatAttachment | undefined;
   submit?: boolean | undefined;
   trigger?: HTMLElement | null | undefined;
 }
@@ -31,6 +39,7 @@ export interface WikiHostRegistration {
 export interface WikiAssistantContextValue {
   panel: "closed" | WikiPanelTab;
   setPanel: (panel: "closed" | WikiPanelTab) => void;
+  backendAvailable: BackendAvailability;
   snapshotError: string;
   setSnapshotError: (message: string) => void;
   refresh: (signal?: AbortSignal) => Promise<boolean>;
@@ -43,6 +52,7 @@ export interface WikiAssistantContextValue {
 }
 
 const SNAPSHOT_ERROR_MSG = "未能更新，仍显示以上版本。连接问答服务后可重试刷新。";
+const getServerBackendAvailability = (): BackendAvailability => "unknown";
 
 const WikiAssistantContext = createContext<WikiAssistantContextValue | null>(null);
 
@@ -52,7 +62,7 @@ export interface WikiAssistantControllerState {
 
 export function createWikiAssistantController(deps: {
   active?: boolean | undefined;
-  getChat: () => Pick<ChatState, "busy" | "send" | "setInput">;
+  getChat: () => Pick<ChatState, "busy" | "send" | "setInput" | "setPendingAttachment">;
   lastTriggerRef?: RefObject<HTMLElement | null> | undefined;
 }) {
   let active = deps.active ?? true;
@@ -84,8 +94,15 @@ export function createWikiAssistantController(deps: {
       lastTriggerRef.current = options.trigger ?? null;
     }
     if (active) setPanel("chat");
+    const chat = deps.getChat();
+    if (options?.pendingAttachment && chat.setPendingAttachment) {
+      chat.setPendingAttachment(options.pendingAttachment);
+      if (options.submit && !chat.busy) {
+        void chat.send();
+      }
+      return;
+    }
     if (options?.prompt) {
-      const chat = deps.getChat();
       if (options.submit && !chat.busy) {
         void chat.send(options.prompt);
       } else {
@@ -125,6 +142,11 @@ export function WikiAssistantProvider({
   children: ReactNode;
 }) {
   const chat = useChat();
+  const backendAvailable = useSyncExternalStore(
+    subscribeBackendAvailability,
+    getBackendAvailability,
+    getServerBackendAvailability,
+  );
   const [snapshotError, setSnapshotError] = useState("");
   const [wikiHost, setWikiHost] = useState<WikiHostRegistration | null>(null);
   const lastTriggerRef = useRef<HTMLElement | null>(null);
@@ -149,9 +171,15 @@ export function WikiAssistantProvider({
         () => requestReaderSnapshot(getReaderState().revision),
         signal,
       );
+      setBackendAvailability("online");
       if (updated) setSnapshotError("");
       return updated;
     } catch (error) {
+      if (isStaticOfflineError(error)) {
+        setBackendAvailability("offline");
+        if (!signal?.aborted) setSnapshotError("");
+        return false;
+      }
       if (!signal?.aborted) setSnapshotError(SNAPSHOT_ERROR_MSG);
       throw error;
     }
@@ -182,6 +210,7 @@ export function WikiAssistantProvider({
     () => ({
       panel,
       setPanel: controller.setPanel,
+      backendAvailable,
       snapshotError,
       setSnapshotError,
       refresh,
@@ -192,7 +221,7 @@ export function WikiAssistantProvider({
       chat,
       lastTriggerRef,
     }),
-    [panel, controller, snapshotError, refresh, registerWikiHost, wikiHost, chat],
+    [panel, controller, backendAvailable, snapshotError, refresh, registerWikiHost, wikiHost, chat],
   );
 
   return <WikiAssistantContext.Provider value={value}>{children}</WikiAssistantContext.Provider>;

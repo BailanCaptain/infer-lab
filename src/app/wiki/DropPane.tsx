@@ -1,17 +1,36 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { type DropBatch, type DropItem, dropStates } from "../../content/wiki/drop";
-import { wikiRequest } from "./api";
+import {
+  type BackendAvailability,
+  getBackendAvailability,
+  isStaticOfflineError,
+  STATIC_OFFLINE_HINT,
+  subscribeBackendAvailability,
+  wikiRequest,
+} from "./api";
 import { DropReceiptView } from "./DropReceiptView";
+
+const getServerBackendAvailability = (): BackendAvailability => "unknown";
 
 export function DropPane({
   id,
+  backendAvailable: backendAvailableProp,
   hidden,
   onReview,
 }: {
   id: string;
+  backendAvailable?: BackendAvailability | undefined;
   hidden: boolean;
   onReview: (id: string) => void;
 }) {
+  const storeBackendAvailable = useSyncExternalStore(
+    subscribeBackendAvailability,
+    getBackendAvailability,
+    getServerBackendAvailability,
+  );
+  const effectiveBackend = backendAvailableProp ?? storeBackendAvailable;
+  const isOffline = effectiveBackend === "offline";
+
   const [batches, setBatches] = useState<DropBatch[]>([]);
   const [selected, setSelected] = useState<string>();
   const [items, setItems] = useState<DropItem[]>([]);
@@ -27,21 +46,55 @@ export function DropPane({
   const [feedback, setFeedback] = useState("");
   const requestKey = useRef(crypto.randomUUID());
   const requestBody = useRef("");
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const current = batches.find((b) => b.id === selected);
   const collecting = !current || current.state === "collecting";
+
+  const stopPolling = useCallback(() => {
+    if (pollTimerRef.current !== undefined) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = undefined;
+    }
+  }, []);
+
   const load = useCallback(async () => {
+    if (isOffline) {
+      stopPolling();
+      setError("");
+      return;
+    }
     try {
       setBatches((await wikiRequest<{ batches: DropBatch[] }>("drops")).batches);
     } catch (e) {
+      if (isStaticOfflineError(e)) {
+        stopPolling();
+        setError("");
+        return;
+      }
       setError(String(e));
     }
-  }, []);
+  }, [isOffline, stopPolling]);
+
   useEffect(() => {
-    if (hidden) return;
+    if (hidden || isOffline) {
+      stopPolling();
+      return;
+    }
     void load();
-    const timer = setInterval(() => void load(), 2000);
-    return () => clearInterval(timer);
-  }, [hidden, load]);
+    pollTimerRef.current = setInterval(() => void load(), 2000);
+    return stopPolling;
+  }, [hidden, isOffline, load, stopPolling]);
+
+  if (isOffline) {
+    return (
+      <section id={id} role="tabpanel" aria-label="Drop 资料" hidden={hidden} className="wiki-drop">
+        <p role="status" className="wiki-chat-reading" data-testid="drop-static-offline-notice">
+          {STATIC_OFFLINE_HINT}
+        </p>
+      </section>
+    );
+  }
+
   const perform = async (fn: () => Promise<void>) => {
     if (busy) return;
     setBusy(true);
